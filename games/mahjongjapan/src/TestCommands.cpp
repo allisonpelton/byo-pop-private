@@ -273,8 +273,9 @@ bool BoardBlocked(Board* theBoard)
 {
 	if (theBoard == nullptr || !theBoard->mStarted)
 		return true;
-	return !((theBoard->mFlightCount < 1 || theBoard->mFlightKind == 0 || theBoard->mFlightKind == 6) &&
-		theBoard->mPhase == 0 && theBoard->mPhaseLeft < 1);
+	return !((theBoard->mFlightCount < 1 || theBoard->mFlightKind == FLIGHT_TAKEN ||
+			theBoard->mFlightKind == FLIGHT_UNDO) &&
+		theBoard->mPhase == PHASE_FLY_IN && theBoard->mPhaseLeft < 1);
 }
 
 struct Btn
@@ -609,7 +610,7 @@ bool MahjongApp::HandleScriptCommand(const ScriptCommand& theCommand)
 	{
 		PlayLayer* aPlay = ActivePlay();
 		if (aPlay == nullptr || aPlay->mBoard == nullptr || TopLayer() != aPlay || aPlay->mBoard->mOver ||
-			aPlay->mBoard->mEscaping || !aPlay->mBoard->mStarted || aPlay->mBoard->mPhase != 0)
+			aPlay->mBoard->mEscaping || !aPlay->mBoard->mStarted || aPlay->mBoard->mPhase != PHASE_FLY_IN)
 		{
 			ReplyError(aText, "no game on the board to win");
 			return true;

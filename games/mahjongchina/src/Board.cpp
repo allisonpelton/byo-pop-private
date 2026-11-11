@@ -303,7 +303,7 @@ void Board::Shuffle()
 	SetFlyOut();
 	mPhaseTime = 500;
 	mPhaseLeft = 500;
-	mPhase = 1;
+	mPhase = PHASE_SHUFFLE_OUT;
 	jb::PlaySound(SOUND_SHUFFLE);
 	ClearSelection();
 	std::string aText = jb::LoadDllString(STRING_BONUS_SECONDS);
@@ -321,7 +321,7 @@ void Board::Reshuffle()
 	mDeal.Start(&mLayout, mQuadPercent, mMove, true);
 	UpdateMoves();
 	SwapFlyOut();
-	mPhase = 2;
+	mPhase = PHASE_SHUFFLE_BACK;
 	mPhaseTime = 500;
 	mPhaseLeft = 500;
 }
@@ -342,7 +342,7 @@ void Board::Draw()
 	if (0 < mTray[0])
 	{
 		DrawFace(0x173, 0x1d6, mTray[0], false, 6);
-		if (mFlightKind == 4)
+		if (mFlightKind == FLIGHT_KEY_LOCK_JOINED)
 		{
 			jb::Rect aSrc = {0x118, 0, 0x140, 0x32};
 			DrawImage(0x174, 0x1d7, IMAGE_KEY_FRAMES, &aSrc, true, 100, 100, 0xff);
@@ -398,7 +398,7 @@ void Board::DrawFlight(Flight* theFlight)
 	int aGone = aTime - theFlight->mLeft;
 	int x = ((theFlight->mToX - theFlight->mFromX) * aGone) / aTime + theFlight->mFromX;
 	int y = ((theFlight->mToY - theFlight->mFromY) * aGone) / aTime + theFlight->mFromY;
-	if (mFlightKind != 3)
+	if (mFlightKind != FLIGHT_KEY_ONTO_LOCK)
 	{
 		if (0 < theFlight->mKind)
 			DrawFace(x, y, theFlight->mKind, false, 0);
@@ -421,7 +421,7 @@ bool Board::OnCommand(int theCmd)
 	mIdleSince = GetTime();
 	if ((theCmd != 0x88 && theCmd != 0x90 && theCmd != 0x93 && theCmd != 0x94 && theCmd != 0x10d && theCmd != 0x108 &&
 			theCmd != 0x10b && theCmd != 0x10c) ||
-		(!mOver && mPhase == 0 && mPhaseLeft < 1))
+		(!mOver && mPhase == PHASE_FLY_IN && mPhaseLeft < 1))
 	{
 		StartClock();
 		switch (theCmd)
@@ -687,7 +687,7 @@ void Board::DrawTile(Tile* theTile)
 		aRect.top = y;
 		FillRectAlpha(aRect, 0x50, 0, true);
 	}
-	if (mFlightKind == 4 && theTile == mFlights[0]->mTile)
+	if (mFlightKind == FLIGHT_KEY_LOCK_JOINED && theTile == mFlights[0]->mTile)
 	{
 		// The key and the lock joining
 		Flight* aFlight = mFlights[0];
@@ -749,9 +749,9 @@ bool Board::Update()
 		{
 			int aPhase = mPhase;
 			mPhaseLeft = 0;
-			if (aPhase == 0)
+			if (aPhase == PHASE_FLY_IN)
 				GetPlayLayer()->OnBoardShown();
-			else if (aPhase == 1)
+			else if (aPhase == PHASE_SHUFFLE_OUT)
 				Reshuffle();
 			else if (aPhase == 2)
 				EndShuffle();
@@ -774,43 +774,43 @@ bool Board::Update()
 		{
 			switch (mFlightKind)
 			{
-			case 0:
+			case FLIGHT_TAKEN:
 				EndTake();
 				CheckStuck();
 				break;
-			case 1:
+			case FLIGHT_ONTO_MAGNET:
 				FlyMagnet();
 				break;
-			case 2:
+			case FLIGHT_MAGNET_TO_TRAY:
 				EndMagnet();
 				CheckStuck();
 				break;
-			case 3:
+			case FLIGHT_KEY_ONTO_LOCK:
 				JoinKeyAndLock();
 				break;
-			case 4:
+			case FLIGHT_KEY_LOCK_JOINED:
 				FlyKeyAndLock();
 				break;
-			case 5:
+			case FLIGHT_KEY_LOCK_TO_TRAY:
 				EndKeyAndLock();
 				CheckStuck();
 				break;
-			case 6:
+			case FLIGHT_UNDO:
 				EndUndo();
 				break;
-			case 7:
+			case FLIGHT_UNDO_MAGNET:
 				UndoMagnet();
 				break;
-			case 8:
+			case FLIGHT_UNDO_MAGNET_OUT:
 				EndUndoMagnet();
 				break;
-			case 9:
+			case FLIGHT_GOLD:
 				EndGold();
 				break;
-			case 10:
+			case FLIGHT_BEFORE_FLY_OFF:
 				FlyOff();
 				break;
-			case 0xb:
+			case FLIGHT_GOLD_TO_TRAY:
 				EndGoldInTray();
 				break;
 			}
@@ -867,7 +867,8 @@ bool Board::OnLButtonDown(int theFlags, int theX, int theY)
 	if (!mOver)
 	{
 		mIdleSince = GetTime();
-		if ((mFlightCount < 1 || mFlightKind == 0 || mFlightKind == 6) && mPhase == 0 && mPhaseLeft < 1)
+		if ((mFlightCount < 1 || mFlightKind == FLIGHT_TAKEN || mFlightKind == FLIGHT_UNDO) && mPhase == PHASE_FLY_IN &&
+			mPhaseLeft < 1)
 		{
 			int aZ = -1;
 			int aTileX = 0;
@@ -1082,7 +1083,7 @@ void Board::Take(Tile* theTile, Tile* theOther)
 		mFlights[1] = aFlight;
 	}
 	mFlightCount = 2;
-	mFlightKind = 0;
+	mFlightKind = FLIGHT_TAKEN;
 	mFlights[0]->SetTo(0x16c, 0x1d6);
 	mFlights[1]->SetTo(0x1a0, 0x1d6);
 	AddPoints(theOther, 2, true);
@@ -1134,7 +1135,7 @@ void Board::TakeKeyAndLock(Tile* theTile, Tile* theOther)
 	mFlights[1]->SetTo(mOffX + theOther->mRect.left, mOffY + theOther->mRect.top);
 	mLayout.UpdateNeighbours(theTile, nullptr, nullptr, 0, true);
 	mFlightCount = 2;
-	mFlightKind = 3;
+	mFlightKind = FLIGHT_KEY_ONTO_LOCK;
 }
 
 // 0x40cab0
@@ -1147,7 +1148,7 @@ void Board::JoinKeyAndLock()
 	mFlights[0] = new Flight(aTile, 0, mOffX + aTile->mRect.left, mOffY + aTile->mRect.top, 1000);
 	mFlights[0]->SetTo(mOffX + aTile->mRect.left, mOffY + aTile->mRect.top);
 	mFlightCount = 1;
-	mFlightKind = 4;
+	mFlightKind = FLIGHT_KEY_LOCK_JOINED;
 	jb::PlaySound(SOUND_JOIN);
 }
 
@@ -1162,7 +1163,7 @@ void Board::FlyKeyAndLock()
 	mFlights[0] = new Flight(aTile, mOffX + aTile->mRect.left, mOffY + aTile->mRect.top, 500);
 	mFlights[0]->SetTo(0x1a0, 0x1d6);
 	mFlightCount = 1;
-	mFlightKind = 5;
+	mFlightKind = FLIGHT_KEY_LOCK_TO_TRAY;
 }
 
 // 0x40cc00
@@ -1199,7 +1200,7 @@ void Board::TakeJoker(Tile* theTile, Tile* theOther)
 	mLayout.UpdateNeighbours(theTile, nullptr, nullptr, 0, true);
 	mLayout.UpdateNeighbours(aTiles, aCount, nullptr, 0, true);
 	UpdateMoves();
-	mFlightKind = 0;
+	mFlightKind = FLIGHT_TAKEN;
 	mFlightCount = aCount + 1;
 }
 
@@ -1212,7 +1213,7 @@ void Board::TakeMagnet(Tile* theTile, Tile* theOther)
 	mFlights[0] = new Flight(theOther, mOffX + theOther->mRect.left, mOffY + theOther->mRect.top, 500);
 	mFlights[0]->SetTo(mOffX + theTile->mRect.left, mOffY + theTile->mRect.top);
 	mFlightCount = 1;
-	mFlightKind = 1;
+	mFlightKind = FLIGHT_ONTO_MAGNET;
 }
 
 // 0x40ce30
@@ -1227,7 +1228,7 @@ void Board::FlyMagnet()
 	mFlights[0] = new Flight(aTile, 0x2f, mOffX + aLinked->mRect.left, mOffY + aLinked->mRect.top, 500);
 	mFlights[0]->SetTo(0x16c, 0x1d6);
 	mFlightCount = 1;
-	mFlightKind = 2;
+	mFlightKind = FLIGHT_MAGNET_TO_TRAY;
 }
 
 // 0x40ced0
@@ -1244,12 +1245,12 @@ void Board::FinishFlights()
 {
 	if (0 < mFlightCount)
 	{
-		if (mFlightKind == 0)
+		if (mFlightKind == FLIGHT_TAKEN)
 		{
 			EndTake();
 			return;
 		}
-		if (mFlightKind == 6)
+		if (mFlightKind == FLIGHT_UNDO)
 		{
 			EndUndo();
 			return;
@@ -1263,7 +1264,7 @@ void Board::Undo()
 	Tile* aTiles[41];
 	if (mMove == 0)
 		return;
-	if (0 < mFlightCount && mFlightKind != 0 && mFlightKind != 6)
+	if (0 < mFlightCount && mFlightKind != FLIGHT_TAKEN && mFlightKind != FLIGHT_UNDO)
 		return;
 	FinishFlights();
 	ClearHints();
@@ -1277,7 +1278,7 @@ void Board::Undo()
 		mFlights[0] = new Flight(aTiles[0], 0x2f, 0x16c, 0x1d6, 300);
 		mFlights[0]->SetTo(aTiles[0]->mMagnetLink->mRect.left + mOffX, aTiles[0]->mMagnetLink->mRect.top + mOffY);
 		mFlightCount = 1;
-		mFlightKind = 7;
+		mFlightKind = FLIGHT_UNDO_MAGNET;
 	}
 	else if (2 < aCount)
 	{
@@ -1306,7 +1307,7 @@ void Board::Undo()
 			} while (aLeft != 0);
 		}
 		mFlightCount = aCount;
-		mFlightKind = 6;
+		mFlightKind = FLIGHT_UNDO;
 	}
 	else if (aCount == 2 && (aTiles[0]->mKind == KIND_KEY || aTiles[1]->mKind == KIND_KEY))
 	{
@@ -1394,7 +1395,7 @@ void Board::UndoPair(Tile* theTile, Tile* theOther)
 	mFlights[1] = new Flight(theOther, 0x1a0, 0x1d6, 400);
 	mFlights[1]->SetTo(theOther->mRect.left + 0xe + mOffX, theOther->mRect.top + -0xe + mOffY);
 	mFlightCount = 2;
-	mFlightKind = 6;
+	mFlightKind = FLIGHT_UNDO;
 }
 
 // 0x40d3c0
@@ -1436,7 +1437,7 @@ void Board::UndoMagnet()
 	aTile->mKind = aTile->mMagnetLink->mKind;
 	mFlights[0] = new Flight(aTile, mOffX + aTile->mMagnetLink->mRect.left, mOffY + aTile->mMagnetLink->mRect.top, 300);
 	mFlights[0]->SetTo(mOffX + 0xe + aTile->mRect.left, mOffY + -0xe + aTile->mRect.top);
-	mFlightKind = 8;
+	mFlightKind = FLIGHT_UNDO_MAGNET_OUT;
 	mFlightCount = 1;
 	aTile->mMagnetLink->mKind = KIND_MAGNET;
 	aTile->mMagnetLink->mPreset = true;
@@ -1583,7 +1584,7 @@ void Board::TakeGold(Tile* theTile, Tile* theOther)
 		mFlights[1] = aFlight;
 	}
 	mFlightCount = 2;
-	mFlightKind = 9;
+	mFlightKind = FLIGHT_GOLD;
 	mFlights[0]->SetTo(0x16c, 0x172);
 	mFlights[1]->SetTo(0x1a0, 0x172);
 	AddPoints(theOther, 2, false);
@@ -1598,7 +1599,7 @@ void Board::EndGold()
 	{
 		FlyOff();
 		mEscaping = true;
-		mFlightKind = 10;
+		mFlightKind = FLIGHT_BEFORE_FLY_OFF;
 		jb::PlaySound(SOUND_FLY_OFF_LOOP);
 		return;
 	}
@@ -1658,7 +1659,7 @@ void Board::EndRound()
 	mFlights[0]->SetTo(0x16c, 0x1d6);
 	mFlights[1]->SetTo(0x1a0, 0x1d6);
 	mFlightCount = 2;
-	mFlightKind = 0xb;
+	mFlightKind = FLIGHT_GOLD_TO_TRAY;
 	GetPlayLayer()->CheckBestScore();
 }
 

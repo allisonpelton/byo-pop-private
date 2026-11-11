@@ -510,3 +510,70 @@ hovered button, the player name box as typed and as edited, the map, options, he
 board with the hover and the pause box, the escape stage and the map again. All 20 of each game are byte for byte the
 same (16 distinct images each), and the before exe's own rerun is the same too. The scans, run again on both games after
 the removals, find no further dead function, member or constant.
+
+## The readability pass (2026-11-11)
+
+The rules are `docs/CODE_STANDARDS.md`. `python tools/namecheck.py games/mahjongjapan` has no finding, and neither has
+the engine, which the game folder's check does not reach: `python tools/namecheck.py games/mahjongjapan/engine --config
+games/mahjongjapan/namecheck.txt`. The two exceptions, `Div255` and `AppendCp1252`, are numbers that belong to their
+names. The game has no Mac build, so every name comes from how the code uses the thing and from the game's own words.
+
+**Nothing the port does changed, proved by the object code.** The whole pass is renames, named constants, comments and
+line breaks, so every unit must compile to the same instructions as before it. `llvm-objdump -d -r` of the 39 object
+files of the native build (the game, the engine, the deal test) with the symbol names taken out, 1,741 functions, and
+the bytes of the data sections: none differs from the build before the pass. The suites agree: `tools/check.sh build
+mahjongjapan mahjongchina` passes (every native target builds; 222 layouts, 20 pairs, the screens as frozen, a rerun
+identical), the screen tour of `tools/tour/` gives the same 20 screenshots byte for byte as the exe from before the
+pass, and the web target builds.
+
+**Prefixes and words for letters (rules 4 and 5).** clang-tidy's naming check, set to the framework's prefixes, listed
+249 names. 204 of them were renamed, each within its own scope, with two more it let through (a green channel `g`, a
+layout `aTemp`): locals and parameters take `a`, `an` and `the`, a one-letter pointer or counter takes a word (`p` is
+`aSlot`, `aCell`, `aCountSlot`..., `n` is `aRemaining` or `aSeen`, `r` is `aRandom` or `aRowIndex`), the `k` constants are
+UPPER_CASE (`STAGE_RECTS`, `MAP_PATH`, `SCREEN_RECT`...), the `Module` values are `EXE` and `DLL`, and `PeResources.cpp`,
+written in another style, follows the rest. Left as they were: `Rect`'s and `Point`'s members, which are Win32's RECT and
+POINT; `main.cpp`, which every game shares in that form; and `tools/dealtest.cpp`, which is not under `src`.
+
+**Members.** The tile's `mFlag39` and `m3c` are `mBobsAsHint` and `mLiftStart` (when its lift began: a hint's bob or an
+undo's settle). The layer's two flags that nothing reads are `mXLowByteSet` and `mXLowByteSetToo`, named for what the
+constructor puts in them, and their comments say that nothing reads them, as do those of `Board::mModeByte` and the result
+box's `mClockFont`.
+
+**The magic tiles in the game's own words.** The code called the Magic Gold tiles "key tiles", the key and lock "halves",
+the joker "wild" and the magnet "linked wild", which read wrongly beside the game's real Key tile. `TakeKeys`, `EndKeys`
+and `EndKeysInTray` are `TakeGold`, `EndGold` and `EndGoldInTray`; `TakeHalves`, `JoinHalves`, `FlyHalves` and `EndHalves`
+are `TakeKeyAndLock` and so on; `TakeWild` is `TakeJoker`; `TakeLinked`, `FlyLinked`, `EndLinked`, `UndoLinked` and
+`EndUndoLinked` are `TakeMagnet` and so on; `GetHalves` is `GetLocks`, `ApplyWildLinks` `ApplyMagnetLinks`, `mWildLink`
+`mMagnetLink`, `mTipKeys` `mTipGold`, the bot's `mKeyGoal` `mGoldGoal`, and the deal's `gHalves`, `gHalvesLeft`,
+`gHalvesCount` and `gSolve2b` are `gLocks`, `gLocksLeft`, `gLockCount` and `gSolveGold`. The comments follow. The test
+commands' answers keep their field names, which are a format.
+
+**Numbers (rule 7).**
+- *Resources.* The original passes its resource ids as numbers, and so did the port: `AddText(0x6a, ...)`,
+  `DrawImage(0, 0, 0x6d, ...)`. `src/Res.h` and `engine/EngineRes.h` now name the 336 ids the code uses (pictures, the
+  fonts' pictures and character maps, sounds, music and strings; the engine's click, the exe's pictures and the splash
+  font), in 598 places: `STRING_NO_LAYOUT_TEXT`, `IMAGE_MENU_BACKGROUND`, `FONT_HEADING` with `FONT_HEADING_MAP`,
+  `SOUND_SHUFFLE`. A picture is named for what it shows (every picture of Resource.dll and the exe was looked at, on
+  contact sheets that stay out of the repository), a string for its place and role, never by its text.
+- *Tile kinds.* `KIND_GOLD`, `KIND_KEY`, `KIND_LOCK`, `KIND_JOKER`, `KIND_MAGNET` and the bounds of the seasons and the
+  flowers (`Layout.h`), `NUM_COUNTED_KINDS`, and the deal's places `DEAL_SEASONS`, `DEAL_FLOWERS` and `NUM_DEAL_KINDS`
+  (`Deal.cpp`), on about 170 lines of the board, the deal, the layout, the bot and the help pictures.
+- *The board's states.* The twelve flight kinds (`FLIGHT_TAKEN` to `FLIGHT_GOLD_TO_TRAY`, each with the step that follows
+  its landing) and the three phases (`Board.h`).
+- *The screen and the cursor.* `SCREEN_WIDTH`, `SCREEN_HEIGHT` and the `CURSOR_KIND` values (`engine/JBBase.h`).
+- *Left as numbers.* Positions, sizes and frame counts, whose line says what they are; the scale in percent (100) and the
+  alpha (0xff) that every draw call ends with; the resource ids inside tables (`STAGE_IMAGES`, `BACKGROUNDS`), whose
+  comment names the table; and each dialog's and layer's command and timer ids, which are local to one class (the
+  button that sends a command and the `case` that takes it sit in the same file). The last is the one place where rule 7
+  would still ask for names.
+
+**Addresses and comments (rules 6, 8 and 9).** Every function names its address or its file carries the port marker
+(`MahjongApp.cpp`, `PeResources.cpp`, `GameText.cpp`, `ModFeatures.cpp` got it; the test commands and the bot had it).
+A member's comment that named its font or string by number names the constant. Two comments that told a development
+stage or an open check are plain, and the lines the longer names pushed past 120 columns are wrapped. Loops keep the
+original's shape throughout.
+
+**How it was done,** for the next game on this engine: clang-tidy's `readability-identifier-naming` with the prefixes as
+its options gives the list for rule 4; a script renames each declaration within its scope (comments and strings left
+alone), another finds the number literals passed for parameters that hold ids (by the parameter's name) and writes the
+constants; and a snapshot of every object's disassembly before the pass is compared after each step.

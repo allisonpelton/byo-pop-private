@@ -93,6 +93,31 @@ struct PointsText
 
 class PlayLayer;
 
+// What the board's flights are doing (Board::mFlightKind), with the step that follows when the first one lands
+enum
+{
+	FLIGHT_TAKEN = 0,             // a pair to the tray: EndTake
+	FLIGHT_ONTO_MAGNET = 1,       // the other tile onto the magnet: FlyMagnet
+	FLIGHT_MAGNET_TO_TRAY = 2,    // EndMagnet
+	FLIGHT_KEY_ONTO_LOCK = 3,     // JoinKeyAndLock
+	FLIGHT_KEY_LOCK_JOINED = 4,   // FlyKeyAndLock
+	FLIGHT_KEY_LOCK_TO_TRAY = 5,  // EndKeyAndLock
+	FLIGHT_UNDO = 6,              // a pair back to the board: EndUndo
+	FLIGHT_UNDO_MAGNET = 7,       // the magnet back: UndoMagnet
+	FLIGHT_UNDO_MAGNET_OUT = 8,   // the tile it took out of it: EndUndoMagnet
+	FLIGHT_GOLD = 9,              // the gold tiles: EndGold
+	FLIGHT_BEFORE_FLY_OFF = 10,   // FlyOff
+	FLIGHT_GOLD_TO_TRAY = 0xb,    // EndGoldInTray
+};
+
+// The board's tiles as a whole (Board::mPhase)
+enum
+{
+	PHASE_FLY_IN = 0,        // the tiles fly in
+	PHASE_SHUFFLE_OUT = 1,   // a shuffle's tiles fly out
+	PHASE_SHUFFLE_BACK = 2,  // and back
+};
+
 // 0x40a5b0
 class Board : public jb::Object
 {
@@ -106,7 +131,7 @@ public:
 	int mQuadPercent = 0;         // +0x9c
 	uint32_t mSeed = 0;           // +0xa0 the deal's seed
 	bool mDealt = false;          // +0xa4 the kinds were dealt again (a shuffle or a saved game)
-	int mPhase = 0;               // +0xa8 0 the tiles fly in, 1 a shuffle's tiles fly out, 2 they fly back
+	int mPhase = PHASE_FLY_IN;    // +0xa8
 	int mSelImage = 0;            // +0xac the selected faces (0x40a7f0)
 	jb::Image* mTiles = nullptr;  // +0xb0 every tile drawn on its back (0x40a7f0)
 	Deal mDeal;                   // +0xb4
@@ -126,7 +151,7 @@ public:
 	int mSelAnim = 0;             // +0x438 the image the selected special tile is animated with, or 0
 	Flight* mFlights[42];         // +0x43c
 	int mFlightCount = 0;         // +0x4e4
-	int mFlightKind = 0;          // +0x4e8 what happens when the first flight lands (0x40bd70)
+	int mFlightKind = FLIGHT_TAKEN;  // +0x4e8 what is flying, so what happens when the first flight lands (0x40bd70)
 	int mTray[2] = {};            // +0x4ec the kinds of the last pair taken
 	int mMove = 0;                // +0x4f4
 	bool mAnimating = false;      // +0x4f8
@@ -194,7 +219,7 @@ public:
 	// 0x40b0a0
 	void Reshuffle();
 	// 0x40b120
-	void EndShuffle() { mPhase = 0; }
+	void EndShuffle() { mPhase = PHASE_FLY_IN; }
 	// 0x40b3d0
 	void DrawFlight(Flight* theFlight);
 	// 0x40b650
