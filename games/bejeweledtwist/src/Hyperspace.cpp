@@ -64,7 +64,9 @@ void Hyperspace::MakeOldPicture()
 	anImage->mD3DFlags = 0x10;  // +0x44: a render target (the VizManager draws the next level into it, ChooseViz)
 	anImage->Create(gApp->mWidth, gApp->mHeight);
 	anImage->SetImageMode(false, false);
-	gD3DInterface->PrepareImage(anImage);  // port: made a target now, as HoldTarget does
+	// port: made a target now, as HoldTarget does. Without Direct3D (a challenge's end in 2D) it is a plain picture
+	if (gD3DInterface != nullptr)
+		gD3DInterface->PrepareImage(anImage);
 	mOldPicture = anImage;
 	mOwnsOldPicture = true;
 }
