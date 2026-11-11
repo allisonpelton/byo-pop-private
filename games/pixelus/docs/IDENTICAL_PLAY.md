@@ -136,6 +136,9 @@ phase-one baseline only in their `apprand` lines; the game's own state and its d
   the Windows Sandbox runs without 3D; the port's emulated 3D path filters the stretch, as the original does on a machine with
   3D (the story portraits' stretch does not set the flag, and differs only at the head's edges, also a filter detail). The port
   now sets the flag by the same test, so a port run without 3D draws like the sandboxed original.
+- Shots in the middle of a move (u2300, u2450: the tile maker at another place on the board, tiles in flight or already yellow
+  in the sweep) differ because the two programs are at different steps of the same move at the same update count; the
+  boards agree at the move's end (the state logs). Not a draw difference; a shot at the end of a move would line them up.
 - The Skip the Tutorial log differs by about a pixel at its left cap and edges (resampling of the strip's frame).
 - Tile icons and the sliding trail are drawn slightly differently; the tile maker's pose differs by a frame.
 
