@@ -426,7 +426,8 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
   //               (a file in both the pak and the install comes from the pak, as PakInterface reads it). A pak may be
   //               a marker; once imported, files in the game's folders stand for it.
   //   markers     the files that make a folder the game's install, relative to it, in any case ("name.*": with any
-  //               extension); the import looks for them, and the page asks for an import while one is missing
+  //               extension; "a|b": either of two files); the import looks for them, and the page asks for an import
+  //               while one is missing
   //   markerText  the markers as the import's error names them ("images/gemsheet6 file")
   //   skip        patterns (relative paths) of install files that are not copied, beside the .sig files
   //   importIcon  the game stores no exe (it is not in gameFiles), so the import reads the game's icon out of the exe in the picked
@@ -999,10 +1000,13 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
     if (pagePlaceholders())
       return GAME_DIRS.some(function (d) { return web().fs.listDir(GAME + "/" + d).length > 0; });
     var anyGameDir = function () { return GAME_DIRS.some(function (d) { return web().fs.listDir(GAME + "/" + d).length > 0; }); };
-    return PAGE.markers.every(function (m) {
-      if (PAKS.indexOf(m.toLowerCase()) >= 0) return anyGameDir();  // unpacked at the import, not stored
-      var i = m.lastIndexOf("/"), name = new RegExp("^" + markerPattern(m.substring(i + 1)) + "$", "i");
-      return web().fs.listDir(GAME + (i < 0 ? "" : "/" + m.substring(0, i))).some(function (n) { return name.test(n); });
+    return PAGE.markers.every(function (alts) {
+      // a marker of alternatives ("a|b") is there when any one of them is
+      return alts.split("|").some(function (m) {
+        if (PAKS.indexOf(m.toLowerCase()) >= 0) return anyGameDir();  // unpacked at the import, not stored
+        var i = m.lastIndexOf("/"), name = new RegExp("^" + markerPattern(m.substring(i + 1)) + "$", "i");
+        return web().fs.listDir(GAME + (i < 0 ? "" : "/" + m.substring(0, i))).some(function (n) { return name.test(n); });
+      });
     });
   }
 

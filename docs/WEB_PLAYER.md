@@ -305,7 +305,9 @@ that game's, exactly as its own page's import card takes it. "Add games", the lo
 desktop go to the Setup window, which sorts and copies through the same queue.
 
 **Sorting** (`ByopopImport.sort` in `web/gameimport.js`) goes by the files first and the name second. A folder is a
-game's when it holds every one of the game's markers. A folder of several games ("PopCap Games") is looked into,
+game's when it holds every one of the game's markers. A marker may name alternatives, any one of which will do
+("WinTS.exe|TyperShark.exe": Typer Shark's exe in its Steam copy and in the PopCap Game Collection's), and the error for
+a folder without either names them as "WinTS.exe or TyperShark.exe". A folder of several games ("PopCap Games") is looked into,
 three levels deep at most. Where two games' markers are at the same place, the folder's name picks the one whose
 title, short name or target it matches, ignoring case, punctuation and "Deluxe", "PopCap" and "Games"; when the name
 cannot tell, the player is asked. On a phone, where no folder can be picked, .zip files are picked.
