@@ -117,7 +117,6 @@ const char* gImageNames[NUM_IMAGES] =
 	"light6",
 	"light8",
 	"light10",
-	"trialcircle",
 	"titlebar",
 	"biggestfont",
 	"nextlevel",

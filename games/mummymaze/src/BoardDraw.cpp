@@ -962,7 +962,9 @@ void Board::DrawBoard(Graphics* g, bool theWithExplorer)
 }
 
 // the skull trap's block that falls on the explorer (the first part of the second loop of 0x4095f0): 0x36 x 0x5a at 6 x 6, a
-// sheet of frames; shown from the 0x29th update of the death, then one frame per four updates after the 0x81st
+// sheet of frames; drawn from the 0x29th update of the death, then one frame per four updates after the 0x81st. It falls:
+// its foot stands on the cell's lower edge once the timer's square over 85 has reached 152 (the 114th update), and three
+// pixels higher for every unit before that, so it comes in from above the window (0x40abdc).
 void Board::DrawTrapBlock(Graphics* g, int x, int y)
 {
 	if (mDeathTimer < 0 || mExitStyle != 0)
@@ -982,7 +984,10 @@ void Board::DrawTrapBlock(Graphics* g, int x, int y)
 		aW = 0x20;
 		aH = 0x35;
 	}
-	int aPY = PixelY(y);
+	double aFall = (double) mDeathTimer * (double) mDeathTimer * 0.011764705882352941;
+	if (152.0 < aFall)
+		aFall = 152.0;
+	int aPY = (int) ((double) (PixelY(y) + mCellSize - aH) - (152.0 - aFall) * 3.0);
 	Graphics gc(*g);
 	gc.ClipRect(PixelX(x) + (mCellSize - aW) / 2, aPY, aW, aH);
 	int aX;

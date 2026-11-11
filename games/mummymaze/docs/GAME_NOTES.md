@@ -141,7 +141,7 @@ command that is never given changes nothing and draws no random number. Each ans
 
 | Command | Does |
 |---|---|
-| `state` | one JSON line. Always: `screen` (loading, title, menu, map, board, complete, lost, highscores, victory, dialog), `mode` (classic, adventure, tutorial, classic-treasure, adventure-treasure), `pyramid`, `chamber`, `level` (pyramid x 15 + chamber + 1), `score`, `update`, `over`, `botmode`, `stepinput`; with a dialog up `dialog` (its id); in the adventure `deaths` and `seconds`; on the level-complete screen `levelSeconds`; with a board `moves` (the undo list), `timer` (the clock on the board) and `board` (`size`, `state`, `ready`, `maze`, `file`, `dark`, `red`, `gate`, `key`, `unsolvable`, `explorer`, `mummy0`, `mummy1`, `scorpion` as `[x, y, alive]`) |
+| `state` | one JSON line. Always: `screen` (loading, title, menu, map, board, complete, lost, highscores, victory, dialog), `mode` (classic, adventure, tutorial, classic-treasure, adventure-treasure), `pyramid`, `chamber`, `level` (pyramid x 15 + chamber + 1), `score`, `update`, `over`, `botmode`, `stepinput`; with a dialog up `dialog` (its id); in the adventure `deaths` and `seconds`; on the level-complete screen `levelSeconds`; with a board `moves` (the undo list), `timer` (the clock on the board) and `board` (`size`, `state`, `ready`, `maze`, `file`, `dark`, `red`, `gate`, `key`, `unsolvable`, `explorer`, `mummy0`, `mummy1`, `scorpion` as `[x, y, alive]`, `traps` (two cells, 99 for none), `death` (the trap death's timer and kind: 0 the block, 1 the pit) and `walls` (a hex digit a cell, row by row: 1 north, 2 south, 4 east, 8 west)) |
 | `goto <screen>` | from the title: `menu` (presses the play link). From the main menu: `classic`, `adventure`, `tutorial`, `options`, `highscores`, `credits`, each through the menu's own link or the dialog's own function |
 | `level <n>` | a classic game from chamber n (1 to 225) from the main menu, as `-autoplaystart` does it; on a classic board it restarts the board at that chamber |
 | `unlock all` | opens every pyramid on the adventure's map (nothing else in the game is locked) |
@@ -221,8 +221,16 @@ removal leaves the baseline's logs and screenshots alone except where it is said
   true), which is the coordinator's to take out of `SexyApp`.
 - The pictures `register` and `registerrunes`, which only the registration screen used (`make_res.py` leaves them out, so the image
   ids after them moved up by two; `NUM_IMAGES` is 163).
-- Kept because the registered game has them: the `trialcircle` picture on the title, the "Internet scores" data buffer the classic
-  link starts, the tips.
+- Kept because the registered game has them: the "Internet scores" data buffer the classic link starts, the tips.
+- **What a registered copy shows on the title (taken out 2026-11-10; the user: "Mummy Maze still thanks you for registering").**
+  The original's title draws its registration state (0x42aaf0): the `trialcircle` picture, a medallion that reads "registered
+  version", at 0, 0x17f when registered, and one line over the loading bar, the thanks of a registered copy or the play count of a
+  trial. The first pass had kept both as the registered game's. Both are gone: `TitleScreen::Draw` draws neither, `make_res.py`
+  leaves the picture out (`NUM_IMAGES` is 162, the ids after it moved up by one), and the text table no longer lists the line.
+- **The text table lists only the texts the port names (2026-11-10).** `GameTextTable.inc` listed every string of the exe's text
+  region, 1208 of them, the registration screen's, the nags' and the Internet scores' among them. `make_gametext.py` now keeps
+  the addresses the port's sources name (`GT(0x...)` and the tables of addresses in the `.cpp` and `.inc` files): 238. A scan of
+  those 238 texts for registration, buying and web wording finds none.
 
 Loading was already as fast as the machine allows: the loading thread runs in one go after the first frame (the framework), it loads
 the 25 sounds and the fonts without waiting, and the title polls its progress every fourth update. There is no minimum time.
