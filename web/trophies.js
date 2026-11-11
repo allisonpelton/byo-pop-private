@@ -33,6 +33,16 @@ var ByopopTrophies = (function () {
     rocketmania: { file: "Players/hiscores.dat", kind: "popcap", tables: ["Classic", "Arcade", "Strategy"], places: 10, day: true, twice: true },
     // games/atomica/src/AppGame.cpp, ReadHighScores (HighScores.cpp): two fixed tables, expert games sharing their mode's
     atomica: { file: "HS.CFG", kind: "atomica", tables: ["Strategy", "Action"] },
+    // games/dynomite/src/HighScores.cpp: a file a table, five rows of 28 bytes (an i32 id, a 20-byte name, an i32 score);
+    // Time Trial's score is minus the hundredths of a second the board took, shown as m:ss
+    dynomite: { files: [{ file: "STOMPED.HS", kind: "dynomite", tables: ["Stomped"] }, { file: "ENDLESS.HS", kind: "dynomite", tables: ["Endless"] },
+      { file: "FOSSIL.HS", kind: "dynomite", tables: ["Fossil"] }, { file: "TIMETRIAL.HS", kind: "dynomite", tables: ["Time Trial"], time: true }] },
+    // games/bejeweledtwist/src/WinTwistApp.cpp, SaveScores: a long 9, then 20 entries (a short count and a UTF-8 name, a long
+    // level, a long score), ten Classic and ten Blitz
+    bejeweledtwist: { file: "users/scores.dat", kind: "twist", tables: ["Classic", "Blitz"], places: 10 },
+    // games/astropop/src/HallOfFame.cpp: the hall of fame, two strings (product, version), then entries to the end (a string
+    // name, i32 score, i32 second, i32 pilot, i32 kind): kind 1 Classic by score, kind 2 Survival by its seconds (m:ss)
+    astropop: { file: "users/datahs.usr", kind: "astropop", tables: ["Classic", "Survival"] },
     // games/bejeweled2/src/HighScoreWidget.cpp, ReadFromFile
     bejeweled2: { file: "users/hiscores.dat", kind: "popcap", magic: 0xb9e7e3f8,
       tables: ["Classic", "Action", "Puzzle", "Endless", "Twilight", "Hyper", "Cognito", "Finity", "Hidden"], places: 10 }
@@ -75,9 +85,60 @@ var ByopopTrophies = (function () {
     }
     return out;
   }
-  // the file's tables: [{name, rows: [{place, name, score}]}]
+  function clock(sec) { sec = Math.floor(Math.abs(sec)); return Math.floor(sec / 60) + ":" + ("0" + sec % 60).slice(-2); }
+  function utf8(b, at, n) { try { return new TextDecoder("utf-8").decode(b.subarray(at, at + n)); } catch (e) { return cString(b, at, n); } }
+  // a framework Buffer string: a u16 length and its bytes; {s, end} or null past the end
+  function lenString(b, dv, at, decode) {
+    if (at + 2 > b.length) return null;
+    var n = dv.getUint16(at, true);
+    if (at + 2 + n > b.length) return null;
+    return { s: decode(b, at + 2, n), end: at + 2 + n };
+  }
+  function parseDynomite(spec, b) {
+    var dv = new DataView(b.buffer, b.byteOffset, b.byteLength), rows = [];
+    for (var i = 0; i < 5 && (i + 1) * 28 <= b.length; i++) {
+      var v = dv.getInt32(i * 28 + 24, true), r = { place: String(i + 1), name: cString(b, i * 28 + 4, 20), score: v };
+      if (spec.time) r.text = clock(v / 100);
+      rows.push(r);
+    }
+    return [{ name: spec.tables[0], rows: rows }];
+  }
+  function parseTwist(spec, b) {
+    var dv = new DataView(b.buffer, b.byteOffset, b.byteLength), out = [], at = 4;
+    if (b.length < 4 || dv.getInt32(0, true) !== 9) return [];
+    for (var t = 0; t < spec.tables.length; t++) {
+      var rows = [];
+      for (var i = 0; i < spec.places; i++) {
+        var n = lenString(b, dv, at, utf8);
+        if (!n || n.end + 8 > b.length) break;
+        rows.push({ place: String(i + 1), name: n.s, score: dv.getInt32(n.end + 4, true) });
+        at = n.end + 8;
+      }
+      out.push({ name: spec.tables[t], rows: rows });
+    }
+    return out;
+  }
+  function parseAstropop(spec, b) {
+    var dv = new DataView(b.buffer, b.byteOffset, b.byteLength), at = 0, kinds = [[], []];
+    for (var k = 0; k < 2; k++) { var h = lenString(b, dv, at, cString); if (!h) return []; at = h.end; }
+    for (;;) {
+      var n = lenString(b, dv, at, cString);
+      if (!n || n.end + 16 > b.length) break;
+      var score = dv.getInt32(n.end, true), sec = dv.getInt32(n.end + 4, true), kind = dv.getInt32(n.end + 12, true);
+      at = n.end + 16;
+      if (kind === 1) kinds[0].push({ name: n.s, score: score });
+      else if (kind === 2) kinds[1].push({ name: n.s, score: sec, text: clock(sec) });
+    }
+    return kinds.map(function (rows, t) {
+      return { name: spec.tables[t], rows: rows.map(function (r, i) { r.place = String(i + 1); return r; }) };
+    });
+  }
+  // the file's tables: [{name, rows: [{place, name, score, text?}]}] (text: a time, shown in place of the number)
   function parse(spec, b) {
     if (spec.kind === "atomica") return parseAtomica(spec, b);
+    if (spec.kind === "dynomite") return parseDynomite(spec, b);
+    if (spec.kind === "twist") return parseTwist(spec, b);
+    if (spec.kind === "astropop") return parseAstropop(spec, b);
     var at = 0, out = [], dv = new DataView(b.buffer, b.byteOffset, b.byteLength);
     if (spec.magic !== undefined) { if (b.length < 4 || dv.getUint32(0, true) !== spec.magic) return []; at = 4; }
     for (var t = 0; t < spec.tables.length; t++) {
@@ -151,7 +212,7 @@ var ByopopTrophies = (function () {
             tr.appendChild(make("td", "", i === 0 ? t.name : ""));
             tr.appendChild(make("td", "tc-num", r.place));
             tr.appendChild(make("td", "", r.name));
-            tr.appendChild(make("td", "tc-num", r.score.toLocaleString()));
+            tr.appendChild(make("td", "tc-num", r.text || r.score.toLocaleString()));
             table.appendChild(tr);
           });
         });
@@ -163,12 +224,15 @@ var ByopopTrophies = (function () {
     function scan() {
       players();
       found = [];
+      // a game whose tables are in several files (spec.files) reads each, its tables in the files' order
       var reads = games.filter(function (g) { return RECORDS[g.id]; }).map(function (g) {
-        return readUser(g, RECORDS[g.id].file).then(function (b) {
-          if (!b) return;
-          var tables = parse(RECORDS[g.id], b);
+        var specs = RECORDS[g.id].files || [RECORDS[g.id]];
+        return Promise.all(specs.map(function (spec) {
+          return readUser(g, spec.file).then(function (b) { return b ? parse(spec, b) : []; }, function () { return []; });
+        })).then(function (lists) {
+          var tables = [].concat.apply([], lists);
           if (tables.length) found.push({ id: g.id, title: g.title, tables: tables });
-        }, function () {});
+        });
       });
       return Promise.all(reads).then(function () {
         var order = games.map(function (g) { return g.id; });
