@@ -178,7 +178,7 @@ void CharSelector::ButtonPress(int theId)
 	mApp->PlaySample(SOUND_BUTTON_DOWN);
 }
 
-// 0x434ff0: a pilot is chosen and the game starts (the original refuses Sprocket until the copy is registered; the
+// 0x434ff0 (the back button's two calls are 0x4226a0): a pilot is chosen and the game starts (the original refuses Sprocket until the copy is registered; the
 // port's copy is)
 void CharSelector::ButtonDepress(int theId)
 {

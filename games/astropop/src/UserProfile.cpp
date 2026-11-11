@@ -119,13 +119,14 @@ bool UserProfile::GetRecord(unsigned int theList, unsigned int theIndex, Profile
 	return true;
 }
 
-// 0x40e930: for each pilot a count from the settings 0x33 .. 0x36 (the first and the last pilot have a second count in 0x37 and
-// 0x3e) and one more from 0x3b, 0x3c, 0x3d and 0x3a; the level is the sum of those counts, each less one and not below nought
+// (the original has this step inline in GetPilotLevel below)
 static int CountLess1(int theCount)
 {
 	return (theCount - 1 < 0) ? 0 : theCount - 1;
 }
 
+// 0x40e930: for each pilot a count from the settings 0x33 .. 0x36 (the first and the last pilot have a second count in 0x37 and
+// 0x3e) and one more from 0x3b, 0x3c, 0x3d and 0x3a; the level is the sum of those counts, each less one and not below nought
 int UserProfile::GetPilotLevel(int thePilot) const
 {
 	int aFirst = 0;                 // (the original leaves it as it was if the setting is missing)

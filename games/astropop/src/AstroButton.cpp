@@ -222,10 +222,12 @@ void AstroButton::Update()
 }
 
 // 0x43bc00
+// port: the original's ButtonWidget::MouseEnter calls a slot of the listener that is empty for the menu's, and this function
+// calls the mouse-enter slot (6) itself, once. The port's ButtonWidget::MouseEnter calls ButtonMouseEnter already, so a second
+// call here would make the menu's secret order (a count of the buttons touched, one step each) fail at its second step.
 void AstroButton::MouseEnter()
 {
 	ButtonWidget::MouseEnter();
-	mButtonListener->ButtonMouseEnter(mId);
 
 	if (mSound == NULL || mSound->IsPlaying())
 	{
@@ -298,11 +300,10 @@ void AstroButton::MouseEnter()
 	}
 }
 
-// 0x4348f0
+// 0x4348f0 (port: the listener's mouse-leave slot is called by ButtonWidget::MouseLeave, as for the enter above)
 void AstroButton::MouseLeave()
 {
 	ButtonWidget::MouseLeave();
-	mButtonListener->ButtonMouseLeave(mId);
 	mAnimOver.SetStopped(true);
 	mAnimDown.SetStopped(true);
 	mAnimIdle.Reset();

@@ -154,7 +154,7 @@ void PowerDialog::KeyChar(SexyChar theChar)
 		mApp->ButtonDepress(mId + 2000);
 }
 
-// 0x483b90 (slot 0xc8 of the box's vftable 0x56b8b8; the 400 that the base's 0x483a10 returns is not asked for): twice the
+// 0x483b90 (slot 0xc8 of the box's vftable 0x56b8b8; the 400 that the base class returns is not asked for): twice the
 // height of the weapon's pictures (all four pilots' pictures are as high as the Vixx's first) and 150 for the rest
 int PowerDialog::GetPreferredHeight(int theWidth)
 {

@@ -2102,481 +2102,516 @@ Image* Sexy::LoadImageById(ResourceManager* theManager, int theId)
 	return *(Image**)gResources[theId];
 }
 
+// 0x41f480: the resource group "VectorPage1" (the original has a function of its own for each group and a switch by name, 0x422f20)
 bool Sexy::ExtractVectorPage1Resources(ResourceManager* theManager)
 {
 	try {
+		IMAGE_STORY_VP1_BPIC2 = theManager->GetImageThrow("IMAGE_STORY_VP1_BPIC2");
+		IMAGE_STORY_VP1_FIRST_BOTTOM_IMAGE = theManager->GetImageThrow("IMAGE_STORY_VP1_FIRST_BOTTOM_IMAGE");
 		IMAGE_STORY_VP1_FIRST_TOP_IMAGE = theManager->GetImageThrow("IMAGE_STORY_VP1_FIRST_TOP_IMAGE");
 		IMAGE_STORY_VP1_TPIC2 = theManager->GetImageThrow("IMAGE_STORY_VP1_TPIC2");
 		IMAGE_STORY_VP1_TPIC3 = theManager->GetImageThrow("IMAGE_STORY_VP1_TPIC3");
-		IMAGE_STORY_VP1_FIRST_BOTTOM_IMAGE = theManager->GetImageThrow("IMAGE_STORY_VP1_FIRST_BOTTOM_IMAGE");
-		IMAGE_STORY_VP1_BPIC2 = theManager->GetImageThrow("IMAGE_STORY_VP1_BPIC2");
 	} catch (ResourceManagerException&) {
 		return false;
 	}
 	return true;
 }
 
+// 0x41f680: the resource group "VectorPage2" (the original has a function of its own for each group and a switch by name, 0x422f20)
 bool Sexy::ExtractVectorPage2Resources(ResourceManager* theManager)
 {
 	try {
-		IMAGE_STORY_VP2_FIRST_TOP_IMAGE = theManager->GetImageThrow("IMAGE_STORY_VP2_FIRST_TOP_IMAGE");
-		IMAGE_STORY_VP2_TPIC2 = theManager->GetImageThrow("IMAGE_STORY_VP2_TPIC2");
-		IMAGE_STORY_VP2_FIRST_BOTTOM_IMAGE = theManager->GetImageThrow("IMAGE_STORY_VP2_FIRST_BOTTOM_IMAGE");
 		IMAGE_STORY_VP2_BPIC2 = theManager->GetImageThrow("IMAGE_STORY_VP2_BPIC2");
 		IMAGE_STORY_VP2_BPIC3 = theManager->GetImageThrow("IMAGE_STORY_VP2_BPIC3");
+		IMAGE_STORY_VP2_FIRST_BOTTOM_IMAGE = theManager->GetImageThrow("IMAGE_STORY_VP2_FIRST_BOTTOM_IMAGE");
+		IMAGE_STORY_VP2_FIRST_TOP_IMAGE = theManager->GetImageThrow("IMAGE_STORY_VP2_FIRST_TOP_IMAGE");
+		IMAGE_STORY_VP2_TPIC2 = theManager->GetImageThrow("IMAGE_STORY_VP2_TPIC2");
 	} catch (ResourceManagerException&) {
 		return false;
 	}
 	return true;
 }
 
+// 0x41f880: the resource group "VectorPage3" (the original has a function of its own for each group and a switch by name, 0x422f20)
 bool Sexy::ExtractVectorPage3Resources(ResourceManager* theManager)
 {
 	try {
+		IMAGE_STORY_VP3_BPIC2 = theManager->GetImageThrow("IMAGE_STORY_VP3_BPIC2");
+		IMAGE_STORY_VP3_FIRST_BOTTOM_IMAGE = theManager->GetImageThrow("IMAGE_STORY_VP3_FIRST_BOTTOM_IMAGE");
 		IMAGE_STORY_VP3_FIRST_TOP_IMAGE = theManager->GetImageThrow("IMAGE_STORY_VP3_FIRST_TOP_IMAGE");
 		IMAGE_STORY_VP3_TPIC2 = theManager->GetImageThrow("IMAGE_STORY_VP3_TPIC2");
-		IMAGE_STORY_VP3_FIRST_BOTTOM_IMAGE = theManager->GetImageThrow("IMAGE_STORY_VP3_FIRST_BOTTOM_IMAGE");
-		IMAGE_STORY_VP3_BPIC2 = theManager->GetImageThrow("IMAGE_STORY_VP3_BPIC2");
 	} catch (ResourceManagerException&) {
 		return false;
 	}
 	return true;
 }
 
+// 0x41fa30: the resource group "VectorPage4" (the original has a function of its own for each group and a switch by name, 0x422f20)
 bool Sexy::ExtractVectorPage4Resources(ResourceManager* theManager)
 {
 	try {
-		IMAGE_STORY_VP4_FIRST_TOP_IMAGE = theManager->GetImageThrow("IMAGE_STORY_VP4_FIRST_TOP_IMAGE");
-		IMAGE_STORY_VP4_FIRST_BOTTOM_IMAGE = theManager->GetImageThrow("IMAGE_STORY_VP4_FIRST_BOTTOM_IMAGE");
 		IMAGE_STORY_VP4_BPIC2 = theManager->GetImageThrow("IMAGE_STORY_VP4_BPIC2");
+		IMAGE_STORY_VP4_FIRST_BOTTOM_IMAGE = theManager->GetImageThrow("IMAGE_STORY_VP4_FIRST_BOTTOM_IMAGE");
+		IMAGE_STORY_VP4_FIRST_TOP_IMAGE = theManager->GetImageThrow("IMAGE_STORY_VP4_FIRST_TOP_IMAGE");
 	} catch (ResourceManagerException&) {
 		return false;
 	}
 	return true;
 }
 
+// 0x41fb90: the resource group "VectorPage5" (the original has a function of its own for each group and a switch by name, 0x422f20)
 bool Sexy::ExtractVectorPage5Resources(ResourceManager* theManager)
 {
 	try {
+		IMAGE_STORY_VP5_FIRST_BOTTOM_IMAGE = theManager->GetImageThrow("IMAGE_STORY_VP5_FIRST_BOTTOM_IMAGE");
 		IMAGE_STORY_VP5_FIRST_TOP_IMAGE = theManager->GetImageThrow("IMAGE_STORY_VP5_FIRST_TOP_IMAGE");
 		IMAGE_STORY_VP5_TPIC2 = theManager->GetImageThrow("IMAGE_STORY_VP5_TPIC2");
-		IMAGE_STORY_VP5_FIRST_BOTTOM_IMAGE = theManager->GetImageThrow("IMAGE_STORY_VP5_FIRST_BOTTOM_IMAGE");
 	} catch (ResourceManagerException&) {
 		return false;
 	}
 	return true;
 }
 
+// 0x41fcf0: the resource group "VectorPage6" (the original has a function of its own for each group and a switch by name, 0x422f20)
 bool Sexy::ExtractVectorPage6Resources(ResourceManager* theManager)
 {
 	try {
-		IMAGE_STORY_VP6_FIRST_TOP_IMAGE = theManager->GetImageThrow("IMAGE_STORY_VP6_FIRST_TOP_IMAGE");
-		IMAGE_STORY_VP6_FIRST_BOTTOM_IMAGE = theManager->GetImageThrow("IMAGE_STORY_VP6_FIRST_BOTTOM_IMAGE");
 		IMAGE_STORY_VP6_BPIC2 = theManager->GetImageThrow("IMAGE_STORY_VP6_BPIC2");
+		IMAGE_STORY_VP6_FIRST_BOTTOM_IMAGE = theManager->GetImageThrow("IMAGE_STORY_VP6_FIRST_BOTTOM_IMAGE");
+		IMAGE_STORY_VP6_FIRST_TOP_IMAGE = theManager->GetImageThrow("IMAGE_STORY_VP6_FIRST_TOP_IMAGE");
 	} catch (ResourceManagerException&) {
 		return false;
 	}
 	return true;
 }
 
+// 0x41fe50: the resource group "VectorPage7" (the original has a function of its own for each group and a switch by name, 0x422f20)
 bool Sexy::ExtractVectorPage7Resources(ResourceManager* theManager)
 {
 	try {
-		IMAGE_STORY_VP7_FIRST_TOP_IMAGE = theManager->GetImageThrow("IMAGE_STORY_VP7_FIRST_TOP_IMAGE");
 		IMAGE_STORY_VP7_FIRST_BOTTOM_IMAGE = theManager->GetImageThrow("IMAGE_STORY_VP7_FIRST_BOTTOM_IMAGE");
+		IMAGE_STORY_VP7_FIRST_TOP_IMAGE = theManager->GetImageThrow("IMAGE_STORY_VP7_FIRST_TOP_IMAGE");
 	} catch (ResourceManagerException&) {
 		return false;
 	}
 	return true;
 }
 
+// 0x41ff50: the resource group "VectorPage8" (the original has a function of its own for each group and a switch by name, 0x422f20)
 bool Sexy::ExtractVectorPage8Resources(ResourceManager* theManager)
 {
 	try {
+		IMAGE_STORY_VP8_FIRST_BOTTOM_IMAGE = theManager->GetImageThrow("IMAGE_STORY_VP8_FIRST_BOTTOM_IMAGE");
 		IMAGE_STORY_VP8_FIRST_TOP_IMAGE = theManager->GetImageThrow("IMAGE_STORY_VP8_FIRST_TOP_IMAGE");
 		IMAGE_STORY_VP8_TPIC2 = theManager->GetImageThrow("IMAGE_STORY_VP8_TPIC2");
 		IMAGE_STORY_VP8_TPIC3 = theManager->GetImageThrow("IMAGE_STORY_VP8_TPIC3");
-		IMAGE_STORY_VP8_FIRST_BOTTOM_IMAGE = theManager->GetImageThrow("IMAGE_STORY_VP8_FIRST_BOTTOM_IMAGE");
 	} catch (ResourceManagerException&) {
 		return false;
 	}
 	return true;
 }
 
+// 0x420100: the resource group "VectorPage9" (the original has a function of its own for each group and a switch by name, 0x422f20)
 bool Sexy::ExtractVectorPage9Resources(ResourceManager* theManager)
 {
 	try {
-		IMAGE_STORY_VP9_FIRST_TOP_IMAGE = theManager->GetImageThrow("IMAGE_STORY_VP9_FIRST_TOP_IMAGE");
-		IMAGE_STORY_VP9_FIRST_BOTTOM_IMAGE = theManager->GetImageThrow("IMAGE_STORY_VP9_FIRST_BOTTOM_IMAGE");
 		IMAGE_STORY_VP9_BPIC2 = theManager->GetImageThrow("IMAGE_STORY_VP9_BPIC2");
+		IMAGE_STORY_VP9_FIRST_BOTTOM_IMAGE = theManager->GetImageThrow("IMAGE_STORY_VP9_FIRST_BOTTOM_IMAGE");
+		IMAGE_STORY_VP9_FIRST_TOP_IMAGE = theManager->GetImageThrow("IMAGE_STORY_VP9_FIRST_TOP_IMAGE");
 	} catch (ResourceManagerException&) {
 		return false;
 	}
 	return true;
 }
 
+// 0x420260: the resource group "VixxPage1" (the original has a function of its own for each group and a switch by name, 0x422f20)
 bool Sexy::ExtractVixxPage1Resources(ResourceManager* theManager)
 {
 	try {
+		IMAGE_STORY_VXP1_FIRST_BOTTOM_IMAGE = theManager->GetImageThrow("IMAGE_STORY_VXP1_FIRST_BOTTOM_IMAGE");
 		IMAGE_STORY_VXP1_FIRST_TOP_IMAGE = theManager->GetImageThrow("IMAGE_STORY_VXP1_FIRST_TOP_IMAGE");
 		IMAGE_STORY_VXP1_TPIC2 = theManager->GetImageThrow("IMAGE_STORY_VXP1_TPIC2");
-		IMAGE_STORY_VXP1_FIRST_BOTTOM_IMAGE = theManager->GetImageThrow("IMAGE_STORY_VXP1_FIRST_BOTTOM_IMAGE");
 	} catch (ResourceManagerException&) {
 		return false;
 	}
 	return true;
 }
 
+// 0x4203c0: the resource group "VixxPage2" (the original has a function of its own for each group and a switch by name, 0x422f20)
 bool Sexy::ExtractVixxPage2Resources(ResourceManager* theManager)
 {
 	try {
-		IMAGE_STORY_VXP2_FIRST_TOP_IMAGE = theManager->GetImageThrow("IMAGE_STORY_VXP2_FIRST_TOP_IMAGE");
-		IMAGE_STORY_VXP2_FIRST_BOTTOM_IMAGE = theManager->GetImageThrow("IMAGE_STORY_VXP2_FIRST_BOTTOM_IMAGE");
 		IMAGE_STORY_VXP2_BPIC2 = theManager->GetImageThrow("IMAGE_STORY_VXP2_BPIC2");
 		IMAGE_STORY_VXP2_BPIC3 = theManager->GetImageThrow("IMAGE_STORY_VXP2_BPIC3");
+		IMAGE_STORY_VXP2_FIRST_BOTTOM_IMAGE = theManager->GetImageThrow("IMAGE_STORY_VXP2_FIRST_BOTTOM_IMAGE");
+		IMAGE_STORY_VXP2_FIRST_TOP_IMAGE = theManager->GetImageThrow("IMAGE_STORY_VXP2_FIRST_TOP_IMAGE");
 	} catch (ResourceManagerException&) {
 		return false;
 	}
 	return true;
 }
 
+// 0x420570: the resource group "VixxPage3" (the original has a function of its own for each group and a switch by name, 0x422f20)
 bool Sexy::ExtractVixxPage3Resources(ResourceManager* theManager)
 {
 	try {
+		IMAGE_STORY_VXP3_FIRST_BOTTOM_IMAGE = theManager->GetImageThrow("IMAGE_STORY_VXP3_FIRST_BOTTOM_IMAGE");
 		IMAGE_STORY_VXP3_FIRST_TOP_IMAGE = theManager->GetImageThrow("IMAGE_STORY_VXP3_FIRST_TOP_IMAGE");
 		IMAGE_STORY_VXP3_TPIC2 = theManager->GetImageThrow("IMAGE_STORY_VXP3_TPIC2");
-		IMAGE_STORY_VXP3_FIRST_BOTTOM_IMAGE = theManager->GetImageThrow("IMAGE_STORY_VXP3_FIRST_BOTTOM_IMAGE");
 	} catch (ResourceManagerException&) {
 		return false;
 	}
 	return true;
 }
 
+// 0x4206d0: the resource group "VixxPage4" (the original has a function of its own for each group and a switch by name, 0x422f20)
 bool Sexy::ExtractVixxPage4Resources(ResourceManager* theManager)
 {
 	try {
-		IMAGE_STORY_VXP4_FIRST_TOP_IMAGE = theManager->GetImageThrow("IMAGE_STORY_VXP4_FIRST_TOP_IMAGE");
-		IMAGE_STORY_VXP4_FIRST_BOTTOM_IMAGE = theManager->GetImageThrow("IMAGE_STORY_VXP4_FIRST_BOTTOM_IMAGE");
 		IMAGE_STORY_VXP4_BPIC2 = theManager->GetImageThrow("IMAGE_STORY_VXP4_BPIC2");
 		IMAGE_STORY_VXP4_BPIC3 = theManager->GetImageThrow("IMAGE_STORY_VXP4_BPIC3");
+		IMAGE_STORY_VXP4_FIRST_BOTTOM_IMAGE = theManager->GetImageThrow("IMAGE_STORY_VXP4_FIRST_BOTTOM_IMAGE");
+		IMAGE_STORY_VXP4_FIRST_TOP_IMAGE = theManager->GetImageThrow("IMAGE_STORY_VXP4_FIRST_TOP_IMAGE");
 	} catch (ResourceManagerException&) {
 		return false;
 	}
 	return true;
 }
 
+// 0x420880: the resource group "VixxPage5" (the original has a function of its own for each group and a switch by name, 0x422f20)
 bool Sexy::ExtractVixxPage5Resources(ResourceManager* theManager)
 {
 	try {
+		IMAGE_STORY_VXP5_FIRST_BOTTOM_IMAGE = theManager->GetImageThrow("IMAGE_STORY_VXP5_FIRST_BOTTOM_IMAGE");
 		IMAGE_STORY_VXP5_FIRST_TOP_IMAGE = theManager->GetImageThrow("IMAGE_STORY_VXP5_FIRST_TOP_IMAGE");
 		IMAGE_STORY_VXP5_TPIC2 = theManager->GetImageThrow("IMAGE_STORY_VXP5_TPIC2");
 		IMAGE_STORY_VXP5_TPIC3 = theManager->GetImageThrow("IMAGE_STORY_VXP5_TPIC3");
-		IMAGE_STORY_VXP5_FIRST_BOTTOM_IMAGE = theManager->GetImageThrow("IMAGE_STORY_VXP5_FIRST_BOTTOM_IMAGE");
 	} catch (ResourceManagerException&) {
 		return false;
 	}
 	return true;
 }
 
+// 0x420a30: the resource group "VixxPage6" (the original has a function of its own for each group and a switch by name, 0x422f20)
 bool Sexy::ExtractVixxPage6Resources(ResourceManager* theManager)
 {
 	try {
+		IMAGE_STORY_VXP6_FIRST_BOTTOM_IMAGE = theManager->GetImageThrow("IMAGE_STORY_VXP6_FIRST_BOTTOM_IMAGE");
 		IMAGE_STORY_VXP6_FIRST_TOP_IMAGE = theManager->GetImageThrow("IMAGE_STORY_VXP6_FIRST_TOP_IMAGE");
 		IMAGE_STORY_VXP6_TPIC2 = theManager->GetImageThrow("IMAGE_STORY_VXP6_TPIC2");
-		IMAGE_STORY_VXP6_FIRST_BOTTOM_IMAGE = theManager->GetImageThrow("IMAGE_STORY_VXP6_FIRST_BOTTOM_IMAGE");
 	} catch (ResourceManagerException&) {
 		return false;
 	}
 	return true;
 }
 
+// 0x420b90: the resource group "VixxPage7" (the original has a function of its own for each group and a switch by name, 0x422f20)
 bool Sexy::ExtractVixxPage7Resources(ResourceManager* theManager)
 {
 	try {
-		IMAGE_STORY_VXP7_FIRST_TOP_IMAGE = theManager->GetImageThrow("IMAGE_STORY_VXP7_FIRST_TOP_IMAGE");
-		IMAGE_STORY_VXP7_FIRST_BOTTOM_IMAGE = theManager->GetImageThrow("IMAGE_STORY_VXP7_FIRST_BOTTOM_IMAGE");
 		IMAGE_STORY_VXP7_BPIC2 = theManager->GetImageThrow("IMAGE_STORY_VXP7_BPIC2");
 		IMAGE_STORY_VXP7_BPIC3 = theManager->GetImageThrow("IMAGE_STORY_VXP7_BPIC3");
+		IMAGE_STORY_VXP7_FIRST_BOTTOM_IMAGE = theManager->GetImageThrow("IMAGE_STORY_VXP7_FIRST_BOTTOM_IMAGE");
+		IMAGE_STORY_VXP7_FIRST_TOP_IMAGE = theManager->GetImageThrow("IMAGE_STORY_VXP7_FIRST_TOP_IMAGE");
 	} catch (ResourceManagerException&) {
 		return false;
 	}
 	return true;
 }
 
+// 0x420d40: the resource group "VixxPage8" (the original has a function of its own for each group and a switch by name, 0x422f20)
 bool Sexy::ExtractVixxPage8Resources(ResourceManager* theManager)
 {
 	try {
+		IMAGE_STORY_VXP8_FIRST_BOTTOM_IMAGE = theManager->GetImageThrow("IMAGE_STORY_VXP8_FIRST_BOTTOM_IMAGE");
 		IMAGE_STORY_VXP8_FIRST_TOP_IMAGE = theManager->GetImageThrow("IMAGE_STORY_VXP8_FIRST_TOP_IMAGE");
 		IMAGE_STORY_VXP8_TPIC2 = theManager->GetImageThrow("IMAGE_STORY_VXP8_TPIC2");
-		IMAGE_STORY_VXP8_FIRST_BOTTOM_IMAGE = theManager->GetImageThrow("IMAGE_STORY_VXP8_FIRST_BOTTOM_IMAGE");
 	} catch (ResourceManagerException&) {
 		return false;
 	}
 	return true;
 }
 
+// 0x41dd00: the resource group "SprocketPage1" (the original has a function of its own for each group and a switch by name, 0x422f20)
 bool Sexy::ExtractSprocketPage1Resources(ResourceManager* theManager)
 {
 	try {
+		IMAGE_STORY_SP1_BPIC2 = theManager->GetImageThrow("IMAGE_STORY_SP1_BPIC2");
+		IMAGE_STORY_SP1_FIRST_BOTTOM_IMAGE = theManager->GetImageThrow("IMAGE_STORY_SP1_FIRST_BOTTOM_IMAGE");
 		IMAGE_STORY_SP1_FIRST_TOP_IMAGE = theManager->GetImageThrow("IMAGE_STORY_SP1_FIRST_TOP_IMAGE");
 		IMAGE_STORY_SP1_TPIC2 = theManager->GetImageThrow("IMAGE_STORY_SP1_TPIC2");
 		IMAGE_STORY_SP1_TPIC3 = theManager->GetImageThrow("IMAGE_STORY_SP1_TPIC3");
-		IMAGE_STORY_SP1_FIRST_BOTTOM_IMAGE = theManager->GetImageThrow("IMAGE_STORY_SP1_FIRST_BOTTOM_IMAGE");
-		IMAGE_STORY_SP1_BPIC2 = theManager->GetImageThrow("IMAGE_STORY_SP1_BPIC2");
 	} catch (ResourceManagerException&) {
 		return false;
 	}
 	return true;
 }
 
+// 0x41df00: the resource group "SprocketPage2" (the original has a function of its own for each group and a switch by name, 0x422f20)
 bool Sexy::ExtractSprocketPage2Resources(ResourceManager* theManager)
 {
 	try {
+		IMAGE_STORY_SP2_BPIC2 = theManager->GetImageThrow("IMAGE_STORY_SP2_BPIC2");
+		IMAGE_STORY_SP2_FIRST_BOTTOM_IMAGE = theManager->GetImageThrow("IMAGE_STORY_SP2_FIRST_BOTTOM_IMAGE");
 		IMAGE_STORY_SP2_FIRST_TOP_IMAGE = theManager->GetImageThrow("IMAGE_STORY_SP2_FIRST_TOP_IMAGE");
 		IMAGE_STORY_SP2_TPIC2 = theManager->GetImageThrow("IMAGE_STORY_SP2_TPIC2");
 		IMAGE_STORY_SP2_TPIC3 = theManager->GetImageThrow("IMAGE_STORY_SP2_TPIC3");
 		IMAGE_STORY_SP2_TPIC4 = theManager->GetImageThrow("IMAGE_STORY_SP2_TPIC4");
-		IMAGE_STORY_SP2_FIRST_BOTTOM_IMAGE = theManager->GetImageThrow("IMAGE_STORY_SP2_FIRST_BOTTOM_IMAGE");
-		IMAGE_STORY_SP2_BPIC2 = theManager->GetImageThrow("IMAGE_STORY_SP2_BPIC2");
 	} catch (ResourceManagerException&) {
 		return false;
 	}
 	return true;
 }
 
+// 0x41e150: the resource group "SprocketPage3" (the original has a function of its own for each group and a switch by name, 0x422f20)
 bool Sexy::ExtractSprocketPage3Resources(ResourceManager* theManager)
 {
 	try {
-		IMAGE_STORY_SP3_FIRST_TOP_IMAGE = theManager->GetImageThrow("IMAGE_STORY_SP3_FIRST_TOP_IMAGE");
-		IMAGE_STORY_SP3_FIRST_BOTTOM_IMAGE = theManager->GetImageThrow("IMAGE_STORY_SP3_FIRST_BOTTOM_IMAGE");
 		IMAGE_STORY_SP3_BPIC2 = theManager->GetImageThrow("IMAGE_STORY_SP3_BPIC2");
+		IMAGE_STORY_SP3_FIRST_BOTTOM_IMAGE = theManager->GetImageThrow("IMAGE_STORY_SP3_FIRST_BOTTOM_IMAGE");
+		IMAGE_STORY_SP3_FIRST_TOP_IMAGE = theManager->GetImageThrow("IMAGE_STORY_SP3_FIRST_TOP_IMAGE");
 	} catch (ResourceManagerException&) {
 		return false;
 	}
 	return true;
 }
 
+// 0x41e2b0: the resource group "SprocketPage4" (the original has a function of its own for each group and a switch by name, 0x422f20)
 bool Sexy::ExtractSprocketPage4Resources(ResourceManager* theManager)
 {
 	try {
+		IMAGE_STORY_SP4_FIRST_BOTTOM_IMAGE = theManager->GetImageThrow("IMAGE_STORY_SP4_FIRST_BOTTOM_IMAGE");
 		IMAGE_STORY_SP4_FIRST_TOP_IMAGE = theManager->GetImageThrow("IMAGE_STORY_SP4_FIRST_TOP_IMAGE");
 		IMAGE_STORY_SP4_TPIC2 = theManager->GetImageThrow("IMAGE_STORY_SP4_TPIC2");
-		IMAGE_STORY_SP4_FIRST_BOTTOM_IMAGE = theManager->GetImageThrow("IMAGE_STORY_SP4_FIRST_BOTTOM_IMAGE");
 	} catch (ResourceManagerException&) {
 		return false;
 	}
 	return true;
 }
 
+// 0x41e410: the resource group "SprocketPage5" (the original has a function of its own for each group and a switch by name, 0x422f20)
 bool Sexy::ExtractSprocketPage5Resources(ResourceManager* theManager)
 {
 	try {
-		IMAGE_STORY_SP5_FIRST_TOP_IMAGE = theManager->GetImageThrow("IMAGE_STORY_SP5_FIRST_TOP_IMAGE");
-		IMAGE_STORY_SP5_FIRST_BOTTOM_IMAGE = theManager->GetImageThrow("IMAGE_STORY_SP5_FIRST_BOTTOM_IMAGE");
 		IMAGE_STORY_SP5_BPIC2 = theManager->GetImageThrow("IMAGE_STORY_SP5_BPIC2");
+		IMAGE_STORY_SP5_FIRST_BOTTOM_IMAGE = theManager->GetImageThrow("IMAGE_STORY_SP5_FIRST_BOTTOM_IMAGE");
+		IMAGE_STORY_SP5_FIRST_TOP_IMAGE = theManager->GetImageThrow("IMAGE_STORY_SP5_FIRST_TOP_IMAGE");
 	} catch (ResourceManagerException&) {
 		return false;
 	}
 	return true;
 }
 
+// 0x41e570: the resource group "SprocketPage6" (the original has a function of its own for each group and a switch by name, 0x422f20)
 bool Sexy::ExtractSprocketPage6Resources(ResourceManager* theManager)
 {
 	try {
+		IMAGE_STORY_SP6_FIRST_BOTTOM_IMAGE = theManager->GetImageThrow("IMAGE_STORY_SP6_FIRST_BOTTOM_IMAGE");
 		IMAGE_STORY_SP6_FIRST_TOP_IMAGE = theManager->GetImageThrow("IMAGE_STORY_SP6_FIRST_TOP_IMAGE");
 		IMAGE_STORY_SP6_TPIC2 = theManager->GetImageThrow("IMAGE_STORY_SP6_TPIC2");
-		IMAGE_STORY_SP6_FIRST_BOTTOM_IMAGE = theManager->GetImageThrow("IMAGE_STORY_SP6_FIRST_BOTTOM_IMAGE");
 	} catch (ResourceManagerException&) {
 		return false;
 	}
 	return true;
 }
 
+// 0x41e6d0: the resource group "SprocketPage7" (the original has a function of its own for each group and a switch by name, 0x422f20)
 bool Sexy::ExtractSprocketPage7Resources(ResourceManager* theManager)
 {
 	try {
+		IMAGE_STORY_SP7_FIRST_BOTTOM_IMAGE = theManager->GetImageThrow("IMAGE_STORY_SP7_FIRST_BOTTOM_IMAGE");
 		IMAGE_STORY_SP7_FIRST_TOP_IMAGE = theManager->GetImageThrow("IMAGE_STORY_SP7_FIRST_TOP_IMAGE");
 		IMAGE_STORY_SP7_TPIC2 = theManager->GetImageThrow("IMAGE_STORY_SP7_TPIC2");
-		IMAGE_STORY_SP7_FIRST_BOTTOM_IMAGE = theManager->GetImageThrow("IMAGE_STORY_SP7_FIRST_BOTTOM_IMAGE");
 	} catch (ResourceManagerException&) {
 		return false;
 	}
 	return true;
 }
 
+// 0x41e830: the resource group "SprocketPage8" (the original has a function of its own for each group and a switch by name, 0x422f20)
 bool Sexy::ExtractSprocketPage8Resources(ResourceManager* theManager)
 {
 	try {
+		IMAGE_STORY_SP8_BPIC2 = theManager->GetImageThrow("IMAGE_STORY_SP8_BPIC2");
+		IMAGE_STORY_SP8_FIRST_BOTTOM_IMAGE = theManager->GetImageThrow("IMAGE_STORY_SP8_FIRST_BOTTOM_IMAGE");
 		IMAGE_STORY_SP8_FIRST_TOP_IMAGE = theManager->GetImageThrow("IMAGE_STORY_SP8_FIRST_TOP_IMAGE");
 		IMAGE_STORY_SP8_TPIC2 = theManager->GetImageThrow("IMAGE_STORY_SP8_TPIC2");
-		IMAGE_STORY_SP8_FIRST_BOTTOM_IMAGE = theManager->GetImageThrow("IMAGE_STORY_SP8_FIRST_BOTTOM_IMAGE");
-		IMAGE_STORY_SP8_BPIC2 = theManager->GetImageThrow("IMAGE_STORY_SP8_BPIC2");
 	} catch (ResourceManagerException&) {
 		return false;
 	}
 	return true;
 }
 
+// 0x41e9e0: the resource group "TurbotPage1" (the original has a function of its own for each group and a switch by name, 0x422f20)
 bool Sexy::ExtractTurbotPage1Resources(ResourceManager* theManager)
 {
 	try {
-		IMAGE_STORY_TP1_FIRST_TOP_IMAGE = theManager->GetImageThrow("IMAGE_STORY_TP1_FIRST_TOP_IMAGE");
-		IMAGE_STORY_TP1_FIRST_BOTTOM_IMAGE = theManager->GetImageThrow("IMAGE_STORY_TP1_FIRST_BOTTOM_IMAGE");
 		IMAGE_STORY_TP1_BPIC2 = theManager->GetImageThrow("IMAGE_STORY_TP1_BPIC2");
+		IMAGE_STORY_TP1_FIRST_BOTTOM_IMAGE = theManager->GetImageThrow("IMAGE_STORY_TP1_FIRST_BOTTOM_IMAGE");
+		IMAGE_STORY_TP1_FIRST_TOP_IMAGE = theManager->GetImageThrow("IMAGE_STORY_TP1_FIRST_TOP_IMAGE");
 	} catch (ResourceManagerException&) {
 		return false;
 	}
 	return true;
 }
 
+// 0x41eb40: the resource group "TurbotPage2" (the original has a function of its own for each group and a switch by name, 0x422f20)
 bool Sexy::ExtractTurbotPage2Resources(ResourceManager* theManager)
 {
 	try {
-		IMAGE_STORY_TP2_FIRST_TOP_IMAGE = theManager->GetImageThrow("IMAGE_STORY_TP2_FIRST_TOP_IMAGE");
-		IMAGE_STORY_TP2_FIRST_BOTTOM_IMAGE = theManager->GetImageThrow("IMAGE_STORY_TP2_FIRST_BOTTOM_IMAGE");
 		IMAGE_STORY_TP2_BPIC2 = theManager->GetImageThrow("IMAGE_STORY_TP2_BPIC2");
+		IMAGE_STORY_TP2_FIRST_BOTTOM_IMAGE = theManager->GetImageThrow("IMAGE_STORY_TP2_FIRST_BOTTOM_IMAGE");
+		IMAGE_STORY_TP2_FIRST_TOP_IMAGE = theManager->GetImageThrow("IMAGE_STORY_TP2_FIRST_TOP_IMAGE");
 	} catch (ResourceManagerException&) {
 		return false;
 	}
 	return true;
 }
 
+// 0x41eca0: the resource group "TurbotPage3" (the original has a function of its own for each group and a switch by name, 0x422f20)
 bool Sexy::ExtractTurbotPage3Resources(ResourceManager* theManager)
 {
 	try {
-		IMAGE_STORY_TP3_FIRST_TOP_IMAGE = theManager->GetImageThrow("IMAGE_STORY_TP3_FIRST_TOP_IMAGE");
-		IMAGE_STORY_TP3_FIRST_BOTTOM_IMAGE = theManager->GetImageThrow("IMAGE_STORY_TP3_FIRST_BOTTOM_IMAGE");
 		IMAGE_STORY_TP3_BPIC2 = theManager->GetImageThrow("IMAGE_STORY_TP3_BPIC2");
+		IMAGE_STORY_TP3_FIRST_BOTTOM_IMAGE = theManager->GetImageThrow("IMAGE_STORY_TP3_FIRST_BOTTOM_IMAGE");
+		IMAGE_STORY_TP3_FIRST_TOP_IMAGE = theManager->GetImageThrow("IMAGE_STORY_TP3_FIRST_TOP_IMAGE");
 	} catch (ResourceManagerException&) {
 		return false;
 	}
 	return true;
 }
 
+// 0x41ee00: the resource group "TurbotPage4" (the original has a function of its own for each group and a switch by name, 0x422f20)
 bool Sexy::ExtractTurbotPage4Resources(ResourceManager* theManager)
 {
 	try {
+		IMAGE_STORY_TP4_FIRST_BOTTOM_IMAGE = theManager->GetImageThrow("IMAGE_STORY_TP4_FIRST_BOTTOM_IMAGE");
 		IMAGE_STORY_TP4_FIRST_TOP_IMAGE = theManager->GetImageThrow("IMAGE_STORY_TP4_FIRST_TOP_IMAGE");
 		IMAGE_STORY_TP4_TPIC2 = theManager->GetImageThrow("IMAGE_STORY_TP4_TPIC2");
-		IMAGE_STORY_TP4_FIRST_BOTTOM_IMAGE = theManager->GetImageThrow("IMAGE_STORY_TP4_FIRST_BOTTOM_IMAGE");
 	} catch (ResourceManagerException&) {
 		return false;
 	}
 	return true;
 }
 
+// 0x41ef60: the resource group "TurbotPage5" (the original has a function of its own for each group and a switch by name, 0x422f20)
 bool Sexy::ExtractTurbotPage5Resources(ResourceManager* theManager)
 {
 	try {
-		IMAGE_STORY_TP5_FIRST_TOP_IMAGE = theManager->GetImageThrow("IMAGE_STORY_TP5_FIRST_TOP_IMAGE");
 		IMAGE_STORY_TP5_FIRST_BOTTOM_IMAGE = theManager->GetImageThrow("IMAGE_STORY_TP5_FIRST_BOTTOM_IMAGE");
+		IMAGE_STORY_TP5_FIRST_TOP_IMAGE = theManager->GetImageThrow("IMAGE_STORY_TP5_FIRST_TOP_IMAGE");
 	} catch (ResourceManagerException&) {
 		return false;
 	}
 	return true;
 }
 
+// 0x41f060: the resource group "TurbotPage6" (the original has a function of its own for each group and a switch by name, 0x422f20)
 bool Sexy::ExtractTurbotPage6Resources(ResourceManager* theManager)
 {
 	try {
+		IMAGE_STORY_TP6_FIRST_BOTTOM_IMAGE = theManager->GetImageThrow("IMAGE_STORY_TP6_FIRST_BOTTOM_IMAGE");
 		IMAGE_STORY_TP6_FIRST_TOP_IMAGE = theManager->GetImageThrow("IMAGE_STORY_TP6_FIRST_TOP_IMAGE");
 		IMAGE_STORY_TP6_TPIC2 = theManager->GetImageThrow("IMAGE_STORY_TP6_TPIC2");
-		IMAGE_STORY_TP6_FIRST_BOTTOM_IMAGE = theManager->GetImageThrow("IMAGE_STORY_TP6_FIRST_BOTTOM_IMAGE");
 	} catch (ResourceManagerException&) {
 		return false;
 	}
 	return true;
 }
 
+// 0x41f1c0: the resource group "TurbotPage7" (the original has a function of its own for each group and a switch by name, 0x422f20)
 bool Sexy::ExtractTurbotPage7Resources(ResourceManager* theManager)
 {
 	try {
-		IMAGE_STORY_TP7_FIRST_TOP_IMAGE = theManager->GetImageThrow("IMAGE_STORY_TP7_FIRST_TOP_IMAGE");
-		IMAGE_STORY_TP7_FIRST_BOTTOM_IMAGE = theManager->GetImageThrow("IMAGE_STORY_TP7_FIRST_BOTTOM_IMAGE");
 		IMAGE_STORY_TP7_BPIC2 = theManager->GetImageThrow("IMAGE_STORY_TP7_BPIC2");
+		IMAGE_STORY_TP7_FIRST_BOTTOM_IMAGE = theManager->GetImageThrow("IMAGE_STORY_TP7_FIRST_BOTTOM_IMAGE");
+		IMAGE_STORY_TP7_FIRST_TOP_IMAGE = theManager->GetImageThrow("IMAGE_STORY_TP7_FIRST_TOP_IMAGE");
 	} catch (ResourceManagerException&) {
 		return false;
 	}
 	return true;
 }
 
+// 0x41f320: the resource group "TurbotPage8" (the original has a function of its own for each group and a switch by name, 0x422f20)
 bool Sexy::ExtractTurbotPage8Resources(ResourceManager* theManager)
 {
 	try {
-		IMAGE_STORY_TP8_FIRST_TOP_IMAGE = theManager->GetImageThrow("IMAGE_STORY_TP8_FIRST_TOP_IMAGE");
-		IMAGE_STORY_TP8_FIRST_BOTTOM_IMAGE = theManager->GetImageThrow("IMAGE_STORY_TP8_FIRST_BOTTOM_IMAGE");
 		IMAGE_STORY_TP8_BPIC2 = theManager->GetImageThrow("IMAGE_STORY_TP8_BPIC2");
+		IMAGE_STORY_TP8_FIRST_BOTTOM_IMAGE = theManager->GetImageThrow("IMAGE_STORY_TP8_FIRST_BOTTOM_IMAGE");
+		IMAGE_STORY_TP8_FIRST_TOP_IMAGE = theManager->GetImageThrow("IMAGE_STORY_TP8_FIRST_TOP_IMAGE");
 	} catch (ResourceManagerException&) {
 		return false;
 	}
 	return true;
 }
 
+// 0x416ef0: the resource group "EndScene" (the original has a function of its own for each group and a switch by name, 0x422f20)
 bool Sexy::ExtractEndSceneResources(ResourceManager* theManager)
 {
 	try {
+		IMAGE_ES_FINAL = theManager->GetImageThrow("IMAGE_ES_FINAL");
+		IMAGE_ES_SPROCKET_HAPPY1 = theManager->GetImageThrow("IMAGE_ES_SPROCKET_HAPPY1");
+		IMAGE_ES_SPROCKET_HAPPY1_ALPHA = theManager->GetImageThrow("IMAGE_ES_SPROCKET_HAPPY1_ALPHA");
+		IMAGE_ES_SPROCKET_HAPPY2 = theManager->GetImageThrow("IMAGE_ES_SPROCKET_HAPPY2");
+		IMAGE_ES_SPROCKET_HAPPY2_ALPHA = theManager->GetImageThrow("IMAGE_ES_SPROCKET_HAPPY2_ALPHA");
+		IMAGE_ES_SPROCKET_HAPPY3 = theManager->GetImageThrow("IMAGE_ES_SPROCKET_HAPPY3");
+		IMAGE_ES_SPROCKET_HAPPY3_ALPHA = theManager->GetImageThrow("IMAGE_ES_SPROCKET_HAPPY3_ALPHA");
 		IMAGE_ES_SPROCKET_WORRY1 = theManager->GetImageThrow("IMAGE_ES_SPROCKET_WORRY1");
 		IMAGE_ES_SPROCKET_WORRY2 = theManager->GetImageThrow("IMAGE_ES_SPROCKET_WORRY2");
-		IMAGE_ES_SPROCKET_HAPPY1 = theManager->GetImageThrow("IMAGE_ES_SPROCKET_HAPPY1");
-		IMAGE_ES_SPROCKET_HAPPY2 = theManager->GetImageThrow("IMAGE_ES_SPROCKET_HAPPY2");
-		IMAGE_ES_SPROCKET_HAPPY3 = theManager->GetImageThrow("IMAGE_ES_SPROCKET_HAPPY3");
-		IMAGE_ES_SPROCKET_HAPPY1_ALPHA = theManager->GetImageThrow("IMAGE_ES_SPROCKET_HAPPY1_ALPHA");
-		IMAGE_ES_SPROCKET_HAPPY2_ALPHA = theManager->GetImageThrow("IMAGE_ES_SPROCKET_HAPPY2_ALPHA");
-		IMAGE_ES_SPROCKET_HAPPY3_ALPHA = theManager->GetImageThrow("IMAGE_ES_SPROCKET_HAPPY3_ALPHA");
-		IMAGE_ES_VECTOR_WORRY1 = theManager->GetImageThrow("IMAGE_ES_VECTOR_WORRY1");
-		IMAGE_ES_VECTOR_WORRY2 = theManager->GetImageThrow("IMAGE_ES_VECTOR_WORRY2");
-		IMAGE_ES_VECTOR_HAPPY1 = theManager->GetImageThrow("IMAGE_ES_VECTOR_HAPPY1");
-		IMAGE_ES_VECTOR_HAPPY2 = theManager->GetImageThrow("IMAGE_ES_VECTOR_HAPPY2");
-		IMAGE_ES_VECTOR_HAPPY3 = theManager->GetImageThrow("IMAGE_ES_VECTOR_HAPPY3");
-		IMAGE_ES_VECTOR_HAPPY1_ALPHA = theManager->GetImageThrow("IMAGE_ES_VECTOR_HAPPY1_ALPHA");
-		IMAGE_ES_VECTOR_HAPPY2_ALPHA = theManager->GetImageThrow("IMAGE_ES_VECTOR_HAPPY2_ALPHA");
-		IMAGE_ES_VECTOR_HAPPY3_ALPHA = theManager->GetImageThrow("IMAGE_ES_VECTOR_HAPPY3_ALPHA");
 		IMAGE_ES_TURBOT_BLINK = theManager->GetImageThrow("IMAGE_ES_TURBOT_BLINK");
 		IMAGE_ES_TURBOT_FORWARD = theManager->GetImageThrow("IMAGE_ES_TURBOT_FORWARD");
 		IMAGE_ES_TURBOT_HAPPY1 = theManager->GetImageThrow("IMAGE_ES_TURBOT_HAPPY1");
-		IMAGE_ES_TURBOT_HAPPY2 = theManager->GetImageThrow("IMAGE_ES_TURBOT_HAPPY2");
-		IMAGE_ES_TURBOT_HAPPY3 = theManager->GetImageThrow("IMAGE_ES_TURBOT_HAPPY3");
 		IMAGE_ES_TURBOT_HAPPY1_ALPHA = theManager->GetImageThrow("IMAGE_ES_TURBOT_HAPPY1_ALPHA");
+		IMAGE_ES_TURBOT_HAPPY2 = theManager->GetImageThrow("IMAGE_ES_TURBOT_HAPPY2");
 		IMAGE_ES_TURBOT_HAPPY2_ALPHA = theManager->GetImageThrow("IMAGE_ES_TURBOT_HAPPY2_ALPHA");
+		IMAGE_ES_TURBOT_HAPPY3 = theManager->GetImageThrow("IMAGE_ES_TURBOT_HAPPY3");
 		IMAGE_ES_TURBOT_HAPPY3_ALPHA = theManager->GetImageThrow("IMAGE_ES_TURBOT_HAPPY3_ALPHA");
+		IMAGE_ES_VECTOR_HAPPY1 = theManager->GetImageThrow("IMAGE_ES_VECTOR_HAPPY1");
+		IMAGE_ES_VECTOR_HAPPY1_ALPHA = theManager->GetImageThrow("IMAGE_ES_VECTOR_HAPPY1_ALPHA");
+		IMAGE_ES_VECTOR_HAPPY2 = theManager->GetImageThrow("IMAGE_ES_VECTOR_HAPPY2");
+		IMAGE_ES_VECTOR_HAPPY2_ALPHA = theManager->GetImageThrow("IMAGE_ES_VECTOR_HAPPY2_ALPHA");
+		IMAGE_ES_VECTOR_HAPPY3 = theManager->GetImageThrow("IMAGE_ES_VECTOR_HAPPY3");
+		IMAGE_ES_VECTOR_HAPPY3_ALPHA = theManager->GetImageThrow("IMAGE_ES_VECTOR_HAPPY3_ALPHA");
 		IMAGE_ES_VECTOR_SPROCKET_CONFUSED = theManager->GetImageThrow("IMAGE_ES_VECTOR_SPROCKET_CONFUSED");
+		IMAGE_ES_VECTOR_SPROCKET_HUG = theManager->GetImageThrow("IMAGE_ES_VECTOR_SPROCKET_HUG");
 		IMAGE_ES_VECTOR_VIXX_KISS = theManager->GetImageThrow("IMAGE_ES_VECTOR_VIXX_KISS");
+		IMAGE_ES_VECTOR_WORRY1 = theManager->GetImageThrow("IMAGE_ES_VECTOR_WORRY1");
+		IMAGE_ES_VECTOR_WORRY2 = theManager->GetImageThrow("IMAGE_ES_VECTOR_WORRY2");
 		IMAGE_ES_VIXX_BLINK = theManager->GetImageThrow("IMAGE_ES_VIXX_BLINK");
 		IMAGE_ES_VIXX_FORWARD = theManager->GetImageThrow("IMAGE_ES_VIXX_FORWARD");
 		IMAGE_ES_VIXX_HAPPY1 = theManager->GetImageThrow("IMAGE_ES_VIXX_HAPPY1");
-		IMAGE_ES_VIXX_HAPPY2 = theManager->GetImageThrow("IMAGE_ES_VIXX_HAPPY2");
-		IMAGE_ES_VIXX_HAPPY3 = theManager->GetImageThrow("IMAGE_ES_VIXX_HAPPY3");
 		IMAGE_ES_VIXX_HAPPY1_ALPHA = theManager->GetImageThrow("IMAGE_ES_VIXX_HAPPY1_ALPHA");
+		IMAGE_ES_VIXX_HAPPY2 = theManager->GetImageThrow("IMAGE_ES_VIXX_HAPPY2");
 		IMAGE_ES_VIXX_HAPPY2_ALPHA = theManager->GetImageThrow("IMAGE_ES_VIXX_HAPPY2_ALPHA");
+		IMAGE_ES_VIXX_HAPPY3 = theManager->GetImageThrow("IMAGE_ES_VIXX_HAPPY3");
 		IMAGE_ES_VIXX_HAPPY3_ALPHA = theManager->GetImageThrow("IMAGE_ES_VIXX_HAPPY3_ALPHA");
-		IMAGE_ES_VECTOR_SPROCKET_HUG = theManager->GetImageThrow("IMAGE_ES_VECTOR_SPROCKET_HUG");
-		IMAGE_ES_FINAL = theManager->GetImageThrow("IMAGE_ES_FINAL");
 	} catch (ResourceManagerException&) {
 		return false;
 	}
 	return true;
 }
 
+// 0x41d140: the resource group "Init" (the original has a function of its own for each group and a switch by name, 0x422f20)
 bool Sexy::ExtractInitResources(ResourceManager* theManager)
 {
 	try {
 		IMAGE_LOADER_BAR = theManager->GetImageThrow("IMAGE_LOADER_BAR");
-		IMAGE_LOADER_SCREEN = theManager->GetImageThrow("IMAGE_LOADER_SCREEN");
 		IMAGE_LOADER_CLICK_TO_PLAY = theManager->GetImageThrow("IMAGE_LOADER_CLICK_TO_PLAY");
 		IMAGE_LOADER_LOADINGTXT = theManager->GetImageThrow("IMAGE_LOADER_LOADINGTXT");
 		IMAGE_LOADER_REGISTER = theManager->GetImageThrow("IMAGE_LOADER_REGISTER");
 		IMAGE_LOADER_REGISTER_OVER = theManager->GetImageThrow("IMAGE_LOADER_REGISTER_OVER");
-		IMAGE_LOADER_VECTOR = theManager->GetImageThrow("IMAGE_LOADER_VECTOR");
+		IMAGE_LOADER_SCREEN = theManager->GetImageThrow("IMAGE_LOADER_SCREEN");
 		IMAGE_LOADER_SPROCKET = theManager->GetImageThrow("IMAGE_LOADER_SPROCKET");
-		IMAGE_LOADER_TURBOT = theManager->GetImageThrow("IMAGE_LOADER_TURBOT");
-		IMAGE_LOADER_VIXX = theManager->GetImageThrow("IMAGE_LOADER_VIXX");
-		IMAGE_LOADER_VECTOR_BIGTEXT = theManager->GetImageThrow("IMAGE_LOADER_VECTOR_BIGTEXT");
 		IMAGE_LOADER_SPROCKET_BIGTEXT = theManager->GetImageThrow("IMAGE_LOADER_SPROCKET_BIGTEXT");
-		IMAGE_LOADER_TURBOT_BIGTEXT = theManager->GetImageThrow("IMAGE_LOADER_TURBOT_BIGTEXT");
-		IMAGE_LOADER_VIXX_BIGTEXT = theManager->GetImageThrow("IMAGE_LOADER_VIXX_BIGTEXT");
-		IMAGE_LOADER_VECTOR_SILHOUETTE = theManager->GetImageThrow("IMAGE_LOADER_VECTOR_SILHOUETTE");
 		IMAGE_LOADER_SPROCKET_SILHOUETTE = theManager->GetImageThrow("IMAGE_LOADER_SPROCKET_SILHOUETTE");
+		IMAGE_LOADER_TURBOT = theManager->GetImageThrow("IMAGE_LOADER_TURBOT");
+		IMAGE_LOADER_TURBOT_BIGTEXT = theManager->GetImageThrow("IMAGE_LOADER_TURBOT_BIGTEXT");
 		IMAGE_LOADER_TURBOT_SILHOUETTE = theManager->GetImageThrow("IMAGE_LOADER_TURBOT_SILHOUETTE");
+		IMAGE_LOADER_VECTOR = theManager->GetImageThrow("IMAGE_LOADER_VECTOR");
+		IMAGE_LOADER_VECTOR_BIGTEXT = theManager->GetImageThrow("IMAGE_LOADER_VECTOR_BIGTEXT");
+		IMAGE_LOADER_VECTOR_SILHOUETTE = theManager->GetImageThrow("IMAGE_LOADER_VECTOR_SILHOUETTE");
+		IMAGE_LOADER_VIXX = theManager->GetImageThrow("IMAGE_LOADER_VIXX");
+		IMAGE_LOADER_VIXX_BIGTEXT = theManager->GetImageThrow("IMAGE_LOADER_VIXX_BIGTEXT");
 		IMAGE_LOADER_VIXX_SILHOUETTE = theManager->GetImageThrow("IMAGE_LOADER_VIXX_SILHOUETTE");
 	} catch (ResourceManagerException&) {
 		return false;
@@ -2584,83 +2619,86 @@ bool Sexy::ExtractInitResources(ResourceManager* theManager)
 	return true;
 }
 
+// 0x41d8c0: the resource group "Required" (the original has a function of its own for each group and a switch by name, 0x422f20)
 bool Sexy::ExtractRequiredResources(ResourceManager* theManager)
 {
 	try {
-		IMAGE_REGISTER_SCREEN = theManager->GetImageThrow("IMAGE_REGISTER_SCREEN");
+		FONT_DIALOG_BOX = theManager->GetFontThrow("FONT_DIALOG_BOX");
+		FONT_DIALOG_BOX_BTN = theManager->GetFontThrow("FONT_DIALOG_BOX_BTN");
+		FONT_DIALOG_BOX_HEADER = theManager->GetFontThrow("FONT_DIALOG_BOX_HEADER");
+		IMAGE_CUSTOM_DRAGGING = theManager->GetImageThrow("IMAGE_CUSTOM_DRAGGING");
+		IMAGE_CUSTOM_HAND = theManager->GetImageThrow("IMAGE_CUSTOM_HAND");
+		IMAGE_CUSTOM_POINTER = theManager->GetImageThrow("IMAGE_CUSTOM_POINTER");
+		IMAGE_CUSTOM_TEXT = theManager->GetImageThrow("IMAGE_CUSTOM_TEXT");
 		IMAGE_DIALOG = theManager->GetImageThrow("IMAGE_DIALOG");
 		IMAGE_DIALOG_BTN = theManager->GetImageThrow("IMAGE_DIALOG_BTN");
 		IMAGE_DIALOG_INSET = theManager->GetImageThrow("IMAGE_DIALOG_INSET");
 		IMAGE_DIALOG_INSET_HELP = theManager->GetImageThrow("IMAGE_DIALOG_INSET_HELP");
-		IMAGE_CUSTOM_POINTER = theManager->GetImageThrow("IMAGE_CUSTOM_POINTER");
-		IMAGE_CUSTOM_HAND = theManager->GetImageThrow("IMAGE_CUSTOM_HAND");
-		IMAGE_CUSTOM_DRAGGING = theManager->GetImageThrow("IMAGE_CUSTOM_DRAGGING");
-		IMAGE_CUSTOM_TEXT = theManager->GetImageThrow("IMAGE_CUSTOM_TEXT");
-		FONT_DIALOG_BOX = theManager->GetFontThrow("FONT_DIALOG_BOX");
-		FONT_DIALOG_BOX_BTN = theManager->GetFontThrow("FONT_DIALOG_BOX_BTN");
-		FONT_DIALOG_BOX_HEADER = theManager->GetFontThrow("FONT_DIALOG_BOX_HEADER");
+		IMAGE_REGISTER_SCREEN = theManager->GetImageThrow("IMAGE_REGISTER_SCREEN");
 	} catch (ResourceManagerException&) {
 		return false;
 	}
 	return true;
 }
 
+// 0x41ac00: the resource group "GameSelector" (the original has a function of its own for each group and a switch by name, 0x422f20)
 bool Sexy::ExtractGameSelectorResources(ResourceManager* theManager)
 {
 	try {
 		IMAGE_GAME_SELECTOR = theManager->GetImageThrow("IMAGE_GAME_SELECTOR");
-		IMAGE_GS_CENTER_PIECE = theManager->GetImageThrow("IMAGE_GS_CENTER_PIECE");
-		IMAGE_GS_ARCADE_MASK = theManager->GetImageThrow("IMAGE_GS_ARCADE_MASK");
-		IMAGE_GS_SURVIVAL_MASK = theManager->GetImageThrow("IMAGE_GS_SURVIVAL_MASK");
-		IMAGE_GS_HALL_MASK = theManager->GetImageThrow("IMAGE_GS_HALL_MASK");
-		IMAGE_GS_OPTIONS_MASK = theManager->GetImageThrow("IMAGE_GS_OPTIONS_MASK");
-		IMAGE_GS_MORE_GAMES_MASK = theManager->GetImageThrow("IMAGE_GS_MORE_GAMES_MASK");
-		IMAGE_GS_QUIT_MASK = theManager->GetImageThrow("IMAGE_GS_QUIT_MASK");
 		IMAGE_GS_ARCADE_DOWN = theManager->GetImageThrow("IMAGE_GS_ARCADE_DOWN");
-		IMAGE_GS_SURVIVAL_DOWN = theManager->GetImageThrow("IMAGE_GS_SURVIVAL_DOWN");
-		IMAGE_GS_HALL_DOWN = theManager->GetImageThrow("IMAGE_GS_HALL_DOWN");
-		IMAGE_GS_OPTIONS_DOWN = theManager->GetImageThrow("IMAGE_GS_OPTIONS_DOWN");
-		IMAGE_GS_MOREGAMES_DOWN = theManager->GetImageThrow("IMAGE_GS_MOREGAMES_DOWN");
-		IMAGE_GS_QUIT_DOWN = theManager->GetImageThrow("IMAGE_GS_QUIT_DOWN");
+		IMAGE_GS_ARCADE_MASK = theManager->GetImageThrow("IMAGE_GS_ARCADE_MASK");
 		IMAGE_GS_ARCADE_OVER = theManager->GetImageThrow("IMAGE_GS_ARCADE_OVER");
-		IMAGE_GS_SURVIVAL_OVER = theManager->GetImageThrow("IMAGE_GS_SURVIVAL_OVER");
+		IMAGE_GS_CENTER_PIECE = theManager->GetImageThrow("IMAGE_GS_CENTER_PIECE");
+		IMAGE_GS_GO = theManager->GetImageThrow("IMAGE_GS_GO");
+		IMAGE_GS_HALL_DOWN = theManager->GetImageThrow("IMAGE_GS_HALL_DOWN");
+		IMAGE_GS_HALL_MASK = theManager->GetImageThrow("IMAGE_GS_HALL_MASK");
 		IMAGE_GS_HALL_OVER = theManager->GetImageThrow("IMAGE_GS_HALL_OVER");
-		IMAGE_GS_OPTIONS_OVER = theManager->GetImageThrow("IMAGE_GS_OPTIONS_OVER");
+		IMAGE_GS_MOREGAMES_DOWN = theManager->GetImageThrow("IMAGE_GS_MOREGAMES_DOWN");
 		IMAGE_GS_MOREGAMES_OVER = theManager->GetImageThrow("IMAGE_GS_MOREGAMES_OVER");
-		IMAGE_GS_QUIT_OVER = theManager->GetImageThrow("IMAGE_GS_QUIT_OVER");
+		IMAGE_GS_MORE_GAMES_MASK = theManager->GetImageThrow("IMAGE_GS_MORE_GAMES_MASK");
 		IMAGE_GS_MOUSEOVER_ARCADE = theManager->GetImageThrow("IMAGE_GS_MOUSEOVER_ARCADE");
-		IMAGE_GS_MOUSEOVER_SURVIVAL = theManager->GetImageThrow("IMAGE_GS_MOUSEOVER_SURVIVAL");
 		IMAGE_GS_MOUSEOVER_HALL = theManager->GetImageThrow("IMAGE_GS_MOUSEOVER_HALL");
-		IMAGE_GS_MOUSEOVER_OPTIONS = theManager->GetImageThrow("IMAGE_GS_MOUSEOVER_OPTIONS");
 		IMAGE_GS_MOUSEOVER_MOREGAMES = theManager->GetImageThrow("IMAGE_GS_MOUSEOVER_MOREGAMES");
+		IMAGE_GS_MOUSEOVER_OPTIONS = theManager->GetImageThrow("IMAGE_GS_MOUSEOVER_OPTIONS");
 		IMAGE_GS_MOUSEOVER_QUIT = theManager->GetImageThrow("IMAGE_GS_MOUSEOVER_QUIT");
+		IMAGE_GS_MOUSEOVER_SURVIVAL = theManager->GetImageThrow("IMAGE_GS_MOUSEOVER_SURVIVAL");
+		IMAGE_GS_OPTIONS_DOWN = theManager->GetImageThrow("IMAGE_GS_OPTIONS_DOWN");
+		IMAGE_GS_OPTIONS_MASK = theManager->GetImageThrow("IMAGE_GS_OPTIONS_MASK");
+		IMAGE_GS_OPTIONS_OVER = theManager->GetImageThrow("IMAGE_GS_OPTIONS_OVER");
 		IMAGE_GS_PROJECTOR = theManager->GetImageThrow("IMAGE_GS_PROJECTOR");
+		IMAGE_GS_QUIT_DOWN = theManager->GetImageThrow("IMAGE_GS_QUIT_DOWN");
+		IMAGE_GS_QUIT_MASK = theManager->GetImageThrow("IMAGE_GS_QUIT_MASK");
+		IMAGE_GS_QUIT_OVER = theManager->GetImageThrow("IMAGE_GS_QUIT_OVER");
 		IMAGE_GS_SELECT_USER_NORMAL = theManager->GetImageThrow("IMAGE_GS_SELECT_USER_NORMAL");
 		IMAGE_GS_SELECT_USER_OVER = theManager->GetImageThrow("IMAGE_GS_SELECT_USER_OVER");
 		IMAGE_GS_SHIP1 = theManager->GetImageThrow("IMAGE_GS_SHIP1");
+		IMAGE_GS_SHIP1_WARPJET = theManager->GetImageThrow("IMAGE_GS_SHIP1_WARPJET");
 		IMAGE_GS_SHIP2 = theManager->GetImageThrow("IMAGE_GS_SHIP2");
 		IMAGE_GS_SHIP3 = theManager->GetImageThrow("IMAGE_GS_SHIP3");
 		IMAGE_GS_SHIP4 = theManager->GetImageThrow("IMAGE_GS_SHIP4");
-		IMAGE_GS_SHIP1_WARPJET = theManager->GetImageThrow("IMAGE_GS_SHIP1_WARPJET");
-		IMAGE_GS_GO = theManager->GetImageThrow("IMAGE_GS_GO");
+		IMAGE_GS_SURVIVAL_DOWN = theManager->GetImageThrow("IMAGE_GS_SURVIVAL_DOWN");
+		IMAGE_GS_SURVIVAL_MASK = theManager->GetImageThrow("IMAGE_GS_SURVIVAL_MASK");
+		IMAGE_GS_SURVIVAL_OVER = theManager->GetImageThrow("IMAGE_GS_SURVIVAL_OVER");
 	} catch (ResourceManagerException&) {
 		return false;
 	}
 	return true;
 }
 
+// 0x41cd60: the resource group "HighScores" (the original has a function of its own for each group and a switch by name, 0x422f20)
 bool Sexy::ExtractHighScoresResources(ResourceManager* theManager)
 {
 	try {
-		IMAGE_HOF_BG = theManager->GetImageThrow("IMAGE_HOF_BG");
-		IMAGE_HOF_CONTINUE_DOWN = theManager->GetImageThrow("IMAGE_HOF_CONTINUE_DOWN");
-		IMAGE_HOF_CONTINUE_OVER = theManager->GetImageThrow("IMAGE_HOF_CONTINUE_OVER");
 		IMAGE_HOF_ALLTIME_DOWN = theManager->GetImageThrow("IMAGE_HOF_ALLTIME_DOWN");
 		IMAGE_HOF_ALLTIME_OVER = theManager->GetImageThrow("IMAGE_HOF_ALLTIME_OVER");
 		IMAGE_HOF_ALLTIME_UP = theManager->GetImageThrow("IMAGE_HOF_ALLTIME_UP");
+		IMAGE_HOF_BG = theManager->GetImageThrow("IMAGE_HOF_BG");
+		IMAGE_HOF_CONTINUE_DOWN = theManager->GetImageThrow("IMAGE_HOF_CONTINUE_DOWN");
+		IMAGE_HOF_CONTINUE_OVER = theManager->GetImageThrow("IMAGE_HOF_CONTINUE_OVER");
 		IMAGE_HOF_PERSONAL_DOWN = theManager->GetImageThrow("IMAGE_HOF_PERSONAL_DOWN");
-		IMAGE_HOF_PERSONAL_UP = theManager->GetImageThrow("IMAGE_HOF_PERSONAL_UP");
 		IMAGE_HOF_PERSONAL_OVER = theManager->GetImageThrow("IMAGE_HOF_PERSONAL_OVER");
+		IMAGE_HOF_PERSONAL_UP = theManager->GetImageThrow("IMAGE_HOF_PERSONAL_UP");
 		IMAGE_HOF_TITLE_ALLTIME = theManager->GetImageThrow("IMAGE_HOF_TITLE_ALLTIME");
 		IMAGE_HOF_TITLE_PERSONAL = theManager->GetImageThrow("IMAGE_HOF_TITLE_PERSONAL");
 	} catch (ResourceManagerException&) {
@@ -2669,61 +2707,63 @@ bool Sexy::ExtractHighScoresResources(ResourceManager* theManager)
 	return true;
 }
 
+// 0x41d760: the resource group "MoreGames" (the original has a function of its own for each group and a switch by name, 0x422f20)
 bool Sexy::ExtractMoreGamesResources(ResourceManager* theManager)
 {
 	try {
-		IMAGE_MOREGAMES_SCREEN = theManager->GetImageThrow("IMAGE_MOREGAMES_SCREEN");
 		IMAGE_MG_CONTINUE_DOWN = theManager->GetImageThrow("IMAGE_MG_CONTINUE_DOWN");
 		IMAGE_MG_CONTINUE_OVER = theManager->GetImageThrow("IMAGE_MG_CONTINUE_OVER");
+		IMAGE_MOREGAMES_SCREEN = theManager->GetImageThrow("IMAGE_MOREGAMES_SCREEN");
 	} catch (ResourceManagerException&) {
 		return false;
 	}
 	return true;
 }
 
+// 0x416240: the resource group "CharSelector" (the original has a function of its own for each group and a switch by name, 0x422f20)
 bool Sexy::ExtractCharSelectorResources(ResourceManager* theManager)
 {
 	try {
 		IMAGE_CS_BOTTOM = theManager->GetImageThrow("IMAGE_CS_BOTTOM");
 		IMAGE_CS_BOTTOM_BTN = theManager->GetImageThrow("IMAGE_CS_BOTTOM_BTN");
 		IMAGE_CS_BOTTOM_BTN_DOWN = theManager->GetImageThrow("IMAGE_CS_BOTTOM_BTN_DOWN");
-		IMAGE_CS_TITLE_SURVIVAL = theManager->GetImageThrow("IMAGE_CS_TITLE_SURVIVAL");
-		IMAGE_CS_TITLE_ARCADE = theManager->GetImageThrow("IMAGE_CS_TITLE_ARCADE");
-		IMAGE_CS_VECTOR_HILIGHT = theManager->GetImageThrow("IMAGE_CS_VECTOR_HILIGHT");
 		IMAGE_CS_SPROCKET_HILIGHT = theManager->GetImageThrow("IMAGE_CS_SPROCKET_HILIGHT");
-		IMAGE_CS_TURBOT_HILIGHT = theManager->GetImageThrow("IMAGE_CS_TURBOT_HILIGHT");
-		IMAGE_CS_VIXX_HILIGHT = theManager->GetImageThrow("IMAGE_CS_VIXX_HILIGHT");
 		IMAGE_CS_SPROCKET_HILIGHT_LOCK = theManager->GetImageThrow("IMAGE_CS_SPROCKET_HILIGHT_LOCK");
-		IMAGE_CS_TURBOT_HILIGHT_LOCK = theManager->GetImageThrow("IMAGE_CS_TURBOT_HILIGHT_LOCK");
-		IMAGE_CS_VIXX_HILIGHT_LOCK = theManager->GetImageThrow("IMAGE_CS_VIXX_HILIGHT_LOCK");
 		IMAGE_CS_SPROCKET_OPEN = theManager->GetImageThrow("IMAGE_CS_SPROCKET_OPEN");
 		IMAGE_CS_SPROCKET_REGLOCK = theManager->GetImageThrow("IMAGE_CS_SPROCKET_REGLOCK");
+		IMAGE_CS_SPROCKET_STATFILL = theManager->GetImageThrow("IMAGE_CS_SPROCKET_STATFILL");
 		IMAGE_CS_SPROCKET_STATLOCK = theManager->GetImageThrow("IMAGE_CS_SPROCKET_STATLOCK");
 		IMAGE_CS_SPROCKET_STATS_ARCADE = theManager->GetImageThrow("IMAGE_CS_SPROCKET_STATS_ARCADE");
+		IMAGE_CS_SPROCKET_STATS_SURVIVAL = theManager->GetImageThrow("IMAGE_CS_SPROCKET_STATS_SURVIVAL");
+		IMAGE_CS_TITLE_ARCADE = theManager->GetImageThrow("IMAGE_CS_TITLE_ARCADE");
+		IMAGE_CS_TITLE_SURVIVAL = theManager->GetImageThrow("IMAGE_CS_TITLE_SURVIVAL");
+		IMAGE_CS_TURBOT_HILIGHT = theManager->GetImageThrow("IMAGE_CS_TURBOT_HILIGHT");
+		IMAGE_CS_TURBOT_HILIGHT_LOCK = theManager->GetImageThrow("IMAGE_CS_TURBOT_HILIGHT_LOCK");
+		IMAGE_CS_TURBOT_LOCK = theManager->GetImageThrow("IMAGE_CS_TURBOT_LOCK");
 		IMAGE_CS_TURBOT_OPEN = theManager->GetImageThrow("IMAGE_CS_TURBOT_OPEN");
 		IMAGE_CS_TURBOT_REGLOCK = theManager->GetImageThrow("IMAGE_CS_TURBOT_REGLOCK");
+		IMAGE_CS_TURBOT_STATFILL = theManager->GetImageThrow("IMAGE_CS_TURBOT_STATFILL");
 		IMAGE_CS_TURBOT_STATLOCK = theManager->GetImageThrow("IMAGE_CS_TURBOT_STATLOCK");
 		IMAGE_CS_TURBOT_STATS_ARCADE = theManager->GetImageThrow("IMAGE_CS_TURBOT_STATS_ARCADE");
-		IMAGE_CS_TURBOT_LOCK = theManager->GetImageThrow("IMAGE_CS_TURBOT_LOCK");
+		IMAGE_CS_TURBOT_STATS_SURVIVAL = theManager->GetImageThrow("IMAGE_CS_TURBOT_STATS_SURVIVAL");
 		IMAGE_CS_VECTOR = theManager->GetImageThrow("IMAGE_CS_VECTOR");
+		IMAGE_CS_VECTOR_HILIGHT = theManager->GetImageThrow("IMAGE_CS_VECTOR_HILIGHT");
+		IMAGE_CS_VECTOR_STATFILL = theManager->GetImageThrow("IMAGE_CS_VECTOR_STATFILL");
 		IMAGE_CS_VECTOR_STATS_ARCADE = theManager->GetImageThrow("IMAGE_CS_VECTOR_STATS_ARCADE");
-		IMAGE_CS_VIXX_OPEN = theManager->GetImageThrow("IMAGE_CS_VIXX_OPEN");
+		IMAGE_CS_VECTOR_STATS_SURVIVAL = theManager->GetImageThrow("IMAGE_CS_VECTOR_STATS_SURVIVAL");
+		IMAGE_CS_VIXX_HILIGHT = theManager->GetImageThrow("IMAGE_CS_VIXX_HILIGHT");
+		IMAGE_CS_VIXX_HILIGHT_LOCK = theManager->GetImageThrow("IMAGE_CS_VIXX_HILIGHT_LOCK");
 		IMAGE_CS_VIXX_LOCK = theManager->GetImageThrow("IMAGE_CS_VIXX_LOCK");
+		IMAGE_CS_VIXX_OPEN = theManager->GetImageThrow("IMAGE_CS_VIXX_OPEN");
+		IMAGE_CS_VIXX_STATFILL = theManager->GetImageThrow("IMAGE_CS_VIXX_STATFILL");
 		IMAGE_CS_VIXX_STATLOCK = theManager->GetImageThrow("IMAGE_CS_VIXX_STATLOCK");
 		IMAGE_CS_VIXX_STATS_ARCADE = theManager->GetImageThrow("IMAGE_CS_VIXX_STATS_ARCADE");
-		IMAGE_CS_VECTOR_STATFILL = theManager->GetImageThrow("IMAGE_CS_VECTOR_STATFILL");
-		IMAGE_CS_SPROCKET_STATFILL = theManager->GetImageThrow("IMAGE_CS_SPROCKET_STATFILL");
-		IMAGE_CS_TURBOT_STATFILL = theManager->GetImageThrow("IMAGE_CS_TURBOT_STATFILL");
-		IMAGE_CS_VIXX_STATFILL = theManager->GetImageThrow("IMAGE_CS_VIXX_STATFILL");
-		IMAGE_CS_VECTOR_STATS_SURVIVAL = theManager->GetImageThrow("IMAGE_CS_VECTOR_STATS_SURVIVAL");
-		IMAGE_CS_SPROCKET_STATS_SURVIVAL = theManager->GetImageThrow("IMAGE_CS_SPROCKET_STATS_SURVIVAL");
-		IMAGE_CS_TURBOT_STATS_SURVIVAL = theManager->GetImageThrow("IMAGE_CS_TURBOT_STATS_SURVIVAL");
 		IMAGE_CS_VIXX_STATS_SURVIVAL = theManager->GetImageThrow("IMAGE_CS_VIXX_STATS_SURVIVAL");
-		IMAGE_RANK_CENTER_SUN = theManager->GetImageThrow("IMAGE_RANK_CENTER_SUN");
-		IMAGE_RANK_CENTER_STAR = theManager->GetImageThrow("IMAGE_RANK_CENTER_STAR");
-		IMAGE_RANK_CENTER_PLANET = theManager->GetImageThrow("IMAGE_RANK_CENTER_PLANET");
 		IMAGE_RANK_CENTER_ATOM = theManager->GetImageThrow("IMAGE_RANK_CENTER_ATOM");
+		IMAGE_RANK_CENTER_PLANET = theManager->GetImageThrow("IMAGE_RANK_CENTER_PLANET");
 		IMAGE_RANK_CENTER_SHIP = theManager->GetImageThrow("IMAGE_RANK_CENTER_SHIP");
+		IMAGE_RANK_CENTER_STAR = theManager->GetImageThrow("IMAGE_RANK_CENTER_STAR");
+		IMAGE_RANK_CENTER_SUN = theManager->GetImageThrow("IMAGE_RANK_CENTER_SUN");
 		IMAGE_RANK_SMALL_STAR = theManager->GetImageThrow("IMAGE_RANK_SMALL_STAR");
 		IMAGE_RANK_STRAP = theManager->GetImageThrow("IMAGE_RANK_STRAP");
 		IMAGE_RANK_WINGS = theManager->GetImageThrow("IMAGE_RANK_WINGS");
@@ -2733,78 +2773,96 @@ bool Sexy::ExtractCharSelectorResources(ResourceManager* theManager)
 	return true;
 }
 
+// 0x414a10: the resource group "AllwaysLoaded" (the original has a function of its own for each group and a switch by name, 0x422f20)
 bool Sexy::ExtractAllwaysLoadedResources(ResourceManager* theManager)
 {
 	try {
-		IMAGE_SLIDER_TRACK = theManager->GetImageThrow("IMAGE_SLIDER_TRACK");
-		IMAGE_SLIDER_THUMB = theManager->GetImageThrow("IMAGE_SLIDER_THUMB");
-		IMAGE_CHECKBOX = theManager->GetImageThrow("IMAGE_CHECKBOX");
-		IMAGE_EDIT_BOX = theManager->GetImageThrow("IMAGE_EDIT_BOX");
-		IMAGE_UPDATE_BAR = theManager->GetImageThrow("IMAGE_UPDATE_BAR");
-		IMAGE_FUELCELL = theManager->GetImageThrow("IMAGE_FUELCELL");
-		IMAGE_BRICK_MUTATOR = theManager->GetImageThrow("IMAGE_BRICK_MUTATOR");
-		IMAGE_BRICK_RADIAL = theManager->GetImageThrow("IMAGE_BRICK_RADIAL");
-		IMAGE_BRICK_STONE = theManager->GetImageThrow("IMAGE_BRICK_STONE");
-		IMAGE_BRICK_ROW_NUKE = theManager->GetImageThrow("IMAGE_BRICK_ROW_NUKE");
+		FONT_COMBO = theManager->GetFontThrow("FONT_COMBO");
+		FONT_COMBO_BLUE = theManager->GetFontThrow("FONT_COMBO_BLUE");
+		FONT_COMBO_RED = theManager->GetFontThrow("FONT_COMBO_RED");
+		FONT_COMBO_YELLOW = theManager->GetFontThrow("FONT_COMBO_YELLOW");
+		FONT_HIGH_SCORE = theManager->GetFontThrow("FONT_HIGH_SCORE");
+		FONT_LARGE_COMBO = theManager->GetFontThrow("FONT_LARGE_COMBO");
+		FONT_LARGE_COMBO_BLUE = theManager->GetFontThrow("FONT_LARGE_COMBO_BLUE");
+		FONT_LARGE_COMBO_RED = theManager->GetFontThrow("FONT_LARGE_COMBO_RED");
+		FONT_LARGE_COMBO_YELLOW = theManager->GetFontThrow("FONT_LARGE_COMBO_YELLOW");
+		FONT_LEVEL_UP = theManager->GetFontThrow("FONT_LEVEL_UP");
+		FONT_NEURO30 = theManager->GetFontThrow("FONT_NEURO30");
+		FONT_PLAYER_SCORE = theManager->GetFontThrow("FONT_PLAYER_SCORE");
+		FONT_POINTS = theManager->GetFontThrow("FONT_POINTS");
 		IMAGE_BRICK_COL_NUKE = theManager->GetImageThrow("IMAGE_BRICK_COL_NUKE");
 		IMAGE_BRICK_FREEZE = theManager->GetImageThrow("IMAGE_BRICK_FREEZE");
+		IMAGE_BRICK_MUTATOR = theManager->GetImageThrow("IMAGE_BRICK_MUTATOR");
+		IMAGE_BRICK_RADIAL = theManager->GetImageThrow("IMAGE_BRICK_RADIAL");
+		IMAGE_BRICK_ROW_NUKE = theManager->GetImageThrow("IMAGE_BRICK_ROW_NUKE");
 		IMAGE_BRICK_STEEL_1 = theManager->GetImageThrow("IMAGE_BRICK_STEEL_1");
+		IMAGE_BRICK_STONE = theManager->GetImageThrow("IMAGE_BRICK_STONE");
+		IMAGE_CHECKBOX = theManager->GetImageThrow("IMAGE_CHECKBOX");
+		IMAGE_EDIT_BOX = theManager->GetImageThrow("IMAGE_EDIT_BOX");
+		IMAGE_FUELCELL = theManager->GetImageThrow("IMAGE_FUELCELL");
 		IMAGE_RED_NEBULA_BG = theManager->GetImageThrow("IMAGE_RED_NEBULA_BG");
-		FONT_POINTS = theManager->GetFontThrow("FONT_POINTS");
-		FONT_LEVEL_UP = theManager->GetFontThrow("FONT_LEVEL_UP");
-		FONT_PLAYER_SCORE = theManager->GetFontThrow("FONT_PLAYER_SCORE");
-		FONT_HIGH_SCORE = theManager->GetFontThrow("FONT_HIGH_SCORE");
-		FONT_NEURO30 = theManager->GetFontThrow("FONT_NEURO30");
-		FONT_COMBO = theManager->GetFontThrow("FONT_COMBO");
-		FONT_LARGE_COMBO = theManager->GetFontThrow("FONT_LARGE_COMBO");
-		FONT_COMBO_RED = theManager->GetFontThrow("FONT_COMBO_RED");
-		FONT_COMBO_BLUE = theManager->GetFontThrow("FONT_COMBO_BLUE");
-		FONT_COMBO_YELLOW = theManager->GetFontThrow("FONT_COMBO_YELLOW");
-		FONT_LARGE_COMBO_RED = theManager->GetFontThrow("FONT_LARGE_COMBO_RED");
-		FONT_LARGE_COMBO_BLUE = theManager->GetFontThrow("FONT_LARGE_COMBO_BLUE");
-		FONT_LARGE_COMBO_YELLOW = theManager->GetFontThrow("FONT_LARGE_COMBO_YELLOW");
-		SOUND_COMBO_PING = theManager->GetSoundThrow("SOUND_COMBO_PING");
-		SOUND_BLOCK_HIT_SHIP = theManager->GetSoundThrow("SOUND_BLOCK_HIT_SHIP");
-		SOUND_MADE_SET = theManager->GetSoundThrow("SOUND_MADE_SET");
-		SOUND_MADE_BIG_SET = theManager->GetSoundThrow("SOUND_MADE_BIG_SET");
-		SOUND_BLOCK_HIT_BLOCK = theManager->GetSoundThrow("SOUND_BLOCK_HIT_BLOCK");
-		SOUND_EXPLODE1 = theManager->GetSoundThrow("SOUND_EXPLODE1");
-		SOUND_CANT_CLICK = theManager->GetSoundThrow("SOUND_CANT_CLICK");
-		SOUND_RIGHT_CLICK = theManager->GetSoundThrow("SOUND_RIGHT_CLICK");
-		SOUND_LEFT_CLICK = theManager->GetSoundThrow("SOUND_LEFT_CLICK");
-		SOUND_ENGINE_LOOP = theManager->GetSoundThrow("SOUND_ENGINE_LOOP");
-		SOUND_KILLALL_EXPLODE = theManager->GetSoundThrow("SOUND_KILLALL_EXPLODE");
-		SOUND_STAR_EXPLODE = theManager->GetSoundThrow("SOUND_STAR_EXPLODE");
-		SOUND_EXPLOSION = theManager->GetSoundThrow("SOUND_EXPLOSION");
-		SOUND_MEGA_EXPLOSION = theManager->GetSoundThrow("SOUND_MEGA_EXPLOSION");
-		SOUND_WARP = theManager->GetSoundThrow("SOUND_WARP");
-		SOUND_FREEZE = theManager->GetSoundThrow("SOUND_FREEZE");
-		SOUND_HYPERSPACE_LOOP = theManager->GetSoundThrow("SOUND_HYPERSPACE_LOOP");
-		SOUND_THUNDER1 = theManager->GetSoundThrow("SOUND_THUNDER1");
-		SOUND_THUNDER2 = theManager->GetSoundThrow("SOUND_THUNDER2");
-		SOUND_ROW_NUKE = theManager->GetSoundThrow("SOUND_ROW_NUKE");
-		SOUND_STEEL = theManager->GetSoundThrow("SOUND_STEEL");
-		SOUND_BRICK_MILESTONE = theManager->GetSoundThrow("SOUND_BRICK_MILESTONE");
-		SOUND_SLOWDOWN = theManager->GetSoundThrow("SOUND_SLOWDOWN");
-		SOUND_COMPUTER_TEXT = theManager->GetSoundThrow("SOUND_COMPUTER_TEXT");
-		SOUND_BUTTON_DOWN = theManager->GetSoundThrow("SOUND_BUTTON_DOWN");
-		SOUND_PLAYER1_LASER = theManager->GetSoundThrow("SOUND_PLAYER1_LASER");
-		SOUND_COLUMN_KILLER = theManager->GetSoundThrow("SOUND_COLUMN_KILLER");
-		SOUND_MUTATOR_DIE = theManager->GetSoundThrow("SOUND_MUTATOR_DIE");
-		SOUND_MUTATION = theManager->GetSoundThrow("SOUND_MUTATION");
-		SOUND_BONUS_EXPLODE = theManager->GetSoundThrow("SOUND_BONUS_EXPLODE");
+		IMAGE_SLIDER_THUMB = theManager->GetImageThrow("IMAGE_SLIDER_THUMB");
+		IMAGE_SLIDER_TRACK = theManager->GetImageThrow("IMAGE_SLIDER_TRACK");
+		IMAGE_UPDATE_BAR = theManager->GetImageThrow("IMAGE_UPDATE_BAR");
 		SOUND_1SEC_TIMER = theManager->GetSoundThrow("SOUND_1SEC_TIMER");
-		SOUND_POWERUP_WORN_OFF = theManager->GetSoundThrow("SOUND_POWERUP_WORN_OFF");
-		SOUND_COUNT = theManager->GetSoundThrow("SOUND_COUNT");
-		SOUND_BUBBLY = theManager->GetSoundThrow("SOUND_BUBBLY");
-		SOUND_GALAXY = theManager->GetSoundThrow("SOUND_GALAXY");
 		SOUND_ACTIVATED = theManager->GetSoundThrow("SOUND_ACTIVATED");
+		SOUND_BLOCK_HIT_BLOCK = theManager->GetSoundThrow("SOUND_BLOCK_HIT_BLOCK");
+		SOUND_BLOCK_HIT_SHIP = theManager->GetSoundThrow("SOUND_BLOCK_HIT_SHIP");
+		SOUND_BONUS_EXPLODE = theManager->GetSoundThrow("SOUND_BONUS_EXPLODE");
+		SOUND_BONUS_ROUND = theManager->GetSoundThrow("SOUND_BONUS_ROUND");
+		SOUND_BRICK_MILESTONE = theManager->GetSoundThrow("SOUND_BRICK_MILESTONE");
+		SOUND_BRICK_WARNING1 = theManager->GetSoundThrow("SOUND_BRICK_WARNING1");
+		SOUND_BRICK_WARNING2 = theManager->GetSoundThrow("SOUND_BRICK_WARNING2");
+		SOUND_BUBBLY = theManager->GetSoundThrow("SOUND_BUBBLY");
+		SOUND_BUTTON_DOWN = theManager->GetSoundThrow("SOUND_BUTTON_DOWN");
+		SOUND_CANT_CLICK = theManager->GetSoundThrow("SOUND_CANT_CLICK");
+		SOUND_CHOOSE_PILOT = theManager->GetSoundThrow("SOUND_CHOOSE_PILOT");
+		SOUND_CLASSIC_GAME = theManager->GetSoundThrow("SOUND_CLASSIC_GAME");
+		SOUND_COLUMN_KILLER = theManager->GetSoundThrow("SOUND_COLUMN_KILLER");
+		SOUND_COMBO_PING = theManager->GetSoundThrow("SOUND_COMBO_PING");
+		SOUND_COMPUTER_TEXT = theManager->GetSoundThrow("SOUND_COMPUTER_TEXT");
+		SOUND_COUNT = theManager->GetSoundThrow("SOUND_COUNT");
+		SOUND_ENGINE_LOOP = theManager->GetSoundThrow("SOUND_ENGINE_LOOP");
+		SOUND_EXPLODE1 = theManager->GetSoundThrow("SOUND_EXPLODE1");
+		SOUND_EXPLOSION = theManager->GetSoundThrow("SOUND_EXPLOSION");
+		SOUND_FREEZE = theManager->GetSoundThrow("SOUND_FREEZE");
+		SOUND_GALAXY = theManager->GetSoundThrow("SOUND_GALAXY");
+		SOUND_GET_READY = theManager->GetSoundThrow("SOUND_GET_READY");
+		SOUND_GOODBYE = theManager->GetSoundThrow("SOUND_GOODBYE");
+		SOUND_HALL_OF_FAME = theManager->GetSoundThrow("SOUND_HALL_OF_FAME");
+		SOUND_HYPERSPACE_LOOP = theManager->GetSoundThrow("SOUND_HYPERSPACE_LOOP");
+		SOUND_HYPER_BRICK = theManager->GetSoundThrow("SOUND_HYPER_BRICK");
+		SOUND_KILLALL_EXPLODE = theManager->GetSoundThrow("SOUND_KILLALL_EXPLODE");
+		SOUND_KLAXON = theManager->GetSoundThrow("SOUND_KLAXON");
+		SOUND_LEFT_CLICK = theManager->GetSoundThrow("SOUND_LEFT_CLICK");
+		SOUND_LEVEL_COMPLETE = theManager->GetSoundThrow("SOUND_LEVEL_COMPLETE");
 		SOUND_LEVEL_UP1 = theManager->GetSoundThrow("SOUND_LEVEL_UP1");
 		SOUND_LEVEL_UP2 = theManager->GetSoundThrow("SOUND_LEVEL_UP2");
+		SOUND_MADE_BIG_SET = theManager->GetSoundThrow("SOUND_MADE_BIG_SET");
+		SOUND_MADE_SET = theManager->GetSoundThrow("SOUND_MADE_SET");
+		SOUND_MEGA_EXPLOSION = theManager->GetSoundThrow("SOUND_MEGA_EXPLOSION");
+		SOUND_MORE_GAMES = theManager->GetSoundThrow("SOUND_MORE_GAMES");
+		SOUND_MUTATION = theManager->GetSoundThrow("SOUND_MUTATION");
+		SOUND_MUTATOR_DIE = theManager->GetSoundThrow("SOUND_MUTATOR_DIE");
+		SOUND_NEW_HIGH_SCORE = theManager->GetSoundThrow("SOUND_NEW_HIGH_SCORE");
+		SOUND_NO_MORE_MOVES = theManager->GetSoundThrow("SOUND_NO_MORE_MOVES");
+		SOUND_OPTIONS = theManager->GetSoundThrow("SOUND_OPTIONS");
+		SOUND_PERFECT = theManager->GetSoundThrow("SOUND_PERFECT");
+		SOUND_PLAYER1_LASER = theManager->GetSoundThrow("SOUND_PLAYER1_LASER");
+		SOUND_POWERUP = theManager->GetSoundThrow("SOUND_POWERUP");
+		SOUND_POWERUP_WORN_OFF = theManager->GetSoundThrow("SOUND_POWERUP_WORN_OFF");
+		SOUND_POWER_ACTIVATED = theManager->GetSoundThrow("SOUND_POWER_ACTIVATED");
 		SOUND_PSYCHIC = theManager->GetSoundThrow("SOUND_PSYCHIC");
-		SOUND_WARP_BUTTON = theManager->GetSoundThrow("SOUND_WARP_BUTTON");
-		SOUND_HYPER_BRICK = theManager->GetSoundThrow("SOUND_HYPER_BRICK");
-		SOUND_WORDSWOOSH = theManager->GetSoundThrow("SOUND_WORDSWOOSH");
+		SOUND_QUIT_GAME = theManager->GetSoundThrow("SOUND_QUIT_GAME");
+		SOUND_RIGHT_CLICK = theManager->GetSoundThrow("SOUND_RIGHT_CLICK");
+		SOUND_ROW_NUKE = theManager->GetSoundThrow("SOUND_ROW_NUKE");
+		SOUND_SLOWDOWN = theManager->GetSoundThrow("SOUND_SLOWDOWN");
+		SOUND_STAR_EXPLODE = theManager->GetSoundThrow("SOUND_STAR_EXPLODE");
+		SOUND_STEEL = theManager->GetSoundThrow("SOUND_STEEL");
+		SOUND_SUPA_UPGRADE = theManager->GetSoundThrow("SOUND_SUPA_UPGRADE");
+		SOUND_SURVIVAL_GAME = theManager->GetSoundThrow("SOUND_SURVIVAL_GAME");
+		SOUND_THUNDER1 = theManager->GetSoundThrow("SOUND_THUNDER1");
+		SOUND_THUNDER2 = theManager->GetSoundThrow("SOUND_THUNDER2");
 		SOUND_VCOMBO1 = theManager->GetSoundThrow("SOUND_VCOMBO1");
 		SOUND_VCOMBO2 = theManager->GetSoundThrow("SOUND_VCOMBO2");
 		SOUND_VCOMBO3 = theManager->GetSoundThrow("SOUND_VCOMBO3");
@@ -2815,60 +2873,22 @@ bool Sexy::ExtractAllwaysLoadedResources(ResourceManager* theManager)
 		SOUND_VCOMBO7 = theManager->GetSoundThrow("SOUND_VCOMBO7");
 		SOUND_VGAMEOVER = theManager->GetSoundThrow("SOUND_VGAMEOVER");
 		SOUND_VWELCOME = theManager->GetSoundThrow("SOUND_VWELCOME");
-		SOUND_GET_READY = theManager->GetSoundThrow("SOUND_GET_READY");
-		SOUND_BRICK_WARNING1 = theManager->GetSoundThrow("SOUND_BRICK_WARNING1");
-		SOUND_BRICK_WARNING2 = theManager->GetSoundThrow("SOUND_BRICK_WARNING2");
-		SOUND_LEVEL_COMPLETE = theManager->GetSoundThrow("SOUND_LEVEL_COMPLETE");
-		SOUND_NO_MORE_MOVES = theManager->GetSoundThrow("SOUND_NO_MORE_MOVES");
-		SOUND_POWER_ACTIVATED = theManager->GetSoundThrow("SOUND_POWER_ACTIVATED");
+		SOUND_WARP = theManager->GetSoundThrow("SOUND_WARP");
+		SOUND_WARP_BUTTON = theManager->GetSoundThrow("SOUND_WARP_BUTTON");
 		SOUND_WARP_ENGAGED = theManager->GetSoundThrow("SOUND_WARP_ENGAGED");
-		SOUND_SUPA_UPGRADE = theManager->GetSoundThrow("SOUND_SUPA_UPGRADE");
-		SOUND_POWERUP = theManager->GetSoundThrow("SOUND_POWERUP");
-		SOUND_BONUS_ROUND = theManager->GetSoundThrow("SOUND_BONUS_ROUND");
-		SOUND_NEW_HIGH_SCORE = theManager->GetSoundThrow("SOUND_NEW_HIGH_SCORE");
-		SOUND_PERFECT = theManager->GetSoundThrow("SOUND_PERFECT");
-		SOUND_CLASSIC_GAME = theManager->GetSoundThrow("SOUND_CLASSIC_GAME");
-		SOUND_SURVIVAL_GAME = theManager->GetSoundThrow("SOUND_SURVIVAL_GAME");
-		SOUND_HALL_OF_FAME = theManager->GetSoundThrow("SOUND_HALL_OF_FAME");
-		SOUND_OPTIONS = theManager->GetSoundThrow("SOUND_OPTIONS");
-		SOUND_MORE_GAMES = theManager->GetSoundThrow("SOUND_MORE_GAMES");
-		SOUND_QUIT_GAME = theManager->GetSoundThrow("SOUND_QUIT_GAME");
-		SOUND_CHOOSE_PILOT = theManager->GetSoundThrow("SOUND_CHOOSE_PILOT");
-		SOUND_KLAXON = theManager->GetSoundThrow("SOUND_KLAXON");
-		SOUND_GOODBYE = theManager->GetSoundThrow("SOUND_GOODBYE");
+		SOUND_WORDSWOOSH = theManager->GetSoundThrow("SOUND_WORDSWOOSH");
 	} catch (ResourceManagerException&) {
 		return false;
 	}
 	return true;
 }
 
+// 0x41b700: the resource group "GameVolatile" (the original has a function of its own for each group and a switch by name, 0x422f20)
 bool Sexy::ExtractGameVolatileResources(ResourceManager* theManager)
 {
 	try {
-		IMAGE_SHIP1 = theManager->GetImageThrow("IMAGE_SHIP1");
-		IMAGE_SHIP2 = theManager->GetImageThrow("IMAGE_SHIP2");
-		IMAGE_SHIP3 = theManager->GetImageThrow("IMAGE_SHIP3");
-		IMAGE_SHIP4 = theManager->GetImageThrow("IMAGE_SHIP4");
-		IMAGE_SHIP1_FLAME = theManager->GetImageThrow("IMAGE_SHIP1_FLAME");
-		IMAGE_SHIP2_FLAME = theManager->GetImageThrow("IMAGE_SHIP2_FLAME");
-		IMAGE_SHIP3_FLAME = theManager->GetImageThrow("IMAGE_SHIP3_FLAME");
-		IMAGE_SHIP4_FLAME = theManager->GetImageThrow("IMAGE_SHIP4_FLAME");
-		IMAGE_SHIP1_WARP = theManager->GetImageThrow("IMAGE_SHIP1_WARP");
-		IMAGE_SHIP2_WARP = theManager->GetImageThrow("IMAGE_SHIP2_WARP");
-		IMAGE_SHIP3_WARP = theManager->GetImageThrow("IMAGE_SHIP3_WARP");
-		IMAGE_SHIP4_WARP = theManager->GetImageThrow("IMAGE_SHIP4_WARP");
-		IMAGE_SHIP1_WARPJET = theManager->GetImageThrow("IMAGE_SHIP1_WARPJET");
-		IMAGE_SHIP2_WARPJET = theManager->GetImageThrow("IMAGE_SHIP2_WARPJET");
-		IMAGE_SHIP3_WARPJET = theManager->GetImageThrow("IMAGE_SHIP3_WARPJET");
-		IMAGE_SHIP4_WARPJET = theManager->GetImageThrow("IMAGE_SHIP4_WARPJET");
 		IMAGE_ATOMIC_EXPLOSION = theManager->GetImageThrow("IMAGE_ATOMIC_EXPLOSION");
 		IMAGE_ATOMIC_SYMBOL = theManager->GetImageThrow("IMAGE_ATOMIC_SYMBOL");
-		IMAGE_TURBOT_POWERUP = theManager->GetImageThrow("IMAGE_TURBOT_POWERUP");
-		IMAGE_TURBOT_WAVE = theManager->GetImageThrow("IMAGE_TURBOT_WAVE");
-		IMAGE_PLAYER1_LASER = theManager->GetImageThrow("IMAGE_PLAYER1_LASER");
-		IMAGE_VIXX_CROSSHAIR = theManager->GetImageThrow("IMAGE_VIXX_CROSSHAIR");
-		IMAGE_TURBOT_LIGHTNING = theManager->GetImageThrow("IMAGE_TURBOT_LIGHTNING");
-		IMAGE_TURBOT_SUPA_OVERLAY = theManager->GetImageThrow("IMAGE_TURBOT_SUPA_OVERLAY");
 		IMAGE_BACKGROUND1 = theManager->GetImageThrow("IMAGE_BACKGROUND1");
 		IMAGE_BACKGROUND2 = theManager->GetImageThrow("IMAGE_BACKGROUND2");
 		IMAGE_BACKGROUND3 = theManager->GetImageThrow("IMAGE_BACKGROUND3");
@@ -2880,308 +2900,332 @@ bool Sexy::ExtractGameVolatileResources(ResourceManager* theManager)
 		IMAGE_BG_OBJECT6 = theManager->GetImageThrow("IMAGE_BG_OBJECT6");
 		IMAGE_BG_OBJECT7 = theManager->GetImageThrow("IMAGE_BG_OBJECT7");
 		IMAGE_BG_OBJECT8 = theManager->GetImageThrow("IMAGE_BG_OBJECT8");
-		IMAGE_CP_VECTOR_IDLE_GLOW = theManager->GetImageThrow("IMAGE_CP_VECTOR_IDLE_GLOW");
-		IMAGE_CP_VECTOR_WORRY_GLOW = theManager->GetImageThrow("IMAGE_CP_VECTOR_WORRY_GLOW");
-		IMAGE_CP_VECTOR_BLINK = theManager->GetImageThrow("IMAGE_CP_VECTOR_BLINK");
-		IMAGE_CP_VECTOR_DOWN = theManager->GetImageThrow("IMAGE_CP_VECTOR_DOWN");
-		IMAGE_CP_VECTOR_FORWARD = theManager->GetImageThrow("IMAGE_CP_VECTOR_FORWARD");
-		IMAGE_CP_VECTOR_MISC = theManager->GetImageThrow("IMAGE_CP_VECTOR_MISC");
-		IMAGE_CP_VECTOR_POWERUP1 = theManager->GetImageThrow("IMAGE_CP_VECTOR_POWERUP1");
-		IMAGE_CP_VECTOR_POWERUP2 = theManager->GetImageThrow("IMAGE_CP_VECTOR_POWERUP2");
-		IMAGE_CP_VECTOR_WORRY1 = theManager->GetImageThrow("IMAGE_CP_VECTOR_WORRY1");
-		IMAGE_CP_VECTOR_WORRY2 = theManager->GetImageThrow("IMAGE_CP_VECTOR_WORRY2");
-		IMAGE_CP_VECTOR_HAPPY1 = theManager->GetImageThrow("IMAGE_CP_VECTOR_HAPPY1");
-		IMAGE_CP_VECTOR_HAPPY2 = theManager->GetImageThrow("IMAGE_CP_VECTOR_HAPPY2");
-		IMAGE_CP_VECTOR_HAPPY3 = theManager->GetImageThrow("IMAGE_CP_VECTOR_HAPPY3");
-		IMAGE_CP_VECTOR_HAPPY4 = theManager->GetImageThrow("IMAGE_CP_VECTOR_HAPPY4");
-		IMAGE_CP_SPROCKET_IDLE_GLOW = theManager->GetImageThrow("IMAGE_CP_SPROCKET_IDLE_GLOW");
-		IMAGE_CP_SPROCKET_WORRY_GLOW = theManager->GetImageThrow("IMAGE_CP_SPROCKET_WORRY_GLOW");
 		IMAGE_CP_SPROCKET_BLINK = theManager->GetImageThrow("IMAGE_CP_SPROCKET_BLINK");
 		IMAGE_CP_SPROCKET_DOWN = theManager->GetImageThrow("IMAGE_CP_SPROCKET_DOWN");
 		IMAGE_CP_SPROCKET_FORWARD = theManager->GetImageThrow("IMAGE_CP_SPROCKET_FORWARD");
+		IMAGE_CP_SPROCKET_HAPPY1 = theManager->GetImageThrow("IMAGE_CP_SPROCKET_HAPPY1");
+		IMAGE_CP_SPROCKET_HAPPY2 = theManager->GetImageThrow("IMAGE_CP_SPROCKET_HAPPY2");
+		IMAGE_CP_SPROCKET_HAPPY3 = theManager->GetImageThrow("IMAGE_CP_SPROCKET_HAPPY3");
+		IMAGE_CP_SPROCKET_HAPPY4 = theManager->GetImageThrow("IMAGE_CP_SPROCKET_HAPPY4");
+		IMAGE_CP_SPROCKET_IDLE_GLOW = theManager->GetImageThrow("IMAGE_CP_SPROCKET_IDLE_GLOW");
 		IMAGE_CP_SPROCKET_MISC = theManager->GetImageThrow("IMAGE_CP_SPROCKET_MISC");
 		IMAGE_CP_SPROCKET_POWERUP1 = theManager->GetImageThrow("IMAGE_CP_SPROCKET_POWERUP1");
 		IMAGE_CP_SPROCKET_POWERUP2 = theManager->GetImageThrow("IMAGE_CP_SPROCKET_POWERUP2");
 		IMAGE_CP_SPROCKET_WORRY1 = theManager->GetImageThrow("IMAGE_CP_SPROCKET_WORRY1");
 		IMAGE_CP_SPROCKET_WORRY2 = theManager->GetImageThrow("IMAGE_CP_SPROCKET_WORRY2");
-		IMAGE_CP_SPROCKET_HAPPY1 = theManager->GetImageThrow("IMAGE_CP_SPROCKET_HAPPY1");
-		IMAGE_CP_SPROCKET_HAPPY2 = theManager->GetImageThrow("IMAGE_CP_SPROCKET_HAPPY2");
-		IMAGE_CP_SPROCKET_HAPPY3 = theManager->GetImageThrow("IMAGE_CP_SPROCKET_HAPPY3");
-		IMAGE_CP_SPROCKET_HAPPY4 = theManager->GetImageThrow("IMAGE_CP_SPROCKET_HAPPY4");
-		IMAGE_CP_TURBOT_IDLE_GLOW = theManager->GetImageThrow("IMAGE_CP_TURBOT_IDLE_GLOW");
-		IMAGE_CP_TURBOT_WORRY_GLOW = theManager->GetImageThrow("IMAGE_CP_TURBOT_WORRY_GLOW");
+		IMAGE_CP_SPROCKET_WORRY_GLOW = theManager->GetImageThrow("IMAGE_CP_SPROCKET_WORRY_GLOW");
 		IMAGE_CP_TURBOT_BLINK = theManager->GetImageThrow("IMAGE_CP_TURBOT_BLINK");
 		IMAGE_CP_TURBOT_DOWN = theManager->GetImageThrow("IMAGE_CP_TURBOT_DOWN");
 		IMAGE_CP_TURBOT_FORWARD = theManager->GetImageThrow("IMAGE_CP_TURBOT_FORWARD");
+		IMAGE_CP_TURBOT_HAPPY1 = theManager->GetImageThrow("IMAGE_CP_TURBOT_HAPPY1");
+		IMAGE_CP_TURBOT_HAPPY2 = theManager->GetImageThrow("IMAGE_CP_TURBOT_HAPPY2");
+		IMAGE_CP_TURBOT_HAPPY3 = theManager->GetImageThrow("IMAGE_CP_TURBOT_HAPPY3");
+		IMAGE_CP_TURBOT_HAPPY4 = theManager->GetImageThrow("IMAGE_CP_TURBOT_HAPPY4");
+		IMAGE_CP_TURBOT_IDLE_GLOW = theManager->GetImageThrow("IMAGE_CP_TURBOT_IDLE_GLOW");
 		IMAGE_CP_TURBOT_MISC = theManager->GetImageThrow("IMAGE_CP_TURBOT_MISC");
 		IMAGE_CP_TURBOT_POWERUP1 = theManager->GetImageThrow("IMAGE_CP_TURBOT_POWERUP1");
 		IMAGE_CP_TURBOT_POWERUP2 = theManager->GetImageThrow("IMAGE_CP_TURBOT_POWERUP2");
 		IMAGE_CP_TURBOT_WORRY1 = theManager->GetImageThrow("IMAGE_CP_TURBOT_WORRY1");
 		IMAGE_CP_TURBOT_WORRY2 = theManager->GetImageThrow("IMAGE_CP_TURBOT_WORRY2");
-		IMAGE_CP_TURBOT_HAPPY1 = theManager->GetImageThrow("IMAGE_CP_TURBOT_HAPPY1");
-		IMAGE_CP_TURBOT_HAPPY2 = theManager->GetImageThrow("IMAGE_CP_TURBOT_HAPPY2");
-		IMAGE_CP_TURBOT_HAPPY3 = theManager->GetImageThrow("IMAGE_CP_TURBOT_HAPPY3");
-		IMAGE_CP_TURBOT_HAPPY4 = theManager->GetImageThrow("IMAGE_CP_TURBOT_HAPPY4");
-		IMAGE_CP_VIXX_IDLE_GLOW = theManager->GetImageThrow("IMAGE_CP_VIXX_IDLE_GLOW");
-		IMAGE_CP_VIXX_WORRY_GLOW = theManager->GetImageThrow("IMAGE_CP_VIXX_WORRY_GLOW");
+		IMAGE_CP_TURBOT_WORRY_GLOW = theManager->GetImageThrow("IMAGE_CP_TURBOT_WORRY_GLOW");
+		IMAGE_CP_VECTOR_BLINK = theManager->GetImageThrow("IMAGE_CP_VECTOR_BLINK");
+		IMAGE_CP_VECTOR_DOWN = theManager->GetImageThrow("IMAGE_CP_VECTOR_DOWN");
+		IMAGE_CP_VECTOR_FORWARD = theManager->GetImageThrow("IMAGE_CP_VECTOR_FORWARD");
+		IMAGE_CP_VECTOR_HAPPY1 = theManager->GetImageThrow("IMAGE_CP_VECTOR_HAPPY1");
+		IMAGE_CP_VECTOR_HAPPY2 = theManager->GetImageThrow("IMAGE_CP_VECTOR_HAPPY2");
+		IMAGE_CP_VECTOR_HAPPY3 = theManager->GetImageThrow("IMAGE_CP_VECTOR_HAPPY3");
+		IMAGE_CP_VECTOR_HAPPY4 = theManager->GetImageThrow("IMAGE_CP_VECTOR_HAPPY4");
+		IMAGE_CP_VECTOR_IDLE_GLOW = theManager->GetImageThrow("IMAGE_CP_VECTOR_IDLE_GLOW");
+		IMAGE_CP_VECTOR_MISC = theManager->GetImageThrow("IMAGE_CP_VECTOR_MISC");
+		IMAGE_CP_VECTOR_POWERUP1 = theManager->GetImageThrow("IMAGE_CP_VECTOR_POWERUP1");
+		IMAGE_CP_VECTOR_POWERUP2 = theManager->GetImageThrow("IMAGE_CP_VECTOR_POWERUP2");
+		IMAGE_CP_VECTOR_WORRY1 = theManager->GetImageThrow("IMAGE_CP_VECTOR_WORRY1");
+		IMAGE_CP_VECTOR_WORRY2 = theManager->GetImageThrow("IMAGE_CP_VECTOR_WORRY2");
+		IMAGE_CP_VECTOR_WORRY_GLOW = theManager->GetImageThrow("IMAGE_CP_VECTOR_WORRY_GLOW");
 		IMAGE_CP_VIXX_BLINK = theManager->GetImageThrow("IMAGE_CP_VIXX_BLINK");
 		IMAGE_CP_VIXX_DOWN = theManager->GetImageThrow("IMAGE_CP_VIXX_DOWN");
 		IMAGE_CP_VIXX_FORWARD = theManager->GetImageThrow("IMAGE_CP_VIXX_FORWARD");
+		IMAGE_CP_VIXX_HAPPY1 = theManager->GetImageThrow("IMAGE_CP_VIXX_HAPPY1");
+		IMAGE_CP_VIXX_HAPPY2 = theManager->GetImageThrow("IMAGE_CP_VIXX_HAPPY2");
+		IMAGE_CP_VIXX_HAPPY3 = theManager->GetImageThrow("IMAGE_CP_VIXX_HAPPY3");
+		IMAGE_CP_VIXX_HAPPY4 = theManager->GetImageThrow("IMAGE_CP_VIXX_HAPPY4");
+		IMAGE_CP_VIXX_IDLE_GLOW = theManager->GetImageThrow("IMAGE_CP_VIXX_IDLE_GLOW");
 		IMAGE_CP_VIXX_MISC = theManager->GetImageThrow("IMAGE_CP_VIXX_MISC");
 		IMAGE_CP_VIXX_POWERUP1 = theManager->GetImageThrow("IMAGE_CP_VIXX_POWERUP1");
 		IMAGE_CP_VIXX_POWERUP2 = theManager->GetImageThrow("IMAGE_CP_VIXX_POWERUP2");
 		IMAGE_CP_VIXX_WORRY1 = theManager->GetImageThrow("IMAGE_CP_VIXX_WORRY1");
 		IMAGE_CP_VIXX_WORRY2 = theManager->GetImageThrow("IMAGE_CP_VIXX_WORRY2");
-		IMAGE_CP_VIXX_HAPPY1 = theManager->GetImageThrow("IMAGE_CP_VIXX_HAPPY1");
-		IMAGE_CP_VIXX_HAPPY2 = theManager->GetImageThrow("IMAGE_CP_VIXX_HAPPY2");
-		IMAGE_CP_VIXX_HAPPY3 = theManager->GetImageThrow("IMAGE_CP_VIXX_HAPPY3");
-		IMAGE_CP_VIXX_HAPPY4 = theManager->GetImageThrow("IMAGE_CP_VIXX_HAPPY4");
+		IMAGE_CP_VIXX_WORRY_GLOW = theManager->GetImageThrow("IMAGE_CP_VIXX_WORRY_GLOW");
+		IMAGE_PLAYER1_LASER = theManager->GetImageThrow("IMAGE_PLAYER1_LASER");
+		IMAGE_SHIP1 = theManager->GetImageThrow("IMAGE_SHIP1");
+		IMAGE_SHIP1_FLAME = theManager->GetImageThrow("IMAGE_SHIP1_FLAME");
+		IMAGE_SHIP1_WARP = theManager->GetImageThrow("IMAGE_SHIP1_WARP");
+		IMAGE_SHIP1_WARPJET = theManager->GetImageThrow("IMAGE_SHIP1_WARPJET");
+		IMAGE_SHIP2 = theManager->GetImageThrow("IMAGE_SHIP2");
+		IMAGE_SHIP2_FLAME = theManager->GetImageThrow("IMAGE_SHIP2_FLAME");
+		IMAGE_SHIP2_WARP = theManager->GetImageThrow("IMAGE_SHIP2_WARP");
+		IMAGE_SHIP2_WARPJET = theManager->GetImageThrow("IMAGE_SHIP2_WARPJET");
+		IMAGE_SHIP3 = theManager->GetImageThrow("IMAGE_SHIP3");
+		IMAGE_SHIP3_FLAME = theManager->GetImageThrow("IMAGE_SHIP3_FLAME");
+		IMAGE_SHIP3_WARP = theManager->GetImageThrow("IMAGE_SHIP3_WARP");
+		IMAGE_SHIP3_WARPJET = theManager->GetImageThrow("IMAGE_SHIP3_WARPJET");
+		IMAGE_SHIP4 = theManager->GetImageThrow("IMAGE_SHIP4");
+		IMAGE_SHIP4_FLAME = theManager->GetImageThrow("IMAGE_SHIP4_FLAME");
+		IMAGE_SHIP4_WARP = theManager->GetImageThrow("IMAGE_SHIP4_WARP");
+		IMAGE_SHIP4_WARPJET = theManager->GetImageThrow("IMAGE_SHIP4_WARPJET");
+		IMAGE_TURBOT_LIGHTNING = theManager->GetImageThrow("IMAGE_TURBOT_LIGHTNING");
+		IMAGE_TURBOT_POWERUP = theManager->GetImageThrow("IMAGE_TURBOT_POWERUP");
+		IMAGE_TURBOT_SUPA_OVERLAY = theManager->GetImageThrow("IMAGE_TURBOT_SUPA_OVERLAY");
+		IMAGE_TURBOT_WAVE = theManager->GetImageThrow("IMAGE_TURBOT_WAVE");
+		IMAGE_VIXX_CROSSHAIR = theManager->GetImageThrow("IMAGE_VIXX_CROSSHAIR");
 	} catch (ResourceManagerException&) {
 		return false;
 	}
 	return true;
 }
 
+// 0x417a30: the resource group "FullScreenHelp" (the original has a function of its own for each group and a switch by name, 0x422f20)
 bool Sexy::ExtractFullScreenHelpResources(ResourceManager* theManager)
 {
 	try {
-		IMAGE_HELP_SURVIVAL = theManager->GetImageThrow("IMAGE_HELP_SURVIVAL");
-		IMAGE_HELP_SHIP = theManager->GetImageThrow("IMAGE_HELP_SHIP");
 		IMAGE_HELP_BEAM = theManager->GetImageThrow("IMAGE_HELP_BEAM");
-		IMAGE_HELP_BRICK_RED = theManager->GetImageThrow("IMAGE_HELP_BRICK_RED");
-		IMAGE_HELP_BRICK_GREEN = theManager->GetImageThrow("IMAGE_HELP_BRICK_GREEN");
+		IMAGE_HELP_BG = theManager->GetImageThrow("IMAGE_HELP_BG");
 		IMAGE_HELP_BRICK_BLUE = theManager->GetImageThrow("IMAGE_HELP_BRICK_BLUE");
-		IMAGE_HELP_BRICK_YELLOW = theManager->GetImageThrow("IMAGE_HELP_BRICK_YELLOW");
 		IMAGE_HELP_BRICK_BLUE_DEATH = theManager->GetImageThrow("IMAGE_HELP_BRICK_BLUE_DEATH");
+		IMAGE_HELP_BRICK_GREEN = theManager->GetImageThrow("IMAGE_HELP_BRICK_GREEN");
+		IMAGE_HELP_BRICK_RED = theManager->GetImageThrow("IMAGE_HELP_BRICK_RED");
+		IMAGE_HELP_BRICK_YELLOW = theManager->GetImageThrow("IMAGE_HELP_BRICK_YELLOW");
+		IMAGE_HELP_CHECKED = theManager->GetImageThrow("IMAGE_HELP_CHECKED");
+		IMAGE_HELP_CONTINUE_DOWN = theManager->GetImageThrow("IMAGE_HELP_CONTINUE_DOWN");
+		IMAGE_HELP_CONTINUE_OVER = theManager->GetImageThrow("IMAGE_HELP_CONTINUE_OVER");
 		IMAGE_HELP_LEVELUP_CLASSIC = theManager->GetImageThrow("IMAGE_HELP_LEVELUP_CLASSIC");
 		IMAGE_HELP_LEVELUP_SURVIVAL = theManager->GetImageThrow("IMAGE_HELP_LEVELUP_SURVIVAL");
 		IMAGE_HELP_LEVELUP_SURVIVAL_TEXT = theManager->GetImageThrow("IMAGE_HELP_LEVELUP_SURVIVAL_TEXT");
+		IMAGE_HELP_MOUSE_LEFT = theManager->GetImageThrow("IMAGE_HELP_MOUSE_LEFT");
+		IMAGE_HELP_MOUSE_RIGHT = theManager->GetImageThrow("IMAGE_HELP_MOUSE_RIGHT");
+		IMAGE_HELP_SHIP = theManager->GetImageThrow("IMAGE_HELP_SHIP");
 		IMAGE_HELP_SUPA_BUTTON_OFF = theManager->GetImageThrow("IMAGE_HELP_SUPA_BUTTON_OFF");
 		IMAGE_HELP_SUPA_BUTTON_ON = theManager->GetImageThrow("IMAGE_HELP_SUPA_BUTTON_ON");
 		IMAGE_HELP_SUPA_CHARGED = theManager->GetImageThrow("IMAGE_HELP_SUPA_CHARGED");
 		IMAGE_HELP_SUPA_CHARGING = theManager->GetImageThrow("IMAGE_HELP_SUPA_CHARGING");
-		IMAGE_HELP_BG = theManager->GetImageThrow("IMAGE_HELP_BG");
-		IMAGE_HELP_CHECKED = theManager->GetImageThrow("IMAGE_HELP_CHECKED");
+		IMAGE_HELP_SURVIVAL = theManager->GetImageThrow("IMAGE_HELP_SURVIVAL");
 		IMAGE_HELP_UNCHECKED = theManager->GetImageThrow("IMAGE_HELP_UNCHECKED");
-		IMAGE_HELP_CONTINUE_DOWN = theManager->GetImageThrow("IMAGE_HELP_CONTINUE_DOWN");
-		IMAGE_HELP_CONTINUE_OVER = theManager->GetImageThrow("IMAGE_HELP_CONTINUE_OVER");
-		IMAGE_HELP_MOUSE_LEFT = theManager->GetImageThrow("IMAGE_HELP_MOUSE_LEFT");
-		IMAGE_HELP_MOUSE_RIGHT = theManager->GetImageThrow("IMAGE_HELP_MOUSE_RIGHT");
 	} catch (ResourceManagerException&) {
 		return false;
 	}
 	return true;
 }
 
+// 0x4181a0: the resource group "Game" (the original has a function of its own for each group and a switch by name, 0x422f20)
 bool Sexy::ExtractGameResources(ResourceManager* theManager)
 {
 	try {
 		IMAGE_BEAM = theManager->GetImageThrow("IMAGE_BEAM");
-		IMAGE_BEAM_OPAQUE = theManager->GetImageThrow("IMAGE_BEAM_OPAQUE");
-		IMAGE_BEAM_SUPA = theManager->GetImageThrow("IMAGE_BEAM_SUPA");
 		IMAGE_BEAM_COL_NUKE = theManager->GetImageThrow("IMAGE_BEAM_COL_NUKE");
-		IMAGE_BEAM_ROW_NUKE = theManager->GetImageThrow("IMAGE_BEAM_ROW_NUKE");
+		IMAGE_BEAM_OPAQUE = theManager->GetImageThrow("IMAGE_BEAM_OPAQUE");
 		IMAGE_BEAM_RADIAL = theManager->GetImageThrow("IMAGE_BEAM_RADIAL");
+		IMAGE_BEAM_ROW_NUKE = theManager->GetImageThrow("IMAGE_BEAM_ROW_NUKE");
+		IMAGE_BEAM_SUPA = theManager->GetImageThrow("IMAGE_BEAM_SUPA");
 		IMAGE_BEAM_WARP = theManager->GetImageThrow("IMAGE_BEAM_WARP");
 		IMAGE_BEAM_WIDE = theManager->GetImageThrow("IMAGE_BEAM_WIDE");
-		IMAGE_MM_DOWN_UI = theManager->GetImageThrow("IMAGE_MM_DOWN_UI");
-		IMAGE_MM_OVER_UI = theManager->GetImageThrow("IMAGE_MM_OVER_UI");
-		IMAGE_BRICK_GENERATOR_UI = theManager->GetImageThrow("IMAGE_BRICK_GENERATOR_UI");
-		IMAGE_HUD_UI = theManager->GetImageThrow("IMAGE_HUD_UI");
-		IMAGE_POWERUP_GAUGE = theManager->GetImageThrow("IMAGE_POWERUP_GAUGE");
-		IMAGE_POWERUP_CHARGING = theManager->GetImageThrow("IMAGE_POWERUP_CHARGING");
-		IMAGE_UI_SCREEN_RED = theManager->GetImageThrow("IMAGE_UI_SCREEN_RED");
-		IMAGE_UI_SCREEN_YELLOW = theManager->GetImageThrow("IMAGE_UI_SCREEN_YELLOW");
-		IMAGE_UI_SURVIVAL_TIME = theManager->GetImageThrow("IMAGE_UI_SURVIVAL_TIME");
-		IMAGE_POWERUP_ACTIVE = theManager->GetImageThrow("IMAGE_POWERUP_ACTIVE");
-		IMAGE_UI_FREEZE_FX = theManager->GetImageThrow("IMAGE_UI_FREEZE_FX");
-		IMAGE_UI_FREEZE_OVERLAY = theManager->GetImageThrow("IMAGE_UI_FREEZE_OVERLAY");
-		IMAGE_UI_DANGERZONE = theManager->GetImageThrow("IMAGE_UI_DANGERZONE");
-		IMAGE_UI_INGAME_B = theManager->GetImageThrow("IMAGE_UI_INGAME_B");
-		IMAGE_UI_INGAME_T = theManager->GetImageThrow("IMAGE_UI_INGAME_T");
-		IMAGE_UI_INGAME_L = theManager->GetImageThrow("IMAGE_UI_INGAME_L");
-		IMAGE_UI_INGAME_R = theManager->GetImageThrow("IMAGE_UI_INGAME_R");
-		IMAGE_UI_MANGLED_B = theManager->GetImageThrow("IMAGE_UI_MANGLED_B");
-		IMAGE_UI_MANGLED_T = theManager->GetImageThrow("IMAGE_UI_MANGLED_T");
-		IMAGE_UI_MANGLED_L = theManager->GetImageThrow("IMAGE_UI_MANGLED_L");
-		IMAGE_UI_MANGLED_R = theManager->GetImageThrow("IMAGE_UI_MANGLED_R");
-		IMAGE_UI_BRICKOMETER_OVERLAY = theManager->GetImageThrow("IMAGE_UI_BRICKOMETER_OVERLAY");
-		IMAGE_UI_INGAME_HELP_DOWN = theManager->GetImageThrow("IMAGE_UI_INGAME_HELP_DOWN");
-		IMAGE_UI_INGAME_HELP_OVER = theManager->GetImageThrow("IMAGE_UI_INGAME_HELP_OVER");
-		IMAGE_UI_LOGO_CLASSIC = theManager->GetImageThrow("IMAGE_UI_LOGO_CLASSIC");
-		IMAGE_UI_LOGO_SURVIVAL = theManager->GetImageThrow("IMAGE_UI_LOGO_SURVIVAL");
-		IMAGE_SUPA_BUTTON_ALERT = theManager->GetImageThrow("IMAGE_SUPA_BUTTON_ALERT");
-		IMAGE_SUPA_BUTTON_DOWN = theManager->GetImageThrow("IMAGE_SUPA_BUTTON_DOWN");
-		IMAGE_SUPA_BUTTON_UP = theManager->GetImageThrow("IMAGE_SUPA_BUTTON_UP");
-		IMAGE_SUPA_BUTTON_OVER = theManager->GetImageThrow("IMAGE_SUPA_BUTTON_OVER");
-		IMAGE_SUPA_BUTTON_LIGHTS_ON = theManager->GetImageThrow("IMAGE_SUPA_BUTTON_LIGHTS_ON");
-		IMAGE_SUPA_BUTTON_LIGHTS_OFF = theManager->GetImageThrow("IMAGE_SUPA_BUTTON_LIGHTS_OFF");
-		IMAGE_UPGRADE_BAR_MAX2 = theManager->GetImageThrow("IMAGE_UPGRADE_BAR_MAX2");
-		IMAGE_UPGRADE_BAR_MAX3 = theManager->GetImageThrow("IMAGE_UPGRADE_BAR_MAX3");
-		IMAGE_SUPA_BRACKET_LEFT = theManager->GetImageThrow("IMAGE_SUPA_BRACKET_LEFT");
-		IMAGE_SUPA_BRACKET_RIGHT = theManager->GetImageThrow("IMAGE_SUPA_BRACKET_RIGHT");
-		IMAGE_SUPA_WEAPON_TEXT = theManager->GetImageThrow("IMAGE_SUPA_WEAPON_TEXT");
-		IMAGE_SPROCKET_SUPA_OVERLAY = theManager->GetImageThrow("IMAGE_SPROCKET_SUPA_OVERLAY");
-		IMAGE_COMBO_LIST = theManager->GetImageThrow("IMAGE_COMBO_LIST");
-		IMAGE_BRICK_GLOW = theManager->GetImageThrow("IMAGE_BRICK_GLOW");
-		IMAGE_BRICK_RED = theManager->GetImageThrow("IMAGE_BRICK_RED");
-		IMAGE_BRICK_GREEN = theManager->GetImageThrow("IMAGE_BRICK_GREEN");
-		IMAGE_BRICK_BLUE = theManager->GetImageThrow("IMAGE_BRICK_BLUE");
-		IMAGE_BRICK_YELLOW = theManager->GetImageThrow("IMAGE_BRICK_YELLOW");
-		IMAGE_BRICK_PINK = theManager->GetImageThrow("IMAGE_BRICK_PINK");
-		IMAGE_BRICK_TEAL = theManager->GetImageThrow("IMAGE_BRICK_TEAL");
-		IMAGE_BRICK_RED_CB = theManager->GetImageThrow("IMAGE_BRICK_RED_CB");
-		IMAGE_BRICK_GREEN_CB = theManager->GetImageThrow("IMAGE_BRICK_GREEN_CB");
-		IMAGE_BRICK_BLUE_CB = theManager->GetImageThrow("IMAGE_BRICK_BLUE_CB");
-		IMAGE_BRICK_YELLOW_CB = theManager->GetImageThrow("IMAGE_BRICK_YELLOW_CB");
-		IMAGE_BRICK_PINK_CB = theManager->GetImageThrow("IMAGE_BRICK_PINK_CB");
-		IMAGE_BRICK_TEAL_CB = theManager->GetImageThrow("IMAGE_BRICK_TEAL_CB");
-		IMAGE_BRICK_KILLALL_GLOW = theManager->GetImageThrow("IMAGE_BRICK_KILLALL_GLOW");
-		IMAGE_BRICK_KILLALL_RED = theManager->GetImageThrow("IMAGE_BRICK_KILLALL_RED");
-		IMAGE_BRICK_KILLALL_GREEN = theManager->GetImageThrow("IMAGE_BRICK_KILLALL_GREEN");
-		IMAGE_BRICK_KILLALL_BLUE = theManager->GetImageThrow("IMAGE_BRICK_KILLALL_BLUE");
-		IMAGE_BRICK_KILLALL_YELLOW = theManager->GetImageThrow("IMAGE_BRICK_KILLALL_YELLOW");
-		IMAGE_BRICK_KILLALL_PINK = theManager->GetImageThrow("IMAGE_BRICK_KILLALL_PINK");
-		IMAGE_BRICK_KILLALL_TEAL = theManager->GetImageThrow("IMAGE_BRICK_KILLALL_TEAL");
-		IMAGE_BRICK_KILLALL_RED_CB = theManager->GetImageThrow("IMAGE_BRICK_KILLALL_RED_CB");
-		IMAGE_BRICK_KILLALL_GREEN_CB = theManager->GetImageThrow("IMAGE_BRICK_KILLALL_GREEN_CB");
-		IMAGE_BRICK_KILLALL_BLUE_CB = theManager->GetImageThrow("IMAGE_BRICK_KILLALL_BLUE_CB");
-		IMAGE_BRICK_KILLALL_YELLOW_CB = theManager->GetImageThrow("IMAGE_BRICK_KILLALL_YELLOW_CB");
-		IMAGE_BRICK_KILLALL_PINK_CB = theManager->GetImageThrow("IMAGE_BRICK_KILLALL_PINK_CB");
-		IMAGE_BRICK_KILLALL_TEAL_CB = theManager->GetImageThrow("IMAGE_BRICK_KILLALL_TEAL_CB");
-		IMAGE_BRICK_STEEL_2 = theManager->GetImageThrow("IMAGE_BRICK_STEEL_2");
-		IMAGE_BRICK_BOOSTER = theManager->GetImageThrow("IMAGE_BRICK_BOOSTER");
-		IMAGE_BRICK_DEATH_FX = theManager->GetImageThrow("IMAGE_BRICK_DEATH_FX");
-		IMAGE_BRICK_DEATH_RED = theManager->GetImageThrow("IMAGE_BRICK_DEATH_RED");
-		IMAGE_BRICK_DEATH_GREEN = theManager->GetImageThrow("IMAGE_BRICK_DEATH_GREEN");
-		IMAGE_BRICK_DEATH_BLUE = theManager->GetImageThrow("IMAGE_BRICK_DEATH_BLUE");
-		IMAGE_BRICK_DEATH_YELLOW = theManager->GetImageThrow("IMAGE_BRICK_DEATH_YELLOW");
-		IMAGE_BRICK_DEATH_PINK = theManager->GetImageThrow("IMAGE_BRICK_DEATH_PINK");
-		IMAGE_BRICK_DEATH_TEAL = theManager->GetImageThrow("IMAGE_BRICK_DEATH_TEAL");
-		IMAGE_BRICK_RADIAL_DEATH = theManager->GetImageThrow("IMAGE_BRICK_RADIAL_DEATH");
-		IMAGE_BRICK_KILLALL_RED_DEATH = theManager->GetImageThrow("IMAGE_BRICK_KILLALL_RED_DEATH");
-		IMAGE_BRICK_KILLALL_GREEN_DEATH = theManager->GetImageThrow("IMAGE_BRICK_KILLALL_GREEN_DEATH");
-		IMAGE_BRICK_KILLALL_BLUE_DEATH = theManager->GetImageThrow("IMAGE_BRICK_KILLALL_BLUE_DEATH");
-		IMAGE_BRICK_KILLALL_YELLOW_DEATH = theManager->GetImageThrow("IMAGE_BRICK_KILLALL_YELLOW_DEATH");
-		IMAGE_BRICK_KILLALL_PINK_DEATH = theManager->GetImageThrow("IMAGE_BRICK_KILLALL_PINK_DEATH");
-		IMAGE_BRICK_KILLALL_TEAL_DEATH = theManager->GetImageThrow("IMAGE_BRICK_KILLALL_TEAL_DEATH");
-		IMAGE_BRICK_FREEZE_ACTIVATED = theManager->GetImageThrow("IMAGE_BRICK_FREEZE_ACTIVATED");
-		IMAGE_BRICK_BONUS_ACTIVATED = theManager->GetImageThrow("IMAGE_BRICK_BONUS_ACTIVATED");
-		IMAGE_PARTICLE_RED = theManager->GetImageThrow("IMAGE_PARTICLE_RED");
-		IMAGE_PARTICLE_GREEN = theManager->GetImageThrow("IMAGE_PARTICLE_GREEN");
-		IMAGE_PARTICLE_BLUE = theManager->GetImageThrow("IMAGE_PARTICLE_BLUE");
-		IMAGE_PARTICLE_YELLOW = theManager->GetImageThrow("IMAGE_PARTICLE_YELLOW");
-		IMAGE_PARTICLE_PINK = theManager->GetImageThrow("IMAGE_PARTICLE_PINK");
-		IMAGE_PARTICLE_TEAL = theManager->GetImageThrow("IMAGE_PARTICLE_TEAL");
-		IMAGE_PARTICLE_WHITE = theManager->GetImageThrow("IMAGE_PARTICLE_WHITE");
-		IMAGE_BRICK_ROCK_DEATH = theManager->GetImageThrow("IMAGE_BRICK_ROCK_DEATH");
-		IMAGE_FUELCELL_DEATH = theManager->GetImageThrow("IMAGE_FUELCELL_DEATH");
-		IMAGE_BIOHAZARD = theManager->GetImageThrow("IMAGE_BIOHAZARD");
-		IMAGE_BRICK_COL_NUKE_ACTIVATED = theManager->GetImageThrow("IMAGE_BRICK_COL_NUKE_ACTIVATED");
-		IMAGE_BRICK_FREEZE_DEATH = theManager->GetImageThrow("IMAGE_BRICK_FREEZE_DEATH");
-		IMAGE_BRICK_MUTATOR_DEATH = theManager->GetImageThrow("IMAGE_BRICK_MUTATOR_DEATH");
-		IMAGE_BRICK_STEEL_DEATH = theManager->GetImageThrow("IMAGE_BRICK_STEEL_DEATH");
-		IMAGE_BRICK_COL_NUKE_FX = theManager->GetImageThrow("IMAGE_BRICK_COL_NUKE_FX");
-		IMAGE_BRICK_BONUS_FX = theManager->GetImageThrow("IMAGE_BRICK_BONUS_FX");
-		IMAGE_BRICK_BONUS_GLOW = theManager->GetImageThrow("IMAGE_BRICK_BONUS_GLOW");
-		IMAGE_BRICK_ROW_NUKE_ACTIVATED = theManager->GetImageThrow("IMAGE_BRICK_ROW_NUKE_ACTIVATED");
-		IMAGE_BRICK_ROW_NUKE_BLAST = theManager->GetImageThrow("IMAGE_BRICK_ROW_NUKE_BLAST");
-		IMAGE_BRICK_ROW_NUKE_DEATH = theManager->GetImageThrow("IMAGE_BRICK_ROW_NUKE_DEATH");
-		IMAGE_BRICK_RADIAL_ACTIVATED = theManager->GetImageThrow("IMAGE_BRICK_RADIAL_ACTIVATED");
-		IMAGE_BRICK_RADIAL_GHOST = theManager->GetImageThrow("IMAGE_BRICK_RADIAL_GHOST");
-		IMAGE_BRICK_COL_NUKE_GHOST = theManager->GetImageThrow("IMAGE_BRICK_COL_NUKE_GHOST");
-		IMAGE_BRICK_HORIZ_GHOST = theManager->GetImageThrow("IMAGE_BRICK_HORIZ_GHOST");
-		IMAGE_PARTICLE_FIREBALL = theManager->GetImageThrow("IMAGE_PARTICLE_FIREBALL");
-		IMAGE_PARTICLE_SNOWFLAKE = theManager->GetImageThrow("IMAGE_PARTICLE_SNOWFLAKE");
-		IMAGE_PARTICLE_RADIAL = theManager->GetImageThrow("IMAGE_PARTICLE_RADIAL");
-		IMAGE_MOON_PARTICLE = theManager->GetImageThrow("IMAGE_MOON_PARTICLE");
-		IMAGE_PARTICLE_LIGHTNING = theManager->GetImageThrow("IMAGE_PARTICLE_LIGHTNING");
-		IMAGE_BRICK_BOOSTER_ACTIVATED = theManager->GetImageThrow("IMAGE_BRICK_BOOSTER_ACTIVATED");
-		IMAGE_BRICK_BOOSTER_DEATH = theManager->GetImageThrow("IMAGE_BRICK_BOOSTER_DEATH");
-		IMAGE_EASY_WARP_GATE = theManager->GetImageThrow("IMAGE_EASY_WARP_GATE");
-		IMAGE_HARD_WARP_GATE = theManager->GetImageThrow("IMAGE_HARD_WARP_GATE");
-		IMAGE_WORMHOLE_WARP_GATE = theManager->GetImageThrow("IMAGE_WORMHOLE_WARP_GATE");
-		IMAGE_SLOW_WARP_GATE = theManager->GetImageThrow("IMAGE_SLOW_WARP_GATE");
-		IMAGE_FAST_WARP_GATE = theManager->GetImageThrow("IMAGE_FAST_WARP_GATE");
-		IMAGE_WARP_PLANETS = theManager->GetImageThrow("IMAGE_WARP_PLANETS");
-		IMAGE_SPARKLE_SMALL = theManager->GetImageThrow("IMAGE_SPARKLE_SMALL");
-		IMAGE_LEVELUP_TEXT = theManager->GetImageThrow("IMAGE_LEVELUP_TEXT");
-		IMAGE_STATS_TEXT = theManager->GetImageThrow("IMAGE_STATS_TEXT");
-		IMAGE_CP_WARP_OVERLAY = theManager->GetImageThrow("IMAGE_CP_WARP_OVERLAY");
-		IMAGE_BONUSROUND_TEXT = theManager->GetImageThrow("IMAGE_BONUSROUND_TEXT");
-		IMAGE_BONUS_TEXT_GO = theManager->GetImageThrow("IMAGE_BONUS_TEXT_GO");
-		IMAGE_BONUS_TEXT_HEADER = theManager->GetImageThrow("IMAGE_BONUS_TEXT_HEADER");
-		IMAGE_HOF_VECTOR = theManager->GetImageThrow("IMAGE_HOF_VECTOR");
-		IMAGE_HOF_SPROCKET = theManager->GetImageThrow("IMAGE_HOF_SPROCKET");
-		IMAGE_HOF_TURBOT = theManager->GetImageThrow("IMAGE_HOF_TURBOT");
-		IMAGE_HOF_VIXX = theManager->GetImageThrow("IMAGE_HOF_VIXX");
-		IMAGE_PERSONAL_VECTOR_GAUGE = theManager->GetImageThrow("IMAGE_PERSONAL_VECTOR_GAUGE");
-		IMAGE_PERSONAL_SPROCKET_GAUGE = theManager->GetImageThrow("IMAGE_PERSONAL_SPROCKET_GAUGE");
-		IMAGE_PERSONAL_TURBOT_GAUGE = theManager->GetImageThrow("IMAGE_PERSONAL_TURBOT_GAUGE");
-		IMAGE_PERSONAL_VIXX_GAUGE = theManager->GetImageThrow("IMAGE_PERSONAL_VIXX_GAUGE");
-		IMAGE_PERFECT = theManager->GetImageThrow("IMAGE_PERFECT");
-		IMAGE_PERSONAL_HIGHSCORES = theManager->GetImageThrow("IMAGE_PERSONAL_HIGHSCORES");
-		IMAGE_SUPA_RING = theManager->GetImageThrow("IMAGE_SUPA_RING");
-		IMAGE_STORY_STATIC = theManager->GetImageThrow("IMAGE_STORY_STATIC");
-		IMAGE_STORY_GAUGE_OVERLAY = theManager->GetImageThrow("IMAGE_STORY_GAUGE_OVERLAY");
-		IMAGE_STORY_BRACKET = theManager->GetImageThrow("IMAGE_STORY_BRACKET");
-		IMAGE_SIREN = theManager->GetImageThrow("IMAGE_SIREN");
-		IMAGE_SIREN_FX = theManager->GetImageThrow("IMAGE_SIREN_FX");
 		IMAGE_BIG_BLAST1 = theManager->GetImageThrow("IMAGE_BIG_BLAST1");
 		IMAGE_BIG_BLAST2 = theManager->GetImageThrow("IMAGE_BIG_BLAST2");
 		IMAGE_BIG_BLAST3 = theManager->GetImageThrow("IMAGE_BIG_BLAST3");
-		IMAGE_GAME_OVER_TEXT = theManager->GetImageThrow("IMAGE_GAME_OVER_TEXT");
-		IMAGE_GAME_OVER_DIALOG = theManager->GetImageThrow("IMAGE_GAME_OVER_DIALOG");
-		IMAGE_SUN_PARTICLE = theManager->GetImageThrow("IMAGE_SUN_PARTICLE");
+		IMAGE_BIOHAZARD = theManager->GetImageThrow("IMAGE_BIOHAZARD");
+		IMAGE_BONUSROUND_TEXT = theManager->GetImageThrow("IMAGE_BONUSROUND_TEXT");
+		IMAGE_BONUS_TEXT_GO = theManager->GetImageThrow("IMAGE_BONUS_TEXT_GO");
+		IMAGE_BONUS_TEXT_HEADER = theManager->GetImageThrow("IMAGE_BONUS_TEXT_HEADER");
+		IMAGE_BRICK_BLUE = theManager->GetImageThrow("IMAGE_BRICK_BLUE");
+		IMAGE_BRICK_BLUE_CB = theManager->GetImageThrow("IMAGE_BRICK_BLUE_CB");
+		IMAGE_BRICK_BONUS_ACTIVATED = theManager->GetImageThrow("IMAGE_BRICK_BONUS_ACTIVATED");
+		IMAGE_BRICK_BONUS_FX = theManager->GetImageThrow("IMAGE_BRICK_BONUS_FX");
+		IMAGE_BRICK_BONUS_GLOW = theManager->GetImageThrow("IMAGE_BRICK_BONUS_GLOW");
+		IMAGE_BRICK_BOOSTER = theManager->GetImageThrow("IMAGE_BRICK_BOOSTER");
+		IMAGE_BRICK_BOOSTER_ACTIVATED = theManager->GetImageThrow("IMAGE_BRICK_BOOSTER_ACTIVATED");
+		IMAGE_BRICK_BOOSTER_DEATH = theManager->GetImageThrow("IMAGE_BRICK_BOOSTER_DEATH");
+		IMAGE_BRICK_COL_NUKE_ACTIVATED = theManager->GetImageThrow("IMAGE_BRICK_COL_NUKE_ACTIVATED");
+		IMAGE_BRICK_COL_NUKE_FX = theManager->GetImageThrow("IMAGE_BRICK_COL_NUKE_FX");
+		IMAGE_BRICK_COL_NUKE_GHOST = theManager->GetImageThrow("IMAGE_BRICK_COL_NUKE_GHOST");
+		IMAGE_BRICK_DEATH_BLUE = theManager->GetImageThrow("IMAGE_BRICK_DEATH_BLUE");
+		IMAGE_BRICK_DEATH_FX = theManager->GetImageThrow("IMAGE_BRICK_DEATH_FX");
+		IMAGE_BRICK_DEATH_GREEN = theManager->GetImageThrow("IMAGE_BRICK_DEATH_GREEN");
+		IMAGE_BRICK_DEATH_PINK = theManager->GetImageThrow("IMAGE_BRICK_DEATH_PINK");
+		IMAGE_BRICK_DEATH_RED = theManager->GetImageThrow("IMAGE_BRICK_DEATH_RED");
+		IMAGE_BRICK_DEATH_TEAL = theManager->GetImageThrow("IMAGE_BRICK_DEATH_TEAL");
+		IMAGE_BRICK_DEATH_YELLOW = theManager->GetImageThrow("IMAGE_BRICK_DEATH_YELLOW");
+		IMAGE_BRICK_FREEZE_ACTIVATED = theManager->GetImageThrow("IMAGE_BRICK_FREEZE_ACTIVATED");
+		IMAGE_BRICK_FREEZE_DEATH = theManager->GetImageThrow("IMAGE_BRICK_FREEZE_DEATH");
+		IMAGE_BRICK_GENERATOR_UI = theManager->GetImageThrow("IMAGE_BRICK_GENERATOR_UI");
+		IMAGE_BRICK_GLOW = theManager->GetImageThrow("IMAGE_BRICK_GLOW");
+		IMAGE_BRICK_GREEN = theManager->GetImageThrow("IMAGE_BRICK_GREEN");
+		IMAGE_BRICK_GREEN_CB = theManager->GetImageThrow("IMAGE_BRICK_GREEN_CB");
+		IMAGE_BRICK_HORIZ_GHOST = theManager->GetImageThrow("IMAGE_BRICK_HORIZ_GHOST");
+		IMAGE_BRICK_KILLALL_BLUE = theManager->GetImageThrow("IMAGE_BRICK_KILLALL_BLUE");
+		IMAGE_BRICK_KILLALL_BLUE_CB = theManager->GetImageThrow("IMAGE_BRICK_KILLALL_BLUE_CB");
+		IMAGE_BRICK_KILLALL_BLUE_DEATH = theManager->GetImageThrow("IMAGE_BRICK_KILLALL_BLUE_DEATH");
+		IMAGE_BRICK_KILLALL_GLOW = theManager->GetImageThrow("IMAGE_BRICK_KILLALL_GLOW");
+		IMAGE_BRICK_KILLALL_GREEN = theManager->GetImageThrow("IMAGE_BRICK_KILLALL_GREEN");
+		IMAGE_BRICK_KILLALL_GREEN_CB = theManager->GetImageThrow("IMAGE_BRICK_KILLALL_GREEN_CB");
+		IMAGE_BRICK_KILLALL_GREEN_DEATH = theManager->GetImageThrow("IMAGE_BRICK_KILLALL_GREEN_DEATH");
+		IMAGE_BRICK_KILLALL_PINK = theManager->GetImageThrow("IMAGE_BRICK_KILLALL_PINK");
+		IMAGE_BRICK_KILLALL_PINK_CB = theManager->GetImageThrow("IMAGE_BRICK_KILLALL_PINK_CB");
+		IMAGE_BRICK_KILLALL_PINK_DEATH = theManager->GetImageThrow("IMAGE_BRICK_KILLALL_PINK_DEATH");
+		IMAGE_BRICK_KILLALL_RED = theManager->GetImageThrow("IMAGE_BRICK_KILLALL_RED");
+		IMAGE_BRICK_KILLALL_RED_CB = theManager->GetImageThrow("IMAGE_BRICK_KILLALL_RED_CB");
+		IMAGE_BRICK_KILLALL_RED_DEATH = theManager->GetImageThrow("IMAGE_BRICK_KILLALL_RED_DEATH");
+		IMAGE_BRICK_KILLALL_TEAL = theManager->GetImageThrow("IMAGE_BRICK_KILLALL_TEAL");
+		IMAGE_BRICK_KILLALL_TEAL_CB = theManager->GetImageThrow("IMAGE_BRICK_KILLALL_TEAL_CB");
+		IMAGE_BRICK_KILLALL_TEAL_DEATH = theManager->GetImageThrow("IMAGE_BRICK_KILLALL_TEAL_DEATH");
+		IMAGE_BRICK_KILLALL_YELLOW = theManager->GetImageThrow("IMAGE_BRICK_KILLALL_YELLOW");
+		IMAGE_BRICK_KILLALL_YELLOW_CB = theManager->GetImageThrow("IMAGE_BRICK_KILLALL_YELLOW_CB");
+		IMAGE_BRICK_KILLALL_YELLOW_DEATH = theManager->GetImageThrow("IMAGE_BRICK_KILLALL_YELLOW_DEATH");
+		IMAGE_BRICK_MUTATOR_DEATH = theManager->GetImageThrow("IMAGE_BRICK_MUTATOR_DEATH");
+		IMAGE_BRICK_PINK = theManager->GetImageThrow("IMAGE_BRICK_PINK");
+		IMAGE_BRICK_PINK_CB = theManager->GetImageThrow("IMAGE_BRICK_PINK_CB");
+		IMAGE_BRICK_RADIAL_ACTIVATED = theManager->GetImageThrow("IMAGE_BRICK_RADIAL_ACTIVATED");
+		IMAGE_BRICK_RADIAL_DEATH = theManager->GetImageThrow("IMAGE_BRICK_RADIAL_DEATH");
+		IMAGE_BRICK_RADIAL_GHOST = theManager->GetImageThrow("IMAGE_BRICK_RADIAL_GHOST");
+		IMAGE_BRICK_RED = theManager->GetImageThrow("IMAGE_BRICK_RED");
+		IMAGE_BRICK_RED_CB = theManager->GetImageThrow("IMAGE_BRICK_RED_CB");
+		IMAGE_BRICK_ROCK_DEATH = theManager->GetImageThrow("IMAGE_BRICK_ROCK_DEATH");
+		IMAGE_BRICK_ROW_NUKE_ACTIVATED = theManager->GetImageThrow("IMAGE_BRICK_ROW_NUKE_ACTIVATED");
+		IMAGE_BRICK_ROW_NUKE_BLAST = theManager->GetImageThrow("IMAGE_BRICK_ROW_NUKE_BLAST");
+		IMAGE_BRICK_ROW_NUKE_DEATH = theManager->GetImageThrow("IMAGE_BRICK_ROW_NUKE_DEATH");
+		IMAGE_BRICK_STEEL_2 = theManager->GetImageThrow("IMAGE_BRICK_STEEL_2");
+		IMAGE_BRICK_STEEL_DEATH = theManager->GetImageThrow("IMAGE_BRICK_STEEL_DEATH");
+		IMAGE_BRICK_TEAL = theManager->GetImageThrow("IMAGE_BRICK_TEAL");
+		IMAGE_BRICK_TEAL_CB = theManager->GetImageThrow("IMAGE_BRICK_TEAL_CB");
+		IMAGE_BRICK_YELLOW = theManager->GetImageThrow("IMAGE_BRICK_YELLOW");
+		IMAGE_BRICK_YELLOW_CB = theManager->GetImageThrow("IMAGE_BRICK_YELLOW_CB");
+		IMAGE_COMBO_LIST = theManager->GetImageThrow("IMAGE_COMBO_LIST");
+		IMAGE_CP_WARP_OVERLAY = theManager->GetImageThrow("IMAGE_CP_WARP_OVERLAY");
+		IMAGE_EASY_WARP_GATE = theManager->GetImageThrow("IMAGE_EASY_WARP_GATE");
+		IMAGE_FAST_WARP_GATE = theManager->GetImageThrow("IMAGE_FAST_WARP_GATE");
+		IMAGE_FUELCELL_DEATH = theManager->GetImageThrow("IMAGE_FUELCELL_DEATH");
 		IMAGE_GAMEOVER_DANGER = theManager->GetImageThrow("IMAGE_GAMEOVER_DANGER");
+		IMAGE_GAME_OVER_DIALOG = theManager->GetImageThrow("IMAGE_GAME_OVER_DIALOG");
+		IMAGE_GAME_OVER_TEXT = theManager->GetImageThrow("IMAGE_GAME_OVER_TEXT");
+		IMAGE_HARD_WARP_GATE = theManager->GetImageThrow("IMAGE_HARD_WARP_GATE");
+		IMAGE_HOF_SPROCKET = theManager->GetImageThrow("IMAGE_HOF_SPROCKET");
+		IMAGE_HOF_TURBOT = theManager->GetImageThrow("IMAGE_HOF_TURBOT");
+		IMAGE_HOF_VECTOR = theManager->GetImageThrow("IMAGE_HOF_VECTOR");
+		IMAGE_HOF_VIXX = theManager->GetImageThrow("IMAGE_HOF_VIXX");
+		IMAGE_HUD_UI = theManager->GetImageThrow("IMAGE_HUD_UI");
+		IMAGE_LEVELUP_TEXT = theManager->GetImageThrow("IMAGE_LEVELUP_TEXT");
+		IMAGE_MM_DOWN_UI = theManager->GetImageThrow("IMAGE_MM_DOWN_UI");
+		IMAGE_MM_OVER_UI = theManager->GetImageThrow("IMAGE_MM_OVER_UI");
+		IMAGE_MOON_PARTICLE = theManager->GetImageThrow("IMAGE_MOON_PARTICLE");
+		IMAGE_PARTICLE_BLUE = theManager->GetImageThrow("IMAGE_PARTICLE_BLUE");
+		IMAGE_PARTICLE_FIREBALL = theManager->GetImageThrow("IMAGE_PARTICLE_FIREBALL");
+		IMAGE_PARTICLE_GREEN = theManager->GetImageThrow("IMAGE_PARTICLE_GREEN");
+		IMAGE_PARTICLE_LIGHTNING = theManager->GetImageThrow("IMAGE_PARTICLE_LIGHTNING");
+		IMAGE_PARTICLE_PINK = theManager->GetImageThrow("IMAGE_PARTICLE_PINK");
+		IMAGE_PARTICLE_RADIAL = theManager->GetImageThrow("IMAGE_PARTICLE_RADIAL");
+		IMAGE_PARTICLE_RED = theManager->GetImageThrow("IMAGE_PARTICLE_RED");
+		IMAGE_PARTICLE_SNOWFLAKE = theManager->GetImageThrow("IMAGE_PARTICLE_SNOWFLAKE");
+		IMAGE_PARTICLE_TEAL = theManager->GetImageThrow("IMAGE_PARTICLE_TEAL");
+		IMAGE_PARTICLE_WHITE = theManager->GetImageThrow("IMAGE_PARTICLE_WHITE");
+		IMAGE_PARTICLE_YELLOW = theManager->GetImageThrow("IMAGE_PARTICLE_YELLOW");
+		IMAGE_PERFECT = theManager->GetImageThrow("IMAGE_PERFECT");
+		IMAGE_PERSONAL_HIGHSCORES = theManager->GetImageThrow("IMAGE_PERSONAL_HIGHSCORES");
+		IMAGE_PERSONAL_SPROCKET_GAUGE = theManager->GetImageThrow("IMAGE_PERSONAL_SPROCKET_GAUGE");
+		IMAGE_PERSONAL_TURBOT_GAUGE = theManager->GetImageThrow("IMAGE_PERSONAL_TURBOT_GAUGE");
+		IMAGE_PERSONAL_VECTOR_GAUGE = theManager->GetImageThrow("IMAGE_PERSONAL_VECTOR_GAUGE");
+		IMAGE_PERSONAL_VIXX_GAUGE = theManager->GetImageThrow("IMAGE_PERSONAL_VIXX_GAUGE");
+		IMAGE_POWERUP_ACTIVE = theManager->GetImageThrow("IMAGE_POWERUP_ACTIVE");
+		IMAGE_POWERUP_CHARGING = theManager->GetImageThrow("IMAGE_POWERUP_CHARGING");
+		IMAGE_POWERUP_GAUGE = theManager->GetImageThrow("IMAGE_POWERUP_GAUGE");
+		IMAGE_SIREN = theManager->GetImageThrow("IMAGE_SIREN");
+		IMAGE_SIREN_FX = theManager->GetImageThrow("IMAGE_SIREN_FX");
+		IMAGE_SLOW_WARP_GATE = theManager->GetImageThrow("IMAGE_SLOW_WARP_GATE");
+		IMAGE_SPARKLE_SMALL = theManager->GetImageThrow("IMAGE_SPARKLE_SMALL");
+		IMAGE_SPROCKET_SUPA_OVERLAY = theManager->GetImageThrow("IMAGE_SPROCKET_SUPA_OVERLAY");
+		IMAGE_STATS_TEXT = theManager->GetImageThrow("IMAGE_STATS_TEXT");
+		IMAGE_STORY_BRACKET = theManager->GetImageThrow("IMAGE_STORY_BRACKET");
+		IMAGE_STORY_GAUGE_OVERLAY = theManager->GetImageThrow("IMAGE_STORY_GAUGE_OVERLAY");
+		IMAGE_STORY_STATIC = theManager->GetImageThrow("IMAGE_STORY_STATIC");
+		IMAGE_SUN_PARTICLE = theManager->GetImageThrow("IMAGE_SUN_PARTICLE");
+		IMAGE_SUPA_BRACKET_LEFT = theManager->GetImageThrow("IMAGE_SUPA_BRACKET_LEFT");
+		IMAGE_SUPA_BRACKET_RIGHT = theManager->GetImageThrow("IMAGE_SUPA_BRACKET_RIGHT");
+		IMAGE_SUPA_BUTTON_ALERT = theManager->GetImageThrow("IMAGE_SUPA_BUTTON_ALERT");
+		IMAGE_SUPA_BUTTON_DOWN = theManager->GetImageThrow("IMAGE_SUPA_BUTTON_DOWN");
+		IMAGE_SUPA_BUTTON_LIGHTS_OFF = theManager->GetImageThrow("IMAGE_SUPA_BUTTON_LIGHTS_OFF");
+		IMAGE_SUPA_BUTTON_LIGHTS_ON = theManager->GetImageThrow("IMAGE_SUPA_BUTTON_LIGHTS_ON");
+		IMAGE_SUPA_BUTTON_OVER = theManager->GetImageThrow("IMAGE_SUPA_BUTTON_OVER");
+		IMAGE_SUPA_BUTTON_UP = theManager->GetImageThrow("IMAGE_SUPA_BUTTON_UP");
+		IMAGE_SUPA_RING = theManager->GetImageThrow("IMAGE_SUPA_RING");
+		IMAGE_SUPA_WEAPON_TEXT = theManager->GetImageThrow("IMAGE_SUPA_WEAPON_TEXT");
+		IMAGE_TH_ARROWHEAD = theManager->GetImageThrow("IMAGE_TH_ARROWHEAD");
 		IMAGE_TH_BONUS = theManager->GetImageThrow("IMAGE_TH_BONUS");
+		IMAGE_TH_BOOSTER = theManager->GetImageThrow("IMAGE_TH_BOOSTER");
+		IMAGE_TH_BTN_DOWN = theManager->GetImageThrow("IMAGE_TH_BTN_DOWN");
+		IMAGE_TH_BTN_OVER = theManager->GetImageThrow("IMAGE_TH_BTN_OVER");
+		IMAGE_TH_BTN_UP = theManager->GetImageThrow("IMAGE_TH_BTN_UP");
+		IMAGE_TH_CHECKBOX = theManager->GetImageThrow("IMAGE_TH_CHECKBOX");
 		IMAGE_TH_COLOR = theManager->GetImageThrow("IMAGE_TH_COLOR");
 		IMAGE_TH_COLUMN = theManager->GetImageThrow("IMAGE_TH_COLUMN");
+		IMAGE_TH_LEFT_ARROWHEAD = theManager->GetImageThrow("IMAGE_TH_LEFT_ARROWHEAD");
 		IMAGE_TH_MATCH = theManager->GetImageThrow("IMAGE_TH_MATCH");
 		IMAGE_TH_RADIAL = theManager->GetImageThrow("IMAGE_TH_RADIAL");
+		IMAGE_TH_RECTANGLE = theManager->GetImageThrow("IMAGE_TH_RECTANGLE");
+		IMAGE_TH_RING = theManager->GetImageThrow("IMAGE_TH_RING");
 		IMAGE_TH_ROW = theManager->GetImageThrow("IMAGE_TH_ROW");
 		IMAGE_TH_STEEL = theManager->GetImageThrow("IMAGE_TH_STEEL");
 		IMAGE_TH_STONE = theManager->GetImageThrow("IMAGE_TH_STONE");
 		IMAGE_TH_STRIP = theManager->GetImageThrow("IMAGE_TH_STRIP");
-		IMAGE_TH_TOXIC = theManager->GetImageThrow("IMAGE_TH_TOXIC");
-		IMAGE_TH_BOOSTER = theManager->GetImageThrow("IMAGE_TH_BOOSTER");
-		IMAGE_TH_SUPER = theManager->GetImageThrow("IMAGE_TH_SUPER");
-		IMAGE_TH_SUPER_STILL = theManager->GetImageThrow("IMAGE_TH_SUPER_STILL");
-		IMAGE_TUT_MOUSE_LEFT = theManager->GetImageThrow("IMAGE_TUT_MOUSE_LEFT");
-		IMAGE_TUT_MOUSE_RIGHT = theManager->GetImageThrow("IMAGE_TUT_MOUSE_RIGHT");
-		IMAGE_TH_BTN_DOWN = theManager->GetImageThrow("IMAGE_TH_BTN_DOWN");
-		IMAGE_TH_BTN_UP = theManager->GetImageThrow("IMAGE_TH_BTN_UP");
-		IMAGE_TH_BTN_OVER = theManager->GetImageThrow("IMAGE_TH_BTN_OVER");
-		IMAGE_TH_CHECKBOX = theManager->GetImageThrow("IMAGE_TH_CHECKBOX");
-		IMAGE_TH_ARROWHEAD = theManager->GetImageThrow("IMAGE_TH_ARROWHEAD");
-		IMAGE_TH_RING = theManager->GetImageThrow("IMAGE_TH_RING");
-		IMAGE_TH_RECTANGLE = theManager->GetImageThrow("IMAGE_TH_RECTANGLE");
-		IMAGE_TH_LEFT_ARROWHEAD = theManager->GetImageThrow("IMAGE_TH_LEFT_ARROWHEAD");
-		IMAGE_TH_SUPA_VECTOR1 = theManager->GetImageThrow("IMAGE_TH_SUPA_VECTOR1");
-		IMAGE_TH_SUPA_VECTOR2 = theManager->GetImageThrow("IMAGE_TH_SUPA_VECTOR2");
 		IMAGE_TH_SUPA_SPROCKET1 = theManager->GetImageThrow("IMAGE_TH_SUPA_SPROCKET1");
 		IMAGE_TH_SUPA_SPROCKET2 = theManager->GetImageThrow("IMAGE_TH_SUPA_SPROCKET2");
 		IMAGE_TH_SUPA_SPROCKET3 = theManager->GetImageThrow("IMAGE_TH_SUPA_SPROCKET3");
 		IMAGE_TH_SUPA_TURBOT1 = theManager->GetImageThrow("IMAGE_TH_SUPA_TURBOT1");
 		IMAGE_TH_SUPA_TURBOT2 = theManager->GetImageThrow("IMAGE_TH_SUPA_TURBOT2");
 		IMAGE_TH_SUPA_TURBOT3 = theManager->GetImageThrow("IMAGE_TH_SUPA_TURBOT3");
+		IMAGE_TH_SUPA_VECTOR1 = theManager->GetImageThrow("IMAGE_TH_SUPA_VECTOR1");
+		IMAGE_TH_SUPA_VECTOR2 = theManager->GetImageThrow("IMAGE_TH_SUPA_VECTOR2");
 		IMAGE_TH_SUPA_VIXX1 = theManager->GetImageThrow("IMAGE_TH_SUPA_VIXX1");
 		IMAGE_TH_SUPA_VIXX2 = theManager->GetImageThrow("IMAGE_TH_SUPA_VIXX2");
+		IMAGE_TH_SUPER = theManager->GetImageThrow("IMAGE_TH_SUPER");
+		IMAGE_TH_SUPER_STILL = theManager->GetImageThrow("IMAGE_TH_SUPER_STILL");
+		IMAGE_TH_TOXIC = theManager->GetImageThrow("IMAGE_TH_TOXIC");
+		IMAGE_TUT_MOUSE_LEFT = theManager->GetImageThrow("IMAGE_TUT_MOUSE_LEFT");
+		IMAGE_TUT_MOUSE_RIGHT = theManager->GetImageThrow("IMAGE_TUT_MOUSE_RIGHT");
+		IMAGE_UI_BRICKOMETER_OVERLAY = theManager->GetImageThrow("IMAGE_UI_BRICKOMETER_OVERLAY");
+		IMAGE_UI_DANGERZONE = theManager->GetImageThrow("IMAGE_UI_DANGERZONE");
+		IMAGE_UI_FREEZE_FX = theManager->GetImageThrow("IMAGE_UI_FREEZE_FX");
+		IMAGE_UI_FREEZE_OVERLAY = theManager->GetImageThrow("IMAGE_UI_FREEZE_OVERLAY");
+		IMAGE_UI_INGAME_B = theManager->GetImageThrow("IMAGE_UI_INGAME_B");
+		IMAGE_UI_INGAME_HELP_DOWN = theManager->GetImageThrow("IMAGE_UI_INGAME_HELP_DOWN");
+		IMAGE_UI_INGAME_HELP_OVER = theManager->GetImageThrow("IMAGE_UI_INGAME_HELP_OVER");
+		IMAGE_UI_INGAME_L = theManager->GetImageThrow("IMAGE_UI_INGAME_L");
+		IMAGE_UI_INGAME_R = theManager->GetImageThrow("IMAGE_UI_INGAME_R");
+		IMAGE_UI_INGAME_T = theManager->GetImageThrow("IMAGE_UI_INGAME_T");
+		IMAGE_UI_LOGO_CLASSIC = theManager->GetImageThrow("IMAGE_UI_LOGO_CLASSIC");
+		IMAGE_UI_LOGO_SURVIVAL = theManager->GetImageThrow("IMAGE_UI_LOGO_SURVIVAL");
+		IMAGE_UI_MANGLED_B = theManager->GetImageThrow("IMAGE_UI_MANGLED_B");
+		IMAGE_UI_MANGLED_L = theManager->GetImageThrow("IMAGE_UI_MANGLED_L");
+		IMAGE_UI_MANGLED_R = theManager->GetImageThrow("IMAGE_UI_MANGLED_R");
+		IMAGE_UI_MANGLED_T = theManager->GetImageThrow("IMAGE_UI_MANGLED_T");
+		IMAGE_UI_SCREEN_RED = theManager->GetImageThrow("IMAGE_UI_SCREEN_RED");
+		IMAGE_UI_SCREEN_YELLOW = theManager->GetImageThrow("IMAGE_UI_SCREEN_YELLOW");
+		IMAGE_UI_SURVIVAL_TIME = theManager->GetImageThrow("IMAGE_UI_SURVIVAL_TIME");
+		IMAGE_UPGRADE_ARM = theManager->GetImageThrow("IMAGE_UPGRADE_ARM");
+		IMAGE_UPGRADE_BAR = theManager->GetImageThrow("IMAGE_UPGRADE_BAR");
+		IMAGE_UPGRADE_BAR_MAX2 = theManager->GetImageThrow("IMAGE_UPGRADE_BAR_MAX2");
+		IMAGE_UPGRADE_BAR_MAX3 = theManager->GetImageThrow("IMAGE_UPGRADE_BAR_MAX3");
+		IMAGE_UPGRADE_HEAD = theManager->GetImageThrow("IMAGE_UPGRADE_HEAD");
+		IMAGE_UPGRADE_OVERLAY1 = theManager->GetImageThrow("IMAGE_UPGRADE_OVERLAY1");
+		IMAGE_UPGRADE_OVERLAY2 = theManager->GetImageThrow("IMAGE_UPGRADE_OVERLAY2");
+		IMAGE_UPGRADE_TITLE = theManager->GetImageThrow("IMAGE_UPGRADE_TITLE");
+		IMAGE_WARP_FX_LARGE = theManager->GetImageThrow("IMAGE_WARP_FX_LARGE");
+		IMAGE_WARP_FX_LIGHTENING = theManager->GetImageThrow("IMAGE_WARP_FX_LIGHTENING");
+		IMAGE_WARP_FX_MED = theManager->GetImageThrow("IMAGE_WARP_FX_MED");
+		IMAGE_WARP_FX_SMALL = theManager->GetImageThrow("IMAGE_WARP_FX_SMALL");
 		IMAGE_WARP_LAYER_1 = theManager->GetImageThrow("IMAGE_WARP_LAYER_1");
 		IMAGE_WARP_LAYER_2_LEFT = theManager->GetImageThrow("IMAGE_WARP_LAYER_2_LEFT");
 		IMAGE_WARP_LAYER_2_RIGHT = theManager->GetImageThrow("IMAGE_WARP_LAYER_2_RIGHT");
 		IMAGE_WARP_LAYER_3_LEFT = theManager->GetImageThrow("IMAGE_WARP_LAYER_3_LEFT");
 		IMAGE_WARP_LAYER_3_RIGHT = theManager->GetImageThrow("IMAGE_WARP_LAYER_3_RIGHT");
-		IMAGE_WARP_FX_LARGE = theManager->GetImageThrow("IMAGE_WARP_FX_LARGE");
-		IMAGE_WARP_FX_MED = theManager->GetImageThrow("IMAGE_WARP_FX_MED");
-		IMAGE_WARP_FX_SMALL = theManager->GetImageThrow("IMAGE_WARP_FX_SMALL");
-		IMAGE_WARP_FX_LIGHTENING = theManager->GetImageThrow("IMAGE_WARP_FX_LIGHTENING");
-		IMAGE_UPGRADE_ARM = theManager->GetImageThrow("IMAGE_UPGRADE_ARM");
-		IMAGE_UPGRADE_HEAD = theManager->GetImageThrow("IMAGE_UPGRADE_HEAD");
-		IMAGE_UPGRADE_BAR = theManager->GetImageThrow("IMAGE_UPGRADE_BAR");
-		IMAGE_UPGRADE_TITLE = theManager->GetImageThrow("IMAGE_UPGRADE_TITLE");
-		IMAGE_UPGRADE_OVERLAY1 = theManager->GetImageThrow("IMAGE_UPGRADE_OVERLAY1");
-		IMAGE_UPGRADE_OVERLAY2 = theManager->GetImageThrow("IMAGE_UPGRADE_OVERLAY2");
+		IMAGE_WARP_PLANETS = theManager->GetImageThrow("IMAGE_WARP_PLANETS");
+		IMAGE_WORMHOLE_WARP_GATE = theManager->GetImageThrow("IMAGE_WORMHOLE_WARP_GATE");
 	} catch (ResourceManagerException&) {
 		return false;
 	}

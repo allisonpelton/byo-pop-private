@@ -59,6 +59,7 @@ public:
 	virtual void	RemovedFromManager(WidgetManager* theManager) override;     // 0x4350e0 slot 2
 	virtual void	Draw(Graphics* g) override;                                 // 0x44bf80 slot 16
 	virtual void	Update() override;                                          // 0x43c340 slot 17
+	virtual void	ButtonPress(int theId) override;                            // 0x435120 (the listener's; plays SOUND_BUTTON_DOWN)
 	virtual void	ButtonDepress(int theId) override;                          // 0x435140 (the listener's)
 
 private:
