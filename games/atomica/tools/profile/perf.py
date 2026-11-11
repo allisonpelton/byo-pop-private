@@ -12,20 +12,23 @@ From the worktree root:
 
 port-load starts the port without -fast, with the live command channel (as the real-input driver does), and asks `move`
 until it answers with the kind "title": the title screen's play link is up, the first screen that takes input. Its time
-counts from the creation of the process. port-minute plays a scripted game (an identical-play scenario such as games/atomica/tools/identical/s2.txt)
-in real time. orig does the same for the original under origrun (real clock, scripted cursor, a fresh copy and a reset play
-count each run), reading the same flag (the title screen's "play shown" byte) out of the game's memory every few
-milliseconds, as origrun's --watch does, because origrun's own output reaches a pipe late. orig starts origrun directly:
-origrun puts the game under rundesk itself.
+counts from the creation of the process. port-minute plays a scripted game (an identical-play scenario such as
+games/atomica/tools/identical/s2.txt, cut at update PERF_END, 4400 unless set) and orig plays the same one in the original
+under origrun (scripted cursor, a fresh copy each run). With PERF_CLOCK=real both play it in real time (the port without
+-fast, the original on origrun's real clock); without it neither waits (the port's -fast, origrun's virtual clock), so the
+processor time is the work done. `orig ... load` only waits on the real clock and stops at the title: the same flag as
+the port's (the title screen's play link, read out of the game's memory every few milliseconds, as origrun's --watch
+does, because origrun's own output reaches a pipe late). orig starts origrun directly: origrun puts the game under
+rundesk itself.
 
 Both sample the game's process every 0.1 s: working set, private bytes (and the system's own peaks of both), processor time
 (kernel + user). Each run prints one JSON line: the first screen's time, and the peaks and the processor time over the whole
-run and over the scripted stretch (the 2000 updates before the script's last update, the same moves in both: the port marks the
-first of them with a screenshot's file time, the original's is found from its update counter at app+0x328), the machine's busy
-fraction during the run, and the game processes of other sessions running when it started and ended. The original's run is
-stopped from here once its counter passes the script's last update, because its `quit` does not end the game.
-The original needs origrun's git-ignored patch list (the registration check answers yes; srand stores the run's seed) and
-config (counter=0x49c4c0, update_ms=10) under tools/origrun/.
+run and over the scripted stretch (the 2000 updates before the script's last update, the same moves in both: the port marks
+the first of them with a screenshot's file time, the original's is found from its update counter, the app's +0x3e4 at
+0x4d0044), the machine's busy fraction during the run, and the game processes of other sessions running when it started and
+ended. The original's run is stopped from here once its counter passes the script's last update, because its `quit` does not
+end the game. The original needs origrun's git-ignored patch list (the registration check answers yes; srand stores the
+run's seed) and config under tools/origrun/. pairs.sh runs the two turn about.
 """
 import ctypes
 import ctypes.wintypes as W
@@ -235,7 +238,8 @@ def script_span(path):
 
 def port_exe():
     root = os.getcwd()
-    return (os.path.join(root, 'build', 'native', 'atomica.exe'), os.path.join(root, 'assets', 'atomica'))
+    # PERF_EXE names another build of the port in build/native (an exe kept from before a change)
+    return (os.path.join(root, 'build', 'native', os.environ.get('PERF_EXE', 'atomica.exe')), os.path.join(root, 'assets', 'atomica'))
 
 
 def port_load(out, runs):
@@ -288,7 +292,7 @@ def port_minute(out, script):
     s0 = system_times()
     log = open(os.path.join(out, 'game.log'), 'wb')
     p = subprocess.Popen([exe, '-gamedir=' + gamedir, '-userdir=' + os.path.join(out, 'user'), '-seed=1', '-script=' + script] +
-                         (['-fast'] if os.environ.get('PERF_FAST') else []),
+                         ([] if REAL else ['-fast']),
                          cwd=out, stdout=log, stderr=subprocess.STDOUT)
     h = k32.OpenProcess(QUERY | VM_READ | QUERY_LIMITED, False, p.pid)
     created = creation_time(h)
@@ -312,10 +316,11 @@ def port_minute(out, script):
 
 
 # The original's title screen: the pointer to it is the static at 0x4d00fc (compare.py's title_p); +0x84 of it is the play link (a
-# 2003 widget: +0x10 its width, which is 0 until the screen has loaded and sets the link's label and size). The original's update
-# counter is not at app+0x328 as in later builds, so a scenario's `at` lines run on origrun's virtual clock (no timed waits, the
-# run is as long as the work); the load time is taken on the real clock with a script that only waits.
+# 2003 widget: +0x10 its width, which is 0 until the screen has loaded and sets the link's label and size). The load time is
+# taken on the real clock with a script that only waits.
 TITLE_PTR, LINK_PTR, LINK_WIDTH = 0x4D00FC, 0x84, 0x10
+COUNTER = 0x4D0044                                   # the app's update counter (the app is static at 0x4cfc60, the counter its +0x3e4)
+REAL = os.environ.get('PERF_CLOCK') == 'real'        # the scenario in real time, for both games
 TERMINATE = 0x1
 
 
@@ -330,7 +335,7 @@ def orig_run(out, script, runs, load_only=False):
         os.makedirs(d)
         sc = orig_script(script, os.path.join(d, 'script.txt'))
         first, last = script_span(sc)
-        if load_only:      # the real clock: the game only waits (the scenario's `at` lines need a counter) and is stopped at the title
+        if load_only:      # the real clock: the game only waits and is stopped at the title
             open(sc, 'w', newline='\n').write('wait 20000\nquit\n')
         shutil.rmtree('C:/byo-og/' + run, ignore_errors=True)
         shutil.rmtree(os.path.join(root, 'build', 'origrun', run), ignore_errors=True)
@@ -342,10 +347,14 @@ def orig_run(out, script, runs, load_only=False):
         log = open(os.path.join(d, 'origrun.log'), 'wb')
         t_start = time.time()
         p = subprocess.Popen([origrun, '--game', 'atomica', '--run', run, '--stage-root', 'C:/byo-og', '--script', sc,
-                              '--clock', 'real' if load_only else 'virtual', '--cursor', 'scripted', '--seed', '1', '--timeout', '400'],
+                              '--clock', 'real' if (load_only or REAL) else 'virtual', '--cursor', 'scripted', '--seed', '1',
+                              '--timeout', '400', '--counter', hex(COUNTER), '--update-ms', '10'],
                              stdout=log, stderr=subprocess.STDOUT)
         h = None
         created = ready = spawned = None
+        started = False      # the title screen has gone: the scenario's click on its link landed (the original loads in a thread in
+                             # real time, so on a busy machine the link may not be up yet at the click's update, and the run then
+                             # sits on the title: cheap updates that measure nothing)
         ready_mem = None
         samples = []
         counters = []   # (time, update counter)
@@ -373,7 +382,9 @@ def orig_run(out, script, runs, load_only=False):
                             ready_mem = sample(h)
                 if now >= next_sample:
                     s = sample(h)
-                    c = None     # no update counter is known for this build
+                    c = read32(h, COUNTER)
+                    if ready is not None and not started and read32(h, TITLE_PTR) == 0:
+                        started = True
                     if s:
                         samples.append((round(now - created, 3),) + s)
                         counters.append((round(now - created, 3), c))
@@ -400,7 +411,7 @@ def orig_run(out, script, runs, load_only=False):
             res['updates_per_s_in_stretch'] = round((c_hi - c_lo) / (hi - lo), 1)
         res.update({'exit': p.returncode, 'run_s': round(end, 1), 'machine_busy': round(busy_fraction(s0, s1), 2),
                     'load_s': round(ready, 3) if ready else None, 'origrun_to_process_s': round(spawned, 1) if h else None,
-                    'last_update_reached': counters[-1][1] if counters else None,
+                    'last_update_reached': counters[-1][1] if counters else None, 'game_started': started,
                     'others_start': len(others0), 'others_end': len(game_processes(mine_prefixes()))})
         if ready_mem:
             res.update({'working_set_mb_at_title': round(ready_mem[0] / 1048576, 1),

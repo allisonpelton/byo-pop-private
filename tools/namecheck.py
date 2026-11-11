@@ -2,6 +2,7 @@
 """Find unnamed and unknown identifiers in a port's source (docs/CODE_STANDARDS.md, "Names").
 
     python tools/namecheck.py games/<game>               checks games/<game>/src, with games/<game>/namecheck.txt
+                                                         (and the folders its "folder" lines add)
     python tools/namecheck.py games/<game> --list        also prints every allowed and exempted finding
     python tools/namecheck.py <file or folder>... --config <file>
     python tools/namecheck.py --selftest                 the checker on its own small cases
@@ -22,6 +23,10 @@ The checks (each one a rule of docs/CODE_STANDARDS.md):
             with a hex letter; 2D and 3D, lower-case tails and short numbers such as mSwapPiece1 or aCos36 are not)
   comment   a comment that puts "unknown" in place of a name: "purpose unknown", "unknown field", "??", "no idea",
             "TODO: name"
+  stage     a comment that names a development stage, milestone or phase by its number ("stage 7b", "phase 2",
+            "milestone 3"): a reader of the code cannot follow it, so the comment names the feature instead. A game
+            whose own word it is (a game's stage 3, a boss's phase 2), or a file or folder name that carries it
+            (mods/stage4), takes an allow rule on the matched text, with "." for its space: allow stage stage.?4
   short     a one-letter variable or parameter still used more than 10 lines after it is declared (short-span), outside
             the letters the config allows (by default i, j, k for indices, x, y, z for coordinates and g for a
             Graphics*, the framework's own convention): a one-letter name is fine where its type is on the same
@@ -40,6 +45,9 @@ reason is an error, so every exception says why it is there:
   port-file <path glob>                 every function in those files is the port's own (as a marker would say)
   short-span <lines>                    how far a one-letter name may reach before it is a finding (default 10)
   addr-skip <name regex>                function names the addr check skips (helpers local to one function)
+  folder <name>                         another source folder of the game, checked with src/ when the game folder is
+                                        given (a port with an engine of its own beside src/); its files are listed
+                                        and matched as <name>/<file>
 """
 import argparse, fnmatch, os, re, sys
 
@@ -57,6 +65,9 @@ STANDIN = re.compile(r"^(?:m|g|s|k|a|an|the)?_?(?:%s)_?(?:0x)?[0-9A-Fa-f]*[0-9][
 STANDIN_BARE = re.compile(r"^(?:m|g|s|a|an|the)(?:Temp|Tmp|Dummy|Foo|Blah|Stuff|Thing|Misc|Unused(?:[A-Z]\w*)?)$")
 # a word, then an offset or an address of upper-case hex in place of the rest of the name (not "2D" or "3D")
 OFFSET = re.compile(r"^(?:(?:m|g|s|k|a|an|the)[A-Z]|[A-Z])\w*?[a-z_]((?:0x)?[0-9A-F]{2,8})$")
+
+
+STAGE = re.compile(r"\b(?:stage|phase|milestone)[ -]?\d+[a-z]?\b", re.I)
 
 
 def is_offset_name(name):
@@ -147,6 +158,7 @@ class Config:
         self.short_ok = []    # (glob, set of letters)
         self.port_files = []
         self.addr_skip = []
+        self.folders = []     # more folders of the game folder to check
         self.short_span = 10
 
     @staticmethod
@@ -174,6 +186,8 @@ class Config:
                 cfg.short_span = int(rule[1])
             elif kind == "addr-skip" and len(rule) == 2:
                 cfg.addr_skip.append(re.compile("^(?:%s)$" % rule[1]))
+            elif kind == "folder" and len(rule) == 2:
+                cfg.folders.append(rule[1])
             else:
                 raise ValueError("%s:%d: cannot read rule %r" % (path, number, text))
         return cfg
@@ -230,6 +244,8 @@ def check_file(path, rel, cfg, findings, skipped):
         m = COMMENT.search(body)
         if m:
             report("comment", number, m.group(0).strip(), "a comment that puts 'unknown' in place of a name")
+        for m in STAGE.finditer(body):
+            report("stage", number, m.group(0), "a comment that names a development stage, not the feature")
 
     letters = cfg.short_letters(rel)
     for number, codeline in enumerate(lines, 1):
@@ -408,6 +424,9 @@ SELFTEST = [
     ("bool mIs3D; Viz2D* mViz; float aCos36; int Clamp01(); int mPiece2; TwistD3D* mD3D;\n", []),
     ('const char* aText = "unknown field id mUnused218 local_1c";\n', []),
     ("int mFlags; // +0x218 purpose unknown\nint mCount; // the number of unknown keys\n", ["comment purpose unknown"]),
+    ("int mDirt; // stage 7b: the dirt layers\n// Phase-2 of the Milestone 3 work\nint mGold; // the gold board\n",
+     ["stage stage 7b", "stage Phase-2", "stage Milestone 3"]),
+    ("// the stages of a rocket, the next phase, stage one\nconst char* aText = \"stage 2\";\n", []),
     ("// 0x401000\nvoid F()\n{\n\tint q = 0;\n" + "\tq++;\n" * 12 + "}\n", ["short q"]),
     ("// 0x401000\nvoid F()\n{\n\tint q = 0;\n\tq++;\n}\n", []),
     ("// 0x401000\nvoid F(Graphics* g)\n{\n" + "\tg->Draw();\n" * 20 + "\tfor (int i = 0; i < 3; i++) x(i);\n}\n", []),
@@ -432,7 +451,27 @@ def selftest():
             if got != sorted(expected):
                 failures += 1
                 print("selftest case %d: expected %s, got %s" % (index, sorted(expected), got))
-    print("namecheck selftest: %d of %d cases %s" % (len(SELFTEST) - failures, len(SELFTEST),
+        # a game folder: its src/ alone, then with a "folder" line that adds its engine/, then one that names no folder
+        game = os.path.join(folder, "game")
+        for name, source in (("src/a.cpp", "// 0x401000\nvoid F()\n{\n}\n"), ("engine/b.cpp", "int mUnknown;\n")):
+            os.makedirs(os.path.dirname(os.path.join(game, name)), exist_ok=True)
+            with open(os.path.join(game, name), "w", encoding="utf-8", newline="\n") as f:
+                f.write(source)
+        folder_cases = [("", [], 1), ("folder engine -- the engine is the game's too\n", ["engine/b.cpp unknown mUnknown"], 2),
+                        ("folder nowhere -- no such folder\n", "error", 0)]
+        for rules, expected, files in folder_cases:
+            with open(os.path.join(game, "namecheck.txt"), "w", encoding="utf-8", newline="\n") as f:
+                f.write(rules)
+            try:
+                findings, skipped, count, config = run([game])
+                got = ["%s %s %s" % (f[0], f[2], f[3]) for f in findings]
+            except ValueError:
+                got, count = "error", 0
+            if got != expected or count != files:
+                failures += 1
+                print("selftest folder case %r: expected %s in %d files, got %s in %d" % (rules, expected, files, got, count))
+    total = len(SELFTEST) + len(folder_cases)
+    print("namecheck selftest: %d of %d cases %s" % (total - failures, total,
                                                        "pass" if not failures else "pass, %d fail" % failures))
     return 1 if failures else 0
 
@@ -441,28 +480,53 @@ def main():
     if sys.argv[1:] == ["--selftest"]:
         return selftest()
     ap = argparse.ArgumentParser(description="Find unnamed and unknown identifiers (docs/CODE_STANDARDS.md).")
-    ap.add_argument("paths", nargs="+", help="a game folder (games/<game>: its src/ and namecheck.txt) or files and folders")
+    ap.add_argument("paths", nargs="+", help="a game folder (games/<game>: its src/, the folders its namecheck.txt adds, and that file) or files and folders")
     ap.add_argument("--config", help="the rules file (default: <game folder>/namecheck.txt)")
     ap.add_argument("--list", action="store_true", help="also print the findings the config allows or exempts")
     ap.add_argument("--checks", help="comma-separated checks to run (default: all)")
     args = ap.parse_args()
 
+    wanted = set(args.checks.split(",")) if args.checks else None
+    try:
+        findings, skipped, count, config = run(args.paths, args.config, wanted)
+    except ValueError as e:
+        print("namecheck: " + str(e))
+        return 2
+    for rel, number, check, name, why in findings:
+        print("%s:%d: [%s] %s: %s" % (rel, number, check, name, why))
+    if args.list:
+        for rel, number, check, name, why in skipped:
+            print("%s:%d: [%s] %s: allowed by the config" % (rel, number, check, name))
+    tally = {}
+    for f in findings:
+        tally[f[2]] = tally.get(f[2], 0) + 1
+    summary = ", ".join("%s %d" % kv for kv in sorted(tally.items())) or "none"
+    print("namecheck: %d findings in %d files (%s); %d allowed by %s" %
+          (len(findings), count, summary, len(skipped), config if config and os.path.exists(config) else "no config"))
+    return 1 if findings else 0
+
+
+def run(paths, config=None, wanted=None):
+    """Check the paths: the findings, the findings the config allows, the number of files and the config's path.
+    A game folder (one with a src/ in it) stands for its src/ and for the folders its config's "folder" lines name."""
     base = None
     targets = []
-    for p in args.paths:
+    for p in paths:
         if os.path.isdir(os.path.join(p, "src")):
             base = base or p
             targets.append(os.path.join(p, "src"))
         else:
             targets.append(p)
-    config = args.config or (os.path.join(base, "namecheck.txt") if base else None)
-    try:
-        cfg = Config.load(config)
-    except ValueError as e:
-        print("namecheck: " + str(e))
-        return 2
+    config = config or (os.path.join(base, "namecheck.txt") if base else None)
+    cfg = Config.load(config)
+    if base:
+        for name in cfg.folders:
+            folder = os.path.join(base, name)
+            if not os.path.isdir(folder):
+                raise ValueError("%s: folder %s is not in %s" % (config, name, base))
+            if folder not in targets:
+                targets.append(folder)
     root = base or os.path.commonpath([os.path.abspath(t) for t in targets])
-    wanted = set(args.checks.split(",")) if args.checks else None
 
     findings, skipped = [], []
     count = 0
@@ -484,18 +548,7 @@ def main():
     if wanted:
         findings = [f for f in findings if f[2] in wanted]
         skipped = [f for f in skipped if f[2] in wanted]
-    for rel, number, check, name, why in findings:
-        print("%s:%d: [%s] %s: %s" % (rel, number, check, name, why))
-    if args.list:
-        for rel, number, check, name, why in skipped:
-            print("%s:%d: [%s] %s: allowed by the config" % (rel, number, check, name))
-    tally = {}
-    for f in findings:
-        tally[f[2]] = tally.get(f[2], 0) + 1
-    summary = ", ".join("%s %d" % kv for kv in sorted(tally.items())) or "none"
-    print("namecheck: %d findings in %d files (%s); %d allowed by %s" %
-          (len(findings), count, summary, len(skipped), config if config and os.path.exists(config) else "no config"))
-    return 1 if findings else 0
+    return findings, skipped, count, config
 
 
 if __name__ == "__main__":

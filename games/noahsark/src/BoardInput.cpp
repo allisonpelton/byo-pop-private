@@ -1,4 +1,4 @@
-// Board.cpp, part 3: the mouse (WinNoah.exe 0x40e340 MouseDown, 0x40f310 MouseUp, 0x40f3c0 MouseMove,
+// The Board, part 3 of 6: the mouse (WinNoah.exe 0x40e340 MouseDown, 0x40f310 MouseUp, 0x40f3c0 MouseMove,
 // 0x40f710 MouseDrag) and the trail preview (0x402ec0).
 
 #include "Board.h"
@@ -15,36 +15,34 @@
 
 using namespace Sexy;
 
-// 0x402ec0: the path from (x1,y1) to (x2,y2) as trail nodes, one per cell, each with the corner shape it
-// needs (kind 0..3) or, for the last, the direction of the arrow. Leaves them in mTrail.
-bool Board::BuildTrail(int x1, int y1, int x2, int y2)
+// 0x402ec0: the path from one cell to another as trail nodes, one per cell, left in mTrail. (The original also works out each
+// node's kind of bend, 0..3, or the last one's arrow direction, and stores it in the node, where nothing reads it: the drawing
+// takes both from the neighbouring nodes. The port leaves that out.)
+bool Board::BuildTrail(int theFromX, int theFromY, int theToX, int theToY)
 {
 	ClearLink();
 	for (size_t i = 0; i < mTrail.size(); i++)
 		delete mTrail[i];
 	mTrail.clear();
 
-	if (!FindPath(x1, y1, x2, y2, 0x32, true))
+	if (!FindPath(theFromX, theFromY, theToX, theToY, 0x32, true))
 		return false;
 	if (mPathSegments < 0)
 		return false;
-	mPathCells[mPathSegments][0] = x2;
-	mPathCells[mPathSegments][1] = y2;
+	mPathCells[mPathSegments][0] = theToX;
+	mPathCells[mPathSegments][1] = theToY;
 
-	int aCurX = x1;
-	int aCurY = y1;
+	int aCurX = theFromX;
+	int aCurY = theFromY;
 	int aCornerIndex = 0;
-	int aCornerX = x1;
-	int aCornerY = y1;
-	int aPrevDX = 0;
-	int aPrevDY = 0;
+	int aCornerX = theFromX;
+	int aCornerY = theFromY;
 	int aDX = 0;
 	int aDY = 0;
 	bool aDone = false;
 	while (!aDone)
 	{
-		int aOldDX = aDX;
-		if ((aCurX == x2) && (aCurY == y2))
+		if ((aCurX == theToX) && (aCurY == theToY))
 			aDone = true;
 		else
 		{
@@ -72,52 +70,10 @@ bool Board::BuildTrail(int x1, int y1, int x2, int y2)
 		aNode->mPixelY = CellTop(aCurY);
 		aNode->mCellX = aCurX;
 		aNode->mCellY = aCurY;
-
-		// the corner this cell turns: 0 straight or none, 1 .. 3 the three kinds of bend
-		int aKind = 0;
-		if ((aDX == 0) || (aOldDX == 0))
-		{
-			if ((aDY == 0) || (aPrevDY == 0))
-			{
-				if (((aDX < 1) || (aPrevDY >= 0)) && ((aOldDX >= 0) || (aDY < 1)))
-				{
-					if (((aDX < 1) || (aPrevDY < 1)) && ((aOldDX >= 0) || (aDY >= 0)))
-					{
-						if (((aDX < 0) && (aPrevDY < 0)) || ((aOldDX > 0) && (aDY > 0)))
-							aKind = 3;
-						else if (((aDX < 0) && (aPrevDY > 0)) || ((aOldDX > 0) && (aDY < 0)))
-							aKind = 2;
-					}
-					else
-						aKind = 1;
-				}
-				else
-					aKind = 0;
-			}
-			else
-				aKind = 1;
-		}
-		int aArrow = 0;
-		if (aDX < 0)
-			aArrow = 2;
-		else if (aDX < 1)
-		{
-			if (aDY < 0)
-				aArrow = 1;
-			else if (aDY > 0)
-				aArrow = 3;
-		}
-		aNode->mUnused14[0] = 0;
-		aNode->mUnused14[1] = aDone ? aArrow : aKind;
 		mTrail.push_back(aNode);
 
-		aPrevDX = aDX;
-		aPrevDY = aDY;
 		aCurX += aDX;
 		aCurY += aDY;
-		(void) aPrevDX;
-		// the original keeps the previous step in two more locals; the corner tests above read them
-		aOldDX = aDX;
 	}
 	return true;
 }
@@ -135,7 +91,7 @@ void Board::MouseMove(int x, int y)
 
 	int aCellX = CellAtX(x);
 	int aCellY = CellAtY(y);
-	if ((aCellX < 0) || (aCellX > 8) || (aCellY < 0) || (aCellY > 8))
+	if ((aCellX < 0) || (aCellX > GRID_LAST) || (aCellY < 0) || (aCellY > GRID_LAST))
 	{
 		if (mLink.size() < 2)
 			ClearLink();
@@ -150,16 +106,16 @@ void Board::MouseMove(int x, int y)
 		int aMode = mApp->mGameMode;
 		if ((aMode != GAMEMODE_PUZZLE) && (aMode != GAMEMODE_STAMPEDE))
 		{
-			Piece* p = mGrid[aCellX][aCellY];
-			if ((mSelected != p) && (mSelected->mType == p->mType) && (mLink.size() < 2) && !p->mRemoved && !p->mMoving)
+			Piece* aPiece = mGrid[aCellX][aCellY];
+			if ((mSelected != aPiece) && (mSelected->mType == aPiece->mType) && (mLink.size() < 2) && !aPiece->mRemoved && !aPiece->mMoving)
 			{
-				bool aInList = std::find(mLink.begin(), mLink.end(), p) != mLink.end();
-				if (Reachable(mSelected, p) && !aInList)
+				bool aInList = std::find(mLink.begin(), mLink.end(), aPiece) != mLink.end();
+				if (Reachable(mSelected, aPiece) && !aInList)
 				{
 					ClearLink();
 					if (BuildTrail(mSelected->mX, mSelected->mY, aCellX, aCellY))
 					{
-						p->mSelected = true;
+						aPiece->mSelected = true;
 						mMouseY = y;
 						mMouseX = x;
 						return;
@@ -183,7 +139,7 @@ void Board::MouseMove(int x, int y)
 	mMouseX = x;
 }
 
-// Starts the walk of a joined pair: the first piece gets the path, the second the same path reversed
+// part of 0x40e340 and 0x40f710: starts the walk of a joined pair: the first piece gets the path, the second the same path reversed
 void Board::LinkPieces(Piece* theFirst, Piece* theSecond)
 {
 	ClearLinkList();
@@ -244,15 +200,15 @@ void Board::MouseDownImpl(int x, int y, int theClickCount)
 	if ((mState == BOARD_GET_READY) && !AnyWaiting())
 	{
 		bool aAnyPending = false;
-		for (int i = 0; i < 9; i++)
-			for (int j = 0; j < 9; j++)
+		for (int i = 0; i < GRID_SIZE; i++)
+			for (int j = 0; j < GRID_SIZE; j++)
 				if (mGrid[i][j]->mPending)
 					aAnyPending = true;
 		if (!aAnyPending)
 		{
-			for (int i = 0; i < 9; i++)
+			for (int i = 0; i < GRID_SIZE; i++)
 			{
-				for (int j = 0; j < 9; j++)
+				for (int j = 0; j < GRID_SIZE; j++)
 				{
 					mGrid[i][j]->mSelected = false;
 					mGrid[i][j]->mFlash = false;
@@ -276,7 +232,7 @@ void Board::MouseDownImpl(int x, int y, int theClickCount)
 	MouseMove(x, y);
 	int aCellX = CellAtX(x);
 	int aCellY = CellAtY(y);
-	if ((aCellX < 0) || (aCellX > 8) || (aCellY < 0) || (aCellY > 8))
+	if ((aCellX < 0) || (aCellX > GRID_LAST) || (aCellY < 0) || (aCellY > GRID_LAST))
 	{
 		if (mSelected != NULL)
 		{
@@ -304,7 +260,7 @@ void Board::MouseDownImpl(int x, int y, int theClickCount)
 		ConnectPair();
 		if (mSelected == NULL)
 		{
-			if ((aClicked->mType < 0xd) && !aClicked->mRemoved && !aClicked->mFading && !aClicked->mMoving)
+			if ((aClicked->mType < NUM_ANIMALS) && !aClicked->mRemoved && !aClicked->mFading && !aClicked->mMoving)
 			{
 				mSelected = aClicked;
 				mApp->PlaySample(SOUND_SELECT);
@@ -340,7 +296,7 @@ void Board::MouseDownImpl(int x, int y, int theClickCount)
 			mApp->PlaySample(SOUND_SELECT);
 			return;
 		}
-		if ((aClicked->mType < 0xd) && !aClicked->mMoving && !aClicked->mRemoved)
+		if ((aClicked->mType < NUM_ANIMALS) && !aClicked->mMoving && !aClicked->mRemoved)
 		{
 			mSelected = aClicked;
 			mApp->PlaySample(SOUND_SELECT);
@@ -357,7 +313,7 @@ void Board::MouseDownImpl(int x, int y, int theClickCount)
 		if (mState != BOARD_PLAYING)
 			return;
 		Piece* aClicked = mGrid[aCellX][aCellY];
-		if ((aClicked->mType < 0xd) && !aClicked->mRemoved && !aClicked->mFading && !aClicked->mMoving)
+		if ((aClicked->mType < NUM_ANIMALS) && !aClicked->mRemoved && !aClicked->mFading && !aClicked->mMoving)
 		{
 			mSelected = aClicked;
 			mApp->PlaySample(SOUND_SELECT);
@@ -371,43 +327,43 @@ void Board::MouseDownImpl(int x, int y, int theClickCount)
 	PuzzleSwap(aCellX, aCellY);
 }
 
-// puzzle mode: the picked animal and the one at the cell trade places when the cell is its neighbour (the click's second step
+// part of 0x40e340 and 0x40f710, in puzzle mode: the picked animal and the one at the cell trade places when the cell is its neighbour (the click's second step
 // and the drag's); a cell farther away only drops the pick. Returns whether they traded.
-bool Board::PuzzleSwap(int aCellX, int aCellY)
+bool Board::PuzzleSwap(int theCellX, int theCellY)
 {
-	int aDX = mSelected->mX - aCellX;
-	int aDY = mSelected->mY - aCellY;
+	int aDX = mSelected->mX - theCellX;
+	int aDY = mSelected->mY - theCellY;
 	if (sqrtf((float) (aDY * aDY + aDX * aDX)) != 1.0f)
 	{
 		mSelected = NULL;
 		return false;
 	}
-	Piece* aOther = mGrid[aCellX][aCellY];
+	Piece* aOther = mGrid[theCellX][theCellY];
 	int aType = mSelected->mType;
 	mSelected->mType = aOther->mType;
 	aOther->mType = aType;
 	if (aDX < 0)
 	{
-		mSelected->mOffsetX += 0x32;
-		aOther->mOffsetX -= 0x32;
+		mSelected->mOffsetX += CELL_SIZE;
+		aOther->mOffsetX -= CELL_SIZE;
 	}
 	else if (aDX > 0)
 	{
-		mSelected->mOffsetX -= 0x32;
-		aOther->mOffsetX += 0x32;
+		mSelected->mOffsetX -= CELL_SIZE;
+		aOther->mOffsetX += CELL_SIZE;
 	}
 	if (aDY < 0)
 	{
-		mSelected->mOffsetY += 0x32;
-		aOther->mOffsetY -= 0x32;
+		mSelected->mOffsetY += CELL_SIZE;
+		aOther->mOffsetY -= CELL_SIZE;
 	}
 	else if (aDY > 0)
 	{
-		mSelected->mOffsetY -= 0x32;
-		aOther->mOffsetY += 0x32;
+		mSelected->mOffsetY -= CELL_SIZE;
+		aOther->mOffsetY += CELL_SIZE;
 	}
-	mSelected->mMatchSwap = true;
-	aOther->mMatchSwap = true;
+	mSelected->mInSwap = true;
+	aOther->mInSwap = true;
 	mSelected = NULL;
 	mState = BOARD_SWAP;
 	return true;
@@ -426,6 +382,7 @@ void Board::MouseUp(int x, int y)
 	}
 }
 
+// port: the framework's release with a click count goes to the original's (0x40f310)
 void Board::MouseUp(int x, int y, int theClickCount)
 {
 	(void) theClickCount;
@@ -447,31 +404,31 @@ void Board::MouseDrag(int x, int y)
 	MouseMove(x, y);
 	int aCellX = CellAtX(x);
 	int aCellY = CellAtY(y);
-	if ((aCellX < 0) || (aCellX > 8) || (aCellY < 0) || (aCellY > 8))
+	if ((aCellX < 0) || (aCellX > GRID_LAST) || (aCellY < 0) || (aCellY > GRID_LAST))
 		return;
 
-	Piece* p = mGrid[aCellX][aCellY];
-	if (!p->mFlash)
+	Piece* aPiece = mGrid[aCellX][aCellY];
+	if (!aPiece->mFlash)
 		ClearHint();
-	if (mSelected == p)
+	if (mSelected == aPiece)
 		return;
-	if (p->mType > 0xc)
+	if (aPiece->mType > PIECE_ANIMAL_LAST)
 		return;
 
 	if (mApp->mGameMode != GAMEMODE_PUZZLE)
 	{
 		if (mSelected == NULL)
 			return;
-		if (mSelected->mType != p->mType)
+		if (mSelected->mType != aPiece->mType)
 			return;
-		if (p->mRemoved || p->mFading || p->mMoving)
+		if (aPiece->mRemoved || aPiece->mFading || aPiece->mMoving)
 			return;
 		if (mState != BOARD_PLAYING)
 			return;
 
-		bool aInList = std::find(mLink.begin(), mLink.end(), p) != mLink.end();
+		bool aInList = std::find(mLink.begin(), mLink.end(), aPiece) != mLink.end();
 		// no link yet: an animal it cannot reach is treated like one already in the link, which changes nothing
-		if (!aInList && mLink.empty() && !Reachable(mSelected, p))
+		if (!aInList && mLink.empty() && !Reachable(mSelected, aPiece))
 			aInList = true;
 		if (aInList)
 		{
@@ -480,7 +437,7 @@ void Board::MouseDrag(int x, int y)
 			{
 				Piece* aFirst = mLink.front();
 				Piece* aSecond = mLink[1];
-				if (aFirst == p)
+				if (aFirst == aPiece)
 				{
 					aFirst->mPartner = NULL;
 					aSecond->mPartner = NULL;
@@ -501,7 +458,7 @@ void Board::MouseDrag(int x, int y)
 			// a link is there: it is taken back when the new animal is reachable from its first animal
 			Piece* aFirst = mLink.front();
 			Piece* aLast = mLink.back();
-			if (!Reachable(aFirst, p))
+			if (!Reachable(aFirst, aPiece))
 				return;
 			aFirst->mPartner = NULL;
 			aFirst->mFacingRight = false;
@@ -513,8 +470,8 @@ void Board::MouseDrag(int x, int y)
 		}
 		// the path's result is not looked at: the pair is joined with whatever path was made
 		BuildTrail(mSelected->mX, mSelected->mY, aCellX, aCellY);
-		LinkPieces(mSelected, p);
-		mSelected = p;
+		LinkPieces(mSelected, aPiece);
+		mSelected = aPiece;
 		mApp->PlaySample(SOUND_SELECT);
 		mLastMoveTick = mUpdateCnt;
 		ClearHint();
@@ -529,9 +486,9 @@ void Board::MouseDrag(int x, int y)
 			return;
 		if (mState != BOARD_PLAYING)
 			return;
-		if ((p->mType < 0xd) && !p->mRemoved && !p->mFading && !p->mMoving)
+		if ((aPiece->mType < NUM_ANIMALS) && !aPiece->mRemoved && !aPiece->mFading && !aPiece->mMoving)
 		{
-			mSelected = p;
+			mSelected = aPiece;
 			mApp->PlaySample(SOUND_SELECT);
 			return;
 		}

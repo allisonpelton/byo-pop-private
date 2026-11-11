@@ -160,7 +160,7 @@ void WinDMApp::TryConfirmLoad()
 {
 }
 
-// Watching from the game (stage 13): the verifier's watch quits at its end (-replayquit) and has no overlay or dialogs
+// Watching from the game: the verifier's watch quits at its end (-replayquit) and has no overlay or dialogs
 void WinDMApp::OnWatchBoard()
 {
 }

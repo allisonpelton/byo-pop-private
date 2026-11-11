@@ -211,12 +211,10 @@ void Board::ClearHover()
 	memset(mHover, 0, sizeof(mHover));
 }
 
-// 0x40e150
+// 0x40e150 (the original also stores the point, at +0x27c and +0x280, and never reads it)
 void Board::MouseMove(int x, int y)
 {
 	Widget::MouseMove(x, y);
-	mMouseX = x;
-	mMouseY = y;
 	int aCellX = CellX(x - 10);
 	int aCellY = CellY(y);
 	if (aCellX < 0 || aCellX >= NUM_HOVER || aCellY < 0 || aCellY >= NUM_HOVER)

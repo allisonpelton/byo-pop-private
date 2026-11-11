@@ -92,19 +92,19 @@ public:
 class LevelDoneScroll : public jb::Object
 {
 public:
-	jb::Font* mTextFont = nullptr;     // +0x90 (0x12e)
-	jb::Font* mHeadFont = nullptr;     // +0x94 (0x11e)
-	jb::Font* mValueFont = nullptr;    // +0x98 (0x122)
-	jb::Font* mClockFont = nullptr;    // +0x9c (0xcb, unused)
-	jb::Font* mSmallFont = nullptr;    // +0xa0 (0xa3)
-	std::string mHeading;              // +0xa4 (0x26)
-	std::string mLabelTime;            // +0xac (0x25)
+	jb::Font* mTextFont = nullptr;     // +0x90 (FONT_RESULT)
+	jb::Font* mHeadFont = nullptr;     // +0x94 (FONT_HEADING)
+	jb::Font* mValueFont = nullptr;    // +0x98 (FONT_TEXT)
+	jb::Font* mClockFont = nullptr;    // +0x9c (FONT_CLOCK); nothing reads it
+	jb::Font* mSmallFont = nullptr;    // +0xa0 (FONT_SMALL)
+	std::string mHeading;              // +0xa4 (STRING_LEVEL_COMPLETED)
+	std::string mLabelTime;            // +0xac (STRING_TIME_LABEL)
 	std::string mTime;                 // +0xb4
-	std::string mLabelScore;           // +0xbc (0x24)
+	std::string mLabelScore;           // +0xbc (STRING_SCORE_LABEL)
 	std::string mScore;                // +0xc4
-	std::string mNextLabel;            // +0xcc (0x22)
+	std::string mNextLabel;            // +0xcc (STRING_WISDOM_UNLOCKED)
 	std::string mNextTitle;            // +0xd4 the next level's text
-	std::string mLabelBest;            // +0xdc (0xbd)
+	std::string mLabelBest;            // +0xdc (STRING_BEST_PREFIX)
 	std::string mBestTime;             // +0xe4
 	std::string mBestScore;            // +0xec
 	std::string mMessage;              // +0xf4
@@ -151,10 +151,10 @@ class TipPicture : public jb::Object
 public:
 	jb::Font* mFont = nullptr;  // +0x90
 	int mImage;                 // +0x94
-	std::string mLabel1;        // +0x98 (0x5e)
-	std::string mLabel2;        // +0xa0 (0x67)
-	std::string mNames1[4];     // +0xa8 (0x69, tab-separated)
-	std::string mNames2[4];     // +0xc8 (0x5d)
+	std::string mLabel1;        // +0x98 (STRING_PICTURE_FREE_TILE)
+	std::string mLabel2;        // +0xa0 (STRING_PICTURE_NOT_FREE)
+	std::string mNames1[4];     // +0xa8 (STRING_PICTURE_SEASON_NAME, tab-separated)
+	std::string mNames2[4];     // +0xc8 (STRING_PICTURE_FLOWER_NAME)
 	int mBob = 0;               // +0xe8
 
 	// 0x408ba0

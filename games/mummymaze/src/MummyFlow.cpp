@@ -377,11 +377,6 @@ void MummyApp::ButtonDepress(int theId)
 		return;
 	switch (theId)
 	{
-	case 2000 + DIALOG_NEW_GAME:
-		KillDialog(DIALOG_NEW_GAME);
-		StartBoardScreen();
-		mScore = 0;
-		break;
 	case 2000 + DIALOG_STARTED_TUTORIAL:
 		KillDialog(DIALOG_STARTED_TUTORIAL);
 		KillDialog(DIALOG_OPTIONS);

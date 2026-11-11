@@ -370,10 +370,12 @@ void Menu::DialogButtonDepress(int theDialogId, int theButtonId)
 	} else if (theDialogId == 2) {
 		mApp->KillDialog(2);
 		if (theButtonId == Dialog::ID_YES) {
+#ifdef __EMSCRIPTEN__
+			// port: on the web the sound plays only once this returns, so the wait is the app's, an update at a time
+			mApp->QuitAsGame();
+#else
 			SoundInstance* aSound = mApp->PlaySoundEx(SOUND_VOICE_GOODBYE, 0, 0, 0, false, true);
 			if (aSound != nullptr) {
-#ifndef __EMSCRIPTEN__
-				// port: on the web the sound plays only once this returns, so the wait is left out there
 				// under -fast the voices move only on the game's clock, so the wait moves the voice on itself
 				while (aSound->IsPlaying()) {
 					if (Platform::Mixer::Get().IsGameClocked())
@@ -381,10 +383,10 @@ void Menu::DialogButtonDepress(int theDialogId, int theButtonId)
 					else
 						SDL_Delay(10);
 				}
-#endif
 				aSound->Release();
 			}
 			mApp->Shutdown();
+#endif
 		}
 	}
 }

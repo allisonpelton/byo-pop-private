@@ -666,8 +666,6 @@ void Board::ButtonDepress(int theId)
 	case 2:
 		mApp->ShowOptions();
 		break;
-	case 3:
-		mApp->ShowConfirm();
-		break;
+	// (the original's case 3 opens the "confirm new game" box, 0x405c40; the board has no button with that id)
 	}
 }

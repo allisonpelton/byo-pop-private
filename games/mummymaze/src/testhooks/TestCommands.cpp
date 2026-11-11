@@ -221,7 +221,14 @@ std::string StateJson(MummyApp* a)
 				aJson += StrFormat(",\"mummy%d\":[%d,%d,%d]", i, b->mMummies[i]->mX, b->mMummies[i]->mY, b->mMummies[i]->mAlive ? 1 : 0);
 		if (b->mScorpion != NULL)
 			aJson += StrFormat(",\"scorpion\":[%d,%d,%d]", b->mScorpion->mX, b->mScorpion->mY, b->mScorpion->mAlive ? 1 : 0);
-		aJson += "}";
+		// the skull traps (99 = none), the death on one (its timer and which of the two it is: 0 the block, 1 the pit), and the
+		// cells' wall bits, a hex digit a cell, row by row (1 north, 2 south, 4 east, 8 west)
+		aJson += StrFormat(",\"traps\":[[%d,%d],[%d,%d]],\"death\":[%d,%d],\"walls\":\"", b->mTrapX[0], b->mTrapY[0], b->mTrapX[1],
+			b->mTrapY[1], b->mDeathTimer, b->mExitStyle);
+		for (int y = 0; y < b->mSize; y++)
+			for (int x = 0; x < b->mSize; x++)
+				aJson += StrFormat("%x", b->mCells[x][y] & 0xf);
+		aJson += "\"}";
 	}
 	return aJson + "}";
 }

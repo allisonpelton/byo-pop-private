@@ -136,7 +136,7 @@ The widget's `mHasTransparencies` is `mDoor != 0`: while the doors are shut the 
 
 | Command | Does |
 | --- | --- |
-| `state` | `STATE` with `screen` (title, menu, starting, gameover, board, hint, levelup, highscore-entry, options, quit, confirm, highscores), `mode` (strategy or action), `expert`, `update`, `paused`, `windowed`, `over`, and in a game `level`, `score`, `molecules`, `atoms`, `combo`, `meter`, `meterMax`, `levelOver`, `held`, `hints`; on the page after a game `level`, `score` and `molecules` of the game that ended. `over` is true when that page is up with its panel and the entry box (if the score earned one) is done |
+| `state` | `STATE` with `screen` (title, menu, starting, gameover, board, hint, levelup, highscore-entry, options, quit, highscores), `mode` (strategy or action), `expert`, `update`, `paused`, `windowed`, `over`, and in a game `level`, `score`, `molecules`, `atoms`, `combo`, `meter`, `meterMax`, `levelOver`, `held`, `hints`; on the page after a game `level`, `score` and `molecules` of the game that ended. `over` is true when that page is up with its panel and the entry box (if the score earned one) is done |
 | `goto menu` | from the title screen (once loaded) or the page after a game ("main menu") |
 | `goto strategy`, `strategy-expert`, `action`, `action-expert` | the menu's four start buttons, from the main page of the menu |
 | `goto options`, `goto highscores` | the boxes, from the menu or a game |
@@ -188,27 +188,89 @@ differ from the original's after each level). Nothing else was found.
 
 ## 11. Performance
 
-Measured on 2026-11-08 with `games/atomica/tools/profile/perf.py` (adapted from Mummy Maze's), the port and the original back to back, on a
-machine that was running four to eight other games of other sessions (the machine's busy fraction was 0.6 to 0.9 in every run, so
-the spread is wide). The original runs as a copy under origrun; its sound stand-in is in, nothing else is changed in it.
+The performance pass (2026-11-10 and 11). The port and the original were measured turn about over the same scripted play, the
+port was profiled, and one change came of it: a ring of the tunnel is filled in one call (below). The machine was never quiet: one to
+four games of other sessions ran during every measurement and 74 to 100% of the machine was in use, so the figures are for comparing the
+two side by side, run by run. The original runs as a copy under origrun with its silent sound stand-in; nothing else is changed in it.
+
+**How.** `tools/profile/perf.py` starts a game and samples its process every 0.1 s (working set, private bytes, processor time);
+`tools/profile/pairs.sh` runs the original and the port turn about, one game process at a time. The scenario is
+`tools/identical/s2.txt` cut at update 4,400: the title screen, the menu, and a strategy game that the bot's recorded clicks play
+from update 2,310. "The stretch" is its last 2,000 updates, 20 seconds of play at the game's 100 updates a second. In real time the
+port runs without `-fast` and the original on origrun's real clock, its `at` lines following the game's own update counter (the
+app's +0x3e4, 0x4d0044). A run of the original counts only if its title screen went (`game_started`, the pointer at 0x4d00fc):
+the original loads in a thread in real time, so on a busy machine the link is sometimes not up at the click's update, and the run
+then sits on the title, where an update costs almost nothing.
+
+**The figure of 2026-11-08 was wrong.** This section used to say that the original needed 2.5 s of processor time from launch to
+update 4,400 without waiting and the port 1.7 s. The original's runs behind that figure had missed the title's click (the check
+above did not exist): of six such runs now, three missed it and used 0.2 to 0.8 s for the stretch, and the three that played used
+19 to 28 s.
+
+**In real time** (six pairs: three from 23:43 on 2026-11-10 and three from 00:07 on 2026-11-11):
 
 | | Original | Port |
 | --- | --- | --- |
-| To the title screen's play link (the first screen that takes input), real clock, 3 runs | 1.07 s median (0.85 to 1.46) | 1.20 s median (1.17 to 1.22) |
-| Working set / private memory at that point | 26 / 14 MB | 90 / 91 MB |
-| Processor time to that point | 0.44 s | 1.2 s |
-| Peak working set / private memory over the scenario below | 75 / 62 MB | 182 / 184 MB (175 to 188) |
-| Processor time, launch to update 4,400 of the scenario below, no waiting | 2.5 s median of 9 runs (2.1 to 5.0) | 1.7 s median of 5 runs (1.70 to 1.83) |
+| Processor time in the stretch | 12.9, 19.8, 28.2, 16.1, 20.3 and 17.0 s | 5.8, 5.4, 5.1, 5.0, 4.5 and 5.2 s |
+| Updates a second it held in the stretch | 85, 44, 30, 54, 52 and 67 | 98.1, 97.5, 98.8, 98.6, 99.5 and 98.3 |
+| Processor time, whole run | 17.7 to 35.4 s in 53 to 104 s | 7.0 to 8.7 s in 45 to 48 s |
+| Peak private bytes / working set | 65 to 66 / 78 to 79 MB | 163 to 168 / 161 to 173 MB |
+| Private bytes / working set at the title's play link | 14.4 to 15.3 / 26 MB | 90 / 90 MB |
+| Processor time to the play link | 0.34 to 0.58 s | 1.14 to 1.25 s (3.1 in one run) |
+| Launch to the play link | 0.8 to 8.8 s (18 runs) | 1.7 to 9.4 s (6 runs) |
 
-The scenario is `tools/identical/s2.txt` cut at update 4,400 (the title screen, the menu, and the first 2,000 updates of a strategy
-game that the bot plays from update 2,310). The original runs it on origrun's virtual clock (its update counter is not
-where later builds keep it, so the real clock cannot time a scenario) and the port under `-fast` with `-script`, both without waiting, so the figure is
-the work done: the port does it in less processor time. The load time is the real clock's: the original's copy loads in a thread
-and shows its link when the thread has finished, the port loads in the main thread
-(`PumpLoading`). The port is slower to load by about 0.1 s and holds more memory. Not measured, but the likely cause of both is that it draws the 27 atom
-types' frames at every start (the original reads them from `images\cached\Atoms.WAD`, section 3) and keeps them as 32-bit pictures.
-Memory is the port's weak figure (2.4 times the original's at the peak); it waits for the performance pass, where the atoms' frames
-are the first thing to look at.
+The port plays the stretch on about a quarter of a core and holds the game's pace. The original took between two thirds of a core
+and all of it, and did not hold 100 updates a second on this machine as it was: the busier the machine, the more processor time
+each of its updates cost and the further it fell behind (30 updates a second in the worst run). Why the original costs that much was
+not looked for. Loading takes the two about as long, and the spread between runs is far larger than any difference (on 2026-11-08,
+a calmer moment, the medians were 1.07 s for the original and 1.20 s for the port); the port uses about 0.7 s more processor time
+to get there, since it draws the atoms' frames at every start where the original reads them from `images\cached\Atoms.WAD`
+(section 3). Memory is the port's weak figure, 2.5 times the original's in play and six times at the title; where it goes is below.
+
+**Where the port's time goes.** Bejeweled's `cpuprof.py` on the bot's strategy and action games under `-fast` (20,000 updates, about
+2,000 frames), because a test run is where the port's speed counts: system calls and the graphics driver took 40 to 60% of the cycles
+and SDL 9 to 17%; of the game's own code only two functions stood out, `Swirl::DrawTriangle` (4 to 13%) and the framework's
+`MemoryImage::NormalBlt` (4 to 7%).
+
+- *The tunnel.* Counted with a build made for it: a frame draws about 600 triangles (15 rings of 40), walks 38,000 rows for them and
+  fills 20,900 of those, each a rectangle one pixel high. The port filled each triangle's rows with a call of their own, from a
+  list it allocated for each triangle.
+- *The professor's monitor.* `NormalBlt` is `Atomicus::Draw`: the head, the coat and the mouth are drawn into the monitor's buffer
+  on every frame and every other row is dimmed at random, as in the original, so no frame can be kept. It is four blits of about
+  56,000 pixels in all, at about 7 cycles a pixel; nothing was found to ask of the framework.
+
+**What was changed: a ring's rows are filled in one call** (`Swirl::Draw`, `Swirl::DrawTriangle`). The triangles of a ring add their
+rows to one list, kept between frames, and the ring fills it once: the same rows, in the same order, in the same colour, in 15 calls
+a frame where there were 600, and no allocation. Over three rounds of the two bot games, the old build and the new one turn about,
+the cycles of a game fell from 18.2, 20.4 and 18.9 G to 17.4, 14.6 and 16.2 G in the strategy game (the medians: 14% fewer) and from
+22.8, 21.0 and 19.3 G to 17.1, 15.2 and 16.1 G in the action game (23% fewer). What the player sees is unchanged: three scripted games
+(`s2`, `a1` and `g5`, a screenshot every 40 updates, 422 in all) give the same files in the build from before the change and in the
+one with it, and the same state traces, and `tools/check.sh atomica` matches the frozen baseline. The web build
+with the change, run under Node, draws `p2-s2` as it did before (28 of its 68 pictures differ visibly from the native port's
+under `-fast` and 40 only faintly, the count `IDENTICAL_PLAY.md` records for the shared loop's difference between `-fast` and real
+time) and `p2-symbols` as the native port does (four pictures, faint differences only).
+
+**Where the port's memory goes.** A copy of Alchemy's `memreport` command, run on the scenario and then dropped (the framework is
+getting one for every game), gave the heap: 61 MB at the title and 63 MB in play, of which 43.7 MB are the pixels of 1,290 images at
+4 bytes a pixel (83 read from files, 20.2 MB; 1,207 made by the game, 23.5 MB, most of them the atoms' frames of 50 by 50) and
+6.5 MB the samples of 49 sounds. The images' pixels stay after the driver has its textures (8 at the title, 252 in play, about
+13.5 MB of texels), a matter of the framework's (Bejeweled's `PROFILE.md`, "Pixels after upload"). The other 100 MB of a game are
+outside the heaps, in the graphics driver: the same scenario peaks at 87 MB of private bytes under SDL's software renderer, 162 MB
+under OpenGL, 170 MB under Direct3D 9 and 163 to 182 MB under Direct3D 11, which SDL picks here (296 MB in one run without
+waiting). More than half of that is the tunnel: a build with the fill of its rows left out peaks at 112 MB against 170 MB, in real
+time and without waiting alike, and uses 2.9 s of processor time in the stretch against 4.1 s. So 21,000 one-pixel rectangles a
+frame cost the port about 58 MB and more than a quarter of its processor time in play.
+
+**Open.** (1) The rows could be fewer: the rows of a ring that touch on a line could go as one rectangle (a ring's colour is
+opaque), perhaps half as many. It was not done: at a window scale that is not a short binary fraction the right edge of a joined
+row can round another way than the row it replaces, so the picture could differ by a pixel there, and that needs a proof this pass
+did not make. (2) How the framework hands rows to SDL (`DDInterface::FillScanLines`, one rectangle a row) is shared code; the
+measurement went to the coordinator. (3) The pixels kept after upload are the framework's, as for every game. (4) The web build's
+memory and frame time were not measured; its memory waits for the framework's `memreport`.
+
+**To repeat.** `bash games/atomica/tools/profile/pairs.sh <out dir> [pairs]` from the worktree root, after `tools/origrun/build.sh`
+(the original needs origrun's git-ignored `atomica.cfg` and `patches/atomica.txt`); `BEFORE_EXE=<name>` adds a run of another
+build of the port. The raw samples were deleted once these figures were written.
 
 ## 12. Coverage check (2026-11-09)
 
@@ -291,8 +353,8 @@ belong to each worktree; `setup_worktree.sh` does not copy them (copies are in t
 
 **Defined in the port, never reached: 69 after the first twenty-three runs, 8 at the end.** The crafted saved games reached the rest,
 among them each element atom's effect, `Meter::Hit` (0x4058a0), `Magnetise` (0x412a80), the bonus molecules' effect and the level
-box. The eight left are candidates for taking out unneeded code (not removed now, and not read again against the export, since
-nothing in the original reaches them):
+box. The eight left were candidates for taking out unneeded code (not read again against the export, since nothing in the original
+reaches them; they were taken out on 2026-11-11, section 13):
 
 - **`ConfirmDialog`** (0x421f90 the constructor, 0x4220b0 the destructor, 0x422100 `Resize`, 0x422170 `ButtonDepress`, 0x4221d0
   `Draw`), `AtomicaApp::ShowConfirm` (0x405c40) and `AtomicaApp::EndGame` (0x405cb0), with the case of `Board::ButtonDepress` that
@@ -316,3 +378,68 @@ comparisons are the next test of them. Nothing shared is needed.
 other sessions' games kept the machine at its limit of three, and some ran again after a missed title click). One Sonnet agent placed
 41 functions and wrote the first 64 reasons; this session read the export for the rest, found the slips, built the run tools and the
 crafted saves, and checked the agent's work. Its tokens are in `tools/game_costs.py`'s figures for this session.
+
+## 13. Code the port does not need (2026-11-11)
+
+The last finishing item before the readability pass (`docs/COORDINATION.md`: what code need not be present in the port).
+Registration and the buttons that lead out were already out (`IDENTICAL_PLAY.md`, "Registration and the buttons that lead out").
+This survey looked for what no path of the game reaches or needs, by seven scans of `src/` (`tools/unused.py` does the first
+four; the test hooks, which the tests need, stay apart):
+
+1. **The coverage check's list.** The eight functions the port defined and no run of the original reached (section 12).
+2. **Functions.** Every function defined in the native build's object files against every relocation in all of them
+   (`unused.py functions`): 80 of 586 had no reference. Most are the two versions of a constructor or destructor; every other name
+   was searched in the source, and all but one are called, inlined by the compiler.
+3. **Compiler warnings.** Every source compiled again with `-Wall -Wextra -Wunused -Wunused-member-function
+   -Wunused-private-field -Wunused-template -Wunused-macros -Wunreachable-code` (`unused.py warnings`): one unused function. Two
+   warnings about the order of a constructor's initialisers are the readability pass's.
+4. **Fields and constants.** Every member the sources name at most twice (`unused.py members`: its declaration and one other
+   place), each then looked up in the export by its offset; every enumerator, `#define` and constant named only once
+   (`unused.py constants`: none).
+5. **Pictures, fonts and sounds.** Each of the app's 153 picture, font and sound members by whether anything but the loader names
+   it; for those nothing names, the original's code by the member's offset and by its absolute address (the app is static at
+   0x4cfc60), and for an access by arithmetic near it (an index times four added to an offset of that range).
+6. **Windows leftovers, switched-off code, notes to self.** `_WIN32` once (the search for the retail install folder in `main.cpp`,
+   which a Windows player of the unpacked game needs), no `#if 0`, no `TODO`.
+7. **The slip the fifth scan found.** See below: it was not unneeded code but a missing text.
+
+| What | Why it is not needed | Verdict |
+|---|---|---|
+| `ConfirmDialog` (0x421f90, 0x4220b0, 0x422100, 0x422170, 0x4221d0), `AtomicaApp::ShowConfirm` (0x405c40) and `EndGame` (0x405cb0), the board's case for button 3 in `ButtonDepress` (0x433c40), `mConfirmDialog` (+0x3e94), and the screen name `confirm` of the `state` command | nothing opens the box: `ShowConfirm`'s only caller is the board's handler for a button with id 3, and the original's board creates three buttons, with ids 0, 2 and 1 (0x432c20) | removed; a comment at the case keeps the id |
+| the give-up flag `mB3ea0` (+0x3ea0) with its two reads, in `ShowGameOver` (0x406200: the menu's main page instead of the end page) and in the game over's voice (0x412cd0) | only `EndGame` sets it | removed; comments at both places say what the original tests |
+| the sorted `PtrList::Add` (0x425a10) with the key and the mode (+0x10, +0x14) | no list of the game is given a key: nothing in the port sets one, and no run reached 0x425a10 | removed; `Add` appends |
+| `SpriteMgr::Wrap` (0x429bc0) | no caller in the port: the original's one caller is the loader's blend of the spinning atoms, where the port draws into a blank sprite | removed; the address is in `LoadAtoms`' comment |
+| `DrawCentered` in `BoardDraw.cpp` | a helper of the port's own with no caller | removed |
+| `Atom::mFlyPhase` (+0xa4) | the bonus molecule's effect keeps the shrinking frame in its own piece; nothing reads the atom's, and it is not saved | removed |
+| `PathFinder::mD38` and `mB3c` (+0x38, +0x3c) | set by 0x424880 and never read, in the port and in the export | removed |
+| `GameDialog::mCentered` (+0xa8) | the constructor stores its flag there and nothing reads it (the constructor's own test of the flag stays) | removed |
+| `SpriteMgr::mGraphics` (+0x20) | the port never set it; the original's setter (0x429960) is left out, nothing reads it | removed |
+| `TitleScreen::mHighest` (+0x74) | the trial's count of games played, which the original's title shows as free plays left (0x42fe90, 0x430450): registration code that had stayed behind as a field | removed |
+
+**The colour-blind option drew nothing.** The fifth scan found that nothing in the port names the stencil font, while the original's
+`Atom::Draw` (0x4037f0) writes each plain atom's chemical symbol with it when the option is on. Two faults stood behind that. The
+port wrote the symbols with the medium monitor font (the app's +0x47c for +0x474); and it wrote nothing at all, here and on the bonus
+molecule's sign (0x415830), because the twelve symbols are texts of one or two letters, too short for the string list that
+`make_gametext.py` builds its table from, so `GT()` gave an empty text for each. Both are fixed: the addresses of the symbols (the
+table at 0x4cb070) are in `tools/extra_strings.txt`, and the atoms use the stencil font. `tools/identical/p2-symbols.txt` turns the
+option on in a game; its comparison with the original is in `IDENTICAL_PLAY.md` ("The colour-blind option").
+
+**A button's label stood a pixel to the left.** The same comparison showed "Credits" in the options box one pixel left of the
+original's. `GameDialog::DrawButton` (0x416c30) halved the difference of the button's width and the text's, where the original
+halves each by itself, so a text of an odd width came out a pixel left in every box. Fixed.
+
+**Looked at and kept.**
+- *Pictures, fonts and sounds: nothing was taken out.* Two things are loaded and never used by the original either: the level font
+  (+0x46c) and the two top-lights cells with their sheet (+0x26ec to +0x26f4). Only the loader (0x406f90) names them, by offset or by
+  address, and no code reaches them by arithmetic: no index times four is added to an offset between 0x450 and 0x47f or between
+  0x26d0 and 0x271f anywhere outside the loader. They stay all the same: the loading bar counts them among its steps, and what they
+  hold is two small pictures. Every sheet member is named only by the loader because the game draws its cells, which other code names.
+- `Board::mStat1c8` is one of seven counters the saved game writes in one block.
+- The test hooks (`src/testhooks`), the fixes mod (`Fixes.cpp`) and the site's hooks (`SiteProfiles.cpp`) are the port's own and in use.
+
+**Proof.** After the removals `tools/check.sh build` passes and `tools/check.sh atomica` matches the frozen baseline (the strategy
+and action games, the rerun). The pictures were checked with a control: three scripted games (`s2`, `a1`, `g5`, a screenshot every
+40 updates) in the build from before this pass and in the build with the removals give the same 422 files and the same state
+traces. The coverage report on the 31 runs of section 12 now has no function reached without a counterpart and none defined and
+never reached; the port defines 323 of the game's 453 functions, and 44 are neither reached nor defined (the 36 of section 12 and
+these eight).

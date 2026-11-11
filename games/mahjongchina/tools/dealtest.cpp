@@ -39,14 +39,14 @@ public:
 	const uint8_t* FindResource(jb::Module theModule, const char* theTypeName, int theTypeId, int theId,
 		uint32_t* theSize) override
 	{
-		const PeResources& aFile = theModule == jb::Module::Dll ? mDll : mExe;
+		const PeResources& aFile = theModule == jb::Module::DLL ? mDll : mExe;
 		if (theTypeName != nullptr)
 			return aFile.Find(PeResources::Key(theTypeName), PeResources::Key((uint32_t)theId), theSize);
 		return aFile.Find(PeResources::Key((uint32_t)theTypeId), PeResources::Key((uint32_t)theId), theSize);
 	}
 	bool LoadString(jb::Module theModule, int theId, std::string& theText) override
 	{
-		return (theModule == jb::Module::Dll ? mDll : mExe).LoadString((uint32_t)theId, theText);
+		return (theModule == jb::Module::DLL ? mDll : mExe).LoadString((uint32_t)theId, theText);
 	}
 	bool RegReadInt(const char*, const char*, bool, int&) override { return false; }
 	bool RegWriteInt(const char*, const char*, int) override { return false; }
@@ -73,7 +73,7 @@ public:
 // screen coordinates (the board at 0,0x42, placed as Board::Measure, 0x40b690, does). A move is a pair of free
 // tiles, or a free special tile and a tile it can take (Board::CanSelect 0x40c350, CanPair 0x40c3b0, Take 0x40c560):
 // a key (0x2c) takes a lock (0x2d) that can be seen; the wild tile 0x2e takes every tile of the kind of an ordinary
-// tile that can be seen (TakeWild 0x40cc10); 0x2f takes such a tile and becomes its kind (TakeLinked 0x40cd80).
+// tile that can be seen (TakeJoker 0x40cc10); 0x2f takes such a tile and becomes its kind (TakeMagnet 0x40cd80).
 // The search tries the moves nearest the key tiles first.
 struct Move
 {
@@ -470,7 +470,7 @@ extern "C" int SDL_main(int argc, char** argv)
 	jb::SetHost(&aHost);
 	if (argc > 3 && std::string(argv[2]) == "--stage")
 	{
-		// the escape's layouts (MapLayer.cpp's kLevelBackgrounds, China's 0x51c280)
+		// the escape's layouts (MapLayer.cpp's LEVEL_BACKGROUNDS, China's 0x51c280)
 		static const int kStageLayouts[52] = {
 			385, 386, 387, 388, 389, 390, 391, 392, 393, 394, 395, 396, 397,
 			398, 399, 400, 401, 402, 403, 404, 405, 406, 407, 408, 409, 410,
@@ -478,7 +478,7 @@ extern "C" int SDL_main(int argc, char** argv)
 			424, 425, 426, 427, 428, 429, 430, 431, 432, 433, 434, 435, 436};
 		int aStage = atoi(argv[3]);
 		jb::TextResource aText;
-		if (aStage < 1 || 52 < aStage || !aText.Load(0x17f, 0, jb::Module::Dll))
+		if (aStage < 1 || 52 < aStage || !aText.Load(0x17f, 0, jb::Module::DLL))
 			return 2;
 		std::string aLine;
 		int aPos = 0;

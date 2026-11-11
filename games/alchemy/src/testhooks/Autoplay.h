@@ -11,7 +11,7 @@
 //   -autoplaygames=N         play N games, then quit (default 1)
 //   -autoplaycap=N           quit after N updates in any case (default 20000)
 //   -autoplaylog=<file>      the log of what happened (tests compare it)
-//   -autoplayshots=<prefix>  screenshots at the game's milestones
+//   -autoplayshots=<prefix>  screenshots as the game goes (the title, the selector, the tutorial's steps, a board cleared, the game over, the scores)
 //   -autoplayui              the bot plays through the mouse only (clicks on the title's link, the selector's and the
 //                            dialogs' buttons, a right click for the forge, moves and clicks for the pieces) and writes
 //                            what it did as script lines to -autoplayscript=<file>, so that a -script run (and origrun
@@ -26,14 +26,14 @@
 namespace Sexy
 {
 
-class AlchemyApp;
+class WinAlchApp;
 class Board;
 class Widget;
 
 class AutoplayBot
 {
 public:
-	AlchemyApp*		mApp;
+	WinAlchApp*		mApp;
 	unsigned int	mSeed;
 	int				mTick;
 	int				mGames;             // games started
@@ -53,7 +53,7 @@ public:
 	int				mSelStep;           // -autoplayui: 0 the mode's button comes next, 1 the start button
 
 public:
-	AutoplayBot(AlchemyApp* theApp, unsigned int theSeed);
+	AutoplayBot(WinAlchApp* theApp, unsigned int theSeed);
 	~AutoplayBot();
 
 	void			Update();
@@ -79,13 +79,13 @@ private:
 class StateLog
 {
 public:
-	AlchemyApp*		mApp;
+	WinAlchApp*		mApp;
 	FILE*			mFile;
 	enum { NUM_FIELDS = 30 };
 	int				mLast[NUM_FIELDS];
 
 public:
-	StateLog(AlchemyApp* theApp);
+	StateLog(WinAlchApp* theApp);
 	~StateLog();
 
 	void			Update();

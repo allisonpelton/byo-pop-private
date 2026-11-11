@@ -57,8 +57,12 @@ progress) and go on in a reloaded page.
 The bar and panels are ordinary HTML around the canvas. They reach the game in four ways:
 
 - **Function calls.** `platform/WebApi.cpp` exports `byopop_mods_open`, `byopop_mods_state`, `byopop_mods_edit` and
-  `byopop_mods_rescan`; `framework/ModMenu.cpp` exports `byopop_menu` and `byopop_restart`. The page calls them with
-  `Module.ccall`, and the game calls back through `Module.onModsChanged`.
+  `byopop_mods_rescan`; `framework/ModMenu.cpp` exports `byopop_menu`, `byopop_restart` and `byopop_quit`. The page calls
+  them with `Module.ccall`, and the game calls back through `Module.onModsChanged`. `byopop_quit` is for the Close of a
+  game's window: it calls the app's `QuitAsGame` hook (`SexyAppBase.h`), which shuts down at once by default and which
+  a game overrides to leave as its own Quit does (Bejeweled Twist plays its goodbye first). It returns 1 when a game
+  took the call and 0 when none runs; a build without the export is closed with `byopop_restart(1)`. The shutdown
+  reaches the page through `Module.onGameExit` either way.
 - **The screen's shape.** The stage is 4:3 unless the game calls `Module.onGameScreen(width, height)` before it makes
   its window (BookWorm's widescreen mod gives 854 x 480). SDL sizes the canvas to the stage.
 - **Files.** Adding a mod writes it into `/persist/mods` and syncs to IndexedDB; the game reads it at its next start.

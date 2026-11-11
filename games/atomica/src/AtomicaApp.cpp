@@ -56,7 +56,6 @@ AtomicaApp::AtomicaApp()
 	mAutoplayState = NULL;
 	mTraceState = NULL;
 	mMode = 0;
-	mB3ea0 = false;
 	mExpertMode = 0;
 	mB3eac = false;
 	mPauseCount = 0;
@@ -69,7 +68,6 @@ AtomicaApp::AtomicaApp()
 	mScoreDialog = NULL;
 	mHighScoresBox = NULL;
 	mQuitDialog = NULL;
-	mConfirmDialog = NULL;
 	mOptionsDialog = NULL;
 	mSprites = new SpriteMgr(this);
 }

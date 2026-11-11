@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // port(variant): the Node runner for Bejeweled's WebAssembly builds (games/bejeweled/docs/CODE_MODS_DESIGN.md 6.9,
-// the stage 4 row of 9.2). Not part of the original game.
+// "Headless verifier"). Not part of the original game.
 //
 //   node wasmrun.js verify <bejeweled_verify.wasm> <replay.bjr> [-trace] [-forcevariant]
 //       the standalone verifier (no JS glue: this file stubs its WASI imports) plays the replay: its "REPLAY ..."

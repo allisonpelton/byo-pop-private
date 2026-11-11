@@ -1,4 +1,4 @@
-// The port's host for Mahjong Escape: Ancient China (see MahjongApp.h).
+// port: the host for Mahjong Escape: Ancient China (see MahjongApp.h).
 
 #include "MahjongApp.h"
 
@@ -124,7 +124,7 @@ public:
 	const uint8_t* FindResource(jb::Module theModule, const char* theTypeName, int theTypeId, int theId,
 		uint32_t* theSize) override
 	{
-		const mahjongchina::PeResources& aFile = theModule == jb::Module::Dll ? mDll : mExe;
+		const mahjongchina::PeResources& aFile = theModule == jb::Module::DLL ? mDll : mExe;
 		if (theTypeName != nullptr)
 			return aFile.Find(mahjongchina::PeResources::Key(theTypeName),
 				mahjongchina::PeResources::Key((uint32_t)theId), theSize);
@@ -134,7 +134,7 @@ public:
 
 	bool LoadString(jb::Module theModule, int theId, std::string& theText) override
 	{
-		return (theModule == jb::Module::Dll ? mDll : mExe).LoadString((uint32_t)theId, theText);
+		return (theModule == jb::Module::DLL ? mDll : mExe).LoadString((uint32_t)theId, theText);
 	}
 
 	// the registry keys are read from the same emulated registry
@@ -176,8 +176,8 @@ public:
 			theHeight = aMode.h;
 			return;
 		}
-		theWidth = 800;
-		theHeight = 600;
+		theWidth = jb::SCREEN_WIDTH;
+		theHeight = jb::SCREEN_HEIGHT;
 	}
 
 	// test runs (-script, -fast, rundesk) never block on a message box; MB_YESNO's answer is IDYES
@@ -208,7 +208,8 @@ public:
 
 	void SetCursor(int theKind) override
 	{
-		gApp->SetCursor(theKind == 1 ? CURSOR_HAND : theKind == 4 ? CURSOR_WAIT : CURSOR_POINTER);
+		gApp->SetCursor(theKind == jb::CURSOR_KIND_HAND ? CURSOR_HAND :
+			theKind == jb::CURSOR_KIND_WAIT ? CURSOR_WAIT : CURSOR_POINTER);
 	}
 
 	// the framework keeps the mouse's events going to the widget while a button is held
@@ -252,11 +253,11 @@ public:
 		// bytes are not its pixels' alpha (the engine's drawing leaves them as they are).
 		MemoryImage* anImage = aWidget->mScreenImage;
 		ulong* aBits = anImage->GetBits();
-		for (int y = 0; y < 600; y++)
+		for (int y = 0; y < jb::SCREEN_HEIGHT; y++)
 		{
 			const uint32_t* aSrc = (const uint32_t*)(thePixels + y * thePitch);
-			ulong* aDst = aBits + y * 800;
-			for (int x = 0; x < 800; x++)
+			ulong* aDst = aBits + y * jb::SCREEN_WIDTH;
+			for (int x = 0; x < jb::SCREEN_WIDTH; x++)
 				aDst[x] = 0xff000000 | (aSrc[x] & 0xffffff);
 		}
 		anImage->BitsChanged();
@@ -274,13 +275,13 @@ MahjongHost gHost;
 MahjongWidget::MahjongWidget()
 {
 	mScreenImage = new MemoryImage(gApp);
-	mScreenImage->Create(800, 600);
+	mScreenImage->Create(jb::SCREEN_WIDTH, jb::SCREEN_HEIGHT);
 	// port: opaque, so that the framework need not look through the 480000 pixels for alpha after each present
 	mScreenImage->SetImageMode(false, false);
 	// and its alpha bytes are all 0xff (Present), so the framework need not premultiply it pixel by pixel to upload it
 	mScreenImage->mUploadAsIs = true;
 	ulong* aBits = mScreenImage->GetBits();
-	for (int i = 0; i < 800 * 600; i++)
+	for (int i = 0; i < jb::SCREEN_WIDTH * jb::SCREEN_HEIGHT; i++)
 		aBits[i] = 0xff000000;
 	mScreenChanged = true;
 	mButtons = 0;
@@ -396,8 +397,8 @@ MahjongApp::MahjongApp()
 	mTitle = "Mahjong Escape";
 	// the original's key: Software\JollyBear\ and the title with only its letters, digits and spaces (0x429ac0)
 	mRegKey = "JollyBear\\Mahjong Escape";
-	mWidth = 800;
-	mHeight = 600;
+	mWidth = jb::SCREEN_WIDTH;
+	mHeight = jb::SCREEN_HEIGHT;
 	// the frame's pacing (25 ms, jb::Host::Sleep) is checked every 5 ms
 	mFrameTime = 5;
 	mWidget = nullptr;
@@ -571,13 +572,13 @@ void MahjongApp::LostFocus()
 }
 
 // Alt+Enter and the web page's full screen button change the mode as the options' check box does
-void MahjongApp::SwitchScreenMode(bool wantWindowed, bool is3d, bool force)
+void MahjongApp::SwitchScreenMode(bool theWantWindowed, bool theIs3d, bool theForce)
 {
-	if (mApplyingGameMode || !mGameStarted || mGameEnded || force)
+	if (mApplyingGameMode || !mGameStarted || mGameEnded || theForce)
 	{
-		SexyAppBase::SwitchScreenMode(wantWindowed, is3d, force);
+		SexyAppBase::SwitchScreenMode(theWantWindowed, theIs3d, theForce);
 		return;
 	}
-	if (wantWindowed != mIsWindowed)
-		mGame->mManager.SetFullScreen(!wantWindowed, true);
+	if (theWantWindowed != mIsWindowed)
+		mGame->mManager.SetFullScreen(!theWantWindowed, true);
 }

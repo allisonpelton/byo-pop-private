@@ -125,13 +125,13 @@ bool WatchController::Load(std::string* theError)
 		return false;
 	}
 	mIsRead = true;
-	// The rules first (stage 5): a replay of the original rules plays whichever engine recorded it
+	// The rules first: a replay of the original rules plays whichever engine recorded it
 	if (!mFile.mHasRules || !mRules.FromCanonical(mFile.mRules, &anError))
 	{
 		*theError = mFile.mHasRules ? "RULE: " + anError : std::string("no RULE record");
 		return false;
 	}
-	// Stage 7: the rules' level shapes; events name cells of the largest
+	// The rules' level shapes; events name cells of the largest
 	std::vector<BoardLayout> aShapes;
 	int aMaxCols = 0;
 	int aMaxRows = 0;
@@ -514,7 +514,7 @@ bool WatchController::Apply(const Replay::Event& theEvent)
 		break;
 
 	case Replay::OP_TWIST:
-		// Stage 10: the gate the input layer records it behind (Board::CanTwist: in play, open to input, the rules'
+		// The gate the input layer records it behind (Board::CanTwist: in play, open to input, the rules'
 		// twists that way, four gems)
 		if (!aBoard->mVariant.mMoves || !aBoard->CanTwist((int) anArgs[0], (int) anArgs[1], (int) anArgs[2]))
 		{
@@ -537,7 +537,7 @@ bool WatchController::Apply(const Replay::Event& theEvent)
 		break;
 
 	case Replay::OP_HINT:
-		// ShowHint's gate; the board's own ShowHint ignores a playback board. Stage 5: a board playing without a
+		// ShowHint's gate; the board's own ShowHint ignores a playback board. A board playing without a
 		// move gives no hint either (Board::NoHintVariant)
 		if ((aBoard->mState != STATE_PLAYING) || (aBoard->mPauseCount != 0) || aBoard->NoHintVariant())
 		{
@@ -549,7 +549,7 @@ bool WatchController::Apply(const Replay::Event& theEvent)
 		break;
 
 	case Replay::OP_UNDO:
-		// Stage 6: RequestUndo's gate (Board::CanUndo); the board's own RequestUndo ignores a playback board
+		// RequestUndo's gate (Board::CanUndo); the board's own RequestUndo ignores a playback board
 		if (!aBoard->CanUndo())
 		{
 			aWhy = "an undo RequestUndo would refuse";
@@ -596,7 +596,7 @@ bool WatchController::Apply(const Replay::Event& theEvent)
 			// channel makes the same bytes (without it, the LOGIC hash, which leaves the glow out, still matches).
 			// In the vortex their positions and angles come from libm's cos, sin and atan2, whose last bits differ
 			// between platforms (the LOGIC hash leaves them out too): a replay recorded natively, played in wasm
-			// (the verifier, stage 4), or the other way round, makes other bytes there
+			// (the verifier), or the other way round, makes other bytes there
 			mLastSaveExact = ((mFile.mFlags & Replay::FLAG_HOVER) != 0) && (aBoard->mState != STATE_BLACK_HOLE);
 			if (anArgs[0] == Replay::SAVE_GAME)
 				aBoard->SaveGame(); // into mPlaybackSave (Board::WriteSaveFile)
@@ -672,7 +672,7 @@ bool WatchController::Apply(const Replay::Event& theEvent)
 				isOk = false;
 				break;
 			}
-			// A variant board's v2 save holds the RNG the game goes on with (its RNGS chunk, stage 5): the segment's
+			// A variant board's v2 save holds the RNG the game goes on with (its RNGS chunk): the segment's
 			// RNGS must be that one (LDSV bytes too)
 			Replay::RngState aSaved;
 			aBoard->GetRngState(&aSaved);
