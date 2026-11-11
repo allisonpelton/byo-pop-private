@@ -352,10 +352,11 @@ done:
 		mPuzzleFlag = false;
 }
 
-// 0x5dcd44
+// 0x5dcd44: a board that a cheat changed the pictures of (m165ae) is deleted at once and the pictures are loaded again; any
+// other stays behind the menu (it slides out and is saved, so that its game can be resumed)
 void WinDMApp::DoMainMenu()
 {
-	if (mBoard != nullptr && mBoard->CanPlay()) {
+	if (mBoard != nullptr && mBoard->m165ae) {
 		mReloadPending = true;
 		KillBoard();
 	}

@@ -14,6 +14,7 @@
 #include "Profile.h"
 #include "UserDialogs.h"
 #include "HelpScreen.h"
+#include "OptionsDialog.h"
 #include "HyperlinkWidget.h"
 #include "GalaxyParser.h"
 #include "PuzzleStateOverlay.h"
@@ -279,9 +280,11 @@ bool WinDMApp::HandleTestCommand(const ScriptCommand& theCommand)
 		{
 			Dialog* aDialog = mDialogMap.rbegin()->second;
 			std::string aButtons;
-			Widget* aList[2] = {aDialog->mYesButton, aDialog->mNoButton};
-			const char* aNames[2] = {"yes", "no"};
-			for (int i = 0; i < 2; i++)
+			// the options dialog's second button, which leaves a game for the menu
+			OptionsDialog* anOptions = dynamic_cast<OptionsDialog*>(aDialog);
+			Widget* aList[3] = {aDialog->mYesButton, aDialog->mNoButton, anOptions != NULL ? (Widget*)anOptions->mMainMenuButton : NULL};
+			const char* aNames[3] = {"yes", "no", "mainmenu"};
+			for (int i = 0; i < 3; i++)
 			{
 				if (aList[i] == NULL || !aList[i]->mVisible)
 					continue;

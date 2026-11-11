@@ -59,6 +59,19 @@ def start_hidden(d):
     raise SystemExit('the hidden mode did not start: ' + json.dumps(d.state()))
 
 
+def resume(d, a):
+    """A saved game resumed: Classic for --moves moves, the game's own menu button (the game is saved on the way out), the menu's Classic
+    button, the "Load Game?" dialog answered yes, and --moves more moves of the loaded game."""
+    r1 = full.play(d, 'classic', a.moves, a.out)
+    d.click(d.state()['widgets']['menu'])  # the options dialog, with a Main Menu button while a game is on
+    s = full.until(d, lambda s: 2 in s['dialogs'] and 'mainmenu' in (s.get('buttons') or {}), 'the options dialog', 60)
+    d.click(s['buttons']['mainmenu'])
+    full.to_menu(d)
+    full.start_mode(d, 'classic')
+    r2 = full.play(d, 'classic', a.moves, a.out)
+    return dict(r2, first=r1)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--exe', required=True)
@@ -87,12 +100,17 @@ def main():
         play = d.events[0][0]
         if a.mode == 'hidden':
             start_hidden(d)
+        elif a.mode == 'resume':
+            full.start_mode(d, 'classic')
         else:
             if a.mode in full.SECRET:
                 d.ok('unlock all')
             full.start_mode(d, a.mode)
         start = d.events[-1][0]
-        r = full.play(d, a.mode, a.moves, a.out)
+        if a.mode == 'resume':
+            r = resume(d, a)
+        else:
+            r = full.play(d, a.mode, a.moves, a.out)
         if a.idle_end:
             t0 = d.state()['updates']
             while d.state()['updates'] < t0 + a.idle_end and 'over' not in str(d.state().get('phase', '')):
