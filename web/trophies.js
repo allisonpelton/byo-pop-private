@@ -43,6 +43,11 @@ var ByopopTrophies = (function () {
     // games/astropop/src/HallOfFame.cpp: the hall of fame, two strings (product, version), then entries to the end (a string
     // name, i32 score, i32 second, i32 pilot, i32 kind): kind 1 Classic by score, kind 2 Survival by its seconds (m:ss)
     astropop: { file: "users/datahs.usr", kind: "astropop", tables: ["Classic", "Survival"] },
+    // engines/mahjongescape/src/User.cpp: a player a file, <id>.usr, each with its best time and score of every classic layout
+    // and escape level (kind "mahjong", parseMahjongPlayer); a classic layout's name is the NAME of its LAYOUTS resource in the
+    // player's own Resource.dll (LayoutSelect.cpp ListLayoutId), so no layout's name is written here
+    mahjongjapan: { kind: "mahjong", classic: 175, escape: 60, layouts: 162, layoutId: function (i) { return i < 125 ? 437 + i : 600 + (i - 125); } },
+    mahjongchina: { kind: "mahjong", classic: 150, escape: 52, layouts: 126, layoutId: function (i) { return 437 + i; } },
     // games/bejeweled2/src/HighScoreWidget.cpp, ReadFromFile
     bejeweled2: { file: "users/hiscores.dat", kind: "popcap", magic: 0xb9e7e3f8,
       tables: ["Classic", "Action", "Puzzle", "Endless", "Twilight", "Hyper", "Cognito", "Finity", "Hidden"], places: 10 }
@@ -133,7 +138,51 @@ var ByopopTrophies = (function () {
       return { name: spec.tables[t], rows: rows.map(function (r, i) { r.place = String(i + 1); return r; }) };
     });
   }
-  // the file's tables: [{name, rows: [{place, name, score, text?}]}] (text: a time, shown in place of the number)
+  // A Mahjong Escape player's file (big-endian): "ME", version 1, a u16 id, the NUL-ended name, 9 bytes of settings, the classic
+  // layouts' records, a u16 and a byte, the escape levels' records. A record is a u16 best time in seconds (36000: none) and an
+  // i32 best score; a layout or level is played when its time is not 36000. {name, classic: [...], escape: [...]} or null
+  var MJ_NONE = 36000;
+  function parseMahjongPlayer(spec, b) {
+    if (b.length < 6 || b[0] !== 0x4d || b[1] !== 0x45 || b[2] !== 1) return null;
+    var dv = new DataView(b.buffer, b.byteOffset, b.byteLength), end = 5;
+    while (end < b.length && b[end]) end++;
+    var name = cString(b, 5, end - 5), at = end + 10;
+    function records(n) {
+      var out = [];
+      for (var i = 0; i < n; i++, at += 6) {
+        if (at + 6 > b.length) return null;
+        out.push({ time: dv.getUint16(at, false), score: dv.getInt32(at + 2, false) });
+      }
+      return out;
+    }
+    var classic = records(spec.classic);
+    if (!classic) return null;
+    at += 3;
+    var escape = records(spec.escape);
+    return escape ? { name: name, classic: classic, escape: escape } : null;
+  }
+  function hms(sec) { return Math.floor(sec / 3600) + ":" + ("0" + Math.floor(sec / 60) % 60).slice(-2) + ":" + ("0" + sec % 60).slice(-2); }
+  // a LAYOUTS resource's name: a u16 magic, a version byte, the NUL-ended name
+  function layoutName(bytes) { return bytes && bytes.length > 3 ? cString(bytes, 3, bytes.length - 3) : ""; }
+  // The players' records as tables: each classic layout someone has won, "<n>. <its name>", then each escape level won, the
+  // players ranked by score, with their best times
+  function mahjongTables(spec, players, names) {
+    var out = [];
+    function table(label, list, i) {
+      var rows = players.filter(function (p) { return p[list][i] && p[list][i].time !== MJ_NONE; }).map(function (p) {
+        return { name: p.name, score: p[list][i].score, time: hms(p[list][i].time) };
+      });
+      if (!rows.length) return;
+      rows.sort(function (a, c) { return c.score - a.score; });
+      rows.forEach(function (r, k) { r.place = String(k + 1); });
+      out.push({ name: label, rows: rows });
+    }
+    for (var i = 0; i < spec.layouts; i++) table((i + 1) + ". " + (names[i] || ""), "classic", i);
+    for (var e = 0; e < spec.escape; e++) table(T("trophies.escape", { n: e + 1 }), "escape", e);
+    return out;
+  }
+  // the file's tables: [{name, rows: [{place, name, score, text?, time?}]}] (text: a time shown in place of the number; time:
+  // a best time, in a column of its own)
   function parse(spec, b) {
     if (spec.kind === "atomica") return parseAtomica(spec, b);
     if (spec.kind === "dynomite") return parseDynomite(spec, b);
@@ -166,6 +215,35 @@ var ByopopTrophies = (function () {
     return F.open(game.persist).then(function (db) {
       if (!db) return null;
       return F.read(db, game.persist + "/userdata/" + rel).then(function (b) { db.close(); return b || null; }, function () { db.close(); return null; });
+    });
+  }
+
+  // a Mahjong Escape's tables: its players' files (userdata/<id>.usr) and its layouts' names from the player's Resource.dll
+  function readMahjong(game, spec) {
+    var F = ByopopMusic.files;
+    return F.open(game.persist).then(function (db) {
+      if (!db) return [];
+      var user = game.persist + "/userdata/";
+      var keys = new Promise(function (resolve) {
+        try {
+          var st = db.objectStoreNames[0], r = db.transaction(st, "readonly").objectStore(st).getAllKeys(IDBKeyRange.bound(user, user + "￿"));
+          r.onsuccess = function () { resolve(r.result.map(String).filter(function (k) { return /^\d+\.usr$/i.test(k.substring(user.length)); })); };
+          r.onerror = function () { resolve([]); };
+        } catch (e) { resolve([]); }
+      });
+      return keys.then(function (list) {
+        return Promise.all(list.map(function (k) { return F.read(db, k).then(function (b) { return b ? parseMahjongPlayer(spec, b) : null; }, function () { return null; }); }));
+      }).then(function (players) {
+        players = players.filter(Boolean);
+        if (!players.length) return [];
+        return F.list(db, game.persist).then(function (rels) {
+          var dll = rels.filter(function (r) { return /(^|\/)resource\.dll$/i.test(r); })[0];
+          if (!dll) return [];
+          return Promise.all(Array.from({ length: spec.layouts }, function (_, i) {
+            return F.read(db, game.persist + "/game/" + dll + "|pe:LAYOUTS:" + spec.layoutId(i)).then(layoutName, function () { return ""; });
+          }));
+        }, function () { return []; }).then(function (names) { return mahjongTables(spec, players, names); });
+      }).then(function (t) { db.close(); return t; }, function () { db.close(); return []; });
     });
   }
 
@@ -204,7 +282,9 @@ var ByopopTrophies = (function () {
         box.appendChild(make("legend", "", g.title));
         var table = make("table", "tc-table");
         var head = make("tr", "");
-        [T("trophies.col.table"), T("trophies.col.place"), T("trophies.col.name"), T("trophies.col.score")].forEach(function (h) { var th = make("th", "", h); th.scope = "col"; head.appendChild(th); });
+        // a Time column where the game keeps best times beside its scores (the Mahjong Escapes)
+        var timed = tables.some(function (t) { return t.rows.some(function (r) { return r.time !== undefined; }); });
+        [T("trophies.col.table"), T("trophies.col.place"), T("trophies.col.name"), T("trophies.col.score")].concat(timed ? [T("trophies.col.time")] : []).forEach(function (h) { var th = make("th", "", h); th.scope = "col"; head.appendChild(th); });
         table.appendChild(head);
         tables.forEach(function (t) {
           t.rows.forEach(function (r, i) {
@@ -213,6 +293,7 @@ var ByopopTrophies = (function () {
             tr.appendChild(make("td", "tc-num", r.place));
             tr.appendChild(make("td", "", r.name));
             tr.appendChild(make("td", "tc-num", r.text || r.score.toLocaleString()));
+            if (timed) tr.appendChild(make("td", "tc-num", r.time || ""));
             table.appendChild(tr);
           });
         });
@@ -226,6 +307,9 @@ var ByopopTrophies = (function () {
       found = [];
       // a game whose tables are in several files (spec.files) reads each, its tables in the files' order
       var reads = games.filter(function (g) { return RECORDS[g.id]; }).map(function (g) {
+        if (RECORDS[g.id].kind === "mahjong") return readMahjong(g, RECORDS[g.id]).then(function (tables) {
+          if (tables.length) found.push({ id: g.id, title: g.title, tables: tables });
+        }, function () {});
         var specs = RECORDS[g.id].files || [RECORDS[g.id]];
         return Promise.all(specs.map(function (spec) {
           return readUser(g, spec.file).then(function (b) { return b ? parse(spec, b) : []; }, function () { return []; });
@@ -271,6 +355,6 @@ var ByopopTrophies = (function () {
     watch();
     return win;
   }
-  return { attach: attach, parse: parse, RECORDS: RECORDS };
+  return { attach: attach, parse: parse, parseMahjongPlayer: parseMahjongPlayer, mahjongTables: mahjongTables, layoutName: layoutName, RECORDS: RECORDS };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = ByopopTrophies;

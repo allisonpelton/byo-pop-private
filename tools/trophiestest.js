@@ -79,6 +79,22 @@ const ap = R.parse(R.RECORDS.astropop, new Uint8Array(Buffer.concat([apStr("Astr
   apEntry("Ace", 100000, 12, 0, 1), apEntry("Bea", 90000, 9, 1, 1), apEntry("Cal", 30000, 754, 2, 2), apEntry("Dee", 20000, 61, 3, 2)])));
 same("astropop: Classic by points, Survival by its time", ap.map((t) => [t.name, t.rows.map((r) => [r.place, r.name, r.text || r.score])]),
   [["Classic", [["1", "Ace", 100000], ["2", "Bea", 90000]]], ["Survival", [["1", "Cal", "12:34"], ["2", "Dee", "1:01"]]]]);
+// Mahjong Escape: a player a file, big-endian; a record a u16 time (36000: none) and an i32 score; tables a layout or level won
+function mjPlayer(name, classic, escape, nC, nE) {
+  const n = Buffer.from(name, "latin1"), head = Buffer.concat([Buffer.from([0x4d, 0x45, 1, 0, 7]), n, Buffer.alloc(1 + 9)]);
+  const recs = (list, count) => { const b = Buffer.alloc(count * 6); for (let i = 0; i < count; i++) { const r = list[i] || [36000, 0]; b.writeUInt16BE(r[0], i * 6); b.writeInt32BE(r[1], i * 6 + 2); } return b; };
+  return new Uint8Array(Buffer.concat([head, recs(classic, nC), Buffer.alloc(3), recs(escape, nE), Buffer.alloc(5)]));
+}
+const mj = R.RECORDS.mahjongjapan;
+const pa = R.parseMahjongPlayer(mj, mjPlayer("Ann", { 0: [125, 4000], 161: [3725, 900] }, { 2: [61, 50] }, 175, 60));
+const pb = R.parseMahjongPlayer(mj, mjPlayer("Bo", { 0: [99, 5000] }, {}, 175, 60));
+same("mahjong: a player's name and records", [pa.name, pa.classic.length, pa.escape.length, pa.classic[0], pa.escape[2]], ["Ann", 175, 60, { time: 125, score: 4000 }, { time: 61, score: 50 }]);
+same("mahjong: another file is none", R.parseMahjongPlayer(mj, new Uint8Array([1, 2, 3, 4, 5, 6])), null);
+const mjt = R.mahjongTables(mj, [pa, pb], ["First", "Second"]);
+same("mahjong: layouts won, then levels, players by score with their times", mjt.map((t) => [t.name, t.rows.map((r) => [r.place, r.name, r.score, r.time])]),
+  [["1. First", [["1", "Bo", 5000, "0:01:39"], ["2", "Ann", 4000, "0:02:05"]]], ["162. ", [["1", "Ann", 900, "1:02:05"]]], ["trophies.escape", [["1", "Ann", 50, "0:01:01"]]]]);
+same("mahjong: Japan's layout ids", [mj.layoutId(0), mj.layoutId(124), mj.layoutId(125), mj.layoutId(161), R.RECORDS.mahjongchina.layoutId(125)], [437, 561, 600, 636, 562]);
+same("mahjong: a LAYOUTS resource's name", R.layoutName(new Uint8Array([0x12, 0x34, 1, 0x41, 0x62, 0, 9])), "Ab");
 const magic = Buffer.alloc(4); magic.writeUInt32LE(0xb9e7e3f8, 0);
 const b2 = Buffer.concat([magic, ...Array.from({ length: 90 }, (_, i) => rec("B" + (i % 10), 100 - (i % 10), true))]);
 same("bejeweled2: nine tables of ten after the magic", R.parse(R.RECORDS.bejeweled2, new Uint8Array(b2)).map((x) => x.rows.length), [10, 10, 10, 10, 10, 10, 10, 10, 10]);
