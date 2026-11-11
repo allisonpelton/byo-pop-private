@@ -200,7 +200,6 @@ public:
 	Effect* AddSpark(bool theBig, float theSpeed, float theAngle);
 	// 0x728f69: a shard of the gem (effect 10), into the board's second manager (+0x164c) if theSecondManager
 	void AddShards(float theSpeed, bool theSecondManager);
-	void AddDust();                            // 0x7290db: dust (effect 12)
 	// 0x729237: where a bomb's counter is drawn, theRise from 0 (low) to 1
 	void GetCounterPos(int* theX, int* theY, float theRise);
 	float GetRadius(float theAngle);           // 0x7292a1: the gem's outline at theAngle, from the exe's table

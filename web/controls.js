@@ -301,14 +301,32 @@ var ByopopControls = (function () {
     });
     field.addEventListener("keydown", function (ev) { if (ev.key === "Enter") { ev.preventDefault(); sendTyped("Enter", 13); } });
     field.addEventListener("focus", function () { rest(); b.setAttribute("aria-pressed", "true"); });
-    field.addEventListener("blur", function () { b.setAttribute("aria-pressed", "false"); });
+    field.addEventListener("blur", function () { field.readOnly = true; b.setAttribute("aria-pressed", "false"); });
     b.setAttribute("aria-pressed", "false");
+    // The field is read-only, so that no screen keyboard comes up for it, except while the button has it open. A touch anywhere
+    // else closes it: the game's own touch handlers cancel the touch's default, so focus would never leave the field by itself,
+    // and a phone brought the keyboard back up for a tap on the game (the user, 2026-11-11: "The keyboard appeared when I
+    // pressed my profile to change users, but it didn't actually bring up the profile switcher"; the keyboard took half the
+    // screen between the press and the release, so the release missed the button).
+    field.readOnly = true;
+    function open() { field.readOnly = false; field.focus(); }
+    function close() { field.blur(); if (canvas) canvas.focus(); }
     // (the press, not the click: the keyboard comes up only for a focus given inside the touch itself)
     b.addEventListener("pointerdown", function (ev) {
       ev.preventDefault();
-      if (document.activeElement === field) { field.blur(); if (canvas) canvas.focus(); } else field.focus();
+      if (document.activeElement === field) close(); else open();
     });
-    b.addEventListener("click", function (ev) { if (ev.detail === 0) field.focus(); });
+    b.addEventListener("click", function (ev) { if (ev.detail === 0) open(); });
+    function elsewhere(ev) {
+      if (!b.isConnected && touchBar) {   // a bar taken down and made again: this button's listeners go with it
+        document.removeEventListener("pointerdown", elsewhere, true);
+        document.removeEventListener("touchstart", elsewhere, { capture: true });
+        return;
+      }
+      if (document.activeElement === field && ev.target !== b && !b.contains(ev.target) && ev.target !== field) close();
+    }
+    document.addEventListener("pointerdown", elsewhere, true);
+    document.addEventListener("touchstart", elsewhere, { capture: true, passive: true });
     return b;
   }
   function syncTouch() {

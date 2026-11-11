@@ -57,9 +57,8 @@ AtomicaApp::AtomicaApp()
 	mTraceState = NULL;
 	mMode = 0;
 	mExpertMode = 0;
-	mB3eac = false;
+	mMenuDoorsOpen = false;
 	mPauseCount = 0;
-	mI440 = 0;
 	mShowSymbols = false;
 	mShowTips = true;
 	for (int i = 0; i < 0xff; i++)
@@ -135,12 +134,13 @@ void AtomicaApp::PumpLoading()
 	}
 }
 
+// 0x4061e0: a jump to the base's
 void AtomicaApp::LoadingThreadCompleted()
 {
 	SexyApp::LoadingThreadCompleted();
 }
 
-// 0x406ec0 / 0x406dc0: the registry values of the game: the hints shown (255 words), the colour-blind symbols, and the
+// 0x406ec0: the registry values of the game, written: the hints shown (255 words), the colour-blind symbols, and the
 // hints being switched off (named ShowTips, it holds one when the hints are off)
 void AtomicaApp::WriteToRegistry()
 {
@@ -153,6 +153,7 @@ void AtomicaApp::WriteToRegistry()
 	RegistryWriteInteger("ShowTips", mShowTips ? 0 : 1);
 }
 
+// 0x406dc0: the same values, read back
 void AtomicaApp::ReadFromRegistry()
 {
 	SexyApp::ReadFromRegistry();
@@ -168,7 +169,7 @@ void AtomicaApp::ReadFromRegistry()
 		mShowTips = aValue != 1;
 }
 
-// the command line: -autoplay=<seed> -autoplaymode=strategy|action -autoplayexpert=0|1 -autoplaygames=N -autoplaycap=N -autoplaylog=<file>
+// port: the command line: -autoplay=<seed> -autoplaymode=strategy|action -autoplayexpert=0|1 -autoplaygames=N -autoplaycap=N -autoplaylog=<file>
 // -autoplayshots=<prefix>
 void AtomicaApp::HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue)
 {
@@ -202,6 +203,7 @@ void AtomicaApp::HandleCmdLineParam(const std::string& theParamName, const std::
 		SexyApp::HandleCmdLineParam(theParamName, theParamValue);
 }
 
+// port: the test hooks' steps before each update (the trace, then the bot)
 void AtomicaApp::UpdateFrames()
 {
 	// the trace is taken before the next update, so that it holds what the last update's draw changed (the random numbers)

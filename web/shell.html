@@ -788,7 +788,8 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
     view.push({ rule: true });
     var filt = setting("colorFilter") || "none";
     [["none", "skin.apps.filter_none"], ["grey", "settings.colorfilter.grey"], ["sepia", "settings.colorfilter.sepia"],
-     ["warm", "settings.colorfilter.warm"], ["contrast", "settings.colorfilter.contrast"], ["vivid", "settings.colorfilter.vivid"]].forEach(function (c) {
+     ["warm", "settings.colorfilter.warm"], ["contrast", "settings.colorfilter.contrast"], ["vivid", "settings.colorfilter.vivid"],
+     ["pal256", "settings.colorfilter.pal256"], ["pal256d", "settings.colorfilter.pal256d"]].forEach(function (c) {
       view.push({ label: T(c[1]), checked: filt === c[0], fn: function () { setView("colorFilter", c[0]); } });
     });
     view.push({ rule: true });
@@ -796,6 +797,11 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
       var onNow = setting(c[0]) === "on";
       view.push({ label: T(c[1]), ticked: onNow, fn: function () { setView(c[0], onNow ? "off" : "on"); } });
     });
+    // the performance panel, two taps away on a phone (the user, 2026-11-11: "it's difficult to show/hide the performance panel
+    // on mobile"); ticked by what is shown, which ?perf=1 may have turned on
+    var perfOn = false;
+    try { perfOn = ByopopPerf.isOn(); } catch (e) {}
+    view.push({ label: T("settings.perf.label"), ticked: perfOn, fn: function () { setView("perf", perfOn ? "off" : "on"); } });
     return { game: game, view: view, options: options };
   }
   // Help's About box: the game's name and the copyright and trademark lines of its readme (the page's footer)

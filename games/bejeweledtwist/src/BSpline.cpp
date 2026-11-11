@@ -165,35 +165,4 @@ float BSpline::GetPoint(float t, const std::vector<float>& theCoef) const
 	return (float)v;
 }
 
-bool BSpline::GetNextPoint(float& x, float& y, float& t) const
-{
-	int i = Ftol(std::floor(t));
-	if (i < 0 || i >= (int)mXPoints.size() - 1) {
-		x = GetXPoint(t);
-		y = GetYPoint(t);
-		return false;
-	}
-	float aStep = (float)(1.0 / ((double)mArcLengths[i] * 100.0));
-	float x0 = GetXPoint(t);
-	float y0 = GetYPoint(t);
-	float aT = t + aStep;
-	float x1 = GetXPoint(aT);
-	float y1 = GetYPoint(aT);
-	for (;;) {
-		float dy = y1 - y0;
-		float dx = x1 - x0;
-		if ((float)((double)dx * dx + (double)dy * dy) >= 1.0f)
-			break;
-		if ((float)(unsigned)((int)mXPoints.size() - 1) < aT)
-			break;
-		aT += aStep;
-		x1 = GetXPoint(aT);
-		y1 = GetYPoint(aT);
-	}
-	x = x1;
-	y = y1;
-	t = aT;
-	return true;
-}
-
 }  // namespace Sexy

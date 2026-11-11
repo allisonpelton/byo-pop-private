@@ -26,7 +26,6 @@ PathFinder::~PathFinder()
 // 0x424880
 void PathFinder::Reset()
 {
-	mD34 = -1;
 	mPath.Clear();
 	mPoints.Clear();
 }
@@ -64,9 +63,8 @@ bool PathFinder::Recurse(int theCol, int theRow, int theTargetCol, int theTarget
 			int aBase = theCost + 2;
 			do
 			{
-				if ((aRow < 0) || (aCol > 8) || (aRow > 7))
+				if ((aRow < 0) || (aCol >= Grid::COLS) || (aRow >= Grid::ROWS))
 					break;
-				mSearches++;
 				if ((aCol == theTargetCol) && (aRow == theTargetRow))
 				{
 					if ((theBuffer != NULL) && (aStep + theCost < mBestCost))
@@ -85,7 +83,7 @@ bool PathFinder::Recurse(int theCol, int theRow, int theTargetCol, int theTarget
 				{
 					Atom* anAtom = mGrid->mCells[aCol][aRow];
 					if ((anAtom != NULL) && (!anAtom->mPre || ((mGrid->mApp->mMode == 0) && anAtom->mPreStarted)) &&
-						(mGrid->mApp->mBoard->mI198 < 1))
+						(mGrid->mApp->mBoard->mGhostMoves < 1))
 						break;
 				}
 				if (theWays < theMaxWays)
@@ -119,12 +117,11 @@ bool PathFinder::Recurse(int theCol, int theRow, int theTargetCol, int theTarget
 // 0x4249d0 / 0x424680 / 0x424690
 bool PathFinder::Search(int theCol1, int theRow1, int theCol2, int theRow2, int theWantRoute, int theMaxWays, int theBuf[])
 {
-	for (int aCol = 0; aCol < 9; aCol++)
-		for (int aRow = 0; aRow < 8; aRow++)
+	for (int aCol = 0; aCol < Grid::COLS; aCol++)
+		for (int aRow = 0; aRow < Grid::ROWS; aRow++)
 			mCost[aCol][aRow] = 999999;
 	mBestCost = 100000;
 	mBestWays = -1;
-	mSearches = 0;
 	if (!Recurse(theCol1, theRow1, theCol2, theRow2, 0, theMaxWays, 0, theWantRoute ? theBuf : NULL))
 		return false;
 	if (theWantRoute != 0)
@@ -177,7 +174,7 @@ bool PathFinder::Find(int theCol1, int theRow1, int theCol2, int theRow2)
 	int aDY = 0;
 	int aWay = 0;
 	bool aBlocked;
-	if ((theCol2 < 0) || (theCol2 > 8) || (theRow2 < 0) || (theRow2 > 7))
+	if ((theCol2 < 0) || (theCol2 >= Grid::COLS) || (theRow2 < 0) || (theRow2 >= Grid::ROWS))
 		aBlocked = true;
 	else
 	{

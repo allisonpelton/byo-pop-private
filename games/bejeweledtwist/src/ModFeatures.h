@@ -9,9 +9,6 @@
 namespace Sexy
 {
 
-// An enabled mod has feature theName (true, or an object) in its "features"
-bool ModFeatureEnabled(const char* theName);
-
 // The live value of setting theSetting of the highest-priority enabled mod with feature theFeature; theDefault
 // without that mod or setting
 bool ModFeatureBool(const char* theFeature, const char* theSetting, bool theDefault);

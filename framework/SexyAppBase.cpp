@@ -32,6 +32,7 @@
 #include "../platform/Placeholders.h"
 #include "../platform/Json.h"
 #include "../platform/Audio.h"
+#include "../platform/MemReport.h"
 
 #include <SDL.h>
 #include <stb_image_write.h>
@@ -3707,6 +3708,13 @@ int SexyAppBase::RunScriptCommand(const ScriptCommand& theCommand, std::string* 
 	}
 	else if (aName == "quit")
 		Shutdown();
+	else if (aName == "memreport")
+	{
+		// what the game holds in memory, answered on the log (platform/MemReport.h): a test reads it, the game does not change
+		if (!DoMemReport(aCommand.mArgs))
+			SDL_Log("ERROR memreport %s: cannot write the file", aCommand.mArgs.c_str());
+		return SCRIPT_GAME;
+	}
 	else if ((aName == "pointer") && (mWidgetManager != NULL))
 	{
 		// the mouse as the widgets last saw it, in game pixels, answered on the log: a test reads where its input landed
@@ -4435,6 +4443,13 @@ int SexyAppBase::RunRealInputCommand(const ScriptCommand& theCommand, std::strin
 		SaveScreenshot(aCommand.mArgs, true);
 	else if (aName == "quit")
 		Shutdown();
+	else if (aName == "memreport")
+	{
+		// what the game holds in memory, answered on the log (platform/MemReport.h): a test reads it, the game does not change
+		if (!DoMemReport(aCommand.mArgs))
+			SDL_Log("ERROR memreport %s: cannot write the file", aCommand.mArgs.c_str());
+		return SCRIPT_GAME;
+	}
 	else if ((aName == "pointer") && (mWidgetManager != NULL))
 	{
 		// the mouse as the widgets last saw it, in game pixels, answered on the log: a test reads where its input landed
@@ -4815,6 +4830,10 @@ void SexyAppBase::Init()
 	mMusicInterface = CreateMusicInterface();
 
 	SetMusicVolume(mMusicVolume);
+
+	// port: the "memreport" test command's start figure: the libraries are loaded and the window, the graphics device and
+	// the sound device are up, and the game has loaded no picture, sound or song yet
+	Platform::NoteStartMemory();
 
 	InitHook();
 

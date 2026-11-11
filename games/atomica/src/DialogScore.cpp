@@ -94,6 +94,7 @@ void HighScoreDialog::ButtonDepress(int theId)
 		mClosing = true;
 }
 
+// 0x41cbd0: the name line's listener, a jump to ButtonDepress (0x41cf00) with 2 unless the box is closing: Enter does what "okay" does
 void HighScoreDialog::EditWidgetText(int theId, const SexyString& theString)
 {
 	(void) theId;

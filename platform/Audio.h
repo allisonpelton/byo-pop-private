@@ -120,6 +120,10 @@ public:
 	// between Lock and Unlock. Returns the song handle, played and freed like a loaded song's.
 	int AddSong(std::unique_ptr<ModulePlayer> thePlayer);
 	void UnloadSong(int theSong);
+	// What the loaded songs hold, for the memory report (platform/MemReport.h): how many there are, the bytes the mixer
+	// keeps for audio tracks (an Ogg's file and decode buffer, a WAV's samples) and the size of the module files loaded
+	// (a module's player keeps a copy of its own, about that size or more).
+	void GetSongMemory(int* theCount, size_t* theTrackBytes, size_t* theModuleFileBytes);
 	// theOrder/theRow: start position (BASS_MusicPlayEx offset = MAKELONG(order,row)).
 	void PlaySong(int theSong, int theOrder, int theRow, bool theLoop, bool theResetPosition = true);
 	void StopSong(int theSong);

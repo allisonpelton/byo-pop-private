@@ -285,25 +285,25 @@ every 100; fixed (`/ 200` in the two tests).
   updates; read `time` in the state.
 - `BackgroundFish`'s copy constructor (0x401df0) computes the follower's x as `-(rand % width + width)` in unsigned arithmetic
   and stores it as a double (about 4.29e9), so `Board::Update` deletes it at its first tick: only the leader of a school ever
-  shows (section 10, F-1).
+  shows (section 10, the `schools` toggle).
 - `Player::Update` (0x461740) state 1 has a branch for `y < 235` that the preceding test makes unreachable; the BlackShark
   state-5 branch in `SetState` is unreachable the same way.
 - `UserProfile::LoadDataFromDisk` (0x422630) appends the records it reads after the 35 the constructor made, so a loaded
   profile holds 70 per group and `WriteDataToDisk` (0x4172f0) writes only the first 35; `WriteDataToDisk` stores `mField1ec`
   where the loader reads `mField1b4`; `RegisterDefaultUserName` (0x419da0) always returns false. See a profile reloaded
-  and saved again (section 10, F-7).
+  and saved again (section 10: a record fix would be invisible, so no toggle).
 - Map (`MapScreen.cpp`): `ResetScroll` 0x441030 sets both scroll targets from the width difference where the final panel's
   draw test (0x447cd3) compares with the height difference; site 35 has the link -1 and is kept away from `Update` 0x45af60 and
   `SetVisible` 0x450ec0 only by the final-level flag; `OnLevelChosen` 0x4538e0 reads the list at size - 2; a dead end moves
-  the site before it behind it (F-6).
+  the site before it behind it (section 10: the final panel was judged in phase 2 and is no fault).
 - Typing tutor: `KeyChar` 0x460680 takes a Return, newline or space at the first or last character of a line as neither right
   nor wrong; `Update` 0x4601a0 has a creature branch above y = 160 in state 1 that the loop never takes; the seconds timer
   restarts at each second so an overshoot is lost; a lesson that ends within its first second divides by zero in `Finish`
   and both speeds read 0. Phase 1 played lessons 13, 15 and 17 (lines that start or end with a space) and each ended when the key
   shown was typed (`PHASE1.md`, H1 item 7); what a player sees when a different key is typed there was not tried.
 - Tutor pictures: `SetupHighlight` 0x45e810 lights the 9 key's picture for the keys 8 and `*`, leaves `{ } _ |` without the shift
-  key, gives `\ _ |` no finger, and the draw 0x44b400 places the lines before and after the typed line by their index in the
-  task, so from the fifth line of a task on (when `mFirstLine` is above 0) they sit too low (F-4, F-5).
+  key, gives `\ _ |` no finger (section 10, the `tutorKeyboard` toggle), and the draw 0x44b400 places the lines before and after the typed line by their index in the
+  task, so from the fifth line of a task on (when `mFirstLine` is above 0) they sit too low (section 10: no lesson shows it).
 - Lesson and config readers: the character read last is handled twice; a tutor text file's line count for the random pick
   includes the failed read, so the line picked can be the one past the end; a `<HEADING>` number is not checked; the level
   config is read a character at a time and a line reaches the XML parser only once it ends, so the file's last line counts only
@@ -312,7 +312,7 @@ every 100; fixed (`/ 200` in the two tests).
   first of a level without waves; `SetLevel(36 or more)` starts `NextLevel` at index -1, so the level reached is the argument
   minus 36 (the map never passes a larger one).
 - `OptionsDialog`: the button text colour (0x438660) goes to the credits button as index 3 of its own colours, not its label
-  colour; its `ButtonPress` (0x438a80) plays the click and does not call the base (F-8).
+  colour; its `ButtonPress` (0x438a80) plays the click and does not call the base (section 10: no visible difference, not a toggle).
 - `DrawWavyImage` 0x441ac0 draws (height - y) rows when the picture ends below the screen; `_ftol` (0x509890) keeps the low 32
   bits of the truncated 64-bit value and gives 0 for a NaN or out-of-range value (the port's `Ftol` helper does the same).
 - `HighScoreScreen::Draw`: a mode other than 0 to 4 repeats the label of the line before. The abyss lines have no label.
@@ -320,6 +320,34 @@ every 100; fixed (`/ 200` in the two tests).
 - `AvoidWordOverlap` 0x446110 counts its loop by the size of the bonus-text list (+0xdb8) and indexes the bonus-creature list
   (+0xdc8) with it; the port stops at the end of the list it indexes (section 7).
 - Events 9, 0xb, 0xd and 0x14 have no handler in the Board; `HandleClamEvents` event 3 never scores on its own.
+
+**A frame is drawn whole (the shared framework; found by phase 2).** The original's widget manager repaints only the widgets
+that are marked dirty, on top of the picture that is already there (`WidgetManager::DrawScreen` 0x47d790). The shared
+framework draws a frame whole or not at all (`SexyAppBase::DrawDirtyStuff`: a GPU back buffer does not keep the last frame),
+so whenever anything is dirty every widget's `Draw` runs. Two things follow, both below what shotdiff counts as visible:
+
+- *The status bar's meter edge.* While the board itself is not repainted but the bar is (the mouse rests on one of the
+  bar's three buttons, whose `FadeButton::Update` marks what lies under it dirty every update; the bonus level's intro and
+  the level-end tally, where `StatusBar::Update` marks the bar and `Board::Update` returns early), the original paints the
+  bar's picture over itself again and again, and its half-transparent pixels (one row under the charge meter and one
+  column right of it, 250 pixels) end up as the picture's own colour. The port paints the board first and the bar once,
+  so those pixels keep one blend with what lies under them: 10 to 24 levels of 255 darker. Measured on the bonus intro:
+  the bar's picture there is (144, 157, 158) at 83% opacity over black, the port shows (121, 132, 133), one blend, the
+  original (141, 154, 155), two or more.
+- *The sea's two strips, the rating popup and the map's last scroll ease once a draw* (`Board::Draw` 0x44d200,
+  `MapScreen::Draw` 0x447400: the average of the last six changes of the target, a draw at a time). In the original a
+  strip stops easing when the board is no longer repainted and can rest a pixel short; in the port the board is drawn
+  with every frame and the strip reaches its place. In the phase 2 tours that is a handful of sea pixels a shot (at most
+  22, at most 15 levels apart). With one draw an update the port's eased values equal the original's exactly: the map's
+  last scroll read -4.0 at target -5 up to -60/-58 at rest in both, at all 16 updates sampled.
+
+**No focus comes back when a modal dialog closes** (`WinWSApp::AddDialog`; found by phase 2's statistics tour). The 2004
+framework's `SetBaseModal` (0x439200) takes the focus from the widget under the dialog and `KillDialog` (0x482f90) removes
+the dialog, handing the focus to nobody; the game sets it itself where it wants one. The shared framework is 1.3, whose
+`RemoveBaseModal` returns the focus to the widget that had it before, so the typing tutor, which stands still while it has no
+focus (`TypingTutor::LostFocus` 0x442020), ran on under the statistics screen. `AddDialog` now forgets the widget the
+framework would refocus. No other screen of the 547 shots of the dialog tours changed; a spec for the shared framework (a
+flag for the 2004 behaviour) is with the coordinator.
 
 ## 6. Comparison with the original
 
@@ -359,8 +387,19 @@ registry value), the registry values the port writes, hint dialogs, pause, optio
 fresh profile with a level jump, and the files written at the end of a game other than by the byte comparison of the scenarios
 named above.
 
-**Phase 2 (looks identical).** Not done yet: the screens by shotdiff, sound, focus, the web build, and real mouse and key play
-through the page and the window are all still to do.
+**Phase 2 (looks identical), `IDENTICAL_PLAY.md`.** Tours written once and run on both programs (the original in Windows
+Sandbox on origrun's virtual clock, the port with `-fast -drawevery`, shots at the same updates, compared by shotdiff): the menus
+and dialogs, a saved adventure, an idle game, the abyss, two tutor lessons, Expert with penalty piranhas, Hard with treasure
+levels, and the whole Easy adventure with its maps, bosses, end dialog and endless levels: 1919 pairs, none differs visibly. The
+599 faint boxes are of three kinds, all judged (section 5's "a frame is drawn whole" for two of them; the window's last column
+where a creature enters is an oddity, `IDENTICAL_PLAY.md`). Port faults the tours found and fixed: the cannon balls' frame
+rectangle, the tutor's finger rings. The sound comparison (origrun's recording stand-in and a logging BASS against the port's
+sound log) found the sound effects equal play for play and the music missing: the module player was never registered, and
+`ChangeMusic` cut a song off where the original fades it out; after both fixes the music is equal event for event (850 events).
+The web build draws the same pictures as the native port to within 6 levels of 255 (1114 pairs under Node), plays the module, and
+passes the page check. Code played every mode with real mouse and key events, natively (windowed and full screen) and in the
+page. The port's shots come from the test command `shot` (section 9), because the framework's `screenshot` draws once more and a
+draw is a step in this game.
 
 ## 7. Oddities (what the original does that the port does not copy)
 
@@ -387,7 +426,7 @@ through the page and the window are all still to do.
   menu is ready between about update 800 and 1550 on a quiet machine and later on a busy one (section 8).
 - **The original keeps no registry value under origrun** (section 8); not a game difference.
 - **`UserProfile::LoadDataFromDisk` record growth** (the `LEAKS.md` item F5): the 35 default records plus 35 loaded ones, held
-  and not leaked (section 5, F-7).
+  and not leaked (section 5, section 10).
 - **Deleting the only player.** After `DeleteSelectedUser` erases the deleted name from the list it reads `mLines[0]`; if
   that player was the only one the list is empty and the original reads past the vector (its first element pointer is
   NULL), so a crash or garbage is likely; the port's `std::vector::operator[]` on an empty vector is undefined as well. To
@@ -488,6 +527,7 @@ nothing and draws no random number; a comparison with the original never uses on
 | `set score\|lives\|timer\|depth\|emp <n>` | the diver's score, lives (`mField110`), the game timer (milliseconds), the depth, the EMP charge (0 to 1); `set hints 0\|1` and `set tutorial 0\|1` need a player. `enemy` is read-only |
 | `win` | the level is won now: the diver goes to the level-won state (0xc) as `Update` does at the bottom, with the level bonus; ERROR in the abyss, in a won or lost game |
 | `lose` | the last life goes now: `mField110` is set to 0 and `PlayerEaten` runs, which subtracts one and opens the game-over dialog |
+| `shot <file.png>` | the screen as the last draw left it, read back and saved without drawing again (needs `-drawevery`). The framework's `screenshot` draws every widget once more, and here a draw is a step: `Board::Draw` eases the two strips of sea and the rating popup once a draw, `MapScreen::Draw` the final scroll, and a widget painted over itself blends its half-transparent pixels again. The phase 2 tours take their shots with it |
 
 *The state.* `screen` (the topmost dialog's name, else `title`, `stats`, `highscores`, `tutor`, `board`, `map`, `menu`, `none`)
 and `base` (the screen under a dialog); `dialogHeader` and `dialogLines`; `user`; `mode` (`adventure`, `abyss`, `tutor`);
@@ -544,54 +584,52 @@ difference. `tools/leak` holds the counting build's scripts (`build.sh`, `scenar
 scratch commands (`leak`, `press`, `dyes`, `dno`, `dlist`, `dname`) exist only in that build. `tools/regress.py` is a
 regression check on the port's own play (it was uncommitted when these notes were written; to check its state).
 
-## 10. Fix candidates (2026-11-09)
+## 10. The fixes mod and the fix candidates (2026-11-09)
 
-The rule: a bug of the original that does not break play, or a wait that only costs the player time, is kept in the port and
-fixed in the fixes mod; a bug that breaks play is fixed in the port itself (the two that phase 1 found and the picker hang are
-in section 5, and are not candidates). These come from a reading of the port's source and the working records, not from a line
-by line audit of the export or a play-through; a later find is added here. "Draws" says whether the fix changes the game
-generator's sequence.
+`games/typershark/mods/fixes/mod.json` is the game's fixes mod (`docs/MOD_ROADMAP.md`, "The fixes mod"): one mod, each setting a
+toggle for one bug of the original that the port keeps, every toggle on by default. The site serves the game with it on
+(`typershark-fixes/` beside the page); a native build finds it when the folder is copied into the mods folder (`-modsdir=<dir>`
+with `fixes/mod.json` inside). The port without the mod is the original: `FixEnabled` (`src/Fixes.cpp`) is false for every
+toggle unless the mod is enabled, and each toggle is read where its fix matters, as a live value. With the mod on the game
+plays as it does without it: `tools/regress.py` with `TSMODSDIR=<dir>` (tools/phase1/cmp.py gives it as `-modsdir`) hashes the
+same state logs as without it, so no fix changes what a game draws from the generator. `tools/fixshots.py schools|tutor` takes
+shots at the same updates with the mod off and on and lists the rectangles that differ.
 
-- **F-1 Schools of background fish.** `BackgroundFish` copy constructor 0x401df0 puts a follower at x = `-(rand % width +
-  width)` computed unsigned, about 4.29e9 as a double; `Board::Update` (0x45c140) deletes anything with x above the width at its
-  first tick, so only the leader of a school (0 to 4 fish every 400 updates) ever shows. Fix: compute the x signed, so that the
-  followers swim in behind the leader. Draws: yes, indirectly. The constructor's own draws stay the same, but the living
-  followers raise the fish count that the 400-update test (`size < 8`) reads, so some spawn ticks skip their `% 5` draw and the
-  generator's sequence shifts for the rest of the game.
-- **F-2 The start of a level.** `Update` counts the black fade-in `mFadeAlpha` down from 255 by 2 every other update (about
-  2.5 s; the level intro box opens at 0x75), and the diver climbs down in state 1 (`Player::Update` 0x461740: 2 pixels an
-  update from y = 0 to 235, 1 pixel below the top picture's height; about 1.2 to 2.4 s) while `KeyChar` ignores every key in that
-  state. Fix: shorten or skip both. Draws: yes, indirectly (the background bubbles and fish draw by update count, and the waves
-  start at other updates). To check whether the first wave already comes during the fade.
-- **F-3 The end of a group.** After the last creature of a wave has died and the rating popup has faded, `Update` adds 0.96 an
-  update to `mField0f38` until 240 (250 updates, 2.5 s) before the diver enters the streak game or the treasure. Fix: skip the
-  ramp. Draws: yes, indirectly, as F-2.
-- **F-4 The tutor's lines.** The draw 0x44b400 places the lines before and after the line being typed by their index in the
-  task, not their place among the four shown, so from the fifth line of a task on, when `mFirstLine` is above 0, they are drawn
-  that many lines too low. Fix: use the place among the lines shown. Draws: no. Not seen in a run; to check with a long task.
-- **F-5 The tutor's keyboard picture** (0x45e810). The keys 8 and `*` light the 9 key's picture at the 8 key's place; `{ } _ |` are
-  typed with shift but do not light the shift key; `\ _ |` get no finger or ring. Fix: use the right pictures and shift test.
-  Draws: no.
-- **F-6 The map's final panel** (`ResetScroll` 0x441030 against the draw test 0x447cd3). Both scroll targets are set from the
-  width difference where the draw test compares with the height difference, so the ship of the final panel shows only if the two
-  differences are equal. Fix: set the vertical target from the height difference, or compare like for like. Draws: no. Whether
-  the ship ever shows in the original is for the phase 2 screen comparison to say.
-- **F-7 The profile's records** (`LoadDataFromDisk` 0x422630, `WriteDataToDisk` 0x4172f0). A loaded profile appends its 35
-  records per statistic group after the constructor's 35 zero ones and the writer writes only the first 35, so the per-level
-  speed, accuracy and streak records of earlier sessions are not kept: each session writes only its own. Nothing in the port
-  reads `mRecords` except the writer and the loader (a search of `src`; to check in the export), so nothing on screen changes.
-  Fix: load into the first 35. Draws: no. It changes the bytes of `user<N>.dat`, so a comparison of saved files after a reload
-  would differ from the original's.
-- **F-8 The options dialog's credits button** (0x438660 `SetColor`, 0x438a80 `ButtonPress`). The text colour reaches the button
-  as index 3 of its own colours, not as its label colour, and the click handler does not call the base. Fix: pass the label
-  colour; call the base. Draws: no. A small visible difference in the button's text colour, to check by shotdiff.
+| Toggle | The original | With the fix |
+|---|---|---|
+| `schools` | The follower constructor of `BackgroundFish` (0x401df0) puts a follower at x = `-(rand % width + width)` computed unsigned, about 4.29e9 as a double, and `Board::Update` (0x45c140) deletes anything past the right edge at its first tick, so only the leader of a school (0 to 4 fish every 400 updates) ever shows. | The x is computed signed: the followers swim in behind the leader. The fish count that the 400-update test (`size < 8`) reads counts only leaders (the original's followers are gone in the tick they are made), so every draw of the generator stays where it was. |
+| `tutorKeyboard` | The keyboard picture (0x45e810): the keys 8 and `*` light the 9 key's picture at the 8 key's place; `{ } _ |` are typed with shift but do not light the shift key; the backslash, `_` and `|` get no finger or ring. Lessons 9, 10, 14, 16 and 17 hold an 8, lessons 10, 14 and 16 a `*`, lesson 14 the braces and `_` (lesson 16 one `_` too); no lesson holds a bar or a backslash. | The 8 key lights its own picture; the braces and `_` light the shift key and `_` gets the right little finger and its ring (the bar and the backslash are left alone: no lesson shows them). `tools/fixshots.py tutor --lesson 14` shows the pictures change. |
 
-Checked and not candidates: the piranha event 5 (no dangling target, section 7); lives reading -1, abyss lives 0 and the hint
-pause not stopping the timer (the same in the original, and they do not hold the player); the streak game and the treasure
-level's own timers (the game's rules, not waits); the registration code (gone). Nothing found in the reading done for the
-sharks, piranhas, clams, bonus creatures and bosses (equal to the original in phase 1's runs, which does not exclude a wait)
-and the high score tables; the dialogs and screens other than the options dialog were not read for waits or faults.
+**Looked at, not made into toggles.**
+- *The tutor's lines* (the draw 0x44b400 places the lines before and after the line being typed by their index in the task, not their
+  place among the four shown): reachable only in a task of six lines or more, since `mFirstLine` is set at every fourth line and the lines
+  drawn run from it. The longest task of the 19 lessons has five lines, so the original never shows it. Not a toggle.
+- *The start of a level* (the black fade-in that `Update` counts down from 255 by 2 every other update, about 2.5 s, and the diver's
+  climb down in state 1, 1.2 to 2.4 s, while `KeyChar` ignores every key) and *the end of a group* (`mField0f38` ramps 0.96 an update
+  to 240 before the diver enters the streak game or the treasure, 2.5 s): the game's own animations and rhythm, part of its pace, as
+  in Alchemy's notes. They also move every later update of a level, so the draws of the background bubbles and fish and the wave
+  starts would move with them. They stay.
+- *The profile's records* (`LoadDataFromDisk` 0x422630, `WriteDataToDisk` 0x4172f0): a loaded profile appends its 35 records per
+  statistic group after the constructor's 35 zero ones and the writer writes only the first 35, so the per-level speed, accuracy and
+  streak records of earlier sessions are not kept. Nothing in the port reads `mRecords` except the writer and the loader, so nothing
+  on screen changes, and a fix would only change the bytes of `user<N>.dat`. Not a toggle: nothing a player can see.
+- *The options dialog's Credits button* (0x438660, 0x438a80; the text colour reaches the button as index 3 of its own colours and the
+  click handler does not call the base): the phase 2 menu tour finds every Options picture, hovered and pressed, equal to the
+  original's, so the label is the same white as Done's and there is nothing to fix.
+- Checked and not candidates: the piranha event 5 (no dangling target, section 7); lives reading -1, abyss lives 0 and the hint pause
+  not stopping the timer (the same in the original, and they do not hold the player); the streak game and the treasure level's own
+  timers (the game's rules, not waits); the registration code (gone).
+
+**Judged in phase 2.** *The map's final panel* (`ResetScroll` 0x441030 against the draw test 0x447cd3): both scroll targets
+are set from the width difference where the draw test compares with the height difference. The map picture is 700 by 540 and the
+window 640 by 480, so both differences are -60, the test holds and the ship shows. The original's final panel and the port's are
+equal in the whole-adventure tour (the panel after level 35 and through the endless levels, 52 pairs), and the eased scroll reads
+the same values in both (section 5). No fault, nothing for the mod. Nothing was found in the reading done for the sharks, piranhas, clams,
+bonus creatures and bosses (equal to the original in phase 1's runs, which does not exclude a wait) and the high score tables; the
+dialogs and screens other than the options dialog were not read for waits or faults.
 
 ## 11. Performance
 
-To be measured by the coordinator (2026-11-09).
+Not measured yet: the performance pass is this game's own, later in its order of work (the coordinator, 2026-11-09), after the identical-play
+pass. It will model on `games/alchemy/tools/profile/perf.py` and Alchemy's "Performance" section: loading seconds, original and port;
+peak working set and private bytes, CPU time and the number of game processes over a scripted minute.

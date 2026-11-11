@@ -774,7 +774,18 @@ libxmp-lite are in About.
 
 - **Storage:** `byopop-music-loop`, `byopop-music-mute`, `byopop-music-volume`, `byopop-music-vis` and
   `byopop-music-rows`.
-- **The view** is the display's lower half; a click cycles spectrum, tracker, nothing. The spectrum is 24 bars from
+- **The piano roll** (the user, 2026-11-09: "add the piano roll too") is the view after the tracker, for a module
+  only, as the tracker is. Its notes are bars on a pitch grid: time runs left to right in rows, 4 pixels a row, with
+  the heard row under a fixed playhead a third of the way in, and pitch runs up the display. The C of each octave
+  has a faint line, and each instrument has one colour of twelve from the 16-colour palette (blue left out, too dark
+  on black). A note lasts until the next note, key off, cut or fade in its channel, or to its pattern's end. The
+  roll reads the cells the tracker reads (`rowText`, `byopop_music_row`), each pattern once. For the player's own
+  tunes the decoder gives the pitch range at once (`bm_range`, the tune's lowest to highest note) and the order list
+  (`bm_order_pattern`, `bm_pattern_rows`; a "+++" order is passed over), so the display is filled with the orders
+  on either side. For a game's module, whose order list the page does not have, the range is that of the patterns
+  heard so far, so it can widen, and only the pattern heard before the current one is shown, at its left. The roll
+  takes the splitter's height and is drawn only when its row, range or size changes.
+- **The view** is the display's lower half; a click cycles spectrum, tracker, piano roll, nothing. The spectrum is 24 bars from
   40 Hz to 16 kHz from an AnalyserNode connected only while it shows. The tracker, for a module, has a terse header
   ("ORD 07  PAT 06  ROW 16/64") and the rows around the one heard; it never scrolls past the pattern's ends. Only
   the channels that play a note somewhere are shown (`bm_used`); when they do not all fit, a scroll bar drawn by
@@ -1034,7 +1045,8 @@ A game page shows the panel while the setting `perf` is on (`web/perf.js`; off b
 game plays the same with it on, and with it off nothing of it runs. In a game's window on the one page it is part of
 the window, at the right of the game, and the window is that much wider (`sideWidth` in `web/shell.html`); nothing but
 the game and its mod menu is drawn over the game (the user, 2026-11-10), so the input display is in the window's
-status bar too. `?perf=1` on the listing's address or a game page's turns it on for that visit whatever the setting
+status bar too. A game window's View menu shows and hides it ("Performance panel", ticked while it shows; the user,
+2026-11-11: "it's difficult to show/hide the performance panel on mobile"), as the game's own setting. `?perf=1` on the listing's address or a game page's turns it on for that visit whatever the setting
 says (the one page passes it to its game windows), and a phone then does not go to full screen at Play, which would
 cover it. On a page under 600 pixels wide it is under the game, as wide as the page and scrolling in itself; on a
 small screen its Sound group comes first. Each second it shows:
@@ -1067,6 +1079,24 @@ and the two skip settings are never applied on the player-only page.
 every second row of the game's own pixels, sized through a ResizeObserver. **Colour filter** (`colorFilter`: none,
 grey, sepia, warm, contrast, vivid) is a CSS filter on the canvas.
 
+Two more choices of the colour filter show the game as a 256-colour screen did (the user, 2026-11-09: "Is it possible to
+make a filter for the game windows to make them appear in 256 colors only?"): **256 colours** (`pal256`) makes each
+pixel the nearest colour (in plain RGB distance) of the palette Windows kept for programs that set none, its 20 static
+colours and the 6x6x6 cube of levels 0, 51, 102, 153, 204 and 255: 228 distinct colours, since eight static colours
+are on the cube. **256 colours, dithered** (`pal256d`) first moves each colour by an 8x8 ordered (Bayer) dither of up to
+half a step of the cube, in the game's own pixels at any scale. They are drawn by a WebGL canvas the size of the game
+canvas's own pixels, laid over it at its exact box (left, top, size and `image-rendering` copied; it follows the
+window's scales, maximize and full screen) and under the scanlines, taking no input. It is filled in the framework's
+frame hook (`Module.byopopTestFrame`) on each frame the game drew, while that frame's picture is still in the game's
+canvas, by a shader that rounds to the cube and compares with the twelve static colours the cube lacks. Until the
+game's next drawn frame the overlay stays unseen, since the game's canvas keeps no picture between frames. Another
+choice removes the canvas and loses its context; the hook stays installed and returns at once.
+Checked in the pane (2026-11-11) with Bejeweled and BookWorm: the overlay's box equals the canvas's at 1x, centred in a
+maximized window and at 2x. Every pixel read back from it is in the palette, and none is farther from the game's pixel
+than the nearest palette colour. At 2x every game pixel stays one colour. The game's hover and clicks pass through it.
+The copy and the draw take about 1 ms a drawn frame at 1280 x 960 (a GTX 1080, read back to force them to finish), and
+0.2 ms of the main thread.
+
 ### Controls
 
 The Controls panel (`web/controls.js`) lists the game's controls in our own short words, from
@@ -1097,7 +1127,9 @@ perfect mode off"):
   wizard's art column (a media query at 600 pixels, phone or not).
 - The touch keys (`web/controls.js`) always have a keyboard button: it puts the focus in a text field kept out of
   sight, so the screen keyboard comes up, and what is typed goes to the game's canvas as key events (letters, Backspace,
-  Enter).
+  Enter). The field is read-only except while the button has it open, and a touch anywhere else closes it: the game's
+  touch handlers cancel a touch's default, so the focus never left the field by itself, and a phone brought the keyboard
+  back for a tap on the game, which then missed its button (the user, 2026-11-11, tapping a profile to switch players).
 - The setting "Touch keys position" (`touchPlace`: automatic, under, beside) puts the keys in a column at the right of
   the game; automatic does so while the page is wider than tall. In full screen the keys stay on the screen and the
   game keeps clear of them (`--touch-w`, `--touch-h`, `fitFullscreen`).

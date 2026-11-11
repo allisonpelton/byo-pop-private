@@ -71,9 +71,8 @@ public:
 
 	int				mMode;					// +0x3ea4 0 the strategy mode, 1 the action mode
 	int				mExpertMode;			// +0x3ea8 1: expert (double scores)
-	bool			mB3eac;					// +0x3eac the main menu is to be closed when the game updates
+	bool			mMenuDoorsOpen;		// +0x3eac the menu's doors stand open: the board closes the menu at its next update
 	int				mPauseCount;			// +0x4068 >0: the game is paused
-	int				mI440;					// +0x440 a counter of the base app that the grid raises
 	bool			mShowSymbols;			// the atoms show their chemical symbols
 	bool			mShowTips;				// the tutorial boxes (the option 'disable hints' turns them off)
 	bool			mHintsShown[0xff];		// +0x406c the hints that were shown in earlier games
@@ -276,7 +275,6 @@ public:
 	bool				HasSavedGame();
 	void				SaveGame();							// 0x405fc0
 	void				ResumeGame();						// 0x406060
-	void				DeleteSavedGame();
 	void				ShowQuit();							// 0x405bd0
 	void				ShowOptions();						// 0x405d00
 	void				ResetHints();

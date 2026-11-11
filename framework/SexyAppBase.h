@@ -25,6 +25,8 @@
 struct SDL_Window;
 union SDL_Event;
 
+namespace Platform { struct MemReport; }
+
 namespace Sexy
 {
 
@@ -345,6 +347,11 @@ public:
 	//                     quit                 Shutdown()
 	//                     pointer              answers POINTER {"x","y","in"}: the mouse as the widgets
 	//                                          last saw it, in game pixels (tools/web/pagecheck.js)
+	//                     memreport [file]     answers MEMREPORT and one line of JSON: what the pictures, the
+	//                                          sounds and the songs hold in bytes, and the process's working
+	//                                          set and private bytes now and at the end of Init
+	//                                          (platform/MemReport.h); with a file, also writes the table by
+	//                                          picture and the heaps there. It changes nothing in the game.
 	//                     modmenu <what> ...   the mod menu (framework/ModMenu.h; a mod id with spaces in
 	//                                          "..."): open, close, page <mod> | list, enable <mod> 0|1,
 	//                                          move <mod> -1|1, set <mod> <setting> <JSON value>, reset <mod>,
@@ -397,7 +404,7 @@ public:
 	//                                           write "focus lost" before it)
 	//                     resize <w> <h>        SDL_SetWindowSize: the window's client area, in screen pixels
 	//                     close                 the window's close button: SDL_WINDOWEVENT_CLOSE, then SDL_QUIT
-	//                     screenshot, screenshotfull, quit, pointer  as in -script (done at once, not pushed)
+	//                     screenshot, screenshotfull, quit, pointer, memreport  as in -script (done at once, not pushed)
 	//                   Full screen is Alt+Enter: "keydown Left Alt", "key Return", "keyup Left Alt". Other
 	//                   commands go to the game's HandleScriptCommand, run at once; so does a bare "move" (no
 	//                   point), which asks the game's bot for its next move (docs/TEST_COMMANDS.md).
@@ -530,6 +537,11 @@ protected:
 	void PushRealText(const std::string& theText);
 	// A script command the framework does not know; return true if handled (the default handles none)
 	virtual bool HandleScriptCommand(const ScriptCommand& theCommand);
+	// The "memreport" command (MemReportCommand.cpp): logs MEMREPORT and the report's line; with a file name it also
+	// writes the table by picture and the heaps there, and returns false when that file cannot be written.
+	bool DoMemReport(const std::string& theFileName);
+	// A game's own holders for that report: it adds a name and its bytes to theReport->mOthers (the default adds none)
+	virtual void AddMemReportHolders(Platform::MemReport* theReport);
 	bool SaveScreenshot(const std::string& theFileName, bool fullResolution = false);
 
 	// Registry emulation helpers

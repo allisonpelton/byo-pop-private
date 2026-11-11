@@ -591,3 +591,66 @@ no log line or file format did. `tools/check.sh build mummymaze` passes with the
 the trap's 150 frames still compare as they did. The fix was compared with the original: the adventure's level-complete screen
 after the first chamber, five photographs between updates 2500 and 2900, matches pixel for pixel, natively (5 of 5 against the
 original in Windows Sandbox) and in the web build under Node (5 of 5 against the native port).
+
+## Split fields (`tools/splitfields.py`, 2026-11-11)
+
+`python tools/splitfields.py mummymaze --export re/mummymaze/gh/decomp/_global` found no member declared twice under two
+names, none never written and none written and never read (the port's 29 classes have 280 members, 214 of them with an
+offset known from the export). Its last check lists the members whose offset an export function touches while the port's
+translation of that function never names the member: 33 members to begin with, 19 after the one fix below. Each was read in
+the export and in the port; the verdicts follow.
+
+**One real gap, fixed.** `0x4201e0` (`MMApp::ButtonDepress`), case 0x7d3, the answer to "Quit to Main": in an adventure
+it makes a map from the saved game (the constructor reads the file into the app's time and death count), adds the time played
+in this maze (`mElapsedBase / 100` plus the seconds since the board's start, the same sum as the other ways out of a maze)
+unless the chamber's result screen is up, which has added it already, and removes the map, whose removal writes the file. The
+port's case went to the main menu and saved nothing for an adventure, so the time played since the last save was lost. It
+now does what the original does (`AdventureLeave` for a chamber being played, a map made and removed for the result
+screen). Compared with the original in Windows Sandbox: an adventure of a new player, a chamber entered, 20 seconds played,
+Quit to Main answered with yes, the same slot opened again and the map's statistics read: both say "0 hours, 0 minutes, and 20
+seconds", and the four photographs (the dialog, the slots, the map, the statistics) match, apart from differences of a single
+level in a few dozen pixels that shotdiff counts as faint (`IDENTICAL_PLAY.md`, the readability pass's changes); the web
+build under Node matches the native port's four photographs exactly.
+
+**The world map's three buttons are the shift of a second base class, not a split.** `0x418aa0` is the map's button
+handler, a `ButtonListener` method: its `this` is the listener part of the object, 0x4c bytes above the widget's start. Its
++0x68 is the port's `mCurrent` (+0xb4), +0x6c `mTarget` (+0xb8), +0x74 `mProgress` (+0xc0, 15 chambers counts), +0xb0
+`mStep` (+0xfc), +0x18 `mEnterButton` (+0x64) and +0x2c the pyramid buttons (+0x78). The port's declarations of
+`mBackButton`, `mStatsButton` and `mChestButton` are right; the tool's offsets for the first two are the widget's own and
+find the listener's fields. The port's `MapWidget::ButtonDepress` was read case by case against the export (statistics,
+name, intro, enter, back, the pyramids' default case with its walk and its two returns) and has the same branches.
+
+**The trial counter, registration code left out.** The original's `0x4017f0` (a slot chosen: `AdventureDialog`),
+`0x4201e0` case 0x7de (Continue, when a classic game was saved: it reads the saved chamber and pyramid at +0x10424 and
++0x10428, which is why they are findings) and `0x424fa0` (the start of a game) each add one to the app's counter at +0x36c;
+`0x42a5f0`, `0x42b0d0` and `0x42bc50` compare it with 30 and the registered flag (+0x2f0): the trial's thirty plays and the
+nag. None of it is in the port (registration code is out, `Registration and the buttons that lead out of the game`), and the
+two saved fields are read only for it.
+
+**Read only, harmless.** The original's functions read these through another path than the port's translation does, and
+nothing they read changes what is drawn or played.
+
+- `Board::mSize` (+0x50) in `0x410660` and `0x410860`: the port reads it through `SizeIndex()`, an inline in `Board.h`
+  that the tool does not follow (6, 8 or 10 become 0, 1, 2, as the export's tests of 8 and 10 do).
+- `mApp` (+0x58) in `0x40cb70`, `0x40d130`, `0x40de00` and `0x410860`: the original's drawing reaches its pictures through
+  the app's table at +0x10380; the port reaches the same pictures through `IMG(...)`.
+- `mExplorer` (+0x60) and `mScorpion` (+0x6c) in `0x4050b0` and `0x411640`: both searches start from a record that the
+  original builds inline from the live pieces; the port's `Board::GetChaseState` (`BoardLevel.cpp`) builds it once for both.
+- `mPlayNowButton` (+0x7c) in `0x408780`: the +0x7c there is a call through the board's table (a virtual function), not the
+  member.
+- `mMaze` (+0x2b0) and `mFile` (+0x2b4) in `0x4050b0`: the original, when its search finds no way out, appends the two
+  numbers to `badmaps.dat`, the debug file that "Fix candidates" lists as not written (left out on purpose, with a comment in
+  `Board::DoSolution`).
+- `mFont1` (+0x10384) and `mHeaderFont` (+0x1038c) in `0x41bb10`, `0x41eab0` and `0x41b5b0`: the original reads the two
+  fonts where it makes a dialog and hands them to the constructor; the port's dialogs set the same two fonts as buttons,
+  header and lines font in their own constructors (`Dialogs.cpp`, `AdventureDialogs.cpp`).
+- `mImages` (+0x10380) in `0x41db90`: the picture loader indexes the original's array of pictures; in the port it is the
+  `ImageTable`, which decodes a picture at its first use (`MummyApp.h`).
+- `mElapsedBase` (+0x104a8) in `0x4201e0`: the sum above, now in `AdventureLeave`.
+- `WarningDialog::mWhich` (+0xcc): the dialog's height at 0x42bb80 and its box at 0x42bba0 to 0x42bc00 differ for "which" 7,
+  the reminder that the demo showed; the port does not make that dialog. The height of the others is 0x122 plus 0x14, 0x136,
+  as the port has it.
+
+`mTotalTime` and `mDeaths` stay in the tool's list for `0x4201e0`: its case 0x7db (a new adventure, writing the zeros) is
+`MMApp::CreateAdventure` and its case 0x7d3 is `AdventureLeave`, which are the port's own functions with their own
+comments. The finding is the tool's limit (it reads one translation per address); both are read and compared.

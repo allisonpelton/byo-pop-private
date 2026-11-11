@@ -222,6 +222,19 @@ if(NOT EMSCRIPTEN)
   endif()
 endif()
 
+# Scaling test (tools/scaletest): what it costs to scale a finished frame up to the window without a 3D device (SDL's
+# software renderer, GDI's stretch), and each way's picture. Native Windows only; it opens a window, so it runs under rundesk.
+if(WIN32 AND NOT EMSCRIPTEN)
+  add_executable(scaletest tools/scaletest/scaletest.cpp)
+  target_link_libraries(scaletest PRIVATE SDL2::SDL2 gdi32)
+  if(NOT MSVC)
+    target_compile_options(scaletest PRIVATE -Wall)
+  endif()
+  add_custom_command(TARGET scaletest POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:SDL2::SDL2> ${PORT_RUNTIME_DLLS} $<TARGET_FILE_DIR:scaletest>
+    VERBATIM)
+endif()
+
 # GPU test (tools/gputest): the GL GPUInterface's Direct3D 9 conventions on the real GPU, one test each, exact pixels.
 # Native only; it opens a hidden GL window, so tools/check.sh gpu runs it under rundesk.
 if(NOT EMSCRIPTEN)

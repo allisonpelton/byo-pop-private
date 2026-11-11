@@ -70,14 +70,14 @@ straight lines through free cells with as few turns as the cost allows (`PathFin
 
 The strategy mode's **level** needs `mMax` molecules (the board's meter, set by `StartLevel`); every fifth level is a bonus
 level (`SetupBonusLevel` 0x40dd10) with groups of four atoms of each colour; the radiation rounds mark cells that
-must be cleared. The action mode (`SetupTimedLevel` 0x40f730) has no rounds: a clock (`mF390`, 300 to 0) adds atoms and the
+must be cleared. The action mode (`SetupTimedLevel` 0x40f730) has no rounds: a clock (`mRoundTimer`, 300 to 0) adds atoms and the
 meter drains; a molecule empties it, and it fills when it runs out. The field is lost when more than 71 atoms stand on it.
 
 ## 5. The board
 
 The board draws the machine around the field and owns the meter, the atomic bomb (`mProgress` 0 to 48, `CheckBomb` 0x4322c0,
 `StepBomb` 0x432360: it bursts atoms until its charge is used up), Atomicus, the effects list and the floating scores.
-The level sign counts down from 0x163 (`mI16c`); the field is revealed by sparks (`Sparkle`, 0x41c5f0) that set the cells'
+The level sign counts down from 0x163 (`mGetReadyAlpha`); the field is revealed by sparks (`Sparkle`, 0x41c5f0) that set the cells'
 state from -100000 to 0x40 and the grid's update brings it to 255.
 
 ## 6. The tutorial boxes
@@ -106,7 +106,7 @@ triangles (0x4283a0, spans handed to `Image::FillScanLines`); its colour follows
 are absorbed flash it). An atom that leaves the field (`Atom::FlyAway`, 0x4027a0) gets a *clone* of the newest swirl (0x428870,
 drawn without a ring) and circles in it by polar coordinates (`mFlyX` the angle, `mFlySize` the part of the radius); when the clone
 goes, the atoms in it go with a flash and a sound. The constants that go on from one swirl to the next (the radius and angle of the
-next target, the next minimum radius) are globals of the program, not of the game. A new game starts with `mB98`, which repeats the
+next target, the next minimum radius) are globals of the program, not of the game. A new game starts with `mSwirlsCatchUp`, which repeats the
 swirl update until the first swirl has gone, so that the background is full from the first picture. Everything here uses the game's
 random numbers (the ring's jitter, the flicker of an atom's brightness), so the bot's results depend on it.
 The freeze (water element) walks `mGlowSwirl` along the list every ten steps; that swirl glows brighter.
@@ -121,7 +121,7 @@ and the doors close over it, each update `door = -1 - ftol(door * -0.95)`; when 
 down (`panelY = -1 - ftol(panelY * -0.9)`, `mSndSwoop` when it has arrived) while its contents fade in 3 a step. A game that
 starts (`ButtonPress`, the listener's slot 1; the board is made at once and stays under the menu) makes the panel go up by a tenth
 more of what it has gone each step and, when it is away, plays `mSndDoorOpen` and opens the doors by a quarter more each step;
-at 0x14a the app's `mB3eac` closes the menu (the board's update does it). "Main menu" after a game lets the panel drop out of
+at 0x14a the app's `mMenuDoorsOpen` closes the menu (the board's update does it). "Main menu" after a game lets the panel drop out of
 sight below the screen (a tenth more each step, `mSndSwoop` when it is under 480) and come back from above with the main page.
 `ButtonDepress` (slot 2) only handles the exit. The menu's music is song 1 (order 0x1f; 0x29 after a game), stopped by the
 menu's destructor; the game's is song 0. The box's "return" button plays its click on press and closes the box on release.
@@ -185,6 +185,12 @@ and wait for their button. The one real wait is the level made in a strategy gam
 and the player can do nothing. It is the original's level-complete scene, not dead time, so it is kept and not made a toggle; if the
 scene should be shorter, the toggle would move `ShowLevelUp` up to the tick at which the atoms have gone (the state trace would then
 differ from the original's after each level). Nothing else was found.
+
+**A candidate, for the user to decide (2026-11-11).** The original never removes `SAVEGAME.DAT`, so a saved game can be continued,
+played to its end or left without saving, and continued again from the same point as often as the player likes; the menu offers it
+until another game is saved over it. The port does the same now (`IDENTICAL_PLAY.md`, "The saved game stays"; before, it emptied
+the file when the game was continued, which no one had asked of it). A toggle of the fixes mod could make a continued game use its
+file up. It is not made: whether a second chance from a saved game is a fault is the user's call.
 
 ## 11. Performance
 
@@ -443,3 +449,74 @@ and action games, the rerun). The pictures were checked with a control: three sc
 traces. The coverage report on the 31 runs of section 12 now has no function reached without a counterpart and none defined and
 never reached; the port defines 323 of the game's 453 functions, and 44 are neither reached nor defined (the 36 of section 12 and
 these eight).
+
+
+## 14. Readability pass (2026-11-11)
+
+The pass to `docs/CODE_STANDARDS.md`, after the code the port does not need was out (section 13). No Mac build of Atomica exists
+(`re/atomica` has none), so every name comes from how the code uses the thing, and the Mac-name step has nothing to give.
+
+**Names.** The board, the grid, the atoms and the app had 84 members that carried a letter and an offset (`mI148`, `mF8c`,
+`mStat374`, `mB4b3`, `mM30c`); each now says what it holds, with a comment on its line: `mBombTimer`, `mFreezeSwirlTimer`,
+`mLevelUpdates` (the level's totals, which the board takes at the end of the level), `mCheckMolecules`, `mReadyElementX`. The
+fields the original writes and nothing reads (`mSavedZero`, `mStatSavedZero` and `mElementSavedZero`, three zeros the saved
+game keeps; `mPickedCol` and `mPickedRow`; `mElementReady`; `mLevelSetUp`) keep a name and say in their comment that nothing reads
+them, since the save's layout depends on some of them. The tails that several levels of `Grid::StartLevel` jump to were
+`LAB_00410bd9` and the like and are `chancesThree`, `chromiumSixArrow`, `radiationCells`, `arrowLeft`, `arrowDown` and
+`biohazardFour`. `Wrap360` is `WrapDegrees`, the `FILE*` of the Save and Load functions is `theFile`, and three locals without the
+framework's prefix (`a`, `b`, `h`, `anyFlown`) have one. The one-letter names that `namecheck.py` flagged (the autoplay's, the
+state trace's and `GameText.cpp`'s loops) and the grid pointers called `g`, which is the graphics, are `aState`, `aTable`,
+`aBoard`, `aGrid`, `theGrid`, `aLipEntry` and `aTextEntry`. Text that files and logs carry keeps its spelling: the state trace's
+keys (`f8c`, `i90`, `m31c` and the others, which `tools/identical/compare.py` reads) and the `state` command's field names.
+
+**Addresses.** Thirty-five functions had neither an address nor the port marker. Where the original has the function it now
+names it: `LoadingThreadCompleted` (0x4061e0, a jump to the base's), `ReadFromRegistry` (0x406dc0), `HighScoreDialog::EditWidgetText`
+(0x41cbd0, the name line's listener: a jump to the box's `ButtonDepress` with 2, which is why Enter does what "okay" does),
+`Grid::MouseDrag` (0x40c530, a jump to `MouseMove`), `TitleScreen::RemovedFromManager` (0x42fb70), `Vortex::~Vortex` (0x431270),
+`SpriteMgr::~SpriteMgr` (0x429890) and `EarthBolt::Draw` (0x405cf0, the empty function that every empty slot of the original
+points to). `Grid::Draw` is the same empty function, and the address that stood on it, 0x413880, is the field's draw that the
+board's draw calls: it is `Grid::DrawField` now. The helpers the original has in line say `port:`, and the test hooks, the fixes
+mod and the game texts carry the marker in their first comment. `namecheck.py` reports no finding in the 51 files.
+
+**Code found on the way.** `ScoreTable::Place` and `GameDialog::Close` had no caller (the survey of section 13 had looked at
+members, constants and warnings, and a function the compiler does not warn about slipped through), and the path finder's search
+counter (+0x300) is counted at every step of the search and reset at its start, in the original as in the port, and read nowhere:
+the three are out. `Atom::mPathNode` (+0x38) is the same kind of field, but the loop that sets it also walks the path's
+cursor to its end, so it stays, with a comment that nothing reads it.
+
+**The coverage report after the addresses.** The functions that now carry an address count as the port's, so the report on the 31
+runs of section 12 lists the port's definitions of five that no run of the original reached: `Grid::MouseDrag` (0x40c530), the
+sprite manager's destructors (0x429890 and the deleting one, 0x429c30) and the vortex's (0x431270, 0x4314e0). None was compared
+by a run (the runs never drag a held atom's way across the field with a button down, and neither the manager nor a vortex is
+destroyed before the game exits), so each was read again against the export: `MouseDrag` is a jump to the `MouseMove` slot with the
+same arguments, as the port's is; the manager's destructor deletes each of its sprites through their own destructors and then
+frees its list, and the vortex's frees each particle and its list, as the port's do. The report has no function reached without a
+counterpart; the port defines 329 of the game's 453 functions, 86 are left out on purpose and 39 are neither reached nor defined
+(the 44 of section 13, less these five).
+
+**Numbers.** The field's size was written as 9, 8, 7, 0x32 and 0x19 in a score of places; they are `Grid::COLS`, `ROWS` and `CELL`
+(the middle of a cell is `CELL / 2`). A cell's reveal state is `CELL_REVEALED` (0xff, shown in full) and `CELL_ATOM_SHOWN` (0x96,
+from which its atom is drawn), and the 0x120 bytes of it that the saved game holds are `sizeof(mCellState)`. The 360 degrees of
+an angle are `FULL_TURN`, in the angle tables, the wraps and the random angles. A number that stands once with a plain meaning (a
+draw offset, a colour, an alpha) stays as it is.
+
+**The fields `tools/splitfields.py` finds.** No member is declared twice under two names, none is read and never assigned, and none
+is assigned and read nowhere without an offset. Its 22 export findings are all reads the translation makes another way:
+- the app's title screen (+0x49c) is read by the loading thread's progress updates, which the port makes in `PumpLoading`; the
+  atoms' shrunk copies (+0x5a8) are made in `LoadAtoms`, the part of the loader (0x406f90) that the port keeps apart;
+- the board's +0xc0, read by its draw, is the detail setting: the constructor sets it to 1 and nothing else writes it, the draw
+  clears the screen first when it is not 1 (the comment in `Board::Draw` says so), and the swirls read it as their step;
+- the seven counters of the end page (+0x1c4 to +0x1dc) are saved and loaded as one block, which the translation writes as one;
+- `GameDialog::mApp` (+0x90) is read at the end of `AddedToManager` and of `RemovedFromManager` for a call of the app's virtual
+  functions 51 and 52, which are the empty function (0x405b00) in this app, so the port leaves the calls out;
+- the grid's 17 reads in 0x413880 were the field's draw under the wrong address (above); and the one read of the main menu's +0x84
+  in 0x41a010 is a virtual call at that offset, not the field.
+Its seven write-only members with an offset are fields the original writes and nothing reads (`mLevelFont` and `mTopLights`, loaded
+and unused in the original too: section 13; `mPickedCol` and `mPickedRow`; the atom's path node; the path finder's searches,
+now out; and Dr. Atomicus's blink counter, which is read only by its own decrement and test).
+
+**Proof.** After each step every object of the native build was compared with the one before it (`tools/objsnap.py`, with the
+build's names taken out): the 84 renames, the addresses and comments, the named numbers and the `FILE*` renames leave the 36 objects,
+716 functions in all, as they were, with their data. Only the removals above differ: the two functions without a caller and the
+search counter (its stores, and the offsets of the path finder's later members). `tools/check.sh atomica` matches the frozen
+baseline ("baseline identical").

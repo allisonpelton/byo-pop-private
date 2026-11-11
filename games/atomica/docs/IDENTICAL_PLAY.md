@@ -250,3 +250,18 @@ options box already had for the original's Register and More Games rows. The ori
 4,500 updates later, since in the Sandbox its title screen had not finished loading at update 1,510 and the click on its link
 missed; the port takes the same later lines. The biohazard countdown's shift of 12 pixels with the option on (0x4028c0) was already
 in the port and is not in these pictures.
+
+## The saved game stays (2026-11-11)
+
+The port emptied `SAVEGAME.DAT` when a saved game was continued and again at the game over, so the menu's continue line went
+away. The original never removes the file: its game code has no call that deletes one, `SaveGame` (0x405fc0) is the only writer,
+and the menu's constructor (0x4198e0) offers the saved game whenever the file is there. So in the original a saved game can be
+continued, played to its end or left, and continued again from the same point. The port now does the same (the readability
+pass found it while looking for the address of the port's `DeleteSavedGame`, which had none). It is listed as a fix candidate
+for the fixes mod (`GAME_NOTES.md` section 10).
+
+`tools/identical/p2-continue.txt` continues a saved game, leaves it by the quit box's "quit" (the one that does not save) and
+photographs the main menu twice: both pictures are the same as the original's, pixel for pixel, with the continue line in them.
+The picture of the continued game itself differs in three atoms' rings by a rotation step, the oddity of phase two ("Rotated
+glow-sprite atoms"). Both games started from the same file, one the port saved (`tools/coverage/make-saves.sh`), and the original
+ran with every line of the scenario 4,500 updates later, as for the colour-blind option.

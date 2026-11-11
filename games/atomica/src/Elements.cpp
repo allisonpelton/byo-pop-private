@@ -16,10 +16,10 @@ using namespace Sexy;
 ElementAtom::ElementAtom(Grid* theGrid, int theType, bool theLoading) :
 	Atom(theGrid, theType, true)
 {
-	mFlag_e0 = true;
+	mIsElementAtom = true;
 	mElement = 0;
 	mLevel = 0;
-	mF124 = 0;
+	mElementSavedZero = 0;
 	switch (theType)
 	{
 	case 0xc:
@@ -58,7 +58,7 @@ ElementAtom::ElementAtom(Grid* theGrid, int theType, bool theLoading) :
 		mLevel = theType - 0x18;
 		break;
 	}
-	mF_f0 = 0;
+	mPictureFrame = 0;
 	static const float kSteps[4] = {0.1f, 0.15f, 0.2f, 0.25f};
 	for (int i = 0; i < 5; i++)
 	{
@@ -70,12 +70,12 @@ ElementAtom::ElementAtom(Grid* theGrid, int theType, bool theLoading) :
 	if (mLevel == 0)
 	{
 		mApp->mBoard->mAtomicus->Say(3);
-		mGrid->mStat388++;
+		mGrid->mLevelBonusMolecules++;
 	}
 	else
 	{
 		mApp->mBoard->mAtomicus->Say(5);
-		mGrid->mStat38c++;
+		mGrid->mLevelBonusUpgrades++;
 	}
 	if (mApp->mMode == 1)
 		mApp->mBoard->mMeter.mValue = mApp->mBoard->mMeter.mValue * 0.5f;
@@ -92,16 +92,16 @@ void ElementAtom::Update()
 	Atom::Update();
 	if (!mPre)
 	{
-		mF_f0 += 0.1f;
-		if (8.0f < mF_f0)
+		mPictureFrame += 0.1f;
+		if (8.0f < mPictureFrame)
 		{
-			mGrid->mB4b3 = true;
-			mGrid->mB4b4 = (unsigned char) (mElement + 1);
-			mGrid->mI4b8 = mGrid->mX + mX;
-			mGrid->mI4bc = mGrid->mY + mY;
+			mGrid->mElementReady = true;
+			mGrid->mReadyElement = (unsigned char) (mElement + 1);
+			mGrid->mReadyElementX = mGrid->mX + mX;
+			mGrid->mReadyElementY = mGrid->mY + mY;
 		}
-		if (16.0f <= mF_f0)
-			mF_f0 -= 16.0f;
+		if (16.0f <= mPictureFrame)
+			mPictureFrame -= 16.0f;
 	}
 	for (int i = 0; i < 5; i++)
 	{
@@ -120,7 +120,7 @@ void ElementAtom::Draw(Graphics* g)
 		Atom::Draw(g);
 		return;
 	}
-	mApp->mElemental[mElement][(int) mF_f0]->DrawCentered(g, mX, mY);
+	mApp->mElemental[mElement][(int) mPictureFrame]->DrawCentered(g, mX, mY);
 	g->SetColorizeImages(true);
 	g->SetColor(mColor);
 	mApp->mBonusLevels[(int) mFlicker[0]]->DrawCentered(g, mX, mY);
@@ -154,7 +154,7 @@ void ElementAtom::ShatterIn()
 	FlyAway(mApp->mBoard->LastTarget());
 }
 
-// the banner with the element's word, in the element's colour made brighter, at the atom
+// port: the banner with the element's word, in the element's colour made brighter, at the atom
 static void AddBanner(ElementAtom* theAtom, int theWord)
 {
 	AtomicaApp* anApp = theAtom->mApp;
@@ -265,25 +265,25 @@ void ElementAtom::OnPlaced()
 }
 
 // 0x4049d0
-void ElementAtom::Save(FILE* f)
+void ElementAtom::Save(FILE* theFile)
 {
-	Atom::Save(f);
-	fwrite(&mF_f0, 4, 1, f);
-	fwrite(mFlicker, 4, 5, f);
-	fwrite(mFlickerStep, 4, 5, f);
-	fwrite(&mElement, 4, 1, f);
-	fwrite(&mLevel, 4, 1, f);
-	fwrite(&mF124, 4, 1, f);
+	Atom::Save(theFile);
+	fwrite(&mPictureFrame, 4, 1, theFile);
+	fwrite(mFlicker, 4, 5, theFile);
+	fwrite(mFlickerStep, 4, 5, theFile);
+	fwrite(&mElement, 4, 1, theFile);
+	fwrite(&mLevel, 4, 1, theFile);
+	fwrite(&mElementSavedZero, 4, 1, theFile);
 }
 
 // 0x404a50
-void ElementAtom::Load(FILE* f)
+void ElementAtom::Load(FILE* theFile)
 {
-	Atom::Load(f);
-	fread(&mF_f0, 4, 1, f);
-	fread(mFlicker, 4, 5, f);
-	fread(mFlickerStep, 4, 5, f);
-	fread(&mElement, 4, 1, f);
-	fread(&mLevel, 4, 1, f);
-	fread(&mF124, 4, 1, f);
+	Atom::Load(theFile);
+	fread(&mPictureFrame, 4, 1, theFile);
+	fread(mFlicker, 4, 5, theFile);
+	fread(mFlickerStep, 4, 5, theFile);
+	fread(&mElement, 4, 1, theFile);
+	fread(&mLevel, 4, 1, theFile);
+	fread(&mElementSavedZero, 4, 1, theFile);
 }

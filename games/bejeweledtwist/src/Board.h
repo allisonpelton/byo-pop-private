@@ -250,7 +250,7 @@ public:
 		float mFade = 0;
 		int mRow = 0;              // +0x8
 		int mCol = 0;              // +0xc
-		bool mHoldsFixedGem = false;
+		// (+0x10: a mark under the cursor's corners that nothing reads, left out)
 		Color mColor = Color(0, 0, 0, 0);  // +0x14: Color() with its alpha then cleared
 		float mLightPulse = 0;
 		float mLightGlow = 0;

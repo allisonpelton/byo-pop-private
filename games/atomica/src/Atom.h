@@ -55,7 +55,7 @@ public:
 	int			mAimAngle;			// +0x30 degrees to the cursor
 	bool		mPlaced;			// +0x34 sits in a cell
 	bool		mFollowing;			// +0x35 follows the path in mPath
-	int*		mPathNode;			// +0x38 the node it came from (col, row)
+	int*		mPathNode;			// +0x38 the last node of the path it was given (nothing reads it; cleared when the atom reaches a node)
 	int*		mNextNode;			// +0x3c the node it goes to
 	int			mSpeed;				// +0x40 steps a path takes per update (1..3)
 	Color		mColor;				// +0x44 the colour of the atom's type (alpha at +0x50)
@@ -70,9 +70,9 @@ public:
 	float		mFlyTurn;			// +0x9c
 	float		mFlyGrow;			// +0xa0
 	int			mAlpha;				// +0xa8
-	bool		mFlag_ac;			// +0xac
+	bool		mFormsByItself;			// +0xac a pre-atom of a level's set-up: it forms without waiting for the round
 	bool		mHidden;			// +0xad hidden until the field's reveal wave reaches it
-	float		mF_b0;				// +0xb0
+	float		mFlyGrowLimit;			// +0xb0 how big a flown atom grows (1.5 to 2)
 	float		mBounce;			// +0xb4 0 to 5
 	float		mBounceStep;		// +0xb8
 	int			mBounceTick;		// +0xbc
@@ -84,8 +84,8 @@ public:
 	float		mGlowStep;			// +0xd4
 	bool		mNear;				// +0xd8
 	int			mNearAlpha;			// +0xdc
-	bool		mFlag_e0;			// +0xe0 (element atoms)
-	int			mE4, mE8, mEC;		// +0xe4 +0xe8 +0xec
+	bool		mIsElementAtom;			// +0xe0 an element atom
+	int			mShakeTime, mShakeX, mShakeY;	// +0xe4 +0xe8 +0xec a molecule's atom shakes for 50 updates, then flies away
 
 public:
 	// 0x4015d0: the grid's atom of a type; theNoSpecial: not a chromium or biohazard atom by chance
@@ -104,20 +104,20 @@ public:
 	virtual void	Draw(Graphics* g);					// 0x4037f0
 	virtual bool	IsElement() { return false; }		// 0x450070
 	virtual void	OnPlaced() {}						// 0x405b00
-	virtual void	Save(FILE* f);						// 0x4012c0
-	virtual void	Load(FILE* f);						// 0x403100
+	virtual void	Save(FILE* theFile);				// 0x4012c0
+	virtual void	Load(FILE* theFile);				// 0x403100
 };
 
 // The bonus atoms of the five elements (fire, water, earth, air, ether; three levels each): types 12 to 26
 class ElementAtom : public Atom
 {
 public:
-	float		mF_f0;				// +0xf0
+	float		mPictureFrame;			// +0xf0 the frame of the element's picture, 0 to 16; past 8 the atom is ready to act
 	float		mFlicker[5];		// +0xf4 0 to 32
 	float		mFlickerStep[5];	// +0x108
 	int			mElement;			// +0x11c 0 fire, 1 water, 2 earth, 3 air, 4 ether
 	int			mLevel;				// +0x120 0 to 2
-	int			mF124;				// +0x124
+	int			mElementSavedZero;		// +0x124 0 throughout: saved and loaded, nothing reads it
 
 	ElementAtom(Grid* theGrid, int theType, bool theLoading = false);	// 0x4043d0
 	virtual ~ElementAtom();								// 0x404630
@@ -125,8 +125,8 @@ public:
 	virtual void	Draw(Graphics* g);					// 0x404b00
 	virtual bool	IsElement() { return true; }
 	virtual void	OnPlaced();							// 0x4055b0: the element's effect
-	virtual void	Save(FILE* f);						// 0x4049d0
-	virtual void	Load(FILE* f);						// 0x404a50
+	virtual void	Save(FILE* theFile);				// 0x4049d0
+	virtual void	Load(FILE* theFile);				// 0x404a50
 	void			ShatterIn();						// 0x4047e0
 	void			Fire(int theLevel);					// 0x404e30
 	void			Water(int theLevel);				// 0x404fd0
@@ -135,9 +135,12 @@ public:
 	void			Ether(int theLevel);				// 0x405480
 };
 
+// the degrees of a turn: an angle is kept in 0 to FULL_TURN - 1, and the tables below have FULL_TURN entries
+enum { FULL_TURN = 360 };
+
 // 0x421b00: the compass angle in whole degrees from the first point to the second (0 up, 90 right)
 int			CompassAngle(int theX1, int theY1, int theX2, int theY2);
-// 0x4015.. : the frame of the chromium atom's pictures (0 the full size, then the shrunk ones)
+// part of 0x4028c0 and 0x428940: the frame of the chromium atom's pictures (0 the full size, then the shrunk ones)
 Sprite*		ChromiumFrame(AtomicaApp* theApp, int theFrame);
 // the chemical symbol the colour-blind option writes on an atom of a plain type (0 to 11)
 const std::string&	AtomSymbolText(int theType);

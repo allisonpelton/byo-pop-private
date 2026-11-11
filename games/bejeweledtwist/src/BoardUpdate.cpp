@@ -1069,7 +1069,6 @@ void Board::UpdateGame()
 			for (int aCol = 0; aCol < mCols; aCol++) {
 				Piece* aPiece = GetPieceAt(aRow, aCol);
 				Cell& aCell = mCells[mCols * aRow + aCol];
-				aCell.mHoldsFixedGem = false;
 				UpdateCell(aCell);
 				if (aPiece == nullptr)
 					continue;
@@ -1175,19 +1174,8 @@ void Board::UpdateGame()
 			mColumnLift[aCol] = aLift <= 0.0f ? aLift : 0.0f;
 		}
 	}
-	// The cells under the cursor's corners
-	int aCursorX = mCursorX;
-	int aCursorY = mCursorY;
-	Piece* aCorners[4];
-	aCorners[0] = GetPieceAtXY(aCursorX, aCursorY);
-	aCorners[1] = GetPieceAtXY(aCursorX + gGemWidth, aCursorY);
-	aCorners[2] = GetPieceAtXY(aCursorX, aCursorY + gGemWidth);
-	aCorners[3] = GetPieceAtXY(aCursorX + gGemWidth, aCursorY + gGemHeight);
-	for (int i = 0; i < 4; i++) {
-		Piece* aPiece = aCorners[i];
-		if (!CanMove(aPiece) && aPiece != nullptr)
-			mCells[aPiece->mRow * mCols + aPiece->mCol].mHoldsFixedGem = true;
-	}
+	// (the original marks the cells under the cursor's corners that hold a gem that cannot move, at +0x10 of the
+	// cell, and nothing reads the mark)
 	if (mInputLock == 0) {
 		float aShine = (float)((double)mShineAmount + (double)0.025f);
 		mShineAmount = aShine;

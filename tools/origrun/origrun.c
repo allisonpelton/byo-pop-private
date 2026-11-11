@@ -448,6 +448,10 @@ static void vc_summary(void)
 // one, the game reads Windows' cursor. See docs/ORIGRUN.md, "The scripted cursor".
 static int    gCursorScripted = 0;
 static int    gKeysScripted = 0;      // --keys scripted: the copy's GetKeyState reads the key state below (cursor.c)
+// --reg-map popcap (or reg_map=popcap in the game's .cfg): the copy's creates and opens of HKLM\SOFTWARE\PopCap keys go to
+// HKCU with the same path (regmap.c in the stand-in), so that what an unelevated copy writes is there for its next run.
+// -1: not said on the command line. See docs/ORIGRUN.md, "The registry map".
+static int    gRegMap = -1;
 static CurShared* gCur = NULL;        // mapped until origrun exits (made for --cursor scripted or --keys scripted)
 static void cursor_note(HWND top, int x, int y)
 {
@@ -3797,6 +3801,7 @@ static int sandbox_host_run(const char* selfDir, const char* script, int timeout
 	if (gClockVirtual) fprintf(rf,"clock=virtual\n");
 	if (gCursorScripted) fprintf(rf,"cursor=scripted\n");
 	if (gKeysScripted) fprintf(rf,"keys=scripted\n");
+	if (gRegMap>0) fprintf(rf,"regmap=popcap\n");
 	if (gMsgboxHook==0) fprintf(rf,"msgbox=show\n");
 	fclose(rf);
 	// --reg: registry presets, imported inside before the game starts, into the hive the game uses there.
@@ -4215,11 +4220,16 @@ static void msgbox_create(void)
 static void clock_env(void)
 {
 	static const char* const names[]={"ORIGRUN_CLOCK","ORIGRUN_CLOCK_ID","ORIGRUN_CLOCK_HOST","ORIGRUN_CLOCK_HOLDSTART","ORIGRUN_CLOCK_COUNTER","ORIGRUN_CLOCK_WATCH",
-		"ORIGRUN_CURSOR","ORIGRUN_CURSOR_ID","ORIGRUN_KEYS","ORIGRUN_MSGBOX","ORIGRUN_MSGBOX_ID","ORIGRUN_LASTINPUT",NULL};
+		"ORIGRUN_CURSOR","ORIGRUN_CURSOR_ID","ORIGRUN_KEYS","ORIGRUN_MSGBOX","ORIGRUN_MSGBOX_ID","ORIGRUN_LASTINPUT","ORIGRUN_REGMAP",NULL};
 	for (int i=0;names[i];i++) SetEnvironmentVariableA(names[i],NULL);
 	// Always: the stand-in's GetLastInputInfo says the last input is now, so an original that stops drawing once the
 	// machine is idle for the screensaver's timeout keeps drawing (docs/ORIGRUN.md, "The last-input hook")
 	SetEnvironmentVariableA("ORIGRUN_LASTINPUT","now");
+	if (gRegMap>0) {
+		SetEnvironmentVariableA("ORIGRUN_REGMAP","popcap");
+		logline("--reg-map popcap: the game's creates and opens of HKEY_LOCAL_MACHINE\\SOFTWARE\\PopCap keys go to HKEY_CURRENT_USER with the "
+			"same path (in the stand-in; its log is logs/%s.log); the HKLM key is not read in this run", mbx_log_name());
+	}
 	if (gMsgboxHook==0) logline("--msgbox show: message boxes are shown as before; the dialog watch answers them once they are on screen, after their sound");
 	if (!gClockVirtual && !gCursorScripted && !gKeysScripted && gMsgboxHook<=0) return;
 	wsprintfA(gClockId,"%lu-%lu",GetCurrentProcessId(),GetTickCount());
@@ -4314,6 +4324,7 @@ static int main_in_sandbox(const char* dir, int inSession, int probe)
 			else if (ieq(ln,"clock")) gClockVirtual = ieq(v,"virtual");
 			else if (ieq(ln,"cursor")) gCursorScripted = ieq(v,"scripted");
 			else if (ieq(ln,"keys")) gKeysScripted = ieq(v,"scripted");
+			else if (ieq(ln,"regmap")) gRegMap = ieq(v,"popcap");
 			else if (ieq(ln,"msgbox")) gMsgboxHook = ieq(v,"show") ? 0 : 1;
 		}
 		fclose(f);
@@ -4358,6 +4369,7 @@ static int main_in_sandbox(const char* dir, int inSession, int probe)
 	if (gClockVirtual && ieq(sound,"real")) { logline("clock=virtual needs the sound stand-in, which sound=real leaves out: the run stays on the wall clock"); gClockVirtual=0; }
 	if (gCursorScripted && ieq(sound,"real")) { logline("cursor=scripted needs the sound stand-in, which sound=real leaves out: GetCursorPos stays Windows'"); gCursorScripted=0; }
 	if (gKeysScripted && ieq(sound,"real")) { logline("keys=scripted needs the sound stand-in, which sound=real leaves out: GetKeyState stays Windows'"); gKeysScripted=0; }
+	if (gRegMap>0 && ieq(sound,"real")) { logline("regmap=popcap needs the sound stand-in, which sound=real leaves out: the registry is not mapped"); gRegMap=0; }
 	if (gMsgboxHook>0 && ieq(sound,"real")) { logline("sound=real: no stand-in, so no message-box hook: the game's boxes are shown, play their sound and are answered by the dialog watch"); gMsgboxHook=-1; }
 	if (script[0]) load_msgbox_rules(script);   // before the message-box hook's block is made, and before any dialog can appear
 	clock_env();
@@ -4470,6 +4482,11 @@ int main(int argc, char** argv)
 			const char* v=argv[++i];
 			if (ieq(v,"scripted")) gKeysScripted=1; else if (ieq(v,"real")) gKeysScripted=0;
 			else { fprintf(stderr,"--keys takes scripted or real, not %s\n",v); return 2; }
+		}
+		else if (ieq(argv[i],"--reg-map")&&i+1<argc) {
+			const char* v=argv[++i];
+			if (ieq(v,"popcap")) gRegMap=1; else if (ieq(v,"off")) gRegMap=0;
+			else { fprintf(stderr,"--reg-map takes popcap or off, not %s\n",v); return 2; }
 		}
 		else if (ieq(argv[i],"--msgbox")&&i+1<argc) {
 			const char* v=argv[++i];
@@ -4593,7 +4610,7 @@ int main(int argc, char** argv)
 	// "patches=". CLI options override it. It records a game's update-counter address and patch-list path so a
 	// session need not repeat them on every run.
 	static char cfgCounter[256]="", cfgFlips[256]="", cfgPending[256]="", cfgState[256]="", cfgEmpty[256]="", cfgPatches[MAX_PATH]="";
-	int cfgUpdateMs=0, cfgHaveSeed=0; uint32_t cfgSeed=0;
+	int cfgUpdateMs=0, cfgHaveSeed=0, cfgRegMap=0; uint32_t cfgSeed=0;
 	if (game) {
 		char cfg[MAX_PATH]; wsprintfA(cfg,"%s\\tools\\origrun\\%s.cfg",repo,game);
 		FILE* cf=fopen(cfg,"r");
@@ -4611,6 +4628,7 @@ int main(int argc, char** argv)
 				else if (ieq(p,"update_ms")) cfgUpdateMs=atoi(v);
 				else if (ieq(p,"seed")) { cfgHaveSeed=1; cfgSeed=(uint32_t)strtoul(v,NULL,0); }
 				else if (ieq(p,"patches")) lstrcpynA(cfgPatches,v,MAX_PATH);
+				else if (ieq(p,"reg_map")) cfgRegMap = ieq(v,"popcap");
 			}
 			fclose(cf);
 			logline("read per-game config %s", cfg);
@@ -4626,6 +4644,11 @@ int main(int argc, char** argv)
 	if (gEmptyExpr[0] && !(gPendingExpr[0] && gStateExpr[0])) logline("WARNING: --draw-empty is used only with --pending-draw and --update-state");
 	gUpdateMs = updateMs ? updateMs : (cfgUpdateMs ? cfgUpdateMs : 10);
 	if (!haveSeed && cfgHaveSeed) { haveSeed=1; seed=cfgSeed; }
+	if (gRegMap<0) gRegMap = cfgRegMap;   // off unless the command line or the game's config asks for it
+	if (gRegMap>0 && ieq(sound,"real")) {
+		fprintf(stderr, "origrun: --reg-map popcap lives in the sound stand-in, which --sound real leaves out; use --sound stub, wav or nodriver\n");
+		return 2;
+	}
 	if (gCounterExpr[0]) logline("update counter: %s (one update = %d ms)%s%s%s%s%s%s%s%s", gCounterExpr, gUpdateMs, gFlipsExpr[0]?", flips=":"", gFlipsExpr, gPendingExpr[0]?", pending draw=":"", gPendingExpr, gStateExpr[0]?", update step=":"", gStateExpr, gEmptyExpr[0]?", draw empty=":"", gEmptyExpr);
 	if (haveSeed) logline("RNG seed to pin: %u (0x%08X)", seed, seed);
 
