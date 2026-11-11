@@ -310,6 +310,15 @@ void WordHarmonyApp::BotTick()
 			}
 		}
 		const BotStep& st = mBotSteps[mBotAt++];
+		// the same input as a -script line: the bot's step before frame mFrames + 1 changes what the state log puts under
+		// mFrames + 1, which a script's line for frame mFrames + 2 does (its input is handled before that frame, and
+		// logged under the frame before)
+		if (mInputLog != nullptr && st.mKind != BotStep::WAIT)
+		{
+			static const char* const sNames[] = { "move", "down", "up", "click", "rclick" };
+			std::fprintf(mInputLog, "%d %s %d %d\n", mFrames + 2, sNames[st.mKind], st.x, st.y);
+			std::fflush(mInputLog);
+		}
 		switch (st.mKind)
 		{
 		case BotStep::WAIT:
