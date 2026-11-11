@@ -56,6 +56,8 @@ var ByopopApps = (function () {
     var u = new URL(key, SITE);
     u.searchParams.set("embed", "1");
     if (SILENT) u.searchParams.set("silent", "1");
+    // the performance panel asked for in the address (?perf=1, web/perf.js): in every game window of this visit
+    if (Q.get("perf") === "1") u.searchParams.set("perf", "1");
     return u.href;
   }
   // the address in the bar, whatever window is open: the site's root, with the test parameters kept (a reload of a test run

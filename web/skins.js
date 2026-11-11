@@ -46,6 +46,7 @@ var ByopopSkin = (function () {
     var q = new URLSearchParams();
     if (Q.get("silent") === "1") q.set("silent", "1");
     if (Q.get("assets") !== null) q.set("assets", Q.get("assets"));
+    if (Q.get("perf") === "1") q.set("perf", "1");
     return q.toString();
   }
   function onePage() {
