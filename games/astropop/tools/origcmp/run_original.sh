@@ -39,11 +39,20 @@ for try in $(seq 1 "$tries"); do
   done
   [ -z "$KEEP_STATE" ] && rm -f build/origrun/$run/game/users/*
   [ -n "$PROFILE" ] && cp "$PROFILE" build/origrun/$run/game/users/data1.usr
+  # the inside log of the run before (a run that never got its sandbox would otherwise be read as that one)
+  rm -f build/origrun/$run/logs/origrun-sandbox.log
+  # other sessions use the one Windows Sandbox in turn: the run waits in origrun's queue for up to an hour
   build/origrun-bin/origrun.exe --game astropop --run "$run" --exe "$PWD/build/origrun/$run/game/AstroPopGame.exe" \
-    --seed "$seed" --clock virtual --cursor scripted --timeout "$timeout" --watch-max "${WATCH_MAX:-400000}" $SBX $ORIGRUN_ARGS \
-    "${W[@]}" --script "$script" > "$log" 2>&1
+    --seed "$seed" --clock virtual --cursor scripted --timeout "$timeout" --watch-max "${WATCH_MAX:-400000}" $SBX \
+    ${SBX:+--sandbox-wait 3600} $ORIGRUN_ARGS "${W[@]}" --script "$script" > "$log" 2>&1
   st=$?
-  [ -n "$SBX" ] && cat build/origrun/$run/logs/origrun-sandbox.log >> "$log"
+  if [ -n "$SBX" ]; then
+    if [ ! -f build/origrun/$run/logs/origrun-sandbox.log ]; then
+      echo "run_original.sh: try $try of $tries: the run got no sandbox (origrun exit $st: $(tail -1 "$log" | cut -c1-120)); again" >&2
+      continue
+    fi
+    cat build/origrun/$run/logs/origrun-sandbox.log >> "$log"
+  fi
   # a step the original did not reach within 30 s of real time (the machine was busy) was done at an earlier counter: the run is no
   # comparison of the script, so it is made again (SLOW_OK=1 keeps it)
   # (the last step of the script, the mark that ends it, may be out of reach for the same reason: the port's bot waited a long

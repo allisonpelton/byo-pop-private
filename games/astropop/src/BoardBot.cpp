@@ -265,7 +265,7 @@ std::string Board::BotMove()
 			}
 		}
 		if (aBest < 0)
-			return "null";
+			return WaitMove();      // the weapon has emptied the field: the next row comes by itself
 		// the psychic takes the lit cells under the pointer: the pointer goes to the bottom brick of the tallest column. A
 		// move lights its cell only when the pointer's last position was in the field already (MouseMove tests m1958 before
 		// it stores the new one), so the pointer moves twice within the cell before the click

@@ -85,6 +85,9 @@ def main():
     ap.add_argument('--profile', default=None,
                     help='a profile file (users/data1.usr) the player starts with, as the original does with the same file '
                          '(run_original.sh PROFILE=...): the title then leads to the main menu, no name is typed')
+    ap.add_argument('--nulls', type=int, default=40,
+                    help='the run stops ("no move") after this many answers in a row without a move, 30 updates apart: a '
+                         'lull (no scoring move, an empty field) is waited out, and a game that is lost ends as "over"')
     ap.add_argument('--best', type=int, default=None,
                     help='with --profile: the best level of every pilot, so that a classic game starts at the checkpoint '
                          'after it (4 starts at level 5, 8 at 9 and so on)')
@@ -170,7 +173,7 @@ def main():
             m = json.loads(ans[1][len('MOVE '):])
             if m is None:
                 nulls += 1
-                if nulls >= 2:
+                if nulls >= a.nulls:
                     stop = 'no move'
                     break
                 batch = ['wait 30']
