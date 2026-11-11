@@ -2,7 +2,7 @@
 #define __MUMMYMAZE_GAMETEXT_H__
 
 // The texts Mummy Maze shows (dialogs, tutorial boxes, rank names, labels) are hard-coded in the original's
-// exe; there is no string file. port: by the user's decision (2026-10-19) no game text is in the repository:
+// exe; there is no string file. port: no game text is in the repository (it is the game's own):
 // the port reads every text at start-up from the player's own executable, by address, and a mod or language
 // pack can replace any of them.
 //
