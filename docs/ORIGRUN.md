@@ -228,8 +228,9 @@ origrun runs itself and the game again in that session.
 - **The configuration.** `Networking`, `ClipboardRedirection`, `PrinterRedirection`, `AudioInput` and
   `VideoInput` are disabled and `ProtectedClient` is enabled, so a game reaches no network (no "More Games" page,
   no update check, no Steam). `vGPU` is disabled, so the sandbox renders in software, unless `--sandbox-vgpu`:
-  the user allowed that for Bookworm Adventures' 3D comparison (2026-11-01) and Bejeweled Twist's 3D mode
-  (2026-11-02), and another game's 3D runs ask first. Exactly two folders are mapped, the run folder read-write
+  the user allowed that for Bookworm Adventures' 3D comparison (2026-11-01), Bejeweled Twist's 3D mode
+  (2026-11-02), and Typer Shark's and Bejeweled 2's 3D comparisons (2026-11-11), and another game's 3D runs ask
+  first. Exactly two folders are mapped, the run folder read-write
   as `C:\run` and `build/origrun-bin` read-only as `C:\origrun`; origrun resolves both to their final paths (a
   junction shows where it leads) and refuses the run unless the run folder sits directly under the repository's
   `build\origrun` and the binaries' folder ends in `\build\origrun-bin`, both on a local drive.
@@ -627,7 +628,7 @@ Where 3D runs:
 | rundesk's desktop, no wrapper | Never: Windows gives legacy DirectDraw hardware only to the input desktop ("CreateSurface Windowed DrawSurface: DDERR_NODIRECTDRAWHW"); the game runs in software. |
 | rundesk's desktop, `--dgvoodoo` | Works (Bookworm Adventures' on and off are proven): Direct3D 11 does get a hardware device there. No shot, as on every host run. It also gets the full-screen DirectDraw games past "Screen Setup Failed". |
 | the sandbox | No original has run in 3D there. In session 0 the Direct3D test fails (DDERR_NOTFOUND), with `--sandbox-vgpu` too, and with `--dgvoodoo` the game crashes at start. With `--sandbox-connect` the game moves to the user session, whose "Microsoft Remote Display Adapter" fails Direct3D 7's CreateDevice. `ORIGRUN_DGVOODOO_CONF` names a dgVoodoo.conf to try in place of origrun's own. |
-| the user's visible desktop | Works with no wrapper, and needs the user's leave game by game: Bookworm Adventures' 3D comparison ("Yes, capture it", 2026-11-01) and Bejeweled Twist's ("Sandbox, then desktop", 2026-11-02: first `--sandbox --sandbox-vgpu --sandbox-connect`, and the desktop only if the original still falls back to 2D there). |
+| the user's visible desktop | Works with no wrapper, and needs the user's leave game by game: Bookworm Adventures' 3D comparison ("Yes, capture it", 2026-11-01) and Bejeweled Twist's ("Sandbox, then desktop", 2026-11-02: first `--sandbox --sandbox-vgpu --sandbox-connect`, and the desktop only if the original still falls back to 2D there), and Typer Shark's and Bejeweled 2's on the same terms ("Yes, both routes", 2026-11-11). |
 
 A run on the user's desktop goes as Bookworm Adventures' `tools/pilot/visrun.py` does it
 (`games/bookwormadv/docs/IDENTICAL_PLAY.md`, "3D mode"): a copy under `build/`, the window kept on top, a shot
