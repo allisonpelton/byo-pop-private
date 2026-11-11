@@ -65,7 +65,7 @@ static void WriteHighScoreEntry(Buffer& theBuffer, const HighScoreEntry& theEntr
 }
 
 // 0x427440: the players of the registry key Users (one profile for each subkey), the current player's name, and the high
-// score tables from users\user.idx (the defaults when the file is missing or older than 0.48)
+// score tables from users\user.idx (the defaults when the file is missing or older than 0.48); the export cuts it in two at 0x427967
 UserProfileMgr::UserProfileMgr(WinWSApp* theApp)
 {
 	mApp = theApp;

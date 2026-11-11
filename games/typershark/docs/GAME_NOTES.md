@@ -633,3 +633,70 @@ dialogs and screens other than the options dialog were not read for waits or fau
 Not measured yet: the performance pass is this game's own, later in its order of work (the coordinator, 2026-11-09), after the identical-play
 pass. It will model on `games/alchemy/tools/profile/perf.py` and Alchemy's "Performance" section: loading seconds, original and port;
 peak working set and private bytes, CPU time and the number of game processes over a scripted minute.
+
+## 12. Coverage check (2026-11-11)
+
+The whole coverage check of the game (`docs/COVERAGE.md`): origrun's `--coverage` recorded which of the original's functions ran, in 23
+runs on the host (`games/typershark/tools/coverage/run.sh`, `all.sh`; the hits in `build/coverage/typershark/hits/`), all on the virtual
+clock with the scripted cursor, the registry map (`--reg-map popcap`) and phase 2's loading patch unless said:
+
+- phase 2's tours replayed without their shots: M, S, U, H, T, the idle game, tutor lessons 17 and 18, the abyss, the explore, bonus and
+  whole-adventure games (g_exp, g_bon1, g_rt2) and the restart pair (rs_a, rs_b);
+- the sound comparison's run on the real clock with the silent recording stand-in (`snd`), so that the sound code runs;
+- a run with no users folder at all (`nouser`), and a run with the loading patch off, which lets the title screen draw (`title`);
+- five new tours, each also compared with the original in the sandbox by shotdiff (all equal, `IDENTICAL_PLAY.md`, rows P, T2, Q, D, I) and
+  then run on the host: `tour_more.py` (P), `tour_stats.py st2 more` (T2), `tour_test.py` (Q), `missing.sh` (D: the run on the host is `mda`,
+  then `users/user0.dat` deleted, then `mdb`) and `tour_idle2.py` (I).
+
+Every run ended with the game exiting normally. The game's own code is the range 0x401000-0x462290 of the exe, 1095 functions; the rest is
+the C runtime and the libraries the exe holds. The first report of the phase 2 runs gave 863 functions reached and the last gives 914.
+
+**Reached in the original with no counterpart in the port: 308 at first, none at the end.**
+
+- **Placed: 5.** Functions the port translates inside another function (the export cuts three constructors in two, at 0x40a413, 0x410c93 and
+  0x40ea73; a second cut of one at 0x427967; and `CopyImage` before `Palletize` at 0x412870) got their address in the comment above the
+  function that holds them. Comment edits only (Enemy.cpp, MechaTorpedo.cpp, WhitePiranha.cpp, UserProfileMgr.cpp, WinWSApp.cpp).
+- **Left out on purpose: 306, as `none` lines in `coverage.txt` with their reasons.** The vtordisp thunks and base-class forwarders of
+  virtual functions, the parts and deleting forms of the entity classes' destructors, standard library code for the game's types
+  (strings, vectors, the maps of pictures, streams), small helpers the port writes in line (each named in the comment of the function that
+  holds it), the registration, trial and update-check code (removed), and `WinMain`'s callee, which the platform layer's `main` replaces.
+- **No missing game logic was found.** No function of the original that ran was missing from the port.
+
+**Reached by neither the runs nor the port: 159, all `none` lines too** (the report lists them as the third kind): the compiler's exception
+handler blocks (44), vtordisp thunks (24), destructors (7), standard library helpers (64), the registration, money and update dialogs and
+what only they call (19: 0x414020, 0x41b030, 0x41b230, 0x41c1c0 and the `RegisterDialog` and `MoneyDialog` members), and the rect test that
+the port's `Rect` has (0x402020). Nothing in this group is game logic the port needs.
+
+**Defined in the port, never reached: 32 at first, 22 at the end.** The five new tours were made to reach part of this list:
+
+- *Reached by the new runs (10).* The hint box's `KeyChar` (the space bar closes it; found by tour P, whose first version failed, since
+  the port's scripted `key 32` sends no character and the typed space is `char SPACE`), the status bar's resting tooltip, the statistics
+  page's Previous Lesson (0x44b070), the plain message dialog 0x41bd80 and `KeyDialog`'s `AddOkKey` and `RemoveCancelKey` (the typing
+  test's "Test Completed!", the error of a missing data file), `UserProfileMgr::SaveUser` and `GetDefaultUserNumber` (the same error),
+  `TitleScreen::Draw`, and `RestartBoard` (the game-over box's PLAY AGAIN in an adventure). All of them are equal to the original in the
+  pictures. The runs also showed that tour U's delete dialog answers never ran in the sandbox (its clicks missed the OK button, so the
+  question box was never opened); tour P runs the whole flow, equal in all its pairs.
+- *Read again against the export, equal.* `CountKill` (0x4123a0, a boss kill of the abyss: no run killed one), `ResetScroll` (0x441030,
+  reached by continuing a finished adventure, level 100 or later), `XWidget::MouseEnter` and `MouseLeave` (a chest of the map screen under
+  the resting mouse: the runs click the chests, none rests on one). `ShowNoWindowedModeMessage` (0x41d030) shows the message dialog when the
+  framework's `mForceFullscreen` is set, which the original's window code sets only when the desktop's colour depth cannot give a window;
+  no machine of ours does. Its body (the pause, the counter, the dialog 0x30b, the fonts, the spacing and the insets) agrees with the export.
+- *Compiler-made, kept.* The deleting destructors `ProjectileBoss` 0x4083c0, `Projectile` 0x4098e0 and `TabPanel` 0x444700: the objects
+  they free are not freed through that slot in a run (the stats pages live until the exit).
+- *Candidates for taking out code the port does not need (13), no play of the original reaches them and the port has no caller; they stay
+  until the removal pass:* `GameObject::SetState` 0x4010e0 and `Projectile::HitsTarget` 0x4018c0 (bases that every class overrides),
+  `BlackShark::GetWord2` 0x407030 and `RedShark::GetWord3` 0x407170 (the original reads the fields where the port calls the accessor: replace
+  by the field), `ActivateTypingTutor` 0x412c90 and `FocusTypingTutor` 0x412d00 (their only caller was the register dialog), the
+  `GetPreferredHeight` of `HintDialog` 0x438170 and `OptionsDialog` 0x438650 (no one asks them), `StatsScreen::ButtonPress` 0x441320
+  (nothing registers the screen as a listener; the comment says so), `FadeButton::Resize(const Rect&)` 0x441c10, `TabPanel::GetChild`
+  0x4446f0 and `AddChild` 0x4516a0, and `GameOverDialog::OrderInManagerChanged` 0x4380a0 (nothing reorders the dialog; the framework calls
+  it only from `PutInfront` and its relatives).
+
+**Open.** `Board::BuildWaterImage` (0x440330, the sea as strips of triangles on a 3D accelerated screen) is the one function that is
+neither reached nor read again: every run of the original, in the sandbox and on the host, had the Options dialog's 3D box off
+(`Is3D` 0), so the 3D drawing of the original has not been compared with the port's at all, nor has any other 3D-only code. This is a gap of
+phase 2 as well (CLAUDE.md: 2D and 3D where both exist); it needs the original with 3D acceleration on, which the sandbox does not offer.
+
+**Cost.** The 23 runs took about 1 to 3 minutes of machine time each on the virtual clock. The five tours took the most work: their click
+positions come from the port's own pictures, and the host takes no shots. Every change to the sources was a comment; `tools/check.sh
+typershark` was run for them.

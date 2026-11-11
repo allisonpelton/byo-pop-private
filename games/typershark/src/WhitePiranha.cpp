@@ -9,7 +9,7 @@ using namespace Sexy;
 // Not translated (vtordisp thunks): 0x410e30, 0x410e40, 0x410e50, 0x410e60, 0x410f30, 0x410f40 (jump to Piranha's and
 // GameObject's functions with the pointer adjusted), 0x410ed0 (deleting destructor)
 
-// 0x410c70: Piranha (0x40fca0, GameObject 0x4611b0 and Enemy 0x40a3f0 first), then the WhitePiranha part
+// 0x410c70: Piranha (0x40fca0, GameObject 0x4611b0 and Enemy 0x40a3f0 first), then the WhitePiranha part (the export cuts it in two at 0x410c93)
 WhitePiranha::WhitePiranha(WinWSApp* theApp, int theType) :
 	Piranha(theApp, theType)
 {

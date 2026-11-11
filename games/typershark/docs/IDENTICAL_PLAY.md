@@ -87,6 +87,11 @@ main thread, so the input starts on a loaded game.
 | R | quit, start again, carry on (two runs of each program, below) | 18 | 18 | 0 |
 | H | an abyss game over, the Hall of Fame with the player's line, the abyss button's continue list, the board from 400 feet | 24 | 24 | 0 |
 | T | the statistics screen with a lesson played: the "view stats?" box at the end of tutor lesson 18, Yes, each of the three views, Close, the tutor after it | 17 | 17 | 0 |
+| P | what the coverage check found the tours had not reached (GAME_NOTES, "Coverage check"): the Return key in the new-player box, ten players, a player picked with its OK, a player deleted (the question answered No, then Yes), the tutor's Next and Previous Lesson and Back To Menu's question (No, then Yes), the hint box closed with the space bar, the focus lost and regained on the board, the resting mouse | 32 | 32 | 0 |
+| T2 | tour T with the statistics page's Previous Lesson (twice) and Next Lesson | 23 | 23 | 0 |
+| Q | the typing test typed to its end: the "Test Completed!" message and its button | 6 | 6 | 0 |
+| D | a player whose data file is gone (two runs of each program, as tour R): the error message at the start, its OK | 9 | 9 | 0 |
+| I | the idle game's game-over box answered with PLAY AGAIN: the board restarts | 8 | 8 | 0 |
 | idle | an idle game to the game over | 78 | 78 | 0 |
 | abyss | the abyss with its bonus creatures and hints | 81 | 79 | 2 |
 | tutor 17, tutor 18 | two typing tutor lessons (the keyboard picture, the hands, the finger rings, the results) | 283 | 283 | 0 |

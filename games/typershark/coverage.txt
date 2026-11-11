@@ -1,0 +1,479 @@
+# tools/coverage.py's settings for Typer Shark Deluxe (docs/COVERAGE.md).
+export re/typershark/gh/functions.jsonl
+src games/typershark/src
+# The game's own code, which the port translates: 0x401000 to the last game function before the C++ library's locale code
+# (0x4622e0, _Getctype). The rest of the exe is the C++ and C runtime, the framework (SexyAppFramework of 2004) and the
+# libraries the game links.
+game 00401000-00462290
+
+# Functions the coverage runs of 2026-11-11 reached that the port has no function for (docs/COVERAGE.md): each is one of the
+# kinds below, as the port's own comments (Enemy.cpp from line 163, UserProfile.h, LessonManager.h, TypingTutor.h and the
+# creature classes' files) say where they are not translated; the export's split pieces of three constructors carry their
+# address in the comment of the constructor that holds them.
+none 00401000 FUN_00401000: WinMain's callee: the platform layer's main starts the game (src/main.cpp)
+none 004011b0 Sexy::Shark::ctor_or_dtor_4011b0: small helper written in line in the port (its comment names it)
+none 004012c0 Sexy::WSTimer::ctor_or_dtor_4012c0: small helper written in line in the port (its comment names it)
+none 00401330 Sexy::WSTimer::vf00: small helper written in line in the port (its comment names it)
+none 00401730 Sexy::Piranha::ctor_or_dtor_401730: vtordisp thunk or base-class forwarder of a virtual function
+none 00401a90 FUN_00401a90: small helper written in line in the port (its comment names it)
+none 00401ae0 Sexy::Projectile::ctor_or_dtor_401ae0: destructor (part, whole or deleting) of an entity class: the compiler's in the port
+none 00402000 Sexy::Color::Color_rgba: small helper written in line in the port (its comment names it)
+none 00402070 FUN_00402070: standard library code (string, vector, map, iostream) for the game's types
+none 00402180 FUN_00402180: vtordisp thunk or base-class forwarder of a virtual function
+none 004021a0 FUN_004021a0: vtordisp thunk or base-class forwarder of a virtual function
+none 004021b0 Sexy::Piranha::vf03_sub48: vtordisp thunk or base-class forwarder of a virtual function
+none 004021c0 Sexy::Piranha::vf04_sub48: vtordisp thunk or base-class forwarder of a virtual function
+none 00402200 Sexy::Piranha::vf00_sub48: vtordisp thunk or base-class forwarder of a virtual function
+none 00402210 Sexy::Shark::vf00_sub48: vtordisp thunk or base-class forwarder of a virtual function
+none 00402220 Sexy::Shark::vf03_sub48: vtordisp thunk or base-class forwarder of a virtual function
+none 00402230 FUN_00402230: small helper written in line in the port (its comment names it)
+none 00402240 Sexy::Shark::vf04_sub48: vtordisp thunk or base-class forwarder of a virtual function
+none 00402250 FUN_00402250: small helper written in line in the port (its comment names it)
+none 00402260 Sexy::Shark::vf06_sub48: vtordisp thunk or base-class forwarder of a virtual function
+none 00402270 Sexy::Torpedo::vf00_sub16: vtordisp thunk or base-class forwarder of a virtual function
+none 00402280 Sexy::Torpedo::vf01_sub504: vtordisp thunk or base-class forwarder of a virtual function
+none 00402290 Sexy::ToxicShark::vf00_sub56: vtordisp thunk or base-class forwarder of a virtual function
+none 004022a0 Sexy::ToxicShark::vf03_sub56: vtordisp thunk or base-class forwarder of a virtual function
+none 004022b0 Sexy::ToxicShark::vf04_sub56: vtordisp thunk or base-class forwarder of a virtual function
+none 004022c0 Sexy::ToxicShark::vf06_sub56: vtordisp thunk or base-class forwarder of a virtual function
+none 00402d60 FUN_00402d60: vtordisp thunk or base-class forwarder of a virtual function
+none 00402e80 FUN_00402e80: standard library code (string, vector, map, iostream) for the game's types
+none 00402f50 FUN_00402f50: standard library code (string, vector, map, iostream) for the game's types
+none 00403010 std_string_equals_cstr: standard library code (string, vector, map, iostream) for the game's types
+none 00403050 FUN_00403050: standard library code (string, vector, map, iostream) for the game's types
+none 004030d0 FUN_004030d0: small helper written in line in the port (its comment names it)
+none 00403110 Sexy::Piranha::vf02_sub48: vtordisp thunk or base-class forwarder of a virtual function
+none 00403120 Sexy::Shark::vf02_sub48: vtordisp thunk or base-class forwarder of a virtual function
+none 004031c0 FUN_004031c0: vtordisp thunk or base-class forwarder of a virtual function
+none 004031d0 FUN_004031d0: vtordisp thunk or base-class forwarder of a virtual function
+none 00403200 std_string_Tidy: standard library code (string, vector, map, iostream) for the game's types
+none 00403370 FUN_00403370: small helper written in line in the port (its comment names it)
+none 004033f0 FUN_004033f0: standard library code (string, vector, map, iostream) for the game's types
+none 00403490 FUN_00403490: small helper written in line in the port (its comment names it)
+none 00403510 Sexy::BlackShark::ctor_or_dtor_403510: vtordisp thunk or base-class forwarder of a virtual function
+none 004035a0 Sexy::BlackShark::vf00_sub40: vtordisp thunk or base-class forwarder of a virtual function
+none 004035b0 Sexy::BlackShark::vf03_sub40: vtordisp thunk or base-class forwarder of a virtual function
+none 004035c0 Sexy::BlackShark::vf04_sub40: vtordisp thunk or base-class forwarder of a virtual function
+none 004035d0 Sexy::BlackShark::vf06_sub40: vtordisp thunk or base-class forwarder of a virtual function
+none 004035e0 Sexy::BlackShark::vf02_sub40: vtordisp thunk or base-class forwarder of a virtual function
+none 00403770 FUN_00403770: standard library code (string, vector, map, iostream) for the game's types
+none 00404b80 Sexy::RedShark::ctor_or_dtor_404b80: vtordisp thunk or base-class forwarder of a virtual function
+none 00404c10 Sexy::RedShark::vf00_sub72: vtordisp thunk or base-class forwarder of a virtual function
+none 00405050 FUN_00405050: small helper written in line in the port (its comment names it)
+none 00406370 FUN_00406370: small helper written in line in the port (its comment names it)
+none 00406450 std_string_append_substr: standard library code (string, vector, map, iostream) for the game's types
+none 00406550 Sexy::BlackShark::vf00_sub528: vtordisp thunk or base-class forwarder of a virtual function
+none 00406560 Sexy::RedShark::vf00_sub560: vtordisp thunk or base-class forwarder of a virtual function
+none 00406580 Sexy::Piranha::vf07_sub48: vtordisp thunk or base-class forwarder of a virtual function
+none 00406590 Sexy::Shark::vf07_sub48: vtordisp thunk or base-class forwarder of a virtual function
+none 004065a0 Sexy::Torpedo::vf07_sub16: vtordisp thunk or base-class forwarder of a virtual function
+none 004065b0 Sexy::ToxicShark::vf02_sub56: vtordisp thunk or base-class forwarder of a virtual function
+none 004065c0 Sexy::ToxicShark::vf07_sub56: vtordisp thunk or base-class forwarder of a virtual function
+none 00406e50 FUN_00406e50: small helper written in line in the port (its comment names it)
+none 00406ee0 Sexy::BlackShark::vf07_sub40: vtordisp thunk or base-class forwarder of a virtual function
+none 00406ef0 Sexy::RedShark::vf07_sub72: vtordisp thunk or base-class forwarder of a virtual function
+none 00407210 std_string_substr: standard library code (string, vector, map, iostream) for the game's types
+none 00408400 Sexy::StealthShark::ctor_or_dtor_408400: vtordisp thunk or base-class forwarder of a virtual function
+none 004084a0 Sexy::StealthShark::vf00_sub56: vtordisp thunk or base-class forwarder of a virtual function
+none 004084b0 Sexy::StealthShark::vf03_sub56: vtordisp thunk or base-class forwarder of a virtual function
+none 004084c0 Sexy::StealthShark::vf04_sub56: vtordisp thunk or base-class forwarder of a virtual function
+none 004084d0 Sexy::StealthShark::vf06_sub56: vtordisp thunk or base-class forwarder of a virtual function
+none 00408510 Sexy::StealthShark::vf02_sub56: vtordisp thunk or base-class forwarder of a virtual function
+none 00408520 Sexy::StealthShark::vf07_sub56: vtordisp thunk or base-class forwarder of a virtual function
+none 00408530 Sexy::StealthPiranha::ctor_or_dtor_408530: vtordisp thunk or base-class forwarder of a virtual function
+none 004085b0 Sexy::StealthPiranha::vf00_sub56: vtordisp thunk or base-class forwarder of a virtual function
+none 004085c0 Sexy::StealthPiranha::vf02_sub56: vtordisp thunk or base-class forwarder of a virtual function
+none 004085d0 Sexy::StealthPiranha::vf07_sub56: vtordisp thunk or base-class forwarder of a virtual function
+none 00408e00 Sexy::TorpedoBoss::vf02_sub440: vtordisp thunk or base-class forwarder of a virtual function
+none 004091b0 FUN_004091b0: small helper written in line in the port (its comment names it)
+none 00409510 FUN_00409510: small helper written in line in the port (its comment names it)
+none 00409810 FUN_00409810: standard library code (string, vector, map, iostream) for the game's types
+none 004098d0 Sexy::Torpedo::vf02_sub16: vtordisp thunk or base-class forwarder of a virtual function
+none 004099a0 FUN_004099a0: destructor (part, whole or deleting) of an entity class: the compiler's in the port
+none 00409a40 FUN_00409a40: destructor (part, whole or deleting) of an entity class: the compiler's in the port
+none 00409ae0 Sexy::GameObject::ctor_or_dtor_409ae0: destructor (part, whole or deleting) of an entity class: the compiler's in the port
+none 00409b40 FUN_00409b40: destructor (part, whole or deleting) of an entity class: the compiler's in the port
+none 00409c00 FUN_00409c00: standard library code (string, vector, map, iostream) for the game's types
+none 00409c80 FUN_00409c80: standard library code (string, vector, map, iostream) for the game's types
+none 00409d30 Sexy::GameObject::ctor_or_dtor_409d30: destructor (part, whole or deleting) of an entity class: the compiler's in the port
+none 00409da0 FUN_00409da0: destructor (part, whole or deleting) of an entity class: the compiler's in the port
+none 00409e50 Sexy::GameObject::ctor_or_dtor_409e50: destructor (part, whole or deleting) of an entity class: the compiler's in the port
+none 00409e90 FUN_00409e90: standard library code (string, vector, map, iostream) for the game's types
+none 00409f20 FUN_00409f20: standard library code (string, vector, map, iostream) for the game's types
+none 0040bf90 FUN_0040bf90: vtordisp thunk or base-class forwarder of a virtual function
+none 0040c090 FUN_0040c090: vtordisp thunk or base-class forwarder of a virtual function
+none 0040c190 FUN_0040c190: vtordisp thunk or base-class forwarder of a virtual function
+none 0040dd00 Sexy::BonusCreature::vf00_sub264: vtordisp thunk or base-class forwarder of a virtual function
+none 0040dd10 Sexy::BonusCreature::vf03_sub264: vtordisp thunk or base-class forwarder of a virtual function
+none 0040dd20 Sexy::BonusCreature::vf04_sub264: vtordisp thunk or base-class forwarder of a virtual function
+none 0040dd30 Sexy::BonusCreature::vf10_sub264: vtordisp thunk or base-class forwarder of a virtual function
+none 0040dd40 Sexy::BonusCreature::vf07_sub264: vtordisp thunk or base-class forwarder of a virtual function
+none 0040dd50 Sexy::BonusCreature::vf02_sub264: vtordisp thunk or base-class forwarder of a virtual function
+none 0040dfc0 Sexy::BlackShark::vf01_sub40: vtordisp thunk or base-class forwarder of a virtual function
+none 0040dfd0 Sexy::BlackShark::vf02_sub288: vtordisp thunk or base-class forwarder of a virtual function
+none 0040e020 Sexy::StealthShark::vf01_sub56: vtordisp thunk or base-class forwarder of a virtual function
+none 0040e030 Sexy::RedShark::vf02_sub320: vtordisp thunk or base-class forwarder of a virtual function
+none 0040e040 Sexy::Piranha::vf01_sub48: vtordisp thunk or base-class forwarder of a virtual function
+none 0040e050 Sexy::Shark::vf01_sub48: vtordisp thunk or base-class forwarder of a virtual function
+none 0040e060 Sexy::BonusCreature::vf01_sub264: vtordisp thunk or base-class forwarder of a virtual function
+none 0040e070 Sexy::StealthPiranha::vf01_sub56: vtordisp thunk or base-class forwarder of a virtual function
+none 0040e0a0 Sexy::TorpedoBoss::vf01_sub440: vtordisp thunk or base-class forwarder of a virtual function
+none 0040e0b0 Sexy::Torpedo::vf01_sub16: vtordisp thunk or base-class forwarder of a virtual function
+none 0040e0c0 Sexy::Torpedo::vf02_sub264: vtordisp thunk or base-class forwarder of a virtual function
+none 0040e0d0 Sexy::ToxicShark::vf01_sub56: vtordisp thunk or base-class forwarder of a virtual function
+none 0040e0e0 Sexy::ToxicShark::vf02_sub304: vtordisp thunk or base-class forwarder of a virtual function
+none 0040e0f0 Sexy::TorpedoBoss::vf07_sub440: vtordisp thunk or base-class forwarder of a virtual function
+none 0040e350 Sexy::Clam::vf00_sub256: vtordisp thunk or base-class forwarder of a virtual function
+none 0040e380 Sexy::Clam::vf02_sub256: vtordisp thunk or base-class forwarder of a virtual function
+none 0040e3e0 Sexy::Clam::vf01_sub256: vtordisp thunk or base-class forwarder of a virtual function
+none 0040e3f0 Sexy::Clam::vf07_sub256: vtordisp thunk or base-class forwarder of a virtual function
+none 0040e5b0 Sexy::CannonBall::vf01_sub496: vtordisp thunk or base-class forwarder of a virtual function
+none 0040e5c0 Sexy::CannonBall::vf07_sub8: vtordisp thunk or base-class forwarder of a virtual function
+none 0040e5d0 Sexy::CannonBall::vf02_sub8: vtordisp thunk or base-class forwarder of a virtual function
+none 0040e8d0 Sexy::GhostShip::vf02_sub464: vtordisp thunk or base-class forwarder of a virtual function
+none 0040e8e0 Sexy::GameObject::ctor_or_dtor_40e8e0: vtordisp thunk or base-class forwarder of a virtual function
+none 0040e920 Sexy::GhostShip::vf07_sub464: vtordisp thunk or base-class forwarder of a virtual function
+none 0040eb80 Sexy::MechaTorpedo::vf01_sub496: vtordisp thunk or base-class forwarder of a virtual function
+none 0040eb90 Sexy::MechaTorpedo::vf07_sub8: vtordisp thunk or base-class forwarder of a virtual function
+none 0040eba0 Sexy::MechaTorpedo::vf02_sub8: vtordisp thunk or base-class forwarder of a virtual function
+none 0040eec0 Sexy::MechaShark::vf02_sub440: vtordisp thunk or base-class forwarder of a virtual function
+none 0040eed0 Sexy::GameObject::ctor_or_dtor_40eed0: vtordisp thunk or base-class forwarder of a virtual function
+none 0040f2a0 Sexy::SquidCannonBall::vf01_sub496: vtordisp thunk or base-class forwarder of a virtual function
+none 0040f2b0 Sexy::SquidCannonBall::vf07_sub8: vtordisp thunk or base-class forwarder of a virtual function
+none 0040f2c0 FUN_0040f2c0: vtordisp thunk or base-class forwarder of a virtual function
+none 0040f2e0 Sexy::SquidCannonBall::vf02_sub8: vtordisp thunk or base-class forwarder of a virtual function
+none 0040f2f0 FUN_0040f2f0: vtordisp thunk or base-class forwarder of a virtual function
+none 0040f310 FUN_0040f310: destructor (part, whole or deleting) of an entity class: the compiler's in the port
+none 0040f680 Sexy::MechaSquid::vf02_sub472: vtordisp thunk or base-class forwarder of a virtual function
+none 0040f690 Sexy::GameObject::ctor_or_dtor_40f690: vtordisp thunk or base-class forwarder of a virtual function
+none 0040f6e0 Sexy::MechaSquid::vf07_sub472: vtordisp thunk or base-class forwarder of a virtual function
+none 0040f850 FUN_0040f850: small helper written in line in the port (its comment names it)
+none 0040f870 Sexy::MechaSquid::vf01_sub472: vtordisp thunk or base-class forwarder of a virtual function
+none 0040f880 Sexy::MechaShark::vf07_sub440: vtordisp thunk or base-class forwarder of a virtual function
+none 0040f890 Sexy::GhostShip::vf01_sub464: vtordisp thunk or base-class forwarder of a virtual function
+none 0040f8a0 FUN_0040f8a0: standard library code (string, vector, map, iostream) for the game's types
+none 0040fb00 FUN_0040fb00: small helper written in line in the port (its comment names it)
+none 0040fbc0 FUN_0040fbc0: standard library code (string, vector, map, iostream) for the game's types
+none 00410150 Sexy::RedPiranha::vf00_sub8: vtordisp thunk or base-class forwarder of a virtual function
+none 00410160 Sexy::RedPiranha::vf02_sub8: vtordisp thunk or base-class forwarder of a virtual function
+none 00410170 Sexy::RedPiranha::vf07_sub8: vtordisp thunk or base-class forwarder of a virtual function
+none 00410180 Sexy::GameObject::ctor_or_dtor_410180: small helper written in line in the port (its comment names it)
+none 004101c0 Sexy::RedPiranha::vf01_sub8: vtordisp thunk or base-class forwarder of a virtual function
+none 00410e30 Sexy::WhitePiranha::vf00_sub40: vtordisp thunk or base-class forwarder of a virtual function
+none 00410e40 Sexy::WhitePiranha::vf02_sub40: vtordisp thunk or base-class forwarder of a virtual function
+none 00410e50 Sexy::WhitePiranha::vf07_sub40: vtordisp thunk or base-class forwarder of a virtual function
+none 00410e60 Sexy::WhitePiranha::vf00_sub528: vtordisp thunk or base-class forwarder of a virtual function
+none 00410f00 Sexy::GameObject::ctor_or_dtor_410f00: small helper written in line in the port (its comment names it)
+none 00410f30 Sexy::WhitePiranha::vf01_sub40: vtordisp thunk or base-class forwarder of a virtual function
+none 00410f40 Sexy::WhitePiranha::vf02_sub288: vtordisp thunk or base-class forwarder of a virtual function
+none 00411360 Sexy::GhostShark::vf03_sub8: vtordisp thunk or base-class forwarder of a virtual function
+none 00411370 Sexy::GhostShark::vf04_sub8: vtordisp thunk or base-class forwarder of a virtual function
+none 00411380 Sexy::GhostShark::vf06_sub8: vtordisp thunk or base-class forwarder of a virtual function
+none 00411390 Sexy::GhostShark::vf02_sub8: vtordisp thunk or base-class forwarder of a virtual function
+none 004113a0 Sexy::GhostShark::vf07_sub8: vtordisp thunk or base-class forwarder of a virtual function
+none 004113b0 Sexy::GameObject::ctor_or_dtor_4113b0: vtordisp thunk or base-class forwarder of a virtual function
+none 004113f0 Sexy::GhostShark::vf01_sub8: vtordisp thunk or base-class forwarder of a virtual function
+none 00411930 Sexy::StealthBlackShark::vf00_sub96: vtordisp thunk or base-class forwarder of a virtual function
+none 00411940 FUN_00411940: small helper written in line in the port (its comment names it)
+none 00411950 FUN_00411950: small helper written in line in the port (its comment names it)
+none 00411970 Sexy::StealthBlackShark::vf02_sub96: vtordisp thunk or base-class forwarder of a virtual function
+none 00411980 Sexy::StealthBlackShark::vf00_sub584: vtordisp thunk or base-class forwarder of a virtual function
+none 004119a0 Sexy::StealthBlackShark::vf07_sub96: vtordisp thunk or base-class forwarder of a virtual function
+none 004119e0 FUN_004119e0: destructor (part, whole or deleting) of an entity class: the compiler's in the port
+none 00411a50 Sexy::StealthBlackShark::ctor_or_dtor_411a50: small helper written in line in the port (its comment names it)
+none 00411ae0 Sexy::StealthBlackShark::vf02_sub344: vtordisp thunk or base-class forwarder of a virtual function
+none 00411af0 Sexy::StealthBlackShark::vf01_sub96: vtordisp thunk or base-class forwarder of a virtual function
+none 00411d80 Sexy::StealthRedShark::vf00_sub120: vtordisp thunk or base-class forwarder of a virtual function
+none 00411d90 Sexy::StealthRedShark::vf09_sub120: vtordisp thunk or base-class forwarder of a virtual function
+none 00411da0 FUN_00411da0: small helper written in line in the port (its comment names it)
+none 00411dc0 Sexy::StealthRedShark::vf02_sub120: vtordisp thunk or base-class forwarder of a virtual function
+none 00411dd0 Sexy::StealthRedShark::vf00_sub608: vtordisp thunk or base-class forwarder of a virtual function
+none 00411df0 Sexy::StealthRedShark::vf07_sub120: vtordisp thunk or base-class forwarder of a virtual function
+none 00411e30 FUN_00411e30: destructor (part, whole or deleting) of an entity class: the compiler's in the port
+none 00411ea0 Sexy::StealthRedShark::ctor_or_dtor_411ea0: destructor (part, whole or deleting) of an entity class: the compiler's in the port
+none 00411f30 Sexy::StealthRedShark::vf02_sub368: vtordisp thunk or base-class forwarder of a virtual function
+none 00411f40 Sexy::StealthRedShark::vf01_sub120: vtordisp thunk or base-class forwarder of a virtual function
+none 00412180 Sexy::StealthWhitePiranha::vf00_sub96: vtordisp thunk or base-class forwarder of a virtual function
+none 004121b0 Sexy::StealthWhitePiranha::vf02_sub96: vtordisp thunk or base-class forwarder of a virtual function
+none 004121d0 Sexy::StealthWhitePiranha::vf07_sub96: vtordisp thunk or base-class forwarder of a virtual function
+none 004121e0 Sexy::StealthWhitePiranha::vf00_sub584: vtordisp thunk or base-class forwarder of a virtual function
+none 00412230 Sexy::GameObject::ctor_or_dtor_412230: small helper written in line in the port (its comment names it)
+none 00412260 Sexy::StealthWhitePiranha::ctor_or_dtor_412260: destructor (part, whole or deleting) of an entity class: the compiler's in the port
+none 00412300 Sexy::StealthWhitePiranha::vf01_sub96: vtordisp thunk or base-class forwarder of a virtual function
+none 00412310 Sexy::StealthWhitePiranha::vf02_sub344: vtordisp thunk or base-class forwarder of a virtual function
+none 00412360 FUN_00412360: small helper written in line in the port (its comment names it)
+none 00412890 FUN_00412890: small helper written in line in the port (its comment names it)
+none 00412dd0 FUN_00412dd0: standard library code (string, vector, map, iostream) for the game's types
+none 00412ec0 FUN_00412ec0: standard library code (string, vector, map, iostream) for the game's types
+none 004131d0 ios::lock: standard library code (string, vector, map, iostream) for the game's types
+none 004131f0 ios::unlock: standard library code (string, vector, map, iostream) for the game's types
+none 00413310 FUN_00413310: standard library code (string, vector, map, iostream) for the game's types
+none 004133d0 FUN_004133d0: standard library code (string, vector, map, iostream) for the game's types
+none 004134d0 FUN_004134d0: standard library code (string, vector, map, iostream) for the game's types
+none 004135f0 FUN_004135f0: standard library code (string, vector, map, iostream) for the game's types
+none 00413630 FUN_00413630: standard library code (string, vector, map, iostream) for the game's types
+none 00413760 FUN_00413760: standard library code (string, vector, map, iostream) for the game's types
+none 00413790 FUN_00413790: standard library code (string, vector, map, iostream) for the game's types
+none 00413aa0 Sexy::SexyString::ctor_or_dtor_413aa0: standard library code (string, vector, map, iostream) for the game's types
+none 00413ad0 FUN_00413ad0: standard library code (string, vector, map, iostream) for the game's types
+none 00414550 FUN_00414550: standard library code (string, vector, map, iostream) for the game's types
+none 00414580 FUN_00414580: small helper written in line in the port (its comment names it)
+none 00414630 std_string_append_chars: standard library code (string, vector, map, iostream) for the game's types
+none 00414970 FUN_00414970: standard library code (string, vector, map, iostream) for the game's types
+none 00414d20 FUN_00414d20: standard library code (string, vector, map, iostream) for the game's types
+none 00414eb0 Sexy::SexyString::ctor_or_dtor_414eb0: standard library code (string, vector, map, iostream) for the game's types
+none 00414f20 FUN_00414f20: standard library code (string, vector, map, iostream) for the game's types
+none 00415010 Sexy::SexyString::ctor_or_dtor_415010: standard library code (string, vector, map, iostream) for the game's types
+none 004150e0 FUN_004150e0: small helper written in line in the port (its comment names it)
+none 00416040 std_string_concat_cstr_str: standard library code (string, vector, map, iostream) for the game's types
+none 00416290 Sexy::SexyString::ctor_or_dtor_416290: standard library code (string, vector, map, iostream) for the game's types
+none 00416310 Sexy::SexyString::ctor_or_dtor_416310: standard library code (string, vector, map, iostream) for the game's types
+none 004163e0 Sexy::SexyString::ctor_or_dtor_4163e0: standard library code (string, vector, map, iostream) for the game's types
+none 00416490 Sexy::SexyString::ctor_or_dtor_416490: standard library code (string, vector, map, iostream) for the game's types
+none 00416540 Sexy::SexyString::ctor_or_dtor_416540: standard library code (string, vector, map, iostream) for the game's types
+none 004165f0 FUN_004165f0: standard library code (string, vector, map, iostream) for the game's types
+none 00416730 Sexy::SexyString::ctor_or_dtor_416730: standard library code (string, vector, map, iostream) for the game's types
+none 00417140 FUN_00417140: destructor (part, whole or deleting) of an entity class: the compiler's in the port
+none 0041d870 FUN_0041d870: registration, trial or update-check code, removed
+none 0041d910 Sexy::WinWSApp::vf33: registration, trial or update-check code, removed
+none 0041d9d0 FUN_0041d9d0: registration, trial or update-check code, removed
+none 0041da80 FUN_0041da80: registration, trial or update-check code, removed
+none 0041db90 FUN_0041db90: standard library code (string, vector, map, iostream) for the game's types
+none 0041de10 FUN_0041de10: standard library code (string, vector, map, iostream) for the game's types
+none 0041de70 FUN_0041de70: standard library code (string, vector, map, iostream) for the game's types
+none 0041ded0 FUN_0041ded0: standard library code (string, vector, map, iostream) for the game's types
+none 0041e110 FUN_0041e110: standard library code (string, vector, map, iostream) for the game's types
+none 0041e7e0 FUN_0041e7e0: standard library code (string, vector, map, iostream) for the game's types
+none 00420130 Sexy::WinWSApp::vf13: registration, trial or update-check code, removed
+none 004201a0 FUN_004201a0: standard library code (string, vector, map, iostream) for the game's types
+none 00420240 FUN_00420240: standard library code (string, vector, map, iostream) for the game's types
+none 00420300 FUN_00420300: standard library code (string, vector, map, iostream) for the game's types
+none 00420880 FUN_00420880: standard library code (string, vector, map, iostream) for the game's types
+none 00420b40 FUN_00420b40: standard library code (string, vector, map, iostream) for the game's types
+none 00420c10 FUN_00420c10: small helper written in line in the port (its comment names it)
+none 004213f0 FUN_004213f0: standard library code (string, vector, map, iostream) for the game's types
+none 00421ad0 FUN_00421ad0: standard library code (string, vector, map, iostream) for the game's types
+none 00421b80 FUN_00421b80: standard library code (string, vector, map, iostream) for the game's types
+none 00426ea0 FUN_00426ea0: standard library code (string, vector, map, iostream) for the game's types
+none 00426fc0 FUN_00426fc0: standard library code (string, vector, map, iostream) for the game's types
+none 00427050 FUN_00427050: standard library code (string, vector, map, iostream) for the game's types
+none 00427200 Sexy::XMLElement::~XMLElement: small helper written in line in the port (its comment names it)
+none 004296b0 FUN_004296b0: standard library code (string, vector, map, iostream) for the game's types
+none 00429780 FUN_00429780: small helper written in line in the port (its comment names it)
+none 004297d0 FUN_004297d0: standard library code (string, vector, map, iostream) for the game's types
+none 00429860 Sexy::XMLElement::XMLElement: small helper written in line in the port (its comment names it)
+none 0042b930 FUN_0042b930: standard library code (string, vector, map, iostream) for the game's types
+none 0042bf30 FUN_0042bf30: standard library code (string, vector, map, iostream) for the game's types
+none 0042bf80 FUN_0042bf80: standard library code (string, vector, map, iostream) for the game's types
+none 0042f760 FUN_0042f760: standard library code (string, vector, map, iostream) for the game's types
+none 0042f820 FUN_0042f820: standard library code (string, vector, map, iostream) for the game's types
+none 0042f900 FUN_0042f900: standard library code (string, vector, map, iostream) for the game's types
+none 0042f930 FUN_0042f930: standard library code (string, vector, map, iostream) for the game's types
+none 0042fa10 FUN_0042fa10: standard library code (string, vector, map, iostream) for the game's types
+none 0042fd10 FUN_0042fd10: standard library code (string, vector, map, iostream) for the game's types
+none 00430100 FUN_00430100: standard library code (string, vector, map, iostream) for the game's types
+none 00431560 FUN_00431560: standard library code (string, vector, map, iostream) for the game's types
+none 00434640 FUN_00434640: standard library code (string, vector, map, iostream) for the game's types
+none 004379c0 Sexy::WinGameDialog::vf01: vtordisp thunk or base-class forwarder of a virtual function
+none 004379d0 Sexy::WinGameDialog::vf02: vtordisp thunk or base-class forwarder of a virtual function
+none 004379e0 Sexy::WinGameDialog::vf13: vtordisp thunk or base-class forwarder of a virtual function
+none 00437ca0 FUN_00437ca0: vtordisp thunk or base-class forwarder of a virtual function
+none 004382b0 Sexy::HintDialog::vf04_sub88: vtordisp thunk or base-class forwarder of a virtual function
+none 00438310 Sexy::MoneyDialog::dtor_body: destructor (part, whole or deleting) of an entity class: the compiler's in the port
+none 00438330 Sexy::MoneyDialog::vf16: destructor (part, whole or deleting) of an entity class: the compiler's in the port
+none 00438e60 FUN_00438e60: vtordisp thunk or base-class forwarder of a virtual function
+none 0043fbb0 FUN_0043fbb0: small helper written in line in the port (its comment names it)
+none 004415d0 Sexy::TitleScreen::vf02: registration, trial or update-check code, removed
+none 00441a70 FUN_00441a70: standard library code (string, vector, map, iostream) for the game's types
+none 004420c0 FUN_004420c0: standard library code (string, vector, map, iostream) for the game's types
+none 004422f0 FUN_004422f0: standard library code (string, vector, map, iostream) for the game's types
+none 00442330 FUN_00442330: destructor (part, whole or deleting) of an entity class: the compiler's in the port
+none 004423b0 FUN_004423b0: standard library code (string, vector, map, iostream) for the game's types
+none 004433e0 FUN_004433e0: destructor (part, whole or deleting) of an entity class: the compiler's in the port
+none 00443c10 FUN_00443c10: standard library code (string, vector, map, iostream) for the game's types
+none 004445b0 FUN_004445b0: small helper written in line in the port (its comment names it)
+none 00445df0 FUN_00445df0: small helper written in line in the port (its comment names it)
+none 00445e50 FUN_00445e50: small helper written in line in the port (its comment names it)
+none 004470c0 Sexy::HighScoreScreen::vf17: registration, trial or update-check code, removed
+none 00449400 Sexy::TitleScreen::vf01: registration, trial or update-check code, removed
+none 00449de0 Sexy::ButtonListener::ButtonPress_idcc: vtordisp thunk or base-class forwarder of a virtual function
+none 0044c900 FUN_0044c900: standard library code (string, vector, map, iostream) for the game's types
+none 0044c9c0 FUN_0044c9c0: standard library code (string, vector, map, iostream) for the game's types
+none 0044cc70 FUN_0044cc70: small helper written in line in the port (its comment names it)
+none 0044cfd0 FUN_0044cfd0: standard library code (string, vector, map, iostream) for the game's types
+none 0044d120 FUN_0044d120: small helper written in line in the port (its comment names it)
+none 00450bf0 FUN_00450bf0: standard library code (string, vector, map, iostream) for the game's types
+none 00450c20 FUN_00450c20: standard library code (string, vector, map, iostream) for the game's types
+none 00450c70 FUN_00450c70: small helper written in line in the port (its comment names it)
+none 00450dc0 FUN_00450dc0: destructor (part, whole or deleting) of an entity class: the compiler's in the port
+none 00451230 FUN_00451230: standard library code (string, vector, map, iostream) for the game's types
+none 004512a0 FUN_004512a0: small helper written in line in the port (its comment names it)
+none 00451310 FUN_00451310: standard library code (string, vector, map, iostream) for the game's types
+none 00454440 FUN_00454440: standard library code (string, vector, map, iostream) for the game's types
+none 0045c0b0 FUN_0045c0b0: standard library code (string, vector, map, iostream) for the game's types
+none 004614f0 Sexy::GameObject::ctor_or_dtor_4614f0: destructor (part, whole or deleting) of an entity class: the compiler's in the port
+none 00462290 FUN_00462290: standard library code (string, vector, map, iostream) for the game's types
+none 004033b0 FUN_004033b0: standard library code (string, vector, map, iostream) for the game's types
+none 00413da0 Sexy::SexyString::ctor_or_dtor_413da0: standard library code (string, vector, map, iostream) for the game's types
+none 00420280 FUN_00420280: standard library code (string, vector, map, iostream) for the game's types
+
+# Functions neither the coverage runs of 2026-11-11 nor the port reach (docs/COVERAGE.md): by kind, as the report listed them.
+none 00401160 Sexy::Effect::scalar_deleting_dtor: destructor (part, whole or deleting) of a class the port declares: the compiler's
+none 00401190 FUN_00401190: standard library code or a compiler helper for it (string, vector, map, stream, exception classes) for the game's types
+none 00401270 Sexy::Projectile::ctor_or_dtor_401270: destructor (part, whole or deleting) of a class the port declares: the compiler's
+none 00401a70 FUN_00401a70: standard library code or a compiler helper for it (string, vector, map, stream, exception classes) for the game's types
+none 00402020 FUN_00402020: framework helper written in line in the port (Rect::Intersects; the port's Rect has it)
+none 004020b0 operator_delete_thunk: standard library code or a compiler helper for it (string, vector, map, stream, exception classes) for the game's types
+none 004020d0 FUN_004020d0: standard library code or a compiler helper for it (string, vector, map, stream, exception classes) for the game's types
+none 004021d0 Sexy::Projectile::vf00_sub32: vtordisp thunk or forwarder of a virtual function: the compiler's
+none 004021e0 Sexy::Projectile::vf02_sub32: vtordisp thunk or forwarder of a virtual function: the compiler's
+none 004021f0 Sexy::Projectile::vf07_sub32: vtordisp thunk or forwarder of a virtual function: the compiler's
+none 00402ee0 FUN_00402ee0: standard library code or a compiler helper for it (string, vector, map, stream, exception classes) for the game's types
+none 00402f40 FUN_00402f40: standard library code or a compiler helper for it (string, vector, map, stream, exception classes) for the game's types
+none 00403090 FUN_00403090: standard library code or a compiler helper for it (string, vector, map, stream, exception classes) for the game's types
+none 00403285 Catch@00403285: exception handler block of the compiler (a catch funclet): nothing to translate, the port reports errors its own way
+none 0040331d Catch@0040331d: exception handler block of the compiler (a catch funclet): nothing to translate, the port reports errors its own way
+none 00403350 FUN_00403350: standard library code or a compiler helper for it (string, vector, map, stream, exception classes) for the game's types
+none 00403420 FUN_00403420: standard library code or a compiler helper for it (string, vector, map, stream, exception classes) for the game's types
+none 00403450 FUN_00403450: standard library code or a compiler helper for it (string, vector, map, stream, exception classes) for the game's types
+none 00406405 Catch@00406405: exception handler block of the compiler (a catch funclet): nothing to translate, the port reports errors its own way
+none 00406420 FUN_00406420: standard library code or a compiler helper for it (string, vector, map, stream, exception classes) for the game's types
+none 00406d70 FUN_00406d70: standard library code or a compiler helper for it (string, vector, map, stream, exception classes) for the game's types
+none 00406f60 FUN_00406f60: standard library code or a compiler helper for it (string, vector, map, stream, exception classes) for the game's types
+none 004079d0 Sexy::Enemy::vf00_sub240: vtordisp thunk or forwarder of a virtual function: the compiler's
+none 004079e0 Sexy::Enemy::vf01_sub240: vtordisp thunk or forwarder of a virtual function: the compiler's
+none 004079f0 Sexy::Enemy::vf02_sub240: vtordisp thunk or forwarder of a virtual function: the compiler's
+none 00407a00 Sexy::Enemy::vf03_sub240: vtordisp thunk or forwarder of a virtual function: the compiler's
+none 00407a10 Sexy::Enemy::vf04_sub240: vtordisp thunk or forwarder of a virtual function: the compiler's
+none 00407a20 Sexy::Enemy::vf07_sub240: vtordisp thunk or forwarder of a virtual function: the compiler's
+none 004083d0 Sexy::ProjectileBoss::vf02_sub376: vtordisp thunk or forwarder of a virtual function: the compiler's
+none 004083e0 Sexy::ProjectileBoss::vf03_sub376: vtordisp thunk or forwarder of a virtual function: the compiler's
+none 004083f0 Sexy::ProjectileBoss::vf04_sub376: vtordisp thunk or forwarder of a virtual function: the compiler's
+none 00408dd0 Sexy::TorpedoBoss::vf03_sub440: vtordisp thunk or forwarder of a virtual function: the compiler's
+none 00408de0 Sexy::TorpedoBoss::vf04_sub440: vtordisp thunk or forwarder of a virtual function: the compiler's
+none 00409403 Catch@00409403: exception handler block of the compiler (a catch funclet): nothing to translate, the port reports errors its own way
+none 0040940f Catch@0040940f: exception handler block of the compiler (a catch funclet): nothing to translate, the port reports errors its own way
+none 004096e8 Catch@004096e8: exception handler block of the compiler (a catch funclet): nothing to translate, the port reports errors its own way
+none 004096f4 Catch@004096f4: exception handler block of the compiler (a catch funclet): nothing to translate, the port reports errors its own way
+none 00409cf0 Sexy::GameObject::ctor_or_dtor_409cf0: destructor (part, whole or deleting) of a class the port declares: the compiler's
+none 00409e10 Sexy::GameObject::ctor_or_dtor_409e10: destructor (part, whole or deleting) of a class the port declares: the compiler's
+none 00409f95 Catch@00409f95: exception handler block of the compiler (a catch funclet): nothing to translate, the port reports errors its own way
+none 0040df40 FUN_0040df40: standard library code or a compiler helper for it (string, vector, map, stream, exception classes) for the game's types
+none 0040df80 FUN_0040df80: standard library code or a compiler helper for it (string, vector, map, stream, exception classes) for the game's types
+none 0040dfe0 Sexy::Projectile::vf01_sub32: vtordisp thunk or forwarder of a virtual function: the compiler's
+none 0040dff0 Sexy::Projectile::vf02_sub280: vtordisp thunk or forwarder of a virtual function: the compiler's
+none 0040e080 Sexy::ProjectileBoss::vf01_sub376: vtordisp thunk or forwarder of a virtual function: the compiler's
+none 0040e090 Sexy::ProjectileBoss::vf07_sub376: vtordisp thunk or forwarder of a virtual function: the compiler's
+none 0040e360 Sexy::Clam::vf03_sub256: vtordisp thunk or forwarder of a virtual function: the compiler's
+none 0040e370 Sexy::Clam::vf04_sub256: vtordisp thunk or forwarder of a virtual function: the compiler's
+none 0040e8b0 Sexy::GhostShip::vf03_sub464: vtordisp thunk or forwarder of a virtual function: the compiler's
+none 0040e8c0 Sexy::GhostShip::vf04_sub464: vtordisp thunk or forwarder of a virtual function: the compiler's
+none 0040f660 Sexy::MechaSquid::vf03_sub472: vtordisp thunk or forwarder of a virtual function: the compiler's
+none 0040f670 Sexy::MechaSquid::vf04_sub472: vtordisp thunk or forwarder of a virtual function: the compiler's
+none 0040f926 Catch@0040f926: exception handler block of the compiler (a catch funclet): nothing to translate, the port reports errors its own way
+none 004121c0 Sexy::StealthWhitePiranha::vf00: destructor (part, whole or deleting) of a class the port declares: the compiler's
+none 00412800 ifstream::vbase_dtor: destructor (part, whole or deleting) of a class the port declares: the compiler's
+none 00412f20 FUN_00412f20: standard library code or a compiler helper for it (string, vector, map, stream, exception classes) for the game's types
+none 00413000 FUN_00413000: standard library code or a compiler helper for it (string, vector, map, stream, exception classes) for the game's types
+none 00413020 FUN_00413020: standard library code or a compiler helper for it (string, vector, map, stream, exception classes) for the game's types
+none 00413040 FUN_00413040: standard library code or a compiler helper for it (string, vector, map, stream, exception classes) for the game's types
+none 004130e0 FUN_004130e0: standard library code or a compiler helper for it (string, vector, map, stream, exception classes) for the game's types
+none 00413140 FUN_00413140: standard library code or a compiler helper for it (string, vector, map, stream, exception classes) for the game's types
+none 00413490 FUN_00413490: standard library code or a compiler helper for it (string, vector, map, stream, exception classes) for the game's types
+none 004136a0 FUN_004136a0: standard library code or a compiler helper for it (string, vector, map, stream, exception classes) for the game's types
+none 004136d0 FUN_004136d0: standard library code or a compiler helper for it (string, vector, map, stream, exception classes) for the game's types
+none 00413b80 Sexy::SexyString::vf00: destructor (part, whole or deleting) of a class the port declares: the compiler's
+none 00414020 FUN_00414020: registration, trial or update-check code, removed (the register, money and update dialogs and what only they call)
+none 00414940 FUN_00414940: standard library code or a compiler helper for it (string, vector, map, stream, exception classes) for the game's types
+none 004149a0 FUN_004149a0: standard library code or a compiler helper for it (string, vector, map, stream, exception classes) for the game's types
+none 00414b60 FUN_00414b60: standard library code or a compiler helper for it (string, vector, map, stream, exception classes) for the game's types
+none 00414bc0 FUN_00414bc0: standard library code or a compiler helper for it (string, vector, map, stream, exception classes) for the game's types
+none 004160e0 FUN_004160e0: standard library code or a compiler helper for it (string, vector, map, stream, exception classes) for the game's types
+none 00416216 Catch@00416216: exception handler block of the compiler (a catch funclet): nothing to translate, the port reports errors its own way
+none 0041b030 FUN_0041b030: registration, trial or update-check code, removed (the register, money and update dialogs and what only they call)
+none 0041b230 FUN_0041b230: registration, trial or update-check code, removed (the register, money and update dialogs and what only they call)
+none 0041c1c0 FUN_0041c1c0: registration, trial or update-check code, removed (the register, money and update dialogs and what only they call)
+none 0041dc68 Catch@0041dc68: exception handler block of the compiler (a catch funclet): nothing to translate, the port reports errors its own way
+none 0041dda0 FUN_0041dda0: standard library code or a compiler helper for it (string, vector, map, stream, exception classes) for the game's types
+none 0041e2ec Catch@0041e2ec: exception handler block of the compiler (a catch funclet): nothing to translate, the port reports errors its own way
+none 0041e2f8 Catch@0041e2f8: exception handler block of the compiler (a catch funclet): nothing to translate, the port reports errors its own way
+none 0041e5a3 Catch@0041e5a3: exception handler block of the compiler (a catch funclet): nothing to translate, the port reports errors its own way
+none 0041e5af Catch@0041e5af: exception handler block of the compiler (a catch funclet): nothing to translate, the port reports errors its own way
+none 0041e72e Catch@0041e72e: exception handler block of the compiler (a catch funclet): nothing to translate, the port reports errors its own way
+none 0041e7c2 Catch@0041e7c2: exception handler block of the compiler (a catch funclet): nothing to translate, the port reports errors its own way
+none 0041e860 Catch@0041e860: exception handler block of the compiler (a catch funclet): nothing to translate, the port reports errors its own way
+none 0041e880 FUN_0041e880: standard library code or a compiler helper for it (string, vector, map, stream, exception classes) for the game's types
+none 0041e8c0 FUN_0041e8c0: standard library code or a compiler helper for it (string, vector, map, stream, exception classes) for the game's types
+none 0041ea66 Catch@0041ea66: exception handler block of the compiler (a catch funclet): nothing to translate, the port reports errors its own way
+none 0041eaa0 FUN_0041eaa0: standard library code or a compiler helper for it (string, vector, map, stream, exception classes) for the game's types
+none 0041eae0 FUN_0041eae0: standard library code or a compiler helper for it (string, vector, map, stream, exception classes) for the game's types
+none 0042022e Catch@0042022e: exception handler block of the compiler (a catch funclet): nothing to translate, the port reports errors its own way
+none 004202b0 FUN_004202b0: standard library code or a compiler helper for it (string, vector, map, stream, exception classes) for the game's types
+none 004207e0 FUN_004207e0: standard library code or a compiler helper for it (string, vector, map, stream, exception classes) for the game's types
+none 00420810 FUN_00420810: standard library code or a compiler helper for it (string, vector, map, stream, exception classes) for the game's types
+none 00420840 FUN_00420840: standard library code or a compiler helper for it (string, vector, map, stream, exception classes) for the game's types
+none 00420a80 FUN_00420a80: standard library code or a compiler helper for it (string, vector, map, stream, exception classes) for the game's types
+none 00420ac0 FUN_00420ac0: standard library code or a compiler helper for it (string, vector, map, stream, exception classes) for the game's types
+none 00420b00 FUN_00420b00: standard library code or a compiler helper for it (string, vector, map, stream, exception classes) for the game's types
+none 00420b96 Catch@00420b96: exception handler block of the compiler (a catch funclet): nothing to translate, the port reports errors its own way
+none 004212f0 Catch@004212f0: exception handler block of the compiler (a catch funclet): nothing to translate, the port reports errors its own way
+none 00421953 Catch@00421953: exception handler block of the compiler (a catch funclet): nothing to translate, the port reports errors its own way
+none 00421a12 Catch@00421a12: exception handler block of the compiler (a catch funclet): nothing to translate, the port reports errors its own way
+none 00421b00 FUN_00421b00: standard library code or a compiler helper for it (string, vector, map, stream, exception classes) for the game's types
+none 00421b40 FUN_00421b40: standard library code or a compiler helper for it (string, vector, map, stream, exception classes) for the game's types
+none 00421bd6 Catch@00421bd6: exception handler block of the compiler (a catch funclet): nothing to translate, the port reports errors its own way
+none 00421c10 FUN_00421c10: standard library code or a compiler helper for it (string, vector, map, stream, exception classes) for the game's types
+none 00426f90 FUN_00426f90: standard library code or a compiler helper for it (string, vector, map, stream, exception classes) for the game's types
+none 00427000 FUN_00427000: standard library code or a compiler helper for it (string, vector, map, stream, exception classes) for the game's types
+none 004270a6 Catch@004270a6: exception handler block of the compiler (a catch funclet): nothing to translate, the port reports errors its own way
+none 00429690 FUN_00429690: standard library code or a compiler helper for it (string, vector, map, stream, exception classes) for the game's types
+none 00429736 Catch@00429736: exception handler block of the compiler (a catch funclet): nothing to translate, the port reports errors its own way
+none 00429750 FUN_00429750: standard library code or a compiler helper for it (string, vector, map, stream, exception classes) for the game's types
+none 00429826 Catch@00429826: exception handler block of the compiler (a catch funclet): nothing to translate, the port reports errors its own way
+none 0042b8e0 FUN_0042b8e0: standard library code or a compiler helper for it (string, vector, map, stream, exception classes) for the game's types
+none 0042bac5 Catch@0042bac5: exception handler block of the compiler (a catch funclet): nothing to translate, the port reports errors its own way
+none 0042bb5f Catch@0042bb5f: exception handler block of the compiler (a catch funclet): nothing to translate, the port reports errors its own way
+none 0042f710 FUN_0042f710: standard library code or a compiler helper for it (string, vector, map, stream, exception classes) for the game's types
+none 0042f8e0 FUN_0042f8e0: standard library code or a compiler helper for it (string, vector, map, stream, exception classes) for the game's types
+none 0042f9c0 FUN_0042f9c0: standard library code or a compiler helper for it (string, vector, map, stream, exception classes) for the game's types
+none 0042fba5 Catch@0042fba5: exception handler block of the compiler (a catch funclet): nothing to translate, the port reports errors its own way
+none 0042fc3f Catch@0042fc3f: exception handler block of the compiler (a catch funclet): nothing to translate, the port reports errors its own way
+none 00431510 FUN_00431510: standard library code or a compiler helper for it (string, vector, map, stream, exception classes) for the game's types
+none 00434700 FUN_00434700: standard library code or a compiler helper for it (string, vector, map, stream, exception classes) for the game's types
+none 00436660 FUN_00436660: standard library code or a compiler helper for it (string, vector, map, stream, exception classes) for the game's types
+none 004384d0 FUN_004384d0: registration, trial or update-check code, removed (the register, money and update dialogs and what only they call)
+none 00438aa0 Sexy::RegisterDialog::ctor_or_dtor_438aa0: registration, trial or update-check code, removed (the register, money and update dialogs and what only they call)
+none 00438bb0 Sexy::RegisterDialog::vf50: registration, trial or update-check code, removed (the register, money and update dialogs and what only they call)
+none 00438bc0 Sexy::RegisterDialog::vf03_sub88: registration, trial or update-check code, removed (the register, money and update dialogs and what only they call)
+none 00438be0 Sexy::RegisterDialog::vf01: registration, trial or update-check code, removed (the register, money and update dialogs and what only they call)
+none 00438c40 Sexy::RegisterDialog::vf02: registration, trial or update-check code, removed (the register, money and update dialogs and what only they call)
+none 00438ca0 Sexy::RegisterDialog::vf13: registration, trial or update-check code, removed (the register, money and update dialogs and what only they call)
+none 00438d60 Sexy::RegisterDialog::vf16: registration, trial or update-check code, removed (the register, money and update dialogs and what only they call)
+none 00438d80 Sexy::RegisterDialog::vf00_sub272: registration, trial or update-check code, removed (the register, money and update dialogs and what only they call)
+none 00438dc0 Sexy::RegisterDialog::vf04: registration, trial or update-check code, removed (the register, money and update dialogs and what only they call)
+none 00438f70 Sexy::MoneyDialog::~MoneyDialog: registration, trial or update-check code, removed (the register, money and update dialogs and what only they call)
+none 00439180 Sexy::RegisterDialog::~RegisterDialog: registration, trial or update-check code, removed (the register, money and update dialogs and what only they call)
+none 0043d050 FUN_0043d050: registration, trial or update-check code, removed (the register, money and update dialogs and what only they call)
+none 0043da1c Catch@0043da1c: exception handler block of the compiler (a catch funclet): nothing to translate, the port reports errors its own way
+none 0043da28 Catch@0043da28: exception handler block of the compiler (a catch funclet): nothing to translate, the port reports errors its own way
+none 0043dbb5 Catch@0043dbb5: exception handler block of the compiler (a catch funclet): nothing to translate, the port reports errors its own way
+none 0043f0d5 Catch@0043f0d5: exception handler block of the compiler (a catch funclet): nothing to translate, the port reports errors its own way
+none 0043f640 Sexy::RegisterDialog::vf04_sub88: registration, trial or update-check code, removed (the register, money and update dialogs and what only they call)
+none 004415b0 FUN_004415b0: registration, trial or update-check code, removed (the register, money and update dialogs and what only they call)
+none 00443410 FUN_00443410: standard library code or a compiler helper for it (string, vector, map, stream, exception classes) for the game's types
+none 00443a40 FUN_00443a40: standard library code or a compiler helper for it (string, vector, map, stream, exception classes) for the game's types
+none 00444550 FUN_00444550: standard library code or a compiler helper for it (string, vector, map, stream, exception classes) for the game's types
+none 0044462e Catch@0044462e: exception handler block of the compiler (a catch funclet): nothing to translate, the port reports errors its own way
+none 0044cb63 Catch@0044cb63: exception handler block of the compiler (a catch funclet): nothing to translate, the port reports errors its own way
+none 0044cb6f Catch@0044cb6f: exception handler block of the compiler (a catch funclet): nothing to translate, the port reports errors its own way
+none 0044cec3 Catch@0044cec3: exception handler block of the compiler (a catch funclet): nothing to translate, the port reports errors its own way
+none 0044cecf Catch@0044cecf: exception handler block of the compiler (a catch funclet): nothing to translate, the port reports errors its own way
+none 0044d090 FUN_0044d090: standard library code or a compiler helper for it (string, vector, map, stream, exception classes) for the game's types
+none 0044d0e0 FUN_0044d0e0: standard library code or a compiler helper for it (string, vector, map, stream, exception classes) for the game's types
+none 0044d1a2 Catch@0044d1a2: exception handler block of the compiler (a catch funclet): nothing to translate, the port reports errors its own way
+none 00450ca0 FUN_00450ca0: standard library code or a compiler helper for it (string, vector, map, stream, exception classes) for the game's types
+none 004512e0 FUN_004512e0: standard library code or a compiler helper for it (string, vector, map, stream, exception classes) for the game's types
+none 00451515 Catch@00451515: exception handler block of the compiler (a catch funclet): nothing to translate, the port reports errors its own way
+none 004515cf Catch@004515cf: exception handler block of the compiler (a catch funclet): nothing to translate, the port reports errors its own way
+none 004516c0 FUN_004516c0: standard library code or a compiler helper for it (string, vector, map, stream, exception classes) for the game's types
+none 004530b0 FUN_004530b0: standard library code or a compiler helper for it (string, vector, map, stream, exception classes) for the game's types
