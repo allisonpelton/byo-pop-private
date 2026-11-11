@@ -257,7 +257,9 @@ typically like").
   it has had every step: the user's faults fixed; both phases of identical play, with the real-input play of CLAUDE.md
   ("Done means identical"); registration and the buttons that lead out of the game removed; its fixes mod; the
   readability pass; the coverage check; the performance pass; the other code it does not need taken out; and, for a
-  game ported from its Steam copy, the check against its PopCap Game Collection version. The coverage check and the
+  game ported from its Steam copy, the check against its PopCap Game Collection version; and its features on the site:
+  its tunes placed, grouped and split in Music, and its soundboard's presets (the user, 2026-11-11: "All these
+  accessory features should be added to our definition of done"). The coverage check and the
   performance pass are steps of each game's own finishing, in the order above where a game has not begun its
   readability pass (coverage, then performance, then readability, as the user ordered on 2026-11-03), and after it for
   the pilots. A performance measurement needs a quiet machine, so the coordinator gives each game a measuring slot when

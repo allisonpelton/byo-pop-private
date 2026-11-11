@@ -296,6 +296,8 @@ html:not(.d95-desk) #chat { display: none !important; }
 .mu-lcd-top { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .mu-lcd-state { display: inline-flex; flex: none; }
 .mu-lcd-state svg { width: 9px; height: 9px; }
+.mu-lcd-icon { width: 16px; height: 16px; image-rendering: pixelated; }
+.mu-lcd-cap { width: 16px; height: 12px; font-size: 8px; line-height: 12px; text-align: center; font-weight: bold; color: #fff; background: var(--tile, #808080); }
 .mu-blink { animation: mu-blink 1s steps(1) infinite; }
 @keyframes mu-blink { 50% { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .mu-blink { animation: none; opacity: .6; } }
@@ -313,7 +315,10 @@ html:not(.d95-desk) #chat { display: none !important; }
 .mu-score { width: 100%; height: 100%; overflow-x: hidden; overflow-y: auto; }
 .mu-score-sheet { position: relative; }
 .mu-score-svg svg { display: block; }
-.mu-score-head { position: absolute; top: 0; width: 6px; background: rgba(255, 255, 255, 0.3); pointer-events: none; }
+.mu-score-sheet { overflow: hidden; }
+.mu-score-head { position: absolute; top: 0; width: 3px; z-index: 1; background: rgba(255, 255, 255, 0.3); pointer-events: none; }
+.mu-score-clefs { position: absolute; left: 0; top: 0; z-index: 2; background: #000; }
+.mu-meter { position: absolute; left: 2px; top: 0; z-index: 3; font-size: 10px; line-height: 12px; opacity: .7; white-space: nowrap; pointer-events: none; }
 .mu-score-head[hidden] { display: none; }
 .mu-spectrum[hidden], .mu-tracker[hidden], .mu-piano[hidden], .mu-score[hidden] { display: none; }
 .mu-tracker-at { font-size: 10px; line-height: 12px; opacity: .7; white-space: pre; }
@@ -367,6 +372,7 @@ html:not(.d95-desk) #chat { display: none !important; }
   color: inherit; background: none; border: 0; border-radius: 0; box-shadow: none; }
 #music .mu-tune:hover { background: rgba(127, 127, 127, .15); }
 #music .mu-tune[aria-current] { background: var(--accent); color: #fff; }
+#music .mu-tune.mu-followed { outline: 1px dotted currentColor; outline-offset: -2px; }
 .mu-num { flex: none; width: 2em; text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; }
 #music .mu-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .mu-time { flex: none; color: var(--muted); font-variant-numeric: tabular-nums; }

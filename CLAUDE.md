@@ -250,8 +250,11 @@ Every call re-reads the whole context, so what costs is context times calls, and
   state." A game is done, and may go on the live site, only once it has been through all of them: the user's faults,
   both phases of identical play, registration and outbound buttons out, its fixes mod (the site serves every game with
   it on), the readability pass, the coverage check, the performance pass (the user, 2026-11-03), taking out the other
-  code it does not need, and, for a game ported from its Steam copy, the check against its PopCap Game Collection
-  version. So the coverage check and the performance pass come game by game, not after every game is done
+  code it does not need, for a game ported from its Steam copy the check against its PopCap Game Collection
+  version, and its features on the site (the user, 2026-11-11: "All these accessory features should be added to our
+  definition of done"): Music's entries for its tunes placed, grouped and split as the game plays them, with no place
+  its code can settle left blank, and its soundboard's presets of the sequences the game plays. The site builds them,
+  and the game's session answers the site's questions about its code. So the coverage check and the performance pass come game by game, not after every game is done
   (`docs/COORDINATION.md`). Modding, which waits, is the mods' own work: new mods and the changes waiting in
   `docs/MOD_ROADMAP.md`. Whatever games are done by 2026-12-31 go on the live site then; the rest follow when done,
   never hurried. A session may speed up its own port before its performance pass, at any time, so its `-fast` test runs go
