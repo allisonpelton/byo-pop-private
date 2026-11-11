@@ -57,6 +57,7 @@ var ByopopSettings = (function () {
     // the input settings (web/controls.js): what the page adds to the game's input
     inputDisplay: { values: SWITCH, def: "off" },
     touchKeys: { values: ["auto", "on", "off"], def: "auto" },
+    touchPlace: { values: ["auto", "under", "side"], def: "auto" },   // the touch keys under the game or at its side (auto: by the screen's shape)
     gamepad: { values: SWITCH, def: "on" },
     clips: { values: SWITCH, def: "off" },           // on: a Record button on a game page's bar (web/clips.js)
     skipLogos: { values: SWITCH, def: "off" },       // on: the games skip their start-up logos (byopop_site_skiplogos, before the start)
@@ -251,6 +252,8 @@ var ByopopSettings = (function () {
     { section: "input" },
     { name: "touchKeys", label: T("settings.touchkeys.label"), options: [["auto", T("settings.touchkeys.auto")], ["on", T("settings.on")], ["off", T("settings.off")]],
       hint: T("settings.touchkeys.hint") },
+    { name: "touchPlace", label: T("settings.touchplace.label"), options: [["auto", T("settings.touchkeys.auto")], ["under", T("settings.touchplace.under")], ["side", T("settings.touchplace.side")]],
+      hint: T("settings.touchplace.hint") },
     { name: "gamepad", label: T("settings.gamepad.label"), hint: T("settings.gamepad.hint") },
     { name: "cursors", label: T("settings.cursors.label"), options: [["game", GAME_DEFAULT], ["on", T("settings.cursors.on")], ["off", T("settings.cursors.off")]],
       hint: T("settings.cursors.hint") },

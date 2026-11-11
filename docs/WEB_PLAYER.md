@@ -1044,6 +1044,23 @@ from. Only keys the game's own code handles are listed: not the framework's, not
   under the game for each key entry.
 - **Input display** (`inputDisplay`) shows the keys and mouse buttons the game is sent, in its bottom left corner.
 
+### Phones
+
+A phone is a touch screen whose short side is under 600 CSS pixels (`PHONE` in `web/shell.html`; `?phone=1` on a
+development host for tests). There (the user, 2026-11-10: "the games should all default to full screen with pixel
+perfect mode off"):
+
+- The game is as large as its window allows, not a whole multiple of its size, and Play asks for full screen unless
+  the "Full screen" setting is off.
+- Before the game is made, the cards (the terms, the files, Ready) have the whole page and scroll, without the
+  wizard's art column (a media query at 600 pixels, phone or not).
+- The touch keys (`web/controls.js`) always have a keyboard button: it puts the focus in a text field kept out of
+  sight, so the screen keyboard comes up, and what is typed goes to the game's canvas as key events (letters, Backspace,
+  Enter).
+- The setting "Touch keys position" (`touchPlace`: automatic, under, beside) puts the keys in a column at the right of
+  the game; automatic does so while the page is wider than tall. In full screen the keys stay on the screen and the
+  game keeps clear of them (`--touch-w`, `--touch-h`, `fitFullscreen`).
+
 ### Game speed
 
 `speed` (0.5, 0.75, 1, 1.25, 1.5, 2) sets `SexyAppBase::mUpdateMultiplier` through the web-only `byopop_set_speed`
