@@ -522,7 +522,21 @@ the focus out, and the game never sees them. Moving the focus to a control on th
 focus: SDL and the framework (`EmscriptenFocusCallback`) take that from the window's `focus` and `blur` events.
 
 **The checker** is `tools/a11ycheck.js` (`unit-web`), which reads the built pages with no browser; markup that scripts
-build is checked in a browser with `A11yCheck.checkHtml(document.documentElement.outerHTML)`.
+build is checked in a browser with `A11yCheck.checkHtml(document.documentElement.outerHTML, { live: true, kind: "index" })`
+(`live` leaves out what is hidden at that moment; `kind` names the page's kind, since the music's canvases would make the
+front page look like a game's).
+
+**Desktop 95's windows** are what a screen reader meets on the front page, and its scripts build them. Each is a region
+named by its title bar, whose text is the window's `h2` under the page's one `h1`, so the heading keys go from window to
+window. A panel that the narrow page shows as a tab (Music, Settings, and the Settings sections) drops its `tabpanel`
+role while it is a window. A landmark of its own (the games' `main`, the About `footer`, the chat's `aside`) keeps its
+role and takes the title as its name. A heading inside the window that repeats the title goes quiet: a screen-reader-only
+one is hidden, and a visible one (the chat's collapser) loses its heading role. When the desktop goes, every attribute is
+put back (`web/skins.js`, `named`). **The desktop's check**, `tools/web/deskcheck.js`, opens every window in turn on a
+development host served by `tools/webtest/serve.py` (`index.html?silent=1&driver=tools/web/deskcheck.js`, at least 760
+pixels wide). For each window it checks that structure and runs the checker on the live page. The result is in
+`window.byopopDeskCheck.result`, and the page's title ends with "deskcheck: PASS" or "FAIL". The chat's window is checked
+closed, because opening it starts the chat.
 
 ## The site's text
 
