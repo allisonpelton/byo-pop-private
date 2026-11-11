@@ -6,7 +6,8 @@
 # Windows Sandbox from the staged copy (origcmp/stage_original.sh), as run_original.sh runs it. Prints shotdiff's line; the
 # summary is build/shotreview/astropop/<name>/summary.json.
 # Env: PORT_ARGS (more port arguments), SKIP_ORIG=1 / SKIP_PORT=1 (reuse the other side's shots), PROFILE (a profile file the
-# original starts with, as run_original.sh), PORT_USER (a user folder to copy instead of the empty one), SEED (default 1).
+# original starts with, as run_original.sh), PORT_USER (a user folder to copy instead of the empty one), SEED (default 1), PORT_EXE
+# (a copy of astropop.exe beside SDL2.dll, so that the build can go on while the tour runs: tools/tour/freeze.sh).
 set -uo pipefail
 cd "$(dirname "$0")/../../../.."
 N="$1"; TOUR="$2"; shift 2
@@ -21,7 +22,7 @@ if [ -z "${SKIP_PORT:-}" ]; then
   rm -rf "$D/port" "$D/user"; mkdir -p "$D/port" "$D/user"
   if [ -n "${PORT_USER:-}" ]; then cp -r "$PORT_USER"/. "$D/user"/; else printf '[SOFTWARE\\PopCap\\AstroPop]\nIs3D=dword:0\nScreenMode=dword:0\n' > "$D/user/registry.ini"; fi
   wait_room
-  build/native/rundesk.exe "$(cygpath -w "$PWD/build/native/astropop.exe")" -fast -drawevery -seed=$SEED -userdir="$(cygpath -w "$PWD/$D/user")" -realinput="$(cygpath -w "$PWD/$D/port.txt")" ${PORT_ARGS:-} > "$D/port.log" 2>&1
+  build/native/rundesk.exe "$(cygpath -w "$PWD/${PORT_EXE:-build/native/astropop.exe}")" -fast -drawevery -seed=$SEED -userdir="$(cygpath -w "$PWD/$D/user")" -realinput="$(cygpath -w "$PWD/$D/port.txt")" ${PORT_ARGS:-} > "$D/port.log" 2>&1
   echo "port: exit $?, $(ls "$D/port" | wc -l) shots"
 fi
 if [ -z "${SKIP_ORIG:-}" ]; then
