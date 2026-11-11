@@ -893,12 +893,31 @@ for a game that is not heard; the position shown stays the game's own. Only one 
 the game last in front. The others' output node is disconnected from their speakers, not their page's mute, which is
 the player's own switch.
 
+**The game's own track (the user's notes, 2026-11-10: "The tracker sync should show what track is actually playing and
+its progress", "If possible, make the controls change what plays in game").** While a game is followed, Music finds the
+list's tune the game plays: one of that game's module tunes whose file has as many orders as the game's song, the same
+pattern at the order heard, and whose orders hold it (a range's, else the subsong that starts there or nearest before
+it; `tunesOf` keeps each file's order list and each tune's first order). The display then shows that tune as the
+player's own would be: its name, the game's icon from its files in place of the state (else its two letters on its
+colour, as in the Library), its time and its length, and the list marks it with a dotted outline; the follow tag stays.
+The time is the start of the order heard plus the rows since at the speed and tempo playing. A module libopenmpt plays
+gives each order's start from a copy of it, read once a tune. libxmp-lite's clock does not follow a jump, and finding
+the starts by seeking took 4 seconds for a 4-minute tune, so there the rows since the tune's first order count. That
+is exact while the tune keeps one tempo. The seek bar moves the game's song to the order and row at that time
+(`byopop_music_seek`). Previous and Next take it to the tune before or after in the same file, from its first order,
+Previous to the tune's own start after 3 seconds. The game may change the music again as it plays on, as its own code
+decides. Play, Pause and Stop stay the player's own. A game's music the list does not have (a stream, a module not
+found) shows its module's title, with no time. When the game is no longer followed, the display, the list and the seek
+bar are the player's own again.
+
 The game's side is a site hook in the platform layer: no game's code changes, and native builds do not compile it.
 `Platform::Mixer` answers these exported calls (`platform/Audio.cpp`):
 
 - `byopop_music_song()`: the song the game plays (the loudest playing one, 0 for none).
 - `byopop_music_view(song)`: JSON with its kind (`module` or `stream`) and, for a module, its pattern, row, the
-  pattern's rows, channels, order and title, and the speed and tempo playing.
+  pattern's rows, channels, order and title, the speed and tempo playing, and its orders.
+- `byopop_music_seek(song, order, row)`: the song moved to an order and row (Music's seek bar, Previous and Next while it
+  follows the game); 1 when done, 0 for a stream or a song not playing.
 - `byopop_music_meter(song, pattern)`: the pattern's rows per beat and per bar as the module stores them, beat << 16 |
   bar, 0 for none.
 - `byopop_music_row(song, pattern, row)`: a row's cells separated by `|`.

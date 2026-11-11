@@ -175,6 +175,11 @@ public:
 		return openmpt_module_get_current_speed(mModule);
 	}
 
+	int GetOrders() override
+	{
+		return openmpt_module_get_num_orders(mModule);
+	}
+
 	bool SetChannelMute(int theChannel, bool theMute) override
 	{
 		if (!mHasInteractive || theChannel < 0 || theChannel >= openmpt_module_get_num_channels(mModule))

@@ -64,6 +64,8 @@ public:
 	virtual int GetMeter(int thePattern) { return 0; }
 	// The current speed in ticks a row, 0 when the player cannot tell (with GetTempo's BPM, a row's length).
 	virtual int GetSpeed() { return 0; }
+	// The module's orders (its order list's length), 0 when the player cannot tell.
+	virtual int GetOrders() { return 0; }
 #endif
 };
 
@@ -160,8 +162,9 @@ public:
 	// The site's Music window following the game (docs/WEB_PLAYER.md, "Following a game"; Audio.cpp's byopop_music_*). The
 	// song it shows: the loudest one playing (its handle, 0 for none), and as JSON where it is ({"song", "kind": "module" or
 	// "stream", and for a module "pattern", "row", "rows", "channels", "order", "speed", "bpm" (0 where the player cannot tell),
-	// "title"}); a row's cells; the channels used; the instruments' names; a channel muted or brought back (the window's own
-	// control, not the game's); a pattern's rows per beat and bar as its file stores them.
+	// "orders", "title"}); a row's cells; the channels used; the instruments' names; a channel muted or brought back (the
+	// window's own control, not the game's); a pattern's rows per beat and bar as its file stores them; the song moved to an
+	// order and row (the window's seek bar, Previous and Next while it follows the game: the music the game plays changes).
 	int WebFollowedSong();
 	std::string WebSongView(int theSong);
 	std::string WebSongRow(int theSong, int thePattern, int theRow);
@@ -169,6 +172,7 @@ public:
 	std::string WebSongNames(int theSong);
 	bool WebSongMute(int theSong, int theChannel, bool theMute);
 	int WebSongMeter(int theSong, int thePattern);
+	bool WebSongSeek(int theSong, int theOrder, int theRow);
 #endif
 
 #ifdef __EMSCRIPTEN__
