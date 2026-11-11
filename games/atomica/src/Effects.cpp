@@ -13,6 +13,7 @@
 
 using namespace Sexy;
 
+// port: a colour whose alpha is cut to 0 to 255
 static inline Color ClampedColor(int r, int g, int b, int a)
 {
 	return Color(r, g, b, a > 255 ? 255 : (a < 0 ? 0 : a));
@@ -442,14 +443,14 @@ void Bolt::DrawPixels(Graphics* g, int aX1, int aY1, int aX2, int aY2)
 	g->SetColorizeImages(true);
 	int aAngle1 = CompassAngle(aX1, aY1, aX2, aY2) + mTwist;
 	int aAngle2 = CompassAngle(aX2, aY2, aX1, aY1) - mTwist;
-	if (aAngle1 > 0x167)
-		aAngle1 -= 0x168;
+	if (aAngle1 > FULL_TURN - 1)
+		aAngle1 -= FULL_TURN;
 	if (aAngle1 < 0)
-		aAngle1 += 0x168;
-	if (aAngle2 > 0x167)
-		aAngle2 -= 0x168;
+		aAngle1 += FULL_TURN;
+	if (aAngle2 > FULL_TURN - 1)
+		aAngle2 -= FULL_TURN;
 	if (aAngle2 < 0)
-		aAngle2 += 0x168;
+		aAngle2 += FULL_TURN;
 
 	// the two ends leave the atoms at 25 pixels in the twisted directions
 	float aStartX = SinDeg(aAngle1) * 25.0f + (float) aX1;
@@ -522,12 +523,13 @@ void Bolt::DrawMiniLine(Graphics* g, int theX1, int theY1, int theX2, int theY2)
 // ---------------------------------------------------------------------------------------------------------
 // InfectBolt
 
-static int Wrap360(int theAngle)
+// port: an angle brought back into 0 to 359 after a step of less than a turn (InfectBolt: 0x425230, 0x425730)
+static int WrapDegrees(int theAngle)
 {
-	if (theAngle > 0x167)
-		theAngle -= 0x168;
+	if (theAngle > FULL_TURN - 1)
+		theAngle -= FULL_TURN;
 	if (theAngle < 0)
-		theAngle += 0x168;
+		theAngle += FULL_TURN;
 	return theAngle;
 }
 
@@ -553,7 +555,7 @@ InfectBolt::InfectBolt(AtomicaApp* theApp, int theStartX, int theStartY, int the
 	mApp->mSndElectric[1]->Play();
 	mApp->mSndElectric[2]->Play();
 	mSoundTimer = 10;
-	mAngle = mApp->mRand.Get(0x168, false);
+	mAngle = mApp->mRand.Get(FULL_TURN, false);
 	mStartX = theStartX;
 	mTargetY = theTargetY;
 	mTargetX = theTargetX;
@@ -573,14 +575,14 @@ bool InfectBolt::Update()
 	}
 	if (mMoving)
 	{
-		mAngle = Wrap360(mAngle + 8);
+		mAngle = WrapDegrees(mAngle + 8);
 		mEndX = (int) (SinDeg(mAngle) * mRadius + (float) mTargetX);
 		mEndY = (int) (NegCosDeg(mAngle) * mRadius + (float) mTargetY);
 		mRadius = mRadius + 0.28f;
 		int anAngle = CompassAngle(mStartX, mStartY, mEndX, mEndY);
 		mX1 = (int) (SinDeg(anAngle) * 24.0f + (float) mStartX);
 		mY1 = (int) (NegCosDeg(anAngle) * 24.0f + (float) mStartY);
-		int aDirection = Wrap360(mApp->mRand.Get(0x3c, true) + anAngle);
+		int aDirection = WrapDegrees(mApp->mRand.Get(0x3c, true) + anAngle);
 		Particle* aSpark = new Particle(mApp, mApp->mMiniSpark);
 		aSpark->mX = (float) mX1;
 		aSpark->mY = (float) mY1;
@@ -588,7 +590,7 @@ bool InfectBolt::Update()
 		aSpark->mVX = aSpeed * SinDeg(aDirection);
 		aSpark->mVY = aSpeed * NegCosDeg(aDirection);
 		mApp->mBoard->mEffects.Add(aSpark);
-		int aDirection2 = mApp->mRand.Get(0x168, false);
+		int aDirection2 = mApp->mRand.Get(FULL_TURN, false);
 		aSpark = new Particle(mApp, mApp->mMiniSpark);
 		aSpark->mX = (float) mEndX;
 		aSpark->mY = (float) mEndY;
@@ -617,7 +619,7 @@ bool InfectBolt::Update()
 			Particle* aSpark = new Particle(mApp, mApp->mMiniSpark);
 			aSpark->mX = (float) mTargetX;
 			aSpark->mY = (float) mTargetY;
-			int aDirection = mApp->mRand.Get(0x168, false);
+			int aDirection = mApp->mRand.Get(FULL_TURN, false);
 			aSpark->mVX = SinDeg(aDirection);
 			aSpark->mVY = NegCosDeg(aDirection);
 			aSpark->mX = aSpark->mVX * 25.0f + aSpark->mX;
@@ -640,9 +642,9 @@ void InfectBolt::Draw(Graphics* g)
 	int aDX = mEndX - mX1;
 	int aDY = mEndY - mY1;
 	float aLength = sqrtf((float) (aDY * aDY + aDX * aDX)) * 0.25f;
-	int aJitter1 = Wrap360(mApp->mRand.Get(0x37, true) + aAngle1);
-	int aJitter2 = Wrap360(mApp->mRand.Get(0x37, true) + aAngle2);
-	int aJitter3 = Wrap360(mApp->mRand.Get(0x37, true) + aAngle3);
+	int aJitter1 = WrapDegrees(mApp->mRand.Get(0x37, true) + aAngle1);
+	int aJitter2 = WrapDegrees(mApp->mRand.Get(0x37, true) + aAngle2);
+	int aJitter3 = WrapDegrees(mApp->mRand.Get(0x37, true) + aAngle3);
 	float aAX = aLength * SinDeg(aJitter1) + (float) mX1;
 	float aAY = aLength * NegCosDeg(aJitter1) + (float) mY1;
 	float aBX = aLength * SinDeg(aJitter2) + (float) mEndX;
@@ -746,7 +748,7 @@ bool Sparkle::Update()
 		int aCell[2] = {0, 0};
 		Grid::PixelToCell((int) mX, (int) mY, aCell);
 		Grid* aGrid = mApp->mBoard->mGrid;
-		if ((aCell[0] > -1) && (aCell[1] > -1) && (aCell[0] < 9) && (aCell[1] < 8) && (aGrid->mCellState[aCell[0]][aCell[1]] < -100))
+		if ((aCell[0] > -1) && (aCell[1] > -1) && (aCell[0] < Grid::COLS) && (aCell[1] < Grid::ROWS) && (aGrid->mCellState[aCell[0]][aCell[1]] < -100))
 			aGrid->mCellState[aCell[0]][aCell[1]] = 0x40;
 	}
 	if (!mFading)

@@ -29,27 +29,27 @@ bool gGridBoardClicksOff = false;
 // 0x40e3e0
 Grid::Grid(AtomicaApp* theApp) :
 	mApp(theApp),
-	mGroupColor(0, 0, 0, 255),
-	mCursorColor(0, 0, 0, 255)
+	mCursorColor(0, 0, 0, 255),
+	mGroupColor(0, 0, 0, 255)
 {
 	mCursorX = 0;
 	mCursorY = 0;
-	mM30c = 0;
-	mM310 = 0;
+	mPickedCol = 0;
+	mPickedRow = 0;
 	mHoverCol = mHoverRow = 0;
-	mM31c = mM320 = 0;
+	mMouseX = mMouseY = 0;
 	mGroupX = mGroupY = 0;
 	mGeiger1 = mGeiger2 = 0;
-	mI364 = 0;
-	mI4b8 = mI4bc = 0;
+	mBiohazards = 0;
+	mReadyElementX = mReadyElementY = 0;
 	mArrowX = mArrowY = 0;
-	mB33d = false;
+	mRevealSaid = false;
 	mPausedByKey = false;
-	mB4b3 = false;
-	mB32c = false;
-	mB334 = false;
-	mB335 = false;
-	mM30c = -1000;			// 0xfffffc18
+	mElementReady = false;
+	mCheckMolecules = false;
+	mAppearSoundDue = false;
+	mWhooshDue = false;
+	mPickedCol = -1000;			// 0xfffffc18
 	mSelected = NULL;
 	mPathFinder = new PathFinder(this);
 	for (int c = 0; c < COLS; c++)
@@ -61,35 +61,35 @@ Grid::Grid(AtomicaApp* theApp) :
 		}
 	mCombo = 0;
 	mNoMoveLeft = false;
-	mLevelOver = false;
-	mOverTick = 0;
+	mGameOver = false;
+	mGameOverTick = 0;
 	mSelectGlow = 0;
-	mB358 = true;
-	mStat374 = mStat37c = mStat380 = mStat384 = mStat388 = mStat38c = 0;
-	mB4b4 = 0;
-	mI368 = 0;
+	mComboEnded = true;
+	mLevelUpdates = mLevelAtoms = mLevelMolecules = mLevelBestCombo = mLevelBonusMolecules = mLevelBonusUpgrades = 0;
+	mReadyElement = 0;
+	mHoverTick = 0;
 	mTooltipAtom = NULL;
-	mB4c0 = false;
+	mBonusLevel = false;
 	mUnsolvable = false;
 	for (int i = 0; i < 0xff; i++)
 		mHintShown[i] = false;
 	mRadiationRound = false;
-	mI520 = 0;
-	mB524 = false;
-	mB525 = false;
+	mRadiationBlinkTimer = 0;
+	mRadiationBlink = false;
+	mAllRadiated = false;
 	mPulse = 0;
 	mPulseStep = 0;
-	mF390 = mF394 = 0;
-	mI398 = 0;
+	mRoundTimer = mRoundTime = 0;
+	mCountDownTick = 0;
 	mNumColors = 0;
 	mChromiumChance = mBiohazardChance = 0;
 	mAtomsPerRound = 0;
-	mB3a8 = false;
-	mF3ac = 0;
+	mLevelSetUp = false;
+	mMeterFillStep = 0;
 	mRounds = 0;
-	mI4d0 = 0;
+	mMagnetTick = 0;
 	mBonusTick = 0;
-	mB33c = false;
+	mFieldRevealed = false;
 	mTooltipAlpha = 0;
 	mApp->mMusicInterface->PlayMusic(0, mApp->mMode == 0 ? 0xc : 0x2c, false);
 }
@@ -147,15 +147,15 @@ Grid::~Grid()
 // 0x40c4c0: the middle of a cell
 void Grid::CellToPixel(int theCol, int theRow, int* thePixel)
 {
-	thePixel[0] = theCol * 0x32 + 0x19;
-	thePixel[1] = theRow * 0x32 + 0x19;
+	thePixel[0] = theCol * CELL + CELL / 2;
+	thePixel[1] = theRow * CELL + CELL / 2;
 }
 
 // 0x40c4f0
 void Grid::PixelToCell(int theX, int theY, int* theCell)
 {
-	theCell[0] = theX / 0x32;
-	theCell[1] = theY / 0x32;
+	theCell[0] = theX / CELL;
+	theCell[1] = theY / CELL;
 }
 
 // 0x40e670
@@ -169,14 +169,14 @@ void Grid::Start()
 		anAtom = mAtoms.Next();
 	}
 	mAtoms.Clear();
-	mB33d = false;
-	mI364 = 0;
+	mRevealSaid = false;
+	mBiohazards = 0;
 	Resize(0xa5, 0x28, 0x1c2, 400);
-	mF390 = mF394;
+	mRoundTimer = mRoundTime;
 	mPulse = 10.0f;
 	mPulseStep = 0.15f;
-	mF394 = 300.0f;
-	mI398 = 0;
+	mRoundTime = 300.0f;
+	mCountDownTick = 0;
 	FlushStats();
 }
 
@@ -185,13 +185,13 @@ void Grid::FlyAwayAll()
 {
 	mUnsolvable = false;
 	mCombo = 0;
-	mApp->mBoard->mF0ac = 0;
+	mApp->mBoard->mNeedleTarget = 0;
 	mApp->mSndWhoosh->Play();
 	mAtoms.Reset();
 	Atom* anAtom = mAtoms.Next();
 	while (anAtom != NULL)
 	{
-		if (!mLevelOver)
+		if (!mGameOver)
 		{
 			for (int i = 0; i < 4; i++)
 			{
@@ -214,18 +214,18 @@ void Grid::FlyAwayAll()
 void Grid::FlushStats()
 {
 	Board* aBoard = mApp->mBoard;
-	aBoard->mStat1c4 += mStat374;
-	aBoard->mStat1cc += mStat37c;
-	aBoard->mStat1d0 += mStat380;
-	aBoard->mStat1d4 = aBoard->mStat1d4 > mStat384 ? aBoard->mStat1d4 : mStat384;
-	aBoard->mStat1d8 += mStat388;
-	aBoard->mStat1dc += mStat38c;
-	mStat374 = 0;
-	mStat37c = 0;
-	mStat380 = 0;
-	mStat384 = 0;
-	mStat388 = 0;
-	mStat38c = 0;
+	aBoard->mStatUpdates += mLevelUpdates;
+	aBoard->mStatAtoms += mLevelAtoms;
+	aBoard->mStatMolecules += mLevelMolecules;
+	aBoard->mStatBestCombo = aBoard->mStatBestCombo > mLevelBestCombo ? aBoard->mStatBestCombo : mLevelBestCombo;
+	aBoard->mStatBonusMolecules += mLevelBonusMolecules;
+	aBoard->mStatBonusUpgrades += mLevelBonusUpgrades;
+	mLevelUpdates = 0;
+	mLevelAtoms = 0;
+	mLevelMolecules = 0;
+	mLevelBestCombo = 0;
+	mLevelBonusMolecules = 0;
+	mLevelBonusUpgrades = 0;
 }
 
 // 0x40c880 (with 0x405fa0, as in the destructor above)
@@ -278,13 +278,13 @@ int Grid::TypesInRect(int theCol1, int theRow1, int theCol2, int theRow2)
 	{
 		if (aRow < 0)
 			continue;
-		if (aRow > 7)
+		if (aRow >= ROWS)
 			break;
 		for (int aCol = theCol1; aCol <= theCol2; aCol++)
 		{
 			if (aCol < 0)
 				continue;
-			if (aCol > 8)
+			if (aCol >= COLS)
 				break;
 			Atom* anAtom = mCells[aCol][aRow];
 			if ((anAtom == NULL) || anAtom->mPre)
@@ -323,15 +323,15 @@ void Grid::MouseMove(int x, int y)
 {
 	if (!gGridKeepTooltip)
 	{
-		mI368 = 0;
+		mHoverTick = 0;
 		mTooltipAtom = NULL;
 	}
-	if (!mLevelOver)
+	if (!mGameOver)
 	{
 		mPathFinder->Reset();
 		PixelToCell(x, y, &mHoverCol);
-		mM31c = x;
-		mM320 = y;
+		mMouseX = x;
+		mMouseY = y;
 		if ((mSelected != NULL) && mSelected->mPlaced)
 		{
 			int aCell[2] = {0, 0};
@@ -341,6 +341,7 @@ void Grid::MouseMove(int x, int y)
 	}
 }
 
+// 0x40c530: a jump to MouseMove
 void Grid::MouseDrag(int x, int y)
 {
 	MouseMove(x, y);
@@ -352,9 +353,9 @@ void Grid::MouseUp(int x, int y, int theBtnNum)
 	(void) x;
 	(void) y;
 	(void) theBtnNum;
-	mI368 = 0;
+	mHoverTick = 0;
 	mTooltipAtom = NULL;
-	if (!mLevelOver && !mIsOver)
+	if (!mGameOver && !mIsOver)
 		mSelected = NULL;
 }
 
@@ -362,9 +363,9 @@ void Grid::MouseUp(int x, int y, int theBtnNum)
 void Grid::MouseDown(int x, int y, int theBtnNum, int theClickCount)
 {
 	int aClick = (theBtnNum == 1) ? -1 : (theClickCount > 1 ? 2 : 1);
-	mI368 = 0;
+	mHoverTick = 0;
 	mTooltipAtom = NULL;
-	if (mLevelOver || (mApp->mPauseCount >= 1))
+	if (mGameOver || (mApp->mPauseCount >= 1))
 		return;
 	if ((aClick > 1) && (mSelected != NULL))
 	{
@@ -404,8 +405,8 @@ void Grid::MouseDown(int x, int y, int theBtnNum, int theClickCount)
 					mCursorX += 0x19;
 					mSelectGlow = 0;
 					mCursorColor = Color(mSelected->mColor.mRed, mSelected->mColor.mGreen, mSelected->mColor.mBlue, 255);
-					mM30c = aCell[0];
-					mM310 = aCell[1];
+					mPickedCol = aCell[0];
+					mPickedRow = aCell[1];
 					mApp->mSndSelectAtom->Play();
 				}
 			}
@@ -420,10 +421,10 @@ void Grid::MouseDown(int x, int y, int theBtnNum, int theClickCount)
 				mApp->mSndMoveAtom->Play();
 			mSelected->SetPath(&mPathFinder->mPath);
 			mPathFinder->mPath.Clear();
-			if (mB358)
+			if (mComboEnded)
 			{
 				mCombo = 0;
-				mApp->mBoard->mF0ac = 0;
+				mApp->mBoard->mNeedleTarget = 0;
 				return;
 			}
 		}
@@ -447,9 +448,9 @@ void Grid::Update()
 		if (400 < mBonusTick)
 		{
 			mUnsolvable = false;
-			mOverTick = 0;
+			mGameOverTick = 0;
 			aBoard->mMeter.Add(500, 0);
-			mB4c0 = false;
+			mBonusLevel = false;
 		}
 	}
 	else
@@ -461,27 +462,27 @@ void Grid::Update()
 
 	if ((mArrowX != 0) || (mArrowY != 0))
 	{
-		mI4d0--;
-		if (mI4d0 < 0)
+		mMagnetTick--;
+		if (mMagnetTick < 0)
 		{
-			mI4d0 = 5;
+			mMagnetTick = 5;
 			Magnetise();
 		}
 	}
 	if (mRadiationRound)
 	{
-		mI520--;
-		if (mI520 < 1)
+		mRadiationBlinkTimer--;
+		if (mRadiationBlinkTimer < 1)
 		{
-			mB524 = !mB524;
-			mI520 = 100;
+			mRadiationBlink = !mRadiationBlink;
+			mRadiationBlinkTimer = 100;
 		}
 	}
 
-	int aCountdown = mI368;
-	mStat374++;
-	mI368 = aCountdown + 1;
-	if ((aCountdown + 1 == 0x32) && (mHoverCol > -1) && (mHoverCol < 9) && (mHoverRow > -1) && (mHoverRow < 8) &&
+	int aCountdown = mHoverTick;
+	mLevelUpdates++;
+	mHoverTick = aCountdown + 1;
+	if ((aCountdown + 1 == 0x32) && (mHoverCol > -1) && (mHoverCol < COLS) && (mHoverRow > -1) && (mHoverRow < ROWS) &&
 		(mCells[mHoverCol][mHoverRow] != NULL) &&
 		(mCells[mHoverCol][mHoverRow]->IsElement() || (mCells[mHoverCol][mHoverRow]->mKind != 0)) &&
 		!mCells[mHoverCol][mHoverRow]->mPre)
@@ -493,52 +494,52 @@ void Grid::Update()
 	if (mTooltipAlpha > 0xff)
 		mTooltipAlpha = 0xff;
 
-	if (mLevelOver)
+	if (mGameOver)
 	{
-		mOverTick++;
-		mI368 = 0;
+		mGameOverTick++;
+		mHoverTick = 0;
 		mTooltipAtom = NULL;
 		mSelected = NULL;
 		mCombo = 0;
-		aBoard->mF0ac = 0;
-		if (mOverTick == 300)
+		aBoard->mNeedleTarget = 0;
+		if (mGameOverTick == 300)
 		{
 			mApp->mMusicInterface->PlayMusic(0, 0x42, false);
 			FlyAwayAll();
 			aBoard->mAtomicus->Say(0xf);		// (not after a game given up, in the original: AppGame.cpp, ShowGameOver)
 		}
-		if (mOverTick == 600)
+		if (mGameOverTick == 600)
 			mApp->ShowGameOver();
 	}
 
 	if (mCombo < 2)
 	{
-		float aOld1 = mGeiger1;
-		float aOld2 = mGeiger2;
+		float aOldGeiger1 = mGeiger1;
+		float aOldGeiger2 = mGeiger2;
 		mGeiger1 = mGeiger1 - 0.01f;
 		mGeiger2 = mGeiger2 - 0.01f;
-		if (aOld1 - 0.01f < 0.0f)
+		if (aOldGeiger1 - 0.01f < 0.0f)
 			mGeiger1 = 0;
-		if (aOld2 - 0.01f < 0.0f)
+		if (aOldGeiger2 - 0.01f < 0.0f)
 			mGeiger2 = 0;
 	}
 	else
 	{
-		float aTemp = 0.0f;
+		float aGeiger2Target = 0.0f;
 		if (3 < mCombo)
-			aTemp = ((float) mCombo - 3.0f) * 0.25f;
-		float aTarget1 = (float) (mCombo - 1) * 0.16666667f * 0.5f;
-		aTemp = aTemp * 0.5f;
-		if (aTemp < 0.0f)
-			aTemp = 0.0f;
-		if (mGeiger1 < aTarget1)
+			aGeiger2Target = ((float) mCombo - 3.0f) * 0.25f;
+		float aGeiger1Target = (float) (mCombo - 1) * 0.16666667f * 0.5f;
+		aGeiger2Target = aGeiger2Target * 0.5f;
+		if (aGeiger2Target < 0.0f)
+			aGeiger2Target = 0.0f;
+		if (mGeiger1 < aGeiger1Target)
 			mGeiger1 = mGeiger1 + 0.1f;
-		if (mGeiger2 < aTemp)
+		if (mGeiger2 < aGeiger2Target)
 			mGeiger2 = mGeiger2 + 0.1f;
-		if (aTarget1 < mGeiger1)
-			mGeiger1 = aTarget1;
-		if (aTemp < mGeiger2)
-			mGeiger2 = aTemp;
+		if (aGeiger1Target < mGeiger1)
+			mGeiger1 = aGeiger1Target;
+		if (aGeiger2Target < mGeiger2)
+			mGeiger2 = aGeiger2Target;
 	}
 	// the geiger counters grow with the combo
 	mApp->mGeiger1Instance->SetVolume((double) mGeiger1);
@@ -558,18 +559,18 @@ void Grid::Update()
 	else if (!mApp->mGeiger2Instance->IsPlaying())
 		mApp->mGeiger2Instance->Play(true, false);
 
-	if (mB334)
+	if (mAppearSoundDue)
 	{
 		mApp->mSndAtomAppear->Play();
-		mB334 = false;
+		mAppearSoundDue = false;
 	}
-	if (mB335)
+	if (mWhooshDue)
 	{
 		mApp->mSndWhoosh->Play();
-		mB335 = false;
+		mWhooshDue = false;
 	}
 	int aRoll = mApp->mRand.Get(0x32, false);
-	if (mLevelOver)
+	if (mGameOver)
 		aRoll = mApp->mRand.Get(2, false);
 	if (aRoll == 0)
 	{
@@ -598,20 +599,20 @@ void Grid::Update()
 		}
 		anAtom = mAtoms.Next();
 	}
-	if (mB32c)
+	if (mCheckMolecules)
 	{
 		FindMolecules();
-		mB32c = false;
-		if (mB358)
+		mCheckMolecules = false;
+		if (mComboEnded)
 		{
 			mCombo = 0;
-			aBoard->mF0ac = 0;
+			aBoard->mNeedleTarget = 0;
 		}
 		int aCount = CountAtoms(false);
 		if (aCount > 0x47)
 		{
-			mLevelOver = true;
-			mOverTick = 0;
+			mGameOver = true;
+			mGameOverTick = 0;
 			FlushStats();
 		}
 	}
@@ -629,8 +630,8 @@ void Grid::Update()
 
 	if (mSelected == NULL)
 	{
-		mCursorY = mM320 + 0x19;
-		mCursorX = mM31c + 0x19;
+		mCursorY = mMouseY + 0x19;
+		mCursorX = mMouseX + 0x19;
 		if ((0x4b < mSelectGlow) && (mSelectGlow - 10 > 0x4a))
 			mSelectGlow -= 10;
 		else
@@ -648,7 +649,7 @@ void Grid::Update()
 			mSelectGlow = 0xff - mApp->mRand.Get(10, false);
 	}
 
-	mB33c = true;
+	mFieldRevealed = true;
 	for (int aCol = 0; aCol < COLS; aCol++)
 	{
 		for (int aRow = 0; aRow < ROWS; aRow++)
@@ -661,28 +662,28 @@ void Grid::Update()
 				aStep = true;
 			}
 			else if (*aState < 0x100)
-				aStep = *aState < 0xff;
+				aStep = *aState < CELL_REVEALED;
 			else
-				*aState = 0xff;
+				*aState = CELL_REVEALED;
 			if (aStep)
 			{
-				if (!mLevelOver && ((*aState = *aState + 1) > 0xff))
-					*aState = 0xff;
-				else if (*aState < 0x96)
-					mB33c = false;
+				if (!mGameOver && ((*aState = *aState + 1) > CELL_REVEALED))
+					*aState = CELL_REVEALED;
+				else if (*aState < CELL_ATOM_SHOWN)
+					mFieldRevealed = false;
 			}
-			else if (*aState < 0x96)
-				mB33c = false;
+			else if (*aState < CELL_ATOM_SHOWN)
+				mFieldRevealed = false;
 		}
 	}
-	if (mB33c && !mB33d)
+	if (mFieldRevealed && !mRevealSaid)
 	{
-		mB33d = true;
+		mRevealSaid = true;
 		aBoard->mAtomicus->Say(8);
 	}
 
 	// the molecules just made: their atoms shake, then fly away
-	bool anyFlown = false;
+	bool aAnyFlown = false;
 	mGroups.Reset();
 	PtrList<Atom>* aGroup = mGroups.Next();
 	while (aGroup != NULL)
@@ -691,17 +692,17 @@ void Grid::Update()
 		Atom* aMember = aGroup->Next();
 		while (aMember != NULL)
 		{
-			aMember->mE8 = mApp->mRand.Get(aMember->mE4 / 5, true);
-			aMember->mEC = mApp->mRand.Get(aMember->mE4 / 5, true);
-			aMember->mE4--;
-			if (aMember->mE4 < 1)
+			aMember->mShakeX = mApp->mRand.Get(aMember->mShakeTime / 5, true);
+			aMember->mShakeY = mApp->mRand.Get(aMember->mShakeTime / 5, true);
+			aMember->mShakeTime--;
+			if (aMember->mShakeTime < 1)
 			{
 				aGroup->Remove(aMember);
 				if (aMember->mKind == KIND_BIOHAZARD)
 					Obliterate(aMember);
 				else
 					aMember->FlyAway(aBoard->LastTarget());
-				anyFlown = true;
+				aAnyFlown = true;
 			}
 			aMember = aGroup->Next();
 		}
@@ -712,14 +713,14 @@ void Grid::Update()
 		}
 		aGroup = mGroups.Next();
 	}
-	if (anyFlown)
+	if (aAnyFlown)
 		CheckUnsolvable();
 
-	if ((mApp->mMode == 1) && (aBoard->mI16c < 6) && (aBoard->mI170 < 6))
+	if ((mApp->mMode == 1) && (aBoard->mGetReadyAlpha < 6) && (aBoard->mGameOverAlpha < 6))
 	{
-		if (aBoard->mI184 < 1)
+		if (aBoard->mFreezeMoves < 1)
 		{
-			aBoard->mMeter.mValue = mF3ac + aBoard->mMeter.mValue;
+			aBoard->mMeter.mValue = mMeterFillStep + aBoard->mMeter.mValue;
 			if (aBoard->mMeter.mMax < aBoard->mMeter.mValue)
 			{
 				aBoard->mMeter.mValue = 0;
@@ -728,23 +729,23 @@ void Grid::Update()
 				if (mNumColors > 0xb)
 					mNumColors = 0xb;
 				mBiohazardChance = 0;
-				mF3ac = 0.05f;
+				mMeterFillStep = 0.05f;
 				aBoard->mMeter.mLevel++;
 				aBoard->mMeter.mMoleculesMade++;
 				int aSavedProgress = (int) aBoard->mProgress;
-				int aSaved148 = aBoard->mI148;
-				int aSaved14c = aBoard->mI14c;
-				aBoard->mI148 = 0;
-				aBoard->mI14c = 1;
-				aBoard->mI148 = 0;
+				int aSavedBombTimer = aBoard->mBombTimer;
+				int aSavedBombAtoms = aBoard->mBombAtomsPerStep;
+				aBoard->mBombTimer = 0;
+				aBoard->mBombAtomsPerStep = 1;
+				aBoard->mBombTimer = 0;
 				aBoard->StepBomb();
-				aBoard->mI148 = 0;
+				aBoard->mBombTimer = 0;
 				aBoard->StepBomb();
-				aBoard->mI148 = 0;
+				aBoard->mBombTimer = 0;
 				aBoard->StepBomb();
-				aBoard->mI148 = aSaved148;
+				aBoard->mBombTimer = aSavedBombTimer;
 				aBoard->mProgress = (float) aSavedProgress;
-				aBoard->mI14c = aSaved14c;
+				aBoard->mBombAtomsPerStep = aSavedBombAtoms;
 			}
 			mChromiumChance = mChromiumChance + 0.0001f;
 			mBiohazardChance = mBiohazardChance + 0.0001f;
@@ -752,30 +753,30 @@ void Grid::Update()
 				mChromiumChance = 3.0f;
 			if (8.0f < mBiohazardChance)
 				mBiohazardChance = 8.0f;
-			mF3ac = mF3ac + 1e-06f;
-			if (0.6f < mF3ac)
-				mF3ac = 0.6f;
+			mMeterFillStep = mMeterFillStep + 1e-06f;
+			if (0.6f < mMeterFillStep)
+				mMeterFillStep = 0.6f;
 		}
-		if (!aBoard->mMeter.mFull && mB33d)
+		if (!aBoard->mMeter.mFull && mRevealSaid)
 		{
-			if (aBoard->mI184 < 1)
+			if (aBoard->mFreezeMoves < 1)
 			{
-				mF390 = mF390 - 1.25f;
+				mRoundTimer = mRoundTimer - 1.25f;
 				if ((0.5f < aBoard->mMeter.mValue / aBoard->mMeter.mMax) || (1 < aBoard->mMeter.mLevel))
 				{
 					int aCount = CountAtoms(false);
-					mF390 = mF390 - (1.0f - (float) aCount * 0.013888889f);
+					mRoundTimer = mRoundTimer - (1.0f - (float) aCount * 0.013888889f);
 				}
-				if (mF390 <= 0.0f)
+				if (mRoundTimer <= 0.0f)
 				{
-					mF390 = mF394;
+					mRoundTimer = mRoundTime;
 					AfterMove(true);
 				}
 			}
-			mI398++;
-			if (300 < mI398)
+			mCountDownTick++;
+			if (300 < mCountDownTick)
 			{
-				mI398 = 0;
+				mCountDownTick = 0;
 				aBoard->CountDown();
 			}
 		}
@@ -786,13 +787,14 @@ void Grid::Update()
 // ---------------------------------------------------------------------------------------------------------
 // Draw
 
-// 0x413880: the board draws the field in the middle of its own picture (DrawField); as a widget it draws nothing
+// 0x405cf0: the widget draws nothing (the original's empty function); the board draws the field in the middle of its own
+// picture (DrawField)
 void Grid::Draw(Graphics* g)
 {
 	(void) g;
 }
 
-// 0x425ce0: the loop over the bonds sets the group's cursor (aGroup->mCursor = i + 1)
+// 0x413880, which the board's draw (0x433f10) calls; 0x425ce0: the loop over the bonds sets the group's cursor (aGroup->mCursor = i + 1)
 void Grid::DrawField(Graphics* g)
 {
 	bool aToggle = true;
@@ -805,7 +807,7 @@ void Grid::DrawField(Graphics* g)
 			if (aState < 0)
 				aState = 0;
 			Atom* anAtom = mCells[aCol][aRow];
-			bool anElement = (anAtom != NULL) && anAtom->mFlag_e0;
+			bool anElement = (anAtom != NULL) && anAtom->mIsElementAtom;
 			bool aFill = false;
 			Color aColor(0, 0, 0, 0);
 			Board* aBoard = mApp->mBoard;
@@ -841,14 +843,14 @@ void Grid::DrawField(Graphics* g)
 			if (aFill)
 			{
 				g->SetColor(aColor);
-				g->FillRect(aX, aY, 0x32, 0x32);
+				g->FillRect(aX, aY, CELL, CELL);
 			}
 			g->SetColor(Color(0, 0, 0, aState));
-			g->DrawLine(aX, aY - 1, aX + 0x32, aY - 1);
-			g->DrawLine(aX, aY, aX + 0x32, aY);
-			g->DrawLine(aX, aY, aX, aY + 0x32);
-			g->DrawLine(aX, aY + 0x32, aX + 0x32, aY + 0x32);
-			g->DrawLine(aX + 0x32, aY, aX + 0x32, aY + 0x32);
+			g->DrawLine(aX, aY - 1, aX + CELL, aY - 1);
+			g->DrawLine(aX, aY, aX + CELL, aY);
+			g->DrawLine(aX, aY, aX, aY + CELL);
+			g->DrawLine(aX, aY + CELL, aX + CELL, aY + CELL);
+			g->DrawLine(aX + CELL, aY, aX + CELL, aY + CELL);
 			aRowToggle = !aRowToggle;
 		}
 		aToggle = !aToggle;
@@ -913,18 +915,18 @@ void Grid::DrawField(Graphics* g)
 		Atom* aMember = aGroup->Next();
 		while (aMember != NULL)
 		{
-			int aX = aMember->mE8 + aMember->mX;
-			int aY = aMember->mY + aMember->mEC;
+			int aX = aMember->mShakeX + aMember->mX;
+			int aY = aMember->mY + aMember->mShakeY;
 			mApp->mAtomC[aMember->mType]->DrawCentered(g, aX, aY);
 			g->SetColorizeImages(true);
 			g->SetColor(Color(0xff, 0xff, 0xff, 0x96));
-			int aShake = aMember->mE4 < 3 ? 2 : aMember->mE4;
+			int aShake = aMember->mShakeTime < 3 ? 2 : aMember->mShakeTime;
 			mApp->mAtomC[aMember->mType]->DrawCentered(g, mApp->mRand.Get(aShake / 3, true) + aMember->mX,
 				mApp->mRand.Get(aShake / 3, true) + aMember->mY);
 			g->SetColor(Color(0xff, 0xff, 0xff, 100));
 			mApp->mAtomC[aMember->mType]->DrawCentered(g, mApp->mRand.Get(aShake / 2, true) + aMember->mX,
 				mApp->mRand.Get(aShake / 2, true) + aMember->mY);
-			g->SetColor(Color(0xff, 0xff, 0xff, (int) ((double) aMember->mE4 * (double) 0.02f * 255.0)));
+			g->SetColor(Color(0xff, 0xff, 0xff, (int) ((double) aMember->mShakeTime * (double) 0.02f * 255.0)));
 			mApp->mAtomC[11]->DrawCentered(g, aX, aY);
 			if (aMember->mKind == KIND_BIOHAZARD)
 			{

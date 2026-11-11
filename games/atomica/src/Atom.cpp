@@ -28,8 +28,8 @@ namespace
 {
 	struct TrigTables
 	{
-		float	mSin[360];
-		float	mNegCos[360];
+		float	mSin[FULL_TURN];
+		float	mNegCos[FULL_TURN];
 
 		// 0x421a90
 		TrigTables()
@@ -37,7 +37,7 @@ namespace
 			unsigned int aPiBits = 0x40490fda;
 			float aPi;
 			memcpy(&aPi, &aPiBits, sizeof(aPi));
-			for (int i = 0; i < 360; i++)
+			for (int i = 0; i < FULL_TURN; i++)
 			{
 				double aArg = (double) aPi * (double) i * 0.005555555555555556;
 				mSin[i] = (float) sin(aArg);
@@ -54,16 +54,18 @@ namespace
 
 	int WrapAngle(int theAngle)	// the original indexes the table with the angle as it is; the callers keep it in 0 to 359
 	{
-		theAngle %= 360;
-		return (theAngle < 0) ? theAngle + 360 : theAngle;
+		theAngle %= FULL_TURN;
+		return (theAngle < 0) ? theAngle + FULL_TURN : theAngle;
 	}
 }
 
+// port: the sine table's entry for an angle (the original indexes the table in line)
 float Sexy::SinDeg(int theAngle)
 {
 	return Trig().mSin[WrapAngle(theAngle)];
 }
 
+// port: the minus cosine table's entry for an angle (the original indexes the table in line)
 float Sexy::NegCosDeg(int theAngle)
 {
 	return Trig().mNegCos[WrapAngle(theAngle)];
@@ -86,7 +88,7 @@ int Sexy::CompassAngle(int theX1, int theY1, int theX2, int theY2)
 	return (int) (anAngle + 180.0f);
 }
 
-// the pictures the original reads from its tables by index: 0 is the picture itself, the others its shrunk copies
+// port: the pictures the original reads from its tables by index: 0 is the picture itself, the others its shrunk copies
 static Sprite* PreAtomFrame(AtomicaApp* theApp, int theFrame)
 {
 	return theFrame == 0 ? theApp->mPreAtom : theApp->mPreAtomShrink[theFrame - 1];
@@ -103,6 +105,7 @@ static const unsigned int gSymbolText[12] =
 	0x4ae3b8, 0x4ae3b4, 0x4ae3b0, 0x4ae3ac, 0x4ae3a8, 0x4ae3a4, 0x4ae3a0, 0x4ae39c, 0x4ae398, 0x4ae394, 0x4ae390, 0x4ae38c
 };
 
+// port: the text of a type's symbol, which the original's draw reads from the game texts by address
 const std::string& Sexy::AtomSymbolText(int theType)
 {
 	return GT(gSymbolText[theType]);
@@ -140,9 +143,9 @@ Atom::Atom(Grid* theGrid, int theType, bool theNoSpecial) :
 	mSpawn = 24.0f;
 	mFlyX = mFlySize = mFlyTurn = mFlyGrow = 0;
 	mAlpha = 0xff;
-	mFlag_ac = false;
+	mFormsByItself = false;
 	mHidden = false;
-	mF_b0 = 0;
+	mFlyGrowLimit = 0;
 	mBounce = 0;
 	mBounceStep = 1.0f;
 	mBounceTick = 0;
@@ -154,8 +157,8 @@ Atom::Atom(Grid* theGrid, int theType, bool theNoSpecial) :
 	mGlowStep = -2.5f;
 	mNear = false;
 	mNearAlpha = 0xff;
-	mFlag_e0 = false;
-	mE4 = mE8 = mEC = 0;
+	mIsElementAtom = false;
+	mShakeTime = mShakeX = mShakeY = 0;
 
 	bool aRing[5];		// which of the five rings of electrons the atom has (ring 0 is bVar2 of the original)
 	aRing[0] = true;
@@ -272,9 +275,9 @@ Atom::~Atom()
 		mGrid->mTooltipAtom = NULL;
 	if (mKind == KIND_BIOHAZARD)
 	{
-		mGrid->mI364--;
-		if (mGrid->mI364 < 0)
-			mGrid->mI364 = 0;
+		mGrid->mBiohazards--;
+		if (mGrid->mBiohazards < 0)
+			mGrid->mBiohazards = 0;
 	}
 	mElectrons.Reset();
 	Electron* anElectron = mElectrons.Next();
@@ -440,7 +443,7 @@ void Atom::Update()
 		mAlpha += 2;
 		if (mAlpha > 0xff)
 			mAlpha = 0xff;
-		int anAngle = mApp->mRand.Get(0x168, false);
+		int anAngle = mApp->mRand.Get(FULL_TURN, false);
 		Particle* aParticle = new Particle(mApp, mApp->mSpark);
 		aParticle->mAlpha = 0x78;
 		aParticle->mFade = 8;
@@ -478,19 +481,19 @@ void Atom::Update()
 
 	if (mPre)
 	{
-		if ((aGrid->mCellState[mCol][mRow] != 0xff) && mHidden)
+		if ((aGrid->mCellState[mCol][mRow] != Grid::CELL_REVEALED) && mHidden)
 			return;
 		if (!mPreStarted)
 		{
 			if (0.0f < mSpawn)
 				mSpawn = mSpawn - 0.5f;
-			if ((mSpawn == 0.0f) && (mFlag_ac || aGrid->mNoMoveLeft))
+			if ((mSpawn == 0.0f) && (mFormsByItself || aGrid->mNoMoveLeft))
 				mPreStarted = true;
 		}
 		else if (mSpawn < 24.0f)
 		{
 			if (mSpawn == 0.0f)
-				aGrid->mB334 = true;
+				aGrid->mAppearSoundDue = true;
 			mSpawn = mSpawn + 0.5f;
 			if ((24.0f <= mSpawn) && (mApp->mMode == 1) && (aGrid->mAtoms.Size() > 0))
 			{
@@ -505,8 +508,8 @@ void Atom::Update()
 			if (24.0f <= mSpawn)
 			{
 				mPre = false;
-				aGrid->mB32c = true;
-				if ((mKind == KIND_BIOHAZARD) && (++aGrid->mI364 == 1))
+				aGrid->mCheckMolecules = true;
+				if ((mKind == KIND_BIOHAZARD) && (++aGrid->mBiohazards == 1))
 				{
 					int aMessage = mApp->mRand.Get(2, false);
 					mApp->mBoard->mAtomicus->Say(aMessage + 1);
@@ -624,7 +627,7 @@ void Atom::Update()
 	}
 
 	mNear = false;
-	if (mApp->mBoard->mI198 > 0)
+	if (mApp->mBoard->mGhostMoves > 0)
 		mNear = aGrid->mPathFinder->Contains(mCol, mRow);
 	if (mNear)
 	{
@@ -662,7 +665,7 @@ void Atom::FlyAway(Swirl* theTarget)
 	mY += mGrid->mY;
 	aCopy->Aim(mX, mY, &mFlyX, &mFlySize);
 	mFlyGrow = (float) mApp->mRand.Get(0x14, false) * 0.01f;
-	mF_b0 = (float) mApp->mRand.Get(0x32, false) * 0.01f + 1.5f;
+	mFlyGrowLimit = (float) mApp->mRand.Get(0x32, false) * 0.01f + 1.5f;
 	mFlyTurn = (float) mApp->mRand.Get(0x14, false) * 0.01f + 0.7f;
 	mGrid->mAtoms.Remove(this);
 	aCopy->mAtoms.Add(this);
@@ -687,7 +690,7 @@ void Atom::DrawOverlay(Graphics* g, int theFrame, int theX, int theY)
 				g->SetColor(Color(aNeighbor->mColor.mRed, aNeighbor->mColor.mGreen, aNeighbor->mColor.mBlue, 0xe1));
 				mApp->mAdjacent[3]->DrawCentered(g, theX, theY);
 			}
-			if ((mCol < 8) && ((aNeighbor = mGrid->mCells[mCol + 1][mRow]) != NULL) && !aNeighbor->mPre)
+			if ((mCol < Grid::COLS - 1) && ((aNeighbor = mGrid->mCells[mCol + 1][mRow]) != NULL) && !aNeighbor->mPre)
 			{
 				g->SetColor(Color(aNeighbor->mColor.mRed, aNeighbor->mColor.mGreen, aNeighbor->mColor.mBlue, 0xe1));
 				mApp->mAdjacent[1]->DrawCentered(g, theX, theY);
@@ -741,7 +744,7 @@ void Atom::Infect()
 		{
 			int aCol = mCol + aDeltas[i][0];
 			int aRow = mRow + aDeltas[i][1];
-			if ((aCol >= 0) && (aCol <= 8) && (aRow >= 0) && (aRow <= 7) && (mGrid->mCells[aCol][aRow] == NULL))
+			if ((aCol >= 0) && (aCol < Grid::COLS) && (aRow >= 0) && (aRow < Grid::ROWS) && (mGrid->mCells[aCol][aRow] == NULL))
 			{
 				int* aCell = new int[2];
 				aCell[0] = aCol;
@@ -775,7 +778,7 @@ void Atom::Infect()
 // 0x4037f0
 void Atom::Draw(Graphics* g)
 {
-	if (mPlaced && mHidden && (mGrid->mCellState[mCol][mRow] < 0x96))
+	if (mPlaced && mHidden && (mGrid->mCellState[mCol][mRow] < Grid::CELL_ATOM_SHOWN))
 		return;
 
 	if (mPre)
@@ -849,9 +852,9 @@ void Atom::Draw(Graphics* g)
 			int aGlow = aGrid->mSelectGlow;
 			if (aGlow == 0)
 			{
-				if (aGrid->mLevelOver || aGrid->mUnsolvable)
+				if (aGrid->mGameOver || aGrid->mUnsolvable)
 				{
-					int aShake = aGrid->mOverTick / 0x19 + aGrid->mBonusTick / 0x19;
+					int aShake = aGrid->mGameOverTick / 0x19 + aGrid->mBonusTick / 0x19;
 					if (aShake < 6)
 					{
 						if (aShake < 1)
@@ -876,9 +879,9 @@ void Atom::Draw(Graphics* g)
 			else if (aGlow < 0xf0)
 			{
 				int aSpin = mAimAngle / 0x12;
-				if ((aGrid->mLevelOver || aGrid->mUnsolvable))
+				if ((aGrid->mGameOver || aGrid->mUnsolvable))
 				{
-					int aShake = aGrid->mOverTick / 0x19 + aGrid->mBonusTick / 0x19;
+					int aShake = aGrid->mGameOverTick / 0x19 + aGrid->mBonusTick / 0x19;
 					if (aShake < 6)
 					{
 						if (aShake < 1)
@@ -964,65 +967,65 @@ void Atom::Draw(Graphics* g)
 }
 
 // 0x4012c0 / 0x403100: the fields of a saved game
-void Atom::Save(FILE* f)
+void Atom::Save(FILE* theFile)
 {
 	mDead = false;
-	fwrite(&mPre, 1, 1, f);
-	fwrite(&mPreStarted, 1, 1, f);
-	fwrite(&mDead, 1, 1, f);
-	fwrite(&mCol, 4, 2, f);
-	fwrite(&mX, 4, 2, f);
-	fwrite(&mPlaced, 1, 1, f);
-	fwrite(&mFollowing, 1, 1, f);
-	fwrite(&mColor, 4, 4, f);
-	fwrite(&mWobble, 4, 1, f);
-	fwrite(&mWobbleStep, 4, 1, f);
-	fwrite(&mType, 4, 1, f);
-	fwrite(&mSpawn, 4, 1, f);
-	fwrite(&mAlpha, 4, 1, f);
-	fwrite(&mFlag_ac, 1, 1, f);
-	fwrite(&mHidden, 1, 1, f);
-	fwrite(&mKind, 4, 1, f);
-	fwrite(&mKindArg, 4, 1, f);
-	fwrite(&mSpin, 4, 1, f);
-	fwrite(&mFade, 4, 1, f);
-	fwrite(&mGlow, 4, 1, f);
-	fwrite(&mGlowStep, 4, 1, f);
-	fwrite(&mNear, 1, 1, f);
-	fwrite(&mNearAlpha, 4, 1, f);
-	fwrite(&mFlag_e0, 1, 1, f);
-	fwrite(&mE4, 4, 1, f);
-	fwrite(&mE8, 4, 2, f);
+	fwrite(&mPre, 1, 1, theFile);
+	fwrite(&mPreStarted, 1, 1, theFile);
+	fwrite(&mDead, 1, 1, theFile);
+	fwrite(&mCol, 4, 2, theFile);
+	fwrite(&mX, 4, 2, theFile);
+	fwrite(&mPlaced, 1, 1, theFile);
+	fwrite(&mFollowing, 1, 1, theFile);
+	fwrite(&mColor, 4, 4, theFile);
+	fwrite(&mWobble, 4, 1, theFile);
+	fwrite(&mWobbleStep, 4, 1, theFile);
+	fwrite(&mType, 4, 1, theFile);
+	fwrite(&mSpawn, 4, 1, theFile);
+	fwrite(&mAlpha, 4, 1, theFile);
+	fwrite(&mFormsByItself, 1, 1, theFile);
+	fwrite(&mHidden, 1, 1, theFile);
+	fwrite(&mKind, 4, 1, theFile);
+	fwrite(&mKindArg, 4, 1, theFile);
+	fwrite(&mSpin, 4, 1, theFile);
+	fwrite(&mFade, 4, 1, theFile);
+	fwrite(&mGlow, 4, 1, theFile);
+	fwrite(&mGlowStep, 4, 1, theFile);
+	fwrite(&mNear, 1, 1, theFile);
+	fwrite(&mNearAlpha, 4, 1, theFile);
+	fwrite(&mIsElementAtom, 1, 1, theFile);
+	fwrite(&mShakeTime, 4, 1, theFile);
+	fwrite(&mShakeX, 4, 2, theFile);
 }
 
-void Atom::Load(FILE* f)
+void Atom::Load(FILE* theFile)
 {
-	fread(&mPre, 1, 1, f);
-	fread(&mPreStarted, 1, 1, f);
-	fread(&mDead, 1, 1, f);
-	fread(&mCol, 4, 2, f);
-	fread(&mX, 4, 2, f);
-	fread(&mPlaced, 1, 1, f);
-	fread(&mFollowing, 1, 1, f);
-	fread(&mColor, 4, 4, f);
-	fread(&mWobble, 4, 1, f);
-	fread(&mWobbleStep, 4, 1, f);
-	fread(&mType, 4, 1, f);
-	fread(&mSpawn, 4, 1, f);
-	fread(&mAlpha, 4, 1, f);
-	fread(&mFlag_ac, 1, 1, f);
-	fread(&mHidden, 1, 1, f);
-	fread(&mKind, 4, 1, f);
-	fread(&mKindArg, 4, 1, f);
-	fread(&mSpin, 4, 1, f);
-	fread(&mFade, 4, 1, f);
-	fread(&mGlow, 4, 1, f);
-	fread(&mGlowStep, 4, 1, f);
-	fread(&mNear, 1, 1, f);
-	fread(&mNearAlpha, 4, 1, f);
-	fread(&mFlag_e0, 1, 1, f);
-	fread(&mE4, 4, 1, f);
-	fread(&mE8, 4, 2, f);
+	fread(&mPre, 1, 1, theFile);
+	fread(&mPreStarted, 1, 1, theFile);
+	fread(&mDead, 1, 1, theFile);
+	fread(&mCol, 4, 2, theFile);
+	fread(&mX, 4, 2, theFile);
+	fread(&mPlaced, 1, 1, theFile);
+	fread(&mFollowing, 1, 1, theFile);
+	fread(&mColor, 4, 4, theFile);
+	fread(&mWobble, 4, 1, theFile);
+	fread(&mWobbleStep, 4, 1, theFile);
+	fread(&mType, 4, 1, theFile);
+	fread(&mSpawn, 4, 1, theFile);
+	fread(&mAlpha, 4, 1, theFile);
+	fread(&mFormsByItself, 1, 1, theFile);
+	fread(&mHidden, 1, 1, theFile);
+	fread(&mKind, 4, 1, theFile);
+	fread(&mKindArg, 4, 1, theFile);
+	fread(&mSpin, 4, 1, theFile);
+	fread(&mFade, 4, 1, theFile);
+	fread(&mGlow, 4, 1, theFile);
+	fread(&mGlowStep, 4, 1, theFile);
+	fread(&mNear, 1, 1, theFile);
+	fread(&mNearAlpha, 4, 1, theFile);
+	fread(&mIsElementAtom, 1, 1, theFile);
+	fread(&mShakeTime, 4, 1, theFile);
+	fread(&mShakeX, 4, 2, theFile);
 	mDead = false;
 	if (mPlaced)
 		PlaceAt(mCol, mRow, true);

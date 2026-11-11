@@ -48,8 +48,8 @@ public:
 	bool	Feasible(const BonusPattern* thePattern);	// 0x415be0
 	void	Update();						// 0x415760
 	void	Draw(Graphics* g);				// 0x415830
-	void	Save(FILE* f);					// 0x4146d0
-	void	Load(FILE* f);					// 0x414750
+	void	Save(FILE* theFile);			// 0x4146d0
+	void	Load(FILE* theFile);			// 0x414750
 };
 
 }

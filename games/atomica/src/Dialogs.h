@@ -51,7 +51,6 @@ public:
 	// 0x416c30: a flat button with its text
 	void			DrawButton(Graphics* g, Widget* theButton, const std::string& theText);
 	ButtonWidget*	AddButton(int theId);				// the invisible button of the box (the box draws it)
-	void			Close();
 };
 
 class Board;

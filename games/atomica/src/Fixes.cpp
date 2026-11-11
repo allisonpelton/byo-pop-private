@@ -1,3 +1,5 @@
+// port(mods): the fixes mod's toggles (see Fixes.h).
+
 #include "Fixes.h"
 #include "platform/ModManager.h"
 

@@ -164,6 +164,7 @@ void Sprite::DrawPartial(Graphics* g, int theX, int theY, float theFraction, int
 // ---------------------------------------------------------------------------------------------------------
 // SpriteMgr
 
+// 0x429890 (the deleting destructor, 0x429c30, frees the manager after it)
 SpriteMgr::~SpriteMgr()
 {
 	for (size_t i = 0; i < mSprites.size(); i++)

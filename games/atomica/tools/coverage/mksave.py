@@ -66,7 +66,7 @@ def new_element(template, kind, col, row):
     r, g, b = COLORS[base]
     struct.pack_into('<iiii', rec, 22, r, g, b, 255)
     struct.pack_into('<i', rec, 46, kind)
-    rec[1 + 88] = 1                                      # Atom::mFlag_e0
+    rec[1 + 88] = 1                                      # Atom::mIsElementAtom
     rec[0] = 1                                           # the element flag
     flicker = struct.pack('<5f', 0.0, 8.0, 16.0, 24.0, 4.0)
     step = struct.pack('<5f', 0.1, 0.15, 0.2, 0.25, 0.1)
@@ -129,7 +129,7 @@ def build(base, name):
         struct.pack_into('<i', tail, 666, 1)               # Grid::mArrowX, after the hints shown, four flags and the bonus tick
     if name == 'molecule':
         struct.pack_into('<i', tail, 0x120 + 29, 1)       # Grid::mCombo after the cell states, the cursor, the colours and one flag: one molecule already made
-        tail[0x120 + 29 + 12] = 0                          # and mB358 (no molecule in the last move) off, so the move does not start the combo again
+        tail[0x120 + 29 + 12] = 0                          # and mComboEnded (no molecule in the last move) off, so the move does not start the combo again
     body += tail
     struct.pack_into('<f', body, PROGRESS, progress)
     if value == 'almost':
