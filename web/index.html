@@ -310,7 +310,12 @@ html:not(.d95-desk) #chat { display: none !important; }
 .mu-spectrum { display: block; width: 100%; height: 100%; --mu-bar: #a383ff; --mu-peak: #ece8f6; }
 .mu-tracker { height: 100%; overflow: hidden; }
 .mu-piano { display: block; width: 100%; height: 100%; }
-.mu-spectrum[hidden], .mu-tracker[hidden], .mu-piano[hidden] { display: none; }
+.mu-score { width: 100%; height: 100%; overflow-x: hidden; overflow-y: auto; }
+.mu-score-sheet { position: relative; }
+.mu-score-svg svg { display: block; }
+.mu-score-head { position: absolute; top: 0; width: 6px; background: rgba(255, 255, 255, 0.3); pointer-events: none; }
+.mu-score-head[hidden] { display: none; }
+.mu-spectrum[hidden], .mu-tracker[hidden], .mu-piano[hidden], .mu-score[hidden] { display: none; }
 .mu-tracker-at { font-size: 10px; line-height: 12px; opacity: .7; white-space: pre; }
 /* the game the views follow (web/music.js, "Following a game"): a tag over the view's top right corner */
 .mu-follow { position: absolute; top: 0; right: 0; max-width: 50%; padding: 0 3px; font-size: 10px; line-height: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; background: #c9b8ff; color: #0b0a10; }

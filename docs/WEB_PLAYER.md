@@ -785,7 +785,25 @@ libxmp-lite are in About.
   on either side. For a game's module, whose order list the page does not have, the range is that of the patterns
   heard so far, so it can widen, and only the pattern heard before the current one is shown, at its left. The roll
   takes the splitter's height and is drawn only when its row, range or size changes.
-- **The view** is the display's lower half; a click cycles spectrum, tracker, piano roll, nothing. The spectrum is 24 bars from
+- **The score** (sheet music) is the view after the piano roll, for a module only. It draws the pattern heard in staff
+  notation with VexFlow 5.0.0 (`web/third_party/vexflow-bravura.js`, MIT, served as `vexflow/vexflow-bravura.js`,
+  728,171 bytes with its fonts Bravura and Academico by Steinberg Media Technologies, SIL OFL 1.1; the licences are
+  `web/third_party/vexflow.txt` and `bravura.txt`, served under `licenses/` and linked from the listing's footer).
+  The page fetches the file only when the score is first chosen, and draws once the music font is ready. Each
+  instrument the pattern plays has a staff in its piano-roll colour, the staff lines, bar lines, clefs and time
+  signatures in grey. A staff's clef is treble when its notes lie at G below middle C or higher on average, else
+  bass. An instrument that plays one pitch only, four times or more, is taken for a drum and drawn on a percussion
+  staff with x noteheads. A row is a sixteenth, four rows a beat, in 4/4 (libopenmpt does not give a module's rows
+  per beat), so a 64-row pattern is four bars on one line, and the next pattern takes its place as a page turns. A
+  tracker's C-5 is written as middle C. Within an instrument a note lasts until its channel's next note, key off, cut
+  or fade, or until the instrument's next note in any channel. Notes that start together are a chord, and a length
+  that no single note value gives, or a note held over a bar line, is tied notes. Beams follow VexFlow's own grouping,
+  and sharps are written as the bar needs them (VexFlow's rule for C major). Effects (slides, vibrato, volume) are
+  not drawn. A light bar marks the column heard, and the staves scroll up and down. Drawing a pattern takes about
+  100 ms of the page's time (Bejeweled's "1980-Autonomus", six staves of four bars), so each pattern drawn is kept,
+  32 at most, and a pattern that comes back is shown again at once. It works for a followed game's module as for
+  the player's own tunes.
+- **The view** is the display's lower half; a click cycles spectrum, tracker, piano roll, score, nothing. The spectrum is 24 bars from
   40 Hz to 16 kHz from an AnalyserNode connected only while it shows. The tracker, for a module, has a terse header
   ("ORD 07  PAT 06  ROW 16/64") and the rows around the one heard; it never scrolls past the pattern's ends. Only
   the channels that play a note somewhere are shown (`bm_used`); when they do not all fit, a scroll bar drawn by
