@@ -67,10 +67,25 @@ hold the vectors of every kind of object, so most of the code is Board methods.
 ### 3b. Test commands
 
 `state`, `goto menu|classic [level [pilot]]|survival [pilot]`, `level`, `seed`, `unlock all`, `win`, `lose`, `move` (the
-port's bot, `BoardBot.cpp`) and `set score|level|stage|charge|stories`. `set charge` charges the pilot's weapon and
-`set stories` makes the profile hold every story as seen (the finale then follows story 9 of any pilot); both exist only
-in the test hooks (docs/TEST_COMMANDS.md lists the standard ones). A game starts with the full-screen help up: a script
-clicks Continue (320,440) first.
+port's bot, `BoardBot.cpp`) and `set score|level|stage|charge [N]|stories`. `set charge` charges the pilot's weapon (to N
+of its 18000, full without N) and `set stories` makes the profile hold every story as seen (the finale then follows story
+9 of any pilot); both exist only in the test hooks (docs/TEST_COMMANDS.md lists the standard ones). A game starts with the
+full-screen help up: a script clicks Continue (320,440) first.
+
+`unlock all` opens the two pilots that have to be earned (Turbot and Vixx: bits 2 and 6 of the profile's value 0x30, with
+its check value 0x32 = that plus 0x193). It writes 0x44: a profile is accepted on loading only with 0x13, 0x16, 0x41 or
+0x44 there (`AstroPopApp::ValidateUser`), and any other value brings the "invalid setting" box and the reset to 0x13.
+The command wrote 0x57 until 2026-11-09, which worked in the run that set it and failed in the next one.
+
+The bot (`move`) plays the weapons too: it clicks the button of the box that explains a weapon (dialog 0x7b), starts a
+charged weapon with Return, fires the laser (Vector) at the bottom brick of the tallest column, puts the pointer on that
+brick and clicks for the psychic (Vixx; two moves inside the cell, because a move lights its cell only when the pointer's
+last position was in the field already) and waits while Sprocket's and Turbot's weapons run by themselves.
+
+A player is two things, and a test that starts with one needs both: the file `users\data<n>.usr` and the registry key
+`Users\<name>` with `Users\LastUser` (the original keeps them under HKLM, the port in its `registry.ini`). `Init` deletes
+every player and file when the registry's `SGFVersion` is missing or below 15, so a preset carries that value as well
+(`tools/origcmp/ini_to_reg.py` writes the three for origrun's `--reg`).
 
 ## 4. Reading notes
 
@@ -96,7 +111,11 @@ clicks Continue (320,440) first.
   the wait formula, the danger display (`CheckStackHeight`), the spawn thresholds (`FillTopRow`), the ramp interpolation
   (`UpdateRamp`), the stage bonuses and the speeds of the streaks and particles. What a single operation followed by a store into
   a float field computes is the same either way and was left as it was. The expressions of the drawing and screen code were
-  not looked at (phase two).
+  not looked at (phase two). A weapon case showed one more: `BeginPlay`'s count of the buried bricks a weapon removes,
+  `(int) ((1.0f - share) * count)`, was 19 in double and is 18 in the original (classic, seed 7, Sprocket, update 6369: one draw
+  fewer). Read for the same kind of expression after it, and changed without a run having shown a difference: the meter's fill
+  ratio `m1a14 / m1a18`, compared with a third and two thirds (`BoardFill`) and with 1 (`BoardGone`), the positions on the meter
+  that a milestone truncates to whole pixels (`BoardEvents`), and the speed of a warp star (`BoardWarp`).
 - A relative path of `XcfFile` (`HasKey`, `GetInt`: 0x412d00 and its neighbours) starts at the section under the cursor, and
   its first part may be the name of that section itself: a bonus level file is read with the paths `LEVEL\ROWn\Brickn` right
   after `Parse`, whose cursor stands on `LEVEL`. The first translation looked for the first part among the children only, found no
@@ -211,23 +230,18 @@ None found yet.
   palette handling, then the unpack of a 2-bit palette row, then the exception filter). The port decodes the same files without
   trouble. Not chased further (the user's copies on older Windows may be fine).
 
-- Classic, seed 13, 600 moves (`tools/origcmp/run_mode.sh classic 600 13`): the original's game generator stops moving at update
-  20512, and the port's does not. From update 15579 the bot only repeats a take on column 6 or 8 and a fire on the other
-  (18 bricks stay, no row comes, in both games); every take builds the hand brick (`Board::MakeHand`, the 0x234-byte object of
-  0x4067b0, 246 draws with the sparks of the two `SetParticleX/Y` calls), and the position of the generator
-  (`[0x5a4e28]+0x9c0`) agrees update by update through about 170 such rounds, wraps of its 624 words included (the last at 20490).
-  At 20512 the original builds the hand brick again (watched: the hand pointer at board +0x354 is set, its field at +0x1d4 is 10 and
-  its particle list at +0x58 is allocated, as in the rounds before) and the position stays at 11 with the generator pointer and the
-  first word unchanged, for the remaining 5000 updates and some 170 more rounds. The port draws 246 numbers for each of them as
-  before. Not explained: no code path of the export builds the object without drawing, and the generator's own code
-  (0x48c5d0) is the framework's. What it would take: a hook inside a copy to see which generator the constructor draws from at that
-  update (needs the user's OK, CLAUDE.md), or the original's own state before 15579 (the bot's loop is where a human would never
-  be). Every other game of the pass (eleven, classic and survival, to level 3, a bonus round and game over) is identical.
+- (Withdrawn, 2026-11-11.) Classic, seed 13, 600 moves was listed here as "the original's game generator stops moving at
+  update 20512". It does not: origrun logs at most 4000 changes of a watch unless `--watch-max` says more, the option did not
+  reach a run in Windows Sandbox, and the generator's position had changed 4000 times by that update. With the option
+  forwarded (ea95b965) the game is identical to its last update (25323; 5118 changes of the position), and `compare.py` now
+  refuses a log that was cut.
 
 ## 9. Next steps
 
 1. The web build and its registrations (page.js, stores, profiles, saveimport, controls, sound tracks), the origrun row.
-2. The identical-play pass, both phases, with `games/astropop/docs/IDENTICAL_PLAY.md`; real-input driver play.
+2. The identical-play pass with `games/astropop/docs/IDENTICAL_PLAY.md`: phase one (plays identical) is done, 38 games with the
+   four pilots' weapons and levels up to 33; phase two (looks identical, sound, focus, the web build) and real-input driver play
+   are not begun.
 3. The frozen baseline `build/baseline-astropop`, the fixes mod (or "none"), the performance numbers.
 4. Close the gap of the removed More Games button; the app's destructor does not delete its screens (as the original's).
 5. Phase two of the pass: the x87 compares of the drawing and screen code that were not checked in phase one against the asm for the `<` / `<=` idiom of section 4 (0x40c8a0, 0x433500, 0x433920, 0x439c20, 0x444520, 0x461010, 0x461e50, 0x467af0, 0x487f00, 0x48a110 and the other `TEST AH` sites listed by `grep -l 'TEST AH' re/astropop/asm/*.asm`); the gameplay ones (every Brick method, the group and fall code, CheckStackHeight, OnBrickGone) were read in phase one.
