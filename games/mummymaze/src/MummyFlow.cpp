@@ -388,6 +388,25 @@ void MMApp::ButtonDepress(int theId)
 		break;
 	case 2000 + DIALOG_QUIT_TO_MAIN:
 		KillDialog(DIALOG_QUIT_TO_MAIN);
+		// 0x4201e0 case 0x7d3: an adventure is saved on the way out. The saved game is read into a map, the time played in
+		// this maze is added unless the chamber's result is up (which has added it), and the map goes again, which
+		// writes the file
+		if (mGameMode == MODE_ADVENTURE)
+		{
+			if (mLevelComplete == NULL)
+				AdventureLeave();
+			else
+			{
+				MapWidget* aMap = new MapWidget(this, mCurrentSlot, false);
+				if (aMap->mInvalid)
+					delete aMap;
+				else
+				{
+					mWorldMap = aMap;
+					KillMap();
+				}
+			}
+		}
 		if (mBoard != NULL)
 		{
 			if (mGameMode == MODE_CLASSIC || mGameMode == MODE_CLASSIC_DONE)
