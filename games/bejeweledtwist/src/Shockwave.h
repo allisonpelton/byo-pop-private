@@ -81,7 +81,7 @@ public:
 
 	// 0x74b46e: blows up or sets off the gems within theRange gems of thePiece
 	BlastShockwave(Piece* thePiece, int theRange, int theShape);
-	~BlastShockwave() override;      // 0x74ac68
+	~BlastShockwave() override;      // 0x74ac68, 0x74abc0: its body, inline here
 	void Update() override;          // 0x74bea6
 	void Draw(Graphics* g) override; // 0x749c50
 };

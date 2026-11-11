@@ -254,6 +254,7 @@ bool ChallengeInfoParser::ParseChallenge(Challenge* theChallenge)
 }
 
 // 0x6dc8d9: the <challenge> tags of one category; false when the file is wrong
+// 0x6d9fe2: the challenge record's constructor, inline here
 bool ChallengeInfoParser::ParseCategory(ChallengeCategory* theCategory)
 {
 	XMLElement anElement;
@@ -288,6 +289,7 @@ bool ChallengeInfoParser::ParseCategory(ChallengeCategory* theCategory)
 }
 
 // 0x6dcb26: the <Category> tags of the file
+// 0x6db65b: the category record's constructor, inline here
 void ChallengeInfoParser::ParseCategories()
 {
 	if (!mParser->HasFailed()) {

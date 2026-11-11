@@ -54,7 +54,7 @@ public:
 	// also takes an int after theLife (0 from its one caller) and never reads it: left out
 	Points(WinTwistApp* theApp, Font* theFont, const SexyString& theText, int theX, int theY, float theLife,
 		const Color& theColor, int theKind);
-	virtual ~Points() {}             // 0x732927
+	virtual ~Points() {}             // 0x732927, 0x7326cf: its body, inline here
 	virtual void Update();           // 0x731d06
 	virtual void Draw(Graphics* g);  // 0x7319fa
 	void Flash() { mFlash = 0.3f; }  // 0x7319ed
@@ -65,7 +65,7 @@ public:
 	std::vector<Points*> mPoints;    // +0x148
 
 	PointsManager();                 // 0x7329b7
-	~PointsManager() override;       // 0x732658
+	~PointsManager() override;       // 0x732658, 0x7325ff: its loop that deletes the points, inline here
 	void Update() override;          // 0x73248b
 	void Draw(Graphics* g) override {}  // 0x731f61
 	void DrawOverlay(Graphics* g, int thePriority) override;  // 0x732534

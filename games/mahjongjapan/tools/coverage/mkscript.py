@@ -583,6 +583,98 @@ def resume_no():
     click(*MENU_QUIT, after=3000)
 
 
+def chord(modifier, vk, after=200):
+    """A key with Shift (16) or Ctrl (17) held: the modifier's edge, a pause (the scripted state is the one when origrun posted
+    the edge), the key, a pause and the modifier's release (origrun --keys scripted: docs/ORIGRUN.md, "The scripted keys")"""
+    emit('keydown', modifier)
+    wait(100)
+    emit('key', vk)
+    wait(100)
+    emit('keyup', modifier)
+    wait(after)
+
+
+def shift_click(x, y, after=300):
+    emit('keydown', 16)
+    wait(100)
+    click(x, y, after=100)
+    emit('keyup', 16)
+    wait(after)
+
+
+def mod_keys():
+    """The new-player box's keys that read Shift or Ctrl (GetKeyState, 0x42c660), and the characters Ctrl+Z (0x1a, a `char`
+    line): Shift with Right, Left, Home and End selects, Ctrl+Insert copies, Shift+Delete cuts, Shift+Insert pastes, Ctrl with
+    Left and Right moves by a word, a click with Shift extends the selection, Shift+Backspace, Shift+Tab; they reach the host's
+    clipboard, so a run of this goes through clip-run.sh"""
+    bx, by = name_box()
+    click(*MENU_ADVENTURE, after=1500)
+    click(bx, by, after=300)
+    emit('text', 'Alpha Beta Gamma')
+    wait(300)
+    key(36, after=200)    # Home
+    for _ in range(5):
+        chord(16, 39, after=100)    # Shift+Right: "Alpha" selected
+    chord(17, 45)    # Ctrl+Insert: copy
+    key(35, after=200)    # End: the selection ends
+    chord(16, 36)    # Shift+Home: all selected
+    chord(16, 37)    # Shift+Left
+    chord(16, 35)    # Shift+End
+    chord(16, 46)    # Shift+Delete: cut
+    chord(16, 45)    # Shift+Insert: paste
+    chord(17, 37)    # Ctrl+Left, Ctrl+Right: by words
+    chord(17, 37)
+    chord(17, 39)
+    chord(17, 39)
+    shift_click(bx + 60, by)    # a click with Shift: the selection extends to it
+    chord(16, 8)    # Shift+Backspace
+    chord(16, 9)    # Shift+Tab: the layer's previous focus
+    emit('char', '0x1a')    # Ctrl+Z: undo
+    wait(300)
+    emit('char', '0x1a')
+    wait(300)
+    click(NEW_OK[0] + 30, NEW_OK[1] + 14, after=2500)    # OK: the box may say the name is empty
+    emit('text', 'Ab')
+    wait(300)
+    key(VK_RETURN, after=6000)
+    click(*MAP_MENU, after=900)
+    click(*QUIT_OK, after=2500)
+    click(*MENU_QUIT, after=3000)
+
+
+def right_double_clicks():
+    """Shift+Tab on the main menu and on the classic list, a right double click on the main menu, on the classic list and on
+    a board, and Ctrl+Z on the board's keys"""
+    new_player('Rdc')
+    click(*MAP_MENU, after=900)
+    click(*QUIT_OK, after=2500)
+    chord(16, 9)
+    key(9, after=300)
+    emit('move', 400, 200)
+    wait(150)
+    emit('rdclick', 400, 200)
+    wait(500)
+    click(*MENU_CLASSIC, after=2000)
+    chord(16, 9)
+    emit('move', 300, 250)
+    wait(150)
+    emit('rdclick', 300, 250)
+    wait(500)
+    dclick(*SLOTS[4], after=3000)
+    click(*TIP_OK, after=1500)
+    emit('move', 400, 300)
+    wait(150)
+    emit('rdclick', 400, 300)
+    wait(500)
+    emit('char', '0x1a')
+    wait(300)
+    chord(16, 9)
+    click(*B_MENU, after=700)
+    click(*GM_MAIN, after=900)
+    click(*YES, after=3000)
+    click(*MENU_QUIT, after=3000)
+
+
 def main():
     kind = sys.argv[1]
     wait(9000)    # the two logos and the fades to the main menu
@@ -610,6 +702,10 @@ def main():
         return
     if kind in ('classiclist', 'resumeno'):
         {'classiclist': classic_list, 'resumeno': resume_no}[kind]()
+        print(chr(10).join(out))
+        return
+    if kind in ('modkeys', 'rdclicks'):
+        {'modkeys': mod_keys, 'rdclicks': right_double_clicks}[kind]()
         print(chr(10).join(out))
         return
     if kind in ('drags', 'nameedit', 'nameclip', 'dclicks'):

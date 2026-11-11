@@ -442,12 +442,9 @@ void Object::DrawTree()
 	SetRect(mDirty, 0, 0, 0, 0);
 	if (mVisible && mVisibleByParent)
 	{
-		if (!mAttachmentsUnder)
-			Draw();
+		Draw();
 		for (size_t i = 0; i < mAttachments.size(); i++)
 			mAttachments[i]->Draw();
-		if (mAttachmentsUnder)
-			Draw();
 		for (size_t i = 0; i < mChildren.size(); i++)
 			mChildren[i]->DrawTree();
 	}
@@ -818,15 +815,15 @@ void GetImageInfo(int theImageId, ImageInfo& theInfo)
 }
 
 // 0x41f120
-Font* GetExeFont(int theImageId, int theTextId, int theKind)
+Font* GetExeFont(int theImageId, int theTextId)
 {
-	return gManager->GetFont(theImageId, theTextId, theKind, Module::Exe);
+	return gManager->GetFont(theImageId, theTextId, Module::Exe);
 }
 
 // 0x41f150
-Font* GetDllFont(int theImageId, int theTextId, int theKind)
+Font* GetDllFont(int theImageId, int theTextId)
 {
-	return gManager->GetFont(theImageId, theTextId, theKind, Module::Dll);
+	return gManager->GetFont(theImageId, theTextId, Module::Dll);
 }
 
 // 0x41f180
@@ -887,7 +884,7 @@ void Button::SetLabel(int theStringId, int theFontImage, int theFontText, int th
 	int thePressDX, int thePressDY, int theDisabledAlpha)
 {
 	mLabel = LoadDllString(theStringId);
-	mFont = GetDllFont(theFontImage, theFontText, -1);
+	mFont = GetDllFont(theFontImage, theFontText);
 	mLabelX = theX;
 	mLabelRight = theRight;
 	mLabelY = theY;
@@ -919,14 +916,6 @@ void Button::Draw()
 				return;
 			}
 			DrawHover();
-			if (mOverlay != 0)
-			{
-				Rect aDirty;
-				GetDirty(aDirty);
-				DrawImage(mOverlayX, mOverlayY, mOverlay, nullptr, true, 100, 100, 0xff);
-				SetDirty(aDirty);
-				return;
-			}
 		}
 	}
 }
@@ -1181,7 +1170,7 @@ void SetCheckLabel(Button* theButton, int theStringId, int theFontImage, int the
 	int theDisabledAlpha)
 {
 	theButton->mLabel = LoadDllString(theStringId);
-	theButton->mFont = GetDllFont(theFontImage, theFontText, -1);
+	theButton->mFont = GetDllFont(theFontImage, theFontText);
 	theButton->mLabelX = theX;
 	theButton->mLabelY = theY;
 	theButton->mDisabledAlpha = theDisabledAlpha;

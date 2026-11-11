@@ -26,7 +26,6 @@ void Animation::Setup(int thePeriod, int theMiddle, int theBelow, int theAbove, 
 	mAbove = theAbove;
 	mPeriod = thePeriod;
 	mCycles = theCycles;
-	mMode = 3;
 	mMiddle = theMiddle;
 	mSwingDelay = theSwingDelay;
 	SetDelay(theDelay);
@@ -58,26 +57,6 @@ void Animation::Start()
 	mRunning = true;
 }
 
-// 0x4257d0
-void Animation::Stop()
-{
-	mFrame = 0;
-	mRunning = false;
-	mStopAtEnd = false;
-}
-
-// 0x4257e0
-void Animation::Hold(bool theHeld)
-{
-	if (mHeld != theHeld)
-	{
-		mHeld = theHeld;
-		UpdateHold();
-		if (!mHeld)
-			Invalidate();
-	}
-}
-
 // 0x425810
 void Animation::SetPaused(bool thePaused)
 {
@@ -97,7 +76,7 @@ void Animation::UpdateHold()
 	{
 		if (!mHolding)
 		{
-			if (mPaused || mHeld)
+			if (mPaused)
 			{
 				mHoldStart = mOwner->ManagerTime();
 				mHolding = true;
@@ -105,7 +84,7 @@ void Animation::UpdateHold()
 			if (!mHolding)
 				return;
 		}
-		if (!mPaused && !mHeld)
+		if (!mPaused)
 		{
 			int aNow = mOwner->ManagerTime();
 			mHolding = false;
@@ -117,7 +96,7 @@ void Animation::UpdateHold()
 // 0x4258a0
 bool Animation::Update(int theClock)
 {
-	if (mRunning && !mHeld && !mPaused)
+	if (mRunning && !mPaused)
 	{
 		int i = 0;
 		if (mLast == 0)
@@ -134,21 +113,7 @@ bool Animation::Update(int theClock)
 					{
 						if (!mRunning || mDelay != 0)
 							break;
-						switch (mMode)
-						{
-						case 0:
-							Step();
-							break;
-						case 1:
-							StepLoop();
-							break;
-						case 2:
-							StepPingPong();
-							break;
-						case 3:
-							StepSwing();
-							break;
-						}
+						StepSwing();
 						i = i + 1;
 					} while (i < aSteps);
 				}
@@ -160,11 +125,6 @@ bool Animation::Update(int theClock)
 		{
 			mDelay = 0;
 			mLast = theClock;
-			if (mStopAtEnd)
-			{
-				Stop();
-				return true;
-			}
 		}
 	}
 	return false;
@@ -173,7 +133,7 @@ bool Animation::Update(int theClock)
 // 0x425990
 void Animation::Draw()
 {
-	if ((mRunning || mDrawStopped) && (mDelay < 1 || mDrawDelayed))
+	if (mRunning && (mDelay < 1 || mDrawDelayed))
 	{
 		if (mFrame < 0)
 			mFrame = 0;
@@ -184,50 +144,8 @@ void Animation::Draw()
 		aSrc.left = mFrameWidth * mFrame;
 		aSrc.right = mFrameWidth + aSrc.left;
 		aSrc.bottom = mHeight;
-		if (mKeyed)
-		{
-			mOwner->DrawImageKeyed(mX, mY, mImage, mKey, &aSrc, true, 100, 100, mAlpha);
-			AfterDraw();
-			return;
-		}
 		mOwner->DrawImage(mX, mY, mImage, &aSrc, true, 100, 100, mAlpha);
-		AfterDraw();
 	}
-}
-
-// 0x425a50
-void Animation::StepLoop()
-{
-	int aFrame = mFrame + 1;
-	mFrame = aFrame;
-	if (mFrames <= aFrame)
-	{
-		mFrame = 0;
-		EndCycle(mFrames - 1);
-	}
-}
-
-// 0x425a70
-void Animation::StepPingPong()
-{
-	int aFrame = mFrame;
-	if (!mForward)
-	{
-		if (aFrame == 0)
-		{
-			mForward = true;
-			EndCycle(0);
-			return;
-		}
-		mFrame = aFrame - 1;
-		return;
-	}
-	if (aFrame == mFrames - 1)
-	{
-		mForward = false;
-		return;
-	}
-	mFrame = aFrame + 1;
 }
 
 // 0x425aa0
@@ -270,25 +188,15 @@ void Animation::StepSwing()
 // 0x425b20
 bool Animation::EndCycle(int theFrame)
 {
-	if (mStopAtEnd)
-	{
-		Stop();
-		return false;
-	}
 	if (mCycles != -1)
 	{
 		mCycles = mCycles - 1;
 		if (mCycles == 0)
 		{
-			if (mRepeatDelay == 0)
-			{
-				mRunning = false;
-				if (theFrame != -1)
-					mFrame = theFrame;
-				return false;
-			}
-			mCycles = mRepeatCycles;
-			SetDelay(mRepeatDelay);
+			mRunning = false;
+			if (theFrame != -1)
+				mFrame = theFrame;
+			return false;
 		}
 	}
 	return true;

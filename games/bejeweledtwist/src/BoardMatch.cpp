@@ -152,6 +152,7 @@ void Board::MakeIceGem(Piece* thePiece, float theDelay)
 		SetStat(0x25, mLevel);
 }
 
+// 0x6a4f56: resets +0x2e4 and +0x2e8, inline here
 void Board::MakeFruitGem(Piece* thePiece)
 {
 	if (thePiece == nullptr)
@@ -2017,8 +2018,9 @@ void Board::BurstAt(int theX, int theY, int theRange)
 			int aRand = Rand() % 100;
 			float anAngle = (float)((double)aRand / 400.0 + (double)i * 0.906000018119812);
 			float aDist = (float)aSpeed;
-			int aX = Ftol((double)(aDist * cosf(anAngle))) + sBurstCentres[aCentre][0];
-			int aY = Ftol((double)(aDist * sinf(anAngle))) + sBurstCentres[aCentre][1];
+			// the speed times the sine and cosine at the FPU's precision, not rounded to float before the conversion
+			int aX = Ftol((double)aDist * (double)cosf(anAngle)) + sBurstCentres[aCentre][0];
+			int aY = Ftol((double)aDist * (double)sinf(anAngle)) + sBurstCentres[aCentre][1];
 			// (the original works out the angle from the gem it reached, atan2 at 0x77ea70, and keeps nothing of it)
 			Effect* anEffect = mFXManager->AllocEffect(17);
 			anEffect->mX = (float)aX;
@@ -2042,6 +2044,7 @@ void Board::BurstAt(int theX, int theY, int theRange)
 }
 
 // 0x6ba87f: a geode flung from (theX, theY) along theAngle. Its draws from Rand are kept (the factors are 0).
+// 0x6a3217: the geode record's three curved values, constructed here
 Geode* Board::AddGeode(int theX, int theY, float theAngle)
 {
 	if (mReplayPlaying)

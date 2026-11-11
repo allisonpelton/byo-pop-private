@@ -54,11 +54,12 @@ class RankBadge : public TwistWidget {
 public:
 	bool mOver = false;            // +0x148: the mouse is over it
 	GoodTube* mTube = nullptr;     // +0x14c
-	int mClickTimer = 0;           // +0x150: 0, set by the constructor and a click, never read
-	int mClickToggle = 0;          // +0x154: 0 or 1, flipped by a click, never read
+	float mTipTimer = 0;           // +0x150: steps of 0.01 while the mouse is over it; at 2 the next page
+	int mTipPage = 0;              // +0x154: the tip's page (0 the rank, 1 the next rank's progress, 2 none)
 
 	explicit RankBadge(GoodTube* theTube);                  // 0x701efb
 	void Draw(Graphics* g) override;                        // 0x701f3a
+	void Update() override;                                 // 0x70cbfa: the rank's tip on the tube while the mouse is over it
 	void MouseEnter() override;                             // 0x701fbb (the base class' is not called)
 	void MouseLeave() override;                             // 0x702007
 	void MouseDown(int x, int y, int theClickCount) override;  // 0x70200f

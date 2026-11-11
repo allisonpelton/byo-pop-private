@@ -231,14 +231,6 @@ bool Font::Load(int theImage, int theTextId, Module theModule)
 	return true;
 }
 
-// 0x423bd0
-bool Font::LoadKeyed(int theImage, int theTextId, uint32_t theKey, Module theModule)
-{
-	mKey = theKey;
-	mKeyed = true;
-	return Load(theImage, theTextId, theModule);
-}
-
 // 0x423c00 (a character the font lacks adds the previous character's advance again, as in the original)
 int Font::GetWidth(const char* theText, int theScale)
 {
@@ -256,7 +248,7 @@ int Font::GetWidth(const char* theText, int theScale)
 			}
 			else if (aChar == '\t')
 			{
-				anAdvance = GetTabWidth(anAcc);
+				anAdvance = 0;  // no tab stops
 			}
 			else
 			{
@@ -319,7 +311,7 @@ int Font::FitCount(const char* theText, int theMaxWidth)
 		}
 		else if (aChar == '\t')
 		{
-			anAdvance = GetTabWidth(anAcc);
+			anAdvance = 0;  // no tab stops
 		}
 		else
 		{
@@ -389,7 +381,7 @@ int Font::DrawLeft(Object* theObject, int theX, int theY, const char* theText, i
 		}
 		else if (aChar == '\t')
 		{
-			anAdvance = GetTabWidth(anAcc);
+			anAdvance = 0;  // no tab stops
 		}
 		else
 		{
@@ -410,12 +402,8 @@ int Font::DrawLeft(Object* theObject, int theX, int theY, const char* theText, i
 				aSrc.bottom = mLineHeight + aSrc.top;
 				aSrc.left = aGlyph.mX;
 				aSrc.right = aGlyph.mX + aGlyph.mWidth;
-				if (!mKeyed)
-					theObject->DrawImage(theX + anAcc, theY - mAscent, mImage, &aSrc, true, theScaleX, theScaleY,
-						theAlpha);
-				else
-					theObject->DrawImageKeyed(theX + anAcc, theY - mAscent, mImage, mKey, &aSrc, true, theScaleX,
-						theScaleY, theAlpha);
+				theObject->DrawImage(theX + anAcc, theY - mAscent, mImage, &aSrc, true, theScaleX, theScaleY,
+					theAlpha);
 			}
 		}
 		if (theScaleX != 100)
@@ -480,14 +468,6 @@ void Font::DrawLinesCentred(Object* theObject, int theX, int theY, const char* t
 		theY = theY + aStep;
 	}
 	DrawCentred(theObject, theX, theY, aLine.c_str(), theWidth, theScaleX, theScaleY, theAlpha);
-}
-
-// 0x424420
-int Font::DrawWrapped(Object* theObject, int theX, int theY, int theWidth, int theMaxHeight, const char* theText,
-	int theLineStep, bool theMeasureOnly, int theAlpha)
-{
-	return DrawWrappedWorker(theObject, theX, theY, theWidth, theMaxHeight, theText, theLineStep, theMeasureOnly,
-		theAlpha, false);
 }
 
 // 0x424460
@@ -592,40 +572,6 @@ int Font::TrailingSpaces(const char* theText)
 		aCount = aCount + 1;
 	}
 	return aCount;
-}
-
-// 0x4248b0
-void Font::SetTabStops(const int* theStops, int theCount)
-{
-	mTabCount = theCount;
-	if (10 < theCount)
-		mTabCount = 10;
-	int i = 0;
-	if (0 < mTabCount)
-	{
-		do
-		{
-			i = i + 1;
-			mTabs[i - 1] = *theStops;
-			theStops = theStops + 1;
-		} while (i < mTabCount);
-	}
-}
-
-// 0x4248f0
-int Font::GetTabWidth(int thePos)
-{
-	int i = 0;
-	if (0 < mTabCount)
-	{
-		do
-		{
-			if (thePos < mTabs[i])
-				return mTabs[i] - thePos;
-			i = i + 1;
-		} while (i < mTabCount);
-	}
-	return 0;
 }
 
 } // namespace jb

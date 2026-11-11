@@ -6,12 +6,16 @@ CLAUDE.md was "larger than I typically like"). CLAUDE.md keeps the rules every s
 
 ## Usage
 
-- **Weekly cap (the user, 2026-10-26; 2026-11-03):** when the account's weekly usage (all models) reaches 97%, the
-  coordinator starts no new game session and sends no "Begin" ("I only need 3% usage in reserve for the week", the
-  user, 2026-11-03; it was 85%); it checks with `mcp__ccd_session_mgmt__get_usage` before each one.
-  The cap is for the identical-play sessions; site work goes ahead past it (the user, 2026-11-04). Game sessions already running carry on and do not watch the usage. The coordinator keeps merging their milestones
-  and keeps the local test site ready: `build/web` built from `main`, with every finished game importing and playable.
-  Site work runs alongside the game sessions (the user, 2026-11-01).
+- **Weekly cap, a hard limit (the user, 2026-10-26; 2026-11-03; 2026-11-10):** when the account's weekly usage reaches
+  97% (all models, or the window of the model the sessions run on), work stops there: "I only need 3% usage in reserve
+  for the week" (2026-11-03). The coordinator starts no session, sends no "Begin" and sends no session on to a further
+  phase or step; it tells every session at work to commit what it has and end its turn, stops the turn of any that goes
+  on, and merges nothing that needs a suite run. The README refresh the user asked for at 97% is the one thing it still
+  does. It checks `mcp__ccd_session_mgmt__get_usage` hourly while sessions work (a cron job), warns the sessions at
+  95% to reach a commit, and checks again before every message that sends a session on. On 2026-11-09 it refreshed the
+  README at 97% and then kept merging and sent six idle sessions on to their next phases, which used the reserve: "You
+  ran up the usage all the way to 100% despite my 97% limit" (the user, 2026-11-10). This replaces the earlier
+  allowances (running sessions carrying on past the cap, site work going ahead past it).
 - **Effort (the user, 2026-10-27, a trial):** game sessions run at medium effort to save usage; the coordinator sets
   it on every session it starts.
 
@@ -35,6 +39,13 @@ CLAUDE.md was "larger than I typically like"). CLAUDE.md keeps the rules every s
   test-then-increment loop does not become a for loop), checks what a comment claims about the original before
   writing it, and builds with AddressSanitizer at the first sign of a crash or memory corruption. If a Sonnet
   game's review finds many faults, or its port runs far over its estimate, games of its kind move to Opus.
+- **Fable only, an experiment (the user, 2026-11-10):** "An experiment this week: ONLY use the new Fable 5.2. Use it
+  for everything so I can explore its capabilities and make full use of the banked reset." Every session, the
+  coordinator included, and every agent a session starts runs on Fable 5.2 (`claude-fable-5-2`; `model: "fable"` or
+  no model for an Agent), and the model selection above is suspended until the user ends the experiment. The
+  coordinator switched every linked session on 2026-11-10 and starts new ones on it. The user wants to hear how
+  productive Fable was compared with Opus when its weekly window is close to running out: the baseline and the
+  measure are in the coordinator's memory (`fable-experiment`).
 
 - **Finished games' sessions are archived (the user, 2026-11-04):** to free the boot drive, the sessions of the games
   that are done and identical were archived and their worktrees removed (about 62 GB), with the three abandoned
@@ -145,6 +156,12 @@ CLAUDE.md was "larger than I typically like"). CLAUDE.md keeps the rules every s
   as before.
   JPEG: IJG libjpeg, the library the games use, replaces stb_image for JPEG images ("Add IJG libjpeg"; the download of
   jpegsrc.v6b.tar.gz from ijg.org approved), so no game lists a JPEG deviation.
+- **After every game is done: gamepads (the user, 2026-11-10):** "Once all games are done, I want to add native gamepad
+  support to every game. I also want to support the Wii Remote in particular." Not before; it is shared framework work
+  with a layout per game.
+- **The README's performance table (the user, 2026-11-10):** "Include in the readme a performance comparison table
+  including load time, CPU, and memory usage for every game", port against original, from each game's performance
+  numbers in its notes.
 - **Reports still open from the user's test notes (cleared 2026-11-04):** each goes to its game's session with its
   next brief. Bookworm Adventures: "Sound effects seem to come about a second after they should." Its pass found every
   sound at the original's update natively, so check the web build, where the user plays. Its smashed tile "looks
@@ -273,12 +290,20 @@ CLAUDE.md was "larger than I typically like"). CLAUDE.md keeps the rules every s
   Bejeweled's profiles agree (2026-11-09): a -fast game spends 85-90% of its cycles presenting, in the driver and
   making the device, imagehlp's 5% among them (wintrust loads it for the driver's signature check when the device is
   made); the framework also keeps every image's pixels after upload, 19 MB of Bejeweled's 55 MB (the original: 36 MB).
+  Mahjong Escape's pass (2026-11-09) adds: SDL_RenderPresent swings 0.4-2.2 G cycles a minute between plays of one
+  build (the driver spinning, the GPU shared), so only alternating runs compare; the whole-screen SDL_UpdateTexture of
+  a software-drawn game still costs about 1 G cycles a minute (a partial update or a streaming texture would cut it);
+  every game's process holds about 54 MB before it reads a game file; libopenmpt decodes a module whole (51 MB of
+  Ancient Japan's 146 MB private), where a streaming render would hold one buffer; and the engine keeps each image's
+  decoded bits beside its 32-bit copy. For profiles, tools/profile/callprof.py puts 86% of samples in ntdll whatever
+  the thread does; per-thread cycle counters (QueryThreadCycleTime) are the way (games/mahjongjapan GAME_NOTES,
+  "Performance").
 - **Done means every phase but modding (the user, 2026-11-08):** "I've decided I want to go through every phase
   except modding before a game can be considered done and ready for the live site, and just publish whatever games are
   ready by the end of December. I'm in no hurry to get games out in a less-than-stellar state." A game is done only once
   it has had every step: the user's faults fixed; both phases of identical play, with the real-input play of CLAUDE.md
   ("Done means identical"); registration and the buttons that lead out of the game removed; its fixes mod; the
-  readability pass, once the user approves the standards after Twist's pilot; the coverage check; the performance pass;
+  readability pass (the standards were approved on 2026-11-10: "new standards approved"); the coverage check; the performance pass;
   the other code it does not need taken out; and, for a game ported from its Steam copy, the check against its PopCap
   Game Collection version. The coverage check and the performance pass, planned for after every game was done, become
   steps of each game's own finishing, in the order above where a game has not begun its readability pass (coverage,

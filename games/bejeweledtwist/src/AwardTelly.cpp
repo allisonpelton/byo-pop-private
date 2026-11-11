@@ -130,6 +130,7 @@ void AwardTelly::ShowRank(int theRank)
 	mOldBadgeAlpha.SetConstant(1.0);
 }
 
+// 0x670a49: the pow helper (a call of 0x670a26), inline here
 void AwardTelly::ShowTrophy(Challenge* theChallenge, bool theFlag)
 {
 	if (mKind == 0) {

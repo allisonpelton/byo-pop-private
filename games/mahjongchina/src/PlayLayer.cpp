@@ -60,7 +60,7 @@ void ShadeBox::Draw()
 // 0x4068c0
 void ShadeBox::OnInit()
 {
-	mFont = jb::GetDllFont(0xd5, 0xd4, -1);
+	mFont = jb::GetDllFont(0xd5, 0xd4);
 	mLine1 = jb::LoadDllString(0x8f);
 	mLine2 = jb::LoadDllString(0x90);
 }
@@ -163,12 +163,12 @@ void Panel::Init()
 	mLabelBest = jb::LoadDllString(0x98);
 	mLabelPairs = jb::LoadDllString(0x9a);
 	mLabelLeft = jb::LoadDllString(0xa0);
-	mClockFont = jb::GetDllFont(0xcb, 0xca, -1);
-	mSmallFont = jb::GetDllFont(0xa3, 0xa2, -1);
-	mTitleFont = jb::GetDllFont(0xd2, 0xd3, -1);
+	mClockFont = jb::GetDllFont(0xcb, 0xca);
+	mSmallFont = jb::GetDllFont(0xa3, 0xa2);
+	mTitleFont = jb::GetDllFont(0xd2, 0xd3);
 	if (mMode == 1)
-		mEscapeTitleFont = jb::GetDllFont(0x128, 0x127, -1);
-	mLabelFont = jb::GetDllFont(0xd5, 0xd4, -1);
+		mEscapeTitleFont = jb::GetDllFont(0x128, 0x127);
+	mLabelFont = jb::GetDllFont(0xd5, 0xd4);
 	mManager->PreloadDllImage(0x7f);
 	mManager->PreloadDllImage(0x7d);
 	mManager->PreloadDllImage(0x80);
@@ -301,7 +301,7 @@ void PauseText::Draw()
 void PauseText::Init()
 {
 	mText = jb::LoadDllString(0x28);
-	mFont = jb::GetDllFont(0x11e, 0x11d, -1);
+	mFont = jb::GetDllFont(0x11e, 0x11d);
 	RegClick(true);
 	jb::gManager->PauseMusic(true);
 }
@@ -361,7 +361,7 @@ void PlayLayer::PlayNext()
 		YesNoBox* aBox = new YesNoBox(this, 2, 0x1e, 0x8c, 0x8d, false, 0x78, 0x78);
 		jb::gManager->Push(aBox, true, true, true);
 		aBox->SetTitle(0x8e);
-		aBox->AddText(0x8b, 0, 0, 0x5a, false, nullptr, 0);
+		aBox->AddText(0x8b, 0, 0, 0x5a, false);
 	}
 }
 

@@ -184,7 +184,7 @@ void Board::Init()
 	jb::LoadSound(0x178, true);
 	jb::LoadSound(0x17b, false);
 	jb::LoadSound(0x15e, false);
-	mFont = jb::GetDllFont(0xd9, 0xd8, -1);
+	mFont = jb::GetDllFont(0xd9, 0xd8);
 	RegUpdate(true);
 	RegClick(true);
 	RegLayerCmd(true);
@@ -222,7 +222,7 @@ void Board::LoadLayout()
 		ErrorBox* aBox = new ErrorBox();
 		jb::gManager->Push(aBox, true, false, true);
 		aBox->SetTitle(0x6b);
-		aBox->AddText(0x6a, 0, 0, 0x5a, false, nullptr, 0);
+		aBox->AddText(0x6a, 0, 0, 0x5a, false);
 		return;
 	}
 	Measure();
