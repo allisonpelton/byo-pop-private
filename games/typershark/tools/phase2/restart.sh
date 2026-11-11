@@ -17,23 +17,26 @@ USERS="restart-$A" bash $P/runport.sh "$B" 1 -drawevery | tail -1
 rm -rf "$FIX"
 
 # the original: run A, then run B from run A's users folder and registry values
-bash $P/runorig.sh "$A" 1 500 --reg-map popcap
+# REGMAP=1 runs both of the original's runs with --reg-map popcap. Inside the sandbox the copy runs as SYSTEM and writes
+# HKLM itself, so the map is not needed there, and with it on the original's timing is another (IDENTICAL_PLAY.md).
+MAP=""; [ -n "${REGMAP:-}" ] && MAP="--reg-map popcap"
+bash $P/runorig.sh "$A" 1 500 $MAP
 REGS="build/ts-p2/$A/registry-after.reg"
 : > "$REGS.list"
 for f in build/origrun/typershark-p2/logs/registry-after-*.reg; do
 	[ -f "$f" ] && echo "$f $(wc -c < "$f") bytes" >> "$REGS.list"
 done
-# the export that holds the mapped key (HKCU\Software\PopCap): the largest one that names TyperShark
+# the export that holds the game's key with its players (under HKLM, or under HKCU with the map)
 best=""
 for f in build/origrun/typershark-p2/logs/registry-after-*.reg; do
 	[ -f "$f" ] || continue
-	if iconv -f UTF-16 -t UTF-8 "$f" 2>/dev/null | grep -q "HKEY_CURRENT_USER.*TyperShark"; then best="$f"; fi
+	if iconv -f UTF-16 -t UTF-8 "$f" 2>/dev/null | grep -q "PopCap.TyperShark.Users"; then best="$f"; fi
 done
-[ -n "$best" ] || { echo "no registry export of run A names HKEY_CURRENT_USER\\...\\TyperShark"; cat "$REGS.list"; exit 1; }
+[ -n "$best" ] || { echo "no registry export of run A holds the game's Users key"; cat "$REGS.list"; exit 1; }
 cp "$best" "$REGS"
 echo "run A's registry: $best ($(wc -c < "$REGS") bytes)"
 grep -h "registry map" build/origrun/typershark-p2/logs/*.log | tail -2 | cut -c1-300
-STAGE="build/ts-p2/$A/orig.users" REG="$R/$REGS" bash $P/runorig.sh "$B" 1 400 --reg-map popcap
+STAGE="build/ts-p2/$A/orig.users" REG="$R/$REGS" bash $P/runorig.sh "$B" 1 400 $MAP
 grep -h "registry map\|registry.reg\|keys are there" build/origrun/typershark-p2/logs/*.log | tail -4 | cut -c1-300
 
 for N in "$A" "$B"; do

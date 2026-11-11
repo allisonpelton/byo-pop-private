@@ -44,11 +44,17 @@ done < games/bigmoney/tools/bassproxy/bassproxy.def > build/bassproxy-ts/basspro
 cp build/bassproxy-ts/bass.dll "$G/bass.dll"
 rm -f "$G/basslog.txt" "$RUN/logs/sound.log"
 rm -rf "$G/users"; cp -r build/ts-p1/fixtures/users-clean "$G/users"
-bash games/typershark/tools/run_original.sh "$R/$D/orig.txt" "$D/orig_sound_run.log" 1 600 --sound wav
+# with phase 2's patch list: its loading patch makes the copy load in one go on its main thread. Without it the loading
+# thread runs on the wall clock while the updates run on the virtual one, and whether the new-player dialog is up by update
+# 1000, where the recording types the name, depends on how busy the machine is (two of four runs typed into the title screen).
+bash games/typershark/tools/run_original.sh "$R/$D/orig.txt" "$D/orig_sound_run.log" 1 600 --sound wav --patches "$R/build/ts-p2/patches.txt"
 grep -E "RESULT|SOUND LEAK|exit=" "$D/orig_sound_run.log" | tail -4 | cut -c1-200
-cp "$G/basslog.txt" "$D/orig_bass.log" 2>/dev/null
+# the two logs of the original, kept beside the port's in the shape soundcmp.py reads (a run folder's logs/ and game/): the
+# copy's own are gone with its next run
+mkdir -p "$D/orun/logs" "$D/orun/game"
+cp "$RUN/logs/sound.log" "$D/orun/logs/sound.log"; cp "$G/basslog.txt" "$D/orun/game/basslog.txt" 2>/dev/null
 mv -f "$G/bass_real.dll" "$G/bass.dll"
-echo "original: $(grep -c ' play ' "$RUN/logs/sound.log" 2>/dev/null) play lines, $(wc -l < "$D/orig_bass.log" 2>/dev/null) BASS calls; port: $(grep -c ' play ' "$D/portsound.log") play lines"
-python games/bigmoney/tools/origcmp/soundcmp.py "$RUN" "$D" > "$D/soundcmp.txt" 2>&1
+echo "original: $(grep -c ' play ' "$D/orun/logs/sound.log" 2>/dev/null) play lines, $(wc -l < "$D/orun/game/basslog.txt" 2>/dev/null) BASS calls; port: $(grep -c ' play ' "$D/portsound.log") play lines, $(grep -c ' music ' "$D/portsound.log") music lines"
+python games/bigmoney/tools/origcmp/soundcmp.py "$D/orun" "$D" > "$D/soundcmp.txt" 2>&1
 tail -25 "$D/soundcmp.txt" | cut -c1-240
 echo "sound done"

@@ -750,10 +750,11 @@ bool WinWSApp::ChangeMusic(int theOrder)
 		mMusic->StopMusic(mMusicSlot);
 	else if (mMusic->IsPlaying(mMusicSlot))
 	{
-		if (aSpeed != 0.0)
-			mMusic->StopMusic(mMusicSlot);
+		// 0x4144e7: the song that plays fades out at the new one's speed and stops when it is silent (a cross-fade)
+		if (aSpeed == 0.0)
+			mMusic->StopMusic(mMusicSlot);              // (not reached: aSpeed is never 0 here)
 		else
-			mMusic->FadeOut(mMusicSlot, true, aSpeed);  // (not reached: aSpeed is never 0 here)
+			mMusic->FadeOut(mMusicSlot, true, aSpeed);
 	}
 
 	if (aSpeed == 0.0)
