@@ -8,7 +8,7 @@
     "fixes": true
   },
   "settings": [
-    { "id": "scoreGlow", "label": "The score glows as it rises", "type": "bool", "default": true,
+    { "id": "scoreGlow", "label": "The score glows as it rises", "type": "bool", "default": false,
       "help": "The original has a glowing version of the score to show while points are added, but a rounding mistake keeps it invisible. With this on, it shows." }
   ]
 }
