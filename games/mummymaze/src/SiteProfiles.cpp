@@ -21,7 +21,7 @@
 
 using namespace Sexy;
 
-// NewAdventureDialog's box: mFont1, 20 characters (0x14); the OK accepts letters and numbers only (MummyApp::ButtonDepress)
+// NameDialog's box: mFont1, 20 characters (0x14); the OK accepts letters and numbers only (MMApp::ButtonDepress)
 static const int kMaxChars = 0x14;
 
 static std::string FileName(int theSlot)
@@ -47,7 +47,7 @@ static std::string Accepted(const std::string& theName, Font* theFont)
 class Adventures : public Byopop::SiteProfiles
 {
 public:
-	Adventures(MummyApp* theApp) : mApp(theApp) {}
+	Adventures(MMApp* theApp) : mApp(theApp) {}
 
 	virtual std::vector<std::string> Names()
 	{
@@ -143,7 +143,7 @@ public:
 
 	virtual bool CanDelete() { return true; }
 
-	// DeleteAdventure without its ShowAdventureSlots (which would open the slots dialog): the file goes
+	// DeleteGame without its DoAdventure (which would open the slots dialog): the file goes
 	virtual bool Delete(const std::string& theName, std::string* theWhy)
 	{
 		int aSlot = SlotOf(theName);
@@ -174,12 +174,12 @@ private:
 		return -1;
 	}
 
-	MummyApp*	mApp;
+	MMApp*	mApp;
 };
 
 static void Start(SexyAppBase* theApp)
 {
-	Adventures anAdventures((MummyApp*) theApp);
+	Adventures anAdventures((MMApp*) theApp);
 	Byopop::SiteStart("mummymaze", anAdventures);
 }
 
@@ -189,7 +189,7 @@ static struct Register
 	Register() { Byopop::gSiteLoaded = Start; }
 } sRegister;
 
-void Sexy::SiteProfilesChanged(MummyApp* theApp)
+void Sexy::SiteProfilesChanged(MMApp* theApp)
 {
 	Adventures anAdventures(theApp);
 	Byopop::SiteChanged("mummymaze", anAdventures);

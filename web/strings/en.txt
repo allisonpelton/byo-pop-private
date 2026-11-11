@@ -112,6 +112,45 @@ skin.fav.remove = Remove from favourites
 skin.fav.menu = {game}
 skin.desk.games = All games
 skin.desk.about = About
+settings.scheme.label = Scheme
+settings.scheme.hint = The desktop's colours: its background, windows, title bars and selection.
+settings.scheme.standard = Standard
+settings.scheme.cola = Cola
+settings.scheme.creamsoda = Cream Soda
+settings.scheme.grape = Grape
+settings.scheme.lemonlime = Lemon-Lime
+settings.scheme.cherry = Cherry
+settings.scheme.blueraspberry = Blue Raspberry
+settings.scheme.gingerale = Ginger Ale
+settings.scheme.seltzer = Seltzer
+settings.pattern.label = Pattern
+settings.pattern.hint = A small two-colour pattern over the desktop's colour.
+settings.pattern.none = (None)
+settings.pattern.dots = Dots
+settings.pattern.halftone = Halftone
+settings.pattern.checks = Checks
+settings.pattern.diagonal = Diagonal
+settings.pattern.zigzag = Zigzag
+settings.pattern.lattice = Lattice
+settings.pattern.blocks = Blocks
+settings.wallpaper.label = Wallpaper
+settings.wallpaper.hint = A picture on the desktop. A picture of your own stays in this browser and is never uploaded.
+settings.wallpaper.none = (None)
+settings.wallpaper.bubbles = Bubbles
+settings.wallpaper.gingham = Gingham
+settings.wallpaper.caps = Bottle Caps
+settings.wallpaper.own = My picture
+settings.wallpaper.picture = My picture
+settings.wallpaper.browse = Browse…
+settings.wallpaper.remove = Remove
+# the small view of the picture kept, for screen readers
+settings.wallpaper.kept = A picture is kept
+settings.wallpaper.none_kept = No picture kept
+settings.wallpaperfit.label = Display
+settings.wallpaperfit.hint = How a picture of your own sits on the desktop.
+settings.wallpaperfit.centre = Centre
+settings.wallpaperfit.tile = Tile
+settings.wallpaperfit.stretch = Stretch
 settings.win95only.label = Windows 95 games only
 settings.win95only.hint = In Desktop 95, list only the games whose original ran on Windows 95, as its readme says. Games already open stay open. Other skins list every game.
 skin.win95.hidden = {count} hidden
@@ -297,7 +336,8 @@ index.footer.music_html = The Music player plays the music from the game files y
   <a href="licenses/libopenmpt.txt" target="_blank" rel="noopener">libopenmpt<span class="visually-hidden newtab"> (opens in a new tab)</span></a> and
   <a href="licenses/libxmp-lite.txt" target="_blank" rel="noopener">libxmp-lite<span class="visually-hidden newtab"> (opens in a new tab)</span></a>.
   The desktop's text is set in
-  <a href="licenses/w95fa.txt" target="_blank" rel="noopener">W95FA<span class="visually-hidden newtab"> (opens in a new tab)</span></a> by Alina Sava.
+  <a href="licenses/byopop-sans.txt" target="_blank" rel="noopener">Byopop Sans<span class="visually-hidden newtab"> (opens in a new tab)</span></a>,
+  made from W95FA by Alina Sava.
 index.footer.credit_html = Project by <a href="https://technocra.cy/">technocra.cy</a>
 
 # The link to Jungle Juice, after the games (the user, 2026-11-04)

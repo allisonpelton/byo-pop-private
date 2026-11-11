@@ -1241,6 +1241,63 @@ What it means: on an N100-class machine with any GPU, both modes should play smo
 is playable at around 40 frames a second. 3D drops to under 20 frames a second, though the game itself keeps nearly
 full speed. A browser without the graphics card already starts in 2D (the game's own choice, above in "3D mode").
 
+## The performance pass (2026-11-11)
+
+The pass of `docs/COORDINATION.md` ("A performance pass before the readability pass"), after the two "Performance" sections
+above, whose native half had only the main menu to compare (the original's autoplay crashed in that copy). The prepared copy
+runs its autoplay, so the original and the port were measured over the same game.
+
+**Measured in pairs.** `tools/profile/pairs.sh` runs the original and then the port, each one process sampled every 50 ms by
+`games/bejeweled/tools/profile/perfmin.py` from its creation to its exit: the same seeded Classic autoplay (seed 1234, which
+deals both the same game), 2D at the 768 art, windowed, on the real clock, silent, about 105 s a run. The original runs under
+origrun on the host with its seed patch, the port under rundesk. The processor figures are for 30 s to 90 s of the process's
+life, inside the game on both sides. 3D is not in it: the original runs in 3D only on the user's own desktop ("3D mode"
+above). Six pairs ran on 2026-11-11 between 00:57 and 01:20. The machine was never quiet: one to four other sessions' game
+processes ran beside every run (the counts are in the table), so no pair is clean, and the figures are for comparing the two
+here and now.
+
+| Pair | Other game processes (original, port) | Original: processor in the window, whole run | Port: processor in the window, whole run | Peak private bytes, original / port | Peak working set, original / port |
+|---|---|---|---|---|---|
+| 1 | 1, 2 | 55.3 %, 57.5 s | 39.4 %, 47.4 s | 186.0 / 395.4 MB | 212.0 / 396.3 MB |
+| 2 | 3, 2 | 46.3 %, 50.1 s | 38.3 %, 40.7 s | 185.7 / 405.9 MB | 204.3 / 406.8 MB |
+| 3 | 2, 3 | 54.4 %, 56.5 s | 34.6 %, 41.5 s | 185.4 / 383.1 MB | 204.3 / 388.1 MB |
+| 4 | 4, 3 | 35.3 %, 40.5 s | 33.9 %, 43.7 s | 185.5 / 391.6 MB | 204.2 / 398.7 MB |
+| 5 | 3, 2 | 39.7 %, 43.3 s | 34.6 %, 41.7 s | 185.4 / 388.3 MB | 204.4 / 396.7 MB |
+| 6 | 2, 2 | 51.6 %, 50.6 s | 37.7 %, 45.8 s | 188.0 / 392.1 MB | 213.3 / 399.2 MB |
+
+The processor figures are the percentage of one core in the window and the seconds over the whole run. In the window the port
+used less than the original in every pair: 34 to 39 % of a core (median 36) against 35 to 55 % (median 49). Both draw the 2D
+game in software, which is why either costs a third to a half of a core. Over the whole run the port used less in five pairs
+of six (its loading is shorter too). In memory the port holds about twice what the original does, 383 to 406 MB of private
+bytes at its peak against 185 to 188 MB.
+
+**Where the memory goes.** One run's private bytes over time (pair 4): the original is at 158 MB when its menu comes up and
+between 177 and 184 MB for the rest. The port is at 210 MB when the game starts and 228 to 230 MB while it plays, then 386 MB
+at the first level-up, 283 MB after it, and 379 MB at the second. So there are two parts. The steady 50 MB over the original is
+the framework's, as for Bejeweled and the Mahjongs (`docs/COORDINATION.md`: every image's pixels kept beside its texture, the
+sounds as 48 kHz float). The other part is a transient of about 165 MB at each level-up's jump (in a run under `memprof.py`:
+240 MB until 44 s, 305 MB from 44 s, 405 MB from 52 s, 283 MB from 62 s), which the original does not have. It is not the
+game's C++ heap: a temporary `operator new` that logged every block of 64 KB and more (never committed) counted 22 MB of them
+from the level-up on, most of it images getting their pixels back (`MemoryImage::GetBits`, 17 MB). `memprof.py` puts it in
+private memory that belongs to no module, so it is allocated beneath the game, by the C libraries or the graphics driver's
+side of the display, while the jump's frames are drawn in software and uploaded. That is shared code: the finding went to the
+coordinator, and nothing in the game was changed for it.
+
+**Where the time goes in a test run.** `games/bejeweled/tools/profile/cpuprof.py` on the port with `-fast` (seed 1234,
+30,000 updates of Classic autoplay in 24.7 s, 79 G cycles): the graphics driver 38 %, system calls (ntdll) 21 %, Direct3D and
+win32u 6 %, and the exe 28 %. The exe's share is the 2D game's software drawing and what follows from it:
+`MemoryImage::BltRotated` 5.5 %, the texture upload (`DDInterface::PrepareTexture`) 4.1 %, the software triangles 3.3 %,
+then the JPEG 2000 decoder of the backdrops (about 4 % in all), the effects (`EffectsManager::Update` and `DrawEffects`,
+1.7 %) and the Ogg decoder. No function of the board's own logic is above 0.2 %.
+
+**What the pass changed: nothing in the game.** The port already uses less processor time than the original, its `-fast`
+runs do 1,200 updates a second with two thirds of the time in the driver and the system, and its own share is the software
+drawing the original has too. Both memory costs are below the game. No source changed, so the frozen baseline needs no new
+run.
+
+**Not measured.** The 3D mode against the original (above). The web build was measured on 2026-11-03 ("Performance (web)")
+and not again. A quiet machine: the script waited and then measured with other sessions' games running.
+
 ## Coverage check (2026-11-09)
 
 The coverage check of `docs/COVERAGE.md`: origrun's `--coverage` recorded which of the original's functions ran, in nine runs

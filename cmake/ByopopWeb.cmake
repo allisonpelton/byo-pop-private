@@ -52,7 +52,7 @@ set(BYOPOP_WEB_BRAND favicon.svg favicon.ico apple-touch-icon.png logo.svg cap.s
 # games of its own. web/testkit.js is the player-only page's test tools, which a game page loads only at ?player=1 on a
 # development host (docs/WEB_PLAYER.md, "The player-only page"). web/skins.js and web/skins.css are the site's skins ("Skins").
 # web/settingsicons.js holds the Settings sections' icons, drawn by tools/settingsicons.py.
-set(BYOPOP_WEB_SHARED_JS logo.js cursors.js settingsicons.js settings.js profiles.js exeicon.js gameimport.js chat.js testkit.js skins.js skins.css perf.js view.js controldata.js controls.js clips.js)
+set(BYOPOP_WEB_SHARED_JS logo.js cursors.js settingsicons.js settings.js profiles.js exeicon.js gameimport.js chat.js testkit.js skins.js schemes.js skins.css perf.js view.js controldata.js controls.js clips.js)
 # the listing page's own scripts: the Players section (web/players.js), the save backup (web/saves.js) and the import of
 # saves from an installed game (web/saveimport.js, with the table platform/saveimport.json as saveimport-table.js), and the
 # adding of games' files (web/addgames.js, with web/modpanel.js for its zip and pak readers, and import-games.js, each listed
@@ -340,7 +340,7 @@ endif()
 # in web/licenses/ that the page is built from. LICENSES adds a game's own libraries (BookWorm: libopenmpt).
 # Sets <var> to the generated template in the build folder, for --shell-file. Both files are rewritten only when
 # their text changes, and CMake runs again when one of their inputs changes. byopop_web_game() calls it.
-set(BYOPOP_WEB_LICENSES popcap-framework sdl2 stb libjpeg libxmp-lite tremor minimp3 w95fa)
+set(BYOPOP_WEB_LICENSES popcap-framework sdl2 stb libjpeg libxmp-lite tremor minimp3 byopop-sans)
 set(BYOPOP_WEB_TOOLCHAIN_LICENSES emscripten musl)
 
 function(byopop_write_if_changed path text)
@@ -1132,9 +1132,10 @@ function(byopop_web_index)
   # the music player's licence (web/music.js links it): libopenmpt's, as openmpt.wasm is built from it
   configure_file(${BYOPOP_WEB_BRAND_DIR}/../licenses/libopenmpt.txt ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/licenses/libopenmpt.txt COPYONLY)
   configure_file(${BYOPOP_WEB_BRAND_DIR}/../licenses/libxmp-lite.txt ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/licenses/libxmp-lite.txt COPYONLY)
-  # Desktop 95's text (web/skins.css): W95FA by Alina Sava, SIL OFL 1.1, served beside the pages with its licence
-  configure_file(${BYOPOP_WEB_BRAND_DIR}/../fonts/w95fa.woff2 ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/fonts/w95fa.woff2 COPYONLY)
-  configure_file(${BYOPOP_WEB_BRAND_DIR}/../licenses/w95fa.txt ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/licenses/w95fa.txt COPYONLY)
+  # Desktop 95's text (web/skins.css): Byopop Sans, made from W95FA by Alina Sava (SIL OFL 1.1) by tools/web/pixelfont.py,
+  # served beside the pages with its licence
+  configure_file(${BYOPOP_WEB_BRAND_DIR}/../fonts/byopop-sans.woff ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/fonts/byopop-sans.woff COPYONLY)
+  configure_file(${BYOPOP_WEB_BRAND_DIR}/../licenses/byopop-sans.txt ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/licenses/byopop-sans.txt COPYONLY)
   byopop_web_strings_js()
   byopop_web_counter_js()
   byopop_web_terms_js()
