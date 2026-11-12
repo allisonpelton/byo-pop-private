@@ -182,11 +182,13 @@ def build_check(target):
         os.mkdir(tree)
         tarfile.open(fileobj=io.BytesIO(git("archive", "--format=tar", ref)), mode="r:").extractall(tree)
         sdl = os.environ.get("SDL2_DIR", "E:/retools/SDL2-2.32.10/i686-w64-mingw32/lib/cmake/SDL2")
+        # tools/build.sh finds pip's cmake and ninja here
+        env = dict(os.environ, PATH=os.path.join(os.environ.get("APPDATA", ""), "Python", "Python312", "Scripts") + os.pathsep + os.environ["PATH"])
         for cmd in (["cmake", "-S", tree, "-B", build, "-G", "Ninja", "-DCMAKE_BUILD_TYPE=Release",
                      f"-DCMAKE_TOOLCHAIN_FILE={tree}/cmake/llvm-mingw-i686.cmake", f"-DSDL2_DIR={sdl}"],
                     ["cmake", "--build", build, "--target", target]):
             print("+", " ".join(cmd), flush=True)
-            if subprocess.run(cmd).returncode:
+            if subprocess.run(cmd, env=env).returncode:
                 sys.exit("build check: the derived tree does not build")
         exe = os.path.join(build, target + ".exe")
         if not os.path.isfile(exe):
