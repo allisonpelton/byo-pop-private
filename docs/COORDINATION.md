@@ -155,6 +155,16 @@ holds the rules every session follows; this file does not repeat them.
   - **Alternating runs.** Alternate the two sides' runs and take the medians of at least five pairs.
     `python -I tools/pincore.py -- <command>` runs each on a performance core of its own: no efficiency core, and no
     hyperthread shared with another pinned run.
+  - **The same window on both sides.** origrun runs an original windowed at its own size (`--reg FullScreen=0`). A port
+    started with a fresh userdir takes its original's defaults, often full screen, and under rundesk that is the
+    whole 3840x2160 desktop at render scale 4 (Mahjong, 2026-11-12); a port's window also starts at twice the game's
+    size where it fits. So the port is measured windowed (FullScreen=0 in its settings) at the game's own size in
+    pixels (a test option such as `-windowscale=1`), and the log line naming the window's size is checked. The
+    default window's cost is measured as well, beside it, since that is what a player gets.
+  - **The renderer a player gets.** On the visible desktop SDL picks Direct3D 9; on rundesk's private desktop it
+    gets Direct3D 11 (TipTop and AstroPop, 2026-11-12). TipTop's bench put a frame's present at 2.5 to 2.9 M cycles
+    on the visible desktop (D3D9) against 2.0 to 2.6 M on rundesk's (D3D11), and a window-surface present at 0.9 to
+    1.2 M on both. So name the renderer each run used, and compare a port and its original on one desktop.
   Where the excess is a shared cost, the session sends the spec, and the game waits for the framework's fix instead of
   being let off.
   Shared costs are found once and fixed in the framework for every game; the list below holds them.
@@ -178,8 +188,11 @@ holds the rules every session follows; this file does not repeat them.
     (`SDL_BLENDMODE_NONE`; frame 13.2 to 7.8 ms, the shot identical); drawing at the logical size on the software
     renderer and presenting with a nearest-neighbour stretch at an integer ratio (frame 2.6 ms, the board 23.8%; pixel
     doubling instead of smoothing, so a change of look the user decides); and drawing at most at the display's rate,
-    skipping a frame with nothing dirty, as the surface presenter below does. The first goes in as a `shared:`
-    commit from Bejeweled 2, the third into the presenter; the second waits until those are measured.
+    skipping a frame with nothing dirty, as the surface presenter below does. The first is on the trunk (e19af272, with
+    fec8a8a5 keeping images in forced mode blended); the third goes into the presenter, and the second waits until those
+    are measured. The `-commands` poll, a stat of the file every update (0.34 M cycles a call, an eighth of the main
+    thread in a run that uses the channel), is now Platform::FileSizeWatch, an open handle and a directory watch, about
+    49 k cycles a call (fa73221e).
   - A relative `-userdir` (`./u3/`) is not found where the same folder by its absolute path is (Bejeweled 2): harmless
     for players, a trap for scripts.
   - Memory: the Direct3D 11 device (20 to 25 MB and about 0.2 s of start); every image's pixels kept after upload (19
@@ -223,10 +236,19 @@ holds the rules every session follows; this file does not repeat them.
     opt-in by the app and given the frame's dirty rectangle, is the fix for every software-drawn port. The Mahjong
     session builds it as shared commits, design note first; Cosmic Bugs keeps its own partial-upload work off the
     trunk.
-  - `SexyAppBase::PollLiveCommands` stats the `-commands` file every 10 ms update, about 0.34 M cycles a call: an eighth
-    of the main thread in a run that uses the channel (`-commands`, `-realinput`), and every update under `-fast`. Poll
-    every tenth update or on a change notification; any suite that uses the channel must give the same results (Cosmic
-    Bugs, 2026-11-11).
+  - Not a cost but a shared look (Typer Shark, 2026-11-12): the 2004 framework's Direct3D 9 blends straight alpha, and
+    DDInterface uploads premultiplied textures whenever the renderer has custom blend modes (`SetupBlendModes`), which
+    moves the edges of pictures with transparent texels by up to 44 levels in 3D. Typer Shark switches to the
+    framework's straight fallback modes at BeginFrame while 3D is on (`TyperSharkDisplay`, WinWSApp.cpp); its 2D needs the
+    premultiplied ones. A DDInterface flag for straight alpha in 3D, like `gWidgetsDrawWithoutFastStretch`, would serve
+    the other 2004-framework games once one of them shows the same edges.
+  - Presenting in step with the display. The framework asks for vsync whenever `-fast` is off (`InitDDInterface`),
+    and the driver spends cycles in the wait: in AstroPop's 3D, SDL_RenderPresent took 1.35 M cycles a frame with vsync
+    against 0.52 M without, 46% of the main thread, and the driver's second thread about 1.4 M more; about 70% of the
+    port's 3D stretch was the present path and under 15% the game's code (2026-11-12, instrumented scratch build). The
+    original does not wait for the display in a window. A window's frames are composed by the desktop, so presenting
+    without vsync should not tear; a candidate is no vsync with presents capped at the display's rate by the frame
+    loop's own timing (Bejeweled 2's pace code), measured against vsync and checked for even pacing.
   - A cycle-weighted EIP sampler charges a thread's bursts to the wait it stands in (54% of Cosmic Bugs' cycles on
     `ZwWaitForSingleObject`); timers around the calls with `QueryThreadCycleTime` find the real split. Cosmic Bugs'
     `tools/perf/cpuprof.py` has `CALLERS=1` (the exe function and the DLL on the stack).
