@@ -145,5 +145,132 @@ check(endRun("lost 0", [{ boardLevelClears: 1, progress: 1 }, { gameOvers: 1, ga
 check(endRun("progress 5", [{ boardLevelClears: 1 }, { progress: 4 }, { progress: 5 }]) === "start; split; split", "end progress: the figure reaches N");
 check(endRun("won", [{ boardLevelClears: 1 }], 0x02) === "", "no start on a resumed board");
 
+// A game's -livesplitlog event lines ("board N GO ... (difficulty D)", "board N level clear K ...", "board N game over (kind)
+// ...", "board N win ..."), replayed as the block they describe, one poll an event, through the game's decider with the
+// template named category: the timer's calls. A line "board N GO" after a game over on board N is a new game (the log's
+// serials restart in each run of the game). progress follows the level cleared, as the games that keep one do.
+function eventReplay(game, category, lines, deathOf) {
+  var g = A.games[game], tp = g.templates.filter(function (x) { return (x.sub ? x.category + " - " + x.sub : x.category) === category; })[0];
+  var ev = [], t = { ph: "NotRunning", idx: -1 }, d;
+  var timer = { phase: function () { return t.ph; }, index: function () { return t.idx; },
+    start: function () { t.ph = "Running"; t.idx = 0; d.onStart(); ev.push("start"); },
+    split: function () { t.idx++; ev.push("split"); if (t.idx >= tp.segments.length) t.ph = "Ended"; },
+    reset: function (c) { t.ph = "NotRunning"; t.idx = -1; ev.push("reset " + c); d.onReset(); } };
+  d = g.decider(timer, { category: category, segments: tp.segments });
+  var s = { active: 1, flags: 0, boardSerial: 0, goCount: 0, goSerial: 0, gameOvers: 0, gameOverSerial: 0, death0: 0, death1: 0, death2: 0,
+            death3: 0, boardLevelClears: 0, displayScoreMax: 0, wins: 0, winSerial: 0, progress: -1, mode: -1, skill: 0, inGame: 0 };
+  var serial = 0;
+  function poll() { var n = {}; Object.keys(s).forEach(function (k) { n[k] = s[k]; }); d.poll(0, n); }
+  poll();
+  lines.forEach(function (line) {
+    var m;
+    if ((m = /^board \d+ GO .*\((?:difficulty|skill) (\d+)\)/.exec(line))) {
+      serial++;
+      s.boardSerial = serial; s.goCount++; s.goSerial = serial; s.boardLevelClears = 0; s.progress = 0; s.mode = tp.mode || 0;
+      s.skill = +m[1]; s.inGame = 1; s.flags = 0;
+    } else if ((m = /^board \d+ level clear (\d+)/.exec(line))) {
+      s.boardLevelClears++; s.progress = +m[1];
+    } else if ((m = /^board \d+ game over \(([^)]*)\)/.exec(line))) {
+      s.gameOvers++; s.gameOverSerial = serial; s["death" + deathOf(m[1])]++; s.inGame = 0; s.flags |= 0x20;
+    } else if (/^board \d+ win/.test(line)) {
+      s.wins++; s.winSerial = serial; s.inGame = 0;
+    } else return;
+    poll();
+  });
+  return ev.join("; ");
+}
+var ssLines = fs.readFileSync(path.join(__dirname, "autosplit", "sevenseas-events.txt"), "utf8").split(/\r?\n/);
+function ssDeath(k) { return k === "out of lives" ? 0 : 3; }
+function games(lines, skill) {
+  // the runs of one difficulty in the log: each from its GO up to the next GO
+  var out = [], cur = null;
+  lines.forEach(function (l) { var m = /GO .*\(difficulty (\d+)\)/.exec(l); if (m) { cur = +m[1] === skill ? [] : null; if (cur) out.push(cur); } if (cur) cur.push(l); });
+  return [].concat.apply([], out);
+}
+check(eventReplay("sevenseas", "Level 30 (Easy)", games(ssLines, 1), ssDeath) === "start; split; split; split; split; reset resetLives; start; split; split; split; reset resetLives",
+      "Seven Seas Easy: a split at each level, a reset at each loss of every life, a new game starts the next run");
+check(eventReplay("sevenseas", "Level 30 (Average)", games(ssLines, 2), ssDeath) === "start; split; split; split; split; split; reset resetLives",
+      "Seven Seas Average (from a level jump)");
+check(eventReplay("sevenseas", "Level 30 (Easy)", games(ssLines, 3), ssDeath) === "", "Seven Seas: a game of another difficulty never starts the run");
+var ss30 = ["board 1 GO at tick 1 (difficulty 3)"];
+for (var lv = 1; lv <= 31; lv++) ss30.push("board 1 level clear " + lv + " at tick " + lv * 100 + " (map " + (lv % 10 ? 0 : 1) + ")");
+check(eventReplay("sevenseas", "Level 30 (Hard)", ss30, ssDeath) === "start; " + Array(31).join("split; ").replace(/; $/, ""),
+      "Seven Seas Hard: 30 splits, the last at progress 30 (the map after the treasure level), none after");
+check(A.games.sevenseas.templates.map(function (x) { return x.category + " " + x.skill + " " + x.end; }).join("|") ===
+      "Level 30 (Easy) 1 progress 30|Level 30 (Average) 2 progress 30|Level 30 (Hard) 3 progress 30", "Seven Seas' three speedrun.com categories");
+
+// A game's -livesplitlog in the full form ("u=<update> <event> | seq=... board=... go=a/b lc=a/b over=a/b deaths=a,b,c,d
+// ... wins=a/b mode=m skill=k ingame=i progress=p", Mummy Maze's): each line the block as it was, polled once, through the
+// game's decider with the template named category. Returns the timer's calls.
+function blockReplay(game, category, lines) {
+  var g = A.games[game], tp = g.templates.filter(function (x) { return (x.sub ? x.category + " - " + x.sub : x.category) === category; })[0];
+  var ev = [], t = { ph: "NotRunning", idx: -1 }, d;
+  var timer = { phase: function () { return t.ph; }, index: function () { return t.idx; },
+    start: function () { t.ph = "Running"; t.idx = 0; d.onStart(); ev.push("start"); },
+    split: function () { t.idx++; ev.push("split"); if (t.idx >= tp.segments.length) t.ph = "Ended"; },
+    reset: function (c) { t.ph = "NotRunning"; t.idx = -1; ev.push("reset " + c); d.onReset(); } };
+  d = g.decider(timer, { category: category, segments: tp.segments });
+  var PAIRS = { go: ["goCount", "goSerial"], lc: ["levelClears", "levelClearSerial"], over: ["gameOvers", "gameOverSerial"], wins: ["wins", "winSerial"] };
+  var ONE = { board: "boardSerial", blc: "boardLevelClears", dsmax: "displayScoreMax", mode: "mode", skill: "skill", ingame: "inGame",
+              progress: "progress", active: "active", tick: "tick", state: "state" };
+  lines.forEach(function (line) {
+    // (Rocket Mania's lines are the fields alone, without the event and its bar)
+    var bar = line.indexOf("|");
+    if (bar < 0 && !/^u=\d+ seq=/.test(line)) return;
+    var s = {};
+    line.slice(bar + 1).trim().split(/\s+/).forEach(function (kv) {
+      var eq = kv.indexOf("="), k = kv.slice(0, eq), v = kv.slice(eq + 1);
+      if (PAIRS[k]) { var ab = v.split("/"); s[PAIRS[k][0]] = +ab[0]; s[PAIRS[k][1]] = +ab[1]; }
+      else if (ONE[k]) s[ONE[k]] = +v;
+      else if (k === "flags") s.flags = parseInt(v, 16);
+      else if (k === "deaths") v.split(",").forEach(function (n, i) { s["death" + i] = +n; });
+    });
+    d.poll(0, s);
+  });
+  return ev.join("; ");
+}
+function mmLog(name) { return fs.readFileSync(path.join(__dirname, "autosplit", "mummymaze-" + name + ".log"), "utf8").split(/\r?\n/); }
+check(blockReplay("mummymaze", "1st Pyramid", mmLog("c1")) === "start; split; split; split; reset resetAbandon",
+      "Mummy Maze 1st Pyramid (from chamber 14): a split at each chamber, Abandon Hope resets");
+check(blockReplay("mummymaze", "1st Pyramid", mmLog("c2")) === "start; split; split", "Mummy Maze: the last pyramid's win is no reset");
+check(blockReplay("mummymaze", "100% Run", mmLog("c2")) === "", "Mummy Maze 100% Run never starts on a Classic game");
+check(blockReplay("mummymaze", "100% Run", mmLog("a1")) === "start; split; split", "Mummy Maze 100% Run: a split at each treasure, none at a chamber");
+check(blockReplay("mummymaze", "100% Run", mmLog("a2")) === "" && blockReplay("mummymaze", "1st Pyramid", mmLog("r1")) === "",
+      "Mummy Maze: a resumed game never starts a run");
+// the ends, on made-up blocks: 1st Pyramid ends at progress 1 after its 15 chambers, 100% at the win after 14 treasures
+function mmRun(category, mode, steps) {
+  var lines = [], s = { board: 1, go: "1/1", blc: 0, progress: 0, wins: "0/0", over: "0/0", mode: mode, ingame: 1, active: 1, flags: "04" };
+  function line() { return "u=0 x | " + Object.keys(s).map(function (k) { return k + "=" + s[k]; }).join(" "); }
+  lines.push(line().replace("go=1/1", "go=0/0"));
+  lines.push(line());
+  steps.forEach(function (p) { Object.keys(p).forEach(function (k) { s[k] = p[k]; }); lines.push(line()); });
+  return blockReplay("mummymaze", category, lines);
+}
+var mmSteps = [];
+for (var ch = 1; ch <= 15; ch++) mmSteps.push({ blc: ch });
+mmSteps.push({ progress: 1 });
+var mmWant = "start; " + Array(17).join("split; ").replace(/; $/, "");
+check(mmRun("1st Pyramid", 0, mmSteps) === mmWant, "Mummy Maze 1st Pyramid: 15 chamber splits, then the end at the next pyramid");
+var mmAdv = [];
+for (var tr = 1; tr <= 14; tr++) mmAdv.push({ blc: tr * 15, progress: tr });
+mmAdv.push({ blc: 225, progress: 15, wins: "1/1" });
+check(mmRun("100% Run", 1, mmAdv) === "start; " + Array(16).join("split; ").replace(/; $/, ""), "Mummy Maze 100% Run: 14 treasure splits, the last at the win");
+
+// Rocket Mania: its block logs (tools/autosplit/rocketmania/, the port's bot and scripted games; a line at each change)
+function rmLog(name) { return fs.readFileSync(path.join(__dirname, "autosplit", "rocketmania", name + ".block.log"), "utf8").split(/\r?\n/); }
+function splits(n) { return Array(n + 1).join("split; ").replace(/; $/, ""); }
+var rmSkill = function (name) { var m = /skill=(\d+)/.exec(rmLog(name).filter(function (l) { return /ingame=1/.test(l); })[0] || ""); return m ? +m[1] : -1; };
+check(rmSkill("script_classic_2") === 1 && rmSkill("bot_classic_1") === 0 && rmSkill("script_arcade_3") === 2, "Rocket Mania's logs: their difficulties as the test expects");
+check(blockReplay("rocketmania", "Level 30 - Normal", rmLog("script_classic_2")) === "start; " + splits(30), "Rocket Mania Level 30 (Classic, Normal): 30 splits, the loss after it ignored");
+check(blockReplay("rocketmania", "Level 10 - Normal", rmLog("script_classic_2")) === "start; " + splits(10), "Rocket Mania Level 10: ends at the 10th Level Up");
+check(blockReplay("rocketmania", "Level 20 - Hard", rmLog("script_arcade_3")) === "start; " + splits(20), "Rocket Mania Level 20 in Arcade (Hard)");
+check(blockReplay("rocketmania", "Level 10 - Easy", rmLog("script_classic_2")) === "", "Rocket Mania: a game of another difficulty never starts the run");
+check(blockReplay("rocketmania", "Level 10 - Easy", rmLog("bot_classic_1")) === "start; split; split; split; reset resetOutOfTime",
+      "Rocket Mania Classic: a split at each Level Up, the night running out resets");
+check(blockReplay("rocketmania", "Level 10 - Easy", rmLog("bot_arcade_1")) === "start; split; split; reset resetTopLine", "Rocket Mania Arcade: the top line filling resets");
+check(blockReplay("rocketmania", "Level 10 - Normal", rmLog("script_strategy_2")) === "", "Rocket Mania: a Strategy game never starts a Level run");
+check(blockReplay("rocketmania", "Level 10 - Easy", rmLog("quit")) === "start; reset resetQuit", "Rocket Mania: leaving the game resets as a quit");
+check(blockReplay("rocketmania", "Level 10 - Normal", rmLog("resume2")) === "", "Rocket Mania: a continued save never starts a run");
+
 console.log("autosplittest: " + (fx.cases.length + bm.cases.length + bw.cases.length) + " scenario replays, " + checks + " checks, " + fails + " failed");
 process.exit(fails ? 1 : 0);

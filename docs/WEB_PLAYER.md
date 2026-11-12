@@ -645,14 +645,17 @@ off and with it on.
 - `id`: the block's game id;
 - `modes` and `skills`: the names behind the block's numbers;
 - `deaths`: what each of the four death kinds is (each one a reset setting, as in Bejeweled);
-- `templates`: one per speedrun.com category and subcategory, each with `mode` and `skill` (none for any), its
-  segments, and `end`, how the run finishes:
+- `templates`: one per speedrun.com category and subcategory, each with `mode` and `skill` (none for any, or a
+  list of the allowed ones), its segments, and `end`, how the run finishes:
   - `levels N` (the Nth level clear);
   - `score N` (the score on screen reaches N);
   - `won` (`wins` rises);
   - `lost` (a game over; for a death% category), or `lost N` (a game over while the game's progress is at most N; any
     other game over resets the run as usual);
-  - `progress N` (the game's own figure reaches N).
+  - `progress N` (the game's own figure reaches N);
+
+  and, where a category's splits are not its levels, `by: "progress"`: each segment but the last splits when the game's
+  progress reaches its number (Mummy Maze's treasures).
 
 One decider reads every entry. It starts at a GO in the template's mode and skill, but never on a resumed save or a
 replay. It splits at each level clear, or when the score reaches a segment's number (Bejeweled's naming rules: "Level 3",
@@ -664,7 +667,20 @@ it starts, are noted in the template, and the template follows them.
 **Rows written so far.** BookWorm (speedrun.com: Bookworm Deluxe): its progress is the rank the summary shows, the levels
 cleared up to 31 (BookWorm's session: Board's level counts up only when the next level starts, so the summary of a level shows
 it plus one). Bookworm Supreme (Any%) is `progress 31`, reached on the update the 31st level is complete; Bookburner
-(Death%) is `lost 0`, a game over before the first level is cleared. Big Money has no board, so its row is its native
+(Death%) is `lost 0`, a game over before the first level is cleared. Seven Seas (speedrun.com: Seven Seas Deluxe) has
+Level 30 on Easy, Average and Hard (skill 1, 2, 3): its level clear is the update its level counter goes up, after the level's
+panel, and the map after levels 10, 20 and 30 is made in that same update, so `progress 30` (levels completed) ends the run
+where the board's rules do; its one game over is running out of lives, and New Game takes the board away (a quit). Mummy
+Maze (speedrun.com: Mummy Maze Deluxe): a board is a whole game, menu to menu, and a level clear is each chamber's
+level-complete page. Its progress is the treasures collected, which in Classic rises when the next pyramid has begun: 1st
+Pyramid (Classic) is 15 chamber splits and the end at `progress 1`, the spawn in the next pyramid. 100% Run (Adventure)
+splits at each treasure, a template with `by: "progress"` (each segment's split is the progress reaching its number, not
+a level clear), and ends `won`, at the last pyramid's chest. Being caught is no game over; Abandon Hope is the only one. Rocket
+Mania (speedrun.com: Rocket Mania!): Level 10, 20 and 30 on each difficulty, from "Get Ready!" (the first update of a new
+game) to the last level's "Level Up!"; a split at each Level Up. The board doesn't say which mode it means: Arcade and
+Classic both have levels and Strategy never ends one, so the templates' `mode` is the list [Arcade, Classic]. Its losses
+(the night running out, the top line filling, no matches left) count at the game-over screen, since a launch still burning
+can clear the level in Classic. It has no win. Big Money has no board, so its row is its native
 script's rules, with mode and skill in the category's name and levels or scores as segments. Both replay their native
 scripts' scenarios in `tools/autosplittest.js`. Every other game with a board gets its row in Milestone 3, from the
 speedrun.com categories and its session's answer on where in its code GO, a level clear, a game over and a win happen.
@@ -755,12 +771,13 @@ could not load, and a page that takes the close but never hands the window back.
 silent page, after its four-second wait, and at once on a second Close (`web/deskapps.js`, `closeApp`).
 `tools/web/splitscheck.js` resets the speedrun timer with No, with Escape, after an abandoned run and after an Undo, and
 compares the stored splits with what they were before the attempt. It then answers Yes and checks that the run's times were
-kept (`web/splits.js`, `reset`); it removes its own test splits at the end. `tools/web/autosplitcheck.js` opens BookWorm
+kept (`web/splits.js`, `reset`); it removes its own test splits at the end. `tools/web/autosplitcheck.js` opens a game with
+an auto splitter (named in localStorage, `byopop-autosplitcheck`, since the page rewrites its address; BookWorm when unset)
 in a desktop window with the test kit in its frame (`player=1&assets=1&fast=1` added to the window's own address), plays
-runs of its speedrun.com categories by its bot and the `win` and `lose` commands, and checks that the Splits window, as a
-player has it, reads the block, starts each run at a new game, splits on every level cleared and ends Any% at rank 31, resets
-on a new game (and starts the next run at once), resets Any% on a game over, ends Bookburner at a game over at rank 0 and
-resets it on one at rank 1. It answers every question No and removes the splits it stored. `tools/web/musicmutecheck.js` mutes a channel from
+runs of its speedrun.com categories by its bot and the `goto`, `win` and `lose` commands, and checks that the Splits window,
+as a player has it, reads the block, starts each run at a new game, splits on every level cleared and ends the run at the
+category's end, resets on a new game (and starts the next run at once) and on a game over. Each game's plan adds its own:
+BookWorm's Bookburner ends at a game over at rank 0 and resets at rank 1; Seven Seas' Easy run never starts on a Hard game. It answers every question No and removes the splits it stored. `tools/web/musicmutecheck.js` mutes a channel from
 Music's tracker, turns the view off and on, switches tunes and comes back, and compares the tracker's header with what the
 player itself has muted (`bm_mute_status`). It then sends the keyboard's media keys with Music open and closed and checks
 the player's state and its sound context, not its buttons (`web/music.js`, `syncMutes` and the media keys). It needs games

@@ -234,6 +234,8 @@ var ByopopAutosplit = (function () {
       (rules.templates || []).forEach(function (t) { if (templateName(t).toLowerCase() === category.toLowerCase()) template = t; });
       var catMode = template && template.mode !== undefined ? template.mode : named(category, rules.modes);
       var catSkill = template && template.skill !== undefined ? template.skill : named(category, rules.skills);
+      // whether a block's mode or skill is outside the category's: a number (-1 for any) or a list of the allowed ones
+      function outside(want, v) { return Array.isArray(want) ? want.indexOf(v) < 0 : want >= 0 && want !== v; }
       var end = template ? parseEnd(template.end) : null;
       var splits = [], runSerial = 0, pending = null, baseline = true, seenActive = false, warned = false, attachT = null;
       var current = {}, old = {};
@@ -252,7 +254,9 @@ var ByopopAutosplit = (function () {
           if (end.kind === "lost") return lostEnd();
           if (end.kind === "progress") return current.progress >= end.n;
         }
+        // (a template with by "progress" splits on the game's own figure instead: Mummy Maze's treasures)
         var s = splits[i];
+        if (template && template.by === "progress") return current.progress >= s.target;
         return (s.score ? current.displayScoreMax : current.boardLevelClears) >= s.target;
       }
       return {
@@ -298,7 +302,7 @@ var ByopopAutosplit = (function () {
           }
           if (timer.phase() === "NotRunning" && current.goCount !== old.goCount && current.goSerial === current.boardSerial &&
               !(current.flags & (FLAG_REPLAY | FLAG_RESUMED)) && !(setting("vanillaOnly") && !(current.flags & FLAG_VANILLA)) &&
-              !(setting("modeGuard") && ((catMode >= 0 && catMode !== current.mode) || (catSkill >= 0 && catSkill !== current.skill))))
+              !(setting("modeGuard") && (outside(catMode, current.mode) || outside(catSkill, current.skill))))
             timer.start();
           return ask;
         },
@@ -340,6 +344,52 @@ var ByopopAutosplit = (function () {
                 { category: "Bookburner", sub: "Death%", segments: ["Bookburner"], end: "lost 0" }]
   };
 
+  // Seven Seas (speedrun.com: Seven Seas Deluxe): Level 30 on each difficulty, the first 30 levels. The game's level clear is
+  // the update its level counter goes up, after the level's panel; after levels 10, 20 and 30 the map is made in that same
+  // update, which is the board's end. Its progress is the levels completed. Undo can't take a level clear back. Its one game
+  // over is running out of lives; New Game saves the game and takes the board away, which resets as a quit.
+  var SS_RULES = {
+    name: "Seven Seas Deluxe", id: "SSDX",
+    modes: {}, skills: { Easy: 1, Average: 2, Hard: 3 },
+    deaths: [{ setting: "resetLives", what: "out of lives" }, { setting: null, what: "(none)" }, { setting: null, what: "(none)" },
+             { setting: null, what: "(none)" }],
+    templates: ["Easy", "Average", "Hard"].map(function (skill, i) {
+      return { category: "Level 30 (" + skill + ")", segments: levels(30), end: "progress 30", mode: 0, skill: i + 1 };
+    })
+  };
+
+  // Mummy Maze (speedrun.com: Mummy Maze Deluxe): a board is a whole game, menu to menu, its GO the first update the explorer
+  // takes moves, and a level clear the level-complete screen of each chamber (15 a pyramid). Its progress is the treasures
+  // collected; in Classic it rises when the next pyramid has begun, which is 1st Pyramid's end (the spawn in the next
+  // pyramid). 100% Run (Adventure) splits at each treasure and ends at the win, the last pyramid's chest. Being caught is no
+  // game over (the chamber is tried again); the one game over is Abandon Hope, in Classic.
+  var MM_RULES = {
+    name: "Mummy Maze Deluxe", id: "MMDX",
+    modes: { Classic: 0, Adventure: 1 }, skills: {},
+    deaths: [{ setting: "resetAbandon", what: "Abandon Hope (Classic)" }, { setting: null, what: "(none)" }, { setting: null, what: "(none)" },
+             { setting: null, what: "(none)" }],
+    templates: [{ category: "1st Pyramid", segments: levels(15).map(function (x) { return x.replace("Level", "Chamber"); }).concat(["Next Pyramid"]),
+                  end: "progress 1", mode: 0 },
+                { category: "100% Run", segments: levels(15).map(function (x) { return x.replace("Level", "Pyramid"); }), end: "won", mode: 1,
+                  by: "progress" }]
+  };
+
+  // Rocket Mania (speedrun.com: Rocket Mania!): Level 10, 20 and 30 on each difficulty, from "Get Ready!" (its GO, the first
+  // update of a new game) to the "Level Up!" of the last level (its level clear). The board doesn't say which mode; Arcade and
+  // Classic both have levels, Strategy never ends one, so either of the two starts a run. A loss counts when the game-over
+  // screen comes (a launch still burning at the night's end can still clear the level in Classic). No win: the levels go on.
+  var RM_RULES = {
+    name: "Rocket Mania!", id: "RMDX",
+    modes: { Arcade: 0, Classic: 1, Strategy: 2 }, skills: { Easy: 0, Normal: 1, Hard: 2 },
+    deaths: [{ setting: "resetOutOfTime", what: "the night ran out (Classic)" }, { setting: "resetTopLine", what: "the top line filled (Arcade)" },
+             { setting: "resetNoMatches", what: "no matches left (Strategy)" }, { setting: null, what: "(none)" }],
+    templates: [10, 20, 30].reduce(function (a, n) {
+      return a.concat(["Easy", "Normal", "Hard"].map(function (skill, i) {
+        return { category: "Level " + n, sub: skill, segments: levels(n), end: "levels " + n, mode: [0, 1], skill: i };
+      }));
+    }, [])
+  };
+
   // A row of GAMES from a row of the rules table
   function ruled(rules) {
     return { name: rules.name, block: "_byopop_livesplit_block", read: blockReader(rules.id), decider: makeDecider(rules),
@@ -351,7 +401,10 @@ var ByopopAutosplit = (function () {
   var GAMES = {
     bejeweled: { name: "Bejeweled Deluxe", block: "_byopop_livesplit_block", read: readBlock, decider: bejeweled, templates: BJ_TEMPLATES },
     bigmoney: ruled(BM_RULES),
-    bookworm: ruled(BW_RULES)
+    bookworm: ruled(BW_RULES),
+    sevenseas: ruled(SS_RULES),
+    mummymaze: ruled(MM_RULES),
+    rocketmania: ruled(RM_RULES)
   };
 
   // The front game's block, read from its window: {game, snap} or null (no game with an auto splitter in front, or it has not
