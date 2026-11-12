@@ -528,6 +528,29 @@ the way, the lambda parameter that shadowed an outer name. `tools/check.sh cosmi
 baseline) passes, and so do `tools/check.sh build` (every target and tool), `build-web:cosmicbugs` (the native build
 compiles none of the `__EMSCRIPTEN__` blocks nor `SiteProfiles.cpp`) and `tools/check.sh --changed main`.
 
+## The PopCap Game Collection version (2026-11-11)
+
+The port's files come from a PopCap Game Collection install (the staging script's default folder is the Collection's
+`Cosmic Bugs`), so the check against the disc is a comparison and one port run, as Ning Po's and Water Bugs' were
+(`docs/COORDINATION.md`). `unshield` read the group `CosmicBugsComponent` from the user's disc image, mounted read-only and
+dismounted afterwards: 178 files, 18.2 MB, into a folder under `build/` that was deleted once this was written. The layout
+is the install's: `CosmicBugs.exe`, the two art banks, `animations/`, `audio/`, `bass.dll`, a licence and a readme.
+
+**Every file the port reads is the same.** All 171 files the staging script copies (the exe, the banks, the 124 animation
+files and the XML game files, the sounds and the five modules) are the same byte for byte as the staged copy's, the exe
+among them, so no text and no table that `CBGameText.cpp` reads from it moves, and the start-up check of every text passes
+on it. The seven other files are the ones the script leaves out: `bass.dll`, the licence, the readme, the launcher's
+`properties/partner.xml` and its `.sig` (the product's name, the registry key `PopCap\CosmicBugs` and a window of 640 by
+480, which the game never reads: its exe has no string "partner" or "properties"), and the authors' two tools in
+`animations/`, `encrypto.exe` and `i.bat` (which names the three XML files it was run on). The tools are never run and
+never staged.
+
+**The port on the Collection's files** (`cosmicbugs_run` under rundesk, the suite's scripted game: Start Game, the
+instructions' Play, a line down the first board, the aim switched with the right button and a line across, 28 seconds
+of game time). It gives the same two state lines as the run on the staged copy (score 526, filled 426 of 85% at 17 s;
+score 729, filled 629 of 85% at 28 s) and the same two screenshots, byte for byte. No change to the port was needed, and
+the frozen baseline is unchanged.
+
 ## Where the work was hard
 
 Time. The original steps the game once for every millisecond that passed, then draws once (GameFrame, 0x41ee60
