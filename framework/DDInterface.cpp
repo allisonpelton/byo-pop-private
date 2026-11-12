@@ -21,8 +21,10 @@ namespace Sexy
 {
 
 // Textures cached on MemoryImage::mD3DData. There is one SDL texture per filtering mode, created on
-// demand: SDL2 can't reliably switch a texture's scale mode between batched draws (the D3D9 backend
-// only applies it when another texture was bound in between).
+// demand: SDL2 can't reliably switch a texture's scale mode between batched draws. The D3D9 backend
+// only applies it when another texture was bound in between; the D3D11 backend reads the texture's mode
+// when it runs the queued draws (SDL 2.32's SDL_render_d3d11.c, D3D11_SetCopyState), so every draw of the
+// batch would get the last mode set. One texture per mode is right on both.
 struct DDTextureData
 {
 	enum { NEAREST, LINEAR, NUM_FILTERS };
@@ -206,6 +208,13 @@ int DDInterface::Init(SDL_Window* theWindow, bool vsync)
 	Uint32 aFlags = SDL_RENDERER_ACCELERATED | SDL_RENDERER_TARGETTEXTURE;
 	if (vsync)
 		aFlags |= SDL_RENDERER_PRESENTVSYNC;
+#ifdef _WIN32
+	// SDL's first choice on Windows is Direct3D 9, whose driver keeps a second thread busy in system calls: AstroPop's scripted 20 seconds
+	// took 5.2 to 5.9 G cycles there, 3.7 to 3.9 on Direct3D 11 and 4.7 to 4.9 on OpenGL (one NVIDIA desktop, three runs each; 28 frames of
+	// the same play equal on all three but one, where 15 pixels differ by one level on Direct3D 9). A default-priority hint, so SDL_RENDER_DRIVER in the environment still
+	// decides, and SDL goes on to its other drivers when this one cannot start.
+	SDL_SetHintWithPriority(SDL_HINT_RENDER_DRIVER, "direct3d11", SDL_HINT_DEFAULT);
+#endif
 
 	mRenderer = SDL_CreateRenderer(mWindow, -1, aFlags);
 	if (mRenderer == NULL)
@@ -218,6 +227,7 @@ int DDInterface::Init(SDL_Window* theWindow, bool vsync)
 	{
 		mIs3D = (anInfo.flags & SDL_RENDERER_ACCELERATED) != 0;
 		mCan3D = mIs3D;
+		SDL_Log("Renderer: %s", anInfo.name);
 		mMaxTextureWidth = (anInfo.max_texture_width > 0) ? anInfo.max_texture_width : 16384;
 		mMaxTextureHeight = (anInfo.max_texture_height > 0) ? anInfo.max_texture_height : 16384;
 	}
@@ -785,6 +795,17 @@ void DDInterface::DrawTexturedQuad(Image* theImage, const float theX[4], const f
 
 	SDL_Color aColor = MakeVertexColor(theColor, mPremultiplied);
 	float aScale = (float) mRenderScale;
+
+	// port: SDL's software renderer blends a texture with a blend mode pixel by pixel, at about twice the cost of a copy. An image with no
+	// alpha and no transparent pixel, drawn at full alpha in the normal mode, is a copy: the same pixels come out. Not an image in forced
+	// mode (SetImageMode): CommitBits leaves its flags as the game set them, which say nothing of its texels (a render target made by
+	// Create() starts at alpha 0, and what is drawn into it can be semi-transparent), so it stays blended.
+	if ((!mIs3D) && (theDrawMode != Graphics::DRAWMODE_ADDITIVE) && (aColor.a == 255) && (aData->mScale == 1) && (!aSrcImage->mForcedMode))
+	{
+		aSrcImage->CommitBits();
+		if ((!aSrcImage->mHasAlpha) && (!aSrcImage->mHasTrans))
+			SDL_SetTextureBlendMode(aTexture, SDL_BLENDMODE_NONE);
+	}
 
 	// port: SDL's software renderer turns an axis-aligned quad back into a copy whose source rect is
 	// truncated from the UVs ((int) (u * width)), which can land a texel short and shift sprite-sheet

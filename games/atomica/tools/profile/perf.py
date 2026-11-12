@@ -21,6 +21,17 @@ the port's (the title screen's play link, read out of the game's memory every fe
 does, because origrun's own output reaches a pipe late). orig starts origrun directly: origrun puts the game under
 rundesk itself.
 
+PERF_PACED=<ms> makes the original wait for a 60 Hz screen's vertical blank the way a player's machine does: the copy's patch list gets
+one line (see PACED_PATCH) that turns the DirectDraw WaitForVerticalBlank call of its blit to the screen (0x45f8b4) into a Sleep of
+that many ms (16 for 60 Hz), which the hidden desktop's DirectDraw never waits for, so the unpatched original draws a frame
+every update at no pace. The paced original counts its updates by the app's +0x3ec (PERF_COUNTER=0x4d004c): +0x3e4, the
+counter of the identical-play scripts, is the loop's sleep count, which the paced loop (behind after each long draw) hardly
+bumps. Each run's JSON line also holds the original's updates and frames in the stretch (+0x3ec, +0x3e8) and the processor
+time of the process's threads by where each started (the exe, fmod.dll, SDL2.dll, a thread's own name), so that sound can be
+counted the same way on both sides. Processor time in a stretch is the cycle counts of the process's threads, summed
+(QueryThreadCycleTime, giga-cycles, read with the other samples), never GetProcessTimes, which moves in 15.6 ms ticks (the
+coordinator's rule, 2026-11-11); the load figures at the title still use GetProcessTimes.
+
 Both sample the game's process every 0.1 s: working set, private bytes (and the system's own peaks of both), processor time
 (kernel + user). Each run prints one JSON line: the first screen's time, and the peaks and the processor time over the whole
 run and over the scripted stretch (the 2000 updates before the script's last update, the same moves in both: the port marks
@@ -141,6 +152,127 @@ def game_processes(mine):
     return sorted(out)
 
 
+ntdll = ctypes.WinDLL('ntdll')
+k32.OpenThread.restype = W.HANDLE
+k32.OpenThread.argtypes = [W.DWORD, W.BOOL, W.DWORD]
+k32.QueryThreadCycleTime.argtypes = [W.HANDLE, ctypes.POINTER(ctypes.c_uint64)]
+k32.GetThreadDescription.argtypes = [W.HANDLE, ctypes.POINTER(ctypes.c_void_p)]
+k32.LocalFree.argtypes = [ctypes.c_void_p]
+ntdll.NtQueryInformationThread.argtypes = [W.HANDLE, ctypes.c_int, ctypes.c_void_p, ctypes.c_ulong, ctypes.c_void_p]
+psapi.EnumProcessModulesEx.argtypes = [W.HANDLE, ctypes.c_void_p, W.DWORD, ctypes.POINTER(W.DWORD), W.DWORD]
+psapi.GetModuleFileNameExW.argtypes = [W.HANDLE, ctypes.c_void_p, W.LPWSTR, W.DWORD]
+psapi.GetModuleInformation.argtypes = [W.HANDLE, ctypes.c_void_p, ctypes.c_void_p, W.DWORD]
+
+
+class TE32(ctypes.Structure):
+    _fields_ = [('dwSize', W.DWORD), ('cntUsage', W.DWORD), ('th32ThreadID', W.DWORD), ('th32OwnerProcessID', W.DWORD),
+                ('tpBasePri', ctypes.c_long), ('tpDeltaPri', ctypes.c_long), ('dwFlags', W.DWORD)]
+
+
+def process_modules(h):
+    """[(base, size, file name)] of the process's loaded modules."""
+    arr = (ctypes.c_void_p * 1024)()
+    need = W.DWORD(0)
+    if not psapi.EnumProcessModulesEx(h, arr, ctypes.sizeof(arr), ctypes.byref(need), 3):
+        return []
+    out = []
+    for i in range(min(need.value // ctypes.sizeof(ctypes.c_void_p), 1024)):
+        info = (ctypes.c_uint64 * 3)()      # MODULEINFO: base, size (a DWORD), entry point
+        name = ctypes.create_unicode_buffer(512)
+        if psapi.GetModuleInformation(h, arr[i], info, 24) and psapi.GetModuleFileNameExW(h, arr[i], name, 512):
+            out.append((info[0], info[1] & 0xffffffff, os.path.basename(name.value).lower()))
+    return out
+
+
+class ThreadMeter:
+    """The processor time of a process as the cycle counts of its threads (QueryThreadCycleTime, summed): exact, where
+    GetProcessTimes and GetThreadTimes move only in the scheduler's 15.6 ms ticks (the coordinator's rule, 2026-11-11). A
+    thread's handle is kept once it is seen, so the cycles of a thread that ends between two reads still count. info[tid] =
+    (the module its start address is in, its name) is found the first time a thread is seen: the exe for the game's own
+    threads, fmod.dll for the original's mixer, SDL2.dll or a name such as SDLAudioP1 for the port's audio."""
+
+    def __init__(self, pid, h):
+        self.pid, self.h = pid, h
+        self.handles = {}
+        self.cycles = {}
+        self.info = {}
+        self.starts = {}
+        self.listed = 0
+
+    def refresh(self):
+        snap = k32.CreateToolhelp32Snapshot(4, 0)
+        te = TE32()
+        te.dwSize = ctypes.sizeof(TE32)
+        ok = k32.Thread32First(snap, ctypes.byref(te))
+        modules = None
+        while ok:
+            tid = te.th32ThreadID
+            if te.th32OwnerProcessID == self.pid and tid not in self.handles:
+                th = k32.OpenThread(0x40 | 0x800, False, tid)
+                if th:
+                    self.handles[tid] = th
+                    start = ctypes.c_uint64(0)
+                    ntdll.NtQueryInformationThread(th, 9, ctypes.byref(start), 8, None)
+                    self.starts[tid] = start.value
+                    where = '?'
+                    text = ctypes.c_void_p()
+                    name = ''
+                    if k32.GetThreadDescription(th, ctypes.byref(text)) >= 0 and text.value:
+                        name = ctypes.wstring_at(text.value)
+                        k32.LocalFree(text)
+                    self.info[tid] = (where, name)
+            ok = k32.Thread32Next(snap, ctypes.byref(te))
+        k32.CloseHandle(snap)
+        for tid in [t for t, (where, name) in self.info.items() if where == '?']:     # a process that has only started lists no modules yet
+            if modules is None:
+                modules = process_modules(self.h)
+            where = next((n for b, z, n in modules if b <= self.starts[tid] < b + z), '?')
+            self.info[tid] = (where, self.info[tid][1])
+
+    def read(self):
+        """({tid: cycles}, the total) of every thread seen so far; the thread list is looked at once a second."""
+        if time.time() - self.listed >= 1.0:
+            self.listed = time.time()
+            self.refresh()
+        c = ctypes.c_uint64()
+        for tid, th in self.handles.items():
+            if k32.QueryThreadCycleTime(th, ctypes.byref(c)):
+                self.cycles[tid] = max(self.cycles.get(tid, 0), c.value)
+        return dict(self.cycles), sum(self.cycles.values())
+
+    def close(self):
+        for th in self.handles.values():
+            k32.CloseHandle(th)
+
+
+def nominal_mhz():
+    """The processor's nominal clock, to say cycles as seconds of one core at that clock."""
+    try:
+        import winreg
+        with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r'HARDWARE\DESCRIPTION\System\CentralProcessor\0') as k:
+            return float(winreg.QueryValueEx(k, '~MHz')[0])
+    except OSError:
+        return 0.0
+
+
+def thread_groups(thread_samples, info, lo, hi):
+    """Giga-cycles by (start module, thread name) between the thread samples nearest lo and hi (seconds from the process's
+    creation; hi None: the last sample)."""
+    if len(thread_samples) < 2:
+        return {}
+    near = lambda t: min(thread_samples, key=lambda x: abs(x[0] - t))
+    a = near(lo)
+    b = thread_samples[-1] if hi is None else near(hi)
+    groups = {}
+    for tid, cyc in b[1].items():
+        where, name = info.get(tid, ('?', ''))
+        key = '%s %s' % (where, name) if name else where
+        if key == '?' and tid == min(info):      # the start address of a thread of a 32-bit process is not seen from here
+            key = 'main thread (the lowest id)'
+        groups[key] = groups.get(key, 0.0) + (cyc - a[1].get(tid, 0)) / 1e9
+    return {k: round(v, 2) for k, v in sorted(groups.items(), key=lambda kv: -kv[1]) if abs(v) >= 0.01}
+
+
 def find_process(name, folder):
     for pid, n in processes():
         if n.lower() == name.lower() and folder.lower() in image_path(pid).lower():
@@ -166,7 +298,9 @@ def summarise(samples, lo, hi=None):
         return {'from_s': round(s[0][0], 1), 'to_s': round(s[-1][0], 1),
                 'peak_working_set_mb': round(max(x[1] for x in s) / 1048576, 1),
                 'peak_private_mb': round(max(x[2] for x in s) / 1048576, 1),
-                'processor_s': round(s[-1][5] - s[0][5], 2), 'wall_s': round(s[-1][0] - s[0][0], 1)}
+                'processor_gcycles': round(s[-1][5] - s[0][5], 2),
+                'processor_core_s_at_nominal': round((s[-1][5] - s[0][5]) * 1e3 / MHZ, 2) if MHZ else None,
+                'wall_s': round(s[-1][0] - s[0][0], 1)}
     whole = span(0, hi)
     if whole and samples:
         last = [x for x in samples if hi is None or x[0] <= hi][-1]
@@ -216,8 +350,8 @@ def orig_script(src, dst):
     lines, end = scenario(src)
     with open(dst, 'w', newline='\n') as f:
         for n, c, a in lines:
-            f.write('at %d %s %s\n' % (n, c, ' '.join(a)))
-        f.write('at %d move 1 1\nquit\n' % end)
+            f.write('at %d %s %s\n' % (n - SHIFT, c, ' '.join(a)))
+        f.write('at %d move 1 1\nquit\n' % (end - SHIFT))
     return dst
 
 
@@ -297,10 +431,14 @@ def port_minute(out, script):
     h = k32.OpenProcess(QUERY | VM_READ | QUERY_LIMITED, False, p.pid)
     created = creation_time(h)
     samples = []
+    thread_samples = []
+    meter = ThreadMeter(p.pid, h)
     while p.poll() is None:
         s = sample(h)
         if s:
-            samples.append((round(time.time() - created, 3),) + s[:2] + s[2:])
+            cyc, total = meter.read()
+            samples.append((round(time.time() - created, 3),) + s[:4] + (total / 1e9,))   # the processor figure: giga-cycles
+            thread_samples.append((samples[-1][0], cyc))
         time.sleep(0.1)
     end = samples[-1][0] if samples else 0
     s1 = system_times()
@@ -308,6 +446,8 @@ def port_minute(out, script):
     res = summarise(samples, begin if begin is not None else end - 60)
     res.update({'exit': p.returncode, 'run_s': round(end, 1), 'machine_busy': round(busy_fraction(s0, s1), 2),
                 'stretch_start_marked': begin is not None, 'updates_in_stretch': MINUTE,
+                'threads_gcycles': thread_groups(thread_samples, meter.info, begin if begin is not None else end - 60, None),
+                'real_clock': REAL,
                 'updates_per_s_in_stretch': round(MINUTE / (end - begin), 1) if begin is not None else None,
                 'others_start': len(others0), 'others_end': len(game_processes(mine_prefixes()))})
     json.dump({'samples': samples, 'result': res}, open(os.path.join(out, 'perf.json'), 'w'))
@@ -319,9 +459,23 @@ def port_minute(out, script):
 # 2003 widget: +0x10 its width, which is 0 until the screen has loaded and sets the link's label and size). The load time is
 # taken on the real clock with a script that only waits.
 TITLE_PTR, LINK_PTR, LINK_WIDTH = 0x4D00FC, 0x84, 0x10
-COUNTER = 0x4D0044                                   # the app's update counter (the app is static at 0x4cfc60, the counter its +0x3e4)
+COUNTER = int(os.environ.get('PERF_COUNTER', '0x4d0044'), 16)   # the counter origrun's `at` lines and the stretch follow: the app (static
+                                                     # at 0x4cfc60) +0x3e4, the loop's sleep count (SexyApp 0x43b390), the identical-play
+                                                     # scripts' own; +0x3ec (0x4d004c) counts the updates and is the one a paced run needs
+SHIFT = int(os.environ.get('PERF_COUNTER_SHIFT', '0'))   # +0x3ec (the updates) is 1 behind +0x3e4 (the sleeps) from the first update on, on
+                                                     # origrun's virtual clock (checked at updates 1000 to 4399): with PERF_COUNTER=0x4d004c the
+                                                     # script's lines go 1 earlier (PERF_COUNTER_SHIFT=1) to fire at the same moment of the game
+SLEEPS, FRAMES, UPDATES =0x4D0044, 0x4D0048, 0x4D004C   # +0x3e4 sleeps of the loop, +0x3e8 frames drawn (0x437780), +0x3ec updates (0x4375e0)
 REAL = os.environ.get('PERF_CLOCK') == 'real'        # the scenario in real time, for both games
+PACED = int(os.environ.get('PERF_PACED', '0'))       # the original waits this many ms where it waits for the vertical blank (16: 60 Hz)
+# the patch (kind test: it only paces the copy): 12 bytes at 0x45f8ab, `mov eax,[esi+8]; mov edx,[eax]; push ebx; push 1; push eax;
+# call [edx+0x58]` (IDirectDraw::WaitForVerticalBlank(DDWAITVB_BLOCKBEGIN), called when the DirectDraw object's vsync flag at +0xc5c
+# is set), become `push <ms>; call [Sleep]` and four nops; eax, ecx and edx are loaded again after the call
+PACED_PATCH = ('test Atomica.exe va:0x45f8ab 8b46088b10536a0150ff5258 6a%02xff15e8e04a0090909090 '
+               'a pass of the loop waits %d ms for the screen, as the wait for a 60 Hz screens vertical blank would\n')
 TERMINATE = 0x1
+MHZ = nominal_mhz()
+NL = chr(10)
 
 
 def orig_run(out, script, runs, load_only=False):
@@ -346,10 +500,17 @@ def orig_run(out, script, runs, load_only=False):
         s0 = system_times()
         log = open(os.path.join(d, 'origrun.log'), 'wb')
         t_start = time.time()
-        p = subprocess.Popen([origrun, '--game', 'atomica', '--run', run, '--stage-root', 'C:/byo-og', '--script', sc,
-                              '--clock', 'real' if (load_only or REAL) else 'virtual', '--cursor', 'scripted', '--seed', '1',
-                              '--timeout', '400', '--counter', hex(COUNTER), '--update-ms', '10'],
-                             stdout=log, stderr=subprocess.STDOUT)
+        cmd = [origrun, '--game', 'atomica', '--run', run, '--stage-root', 'C:/byo-og', '--script', sc,
+               '--clock', 'real' if (load_only or REAL) else 'virtual', '--cursor', 'scripted', '--seed', '1',
+               '--timeout', '400', '--counter', hex(COUNTER), '--update-ms', '10']
+        if PACED:
+            patches = os.path.join(root, 'build', 'perfruns', 'atomica-paced%d.txt' % PACED)
+            os.makedirs(os.path.dirname(patches), exist_ok=True)
+            with open(patches, 'w', newline=NL) as f:
+                f.write(open(os.path.join(root, 'tools', 'origrun', 'patches', 'atomica.txt')).read().rstrip(NL) + NL)
+                f.write(PACED_PATCH % (PACED, PACED))
+            cmd += ['--patches', patches]
+        p = subprocess.Popen(cmd, stdout=log, stderr=subprocess.STDOUT)
         h = None
         created = ready = spawned = None
         started = False      # the title screen has gone: the scenario's click on its link landed (the original loads in a thread in
@@ -358,6 +519,9 @@ def orig_run(out, script, runs, load_only=False):
         ready_mem = None
         samples = []
         counters = []   # (time, update counter)
+        loop_counts = []        # (time, sleeps, frames drawn, updates)
+        thread_samples = []
+        meter = None
         next_sample = 0
         done = False
         deadline = time.time() + 420
@@ -368,6 +532,7 @@ def orig_run(out, script, runs, load_only=False):
                 pid = find_process('Atomica.exe', '\\byo-og\\' + run + '\\')
                 if pid:
                     h = k32.OpenProcess(QUERY | VM_READ | QUERY_LIMITED | TERMINATE, False, pid)
+                    meter = ThreadMeter(pid, h)
                     created = creation_time(h)
                     spawned = created - t_start
             if h:
@@ -386,8 +551,11 @@ def orig_run(out, script, runs, load_only=False):
                     if ready is not None and not started and read32(h, TITLE_PTR) == 0:
                         started = True
                     if s:
-                        samples.append((round(now - created, 3),) + s)
+                        cyc, total = meter.read()
+                        samples.append((round(now - created, 3),) + s[:4] + (total / 1e9,))   # the processor figure: giga-cycles
+                        thread_samples.append((samples[-1][0], cyc))
                         counters.append((round(now - created, 3), c))
+                        loop_counts.append((round(now - created, 3), read32(h, SLEEPS), read32(h, FRAMES), read32(h, UPDATES)))
                     next_sample = now + 0.1
                     if c is not None and c >= last + 30:   # the script's quit has run: the original keeps running, so stop it here
                         done = True
@@ -402,6 +570,8 @@ def orig_run(out, script, runs, load_only=False):
         # the minute: from the sample where the counter reached the minute's first update to the one at the last update
         lo = next((t for t, c in counters if c is not None and c >= last - MINUTE), None)
         hi = next((t for t, c in counters if c is not None and c >= last), None)
+        if hi is None:     # the game quit before a sample saw the last update: the stretch ends at the last sample that read a counter
+            hi = next((t for t, c in reversed(counters) if c is not None), None)
         end = samples[-1][0] if samples else 0
         res = summarise(samples, lo if lo is not None else end - 60, hi)
         if lo is not None and hi is not None and hi > lo:
@@ -409,7 +579,15 @@ def orig_run(out, script, runs, load_only=False):
             c_hi = next(c for t, c in counters if t == hi)
             res['updates_in_stretch'] = c_hi - c_lo
             res['updates_per_s_in_stretch'] = round((c_hi - c_lo) / (hi - lo), 1)
+            n_lo = next(x for x in loop_counts if x[0] == lo)
+            n_hi = next(x for x in loop_counts if x[0] == hi)
+            if None not in n_lo[1:] + n_hi[1:]:
+                res['sleeps_per_s_in_stretch'] = round((n_hi[1] - n_lo[1]) / (hi - lo), 1)
+                res['frames_per_s_in_stretch'] = round((n_hi[2] - n_lo[2]) / (hi - lo), 1)
+                res['true_updates_per_s_in_stretch'] = round((n_hi[3] - n_lo[3]) / (hi - lo), 1)
+            res['threads_gcycles'] = thread_groups(thread_samples, meter.info, lo, hi)
         res.update({'exit': p.returncode, 'run_s': round(end, 1), 'machine_busy': round(busy_fraction(s0, s1), 2),
+                    'paced_ms': PACED, 'real_clock': bool(load_only or REAL),
                     'load_s': round(ready, 3) if ready else None, 'origrun_to_process_s': round(spawned, 1) if h else None,
                     'last_update_reached': counters[-1][1] if counters else None, 'game_started': started,
                     'others_start': len(others0), 'others_end': len(game_processes(mine_prefixes()))})

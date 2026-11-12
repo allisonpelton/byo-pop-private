@@ -3883,8 +3883,8 @@ bool SexyAppBase::QueueLiveCommand(const std::string& theLine, int theLineNum)
 // its start.
 void SexyAppBase::PollLiveCommands()
 {
-	struct stat aStat;
-	if (stat(mCommandsFileName.c_str(), &aStat) != 0)
+	long long aSize;
+	if (!mCommandsFileWatch.Query(mCommandsFileName, &aSize))
 	{
 		if (!mCommandsWaitLogged)
 		{
@@ -3895,7 +3895,6 @@ void SexyAppBase::PollLiveCommands()
 		mCommandsWaitLogged = true;
 		return;
 	}
-	long long aSize = (long long) aStat.st_size;
 	if (aSize < mCommandsFilePos)
 	{
 		SDL_Log("commands: %s got shorter; reading it from its start", mCommandsFileName.c_str());

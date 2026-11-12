@@ -52,25 +52,25 @@ int ReadLevels(Level** theLevels, const char* theText, int theList)
 	for (aCount = 0; aCount <= theList; aCount++)
 		SkipPast(&aPos, '@');
 	aCount = 0;
-	Level* l = *theLevels;
+	Level* aLevelList = *theLevels;
 	// a field: '#' repeats the level before's
 	auto anInt = [&](int32_t Level::*theField)
 	{
 		SkipToToken(&aPos, 0);
 		ReadToken(&aPos);
 		if (TokenChar(0) == '#')
-			l[aCount].*theField = l[aCount - 1].*theField;
+			aLevelList[aCount].*theField = aLevelList[aCount - 1].*theField;
 		else
-			l[aCount].*theField = TokenInt();
+			aLevelList[aCount].*theField = TokenInt();
 	};
 	auto aFloat = [&](float Level::*theField)
 	{
 		SkipToToken(&aPos, 0);
 		ReadToken(&aPos);
 		if (TokenChar(0) == '#')
-			l[aCount].*theField = l[aCount - 1].*theField;
+			aLevelList[aCount].*theField = aLevelList[aCount - 1].*theField;
 		else
-			l[aCount].*theField = (float)TokenFloat();
+			aLevelList[aCount].*theField = (float)TokenFloat();
 	};
 	while (true)
 	{
@@ -83,32 +83,32 @@ int ReadLevels(Level** theLevels, const char* theText, int theList)
 			return aLevels;
 		// the first field's token is already read
 		if (TokenChar(0) == '#')
-			l[aCount].m18[0] = l[aCount - 1].m18[0];
+			aLevelList[aCount].mRange[0] = aLevelList[aCount - 1].mRange[0];
 		else
-			l[aCount].m18[0] = TokenInt();
+			aLevelList[aCount].mRange[0] = TokenInt();
 		for (int i = 1; i < 16; i++)
 		{
 			SkipToToken(&aPos, 0);
 			ReadToken(&aPos);
 			if (TokenChar(0) == '#')
-				l[aCount].m18[i] = l[aCount - 1].m18[i];
+				aLevelList[aCount].mRange[i] = aLevelList[aCount - 1].mRange[i];
 			else
-				l[aCount].m18[i] = TokenInt();
+				aLevelList[aCount].mRange[i] = TokenInt();
 		}
-		anInt(&Level::m00);
-		anInt(&Level::m04);
-		anInt(&Level::m08);
-		anInt(&Level::m0c);
-		aFloat(&Level::m10);
-		aFloat(&Level::m14);
-		anInt(&Level::m60);
-		anInt(&Level::m5c);
-		anInt(&Level::m58);
+		anInt(&Level::mStartRows);
+		anInt(&Level::mStartRowsAdd);
+		anInt(&Level::mStopRow);
+		anInt(&Level::mStopRowAdd);
+		aFloat(&Level::mFloatsPerRemoval);
+		aFloat(&Level::mFloatsPerTap);
+		anInt(&Level::mSpawnThreshold);
+		anInt(&Level::mNumColors);
+		anInt(&Level::mGoal);
 		if (theList == 2)
 		{
-			anInt(&Level::m64);
-			aFloat(&Level::m68);
-			anInt(&Level::m6c);
+			anInt(&Level::mMeterStart);
+			aFloat(&Level::mMeterLoss);
+			anInt(&Level::mMeterDoublingTime);
 		}
 		aCount++;
 	}
@@ -261,33 +261,33 @@ void ReadParticles(const std::string& theText, const char* theKey, Particle* the
 	};
 	for (uint32_t i = 0; i < theCount; i++)
 	{
-		Particle* p = &theParticles[i];
+		Particle* aParticle = &theParticles[i];
 		aNext();
-		p->mValue0 = TokenInt();
+		aParticle->mSize = TokenInt();
 		aNext();
-		p->mValue1 = (float)TokenFloat();
+		aParticle->mOpacityExponent = (float)TokenFloat();
 		aNext();
-		p->mValue2 = (float)TokenFloat();
+		aParticle->mColorExponent = (float)TokenFloat();
 		aNext();
-		p->mColor1 = (uint32_t)TokenInt() << 16;
+		aParticle->mHighColor = (uint32_t)TokenInt() << 16;
 		aNext();
-		p->mColor1 = p->mColor1 | (uint32_t)TokenInt() << 8;
+		aParticle->mHighColor = aParticle->mHighColor | (uint32_t)TokenInt() << 8;
 		aNext();
-		p->mColor1 = p->mColor1 | (uint32_t)TokenInt();
+		aParticle->mHighColor = aParticle->mHighColor | (uint32_t)TokenInt();
 		aNext();
-		p->mColor2 = (uint32_t)TokenInt() << 16;
+		aParticle->mLowColor = (uint32_t)TokenInt() << 16;
 		aNext();
-		p->mColor2 = p->mColor2 | (uint32_t)TokenInt() << 8;
+		aParticle->mLowColor = aParticle->mLowColor | (uint32_t)TokenInt() << 8;
 		aNext();
-		p->mColor2 = p->mColor2 | (uint32_t)TokenInt();
+		aParticle->mLowColor = aParticle->mLowColor | (uint32_t)TokenInt();
 		aNext();
-		p->mValue5 = TokenInt();
+		aParticle->mColorCenterX = TokenInt();
 		aNext();
-		p->mValue6 = TokenInt();
+		aParticle->mColorCenterY = TokenInt();
 		aNext();
-		p->mValue7 = (char)TokenInt();
+		aParticle->mBlendType = (char)TokenInt();
 		aNext();
-		p->mValue8 = (char)TokenInt();
+		aParticle->mOpacityScale = (char)TokenInt();
 	}
 }
 
@@ -305,33 +305,33 @@ void ReadEffects(const std::string& theText, const char* theKey, EffectList* the
 		SkipToToken(&aPos, 0);
 	};
 	aNext();
-	theList->mFlag = (char)TokenInt();
+	theList->mFlashCount = (char)TokenInt();
 	aNext();
-	theList->mValue = TokenInt();
+	theList->mDelayStep = TokenInt();
 	theList->mCount = theCount;
 	for (uint32_t i = 0; i < theCount; i++)
 	{
-		Effect* e = &theEffects[i];
+		Effect* anEffect = &theEffects[i];
 		aNext();
-		e->mValue0 = TokenInt();
+		anEffect->mParticle = TokenInt();
 		aNext();
-		e->mValue1 = TokenInt();
+		anEffect->mDelay = TokenInt();
 		aNext();
-		e->mValue2 = TokenInt();
+		anEffect->mCount = TokenInt();
 		aNext();
-		e->mValue3 = TokenInt();
+		anEffect->mSpeed = TokenInt();
 		aNext();
-		e->mValue4 = (char)TokenInt();
+		anEffect->mOpacityHigh = (char)TokenInt();
 		aNext();
-		e->mValue5 = (char)TokenInt();
+		anEffect->mOpacityLow = (char)TokenInt();
 		aNext();
-		e->mValue6 = TokenInt();
+		anEffect->mOscillationTime = TokenInt();
 		aNext();
-		e->mValue7 = TokenInt();
+		anEffect->mFadeOnTime = TokenInt();
 		aNext();
-		e->mValue8 = TokenInt();
+		anEffect->mHoldTime = TokenInt();
 		aNext();
-		e->mValue9 = TokenInt();
+		anEffect->mFadeOffTime = TokenInt();
 	}
 }
 
