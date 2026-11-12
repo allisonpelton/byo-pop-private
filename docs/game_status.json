@@ -477,14 +477,13 @@
         "fixes-mod",
         "site-features",
         "coverage",
-        "performance",
         "collection",
         "unneeded-code",
         "readability"
       ],
       "na": [],
-      "now": null,
-      "note": ""
+      "now": "performance",
+      "note": "2D on SDL's software renderer: waits on the framework"
     },
     "venice": {
       "title": "Venice Deluxe",
