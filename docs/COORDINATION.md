@@ -93,6 +93,23 @@ holds the rules every session follows; this file does not repeat them.
   two-by-two causes issues. If not, continue with two". A game that builds on another's engine waits for that game; a
   slot the next game cannot use yet goes to the cheapest remaining one. Within a step, the lowest-effort games go first
   ("Start with lowest effort", 2026-11-03).
+- **A new port writes to the standards from its first draft (the user, 2026-11-12: "Yes, add it").** Of what the
+  eleven smaller games spent after their first playable merge (about $2,200 at Opus prices), about half went on the
+  checks against the original (identical play, screens and sound, coverage, the Collection), a fifth on performance and
+  a sixth on passes that rework the first write (readability, unneeded code, registration out); Noah's Ark had the
+  cheapest port and the dearest finish of them. So a new port, from its first draft:
+  - takes the Mac build's names before translating (`docs/MACMATCH.md`, as before) and names everything else to
+    `docs/CODE_STANDARDS.md` as it goes, so `tools/namecheck.py` passes at its first merge;
+  - leaves out the registration paths and every button that leads out of the game (CLAUDE.md, "Order of the work");
+  - does not translate a function the export shows nothing can reach (no caller, no vtable slot, no table or callback
+    holding it), and lists each one by its address in the notes, so the coverage check confirms it;
+  - uses the framework's fast paths and avoids the shared costs listed under "A performance pass" below (pictures
+    decoded at their first use, sounds at their first play, loading in one go);
+  - translates rigorously: loops in their original shape, every random draw in its order, the original's arithmetic.
+  The steps keep their order, since speed-ups and removals are proved against the frozen baseline of a port that
+  already plays identically, but each is shorter: the readability step is namecheck's run and a read of what it flags,
+  the unneeded-code step is what the coverage check finds, and the performance pass is the measurement and the game's
+  own hot spots. One session takes the game through every step; each brief for a new port says so.
 - **The readability pass (the user, 2026-11-08, 2026-11-10):** "NO unknown/unnamed variables." Bejeweled set the
   standards, Twist tested them, and the user approved them ("new standards approved"): `docs/CODE_STANDARDS.md`, with
   `tools/namecheck.py` to prove "no unknowns" by a run. A readable port changes nothing it does and keeps each

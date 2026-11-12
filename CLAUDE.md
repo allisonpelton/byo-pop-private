@@ -255,7 +255,10 @@ Every call re-reads the whole context, so what costs is context times calls, and
   the user had put every one of them in sequence, so that wasteful token use would show sooner, and dropped it the
   same day: "We'll nix the one-at-a-time rule then. The idea behind it was it'd allow inefficient token usage to be
   spotted sooner, overall saving time, but now we have a much better idea of procedure"; of the harder ones: "When
-  we get to it, see if running two-by-two causes issues. If not, continue with two".
+  we get to it, see if running two-by-two causes issues. If not, continue with two". **A new port writes to those
+  standards from its first draft (the user, 2026-11-12: "Yes, add it"):** names, code left untranslated where the export
+  shows nothing can reach it, the known shared costs avoided, so its readability, unneeded-code and performance steps
+  shrink to checks; the steps keep their order (`docs/COORDINATION.md`, "Which games, in what order").
   **Done means every phase but modding (the user, 2026-11-08):** "I've decided I want to
   go through every phase except modding before a game can be considered done and ready for the live site, and just
   publish whatever games are ready by the end of December. I'm in no hurry to get games out in a less-than-stellar
