@@ -565,7 +565,7 @@ void GalaxyMap::MouseDown(int theX, int theY, int theClickCount)
 				if (!mPlanets[aPuzzle / 5 - 1].mNearlyDone)
 				{
 					mApp->PlaySample(SOUND_BAD);
-					mApp->DoDialog(DIALOG_FULL_INSTRUCTIONS, true, "Planet is Locked",
+					mApp->DoDialog(DIALOG_PLANET_LOCKED, true, "Planet is Locked",
 						"This planet will not be available until you solve 4 out of 5 puzzles on all the planets up to this one.",
 						"OK", 3);
 					return;

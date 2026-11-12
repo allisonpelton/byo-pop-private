@@ -15,14 +15,20 @@
 class BallArray;
 class Chain;
 
+// The balls in a game's array, at most
+const int BALL_CAPACITY = 105;
+
+// A ball's radius; a block or an obstacle is as big (its half-size)
+const float BALL_RADIUS = 22.0f;
+
 // The ball's states (+0xd8)
 enum
 {
-	BALL_FREE = 0,
-	BALL_PICKED = 1,
-	BALL_PICKED_2 = 2,
-	BALL_GONE = 3,
-	BALL_STATE_4 = 4
+	BALL_FREE = 0,      // moves with the physics
+	BALL_PICKED = 1,    // a letter of a submitted word, waiting for its turn to pop (mStateSeconds)
+	BALL_POPPING = 2,   // fading out, then removed
+	BALL_GONE = 3,      // removed
+	BALL_SPAWNING = 4   // growing in, then free
 };
 
 // The ball's special flags (+0xac), named as a bubble's "special" attribute names them (0x41e280)
@@ -54,7 +60,8 @@ public:
 
 	engine::Node* mSelector;  // +0xa8: a Selector (its plain and lit images)
 	unsigned int mSpecial;    // +0xac
-	float mB0;                // +0xb0: 1 when spawned; picking sets it
+	float mStateSeconds;      // +0xb0: the seconds left in the state: the picked ball's wait, the pop's fade, a spawned
+	                          // ball's growing in (1 when spawned; picking sets it)
 	engine::Point mOld;       // +0xb8: the last position
 	engine::Point mAcceleration;  // +0xc0: this step's
 	float mRadius;            // +0xc8
@@ -64,7 +71,6 @@ public:
 	int mState;               // +0xd8
 	engine::Point* mGravity;  // +0xdc: its own (owned), or null for the array's
 	Chain* mChain;            // +0xe0
-	bool mE4;                 // +0xe4
 	int mRow;                 // +0xe8: its row group (the ball system's 0x415c20), or -1 (the original leaves both unset
 	                          // until then; the port starts them at -1)
 	int mColumn;              // +0xec: its column group, or -1

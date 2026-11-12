@@ -19,7 +19,7 @@ Hud::Hud()
 	  mHintText(nullptr), mSubmitShown(false), mHintReady(false), mWildcardReady(false), mNewBall(nullptr),
 	  mSpawnText(nullptr), mSpawnBtn(nullptr), mNextBallTime(0), mFoundFade(0), mFoundIndex(0)
 {
-	for (int i = 0; i < 14; i++)
+	for (int i = 0; i < LEVEL_WORDS; i++)
 	{
 		mWordTexts[i] = nullptr;
 		mBrushes[i] = nullptr;
@@ -32,7 +32,7 @@ Hud::Hud()
 void Hud::enableWords()
 {
 	TextItem** aText = mWordTexts;
-	int aLeft = 14;
+	int aLeft = LEVEL_WORDS;
 	do
 	{
 		(*aText)->setEnabled(true);
@@ -45,7 +45,7 @@ void Hud::enableWords()
 void Hud::disableWords()
 {
 	TextItem** aText = mWordTexts;
-	int aLeft = 14;
+	int aLeft = LEVEL_WORDS;
 	do
 	{
 		(*aText)->setEnabled(false);
@@ -110,8 +110,8 @@ void Hud::showWords()
 {
 	unsigned int aCount = (unsigned int)mWords.size();
 	unsigned int aFirst = 0;
-	if (14 < aCount)
-		aFirst = aCount - 14;
+	if (LEVEL_WORDS < aCount)
+		aFirst = aCount - LEVEL_WORDS;
 	unsigned int i = 0;
 	do
 	{
@@ -152,7 +152,7 @@ void Hud::showWords()
 				mBrushes[i]->setVisible(false);
 		}
 		i++;
-	} while (i < 14);
+	} while (i < LEVEL_WORDS);
 }
 
 // 0x422740: in freematch the timer for the next ball is left at 0 (restartNextBall starts it)
@@ -369,7 +369,7 @@ void Hud::showNextBall()
 		aSystem->nextPiece(aPiece, true);
 		mSpawnText->setText(aPiece);
 		ParticleSystem* aBlossom = Game::instance()->mBallSystem->mBlossoms->getSystem();
-		aBlossom->setPosition(470.0f, -26.0f);
+		aBlossom->setPosition(SPAWN_X, SPAWN_Y);
 		aBlossom->startEmitting();
 		Game::instance()->playSound("BALL_RUSTLE");
 		if (mSpawnBallText != nullptr)
@@ -424,7 +424,7 @@ void Hud::load(std::string theFile)
 	setEnabled(false);
 	char aName[32];
 	int aNumber = 1;
-	int aLeft = 14;
+	int aLeft = LEVEL_WORDS;
 	do
 	{
 		std::sprintf(aName, "word%d", aNumber);

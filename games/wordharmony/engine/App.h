@@ -2,8 +2,8 @@
 #define __WORDHARMONY_ENGINE_APP_H__
 
 // The application (base constructor 0x4382f0, vtable 0x484948; the Windows application 0x455050, vtable 0x48a398,
-// 0xf4 bytes). It keeps the resource manager, the image and font caches, the map from names to nodes, the game's
-// controller (+0xa4), the root window (+0xa8) and the timing. The global 0x49bfbc points to it (0x435f20).
+// 0xf4 bytes). It keeps the resource manager, the image and font caches, the game's controller (+0xa4), the root
+// window (+0xa8) and the timing. The global 0x49bfbc points to it (0x435f20).
 //
 // In the port the Windows layer's parts (the window, DirectDraw, DirectSound, the clock) come from the Host.
 
@@ -15,6 +15,10 @@
 
 namespace engine
 {
+
+// The window's size in pixels (the game's configure, 0x402eb0, says it)
+const int SCREEN_WIDTH = 800;
+const int SCREEN_HEIGHT = 600;
 
 class Font;
 class Graphics;
@@ -31,7 +35,7 @@ struct AppConfig
 	int mFrameRate;      // +0x90: frames per second
 	int mWidth;          // +0x94
 	int mHeight;         // +0x98
-	bool mUnknown9C;     // +0x9c: false
+	bool mFullScreen;    // +0x9c: starts full screen (the window's 0x456fa0); false, and not read by the port
 	bool mUseFiles;      // +0xa0: loose files instead of the archive
 };
 

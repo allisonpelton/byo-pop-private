@@ -26,6 +26,10 @@ class ParticlePool;
 class Hud;
 class Obstacle;
 
+// Where a new ball (or word) appears: above the field, where the spawn button's blossom opens
+const float SPAWN_X = 470.0f;
+const float SPAWN_Y = -26.0f;
+
 // The game's modes (+0xd4)
 enum
 {
@@ -63,7 +67,7 @@ public:
 	bool keyDown(int theKey) override;  // 0x416400
 	bool keyUp(int theKey) override { return false; }  // 0x411ab0
 
-	// 0x4135c0: the 105 balls, all gone
+	// 0x4135c0: the balls (BALL_CAPACITY of them), all gone
 	void makeBalls();
 	// 0x4113f0: a ball's images from its flags
 	void setupBall(Ball* theBall);
@@ -95,7 +99,7 @@ public:
 	void pickAll();
 	// 0x4137b0
 	void addHud();
-	// 0x413860: a ball at (x, y), or -1 when all 105 are in play
+	// 0x413860: a ball at (x, y), or -1 when all of them are in play
 	int spawn(float x, float y, char theLetter, unsigned int theFlags, bool theQuiet);
 	// 0x4140d0: a ball at the top
 	int spawnLetter(char theLetter, bool theQuiet);
@@ -169,7 +173,7 @@ public:
 	std::vector<BallGroup*> mRows;              // +0x164
 	std::vector<BallGroup*> mColumns;           // +0x174
 	std::vector<BallGroup*> mFreeGroups;        // +0x184
-	bool m194;                                  // +0x194: set while words are scored (a submit, the puzzles);
+	bool mScoring;                              // +0x194: set while words are scored (a submit, the puzzles);
 	                                            // otherwise a word found only lights its balls
 	Hud* mHud;                                  // +0x198: the mode's
 	Hud* mSolitaireHud;                         // +0x19c
@@ -185,11 +189,10 @@ public:
 	engine::Image* mWater[4];                   // +0x1c8
 	float mWaveTime;                            // +0x1d8
 	std::vector<std::string> mHints;            // +0x1e0
-	bool m1F0;                                  // +0x1f0: set by a submit, so the hints are looked for again
+	bool mHintsStale;                           // +0x1f0: set by a submit, so the hints are looked for again
 	                                            // once the balls are done
 	unsigned int mHintIndex;                    // +0x1f4
-	int m1FC;                                   // +0x1fc
-	std::vector<std::string> m204;              // +0x204
+	std::vector<std::string> mLongWordsRewarded;  // +0x204: the long words that earned a wildcard
 
 protected:
 	void onMouseDown(engine::Point& p) override;  // 0x80: 0x412120

@@ -152,10 +152,10 @@ EffectOverlay::EffectOverlay(WinDMApp* theApp)
 	mTextWidth = 0;
 	mMouseVisible = false;
 	mLineProgress = 0;
-	mFlagC8 = false;
-	mFlagC9 = false;
+	mClearBacklogAfterPortal = false;
+	mPortalOpen = false;
 	mTextOn = 0;
-	mFaceState = 0;
+	mFaceState = FACE_OFF;
 	mMorphTimer = 0;
 	mLastHitSound = 0;
 	mHasAlpha = true;
@@ -163,13 +163,12 @@ EffectOverlay::EffectOverlay(WinDMApp* theApp)
 	// The original leaves the rest of the members as the heap had them. Nothing reads them before DoStrechyText, DoPortal or
 	// InitFace has set them (Board reads mEndTimer and mFade only once the end screen runs), so the port zeroes them.
 	mTextAlpha = 0;
-	m9c = 0;
+	mTextSizeFactor = 0;
 	mTextScale = 0;
 	mTextScaleVel = 0;
 	mTextStretch = 0;
 	mTextStretchVel = 0;
 	mTextAge = 0;
-	mB4 = 0;
 	mTextHold = 0;
 	mTextFadeIn = 0;
 	mTextSettleA = 0;
@@ -196,7 +195,7 @@ EffectOverlay::~EffectOverlay()
 // 0x5b524c
 void EffectOverlay::DoStrechyText(const std::string& theText, int theDelay)
 {
-	m9c = 0.73f;                    // 0x3f3ae148
+	mTextSizeFactor = 0.73f;                    // 0x3f3ae148
 	mTextOn = 1;
 	mTextAlpha = 0.0f;
 	mTextHold = 30;
@@ -210,7 +209,6 @@ void EffectOverlay::DoStrechyText(const std::string& theText, int theDelay)
 	else
 		aDelay = theDelay;
 
-	mB4 = 0.0f;
 	mTextFadeIn = aDelay + 0x5a;
 	mTextScale = 1.0f;
 	mTextSettleA = aDelay + 0x3c;
@@ -233,7 +231,7 @@ void EffectOverlay::DoStrechyText(const std::string& theText, int theDelay)
 void EffectOverlay::DoPortal()
 {
 	mPortalProgress = 0;
-	mFlagC9 = true;
+	mPortalOpen = true;
 	mPortalDelay = 0x14;
 	if (!mApp->Is3DAccelerated())
 		mApp->KillMainMenu();
@@ -370,7 +368,7 @@ void EffectOverlay::DoUpdate()
 	}
 
 	// the portal: it opens when the delay is over, and the board is shown when it has opened
-	if (mFlagC9)
+	if (mPortalOpen)
 	{
 		if (mPortalDelay > 0)
 		{
@@ -385,7 +383,7 @@ void EffectOverlay::DoUpdate()
 			mPortalProgress = aProgress;
 			if (1.0f < aProgress)
 			{
-				mFlagC9 = false;
+				mPortalOpen = false;
 				mApp->DoBoardShow();
 			}
 		}
@@ -395,25 +393,25 @@ void EffectOverlay::DoUpdate()
 	// the end screen
 	if (mFaceDelay > 0)
 		mFaceDelay--;
-	if (mFaceState != 0)
+	if (mFaceState != FACE_OFF)
 	{
 		mEndTimer++;
 		MarkDirty();
 	}
 
-	if (mFaceState == 1 && mFaceDelay == 0)
+	if (mFaceState == FACE_BARS && mFaceDelay == 0)
 	{
 		if (mUpdateCnt % 4 == 0)
 			mBarStep++;
 		if (mBarStep == 0x38)
 		{
-			mFaceState = 2;
+			mFaceState = FACE_GEMS_FALL;
 			mFaceDelay = 0;
 		}
 	}
 
 	int aFaceState = mFaceState;
-	if (aFaceState == 2)
+	if (aFaceState == FACE_GEMS_FALL)
 	{
 		// the gems fall (faster and faster) to their places
 		if (mFaceDelay == 0)
@@ -445,12 +443,12 @@ void EffectOverlay::DoUpdate()
 			}
 			if (mEndTimer == 0x2f8)
 			{
-				mFaceState = 3;
+				mFaceState = FACE_LINES;
 				mFaceDelay = 0;
 			}
 		}
 	}
-	else if (aFaceState == 3)
+	else if (aFaceState == FACE_LINES)
 	{
 		// the lines are drawn
 		if (mFaceDelay == 0)
@@ -460,31 +458,31 @@ void EffectOverlay::DoUpdate()
 			if (1.0f < aProgress)
 			{
 				mLineProgress = 1.0f;
-				mFaceState = 4;
+				mFaceState = FACE_FLASH;
 				mFaceDelay = 10;
 			}
 		}
 	}
-	else if (aFaceState == 4)
+	else if (aFaceState == FACE_FLASH)
 	{
 		if (mFaceDelay == 0)
 		{
 			mApp->PlaySample(SOUND_HYPERGEM_CREATE);
 			mFlash = 1.0f;
 			mGems.clear();
-			mFaceState = 5;
+			mFaceState = FACE_PAUSE;
 			mFaceDelay = 0x32;
 		}
 	}
-	else if (aFaceState == 5)
+	else if (aFaceState == FACE_PAUSE)
 	{
 		if (mFaceDelay == 0)
 		{
 			mFaceDelay = 200;
-			mFaceState = 6;
+			mFaceState = FACE_MORPH;
 		}
 	}
-	else if (aFaceState == 6)
+	else if (aFaceState == FACE_MORPH)
 	{
 		if (mFaceDelay == 0)
 		{
@@ -541,7 +539,7 @@ void EffectOverlay::DoUpdate()
 			if (aAlpha <= 0.0f)
 			{
 				mFaceAlpha = 0;
-				mFaceState = 8;
+				mFaceState = FACE_FLY;
 				mFaceDelay = 0x1e;
 			}
 		}
@@ -551,22 +549,7 @@ void EffectOverlay::DoUpdate()
 		}
 	}
 
-	if (mFaceState == 7)
-	{
-		// (nothing in this class sets state 7)
-		if (mFadeHold == 0)
-		{
-			float aAlpha = (float)((double)mFaceAlpha - (double)0.01f);
-			mFaceAlpha = aAlpha;
-			if (aAlpha <= 0.0f)
-			{
-				mFaceAlpha = 0;
-				mFaceState = 8;
-				mFaceDelay = 100;
-			}
-		}
-	}
-	else if (mFaceState == 8 && mFaceDelay == 0)
+	if (mFaceState == FACE_FLY && mFaceDelay == 0)
 	{
 		// the gem flies from the top of the middle to the bottom of it, round a circle that closes as it goes
 		float aTime = (float)((double)mWildT * (double)0.004f + (double)0.003f + (double)mWildT);
@@ -584,10 +567,10 @@ void EffectOverlay::DoUpdate()
 		mWildX = (float)((double)Cosf(aTurn) * (double)aRadius + (double)aMiddle.mX);
 		mWildY = (float)((double)Sinf(aTurn) * (double)aRadius + (double)aMiddle.mY);
 		if (1.0f <= mWildT)
-			mFaceState = 9;
+			mFaceState = FACE_END;
 	}
 
-	if (mFaceState != 5)
+	if (mFaceState != FACE_PAUSE)
 	{
 		if (0.0f < mFlash)
 		{
@@ -609,16 +592,16 @@ void EffectOverlay::Draw(Graphics* g)
 	Board* aBoard = mApp->mBoard;
 	if (aBoard != NULL)
 	{
-		if (aBoard->mScreenState == 1 && aBoard->mPauseCount == aBoard->mInterfacePauseCount && aBoard->mInterfacePauseCount > 0)
+		if (aBoard->mScreenState == Board::SCREEN_SHOWN && aBoard->mPauseCount == aBoard->mInterfacePauseCount && aBoard->mInterfacePauseCount > 0)
 			return;
-		if (aBoard->m15f24)
+		if (aBoard->mBoardInOverlay)
 			aBoard->DrawBoard(g, true, false);
 
 		// the arrow over the gem that a tip is about
 		aBoard = mApp->mBoard;
 		if (aBoard->mHintPiece != NULL)
 		{
-			float aCos = Cosf(aBoard->m1954);
+			float aCos = Cosf(aBoard->mHintArrowPhase);
 			float aPhase = (float)(1.0 - (double)aCos);
 			float aBob = (float)((double)aPhase * 0.5);
 			int aGemY = FTol((double)aBoard->mHintPiece->mY);
@@ -642,10 +625,10 @@ void EffectOverlay::Draw(Graphics* g)
 
 		// the arrow over the pod of the puzzle that is next
 		aBoard = mApp->mBoard;
-		if (aBoard->mScreenState == 1 && aBoard->mPuzzleOverlay != NULL && aBoard->m1850 && aBoard->mState == 0x11 && !aBoard->mIsPlanetIntro)
+		if (aBoard->mScreenState == Board::SCREEN_SHOWN && aBoard->mPuzzleOverlay != NULL && aBoard->mPodArrowShown && aBoard->mState == Board::STATE_PUZZLE_STUCK && !aBoard->mIsPlanetIntro)
 		{
 			Point aPos = aBoard->mPuzzleOverlay->mPods[mApp->mProfile->GetPuzzleNum() % 5].GetPos();
-			double aCos = cos(mApp->mBoard->m1858);
+			double aCos = cos(mApp->mBoard->mPodArrowPhase);
 			float aPhase = (float)(1.0 - aCos);
 			float aBob = (float)((double)aPhase * 0.5);
 			int aTop = aPos.mY - FTol((double)aBob * -6.0) - 0x20;
@@ -667,9 +650,9 @@ void EffectOverlay::Draw(Graphics* g)
 	}
 
 	// the big text
-	if (mTextOn != 0 && mApp->mBoard != NULL && mApp->mBoard->mScreenState == 1)
+	if (mTextOn != 0 && mApp->mBoard != NULL && mApp->mBoard->mScreenState == Board::SCREEN_SHOWN)
 	{
-		float aScale = (float)((double)mTextScale * (double)m9c);
+		float aScale = (float)((double)mTextScale * (double)mTextSizeFactor);
 		float aStretch = mTextStretch;
 		if (!a3D)
 		{
@@ -704,7 +687,7 @@ void EffectOverlay::Draw(Graphics* g)
 	}
 
 	// the portal of the warp
-	if (mFlagC9 && 0.0f < mPortalProgress)
+	if (mPortalOpen && 0.0f < mPortalProgress)
 	{
 		// (the original waits here for the task that loads the backdrop; the port loads in line)
 		double aProgress = (double)mPortalProgress;
@@ -840,7 +823,7 @@ void EffectOverlay::Draw(Graphics* g)
 
 	// the end screen: the polygons, the lines, the gem that flies, the gems that fall
 	Point aPoints[20];
-	if (mFaceState >= 6)
+	if (mFaceState >= FACE_MORPH)
 	{
 		int i = 0;
 		if ((int)mPolys.size() > 0)
@@ -894,9 +877,9 @@ void EffectOverlay::Draw(Graphics* g)
 	g->SetDrawMode(0);
 
 	int aWildFrame = (mUpdateCnt / 6) % 0x28;
-	if (mFaceState < 6 || mFaceState >= 8)
+	if (mFaceState < FACE_MORPH || mFaceState >= FACE_FLY)
 	{
-		if (mFaceState == 8)
+		if (mFaceState == FACE_FLY)
 		{
 			// the gem that flies shrinks to nothing
 			int aSize = FTol(mApp->ScaleNum((float)((1.0 - (double)mWildT) * 84.0), 0.0f)) & ~1;
@@ -936,10 +919,10 @@ void EffectOverlay::Draw(Graphics* g)
 		} while (aGemNum < (int)mGems.size());
 	}
 
-	if (mFlagC8)
+	if (mClearBacklogAfterPortal)
 	{
 		mApp->ClearUpdateBacklog(false);
-		mFlagC8 = false;
+		mClearBacklogAfterPortal = false;
 	}
 
 	if (0.0f < mFlash)
@@ -948,7 +931,7 @@ void EffectOverlay::Draw(Graphics* g)
 		g->FillRect(0, 0, mWidth, mHeight);
 	}
 
-	if (mFaceState > 0)
+	if (mFaceState != FACE_OFF)
 	{
 		if (mApp->mLoaded)
 		{
@@ -1155,7 +1138,7 @@ void EffectOverlay::InitFace()
 	mShape = mSets[3];
 	mCurShape = mShape;
 	mLineProgress = 0;
-	mFaceState = 1;
+	mFaceState = FACE_BARS;
 	mFlash = 0;
 	mFaceDelay = 0x32;
 	mWildX = 513.0f;

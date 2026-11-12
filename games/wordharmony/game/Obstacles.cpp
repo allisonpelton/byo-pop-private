@@ -57,7 +57,7 @@ static bool pushFromCorner(const Point& theOrigin, const Point& theExtents, Ball
 // 0x40fb00
 Box::Box(const Point& theOrigin, int theType)
 {
-	mExtents = Point(22.0f, 22.0f);
+	mExtents = Point(BALL_RADIUS, BALL_RADIUS);
 	mType = theType;
 	mActive = true;
 	mImage = nullptr;
@@ -128,7 +128,7 @@ void Box::collide(BallArray* theBalls)
 	do
 	{
 		Ball* aBall = theBalls->getBall(i);
-		if (aBall->mState != BALL_GONE && !aBall->mFixed && aBall->mState != BALL_STATE_4)
+		if (aBall->mState != BALL_GONE && !aBall->mFixed && aBall->mState != BALL_SPAWNING)
 		{
 			// The x87 code in double: dy is kept unrounded to the end; |dy| is compared before it is stored
 			float hx = mExtents.x + aBall->mRadius;
@@ -190,7 +190,7 @@ Obstacle* Box::clone()
 // 0x4109f0
 Ramp::Ramp(const Point& theOrigin, int theRotation)
 {
-	mExtents = Point(22.0f, 22.0f);
+	mExtents = Point(BALL_RADIUS, BALL_RADIUS);
 	mRotation = theRotation;
 	mActive = true;
 	mImage = nullptr;

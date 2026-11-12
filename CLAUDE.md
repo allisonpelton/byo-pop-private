@@ -165,8 +165,8 @@ Every call re-reads the whole context, so what costs is context times calls, and
 ## Making a port
 
 - **Port first, unmodified (the user, 2026-10-26):** a port is the original game, unmodified and working like its exe;
-  it adds nothing for later mods, not even hooks (the site's own hooks for player names and settings are the
-  exception). No new mods unless the user requests one ("no new mods for anything unless someone requests it",
+  it adds nothing for later mods, not even hooks (the site's own hooks for player names and settings, and the inert
+  state an autosplitter reads, are the exceptions). No new mods unless the user requests one ("no new mods for anything unless someone requests it",
   2026-10-30); fixes and suggestions for the mods that exist wait in `docs/MOD_ROADMAP.md` until every
   decompilation is finished. Code that makes a game moddable makes things configurable and never overwrites the
   original (`docs/MOD_ROADMAP.md`, "Kinds of mod"). The site will serve each game with its fixes mod on, one toggle a
@@ -268,8 +268,11 @@ Every call re-reads the whole context, so what costs is context times calls, and
   code it does not need, for a game ported from its Steam copy the check against its PopCap Game Collection
   version, and its features on the site (the user, 2026-11-11: "All these accessory features should be added to our
   definition of done"): Music's entries for its tunes placed, grouped and split as the game plays them, with no place
-  its code can settle left blank, and its soundboard's presets of the sequences the game plays. The site builds them,
-  and the game's session answers the site's questions about its code. So the coverage check and the performance pass come game by game, not after every game is done
+  its code can settle left blank, its soundboard's presets of the sequences the game plays, and, where speedrun.com
+  has a leaderboard for the game, its autosplitter in the site's Splits window, timed by that board's rules (the user,
+  2026-11-12: "let's build in autosplitters to every port of a game with a leaderboard on speedrun.com"). The site
+  builds them, and the game's session answers the site's questions about its code and adds the few inert lines of
+  state an autosplitter reads. So the coverage check and the performance pass come game by game, not after every game is done
   (`docs/COORDINATION.md`). Modding, which waits, is the mods' own work: new mods and the changes waiting in
   `docs/MOD_ROADMAP.md`. Whatever games are done by 2026-12-31 go on the live site then; the rest follow when done,
   never hurried. A session may speed up its own port before its performance pass, at any time, so its `-fast` test runs go

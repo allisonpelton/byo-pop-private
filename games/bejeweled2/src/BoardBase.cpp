@@ -30,35 +30,35 @@ void Board::ProcessEndGameInfo()
 		return;
 
 	int aTotalSeconds = (unsigned int)(mUpdateCnt - mPlayStartTick) / 100 + mPlayedSeconds;
-	m15e14 = aTotalSeconds;
-	mApp->mProfile->mStat[1] += aTotalSeconds - m15e18;
-	m15e18 = m15e14;
+	mGameSeconds = aTotalSeconds;
+	mApp->mProfile->mStat[1] += aTotalSeconds - mSecondsCredited;
+	mSecondsCredited = mGameSeconds;
 
 	if (!mIsPuzzle && !mCheated)
 	{
-		mApp->mProfile->mStat[6] += m15e7c - m15e80;
+		mApp->mProfile->mStat[6] += mPowerGemsMade - mPowerGemsCredited;
 		if (mApp->mProfile->mStat[6] > 9)
 			mApp->mProfile->DisableHint(1);
-		m15e80 = m15e7c;
+		mPowerGemsCredited = mPowerGemsMade;
 
-		mApp->mProfile->mStat[7] += m15e84 - m15e88;
+		mApp->mProfile->mStat[7] += mHyperCubesMade - mHyperCubesCredited;
 		if (mApp->mProfile->mStat[7] > 4)
 			mApp->mProfile->DisableHint(2);
-		m15e88 = m15e84;
+		mHyperCubesCredited = mHyperCubesMade;
 
-		mApp->mProfile->mStat[3] += m15e44 - m15e48;
-		m15e48 = m15e44;
+		mApp->mProfile->mStat[3] += mGemsCleared - mGemsCredited;
+		mGemsCredited = mGemsCleared;
 	}
 
 	if (!mCheated)
 	{
 		if (!mIsEndless)
 			mApp->mProfile->mStat[0] = std::max(mApp->mProfile->mStat[0], mScore);
-		mApp->mProfile->mStat[4] = std::max(mApp->mProfile->mStat[4], m15e6c);
-		mApp->mProfile->mStat[5] = std::max(mApp->mProfile->mStat[5], m15e70);
+		mApp->mProfile->mStat[4] = std::max(mApp->mProfile->mStat[4], mBiggestCascade);
+		mApp->mProfile->mStat[5] = std::max(mApp->mProfile->mStat[5], mBiggestCombo);
 	}
 
-	int aSeconds = m1998 / 100;
+	int aSeconds = mPlayUpdates / 100;
 	if (mIsAction)
 		mApp->mModeSeconds[1] += aSeconds;
 	else if (mIsPuzzle)
@@ -149,37 +149,6 @@ int Board::GetRowY(int theRow)
 	return theRow * 84 + 0x2b;
 }
 
-// 0x594c19
-int Board::GetColAt(int theX)
-{
-	for (int aCol = 0; aCol < 8; aCol++)
-	{
-		int aX = GetColX(aCol);
-		if (aX <= theX && theX < aX + 84)
-			return aCol;
-	}
-	return -1;
-}
-
-// 0x594c42
-int Board::GetRowAt(int theY)
-{
-	for (int aRow = 0; aRow < 8; aRow++)
-	{
-		int aY = GetRowY(aRow);
-		if (aY <= theY && theY < aY + 84)
-			return aRow;
-	}
-	return -1;
-}
-
-// 0x5957b2
-void Board::GetBoardSize(int* theWidth, int* theHeight)
-{
-	*theWidth = 84 - GetColX(0) + GetColX(7);
-	*theHeight = 84 - GetRowY(0) + GetRowY(7);
-}
-
 // 0x5957f3
 void Board::GetBoardCenter(int* theX, int* theY)
 {
@@ -214,10 +183,10 @@ void Board::AdvanceSweep()
 	mSweepB = -1;
 	mSweepA = -1;
 	mSweep1++;
-	int v = mSweep1 + mSweep0;
+	int aDiagonal = mSweep1 + mSweep0;
 	mSweepTimer = 120;
 	bool aDone = false;
-	if (v > 7)
+	if (aDiagonal > 7)
 	{
 		mSweep1 = 0;
 		mSweep2++;
@@ -229,11 +198,11 @@ void Board::AdvanceSweep()
 		else
 		{
 			mSweep2 = 0;
-			v = ++mSweep0;
+			aDiagonal = ++mSweep0;
 		}
 	}
 	if (!aDone)
-		mSweepA = v - 1;
+		mSweepA = aDiagonal - 1;
 	if (mSweep0 > 6)
 	{
 		mSweep1 = 0;
@@ -245,7 +214,7 @@ void Board::AdvanceSweep()
 // 0x594eff: the board answers the mouse (not during the game over states)
 bool Board::CanPlay()
 {
-	return !mNoMoveYet && mState != 6 && mState != 7 && mState != 0x14;
+	return !mNoMoveYet && mState != STATE_GAME_OVER_FALL && mState != STATE_GAME_OVER && mState != STATE_SECRET_FINISHED;
 }
 
 // 0x594f20: a checksum of the board's gems (type, flag and counter of each square)
@@ -264,33 +233,10 @@ unsigned int Board::GetBoardHash()
 			else
 			{
 				aBuffer.WriteByte((unsigned char)aPiece->mType);
-				aBuffer.WriteByte(aPiece->m70 ? 1 : 0);
-				aByte = (unsigned char)aPiece->m58;
+				aBuffer.WriteByte(aPiece->mFlame ? 1 : 0);
+				aByte = (unsigned char)aPiece->mCountdown;
 			}
 			aBuffer.WriteByte(aByte);
-		}
-	}
-	return aBuffer.GetCRC32(0);
-}
-
-// 0x5963ba: the same for the older file format (the types are one higher)
-unsigned int Board::GetOldBoardHash()
-{
-	Buffer aBuffer;
-	for (int aRow = 0; aRow < 8; aRow++)
-	{
-		for (int aCol = 0; aCol < 8; aCol++)
-		{
-			Piece* aPiece = mBoard[aRow][aCol];
-			if (aPiece == NULL)
-				aBuffer.WriteByte(0);
-			else
-			{
-				aBuffer.WriteByte((unsigned char)(aPiece->mType + 1));
-				aBuffer.WriteByte(aPiece->m70 ? 0x50 : 0);
-				if (aPiece->mType == 7)
-					aBuffer.WriteByte((unsigned char)aPiece->m58);
-			}
 		}
 	}
 	return aBuffer.GetCRC32(0);
@@ -328,9 +274,9 @@ void Board::MakePuzzleCrazy()
 	{
 		int aIdx1 = Rand();
 		int aIdx2 = Rand();
-		int aTemp = aColors[aIdx1 % 7];
+		int aHeldColor = aColors[aIdx1 % 7];
 		aColors[aIdx1 % 7] = aColors[aIdx2 % 7];
-		aColors[aIdx2 % 7] = aTemp;
+		aColors[aIdx2 % 7] = aHeldColor;
 	}
 	for (int aRow = 0; aRow < 8; aRow++)
 	{
@@ -349,8 +295,8 @@ void Board::ClearBoard()
 	mSelectedPiece = 0;
 	mSwapPiece[0] = NULL;
 	mSwapPiece[1] = NULL;
-	if (mState == 2 || mState == 4 || mState == 3)
-		mState = 1;
+	if (mState == STATE_SWAPPING || mState == STATE_COMMIT_SWAP || mState == STATE_SWAP_BACK)
+		mState = STATE_IDLE;
 	for (int aRow = 0; aRow < 8; aRow++)
 	{
 		for (int aCol = 0; aCol < 8; aCol++)
@@ -425,35 +371,6 @@ Piece* Board::GetPieceAt(int theX, int theY)
 				mApp->ScaleNum(aPiece->mX, 0.0f) <= (float)theX && (float)theX < mApp->ScaleNum(aPiece->mX + 84.0f, 0.0f) &&
 				mApp->ScaleNum(aPiece->mY, 0.0f) <= (float)theY && (float)theY < mApp->ScaleNum(aPiece->mY + 84.0f, 0.0f))
 				return aPiece;
-		}
-	}
-	return NULL;
-}
-
-// 0x59597c: the gem under a pixel, made when the square is empty (the editor of the first Diamond Mine builds)
-Piece* Board::GetOrMakePieceAt(int theX, int theY)
-{
-	for (int aRow = 0; aRow < 8; aRow++)
-	{
-		int aY = GetRowY(aRow);
-		for (int aCol = 0; aCol < 8; aCol++)
-		{
-			int aX = GetColX(aCol);
-			if (mApp->ScaleNum(aX, 0) <= theX && theX < mApp->ScaleNum(aX + 84, 0) &&
-				mApp->ScaleNum(aY, 0) <= theY && theY < mApp->ScaleNum(aY + 84, 0))
-			{
-				Piece* aPiece = mBoard[aRow][aCol];
-				if (aPiece != NULL)
-					return aPiece;
-				aPiece = new Piece();
-				aPiece->mCol = aCol;
-				aPiece->mX = (float)aX;
-				aPiece->mRow = aRow;
-				aPiece->mY = (float)aY;
-				mBoard[aRow][aCol] = aPiece;
-				MarkDirty();
-				return aPiece;
-			}
 		}
 	}
 	return NULL;
@@ -560,9 +477,9 @@ bool Board::FindMove(int* theMove, int theSkip, bool theRows, bool theCols)
 					while (aBottom <= 6 && mBoard[aBottom + 1][aCol] != NULL && mBoard[aBottom + 1][aCol]->mType == aType)
 						aBottom++;
 
-					Piece* aTemp = mBoard[aRow][aCol];
+					Piece* aHeldPiece = mBoard[aRow][aCol];
 					mBoard[aRow][aCol] = mBoard[aRow2][aCol2];
-					mBoard[aRow2][aCol2] = aTemp;
+					mBoard[aRow2][aCol2] = aHeldPiece;
 
 					if ((aRight - aLeft > 1 && theRows) || (aBottom - aTop > 1 && theCols))
 						aFound = true;
@@ -620,7 +537,7 @@ void Board::MouseMove(int x, int y)
 {
 	mMouseX = x;
 	mMouseY = y;
-	if (mIsPuzzle && !mIsSecret && mState != 10 && mState != 0x12 && mState != 0xd && mScreenState == SCREEN_SHOWN &&
+	if (mIsPuzzle && !mIsSecret && mState != STATE_WHIRLPOOL && mState != STATE_GALAXY && mState != STATE_POST_WARP && mScreenState == SCREEN_SHOWN &&
 		mHyperspace == NULL)
 	{
 		mHoverPod = mPuzzleOverlay->GetPodAt(x, y);
@@ -646,7 +563,7 @@ void Board::MouseLeave()
 // 0x595857: pieces above a gap in a column that just exploded speed up (to catch up with the pieces below)
 void Board::ExplodingFinished()
 {
-	if (mState == 0xe)
+	if (mState == STATE_HYPER_SWAP_DONE)
 		return;
 
 	for (int aCol = 0; aCol < 8; aCol++)
@@ -786,12 +703,12 @@ void Board::ClearPieceHints()
 // 0x59621c: the hint button (or the idle timer) lights a gem that can move
 void Board::ShowHint()
 {
-	if (m15ea8)
+	if (mMovedSinceHint)
 	{
 		mScore += (int)(mLevelValue * -50.0);
 		if (mScore < 0)
 			mScore = 0;
-		m15ea8 = false;
+		mMovedSinceHint = false;
 	}
 	int aMove[4];
 	if (FindMove(aMove, 0, true, true))
@@ -799,9 +716,9 @@ void Board::ShowHint()
 		Piece* aPiece = mBoard[aMove[3]][aMove[2]];
 		aPiece->mHintTime = HINT_TIME;
 		aPiece->mHintFrame = 0;
-		aPiece->mB0 = 0;
-		aPiece->mB4 = 0;
-		aPiece->mA4 = 1;
+		aPiece->mHintMoveX = 0;
+		aPiece->mHintMoveY = 0;
+		aPiece->mGemFrame = 1;
 	}
 	mHintCountdown = 0;
 }
@@ -858,7 +775,7 @@ void Board::HideNow()
 // 0x596302: the map of the galaxies slides in (and the board out)
 void Board::ShowGalaxyMap()
 {
-	if (mState == 1 || mState == 0x10 || mState == 0x11 || mState == 0x12)
+	if (mState == STATE_IDLE || mState == STATE_PUZZLE_SOLVED || mState == STATE_PUZZLE_STUCK || mState == STATE_GALAXY)
 	{
 		Hide();
 		mGalaxySlide.SetOutRange(-3500.0, 0);
@@ -868,28 +785,28 @@ void Board::ShowGalaxyMap()
 		mGalaxyMap->StartSetup();
 		mGalaxyMap->Resize(0, mApp->ScaleNum(-768, 0), 0, 0);
 		mParent->AddWidget((Widget*)mGalaxyMap);
-		mState = 0x15;
+		mState = STATE_GALAXY_SLIDE_1;
 	}
 }
 
 // 0x59837e
 void Board::HideGalaxyMap()
 {
-	if (mState == 0x15 || mState == 0x16)
+	if (mState == STATE_GALAXY_SLIDE_1 || mState == STATE_GALAXY_SLIDE_2)
 	{
 		Show();
 		mGalaxySlide.SetOutRange(0, -1500.0);
 		mGalaxySlide.SetInVal(0);
 		mGalaxySlide.SetMode(CurvedVal::MODE_CLAMP);
 		mGalaxySlide.SetRamp(CurvedVal::RAMP_SLOW_TO_FAST);
-		mState = 0x17;
+		mState = STATE_GALAXY_SLIDE_3;
 	}
 }
 
 // 0x598095: a swap in progress is settled at once (the gems snap to their squares)
 void Board::StabilizeState()
 {
-	if (mState == 2 || mState == 3)
+	if (mState == STATE_SWAPPING || mState == STATE_SWAP_BACK)
 	{
 		mSwapPiece[0]->mX = (float)GetColX(mSwapPiece[0]->mCol);
 		mSwapPiece[0]->mY = (float)GetRowY(mSwapPiece[0]->mRow);
@@ -900,14 +817,14 @@ void Board::StabilizeState()
 		}
 		mSwapPiece[0] = NULL;
 		mSwapPiece[1] = NULL;
-		mState = 1;
+		mState = STATE_IDLE;
 	}
-	if (mState == 4)
+	if (mState == STATE_COMMIT_SWAP)
 	{
 		CommitSwap();
 		mSwapPiece[0] = NULL;
 		mSwapPiece[1] = NULL;
-		mState = 1;
+		mState = STATE_IDLE;
 	}
 }
 
@@ -932,7 +849,7 @@ void Board::ResizeButtons()
 			mApp->ScaleNumUp(0x6d, 0));
 	}
 
-	if (!m191c)
+	if (!mFinale)
 	{
 		if (mTutorialButton1 != NULL)
 		{
@@ -998,7 +915,7 @@ void Board::UpdateBoardDropping()
 	}
 	if (aAllGone)
 	{
-		m15f88 = 200;
+		mDrainGrace = 200;
 		NewBoard();
 	}
 }
@@ -1008,7 +925,7 @@ void Board::UpdateBoardDropping()
 void Board::NewBoard()
 {
 	// (the original tells its recorder, GameStateEngine::NewBoard)
-	mState = 0;
+	mState = STATE_NEW;
 	mFadeIn = 1.0f;
 	mHintCountdown = 0;
 

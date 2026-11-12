@@ -8,6 +8,7 @@
 
 using namespace Sexy;
 
+// port: reads a number of the backdrops file
 static bool StringToDouble(const std::string& theString, double* theValue)
 {
 	if (theString.empty())

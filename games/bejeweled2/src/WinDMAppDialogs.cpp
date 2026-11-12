@@ -9,7 +9,6 @@
 #include "EditWidget.h"
 #include "FancyBackdrop.h"
 #include "HelpScreen.h"
-#include "HighScoreNameDialog.h"
 #include "HighScoreWidget.h"
 #include "Insets.h"
 #include "MainMenu.h"
@@ -36,7 +35,7 @@ void WinDMApp::SetupDialog(Dialog* theDialog, int theWidth)
 	theDialog->mSpaceAfterHeader = ScaleNum(0x1c, 0);
 
 	int aCenterX;
-	if (mBoard == nullptr || mBoard->mScreenState != 1)
+	if (mBoard == nullptr || mBoard->mScreenState != Board::SCREEN_SHOWN)
 		aCenterX = mWidth / 2;
 	else
 		aCenterX = ScaleNum(0x270, 0);
@@ -71,7 +70,7 @@ bool WinDMApp::KillDialog(int theDialogId)
 	return true;
 }
 
-// a dialog with one button, its text "OK" (the profile errors, the name conflicts)
+// port: a dialog with one button, its text "OK" (the profile errors, the name conflicts)
 Dialog* WinDMApp::ShowMessage(int theDialogId, const std::string& theHeader, const std::string& theLines, int theButtonMode)
 {
 	return DoDialog(theDialogId, true, theHeader, theLines, "OK", theButtonMode);
@@ -105,9 +104,9 @@ void WinDMApp::ButtonDepress(int theId)
 		case 17:
 		{
 			// "Load Game?": NO starts a new game and loses the saved one; the cancel button goes back to the menu
-			PodDialog* aDialog = static_cast<PodDialog*>(GetDialog(17));
+			PodDialog* aDialog = static_cast<PodDialog*>(GetDialog(DIALOG_LOAD_GAME));
 			bool anEscaped = aDialog->mEscaped;
-			KillDialog(17);
+			KillDialog(DIALOG_LOAD_GAME);
 			if (!anEscaped)
 			{
 				DoNewGame();
@@ -129,9 +128,6 @@ void WinDMApp::ButtonDepress(int theId)
 		case 34:
 			FinishPuzzlePackSelector(false);
 			return;
-		case 35:
-			FinishPuzzleRatingDialog(false);
-			return;
 		case 38:
 		case 39:
 			mBoard->mHintPiece = 0;
@@ -150,9 +146,6 @@ void WinDMApp::ButtonDepress(int theId)
 	int aDialogId = theId - 2000;
 	switch (aDialogId)
 	{
-	case 0:
-		mBoard->NewGame();
-		break;
 	case 1:
 		PlaySample(SOUND_GOODBYE);
 		mMainMenu->StartShutdownTimer();
@@ -163,30 +156,21 @@ void WinDMApp::ButtonDepress(int theId)
 	case 3:
 		static_cast<OptionsDialog*>(GetDialog(DIALOG_OPTIONS))->FinishOptionVerify(true);
 		break;
-	case 10:
-	{
-		// the name of a new high score
-		Dialog* aDialog = GetDialog(10);
-		const SexyString& aName = static_cast<HighScoreNameDialog*>(aDialog)->mEdit->mString;
-		mHighScoreWidget->SetHighScoreName(aName);
-		mLastScoreName = aName;
-		break;
-	}
 	case 17:
-		KillDialog(17);
+		KillDialog(DIALOG_LOAD_GAME);
 		DoNewGame();
 		mBoard->LoadGame();
 		return;
 	case 22:
-		KillDialog(22);
+		KillDialog(DIALOG_UNDO);
 		mBoard->UndoUntilSolvable();
 		return;
 	case 23:
-		KillDialog(23);
+		KillDialog(DIALOG_HINT_WARNING);
 		mBoard->TryShowHint();
 		return;
 	case 24:
-		KillDialog(24);
+		KillDialog(DIALOG_NEXT_PUZZLE_MOVE);
 		mBoard->ShowNextPuzzleMove();
 		return;
 	case 25:
@@ -225,23 +209,20 @@ void WinDMApp::ButtonDepress(int theId)
 		FinishUserDialog(true);
 		return;
 	case 33:
-		KillDialog(33);
+		KillDialog(DIALOG_RESET_HIGH_SCORES);
 		mHighScoreWidget->ResetHighScores();
 		return;
 	case 34:
 		FinishPuzzlePackSelector(true);
 		return;
-	case 35:
-		FinishPuzzleRatingDialog(true);
-		return;
 	case 40:
-		FinishHelpScreen(static_cast<HelpScreen*>(GetDialog(40))->mNeverShowAgain);
+		FinishHelpScreen(static_cast<HelpScreen*>(GetDialog(DIALOG_HELP))->mNeverShowAgain);
 		return;
 	case 41:
 	{
 		// "Enter Name" was answered: back to the name of the new user
 		KillDialog(DIALOG_ENTER_NAME_ID);
-		CreateUserDialog* aDialog = static_cast<CreateUserDialog*>(GetDialog(27));
+		CreateUserDialog* aDialog = static_cast<CreateUserDialog*>(GetDialog(DIALOG_CREATE_USER));
 		if (aDialog != nullptr)
 			mWidgetManager->SetFocus(aDialog->mEdit);
 		return;
@@ -428,32 +409,6 @@ void WinDMApp::FinishRenameUserDialog(bool theOk)
 #endif
 }
 
-// 0x5df3d7: the one-line instructions of the first game
-void WinDMApp::ShowInstructionsDialog()
-{
-	Dialog* aDialog = NewDialog(DIALOG_MESSAGE, false, "", GetString("INSTRUCTIONDIALOG"), "", 0);
-	aDialog->mContentInsets = Insets(0x10, 0x18, 0x10, 0x18);
-	aDialog->Resize(0xc9, 0x26, 0x1a2, aDialog->GetPreferredHeight(0x1a2));
-	AddDialog(DIALOG_MESSAGE, aDialog);
-}
-
-// 0x5df4d9
-void WinDMApp::ShowFullInstructionsDialog()
-{
-	Dialog* aDialog = NewDialog(DIALOG_FULL_INSTRUCTIONS, true, GetString("FULL_INSTRUCTIONS1"), GetString("FULL_INSTRUCTIONS2"),
-		GetString("DONE"), 3);
-	aDialog->mTextAlign = -1;
-	aDialog->Resize(0x20, 8, mWidth - 0x40, aDialog->GetPreferredHeight(mWidth - 0x40));
-	AddDialog(DIALOG_FULL_INSTRUCTIONS, aDialog);
-}
-
-// 0x5df614: the display cannot show the game in a window
-void WinDMApp::ShowColorDepthDialog()
-{
-	DoDialog(DIALOG_FULL_INSTRUCTIONS, true, GetString("COLOR_DEPTH_EXPLANATION1"), GetString("COLOR_DEPTH_EXPLANATION2"),
-		GetString("DIALOG_BUTTON_OK"), 3);
-}
-
 // 0x5df168
 void WinDMApp::TryConfirmLoad()
 {
@@ -461,15 +416,6 @@ void WinDMApp::TryConfirmLoad()
 		"Do you want to continue your last game?\nIf you press NO you will start a new game, but your old game will be lost.", "", 1);
 	static_cast<PodDialog*>(aDialog)->SetHasCancel(true);
 	SetupDialog(aDialog, 0x1cc);
-}
-
-// 0x5e119e
-void WinDMApp::ConfirmNewGame()
-{
-	if (mBoard->mState == 7)
-		NewGame();
-	else
-		DoDialog(DIALOG_NEW_GAME, true, GetString("NEWGAMEDIALOG1"), GetString("NEWGAMEDIALOG2"), "", 1);
 }
 
 // 0x5df216

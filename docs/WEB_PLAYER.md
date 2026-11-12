@@ -520,7 +520,9 @@ notes:
 
 While a game window is in front and plays music, Music's views show that music live (the user, 2026-11-09: "make the
 tracker/spectral analyzer sync with what's playing in the active game"), tagged with the game: the game window last
-made active, while open and not minimized (`frontFrame` in `web/deskapps.js`).
+made active, while open and not minimized (`frontFrame` in `web/deskapps.js`). While Music plays or loads a tune of its
+own, the views and the seek bar are that tune's, and no game is followed (the user, 2026-11-12: "jumping around in the
+song does not actually skip the audio").
 
 **Focus and sound (the user, 2026-11-10).** A site window is a desktop window: a game whose window is not the active one
 does what its original does without the focus (the framework's own focus handling, nothing added for the web). Only one

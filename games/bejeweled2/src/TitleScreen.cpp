@@ -73,9 +73,6 @@ void TitleScreen::SetupVals()
 	mBarDelay = 0x32;
 	mBarAlpha.SetRamp(CurvedVal::RAMP_FAST_TO_SLOW);
 	mBarAlpha.SetInVal(0);
-	mUnusedDelay = 0x50;
-	mUnused.SetRamp(CurvedVal::RAMP_FAST_TO_SLOW);
-	mUnused.SetInVal(0);
 	mDeluxeDelay = 0x140;
 	mDeluxeAlpha.SetRamp(CurvedVal::RAMP_FAST_TO_SLOW);
 	mDeluxeAlpha.SetInVal(0);
@@ -256,10 +253,6 @@ void TitleScreen::Update()
 		mBarAlpha.IncInVal(0.005);
 	else
 		mBarDelay--;
-	if (mUnusedDelay < 1)
-		mUnused.IncInVal(0.005);
-	else
-		mUnusedDelay--;
 	if (mDeluxeDelay < 1)
 		mDeluxeAlpha.IncInVal(0.01);
 	else

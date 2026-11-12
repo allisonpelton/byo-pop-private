@@ -27,7 +27,6 @@ public:
 	void			SetMode(int theMode) { mMode = theMode; }                           // 0x5aef6a
 	void			SetRamp(int theRamp) { mRamp = theRamp; }                           // 0x5aef76
 	void			SetOutRange(double theMin, double theMax) { mOutMin = theMin; mOutMax = theMax; }   // 0x5aef83
-	void			SetInRange(double theMin, double theMax) { mInMin = theMin; mInMax = theMax; }      // 0x5aef96
 	double			GetOutVal();                            // 0x5aefa9
 	bool			CheckClamping();                        // 0x5aeee6 false once the input is held at an end (clamp mode)
 	void			SetInVal(double theVal);                // 0x5af130
