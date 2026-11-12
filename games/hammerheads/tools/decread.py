@@ -18,6 +18,7 @@ import json
 import os
 import re
 import struct
+import subprocess
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -176,7 +177,50 @@ def string_note(match):
     return '"%s"/*%s*/' % (value, match.group(0))
 
 
-def compact(text, names, fields=None, normalize=True):
+# trivial functions are written where they are called: a getter `return param_1->_f4;` as `x->_f4`, a global getter
+# `return DAT_005cea54;` as the global
+GETTER_BODY = re.compile(r"^\{\n  return ((?:param_1|this)->[\w>:\-]+|DAT_[0-9a-f]{8}|[A-Za-z_]\w*);\n\}$")
+_GETTERS = None
+FUNCTION_TEXT = {}
+ARGUMENT = r"([^,()]*(?:\([^()]*\)[^,()]*)*)"
+
+
+def getters(names):
+    global _GETTERS
+    if _GETTERS is None:
+        _GETTERS = {}
+        for address, text in FUNCTION_TEXT.items():
+            if len(text) > 400 or not 0x401000 <= address < 0x4767e0:
+                continue
+            body = compact(text, names, None, True, inline=False)
+            lines = body.split("\n")
+            signature_end = next((i for i, line in enumerate(lines) if line.startswith("{")), None)
+            if signature_end is None:
+                continue
+            match = GETTER_BODY.match("\n".join(lines[signature_end:]).strip())
+            if match:
+                _GETTERS[address] = match.group(1)
+    return _GETTERS
+
+
+def inline_getters(text, names):
+    table = getters(names)
+
+    def replace(match):
+        address = int(match.group(1), 16)
+        expression = table.get(address)
+        if expression is None:
+            return match.group(0)
+        if match.group(2) is None:
+            return expression
+        argument = match.group(2).strip()
+        argument = re.sub(r"^\((?:int|u32|void|\w+) ?\*+\)", "", argument)
+        return re.sub(r"\b(param_1|this)\b", lambda m: argument, expression, 1)
+
+    return re.sub(r"\bFUN_([0-9a-f]{8})\(" + ARGUMENT + r"\)", replace, text)
+
+
+def compact(text, names, fields=None, normalize=True, inline=True):
     types = offsets.variable_types(text)
     owner = offsets.owner_of(text)
     OWNER["name"] = owner
@@ -211,7 +255,35 @@ def compact(text, names, fields=None, normalize=True):
     text = STRING_ASSIGN.sub(lambda m: "%s = %s;" % (m.group(1).lstrip("&"), m.group(2)), text)
     text = STRING_FROM.sub(lambda m: "%s = %s;" % (m.group(1).lstrip("&"), m.group(2)), text)
     text = NEW_OBJECT.sub(lambda m: "%s = new(%s) %s(%s);" % (m.group(3), m.group(2), m.group(4), m.group(5)), text)
+    if inline:
+        text = inline_getters(text, names)
     return text
+
+
+OBJDUMP = None
+if os.path.isdir("E:/retools"):
+    for folder in sorted(os.listdir("E:/retools")):
+        if folder.startswith("llvm-mingw") and os.path.exists(os.path.join("E:/retools", folder, "bin", "llvm-objdump.exe")):
+            OBJDUMP = os.path.join("E:/retools", folder, "bin", "llvm-objdump.exe")
+FP_STORE = re.compile(r"^\s+[0-9a-f]+:\s+(fst|fstp|fist|fistp)\s+(dword|qword|word) ptr (\[.*\])")
+
+
+def fp_note(address, size):
+    """What the decompiler gets wrong about floating point: it types an x87 value as float where the code stores a double.
+    The note lists the stores of the function's machine code, f for a 32-bit float and d for a 64-bit double, i for an
+    integer, in order, so a `(float)` in the text can be checked against what is stored."""
+    if not OBJDUMP:
+        return ""
+    out = subprocess.run([OBJDUMP, "-d", "--no-show-raw-insn", "--x86-asm-syntax=intel", "--start-address=0x%x" % address,
+                          "--stop-address=0x%x" % (address + size), os.path.join(ROOT, "re", "hammerheads", "bin", "HammerHeadsGame.exe")],
+                         capture_output=True, text=True).stdout
+    stores = []
+    for line in out.splitlines():
+        match = FP_STORE.match(line.replace("\t", " "))
+        if match:
+            kind = "i" if match.group(1).startswith("fi") else {"dword": "f", "qword": "d", "word": "w"}[match.group(2)]
+            stores.append("%s%s" % (kind, match.group(3)))
+    return "// x87 stores: " + " ".join(stores) if stores else ""
 
 
 def main():
@@ -229,6 +301,7 @@ def main():
     arguments = [a for a in arguments if a not in ("--raw", "--list", "--no-offsets")]
     names = load_symbols()
     functions = load_functions()
+    FUNCTION_TEXT.update(functions)
     records = {}
     for line in open(FUNCTIONS, encoding="utf-8"):
         record = json.loads(line)
@@ -255,6 +328,10 @@ def main():
         out = text if raw else compact(text, names, fields, normalize)
         if label:
             out = out.replace("// %08x  Global::FUN_%08x" % (address, address), "// %08x  %s" % (address, label), 1)
+        if not raw and record and ("fVar" in out or "float10" in out or "(float)" in out or "double" in out):
+            note = fp_note(address, record["size"])
+            if note:
+                out = out.replace("\n", "\n" + note + "\n", 1)
         print(out)
         print()
 
