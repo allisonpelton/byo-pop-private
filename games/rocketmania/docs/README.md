@@ -15,8 +15,9 @@ the standard mods. Left out on purpose: the shareware pieces (the trial clock 0x
 
 Both phases of the identical-play pass are done (`IDENTICAL_PLAY.md`: plays identical, then looks identical, in 2D and 3D, with a leak
 of the port fixed), and so are the fixes mod (no candidates), the coverage check, the performance pass (the port at 0.25 to 0.78 of the
-original's processor time in every pair; GAME_NOTES, "Performance") and the lite mod (none: `LITE_MOD.md`). Still to do, in the order of
-CLAUDE.md: code the game does not need, the readability pass, the check against the PopCap Game Collection version, and the stores line
+original's processor time in every pair; GAME_NOTES, "Performance"), the lite mod (none: `LITE_MOD.md`), the removal of code the game
+does not need (GAME_NOTES, "Coverage check") and the readability pass (GAME_NOTES, "The readability pass"). Still to do, in the order of
+CLAUDE.md: the check against the PopCap Game Collection version, and the stores line
 `BYOPOP_BUY_rocketmania` in `cmake/ByopopStores.cmake`, which the coordinator supplies.
 
 ## The binary

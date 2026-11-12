@@ -71,7 +71,7 @@ code in our export or its disassembly. The commit is on branch `claude/frosty-po
 | Flames crossed a cell at the wrong speed | The two steps of an igniting flame are 0.166666 and 0.333332, and the rocket's is 0.015 (Ghidra showed the doubles stored as two dword immediates wrongly) | Those constants | 4f774d4 |
 | A first board and the timed modes' rhythm were off | Two board members have starting values: -1 for the fuse's launch and its countdown, the arcade drop delay `Rows20()` (20 / rows) and 2 for the timed modes' drop interval | The constructor sets them before the state is set | 4f774d4 |
 | Strategy mode's hinted first board had a wrong tile | The 18-entry rotation table's last entry is 2 | Fixed | 4f774d4 |
-| A click on the arcade top strip dropped the next tile late | The click sets the drop timer to the whole delay (the next update drops the tile); after a launch it is the delay less 100 | As the original (`m2dc = m444`; the launch keeps `m444 - 100`) | 4f774d4 |
+| A click on the arcade top strip dropped the next tile late | The click sets the drop timer to the whole delay (the next update drops the tile); after a launch it is the delay less 100 | As the original (`mFallTimer = mFallPeriod`; the launch keeps `mFallPeriod - 100`) | 4f774d4 |
 | A scripted click did not drag the pressed tile | The original's window procedure sends the board a move (a drag while a button is down) before every mouse message, so the release is preceded by a drag at the same point. A tile pressed earlier and still remembered moves to the next column when the click lands more than half a cell away. The script runner did press and release without the move in between | `-script` clicks move again before the release, as a real click does | de03ce5 (`shared:`) |
 | A click on a score text did not reach the board | The floating score texts are not mouse targets (the constructor clears the flag) | The same | 0afca39 |
 | A rocket on the right edge could get the wrong number | A new launcher takes its number from its row (the generator's fourth argument is the caller's row); the port passed the column | Row | 978675f |
@@ -239,14 +239,14 @@ The first group is c17b6535 (found by the u2 tour and the comparison of the tour
 
 ### Oddities and deviations that stay
 
-- **The board's shake and the next tile's column jitter** (`Resize(CrtRand() % (m4b8 * 2 + 1) - m4b8, ...)`, `CrtRand() % 3 - 1`) draw
+- **The board's shake and the next tile's column jitter** (`Resize(CrtRand() % (mShakeAmount * 2 + 1) - mShakeAmount, ...)`, `CrtRand() % 3 - 1`) draw
   from the C runtime's generator, whose index follows the number of screen draws; a screen draws a different number of times in the
   original and the port (a shot's own timing, a window's repaint), so the shake of a frame and the jitter of the column at
   x about 249 never agree. The shake moves the board by a random amount of up to the shock's size, the jitter by one pixel; in
   play they are random in both programs. Not chased (the rule of 2026-11-01 on oddities): a match would take the generator's
   index of the original's run and a draw count that depends on the machine.
 - **Particles** (sparks, bursts, fireworks) take their places from the global generator and differ for the same reason.
-- **Fields the original leaves in the heap** (the board's `m444` outside the arcade mode, the game-over kind before 150ae162 set it, the
+- **Fields the original leaves in the heap** (the board's `mFallPeriod` outside the arcade mode, the game-over kind before 150ae162 set it, the
   pieces' `mFromRow` and the like) and **raw heap pointers in the save file** (the piece's number, special and host): the original's
   saves differ from run to run in those bytes and in the clock, and the port's are the same kind. Every other byte of a save written by
   one program and read by the other is the same, and the high-score file of the same runs came out byte for byte identical.

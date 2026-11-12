@@ -1,4 +1,4 @@
-// The bot of the identical-play runs; see UiBot.h. It decides after each update what the mouse does before the next one, runs
+// port: the bot of the identical-play runs; see UiBot.h. It decides after each update what the mouse does before the next one, runs
 // that through the script (AddScriptCommand), and writes the same line to -uiscript, so the original can be given the input.
 
 #include "UiBot.h"
@@ -113,15 +113,15 @@ bool UiBot::Dialogs()
 		}
 		return true;
 	}
-	int u = mApp->mUpdateCount;
-	if (u + 1 < mBusyUntil)
+	int anUpdate = mApp->mUpdateCount;
+	if (anUpdate + 1 < mBusyUntil)
 		return true;
 	if (aFound != mWaitDialog)
 	{
 		// a new dialog: give it a few updates before the first click
 		mWaitDialog = aFound;
-		mWaitSince = u;
-		mBusyUntil = u + 8;
+		mWaitSince = anUpdate;
+		mBusyUntil = anUpdate + 8;
 		return true;
 	}
 	Dialog* aDialog = anApp->GetDialog(aFound);
@@ -137,7 +137,7 @@ bool UiBot::Dialogs()
 			for (int i = 0; i < aCount; i++)
 				Input(1 + i, "char", std::string(1, mParams.mName[i]));
 			Input(2 + aCount, "key", "13");
-			mBusyUntil = u + aCount + 40;
+			mBusyUntil = anUpdate + aCount + 40;
 			return true;
 		}
 		aTarget = aDialog->mYesButton;
@@ -145,7 +145,7 @@ bool UiBot::Dialogs()
 	}
 	case DIALOG_LEVEL_UP:
 	{
-		if (u - mWaitSince < mParams.mHold)
+		if (anUpdate - mWaitSince < mParams.mHold)
 			return true;
 		HyperlinkWidget* aLink = ((LevelUpDialog*) aDialog)->mButton;
 		if (aLink != NULL && aLink->mVisible && !aLink->mDisabled)
@@ -180,7 +180,7 @@ bool UiBot::Dialogs()
 	}
 	if (aTarget != NULL)
 		ClickWidget(aTarget);
-	mBusyUntil = u + 30;
+	mBusyUntil = anUpdate + 30;
 	return true;
 }
 
@@ -294,10 +294,10 @@ bool UiBot::PlanPath(Board* theBoard)
 void UiBot::PlayBoard(Board* theBoard)
 {
 	RocketApp* anApp = mApp;
-	int u = anApp->mUpdateCount;
-	if (u + 1 < mBusyUntil)
+	int anUpdate = anApp->mUpdateCount;
+	if (anUpdate + 1 < mBusyUntil)
 		return;
-	bool aStopNow = mParams.mStop > 0 && u + 1 >= mParams.mStop;
+	bool aStopNow = mParams.mStop > 0 && anUpdate + 1 >= mParams.mStop;
 	if (!mQuitting && (theBoard->mUpdateCnt >= mParams.mCap || aStopNow) && theBoard->mState == 0)
 		mQuitting = true;
 	if (mQuitting)
@@ -312,10 +312,10 @@ void UiBot::PlayBoard(Board* theBoard)
 				break;
 			}
 		}
-		mBusyUntil = u + 60;
+		mBusyUntil = anUpdate + 60;
 		return;
 	}
-	if (theBoard->mState != 0 || theBoard->m2e8 || theBoard->m350 != 0)
+	if (theBoard->mState != 0 || theBoard->mBurning || theBoard->mPause != 0)
 		return;
 	if (mParams.mPassive > 0 && theBoard->mUpdateCnt >= mParams.mPassive)
 		return;
@@ -324,7 +324,7 @@ void UiBot::PlayBoard(Board* theBoard)
 		Click aClick = mQueue.front();
 		mQueue.erase(mQueue.begin());
 		ClickAt(aClick.mX, aClick.mY, aClick.mButton, 1);
-		mBusyUntil = u + 3 + Next(4);
+		mBusyUntil = anUpdate + 3 + Next(4);
 		return;
 	}
 	int aChoice = Next(100);
@@ -340,7 +340,7 @@ void UiBot::PlayBoard(Board* theBoard)
 		int aRow = Next(theBoard->mRows);
 		int aColumn = Next(theBoard->mCols);
 		ClickAt(Board::CellX(aColumn) + 21, Board::CellY(aRow) + 21, Next(3) == 0 ? -1 : 1, 1);
-		mBusyUntil = u + 3 + Next(8);
+		mBusyUntil = anUpdate + 3 + Next(8);
 	}
 	else if (aChoice < 85 && aMode == 0)
 	{
@@ -356,16 +356,16 @@ void UiBot::PlayBoard(Board* theBoard)
 		Input(2, "move", anArgs);
 		snprintf(anArgs, sizeof(anArgs), "%d %d", anX, aY);
 		Input(3, "up", anArgs);
-		mBusyUntil = u + 6 + Next(8);
+		mBusyUntil = anUpdate + 6 + Next(8);
 	}
 	else if (aChoice < 93 && aMode == 0)
 	{
 		// the strip at the top: more tiles drop
 		ClickAt(300 + Next(100), 20, 1, 1);
-		mBusyUntil = u + 5 + Next(10);
+		mBusyUntil = anUpdate + 5 + Next(10);
 	}
 	else
-		mBusyUntil = u + 2 + Next(10);
+		mBusyUntil = anUpdate + 2 + Next(10);
 }
 
 void UiBot::Update()
@@ -373,16 +373,16 @@ void UiBot::Update()
 	RocketApp* anApp = mApp;
 	if (mFinished)
 		return;
-	int u = anApp->mUpdateCount;
-	if (u + 1 < mBusyUntil)
+	int anUpdate = anApp->mUpdateCount;
+	if (anUpdate + 1 < mBusyUntil)
 		return;
 	if (!mLinkClicked)
 	{
-		if (anApp->mLoadingScreen != NULL && anApp->mLoadingScreen->mLinkShown && u + 1 >= mParams.mStart)
+		if (anApp->mLoadingScreen != NULL && anApp->mLoadingScreen->mLinkShown && anUpdate + 1 >= mParams.mStart)
 		{
 			ClickWidget(anApp->mLoadingScreen->mPlayLink);
 			mLinkClicked = true;
-			mBusyUntil = u + 100;
+			mBusyUntil = anUpdate + 100;
 		}
 		return;
 	}
@@ -414,7 +414,7 @@ void UiBot::Update()
 	}
 	if (anApp->mGameSelector == NULL)
 		return;
-	if (mGamesDone >= mParams.mGames || (mParams.mStop > 0 && u + 1 >= mParams.mStop))
+	if (mGamesDone >= mParams.mGames || (mParams.mStop > 0 && anUpdate + 1 >= mParams.mStop))
 	{
 		Input(100, "quit", "");
 		mFinished = true;
@@ -422,5 +422,5 @@ void UiBot::Update()
 	}
 	int aMode = mParams.mModes[mGame % mParams.mModes.size()];
 	ClickWidget(anApp->mGameSelector->mModeButtons[aMode]);
-	mBusyUntil = u + 40;
+	mBusyUntil = anUpdate + 40;
 }

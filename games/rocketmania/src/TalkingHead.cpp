@@ -20,6 +20,7 @@
 using namespace Sexy;
 
 // the fall of the original's float to int conversion (__ftol): truncation
+// port: the original's float to int conversion (__ftol): truncation
 static int Ftol(double theValue)
 {
 	return (int) theValue;
@@ -332,7 +333,7 @@ void TalkingHead::FlyIn(EffectManager* theEffects)
 	mFlying = true;
 	mTrail = theEffects->Add(0, false);
 	mTrail->mLife = 300;
-	mTrail->mc0 = 2;
+	mTrail->mDelay = 2;
 	SetMood(0);
 	mApp->PlaySample(8);
 }
@@ -346,7 +347,7 @@ void TalkingHead::Follow(EffectManager* theEffects)
 	{
 		mTrail->mX = mPosX + 145.0;
 		mTrail->mY = mPosY + 95.0;
-		mApp->mBoard->F428de0(Ftol(mPosY + 75.0));
+		mApp->mBoard->ClearRowsAbove(Ftol(mPosY + 75.0));
 		return;
 	}
 	mTrail = NULL;

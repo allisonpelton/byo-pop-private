@@ -50,7 +50,7 @@ public:
 
 // The effect of one kind; kinds 0 to 0x16 are the ones the game makes (the table in EffectKinds.inc is what the original
 // constructor stores for each). The board changes the fields it needs after Add: where (mX, mY), how long it makes
-// particles (mLife), the delay before it starts (mc0) and a few of the particles' settings.
+// particles (mLife), the delay before it starts (mDelay) and a few of the particles' settings.
 struct Effect
 {
 	RocketApp*		mApp;               // +0x00
@@ -60,26 +60,26 @@ struct Effect
 	bool			mSounds;            // +0x09 plays a firework sound when the delay is over
 	Color			mColors[12];        // +0x0c six colours the particles start with, six they end with (each +6)
 	int				mColorChoice;       // +0x3c the pair of colours that the particles take (3 to 5), random
-	int				m40;                // +0x40 the sound that plays when the delay is over (-1 none)
+	int				mSound;                // +0x40 the sound that plays when the delay is over (-1 none)
 	bool			mFlag;              // +0x44 the manager deletes it when it is finished
 	double			mX, mY, mZ;         // +0x48, +0x50, +0x58 where the particles start
 	double			mSpreadX, mSpreadY, mSpreadZ;   // +0x60, +0x68, +0x70
-	double			m78, m80, m88;      // +0x78 the effect moves by this each update
-	bool			m90;                // +0x90 the layer it is drawn in
+	double			mMoveX, mMoveY, mMoveZ;      // +0x78 the effect moves by this each update
+	bool			mLayer;                // +0x90 the layer it is drawn in
 	Particle*		mParticles;         // +0x94 the list, the newest first
 	ParticlePool*	mPool;              // +0x98
-	double			ma0, ma8, mb0;      // +0xa0 added to the particles' speed every update
+	double			mAccelX, mAccelY, mAccelZ;      // +0xa0 added to the particles' speed every update
 	int				mMaxParticles;      // +0xb8
 	int				mParticleCount;     // +0xbc
-	int				mc0;                // +0xc0 updates to wait before it starts
+	int				mDelay;                // +0xc0 updates to wait before it starts
 	int				mLife;              // +0xc4 updates it makes particles for (0 stops, below zero never)
-	double			mDirX, md0, mDirZ;  // +0xc8 the direction the particles fly (made a unit vector)
+	double			mDirX, mDirY, mDirZ;  // +0xc8 the direction the particles fly (made a unit vector)
 	double			mDirSpreadX, mDirSpreadY, mDirSpreadZ;      // +0xe0, +0xe8, +0xf0
-	double			mf8;                // +0xf8 their speed
+	double			mSpeed;                // +0xf8 their speed
 	double			mSpeedSpread;       // +0x100
-	double			m108;               // +0x108 how much speed is kept each update
-	int				m110, m114;         // +0x110 how long a particle lives, and the spread of that
-	int				m118, m11c, m120;   // +0x118 how many are made each time, the spread, and (+0x120) the updates between
+	double			mDrag;               // +0x108 how much speed is kept each update
+	int				mParticleLife, mParticleLifeSpread;         // +0x110 how long a particle lives, and the spread of that
+	int				mCount, mCountSpread, mInterval;   // +0x118 how many are made each time, the spread, and (+0x120) the updates between
 
 	Effect(RocketApp* theApp, EffectManager* theManager, int theKind, bool theFlag);   // 0x4172f0
 	~Effect();                                                                          // 0x418fc0

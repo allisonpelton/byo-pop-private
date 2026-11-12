@@ -94,7 +94,6 @@ RocketApp::RocketApp()
 		mRocketHues[i] = NULL;
 	mLoadingScreen = NULL;
 	mGameSelector = NULL;
-	mHintDialog = NULL;
 	mBoard = NULL;
 	mHead = NULL;
 	mWelcomed = false;
@@ -104,7 +103,6 @@ RocketApp::RocketApp()
 	mDifficulty = 0;
 	mStateLog = NULL;
 	mUiBot = NULL;
-	mNoPopLink = false;
 	mNoHints = false;
 	for (int i = 0; i < 8; i++)
 		mHintFlags[i] = false;
@@ -169,11 +167,13 @@ int Sexy::GlobalRand()
 	return (int) sGlobalRand.Next();
 }
 
+// port: seeds the global generator (the original's SexyAppBase::Init seeds it at once; a script command seeds it again)
 void Sexy::SeedGlobalRand(unsigned long theSeed)
 {
 	SeedMTRand2004(sGlobalRand, theSeed);
 }
 
+// port: the global generator's state, read for the state log (test hook)
 void Sexy::GetGlobalRandState(uint32_t* theState, int* theIndex)
 {
 	sGlobalRand.GetState(theState, theIndex);
@@ -188,8 +188,6 @@ void RocketApp::Init()
 	// the 2003 SexyApp::Init seeds the C library generator with the tick count; -seed=N makes a run repeatable
 	CrtSRand(mHasSeedParam ? (unsigned int) mRandSeed : (unsigned int) GetTickCount());
 	LoadGameTexts();
-
-	mNoPopLink = GetBoolean("NoPopLink", false);
 
 	mImages = new Image*[NUM_IMAGES];
 	for (int i = 0; i < NUM_IMAGES; i++)
@@ -324,6 +322,7 @@ void RocketApp::HandleCmdLineParam(const std::string& theParamName, const std::s
 		SexyApp::HandleCmdLineParam(theParamName, theParamValue);
 }
 
+// port: how the game without 3D transforms and keeps its screen (below), then the framework's own update
 void RocketApp::UpdateFrames()
 {
 	// port: the original's game without 3D (MakeWindow reads "Is3D", and its D3DTester turns 3D on only where the card
@@ -455,25 +454,25 @@ bool RocketApp::KillDialog(int theDialogId)
 void RocketApp::ModalOpen()
 {
 	if (mBoard != NULL)
-		mBoard->F421f30(true);
+		mBoard->SetPause(true);
 }
 
 void RocketApp::ModalClose()
 {
 	if (mBoard != NULL)
-		mBoard->F421f30(false);
+		mBoard->SetPause(false);
 }
 
 void RocketApp::GotFocus()
 {
 	if (mBoard != NULL)
-		mBoard->F421f30(false);
+		mBoard->SetPause(false);
 }
 
 void RocketApp::LostFocus()
 {
 	if (mBoard != NULL)
-		mBoard->F421f30(true);
+		mBoard->SetPause(true);
 }
 
 // 0x42e390: "Are you sure you want to quit the game?" with YES and NO, in the middle of the window
@@ -648,11 +647,11 @@ static const unsigned int gHighScoreTitles[3] = {0x004e7980, 0x004e796c, 0x004e7
 static const unsigned int gDifficultyNames[4] = {0, 0x004e794c, 0x004e793c, 0x004e792c};
 static const unsigned int gDifficultyNamesUpper[4] = {0, 0x004e7944, 0x004e7934, 0x004e7924};
 
-const SexyString& RocketApp::ModeName(int theMode) { return GT(gModeNames[theMode]); }
-const SexyString& RocketApp::ModeTitle(int theMode) { return GT(gModeTitles[theMode]); }
-const SexyString& RocketApp::HighScoreTitle(int theMode) { return GT(gHighScoreTitles[theMode]); }
-const SexyString& RocketApp::DifficultyName(int theDifficulty) { return GT(gDifficultyNames[theDifficulty]); }
-const SexyString& RocketApp::DifficultyNameUpper(int theDifficulty) { return GT(gDifficultyNamesUpper[theDifficulty]); }
+const SexyString& RocketApp::ModeName(int theMode) { return GT(gModeNames[theMode]); }   // port: a text of the original's table by its address
+const SexyString& RocketApp::ModeTitle(int theMode) { return GT(gModeTitles[theMode]); }   // port: a text of the original's table by its address
+const SexyString& RocketApp::HighScoreTitle(int theMode) { return GT(gHighScoreTitles[theMode]); }   // port: a text of the original's table by its address
+const SexyString& RocketApp::DifficultyName(int theDifficulty) { return GT(gDifficultyNames[theDifficulty]); }   // port: a text of the original's table by its address
+const SexyString& RocketApp::DifficultyNameUpper(int theDifficulty) { return GT(gDifficultyNamesUpper[theDifficulty]); }   // port: a text of the original's table by its address
 
 // 0x42f700: the original keeps "Players//savea.dat" (classic), "saveb" (arcade) and "savec" (strategy)
 std::string RocketApp::SavePath(int theMode)
@@ -662,6 +661,7 @@ std::string RocketApp::SavePath(int theMode)
 	return (theMode == 0) ? "Players/saveb.dat" : "Players/savec.dat";
 }
 
+// port: a four-byte little-endian field of a file
 static unsigned int ReadLE32(const std::string& theData, size_t theOffset)
 {
 	return (unsigned int) (unsigned char) theData[theOffset] | ((unsigned int) (unsigned char) theData[theOffset + 1] << 8) |
@@ -716,7 +716,6 @@ bool RocketApp::ShowModeHint(int theHint, bool theContinuing)
 	HintDialog* aDialog = new HintDialog(this, theHint, theContinuing);
 	AddDialog(DIALOG_HINT, aDialog);
 	aDialog->Layout(HintDialog::IsModeHint(theHint));
-	mHintDialog = aDialog;
 	return true;
 }
 

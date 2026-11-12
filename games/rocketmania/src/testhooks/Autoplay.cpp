@@ -1,4 +1,4 @@
-// Test hook: the script command "autoplay <mode> <difficulty> <updates>" starts a game of that mode and plays it with
+// port: test hook: the script command "autoplay <mode> <difficulty> <updates>" starts a game of that mode and plays it with
 // random clicks and drags for that many updates, checking the board's grid on the way. It logs "autoplay: ..." lines
 // (the status every 500 updates and a "done" line); tools/check.sh rocketmania reads them. Only scripts reach it.
 
@@ -82,7 +82,7 @@ bool RocketAutoplay(RocketApp* theApp, const ScriptCommand& theCommand)
 		return true;
 	}
 	int aDone = aTotal - aLeft;
-	if (aLeft > 0 && aBoard->mState == 0 && aDone % 400 == 100 && !aBoard->m2e8)
+	if (aLeft > 0 && aBoard->mState == 0 && aDone % 400 == 100 && !aBoard->mBurning)
 	{
 		// every now and then the lowest full row of tiles is turned into a straight pipe from edge to edge, so that the
 		// rules of a launch run (random clicks hardly ever make one)
@@ -108,7 +108,7 @@ bool RocketAutoplay(RocketApp* theApp, const ScriptCommand& theCommand)
 		}
 	}
 	// (a click on a burning tile puts the fire out, so nothing is clicked while a connection burns)
-	if (aLeft > 0 && aBoard->mState == 0 && !aBoard->m2e8)
+	if (aLeft > 0 && aBoard->mState == 0 && !aBoard->mBurning)
 	{
 		int anAction = Next(10);
 		int aRow = Next(aBoard->mRows);
@@ -140,7 +140,7 @@ bool RocketAutoplay(RocketApp* theApp, const ScriptCommand& theCommand)
 	if (aDone % 500 == 0 || aLeft == 0)
 	{
 		SDL_Log("autoplay: %s update %d state %d score %d level %d tiles %d bad cells %d burning %d", aLeft == 0 ? "done" : "status",
-			aDone, aBoard->mState, aBoard->mScore, aBoard->mLevel, Tiles(aBoard), BadCells(aBoard), aBoard->m2e8 ? 1 : 0);
+			aDone, aBoard->mState, aBoard->mScore, aBoard->mLevel, Tiles(aBoard), BadCells(aBoard), aBoard->mBurning ? 1 : 0);
 	}
 	if (aLeft > 0)
 	{
@@ -233,13 +233,13 @@ bool RocketLevelUp(RocketApp* theApp, const ScriptCommand& theCommand)
 		return true;
 	aBoard->mLevel = aLevel;
 	aBoard->mScore = aScore;
-	aBoard->mC4 = 7;
-	aBoard->mC8 = 4;
-	aBoard->mCc = 3;
-	aBoard->mD0 = 1;
-	aBoard->mD4 = 2;
-	aBoard->mD8 = 1;
-	aBoard->mDc = 5;
+	aBoard->mLevelMostTiles = 7;
+	aBoard->mLevelMostRockets = 4;
+	aBoard->mLevelCoins = 3;
+	aBoard->mLevelGems = 1;
+	aBoard->mLevelBombs = 2;
+	aBoard->mLevelClocks = 1;
+	aBoard->mLevelMatches = 5;
 	aBoard->mState = (aKind == LevelUpDialog::KIND_LEVEL) ? 6 : 2;     // the board is not paused by the dialog then
 	aBoard->ShowLevelUp(aKind);
 	LevelUpDialog* aDialog = (LevelUpDialog*) theApp->GetDialog(DIALOG_LEVEL_UP);
@@ -266,11 +266,11 @@ bool RocketBuyRockets(RocketApp* theApp, const ScriptCommand& theCommand)
 	if (aBoard == NULL)
 		return true;
 	aBoard->mLevel = aLevel;
-	aBoard->m8c[7] = aCoins;
+	aBoard->mSpecialCounts[7] = aCoins;
 	for (int i = 0; i < 9; i++)
 		aBoard->mGen->mMeter[i] = aMeter;
 	if (anOver)
-		aBoard->F421de0(1);
+		aBoard->GameOver(1);
 	else
 	{
 		aBoard->mState = 6;
@@ -302,7 +302,7 @@ bool RocketEffect(RocketApp* theApp, const ScriptCommand& theCommand)
 	anEffect->mX = (double) anX;
 	anEffect->mY = (double) aY;
 	anEffect->mLife = aLife;
-	anEffect->mc0 = 0;
-	anEffect->m90 = aLayer != 0;
+	anEffect->mDelay = 0;
+	anEffect->mLayer = aLayer != 0;
 	return true;
 }

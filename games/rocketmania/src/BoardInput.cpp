@@ -14,6 +14,7 @@
 
 using namespace Sexy;
 
+// port: the original's float to int conversion (__ftol): truncation
 static int Ftol(double theValue)
 {
 	return (int) theValue;
@@ -23,7 +24,7 @@ static int Ftol(double theValue)
 // left edge to the right one. With the hints on (app+0x549, the Options hints checkbox, is clear) fixed tiles are written
 // over the generated ones in the last rows (two in the classic mode, three in the strategy mode) before each check, so the
 // first board is the same every time.
-void Board::F428780()
+void Board::DealFirstBoard()
 {
 	int aLoops = 0;
 	do
@@ -40,15 +41,15 @@ void Board::F428780()
 				{
 					if (anOld->mSpecial != NULL)
 						RemovePiece(anOld->mSpecial, false);
-					if (anOld->m94)
+					if (anOld->mInMoverList)
 						EraseMover(anOld);
 					delete anOld;
 				}
 				mGrid[aRow][aColumn] = aPiece;
 				aPiece->mX = (double) CellX(aColumn);
 				aPiece->mY = (double) CellY(aRow);
-				aPiece->m40 = aPiece->m48 = CellX(aColumn);
-				aPiece->m44 = aPiece->m4c = CellY(aRow);
+				aPiece->mSlideStartX = aPiece->mSlideEndX = CellX(aColumn);
+				aPiece->mSlideStartY = aPiece->mSlideEndY = CellY(aRow);
 				aPiece->mType = 1;
 				aPiece->mMoving = false;
 			}
@@ -78,12 +79,12 @@ void Board::F428780()
 		}
 		aLoops++;
 	}
-	while (F428ae0());
+	while (LeftReachesRight());
 	SDL_Log("Looped %d times to fill board.", aLoops);
 }
 
 // 0x428ae0: finds the connections of the board as it is; returns whether the left edge reaches the right one
-bool Board::F428ae0()
+bool Board::LeftReachesRight()
 {
 	for (int aRow = mRows - 1; aRow >= 0; aRow--)
 	{
@@ -99,9 +100,9 @@ bool Board::F428ae0()
 	}
 	for (int i = 0; i < 30; i++)
 	{
-		m384[i] = 0;
-		m3fc[i] = false;
-		m41a[i] = false;
+		mPathEdges[i] = 0;
+		mPathLeftLive[i] = false;
+		mPathRightLive[i] = false;
 	}
 	int aPath = 1;
 	if (TraceUp(0, 8, 1, 2, &aPath, false))
@@ -115,38 +116,38 @@ void Board::RotatePiece(Piece* thePiece, bool theCounter)
 	if (!theCounter)
 	{
 		thePiece->mRotation = (thePiece->mRotation + 1) & 3;
-		thePiece->m80 = 1.5707963267948966;
+		thePiece->mTilt = 1.5707963267948966;
 	}
 	else
 	{
 		thePiece->mRotation = (thePiece->mRotation + 3) & 3;
-		thePiece->m80 = -1.5707963267948966;
+		thePiece->mTilt = -1.5707963267948966;
 	}
-	thePiece->m88 = mUpdateCnt;
+	thePiece->mTurnedAt = mUpdateCnt;
 	MarkDirty();
 	mApp->PlaySample(3);
-	m498 = true;
+	mMoved = true;
 	if (thePiece->mType == 4)
-		F4282a0(thePiece->mPath);
+		CancelBurn(thePiece->mPath);
 }
 
 // 0x421f30: pauses (theOn) or resumes; the head goes down into its hole for the pause and up again after it, and the app's
 // call 0x42d270 tells the buttons the pause state.
-void Board::F421f30(bool theOn)
+void Board::SetPause(bool theOn)
 {
-	if (mState != 0 && mApp->mBoard->m100 == 0)
+	if (mState != 0 && mApp->mBoard->mBuyRocketsState == 0)
 		return;
-	int anOld = m350;
+	int anOld = mPause;
 	if (anOld == 0 && !theOn)
 		return;
-	m350 = theOn ? anOld + 1 : anOld - 1;
+	mPause = theOn ? anOld + 1 : anOld - 1;
 	for (std::list<Points*>::iterator anItr = mTexts.begin(); anItr != mTexts.end(); ++anItr)
-		(*anItr)->SetVisible(m350 == 0);
-	if (m350 < 1)
+		(*anItr)->SetVisible(mPause == 0);
+	if (mPause < 1)
 	{
 		if (0 < anOld)
 		{
-			m368 = (int) SDL_GetTicks();
+			mStartTicks = (int) SDL_GetTicks();
 			mApp->mMusicInterface->FadeIn(SONG_GAME, -1, 0.666, false);
 			mApp->mHead->StartSlide(true, 0);
 			mApp->DisableBoardButtons(false);
@@ -154,7 +155,7 @@ void Board::F421f30(bool theOn)
 	}
 	else if (anOld <= 0)
 	{
-		m360 = m360 + ((int) SDL_GetTicks() - m368) / 1000;
+		mSecondsPlayed = mSecondsPlayed + ((int) SDL_GetTicks() - mStartTicks) / 1000;
 		mApp->mMusicInterface->FadeOut(SONG_GAME, false, 0.008);
 		mApp->mHead->StartSlide(false, 0);
 		mApp->DisableBoardButtons(true);
@@ -166,23 +167,23 @@ void Board::F421f30(bool theOn)
 void Board::KeyChar(SexyChar theChar)
 {
 	if (theChar == ' ')
-		F421f30(m350 == 0);
+		SetPause(mPause == 0);
 }
 
 // 0x4285b0
 void Board::MouseLeave()
 {
 	Widget::MouseLeave();
-	m4f4 = -1;
-	m4f8 = -1;
+	mPointerX = -1;
+	mPointerY = -1;
 }
 
 // 0x4285d0
 void Board::MouseMove(int x, int y)
 {
 	Widget::MouseMove(x, y);
-	m4f4 = x;
-	m4f8 = y;
+	mPointerX = x;
+	mPointerY = y;
 }
 
 // 0x4283e0. Arcade mode takes the tile under the pointer (a click at the top strip drops more tiles; the turn happens on
@@ -190,17 +191,15 @@ void Board::MouseMove(int x, int y)
 void Board::MouseDown(int x, int y, int theClickCount)
 {
 	if (theClickCount < 0)
-		m439 = true;
+		mRightClicked = true;
 	Widget::MouseDown(x, y, theClickCount);
-	if (0 < m350)
+	if (0 < mPause)
 	{
-		F421f30(false);
+		SetPause(false);
 		return;
 	}
 	if (mState != 0)
 		return;
-	m50c = x;
-	m510 = y;
 	int aMode = mApp->mMode;
 	if (aMode == 0)
 	{
@@ -208,20 +207,20 @@ void Board::MouseDown(int x, int y, int theClickCount)
 		{
 			Piece* aPiece = PieceAtPoint(x, y);
 			if (aPiece == NULL || (aPiece->mType != 1 && aPiece->mType != 4))
-				m514 = NULL;
+				mPressedPiece = NULL;
 			else
-				m514 = aPiece;
+				mPressedPiece = aPiece;
 		}
 		else
 		{
-			m37c = 5;
-			m2dc = m444;
+			mQuickDrops = 5;
+			mFallTimer = mFallPeriod;
 		}
 	}
 	else if (aMode == 1 || aMode == 2)
 	{
 		Piece* aPiece = PieceAtPoint(x, y);
-		if (aPiece != NULL && (aPiece->mType == 1 || (aPiece->mType == 4 && m2f4 == 0)))
+		if (aPiece != NULL && (aPiece->mType == 1 || (aPiece->mType == 4 && mFlameCount == 0)))
 			RotatePiece(aPiece, 0 < theClickCount);
 	}
 }
@@ -231,15 +230,15 @@ void Board::MouseDown(int x, int y, int theClickCount)
 void Board::MouseUp(int x, int y, int theClickCount)
 {
 	Widget::MouseUp(x, y, theClickCount);
-	if (m518)
+	if (mMovedSinceDown)
 	{
-		m518 = false;
+		mMovedSinceDown = false;
 		return;
 	}
 	if (mState == 0 && mApp->mMode == 0)
 	{
 		Piece* aPiece = PieceAtPoint(x, y);
-		if (aPiece != NULL && (aPiece->mType == 1 || (aPiece->mType == 4 && m2f4 == 0)) && aPiece == m514)
+		if (aPiece != NULL && (aPiece->mType == 1 || (aPiece->mType == 4 && mFlameCount == 0)) && aPiece == mPressedPiece)
 			RotatePiece(aPiece, 0 < theClickCount);
 	}
 }
@@ -249,12 +248,12 @@ void Board::MouseUp(int x, int y, int theClickCount)
 void Board::MouseDrag(int x, int y)
 {
 	(void) y;
-	if (mApp->mMode != 0 || m514 == NULL)
+	if (mApp->mMode != 0 || mPressedPiece == NULL)
 		return;
-	Piece* aPiece = m514;
-	if (aPiece->mType != 1 && (aPiece->mType != 4 || m2f4 != 0))
+	Piece* aPiece = mPressedPiece;
+	if (aPiece->mType != 1 && (aPiece->mType != 4 || mFlameCount != 0))
 	{
-		m514 = NULL;
+		mPressedPiece = NULL;
 		return;
 	}
 	double aCentre = aPiece->mX + 21.0;
