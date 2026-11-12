@@ -650,7 +650,8 @@ off and with it on.
   list of the allowed ones), its segments, and `end`, how the run finishes:
   - `levels N` (the Nth level clear);
   - `score N` (the score on screen reaches N);
-  - `won` (`wins` rises);
+  - `won` (`wins` rises on the run's board): the run's end whatever segment it is in, the segments left split with it, and
+    seen even when the board has gone in the same poll (Dynomite's tutorial wins as it closes);
   - `lost` (a game over; for a death% category), or `lost N` (a game over while the game's progress is at most N; any
     other game over resets the run as usual);
   - `progress N` (the game's own figure reaches N);
@@ -707,7 +708,14 @@ away, a quit. Cosmic Bugs (speedrun.com: Cosmic Bugs; its board's 2005 PC game i
 published in 2007): Any%, from Play on the instructions page, the screen a new player's Start Game shows, to the
 mission-complete screen, its win. A continued game or a chosen board skips that page and starts nothing. A mission is
 577 boards, so the template has `targets`: the level clears at which each segment splits, here the first board and the
-last of each of the 12 steps of 48 boards, and the end at the win. Big Money has no board, so its row is its native
+last of each of the 12 steps of 48 boards, and the end at the win. Dynomite (speedrun.com: Dynomite! Deluxe): a board is
+a whole game. Endless Puzzle, for each amount (1K to 50K) and difficulty, runs from the difficulty's click to the score on
+screen reaching the amount, its segments the amounts up to it. Time Trial, for each difficulty, runs from the first egg
+fired (its GO, after the shot and not at the click) to the board cleared, its win; the board times it in game time, which
+is the game's updates from that GO. Fossil Challenge, Strategic or Panic, splits at each fossil found (the third fragment
+off the bottom) and ends at the fifteenth, its win. Tutorial splits at each mode's part and ends at the main menu with
+every part done; that win comes in the update the tutorial closes. The board's Easy, Normal and Hard are the game's Normal,
+Hard and Expert. Leaving a game is a game over of its own kind. Big Money has no board, so its row is its native
 script's rules, with mode and skill in the category's name and levels or scores as segments. Both replay their native
 scripts' scenarios in `tools/autosplittest.js`. Every other game with a board gets its row in Milestone 3, from the
 speedrun.com categories and its session's answer on where in its code GO, a level clear, a game over and a win happen.

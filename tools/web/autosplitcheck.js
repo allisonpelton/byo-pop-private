@@ -212,6 +212,17 @@ var MM_QUIT = [{ click: [64, 462] }];
 
 var PLANS = {
   dynomite: async function () {
+    // a fossil found: its three fragments, each a round the `win` ends (the fossil falls), until the block counts it
+    async function fossilFound() {
+      var before = snap().boardLevelClears;
+      for (var n = 0; n < 6 && snap().boardLevelClears === before; n++) {
+        var p0 = snap().progress;
+        await until("win");
+        for (var k = 0; k < 400 && snap().progress === p0; k++) await botStep();
+      }
+      await settle();
+      return att().index;
+    }
     // (the `goto`s start each mode from the main menu with the difficulty last chosen, the game's Normal: the board's Easy)
     titleGoto = true;
     snap();
@@ -251,18 +262,17 @@ var PLANS = {
     for (var j = 0; j < 400 && att().phase === "running"; j++) await botStep();
     await settle();
     note("timetrial", a0.phase === "running" && go >= 1 && att().phase === "ended", "started " + a0.phase + " at tick " + go + "; after the board cleared " + att().phase);
-    // Fossil Challenge: Let's Play! starts it, each fossil found splits; a jump to fossil 15 (`level`) and its win split
-    // once more, not to the end
+    // Fossil Challenge: Let's Play! starts it, each fossil found splits; the win at the fifteenth ends it, after a jump to it
+    // (`level`) too
     await resetByHand();
     await load("Fossil Challenge - Strategic");
     await newGame("goto fossil");
     a0 = att();
     var fi = [];
-    for (var f = 0; f < 2; f++) fi.push((await clearLevel()).index);
+    for (var f = 0; f < 2; f++) fi.push(await fossilFound());
     await until("level 15");
-    for (var q = 0; q < 50 && snap().state !== 1; q++) await botStep();
-    fi.push((await clearLevel()).index);
-    note("fossil", a0.phase === "running" && fi.join(",") === "1,2,3" && att().phase === "running" && snap().wins > 0,
+    fi.push(await fossilFound());
+    note("fossil", a0.phase === "running" && fi.join(",").indexOf("1,2,") === 0 && att().phase === "ended",
          "started " + a0.phase + "; index after fossils 1, 2 and 15 " + fi.join(",") + "; then " + att().phase + "; wins " + snap().wins);
     // Tutorial: Next starts it, each mode's part splits, the main menu with every part done ends it (the bot plays it)
     await resetByHand();

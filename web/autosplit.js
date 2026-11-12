@@ -256,9 +256,17 @@ var ByopopAutosplit = (function () {
                !(setting("vanillaOnly") && !(current.flags & FLAG_VANILLA)) &&
                !(setting("modeGuard") && (outside(catMode, current.mode) || outside(catSkill, current.skill)));
       }
+      // the win of the run's board, where the category ends at it: the run's end whatever segment it is in, even with the
+      // board gone in the same update (Dynomite's tutorial wins as it closes to the main menu, its last part's clear just
+      // before, so a poll may see all three at once)
+      function wonNow() {
+        return !!end && end.kind === "won" && !(template && template.games) && current.wins !== old.wins && current.winSerial === runSerial;
+      }
       function reached() {
         var i = timer.index();
-        if (runSerial === 0 || current.boardSerial !== runSerial || i < 0 || i >= splits.length) return false;
+        if (runSerial === 0 || i < 0 || i >= splits.length) return false;
+        if (wonNow()) return true;
+        if (current.boardSerial !== runSerial) return false;
         // (each segment of a run over several games is one game, which ends at the end's progress; between games, none)
         if (template && template.games) return !between && end.kind === "progress" && current.progress >= end.n;
         if (end && i === splits.length - 1) {
@@ -319,7 +327,12 @@ var ByopopAutosplit = (function () {
               if (cause !== null && reached()) { pending = cause; cause = null; }
             }
             if (cause !== null) timer.reset(cause);
-            else if (reached()) { timer.split(); if (template && template.games && timer.phase() === "Running") between = true; }
+            else if (reached()) {
+              timer.split();
+              // (a win splits every segment left)
+              for (var w = 0; w < splits.length && wonNow() && timer.phase() === "Running"; w++) timer.split();
+              if (template && template.games && timer.phase() === "Running") between = true;
+            }
             // the next game of a run over several games: a new game of the category's mode with a skill the run has not had
             if (between && timer.phase() === "Running" && isGo() && skillsUsed.indexOf(current.skill) < 0) {
               runSerial = current.boardSerial; skillsUsed.push(current.skill); between = false;
