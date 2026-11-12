@@ -24,6 +24,9 @@
 #include "compat2004/Compat2004.h"
 #include "DDImage.h"
 #include "DDInterface.h"
+#ifndef __EMSCRIPTEN__
+#include "SoftwareScreenDisplay.h"
+#endif
 #include "Dialog.h"
 #include "ImageFont.h"
 #include "MusicInterface.h"
@@ -114,6 +117,15 @@ DDImage* FossilizedApp::GetGameImage(const std::string& thePath)
 	anImage->Palletize();
 	return anImage;
 }
+
+#ifndef __EMSCRIPTEN__
+// port: the original draws its screen in software into a DirectDraw surface (it has no 3D), so the port does too, and the
+// window shows it through its own surface (framework/SoftwareScreenDisplay.h)
+DDInterface* FossilizedApp::CreateDDInterface()
+{
+	return SoftwareScreenDisplay::Create(this);
+}
+#endif
 
 // 0x41f820
 void FossilizedApp::Init()
