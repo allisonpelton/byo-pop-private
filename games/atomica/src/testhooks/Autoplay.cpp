@@ -17,7 +17,7 @@
 //                            ("<update> click <x> <y>", window coordinates), to replay the same game in the original
 
 #include "AtomicaApp.h"
-#include "Fixes.h"
+#include "platform/GameOptions.h"
 #include "Board.h"
 #include "Grid.h"
 #include "Dialogs.h"
@@ -54,7 +54,7 @@ void AtomicaApp::ScriptClick(int theX, int theY)
 bool AtomicaApp::DrawDirtyStuff()
 {
 	// fixes mod, "drawRandom": the pictures draw their random numbers from a generator of their own (Support.h, GameRand)
-	bool aSideRand = FixEnabled("drawRandom");
+	bool aSideRand = Platform::FixOn("drawRandom");
 	if (aSideRand)
 		mRand.BeginDrawing();
 	bool aDrawn = SexyApp::DrawDirtyStuff();

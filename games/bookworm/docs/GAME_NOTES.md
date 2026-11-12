@@ -173,7 +173,7 @@ answers with one line: `STATE {...}`, `MOVE {...}`, `OK <command>` or `ERROR <co
 ### The fixes mod
 
 `mods/fixes/mod.json` (`docs/MOD_ROADMAP.md`, "The fixes mod"): one toggle per bug of the original that the port
-keeps, each on by default, read through `FixEnabled` (`ModFeatures.h`). It changes no play: with it on, a game plays
+keeps, each on by default, read through `Platform::FixOn`. It changes no play: with it on, a game plays
 as it does without it, update for update.
 
 | Toggle | The original's bug | With the toggle on |

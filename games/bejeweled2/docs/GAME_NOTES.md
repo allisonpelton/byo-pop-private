@@ -265,7 +265,7 @@ constructor does clear).
 `mods/fixes/mod.json` is the one mod `fixes` (`docs/MOD_ROADMAP.md`, "The fixes mod"): a toggle for each fix, at its default on the
 site, all off when a test must play as the original does (`-nomods`, or no mods folder). A fix starts on unless the original's
 behaviour looks intended and is not widely known as a bug (the user, 2026-11-11: "Off by default for functionality that seems
-intended but where the bug is not well known to be a bug"; `docs/MOD_ROADMAP.md`, "The fixes mod"): `tunnelEdge` starts on, `podFade` off. The port reads a toggle with `FixEnabled("<id>")`
+intended but where the bug is not well known to be a bug"; `docs/MOD_ROADMAP.md`, "The fixes mod"): `tunnelEdge` starts on, `podFade` off. The port reads a toggle with `Platform::FixOn("<id>")`
 (`Fixes.h`, the mod manager's live value), so the original's behaviour stays in the code as it was and each fix is one branch.
 Before it the port loaded no mods at all: `main.cpp` now sets the mods folder (`-modsdir=<dir>`, by default `mods-bejeweled2` beside
 the exe, `/bej2persist/mods` on the web) and reads it unless `-nomods` is given; the framework's mod menu (F2) and the site's page

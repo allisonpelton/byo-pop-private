@@ -1,7 +1,7 @@
 // port: the port's host for TipTop (see TipTopApp.h).
 
 #include "TipTopApp.h"
-#include "ModFeatures.h"
+#include "platform/GameOptions.h"
 #include "Game.h"
 #include "Lowos.h"
 #include "MusicSynth.h"
@@ -265,7 +265,7 @@ void TipTopApp::Init()
 		return;
 	// 0x411fff seeds the C library's generator with GetTickCount(); -seed=N makes a run repeatable
 	tiptop::SRand(mHasSeedParam ? (unsigned int)mRandSeed : (unsigned int)GetClockTime());
-	gSteadyClock = !mFastMode && Sexy::FixOn("steadyClock");  // a -fast run is steady already
+	gSteadyClock = !mFastMode && Platform::FixOn("steadyClock");  // a -fast run is steady already
 	lowos::HostSetClock(AppClock);
 	lowos::HostSetMessageFunc(AppMessage);
 	lowos::HostSetWindowed(mIsWindowed);

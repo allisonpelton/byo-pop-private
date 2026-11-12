@@ -2,7 +2,7 @@
 
 #include "WordHarmonyApp.h"
 #include "Render.h"
-#include "ModFeatures.h"
+#include "platform/GameOptions.h"
 #include "SoundHost.h"
 #include "engine/App.h"
 #include "engine/Exception.h"
@@ -44,7 +44,7 @@ public:
 	// a frame (WordHarmonyWidget::Update)
 	uint32_t timeMs() override { return gApp->mFastMode || gApp->mSteadyClock ? gApp->mEngineClock : gApp->GetClockTime(); }
 
-	bool fixOn(const char* theFix) override { return Sexy::FixOn(theFix); }
+	bool fixOn(const char* theFix) override { return Platform::FixOn(theFix); }
 
 	// port: -seed=N, for the game's srand of the tick count
 	bool testSeed(unsigned int& theSeed) override
@@ -359,7 +359,7 @@ void WordHarmonyApp::Init()
 	engine::setHost(&gHost);
 	// fixes mod, "steadyClock" (read at the start: its toggle applies on a restart): the sounds end by the engine's clock
 	// too, so the music's draws from the game's random numbers when a clip ends fall on the same frames on every run
-	mSteadyClock = !mFastMode && FixOn("steadyClock");
+	mSteadyClock = !mFastMode && Platform::FixOn("steadyClock");
 	wordharmony::HostSound::sGameClock = mFastMode || mSteadyClock;
 	mWidget = new WordHarmonyWidget();
 	mWidget->Resize(0, 0, mWidth, mHeight);

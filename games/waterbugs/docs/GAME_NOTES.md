@@ -97,7 +97,7 @@ logo is.
 ## The fixes mod (`mods/fixes`)
 
 `mod.json` with the feature `fixes` and one bool setting for each fix, `steadyClock` and `easyLabel`, both on by default and
-applied at a restart (the game reads them once, at startup). `Sexy::FixOn(name)` in the host and `Sys_FixOn` in the game's code
+applied at a restart (the game reads them once, at startup). `Platform::FixOn(name)` in the host and `Sys_FixOn` in the game's code
 read them; without the mod every fix is off and the game is the original. The mod changes neither the rules, the scores nor the
 saved games. Natively the mod is a folder in `mods-waterbugs` (or in a `-modsdir`); the page ships it beside the game and starts
 it with the fixes on (Water Bugs is out of `BYOPOP_WEB_NO_MODS` in `cmake/ByopopWeb.cmake`, shared commit `29f77e35`, and the

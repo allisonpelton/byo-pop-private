@@ -263,6 +263,8 @@ public:
 	void SetGameRunning(bool isRunning) { mGameRunning = isRunning; }
 
 private:
+	ModManager();	// attaches the mod framework as the front end of the game's options (platform/GameOptions.h)
+
 	struct ModData;
 	struct SettingsFile;
 	struct DesiredView;
