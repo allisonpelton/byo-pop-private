@@ -34,7 +34,7 @@ using namespace Sexy;
 
 WinDMApp* Sexy::gApp = nullptr;   // 0x67ccd8
 
-// 0x5e1b49
+// 0x5e1b49, 0x5dbac6 (BackdropColors' constructor, run for each of the 50 entries: both colors white, here the loop below)
 WinDMApp::WinDMApp()
 {
 	gApp = this;

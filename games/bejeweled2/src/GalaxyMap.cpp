@@ -520,7 +520,8 @@ void GalaxyMap::Draw(Graphics* g)
 	} while (aRowY < 0x17b);
 }
 
-// 0x5bc1c9: the gems and the names of a puzzle, for the panel
+// 0x5bc1c9: the gems and the names of a puzzle, for the panel. 0x5bdddd (the puzzle n's moon: the planet n / 5, its moon
+// n % 5) is written inline in the first lookup
 void GalaxyMap::LoadPuzzleData(int thePuzzle)
 {
 	GalaxyParser* aGalaxy = mApp->mGalaxyParser;

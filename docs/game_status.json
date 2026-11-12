@@ -461,10 +461,11 @@
         "registration-out",
         "identical-look",
         "fixes-mod",
-        "site-features"
+        "site-features",
+        "coverage"
       ],
       "na": [],
-      "now": "coverage",
+      "now": "performance",
       "note": ""
     },
     "venice": {

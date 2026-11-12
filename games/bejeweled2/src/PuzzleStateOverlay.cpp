@@ -253,6 +253,12 @@ void PuzzleStateOverlay::DrawBack(Graphics* g)
 	g->DrawString(mPlanetName, aX, aY);
 }
 
+// 0x5d1b49: the dome's button clicks when it goes down (the same click as the dialogs' buttons)
+void PuzzleStateOverlay::ButtonPress(int theId)
+{
+	mApp->PlaySample(SOUND_CLICK_DIALOG);
+}
+
 // 0x5d1b5d: the dome's button opens the galaxy map
 void PuzzleStateOverlay::ButtonDepress(int theId)
 {
@@ -570,7 +576,8 @@ void PuzzleStateOverlay::DrawFront(Graphics* g)
 	}
 }
 
-// 0x5d2a83: draws the thumbnail of each pod's puzzle (the gems in their colours, on a grid of 8 by 8)
+// 0x5d2a83: draws the thumbnail of each pod's puzzle (the gems in their colours, on a grid of 8 by 8). 0x5bdddd (the puzzle
+// n's moon: the planet n / 5, its moon n % 5) is written inline in the lookup of each pod's file
 void PuzzleStateOverlay::GenerateThumbnails()
 {
 	bool aSmall = gApp->mWidth == 640;
