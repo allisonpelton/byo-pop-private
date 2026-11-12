@@ -6,6 +6,7 @@
 // updates runs one pass of the original's main loop (GameFrame: the game steps once for each millisecond passed),
 // which draws into the engine's 800x600 16-bit screen, and the widget presents that screen.
 
+#include "R64.h"
 #include "SexyAppBase.h"
 #include "Widget.h"
 
@@ -22,11 +23,23 @@ class WaterBugsWidget : public Widget
 public:
 	MemoryImage* mScreenImage;
 
+	// The screen as the image was last widened from it, and what differs now: blocks (CHANGE_BLOCK pixels square) and
+	// the rectangles that join them
+	static constexpr int CHANGE_BLOCK = 16;
+	static constexpr int CHANGE_GAP = 2;
+	static constexpr int CHANGE_COLUMNS = (r64::SCREEN_WIDTH + CHANGE_BLOCK - 1) / CHANGE_BLOCK;
+	static constexpr int CHANGE_ROWS = (r64::SCREEN_HEIGHT + CHANGE_BLOCK - 1) / CHANGE_BLOCK;
+	std::vector<uint16_t> mCopiedScreen;
+	uint8_t mChangedBlocks[CHANGE_ROWS][CHANGE_COLUMNS];
+	std::vector<Rect> mChangedRects;
+
 	WaterBugsWidget();
 	virtual ~WaterBugsWidget();
 
 	void Update() override;
 	void Draw(Graphics* g) override;
+	void FindChangedBlocks();
+	void CollectChangedRects();
 	void KeyDown(KeyCode theKey) override;
 	void KeyUp(KeyCode theKey) override;
 	void MouseMove(int x, int y) override;
@@ -43,11 +56,9 @@ public:
 	bool mGameEnded;
 	bool mApplyingGameMode;  // SwitchScreenMode is the game's own request (r64 SetScreenMode)
 
-	// The engine's screen: 800x600 RGB565, and the part of it presented since the widget last copied it
+	// The engine's screen: 800x600 RGB565, and whether it was presented since the widget last copied it
 	std::vector<uint16_t> mScreen;
 	bool mPresented;
-	bool mWholeScreen;
-	int mDirtyLeft, mDirtyTop, mDirtyRight, mDirtyBottom;
 	int mMouseX, mMouseY;
 
 	WaterBugsApp();
@@ -67,7 +78,6 @@ public:
 	// One pass of the original's main loop
 	void RunFrame();
 	// The engine's requests (WaterBugsApp.cpp's SysHost)
-	void AddUpdateRect(int x, int y, int theWidth, int theHeight);
 	void Present();
 	void SetGameScreenMode(bool theFullscreen);
 	void WarpMouse(int x, int y);
