@@ -165,7 +165,12 @@ holds the rules every session follows; this file does not repeat them.
     pixels (`-windowscale=1`), and its log's display line is checked ("display: client WxH px, logical WxH, render
     scale N, windowed|full screen, renderer <name>", logged when the window is made and at each size or mode change;
     docs/TEST_COMMANDS.md, "The window line"). The default window's cost is measured as well, beside it, since that
-    is what a player gets. Where a session needs to know which part of a frame costs what, `-cyclesplit` in the port
+    is what a player gets. The default stays twice the game's size where it fits (the user, 2026-11-12: "I want the 2x
+    default"). Windows enlarges a window only when the desktop's scale is above 100% (the user's 4K desktop is at 100%),
+    so the port does the 2x itself: the surface presenter repeats each pixel in the copy it makes anyway, and a
+    GPU-drawn port's graphics card scales; neither costs much. The exception is Bejeweled 2's software mode, where SDL's
+    software renderer scales the whole frame each frame (48.5% of a core against the original's 9.4%): it takes the
+    software screen (SoftwareScreenDisplay, Dynomite's) once that is on the trunk. Where a session needs to know which part of a frame costs what, `-cyclesplit` in the port
     and `origrun --count` in the original split update, draw and present on both sides (docs/TEST_COMMANDS.md,
     "Picking the functions"); per-update figures compare, per-call ones do not, since a port presents in step with
     the display and an original's Blt does not wait (BookWorm, 2026-11-12).
