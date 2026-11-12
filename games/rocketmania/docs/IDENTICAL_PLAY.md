@@ -220,6 +220,44 @@ would be taken when that function returns after the counter has read N. A hook o
 update N has run" but not "has been drawn".
 <!-- /private -->
 
+**Web.** The web build (`TARGET=rocketmania tools/build.sh web`, run under Node by `games/bejeweled/tools/verify/wasmrun.js`) played the
+tours u2, t1 and t3 to t7 as the native port did, with a shot at every update of each window (`tools/shots/bestweb.sh <tour>`, the web
+twin of `best.sh`; `RM_REG` sets the emulated registry the same way), and each tour's best frames went through shotdiff against the original's
+shots, captured again for this check. 377 pairs: 136 match, 221 faint, 20 differ, against the native port's 136, 220 and 21 on the same
+tours; every tour's counts are the native one's (t6 has one faint box more and one differing box fewer). The boxes that differ are the
+ones the native port has (the board's shake, the column's jitter, particles; the two that the best-frame choice passed over match at the
+shot's own update in the web build as well). A web frame against the native port's own differs only by the sub-pixel edges of the head and the
+rotated tiles, as in phase one.
+
+**Hint flags.** The original keeps one flag for each hint (`HintsDisabledFlag0` to `7`, the "don't show this again" box of each hint
+dialog) and the Options box that disables hints and tooltips (`HintsDisabled`). The tours so far ran with all of them clear, so each hint dialog
+was shown. Two runs set them: the tour hf1 (a bot's three games, one of each mode, with all eight flags set: no hint dialog comes up, the
+games start at once) went through the sandbox's registry preset (`tools/shots/hf1.reg`, `orig.sh hf1 900 --reg ...`) and through the port's
+`RM_REG`: 62 pairs, 13 match, 44 faint, 5 differ, and the five are a firework burst, three explosion flames and the board's shake with its
+one-pixel shift (the pause shot of a strategy game). The Options dialog with `HintsDisabled` set (tour o1, `hf2.reg`) shows the box ticked in
+both, with the same texts, boxes and sliders, and differs only by the More Games row, as in every o1 run.
+
+**Real input.** `driver/play.py` played three whole games (arcade, classic, strategy) through posted SDL events in each of four
+  settings: windowed and full screen (Alt+Enter), each in 2D (`Is3D=0`) and in 3D; all four ended at the menu after the game over
+  flow, through every hint dialog. On the web, the page check's own run and phase one's driver run (`?player=1&silent=1&driver=move`)
+  play through DOM events.
+
+**Focus in full screen.** `play.py --full` puts the window in full screen with Alt+Enter, and in the middle of each game sends a
+focus loss and a regain: the game pauses (paused 1 after the loss) and goes on (0 after the regain), and all three games ended
+normally.
+
+<!-- private -->
+**What origrun would need to hold this original at an update** (spec for the shared tool). This build of the framework has no
+`mUpdateAppState` and no pending-draw flag: the byte at app+0x45a (0x4f68ba) is the "loaded" flag the loading screen waits for
+(set once, 1 for good), and app+0x459 is its "load started" flag, so `--pending-draw` and `--draw-empty` cannot be given. The
+update step is the function at 0x469593 (the counter at app+0x3f0 = 0x4f6850 is incremented at 0x46966f, after which the step
+calls 0x4302eb and ends with a jump to 0x458676); its vtable slot is at 0x4c7c38 (slot of the next function, 0x4696a7, at
+0x4c7c48). What origrun needs for a shot that shows update N is the address of the function that draws a frame to the screen (the
+caller of the drawing after an update, not found: nothing calls 0x469593 directly, it is virtual): with its address, the shot
+would be taken when that function returns after the counter has read N. A hook on the instruction after 0x46966f would give "the
+update N has run" but not "has been drawn".
+<!-- /private -->
+
 **Web.** The web build under Node played the same tours as the native one (the log, and its shots compared with the native port's):
 the only differences are sub-pixel edges of rotated tiles and of the head, which Emscripten's software drawing and the native build
 draw a fraction apart. Not chased.
@@ -248,12 +286,8 @@ fixes mod yet and nothing is listed under "Fix candidates".
 ## Not done, and what remains
 
 - **3D screens against the original.** The original in Windows Sandbox has no GPU, so every screen of it was compared in 2D (`Is3D=0`
-  in both). The 3D game's screens are checked by the page check and by real-input play in 3D, not pixel by pixel; a comparison needs
+  in both). The 3D game's screens are checked by the page check and by real-input play in 3D, not pixel by pixel (the sandbox run with a virtual GPU is planned for the night of 2026-11-11); a comparison needs
   `orig.sh ... --sandbox-vgpu`, allowed only between 22:00 and 08:00.
-- **The hint flags.** The original's registry has some hint flags set, the port starts with all clear; the bot clicks every hint
-  dialog it sees, in both programs, and the results were the same, but a run with different hint flags was not compared.
-- **The web build's screens.** The web build under Node played the tours (above, "Web"), and the page check and a real-input run
-  passed; its shots were not compared with the original again after this phase's fixes.
 - **The original's links.** The More Games button is out of the port, as the rule of 2026-11-07 asks; the original's own link buttons are never
   clicked.
 - **After this step** (CLAUDE.md's order): the fixes mod (no candidates so far), the coverage check, the performance pass, taking out code
