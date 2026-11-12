@@ -439,11 +439,12 @@
         "performance",
         "unneeded-code",
         "readability",
-        "site-features"
+        "site-features",
+        "collection"
       ],
       "na": [],
-      "now": "collection",
-      "note": "Collection check under way (the game is in the Collection)"
+      "now": null,
+      "note": ""
     },
     "bonnies": {
       "title": "Bonnie's Bookstore Deluxe",
