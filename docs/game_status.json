@@ -30,6 +30,10 @@
       "label": "Performance"
     },
     {
+      "id": "lite-mod",
+      "label": "Lite mod"
+    },
+    {
       "id": "unneeded-code",
       "label": "Unneeded code"
     },

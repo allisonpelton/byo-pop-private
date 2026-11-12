@@ -65,7 +65,8 @@ holds the rules every session follows; this file does not repeat them.
 - **Order of the work on the merged games (the user, 2026-11-01, 2026-11-07, 2026-11-08):** each game is taken
   through CLAUDE.md's steps ("Order of the work", "Done means identical"): the user's faults and anything that makes it
   hard to test; phase one, plays identical; phase two, looks identical, with registration and every button that leads
-  out of the game removed; its fixes mod; the coverage check; the performance pass; the other code it does not need
+  out of the game removed; its fixes mod; the coverage check; the performance pass; its lite mod; the other code it
+  does not need
   taken out; the readability pass; for a game ported only from its Steam copy, the check against its PopCap Game
   Collection version (the user's ISO in their Downloads folder), its build working with that version's files too (also
   for a game ported from another copy when the Collection's is another build: BookWorm's and Word Harmony's Collection
@@ -126,7 +127,9 @@ holds the rules every session follows; this file does not repeat them.
   processes run. Then the session speeds up what the profile shows, natively and on the web: how the port works
   changes, never what it does, proved by the frozen baseline. One that changes what the player sees is a toggle in the
   fixes mod when it keeps the original's look and only stops wasting time, otherwise a mod of its own that starts off
-  (like Bejeweled's `lean`). No threads. A session may speed up its own port at any time under these rules ("Sessions
+  (like Bejeweled's `lean`). One that computes faster but may play differently is listed under "Lite candidates" for
+  the lite mod (`docs/MOD_ROADMAP.md`, "The lite mod"). No threads. A session may speed up its own port at any time
+  under these rules ("Sessions
   should be allowed to improve performance early on so they can test with -fast and run even faster", 2026-11-08).
   **The target (the user, 2026-11-11):** "I understand why our framework increases RAM usage on every game. Is there
   an equivalent justification for some games being worse on CPU? If not, that should be an enforced target." There is
