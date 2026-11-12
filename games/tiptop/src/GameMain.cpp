@@ -353,7 +353,7 @@ bool GameFrame()
 		Dispatch(MSG_CHAR, aChar, 0);
 	uint16_t x, y;
 	lowos::GetMousePos(&x, &y);
-	if ((x < 0x280) && (y < 0x1e0))
+	if ((x < GAME_WIDTH) && (y < GAME_HEIGHT))
 	{
 		if ((x != gLastMouseX) || (y != gLastMouseY))
 		{

@@ -266,7 +266,8 @@ pane is hidden.
 
 **The scripted minute** is the same input in both: the title's link at update 1500, Time Trial on Normal from the main
 menu, then 150 shots at random points of the board, one every 40 updates, from update 2900; the minute is the 6000
-updates from there (the original's counter reached 8864 of them before origrun quit it, so its window is 59.8 s).
+updates from there (origrun quit the original at its update 8,864, just short of the minute's end at update 8,900, so
+its window is the 5,964 updates up to there, 59.8 s at 100 a second).
 
 | | peak working set | peak private bytes | processor time in the minute |
 |---|---|---|---|
@@ -276,7 +277,8 @@ updates from there (the original's counter reached 8864 of them before origrun q
 | port, run B | 92.0 MB | 91.8 MB | 4.6 s |
 
 The port uses well under half the original's processor time for the same minute of play, and holds about 28 MB more
-private memory.
+private memory. These processor times come from GetProcessTimes in single runs; "Processor time like for like" below
+measures them again and replaces them.
 
 ### The performance pass (2026-11-11)
 
@@ -312,6 +314,67 @@ menu, then twenty seconds of Endless played by the bot through `move` (54 shots)
 1.9 ms a frame and 19.4 ms at most (on a machine busy with other sessions' games), 9.4% of the real time. The wasm
 heap stands at 46 MB, 44 of it in use: the 149 images' pixels are 34.6 MB and the 41 sounds 3.8 MB, the same images kept
 after their upload as natively. The JavaScript heap is 12 MB. No error was logged. Nothing there needs speeding up.
+
+### Processor time like for like (2026-11-12)
+
+The target in `docs/COORDINATION.md` ("The target", the user, 2026-11-11) is that a port's processor time is at most
+its original's, measured like for like. The minute above was read from GetProcessTimes, which Windows charges by
+sampling at the 15.6 ms clock tick, in single runs with the original windowed. So it was measured again, by
+`tools/profile/pairs.sh` and `tools/profile/cycles.py`.
+
+**How the original paces itself.** Its main loop (SexyApp vf04, 0x4834b0) times its 100 updates a second with
+timeGetTime. When an update is due it makes one; otherwise it draws and sleeps out the rest of the 10 ms, so it never
+spins. Windowed, its redraw (0x469f50) blits to the primary surface with DDBLT_WAIT, which waits for the blitter, not
+for a vertical blank. So it draws after nearly every update, as it does in a window on a player's screen. In full screen
+its Flip waits for the vertical blank, so it draws at most 60 times a second on a 60 Hz screen. Full screen is a
+player's default (`properties/partner.xml` sets DefaultWindowed false), but it cannot run on rundesk's desktop. The game
+has its own way of pacing a window like that, though: with WaitForVSync set (the app's +0x559), its draw step (SexyApp
+vf06, 0x488920) sleeps out the screen's refresh period, 16 ms here. So the original was measured both ways, with no
+patch: windowed as the user's own settings have it, and windowed with WaitForVSync on in place of full screen.
+
+The original reads its settings from HKLM\SOFTWARE\PopCap\Dynomite, which a run on the host cannot write. The 60 Hz set
+therefore ran with origrun's `--reg-map popcap`, which opens those keys under HKCU, with the run's values set there. In
+those runs the original drew 3,329 to 3,451 times in the minute, against 5,809 to 5,997 windowed. The port presents
+with vsync whenever it is not running `-fast`, and its present waits on rundesk's desktop too. It drew 3,523 and 3,575
+times in the two runs where its counters were read (its app's mDrawCount and mUpdateCount, read from outside). Both
+sides made 6,000 updates in 60.0 s in every run.
+
+**The same play, and nothing more.** The input is the scripted minute's, in real time on both sides. The stretch is the
+6,000 updates from the first shot, and it ends 300 updates before the quit, so no shutdown is counted. The port reads
+its input from a `-script` and gets no `-commands`. Two `state` lines of that script mark the stretch's ends, and their
+replies are its only log lines. The original's update counter (0x530960) is read out of its memory every 10 ms. At each
+end the process's cycles are read with QueryProcessCycleTime, and each thread's with QueryThreadCycleTime.
+
+Sound runs on both sides and plays on neither. origrun's stand-in takes the original's DirectSound buffers, whose
+cursors run on the real clock, and BASS mixes into them (the original's second-busiest thread, very likely BASS's
+mixer, ran 1.6 to 2.3 G cycles in the minute, counted in the original's figure). The
+port's mixer runs on SDL's audio thread, pulled by the silent driver under rundesk (0.4 to 0.7 G, counted in the port's
+figure; its medians without it are given below).
+
+Each set's loop was pinned by `tools/pincore.py` to one performance core of its own, with the original and the port
+taking turns, five pairs a set. Other sessions ran three to eight game processes throughout. The second set was meant to
+be the 60 Hz one, but its WaitForVSync never reached the copy (the flag read 0), so it is a second windowed set.
+
+| Set | Original, G cycles in the minute | Port, G cycles in the minute | Medians |
+|---|---|---|---|
+| Original windowed (1) | 18.75, 20.48, 16.72, 19.06, 19.39 | 12.78, 7.37, 8.94, 9.14, 11.34 | 19.06 against 9.14 |
+| Original windowed (2) | 28.94, 21.92, 21.64, 26.09, 20.70 | 13.77, 20.75, 24.27, 16.34, 25.62 | 21.92 against 20.75 |
+| Original at 60 draws a second | 16.38, 13.34, 12.60, 12.16, 14.96 | 10.22, 15.87, 9.75, 11.19, 15.03 | 13.34 against 11.19 |
+
+Over the ten windowed pairs the medians are 20.59 G for the original and 13.27 for the port, 36% less. Against the
+original at 60 draws a second they are 13.34 and 11.19, 16% less. Without its sound thread the port's medians are
+12.73 and 10.74. So the port is under its original either way, and the README's row gives these medians.
+
+**The spread is the port's.** The original's main thread cost 14.8 to 26.2 G windowed and 10.0 to 13.6 G at 60 Hz,
+while the port's main thread ranged from 3.7 to 20.2 G over the same input. The port was over the original in two of
+the five 60 Hz pairs (by 2.5 G and by 0.07 G) and in two of the ten windowed ones. Its second-busiest thread, the
+graphics driver's by section 6's profile, stayed between 3.1 and 5.3 G. Bejeweled's sampler, over one real-time run,
+put 83% of the port's main thread in system calls and 7% in the exe. (A 32-bit sampler sees a WOW64 system call as the
+stub in ntdll; the game's own code is under 2%, as section 6 found.) What varies, then, is the framework's GPU path:
+it draws the whole screen each frame and presents it through the driver, on a GPU that other sessions' games were
+using at the same time. The original draws in software on rundesk's desktop (`docs/ORIGRUN.md`) and never touches the
+GPU. This is the driver cost of a presented frame that `docs/COORDINATION.md` already lists among the shared costs
+(SDL_RenderPresent). Nothing in Dynomite's own code is worth speeding up for it.
 
 ## 7. The PopCap Game Collection version (2026-11-11)
 

@@ -369,15 +369,17 @@ than a high-score list; Pixelus, which keeps no score list.
 
 ### The fixes mod on the site
 
-Every game is served with its fixes mod on (`docs/MOD_ROADMAP.md`, "The fixes mod"): one mod, `fixes`, each of whose
-settings toggles one fix, in `games/<game>/mods/fixes`. The web build copies it beside the page as `<game>-fixes/` and
-writes its `version` and file list into the page (`FIXES` in `web/shell.html`); a game in `BYOPOP_WEB_NO_MODS`, or
-without the folder, gets none. Before the game can start, the page puts the mod into `/persist/mods/fixes`, on, its
-fixes at their defaults, and notes it in the game's user dir, `site-fixes.json` (`{"installed": "<version>"}` or
-`{"removed": true}`). A newer shipped version replaces the mod's files and leaves `mods.json` and `mod-settings.json`
-alone, so the player's choices hold. A player who removes the mod never gets it back: a start that finds the note
-saying "installed" and no folder notes it as removed. `-DBYOPOP_WEB_TEST_FIXES=<game>` (set back to empty afterwards)
-gives a game with no fixes mod `tools/webtest/fixes`, a stand-in with one toggle that changes nothing.
+Every game is served improved (`docs/MOD_ROADMAP.md`, "What a player gets", the user, 2026-11-12): its fixes mod on, its
+lite mod on once it has one, and an Original switch, not built yet, that turns both off. The fixes mod
+(`docs/MOD_ROADMAP.md`, "The fixes mod") is one mod, `fixes`, each of whose settings toggles one fix, in
+`games/<game>/mods/fixes`. The web build copies it beside the page as `<game>-fixes/` and writes its `version` and file
+list into the page (`FIXES` in `web/shell.html`); a game in `BYOPOP_WEB_NO_MODS`, or without the folder, gets none.
+Before the game can start, the page puts the mod into `/persist/mods/fixes`, on, its fixes at their defaults, and notes
+it in the game's user dir, `site-fixes.json` (`{"installed": "<version>"}` or `{"removed": true}`). A newer shipped
+version replaces the mod's files and leaves `mods.json` and `mod-settings.json` alone, so the player's choices hold. A
+player who removes the mod never gets it back: a start that finds the note saying "installed" and no folder notes it as
+removed. `-DBYOPOP_WEB_TEST_FIXES=<game>` (set back to empty afterwards) gives a game with no fixes mod
+`tools/webtest/fixes`, a stand-in with one toggle that changes nothing.
 
 ### Site settings
 
