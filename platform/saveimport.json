@@ -235,6 +235,13 @@
         { "from": "#_#_D.sav", "to": "#_#_D.sav", "what": "a player's adventure stage in progress" }
       ]
     },
+    "venice": {
+      "folder": "Venice Deluxe",
+      "note": "Venice keeps its players, their progress and the high scores beside its exe; the registry holds only its two volumes, which are not brought over.",
+      "files": [
+        { "from": "userdata/profiles.dat", "to": "userdata/profiles.dat", "what": "the players, their progress and the high scores" }
+      ]
+    },
     "bonnies": {
       "folder": "Bonnie's Bookstore Deluxe",
       "note": "Bonnie's Bookstore keeps nothing in the registry; its saves are beside its exe.",

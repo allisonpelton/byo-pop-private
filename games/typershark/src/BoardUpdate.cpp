@@ -30,7 +30,7 @@
 #include "Bubble.h"
 #include "BonusText.h"
 #include "BackgroundFish.h"
-#include "Fixes.h"
+#include "platform/GameOptions.h"
 #include "HudBar.h"
 #include "StatusBar.h"
 #include "GameOverDialog.h"
@@ -639,7 +639,7 @@ void Board::Update()
 		// (the original's followers are gone in the tick they are made, so the fixes mod's schools count only the leaders, which
 		// keeps the number of fish that this test reads, and so the generator's draws, as the original's)
 		unsigned int aFishCount = mBackgroundFish.size();
-		if (FixEnabled("schools"))
+		if (Platform::FixOn("schools"))
 		{
 			aFishCount = 0;
 			for (unsigned int i = 0; i < mBackgroundFish.size(); i++)

@@ -678,6 +678,28 @@ public:
 	{
 	}
 
+	// port: with 3D on, the original's Direct3D 9 draws every texture with straight alpha (source alpha, one minus source alpha) and filters the
+	// texture's red, green, blue and alpha apart, so a texel under zero alpha still colours the edge of a stretched picture (the medal and the ten
+	// pictures of the end-of-adventure dialog: measured on the original's 3D capture from the picture and its alpha file, a straight bilinear sample
+	// at the pixel centres of the destination rectangle is within 0.2 levels, the premultiplied one 0.9). The framework's accelerated display
+	// uploads premultiplied textures when the renderer allows custom blend modes (DDInterface::SetupBlendModes), which blends the edge with
+	// the premultiplied colours instead. The straight modes are the framework's own fallback for renderers without them. They are used
+	// while 3D is on only: the 2D mode's pictures (the software paths of PopCap's 2D mode) equal the original's with the premultiplied ones,
+	// and a pixel in 3D's semi-transparent edge differs by a level from them. A switch of the Options box (mIs3D) takes effect at the next
+	// frame, which uploads the textures again in the new form.
+	virtual int Init(SDL_Window* theWindow, bool vsync) override
+	{
+		mBlendModesKnown = false;
+		mBlendIsStraight = false;
+		return DDInterface::Init(theWindow, vsync);
+	}
+
+	virtual void BeginFrame() override
+	{
+		SyncBlendModes();
+		DDInterface::BeginFrame();
+	}
+
 	virtual void StretchBlt(Image* theImage, const FRect& theDestRect, const Rect& theSrcRect, const Rect* theClipRect, const Color& theColor, int theDrawMode, bool fastStretch, bool mirror = false) override
 	{
 		mSoftwareStretch = !mIs3D;
@@ -695,6 +717,35 @@ public:
 		}
 		DDInterface::DrawLine(theStartX, theStartY, theEndX, theEndY, theColor, theDrawMode, antiAlias);
 	}
+
+private:
+	void SyncBlendModes()
+	{
+		if (mRenderer == NULL)
+			return;
+		if (!mBlendModesKnown)
+		{
+			// what SetupBlendModes found for this renderer
+			mBlendModesKnown = true;
+			mCanPremultiply = mPremultiplied;
+			mPremultipliedNormal = mBlendNormal;
+			mPremultipliedAdditive = mBlendAdditive;
+		}
+		if (!mCanPremultiply || (mIs3D == mBlendIsStraight))
+			return;
+		ReleaseTextures();
+		mBlendIsStraight = mIs3D;
+		mPremultiplied = !mBlendIsStraight;
+		mBlendNormal = mBlendIsStraight ? SDL_BLENDMODE_BLEND : mPremultipliedNormal;
+		mBlendAdditive = mBlendIsStraight ? SDL_BLENDMODE_ADD : mPremultipliedAdditive;
+		SDL_SetRenderDrawBlendMode(mRenderer, (SDL_BlendMode) mBlendNormal);
+	}
+
+	bool mBlendModesKnown = false;
+	bool mCanPremultiply = false;
+	bool mBlendIsStraight = false;
+	int mPremultipliedNormal = 0;
+	int mPremultipliedAdditive = 0;
 };
 
 DDInterface* WinWSApp::CreateDDInterface()

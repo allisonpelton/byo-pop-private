@@ -6,6 +6,7 @@
 #include "Board.h"
 #include "GameText.h"
 #include "ModFeatures.h"
+#include "platform/GameOptions.h"
 #include "Compat2004.h"
 #include "Graphics.h"
 #include "ImageFont.h"
@@ -292,7 +293,7 @@ NextLevelWidget::NextLevelWidget(NoahApp* theApp) :
 	mNextLink->SetFont(mApp->mFonts[FONT_SMALL]);
 	mNextLink->mUnderlineSize = 0;
 	mSeconds = (mApp->mBoard == NULL) ? 0 : (int) ((GameTickCount() - mApp->mBoard->mStartTick) / 1000);
-	if ((mApp->mBoard != NULL) && ModFixOn("steadyClock"))
+	if ((mApp->mBoard != NULL) && Platform::FixOn("steadyClock"))
 		mSeconds = (mApp->mUpdateCount - mApp->mBoard->mStartUpdate) / 100;     // fix steadyClock: 100 updates a second
 	int aKinds = (mApp->mGameMode == GAMEMODE_STRATEGY) ? 3 : 4;
 	mTip = CrtRand() % aKinds;
@@ -603,7 +604,7 @@ void HighScoreWidget::Update()
 	}
 	if (mFade < 255.0)
 	{
-		mFade += ModFixOn("quickScores") ? 3.0 : 1.0;      // fix quickScores: the fade-in of the game-over screen, and the wait for the name, takes a third of the time
+		mFade += Platform::FixOn("quickScores") ? 3.0 : 1.0;      // fix quickScores: the fade-in of the game-over screen, and the wait for the name, takes a third of the time
 		if (mFade > 255.0)
 			mFade = 255.0;
 		MarkDirty();

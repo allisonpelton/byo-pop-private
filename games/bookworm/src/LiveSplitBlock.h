@@ -45,9 +45,16 @@
 // script, tools/livesplit/lsprobe.py): seq -> s1, the 0xB0 bytes, seq -> s2; the copy counts when s1 == s2,
 // s1 is even and the copy's own seq is s1.
 
+#include "platform/AutosplitBlock.h"
+
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
+
+// The block itself is the shared AutosplitBlock (platform/AutosplitBlock.h, layout 2, 0xD0 bytes), which the observer writes
+// through its AutosplitWriter; this header is the layout-1 view of its first 0xB0 bytes, which the auto splitter, lsprobe and
+// the -livesplitlog line read. The asserts below tie the view to it: BookWorm's mode, skill and score key are the shared
+// block's gameOwn[0..3], [4..7] and [8..15], its four deaths are deaths[0..3], and scoreMax is displayScoreMax.
 
 // The magic as a brace list of bytes: the block's definition is the only place that spells it, so it is in
 // the exe once (tools/livesplit/check_asl_offsets.py checks it). Not a string literal, which would add a
@@ -128,6 +135,33 @@ static_assert(offsetof(LiveSplitBlockV1, scoreKey) == 0x88, "LiveSplit layout 1"
 static_assert(offsetof(LiveSplitBlockV1, qpc) == 0xA0, "LiveSplit layout 1");
 static_assert(offsetof(LiveSplitBlockV1, qpcFrequency) == 0xA8, "LiveSplit layout 1");
 static_assert(sizeof(LiveSplitBlockV1) == LIVESPLIT_SIZE_V1, "LiveSplit layout 1");
+
+// The view and the shared block agree
+static_assert(LIVESPLIT_SIZE_V1 == AUTOSPLIT_SIZE_V1, "LiveSplit view: size");
+static_assert(LIVESPLIT_GAME_ID == AUTOSPLIT_GAME_ID('B', 'W', 'D', 'X'), "LiveSplit view: game id");
+static_assert(offsetof(LiveSplitBlockV1, self) == offsetof(AutosplitBlock, self), "LiveSplit view: self");
+static_assert(offsetof(LiveSplitBlockV1, seq) == offsetof(AutosplitBlock, seq), "LiveSplit view: seq");
+static_assert(offsetof(LiveSplitBlockV1, flags) == offsetof(AutosplitBlock, flags), "LiveSplit view: flags");
+static_assert(offsetof(LiveSplitBlockV1, boardSerial) == offsetof(AutosplitBlock, boardSerial), "LiveSplit view: boardSerial");
+static_assert(offsetof(LiveSplitBlockV1, goCount) == offsetof(AutosplitBlock, goCount), "LiveSplit view: goCount");
+static_assert(offsetof(LiveSplitBlockV1, levelClears) == offsetof(AutosplitBlock, levelClears), "LiveSplit view: levelClears");
+static_assert(offsetof(LiveSplitBlockV1, gameOvers) == offsetof(AutosplitBlock, gameOvers), "LiveSplit view: gameOvers");
+static_assert(offsetof(LiveSplitBlockV1, deathsFire) == offsetof(AutosplitBlock, deaths), "LiveSplit view: deaths");
+static_assert(offsetof(LiveSplitBlockV1, tick) == offsetof(AutosplitBlock, tick), "LiveSplit view: tick");
+static_assert(offsetof(LiveSplitBlockV1, goTick) == offsetof(AutosplitBlock, goTick), "LiveSplit view: goTick");
+static_assert(offsetof(LiveSplitBlockV1, scoreMax) == offsetof(AutosplitBlock, displayScoreMax), "LiveSplit view: scoreMax");
+static_assert(offsetof(LiveSplitBlockV1, mode) == offsetof(AutosplitBlock, gameOwn) + 0, "LiveSplit view: mode");
+static_assert(offsetof(LiveSplitBlockV1, skill) == offsetof(AutosplitBlock, gameOwn) + 4, "LiveSplit view: skill");
+static_assert(offsetof(LiveSplitBlockV1, scoreKey) == offsetof(AutosplitBlock, gameOwn) + 8, "LiveSplit view: scoreKey");
+static_assert(offsetof(LiveSplitBlockV1, reserved) == offsetof(AutosplitBlock, gameOwn) + 16, "LiveSplit view: reserved");
+static_assert(offsetof(LiveSplitBlockV1, qpc) == offsetof(AutosplitBlock, qpc), "LiveSplit view: qpc");
+static_assert(offsetof(LiveSplitBlockV1, qpcFrequency) == offsetof(AutosplitBlock, qpcFrequency), "LiveSplit view: qpcFrequency");
+static_assert(LIVESPLIT_FLAG_RESUMED == AUTOSPLIT_FLAG_RESUMED, "LiveSplit view: flag");
+static_assert(LIVESPLIT_FLAG_VANILLA == AUTOSPLIT_FLAG_VANILLA, "LiveSplit view: flag");
+static_assert(LIVESPLIT_FLAG_CHOSEN_SEED == AUTOSPLIT_FLAG_CHOSEN_SEED, "LiveSplit view: flag");
+static_assert(LIVESPLIT_FLAG_REPLAY == AUTOSPLIT_FLAG_REPLAY, "LiveSplit view: flag");
+static_assert(LIVESPLIT_FLAG_GAME_OVER == AUTOSPLIT_FLAG_GAME_OVER, "LiveSplit view: flag");
+static_assert(LIVESPLIT_FLAG_PAUSED == AUTOSPLIT_FLAG_PAUSED, "LiveSplit view: flag");
 
 // One block as "key=value" fields in block order, for -livesplitlog and lsprobe.py's log
 // (tools/livesplit/lsprobe.py --check compares them). maskVolatile prints "*" for self and the clock, so the

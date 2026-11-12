@@ -2555,7 +2555,7 @@ unmodded play and the oracle are unchanged. Each answers on stdout with one line
 ## 16. Fix candidates and the fixes mod (2026-11-07)
 
 `games/bejeweled/mods/fixes` is the game's fixes mod (`docs/MOD_ROADMAP.md`, "The fixes mod"): the feature `features.fixes`
-(`GameFeatures::mFixes`) with one setting for each fix, all on by default, on the site by default and off when the player turns
+(read through `Platform::FixOn`) with one setting for each fix, all on by default, on the site by default and off when the player turns
 the mod off. It shares the high scores and the saved game with the original (no rules change, so no variant board and no v2
 save). The port without the mod is the original, and a replay never carries a fix: the verifier and the watch play with the
 features of the default configuration. `tools/fixes_test.sh` plays each fix with the mod off and on and checks that only the

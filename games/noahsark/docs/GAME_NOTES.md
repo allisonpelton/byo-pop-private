@@ -109,7 +109,7 @@ What the original does that the fixes mod (`mods/fixes`, below) mends, and what 
 ## 7. The fixes mod (`mods/fixes`)
 
 `mod.json` with the feature `fixes` and one bool setting for each fix (`steadyClock`, `snapWater`, `quickScores`), all on by default.
-The game reads them where it needs them (`ModFixOn` in `ModFeatures.cpp`); without the mod every fix is off and the game is the
+The game reads them where it needs them (`Platform::FixOn`); without the mod every fix is off and the game is the
 original. The site ships the mod beside the page and starts the game with it on (`cmake/ByopopWeb.cmake`); natively it is a folder
 in `mods-noahsark`, or in a `-modsdir`. It does not split the high scores (a feature with no rules or tunables). Checked by
 `tools/run_mod_tests.sh`: the bot's games with the mod on give the lines of the unmodded game; the water is one pixel nearer its level

@@ -4,7 +4,7 @@
 #include "AstroPopApp.h"
 #include "Checkbox.h"
 #include "DialogButton.h"
-#include "Fixes.h"
+#include "platform/GameOptions.h"
 #include "GameText.h"
 #include "Graphics.h"
 #include "Image.h"
@@ -171,7 +171,7 @@ int PowerDialog::GetPreferredHeight(int theWidth)
 void PowerDialog::ButtonPress(int theId)
 {
 	Dialog::ButtonPress(theId);
-	if (!FixEnabled("weaponBoxTick"))
+	if (!Platform::FixOn("weaponBoxTick"))
 		mApp->PlaySample(SOUND_1SEC_TIMER);
 }
 

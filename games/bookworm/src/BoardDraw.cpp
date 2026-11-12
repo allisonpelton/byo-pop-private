@@ -19,6 +19,7 @@
 #include "Image.h"
 #include "MemoryImage.h"
 #include "ModFeatures.h"
+#include "platform/GameOptions.h"
 #include "ModWords.h"
 #include "TileSymbols.h"
 #include "Font.h"
@@ -187,7 +188,7 @@ void Board::DrawScore(Graphics* g)
 		// port(mod): the fixes mod's "scoreGlow" multiplies first, so the score glows as it rises
 		g->SetFont(mApp->mFonts[FONT_GOLDSCOREHEATED]);
 		double aGlow = (mScoreGlow < 0.5) ? mScoreGlow : 0.5;
-		int anAlpha = FixEnabled("scoreGlow") ? (int)(aGlow * 255.0) : (int)aGlow * 255;
+		int anAlpha = Platform::FixOn("scoreGlow") ? (int)(aGlow * 255.0) : (int)aGlow * 255;
 		g->SetColor(Color(255, 255, 255, anAlpha));
 		g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
 		g->DrawString(aText, aX, 0x1f);

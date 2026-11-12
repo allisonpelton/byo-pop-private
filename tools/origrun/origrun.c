@@ -55,6 +55,7 @@
 #include "vclock.h"
 #include "cursor.h"
 #include "msgbox.h"
+#include "count.h"
 
 // --------------------------------------------------------------------------------------------------- util
 
@@ -1582,6 +1583,8 @@ static void do_burst(const char* name, int count, int interval_ms, int byUpdates
 // Run one timed inner command (the tail of "at N ...") while the window thread is held. Capture/clicks/keys
 // are posted; the thread is resumed right after. burst manages its own per-frame holds, so it is run unheld.
 static LPARAM xy(int,int);
+static void count_snapshot(const char* label);
+static void count_command(const char* label);
 static int parse_vk(const char*);
 static HWND child_at(HWND,int,int,POINT*);
 static void post_click(HWND,int,int,int);
@@ -1655,6 +1658,7 @@ static void exec_at(const char* inner)
 		}
 		logline("%s",line);
 		return; }
+	if (ieq(cmd,"count")){ char n[64]="count"; sscanf(rest,"%63s",n); count_command(n); return; }   // at <N> count <label>: a --count snapshot at this update, nothing held
 	HWND hw=resolve_window(0,NULL); if(!hw){ logline("at: no window for '%s'",inner); return; }
 	HANDLE th=open_window_thread(hw,THREAD_SUSPEND_RESUME|THREAD_GET_CONTEXT);
 	if (th && gInN) rpm_follow_window(hw);   // the gate reads the stack (on the virtual clock no counter read has opened the process yet)
@@ -1945,6 +1949,7 @@ static void run_script(DWORD pid, const char* scriptPath)
 			exec_at(inner);
 			continue;
 		}
+		if (ieq(cmd,"count")){ char n[64]="count"; sscanf(rest,"%63s",n); count_command(n); continue; }   // count <label>: a --count snapshot now
 		HWND hwnd = resolve_window(0,NULL);   // the live main window of any of our processes, fresh each command
 		if (!hwnd && !ieq(cmd,"quit")) { logline("(%s) no live window -- skipping",cmd); continue; }
 		if (ieq(cmd,"move")){ int x,y; if(sscanf(rest,"%d %d",&x,&y)==2) { cursor_note(hwnd,x,y); PostMessageA(hwnd,WM_MOUSEMOVE,gButtonsHeld,xy(x,y)); } }
@@ -1959,7 +1964,7 @@ static void run_script(DWORD pid, const char* scriptPath)
 		else if (ieq(cmd,"focus")){ post_focus(hwnd, ieq(rest,"regain")); logline("focus %s",rest); }
 		else if (ieq(cmd,"shot")){ char n[256]="shot"; sscanf(rest,"%255s",n); capture(hwnd,n); }
 		else if (post_edge(hwnd,cmd,rest)) logline("%s %s",cmd,rest);
-		else if (ieq(cmd,"quit")){ InterlockedExchange(&gMode3dFrozen,1); if(hwnd){ PostMessageA(hwnd,WM_SYSCOMMAND,SC_CLOSE,0); PostMessageA(hwnd,WM_CLOSE,0,0);} logline("quit (posted close)"); break; }
+		else if (ieq(cmd,"quit")){ count_snapshot("exit"); InterlockedExchange(&gMode3dFrozen,1); if(hwnd){ PostMessageA(hwnd,WM_SYSCOMMAND,SC_CLOSE,0); PostMessageA(hwnd,WM_CLOSE,0,0);} logline("quit (posted close)"); break; }
 		else logline("unknown script command: %s",cmd);
 	}
 	fclose(f);
@@ -2983,6 +2988,7 @@ typedef struct { HANDLE proc, thread, job; } Launched;
 // run puts them back, as with the patch list. An exe that imports dsound.dll already is left alone.
 static char gCoverageList[MAX_PATH];   // --coverage: the address list (absolute path)
 static char gCoverageOut[MAX_PATH];    // the hits, <run>\coverage.txt
+static const char* gImportBy = "--coverage";   // the option that has the exe import the stand-in (--coverage or --count), for the messages below
 static DWORD align_up(DWORD v, DWORD a) { return a ? (v + a - 1) / a * a : v; }
 static DWORD pe_rva_to_off(IMAGE_NT_HEADERS32* nt, DWORD rva)
 {
@@ -2997,12 +3003,12 @@ static DWORD pe_rva_to_off(IMAGE_NT_HEADERS32* nt, DWORD rva)
 static int coverage_import(const char* exe)
 {
 	size_t len=0; unsigned char* b=read_file(exe,&len);
-	if (!b) { logline("--coverage: cannot read %s", exe); return 0; }
+	if (!b) { logline("%s: cannot read %s", gImportBy, exe); return 0; }
 	IMAGE_DOS_HEADER* dos=(IMAGE_DOS_HEADER*)b;
 	IMAGE_NT_HEADERS32* nt = (len>=sizeof(*dos) && dos->e_magic==IMAGE_DOS_SIGNATURE && (size_t)dos->e_lfanew+sizeof(IMAGE_NT_HEADERS32)<=len)
 		? (IMAGE_NT_HEADERS32*)(b+dos->e_lfanew) : NULL;
 	if (!nt || nt->Signature!=IMAGE_NT_SIGNATURE || nt->OptionalHeader.Magic!=IMAGE_NT_OPTIONAL_HDR32_MAGIC) {
-		logline("--coverage: %s is not a 32-bit PE (a wrapped exe must be carved first, games.tsv)", exe); free(b); return 0;
+		logline("%s: %s is not a 32-bit PE (a wrapped exe must be carved first, games.tsv)", gImportBy, exe); free(b); return 0;
 	}
 	IMAGE_DATA_DIRECTORY* dd=nt->OptionalHeader.DataDirectory;
 	DWORD impOff = dd[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress ? pe_rva_to_off(nt,dd[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress) : 0;
@@ -3010,13 +3016,13 @@ static int coverage_import(const char* exe)
 	if (impOff) {
 		IMAGE_IMPORT_DESCRIPTOR* d=(IMAGE_IMPORT_DESCRIPTOR*)(b+impOff);
 		for (;;n++) {
-			if ((size_t)((unsigned char*)&d[n+1]-b)>len) { logline("--coverage: the import table of %s runs past the file", exe); free(b); return 0; }
+			if ((size_t)((unsigned char*)&d[n+1]-b)>len) { logline("%s: the import table of %s runs past the file", gImportBy, exe); free(b); return 0; }
 			if (d[n].Name==0 && d[n].FirstThunk==0) break;
 			DWORD no=pe_rva_to_off(nt,d[n].Name);
 			if (no && no<len && memchr(b+no,0,len-no) && ieq((const char*)b+no,"dsound.dll")) {
-				logline("--coverage: %s imports dsound.dll already, so the recorder loads with it", exe); free(b); return 1;
+				logline("%s: %s imports dsound.dll already, so the recorder loads with it", gImportBy, exe); free(b); return 1;
 			}
-			if (d[n].TimeDateStamp && !d[n].OriginalFirstThunk) { logline("--coverage: %s has bound imports without names; not changed", exe); free(b); return 0; }
+			if (d[n].TimeDateStamp && !d[n].OriginalFirstThunk) { logline("%s: %s has bound imports without names; not changed", gImportBy, exe); free(b); return 0; }
 		}
 	}
 	IMAGE_SECTION_HEADER* sec=IMAGE_FIRST_SECTION(nt);
@@ -3046,8 +3052,8 @@ static int coverage_import(const char* exe)
 			room=1; moved=1;
 		}
 	}
-	if (!room) { logline("--coverage: no room in %s for another section header; not changed", exe); free(b); return 0; }
-	if (moved) logline("--coverage: the bytes after %s's section table are in use, so its headers move up over the DOS stub", exe);
+	if (!room) { logline("%s: no room in %s for another section header; not changed", gImportBy, exe); free(b); return 0; }
+	if (moved) logline("%s: the bytes after %s's section table are in use, so its headers move up over the DOS stub", gImportBy, exe);
 
 	static const char kFunc[]="DirectSoundCreate", kDll[]="dsound.dll";
 	DWORD fa=nt->OptionalHeader.FileAlignment, sa=nt->OptionalHeader.SectionAlignment;
@@ -3084,9 +3090,9 @@ static int coverage_import(const char* exe)
 	DWORD w=0;
 	ok = h!=INVALID_HANDLE_VALUE && WriteFile(h,nb,newOff+rawSize,&w,NULL) && w==newOff+rawSize;
 	if (h!=INVALID_HANDLE_VALUE) CloseHandle(h);
-	if (ok) logline("--coverage: %s now imports the stand-in's DirectSoundCreate (section .orcov), so the recorder is in place before the game's first instruction; the next run puts the exe back%s",
+	if (ok) logline("%s: %s now imports the stand-in's DirectSoundCreate (section .orcov), so the recorder is in place before the game's first instruction; the next run puts the exe back%s", gImportBy,
 		exe, bound ? " (its bound imports are resolved again)" : "");
-	else logline("--coverage: could not write %s (err %lu)", exe, GetLastError());
+	else logline("%s: could not write %s (err %lu)", gImportBy, exe, GetLastError());
 	free(b); free(nb);
 	return ok;
 }
@@ -3105,6 +3111,229 @@ static void coverage_summary(void)
 	while (fgets(line,sizeof(line),f)) { if (line[0]=='#') { if (strstr(line,"ended normally")) ended=1; } else if (line[0]>' ') hits++; }
 	fclose(f);
 	logline("--coverage: %d functions reached, in %s%s", hits, gCoverageOut, ended ? "" : " (the game did not end normally; the file holds what it reached until then)");
+}
+
+// ------------------------------------------------------------------------------------- --count
+// The stand-in (count.c) counts the cycles the game's threads spend inside the functions of a list, each one's own time apart
+// from the counted functions it calls. This reads its block of shared memory, and the cycles of the process and every thread
+// from outside, at a script's "count <label>" and "at <N> count <label>" lines and once more, labelled "exit", just before the
+// script's "quit": one JSON line each in <run>\counts.jsonl, in the format the port's -cyclesplit writes, which tools/cyclesplit.py
+// reports (docs/ORIGRUN.md, "Counting cycles inside the original's functions"). Nothing is held: a function that is running when
+// the snapshot is taken is counted when it returns, so a stretch between two snapshots is off by a part of a call at each end.
+static char gCountList[MAX_PATH];                  // --count: the function list (absolute path)
+static char gCountOut[MAX_PATH];                   // the snapshots, <run>\counts.jsonl
+static char gCountMap[64];                         // the name of the block of shared memory
+static HANDLE gCountMapH = NULL;
+static const volatile CountShared* gCountView = NULL;
+static double gCountT0 = 0;                        // the first snapshot's time: the snapshots' wall_s counts from it
+typedef HRESULT (WINAPI* CountDescribeFn)(HANDLE, PWSTR*);
+typedef LONG (WINAPI* CountQueryThreadFn)(HANDLE, int, PVOID, ULONG, PULONG);
+
+typedef struct { uint32_t base, size; char name[48]; } CountMod;
+
+static int count_view(void)
+{
+	if (gCountView) return 1;
+	if (!gCountMapH) gCountMapH = OpenFileMappingA(FILE_MAP_READ | FILE_MAP_WRITE, FALSE, gCountMap);
+	if (!gCountMapH) return 0;
+	const volatile CountShared* v = (const volatile CountShared*)MapViewOfFile(gCountMapH, FILE_MAP_READ | FILE_MAP_WRITE, 0, 0, sizeof(CountShared));
+	if (!v) return 0;
+	if (v->magic != COUNT_MAGIC) { logline("--count: the block the stand-in made is not its own (magic %08lX)", (unsigned long)v->magic); UnmapViewOfFile((void*)v); return 0; }
+	gCountView = v;
+	if (v->error[0]) { char e[128]; memcpy(e, (const void*)v->error, sizeof(v->error)); e[sizeof(e) - 1] = 0; logline("--count: the stand-in could not put the counters in place: %s", e); }
+	else logline("--count: %lu functions counted; a thread cycle reading costs %lu cycles", (unsigned long)v->nfunc, (unsigned long)v->readCost);
+	return 1;
+}
+
+// The function list names each function by a label, its address and either its first instructions' bytes or len=N, their length
+// (tools/origrun/prologue.py finds it). The bytes are taken from the exe here, so a list kept in the repository holds addresses and
+// lengths and none of the game; the stand-in gets the resolved list (label, address, bytes) and checks it against the exe's memory.
+static int count_resolve_list(const char* exe, const char* list, const char* out)
+{
+	size_t elen=0, tl=0;
+	unsigned char* b=read_file(exe,&elen);
+	unsigned char* t=read_file(list,&tl);
+	if (!b || !t) { logline("--count: cannot read %s", b ? list : exe); free(b); free(t); return 0; }
+	t[tl]=0;
+	IMAGE_DOS_HEADER* dos=(IMAGE_DOS_HEADER*)b;
+	IMAGE_NT_HEADERS32* nt = (elen>=sizeof(*dos) && dos->e_magic==IMAGE_DOS_SIGNATURE && (size_t)dos->e_lfanew+sizeof(IMAGE_NT_HEADERS32)<=elen)
+		? (IMAGE_NT_HEADERS32*)(b+dos->e_lfanew) : NULL;
+	if (!nt || nt->Signature!=IMAGE_NT_SIGNATURE) { logline("--count: %s is not a PE", exe); free(b); free(t); return 0; }
+	FILE* f=fopen(out,"wb");
+	if (!f) { logline("--count: cannot write %s", out); free(b); free(t); return 0; }
+	int n=0, ok=1;
+	for (char* p=(char*)t; *p && ok; ) {
+		char* eol=p; while (*eol && *eol!='\n') eol++;
+		char saved=*eol; *eol=0;
+		char* hash=strchr(p,'#'); if (hash) *hash=0;
+		char label[40]; unsigned long addr=0; int o=0;
+		if (sscanf(p,"%39s %lx%n",label,&addr,&o)==2) {
+			const char* rest=p+o; while (*rest==' ' || *rest=='\t') rest++;
+			if (!strncmp(rest,"len=",4)) {
+				int len=atoi(rest+4);
+				DWORD off = addr>=nt->OptionalHeader.ImageBase ? pe_rva_to_off(nt,(DWORD)(addr-nt->OptionalHeader.ImageBase)) : 0;
+				if (len<5 || len>32 || !off || off+(DWORD)len>elen) { logline("--count: %s: len=%d at 0x%lx is not in %s", label, len, addr, exe); ok=0; }
+				else {
+					fprintf(f,"%s 0x%08lx",label,addr);
+					for (int k=0;k<len;k++) fprintf(f," %02x",b[off+k]);
+					fputc('\n',f);
+					n++;
+				}
+			} else { fprintf(f,"%s 0x%08lx %s\n",label,addr,rest); n++; }
+		}
+		*eol=saved; p=eol; if (*p) p++;
+	}
+	fclose(f); free(b); free(t);
+	if (ok && !n) { logline("--count: %s lists no function", list); ok=0; }
+	return ok;
+}
+
+// A copy of the block with every thread's numbers read between two equal, even sequence numbers.
+static int count_copy(CountShared* out)
+{
+	static CountShared b;
+	const volatile uint32_t* s = (const volatile uint32_t*)gCountView;
+	for (int tr = 0; tr < 500; tr++) {
+		uint32_t* d = (uint32_t*)out;
+		for (size_t i = 0; i < sizeof(CountShared) / 4; i++) d[i] = s[i];
+		uint32_t* e = (uint32_t*)&b;
+		for (size_t i = 0; i < sizeof(CountShared) / 4; i++) e[i] = s[i];
+		int ok = 1;
+		for (int i = 0; i < COUNT_MAXTHREAD; i++) if ((out->thread[i].seq & 1) || out->thread[i].seq != b.thread[i].seq) ok = 0;
+		if (ok) return 1;
+	}
+	return 0;
+}
+
+static int count_modules(HANDLE proc, CountMod* out, int cap)
+{
+	HMODULE mods[512];
+	DWORD need = 0;
+	int n = 0;
+	if (!EnumProcessModulesEx(proc, mods, sizeof(mods), &need, LIST_MODULES_ALL)) return 0;
+	int c = (int)(need / sizeof(HMODULE));
+	if (c > 512) c = 512;
+	for (int i = 0; i < c && n < cap; i++) {
+		MODULEINFO mi;
+		if (!GetModuleInformation(proc, mods[i], &mi, sizeof(mi))) continue;
+		out[n].base = (uint32_t)(uintptr_t)mi.lpBaseOfDll;
+		out[n].size = mi.SizeOfImage;
+		if (!GetModuleBaseNameA(proc, mods[i], out[n].name, sizeof(out[n].name))) lstrcpyA(out[n].name, "?");
+		for (char* q = out[n].name; *q; q++) if (*q >= 'A' && *q <= 'Z') *q += 32;
+		n++;
+	}
+	return n;
+}
+
+// JSON-safe text: printable ASCII without quotes and backslashes.
+static void count_clean(char* s)
+{
+	for (; *s; s++) if (*s < 32 || *s > 126 || *s == '"' || *s == '\\') *s = '?';
+}
+
+static void count_snapshot(const char* label)
+{
+	if (!gCountList[0]) return;
+	if (!count_view()) { logline("count %s: the game has made no counters (the stand-in loads with the exe; an exe that never loads it cannot be counted)", label); return; }
+	if (!gCountView->nfunc) return;
+	static CountShared sh;
+	if (!count_copy(&sh)) { logline("count %s: the counters kept changing while read", label); return; }
+	uint32_t upd = 0;
+	int hasUpdate = gCounterExpr[0] && read_counter(gCounterExpr, &upd);
+	EnterCriticalSection(&gRpmLock);
+	DWORD pid = 0;
+	resolve_window(0, &pid);
+	if (!pid) pid = gGamePidHint;
+	rpm_open(pid);
+	HANDLE proc = gGameProc;
+	LeaveCriticalSection(&gRpmLock);
+	if (!proc) { logline("count %s: no game process to read", label); return; }
+	pid = GetProcessId(proc);
+	if (!gCountT0) gCountT0 = qpc_ms();
+	double wall = (qpc_ms() - gCountT0) / 1000.0;
+	ULONG64 processCycles = 0;
+	QueryProcessCycleTime(proc, &processCycles);
+
+	// the parts, summed over the threads, and the thread that ran the most counted time (the game loop's)
+	uint64_t calls[COUNT_MAXFUNC] = {0}, cycles[COUNT_MAXFUNC] = {0}, readings = 0, readTsc = 0;
+	DWORD mainTid = 0;
+	uint64_t mainCounted = 0;
+	int counting = 0;
+	for (int i = 0; i < COUNT_MAXTHREAD; i++) {
+		if (!sh.thread[i].tid) continue;
+		uint64_t counted = 0;
+		readTsc += sh.thread[i].readTsc;
+		for (uint32_t k = 0; k < sh.nfunc; k++) { calls[k] += sh.thread[i].calls[k]; cycles[k] += sh.thread[i].cycles[k]; counted += sh.thread[i].cycles[k]; readings += 2 * sh.thread[i].calls[k]; }
+		if (counted) counting++;
+		if (counted >= mainCounted) { mainCounted = counted; mainTid = sh.thread[i].tid; }
+	}
+	static int warnedThreads = 0;
+	if (counting > 1 && !warnedThreads) { warnedThreads = 1; logline("--count: counted functions ran on %d threads; the loop's remainder is taken on the busiest one", counting); }
+
+	// every thread of the process, with its cycles
+	static CountMod mods[256];
+	int nmods = count_modules(proc, mods, 256);
+	static CountDescribeFn aDescribe;
+	static CountQueryThreadFn aQuery;
+	if (!aDescribe) aDescribe = (CountDescribeFn)GetProcAddress(GetModuleHandleA("kernel32.dll"), "GetThreadDescription");
+	if (!aQuery) aQuery = (CountQueryThreadFn)GetProcAddress(GetModuleHandleA("ntdll.dll"), "NtQueryInformationThread");
+	static char threads[16384], buf[24576];
+	int tn = 0, n = 0;
+	uint64_t mainCycles = 0;
+	HANDLE snap = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, 0);
+	if (snap != INVALID_HANDLE_VALUE) {
+		THREADENTRY32 te;
+		te.dwSize = sizeof(te);
+		for (BOOL more = Thread32First(snap, &te); more; more = Thread32Next(snap, &te)) {
+			if (te.th32OwnerProcessID != pid) continue;
+			HANDLE th = OpenThread(THREAD_QUERY_INFORMATION | THREAD_QUERY_LIMITED_INFORMATION, FALSE, te.th32ThreadID);
+			if (!th) continue;
+			ULONG64 c = 0;
+			if (QueryThreadCycleTime(th, &c)) {
+				char name[48] = "", start[96] = "";
+				if (aDescribe) {
+					PWSTR w = NULL;
+					if (SUCCEEDED(aDescribe(th, &w)) && w) { int k = 0; for (; w[k] && k < 40; k++) name[k] = w[k] < 128 ? (char)w[k] : '?'; name[k] = 0; LocalFree(w); }
+				}
+				PVOID sa = NULL;
+				if (aQuery && aQuery(th, 9, &sa, sizeof(sa), NULL) == 0) {
+					uint32_t a = (uint32_t)(uintptr_t)sa;
+					for (int k = 0; k < nmods; k++) if (a >= mods[k].base && a - mods[k].base < mods[k].size) { snprintf(start, sizeof(start), "%s+0x%x", mods[k].name, (unsigned)(a - mods[k].base)); break; }
+					if (!start[0]) snprintf(start, sizeof(start), "0x%x", (unsigned)a);
+				}
+				count_clean(name);
+				if (te.th32ThreadID == mainTid) mainCycles = c;   // the loop's thread is not in the list, as in the port's file
+				else if (tn < (int)sizeof(threads) - 300)
+					tn += snprintf(threads + tn, sizeof(threads) - tn, "%s{\"tid\":%lu,\"name\":\"%s\",\"start\":\"%s\",\"cycles\":%llu}", tn ? "," : "", (unsigned long)te.th32ThreadID, name, start, (unsigned long long)c);
+			}
+			CloseHandle(th);
+		}
+		CloseHandle(snap);
+	}
+	n += snprintf(buf + n, sizeof(buf) - n, "{\"label\":\"%s\",\"update\":%d,\"wall_s\":%.6f,\"process_cycles\":%llu,\"main_thread_id\":%lu,\"main_thread_cycles\":%llu,\"parts\":{",
+		label, hasUpdate ? (int)upd : -1, wall, (unsigned long long)processCycles, (unsigned long)mainTid, (unsigned long long)mainCycles);
+	for (uint32_t k = 0; k < sh.nfunc; k++)
+		n += snprintf(buf + n, sizeof(buf) - n, "%s\"%s\":{\"calls\":%llu,\"cycles\":%llu}", k ? "," : "", sh.name[k], (unsigned long long)calls[k], (unsigned long long)cycles[k]);
+	n += snprintf(buf + n, sizeof(buf) - n, "},\"counter\":{\"calls\":%llu,\"cycles_each\":%llu,\"cycles_in_a_row\":%lu},\"misses\":%lu,\"threads\":[%s]}\n",
+		(unsigned long long)readings, (unsigned long long)(readings ? readTsc / readings : sh.readCost), (unsigned long)sh.readCost, (unsigned long)sh.misses, threads);
+	FILE* f = fopen(gCountOut, "ab");
+	if (f) { fwrite(buf, 1, n, f); fclose(f); }
+	char parts[256];
+	int pn = 0;
+	parts[0] = 0;
+	for (uint32_t k = 0; k < sh.nfunc && pn < 200; k++) pn += snprintf(parts + pn, sizeof(parts) - pn, " %s=%llu(%llu calls)", sh.name[k], (unsigned long long)cycles[k], (unsigned long long)calls[k]);
+	logline("count %s: update %d, process %llu cycles, loop thread %llu:%s", label, hasUpdate ? (int)upd : -1, (unsigned long long)processCycles, (unsigned long long)mainCycles, parts);
+}
+
+// "count pause" and "count resume" stop and start the counting itself (the stand-in's jumps and stubs stay in): to see what counting
+// costs, a run alternates the two in blocks of updates and compares the blocks under the machine's own noise. Any other label is a snapshot.
+static void count_command(const char* label)
+{
+	if (strcmp(label, "pause") && strcmp(label, "resume")) { count_snapshot(label); return; }
+	if (!gCountList[0]) return;
+	if (!count_view()) { logline("count %s: the game has made no counters yet", label); return; }
+	((CountShared*)gCountView)->paused = label[0] == 'p';
+	logline("count %s", label);
 }
 
 static int launch_game(const char* rundesk, Launched* L)
@@ -4532,6 +4761,7 @@ int main(int argc, char** argv)
 			else { fprintf(stderr,"--msgbox takes show or hook, not %s\n",v); return 2; }
 		}
 		else if (ieq(argv[i],"--coverage")&&i+1<argc) { if (!GetFullPathNameA(argv[++i],MAX_PATH,gCoverageList,NULL)) gCoverageList[0]=0; }
+		else if (ieq(argv[i],"--count")&&i+1<argc) { if (!GetFullPathNameA(argv[++i],MAX_PATH,gCountList,NULL)) gCountList[0]=0; }
 		else if (ieq(argv[i],"--copy-only")) copyOnly=1;
 		else if (ieq(argv[i],"--fresh")) fresh=1;
 		else if (ieq(argv[i],"--stage-root")&&i+1<argc) stageRoot=argv[++i];
@@ -4572,6 +4802,11 @@ int main(int argc, char** argv)
 		return 2;
 	}
 	if (gCoverageList[0] && !file_exists(gCoverageList)) { fprintf(stderr, "origrun: --coverage: no address list %s\n", gCoverageList); return 2; }
+	if (gCountList[0] && (ieq(sound,"real") || sandboxHost)) {
+		fprintf(stderr, "origrun: --count lives in the sound stand-in on the host: not with --sound real or --sandbox\n");
+		return 2;
+	}
+	if (gCountList[0] && !file_exists(gCountList)) { fprintf(stderr, "origrun: --count: no function list %s\n", gCountList); return 2; }
 	if (!game && !exe && !sandboxProbe) die("need --game <name> or --exe <path>");
 	if (timeout>3600) timeout=3600;   // an hour; a run past about 4 minutes goes in its session's background, never in a subagent
 	if (!sandboxHost && !copyOnly && script_needs_sandbox(script)) {
@@ -4787,7 +5022,8 @@ int main(int argc, char** argv)
 		if (gMsgboxHook>0) { logline("--sound real: no message-box hook either (it lives in the stand-in): the game's boxes are shown, play their sound and are answered by the dialog watch"); gMsgboxHook=-1; }
 	}
 
-	if (gCoverageList[0] && (!gStandIn || !coverage_import(gExePath))) { logline("--coverage: the recorder cannot be put in place; the run stops"); return 2; }
+	gImportBy = gCoverageList[0] ? "--coverage" : "--count";
+	if ((gCoverageList[0] || gCountList[0]) && (!gStandIn || !coverage_import(gExePath))) { logline("%s: the stand-in cannot be put in place; the run stops", gImportBy); return 2; }
 
 	// --sandbox: everything is staged; the run itself, its registry and its shots happen inside Windows Sandbox.
 	if (sandboxHost) return sandbox_host_run(selfDir, script, timeout, sound, key3d, sandboxVgpu, sandboxWait, 0);
@@ -4802,6 +5038,16 @@ int main(int argc, char** argv)
 		SetEnvironmentVariableA("ORIGRUN_COVERAGE_OUT",gCoverageOut);
 		logline("--coverage: the stand-in watches the functions %s lists and writes each one the game reaches to %s", gCoverageList, gCoverageOut);
 	} else { SetEnvironmentVariableA("ORIGRUN_COVERAGE",NULL); SetEnvironmentVariableA("ORIGRUN_COVERAGE_OUT",NULL); }
+	if (gCountList[0]) {
+		joinp(gCountOut,gRunDir,"counts.jsonl");
+		DeleteFileA(gCountOut);
+		wsprintfA(gCountMap,"Local\\origrun_count_%lu_%lu",GetCurrentProcessId(),GetTickCount());
+		char resolved[MAX_PATH]; joinp(resolved,gRunDir,"count-list.txt");
+		if (!count_resolve_list(gExePath,gCountList,resolved)) return 2;
+		SetEnvironmentVariableA("ORIGRUN_COUNT",resolved);
+		SetEnvironmentVariableA("ORIGRUN_COUNT_MAP",gCountMap);
+		logline("--count: the stand-in counts the cycles in the functions %s lists; the script's count lines and its quit write the snapshots to %s", gCountList, gCountOut);
+	} else { SetEnvironmentVariableA("ORIGRUN_COUNT",NULL); SetEnvironmentVariableA("ORIGRUN_COUNT_MAP",NULL); }
 	if (script) load_msgbox_rules(script);   // before the message-box hook's block is made, and before any dialog can appear
 	clock_env();
 

@@ -122,7 +122,7 @@ int main(int argc, char** argv)
 	Platform::RestoreUserDataBackup(userDir);
 	Platform::VFS::Get().SetBaseDir(gameDir);
 	Platform::VFS::Get().SetUserDir(userDir);
-	// port(mod): the mods (docs/MOD_MENU.md); Twist reads only its fixes mod's toggles (ModFeatures.h)
+	// port(mod): the mods (docs/MOD_MENU.md); Twist reads only its fixes mod's toggles (Platform::FixOn)
 	Platform::MakeDirs(modsDir);
 	Platform::ModManager::Get().SetModsDir(modsDir);
 	if (!HasFlag(argc, argv, "nomods"))

@@ -261,7 +261,21 @@ Every flagged box was judged:
   one pixel too long, in the tab strip's divider and in the typing tutor's lines. `TyperSharkDisplay`
   (`WinWSApp.cpp`) overrides `DrawLine` for a 3D screen: a horizontal or vertical line of more than one pixel stops one short, the other lines are as
   they were. After it every box of those lines is equal; with 3D off nothing changed.
-- *Faint, not fixed* (listed under Oddities): the sea's leftmost pixel column and the 3D picture's colours, below.
+- *Faint, not fixed* (listed under Oddities): the 3D picture's colours, below. (The sea's leftmost pixel column was listed here too; it was the
+  port's render scale, not the drawing, see the next paragraph.)
+
+*Found with the medal screens, 2026-11-12: two errors in the comparison, one of the port.* The tours above ran the port at the render scale its
+window gave it, 2, where a player's windowed 640 by 480 game renders at 1; a 3D picture drawn at 2 and averaged down is a little blurred, and it
+made the sea's leftmost column up to 55 levels off. Every 3D run now passes `-renderscale=1`. And the port's 3D blend differed from the
+original's: the original's Direct3D 9 filters a texture's colours and alpha apart (straight alpha), where the shared display uploads premultiplied
+textures, which moved the edge of every picture with transparent texels (the medal and the ten pictures by up to 44 levels). `TyperSharkDisplay`
+now uses the straight modes while 3D is on and the premultiplied ones while it is off (`GAME_NOTES.md`, section 16, has the measurement). The 3D
+tours were run again with the new exe at scale 1 and the original on the desktop again: the board paused at update 500 (3 pairs, none differing,
+faint only: the status bar's meter edge, 250 pixels, up to 25 levels; the sea's column 0 now differs by at most 3 levels, the sea by at most 3, 1 on average);
+tour M (98 pairs: 82 equal, 16 faint, none visible; a first run of it had its hover frames wrong because a window of another program overlapped the
+game and the original took the mouse for gone, so it was run again); tour W, the running board (20 pairs, 4 equal, 1 faint, 15 differ: the
+sharks' tails and bubbles at another sub-update phase, as before; the same tour with the original in 2D on the desktop has 17 differing pairs). The 2D
+tours do not change: the 2D dialog tour (48 shots) is pixel for pixel the same with the exe before and after.
 
 **Not compared in 3D:** the abyss and bonus levels, an idle game and the boards after a pause and a resume (the real clock again), and the
 original's single-precision rounding of x87 code in 3D (Twist found it in its own comparison; nothing in this game's pictures showed it). The
@@ -288,7 +302,20 @@ levels; the dialog: 8801 pixels, up to 39). The port now does the same in 2D (`m
 four statistics tours (14 shots each) and the three dialog tours (49 shots each: the board, the map through the final scroll, the dialog at every
 update of its opening, the hover over both buttons, RETURN HOME and the statistics screen) equal the original's pixel for pixel, and so does KEEP GOING
 (40 shots, the first 600 updates of the endless level). The web build under Node (the same tours, native port's shots as the reference) differs by at most 3 levels
-everywhere, as in every web tour. Not compared: the two screens in 3D. `tools/check.sh typershark` is unchanged.
+everywhere, as in every web tour. `tools/check.sh typershark` is unchanged.
+
+*The two screens in 3D* (2026-11-12, on the desktop in the overnight window, `tools/phase2/medal3d.sh`; GAME_NOTES section 18 has the method): the
+statistics screen for players with 1, 5 and 12 finished adventures (14 shots each), the dialog for bronze, silver and gold (47, 48 and 48
+shots) and KEEP GOING (40 shots), each against the original in 3D on the desktop with the same profile, saved adventure and patched byte.
+Result at render scale 1 with the straight blend: the dialog box (the dialog, the medal and the ten pictures, from the shot where it is open on)
+equals the original except 10 or 11 pixels in one row of the medal's bottom, up to 57 levels; the statistics screens differ in no visible box,
+and their faint boxes are 12 pixels in one row of the medal, up to 53 levels. Those rows are where the original's texture pieces meet (below,
+Oddities). Every other flagged box is the real clock's: the map's scroll in the shots before the dialog (the whole map one to three pixels off
+at a shot: the ship, the arch and the bottom strip) and the sharks, diver and bubbles of KEEP GOING's board at updates 300 and 600, both of them
+also in the same tours with the original in 2D on the desktop (the same boxes), and the menu buttons' hover fade in the shot 4 updates after the
+statistics screen closes (tour M's `stats_closed_3` is the same kind). Before the two changes above the same tours showed the
+medal and the ten pictures up to 44 levels off in 6 boxes a shot (0.60% of the picture, now 0.003%), and the control build (the straight blend
+off) at scale 1 still showed about 790 pixels off in the dialog.
 
 ### Oddities (not chased)
 
@@ -296,13 +323,15 @@ everywhere, as in every web tour. Not compared: the two screens in 3D. `tools/ch
   and the port, and between two runs of the port when one took a shot an update earlier. To see it: the abyss tour's shots
   `012348_hint_25` and `016800_grid`. It would take finding what in the port's screen read-back touches that column; the pixels are
   below what shotdiff counts as visible.
-- *The sea's leftmost pixel column in 3D.* The port's column x = 0 (about 320 rows, one pixel wide) is up to 55 levels darker in blue than the
-  original's. To see it: the 3D tour W's shots or the pause tours' `paused_*_4` (318 of the 568 pixels over the tolerance in a paused frame, the
-  others being the status bar's meter edge). A candidate cause is the texture's addressing at u close to 0 in `DDInterface::DrawTrianglesTex` (the framework adds 0.5 to the
-  vertices; the original's device pads where the framework wraps), a shared-code change, and the column is one pixel wide.
-- *The 3D picture's colours.* Flat areas of the sea differ by 0.5 levels on average and at most 6 to 9 levels of 255 between the original in 3D
-  and the port in 3D, under the tolerance. The original's 3D picture is 2 to 3 levels brighter than its own 2D one, a sign of 16-bit textures
-  on its side; the cause is not proven and nothing is done.
+- *The original's texture pieces in 3D.* One row of the medal differs between the original and the port in 3D: 10 or 11 pixels of the dialog's (row
+  236) and 12 of the statistics screen's (row 402), up to 57 levels. The original's 3D stretch draws a tall picture as one quad for each piece of
+  its texture, with clamped edges, and the row where source row 128 lands is not blended across the seam; the port's one texture is. To see it:
+  the dialog shots from `dlg_865` on, or any statistics shot with a medal, of the 3D medal tours. It would take cutting each stretch at the
+  pieces' edges and drawing each piece from a copy of its own, for about ten pixels (`GAME_NOTES.md`, section 18).
+- *The 3D picture's colours.* Flat areas of the sea differ by 1 level on average and at most 3 levels of 255 in the paused board between the
+  original in 3D and the port in 3D, and by up to 7 in the map screen's sea, under the tolerance. The original's 3D picture is a little brighter
+  than its own 2D one, a sign of 16-bit textures on its side; the cause is not proven and nothing is done. (The sea's leftmost column, up to
+  55 levels off in the first 3D runs, was the port's render scale, not the drawing, and is gone: `GAME_NOTES.md`, section 16.)
 - *The custom cursor in a shot.* The original's capture holds the cursor the game draws itself when "Custom Cursors" is on; the
   port's shot does not. The menu tour turns the option off again after the options shots. A spec for a shot that includes the
   cursor is with the coordinator.
@@ -312,7 +341,7 @@ everywhere, as in every web tour. Not compared: the two screens in 3D. `tools/ch
 Each is without a visible effect and is listed with its reason in `GAME_NOTES.md`, section 5: the memory leaks fixed, loading in one
 go, the frame drawn whole (the two faint kinds above), the three fixes of phase 1 that mend a level that could not end, and the
 registration code that is gone.
-In 3D, the sea's leftmost column and the picture's colour offset above, and the line change of this section (the last pixel of a line),
+In 3D, the texture-piece row of the medal and the picture's colour offset above, and the line change of this section (the last pixel of a line),
 which is the original's own and without a visible effect.
 
 ### For the user's review

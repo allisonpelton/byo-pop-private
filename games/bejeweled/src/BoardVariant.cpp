@@ -18,6 +18,7 @@
 // - A fix for a mod's scoring tunables: the displayed score closes a large gap fast (RollScoreFast).
 #include "Board.h"
 #include "GameConfig.h"
+#include "platform/GameOptions.h"
 #include "WinDMApp.h"
 #include "ReplayRecorder.h"
 #include "StateCodec.h"
@@ -961,7 +962,7 @@ void Board::RollScoreFast()
 // refill. Only input is changed (a replay records the deselect and plays back the same with the fix off).
 bool Board::DropStaleSelection()
 {
-	if (mSelectedPiece == NULL || !gGameConfig.mFeatures.mFixes || !gGameConfig.mFeatures.mFixSelection)
+	if (mSelectedPiece == NULL || !Platform::FixOn("selection"))
 		return false;
 	int aRow = mSelectedPiece->mRow;
 	int aCol = mSelectedPiece->mCol;

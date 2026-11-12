@@ -211,7 +211,7 @@ var ByopopSplits = (function () {
 
   // ---- the timer ----
   function build() {
-    var opts = { keys: clone(DEFAULT_KEYS), compare: "pb", method: "rt", hotkeys: true };
+    var opts = { keys: clone(DEFAULT_KEYS), compare: "pb", method: "rt", hotkeys: true, autosplit: true };
     try { var so = JSON.parse(localStorage.getItem(OPT_KEY) || "null"); if (so) { Object.assign(opts, so); opts.keys = Object.assign(clone(DEFAULT_KEYS), so.keys || {}); } } catch (e) {}
     function keepOpts() { try { localStorage.setItem(OPT_KEY, JSON.stringify(opts)); } catch (e) {} }
 
@@ -358,6 +358,7 @@ var ByopopSplits = (function () {
       run.attempts++;
       saveRun(run);
       startTicking();
+      if (auto.d) auto.d.onStart();
     }
     function split() {
       if (att.phase === "idle") { start(); draw(); return; }
@@ -408,7 +409,11 @@ var ByopopSplits = (function () {
       var golds = [];
       ["rt", "gt"].forEach(function (k) { for (var i = 0; i < att.times.length; i++) if (isGold(i, k)) golds.push([i, k, segTime(att.times, i, k)]); });
       var pb = newPB();
-      function clear() { att = { phase: "idle", index: 0, times: [], t0: 0, pausedAt: 0, pausedFor: 0, gameWin: null, gameStep: 10, c0: 0, gtLast: null }; draw(); }
+      function clear() {
+        att = { phase: "idle", index: 0, times: [], t0: 0, pausedAt: 0, pausedFor: 0, gameWin: null, gameStep: 10, c0: 0, gtLast: null };
+        if (auto.d) auto.d.onReset();
+        draw();
+      }
       if (!golds.length && !pb) { clear(); return; }
       if (att.phase === "running") pause();
       asking = true;
@@ -425,6 +430,7 @@ var ByopopSplits = (function () {
     function setRun(r) {
       run = r;
       att = { phase: "idle", index: 0, times: [], t0: 0, pausedAt: 0, pausedFor: 0, gameWin: null, gameStep: 10, c0: 0, gtLast: null };
+      auto.d = null;
       draw();
     }
     function idleOnly() { return att.phase === "idle"; }
@@ -454,6 +460,35 @@ var ByopopSplits = (function () {
         d.focus = sel;
         d.show();
       });
+    }
+    // a game's split templates (web/autosplit.js): a set of splits named after the game's speedrun.com category, which its
+    // auto splitter starts, splits and resets; the stored splits of the same name, with their times, when there are some
+    function fileTemplate() {
+      var d = dialog(T("splits.template")), sel = make("select", "spl-pick"), all = [];
+      sel.size = 8;
+      Object.keys(ByopopAutosplit.games).forEach(function (id) {
+        var g = ByopopAutosplit.games[id];
+        g.templates.forEach(function (t) {
+          var o = make("option", null, g.name + " — " + t.category + " (" + t.sub + ")"); o.value = String(all.length); sel.appendChild(o);
+          all.push({ game: g.name, category: t.category + " - " + t.sub, segments: t.segments });
+        });
+      });
+      if (sel.options.length) sel.selectedIndex = 0;
+      d.body.appendChild(sel);
+      function pick() {
+        var t = all[+sel.value];
+        if (!t) return;
+        var r = { game: t.game, category: t.category, offset: 0, attempts: 0, segments: t.segments.map(function (n) { return segment(n); }) };
+        loadRun(runKey(r)).then(function (have) {
+          if (have) { delete have.key; r = have; }
+          setRun(r); saveRun(r); d.close();
+        });
+      }
+      sel.addEventListener("dblclick", pick);
+      d.button(T("splits.openbtn"), pick, true);
+      d.button(T("splits.cancel"), d.close);
+      d.focus = sel;
+      d.show();
     }
     function fileImport() {
       var inp = make("input"); inp.type = "file"; inp.accept = ".lss"; inp.hidden = true;
@@ -591,6 +626,7 @@ var ByopopSplits = (function () {
       { key: "splits.m_file", list: function () {
         var idle = idleOnly();
         return [{ label: T("splits.new"), fn: fileNew, disabled: !idle }, { label: T("splits.open") + "…", fn: fileOpen, disabled: !idle },
+                { label: T("splits.template") + "…", fn: fileTemplate, disabled: !idle },
                 { label: T("splits.save"), fn: function () { saveRun(run); } }, { rule: true },
                 { label: T("splits.import") + "…", fn: fileImport, disabled: !idle }, { label: T("splits.export") + "…", fn: fileExport }];
       } },
@@ -604,7 +640,8 @@ var ByopopSplits = (function () {
                 { rule: true }, { label: T("splits.reset"), key: kn("reset"), fn: reset, disabled: ph === "idle" }];
       } },
       { key: "splits.m_options", list: function () {
-        return [{ label: T("splits.hotkeys") + "…", fn: hotkeys }, { rule: true },
+        return [{ label: T("splits.hotkeys") + "…", fn: hotkeys },
+                { label: T("splits.autosplit"), checked: !!opts.autosplit, fn: function () { opts.autosplit = !opts.autosplit; keepOpts(); auto.d = null; } }, { rule: true },
                 { label: T("splits.cmp_pb"), checked: opts.compare === "pb", fn: function () { opts.compare = "pb"; keepOpts(); draw(); } },
                 { label: T("splits.cmp_best"), checked: opts.compare === "best", fn: function () { opts.compare = "best"; keepOpts(); draw(); } }, { rule: true },
                 { label: T("splits.rt"), checked: opts.method === "rt", fn: function () { opts.method = "rt"; keepOpts(); draw(); } },
@@ -634,6 +671,44 @@ var ByopopSplits = (function () {
       if (!ev.altKey || ev.ctrlKey || ev.metaKey || !ev.key || ev.key.length !== 1) return;
       for (var i = 0; i < MENUS.length; i++) if (T(MENUS[i].key).charAt(0).toLowerCase() === ev.key.toLowerCase()) { ev.preventDefault(); ev.stopPropagation(); openMenu(i); return; }
     });
+
+    // ---- the auto splitter (web/autosplit.js) ----
+    // While it is on, the game window in front (or, during a run, the window the run started in) is polled every 10 ms, as
+    // LiveSplit polls (refreshRate 100), when its game has an auto splitter and the splits are that game's (their game name its
+    // speedrun.com name). Its decisions go through the timer's own Start, Split and Reset, so a reset asks about new bests as
+    // the player's does. The game going away (its window closed or reloaded) is the script's exit.
+    var auto = { d: null, win: null, game: null, key: null };
+    var PHASE = { idle: "NotRunning", running: "Running", paused: "Paused", ended: "Ended" };
+    var autoTimer = {
+      phase: function () { return PHASE[att.phase]; },
+      index: function () { return att.phase === "idle" ? -1 : att.index; },
+      start: function () { if (att.phase === "idle") { start(); draw(); } },
+      split: function () { split(); },
+      reset: function () { reset(); }
+    };
+    function autoPoll() {
+      if (!opts.autosplit) { auto.d = null; return; }
+      var ph = att.phase, win = null, game = null;
+      if (auto.d && (ph === "running" || ph === "paused")) { win = auto.win; game = auto.game; }
+      else {
+        try { var f = ByopopApps.frontFrame(); win = f && f.win; game = ByopopApps.frontGame(); } catch (e) {}
+      }
+      var g = game && ByopopAutosplit.games[game];
+      if (!g || String(run.game).toLowerCase() !== g.name.toLowerCase()) { auto.d = null; return; }
+      var s = win && !win.closed ? ByopopAutosplit.sample(win, game) : null;
+      if (!s) {
+        // the run's game went away
+        if (auto.d && auto.win === win) { auto.d.exit(); auto.d = null; }
+        return;
+      }
+      var key = runKey(run) + "\u0000" + run.segments.map(function (x) { return x.name; }).join("\u0001");
+      if (!auto.d || auto.win !== win || auto.key !== key) {
+        auto.d = g.decider(autoTimer, { category: run.category, segments: run.segments.map(function (x) { return x.name; }) });
+        auto.win = win; auto.game = game; auto.key = key;
+      }
+      auto.d.poll(now(), s.snap);
+    }
+    setInterval(autoPoll, 10);
 
     // ---- the hotkeys, on this page and in every game window ----
     function onKey(ev) {

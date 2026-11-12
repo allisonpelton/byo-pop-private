@@ -1,7 +1,7 @@
 // port: the host for Water Bugs (see WaterBugsApp.h).
 
 #include "WaterBugsApp.h"
-#include "ModFeatures.h"
+#include "platform/GameOptions.h"
 #include "WBGlobals.h"
 #include "WBLevel.h"
 #include "testhooks/TestCommands.h"
@@ -88,7 +88,7 @@ public:
 
 	bool FixOn(const char* theFix) override
 	{
-		return Sexy::FixOn(theFix);
+		return Platform::FixOn(theFix);
 	}
 
 	// the site's "Always skip start-up logos", or -skiplogos (framework/WebSettings.h)
@@ -360,7 +360,7 @@ void WaterBugsApp::Init()
 	SexyAppBase::Init();
 	if (mShutdown)
 		return;
-	gSteadyClock = !mFastMode && Sexy::FixOn("steadyClock");	// a -fast run is steady already
+	gSteadyClock = !mFastMode && Platform::FixOn("steadyClock");	// a -fast run is steady already
 	r64::PixelFormat_Init(&gScreenFormat565, 16, 0xf800, 0x7e0, 0x1f);
 	r64::Sys_SetScreenFormat(&gScreenFormat565);
 	r64::Sys_SetHost(&gHost);

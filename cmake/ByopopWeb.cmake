@@ -28,7 +28,8 @@ set(BYOPOP_WEB_EXPORTED_FUNCTIONS _main _byopop_userdata_restore _byopop_mods_op
   _byopop_audio_mute _byopop_audio_muted _byopop_site_apply _byopop_site_tutorials _byopop_site_skiplogos _byopop_site_windowed _byopop_site_accel3d _byopop_mixer_gain
   _byopop_update_count _byopop_hold_updates_at _byopop_set_frame_budget _byopop_set_speed _byopop_speed _byopop_perf_json
   _byopop_music_song _byopop_music_view _byopop_music_row _byopop_music_used _byopop_music_names _byopop_music_mute _byopop_music_meter _byopop_music_seek)
-set(BYOPOP_WEB_RUNTIME_METHODS FS callMain ccall)
+# HEAPU8: the speedrun timer reads a game's auto splitter block from its memory (web/autosplit.js)
+set(BYOPOP_WEB_RUNTIME_METHODS FS callMain ccall HEAPU8)
 # the player-only test page's live command (framework/SexyAppBase.cpp, docs/TEST_COMMANDS.md "Sending them")
 list(APPEND BYOPOP_WEB_EXPORTED_FUNCTIONS _byopop_test_command)
 get_filename_component(BYOPOP_WEB_SHELL "${CMAKE_CURRENT_LIST_DIR}/../web/shell.html" ABSOLUTE)
@@ -58,7 +59,7 @@ set(BYOPOP_WEB_SHARED_JS logo.js cursors.js saver.js settingsicons.js settings.j
 # adding of games' files (web/addgames.js, with web/modpanel.js for its zip and pak readers, and import-games.js, each listed
 # game's page.js, which byopop_web_index() writes), and Desktop 95's soundboard (web/sounds.js, with its table web/soundboards.js),
 # copied next to index.html only
-set(BYOPOP_WEB_INDEX_JS localsoon.js players.js saves.js saveimport.js modpanel.js addgames.js setup.js music.js soundtracks.js sounds.js soundboards.js trophies.js gamepics.js splits.js deskapps.js phase.js library.js)
+set(BYOPOP_WEB_INDEX_JS localsoon.js players.js saves.js saveimport.js modpanel.js addgames.js setup.js music.js soundtracks.js sounds.js soundboards.js trophies.js gamepics.js autosplit.js splits.js deskapps.js phase.js library.js)
 # The listing page, build/web/index.html (made from web/index.html by byopop_web_index() at the end of this file): one
 # tile for each game in BYOPOP_WEB_FINISHED, in alphabetical order of TITLE (not this list's order; the page can sort by
 # release date instead), with a badge and the year of its release. The list is the coordinator's: the coordinator adds a

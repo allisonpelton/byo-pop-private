@@ -1600,3 +1600,52 @@ Collection's key, give the frozen screens of `tools/check.sh` (BT_MENU, BT_CLASS
 reported missing. The web build was not run on them: its files are the native run's, and the page's importer already takes
 the folder (`web/page.js` marks a game folder by `main.pak` and `BejeweledTwist.exe`, the names the Collection uses). The
 Collection's own exe was not run: it is the same code as the copy origrun runs.
+
+## Processor time like for like (2026-11-11)
+
+The target of `docs/COORDINATION.md` ("The target", the user, 2026-11-11): a port's processor time is at most its
+original's, over the same stretch of play, with the original paced as on a player's 60 Hz screen and sound counted the
+same way on both sides, measured by cycle counts. The README's earlier row (3.3 against 21.1 s a minute) was the main menu
+at rest ("Performance (native)"), and the pairs of "The performance pass" were read from GetProcessTimes, so both were
+measured again.
+
+**How the original paces itself.** An original that waits for a vertical blank spins on rundesk's desktop, where there is
+none, so TipTop's copy is patched to sleep 16 ms a pass. Twist's does not wait for one. Its SexyAppBase::Process
+(0x4a2cb0) runs in vsync-update mode only when the app's +0x5c0 is set, and on the hidden desktop it is 0 (origrun's
+`--watch "[0xe0b698]+0x5c0"`; the refresh rate at +0x5bc reads 60 and the frame time at +0x45c 10 ms). So it times its
+100 updates a second with Sleep (0x4a31da) and draws after each, and its windowed Redraw (DDInterface, 0x5069c0) polls
+the scan line and waits for the vertical blank only when the app's +0x5d0 is set, which is 0 too. On a player's screen
+it runs the same way, so the unpatched copy is already paced as it would be there. A trial patch that made the main loop
+(0x4a3240) sleep 16 ms a pass, as TipTop's does, halved the game's speed (the seeded game's score reached 4,250 after 30 s
+instead of 15), since Twist's loop makes one step of an update a pass: it was not used. The port waits for a vertical
+blank (vsync on outside `-fast`), as it does on a player's screen.
+
+**The same play, the same bot.** Both sides run the same seeded Classic game with `-autoplay=classic`, the original's own
+option (the string at 0x7f3bbc, parsed at 0x76350c), whose moves come from the board's FindMove (0x6c14fc). The port is a
+translation of that code, and the copy runs it unpatched, so neither side pays for a bot the other does not have. The
+port gets no `-commands` file (its only test input is a `-script` with one quit line), so the framework's live-command poll
+does not run. Sound: origrun's stand-in takes the original's DirectSound buffers, whose cursors run on the real clock, so
+BASS decodes and mixes into them as it would into a sound card's; the port's mixer is pulled at the device rate by SDL's
+silent driver under rundesk. Both mix and neither plays.
+
+**Measured** by `tools/profile/pairs.sh` (MODE=2d, then MODE=3d), the whole loop pinned by `tools/pincore.py` to one
+performance core of its own, five pairs in each mode, the original and the port alternating. Each process's cycles are
+read by `tools/profile/cyclemeter.py` (QueryProcessCycleTime, every thread's cycles including the threads that ended)
+every quarter second, and the figure is the cycles between 30 and 90 s of the process's life, a minute inside the game on
+both sides. 2D runs at the 768 art, windowed. In 3D the original runs in its own copy with dgVoodoo2's DDraw.dll and
+D3DImm.dll (origrun's `--dgvoodoo`) and its D3D9.dll, copied in because the game's 3D test asks Direct3D 9, which has no
+hardware on rundesk's desktop; origrun's check read 3D on in every run. The port runs with `-3d` (ANGLE on Direct3D 11).
+The machine was busy: four to seven other sessions' game processes ran beside every run.
+
+| Mode | Original, G cycles in the minute (five runs) | Port, G cycles in the minute (five runs) | Medians |
+|---|---|---|---|
+| 2D | 44.29, 43.88, 44.40, 41.40, 41.69 | 37.19, 39.21, 38.06, 36.57, 38.11 | 43.88 against 38.06 (13 % less) |
+| 3D | 44.88, 46.00, 44.66, 47.00, 44.10 | 28.97, 34.53, 31.50, 36.49, 40.42 | 44.88 against 34.53 (23 % less) |
+
+The port is under its original in both modes and in every pair, so the performance step
+stays closed. Over the whole run (about 104 s) the original's 2D runs took 73 to 79 G cycles and the port's 71 to 81 (three of
+the port's processes took 108 to 116 s to end, against 103 s). The 3D original's figure includes dgVoodoo's translation to Direct3D 11,
+which a player with a Direct3D 9 driver would not run; the port's includes ANGLE's to the same API.
+
+**Not measured again:** the menu at rest, and memory (the peaks in the README row are "The performance pass"'s medians,
+392 MB for the port and 186 MB for the original in the same game).

@@ -2780,9 +2780,6 @@ std::string GameFeatures::Text() const
 		aParts.push_back("gameStats");
 	if (mLean)
 		aParts.push_back(std::string("lean(") + (mLeanImages ? "images, " : "") + "frameRate " + IntText(mLeanFrameRate) + ")");
-	if (mFixes)
-		aParts.push_back(std::string("fixes(") + (mFixSelection ? "selection" : "") + ((mFixSelection && mFixResumeLook) ? ", " : "") +
-			(mFixResumeLook ? "resumeLook" : "") + ")");
 	std::string aText;
 	for (size_t i = 0; i < aParts.size(); i++)
 		aText += (i ? ", " : "") + aParts[i];
@@ -2843,10 +2840,7 @@ bool ParseFeature(int theFeature, const JsonValue& theValue, GameFeatures* theOu
 		theOut->mLeanFrameRate = 0;
 		break;
 	case FEATURE_FIXES:
-		// every fix on unless the object turns it off
-		theOut->mFixes = anOn;
-		theOut->mFixSelection = true;
-		theOut->mFixResumeLook = true;
+		// the fixes are read through Platform::FixOn; this feature only names them, so its members are checked and stored nowhere
 		break;
 	}
 	if (!theValue.IsObject())
@@ -2858,6 +2852,7 @@ bool ParseFeature(int theFeature, const JsonValue& theValue, GameFeatures* theOu
 		const JsonValue& aValue = theValue.Members()[i].second;
 		std::string aSubKey = aKey + "." + aName;
 		bool* aFlag = NULL;
+		bool aNotStored = false;
 		if ((theFeature == FEATURE_SEEDS) && (aName == "entry"))
 			aFlag = &theOut->mSeedEntry;
 		else if ((theFeature == FEATURE_SEEDS) && (aName == "perGame"))
@@ -2867,9 +2862,9 @@ bool ParseFeature(int theFeature, const JsonValue& theValue, GameFeatures* theOu
 		else if ((theFeature == FEATURE_LEAN) && (aName == "images"))
 			aFlag = &theOut->mLeanImages;
 		else if ((theFeature == FEATURE_FIXES) && (aName == "selection"))
-			aFlag = &theOut->mFixSelection;
+			aFlag = &aNotStored;
 		else if ((theFeature == FEATURE_FIXES) && (aName == "resumeLook"))
-			aFlag = &theOut->mFixResumeLook;
+			aFlag = &aNotStored;
 		if (aFlag != NULL)
 		{
 			if (!aValue.IsBool())
@@ -3018,9 +3013,7 @@ void Sexy::MergeFeatures(const std::vector<RulesSource>& theSources, GameFeature
 				aMerged.mGameStats = aParsed.mGameStats;
 			else if (k == FEATURE_FIXES)
 			{
-				aMerged.mFixes = aParsed.mFixes;
-				aMerged.mFixSelection = aParsed.mFixSelection;
-				aMerged.mFixResumeLook = aParsed.mFixResumeLook;
+				// stores nothing (Platform::FixOn)
 			}
 			else
 			{
@@ -3058,9 +3051,7 @@ void Sexy::MergeFeatures(const std::vector<RulesSource>& theSources, GameFeature
 				aText.mGameStats = aParsed.mGameStats;
 			else if (k == FEATURE_FIXES)
 			{
-				aText.mFixes = aParsed.mFixes;
-				aText.mFixSelection = aParsed.mFixSelection;
-				aText.mFixResumeLook = aParsed.mFixResumeLook;
+				// stores nothing (Platform::FixOn)
 			}
 			else
 			{

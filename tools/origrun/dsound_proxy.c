@@ -31,6 +31,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include "coverage.h"
+#include "count.h"
 
 static FILE*       gLog;
 static CRITICAL_SECTION gLogLock;
@@ -623,7 +624,7 @@ HRESULT WINAPI DllGetClassObject(REFCLSID rclsid, REFIID riid, void** ppv)
 
 BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r)
 {
-	if (reason == DLL_PROCESS_ATTACH) { DisableThreadLibraryCalls(h); coverage_install(); log_init(); net_install(h); vclock_install(h); mute_start(); }
-	else if (reason == DLL_PROCESS_DETACH) { log_status_summary(); net_detach(); vclock_detach(); coverage_detach(); }
+	if (reason == DLL_PROCESS_ATTACH) { DisableThreadLibraryCalls(h); coverage_install(); count_install(); log_init(); net_install(h); vclock_install(h); mute_start(); }
+	else if (reason == DLL_PROCESS_DETACH) { log_status_summary(); net_detach(); vclock_detach(); coverage_detach(); count_detach(); }
 	return TRUE;
 }

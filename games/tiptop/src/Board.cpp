@@ -2,7 +2,7 @@
 // Board.h for the classes. The functions keep the original's order and shape; a comment above each names its address.
 
 #include "Board.h"
-#include "ModFeatures.h"
+#include "platform/GameOptions.h"
 
 #include "App.h"
 #include "Config.h"
@@ -220,8 +220,8 @@ Field::~Field()
 	free(mColumnWeights);
 }
 
-// The chain counter theIndex. (The original addresses it as *(short*)(field + 0xdc + 2 * theIndex), so that index 0x400,
-// "no chain" in CheckGroup, would be the low half of mLowRow; no path of the game reaches it: CheckGroup is only
+// The chain counter theIndex. (The original addresses it as *(short*)(field + 0xdc + 2 * theIndex), so that index CHAIN_COUNT,
+// NO_CHAIN in CheckGroup, would be the low half of mLowRow; no path of the game reaches it: CheckGroup is only
 // called, from Update, for pieces that carry PF_CHAIN.)
 int16_t& Field::Chain(int32_t theIndex)
 {
@@ -276,7 +276,7 @@ int32_t Field::LoadLayout()
 			uint32_t aRow = anIndex / mColumns;
 			uint32_t aColumn = anIndex % mColumns;
 			aPiece->mX = aColumn * mBlockWidth;
-			aPiece->mY = aRow * mBlockHeight * 0x100;
+			aPiece->mY = aRow * mBlockHeight * FIXED_ONE;
 			aPiece->mFlags = PF_ENTERING;
 			aPiece->mFlyTime = aTime;
 			if (aRow != aLastRow)
@@ -363,7 +363,7 @@ int32_t Field::Reset()
 				uint32_t aRow = aFirstRow + i / mColumns;
 				uint32_t aColumn = i % mColumns;
 				aPiece->mX = aColumn * mBlockWidth;
-				aPiece->mY = aRow * mBlockHeight * 0x100;
+				aPiece->mY = aRow * mBlockHeight * FIXED_ONE;
 				aPiece->mFlags = PF_ENTERING;
 				aPiece->mFlyTime = aTime;
 				int32_t aRandom = Rand();
@@ -508,7 +508,7 @@ void AssignChain(Field* theField, Piece* thePiece)
 	thePiece->mGroup = (int32_t)theField->mNextChain;
 	theField->Chain(thePiece->mGroup) = 0;
 	theField->mNextChain = theField->mNextChain + 1;
-	if (theField->mNextChain == 0x400)
+	if (theField->mNextChain == CHAIN_COUNT)
 		theField->mNextChain = 0;
 }
 
@@ -537,7 +537,7 @@ uint32_t Field::CheckGroup(uint32_t theIndex, char theOnlyOne)
 {
 	int32_t aTotal = 0;
 	Piece* aPiece = mPieces[theIndex];
-	int32_t aChain = 0x400;
+	int32_t aChain = NO_CHAIN;
 	uint8_t aFlags = 0;
 	do
 	{
@@ -603,7 +603,7 @@ uint32_t Field::CheckGroup(uint32_t theIndex, char theOnlyOne)
 					if (mPieces[i] != nullptr && mPieces[i]->mMarked != 0)
 					{
 						aSumX = aSumX + mPieces[i]->mX + mBlockWidth / 2;
-						aSumY = mBlockHeight / 2 + aSumY + ((uint32_t)mPieces[i]->mY >> 8);
+						aSumY = mBlockHeight / 2 + aSumY + ((uint32_t)mPieces[i]->mY >> FIXED_SHIFT);
 						Piece::StartRemoval(mPieces[i], PF_MATCHED, KIND_NONE, 0);
 						mPieces[i]->mFlags = mPieces[i]->mFlags | (uint16_t)aFlags;
 						mPieces[i]->mGroup = aChain;
@@ -653,7 +653,7 @@ uint32_t Field::CheckGroup(uint32_t theIndex, char theOnlyOne)
 
 // 0x4029c6: marks the group of blocks of the same kind around theIndex (the four neighbors, those that are at rest)
 // and returns its size. *theChain becomes the chain counter of the group (the highest of its blocks that came with
-// one, 0x400 if none did), *theFlags gets the PF_NOFLOATS bit of those.
+// one, NO_CHAIN if none did), *theFlags gets the PF_NOFLOATS bit of those.
 int32_t Field::FloodFill(uint32_t theIndex, int32_t* theChain, uint8_t* theFlags)
 {
 	int32_t aCount = 1;
@@ -711,7 +711,7 @@ int32_t Field::FloodFill(uint32_t theIndex, int32_t* theChain, uint8_t* theFlags
 		aPiece->mMarked = 1;
 		if ((aPiece->mFlags & PF_CHAIN) != 0)
 		{
-			if (*theChain == 0x400 || Chain(*theChain) < Chain(aPiece->mGroup))
+			if (*theChain == NO_CHAIN || Chain(*theChain) < Chain(aPiece->mGroup))
 				*theChain = aPiece->mGroup;
 			aPiece->mFlags = aPiece->mFlags & 0xffef;
 			*theFlags = *theFlags | ((uint8_t)aPiece->mFlags & 0x40);
@@ -787,7 +787,7 @@ void Field::Land(Piece* thePiece)
 						aDY = -(mPieces[i]->mY - thePiece->mY);
 					else
 						aDY = mPieces[i]->mY - thePiece->mY;
-					double aScaledY = ((double)mBlockWidth / (double)mBlockHeight) * (double)(aDY / 0x100);
+					double aScaledY = ((double)mBlockWidth / (double)mBlockHeight) * (double)(aDY / FIXED_ONE);
 					double aSum = aScaledY * aScaledY + (double)aDX * (double)aDX;
 					uint32_t aDistance = (uint32_t)Ftol(sqrt(aSum) - 0.5);
 					if (aDistance <= (uint32_t)(mState->mConfig.mExploderRadius * mBlockWidth) &&
@@ -832,13 +832,13 @@ void Field::Land(Piece* thePiece)
 			if (aFound != 0xffffffff)
 			{
 				Move(aFound);
-				int32_t aDistance = (gConfig.mTapSpeed + 1) * 0x100;
+				int32_t aDistance = (gConfig.mTapSpeed + 1) * FIXED_ONE;
 				aThisIndex = IndexOf(thePiece);
 				aFound = Within(aThisIndex, aDistance);
 			}
 			if (aFound == 0xffffffff || 9 < mPieces[aFound]->mKind)
 			{
-				int32_t aDistance = (gConfig.mTapSpeed + 1) * -0x100;
+				int32_t aDistance = (gConfig.mTapSpeed + 1) * -FIXED_ONE;
 				aThisIndex = IndexOf(thePiece);
 				aFound = Within(aThisIndex, aDistance);
 				if (aFound == 0xffffffff || 9 < mPieces[aFound]->mKind)
@@ -863,13 +863,13 @@ void Field::Land(Piece* thePiece)
 		{
 			Piece::StartRemoval(thePiece, 0x40, KIND_NONE, 0);
 			AssignChain(this, thePiece);
-			int32_t anEffectDelay = gConfig.mColorbombEffects.mValue;
+			int32_t anEffectDelay = gConfig.mColorbombEffects.mDelayStep;
 			uint32_t aThisIndex = IndexOf(thePiece);
 			uint32_t aFound = Neighbor(aThisIndex, 1);
 			if (aFound != 0xffffffff)
 			{
 				Move(aFound);
-				int32_t aDistance = (gConfig.mTapSpeed + 1) * 0x100;
+				int32_t aDistance = (gConfig.mTapSpeed + 1) * FIXED_ONE;
 				aThisIndex = IndexOf(thePiece);
 				aFound = Within(aThisIndex, aDistance);
 			}
@@ -888,7 +888,7 @@ void Field::Land(Piece* thePiece)
 						anOther->mGroup = (int32_t)mNextChain;
 						Chain(anOther->mGroup) = 0;
 						mNextChain = mNextChain + 1;
-						if (mNextChain == 0x400)
+						if (mNextChain == CHAIN_COUNT)
 							mNextChain = 0;
 						Piece::StartRemoval(anOther, RemovalFlags(mState->mConfig.mColorbombCreateFloats,
 							mState->mConfig.mColorbombFall), KIND_COLORBOMB, anEffectDelay);
@@ -896,12 +896,12 @@ void Field::Land(Piece* thePiece)
 						if (mState->mConfig.mColorbombPoints != 0)
 							CountSpecial(mState);
 						aX = (int16_t)(gConfig.mBlockWidth >> 1) + (int16_t)anOther->mX + (int16_t)gConfig.mBlockgridX;
-						aY = (int16_t)((uint32_t)anOther->mY >> 8) + (int16_t)(gConfig.mBlockHeight >> 1) +
+						aY = (int16_t)((uint32_t)anOther->mY >> FIXED_SHIFT) + (int16_t)(gConfig.mBlockHeight >> 1) +
 							(int16_t)gConfig.mBlockgridY;
 						GuiRect aWhere = {aX, aY, 0, 0};
-						gApp.Effects(&aWhere, anEffectDelay + (uint32_t)gConfig.mColorbombEffects.mFlag * 0xfa,
+						gApp.Effects(&aWhere, anEffectDelay + (uint32_t)gConfig.mColorbombEffects.mFlashCount * FLASH_TIME,
 							&gConfig.mColorbombEffects, gConfig.mColorbombEffects.mEffects);
-						anEffectDelay = anEffectDelay + gConfig.mColorbombEffects.mValue;
+						anEffectDelay = anEffectDelay + gConfig.mColorbombEffects.mDelayStep;
 					}
 					anIndex = anIndex + mColumns;
 				} while (anIndex < mCount || (anIndex = (anIndex + 1) - mCount, anIndex < mColumns));
@@ -910,14 +910,14 @@ void Field::Land(Piece* thePiece)
 	}
 	else if (aKind == KIND_COLUMNNUKE && (thePiece->mFlags & PF_REMOVING) == 0)
 	{
-		uint32_t aFlag = (uint32_t)gConfig.mColumnnukeEffects.mFlag;
+		uint32_t aFlashCount = (uint32_t)gConfig.mColumnnukeEffects.mFlashCount;
 		uint32_t aNext = IndexOf(thePiece);
 		Piece::StartRemoval(thePiece, 0x60, KIND_NONE, 0);
 		aX = (int16_t)(gConfig.mBlockWidth >> 1) + (int16_t)thePiece->mX + (int16_t)gConfig.mBlockgridX;
-		aY = (int16_t)((uint32_t)thePiece->mY >> 8) + (int16_t)(gConfig.mBlockHeight >> 1) + (int16_t)gConfig.mBlockgridY;
+		aY = (int16_t)((uint32_t)thePiece->mY >> FIXED_SHIFT) + (int16_t)(gConfig.mBlockHeight >> 1) + (int16_t)gConfig.mBlockgridY;
 		GuiRect aWhere = {aX, aY, 0, 0};
-		gApp.Effects(&aWhere, aFlag * 0xfa, &gConfig.mColumnnukeEffects, gConfig.mColumnnukeEffects.mEffects);
-		int32_t anEffectDelay = aFlag * 0xfa + gConfig.mColumnnukeEffects.mValue;
+		gApp.Effects(&aWhere, aFlashCount * FLASH_TIME, &gConfig.mColumnnukeEffects, gConfig.mColumnnukeEffects.mEffects);
+		int32_t anEffectDelay = aFlashCount * FLASH_TIME + gConfig.mColumnnukeEffects.mDelayStep;
 		AssignChain(this, thePiece);
 		while ((aNext = Neighbor(aNext, 1), aNext != 0xffffffff &&
 			(((mPieces[aNext]->mFlags & PF_MOVING) == 0 || (~mPieces[aNext]->mFlags & PF_TARGET) == 0) ||
@@ -929,18 +929,18 @@ void Field::Land(Piece* thePiece)
 				mPieces[aNext]->mGroup = (int32_t)mNextChain;
 				Chain(mPieces[aNext]->mGroup) = 0;
 				mNextChain = mNextChain + 1;
-				if (mNextChain == 0x400)
+				if (mNextChain == CHAIN_COUNT)
 					mNextChain = 0;
 				if (mState->mConfig.mColumnnukePoints != 0)
 					CountSpecial(mState);
 				mScore = mScore + gConfig.mScoreRemovedbyspecial;
 			}
 			aX = (int16_t)(gConfig.mBlockWidth >> 1) + (int16_t)mPieces[aNext]->mX + (int16_t)gConfig.mBlockgridX;
-			aY = (int16_t)((uint32_t)mPieces[aNext]->mY >> 8) + (int16_t)(gConfig.mBlockHeight >> 1) +
+			aY = (int16_t)((uint32_t)mPieces[aNext]->mY >> FIXED_SHIFT) + (int16_t)(gConfig.mBlockHeight >> 1) +
 				(int16_t)gConfig.mBlockgridY;
 			GuiRect aWhere2 = {aX, aY, 0, 0};
 			gApp.Effects(&aWhere2, anEffectDelay, &gConfig.mColumnnukeEffects, gConfig.mColumnnukeEffects.mEffects);
-			anEffectDelay = anEffectDelay + gConfig.mColumnnukeEffects.mValue;
+			anEffectDelay = anEffectDelay + gConfig.mColumnnukeEffects.mDelayStep;
 		}
 	}
 	thePiece->mFlags = thePiece->mFlags & 0xfffe;
@@ -1004,18 +1004,18 @@ void Field::StartSecondaryFall(uint32_t theIndex)
 			aChain = (int32_t)mNextChain;
 			Chain(aChain) = 0;
 			mNextChain = mNextChain + 1;
-			if (mNextChain == 0x400)
+			if (mNextChain == CHAIN_COUNT)
 				mNextChain = 0;
 		}
 		uint32_t aTime = GameTime();
 		int32_t aDelay = mState->mConfig.mSecondaryfallInitdelay + mRowDelay;
-		uint32_t aFound = Within(theIndex, (gConfig.mTapSpeed + 1) * -0x100);
+		uint32_t aFound = Within(theIndex, (gConfig.mTapSpeed + 1) * -FIXED_ONE);
 		if (aFound != 0xffffffff)
 			mRowDelay = mRowDelay + mState->mConfig.mSecondaryfallRowdelay;
 		uint16_t aFlags = mPieces[theIndex]->mFlags;
 		while (true)
 		{
-			theIndex = Within(theIndex, (gConfig.mTapSpeed + 1) * -0x100);
+			theIndex = Within(theIndex, (gConfig.mTapSpeed + 1) * -FIXED_ONE);
 			Piece* aPiece;
 			if (theIndex == 0xffffffff)
 				aPiece = nullptr;
@@ -1031,11 +1031,11 @@ void Field::StartSecondaryFall(uint32_t theIndex)
 				{
 					anAbove = anAbove + mColumns;
 					if (mCount <= anAbove)
-						goto LAB_00403e76;
+						goto AfterUnlimitedScan;
 				} while (SkipAbove(mPieces[anAbove]));
 				aDistance = -1;
 			}
-LAB_00403e76:
+AfterUnlimitedScan:
 			uint32_t aHigh;
 			if (mHighRow == -1 && mLowRow != -1)
 				aHigh = mRows - 1;
@@ -1100,7 +1100,7 @@ LAB_00403e76:
 				aTargetRow = aClamped;
 			}
 			uint32_t aScan = theIndex;
-			if (aTargetRow * mBlockHeight * 0x100 <= (uint32_t)aPiece->mY)
+			if (aTargetRow * mBlockHeight * FIXED_ONE <= (uint32_t)aPiece->mY)
 			{
 				do
 				{
@@ -1125,7 +1125,7 @@ LAB_00403e76:
 					aTargetY = 0;
 				if ((uint32_t)(mBlockHeight * (mRows - 1)) < aTargetY)
 					aTargetY = mBlockHeight * (mRows - 1);
-				aPiece->mTargetY = aTargetY << 8;
+				aPiece->mTargetY = aTargetY << FIXED_SHIFT;
 			}
 			aPiece->mPower = 0;
 			aPiece->mDelay = aDelay;
@@ -1147,7 +1147,7 @@ int32_t Field::RandomKind(int32_t theMode, int32_t theNotA, int32_t theNotB)
 	{
 		// fixes mod, "seededBlocks": the original seeds again from its clock here, which makes a seed given at the start
 		// change nothing; with the fix that seeding is left out
-		if (!Sexy::FixOn("seededBlocks"))
+		if (!Platform::FixOn("seededBlocks"))
 		{
 			uint32_t aTime = GameTime();
 			SRand(aTime);
@@ -1241,7 +1241,7 @@ int32_t Field::RandomKind(int32_t theMode, int32_t theNotA, int32_t theNotB)
 uint32_t Field::IndexOf(Piece* thePiece)
 {
 	return (uint32_t)thePiece->mX / (uint32_t)mBlockWidth +
-		((((uint32_t)thePiece->mY >> 8) + mBlockHeight / 2) / (uint32_t)mBlockHeight) * mColumns;
+		((((uint32_t)thePiece->mY >> FIXED_SHIFT) + mBlockHeight / 2) / (uint32_t)mBlockHeight) * mColumns;
 }
 
 // 0x4047c7: prepares the next block (mNext) to enter from the top: its kind, and the column. The column is chosen by
@@ -1261,7 +1261,7 @@ void Field::PrepareNext()
 			if (aTop == nullptr || IsFloatingDown(aTop))
 			{
 				Piece* aSecond = mPieces[(mRows - 2) * mColumns + aColumn];
-				if (aSecond == nullptr || (uint32_t)aSecond->mY <= (uint32_t)(mBlockHeight * 0x100 * (mRows - 2)) ||
+				if (aSecond == nullptr || (uint32_t)aSecond->mY <= (uint32_t)(mBlockHeight * FIXED_ONE * (mRows - 2)) ||
 					IsFloatingDown(aSecond))
 				{
 					if (aKind == KIND_ROCKET)
@@ -1322,7 +1322,7 @@ void Field::PrepareNext()
 		}
 		if (mQueueCount == 0)
 		{
-			int32_t aSlider = (int32_t)Send(gApp.mEC, 0x10, 0, 0);
+			int32_t aSlider = (int32_t)Send(gApp.mColumnCursor, MSG_CURSOR_COLUMN, 0, 0);
 			aColumn = (gConfig.mNumColumns - 1) - aSlider;
 		}
 		else
@@ -1334,7 +1334,7 @@ void Field::PrepareNext()
 		}
 	}
 	mNext.mX = aColumn * mBlockWidth;
-	mNext.mY = (mRows - 1) * mBlockHeight * 0x100;
+	mNext.mY = (mRows - 1) * mBlockHeight * FIXED_ONE;
 	mNext.mKind = aKind;
 	mNext.mFlags = PF_PREVIEW;
 	mNext.mMoveTime = GameTime();
@@ -1357,7 +1357,7 @@ uint32_t Field::Spawn()
 			int32_t aRows = mRows;
 			if (mPieces[(aRows - 1) * mColumns + aColumn] == nullptr &&
 				(mPieces[(aRows - 2) * mColumns + aColumn] == nullptr ||
-					(uint32_t)mPieces[(aRows - 2) * mColumns + aColumn]->mY <= (uint32_t)(mBlockHeight * 0x100 * (mRows - 2))))
+					(uint32_t)mPieces[(aRows - 2) * mColumns + aColumn]->mY <= (uint32_t)(mBlockHeight * FIXED_ONE * (mRows - 2))))
 			{
 				Piece* aPiece = new Piece(mNext);
 				aPiece->mFlags = aPiece->mFlags & 0xfff9;
@@ -1370,7 +1370,7 @@ uint32_t Field::Spawn()
 					aPiece->mGroup = (int32_t)mNextChain;
 					Chain(aPiece->mGroup) = 1;
 					mNextChain = mNextChain + 1;
-					if (mNextChain == 0x400)
+					if (mNextChain == CHAIN_COUNT)
 						mNextChain = 0;
 				}
 				Motion* aMotion = MotionOf(aPiece->mKind, 0);
@@ -1462,7 +1462,7 @@ uint32_t Field::Place(Piece* thePiece)
 			aPlaced->mGroup = (int32_t)mNextChain;
 			Chain(aPlaced->mGroup) = 1;
 			mNextChain = mNextChain + 1;
-			if (mNextChain == 0x400)
+			if (mNextChain == CHAIN_COUNT)
 				mNextChain = 0;
 			if (mState->mConfig.mLockFallers != 0)
 				mLockFall = mLockFall | 1;
@@ -1515,7 +1515,7 @@ uint32_t Field::CanPlace(int theColumn)
 	uint32_t aResult;
 	if (mPieces[theColumn] == nullptr)
 	{
-		if (mPieces[theColumn + mColumns] == nullptr || (uint32_t)(mBlockHeight << 8) <= (uint32_t)mPieces[theColumn + mColumns]->mY)
+		if (mPieces[theColumn + mColumns] == nullptr || (uint32_t)(mBlockHeight << FIXED_SHIFT) <= (uint32_t)mPieces[theColumn + mColumns]->mY)
 			aResult = 1;
 		else
 			aResult = 0;
@@ -1534,7 +1534,7 @@ uint32_t Field::CanSpawn(int theColumn)
 	if (mPieces[(mRows - 1) * mColumns + theColumn] == nullptr)
 	{
 		if (mPieces[(mRows - 2) * mColumns + theColumn] == nullptr ||
-			(uint32_t)(mBlockHeight << 8) <= (uint32_t)mPieces[(mRows - 2) * mColumns + theColumn]->mY)
+			(uint32_t)(mBlockHeight << FIXED_SHIFT) <= (uint32_t)mPieces[(mRows - 2) * mColumns + theColumn]->mY)
 			aResult = 1;
 		else
 			aResult = 0;
@@ -1579,13 +1579,13 @@ void Field::UpdateHighRow()
 	{
 		anIndex = anIndex - 1;
 		if ((int32_t)anIndex < 0)
-			goto LAB_0040572d;
+			goto AfterHighestPiece;
 	} while (SkipForRow(this, mPieces[anIndex]));
 	if ((uint32_t)((mRows - 1) * mColumns) <= anIndex)
 	{
 		gApp.SetPosition(mBlockWidth * (anIndex % mColumns) + mBlockWidth / 2, mBlockHeight * (mRows - 1) + mBlockHeight / 2);
 	}
-LAB_0040572d:
+AfterHighestPiece:
 	if ((int32_t)anIndex < 0)
 	{
 		mHighRow = mRows >> 1;
@@ -1646,7 +1646,7 @@ uint32_t Field::EdgeRow(int theColumn, char theFromBottom)
 				return 0xffffffff;
 		}
 	}
-	return (uint32_t)mPieces[anIndex]->mY >> 8;
+	return (uint32_t)mPieces[anIndex]->mY >> FIXED_SHIFT;
 }
 
 // 0x405963: the neighbor of a cell above (theDistance >= 0) or below that is closer than theDistance (24.8) to it,
@@ -1668,7 +1668,7 @@ uint32_t Field::Within(uint32_t theIndex, int theDistance)
 			aLimit = -theDistance;
 		else
 			aLimit = theDistance;
-		if (aLimit <= aGap + mBlockHeight * -0x100)
+		if (aLimit <= aGap + mBlockHeight * -FIXED_ONE)
 			aFound = 0xffffffff;
 	}
 	return aFound;
@@ -1777,7 +1777,7 @@ void Field::Collide(int theA, uint32_t theB)
 			if (0.0f < aPiece->mSpeed && (uint32_t)aPiece->mY < (uint32_t)aPiece->mTargetY &&
 				(uint32_t)aPiece->mY < (uint32_t)aHit->mY)
 			{
-				uint32_t aRaised = ((uint32_t)aPiece->mTargetY >> 8) + mBlockHeight;
+				uint32_t aRaised = ((uint32_t)aPiece->mTargetY >> FIXED_SHIFT) + mBlockHeight;
 				if ((uint32_t)(mBlockHeight * (mRows - 1)) < aRaised)
 					aRaised = mBlockHeight * (mRows - 1);
 				aTargetY = aRaised;
@@ -1785,7 +1785,7 @@ void Field::Collide(int theA, uint32_t theB)
 			if (aPiece->mSpeed < 0.0f && (uint32_t)aPiece->mTargetY < (uint32_t)aPiece->mY &&
 				(uint32_t)aHit->mY < (uint32_t)aPiece->mY)
 			{
-				uint32_t aLowered = ((uint32_t)aPiece->mTargetY >> 8) - mBlockHeight;
+				uint32_t aLowered = ((uint32_t)aPiece->mTargetY >> FIXED_SHIFT) - mBlockHeight;
 				if ((int32_t)aLowered < 0)
 					aLowered = 0;
 				aTargetY = aLowered;
@@ -1878,25 +1878,25 @@ void Field::Collide(int theA, uint32_t theB)
 		aLimited = mBlockHeight * (mRows - 1);
 	else
 		aLimited = aClamped;
-	aTargetY = aLimited << 8;
-	aPieceTargetY = aPieceTargetY << 8;
+	aTargetY = aLimited << FIXED_SHIFT;
+	aPieceTargetY = aPieceTargetY << FIXED_SHIFT;
 	if (aHit->mSpeed <= 0.0f)
 	{
 		if ((uint32_t)aHit->mY < aTargetY)
-			aTargetY = (aHit->mY / (mBlockHeight << 8)) * mBlockHeight * 0x100;
+			aTargetY = (aHit->mY / (mBlockHeight << FIXED_SHIFT)) * mBlockHeight * FIXED_ONE;
 	}
 	else if (aTargetY < (uint32_t)aHit->mY)
 	{
-		aTargetY = ((mBlockHeight * 0x100 + -1 + aHit->mY) / (mBlockHeight << 8)) * mBlockHeight * 0x100;
+		aTargetY = ((mBlockHeight * FIXED_ONE + -1 + aHit->mY) / (mBlockHeight << FIXED_SHIFT)) * mBlockHeight * FIXED_ONE;
 	}
 	if (aPiece->mSpeed <= 0.0f)
 	{
 		if ((uint32_t)aPiece->mY < aPieceTargetY)
-			aPieceTargetY = (aPiece->mY / (mBlockHeight << 8)) * mBlockHeight * 0x100;
+			aPieceTargetY = (aPiece->mY / (mBlockHeight << FIXED_SHIFT)) * mBlockHeight * FIXED_ONE;
 	}
 	else if (aPieceTargetY < (uint32_t)aPiece->mY)
 	{
-		aPieceTargetY = ((mBlockHeight * 0x100 + -1 + aPiece->mY) / (mBlockHeight << 8)) * mBlockHeight * 0x100;
+		aPieceTargetY = ((mBlockHeight * FIXED_ONE + -1 + aPiece->mY) / (mBlockHeight << FIXED_SHIFT)) * mBlockHeight * FIXED_ONE;
 	}
 	aHit->mTargetY = aTargetY;
 	aPiece->mTargetY = aPieceTargetY;
@@ -1915,9 +1915,9 @@ void Field::Collide(int theA, uint32_t theB)
 		{
 			int32_t aDistance;
 			if (0.0f <= aHit->mSpeed)
-				aDistance = (gConfig.mTapSpeed + 1) * 0x100;
+				aDistance = (gConfig.mTapSpeed + 1) * FIXED_ONE;
 			else
-				aDistance = (gConfig.mTapSpeed + 1) * -0x100;
+				aDistance = (gConfig.mTapSpeed + 1) * -FIXED_ONE;
 			aNext = Within(theB, aDistance);
 		}
 		if (aPiece->mKind == KIND_MAGNET && aPiece->mPower != 0)
@@ -2023,33 +2023,33 @@ void Field::UpdateShake(Piece* thePiece)
 	if (0x10000 < aStep)
 		aStep = 0x10000;
 	int32_t aStepY = (aStep * mBlockHeight) / mBlockWidth;
-	if (thePiece->mShakeTargetY * 0x100 < thePiece->mShakeY)
+	if (thePiece->mShakeTargetY * FIXED_ONE < thePiece->mShakeY)
 	{
 		thePiece->mShakeY = thePiece->mShakeY - aStepY;
-		if (thePiece->mShakeY <= thePiece->mShakeTargetY * 0x100)
-			thePiece->mShakeY = thePiece->mShakeTargetY << 8;
+		if (thePiece->mShakeY <= thePiece->mShakeTargetY * FIXED_ONE)
+			thePiece->mShakeY = thePiece->mShakeTargetY << FIXED_SHIFT;
 	}
 	else
 	{
 		thePiece->mShakeY = thePiece->mShakeY + aStepY;
-		if (thePiece->mShakeTargetY * 0x100 <= thePiece->mShakeY)
-			thePiece->mShakeY = thePiece->mShakeTargetY << 8;
+		if (thePiece->mShakeTargetY * FIXED_ONE <= thePiece->mShakeY)
+			thePiece->mShakeY = thePiece->mShakeTargetY << FIXED_SHIFT;
 	}
-	if (thePiece->mShakeTargetX * 0x100 < thePiece->mShakeX)
+	if (thePiece->mShakeTargetX * FIXED_ONE < thePiece->mShakeX)
 	{
 		thePiece->mShakeX = thePiece->mShakeX - aStep;
-		if (thePiece->mShakeX <= thePiece->mShakeTargetX * 0x100)
+		if (thePiece->mShakeX <= thePiece->mShakeTargetX * FIXED_ONE)
 		{
-			thePiece->mShakeX = thePiece->mShakeTargetX << 8;
+			thePiece->mShakeX = thePiece->mShakeTargetX << FIXED_SHIFT;
 			ChooseShake(thePiece);
 		}
 	}
 	else
 	{
 		thePiece->mShakeX = thePiece->mShakeX + aStep;
-		if (thePiece->mShakeTargetX * 0x100 <= thePiece->mShakeX)
+		if (thePiece->mShakeTargetX * FIXED_ONE <= thePiece->mShakeX)
 		{
-			thePiece->mShakeX = thePiece->mShakeTargetX << 8;
+			thePiece->mShakeX = thePiece->mShakeTargetX << FIXED_SHIFT;
 			ChooseShake(thePiece);
 		}
 	}
@@ -2138,14 +2138,14 @@ uint32_t Field::Move(uint32_t theIndex)
 				aPiece->mDelay = aPiece->mDelay - (aTime - aPiece->mMoveTime);
 				aPiece->mMoveTime = aTime;
 			}
-LAB_00406abf:
+NextStep:
 			if (aStepTime <= aTime - aPiece->mMoveTime && (aPiece->mFlags & PF_MOVING) != 0)
 			{
 				aRemainder = 0;
 				aPiece->mMoveTime = aPiece->mMoveTime + aStepTime;
 				if (aTime < aPiece->mMoveTime)
 					aPiece->mMoveTime = aTime;
-LAB_00406b0a:
+StepWithRemainder:
 				aMoved = (int32_t)Ftol((double)aPiece->mSpeed * 256.0);
 				if (0.0f <= aPiece->mSpeed)
 				{
@@ -2186,13 +2186,13 @@ LAB_00406b0a:
 					aBlocker = mPieces[aFound];
 					if (0.0f <= aPiece->mSpeed)
 					{
-						aGap = (aBlocker->mY + mBlockHeight * -0x100) - aPiece->mY;
-						aPiece->mY = aBlocker->mY + mBlockHeight * -0x100;
+						aGap = (aBlocker->mY + mBlockHeight * -FIXED_ONE) - aPiece->mY;
+						aPiece->mY = aBlocker->mY + mBlockHeight * -FIXED_ONE;
 					}
 					else
 					{
-						aGap = aPiece->mY - (aBlocker->mY + mBlockHeight * 0x100);
-						aPiece->mY = mBlockHeight * 0x100 + aBlocker->mY;
+						aGap = aPiece->mY - (aBlocker->mY + mBlockHeight * FIXED_ONE);
+						aPiece->mY = mBlockHeight * FIXED_ONE + aBlocker->mY;
 					}
 					aRemainder = aRemainder + aGap;
 					aNewIndex = IndexOf(aPiece);
@@ -2206,14 +2206,14 @@ LAB_00406b0a:
 					{
 						if ((aPiece->mKind == KIND_MAGNET && aPiece->mPower != 0) && aPiece->mCrossed == 0)
 						{
-							aMagnetY = ((uint32_t)aPiece->mY >> 8) + gConfig.mBlockgridY;
+							aMagnetY = ((uint32_t)aPiece->mY >> FIXED_SHIFT) + gConfig.mBlockgridY;
 							aMagnetIndex = aFound;
 							do
 							{
 								aMagnetPrev = aMagnetIndex;
 								if (mState->mConfig.mMagnetEffect == 0)
 								{
-									aMagnetIndex = Within(aMagnetIndex, (gConfig.mTapSpeed + 1) * 0x100);
+									aMagnetIndex = Within(aMagnetIndex, (gConfig.mTapSpeed + 1) * FIXED_ONE);
 								}
 								else
 								{
@@ -2226,7 +2226,7 @@ LAB_00406b0a:
 									}
 								}
 							} while (aMagnetIndex != 0xffffffff);
-							if (aMagnetY < ((uint32_t)mPieces[aMagnetPrev]->mY >> 8) + gConfig.mBlockHeight + gConfig.mBlockgridY)
+							if (aMagnetY < ((uint32_t)mPieces[aMagnetPrev]->mY >> FIXED_SHIFT) + gConfig.mBlockHeight + gConfig.mBlockgridY)
 							{
 								gApp.Nothing();
 								aPiece->mCrossed = 1;
@@ -2237,12 +2237,12 @@ LAB_00406b0a:
 						{
 							do
 							{
-								aSearchNext = Within(aSearch, (gConfig.mTapSpeed + 1) * 0x100);
+								aSearchNext = Within(aSearch, (gConfig.mTapSpeed + 1) * FIXED_ONE);
 								if (aSearchNext == 0xffffffff)
 								{
 									aSearchNext = Neighbor(aSearch, 1);
 									if (aSearchNext == 0xffffffff)
-										goto code_r0x00406f2e;
+										goto MagnetCollision;
 									if ((((~mPieces[aSearchNext]->mFlags & PF_MOVING) != 0) ||
 											((mPieces[aSearchNext]->mFlags & PF_TARGET) != 0)) ||
 										(0.0f <= mPieces[aSearchNext]->mSpeed))
@@ -2255,13 +2255,13 @@ LAB_00406b0a:
 						}
 						Collide(theIndex, aFound);
 					}
-					goto LAB_00406fc7;
+					goto AfterCollision;
 				}
 				aNewY = aPiece->mY + aStepY;
 				if ((aPiece->mFlags & PF_TARGET) != 0 &&
 					((~aPiece->mFlags & PF_CHAIN) != 0 ||
 						((aPiece->mFlags & PF_CHAIN) != 0 && Chain(aPiece->mGroup) == 1)))
-					goto LAB_00407715;
+					goto ApplyNewY;
 				if (mHighRow == -1 && mLowRow != -1)
 					aHigh = mRows - 1;
 				else
@@ -2273,7 +2273,7 @@ LAB_00406b0a:
 				if (0.0f <= aPiece->mSpeed)
 				{
 					if ((((aPiece->mFlags & PF_CHAIN) != 0 && Chain(aPiece->mGroup) == 1)) && mState->mConfig.mDisableStops != 0)
-						goto LAB_00407715;
+						goto ApplyNewY;
 					if (gBonusRound == 0)
 					{
 						if (aHigh != 0xffffffff)
@@ -2283,7 +2283,7 @@ LAB_00406b0a:
 							else
 								aStopCenter = mState->mConfig.mPrimaryStopCenter;
 							if (aStopCenter == 0)
-								goto LAB_004072dd;
+								goto StopAtHighest;
 						}
 						if (CfgStopRow(mState->mConfig) == -1)
 						{
@@ -2299,14 +2299,14 @@ LAB_00406b0a:
 					}
 					else
 					{
-LAB_004072dd:
+StopAtHighest:
 						aStop = aHigh;
 					}
 				}
 				else
 				{
 					if (mState->mConfig.mDisableStops != 0)
-						goto LAB_00407715;
+						goto ApplyNewY;
 					if ((aLow == 0xffffffff || mState->mConfig.mPrimaryStopCenter != 0) && gBonusRound == 0)
 					{
 						if (CfgStopRow(mState->mConfig) == -1)
@@ -2356,15 +2356,15 @@ LAB_004072dd:
 				{
 					aTargetRow = aClamped;
 				}
-				aStopY = aTargetRow * mBlockHeight * 0x100;
+				aStopY = aTargetRow * mBlockHeight * FIXED_ONE;
 				if (0.0f <= aPiece->mSpeed)
 					isOk = aStopY <= aNewY;
 				else
 					isOk = aNewY <= aStopY;
 				if (!isOk)
-					goto LAB_00407715;
+					goto ApplyNewY;
 				aScan = theIndex;
-				goto LAB_00407438;
+				goto ScanForStop;
 			}
 		}
 		if ((aPiece->mFlags & PF_GONE) == 0)
@@ -2389,10 +2389,10 @@ LAB_004072dd:
 			{
 				aEndIndex = aEndIndex + mColumns;
 				if (mCount <= aEndIndex)
-					goto LAB_00407b97;
+					goto AboveScanned;
 			} while (SkipAbove(mPieces[aEndIndex]));
 			isFree = false;
-LAB_00407b97:
+AboveScanned:
 			if (((~aPiece->mFlags & PF_NOFALL) != 0) || !isFree)
 				StartSecondaryFall(theIndex);
 			if (((~aPiece->mFlags & PF_NOFLOATS) != 0) && (&gConfig.mFloaterdeterminationNormal)[gGameMode] != 2)
@@ -2408,18 +2408,18 @@ LAB_00407b97:
 		}
 	}
 	return 0;
-code_r0x00406f2e:
+MagnetCollision:
 	Collide(theIndex, aLastIndex);
 	if (aLastIndex != aFound)
 		Land(aPiece);
-LAB_00406fc7:
+AfterCollision:
 	if (mPieces[theIndex] == nullptr)
 		return 0;
 	aFound = Within(theIndex, (uint32_t)(-1 < aStepY) * 2 + -1);
 	if (aFound != 0xffffffff || (aPiece->mFlags & PF_MOVING) == 0)
-		goto LAB_00407900;
-	goto LAB_00406b0a;
-LAB_00407438:
+		goto AfterMove;
+	goto StepWithRemainder;
+ScanForStop:
 	if (0.0f <= aPiece->mSpeed)
 		aStride = mColumns;
 	else
@@ -2429,19 +2429,19 @@ LAB_00407438:
 	{
 		if (aPiece->mSpeed <= 0.0f)
 		{
-			aRoundedY = ((uint32_t)aPiece->mY / (uint32_t)(mBlockHeight << 8)) * mBlockHeight * 0x100;
+			aRoundedY = ((uint32_t)aPiece->mY / (uint32_t)(mBlockHeight << FIXED_SHIFT)) * mBlockHeight * FIXED_ONE;
 			if (aStopY < aRoundedY)
 				aRoundedY = aStopY;
 			if (aRoundedY < aNewY)
-				goto LAB_00407715;
+				goto ApplyNewY;
 		}
 		else
 		{
-			aRoundedY = ((aPiece->mY + -1 + mBlockHeight * 0x100) / (mBlockHeight << 8)) * mBlockHeight * 0x100;
+			aRoundedY = ((aPiece->mY + -1 + mBlockHeight * FIXED_ONE) / (mBlockHeight << FIXED_SHIFT)) * mBlockHeight * FIXED_ONE;
 			if (aRoundedY < aStopY)
 				aRoundedY = aStopY;
 			if (aNewY < aRoundedY)
-				goto LAB_00407715;
+				goto ApplyNewY;
 		}
 		aStepY = aRoundedY - aPiece->mY;
 		aNewY = aRoundedY;
@@ -2459,19 +2459,19 @@ LAB_00407438:
 	{
 		anOther = mPieces[aScan];
 		if (anOther == nullptr || (~anOther->mFlags & PF_REMOVING) == 0)
-			goto LAB_00407438;
+			goto ScanForStop;
 		if (((~anOther->mFlags & PF_MOVING) != 0) || ((anOther->mFlags & (PF_MOVING | PF_TARGET)) == 3))
-			goto LAB_00407715;
+			goto ApplyNewY;
 		if (((~anOther->mFlags & PF_TARGET) == 0) || ((anOther->mFlags & PF_MOVING) == 0))
-			goto LAB_00407438;
+			goto ScanForStop;
 		if (aPiece->mSpeed <= 0.0f)
 			isOk = 0.0f <= anOther->mSpeed;
 		else
 			isOk = anOther->mSpeed <= 0.0f;
 		if (isOk)
-			goto LAB_00407438;
+			goto ScanForStop;
 	}
-LAB_00407715:
+ApplyNewY:
 	if (aNewY < 0)
 	{
 		aPiece->mY = 0;
@@ -2482,7 +2482,7 @@ LAB_00407715:
 			aPiece->mGroup = (int32_t)mNextChain;
 			Chain(aPiece->mGroup) = 0;
 			mNextChain = mNextChain + 1;
-			if (mNextChain == 0x400)
+			if (mNextChain == CHAIN_COUNT)
 				mNextChain = 0;
 		}
 	}
@@ -2490,9 +2490,9 @@ LAB_00407715:
 	{
 		aPiece->mY = aNewY;
 	}
-	if ((uint32_t)(mBlockHeight * (mRows - 1) * 0x100) < (uint32_t)aPiece->mY)
+	if ((uint32_t)(mBlockHeight * (mRows - 1) * FIXED_ONE) < (uint32_t)aPiece->mY)
 	{
-		aPiece->mY = mBlockHeight * (mRows - 1) * 0x100;
+		aPiece->mY = mBlockHeight * (mRows - 1) * FIXED_ONE;
 		Land(aPiece);
 		if ((((aPiece->mFlags & PF_CHAIN) != 0) && (Chain(aPiece->mGroup) == 1)) && mState->mConfig.mDisableStops != 0)
 		{
@@ -2500,7 +2500,7 @@ LAB_00407715:
 			aPiece->mGroup = (int32_t)mNextChain;
 			Chain(aPiece->mGroup) = 0;
 			mNextChain = mNextChain + 1;
-			if (mNextChain == 0x400)
+			if (mNextChain == CHAIN_COUNT)
 				mNextChain = 0;
 			while (mPendingFloaters != 0)
 			{
@@ -2516,7 +2516,7 @@ LAB_00407715:
 		mPieces[theIndex] = nullptr;
 		theIndex = aNewIndex;
 	}
-LAB_00407900:
+AfterMove:
 	if (((aPiece->mFlags & (PF_MOVING | PF_TARGET)) == 3) && (aPiece->mY == aPiece->mTargetY))
 		Land(aPiece);
 	if (((aPiece->mFlags & PF_MOVING) != 0 && (~aPiece->mFlags & PF_TARGET) != 0) ||
@@ -2551,7 +2551,7 @@ LAB_00407900:
 			}
 		}
 	}
-	goto LAB_00406abf;
+	goto NextStep;
 }
 
 // --- the update ---
@@ -2677,11 +2677,11 @@ void Field::Update()
 			if (0x13 < anElapsed)
 			{
 				mState->mMeterTime = aNow;
-				aRate = CfgLevelM68(mState->mConfig);
-				if ((uint32_t)CfgLevelM6c(mState->mConfig) < mPlayTime)
+				aRate = CfgMeterLoss(mState->mConfig);
+				if ((uint32_t)CfgMeterDoublingTime(mState->mConfig) < mPlayTime)
 				{
-					double aInverse = 1.0 / (double)(uint32_t)CfgLevelM6c(mState->mConfig);
-					double aPlayed = (double)(uint32_t)(mPlayTime - CfgLevelM6c(mState->mConfig));
+					double aInverse = 1.0 / (double)(uint32_t)CfgMeterDoublingTime(mState->mConfig);
+					double aPlayed = (double)(uint32_t)(mPlayTime - CfgMeterDoublingTime(mState->mConfig));
 					double aPower = pow(2.0, aInverse * aPlayed);
 					aRate = (float)(aPower * (double)aRate);
 				}
@@ -2877,7 +2877,7 @@ uint32_t Field::ClearStep()
 				uint32_t aColumns = mColumns;
 				Piece* aPiece = new Piece();
 				aPiece->mX = (anIndex % aColumns) * mBlockWidth;
-				aPiece->mY = mClearRowA * mBlockHeight * 0x100;
+				aPiece->mY = mClearRowA * mBlockHeight * FIXED_ONE;
 				aPiece->mKind = (uint32_t)mClearRowA % (uint32_t)CfgNumColors(mState->mConfig);
 				aPiece->mFlags = PF_REMOVING;
 				aPiece->mEffectKind = KIND_NONE;
@@ -2891,7 +2891,7 @@ uint32_t Field::ClearStep()
 				uint32_t aColumns = mColumns;
 				Piece* aPiece = new Piece();
 				aPiece->mX = (anIndex % aColumns) * mBlockWidth;
-				aPiece->mY = mClearRowB * mBlockHeight * 0x100;
+				aPiece->mY = mClearRowB * mBlockHeight * FIXED_ONE;
 				aPiece->mKind = (uint32_t)mClearRowB % (uint32_t)CfgNumColors(mState->mConfig);
 				aPiece->mFlags = PF_REMOVING;
 				aPiece->mEffectKind = KIND_NONE;
@@ -3164,7 +3164,7 @@ uint32_t Field::Save(FILE* theFile, uint32_t theNow)
 		put('D', 4, &mCountdown[2]) || put('D', 4, &mCountdown[3]) || put('D', 4, &mCountdown[4]) ||
 		put('D', 4, &mCountdown[5]) || put('D', 4, &mCountdown[6]) || put('D', 4, &mCountdown[7]))
 		return 1;
-	for (int32_t i = 0; i < 0x400; i++)
+	for (int32_t i = 0; i < CHAIN_COUNT; i++)
 	{
 		if (put('D', 2, &mChains[i]))
 			return 1;
@@ -3222,7 +3222,7 @@ uint32_t Field::Load(FILE* theFile, uint32_t theNow)
 		get('D', 4, &mCountdown[2]) || get('D', 4, &mCountdown[3]) || get('D', 4, &mCountdown[4]) ||
 		get('D', 4, &mCountdown[5]) || get('D', 4, &mCountdown[6]) || get('D', 4, &mCountdown[7]))
 		return 1;
-	for (int32_t i = 0; i < 0x400; i++)
+	for (int32_t i = 0; i < CHAIN_COUNT; i++)
 	{
 		if (get('D', 2, &mChains[i]))
 			return 1;
@@ -3317,7 +3317,7 @@ int32_t Board::Init(int theX, int theY, int theColumns, int theRows)
 		mGlowAlphaPitch = 0;
 		mGlowPitch = 0;
 		mGlowBuffer = nullptr;
-		m1618 = 0;
+		mGlowBufferUnused = 0;
 		mGlowBufferA = nullptr;
 		mGlowValidA = 0;
 		mGlowBufferB = nullptr;
@@ -3530,14 +3530,14 @@ bool Board::CheckBonusRound()
 						ReadToken(&aText);
 						gConfig.mBonusScore = TokenInt();
 						SkipToToken(&aText, 0);
-						gApp.m138 = 0;
-						gApp.m13c = 0;
+						gApp.mBonusElapsed = 0;
+						gApp.mBonusClockStopped = 0;
 						int32_t anIndex = 0;
 						do
 						{
 							if (0x43 < anIndex)
 							{
-LAB_0040b75b:
+ReadBonusLayout:
 								for (anIndex = 0; anIndex < 0x80; anIndex = anIndex + 1)
 								{
 									if (*aText < '0' || '9' < *aText)
@@ -3566,7 +3566,7 @@ LAB_0040b75b:
 								SkipToToken(&aText, 0);
 								for (; anIndex < 0x44; anIndex = anIndex + 1)
 									gConfig.mBonusQueue[anIndex] = 0x11;
-								goto LAB_0040b75b;
+								goto ReadBonusLayout;
 							}
 							if (*aText < '0' || '9' < *aText)
 							{
@@ -3580,44 +3580,44 @@ LAB_0040b75b:
 									else
 									{
 										if (aChar == 'E')
-											goto LAB_0040b6f0;
+											goto QueueExploder;
 										if (aChar == 'H')
-											goto LAB_0040b6fc;
+											goto QueueHammer;
 										if (aChar == 'M')
-											goto LAB_0040b708;
+											goto QueueMagnet;
 										if (aChar == 'N')
-											goto LAB_0040b72c;
+											goto QueueColumnnuke;
 										if (aChar == 'R')
-											goto LAB_0040b714;
-LAB_0040b738:
+											goto QueueRainbow;
+QueueDefaultKind:
 										gConfig.mBonusQueue[anIndex] = 0;
 									}
 								}
 								else if (aChar == 'e')
 								{
-LAB_0040b6f0:
+QueueExploder:
 									gConfig.mBonusQueue[anIndex] = 0xb;
 								}
 								else if (aChar == 'h')
 								{
-LAB_0040b6fc:
+QueueHammer:
 									gConfig.mBonusQueue[anIndex] = 0xc;
 								}
 								else if (aChar == 'm')
 								{
-LAB_0040b708:
+QueueMagnet:
 									gConfig.mBonusQueue[anIndex] = 0xd;
 								}
 								else if (aChar == 'n')
 								{
-LAB_0040b72c:
+QueueColumnnuke:
 									gConfig.mBonusQueue[anIndex] = 0x10;
 								}
 								else
 								{
 									if (aChar != 'r')
-										goto LAB_0040b738;
-LAB_0040b714:
+										goto QueueDefaultKind;
+QueueRainbow:
 									gConfig.mBonusQueue[anIndex] = 0xe;
 								}
 							}
@@ -3663,20 +3663,20 @@ void Board::NextLevel()
 		else
 			aLevelIndex = gLevelListCount - 1;
 		const Level* aLevel = &((const Level*)gLevelList)[aLevelIndex];
-		CfgStartRows(aConfig) = aLevel->m00;
-		CfgStartRowsAdd(aConfig) = aLevel->m04;
-		CfgStopRow(aConfig) = aLevel->m08;
-		CfgStopRowAdd(aConfig) = aLevel->m0c;
-		CfgFloatsPerRemoval(aConfig) = aLevel->m10;
-		CfgFloatsPerTap(aConfig) = aLevel->m14;
-		CfgGoal(aConfig) = aLevel->m58;
+		CfgStartRows(aConfig) = aLevel->mStartRows;
+		CfgStartRowsAdd(aConfig) = aLevel->mStartRowsAdd;
+		CfgStopRow(aConfig) = aLevel->mStopRow;
+		CfgStopRowAdd(aConfig) = aLevel->mStopRowAdd;
+		CfgFloatsPerRemoval(aConfig) = aLevel->mFloatsPerRemoval;
+		CfgFloatsPerTap(aConfig) = aLevel->mFloatsPerTap;
+		CfgGoal(aConfig) = aLevel->mGoal;
 		for (int i = 0; i < 16; i++)
-			CfgRange(aConfig, i) = aLevel->m18[i];
-		CfgNumColors(aConfig) = aLevel->m5c;
-		CfgSpawnThreshold(aConfig) = aLevel->m60;
-		CfgLevelM64(aConfig) = aLevel->m64;
-		CfgLevelM68(aConfig) = aLevel->m68;
-		CfgLevelM6c(aConfig) = aLevel->m6c * 1000;
+			CfgRange(aConfig, i) = aLevel->mRange[i];
+		CfgNumColors(aConfig) = aLevel->mNumColors;
+		CfgSpawnThreshold(aConfig) = aLevel->mSpawnThreshold;
+		CfgMeterStart(aConfig) = aLevel->mMeterStart;
+		CfgMeterLoss(aConfig) = aLevel->mMeterLoss;
+		CfgMeterDoublingTime(aConfig) = aLevel->mMeterDoublingTime * 1000;
 		if (CfgStopRow(aConfig) == -2)
 		{
 			CfgStopRow(aConfig) = (mRows - 1U) >> 1;
@@ -3747,13 +3747,13 @@ void Board::NextLevel()
 			}
 			if (gGameMode == 1)
 			{
-				CfgLevelM68(aConfig) = (float)(pow((double)aConfig.mTimedPlpsecRamp,
-					(double)(uint32_t)((mState.mLevel + 1) - gLevelListCount)) * (double)CfgLevelM68(aConfig));
+				CfgMeterLoss(aConfig) = (float)(pow((double)aConfig.mTimedPlpsecRamp,
+					(double)(uint32_t)((mState.mLevel + 1) - gLevelListCount)) * (double)CfgMeterLoss(aConfig));
 			}
 		}
 		mState.mLevel = mState.mLevel + 1;
 		mState.mBlocksLeft = CfgGoal(aConfig);
-		mState.mMeter = (float)(double)(uint32_t)CfgLevelM64(aConfig);
+		mState.mMeter = (float)(double)(uint32_t)CfgMeterStart(aConfig);
 		mState.mMeterTime = GameTime();
 		mField->FreePieces();
 		StartLevel();
@@ -3793,7 +3793,7 @@ void Board::FillQueueBonus()
 			mNextBlocks[1] = mNextBlocks[2];
 			mNextBlocks[1].mY = 0;
 			mNextBlocks[2] = mNextBlocks[3];
-			mNextBlocks[2].mY = mBlockHeight << 8;
+			mNextBlocks[2].mY = mBlockHeight << FIXED_SHIFT;
 			mNextBlocks[3].mX = 0;
 			mNextBlocks[3].mY = mBlockHeight << 9;
 			mNextBlocks[3].mKind = gConfig.mBonusQueue[mQueueIndex];
@@ -3822,7 +3822,7 @@ void Board::FillQueueBonus()
 		mNextBlocks[1].mSpeed = aMotion->mParam[0];
 		mNextBlocks[1].mSeed = (uint32_t)Rand();
 		mNextBlocks[2].mX = 0;
-		mNextBlocks[2].mY = mBlockHeight << 8;
+		mNextBlocks[2].mY = mBlockHeight << FIXED_SHIFT;
 		mNextBlocks[2].mKind = gConfig.mBonusQueue[2];
 		mNextBlocks[2].mFlags = PF_PREVIEW;
 		aMotion = MotionOf(mNextBlocks[2].mKind, 1);
@@ -3860,7 +3860,7 @@ void Board::FillQueue()
 				mNextBlocks[1] = mNextBlocks[2];
 				mNextBlocks[1].mY = 0;
 				mNextBlocks[2] = mNextBlocks[3];
-				mNextBlocks[2].mY = mBlockHeight << 8;
+				mNextBlocks[2].mY = mBlockHeight << FIXED_SHIFT;
 				mNextBlocks[3].mX = 0;
 				mNextBlocks[3].mY = mBlockHeight << 9;
 				mNextBlocks[3].mKind = mField->RandomKind(1, KIND_NONE, KIND_NONE);
@@ -3887,7 +3887,7 @@ void Board::FillQueue()
 				mNextBlocks[1].mSpeed = aMotion->mParam[0];
 				mNextBlocks[1].mSeed = (uint32_t)Rand();
 				mNextBlocks[2].mX = 0;
-				mNextBlocks[2].mY = mBlockHeight << 8;
+				mNextBlocks[2].mY = mBlockHeight << FIXED_SHIFT;
 				mNextBlocks[2].mKind = mField->RandomKind(1, KIND_NONE, KIND_NONE);
 				mNextBlocks[2].mFlags = PF_PREVIEW;
 				aMotion = MotionOf(mNextBlocks[2].mKind, 1);
@@ -4000,7 +4000,7 @@ void Board::DrawGlow(lowos::Surface* theScreen)
 	}
 	uint32_t aStopY = aStopRow * mBlockHeight;
 	uint32_t aHalfHeight = gConfig.mBlockHeight * gConfig.mNumRows >> 1;
-	int32_t aColumn = (int32_t)Send(gApp.mEC, 0x10, 0, 0);
+	int32_t aColumn = (int32_t)Send(gApp.mColumnCursor, MSG_CURSOR_COLUMN, 0, 0);
 	int32_t anYOffset = gConfig.mBkgcolyoffset;
 	uint32_t aSecondColumn;
 	if ((mField->mNext.mFlags & PF_PREVIEW) == 0)
@@ -4132,8 +4132,8 @@ void Board::DrawGlow(lowos::Surface* theScreen)
 		else
 			aBrightness = 0x100;
 	}
-	int16_t aRadius16 = (int16_t)aRadius;
-	uint32_t aWidth32;
+	int16_t aShortRadius = (int16_t)aRadius;
+	uint32_t aGlowWidth;
 	int32_t aTop;
 	int32_t aBottom;
 	int16_t aX;
@@ -4143,7 +4143,7 @@ void Board::DrawGlow(lowos::Surface* theScreen)
 	if (((((int32_t)aLength != mGlowLength) || (aColumn != mGlowColumn)) || (aLowRow != mGlowLowRow)) ||
 		((aHighRow != mGlowHighRow || (mGlowValidA == 0)) || ((int32_t)aBrightness != mGlowBrightness)))
 	{
-		aWidth32 = gConfig.mBkgcoldx[aColumn] + gConfig.mBkgcolShrink * -2;
+		aGlowWidth = gConfig.mBkgcoldx[aColumn] + gConfig.mBkgcolShrink * -2;
 		if (aLowRow == -1)
 			aTop = 0;
 		else
@@ -4154,13 +4154,13 @@ void Board::DrawGlow(lowos::Surface* theScreen)
 		else
 			aBottom = (aHighRow + 1) * mBlockHeight;
 		aBottom = aBottom + gConfig.mBlockgridY;
-		aX = (int16_t)(((int16_t)gConfig.mBkgcolx[aColumn] - aRadius16) + (int16_t)gConfig.mBkgcolShrink + (int16_t)gConfig.mBlockgridX);
-		aY = (int16_t)(((int16_t)gConfig.mBlockgridY + (int16_t)gConfig.mBkgcolyoffset) - aRadius16);
-		aW = (uint16_t)((int16_t)aWidth32 + aRadius16 * 2);
+		aX = (int16_t)(((int16_t)gConfig.mBkgcolx[aColumn] - aShortRadius) + (int16_t)gConfig.mBkgcolShrink + (int16_t)gConfig.mBlockgridX);
+		aY = (int16_t)(((int16_t)gConfig.mBlockgridY + (int16_t)gConfig.mBkgcolyoffset) - aShortRadius);
+		aW = (uint16_t)((int16_t)aGlowWidth + aShortRadius * 2);
 		if (aLength == 0)
-			aH = (uint16_t)((int16_t)gConfig.mBlockHeight * (int16_t)gConfig.mNumRows + (int16_t)gConfig.mBkgcolyoffset * -2 + aRadius16 * 2);
+			aH = (uint16_t)((int16_t)gConfig.mBlockHeight * (int16_t)gConfig.mNumRows + (int16_t)gConfig.mBkgcolyoffset * -2 + aShortRadius * 2);
 		else
-			aH = (uint16_t)(aRadius16 + (int16_t)aLength);
+			aH = (uint16_t)(aShortRadius + (int16_t)aLength);
 		uint32_t aScreenWidth = lowos::SurfaceWidth(theScreen);
 		int32_t aSourcePitch = (aScreenWidth & 0xffff) * aBytesPerPixel;
 		lowos::BlitPixels(&aFormat, &aFormat, mGlowBuffer,
@@ -4211,18 +4211,18 @@ void Board::DrawGlow(lowos::Surface* theScreen)
 		memcpy(mGlowBufferA, mGlowBuffer, mGlowPitch * (uint32_t)aH);
 		uint32_t i;
 		for (i = 0; (int32_t)i < aRadius; i = i + 1)
-			GlowColumn(i, i, aWidth32, aBytesPerPixel, aBrightness);
+			GlowColumn(i, i, aGlowWidth, aBytesPerPixel, aBrightness);
 		if (aLength == 0)
 		{
 			for (i = aRadius; (int32_t)i < (int32_t)((uint32_t)aH - aRadius); i = i + 1)
-				GlowColumn(aRadius, i, aWidth32, aBytesPerPixel, aBrightness);
+				GlowColumn(aRadius, i, aGlowWidth, aBytesPerPixel, aBrightness);
 			for (i = 0; (int32_t)i < aRadius; i = i + 1)
-				GlowColumn((aRadius - 1) - i, i + ((uint32_t)aH - aRadius), aWidth32, aBytesPerPixel, aBrightness);
+				GlowColumn((aRadius - 1) - i, i + ((uint32_t)aH - aRadius), aGlowWidth, aBytesPerPixel, aBrightness);
 		}
 		else
 		{
 			for (i = 0; i < aLength; i = i + 1)
-				GlowColumn(aRadius + (i << 8) / aLength, i + aRadius, aWidth32, aBytesPerPixel, aBrightness);
+				GlowColumn(aRadius + (i << 8) / aLength, i + aRadius, aGlowWidth, aBytesPerPixel, aBrightness);
 		}
 		lowos::BlitPixels(&aFormat, &aFormat, mGlowBuffer, mGlowAlpha, aH, aW, mGlowPitch, mGlowAlphaPitch, 2,
 			aBytesPerPixel, aBytesPerPixel, 0, 0xff);
@@ -4237,7 +4237,7 @@ void Board::DrawGlow(lowos::Surface* theScreen)
 				(((aSecondColumn != (uint32_t)mGlowColumnB || (aLowRow != mGlowLowRow)) || (aHighRow != mGlowHighRow)))) ||
 			((mGlowValidB == 0 || ((int32_t)aBrightness != mGlowBrightness))))))
 	{
-		aWidth32 = gConfig.mBkgcoldx[aSecondColumn] + gConfig.mBkgcolShrink * -2;
+		aGlowWidth = gConfig.mBkgcoldx[aSecondColumn] + gConfig.mBkgcolShrink * -2;
 		if (aLowRow == -1)
 			aTop = 0;
 		else
@@ -4248,14 +4248,14 @@ void Board::DrawGlow(lowos::Surface* theScreen)
 		else
 			aBottom = (aHighRow + 1) * mBlockHeight;
 		aBottom = aBottom + gConfig.mBlockgridY;
-		aX = (int16_t)(((int16_t)gConfig.mBkgcolx[aSecondColumn] - aRadius16) + (int16_t)gConfig.mBkgcolShrink + (int16_t)gConfig.mBlockgridX);
-		aW = (uint16_t)((int16_t)aWidth32 + aRadius16 * 2);
+		aX = (int16_t)(((int16_t)gConfig.mBkgcolx[aSecondColumn] - aShortRadius) + (int16_t)gConfig.mBkgcolShrink + (int16_t)gConfig.mBlockgridX);
+		aW = (uint16_t)((int16_t)aGlowWidth + aShortRadius * 2);
 		if (aLengthB == 0)
-			aH = (uint16_t)((int16_t)gConfig.mBlockHeight * (int16_t)gConfig.mNumRows + (int16_t)gConfig.mBkgcolyoffset * -2 + aRadius16 * 2);
+			aH = (uint16_t)((int16_t)gConfig.mBlockHeight * (int16_t)gConfig.mNumRows + (int16_t)gConfig.mBkgcolyoffset * -2 + aShortRadius * 2);
 		else
-			aH = (uint16_t)(aRadius16 + (int16_t)aLengthB);
+			aH = (uint16_t)(aShortRadius + (int16_t)aLengthB);
 		aY = (int16_t)((((int16_t)gConfig.mBlockgridY + (int16_t)gConfig.mBlockHeight * (int16_t)gConfig.mNumRows) -
-				(int16_t)gConfig.mBkgcolyoffset + aRadius16) - (int16_t)aH);
+				(int16_t)gConfig.mBkgcolyoffset + aShortRadius) - (int16_t)aH);
 		uint32_t aScreenWidth = lowos::SurfaceWidth(theScreen);
 		int32_t aSourcePitch = (aScreenWidth & 0xffff) * aBytesPerPixel;
 		lowos::BlitPixels(&aFormat, &aFormat, mGlowBuffer,
@@ -4305,18 +4305,18 @@ void Board::DrawGlow(lowos::Surface* theScreen)
 		memcpy(mGlowBufferB, mGlowBuffer, mGlowPitch * (uint32_t)aH);
 		uint32_t i;
 		for (i = 0; (int32_t)i < aRadius; i = i + 1)
-			GlowColumn((aRadius - 1) - i, i + ((uint32_t)aH - aRadius), aWidth32, aBytesPerPixel, aBrightness);
+			GlowColumn((aRadius - 1) - i, i + ((uint32_t)aH - aRadius), aGlowWidth, aBytesPerPixel, aBrightness);
 		if (aLengthB == 0)
 		{
 			for (i = aRadius; (int32_t)i < (int32_t)((uint32_t)aH - aRadius); i = i + 1)
-				GlowColumn(aRadius, i, aWidth32, aBytesPerPixel, aBrightness);
+				GlowColumn(aRadius, i, aGlowWidth, aBytesPerPixel, aBrightness);
 			for (i = 0; (int32_t)i < aRadius; i = i + 1)
-				GlowColumn(i, i, aWidth32, aBytesPerPixel, aBrightness);
+				GlowColumn(i, i, aGlowWidth, aBytesPerPixel, aBrightness);
 		}
 		else
 		{
 			for (i = 0; i < aLengthB; i = i + 1)
-				GlowColumn((aRadius + 0xff) - (i << 8) / aLengthB, i, aWidth32, aBytesPerPixel, aBrightness);
+				GlowColumn((aRadius + 0xff) - (i << 8) / aLengthB, i, aGlowWidth, aBytesPerPixel, aBrightness);
 		}
 		lowos::BlitPixels(&aFormat, &aFormat, mGlowBuffer, mGlowAlpha, aH, aW, mGlowPitch, mGlowAlphaPitch, 2,
 			aBytesPerPixel, aBytesPerPixel, 0, 0xff);
@@ -4330,24 +4330,24 @@ void Board::DrawGlow(lowos::Surface* theScreen)
 	mGlowHighRow = aHighRow;
 	mGlowBrightness = aBrightness;
 	if (aLength == 0)
-		aH = (uint16_t)((int16_t)gConfig.mBlockHeight * (int16_t)gConfig.mNumRows + (int16_t)gConfig.mBkgcolyoffset * -2 + aRadius16 * 2);
+		aH = (uint16_t)((int16_t)gConfig.mBlockHeight * (int16_t)gConfig.mNumRows + (int16_t)gConfig.mBkgcolyoffset * -2 + aShortRadius * 2);
 	else
-		aH = (uint16_t)(aRadius16 + (int16_t)aLength);
-	lowos::Blit((uint16_t)((int16_t)gConfig.mBkgcoldx[aColumn] + aRadius16 * 2 + (int16_t)gConfig.mBkgcolShrink * -2), aH,
-		(int16_t)(((int16_t)gConfig.mBkgcolx[aColumn] - aRadius16) + (int16_t)gConfig.mBkgcolShrink + (int16_t)gConfig.mBlockgridX),
-		(int16_t)(((int16_t)gConfig.mBlockgridY + (int16_t)gConfig.mBkgcolyoffset) - aRadius16), 0, 0, mGlowPitch,
+		aH = (uint16_t)(aShortRadius + (int16_t)aLength);
+	lowos::Blit((uint16_t)((int16_t)gConfig.mBkgcoldx[aColumn] + aShortRadius * 2 + (int16_t)gConfig.mBkgcolShrink * -2), aH,
+		(int16_t)(((int16_t)gConfig.mBkgcolx[aColumn] - aShortRadius) + (int16_t)gConfig.mBkgcolShrink + (int16_t)gConfig.mBlockgridX),
+		(int16_t)(((int16_t)gConfig.mBlockgridY + (int16_t)gConfig.mBkgcolyoffset) - aShortRadius), 0, 0, mGlowPitch,
 		mGlowBufferA, 1, 0xff);
 	if (((mField->mNext.mFlags & PF_PREVIEW) != 0) && (aLength != 0))
 	{
 		if (aLengthB == 0)
-			aH = (uint16_t)((int16_t)gConfig.mBlockHeight * (int16_t)gConfig.mNumRows + (int16_t)gConfig.mBkgcolyoffset * -2 + aRadius16 * 2);
+			aH = (uint16_t)((int16_t)gConfig.mBlockHeight * (int16_t)gConfig.mNumRows + (int16_t)gConfig.mBkgcolyoffset * -2 + aShortRadius * 2);
 		else
-			aH = (uint16_t)(aRadius16 + (int16_t)aLengthB);
-		lowos::Blit((uint16_t)((int16_t)gConfig.mBkgcoldx[aSecondColumn] + aRadius16 * 2 + (int16_t)gConfig.mBkgcolShrink * -2), aH,
-			(int16_t)(((int16_t)gConfig.mBkgcolx[aSecondColumn] - aRadius16) + (int16_t)gConfig.mBkgcolShrink +
+			aH = (uint16_t)(aShortRadius + (int16_t)aLengthB);
+		lowos::Blit((uint16_t)((int16_t)gConfig.mBkgcoldx[aSecondColumn] + aShortRadius * 2 + (int16_t)gConfig.mBkgcolShrink * -2), aH,
+			(int16_t)(((int16_t)gConfig.mBkgcolx[aSecondColumn] - aShortRadius) + (int16_t)gConfig.mBkgcolShrink +
 				(int16_t)gConfig.mBlockgridX),
 			(int16_t)(((((int16_t)gConfig.mBlockgridY + (int16_t)gConfig.mBlockHeight * (int16_t)gConfig.mNumRows) -
-						(int16_t)gConfig.mBkgcolyoffset) + aRadius16) - (int16_t)aH),
+						(int16_t)gConfig.mBkgcolyoffset) + aShortRadius) - (int16_t)aH),
 			0, 0, mGlowPitch, mGlowBufferB, 1, 0xff);
 	}
 }
@@ -4469,8 +4469,8 @@ void Board::Draw(lowos::Surface* theBackground)
 			{
 				int32_t aLowRow = mField->GetLowRow();
 				int32_t aHighRow = mField->GetHighRow();
-				if (aLowRow != aHighRow && mNextBlocks[0].mKind != KIND_NONE && gApp.m138 / 1000 < (uint32_t)gConfig.mBonusTime)
-					goto LAB_0040ed46;
+				if (aLowRow != aHighRow && mNextBlocks[0].mKind != KIND_NONE && gApp.mBonusElapsed / 1000 < (uint32_t)gConfig.mBonusTime)
+					goto AfterBonusChecks;
 			}
 			mField->SetLockBit();
 		}
@@ -4481,31 +4481,31 @@ void Board::Draw(lowos::Surface* theBackground)
 			if (aLowRow == aHighRow)
 			{
 				mLevelComplete = 1;
-				gApp.m13c = 1;
+				gApp.mBonusClockStopped = 1;
 			}
 			else
 			{
 				if (mField->GetLowRow() == -1 || mField->GetHighRow() == -1)
 				{
 					mGameOver = 1;
-					gApp.m13c = 1;
+					gApp.mBonusClockStopped = 1;
 				}
 				else if (mNextBlocks[0].mKind == KIND_NONE)
 				{
-					gApp.m13f = 1;
+					gApp.mBonusBlocksRanOut = 1;
 					mGameOver = 1;
-					gApp.m13c = 1;
+					gApp.mBonusClockStopped = 1;
 				}
-				else if (gApp.m138 / 1000 >= (uint32_t)gConfig.mBonusTime)
+				else if (gApp.mBonusElapsed / 1000 >= (uint32_t)gConfig.mBonusTime)
 				{
 					gApp.mCrossed = 1;
 					mGameOver = 1;
-					gApp.m13c = 1;
+					gApp.mBonusClockStopped = 1;
 				}
 			}
 		}
 	}
-LAB_0040ed46:
+AfterBonusChecks:
 	{
 		int32_t aTopY;
 		int32_t aBottomY;
@@ -4523,28 +4523,28 @@ LAB_0040ed46:
 		aBottomY = aBottomY + mY;
 		if (mField->GetLowRow() == mField->GetHighRow())
 		{
-			lowos::BlitRegistered(0x280, 0x1e0, 0, 0, 0, 0, theBackground);
+			lowos::BlitRegistered(GAME_WIDTH, GAME_HEIGHT, 0, 0, 0, 0, theBackground);
 		}
 		else
 		{
 			if (aTopY != 0)
-				lowos::BlitRegistered(0x280, aTopY, 0, 0, 0, 0, theBackground);
+				lowos::BlitRegistered(GAME_WIDTH, aTopY, 0, 0, 0, 0, theBackground);
 			uint32_t aGlowWidth = lowos::SurfaceWidth(mGlowTop);
 			lowos::BlitRegistered(aGlowWidth & 0xffff, aBottomY - aTopY, gConfig.mBkghix, aTopY, 0, aTopY - gConfig.mBkghiy,
 				mGlowTop);
 			if (gConfig.mBkghix != 0)
 				lowos::BlitRegistered(gConfig.mBkghix, aBottomY - aTopY, 0, aTopY, 0, aTopY, theBackground);
 			aGlowWidth = lowos::SurfaceWidth(mGlowTop);
-			if (gConfig.mBkghix + (aGlowWidth & 0xffff) < 0x280)
+			if (gConfig.mBkghix + (aGlowWidth & 0xffff) < GAME_WIDTH)
 			{
 				uint32_t aWidth = lowos::SurfaceWidth(mGlowTop);
 				int32_t aRight = gConfig.mBkghix + (aWidth & 0xffff);
 				aWidth = lowos::SurfaceWidth(mGlowTop);
-				lowos::BlitRegistered(0x280 - (gConfig.mBkghix + (aWidth & 0xffff)), aBottomY - aTopY, aRight, aTopY, aRight,
+				lowos::BlitRegistered(GAME_WIDTH - (gConfig.mBkghix + (aWidth & 0xffff)), aBottomY - aTopY, aRight, aTopY, aRight,
 					aTopY, theBackground);
 			}
-			if (aBottomY != 0x1e0)
-				lowos::BlitRegistered(0x280, 0x1e0 - aBottomY, 0, aBottomY, 0, aBottomY, theBackground);
+			if (aBottomY != GAME_HEIGHT)
+				lowos::BlitRegistered(GAME_WIDTH, GAME_HEIGHT - aBottomY, 0, aBottomY, 0, aBottomY, theBackground);
 		}
 	}
 	if (gBusy == 0 && mEnding == 0)
@@ -4641,9 +4641,9 @@ LAB_0040ed46:
 							if (mArrowY[aColumn] < (int32_t)aStop)
 								mArrowY[aColumn] = aStop;
 						}
-						uint64_t aTime64 = aNow;
+						uint64_t aWideTime = aNow;
 						uint32_t aArrowWidth = lowos::SurfaceWidth(mArrows);
-						uint32_t aSourceX = (int32_t)((aTime64 / 0x32) % 4) * (aArrowWidth & 0xffff) >> 2;
+						uint32_t aSourceX = (int32_t)((aWideTime / 0x32) % 4) * (aArrowWidth & 0xffff) >> 2;
 						aArrowWidth = lowos::SurfaceWidth(mArrows);
 						int32_t aSourceEnd = aSourceX + (aArrowWidth & 0xffff) / 4;
 						int32_t aSourceY = 0;
@@ -4721,7 +4721,7 @@ LAB_0040ed46:
 							if (anAge < aStartDelay && aSlot != 0)
 								aRise = mBlockHeight;
 							lowos::BlitRegistered(aSourceEnd - aSourceX, aSourceBottom - aSourceY,
-								aCopy.mX + gConfig.mIngameNextblocksx, aRise + ((uint32_t)aCopy.mY >> 8) + gConfig.mIngameNextblocksy,
+								aCopy.mX + gConfig.mIngameNextblocksx, aRise + ((uint32_t)aCopy.mY >> FIXED_SHIFT) + gConfig.mIngameNextblocksy,
 								aSourceX, aSourceY, mBlocks);
 						}
 					}
@@ -4735,7 +4735,7 @@ LAB_0040ed46:
 					mNextBlocks[0].mFrame = mNextBlocks[0].mFrame % 4;
 					if (mNextBlocks[0].mFrame != 0)
 						mNextBlocks[0].mFrame = mNextBlocks[0].mFrame + 5;
-					int32_t aDropColumn = (int32_t)Send(gApp.mEC, 0x10, 0, 0);
+					int32_t aDropColumn = (int32_t)Send(gApp.mColumnCursor, MSG_CURSOR_COLUMN, 0, 0);
 					int32_t aDestX = aDropColumn * mBlockWidth;
 					int32_t aDestY = 0;
 					if (mField->CanPlace(aDropColumn) != 0)
@@ -4790,7 +4790,7 @@ LAB_0040ed46:
 							if ((&gConfig.mBkgcolLengthNormal)[gGameMode] != 0)
 								aBlink = (aBlink & 0xffffff00) | 0xff;
 							lowos::BlitLevel(aSourceEnd - aSourceX, aSourceBottom - aSourceY, aField->mNext.mX + mX,
-								((uint32_t)aField->mNext.mY >> 8) + mY, aSourceX, aSourceY, mBlocks, (uint8_t)aBlink);
+								((uint32_t)aField->mNext.mY >> FIXED_SHIFT) + mY, aSourceX, aSourceY, mBlocks, (uint8_t)aBlink);
 						}
 					}
 				}
@@ -4806,7 +4806,7 @@ LAB_0040ed46:
 					gConfig.mBottomcoverX, gConfig.mBottomcoverY, 0, 0, mBottomCover);
 			}
 			if (anEnterCount != 0 && anEnterCount == anEnteredCount)
-				Command(nullptr, 0x39);
+				Command(nullptr, CMD_LEVEL_START_SHOWN);
 			if (aLeaveCount != 0 && aLeaveCount == aLeftCount)
 			{
 				FreeHandler(gApp.mCounted[0]);
@@ -4868,15 +4868,15 @@ LAB_0040ed46:
 			{
 				if (aNow < aPiece->mSeed)
 					aPiece->mSeed = aNow;
-				uint8_t anEffectFlag = 0;
+				uint8_t anEffectFlashCount = 0;
 				int32_t anEffectKind = aPiece->mEffectKind;
 				if (anEffectKind == KIND_COLORBOMB)
 				{
-					anEffectFlag = gConfig.mColorbombEffects.mFlag;
+					anEffectFlashCount = gConfig.mColorbombEffects.mFlashCount;
 				}
 				else if (anEffectKind == KIND_COLUMNNUKE)
 				{
-					anEffectFlag = gConfig.mColumnnukeEffects.mFlag;
+					anEffectFlashCount = gConfig.mColumnnukeEffects.mFlashCount;
 				}
 				else if (anEffectKind == KIND_NONE)
 				{
@@ -4890,16 +4890,16 @@ LAB_0040ed46:
 						{
 							aPiece->mFlags = aPiece->mFlags | PF_GONE;
 							aPiece->mFlags = aPiece->mFlags & 0xfe7f;
-							goto LAB_0040efb0;
+							goto NextPiece;
 						}
 					}
 				}
 				if (aPiece->mEffectKind != KIND_NONE)
 				{
 					uint32_t anElapsed = aNow - aPiece->mSeed;
-					uint8_t aFade = (uint8_t)((uint64_t)(anElapsed % 0xfa << 8) / 0xfa);
+					uint8_t aFade = (uint8_t)((uint64_t)(anElapsed % FLASH_TIME << 8) / FLASH_TIME);
 					aLevel = aFade;
-					if (anElapsed < (uint32_t)anEffectFlag * 0xfa + aPiece->mEffectDelay)
+					if (anElapsed < (uint32_t)anEffectFlashCount * FLASH_TIME + aPiece->mEffectDelay)
 					{
 						if (aFade < 0x80)
 							aLevel = -1 - aFade;
@@ -4941,7 +4941,7 @@ LAB_0040ed46:
 						anElapsed = anElapsed - aPiece->mFlyDelay;
 						if (anElapsed < 0x2ee)
 						{
-							anOffsetY = ((((uint32_t)aPiece->mY >> 8) + mY + 10 + mBlockHeight) -
+							anOffsetY = ((((uint32_t)aPiece->mY >> FIXED_SHIFT) + mY + 10 + mBlockHeight) -
 								(anElapsed * anElapsed * (((uint32_t)aPiece->mY >> 8) + mY + 10 + mBlockHeight)) / 0x89544);
 						}
 						else if (gModal == 0)
@@ -4976,19 +4976,19 @@ LAB_0040ed46:
 							aPiece->mFlags = aPiece->mFlags & 0xfeff;
 							mField->DeletePiece(aCell);
 							aLeftCount = aLeftCount + 1;
-							goto LAB_0040efb0;
+							goto NextPiece;
 						}
 						anOffsetY = -(int32_t)((anElapsed * anElapsed * 0x1e0) / 0x89544);
 					}
 				}
 			}
-			lowos::BlitLevel(aSourceEnd - aSourceX, aSourceBottom - aSourceY, aPiece->mX + mX + aPiece->mShakeX / 0x100,
-				(((uint32_t)aPiece->mY >> 8) + mY) - anOffsetY + aPiece->mShakeY / 0x100, aSourceX, aSourceY, mBlocks,
+			lowos::BlitLevel(aSourceEnd - aSourceX, aSourceBottom - aSourceY, aPiece->mX + mX + aPiece->mShakeX / FIXED_ONE,
+				(((uint32_t)aPiece->mY >> 8) + mY) - anOffsetY + aPiece->mShakeY / FIXED_ONE, aSourceX, aSourceY, mBlocks,
 				aLevel);
 			if (isDeleteAfter)
 				mField->DeletePiece(aCell);
 		}
-LAB_0040efb0:
+NextPiece:
 		aPieceIndex = aPieceIndex + 1;
 	} while (true);
 }
@@ -5035,7 +5035,7 @@ void Board::Tap(uint32_t theX)
 	{
 		if (theX == 0xffffffff)
 		{
-			int32_t aColumn = (int32_t)Send(gApp.mEC, 0x10, 0, 0);
+			int32_t aColumn = (int32_t)Send(gApp.mColumnCursor, MSG_CURSOR_COLUMN, 0, 0);
 			theX = aColumn * mBlockWidth;
 		}
 		if ((uint32_t)(mColumns * mBlockWidth) <= theX)
@@ -5142,7 +5142,7 @@ uint32_t Board::Save(FILE* theFile, uint32_t theNow)
 			return 1;
 	}
 	if (put('D', 4, &CfgNumColors(aConfig)) || put('D', 4, &CfgSpawnThreshold(aConfig)) ||
-		put('D', 4, &CfgLevelM64(aConfig)) || put('D', 4, &CfgLevelM68(aConfig)) || put('D', 4, &CfgLevelM6c(aConfig)))
+		put('D', 4, &CfgMeterStart(aConfig)) || put('D', 4, &CfgMeterLoss(aConfig)) || put('D', 4, &CfgMeterDoublingTime(aConfig)))
 		return 1;
 	return mField->Save(theFile, theNow);
 }
@@ -5174,7 +5174,7 @@ uint32_t Board::Load(FILE* theFile, uint32_t theNow)
 			return 1;
 	}
 	if (get('D', 4, &CfgNumColors(aConfig)) || get('D', 4, &CfgSpawnThreshold(aConfig)) ||
-		get('D', 4, &CfgLevelM64(aConfig)) || get('D', 4, &CfgLevelM68(aConfig)) || get('D', 4, &CfgLevelM6c(aConfig)))
+		get('D', 4, &CfgMeterStart(aConfig)) || get('D', 4, &CfgMeterLoss(aConfig)) || get('D', 4, &CfgMeterDoublingTime(aConfig)))
 		return 1;
 	for (int i = 0; i < 100; i++)
 		mArrowY[i] = -1;

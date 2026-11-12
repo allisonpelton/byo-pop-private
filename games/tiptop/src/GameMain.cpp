@@ -37,7 +37,6 @@ uint32_t gGameMode = 0;
 char gBonusRound = 0;
 char gBusy = 0;
 char gModal = 0;
-char gModal2 = 0;
 char gHighScoreEntered = 0;
 uint8_t gPauseFlags = 0;
 uint8_t gParticleCount = 0;
@@ -354,7 +353,7 @@ bool GameFrame()
 		Dispatch(MSG_CHAR, aChar, 0);
 	uint16_t x, y;
 	lowos::GetMousePos(&x, &y);
-	if ((x < 0x280) && (y < 0x1e0))
+	if ((x < GAME_WIDTH) && (y < GAME_HEIGHT))
 	{
 		if ((x != gLastMouseX) || (y != gLastMouseY))
 		{

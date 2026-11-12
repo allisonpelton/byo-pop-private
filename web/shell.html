@@ -1454,7 +1454,12 @@ html.saver .stage-wrap { place-items: center; min-height: 100vh; }
     var readJson = function (path) { try { return JSON.parse(fs.readText(path)) || {}; } catch (e) { return {}; } };
     var note = readJson(FIXES_NOTE), present = fs.exists(FIXES_DIR + "/mod.json");
     var onDisk = present ? String(readJson(FIXES_DIR + "/mod.json").version || "") : null;
-    var keep = function (n) { fs.writeFile(FIXES_NOTE, new TextEncoder().encode(JSON.stringify(n))); web().sync(); };
+    // the Original switch's record (web/modpanel.js, "original") rides along with every note
+    var keep = function (n) {
+      if (note.original) n.original = note.original;
+      fs.writeFile(FIXES_NOTE, new TextEncoder().encode(JSON.stringify(n)));
+      web().sync();
+    };
     if (note.removed) {
       if (present) keep({ installed: onDisk });  // the player added a fixes mod again
       return null;
@@ -1477,7 +1482,9 @@ html.saver .stage-wrap { place-items: center; min-height: 100vh; }
         var rel = fs.safeRel(f);
         if (rel) fs.writeFile(FIXES_DIR + "/" + rel, new Uint8Array(data[i]));
       });
-      fs.writeFile(FIXES_NOTE, new TextEncoder().encode(JSON.stringify({ installed: FIXES.version })));
+      var fresh = { installed: FIXES.version };
+      if (note.original) fresh.original = note.original;
+      fs.writeFile(FIXES_NOTE, new TextEncoder().encode(JSON.stringify(fresh)));
       panel.call("byopop_mods_rescan", null, [], []);
       panel.refresh();
       return web().sync();

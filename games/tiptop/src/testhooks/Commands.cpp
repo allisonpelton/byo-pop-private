@@ -1,4 +1,4 @@
-// Test hooks: the standard script commands (docs/TEST_COMMANDS.md), reachable only from -script and the live channel
+// port: test hooks: the standard script commands (docs/TEST_COMMANDS.md), reachable only from -script and the live channel
 // (-commands natively, byopop_test_command on the web). A command that is never given changes nothing: no draw, no
 // state. A command that is given draws no random number of the game's, except `seed`, which seeds them. Every command
 // answers with one line on stdout: OK <command>, ERROR <command>: <reason>, STATE {...} or MOVE {...}.
@@ -119,46 +119,46 @@ char KindChar(int theKind)
 std::string StateJson(int theUpdates)
 {
 	tiptop::App& anApp = tiptop::gApp;
-	tiptop::Board* b = anApp.mBoard;
-	std::string s = std::string("{\"screen\":\"") + ScreenName(anApp.mScreen) + "\"";
-	bool aBoardScreen = OnBoardScreen(anApp.mScreen) && b != nullptr;
-	s += std::string(",\"mode\":\"") + (aBoardScreen ? ModeName(tiptop::gGameMode) : "none") + "\"";
-	s += std::string(",\"over\":") + (GameIsOver() ? "true" : "false");
-	s += std::string(",\"dialog\":") + (DialogOpen() ? "true" : "false");
-	s += std::string(",\"busy\":") + (tiptop::gBusy != 0 ? "true" : "false");
-	s += std::string(",\"paused\":") + (tiptop::gPauseFlags != 0 ? "true" : "false");
-	s += std::string(",\"inactive\":") + ((tiptop::gPauseFlags & 2) != 0 ? "true" : "false");
-	s += ",\"updates\":" + Num(theUpdates);
+	tiptop::Board* aBoard = anApp.mBoard;
+	std::string aJson = std::string("{\"screen\":\"") + ScreenName(anApp.mScreen) + "\"";
+	bool aBoardScreen = OnBoardScreen(anApp.mScreen) && aBoard != nullptr;
+	aJson += std::string(",\"mode\":\"") + (aBoardScreen ? ModeName(tiptop::gGameMode) : "none") + "\"";
+	aJson += std::string(",\"over\":") + (GameIsOver() ? "true" : "false");
+	aJson += std::string(",\"dialog\":") + (DialogOpen() ? "true" : "false");
+	aJson += std::string(",\"busy\":") + (tiptop::gBusy != 0 ? "true" : "false");
+	aJson += std::string(",\"paused\":") + (tiptop::gPauseFlags != 0 ? "true" : "false");
+	aJson += std::string(",\"inactive\":") + ((tiptop::gPauseFlags & 2) != 0 ? "true" : "false");
+	aJson += ",\"updates\":" + Num(theUpdates);
 	if (aBoardScreen)
 	{
-		s += ",\"level\":" + Num(b->mState.mLevel) + ",\"score\":" + Num(b->GetScore());
-		s += std::string(",\"bonus\":") + (tiptop::gBonusRound != 0 ? "true" : "false");
-		s += ",\"blocksleft\":" + Num(b->mState.mBlocksLeft);
-		s += std::string(",\"levelComplete\":") + (b->mLevelComplete != 0 ? "true" : "false");
-		s += std::string(",\"gameOver\":") + (b->mGameOver != 0 ? "true" : "false");
-		if (b->mField != nullptr)
+		aJson += ",\"level\":" + Num(aBoard->mState.mLevel) + ",\"score\":" + Num(aBoard->GetScore());
+		aJson += std::string(",\"bonus\":") + (tiptop::gBonusRound != 0 ? "true" : "false");
+		aJson += ",\"blocksleft\":" + Num(aBoard->mState.mBlocksLeft);
+		aJson += std::string(",\"levelComplete\":") + (aBoard->mLevelComplete != 0 ? "true" : "false");
+		aJson += std::string(",\"gameOver\":") + (aBoard->mGameOver != 0 ? "true" : "false");
+		if (aBoard->mField != nullptr)
 		{
-			tiptop::Field* f = b->mField;
-			int aColumns = (int)f->mColumns;
-			int aRows = (int)f->mRows;
-			s += ",\"board\":{\"columns\":" + Num(aColumns) + ",\"rows\":" + Num(aRows) + ",\"next\":[";
+			tiptop::Field* aField = aBoard->mField;
+			int aColumns = (int)aField->mColumns;
+			int aRows = (int)aField->mRows;
+			aJson += ",\"board\":{\"columns\":" + Num(aColumns) + ",\"rows\":" + Num(aRows) + ",\"next\":[";
 			for (int i = 0; i < 4; i++)
-				s += (i == 0 ? "" : ",") + Num(b->mNextBlocks[i].mKind);
-			s += "],\"grid\":[";
+				aJson += (i == 0 ? "" : ",") + Num(aBoard->mNextBlocks[i].mKind);
+			aJson += "],\"grid\":[";
 			for (int r = 0; r < aRows; r++)
 			{
 				std::string aRow;
 				for (int c = 0; c < aColumns; c++)
 				{
-					tiptop::Piece* p = f->PieceAt((uint32_t)(r * aColumns + c));
+					tiptop::Piece* p = aField->PieceAt((uint32_t)(r * aColumns + c));
 					aRow += p != nullptr ? KindChar(p->mKind) : '.';
 				}
-				s += (r == 0 ? "\"" : ",\"") + aRow + "\"";
+				aJson += (r == 0 ? "\"" : ",\"") + aRow + "\"";
 			}
-			s += "]}";
+			aJson += "]}";
 		}
 	}
-	return s + "}";
+	return aJson + "}";
 }
 
 // A click move in the bot's JSON: the pointer goes there first (a hover, which the game's buttons and its column cursor
@@ -229,7 +229,7 @@ std::string BotMove()
 		// not yet: the game is busy, a press is held by the column cursor (it taps as soon as the game is free), the
 		// level or the game is ending
 		if (aBoard == nullptr || aBoard->mField == nullptr || aBoard->mGameOver != 0 || aBoard->mLevelComplete != 0 ||
-			aBoard->mEnding != 0 || tiptop::gBusy != 0 || (anApp.mEC != nullptr && anApp.mEC->u.mSlots[1] != 0))
+			aBoard->mEnding != 0 || tiptop::gBusy != 0 || (anApp.mColumnCursor != nullptr && anApp.mColumnCursor->u.mSlots[1] != 0))
 			return WaitMove(10);
 		// the bot's dice are its own, a function of the update, so asking twice gives the same move
 		unsigned int aSeed = gBotSeed + (unsigned int)gApp->mUpdateCount * 2654435761u;
@@ -418,10 +418,10 @@ bool TipTopApp::HandleTestCommand(const ScriptCommand& theCommand)
 	}
 	if (aName == "win" || aName == "lose")
 	{
-		tiptop::Board* b = anApp.mBoard;
-		if (anApp.mScreen != tiptop::SCREEN_GAME || b == nullptr || b->mField == nullptr)
+		tiptop::Board* aBoard = anApp.mBoard;
+		if (anApp.mScreen != tiptop::SCREEN_GAME || aBoard == nullptr || aBoard->mField == nullptr)
 			Error(aLine, "no game is on its board");
-		else if (DialogOpen() || tiptop::gBusy != 0 || b->mGameOver != 0 || b->mLevelComplete != 0 || b->mEnding != 0)
+		else if (DialogOpen() || tiptop::gBusy != 0 || aBoard->mGameOver != 0 || aBoard->mLevelComplete != 0 || aBoard->mEnding != 0)
 			Error(aLine, "the game is not between moves (a dialog, an animation or the end of the level)");
 		else if (tiptop::gBonusRound != 0)
 			Error(aLine, "the bonus round has no win or lose");
@@ -430,10 +430,10 @@ bool TipTopApp::HandleTestCommand(const ScriptCommand& theCommand)
 			// the flags the board sets itself when the level is won or the game lost (Board::Draw); the game screen
 			// takes it from there
 			if (aName == "win")
-				b->mLevelComplete = 1;
+				aBoard->mLevelComplete = 1;
 			else
 			{
-				b->mGameOver = 1;
+				aBoard->mGameOver = 1;
 				if (tiptop::gGameMode == 1)
 					anApp.SetCrossed();
 			}

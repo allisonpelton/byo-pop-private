@@ -3,7 +3,7 @@
 #include "Graphics.h"
 #include "Image.h"
 #include "MTRand.h"
-#include "Fixes.h"
+#include "platform/GameOptions.h"
 
 using namespace Sexy;
 
@@ -77,7 +77,7 @@ BackgroundFish::BackgroundFish(WinWSApp* theApp, BackgroundFish* theTemplate) :
 	mImage = theTemplate->mImage;
 	unsigned int anOffset = (unsigned int)gGameRand->NextNoAssert() % aWidth + aWidth;
 	unsigned int aX = 0u - anOffset;
-	if (FixEnabled("schools"))
+	if (Platform::FixOn("schools"))
 		mX = -(double)anOffset;		// fixes mod: a follower swims in behind its leader
 	else
 		mX = (double)aX;

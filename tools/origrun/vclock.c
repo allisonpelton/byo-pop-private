@@ -649,16 +649,40 @@ static void patch_new_modules(void)
 		clog("%s: %d import%s on %s", leaf, n, n == 1 ? "" : "s", grps);
 	}
 }
-// A DLL of the copy loaded since the last look: the module list is looked at once per tick of the wall clock (about
-// 16 ms), from the clock's waits and the cursor's and message-box hooks' calls, whichever thread they come from (one at
-// a time).
+// A DLL of the copy loaded since the last look: the module list is looked at from the clock's waits and the cursor's,
+// message-box and registry hooks' calls, whichever thread they come from (one at a time), at most once per tick of the
+// wall clock (about 16 ms), and only after the loader has said a DLL was mapped since the last look. Looking at the list
+// costs a few hundred thousand cycles, which a copy that asks for the cursor every 10 ms paid on each call: Typer
+// Shark's cursor thread, about 0.7 G cycles in 20 s, plus 0.35 G on its main thread (2026-11-12). Without the loader's
+// notice (it could not be registered) the list is looked at once per tick as before.
 static LONG gScanBusy;   // a scan of the module list is running (the install's own, or a rescan)
+static volatile LONG gDllsMapped = 1;   // DLLs the loader has mapped since the last look (1: look once)
+static int gDllNotice;                  // the loader's notice is registered
+typedef VOID (CALLBACK *LdrNotify_t)(ULONG reason, const void* data, PVOID ctx);
+typedef LONG (NTAPI *LdrRegister_t)(ULONG flags, LdrNotify_t fn, PVOID ctx, PVOID* cookie);
+// The loader's own notice of a DLL that has been mapped (Vista and later; net.c registers one of its own): the loader
+// lock is held, so it only counts, and the next rescan does the work.
+static VOID CALLBACK dll_mapped(ULONG reason, const void* data, PVOID ctx)
+{
+	(void)data; (void)ctx;
+	if (reason == 1 /* LDR_DLL_NOTIFICATION_REASON_LOADED */) InterlockedIncrement(&gDllsMapped);
+}
+static void dll_notice_install(void)
+{
+	HMODULE nt = GetModuleHandleA("ntdll.dll");
+	LdrRegister_t reg = nt ? (LdrRegister_t)(void*)GetProcAddress(nt, "LdrRegisterDllNotification") : NULL;
+	PVOID cookie = NULL;
+	gDllNotice = reg && reg(0, dll_mapped, NULL, &cookie) == 0;
+	if (!gDllNotice) clog("the loader's DLL notice could not be registered: the module list is looked at every 15 ms");
+}
 void net_rescan(void);   // net.c: the network block's own look at the DLLs mapped since
 void hooks_rescan(void)
 {
+	if (gDllNotice && gDllsMapped == 0) return;
 	ULONGLONG t = GetTickCount64();
 	if (t - gModScanAt < 15 || InterlockedExchange(&gScanBusy, 1)) return;
 	gModScanAt = t;
+	if (gDllNotice) InterlockedExchange(&gDllsMapped, 0);   // a DLL mapped from here on is counted again for the next look
 	patch_new_modules();
 	net_rescan();
 	InterlockedExchange(&gScanBusy, 0);
@@ -828,6 +852,7 @@ void vclock_install(HMODULE self)
 		gHooks[k].real = m ? (void*)GetProcAddress(m, gHooks[k].name) : NULL;
 	}
 	gOn = clockOk;
+	dll_notice_install();
 	InterlockedExchange(&gScanBusy, 1);   // nothing is patched yet, so no rescan holds it; a hook's rescan meanwhile skips
 	patch_new_modules();
 	InterlockedExchange(&gScanBusy, 0);

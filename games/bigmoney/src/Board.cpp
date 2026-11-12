@@ -28,6 +28,7 @@
 #include <algorithm>
 #include <SDL.h>
 #include "platform/ModManager.h"
+#include "platform/GameOptions.h"
 
 using namespace Sexy;
 
@@ -1114,7 +1115,7 @@ bool Board::LoadGame()
 	// port(mods): the fixes mod's "continueColours" (GAME_NOTES, "Fix candidates"): the save does not hold the colour
 	// count, so the original deals the resumed game's new coins with the level-0 count (one colour fewer at skill 1)
 	// until the next level; this gives it the count SetupLevelParams gives the saved level
-	if (ModFeatureBool("fixes", "continueColours", false))
+	if (Platform::FixOn("continueColours"))
 	{
 		int aLevel = mLevel;
 		if (mApp->mSkillLevel != 1)
@@ -3264,7 +3265,7 @@ void Board::Update()
 		{
 			// port(mods): the fixes mod's "shakeSettles" (GAME_NOTES, "Fix candidates"): the original never resets the
 			// shake offsets, so a board that survived the overflow countdown keeps its coins displaced
-			if ((mOverflowTicks > 0) && (ModFeatureBool("fixes", "shakeSettles", false)))
+			if ((mOverflowTicks > 0) && (Platform::FixOn("shakeSettles")))
 			{
 				int aSettled = 0;
 				for (int aRow = 0; aRow < BOARD_ROWS; aRow++)

@@ -1,8 +1,9 @@
 // port(mod): the LiveSplit block and its observer. See LiveSplitObserver.h and LiveSplitBlock.h.
 //
-// The block is a constant-initialised static object, so its magic exists only in .data's initialised bytes,
-// once in the exe. It is in every Windows build but written only while the "livesplit" feature is on; until
-// then active and self stay 0, which tells the script to ask for the mod. The observer runs after each app
+// The block is the shared AutosplitBlock (platform/AutosplitBlock.h, layout 2), a constant-initialised static object, so its
+// magic exists only in .data's initialised bytes, once in the exe, and the AutosplitWriter keeps its counters, serials and the
+// seq protocol. It is in every Windows and web build but written only while the "livesplit" feature is on or, on the web, the
+// page asked for it (byopop_livesplit_block); until then active and self stay 0, which tells the script to ask for the mod. The observer runs after each app
 // update (BookWormApp::UpdateFrames), reads the board's fields and the score key only, and sees each update's
 // end state, not what happened inside it.
 //
@@ -38,8 +39,10 @@
 #include "platform/VFS.h"
 
 #include <SDL.h>
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
 #include <algorithm>
-#include <atomic>
 #include <cctype>
 #include <cstdio>
 #include <cstring>
@@ -47,65 +50,37 @@
 
 using namespace Sexy;
 
-// The block (layout 1): constant-initialised, aligned, kept by the linker. Only Publish() writes it.
-extern "C" __attribute__((used, aligned(64))) volatile LiveSplitBlockV1 gLiveSplitBlock = {
-	LIVESPLIT_MAGIC_BYTES, LIVESPLIT_GAME_ID, LIVESPLIT_LAYOUT_VERSION, LIVESPLIT_SIZE_V1
-};
+// The block (the shared layout 2, platform/AutosplitBlock.h): constant-initialised, aligned, kept by the linker. Only the
+// writer's Publish() writes it. LiveSplitBlock.h is the layout-1 view of its first 0xB0 bytes.
+extern "C" __attribute__((used, aligned(64))) volatile AutosplitBlock gLiveSplitBlock = AUTOSPLIT_BLOCK_INIT(LIVESPLIT_GAME_ID);
 
 namespace
 {
 
-LiveSplitBlockV1	sShadow;                    // what the next write publishes (the header fields unused)
-bool				sActive = false;            // the block says active
-bool				sGameOver = false;          // the current board had its game over (flag 0x40)
+AutosplitWriter		sWriter(&gLiveSplitBlock);   // the counters, serials, latched flags and the seq writes
 bool				sGoPossible = false;        // the current board may still have its GO
 int					sPrevState = -1;            // the current board's state at the previous update
+bool				sPageAsked = false;         // web: the page's timer asked for the block (byopop_livesplit_block)
 std::string			sLogFileName;               // -livesplitlog
 FILE*				sLogFile = NULL;
 
 const char* const	gCauseNames[4] = { "fire", "countdown", "left", "other" };
 
-// One write: seq odd, the fields, seq even (LiveSplitBlock.h)
+// BookWorm's mode and skill, which the layout-1 view has at 0x80 and 0x84 (the shared block's gameOwn[0..3] and [4..7]) and
+// the layout-2 fields repeat at 0xB8 and 0xBC
+void SetModeAndSkill(int theMode, int theSkill)
+{
+	AutosplitBlock& aNext = sWriter.Next();
+	memcpy(aNext.gameOwn + 0, &theMode, sizeof(theMode));
+	memcpy(aNext.gameOwn + 4, &theSkill, sizeof(theSkill));
+	aNext.mode = theMode;
+	aNext.skill = theSkill;
+}
+
+// One write (the writer's seq protocol, LiveSplitBlock.h), then -livesplitlog's line
 void Publish(int theUpdate)
 {
-	volatile LiveSplitBlockV1& aBlock = gLiveSplitBlock;
-	const LiveSplitBlockV1& aShadow = sShadow;
-	uint32_t aSeq = aBlock.seq + 1;
-	aBlock.seq = aSeq;
-	std::atomic_thread_fence(std::memory_order_release);
-	aBlock.self = aShadow.self;
-	aBlock.active = aShadow.active;
-	aBlock.updates = aShadow.updates;
-	aBlock.flags = aShadow.flags;
-	aBlock.boardSerial = aShadow.boardSerial;
-	aBlock.goCount = aShadow.goCount;
-	aBlock.goSerial = aShadow.goSerial;
-	aBlock.levelClears = aShadow.levelClears;
-	aBlock.levelClearSerial = aShadow.levelClearSerial;
-	aBlock.gameOvers = aShadow.gameOvers;
-	aBlock.gameOverSerial = aShadow.gameOverSerial;
-	aBlock.deathsFire = aShadow.deathsFire;
-	aBlock.deathsCountdown = aShadow.deathsCountdown;
-	aBlock.deathsNewGame = aShadow.deathsNewGame;
-	aBlock.deathsOther = aShadow.deathsOther;
-	aBlock.tick = aShadow.tick;
-	aBlock.state = aShadow.state;
-	aBlock.level = aShadow.level;
-	aBlock.displayLevel = aShadow.displayLevel;
-	aBlock.displayScore = aShadow.displayScore;
-	aBlock.score = aShadow.score;
-	aBlock.boardLevelClears = aShadow.boardLevelClears;
-	aBlock.goTick = aShadow.goTick;
-	aBlock.scoreMax = aShadow.scoreMax;
-	aBlock.mode = aShadow.mode;
-	aBlock.skill = aShadow.skill;
-	for (int i = 0; i < 8; i++)
-		aBlock.scoreKey[i] = aShadow.scoreKey[i];
-	aBlock.qpc = aShadow.qpc;
-	aBlock.qpcFrequency = aShadow.qpcFrequency;
-	std::atomic_thread_fence(std::memory_order_release);
-	aBlock.seq = aSeq + 1;
-	sShadow.seq = aSeq + 1;
+	sWriter.Publish(SDL_GetPerformanceCounter());
 
 	if (!sLogFileName.empty())
 	{
@@ -121,7 +96,9 @@ void Publish(int theUpdate)
 		}
 		// The fields (volatile ones masked), then the block's bytes as the script reads them
 		char aLine[600];
-		FormatLiveSplitBlock(sShadow, true, aLine, sizeof(aLine));
+		LiveSplitBlockV1 aFields;
+		memcpy(&aFields, &sWriter.Next(), sizeof(aFields));
+		FormatLiveSplitBlock(aFields, true, aLine, sizeof(aLine));
 		LiveSplitBlockV1 aCopy;
 		memcpy(&aCopy, (const void*) &gLiveSplitBlock, sizeof(aCopy));
 		char aHex[LIVESPLIT_SIZE_V1 * 2 + 1];
@@ -132,6 +109,8 @@ void Publish(int theUpdate)
 		fflush(sLogFile);
 	}
 }
+
+#ifndef __EMSCRIPTEN__    // the split templates: desktop only (the web page ships its own, web/autosplit.js)
 
 bool EndsWithNoCase(const std::string& theText, const char* theEnd)
 {
@@ -223,38 +202,22 @@ void CopyTemplates()
 	SDL_Log("livesplit: templates: %d copied, %d already there, %d failed: %s", aCopied, aKept, aFailed, aTo.c_str());
 }
 
-// The fields of "no board" (boardSerial 0): before the first board, and after the last one
-void ClearBoardFields()
-{
-	LiveSplitBlockV1& aShadow = sShadow;
-	aShadow.boardSerial = 0;
-	aShadow.boardLevelClears = 0;
-	aShadow.goTick = -1;
-	aShadow.scoreMax = 0;
-	aShadow.flags = 0;
-	aShadow.tick = 0;
-	aShadow.state = -1;
-	aShadow.level = 0;
-	aShadow.displayLevel = 0;
-	aShadow.displayScore = 0;
-	aShadow.score = 0;
-	aShadow.mode = -1;
-	aShadow.skill = 0;
-}
+#endif
 
 void Activate()
 {
-	sActive = true;
-	sShadow.self = (uint32_t)(uintptr_t) &gLiveSplitBlock;
-	sShadow.active = 1;
-	sShadow.qpcFrequency = SDL_GetPerformanceFrequency();
-	memset(sShadow.scoreKey, 0, sizeof(sShadow.scoreKey));
+	sWriter.Activate(SDL_GetPerformanceFrequency());
+	AutosplitBlock& aNext = sWriter.Next();
+	memset(aNext.gameOwn + 8, 0, 8);
 	const std::string& aKey = Platform::ModManager::Get().GetScoreKey();
 	for (size_t i = 0; (i < aKey.size()) && (i < 8); i++)
-		sShadow.scoreKey[i] = (uint8_t) aKey[i];
-	SDL_Log("livesplit: block at 0x%08x (layout %u, %u bytes)", (unsigned) sShadow.self, (unsigned) LIVESPLIT_LAYOUT_VERSION,
-		(unsigned) LIVESPLIT_SIZE_V1);
+		aNext.gameOwn[8 + i] = (uint8_t) aKey[i];
+	SetModeAndSkill(-1, 0);
+	SDL_Log("livesplit: block at 0x%08x (layout %u, %u bytes)", (unsigned) aNext.self, (unsigned) AUTOSPLIT_LAYOUT_VERSION,
+		(unsigned) AUTOSPLIT_SIZE_V2);
+#ifndef __EMSCRIPTEN__
 	CopyTemplates();
+#endif
 }
 
 } // namespace
@@ -266,41 +229,41 @@ void LiveSplitObserver::SetLogFile(const std::string& theFileName)
 
 void LiveSplitObserver::AfterUpdate(BookWormApp* theApp)
 {
-	if ((!sActive) && (!ModFeatureEnabled("livesplit")))
+	if ((!sWriter.IsActive()) && (!ModFeatureEnabled("livesplit")) && (!sPageAsked))
 		return;
-	LiveSplitBlockV1& aShadow = sShadow;
+	AutosplitBlock& aNext = sWriter.Next();
 	// On activation the current board (or none) is new to the block: it is never given a GO
-	bool isActivation = !sActive;
+	bool isActivation = !sWriter.IsActive();
 	if (isActivation)
 		Activate();
 
 	Board* aBoard = theApp->mBoard;
 	uint32_t aSerial = (aBoard != NULL) ? aBoard->mBoardSerial : 0;
-	bool isNewBoard = isActivation || (aSerial != aShadow.boardSerial);
+	bool isNewBoard = isActivation || (aSerial != aNext.boardSerial);
 	if (isNewBoard)
 	{
-		aShadow.boardSerial = aSerial;
-		aShadow.boardLevelClears = 0;
-		aShadow.goTick = -1;
-		aShadow.scoreMax = 0;
-		sGameOver = false;
+		sWriter.NewBoard(aSerial);
 		sGoPossible = false;
 		sPrevState = -1;
 	}
 
 	if (aBoard == NULL)
-		ClearBoardFields();
+	{
+		sWriter.ClearBoard();
+		SetModeAndSkill(-1, 0);
+	}
 	else
 	{
 		int aState = aBoard->mState;
 		const StatKeeper* aStats = aBoard->mGameStats;
 		bool isOverState = (aState == BOARD_GAMEOVER_PENDING) || (aState == BOARD_GAMEOVER_MUSIC) || (aState == BOARD_GAMEOVER);
 		bool isLeft = (aState == BOARD_INACTIVE);
-		bool isOverNow = false;
+		int aGameOverKind = -1;     // the kind of game over this update raised (gCauseNames), -1 for none
 		if (isNewBoard)
 		{
 			// The baseline: a board seen over or left has had its game over, and its state is the previous one
-			sGameOver = isOverState || isLeft;
+			if (isOverState || isLeft)
+				sWriter.SeenOver();
 			sPrevState = aState;
 			sGoPossible = (!isActivation) && (!aBoard->mResumed) && (aBoard->mPlayer == NULL);
 			if ((!isActivation) && (aBoard->mResumed))
@@ -316,9 +279,7 @@ void LiveSplitObserver::AfterUpdate(BookWormApp* theApp)
 			else if ((aState == BOARD_PLAYING) && (aBoard->mPauseCount == 0))
 			{
 				sGoPossible = false;
-				aShadow.goCount++;
-				aShadow.goSerial = aSerial;
-				aShadow.goTick = aBoard->mUpdateCnt;
+				sWriter.Go(aBoard->mUpdateCnt);
 				SDL_Log("livesplit: board %u GO at tick %d (mode %d)", (unsigned) aSerial, aBoard->mUpdateCnt, theApp->mGameMode);
 			}
 		}
@@ -327,48 +288,30 @@ void LiveSplitObserver::AfterUpdate(BookWormApp* theApp)
 		{
 			if ((aState == BOARD_LEVEL_COMPLETE) && (sPrevState != BOARD_LEVEL_COMPLETE))
 			{
-				aShadow.levelClears++;
-				aShadow.levelClearSerial = aSerial;
-				aShadow.boardLevelClears++;
-				SDL_Log("livesplit: board %u level clear %d (level %d) at tick %d", (unsigned) aSerial, (int) aShadow.boardLevelClears,
+				sWriter.LevelClear();
+				SDL_Log("livesplit: board %u level clear %d (level %d) at tick %d", (unsigned) aSerial, (int) aNext.boardLevelClears,
 					aBoard->mLevel + 1, aBoard->mUpdateCnt);
 			}
-			if ((!sGameOver) && (isOverState || isLeft))
+			if ((!sWriter.HadGameOver()) && (isOverState || isLeft))
 			{
-				int aCause;
 				if (isLeft)
-				{
-					aCause = 2;
-					aShadow.deathsNewGame++;
-				}
+					aGameOverKind = 2;
 				else if (theApp->mGameMode == GAMEMODE_CLASSIC)
-				{
-					aCause = 0;
-					aShadow.deathsFire++;
-				}
+					aGameOverKind = 0;
 				else if (theApp->mGameMode == GAMEMODE_ACTION)
-				{
-					aCause = 1;
-					aShadow.deathsCountdown++;
-				}
+					aGameOverKind = 1;
 				else
-				{
-					aCause = 3;
-					aShadow.deathsOther++;
-				}
-				aShadow.gameOvers++;
-				aShadow.gameOverSerial = aSerial;
-				isOverNow = true;
-				SDL_Log("livesplit: board %u game over (%s) at tick %d", (unsigned) aSerial, gCauseNames[aCause], aBoard->mUpdateCnt);
+					aGameOverKind = 3;
+				SDL_Log("livesplit: board %u game over (%s) at tick %d", (unsigned) aSerial, gCauseNames[aGameOverKind], aBoard->mUpdateCnt);
 			}
 		}
 
 		// The score the splitter reads is the highest the game's score reached, frozen at the game over
-		// (LiveSplitBlock.h says why it is not the HUD's)
-		if (!sGameOver)
-			aShadow.scoreMax = std::max(aShadow.scoreMax, (int32_t) aStats->mScore);
-		if (isOverNow)
-			sGameOver = true;
+		// (LiveSplitBlock.h says why it is not the HUD's). The game-over update's own score still counts, so
+		// the high-water mark is raised before the game over latches.
+		sWriter.RaiseScoreMax(aStats->mScore);
+		if (aGameOverKind >= 0)
+			sWriter.GameOver(aGameOverKind);
 
 		uint32_t aFlags = 0;
 		if (aBoard->mResumed)
@@ -377,37 +320,34 @@ void LiveSplitObserver::AfterUpdate(BookWormApp* theApp)
 			aFlags |= LIVESPLIT_FLAG_REPLAY;    // port(mod): a watched replay (Replay.h)
 		if (Platform::ModManager::Get().GetScoreKey().empty())
 			aFlags |= LIVESPLIT_FLAG_VANILLA;
-		if (sGameOver)
-			aFlags |= LIVESPLIT_FLAG_GAME_OVER;
 		if (aBoard->mPauseCount > 0)
 			aFlags |= LIVESPLIT_FLAG_PAUSED;
-		aShadow.flags = aFlags;
-		aShadow.tick = aBoard->mUpdateCnt;
-		aShadow.state = aState;
-		aShadow.level = aBoard->mLevel;
-		aShadow.displayLevel = aBoard->mLevel + 1;
-		aShadow.displayScore = aBoard->mShownScore;
-		aShadow.score = aStats->mScore;
-		aShadow.mode = theApp->mGameMode;
-		aShadow.skill = 0;
+		aNext.flags = aFlags;               // the writer adds the game over's flag from its latch
+		aNext.tick = aBoard->mUpdateCnt;
+		aNext.state = aState;
+		aNext.level = aBoard->mLevel;
+		aNext.displayLevel = aBoard->mLevel + 1;
+		aNext.displayScore = aBoard->mShownScore;
+		aNext.score = aStats->mScore;
+		SetModeAndSkill(theApp->mGameMode, 0);
+		// The rank the summary screen shows (LevelUpWidget: the level after a level's summary, the level reached at a game
+		// over), which a category like Bookworm Supreme ends on: the levels cleared. Board::mLevel counts up only when the
+		// next level starts, so a level just cleared (the summary, the continue button's NEXT_LEVEL) is one more.
+		int aRank = aBoard->mLevel + (((aState == BOARD_LEVEL_COMPLETE) || (aState == BOARD_NEXT_LEVEL)) ? 1 : 0);
+		aNext.progress = std::min(aRank, 31);
 
 		sPrevState = aState;
 	}
 
-	aShadow.updates++;
-	aShadow.qpc = SDL_GetPerformanceCounter();
 	Publish(theApp->mUpdateCount);
 }
 
 void LiveSplitObserver::AppDestroyed(BookWormApp* theApp)
 {
-	if (sActive)
+	if (sWriter.IsActive())
 	{
-		sActive = false;
-		sShadow.active = 0;
-		ClearBoardFields();
-		sShadow.updates++;
-		sShadow.qpc = SDL_GetPerformanceCounter();
+		sWriter.Deactivate();
+		SetModeAndSkill(-1, 0);
 		Publish(theApp->mUpdateCount);
 	}
 	if (sLogFile != NULL)
@@ -416,5 +356,15 @@ void LiveSplitObserver::AppDestroyed(BookWormApp* theApp)
 		sLogFile = NULL;
 	}
 }
+
+#ifdef __EMSCRIPTEN__
+// The page's speedrun timer: the block's address in the game's memory (a HEAPU8 offset); asking turns its writing on from the
+// next update, as features.livesplit does (web/autosplit.js)
+extern "C" EMSCRIPTEN_KEEPALIVE uint32_t byopop_livesplit_block()
+{
+	sPageAsked = true;
+	return (uint32_t) (uintptr_t) &gLiveSplitBlock;
+}
+#endif
 
 #endif

@@ -1,7 +1,7 @@
 // port: the host for Bonnie's Bookstore (see BonniesHost.h): bonnies::Host over the framework and the platform layer.
 
 #include "BonniesHost.h"
-#include "ModFeatures.h"
+#include "platform/GameOptions.h"
 #include "../game/Start.h"
 #include "../engine/Host.h"
 #include "Graphics.h"
@@ -1151,7 +1151,7 @@ void BonniesHostApp::DoMainLoop()
 	{
 		bonnies::loadLetterOdds();
 		bonnies::loadBooks();
-		gSteadyClock = !mFastMode && bonnies::FixOn("steadyClock");
+		gSteadyClock = !mFastMode && Platform::FixOn("steadyClock");
 		bonnies::gSkipLogos = Byopop::SiteSkipLogos();
 		mGameRunning = true;
 		bonnies::bonniesMain();

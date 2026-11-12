@@ -3,7 +3,7 @@
 
 // port(mods): the toggles of the fixes mod (games/mummymaze/mods/fixes, docs/MOD_ROADMAP.md, "The fixes mod"). The mod names the
 // feature "fixes"; each fix is a bool setting of it. Without the mod every fix is off and the game plays as the original
-// does. The settings are read once at start-up (they are "apply": "restart"), so a game never changes its clock or its search
+// does (Platform::FixOn). The settings are read once at start-up (they are "apply": "restart"), so a game never changes its clock or its search
 // in the middle of a chamber.
 
 namespace Sexy

@@ -177,6 +177,11 @@ void GPUDisplay::UpdateDisplaySize()
 	mRenderScale = 1;
 }
 
+std::string GPUDisplay::RendererName() const
+{
+	return (mContext != NULL) ? mContext->Description() : std::string("none");
+}
+
 void GPUDisplay::ReleaseTextures()
 {
 	// No SDL renderer: a lost GL context is the device's ContextLost / ContextRestored (OnContextLost, OnContextRestored)

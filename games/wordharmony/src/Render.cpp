@@ -195,160 +195,266 @@ void withOp(int theOp, Body&& theBody)
 	}
 }
 
-// The source column each destination column of an unrotated blit reads, -1 where the blit leaves it
-std::vector<int> sBlitColumns;
-
 }
 
-// port (for speed): the frame's clear is made when something is drawn that does not cover the screen, or at the end of
-// the frame (finish), not at its start: most frames begin with an opaque copy of a full-screen picture, which writes every
-// pixel and would leave the 1.9 MB of the clear's stores for nothing
-void ScreenGraphics::clear()
+// port (for speed): retained drawing. A frame is a list of draw calls, and the value of a pixel depends only on the calls
+// that cover it, in order, on the black the screen starts the frame as, and on the images' pixels (which never change once
+// decoded). So the calls are recorded as they come (drawImage and drawLine only record), and at the frame's end (finish)
+// the screen is taken in tiles: a tile whose calls are the same as the last frame's keeps its pixels, and every other tile is
+// made black and has its calls drawn again, clipped to the tile. The pixels are those the original's drawing gives, call
+// for call: each pixel is worked out by the same code from the same inputs. Two calls are the same when they would write the
+// same pixels, not only when their numbers are the same: a position that moved by a fraction of a pixel, in a call that
+// reads the same source column and row for each pixel as before, is the same call (the columns and rows are worked out once
+// for the call, as the original's loops work them out for each of its rows).
+namespace
 {
-	mCleared = true;
-}
 
-// port: the clear that clear() put off is made now
-void ScreenGraphics::finish()
+const int TILE = 32;  // the tiles are TILE x TILE pixels (the last row and column of them are cut by the screen's edge)
+
+enum
 {
-	if (!mCleared)
-		return;
-	mCleared = false;
-	std::fill(mBits, mBits + (size_t)mWidth * mHeight, 0xff000000);
-}
+	BLIT_IMAGE,
+	BLIT_LINE
+};
 
-// 0x45e2d0: the position with the state's translation, snapped (truncated) as the state says; the source rectangle
-// placed with its pivot at the position, scaled and rotated about it. Without a rotation a negative scale mirrors the
-// image inside the rectangle the positive scale would cover (as 0x45c070's unrotated path does).
-// (0x457930 and 0x457940 set the blit's flags and 0x4589e0 compares two floats: translated inline)
-void ScreenGraphics::drawImage(Image* theImage, const IntRect& theSrc, float x, float y)
+// Everything that decides the pixels one draw call writes (a record compared with the last frame's, so the members are
+// all 32 bits wide, with no padding between them). A line keeps its ends in mSrc*, its colour in mThreshold and its alpha in
+// mOpacity.
+struct Blit
 {
-	ScreenImage* anImage = static_cast<ScreenImage*>(theImage);
-	if (anImage == nullptr || theSrc.isEmpty())
-		return;
-	float aRotation = getRotation();
-	float aScaleX = getScaleX();
-	float aScaleY = getScaleY();
-	float anOpacity = getOpacity();
-	const RenderState& aState = state();
-	x = x + aState.mTranslation.x;
-	y = y + aState.mTranslation.y;
-	int aSnap = getSnap();
-	if (aSnap == SNAP_BOTH || aSnap == SNAP_Y)
-		y = (float)(int)y;
-	if (aSnap == SNAP_BOTH || aSnap == SNAP_X)
-		x = (float)(int)x;
+	int32_t mKind;
+	uint32_t mImage;  // the source image's serial number (ScreenImage::mSerial)
+	int32_t mSrcLeft, mSrcTop, mSrcRight, mSrcBottom;
+	float mX, mY;  // the position with the state's translation, snapped as the state says
+	float mRotation, mScaleX, mScaleY;
+	int32_t mPivotX, mPivotY;
+	int32_t mOp, mThreshold, mOpacity, mOffsetR, mOffsetG, mOffsetB;
+	int32_t mLeft, mTop, mRight, mBottom;  // the pixels the call can write (a part of the screen)
+};
 
-	PixelOp anOp;
-	anOp.mThreshold = anImage->getAlphaThreshold();
-	anOp.mOpacity = clampByte((int)(anOpacity * 255.0f));
-	anOp.mOffsetR = anOp.mOffsetG = anOp.mOffsetB = 0;
-	const Color& anOffset = getColorOffset();
-	if (2.3841858e-07f <= std::fabs(anOffset.r) || 2.3841858e-07f <= std::fabs(anOffset.g) ||
-		2.3841858e-07f <= std::fabs(anOffset.b))
+static_assert(sizeof(Blit) == 23 * 4, "Blit is compared as bytes, so it has no padding");
+
+// What an unrotated image call reads for each pixel it can write, worked out once for the call: the source column of each
+// destination column (mLeft to mRight) and the source row of each destination row (mTop to mBottom), -1 where the call
+// leaves the pixel. The numbers are in the frame's mMapData.
+struct BlitMaps
+{
+	int32_t mColumns;  // where the columns start in the map data, or -1 for a call without maps (rotated, or a line)
+	int32_t mRows;
+	int32_t mFirst;    // the first and last destination column (counted from mLeft) that read the source
+	int32_t mLast;
+	bool mRun;         // the columns that read the source follow one another (an unscaled, unmirrored call): rows are runs
+};
+
+// The calls of a frame
+struct Frame
+{
+	std::vector<Blit> mBlits;
+	std::vector<const ScreenImage*> mImages;  // the image of each call, alive for this frame only (the next one compares serial numbers)
+	std::vector<BlitMaps> mMaps;
+	std::vector<int> mMapData;
+
+	void clear()
 	{
-		anOp.mOp = OP_OFFSET;
-		anOp.mOffsetR = (int)(anOffset.r * 255.0f);
-		anOp.mOffsetG = (int)(anOffset.g * 255.0f);
-		anOp.mOffsetB = (int)(anOffset.b * 255.0f);
+		mBlits.clear();
+		mImages.clear();
+		mMaps.clear();
+		mMapData.clear();
 	}
-	else if (anImage->getAlphaMode() != ALPHA_BLEND && std::fabs(anOpacity - 1.0f) < 2.3841858e-07f)
-		anOp.mOp = anImage->getAlphaMode() == ALPHA_TEST ? OP_TEST : OP_COPY;
-	else
-		anOp.mOp = OP_BLEND;
-	if (anOp.mOp != OP_COPY && anOp.mOp != OP_TEST && anOp.mOpacity == 0)
-		return;
+};
 
-	int aSrcX = std::max(theSrc.left, 0);
-	int aSrcY = std::max(theSrc.top, 0);
-	int aSrcRight = std::min(theSrc.right, anImage->mWidth);
-	int aSrcBottom = std::min(theSrc.bottom, anImage->mHeight);
-	int aWidth = theSrc.right - theSrc.left;
-	int aHeight = theSrc.bottom - theSrc.top;
-	float aPivotX = (float)anImage->getPivotX();
-	float aPivotY = (float)anImage->getPivotY();
-	const uint32_t* aSrcBits = anImage->mBits.data();
-	int aSrcPitch = anImage->mWidth;
+PixelOp blitOp(const Blit& theBlit)
+{
+	PixelOp anOp;
+	anOp.mOp = theBlit.mOp;
+	anOp.mThreshold = theBlit.mThreshold;
+	anOp.mOpacity = theBlit.mOpacity;
+	anOp.mOffsetR = theBlit.mOffsetR;
+	anOp.mOffsetG = theBlit.mOffsetG;
+	anOp.mOffsetB = theBlit.mOffsetB;
+	return anOp;
+}
 
+// The part of the screen an image draw call can write; false when it writes nothing. The rectangles are those the pixel loops of
+// renderBlit run over (the position, scale and rotation as the loops take them).
+bool blitBounds(Blit& theBlit, int theScreenWidth, int theScreenHeight)
+{
+	float aRotation = theBlit.mRotation;
+	int aWidth = theBlit.mSrcRight - theBlit.mSrcLeft;
+	int aHeight = theBlit.mSrcBottom - theBlit.mSrcTop;
+	float aPivotX = (float)theBlit.mPivotX;
+	float aPivotY = (float)theBlit.mPivotY;
 	if (std::fabs(aRotation) < 2.3841858e-07f)
 	{
-		float aSX = std::fabs(aScaleX);
-		float aSY = std::fabs(aScaleY);
+		float aSX = std::fabs(theBlit.mScaleX);
+		float aSY = std::fabs(theBlit.mScaleY);
 		if (aSX < 1e-6f || aSY < 1e-6f)
-			return;
-		float aLeft = x - aPivotX * aSX;
-		float aTop = y - aPivotY * aSY;
+			return false;
+		float aLeft = theBlit.mX - aPivotX * aSX;
+		float aTop = theBlit.mY - aPivotY * aSY;
 		float aRight = aLeft + aWidth * aSX;
 		float aBottom = aTop + aHeight * aSY;
-		int aX0 = std::max(0, (int)std::ceil(aLeft - 0.5f));
-		int aY0 = std::max(0, (int)std::ceil(aTop - 0.5f));
-		int aX1 = std::min(mWidth, (int)std::ceil(aRight - 0.5f));
-		int aY1 = std::min(mHeight, (int)std::ceil(aBottom - 0.5f));
-		if (aX0 >= aX1 || aY0 >= aY1)
-			return;
-		// port (for speed): the column each destination column reads is worked out once for the blit, not for each
-		// pixel of each row (the same float expression); the columns inside the source that follow one another (any blit
-		// not mirrored or scaled) are then copied or blended as a run
-		int aCount = aX1 - aX0;
-		sBlitColumns.resize(aCount);
-		int aFirst = -1;
-		int aLast = -1;
-		bool aRun = true;
-		for (int i = 0; i < aCount; i++)
+		theBlit.mLeft = std::max(0, (int)std::ceil(aLeft - 0.5f));
+		theBlit.mTop = std::max(0, (int)std::ceil(aTop - 0.5f));
+		theBlit.mRight = std::min(theScreenWidth, (int)std::ceil(aRight - 0.5f));
+		theBlit.mBottom = std::min(theScreenHeight, (int)std::ceil(aBottom - 0.5f));
+	}
+	else
+	{
+		if (std::fabs(theBlit.mScaleX) < 1e-6f || std::fabs(theBlit.mScaleY) < 1e-6f)
+			return false;
+		float aCos = std::cos(aRotation);
+		float aSin = std::sin(aRotation);
+		float aCorners[4][2] = {{0, 0}, {(float)aWidth, 0}, {0, (float)aHeight}, {(float)aWidth, (float)aHeight}};
+		float aMinX = 1e9f, aMinY = 1e9f, aMaxX = -1e9f, aMaxY = -1e9f;
+		for (int i = 0; i < 4; i++)
 		{
-			int u = (int)((aX0 + i + 0.5f - aLeft) / aSX);
-			if (u >= aWidth)
-				u = aWidth - 1;
-			if (aScaleX < 0)
-				u = aWidth - 1 - u;
-			u += theSrc.left;
-			int aColumn = (u < aSrcX || u >= aSrcRight) ? -1 : u;
-			sBlitColumns[i] = aColumn;
-			if (aColumn < 0)
-				continue;
-			if (aFirst < 0)
-				aFirst = i;
-			else if (aLast != i - 1 || aColumn != sBlitColumns[i - 1] + 1)
-				aRun = false;
-			aLast = i;
+			float u = (aCorners[i][0] - aPivotX) * theBlit.mScaleX;
+			float v = (aCorners[i][1] - aPivotY) * theBlit.mScaleY;
+			float aX = aCos * u - aSin * v + theBlit.mX;
+			float aY = aSin * u + aCos * v + theBlit.mY;
+			aMinX = std::min(aMinX, aX);
+			aMaxX = std::max(aMaxX, aX);
+			aMinY = std::min(aMinY, aY);
+			aMaxY = std::max(aMaxY, aY);
 		}
+		theBlit.mLeft = std::max(0, (int)std::floor(aMinX));
+		theBlit.mTop = std::max(0, (int)std::floor(aMinY));
+		theBlit.mRight = std::min(theScreenWidth, (int)std::ceil(aMaxX));
+		theBlit.mBottom = std::min(theScreenHeight, (int)std::ceil(aMaxY));
+	}
+	return theBlit.mLeft < theBlit.mRight && theBlit.mTop < theBlit.mBottom;
+}
+
+// An unrotated call's maps (0x45c070's unrotated path), appended to the frame's map data. The column each destination column reads
+// is the float mapping of the original's loop; a mirrored scale reads the image's columns the other way round. False when the
+// call reads nothing (no column or no row falls inside the source), and so writes nothing.
+bool makeMaps(const Blit& theBlit, const ScreenImage& theImage, Frame& theFrame, BlitMaps& theMaps)
+{
+	float aSX = std::fabs(theBlit.mScaleX);
+	float aSY = std::fabs(theBlit.mScaleY);
+	float aLeft = theBlit.mX - (float)theBlit.mPivotX * aSX;
+	float aTop = theBlit.mY - (float)theBlit.mPivotY * aSY;
+	int aWidth = theBlit.mSrcRight - theBlit.mSrcLeft;
+	int aHeight = theBlit.mSrcBottom - theBlit.mSrcTop;
+	int aSrcX = std::max(theBlit.mSrcLeft, 0);
+	int aSrcY = std::max(theBlit.mSrcTop, 0);
+	int aSrcRight = std::min(theBlit.mSrcRight, theImage.mWidth);
+	int aSrcBottom = std::min(theBlit.mSrcBottom, theImage.mHeight);
+	int aColumnCount = theBlit.mRight - theBlit.mLeft;
+	int aRowCount = theBlit.mBottom - theBlit.mTop;
+	size_t aBase = theFrame.mMapData.size();
+	theFrame.mMapData.resize(aBase + aColumnCount + aRowCount);
+	int* aColumns = theFrame.mMapData.data() + aBase;
+	int* aRows = aColumns + aColumnCount;
+	int aFirst = -1;
+	int aLast = -1;
+	bool aRun = true;
+	for (int i = 0; i < aColumnCount; i++)
+	{
+		int u = (int)((theBlit.mLeft + i + 0.5f - aLeft) / aSX);
+		if (u >= aWidth)
+			u = aWidth - 1;
+		if (theBlit.mScaleX < 0)
+			u = aWidth - 1 - u;
+		u += theBlit.mSrcLeft;
+		int aColumn = (u < aSrcX || u >= aSrcRight) ? -1 : u;
+		aColumns[i] = aColumn;
+		if (aColumn < 0)
+			continue;
 		if (aFirst < 0)
+			aFirst = i;
+		else if (aLast != i - 1 || aColumn != aColumns[i - 1] + 1)
+			aRun = false;
+		aLast = i;
+	}
+	bool aAnyRow = false;
+	for (int i = 0; i < aRowCount; i++)
+	{
+		int v = (int)((theBlit.mTop + i + 0.5f - aTop) / aSY);
+		if (v >= aHeight)
+			v = aHeight - 1;
+		if (theBlit.mScaleY < 0)
+			v = aHeight - 1 - v;
+		v += theBlit.mSrcTop;
+		aRows[i] = (v < aSrcY || v >= aSrcBottom) ? -1 : v;
+		aAnyRow = aAnyRow || aRows[i] >= 0;
+	}
+	if (aFirst < 0 || !aAnyRow)
+	{
+		theFrame.mMapData.resize(aBase);
+		return false;
+	}
+	theMaps.mColumns = (int32_t)aBase;
+	theMaps.mRows = (int32_t)(aBase + aColumnCount);
+	theMaps.mFirst = aFirst;
+	theMaps.mLast = aLast;
+	theMaps.mRun = aRun;
+	return true;
+}
+
+// Whether the call i of the frame A writes the pixels the call j of the frame B writes, as the same function of the pixels
+// under it
+bool sameCall(const Frame& theA, size_t i, const Frame& theB, size_t j)
+{
+	const Blit& aFirstBlit = theA.mBlits[i];
+	const Blit& aSecondBlit = theB.mBlits[j];
+	if (std::memcmp(&aFirstBlit, &aSecondBlit, sizeof(Blit)) == 0)
+		return true;
+	const BlitMaps& aFirstMaps = theA.mMaps[i];
+	const BlitMaps& aSecondMaps = theB.mMaps[j];
+	if (aFirstMaps.mColumns < 0 || aSecondMaps.mColumns < 0)
+		return false;
+	// two unrotated image calls: the same image, operation and pixels, reading the same source column and row for each
+	if (aFirstBlit.mImage != aSecondBlit.mImage || aFirstBlit.mOp != aSecondBlit.mOp ||
+		aFirstBlit.mThreshold != aSecondBlit.mThreshold || aFirstBlit.mOpacity != aSecondBlit.mOpacity ||
+		aFirstBlit.mOffsetR != aSecondBlit.mOffsetR || aFirstBlit.mOffsetG != aSecondBlit.mOffsetG ||
+		aFirstBlit.mOffsetB != aSecondBlit.mOffsetB || aFirstBlit.mLeft != aSecondBlit.mLeft ||
+		aFirstBlit.mTop != aSecondBlit.mTop || aFirstBlit.mRight != aSecondBlit.mRight ||
+		aFirstBlit.mBottom != aSecondBlit.mBottom)
+		return false;
+	return aFirstMaps.mFirst == aSecondMaps.mFirst && aFirstMaps.mLast == aSecondMaps.mLast &&
+		aFirstMaps.mRun == aSecondMaps.mRun &&
+		std::memcmp(theA.mMapData.data() + aFirstMaps.mColumns, theB.mMapData.data() + aSecondMaps.mColumns,
+			(size_t)(aFirstBlit.mRight - aFirstBlit.mLeft + aFirstBlit.mBottom - aFirstBlit.mTop) * sizeof(int)) == 0;
+}
+
+// Draws one recorded image call into the screen, only the pixels inside the clip rectangle (a part of the screen).
+// 0x45e2d0, 0x45c070 and the other blitters: the position with the state's translation, snapped (truncated) as the state
+// says; the source rectangle placed with its pivot at the position, scaled and rotated about it. Without a rotation a
+// negative scale mirrors the image inside the rectangle the positive scale would cover (as 0x45c070's unrotated path does).
+// (0x457930 and 0x457940 set the blit's flags and 0x4589e0 compares two floats: translated inline)
+void renderBlit(uint32_t* theBits, int theScreenWidth, const Blit& theBlit, const BlitMaps& theMaps, const int* theMapData,
+	const ScreenImage* theImage, int theClipLeft, int theClipTop, int theClipRight, int theClipBottom)
+{
+	const PixelOp anOp = blitOp(theBlit);
+	int aX0 = std::max(theBlit.mLeft, theClipLeft);
+	int aY0 = std::max(theBlit.mTop, theClipTop);
+	int aX1 = std::min(theBlit.mRight, theClipRight);
+	int aY1 = std::min(theBlit.mBottom, theClipBottom);
+	if (aX0 >= aX1 || aY0 >= aY1)
+		return;
+	const uint32_t* aSrcBits = theImage->mBits.data();
+	int aSrcPitch = theImage->mWidth;
+
+	if (theMaps.mColumns >= 0)
+	{
+		const int* aColumns = theMapData + theMaps.mColumns;  // from theBlit.mLeft
+		const int* aRows = theMapData + theMaps.mRows;        // from theBlit.mTop
+		int aFirst = std::max(theMaps.mFirst, aX0 - theBlit.mLeft);
+		int aLast = std::min(theMaps.mLast, aX1 - 1 - theBlit.mLeft);
+		if (aFirst > aLast)
 			return;
-		const int* aColumns = sBlitColumns.data();
-		// the source row each destination row reads (the float mapping of 0x45c070), -1 where the blit leaves it
-		auto aSourceRow = [&](int dy)
-		{
-			int v = (int)((dy + 0.5f - aTop) / aSY);
-			if (v >= aHeight)
-				v = aHeight - 1;
-			if (aScaleY < 0)
-				v = aHeight - 1 - v;
-			v += theSrc.top;
-			return (v < aSrcY || v >= aSrcBottom) ? -1 : v;
-		};
-		if (mCleared)
-		{
-			// the screen's clear is not made yet: an opaque copy that writes every pixel of the screen makes it unneeded
-			bool aCovers = anOp.mOp == OP_COPY && aX0 == 0 && aX1 == mWidth && aY0 == 0 && aY1 == mHeight &&
-				aFirst == 0 && aLast == aCount - 1;
-			for (int i = 0; aCovers && !aRun && i < aCount; i++)
-				aCovers = aColumns[i] >= 0;
-			for (int dy = aY0; aCovers && dy < aY1; dy++)
-				aCovers = aSourceRow(dy) >= 0;
-			if (aCovers)
-				mCleared = false;
-			else
-				finish();
-		}
+		bool aRun = theMaps.mRun;
 		withOp(anOp.mOp, [&](auto theTag)
 		{
 			constexpr int OP = decltype(theTag)::value;
 			for (int dy = aY0; dy < aY1; dy++)
 			{
-				int v = aSourceRow(dy);
+				int v = aRows[dy - theBlit.mTop];
 				if (v < 0)
 					continue;
-				uint32_t* aDest = mBits + dy * mWidth + aX0;
+				uint32_t* aDest = theBits + dy * theScreenWidth + theBlit.mLeft;
 				const uint32_t* aRow = aSrcBits + v * aSrcPitch;
 				if (aRun)
 				{
@@ -373,37 +479,27 @@ void ScreenGraphics::drawImage(Image* theImage, const IntRect& theSrc, float x, 
 
 	// Rotated: translate(-pivot), scale, rotate, translate(position) (0x45c070's matrix); each screen pixel's centre
 	// is mapped back into the source
-	if (std::fabs(aScaleX) < 1e-6f || std::fabs(aScaleY) < 1e-6f)
-		return;
+	float aRotation = theBlit.mRotation;
+	float x = theBlit.mX;
+	float y = theBlit.mY;
+	int aSrcX = std::max(theBlit.mSrcLeft, 0);
+	int aSrcY = std::max(theBlit.mSrcTop, 0);
+	int aSrcRight = std::min(theBlit.mSrcRight, theImage->mWidth);
+	int aSrcBottom = std::min(theBlit.mSrcBottom, theImage->mHeight);
+	int aWidth = theBlit.mSrcRight - theBlit.mSrcLeft;
+	int aHeight = theBlit.mSrcBottom - theBlit.mSrcTop;
+	float aPivotX = (float)theBlit.mPivotX;
+	float aPivotY = (float)theBlit.mPivotY;
 	float aCos = std::cos(aRotation);
 	float aSin = std::sin(aRotation);
-	// forward: X = cos*sx*(u-px) - sin*sy*(v-py) + x, Y = sin*sx*(u-px) + cos*sy*(v-py) + y
-	float aCorners[4][2] = {{0, 0}, {(float)aWidth, 0}, {0, (float)aHeight}, {(float)aWidth, (float)aHeight}};
-	float aMinX = 1e9f, aMinY = 1e9f, aMaxX = -1e9f, aMaxY = -1e9f;
-	for (int i = 0; i < 4; i++)
-	{
-		float u = (aCorners[i][0] - aPivotX) * aScaleX;
-		float v = (aCorners[i][1] - aPivotY) * aScaleY;
-		float aX = aCos * u - aSin * v + x;
-		float aY = aSin * u + aCos * v + y;
-		aMinX = std::min(aMinX, aX);
-		aMaxX = std::max(aMaxX, aX);
-		aMinY = std::min(aMinY, aY);
-		aMaxY = std::max(aMaxY, aY);
-	}
-	int aX0 = std::max(0, (int)std::floor(aMinX));
-	int aY0 = std::max(0, (int)std::floor(aMinY));
-	int aX1 = std::min(mWidth, (int)std::ceil(aMaxX));
-	int aY1 = std::min(mHeight, (int)std::ceil(aMaxY));
-	float anInvX = 1.0f / aScaleX;
-	float anInvY = 1.0f / aScaleY;
-	finish();
+	float anInvX = 1.0f / theBlit.mScaleX;
+	float anInvY = 1.0f / theBlit.mScaleY;
 	withOp(anOp.mOp, [&](auto theTag)
 	{
 		constexpr int OP = decltype(theTag)::value;
 		for (int dy = aY0; dy < aY1; dy++)
 		{
-			uint32_t* aDest = mBits + dy * mWidth;
+			uint32_t* aDest = theBits + dy * theScreenWidth;
 			float aRelY = dy + 0.5f - y;
 			for (int dx = aX0; dx < aX1; dx++)
 			{
@@ -413,8 +509,8 @@ void ScreenGraphics::drawImage(Image* theImage, const IntRect& theSrc, float x, 
 				float v = (-aSin * aRelX + aCos * aRelY) * anInvY + aPivotY;
 				if (u < 0 || v < 0 || u >= aWidth || v >= aHeight)
 					continue;
-				int aU = (int)u + theSrc.left;
-				int aV = (int)v + theSrc.top;
+				int aU = (int)u + theBlit.mSrcLeft;
+				int aV = (int)v + theBlit.mSrcTop;
 				if (aU < aSrcX || aU >= aSrcRight || aV < aSrcY || aV >= aSrcBottom)
 					continue;
 				applyPixel<OP>(anOp, aDest[dx], aSrcBits[aV * aSrcPitch + aU]);
@@ -423,25 +519,24 @@ void ScreenGraphics::drawImage(Image* theImage, const IntRect& theSrc, float x, 
 	});
 }
 
-// Slot 7 (0x45e180): a one-pixel line (with the translation) in the state's colour and opacity
-void ScreenGraphics::drawLine(const Point& theFrom, const Point& theTo)
+// Draws one recorded line (slot 7, 0x45e180): a one-pixel line in the state's colour and opacity, only the pixels inside the
+// clip rectangle
+void renderLine(uint32_t* theBits, int theScreenWidth, const Blit& theBlit, int theClipLeft, int theClipTop, int theClipRight,
+	int theClipBottom)
 {
-	finish();
-	const RenderState& aState = state();
-	int x0 = (int)(theFrom.x + aState.mTranslation.x);
-	int y0 = (int)(theFrom.y + aState.mTranslation.y);
-	int x1 = (int)(theTo.x + aState.mTranslation.x);
-	int y1 = (int)(theTo.y + aState.mTranslation.y);
-	uint32_t aColor = (uint32_t)(clampByte((int)(aState.mColor.r * 255)) << 16 |
-		clampByte((int)(aState.mColor.g * 255)) << 8 | clampByte((int)(aState.mColor.b * 255)));
-	int anAlpha = clampByte((int)(aState.mOpacity * 255));
+	int x0 = theBlit.mSrcLeft;
+	int y0 = theBlit.mSrcTop;
+	int x1 = theBlit.mSrcRight;
+	int y1 = theBlit.mSrcBottom;
+	uint32_t aColor = (uint32_t)theBlit.mThreshold;
+	int anAlpha = theBlit.mOpacity;
 	int dx = std::abs(x1 - x0), sx = x0 < x1 ? 1 : -1;
 	int dy = -std::abs(y1 - y0), sy = y0 < y1 ? 1 : -1;
 	int anError = dx + dy;
 	while (true)
 	{
-		if (x0 >= 0 && y0 >= 0 && x0 < mWidth && y0 < mHeight)
-			mBits[y0 * mWidth + x0] = blend(mBits[y0 * mWidth + x0], aColor, anAlpha);
+		if (x0 >= theClipLeft && y0 >= theClipTop && x0 < theClipRight && y0 < theClipBottom)
+			theBits[y0 * theScreenWidth + x0] = blend(theBits[y0 * theScreenWidth + x0], aColor, anAlpha);
 		if (x0 == x1 && y0 == y1)
 			break;
 		int e2 = 2 * anError;
@@ -456,4 +551,206 @@ void ScreenGraphics::drawLine(const Point& theFrom, const Point& theTo)
 			y0 += sy;
 		}
 	}
+}
+
+}
+
+// The frame's draw calls and the screen's tiles (the last frame's too, to tell which tiles changed)
+struct ScreenGraphics::Retained
+{
+	Frame mFrame;
+	Frame mPrev;
+	std::vector<std::vector<uint32_t>> mTiles;  // each tile's calls: indices into mFrame, in order
+	std::vector<std::vector<uint32_t>> mPrevTiles;
+	bool mHasPrev;
+	Retained() : mHasPrev(false) {}
+};
+
+// port (for speed): the number the next image has
+uint32_t ScreenImage::nextSerial()
+{
+	static uint32_t sSerial = 0;
+	return ++sSerial;
+}
+
+ScreenGraphics::ScreenGraphics(uint32_t* theBits, int theWidth, int theHeight)
+	: mBits(theBits), mWidth(theWidth), mHeight(theHeight), mRetained(new Retained)
+{
+	int aTiles = ((theWidth + TILE - 1) / TILE) * ((theHeight + TILE - 1) / TILE);
+	mRetained->mTiles.resize(aTiles);
+	mRetained->mPrevTiles.resize(aTiles);
+}
+
+// port (for speed): the retained frames go with the screen
+ScreenGraphics::~ScreenGraphics()
+{
+	delete mRetained;
+}
+
+// port (for speed): the start of a frame: the screen is black, and nothing is drawn (the calls are recorded, and finish draws them)
+void ScreenGraphics::clear()
+{
+	mRetained->mFrame.clear();
+}
+
+// port (for speed): the end of a frame: the tiles whose calls differ from the last frame's are drawn. Returns whether any pixel may
+// have changed.
+bool ScreenGraphics::finish()
+{
+	Retained& aRetained = *mRetained;
+	const Frame& aNowFrame = aRetained.mFrame;
+	const Frame& aBeforeFrame = aRetained.mPrev;
+	if (aRetained.mHasPrev && aNowFrame.mBlits.size() == aBeforeFrame.mBlits.size())
+	{
+		bool aSame = true;
+		for (size_t i = 0; aSame && i < aNowFrame.mBlits.size(); i++)
+			aSame = sameCall(aNowFrame, i, aBeforeFrame, i);
+		if (aSame)
+			return false;  // the same calls, the same screen
+	}
+
+	int aTilesX = (mWidth + TILE - 1) / TILE;
+	int aTilesY = (mHeight + TILE - 1) / TILE;
+	for (std::vector<uint32_t>& aTile : aRetained.mTiles)
+		aTile.clear();
+	for (size_t i = 0; i < aNowFrame.mBlits.size(); i++)
+	{
+		const Blit& aBlit = aNowFrame.mBlits[i];
+		int aTX1 = (aBlit.mRight - 1) / TILE;
+		int aTY1 = (aBlit.mBottom - 1) / TILE;
+		for (int aTY = aBlit.mTop / TILE; aTY <= aTY1; aTY++)
+			for (int aTX = aBlit.mLeft / TILE; aTX <= aTX1; aTX++)
+				aRetained.mTiles[aTY * aTilesX + aTX].push_back((uint32_t)i);
+	}
+
+	bool aChanged = false;
+	for (int aTY = 0; aTY < aTilesY; aTY++)
+	{
+		for (int aTX = 0; aTX < aTilesX; aTX++)
+		{
+			const std::vector<uint32_t>& aNow = aRetained.mTiles[aTY * aTilesX + aTX];
+			const std::vector<uint32_t>& aBefore = aRetained.mPrevTiles[aTY * aTilesX + aTX];
+			bool aSame = aRetained.mHasPrev && aNow.size() == aBefore.size();
+			for (size_t k = 0; aSame && k < aNow.size(); k++)
+				aSame = sameCall(aNowFrame, aNow[k], aBeforeFrame, aBefore[k]);
+			if (aSame)
+				continue;
+			aChanged = true;
+			int aLeft = aTX * TILE;
+			int aTop = aTY * TILE;
+			int aRight = std::min(aLeft + TILE, mWidth);
+			int aBottom = std::min(aTop + TILE, mHeight);
+			for (int y = aTop; y < aBottom; y++)
+				std::fill(mBits + y * mWidth + aLeft, mBits + y * mWidth + aRight, 0xff000000);
+			for (uint32_t anIndex : aNow)
+			{
+				const Blit& aBlit = aNowFrame.mBlits[anIndex];
+				if (aBlit.mKind == BLIT_LINE)
+					renderLine(mBits, mWidth, aBlit, aLeft, aTop, aRight, aBottom);
+				else
+					renderBlit(mBits, mWidth, aBlit, aNowFrame.mMaps[anIndex], aNowFrame.mMapData.data(), aNowFrame.mImages[anIndex],
+						aLeft, aTop, aRight, aBottom);
+			}
+		}
+	}
+	std::swap(aRetained.mFrame, aRetained.mPrev);
+	aRetained.mTiles.swap(aRetained.mPrevTiles);
+	aRetained.mHasPrev = true;
+	return aChanged;
+}
+
+// The image's call recorded: the position with the state's translation, snapped (truncated) as the state says, and the
+// pixel operation the state and the image choose (0x45e2d0)
+void ScreenGraphics::drawImage(Image* theImage, const IntRect& theSrc, float x, float y)
+{
+	ScreenImage* anImage = static_cast<ScreenImage*>(theImage);
+	if (anImage == nullptr || theSrc.isEmpty())
+		return;
+	float aRotation = getRotation();
+	float aScaleX = getScaleX();
+	float aScaleY = getScaleY();
+	float anOpacity = getOpacity();
+	const RenderState& aState = state();
+	x = x + aState.mTranslation.x;
+	y = y + aState.mTranslation.y;
+	int aSnap = getSnap();
+	if (aSnap == SNAP_BOTH || aSnap == SNAP_Y)
+		y = (float)(int)y;
+	if (aSnap == SNAP_BOTH || aSnap == SNAP_X)
+		x = (float)(int)x;
+
+	Blit aBlit;
+	std::memset(&aBlit, 0, sizeof(aBlit));
+	aBlit.mKind = BLIT_IMAGE;
+	aBlit.mImage = anImage->mSerial;
+	aBlit.mSrcLeft = theSrc.left;
+	aBlit.mSrcTop = theSrc.top;
+	aBlit.mSrcRight = theSrc.right;
+	aBlit.mSrcBottom = theSrc.bottom;
+	aBlit.mX = x;
+	aBlit.mY = y;
+	aBlit.mRotation = aRotation;
+	aBlit.mScaleX = aScaleX;
+	aBlit.mScaleY = aScaleY;
+	aBlit.mPivotX = anImage->getPivotX();
+	aBlit.mPivotY = anImage->getPivotY();
+	aBlit.mThreshold = anImage->getAlphaThreshold();
+	aBlit.mOpacity = clampByte((int)(anOpacity * 255.0f));
+	const Color& anOffset = getColorOffset();
+	if (2.3841858e-07f <= std::fabs(anOffset.r) || 2.3841858e-07f <= std::fabs(anOffset.g) ||
+		2.3841858e-07f <= std::fabs(anOffset.b))
+	{
+		aBlit.mOp = OP_OFFSET;
+		aBlit.mOffsetR = (int)(anOffset.r * 255.0f);
+		aBlit.mOffsetG = (int)(anOffset.g * 255.0f);
+		aBlit.mOffsetB = (int)(anOffset.b * 255.0f);
+	}
+	else if (anImage->getAlphaMode() != ALPHA_BLEND && std::fabs(anOpacity - 1.0f) < 2.3841858e-07f)
+		aBlit.mOp = anImage->getAlphaMode() == ALPHA_TEST ? OP_TEST : OP_COPY;
+	else
+		aBlit.mOp = OP_BLEND;
+	if (aBlit.mOp != OP_COPY && aBlit.mOp != OP_TEST && aBlit.mOpacity == 0)
+		return;
+	if (!blitBounds(aBlit, mWidth, mHeight))
+		return;
+	BlitMaps aMaps;
+	aMaps.mColumns = aMaps.mRows = -1;
+	aMaps.mFirst = aMaps.mLast = 0;
+	aMaps.mRun = false;
+	Frame& aFrame = mRetained->mFrame;
+	if (std::fabs(aRotation) < 2.3841858e-07f && !makeMaps(aBlit, *anImage, aFrame, aMaps))
+		return;
+	aFrame.mBlits.push_back(aBlit);
+	aFrame.mImages.push_back(anImage);
+	aFrame.mMaps.push_back(aMaps);
+}
+
+// Slot 7 (0x45e180): a one-pixel line (with the translation) in the state's colour and opacity, recorded
+void ScreenGraphics::drawLine(const Point& theFrom, const Point& theTo)
+{
+	const RenderState& aState = state();
+	Blit aBlit;
+	std::memset(&aBlit, 0, sizeof(aBlit));
+	aBlit.mKind = BLIT_LINE;
+	aBlit.mSrcLeft = (int)(theFrom.x + aState.mTranslation.x);
+	aBlit.mSrcTop = (int)(theFrom.y + aState.mTranslation.y);
+	aBlit.mSrcRight = (int)(theTo.x + aState.mTranslation.x);
+	aBlit.mSrcBottom = (int)(theTo.y + aState.mTranslation.y);
+	aBlit.mThreshold = (int)(uint32_t)(clampByte((int)(aState.mColor.r * 255)) << 16 |
+		clampByte((int)(aState.mColor.g * 255)) << 8 | clampByte((int)(aState.mColor.b * 255)));
+	aBlit.mOpacity = clampByte((int)(aState.mOpacity * 255));
+	aBlit.mLeft = std::max(0, std::min(aBlit.mSrcLeft, aBlit.mSrcRight));
+	aBlit.mTop = std::max(0, std::min(aBlit.mSrcTop, aBlit.mSrcBottom));
+	aBlit.mRight = std::min(mWidth, std::max(aBlit.mSrcLeft, aBlit.mSrcRight) + 1);
+	aBlit.mBottom = std::min(mHeight, std::max(aBlit.mSrcTop, aBlit.mSrcBottom) + 1);
+	if (aBlit.mLeft >= aBlit.mRight || aBlit.mTop >= aBlit.mBottom)
+		return;
+	BlitMaps aMaps;
+	aMaps.mColumns = aMaps.mRows = -1;
+	aMaps.mFirst = aMaps.mLast = 0;
+	aMaps.mRun = false;
+	Frame& aFrame = mRetained->mFrame;
+	aFrame.mBlits.push_back(aBlit);
+	aFrame.mImages.push_back(nullptr);
+	aFrame.mMaps.push_back(aMaps);
 }

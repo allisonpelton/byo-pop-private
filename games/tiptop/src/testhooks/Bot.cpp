@@ -1,4 +1,4 @@
-// The autoplay bot's choice of a column (Bot.h): it drops the next block where it joins the biggest group of its
+// port: the autoplay bot's choice of a column (Bot.h): it drops the next block where it joins the biggest group of its
 // kind; when no column makes a match it picks one of the emptiest columns at random.
 
 #include "Bot.h"
@@ -63,35 +63,35 @@ int BotChooseColumn(tiptop::Board* theBoard, unsigned int& theSeed)
 	int aMostRoom = -1;
 	int aRoomCount = 0;
 	int aRoomColumn = -1;
-	for (int c = 0; c < aColumns; c++)
+	for (int aColumn = 0; aColumn < aColumns; aColumn++)
 	{
-		if (aField->CanPlace(c) == 0)
+		if (aField->CanPlace(aColumn) == 0)
 			continue;
 		// the block rises from the bottom row until it meets a block
 		int aRow = 0;
-		while (aRow + 1 < aRows && aField->PieceAt((uint32_t)((aRow + 1) * aColumns + c)) == nullptr)
+		while (aRow + 1 < aRows && aField->PieceAt((uint32_t)((aRow + 1) * aColumns + aColumn)) == nullptr)
 			aRow++;
 		std::string aSeen((size_t)(aColumns * aRows), '\0');
-		int aSize = (aKind < 10) ? GroupSize(aField, aRow * aColumns + c, aKind, aSeen) : 0;
+		int aSize = (aKind < 10) ? GroupSize(aField, aRow * aColumns + aColumn, aKind, aSeen) : 0;
 		if (aSize > aBestSize)
 		{
-			aBest = c;
+			aBest = aColumn;
 			aBestSize = aSize;
 			aBestCount = 1;
 		}
 		else if (aSize == aBestSize && aBest >= 0 && BotRand(theSeed, ++aBestCount) == 0)
 		{
-			aBest = c;
+			aBest = aColumn;
 		}
 		if (aRow > aMostRoom)
 		{
 			aMostRoom = aRow;
-			aRoomColumn = c;
+			aRoomColumn = aColumn;
 			aRoomCount = 1;
 		}
 		else if (aRow == aMostRoom && BotRand(theSeed, ++aRoomCount) == 0)
 		{
-			aRoomColumn = c;
+			aRoomColumn = aColumn;
 		}
 	}
 	if (aBestSize >= 3)

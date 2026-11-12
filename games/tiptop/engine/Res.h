@@ -86,7 +86,6 @@ const char* StoredName(int theGroup, int theId);
 // The converters, for the game's own use
 lowos::Image* ConvertPcx(const uint8_t* theFile, uint32_t theSize);
 lowos::Image* ConvertJpeg(const uint8_t* theFile, uint32_t theSize);
-void FreeImage(lowos::Image* theImage);
 
 } // namespace res
 

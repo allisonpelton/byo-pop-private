@@ -8,6 +8,15 @@ From the worktree root:
     build/native/rundesk.exe <python.exe> games/astropop/tools/profile/perf.py port-load <out dir> [runs]
     build/native/rundesk.exe <python.exe> games/astropop/tools/profile/perf.py port-minute <out dir>
     <python.exe> games/astropop/tools/profile/perf.py orig <out dir> [runs] [load]    (not under rundesk; "load" stops at the title)
+    <python.exe> games/astropop/tools/profile/perf.py orig3d <out dir> [runs] [load]  (22:00 to 08:00: the original in 3D on the desktop)
+
+Processor time is the sum of every thread's QueryThreadCycleTime (the coordinator's rule, 2026-11-11), in G cycles (`cycles_g`; the
+nominal clock turns them into seconds); the port's SDL audio thread (its mixer) is counted apart as `audio_g`, and `cycles_check`
+gives the process's own cycle count beside the threads' sum and the busiest threads. Run the alternating loop under
+`tools/pincore.py` (`profile/pin2.py` for two cores; pairs.sh does it). Environment: PERF_3D=1 (the port's registry file says Is3D=1),
+PERF_DESKTOP=1 (the port's window on the visible desktop, 22:00 to 08:00 only, no rundesk), PERF_ENV="K=V,K=V" (variables for the port's
+process, e.g. SDL_RENDER_DRIVER=opengl), PERF_EXE (another exe in build/native), PERF_CLOCK=real. Each port result names the graphics
+libraries it had loaded (`graphics_modules`: d3d9 or d3d11 or opengl).
 
 The scenario is scenario/classic11.json: the inputs (update, command) that origcmp/record.py's bot gave a classic game, seed 11,
 played from the title (the click on the title's link at update 3000, the name Test, the mode, the pilot, then 60 moves). The port
@@ -62,6 +71,8 @@ EPOCH_DELTA = 11644473600  # seconds from 1601 to 1970
 SEED = 11
 MINUTE = 2000   # updates of the stretch
 REAL = os.environ.get('PERF_CLOCK') == 'real'
+THREE_D = os.environ.get('PERF_3D') == '1'          # the port in 3D (the accelerated renderer); the original in 3D is `orig3d`, on the desktop
+DESKTOP = os.environ.get('PERF_DESKTOP') == '1'     # the port on the user's visible desktop (22:00 to 08:00 only), as a player runs it
 APP = 0x5DC220                 # the original's app object: a static pointer to it
 COUNTER, LOADING, BOARD = 0x4A0, 0x50C, 0x628   # offsets in the app: the update counter, the loading started and completed bytes, the board
 SCENARIO = os.path.join(HERE, 'scenario', 'classic11.json')
@@ -84,17 +95,150 @@ def filetime_seconds(t):
     return ((t.dwHighDateTime << 32) | t.dwLowDateTime) / 1e7
 
 
+class THREADENTRY32(ctypes.Structure):
+    _fields_ = [('dwSize', W.DWORD), ('cntUsage', W.DWORD), ('th32ThreadID', W.DWORD), ('th32OwnerProcessID', W.DWORD),
+                ('tpBasePri', W.LONG), ('tpDeltaPri', W.LONG), ('dwFlags', W.DWORD)]
+
+
+k32.OpenThread.restype = W.HANDLE
+k32.OpenThread.argtypes = [W.DWORD, W.BOOL, W.DWORD]
+k32.QueryThreadCycleTime.argtypes = [W.HANDLE, ctypes.POINTER(ctypes.c_uint64)]
+k32.GetThreadDescription.argtypes = [W.HANDLE, ctypes.POINTER(ctypes.c_wchar_p)]
+k32.LocalFree.argtypes = [ctypes.c_void_p]
+k32.QueryProcessCycleTime.argtypes = [W.HANDLE, ctypes.POINTER(ctypes.c_uint64)]
+k32.GetProcessId.argtypes = [W.HANDLE]
+k32.Thread32First.argtypes = k32.Thread32Next.argtypes = [W.HANDLE, ctypes.c_void_p]
+THREAD_QUERY_LIMITED = 0x800
+
+
+def nominal_hz():
+    """The processor's nominal clock, to turn cycles into seconds (the cycle counts are a reference clock's: constant-rate)."""
+    import winreg
+    with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r'HARDWARE\DESCRIPTION\System\CentralProcessor\0') as key:
+        return winreg.QueryValueEx(key, '~MHz')[0] * 1e6
+
+
+HZ = nominal_hz()
+
+
+def thread_ids(pid):
+    snap = k32.CreateToolhelp32Snapshot(4, 0)
+    e = THREADENTRY32()
+    e.dwSize = ctypes.sizeof(e)
+    out = []
+    ok = k32.Thread32First(snap, ctypes.byref(e))
+    while ok:
+        if e.th32OwnerProcessID == pid:
+            out.append(e.th32ThreadID)
+        ok = k32.Thread32Next(snap, ctypes.byref(e))
+    k32.CloseHandle(snap)
+    return out
+
+
+class Cycles:
+    """The cycles the threads of one process have used, summed (QueryThreadCycleTime: exact; the coordinator's rule, 2026-11-11: GetProcessTimes
+    and GetThreadTimes move in 15.6 ms scheduler ticks). Each thread's handle is kept, so a thread that has ended still gives its last count;
+    one that lived and died between two looks (the thread list is read at every look) would be missed, so `process()` (QueryProcessCycleTime,
+    which keeps the ended threads' cycles) is read beside it as a check."""
+
+    def __init__(self, h):
+        self.pid = k32.GetProcessId(h)
+        self.created = creation_time(h)
+        self.proc = h
+        self.handles = {}
+        self.names = {}
+
+    def threads(self):
+        return self.split()[0]
+
+    def description(self, tid):
+        """The thread's name (SDL names its threads, an audio device's "SDLAudioDev..."), read once; '' when it has none."""
+        if tid not in self.names:
+            text = ctypes.c_wchar_p()
+            name = ''
+            if k32.GetThreadDescription(self.handles[tid], ctypes.byref(text)) >= 0 and text.value:
+                name = text.value
+            if text:
+                k32.LocalFree(ctypes.cast(text, ctypes.c_void_p))
+            self.names[tid] = name
+        return self.names[tid]
+
+    def split(self):
+        """(all threads' cycles, the audio threads' cycles, {thread id: (name, cycles)}): the port's mixer runs in SDL's audio thread, which
+        the original's runs under origrun's stand-in do not have, so the audio threads' share is counted apart (the coordinator's rule)."""
+        total = audio = 0
+        each = {}
+        for tid in thread_ids(self.pid):
+            if tid not in self.handles:
+                self.handles[tid] = k32.OpenThread(THREAD_QUERY_LIMITED, False, tid)
+        for tid, hh in self.handles.items():
+            c = ctypes.c_uint64()
+            if hh and k32.QueryThreadCycleTime(hh, ctypes.byref(c)):
+                total += c.value
+                name = self.description(tid)
+                each[tid] = (name, c.value)
+                if name.startswith('SDLAudio'):
+                    audio += c.value
+        return total, audio, each
+
+    def process(self):
+        c = ctypes.c_uint64()
+        k32.QueryProcessCycleTime(self.proc, ctypes.byref(c))
+        return c.value
+
+    def close(self):
+        for hh in self.handles.values():
+            if hh:
+                k32.CloseHandle(hh)
+        self.handles = {}
+
+
+CYCLES = {}      # pid -> Cycles of the process sampled last under that pid
+
+
+def cycles_of(h):
+    pid = k32.GetProcessId(h)
+    cy = CYCLES.get(pid)
+    if cy is None or cy.created != creation_time(h):
+        if cy:
+            cy.close()
+        cy = CYCLES[pid] = Cycles(h)
+    return cy
+
+
+def cycle_check(h):
+    """The whole run's cycles two ways, in G: the threads' sum (what the samples count) and the process's own total (it keeps the threads that ended)."""
+    cy = cycles_of(h)
+    total, audio, each = cy.split()
+    top = sorted(each.items(), key=lambda kv: -kv[1][1])[:6]
+    return {'threads_g': round(total / 1e9, 2), 'process_g': round(cy.process() / 1e9, 2), 'audio_g': round(audio / 1e9, 2),
+            'top_threads': [[tid, name, round(c / 1e9, 2)] for tid, (name, c) in top]}
+
+
 def sample(h):
-    """(working set, private bytes, peak working set, peak private, processor seconds) of the process, or None."""
+    """(working set, private bytes, peak working set, peak private, processor seconds, audio-thread processor seconds) of the process, or
+    None. The processor seconds are the threads' cycle counts summed over the nominal clock."""
     m = PMC()
     m.cb = ctypes.sizeof(PMC)
     if not psapi.GetProcessMemoryInfo(h, ctypes.byref(m), m.cb):
         return None
-    c, e, k, u = W.FILETIME(), W.FILETIME(), W.FILETIME(), W.FILETIME()
-    if not k32.GetProcessTimes(h, ctypes.byref(c), ctypes.byref(e), ctypes.byref(k), ctypes.byref(u)):
-        return None
-    return (m.WorkingSetSize, m.PrivateUsage, m.PeakWorkingSetSize, m.PeakPagefileUsage,
-            filetime_seconds(k) + filetime_seconds(u))
+    total, audio, _ = cycles_of(h).split()
+    return (m.WorkingSetSize, m.PrivateUsage, m.PeakWorkingSetSize, m.PeakPagefileUsage, total / HZ, audio / HZ)
+
+
+def graphics_modules(h):
+    """Which graphics libraries the process has loaded (the renderer SDL chose: Direct3D 9, 11 or OpenGL)."""
+    arr = (ctypes.c_void_p * 2048)()
+    need = W.DWORD()
+    psapi.EnumProcessModulesEx(h, arr, ctypes.sizeof(arr), ctypes.byref(need), 3)
+    names = set()
+    for i in range(need.value // ctypes.sizeof(ctypes.c_void_p)):
+        nm = ctypes.create_unicode_buffer(520)
+        psapi.GetModuleFileNameExW(h, ctypes.c_void_p(arr[i]), nm, 520)
+        base = os.path.basename(nm.value).lower()
+        if base in ('d3d9.dll', 'd3d11.dll', 'opengl32.dll', 'nvd3dum.dll', 'nvwgf2um.dll', 'nvoglv32.dll', 'dxgi.dll', 'd3d12.dll'):
+            names.add(base)
+    return sorted(names)
 
 
 def creation_time(h):
@@ -182,7 +326,8 @@ def summarise(samples, lo, hi=None):
         return {'from_s': round(s[0][0], 1), 'to_s': round(s[-1][0], 1),
                 'peak_working_set_mb': round(max(x[1] for x in s) / 1048576, 1),
                 'peak_private_mb': round(max(x[2] for x in s) / 1048576, 1),
-                'processor_s': round(s[-1][5] - s[0][5], 2), 'wall_s': round(s[-1][0] - s[0][0], 1)}
+                'processor_s': round(s[-1][5] - s[0][5], 2), 'cycles_g': round((s[-1][5] - s[0][5]) * HZ / 1e9, 2), 'wall_s': round(s[-1][0] - s[0][0], 1),
+                'audio_g': round((s[-1][6] - s[0][6]) * HZ / 1e9, 2) if len(s[0]) > 6 else None}
     whole = span(0, hi)
     if whole and samples:
         last = [x for x in samples if hi is None or x[0] <= hi][-1]
@@ -206,6 +351,14 @@ def port_script(dst, mark):
     return sc['last']
 
 
+def night_only():
+    """The visible desktop is for 22:00 to 08:00 (CLAUDE.md, "Overnight, desktop and sound allowed")."""
+    import datetime
+    now = datetime.datetime.now()
+    if 8 <= now.hour < 22:
+        raise SystemExit('perf: the visible desktop is for 22:00 to 08:00; it is %s' % now.strftime('%H:%M'))
+
+
 def port_exe():
     # PERF_EXE names another build of the port in build/native (an exe kept from before a change)
     return os.path.join(os.getcwd(), 'build', 'native', os.environ.get('PERF_EXE', 'astropop.exe'))
@@ -213,8 +366,8 @@ def port_exe():
 
 def port_user(d):
     os.makedirs(os.path.join(d, 'user'), exist_ok=True)
-    with open(os.path.join(d, 'user', 'registry.ini'), 'w', newline='\n') as f:   # 2D, as the original runs in these comparisons
-        f.write('[SOFTWARE\\PopCap\\AstroPop]\nIs3D=dword:0\n')
+    with open(os.path.join(d, 'user', 'registry.ini'), 'w', newline='\n') as f:   # 2D, as the original runs in these comparisons (PERF_3D=1: 3D)
+        f.write('[SOFTWARE\\PopCap\\AstroPop]\nIs3D=dword:%d\n' % (1 if THREE_D else 0))
     return os.path.join(d, 'user')
 
 
@@ -230,6 +383,10 @@ def port_load(out, runs):
         a = argparse.Namespace(dir=d, timeout=120, exe=exe, realtime=True, game_args=['-seed=%d' % SEED, '-userdir=' + port_user(d)])
         others0 = game_processes(mine_prefixes())
         s0 = system_times()
+        if DESKTOP:        # no rundesk: the game opens its window on the desktop, with SDL's silent audio driver
+            night_only()
+            os.environ['BYOPOP_TEST_RUN'] = '1'
+            os.environ['SDL_AUDIODRIVER'] = 'dummy'
         g = playbymove.Game(a)
         pid = g.proc.pid
         if not image_path(pid).lower().endswith('astropop.exe'):     # started through rundesk: its child is the game
@@ -266,15 +423,28 @@ def port_minute(out):
     others0 = game_processes(mine_prefixes())
     s0 = system_times()
     log = open(os.path.join(out, 'game.log'), 'wb')
+    extra = {}
+    if DESKTOP:     # as a player runs it: a window on the desktop that takes no focus, below-normal priority, SDL's silent audio driver
+        night_only()
+        si = subprocess.STARTUPINFO()
+        si.dwFlags = 1            # STARTF_USESHOWWINDOW
+        si.wShowWindow = 4        # SW_SHOWNOACTIVATE
+        env = dict(os.environ, SDL_AUDIODRIVER='dummy', BYOPOP_TEST_RUN='1')
+        for kv in filter(None, os.environ.get('PERF_ENV', '').split(',')):     # PERF_ENV="SDL_RENDER_DRIVER=opengl,...": an experiment's variables
+            env[kv.split('=', 1)[0]] = kv.split('=', 1)[1]
+        extra = dict(startupinfo=si, creationflags=0x4000, env=env)
     p = subprocess.Popen([exe, '-userdir=' + user, '-seed=%d' % SEED, '-realinput=' + os.path.join(out, 'script.txt')] +
-                         ([] if REAL else ['-fast']), cwd=out, stdout=log, stderr=subprocess.STDOUT)
+                         ([] if REAL else ['-fast']), cwd=out, stdout=log, stderr=subprocess.STDOUT, **extra)
     h = k32.OpenProcess(QUERY | VM_READ | QUERY_LIMITED, False, p.pid)
     created = creation_time(h)
     samples = []
+    gfx = None
     while p.poll() is None:
         s = sample(h)
         if s:
             samples.append((round(time.time() - created, 3),) + s)
+            if gfx is None and samples[-1][0] > 15:
+                gfx = graphics_modules(h)
         time.sleep(0.1)
     end = samples[-1][0] if samples else 0
     s1 = system_times()
@@ -284,6 +454,8 @@ def port_minute(out):
                 'stretch_start_marked': begin is not None, 'updates_in_stretch': MINUTE + 30,
                 'updates_per_s_in_stretch': round((MINUTE + 30) / (end - begin), 1) if begin is not None else None,
                 'others_start': len(others0), 'others_end': len(game_processes(mine_prefixes()))})
+    res['cycles_check'] = cycle_check(h)
+    res['graphics_modules'] = gfx
     json.dump({'samples': samples, 'result': res}, open(os.path.join(out, 'perf.json'), 'w'))
     k32.CloseHandle(h)
     log.close()
@@ -394,11 +566,140 @@ def orig_run(out, runs, load_only=False):
         if ready_mem:
             res.update({'working_set_mb_at_title': round(ready_mem[0] / 1048576, 1),
                         'private_mb_at_title': round(ready_mem[1] / 1048576, 1), 'processor_s_at_title': round(ready_mem[4], 2)})
+        if h:
+            res['cycles_check'] = cycle_check(h)
         json.dump({'samples': samples, 'counters': counters, 'result': res}, open(os.path.join(d, 'perf.json'), 'w'))
         if h:
             k32.CloseHandle(h)
         log.close()
         results.append(res)
+        print(json.dumps(res), flush=True)
+
+
+def orig3d_run(out, runs, load_only=False):
+    """The original in 3D on the visible desktop, in real time (origcmp/visrun3d.py's way to run it: the sandbox and dgVoodoo give it no
+    Direct3D), 22:00 to 08:00 only. The scenario's inputs are posted to the game's window by update; the game runs silent (the stand-in's
+    sound stub: no mixing in its number), at below-normal priority, its registry key set to Is3D 1 and put back. A run counts only if the
+    game's 3D flag ([[0x5dc220]+0x320]+0x10) is 1 at the end."""
+    night_only()
+    import threading
+    import uuid
+    import visrun3d as v
+    root = os.getcwd()
+    v.SOURCE = os.path.join(root, 'build', 'origrun', RUN, 'game')
+    v.WORK = os.path.join(root, 'build', 'ap-3d-perf')
+    v.GAME = os.path.join(v.WORK, 'game')
+    os.makedirs(v.WORK, exist_ok=True)
+    for i in range(runs):
+        d = os.path.abspath(os.path.join(out, 'orig3d%d' % i))
+        shutil.rmtree(d, ignore_errors=True)
+        os.makedirs(d)
+        sc = os.path.join(d, 'script.txt')
+        last = orig_script(sc)
+        log = open(os.path.join(d, 'run.log'), 'w')
+        backup = os.path.join(v.WORK, 'registry-backup')
+        v.prepare()
+        v.stage_registry(backup, True)
+        run_id = uuid.uuid4().hex[:12]
+        cur = v.Cursor(run_id)
+        env = dict(os.environ)
+        env.update({'ORIGRUN_DIR': os.path.join(v.WORK, 'logs'), 'ORIGRUN_SOUND': 'stub', 'ORIGRUN_REGMAP': 'popcap',
+                    'ORIGRUN_CURSOR': 'scripted', 'ORIGRUN_CURSOR_ID': run_id})
+        os.makedirs(env['ORIGRUN_DIR'], exist_ok=True)
+        others0 = game_processes(mine_prefixes())
+        s0 = system_times()
+        g = None
+        samples, counters = [], []
+        state = {'ready': None, 'ready_mem': None, 'stop': False, 'started': False}
+        try:
+            g = v.Game(os.path.join(v.GAME, 'AstroPopGame.exe'), env)
+            created = creation_time(g.h)
+
+            def sampler():
+                next_sample = 0
+                while not state['stop']:
+                    now = time.time()
+                    app = g.rd(APP)
+                    if state['ready'] is None and app:
+                        flags = g.rd(app + LOADING)
+                        if flags is not None and (flags >> 8) & 0xff:          # the loading thread has completed
+                            state['ready'] = now - created
+                            state['ready_mem'] = sample(g.h)
+                    if now >= next_sample:
+                        s = sample(g.h)
+                        c = g.rd(app + COUNTER) if app else None
+                        if app and not state['started'] and (g.rd(app + BOARD) or 0) != 0:
+                            state['started'] = True
+                        if s:
+                            samples.append((round(now - created, 3),) + s)
+                            counters.append((round(now - created, 3), c))
+                        next_sample = now + 0.1
+                    time.sleep(0.02)
+            th = threading.Thread(target=sampler, daemon=True)
+            th.start()
+            t0 = time.time()
+            while not g.window() and time.time() - t0 < 90 and g.p.poll() is None:
+                time.sleep(0.05)
+            if g.window():
+                v.post_input(g, cur, 'focus', ['regain'])        # the game believes it has the focus
+                while time.time() - t0 < 120 and g.p.poll() is None and state['ready'] is None:
+                    time.sleep(0.02)
+                if not load_only:
+                    for line in open(sc):
+                        w = line.split()
+                        if not w or w[0] == 'quit':
+                            if w:
+                                break
+                            continue
+                        if w[0] != 'at':
+                            continue
+                        n, cmd, args = int(w[1]), w[2], w[3:]
+                        if v.wait_counter(g, n, log) is None:
+                            break
+                        if cmd == 'mark':
+                            break
+                        g.hold()
+                        try:
+                            v.post_input(g, cur, cmd, args)
+                        finally:
+                            g.release()
+            flag = g.flag3d()
+            s1 = system_times()
+            state['stop'] = True
+            th.join()
+        finally:
+            if g and g.p.poll() is None:
+                hw = g.window()
+                if hw:
+                    v.u32.PostMessageW(hw, 0x0010, 0, 0)
+                try:
+                    g.p.wait(20)
+                except subprocess.TimeoutExpired:
+                    g.p.kill()
+                    g.p.wait(10)
+            time.sleep(0.5)
+            v.restore_registry(backup)
+            log.close()
+        lo = next((t for t, c in counters if c is not None and c >= last - 30 - MINUTE), None)
+        hi = next((t for t, c in counters if c is not None and c >= last), None)
+        end = samples[-1][0] if samples else 0
+        res = summarise(samples, lo if lo is not None else end - 60, hi)
+        if lo is not None and hi is not None and hi > lo:
+            c_lo = next(c for t, c in counters if t == lo)
+            c_hi = next(c for t, c in counters if t == hi)
+            res['updates_in_stretch'] = c_hi - c_lo
+            res['updates_per_s_in_stretch'] = round((c_hi - c_lo) / (hi - lo), 1)
+        res.update({'exit': g.p.returncode if g else None, 'run_s': round(end, 1), 'machine_busy': round(busy_fraction(s0, s1), 2),
+                    'load_s': round(state['ready'], 3) if state['ready'] else None, 'flag3d': flag,
+                    'last_update_reached': counters[-1][1] if counters else None, 'game_started': state['started'],
+                    'others_start': len(others0), 'others_end': len(game_processes(mine_prefixes()))})
+        if state['ready_mem']:
+            m = state['ready_mem']
+            res.update({'working_set_mb_at_title': round(m[0] / 1048576, 1), 'private_mb_at_title': round(m[1] / 1048576, 1),
+                        'processor_s_at_title': round(m[4], 2)})
+        if g:
+            res['cycles_check'] = cycle_check(g.h)
+        json.dump({'samples': samples, 'counters': counters, 'result': res}, open(os.path.join(d, 'perf.json'), 'w'))
         print(json.dumps(res), flush=True)
 
 
@@ -408,6 +709,8 @@ if __name__ == '__main__':
         port_load(sys.argv[2], int(sys.argv[3]) if len(sys.argv) > 3 else 3)
     elif mode == 'port-minute':
         port_minute(sys.argv[2])
+    elif mode == 'orig3d':
+        orig3d_run(sys.argv[2], int(sys.argv[3]) if len(sys.argv) > 3 else 1, len(sys.argv) > 4 and sys.argv[4] == 'load')
     elif mode == 'orig':
         orig_run(sys.argv[2], int(sys.argv[3]) if len(sys.argv) > 3 else 1, len(sys.argv) > 4 and sys.argv[4] == 'load')
     else:

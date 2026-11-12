@@ -24,6 +24,7 @@ static int SCREEN_H = 480;
 static const PixelFormat SCREEN_FORMAT = {8, 16, 8, 8, 8, 0};
 
 static std::vector<uint32_t> gScreen(640 * 480);
+static uint32_t gScreenWrites = 1;    // port: HostScreenWrites
 static ClockFunc gClock = nullptr;
 static MessageFunc gMessageFunc = nullptr;
 static bool gActive = true;
@@ -49,6 +50,11 @@ uint32_t* HostScreen()
 	return gScreen.data();
 }
 
+uint32_t HostScreenWrites()
+{
+	return gScreenWrites;
+}
+
 void HostScreenSize(int* theWidth, int* theHeight)
 {
 	*theWidth = SCREEN_W;
@@ -60,6 +66,7 @@ void HostSetCanvas(int theWidth, int theHeight)
 	SCREEN_W = theWidth;
 	SCREEN_H = theHeight;
 	gScreen.assign((size_t)theWidth * (size_t)theHeight, 0);
+	gScreenWrites++;
 }
 
 void HostSetClock(ClockFunc theClock)
@@ -372,30 +379,21 @@ void InitLock(volatile char* theLock)
 // 0x42f290: the window, DirectDraw and the screen mode. theMode 1 is 640x480 in 32 bits (the only mode the
 // game uses); the callbacks: theActivate (0x41b2da) and theClose (0x41b2b8) came from the window procedure,
 // theOnSwitch (0x41b36c) from the keyboard's switch request, theRestore (0x41b34b) after a display format change
-// (never in the port: the format is fixed). Returns 1 in full screen, 2 windowed.
+// (never in the port: the format is fixed); theDirectDrawOptions are bits that the original's DirectDraw setup reads
+// (the port has none). Returns 1 in full screen, 2 windowed.
 char InitScreen(uint8_t theMode, ActivateCallback theActivate, CloseCallback theClose, SwitchCallback theOnSwitch,
-	RestoreCallback theRestore, const char* theTitle, char theWindowed, uint8_t theUnknown)
+	RestoreCallback theRestore, const char* theTitle, char theWindowed, uint8_t theDirectDrawOptions)
 {
-	(void)theMode; (void)theRestore; (void)theTitle; (void)theUnknown;
+	(void)theMode; (void)theRestore; (void)theTitle; (void)theDirectDrawOptions;
 	gActivate = theActivate;
 	gClose = theClose;
 	gOnSwitch = theOnSwitch;
 	gModeRequest = theWindowed == 1 ? 1 : 2;
 	gWindowed = theWindowed != 1;
 	std::fill(gScreen.begin(), gScreen.end(), 0);
+	gScreenWrites++;
 	gScreenInited = true;
 	return gWindowed ? 2 : 1;
-}
-
-// 0x42f750
-void UninitScreen()
-{
-	if (gScreenInited)
-	{
-		gScreenInited = false;
-		while (gSurfaces != nullptr)
-			UnregisterSurface(gSurfaces);
-	}
 }
 
 // 0x42f850: the display mode's format, size and bytes per pixel
@@ -613,20 +611,20 @@ void BlitPixels(const PixelFormat* theSrcFormat, const PixelFormat* theDestForma
 		{
 			for (int y = 0; y < theHeight; y++)
 			{
-				const uint8_t* s = theSrc + y * theSrcPitch;
-				uint8_t* d = theDest + y * theDestPitch;
+				const uint8_t* aSrcPos = theSrc + y * theSrcPitch;
+				uint8_t* aDestPos = theDest + y * theDestPitch;
 				if (!aKey)
 				{
-					memcpy(d, s, (size_t)theWidth * 4);
+					memcpy(aDestPos, aSrcPos, (size_t)theWidth * 4);
 					continue;
 				}
 				for (int x = 0; x < theWidth; x++)
 				{
-					uint32_t v, aDest;
-					memcpy(&v, s + x * 4, 4);
-					memcpy(&aDest, d + x * 4, 4);
-					v = v == theColorKey ? aDest : v;
-					memcpy(d + x * 4, &v, 4);
+					uint32_t aPixel, aDest;
+					memcpy(&aPixel, aSrcPos + x * 4, 4);
+					memcpy(&aDest, aDestPos + x * 4, 4);
+					aPixel = aPixel == theColorKey ? aDest : aPixel;
+					memcpy(aDestPos + x * 4, &aPixel, 4);
 				}
 			}
 			return;
@@ -634,38 +632,38 @@ void BlitPixels(const PixelFormat* theSrcFormat, const PixelFormat* theDestForma
 	}
 	for (int y = 0; y < theHeight; y++)
 	{
-		const uint8_t* s = theSrc + y * theSrcPitch;
-		uint8_t* d = theDest + y * theDestPitch;
-		for (int x = 0; x < theWidth; x++, s += theSrcBpp, d += theDestBpp)
+		const uint8_t* aSrcPos = theSrc + y * theSrcPitch;
+		uint8_t* aDestPos = theDest + y * theDestPitch;
+		for (int x = 0; x < theWidth; x++, aSrcPos += theSrcBpp, aDestPos += theDestBpp)
 		{
 			uint8_t aLevel = theLevel;
 			if (anAlphaByte)
 			{
 				// 0x436e0c, 0x436ec3 (32 bits): the pixel's own level in the byte before it, times the level when
 				// translucent (the table at 0x47ebc4 holds a * level / 255); 0 draws nothing
-				aLevel = *s;
-				s = s + 1;
+				aLevel = *aSrcPos;
+				aSrcPos = aSrcPos + 1;
 				if (aBlend)
 					aLevel = (uint8_t)((uint32_t)aLevel * theLevel / 0xff);
 				if (aLevel == 0)
 					continue;
 			}
-			uint32_t v = ReadPixel(s, theSrcBpp);
-			if (aKey && v == theColorKey)
+			uint32_t aPixel = ReadPixel(aSrcPos, theSrcBpp);
+			if (aKey && aPixel == theColorKey)
 				continue;
 			if (aConvert)
-				v = ConvertColor(theSrcFormat, theDestFormat, v);
+				aPixel = ConvertColor(theSrcFormat, theDestFormat, aPixel);
 			if ((theFlags & SURF_ADDITIVE) != 0)
 			{
 				// 0x4370a5, 0x437129 (32 bits): black adds nothing; each channel adds, scaled by the level when
 				// translucent (the table at 0x47ebc0 holds c * level / 255), and saturates
-				if (v == 0)
+				if (aPixel == 0)
 					continue;
-				uint32_t aDest = ReadPixel(d, theDestBpp);
+				uint32_t aDest = ReadPixel(aDestPos, theDestBpp);
 				uint32_t aResult = aDest;
 				for (int aShift = 0; aShift < 24; aShift += 8)
 				{
-					int sc = (int)(v >> aShift & 0xff);
+					int sc = (int)(aPixel >> aShift & 0xff);
 					if (aBlend)
 						sc = sc * theLevel / 0xff;
 					int c = (int)(aDest >> aShift & 0xff) + sc;
@@ -673,23 +671,23 @@ void BlitPixels(const PixelFormat* theSrcFormat, const PixelFormat* theDestForma
 						c = 0xff;
 					aResult = (aResult & ~(0xffu << aShift)) | (uint32_t)c << aShift;
 				}
-				WritePixel(d, theDestBpp, aResult);
+				WritePixel(aDestPos, theDestBpp, aResult);
 				continue;
 			}
 			if (aBlend || anAlphaByte)
 			{
-				uint32_t aDest = ReadPixel(d, theDestBpp);
-				uint32_t aResult = v;
+				uint32_t aDest = ReadPixel(aDestPos, theDestBpp);
+				uint32_t aResult = aPixel;
 				for (int aShift = 0; aShift < 24; aShift += 8)
 				{
-					int sc = (int)(v >> aShift & 0xff);
+					int sc = (int)(aPixel >> aShift & 0xff);
 					int dc = (int)(aDest >> aShift & 0xff);
 					int c = sc + (int)((int64_t)(dc - sc) * (0xff - aLevel) / 0xff);
 					aResult = (aResult & ~(0xffu << aShift)) | (uint32_t)c << aShift;
 				}
-				v = aResult;
+				aPixel = aResult;
 			}
-			WritePixel(d, theDestBpp, v);
+			WritePixel(aDestPos, theDestBpp, aPixel);
 		}
 	}
 }
@@ -748,6 +746,7 @@ void Blit(int theWidth, int theHeight, int theDestX, int theDestY, int theSrcX, 
 			aFlags = theFlags & 0xfb;
 	}
 	uint32_t aKey = ConvertColor(&SCREEN_FORMAT, &SCREEN_FORMAT, gColorKey);
+	gScreenWrites++;
 	uint8_t* aDest = (uint8_t*)gScreen.data() + theDestY * SCREEN_W * 4 + theDestX * 4;
 	const uint8_t* aSrc = theSrcBits + theSrcY * theSrcPitch + theSrcX * (4 + ((aFlags >> 1) & 1));
 	BlitPixels(&SCREEN_FORMAT, &SCREEN_FORMAT, aDest, aSrc, theHeight, theWidth, SCREEN_W * 4, theSrcPitch,
@@ -764,6 +763,7 @@ void SetColorKey(uint32_t theColor)
 void FillRectangle(int theWidth, int theHeight, int theX, int theY, uint32_t theColor)
 {
 	uint32_t aColor = ConvertColor(&SCREEN_FORMAT, &SCREEN_FORMAT, theColor);
+	gScreenWrites++;
 	for (int y = theY; y < theY + theHeight; y++)
 	{
 		if (y < 0 || y >= SCREEN_H)
@@ -815,6 +815,7 @@ uint32_t BlitScaled(int theDestWidth, int theDestHeight, int theSrcWidth, int th
 	uint32_t aKey = gColorKey;
 	uint32_t aPitch = 0;
 	uint8_t* aScreen = LockScreen(&aPitch);
+	gScreenWrites++;
 	uint32_t aStepX = ((uint32_t)theSrcWidth << 16) / (uint32_t)(theDestWidth + 1);
 	uint32_t aStepY = ((uint32_t)theSrcHeight << 16) / (uint32_t)(theDestHeight + 1);
 	uint32_t aSrcY = (uint32_t)theSrcY << 16;
@@ -986,15 +987,6 @@ char InitSound()
 {
 	gSoundInited = true;
 	return 0;
-}
-
-// 0x432e70
-void UninitSound()
-{
-	gSoundInited = false;
-	while (gSounds != nullptr)
-		FreeSound(gSounds);
-	gSlots.clear();
 }
 
 static FILE* gSoundLog = nullptr;

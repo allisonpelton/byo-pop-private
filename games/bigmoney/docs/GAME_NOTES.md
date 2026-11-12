@@ -4321,7 +4321,7 @@ its section.
 
 `mod.json` with the feature `fixes` and one bool setting for each fix (`shakeSettles`, `continueColours`, `doneClicksOnce`), on
 by default except `continueColours`, which starts off: a continued game's fewer colours looks intended and is not a
-known bug (docs/MOD_ROADMAP.md, "The fixes mod"). The game reads them where it needs them (`ModFeatureBool("fixes", "<id>", false)`), so without the mod every fix is
+known bug (docs/MOD_ROADMAP.md, "The fixes mod"). The game reads them where it needs them (`Platform::FixOn("<id>")`), so without the mod every fix is
 off and the game is the original; a toggle takes effect at its next use. The mod has features and no rules or tunables, so it does
 not split the high scores (it does not touch scoring). The site ships it beside the page as `bigmoney-fixes/` and starts the game
 with it on (`cmake/ByopopWeb.cmake`; Big Money is not in `BYOPOP_WEB_NO_MODS`); natively it is a folder in `mods-bigmoney`, or in a

@@ -69,8 +69,10 @@ Native options: `-gamedir=<dir>` (else `assets/tiptop` next to the exe or up to 
 `-userdir=<dir>` (the preferences and the saved game; the original kept them in its own folder), `-fast`, `-seed=N`
 (the C library generator's seed, otherwise the clock), `-script=<file>` (the framework's scripted input:
 `<update> click <x> <y>`, `key <name>`, `char <c>`, `screenshot <file>`, `quit`, and TipTop's `canvasshot <file>` and
-`musicwav <file> <seconds>`), `-canvas=<width>x<height>` (a test run's larger screen, see Testing) and
-`-soundfont=<file>` (the music's bank, else `tiptop.sf2` beside the exe, where the build copies it).
+`musicwav <file> <seconds>`), `-canvas=<width>x<height>` (a test run's larger screen, see Testing),
+`-screenhash=<file>` (a hash of the screen after every pass) with `-scramble` (noise on the whole screen before every pass;
+GAME_NOTES.md, "Performance, second round") and `-soundfont=<file>` (the music's bank, else `tiptop.sf2` beside the exe,
+where the build copies it).
 
 ## Testing
 

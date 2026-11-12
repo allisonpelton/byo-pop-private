@@ -8,7 +8,7 @@
 #include "GalaxyParser.h"
 #include "PodDialog.h"
 #include "Res.h"
-#include "Fixes.h"
+#include "platform/GameOptions.h"
 #include "Graphics.h"
 #include "Font.h"
 #include "MemoryImage.h"
@@ -519,7 +519,7 @@ void PuzzleStateOverlay::DrawFront(Graphics* g)
 			int aSize1 = mApp->ScaleNum(0x6e, 0);
 			int aSize2 = mApp->ScaleNum(0x6e, 0);
 			Rect aSrc(mApp->ScaleNum(aSrcX, 0), 0, aSize2, aSize1);
-			Graphics* aUnlitGraphics = FixEnabled("podFade") ? &g1 : g;
+			Graphics* aUnlitGraphics = Platform::FixOn("podFade") ? &g1 : g;
 			aUnlitGraphics->DrawImage(IMAGE_PUZZLE_PODS, mApp->ScaleNum(aPos.mX, 0), mApp->ScaleNum(aPos.mY, 0), aSrc);
 		}
 		if (0.0f < aPod.mLit)

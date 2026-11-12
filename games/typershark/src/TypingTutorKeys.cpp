@@ -16,7 +16,7 @@
 #include "GameText.h"
 #include "Image.h"
 #include "Res.h"
-#include "Fixes.h"
+#include "platform/GameOptions.h"
 
 using namespace Sexy;
 
@@ -78,7 +78,7 @@ void TypingTutor::SetupHighlight()
 	ResetFingers();
 
 	char aChar = mExpectedChar;
-	bool aMend = FixEnabled("tutorKeyboard");
+	bool aMend = Platform::FixOn("tutorKeyboard");
 	// the fix: { } and _ are typed with shift too, so they take the right hand's branch of the switch below
 	bool aShiftedSymbol = aMend && (aChar == '{' || aChar == '}' || aChar == '_');
 	if (!aShiftedSymbol && (((((((aChar < 'A') || ('Z' < aChar)) && (aChar != '~')) && ((aChar != '!') && (aChar != '@'))) &&

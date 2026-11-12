@@ -198,6 +198,12 @@
       "runtimeExecutable": "python",
       "runtimeArgs": ["tools/webtest/serve.py", "--port", "18808"],
       "port": 18808
+    },
+    {
+      "name": "venice-webtest",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["tools/webtest/serve.py", "--port", "18809"],
+      "port": 18809
     }
   ]
 }

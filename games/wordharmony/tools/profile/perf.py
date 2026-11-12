@@ -163,6 +163,119 @@ def summarise(samples, lo, hi=None):
     return {'whole_run': whole, 'scripted_minute': span(lo, hi)}
 
 
+ntdll = ctypes.WinDLL('ntdll')
+k32.OpenThread.restype = W.HANDLE
+k32.OpenThread.argtypes = [W.DWORD, W.BOOL, W.DWORD]
+k32.QueryThreadCycleTime.argtypes = [W.HANDLE, ctypes.POINTER(ctypes.c_uint64)]
+k32.GetThreadDescription.argtypes = [W.HANDLE, ctypes.POINTER(ctypes.c_wchar_p)]
+k32.GetThreadDescription.restype = ctypes.c_long
+ntdll.NtQueryInformationThread.argtypes = [W.HANDLE, ctypes.c_ulong, ctypes.c_void_p, ctypes.c_ulong, ctypes.c_void_p]
+psapi.EnumProcessModulesEx.argtypes = [W.HANDLE, ctypes.c_void_p, W.DWORD, ctypes.POINTER(W.DWORD), W.DWORD]
+psapi.GetModuleBaseNameW.argtypes = [W.HANDLE, ctypes.c_void_p, ctypes.c_wchar_p, W.DWORD]
+psapi.GetModuleInformation.argtypes = [W.HANDLE, ctypes.c_void_p, ctypes.c_void_p, W.DWORD]
+
+
+class THREADENTRY32(ctypes.Structure):
+    _fields_ = [('dwSize', W.DWORD), ('cntUsage', W.DWORD), ('th32ThreadID', W.DWORD), ('th32OwnerProcessID', W.DWORD),
+                ('tpBasePri', W.LONG), ('tpDeltaPri', W.LONG), ('dwFlags', W.DWORD)]
+
+
+class ThreadSampler:
+    """Per-thread cycle counters (QueryThreadCycleTime) of a process, sampled with the process: the machine's load moves a
+    thread's seconds but not its cycles. The thread list is refreshed every second (new threads are opened, their start
+    address and name read; a thread that has ended keeps its last count). Used for the split by thread that the target of
+    docs/COORDINATION.md asks for, since sound and the graphics driver run on threads of their own."""
+
+    def __init__(self, pid, process):
+        self.pid, self.process = pid, process
+        self.handles, self.info, self.last_refresh = {}, {}, -1.0
+        self.modules = []
+        self.samples = []      # (t, {tid: cycles})
+        self.last = {}
+
+    def refresh(self):
+        snap = k32.CreateToolhelp32Snapshot(4, 0)
+        te = THREADENTRY32()
+        te.dwSize = ctypes.sizeof(THREADENTRY32)
+        tids = []
+        ok = k32.Thread32First(snap, ctypes.byref(te))
+        while ok:
+            if te.th32OwnerProcessID == self.pid:
+                tids.append(te.th32ThreadID)
+            ok = k32.Thread32Next(snap, ctypes.byref(te))
+        k32.CloseHandle(snap)
+        for tid in tids:
+            if tid in self.handles:
+                continue
+            h = k32.OpenThread(0x40 | 0x800, False, tid)   # QUERY_INFORMATION | QUERY_LIMITED_INFORMATION
+            if not h:
+                continue
+            self.handles[tid] = h
+            start = ctypes.c_void_p(0)
+            ntdll.NtQueryInformationThread(h, 9, ctypes.byref(start), ctypes.sizeof(start), None)
+            desc = ctypes.c_wchar_p()
+            name = ''
+            if k32.GetThreadDescription(h, ctypes.byref(desc)) >= 0 and desc.value:
+                name = desc.value
+            self.info[tid] = {'start': start.value or 0, 'name': name}
+        mods = (ctypes.c_void_p * 1024)()
+        need = W.DWORD()
+        if psapi.EnumProcessModulesEx(self.process, mods, ctypes.sizeof(mods), ctypes.byref(need), 3):
+            found = []
+            for i in range(min(need.value // ctypes.sizeof(ctypes.c_void_p), 1024)):
+                nm = ctypes.create_unicode_buffer(260)
+                mi = (ctypes.c_size_t * 3)()    # base, size, entry point
+                if psapi.GetModuleBaseNameW(self.process, mods[i], nm, 260) and psapi.GetModuleInformation(self.process, mods[i], mi, 24):
+                    found.append((mi[0], mi[1], nm.value))
+            if found:
+                self.modules = found
+
+    def sample(self, t):
+        if t - self.last_refresh >= 1.0:
+            self.last_refresh = t
+            self.refresh()
+        row = {}
+        for tid, h in self.handles.items():
+            c = ctypes.c_uint64()
+            if k32.QueryThreadCycleTime(h, ctypes.byref(c)):
+                row[tid] = c.value
+            elif tid in self.last:      # a thread that has ended: its count stays where it was
+                row[tid] = self.last[tid]
+        self.last = row
+        self.samples.append((round(t, 3), row))
+
+    def where(self, tid):
+        a = self.info.get(tid, {}).get('start', 0)
+        for base, size, nm in self.modules:
+            if base <= a < base + size:
+                return '%s+0x%x' % (nm, a - base)
+        return '0x%x' % a
+
+    def summary(self, lo, hi):
+        """Cycles of each thread between the samples at lo and hi (seconds from the process's creation), biggest first."""
+        s = [x for x in self.samples if x[0] >= lo and (hi is None or x[0] <= hi)]
+        if len(s) < 2:
+            return []
+        a, b = s[0][1], s[-1][1]
+        out = []
+        for tid in b:
+            d = b[tid] - a.get(tid, 0)
+            out.append({'tid': tid, 'start': self.where(tid), 'name': self.info.get(tid, {}).get('name', ''), 'cycles': d})
+        total = sum(o['cycles'] for o in out) or 1
+        for o in out:
+            o['share'] = round(o['cycles'] / total, 4)
+        out.sort(key=lambda o: -o['cycles'])
+        return [o for o in out if o['share'] >= 0.001]
+
+
+def add_cycles(res, threads):
+    """The processor time that counts (docs/COORDINATION.md, "The target"): the cycles of all the process's threads over the
+    scripted minute, in billions, from QueryThreadCycleTime. The seconds of GetProcessTimes ('processor_s') are charged by sampling
+    at the 15.6 ms clock tick, so they are left in the line only to compare with the figures of before."""
+    res['cycles_in_minute_g'] = round(sum(t['cycles'] for t in threads) / 1e9, 3)
+    res['threads_in_minute'] = [{'start': t['start'], 'name': t['name'], 'g': round(t['cycles'] / 1e9, 3)} for t in threads]
+
+
 def mine_prefixes():
     return [os.getcwd() + '\\']
 
@@ -178,6 +291,10 @@ def strip_script(src, dst, drop):
 # The scripted minute: 1800 updates (60 s at the game's 30 updates a second) of tour 2's TSUNAMI game, from its update
 # 2000 to 3800 (the port's numbering; the original's script runs one update earlier, "at K-1")
 MINUTE_FROM, MINUTE_TO = 2000, 3800
+# WH_PERF_FRAMES=<from>:<to> measures a shorter stretch of the same game (the port's script then ends at <to> + 60, for the
+# experiments that compare builds; the original's run always ends at the minute's end)
+if os.environ.get('WH_PERF_FRAMES'):
+    MINUTE_FROM, MINUTE_TO = (int(x) for x in os.environ['WH_PERF_FRAMES'].split(':'))
 # The original: the game is the singleton at 0x4995b8, its state at +0x1d8 (1: the main menu); the update counter
 # (phase one's patched frame count) at 0x4aa600
 GAME_PTR, STATE_OFF, UPDATE_COUNT = 0x4995B8, 0x1D8, 0x4AA600
@@ -252,11 +369,15 @@ def port_minute(out, script):
     with open(frames) as f, open(script, 'w', newline='\n') as g:
         for line in f:
             n, rest = line.split(' ', 1)
+            if os.environ.get('WH_PERF_FRAMES') and int(n) > MINUTE_TO + 60:
+                continue
             g.write('%d %s' % (to_update(int(n)), rest))
     marks = [os.path.join(out, 'mark0.png'), os.path.join(out, 'mark1.png')]
     with open(script, 'a', newline='\n') as f:
         f.write('%d screenshot %s\n' % (to_update(MINUTE_FROM), marks[0].replace('\\', '/')))
         f.write('%d screenshot %s\n' % (to_update(MINUTE_TO), marks[1].replace('\\', '/')))
+        if os.environ.get('WH_PERF_FRAMES'):
+            f.write('%d quit\n' % to_update(MINUTE_TO + 60))
     others0 = game_processes(mine_prefixes())
     s0 = system_times()
     log = open(os.path.join(out, 'game.log'), 'wb')
@@ -265,10 +386,12 @@ def port_minute(out, script):
     h = k32.OpenProcess(QUERY | VM_READ | QUERY_LIMITED, False, p.pid)
     created = creation_time(h)
     samples = []
+    ts = ThreadSampler(p.pid, h)
     while p.poll() is None:
         s = sample(h)
         if s:
             samples.append((round(time.time() - created, 3),) + s)
+            ts.sample(time.time() - created)
         time.sleep(0.1)
     end = samples[-1][0] if samples else 0
     s1 = system_times()
@@ -279,6 +402,7 @@ def port_minute(out, script):
                 'minute_marked': lo is not None and hi is not None,
                 'frames_per_s_in_minute': round((MINUTE_TO - MINUTE_FROM) / (hi - lo), 1) if lo and hi else None,
                 'others_start': len(others0), 'others_end': len(game_processes(mine_prefixes()))})
+    add_cycles(res, ts.summary(lo if lo is not None else 0, hi))
     json.dump({'samples': samples, 'result': res}, open(os.path.join(out, 'perf.json'), 'w'))
     k32.CloseHandle(h)
     print(json.dumps(res), flush=True)
@@ -307,9 +431,10 @@ def orig_run(out, script, runs, load_only=False):
         t_start = time.time()
         p = subprocess.Popen([origrun, '--exe', os.path.join(copy, 'WordHarmonyGame.exe'), '--run', run, '--script', sc,
                               '--clock', 'real', '--cursor', 'scripted', '--counter', '0x4aa600', '--update-ms', '33',
-                              '--seed', '1', '--patches', 'tools/origrun/patches/wordharmony.txt', '--timeout', '420'],
+                              '--seed', '1', '--patches', os.environ.get('WH_PERF_PATCHES', 'tools/origrun/patches/wordharmony.txt'), '--timeout', '420'],
                              stdout=log, stderr=subprocess.STDOUT)
         h = None
+        ts = None
         created = ready = spawned = ready_mem = None
         samples, counters = [], []
         next_sample = 0
@@ -324,6 +449,7 @@ def orig_run(out, script, runs, load_only=False):
                     h = k32.OpenProcess(QUERY | VM_READ | QUERY_LIMITED | TERMINATE, False, pid)
                     created = creation_time(h)
                     spawned = created - t_start
+                    ts = ThreadSampler(pid, h)
             if h:
                 now = time.time()
                 if ready is None:
@@ -339,6 +465,7 @@ def orig_run(out, script, runs, load_only=False):
                     if s:
                         samples.append((round(now - created, 3),) + s)
                         counters.append((round(now - created, 3), c))
+                        ts.sample(now - created)
                     next_sample = now + 0.1
                     if c is not None and c >= MINUTE_TO + 30:
                         done = True
@@ -363,6 +490,8 @@ def orig_run(out, script, runs, load_only=False):
                     'load_s': round(ready, 3) if ready else None, 'origrun_to_process_s': round(spawned, 1) if h else None,
                     'last_update_reached': counters[-1][1] if counters else None,
                     'others_start': len(others0), 'others_end': len(game_processes(mine_prefixes()))})
+        if ts is not None:
+            add_cycles(res, ts.summary(lo if lo is not None else 0, hi))
         if ready_mem:
             res.update({'working_set_mb_at_menu': round(ready_mem[0] / 1048576, 1),
                         'private_mb_at_menu': round(ready_mem[1] / 1048576, 1), 'processor_s_at_menu': round(ready_mem[4], 2)})

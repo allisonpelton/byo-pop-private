@@ -14,7 +14,7 @@ if(NOT MSVC)
   target_compile_options(bigmoney PRIVATE -Wall -Wno-unused-private-field)
 endif()
 if(EMSCRIPTEN)
-  byopop_web_game(bigmoney TITLE "Big Money" COPYRIGHT
+  byopop_web_game(bigmoney EXPORTS _byopop_livesplit_block TITLE "Big Money" COPYRIGHT
     "Big Money © 2000-2006 PopCap Games, Inc. All rights reserved. Big Money is a registered trademark of PopCap Games, Inc.")
 else()
   add_custom_command(TARGET bigmoney POST_BUILD

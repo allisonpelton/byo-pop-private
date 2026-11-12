@@ -188,7 +188,7 @@ name, scores, cleared or tutorial.
 `games/alchemy/mods/fixes/mod.json` is the game's fixes mod (`docs/MOD_ROADMAP.md`, "The fixes mod"): one mod, each setting a
 toggle for one bug of the original that the port keeps, every toggle on by default. The site serves the game with it on
 (`alchemy-fixes/` beside the page); a native build finds it when the folder is copied into the mods folder. The port without
-the mod is the original: `FixEnabled` (`src/Fixes.cpp`) is false for every toggle unless the mod is enabled, and a toggle is read
+the mod is the original: `Platform::FixOn` is false for every toggle unless the mod is enabled, and a toggle is read
 where its fix matters, as a live value, so it needs no restart (a picture the board already holds is redrawn at the next board).
 
 | Toggle | The original | With the fix |

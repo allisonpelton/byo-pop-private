@@ -1,0 +1,9 @@
+# The functions origrun's --count counts in BookWorm Deluxe's original (BookwormGame.exe), at the boundaries the port's -cyclesplit
+# counts (docs/TEST_COMMANDS.md, "The cycle split"; docs/ORIGRUN.md, "Counting cycles inside the original's functions").
+# A line is: label, address, len=N (the first instructions' length, whole instructions: tools/origrun/prologue.py checks it).
+#   update   SexyApp::DoUpdateFrames: the script of an update, the widgets' updates, the music's update
+#   draw     SexyApp::DrawDirtyStuff, less the present it reaches: the dirty scan and the game's own drawing
+#   present  SexyApp::Redraw: the Blt or Flip to the screen
+update   0x47e220  len=5
+draw     0x486510  len=5
+present  0x4884f0  len=6
