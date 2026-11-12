@@ -411,9 +411,16 @@ and `tools/shotdiff`. The exe's pictures equal the runner's in 47 of 47 at both 
 differs between any two runs of one exe on either display (the bimodal oddity below); the web build's equal the exe's 47 of 47 at 1x and 46
 of 47 at 2x, the one a faint difference in the same animation. The runner is the engine that phase two compared with the original screen by
 screen (and its frozen baseline keeps it so), and the new display only changes how that screen reaches the window, so the chain
-original, runner, exe, web holds. A fresh run of the original beside it, in Windows Sandbox, was not made: origrun's patch file for this game
-(`tools/origrun/patches/cosmicbugs.txt`: the seed and the frame wait) is git-ignored and was not in this worktree, the main checkout or the
-backup mirror, so the sandbox run could not start; recreating it is possible from the export but was not needed for the display's part.
+original, runner, exe, web holds. A fresh run of the original beside it, in Windows Sandbox, was not made that day: origrun's patch file for
+this game (`tools/origrun/patches/cosmicbugs.txt`: the seed and the frame wait, git-ignored) was in no worktree, in the main checkout or in the
+backup mirror. It was written again from the export that evening: the seed patch replaces the call to `timeGetTime` and its push in
+`SeedCrtRand` (0x42b8c0: `e8bbd5ffff50`, six bytes, becomes `68{seed}90`), and the wait replaces the 39 bytes of `GameMain`'s loop from
+0x41ef64 that call the message pump, read the time, subtract the last one and sleep 1 ms when the difference is negative: the pump, then
+`Sys_Sleep(10)` (0x428820), then the time read and the subtraction, so that every frame's elapsed time is exactly 10 (a wait put after the
+present instead, tried first, runs the original one frame ahead of the runner: its lives changed at update 2991 where the runner's changed at
+3001). `tools/play/pair.sh` on g1, g2 and a1 with the new file gives what IDENTICAL_PLAY.md records: seed, score, lives and fill the same at
+every update of the 200, 400 and 300 seconds (the original's seed series has one more change than the runner's at the end of g1, past the
+last compared update).
 
 **Real input through the window.** `tools/play/drive.py` (posted SDL events through `-realinput`, the bot's moves through `move`, under rundesk,
 in real time) now also starts a game in a window (`manual-win1x`: 800x600, `auto-win2x`: the framework's 1600x1200), where the window's own
