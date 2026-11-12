@@ -602,6 +602,36 @@ void BlitPixels(const PixelFormat* theSrcFormat, const PixelFormat* theDestForma
 	bool aKey = (theFlags & SURF_COLORKEY) != 0;
 	bool anAlphaByte = (theFlags & SURF_ALPHABYTE) != 0;
 	bool aConvert = !SameFormat(theSrcFormat, theDestFormat);
+	// Nearly every call is an opaque copy or a color-keyed one between 32-bit pixels of one format (the background and the
+	// sprites): the loop below does them a byte and a branch at a time, so these two make the same copy a pixel at a time.
+	// (A source that overlaps the destination keeps the loop, whose order of reads and writes the result may depend on.)
+	if (theSrcBpp == 4 && theDestBpp == 4 && !aConvert && !anAlphaByte && !aBlend && (theFlags & SURF_ADDITIVE) == 0)
+	{
+		uintptr_t aSrcStart = (uintptr_t)theSrc, aSrcEnd = aSrcStart + (uintptr_t)theHeight * theSrcPitch;
+		uintptr_t aDestStart = (uintptr_t)theDest, aDestEnd = aDestStart + (uintptr_t)theHeight * theDestPitch;
+		if (aSrcEnd <= aDestStart || aDestEnd <= aSrcStart)
+		{
+			for (int y = 0; y < theHeight; y++)
+			{
+				const uint8_t* s = theSrc + y * theSrcPitch;
+				uint8_t* d = theDest + y * theDestPitch;
+				if (!aKey)
+				{
+					memcpy(d, s, (size_t)theWidth * 4);
+					continue;
+				}
+				for (int x = 0; x < theWidth; x++)
+				{
+					uint32_t v, aDest;
+					memcpy(&v, s + x * 4, 4);
+					memcpy(&aDest, d + x * 4, 4);
+					v = v == theColorKey ? aDest : v;
+					memcpy(d + x * 4, &v, 4);
+				}
+			}
+			return;
+		}
+	}
 	for (int y = 0; y < theHeight; y++)
 	{
 		const uint8_t* s = theSrc + y * theSrcPitch;

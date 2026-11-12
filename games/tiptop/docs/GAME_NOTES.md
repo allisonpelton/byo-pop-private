@@ -234,7 +234,7 @@ One of the paced original's two runs (`orig16_1`) clicked the title before its b
 load numbers stand, it has no window. Read it plainly: the loading change takes the time from launch to the first screen that takes
 input from about 4.2 to 4.7 s (what the original needs at 60 Hz, and the port needed) to under a second. The port holds about
 20 MB more than the original and uses about six times the original's processor time at 60 Hz (a third of a core against a
-twentieth), which the loading change does not touch; both are for the performance pass (the framework's frame loop and renderer,
+twentieth), which the loading change does not touch; both were left to the performance pass (the next section: the processor time halved, the memory did not move; the framework's frame loop and renderer,
 SDL's audio buffers and the soundfont the music player holds are the places to look).
 
 *The web build*, in the Browser pane (`tools/web/loadtime.js`): the pane was hidden (this session is open in no window), so the
@@ -243,6 +243,80 @@ does not depend on the machine is the game's own update count when the title tak
 build before this change with the site's fixes mod on (its `fastLoading` loaded 8 entries a frame), 37 now, the page's start and
 the driver's latency included. The old build without the mod (one entry a frame) was not run on the web: the player page's
 "Play without mods" switch did not take there.
+
+## Performance pass (2026-11-11, `tools/perf/`)
+
+The port's processor time fell by about half: a scripted minute of the strategy mode took 18.8 and 22.4 s of processor time (0.31
+and 0.37 of a core) before the pass and 12.1 s, and 4.2 s in a game that ended after 31 s (0.20 and 0.14), after it; 3500 updates
+of the bot in real time took 9.2 s on average (7.8 to 11.4) and now take 4.85 s (4.8 to 5.0). Two changes did it, one of them nearly all of it.
+
+**How it was measured.** A sampler that stops each thread every millisecond and charges the cycles since the last look to the
+instruction it stopped at (`tools/perf/cpuprof.py` of Bejeweled, and `cpuprof2.py` here, which reads the 32-bit ntdll through
+SysWOW64 and prints the process's own times too) put 60 to 77% of the main thread in `ZwWaitForSingleObject`: the sampler's own
+suspends and a syscall's cycles charged to the wait it returns from (the list of shared costs in docs/COORDINATION.md says the same),
+so its split cannot be trusted. What found the cost was timers around the calls (`SDL_GetPerformanceCounter`, temporary and
+removed): around `RunFrame` (the game's pass), around the screen copy and `DrawImage` in `TipTopWidget::Draw`, and around
+`lowos::BlitPixels` by the flags of the call. `cpuprof2.py` with seconds 0 reads only each thread's cycle count every quarter
+second and the process's user and kernel time at the end, which perturbs nothing. The runs were `-autoplay=7
+-autoplaymode=strategy` (or regular) for 3500 updates in real time under rundesk, the before and after exes alternating, with one
+other game process on the machine; the scripted minute is `perf.py port --mode strategy --every 2.4 --count 25`, the one of
+2026-11-08.
+
+**Where the time went (before, per 3500 updates, about 36 s).** The main thread held about 75% of the cycles, the Direct3D driver's
+thread about 17% and the audio mixer's about 6%. On the main thread the game's pass took 4.7 to 7.2 s, and 5.1 s of that was
+`BlitPixels`: the plain copies of a surface (flags `SURF_SCREENFORMAT` only) took 4.2 s for 1756 million pixels in 38,000 calls
+(2.4 ns a pixel, about 1.6 screens of pixels every 10 ms update: the original's pass paints its whole display each time), the
+color-keyed copies 0.8 s for 266 million in 248,000 calls, everything else (translucent, additive, alpha byte, other formats) under
+0.15 s together. The framework's present of the screen (`Draw`: the copy into the screen image 0.3 s, `DrawImage` with its upload
+0.6 to 0.9 s over 2090 frames) took about 1.2 s.
+
+**What changed.**
+
+- `BlitPixels` (`engine/Lowos.cpp`): the generic loop does every pixel a byte, a switch on the pixel size and a branch at a time. A
+  call that copies 32-bit pixels of one format with no alpha byte, blend or add (nearly all of them) now takes a `memcpy` a row,
+  and the color-keyed one a pixel at a time with a select instead of a branch (an unchanged destination pixel is written back, the
+  same bytes); a source that overlaps the destination keeps the generic loop, whose order of reads and writes the result may depend
+  on. The blits took 1.85 s, not 5.1, and the pass 2.2 s, not 6.0, in the same run.
+- `TipTopWidget`'s screen image is declared opaque (`SetImageMode(false, false)`) and `mUploadAsIs`, as the other software-drawn
+  ports' are (the framework then does not look through the pixels for alpha after each change, and uploads in one call instead of
+  copying and premultiplying them in strips): the same pixels, 0.1 to 0.3 s less over a run.
+
+**Proof that nothing differs.** `tools/check.sh build build-web:tiptop tiptop` passes with the rerun and the frozen baseline
+identical. `tools/perf/blitcheck.py` builds the committed `BlitPixels` and the new one into one program and runs 3,000,000 random
+calls on copies of one buffer (every flag combination, 1 to 4 bytes a pixel, three pixel formats, color keys that hit, levels 0 to
+255, padded pitches, 600,000 with the source overlapping the destination) and compares every byte after each: no difference; with
+the key's test turned round or the overlap test removed it finds 27,852 and 1,807 differences in 300,000 calls. And the screen
+itself: the shots of the six phase-two tours (172) and of two games in each mode with `-autoplayshots` (21) are byte for byte the
+same from the exe before the pass and the one after, and so are their state logs but for four lines that the original's
+uninitialised memory decides (the meter's start value outside the timed mode, and the level and blocks left before the first board
+exists; see the fixes mod's section).
+
+**Tried and not kept.** Sending only the changed part of the screen: the display as a grid of images, each uploaded
+(`BitsChanged`) only when its pixels differed from the last frame's (6 of 25 tiles of 128x96 changed in an average frame, and 5 to
+7% of frames not at all). Tiles of 128x96, 320x240 and 64x48 against one image: 0.73 to 0.77 s, 0.78 to 0.80 s and 1.24 to 1.28 s
+of drawing a run against 0.79 to 0.99 s for one image (about 0.1 s of 36 s at best, and the 100 draws of the small tiles cost more
+than the bytes they save). The upload costs about 0.3 to 0.45 ms a frame whatever its size, a cost of the call and the driver, so
+a rectangle upload in the framework would not help TipTop. Nor can the passes whose frame is not shown be skipped (about 4 of 10,
+since the framework draws about 60 times a second and updates 100): each pass is the original's whole main-loop iteration, and
+what the next pass finds in the display and its other state may depend on it.
+
+**The scripted minute** (`perf.py port --mode strategy --every 2.4 --count 25`, 60 s from the first board; one other game process
+of another session ran; the before exe is the tree of commit `34e98816`):
+
+| | Window | Processor time | Peak working set | Peak private bytes | Load, to the bar full |
+|---|---|---|---|---|---|
+| Before the pass | 60 s, 60 s | 22.4 s, 18.8 s (0.37, 0.31 of a core) | 89.1, 88.4 MB | 82.8, 81.8 MB | 0.72, 0.59 s |
+| After | 60 s, 30.9 s (the game ended) | 12.1 s, 4.2 s (0.20, 0.14) | 88.3, 89.3 MB | 81.7, 82.7 MB | 0.73, 0.71 s |
+
+The paced original used 0.05 of a core in 2026-11-08's table, so the port is still about three to four times it. What is left on
+the main thread: the plain copies, about 1.5 s of 36 s for the same 1756 million pixels (0.87 ns a pixel, where a screen's rows
+copied in a loop between two buffers measure 0.2 ns on this machine: the sources are many different images, cold in the cache, so
+it is memory traffic), the present about 1 s, the rest of the pass and the framework's loop. Then the Direct3D driver's thread
+(about 2.5 G cycles a run, whatever the upload: `SDL_RenderPresent` and the device, the shared costs in docs/COORDINATION.md) and
+the audio mixer's (about 1 G, the music's software synthesizer and the sounds' mixing). Memory did not move: the 20 MB more than the
+original is the framework's and the renderer's (the Direct3D 11 device is the shared 20 to 25 MB; the soundfont file is 3.3 MB).
+The load time is as before (0.6 to 0.7 s). The web build was not timed (the pane is hidden, see the loading section above); it
+runs the same C++, so the blits gain the same, and it builds (`build-web:tiptop`).
 
 ## Fix candidates and the fixes mod (`mods/fixes`, `src/ModFeatures.cpp`)
 

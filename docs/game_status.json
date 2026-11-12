@@ -390,10 +390,11 @@
         "registration-out",
         "identical-look",
         "fixes-mod",
-        "coverage"
+        "coverage",
+        "performance"
       ],
       "na": [],
-      "now": "performance",
+      "now": "unneeded-code",
       "note": ""
     },
     "wordharmony": {
