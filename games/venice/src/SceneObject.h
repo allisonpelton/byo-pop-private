@@ -210,7 +210,10 @@ public:
 	float mProgress = 0;
 	int mCarriesFilters = 0; // the next stage takes over this stage's filters when it starts
 	char mName[24] = {};
+	// port: points at CheckEvents' flag while it runs, for the destructor to set when an event frees the stage
+	bool* mFreedDuringEvents = nullptr;
 
+	~SceneStage();
 	SceneFilter* AddFilter(int theType, int theAttribute, float theAmplitude, float thePeriod, float theOffset,
 		bool theOnce); // 0x42a070
 	SceneEvent* AddEvent(int theTrigger, int theAction, const char* theParm1, const char* theParm2,
@@ -222,7 +225,7 @@ public:
 	bool Update(); // 0x429f10: true while the stage is still running
 	void ApplyFilters(float* theProgress); // 0x42a890: the filters of every attribute
 	void ApplyAttributeFilters(float* theProgress); // 0x42a8f0
-	void CheckEvents(); // 0x42a980
+	bool CheckEvents(); // 0x42a980: false when an event freed the stage (a firework restarts itself that way)
 };
 
 // The scene object (0x148 bytes in the original, with the classes' own fields after them).

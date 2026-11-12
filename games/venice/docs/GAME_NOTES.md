@@ -44,6 +44,10 @@ a few updates apart, since a button's alt key needs both). The bot reads the gam
 - `MissTrickShot` does nothing to the music when the level has none.
 - `Straighten` and `UpdateJewelColours` are simplified to what the data files use.
 - `MergeChildren` guards a missing backdrop picture and a missing lowest child.
+- A firework's last event rebuilds its stages (0x404580 from the custom event), which frees the stage that is firing its events;
+  the original goes on reading and writing that freed stage (0x42a980, 0x429f10), the port stops the stage's update there
+  (`SceneStage::CheckEvents` returns false) and gives the result the original's read of the stale progress gave. Found by the
+  AddressSanitizer run of the win sequence (level 72).
 
 ## Fix candidates (for the fixes mod)
 

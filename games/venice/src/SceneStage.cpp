@@ -183,7 +183,9 @@ bool SceneStage::Update()
 			mOwner->mLocal[i] = (mEnd[i] - mStart[i]) * mProgress + mStart[i];
 	}
 	ApplyAttributeFilters(&mProgress);
-	CheckEvents();
+	bool aRunning = mProgress < 1.0f;
+	if (!CheckEvents())
+		return aRunning;
 	mOwner->mVisible = mVisible;
 	mFrame = mFrame + 1.0f;
 	return mProgress < 1.0f;
@@ -219,14 +221,29 @@ void SceneStage::ApplyAttributeFilters(float* theProgress)
 	}
 }
 
-// 0x42a980
-void SceneStage::CheckEvents()
+SceneStage::~SceneStage()
 {
+	if (mFreedDuringEvents != nullptr)
+		*mFreedDuringEvents = true;
+}
+
+// 0x42a980
+// port: the original goes on reading the stage after an event has freed it (the firework's last event rebuilds its stages); the
+// freed memory still held the stage's last values there, so the loop ended after that event and the update returned whether
+// the stage's progress was under 1. The port stops in the same place without touching the freed stage.
+bool SceneStage::CheckEvents()
+{
+	bool aFreed = false;
+	mFreedDuringEvents = &aFreed;
 	bool aMore = mEvents.Begin();
 	while (aMore) {
 		mEvents.mCursor->Check();
+		if (aFreed)
+			return false;
 		aMore = mEvents.Next();
 	}
+	mFreedDuringEvents = nullptr;
+	return true;
 }
 
 // 0x422e20
