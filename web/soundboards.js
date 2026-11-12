@@ -735,7 +735,7 @@ var ByopopSoundboards = {
       ["sounds/v_adventure.ogg", "\"Adventure\"", "Lex reacts when the pointer moves onto the Adventure item of the main menu"],
       ["sounds/v_arena.ogg", "\"Arena\"", "Lex reacts when the pointer moves onto the Arena item of the main menu"],
       ["sounds/v_clipsandgiggles.ogg", "\"Clips and Giggles\"", "Lex reacts when the pointer moves onto the film reel item of the main menu. Also in Bookworm Adventures Volume 2 as \"Clips and giggles\" (unused)."],
-      ["sounds/v_dontleaveme.ogg", "\"Don't leave me\"", "The quit confirmation opens on the main menu"],
+      ["sounds/v_dontleaveme.ogg", "\"Don't leave me\"", "The Quit item is pressed on the main menu, as the really-quit confirmation opens"],
       ["sounds/v_halloffame.ogg", "\"Hall of Fame\"", "Lex reacts when the pointer moves onto the Hall of Fame item of the main menu"],
       ["sounds/v_minigames.ogg", "\"Mini-games\"", "Lex reacts when the pointer moves onto the Mini-games item of the main menu"],
       ["sounds/v_options.ogg", "\"Options\"", "Lex reacts when the pointer moves onto the Options item of the main menu"],
@@ -746,13 +746,13 @@ var ByopopSoundboards = {
     { name: "Word play", sounds: [
       ["sounds/buzzer.ogg", "Word refused", "A word is refused in timed mode, submit is pressed with no valid word, or a potion is clicked while it cannot be used"],
       ["sounds/gemspawn.ogg", "Gem appears", "A gem appears on a tile (the tutorial, the letter mini-games and some creatures do this)"],
-      ["sounds/sheepbleat.ogg", "Sheep bleat", "A hidden word is spelled; also a sheep, ewe, ram or goat creature bleats"],
-      ["sounds/sloooowdown.ogg", "Slow down", "A hidden word is spelled outside the mini-games. Also in Bookworm Adventures Volume 2 as Sloooowdown (unused)."],
+      ["sounds/sheepbleat.ogg", "Sheep bleat", "Each time the selected tiles spell TYSEN in a fight, in place of the praise voice; also a sheep, ewe, ram or goat creature bleats"],
+      ["sounds/sloooowdown.ogg", "Slow down", "The hidden word that sets off the AstroPop flash is spelled in a fight (not in a mini-game started from the menu) while no flash is showing. Also in Bookworm Adventures Volume 2 as Sloooowdown (unused)."],
       ["sounds/tile_select.ogg", "Tile select", "A letter tile is picked on the board, or a potion is picked by its number key"],
-      ["sounds/v_cashmoney.ogg", "\"Cash money\"", "A hidden word is spelled"],
-      ["sounds/v_iloveyou.ogg", "\"I love you\"", "A hidden word is spelled"],
-      ["sounds/v_scramble.ogg", "\"Scramble\"", "The board is scrambled because no word can be made"],
-      ["sounds/word_power.ogg", "Word power", "A strong word is spelled and its word-power bonus is shown"]
+      ["sounds/v_cashmoney.ogg", "\"Cash money\"", "Each time the selected tiles spell JEFF or STEVE in a fight, in place of the praise voice"],
+      ["sounds/v_iloveyou.ogg", "\"I love you\"", "Each time the selected tiles spell JULIE or JASON in a fight, in place of the praise voice"],
+      ["sounds/v_scramble.ogg", "\"Scramble\"", "Lex's scramble starts in a fight, from the Scramble button on a full board or from Yes on the scramble hint; never in a mini-game"],
+      ["sounds/word_power.ogg", "Word power", "Each time the selected tiles come to spell a valid word the foe is not immune to, in a fight; the pitch rises with the word's length plus its tiles' bonuses, capped at 14"]
     ] },
     { name: "Lex's praise", sounds: [
       ["sounds/lex_good.ogg", "\"Good!\"", "A spelled word counting 6 (each tile 1, more with treasures and gem tiles; the count stops at 12); its bubble shows unless the game is timed"],
@@ -765,10 +765,10 @@ var ByopopSoundboards = {
       ["sounds/lex_astonishing.ogg", "\"Astonishing!\"", "Never for a word in battle (the count stops at 12); Word Master: the top prize line solved"]
     ] },
     { name: "Lex", sounds: [
-      ["sounds/lex_burp.ogg", "Lex burps", "A hidden word is spelled, or Lex burps in an idle animation"],
-      ["sounds/v_giggle1.ogg", "Giggle 1", "Lex giggles in an idle animation"],
-      ["sounds/v_giggle2.ogg", "Giggle 2", "Lex giggles in an idle animation"],
-      ["sounds/v_sneeze.ogg", "Sneeze", "Lex sneezes in an idle animation"]
+      ["sounds/lex_burp.ogg", "Lex burps", "Each time the selected tiles spell SUKHBIR in a fight, in place of the praise voice; also Lex's burp animation, on the eighth click in a row on him while he idles on the player's turn"],
+      ["sounds/v_giggle1.ogg", "Giggle 1", "Lex's click giggle animation, on the first three and the fifth and sixth clicks in a row on him while he idles on the player's turn in a fight; each giggle picks this voice or Giggle 2 with equal chance"],
+      ["sounds/v_giggle2.ogg", "Giggle 2", "Lex's click giggle animation, on the first three and the fifth and sixth clicks in a row on him while he idles on the player's turn in a fight; each giggle picks this voice or Giggle 1 with equal chance; the main menu Lex plays this one in two of his animations"],
+      ["sounds/v_sneeze.ogg", "Sneeze", "Lex's click sneeze animation, on the fourth and seventh click in a row on him while he idles on the player's turn in a fight"]
     ] },
     { name: "Lex attacks", sounds: [
       ["sounds/bite_01.ogg", "Bite", "Lex bites in an attack; the Bayou Beast, Bog Serpent, Connystein, Wolfman and Codex fights use it too"],
@@ -779,17 +779,17 @@ var ByopopSoundboards = {
       ["sounds/swordspearimpact_withwoosh.ogg", "Sword with woosh", "Lex's word attack lands (his default attack and many creatures' fights use it)"]
     ] },
     { name: "Battle", sounds: [
-      ["sounds/low_health.wav", "Low health", "Lex has little health left, in a fight or in a mini-game. Also in Zuma's Revenge, as sounds/challenge_countdown.ogg."],
-      ["sounds/v_bossbattle.ogg", "\"Boss battle\"", "A boss fight begins, after the boss has opened it"],
-      ["sounds/warpin.ogg", "Warp in", "Lex warps into a chapter, or a mirage creature appears"],
-      ["sounds/warpout.ogg", "Warp out", "Lex warps out of a chapter"]
+      ["sounds/low_health.wav", "Low health", "Lex's health is at a quarter of his maximum or less in a fight: one beep per pulse of his health bar, quieter from 500 updates on; in Letter Rip and Link 'n Spell, every 50 updates (0.5 s) of their last 1000 (10 s). Also in Zuma's Revenge, as sounds/challenge_countdown.ogg."],
+      ["sounds/v_bossbattle.ogg", "\"Boss battle\"", "When a boss fight's intro flash peaks, together with Firework 2; it follows the boss's own opening sound when the boss has one"],
+      ["sounds/warpin.ogg", "Warp in", "Lex's warp-in animation on the map: back from the treasure screen or from a death conversation, as some book 1 conversations end, and with a newly unlocked mini-game; also the Mirage Goat's hit sound"],
+      ["sounds/warpout.ogg", "Warp out", "Lex warps out of the map as a chapter or mini-game starts; the main menu Lex plays it in several of his animations"]
     ] },
     { name: "Rewards", sounds: [
       ["sounds/chaching.ogg", "Cash register", "Coins are counted up in a mini-game; the Mirage Trojan fight uses it too"],
-      ["sounds/crowdcheer.ogg", "Crowd cheers", "A fight is won, a level is gained or a mini-game ends well"],
-      ["sounds/firework1.ogg", "Firework 1", "The level-up effect and fight-won effect fire a rocket. Also in Bejeweled 3, as sounds/firework_thump.ogg."],
-      ["sounds/firework2.ogg", "Firework 2", "The level-up effect and fight-won effect fire a rocket"],
-      ["sounds/lex_levelup.ogg", "\"Level up\"", "Lex gains a level"],
+      ["sounds/crowdcheer.ogg", "Crowd cheers", "The level-up effect starts its crowd; the checkpoint banner fades in; the altar's white flash peaks (with Firework 2); the book manager's end banner fades in; a mini-game's results screen opens"],
+      ["sounds/firework1.ogg", "Firework 1", "The level-up effect's XP timer runs out; the checkpoint banner fades in (with the crowd). Also in Bejeweled 3, as sounds/firework_thump.ogg."],
+      ["sounds/firework2.ogg", "Firework 2", "The level-up effect's white flash falls to 20 or less, just before Lex's level-up voice; a boss intro flash peaks; the altar's white flash peaks (with the crowd); the main menu Lex plays it in three animations"],
+      ["sounds/lex_levelup.ogg", "\"Level up\"", "When the level-up effect's white flash fades out, after a fight that levels Lex up"],
       ["sounds/newtreasure.ogg", "\"New treasure!\"", "A treasure is won at the end of a fight, or shown on the treasure screen"],
       ["sounds/vo_annihilated.ogg", "\"Annihilated\"", "A fight is won with overkill damage, announced with this word"],
       ["sounds/vo_crushed.ogg", "\"Crushed\"", "A fight is won with overkill damage, announced with this word"],
@@ -801,38 +801,38 @@ var ByopopSoundboards = {
       ["sounds/xpgain4.ogg", "Experience counts", "The experience stream flows into Lex at a level-up, a fight end or a gravestone"]
     ] },
     { name: "Potions", sounds: [
-      ["sounds/heal2.ogg", "Health potion", "Lex drinks a health potion"],
-      ["sounds/healpotionused_02.ogg", "Creature heals", "A creature heals itself (about thirty creatures)"],
-      ["sounds/potionpickup.ogg", "Potion pickup", "A potion is picked up from a gravestone"],
+      ["sounds/heal2.ogg", "Health potion", "Lex uses a health potion while his health is below its maximum"],
+      ["sounds/healpotionused_02.ogg", "Creature heals", "Attack sound of a creature's heal-itself attack (mostly Regenerate): offered only at or below a set share of its health, then by a random roll against a set chance (Circe: 0.75 and 30 percent)"],
+      ["sounds/potionpickup.ogg", "Potion pickup", "A potion dropped by a gravestone starts flying to Lex's potion row, once it is at x 165 or less and the gravestone's animation is done"],
       ["sounds/powerdown_01.ogg", "Power down", "A creature weakens the attack of Lex, or a boosted attack ends"],
-      ["sounds/powerup3.ogg", "Attack potion", "Lex uses an attack potion, or the Codex fight"],
-      ["sounds/poweruppotion_02.ogg", "Power up", "A creature or Lex powers up (a damage boost)"],
-      ["sounds/purify2.ogg", "Purify", "A purify potion is used, or a creature cures its ailment"],
-      ["sounds/weaken3.ogg", "Weaken effect", "The weaken effect is put on an attack"]
+      ["sounds/powerup3.ogg", "Attack potion", "Lex uses an attack potion; also the attack sound of the power-up attacks of the Codex, Dracula and a few other book 2 and 3 creatures"],
+      ["sounds/poweruppotion_02.ogg", "Power up", "Attack sound of a creature's power-up attack, which boosts its next attack (Circe, Cerberus, Nemean Lion and others)"],
+      ["sounds/purify2.ogg", "Purify", "Lex uses a purify potion; also Word Master plays it each time a puzzle line is solved, a few creatures (Mirage Nymph, Dracula, Fallen Warrior Hero) play it as they cure an ailment, and the main menu Lex plays it once"],
+      ["sounds/weaken3.ogg", "Weaken effect", "A curse that cuts the target's damage (a damage multiplier under 1 on its attacks) is applied; not when a saved fight is restored"]
     ] },
     { name: "Tile effects", sounds: [
-      ["sounds/boardfrozen_01.ogg", "Board frozen", "A creature freezes the board"],
-      ["sounds/boardstunned_01.ogg", "Board stunned", "A creature stuns the board so no word can be made"],
-      ["sounds/fire1.ogg", "Fire effect", "A fire effect begins (about ten creatures)"],
-      ["sounds/ice1.ogg", "Frozen effect", "A frozen effect begins"],
-      ["sounds/ice4.ogg", "Petrify effect", "A petrify effect begins. Also in Zuma's Revenge, as sounds/freeze.ogg."],
+      ["sounds/boardfrozen_01.ogg", "Board frozen", "Attack sound of the freezing attacks of five creatures (Hydra, Naiad, Elementalist, Mirage Nymph, Mirage Skeleton)"],
+      ["sounds/boardstunned_01.ogg", "Board stunned", "Attack sound of the stun-and-damage attacks of nine creatures (Caledonian Boar, Centaur Warrior, Cernian Hind, Dryad, Satyr, Sea Serpent, Hydra and others)"],
+      ["sounds/fire1.ogg", "Fire effect", "The burning ailment is applied to Lex or a foe, and again each time it burns at a turn's end; also the attack sound of the burn attacks of many creatures"],
+      ["sounds/ice1.ogg", "Frozen effect", "The frozen status is applied to Lex or a foe; also an attack sound of the Unliving Frostmancer"],
+      ["sounds/ice4.ogg", "Petrify effect", "The petrified status is applied to Lex or a foe; also an attack sound of the Elementalist, Disturbed Skeleton, Fallen Wizard Hero and Unliving Frostmancer. Also in Zuma's Revenge, as sounds/freeze.ogg."],
       ["sounds/lightning_attack_01.ogg", "Lightning", "A lightning attack lands (Circe, Hydra, Sea Elemental and wizards)"],
-      ["sounds/lockit.ogg", "Tile locked", "A creature locks tiles (about a dozen creatures)"],
+      ["sounds/lockit.ogg", "Tile locked", "Attack sound of the tile-locking attacks of about a dozen creatures (Locks tiles and damages Lex)"],
       ["sounds/petrify_attack_01.ogg", "Tiles petrified", "A creature turns tiles to stone (Basilisk, Medusa and others)"],
-      ["sounds/poison1.ogg", "Poison effect", "A poison effect begins"],
-      ["sounds/poison_attack_01.ogg", "Tiles poisoned", "A creature poisons tiles (about thirty creatures)"],
-      ["sounds/tiles_plagued_01.ogg", "Tiles plagued", "A creature plagues tiles"],
-      ["sounds/tiles_smashed_01.ogg", "Tiles smashed", "A creature smashes tiles (about fifty creatures)"]
+      ["sounds/poison1.ogg", "Poison effect", "The poison ailment is applied to Lex or a foe, and again each time it hurts at a turn's end; also an attack sound of the Embalmed Guardian, Swashbuckler, Dracula, Grave Robber and Unliving Archer"],
+      ["sounds/poison_attack_01.ogg", "Poison attack", "Attack sound of the poisoning attacks of many creatures (Poisons and damages Lex)"],
+      ["sounds/tiles_plagued_01.ogg", "Tiles plagued", "Attack sound of a tile-plague attack (Plagues tiles and damages Lex), as of Deino and Nessus"],
+      ["sounds/tiles_smashed_01.ogg", "Tiles smashed", "Attack sound of the tile-smashing attacks of many creatures (Smashes tiles and damages Lex)"]
     ] },
     { name: "Mini-games", sounds: [
       ["sounds/lex_incredible.ogg", "\"Incredible!\"", "Word Master only: the second prize line solved"],
       ["sounds/lex_watchout.ogg", "\"Watch out!\"", "Word Master: a miss brings the prize down to its last line; also Book 2's Mirage Lex's cry as the fight starts, pitched down"],
-      ["sounds/count.wav", "Counting tick", "A score or timer counts up in a mini-game"],
-      ["sounds/v_go.ogg", "\"Go\"", "A mini-game countdown ends"],
-      ["sounds/v_newminigame.ogg", "\"New mini-game\"", "A new mini-game is unlocked"],
-      ["sounds/v_one.ogg", "\"One\"", "A mini-game countdown goes on"],
-      ["sounds/v_three.ogg", "\"Three\"", "A mini-game countdown starts"],
-      ["sounds/v_two.ogg", "\"Two\"", "A mini-game countdown goes on"]
+      ["sounds/count.wav", "Counting tick", "The final score counts up in Letter Rip, Link 'n Spell and Word Master, a tick whenever the count's sound timer reads 0; also the Mirage Skeleton's hit sound"],
+      ["sounds/v_go.ogg", "\"Go\"", "Letter Rip and Link 'n Spell: the start countdown reaches 0, 300 updates (3 s) after Three"],
+      ["sounds/v_newminigame.ogg", "\"New mini-game\"", "50 updates (0.5 s) after Lex's warp-in sound, as a conversation announces a newly unlocked mini-game"],
+      ["sounds/v_one.ogg", "\"One\"", "Letter Rip and Link 'n Spell: the start countdown reaches 1, 200 updates (2 s) after Three"],
+      ["sounds/v_three.ogg", "\"Three\"", "Letter Rip and Link 'n Spell: the start countdown begins, one update after its timer starts; also when the tutorial's arrow hints end"],
+      ["sounds/v_two.ogg", "\"Two\"", "Letter Rip and Link 'n Spell: the start countdown reaches 2, 100 updates (1 s) after Three"]
     ] },
     { name: "Human voices", sounds: [
       ["sounds/female seduce.ogg", "Female seduce", "Death sound of Mirage Trojan"],
@@ -942,7 +942,7 @@ var ByopopSoundboards = {
     { name: "Main menu voices", sounds: [
       ["sounds/v_adventure.ogg", "\"Adventure\"", "Lex reacts when the pointer moves onto the Adventure item of the main menu"],
       ["sounds/v_arena.ogg", "\"Arena\"", "Lex reacts when the pointer moves onto the Arena item of the main menu"],
-      ["sounds/v_dontleaveme.ogg", "\"Don't leave me\"", "The quit confirmation opens on the main menu"],
+      ["sounds/v_dontleaveme.ogg", "\"Don't leave me\"", "The Quit item is pressed on the main menu, as the really-quit confirmation opens"],
       ["sounds/v_halloffame.ogg", "\"Hall of Fame\"", "Lex reacts when the pointer moves onto the Hall of Fame item of the main menu"],
       ["sounds/v_minigames.ogg", "\"Mini-games\"", "Lex reacts when the pointer moves onto the Mini-games item of the main menu"],
       ["sounds/v_options.ogg", "\"Options\"", "Lex reacts when the pointer moves onto the Options item of the main menu"],
@@ -953,13 +953,13 @@ var ByopopSoundboards = {
     { name: "Word play", sounds: [
       ["sounds/buzzer.ogg", "Word refused", "A word is refused in timed mode, submit is pressed with no valid word, a potion is clicked while it cannot be used, or in the Muta Words mini-game"],
       ["sounds/gemspawn.ogg", "Gem appears", "A gem appears on a tile (the tutorial, the letter mini-games and some creatures do this)"],
-      ["sounds/rainbowspawn.ogg", "Rainbow tile appears", "A rainbow tile appears on the board"],
-      ["sounds/scroll.ogg", "Word scroll", "The word scroll moves in a mini-game"],
+      ["sounds/rainbowspawn.ogg", "Rainbow tile appears", "A Rainbow bonus tile is added to the board in play, not while a saved or scripted grid is set up"],
+      ["sounds/scroll.ogg", "Word scroll", "When Lex wins a fight, the word scroll with his best and longest word begins to unroll; rolling it up again is silent"],
       ["sounds/tile_select.ogg", "Tile select", "A letter tile is picked on the board, or a potion is picked by its number key"],
       ["sounds/tile_undo.ogg", "Tile taken back", "A tile is taken back off the word (a tutorial step does it too)"],
-      ["sounds/v_scramble.ogg", "\"Scramble\"", "The board is scrambled because no word can be made"],
-      ["sounds/warptileshimmer.ogg", "Warp tile shimmer", "A warp tile shimmers on the board"],
-      ["sounds/word_power.ogg", "Word power", "A strong word is spelled and its word-power bonus is shown"]
+      ["sounds/v_scramble.ogg", "\"Scramble\"", "Lex's scramble starts in a fight, from the Scramble button on a full board or from Yes on the scramble hint; never in a mini-game"],
+      ["sounds/warptileshimmer.ogg", "Warp tile shimmer", "At the end of each round, once for each warp tile on the board as its warped animation plays; not while the foe is dying"],
+      ["sounds/word_power.ogg", "Word power", "Each time the selected tiles come to spell a valid word the foe is not immune to, in a fight; the pitch rises with the word's length plus its tiles' bonuses, capped at 14"]
     ] },
     { name: "Lex's praise", sounds: [
       ["sounds/lex_good.ogg", "\"Good!\"", "A spelled word counting 6 (each tile 1, more with treasures and gem tiles; the count stops at 12); its bubble shows unless the game is timed; Golden Coins and Word Up: a word of 6 tiles"],
@@ -972,63 +972,63 @@ var ByopopSoundboards = {
       ["sounds/lex_astonishing.ogg", "\"Astonishing!\"", "Never for a word in battle (the count stops at 12); Golden Coins and Word Up: a word of 13 tiles; Word Master: the top prize line solved"]
     ] },
     { name: "Hidden words", sounds: [
-      ["sounds/lex_burp.ogg", "Lex burps", "A hidden word is spelled, or Lex burps in an idle animation"],
-      ["sounds/sheepbleat.ogg", "Sheep bleat", "A hidden word is spelled; also a sheep, ram or sheep-like creature bleats"],
-      ["sounds/v_bythepowerofgreyskull.ogg", "\"By the power of Greyskull\"", "A hidden word is spelled"],
-      ["sounds/v_cashmoney.ogg", "\"Cash money\"", "A hidden word is spelled"],
-      ["sounds/v_crazydelicious.ogg", "\"Crazy delicious!\"", "A hidden word is spelled"],
-      ["sounds/v_iloveyou.ogg", "\"I love you\"", "A hidden word is spelled"],
-      ["sounds/v_wormofbookcraft.ogg", "\"Worm of Bookcraft!\"", "A hidden word is spelled"]
+      ["sounds/lex_burp.ogg", "Lex burps", "Each time the selected tiles spell SUKHBIR in a fight, in place of the praise voice"],
+      ["sounds/sheepbleat.ogg", "Sheep bleat", "Each time the selected tiles spell BILL in a fight, in place of the praise voice; also a sheep, ram or sheep-like creature bleats"],
+      ["sounds/v_bythepowerofgreyskull.ogg", "\"By the power of Greyskull\"", "Each time the selected tiles spell ANTHONY in a fight, in place of the praise voice"],
+      ["sounds/v_cashmoney.ogg", "\"Cash money\"", "Each time the selected tiles spell JEFF or STEVE in a fight, in place of the praise voice"],
+      ["sounds/v_crazydelicious.ogg", "\"Crazy delicious!\"", "Each time the selected tiles spell TYSEN in a fight, in place of the praise voice"],
+      ["sounds/v_iloveyou.ogg", "\"I love you\"", "Each time the selected tiles spell JULIE, JASON or TIFFANY in a fight, in place of the praise voice"],
+      ["sounds/v_wormofbookcraft.ogg", "\"Worm of Bookcraft!\"", "Each time the selected tiles spell CARL in a fight, in place of the praise voice"]
     ] },
     { name: "Lex", sounds: [
-      ["sounds/lexdeath.ogg", "Lex is defeated", "Lex is defeated in a fight"],
+      ["sounds/lexdeath.ogg", "Lex is defeated", "Lex dies in a fight, as the death music starts"],
       ["sounds/lexwalkloop.ogg", "Lex walks", "Lex walks, a looping footstep sound, in fights and at the level-up effect"],
-      ["sounds/v_giggle1.ogg", "Giggle 1", "Lex giggles in an idle animation"],
-      ["sounds/v_giggle2.ogg", "Giggle 2", "Lex giggles in an idle animation, or in the main menu"],
-      ["sounds/v_heehee.ogg", "\"Hee hee\"", "Lex giggles in his idle animation"],
-      ["sounds/v_hiccup.ogg", "Hiccup", "Lex hiccups in his idle animation"],
+      ["sounds/v_giggle1.ogg", "Giggle 1 (unused)", "Never played: only the giggle animation command plays it, and none of the game's animations has that command"],
+      ["sounds/v_giggle2.ogg", "Giggle 2", "The main menu Lex plays it in two of his animations"],
+      ["sounds/v_heehee.ogg", "\"Hee hee\"", "Lex's click giggle animation, on the fourth and seventh click in a row on him while he idles on the player's turn in a fight"],
+      ["sounds/v_hiccup.ogg", "Hiccup", "Lex's click hiccup animation, on the first three and the fifth and sixth clicks in a row on him while he idles on the player's turn in a fight"],
       ["sounds/v_howlongcanittaketogotothebathroom.ogg", "\"How long can it take to go to the bathroom?\"", "Lex says it when the player has been idle a while in a fight"],
       ["sounds/v_ifyoudontstartplayingagainsoon.ogg", "\"If you don't start playing again soon...\"", "Lex says it when the player has been idle a while in a fight"],
-      ["sounds/v_sneeze.ogg", "Sneeze", "Lex sneezes in his idle animation"],
+      ["sounds/v_sneeze.ogg", "Sneeze", "Lex's click sneeze animation, on the eighth click in a row on him while he idles on the player's turn in a fight; the count then starts over"],
       ["sounds/v_wakeupsleepyhead.ogg", "\"Wake up, sleepyhead!\"", "Lex says it when the player has been idle a while in a fight"]
     ] },
     { name: "Lex attacks", sounds: [
       ["sounds/bite_01.ogg", "Bite", "Lex bites in his own animation, and in the Caterpillar, Dormouse, Mrs. Sprat, Walrus, dance battle and Mech Hound fights"],
       ["sounds/bluntimpact_dry.ogg", "Blunt impact", "Lex's word attack lands; effect animations and the Hen fight use it too"],
-      ["sounds/bluntimpact_withwoosh.ogg", "Blunt with woosh", "Lex's word attack lands; some creatures use it too"],
+      ["sounds/bluntimpact_withwoosh.ogg", "Blunt with woosh", "The attack4 animation of Lex's word attack triggers it; some creatures use it too"],
       ["sounds/bowlstrike.ogg", "Bowl strike", "Lex's own animation strikes with a bowl"],
       ["sounds/fire3.ogg", "Fire attack 3", "Lex's word attack lands; many creatures' fire attacks use it too"],
       ["sounds/fire6.ogg", "Fire attack 6", "Lex's word attack lands; many creatures' fire attacks use it too"],
-      ["sounds/swordspearimpact_withwoosh.ogg", "Sword with woosh", "Lex's word attack lands; many creatures use it too"]
+      ["sounds/swordspearimpact_withwoosh.ogg", "Sword with woosh", "The attack6 animation of Lex's word attack triggers it; many creatures use it too"]
     ] },
     { name: "Battle", sounds: [
-      ["sounds/low_health.ogg", "Low health", "Lex has little health left, in a fight or in a mini-game. Also in Zuma's Revenge, as sounds/challenge_countdown.ogg."],
-      ["sounds/v_bossbattle.ogg", "\"Boss battle\"", "A boss fight begins, after the boss has opened it"],
-      ["sounds/v_survivalbattle.ogg", "\"Survival battle\"", "A survival-style fight against the Hydra opens"],
-      ["sounds/v_warmup.ogg", "\"Warm up\"", "The warm-up fight of the first chapter opens"],
-      ["sounds/warpin.ogg", "Warp in", "Lex warps into a chapter"],
-      ["sounds/warpout.ogg", "Warp out", "Lex warps out of a chapter; the main menu Lex uses it too"]
+      ["sounds/low_health.ogg", "Low health", "Lex's health is at a quarter of his maximum or less in a fight: one beep per pulse of his health bar, quieter from 500 updates on; in Letter Rip, Link 'n Spell and Muta Words, every 50 updates (0.5 s) of their last 1000 (10 s). Also in Zuma's Revenge, as sounds/challenge_countdown.ogg."],
+      ["sounds/v_bossbattle.ogg", "\"Boss battle\"", "When a boss intro's flash peaks, together with Firework 2, except in the book 6 chapter 7 dance battle, the book 0 warm-up and the Hydra's fight"],
+      ["sounds/v_survivalbattle.ogg", "\"Survival battle\"", "When the intro flash peaks in the fight against the Hydra, together with Firework 2"],
+      ["sounds/v_warmup.ogg", "\"Warm up\"", "When the intro flash peaks in a book 0 fight, together with Firework 2"],
+      ["sounds/warpin.ogg", "Warp in", "Lex's warp-in animation on the map: back from the treasure screen or from a death conversation, and as some conversations of books 4 to 6 end"],
+      ["sounds/warpout.ogg", "Warp out", "Lex warps out of the map as a chapter or mini-game starts; the main menu Lex plays it in several of his animations"]
     ] },
     { name: "Dance battle", sounds: [
-      ["sounds/camera2.ogg", "Camera flash", "The dance animation flashes a camera"],
-      ["sounds/crowdcheer1.ogg", "Crowd cheer", "The dance animation cheers"],
-      ["sounds/dancedeath.ogg", "Dance ends", "The dance battle ends"],
-      ["sounds/danceengage.ogg", "Dance opens", "The dance battle opens"],
-      ["sounds/robot-e.ogg", "Robot E", "The dance animation plays it"],
-      ["sounds/robot-l.ogg", "Robot L", "The dance animation plays it"],
-      ["sounds/robot-lex.ogg", "Robot Lex", "The dance animation plays it"],
-      ["sounds/robot-x.ogg", "Robot X", "The dance animation plays it"],
-      ["sounds/v_dancebattle.ogg", "\"Dance battle\"", "The dance battle chapter of book 6 opens"]
+      ["sounds/camera2.ogg", "Camera flash", "Eight commands of Lex's dance animation in the book 6 dance battle play it"],
+      ["sounds/crowdcheer1.ogg", "Crowd cheer", "Two commands of Lex's dance animation in the book 6 dance battle play it"],
+      ["sounds/dancedeath.ogg", "Dance ends", "The death sound of the dance battle's foe (book 6 chapter 7)"],
+      ["sounds/danceengage.ogg", "Dance opens", "The opening sound of the dance battle's foe (book 6 chapter 7)"],
+      ["sounds/robot-e.ogg", "Robot E", "One command of Lex's dance animation in the book 6 dance battle plays it, after the L and before the X"],
+      ["sounds/robot-l.ogg", "Robot L", "One command of Lex's dance animation in the book 6 dance battle plays it, the first of the four"],
+      ["sounds/robot-lex.ogg", "Robot Lex", "One command of Lex's dance animation in the book 6 dance battle plays it, the last of the four"],
+      ["sounds/robot-x.ogg", "Robot X", "One command of Lex's dance animation in the book 6 dance battle plays it, after the E"],
+      ["sounds/v_dancebattle.ogg", "\"Dance battle\"", "When the intro flash peaks in the book 6 chapter 7 fight, together with Firework 2"]
     ] },
     { name: "Rewards", sounds: [
       ["sounds/chaching.ogg", "Cash register", "Coins are counted up in a mini-game; the Mirage Trojan fight uses it too"],
-      ["sounds/crowdcheer.ogg", "Crowd cheers", "A fight is won, a level is gained or a mini-game ends well"],
-      ["sounds/firework1.ogg", "Firework 1", "The level-up effect and fight-won effect fire a rocket. Also in Bejeweled 3, as sounds/firework_thump.ogg."],
-      ["sounds/firework2.ogg", "Firework 2", "The level-up effect and fight-won effect fire a rocket"],
-      ["sounds/lex_levelup.ogg", "\"Level up\"", "Lex gains a level"],
+      ["sounds/crowdcheer.ogg", "Crowd cheers", "The level-up effect starts its crowd; the checkpoint banner fades in; the altar's white flash peaks (with Firework 2); the book manager's end banner fades in; a mini-game's results screen opens"],
+      ["sounds/firework1.ogg", "Firework 1", "The level-up effect's XP timer runs out; the checkpoint banner fades in (with the crowd). Also in Bejeweled 3, as sounds/firework_thump.ogg."],
+      ["sounds/firework2.ogg", "Firework 2", "The level-up effect's white flash falls to 20 or less, just before Lex's level-up voice; a boss intro flash peaks; the altar's white flash peaks (with the crowd); the main menu Lex plays it in three animations"],
+      ["sounds/lex_levelup.ogg", "\"Level up\"", "When the level-up effect's white flash fades out, after a fight that levels Lex up"],
       ["sounds/newtreasure.ogg", "\"New treasure!\"", "A treasure is won at the end of a fight, or shown on the treasure screen"],
-      ["sounds/v_newbadge.ogg", "\"New badge\"", "A badge is earned"],
-      ["sounds/v_newcompanion.ogg", "\"New companion\"", "A new companion is earned at the end of a fight"],
+      ["sounds/v_newbadge.ogg", "\"New badge\"", "As the new-badge effect's fade-in reaches its top alpha of 191 and the badge animation starts"],
+      ["sounds/v_newcompanion.ogg", "\"New companion\"", "On the treasure screen, once the altar's white flash is at 400 or less, when the treasure won is a companion and the fight is not a replay"],
       ["sounds/vo_annihilated.ogg", "\"Annihilated\"", "A fight is won with overkill damage, announced with this word"],
       ["sounds/vo_crushed.ogg", "\"Crushed\"", "A fight is won with overkill damage, announced with this word"],
       ["sounds/vo_decimated.ogg", "\"Decimated\"", "A fight is won with overkill damage, announced with this word"],
@@ -1039,28 +1039,28 @@ var ByopopSoundboards = {
       ["sounds/xpgain4.ogg", "Experience counts", "The experience stream flows into Lex at a level-up, a fight end or a gravestone"]
     ] },
     { name: "Potions", sounds: [
-      ["sounds/heal2.ogg", "Health potion", "Lex drinks a health potion"],
-      ["sounds/healpotionused_02.ogg", "Creature heals", "A creature heals itself (about thirty creatures)"],
-      ["sounds/potionpickup.ogg", "Potion pickup", "A potion is picked up from a gravestone"],
+      ["sounds/heal2.ogg", "Health potion", "Lex uses a health potion while his health is below its maximum"],
+      ["sounds/healpotionused_02.ogg", "Creature heals", "Attack sound of a creature's heal-itself attack: Regenerate (Stick Pig, Straw Pig, the Imperial Foot Soldier and Sergeant and others) or a heal effect (Caterpillar, Jabberwocky, Monkey King and others)"],
+      ["sounds/potionpickup.ogg", "Potion pickup", "A potion dropped by a gravestone starts flying to Lex's potion row, once it is at x 165 or less and the gravestone's animation is done"],
       ["sounds/powerdown_01.ogg", "Power down", "A creature weakens the attack of Lex, or a boosted attack ends"],
-      ["sounds/powerup3.ogg", "Attack potion", "Lex uses an attack potion, or the Codex fight"],
-      ["sounds/poweruppotion_02.ogg", "Power up", "A creature or Lex powers up (a damage boost)"],
-      ["sounds/purify2.ogg", "Purify", "A purify potion is used, or a creature cures its ailment"],
-      ["sounds/weaken3.ogg", "Weaken effect", "The weaken effect is put on an attack"]
+      ["sounds/powerup3.ogg", "Attack potion", "Lex uses an attack potion"],
+      ["sounds/poweruppotion_02.ogg", "Power up", "Attack sound of the strengthening attacks of the Caterpillar, Harmony, War and the War Pig, which boost the enemy's next attack"],
+      ["sounds/purify2.ogg", "Purify", "Lex uses a purify potion; also Word Master plays it each time a puzzle line is solved, the Cheshire Cat treasure plays it, and the main menu Lex plays it once"],
+      ["sounds/weaken3.ogg", "Weaken effect", "A curse that cuts the target's damage (a damage multiplier under 1 on its attacks) is applied; not when a saved fight is restored"]
     ] },
     { name: "Tile effects", sounds: [
-      ["sounds/boardfrozen_01.ogg", "Board frozen", "A creature freezes the board"],
-      ["sounds/boardstunned_01.ogg", "Board stunned", "A creature stuns the board so no word can be made"],
-      ["sounds/fire1.ogg", "Fire effect", "A fire effect begins (about ten creatures)"],
-      ["sounds/ice1.ogg", "Frozen effect", "A frozen effect begins"],
-      ["sounds/ice4.ogg", "Petrify effect", "A petrify effect begins. Also in Zuma's Revenge, as sounds/freeze.ogg."],
+      ["sounds/boardfrozen_01.ogg", "Board frozen", "Attack sound of the South King's and the Butterfly's freezing attacks"],
+      ["sounds/boardstunned_01.ogg", "Board stunned", "Attack sound of attacks of many creatures, mostly stun-and-damage attacks (Caterpillar, Dormouse, Mad Hatter, Queen of Hearts, Door, Mutant Ape and others)"],
+      ["sounds/fire1.ogg", "Fire effect", "The burning ailment is applied to Lex or a foe, and again each time it burns at a turn's end; also the attack sound of the Candlestick, Gingerbread House and Jabberwocky"],
+      ["sounds/ice1.ogg", "Frozen effect", "The frozen status is applied to Lex or a foe; also the attack sound of the Cold Porridge and the Teacups"],
+      ["sounds/ice4.ogg", "Petrify effect", "The petrified status is applied to Lex or a foe; also the attack sound of the Troglock Cook. Also in Zuma's Revenge, as sounds/freeze.ogg."],
       ["sounds/lightning_attack_01.ogg", "Lightning", "A lightning attack lands (Circe, Hydra, Sea Elemental and wizards)"],
-      ["sounds/lockit.ogg", "Tile locked", "A creature locks tiles (about a dozen creatures)"],
+      ["sounds/lockit.ogg", "Tile locked", "Attack sound of the tile-locking attacks of Old MacDonald, the Pig, the Sheep, the Year of the Dog and Rooster, the Door and others"],
       ["sounds/petrify_attack_01.ogg", "Tiles petrified", "A creature turns tiles to stone (Basilisk, Medusa and others)"],
-      ["sounds/poison1.ogg", "Poison effect", "A poison effect begins"],
-      ["sounds/poison_attack_01.ogg", "Tiles poisoned", "A creature poisons tiles (about thirty creatures)"],
-      ["sounds/tiles_plagued_01.ogg", "Tiles plagued", "A creature plagues tiles"],
-      ["sounds/tiles_smashed_01.ogg", "Tiles smashed", "A creature smashes tiles (about fifty creatures)"]
+      ["sounds/poison1.ogg", "Poison effect", "The poison ailment is applied to Lex or a foe, and again each time it hurts at a turn's end; also the curse-tile and reflect ailments apply it, and the Tweedledee has it as an attack sound"],
+      ["sounds/poison_attack_01.ogg", "Poison attack", "Attack sound of the Dragon King's and the Shrimp Soldier's poisoning attacks"],
+      ["sounds/tiles_plagued_01.ogg", "Tiles plagued", "Attack sound of the West King's tile-poisoning attack"],
+      ["sounds/tiles_smashed_01.ogg", "Tiles smashed", "Attack sound of tile-smashing attacks (Caterpillar, Monkey King, Tree Demon, War Bear, North King and others)"]
     ] },
     { name: "Companions and tiles", sounds: [
       ["sounds/eggtimer.ogg", "Egg timer", "Mother Goose sets her egg timer"],
@@ -1072,25 +1072,25 @@ var ByopopSoundboards = {
       ["sounds/timehelmet_reverb.ogg", "Time Helmet effect", "The Time Helmet effect plays"]
     ] },
     { name: "Cutscenes", sounds: [
-      ["sounds/cheshirecat.ogg", "Cheshire cat", "The Cheshire Cat cutscene of book 4 plays"],
-      ["sounds/cymbalcrash.ogg", "Cymbal crash", "Stuffy the toy plays his animation"],
-      ["sounds/emperorandking2_light_v2.ogg", "Emperor light", "A cutscene of book 5 plays"],
-      ["sounds/emperorandking2_stinger_v2.ogg", "Emperor stinger", "A cutscene of book 5 plays"],
-      ["sounds/mothergoosestewpot.ogg", "Mother Goose stewpot", "The Mother Goose cutscene of book 4 plays"],
-      ["sounds/shackles_break.ogg", "Shackles break", "A cutscene of book 5 or 6 breaks chains"],
-      ["sounds/sifu_beatdown.ogg", "Sifu beat down", "The beat-down cutscene of book 5 plays"],
-      ["sounds/skeleskullrevives.ogg", "Skull revives", "The skeleton skull cutscene of book 6 plays"]
+      ["sounds/cheshirecat.ogg", "Cheshire cat", "The book 4 chapter 7 cutscene of the Cheshire Cat plays, after the Hydra is beaten"],
+      ["sounds/cymbalcrash.ogg", "Cymbal crash", "Each of Stuffy's two animation files plays it once"],
+      ["sounds/emperorandking2_light_v2.ogg", "Emperor light", "In book 5 chapter 7, when the cutscene's CROWNED animation starts"],
+      ["sounds/emperorandking2_stinger_v2.ogg", "Emperor stinger", "In book 5 chapter 7, as the Crowned cutscene begins"],
+      ["sounds/mothergoosestewpot.ogg", "Mother Goose stewpot", "The book 4 chapter 3 cutscene of Mother Goose's stew plays"],
+      ["sounds/shackles_break.ogg", "Shackles break", "The book 5 chapter 5 cutscene and the book 6 chapter 3 cutscene each play it as the chains break"],
+      ["sounds/sifu_beatdown.ogg", "Sifu beat down", "The book 5 chapter 3 cutscene of the Sifu gang's beat-down plays"],
+      ["sounds/skeleskullrevives.ogg", "Skull revives", "The book 6 chapter 7 cutscene of the skeleton skull plays"]
     ] },
     { name: "Mini-games", sounds: [
       ["sounds/lex_incredible.ogg", "\"Incredible!\"", "Word Master only: the second prize line solved"],
       ["sounds/lex_watchout.ogg", "\"Watch out!\"", "Word Master: a miss brings the prize down to its last line"],
-      ["sounds/count.ogg", "Counting tick", "A score or timer counts up in a mini-game"],
-      ["sounds/newminigame.ogg", "New mini-game sting", "A new mini-game is unlocked"],
-      ["sounds/v_go.ogg", "\"Go\"", "A mini-game countdown ends"],
-      ["sounds/v_newminigame.ogg", "\"New mini-game\"", "A new mini-game is unlocked"],
-      ["sounds/v_one.ogg", "\"One\"", "A mini-game countdown goes on"],
-      ["sounds/v_three.ogg", "\"Three\"", "A mini-game countdown starts"],
-      ["sounds/v_two.ogg", "\"Two\"", "A mini-game countdown goes on"]
+      ["sounds/count.ogg", "Counting tick", "The final score counts up in all six mini-games, a tick whenever the count's sound timer reads 0"],
+      ["sounds/newminigame.ogg", "New mini-game sting", "50 updates (0.5 s) after Lex's warp-in sound, as a book 4 conversation announces a newly unlocked mini-game"],
+      ["sounds/v_go.ogg", "\"Go\"", "Letter Rip, Link 'n Spell, Muta Words and Word Up: the start countdown reaches 0, 300 updates (3 s) after Three"],
+      ["sounds/v_newminigame.ogg", "\"New mini-game\"", "50 updates (0.5 s) after Lex's warp-in sound, as a book 4 conversation announces a newly unlocked mini-game"],
+      ["sounds/v_one.ogg", "\"One\"", "Letter Rip, Link 'n Spell, Muta Words and Word Up: the start countdown reaches 1, 200 updates (2 s) after Three"],
+      ["sounds/v_three.ogg", "\"Three\"", "Letter Rip, Link 'n Spell, Muta Words and Word Up: the start countdown begins, one update after its timer starts; also when the tutorial's arrow hints end"],
+      ["sounds/v_two.ogg", "\"Two\"", "Letter Rip, Link 'n Spell, Muta Words and Word Up: the start countdown reaches 2, 100 updates (1 s) after Three"]
     ] },
     { name: "Human voices", sounds: [
       ["sounds/dopeyattack1a.ogg", "Dopey attack 1a", "Opening sound of Tweedledee, Tweedledum, The Deuce and 5 more; Attack or hit of Angry Loyim"],
