@@ -279,7 +279,13 @@ holds the rules every session follows; this file does not repeat them.
     so keep vsync on the GPU path. Per present its present call plus driver thread cost 1.9 to 2.4 M cycles against the
     original's 1.2 M; the driver thread runs the frame's ~120 draw calls (one per texture change), so only fewer,
     larger submissions cut it (the next item). The port's mixer thread, about 0.13 M an update, has no counterpart in
-    the original's process.
+    the original's process. Dynomite (GAME_NOTES 6, 2026-11-12) draws its screen on the GPU with no CPU image, so
+    SurfaceDisplay cannot take it: present plus driver thread cost 1.29 M cycles an update (2.2 M a drawn frame)
+    against the original's Blt at 0.40 M, 19% over at 640x480. The way out it names is shared: an opt-in software
+    screen for 2D SexyApp ports, drawn by the framework's MemoryImage blitters into the screen's bits as the original's
+    DirectDraw path draws, shown through SurfaceDisplay with the dirty rects (the original's software draw is 0.75 M an
+    update; Dynomite's board, 77% of the screen, is dirty every update in play). It would serve Dynomite, Alchemy and
+    the other 2D SexyApp ports over their originals. Not decided yet.
   - Draw calls (Typer Shark, 2026-11-12). `DDInterface::DrawTexturedQuad` makes one SDL call a quad: 593 a frame for
     about 20 texture changes, DrawScreen 466 M cycles in 20 s. Joining consecutive quads of one texture into one
     SDL_RenderGeometry call would take about half of that, some 6% of the port. The draw order stays, and every port's
