@@ -641,3 +641,43 @@ the same offset in another object (the `param_1` of 0x423270, 0x428340, 0x427d00
 `Points` or the generator; 0x419340's `+0x98` is a virtual call) or where the port split the function (0x41d670's `DrawSpecial`,
 `DrawStretched` and `SpecialDy`; `ShowLevelUp` for the generator argument of 0x426860 and 0x426f40); none is a field that the original writes
 and the port never sets.
+
+## The autosplit block (2026-11-12)
+
+Rocket Mania has a speedrun.com board (Levels 10, 20 and 30, each on Easy, Normal and Hard), so the port writes the shared autosplit
+block the site's Splits window reads (`platform/AutosplitBlock.h`, layout 2; `docs/WEB_PLAYER.md`, "One design for every port"). The
+observer is `src/LiveSplitObserver.cpp` (called after each update from `RocketApp::UpdateFrames`, and from `~RocketApp` for the last
+write). The block's game id is `RMDX`. It reads the game and writes nothing of it: until something asks for it, it only tests a flag
+(the mod list is looked at every 64 updates). The page asks by calling `byopop_livesplit_block` (exported in the web build); natively
+the `livesplit` feature of an enabled mod does (`mods/livesplit/mod.json`, a manifest only: the `.asl` is the coordinator's later).
+`-livesplitlog=<file>` writes one line for each write that changes what a splitter acts on (board, events, state, level, mode, skill,
+flags), and the events themselves go to the log as `livesplit: board 1 GO at tick 1 (mode 1, difficulty 1)` and the like.
+
+**What it reads.** `Board::mBoardSerial` counts the games and `Board::mResumed` is the constructor's `theContinuing` (both set in
+`Board::Board`; nothing in the game reads them, as the inert state of the standing rule). `mode` is `RocketApp::mMode` (0 arcade, 1
+classic, 2 strategy), `skill` is `RocketApp::mDifficulty - 1` (0 easy, 1 medium, which the board calls Normal, 2 hard), `level` the
+board's `mLevel` and `displayLevel` the number on screen (`mLevel + 1`), `state` `Board::mState`, `displayScore` the score on screen
+(`mScoreShown`), `score` `mScore`, `tick` `Widget::mUpdateCnt` (it counts only unpaused updates) and `progress` -1 (the board's levels
+end on level clears). A paused board (`mPause > 0`, which the dialogs, the focus and the pause window set) has `AUTOSPLIT_FLAG_PAUSED`.
+
+**Events.**
+- *GO*: the first unpaused update of a new game (not a continued save), while it is at its first level and still playing. It is the update on
+  which the "Get Ready!" banner (`Board::mBannerTime`, set when a level starts) begins to count down. The banner is drawn at the first level only
+  when the tutorial messages (`RocketApp::mNoHints`) are off, and at every later level; GO is the same update either way.
+- *Level clear*: the board enters state 4 (`Board::EndLevelA`), the update on which "Level Up!" is first drawn above the board. States 5 and 6
+  (the level-up screen) and the buy-rockets screen follow, then the next level starts. Only arcade and classic have an end of a level
+  (`Board::Launch` ends a level only when `mode != 2`); the strategy game goes on until its matches are gone.
+- *Game over*: the board enters state 2, 300 updates after `Board::GameOver` set state 1 (the "Game Over" or "Out of Time" text is drawn
+  meanwhile; the game-over screen opens at state 2). Not at state 1: in classic a launch still burning when the night runs out can finish the
+  level (state 1 to state 4, "JUST IN TIME!"), and then the game goes on, which is why the loss is counted at state 2. The kinds are
+  `Board::mGameOverKind`: 0 the night ran out (classic), 1 the top line is full (arcade), 2 no matches are left (strategy); 3 is not used.
+- *Win*: none; the game has no last level (the levels count on without a cap).
+- A board that leaves the menu's way (the quit button, the menu) is gone from the app: the block shows no board and no game over; a loss
+  is only a game over.
+
+**Proof.** `games/rocketmania/tools/livesplit/run_tests.sh <out dir>` (under rundesk, about 8 minutes): bot games of arcade and classic on
+each difficulty (one to three level clears, then the game ends by itself: GO once, the game over with kind 1 for arcade and 0 for
+classic), games driven by the standard commands (`goto`, `win`, `level <n>`, `lose`: 30 level clears and a loss, and a strategy game's
+loss, kind 2), a game left through the quit button, a saved game continued (RESUMED, no GO) and the inert proof: three games' state logs
+(the same games as `tools/check.sh rocketmania`) with the block on, with no mod and in the frozen baseline are byte-identical. The block
+logs of these runs (a level or two, then a loss, for each mode and difficulty) went to the site session.
