@@ -171,8 +171,9 @@ Every call re-reads the whole context, so what costs is context times calls, and
   state an autosplitter reads, are the exceptions). No new mods unless the user requests one ("no new mods for anything unless someone requests it",
   2026-10-30); fixes and suggestions for the mods that exist wait in `docs/MOD_ROADMAP.md` until every
   decompilation is finished. Code that makes a game moddable makes things configurable and never overwrites the
-  original (`docs/MOD_ROADMAP.md`, "Kinds of mod"). The site will serve each game with its fixes mod on, one toggle a
-  fix, and a game is done only once that mod is made (the user, 2026-11-04): a bug of the original, or a wait that
+  original (`docs/MOD_ROADMAP.md`, "Kinds of mod"). The site will serve each game improved, its fixes and lite
+  mods on and an Original switch turning both off (the user, 2026-11-12: "Yes, flip defaults"; `docs/MOD_ROADMAP.md`,
+  "What a player gets"), the fixes mod one toggle a fix, and a game is done only once that mod is made (the user, 2026-11-04): a bug of the original, or a wait that
   only costs the player time, is kept in the port and fixed in the mod (listed until then under "Fix candidates" in
   the game's notes), and with the mod on a game plays the same on every run. Loading is the exception, made fast in
   the port itself (the user, 2026-11-07: "Let's make faster loading a core part of the recomps instead of a mod"): a
@@ -269,7 +270,7 @@ Every call re-reads the whole context, so what costs is context times calls, and
   it on), the readability pass, the coverage check, the performance pass (the user, 2026-11-03), which brings the port's processor time to its
   original's or below, measured like for like (the user, 2026-11-11: "that should be an enforced target";
   `docs/COORDINATION.md`, "The target"), its lite mod, which swaps the game's own computations for faster ones that
-  may play differently, each difference explained, and starts off (the user, 2026-11-12; `docs/MOD_ROADMAP.md`, "The
+  may play differently, each difference proved reachable in the game's own levels and explained, and starts on (the user, 2026-11-12; `docs/MOD_ROADMAP.md`, "The
   lite mod"), taking out the other
   code it does not need, for a game ported from its Steam copy the check against its PopCap Game Collection
   version, and its features on the site (the user, 2026-11-11: "All these accessory features should be added to our
