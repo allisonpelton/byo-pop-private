@@ -96,7 +96,10 @@ async function newGame(line) {
   var before = (snap() || {}).boardSerial;
   // (Seven Seas' map, up after every tenth level, is closed by the bot first: a `goto` under it leaves it stuck)
   for (var j = 0; j < 50 && (await t.state()).screen === "map"; j++) await botStep();
-  if ((await t.state()).screen !== "title") await until(line, 50);
+  // (a list of commands, or of real input steps such as {click: [x, y]}: Mummy Maze leaves a game only by its Quit to Main
+  // button, and its bot starts the game `set botmode` names from the main menu)
+  if ((await t.state()).screen !== "title")
+    for (var c of [].concat(line)) { if (typeof c === "string") await until(c, 50); else await t.playMove({ input: [c] }); }
   for (var k = 0; k < 400; k++) {
     var s = snap();
     if (s && s.boardSerial && s.boardSerial !== before && s.inGame) { await settle(); return s.boardSerial; }
@@ -183,6 +186,9 @@ async function common(category, levels, newLine, opts) {
   note("lost", resetCause !== null && att().phase === "idle", "reset " + resetCause + ", then " + att().phase + "; deaths " + [s.death0, s.death1, s.death2, s.death3].join(","));
 }
 
+// Mummy Maze's Quit to Main button, in the game's sidebar
+var MM_QUIT = [{ click: [64, 462] }];
+
 var PLANS = {
   bookworm: async function () {
     await cmd("set mode classic");
@@ -206,14 +212,14 @@ var PLANS = {
   },
   mummymaze: async function () {
     await cmd("set botmode classic");
-    await common("1st Pyramid", 15, "goto classic", { finish: true, noGameOver: true });
+    await common("1st Pyramid", 15, MM_QUIT, { finish: true, noGameOver: true });
     // 100% Run: a classic game never starts it; an adventure does, and its first treasure splits
     await resetByHand();
     load("100% Run");
-    await newGame("goto classic");
+    await newGame(MM_QUIT);
     note("mode", att().phase === "idle", "a Classic game (mode " + snap().mode + "): " + att().phase);
     await cmd("set botmode adventure");
-    await newGame("goto adventure");
+    await newGame(MM_QUIT);
     var a0 = att(), idx = [];
     for (var lv = 1; lv <= 15; lv++) idx.push((await clearLevel()).index);
     for (var k = 0; k < 200 && snap().progress < 1; k++) await botStep();
