@@ -9,6 +9,7 @@
 #include <cstdlib>
 #include <cstring>
 
+// port: the original multiplies by the degrees-to-radians constant in line, in the filters (0x42a1c0)
 static float ToRadians(double theDegrees) { return (float)(theDegrees * (double)DegreesToRadians); }
 
 // 0x42a1c0: the attribute filters. The ones on the attribute "all" change the stage's progress; the others add to the

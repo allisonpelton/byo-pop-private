@@ -17,13 +17,13 @@
 // the text the last call made (0x5ba158)
 static char sText[256];
 
-// the scene that every level started: its counts of shots, hits and combos and its time are the ones the summary shows
+// 0x405e10: the scene that every level started: its counts of shots, hits and combos and its time are the ones the summary shows
 static Level* FirstScene()
 {
 	return static_cast<Level*>(gScenes.mHead);
 }
 
-// how many of the shots hit, in hundredths of a percent
+// 0x405e10: how many of the shots hit, in hundredths of a percent
 static int ShotAccuracy(const Level* theLevel)
 {
 	int aShots = theLevel->mShotsFired < 1 ? 1 : theLevel->mShotsFired;
@@ -31,7 +31,7 @@ static int ShotAccuracy(const Level* theLevel)
 	return anAccuracy < 10001 ? anAccuracy : 10000;
 }
 
-// the points the time taken is worth: more for a faster level (a level that takes under a second divides by zero in the
+// 0x405e10: the points the time taken is worth: more for a faster level (a level that takes under a second divides by zero in the
 // original)
 static int TimeBonus(const Level* theLevel)
 {
@@ -42,7 +42,7 @@ static int TimeBonus(const Level* theLevel)
 	return ((int)(100000 / (long long)aSeconds) / 100) * 100;
 }
 
-// the points for the tries that are left, in the Journey mode (1000 for the last one in any mode)
+// 0x405e10: the points for the tries that are left, in the Journey mode (1000 for the last one in any mode)
 static int TriesBonus(const Profile& theProfile)
 {
 	int aTries = theProfile.mTriesLeft[theProfile.mMode];
@@ -80,7 +80,7 @@ static const char* NextTrickShot(Profile& theProfile)
 	return aNumber;
 }
 
-// the first of the four layers' children that sits in the nest of layers every level has: whether a trick shot is still waiting
+// 0x405e10: the first of the four layers' children that sits in the nest of layers every level has: whether a trick shot is still waiting
 // for plates
 static SceneObject* FindUnfilledSlot()
 {
@@ -180,7 +180,7 @@ static void TranslateRegionName(const Profile& theProfile)
 	strcpy(sText, "REGION NAME HERE");
 }
 
-// the number after the prefix of a high score id ("HIGH_SCORE_NAME_3")
+// 0x405e10: the number after the prefix of a high score id ("HIGH_SCORE_NAME_3")
 static int HighScoreRow(const char* theId, const char* thePrefix)
 {
 	return (int)atol(theId + strlen(thePrefix));

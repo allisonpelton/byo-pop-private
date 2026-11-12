@@ -12,7 +12,7 @@
 
 #include <cstring>
 
-// sets the volume of the voice this level started on a piece of music: a sound that several levels play keeps only the channel
+// 0x40ea20, 0x422fd0: sets the volume of the voice this level started on a piece of music: a sound that several levels play keeps only the channel
 // of its latest start, so the level's own channel is put in place for the call
 static void SetMusicChannelVolume(const LevelMusic& theMusic, float thePercent)
 {

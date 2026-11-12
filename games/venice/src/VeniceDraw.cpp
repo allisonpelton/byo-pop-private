@@ -74,13 +74,14 @@ void SetDrawClip(int theLeft, int theTop, int theRight, int theBottom)
 	gGraphics->SetClipRect(theLeft < 0 ? 0 : theLeft, theTop < 0 ? 0 : theTop, (int)aWidth, (int)aHeight);
 }
 
-// a colour channel (0 to 1) as a byte, the way the original converts it: the value is cut off at 0 and 255 only when the
+// 0x442080: a colour channel (0 to 1) as a byte, the way the original converts it: the value is cut off at 0 and 255 only when the
 // colour is not plain white
 static int ColorChannel(float theValue)
 {
 	return (int)((double)theValue * 255.0);
 }
 
+// 0x442080: a channel cut off at 0 and 255
 static int ClampChannel(int theChannel)
 {
 	if (theChannel > 0xff)
@@ -167,7 +168,7 @@ static bool PointInPolygon(int theCornerCount, const float* theXs, const float* 
 	return anInside;
 }
 
-// the corners of a rectangle turned about its centre, in the order top left, top right, bottom right, bottom left (the
+// 0x438ff0: the corners of a rectangle turned about its centre, in the order top left, top right, bottom right, bottom left (the
 // original's x87 sums are kept in a double between the rounding to float that its stores to locals make)
 static void RotatedCorners(float theX, float theY, float theWidth, float theHeight, float theRotation, float* theXs,
 	float* theYs)

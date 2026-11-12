@@ -14,6 +14,7 @@ CursorList<Sound> gSounds; // 0xa2ac58
 static unsigned int sRecentStarts[12]; // 0xa2ac18
 static int sRecentStartIndex = 0; // 0xa2ac48
 
+// port: the sound's voice is stopped as the record goes (the mixer is the port's)
 Sound::~Sound()
 {
 	Platform::Mixer::Get().StopVoice(mChannel);
@@ -106,6 +107,7 @@ void FreeSound(Sound* theSound)
 	}
 }
 
+// port: the original calls the finder (0x443b50) and then the player (0x4438e0) at each place that plays a sound by name
 void PlaySoundByName(const char* theName, int theFrequency)
 {
 	Sound* aSound = FindSound(theName);
@@ -113,6 +115,7 @@ void PlaySoundByName(const char* theName, int theFrequency)
 		aSound->Play(theFrequency);
 }
 
+// port: the original calls the loader (0x443bc0) and then the player (0x4438e0) at each place that plays a new sound
 void LoadAndPlaySound(const char* theName, int theFrequency)
 {
 	LoadSound(theName, false, false)->Play(theFrequency);

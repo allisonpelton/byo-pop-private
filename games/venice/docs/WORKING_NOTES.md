@@ -41,7 +41,10 @@ image base 0x400000. Data: `main.pak` (862 files after staging: gfx, audio, leve
 
 ## State
 
-(updated as the port proceeds)
+Native and web builds play the whole game (names, tutorial, the four modes, high scores, options); `tools/check.sh venice` runs a
+scripted tour of them (`games/venice/tools/tour_test.txt`) and compares it with the frozen baseline. What the port leaves out and where it
+differs, the test commands and the oddities are in `GAME_NOTES.md`. Open: a bot for the `move` command, a smoke run of every level,
+the comparison with the original (origrun has no row for Venice yet).
 
 ## Engine facts read so far (the Object, 0x148 bytes; pool at 0x6856a8, in-use flags at 0x6857d8 + i * 0x148)
 

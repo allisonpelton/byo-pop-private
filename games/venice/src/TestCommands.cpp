@@ -3,7 +3,7 @@
 //
 // state                prints STATE {"screen","scenes","mode","level","score","lives","timer","moves","profile","board"}
 // goto <screen>        menu (or title), options, help, highscores, credits, journey, flood, survival, trickshot, or the name
-//                      of any screen the game has
+//                      of any screen the game has; the scenes there are killed
 // level <n>            starts level n (a trick shot's number in the Trick Shot mode) of the current mode, as a level is pushed
 //                      by the game, over the scenes there (they are killed)
 // unlock all           the flags that unlock Flood, Trick Shot and Survival, and every Journey and Flood level
@@ -146,13 +146,17 @@ const char* ScreenFileName(const std::string& theName)
 	return nullptr;
 }
 
+// the scene a mode's button of the mode select screen pushes: the event's text is translated when the screen is loaded
+// and again when the button is clicked (the first gives PICK_LEVEL_SELECT_OR_LOADING, the second the scene's name)
 void StartMode(int theMode)
 {
 	CurrentProfile().mMode = theMode;
-	PushSceneByText(theMode == GameModeSurvival ? "loading" : TranslateText("PICK_LEVEL_SELECT_OR_LOADING2"));
+	std::string aLoadedText = TranslateText("PICK_LEVEL_SELECT_OR_LOADING2");
+	PushSceneByText(TranslateText(aLoadedText.c_str()));
 }
 }
 
+// port: the script commands of a test (the framework passes the ones it does not know)
 bool VeniceApp::HandleScriptCommand(const Sexy::ScriptCommand& theCommand)
 {
 	const std::string& aName = theCommand.mCommand;
@@ -174,11 +178,11 @@ bool VeniceApp::HandleScriptCommand(const Sexy::ScriptCommand& theCommand)
 		int aMode = ModeFromName(anArg);
 		const char* aScreenFile = ScreenFileName(anArg);
 		if (aMode >= 0 && !isdigit((unsigned char)anArg[0])) {
+			KillAllScenes();
 			StartMode(aMode);
 			Ok(aLine);
 		} else if (aScreenFile != nullptr || SceneFileExists(anArg.c_str())) {
-			if (aScreenFile == nullptr || strcmp(aScreenFile, "main_menu") == 0)
-				KillAllScenes();
+			KillAllScenes();
 			PushSceneByName(aScreenFile != nullptr ? aScreenFile : anArg.c_str());
 			Ok(aLine);
 		} else

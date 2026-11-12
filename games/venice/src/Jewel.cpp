@@ -183,7 +183,7 @@ void Jewel::EmitReadySparkle()
 	mParent->mChildren.mCursor = this;
 }
 
-// A bounce counts only when the jewel has flown for five updates since the last one (the shot's walls and bumpers would count
+// 0x40aea0 (written in line at each of the three walls): a bounce counts only when the jewel has flown for five updates since the last one (the shot's walls and bumpers would count
 // again for every update of a jewel that stays in them); it forgets the slot it last bounced off
 void Jewel::CountBounce()
 {

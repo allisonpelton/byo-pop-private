@@ -10,6 +10,7 @@
 #include "TextObject.h"
 #include "Tuning.h"
 #include "VeniceGlobals.h"
+#include "VeniceDraw.h"
 #include "VeniceMath.h"
 #include "VeniceSound.h"
 
@@ -186,11 +187,108 @@ void Layer::UpdateContentHeight()
 	}
 }
 
-// The original draws the layer's children into pictures 1022 pixels tall (the tiles of the level, or the Survival mode's
-// background) and puts those pictures in the children's place, so that a level draws a few big pictures instead of a few
-// hundred small ones. The port draws the children themselves: the picture is the same, only the number of draw calls differs.
+namespace
+{
+// a picture of the sheet of birds that flies across the background (8 frames, each 24 pixels tall)
+bool IsBirdPicture(SceneObject* theObject)
+{
+	return theObject->mImage != nullptr && theObject->mImage->mFrameCount == 8 && theObject->mImage->mFrameHeight == 24.0f;
+}
+
+// 0x40dc60: every picture, cloud and bird of the layer goes
+void KillLayerPictures(SceneObject* theLayer)
+{
+	for (SceneObject* aChild = theLayer->mChildren.mHead; aChild != nullptr; aChild = aChild->mNext) {
+		if (aChild->mType == ObjectTypeBase)
+			aChild->mIsDead = true;
+		if (aChild->mType == ObjectTypeCloud)
+			aChild->mIsDead = true;
+		if (IsBirdPicture(aChild))
+			aChild->mIsDead = true;
+	}
+}
+
+// 0x40dcf0: the pictures as tall as the screen or more (the level's backdrop), the clouds and the birds go
+void KillTallPictures(SceneObject* theLayer)
+{
+	for (SceneObject* aChild = theLayer->mChildren.mHead; aChild != nullptr; aChild = aChild->mNext) {
+		if (aChild->mType == ObjectTypeBase && aChild->mImage != nullptr && gScreenHeight + 1.0f <= aChild->mImage->mFrameHeight)
+			aChild->mIsDead = true;
+		if (aChild->mType == ObjectTypeCloud)
+			aChild->mIsDead = true;
+		if (IsBirdPicture(aChild))
+			aChild->mIsDead = true;
+	}
+}
+
+// 0x40ddc0: the picture of the first child that is nearly as tall as the screen or more, which is the level's backdrop
+ImageRecord* FindBackdropPicture(SceneObject* theLayer)
+{
+	for (SceneObject* aChild = theLayer->mChildren.mHead; aChild != nullptr; aChild = aChild->mNext) {
+		if (aChild->mType == ObjectTypeBase && aChild->mImage != nullptr && gScreenHeight - 10.0f < aChild->mImage->mFrameHeight)
+			return aChild->mImage;
+	}
+	return nullptr;
+}
+}
+
+// 0x40de30: the original also draws the children into pictures 1022 pixels tall and puts those in the children's place, so that a
+// level draws a few big pictures instead of a few hundred small ones; the port draws the children themselves (the same pixels).
+// What else the merge does is kept, since it sets the layer's content height, which the scroll follows: on a display that is not
+// accelerated the backdrop of the level takes the place of the layer's own pictures (the Survival mode's background) or is
+// repeated down the tiles (mirrored every other time), and every picture takes its first stage's position before the height is
+// measured.
 void Layer::MergeChildren()
 {
+	bool anAccelerated = IsAccelerated();
+	bool aBackdropMade = false;
+	if (CurrentProfile().mMode == GameModeSurvival && !anAccelerated && strstr(mName, "background") != nullptr) {
+		KillLayerPictures(this);
+		ImageRecord* aBackdrop = FindBackdropPicture(mParent);
+		SceneObject* aBackdropObject = NewChild(nullptr);
+		aBackdropObject->AddStage(1000.0f, 1, 1, 1, nullptr);
+		aBackdropObject->SetAttribute(AttributeX, 0, 0);
+		aBackdropObject->SetAttribute(AttributeY, 0, 0);
+		if (aBackdrop != nullptr)
+			aBackdropObject->SetImageRecord(aBackdrop);
+		aBackdropObject->SetZOrder(-1000.0f);
+		aBackdropMade = true;
+	}
+	if (!aBackdropMade && !anAccelerated && strstr(mName, "tiles") != nullptr && mParent != nullptr &&
+		mParent->mParent != nullptr) {
+		KillLayerPictures(mParent);
+		SceneObject* aLevel = mParent->mParent;
+		ImageRecord* aBackdrop = FindBackdropPicture(aLevel);
+		int aMirrored = 1;
+		SceneObject* aTopChild = FindLowestChild();
+		float aLimit = aTopChild == nullptr ? 0.0f : aTopChild->mStages.mCursor->mEnd[AttributeY] - gScreenHeight * 2.0f;
+		// the repeats go up the screen as far as this (the original asks the profile's flag for a limit of a level's height)
+		if (CurrentProfile().mInstructionsHidden != 0)
+			aLimit = -7800.0f;
+		for (float aY = 0.0f; aLimit < aY; aY = aY - (gScreenHeight - 2.0f)) {
+			SceneObject* aRepeat = NewChild(nullptr);
+			aRepeat->AddStage(1000.0f, 1, 1, 1, nullptr);
+			aRepeat->SetAttribute(AttributeX, (float)aMirrored, (float)aMirrored);
+			aRepeat->SetAttribute(AttributeY, (float)aMirrored + aY, (float)aMirrored + aY);
+			aRepeat->mLocal[AttributeY] = (float)(int)aY;
+			if (aBackdrop != nullptr)
+				aRepeat->SetImageRecord(aBackdrop);
+			aRepeat->mFlipX = aMirrored != 0;
+			aRepeat->SetZOrder(-1000.0f);
+			aMirrored = 1 - aMirrored;
+		}
+		KillTallPictures(aLevel);
+	}
+	for (SceneObject* aChild = mChildren.mHead; aChild != nullptr; aChild = aChild->mNext) {
+		if (aChild->mType == ObjectTypeBase) {
+			SceneStage* aStage = aChild->mStages.mCursor;
+			aChild->mLocal[AttributeX] = aStage->mStart[AttributeX];
+			aChild->mWorld[AttributeX] = aChild->mLocal[AttributeX];
+			aChild->mLocal[AttributeY] = aStage->mStart[AttributeY];
+			aChild->mWorld[AttributeY] = aChild->mLocal[AttributeY];
+		}
+	}
+	UpdateContentHeight();
 	mMerged = 0;
 }
 

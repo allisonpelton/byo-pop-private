@@ -145,6 +145,7 @@ void PushSceneByName(const char* theName)
 	ResetTickBase();
 }
 
+// 0x422fd0 (the insert-level action): the text is a level's number or a scene's name
 void PushSceneByText(const char* theText)
 {
 	const long FirstSceneNumber = 1;
@@ -156,6 +157,7 @@ void PushSceneByText(const char* theText)
 		PushSceneByNumber((int)aNumber);
 }
 
+// port: the standard test commands ask whether a screen exists before they push it (docs/TEST_COMMANDS.md)
 bool SceneFileExists(const char* theName)
 {
 	bool aFound = gGameScenes.Begin();
@@ -197,7 +199,7 @@ void PushSceneByNumber(int theNumber)
 	ResetTickBase();
 }
 
-// The first tag of a scene file names it (the name the game pushes it by) and may give its title
+// 0x439720: the first tag of a scene file names it (the name the game pushes it by) and may give its title
 static void ReadSceneFileNames(SceneFile* theFile)
 {
 	SceneTag aFirstTag;

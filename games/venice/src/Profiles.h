@@ -29,22 +29,22 @@ struct Profile
 {
 	char mName[ProfileNameSize]; // empty for an unused slot
 	int mLevelIndex[GameModeCount]; // the number of the level the player is on, less one, for each mode
-	int mUnused50;
+	int mPadBeforeInstructionsHidden;
 	int mInstructionsHidden; // the first level's instructions are not shown again: set by the tick on the tutorial screen and once the level select screen has been sent
 	int mCupidMessageSeen; // set once the cupid has come and its message has been shown
 	int mScore;
 	int mMode; // the GameMode being played
-	int mUnused64;
+	int mPadBeforeDifficulty;
 	float mDifficulty; // the difficulty the next level starts at (set from the data file's initial value while it is 0)
-	char mUnused6C[0x1000];
+	char mPadBeforeTipCycle[0x1000];
 	int mTipCycle; // 0 to 2: which of the three tips the loading screens show next
-	char mUnused1070[0x14];
+	char mPadBeforeStartTries[0x14];
 	int mStartTries[GameModeCount]; // reset to 3 with the progress
-	char mUnused1094[4];
+	char mPadBeforeTriesLeft[4];
 	int mTriesLeft[GameModeCount]; // the tries left to finish the level, 3 at the start of each
-	char mUnused10A8[4];
+	char mPadBeforeLevelStartScore[4];
 	int mLevelStartScore[GameModeCount]; // the score the player had when the level began
-	char mUnused10BC[4];
+	char mPadBeforeTrickShotDone[4];
 	int mTrickShotDone[TrickShotRegionCount][TrickShotsPerRegion]; // 1 for each trick shot the player has made
 	int mTricksInARow;
 	int mFlagReachedBuilding3; // set once the player has played past level 2

@@ -233,12 +233,13 @@ void Tutorial::ShowTip()
 	mTipIndex = mTipIndex + 1 < mTips.size() ? mTipIndex + 1 : 0;
 }
 
+// 0x4211c0, 0x4214f0, 0x421670, 0x4217d0 (the lessons' updates test it in line)
 bool Tutorial::PlateIsGone(SceneObject* thePlate)
 {
 	return thePlate == nullptr || thePlate->mWorld[AttributeY] < 0.0f;
 }
 
-// The middle layer gets a 2 s stage that scrolls it to the next plates (and ends in the stage where it scrolls on its own), and
+// 0x4211c0, 0x4214f0, 0x421670, 0x4217d0 (written in line in each lesson's update): the middle layer gets a 2 s stage that scrolls it to the next plates (and ends in the stage where it scrolls on its own), and
 // the cupid goes to his stage after the lesson
 void Tutorial::StartNextLesson(const char* theScrollStageName, float theScrollTo, const char* theCupidStageName)
 {

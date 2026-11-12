@@ -37,7 +37,7 @@ static void TrimLeadingSpaces(char* theText)
 	}
 }
 
-// the name the player typed into the level's name box, without the spaces around it
+// 0x422fd0: the name the player typed into the level's name box, without the spaces around it
 static const char* TypedProfileName()
 {
 	InputBox* anInputBox = static_cast<InputBox*>(gActiveLevel->FindChildByType(ObjectTypeInputBox, nullptr));
@@ -46,7 +46,7 @@ static const char* TypedProfileName()
 	return anInputBox->mText;
 }
 
-// the colours of the scene under a screen are dimmed (or brightened again) by setting them and updating the scene once
+// 0x422fd0: the colours of the scene under a screen are dimmed (or brightened again) by setting them and updating the scene once
 static void SetSceneColor(SceneObject* theScene, float theColor)
 {
 	theScene->mLocal[AttributeRed] = theColor;

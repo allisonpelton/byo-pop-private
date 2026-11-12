@@ -5,6 +5,7 @@
 #include <cstdlib>
 #include <cstring>
 
+// port: the original tests for white space in line, in the tag reader's loops (0x411ce0 on)
 static bool IsBlank(char theChar) { return theChar == ' ' || theChar == '\n' || theChar == '\r' || theChar == '\t'; }
 
 // 0x411ce0

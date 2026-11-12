@@ -16,6 +16,7 @@ int gMouseY = 0;
 bool gIgnoreNextPress = false; // 0xa2a194
 bool gLeftWasDown = false; // 0xa2ab10
 
+// port: the original steps the key ring's index in line wherever it stores a value (the app's mouse and key handlers)
 void AdvanceKeyRing()
 {
 	gKeyRingIndex = gKeyRingIndex + 1;
@@ -23,6 +24,7 @@ void AdvanceKeyRing()
 		gKeyRingIndex = 0;
 }
 
+// port: the original stores a value in the key ring in line, in the app's mouse and key handlers
 void PushKeyRing(int theValue)
 {
 	AdvanceKeyRing();

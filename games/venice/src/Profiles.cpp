@@ -61,6 +61,7 @@ static const int StartingTimesSurvival[HighScoresPerList] = {225000, 210000, 195
 static const int StartingScoresTrickShot[HighScoresPerList] = {550000, 520000, 460000, 400000, 350000, 320000, 300000,
 	250000, 250000, 250000};
 
+// 0x408a20: one list's names, scores and times
 static void FillHighScoreList(HighScoreEntry* theList, const int* theScores, const int* theTimes)
 {
 	for (int i = 0; i < HighScoresPerList; i++) {
