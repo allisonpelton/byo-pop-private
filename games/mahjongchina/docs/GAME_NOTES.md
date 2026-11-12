@@ -100,6 +100,18 @@ batches (the window): 15.9 % before and 14.0 % after the blit and Present change
 second run (6.2 %, against 1.3 and 1.7 %) is an outlier of the same kind. Where the time goes is Japan's: the engine's drawing, the copy to the widget and the
 texture upload in the game's thread, and `SDL_RenderPresent`, the driver's.
 
+**Like for like, thread by thread (2026-11-12).** Measured as Japan's (`games/mahjongjapan/docs/GAME_NOTES.md`,
+"Like for like, thread by thread": cycles per thread over the window of 30 s, the port's mixer counted apart, port and original
+in turn) after the engine began to redraw only what changed from frame to frame (`engines/jollybear/ScreenLog.h`, shared with
+Japan; proved with every frame drawn in full as well and compared: the suite's 2095 frames and the screen tour's 1408, none
+differing, every picture as frozen). The first pair: original 3.63 G cycles, port 4.47 G (main thread 2.68, the video driver's
+worker thread 1.59, the port's mixer 0.17). In the second the port's window ran 42.6 s instead of 30 (the sampler came late on a
+busy machine), 4.20 G or 98.6 M cycles a second, against the original's 3.02 G in 30.1 s or 100 M a second, which the play
+does not allow to compare (the window reached past the stage). The original's own runs here differ by 20 % (3.63 and 3.02).
+So China's port is 1.2 times its original in the one pair that compares; the framework's present
+chain (the widget's upload, `SDL_RenderPresent` and the driver's thread: 2.6 G of the port's 3.8 to 4.5) is what is left,
+asked of the coordinator as Japan's notes say.
+
 **Memory.** Before any game file is read the process holds 52.3 MB (the framework, SDL and the video driver: shared). At the
 end of the play it holds 102.5 MB private: the engine's images (9.4 MB of decoded bits and 12.1 MB of 32-bit copies, 82
 images), 5.1 MB of sounds (19) and, from the menu on, the two MO3 modules the menu loads (ids 335 and 339), the rest, about

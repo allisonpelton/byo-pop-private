@@ -265,6 +265,75 @@ needs after the upload has not been examined; the engine redraws its whole 800x6
 anything moves, at about 4 cycles a pixel in the blend; redrawing only the changed rectangle would be a larger change of
 the engine than the pass made.
 
+### Like for like, thread by thread (2026-11-12)
+
+The user's rule of 2026-11-11 (`docs/COORDINATION.md`, "The target"): a port's processor time is at most its original's,
+measured like for like. The measurement now counts cycles, not percentages: `tools/profile/threadprof.py` reads every
+thread's `QueryThreadCycleTime` (exact, no sampling and no suspension) and its kernel and user time at the two ends of the
+same window of 20 s to 50 s of the process's life (the original's moved 6 s later by its logos, as before),
+`tools/profile/showthreads.py` prints the tables, and `perfrun.sh` takes `TOOL=` to swap it in for `perfmin.py`. The port
+runs in real time under rundesk (no `-fast`: a 60 Hz screen's pacing, vsync on, the same 25 ms frame as the original) and the
+original through origrun, each pair made one after the other, port first. The port's sound is counted apart: its mixer runs
+in SDL's audio thread (libopenmpt rendering the MO3 modules), while origrun's stand-in leaves the original with no mixing at
+all (its process shows one thread of the game and nothing else of any size). Percentages of one core swing with the
+clock and the load (other sessions' games ran meanwhile, 5 to 11 processes), cycles do much less, and the original's own two
+runs here differ by 20 %.
+
+| window of 30 s, billions of cycles | original, pair 1 | port, pair 1 | original, pair 2 | port, pair 2 |
+|---|---|---|---|---|
+| main thread (the game and the framework's loop) | 2.89 | 2.39 | 3.55 | 2.71 |
+| the video driver's worker thread (nvwgf2um.dll, Direct3D 11 on rundesk's desktop) | | 1.27 | | 1.34 |
+| SDL's audio thread (the port's mixer) | | 0.17 | | 0.18 |
+| the process | 2.91 | 3.84 | 3.57 | 4.26 |
+
+Before this pass's change the main thread alone was 5.6 G in the same play (a probe build, 29 s: the engine's draw 2.7, the copy
+into the widget 1.0, the widget's texture upload 0.9, `SDL_RenderPresent` 0.4, the engine's update and the loop the rest).
+
+**What the main thread does now** (timers around the calls, `QueryThreadCycleTime` in a probe build that was not committed;
+1174 frames of the engine, 1019 of them drawn by the framework, 30 s):
+
+| part | cycles |
+|---|---|
+| the game's own: its draws kept as commands 0.12 G, the changed rects redrawn 0.26 G (the match of two frames' commands 0.03 G), the copy into the widget 0.04 G, its update 0.02 G | 0.48 G |
+| the widget's draw, which is the texture upload (`SDL_UpdateTexture`, 1.9 MB a frame) | 0.81 G |
+| `DDInterface::Present` (the copy to the back buffer, `SDL_RenderPresent`) | 0.56 G |
+| `UpdateFrames` outside the widget's update (200 a second, every 5 ms) | 0.23 G |
+| the rest of the loop (the message pump, `Process`, the wakeups) | 0.37 G |
+
+**What the pass changed in the game: the engine redraws what changed** (`engines/jollybear/ScreenLog.h/.cpp`, the engine's
+`Image.cpp` and `Display.cpp`; port only, the original redrew all 800x600 pixels from the topmost opaque layer in every
+frame). The engine's screen draws (`Image::Draw`, `ScreenFillRect`, `ScreenFillRectAlpha`) are kept as a list of commands
+between `Display::BeginFrame` and `Display::Present`, and `Present` matches that list with the last frame's, command by command
+in order (Myers's longest common subsequence, at most 96 commands apart). The rects of the commands that have no match in
+either list are the part of the screen that can differ. The whole list is then run again over those rects alone, each
+command clipped to a rect (`Image::Blit` takes a clip), and `Host::Present` is told the rects, so that
+`MahjongHost::Present` copies those pixels and no others and says nothing when none changed (one frame in twenty).
+A pixel outside the rects was reached by the same commands in the same order in both frames, so it holds the same colour;
+that needs every pixel to be drawn by a command that overwrites it (the unkeyed 24-bit images at full opacity and the fills),
+which the engine checks for each frame, and a frame that is not (a fade darkening the last frame's pixels, 100 frames of
+1940 in the suite's play) is drawn in full as it comes, as is the frame after it. An image whose pixels change or go away while commands that
+use it wait (the engine never does it in a draw) flushes the list first; each image carries a stamp that changes whenever its
+pixels are made, so that two frames' commands are the same only when they draw the same pixels.
+
+*Proved by drawing every frame twice.* `JB_VERIFY_FRAMES=1` in the environment makes each incremental frame be drawn in full
+as well, over the screen, and compared with the incremental one at every pixel (the process aborts at a difference), and makes
+`MahjongHost::Present` compare the widget's image with the whole screen. Run with it: the suites of both games (`tools/check.sh
+mahjongjapan mahjongchina`: 1837 and 2095 frames compared, none differing, 222 and 178 layouts, every picture as frozen), and the
+screen tour of both (`tools/tour/compare.sh` against the exes from before the change: 20 pictures each, byte for byte
+identical, 1408 frames compared each). `JB_NO_SCREENLOG=1` draws every frame in full one command at a time, as before.
+
+**Where it stands.** The process is at 3.8 to 4.3 G against the original's 2.9 to 3.6 G (1.3 and 1.2 times), and without the
+port's mixer 3.7 and 4.1. The game's own part (0.48 G) is a sixth of the original's whole. What is left is the framework's
+present chain: the widget's upload, `SDL_RenderPresent` and the driver's thread are 2.6 of the 3.8 G, and the loop another
+0.6. A standalone test of 800x600 frames at 40 a second (`build/presenttest`, not committed) puts the framework's path at
+2.27 G per 15 s (Direct3D 9 through SDL_RENDER_DRIVER 0.88, the software renderer 2.17, OpenGL 2.31; but the game itself, run
+with Direct3D 9, took 4.1 and 4.6 G, the driver's thread still 1.4 G), a window surface with a whole-frame copy at 0.80, and one
+with a copy of the changed rect alone (310x232 pixels) at 0.26 (0.5 G per 30 s). Only the last would put the port under its
+original, by about a third (estimated: 0.5 for the game, 0.6 for the loop, 0.5 for the
+present, 0.2 for the sound, 1.9 G). It is a shared presenter and was asked of the coordinator (the spec is in the notes folder,
+`mahjong-present-spec.md`); a partial texture upload, which the rects now make possible, saves 0.35 G of the main thread but not
+the driver's.
+
 ## Coverage check (2026-11-08)
 
 The first whole coverage check of Ancient Japan (`docs/COVERAGE.md`, "A game's whole check"). origrun's `--coverage`

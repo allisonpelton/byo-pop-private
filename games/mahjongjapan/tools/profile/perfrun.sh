@@ -17,6 +17,7 @@ case "$GAME" in
 	mahjongchina) EXE=MahjongEscapeAC.exe; SAVES='Mahjong Escape'; CHECK=build/logs/check/mahjongchina/game/script.txt ;;
 esac
 PROF=games/bejeweled/tools/profile
+TOOL="${TOOL:-$PROF/perfmin.py}"      # TOOL=games/mahjongjapan/tools/profile/threadprof.py: the same runs, each thread's cycles instead of the samples
 HERE=games/mahjongjapan/tools/profile
 WIN="${WIN:-20,50}"
 OFFSET="${OFFSET:-6}"      # the original's first click is this many seconds after the port's (perfscript.py); WIN moves with it for it
@@ -28,7 +29,7 @@ if [ "$KIND" = port ]; then
 	for i in $(seq 1 "$RUNS"); do
 		waitroom
 		d="$OUT/port$i"; rm -rf "$d"; mkdir -p "$d/user"
-		python -I "$PROF/perfmin.py" "$d/perf.json" "$WIN" -- "${EXEDIR:-$ROOT/build/native}/$GAME.exe" -gamedir="$ROOT/assets/$GAME" \
+		python -I "$TOOL" "$d/perf.json" "$WIN" -- "${EXEDIR:-$ROOT/build/native}/$GAME.exe" -gamedir="$ROOT/assets/$GAME" \
 			-userdir="$ROOT/$d/user" -logos -script="$ROOT/$OUT/port-script.txt" | tail -n 1 | cut -c1-400
 	done
 else
@@ -44,7 +45,7 @@ else
 		d="$OUT/orig$i"; rm -rf "$d"; mkdir -p "$d"
 		rm -f "$L"/*.usr "$L"/*.sav
 		OW="$(python -I -c "a,b='$WIN'.split(','); print('%g,%g' % (float(a) + $OFFSET - 1.3, float(b) + $OFFSET - 1.3))")"
-		timeout 200 python -I "$PROF/perfmin.py" "$d/perf.json" "$OW" --attach "$PART" > "$d/perfmin.out" 2>&1 &
+		timeout 200 python -I "$TOOL" "$d/perf.json" "$OW" --attach "$PART" > "$d/perfmin.out" 2>&1 &
 		PM=$!
 		build/origrun-bin/origrun.exe --exe "$(cygpath -w "$SD/game/$EXE")" --run "$ST" --script "$(cygpath -w "$PWD/$OUT/orig-script.txt")" \
 			--timeout 150 > "$d/origrun.log" 2>&1
