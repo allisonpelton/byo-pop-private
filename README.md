@@ -91,7 +91,7 @@ asked.
 | Big Money Deluxe | 0.73 s | 1.38 s | 4.0 and 4.7 s a minute | 7.1 and 7.2 s a minute | 124 MB | 42 MB |
 | BookWorm Deluxe | 1.2 to 1.8 s | 2.7 to 3.7 s | 7.3 to 12.2 % of one core (cycle counts; the port's window 1280x960 at render scale 2) | 15.7 to 26.7 % of one core (cycle counts; its window 640x480) | 97 MB | 41 MB |
 | Noah's Ark Deluxe | 0.60 s | 2.12 s | 8.0 s a minute | 18.1 and 19.0 s a minute | 63 and 66 MB | 67 MB |
-| Seven Seas Deluxe | 1.07 s | 1 to 2 s | 4.8 to 5.5 % of one core | 2.2 to 8.7 % of one core | 66 MB | 41.5 to 51.2 MB |
+| Seven Seas Deluxe | 1.07 s | 1 to 2 s | 6.7 G cycles a minute (window 640x480; 5.9 at the default 1280x960) | 10.5 G cycles a minute (medians; its window 640x480) | 66 MB | 41.5 to 51.2 MB |
 | Atomica Deluxe | 1.20 s | 1.07 s | 18 % of one core | 20 % of one core | 163 to 183 MB | 64 to 67 MB |
 | Mummy Maze Deluxe | 0.38 and 0.44 s | 4.5 s | 7.7 G cycles a minute | 8.7 G cycles a minute | 58 MB | 65 and 66 MB |
 | TipTop Deluxe | 0.6 to 0.9 s | 4.7 and 4.8 s | 14 and 20 % of one core | 5 % of one core | 82 and 83 MB | 46 MB |
