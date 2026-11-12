@@ -245,13 +245,77 @@ var ByopopMusic = (function () {
     }
     return 0;
   }
-  // An Ogg Vorbis file as interleaved stereo at the context's rate: the browser's decoder, else stb_vorbis in openmpt.wasm
+  // An Ogg Vorbis or WAV file as interleaved stereo at the context's rate: the browser's decoder, else an MS ADPCM WAV's (msAdpcm),
+  // else stb_vorbis in openmpt.wasm
   function decodeOgg(M, ctx, bytes) {
     return ctx.decodeAudioData(bytes.slice().buffer).then(function (buf) {
       var n = buf.length, l = buf.getChannelData(0), r = buf.numberOfChannels > 1 ? buf.getChannelData(1) : l, out = new Float32Array(n * 2);
       for (var i = 0; i < n; i++) { out[i * 2] = l[i]; out[i * 2 + 1] = r[i]; }
       return out;
-    }, function () { return stbOgg(M, bytes, ctx.sampleRate); });
+    }, function () {
+      var w = msAdpcm(bytes);
+      if (!w) return stbOgg(M, bytes, ctx.sampleRate);
+      var n = w.channels[0].length, rate = ctx.sampleRate, frames = Math.floor(n * rate / w.rate), out = new Float32Array(frames * 2);
+      for (var i = 0; i < frames; i++) {
+        var x = i * w.rate / rate, a = Math.floor(x), f = x - a, b = Math.min(a + 1, n - 1);
+        for (var c = 0; c < 2; c++) { var d = w.channels[Math.min(c, w.channels.length - 1)]; out[i * 2 + c] = d[a] * (1 - f) + d[b] * f; }
+      }
+      return out;
+    });
+  }
+  // An MS ADPCM WAV (format 2, which the browsers' decoders do not read: Word Harmony's music and some of its sounds) as
+  // {rate, channels: [Float32Array]}; null for any other file. Each block starts with each channel's predictor, step and two
+  // samples, then four-bit codes (a stereo byte's high half the left's), each predicted from the two before, the division
+  // rounding toward zero as Windows' own decoder's does
+  var ADAPT = [230, 230, 230, 230, 307, 409, 512, 614, 768, 614, 512, 409, 307, 230, 230, 230];
+  function msAdpcm(bytes) {
+    try {
+      var dv = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+      if (bytes.length < 12 || dv.getUint32(0) !== 0x52494646 || dv.getUint32(8) !== 0x57415645) return null;
+      var at = 12, fmt = -1, data = -1, size = 0, total = -1;
+      while (at + 8 <= bytes.length) {
+        var id = dv.getUint32(at), len = dv.getUint32(at + 4, true);
+        if (id === 0x666d7420) fmt = at + 8;
+        else if (id === 0x64617461) { data = at + 8; size = Math.min(len, bytes.length - data); }
+        else if (id === 0x66616374 && len >= 4) total = dv.getUint32(at + 8, true);
+        at += 8 + len + (len & 1);
+      }
+      if (fmt < 0 || data < 0 || dv.getUint16(fmt, true) !== 2) return null;
+      var ch = dv.getUint16(fmt + 2, true), rate = dv.getUint32(fmt + 4, true), align = dv.getUint16(fmt + 12, true);
+      var count = dv.getUint16(fmt + 20, true), coef = [], c, k;
+      if (ch < 1 || ch > 2 || align <= 7 * ch || !count || rate < 1000) return null;
+      for (k = 0; k < count; k++) coef.push([dv.getInt16(fmt + 22 + k * 4, true), dv.getInt16(fmt + 24 + k * 4, true)]);
+      var perBlock = 2 + (align - 7 * ch) * 2 / ch, frames = Math.ceil(size / align) * perBlock, out = [], n = 0;
+      for (c = 0; c < ch; c++) out.push(new Float32Array(frames));
+      for (var b = data; b + 7 * ch <= data + size; b += align) {
+        var end = Math.min(b + align, data + size), pred = [], step = [], s1 = [], s2 = [];
+        for (c = 0; c < ch; c++) {
+          if (bytes[b + c] >= count) return null;
+          pred.push(coef[bytes[b + c]]);
+          step.push(dv.getInt16(b + ch + c * 2, true));
+          s1.push(dv.getInt16(b + 3 * ch + c * 2, true));
+          s2.push(dv.getInt16(b + 5 * ch + c * 2, true));
+          out[c][n] = s2[c] / 32768;
+          out[c][n + 1] = s1[c] / 32768;
+        }
+        n += 2;
+        for (var q = b + 7 * ch; q < end; q++) {
+          for (var h = 0; h < 2; h++) {
+            var u = h ? bytes[q] & 15 : bytes[q] >> 4;
+            c = ch === 2 ? h : 0;
+            var x = ((s1[c] * pred[c][0] + s2[c] * pred[c][1]) / 256 | 0) + (u >= 8 ? u - 16 : u) * step[c];
+            x = x < -32768 ? -32768 : x > 32767 ? 32767 : x;
+            s2[c] = s1[c]; s1[c] = x;
+            step[c] = (ADAPT[u] * step[c]) >> 8;
+            if (step[c] < 16) step[c] = 16;
+            out[c][n] = x / 32768;
+            if (ch === 1 || h) n++;
+          }
+        }
+      }
+      if (total >= 0 && total < n) n = total;
+      return { rate: rate, channels: out.map(function (d) { return d.subarray(0, n); }) };
+    } catch (e) { return null; }
   }
   // stb_vorbis's 16-bit samples at the file's rate, made stereo float at rate (linear interpolation)
   function stbOgg(M, bytes, rate) {
@@ -479,8 +543,24 @@ var ByopopMusic = (function () {
           });
         });
         return steps.reduce(function (p, step) { return p.then(step); }, Promise.resolve());
-      }).then(function () { db.close(); return tunes; }, function (e) { db.close(); throw e; });
+      }).then(function () { db.close(); return numbered(tunes); }, function (e) { db.close(); throw e; });
     });
+  }
+
+  // Tunes of one place numbered as the game reaches them ("Level Theme 1" to "Level Theme 4") put in that order, in the places
+  // their files' order gave them in the list, the other tunes left where they are (the user, 2026-11-12, of Water Bugs' themes)
+  function numbered(list) {
+    var groups = {};
+    list.forEach(function (k, i) {
+      var m = /^(.*\S)\s+(\d+)$/.exec(k.where || "");
+      if (m) (groups[m[1]] = groups[m[1]] || []).push(i);
+    });
+    Object.keys(groups).forEach(function (g) {
+      var at = groups[g], n = function (k) { return parseInt(/\d+$/.exec(k.where)[0], 10); };
+      var sorted = at.map(function (i) { return list[i]; }).sort(function (a, b) { return n(a) - n(b); });
+      at.forEach(function (i, j) { list[i] = sorted[j]; });
+    });
+    return list;
   }
 
   // ---------- playing ----------
@@ -739,6 +819,19 @@ var ByopopMusic = (function () {
     });
 
     var list = make("div", "mu-list");
+    // Up and Down move from tune to tune in the list, as in a 1995 list box (the user, 2026-11-12: "Using arrow keys in music
+    // player won't navigate through the songs; instead, it scrolls"), Home and End to the first and the last; Enter or Space
+    // plays the one that has the focus, as a click does. With the focus elsewhere in the list they start at the tune playing.
+    list.addEventListener("keydown", function (ev) {
+      if (ev.altKey || ev.ctrlKey || ev.metaKey || ["ArrowDown", "ArrowUp", "Home", "End"].indexOf(ev.key) < 0) return;
+      var all = Array.prototype.slice.call(list.querySelectorAll(".mu-tune"));
+      if (!all.length) return;
+      var at = all.indexOf(document.activeElement);
+      if (at < 0) at = Math.max(0, all.indexOf(list.querySelector('.mu-tune[data-tune="' + current + '"]')));
+      var to = ev.key === "Home" ? 0 : ev.key === "End" ? all.length - 1 : at + (ev.key === "ArrowDown" ? 1 : -1);
+      ev.preventDefault();
+      all[Math.max(0, Math.min(all.length - 1, to))].focus();
+    });
     root.appendChild(list);
     [prevBtn, playBtn, stopBtn, nextBtn].forEach(function (b) { b.disabled = true; });
     seek.disabled = true;
@@ -753,7 +846,9 @@ var ByopopMusic = (function () {
       gameEl.textContent = "";
       names.title = sentence || "";
     }
-    function isModule() { var t = tunes[current]; return !!(t && t.kind === "module" && source); }
+    // (a module still loading counts: unloaded and not yet read again, it once showed the spectrum for a moment between two
+    // tunes; the user, 2026-11-12: "the spectral analyzer briefly pops up before returning to the tracker")
+    function isModule() { var t = tunes[current]; return !!(t && t.kind === "module" && (source || state === "loading")); }
     // The view the display shows: the chosen one, but the spectrum where a tune has no patterns (Ogg)
     function applyVis() {
       var wasSpectrum = spectrumOn;
@@ -1163,7 +1258,13 @@ var ByopopMusic = (function () {
       var ticket = {};
       play.ticket = ticket;
       if (!wired) { wired = true; wireMedia(); }
-      (M ? Promise.resolve() : decoder().then(function (m) { M = m; })).then(audio).then(function () {
+      // the context is made and resumed now, inside the click that chose the tune: Firefox lets a page start its sound only from
+      // the press itself, and a resume after the decoder and the files were read left it suspended and the tune silent (the
+      // user, 2026-11-12: "they're dead silent ... it began working when I launched a game")
+      var ready = audio();
+      ready.catch(function () {});
+      if (ctx && ctx.state !== "running") { try { ctx.resume(); } catch (e) {} }
+      (M ? Promise.resolve() : decoder().then(function (m) { M = m; })).then(function () { return ready; }).then(function () {
         return openExisting(t.game.persist).then(function (db) {
           if (!db) throw new Error("gone");
           var unique = t.keys.filter(function (k, j) { return t.keys.indexOf(k) === j; }), got = {};
@@ -1253,7 +1354,7 @@ var ByopopMusic = (function () {
       }
     }
     // The tracker view: the rows around the one heard, the cells from the decoder (each row read once a tune)
-    var rowCache = {}, shownRow = "";
+    var rowCache = {}, shownRow = "", shownHead = "";
     // the channels shown: only those with a note somewhere (read once a tune), as many whole columns as the view's width holds,
     // from firstChannel (the scroll bar's); each cell whole, or not shown
     // the instruments' names by their number as the cells write it ({"1A": "Bass"}), from the decoder's or the game's list
@@ -1634,15 +1735,27 @@ var ByopopMusic = (function () {
       }
       // each a span that a click mutes or brings back (Ctrl-click: that channel alone), a muted one dimmed and struck through
       if (muted.id !== feed.id) muted = { id: feed.id };
-      trackerHead.textContent = pad("", String(mark[3] - 1).length) + " ";
-      showing.forEach(function (c, i) {
+      // the header is built again only when what it shows changes, so that a press on a channel finds the same element when
+      // it is released (rebuilt every row, a click often lost its target, and Firefox then gives the click to the display)
+      var heads = showing.map(function (c) {
         var nm = width - 3 >= HEAD_NAME && chanIns[c] && names[chanIns[c]];
-        if (i) trackerHead.appendChild(document.createTextNode("│"));
-        var span = make("span", muted[c] ? "mu-ch mu-ch-off" : "mu-ch", pad(two(c + 1) + (nm ? " " + nm : ""), width));
-        span.setAttribute("data-ch", String(c));
-        trackerHead.appendChild(span);
+        return { c: c, text: pad(two(c + 1) + (nm ? " " + nm : ""), width), full: nm ? two(c + 1) + " " + names[chanIns[c]] : "" };
       });
-      if (fxWidth) trackerHead.appendChild(document.createTextNode("│" + pad(T("music.fx_head"), fxWidth)));
+      var headKey = String(mark[3]) + "|" + fxWidth + "|" + heads.map(function (h) { return h.c + ":" + h.text + ":" + h.full + ":" + (muted[h.c] ? 1 : 0); }).join("|");
+      if (headKey !== shownHead) {
+        shownHead = headKey;
+        trackerHead.textContent = pad("", String(mark[3] - 1).length) + " ";
+        heads.forEach(function (h, i) {
+          if (i) trackerHead.appendChild(document.createTextNode("│"));
+          var span = make("span", muted[h.c] ? "mu-ch mu-ch-off" : "mu-ch", h.text);
+          span.setAttribute("data-ch", String(h.c));
+          // the instrument's whole name, which the column may cut (the user, 2026-11-12: "Should be able to hover over them to
+          // view the full name"); it is the instrument the channel played last, so it changes as the channel plays another
+          if (h.full) span.title = h.full;
+          trackerHead.appendChild(span);
+        });
+        if (fxWidth) trackerHead.appendChild(document.createTextNode("│" + pad(T("music.fx_head"), fxWidth)));
+      }
       var style = fxWidth ? fxStyle(feed) : "";
       trackerRows.textContent = "";
       // the view stays inside the pattern (the user, 2026-11-09: "it should never scroll empty lines into the top or bottom"): the
@@ -2324,7 +2437,10 @@ var ByopopMusic = (function () {
       requestAnimationFrame(function frame() {
         ticking = false;
         showTime();
-        var seen = onScreen(), front = seen ? frontGame() : null;
+        // a game is followed only while the player plays nothing of its own: its own tune is the one heard then (the desktop
+        // hushes the games, web/deskapps.js), so the views and the seek bar are its (the user, 2026-11-12: "If a game is open while
+        // I use the music player, jumping around in the song does not actually skip the audio")
+        var seen = onScreen(), own = state === "playing" || state === "loading", front = seen && !own ? frontGame() : null;
         if (seen) { followGame(front); drawTracker(); drawPiano(); drawScore(); drawSpectrum(); } else unfollow();
         var settling = levels.some(function (l, i) { return l > 0.001 || peaks[i] > 0.001; });
         if (state === "playing" || front || (!spectrum.hidden && settling)) { ticking = true; requestAnimationFrame(frame); }
@@ -2340,7 +2456,8 @@ var ByopopMusic = (function () {
     // its module where the game plays one (the game's mixer through byopop_music_*, platform/Audio.cpp), the spectrum the game's
     // own output, from an analyser on its sound's last node. Otherwise they show the player's own tune, as before. The player's
     // own playback goes on as it was; following changes nothing the game plays or what is heard (a silent game stays silent: its
-    // spectrum is then flat), except where the player moves it (the seek bar, Previous and Next: matchTrack below).
+    // spectrum is then flat), except where the player moves it (the seek bar, Previous and Next: matchTrack below). While the
+    // player plays or loads a tune of its own, nothing is followed: that tune is the one heard.
     var follow = null, followSerial = 0;
     function frontGame() { try { return window.ByopopApps && ByopopApps.frontFrame ? ByopopApps.frontFrame() : null; } catch (e) { return null; } }
     // the game's module, once its runtime is up and if its build has the calls
@@ -2638,7 +2755,9 @@ var ByopopMusic = (function () {
     var asked = rows;
     window.addEventListener("resize", function () { if (!splitDrag) setRows(asked, false); });
     if (window.ResizeObserver) try { new ResizeObserver(function () { if (!splitDrag) setRows(asked, false); }).observe(root); } catch (e) {}
-    visEl.addEventListener("click", function (ev) { if (!trackerScroll.contains(ev.target)) nextVis(); });
+    // (not the click that ends a press on the tracker's header, which Firefox may give to the display when the header changed)
+    var headDownAt = 0;
+    visEl.addEventListener("click", function (ev) { if (Date.now() - headDownAt < 1500) return; if (!trackerScroll.contains(ev.target)) nextVis(); });
     // a click on a channel's number in the tracker's header is the channel's, not the display's: a click mutes it or brings it
     // back, Ctrl-click or a double-click plays it alone (again on the channel alone, every channel back; the user, 2026-11-11:
     // "Add double clicking a tracker channel to isolate its sound"). A plain click waits out the double-click's time before
@@ -2656,7 +2775,12 @@ var ByopopMusic = (function () {
       return best;
     }
     var pendingClick = null, DOUBLE_MS = 300;
-    trackerHead.addEventListener("click", function (ev) {
+    // on the press, not the click: a click needs its press and release on the same element, and the names in the header change
+    // as the channels play other instruments (the user, 2026-11-12: "Still hard to actually click the channel to mute")
+    trackerHead.addEventListener("click", function (ev) { ev.stopPropagation(); });
+    trackerHead.addEventListener("mousedown", function (ev) {
+      if (ev.button !== 0) return;
+      headDownAt = Date.now();
       ev.stopPropagation();
       var span = headSpan(ev);
       if (!span) return;
@@ -2802,6 +2926,6 @@ var ByopopMusic = (function () {
 
   // (the Sounds window, web/sounds.js, reads the games' files with the same read-only reader, draws its Stop and speaker with the
   // same pictures, and falls back on the same stb_vorbis decoder)
-  return { init: init, patternRe: patternRe, glyph: glyph, decoder: decoder, stbOgg: stbOgg,
+  return { init: init, patternRe: patternRe, glyph: glyph, decoder: decoder, stbOgg: stbOgg, msAdpcm: msAdpcm, numbered: numbered,
     files: { open: openExisting, list: gameFiles, read: readFile } };
 })();
