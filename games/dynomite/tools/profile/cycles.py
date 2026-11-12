@@ -24,7 +24,15 @@ update, as on a player's windowed screen; full screen, its Flip waits for the ve
 runs windowed with WaitForVSync on (through origrun's --reg-map popcap), so its draw step (SexyApp vf06, 0x488920)
 sleeps out the refresh period: at most one draw a refresh, as in full screen on a player's 60 Hz screen (a player's copy
 starts in full screen: partner.xml's DefaultWindowed is False). The port's draws are counted too (its app's mDrawCount
-and mUpdateCount, read from outside at each end); its present waits for the vertical blank outside -fast.
+and mUpdateCount, read from outside at each end); its present waits for the vertical blank outside -fast. The port's
+window is 2x the game's size where rundesk's desktop has room (a player's default window); with CYC_WINDOWSCALE=1 it is
+the game's own 640x480, as the original's window (-windowscale=1). Its result names the window and renderer it got, from
+its log's display lines (docs/TEST_COMMANDS.md, "The window line").
+
+With CYC_SPLIT=1 a run also splits its cycles into update, draw and present, to find where they go (docs/TEST_COMMANDS.md,
+"The cycle split"): the port with -cyclesplit (split.jsonl, snapshots `a` and `b` at the stretch's ends), the original
+with origrun's --count over count.txt's functions (counts.jsonl, the same labels). tools/cyclesplit.py reads the two
+files. The split's readings cost cycles of their own, so a split run is never one of the measured ones.
 """
 import ctypes
 import ctypes.wintypes as W
@@ -172,15 +180,16 @@ def others():
     return n
 
 
-def with_marks(src, dst, first, last, drop):
-    """The script without `drop` lines, with a `state` line at `first` and at `last` (in update order)."""
+def with_marks(src, dst, first, last, drop, more=()):
+    """The script without `drop` lines, with a `state` line at `first` and at `last` and the (update, line)s of `more`
+    (in update order)."""
     lines = []
     for line in open(src):
         w = line.split()
         if not w or any(d in line for d in drop):
             continue
         lines.append((int(w[0]), line.rstrip('\n')))
-    lines += [(first, '%d state' % first), (last, '%d state' % last)]
+    lines += [(first, '%d state' % first), (last, '%d state' % last)] + list(more)
     lines.sort(key=lambda kv: kv[0])
     with open(dst, 'w', newline='\n') as f:
         f.write(''.join(l + '\n' for _, l in lines))
@@ -256,12 +265,18 @@ def port(out, script, seed, first, count):
     shutil.rmtree(out, ignore_errors=True)
     os.makedirs(out)
     user = new_user(out)
-    sc = with_marks(script, os.path.join(out, 'script.txt'), first, first + count, ['screenshot', ' state'])
+    split = os.environ.get('CYC_SPLIT') == '1'
+    sc = with_marks(script, os.path.join(out, 'script.txt'), first, first + count, ['screenshot', ' state'],
+                    [(first, '%d cyclesplit a' % first), (first + count, '%d cyclesplit b' % (first + count))] if split else [])
     n0 = others()
     logpath = os.path.join(out, 'game.log')
     log = open(logpath, 'wb')
-    p = subprocess.Popen([exe, '-gamedir=' + gamedir, '-userdir=' + user, '-seed=' + seed, '-script=' + sc],
-                         cwd=out, stdout=log, stderr=subprocess.STDOUT)
+    args = [exe, '-gamedir=' + gamedir, '-userdir=' + user, '-seed=' + seed, '-script=' + sc]
+    if os.environ.get('CYC_WINDOWSCALE'):
+        args.append('-windowscale=' + os.environ['CYC_WINDOWSCALE'])
+    if split:
+        args.append('-cyclesplit=' + os.path.join(out, 'split.jsonl'))
+    p = subprocess.Popen(args, cwd=out, stdout=log, stderr=subprocess.STDOUT)
     h = k32.OpenProcess(QUERY_LIMITED | VM_READ | SYNCHRONIZE | TERMINATE, False, p.pid)
     threads = Threads(p.pid)
     marks, pos, seen = [], 0, 0
@@ -282,6 +297,9 @@ def port(out, script, seed, first, count):
     log.close()
     res = {'side': 'port', 'exit': p.returncode, 'others_start': n0, 'others_end': others(),
            'whole_run_gcycles': round(whole / 1e9, 3) if whole else None, 'log_bytes': os.path.getsize(logpath)}
+    with open(logpath, 'rb') as f:
+        res['display'] = [l[l.find('display: ') + 9:].strip() for l in f.read().decode('latin-1').splitlines()
+                          if 'display: ' in l]
     if len(marks) == 2:
         res.update(stretch(marks[0], marks[1], threads.name))
         res['updates'] = count
@@ -321,6 +339,13 @@ def orig(out, script, seed, first, count):
     with open(script) as f, open(sc, 'w', newline='\n') as g:
         g.write(''.join(l for l in f if ' shot ' not in l and ' screenshot ' not in l))
     last_input = max(int(l.split()[1]) for l in open(sc) if l.startswith('at '))
+    split = os.environ.get('CYC_SPLIT') == '1'
+    if split:   # origrun's --count snapshots at the stretch's ends, labelled as the port's
+        lines = open(sc).read().splitlines()
+        at = [l for l in lines if l.startswith('at ')] + ['at %d count a' % first, 'at %d count b' % (first + count)]
+        at.sort(key=lambda l: int(l.split()[1]))
+        with open(sc, 'w', newline='\n') as g:
+            g.write(''.join(l + '\n' for l in at + [l for l in lines if not l.startswith('at ')]))
     shutil.rmtree(os.path.dirname(COPY), ignore_errors=True)
     shutil.copytree(STAGE, COPY, ignore=shutil.ignore_patterns('*.HS', '*.hs', 'SLOT*.SAV', 'STOMPED.TMP'))
     subprocess.run([sys.executable, '-I', 'games/dynomite/tools/identical/mkhs.py', COPY], check=True)
@@ -338,7 +363,10 @@ def orig(out, script, seed, first, count):
             subprocess.run(['reg', 'add', HKCU_KEY, '/v', name, '/t', 'REG_DWORD', '/d', '1' if name == 'WaitForVSync' else '0',
                             '/f'], capture_output=True)
     try:
-        res = orig_play(out, sc, seed, first, count, last_input, origrun, ['--reg-map', 'popcap'] if vsync else [])
+        res = orig_play(out, sc, seed, first, count, last_input, origrun, (['--reg-map', 'popcap'] if vsync else []) +
+                        (['--count', os.path.join(root, 'games', 'dynomite', 'tools', 'profile', 'count.txt')] if split else []))
+        if split and os.path.exists(os.path.join(root, 'build', 'origrun', 'dyncyc', 'counts.jsonl')):
+            shutil.copy(os.path.join(root, 'build', 'origrun', 'dyncyc', 'counts.jsonl'), os.path.join(out, 'counts.jsonl'))
     finally:
         if vsync:
             subprocess.run(['reg', 'import', settings], capture_output=True)

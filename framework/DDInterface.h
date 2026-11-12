@@ -61,10 +61,11 @@ public:
 	bool mCan3D;  // port: the renderer is hardware accelerated (what mIs3D is before a game switches 3D off)
 	bool mIsWindowed;
 	bool mVSync;
-	// The shortest time between two frames shown, in milliseconds (0: no limit; the renderer's vsync paces its frames).
-	// DrawDirtyStuff draws again only once this has passed since the last draw, and the widgets stay dirty meanwhile, so no
-	// change is lost: a display that has no vsync of its own (SurfaceDisplay's window surface) sets it to the refresh interval.
-	int mMinPresentInterval;
+	// port: the pace of the drawing on a renderer that no vertical blank holds (SDL's software renderer); see FrameHeldByPace
+	double mPaceIntervalMs;   // the display's refresh interval, 0 when the renderer is held by vsync (no pace)
+	double mPaceNextMs;       // the earliest time of the next frame, in ms from mPaceOriginMs
+	unsigned int mPaceOriginMs;
+	bool mPaceStarted;
 	bool mPixelPerfect;  // nearest filtering for unscaled 1x blits when the screen is scaled (default true)
 	int mFrameCount;
 
@@ -213,6 +214,11 @@ public:
 	// Frame
 	virtual void BeginFrame();
 	virtual void Present();
+	// port: SDL's software renderer is held by no vertical blank, so the loop draws as often as it has time: every update (100 a
+	// second in Bejeweled 2), far more than a display shows. True when a frame drawn at theNowMs (SexyAppBase's millisecond clock) would
+	// come sooner than the display's refresh rate allows; false when it is due, and the next one is set one interval on (or from now,
+	// when the frames take longer than that). A renderer held by vsync (a GPU's) is never held here.
+	bool FrameHeldByPace(unsigned int theNowMs);
 
 	// Converts window coordinates (as reported by SDL mouse events) to logical screen coordinates.
 	virtual void WindowToLogical(int theWindowX, int theWindowY, int* theX, int* theY);

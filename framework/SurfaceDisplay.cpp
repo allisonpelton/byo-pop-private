@@ -170,24 +170,21 @@ bool SurfaceDisplay::EnterSurfaceMode(int theScale)
 	mRenderScale = theScale;
 	mPendingAll = true;
 	mModeChanges++;
-	// no vsync here: at most one frame in each refresh interval of the window's display (a -fast run draws on its own
-	// clock and is not held back)
-	mMinPresentInterval = 0;
-	if ((mApp == NULL) || (!mApp->mFastMode))
-	{
-		int aRefresh = 0;
-		SDL_DisplayMode aMode;
-		if (SDL_GetCurrentDisplayMode(std::max(0, SDL_GetWindowDisplayIndex(mWindow)), &aMode) == 0)
-			aRefresh = aMode.refresh_rate;
-		mMinPresentInterval = 1000 / ((aRefresh > 0) ? aRefresh : 60);
-	}
+	// no vertical blank holds the window's surface: its frames are paced at the display's refresh rate by the framework's
+	// own pace (FrameHeldByPace, which SexyAppBase::Process asks before it draws; not under -fast, -drawevery or -hold)
+	SDL_DisplayMode aMode;
+	int aDisplay = SDL_GetWindowDisplayIndex(mWindow);
+	int aRate = ((aDisplay >= 0) && (SDL_GetCurrentDisplayMode(aDisplay, &aMode) == 0)) ? aMode.refresh_rate : 0;
+	mPaceIntervalMs = 1000.0 / ((aRate > 0) ? aRate : 60);
+	mPaceStarted = false;
 	return true;
 }
 
 void SurfaceDisplay::RestoreRenderer()
 {
 	mSurfaceMode = false;
-	mMinPresentInterval = 0;
+	mPaceIntervalMs = 0;  // DDInterface::Init sets it again from the renderer it makes
+	mPaceStarted = false;
 	SDL_DestroyWindowSurface(mWindow);
 	int aResult = DDInterface::Init(mWindow, mVSync);
 	if (aResult != RESULT_OK)

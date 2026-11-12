@@ -141,15 +141,82 @@ particles, t4 s43693 shake of (-2, 0) and particles, t5 and t7 s40450 a spark).
 
 **Two things that fooled the comparison, and the fixes.** (1) With no value in the registry the port starts in full screen and in 3D
 (its default), and the original in the sandbox has no GPU, so its game reads `Is3D` as 0 and draws into a software screen: the
-screens are compared with `RM_REG="Is3D=0,ScreenMode=0"` (windowed, no 3D); a 3D comparison needs `--sandbox-vgpu`, which is allowed
-only between 22:00 and 08:00, and was not made. (2) shotdiff searches a global shift of up to 8 pixels to excuse a window frame
+screens are compared with `RM_REG="Is3D=0,ScreenMode=0"` (windowed, no 3D); the 3D game was compared on the host's desktop on the night
+of 2026-11-12 (the next section). (2) shotdiff searches a global shift of up to 8 pixels to excuse a window frame
 that is a pixel off, and it can excuse a whole screen that is truly moved: a dialog that was dragged 8 pixels came out as "shifted"
 and its only box as a line of text. A pair's `shift` in `summary.json` is read now, and a nonzero one is judged; `lagscan.py` takes
 its alignment from the label's own frame (it took it from the window's first frame, which could be another screen).
 
+**3D screens (2026-11-12, overnight).** The original in Windows Sandbox has no GPU, so phase two compared it in 2D. The 3D game was compared on the
+host's visible desktop (CLAUDE.md, "Overnight, desktop and sound allowed"): the copy of the original under `C:/byo-og/rm3d` ran with the stand-in's
+silent sound and scripted cursor, `Is3D` 1 in its registry key (restored after each run; the game reads the flag at update 2708, "3D flag 1"), on the
+wall clock, and `tools/shots/visrun3d.py` read the update counter with the process held, posted the tour's mouse messages and took each shot with
+`PrintWindow` while the game was held. A shot is refused when another window covers the game's, so a run waits for a desktop that no other game's window
+has been on for three minutes, and a refused shot counts as a failed run, which `build/ph2/night2.sh` repeated. The port ran the same steps with
+`Is3D=1,ScreenMode=0` under rundesk (`mkport3d.py`, `lag3d.py`; the frozen exe of the build, `PORT_EXE`), an input of the original read at update C of
+its counter being the port's script line C+1. On the real clock a held game goes on for a few updates before the shot is drawn (the passes that run two
+updates at once, `docs/ORIGRUN.md`), so the port takes a shot at every update from C-1 to C+12 of each of the original's shots, and the frame that differs
+from it in the fewest pixels is its pair (the offset is mostly +1 and +2, up to +11); `lag3d.py` also tries each frame moved sideways by up to three
+columns (the board's shake moves the whole picture by that, see the oddities) and prints the shift it used. shotdiff compares the pairs (`lag3d.sh <tour>`,
+run id `<tour>3dbest`). Two checks that shotdiff's boxes do not make: `tourstruct.py` counts the pixels that still differ after both pictures are blurred
+by a 7x7 box (the sub-pixel noise of rotated and additive sprites averages out, a moved or missing piece does not), and `cells3d.py` names the board
+cells that differ after the blur.
+
+| tour | pairs | match | faint | differ | shots with more than 40 pixels that differ after the blur |
+|---|---|---|---|---|---|
+| u2 | 99 | 18 | 41 | 40 | 18 |
+| t1 | 30 | 2 | 14 | 14 | 7 |
+| t3 | 90 | 26 | 37 | 27 | 5 |
+| t4 | 64 | 5 | 16 | 43 | 29 |
+| t5 | 26 | 2 | 14 | 10 | 3 |
+| t6 | 33 | 7 | 10 | 16 | 8 |
+| t7 | 35 | 2 | 14 | 19 | 6 |
+| hf1 (all hint flags set) | 62 | 3 | 22 | 37 | 21 |
+| o2o (credits) | 4 | 0 | 0 | 4 | 4 (the Options dialog behind it) |
+| o3o (Hardware Acceleration box, twice) | 11 | 5 | 2 | 4 | 4 (the Options dialog) |
+| dd2 (drag the dialogs) | 4 | 2 | 2 | 0 | 0 |
+
+In 3D shotdiff calls far more boxes "differ" than in 2D, because every rotated, stretched or additive sprite has edges that come out a little differently
+(kind 3 below); the blurred count is the one that tells a piece that is wrong from an edge. Every shot with more than 40 pixels after the blur was looked
+at, by its cells (`cells3d.py`), its regions and by eye, and each belongs to one of these kinds:
+
+1. **Static pictures are identical.** Tiles, panels, text, dialogs, lanterns and rockets match pixel for pixel at the best frame in every tour; t5 has no
+   board cell that differs after the blur. The Options dialog (o3o s300104, s300504) matches the original's in both halves at a vertical offset of +18 and
+   -18 pixels (the removed More Games row), the credits dialog (o2o) and the screen behind it exactly except for the strip of the port's shorter Options
+   dialog, and the Options dialog's 3D switch matches: after Done with the box unticked the original's screen is the software one and the port's is, at
+   0 pixels (s300204 to s300400).
+2. **The oddities of phase two, seen in 3D too.** The next tile's column jitter and the board's first column (the regions at x 192 to 304 of u2 s41350 to
+   s41737, t6 s41350 to s41800, t1 s302982 and others), the particles (sparks of u2 s41523, t3 s71842, t7 s40450 and s40465; the explosions and rockets
+   of u2 s45985 and s46000), the board's shake (u2 s45985 and s46000 are the best frames at a shift of two columns), the menu dragon (t3 s82000: its
+   animation draws from the global generator, so its pose follows the draw count), and the tiles that swing after a click (u2 s41800 and t3 s41500: the swing's
+   phase shows the click's timing to within an update; in s41800 the three tiles in the swing are each best at another offset, +2 and +9).
+3. **Rotated, stretched and additive sprites differ at their edges** (the head's tilt, a tile that swings after a click, sparks, explosions and flames):
+   a few hundred to a few thousand pixels a shot, correlated 0.95 to 0.99 with the original, a sub-pixel shift of about +0.5 to +0.75 pixel in x at best.
+   Listed under the oddities.
+4. **A click burst on the real clock** (t4 s43750 onward: five lower-right tiles are turned differently, the original shows a red path through them where
+   the port shows white). Not the port: the state log of the port shows the clicks of the burst taking effect only on the updates the board allows, and
+   delaying only those clicks (script updates 6396 to 6413) by one update gives the original's board (the cells that differ go from six to one; delays of
+   -4 to +4 were tried), so the original read them one update later than C+1: the driver's log has the game at about 90 updates a second there (6 updates
+   in 67 ms), a catch-up pass that runs two updates before the next messages are read. A uniform shift of all inputs changes nothing (it only moves the
+   whole run in time), so this is a limit of the run, not of the port (the oddities).
+5. **The Hardware Acceleration box, the one difference of the port (found by o3o, fixed).** The tour unticks the Options dialog's Hardware Acceleration
+   box, shows the game switching to the software screen, ticks it again and shows the switch back. The original lets the box be ticked again; the port
+   answered "Not Supported: Hardware Acceleration cannot be enabled on this computer" at the second tick. The cause is in the shared
+   framework, whose `Is3DAccelerationSupported` and `Is3DAccelerationRecommended` returned whether 3D is on now (`Is3DAccelerated`), so they turned
+   false once the game had switched it off; the original's tester answers from the card (its result does not change with the game's choice). They now
+   answer what the renderer can do (`DDInterface::mCan3D`), commit 1821bccf (`shared:`). The replay of o3o with the fix matches the original's dialogs at
+   the same offsets (s300504 and s300554 identical in both halves, s300604 at 0 pixels, s300610 and s300700 faint with no blurred difference).
+   The other games that call these two functions (AstroPop, Bejeweled 2 and Twist, the Bookworms, Typer Shark) take the change with the framework; their
+   checks are the coordinator's to run (`tools/check.sh --changed`).
+
+The first Options tour for the port (o1, written for the port's layout) clicked the original's More Games row and the Hardware Acceleration box when it was
+played in the original, whose dialog has the row: the stand-in's launch guard failed the launch (the net log has "LAUNCH BLOCKED ... steam://publisher/popcap")
+and nothing reached the machine. The tours played in the original now are written for its layout (o2o, o3o) and the port plays their twins with its own
+coordinates (o2p, o3p; `lag3d.py` and `mkport3d.py` read them), so a tour never clicks a link in the original.
+
 ### The changes of this phase
 
-The first group is c17b6535 (found by the u2 tour and the comparison of the tours' first shots), the second 150ae162.
+The first group is c17b6535 (found by the u2 tour and the comparison of the tours' first shots), the second 150ae162, the last row 1821bccf (found by the 3D tour o3o).
 
 | difference | cause in the original | what the port does now |
 |---|---|---|
@@ -168,6 +235,7 @@ The first group is c17b6535 (found by the u2 tour and the comparison of the tour
 | Rotated pieces were smooth | with `Is3D` 0 the original draws rotations in software (DDImage::BltRotated, 0x441127) and keeps the last frame on its screen | the framework's software transforms and kept screen are on when the game is not 3D |
 | A whole game left 100 KB behind (150ae162) | the original's end of a game (0x42e9f0) removes the board from the widget manager and deletes it; the port only removed it | the board is deleted; 120 and 140 cycles of games, dialogs and the game-over flow (`driver/leakcheck.py`) end flat |
 | The board's game-over kind (150ae162) | the constructor (0x41ae80) sets it to 3 | the constructor sets it; nothing reads it before the game over sets it, but the save file holds it |
+| The Hardware Acceleration box could not be ticked again after it was unticked (1821bccf, shared) | the original's 3D tester answers from the card, so the box can be ticked again whatever the game has switched | `Is3DAccelerationSupported` and `Is3DAccelerationRecommended` answer what the renderer can do (`mCan3D`), not whether 3D is on now; o3o's dialogs and 3D switch match |
 
 ### Oddities and deviations that stay
 
@@ -187,6 +255,27 @@ The first group is c17b6535 (found by the u2 tour and the comparison of the tour
   would be sharper than the original.
 - **The original's loading takes more than 10000 updates in the sandbox** (a loading thread on the wall clock, updates on the virtual one), so a tour's
   first click belongs at update 40000 or later.
+- **In 3D the edges of rotated, stretched and additive pictures differ from the original's** (2026-11-12). The head when it tilts, a tile that swings
+  after a click (`DrawTilted`), the sparks, explosions and flames (additive strips) come out of the port a little differently from the original's Direct3D:
+  a few hundred to a few thousand pixels a shot, each below the visible (the pictures correlate 0.95 to 0.99; the best sub-pixel shift of a tilted tile or
+  the head is about +0.5 to +0.75 pixel in x), and the same pictures drawn without rotation, stretch or blending are identical pixel for pixel. The head
+  differs more between the original's 2D and 3D (6457 pixels) than between the port's two (1674), so the port's GPU path is nearer the original's software one than
+  the original's own Direct3D is. Not found after more than an hour: a half pixel added to `DrawTrianglesTex`'s vertices (the framework's comment says D3D7
+  takes them without the half-pixel correction that Blt uses), and nearest sampling instead of bilinear, each made the difference no smaller. The Direct3D 7
+  textured quads of the original go through the driver's own filter and rounding, which the SDL renderer does not copy. Not chased (the rule of 2026-11-01).
+- **The 3D run on the wall clock reads some inputs one update later than the update after the one it noted** (the harness, not the port). The driver holds
+  the game, reads its counter C and posts the input, which the game reads at update C+1; when the game is in a pass that runs two updates
+  (the log has 6 updates in 67 ms around the burst of t4), the input is read after both. Of a burst of six clicks on a falling board (t4, updates 6396 to
+  6413) the original's board is reproduced only when those clicks, and only those, come one update later than the port's mapping, and in the arcade mode
+  the tile a click turns depends on the update (`MouseUp` turns the tile that is under the pointer then). A uniform delay of every input of the run changes
+  nothing (it moves the whole run in time), so a shot after such a burst does not match, and the first board difference of that run (t4 s43750) is
+  followed by every later shot. The port's state log is not at fault: it takes the same inputs on the same updates as the script says. A driver that held the game only
+  between two passes might not meet it (not tried); the run is not repeated for that.
+- **The board's shake picks the wrong frame of the lag scan** (2026-11-12). The shake (above) moves the whole picture of a frame by up to the shock's
+  size, so a frame at the right update can differ from the original's over the whole screen and the pixel count then prefers another update (hf1 s44606: +7
+  with 52714 pixels, +2 with 11577 pixels when the same frames are taken in a run with fewer shots, the state log of the two runs the same line by line).
+  `lag3d.py` prints the offset and the pixels of the best frame so that this shows, and it now also tries each frame moved by up to three columns (a shift costs
+  200 pixels in the choice, so a frame that fits without one keeps its place); with that, u2 s45985 and s46000 pick the frame the shake fits (+2, shifted by two) and hf1 s44606 picks +2 shifted by one column (13664 pixels, 1652 after the blur: the explosion and the board's shake).
 
 ### What else was checked
 
@@ -237,31 +326,6 @@ games start at once) went through the sandbox's registry preset (`tools/shots/hf
 one-pixel shift (the pause shot of a strategy game). The Options dialog with `HintsDisabled` set (tour o1, `hf2.reg`) shows the box ticked in
 both, with the same texts, boxes and sliders, and differs only by the More Games row, as in every o1 run.
 
-**Real input.** `driver/play.py` played three whole games (arcade, classic, strategy) through posted SDL events in each of four
-  settings: windowed and full screen (Alt+Enter), each in 2D (`Is3D=0`) and in 3D; all four ended at the menu after the game over
-  flow, through every hint dialog. On the web, the page check's own run and phase one's driver run (`?player=1&silent=1&driver=move`)
-  play through DOM events.
-
-**Focus in full screen.** `play.py --full` puts the window in full screen with Alt+Enter, and in the middle of each game sends a
-focus loss and a regain: the game pauses (paused 1 after the loss) and goes on (0 after the regain), and all three games ended
-normally.
-
-<!-- private -->
-**What origrun would need to hold this original at an update** (spec for the shared tool). This build of the framework has no
-`mUpdateAppState` and no pending-draw flag: the byte at app+0x45a (0x4f68ba) is the "loaded" flag the loading screen waits for
-(set once, 1 for good), and app+0x459 is its "load started" flag, so `--pending-draw` and `--draw-empty` cannot be given. The
-update step is the function at 0x469593 (the counter at app+0x3f0 = 0x4f6850 is incremented at 0x46966f, after which the step
-calls 0x4302eb and ends with a jump to 0x458676); its vtable slot is at 0x4c7c38 (slot of the next function, 0x4696a7, at
-0x4c7c48). What origrun needs for a shot that shows update N is the address of the function that draws a frame to the screen (the
-caller of the drawing after an update, not found: nothing calls 0x469593 directly, it is virtual): with its address, the shot
-would be taken when that function returns after the counter has read N. A hook on the instruction after 0x46966f would give "the
-update N has run" but not "has been drawn".
-<!-- /private -->
-
-**Web.** The web build under Node played the same tours as the native one (the log, and its shots compared with the native port's):
-the only differences are sub-pixel edges of rotated tiles and of the head, which Emscripten's software drawing and the native build
-draw a fraction apart. Not chased.
-
 **Real input.** `games/rocketmania/tools/driver/play.py` plays whole games natively under rundesk with `-commands` and `-realinput`:
 it asks `state` and `move` (the port's bot, `testhooks/Commands.cpp`: the play link, a dialog's button, the next mode button, the
 clicks that turn a path across the board), sends each step as a real SDL event and, after 90 seconds of play, `lose`, so the game
@@ -280,15 +344,16 @@ the update the game has loaded: the original looks at the thread's progress only
 deviation, `LoadingScreen::Update`; nothing else about the game's start changes).
 
 **Fixes mod.** The phase found no behaviour of the original that is a bug changing how the game plays (scores, timing, rules) and
-that the port keeps: the faults found were fixed in the port as they broke play or were leaks (phase one's table). So the game has no
-fixes mod yet and nothing is listed under "Fix candidates".
+that the port keeps: the faults found were fixed in the port as they broke play or were leaks (phase one's table). The 3D comparison added no candidate
+either (its one fault, the Hardware Acceleration box, was a fault of the port and is fixed). So the game has no fixes mod to make and nothing is listed
+under "Fix candidates".
 
 ## Not done, and what remains
 
-- **3D screens against the original.** The original in Windows Sandbox has no GPU, so every screen of it was compared in 2D (`Is3D=0`
-  in both). The 3D game's screens are checked by the page check and by real-input play in 3D, not pixel by pixel (the sandbox run with a virtual GPU is planned for the night of 2026-11-11); a comparison needs
-  `orig.sh ... --sandbox-vgpu`, allowed only between 22:00 and 08:00.
+- **3D screens in full screen.** The 3D comparison of 2026-11-12 was windowed (`ScreenMode=0`) on the host's desktop; the original's full-screen 3D
+  was not compared pixel by pixel, only played by real input in the port (the four settings above). The sub-pixel edges of rotated and additive sprites in
+  3D (the oddities) are the one visible-at-zoom difference that remains.
 - **The original's links.** The More Games button is out of the port, as the rule of 2026-11-07 asks; the original's own link buttons are never
   clicked.
-- **After this step** (CLAUDE.md's order): the fixes mod (no candidates so far), the coverage check, the performance pass, taking out code
+- **After this step** (the coordinator's order of 2026-11-12): the fixes mod (no candidates, so not needed), the performance pass, taking out code
   the game does not need, the readability pass, and the check against the PopCap Game Collection version.

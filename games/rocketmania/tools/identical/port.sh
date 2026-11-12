@@ -11,5 +11,5 @@ if [ -n "$RM_REG" ]; then
 	{ echo "; Settings (emulated Windows registry, HKEY_CURRENT_USER)"; echo; echo '[SOFTWARE\PopCap\RocketMania]'
 	  for kv in ${RM_REG//,/ }; do echo "${kv%%=*}=dword:${kv#*=}"; done; } > "$D/user/registry.ini"
 fi
-"$RUNDESK" "$(win build/native/rocketmania.exe)" -userdir="$(win "$D/user")" -fast -drawevery "$@" > "$D/out.txt" 2>&1
+"$RUNDESK" "$(win "${PORT_EXE:-build/native/rocketmania.exe}")" -userdir="$(win "$D/user")" -fast -drawevery "$@" > "$D/out.txt" 2>&1
 echo "exit $?"

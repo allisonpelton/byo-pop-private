@@ -377,7 +377,8 @@ An SDL window cannot have a renderer and a surface at once, so every size change
 again: it destroys the one and makes the other, and the window, its focus and its position are untouched. The buffer is the
 engine's and nothing in it is lost, so the first frame after a change, a restore from minimised or an expose is shown whole
 (`DDInterface::ScreenInvalidated`, called by `SexyAppBase`'s window events). With no vsync of its own, surface mode draws at most
-once in a display refresh interval (`DDInterface::mMinPresentInterval`: 16 ms at 60 Hz, not under `-fast`); frames with nothing
+once in a display refresh interval (the framework's own pace, `DDInterface::FrameHeldByPace`, that surface mode sets to the
+display's refresh interval: 16 ms at 60 Hz, not under `-fast`, `-drawevery` or `-hold`); frames with nothing
 changed are not drawn, as before. `ReadScreen` and `ReadScreenFull` serve the buffer's pixels (the render scale's repetition for
 the latter), so screenshots are the CPU buffer byte for byte in both modes. A display with a drawn cursor image (not these two
 apps, which use the system cursors) stays in renderer mode. `SURFACE_DISPLAY=0` in the environment keeps the renderer for good and
@@ -457,16 +458,12 @@ is not a whole number gives pixels of two sizes where the renderer's linear filt
 and a resized window look, and `HALFTONE`, which blends, is far too dear. Not done: that is the user's call
 (`docs/COORDINATION.md`, the performance target; the original's own full screen is the display's mode set to 800x600).
 
-**A frame cap for a renderer that is not paced by vsync** (Bejeweled 2's ask, answered, not built). Yes, the cap fits
-`DDInterface` itself: `mMinPresentInterval` is already a field of it that `DrawDirtyStuff` honours for every app, 0 by default.
-`DDInterface::Init` knows after `SDL_CreateRenderer` whether the renderer was made with vsync
-(`SDL_GetRendererInfo(...).flags & SDL_RENDERER_PRESENTVSYNC`: the flag is absent when vsync was not asked for, when the
-driver refused it, or when the software renderer is the fallback); when it is absent, and not on the web (where
-`requestAnimationFrame` paces the loop) and not under `-fast`, the field would be set to `1000 / refresh rate` of the window's
-display, as `SurfaceDisplay::EnterSurfaceMode` does now, and set again in `UpdateDisplaySize` (a window can move to another
-display). A skipped draw loses nothing, since the widgets stay dirty until the next one. It is about ten lines, a separate
-small shared change after the presenter, and it changes only a program whose renderer has no vsync (a vsync renderer's
-`Present` blocks until the refresh, so the cap would add nothing); not built here.
+**The frame cap** (Bejeweled 2's ask) is the trunk's: `DDInterface::FrameHeldByPace`, set in `DDInterface::Init` for a renderer
+that no vertical blank holds (the software renderer, or one without `SDL_RENDERER_PRESENTVSYNC`) and checked by
+`SexyAppBase::Process` through `DrawHeldByPace` before it draws. The presenter's surface mode, which has no renderer, sets
+the same `mPaceIntervalMs` to the display's refresh interval when it is entered (`DDInterface::Init` sets it again when the
+renderer comes back), so there is one cap; the presenter's own `mMinPresentInterval` and its block in `DrawDirtyStuff` are gone.
+A held draw leaves the widgets dirty and the engine's rects accumulating, so no change is lost.
 
 **Other apps for the presenter.** `framework/SurfaceDisplay.h` says how each app that draws its screen into a CPU buffer would
 take it: TipTop (its own buffer and rect list), Word Harmony (the image its `ScreenGraphics` draws into and the tiles it

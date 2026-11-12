@@ -363,7 +363,9 @@ be the 60 Hz one, but its WaitForVSync never reached the copy (the flag read 0),
 
 Over the ten windowed pairs the medians are 20.59 G for the original and 13.27 for the port, 36% less. Against the
 original at 60 draws a second they are 13.34 and 11.19, 16% less. Without its sound thread the port's medians are
-12.73 and 10.74. So the port is under its original either way, and the README's row gives these medians.
+12.73 and 10.74. But in all three sets the port ran in its default window, 1280 by 960 at render scale 2 (twice the
+game's size, which fits rundesk's 3840 by 2160 desktop), against the original's 640 by 480. So these sets do not
+compare like for like, and a fourth set took the port at the game's own size as well ("The same window", below).
 
 **The spread is the port's.** The original's main thread cost 14.8 to 26.2 G windowed and 10.0 to 13.6 G at 60 Hz,
 while the port's main thread ranged from 3.7 to 20.2 G over the same input. The port was over the original in two of
@@ -375,6 +377,58 @@ it draws the whole screen each frame and presents it through the driver, on a GP
 using at the same time. The original draws in software on rundesk's desktop (`docs/ORIGRUN.md`) and never touches the
 GPU. This is the driver cost of a presented frame that `docs/COORDINATION.md` already lists among the shared costs
 (SDL_RenderPresent). Nothing in Dynomite's own code is worth speeding up for it.
+
+**The same window.** The target's method (`docs/COORDINATION.md`, "The same window on both sides") measures a port
+windowed at the game's own size in pixels, with its default window beside it, and names the renderer of each run. So
+the fourth set ran rounds of three in turn, five rounds pinned to one performance core (`tools/profile/pairs.sh`, with
+CYC_VSYNC=1), with the original at 60 draws a second as in the third set. Each round ran the original, then the port at
+640 by 480 (`-windowscale=1`), then the port in its default window. Every port run's display line read "client 640x480
+px, logical 640x480, render scale 1, windowed, renderer direct3d11" or "client 1280x960 px, logical 640x480, render
+scale 2, windowed, renderer direct3d11". The original drew windowed in software with DirectDraw on the same private
+desktop. Each run made 6,000 updates in 60.0 s. The original drew 3,355 to 3,465 times, the port 3,434 to 3,581 times
+at 640 by 480 and 3,439 to 3,541 times in its default window.
+
+| Round | Original at 60 Hz | Port at 640x480 | Port at 1280x960 |
+|---|---|---|---|
+| 1 | 14.97 | 12.11 | 11.97 |
+| 2 | 10.49 | 15.56 | 10.06 |
+| 3 | 10.64 | 12.25 | 11.09 |
+| 4 | 10.07 | 12.67 | 12.15 |
+| 5 | 10.98 | 14.57 | 10.18 |
+| Median | 10.64 | 12.67 | 11.09 |
+
+The figures are G cycles in the minute. By medians the port is over its original: by 19% at the game's own size and by
+4% in its default window. Without its sound thread its medians are 12.22 and 10.61. The original's figures were
+lower in this set than in the third (10.07 to 14.97, against 12.16 to 16.38) for the same input and settings, so only
+the rounds of one set compare.
+
+**Where the cycles go.** One more run of each, with CYC_SPLIT=1, split the stretch into update, draw and present: the
+port with `-cyclesplit`, the original with origrun's `--count` over `tools/profile/count.txt` (SexyApp's
+DoUpdateFrames at 0x481110, DrawDirtyStuff at 0x488920 and Redraw at 0x48a200). These are figures from
+`tools/cyclesplit.py`, M cycles an update, the port at 640 by 480:
+
+| Part | Port | Original |
+|---|---|---|
+| Update | 0.023 | 0.023 |
+| Draw | 0.378 | 0.749 |
+| Present | 0.499 | 0.401 |
+| The graphics driver's threads (nvwgf2um.dll) | 0.789 | none |
+| Sound and the other threads | 0.074 | 0.332 |
+| The loop (events, sleeps, the readings) | 0.033 | 0.128 |
+| Total | 1.796 | 1.633 |
+
+The game's own code costs the same on both sides. Everything that differs is the picture. A GPU renderer batches its
+draw calls until the present, so the port's draw, present and driver threads are one figure: 1.67 M cycles an update,
+2.9 M a drawn frame, against the original's software drawing and Blt at 1.15 M an update, 2.0 M a frame. Of that, the
+port's present and the driver's thread come to 1.29 M an update, where the original's Blt is 0.40 M. The port's
+default window costs about the same (1.87 M an update in all), since the driver's cost is a present's, not a pixel's.
+The port's other threads and loop are cheaper than the original's and take back about a third of the difference.
+
+This is the shared cost already listed in `docs/COORDINATION.md`: SDL_RenderPresent and the driver's work per
+presented frame. The fix being built there is a software-surface presenter that the app opts into and hands the
+frame's dirty rectangle. Dynomite's board, 490 by 480 of the 640 by 480 screen (77%), is marked dirty on every update
+in play, and the sidebar now and then. Under the target's rule the port waits for that presenter instead of being let
+off, then takes it and is measured again with this set's method.
 
 ## 7. The PopCap Game Collection version (2026-11-11)
 
