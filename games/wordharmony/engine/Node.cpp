@@ -372,7 +372,7 @@ void Container::removeAllChildren()
 
 // 0x438e70
 Window::Window()
-	: mHover(nullptr), mUnknownBC(0, 0)
+	: mHover(nullptr)
 {
 	mEnabled = false;
 	setName("Window");

@@ -57,7 +57,7 @@ private:
 	int mPivotY = 0;
 };
 
-// A render state (0x40 bytes; 0x43c470 makes the first)
+// A render state (0x40 bytes in the original, whose last two words nothing reads; 0x43c470 makes the first)
 struct RenderState
 {
 	Point mTranslation;      // +0x00, added to
@@ -68,10 +68,8 @@ struct RenderState
 	Color mColorOffset;      // +0x24, added to
 	Ref<Font> mFont;         // +0x30
 	unsigned int mFlags;     // +0x34: the alignment bits below
-	int mUnused38;
-	int mUnused3c;
 
-	RenderState() : mScale(1, 1), mRotation(0), mOpacity(1), mFlags(0), mUnused38(0), mUnused3c(0) {}
+	RenderState() : mScale(1, 1), mRotation(0), mOpacity(1), mFlags(0) {}
 };
 
 // The bit fields of RenderState::mFlags (masks and shifts at 0x497200..0x49721c)

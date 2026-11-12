@@ -43,8 +43,10 @@ public:
 	virtual bool load(const char* theName, const char* theFile) = 0;
 	// 0x04: 0x443b60, the same for a sound played from its file as it goes (the music)
 	virtual bool loadStream(const char* theName, const char* theFile) = 0;
-	// 0x14: 0x4435e0, a new voice of a loaded sound (the system keeps it); null when the name is not loaded
-	virtual Sound* createSound(const char* theName, int theArg1, int theArg2) = 0;
+	// 0x14: 0x4435e0, a new voice of a loaded sound (the system keeps it); null when the name is not loaded. theStatic
+	// says the voice's buffer is a whole short sound whose pitch can change (the original's DirectSound buffer flags
+	// STATIC and CTRLFREQUENCY), not a stream; theCategory is the voice's volume category (0 the sounds, 1 the music)
+	virtual Sound* createSound(const char* theName, bool theStatic, int theCategory) = 0;
 	// 0x18: 0x4425a0 (0 to 1)
 	virtual void setVolume(float theVolume) = 0;
 	// 0x1c: 0x443a20

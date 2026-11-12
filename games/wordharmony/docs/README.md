@@ -400,6 +400,48 @@ functions the original did not reach in them are the candidates of the list abov
 files with their 8 streams, the 4 music files and the 17 sounds run); `tools/check.sh wordharmony` (the THINK and TSUNAMI games, each twice with the
 same screenshots, then against `build/baseline-wordharmony`: identical); the web build.
 
+## The readability pass (2026-11-12)
+
+Step 4 of the passes, taken to `docs/CODE_STANDARDS.md`. `python -I tools/namecheck.py games/wordharmony` reports no
+findings in the 13 files of `engine`, `game` and `src` (the checks of rules 2, 5 and 6 and the stage labels of rule 8); the
+rest of the rules were read for by hand over the whole code.
+
+**Names (rules 2, 3 and 7).** The fields the first draft named by their offsets, which the checker's `hexname` does not
+see in upper case, now say what they hold: `mB0` is `mStateSeconds` (the seconds left in the ball's state: the picked
+ball's wait, the pop's fade, a spawned ball's growing in), `m194` is `mScoring`, `m1F0` is `mHintsStale`, `m204` is
+`mLongWordsRewarded`. The ball states `BALL_PICKED_2` and `BALL_STATE_4` are `BALL_POPPING` and `BALL_SPAWNING`, and the
+enum says what each state is. One-letter names used over more than ten lines became words (the bot's `BotBall`, the
+rotated blit's `aCos` and `aSin`), and the host's `kUnknownException` is `OTHER_EXCEPTION_TEXT`. Numbers that mean the
+same thing in more than one place have names: `BALL_CAPACITY` (105), `BALL_RADIUS` (22, which the obstacles and the bot
+use as well), `SPAWN_X` and `SPAWN_Y` (where a new ball appears and the blossom opens), `PHYSICS_STEP` (0.03 seconds),
+`WATER_SWING`, `DIALOG_X` and `DIALOG_Y`, `LEVEL_WORDS` (the 14 words of a level and the lines of the HUD), and the bot's
+two step costs. `SCREEN_WIDTH` and `SCREEN_HEIGHT` moved from the host into `engine/App.h`, where the game's own code
+reads them, and `AppConfig::mFullScreen` names the window's flag at +0x9c (false, and not read by the port).
+
+**Unread fields (rule 3).** Four fields and two words were never read: `Window::mUnknownBC`, `Ball::mE4`,
+`WordBallSystem::m1FC`, `TextEffects`' `m28` and the last two words of `RenderState`. Nothing in this port saves or
+hashes them (the state log and the saves write named values, not the objects), so they came out, and the render state's
+comment says that the original's 0x40 bytes end in two words nothing reads.
+
+**Addresses (rule 6) and comments (rule 8).** Every function in `SoundHost`, `Render` and the host names its address, or
+the file's first comment carries `port:` (`port(mod):` in `ModFeatures.cpp`). The comments that said "performance pass"
+now say what the code does for speed; none names a stage.
+
+**A difference found.** Reading `SoundHost::createSound` against the original's (0x453e10 sets a sound's category, which
+`Game::applyVolumes` then fades: 0 for the sounds, 1 for the music) showed that the port created every clip without a
+category, so the music followed the sound effects' setting instead of its own. The sound
+system's `createSound` takes the category now and the host sets it. The frozen baseline does not hear sound, so it stays
+unchanged; the shared mixer is the same.
+
+**Checks.** Every rename and constant is proved by the object code: `tools/objsnap.py` compares the 40 objects (2,123
+functions) before and after and finds 0 differing, for the renames and for the constants; removed fields change a size
+and so are proved by play, not object code. `tools/check.sh wordharmony` (each game played twice, then against
+`build/baseline-wordharmony`) passes, and `pixcmp.sh` of the tours is identical to the build before the pass (74
+screenshots). Against the baseline exe itself the tours differ by at most 3 levels over a few thousand pixels of the title
+screen: that exe was frozen before the shared JPEG decoder changed, and a build of the tree from before this pass (same
+decoder) matches the pass exactly. No string of the sources changed, and the web build compiles
+(`tools/check.sh build-web:wordharmony`).
+
 ## Mods
 
 The fixes mod, `mods/fixes/mod.json` (`docs/MOD_ROADMAP.md`, "The fixes mod"): `steadyClock` times every frame as one

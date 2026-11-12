@@ -178,7 +178,6 @@ public:
 
 	Node* mHover;                           // +0xa8 (counted)
 	std::vector<KeyHandler*> mKeyHandlers;  // +0xac (counted)
-	Point mUnknownBC;                       // +0xbc
 
 private:
 	// 0x4386c0: the node under the mouse changes

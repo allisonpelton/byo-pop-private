@@ -184,7 +184,7 @@ public:
 		return true;
 	}
 	bool loadStream(const char* theName, const char* theFile) override { return load(theName, theFile); }
-	Sound* createSound(const char* theName, int, int) override
+	Sound* createSound(const char* theName, bool, int) override
 	{
 		std::map<std::string, std::string>::iterator anIt = mLoaded.find(theName);
 		if (anIt == mLoaded.end())
