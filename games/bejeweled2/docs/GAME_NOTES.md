@@ -468,6 +468,32 @@ calls before, 0.015 s after). Change 3 goes into the presenter (the Mahjong sess
 nearest-neighbour present, which changes the look) waits for the user, and only if the first and third leave the software path over the target.
 The table above is the measurement before these: repeat it after the merge.
 
+**Two more shared commits (2026-11-12, night): the exact opaque test and the software renderer's pace.** `7413ba61`: `PrepareTexture` notes at each
+upload whether every alpha byte of the image is 255 (not for the HD textures or the screen image), and `DrawTexturedQuad` sets the blend mode off from
+that, for every image, forced-mode ones included, so the board's background gets its saving back with no flags to trust; the conditions are as
+before (alpha 255, normal mode, 2D, scale 1). `5eac4e4a`: SDL's software renderer is held by no vertical blank (it even reports
+`SDL_RENDERER_PRESENTVSYNC` when asked, and presents with a blit of the window's surface), so the loop drew after every update; `DDInterface::FrameHeldByPace`
+now holds a draw that would come sooner than one refresh interval after the last, and not with `-fast`, `-drawevery`, `-hold`, before loading or on
+a renderer that vsync holds. fwtest on the software renderer: 1000 draws for 1000 updates before, 600 after. Pictures of the idle board at update
+5000 are byte for byte the same in all three builds below, and the recorded game's pictures and the suites (this game's baseline, Twist, Big Money, Alchemy, AstroPop,
+`unit`) are unchanged, on exes built after each change.
+
+The idle board on the software renderer, three builds turn about (four timed runs each, one pinned core, the machine 47 to 97% busy with other
+games, so the share moves a lot; the figures for each frame are the steadier ones; medians, then ranges):
+
+| build | share of a core | processor ms a frame | Mcycles a frame | draws a second | updates a second |
+|---|---|---|---|---|---|
+| before `e19af272` | 64.3% (44.8 to 99.1) | 22.6 (15.5 to 22.8) | 47.8 | 26.8 (20.0 to 52.6) | 93.3 |
+| `7413ba61`, exact opaque test | 60.3% (39.3 to 74.8) | 11.3 (9.4 to 13.3) | 23.9 | 53.6 (34.0 to 84.2) | 97.8 |
+| `5eac4e4a`, with the pace | 52.3% (44.7 to 72.6) | 11.0 (8.7 to 13.0) | 23.3 | 56.4 (38.5 to 57.5) | 97.4 |
+
+A frame costs half what it did, and the pace holds the draws to the display's rate where a quiet machine would otherwise draw at the updates' 100 a
+second (the frames here were already near 10 to 12 ms, so on this busy machine the load held the draws before the pace did; the
+fwtest run is the plain demonstration). The original's idle board is 12.7% of a core. The software 2D path is still about four times over that: 56 draws a
+second at 11 ms is what this renderer's frame costs now, and only a cheaper frame (render scale 1 with a nearest-neighbour present, which
+the prototype took to 23.8%, and changes the look) or fewer draws would lower it further; both wait for the user. The GPU paths (2D 8.6%, 3D 9.3%, in the table
+above) are under the original's 2D figure.
+
 **Where the processor time goes in 3D and on the GPU** (the same counters, the GPU run, 3,424 frames in 61 s): 243,522 quads a run, 0.14 µs each (the
 recording of a draw call), 71 a frame; per-thread cycles of the idle run: the main thread 66 to 69%, a second thread 25 to 27% (the Direct3D 11
 driver's worker), the audio thread 4 to 5%. The idle board's 8.6 to 9.3% of a core is the frame's presentation (`ntdll` waits and the driver) and the
