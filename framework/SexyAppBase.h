@@ -21,6 +21,7 @@
 #include "Buffer.h"
 #include "SharedImage.h"
 #include "Ratio.h"
+#include "../platform/FileSize.h"
 
 struct SDL_Window;
 union SDL_Event;
@@ -455,6 +456,7 @@ public:
 	std::vector<int> mRealKeysDown;  // the SDL keycodes held
 	// live commands: -commands=<file> natively, byopop_test_command on the web (RunLiveCommands)
 	std::string mCommandsFileName;
+	Platform::FileSizeWatch mCommandsFileWatch;  // how big the file is, asked on every update (PollLiveCommands)
 	long long mCommandsFilePos;    // bytes of the file read so far
 	int mCommandsFileLine;         // its lines read so far
 	bool mCommandsWaitLogged;      // "waiting for" the file was logged

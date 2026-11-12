@@ -40,6 +40,67 @@ enum
 	SCREEN_GAMEOVER = 10,
 };
 
+// What the buttons, check boxes, sliders and animations do (Command, in App.cpp): each sends one of these when it is pressed
+// or finished
+enum
+{
+	CMD_GAME_OPTIONS = 1,            // the game screen's options button
+	CMD_GAME_END = 2,                // its end game button: save the game first?
+	CMD_GAME_END_OK = 3,             // the dialog's ok: save and go to the main menu
+	CMD_OPTIONS_DONE = 4,
+	CMD_OPTIONS_TIPS = 5,
+	CMD_OPTIONS_FULLSCREEN = 6,
+	CMD_OPTIONS_SOUND_VOLUME = 7,
+	CMD_OPTIONS_MUSIC_VOLUME = 8,
+	CMD_TIPS_DONE = 9,
+	CMD_TIPS_SHOW = 0xc,             // the tips' check box
+	CMD_HIGHSCORE_NAME_OK = 0xd,
+	CMD_INSTRUCTIONS_NEXT = 0xe,
+	CMD_INSTRUCTIONS_PREVIOUS = 0xf,
+	CMD_INSTRUCTIONS_DONE = 0x10,
+	CMD_CREDITS_DONE = 0x11,
+	CMD_HIGHSCORES_CLEAR = 0x12,
+	CMD_HIGHSCORES_CLEAR_OK = 0x13,
+	CMD_MENU_NEW_GAME = 0x14,
+	CMD_MENU_OPTIONS = 0x15,
+	CMD_INSTRUCTIONS = 0x16,         // the instructions button of the main menu, the game screen and the game over screen
+	CMD_MENU_CREDITS = 0x17,
+	CMD_MENU_QUIT = 0x18,
+	CMD_QUIT_OK = 0x19,              // the dialog's ok: save and quit
+	CMD_END_GAME_NOW = 0x1a,
+	CMD_GAME_OVER_SHOWN = 0x1b,
+	CMD_CANCEL_DIALOG = 0x1d,
+	CMD_NEW_REGULAR = 0x20,          // a new game of each kind (the new game screen's order; the game modes are 0, 2, 1 and 3)
+	CMD_NEW_SPEED = 0x21,
+	CMD_NEW_TIMED = 0x22,
+	CMD_NEW_STRATEGY = 0x23,
+	CMD_CONTINUE_SAVED = 0x24,
+	CMD_ASK_NEW_REGULAR = 0x25,      // the same when a saved game would be deleted: ask first
+	CMD_ASK_NEW_SPEED = 0x26,
+	CMD_ASK_NEW_TIMED = 0x27,
+	CMD_ASK_NEW_STRATEGY = 0x28,
+	CMD_MAIN_MENU = 0x29,
+	CMD_HIGHSCORES_BACK = 0x2a,
+	CMD_MENU_HIGHSCORES = 0x2b,
+	CMD_PLAY_AGAIN = 0x2d,
+	CMD_LOAD_DONE = 0x2e,            // the load bar is full
+	CMD_GAME_OVER_SCREEN = 0x38,     // the game over screen's play again button and the high score name
+	CMD_LEVEL_START_SHOWN = 0x39,
+	CMD_LEVEL_COMPLETE_SHOWN = 0x3a,
+	CMD_SUMMARY_NEXT = 0x3b,
+	CMD_PAUSE_IMAGE = 0x3c,
+	CMD_PAUSE = 0x3e,
+};
+
+// The flags of a pop image's command (PopImageProc)
+constexpr uint32_t POP_LONGER = 0x80000000;       // it stays 0.75 s longer
+constexpr uint32_t POP_UNTIL_CLICK = 0x40000000;  // it stays until a click on the board or a key
+
+// The messages the column cursor (App::mColumnCursor, ColumnCursorProc) answers, in the numbers of the generic ones
+// (Gui.h): the column to drop into, and 1 once after a tap
+constexpr int MSG_CURSOR_COLUMN = MSG_SETVALUE;
+constexpr int MSG_CURSOR_TAPPED = MSG_GETVALUE;
+
 struct App
 {
 	lowos::Surface* mBackground;          // +0x00 image 0x26
@@ -61,28 +122,28 @@ struct App
 	char mBarFlashDrawn;                  // +0x88
 	Handler* mInstrPrev;                  // +0x8c
 	uint8_t** mParticleImages;            // +0x90 (gParticleState)
-	lowos::Surface* mImage68;             // +0x94 image 0x68
+	lowos::Surface* mSummaryButtonImage;             // +0x94 image 0x68
 	TextImage mTexts[4];                  // +0x98 score, time, bonus line, chain
 	Layer* mLayer;                        // +0xd8 the screen's layer
 	int32_t mScreen;                      // +0xdc
 	Handler* mFullScreenBox;              // +0xe0
 	Handler* mNameInput;                  // +0xe4 the text field of the high score name (0x41f922)
 	Board* mBoard;                        // +0xe8
-	Handler* mEC;                         // +0xec
+	Handler* mColumnCursor;                         // +0xec
 	int32_t mPrevScreen;                  // +0xf0
 	Font* mLevelFont;                     // +0xf4 image 0x49
 	Font* mDigitFont;                     // +0xf8 image 0x2a
 	Font* mTextFont;                      // +0xfc image 0x67
 	Handler* mCounted[4];                 // +0x100 handlers that clear themselves here when freed (CounterProc)
 	Handler* mGameButtons[4];             // +0x110 instructions, options, end game, pause
-	uint32_t m134;                        // +0x134
-	uint32_t m138;                        // +0x138
-	char m13c;                            // +0x13c
-	char m13d;                            // +0x13d
+	uint32_t mBonusClock;                        // +0x134
+	uint32_t mBonusElapsed;                        // +0x138
+	char mBonusClockStopped;                            // +0x13c
+	char mBonusTipShown;                            // +0x13d
 	char mCrossed;                        // +0x13e set by the board (0x41ee83)
-	char m13f;                            // +0x13f
+	char mBonusBlocksRanOut;                            // +0x13f
 	uint32_t mSummaryEvents;              // +0x140
-	uint32_t m144;                        // +0x144
+	uint32_t mBonusStartAnimations;                        // +0x144
 
 	int LoadImages();                     // 0x4197c6
 	void BuildImages();                   // 0x419991
