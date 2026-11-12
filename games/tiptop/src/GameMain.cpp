@@ -37,7 +37,6 @@ uint32_t gGameMode = 0;
 char gBonusRound = 0;
 char gBusy = 0;
 char gModal = 0;
-char gModal2 = 0;
 char gHighScoreEntered = 0;
 uint8_t gPauseFlags = 0;
 uint8_t gParticleCount = 0;

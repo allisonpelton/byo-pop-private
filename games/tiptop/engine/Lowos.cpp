@@ -387,17 +387,6 @@ char InitScreen(uint8_t theMode, ActivateCallback theActivate, CloseCallback the
 	return gWindowed ? 2 : 1;
 }
 
-// 0x42f750
-void UninitScreen()
-{
-	if (gScreenInited)
-	{
-		gScreenInited = false;
-		while (gSurfaces != nullptr)
-			UnregisterSurface(gSurfaces);
-	}
-}
-
 // 0x42f850: the display mode's format, size and bytes per pixel
 uint8_t GetDisplayFormat(PixelFormat* theFormat, uint16_t* theWidth, uint16_t* theHeight)
 {
@@ -986,15 +975,6 @@ char InitSound()
 {
 	gSoundInited = true;
 	return 0;
-}
-
-// 0x432e70
-void UninitSound()
-{
-	gSoundInited = false;
-	while (gSounds != nullptr)
-		FreeSound(gSounds);
-	gSlots.clear();
 }
 
 static FILE* gSoundLog = nullptr;

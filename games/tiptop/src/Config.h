@@ -307,12 +307,7 @@ struct Config
 	int32_t mHighscoresmenuNamex;               // +0x444
 	int32_t mHighscoresmenuScorex;              // +0x448
 	int32_t mHighscoresmenuLevelx;              // +0x44c
-	int32_t mPlayagainX;                        // +0x450
-	int32_t mPlayagainY;                        // +0x454
-	int32_t mPlayagainYesx;                     // +0x458
-	int32_t mPlayagainYesy;                     // +0x45c
-	int32_t mPlayagainNox;                      // +0x460
-	int32_t mPlayagainNoy;                      // +0x464
+	char mPlayagainUnused450[24];  // +0x450 24 bytes: mPlayagainX..mPlayagainNoy, the settings of the "play again?" question that nothing asks
 	uint8_t mUnknown468[0xc];                  // +0x468
 	float mNormalRocketRamp;                    // +0x474
 	float mNormalExfaRamp;                      // +0x478
