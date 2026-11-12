@@ -305,15 +305,13 @@ struct Animation
 	Animation& operator=(const Animation&) = delete;
 };
 
-void Animation_FreeMasks(Animation* theAnim);                    // 0x401510
 void Animation_BuildTints(Animation* theAnim);                   // 0x401580
 Image* Animation_Frame(const Animation* theAnim, int theIndex);  // 0x4019c0
 // 0x401be0: the animation named theName, made current, with its frame count and time; null if none
 Animation* Animation_Find(const char* theName, int* theCount, int* theFrameTime);
-// 0x401c70: (re)loads the frames; theReload keeps the frame images, which Animation_FreeMasks stripped of masks
-int Animation_Load(Animation* theAnim, int theReload);
-// 0x4025c0: every animation again, after the screen's format changed
-void Animation_ReloadAll();
+// 0x401c70: loads the frames (the original's second parameter, set only by the reload after a change of the screen's
+// format, is left out with that reload)
+int Animation_Load(Animation* theAnim);
 // 0x402610: an <animation> tag; Animation_Load's result
 int Animation_FromXml(Animation* theAnim, const XmlTag* theTag);
 
@@ -339,9 +337,6 @@ void SwapColours(Image* theImage, const char* theSwap);                    // 0x
 double CircleOverlap(float x1, float y1, float r1, float x2, float y2, float r2); // 0x420780
 int BoxOverlap(float x1, float y1, float w1, float h1, float x2, float y2, float w2, float h2); // 0x4207d0
 void RotateImage(Image* theImage, int theAngle);                           // 0x4208c0
-// 0x428d60: the original only formats its text (vsprintf) and hands it to OutputDebugStringA; the append to log.txt is
-// 0x428db0, which nothing translated calls (its callers are the untranslated network packet manager's shutdown)
-void Log(const char* theFormat, ...);
 
 // Globals
 extern Bank gArtBank;            // 0x472bd8

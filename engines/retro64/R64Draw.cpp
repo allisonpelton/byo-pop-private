@@ -293,12 +293,6 @@ void DrawList_Clear()
 	gDrawCount = 0;
 }
 
-// port: how many items the list holds
-int DrawList_Count()
-{
-	return gDrawCount;
-}
-
 // 0x421b50 (cosmicbugs), 0x422030 (waterbugs)
 Dirty::Dirty()
 {

@@ -417,10 +417,11 @@
         "fixes-mod",
         "site-features",
         "coverage",
-        "performance"
+        "performance",
+        "unneeded-code"
       ],
       "na": [],
-      "now": "unneeded-code",
+      "now": "readability",
       "note": ""
     },
     "waterbugs": {

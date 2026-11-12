@@ -60,9 +60,6 @@ struct ParticleSystem : Obj
 };
 static_assert(sizeof(ParticleSystem) == 0xbc, "ParticleSystem");
 
-// The CRT's construction of the pools: 0x40c0d0 on each system, the base on each particle
-void Particles_Init();
-
 int Particle_Update(Particle* theParticle);                      // 0x40abf0: 0 when done
 void Particle_Draw(Particle* theParticle);                       // 0x40acd0
 // 0x40b460: Particle_Update with drag and gravity, keeping the system with the particle (its result is the
@@ -85,7 +82,6 @@ void ParticleSystem_Add(ParticleSystem* theSystem, float theX, float theY, float
 	int theDrawKind);                                            // 0x40b1f0
 void ParticleSystem_Draw(ParticleSystem* theSystem);             // 0x40b440: its first particle
 int ParticleSystem_Update(ParticleSystem* theSystem);            // 0x40c090: 0 when it has no particles left
-ParticleSystem* ParticleSystem_Init(ParticleSystem* theSystem);  // 0x40c0d0
 
 } // namespace cb
 

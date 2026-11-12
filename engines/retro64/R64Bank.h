@@ -54,7 +54,6 @@ int Bank_BuildPalettes(Bank* theBank, const PixelFormat* theFmt);    // 0x427740
 int Bank_ParseXml(Bank* theBank, const char* thePath);               // 0x427910 (cosmicbugs), 0x427df0 (waterbugs)
 // 0x428010 (cosmicbugs), 0x4284f0 (waterbugs)
 int Bank_Load(Bank* theBank, const char* thePath, int theMode, const PixelFormat* theFmt);
-int Bank_Reconvert(Bank* theBank, const PixelFormat* theFmt);        // 0x428160 (cosmicbugs), 0x428640 (waterbugs)
 
 // 0x4019d0 (cosmicbugs), 0x401a80 (waterbugs), 0x401a60 (cosmicbugs), 0x401b10 (waterbugs): n {r, g, b, unused} colours
 // in theFmt, as 32- or 16-bit pixels

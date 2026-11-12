@@ -279,9 +279,4 @@ void RotateImage(Image* theImage, int theAngle)
 	delete aCopy;
 }
 
-void Log(const char* theFormat, ...)
-{
-	(void)theFormat;
-}
-
 } // namespace cb

@@ -384,18 +384,54 @@ one byte after its 16-character buffer, the port four, with the same string. The
 - Code no input reaches: the power-up kinds 14 to 17 (anchor, the two explode-alls, magnet: the kinds table gives 0 to 10, the
   test keys 0 to 13): `Powerup_ExplodeWalkers` 0x4185d0, `Powerup_ExplodeFloaters` 0x418590, the two weapons they hand out
   (the anchor, weapon kind 6: 0x4188b0, 0x419be0; the magnet, kind 5: 0x418770, 0x419a60, 0x419d20) and their cases. The
-  demo mode: `gDemo` is never assigned in the original, so its 17 branches in the port are dead. The name entry's on-screen
-  keys (`MenuItem_TypeKey` 0x415580, `Key_Push` 0x428ad0): `HighScore_Entered` clicks the entry screen's buttons itself in its
-  first update, so the screen goes on to the Hall of Fame before a key can be clicked. `Sys_Sleep` (0x428820, which the
-  patched wait skipped) and `gPumpMessages` stay.
+  demo mode: `gDemo` is never assigned in the original, so its 17 branches in the port are dead. (The name entry's on-screen
+  keys, `MenuItem_TypeKey` 0x415580 and `Key_Push` 0x428ad0, were listed here as well; that was a mistake, see "The unneeded
+  code": the entry screen has 52 of them and a player can click any, by the code.) `Sys_Sleep` (0x428820, which the patched wait skipped)
+  and `gPumpMessages` stay.
 - The quit requester's other half (0x416d70), the empty-list clear (0x40f040, whose callers are unwind funclets) and `Log`
   (0x428db0, which only the untranslated network code calls).
 
-These go to the unneeded-code pass next: the demo flag, the kinds 14 to 17 and their weapons, the display-mode change code,
-the name entry's keys, and the engine functions of `docs/ENGINES.md` (a shared commit), proved by `tools/check.sh --changed main`.
+These went to the unneeded-code pass, in the next section.
 
 Fixes mod: the review of the mod before this pass ended with the coordinator's ruling that `walkerTurnMemory` starts off (the
 walkers' quick turns can read as a designed pattern) and `shieldFlash` stays on; `mods/fixes/mod.json` has both.
+
+## The unneeded code (2026-11-11)
+
+The pass took out what no input of the original reaches and what nothing in the port calls, as the coverage check found
+it; `docs/COVERAGE.md` says what the check is. It was two commits, so that the shared engine had its own: the game's
+(3180c141) and the shared one (`shared: Retro64: ...`, which `docs/ENGINES.md` lists the functions of). The result is
+proved by `tools/check.sh cosmicbugs` (the frozen baseline: "plays as the baseline", unchanged) and by `tools/check.sh
+--changed main`, which also runs Water Bugs' suite and both web builds.
+
+Out of the game: the demo mode (`gDemo`, 17 branches: the original never assigns it, so it never plays itself); the
+power-up kinds 14 to 17 (an anchor, the two explode-alls and a magnet) with the anchor and the magnet weapons (weapon
+kinds 5 and 6), their emitter, sounds, names and the four texts that only they showed (the kinds table gives 0 to 10 and
+the test keys 0 to 13, so nothing can make them); the part of the kinds table that only they used; the power-up's
+follower (`attached`, which nothing sets: the field stays for the layout); the reload of the art after a change of the
+display mode (`Animation_ReloadAll`, `Animation_FreeMasks` and `Animation_Load`'s reload flag: the port's host changes the
+window and never loses the screen); `Log`, which did nothing; and four functions nothing called (`Particles_Init`,
+`ParticleSystem_Init`, `Obj_ClearChildren`). `coverage.txt` names the original's constructor of the particle systems
+(0x40c0d0), which the port's pool replaces.
+
+Out of the shared engine (Water Bugs has the same dead code and runs the same change): the fonts' unclipped drawing and
+`Font_SetClipped` (both games set the clip flag on every font they draw), a font's texture and mask target, the text input's
+own surface and background (`TextInput_Init` has two parameters fewer), `Bank_Reconvert`, `Xml_Reset`,
+`SetScreenLostCallback`, and the port's `Sys_Host` and `DrawList_Count`, with the image functions only those used. The
+two reached functions that therefore have no port counterpart, 0x421e50 and 0x428ec0, are `none` lines in `coverage.txt`
+(and Water Bugs' 0x422330 and 0x4293a0 in its own).
+
+Kept, with the reason: the name entry's on-screen keys (`MenuItem_TypeKey`, `Key_Push`: the first pass wrote that a
+click on one could not happen, but `HighScore_Entered` only runs when Enter is pressed in the name box, and the entry
+screen of `bugs.xml` has 52 key items, which the menu code takes as clicks, so a player can click them; read from the code
+and the data, since the one run of the original that was to click one never reached the screen: its random play did not
+lose its last life); `Sys_Sleep` and
+`gPumpMessages` (the coordinator's decision, although nothing sets `gPumpMessages` now that the demo is gone: it was its
+only setter); `Screen_SetFullscreen` (the options item and F7 reach the host through it); the effects of the power-up
+kinds 0 to 13 and the enemy kinds no shipped level uses (a game file can use them); and the engine blitters of the pixel
+formats the shipped art does not use, until Water Bugs' own check agrees. After the pass the port defines 523 of the
+original's 741 functions, 50 of them never reached by the runs (71 before; the list is the coverage section's), and 57
+are left out on purpose.
 
 ## Where the work was hard
 

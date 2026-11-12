@@ -13,14 +13,6 @@ static int gSystemNext = 0;               // 0x478618
 static Particle gParticles[8000];         // 0x478620
 static int gParticleNext = 0;             // 0x47861c
 
-void Particles_Init()
-{
-	for (ParticleSystem& aSystem : gSystems)
-		ParticleSystem_Init(&aSystem);
-	for (Particle& aParticle : gParticles)
-		Obj_Init(&aParticle);
-}
-
 int Particle_Update(Particle* theParticle)
 {
 	theParticle->oldX = theParticle->x;
@@ -313,13 +305,6 @@ int ParticleSystem_Update(ParticleSystem* theSystem)
 		}
 	}
 	return 1;
-}
-
-ParticleSystem* ParticleSystem_Init(ParticleSystem* theSystem)
-{
-	Obj_Init(theSystem);
-	List_Init(&theSystem->particles);
-	return theSystem;
 }
 
 // 0x40b7d0's colour jitter: the colour moved by up to the variance and kept in 0..255, where (as in the original's
