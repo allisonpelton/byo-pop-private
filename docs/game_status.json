@@ -242,7 +242,7 @@
       ],
       "na": [],
       "now": "performance",
-      "note": "over its original's processor time: measuring like for like"
+      "note": "level with its original on a busy machine, over on a quiet one; the whole gap is the shared present path (the Direct3D 11 driver thread); the original's side measured again after origrun's rescan fix"
     },
     "astropop": {
       "title": "AstroPop Deluxe",
