@@ -107,7 +107,7 @@ asked.
 | Bookworm Adventures Volume 2 | | | | | | |
 | Mahjong Escape: Ancient Japan | 1.31 s | | 6.0 % of one core | 3.1 % of one core | 146 MB | 40 MB |
 | Mahjong Escape: Ancient China | 1.29 s | | 7.3 % of one core | 1.7 % of one core | 104 MB | 31 MB |
-| Bonnie's Bookstore Deluxe | 6.8 and 12.9 s | 6.2 and 6.4 s | 7.1 and 8.5 s a minute | 3.3 and 3.4 s a minute | 87 and 89 MB | 56 and 58 MB |
+| Bonnie's Bookstore Deluxe | 6.8 and 12.9 s | 6.2 and 6.4 s | 7.9 G cycles at 800x600, 6.1 G in its default 1600x1200 window | 9.5 G and 7.3 G cycles in the same rounds | 52 MB at 800x600, 58 MB at 1600x1200 | 54 MB |
 | Bejeweled Twist | 2.71 s | 10.81 s | 38.1 G cycles a minute in 2D, 34.5 in 3D | 43.9 G cycles a minute in 2D, 44.9 in 3D | 392 MB | 186 MB |
 | Bejeweled 2 Deluxe | 0.9 to 1.2 s in 2D, 1.4 s in 3D | 4.4 s in 2D, 4.7 s in 3D (dgVoodoo2) | 7.5 % of one core in 2D on a GPU renderer, 6.6 % on SDL's software renderer (48.5 % in its default 2x window), 8.8 % in 3D | 9.4 % of one core in 2D, 61 % in 3D (dgVoodoo2) | 82 to 109 MB | 42 MB in 2D, 149 MB in 3D (dgVoodoo2) |
 | AstroPop Deluxe | 1.0 to 1.3 s | 1.5 s (2D), 5 to 13 s (3D) | 4.25 G cycles in a 2,030-update stretch (2D), 3.70 G (3D) | 6.13 G (2D), 2.76 G (3D) | 159 to 164 MB | 81 to 83 MB (2D), 118 MB (3D) |
