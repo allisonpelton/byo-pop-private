@@ -19,6 +19,7 @@
 #include "WebSettings.h"
 
 #include <SDL.h>
+#include <cstdint>
 #include <cstdio>
 #include <cstring>
 #include <string>
@@ -42,11 +43,6 @@ public:
 	bool ReadFile(const char* thePath, std::vector<uint8_t>& theData) override
 	{
 		return Platform::VFS::Get().ReadAll(thePath, theData);
-	}
-
-	void AddUpdateRect(int x, int y, int w, int h) override
-	{
-		gApp->AddUpdateRect(x, y, w, h);
 	}
 
 	void SetMousePos(int x, int y) override
@@ -239,35 +235,134 @@ void CosmicBugsWidget::Update()
 	MarkDirty();
 }
 
-// What the original presented since the last copy (all of it when nothing said which part) goes to the image
+static_assert(r64::SCREEN_WIDTH % CosmicBugsWidget::CHANGE_BLOCK == 0, "a row has whole blocks");
+static_assert(CosmicBugsWidget::CHANGE_BLOCK % 4 == 0, "a block is whole 64-bit words");
+
+// Whether two runs of the screen's pixels (a multiple of four of them) are the same
+static bool SamePixels(const uint16_t* theFirst, const uint16_t* theSecond, int theCount)
+{
+	uint64_t aDifference = 0;
+	for (int i = 0; i < theCount; i += 4)
+	{
+		uint64_t aFirstFour, aSecondFour;
+		std::memcpy(&aFirstFour, theFirst + i, 8);
+		std::memcpy(&aSecondFour, theSecond + i, 8);
+		aDifference |= aFirstFour ^ aSecondFour;
+	}
+	return aDifference == 0;
+}
+
+// The blocks of the screen that differ from the copy the image was last widened from. The engine's dirty rectangles
+// say what it copies from its back buffer, not everything it drew (it draws sprites straight into the screen, and some
+// pixels of one can lie outside them), so the screen itself is compared: a row at a time, and the rows that differ a
+// block at a time
+void CosmicBugsWidget::FindChangedBlocks()
+{
+	std::memset(mChangedBlocks, 0, sizeof(mChangedBlocks));
+	const uint16_t* aScreen = gApp->mScreen.data();
+	for (int y = 0; y < r64::SCREEN_HEIGHT; y++)
+	{
+		const uint16_t* aNow = aScreen + y * r64::SCREEN_WIDTH;
+		const uint16_t* aBefore = mCopiedScreen.data() + y * r64::SCREEN_WIDTH;
+		if (SamePixels(aNow, aBefore, r64::SCREEN_WIDTH))
+			continue;
+		for (int aColumn = 0; aColumn < CHANGE_COLUMNS; aColumn++)
+		{
+			int aLeft = aColumn * CHANGE_BLOCK;
+			if (!SamePixels(aNow + aLeft, aBefore + aLeft, CHANGE_BLOCK))
+				mChangedBlocks[y / CHANGE_BLOCK][aColumn] = 1;
+		}
+	}
+}
+
+// The rectangles to copy to the image: each row of changed blocks gives its runs (runs a gap of at most CHANGE_GAP
+// blocks apart are one), and a run of the same extent under another joins it, so that a frame is a few dozen uploads
+void CosmicBugsWidget::CollectChangedRects()
+{
+	static std::vector<int> anOpen;      // the rectangles that end at the row above
+	static std::vector<int> aNowOpen;    // the rectangles that end at this row
+	mChangedRects.clear();
+	anOpen.clear();
+	for (int aRow = 0; aRow < CHANGE_ROWS; aRow++)
+	{
+		aNowOpen.clear();
+		int aTop = aRow * CHANGE_BLOCK;
+		int aBottom = aTop + CHANGE_BLOCK < r64::SCREEN_HEIGHT ? aTop + CHANGE_BLOCK : r64::SCREEN_HEIGHT;
+		int aColumn = 0;
+		while (aColumn < CHANGE_COLUMNS)
+		{
+			if (mChangedBlocks[aRow][aColumn] == 0)
+			{
+				aColumn++;
+				continue;
+			}
+			int aRunFirst = aColumn;
+			int aRunLast = aColumn;
+			for (int aNext = aColumn + 1; aNext < CHANGE_COLUMNS && aNext <= aRunLast + 1 + CHANGE_GAP; aNext++)
+			{
+				if (mChangedBlocks[aRow][aNext] != 0)
+					aRunLast = aNext;
+			}
+			aColumn = aRunLast + 1;
+			int aLeft = aRunFirst * CHANGE_BLOCK;
+			int aRight = (aRunLast + 1) * CHANGE_BLOCK;
+			int aRect = -1;
+			for (int i : anOpen)
+			{
+				const Rect& aAbove = mChangedRects[i];
+				if (aAbove.mX == aLeft && aAbove.mX + aAbove.mWidth == aRight)
+				{
+					aRect = i;
+					mChangedRects[i].mHeight = aBottom - aAbove.mY;
+					break;
+				}
+			}
+			if (aRect < 0)
+			{
+				aRect = (int)mChangedRects.size();
+				mChangedRects.push_back(Rect(aLeft, aTop, aRight - aLeft, aBottom - aTop));
+			}
+			aNowOpen.push_back(aRect);
+		}
+		anOpen.swap(aNowOpen);
+	}
+}
+
+// What the original presented since the last copy goes to the image: just the rectangles that changed are widened (and
+// stay in mChangedRects until the next Draw), and the framework uploads the image if there were any
 void CosmicBugsWidget::Draw(Graphics* g)
 {
 	CosmicBugsApp* anApp = gApp;
 	if (anApp->mPresented)
 	{
-		int aLeft = 0, aTop = 0, aRight = r64::SCREEN_WIDTH, aBottom = r64::SCREEN_HEIGHT;
-		if (!anApp->mWholeScreen && anApp->mDirtyRight > anApp->mDirtyLeft)
-		{
-			aLeft = anApp->mDirtyLeft;
-			aTop = anApp->mDirtyTop;
-			aRight = anApp->mDirtyRight;
-			aBottom = anApp->mDirtyBottom;
-		}
 		ulong* aBits = mScreenImage->GetBits();
-		for (int y = aTop; y < aBottom; y++)
+		if (mCopiedScreen.empty())
 		{
-			const uint16_t* aSrc = &anApp->mScreen[y * r64::SCREEN_WIDTH];
-			ulong* aDst = &aBits[y * r64::SCREEN_WIDTH];
-			for (int x = aLeft; x < aRight; x++)
-			{
-				aDst[x] = gPixelsFromScreen16[aSrc[x]];
-			}
+			// the first picture is the whole screen
+			for (int i = 0; i < r64::SCREEN_WIDTH * r64::SCREEN_HEIGHT; i++)
+				aBits[i] = gPixelsFromScreen16[anApp->mScreen[i]];
+			mCopiedScreen = anApp->mScreen;
+			mScreenImage->BitsChanged();
 		}
-		mScreenImage->BitsChanged();
+		else
+		{
+			FindChangedBlocks();
+			CollectChangedRects();
+			for (const Rect& aRect : mChangedRects)
+			{
+				for (int y = aRect.mY; y < aRect.mY + aRect.mHeight; y++)
+				{
+					const uint16_t* aSource = &anApp->mScreen[y * r64::SCREEN_WIDTH];
+					ulong* aDestination = &aBits[y * r64::SCREEN_WIDTH];
+					for (int x = aRect.mX; x < aRect.mX + aRect.mWidth; x++)
+						aDestination[x] = gPixelsFromScreen16[aSource[x]];
+					std::memcpy(&mCopiedScreen[y * r64::SCREEN_WIDTH + aRect.mX], aSource + aRect.mX, aRect.mWidth * 2);
+				}
+			}
+			if (!mChangedRects.empty())
+				mScreenImage->BitsChanged();
+		}
 		anApp->mPresented = false;
-		anApp->mWholeScreen = false;
-		anApp->mDirtyLeft = anApp->mDirtyTop = r64::SCREEN_WIDTH;
-		anApp->mDirtyRight = anApp->mDirtyBottom = 0;
 	}
 	g->DrawImage(mScreenImage, 0, 0);
 }
@@ -324,9 +419,6 @@ CosmicBugsApp::CosmicBugsApp()
 	mApplyingGameMode = false;
 	mScreen.assign(r64::SCREEN_WIDTH * r64::SCREEN_HEIGHT, 0);
 	mPresented = false;
-	mWholeScreen = false;
-	mDirtyLeft = mDirtyTop = r64::SCREEN_WIDTH;
-	mDirtyRight = mDirtyBottom = 0;
 	mMouseX = r64::SCREEN_CENTRE_X;
 	mMouseY = r64::SCREEN_CENTRE_Y;
 }
@@ -423,22 +515,8 @@ void CosmicBugsApp::RunFrame()
 	}
 }
 
-void CosmicBugsApp::AddUpdateRect(int x, int y, int w, int h)
-{
-	if (x < mDirtyLeft)
-		mDirtyLeft = x < 0 ? 0 : x;
-	if (y < mDirtyTop)
-		mDirtyTop = y < 0 ? 0 : y;
-	if (x + w > mDirtyRight)
-		mDirtyRight = x + w > r64::SCREEN_WIDTH ? r64::SCREEN_WIDTH : x + w;
-	if (y + h > mDirtyBottom)
-		mDirtyBottom = y + h > r64::SCREEN_HEIGHT ? r64::SCREEN_HEIGHT : y + h;
-}
-
 void CosmicBugsApp::Present()
 {
-	if (mDirtyRight <= mDirtyLeft)
-		mWholeScreen = true;
 	mPresented = true;
 }
 
