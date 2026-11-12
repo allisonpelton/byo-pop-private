@@ -1,0 +1,59 @@
+# The check suite's tour of Venice Deluxe (tools/check.sh venice): a new player's name typed in the name box, the tutorial,
+# then the standard test commands (docs/TEST_COMMANDS.md) to reach a Journey level (a shot fired, won), the Flood
+# level select, a Flood level (lost), Survival, a Trick Shot level and the screens of the main menu. @DIR@ is the run's folder
+# (check.sh replaces it). Run with -fast -seed=1: the updates are the game's own, so every run gives the same screens.
+# The name screen exists from update 3000 in -fast; scripted keys go in the key ring from the widget's KeyDown, and a
+# button's alt key needs its press and release some updates apart.
+3000 key T
+3010 key E
+3020 key S
+3030 key T
+3100 screenshot @DIR@/name.png
+3200 keydown RETURN
+3204 keyup RETURN
+3900 screenshot @DIR@/tutorial.png
+3901 state
+4700 unlock all
+4701 level 5
+5400 screenshot @DIR@/journey.png
+5401 state
+5500 click 400 150
+5900 screenshot @DIR@/shot.png
+5901 state
+6000 win
+7500 screenshot @DIR@/summary.png
+7501 state
+8000 goto flood
+9000 screenshot @DIR@/floodselect.png
+9001 state
+9100 level 3
+10400 screenshot @DIR@/flood.png
+10401 state
+10500 lose
+11500 screenshot @DIR@/lost.png
+11501 state
+12000 goto survival
+14000 screenshot @DIR@/survival.png
+14001 state
+14100 goto trickshot
+15100 screenshot @DIR@/trickselect.png
+15101 state
+15200 level 1
+16500 screenshot @DIR@/trick.png
+16501 state
+17000 goto options
+17800 screenshot @DIR@/options.png
+17801 state
+18000 goto highscores
+18800 screenshot @DIR@/highscores.png
+18801 state
+19000 goto credits
+20000 screenshot @DIR@/credits.png
+20001 state
+20500 goto help
+21500 screenshot @DIR@/help.png
+21501 state
+22000 goto menu
+22800 screenshot @DIR@/menu.png
+22801 state
+23000 quit

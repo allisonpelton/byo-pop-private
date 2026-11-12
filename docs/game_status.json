@@ -494,10 +494,12 @@
     },
     "venice": {
       "title": "Venice Deluxe",
-      "done": [],
+      "done": [
+        "port"
+      ],
       "na": [],
-      "now": "port",
-      "note": "Started 2026-11-12, the first port written to the standards from its first draft"
+      "now": "identical-play",
+      "note": "playable natively and on the web; phase one, plays identical, next"
     },
     "heavyweapon": {
       "title": "Heavy Weapon Deluxe",
