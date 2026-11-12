@@ -40,6 +40,23 @@ for line in open(os.path.join(D, "orig3d", "landed.tsv")):
 names = only or sorted(landed, key=lambda n: landed[n])
 
 
+def port_tour(name):
+    """The port's own tour file when the tour has one (o2o -> o2p.txt): the same steps as the original's tour with the coordinates of the
+    port's layout, for a dialog that has one row less (the removed More Games row). Returns the commands (not the shots) in order, or None."""
+    if not name.endswith("o"):
+        return None
+    path = os.path.join(ROOT, "games", "rocketmania", "tools", "shots", name[:-1] + "p.txt")
+    if not os.path.exists(path):
+        return None
+    out = []
+    for line in open(path):
+        w = line.split(None, 2)
+        if len(w) >= 2 and w[1] not in ("screenshot", "quit"):
+            out.append((w[1], w[2].strip() if len(w) > 2 else ""))
+    return out
+
+
+
 def regions(mask, cell=16, least=150):
     """Bounding boxes (x0, y0, x1, y1) of the groups of touching 16x16 cells that hold differing pixels, with at least `least` differing pixels."""
     h, w = mask.shape
@@ -92,8 +109,14 @@ if mode == "prepare":
     shutil.rmtree(os.path.join(L, "port"), ignore_errors=True)
     os.makedirs(os.path.join(L, "port"))
     rows = []   # (update, order, text)
+    alt = port_tour(tour)
+    ai = 0
     for i, line in enumerate(open(os.path.join(D, "vis3d.steps.tsv"))):
         n, c, cmd, rest, _ = line.rstrip("\n").split("\t")
+        if cmd != "shot" and alt is not None:
+            assert alt[ai][0] == cmd, "the port's tour has another command at step %d" % ai
+            rest = alt[ai][1]
+            ai += 1
         if cmd != "shot":
             rows.append((int(c) + 1 + shift, i, "%s %s" % ("char" if cmd == "text" else cmd, rest)))
     for j, nm in enumerate(names):
