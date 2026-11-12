@@ -198,7 +198,10 @@ void Board::AddTopRow()
 	if (!ColumnReachesShip(mShipX))
 		HighlightTargets();
 	else
+	{
+		mGameOverCause = 0;     // port(autosplit)
 		GameOver();
+	}
 	gStateSaved = false;
 
 	if (mRecordingDemo)
