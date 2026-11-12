@@ -3,7 +3,8 @@
 # (-commands=<file>, docs/TEST_COMMANDS.md "Sending them") driven as a driver drives it. fwtest starts with -fast before
 # the file exists; each step appends lines and waits for their answers on the log (OK, ERROR), so every command is
 # chosen after the last one's answer came back. "realinput" adds -realinput with an empty file, so the channel's
-# lines are real SDL events. A partial line (no end of line yet) must wait for its end. The last line says
+# lines are real SDL events. A partial line (no end of line yet) must wait for its end; a file started again
+# (truncated) is read from its start, and one deleted and made again is the new file. The last line says
 # "commands <mode>: ok" or what went wrong. tools/check.sh unit runs it under rundesk.
 LOG="$1"; CF="$2"; MODE="$3"; GAMEDIR="$4"
 rm -f "$CF" "$LOG"
@@ -62,6 +63,18 @@ sleep 0.5
 grep -q -F "OK waitdown" "$LOG" && fail "waitdown answered before any press"
 printf 'click %s\n' "$EMPTY" >> "$CF"
 wait_for "OK waitdown"
+# The file started again (a driver that restarts its run truncates it): it is read from its start. The game keeps the
+# file open between its looks (platform/FileSize.h), so what a look sees of the file's writers is checked here
+printf 'wait 3\n' > "$CF"
+wait_for "got shorter; reading it from its start"
+wait_for "OK wait 3"
+# The file deleted and a new one moved to its name, longer than what was read: the lines after that position of the
+# new file run (the old file, still open in the game and deleted, would show no new line), and the ones before it do not
+printf 'wait 9\nwait 4\n' > "$CF.new"
+rm -f "$CF"
+mv "$CF.new" "$CF"
+wait_for "OK wait 4"
+grep -q -F "OK wait 9" "$LOG" && fail "a line already read was run again"
 printf 'report\n' >> "$CF"
 wait_for "OK report"
 wait $PID

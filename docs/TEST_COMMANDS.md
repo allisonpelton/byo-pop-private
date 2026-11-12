@@ -99,7 +99,10 @@ site's (`docs/WEB_PLAYER.md`). The shared loop that plays a game by `move` is al
 (`-realinput` lines through the same file), and on the web a driver the test page runs (`?driver=move`).
 
 Natively the option is `-commands=<file>`: the file may come after the game starts, a line still being written waits
-for its end of line, and the run is a test run. The framework answers its own commands on the live channel (`OK click
+for its end of line, and the run is a test run. A file started again (truncated) is read from its start, and one deleted and
+made again is the new file. On Windows the game keeps the file open between its looks, one an update (`platform/FileSize.h`;
+a look by name cost 33,000 to 58,000 cycles), so another process cannot rename a file over it: appending, truncating,
+deleting and recreating work. The framework answers its own commands on the live channel (`OK click
 320 450`, `ERROR click 10: click needs <x> <y>`, `ERROR <command>: unknown command` for one nobody knows) and flushes
 the log line by line, so a driver can wait for each answer before it sends the next line; given with `-realinput` (an
 empty file will do) the lines take its dispatch, so the driver's moves are real SDL events through the same file
