@@ -33,7 +33,7 @@ try {
     var m = await t.botMove();
     result.restarts.push(m && m.kind);       // "help": the first game's help, or the one the restart left up
   }
-  var won = false, shots = 0, levelBefore = 0;
+  var won = false, shots = 0;
   for (var i = 0; i < moves; i++) {
     var s = await t.state();
     result.level = s.level;
@@ -44,10 +44,11 @@ try {
     await t.playMove(m);
     if (m.kind === "shoot") shots++;
     if (doWin && !won && shots >= 2) {
-      won = true;
-      levelBefore = s.level;
-      await t.command("win");
-      await t.wait(20);
+      var w = await t.command("win");       // an ERROR unless the level is in play: asked again after the next shot
+      if (/^OK/.test(w[w.length - 1])) {
+        won = true;
+        await t.wait(20);
+      }
     }
   }
   var last = await t.state();

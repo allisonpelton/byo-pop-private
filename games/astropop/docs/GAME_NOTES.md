@@ -92,9 +92,19 @@ the hints) with their own buttons. A bonus round (the end of levels 3, 7 ... 31)
 `MouseDown`): the bot makes it (`bonus`), and with no group to shoot in the bonus field it waits instead of answering null, as the
 minute runs out by itself (a driver stops at a null). Without those two answers a game stopped in the bonus round of level 7 (native,
 null) or 19 (web) and one stayed in level 23's bonus round for good. `games/astropop/tools/livesplit/scripted.py levels` (native)
-and `games/astropop/tools/web/winlevels.js` (the page, real DOM input) play it: 32 clears and level 33 on the screen, in 4,620 moves
-and 84,700 updates natively and 1,900 moves and 95,000 updates in the page, with 24 upgrade boxes, 8 bonus starts and the
+and `games/astropop/tools/web/winlevels.js` (the page, real DOM input) play it: 32 clears and level 33 on the screen, in 4,785 moves
+and 85,200 updates natively and 1,835 moves and 89,500 updates in the page, with 24 upgrade boxes, 7 bonus starts and the
 gate 32 times.
+
+The test command `win` (LevelComplete, called straight) is answered with an ERROR unless the level is in play
+(`Board::WinBlockedReason`, BoardBot.cpp): not with the help, a pause, a story, a level-up, a warp, a bonus round, a count or a game
+over on, and not in a level in which no brick has been taken yet (`mPlayStarted`; `BoardReset` clears it for each level). The original
+calls LevelComplete only from IsSettled in a level being played. A `win` before the first brick of a level was not harmless: the update
+skips `UpdateIntroAndTally` while `mPlayStarted` is false, so a bonus round won that way never ran its warp-in (state frozen at
+`mBonusWarpPhase` 1, the bot's shots going nowhere), and each `win` sent during a bonus round restarted it; under the help or in a warp
+it counted a level clear (`mLevelsCompleted`, the autosplit block's `lc`) that never moved the game on. A driver that retries `win`
+until it answers OK, as the Splits window's does, now plays on until the level is in play; `scripted.py levels`, `winlevels.js` and
+`gotohelp.js` ask again after the next shot.
 
 A game that a test command starts while the full-screen help of the one before is up (`goto classic`, `goto survival`, `level`; the
 original's player cannot, the help is modal) left the help under the new Board: `StartClassicGame` deletes the old Board and adds the new

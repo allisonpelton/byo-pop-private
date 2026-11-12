@@ -830,6 +830,7 @@ public:
 	std::string		DescribeField();                                // the field as a JSON array of 19 strings of 10 characters
 	int				BotBusyReason();                                // 0, or which of BotBusy's conditions holds (test-only)
 	bool			BotBusy();                                      // the game takes no input now (bricks fly, a screen or a box is up)
+	const char*		WinBlockedReason();                             // NULL, or why the test command win must be refused now (test-only)
 	std::string		BotMove();                                      // the move the bot makes next as JSON, or "null" (BoardBot.cpp)
 	void			UpdateGameOver();                               // 0x45e680
 	void			CreateEndButtons();                             // 0x4593b0

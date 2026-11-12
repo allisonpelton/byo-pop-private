@@ -185,6 +185,36 @@ bool Board::BotBusy()
 	return BotBusyReason() != 0;
 }
 
+// Why the test command `win` (LevelComplete, called straight) must be refused now, NULL when the board is in play. The original calls it
+// only from IsSettled, in a level the player is playing: with the help, a pause, a level-up, a warp or a bonus round on, a level
+// that no brick has been taken in (mPlayStarted, which UpdateIntroAndTally's turn in the update waits for: a bonus round won before it
+// never ends) or a game that is over, it would count a clear that never moves the game on, or restart the bonus round at each call.
+// port: the test commands (docs/TEST_COMMANDS.md); the original has none
+const char* Board::WinBlockedReason()
+{
+	if (mGameOver)
+		return "the game is over";
+	if (mApp->mHelpScreen != NULL)
+		return "the full-screen help is up";
+	if (mDemoPlaying)
+		return "the demo plays";
+	if (mStoryScreen != NULL)
+		return "a story is up";
+	if (mPauseCount != 0)
+		return "the game is paused";
+	if (mBonusRoundOn || mBonusWarpIn)
+		return "a bonus round is on";
+	if (mLevelUpPhase || mWarpActive || mWarpFlight || mAtWarpGate || mWarpGatePicked || mWarpCharging)
+		return "the level is won already (the level-up or the warp is on)";
+	if (mScreenWiping || mClearCountRunning || mStreaksFadingOut || mLevelUpPanelHeight + mLevelUpPanelY > 0)
+		return "a screen is on (a count, a fade or the level-up panel)";
+	if (!mPlayStarted)
+		return "no brick has been taken in this level yet (play has not started)";
+	if (mLevelCompleteBlocked)
+		return "the level cannot be completed now";
+	return NULL;
+}
+
 // The move the bot makes next: a text (JSON) with what it is and `input`, the real input that makes it. "null" when there is
 // no move to make (the game is over, or no brick of the field makes a group), and a wait when the game takes none now.
 // port: the bot (a test driver's view of the game); the original has none
