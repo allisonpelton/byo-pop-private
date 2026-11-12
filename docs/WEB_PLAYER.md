@@ -369,8 +369,8 @@ than a high-score list; Pixelus, which keeps no score list.
 
 ### The fixes mod on the site
 
-Every game is served improved (`docs/MOD_ROADMAP.md`, "What a player gets", the user, 2026-11-12): its fixes mod on, its
-lite mod on once it has one, and an Original switch, not built yet, that turns both off. The fixes mod
+Every game is served improved (`docs/MOD_ROADMAP.md`, "What a player gets", the user, 2026-11-12): its fixes mod on and
+its lite mod on once it has one. The fixes mod
 (`docs/MOD_ROADMAP.md`, "The fixes mod") is one mod, `fixes`, each of whose settings toggles one fix, in
 `games/<game>/mods/fixes`. The web build copies it beside the page as `<game>-fixes/` and writes its `version` and file
 list into the page (`FIXES` in `web/shell.html`); a game in `BYOPOP_WEB_NO_MODS`, or without the folder, gets none.
@@ -380,6 +380,17 @@ version replaces the mod's files and leaves `mods.json` and `mod-settings.json` 
 player who removes the mod never gets it back: a start that finds the note saying "installed" and no folder notes it as
 removed. `-DBYOPOP_WEB_TEST_FIXES=<game>` (set back to empty afterwards) gives a game with no fixes mod
 `tools/webtest/fixes`, a stand-in with one toggle that changes nothing.
+
+**The Original switch** is a check box, Original, in the game's Mods panel (`web/modpanel.js`). It is shown whenever
+the game has a `fixes` or `lite` mod. Turning it on turns both mods off through the game's own model, as the mod menu
+would, and keeps each one's earlier on/off state in the note as `"original": {"fixes": true, "lite": false}`. Turning it
+off puts back exactly those states. The mods' own settings, every fix's toggle in `mod-settings.json`, are never touched,
+so they hold through both. The record stays in the note through a new shipped version. While the switch is on, a fixes
+or lite mod that arrives later (its first install) is turned off and remembered as on, as it would have started. If the
+player turns one of the two back on in the mod menu, they have left the original: the switch goes off and their mods
+stay as they are. A removed fixes mod stays removed whatever the switch says, because the switch only turns on what is
+there. Like the note, the switch belongs to one game's user dir and never changes another game. A change while a game
+runs waits for its restart, like any change in the mod menu.
 
 ### Site settings
 
