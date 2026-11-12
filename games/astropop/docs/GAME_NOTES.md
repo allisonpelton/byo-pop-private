@@ -400,7 +400,7 @@ pairs with its range. The memory is private bytes in MiB; the load is the time f
 G and +1.23 G, +0.2 G less with the mixer counted apart), with a noise the same size as the difference, so none of the three sets
 proves more than "about equal, a little over". 2D passes with room. The cause is not the game's code (below) but the display path that every
 game of the framework shares; what could be done about it is listed under the shared costs, and the Direct3D 11 hint (the shared commit
-`ccec8c20`) is the one change made.
+`4ab9c0a0`) is the one change made.
 
 **Which renderer.** SDL's own first choice on a Windows desktop is Direct3D 9 (the NVIDIA `nvd3dum.dll` driver, a second thread busy in
 system calls: about 35% of the process). Varying `SDL_RENDER_DRIVER` for three runs each, back to back on one core (the stretch, G
@@ -446,7 +446,7 @@ heap, in the display path, the same as Bejeweled Twist's jump at a level-up (`do
    level-up jump, below the heap. To find it: count texture creations in the display layer during the first second of a game
    (`astropop.exe -realinput=<script> -seed=11` with `memreport` before and after the first board).
 5. *SDL's first renderer on a Windows desktop is Direct3D 9, which rundesk's private desktop cannot start* (see "Which renderer"): the
-   `shared:` commit `ccec8c20` asks for Direct3D 11 first (a default-priority hint, so `SDL_RENDER_DRIVER` still decides), logs the renderer's
+   `shared:` commit `4ab9c0a0` asks for Direct3D 11 first (a default-priority hint, so `SDL_RENDER_DRIVER` still decides), logs the renderer's
    name once and rewords the scale-mode comment. It changes every DDInterface game's renderer on the desktop, so it is the coordinator's to merge.
 6. *The framework presents in step with the display* (`InitDDInterface` passes `vsync = !mFastMode`), and a present costs 1.35 M cycles on the
    main thread and about 1.4 M on the driver's: 70% of the port's 3D stretch, against an original that, with no wait for the display in a window, may draw more often at a lower cost each.
