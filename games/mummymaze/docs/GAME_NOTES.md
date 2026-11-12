@@ -167,7 +167,9 @@ Abandon Hope, from where the explorer stands): the plan is made once and followe
 it does not (a new search at every step walked in circles, because the depth first search that keeps the shortest way it found does
 not always give the same first step). When there is no way out it presses RESET MAZE. It has no dice, unlike the autoplay bot of
 `Autoplay.cpp` (which takes random walks and undoes on purpose): it always wins the chamber, so a whole game ends at the victory
-screen. `over` is true on the victory screen and on the high score table after a lost game once the name is asked, and, with
+screen. A dialog is answered before the screen under it, except a tip that is behind the level-complete page (`win` while a tip is up
+leaves the page above the tip, and the page takes the clicks): there `screen` says `complete` and `move` clicks the page's link, and the
+tip, if it is still up afterwards, is answered like any dialog. `over` is true on the victory screen and on the high score table after a lost game once the name is asked, and, with
 `botmode tutorial`, once the tutorial has handed over to the classic game.
 
 A key is held for one update to take one step (`Board::UpdateExplorer` reads the key table at the next update); in a `-fast` run a
