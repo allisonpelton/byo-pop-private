@@ -113,6 +113,11 @@ void PlaySoundByName(const char* theName, int theFrequency)
 		aSound->Play(theFrequency);
 }
 
+void LoadAndPlaySound(const char* theName, int theFrequency)
+{
+	LoadSound(theName, false, false)->Play(theFrequency);
+}
+
 // BASS_Pause and BASS_Start stop and start the whole output; the mixer has no pause, so the voices are silenced and keep
 // their place (a deviation: they play on, unheard, while the window has no focus)
 void PauseSounds()

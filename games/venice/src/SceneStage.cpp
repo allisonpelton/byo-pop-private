@@ -115,6 +115,15 @@ SceneFilter* SceneStage::FindFilter(int theType, int theAttribute)
 	return aFilter;
 }
 
+// 0x42a7f0
+SceneEvent* SceneStage::FindEvent(int theTrigger, int theAction)
+{
+	SceneEvent* anEvent = mEvents.mHead;
+	while (anEvent != nullptr && (anEvent->mAction != theAction || anEvent->mTrigger != theTrigger))
+		anEvent = anEvent->mNext;
+	return anEvent;
+}
+
 // 0x42a170: the trigger and action are given as numbers
 SceneEvent* SceneStage::AddEvent(int theTrigger, int theAction, const char* theParm1, const char* theParm2,
 	const char* theParm3, const char* theParm4, const char* theAltKey)

@@ -13,7 +13,7 @@ Sexy::Graphics* gGraphics = nullptr;
 CursorList<SceneObject> gScenes;
 
 Level* gActiveLevel = nullptr;
-SceneObject* gShooter = nullptr;
+Shooter* gShooter = nullptr;
 SceneObject* gSparkleLayer = nullptr;
 SceneObject* gOuterLayer = nullptr;
 SceneObject* gMiddleLayer = nullptr;

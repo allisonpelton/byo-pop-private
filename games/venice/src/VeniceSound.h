@@ -40,6 +40,8 @@ Sound* LoadSound(const char* theName, bool theLoop, bool theIsMusic);
 void FreeSound(Sound* theSound);
 // the find and the Play that the game's callers write out (a name that was never loaded plays nothing)
 void PlaySoundByName(const char* theName, int theFrequency);
+// 0x443bc0 and then Play: the sound is made when it was not loaded yet
+void LoadAndPlaySound(const char* theName, int theFrequency = -1);
 void PauseSounds(); // 0x443f30: the window lost the focus
 void ResumeSounds(); // 0x443f40
 void SetVolumes(int theMusicVolume, int theSoundVolume); // 0x443790: a volume of -1 stays

@@ -2,12 +2,25 @@
 
 #include "ObjectFactory.h"
 
+#include "BonusBasket.h"
+#include "Cloud.h"
 #include "Cursor.h"
 #include "Emitter.h"
+#include "EndlessBonus.h"
+#include "Firework.h"
 #include "InputBox.h"
 #include "Layer.h"
+#include "Obstacle.h"
+#include "Pigeon.h"
+#include "PlateTypes.h"
+#include "Powerup.h"
 #include "SceneObject.h"
+#include "Shooter.h"
+#include "ShooterObjects.h"
+#include "Slot.h"
 #include "TextObject.h"
+#include "Turret.h"
+#include "Warp.h"
 
 #include <cstring>
 
@@ -31,6 +44,36 @@ namespace
 		{"layer", Create<Layer>},
 		{"cursor", Create<Cursor>},
 		{"emitter", Create<Emitter>},
+		{"round_plate", Create<RoundPlate>},
+		{"semicircle_plate", Create<SemicirclePlate>},
+		{"a_plate", Create<APlate>},
+		{"x_plate", Create<XPlate>},
+		{"stick_plate", Create<StickPlate>},
+		{"block_plate", Create<BlockPlate>},
+		{"triangle_plate", Create<TrianglePlate>},
+		{"t_plate", Create<TPlate>},
+		{"tosser_plate", Create<TosserPlate>},
+		{"key_plate", Create<KeyPlate>},
+		{"spinner_plate", Create<SpinnerPlate>},
+		{"step_plate", Create<StepPlate>},
+		{"square_plate", Create<SquarePlate>},
+		{"m_plate", Create<MPlate>},
+		{"slot", Create<Slot>},
+		{"turret", Create<Turret>},
+		{"warp", Create<Warp>},
+		{"rect_bumper", Create<RectBumper>},
+		{"round_bumper", Create<RoundBumper>},
+		{"tri_bumper", Create<TriBumper>},
+		{"pigeon", Create<Pigeon>},
+		{"cloud", Create<Cloud>},
+		{"firework", Create<Firework>},
+		{"shooter", Create<Shooter>},
+		{"shooter_cursor", Create<ShooterCursor>},
+		{"shooter_path", Create<ShooterPath>},
+		{"scroll_point", Create<ScrollPoint>},
+		{"powerup", Create<Powerup>},
+		{"bonus_basket", Create<BonusBasket>},
+		{"endless_bonus", Create<EndlessBonus>},
 	};
 }
 

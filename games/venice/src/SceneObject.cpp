@@ -3,6 +3,7 @@
 #include "SceneObject.h"
 
 #include "GameText.h"
+#include "Geometry.h"
 #include "ImageRecord.h"
 #include "Level.h"
 #include "SceneNames.h"
@@ -756,18 +757,18 @@ int SceneObject::CountChildrenOfType(int theType)
 }
 
 // 0x429790
-float SceneObject::DistanceTo(SceneObject* theObject)
+double SceneObject::DistanceTo(SceneObject* theObject)
 {
 	float aDeltaX = mWorld[AttributeX] - theObject->mWorld[AttributeX];
 	float aDeltaY = mWorld[AttributeY] - theObject->mWorld[AttributeY];
-	return (float)VeniceSqrt(aDeltaX * aDeltaX + aDeltaY * aDeltaY);
+	return VeniceSqrt(aDeltaX * aDeltaX + aDeltaY * aDeltaY);
 }
 
 // 0x429810: the angle to the object in degrees, as an integer
 int SceneObject::AngleTo(SceneObject* theObject)
 {
-	return (int)VeniceArcTangent(mWorld[AttributeY] - theObject->mWorld[AttributeY],
-		mWorld[AttributeX] - theObject->mWorld[AttributeX]);
+	return (int)(VeniceArcTangent(mWorld[AttributeY] - theObject->mWorld[AttributeY],
+		mWorld[AttributeX] - theObject->mWorld[AttributeX]) * RadiansToDegrees);
 }
 
 // 0x4295e0
@@ -811,6 +812,43 @@ bool SceneObject::HitTest(float theX, float theY, float theWidth, float theHeigh
 	float aWorldY = GetWorldY(mLocal[AttributeX], mLocal[AttributeY]);
 	float aWorldX = GetWorldX(mLocal[AttributeX], mLocal[AttributeY]);
 	return RotatedRectsOverlap(theX, theY, theWidth, theHeight, theRotation, aWorldX, aWorldY, aWidth, aHeight, aRotation);
+}
+
+// 0x428d70: whether the other object's picture, as it is placed, overlaps this object
+bool SceneObject::Overlaps(SceneObject* theObject)
+{
+	return HitTest(theObject->mWorld[AttributeX], theObject->mWorld[AttributeY],
+		(theObject->mSourceRight - theObject->mSourceLeft) * theObject->mLocal[AttributeXScale],
+		(theObject->mSourceBottom - theObject->mSourceTop) * theObject->mLocal[AttributeYScale],
+		theObject->mLocal[AttributeRotation]);
+}
+
+// 0x428e00: how much this object's circle (as wide as its picture's frame) overlaps a circle
+int SceneObject::CircleOverlapAt(float theX, float theY, float theRadius)
+{
+	float aRadius = mImage->mFrameWidth;
+	float aWorldY = GetWorldY(mLocal[AttributeX], mLocal[AttributeY]);
+	float aWorldX = GetWorldX(mLocal[AttributeX], mLocal[AttributeY]);
+	return (int)CircleOverlap(aWorldX, aWorldY, aRadius, theX, theY, theRadius);
+}
+
+// 0x428e80
+int SceneObject::CircleOverlapWith(SceneObject* theObject)
+{
+	return CircleOverlapAt(theObject->mWorld[AttributeX], theObject->mWorld[AttributeY], theObject->mImage->mFrameWidth);
+}
+
+// 0x427d50 and 0x427da0
+float SceneObject::GetXVelocity()
+{
+	SceneFilter* aFilter = mStages.mCursor->FindFilter(FilterVelocity, AttributeX);
+	return aFilter == nullptr ? 0.0f : aFilter->mAmplitude;
+}
+
+float SceneObject::GetYVelocity()
+{
+	SceneFilter* aFilter = mStages.mCursor->FindFilter(FilterVelocity, AttributeY);
+	return aFilter == nullptr ? 0.0f : aFilter->mAmplitude;
 }
 
 // 0x429420: the newest child of theSource becomes this object's child; its position is kept

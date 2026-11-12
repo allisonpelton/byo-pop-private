@@ -8,6 +8,7 @@
 
 class Level;
 class SceneObject;
+class Shooter;
 
 namespace Sexy
 {
@@ -27,7 +28,7 @@ extern CursorList<SceneObject> gScenes; // 0x5ba2b8
 // The level being updated (0x5ba2a4, each level sets it as it updates, so after an update it is the top scene) and the objects
 // the game finds in it with each update
 extern Level* gActiveLevel; // 0x5ba2a4
-extern SceneObject* gShooter; // 0x5ba2a8: the child of the level that throws the plates
+extern Shooter* gShooter; // 0x5ba2a8: the child of the level that throws the plates
 extern SceneObject* gSparkleLayer; // 0x5ba29c: the layer that holds the sparkles and particles
 extern SceneObject* gOuterLayer; // 0x5ba2ac: the level's first layer
 extern SceneObject* gMiddleLayer; // 0x5ba2b0: the layer in the first, which also names the state of the play by its stage

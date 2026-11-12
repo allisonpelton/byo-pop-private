@@ -18,6 +18,8 @@ struct LevelMusic
 };
 
 // 0x3dc bytes in the original
+class Jewel;
+
 class Level : public SceneObject
 {
 public:
@@ -68,6 +70,20 @@ public:
 	void FadeMusic();
 	// 0x40f690: one update of the crossfade between two pieces of music over a number of ticks
 	bool CrossFade(LevelMusic& theFrom, LevelMusic& theTo, float* theTicksLeft, float thePeriod);
+
+	// 0x40f960: a plate sank, or a jewel was lost: the level is lost, or (in the Journey mode) a try is
+	void LoseTry();
+	// 0x40fae0: the message that goes with a lost try, and what comes after it (the next try, the summary or the click to play again)
+	void ShowLossMessage();
+	// 0x4100c0: a missed trick shot ends the trick shot level (a level of the Trick Shot mode has one shot)
+	void MissTrickShot();
+	// 0x410260: a jewel fell in the water without ever filling a slot while the Journey mode's player can still lose
+	void CheckLostJewel(Jewel* theJewel);
+	// 0x410770: the messages that float on the screen go
+	void KillPopupTexts();
 };
+
+// 0x410200: whether any plate in the plate layer has a slot to fill
+bool AnyPlateIncomplete();
 
 #endif

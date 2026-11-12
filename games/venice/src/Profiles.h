@@ -31,7 +31,7 @@ struct Profile
 	int mLevelIndex[GameModeCount]; // the number of the level the player is on, less one, for each mode
 	int mUnused50;
 	int mLevelSelectSeen; // set once the level select screen has been shown for the mode being played
-	int mTutorialSeen;
+	int mCupidMessageSeen; // set once the cupid has come and its message has been shown
 	int mScore;
 	int mMode; // the GameMode being played
 	int mUnused64;
@@ -50,7 +50,7 @@ struct Profile
 	int mFlagReachedBuilding3; // set once the player has played past level 2
 	int mFlagFinishedRelaxed;
 	int mFlagFinishedGame;
-	int mFlagUnused1270;
+	int mCupidUsed; // set once a jewel fell in the water outside the tutorial (the cupid saves only the first)
 	int mExplainFloodSeen; // set once the flood explanation screen has been shown
 };
 static_assert(sizeof(Profile) == 0x1278, "a profile is 0x1278 bytes in the file");

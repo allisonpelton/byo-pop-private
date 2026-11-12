@@ -126,13 +126,16 @@ enum ObjectType
 	ObjectTypeTooltip = 15,
 	ObjectTypeShooter = 16,
 	ObjectTypePlate = 17,
+	ObjectTypeJewel = 18,
 	ObjectTypeSlot = 19,
 	ObjectTypeProgressBar = 20,
 	ObjectTypePanel = 21,
 	ObjectTypeEndlessPanel = 22,
 	ObjectTypePigeon = 23,
 	ObjectTypePowerup = 24,
+	ObjectTypeObstacle = 25, // the bumpers and the warp
 	ObjectTypeTurret = 26,
+	ObjectTypeCascadeLink = 27,
 	ObjectTypeShooterPath = 28,
 	ObjectTypeScrollPoint = 29,
 	ObjectTypeLevelSelect = 30,
@@ -215,6 +218,7 @@ public:
 	SceneEvent* AddEventFromNames(const char* theTrigger, const char* theAction, const char* theParm1,
 		const char* theParm2, const char* theParm3, const char* theParm4, const char* theAltKey); // 0x42a120
 	SceneFilter* FindFilter(int theType, int theAttribute); // 0x42a840
+	SceneEvent* FindEvent(int theTrigger, int theAction); // 0x42a7f0
 	bool Update(); // 0x429f10: true while the stage is still running
 	void ApplyFilters(float* theProgress); // 0x42a890: the filters of every attribute
 	void ApplyAttributeFilters(float* theProgress); // 0x42a8f0
@@ -320,7 +324,7 @@ public:
 	bool HitTest(float theX, float theY, float theWidth, float theHeight, float theRotation); // 0x428bd0
 	void AdoptNewestChild(SceneObject* theSource, bool theByZOrder); // 0x429420: the newest child of theSource becomes a child here
 	int CountStagesBefore(); // 0x4295e0
-	float DistanceTo(SceneObject* theObject); // 0x429790
+	double DistanceTo(SceneObject* theObject); // 0x429790: the distance, unrounded as the original returns it
 	int AngleTo(SceneObject* theObject); // 0x429810
 	void FlipHorizontally(); // 0x429c90
 	void SnapToGrid(); // 0x426370
@@ -333,7 +337,11 @@ public:
 	float GetLocalX(float theWorldX, float theWorldY); // 0x427c00
 	float GetLocalY(float theWorldX, float theWorldY); // 0x427c30
 	float GetLocalRotation(float theRotation); // 0x427c60
-	void RemoveChildAtCursor(); // 0x435330
+	bool Overlaps(SceneObject* theObject); // 0x428d70: whether the other object's picture, as it is placed, overlaps this one
+	int CircleOverlapAt(float theX, float theY, float theRadius); // 0x428e00: the overlap of this object's circle with another
+	int CircleOverlapWith(SceneObject* theObject); // 0x428e80
+	float GetXVelocity(); // 0x427d50: the amplitude of the current stage's horizontal velocity filter
+	float GetYVelocity(); // 0x427da0
 };
 
 #endif

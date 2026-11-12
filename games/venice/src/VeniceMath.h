@@ -53,8 +53,10 @@ inline double VeniceCos(float theAngle) { return cos((double)theAngle); }
 inline double VeniceSin(float theAngle) { return sin((double)theAngle); }
 inline double VeniceSqrt(float theValue) { return sqrt((double)theValue); }
 inline double VeniceAbs(float theValue) { return fabs((double)theValue); }
-// 0x40c0a0: the arc tangent of theY over theX in radians, returned as a float
-inline float VeniceArcTangent(float theY, float theX) { return (float)atan2((double)theY, (double)theX); }
+// 0x40c0a0: the arc tangent of theY over theX in radians, returned unrounded like the CRT calls above
+inline double VeniceArcTangent(float theY, float theX) { return atan2((double)theY, (double)theX); }
+// the factor that turns radians into degrees in the original's code (the float 57.29578)
+const float RadiansToDegrees = 57.29578f;
 
 // The degrees-to-radians factor of the original's code (the float 0.017453292)
 const float DegreesToRadians = 0.017453292f;

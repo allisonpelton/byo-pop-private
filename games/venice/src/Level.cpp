@@ -4,6 +4,7 @@
 
 #include "Profiles.h"
 #include "SceneLoader.h"
+#include "Shooter.h"
 #include "VeniceDraw.h"
 #include "VeniceGlobals.h"
 #include "VeniceInput.h"
@@ -100,7 +101,7 @@ void Level::OnFirstUpdate()
 bool Level::Update()
 {
 	gActiveLevel = this;
-	gShooter = FindChildByType(ObjectTypeShooter, nullptr);
+	gShooter = static_cast<Shooter*>(FindChildByType(ObjectTypeShooter, nullptr));
 	gSparkleLayer = FindChildByType(ObjectTypeSparkleLayer, nullptr);
 	gOuterLayer = FindChildByType(ObjectTypeLayer, nullptr);
 	gMiddleLayer = gOuterLayer == nullptr ? nullptr : gOuterLayer->FindChildByType(ObjectTypeLayer, nullptr);
