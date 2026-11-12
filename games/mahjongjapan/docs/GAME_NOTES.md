@@ -349,7 +349,7 @@ screen texture of 3200x2400, linear scaling, vsync, the driver's thread), while 
 (`FullScreen=0` and `HardwareAcceleration=0` through its `--reg`). `perfrun.sh` with `WINDOWED=1` now gives the port the
 original's window, `FullScreen=dword:0` in the fresh user's registry and the framework's test option `-windowscale=1` (the window
 starts at N times the logical size, where it would otherwise start at 2x when that fits the desktop), and `EXTRA=` passes other
-options: `-windowscale=2` is the window a player gets. `tools/profile/altpairs.sh <pairs> <out>` alternates the port and the
+options: `-windowscale=2` is the window a player gets who plays windowed. `tools/profile/altpairs.sh <pairs> <out>` alternates the port and the
 original, Japan then China, and `showmedians.py <out>` prints the per-run figures and the medians; the whole loop runs under
 `tools/pincore.py` (one performance core, two logical processors), the cycles are the sum over the threads of
 `QueryThreadCycleTime` over the same 30 s, five pairs a game.
@@ -410,7 +410,7 @@ counted apart; machine busy with 4 to 8 game processes of other sessions):
 |---|---|---|
 | original, window of 800x600 (origrun) | 3.78 (2.93 to 4.94) | 3.60 (2.81 to 5.78) |
 | port, surface mode, window of 800x600 | 1.58 (1.16 to 1.79) | 1.01 (0.46 to 1.12) |
-| port, surface mode, window of 1600x1200 (what a player gets) | 1.69 (1.51 to 1.79) | 1.16 (1.15 to 1.19) |
+| port, surface mode, window of 1600x1200 (what a windowed player gets) | 1.69 (1.51 to 1.79) | 1.16 (1.15 to 1.19) |
 | port, renderer, window of 1600x1200 | 4.38 (4.14 to 6.05), driver 2.0 | 4.00 (0.29 to 4.38), driver 2.1 |
 | port, framework's own display, window of 1600x1200 | 4.36 (3.56 to 6.09), driver 1.7 | 3.94 (2.64 to 6.55), driver 1.7 |
 | port, renderer, window of 800x600 | 4.67 (3.84 to 5.10), driver 2.0 | 4.34 (3.83 to 4.53), driver 2.2 |
@@ -418,7 +418,10 @@ counted apart; machine busy with 4 to 8 game processes of other sessions):
 | port, full screen 3840x2160, renderer | 4.64 (4.43 to 4.92), driver 2.3 | 4.79 (3.28 to 5.27), driver 2.4 |
 
 So with the surface the port costs 0.42 and 0.45 (Japan, windows of 800x600 and 1600x1200) and 0.28 and 0.32 (China) of its
-original's cycles, in the original's own window and in the 2x one a player gets; it is under the target. The presenter takes out
+original's cycles, in the original's own window and in the 2x one a windowed player gets; it is under the target there. A fresh
+player's start is full screen (the engine's default), and a window that has had the renderer never uses the surface again (above), so
+that player's cost is the renderer's, 4.6 G, 1.2 times the original's windowed figure; the original's own full-screen cost is not
+measured. The presenter takes out
 the whole driver thread (2 G: no device) and the main thread's upload and present (0.7 G). The renderer paths, which a resized
 window and full screen still need, are where they were (4.4 to 4.8 G, 1.1 to 1.3 times the original's windowed figure: the new
 renderer path moves 0.2 G from the main thread to the driver's thread, a wash). The original's full-screen cost was not measured

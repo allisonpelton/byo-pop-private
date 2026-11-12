@@ -117,8 +117,8 @@ window of 3840x2160 against the original's 800x600 window, which is not like for
 presenter, and the measurement made like for like") give the correction, the presenter (`framework/SurfaceDisplay.h/.cpp`, shared
 with Japan through the engine) and the method. China's figures there, in billions of cycles in the window of 30 s (median of five
 runs, the port's mixer counted apart): original, window of 800x600, 3.60 (2.81 to 5.78); port with the presenter's surface mode,
-window of 800x600, 1.01 (0.46 to 1.12), and window of 1600x1200 (what a player gets), 1.16 (1.15 to 1.19), which is 0.28 and 0.32 of
-the original's, under the target; port with the renderer (a resized window, full screen), 4.0 to 4.8, where the presenter changes
+window of 800x600, 1.01 (0.46 to 1.12), and window of 1600x1200 (what a windowed player gets), 1.16 (1.15 to 1.19), which is 0.28 and 0.32 of
+the original's, under the target in a window (a fresh player starts full screen, where the renderer's figure below applies); port with the renderer (a resized window, full screen), 4.0 to 4.8, where the presenter changes
 nothing (1.1 to 1.3 times the original's windowed figure, the Direct3D device's driver thread 2 G of it). The device's cost that
 surface mode does not pay: private bytes 34 against 61 MB, working set 54 against 68 MB, the game's 400th update 0.5 s sooner.
 The cost of each way of showing a frame (software and GDI against Direct3D 9 and 11, a 15 % rect at 40 a second), the frame cap
