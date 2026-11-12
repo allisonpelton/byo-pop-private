@@ -3,7 +3,9 @@
 # Japan, or GAME=mahjongchina for Ancient China. The play is the one tools/check.sh sends (perfscript.py turns its script into
 # the port's and the original's input); perfmin.py samples the game's process every 50 ms: working set, private bytes,
 # processor time and threads, with the numbers of the window 20 s to 50 s of its life (the play).
-#   build/native/rundesk.exe bash games/mahjongjapan/tools/profile/perfrun.sh port 3     the native port, real time (EXEDIR=<folder> for another build)
+#   build/native/rundesk.exe bash games/mahjongjapan/tools/profile/perfrun.sh port 3     the native port, real time (EXEDIR=<folder> for another build,
+#                                                                                         EXTRA="-fast" for more arguments, WINDOWED=1 for the window the
+#                                                                                         original has under origrun: windowed, 800x600 at 1:1)
 #   bash games/mahjongjapan/tools/profile/perfrun.sh orig 3                              the original, through origrun (which
 #                                                                                         puts it on rundesk's desktop itself:
 #                                                                                         never wrapped in rundesk)
@@ -29,8 +31,13 @@ if [ "$KIND" = port ]; then
 	for i in $(seq 1 "$RUNS"); do
 		waitroom
 		d="$OUT/port$i"; rm -rf "$d"; mkdir -p "$d/user"
+		if [ -n "${WINDOWED:-}" ]; then
+			# the original runs windowed under origrun (FullScreen=0, its --reg): the port's window is as that one, 800x600
+			# at 1:1; a fresh userdir starts it full screen, at the desktop's size (the private desktop's 3840x2160 here)
+			{ echo '; Settings (emulated Windows registry, HKEY_CURRENT_USER)'; echo; echo "[SOFTWARE\\JollyBear\\$SAVES]"; echo 'FullScreen=dword:0'; } > "$d/user/registry.ini"
+		fi
 		python -I "$TOOL" "$d/perf.json" "$WIN" -- "${EXEDIR:-$ROOT/build/native}/$GAME.exe" -gamedir="$ROOT/assets/$GAME" \
-			-userdir="$ROOT/$d/user" -logos -script="$ROOT/$OUT/port-script.txt" | tail -n 1 | cut -c1-400
+			-userdir="$ROOT/$d/user" -logos -script="$ROOT/$OUT/port-script.txt" ${WINDOWED:+-windowscale=1} $EXTRA | tail -n 1 | cut -c1-400
 	done
 else
 	ST="${GAME}cov"; SD="C:/byo-og/$ST"; L="$LOCALAPPDATA/JollyBear/$SAVES"

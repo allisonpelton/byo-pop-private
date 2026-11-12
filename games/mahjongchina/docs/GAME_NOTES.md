@@ -112,6 +112,23 @@ So China's port is 1.2 times its original in the one pair that compares; the fra
 chain (the widget's upload, `SDL_RenderPresent` and the driver's thread: 2.6 G of the port's 3.8 to 4.5) is what is left,
 asked of the coordinator as Japan's notes say.
 
+**Like for like, corrected, and the window-surface presenter (2026-11-12).** The pairs above had the port in a full-screen
+window of 3840x2160 against the original's 800x600 window, which is not like for like; Japan's notes ("The window-surface
+presenter, and the measurement made like for like") give the correction, the presenter (`framework/SurfaceDisplay.h/.cpp`, shared
+with Japan through the engine) and the method. China's figures there, in billions of cycles in the window of 30 s (median of five
+runs, the port's mixer counted apart): original, window of 800x600, 3.60 (2.81 to 5.78); port with the presenter's surface mode,
+window of 800x600, 1.01 (0.46 to 1.12), and window of 1600x1200 (what a player gets), 1.16 (1.15 to 1.19), which is 0.28 and 0.32 of
+the original's, under the target; port with the renderer (a resized window, full screen), 4.0 to 4.8, where the presenter changes
+nothing (1.1 to 1.3 times the original's windowed figure, the Direct3D device's driver thread 2 G of it). The device's cost that
+surface mode does not pay: private bytes 34 against 61 MB, working set 54 against 68 MB, the game's 400th update 0.5 s sooner.
+
+**Why China's and Japan's percentages differed** (README: China's port 7.3 % of a core against its original's 1.7 %, Japan's 6.0 %
+against 3.1 %): five runs of each port and three of each original as percentages of one core on a busy machine, China's original
+running at 1.3, 1.7 and 6.2 % in its three, so that the median of three took a quiet one. In cycles the originals' medians are
+3.60 G (China) and 3.78 G (Japan), each varying from run to run by a factor of 1.7 to 2.1, and with the renderer the two ports
+are within 0.4 G of each other. The difference was the original's own spread, not the games'. (With the surface China's port is
+0.5 G below Japan's, the main thread's share of the drawing.)
+
 **Memory.** Before any game file is read the process holds 52.3 MB (the framework, SDL and the video driver: shared). At the
 end of the play it holds 102.5 MB private: the engine's images (9.4 MB of decoded bits and 12.1 MB of 32-bit copies, 82
 images), 5.1 MB of sounds (19) and, from the menu on, the two MO3 modules the menu loads (ids 335 and 339), the rest, about

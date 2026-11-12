@@ -272,8 +272,8 @@ measured like for like. The measurement now counts cycles, not percentages: `too
 thread's `QueryThreadCycleTime` (exact, no sampling and no suspension) and its kernel and user time at the two ends of the
 same window of 20 s to 50 s of the process's life (the original's moved 6 s later by its logos, as before),
 `tools/profile/showthreads.py` prints the tables, and `perfrun.sh` takes `TOOL=` to swap it in for `perfmin.py`. The port
-runs in real time under rundesk (no `-fast`: a 60 Hz screen's pacing, vsync on, the same 25 ms frame as the original) and the
-original through origrun, each pair made one after the other, port first. The port's sound is counted apart: its mixer runs
+runs in real time under rundesk (no `-fast`: a 60 Hz screen's pacing, vsync on, the same 25 ms frame as the original, in a full-screen window: not like for like, as the
+next section's correction says) and the original through origrun, each pair made one after the other, port first. The port's sound is counted apart: its mixer runs
 in SDL's audio thread (libopenmpt rendering the MO3 modules), while origrun's stand-in leaves the original with no mixing at
 all (its process shows one thread of the game and nothing else of any size). Percentages of one core swing with the
 clock and the load (other sessions' games ran meanwhile, 5 to 11 processes), cycles do much less, and the original's own two
@@ -332,7 +332,93 @@ with a copy of the changed rect alone (310x232 pixels) at 0.26 (0.5 G per 30 s).
 original, by about a third (estimated: 0.5 for the game, 0.6 for the loop, 0.5 for the
 present, 0.2 for the sound, 1.9 G). It is a shared presenter and was asked of the coordinator (the spec is in the notes folder,
 `mahjong-present-spec.md`); a partial texture upload, which the rects now make possible, saves 0.35 G of the main thread but not
-the driver's.
+the driver's. The coordinator had the presenter built here: the next section.
+
+### The window-surface presenter, and the measurement made like for like (2026-11-12)
+
+**The pairs above were not like for like.** A fresh user's registry starts the port full screen (the engine's default is
+`FullScreen=1`), so on rundesk's private desktop (3840x2160) it drew a full-screen window of that size (render scale 4, a
+screen texture of 3200x2400, linear scaling, vsync, the driver's thread), while origrun runs the original in a window of 800x600
+(`FullScreen=0` and `HardwareAcceleration=0` through its `--reg`). `perfrun.sh` with `WINDOWED=1` now gives the port the
+original's window, `FullScreen=dword:0` in the fresh user's registry and the framework's test option `-windowscale=1` (the window
+starts at N times the logical size, where it would otherwise start at 2x when that fits the desktop), and `EXTRA=` passes other
+options: `-windowscale=2` is the window a player gets. `tools/profile/altpairs.sh <pairs> <out>` alternates the port and the
+original, Japan then China, and `showmedians.py <out>` prints the per-run figures and the medians; the whole loop runs under
+`tools/pincore.py` (one performance core, two logical processors), the cycles are the sum over the threads of
+`QueryThreadCycleTime` over the same 30 s, five pairs a game.
+
+**The presenter** (`framework/SurfaceDisplay.h/.cpp`, shared; an app asks for it by returning it from `CreateDDInterface`, as
+Bejeweled Twist asks for its `GPUDisplay`: the two Mahjong apps do, on the desktop builds only, and the web build keeps
+`DDInterface`). The engine's frame no longer goes through a widget image (copy of the changed rects, the framework's draw of that
+image into the screen image, its upload and its draw into the screen texture): `MahjongHost::Present` hands the display the
+800x600 buffer and the rects that changed (`SetFrame`), the widget draws nothing, and `DrawDirtyStuff` only decides when a frame
+is shown. The display shows it in one of two ways, by the size of the window:
+
+- *Surface mode*, when the window's drawable is exactly 1, 2, 3 or 4 times the screen's size each way (the original's own window
+  and the framework's 2x start). There is no SDL renderer, so no Direct3D device and no driver thread: `Present` copies the
+  changed rects, row by row and each pixel repeated as many times as the window is larger, into the window's SDL surface, and
+  SDL updates those rects of the window (GDI). At these sizes the renderer's picture is the same: its screen texture at the
+  render scale is those repeated pixels, shown as they are by a window of that size, so the choice is not seen. The window's
+  own pixels were captured (`PrintWindow`, `tools/display/wintest.sh`) and compared with the game's screenshot at every pixel at
+  1x and at 2x (0 differ), and `SURFACE_VERIFY=1` compares the window's surface with the buffer after every present (abort at a
+  difference).
+- *Renderer mode*, any other size (a resized window, full screen): `DDInterface`'s own path, the buffer put into the screen
+  texture from a frame texture of the display's own of which only the changed rect is uploaded each frame. Its totals are the
+  old path's (below), which it keeps: no gain, no loss.
+
+An SDL window cannot have a renderer and a surface at once, so every size change (and the start of every frame) picks the mode
+again: it destroys the one and makes the other, and the window, its focus and its position are untouched. The buffer is the
+engine's and nothing in it is lost, so the first frame after a change, a restore from minimised or an expose is shown whole
+(`DDInterface::ScreenInvalidated`, called by `SexyAppBase`'s window events). With no vsync of its own, surface mode draws at most
+once in a display refresh interval (`DDInterface::mMinPresentInterval`: 16 ms at 60 Hz, not under `-fast`); frames with nothing
+changed are not drawn, as before. `ReadScreen` and `ReadScreenFull` serve the buffer's pixels (the render scale's repetition for
+the latter), so screenshots are the CPU buffer byte for byte in both modes. A display with a drawn cursor image (not these two
+apps, which use the system cursors) stays in renderer mode. `SURFACE_DISPLAY=0` in the environment keeps the renderer for good and
+`SURFACE_DISPLAY=off` makes the framework's own display with the widget's image, the path before the presenter, so that the
+paths can be measured against each other.
+
+*Proved.* Both suites pass with every picture as frozen in six configurations (the default 2x surface window, `-windowscale=1`,
+`SURFACE_DISPLAY=0`, `SURFACE_DISPLAY=off`, and both surface windows with `JB_VERIFY_FRAMES=1 SURFACE_VERIFY=1`), and the screen
+tour of both (`tools/tour/compare.sh`) gives 20 pictures each byte for byte as the exes from before the engine's change, in the
+default and the renderer mode. `tools/display/modeswitch.sh` drives the port by `-realinput` through a resize to 2x and back,
+minimise and restore (focus lost and regained), Alt+Enter to full screen and back, and a second resize to 2x and back, a
+screenshot and a `screenshotfull` at each stage: 7 changes of mode, the window's surface equal to the screen at every one of
+240 frames (288 in real time), the full shots the shots repeated by the render scale (1, 2, 4 in full screen) in every stage,
+both ports, no crash.
+
+**The numbers** (billions of cycles in the window of 30 s, the median of five runs with the range; the port's mixer, 0.2 G,
+counted apart; machine busy with 4 to 8 game processes of other sessions):
+
+| | Ancient Japan | Ancient China |
+|---|---|---|
+| original, window of 800x600 (origrun) | 3.78 (2.93 to 4.94) | 3.60 (2.81 to 5.78) |
+| port, surface mode, window of 800x600 | 1.58 (1.16 to 1.79) | 1.01 (0.46 to 1.12) |
+| port, surface mode, window of 1600x1200 (what a player gets) | 1.69 (1.51 to 1.79) | 1.16 (1.15 to 1.19) |
+| port, renderer, window of 1600x1200 | 4.38 (4.14 to 6.05), driver 2.0 | 4.00 (0.29 to 4.38), driver 2.1 |
+| port, framework's own display, window of 1600x1200 | 4.36 (3.56 to 6.09), driver 1.7 | 3.94 (2.64 to 6.55), driver 1.7 |
+| port, renderer, window of 800x600 | 4.67 (3.84 to 5.10), driver 2.0 | 4.34 (3.83 to 4.53), driver 2.2 |
+| port, full screen 3840x2160, before the presenter | 4.61 (4.00 to 5.32), driver 1.65 | 4.47 (4.36 to 4.87), driver 1.7 |
+| port, full screen 3840x2160, renderer | 4.64 (4.43 to 4.92), driver 2.3 | 4.79 (3.28 to 5.27), driver 2.4 |
+
+So with the surface the port costs 0.42 and 0.45 (Japan, windows of 800x600 and 1600x1200) and 0.28 and 0.32 (China) of its
+original's cycles, in the original's own window and in the 2x one a player gets; it is under the target. The presenter takes out
+the whole driver thread (2 G: no device) and the main thread's upload and present (0.7 G). The renderer paths, which a resized
+window and full screen still need, are where they were (4.4 to 4.8 G, 1.1 to 1.3 times the original's windowed figure: the new
+renderer path moves 0.2 G from the main thread to the driver's thread, a wash). The original's full-screen cost was not measured
+(origrun runs it windowed). Two runs of China at 0.3 and 0.5 G (one in the renderer set, one in the 800x600 surface set) are
+windows in which the game's thread did almost nothing (not chased); they are in the ranges, and the medians do not rest on them.
+
+**The D3D11 device's cost** that surface mode does not pay (800x600 window, 5 runs of Japan, 3 of China, medians): private bytes
+42 against 71 MB (China 34 against 61), working set 54 against 71 MB (China 54 against 68), and the 400th update of the game
+reached 0.5 s sooner after the process started (2.51 against 3.02 s, the same in both games).
+
+**Why the two games' percentages differed.** The README's figures (Japan's port 6.0 % of a core against its original's 3.1 %,
+China's 7.3 % against 1.7 %) are medians of five runs of each port and three of each original, percentages of one core under a
+load that swung with the other sessions, and China's original ran at 1.3, 1.7 and 6.2 % in its three, so a median of three took
+one of the quiet ones. In cycles the originals' own runs vary by a factor of 1.7 to 2.1 from run to run (Japan 2.93 to 4.94 G,
+China 2.81 to 5.78 G, above), more than the two games differ, their medians are 3.78 and 3.60 G, and with the renderer the two
+ports are within 0.4 G of each other in every configuration (the driver's 2 G is most of it). Only in surface mode China's port
+is 0.5 G lower, the games' own drawing in the main thread, not the present path. The differences in the README were noise.
 
 ## Coverage check (2026-11-08)
 

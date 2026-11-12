@@ -147,7 +147,9 @@ def main():
             pid = find(part)
             time.sleep(0.005)
     else:
-        proc = subprocess.Popen(sys.argv[4:], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        # the game's own log goes beside the result (its display mode, for one, is in it)
+        log = open(out + '.log', 'w')
+        proc = subprocess.Popen(sys.argv[4:], stdout=log, stderr=subprocess.STDOUT)
         pid = proc.pid
     hp = k32.OpenProcess(PROCESS_QUERY | PROCESS_VM_READ | 0x100000, False, pid)
     if not hp:
