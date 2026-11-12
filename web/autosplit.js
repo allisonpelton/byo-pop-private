@@ -234,6 +234,8 @@ var ByopopAutosplit = (function () {
       (rules.templates || []).forEach(function (t) { if (templateName(t).toLowerCase() === category.toLowerCase()) template = t; });
       var catMode = template && template.mode !== undefined ? template.mode : named(category, rules.modes);
       var catSkill = template && template.skill !== undefined ? template.skill : named(category, rules.skills);
+      // whether a block's mode or skill is outside the category's: a number (-1 for any) or a list of the allowed ones
+      function outside(want, v) { return Array.isArray(want) ? want.indexOf(v) < 0 : want >= 0 && want !== v; }
       var end = template ? parseEnd(template.end) : null;
       var splits = [], runSerial = 0, pending = null, baseline = true, seenActive = false, warned = false, attachT = null;
       var current = {}, old = {};
@@ -300,7 +302,7 @@ var ByopopAutosplit = (function () {
           }
           if (timer.phase() === "NotRunning" && current.goCount !== old.goCount && current.goSerial === current.boardSerial &&
               !(current.flags & (FLAG_REPLAY | FLAG_RESUMED)) && !(setting("vanillaOnly") && !(current.flags & FLAG_VANILLA)) &&
-              !(setting("modeGuard") && ((catMode >= 0 && catMode !== current.mode) || (catSkill >= 0 && catSkill !== current.skill))))
+              !(setting("modeGuard") && (outside(catMode, current.mode) || outside(catSkill, current.skill))))
             timer.start();
           return ask;
         },
@@ -372,6 +374,22 @@ var ByopopAutosplit = (function () {
                   by: "progress" }]
   };
 
+  // Rocket Mania (speedrun.com: Rocket Mania!): Level 10, 20 and 30 on each difficulty, from "Get Ready!" (its GO, the first
+  // update of a new game) to the "Level Up!" of the last level (its level clear). The board doesn't say which mode; Arcade and
+  // Classic both have levels, Strategy never ends one, so either of the two starts a run. A loss counts when the game-over
+  // screen comes (a launch still burning at the night's end can still clear the level in Classic). No win: the levels go on.
+  var RM_RULES = {
+    name: "Rocket Mania!", id: "RMDX",
+    modes: { Arcade: 0, Classic: 1, Strategy: 2 }, skills: { Easy: 0, Normal: 1, Hard: 2 },
+    deaths: [{ setting: "resetOutOfTime", what: "the night ran out (Classic)" }, { setting: "resetTopLine", what: "the top line filled (Arcade)" },
+             { setting: "resetNoMatches", what: "no matches left (Strategy)" }, { setting: null, what: "(none)" }],
+    templates: [10, 20, 30].reduce(function (a, n) {
+      return a.concat(["Easy", "Normal", "Hard"].map(function (skill, i) {
+        return { category: "Level " + n, sub: skill, segments: levels(n), end: "levels " + n, mode: [0, 1], skill: i };
+      }));
+    }, [])
+  };
+
   // A row of GAMES from a row of the rules table
   function ruled(rules) {
     return { name: rules.name, block: "_byopop_livesplit_block", read: blockReader(rules.id), decider: makeDecider(rules),
@@ -385,7 +403,8 @@ var ByopopAutosplit = (function () {
     bigmoney: ruled(BM_RULES),
     bookworm: ruled(BW_RULES),
     sevenseas: ruled(SS_RULES),
-    mummymaze: ruled(MM_RULES)
+    mummymaze: ruled(MM_RULES),
+    rocketmania: ruled(RM_RULES)
   };
 
   // The front game's block, read from its window: {game, snap} or null (no game with an auto splitter in front, or it has not

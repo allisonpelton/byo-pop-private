@@ -15,7 +15,8 @@
 //   lost       a game over during the run resets it
 // (Mummy Maze: its catch is no game over, so "caught" checks the run goes on) and the game's own: Mummy Maze's 100% Run never
 // starts on a Classic game ("mode") and splits at the first treasure, not at a chamber ("treasure"); BookWorm's Bookburner ends at a game over at rank 0 ("death") and resets at rank 1 ("rank1"); Seven
-// Seas' Easy run never starts on a Hard game ("skill").
+// Seas' Easy run never starts on a Hard game ("skill"); Rocket Mania's Easy run never starts on a Hard game or a Strategy one
+// ("skill", "mode").
 // Every reset's question (keep the new bests?) is answered No; the stored splits of the categories it ran are removed at the
 // end, and the last run the window had open is put back.
 var results = [];
@@ -119,7 +120,8 @@ async function clearLevel() {
   await settle();
   return att();
 }
-async function lose() { await until("lose"); for (var k = 0; k < 20 && snap().gameOvers === 0; k++) await t.wait(5); await settle(); }
+// (Rocket Mania counts the loss at its game-over screen, 300 updates after the game ends)
+async function lose() { var g = snap().gameOvers; await until("lose"); for (var k = 0; k < 200 && snap().gameOvers === g; k++) await t.wait(5); await settle(); }
 // the timer back to idle, its question answered No
 async function resetByHand() { if (att().phase !== "idle") { timer.reset(); await wait(50); answerNo(); await wait(50); } }
 // waits up to ms for a reset's question (answered No) or an idle timer
@@ -218,6 +220,15 @@ var PLANS = {
     await settle();
     note("treasure", a0.phase === "running" && idx.every(function (x) { return x === 0; }) && att().index === 1,
          "started " + a0.phase + "; index after each chamber " + idx.join(",") + "; after the first treasure " + att().index + " (progress " + snap().progress + ")");
+  },
+  rocketmania: async function () {
+    await common("Level 10 - Easy", 10, "goto classic 1");
+    // a game of another difficulty, or a Strategy game, never starts the run
+    await resetByHand();
+    await newGame("goto classic 3");
+    note("skill", att().phase === "idle", "a Hard game (skill " + snap().skill + "): " + att().phase);
+    await newGame("goto strategy 1");
+    note("mode", att().phase === "idle", "a Strategy game (mode " + snap().mode + "): " + att().phase);
   },
   sevenseas: async function () {
     await common("Level 30 (Easy)", 30, "goto easy");

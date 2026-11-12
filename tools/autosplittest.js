@@ -214,8 +214,9 @@ function blockReplay(game, category, lines) {
   var ONE = { board: "boardSerial", blc: "boardLevelClears", dsmax: "displayScoreMax", mode: "mode", skill: "skill", ingame: "inGame",
               progress: "progress", active: "active", tick: "tick", state: "state" };
   lines.forEach(function (line) {
+    // (Rocket Mania's lines are the fields alone, without the event and its bar)
     var bar = line.indexOf("|");
-    if (bar < 0) return;
+    if (bar < 0 && !/^u=\d+ seq=/.test(line)) return;
     var s = {};
     line.slice(bar + 1).trim().split(/\s+/).forEach(function (kv) {
       var eq = kv.indexOf("="), k = kv.slice(0, eq), v = kv.slice(eq + 1);
@@ -254,6 +255,22 @@ var mmAdv = [];
 for (var tr = 1; tr <= 14; tr++) mmAdv.push({ blc: tr * 15, progress: tr });
 mmAdv.push({ blc: 225, progress: 15, wins: "1/1" });
 check(mmRun("100% Run", 1, mmAdv) === "start; " + Array(16).join("split; ").replace(/; $/, ""), "Mummy Maze 100% Run: 14 treasure splits, the last at the win");
+
+// Rocket Mania: its block logs (tools/autosplit/rocketmania/, the port's bot and scripted games; a line at each change)
+function rmLog(name) { return fs.readFileSync(path.join(__dirname, "autosplit", "rocketmania", name + ".block.log"), "utf8").split(/\r?\n/); }
+function splits(n) { return Array(n + 1).join("split; ").replace(/; $/, ""); }
+var rmSkill = function (name) { var m = /skill=(\d+)/.exec(rmLog(name).filter(function (l) { return /ingame=1/.test(l); })[0] || ""); return m ? +m[1] : -1; };
+check(rmSkill("script_classic_2") === 1 && rmSkill("bot_classic_1") === 0 && rmSkill("script_arcade_3") === 2, "Rocket Mania's logs: their difficulties as the test expects");
+check(blockReplay("rocketmania", "Level 30 - Normal", rmLog("script_classic_2")) === "start; " + splits(30), "Rocket Mania Level 30 (Classic, Normal): 30 splits, the loss after it ignored");
+check(blockReplay("rocketmania", "Level 10 - Normal", rmLog("script_classic_2")) === "start; " + splits(10), "Rocket Mania Level 10: ends at the 10th Level Up");
+check(blockReplay("rocketmania", "Level 20 - Hard", rmLog("script_arcade_3")) === "start; " + splits(20), "Rocket Mania Level 20 in Arcade (Hard)");
+check(blockReplay("rocketmania", "Level 10 - Easy", rmLog("script_classic_2")) === "", "Rocket Mania: a game of another difficulty never starts the run");
+check(blockReplay("rocketmania", "Level 10 - Easy", rmLog("bot_classic_1")) === "start; split; split; split; reset resetOutOfTime",
+      "Rocket Mania Classic: a split at each Level Up, the night running out resets");
+check(blockReplay("rocketmania", "Level 10 - Easy", rmLog("bot_arcade_1")) === "start; split; split; reset resetTopLine", "Rocket Mania Arcade: the top line filling resets");
+check(blockReplay("rocketmania", "Level 10 - Normal", rmLog("script_strategy_2")) === "", "Rocket Mania: a Strategy game never starts a Level run");
+check(blockReplay("rocketmania", "Level 10 - Easy", rmLog("quit")) === "start; reset resetQuit", "Rocket Mania: leaving the game resets as a quit");
+check(blockReplay("rocketmania", "Level 10 - Normal", rmLog("resume2")) === "", "Rocket Mania: a continued save never starts a run");
 
 console.log("autosplittest: " + (fx.cases.length + bm.cases.length + bw.cases.length) + " scenario replays, " + checks + " checks, " + fails + " failed");
 process.exit(fails ? 1 : 0);
