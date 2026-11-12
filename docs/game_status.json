@@ -425,7 +425,7 @@
       ],
       "na": [],
       "now": null,
-      "note": ""
+      "note": "performance through SurfaceDisplay: 0.28 of the original's processor time windowed at 800x600, 0.87 in full screen (its default; the framework's renderer thread is the rest)"
     },
     "cosmicbugs": {
       "title": "Cosmic Bugs",

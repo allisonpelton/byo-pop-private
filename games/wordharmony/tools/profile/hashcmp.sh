@@ -7,14 +7,16 @@
 source "$(dirname "$0")/../identical/common.sh"
 OLD=$1; NEW=$2; B=$3; TOURS="${TOURS:-tour1 tour2 tour3 tour5}"
 run_side() {  # <side> <exe>
-	local s=$1 exe=$2 n d
+	local s=$1 exe=$2 n d ev="SIDE_ENV_$1"
+	local envs=${!ev}  # SIDE_ENV_old / SIDE_ENV_new: environment assignments for that side's runs (SIDE_ENV_old=SURFACE_DISPLAY=off)
+	local av="SIDE_ARGS_$1"; local args=${!av}  # SIDE_ARGS_old / SIDE_ARGS_new: more arguments for that side (SIDE_ARGS_old=-windowscale=1)
 	for n in $TOURS; do
 		d="$B/$s/$n"; rm -rf "$d"; mkdir -p "$d/port" "$d/user"
 		[ -z "$PORTREG" ] || cp "$PORTREG" "$d/user/registry.ini"
 		python games/wordharmony/tools/shots/make.py games/wordharmony/tools/shots/$n.txt "$(cygpath -m "$PWD/$d")" port > "$d/port.txt"
 		until python -I tools/gamecount.py --limit 6 > /dev/null; do sleep 15; done
-		timeout 900 "$RUNDESK" "$(win "$exe")" -gamedir="$(win assets/wordharmony)" -userdir="$(win "$d/user")" -fast -splashhold \
-			-seed=1 -script="$(win "$d/port.txt")" -statelog="$(win "$d/state.txt")" -framehash="$(win "$d/hash.txt")" > "$d/out.txt" 2>&1
+		timeout 900 env $envs "$RUNDESK" "$(win "$exe")" -gamedir="$(win assets/wordharmony)" -userdir="$(win "$d/user")" -fast -splashhold \
+			-seed=1 -script="$(win "$d/port.txt")" -statelog="$(win "$d/state.txt")" -framehash="$(win "$d/hash.txt")" $args > "$d/out.txt" 2>&1
 	done
 }
 run_side old "$OLD" &
