@@ -78,6 +78,11 @@ var ByopopTrophies = (function () {
     // hundredths). The mini-games' tables are named and shown by the game's scripts, so they are left out
     bookwormadv: { kind: "bwa", tables: ["Top Words", "Arena"] },
     bookwormadv2: { kind: "bwa", tables: ["Top Words", "Arena"] },
+    // games/tiptop/src/GameMain.cpp, LoadPrefs: Preferences.dat starts with four tables of five 28-byte entries (a 20-byte name,
+    // an i32 score, an i32 level), by the game's mode: Regular, Timed (no button reaches it in this edition, so it is left out),
+    // Speed, Strategy (the Tip Top session, 2026-11-12). A file shorter than 560 bytes is the empty tables; an empty place
+    // scores 0 and is not shown
+    tiptop: { file: "Preferences.dat", kind: "tiptop", tables: ["Regular", null, "Speed", "Strategy"] },
     // games/bejeweled2/src/HighScoreWidget.cpp, ReadFromFile
     bejeweled2: { file: "users/hiscores.dat", kind: "popcap", magic: 0xb9e7e3f8,
       tables: ["Classic", "Action", "Puzzle", "Endless", "Twilight", "Hyper", "Cognito", "Finity", "Hidden"], places: 10 }
@@ -295,6 +300,20 @@ var ByopopTrophies = (function () {
       return { name: t[0], rows: t[1] };
     });
   }
+  function parseTiptop(spec, b) {
+    if (b.length < 0x230) return [];
+    var dv = new DataView(b.buffer, b.byteOffset, b.byteLength), out = [];
+    spec.tables.forEach(function (name, t) {
+      if (!name) return;
+      var rows = [];
+      for (var i = 0; i < 5; i++) {
+        var at = (t * 5 + i) * 0x1c, score = dv.getInt32(at + 0x14, true);
+        if (score) rows.push({ place: String(i + 1), name: cString(b, at, 0x14), score: score });
+      }
+      out.push({ name: name, rows: rows });
+    });
+    return out;
+  }
   function parseTypershark(spec, b) {
     var dv = new DataView(b.buffer, b.byteOffset, b.byteLength), at = 0;
     function str() { var r = lenString(b, dv, at, cString); if (!r) return null; at = r.end; return r.s; }
@@ -395,6 +414,7 @@ var ByopopTrophies = (function () {
     if (spec.kind === "twist") return parseTwist(spec, b);
     if (spec.kind === "astropop") return parseAstropop(spec, b);
     if (spec.kind === "bugs") return parseBugs(spec, b);
+    if (spec.kind === "tiptop") return parseTiptop(spec, b);
     if (spec.kind === "bonnies") return parseBonnies(spec, b);
     if (spec.kind === "typershark") return parseTypershark(spec, b);
     if (spec.kind === "bookworm") return parseBookworm(spec, parseIni(b));
@@ -569,7 +589,7 @@ var ByopopTrophies = (function () {
     if (win || !document.getElementById("games-title") || typeof ByopopMusic === "undefined") return null;
     var games = Array.prototype.map.call(document.querySelectorAll("a.tile[data-game]"), function (t) {
       return { id: t.getAttribute("data-game"), title: t.querySelector(".name").textContent, persist: t.getAttribute("data-persist") };
-    });
+    }).sort(function (a, b) { return a.title.localeCompare(b.title); });   // by title, as the listing and the Start menu list them
     win = build(games);
     var foot = document.querySelector("body > footer");
     if (foot && foot.parentNode) foot.parentNode.insertBefore(win.el, foot); else document.body.appendChild(win.el);

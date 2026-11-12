@@ -7,7 +7,7 @@
 //
 // DrawScore, DrawUI and DrawBoard each draw two halves: the part that never changes between two frames (the frames and
 // the pictures; "static", skipped when theSkipStatic is set) and the part that does (the texts, the buttons; "dynamic",
-// skipped when theSkipDynamic is set). The 2D game draws the static halves once into the picture m15f60 and copies it.
+// skipped when theSkipDynamic is set). The 2D game draws the static halves once into the picture mStaticImage and copies it.
 
 #include "Board.h"
 #include "WinDMApp.h"
@@ -30,7 +30,7 @@
 
 using namespace Sexy;
 
-// where the score box sits: the pixel offset of its top left corner in the 640 by 480 screen is (aLeft, aTop). The puzzle
+// port: where the score box sits: the pixel offset of its top left corner in the 640 by 480 screen is (aLeft, aTop). The puzzle
 // games without the secret modes have none of it (their box is the pod dome) but the code asks anyway
 static int ScoreBoxTop(const Board* theBoard)
 {
@@ -39,6 +39,7 @@ static int ScoreBoxTop(const Board* theBoard)
 	return 0x1b;
 }
 
+// port: the left edge of the score box (ScoreBoxTop above)
 static int ScoreBoxLeft(const Board* theBoard)
 {
 	if (!theBoard->mIsPuzzle || theBoard->mIsSecret)
@@ -64,7 +65,7 @@ void Board::DrawUI(Graphics* g, bool theSkipStatic, bool theSkipDynamic)
 {
 	if (!mIsPuzzle && !mIsAction)
 	{
-		if (!theSkipStatic && !m165c0)
+		if (!theSkipStatic && !mNoFrame)
 		{
 			int aY = mApp->ScaleNum(0x19e, 0);
 			int aX = mApp->ScaleNum(0x1f, 0);
@@ -78,7 +79,7 @@ void Board::DrawUI(Graphics* g, bool theSkipStatic, bool theSkipDynamic)
 	}
 	else
 	{
-		if (!theSkipStatic && !m165c0)
+		if (!theSkipStatic && !mNoFrame)
 		{
 			int aY = mApp->ScaleNum(0x153, 0);
 			int aX = mApp->ScaleNum(0x1b, 0);
@@ -174,7 +175,7 @@ void Board::DrawScore(Graphics* g, bool theSkipStatic, bool theSkipDynamic)
 	if (mIsEndless)
 	{
 		int aCount = 0;
-		if (!theSkipStatic && !m165c0)
+		if (!theSkipStatic && !mNoFrame)
 		{
 			int aTop = ScoreBoxTop(this);
 			int aLeft = ScoreBoxLeft(this);
@@ -233,7 +234,7 @@ void Board::DrawScore(Graphics* g, bool theSkipStatic, bool theSkipDynamic)
 
 		g->SetFont(FONT_CONTINUUM_BOLD_14_NUM);
 		g->SetColor(Color(0xff, 0xff, 0xff));
-		std::string aScoreText = CommaSeperate(m15e40);
+		std::string aScoreText = CommaSeperate(mShownScore);
 		int aTop = ScoreBoxTop(this);
 		int aLeft = ScoreBoxLeft(this);
 		Font* aFont = g->GetFont();
@@ -256,7 +257,7 @@ void Board::DrawScore(Graphics* g, bool theSkipStatic, bool theSkipDynamic)
 	}
 
 	// the classic games
-	if (!theSkipStatic && !m165c0)
+	if (!theSkipStatic && !mNoFrame)
 	{
 		int aTop = ScoreBoxTop(this);
 		int aLeft = ScoreBoxLeft(this);
@@ -266,9 +267,9 @@ void Board::DrawScore(Graphics* g, bool theSkipStatic, bool theSkipDynamic)
 		return;
 
 	g->SetFont(FONT_SCORE);
-	std::string aScoreText = CommaSeperate(m15e40);
+	std::string aScoreText = CommaSeperate(mShownScore);
 	g->SetColor(Color(0xad, 0xe7, 0xff));
-	int aHalfWidth = m15edc->StringWidth(aScoreText) / 2;
+	int aHalfWidth = mScoreFont->StringWidth(aScoreText) / 2;
 	int aY = mApp->ScaleNum(0x6d, 0);
 	int aX = mApp->ScaleNum(0x8d, 0);
 	g->DrawString(aScoreText, aX - aHalfWidth, aY);
@@ -302,65 +303,65 @@ void Board::DrawScore(Graphics* g, bool theSkipStatic, bool theSkipDynamic)
 	g->DrawString(aLevelText, aLevelX - aWidth / 2, aLevelY);
 }
 
-// 0x5a29bc: the static halves go into the picture m15f60 (the star field covers it, so the picture is cleared with its
+// 0x5a29bc: the static halves go into the picture mStaticImage (the star field covers it, so the picture is cleared with its
 // transparency on)
 void Board::DrawAllToBackgroundCache()
 {
-	if (m15f60 == NULL)
+	if (mStaticImage == NULL)
 		return;
 
-	if (m165bc != NULL)
+	if (mCheatStars != NULL)
 	{
-		m15f60->SetImageMode(true, true);
-		m15f60->Clear();
+		mStaticImage->SetImageMode(true, true);
+		mStaticImage->Clear();
 	}
-	Graphics aG(m15f60);
+	Graphics aG(mStaticImage);
 	DrawScore(&aG, true, false);
 	DrawUI(&aG, true, false);
 	DrawBoard(&aG, true, false);
 }
 
-// 0x5a2a51: the 2D way of drawing the screen: the static halves wait in the picture m15f60, which is made again when
-// m15f69 is set
+// 0x5a2a51: the 2D way of drawing the screen: the static halves wait in the picture mStaticImage, which is made again when
+// mRedrawBackground is set
 void Board::DrawNormal2d(Graphics* g)
 {
 	int aSlide = FTol(mApp->ScaleNum(mSlide.GetOutVal(), 0.0));
-	if (m15f60 == NULL)
+	if (mStaticImage == NULL)
 	{
 		DDImage* anImage = new DDImage(mApp->mDDInterface);
-		m15f60 = anImage;
+		mStaticImage = anImage;
 		anImage->Create(mWidth, mHeight);
 		anImage->SetImageMode(false, false);
 		anImage->mPurgeBits = true;
 		anImage->PurgeBits();
 	}
 
-	if (m15f69)
+	if (mRedrawBackground)
 	{
-		Graphics aG(m15f60);
-		m15f60->SetImageMode(false, false);
+		Graphics aG(mStaticImage);
+		mStaticImage->SetImageMode(false, false);
 		aG.DrawImage(mBackdropImage, 0, 0);
 		DrawScore(&aG, false, true);
 		DrawUI(&aG, false, true);
 		DrawBoard(&aG, false, true);
-		m15f69 = false;
+		mRedrawBackground = false;
 	}
 
-	if (m165bc == NULL)
+	if (mCheatStars == NULL)
 	{
-		g->DrawImage(m15f60, 0, 0);
-		if (m165b8)
-			DrawWavyImage(g, m15f60, 0, 0, 2.0f);
+		g->DrawImage(mStaticImage, 0, 0);
+		if (mNausea)
+			DrawWavyImage(g, mStaticImage, 0, 0, 2.0f);
 	}
 	else
 	{
-		m165bc->Draw(g, m165b8);
+		mCheatStars->Draw(g, mNausea);
 	}
 
 	g->Translate(-aSlide, 0);
 	DrawScore(g, true, false);
 	g->Translate(aSlide * 2, 0);
-	if (!m15f24)
+	if (!mBoardInOverlay)
 		DrawBoard(g, true, false);
 	g->Translate(-aSlide, 0);
 }
@@ -369,10 +370,10 @@ void Board::DrawNormal2d(Graphics* g)
 void Board::DrawNormal(Graphics* g)
 {
 	int aSlide = FTol(mApp->ScaleNum(mSlide.GetOutVal(), 0.0));
-	if (m165bc == NULL)
+	if (mCheatStars == NULL)
 	{
 		g->DrawImage(mBackdropImage, 0, 0);
-		if (m165b8)
+		if (mNausea)
 		{
 			mApp->Is3DAccelerated();
 			DrawWavyImage(g, mBackdropImage, 0, 0, 3.5f);
@@ -380,13 +381,13 @@ void Board::DrawNormal(Graphics* g)
 	}
 	else
 	{
-		m165bc->Draw(g, m165b8);
+		mCheatStars->Draw(g, mNausea);
 	}
 
 	g->Translate(-aSlide, 0);
-	DrawScore(g, false, m191c);
+	DrawScore(g, false, mFinale);
 	DrawUI(g, false, true);
-	if (!m15f24)
+	if (!mBoardInOverlay)
 	{
 		g->Translate(aSlide * 2, 0);
 		DrawBoard(g, false, false);
@@ -398,7 +399,7 @@ void Board::DrawNormal(Graphics* g)
 	}
 }
 
-// a line of the hints in Draw: centred on theCenterX, theY in the 640 by 480 screen (each of the original's lines is
+// port: a line of the hints in Draw: centred on theCenterX, theY in the 640 by 480 screen (each of the original's lines is
 // written out the same way: the font of the graphics measures it)
 static void DrawHintLine(WinDMApp* theApp, Graphics* g, const std::string& theText, int theCenterX, int theY)
 {
@@ -420,8 +421,6 @@ void Board::Draw(Graphics* g)
 	g->Translate(aShakeX, aShakeY);
 	int aCenterX, aCenterY;
 	GetBoardCenter(&aCenterX, &aCenterY);
-	if (m1750)
-		m1750 = false;
 
 	if (mState == STATE_WHIRLPOOL)
 	{
@@ -434,9 +433,9 @@ void Board::Draw(Graphics* g)
 			DrawNormal2d(g);
 			DrawUI(g, true, false);
 		}
-		else if (m165bc != NULL)
+		else if (mCheatStars != NULL)
 		{
-			m165bc->Draw(g, m165b8);
+			mCheatStars->Draw(g, mNausea);
 		}
 	}
 	else if (mState == STATE_POST_WARP)
@@ -447,7 +446,7 @@ void Board::Draw(Graphics* g)
 	else
 	{
 		int aSlide = FTol(mApp->ScaleNum(mSlide.GetOutVal(), 0.0));
-		if ((aSlide == 0 || m165bc != NULL) && !a3D)
+		if ((aSlide == 0 || mCheatStars != NULL) && !a3D)
 			DrawNormal2d(g);
 		else
 			DrawNormal(g);
@@ -476,11 +475,11 @@ void Board::Draw(Graphics* g)
 		DrawLightning(g);
 	}
 
-	// the word PAUSED over the board while a dialog covers the game (it fades with m15fb4)
-	if (m15fb4 < 1.0f && m15fb8 && mScreenState == SCREEN_SHOWN)
+	// the word PAUSED over the board while a dialog covers the game (it fades with mPauseFade)
+	if (mPauseFade < 1.0f && mPauseTextOn && mScreenState == SCREEN_SHOWN)
 	{
 		g->SetFont(FONT_CONT_MED);
-		g->SetColor(Color(0xff, 0xff, 0xff, FTol((1.0 - (double)m15fb4) * 255.0)));
+		g->SetColor(Color(0xff, 0xff, 0xff, FTol((1.0 - (double)mPauseFade) * 255.0)));
 		int aCX, aCY;
 		GetBoardCenter(&aCX, &aCY);
 		aCX = mApp->ScaleNum(aCX, 0);
@@ -505,7 +504,7 @@ void Board::Draw(Graphics* g)
 	if (mScreenState == SCREEN_SHOWN && mState != STATE_WHIRLPOOL)
 	{
 		float aFade = mApp->mPaused ? 0.3f : 1.0f;
-		aFade = m15fac * aFade;
+		aFade = mPuzzleFade * aFade;
 		if (!mApp->mPaused)
 		{
 			if (!mIsPlanetIntro)
@@ -603,69 +602,22 @@ void Board::Draw(Graphics* g)
 		}
 	}
 
-	// the test displays that the cheats switch on
-	if (m1724)
-	{
-		if (mInUndoPreview)
-		{
-			g->SetColor(Color(0xff, 0xff, 0));
-			g->DrawString("CREATING MODE", 0x12, 600);
-		}
-		if (mIsPuzzle)
-		{
-			g->SetColor(Color(100, 100, 0xff));
-			g->DrawString("PUZZLE MODE", 0x12, 0x276);
-			if (!mInUndoPreview)
-			{
-				std::string aText;
-				if (!mSolutionValid)
-				{
-					g->SetColor(Color(0xff, 0xff, 0xff));
-					aText = "Solution Unknown";
-				}
-				else if (mSolutionMoves < 1)
-				{
-					g->SetColor(Color(0xff, 0xff, 0xff));
-					aText = "No Longer Solvable";
-				}
-				else
-				{
-					char aBuf[256];
-					sprintf(aBuf, "%d Valid Moves", mSolutionMoves);
-					g->SetColor(Color(0xff, 0xff, 0xff));
-					aText = aBuf;
-				}
-				g->DrawString(aText, 0x12, 0x294);
-			}
-		}
-		if (m1723)
-		{
-			g->SetColor(Color(0, 0xff, 0));
-			g->DrawString("FREE MODE", 0x12, 0x2b2);
-		}
-		if (mIsAction)
-		{
-			g->SetColor(Color(0xff, 100, 100));
-			g->DrawString("TIMED MODE", 0x12, 0x2d0);
-		}
-	}
-
-	if (m1751)
+	if (mClearBacklog)
 	{
 		mApp->ClearUpdateBacklog(false);
-		m1751 = false;
+		mClearBacklog = false;
 	}
-	if (m15de8)
+	if (mPlayWhirlSound)
 	{
 		mApp->PlaySample(SOUND_WHIRLPOOL);
 		mApp->ClearUpdateBacklog(false);
-		m15de8 = false;
+		mPlayWhirlSound = false;
 	}
 
 	// the arrow that points at the hint button while the tip dialog is up
-	if (mApp->GetDialog(0x1a) != NULL)
+	if (mApp->GetDialog(DIALOG_TIMER_TIP) != NULL)
 	{
-		float aPulse = (float)(1.0 - cos(m1860));
+		float aPulse = (float)(1.0 - cos(mHintButtonArrowPhase));
 		aPulse = (float)((double)aPulse * 0.5);
 		int aY = 0x28e - FTol((double)aPulse * -6.0);
 		g->DrawImage(IMAGE_HELP_ARROW, mApp->ScaleNum(0x251, 0), mApp->ScaleNum(aY, 0));

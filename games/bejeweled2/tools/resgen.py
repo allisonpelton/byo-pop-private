@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Writes src/Res.h and src/Res.cpp, the resource globals of Bejeweled 2, as the exe's own ResGen output has them
-(0x5d3ffd-0x5d8b5d): the id of every resource (the name table at 0x5d3ffd, in the order of resources.xml), one global
+(0x5d3ffd-0x5d8b5d): the id of every resource (in the order of resources.xml; the exe's table of the names at 0x5d3ffd and its function that finds a group by
+name, 0x5d8b5d, are left out: nothing calls them), one global
 per resource (an Image*, an ImageFont* or an int for a sound), and one Extract<Group>Resources function for each
 <Resources> group, which loads the group's resources through the ResourceManager in the order the exe does (sorted by
 name within a group). Also writes re/bejeweled2/res_map.txt, the address of each global and its name, for reading the
@@ -90,17 +91,12 @@ def main():
                   'enum ResourceId {']
     h += ['\t%s_ID,' % rid for rid in ids]
     h += ['\tRESOURCE_ID_MAX', '};', '',
-          'bool ExtractResourcesByName(ResourceManager* theManager, const char* theName);  // 0x5d8b5d',
-          'const char* GetStringIdById(int theId);       // 0x5d3ffd',
           'Image* GetImageById(int theId);               // 0x5d3fca: the global of an image id (null for a font or sound id)', '']
-    c = HEADER + ['#include "Res.h"', '', '#include <cstring>', '', '#include "ResourceManager.h"', '#include "Font.h"', '',
+    c = HEADER + ['#include "Res.h"', '', '#include "ResourceManager.h"', '#include "Font.h"', '',
                   'using namespace Sexy;', '']
     for rid in ids:
         c.append('%s Sexy::%s = %s;' % (KINDS[kind[rid]], rid, '0' if kind[rid] == 'sound' else 'nullptr'))
-    c += ['', 'const char* Sexy::GetStringIdById(int theId)', '{', '\tstatic const char* const aNames[RESOURCE_ID_MAX] = {']
-    c += ['\t\t"%s",' % rid for rid in ids]
-    c += ['\t};', '\treturn (unsigned)theId < RESOURCE_ID_MAX ? aNames[theId] : "";', '}', '']
-    c += ['Image* Sexy::GetImageById(int theId)', '{', '\tstatic Image** const aImages[RESOURCE_ID_MAX] = {']
+    c += ['', 'Image* Sexy::GetImageById(int theId)', '{', '\tstatic Image** const aImages[RESOURCE_ID_MAX] = {']
     c += ['\t\t%s,' % (('&' + rid) if kind[rid] == 'image' else 'nullptr') for rid in ids]
     c += ['\t};', '\treturn (unsigned)theId < RESOURCE_ID_MAX && aImages[theId] != nullptr ? *aImages[theId] : nullptr;', '}', '']
     for g, items in groups:
@@ -114,10 +110,6 @@ def main():
             c.append('\t\t%s = theManager->%s("%s");' % (rid, GETTER[k], rid))
         c += ['\t} catch (ResourceManagerException&) {', '\t\treturn false;', '\t}', '\treturn true;', '}', '']
     h.append('}  // namespace Sexy')
-    c += ['bool Sexy::ExtractResourcesByName(ResourceManager* theManager, const char* theName)', '{']
-    for g, _ in GROUPS:
-        c += ['\tif (strcmp(theName, "%s") == 0)' % g, '\t\treturn Extract%sResources(theManager);' % g]
-    c += ['\treturn false;', '}', '']
     open(os.path.join(SRC, 'Res.h'), 'w', encoding='utf-8', newline='').write('\n'.join(h) + '\n')
     open(os.path.join(SRC, 'Res.cpp'), 'w', encoding='utf-8', newline='').write('\n'.join(c))
     with open(os.path.join(ROOT, 're', 'bejeweled2', 'res_map.txt'), 'w') as f:

@@ -9,6 +9,8 @@
 //   -uicap=<n>         a game is quit (the board's quit button) after that many board updates (default 6000)
 //   -uistart=<n>       the update at which the loading screen's link is clicked (default 400)
 //   -uistop=<n>        the update at which the run is ended (the window is closed: a game in progress is saved); 0 none
+//   -uihold=<n>        the level-up and game-over screen is left alone for that many updates (its pages turn every 150)
+//   -uipassive=<n>     after that many board updates the bot makes no more moves (set -uicap very high: the game then ends by itself)
 //   -uicontinue=<n>    1: a game with a saved game waiting takes CONTINUE SAVED GAME (default 0: NEW GAME)
 //   -uiname=<text>     the name typed for a high score (default BOT)
 
@@ -38,11 +40,13 @@ struct UiBotParams
 	int					mStart;
 	int					mStop;
 	int					mContinue;
+	int					mHold;
+	int					mPassive;
 	std::string			mName;
 	std::string			mScriptFile;
 	std::string			mStateFile;
 
-	UiBotParams() : mOn(false), mSeed(0), mGames(1), mCap(6000), mStart(400), mStop(0), mContinue(0), mName("BOT") {}
+	UiBotParams() : mOn(false), mSeed(0), mGames(1), mCap(6000), mStart(400), mStop(0), mContinue(0), mHold(0), mPassive(0), mName("BOT") {}
 	bool				Parse(const std::string& theName, const std::string& theValue);
 };
 

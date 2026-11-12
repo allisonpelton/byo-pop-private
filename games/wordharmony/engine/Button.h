@@ -34,8 +34,6 @@ public:
 	~Button() override;   // 0x432040
 
 	void update(UpdateInfo& theInfo) override;  // 0x70: 0x431c10
-	// 0xd8: 0x431e90, the scale the normal and hover scales multiply
-	virtual void setBaseScale(float x, float y);
 	// 0xdc: 0x431b20
 	virtual void setNormalScale(float x, float y);
 	// 0xe0: 0x431b90
@@ -46,8 +44,6 @@ public:
 	virtual void addListener(ButtonListener* theListener, std::string theName);
 	// 0xec: 0x431f60, loads the two sounds by their names (an empty name is none)
 	virtual void setSounds(const std::string& theEnterSound, const std::string& thePressSound);
-	// 0xf0: 0x431f00, the seconds of one flash; 0 stops flashing
-	virtual void setFlash(float thePeriod);
 	// 0xf4: 0x431ef0, the pivot mode the image button gives its images (Image::setPivot)
 	virtual void setPivotMode(int theMode) { mPivotMode = theMode; }
 
@@ -136,34 +132,6 @@ protected:
 public:
 	bool mChecked;        // +0xfc
 	Selector* mSelector;  // +0x100 (a child)
-};
-
-class TextItem;
-
-// A text button (0x158 bytes, constructor 0x42c2c0, vtable 0x483f10): a text node whose font changes with the mouse
-class TextButton : public Button
-{
-public:
-	TextButton();  // 0x42c2c0
-
-	virtual void setText(std::string theText);  // 0xf8: 0x435080
-	virtual void setHAlign(int theAlign);       // 0xfc: 0x435040
-	virtual void setVAlign(int theAlign);       // 0x100: 0x435050
-	virtual void setStyle(unsigned int theStyle);  // 0x104: 0x435060
-	virtual std::string getText();              // 0x108: 0x435120
-	// 0x10c: 0x435240, the fonts by name; the text node is made here, so the button needs the first two
-	virtual bool setFonts(const std::string& theFont, const std::string& theOverFont, const std::string& theActiveFont);
-
-protected:
-	void onMouseDown(Point& p) override;   // 0x80: 0x435150
-	void onMouseEnter(Point& p) override;  // 0xa4: 0x435190
-	void onMouseExit(Point& p) override;   // 0xac: 0x4351f0
-
-public:
-	std::string mFont;        // +0xfc
-	std::string mOverFont;    // +0x118
-	std::string mActiveFont;  // +0x134
-	TextItem* mText;          // +0x150 (a child)
 };
 
 } // namespace engine

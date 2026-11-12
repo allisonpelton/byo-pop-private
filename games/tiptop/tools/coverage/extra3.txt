@@ -1,0 +1,11 @@
+# Coverage run extra 3 (origrun script): the high scores screen, its clear question answered Yes (the table back to its
+# six dashes), back to the main menu, then the quit question answered Yes (the game ends by itself).
+at 299 click 188 293
+at 339 click 131 191
+at 420 click 549 371
+at 480 click 325 275
+at 540 click 550 440
+at 600 click 199 352
+at 660 click 325 275
+wait 300
+quit

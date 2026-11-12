@@ -11,6 +11,8 @@
 #include "game/Hud.h"
 #include "game/Screens.h"
 #include "game/WordBallSystem.h"
+#include "platform/MemReport.h"
+#include "SoundHost.h"
 
 #include <cstdio>
 #include <cstdlib>
@@ -142,6 +144,62 @@ std::string WordHarmonyApp::TestState()
 		aState += "]";
 	}
 	return aState + "}";
+}
+
+// docs/TEST_COMMANDS.md, "memreport": what the engine holds beside the framework's own pictures and sounds. The framework
+// counts the screen's MemoryImage and the mixer's songs; the engine's pictures are the image table's 32-bit pixels, its
+// sounds the decoded samples of the sound system, and the two word lists are trees of one allocation a node (their sizes
+// are the nodes' own, without the allocator's headers)
+void WordHarmonyApp::AddMemReportHolders(Platform::MemReport* theReport)
+{
+	size_t aBytes = 0;
+	int aCount = engine::App::instance()->getImageMemory(&aBytes);
+	theReport->mImageCount += aCount;
+	theReport->mImagePixelBytes += aBytes;
+	wordharmony::HostSoundSystem* aSounds = dynamic_cast<wordharmony::HostSoundSystem*>(engine::App::getSoundSystem());
+	if (aSounds != nullptr)
+	{
+		theReport->mSoundCount += aSounds->getSoundMemory(&aBytes);
+		theReport->mSoundBytes += aBytes;
+	}
+	Game* aGame = Game::sInstance;
+	if (aGame == nullptr)
+		return;
+	size_t aMatchNodes = 0;
+	std::vector<WordNode*> aPending;
+	if (aGame->mWords.mRoot != nullptr)
+		aPending.push_back(aGame->mWords.mRoot);
+	while (!aPending.empty())
+	{
+		WordNode* aNode = aPending.back();
+		aPending.pop_back();
+		aMatchNodes++;
+		if (aNode->mSibling != nullptr)
+			aPending.push_back(aNode->mSibling);
+		if (aNode->mChild != nullptr)
+			aPending.push_back(aNode->mChild);
+	}
+	size_t aHintNodes = 0;
+	size_t aHintWords = 0;
+	std::vector<AnagramNode*> aHintPending;
+	if (aGame->mDictionary.mRoot != nullptr)
+		aHintPending.push_back(aGame->mDictionary.mRoot);
+	while (!aHintPending.empty())
+	{
+		AnagramNode* aNode = aHintPending.back();
+		aHintPending.pop_back();
+		aHintNodes++;
+		aHintWords += aNode->mWords.capacity() * sizeof(std::string);
+		for (const std::string& aWord : aNode->mWords)
+			aHintWords += aWord.capacity() > sizeof(std::string) ? aWord.capacity() + 1 : 0;
+		if (aNode->mSibling != nullptr)
+			aHintPending.push_back(aNode->mSibling);
+		if (aNode->mChild != nullptr)
+			aHintPending.push_back(aNode->mChild);
+	}
+	theReport->mOthers.push_back({"match word tree (" + std::to_string(aMatchNodes) + " nodes)", aMatchNodes * sizeof(WordNode)});
+	theReport->mOthers.push_back({"hint anagram tree (" + std::to_string(aHintNodes) + " nodes and their word lists)",
+		aHintNodes * sizeof(AnagramNode) + aHintWords});
 }
 
 bool WordHarmonyApp::HandleScriptCommand(const ScriptCommand& theCommand)

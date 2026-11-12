@@ -22,7 +22,7 @@ void Board::UpdateGameOverAnim()
 	if (aFade < 0.0f)
 		mFadeIn = 0.0f;
 
-	if (m15e58 < 1)
+	if (mGameOverDelay < 1)
 	{
 		bool anAllGone = true;
 		for (int aRow = 0; aRow < 8; aRow++)
@@ -41,7 +41,7 @@ void Board::UpdateGameOverAnim()
 				aPiece->mVZ = aPiece->mVZ + 0.15f;
 				aPiece->mRot = aPiece->mVRot + aPiece->mRot;
 				bool aGone;
-				if (!a3D || m165ac)
+				if (!a3D || mOldSkool)
 				{
 					aPiece->mVY = aVY + 0.025f;
 					float aScaledY = mApp->ScaleNum(aPiece->mY, 0.0f);
@@ -57,33 +57,26 @@ void Board::UpdateGameOverAnim()
 		}
 		if (anAllGone)
 		{
-			if (!m15ebc)
+			if (mScreenState == SCREEN_SHOWN)
 			{
-				if (mScreenState == 1)
-				{
-					m15f24 = false;
-					mState = 7;
-					mApp->DoHighScoreWidget();
-					MarkDirty();
-					mApp->DoGameOver();
-				}
-			}
-			else
-			{
-				mApp->NewGame();
+				mBoardInOverlay = false;
+				mState = STATE_GAME_OVER;
+				mApp->DoHighScoreWidget();
+				MarkDirty();
+				mApp->DoGameOver();
 			}
 		}
 	}
 	else
 	{
-		m15e58--;
-		if (m15e58 == 0)
+		mGameOverDelay--;
+		if (mGameOverDelay == 0)
 		{
-			m15f24 = true;
-			m15f18 = false;
+			mBoardInOverlay = true;
+			mBarBlink = false;
 			mApp->PlaySample(SOUND_EXPLODE);
 		}
-		if (mUpdateCnt % 6 == 0 || m15e58 == 0)
+		if (mUpdateCnt % 6 == 0 || mGameOverDelay == 0)
 		{
 			for (int aRow = 0; aRow < 8; aRow++)
 			{
@@ -97,7 +90,7 @@ void Board::UpdateGameOverAnim()
 					aPiece->mX = (float)(aX - 4 + Rand() % 9);
 					int aY = GetRowY(aPiece->mRow);
 					aPiece->mY = (float)(aY - 4 + Rand() % 9);
-					if (m15e58 == 0)
+					if (mGameOverDelay == 0)
 					{
 						if (!a3D)
 						{
@@ -181,7 +174,7 @@ void Board::AddPointLight(float theX, float theY, float theScale, float theRadiu
 			Piece* aPiece = mBoard[aRow][aCol];
 			if (aPiece == NULL || aPiece == theSkipPiece)
 				continue;
-			if (aPiece->m70 && theSkipFlames)
+			if (aPiece->mFlame && theSkipFlames)
 				continue;
 
 			float aDX = (float)((double)theX - ((double)aPiece->mX + 42.0));

@@ -145,6 +145,8 @@ bool UiBot::Dialogs()
 	}
 	case DIALOG_LEVEL_UP:
 	{
+		if (u - mWaitSince < mParams.mHold)
+			return true;
 		HyperlinkWidget* aLink = ((LevelUpDialog*) aDialog)->mButton;
 		if (aLink != NULL && aLink->mVisible && !aLink->mDisabled)
 			aTarget = aLink;
@@ -314,6 +316,8 @@ void UiBot::PlayBoard(Board* theBoard)
 		return;
 	}
 	if (theBoard->mState != 0 || theBoard->m2e8 || theBoard->m350 != 0)
+		return;
+	if (mParams.mPassive > 0 && theBoard->mUpdateCnt >= mParams.mPassive)
 		return;
 	if (!mQueue.empty())
 	{

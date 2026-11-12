@@ -144,7 +144,7 @@ void Board::DrawLightning(Graphics* g)
 			if (!a3D)
 			{
 				g->SetDrawMode(1);
-				const Color& anElect = gElectColors[m15e08];
+				const Color& anElect = gElectColors[mLightningColor];
 				int aBlue = FTol((double)anElect.mBlue * (double)aBright);
 				int aGreen = FTol((double)anElect.mGreen * (double)aBright);
 				int aRed = FTol((double)anElect.mRed * (double)aBright);
@@ -154,33 +154,33 @@ void Board::DrawLightning(Graphics* g)
 				const float* aPoint = &aLightning->mPoint[0][0];
 				for (int aPiece = 7; aPiece != 0; aPiece--)
 				{
-					float a = aPoint[0], b = aPoint[1], c = aPoint[2], d = aPoint[3];
-					float e = aPoint[4], f = aPoint[5], gx = aPoint[6], h = aPoint[7];
+					float aX0 = aPoint[0], aY0 = aPoint[1], aX1 = aPoint[2], aY1 = aPoint[3];
+					float aX2 = aPoint[4], aY2 = aPoint[5], aX3 = aPoint[6], aY3 = aPoint[7];
 
-					float aInnerX1 = (float)((double)c * (double)0.7f + (double)a * (double)0.3f);
-					float aInnerY1 = (float)((double)b * (double)0.3f + (double)d * (double)0.7f);
-					float aInnerX2 = (float)((double)a * (double)0.7f + (double)c * (double)0.3f);
-					float aInnerY2 = (float)((double)b * (double)0.7f + (double)d * (double)0.3f);
-					float aInnerX3 = (float)((double)gx * (double)0.7f + (double)e * (double)0.3f);
-					float aInnerY3 = (float)((double)h * (double)0.7f + (double)f * (double)0.3f);
-					float aInnerX4 = (float)((double)gx * (double)0.3f + (double)e * (double)0.7f);
-					float aInnerY4 = (float)((double)f * (double)0.7f + (double)h * (double)0.3f);
+					float aInnerX1 = (float)((double)aX1 * (double)0.7f + (double)aX0 * (double)0.3f);
+					float aInnerY1 = (float)((double)aY0 * (double)0.3f + (double)aY1 * (double)0.7f);
+					float aInnerX2 = (float)((double)aX0 * (double)0.7f + (double)aX1 * (double)0.3f);
+					float aInnerY2 = (float)((double)aY0 * (double)0.7f + (double)aY1 * (double)0.3f);
+					float aInnerX3 = (float)((double)aX3 * (double)0.7f + (double)aX2 * (double)0.3f);
+					float aInnerY3 = (float)((double)aY3 * (double)0.7f + (double)aY2 * (double)0.3f);
+					float aInnerX4 = (float)((double)aX3 * (double)0.3f + (double)aX2 * (double)0.7f);
+					float aInnerY4 = (float)((double)aY2 * (double)0.7f + (double)aY3 * (double)0.3f);
 
 					Point aPoly[3];
 					g->SetColor(aColor);
-					aPoly[0].mX = FTol(mApp->ScaleNum(a, 0.0f));
-					aPoly[0].mY = FTol(mApp->ScaleNum(b, 0.0f));
-					aPoly[1].mX = FTol(mApp->ScaleNum(gx, 0.0f));
-					aPoly[1].mY = FTol(mApp->ScaleNum(h, 0.0f));
-					aPoly[2].mX = FTol(mApp->ScaleNum(e, 0.0f));
-					aPoly[2].mY = FTol(mApp->ScaleNum(f, 0.0f));
+					aPoly[0].mX = FTol(mApp->ScaleNum(aX0, 0.0f));
+					aPoly[0].mY = FTol(mApp->ScaleNum(aY0, 0.0f));
+					aPoly[1].mX = FTol(mApp->ScaleNum(aX3, 0.0f));
+					aPoly[1].mY = FTol(mApp->ScaleNum(aY3, 0.0f));
+					aPoly[2].mX = FTol(mApp->ScaleNum(aX2, 0.0f));
+					aPoly[2].mY = FTol(mApp->ScaleNum(aY2, 0.0f));
 					g->PolyFill(aPoly, 3, false);
-					aPoly[0].mX = FTol(mApp->ScaleNum(a, 0.0f));
-					aPoly[0].mY = FTol(mApp->ScaleNum(b, 0.0f));
-					aPoly[1].mX = FTol(mApp->ScaleNum(c, 0.0f));
-					aPoly[1].mY = FTol(mApp->ScaleNum(d, 0.0f));
-					aPoly[2].mX = FTol(mApp->ScaleNum(gx, 0.0f));
-					aPoly[2].mY = FTol(mApp->ScaleNum(h, 0.0f));
+					aPoly[0].mX = FTol(mApp->ScaleNum(aX0, 0.0f));
+					aPoly[0].mY = FTol(mApp->ScaleNum(aY0, 0.0f));
+					aPoly[1].mX = FTol(mApp->ScaleNum(aX1, 0.0f));
+					aPoly[1].mY = FTol(mApp->ScaleNum(aY1, 0.0f));
+					aPoly[2].mX = FTol(mApp->ScaleNum(aX3, 0.0f));
+					aPoly[2].mY = FTol(mApp->ScaleNum(aY3, 0.0f));
 					g->PolyFill(aPoly, 3, false);
 
 					g->SetColor(Color(aGrey, aGrey, aGrey));
@@ -284,7 +284,7 @@ void Board::DrawLightning(Graphics* g)
 				}
 				while (aPiece < 7);
 
-				const Color& anElect = gElectColors[m15e08];
+				const Color& anElect = gElectColors[mLightningColor];
 				int aBlue = FTol((double)anElect.mBlue * (double)aBright);
 				int aGreen = FTol((double)anElect.mGreen * (double)aBright);
 				int aRed = FTol((double)anElect.mRed * (double)aBright);

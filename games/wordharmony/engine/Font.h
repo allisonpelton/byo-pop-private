@@ -23,8 +23,6 @@ public:
 
 	// 0x43d840: loads the font from a file of the archive (the application's slot 0x2c, the resource manager's openStream)
 	void load(const char* theFileName);
-	// 0x43d970: the same from a loose file (slot 0x34, openBufferedFile)
-	void loadFile(const char* theFileName);
 
 	bool hasGlyph(char c) const;                // 0x43d530
 	int getStringWidth(const char* theString);  // 0x43d550

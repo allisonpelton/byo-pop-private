@@ -26,6 +26,10 @@
 
 using namespace engine;
 
+// Where the level end, game over, congratulations and paused screens sit on the game screen
+const float DIALOG_X = 210.0f;
+const float DIALOG_Y = 90.0f;
+
 Game* Game::sInstance = nullptr;
 bool Game::sSplashHold = false;
 
@@ -87,8 +91,8 @@ const float SCREEN_FADE = 0.3f;
 // 0x406980 (the port starts the pointers at null; the original leaves most of them to init)
 Game::Game()
 	: mScore(0), mTime(0), mLevelPoints(0), mLettersLeft(0), mLettersUsed(0), mBonus(0), mWildcards(0), mHints(0),
-	  mHintsUsed(0), mLevelHintsUsed(0), mCountUp(0), mContinue(false), mTextEffects(nullptr), mEditorHud(nullptr),
-	  mGridSnap(false), mLevelTime(0), mNextRoot(nullptr), mPuzzleMusic(nullptr), mActionMusic(nullptr),
+	  mHintsUsed(0), mLevelHintsUsed(0), mCountUp(0), mContinue(false), mTextEffects(nullptr),
+	  mLevelTime(0), mNextRoot(nullptr), mPuzzleMusic(nullptr), mActionMusic(nullptr),
 	  mGameOverMusic(nullptr), mMenuMusic(nullptr), mMusic(nullptr), mState(0), mNextState(9), mTimer(0),
 	  mSplashTime(0), mSplash(nullptr), mMainMenu(nullptr), mOptions(nullptr), mHighScoreEntry(nullptr),
 	  mSaverMode(0), mScreenSaver(nullptr), mShowNext(nullptr), mRemoveNext(nullptr), mHighScoreScreen(nullptr),
@@ -116,9 +120,9 @@ void Game::configure(AppConfig& theConfig)
 	theConfig.mTitle = "Word Harmony";
 	theConfig.mIcon = 101;
 	theConfig.mFrameRate = 30;
-	theConfig.mWidth = 800;
-	theConfig.mHeight = 600;
-	theConfig.mUnknown9C = false;
+	theConfig.mWidth = SCREEN_WIDTH;
+	theConfig.mHeight = SCREEN_HEIGHT;
+	theConfig.mFullScreen = false;
 	sInstance = this;
 	readCommandLine();
 #ifdef __EMSCRIPTEN__
@@ -505,7 +509,7 @@ void Game::makeSolitaireLevel(int theLevel, int theTemplate)
 	setSolitaireLevel(theLevel);
 }
 
-// 0x401f00: the editor's branches (the templates themselves, never in this build) are kept
+// 0x401f00 (the editor's branches, which took the templates themselves, are left out)
 void Game::chooseLevel(int theTemplate)
 {
 	if (mLevel < 0)
@@ -519,27 +523,9 @@ void Game::chooseLevel(int theTemplate)
 		mCurrentLevel = mLevels[mLevel];
 	}
 	else if (aMode == 1)
-	{
-		if (mBallSystem->mEditor)
-		{
-			if (mSolitaireLevels.size() <= (unsigned int)mLevel)
-				mLevel = (int)mSolitaireLevels.size() - 1;
-			mCurrentLevel = mSolitaireLevels[mLevel];
-			return;
-		}
 		makeSolitaireLevel(mLevel, theTemplate);
-	}
 	else if (aMode == 2)
-	{
-		if (mBallSystem->mEditor)
-		{
-			if (mActionLevels.size() <= (unsigned int)mLevel)
-				mLevel = (int)mActionLevels.size() - 1;
-			mCurrentLevel = mActionLevels[mLevel];
-			return;
-		}
 		makeActionLevel(mLevel, theTemplate);
-	}
 }
 
 // 0x402980: a letter at a time taken from a random place of what is left (randomInt(0, size) inlined)
@@ -709,28 +695,28 @@ void Game::makeGameScreen()
 	mLevelEnd = new ScreenLayout();
 	mLevelEnd->addRef();
 	mLevelEnd->loadLayout("config\\levelEndScreen.xml");
-	mLevelEnd->setPosition(210.0f, 90.0f);
+	mLevelEnd->setPosition(DIALOG_X, DIALOG_Y);
 	mGameScreen->addChild(mLevelEnd);
 	mLevelEnd->setVisible(false);
 
 	mGameOverScreen = new GameOverScreen();
 	mGameOverScreen->addRef();
 	mGameOverScreen->loadLayout("config\\gameOverScreen.xml");
-	mGameOverScreen->setPosition(210.0f, 90.0f);
+	mGameOverScreen->setPosition(DIALOG_X, DIALOG_Y);
 	mGameScreen->addChild(mGameOverScreen);
 	mGameOverScreen->setVisible(false);
 
 	mCongratsScreen = new CongratsScreen();
 	mCongratsScreen->addRef();
 	mCongratsScreen->loadLayout("config\\congrats.xml");
-	mCongratsScreen->setPosition(210.0f, 90.0f);
+	mCongratsScreen->setPosition(DIALOG_X, DIALOG_Y);
 	mGameScreen->addChild(mCongratsScreen);
 	mCongratsScreen->setVisible(false);
 
 	mPausedScreen = new ScreenLayout();
 	mPausedScreen->addRef();
 	mPausedScreen->loadLayout("config\\gamePausedScreen.xml");
-	mPausedScreen->setPosition(210.0f, 90.0f);
+	mPausedScreen->setPosition(DIALOG_X, DIALOG_Y);
 	mGameScreen->addChild(mPausedScreen);
 	mPausedScreen->setVisible(false);
 
@@ -910,33 +896,6 @@ std::string Game::makeLetters(unsigned int theMin, unsigned int theMax)
 		aWord = mHintWords.at(anIndex);
 	}
 	return aWord;
-}
-
-// 0x4050f0: under 4, the start of a longer word's shuffle; else whole words until they make exactly theCount
-std::string Game::randomLetters(int theCount)
-{
-	std::string aLetters;
-	if (theCount < 4)
-	{
-		std::string aWord = makeLetters(4, 10);
-		aLetters = shuffle(aWord).substr(0, theCount);
-	}
-	else
-	{
-		int aLeft;
-		do
-		{
-			aLetters.erase();
-			aLeft = theCount;
-			while (0 < aLeft)
-			{
-				std::string aWord = makeLetters(4, 7);
-				aLeft -= (int)aWord.size();
-				aLetters.append(aWord);
-			}
-		} while (aLeft < 0);
-	}
-	return shuffle(aLetters);
 }
 
 // 0x405360
@@ -1678,13 +1637,8 @@ void Game::loadData()
 		}
 	}
 	loadSounds();
-	// (the frame rate display, 0x42a240, is made here and never shown: left out)
-	mEditorHud = new ScreenLayout();
-	mEditorHud->loadLayout("config\\EditorHUD.xml");
-	mEditorHud->addRef();
-	CheckBox* aSnap = static_cast<CheckBox*>(mEditorHud->getNode("gridSnap"));
-	mGridSnap = true;
-	aSnap->setChecked(true);
+	// (the frame rate display, 0x42a240, is made here and never shown, and so is the editor's HUD, config\\EditorHUD.xml,
+	// with its grid snap box: both left out)
 }
 
 // 0x408640: under 4, the start of a longer word; else whole words until they make exactly theCount (the words joined
@@ -1818,23 +1772,20 @@ void Game::update(UpdateInfo& theInfo)
 			resume();
 		break;
 	case 5:
-		if (!mBallSystem->mEditor)
+		if (mMode == 2 && 0.0f < mTimer)
 		{
-			if (mMode == 2 && 0.0f < mTimer)
+			float aTime = mTimer - theInfo.mSeconds;
+			mTimer = aTime;
+			if (aTime <= 0.0f)
 			{
-				float aTime = mTimer - theInfo.mSeconds;
-				mTimer = aTime;
-				if (aTime <= 0.0f)
-				{
-					mTimer = 0.0f;
-					mLevelEnd->fade(false, SCREEN_FADE, 1.0f);
-					mMusic->start();
-				}
+				mTimer = 0.0f;
+				mLevelEnd->fade(false, SCREEN_FADE, 1.0f);
+				mMusic->start();
 			}
-			mLevelTime = theInfo.mSeconds + mLevelTime;
-			if (mCurrentLevel->mBallCriteria <= mLettersUsed)
-				mBallSystem->levelDone();
 		}
+		mLevelTime = theInfo.mSeconds + mLevelTime;
+		if (mCurrentLevel->mBallCriteria <= mLettersUsed)
+			mBallSystem->levelDone();
 		break;
 	case 6:
 		if (mContinue)

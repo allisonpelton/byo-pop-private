@@ -27,7 +27,7 @@ Each of these has no visible effect on play unless the entry says so.
 - **Loading is done in line.** The original loads backgrounds, resources and the galaxy map on worker threads
   (`WorkerThread`) while the screen keeps drawing; the port runs those tasks in one go on the main thread (the framework runs
   a SexyAppFramework game's loading thread in one go in the same way). `backdrops.lst` is not rewritten, and the reload
-  thread of the original runs in line. Board's image preparation (`m15f60` and the like) is in line too.
+  thread of the original runs in line. Board's image preparation (`mStaticImage` and the like) is in line too.
 - **No Vista migration** of the old save folders; saved games use "/" as the path separator.
 - **No game-state recorder** (GameStateEngine's recording), no write-only app byte (+0xf24), no `OutputDebugString` in
   UpdateBonusPenalty.
@@ -54,7 +54,7 @@ Each of these has no visible effect on play unless the entry says so.
 - **The four colour tables are one block** (`gColorBlock` in BoardEffects.cpp): the lightning, gem, score and original gem
   colours (0x6797d0 to 0x6799cf) are one run of memory in the original, and the gem types past 7 (rock, bomb, hyper cube) index
   past the end of a table into the next, so the port keeps them in the same order and the lookups give the same colours.
-- **`m1728` is never set** (the original's code never does either; kept only for the offsets).
+- **`mFadingSound` is never set** (the original's code never does either; kept only for the offsets).
 - **EffectOverlay.** The destructor frees the text picture (`mTextImage`), which the original leaks. The constructor zeroes
   what the original leaves uninitialised (the text's alpha, scale, stretch, age and hold, the portal and face timers, the wild
   gem's place, the fade) and sets `mHasAlpha`, which the first stub missed. The portal's wait for the backdrop's task
@@ -88,6 +88,11 @@ Each of these has no visible effect on play unless the entry says so.
   inner size (`window.innerWidth`: the frame the game is shown in, which is 640 by 480 as the site's Desktop 95 window
   starts), and the page scales the game's canvas to the room it has, so the web build takes the display's own size
   (`screen.width` and `height`, SDL's desktop mode) and never less than 1280 by 1024: none of the three ever applies there.
+- **Four differences from the coverage check, kept** (no effect on play). `BackdropsParser::Parse` has other error and end-of-file
+  paths than the original (only a malformed `backdrops.xml` shows it, and the game ships one that parses). `~TitleScreen` leaves
+  out the register link (registration code). The `Profile` and `Planet` constructors zero fields the original leaves unset (the
+  port's runs are the same on every start). `Board::~Board` deletes the score texts from the front where the original deletes
+  them from the back (the order of two `delete`s of independent objects).
 
 ## Test commands
 
@@ -160,7 +165,7 @@ menu's fields as its second base sees them, and the update checkbox that is not 
 `mExplodeHappened` (+0x15e78: `ExplodeAt` sets it, the end of the update plays `SOUND_BOMB_EXPLODE` once),
 `mLastExplodeSoundTick` (+0x15e8c), `mCascadeCount` (+0x15e50: `DoneClearing` counts the clears that follow a move, and the count picks the combo sound, which therefore never rose, and the best cascade of the player's statistics), `mFadeIn` (+0x15fb0), `mStarRot`, `mStarDrift` and `mStarPhase` (+0x15fc0, +0x15fc8,
 +0x15fd0), `mSecretPuzzleCount`, `mSecretSolved` and `mSecretRun` (+0x17a4 to +0x17ac), `mSolutionFirstNode` (+0x18f0),
-`mSolutionMove` (+0x18fc), `m191c` (the port's `mHintTutorialShown` was never set) and `mIsPlanetIntro` (+0x191d, which the
+`mSolutionMove` (+0x18fc), `mFinale` (the port's `mHintTutorialShown` was never set) and `mIsPlanetIntro` (+0x191d, which the
 constructor does clear).
 
 ## Oddities (skipped, not chased)
@@ -333,7 +338,7 @@ three: exception-handling funclets, `Catch_All` blocks, registration and outboun
 
 **What it found and fixed.** One Sonnet agent sorted list one in three parts (its detail lines in `build/coverage/bejeweled2/list1_res_*.tsv`);
 the gaps were checked against the export by hand:
-- `Board::MouseUp` (0x59596f, vtable slot 56) was not translated: the board's "button is down" flag (`m15f38`) stayed set after the first press
+- `Board::MouseUp` (0x59596f, vtable slot 56) was not translated: the board's "button is down" flag (`mMouseHeld`) stayed set after the first press
   of a game, so `UpdateFalling` called `Board::MouseMove` at every idle update (the cursor back to the pointer). It clears the flag now.
 - `WinDMApp::KillDialog` (0x5dceb6, slot 76): when the last dialog is gone the board has the keyboard focus (the port left it to
   `WidgetManager::RemoveBaseModal`'s restore). Translated.
@@ -354,19 +359,19 @@ the hint, `LoadState`, `DeleteSavedGame`, `CancelNewGame`, the shutdown timer, t
 (and the few more that are only reached through them) against the export: 43 are faithful and four differ, all in code nothing runs: `GetOrMakePieceAt`
 marks the board dirty with `MarkDirtyFull` where the original calls slot 0x44 (`MarkDirty`; fixed, dead code), `DoPuzzleRating` and
 `FinishPuzzleRatingDialog` are empty stubs (`WinDMAppStubs.cpp`; the rating dialog 0x23 is never created), and `~EffectOverlay` also deletes the
-text picture (the leak fix above). The rest, by why no run reaches it. None is removed now: they are the candidates of the phase that takes out
-code the game does not need.
-- **Dead in the original** (no caller, no vtable slot: 15): `GetColAt` 0x594c19, `GetRowAt` 0x594c42, `GetBoardSize` 0x5957b2, `GetOrMakePieceAt`
+text picture (the leak fix above). The rest, by why no run reaches it; the ones nothing can reach are taken out (the paragraph "Taken out"
+after the list), and the others stay.
+- **Dead in the original** (no caller, no vtable slot: 15; all but `UpdateLevelTransition` taken out): `GetColAt` 0x594c19, `GetRowAt` 0x594c42, `GetBoardSize` 0x5957b2, `GetOrMakePieceAt`
   0x59597c, `GetOldBoardHash` 0x5963ba, 0x5aef96 (`CurvedVal`), 0x5d3ffd and 0x5d8b5d (resource helpers), `DoPuzzleRating` 0x5dc25b,
   `ShowInstructionsDialog` 0x5df3d7, `ShowFullInstructionsDialog` 0x5df4d9, `ShowColorDepthDialog` 0x5df614, `ConfirmNewGame` 0x5e119e, `Board::NewGame`
   0x5a50a0 (only the dead dialog's button calls it) and `UpdateLevelTransition` 0x5a510a (no code sets board state 11).
-- **The high-score name dialog** (8: `HighScoreNameDialog`, 0x5d31e4-0x5d34c8 and 0x5d3382): its only creator, 0x5dcdf0, has no callers; the score table takes
-  the profile's name (`HighScoreWidget::NameEntered`, reached in the Action run).
+- **The high-score name dialog** (8: `HighScoreNameDialog`, 0x5d31e4-0x5d34c8 and 0x5d3382; taken out): its only creator, 0x5dcdf0, has no callers; the score
+  table takes the profile's name (`HighScoreWidget::NameEntered`, reached in the Action run).
 - **The puzzle pack selector** (10: `PuzzlePackSelector` 0x5d0f09-0x5d13ae, `DoPuzzlePackSelector` 0x5dc1f6, `FinishPuzzlePackSelector` 0x5e15ea): shown only
-  when `puzzles/` holds more than one pack folder; the shipped game has one (Galaxy One).
+  when `puzzles/` holds more than one pack folder; the shipped game has one (Galaxy One). Kept.
 - **Error paths** (3: `BackdropsParser::Fail` 0x593732, `GalaxyParser::Fail` 0x5be56d and 0x5be07b): only a malformed or missing `backdrops.xml` or `galaxy.xml`.
 - **The galaxy's finale** (6: `InitFace` 0x5b9071, the shape interpolation 0x5b592c and 0x5b5960, `powf` 0x5b5229, `GetPuzzleNum` 0x5d0ee6, `~EffectOverlay`
-  0x5b8cee): the last planet of the puzzle galaxy; `DoHyperspace` sets `m191c` when the planet index is the last, and a profile with the whole galaxy
+  0x5b8cee): the last planet of the puzzle galaxy; `DoHyperspace` sets `mFinale` when the planet index is the last, and a profile with the whole galaxy
   open and a warp to it would reach them (a puzzle driver with the test commands; not done). `~EffectOverlay` never runs in the original.
 - **`GalaxyMap` slot 47** (0x5ba705, a bare return: the map is never the focus widget).
 - **Rare states and inputs** (9): `UpdateBoardDropping` 0x59814e (Action, no move left), `ShowNow` 0x59828a (a new game with no main menu around),
@@ -376,4 +381,279 @@ code the game does not need.
   reaches `PodButton::MouseEnter` and `SelectMode` but never draws the glow; `Update`'s glow loop and `Draw`'s call read the same as the port's, and the
   port draws it; an oddity, not chased) and `WinDMApp::ButtonPress` 0x5dc1cf (the pod dialogs' own `ButtonPress` plays the click and does not call it).
 - Not done, for later: the full-screen toggle run, the finale, the secret puzzle's reset, a puzzle made unsolvable. The Collection check (the PopCap Game
-  Collection's Bejeweled2DeluxeComponent) and the site features come after the performance pass.
+  Collection's Bejeweled2DeluxeComponent) came after the performance pass (done: the section "The PopCap Game Collection version" below).
+
+**Taken out** (2026-11-11, in the pass that removes the code the game does not need; no code of the original calls these, no run reaches them and the
+port's own code never called them): `Board::GetColAt`, `GetRowAt`, `GetBoardSize`, `GetOrMakePieceAt` and `GetOldBoardHash` (0x594c19, 0x594c42, 0x5957b2,
+0x59597c, 0x5963ba), `Board::NewGame` (0x5a50a0: only the yes button of the "New Game?" question called it, and `ConfirmNewGame` 0x5e119e, which asks
+that question, has no caller; the question's dialog id 0 and its button branch are gone with them), `CurvedVal::SetInRange` (0x5aef96), the resource
+name table and group finder of the exe (0x5d3ffd and 0x5d8b5d: `resgen.py` no longer writes `GetStringIdById` and `ExtractResourcesByName`, nor the
+245 names), the three dialog openers `ShowInstructionsDialog` 0x5df3d7, `ShowFullInstructionsDialog` 0x5df4d9 and `ShowColorDepthDialog` 0x5df614 (the dialog
+id 13 stays: the galaxy map's "Planet is Locked" message uses it), the high-score name box (`HighScoreNameDialog`, 0x5d31e4-0x5d34c8, with its dialog id
+10, its yes-button branch and the port's `HighScoreWidget::SetHighScoreName`, which only that branch called; the registry's `LastScoreName` is still
+read and written) and the puzzle rating box's two stubs (`DoPuzzleRating` 0x5dc25b and `FinishPuzzleRatingDialog` 0x5e1a45, with the dialog id 35 and its
+two button branches; `WinDMAppStubs.cpp` is gone). 24 functions of the port (two of them inline in headers) and 587 lines in all, 273 of them the generated names. Each has a `none` line in
+`coverage.txt`. Proved by the object code (`tools/objsnap.py`, before and after): 44 of the 48 objects that are left are the same instructions, data and sizes; the other four
+are the ones that held a removed function (`BoardBase`, `BoardLevel`, `Res`, `WinDMAppDialogs`), each with exactly those functions gone and every other
+function the same size, and by the frozen baseline (`tools/check.sh bejeweled2`: the nine modes, rerun and games as frozen, baseline identical).
+Left in, though no run reaches it: `UpdateLevelTransition` 0x5a510a (the update's case for board state 11, a state no code sets: it is one case of the
+state machine, which the port keeps whole), the puzzle pack selector (the original shows it for any `puzzles/` folder with several packs, and the
+port follows the data it is given), the parsers' error paths, the finale, `GalaxyMap` slot 47, and the rare states and inputs above, which a player
+can reach.
+
+## Performance (2026-11-11; `docs/COORDINATION.md`, "Performance pass" and "The target")
+
+**Status.** The processor-time target (the port's at most the original's, like for like) is met in 3D and in 2D on a GPU renderer and **not met in 2D on
+SDL's software renderer** (the fallback for a machine with no accelerated renderer, and what every 2D test run uses): the performance step is open for
+that path. The cause is the framework's (the software path draws at the window's resolution; a spec for the coordinator below); the game's own code
+is 2.5% of the process there and 0.14 ms an update everywhere, and nothing in it was changed.
+
+**Method.** `games/bejeweled2/tools/profile/` (`perf.py`, `pairs.sh`, `summarize.py`; `statspatch.py` for the counters): the port and the original play the
+same stretch, alternating, five pairs, the whole loop on one performance core of its own (`tools/pincore.py`), the medians with their ranges.
+*Processor time is the process's cycle count* (`QueryProcessCycleTime`, every thread's `QueryThreadCycleTime` with the exited ones) over the machine's
+2.112 GHz clock, never `GetProcessTimes` (charged by the scheduler's 15.6 ms tick: a first pass of this section read 15.2 s where the cycles say 10.8 s
+for the same run). The stretches: (1) *the idle board in real time*: the recording's inputs up to the click that dismisses the first dialog of a Classic
+game, nothing after, to update 5700, and the last 20 s of it; the original on origrun's real clock (its 12.7% of a core is no spin on a vertical blank, which would take
+all of one), the port as a `-script` file, so it has no commands file to poll; both end on an
+idle board (`state`: phase idle, score 0, no dialog; the original's board state 1). (2) *the recorded game without waiting* (`scenario/classic909.json`:
+seed 909, 36 swaps, 6,421 updates; the 3D scenario's 7,897): the work of the game's code and drawing; the original on origrun's virtual clock counts only
+if its final score is the recorded game's (5 of 5 did), and the port plays it as a `-commands` file under `-hold`, whose poll of the file (a `stat` a
+pass, test-only) was counted in a build with `statspatch.py` and is taken off the figure (0.1 s of 9.9). (3) *the load*: from the start of the process
+to the title taking input. The original's 3D is its DirectDraw and Direct3D 7 under dgVoodoo2 (`--dgvoodoo`, as every 3D comparison of this game runs
+it), so its 3D figures hold that wrapper. Sound: origrun's stand-in takes the original's DirectSound, so the original mixes nothing; the port's
+mixer is its SDL audio thread (`SDLAudioP2`, silent driver under rundesk) and is counted apart: 0.10 to 0.17 s in the 20 s (about 0.7% of a core).
+
+| Five pairs, 2026-11-11 | Original, 2D | Port, 2D, GPU renderer | Port, 2D, SDL software renderer | Original, 3D (dgVoodoo2) | Port, 3D |
+|---|---|---|---|---|---|
+| Idle board, share of one core | 12.7% (10.9 to 13.7) | **8.6%** (8.1 to 10.5; 7.9 less the audio thread) | **93.7%** (91.6 to 96.1) | 61.3% (52.2 to 64.5) | **9.3%** (8.1 to 10.4; 8.7 less the audio thread) |
+| The recorded game without waiting, after the title | 7.71 s (6.65 to 9.80) | 0.21 s (0.05 to 0.28) | **9.83 s** (8.94 to 11.48) | not run (it spins on its virtual clock) | 0.61 s (0.56 to 0.83; 7,900 updates) |
+| Load to the title | 4.41 s (4.07 to 6.58) | 1.18 s (1.02 to 1.41) | 0.89 s (0.78 to 3.48) | 4.71 s (4.31 to 5.22) | 1.42 s (1.28 to 1.62) |
+| Private bytes at the title | 39.9 MB | 88 MB | 59 MB | 144.6 MB | 128 MB |
+| Peak private bytes of the idle run | 41.9 MB | 82.3 MB | 103.5 MB | 149.3 MB | 109.4 MB |
+
+So in 2D on a GPU the port takes two thirds of the original's processor time idle and a thirty-seventh of it for the recorded game, and in 3D a seventh of the
+original's idle (the original's 3D on dgVoodoo2 is the dearer way to run it). In 2D on the software renderer it takes seven times the original's idle
+and 28% more for the recorded game. Memory stays the framework's (about 54 MB in every process before it reads a game file, the pixels kept after upload);
+it is not a target. The earlier figures of this section (the first pass of the day) are replaced by these.
+
+**Where the 2D software path's processor time goes** (a build with `statspatch.py`: every SDL draw call counted and timed; the idle board, 61 s, 3,786
+drawn frames; `DRAWSTATS=1`). 98% of the process's time is inside those SDL calls (55.0 s of 56.3 s: the game's code and the rest are 2.5%). A frame is
+14.5 ms: 64.6 copies of images drawn at full alpha (11.8 ms, 183 µs each, 1.9 Mpixels a frame: a screen and a half at the render scale), 7.2 additive (0.64 ms),
+1.4 with alpha (0.35 ms), the copy of the screen to the window (0.85 ms) and the present (0.85 ms); what the 64 are was not itemised (the board's 64 gems
+are the obvious part). Two things make a copy that dear. The window is 1,280 by 960 on this machine (the screen copy's destination is 1.23 Mpixels), so
+the framework's render scale is 2 and every sprite is stretched to twice its size by SDL's software stretch (a copy of a 29,000-pixel sprite takes
+183 µs, about 6 ns a pixel); and a texture is blended when it is drawn, whether or not its image has any transparency. With nothing to wait on the port draws 64 frames a second at that price
+(the GPU path is paced by the present's vertical blank: its `Present` takes 16.4 ms and 1.96 s of the 20 s are processor time).
+Three changes to the framework's 2D path were tried in a scratch build (one run each, the unpinned machine; the diff is in the coordinator's notes
+folder, `bejeweled2_2d_software_prototype.diff`; none is committed):
+1. *An image with no transparency, drawn at full alpha, as a copy* (`SDL_SetTextureBlendMode(NONE)` when `!mHasAlpha && !mHasTrans && alpha == 255 && normal mode`):
+   the copy takes 87 µs in place of 171 and a frame 7.8 ms in place of 13.2; the picture (a screenshot at update 5000) is the same pixel for pixel.
+2. *Rendering at the logical size (`-renderscale=1`) and stretching once at the present with nearest-neighbour*: a frame 2.6 ms, the idle board
+   **23.8% of a core** (5.5 times less; the port then draws 93 frames a second). With the linear copy the cost only moves (the final stretch is
+   12.5 ms a frame, 55 s in all). This changes the picture (a screenshot at render scale 1 differs from the scale 2 one inside (47,21) to (607,437) of the 640 by 480
+   picture: the sprites are drawn at the logical size and doubled), so it is the user's look to decide.
+3. What is left to reach the original's 12.7% is drawing less: the original's DirectDraw path redraws only the dirty rectangles and draws at the
+   display's rate, where the port redraws the whole picture on every update it has time for; the software path could draw at most 60 frames a second
+   (as a player's screen shows them) and skip a frame when nothing was marked dirty.
+
+**Where the processor time goes in 3D and on the GPU** (the same counters, the GPU run, 3,424 frames in 61 s): 243,522 quads a run, 0.14 µs each (the
+recording of a draw call), 71 a frame; per-thread cycles of the idle run: the main thread 66 to 69%, a second thread 25 to 27% (the Direct3D 11
+driver's worker), the audio thread 4 to 5%. The idle board's 8.6 to 9.3% of a core is the frame's presentation (`ntdll` waits and the driver) and the
+game's code is 0.14 ms an update, below 1%. In the first pass of this section (cycles of the whole 3D run without waiting: 6.2 G, ntdll 39%, the
+exe 29%) the exe's share was the load's decoders: `Platform::DecodeImage`, `Quantize8Bit`, the JPEG, GIF and Vorbis decoders, `imagehlp.dll` 2.4%; the
+port loads 3 to 5 times faster than the original even so.
+
+**Where the memory goes** (the framework's `memreport`, in the commands file at the title, with the board up and at the end of the run). *3D*:
+`privateAtStart` 30.8 MB (the libraries and the devices), 236 pictures at the title (38.7 MB of pixels and palettes, 17 of them with a texture,
+10.2 MB estimated), 50 sounds (9.9 MB), one song's module file (0.4 MB); the process heap is 76 MB in 36,000 blocks; private bytes are 129 MB at
+the title, 131 MB with the board up and 144.6 MB at the end of the run (the textures grow to an estimated 30 MB as the board draws). The biggest
+pictures at the title are `Menu-Gadgets` and `GMAP` (1024 by 768, 3 MB each; `GMAP` is the galaxy map of the puzzle mode), `frame` 2.3 MB,
+`firering` 1.6 MB and the font, hypergem and black-hole sheets 1.1 to 1.3 MB; the port loads the resource groups the original's manifest names. *2D*: `privateAtStart` 12.3 MB, 243
+pictures at the title (16.2 MB, 3.3 MB of textures), private bytes 59.4 MB at the title and 100.7 MB with the board up (296 pictures, 33.2 MB of
+pixels and 22.8 MB of textures with 111 of them having one): the pictures that were 8-bit pixels and a palette at the title are 32-bit pixels
+with a texture once the board has drawn them (the framework's doing), and the original's private bytes rise by 3 MB at the same point (39.7 to 42.8 MB). Only two pictures are new at the board (the
+backdrops, 1.2 MB each) besides the 4 MB the game makes itself. *The web build* (`nodemem.js` under Node, the 2D scenario through the page's
+own wasm, `wasmrun.js game`): the same 6,423 updates and 643 draws and score 565, 3.2 s of processor time with the start-up, the wasm memory 45 MB
+at the title and 93 MB with the board up (Node's own resident set peaks at 165 MB with its 33 MB and the game files' copy). Its frame time in a browser was not measured: the Browser pane may be hidden and runs no
+`requestAnimationFrame` then, and a measurement in the user's own Chrome is the user's to ask for.
+
+**Shared costs** (none of them is in this game's code; sent to the coordinator with the figures above):
+1. *The 2D software path* (`DDInterface` with `mIs3D` false on SDL's software renderer): the three changes above. The spec: in the software fallback
+   render at the logical size (the render scale forced to 1 where the renderer is software) and present with a nearest-neighbour copy at an integer
+   ratio (linear only for a ratio that is not one); draw an image with no transparency as a copy; draw at most at the display's rate and skip a frame
+   when nothing was marked dirty. Test with `games/bejeweled2/tools/profile/pairs.sh` (`KINDS="port-idle orig-idle"`) and `tools/check.sh --changed`.
+2. *The load's decoders*, as in AstroPop and Typer Shark: `Quantize8Bit` and the GIF decoder, the JPEG and Vorbis decoders, and in 2D
+   `CustomResourceManager::ShrinkImage` and the stretch copies that make the 640 by 480 pictures.
+3. *`imagehlp.dll`*, 2.4% of the cycles of a 3D run without waiting, from a call site not found.
+4. *The pixels the framework keeps after upload and the first draw's expansion* (3D: 128 MB at the title, of which the libraries and devices
+   30.8 MB, the pictures 38.7 MB and the sounds 9.9 MB; 2D: 59 MB at the title and 101 MB with the board up, where the original holds 40 and 43).
+5. *The commands file's poll* (a `stat` of the file on every pass of the main loop, about 340 k cycles a call): test-only, 1% of the recorded game's
+   processor time here (0.1 s of 9.9), counted and taken off; the coordinator is making it cheap.
+
+**To repeat.** `WAIT_S=60 python -I <main checkout>/tools/pincore.py -- bash games/bejeweled2/tools/profile/pairs.sh <out dir> 5` from the worktree root
+(about 35 minutes; `KINDS="..."` runs only some of the kinds: `orig-idle port-idle port2dgpu-idle orig3d-idle port3d-idle`, the same with `-work` and
+`-load`), then `python games/bejeweled2/tools/profile/summarize.py <out dir>/runs.txt`. A build with the draw and poll counters:
+`python games/bejeweled2/tools/profile/statspatch.py apply`, build, run with `DRAWSTATS=1` (and `PERF_ARGS=-renderscale=1` for the logical-size render,
+`PERF_SHOT=1` for a picture at update 5000), then `statspatch.py revert` and rebuild before any check. `PERF_STRETCH=idle`, `PERF_MODE=3d`,
+`PERF_RENDER=gpu|software`, `PERF_CLOCK=real` and `PERF_MEM=1` are perf.py's own switches (its header). The web build's memory:
+`node -r games/bejeweled2/tools/profile/nodemem.js games/bejeweled/tools/verify/wasmrun.js game build/web/bejeweled2.js -gamedir=<assets folder>
+-userdir=<absolute folder with users/ and registry.ini> -commands=<file> -realinput=<empty file> -seed=909 -hold -fast`. Traps: a relative `-userdir`
+(`u3`, `./u3/`) is not found by the port, though the same folder by its absolute path is, the port needs `-hold` to play a recording, and
+`rundesk.exe` needs absolute paths. The raw samples and runs were deleted once these figures were written.
+
+## The PopCap Game Collection version (2026-11-11; `docs/COORDINATION.md`, "Done means")
+
+The port was made from the Steam copy (`WinBej2.exe`, the launcher with the game appended; the game carved out of it is
+`re/bejeweled2/bin/Bejeweled2Game.exe`), so it is checked against the game's version on the PopCap Game Collection disc: the two
+versions compared, and the port run on the Collection's files. The procedure is Bejeweled's (its GAME_NOTES section 23), Typer
+Shark's (section 15) and AstroPop's (section 13); `tools/collection/` holds the tools and `run.sh`.
+
+**Getting the files.** `unshield` (built for Bejeweled's check, `E:\retools\unshield-build`; the user allowed it on 2026-11-10) read the
+disc image's cabinet, which was mounted read-only and dismounted afterwards. The group `Bejeweled2DeluxeComponent` came out: 874 files,
+26 MB, in the main checkout's `re/_installers/Bejeweled2DeluxeCollection` (git-ignored). The copy has no launcher: `Bejeweled2.exe` is
+the game itself, beside `bass.dll`, `vhwb.dat` (15 bytes, the Steam copy has the same file), `license.txt`, `readme.html` and the folders
+`data`, `edata`, `images`, `music`, `properties`, `puzzles`, `sm_images` and `sounds`. The extraction names the puzzle folder
+`Galaxy_One`; both exes spell the pack "Galaxy One" (the profile's default pack, `Profile.cpp`), so a copy of the game has the space and
+`stage_assets.py` stages it so.
+
+**The exe is another build, unlike Bejeweled's and Typer Shark's.** Set beside the carved game image (`tools/collection/cmpexe.py`), the
+Collection's `Bejeweled2.exe` was linked on 21 January 2009 (the Steam game: 11 April 2007), is 2,880,808 bytes against 2,715,648
+(the Steam image as carved), and has a bigger `.text` (2,400,256 raw bytes against 2,260,992) and `.rdata` (290,816 against 270,336); `.data`
+and `.rsrc` are the same size. None of the four is the Steam image's bytes with other addresses, 18 of the 20 resources are the same, and
+5,416 bytes of signature follow the last section. Its strings (`tools/collection/textcmp.py`, runs of six or more printable
+characters with four letters in them) say what changed: of the Steam image's 2,598, 2,586 are in the Collection's exe, and the 12 that are
+not are build details (the PDB path `C:\GameSrc\cpp\WinBej2\Release\WinBej.pdb` and the source paths of the modifiable values, the
+zlib banner, the C runtime's floating-point message, the profiler's format, the day and month table) and one error text: "Failed to create
+high score file! Please report to support@popcap.com." The Collection's 80 others are the same kind of thing (`c:\p4root\cvs\GameSrc\...`,
+its own runtime texts, the profiler's new format) plus a newer framework's: `SexyCacheData`, `SexyCacheReq#%d` and `SexyCacheMessage`
+(a file mapping of decoded pictures), `ImageFont2:`, `DDImage:`, `ResMan`, the locale name, a second "Redraw FullScreen Flip" text, a
+`CustomerSupportLocation` property with `http://www.popcap.com/support`, and the same high-score error told another way ("Please contact
+Customer Suppport at"). The game's own texts are in the data folders (the port reads none from the exe), and `default.xml` is the same file
+in both versions.
+
+What is not known: whether the 2009 build plays exactly like the 2007 one. Its code differs throughout (another build of the framework),
+so no function was compared, and the Collection's own exe was not run (the end of this section). What speaks for it: every text, picture,
+sound, song and puzzle of the game is the Steam game's, with the six constants below as the one change of data that affects play.
+
+**The files** (`tools/collection/cmpfiles.py`; the extraction's `Galaxy_One` is not the Steam copy's `Galaxy One`, so the puzzles were compared
+apart, by hash, once renamed). Of the Steam copy's 791 files and the Collection's 874, 466 are the same byte for byte and 26 differ (the 21
+pictures, the licence, the readme, `config.xml`, `partner.xml` and its signature, below); the 240 puzzle files the Collection has are the
+Steam copy's, byte for byte. Besides those, the Steam copy has the launcher's files (`winbej2.exe`, `steam.dll`, `flash.ocx`,
+`drm.swf`, `drm.xml`, `drmss.jpg`, `drm/`, 51 files), `puzzles/Galaxy One/sol.txt` (a note of the developers' tool, the solution of
+tutorial puzzle 8; nothing reads it) and `properties/Backdrops.xml`; the Collection has 142 more: `bejeweled2.exe` and `sm_images/` (141 TGA
+pictures of the interface that the exe never names). The differences:
+
+- **`properties/Backdrops.xml` is missing.** Both exes name `backdrops.xml` (`WinDMApp::Init` 0x5e2a19 reads it, ignores whether the read
+  worked and parses the buffer). The file gives each backdrop a `UIColorize` and a `GemColorize`, which `BackdropsParser` stores in
+  `WinDMApp::mBackdropColors`, and the port, which translates every function the runs reach, never reads those colours back. With no file
+  the parse of an empty buffer returns at once, as the original's loop does, and the game plays as before: every play below shows it.
+- **`properties/partner.xml`.** The settings' registry key is `PopCap\Bejeweled2`, not `Steam\Bejeweled2`; the Collection's file has no
+  `Width`, `Height`, `VistaCompliant`, partner name, display name, "more games" link or Steam id, and adds `ProdVersion` 1.1.3.2523,
+  `ProdLanguage` and `InstallTag`. `partner.xml.sig` is another signature. The port reads four of the keys (`NoReg`, `ProdName`,
+  `DefaultWindowed` and `RegistryKey`, `SexyApp.cpp` and `SexyAppBase.cpp`), and only the last differs, so its settings file has its
+  section as `[SOFTWARE\PopCap\Bejeweled2]` on the Collection's files; the window's size is the game's own (640 by 480, or 1024 by 768 in 3D).
+- **21 pictures** have other bytes (`tools/collection/cmpimages.py`: an encoder's other choices, a grey picture stored as RGB, a palette
+  picture as RGB). 18 decode to the same pixels in every channel: the fonts `_continuumbold26`, `_halfmoon30`, `bombfont` and `scorefont1`,
+  `_alphaback1`, `comet`, `dialogtitle`, `editbox`, `lightning`, `lightning_center`, `mapbuttonglow`, `nr_ringdude`, `portal_`,
+  `star_sparkle`, `starfield2`, `toggle`, `tunnelend` and `tunnelend_`. Three differ: `loaderbar` (767 of 45,710 pixels, by up to 138 levels:
+  the rim of the loading screen's bar), `slider-thumb` (97 of 961, up to 70, at the edges of the Options sliders' knob) and `holemask` (8,882
+  of 16,384 by one level of alpha, an encoder's rounding). The loading screen draws only while the load takes frames, and the port's
+  runs load without drawing, so `loaderbar` is the one picture no screenshot of this check shows; the Options screenshots (`opts_a`) show
+  the slider's knob, and are the same on both sets, so the knob's differing pixels are not visible there.
+- **`properties/config.xml`: six constants.** Everything else of it is the same. The Steam copy has `PowerGemChance` 1.0, `ExplosionChainBonus`
+  1000, `ExplosionChainBonusAdd` 1000, `ElectNormalBonus` 400, `EndlessBonus` 1 and `EndlessBonusMult` 1; the Collection has 0.05, 40, 10, 20,
+  500 and 150. They are what a gem caught in a blast and a gem a hyper cube strikes are worth (`BoardEffects.cpp`, `BoardMatch.cpp`: 1,000 and 400
+  times the level's point value on the Steam files, 40 and 20 on the Collection's), the level's worth in Endless (`SetupLevelData`, `BoardLevel.cpp`:
+  the points a level adds to the score before it ends, (level times `EndlessBonusMult` plus `EndlessBonus`) times the point value of a gem)
+  and the chance that a gem dealt in Finity is a power gem. The game's own defaults for the three it names in code (10, 40 and 20) are
+  neither file's, apart from the 20 (the Collection's 40 and 10 are the first two swapped). So the two versions' games score differently: in Classic the bot's game first differs at a blast on
+  level 2 (update 7,755), where the Steam files' game stands at 5,902 and the Collection's at 1,492. The port takes whichever file it is
+  given, as the original does.
+
+**The port on the Collection's files** (`tools/collection/run.sh`; `tools/stage_assets.py` stages a Collection folder as it does a Steam
+one: it takes `Bejeweled2.exe` as well as `WinBej2.exe` and renames the puzzle folder). `portshots.sh` takes `PORT_EXE` and `REGKEY`
+for the second set's copy of the exe and its settings section. The staging was run in two sets: the Collection's files as they are,
+and the Collection's files with the Steam copy's `config.xml` (the one change of data that alters play), each with a copy of the exe in
+a folder of its own, so a result that differs belongs to the six constants alone.
+- **The nine modes' bot games** of `tools/check.sh bejeweled2` (`tools/playbymove`, seed 1; Classic to 1,200 steps, the others to 300 to
+  500), whose transcripts and end screens that check holds as hashes for the Steam files: with the Steam `config.xml`, all nine are the
+  same, transcript and end screen, on the Collection's files. With the Collection's own `config.xml`, six are the same (Action, Puzzle,
+  Twilight, Hyper, Cognito and Hidden, which use none of the six constants) and three differ, the three the constants reach: Classic
+  (first at the blast of update 7,755: 5,902 against 1,492), Endless (at update 800 the Steam files' game has finished its first level,
+  whose worth is a few points, and the Collection's is still playing it) and Finity (the power gems it deals). Each is the game the constants make; no run showed an error, a
+  missing-file line or a crash.
+- **Screens**, played from the coverage scripts (`tools/coverage/scripts`: `menu_a`, the title and the main menu with Quit asked and the
+  scores' reset question; `opts_a`, the Options dialog with each of its controls and its questions; `users_a`, the players' dialog: create,
+  rename, delete; `title_q`, the window closed at the title; `game_a`, a Classic board with the hint, every cheat word, the focus lost and regained, the
+  in-game options and the window closed in the middle of the game, two shots) once on each set of files, from the same
+  profile, seed and input, compared by shotdiff (`bejeweled2-coll`, no crop: both sets are the port's own 640 by 480 pictures): 31
+  pictures (`menu_a` 3, `opts_a` 15, `users_a` 10, `title_q` 1, `game_a` 2) on each of the two Collection sets are equal to the Steam
+  files' pixel for pixel (shotdiff at tolerance 0: all matching, none faint), as are the nine end screens of the bot games above (the six
+  that the six constants do not reach, on the Collection's own).
+- **The web build under Node** (`wasmrun.js`, the page's code, no canvas): `menu_a` and `opts_a` (18 pictures), played on the Steam files
+  and on the Collection's. The web build's pictures on the Collection's files are equal, pixel for pixel, to the web build's own on the
+  Steam files, and each set is a few levels of colour off the native port's on the same files, at most 3 and 4 of 255 in faint boxes
+  only (the web build's usual difference in 2D: the numbers are the same on both sets).
+- **The importer** (`games/bejeweled2/web/page.js`: markers `properties/resources.xml` and `music/beyondnetwork.mo3`, the folders it
+  takes): an ad-hoc run of `web/gameimport.js`'s rules on the Collection's folder as extracted and on its staging found the game root
+  and picked the same 727 files (`data` 52, `edata` 8, `images` 371, `music` 1, `properties` 5, `puzzles` 240, `sounds` 50) with the
+  markers present; `sm_images`, the exe and the licence are left out as the Steam copy's launcher files are. (`tools/gameimporttest.js`
+  registers only the games the site lists as finished, so it has no Bejeweled 2 line.)
+
+**Not done.** The Collection's own exe was not run, so none of its screens or sounds was compared with the port's. It is a 2009 build
+whose code differs from the Steam image's, and a run needs the watches of `origcmp` (the board's score, level and state, the generator),
+which are addresses of the Steam image: a run of the Collection's game means finding them in its exe first, by pairing its functions
+with the export (strings and calls; the exe carries RTTI for the framework's classes, the Steam image's does too). The definition of done
+asks that the port work with the Collection's files, which it does, so this is left as AstroPop's was (its section 13). What it would
+show is whether the 2009 build's code reads the six constants as the Steam image does. Also not done: a save of a Collection copy (no
+Collection copy of the game was installed here, so where it keeps its players is not known: `platform/saveimport.json`'s entry for
+Bejeweled 2 covers the Steam copy's folder and its registry key `Steam\Bejeweled2` only, and the Collection's key is `PopCap\Bejeweled2`),
+and the Collection's drawing in 3D (the game under dgVoodoo2 was never run from the Collection's exe).
+
+## The readability pass (2026-11-11; `docs/CODE_STANDARDS.md`)
+
+**Result.** `tools/namecheck.py games/bejeweled2` reports no finding in 75 files (1,119 before): no member, local, parameter or global is
+called by an offset or by a decompiler name, every function says which original function it is or that it is the port's (a `// port:` line),
+and the numbers that stood for a state, a dialog or a face are named. The pass, in order (commits `e6dcb13d` and `9df11278`, then the one
+that names the numbers):
+
+1. *Helpers.* 29 functions that exist only in the port got a `// port:` line saying why.
+2. *Dead members.* After the unneeded-code pass, every member that nothing reads was found by a script (a use that is not the left side of a
+   plain one-line assignment counts as a read; `x++` and `--x` count as stores) and read against the export to see that the original does not
+   read it either. 26 members went with their stores: the Board's `m165b4`, `m176c`, `m1750` (and the empty `if` of `Draw` that tested it),
+   `m15e90`, `m15ed8`, `m15f50`, `m15f6a`, `m15f70`, `m15fd8`, `m16020`, `m15f40` (a widget pointer nothing sets, with its `delete`), `m15f80`
+   (its `Rand() % 0x80` draw stays as `Rand();`: the order of the draws is the original's), `m1914`, `m195c`, the `m1960` group (six numbers
+   and the unreachable blocks that read them), `m15ebc` (only the removed `NewGame` set it, so the end of the game always shows the high
+   scores) and `m1724` (the debug overlay of `Board::Draw` and its early branch in `UpdateWhirlpool`); the small classes' `mUnused` members of
+   `TitleScreen`, `MainMenu`, `HighScoreWidget`, `PodDialog` and `EffectOverlay::mB4`. In the end screen the state 7 block (a second fade that
+   nothing in the class sets) went too. A removal moves every offset after it, so objsnap cannot prove it: the proof is `tools/check.sh
+   bejeweled2` (the bot's games in the nine modes, state compared with the frozen baseline), run after each batch, identical every time.
+3. *The names.* 136 members got names for what they hold, in `Board`, `Piece`, `EffectOverlay` and `Profile`, each declared on a line of its own
+   with its original offset (`// +0x17c ...`) and a comment; the old hex names in these notes were renamed with them. One-letter and `aTemp`
+   locals of nine functions were renamed inside their blocks, and `ShrinksAt640` became `ShrinksInSmallWindow`. Proof: every object of the
+   build compiles to the same code before and after (`tools/objsnap.py cmp`: 48 objects, 889 functions, 0 differ), the string and character
+   literals of the 39 changed files are the same (a lexer over `git show HEAD:` against the working copy), the native and the web build pass.
+   Only `mB4` was a hex name that two classes shared, and the member of `EffectOverlay` was dead, so no rename needed the compiler's help.
+4. *Numbers with a meaning* (rule 7). 82 numbers compared with or assigned to the board's `mState` and `mScreenState` became the names of
+   the `Board` enums that `mState` and `mScreenState` already had (`STATE_GAME_OVER`, `STATE_LEVEL_COMPLETE_SCORE` and the rest of the 24
+   states; the screen's `SCREEN_SLIDING_IN` to `SCREEN_HIDDEN`; `STATE_7` and `STATE_9` of the enum are `STATE_GAME_OVER` and `STATE_LEVEL_COMPLETE_SCORE` now); 25 dialog ids became the names
+   of `WinDMApp`'s `DialogId` (the galaxy map's "Planet is Locked", id 13, is `DIALOG_PLANET_LOCKED`; the original's instructions and colour
+   depth messages shared that id and are gone), and the 20 numbers of the end
+   screen's `mFaceState` became `EffectOverlay::FaceState` (`FACE_BARS` to `FACE_END`; 7 is the state the original never sets). The
+   object code of these two batches is the same (objsnap 0 differ) except `EffectOverlay`'s `DoUpdate`, `Draw` and `InitFace`, which lost the
+   state 7 block (and so a constant or two) and compare `!= FACE_OFF` where they compared `> 0`; the baseline run proves that.
+
+**Kept although the original never sets them.** `mFreeMode` (+0x1723: a swap that makes no match is not swapped back), `mSkipBestRecords`
+(+0x15ee0: the cascade and combo records are not kept) and `mFadingSound` (+0x1728: the sound that fades with the level change) are read
+by the game's code and never set to anything but their start value, by the original and by the port; the branches they guard are the
+original's and stay. `mNeverSetScoreMark` (+0x15ee4) and `mSavedNeverSet` (+0x15fa8) are only written into the saved game and read back
+from it; the save's layout is the original's, so they stay as the save's fields, named for what the save does with them. `WhirlPoint::mRHW` is the reciprocal homogeneous w of a vertex
+of the mesh the whirlpool turns (a raw vertex of 0x24 bytes); `PuzzleStateOverlay::mPodOver` is stored by the original's own setter
+(0x5d1995, `SetPodOver`) and read by nothing. `tools/splitfields.py bejeweled2` lists exactly these (and `mStartCountdown`, which the update
+decrements and tests).
+
+**Names that say what the code does and are worth a second look when a screen is read against the original again:** `mHyperRole`,
+`mHyperDelay` and `mHyperFade` (the three numbers of a gem that a hyper cube takes: read in `UpdateHyperCube`), `mTutorialMoveFade` and
+`mTutorialNextFade`, `mPodArrowShown` and `mPodArrowPhase`, `mHintButtonArrowPhase`, `mFlameFromCross`, `mBigMoveTimer` and `mBigMoveGlow`,
+`mBoardInOverlay`, `mWarpFade`, `mDrainGrace`, `mLastGoodTick`, `mCheerGiven`, `mCheerTier` and `mCheerDelay`, and `mTextSizeFactor` of the
+overlay.

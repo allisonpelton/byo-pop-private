@@ -1,0 +1,10 @@
+# Coverage run extra 2 (origrun script): a regular game started and played for a while with a few clicks in the board, then the
+# window closed in the middle of the game.
+at 303 click 186 288
+at 405 click 165 88
+at 507 click 232 185
+at 700 click 320 300
+at 760 click 360 300
+at 820 click 280 300
+wait 300
+quit

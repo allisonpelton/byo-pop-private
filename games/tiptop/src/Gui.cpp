@@ -725,19 +725,6 @@ void GuiInit(uint16_t theLayers, uint16_t theHandlers, lowos::Surface* theSkin)
 	// (and a heap for the draw dispatch's lists, 0x43b270 and 0x43a3e0: the port uses a vector)
 }
 
-// 0x428fa3
-void GuiShutdown()
-{
-	if (gGuiInited != 0)
-	{
-		gGuiInited = 0;
-		free(gLayers);
-		free(gHandlers);
-		gLayers = nullptr;
-		gHandlers = nullptr;
-	}
-}
-
 // 0x428fd3
 Layer* NewLayer(uint16_t theContentWidth, uint16_t theContentHeight, const GuiRect* theRect)
 {
