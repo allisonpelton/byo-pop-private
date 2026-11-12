@@ -482,8 +482,8 @@
       "title": "Venice Deluxe",
       "done": [],
       "na": [],
-      "now": null,
-      "note": "Not started"
+      "now": "port",
+      "note": "Started 2026-11-12, the first port written to the standards from its first draft"
     },
     "heavyweapon": {
       "title": "Heavy Weapon Deluxe",
