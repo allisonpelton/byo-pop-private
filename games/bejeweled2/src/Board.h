@@ -382,13 +382,9 @@ public:
 	// geometry
 	int				GetColX(int theCol);                            // 0x594ba4
 	int				GetRowY(int theRow);                            // 0x594bd5
-	int				GetColAt(int theX);                             // 0x594c19 the column that holds the pixel, -1
-	int				GetRowAt(int theY);                             // 0x594c42
-	void			GetBoardSize(int* theWidth, int* theHeight);    // 0x5957b2
 	void			GetBoardCenter(int* theX, int* theY);           // 0x5957f3
 	int				GetPanPosition(int theX);                       // 0x5953ef the stereo pan of a sound at x, -1600 to 1600
 	Piece*			GetPieceAt(int theX, int theY);                 // 0x59522a
-	Piece*			GetOrMakePieceAt(int theX, int theY);           // 0x59597c
 
 	// the board and its pieces (BoardBase.cpp)
 	void			ProcessEndGameInfo();                           // 0x59483b
@@ -396,7 +392,6 @@ public:
 	void			AdvanceSweep();                                 // 0x594d97
 	bool			CanPlay();                                      // 0x594eff
 	unsigned int	GetBoardHash();                                 // 0x594f20
-	unsigned int	GetOldBoardHash();                              // 0x5963ba
 	void			MakePuzzleCrazy();                              // 0x594fd2
 	void			ClearBoard();                                   // 0x5950f5
 	bool			IsBoardEmpty();                                 // 0x59515c
@@ -474,7 +469,6 @@ public:
 	void			InitialBackdropProcessing();                    // 0x5a573d
 	void			SetupLevelData();                               // 0x59c11b
 	void			GameOver(int theDelay);                         // 0x5a5030
-	void			NewGame();                                      // 0x5a50a0
 	void			UpdateLevelTransition();                        // 0x5a510a
 	void			CheckForHints();                                // 0x59cb4b
 	void			DoHyperspace();                                 // 0x59d20d

@@ -1,7 +1,7 @@
 // BoardLevel.cpp: setting up a level of Sexy::Board: the backdrop images, the level's point values, the end of a game
 // and the transition between two levels.
 //   PrepareLevelImages 0x59becc, SetupLevelData 0x59c11b, PrepareLevelImagesStub 0x5a5024, GameOver 0x5a5030,
-//   NewGame 0x5a50a0, UpdateLevelTransition 0x5a510a, StartPrepareLevelImages 0x5a571e, InitialBackdropProcessing 0x5a573d.
+//   UpdateLevelTransition 0x5a510a, StartPrepareLevelImages 0x5a571e, InitialBackdropProcessing 0x5a573d.
 
 #include "Board.h"
 #include "WinDMApp.h"
@@ -185,13 +185,6 @@ void Board::GameOver(int theDelay)
 	m15e58 = theDelay;
 	ProcessEndGameInfo();
 	// (the original counts the game in the trial's counter at app+0x718 here)
-}
-
-// 0x5a50a0
-void Board::NewGame()
-{
-	GameOver(0x32);
-	m15ebc = true;
 }
 
 // 0x5a510a: the screen is swept away and the music fades; when the sweep has covered the board the next level starts

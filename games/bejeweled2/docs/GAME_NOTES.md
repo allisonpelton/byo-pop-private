@@ -354,16 +354,16 @@ the hint, `LoadState`, `DeleteSavedGame`, `CancelNewGame`, the shutdown timer, t
 (and the few more that are only reached through them) against the export: 43 are faithful and four differ, all in code nothing runs: `GetOrMakePieceAt`
 marks the board dirty with `MarkDirtyFull` where the original calls slot 0x44 (`MarkDirty`; fixed, dead code), `DoPuzzleRating` and
 `FinishPuzzleRatingDialog` are empty stubs (`WinDMAppStubs.cpp`; the rating dialog 0x23 is never created), and `~EffectOverlay` also deletes the
-text picture (the leak fix above). The rest, by why no run reaches it. None is removed now: they are the candidates of the phase that takes out
-code the game does not need.
-- **Dead in the original** (no caller, no vtable slot: 15): `GetColAt` 0x594c19, `GetRowAt` 0x594c42, `GetBoardSize` 0x5957b2, `GetOrMakePieceAt`
+text picture (the leak fix above). The rest, by why no run reaches it; the ones nothing can reach are taken out (the paragraph "Taken out"
+after the list), and the others stay.
+- **Dead in the original** (no caller, no vtable slot: 15; all but `UpdateLevelTransition` taken out): `GetColAt` 0x594c19, `GetRowAt` 0x594c42, `GetBoardSize` 0x5957b2, `GetOrMakePieceAt`
   0x59597c, `GetOldBoardHash` 0x5963ba, 0x5aef96 (`CurvedVal`), 0x5d3ffd and 0x5d8b5d (resource helpers), `DoPuzzleRating` 0x5dc25b,
   `ShowInstructionsDialog` 0x5df3d7, `ShowFullInstructionsDialog` 0x5df4d9, `ShowColorDepthDialog` 0x5df614, `ConfirmNewGame` 0x5e119e, `Board::NewGame`
   0x5a50a0 (only the dead dialog's button calls it) and `UpdateLevelTransition` 0x5a510a (no code sets board state 11).
-- **The high-score name dialog** (8: `HighScoreNameDialog`, 0x5d31e4-0x5d34c8 and 0x5d3382): its only creator, 0x5dcdf0, has no callers; the score table takes
-  the profile's name (`HighScoreWidget::NameEntered`, reached in the Action run).
+- **The high-score name dialog** (8: `HighScoreNameDialog`, 0x5d31e4-0x5d34c8 and 0x5d3382; taken out): its only creator, 0x5dcdf0, has no callers; the score
+  table takes the profile's name (`HighScoreWidget::NameEntered`, reached in the Action run).
 - **The puzzle pack selector** (10: `PuzzlePackSelector` 0x5d0f09-0x5d13ae, `DoPuzzlePackSelector` 0x5dc1f6, `FinishPuzzlePackSelector` 0x5e15ea): shown only
-  when `puzzles/` holds more than one pack folder; the shipped game has one (Galaxy One).
+  when `puzzles/` holds more than one pack folder; the shipped game has one (Galaxy One). Kept.
 - **Error paths** (3: `BackdropsParser::Fail` 0x593732, `GalaxyParser::Fail` 0x5be56d and 0x5be07b): only a malformed or missing `backdrops.xml` or `galaxy.xml`.
 - **The galaxy's finale** (6: `InitFace` 0x5b9071, the shape interpolation 0x5b592c and 0x5b5960, `powf` 0x5b5229, `GetPuzzleNum` 0x5d0ee6, `~EffectOverlay`
   0x5b8cee): the last planet of the puzzle galaxy; `DoHyperspace` sets `m191c` when the planet index is the last, and a profile with the whole galaxy
@@ -376,8 +376,25 @@ code the game does not need.
   reaches `PodButton::MouseEnter` and `SelectMode` but never draws the glow; `Update`'s glow loop and `Draw`'s call read the same as the port's, and the
   port draws it; an oddity, not chased) and `WinDMApp::ButtonPress` 0x5dc1cf (the pod dialogs' own `ButtonPress` plays the click and does not call it).
 - Not done, for later: the full-screen toggle run, the finale, the secret puzzle's reset, a puzzle made unsolvable. The Collection check (the PopCap Game
-  Collection's Bejeweled2DeluxeComponent) came after the performance pass (done: the section "The PopCap Game Collection version"
-  below) and the site features come next.
+  Collection's Bejeweled2DeluxeComponent) came after the performance pass (done: the section "The PopCap Game Collection version" below).
+
+**Taken out** (2026-11-11, in the pass that removes the code the game does not need; no code of the original calls these, no run reaches them and the
+port's own code never called them): `Board::GetColAt`, `GetRowAt`, `GetBoardSize`, `GetOrMakePieceAt` and `GetOldBoardHash` (0x594c19, 0x594c42, 0x5957b2,
+0x59597c, 0x5963ba), `Board::NewGame` (0x5a50a0: only the yes button of the "New Game?" question called it, and `ConfirmNewGame` 0x5e119e, which asks
+that question, has no caller; the question's dialog id 0 and its button branch are gone with them), `CurvedVal::SetInRange` (0x5aef96), the resource
+name table and group finder of the exe (0x5d3ffd and 0x5d8b5d: `resgen.py` no longer writes `GetStringIdById` and `ExtractResourcesByName`, nor the
+245 names), the three dialog openers `ShowInstructionsDialog` 0x5df3d7, `ShowFullInstructionsDialog` 0x5df4d9 and `ShowColorDepthDialog` 0x5df614 (the dialog
+id 13 stays: the galaxy map's "Planet is Locked" message uses it), the high-score name box (`HighScoreNameDialog`, 0x5d31e4-0x5d34c8, with its dialog id
+10, its yes-button branch and the port's `HighScoreWidget::SetHighScoreName`, which only that branch called; the registry's `LastScoreName` is still
+read and written) and the puzzle rating box's two stubs (`DoPuzzleRating` 0x5dc25b and `FinishPuzzleRatingDialog` 0x5e1a45, with the dialog id 35 and its
+two button branches; `WinDMAppStubs.cpp` is gone). 24 functions of the port (two of them inline in headers) and 587 lines in all, 273 of them the generated names. Each has a `none` line in
+`coverage.txt`. Proved by the object code (`tools/objsnap.py`, before and after): 44 of the 48 objects that are left are the same instructions, data and sizes; the other four
+are the ones that held a removed function (`BoardBase`, `BoardLevel`, `Res`, `WinDMAppDialogs`), each with exactly those functions gone and every other
+function the same size, and by the frozen baseline (`tools/check.sh bejeweled2`: the nine modes, rerun and games as frozen, baseline identical).
+Left in, though no run reaches it: `UpdateLevelTransition` 0x5a510a (the update's case for board state 11, a state no code sets: it is one case of the
+state machine, which the port keeps whole), the puzzle pack selector (the original shows it for any `puzzles/` folder with several packs, and the
+port follows the data it is given), the parsers' error paths, the finale, `GalaxyMap` slot 47, and the rare states and inputs above, which a player
+can reach.
 
 ## Performance (2026-11-11; `docs/COORDINATION.md`, "Performance pass")
 
