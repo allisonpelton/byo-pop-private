@@ -1,6 +1,7 @@
 # Venice Deluxe: the identical-play pass
 
-Written for the user. Phase one (the game plays out the same in the original and the port) is in progress; this file
+Written for the user. Phase one (the game plays out the same in the original and the port) and phase two (it looks and sounds
+the same, screen by screen, and keeps its focus the same) are done but for the items listed under "Left in phase two"; this file
 grows with each phase.
 
 ## Phase one: plays identical
@@ -82,3 +83,88 @@ Phase one ends here: the games play out the same in every mode, for the length o
 of each mode, with their bumpers, tossers, warps and baskets, and the power-ups, wings and tries that the bot never reaches,
 come in the coverage check (the bot loses early, and a level is reached with a profile that has it unlocked), and the focus loss
 and regain with phase two.
+
+## Phase two: looks identical
+
+### What is compared and how
+
+Nine tours of the game, each a scenario of `games/venice/tools/idplay/scenarios/shots_*.py`, give 207 screenshots, and each
+tour is run by the original and by the port with the same inputs at the same updates. The original runs inside Windows Sandbox
+under origrun on its virtual clock (the only place origrun takes a shot, `docs/ORIGRUN.md`), and each shot is taken at the
+update the script names (a `waitshot` after a focus loss, where a plain capture of the window shows nothing); the port runs
+natively under rundesk with `-fast -drawevery -renderscale=1`, the original's tick count for each frame, and takes its shot
+at the same update. `tools/shotdiff` compares the pairs (`docs/SHOTDIFF.md`): a pair is a match, or it differs only faintly (no
+pixel group beyond the tolerance, no visible difference after a blur), or the differing groups are flagged.
+
+| tour | shots | what it covers |
+| --- | --- | --- |
+| `shots_name` | 6 | a new player's first screens: the name box, the typed name, the tutorial's start |
+| `shots_tutorial` | 6 | the tutorial, played by the bot, a shot every 1000 frames |
+| `shots_menus` | 31 | the main menu and every screen it leads to (options, help, credits, high scores, mode select, exit confirmation, the player's menu), each while its fade runs, settled and closing |
+| `shots_ingame` | 18 | a level in play: the in-game menu (fading and settled), its help, options and confirmation screens, the game after Resume |
+| `shots_flood` | 30 | Flood, a shot every 1000 frames of the bot's play, with the explanation and the summaries |
+| `shots_survival` | 20 | Survival, the same |
+| `shots_trickshot` | 20 | Trick Shot, the same |
+| `shots_journey` | 60 | Journey for 60500 frames: levels, a lost level and its tries, the summaries, the cupid's messages |
+| `shots_focus` | 16 | the window losing the focus and getting it back on the main menu, at a level's explanation and in play, with a shot in the lost state (the paused sign) and after each regain |
+
+The result: every pair is a match or a faint pair, none is flagged: 99 matches and 108 faint pairs. The faint pairs are single
+pixels and thin edges: the largest is 696 differing pixels of 480,000 (the vase jewel of `survival_12500`, at most 24 levels off
+in a colour), and in the 108 pairs together 1,051 pixels are more than 32 levels off, each alone. They are at the antialiased
+edge of a picture drawn through a transform, at a sparkle's blend and in the glyphs of text drawn through a transform.
+
+The sound is compared as the original's BASS calls (the logging BASS beside the exe, `tools/bassproxy`) against the port's
+sound log, by `tools/idplay/soundcmp.py`: every play, every volume call of a looping sound (the music) and every stop, in
+order, the sounds named by their file's checksum, and the time of every play (the original's milliseconds against the port's
+update count; no play of any tour is more than one update from the original's, counted from the first play of each, except
+in the focus tour, where the original's counter goes on while the window has no focus and the port's updates stand still, which
+is a constant 8 updates after the first loss). The tours `shots_menus`, `shots_name`, `shots_tutorial`, `shots_ingame`,
+`shots_survival`, `shots_journey` (13,673 events and 1,400 plays) and `shots_focus` (the pause and the resume of every loss and
+regain, the music's volume calls on both sides of them, run with the original inside the sandbox) match with no difference;
+`shots_trickshot` and `shots_flood` differ in one thing, an oddity below.
+
+The web build is compared with the native one, not with the original: each tour runs under Node (`webshots.py`, the same
+scenario, the same ticks, the web build of the port) and `tools/shotdiff` compares its shots with the native port's. Menus:
+30 of 31 pairs are identical, one is faint; name: 6 of 6 identical. The web runs of the other tours were still going when
+this was written; their results are added when they end.
+
+### Differences found and fixed (phase two)
+
+| difference | cause in the original | what the port does now |
+| --- | --- | --- |
+| Every flipped picture of the layer merge was missing (the sky's mirrored repeats, in bands) | the original draws a flipped picture with its software triangles, which the framework draws only once the game has registered them | `SWTri_AddAllDrawTriFuncs()` when the app is made |
+| The mirrored sky's repeats were not flipped as in the original | `mFlipY = aMirrored != 0` in the layer merge's repeats | as the original |
+| Where no picture covered a band it was see-through, black in the original | the original's software surface has no alpha | a band on a display that is not accelerated starts opaque black |
+| The layer merge drew the bands from the pictures that stay alive, not into pictures | 0x40de30 draws every picture into 800 x 1024 pictures, with the second copy of the picture draw (0x442490) | the bands are made as the original makes them (`DrawImageRecordOnTarget`, `gRenderTarget`) |
+| The sky's last column was black in every band (`journey_10500` and others) | the original's software triangle clip is the rectangle's own far edges (0x504860 passes x + width and y + height), the released source's is one pixel inside | `SWTri_SetClipToFarEdges(true)`; a framework switch, off for the other games |
+| The loading screen's sparkles were too bright | a transformed picture on the original's software surface blends normally whatever the draw mode says; only the accelerated target adds | `DrawImageRecord` draws it in the normal mode when the display is not accelerated |
+| Text, sprites and jewels drawn through a transform sampled at other places than the original's, an edge a fraction of a pixel off | the original's software screen draws a transformed picture with its own triangle code straight on the surface | `mSoftwareTransforms` on whenever the display is not accelerated (Bejeweled 2 and Rocket Mania do the same) |
+| The wings text of the wings power-up was on the wrong object | 0x417b90 calls `SceneObject::AddFilter` and `SetAttribute` (0x428610, 0x428700) directly, not the layer's virtual versions | direct calls |
+| A sprite's frame was different in the web build, a hair under or over a whole number | the original's x87 sine and cosine give the correctly rounded value; the C libraries of the two builds differ from it in the last bit for about 3 % of the angles | `VeniceSin` and `VeniceCos` (`VeniceMath.cpp`), the same bits on every platform |
+| The bake drew the objects that the culling had skipped | the culling test is not made when drawing into a band | `mNoCulling == 0 && gRenderTarget == nullptr` |
+
+Two things of the harness were wrong and are fixed, not of the game: a scenario's end could come before its last shot, so that
+the port ran frames the original had not (`SHOT_MARGIN`), and the ticks after a focus loss, which the original does not run
+(the counter keeps counting while no update runs, and `GotFocus` resets it), were given to the port as one more than it should
+run.
+
+### Oddities skipped (phase two)
+
+**The old level's destructor sets the music channel to volume 0 for one update (Trick Shot and Flood sound).** Each time a
+level ends and the next one has started the same music, 0x40ea20 (the destructor) sets the volume of the music's channel to 0,
+and BASS gives the new level's replay the same channel handle as the old level's stopped one, so the call reaches the music that
+is playing; the next update's fade sets the volume back. The port's old level finds its own voice stopped and does nothing. It
+is the 4 ms of an update, 15 times in the Trick Shot tour and 3 times in the Flood tour, and there is no other difference in the
+sound of any tour. To make it the same the port's sounds would have to share one voice handle for each file.
+
+### Deviations that remain (phase two)
+
+As `GAME_NOTES.md` lists them.
+
+### Left in phase two
+
+Every tour above compares the original's software mode (its 2D display) with the port's 2D display. The original's 3D mode
+(Direct3D 7, here over dgVoodoo2 inside the sandbox with its virtual GPU) against the port's 3D mode is `shots_menus3d`, which
+needs the host's GPU and a visible desktop, so it runs only between 22:00 and 08:00 (CLAUDE.md, "Overnight"); its result is
+added to this file by that run. The coverage check (the levels past the first few of each mode, the power-ups, wings and tries
+the bot never reaches), the real-input driver with the page check, and the fixes mod come after this phase.

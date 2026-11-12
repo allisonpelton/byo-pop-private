@@ -8,6 +8,7 @@
 #include "Res.h"
 #include "Graphics.h"
 #include "ImageFont.h"
+#include "LiveSplitObserver.h"
 #include "WidgetManager.h"
 
 #ifdef __EMSCRIPTEN__
@@ -112,6 +113,8 @@ void AdventureDialog::ButtonDepress(int theId)
 {
 	if (theId < 5)
 	{
+		if (mApp->AdventureExists(theId))
+			LiveSplitObserver::SavedGameLoaded();   // port(mod): a saved adventure resumes (the autosplit block's RESUMED)
 		mApp->DoMap(theId, false);
 		mApp->KillDialog(DIALOG_ADVENTURE_NEW);
 		return;

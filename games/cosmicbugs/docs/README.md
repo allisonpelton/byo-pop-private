@@ -316,86 +316,109 @@ at every 10 ms update to look at a file that does not change (a poll every tenth
 `-fast` test run that cost; a player's run never has it). A frame cap or a lower present rate would cut the driver's share, but it
 would change what the player sees, so it would be a mod.
 
-## The processor-time target (2026-11-11)
+## The processor-time target (2026-11-11, met 2026-11-12)
 
 The user's rule (docs/COORDINATION.md, "The target"): a port's processor time is at most its original's, measured like for like.
-Cosmic Bugs is not there yet: on a board the port uses about 2.1 to 2.4 times the original's cycles. This section says where they
-go, thread by thread, and what the host did and did not change.
+With the window's own surface showing the screen (`SurfaceDisplay`, below) Cosmic Bugs is under it: on a board the port at the
+original's window size, sound off as origrun's original mixes none, takes 86 Mcycles a second against the original's 110, with the
+sound on 92. Before it, the port took 190 to 264, a good part of it the Direct3D driver's worker thread, which no game code of
+ours can cut. This section is the final measurement, how it was taken, where the cycles went before and what is left.
 
 **How it is measured.** `tools/perf/alt.sh` alternates the original (its main loop patched to sleep 16 ms a pass, as the wait for a
-60 Hz screen would; unpatched it spins and takes a whole core), the port, and the port with its sound and music off (`portmute`:
-origrun's stand-in mixes no sound, so the original's cycles are its main thread's alone), three rounds, in real time, with 2 to 5
-other sessions' games running; the board window is the 30 s that begin 8 s after the first board has started. Two traps in the
-measurement, both closed in `perf.py`: an original whose click was lost spends its window on the instructions page (280 to 305
-Mc/s, not 110), so every original run now watches the game's level kind and the summary skips a run that did not reach the board;
-and a thread's cycles are read per thread (`perf.py threads <run dirs>` prints the table), because the process total hides that
-the Nvidia driver's worker is a thread of its own. The sampler cannot show where a thread's cycles went (it charges every syscall's
-cycles to the wait it ends in), so the per-call figures below come from QueryThreadCycleTime timers around the calls in a scratch
-build that was not kept.
+60 Hz screen would; unpatched it spins and takes a whole core) and the port, one round after another, each run on a performance core
+of its own (`tools/pincore.py`: no efficiency core, no hyperthread shared with another pinned run), in real time, windowed, invisibly and
+silently under rundesk, with 3 to 7 other sessions' games running. The player's exe with no test machinery: the clicks come from a
+`-script` read at the start, no commands channel and no state log run during the stretch. The board window is the 30 s that begin
+8 s after the first board has started. Three kinds of port run: the port at the original's window size with the sound off
+(`portmute@1`; origrun's stand-in mixes no sound, so the original's cycles are its main thread's alone, and the port is counted the
+same way), the same in the default window (`portmute`) and the port at the original's size with the sound on (`port@1`). Two traps
+in the measurement, both closed in `perf.py`: an original whose click was lost spends its window on the instructions page (280 to 305
+Mc/s, not 110), so every original run watches the game's level kind and the summary skips a run that did not reach the board (one of
+seven did not); and a thread's cycles are read per thread (`perf.py threads <run dirs>` prints the table), since the process total hides
+that the Nvidia driver's worker is a thread of its own.
 
-| Median of 3 (Mcycles a second) | Original, 60 Hz | Port | Port, sound off |
-|---|---|---|---|
-| First board, all threads | 119 | 264 | 257 |
-| Main thread | 118 | 155 | 163 |
-| Nvidia driver worker (nvwgf2um.dll) | none | 90 to 105 | 90 to 105 |
-| SDL audio thread | none | 13 | 1.5 |
-| Title, all threads | 285 | 406 | 365 |
+**The window each run had** (the Mahjong session's point of 2026-11-12: a window state that differs between the two sides puts a
+measurement 20 to 30% off). The original is windowed at 800x600: `cp.cfg` has `fullscreen="0"`, and its window is created and sized
+by `AdjustWindowRectEx` for a client area of 800x600 (0x42e530, called with 800 and 600 from 0x42ae60). The port, with the same
+`cp.cfg` and a fresh user directory, starts its window at 2x the game's size when it fits the desktop, which it does on rundesk's
+3840x2160; `-windowscale=1` (a test option, honoured in test runs only) puts it at 800x600. Each port run's log has the framework's
+display line, which `alt.sh` collects: "display: client 800x600 px, logical 800x600, render scale 1, windowed, renderer none" for the
+`@1` runs, 14 of 14, and "client 1600x1200 px, ... render scale 2, windowed, renderer none" for the default window, 7 of 7 ("renderer
+none": the window's own surface shows the screen, so there is no Direct3D device). Every run, original and port, was on rundesk's
+hidden desktop; the original draws through origrun's DirectDraw stand-in, which has no device thread.
 
-The port before this session's host change (the bounding box of the engine's update rectangles, the whole image uploaded) measured
-251 on a board and 152 on the main thread in the same alternation: the host change below is a correctness change and moved the
-cycles by less than the machine's noise (the runs of one kind spread by 15%).
+| Median, a board (Mcycles a second), 7 rounds | Original, 800x600 | Port, 800x600, sound off | Port, 2x window, sound off | Port, 800x600, sound on |
+|---|---|---|---|---|
+| All threads | 110 (6 runs) | 86 | 102 | 92 |
+| Main thread | 110 | 85 | 101 | 83 |
+| SDL audio thread | none | 1.2 | 1.2 | 9.5 |
+| Title, all threads | 274 | 191 | 185 | 202 |
+| Load, seconds | 0.60 | 0.38 | 0.33 | 0.35 |
 
-**Where the main thread's cycles go** (a board; per drawn frame, 60 a second, in Mcycles; the thread's 2.8M a frame is 168 a second):
+The pairs (the original of a round against the port of the same round) fall under 1 in five of six rounds for the port at the original's
+size, sound off: 0.80, 0.87, 1.15, 0.77, 0.69 and 0.66, a median of 0.79; the runs of one kind spread by 25% on this machine (the
+port's 79 to 120, the original's 92 to 120), so the figure to hold is the median. With the sound on the port also runs its mixer
+and synthesizer in the audio thread (8 to 13 Mc/s in the six runs), which the original's number holds none of (origrun's stand-in
+mixes nothing); counted apart, the sound-on port is where the muted one is. The default window costs more (102): each pixel is
+repeated 2x2 into a surface four times the area and handed to GDI, presumably, which was not split further.
 
-| Call | Mcycles a frame | a second |
-|---|---|---|
-| The game's updates (1.7 a frame; `RunFrame`) | 0.30 to 0.65 (the scene) | 18 to 39 |
-| The host: compare the screen with its last copy | 0.57 | 34 |
-| The host: widen the changed blocks, copy them to the last copy | 0.15 | 9 |
-| `SDL_UpdateTexture`, the whole image | 1.16 to 1.30 | 70 to 78 |
-| `SDL_RenderPresent` and the copy to the window | 0.44 to 0.49 | 27 to 29 |
-| Events, the frame's set-up | 0.05 | 3 |
+**Where the cycles went before.** In the first alternations of 2026-11-11 and 2026-11-12 the port took 190 to 264 on a board against
+the original's 106 to 119, in three threads: the main thread 114 to 163, the Nvidia driver's worker (`nvwgf2um.dll`) 70 to 105, and the
+audio thread 1 to 13. The main thread's time was the game's updates (the same code as the original's, 18 to 39 Mc/s) and the host (the
+screen compared with its last copy 34, the changed blocks widened 9), and the renderer path, `SDL_UpdateTexture` of the whole image 70 to
+78 and `SDL_RenderPresent` 27, from timers around the calls in a scratch build that was not kept, measured under a heavier load than the
+later runs (the port's threads were 25 to 45% higher in the first alternation, the original's 12%; I found no cause beyond the
+machine's load). A bare SDL presenter with no game in it (800x600, D3D11, vsync, one texture upload and one present a frame) costs
+105 to 150 Mc/s in the same threads, the original's whole budget: the driver's worker costs about 70 Mc/s at 60 presents a second whatever
+the window's size (its cost is per present, not per pixel or byte: a 1600x1200 picture cost the same as an 800x600 one, and a partial texture upload took
+the main thread from 137 to 89 and the total from 221 to 181 and left the worker where it was; that patch stays out of the trunk, and is in
+the shared notes folder as `cosmicbugs-partial-texture-upload.patch`). The D3D9 and OpenGL drivers cost the same and SDL's software
+renderer does not wait for the display and spins. So nothing in the game could cut the renderer path, and the fix was the surface
+display (framework/SurfaceDisplay.h, the Mahjong session's), which copies the changed rectangles into the window's own SDL surface and has
+SDL update those rectangles: no renderer, no device, no driver thread.
 
-The upload and the present, 100 Mc/s on the main thread, and the driver worker's 90 to 105 that they feed are the renderer path;
-the game's own updates are the same code as the original's. A bare SDL presenter with no game in it (800x600, D3D11, vsync, one
-texture upload and one present a frame) costs 105 to 150 Mc/s in the same threads, the original's whole budget; the D3D9 and OpenGL
-drivers cost the same, SDL's software renderer does not wait for the display and spins, and presenting through the window surface
-(`SDL_UpdateWindowSurfaceRects`) has no driver thread and costs about 15K cycles a rectangle. A partial texture upload (a
-`MemoryImage::BitsChangedRects` and a `PrepareTexture` that uploads only the rectangles that changed) took the main thread from 137
-to 89 Mc/s and the total from 221 to 181, and left the driver worker where it was: the worker's cost is per present, not per byte
-(the Mahjong measurement says the same). It stays out of the trunk by the coordinator's decision; the patch is in the shared notes folder
-(`cosmicbugs-partial-texture-upload.patch`). The shared surface presenter that is coming takes the renderer out of the path; with it the
-upload, the present and the driver worker (about 190 Mc/s in all) are replaced by a rectangle copy and a surface update of
-about 10 to 20, which puts the port under the original, so the host's job is to hand it the changed rectangles cheaply.
+**What the host does now.** `CosmicBugsApp::CreateDDInterface` makes the `SurfaceDisplay` on the desktop builds (the web build keeps the
+framework's display; `SURFACE_DISPLAY=off` in the environment keeps it on the desktop too, for a test that compares the two). The widget
+then keeps no image of the screen: `cb::ScreenDiff` (`src/CBScreenDiff`) finds what changed, widens just that into the 32-bit buffer the
+display shows, and the widget hands the display the buffer and the rectangles with `SetFrame`, everything on the first frame.
 
-**What the host does now, and why it compares the screen.** The engine's update rectangles (`Sys_AddUpdateRect`) are what its
-`Dirty_CopyTo` copies from the back buffer, not everything it draws: sprites, beams, text and fades are drawn straight into the
-800x600 screen (`DrawList_Flush`, `Beam_DrawTo`, `Alpha16MaskFade`, `Font_*`, ...) and some of their pixels lie outside every rectangle
-the game reported. One column of one, at x 0, y 490 to 498, changing every frame on the title after the Options screen is left,
-never was in a rectangle for the 1183 frames that followed. The host used to widen the bounding box of the rectangles, which
-covers 87% of the screen and hid it; widening only the rectangles (3.7% of the screen) showed it. So the host
-(`CosmicBugsWidget::FindChangedBlocks`) compares each presented screen with the copy its image was last widened from, a row at a
-time and the rows that differ a 16-pixel block at a time, 16 bytes at a time, widens just the blocks that differ, and keeps them as
-rectangles (`mChangedRects`) for a presenter that takes a dirty rectangle. The image equals a full widening of the screen after every
-Draw: a scratch check (not kept) compared them on every drawn frame, 0 pixels differ over 54000 frames of the menu tour
-(`test/tours/menus.txt`, up to its last board), 27500 frames of the end tour and scripted 90 s plays of random clicks (seeds 1 to 5,
-with and without `-drawevery`; the same check on the framework's rendered frame, through `SDL_RenderReadPixels`, ran before the partial
-upload was taken out), and the same check with a deliberately skipped rectangle flagged 8781 of 9000 frames, so it can fail.
-`tools/check.sh cosmicbugs` passes.
+The rectangles are not the engine's. The engine's update rectangles (`Sys_AddUpdateRect`) are what its `Dirty_CopyTo` copies from the
+back buffer, not everything it draws: sprites, beams, text and fades are drawn straight into the 800x600 screen (`DrawList_Flush`,
+`Beam_DrawTo`, `Alpha16MaskFade`, `Font_*`, ...) and some of their pixels lie outside every rectangle the game reported. One column of
+one, at x 0, y 490 to 498, changing every frame on the title after the Options screen is left, never was in a rectangle for the 1183
+frames that followed; the bounding box of the engine's rectangles, which covers 87% of the screen, had hidden it. So `ScreenDiff`
+compares each presented screen with the copy its pixels were last widened from, a row at a time and the rows that differ a 16-pixel
+block at a time, 16 bytes at a time, widens just the blocks that differ, joins them into rectangles and keeps the copy up to date. The
+pixels equal a full widening of the screen after every update: a scratch check (not kept) compared them on every drawn frame, 0 pixels
+differ over 54000 frames of the menu tour (`test/tours/menus.txt`, up to its last board), 27500 frames of the end tour and scripted
+90 s plays of random clicks (seeds 1 to 5, with and without `-drawevery`), and the same check with a deliberately skipped rectangle
+flagged 8781 of 9000 frames, so it can fail.
 
-**What is left, for the presenter.** The comparison is expensive and looks memory-bound: it reads the screen and its copy, 1.9 MB,
-in 0.57M cycles a frame (3.4 bytes a cycle, 34 Mc/s), a third of the original's whole budget; making it sixteen bytes at a time
-did not change that. With the presenter in, the main thread's host share is about that 34, the
-widening 9 and the updates 18 to 39, about 60 to 80 Mc/s against the original's 105 to 120, which is under the target but not by a
-wide margin. Ways to cut the comparison, all of which need the engine or Windows: report every screen write from the engine's blit
-routines (dozens of them in R64Blit.cpp, and the game's Beam, Obj and Font draws), which is exact and costs nothing a frame but is a
-large shared change; hash each block instead of keeping a copy, which reads half the bytes; or Windows' write watch on the screen
-buffer, which says which 4 KB pages were written (a page is 2.5 rows, and the engine rewrites a page for most rectangles, so it
-saves about a third). None is done; the surface presenter comes first.
+**Checked with the surface display.** `SURFACE_VERIFY=1` (the display compares the window's surface with the buffer after every present)
+over a whole play: 2699 frames in an 800x600 window and 2687 in 1600x1200, none differing. The pictures of the short scripted play and of
+90 s random plays (`tools/perf/shots.py`, seeds 1 to 3) on the surface display against `SURFACE_DISPLAY=off` on the same exe: seed 1 is
+the same in all 290 pictures; seeds 2 and 3 fall in two groups of runs, each group holding both displays and identical in itself (the
+six runs of seed 3: 0 pixels differ between three of them, off and on among them, and 1 to 5 pictures of 292 between the other three),
+and the two groups differ in about 20 pictures, small regions where an enemy is in another animation frame. The game does that between
+runs of one exe, on either display (the oddity below), so the display adds no difference. `tools/check.sh --changed` (the build, the web
+build, the unit suites, and the Cosmic Bugs and Water Bugs suites; Cosmic Bugs "plays as the baseline", Water Bugs "screens as
+frozen") passes. Not yet done: the final comparison with the original screen by screen, the real-input play and the window checks
+(resize, minimise and restore, full screen, Alt+Enter) that a done game takes; the display switches to its renderer mode in a window that is
+not 1x to 4x the game's size, which those checks must cover.
 
-**An oddity noticed, not chased.** In `tools/perf/shots.py`, two runs of the same exe over the same script differ at update 250 (a
-title ship's animation frame) in about one run of three, with the same exe on both sides, under load: something on the title
-runs on a real clock under `-fast`. `shots.py` and the playback agree everywhere else (14 of 14 on the other pictures, every run).
+**What is left, for margin.** The target is met by 22% on the median and not in every pair (one round in six is over), so the host's
+own cost matters. The comparison of the screen with its copy reads 1.9 MB a frame (34 Mc/s in the first measurement, memory-bound at
+3.4 bytes a cycle, which making it 16 bytes at a time did not change), a third of the original's budget. Ways to cut it, all of which need
+the engine or Windows: report every screen write from the engine's blit routines (dozens of them in R64Blit.cpp, and the game's Beam, Obj and
+Font draws), which is exact and costs nothing a frame but is a large shared change; hash each block instead of keeping a copy, which reads
+half the bytes; or Windows' write watch on the screen buffer, which says which 4 KB pages were written (a page is 2.5 rows, and the engine
+rewrites a page for most rectangles, so it saves about a third). None is done; the performance pass can take them if the margin is wanted.
+
+**Oddities noticed, not chased.** In `tools/perf/shots.py`, two runs of the same exe over the same script differ at update 250 (a title
+ship's animation frame) in about one run of three, with the same exe on both sides, under load: something on the title runs on a real
+clock under `-fast`; and over a 90 s random play the pictures of runs of one exe fall in two groups that differ in about 20 of 290 pictures
+(an enemy in another animation frame), the same on either display and with the same seed; `shots.py` and the playback agree everywhere
+else. Whether the game's own timers (an animation that reads the time) or the run's start explains it was not found.
 
 ## Coverage check (2026-11-11)
 

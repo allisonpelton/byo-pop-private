@@ -227,6 +227,10 @@ public:
 	std::list<Piece*>	mLoadedPieces;           // +0x504 pieces read from a save, until their references are set
 	std::list<Points*>	mTexts;         // +0x528 the floating texts
 
+	// port: the state the autosplit block reads (LiveSplitObserver.cpp); nothing in the game reads it
+	unsigned int	mBoardSerial;            // the number of this game, counted from 1 over the run
+	bool			mResumed;                // the game continues a saved one
+
 public:
 	Board(RocketApp* theApp, bool theContinuing);
 	virtual ~Board();

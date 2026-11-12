@@ -290,12 +290,18 @@ static inline int	clipShape(SWHelper::XYZStruct ** dst, SWHelper::XYZStruct ** s
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
+static int gClipFarEdgeInset = 1;
+void Sexy::SWTri_SetClipToFarEdges(bool theClipToFarEdges)
+{
+	gClipFarEdgeInset = theClipToFarEdges ? 0 : 1;
+}
+
 void SWHelper::SWDrawShape(XYZStruct *theVerts, int theNumVerts, MemoryImage *theImage, const Color &theColor, int theDrawMode, const Rect &theClipRect, void *theSurface, int thePitch, int thePixelFormat, bool blend, bool vertexColor)
 {
 	float	tclx0 = theClipRect.mX;
 	float	tcly0 = theClipRect.mY;
-	float	tclx1 = theClipRect.mX + theClipRect.mWidth - 1;
-	float	tcly1 = theClipRect.mY + theClipRect.mHeight - 1;
+	float	tclx1 = theClipRect.mX + theClipRect.mWidth - gClipFarEdgeInset;
+	float	tcly1 = theClipRect.mY + theClipRect.mHeight - gClipFarEdgeInset;
 
 	//
 	// Okay, now we're gonna render.  We have the vertex list.

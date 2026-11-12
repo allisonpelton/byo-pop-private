@@ -21,7 +21,8 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/src/RocketApp.cpp)
     endif()
   endif()
   if(EMSCRIPTEN)
-    byopop_web_game(rocketmania TITLE "Rocket Mania"
+    # _byopop_livesplit_block: the page's speedrun timer asks for the autosplit block's address (src/LiveSplitObserver.cpp)
+    byopop_web_game(rocketmania EXPORTS _byopop_livesplit_block TITLE "Rocket Mania"
       COPYRIGHT "Rocket Mania © 2003 PopCap Games, Inc. All rights reserved.")
   else()
     add_custom_command(TARGET rocketmania POST_BUILD

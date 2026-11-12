@@ -29,9 +29,14 @@ static int Ftol(double theValue)
 	return (int) theValue;
 }
 
+// port: the number the next board takes (Board::mBoardSerial, for the autosplit block)
+static unsigned int sBoardSerials = 0;
+
 // 0x41ae80: a new board (its pieces are made through Piece(int), 0x41ad90)
 Board::Board(RocketApp* theApp, bool theContinuing)
 {
+	mBoardSerial = ++sBoardSerials;
+	mResumed = theContinuing;
 	mApp = theApp;
 	mCols = 6;
 	mRows = 9;

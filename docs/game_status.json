@@ -307,11 +307,12 @@
         "performance",
         "lite-mod",
         "unneeded-code",
-        "readability"
+        "readability",
+        "collection"
       ],
       "na": [],
-      "now": "collection",
-      "note": "lite mod: none taken (the whole update is 1.7% of the port's cycles); unneeded code out and the readability pass done, baseline identical; the Collection check next"
+      "now": null,
+      "note": "done: every step but modding; the Collection's exe is the same 2003 game image, its files play and draw the same; not for sale as of 2026-11-02"
     },
     "dynomite": {
       "title": "Dynomite Deluxe",
@@ -442,7 +443,7 @@
       ],
       "na": [],
       "now": "performance",
-      "note": "board 264 against the original's 119 M cycles a second: waits on the surface presenter"
+      "note": "under its original through SurfaceDisplay: 86 against 110 M cycles a second on the board at the original's 800x600 (92 with sound, 102 in the default 2x window); the screen comparison, real-input play and window checks with the new display are next"
     },
     "waterbugs": {
       "title": "Water Bugs",
@@ -460,7 +461,7 @@
       ],
       "na": [],
       "now": "performance",
-      "note": "1.9x its paced original at the original's window (200.8 against 102.8 M cycles a second; main thread 114, the driver's thread 73 to 76): the host now keeps the changed rects; waits on its own SurfaceDisplay opt-in"
+      "note": "under its original through SurfaceDisplay: 117.8 against 135.8 M cycles a second at the original's 800x600 (0.86, 10 of 10 rounds; 0.92 in the default 2x window); the real-input window runs with the new display are next"
     },
     "bonnies": {
       "title": "Bonnie's Bookstore Deluxe",
@@ -503,11 +504,12 @@
       "title": "Venice Deluxe",
       "done": [
         "port",
-        "identical-play"
+        "identical-play",
+        "identical-look"
       ],
       "na": [],
-      "now": "identical-look",
-      "note": "plays identical in every mode against the original, its 3D for 16,143 frames (then a 3D rounding oddity); phase two next"
+      "now": "coverage",
+      "note": "phase two done: 207 screenshots of nine tours with no flagged difference, sounds and focus identical (one sound oddity); the 3D-mode comparison runs tonight in the vGPU sandbox; the coverage check next"
     },
     "heavyweapon": {
       "title": "Heavy Weapon Deluxe",

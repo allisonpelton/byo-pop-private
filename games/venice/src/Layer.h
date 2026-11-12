@@ -28,6 +28,7 @@ public:
 private:
 	void UpdateContentHeight(); // 0x40c200
 	void MergeChildren(); // 0x40de30
+	void BakeChildren(); // 0x40de30, the second half
 	void AdjustScroll(); // 0x40c780: the scroll speed of the Flood, Journey and Trick Shot modes follows the scroll point's height
 	void EndlessScroll(); // 0x40cb60: the same for the Survival mode, which also makes the plates, walls and markers
 	void RemoveFallenChildren(); // 0x40d750

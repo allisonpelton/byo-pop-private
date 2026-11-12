@@ -48,9 +48,9 @@ inline double RandomFloat(float theLow, float theHigh)
 }
 
 // The CRT calls 0x403400 (cos), 0x403480 (sin), 0x4034c0 (sqrt) and 0x403440 (fabs) take a float and return the double
-// result; the callers keep it unrounded
-inline double VeniceCos(float theAngle) { return cos((double)theAngle); }
-inline double VeniceSin(float theAngle) { return sin((double)theAngle); }
+// result; the callers keep it unrounded. The sine and cosine are VeniceMath.cpp's, the same bits on every platform.
+double VeniceCos(float theAngle);
+double VeniceSin(float theAngle);
 inline double VeniceSqrt(float theValue) { return sqrt((double)theValue); }
 inline double VeniceAbs(float theValue) { return fabs((double)theValue); }
 // 0x40c0a0: the arc tangent of theY over theX in radians, returned unrounded like the CRT calls above
