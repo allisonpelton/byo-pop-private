@@ -108,7 +108,7 @@ void BonniesApp::draw()
 	if (gGameScreen != nullptr)
 		aScore = gGameScreen->findWidget(0xc9);
 	if (mSpecialMode != 0 || inModal() || gGameScreen == nullptr || gGameScreen->isBusy() ||
-		(gBonnies != nullptr && gBonnies->mPaused != 0) || gGameScreen->mField58 != 1 ||
+		(gBonnies != nullptr && gBonnies->mPaused != 0) || gGameScreen->mSequenceState != 1 ||
 		gLastFullScreen != isFullScreen() || !hasInputFocus() || !gBonnies->mStatus.empty() ||
 		gGameScreen->mFlashTime != 0 || 3999 < (int)(ticks() - gFullDrawTime) ||
 		(aScore != nullptr && (aScore->mFlags & 6) != 0) || mFullRedraw != 0 || (int)ticks() < mRedrawUntil)
@@ -126,7 +126,7 @@ void BonniesApp::draw()
 		float aX1;
 		float aY1;
 		gGameScreen->getRect(&aX0, &aY0, &aX1, &aY1, 1);
-		if (gGame == nullptr || gGame->mFieldC5C == 0)
+		if (gGame == nullptr || gGame->mClassic == 0)
 		{
 			if (aY1 <= 0.98f)
 				aY1 = 0.98f;
@@ -140,7 +140,7 @@ void BonniesApp::draw()
 			if (aY1 <= 0.97333336f)
 				aY1 = 0.97333336f;
 		}
-		if (gGame != nullptr && frameCount() <= gGame->mFieldC80 + 1)
+		if (gGame != nullptr && frameCount() <= gGame->mFallFrame + 1)
 		{
 			aY0 = 0.0f;
 			aY1 = 1.0f;
@@ -261,9 +261,9 @@ void BonniesApp::updateMenu()
 	checkMenuItem(0x2717, mDebugScreens);
 	checkMenuItem(0x2716, mFlashRects);
 	checkMenuItem(0x2718, mFullRedraw);
-	checkMenuItem(0x2afa, mDebug1EC);
-	checkMenuItem(0x2af9, mDebug1E8);
-	checkMenuItem(0x2afd, mDebug1FC);
+	checkMenuItem(0x2afa, mAnyWord);
+	checkMenuItem(0x2af9, mFreeMoves);
+	checkMenuItem(0x2afd, mNoHints);
 	checkMenuItem(0x2afc, mPauseInactive);
 	unsigned int anId = 0x277e;
 	int aLeft = 7;
@@ -549,7 +549,7 @@ void BonniesApp::loadResources()
 			aBook++;
 		}
 		anEntry++;
-	} while (anEntry < gBooks + 50);
+	} while (anEntry < gBooks + LEVEL_COUNT);
 }
 
 // 0x402ee0
@@ -684,7 +684,7 @@ void BonniesApp::setState(int theState, int theLater, int theForce)
 void BonniesApp::init(int theWidth, int theHeight, int theFullScreen)
 {
 	mInited = 0;
-	mField218 = 0;
+	mRedrawCount = 0;
 	for (int i = 0; i < 8; i++)
 		mLoadImages[i] = 0;
 	gCaption = getText(0x49b);
@@ -707,12 +707,12 @@ void BonniesApp::init(int theWidth, int theHeight, int theFullScreen)
 	mLastGameState = 2;
 	mState = 0;
 	mDebugText = Str();
-	mDebug1E8 = 0;
-	mDebug1EC = 0;
+	mFreeMoves = 0;
+	mAnyWord = 0;
 	mPaused = 0;
 	mAutoPaused = 0;
 	mSpecialMode = 0;
-	mDebug1FC = 0;
+	mNoHints = 0;
 	for (int i = 0; i < 12; i++)
 		mFonts[i] = nullptr;
 	mScreen = nullptr;
