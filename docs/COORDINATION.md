@@ -165,7 +165,9 @@ holds the rules every session follows; this file does not repeat them.
     In Word Harmony the frame's present is about 35% of what is left after its pass (the whole 1.9 MB screen picture
     to a static texture, then the copy to the target and the window); SDL's other drivers cost the same or more. A
     rectangle upload fed by a list of changed rectangles the game gives the screen image would help it; test with its
-    `tools/profile/pair.sh` against the original (2026-11-11).
+    `tools/profile/pair.sh` against the original (2026-11-11). TipTop measured the other side: its screen uploaded as
+    tiles (128x96, 320x240 or 64x48, about 6 of 25 changed a frame) gained nothing, since an upload call costs 0.3 to
+    0.45 ms whatever its size, so a rectangle upload pays only where it stays one call a frame (2026-11-11).
   - `SexyAppBase::PollLiveCommands` stats the `-commands` file every 10 ms update, about 0.34 M cycles a call: an eighth
     of the main thread in a run that uses the channel (`-commands`, `-realinput`), and every update under `-fast`. Poll
     every tenth update or on a change notification; any suite that uses the channel must give the same results (Cosmic
