@@ -348,7 +348,7 @@ var ByopopSoundboards = {
     presets: [
       { name: "Start Classic", when: "Classic is chosen", steps: [["sounds/doorlock2", 0, {"v": -650}], ["sounds/voice_classic", 0, {"v": -650}], ["sounds/trans_spacenoise", 0], ["sounds/buttonpress2", 0, {"v": -650}], ["sounds/trans_arrival", 3610, {"v": -650}]]},
       { name: "Level Complete", when: "The level bar fills", steps: [["sounds/voice_levelcomplete", 0, {"v": -650}], ["sounds/trans_spacenoise", 300, {"v": -650, "ramp": [[2600, -563], [2640, -274], [2690, 0]]}], ["sounds/rowblow", 1080, {"v": -1707}], ["sounds/rowblow", 1310, {"v": -1707}], ["sounds/rowblow", 1430, {"v": -1707, "ramp": [[2600, -1628], [2670, -1197]]}], ["sounds/rowblow", 1550, {"v": -1707, "ramp": [[2600, -1628], [2640, -1360], [2690, -1102]]}], ["sounds/rowblow", 1670, {"v": -1707, "ramp": [[2600, -1628], [2640, -1360], [2690, -1102]]}], ["sounds/rowblow", 1790, {"v": -1707, "ramp": [[2600, -1628], [2640, -1360], [2690, -1102]]}], ["sounds/rowblow", 1910, {"v": -1707, "ramp": [[2600, -1628], [2640, -1360], [2690, -1102]]}], ["sounds/rowblow", 2030, {"v": -1707, "ramp": [[2600, -1628], [2640, -1360], [2690, -1102]]}], ["sounds/trans_preignition", 2360, {"v": -1707, "ramp": [[2600, -1628], [2640, -1360], [2690, -1102]]}], ["sounds/geode", 2440, {"v": -1573, "r": 1.0234, "ramp": [[2600, -1494], [2640, -1226], [2690, -968]]}], ["sounds/trans_engineignition", 3600, {"v": -851}], ["sounds/trans_engineloop1", 3600, {"v": -1176, "loop": 1, "end": 8350, "ramp": [[3600, -526], [8260, -627], [8290, -1009], [8310, -1377], [8320, -1628], [8330, -1962], [8340, -2465]]}], ["sounds/trans_arrival", 7210, {"v": -650}], ["sounds/voice_go", 9580, {"v": -650}]]},
-      { name: "Power Gem", when: "A power gem is made and set off", steps: [["sounds/powergem_created", 0, {"v": -1102, "p": -600}], ["sounds/doubleset", 0, {"v": -796, "p": 1}], ["sounds/preblast", 1090, {"v": -650}], ["sounds/gem_shatters", 1090, {"v": -968, "p": -600}], ["sounds/combo_3", 1090, {"v": -650}], ["sounds/voice_good", 1100, {"v": -650}]]}
+      { name: "Flame Gem", when: "A flame gem is made and set off", steps: [["sounds/powergem_created", 0, {"v": -1102, "p": -600}], ["sounds/doubleset", 0, {"v": -796, "p": 1}], ["sounds/preblast", 1090, {"v": -650}], ["sounds/gem_shatters", 1090, {"v": -968, "p": -600}], ["sounds/combo_3", 1090, {"v": -650}], ["sounds/voice_good", 1100, {"v": -650}]]}
     ],
     groups: [
     { name: "Menus", sounds: [
@@ -384,7 +384,7 @@ var ByopopSoundboards = {
       ["sounds/voice_go.ogg", "\"Go!\"", "A game starts after the board settles"],
       ["sounds/select.ogg", "Cursor tick", "The cursor rests on the board and ticks"],
       ["sounds/start_rotate.ogg", "Twist start", "A group of four gems starts to turn"],
-      ["sounds/gem_prelock.ogg", "Gem about to lock", "A gem is about to be locked"],
+      ["sounds/gem_prelock.ogg", "Gem about to lock", "A gem is marked for a lock; matching it within its next twists saves it"],
       ["sounds/badmove.ogg", "Bad move", "A twist that makes no match, or a click that cannot be used"],
       ["sounds/tutorial_snap.ogg", "Tutorial snap", "The cursor jumps to a gem in the tutorial"],
       ["sounds/tutorial-match.ogg", "Tutorial match", "A match is made in the tutorial"],
@@ -419,22 +419,22 @@ var ByopopSoundboards = {
       ["sounds/voice_unbelievable.ogg", "\"Unbelievable\"", "A twist's rating reaches 45 (once a twist; a later match can raise it to a higher praise). Rating, from the twist alone: (cascades - 1)^1.5, (gems cleared / 15)^1.5, 8 a gem past 5 in its longest match, fruit set off squared, locks broken, bombs defused and flame gems made, with 2 each less 1 for electro gems made, flame and electro gems destroyed and coal destroyed. Never in Challenge, a replay or Blitz's first 10 s"]
     ] },
     { name: "Special gems", sounds: [
-      ["sounds/powergem_created.ogg", "Power gem made", "A match of four makes a power gem"],
-      ["sounds/preblast.ogg", "Power gem charging", "A power gem is about to go off"],
-      ["sounds/gem_shatters.ogg", "Power gem blast", "A power gem goes off"],
+      ["sounds/powergem_created.ogg", "Flame gem made", "A match of four makes a flame gem"],
+      ["sounds/preblast.ogg", "Flame gem charging", "A flame gem is about to go off"],
+      ["sounds/gem_shatters.ogg", "Flame gem blast", "A flame gem goes off"],
       ["sounds/electrogem_created.ogg", "Electro gem made", "A match of five makes an electro gem"],
-      ["sounds/electro_start1.ogg", "Electro start", "An electro gem is matched and its lightning starts"],
+      ["sounds/electro_start1.ogg", "Electro start", "An electro gem goes off and its lightning starts (Flame electro instead, when it is a flame gem too)"],
       ["sounds/electro_explode.ogg", "Electro strike", "The lightning of an electro gem hits"],
-      ["sounds/flamelightning.ogg", "Flame lightning", "A power gem's lightning strike is set off"],
+      ["sounds/flamelightning.ogg", "Flame electro", "An electro gem that is also a flame gem goes off, in place of Electro start"],
       ["sounds/supergem_create.ogg", "Super gem made", "Loaded, never played"],
-      ["sounds/wildcard_destroyed.ogg", "Wildcard used", "A wildcard gem is matched"],
+      ["sounds/wildcard_destroyed.ogg", "Electro gem goes off", "An electro gem goes off and its strike begins (with Electro start or Flame electro)"],
       ["sounds/bonuslaser.ogg", "Fruit laser", "A fruit gem's shockwave starts"],
       ["sounds/fruit_appears.ogg", "Fruit gem appears", "A fruit gem is put on the board"],
       ["sounds/gem_fruit_destroyed.ogg", "Fruit gem matched", "A fruit gem is matched"],
       ["sounds/fruitbonuscount.ogg", "Fruit count", "A match adds to the fruit bonus colour count"],
       ["sounds/rowblow.ogg", "Row blows", "A row of gems blows up in a jump or a fruit blast"],
-      ["sounds/gem_lock_start.ogg", "Lock starts", "A gem is locked"],
-      ["sounds/gem_lock_end.ogg", "Lock ends", "A locked gem's lock wears off"],
+      ["sounds/gem_lock_start.ogg", "Lock starts", "A marked gem is still unmatched when its twists run out, and its lock starts closing"],
+      ["sounds/gem_lock_end.ogg", "Lock closes", "A new lock finishes closing over its gem, 50 updates after Lock starts; a doom lock becomes a devil gem then"],
       ["sounds/gem_lock_break.ogg", "Lock breaks", "A match breaks the lock on a gem"],
       ["sounds/coal_blasted.ogg", "Coal blasted", "A coal gem is blown up"],
       ["sounds/geode.ogg", "Geode", "A geode breaks open; a light of the rank bonus"],
