@@ -10,6 +10,7 @@
 #include "ModFeatures.h"
 #include "PeResources.h"
 #include "Players.h"
+#include "ScreenLog.h"
 #include "Splash.h"
 #include "User.h"
 #include "Graphics.h"
@@ -19,6 +20,8 @@
 #include "platform/VFS.h"
 
 #include <SDL.h>
+#include <cstdio>
+#include <cstdlib>
 #include <cstring>
 
 using namespace Sexy;
@@ -250,24 +253,48 @@ public:
 		gApp->mApplyingGameMode = false;
 	}
 
-	void Present(const uint8_t* thePixels, int thePitch) override
+	void Present(const uint8_t* thePixels, int thePitch, const jb::Rect* theRects, int theCount) override
 	{
 		MahjongWidget* aWidget = gApp->mWidget;
 		if (aWidget == nullptr)
 			return;
-		// port: one pass from the engine's buffer into the widget's image. The screen is opaque: the buffer's alpha
-		// bytes are not its pixels' alpha (the engine's drawing leaves them as they are).
+		// port: the rects that changed copied from the engine's buffer into the widget's image (the rest of the image
+		// is the last frame's). The screen is opaque: the buffer's alpha bytes are not its pixels' alpha (the engine's
+		// drawing leaves them as they are).
 		MemoryImage* anImage = aWidget->mScreenImage;
 		ulong* aBits = anImage->GetBits();
-		for (int y = 0; y < jb::SCREEN_HEIGHT; y++)
+		for (int i = 0; i < theCount; i++)
 		{
-			const uint32_t* aSrc = (const uint32_t*)(thePixels + y * thePitch);
-			ulong* aDst = aBits + y * jb::SCREEN_WIDTH;
-			for (int x = 0; x < jb::SCREEN_WIDTH; x++)
-				aDst[x] = 0xff000000 | (aSrc[x] & 0xffffff);
+			for (int y = theRects[i].top; y < theRects[i].bottom; y++)
+			{
+				const uint32_t* aSrc = (const uint32_t*)(thePixels + y * thePitch);
+				ulong* aDst = aBits + y * jb::SCREEN_WIDTH;
+				for (int x = theRects[i].left; x < theRects[i].right; x++)
+					aDst[x] = 0xff000000 | (aSrc[x] & 0xffffff);
+			}
 		}
-		anImage->BitsChanged();
-		aWidget->mScreenChanged = true;
+		if (jb::screenlog::Verifying())
+		{
+			// JB_VERIFY_FRAMES: the widget's image is the whole screen, whatever the rects were
+			for (int y = 0; y < jb::SCREEN_HEIGHT; y++)
+			{
+				const uint32_t* aSrc = (const uint32_t*)(thePixels + y * thePitch);
+				for (int x = 0; x < jb::SCREEN_WIDTH; x++)
+				{
+					if (aBits[y * jb::SCREEN_WIDTH + x] != (0xff000000 | (aSrc[x] & 0xffffff)))
+					{
+						fprintf(stderr, "screenlog: the widget's image differs from the screen at (%d, %d)\n", x, y);
+						fflush(stderr);
+						abort();
+					}
+				}
+			}
+		}
+		if (0 < theCount)
+		{
+			anImage->BitsChanged();
+			aWidget->mScreenChanged = true;
+		}
 	}
 };
 
