@@ -27,6 +27,7 @@ import ctypes.wintypes as W
 import glob
 import json
 import os
+import re
 import shutil
 import statistics
 import subprocess
@@ -204,9 +205,11 @@ def segments(snaps, updates, hz, watch, audio_words=('SDLAudio',)):
                 threads.append((d, tid, watch.names.get(tid, '?')))
         threads.sort(reverse=True)
         audio = sum(d for d, _, nm in threads if any(w in nm for w in audio_words))
+        # the game loop's thread, where counting adds its readings: the busiest thread that is not the mixer's or a graphics driver's
+        main = next((d for d, _, nm in threads if not re.search(r'nvwgf2um|nvldumd|d3d|dxgi|sdlaudio|bass|dsound|audio', nm, re.I)), 0)
         seg = {'from_update': ua, 'to_update': ub, 'updates': n, 'wall_s': round(wall, 3),
                'updates_per_s': round(n / wall, 1), 'cycles_g': round(cyc / 1e9, 4),
-               'cycles_per_update_m': round(cyc / n / 1e6, 4), 'share_pct': round(100 * cyc / (hz * wall), 2),
+               'cycles_per_update_m': round(cyc / n / 1e6, 4), 'main_cycles_per_update_m': round(main / n / 1e6, 5), 'share_pct': round(100 * cyc / (hz * wall), 2),
                'audio_thread_share_pct': round(100 * audio / (hz * wall), 2),
                'share_without_audio_pct': round(100 * (cyc - audio) / (hz * wall), 2),
                'threads': [{'share_pct': round(100 * d / (hz * wall), 2), 'tid': tid, 'thread': nm} for d, tid, nm in threads[:6]]}
@@ -223,9 +226,15 @@ def port_run(out, scenario_file):
     script = perf.port_script(scenario_file, os.path.join(out, 'script.txt'))
     first, last = perf.script_span(script)
     ms = marks(last - 2)      # the scenario's own quit is at `last` - 1 and runs before a marker of the same update
+    states = toggle_states(len(ms) - 1)             # PERF_TOGGLE: block i, from marker i to marker i + 1, counts or does not
+    split = os.environ.get('PERF_SPLIT') == '1' or states is not None   # the run with the framework's -cyclesplit counting (tools/cyclesplit.py reads its file)
     with open(script, 'a', newline='\n') as f:      # a log line at each marker update: the only test line the player's run lacks
-        for m in ms:
+        for i, m in enumerate(ms):
             f.write('%d pointer\n' % m)
+            if states is not None and i < len(states):
+                f.write('%d cyclesplit %s\n' % (m, 'resume' if states[i] else 'pause'))
+            elif split:
+                f.write('%d cyclesplit m%d\n' % (m, m))
     hz = tsc_hz()
     dbg = DebugOutput()
     others0 = perf.game_processes(perf.mine_prefixes())
@@ -233,7 +242,9 @@ def port_run(out, scenario_file):
     logpath = os.path.join(out, 'game.log')
     log = open(logpath, 'wb')
     p = subprocess.Popen([exe, '-gamedir=' + gamedir, '-userdir=' + os.path.join(out, 'user'), '-modsdir=' + os.path.join(out, 'mods'),
-                          '-seed=' + os.environ.get('PERF_SEED', '1'), '-script=' + script], cwd=out, stdout=log,
+                          '-seed=' + os.environ.get('PERF_SEED', '1'), '-script=' + script] +
+                         (['-cyclesplit=' + os.path.join(out, 'split.jsonl')] if split else []) +
+                         os.environ.get('PERF_PORT_ARGS', '').split(), cwd=out, stdout=log,   # PERF_PORT_ARGS='-windowscale=1': the game's own window size
                          stderr=subprocess.STDOUT)
     hp = k32.OpenProcess(perf.QUERY | perf.VM_READ | perf.QUERY_LIMITED, False, p.pid)
     created = perf.creation_time(hp)
@@ -263,6 +274,30 @@ def port_run(out, scenario_file):
     print(json.dumps(res), flush=True)
 
 
+def toggle_states(n, mode=None):
+    """PERF_TOGGLE=1 or 2: whether counting is on in each of n blocks of updates, in the order on, paused, paused, on (and the reverse
+    for 2), so that a slow drift of the machine and a periodic animation fall alike on both. Unset: None."""
+    mode = mode or os.environ.get('PERF_TOGGLE')
+    if not mode:
+        return None
+    pattern = [True, False, False, True]
+    return [pattern[i % 4] == (mode == '1') for i in range(n)]
+
+
+def add_count_lines(script, markers):
+    """Put `at <counter> count <label>` lines into an origrun script, in order among its `at` lines and before its quit."""
+    lines = open(script).read().splitlines()
+    for counter, label in markers:
+        at = len(lines)
+        for i, line in enumerate(lines):
+            w = line.split()
+            if w[:1] == ['quit'] or (w[:1] == ['at'] and len(w) > 1 and w[1].isdigit() and int(w[1]) > counter):
+                at = i
+                break
+        lines.insert(at, 'at %d count %s' % (counter, label))
+    open(script, 'w', newline='\n').write('\n'.join(lines) + '\n')
+
+
 def orig_run(out, scenario_file):
     root = os.getcwd()
     origrun = os.path.join(root, 'build', 'origrun-bin', 'origrun.exe')
@@ -276,6 +311,13 @@ def orig_run(out, scenario_file):
     sc = perf.orig_script(cut, os.path.join(d, 'script.txt'))
     first, last = perf.script_span(sc)         # the original's own update numbers (a port line at K is `at K-1`)
     ms = [m - 1 for m in marks(last - 1)]   # a port update K is the original's counter K-1; the last port marker is the update before its quit
+    states = toggle_states(len(ms) - 1)
+    split = os.environ.get('PERF_SPLIT') == '1' or states is not None
+    if states is not None:
+        add_count_lines(sc, [(m, 'resume' if on else 'pause') for m, on in zip(ms, states)])
+    elif split:
+        # origrun's --count: a snapshot at each marker, named as the port's cyclesplit lines name them (m<port update>)
+        add_count_lines(sc, list(zip(ms, ['m%d' % x for x in marks(last)])))
     shutil.rmtree(game, ignore_errors=True)
     shutil.copytree(master, game)
     shutil.rmtree(os.path.join(root, 'build', 'origrun', run), ignore_errors=True)
@@ -288,7 +330,8 @@ def orig_run(out, scenario_file):
     p = subprocess.Popen([origrun, '--exe', os.path.join(game, 'BookwormGame.exe').replace('/', '\\'), '--run', run, '--script', sc,
                           '--clock', 'real', '--cursor', 'scripted', '--counter', '[0x%X]+0x%X' % (perf.APP_PTR, perf.COUNTER),
                           '--update-ms', '10', '--seed', os.environ.get('PERF_SEED', '1'), '--patches',
-                          os.path.join(root, 'tools', 'origrun', 'patches', 'bookworm.txt'), '--timeout', '400'],
+                          os.path.join(root, 'tools', 'origrun', 'patches', 'bookworm.txt'), '--timeout', '400']
+                         + (['--count', os.path.join(root, 'games', 'bookworm', 'tools', 'profile', 'count.txt')] if split else []),
                          stdout=log, stderr=subprocess.STDOUT)
     h = None
     watch = None
@@ -315,12 +358,15 @@ def orig_run(out, scenario_file):
                 next_refresh = time.time() + 1
         time.sleep(0.002)
     s1 = perf.system_times()
-    if h:
-        k32.TerminateProcess(h, 0)
+    if h and not split:
+        k32.TerminateProcess(h, 0)         # a counting run goes on to the script's own quit, so that its last snapshot (the exit one) is taken
     try:
-        p.wait(30)
+        p.wait(60)
     except subprocess.TimeoutExpired:
         p.terminate()
+    counts_file = os.path.join(root, 'build', 'origrun', run, 'counts.jsonl')
+    if split and os.path.exists(counts_file):
+        shutil.copy(counts_file, os.path.join(d, 'split.jsonl'))
     res = {'side': 'orig', 'exit': p.returncode, 'markers_seen': len(snaps), 'tsc_hz_m': round(hz / 1e6, 1),
            'machine_busy': round(perf.busy_fraction(s0, s1), 2), 'others_start': len(others0),
            'others_end': len(perf.game_processes(perf.mine_prefixes()))}
@@ -370,6 +416,63 @@ def summary(out):
             print('  port / original, cycles an update: %.2f' % (pm / om))
 
 
+def compare(out):
+    """splitpairs.sh's runs: the port with -cyclesplit counting off and on, by segment: medians and the pairs' ratios."""
+    sides = {}
+    for k in ('off', 'on'):
+        rows = []
+        for name in sorted(glob.glob(os.path.join(out, 'p*-%s.json' % k))):
+            for line in open(name):
+                if line.startswith('{'):
+                    r = json.loads(line)
+                    if 'segments' in r:
+                        rows.append((os.path.basename(name).split('-')[0], r))
+        sides[k] = dict(rows)
+    pairs = sorted(set(sides['off']) & set(sides['on']))
+    print('pairs: %d' % len(pairs))
+    for i in range(3):
+        off = [sides['off'][p]['segments'][i]['cycles_per_update_m'] for p in pairs]
+        on = [sides['on'][p]['segments'][i]['cycles_per_update_m'] for p in pairs]
+        ratio = [b / a for a, b in zip(off, on)]
+        seg = sides['off'][pairs[0]]['segments'][i]
+        print('updates %d to %d: cycles an update M, off %.3f (%.3f to %.3f), on %.3f (%.3f to %.3f); on / off by pair: median %.3f, %s' % (
+            seg['from_update'], seg['to_update'], statistics.median(off), min(off), max(off), statistics.median(on), min(on), max(on),
+            statistics.median(ratio), ' '.join('%.3f' % x for x in ratio)))
+
+
+def toggle(out):
+    """toggleruns.sh's runs: counting on and paused in alternating blocks of one run. Per run the mean cycles an update of the blocks that
+    counted against the blocks that did not, and each counting block against its paused neighbours (the machine's drift is slower than a block)."""
+    runs = []
+    for name in sorted(glob.glob(os.path.join(out, 't*-m*.json'))):
+        for line in open(name):
+            if line.startswith('{'):
+                r = json.loads(line)
+                if 'segments' in r:
+                    runs.append((os.path.basename(name), r))
+    allratio, neighbours, added = [], [], []
+    for name, r in runs:
+        segs = [s.get('main_cycles_per_update_m', s['cycles_per_update_m']) for s in r['segments']]
+        on_state = toggle_states(len(segs), name.split('-m')[1][0])
+        on = [c for c, o in zip(segs, on_state) if o]
+        off = [c for c, o in zip(segs, on_state) if not o]
+        ratio = statistics.mean(on) / statistics.mean(off)
+        allratio.append(ratio)
+        added.append(statistics.mean(on) - statistics.mean(off))
+        for i, (c, o) in enumerate(zip(segs, on_state)):
+            near = [segs[j] for j in (i - 1, i + 1) if 0 <= j < len(segs) and on_state[j] != o]
+            if o and near:
+                neighbours.append(c / statistics.mean(near))
+        print('%s: %d blocks of %d updates, counting %.3f M cycles an update (%s), paused %.3f (%s): %.4f' % (
+            name, len(segs), r['segments'][0]['updates'], statistics.mean(on), ' '.join('%.2f' % x for x in on),
+            statistics.mean(off), ' '.join('%.2f' % x for x in off), ratio))
+    if allratio:
+        print('counting / paused: mean of the runs %.4f (%s), median of the %d blocks against their neighbours %.4f' % (
+            statistics.mean(allratio), ' '.join('%.3f' % x for x in allratio), len(neighbours), statistics.median(neighbours)))
+        print('what counting adds a update: mean of the runs %.0f cycles (%s)' % (
+            1e6 * statistics.mean(added), ' '.join('%.0f' % (1e6 * x) for x in added)))
+
+
 if __name__ == '__main__':
     mode = sys.argv[1] if len(sys.argv) > 1 else ''
     if mode == 'port':
@@ -378,5 +481,9 @@ if __name__ == '__main__':
         orig_run(sys.argv[2], sys.argv[3])
     elif mode == 'summary':
         summary(sys.argv[2])
+    elif mode == 'compare':
+        compare(sys.argv[2])
+    elif mode == 'toggle':
+        toggle(sys.argv[2])
     else:
         sys.exit(__doc__)

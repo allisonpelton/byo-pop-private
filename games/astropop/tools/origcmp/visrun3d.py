@@ -17,7 +17,15 @@ put back afterwards (or deleted, if it was not there). The recorder's hits go to
 what it had); the log, with the 3D flag read at each step, to build/ap-3d/run.log.
 
 Each script line "at N <cmd>" waits for the update counter ([[0x5dc220]+0x4a0]) to reach N, holds the game (NtSuspendProcess), posts the
-input and lets it go. The real clock gives no exact N; that does not matter here (coverage, not a comparison).
+input and lets it go. The real clock gives no exact N; that does not matter for coverage. For a comparison (--shots <dir>) every step is
+written with the update C it landed at to <dir>/steps.tsv (n, C, cmd, args, seconds), and "at N shot <name>" lines take a picture of the
+client once the game has drawn its last update (the draw counter, app+PENDING, is 0): the port's script is then made from the landed updates
+(wipeshots.py). Inputs land on the update asked for; a picture shows the frame of that update or of one to two before it (the draw counter
+says the update was drawn, not that it has reached the screen), which wipematch.py settles by the picture itself. The picture is the window's
+own (PrintWindow, PW_RENDERFULLCONTENT: the game is let go 0.5 ms into the call, so the frame is that of the held update or of one or two
+after it) or, with VISRUN3D_GRAB=screen, the client area read off the screen while the game is held 30 ms (nothing of the game's thread is
+needed, the frame is that of the held update or of one or two before it; a shot is refused while another window is above the game's, and
+the window is topmost). --pos x,y puts the window there (default: where it opens).
 """
 import ctypes
 import ctypes.wintypes as wt
@@ -27,6 +35,7 @@ import os
 import shutil
 import subprocess
 import sys
+import threading
 import time
 import uuid
 import winreg
@@ -35,6 +44,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.normpath(os.path.join(HERE, "..", "..", "..", ".."))
 
 APP, COUNTER, FLAG3D = 0x5dc220, 0x4a0, (0x320, 0x10)     # the app pointer's global, the update counter, mDDInterface and its mIs3D byte
+PENDING = int(os.environ.get("VISRUN3D_PENDING", "0x488"), 0)   # the draw counter (probe3d.py finds it): 0 when the last update has been drawn
 KEY = r"Software\PopCap\AstroPop"
 SOURCE = os.path.join(ROOT, "build", "origrun", "apw", "game")
 WORK = os.path.join(ROOT, "build", "ap-3d")
@@ -43,8 +53,25 @@ WRAPPER_FILES = ("DDraw.dll", "D3DImm.dll", "dgVoodoo.conf", "origrun-wrapper.tx
 
 k32 = ctypes.WinDLL("kernel32", use_last_error=True)
 u32 = ctypes.WinDLL("user32", use_last_error=True)
+g32 = ctypes.WinDLL("gdi32", use_last_error=True)
 ntdll = ctypes.WinDLL("ntdll")
 k32.OpenProcess.restype = wt.HANDLE
+u32.GetDC.restype = wt.HDC
+g32.CreateCompatibleDC.restype = wt.HDC
+g32.CreateCompatibleBitmap.restype = wt.HBITMAP
+g32.SelectObject.restype = wt.HGDIOBJ
+g32.CreateCompatibleDC.argtypes = [wt.HDC]
+g32.CreateCompatibleBitmap.argtypes = [wt.HDC, ctypes.c_int, ctypes.c_int]
+g32.SelectObject.argtypes = [wt.HDC, wt.HGDIOBJ]
+g32.GetDIBits.argtypes = [wt.HDC, wt.HBITMAP, ctypes.c_uint, ctypes.c_uint, ctypes.c_void_p, ctypes.c_void_p, ctypes.c_uint]
+g32.DeleteObject.argtypes = [wt.HGDIOBJ]
+g32.DeleteDC.argtypes = [wt.HDC]
+g32.BitBlt.argtypes = [wt.HDC, ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int, wt.HDC, ctypes.c_int, ctypes.c_int, wt.DWORD]
+u32.GetDC.restype = wt.HDC
+u32.ReleaseDC.argtypes = [wt.HWND, wt.HDC]
+u32.PrintWindow.argtypes = [wt.HWND, wt.HDC, ctypes.c_uint]
+u32.GetWindow.restype = wt.HWND
+u32.GetWindow.argtypes = [wt.HWND, ctypes.c_uint]
 u32.PostMessageW.argtypes = [wt.HWND, ctypes.c_uint, wt.WPARAM, wt.LPARAM]
 u32.SetWindowPos.argtypes = [wt.HWND, wt.HWND, ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_uint]
 
@@ -82,6 +109,7 @@ class Game:
         self.p = subprocess.Popen([exe], cwd=os.path.dirname(exe), env=env, startupinfo=si, creationflags=0x4000)   # BELOW_NORMAL
         self.h = k32.OpenProcess(0x0010 | 0x0400 | 0x0800, False, self.p.pid)   # VM_READ, QUERY_INFO, SUSPEND_RESUME
         self.hwnd = None
+        self.pos = None             # (x, y) to move the window to when it is found
 
     def rd(self, addr, size=4):
         v = ctypes.c_uint32()
@@ -93,6 +121,10 @@ class Game:
     def counter(self):
         a = self.rd(APP)
         return self.rd(a + COUNTER) if a else None
+
+    def pending(self):
+        a = self.rd(APP)
+        return self.rd(a + PENDING) if a else None
 
     def flag3d(self):
         a = self.rd(APP)
@@ -122,7 +154,10 @@ class Game:
         u32.EnumWindows(cb, 0)
         self.hwnd = found[0] if found else None
         if self.hwnd:
-            u32.SetWindowPos(self.hwnd, wt.HWND(-1), 0, 0, 0, 0, 0x0001 | 0x0002 | 0x0010)   # topmost, not activated
+            if self.pos:
+                u32.SetWindowPos(self.hwnd, wt.HWND(-1), self.pos[0], self.pos[1], 0, 0, 0x0001 | 0x0010)   # moved, topmost, not activated
+            else:
+                u32.SetWindowPos(self.hwnd, wt.HWND(-1), 0, 0, 0, 0, 0x0001 | 0x0002 | 0x0010)   # topmost, not activated
         return self.hwnd
 
 
@@ -130,6 +165,132 @@ def client_origin(hw):
     pt = wt.POINT(0, 0)
     u32.ClientToScreen(hw, ctypes.byref(pt))
     return pt.x, pt.y
+
+
+def client_rect(hw):
+    r = wt.RECT()
+    u32.GetClientRect(hw, ctypes.byref(r))
+    pt = wt.POINT(0, 0)
+    u32.ClientToScreen(hw, ctypes.byref(pt))
+    return pt.x, pt.y, r.right, r.bottom
+
+
+def overlapped(hw):
+    """A visible window above the game's in the z-order that covers part of its client area, or None."""
+    x, y, w, h = client_rect(hw)
+    o = u32.GetWindow(hw, 3)   # GW_HWNDPREV
+    while o:
+        if u32.IsWindowVisible(o) and not u32.IsIconic(o):
+            r = wt.RECT()
+            u32.GetWindowRect(o, ctypes.byref(r))
+            if r.left < x + w and r.right > x and r.top < y + h and r.bottom > y and r.right > r.left and r.bottom > r.top:
+                buf = ctypes.create_unicode_buffer(256)
+                u32.GetClassNameW(o, buf, 256)
+                return buf.value
+        o = u32.GetWindow(o, 3)
+    return None
+
+
+def grab(hw, g):
+    """The game's client as the window itself renders it (PrintWindow, PW_RENDERFULLCONTENT), never the screen: it needs the game's thread
+    to answer, so it is called from a helper thread and the game released a moment after (the picture shows the held update). Returns a
+    640x480 image, or None if PrintWindow fails or does not return within 3 s."""
+    from PIL import Image
+    r = wt.RECT()
+    u32.GetWindowRect(hw, ctypes.byref(r))
+    w, h = r.right - r.left, r.bottom - r.top
+    cx, cy, _, _ = client_rect(hw)
+    sdc = u32.GetDC(None)
+    mdc = g32.CreateCompatibleDC(sdc)
+    bmp = g32.CreateCompatibleBitmap(sdc, w, h)
+    u32.ReleaseDC(None, sdc)
+    old = g32.SelectObject(mdc, bmp)
+    done = []
+    t = threading.Thread(target=lambda: done.append(u32.PrintWindow(hw, mdc, 2)), daemon=True)
+    t.start()
+    t0 = time.perf_counter()
+    while time.perf_counter() - t0 < 0.0005:
+        pass
+    g.release()
+    t.join(3)
+    if t.is_alive() or not done or not done[0]:
+        return None
+    buf = ctypes.create_string_buffer(w * h * 4)
+
+    class BMI(ctypes.Structure):
+        _fields_ = [("biSize", wt.DWORD), ("biWidth", wt.LONG), ("biHeight", wt.LONG), ("biPlanes", wt.WORD),
+                    ("biBitCount", wt.WORD), ("biCompression", wt.DWORD), ("biSizeImage", wt.DWORD),
+                    ("biXPelsPerMeter", wt.LONG), ("biYPelsPerMeter", wt.LONG), ("biClrUsed", wt.DWORD),
+                    ("biClrImportant", wt.DWORD), ("pad", wt.DWORD * 4)]
+    bmi = BMI()
+    bmi.biSize = 40
+    bmi.biWidth, bmi.biHeight, bmi.biPlanes, bmi.biBitCount = w, -h, 1, 32
+    g32.GetDIBits(mdc, bmp, 0, h, buf, ctypes.byref(bmi), 0)
+    g32.SelectObject(mdc, old)
+    g32.DeleteObject(bmp)
+    g32.DeleteDC(mdc)
+    ox, oy = cx - r.left, cy - r.top
+    return Image.frombuffer("RGBA", (w, h), buf, "raw", "BGRA", 0, 1).convert("RGB").crop((ox, oy, ox + 640, oy + 480))
+
+
+def grab_screen(hw, g):
+    """The game's client read off the screen while the game is held: no help is needed from the game's thread, so the picture is the frame
+    the game had presented when it was held (the hold lasts 30 ms, two refreshes, for the desktop compositor to show it). The caller has
+    checked that no window is above the game's (overlapped); a window that is topmost, as the game's is, has nothing over it but another
+    topmost one. Returns a 640x480 image."""
+    from PIL import Image
+    cx, cy, w, h = client_rect(hw)
+    time.sleep(0.03)
+    sdc = u32.GetDC(None)
+    mdc = g32.CreateCompatibleDC(sdc)
+    bmp = g32.CreateCompatibleBitmap(sdc, w, h)
+    old = g32.SelectObject(mdc, bmp)
+    g32.BitBlt(mdc, 0, 0, w, h, sdc, cx, cy, 0x00CC0020)   # SRCCOPY
+    u32.ReleaseDC(None, sdc)
+    g.release()
+    buf = ctypes.create_string_buffer(w * h * 4)
+
+    class BMI(ctypes.Structure):
+        _fields_ = [("biSize", wt.DWORD), ("biWidth", wt.LONG), ("biHeight", wt.LONG), ("biPlanes", wt.WORD),
+                    ("biBitCount", wt.WORD), ("biCompression", wt.DWORD), ("biSizeImage", wt.DWORD),
+                    ("biXPelsPerMeter", wt.LONG), ("biYPelsPerMeter", wt.LONG), ("biClrUsed", wt.DWORD),
+                    ("biClrImportant", wt.DWORD), ("pad", wt.DWORD * 4)]
+    bmi = BMI()
+    bmi.biSize = 40
+    bmi.biWidth, bmi.biHeight, bmi.biPlanes, bmi.biBitCount = w, -h, 1, 32
+    g32.GetDIBits(mdc, bmp, 0, h, buf, ctypes.byref(bmi), 0)
+    g32.SelectObject(mdc, old)
+    g32.DeleteObject(bmp)
+    g32.DeleteDC(mdc)
+    return Image.frombuffer("RGBA", (w, h), buf, "raw", "BGRA", 0, 1).convert("RGB")
+
+
+def shot(g, out, name, log):
+    """A shot of the last drawn update: waits until the game has drawn it (the draw counter is 0), holds it, has the window draw itself.
+    Returns the update the picture shows, or None (refused, with the reason in the log)."""
+    hw = g.window()
+    o = overlapped(hw)
+    if o:
+        print("shot %s refused: a window (%s) overlaps the game" % (name, o), file=log, flush=True)
+        return None
+    for _ in range(2000):
+        if g.pending() == 0:
+            g.hold()
+            if g.pending() == 0:
+                break
+            g.release()
+        short_sleep(0.0003)
+    else:
+        print("shot %s refused: no drawn update in 2000 tries" % name, file=log, flush=True)
+        return None
+    c = g.counter()
+    im = grab_screen(hw, g) if os.environ.get("VISRUN3D_GRAB") == "screen" else grab(hw, g)   # releases the game
+    if im is None:
+        print("shot %s refused: PrintWindow failed or did not return" % name, file=log, flush=True)
+        return None
+    os.makedirs(out, exist_ok=True)
+    im.save(os.path.join(out, name + ".png"))
+    return c
 
 
 def xy(x, y):
@@ -249,6 +410,15 @@ def main():
         i = a.index("--3d")
         threed = a[i + 1] == "on"
         del a[i:i + 2]
+    shots_dir, pos = None, None
+    if "--shots" in a:
+        i = a.index("--shots")
+        shots_dir = os.path.abspath(a[i + 1])
+        del a[i:i + 2]
+    if "--pos" in a:
+        i = a.index("--pos")
+        pos = tuple(int(v) for v in a[i + 1].split(","))
+        del a[i:i + 2]
     if "--anytime" in a:
         anytime = True     # for a dry run with no window: the guard below refuses a run on the desktop outside the night window
         a.remove("--anytime")
@@ -275,6 +445,12 @@ def main():
     g = None
     try:
         g = Game(os.path.join(GAME, "AstroPopGame.exe"), env)
+        g.pos = pos
+        steps = None
+        if shots_dir:
+            os.makedirs(shots_dir, exist_ok=True)
+            steps = open(os.path.join(shots_dir, "steps.tsv"), "w")
+        last_input = -1
         flags = set()
         t0 = time.time()
         while not g.window() and time.time() - t0 < 90 and g.p.poll() is None:
@@ -293,28 +469,42 @@ def main():
                 break
             time.sleep(0.05)
         print("loaded after %.1f s (counter %s)" % (time.time() - t0, g.counter()), file=log, flush=True)
+        t_window = time.time()
         for line in open(script):
             w = line.split()
             if not w or w[0] == "quit":
                 if w:
                     break
                 continue
-            if w[0] != "at" or w[2] in ("peek", "shot"):
+            if w[0] != "at" or w[2] == "peek" or (w[2] == "shot" and not shots_dir):
                 continue
             n, cmd, args = int(w[1]), w[2], w[3:]
+            if cmd == "shot":
+                n = max(n, last_input + 1)    # an input is read by the update after the one it was posted at: the shot waits for it
             if wait_counter(g, n, log) is None:
                 break
             f = g.flag3d()
             if f not in flags:
                 flags.add(f)
                 print("update %d: 3D flag %s" % (n, f), file=log, flush=True)
+            if cmd == "shot":
+                c = shot(g, shots_dir, args[0], log)
+                if c is not None:
+                    steps.write("%d\t%d\tshot\t%s\t%.3f\n" % (n, c, args[0], time.time() - t_window))
+                    steps.flush()
+                continue
             g.hold()
+            c = g.counter()
             try:
                 post_input(g, cur, cmd, args)
             finally:
                 g.release()
+            last_input = c
+            if steps:
+                steps.write("%d\t%d\t%s\t%s\t%.3f\n" % (n, c, cmd, " ".join(args), time.time() - t_window))
+                steps.flush()
         # the wipe runs after the last input: let the game play on
-        time.sleep(5)
+        time.sleep(1 if shots_dir else 5)
         print("end: update %s, 3D flags seen %s; cursor: %s" % (g.counter(), sorted(flags, key=str), cur.stats()), file=log, flush=True)
     finally:
         if g and g.p.poll() is None:

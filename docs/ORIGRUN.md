@@ -80,6 +80,7 @@ placed yourself, such as a real exe carved out of a wrapper. Shots land in
 | `--reg-map popcap\|off` | The copy's creates and opens of `HKEY_LOCAL_MACHINE\SOFTWARE\PopCap` keys go to `HKEY_CURRENT_USER` with the same path, or to Windows as they are (the default): for a 2004 game that keeps its players and settings under HKLM, which an unelevated host run cannot write. Config key `reg_map=popcap`. Refused with `--sound real`. "The registry map". |
 | `--msgbox show` | Show the copy's message boxes, with their sound, instead of answering them in the stand-in (`--msgbox hook`, the default). |
 | `--coverage <list>` | Record which functions of the list the copy reaches ("Coverage"). Host only. |
+| `--count <list>` | Count the cycles the copy's threads spend inside the functions of the list, each one's own time, for the cycle split ("Counting cycles inside the original's functions"). Host only. |
 | `--patches <file>`, `--no-patches` | The patch list for the copy (default `tools/origrun/patches/<game>.txt` if present), or none ("Patching the copy"). |
 | `--seed <N>` | The value of the `{seed}` token in a patch. A seed that no applied patch carries stops the run (exit 2), since the copy would draw its own random content; with `--no-patches` it is a warning. |
 | `--3d on\|off` | Set the game's Hardware Acceleration for the run and check from its memory that it ran so; the other mode is exit code 3. `--3d-key <HKCU key>` and `--3d-flag <expr>` give the key and flag when games.tsv has none. With `--exe` alone they come from the games.tsv row with the same exe name. |
@@ -112,8 +113,9 @@ without a sign: gate the first click on the game's own state (`at`, `waitfor`), 
 | `focus lose`, `focus regain` | Post the messages a window gets when it loses or regains the focus (`WM_ACTIVATEAPP`, `WM_ACTIVATE`, `WM_KILLFOCUS`/`WM_SETFOCUS`). |
 | `waitfor <expr> <op> <value> [timeout_ms]` | Hold the script until the memory expression (the `--watch` grammar) reads so; `op` is `==`, `!=`, `<`, `<=`, `>` or `>=`; 60 s by default; logged either way. The game runs free meanwhile, on the virtual clock too. For the first input after loading, where an update count is a guess (a loading thread runs on the wall clock while the updates run on the virtual one). |
 | `mark` | Read the update counter now; `at +<N> <command>` then counts from that value. For a counter that does not start at 0, and after a `waitfor`. |
-| `at <N> <command>` | When the update counter reaches `N`, hold the game's window thread, run the command and resume: `shot`, `burst`, `peek`, `click`, `rclick`, `dclick`, `move`, `key`, `text`, `focus`, or one edge (`down`, `up`, `rdown`, `rup`, `keydown`, `keyup`). Not `quit` (put a plain `quit` after the last `at` line) and not the `hw*` commands. A held game reads every posted message before its next update, and some games lose a down and an up in one update: `at N click x y k` posts the move and the down at `N` and the up at `N+k`, and `at N key vk k` does the same for a key. |
+| `at <N> <command>` | When the update counter reaches `N`, hold the game's window thread, run the command and resume: `shot`, `burst`, `peek`, `count`, `click`, `rclick`, `dclick`, `move`, `key`, `text`, `focus`, or one edge (`down`, `up`, `rdown`, `rup`, `keydown`, `keyup`). Not `quit` (put a plain `quit` after the last `at` line) and not the `hw*` commands. A held game reads every posted message before its next update, and some games lose a down and an up in one update: `at N click x y k` posts the move and the down at `N` and the up at `N+k`, and `at N key vk k` does the same for a key. |
 | `at <N> peek <expr> [<expr>...]` | Log `peek u=<counter> <expr>=<value> ...` (signed ints; `-` where unreadable). On the virtual clock the values belong to exactly that update, so a line per update is a state log of the original. Needs no window. |
+| `count <label>` | With `--count`: write a snapshot of the counters to `counts.jsonl` now. `at <N> count <label>` writes it at update `N` (nothing is held); `quit` writes one labelled `exit` first. `count pause` and `count resume` stop and start the counting (`at <N>` too), to compare a run with and without it. Needs no window. |
 | `shot <name>` | Capture the window to `shots/<name>.png`. |
 | `waitshot <name> [timeout_ms]` | Wait for the window, then capture; it re-grabs while the client area is still flat. |
 | `record <prefix> <duration_ms> <interval_ms>` | A numbered frame every interval for the duration, whenever a window is present. |
@@ -746,6 +748,50 @@ Each line of the hits file is `<address> <order> <thread id>`; lines that start 
 whether the game ended normally). Limits: the exe's own functions only, reached or not, with no counts; code that
 reads its own bytes would see the breakpoints; not inside Windows Sandbox. `tools/origrun/covtest.sh` (check.sh's
 origrun suite) tests it on `covtest.exe`.
+
+## Counting cycles inside the original's functions (`--count`)
+
+`--count <list>` counts the processor cycles the copy's threads spend inside chosen functions of its exe, the original's
+side of the cycle split (`docs/TEST_COMMANDS.md`, "The cycle split"; the port counts the same boundaries with its
+`-cyclesplit` option). Host only, with the stand-in, and the exe must sit at its preferred base (the originals do). The list
+has one function a line, `<label> <address> len=<N>`: the exe's virtual address of the function, and the length of its first
+whole instructions, five bytes or more with no relative branch or call among them; `tools/origrun/prologue.py <exe>
+<label>=<address>...` finds the length and `--check <list>` checks a list. origrun reads those bytes out of the exe, so a
+list in the repository holds addresses and lengths and nothing of the game (BookWorm's:
+`games/bookworm/tools/profile/count.txt`). The labels `update`, `draw` and `present` are the parts `tools/cyclesplit.py`
+reports; others are written to the file and ignored by it.
+
+As the stand-in loads (`count.c`; origrun gives the exe the stand-in as an import, as for `--coverage`), the first
+instructions of each listed function are copied into a stub of the stand-in's and replaced by a jump to it. The stub
+counts a call at its entry and its exit: it swaps the return address for a thunk of the stand-in's, which takes the
+thread's cycle count (`QueryThreadCycleTime`) on the way in, last, and again on the way out, first. A function's cycles
+are its own: its time less the time of the counted functions it called, so the draw's present is not in the draw. The
+registers and flags the function takes or gives (`eax`, `ecx`, `edx`, the x87 stack) are left as they were, and the
+counters touch no vector register and no last error. A function left by an exception or a longjmp is dropped at the
+next entry or exit and counted in `misses`. Nothing in Windows is hooked.
+
+The counters live in a block of shared memory (`count.h`) that origrun reads from outside, so nothing in the game
+waits for it. A script's `count <label>`, or `at <N> count <label>` at an update, writes one snapshot: a JSON line in
+`build/origrun/<run>/counts.jsonl` with the update counter, the process's cycles (`QueryProcessCycleTime`, which count
+the threads that have ended), the loop thread's cycles (the thread that ran the most counted time), each part's calls
+and cycles, and every thread's cycles with its name and the module its start address is in. A snapshot labelled `exit`
+is written by `quit` before it posts the close. Nothing is held, so a function that is running when a snapshot is taken
+counts when it returns: a stretch between two snapshots is off by a part of one call at each end, a few parts in ten
+thousand over a stretch of two thousand updates. `tools/cyclesplit.py` reports a file and sets a port's beside an
+original's.
+
+The cost: a thread cycle reading is a system call, made at each entry and each exit (two a counted call), and the stub's own work
+is a few dozen instructions. A reading takes 500 to 860 cycles in a tight loop (the file's `counter.cycles_in_a_row`, measured when
+the stand-in loads) but 4 to 8 thousand in the running game (`counter.cycles_each`: the time-stamp ticks the readings took, which
+include whatever interrupted one), a system call after game code finding its kernel path cold. Measured as a whole, with counting
+alternated against `count pause` in blocks of 200 updates of the same run (BookWorm's idle title screen, six runs, the loop
+thread's cycles an update compared; `games/bookworm/tools/profile/toggleruns.sh`, `cycles.py toggle`), counting adds 0 to 1.6 %
+there (the neighbouring blocks' median ratio 1.004; runs from -4 to +23 thousand cycles an update, mean 9.5 thousand), about 0.2 %
+of the 3.9 to 4.8 million cycles an update of the like-for-like scenario. `count pause` and `count resume` (script commands, host
+side) stop and start the counting: a function entered while paused is not counted, and costs only the stub's jump. Limits: the functions' first bytes must not be a jump target
+from elsewhere; a game that reads its own code would see the jumps; not inside Windows Sandbox. `tools/origrun/counttest.sh`
+(check.sh's origrun suite) tests it on `counttest.exe`, whose functions use `ret N`, return a 64-bit value, take `this` in
+`ecx` and recurse.
 
 ## Hardware acceleration (3D mode)
 

@@ -227,7 +227,6 @@ int DDInterface::Init(SDL_Window* theWindow, bool vsync)
 	{
 		mIs3D = (anInfo.flags & SDL_RENDERER_ACCELERATED) != 0;
 		mCan3D = mIs3D;
-		SDL_Log("Renderer: %s", anInfo.name);
 		mMaxTextureWidth = (anInfo.max_texture_width > 0) ? anInfo.max_texture_width : 16384;
 		mMaxTextureHeight = (anInfo.max_texture_height > 0) ? anInfo.max_texture_height : 16384;
 	}
@@ -372,6 +371,14 @@ void DDInterface::UpdateDisplaySize()
 		CreateScreenTexture(aRenderScale);
 	else if (aTarget != NULL)
 		SDL_SetRenderTarget(mRenderer, aTarget);
+}
+
+std::string DDInterface::RendererName() const
+{
+	SDL_RendererInfo anInfo;
+	if ((mRenderer != NULL) && (SDL_GetRendererInfo(mRenderer, &anInfo) == 0) && (anInfo.name != NULL))
+		return anInfo.name;
+	return "none";
 }
 
 bool DDInterface::CreateScreenTexture(int theRenderScale)
