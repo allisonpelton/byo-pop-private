@@ -778,6 +778,16 @@ void DDInterface::DrawTexturedQuad(Image* theImage, const float theX[4], const f
 	SDL_Color aColor = MakeVertexColor(theColor, mPremultiplied);
 	float aScale = (float) mRenderScale;
 
+	// port: SDL's software renderer blends a texture with a blend mode pixel by pixel, at about twice the cost of a copy. An image with no
+	// alpha and no transparent pixel, drawn at full alpha in the normal mode, is a copy: the same pixels come out, at half the time of a
+	// frame of Bejeweled 2's 2D mode.
+	if ((!mIs3D) && (theDrawMode != Graphics::DRAWMODE_ADDITIVE) && (aColor.a == 255) && (aData->mScale == 1))
+	{
+		aSrcImage->CommitBits();
+		if ((!aSrcImage->mHasAlpha) && (!aSrcImage->mHasTrans))
+			SDL_SetTextureBlendMode(aTexture, SDL_BLENDMODE_NONE);
+	}
+
 	// port: SDL's software renderer turns an axis-aligned quad back into a copy whose source rect is
 	// truncated from the UVs ((int) (u * width)), which can land a texel short and shift sprite-sheet
 	// cells by a pixel. Give it the exact rectangle instead.
