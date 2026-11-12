@@ -136,6 +136,18 @@ mod the three cases play other games than before, so `tools/check.sh`'s expected
 and the frozen baseline moved with it: `build/baseline-tiptop/` is the port at the commit of this change
 (`FROZEN_AT.txt`), the phase-one baseline kept beside it as `build/baseline-tiptop-phase1/`.
 
+**100 passes a second** (`TipTopApp`, `mFrameTime` 10; the coordinator, 2026-11-12: "keep 100 a second, change nothing"). The
+original's pass is one trip of the main loop, whose `lowos_EndFrame` waits for the vertical blank, so its rate is the display's: 60
+passes a second on a 60 Hz screen, 144 on a 144 Hz one, and nothing in the game depends on it, since the board's time is the clock's
+(`GameTime()`, added up from the elapsed milliseconds in `Board::Draw`) and the 35 ms tick clock keeps its remainder. The port's
+rate is the framework's, 100 a second, which the original never ran at on a 60 Hz screen; a pass costs about 0.34 ms of the main
+thread (0.7 M cycles), so the 40 passes a second above 60 cost about 14 ms a second of 1000, 1.4% of a core, and 0.4 s of the 3.7 s
+of a 30 s strategy minute. It stays because the other rate would be another configuration to prove: 16 ms a pass for both real
+time and `-fast` redoes the frozen baseline and the identical-play scripts (the original patched to 10 ms a pass, `-fast`'s virtual
+clock advancing `mFrameTime` a pass) for a tenth of the processor gap, and a 16 ms real-time step with `-fast` kept at 10 would
+ship a configuration the baseline never proves. Revisit only if the port is still over its original's processor time once the
+present path is cut (the surface presenter of the shared framework, `docs/COORDINATION.md`).
+
 **No "Visit PopCap.com for More Games" button on the options screen** (the user, 2026-11-07, "Yes, now too": every button that
 leads out of a game comes out of the ports). The original's options screen has an oval button between the TipTop logo and the
 Resume button that opens the publisher's page (command 0x37, the configuration's `PUBLISHER_URL`). The port drew it and opened the
@@ -373,7 +385,8 @@ bar's entries are counted per pass. The port runs the framework's 100 passes a s
 original never had; a pass costs about 0.34 ms (0.7 M cycles) of the main thread. Matching it would be `mFrameTime` 16 (62.5 Hz)
 in `TipTopApp`'s constructor, about 0.4 s of 3.7 s in 30 s of play; but `-fast`'s virtual clock advances `mFrameTime` a pass,
 so the state logs, the frozen baseline and the identical-play scripts (the original patched to 10 ms a pass) would all change
-unless `-fast` stays at 10 ms. **Not changed: the rate waits for the coordinator's answer.**
+unless `-fast` stays at 10 ms. **Not changed (the coordinator, 2026-11-12): the port keeps its 100 passes a second**, listed under
+"Deviations from the original" with its reasons.
 
 **Why the paint of a pass that is not shown is not skipped** (about 4 passes in 10 at 100 passes against 60 frames a second):
 `Board::Draw` is the game's update and its paint in one function, so only the pixel writes could be left out, and the original
