@@ -331,5 +331,20 @@ check(apRun([[0, 32, "left"], [0, 32, "left"], [1, 32]]) === "start; split; spli
 check(apRun([[0, 32, "left"], [1, 5, "lost"]]) === "start; split; reset resetRowPush", "AstroPop 100%: a loss in a later pilot's game resets");
 check(apRun([[0, 10, "left"], [1, 32]]) === "start; reset resetLeft; start; split", "AstroPop 100%: leaving a pilot's game before level 32 resets");
 
+// Typer Shark: its block logs (tools/autosplit/typershark/, the port's scripted games; a line at each change)
+function tsLog(name) { return fs.readFileSync(path.join(__dirname, "autosplit", "typershark", name + ".block.log"), "utf8").split(/\r?\n/); }
+check(blockReplay("typershark", "Adventure Mode - Easy", tsLog("adventure_easy")) === "start; split; split; reset resetLives",
+      "Typer Shark Adventure Mode: a split at each return to the map, the last life lost resets");
+check(blockReplay("typershark", "Adventure Mode - X-Treme!", tsLog("adventure_xtreme")) === "start; split; split; reset resetLives", "Typer Shark Adventure Mode on X-Treme!");
+check(blockReplay("typershark", "Adventure Mode - Easy", tsLog("adventure_normal")) === "", "Typer Shark: a game of another difficulty never starts the run");
+check(blockReplay("typershark", "Adventure Mode - Easy", tsLog("adventure_won")) === "start; split; split", "Typer Shark: the win after a level jump ends nothing early");
+check(blockReplay("typershark", "Death%", tsLog("adventure_easy")) === "start; split" && blockReplay("typershark", "Death%", tsLog("abyss")) === "",
+      "Typer Shark Death%: an adventure's first game over ends it; the Abyss never starts it");
+check(blockReplay("typershark", "Abyss Mode", tsLog("abyss")) === "start; split", "Typer Shark Abyss Mode: from the dive's GO to its game over");
+check(blockReplay("typershark", "Abyss Mode", tsLog("abyss_deep_dive_resumed")) === "start; reset resetReplaced",
+      "Typer Shark Abyss Mode: a dive replaced by a deeper one resets, and the deeper one starts nothing");
+check(blockReplay("typershark", "Death%", tsLog("adventure_left_from_options")) === "start; reset resetQuit", "Typer Shark: end this game resets as a quit");
+check(blockReplay("typershark", "Death%", tsLog("adventure_continued_save")) === "", "Typer Shark: a continued save never starts a run");
+
 console.log("autosplittest: " + (fx.cases.length + bm.cases.length + bw.cases.length) + " scenario replays, " + checks + " checks, " + fails + " failed");
 process.exit(fails ? 1 : 0);

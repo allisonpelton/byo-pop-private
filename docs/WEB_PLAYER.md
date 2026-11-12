@@ -696,7 +696,13 @@ just cleared, since a fast warp gate skips levels, so the splits are `by: "progr
 game's own first word (`own0`, block 0x80) counts the weapon's uses, and the first resets the run (`resetSupa`). 100% is
 the four pilots, each a new game, and a template with `games: 4`: a segment a game, each ending at that game's `progress
 32`. Between games the run waits: the finished game's END GAME resets nothing, and the next new game with a pilot the run
-hasn't had carries it on. Survival has no timer. Big Money has no board, so its row is its native
+hasn't had carries it on. Survival has no timer. Typer Shark (speedrun.com: Typer Shark Deluxe): a block board is a
+whole game, its GO the first update after the difficulty or the Abyss is chosen. Adventure Mode, for each difficulty,
+ends on returning to the map after level 11 is beaten. Its progress is the levels beaten and left, rising as the map
+comes back, so the splits are `by: "progress"`; a level's own clear comes earlier, before the player leaves it. Abyss
+Mode ends `lost`, at its game over (the screen's time is the game's, in its own first word, which the site doesn't use
+yet), and Death% at an adventure's first game over. "End this game" in the options is no game over: the game goes
+away, a quit. Big Money has no board, so its row is its native
 script's rules, with mode and skill in the category's name and levels or scores as segments. Both replay their native
 scripts' scenarios in `tools/autosplittest.js`. Every other game with a board gets its row in Milestone 3, from the
 speedrun.com categories and its session's answer on where in its code GO, a level clear, a game over and a win happen.

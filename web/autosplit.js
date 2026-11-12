@@ -452,6 +452,24 @@ var ByopopAutosplit = (function () {
                      games: 4 }])
   };
 
+  // Typer Shark (speedrun.com: Typer Shark Deluxe): a block board is a whole game, its GO the first update after the
+  // difficulty (or the Abyss) is chosen. Adventure Mode, for each difficulty, ends on returning to the map after level 11
+  // is beaten: its progress is the levels beaten and left, which rises as the map comes back, so each level splits there
+  // (a level's own clear comes earlier, before the player leaves it). Abyss Mode ends at its game over, whose time the
+  // game-over screen shows; Death% at the first game over of an adventure. Leaving through the options' "end this game"
+  // is no game over: the game goes away, a quit.
+  var TS_SKILLS = ["Easy", "Normal", "Hard", "Expert", "X-Treme!"];
+  var TS_RULES = {
+    name: "Typer Shark Deluxe", id: "TSDX",
+    modes: { Adventure: 0, Abyss: 1 }, skills: {},
+    deaths: [{ setting: "resetLives", what: "out of lives (Adventure)" }, { setting: null, what: "out of lives in the Abyss (Abyss Mode's end)" },
+             { setting: null, what: "(none)" }, { setting: null, what: "(none)" }],
+    templates: TS_SKILLS.map(function (skill, i) {
+      return { category: "Adventure Mode", sub: skill, segments: levels(11), end: "progress 11", mode: 0, skill: i, by: "progress" };
+    }).concat([{ category: "Abyss Mode", segments: ["Abyss"], end: "lost", mode: 1 },
+               { category: "Death%", segments: ["Death"], end: "lost", mode: 0 }])
+  };
+
   // A row of GAMES from a row of the rules table
   function ruled(rules) {
     return { name: rules.name, block: "_byopop_livesplit_block", read: blockReader(rules.id), decider: makeDecider(rules),
@@ -468,7 +486,8 @@ var ByopopAutosplit = (function () {
     mummymaze: ruled(MM_RULES),
     rocketmania: ruled(RM_RULES),
     alchemy: ruled(AL_RULES),
-    astropop: ruled(AP_RULES)
+    astropop: ruled(AP_RULES),
+    typershark: ruled(TS_RULES)
   };
 
   // The front game's block, read from its window: {game, snap} or null (no game with an auto splitter in front, or it has not

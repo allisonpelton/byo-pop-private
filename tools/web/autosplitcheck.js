@@ -121,10 +121,14 @@ async function load(category) {
 // clears the level in play, once the bot has reached one: the timer's index after the auto splitter saw it
 // (BookWorm's clear is the `win` itself; Seven Seas' comes when the level's panel is closed, so the bot plays on until the
 // block counts it)
+// (Typer Shark's split is the return to the map after the level is left, its progress rising: with splitByProgress the bot
+// plays on until it has)
+var splitByProgress = false;
 async function clearLevel() {
-  var before = snap().boardLevelClears;
+  var before = snap().boardLevelClears, p0 = snap().progress;
   await until("win");
   for (var k = 0; k < 400 && snap().boardLevelClears === before; k++) await botStep();
+  for (var j = 0; splitByProgress && j < 400 && snap().progress === p0; j++) await botStep();
   await settle();
   return att();
 }
@@ -195,6 +199,21 @@ async function common(category, levels, newLine, opts) {
 var MM_QUIT = [{ click: [64, 462] }];
 
 var PLANS = {
+  typershark: async function () {
+    splitByProgress = true;
+    titleGoto = true;
+    await common("Adventure Mode - Easy", 11, "goto adventure 0");
+    // a game of another difficulty, or the Abyss, never starts the Easy run
+    await resetByHand();
+    await newGame("goto adventure 4");
+    note("skill", att().phase === "idle", "an X-Treme! game (skill " + snap().skill + "): " + att().phase);
+    // Abyss Mode: from the dive's GO to its game over
+    await load("Abyss Mode");
+    await newGame("goto abyss");
+    var a0 = att();
+    await lose();
+    note("abyss", a0.phase === "running" && att().phase === "ended", "started " + a0.phase + " (mode " + snap().mode + "); after the game over " + att().phase);
+  },
   astropop: async function () {
     await cmd("unlock all");
     titleGoto = true;
