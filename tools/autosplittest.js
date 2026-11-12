@@ -359,5 +359,38 @@ cbMission.push("u=600 seq=1 active=1 flags=104 board=1 go=1/1 over=0/0 deaths=0,
 check(blockReplay("cosmicbugs", "Any%", cbMission) === "start; " + splits(13), "Cosmic Bugs Any%: splits at boards 1, 49 ... 529, the end at the win after board 577");
 check(blockReplay("cosmicbugs", "Any%", cbMission.slice(0, 579)) === "start; " + splits(12), "Cosmic Bugs Any%: the 577th board's clear is not the end");
 
+// Dynomite: its block logs (tools/autosplit/dynomite/, the port's -livesplitlog games on a test seed; a line at each change),
+// and a whole Fossil Challenge made up of its fields (15 fossils, the win with the last)
+function dyLog(name) { return fs.readFileSync(path.join(__dirname, "autosplit", "dynomite", name + ".block.log"), "utf8").split(/\r?\n/); }
+check(blockReplay("dynomite", "Endless Puzzle - 1K - Easy", dyLog("endless")) === "start; split", "Dynomite Endless Puzzle 1K: from the click to 1,000 on screen");
+check(blockReplay("dynomite", "Endless Puzzle - 5K - Easy", dyLog("endless")) === "start; split; reset resetEndless",
+      "Dynomite Endless Puzzle 5K: 1K splits, the eggs off the bottom reset");
+check(blockReplay("dynomite", "Endless Puzzle - 1K - Normal", dyLog("endless")) === "" && blockReplay("dynomite", "Endless Puzzle - 1K - Easy", dyLog("stomped")) === "",
+      "Dynomite: a game of another difficulty or mode never starts the run");
+check(blockReplay("dynomite", "Endless Puzzle - 5K - Easy", dyLog("left")) === "start; reset resetLeft; start; reset resetEndless", "Dynomite: a game left resets, the next one starts");
+check(blockReplay("dynomite", "Time Trial - Normal", dyLog("timetrial")) === "start; split" && blockReplay("dynomite", "Time Trial - Easy", dyLog("timetrial")) === "",
+      "Dynomite Time Trial: from the first egg to the board cleared");
+check(blockReplay("dynomite", "Fossil Challenge - Panic", dyLog("panic")) === "start; reset resetFossil", "Dynomite Fossil Challenge Panic: the eggs off the bottom reset");
+check(blockReplay("dynomite", "Tutorial", dyLog("tutorial")) === "start; " + splits(5), "Dynomite Tutorial: each mode's part splits, the main menu ends it");
+// (the win and the tutorial's closing come in one update: a poll that sees both at once still ends the run)
+var dyTut = dyLog("tutorial").filter(function (l) { return !/ flags=108 board=1 .* wins=1\/1 /.test(l); });
+check(dyTut.length === dyLog("tutorial").length - 1 && blockReplay("dynomite", "Tutorial", dyTut) === "start; " + splits(5),
+      "Dynomite Tutorial: the win seen with the board already gone ends the run");
+// (and in a fast run the last part's clear, the win and the closing come in one poll: the win splits the segments left)
+var dyLast = dyLog("tutorial"), dyCut = dyLast.findIndex(function (l) { return / lc=4\//.test(l); });
+var dyFast = dyLast.slice(0, dyCut).concat(dyLast.slice(dyCut).filter(function (l) { return / board=0 /.test(l); }));
+check(blockReplay("dynomite", "Tutorial", dyFast) === "start; " + splits(5), "Dynomite Tutorial: the last part, the win and the closing in one poll end the run");
+check(blockReplay("dynomite", "Fossil Challenge - Strategic", dyLog("fossil")) === "start; " + splits(15),
+      "Dynomite Fossil Challenge: a win after a jump to the last fossil ends the run");
+// (its saved games are Stomped Puzzle, which has no category: read as Endless Puzzle's, the continued one counts no GO)
+var dySaved = dyLog("saved2").map(function (l) { return l.replace("mode=1 ", "mode=2 "); });
+check(blockReplay("dynomite", "Endless Puzzle - 1K - Easy", dySaved) === "" &&
+      blockReplay("dynomite", "Endless Puzzle - 1K - Easy", dyLog("saved1").map(function (l) { return l.replace("mode=1 ", "mode=2 "); })) === "start; reset resetLeft",
+      "Dynomite: a continued save never starts a run");
+var dyFossil = ["u=0 seq=1 active=1 flags=00 board=0 go=0/0 over=0/0 deaths=0,0,0,0 mode=-1 skill=0 ingame=0 progress=-1 blc=0 wins=0/0"];
+for (var dy = 0; dy <= 15; dy++) dyFossil.push("u=" + (dy + 1) + " seq=1 active=1 flags=04 board=1 go=1/1 over=0/0 deaths=0,0,0,0 mode=3 skill=2 ingame=1 progress=" + 3 * dy + " blc=" + dy + " wins=" + (dy === 15 ? "1/1" : "0/0"));
+check(blockReplay("dynomite", "Fossil Challenge - Panic", dyFossil) === "start; " + splits(15), "Dynomite Fossil Challenge: 15 fossils, 15 splits");
+check(blockReplay("dynomite", "Fossil Challenge - Panic", dyFossil.slice(0, 16)) === "start; " + splits(14), "Dynomite Fossil Challenge: the 14th fossil is not the end");
+
 console.log("autosplittest: " + (fx.cases.length + bm.cases.length + bw.cases.length) + " scenario replays, " + checks + " checks, " + fails + " failed");
 process.exit(fails ? 1 : 0);

@@ -256,9 +256,17 @@ var ByopopAutosplit = (function () {
                !(setting("vanillaOnly") && !(current.flags & FLAG_VANILLA)) &&
                !(setting("modeGuard") && (outside(catMode, current.mode) || outside(catSkill, current.skill)));
       }
+      // the win of the run's board, where the category ends at it: the run's end whatever segment it is in, even with the
+      // board gone in the same update (Dynomite's tutorial wins as it closes to the main menu, its last part's clear just
+      // before, so a poll may see all three at once)
+      function wonNow() {
+        return !!end && end.kind === "won" && !(template && template.games) && current.wins !== old.wins && current.winSerial === runSerial;
+      }
       function reached() {
         var i = timer.index();
-        if (runSerial === 0 || current.boardSerial !== runSerial || i < 0 || i >= splits.length) return false;
+        if (runSerial === 0 || i < 0 || i >= splits.length) return false;
+        if (wonNow()) return true;
+        if (current.boardSerial !== runSerial) return false;
         // (each segment of a run over several games is one game, which ends at the end's progress; between games, none)
         if (template && template.games) return !between && end.kind === "progress" && current.progress >= end.n;
         if (end && i === splits.length - 1) {
@@ -319,7 +327,12 @@ var ByopopAutosplit = (function () {
               if (cause !== null && reached()) { pending = cause; cause = null; }
             }
             if (cause !== null) timer.reset(cause);
-            else if (reached()) { timer.split(); if (template && template.games && timer.phase() === "Running") between = true; }
+            else if (reached()) {
+              timer.split();
+              // (a win splits every segment left)
+              for (var w = 0; w < splits.length && wonNow() && timer.phase() === "Running"; w++) timer.split();
+              if (template && template.games && timer.phase() === "Running") between = true;
+            }
             // the next game of a run over several games: a new game of the category's mode with a skill the run has not had
             if (between && timer.phase() === "Running" && isGo() && skillsUsed.indexOf(current.skill) < 0) {
               runSerial = current.boardSerial; skillsUsed.push(current.skill); between = false;
@@ -487,6 +500,36 @@ var ByopopAutosplit = (function () {
                   targets: [1, 49, 97, 145, 193, 241, 289, 337, 385, 433, 481, 529], end: "won", mode: 0 }]
   };
 
+  // Dynomite (speedrun.com: Dynomite! Deluxe): a board is a whole game. Endless Puzzle, for each amount and difficulty, from
+  // the difficulty's click (its GO, the update after the click that makes the board) to the score on screen reaching the
+  // amount. Time Trial from the first egg fired (its GO, the update the first shot ends in) to the board cleared, its win;
+  // the board times it in game time, which is the game's updates from that GO. Fossil Challenge from Let's Play! (its GO)
+  // through each fossil found (its level clear, the third fragment off the bottom) to the fifteenth, its win. Tutorial from
+  // Next on the start page (its GO) through each mode's part (a level clear each) to the main menu with every part done, its
+  // win. The board's Easy, Normal and Hard are the game's Normal, Hard and Expert, skills 1 to 3; Strategic and Panic are 1
+  // and 2. A continued save starts nothing; leaving a game is its own game over.
+  var DY_AMOUNTS = ["1K", "5K", "10K", "25K", "50K"], DY_SKILLS = ["Easy", "Normal", "Hard"];
+  var DY_RULES = {
+    name: "Dynomite! Deluxe", id: "DYDX",
+    modes: { Stomped: 1, Endless: 2, Fossil: 3, "Time Trial": 4, Tutorial: 5 }, skills: {},
+    deaths: [{ setting: "resetEndless", what: "the eggs ran off the bottom (Endless Puzzle)" },
+             { setting: "resetFossil", what: "the eggs ran off the bottom (Fossil Challenge)" },
+             { setting: "resetLeft", what: "the game was left (another game, the menu, a save, the tutorial closed)" },
+             { setting: null, what: "the eggs ran off the bottom (Stomped Puzzle, no category)" }],
+    templates: DY_AMOUNTS.reduce(function (a, amount, k) {
+      return a.concat(DY_SKILLS.map(function (skill, i) {
+        return { category: "Endless Puzzle", sub: amount + " - " + skill, segments: DY_AMOUNTS.slice(0, k + 1),
+                 end: "score " + parseInt(amount, 10) * 1000, mode: 2, skill: i + 1 };
+      }));
+    }, []).concat(DY_SKILLS.map(function (skill, i) {
+      return { category: "Time Trial", sub: skill, segments: ["Cleared"], end: "won", mode: 4, skill: i + 1 };
+    })).concat(["Strategic", "Panic"].map(function (skill, i) {
+      return { category: "Fossil Challenge", sub: skill, segments: levels(15).map(function (x) { return x.replace("Level", "Fossil"); }),
+               end: "won", mode: 3, skill: i + 1 };
+    })).concat([{ category: "Tutorial", segments: ["Endless Puzzle", "Stomped Puzzle", "Fossil Challenge", "Time Trial", "Main Menu"],
+                  end: "won", mode: 5 }])
+  };
+
   // A row of GAMES from a row of the rules table
   function ruled(rules) {
     return { name: rules.name, block: "_byopop_livesplit_block", read: blockReader(rules.id), decider: makeDecider(rules),
@@ -505,7 +548,8 @@ var ByopopAutosplit = (function () {
     alchemy: ruled(AL_RULES),
     astropop: ruled(AP_RULES),
     typershark: ruled(TS_RULES),
-    cosmicbugs: ruled(CB_RULES)
+    cosmicbugs: ruled(CB_RULES),
+    dynomite: ruled(DY_RULES)
   };
 
   // The front game's block, read from its window: {game, snap} or null (no game with an auto splitter in front, or it has not
