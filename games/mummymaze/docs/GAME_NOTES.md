@@ -778,3 +778,49 @@ nothing they read changes what is drawn or played.
 `mTotalTime` and `mDeaths` stay in the tool's list for `0x4201e0`: its case 0x7db (a new adventure, writing the zeros) is
 `MMApp::CreateAdventure` and its case 0x7d3 is `AdventureLeave`, which are the port's own functions with their own
 comments. The finding is the tool's limit (it reads one translation per address); both are read and compared.
+
+## The autosplit block (2026-11-12)
+
+The site's Splits window times a game on its speedrun.com board's rules (`docs/WEB_PLAYER.md`, "One design for every port"); the
+port writes the shared block it reads (`platform/AutosplitBlock.h`, layout 2, game id `MMDX`) from `src/LiveSplitObserver.cpp`.
+The board (Mummy Maze Deluxe) has two categories that both start when the player takes control of the explorer: 1st Pyramid
+(Classic) ends when the first pyramid's treasure is collected and the next pyramid begins, and 100% Run (Adventure) when the last
+treasure is collected.
+
+**Inert.** Nothing is written until something asks: the web page (`byopop_livesplit_block`, exported in CMakeLists.txt) or, natively,
+an enabled mod with the feature `livesplit` (`mods/livesplit`, looked for once every 101 updates until then). Before that the
+observer costs a test of a counter an update. It reads the app's and the board's fields and writes none: five hooks in the game's
+code, none of which changes anything it does (the call after `SexyApp::UpdateFrames` and the one in `~MMApp`, the `-livesplitlog`
+option, and `SavedGameLoaded()` in `LoadGame` and in the saved-adventure slot's button, which only set a flag the observer reads).
+`tools/livesplit/run_tests.sh` runs the check suite's three bot games (classic, tips, tutorial) with the block off, with it on and
+with the frozen baseline: their logs and screenshots are identical in all three, and there is no block log with the block off.
+
+**A board of the block is a game**, from the menu's Classic or Adventure link until the main menu is back; the game's own `Board` is
+one chamber (or a pyramid's ending scene), so it spans many boards and the map, level-complete and high-score screens between
+them. The tutorial is no game (mode -1). `mode` is 0 Classic and 1 Adventure, `skill` 0 (the game has none). `level` is the
+chamber's number 0 to 224 (pyramid x 15 + chamber, in the adventure by the pyramid's own number, whichever order the player
+takes them in) and `displayLevel` is `level + 1`. `tick` is the app's update count (100 a second, from the start of the process),
+`goTick` the tick of the GO, `score` and `displayScore` the classic game's score (0 in the adventure), `state` the board's state
+(10, STATE_DONE, on the level-complete screen, which has no board; -1 on the map). `flags`: VANILLA while none of the fixes mod's
+three fixes is on, RESUMED for a saved game continued, PAUSED while a dialog is up.
+
+**Events** (in `LiveSplitObserver.cpp`'s header comment, with where each is in the code):
+- GO: the first update of a fresh game's first chamber on which the board is STATE_READY with the maze risen and no dialog up,
+  which is what `Board::UpdateExplorer` and `Board::MouseDown` wait for (259 updates, 2.6 s, after the first board is made in the bot's
+  classic games). Once a game.
+- Level clear: the level-complete screen comes up (`Board::Update`, `MMApp::DoNextLevel`), once for each of a pyramid's fifteen
+  chambers, in both modes. Its constructor takes the board away, so the observer sees the screen, not a board in STATE_DONE.
+- Treasure: the ending scene's chest opens (`Board::Update`, STATE_READY to STATE_ENDING_FADE in MODE_CLASSIC_DONE or
+  MODE_ADVENTURE_DONE; SOUND_OPENTREASURE), 284 updates (2.8 s, the fade's length in `Board::Update`) before the scene's Continue
+  link shows. Win: the treasure of pyramid 14 (the dark tomb), in either mode.
+- `progress`, the treasures collected: the adventure's counts a chest as it opens (15 for the 100% run; the adventure's counter starts
+  at 0 for a saved game too, which never starts a run). The classic game's is the pyramid number, so that it rises when the next
+  pyramid has begun (the Continue link on the ending scene makes the next pyramid's board in the same call, so its first update shows
+  the new number), 1 in pyramid 2, and the last pyramid's treasure counts as 15 when its chest opens, since no pyramid follows.
+- Game over: Abandon Hope in the classic game once its solution has played (the high scores then come up), kind 0, the only one.
+  Being caught is not one: the panel offers Undo, Try again and the others, the timer goes on, and in the adventure it only counts
+  a catch. The sidebar's retry and Save and Quit, and leaving to the menu, end the game as the menu coming back does.
+
+**Logs.** `-livesplitlog=<file>` writes one line for each event with the block's fields after it; `run_tests.sh` makes one of each
+kind (a classic game across a pyramid to Abandon Hope, one to the last treasure, an adventure's first pyramid, a saved adventure
+played to the last treasure by `craft_adventure.py`, a resumed classic game).

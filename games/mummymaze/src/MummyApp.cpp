@@ -7,6 +7,7 @@
 #include "Dialogs.h"
 #include "GameText.h"
 #include "GameLevels.h"
+#include "LiveSplitObserver.h"
 #include "Compat2004.h"
 #include "Dialog.h"
 #include "DialogButton.h"
@@ -98,6 +99,7 @@ MMApp::MMApp() :
 // 0x419fc0: the widgets the app holds come off the widget manager before they go
 MMApp::~MMApp()
 {
+	LiveSplitObserver::AppDestroyed(this);   // port(mod): the autosplit block's last write
 	Widget* aWidgets[] = {mLevelComplete, mHighScores, mHighScoreBack, mWorldMap, mBoard, mVictory, mSidePanel, mGamePanel,
 		mMainMenu, mTitleScreen};
 	for (size_t i = 0; i < sizeof(aWidgets) / sizeof(aWidgets[0]); i++)
@@ -327,6 +329,10 @@ void MMApp::ButtonPress(int theId)
 void MMApp::UpdateFrames()
 {
 	SexyApp::UpdateFrames();
+	// port(mod): the autosplit block, once something asks for it (LiveSplitObserver.h). Before the bot's input, which a player's
+	// clicks and keys (handled between updates) have no counterpart of: the bot may press a button in this very call, and the
+	// state the update left, which the observer reads, is what a player would have seen
+	LiveSplitObserver::AfterUpdate(this);
 	mMusicInterface->Update();
 	if (mAutoplay)
 		AutoplayUpdate();
@@ -353,6 +359,8 @@ void MMApp::HandleCmdLineParam(const std::string& theParamName, const std::strin
 		mAutoplayLog = theParamValue;
 	else if (theParamName == "-autoplayshots")
 		mAutoplayShots = theParamValue;
+	else if (theParamName == "-livesplitlog")
+		LiveSplitObserver::SetLogFile(theParamValue);   // port(mod): test hook, one line for each event of the autosplit block
 	else
 		SexyApp::HandleCmdLineParam(theParamName, theParamValue);
 }
