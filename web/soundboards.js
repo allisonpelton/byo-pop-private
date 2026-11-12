@@ -1272,11 +1272,11 @@ var ByopopSoundboards = {
     ],
     groups: [
     { name: "Menus", sounds: [
-      ["audio/click.wav", "Click", "A menu item is clicked or auto-clicked"]
+      ["audio/click.wav", "Click", "A menu item is clicked or auto-clicked; also a click on the board that fires no beam because an enemy is near the ship (the code asks for a sound the game never loads)"]
     ] },
     { name: "The ship and its beams", sounds: [
       ["audio/drill_shoot.wav", "Beam shot", "The ship fires its beams (when fewer than three beams are out)"],
-      ["audio/drill.wav", "Beam drilling", "While the beams run, every 66 updates after the shot"],
+      ["audio/drill.wav", "Beam drilling", "While the beams run, every 66 updates after the shot, once for each beam, the two together"],
       ["audio/clank.wav", "Beam clank", "A beam's head meets a cell that is not open and stops"],
       ["audio/fill.wav", "Fill", "A captured side fills in; repeats every 120 updates while fills run, and when a beam pair ends"],
       ["audio/fill_end.wav", "Fill ends", "The last but one fill of a board finishes"],
@@ -1296,11 +1296,11 @@ var ByopopSoundboards = {
       ["audio/exp200.wav", "Kill 200", "An enemy dies as the second of its chain (200 points)"],
       ["audio/exp300.wav", "Kill 300", "An enemy dies as the third of its chain (300 points)"],
       ["audio/exp400.wav", "Kill 400", "An enemy dies as the fourth of its chain (400 points)"],
-      ["audio/exp500.wav", "Kill 500", "An enemy dies as the fifth of its chain, or in a time bomb's blast (500 points)"],
+      ["audio/exp500.wav", "Kill 500", "An enemy dies as the fifth of its chain, or in the blast of a mine, missile or time bomb (500 points)"],
       ["audio/exp600.wav", "Kill 600", "An enemy dies as the sixth of its chain (600 points)"],
       ["audio/exp700.wav", "Kill 700", "An enemy dies as the seventh of its chain (700 points)"],
       ["audio/exp800.wav", "Kill 800", "An enemy dies as the eighth of its chain (800 points)"],
-      ["audio/exp900.wav", "Kill 900", "An enemy dies as the ninth of its chain (900 points)"]
+      ["audio/exp900.wav", "Kill 900", "An enemy dies as the ninth of its chain (900 points); the tenth and later kills of one chain play the click sound instead, still 900 points (the code asks for sounds the game never loads)"]
     ] },
     { name: "Power-ups and weapons", sounds: [
       ["audio/powerup.wav", "Power-up", "A power-up is caught, except slow shot, hyper motion and flip flopper"],
@@ -1311,7 +1311,10 @@ var ByopopSoundboards = {
       ["audio/fuse.wav", "Time bomb fuse", "A time bomb burns its fuse; repeats every 230 updates of its age"]
     ] },
     { name: "Unused", sounds: [
-      ["audio/spawn.wav", "Spawn (unused)", "Never played"]
+      ["audio/spawn.wav", "Spawn (unused)", "Never played"],
+      ["audio/clank2.wav", "Clank 2 (unused)", "Never loaded"],
+      ["audio/purple.wav", "Purple (unused)", "Never loaded"],
+      ["audio/rail.wav", "Rail (unused)", "Never loaded"]
     ] },
   ] },
   dynomite: {
