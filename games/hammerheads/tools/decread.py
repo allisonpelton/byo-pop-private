@@ -291,6 +291,11 @@ def main():
     if not arguments:
         sys.exit(__doc__)
     raw = "--raw" in arguments
+    grep = None
+    if "--grep" in arguments:
+        at = arguments.index("--grep")
+        grep = re.compile(arguments[at + 1])
+        del arguments[at:at + 2]
     listing = "--list" in arguments
     normalize = "--no-offsets" not in arguments
     fields = None
@@ -306,6 +311,17 @@ def main():
     for line in open(FUNCTIONS, encoding="utf-8"):
         record = json.loads(line)
         records[int(record["addr"], 16)] = record
+    if grep:
+        # every function of the game's code whose compacted text has a matching line: address, then the lines
+        for address in sorted(functions):
+            if not 0x401000 <= address < 0x4767e0:
+                continue
+            hits = [line.strip() for line in compact(functions[address], names, fields, normalize).splitlines() if grep.search(line)]
+            if hits:
+                print("%08x %s" % (address, names.get("%08x" % address, "")))
+                for line in hits[:6]:
+                    print("    " + line[:150])
+        return
     selected = []
     for argument in arguments:
         if "-" in argument:
