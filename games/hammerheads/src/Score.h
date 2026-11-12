@@ -46,6 +46,12 @@ Score* MakeScore();
 ScoreDisplayPos GetScoreDisplayPos();						// 0x44b1c0: (225, 35)
 ScoreDisplayPos GetBonusTrayPos();							// 0x44b1a0: (193, -13)
 
+// Where the sign of each power-up is in the corner of the screen, where its picture flies when it is picked up
+ScoreDisplayPos GetIceCreamSignPos();						// 0x4494f0: (298, 30)
+ScoreDisplayPos GetCloverSignPos();							// 0x449510: (378, 45)
+ScoreDisplayPos GetPowerUpSignPos();						// 0x449530: (415, 20)
+ScoreDisplayPos GetStrawberrySignPos();						// 0x449550: (338, 45)
+
 // 0x44b090: no floater is carrying the image to the display at the moment
 bool IsNoFloaterCarrying(Image* theImage);
 

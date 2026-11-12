@@ -70,6 +70,34 @@ ScoreDisplayPos Sexy::GetBonusTrayPos()
 	return aPos;
 }
 
+// 0x4494f0
+ScoreDisplayPos Sexy::GetIceCreamSignPos()
+{
+	ScoreDisplayPos aPos = { 298.0, 30.0 };
+	return aPos;
+}
+
+// 0x449510
+ScoreDisplayPos Sexy::GetCloverSignPos()
+{
+	ScoreDisplayPos aPos = { 378.0, 45.0 };
+	return aPos;
+}
+
+// 0x449530
+ScoreDisplayPos Sexy::GetPowerUpSignPos()
+{
+	ScoreDisplayPos aPos = { 415.0, 20.0 };
+	return aPos;
+}
+
+// 0x449550
+ScoreDisplayPos Sexy::GetStrawberrySignPos()
+{
+	ScoreDisplayPos aPos = { 338.0, 45.0 };
+	return aPos;
+}
+
 // 0x44b090
 bool Sexy::IsNoFloaterCarrying(Image* theImage)
 {
