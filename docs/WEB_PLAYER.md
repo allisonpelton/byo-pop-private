@@ -641,11 +641,12 @@ off and with it on.
 
 **The rules table** is in `web/autosplit.js`, one entry for each game:
 
-- `name`: the game's name on speedrun.com, which the splits' game name must match;
+- `name`: the game's name on speedrun.com, which the splits' game name must match (the game's own title where it has no
+  board of its own: Rocket Mania Deluxe);
 - `id`: the block's game id;
 - `modes` and `skills`: the names behind the block's numbers;
 - `deaths`: what each of the four death kinds is (each one a reset setting, as in Bejeweled);
-- `templates`: one per speedrun.com category and subcategory, each with `mode` and `skill` (none for any, or a
+- `templates`: one per speedrun.com category and subcategory (the site's own where there is no board), each with `mode` and `skill` (none for any, or a
   list of the allowed ones), its segments, and `end`, how the run finishes:
   - `levels N` (the Nth level clear);
   - `score N` (the score on screen reaches N);
@@ -676,9 +677,10 @@ level-complete page. Its progress is the treasures collected, which in Classic r
 Pyramid (Classic) is 15 chamber splits and the end at `progress 1`, the spawn in the next pyramid. 100% Run (Adventure)
 splits at each treasure, a template with `by: "progress"` (each segment's split is the progress reaching its number, not
 a level clear), and ends `won`, at the last pyramid's chest. Being caught is no game over; Abandon Hope is the only one. Rocket
-Mania (speedrun.com: Rocket Mania!): Level 10, 20 and 30 on each difficulty, from "Get Ready!" (the first update of a new
-game) to the last level's "Level Up!"; a split at each Level Up. The board doesn't say which mode it means: Arcade and
-Classic both have levels and Strategy never ends one, so the templates' `mode` is the list [Arcade, Classic]. Its losses
+Mania Deluxe has no board of its own (the one named Rocket Mania! is for a Java edition), so its row is the site's own
+categories, named after the game: Level 10, 20 and 30 on each difficulty, from "Get Ready!" (the first update of a new
+game) to the last level's "Level Up!"; a split at each Level Up. Arcade and Classic both have levels and Strategy never ends
+one, so the templates' `mode` is the list [Arcade, Classic]. Its losses
 (the night running out, the top line filling, no matches left) count at the game-over screen, since a launch still burning
 can clear the level in Classic. It has no win. Alchemy (speedrun.com: Alchemy Deluxe): 1 Board and 7 Boards in
 Strategic or Time Trial, from the click on Start New Game to the board's result screen (the statistics panel), with any

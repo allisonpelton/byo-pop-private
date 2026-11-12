@@ -374,12 +374,13 @@ var ByopopAutosplit = (function () {
                   by: "progress" }]
   };
 
-  // Rocket Mania (speedrun.com: Rocket Mania!): Level 10, 20 and 30 on each difficulty, from "Get Ready!" (its GO, the first
-  // update of a new game) to the "Level Up!" of the last level (its level clear). The board doesn't say which mode; Arcade and
-  // Classic both have levels, Strategy never ends one, so either of the two starts a run. A loss counts when the game-over
-  // screen comes (a launch still burning at the night's end can still clear the level in Classic). No win: the levels go on.
+  // Rocket Mania Deluxe has no speedrun.com board of its own: the board named Rocket Mania! is for a Java edition. Its row is
+  // the site's own categories, Level 10, 20 and 30 on each difficulty, from "Get Ready!" (its GO, the first update of a new
+  // game) to the "Level Up!" of the last level (its level clear), in Arcade or Classic (Strategy never ends a level). A loss
+  // counts when the game-over screen comes (a launch still burning at the night's end can still clear the level in Classic).
+  // No win: the levels go on.
   var RM_RULES = {
-    name: "Rocket Mania!", id: "RMDX",
+    name: "Rocket Mania Deluxe", id: "RMDX",
     modes: { Arcade: 0, Classic: 1, Strategy: 2 }, skills: { Easy: 0, Normal: 1, Hard: 2 },
     deaths: [{ setting: "resetOutOfTime", what: "the night ran out (Classic)" }, { setting: "resetTopLine", what: "the top line filled (Arcade)" },
              { setting: "resetNoMatches", what: "no matches left (Strategy)" }, { setting: null, what: "(none)" }],
