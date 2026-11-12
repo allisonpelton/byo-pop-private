@@ -1,0 +1,7 @@
+# The menu's Quit button: the dialog answered no, then yes (the game ends by itself). Coverage run (tools/coverage/run.sh).
+40000 click 320 451
+40050 click 71 407
+40100 click 391 285
+40150 click 71 407
+40200 click 249 285
+40300 quit

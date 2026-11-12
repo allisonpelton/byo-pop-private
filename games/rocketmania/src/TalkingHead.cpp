@@ -66,6 +66,7 @@ TalkingHead::TalkingHead(RocketApp* theApp) :
 	SetMood(0x11);
 }
 
+// 0x4162f0: the voice line stops and goes
 TalkingHead::~TalkingHead()
 {
 	if (mVoice != NULL)
@@ -426,6 +427,7 @@ SpeechBubble::SpeechBubble(RocketApp* theApp) :
 	Widget::Move(0, 0xde);
 }
 
+// 0x415d20
 SpeechBubble::~SpeechBubble()
 {
 }
