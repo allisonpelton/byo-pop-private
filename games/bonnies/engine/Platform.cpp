@@ -22,14 +22,14 @@ PortalConfig* gPortalConfig;
 namespace
 {
 // 0x481ac0: made at start (0x42f5b0) and freed at the end (0x42f600), never used
-struct Unused
+struct StartupScratch
 {
-	int mField00 = 0;
-	int mField04 = 0;
-	Str mStr08;
-	Str mStr10;
+	int mFirstNumber = 0;
+	int mSecondNumber = 0;
+	Str mFirstText;
+	Str mSecondText;
 };
-Unused* gUnused = nullptr;
+StartupScratch* gStartupScratch = nullptr;
 bool gPrintScreenDown = false;  // 0x4809cc
 }
 
@@ -420,7 +420,7 @@ void Platform::init(int theWidth, int theHeight, int theFullScreen)
 {
 	host()->trace("PL_BaseInit 1");
 	gPlatform = this;
-	mField38 = 0;
+	mSpare = 0;
 	gQuit = 0;
 	mShowFPS = 0;
 	mFullRedraw = 0;
@@ -429,7 +429,7 @@ void Platform::init(int theWidth, int theHeight, int theFullScreen)
 	mDebugScreens = 0;
 	mFrameLimit = 0;
 	mSkipDraws = 0;
-	mField1C = 1;
+	mShimmerWaits = 1;
 	mActiveTime = host()->getTicks();
 	mInactiveTime = 0;
 	host()->trace("PL_BaseInit 2");
@@ -440,7 +440,7 @@ void Platform::init(int theWidth, int theHeight, int theFullScreen)
 	buildAngleTable();
 	seedRandom(0);
 	host()->trace("PL_BaseInit 5");
-	gUnused = new Unused();
+	gStartupScratch = new StartupScratch();
 	host()->trace("PL_BaseInit 6");
 	gPak = new Pak();
 	gPak->open();
@@ -484,8 +484,8 @@ void Platform::shutdown()
 	gPak->close();
 	delete gPak;
 	gPak = nullptr;
-	delete gUnused;
-	gUnused = nullptr;
+	delete gStartupScratch;
+	gStartupScratch = nullptr;
 	freeLanguage();
 }
 

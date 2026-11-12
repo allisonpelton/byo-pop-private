@@ -59,14 +59,14 @@ public:
 	int mFlashRects;        // +0x10: the redrawn rectangles outlined
 	int mFullRedraw;        // +0x14: the whole screen redrawn each frame
 	int mFrameLimit;        // +0x18: frames a second at most (0 none)
-	int mField1C;           // +0x1c (1)
+	int mShimmerWaits;      // +0x1c: (1) the shimmer waits until a text made to shimmer is drawn without it
 	int mDesktopWidth;      // +0x20
 	int mDesktopHeight;     // +0x24
 	int mDesktopBits;       // +0x28
 	int mSkipDraws;         // +0x2c: frames not drawn
 	uint32_t mActiveTime;   // +0x30: the last update while active
 	uint32_t mInactiveTime; // +0x34: the last update while inactive
-	int mField38;           // +0x38
+	int mSpare;             // +0x38: cleared at the start; nothing reads it
 };
 
 extern Platform* gPlatform;  // 0x481a58

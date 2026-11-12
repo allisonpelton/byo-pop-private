@@ -65,10 +65,10 @@ void Board::Draw(Graphics* g)
 		g->SetColorizeImages(false);
 	}
 
-	DrawLevelText(g);
-	DrawProgressBar(g);
+	DrawLevel(g);
+	DrawProgress(g);
 	DrawScore(g);
-	DrawWord(g);
+	DrawWordScore(g);
 	if (mHintButton != NULL)
 		DrawPlankDivider(g, 136, 100);  // port(mod)
 	if (mUndoButton != NULL)
@@ -86,7 +86,7 @@ void Board::Draw(Graphics* g)
 		g->SetColorizeImages(false);
 	}
 
-	DrawPieces(g);
+	DrawTiles(g);
 	mEffectMgr->Draw(g);
 	mEmberMgr->Draw(g);
 	if (mSolver != NULL)
@@ -120,7 +120,7 @@ void Board::DrawPlankDivider(Graphics* g, int theX, int theY)
 // 0x4056e0
 // The level number (GT_BOARD_LEVEL_FORMAT) in the top-left panel; it fades out while a word is shown
 // (mLastWordAlpha).
-void Board::DrawLevelText(Graphics* g)
+void Board::DrawLevel(Graphics* g)
 {
 	if (mBurnedDown)
 		return;
@@ -145,7 +145,7 @@ void Board::DrawLevelText(Graphics* g)
 // 0x403c00
 // The level progress bar, sliding in from the left under a clip at x 16. After a level-up the shown
 // progress drains in the previous level's colour (one image per level % 12, progress_yellow downwards).
-void Board::DrawProgressBar(Graphics* g)
+void Board::DrawProgress(Graphics* g)
 {
 	if (mShownProgress > 0.0)
 	{
@@ -198,7 +198,7 @@ void Board::DrawScore(Graphics* g)
 // 0x407c60
 // The last word above the board and its points, fading with mLastWordAlpha. The word's colour, stored in
 // mLastWordColor, says what tiles it used: short, all plain, or the best special type in it.
-void Board::DrawWord(Graphics* g)
+void Board::DrawWordScore(Graphics* g)
 {
 	if (mBurnedDown)
 		return;
@@ -284,7 +284,7 @@ void Board::DrawWord(Graphics* g)
 // The tiles bottom row first, then three glow passes over lists collected on the way (green, gold, fire
 // with its flame animation), then the selection arrows. A piece can be in the fire list twice (a fire
 // tile and, as the tile below another fire tile, its neighbour): it then glows twice.
-void Board::DrawPieces(Graphics* g)
+void Board::DrawTiles(Graphics* g)
 {
 	PieceList aFireList;            // A: fire tiles, the tiles under them about to burn, pending fire tiles
 	PieceList aGreenList;           // B
@@ -322,7 +322,7 @@ void Board::DrawPieces(Graphics* g)
 				continue;
 
 			if (isBlank)
-				DrawPieceBlank(g, aPiece);
+				DrawBlankPiece(g, aPiece);
 			else
 				DrawPiece(g, aPiece);
 
@@ -423,7 +423,7 @@ void Board::DrawPieces(Graphics* g)
 	}
 
 	if (!mBurnedDown && (mSelection.size() != 0))
-		DrawSelection(g);
+		DrawTileArrows(g);
 }
 
 // 0x4044f0
@@ -551,7 +551,7 @@ void Board::DrawPiece(Graphics* g, Piece* thePiece)
 // 0x404380
 // A paused action game hides the letters: the plain tile image of the piece's type (lit or not), plus the
 // gem highlight on sapphire and diamond tiles.
-void Board::DrawPieceBlank(Graphics* g, Piece* thePiece)
+void Board::DrawBlankPiece(Graphics* g, Piece* thePiece)
 {
 	bool isLit = thePiece->mSelected || (thePiece->mLetter == mHighlightKey);
 
@@ -595,7 +595,7 @@ void Board::DrawPieceBlank(Graphics* g, Piece* thePiece)
 // around the tile centre, the cel in the neighbour's direction is shown; odd columns sit half a tile
 // lower, so a sideways step points down from an even column and up from an odd one), and an "X" on the
 // letters past the word length limit. Letters are counted with "QU" as 2.
-void Board::DrawSelection(Graphics* g)
+void Board::DrawTileArrows(Graphics* g)
 {
 	int aLetterCount = 0;
 	int aLimit = ModWordMaxLength();    // port(mod): 12, or the longest word with long-words (ModWords.h)

@@ -1,4 +1,4 @@
-// The port's host for Bonnie's Bookstore (see BonniesHost.h): bonnies::Host over the framework and the platform layer.
+// port: the host for Bonnie's Bookstore (see BonniesHost.h): bonnies::Host over the framework and the platform layer.
 
 #include "BonniesHost.h"
 #include "ModFeatures.h"
@@ -965,14 +965,14 @@ void BonniesWidget::Update()
 	if (!sStateFile.empty() && gHostApp->IsTestRun() && SDL_GetTicks() - sStateTime >= 100)
 	{
 		sStateTime = SDL_GetTicks();
-		std::string aTemp = sStateFile + ".new";
-		if (FILE* aFile = fopen(aTemp.c_str(), "wb"))
+		std::string aNewFile = sStateFile + ".new";
+		if (FILE* aFile = fopen(aNewFile.c_str(), "wb"))
 		{
 			std::string aState = bonnies::testState();
 			fwrite(aState.data(), 1, aState.size(), aFile);
 			fclose(aFile);
 			std::remove(sStateFile.c_str());
-			std::rename(aTemp.c_str(), sStateFile.c_str());
+			std::rename(aNewFile.c_str(), sStateFile.c_str());
 		}
 	}
 #endif

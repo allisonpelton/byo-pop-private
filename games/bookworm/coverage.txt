@@ -85,3 +85,26 @@ none 004059f0 WordScore::scalar_deleting_dtor: the compiler's deleting variant o
 none 0042e3a0 Math::scalar_deleting_dtor: the compiler's deleting variant; the Math member of BookWormApp is never deleted through its vtable
 none 0041f280 Effect::scalar_deleting_dtor: the compiler's deleting variant for the base class, which no object has as its own type (every effect is a Sparkle, an Ember or a FlyingPieceList)
 none 0042e450 MoneyDialog::scalar_deleting_dtor: the compiler's deleting variant; no dialog is a bare MoneyDialog (its subclasses have their own)
+none 0041e8d0 Effect::Save: the effects in a saved game: Board::SaveGame clears every effect before it writes, so the count is 0 and no record follows; taken out with the other effect save code
+none 0041e920 Effect::Load: the effects in a saved game, as Effect::Save
+none 0041eb00 Sparkle::Save: the effects in a saved game, as Effect::Save
+none 0041eba0 Sparkle::Load: the effects in a saved game, as Effect::Save
+none 0041f0a0 Ember::Save: the embers in a saved game: Board::SaveGame clears them before it writes, so the count is 0 and no record follows
+none 0041f180 Ember::Load: the embers in a saved game, as Ember::Save
+none 0041fee0 FlyingPieceList::Save: the effects in a saved game, as Effect::Save
+none 004209f0 FlyingPieceList::Load: the effects in a saved game, as Effect::Save
+none 0041f260 Effect::GetType: the base class's, which returns -1 and which no object calls (every effect is a Sparkle or a FlyingPieceList); the port's Effect leaves it pure
+none 00414fa0 BookWormApp::URLOpenFailed: only a link button of the original led to it (the links are out); the framework's OpenURL serves the port's dictionary link (a mod)
+none 00410b10 BookWormApp::URLOpenSucceeded: as URLOpenFailed
+none 00415100 BookWormApp::OpenURL: as URLOpenFailed
+none 004040e0 WordScore::CalcScoreByLength: the length formula, which the app's mScoringMethod (always 1) never selects; the field is out too
+none 0041b510 ColorizedButton::SetImageColor: nothing calls it
+none 0041be50 ColorizedButton::SetImageColors_3: the overload for 3 values a colour, which nothing calls
+none 00435880 UserManager::SetCurrentAlias: the alias of the online high scores, which only their dialog set; a user's record keeps the alias
+none 00435910 UserManager::GetCurrentAlias: the alias of the online high scores, which only their dialog read
+none 0041d910 Font::GetLineSpacingOffset (Definitionator::GetNumDefinitions): the one function the linker folded for both; nothing calls either through the vtable
+none 00429940 HelpWidget::OrderInManagerChanged: the help widget is added and removed, never moved in its manager, so nothing calls it
+none 0042e330 Math::Math: the constructor of the sine and cosine tables embedded in BookWormApp, which nothing reads (taken out with its fields)
+none 0042e390 Math::~Math: the destructor of the tables above
+none 004152a0 BookWormApp::IsInternetScoresEnabled: false in the retail build; only the Hall of Fame's internet button (not ported) asked it
+none 00401350 BWGameSelector::SetGameOption: sets the selector's mGameOption, which only the app's copy of it ever read back; both fields are out

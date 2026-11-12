@@ -1,8 +1,8 @@
 #ifndef __BOOKWORM_LEVELUPWIDGET_H__
 #define __BOOKWORM_LEVELUPWIDGET_H__
 
-// LevelUpWidget.cpp (0x42b980-0x42d050; DeletePanel and CreatePanel sit at the end of LabelWidget.cpp's
-// range): the level-complete / game-over summary. Board::ShowSummary creates it over the board. A 490x390
+// LevelUpWidget.cpp (0x42b980-0x42d050; FreeImageData and CreateImageData sit at the end of LabelWidget.cpp's
+// range): the level-complete / game-over summary. Board::DoLevelUpWidget creates it over the board. A 490x390
 // panel (best word, longest word, level and total time, the rank picture, name and next rank) is painted
 // once into an off-screen image, falls from the top with two independently bouncing corners (tilted while
 // they differ), then a header bar (level up or game over, with the level number) slides down and a footer
@@ -50,15 +50,15 @@ public:
 	// +0x64 padding (double alignment)
 	double			mPanelY;                // +0x68 -150.0; top of the panel = (mLeftY + mRightY) * 0.5
 	double			mPanelAngle;            // +0x70 0.0; atan2(mRightY - mLeftY, panel width) while falling
-	double			mUnused78;              // +0x78 0.03, never read
-	bool			mFalling;               // +0x80 true: phase 1, the corners fall and bounce
+	// +0x78 (a double the ctor sets to 0.03, never read): not ported
+	bool			mFalling;               // +0x80 true: the fall, the corners fall and bounce
 	// +0x81..+0x87 padding
 	double			mLeftY;                 // +0x88 -150.0 left corner y
 	double			mLeftVel;               // +0x90 0.0; += 0.15 per update, bounce at 75 with * -0.4, rests above -0.5
 	double			mRightY;                // +0x98 -174.0 right corner y
 	double			mRightVel;              // +0xa0 0.0
-	double			mUnusedA8;              // +0xa8 189.0, never read
-	bool			mFrozenB0;              // +0xb0 false and never set; true would stop Update after the fall and Draw would draw nothing
+	// +0xa8 (a double the ctor sets to 189.0, never read): not ported
+	bool			mFrozen;              // +0xb0 false and never set; true would stop Update after the fall and Draw would draw nothing
 	// +0xb1..+0xb7 padding
 	double			mSlide;                 // +0xb8 header/footer slide 0..1 = sin(mSlidePhase), 1.0 once the phase reaches 1.570795
 	double			mSlidePhase;            // +0xc0 += 0.03 per update
@@ -66,7 +66,7 @@ public:
 	int				mFooterY;               // +0xcc y of the footer bar
 	MemoryImage*	mPanelImage;            // +0xd0 off-screen panel, size of dialog_levelup (owned)
 	Graphics*		mPanelGraphics;         // +0xd4 Graphics on mPanelImage (owned)
-	bool			mPanelDirty;            // +0xd8 repaint the panel at the next Draw (CreatePanel)
+	bool			mPanelDirty;            // +0xd8 repaint the panel at the next Draw (CreateImageData)
 	bool			mLexArrived;            // +0xd9 Lex was idle in BOARD_LEVEL_COMPLETE
 	// port(mod): the mods' results at game over (the greedy bots', the daily board's), in a balloon above Lex;
 	// owned, NULL until shown. mModsText: its text blocks as last laid out
@@ -96,9 +96,9 @@ public:
 	virtual void	ButtonPress(int theId) override;                        // 0x42bc80 (+0x58) slot 3
 	virtual void	ButtonDepress(int theId) override;                      // 0x42bc90 (+0x58) slot 4
 
-	void			DeletePanel();                                          // 0x42b980
-	void			CreatePanel();                                          // 0x42b9c0
-	void			DrawPanel(Graphics* g);                                 // 0x42c210
+	void			FreeImageData();                                          // 0x42b980
+	void			CreateImageData();                                          // 0x42b9c0
+	void			DrawToImage(Graphics* g);                                 // 0x42c210
 	void			UpdateModsBalloon();                                    // port(mod)
 	// port(mod): Enter is Continue on a level's summary once the footer is in (mod "type-word"); false: not taken
 	bool			KeyContinue(KeyCode theKey);

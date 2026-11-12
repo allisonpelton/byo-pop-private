@@ -4,7 +4,7 @@
 // NewUserDialog.cpp: dialog 22 (DIALOG_NEW_USER) with the player-name edit box drawn in the
 // IMAGE_EDITBOX frame. OK or Enter = 2022 (the app trims the name and creates the user), CANCEL = 3022.
 // Original: class Sexy::NewUserDialog : public MoneyDialog, public EditListener, sizeof 0x130 (new in
-// BookWormApp::ShowNewUserDialog 0x4108c0). Vtables: 0x50087c (52 slots), ButtonListener 0x50085c (+0x58),
+// BookWormApp::DoNewUserDialog 0x4108c0). Vtables: 0x50087c (52 slots), ButtonListener 0x50085c (+0x58),
 // EditListener 0x500848 (+0x120). Offsets are absolute. Behaviour spec: re/bookworm/analysis/dialogs.md
 // section 4 (name rules: section 9).
 

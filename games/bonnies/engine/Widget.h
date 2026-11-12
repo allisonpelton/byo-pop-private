@@ -113,8 +113,8 @@ public:
 	int handleEvent(Event* theEvent) override;
 	using Widget::contains;
 
-	// 0x42cbd0: the text shown, with a blinking '|' at the cursor (theUnused is never read)
-	void refreshDisplay(int theUnused = 0);
+	// 0x42cbd0: the text shown, with a blinking '|' at the cursor (theIgnored is never read)
+	void refreshDisplay(int theIgnored = 0);
 	// 0x42cd10
 	void beginEdit();
 	// 0x42cd70: deletes the selected text; whether there was any
@@ -255,7 +255,7 @@ struct ListItem
 
 	Str mText;                // +0x00
 	int mData;                // +0x08
-	int mField0C;             // +0x0c
+	int mSpare;               // +0x0c: copied with the item; nothing reads it
 };
 
 // Type 5 (0x42e070, the vtable 0x459a4c)

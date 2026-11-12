@@ -2,7 +2,7 @@
 #define __BOOKWORM_BIGLEX_H__
 
 // BigLex.cpp: the big Lex mouth over the game-selector backdrop. BWGameSelector makes it in its ctor
-// (Resize(70, 231, 133, 123)) and plays the "Welcome" lip-sync once per run (PlayAnim(0, false) with
+// (Resize(70, 231, 133, 123)) and plays the "Welcome" lip-sync once per run (PlayAnimSeq(0, false) with
 // SOUND_LEX_WELCOME at the selector's update 100). The closed mouth is part of the backdrop: frame 0
 // draws nothing.
 // Original: class Sexy::BigLex : public Widget, sizeof 0x70 (new(0x70) in the BWGameSelector ctor
@@ -45,7 +45,7 @@ public:
 	virtual void	Draw(Graphics* g) override;                     // 0x402e80 slot 16
 	virtual void	Update() override;                              // 0x402eb0 slot 17
 
-	void			PlayAnim(int theAnim, bool theLoop);            // 0x402e40
+	void			PlayAnimSeq(int theAnim, bool theLoop);            // 0x402e40
 };
 
 }
