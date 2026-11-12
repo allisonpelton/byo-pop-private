@@ -434,6 +434,77 @@ stays with that shared cost. A way out would be shared too: a SexyAppFramework s
 blitters into its bits, as the original's DirectDraw path draws, and shown by the surface presenter. Dynomite's board,
 490 by 480 of the 640 by 480 screen (77%), is marked dirty on every update in play, and the sidebar now and then.
 
+### The software screen (2026-11-12)
+
+That way out is built (`framework/SoftwareScreenDisplay.h`, 37fffce6; Dynomite takes it in 373e3223). It is a
+SurfaceDisplay whose screen DDImage keeps its pixels in memory. Every draw onto the screen takes DDImage's software branch
+(MemoryImage's blitters, as the original's DirectDraw path draws into its surface), and the display hands the pixels
+drawn to the window's surface. The screen keeps what the last frame drew, so only the dirty widgets are drawn each
+frame, as in SexyAppFramework 1.x. Only Dynomite makes it, in its CreateDDInterface; no other port changes, and the web
+build keeps the GPU path. It draws in software at the game's own size. At any other size it hands the screen to the GPU
+path for good once the window's renderer turns out to be accelerated, and keeps drawing in software where it is not (a
+machine with no GPU), as "The default window" below explains. The pictures and the frozen baseline are covered in `IDENTICAL_PLAY.md`, "The software screen".
+
+**Which rects go over.** A first version found the changed rects by comparing the screen with the frame shown last,
+which cost 0.71 to 0.89 M cycles a frame, about 0.64 M an update. Now each software draw onto the screen notes the rect
+it covered, bounded by its clip. The display marks the 16-pixel blocks under it and joins them into rects at the
+present, at 2.8 to 4.8 k cycles a frame. In play the board is redrawn at every update and the sidebar while Inchy
+moves, so 97% of the screen goes over in each frame, as in the original's Blt. With SURFACE_VERIFY=1 the window's
+surface was compared with the screen at every pixel after each of 4,291 presents, and none differed.
+
+**Where the cycles go.** The same minute as above, split with CYC_SPLIT=1, in M cycles an update at 640 by 480:
+
+| Part | Software screen | GPU path (above) | Original |
+|---|---|---|---|
+| Update | 0.044 | 0.023 | 0.023 |
+| Draw | 0.830 | 0.378 | 0.749 |
+| Present | 0.425 | 0.499 | 0.401 |
+| The graphics driver's threads | none | 0.789 | none |
+| Sound and the other threads | 0.084 | 0.074 | 0.332 |
+| The loop (events, sleeps, the readings) | 0.102 | 0.033 | 0.128 |
+| Total | 1.485 | 1.796 | 1.633 |
+
+The draw now costs what the original's does, and the present what its Blt does, with no driver thread.
+
+**The default window.** At 2x the software screen costs more: the screen, drawn at 640 by 480, is stretched to 1280 by
+960 by the processor and handed to the window's surface, 2.42 M cycles an update in one split against the GPU path's
+1.87 on a quieter day. So at any size but the game's own the display hands the screen to DDInterface's GPU path, once
+and for good, where the window's renderer is accelerated (`SDL_RENDERER_ACCELERATED`, not SDL's software renderer):
+`WantedSurfaceScale` (now virtual, a `shared:` change in 0c9e7fd6) asks SurfaceDisplay for the renderer at 2x to 4x too,
+so that the display sees which one SDL gave. A window that starts at 640 by 480 and is enlarged hands over at the
+enlargement, the GPU's screen starting from the last frame drawn in software. Where SDL has no accelerated renderer (a
+machine without a GPU driver, or `SDL_RENDER_DRIVER=software`), its software renderer would stretch every sprite on the
+processor (Bejeweled 2's 48.5% of a core at 2x), so there the software screen stays at every size: at 2x to 4x the
+window's surface shows it, at other sizes SurfaceDisplay's renderer mode. That case was run windowed at 2x and in full
+screen at 3840 by 2160: the log names the software renderer and the screen stays in software.
+
+**Five pinned rounds** (`tools/profile/pairs.sh`, the original windowed at 640 by 480 drawing at most 60 times a second,
+the port in turn at 640 by 480 and in its default window), on the merged binary, G cycles in the scripted minute:
+
+| Round | Original | Port, 640 by 480 | Port, default window |
+|---|---|---|---|
+| 1 | 9.87 | 8.52 | 15.43 |
+| 2 | 9.46 | 8.46 | 16.99 |
+| 3 | 9.73 | 10.65 | (a mark read late: not counted) |
+| 4 | 9.63 | 7.71 | 20.81 |
+| 5 | 8.66 | 7.76 | 17.82 |
+| Median | 9.63 | 8.46 | 17.40 |
+
+At the game's own size the port is now under its original, by 12% by the medians and in four rounds of five. The default
+window is the GPU path's, and on this day its present waited on the GPU, which other sessions' games were using: ten
+runs of it took 11.5 to 20.8 (median 17.2), the old GPU path (`SURFACE_DISPLAY=off`) 13.0 to 20.5 in three runs
+interleaved with them, with the same draw (0.42 to 0.46 M cycles an update) and driver thread (0.87 to 0.98 M) and a
+present of 0.44 to 1.84 M. The software screen at 2x, interleaved with three of them, took 15.5 to 21.5, its present
+through the window's surface 1.59 to 2.21 M; the GPU path was the cheaper in two of the three pairs. On a quiet GPU the
+default window costs what the GPU path did before, 1.87 M an update (11.2 G a minute).
+
+**Memory.** At 640 by 480 the scripted minute's run peaks at 58 MB private (no Direct3D device: the window's surface shows
+the screen), against the original's 65. In the default window the GPU path's memory is the old path's, and it varies
+from run to run: 95, 176 and 181 MB at the peak in three runs, the old path 176 in one, the excess taken as the game
+starts and partly given back (148 to 155 MB held). The build of 2026-11-03 peaked at 94 on the same input. The software
+screen is not the cause, since the old path does the same; Direct3D 11, which the framework asks for first since
+2026-11-12 (ccec8c20), is the likeliest place, and it belongs with the shared present cost.
+
 ## 7. The PopCap Game Collection version (2026-11-11)
 
 The Collection disc (the user's ISO, 2009) has Dynomite Deluxe as the group `DynomiteDeluxeComponent`: 227 files, 4.1 MB.

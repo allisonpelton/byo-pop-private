@@ -326,11 +326,12 @@
         "unneeded-code",
         "readability",
         "collection",
-        "site-features"
+        "site-features",
+        "performance"
       ],
       "na": [],
-      "now": "performance",
-      "note": "19% over its original at 640x480 (12.7 G cycles a minute against 10.6), 4% over in the default window; the game's code costs the same, the excess is the present and the D3D11 driver thread; its screen is drawn on the GPU, so the surface presenter cannot take it"
+      "now": "lite-mod",
+      "note": "performance done through SoftwareScreenDisplay: 8.46 against the original's 9.63 G cycles a minute at 640x480; the default 2x window takes the GPU path (about 1.87 M cycles an update on a quiet GPU)"
     },
     "bookwormadv2": {
       "title": "Bookworm Adventures Volume 2",

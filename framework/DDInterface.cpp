@@ -168,6 +168,7 @@ DDInterface::DDInterface(SexyAppBase* theApp)
 	mFrameCount = 0;
 	mSoftwareStretch = false;
 	mFastStretchPreAdd = false;
+	mFastStretchCentre = false;
 	mSoftwareTransforms = false;
 	mKeepScreen = false;
 	mStretchUse = 0;
@@ -1080,6 +1081,14 @@ MemoryImage* DDInterface::GetStretchCopy(MemoryImage* theSource, const Rect& the
 			{
 				ulong* aSrcRow = aSrcBits + (aSrcY >> 16) * theSource->mWidth;
 				int aSrcX = theSrcRect.mX * 65536;
+				if (mFastStretchCentre)
+				{
+					// each pixel's centre, exactly: (2i + 1) * srcWidth / (2 * destWidth)
+					aSrcRow = aSrcBits + (theSrcRect.mY + (int) (((long long) (2 * y + 1) * theSrcRect.mHeight) / (2LL * theHeight))) * theSource->mWidth;
+					for (int x = 0; x < theWidth; x++)
+						*aDestBits++ = aSrcRow[theSrcRect.mX + (int) (((long long) (2 * x + 1) * theSrcRect.mWidth) / (2LL * theWidth))];
+					continue;
+				}
 				for (int x = 0; x < theWidth; x++)
 				{
 					if (mFastStretchPreAdd)

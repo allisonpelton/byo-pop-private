@@ -98,7 +98,9 @@ all), two differed from their repeats: see the Oddities.
 `build/baseline-dynomite/` (git-ignored: a copy of `dynomite.exe` and its DLLs made when this pass was done, at c8da6e1)
 is checked by `tools/check.sh dynomite`: three of the cases above (en1 without its table shots, st2's first game, fp1) run
 in both the current port and the baseline with `-statelog` must write the same non-empty state log, so later fixes and
-mods leave unmodded play as compared with the original.
+mods leave unmodded play as compared with the original. It was frozen again on 2026-11-12 from the port with the
+software screen as it is merged (0c9e7fd6: software at the game's own size, the GPU in a larger window; below): its state
+logs are the old baseline's, and its pictures are the ones compared with the original in "The software screen".
 
 ## Phase 2: how it was compared
 
@@ -333,6 +335,71 @@ do the same, so the bot plays that step as it plays step 43, landing low without
 has no move for a while, which the kit's `playByMove` takes for the end after two asks, so the driver asks again while
 the game goes on.
 
+## The software screen (2026-11-12)
+
+The performance pass left the port 19% over its original at the game's own size, all of it in drawing on the GPU and
+presenting through its driver (`GAME_NOTES.md`, section 6). So the native port now draws as the original does with
+DirectDraw: the screen's own pixels are the screen, every draw onto it is made by the framework's software blitters, and
+the display shows the pixels drawn (`framework/SoftwareScreenDisplay.h`; the web build keeps the GPU path). Only the
+dirty widgets are drawn, as in the original's framework, so the screen keeps its pixels from one frame to the next. The
+game's state was unchanged by it: `tools/check.sh dynomite` gives the frozen baseline's state logs, and every tour below
+reached the same states. Since everything drawn now went through other code, phase two's comparison was run again.
+
+**How it was compared.** The twelve tours and the six recordings of phase two were played again in both programs: the
+original in Windows Sandbox as before (its shots taken afresh), the port with the software screen, and shotdiff
+compared every pair. Every result is the same as phase two's or closer:
+
+| comparison | shots | the same | what is left |
+|---|---|---|---|
+| tours t2, t3, t4, t6, t8, t9 | 59 | 59 | none |
+| t1 | 18 | 14 | the options and credits without their links (phase two) |
+| t7, t10, t11, t12 | 47 | 41 | one shot each after loading a saved game (phase two: the colours come from the clock at the save), and t12's options twice without the link |
+| t5 | 9 | 8 | f3's single pixel at the aim path's tip (phase two) |
+| tutorial | 108 | 103 | 5 faint shots of one or two pixels on the arrow's edge (phase two had 7) |
+| Endless, Time Trial | 22 | 22 | none |
+| Stomped | 13 | 11 | the stretched foot's columns in shot 200 and two pixels in shot 400 (phase two) |
+| Fossil | 26 | 7 | the board's top and bottom edge rows from the game over on (phase two, Oddities) |
+| Panic | 30 | 28 | two shots of one pixel each (phase two had 3) |
+
+**What was changed.** The first run of t3 and t5 flagged the dinosaur's foot, which Stomped and Panic stretch over the
+board's width with the fast stretch: its columns came one over in places. MemoryImage's fast stretch steps a column before
+it samples, where the original samples each pixel's centre (above, the stomping foot), as SDL's nearest filter did on the
+GPU path. A software screen now draws a stretch as the original's software screen does, stretched into a copy of the
+destination's size and then blitted, the fast stretch sampling exact centres (`DDInterface::mFastStretchCentre`), and every
+shot of t3, t4 and t5 but f3's pixel matches again. The rest needed nothing: what the software blitters draw matched the
+original as closely as the GPU did. Their blending rounds a little differently from the original's, which has its own
+formula for a 32-bit surface (its stretch at 0x473870), but no shot shows it.
+
+| difference | cause | what the port does now | commit |
+|---|---|---|---|
+| the foot's stretched columns one over (t3, t5) | MemoryImage's fast stretch steps before it samples | the software stretch, sampling each pixel's centre | the shared commit of the software screen |
+
+**At other sizes the GPU draws.** In software the default window (1280 by 960) cost more than the GPU path had: 2.42 M
+cycles an update against 1.87, since the surface's copy and GDI's blit grow with the window and the GPU's present does not
+(`GAME_NOTES.md`, section 6, "The software screen"). So the display draws in software only at the game's own size. At any
+other size it hands the screen to the framework's GPU path for good once the window's renderer turns out to be
+accelerated, and on a machine with no GPU it keeps drawing in software at every size.
+
+**Old screen against new.** The port's own two screens were compared on the final binary (t1's menus and t2's Endless
+game, 29 shots at the window's own resolution), `SURFACE_DISPLAY=off` (the GPU path throughout) against the new display:
+
+| Window | Shots the same | What differs |
+|---|---|---|
+| The default window, 1280 by 960 | 29 of 29 | nothing |
+| Full screen, 3840 by 2160 | 29 of 29 | nothing |
+| Started at 1280 by 960, resized to 640 by 480 before the first shot | 29 of 29 | nothing: it stays on the GPU |
+| 640 by 480 | 0 of 29 | blend rounding, 5,000 to 25,000 pixels a shot |
+| Started at 640 by 480, resized to 1280 by 960 midway | 12 of 29 | the 640 by 480 half's rounding, then a shake |
+
+At 640 by 480 the software blitters round alpha blends as the original's framework does and the GPU's blend rounds a
+little differently. In the menu shot, 17,678 of the 18,351 pixels that differ are off by one level in one channel and the
+rest by two. Nothing is visible, and the original's own pictures are what the software screen was compared with above.
+After the hand-over to the GPU midway, the menus match. In play the eggs that carry dynamite are shaken differently,
+because the hand-over came while the window had no focus. The GPU path redraws the whole board once a second without the
+focus, and the software screen draws only what is dirty, so the two drew the board a different number of times. That is
+the baby egg's shake above, which draws from the C runtime's generator and changes nothing in play. With the GPU at 1280
+by 960 and full screen the picture is the GPU path's own, so it is neither softer nor sharper than before.
+
 ## The fixes mod
 
 The pass found no fix candidate: no bug of the original that changes play and no wait that only costs time (loading is
@@ -397,4 +464,6 @@ None in play. The port leaves out what only an unregistered copy shows and the c
 has no wait of its own in loading (`README.md`, "Registration and loading"); none of these shows in a registered copy
 but the credits' two names, which are plain text, and the title's "thanks for registering", which is left out. Without a sound device the three looping sounds get a silent stand-in
 where the original would call through a null pointer. In a browser the main menu cannot move the mouse onto the
-launcher, and a page cannot start in full screen.
+launcher, and a page cannot start in full screen. In its default window and in full screen the native port shows its
+640 by 480 screen scaled, each pixel repeated (twice in the default window, then to the display's size in full screen),
+where the original's full screen sets the display itself to 640 by 480.
