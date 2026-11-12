@@ -3,11 +3,14 @@
 The original's 3D run (visrun3d.py) is on the wall clock. The game is held to read its counter C and released for the picture, and until the
 picture is drawn it runs on: the shot shows the state of an update after C (docs/IDENTICAL_PLAY.md, "3D screens"). So the port takes a shot at every update C+lo ..
 C+hi of each chosen shot (default -1 .. +12), and each of the original's shots is compared with those frames; the frame with the fewest pixels that
-differ by more than 8 is the one the original's shot shows, whose offset says how far the game ran on.
+differ by more than 8 is the one the original's shot shows, whose offset says how far the game ran on. A frame is also tried moved sideways by up to
+SHAKE columns (the board's shake, which moves the whole picture by a random amount, docs/IDENTICAL_PLAY.md): the shift that fits is printed as dx and the
+frame that is copied is moved by it.
   prepare  writes build/ph2/<tour>/lag3d/port3d.txt, the port's script of the run (mkport3d.py's lines, the shots of the window added; --shift N
            lets every input of the run reach the port N updates later, to test whether the original read its inputs late)
   compare  reads <tour>/lag3d/port/<name>_<offset>.png, prints one line a shot (its best offset and differing pixels, and the next best),
-           copies each best frame to <tour>/lag3d/best/<name>.png and writes <tour>/lag3d/best.tsv; shotdiff then compares best/ with orig3d/."""
+           copies each best frame (moved by its dx) to <tour>/lag3d/best/<name>.png and writes <tour>/lag3d/best.tsv (name, C, offset, pixels,
+           dx); shotdiff then compares best/ with orig3d/."""
 import os
 import shutil
 import sys
@@ -101,6 +104,21 @@ def blurred_diff(a, b, tol=24):
     return int((np.abs(box_blur(a) - box_blur(b)).max(axis=2) > tol).sum())
 
 
+SHAKE = 3   # columns: the board's shake moves a frame sideways by up to this much (the shock's size)
+
+
+def shift_x(p, ref, dx):
+    """p moved dx columns to the left (the picture at x + dx comes to x); the columns it does not cover are taken from ref, so they never differ."""
+    if dx == 0:
+        return p
+    q = ref.copy()
+    if dx > 0:
+        q[:, :-dx] = p[:, dx:]
+    else:
+        q[:, -dx:] = p[:, :dx]
+    return q
+
+
 def frame(name, o):
     return os.path.join(L, "port", "%s_%+d.png" % (name, o))
 
@@ -134,31 +152,38 @@ else:
     tsv = open(os.path.join(L, "best.tsv"), "w")
     for nm in names:
         o_im = np.asarray(Image.open(os.path.join(D, "orig3d", nm + ".png")).convert("RGB")).astype(int)
-        res = []
+        # the board's shake (CrtRand, a few pixels at most, docs/IDENTICAL_PLAY.md) moves the whole picture sideways by a random amount, so each frame is
+        # also tried moved up to SHAKE columns either way; a shift costs 200 pixels, so that a frame that matches without one keeps its place
+        res = []   # (cost, pixels that differ, offset, shift)
         for o in range(lo, hi + 1):
             if os.path.exists(frame(nm, o)):
                 p = np.asarray(Image.open(frame(nm, o)).convert("RGB")).astype(int)
-                res.append((int((np.abs(p - o_im).max(axis=2) > 8).sum()), o))
+                for dx in range(-SHAKE, SHAKE + 1):
+                    n = int((np.abs(shift_x(p, o_im, dx) - o_im).max(axis=2) > 8).sum())
+                    res.append((n + 200 * abs(dx), n, o, dx))
         res.sort()
         if not res:
             print(nm, "no frames")
             continue
-        shutil.copyfile(frame(nm, res[0][1]), os.path.join(best_dir, nm + ".png"))
-        tsv.write("%s\t%d\t%d\t%d\n" % (nm, landed[nm], res[0][1], res[0][0]))
-        print("%s C %d best +%d (%d px) next %s at 0: %d px" % (nm, landed[nm], res[0][1], res[0][0], res[1:2], [r[0] for r in res if r[1] == 0][0] if any(r[1] == 0 for r in res) else -1))
-        # each region that still differs at the best offset: which offset suits that region best, and how many pixels still differ there
-        best_o = res[0][1]
-        b_im = np.asarray(Image.open(frame(nm, best_o)).convert("RGB")).astype(int)
+        best_o, best_dx = res[0][2], res[0][3]
+        p = np.asarray(Image.open(frame(nm, best_o)).convert("RGB")).astype(int)
+        b_im = shift_x(p, o_im, best_dx)
+        Image.fromarray(b_im.astype(np.uint8)).save(os.path.join(best_dir, nm + ".png"))
+        tsv.write("%s\t%d\t%d\t%d\t%d\n" % (nm, landed[nm], best_o, res[0][1], best_dx))
+        other = [(r[1], r[2]) for r in res if r[2] != best_o][:1]
+        at0 = [r[1] for r in res if r[2] == 0 and r[3] == 0]
+        print("%s C %d best +%d (%d px) dx %d next %s at 0: %d px" % (nm, landed[nm], best_o, res[0][1], best_dx, other, at0[0] if at0 else -1))
         # a structural check: both pictures blurred by a 7x7 box, then the pixels that still differ by more than 24: sub-pixel and filtering
         # noise averages out, a sprite that is missing, moved by a few pixels or another picture does not
         sd = blurred_diff(b_im, o_im)
         print("    structure: %d px differ after a 7x7 blur" % sd)
+        # each region that still differs at the best offset: which offset suits that region best, and how many pixels still differ there
         for (x0, y0, x1, y1) in regions(np.abs(b_im - o_im).max(axis=2) > 8):
             per = []
             for o in range(lo, hi + 1):
                 if os.path.exists(frame(nm, o)):
-                    p = np.asarray(Image.open(frame(nm, o)).convert("RGB")).astype(int)
-                    per.append((int((np.abs(p[y0:y1, x0:x1] - o_im[y0:y1, x0:x1]).max(axis=2) > 8).sum()), o))
+                    q = shift_x(np.asarray(Image.open(frame(nm, o)).convert("RGB")).astype(int), o_im, best_dx)
+                    per.append((int((np.abs(q[y0:y1, x0:x1] - o_im[y0:y1, x0:x1]).max(axis=2) > 8).sum()), o))
             per.sort()
             at_best = [c for c, o in per if o == best_o]
             print("    region (%d,%d %dx%d): best +%d (%d px), at +%d: %d px" % (x0, y0, x1 - x0, y1 - y0, per[0][1], per[0][0], best_o, at_best[0] if at_best else -1))
