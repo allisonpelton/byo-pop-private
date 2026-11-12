@@ -787,7 +787,9 @@ in the port's own mixer thread (0.2 to 0.3 G of a 20 s stretch), so the port's t
 (`hooks_rescan` in `tools/origrun/vclock.c`, at most once in 15 ms). The original's cursor thread calls it every 10 ms and its main thread calls it too, so under the stock stand-in the
 original's cursor thread costs 0.5 to 0.8 G of a 20 s stretch (37 to 61 M with the rescan interval raised to 2 s in a scratch copy of the stand-in, all its other hooks unchanged) and its main
 thread 0.3 to 0.4 G more. **Every figure below marked "stock" has that inflation in the original's column**; the figures marked "throttled" do not. Every game's like-for-like numbers under
-origrun are affected (a spec for the coordinator, below).
+origrun were affected. **Fixed on the trunk by `223d9bdf` (2026-11-12, merged here as part of 38a0512b):** the rescan now runs only after the loader's DLL notice, and the original's
+cursor thread costs 33 to 51 M in 20 s with it (the hidden-desktop pairs below); the "throttled" figures were taken with a scratch copy of the stand-in that raised the interval to 2 s, which is the same
+thing for this game.
 
 **On the visible desktop, both in 3D** (the player's own setup: windowed 640 by 480, a display that signals its vertical blank; only 22:00 to 08:00, CLAUDE.md
 "Overnight"; the port is Direct3D 11 through SDL, the original DirectDraw 7 and Direct3D 7 with its 3D flag read as 1 from its memory; the board's state at the stretch's start
@@ -807,10 +809,15 @@ sibling and a shared cache), the port's driver thread *falls* (3.2 to 3.6 G at 0
 is where the port's thread is dearest. The pairs alternate and the medians are of five for that reason, but nothing makes the machine quiet while other sessions run games; the quiet pairs are three in all.
 
 **On rundesk's hidden desktop** (the harness of every test run; the original there is 2D, DirectDraw, since a hidden desktop gives it no Direct3D, section 16; stock stand-in; five pairs, 01:33
-to 01:48, one original run did not get into play and is left out): the port (Direct3D 11) 4,915 M (3,688 to 7,160), the original 6,398 M (5,387 to 7,414). The port's
+to 01:48, one original run did not get into play and is left out): the port (Direct3D 11) 4,915 M (3,688 to 7,160), the original 6,398 M (5,387 to 7,414; its cursor thread 655 M of it). The port's
 main thread is 2.0 to 5.0 G here because `SDL_RenderPresent` spins on a desktop with no vertical blank (2,196 M of one run's 3,030 M on the main thread, against 265 M of 1,065 M on
 the visible desktop), the original's 2D drawing 4.7 to 6.5 G on its main thread. The user's question whether this desktop makes a present cost more than on a player's screen
 (2026-11-12) has its answer: yes, two to eight times on the main thread.
+
+**With the fixed stand-in, on the hidden desktop** (trunk 38a0512b, origrun rebuilt and its stand-in placed in the copy; five pairs, 10:35 to 10:50, the machine 0.54 to 0.74 in use and quieter than at night, the port 640 by 480 at render scale 1, the original 2D): the port
+**4,485 M** (4,274 to 5,472: main 2,123, driver thread 2,173, mixer 218) against the original **5,616 M** (4,753 to 6,684: main 5,462, cursor thread 45, other 109), the port lower in all five pairs (4,679 / 5,416, 4,485 / 5,616, 4,438 / 4,753,
+5,472 / 6,220, 4,274 / 6,684), 0.80 of it. The stand-in's fix took the original's cursor thread from 655 M to 45 M and its median from 6,398 M to 5,616 M. The original here draws in 2D (DirectDraw, software), which the player's 3D mode
+does not, so the figures of the visible desktop above stay the ones for a player's machine.
 
 **Where the port's main thread goes** (a temporary probe of the cycles around each call, removed again; one run on the visible desktop, 2,000 updates, 1,204 presented frames,
 that is 60 a second with vsync): the main thread 1,065 M = `ProcessEvents` 26, `UpdateFrames` 66 (the game's own update), `BeginFrame` 32, `DrawScreen` 466 (the game's draw, with
@@ -832,7 +839,7 @@ pass and no clear and copy in `Present` (four pairs on the hidden desktop, 02:46
 with a blank, ten times that on rundesk's) are the same finding as AstroPop's; every API that SDL offered cost as much or more and skipping the render-target pass did not help, so what would is fewer presents (a frame that nothing changed in need not be presented, though Typer Shark redraws its whole scene every frame). The window-surface presenter that the Mahjong session built (`cf1dea5f`, no renderer and no driver thread) is for a frame that is one finished software-drawn picture;
 Typer Shark's is about 600 alpha-blended quads a frame through the renderer, and drawing them in software would cost what the original's own 2D mode does here (4.7 to 6.5 G on its main thread, hidden desktop), so it does not apply;
 (2) the draw glue: 593 SDL calls a frame for 20 runs of one texture, so a queue in `DDInterface` that joins the quads of consecutive
-same-texture draws into one `SDL_RenderGeometry` call would take about half of the 466 M of `DrawScreen` (an estimate: 0.2 G, 6% of the process, with a frozen-baseline check since the draw order must stay); (3) the stand-in's rescan above, for the originals' side of every game's numbers.
+same-texture draws into one `SDL_RenderGeometry` call would take about half of the 466 M of `DrawScreen` (an estimate: 0.2 G, 6% of the process, with a frozen-baseline check since the draw order must stay); (3) the stand-in's rescan above, which the coordinator fixed (`223d9bdf`).
 
 **To repeat.** From the worktree root, overnight for the desktop kinds: `KINDS="port3d orig3d" bash games/typershark/tools/profile/pairs2.sh <out dir> 5`
 (`KINDS="port orig"` for the hidden desktop; `SDL_RENDER_VSYNC=0` or `SDL_RENDER_DRIVER=<name>` in front for a variant), then
