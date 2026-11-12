@@ -303,11 +303,12 @@
         "site-features",
         "coverage",
         "identical-look",
-        "fixes-mod"
+        "fixes-mod",
+        "performance"
       ],
       "na": [],
-      "now": "performance",
-      "note": "3D screens compared with the original on the desktop, no fix candidate (fixes mod: none needed); performance: port 1.65-1.9 M cycles an update against the original's 4.0-4.4 M in a first trial"
+      "now": "lite-mod",
+      "note": "processor time 0.25 to 0.78 of the original's in every pair (port 1.4-2.5 M cycles an update, original about 4.2 M), 2D, 3D and the default window; the lite survey next"
     },
     "dynomite": {
       "title": "Dynomite Deluxe",
