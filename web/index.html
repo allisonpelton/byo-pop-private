@@ -313,8 +313,8 @@ html:not(.d95-desk) #chat { display: none !important; }
 .mu-lcd-time { flex: none; font-size: 20px; font-weight: 700; letter-spacing: 1px; font-variant-numeric: tabular-nums; }
 .mu-lcd-names { display: flex; flex-direction: column; flex: 1; min-width: 0; }
 .mu-lcd-tune, .mu-lcd-game { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.mu-lcd-tune { min-height: 1.25em; }
-.mu-lcd-game { font-size: 10px; opacity: .7; min-height: 1.25em; }
+.mu-lcd-tune { min-height: 15px; }
+.mu-lcd-game { font-size: 10px; opacity: .7; min-height: 13px; }   /* whole pixels: a fraction put every row below on half a pixel */
 .mu-lcd-total { flex: none; align-self: flex-start; font-size: 11px; opacity: .7; font-variant-numeric: tabular-nums; }
 .mu-vis { position: relative; height: calc(12px + var(--mu-rows, 5) * 12px); margin-top: 3px; cursor: pointer; }
 .mu-vis:focus-visible { outline: 1px dotted currentColor; outline-offset: 1px; }
@@ -379,9 +379,9 @@ html:not(.d95-desk) #chat { display: none !important; }
 .mu-vol { width: 90px; margin: 0 0 0 2px; }
 /* the playlist: a line a tune, its number, name and length, the one playing marked */
 .mu-list { font-size: 12px; max-width: 520px; }
-.mu-game { margin: 6px 0 1px; font-size: 11px; font-weight: 600; color: var(--muted); }
+.mu-game { margin: 6px 0 1px; font-size: 11px; line-height: 14px; font-weight: 600; color: var(--muted); }
 .mu-tunes { list-style: none; margin: 0; padding: 0; }
-#music .mu-tune { width: 100%; display: flex; align-items: baseline; gap: 6px; min-height: 0; padding: 1px 4px; font-size: 12px; text-align: left;
+#music .mu-tune { width: 100%; display: flex; align-items: baseline; gap: 6px; min-height: 0; padding: 1px 4px; font-size: 12px; line-height: 15px; text-align: left;
   color: inherit; background: none; border: 0; border-radius: 0; box-shadow: none; }
 #music .mu-tune:hover { background: rgba(127, 127, 127, .15); }
 #music .mu-tune[aria-current] { background: var(--accent); color: #fff; }
@@ -393,8 +393,12 @@ html:not(.d95-desk) #chat { display: none !important; }
 #music .mu-where { flex: 0 1 auto; max-width: 40%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; color: var(--muted); }
 #music .mu-where.mu-unused { text-decoration: line-through; }
 .mu-format { flex: none; width: 3em; font-size: 10px; color: var(--muted); text-align: center; }
+#music .mu-composer { flex: 0 1 auto; width: 9em; max-width: 25%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; color: var(--muted); }
+#music .mu-fold { display: flex; align-items: baseline; gap: 4px; width: 100%; min-height: 0; margin: 0; padding: 0 2px; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: default; }
+#music .mu-fold-mark { flex: none; width: 9px; height: 9px; line-height: 7px; border: 1px solid #808080; background: #fff; color: #000; font-size: 9px; text-align: center; align-self: center; }
+#music .mu-game-sum { font-weight: normal; }
 #music .mu-tune[aria-current] .mu-num, #music .mu-tune[aria-current] .mu-time, #music .mu-tune[aria-current] .mu-where,
-#music .mu-tune[aria-current] .mu-format { color: inherit; }
+#music .mu-tune[aria-current] .mu-format, #music .mu-tune[aria-current] .mu-composer { color: inherit; }
 /* The import from an installed game (web/saveimport.js) */
 #saves-body select { font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 5px 8px; max-width: 100%; }
 /* the import's wizard (web/saveimport.js): its picture (drawn only by Desktop 95, web/skins.css), one page at a time, and
@@ -579,6 +583,8 @@ footer a { color: var(--accent); }
 <script src="sounds.js"></script>
 <script src="trophies.js"></script>
 <script src="gamepics.js"></script>
+<!-- its auto splitters: each game's block read from the front game window and its start, split and reset rules (web/autosplit.js) -->
+<script src="autosplit.js"></script>
 <!-- the splits timer: Desktop 95's Splits window, a stand-in for LiveSplit (web/splits.js) -->
 <script src="splits.js"></script>
 <!-- Adding games (web/addgames.js): web/modpanel.js's zip and pak readers, without a game (it fills Module.byopop), the icon reader, the

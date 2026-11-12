@@ -245,13 +245,99 @@ var ByopopMusic = (function () {
     }
     return 0;
   }
-  // An Ogg Vorbis file as interleaved stereo at the context's rate: the browser's decoder, else stb_vorbis in openmpt.wasm
+  // An Ogg Vorbis or WAV file as interleaved stereo at the context's rate: the browser's decoder, else an MS ADPCM WAV's (msAdpcm),
+  // else stb_vorbis in openmpt.wasm
   function decodeOgg(M, ctx, bytes) {
-    return ctx.decodeAudioData(bytes.slice().buffer).then(function (buf) {
+    var mp3 = wavMp3(bytes);   // an MP3 in a WAV: its frames, which every browser reads as an MP3
+    return ctx.decodeAudioData((mp3 || bytes).slice().buffer).then(function (buf) {
       var n = buf.length, l = buf.getChannelData(0), r = buf.numberOfChannels > 1 ? buf.getChannelData(1) : l, out = new Float32Array(n * 2);
       for (var i = 0; i < n; i++) { out[i * 2] = l[i]; out[i * 2 + 1] = r[i]; }
       return out;
-    }, function () { return stbOgg(M, bytes, ctx.sampleRate); });
+    }, function () {
+      var w = msAdpcm(bytes);
+      if (!w) return stbOgg(M, bytes, ctx.sampleRate);
+      var n = w.channels[0].length, rate = ctx.sampleRate, frames = Math.floor(n * rate / w.rate), out = new Float32Array(frames * 2);
+      for (var i = 0; i < frames; i++) {
+        var x = i * w.rate / rate, a = Math.floor(x), f = x - a, b = Math.min(a + 1, n - 1);
+        for (var c = 0; c < 2; c++) { var d = w.channels[Math.min(c, w.channels.length - 1)]; out[i * 2 + c] = d[a] * (1 - f) + d[b] * f; }
+      }
+      return out;
+    });
+  }
+  // An MS ADPCM WAV (format 2, which the browsers' decoders do not read: Word Harmony's music and some of its sounds) as
+  // {rate, channels: [Float32Array]}; null for any other file. Each block starts with each channel's predictor, step and two
+  // samples, then four-bit codes (a stereo byte's high half the left's), each predicted from the two before, the division
+  // rounding toward zero as Windows' own decoder's does
+  // An MP3 inside a WAV (format 0x55, as Word Harmony's instruments and menu music are): the data chunk's MPEG frames, which
+  // every browser's decoder reads as an MP3, where Firefox's reads no WAV but PCM; null for any other file
+  function wavMp3(bytes) {
+    var w = wavChunks(bytes);
+    return w && w.tag === 0x55 ? bytes.subarray(w.data, w.data + w.size) : null;
+  }
+  // A RIFF WAVE's format tag and where its data chunk lies ({tag, data, size}), or null
+  function wavChunks(bytes) {
+    try {
+      var dv = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+      if (bytes.length < 12 || dv.getUint32(0) !== 0x52494646 || dv.getUint32(8) !== 0x57415645) return null;
+      var at = 12, tag = -1, data = -1, size = 0;
+      while (at + 8 <= bytes.length) {
+        var id = dv.getUint32(at), len = dv.getUint32(at + 4, true);
+        if (id === 0x666d7420) tag = dv.getUint16(at + 8, true);
+        else if (id === 0x64617461) { data = at + 8; size = Math.min(len, bytes.length - data); }
+        at += 8 + len + (len & 1);
+      }
+      return tag >= 0 && data >= 0 ? { tag: tag, data: data, size: size } : null;
+    } catch (e) { return null; }
+  }
+  var ADAPT = [230, 230, 230, 230, 307, 409, 512, 614, 768, 614, 512, 409, 307, 230, 230, 230];
+  function msAdpcm(bytes) {
+    try {
+      var dv = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+      if (bytes.length < 12 || dv.getUint32(0) !== 0x52494646 || dv.getUint32(8) !== 0x57415645) return null;
+      var at = 12, fmt = -1, data = -1, size = 0, total = -1;
+      while (at + 8 <= bytes.length) {
+        var id = dv.getUint32(at), len = dv.getUint32(at + 4, true);
+        if (id === 0x666d7420) fmt = at + 8;
+        else if (id === 0x64617461) { data = at + 8; size = Math.min(len, bytes.length - data); }
+        else if (id === 0x66616374 && len >= 4) total = dv.getUint32(at + 8, true);
+        at += 8 + len + (len & 1);
+      }
+      if (fmt < 0 || data < 0 || dv.getUint16(fmt, true) !== 2) return null;
+      var ch = dv.getUint16(fmt + 2, true), rate = dv.getUint32(fmt + 4, true), align = dv.getUint16(fmt + 12, true);
+      var count = dv.getUint16(fmt + 20, true), coef = [], c, k;
+      if (ch < 1 || ch > 2 || align <= 7 * ch || !count || rate < 1000) return null;
+      for (k = 0; k < count; k++) coef.push([dv.getInt16(fmt + 22 + k * 4, true), dv.getInt16(fmt + 24 + k * 4, true)]);
+      var perBlock = 2 + (align - 7 * ch) * 2 / ch, frames = Math.ceil(size / align) * perBlock, out = [], n = 0;
+      for (c = 0; c < ch; c++) out.push(new Float32Array(frames));
+      for (var b = data; b + 7 * ch <= data + size; b += align) {
+        var end = Math.min(b + align, data + size), pred = [], step = [], s1 = [], s2 = [];
+        for (c = 0; c < ch; c++) {
+          if (bytes[b + c] >= count) return null;
+          pred.push(coef[bytes[b + c]]);
+          step.push(dv.getInt16(b + ch + c * 2, true));
+          s1.push(dv.getInt16(b + 3 * ch + c * 2, true));
+          s2.push(dv.getInt16(b + 5 * ch + c * 2, true));
+          out[c][n] = s2[c] / 32768;
+          out[c][n + 1] = s1[c] / 32768;
+        }
+        n += 2;
+        for (var q = b + 7 * ch; q < end; q++) {
+          for (var h = 0; h < 2; h++) {
+            var u = h ? bytes[q] & 15 : bytes[q] >> 4;
+            c = ch === 2 ? h : 0;
+            var x = ((s1[c] * pred[c][0] + s2[c] * pred[c][1]) / 256 | 0) + (u >= 8 ? u - 16 : u) * step[c];
+            x = x < -32768 ? -32768 : x > 32767 ? 32767 : x;
+            s2[c] = s1[c]; s1[c] = x;
+            step[c] = (ADAPT[u] * step[c]) >> 8;
+            if (step[c] < 16) step[c] = 16;
+            out[c][n] = x / 32768;
+            if (ch === 1 || h) n++;
+          }
+        }
+      }
+      if (total >= 0 && total < n) n = total;
+      return { rate: rate, channels: out.map(function (d) { return d.subarray(0, n); }) };
+    } catch (e) { return null; }
   }
   // stb_vorbis's 16-bit samples at the file's rate, made stereo float at rate (linear interpolation)
   function stbOgg(M, bytes, rate) {
@@ -274,6 +360,16 @@ var ByopopMusic = (function () {
   }
 
   // ---------- the tunes ----------
+  // Where a file lies in the game's folder, as the copy has it, for a tooltip (the user, 2026-11-12: "The descriptions should
+  // include the path to the audio file within the game folder"): its path, or the file it is inside and where in it
+  // ("Resource.dll, WAVE resource 373", "TipTop.dat: sounds/Pop.ogg")
+  function filePlace(rel) {
+    var bar = rel.indexOf("|");
+    if (bar < 0) return rel;
+    var host = rel.slice(0, bar), pick = rel.slice(bar + 1), m = /^pe:([^:]+):(.+)$/.exec(pick);
+    if (m) return T("music.in_resource", { file: host, type: m[1], id: m[2] });
+    return T("music.in_archive", { file: host, entry: pick.replace(/^[a-z]+:/, "") });
+  }
   // A file's name without its folder and extension
   function baseName(rel) {
     var bar = rel.indexOf("|");
@@ -318,8 +414,12 @@ var ByopopMusic = (function () {
       function placeOf(k, rel) {
         k.format = formats[rel] || (rel.match(/\.([^.\/]+)$/) || ["", ""])[1].toUpperCase();
         var low = k.id.toLowerCase();
-        k.where = "";
-        Object.keys(entry.where || {}).forEach(function (w) { if (w.toLowerCase() === low) k.where = entry.where[w]; });
+        k.where = byId(entry.where, k.id) || "";
+        // when exactly the game plays it, for the place's tooltip (the user, 2026-11-12: "Make hovering over the brief track
+        // description explain when it plays")
+        k.when = byId(entry.when, k.id) || "";
+        // who wrote it, from the game's own credits: the tune's own where they split the music, else the game's
+        k.composer = byId(entry.composers, k.id) || entry.composer || "";
         k.unused = (entry.unused || []).some(function (u) { return u.toLowerCase() === low; });
       }
       function add(rel, list) {
@@ -479,8 +579,24 @@ var ByopopMusic = (function () {
           });
         });
         return steps.reduce(function (p, step) { return p.then(step); }, Promise.resolve());
-      }).then(function () { db.close(); return tunes; }, function (e) { db.close(); throw e; });
+      }).then(function () { db.close(); return numbered(tunes); }, function (e) { db.close(); throw e; });
     });
+  }
+
+  // Tunes of one place numbered as the game reaches them ("Level Theme 1" to "Level Theme 4") put in that order, in the places
+  // their files' order gave them in the list, the other tunes left where they are (the user, 2026-11-12, of Water Bugs' themes)
+  function numbered(list) {
+    var groups = {};
+    list.forEach(function (k, i) {
+      var m = /^(.*\S)\s+(\d+)$/.exec(k.where || "");
+      if (m) (groups[m[1]] = groups[m[1]] || []).push(i);
+    });
+    Object.keys(groups).forEach(function (g) {
+      var at = groups[g], n = function (k) { return parseInt(/\d+$/.exec(k.where)[0], 10); };
+      var sorted = at.map(function (i) { return list[i]; }).sort(function (a, b) { return n(a) - n(b); });
+      at.forEach(function (i, j) { list[i] = sorted[j]; });
+    });
+    return list;
   }
 
   // ---------- playing ----------
@@ -526,6 +642,7 @@ var ByopopMusic = (function () {
     return svg;
   }
   var VIS_KEY = "byopop-music-vis", MUTE_KEY = "byopop-music-mute";
+  var FOLD_KEY = "byopop-music-folded";   // the games folded in the list, their ids joined by spaces
   var VIS = ["spectrum", "tracker", "piano", "score", "off"];  // what the display's lower half shows; a click on it goes to the next
   var SLICE = 512;           // frames between two looks at the decoder's row while the tracker view is shown
   // The display's height, in the tracker's rows (the user, 2026-11-09: "increase how many rows show in the tracker"): five at
@@ -739,6 +856,27 @@ var ByopopMusic = (function () {
     });
 
     var list = make("div", "mu-list");
+    // Up and Down move from tune to tune in the list, as in a 1995 list box (the user, 2026-11-12: "Using arrow keys in music
+    // player won't navigate through the songs; instead, it scrolls"), Home and End to the first and the last; Enter or Space
+    // plays the one that has the focus, as a click does. With the focus elsewhere in the list they start at the tune playing.
+    list.addEventListener("keydown", function (ev) {
+      if (ev.altKey || ev.ctrlKey || ev.metaKey || ["ArrowDown", "ArrowUp", "Home", "End", "ArrowLeft", "ArrowRight"].indexOf(ev.key) < 0) return;
+      if (ev.key === "ArrowLeft" || ev.key === "ArrowRight") {
+        if (!document.activeElement || !document.activeElement.classList.contains("mu-fold")) return;
+      }
+      if ((ev.key === "ArrowLeft" || ev.key === "ArrowRight") && document.activeElement && document.activeElement.classList.contains("mu-fold")) {
+        ev.preventDefault();
+        fold(document.activeElement, ev.key === "ArrowLeft");
+        return;
+      }
+      var all = Array.prototype.filter.call(list.querySelectorAll(".mu-fold, .mu-tune"), function (b) { return b.getClientRects().length > 0; });
+      if (!all.length) return;
+      var at = all.indexOf(document.activeElement);
+      if (at < 0) at = Math.max(0, all.indexOf(list.querySelector('.mu-tune[data-tune="' + current + '"]')));
+      var to = ev.key === "Home" ? 0 : ev.key === "End" ? all.length - 1 : at + (ev.key === "ArrowDown" ? 1 : -1);
+      ev.preventDefault();
+      all[Math.max(0, Math.min(all.length - 1, to))].focus();
+    });
     root.appendChild(list);
     [prevBtn, playBtn, stopBtn, nextBtn].forEach(function (b) { b.disabled = true; });
     seek.disabled = true;
@@ -753,7 +891,9 @@ var ByopopMusic = (function () {
       gameEl.textContent = "";
       names.title = sentence || "";
     }
-    function isModule() { var t = tunes[current]; return !!(t && t.kind === "module" && source); }
+    // (a module still loading counts: unloaded and not yet read again, it once showed the spectrum for a moment between two
+    // tunes; the user, 2026-11-12: "the spectral analyzer briefly pops up before returning to the tracker")
+    function isModule() { var t = tunes[current]; return !!(t && t.kind === "module" && (source || state === "loading")); }
     // The view the display shows: the chosen one, but the spectrum where a tune has no patterns (Ogg)
     function applyVis() {
       var wasSpectrum = spectrumOn;
@@ -772,6 +912,7 @@ var ByopopMusic = (function () {
       visEl.setAttribute("aria-label", label);
       visEl.title = label;
       if (spectrumOn !== wasSpectrum) route();
+      syncMutes();
       shownRow = "";
     }
     // The one place the state changes: the buttons, the list, the display and the media session follow it
@@ -791,7 +932,11 @@ var ByopopMusic = (function () {
       stateGlyph.replaceChild(glyph(state === "playing" ? "play" : state === "paused" ? "pause" : "stop"), stateGlyph.firstChild);
       stateGlyph.classList.toggle("mu-blink", state === "loading" || state === "paused");
       Array.prototype.forEach.call(list.querySelectorAll("button[data-tune]"), function (b) {
-        if (+b.getAttribute("data-tune") === current && state !== "idle") b.setAttribute("aria-current", "true"); else b.removeAttribute("aria-current");
+        if (+b.getAttribute("data-tune") === current && state !== "idle") {
+          b.setAttribute("aria-current", "true");
+          var ol = b.closest("ol"), head = ol && ol.previousSibling && ol.previousSibling.querySelector && ol.previousSibling.querySelector(".mu-fold");
+          if (head && ol.hidden) fold(head, false);   // the tune playing is never hidden in a folded game
+        } else b.removeAttribute("aria-current");
       });
       var t = tunes[current];
       if (t && state !== "idle") {
@@ -813,6 +958,7 @@ var ByopopMusic = (function () {
       if (!ms) return;
       try {
         var t = tunes[current];
+        sink(false);
         if (!t || state === "idle") { ms.metadata = null; ms.playbackState = "none"; return; }
         var art = [];
         try { var rec = ByopopGameFiles.all()[t.game.id]; if (rec && rec.icon) art.push({ src: rec.icon, sizes: "32x32", type: "image/png" }); } catch (e) {}
@@ -839,6 +985,76 @@ var ByopopMusic = (function () {
       on("seekto", function (d) { if (d && isFinite(d.seekTime)) seekTo(d.seekTime); });
     }
 
+    // ---------- the keyboard's media keys ----------
+    // (the user, 2026-11-11: "My keyboard has media buttons ... could functionality be added to have them control the music player
+    // if it's open?") A media key pressed while this page, or a game window's page on it, has the focus drives the player while
+    // its window is open, wherever the focus is: Play/Pause, Next and Previous in the list, Stop. Closed, the keys do nothing. The
+    // key is not taken from the page (the input display still shows it); no port reads these keys (none maps SDL's AUDIOPLAY,
+    // AUDIONEXT, AUDIOPREV or AUDIOSTOP). With the browser's window in the background only the Media Session's handlers above
+    // could hear them, and browsers give a page that session only while a media element plays.
+    function playerOpen() {
+      var win = root.closest(".d95-win");
+      if (win) return !win.classList.contains("d95-closed");
+      return root.getClientRects().length > 0;
+    }
+    var MEDIA_KEYS = {
+      MediaPlayPause: function () { if (state === "playing") pause(); else if (state === "paused") resume(); else if (state === "idle" && tunes.length) play(current >= 0 ? current : 0); },
+      MediaTrackNext: function () { next(); },
+      MediaTrackPrevious: function () { previous(); },
+      MediaStop: function () { if (state !== "idle") stop(); }
+    };
+    function mediaKey(ev) {
+      var fn = ev && !ev.repeat && MEDIA_KEYS[ev.key];
+      if (!fn || !playerOpen()) return;
+      fn();
+    }
+    window.addEventListener("keydown", mediaKey, true);
+    // and in the game windows' pages (web/deskapps.js), as the splits timer's hotkeys are heard there (web/splits.js)
+    function hookMediaKeys() {
+      Array.prototype.forEach.call(document.querySelectorAll("iframe.d95-app-frame"), function (f) {
+        try { var w = f.contentWindow; if (!w || w.__byopopMediaKeys === mediaKey) return; w.addEventListener("keydown", mediaKey, true); w.__byopopMediaKeys = mediaKey; } catch (e) {}
+      });
+    }
+    if (window.MutationObserver) new MutationObserver(hookMediaKeys).observe(document.body, { childList: true });
+    document.addEventListener("load", function (ev) { if (ev.target && ev.target.classList && ev.target.classList.contains("d95-app-frame")) hookMediaKeys(); }, true);
+    setInterval(function () { hookMediaKeys(); sink(false); }, 2000);
+
+    // ---------- the media keys with the browser in the background ----------
+    // (the user, 2026-11-12: "Yes, prototype") A browser hands a page its media session, and so the keyboard's media keys while
+    // another window has the focus, only while a media element of the page plays; Web Audio alone does not count. While Music's
+    // window is open its sound goes through a MediaStreamDestination into a hidden <audio> element that plays while a tune plays
+    // or is paused, and the session's handlers (wireMedia) hear the keys. The element's path adds output latency, so with the
+    // window closed (where the keys do nothing anyway) the sound goes straight to the speakers again.
+    var tail = null, streamOut = null, streamEl = null, viaStream = false;
+    function sink(force) {
+      if (!ctx || !tail) return;
+      var want = playerOpen() && state !== "idle" && typeof ctx.createMediaStreamDestination === "function";
+      if (want && !streamOut) {
+        try {
+          streamOut = ctx.createMediaStreamDestination();
+          streamEl = document.createElement("audio");
+          streamEl.srcObject = streamOut.stream;
+        } catch (e) { streamOut = null; streamEl = null; want = false; }
+      }
+      if (force || want !== viaStream) {
+        try { tail.disconnect(); } catch (e) {}
+        tail.connect(want ? streamOut : ctx.destination);
+        viaStream = want;
+      }
+      if (streamEl) {
+        if (want && streamEl.paused) { var p = streamEl.play(); if (p && p.catch) p.catch(function () {}); }
+        else if (!want && !streamEl.paused) streamEl.pause();
+      }
+    }
+    function dropSink() {
+      if (streamEl) { try { streamEl.pause(); streamEl.srcObject = null; } catch (e) {} }
+      streamEl = null; streamOut = null; viaStream = false; tail = null;
+    }
+    (function watchWindow() {
+      var win = root.closest(".d95-win");
+      if (win && window.MutationObserver) new MutationObserver(function () { sink(false); }).observe(win, { attributes: true, attributeFilter: ["class"] });
+    })();
+
     // ---------- the sound ----------
     // A play chosen while the worklet is still being added waits for the same setup (audioReady): it once found the context
     // made and the worklet's node not yet there, and failed ("not played: Cannot read properties of null (reading 'port')").
@@ -858,12 +1074,13 @@ var ByopopMusic = (function () {
       gain.gain.value = muted ? 0 : volume / 100;
       // at ?silent=1 the sound passes through a gain of 0 (CLAUDE.md: tests in a pane that may be hidden): the speakers get exact
       // zeros, and the graph still reaches the destination, without which the browser never runs the worklet
+      tail = gain;
       if (silentPage()) {
-        var mute = ctx.createGain();
-        mute.gain.value = 0;
-        gain.connect(mute);
-        mute.connect(ctx.destination);
-      } else gain.connect(ctx.destination);
+        tail = ctx.createGain();
+        tail.gain.value = 0;
+        gain.connect(tail);
+      }
+      sink(true);
       var url = URL.createObjectURL(new Blob([WORKLET], { type: "text/javascript" }));
       return ctx.audioWorklet.addModule(url).then(function () {
         URL.revokeObjectURL(url);
@@ -934,6 +1151,8 @@ var ByopopMusic = (function () {
         // a channel muted or brought back; false where the decoder cannot (one cached from before bm_mute). It is heard once the
         // second the decoder has rendered ahead has played
         mute: function (c, on) { return typeof M._bm_mute === "function" && M._bm_mute(m, c, on ? 1 : 0) === 1; },
+        // whether the player itself has a channel muted: 1, 0, or -1 not known (for tests: tools/web/musicmutecheck.js)
+        muteStatus: function (c) { return typeof M._bm_mute_status === "function" ? M._bm_mute_status(m, c) : -1; },
         // a pattern's rows per beat and per bar as the file stores them (beat << 16 | bar), 0 where it stores none
         meter: function (pattern) { return typeof M._bm_meter === "function" ? M._bm_meter(m, pattern) : 0; },
         // the speed (ticks a row) and tempo playing now, or null
@@ -1163,7 +1382,13 @@ var ByopopMusic = (function () {
       var ticket = {};
       play.ticket = ticket;
       if (!wired) { wired = true; wireMedia(); }
-      (M ? Promise.resolve() : decoder().then(function (m) { M = m; })).then(audio).then(function () {
+      // the context is made and resumed now, inside the click that chose the tune: Firefox lets a page start its sound only from
+      // the press itself, and a resume after the decoder and the files were read left it suspended and the tune silent (the
+      // user, 2026-11-12: "they're dead silent ... it began working when I launched a game")
+      var ready = audio();
+      ready.catch(function () {});
+      if (ctx && ctx.state !== "running") { try { ctx.resume(); } catch (e) {} }
+      (M ? Promise.resolve() : decoder().then(function (m) { M = m; })).then(function () { return ready; }).then(function () {
         return openExisting(t.game.persist).then(function (db) {
           if (!db) throw new Error("gone");
           var unique = t.keys.filter(function (k, j) { return t.keys.indexOf(k) === j; }), got = {};
@@ -1180,6 +1405,7 @@ var ByopopMusic = (function () {
         if (play.ticket !== ticket) { s.free(); return; }
         source = s;
         source.repeat(loop);
+        syncMutes();
         return ctx.resume().then(function () { setState("playing"); fill(); });
       }).catch(function (e) {
         if (play.ticket !== ticket) return;
@@ -1207,6 +1433,7 @@ var ByopopMusic = (function () {
       if (node) { try { node.port.onmessage = null; node.disconnect(); } catch (e) {} node = null; }
       if (analyser) { try { analyser.disconnect(); } catch (e) {} analyser = null; }
       if (gain) { try { gain.disconnect(); } catch (e) {} gain = null; }
+      dropSink();
       if (ctx) { try { ctx.close(); } catch (e) {} ctx = null; }
       queued = 0; flushes = 0; ended = false; heads = [];
       M = null;
@@ -1253,28 +1480,50 @@ var ByopopMusic = (function () {
       }
     }
     // The tracker view: the rows around the one heard, the cells from the decoder (each row read once a tune)
-    var rowCache = {}, shownRow = "";
+    var rowCache = {}, shownRow = "", shownHead = "";
     // the channels shown: only those with a note somewhere (read once a tune), as many whole columns as the view's width holds,
     // from firstChannel (the scroll bar's); each cell whole, or not shown
     // the instruments' names by their number as the cells write it ({"1A": "Bass"}), from the decoder's or the game's list
     var ownNames = null, chanIns = {}, HEAD_NAME = 6;
-    // the channels muted from the tracker's header, by number, for the tune shown (id); a new tune starts with none
-    var muted = {};
-    function setMute(feed, c, on) {
-      if (!feed.mute || !feed.mute(c, on)) return false;
-      if (on) muted[c] = true; else delete muted[c];
-      return true;
+    // The channels muted from the tracker's header belong to the tracker view and to the tune (the user, 2026-11-11: "Channels
+    // appear to stay muted when I switch tracks in the player but they still sound"; "Switching off the tracker view should
+    // unmute all the tracks, but returning to it should re-mute what was previously muted"). chanMutes keeps each tune's, by
+    // number ({tune key: {channel: true}}), for this visit; a tune not muted yet has none, and the same tune played again gets
+    // its own back. syncMutes makes what plays agree with them: the tune's mutes while the tracker view shows it, none while
+    // it does not, set again on a new player (a tune started or restarted, a game's song followed), which plays every channel.
+    var chanMutes = {}, applied = { key: null, target: null, set: {} };
+    function tuneKey(feed) { return follow ? feed.id + ":" + follow.track : "own:" + (tunes[current] ? tunes[current].id : current); }
+    function shownMutes(feed) { return (feed && trackerOn && chanMutes[tuneKey(feed)]) || {}; }
+    function syncMutes() {
+      var feed = muteFeed(), target = follow ? follow.song + ":" + follow.serial : source;
+      if (!feed || !target) { applied = { key: null, target: null, set: {} }; return; }
+      var key = tuneKey(feed), want = shownMutes(feed);
+      // a new player: every channel is set as it should be, since what the player had is not known. Where the player says what
+      // it has muted (the own tune's), that is compared every time: libxmp-lite drops its mutes when its player starts, which
+      // can be after a mute set while the tune loads
+      var fresh = applied.target !== target || applied.key !== key;
+      var set = fresh ? {} : applied.set;
+      var chans = fresh || feed.status ? feed.used() : Object.keys(want).concat(Object.keys(set)).map(Number);
+      chans.forEach(function (c) {
+        var on = !!want[c], st = feed.status ? feed.status(c) : -1;
+        var has = st >= 0 ? st === 1 : fresh ? false : !!set[c];
+        if (on !== has || (fresh && st < 0 && on)) {
+          if (feed.mute && feed.mute(c, on)) { if (on) set[c] = true; else delete set[c]; }
+        } else if (on) set[c] = true; else delete set[c];
+      });
+      applied = { key: key, target: target, set: set };
     }
     function clickChannel(c, alone) {
       var feed = trackerFeed();
-      if (!feed) return;
-      if (muted.id !== feed.id) muted = { id: feed.id };
+      if (!feed || !trackerOn) return;
+      var key = tuneKey(feed), m = chanMutes[key] || (chanMutes[key] = {});
       var used = feed.used();
       if (alone) {
         // that channel alone; again on the channel already alone, every channel back
-        var lone = !muted[c] && used.every(function (u) { return u === c || muted[u]; });
-        used.forEach(function (u) { setMute(feed, u, !lone && u !== c); });
-      } else setMute(feed, c, !muted[c]);
+        var lone = !m[c] && used.every(function (u) { return u === c || m[u]; });
+        used.forEach(function (u) { if (!lone && u !== c) m[u] = true; else delete m[u]; });
+      } else if (m[c]) delete m[c]; else m[c] = true;
+      syncMutes();
       shownRow = "";
       drawTracker();
     }
@@ -1575,6 +1824,22 @@ var ByopopMusic = (function () {
     }
     // What the tracker shows: the followed game's module where it plays one, else the player's own tune. mark is [frame, pattern,
     // row, rows, channels, order]; rowAt(pattern, row) a row's cells; used() the channels that play a note
+    // the player's own tune's channels that play a note (read once a tune)
+    function ownUsed() {
+      if (!usedChannels) {
+        usedChannels = source.orderPattern ? tuneUsed(tunes[current], rowOf, function (o) { var op = source.orderPattern(o); return op && op !== "skip" ? op[1] : 0; }) : null;
+        if (!usedChannels) usedChannels = source.used ? source.used() : [];
+      }
+      return usedChannels;
+    }
+    // what the mutes are set on: the tracker's feed, or the player's own tune from the moment it is loaded, before it has a row to
+    // show (the sound must not wait for the drawing)
+    function muteFeed() {
+      if (follow) return trackerFeed();
+      if (!source || !source.mute || !source.rowText) return null;
+      return { id: "own", used: ownUsed, mute: function (c, on) { return !!source.mute(c, on); },
+        status: function (c) { return source.muteStatus ? source.muteStatus(c) : -1; } };
+    }
     function trackerFeed() {
       if (follow) {
         var v = follow.view;
@@ -1586,21 +1851,16 @@ var ByopopMusic = (function () {
       var h = heard(), mark = null;
       if (h && h.head.marks) h.head.marks.forEach(function (m) { if (m[0] <= h.into) mark = m; });
       if (!mark) return null;
-      return { mark: mark, rowAt: rowOf, used: function () {
-          if (!usedChannels) {
-            usedChannels = source.orderPattern ? tuneUsed(tunes[current], rowOf, function (o) { var op = source.orderPattern(o); return op && op !== "skip" ? op[1] : 0; }) : null;
-            if (!usedChannels) usedChannels = source.used ? source.used() : [];
-          }
-          return usedChannels;
-        },
+      return { mark: mark, rowAt: rowOf, used: ownUsed,
         names: function () { if (!ownNames) ownNames = parseNames(source.names ? source.names() : ""); return ownNames; },
         mute: function (c, on) { return !!(source.mute && source.mute(c, on)); },
         meter: function (p) { return source.meter ? source.meter(p) : 0; }, tempo: function () { return source.tempo ? source.tempo() : null; }, id: "own" };
     }
     function drawTracker() {
-      if (tracker.hidden) return;
+      if (tracker.hidden) { syncMutes(); return; }
       var feed = trackerFeed();
       if (!feed) return;
+      syncMutes();
       var mark = feed.mark, rowOf = feed.rowAt;
       var cells = rowOf(mark[1], mark[2]).split("|");
       var used = feed.used().filter(function (c) { return c < cells.length; });
@@ -1616,7 +1876,7 @@ var ByopopMusic = (function () {
       var wide = fits(full) >= used.length, width = wide ? full : small, shown = Math.max(1, Math.min(used.length, fits(width)));
       firstChannel = Math.max(0, Math.min(firstChannel, used.length - shown));
       shownChannels = shown; totalChannels = used.length;
-      var key = [feed.id, mark[1], mark[2], firstChannel, shown, width, room, used.join(","), fxOn ? 1 : 0].join(":");
+      var key = [tuneKey(feed), mark[1], mark[2], firstChannel, shown, width, room, used.join(","), fxOn ? 1 : 0, Object.keys(shownMutes(feed)).join(",")].join(":");
       if (key === shownRow) return;
       shownRow = key;
       var at = T("music.tracker_at", { order: two(mark[5]), pattern: two(mark[1]), row: two(mark[2]), rows: two(mark[3]) });
@@ -1633,16 +1893,28 @@ var ByopopMusic = (function () {
         showing.forEach(function (c) { var t = (cells0[c] || "").slice(4, 6); if (/^[0-9A-F]{2}$/.test(t) && t !== "00") chanIns[c] = t; });
       }
       // each a span that a click mutes or brings back (Ctrl-click: that channel alone), a muted one dimmed and struck through
-      if (muted.id !== feed.id) muted = { id: feed.id };
-      trackerHead.textContent = pad("", String(mark[3] - 1).length) + " ";
-      showing.forEach(function (c, i) {
+      var muted = shownMutes(feed);
+      // the header is built again only when what it shows changes, so that a press on a channel finds the same element when
+      // it is released (rebuilt every row, a click often lost its target, and Firefox then gives the click to the display)
+      var heads = showing.map(function (c) {
         var nm = width - 3 >= HEAD_NAME && chanIns[c] && names[chanIns[c]];
-        if (i) trackerHead.appendChild(document.createTextNode("│"));
-        var span = make("span", muted[c] ? "mu-ch mu-ch-off" : "mu-ch", pad(two(c + 1) + (nm ? " " + nm : ""), width));
-        span.setAttribute("data-ch", String(c));
-        trackerHead.appendChild(span);
+        return { c: c, text: pad(two(c + 1) + (nm ? " " + nm : ""), width), full: nm ? two(c + 1) + " " + names[chanIns[c]] : "" };
       });
-      if (fxWidth) trackerHead.appendChild(document.createTextNode("│" + pad(T("music.fx_head"), fxWidth)));
+      var headKey = String(mark[3]) + "|" + fxWidth + "|" + heads.map(function (h) { return h.c + ":" + h.text + ":" + h.full + ":" + (muted[h.c] ? 1 : 0); }).join("|");
+      if (headKey !== shownHead) {
+        shownHead = headKey;
+        trackerHead.textContent = pad("", String(mark[3] - 1).length) + " ";
+        heads.forEach(function (h, i) {
+          if (i) trackerHead.appendChild(document.createTextNode("│"));
+          var span = make("span", muted[h.c] ? "mu-ch mu-ch-off" : "mu-ch", h.text);
+          span.setAttribute("data-ch", String(h.c));
+          // the instrument's whole name, which the column may cut (the user, 2026-11-12: "Should be able to hover over them to
+          // view the full name"); it is the instrument the channel played last, so it changes as the channel plays another
+          if (h.full) span.title = h.full;
+          trackerHead.appendChild(span);
+        });
+        if (fxWidth) trackerHead.appendChild(document.createTextNode("│" + pad(T("music.fx_head"), fxWidth)));
+      }
       var style = fxWidth ? fxStyle(feed) : "";
       trackerRows.textContent = "";
       // the view stays inside the pattern (the user, 2026-11-09: "it should never scroll empty lines into the top or bottom"): the
@@ -2324,7 +2596,10 @@ var ByopopMusic = (function () {
       requestAnimationFrame(function frame() {
         ticking = false;
         showTime();
-        var seen = onScreen(), front = seen ? frontGame() : null;
+        // a game is followed only while the player plays nothing of its own: its own tune is the one heard then (the desktop
+        // hushes the games, web/deskapps.js), so the views and the seek bar are its (the user, 2026-11-12: "If a game is open while
+        // I use the music player, jumping around in the song does not actually skip the audio")
+        var seen = onScreen(), own = state === "playing" || state === "loading", front = seen && !own ? frontGame() : null;
         if (seen) { followGame(front); drawTracker(); drawPiano(); drawScore(); drawSpectrum(); } else unfollow();
         var settling = levels.some(function (l, i) { return l > 0.001 || peaks[i] > 0.001; });
         if (state === "playing" || front || (!spectrum.hidden && settling)) { ticking = true; requestAnimationFrame(frame); }
@@ -2340,7 +2615,8 @@ var ByopopMusic = (function () {
     // its module where the game plays one (the game's mixer through byopop_music_*, platform/Audio.cpp), the spectrum the game's
     // own output, from an analyser on its sound's last node. Otherwise they show the player's own tune, as before. The player's
     // own playback goes on as it was; following changes nothing the game plays or what is heard (a silent game stays silent: its
-    // spectrum is then flat), except where the player moves it (the seek bar, Previous and Next: matchTrack below).
+    // spectrum is then flat), except where the player moves it (the seek bar, Previous and Next: matchTrack below). While the
+    // player plays or loads a tune of its own, nothing is followed: that tune is the one heard.
     var follow = null, followSerial = 0;
     function frontGame() { try { return window.ByopopApps && ByopopApps.frontFrame ? ByopopApps.frontFrame() : null; } catch (e) { return null; } }
     // the game's module, once its runtime is up and if its build has the calls
@@ -2638,7 +2914,9 @@ var ByopopMusic = (function () {
     var asked = rows;
     window.addEventListener("resize", function () { if (!splitDrag) setRows(asked, false); });
     if (window.ResizeObserver) try { new ResizeObserver(function () { if (!splitDrag) setRows(asked, false); }).observe(root); } catch (e) {}
-    visEl.addEventListener("click", function (ev) { if (!trackerScroll.contains(ev.target)) nextVis(); });
+    // (not the click that ends a press on the tracker's header, which Firefox may give to the display when the header changed)
+    var headDownAt = 0;
+    visEl.addEventListener("click", function (ev) { if (Date.now() - headDownAt < 1500) return; if (!trackerScroll.contains(ev.target)) nextVis(); });
     // a click on a channel's number in the tracker's header is the channel's, not the display's: a click mutes it or brings it
     // back, Ctrl-click or a double-click plays it alone (again on the channel alone, every channel back; the user, 2026-11-11:
     // "Add double clicking a tracker channel to isolate its sound"). A plain click waits out the double-click's time before
@@ -2656,7 +2934,12 @@ var ByopopMusic = (function () {
       return best;
     }
     var pendingClick = null, DOUBLE_MS = 300;
-    trackerHead.addEventListener("click", function (ev) {
+    // on the press, not the click: a click needs its press and release on the same element, and the names in the header change
+    // as the channels play other instruments (the user, 2026-11-12: "Still hard to actually click the channel to mute")
+    trackerHead.addEventListener("click", function (ev) { ev.stopPropagation(); });
+    trackerHead.addEventListener("mousedown", function (ev) {
+      if (ev.button !== 0) return;
+      headDownAt = Date.now();
       ev.stopPropagation();
       var span = headSpan(ev);
       if (!span) return;
@@ -2725,23 +3008,42 @@ var ByopopMusic = (function () {
         if (!g) { g = { game: t.game, items: [] }; byGame.push(g); }
         g.items.push(i);
       });
+      var folded = [];
+      try { folded = (localStorage.getItem(FOLD_KEY) || "").split(" "); } catch (e) {}
       byGame.forEach(function (g) {
-        var h = make("h3", "mu-game", g.game.title), ol = make("ol", "mu-tunes");
+        // the game's heading: a button that folds its tunes away, with how many there are and how long they last together
+        // (the user, 2026-11-12: "make each game collapsible in the player, have each game show its track count and total length")
+        var h = make("h3", "mu-game"), ol = make("ol", "mu-tunes"), btn = make("button", "mu-fold");
+        var secs = g.items.reduce(function (n, i) { return n + (tunes[i].seconds || 0); }, 0);
+        btn.type = "button";
+        btn.setAttribute("data-game", g.game.id);
+        btn.appendChild(make("span", "mu-fold-mark", ""));
+        btn.appendChild(make("span", "mu-game-name", g.game.title));
+        btn.appendChild(make("span", "mu-game-sum", T("music.game_sum", { tracks: T("music.game_tracks", { n: g.items.length }), time: T("music.game_minutes", { n: Math.max(1, Math.round(secs / 60)) }) })));
+        btn.addEventListener("click", function () { fold(btn, !ol.hidden); });
+        h.appendChild(btn);
         h.id = "music-game-" + g.game.id;
+        ol.id = "music-tunes-" + g.game.id;
+        btn.setAttribute("aria-controls", ol.id);
         ol.setAttribute("aria-labelledby", h.id);
+        setFold(btn, ol, folded.indexOf(g.game.id) >= 0);
         g.items.forEach(function (i) {
           var li = make("li"), b = make("button", "mu-tune");
           b.type = "button";
           b.setAttribute("data-tune", String(i));
           b.appendChild(make("span", "mu-num", String(g.items.indexOf(i) + 1)));
           var t = tunes[i], name = make("span", "mu-name", t.name);
-          name.title = t.name;
+          // its name, and where its files lie in the game's folder
+          name.title = t.name + "\n" + t.keys.map(function (k) { return filePlace(k.slice(t.game.persist.length + 6)); }).join("\n");
           b.appendChild(name);
           // where the game plays it (or that it never does), and its format
           var where = make("span", "mu-where", t.unused ? T("music.unused") : t.where);
-          where.title = where.textContent;
+          where.title = t.when ? where.textContent + "\n" + t.when : where.textContent;
           if (t.unused) where.classList.add("mu-unused");
           b.appendChild(where);
+          var by = make("span", "mu-composer", t.composer || T("music.composer_unknown"));
+          by.title = by.textContent;
+          b.appendChild(by);
           b.appendChild(make("span", "mu-format", t.format || ""));
           b.appendChild(make("span", "mu-time", clock(t.seconds)));
           b.addEventListener("click", function () { play(i); });
@@ -2751,6 +3053,21 @@ var ByopopMusic = (function () {
         list.appendChild(h);
         list.appendChild(ol);
       });
+    }
+    function setFold(btn, ol, shut) {
+      ol.hidden = shut;
+      btn.setAttribute("aria-expanded", String(!shut));
+      btn.firstChild.textContent = shut ? "+" : "-";
+    }
+    // folds a game's tunes away (shut) or opens them, and keeps the games folded for this browser
+    function fold(btn, shut) {
+      var ol = document.getElementById(btn.getAttribute("aria-controls"));
+      if (!ol) return;
+      if (shut && ol.querySelector("[aria-current]")) shut = false;   // the tune playing stays in view
+      setFold(btn, ol, shut);
+      var ids = Array.prototype.filter.call(list.querySelectorAll(".mu-fold"), function (b) { return b.getAttribute("aria-expanded") === "false"; })
+        .map(function (b) { return b.getAttribute("data-game"); });
+      try { localStorage.setItem(FOLD_KEY, ids.join(" ")); } catch (e) {}
     }
     // The games the player has, with music in the table, read once, the first time the tab is shown
     function scan() {
@@ -2793,15 +3110,30 @@ var ByopopMusic = (function () {
       position: function () { return source ? source.position() : 0; }, elapsed: function () { return elapsed(); },
       seek: function (s) { seekTo(s); }, minHeight: windowLeast, shutdown: shutdown,
       // for tests: whether any of the sound is still held (the context and its state, the worklet, the decoder)
-      held: function () { return { ctx: ctx ? ctx.state : null, node: !!node, decoder: !!M, media: wired }; }, view: function () { return { tracker: !tracker.hidden, row: shownRow, spectrum: !!analyser && !spectrum.hidden, rows: rows }; },
+      held: function () { return { ctx: ctx ? ctx.state : null, node: !!node, decoder: !!M, media: wired, sink: viaStream ? "stream" : "direct", element: streamEl ? (streamEl.paused ? "paused" : "playing") : null, latency: ctx ? { base: ctx.baseLatency, output: ctx.outputLatency } : null }; }, view: function () { return { tracker: !tracker.hidden, row: shownRow, spectrum: !!analyser && !spectrum.hidden, rows: rows }; },
       // for tests: the game the views follow, where its module is, and whether its output is tapped
       playing: function () { return state === "playing"; },
+      // for tests: the player's own tune's channels, each as its header shows it (muted: struck through; null where the header
+      // does not show it) and as its player plays it (1 muted, 0 playing, -1 not known), and the tune playing
+      channels: function () {
+        var feed = !follow && trackerFeed();
+        if (!feed || !source || !source.muteStatus) return null;
+        return { tune: tunes[current] && tunes[current].id, list: feed.used().map(function (c) {
+          var head = tracker.hidden ? null : trackerHead.querySelector('[data-ch="' + c + '"]');
+          return { c: c, head: head ? head.classList.contains("mu-ch-off") : null, heard: source.muteStatus(c) };
+        }) };
+      },
+      // for tests: a click on a channel's head (alone: Ctrl-click), and the view the display shows
+      clickChannel: function (c, alone) { clickChannel(c, !!alone); },
+      setVis: function (v) { if (VIS.indexOf(v) >= 0) { vis = v; applyVis(); drawTracker(); } },
+      play: function (i) { play(i); },
+      current: function () { return tunes[current] ? tunes[current].id : null; },
       following: function () { return follow ? { muted: followEl.classList.contains("mu-muted"),  title: follow.title, view: follow.view, tapped: !!follow.tap, at: trackerAt.textContent } : null; },
       tick: tick };
   }
 
   // (the Sounds window, web/sounds.js, reads the games' files with the same read-only reader, draws its Stop and speaker with the
   // same pictures, and falls back on the same stb_vorbis decoder)
-  return { init: init, patternRe: patternRe, glyph: glyph, decoder: decoder, stbOgg: stbOgg,
+  return { init: init, patternRe: patternRe, glyph: glyph, decoder: decoder, stbOgg: stbOgg, msAdpcm: msAdpcm, wavMp3: wavMp3, filePlace: filePlace, numbered: numbered,
     files: { open: openExisting, list: gameFiles, read: readFile } };
 })();

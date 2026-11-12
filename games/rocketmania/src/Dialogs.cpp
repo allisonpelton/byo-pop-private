@@ -50,6 +50,7 @@ DifficultyDialog::DifficultyDialog(RocketApp* theApp) :
 	mButtons[3] = MakeDialogButton(mApp, 3, this, GT(0x004e44b0));
 }
 
+// 0x4048d0
 DifficultyDialog::~DifficultyDialog()
 {
 	for (int i = 0; i < 4; i++)
@@ -64,6 +65,7 @@ void DifficultyDialog::AddedToManager(WidgetManager* theWidgetManager)
 		theWidgetManager->AddWidget(mButtons[i]);
 }
 
+// 0x4049b0
 void DifficultyDialog::RemovedFromManager(WidgetManager* theWidgetManager)
 {
 	Dialog2004::RemovedFromManager(theWidgetManager);
@@ -157,6 +159,7 @@ ContinueDialog::ContinueDialog(RocketApp* theApp, int theMode) :
 	mApp->ReadSavedGame(mMode, &mSavedDifficulty, &mSavedScore, &mSavedLevel);
 }
 
+// 0x4029e0
 ContinueDialog::~ContinueDialog()
 {
 	delete mNewButton;
@@ -171,6 +174,7 @@ void ContinueDialog::AddedToManager(WidgetManager* theWidgetManager)
 	theWidgetManager->AddWidget(mContinueButton);
 }
 
+// 0x402ae0
 void ContinueDialog::RemovedFromManager(WidgetManager* theWidgetManager)
 {
 	Dialog2004::RemovedFromManager(theWidgetManager);
@@ -241,7 +245,7 @@ void ContinueDialog::ButtonPress(int theId)
 		mApp->ButtonPress(0);
 }
 
-// 0x403380: NEW GAME asks for a difficulty, CONTINUE SAVED GAME loads the game
+// 0x403380 (0x403570 inline in it): NEW GAME asks for a difficulty, CONTINUE SAVED GAME loads the game
 void ContinueDialog::ButtonDepress(int theId)
 {
 	if (theId == 0)
@@ -252,7 +256,7 @@ void ContinueDialog::ButtonDepress(int theId)
 	else if (theId == 1)
 	{
 		// (the original opens the register-to-load dialog here for an unregistered game)
-		// 0x403570: the saved game's mode and difficulty are the ones the game starts with
+		// the saved game's mode and difficulty are the ones the game starts with (0x403570 reads them from its file)
 		mApp->mGameSelector->mMode = mMode;
 		mApp->mGameSelector->mDifficulty = mSavedDifficulty;
 		mApp->KillDialog(DIALOG_CONTINUE);
@@ -340,6 +344,7 @@ OptionsDialog::OptionsDialog(RocketApp* theApp, bool theFromMenu) :
 	mHintsCheckbox->SetChecked(mApp->mNoHints);
 }
 
+// 0x412600
 OptionsDialog::~OptionsDialog()
 {
 	delete mResetHintsButton;
@@ -1157,6 +1162,7 @@ HintDialog::HintDialog(RocketApp* theApp, int theHint, bool theContinuing) :
 	mStartTick = mUpdateCnt;
 }
 
+// 0x4093d0
 HintDialog::~HintDialog()
 {
 	delete mCheckbox;

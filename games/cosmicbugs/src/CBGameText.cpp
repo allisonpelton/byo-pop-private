@@ -26,18 +26,18 @@ namespace
 
 struct GameTextEntry
 {
-	uint32_t va;
-	uint32_t length;
-	uint32_t hash;
+	uint32_t mVa;
+	uint32_t mLength;
+	uint32_t mHash;
 };
 
-const GameTextEntry kGameTexts[] = {
+const GameTextEntry GAME_TEXTS[] = {
 #define GAMETEXT(theVA, theLength, theHash) {theVA, theLength, theHash},
 #include "GameTextTable.inc"
 #undef GAMETEXT
 	{0, 0, 0}};
 
-const int kNumGameTexts = (int)(sizeof(kGameTexts) / sizeof(kGameTexts[0])) - 1;
+const int NUM_GAME_TEXTS = (int)(sizeof(GAME_TEXTS) / sizeof(GAME_TEXTS[0])) - 1;
 
 std::map<uint32_t, std::string> gTexts;
 
@@ -98,19 +98,20 @@ bool LoadGameTexts()
 	std::vector<uint8_t> aData;
 	if (!Sys_ReadFile("CosmicBugs.exe", aData) || aData.empty())
 	{
-		std::fprintf(stderr, "GameText: CosmicBugs.exe not found in the game folder; the game's texts are read from it\n");
+		std::fprintf(stderr,
+			"GameText: CosmicBugs.exe not found in the game folder; the game's texts are read from it\n");
 		return false;
 	}
 	int aMatched = 0;
 	int aMismatched = 0;
-	for (int i = 0; i < kNumGameTexts; i++)
+	for (int i = 0; i < NUM_GAME_TEXTS; i++)
 	{
-		const GameTextEntry& e = kGameTexts[i];
-		size_t anOffset = FileOffset(aData, e.va);
-		if (anOffset != 0 && anOffset + e.length < aData.size() && aData[anOffset + e.length] == 0 &&
-			TextHash(&aData[anOffset], e.length) == e.hash)
+		const GameTextEntry& e = GAME_TEXTS[i];
+		size_t anOffset = FileOffset(aData, e.mVa);
+		if (anOffset != 0 && anOffset + e.mLength < aData.size() && aData[anOffset + e.mLength] == 0 &&
+			TextHash(&aData[anOffset], e.mLength) == e.mHash)
 		{
-			gTexts[e.va].assign((const char*)&aData[anOffset], e.length);
+			gTexts[e.mVa].assign((const char*)&aData[anOffset], e.mLength);
 			aMatched++;
 		}
 		else
@@ -118,7 +119,7 @@ bool LoadGameTexts()
 	}
 	if (aMismatched > 0)
 		std::fprintf(stderr, "GameText: %d of %d strings do not match this executable (Cosmic Bugs 1.05 expected)\n",
-			aMismatched, kNumGameTexts);
+			aMismatched, NUM_GAME_TEXTS);
 	return aMatched > 0;
 }
 

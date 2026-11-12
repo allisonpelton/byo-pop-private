@@ -1,0 +1,4 @@
+# The first run of a copy without the cached music files (the original joins the Ogg pieces and writes them: MySound 0x429880, the WAV
+# writer 0x4299e0). Coverage run (tools/coverage/run.sh); run by hand with the two cached_*.wav moved out of the copy's music folder.
+40000 click 320 451
+40100 quit

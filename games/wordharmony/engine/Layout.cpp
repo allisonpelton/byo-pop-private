@@ -134,28 +134,13 @@ void LayoutHandler::startElement(const std::string& theName, const XmlAttributes
 		addCheckBox(theAttributes);
 		return;
 	}
-	if (theName.compare("textButton") == 0)
-	{
-		addTextButton(theAttributes);
-		return;
-	}
 	if (theName.compare("group") == 0)
 	{
 		addGroup(theAttributes);
 		return;
 	}
 	if (theName.compare("particleSystem") == 0)
-	{
 		addParticleSystem(theAttributes);
-		return;
-	}
-	if (theName.compare("textSub") == 0)
-	{
-		addTextSub(theAttributes);
-		return;
-	}
-	if (theName.compare("include") == 0)
-		addInclude(theAttributes);
 }
 
 // 0x42c4f0
@@ -353,48 +338,6 @@ bool LayoutHandler::addCheckBox(const XmlAttributes& theAttributes)
 	return true;
 }
 
-// 0x42e2b0: the font and the over font are needed; the active font defaults to the over font
-bool LayoutHandler::addTextButton(const XmlAttributes& theAttributes)
-{
-	std::string aString = getStringAttribute(theAttributes, "string", "");
-	std::string aName = getStringAttribute(theAttributes, "name", "_Text_");
-	float x = getFloatAttribute(theAttributes, "x", 0);
-	float y = getFloatAttribute(theAttributes, "y", 0);
-	std::string anXAlign = getStringAttribute(theAttributes, "xAlign", "");
-	std::string aYAlign = getStringAttribute(theAttributes, "yAlign", "");
-	std::string aFont = getStringAttribute(theAttributes, "font", "");
-	std::string anOverFont = getStringAttribute(theAttributes, "overFont", "");
-	std::string anActiveFont = getStringAttribute(theAttributes, "activeFont", anOverFont);
-	std::string anAction = getStringAttribute(theAttributes, "action", "defaultAction");
-	std::string anOverSound = getStringAttribute(theAttributes, "overSound", "");
-	std::string anActiveSound = getStringAttribute(theAttributes, "activeSound", "");
-	if (aFont.size() == 0 || anOverFont.size() == 0)
-		return false;
-	TextButton* aButton = new TextButton();
-	if (!aButton->setFonts(aFont, anOverFont, anActiveFont))
-		return false;
-	aButton->setText(aString);
-	if (anXAlign.compare("center") == 0)
-		aButton->setHAlign(1);
-	else if (anXAlign.compare("right") == 0)
-		aButton->setHAlign(2);
-	else
-		aButton->setHAlign(0);
-	if (aYAlign.compare("middle") == 0)
-		aButton->setVAlign(1);
-	else if (aYAlign.compare("bottom") == 0)
-		aButton->setVAlign(2);
-	else
-		aButton->setVAlign(0);
-	aButton->setPosition(x, y);
-	aButton->setSounds(anOverSound, anActiveSound);
-	aButton->setName(aName);
-	mScreen->listenTo(aButton, aName, anAction);
-	mScreen->registerNode(aButton, aName);
-	mGroups.back()->addChild(aButton);
-	return true;
-}
-
 // 0x42fa90: a fading container; its rectangle is (0, 0, width, height)
 bool LayoutHandler::addGroup(const XmlAttributes& theAttributes)
 {
@@ -437,32 +380,6 @@ bool LayoutHandler::addParticleSystem(const XmlAttributes& theAttributes)
 		aSystem->setName(aName);
 		if (0 < aWarmup)
 			aSystem->warmup((float)aWarmup);
-	}
-	return true;
-}
-
-// 0x4300c0: replaces the text of a named node, taken to be a text node as in the original (no layout uses it)
-bool LayoutHandler::addTextSub(const XmlAttributes& theAttributes)
-{
-	std::string aName = getStringAttribute(theAttributes, "name", "");
-	std::string aString = getStringAttribute(theAttributes, "string", "");
-	Node* aNode = mScreen->getNode(aName);
-	if (aNode != nullptr)
-		static_cast<TextItem*>(aNode)->setText(aString);
-	return true;
-}
-
-// 0x42fed0: another layout file read into the same screen, with groups of its own (its elements go to the screen,
-// not to the group that is open here)
-bool LayoutHandler::addInclude(const XmlAttributes& theAttributes)
-{
-	LayoutHandler aHandler;
-	aHandler.setScreen(mScreen);
-	std::string aFile = getStringAttribute(theAttributes, "file", "");
-	if (aFile.compare("") != 0)
-	{
-		Ref<InputStream> aStream = App::instance()->openStream(aFile.c_str());
-		parseXml(aHandler, aStream);
 	}
 	return true;
 }

@@ -1,0 +1,91 @@
+# tools/coverage.py's settings for Rocket Mania Deluxe (docs/COVERAGE.md).
+export re/rocketmania/gh/functions.jsonl
+src games/rocketmania/src
+# The game's own code, which the port translates: the game's classes and its statics (0x401000 to the WinTubeTricksApp
+# methods that end at 0x42f770 and the three small functions after them). The WidgetManager from 0x42f880 on is the 2003
+# framework (docs/FRAMEWORK_2003.md), the C runtime and the libraries.
+game 00401000-0042f7e0
+# Left out on purpose, with the reason. The compiler's deleting destructors (a class's vf00: it calls the destructor, then frees the
+# object when told to) and destructors that only call the base class's are not in the port: C++ makes them.
+none 004013d0 BuyRocketsWidget's deleting destructor
+none 004029b0 ContinueDialog's deleting destructor
+none 00403bc0 CreditsDialog's deleting destructor
+none 00403bf0 CreditsDialog's destructor: only the base class's
+none 004048a0 DifficultyDialog's deleting destructor
+none 00405860 GameSelector's deleting destructor
+none 00406b50 HighScoreDisplayDialog's deleting destructor
+none 004093a0 HintDialog's deleting destructor
+none 0040c8e0 LevelUpDialog's deleting destructor
+none 00411930 MoneyDialog's deleting destructor
+none 00411960 MoneyDialog's destructor: only the base class's
+none 004125d0 OptionsDialog's deleting destructor
+none 004142d0 RecordScoreDialog's deleting destructor
+none 00415cf0 SpeechBubble's deleting destructor
+none 004162c0 TalkingHead's deleting destructor
+none 0041b270 Board's deleting destructor
+none 0042a0d0 Points' deleting destructor
+none 0042a100 Points' destructor: frees the text, which the port's std::string does
+none 0042b3c0 the app's deleting destructor
+none 004299b0 MySound's deleting destructor
+# Overrides that only call the base class's function, and the framework's empty defaults (the framework's own headers have them).
+none 00401510 BuyRocketsWidget::AddedToManager: only calls the base class's
+none 00401520 BuyRocketsWidget::RemovedFromManager: only calls the base class's
+none 00403980 ButtonListener::ButtonPress(id, click count): calls ButtonPress(id); the framework's header has it
+none 004064d0 ButtonListener::ButtonPress(id)'s empty default: the framework's header has it
+none 00405ea0 GameSelector::Resize through the secondary vtable: a thunk to Widget::Resize
+none 00409450 HintDialog's override that only calls Dialog's
+none 0040c9a0 LevelUpDialog::Resize through the secondary vtable: a thunk to Dialog::Resize
+none 00413850 SliderListener's empty default
+none 00414780 EditListener's default (allows every character)
+none 0042a2b0 Points::Resize: only calls the base class's
+none 0042b7b0 the app's SexyApp::vf61 override: only calls the base class's
+# The C++ library's std::string, std::list and std::vector as the compiler made them (the port uses std::).
+none 00401000 a one-line setter the compiler left out of line (called by BuyRocketsWidget's constructor)
+none 00402300 std::list clear
+none 004022c0 std::string release
+none 00402350 std::string set length
+none 00402370 std::string reserve
+none 00402490 std::string tidy
+none 004024e0 a std::string member the compiler instantiated
+none 00402560 a std::string member the compiler instantiated
+none 004038a0 std::string assign
+none 00404df0 std::string max_size
+none 00406b80 std::string initialise
+none 004088c0 a std::string member the compiler instantiated
+none 004089e0 a std::string member the compiler instantiated
+none 00408bf0 a std::string member the compiler instantiated
+none 00408cd0 a std::string member the compiler instantiated
+none 00408e20 a std::string member the compiler instantiated
+none 00413830 std::vector clear
+none 00413860 std::vector insert
+none 0041abf0 std::list iterator step
+none 00429270 a std::string member the compiler instantiated
+none 00429340 std::list erase
+none 00429b50 a std::string member the compiler instantiated
+none 00429d00 a std::string member the compiler instantiated
+none 00429d80 a std::string member the compiler instantiated
+none 0042f7e0 a std::string member the compiler instantiated
+# One-line helpers, each used where the port writes the plain expression.
+none 004172e0 returns its argument
+none 0042d190 asks whether the game is registered: always, in the port
+none 0042d4d0 a log call, a bare return in the shipped game
+none 0042f6f0 the app's mode is 1 (classic)
+none 00402539 an exception handler (Catch funclet) of the compiler's
+# Registration: the dialogs, their texts, the "already registered" and "invalid code" boxes, and the high-score box that asks to register.
+none 004088b0 sets the registered flag
+none 00414790 the registration dialog's contents
+none 00414bf0-00415bd0 RegisterDialog and RegisterToLoadDialog
+none 0042da10 the "already registered" dialog
+none 0042e1d0 the high-score dialog that asks to register
+none 0042eb60 the "invalid code" dialog
+# Leads out of the game: the update check that asks popcap.com.
+none 0042e770 the update check
+# The C runtime's start: the app object is made and WinMain runs it (the platform layer's main does).
+none 004293c0 constructs the app object at start-up
+none 004293d0 registers the app object's destructor with atexit
+none 004293f0 WinMain
+# The speech bubble: the one function that gives it a message (0x415d30) is an empty stub in the shipped game, so its message stays "none"
+# (5), it is never visible and its Draw is never called.
+none 00415ec0 the speech bubble's picture and text (SpeechBubble::Draw's helper)
+none 00416040 SpeechBubble::Draw
+none 00429260 the test "is the head mid-slide" that SpeechBubble::Draw makes

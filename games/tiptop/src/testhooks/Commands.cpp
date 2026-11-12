@@ -29,6 +29,7 @@
 #include "Config.h"
 #include "Game.h"
 #include "Gui.h"
+#include "Res.h"
 
 #include <cstdio>
 #include <cstdlib>
@@ -174,6 +175,16 @@ std::string WaitMove(int theUpdates)
 	return "{\"kind\":\"wait\",\"updates\":" + Num(theUpdates) + "}";
 }
 
+// The title screen's play button exists once its load bar is full (App.cpp's LoadBarProc): no entry the bar loads (the
+// table's types 4, 2 and 8, as IsPreloaded has them) is left after the ones loaded so far
+bool TitleLoaded()
+{
+	for (const res::Entry* e = &res::GameTable()[tiptop::gPreloaded]; e->mFlags != 0; e++)
+		if (e->mType == 4 || e->mType == 2 || e->mType == 8)
+			return false;
+	return true;
+}
+
 std::string ButtonMove(const char* theKind, tiptop::Handler* h, int theUpdates)
 {
 	return ClickMove(theKind, h->mRect.x + h->mRect.w / 2, h->mRect.y + h->mRect.h / 2, theUpdates);
@@ -196,8 +207,8 @@ std::string BotMove()
 	switch (anApp.mScreen)
 	{
 	case tiptop::SCREEN_SPLASH:
-		// "click here to play", once the load bar is full (a click before it is ignored)
-		return ClickMove("start", 186, 288, 100);
+		// "click here to play", once the load bar is full (a click before it is ignored): until then the move is to wait
+		return TitleLoaded() ? ClickMove("start", 186, 288, 100) : WaitMove(10);
 	case tiptop::SCREEN_MAINMENU:
 		return ClickMove("play", 165, 88, 100);
 	case tiptop::SCREEN_NEWGAME:
@@ -309,8 +320,13 @@ bool TipTopApp::HandleTestCommand(const ScriptCommand& theCommand)
 	{
 		if (anApp.mScreen == tiptop::SCREEN_SPLASH)
 		{
-			Error(aLine, "the game is still on its title screen: click its button first");
-			return true;
+			// the title's button leads to the main menu, which the goto then leaves as it would from there
+			if (!TitleLoaded())
+			{
+				Error(aLine, "the title screen is still loading: wait for its button (move waits too)");
+				return true;
+			}
+			anApp.SetScreen(tiptop::SCREEN_MAINMENU);
 		}
 		if (DialogOpen())
 		{

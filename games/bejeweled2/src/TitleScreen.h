@@ -36,8 +36,6 @@ public:
 	CurvedVal		mLogo2Glow;         // +0x170 the "2" lights up
 	int				mBarDelay;          // +0x1a0
 	CurvedVal		mBarAlpha;          // +0x1a8 the loading bar and the PopCap logo fade in
-	int				mUnusedDelay;       // +0x1d8
-	CurvedVal		mUnused;            // +0x1e0 (counts up, never read)
 	int				mDeluxeDelay;       // +0x210
 	CurvedVal		mDeluxeAlpha;       // +0x218 "Deluxe"
 	int				mDeluxeGlowDelay;   // +0x248

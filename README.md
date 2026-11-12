@@ -39,7 +39,7 @@ installed copy (for example from Steam):
 | [Seven Seas Deluxe](games/sevenseas/docs/README.md) | Sonnet | Identical; registration and More Games out, no fix candidates; coverage check, performance pass, unneeded code out, the readability pass and the Collection check (the same game) done; its features on the site left | 2026-10-25 | | $182 | | | $182 |
 | [Atomica Deluxe](games/atomica/docs/README.md) | Sonnet | Done: identical, registration out, fixes mod, coverage check, performance pass, unneeded code out and the readability pass (ported from PopCap's own installer, so it has no Collection check) | 2026-10-25 | 1 | $250 | | | $250 |
 | [Mummy Maze Deluxe](games/mummymaze/docs/README.md) | Sonnet | Done: identical, registration out, fixes mod, coverage check, performance pass, unneeded code out and the readability pass (ported from PopCap's own installer, so it has no Collection check) | 2026-10-25 | 1 | $227 | $3 | | $230 |
-| [TipTop Deluxe](games/tiptop/docs/README.md) | Opus | Identical; registration out and fixes mod done; the coverage check next | 2026-10-25 | 1 | $202 | | | $202 |
+| [TipTop Deluxe](games/tiptop/docs/README.md) | Opus | Identical; registration out, fixes mod, coverage check, performance pass and unneeded code out done; the readability pass next | 2026-10-25 | 1 | $202 | | | $202 |
 | [Bookworm Adventures Deluxe](games/bookwormadv/docs/README.md) | Opus | Identical (screens, sound and the 3D mode compared before the two phases were named), with PopLua, PopAnim, Flash cutscenes and JPEG 2000; registration out, no fix candidates; the coverage check next | 2026-10-25 | | $808 | $2 | | $810 |
 | [Ning Po Mahjong Deluxe](games/ningpo/docs/README.md) | Opus | Identical; no fix candidates; coverage check done; the performance pass next | 2026-10-26 | | $152 | | | $152 |
 | [Pixelus Deluxe](games/pixelus/docs/README.md) | Sonnet | Plays identical; registration and More Games out, no fix candidates; phase two's screen differences still to fix | 2026-10-26 | | $220 | | | $220 |
@@ -94,7 +94,7 @@ asked.
 | Seven Seas Deluxe | 1.07 s | 1 to 2 s | 4.8 to 5.5 % of one core | 2.2 to 8.7 % of one core | 66 MB | 41.5 to 51.2 MB |
 | Atomica Deluxe | 1.20 s | 1.07 s | 1.7 s to update 4,400 | 2.5 s to update 4,400 | 184 MB | 62 MB |
 | Mummy Maze Deluxe | 0.38 and 0.44 s | 4.5 s | 2.2 s a minute | 5.7 and 5.8 s a minute | 58 MB | 65 and 66 MB |
-| TipTop Deluxe | 0.6 to 0.9 s | 4.7 and 4.8 s | 29 and 33 % of one core | 5 % of one core | 82 and 84 MB | 46 MB |
+| TipTop Deluxe | 0.6 to 0.9 s | 4.7 and 4.8 s | 14 and 20 % of one core | 5 % of one core | 82 and 83 MB | 46 MB |
 | Bookworm Adventures Deluxe | 1.70 s | 6.4 s | 2.9 to 3.2 % of one core | 7.8 to 9.4 % of one core | 165 MB | 94 MB |
 | Ning Po Mahjong Deluxe | 0.36 s | 0.82 s | 6.3 % of one core | 14.9 % of one core | 54 MB | 21 MB |
 | Pixelus Deluxe | 0.9 to 1.4 s | 0.8 to 1.0 s | 5.7 and 7.0 s a minute | 10.4 and 11.6 s a minute | 102 and 104 MB | 93 MB |
@@ -108,8 +108,8 @@ asked.
 | Mahjong Escape: Ancient Japan | 1.31 s | | 6.0 % of one core | 3.1 % of one core | 146 MB | 40 MB |
 | Mahjong Escape: Ancient China | 1.29 s | | 7.3 % of one core | 1.7 % of one core | 104 MB | 31 MB |
 | Bonnie's Bookstore Deluxe | 6.8 and 12.9 s | 6.2 and 6.4 s | 7.1 and 8.5 s a minute | 3.3 and 3.4 s a minute | 87 and 89 MB | 56 and 58 MB |
-| Bejeweled Twist | 2.71 s | 10.81 s | 3.3 s a minute | 21.1 s a minute | 206 MB | 338 MB |
-| Bejeweled 2 Deluxe | | | | | | |
+| Bejeweled Twist | 2.71 s | 10.81 s | 38.1 G cycles a minute in 2D, 34.5 in 3D | 43.9 G cycles a minute in 2D, 44.9 in 3D | 392 MB | 186 MB |
+| Bejeweled 2 Deluxe | 0.9 to 1.2 s in 2D, 1.4 s in 3D | 4.4 s in 2D, 4.7 s in 3D (dgVoodoo2) | 8.6 % of one core in 2D on a GPU renderer, 9.3 % in 3D; 93.7 % in 2D on SDL's software renderer | 12.7 % of one core in 2D, 61 % in 3D (dgVoodoo2) | 82 to 109 MB | 42 MB in 2D, 149 MB in 3D (dgVoodoo2) |
 | AstroPop Deluxe | | | | | | |
 | Typer Shark! Deluxe | 0.72 to 0.82 s | 0.76 to 1.28 s | 1.3 to 3.3 s in 20 s (median 2.2 s) | 1.5 s in 20 s | 86 to 89 MB | 49 to 51 MB |
 
@@ -117,8 +117,8 @@ Every number comes from the game's own notes, its latest measurement there: the 
 original under origrun, back to back on one machine, windowed and silent, over the same scripted play, with the load
 time from the process's start to the first screen that takes input and the memory the peak of the process's private
 bytes. Processor time is as each game measured it, a share of one core over a stretch of play or seconds over a scripted
-minute (Atomica's runs from launch to a fixed update; Bejeweled Twist and Bookworm Adventures were measured at rest on
-the menu and the title; TipTop's and Cosmic Bugs' originals are paced at 60 Hz, as on a player's screen). Most runs
+minute (Atomica's runs from launch to a fixed update; Bookworm Adventures was measured at rest on the title; Bejeweled
+Twist's is the cycles its threads ran in a minute of the same seeded Classic game, the memory that game's peak; TipTop's and Cosmic Bugs' originals are paced at 60 Hz, as on a player's screen). Most runs
 shared the machine with other sessions' games, and each game has its own play and its own measure, so a row compares a
 port with its own original, never one game with another; an empty cell means the notes give no number.
 

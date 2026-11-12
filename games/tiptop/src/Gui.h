@@ -230,7 +230,6 @@ uint16_t LayerScrollY(Layer* theLayer);                                        /
 
 // --- layers and handlers (0x428eb5-0x429c75) ---
 void GuiInit(uint16_t theLayers, uint16_t theHandlers, lowos::Surface* theSkin);  // 0x428eb5
-void GuiShutdown();                                                            // 0x428fa3
 Layer* NewLayer(uint16_t theContentWidth, uint16_t theContentHeight, const GuiRect* theRect);  // 0x428fd3
 void PushModal(Layer* theLayer);                                               // 0x42907f
 // port (test hooks): every layer in use draws all its handlers again in the next frame

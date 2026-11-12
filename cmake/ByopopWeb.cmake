@@ -28,7 +28,8 @@ set(BYOPOP_WEB_EXPORTED_FUNCTIONS _main _byopop_userdata_restore _byopop_mods_op
   _byopop_audio_mute _byopop_audio_muted _byopop_site_apply _byopop_site_tutorials _byopop_site_skiplogos _byopop_site_windowed _byopop_site_accel3d _byopop_mixer_gain
   _byopop_update_count _byopop_hold_updates_at _byopop_set_frame_budget _byopop_set_speed _byopop_speed _byopop_perf_json
   _byopop_music_song _byopop_music_view _byopop_music_row _byopop_music_used _byopop_music_names _byopop_music_mute _byopop_music_meter _byopop_music_seek)
-set(BYOPOP_WEB_RUNTIME_METHODS FS callMain ccall)
+# HEAPU8: the speedrun timer reads a game's auto splitter block from its memory (web/autosplit.js)
+set(BYOPOP_WEB_RUNTIME_METHODS FS callMain ccall HEAPU8)
 # the player-only test page's live command (framework/SexyAppBase.cpp, docs/TEST_COMMANDS.md "Sending them")
 list(APPEND BYOPOP_WEB_EXPORTED_FUNCTIONS _byopop_test_command)
 get_filename_component(BYOPOP_WEB_SHELL "${CMAKE_CURRENT_LIST_DIR}/../web/shell.html" ABSOLUTE)
@@ -58,7 +59,7 @@ set(BYOPOP_WEB_SHARED_JS logo.js cursors.js saver.js settingsicons.js settings.j
 # adding of games' files (web/addgames.js, with web/modpanel.js for its zip and pak readers, and import-games.js, each listed
 # game's page.js, which byopop_web_index() writes), and Desktop 95's soundboard (web/sounds.js, with its table web/soundboards.js),
 # copied next to index.html only
-set(BYOPOP_WEB_INDEX_JS localsoon.js players.js saves.js saveimport.js modpanel.js addgames.js setup.js music.js soundtracks.js sounds.js soundboards.js trophies.js gamepics.js splits.js deskapps.js phase.js library.js)
+set(BYOPOP_WEB_INDEX_JS localsoon.js players.js saves.js saveimport.js modpanel.js addgames.js setup.js music.js soundtracks.js sounds.js soundboards.js trophies.js gamepics.js autosplit.js splits.js deskapps.js phase.js library.js)
 # The listing page, build/web/index.html (made from web/index.html by byopop_web_index() at the end of this file): one
 # tile for each game in BYOPOP_WEB_FINISHED, in alphabetical order of TITLE (not this list's order; the page can sort by
 # release date instead), with a badge and the year of its release. The list is the coordinator's: the coordinator adds a
@@ -67,7 +68,7 @@ set(BYOPOP_WEB_INDEX_JS localsoon.js players.js saves.js saveimport.js modpanel.
 # list with no web page is a configure error.
 set(BYOPOP_WEB_FINISHED bejeweled bigmoney bookworm noahsark sevenseas atomica mummymaze tiptop bookwormadv ningpo
   pixelus alchemy wordharmony cosmicbugs waterbugs rocketmania dynomite bookwormadv2 mahjongjapan mahjongchina
-  bonnies bejeweledtwist)
+  bonnies bejeweledtwist bejeweled2)
 # The games still to come, <target>|<title>, each shown on the listing page as a "Coming soon" tile among the finished ones
 # (the user, 2026-11-02: "Add tiles for the upcoming games to the site and have them display disabled and say coming soon"):
 # the badge, the title and the year, sorted with the rest, not a link, and where to buy the game, so that a visitor can get
@@ -80,7 +81,7 @@ set(BYOPOP_WEB_FINISHED bejeweled bigmoney bookworm noahsark sevenseas atomica m
 # Zombies are left out: nobody ports them (the user, 2026-10-26).
 set(BYOPOP_WEB_UPCOMING
   "venice|Venice"
-  "heavyweapon|Heavy Weapon" "hammerheads|Hammer Heads" "bejeweled2|Bejeweled 2"
+  "heavyweapon|Heavy Weapon" "hammerheads|Hammer Heads"
   "astropop|AstroPop" "typershark|Typer Shark!" "pizzafrenzy|Pizza Frenzy" "igglepop|Iggle Pop"
   "feedingfrenzy|Feeding Frenzy" "chuzzle|Chuzzle" "feedingfrenzy2|Feeding Frenzy 2"
   "peggle|Peggle" "pegglenights|Peggle Nights" "bejeweled3|Bejeweled 3" "bananabugs|Banana Bugs"
@@ -1153,6 +1154,23 @@ function(byopop_web_index)
   file(READ ${saveimport_json} saveimport_text)
   byopop_write_if_changed(${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/saveimport-table.js "var ByopopSaveTable = ${saveimport_text};
 ")
+  # each script and stylesheet the page loads from beside it carries its contents' hash (name.js?v=...), so that a page
+  # reloaded after a rebuild never runs the scripts it had before (a page loaded before a rebuild kept the old sounds.js
+  # through a reload, 2026-11-12; Python's http.server sends no Cache-Control, so a browser may reuse what it has)
+  string(REGEX MATCHALL "(src|href)=\"[A-Za-z0-9_./-]+\\.(js|css)\"" stamp_refs "${page}")
+  if(stamp_refs)
+    list(REMOVE_DUPLICATES stamp_refs)
+  endif()
+  foreach(ref IN LISTS stamp_refs)
+    string(REGEX REPLACE "^(src|href)=\"([^\"]+)\"$" "\\1" stamp_attr "${ref}")
+    string(REGEX REPLACE "^(src|href)=\"([^\"]+)\"$" "\\2" stamp_name "${ref}")
+    set(stamp_file "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${stamp_name}")
+    if(EXISTS "${stamp_file}")
+      file(MD5 "${stamp_file}" stamp_hash)
+      string(SUBSTRING "${stamp_hash}" 0 10 stamp_hash)
+      string(REPLACE "${ref}" "${stamp_attr}=\"${stamp_name}?v=${stamp_hash}\"" page "${page}")
+    endif()
+  endforeach()
   byopop_write_if_changed(${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/index.html "${page}")
   # the chat's table of games (web/chat.js, docs/CHAT_DESIGN.md), loaded by every game page before chat.js
   byopop_write_if_changed(${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/chat-games.js "var ByopopGames = [\n${chat_games}\n];\n")

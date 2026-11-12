@@ -3,6 +3,8 @@
 # virtual clock and scripted cursor, with up to four watched values (origrun --watch). The game's own score file and saved
 # games are removed first (KEEP_SAVE=1 keeps the saved games a test put there), so every run starts the way a first run does. The log is
 # on stdout.
+# COVERAGE=<function list, a Windows path> adds origrun's --coverage (docs/COVERAGE.md); the hits are written to
+# build/origrun/<stage name>/coverage.txt.
 source "$(dirname "$0")/common.sh"
 S="$1"; SEED="$2"; T="$3"; shift 3
 if [ -z "$KEEP_SAVE" ]; then
@@ -19,4 +21,4 @@ if [ -n "$RM_REG" ]; then
 fi
 "$(win "$ORIGRUN")" --exe "$(win "$OG_GAME/RocketManiaGame.exe")" --run "$(basename "$OG_STAGE")" --stage-root "$(dirname "$OG_STAGE")" \
 	--script "$(win "$S")" --clock virtual --cursor scripted --counter $COUNTER --update-ms 10 --seed "$SEED" \
-	--patches tools/origrun/patches/rocketmania.txt --timeout "$T" $REGMAP $W
+	--patches tools/origrun/patches/rocketmania.txt --timeout "$T" $REGMAP $W ${COVERAGE:+--coverage "$COVERAGE"}

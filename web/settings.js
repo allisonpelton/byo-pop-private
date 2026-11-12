@@ -996,7 +996,9 @@ var ByopopSettings = (function () {
   function setFavourite(game, on) {
     if (!game || !favId(game.id)) return false;
     var o = readAll(), list = favourites().filter(function (g) { return g.id !== game.id; });
-    if (on) list.push({ id: game.id, title: String(game.title || game.id), tag: game.tag || "", colour: game.colour || "", page: game.page || "" });
+    // the page's file name alone: a listing opened with a query (?silent=1) carries it on its links
+    var page = String(game.page || "").replace(/[?#].*$/, "").replace(/^.*\//, "");
+    if (on) list.push({ id: game.id, title: String(game.title || game.id), tag: game.tag || "", colour: game.colour || "", page: page });
     if (list.length) o.favourites = list; else delete o.favourites;
     var ok = write(o);
     try { window.dispatchEvent(new CustomEvent("byopop-favourites", { detail: { id: game.id, on: !!on } })); } catch (e) {}
