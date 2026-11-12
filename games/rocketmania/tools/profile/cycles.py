@@ -484,7 +484,15 @@ def summary(out):
             for side, rows in sides.items():
                 if side != 'orig' and rows:
                     pm = statistics.median(r['segments'][i]['cycles_per_update_m'] for r in rows)
-                    print('  %s / original, cycles an update: %.2f' % (side, pm / om))
+                    pair = []   # the same round's port run over its original, for the rounds whose original played all three games
+                    for name in sorted(glob.glob(os.path.join(out, 'p*-orig.json'))):
+                        other = name[:-len('orig.json')] + side + '.json'
+                        if os.path.exists(other):
+                            ro, rp = [json.loads(next(l for l in open(f) if l.startswith('{'))) for f in (name, other)]
+                            if played(ro) and 'segments' in rp:
+                                pair.append(rp['segments'][i]['cycles_per_update_m'] / ro['segments'][i]['cycles_per_update_m'])
+                    print('  %s / original, cycles an update: %.2f (medians), %.2f over %d pairs of one round (%.2f to %.2f)' % (
+                        side, pm / om, statistics.median(pair), len(pair), min(pair), max(pair)))
 
 
 if __name__ == '__main__':

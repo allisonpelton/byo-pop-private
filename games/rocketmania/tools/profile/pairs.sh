@@ -5,7 +5,7 @@
 # original and one of each configuration of the port, in an order that turns by one place each round, so that a drift of the machine falls
 # on each alike:
 #   port3d   Is3D=1 (Direct3D 11), windowed at the game's own size (-windowscale=1): like for like with the original's window
-#   port2d   Is3D=0 (SDL's software renderer), windowed at the game's own size
+#   port2d   Is3D=0 (the game's 2D path; the display line still names SDL's Direct3D 11 renderer), windowed at the game's own size
 #   portdef  Is3D=1, the window the port opens by default (twice the game's size where it fits): what a player gets
 #   orig     on rundesk's private desktop (its software screen, docs/ORIGRUN.md), windowed 640x480
 # CONFIGS="port3d port2d portdef" picks the port's configurations. Waits first, up to QUIET_S seconds (default 900), for a quiet machine

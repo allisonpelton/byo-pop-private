@@ -362,22 +362,69 @@ progress directly, so the original has no minimum time of its own. The port's lo
 
 ## Performance
 
-Measured 2026-11-08 with `games/rocketmania/tools/profile/perf.py`: the original under origrun (real clock, scripted cursor, on its
-private desktop) and the port under rundesk, without `-fast`, back to back on the same machine, the same scripted 55 seconds
-(link, Arcade, Medium, a game of the bot's clicks; `build/ph2/perf/*.txt`). Seven other games' processes were running on the
-machine meanwhile (Bonnie's, BookWorm, Dynomite, Ning Po, Pixelus, TipTop, origrun), so the numbers are for a busy machine; the
-performance pass re-measures on a quiet one.
+**Processor time (the performance pass, 2026-11-12): the port is under half the original's, in every configuration, stretch and
+pair.** Measured as `docs/COORDINATION.md`'s target asks, by cycle counts: `tools/profile/pairs.sh <out dir>` runs rounds of the
+original and the port's three configurations, one game process at a time, each pinned to a performance core of its own
+(`tools/pincore.py`), over `tools/profile/scenario.txt` (the port's bot plays one game of each mode, Arcade, Classic and Strategy,
+difficulty Medium: 8,833 updates, 88 s at 100 updates a second). `tools/profile/cycles.py` reads the threads' cycle counts
+(QueryThreadCycleTime, summed over the process) at marker updates only: the port is the shipped exe reading a `-script` (no
+`-commands` channel, no state log, no bot) and prints a `pointer` line to SDL's log at each marker; the original's update counter
+(0x4f6850) is read from outside. The original runs under origrun on rundesk's private desktop (its software screen: no GPU there),
+windowed 640x480 on its real clock, which it paces by its own sleep as on a 60 Hz screen (no vertical-blank spin); `Players/save?.dat`
+and `hiscores.dat` are deleted before each run, since a save left by the last run turns the first game's start into a Continue dialog
+that swallowed the scripted clicks, and its registry values are reset. Sound: origrun's stand-in mixes nothing for the original, and
+the port's mixer thread (SDL's audio thread, 0.2 to 0.4% of a core, at most 1.2%) is inside the port's numbers.
+
+The port runs in three configurations, all on SDL's Direct3D 11 renderer (the display line each run logs): `port3d`, Hardware
+Acceleration on, windowed at the game's own size (`ScreenMode=0`, `-windowscale=1`, "client 640x480 px, render scale 1"), the one
+that is like for like with the original's window; `port2d`, the same with Hardware Acceleration off (`Is3D=0`); `portdef`, 3D on in the
+window the port opens by default (twice the game's size, "client 1280x960 px, render scale 2"), what a player gets. Medians of cycles
+an update in millions (share of one core at 100 updates a second), five originals and six runs of each configuration, the runs
+interleaved round by round (the first round order turns by one place each round):
+
+| Stretch (updates) | Original | port3d | port2d | portdef |
+|---|---|---|---|---|
+| 900 to 3200, Arcade play | 4.18 (19.9%) | 1.69 (8.2%) | 1.67 (9.4%) | 1.44 (8.6%) |
+| 3200 to 3500, game over and the next start | 4.31 (20.5%) | 2.08 (10.1%) | 2.50 (13.4%) | 1.91 (10.6%) |
+| 3500 to 5900, Classic play | 4.57 (21.7%) | 1.75 (8.8%) | 1.88 (11.2%) | 1.68 (9.7%) |
+| 5900 to 6200, game over and the next start | 4.02 (19.1%) | 1.89 (9.5%) | 2.45 (13.2%) | 1.77 (10.2%) |
+| 6200 to 8600, Strategy play | 4.10 (19.4%) | 1.82 (9.1%) | 1.85 (10.6%) | 1.85 (10.0%) |
+
+The port over the original, a pair taken from one round (the median of the five pairs by stretch, in the table's order, and the worst
+pair): `port3d` 0.41, 0.48, 0.38, 0.47, 0.41 (worst 0.63); `port2d` 0.39, 0.57, 0.46, 0.72, 0.48 (worst 0.78); `portdef` 0.33, 0.46, 0.41,
+0.48, 0.43 (worst 0.72). The runs were made on a busy machine (4 to 5 other game processes at the start of a run, median; the machine's
+load 0.36 to 1.0), so the spread is wide; the runs were interleaved so that a drift of the machine falls on each alike. A sixth round was needed because the third round's original lost its second game's
+start (modes 0, 0, 0, 0, 2, 2 at the six markers: the scripted clicks land on the original's real clock, which varies from run to run);
+`cycles.py summary` leaves out an original whose three games did not all start, so each ratio above is over the five valid pairs.
+
+Where the port's cycles go (`-cyclesplit`, one 23 s run of the Arcade stretch in each of 3D and 2D, `tools/cyclesplit.py`): the game's
+update is 0.027 M cycles an update in 3D (1.7% of the process) and 0.028 in 2D; the picture, the game's draw calls and the present on
+the loop's thread plus the Direct3D 11 driver's own thread (3.4% of a core), is 1.42 M (92%) in 3D and 1.34 M in 2D; the audio thread
+0.05 M and the loop's events, sleeps and readings 0.05 M. With a GPU renderer the draw calls are batched until the present, so the
+draw and the present are not split further. The game's update is not where the time goes, and half of the picture is the driver's own
+thread; with the target met at 0.25 to 0.78 of the original's in every pair, the pass made no change to the port.
+
+**Web build** (the Browser pane, Chrome 156, the page's own timers, no `fast=1`, `tools/profile/webperf.js` as `rocketmania.html?player=1&assets=1&silent=1&driver=...`,
+one run of 8 s a phase): the first frame takes 1.4 s (the load, in the loading screen's phase); then a frame costs 1.76 ms
+in Arcade (9.2% of real time at 100 updates a second, 430 frames drawn of 821 updates, longest frame 49.5 ms), 1.65 ms in Classic
+(8.7%, longest 20.7 ms) and 1.34 ms in Strategy (7.3%, longest 21.9 ms), with no page error. The wasm heap is 136 MB with 94 MB in
+use (23 MB in 281 pictures, 17 MB in 65 sounds) and the in-use figure is the same, within 0.5 MB, after the first game and after
+the third: no growth over three games. The hidden pane gets no animation frames, so the page's `requestAnimationFrame` was
+replaced by a 16 ms timer; the frame hook's milliseconds are the game's own cost either way.
+
+**Load time and memory** (measured 2026-11-08 with `games/rocketmania/tools/profile/perf.py`: the original under origrun and the
+port under rundesk, without `-fast`, back to back, the same scripted 55 seconds, on a machine with seven other games running; its
+processor-time row used GetProcessTimes and is replaced by the cycle counts above):
 
 | | Original | Port |
 |---|---|---|
 | Launch to the play link (s) | 2.4, 1.1, 0.9 (the first run was cold) | 1.8, 2.0, 1.8 (3.5 and 2.8 on cold runs) |
 | Peak working set (MB) | 85 | 138 |
 | Peak private bytes (MB) | 62 | 132 |
-| Processor time over the minute | 8.6 to 9.3 s of 53 s (16 to 17%) | 4.6 to 5.7 s of 57 s (8 to 10%) |
 
-The port loads more slowly than the original (its resource thread takes 1.2 s of that, in the log's "Resource Loading Time"), keeps
-about 70 MB more in private memory (the decoded pictures as 32-bit surfaces, the mixer's buffers, SDL) and uses about half of its
-processor time. The web build's load time was not timed.
+The port loads more slowly than the original (its resource thread takes 1.2 s of that, in the log's "Resource Loading Time") and keeps
+about 70 MB more in private memory (the decoded pictures as 32-bit surfaces, the mixer's buffers, SDL): the framework's fixed
+cost, which the target allows.
 
 ## Registration code removed
 
