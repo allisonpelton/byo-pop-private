@@ -642,6 +642,8 @@ does find is in shared code and in the graphics driver; those went to the coordi
 never quiet: one to three games of other sessions ran during every measurement and 24 to 66% of it was in use (`machine_busy`), so the
 figures are for comparing the two side by side, run by run; each cell lists the three pairs.
 
+**Superseded for processor time (2026-11-12):** the second pass at the end of this section measures the two again by cycle counts, thread by thread and like for like; its figures replace the seconds of the tables below, which `GetProcessTimes` rounded to the clock tick.
+
 **How.** `tools/profile/perf.py` starts a game and samples its process (every 0.1 s in real time, every 0.02 s without waiting): working
 set, private bytes, processor time; `tools/profile/pairs.sh` runs everything turn about, one game process at a time, and
 `tools/profile/summary.py` prints a line a run. The scenario is `build/ts-p2/rec/rt2.in.txt` (the adventure recording that phase 2 made with
@@ -761,6 +763,81 @@ software-renderer run without waiting takes 5 minutes; `WORK_END` and `WORK_STRE
 `typershark.html?player=1&assets=1&silent=1&driver=games/typershark/tools/profile/webperf.js`). The original needs the copy under
 `build/origrun/typershark/game`, origrun's `typershark.cfg` and `patches/typershark.txt` (section 8) and phase 2's `build/ts-p2/patches.txt`.
 The raw samples were deleted once these figures were written.
+
+### Second pass: like for like, by cycle counts (2026-11-12)
+
+The user's target (2026-11-11, `docs/COORDINATION.md`, "The target") is a processor time at most the original's, measured like for like. The table of
+seconds above does not meet that rule and its processor times are **superseded by this pass**: Windows charges `GetProcessTimes` at the 15.6 ms clock tick (the port's
+1.28 to 3.33 s in 20 s was a scheduler's rounding of 3 to 4 G cycles), the original ran in 2D and the port in 3D, and the port ran on rundesk's hidden desktop, which
+never signals a vertical blank. So the two were measured again, by cycle counts and thread by thread. **No change was made to the port**: its own code is under 2% of what it
+spends, and the rest is the display driver's and SDL's (below). The tools are new (`tools/profile/cyc.py`, `cyc3d.py`, `pairs2.sh`).
+
+**How.** `cyc.py` reads `QueryThreadCycleTime` of every thread of the game process and `QueryProcessCycleTime` every 0.2 s, and the game's update counter out of
+the game's memory (the original's `[0x565380]+0x4b8`, the port's `SexyAppBase::mUpdateCount` through the exe's symbol `gSexyAppBase`), and takes the
+cycles of the stretch (the last 2,000 updates, 20 s, of the scenario `build/ts-p2/rec/rt2.in.txt`) between the two counter values, interpolated. Nothing runs
+inside the game for it: the port's `-script` holds the inputs and a quit (no `-commands` channel, no state log, no screenshot, no bot), the original's input comes from origrun's
+script or from posted messages. Each run is on a performance core of its own (`tools/pincore.py`), the runs alternate port and original, and
+`pairs2.sh` waits for a free slot among the six. The port runs without `-fast`, at the game's own size (`-renderscale=1`, since a window of 640 by 480 on
+rundesk's desktop gets render scale 2 and a player's windowed one gets 1), the original on origrun's real clock (hidden desktop) or on its own (visible desktop). Both play
+at 100 updates a second. The original's second thread is `SexyApp::CursorThreadProc` (`GetCursorPos` and `ScreenToClient` every 10 ms; the port has no such thread). Sound is
+counted apart: the original's is origrun's silent stand-in, which mixes nothing, the port's is SDL's dummy audio driver (the desktop runs) or rundesk's silent one, which does mix
+in the port's own mixer thread (0.2 to 0.3 G of a 20 s stretch), so the port's totals can be read with and without it.
+
+**A cost of the measuring tool, found late.** origrun's stand-in hooks `GetCursorPos`, and each call of the hook rescans the game's modules for new imports to hook
+(`hooks_rescan` in `tools/origrun/vclock.c`, at most once in 15 ms). The original's cursor thread calls it every 10 ms and its main thread calls it too, so under the stock stand-in the
+original's cursor thread costs 0.5 to 0.8 G of a 20 s stretch (37 to 61 M with the rescan interval raised to 2 s in a scratch copy of the stand-in, all its other hooks unchanged) and its main
+thread 0.3 to 0.4 G more. **Every figure below marked "stock" has that inflation in the original's column**; the figures marked "throttled" do not. Every game's like-for-like numbers under
+origrun are affected (a spec for the coordinator, below).
+
+**On the visible desktop, both in 3D** (the player's own setup: windowed 640 by 480, a display that signals its vertical blank; only 22:00 to 08:00, CLAUDE.md
+"Overnight"; the port is Direct3D 11 through SDL, the original DirectDraw 7 and Direct3D 7 with its 3D flag read as 1 from its memory; the board's state at the stretch's start
+and end is the same in the original's runs but for a field of the sharks' list that depends on the update an input landed on). Cycles in 20 s, in millions:
+
+| | Original | Port |
+| --- | --- | --- |
+| Throttled stand-in, median of five pairs (02:04 to 02:38) | **3,908** (2,713 to 4,332) | **3,720** (3,368 to 4,343) |
+| Of it: main thread; the port's driver thread and mixer | 3,720; cursor thread 54; other 131 | 1,122; driver 2,212; mixer 304 |
+| The three pairs on a busy machine (0.85 to 1.00 of the processors in use) | 4,332, 3,908, 4,025 | 3,682, 3,720, 3,368 |
+| The two pairs on a quiet machine (0.44 to 0.58 in use) | 2,713, 3,691 | 4,222, 4,343 |
+| Stock stand-in, median of ten pairs (01:12 to 02:14) | 4,713 (3,651 to 5,270), cursor thread 735 | 3,565 (3,021 to 4,456) |
+
+The port is lower in the busy pairs and **higher in the quiet ones**, so at its best the port is level with the original and the target is not met on a quiet machine. A run's
+cycles depend on how busy the machine is, but not alike on the two sides: the original's rise with it (its main thread 2.6 G at 0.46 in use against 4.1 G at 1.0: an SMT
+sibling and a shared cache), the port's driver thread *falls* (3.2 to 3.6 G at 0.39 to 0.47 in use, 1.8 to 2.5 G at 0.58 and above, in every pair of the fifteen), so a player's mostly quiet machine
+is where the port's thread is dearest. The pairs alternate and the medians are of five for that reason, but nothing makes the machine quiet while other sessions run games; the quiet pairs are three in all.
+
+**On rundesk's hidden desktop** (the harness of every test run; the original there is 2D, DirectDraw, since a hidden desktop gives it no Direct3D, section 16; stock stand-in; five pairs, 01:33
+to 01:48, one original run did not get into play and is left out): the port (Direct3D 11) 4,915 M (3,688 to 7,160), the original 6,398 M (5,387 to 7,414). The port's
+main thread is 2.0 to 5.0 G here because `SDL_RenderPresent` spins on a desktop with no vertical blank (2,196 M of one run's 3,030 M on the main thread, against 265 M of 1,065 M on
+the visible desktop), the original's 2D drawing 4.7 to 6.5 G on its main thread. The user's question whether this desktop makes a present cost more than on a player's screen
+(2026-11-12) has its answer: yes, two to eight times on the main thread.
+
+**Where the port's main thread goes** (a temporary probe of the cycles around each call, removed again; one run on the visible desktop, 2,000 updates, 1,204 presented frames,
+that is 60 a second with vsync): the main thread 1,065 M = `ProcessEvents` 26, `UpdateFrames` 66 (the game's own update), `BeginFrame` 32, `DrawScreen` 466 (the game's draw, with
+the framework's glue and SDL's queueing: 387 k cycles a frame), `DDInterface::Present` 438 (of which `SDL_RenderPresent` 265), no time in `SDL_Delay`. A count of the draw calls (a second
+probe, 1,191 frames): **593 SDL draw calls a frame and 20.3 changes of texture**; SDL merges the calls of one texture, so the driver sees about 20 draws and about 650 cycles
+a call are spent queueing them. The game's own user code is under 2% of the process: the sampler (`cpuprof.py`, which suspends threads and charges a system call's cycles to
+the wait it returns from, so only its shares of user code are used) puts `Board::Draw`, `Board::Update`, `ImageFont::DrawStringEx` and `DDInterface::DrawTexturedQuad` at about 0.1% of the cycles each,
+and the exe's 4.4% in all is mostly the load (`_stbi__out_gif_code`, `Quantize8Bit`, the audio decoders).
+
+**What the display costs** (environment overrides on the visible desktop, three runs each, no default changed; the machine's busy fraction differed from run to run, 0.53 to 1.0, so these
+are for orders of magnitude): with `SDL_RENDER_VSYNC=0` (100 presents a second) 5,357 M (5,134 to 6,595), the driver thread 3.0 to 4.7 G, so the cost grows with the presented frames and a present costs the driver's
+thread about 1.8 M cycles whatever it draws; `SDL_RENDER_DRIVER=direct3d` (SDL's Direct3D 9) 8,272 M (8,199 to 8,333, at 0.98 to 1.0 busy); `opengl` 4,297 M (3,268 to 5,091), one thread and no driver thread.
+Direct3D 11 with vsync stays the best of them. One idea was tried and **did not help**: a scratch build that draws straight into the back buffer at render scale 1, with no `mScreenTexture` target
+pass and no clear and copy in `Present` (four pairs on the hidden desktop, 02:46 to 02:56, the machine 0.97 to 1.0 in use): process 3,034 M (2,591 to 3,618) with the pass, 3,118 M (2,542 to 6,071; one run's main thread
+4.3 G) without it, and the driver thread 1,452 M against 1,442 M. The extra pass is not what the driver's thread spends; it is a per-present cost.
+
+**What is left, and whose it is.** Nothing in the game's own code (about 2% of the cycles), so the port stays as it is. The shared costs, for the coordinator (`docs/COORDINATION.md`, shared costs):
+(1) the present: the Direct3D 11 driver's worker thread (60% of the port's cycles on the desktop, about 1.7 to 2.7 M cycles a presented frame, more on a quiet machine) and `SDL_RenderPresent` itself on the main thread (0.2 M a frame on a display
+with a blank, ten times that on rundesk's) are the same finding as AstroPop's; every API that SDL offered cost as much or more and skipping the render-target pass did not help, so what would is fewer presents (a frame that nothing changed in need not be presented, though Typer Shark redraws its whole scene every frame). The window-surface presenter that the Mahjong session built (`cf1dea5f`, no renderer and no driver thread) is for a frame that is one finished software-drawn picture;
+Typer Shark's is about 600 alpha-blended quads a frame through the renderer, and drawing them in software would cost what the original's own 2D mode does here (4.7 to 6.5 G on its main thread, hidden desktop), so it does not apply;
+(2) the draw glue: 593 SDL calls a frame for 20 runs of one texture, so a queue in `DDInterface` that joins the quads of consecutive
+same-texture draws into one `SDL_RenderGeometry` call would take about half of the 466 M of `DrawScreen` (an estimate: 0.2 G, 6% of the process, with a frozen-baseline check since the draw order must stay); (3) the stand-in's rescan above, for the originals' side of every game's numbers.
+
+**To repeat.** From the worktree root, overnight for the desktop kinds: `KINDS="port3d orig3d" bash games/typershark/tools/profile/pairs2.sh <out dir> 5`
+(`KINDS="port orig"` for the hidden desktop; `SDL_RENDER_VSYNC=0` or `SDL_RENDER_DRIVER=<name>` in front for a variant), then
+`python -I games/typershark/tools/profile/cyc.py summary <out dir>/runs.txt` for the medians by side and by kind of thread. The desktop runs of the original take a `STANDIN` variable (the path of a stand-in `dsound.dll` to copy over the copy's). The original needs the copy under `build/origrun/typershark/game`,
+`build/origrun/typershark-p2/game` (the desktop runs, `visrun3d.py`'s source) and `build/ts-p2/patches.txt`. The raw runs were deleted once these figures were written.
 
 ## 12. Coverage check (2026-11-11)
 
