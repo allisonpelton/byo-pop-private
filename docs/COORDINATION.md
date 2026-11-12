@@ -249,9 +249,11 @@ holds the rules every session follows; this file does not repeat them.
     | The window surface with a dirty rectangle of 3% | 0.12 to 0.16 G |
 
     A partial texture upload does not help, since the driver's cost is per present. So a software-surface presenter,
-    opt-in by the app and given the frame's dirty rectangle, is the fix for every software-drawn port. The Mahjong
-    session builds it as shared commits, design note first; Cosmic Bugs keeps its own partial-upload work off the
-    trunk.
+    opt-in by the app and given the frame's dirty rectangle, is the fix for every software-drawn port. It is on the
+    trunk as SurfaceDisplay (a299640e, built by the Mahjong session; framework/SurfaceDisplay.h says how an app takes
+    it): Bonnie's uses it, the Mahjongs' engine with its own merge; TipTop, Word Harmony, Dynomite and the Retro64 engine (Cosmic Bugs builds
+    it for both Retro64 games) take it in their performance passes. Cosmic Bugs keeps its own partial-upload work off
+    the trunk.
   - Not a cost but a shared look (Typer Shark, 2026-11-12): the 2004 framework's Direct3D 9 blends straight alpha, and
     DDInterface uploads premultiplied textures whenever the renderer has custom blend modes (`SetupBlendModes`), which
     moves the edges of pictures with transparent texels by up to 44 levels in 3D. Typer Shark switches to the
