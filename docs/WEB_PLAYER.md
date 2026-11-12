@@ -645,8 +645,8 @@ off and with it on.
 - `id`: the block's game id;
 - `modes` and `skills`: the names behind the block's numbers;
 - `deaths`: what each of the four death kinds is (each one a reset setting, as in Bejeweled);
-- `templates`: one per speedrun.com category and subcategory, each with `mode` and `skill` (none for any), its
-  segments, and `end`, how the run finishes:
+- `templates`: one per speedrun.com category and subcategory, each with `mode` and `skill` (none for any, or a
+  list of the allowed ones), its segments, and `end`, how the run finishes:
   - `levels N` (the Nth level clear);
   - `score N` (the score on screen reaches N);
   - `won` (`wins` rises);
@@ -675,7 +675,12 @@ Maze (speedrun.com: Mummy Maze Deluxe): a board is a whole game, menu to menu, a
 level-complete page. Its progress is the treasures collected, which in Classic rises when the next pyramid has begun: 1st
 Pyramid (Classic) is 15 chamber splits and the end at `progress 1`, the spawn in the next pyramid. 100% Run (Adventure)
 splits at each treasure, a template with `by: "progress"` (each segment's split is the progress reaching its number, not
-a level clear), and ends `won`, at the last pyramid's chest. Being caught is no game over; Abandon Hope is the only one. Big Money has no board, so its row is its native
+a level clear), and ends `won`, at the last pyramid's chest. Being caught is no game over; Abandon Hope is the only one. Rocket
+Mania (speedrun.com: Rocket Mania!): Level 10, 20 and 30 on each difficulty, from "Get Ready!" (the first update of a new
+game) to the last level's "Level Up!"; a split at each Level Up. The board doesn't say which mode it means: Arcade and
+Classic both have levels and Strategy never ends one, so the templates' `mode` is the list [Arcade, Classic]. Its losses
+(the night running out, the top line filling, no matches left) count at the game-over screen, since a launch still burning
+can clear the level in Classic. It has no win. Big Money has no board, so its row is its native
 script's rules, with mode and skill in the category's name and levels or scores as segments. Both replay their native
 scripts' scenarios in `tools/autosplittest.js`. Every other game with a board gets its row in Milestone 3, from the
 speedrun.com categories and its session's answer on where in its code GO, a level clear, a game over and a win happen.
