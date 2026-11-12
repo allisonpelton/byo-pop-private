@@ -13,7 +13,11 @@ games/venice/docs/symbols.txt has one name a line, "<address> <name>" (a functio
 import json
 import os
 import re
+import struct
 import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import pe
 
 ROOT = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", ".."))
 ALL = os.path.join(ROOT, "re", "venice", "gh", "all.c")
@@ -51,6 +55,51 @@ def load_functions():
     return result
 
 
+_IMAGE = None
+
+
+def image():
+    global _IMAGE
+    if _IMAGE is None:
+        _IMAGE = pe.Image(os.path.join(ROOT, "re", "venice", "bin", "VeniceGame.exe"))
+    return _IMAGE
+
+
+def string_at(address):
+    """The C string at an address of .rdata or .data, or None when it is not printable text."""
+    try:
+        data = image().bytes(address, 80)
+    except Exception:
+        return None
+    end = data.find(bytes([0]))
+    if end < 0:
+        return None
+    text = data[:end]
+    if all(32 <= c < 127 or c in (9, 10, 13) for c in text):
+        return text.decode("ascii")
+    return None
+
+
+def float_note(match):
+    """Marks a hex literal that reads as a plausible float, e.g. 0x44968000 /*1200f*/."""
+    value = int(match.group(0), 16)
+    exponent = (value >> 23) & 0xFF
+    if not 100 <= exponent <= 150:
+        return match.group(0)
+    number = struct.unpack("<f", struct.pack("<I", value))[0]
+    return "%s/*%gf*/" % (match.group(0), number)
+
+
+def string_note(match):
+    address = int(match.group(1), 16)
+    if not 0x585000 <= address < 0x5b0000:
+        return match.group(0)
+    value = string_at(address)
+    if value is None:
+        return match.group(0)
+    return '"%s"/*%s*/' % (value, match.group(0))
+
+
 def compact(text, names):
     lines = []
     for line in text.split("\n"):
@@ -68,7 +117,10 @@ def compact(text, names):
         name = names.get(address)
         return name if name else match.group(0)
 
-    return re.sub(r"\b(FUN_|DAT_|PTR_FUN_)([0-9a-f]{8})\b", replace, text)
+    text = re.sub(r"\b(FUN_|DAT_|PTR_FUN_)([0-9a-f]{8})\b", replace, text)
+    text = re.sub(r"&(?:PTR_)?DAT_([0-9a-f]{8})\b", string_note, text)
+    text = re.sub(r"\b0x[0-9a-f]{8}\b", float_note, text)
+    return text
 
 
 def main():
