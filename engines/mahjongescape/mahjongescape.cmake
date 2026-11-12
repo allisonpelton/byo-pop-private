@@ -16,8 +16,8 @@ function(mahjongescape_game GAME)
 
   # The game's translation is a library of its own, so it builds before the host app (MahjongApp.cpp, main.cpp) exists
   set(${UPPER}_HOST_SOURCES ${${UPPER}_SOURCES})
-  list(FILTER ${UPPER}_SOURCES EXCLUDE REGEX "/(MahjongApp|main|TestCommands|ModFeatures)\.cpp$")
-  list(FILTER ${UPPER}_HOST_SOURCES INCLUDE REGEX "/(MahjongApp|main|TestCommands|ModFeatures)\.cpp$")
+  list(FILTER ${UPPER}_SOURCES EXCLUDE REGEX "/(MahjongApp|main|TestCommands)\.cpp$")
+  list(FILTER ${UPPER}_HOST_SOURCES INCLUDE REGEX "/(MahjongApp|main|TestCommands)\.cpp$")
   add_library(${GAME}game STATIC ${${UPPER}_SOURCES})
   target_include_directories(${GAME}game PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src ${MAHJONGESCAPE_DIR}/src)
   target_link_libraries(${GAME}game PUBLIC jollybearengine)

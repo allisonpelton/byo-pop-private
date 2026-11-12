@@ -39,11 +39,6 @@ bool Sexy::ModFeatureBool(const char* theFeature, const char* theSetting, bool t
 	return aValue.IsBool() ? aValue.AsBool(theDefault) : theDefault;
 }
 
-bool Sexy::FixEnabled(const char* theFix)
-{
-	return ModFeatureEnabled("fixes") && ModFeatureBool("fixes", theFix, true);
-}
-
 int Sexy::ModFeatureInt(const char* theFeature, const char* theSetting, int theDefault, int theMin, int theMax)
 {
 	Platform::JsonValue aValue = LiveValue(theFeature, theSetting);

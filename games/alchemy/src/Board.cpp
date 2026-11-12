@@ -3,7 +3,7 @@
 #include "Board.h"
 #include "WinAlchApp.h"
 #include "Piece.h"
-#include "Fixes.h"
+#include "platform/GameOptions.h"
 #include "Wizard.h"
 #include "BoardOverlay.h"
 #include "Sidebar.h"
@@ -609,7 +609,7 @@ void Board::RedrawBackground(int theCol, int theRow)
 		int aHeight = CELL;
 		// the original tests the left and top neighbours from column and row 2 on, the right and bottom ones from the last
 		// column and row back: the first column and row get no rim where they border an unlit tile (fix "rims")
-		int aFirst = FixEnabled("rims") ? 0 : 1;
+		int aFirst = Platform::FixOn("rims") ? 0 : 1;
 		if (theCol > aFirst && !mLit[theRow][theCol - 1])
 		{
 			aDX++;

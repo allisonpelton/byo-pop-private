@@ -154,6 +154,27 @@ Nothing beyond small board scans in Alchemy, AstroPop, Bejeweled, Bejeweled 2, B
 twist, bounded), the Bookworm Adventures (a hash lookup), Cosmic and Water Bugs (one flood a closed beam), Pixelus, TipTop,
 Typer Shark and Venice. Big Money's and BookWorm's solvers are already mods.
 
+## Fixes and lite changes in the code: the options layer
+
+The user, 2026-11-12, of a game published on its own with its fixes and lite changes: "But then I'd want to make
+sure they're not tied to my mod framework." Then: "Options layer seems like the way to go."
+
+So a port reads each fix and each lite change through `platform/GameOptions.h` and never through the mod manager:
+`Platform::FixOn("id")` or `Platform::LiteOn("id")` at the one place where the port differs from its original, with the
+original's path kept beside it. A fix read once at start-up (`"apply": "restart"`) is read there the same way. Nothing
+set means every option off: the original game, which is what every test, oracle and frozen baseline runs.
+
+A value comes from the first of these that gives one:
+- the command line: `-fix=<id>` or `-fix=<id>=off`, `-lite=<id>` or `-lite=<id>=off` for one option, then `-original`
+  for every other option off;
+- the front end the app attached;
+- otherwise off.
+
+In these ports the front end is the mod framework (`ModOptionSource`, `platform/ModManager.cpp`). A game's fixes mod
+and lite mod hold each option's label, help and default. The mod menu and the site's Mods panel show and set them, and
+the Original switch turns both mods off. A game's code needs no mod manager for any of it. So a game published on its
+own builds and plays its improvements with or without the mod framework, and its mods are one way of setting them.
+
 ## The user's notes on the mods that exist
 
 From the user's test notes, moved here in their own words when the notes were cleared (2026-11-04). Like every mod,

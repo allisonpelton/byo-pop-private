@@ -1,7 +1,6 @@
 // The application object (TipTop.exe 0x4197c6-0x426fc7). See App.h.
 
 #include "App.h"
-#include "ModFeatures.h"
 #include "Board.h"
 #include "Config.h"
 #include "Game.h"

@@ -173,7 +173,9 @@ Every call re-reads the whole context, so what costs is context times calls, and
   decompilation is finished. Code that makes a game moddable makes things configurable and never overwrites the
   original (`docs/MOD_ROADMAP.md`, "Kinds of mod"). The site will serve each game improved, its fixes and lite
   mods on and an Original switch turning both off (the user, 2026-11-12: "Yes, flip defaults"; `docs/MOD_ROADMAP.md`,
-  "What a player gets"), the fixes mod one toggle a fix, and a game is done only once that mod is made (the user, 2026-11-04): a bug of the original, or a wait that
+  "What a player gets"), the fixes mod one toggle a fix, each fix and lite change read in the code through
+  `Platform::FixOn` or `LiteOn` (`platform/GameOptions.h`), never the mod manager (the user, 2026-11-12: "Options layer
+  seems like the way to go"; `docs/MOD_ROADMAP.md`, "Fixes and lite changes in the code"), and a game is done only once that mod is made (the user, 2026-11-04): a bug of the original, or a wait that
   only costs the player time, is kept in the port and fixed in the mod (listed until then under "Fix candidates" in
   the game's notes), and with the mod on a game plays the same on every run. Loading is the exception, made fast in
   the port itself (the user, 2026-11-07: "Let's make faster loading a core part of the recomps instead of a mod"): a
