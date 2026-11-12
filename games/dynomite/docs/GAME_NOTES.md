@@ -663,3 +663,65 @@ Panic recordings' screens showed the museum coming up over a black board, and th
 original's does (`IDENTICAL_PLAY.md`, "Phase 2: what was changed", d012ac13). The extra runs cost about 40 minutes of
 machine time (the new recording, three tours, each in both programs with screens and sound), and the two rereads about
 275,000 Sonnet tokens.
+
+## 11. The autosplit block (2026-11-12)
+
+The port writes the shared autosplit block (`platform/AutosplitBlock.h`, layout 2, game id `DYDX`) for the site's Splits
+window (`web/autosplit.js`; `docs/WEB_PLAYER.md`, "One design for every port"), because Dynomite Deluxe has a speedrun.com
+board: **Endless Puzzle** to 1K, 5K, 10K, 25K and 50K points by each skill, from the click that starts the game to the
+score; **Time Trial** by skill, in-game time from the first egg fired to the board cleared; **Fossil Challenge**, all 15
+fossils, Strategic or Panic, from "Let's Play!" to the last fossil's board cleared; and **Tutorial**, from the start
+page's Next to the main menu after every mode. `src/LiveSplitObserver.cpp` fills the block after every update
+(`FossilizedApp::UpdateFrames`) and only reads the game. The page asks for it (`byopop_livesplit_block`, exported in
+`CMakeLists.txt`), or natively an enabled mod with the feature `livesplit` does (`main.cpp` now sets up the mods folder,
+`-modsdir`, `-nomods`, as Alchemy's does); until then it tests one flag. Three fields exist for it that nothing in the
+game reads: `Dynomite::mSerial` and `Tutorial::mSerial` (one counter, `Dynomite::NextSerial`, bumped in both
+constructors, so every game, continued game and tutorial is a game of its own) and `Dynomite::mResumed`
+(`FossilizedApp::LoadSavedGame` filled the board).
+
+| Field | Dynomite's value |
+|---|---|
+| `mode` | 1 Stomped Puzzle, 2 Endless Puzzle, 3 Fossil Challenge, 4 Time Trial (the app's `mGameMode`, the board's `mGameType` + 1), 5 the tutorial; -1 off a game |
+| `skill` | Stomped, Endless and Time Trial: 1 Normal, 2 Hard, 3 Expert, the skill page's names (the board's `mDifficulty`; the board's rules call them Easy, Normal and Hard); Fossil Challenge: 1 Strategic, 2 Panic; 0 in the tutorial |
+| `level`, `displayLevel` | Fossil Challenge: the fossils found (0-based) and the fossil being dug, 1 to 15; Stomped: the rounds cleared and the round's number; else 0 and 1 |
+| `state` | a board: 0 before the first shot, 1 in play, 2 losing (the eggs run down off the board), 3 a fossil fell (the museum to come), 4 game over, 5 the end's panel up; the tutorial: its step, 0 to 0x6f |
+| `tick` | a board: `mPlayTicks`, hundredths of a second played (from the first shot, until the game is over); the tutorial: its updates |
+| `score`, `displayScore` | the side bar's `mScore` and `mScoreShown`, equal at each update's end; in the Time Trial the clock, in negative hundredths |
+| `progress` | Fossil Challenge: the fragments found, three to a fossil (0 to 45); the tutorial: its parts done, 1 Endless, 2 Stomped, 4 Fossil Challenge, 8 Time Trial; else -1 |
+| `deaths[0..3]` | 0 Endless: the eggs ran off the bottom; 1 Fossil Challenge: the same; 2 left (another game, the main menu, a save, or the tutorial closed before its four parts); 3 Stomped: the eggs ran off the bottom. The Time Trial cannot be lost. |
+| flags | RESUMED for a continued game, VANILLA (no gameplay mod exists) unless a test's `-seed` chose one (CHOSEN_SEED), PAUSED while `mPauseCount` is up (a dialog, the focus), GAME_OVER and WON latched per game |
+
+Where each event is, against the board's rules:
+
+- **GO.** Endless, the Fossil Challenge and Stomped: the skill page's "Let's Play!" (the Fossil Challenge's choice page has
+  the same button), or a second click on the skill or kind already chosen (`IntroScreen::ButtonPress` then presses the
+  button itself), calls `StartGame`, which makes the board inside the click. So the first update after it sees a fresh
+  board and raises GO at its end, at most one update (10 ms) after the click. The Time Trial: the first update that ends
+  with a shot fired (`Dynomite::MouseDown` fires the egg, counts it and sets `mPlaying`), at most one update after the
+  click. That shot's update already counts on the clock: GO comes with `tick` 1 and the score -1, so the run's in-game
+  time is `-score` hundredths at the win (14,129 in the test's game, the side bar's 2:21). The tutorial: the start page's
+  Next with Tutorial chosen makes it (`StartTutorial`), and its first update raises GO. The tutorial's own button is
+  "Continue"; a rule that starts at its first click would start at the step after 1 (`state`). A continued game, and a
+  game first seen at activation, never get one.
+- **Level clear.** The Fossil Challenge: the update in which a fossil's third fragment falls off the bottom
+  (`DynomiteFossil::PieceFell`, `mFossilFell`, at round 3); `progress` counts each fragment. Stomped: a round cleared
+  (`mCleared`). The tutorial: the update in which a part's last step shows (0x41 Endless, 0x4e Stomped, 0x62 Fossil
+  Challenge, 0x6e Time Trial).
+- **Game over.** The board's `mGameOver` rises without a win: the eggs have run off the bottom and the "game over"
+  picture comes up. The loss itself was decided earlier, when the eggs had stayed past the line too long (`mLosing`,
+  Inchy sinks; `state` 2), and the grid then runs down 32 pixels an update. A game left for another, for the main menu
+  or by a save writes its game over when the board is gone, on that game's serial, one write before the next game's.
+- **Win.** The Fossil Challenge: the update in which the fifteenth fossil's third fragment falls, with its level clear
+  just before it. That is the final board cleared. The museum, the Rex's attack and the game's own `mGameOver`
+  (`NextRound`) come after, and raise nothing. The Time Trial: `mGameOver` rises in the update the last egg goes
+  ("cleared", `DynomiteTimeTrial`); its in-game time is the side bar's clock, `-score` hundredths. The tutorial: it
+  closes back at the main menu (its last step, 0x6f, calls the menu button; the side bar's menu button does the same at
+  any step) with all four parts done. Closed earlier, it is left (kind 2).
+
+The tests are `games/dynomite/tools/livesplit/run_tests.sh <out dir>` (each game under rundesk, about 5 minutes when
+the machine has room): the bot's tutorial, Endless, Time Trial, Fossil Challenge from fossil 14, Panic and Stomped games,
+each recorded by `tools/shots/botrec.py` and played again with the block on; a game left for the main menu; a game saved
+and continued; and the game with no mod (no block, no log), each checked against the events it must log. Then
+`tools/check.sh dynomite`'s three identical-play cases with the block off, on and in the frozen baseline, whose state logs
+must be identical. `-livesplitlog=<file>` writes one line for each write of the block whose rule fields changed (not one
+per update: the updates, tick and scores are left out of the test).
