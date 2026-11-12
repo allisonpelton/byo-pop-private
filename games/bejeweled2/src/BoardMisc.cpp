@@ -77,7 +77,7 @@ void Board::CheckForHints()
 				ClearPoints();
 				mHintArrowPhase = 0;
 				mHintPiece = aHyperCube;
-				Dialog* aDialog = mApp->DoDialog(0x27, true, "HYPER CUBE",
+				Dialog* aDialog = mApp->DoDialog(DIALOG_HYPER_CUBE_TIP, true, "HYPER CUBE",
 					"You created a HYPER CUBE by merging 5 gems of the same color.  Swap it with a gem to clear all gems of that color onscreen!",
 					"", 1);
 				mApp->SetupDialog(aDialog, aWide ? 500 : 600);
@@ -108,7 +108,7 @@ void Board::CheckForHints()
 				else
 					aText = "Create Power Gems by merging 4 gems of the same color.\nThese new gems will explode when matched, scoring extra points!";
 			}
-			Dialog* aDialog = mApp->DoDialog(0x26, true, "POWER GEM", aText, "", 1);
+			Dialog* aDialog = mApp->DoDialog(DIALOG_POWER_GEM_TIP, true, "POWER GEM", aText, "", 1);
 			mApp->SetupDialog(aDialog, aWide ? 500 : 600);
 			PlaceHintDialog(this, aDialog, aPowerGem);
 		}
@@ -236,7 +236,7 @@ void Board::UpdateSecretUnlocked()
 	{
 		if (mApp->mProfile->IsModeUnlocked(mApp->mGameMode + 4))
 		{
-			mApp->DoDialog(0x25, true, "MODE UNLOCKED",
+			mApp->DoDialog(DIALOG_MESSAGE, true, "MODE UNLOCKED",
 				"You have unlocked a secret game mode!\n\nThe new game mode can now be accessed from the main menu.", "", 3);
 			mSecretModeUnlocked = true;
 		}
@@ -278,9 +278,9 @@ void Board::ShowPuzzleHint()
 	{
 		mHintsUsed++;
 		if (!mSolutionValid)
-			mApp->DoDialog(0x25, true, "No Hints", "There are no hints available for this puzzle.", "", 3);
+			mApp->DoDialog(DIALOG_MESSAGE, true, "No Hints", "There are no hints available for this puzzle.", "", 3);
 		else
-			mApp->DoDialog(0x16, true, "No Longer Solvable",
+			mApp->DoDialog(DIALOG_UNDO, true, "No Longer Solvable",
 				"Do you want to UNDO to the last point the puzzle could be solved from?", "", 1);
 	}
 	else
@@ -291,7 +291,7 @@ void Board::ShowPuzzleHint()
 			return;
 		}
 		mHintsUsed++;
-		mApp->DoDialog(0x18, true, "Still Solvable!",
+		mApp->DoDialog(DIALOG_NEXT_PUZZLE_MOVE, true, "Still Solvable!",
 			"This puzzle is solvable from this point.\nDo you want a hint on a move to make?", "", 1);
 	}
 }

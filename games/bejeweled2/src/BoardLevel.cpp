@@ -175,7 +175,7 @@ void Board::GameOver(int theDelay)
 {
 	DeleteSavedGame();
 	mSelectedPiece = NULL;
-	mApp->KillDialog(0x25);
+	mApp->KillDialog(DIALOG_MESSAGE);
 	mState = STATE_GAME_OVER_FALL;
 	mGameSeconds = (unsigned int)(mUpdateCnt - mPlayStartTick) / 100 + mPlayedSeconds;
 	mGameOverDelay = theDelay;

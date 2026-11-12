@@ -376,7 +376,7 @@ bool WinDMApp::HandleTestCommand(const ScriptCommand& theCommand)
 				(aBoard->mPauseCount > 0 || aBoard->mInterfacePauseCount > 0) ? "true" : "false");
 			aLine += StrFormat(",\"hyperspace\":%s,\"tutorial\":%s,\"over\":%s", aBoard->mHyperspace != NULL ? "true" : "false",
 				aBoard->mIsPlanetIntro ? "true" : "false",
-				(aBoard->mState == Board::STATE_GAME_OVER_FALL || aBoard->mState == Board::STATE_7 || mHighScoreWidget != NULL) ? "true" : "false");
+				(aBoard->mState == Board::STATE_GAME_OVER_FALL || aBoard->mState == Board::STATE_GAME_OVER || mHighScoreWidget != NULL) ? "true" : "false");
 			if (aBoard->mSelectedPiece != NULL)
 				aLine += StrFormat(",\"selected\":[%d,%d]", aBoard->mSelectedPiece->mCol, aBoard->mSelectedPiece->mRow);
 			// the board: a row a string, a gem by its type's character, . for none

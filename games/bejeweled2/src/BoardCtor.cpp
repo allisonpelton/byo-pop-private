@@ -383,7 +383,7 @@ Board::~Board()
 	KillTutorialButtons();
 	if (mFadingSound != NULL)
 		mFadingSound->Release();
-	mApp->KillDialog(0x25);
+	mApp->KillDialog(DIALOG_MESSAGE);
 	// (the trial's counter of games played, at the application's +0x734, is not ported)
 	delete mHyperspace;
 	ClearLightning();
@@ -409,8 +409,8 @@ void Board::ButtonDepress(int theId)
 	case 1:
 		if (!mIsPuzzle || !mIsSecret || mHintsUsed != 0)
 			TryShowHint();
-		else if (mState != 0x14)
-			mApp->DoDialog(0x17, true, "Warning!",
+		else if (mState != STATE_SECRET_FINISHED)
+			mApp->DoDialog(DIALOG_HINT_WARNING, true, "Warning!",
 				"You will not score any points for this level if you get any hints.\n\nAre you sure you want a hint?",
 				"", 1);
 		break;
@@ -424,7 +424,7 @@ void Board::ButtonDepress(int theId)
 			Unpause(true);
 		break;
 	case 400:
-		if (mState == 0x14)
+		if (mState == STATE_SECRET_FINISHED)
 		{
 			// the secret puzzles' "Play Again"
 			KillTutorialButtons();
@@ -440,7 +440,7 @@ void Board::ButtonDepress(int theId)
 		}
 		break;
 	case 0x191:
-		if (mState == 0x14)
+		if (mState == STATE_SECRET_FINISHED)
 		{
 			mApp->DoMainMenu();
 			mApp->mMainMenu->Show();
@@ -454,7 +454,7 @@ void Board::ButtonDepress(int theId)
 		}
 		break;
 	case 500:
-		mState = 0x13;
+		mState = STATE_FADE;
 		mApp->DoMainMenu();
 		mApp->mMainMenu->Show();
 		KillTutorialButtons();

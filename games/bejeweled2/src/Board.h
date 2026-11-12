@@ -112,9 +112,9 @@ public:
 		STATE_COMMIT_SWAP = 4,
 		STATE_CLEARING = 5,
 		STATE_GAME_OVER_FALL = 6,
-		STATE_7 = 7,
+		STATE_GAME_OVER = 7,            // the score table is up
 		STATE_LEVEL_COMPLETE_WAIT = 8,
-		STATE_9 = 9,
+		STATE_LEVEL_COMPLETE_SCORE = 9, // the level is complete: the shown score runs up to the score, then the whirlpool
 		STATE_WHIRLPOOL = 10,
 		STATE_LEVEL_TRANSITION = 11,
 		STATE_BOARD_DROPPING = 12,

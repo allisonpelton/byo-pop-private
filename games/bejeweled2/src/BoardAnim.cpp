@@ -57,10 +57,10 @@ void Board::UpdateGameOverAnim()
 		}
 		if (anAllGone)
 		{
-			if (mScreenState == 1)
+			if (mScreenState == SCREEN_SHOWN)
 			{
 				mBoardInOverlay = false;
-				mState = 7;
+				mState = STATE_GAME_OVER;
 				mApp->DoHighScoreWidget();
 				MarkDirty();
 				mApp->DoGameOver();

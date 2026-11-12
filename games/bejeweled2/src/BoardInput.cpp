@@ -70,7 +70,7 @@ bool Board::MovePiece(Piece* thePiece, int theDX, int theDY)
 // port: a message box with the board's standard footer and button (the "Illegal Move" and "Wrong Piece" boxes)
 void Board::DoNoticeDialog(const char* theHeader, const char* theLines)
 {
-	mApp->DoDialog(0x25, true, theHeader, theLines, "OK", 3);
+	mApp->DoDialog(DIALOG_MESSAGE, true, theHeader, theLines, "OK", 3);
 }
 
 // 0x5aa4e8
@@ -85,14 +85,14 @@ void Board::MouseDown(int theX, int theY, int theClickCount)
 		return;
 
 	mMouseHeld = true;
-	if (mPuzzleOverlay != NULL && mState != 10 && mState != 0x12 && mState != 0xd && mState != 0xe &&
+	if (mPuzzleOverlay != NULL && mState != STATE_WHIRLPOOL && mState != STATE_GALAXY && mState != STATE_POST_WARP && mState != STATE_HYPER_SWAP_DONE &&
 		mState != STATE_SWAPPING && mScreenState == SCREEN_SHOWN)
 	{
 		if (!mPuzzleOverlay->MouseOverDome(theX, theY))
 		{
 			if (mHoverPod != -1)
 			{
-				mState = 0xf;
+				mState = STATE_POD_CHANGE;
 				DeferredSelectPuzzlePod(mHoverPod);
 				return;
 			}
@@ -106,11 +106,11 @@ void Board::MouseDown(int theX, int theY, int theClickCount)
 			mPlanetNum = aProgress->mPuzzleNum / 5;
 		}
 	}
-	if (mState == 0x10 || mState == 0x11 || mState == 0x12)
+	if (mState == STATE_PUZZLE_SOLVED || mState == STATE_PUZZLE_STUCK || mState == STATE_GALAXY)
 		return;
 	mMouseDownX = theX;
 	mMouseDownY = theY;
-	if (mState == 6 || mState == 7 || mState == 10 || mState == 0xb)
+	if (mState == STATE_GAME_OVER_FALL || mState == STATE_GAME_OVER || mState == STATE_WHIRLPOOL || mState == STATE_LEVEL_TRANSITION)
 		return;
 
 	if (theClickCount < 1)

@@ -214,7 +214,7 @@ void Board::AdvanceSweep()
 // 0x594eff: the board answers the mouse (not during the game over states)
 bool Board::CanPlay()
 {
-	return !mNoMoveYet && mState != 6 && mState != 7 && mState != 0x14;
+	return !mNoMoveYet && mState != STATE_GAME_OVER_FALL && mState != STATE_GAME_OVER && mState != STATE_SECRET_FINISHED;
 }
 
 // 0x594f20: a checksum of the board's gems (type, flag and counter of each square)
@@ -295,8 +295,8 @@ void Board::ClearBoard()
 	mSelectedPiece = 0;
 	mSwapPiece[0] = NULL;
 	mSwapPiece[1] = NULL;
-	if (mState == 2 || mState == 4 || mState == 3)
-		mState = 1;
+	if (mState == STATE_SWAPPING || mState == STATE_COMMIT_SWAP || mState == STATE_SWAP_BACK)
+		mState = STATE_IDLE;
 	for (int aRow = 0; aRow < 8; aRow++)
 	{
 		for (int aCol = 0; aCol < 8; aCol++)
@@ -537,7 +537,7 @@ void Board::MouseMove(int x, int y)
 {
 	mMouseX = x;
 	mMouseY = y;
-	if (mIsPuzzle && !mIsSecret && mState != 10 && mState != 0x12 && mState != 0xd && mScreenState == SCREEN_SHOWN &&
+	if (mIsPuzzle && !mIsSecret && mState != STATE_WHIRLPOOL && mState != STATE_GALAXY && mState != STATE_POST_WARP && mScreenState == SCREEN_SHOWN &&
 		mHyperspace == NULL)
 	{
 		mHoverPod = mPuzzleOverlay->GetPodAt(x, y);
@@ -563,7 +563,7 @@ void Board::MouseLeave()
 // 0x595857: pieces above a gap in a column that just exploded speed up (to catch up with the pieces below)
 void Board::ExplodingFinished()
 {
-	if (mState == 0xe)
+	if (mState == STATE_HYPER_SWAP_DONE)
 		return;
 
 	for (int aCol = 0; aCol < 8; aCol++)
@@ -775,7 +775,7 @@ void Board::HideNow()
 // 0x596302: the map of the galaxies slides in (and the board out)
 void Board::ShowGalaxyMap()
 {
-	if (mState == 1 || mState == 0x10 || mState == 0x11 || mState == 0x12)
+	if (mState == STATE_IDLE || mState == STATE_PUZZLE_SOLVED || mState == STATE_PUZZLE_STUCK || mState == STATE_GALAXY)
 	{
 		Hide();
 		mGalaxySlide.SetOutRange(-3500.0, 0);
@@ -785,28 +785,28 @@ void Board::ShowGalaxyMap()
 		mGalaxyMap->StartSetup();
 		mGalaxyMap->Resize(0, mApp->ScaleNum(-768, 0), 0, 0);
 		mParent->AddWidget((Widget*)mGalaxyMap);
-		mState = 0x15;
+		mState = STATE_GALAXY_SLIDE_1;
 	}
 }
 
 // 0x59837e
 void Board::HideGalaxyMap()
 {
-	if (mState == 0x15 || mState == 0x16)
+	if (mState == STATE_GALAXY_SLIDE_1 || mState == STATE_GALAXY_SLIDE_2)
 	{
 		Show();
 		mGalaxySlide.SetOutRange(0, -1500.0);
 		mGalaxySlide.SetInVal(0);
 		mGalaxySlide.SetMode(CurvedVal::MODE_CLAMP);
 		mGalaxySlide.SetRamp(CurvedVal::RAMP_SLOW_TO_FAST);
-		mState = 0x17;
+		mState = STATE_GALAXY_SLIDE_3;
 	}
 }
 
 // 0x598095: a swap in progress is settled at once (the gems snap to their squares)
 void Board::StabilizeState()
 {
-	if (mState == 2 || mState == 3)
+	if (mState == STATE_SWAPPING || mState == STATE_SWAP_BACK)
 	{
 		mSwapPiece[0]->mX = (float)GetColX(mSwapPiece[0]->mCol);
 		mSwapPiece[0]->mY = (float)GetRowY(mSwapPiece[0]->mRow);
@@ -817,14 +817,14 @@ void Board::StabilizeState()
 		}
 		mSwapPiece[0] = NULL;
 		mSwapPiece[1] = NULL;
-		mState = 1;
+		mState = STATE_IDLE;
 	}
-	if (mState == 4)
+	if (mState == STATE_COMMIT_SWAP)
 	{
 		CommitSwap();
 		mSwapPiece[0] = NULL;
 		mSwapPiece[1] = NULL;
-		mState = 1;
+		mState = STATE_IDLE;
 	}
 }
 
@@ -925,7 +925,7 @@ void Board::UpdateBoardDropping()
 void Board::NewBoard()
 {
 	// (the original tells its recorder, GameStateEngine::NewBoard)
-	mState = 0;
+	mState = STATE_NEW;
 	mFadeIn = 1.0f;
 	mHintCountdown = 0;
 

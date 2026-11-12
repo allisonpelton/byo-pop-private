@@ -615,7 +615,7 @@ void Board::Draw(Graphics* g)
 	}
 
 	// the arrow that points at the hint button while the tip dialog is up
-	if (mApp->GetDialog(0x1a) != NULL)
+	if (mApp->GetDialog(DIALOG_TIMER_TIP) != NULL)
 	{
 		float aPulse = (float)(1.0 - cos(mHintButtonArrowPhase));
 		aPulse = (float)((double)aPulse * 0.5);

@@ -93,7 +93,7 @@ void Board::DoUpdate()
 			mScreenState = (mScreenState != SCREEN_SLIDING_IN) * 2 + 1;
 	}
 
-	if (mApp->GetDialog(0x1a) != NULL)
+	if (mApp->GetDialog(DIALOG_TIMER_TIP) != NULL)
 	{
 		// the timer bar's box is up: only its shimmer runs
 		mHintButtonArrowPhase = mHintButtonArrowPhase + 0.1;
@@ -151,14 +151,14 @@ void Board::DoUpdate()
 			mPuzzleOverlay->mDirty = false;
 		}
 	}
-	if (mState == 7)
+	if (mState == STATE_GAME_OVER)
 		MarkDirty();
 
 	// the explanation of the timer bar, 7 seconds into the first action game
 	if (mScreenState == SCREEN_SHOWN && mIsAction && mNoMoveYet && mUpdateCnt == 0x1ae &&
 		mApp->mProfile->WantsHint(5))
 	{
-		Dialog* aDialog = mApp->DoDialog(0x1a, true, "Watch the Timer Bar!",
+		Dialog* aDialog = mApp->DoDialog(DIALOG_TIMER_TIP, true, "Watch the Timer Bar!",
 			"Watch out for the timer bar below. It will go down faster and faster, and you will lose if it "
 			"completely runs out!", "", 1);
 		mApp->SetupDialog(aDialog, 500);
@@ -263,7 +263,7 @@ void Board::DoUpdate()
 		{
 			aFrame = (mBarShown * 0x18 - 1) / 0x2c4;
 			double aFraction = (double)mBarShown / 708.0;
-			if (mState != STATE_GAME_OVER_FALL && mState != 7)
+			if (mState != STATE_GAME_OVER_FALL && mState != STATE_GAME_OVER)
 			{
 				if (!aMoved)
 				{
@@ -494,10 +494,10 @@ void Board::DoUpdate()
 		else if (mState == STATE_LEVEL_COMPLETE_WAIT && mCheerDelay == 0)
 		{
 			mApp->PlaySample(SOUND_LEVEL_COMPELTE);
-			mState = 9;
+			mState = STATE_LEVEL_COMPLETE_SCORE;
 		}
 	}
-	if (mState == 9 && mScore <= mShownScore)
+	if (mState == STATE_LEVEL_COMPLETE_SCORE && mScore <= mShownScore)
 		DoWhirlpool();
 
 	// the timed games end when the bar is empty
@@ -520,7 +520,7 @@ void Board::DoUpdate()
 	int aStateNow = mState;
 	if (aStateNow < 0xc)
 	{
-		if (aStateNow == 0xb)
+		if (aStateNow == STATE_LEVEL_TRANSITION)
 			UpdateLevelTransition();
 		else if (aStateNow == STATE_NEW)
 			UpdateFalling();
@@ -528,17 +528,17 @@ void Board::DoUpdate()
 		{
 			if (aStateNow < 5)
 				UpdateSwapping();
-			else if (aStateNow == 5)
+			else if (aStateNow == STATE_CLEARING)
 				UpdateClearing();
-			else if (aStateNow == 6)
+			else if (aStateNow == STATE_GAME_OVER_FALL)
 				UpdateGameOverAnim();
-			else if (aStateNow == 10)
+			else if (aStateNow == STATE_WHIRLPOOL)
 				UpdateWhirlpool();
 		}
 	}
-	else if (aStateNow == 0xc)
+	else if (aStateNow == STATE_BOARD_DROPPING)
 		UpdateBoardDropping();
-	else if (aStateNow == 0xd)
+	else if (aStateNow == STATE_POST_WARP)
 	{
 		mShowPlanetCountAtStart = 0;
 		mInterfaceRestore = (float)((double)mInterfaceRestore + 0.01);
@@ -557,19 +557,19 @@ void Board::DoUpdate()
 		}
 		MarkDirty();
 	}
-	else if (aStateNow == 0x13)
+	else if (aStateNow == STATE_FADE)
 	{
 		float anAlpha = (float)((double)mEffectOverlay->mFade - 0.025);
 		if (anAlpha <= 0.0f)
 			anAlpha = 0.0f;
 		mEffectOverlay->mFade = anAlpha;
 	}
-	else if (aStateNow == 0x15 || aStateNow == 0x17)
+	else if (aStateNow == STATE_GALAXY_SLIDE_1 || aStateNow == STATE_GALAXY_SLIDE_3)
 	{
 		// the map of the galaxies slides in or out
 		if (!mGalaxySlide.IncInVal(0.01))
 		{
-			if (mState == 0x17)
+			if (mState == STATE_GALAXY_SLIDE_3)
 			{
 				PuzzleProgress* aProgress = mApp->mProfile->GetPuzzleProgress();
 				int aSelected = mGalaxyMap->mSelectedPuzzle;
@@ -590,12 +590,12 @@ void Board::DoUpdate()
 				}
 			}
 			else
-				mState = 0x16;
+				mState = STATE_GALAXY_SLIDE_2;
 		}
 		mGalaxyMap->Resize(0, (int)mApp->ScaleNum(mGalaxySlide.GetOutVal(), 0.0), mWidth, mHeight);
 	}
 
-	if (mState == 0xe || !mLightning.empty())
+	if (mState == STATE_HYPER_SWAP_DONE || !mLightning.empty())
 		UpdateLightning();
 	UpdateEffects();
 	UpdateHyperWarpPoints();
@@ -734,7 +734,7 @@ void Board::DoUpdate()
 		mMoreHintsDelay--;
 		if (mMoreHintsDelay == 0)
 		{
-			Dialog* aDialog = mApp->DoDialog(0x19, true, "More Hints?",
+			Dialog* aDialog = mApp->DoDialog(DIALOG_MORE_HINTS, true, "More Hints?",
 				"One or more moves have been undone to make the puzzle solvable again.\n\n"
 				"Press HINT again if you want help on a move to make from here.", "", 1);
 			mApp->SetupDialog(aDialog, 500);
@@ -829,7 +829,7 @@ void Board::DoUpdate()
 		mCheatStars->Update();
 
 	// the end screens (the galaxy's end, the secret mode's unlock)
-	if (mState == 0x12 || mState == 0x13)
+	if (mState == STATE_GALAXY || mState == STATE_FADE)
 	{
 		if (mEffectOverlay->mEndTimer == 0x6a4)
 		{

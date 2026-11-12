@@ -429,7 +429,7 @@ void Board::UpdateSwapping()
 					mSwapTime = 0;
 					if (mApp->mProfile->WantsHint(0))
 					{
-						mApp->DoDialog(0x25, true, "Illegal Move",
+						mApp->DoDialog(DIALOG_MESSAGE, true, "Illegal Move",
 							"Each swap must create a row of three or more identical gems.", "OK", 3);
 					}
 					mApp->PlaySample(SOUND_BAD);
@@ -448,13 +448,13 @@ void Board::UpdateSwapping()
 				SolutionCommitMove(mSolutionMove);
 				mSwapPiece[0] = NULL;
 				mSwapPiece[1] = NULL;
-				mState = 5;
+				mState = STATE_CLEARING;
 				mNoMoveYet = false;
 			}
 		}
 		else
 		{
-			mState = 0xe;
+			mState = STATE_HYPER_SWAP_DONE;
 			mSwapPiece[0] = NULL;
 			mSwapPiece[1] = NULL;
 		}

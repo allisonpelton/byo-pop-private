@@ -118,7 +118,7 @@ void Board::Undo()
 	if (mIsPlanetIntro)
 		return;
 	if (mState != STATE_IDLE && mState != STATE_SWAPPING && mState != STATE_SWAP_BACK && mState != STATE_COMMIT_SWAP &&
-		mState != 5 && mState != 0xe && mState != STATE_NEW && mState != 0x10 && mState != 0x11)
+		mState != STATE_CLEARING && mState != STATE_HYPER_SWAP_DONE && mState != STATE_NEW && mState != STATE_PUZZLE_SOLVED && mState != STATE_PUZZLE_STUCK)
 		return;
 
 	KillTutorialButtons();
@@ -209,7 +209,7 @@ void Board::PuzzleCompleted()
 			mPlayAgainButton = AddBoardButton(400, "Play Again");
 			mMainMenuButton = AddBoardButton(401, "Main Menu");
 			ResizeButtons();
-			mState = 0x14;
+			mState = STATE_SECRET_FINISHED;
 			DeleteSavedGame();
 		}
 		else if (mSecretRun == 4)
@@ -258,7 +258,7 @@ void Board::PuzzleCompleted()
 			mApp->mProfile->mGalaxyOneSolved = aCount;
 	}
 	if (mState == STATE_IDLE)
-		mState = 0x10;
+		mState = STATE_PUZZLE_SOLVED;
 }
 
 // 0x5a9ced: the gems fall; when everything has settled the board looks for sets, for a move and for the end
@@ -318,7 +318,7 @@ void Board::UpdateFalling()
 	if (aSettled && mState == STATE_NEW)
 	{
 		if (FindSets())
-			mState = 5;
+			mState = STATE_CLEARING;
 		else
 		{
 			if (!mSkipBestRecords)
@@ -378,7 +378,7 @@ void Board::UpdateFalling()
 				mCountBombs = false;
 				if (aBombExploded)
 				{
-					mState = 5;
+					mState = STATE_CLEARING;
 					mApp->PlaySample(SOUND_BOMB_EXPLODE);
 				}
 			}
@@ -405,11 +405,11 @@ void Board::UpdateFalling()
 							ResizeButtons();
 						}
 						mSelectedPiece = NULL;
-						mState = 0x11;
+						mState = STATE_PUZZLE_STUCK;
 					}
 				}
 				else if (mIsAction)
-					mState = 0xc;
+					mState = STATE_BOARD_DROPPING;
 				else
 				{
 					mEffectOverlay->DoStrechyText("NO MOVES!", 0x50);

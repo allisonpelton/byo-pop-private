@@ -147,7 +147,7 @@ void Board::EndWhirlpool()
 	mInterfaceRestore = 0.0f;
 	if (!mFinale)
 	{
-		mState = 0xd;
+		mState = STATE_POST_WARP;
 		if (!aIs3D)
 		{
 			EndInterfaceRestore();
@@ -165,7 +165,7 @@ void Board::EndWhirlpool()
 		delete mCheatStars;
 		mCheatStars = NULL;
 		mEffectOverlay->InitFace();
-		mState = 0x12;
+		mState = STATE_GALAXY;
 		HideNow();
 	}
 }
@@ -281,7 +281,7 @@ void Board::UpdateWhirlpool()
 // 0x5ab385
 void Board::TryShowHint()
 {
-	if (mIsPlanetIntro || mState == 0x14)
+	if (mIsPlanetIntro || mState == STATE_SECRET_FINISHED)
 		return;
 	if (mIsPuzzle && mIsSecret && mHintsUsed == 0)
 		mScore = mScoreSnapshot;
@@ -289,7 +289,7 @@ void Board::TryShowHint()
 		return;
 
 	KillTutorialButtons();
-	if (mState == 0x11)
+	if (mState == STATE_PUZZLE_STUCK)
 	{
 		if (!mSolutionValid)
 			DoNoticeDialog("No Hints", "There are no hints available for this puzzle.");
