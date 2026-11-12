@@ -14,7 +14,7 @@
 #include "SoundInstance.h"
 #include "SoundManager.h"
 #include "WidgetManager.h"
-#include "platform/ModManager.h"
+#include "platform/GameOptions.h"
 #include "platform/VFS.h"
 #include "WebSettings.h"
 
@@ -433,21 +433,12 @@ CosmicBugsApp::~CosmicBugsApp()
 	}
 }
 
-// The fixes mod's toggles (games/cosmicbugs/mods/fixes), from the highest-priority enabled mod that has the feature
-// "fixes"; without one every fix stays off and the game plays as the original does
+// The fixes mod's toggles (games/cosmicbugs/mods/fixes), read once through Platform::FixOn; without them every fix stays off
 static void LoadFixes()
 {
 	cb::gFixes = cb::Fixes();
-	for (const Platform::ModInfo* aMod : Platform::ModManager::Get().GetEnabledMods())
-	{
-		if (!aMod->mFeaturesJson.IsObject() || !aMod->mFeaturesJson.Has("fixes"))
-			continue;
-		Platform::JsonValue aTurns = Platform::ModManager::Get().GetLiveValue(aMod->mId, "walkerTurnMemory");
-		Platform::JsonValue aShield = Platform::ModManager::Get().GetLiveValue(aMod->mId, "shieldFlash");
-		cb::gFixes.mWalkerTurnMemory = aTurns.IsBool() && aTurns.AsBool(false);
-		cb::gFixes.mShieldFlash = aShield.IsBool() && aShield.AsBool(false);
-		break;
-	}
+	cb::gFixes.mWalkerTurnMemory = Platform::FixOn("walkerTurnMemory");
+	cb::gFixes.mShieldFlash = Platform::FixOn("shieldFlash");
 	SDL_Log("fixes: walkerTurnMemory %s, shieldFlash %s", cb::gFixes.mWalkerTurnMemory ? "on" : "off",
 		cb::gFixes.mShieldFlash ? "on" : "off");
 }

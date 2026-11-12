@@ -240,7 +240,7 @@ The handler of event 3 (0x403fd0, `Brick::OnDie`) fires the "popped" event 0x1a 
 ## 7. Fix candidates (original bugs and waits, kept in the port, for the fixes mod)
 
 - The OK button of the box that explains a weapon plays the one-second timer's tick after its click (the sample number at +0x118,
-  section 6): a stray sound. Made: the fixes mod's toggle `weaponBoxTick` (`mods/fixes/mod.json`, read with `FixEnabled` in
+  section 6): a stray sound. Made: the fixes mod's toggle `weaponBoxTick` (`mods/fixes/mod.json`, read with `Platform::FixOn` in
   `src/Fixes.cpp`; on in an enabled mod, so the box's OK is silent; with the mod off, as in the port, it ticks).
   `games/astropop/tools/fixes_check.sh` proves it: the bot plays one game with real input (`realplay.py --charge 18000`, so the box
   comes up) with no mods and with the mod, and the sound logs differ by that one play of `sounds/timer1`, the other sounds and the

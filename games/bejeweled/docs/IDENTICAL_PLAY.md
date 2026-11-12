@@ -193,7 +193,7 @@ The second part (branch `claude/bejeweled-finish-bf5c89`):
   `src/testhooks/TestCommands.cpp`, reached only from `-script`, `-commands` and the web test channel, listed in
   `GAME_NOTES.md` section 15; `move` asks the port's own autoplay bot (`e59ace0a`, `86835386`).
 - The fixes mod and the two hooks it needs in the game (`Board::DropStaleSelection`, `Board::ResumeLevelLook`, behind
-  `GameFeatures::mFixes`, off unless the mod is on) (`e59ace0a`).
+  `Platform::FixOn` since the options layer, off unless the mod is on) (`e59ace0a`).
 - The real-input drivers (`tools/realplay/drive.py`, `tools/web/onegame.js`) and the `state` fields they read (`86835386`).
 - Tests: `tools/commands_test.sh` and `tools/fixes_test.sh`.
 - The registration code and the "Play More Great Games!" button, taken out by the user's rule of 2026-11-07

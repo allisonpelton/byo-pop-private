@@ -6,6 +6,7 @@
 #include "Board.h"
 #include "WinDMApp.h"
 #include "GameConfig.h"
+#include "platform/GameOptions.h"
 #include "Graphics.h"
 #include "MemoryImage.h"
 #include "DDImage.h"
@@ -855,7 +856,7 @@ void Board::SetupLevelData()
 // level's values and the drain, which the save holds).
 void Board::ResumeLevelLook()
 {
-	if (!gGameConfig.mFeatures.mFixes || !gGameConfig.mFeatures.mFixResumeLook)
+	if (!Platform::FixOn("resumeLook"))
 		return;
 	if (mLevel <= 0 || mVariant.mAny || mPlaybackOnly || mBackgroundImage == NULL || mNextBackgroundImage == NULL ||
 		mState == STATE_LEVEL_WIPE)

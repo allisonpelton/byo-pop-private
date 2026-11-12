@@ -594,7 +594,7 @@ known bug (`"default": false` in mod.json; the player turns it on in the mod men
 the wrong picture is a plain error. The site serves the game with the mod on (`typershark-fixes/` beside the page); a native build
 finds it when the folder is copied into the mods folder (`-modsdir=<dir>` with `fixes/mod.json` inside). The tools that need every
 fix on (`tools/fixshots.py` and the phase-1 comparison's `TSMODSDIR`, `tools/phase1/cmp.py`) write a `mod-settings.json` into the
-run's user folder that turns every toggle of the mod on. The port without the mod is the original: `FixEnabled` (`src/Fixes.cpp`) is false for every
+run's user folder that turns every toggle of the mod on. The port without the mod is the original: `Platform::FixOn` is false for every
 toggle unless the mod is enabled, and each toggle is read where its fix matters, as a live value. With the mod on the game
 plays as it does without it: `tools/regress.py` with `TSMODSDIR=<dir>` (tools/phase1/cmp.py gives it as `-modsdir`) hashes the
 same state logs as without it, so no fix changes what a game draws from the generator. `tools/fixshots.py schools|tutor` takes

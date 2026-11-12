@@ -161,7 +161,7 @@ random cell), and it changes nothing in the game. `games/atomica/tools/realplay/
 ## 10. The fixes mod and the fix candidates
 
 `mods/fixes/mod.json` is the one mod `fixes` (`docs/MOD_ROADMAP.md`, "The fixes mod"): a toggle for each fix, on by default on the
-site, off when a test must play as the original does (`-nomods`). The port reads a toggle with `FixEnabled("<id>")`
+site, off when a test must play as the original does (`-nomods`). The port reads a toggle with `Platform::FixOn("<id>")`
 (`Fixes.h`, the mod manager's live value), so the original's behaviour stays in the code as it was and each fix is one branch.
 
 | Toggle | The fault in the original | What the fix does |
