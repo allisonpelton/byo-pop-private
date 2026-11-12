@@ -4,6 +4,9 @@
 
 #include <SDL.h>
 #include <cstring>
+#include <map>
+#include <set>
+#include <utility>
 #include <vector>
 
 using namespace Sexy;
@@ -106,6 +109,63 @@ struct PEImage
 	}
 };
 
+// The texts that are not at their address in this image (another build of the game, such as the PopCap Game
+// Collection's Bookworm.exe of 2007: the framework and the compiler are newer, the game's texts are the same and sit
+// at other addresses), found by their content: every zero-terminated run of bytes in the image and every tail of
+// it (the compiler pools texts that end the same) is looked up by length and hash. theFound says which entries are
+// already read; the others are filled in.
+int FindTextsByContent(const std::vector<uint8_t>& theData, const PEImage& theImage, std::vector<bool>& theFound,
+	std::vector<SexyString>& theTexts)
+{
+	std::map<std::pair<uint32_t, uint32_t>, std::vector<int> > aWanted;
+	std::set<uint32_t> aLengths;
+	for (int anId = 0; anId < NUM_GAME_TEXTS; anId++)
+	{
+		if (!theFound[anId])
+		{
+			aWanted[std::make_pair(gGameTextEntries[anId].mLength, gGameTextEntries[anId].mHash)].push_back(anId);
+			aLengths.insert(gGameTextEntries[anId].mLength);
+		}
+	}
+	int aFoundNow = 0;
+	for (const PEImage::Section& aSection : theImage.mSections)
+	{
+		size_t aStart = theImage.mBase + aSection.mRawPtr;
+		size_t anEnd = aStart + aSection.mRawSize;
+		if (anEnd > theData.size())
+			anEnd = theData.size();
+		size_t aRunStart = aStart;
+		for (size_t i = aStart; i < anEnd; i++)
+		{
+			if (theData[i] != 0)
+				continue;
+			// the run [aRunStart, i) ends in a zero byte: each of its tails of a wanted length is a candidate
+			size_t aRunLength = i - aRunStart;
+			for (uint32_t aLength : aLengths)
+			{
+				if (aLength > aRunLength)
+					break;
+				const char* aText = (const char*) &theData[i - aLength];
+				std::map<std::pair<uint32_t, uint32_t>, std::vector<int> >::iterator anIt =
+					aWanted.find(std::make_pair(aLength, TextHash(aText, aLength)));
+				if (anIt == aWanted.end())
+					continue;
+				for (int anId : anIt->second)
+				{
+					if (!theFound[anId])
+					{
+						theFound[anId] = true;
+						theTexts[anId].assign(aText, aLength);
+						aFoundNow++;
+					}
+				}
+			}
+			aRunStart = i + 1;
+		}
+	}
+	return aFoundNow;
+}
+
 const char* const gMarker = "!popcapcdprotect!";
 
 }
@@ -117,7 +177,8 @@ bool Sexy::LoadGameTexts()
 	for (SexyString& s : aTexts)
 		s.clear();
 
-	// The retail launcher (Bookworm.exe) or a carved game image (as tools/extract_game_exe.py writes it)
+	// The retail launcher (Bookworm.exe), a carved game image (as tools/extract_game_exe.py writes it) or the PopCap
+	// Game Collection's Bookworm.exe (the game itself, no launcher)
 	std::vector<uint8_t> aData;
 	const char* aNames[] = {"Bookworm.exe", "BookwormGame.exe"};
 	std::string aFound;
@@ -149,6 +210,7 @@ bool Sexy::LoadGameTexts()
 		PEImage anImage;
 		if (anImage.Parse(aData, aBase))
 		{
+			std::vector<bool> aFoundText(NUM_GAME_TEXTS, false);
 			for (int anId = 0; anId < NUM_GAME_TEXTS; anId++)
 			{
 				const GameTextEntry& e = gGameTextEntries[anId];
@@ -157,12 +219,22 @@ bool Sexy::LoadGameTexts()
 					(TextHash((const char*) &aData[anOffset], e.mLength) == e.mHash))
 				{
 					aTexts[anId].assign((const char*) &aData[anOffset], e.mLength);
+					aFoundText[anId] = true;
 					aMatched++;
 				}
 				else
 				{
 					aMismatched++;
 				}
+			}
+			if (aMismatched > 0)
+			{
+				// another build of the game (the PopCap Game Collection's): the texts are the same, at other addresses
+				int aFoundByContent = FindTextsByContent(aData, anImage, aFoundText, aTexts);
+				SDL_Log("GameText: %d of %d texts are not at their address in this executable; %d found by their content",
+					aMismatched, (int) NUM_GAME_TEXTS, aFoundByContent);
+				aMatched += aFoundByContent;
+				aMismatched -= aFoundByContent;
 			}
 		}
 		else
@@ -175,8 +247,8 @@ bool Sexy::LoadGameTexts()
 		SDL_Log("GameText: Bookworm.exe not found in the game folder; the game's texts are read from it");
 	}
 	if (aMismatched > 0)
-		SDL_Log("GameText: %d of %d texts do not match this executable (BookWorm Deluxe 1.03 expected)", aMismatched,
-			(int) NUM_GAME_TEXTS);
+		SDL_Log("GameText: %d of %d texts are not in this executable (BookWorm Deluxe 1.03's or the PopCap Game Collection's expected)",
+			aMismatched, (int) NUM_GAME_TEXTS);
 
 	// Overrides from string properties (properties/texts.xml, mods)
 	if (gSexyAppBase != NULL)
