@@ -406,11 +406,12 @@
         "coverage",
         "unneeded-code",
         "readability",
-        "collection"
+        "collection",
+        "performance"
       ],
       "na": [],
-      "now": "performance",
-      "note": "processor time over the original's: second performance round (the user's target, 2026-11-11)"
+      "now": null,
+      "note": ""
     },
     "cosmicbugs": {
       "title": "Cosmic Bugs",
@@ -477,14 +478,13 @@
         "fixes-mod",
         "site-features",
         "coverage",
-        "performance",
         "collection",
         "unneeded-code",
         "readability"
       ],
       "na": [],
-      "now": null,
-      "note": ""
+      "now": "performance",
+      "note": "2D on SDL's software renderer: waits on the framework"
     },
     "venice": {
       "title": "Venice Deluxe",

@@ -31,6 +31,9 @@
 #include "platform/VFS.h"
 
 #include <SDL.h>
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
 #include <algorithm>
 #include <atomic>
 #include <cctype>
@@ -59,6 +62,13 @@ std::string			sLogFileName;               // -livesplitlog
 FILE*				sLogFile = NULL;
 
 const char* const	gCauseNames[4] = {"no moves", "time up", "New Game", "other"};
+bool				sPageAsked = false;         // web: the page's timer asked for the block (byopop_livesplit_block)
+
+// The block is written: the feature is on, or (web) the page's timer asked for it
+bool FeatureOn()
+{
+	return gGameConfig.mFeatures.mLiveSplit || sPageAsked;
+}
 
 // One write: seq odd, the fields, seq even (LiveSplitBlock.h)
 void Publish(int theUpdate)
@@ -118,6 +128,7 @@ void Publish(int theUpdate)
 	}
 }
 
+#ifndef __EMSCRIPTEN__ // the templates: desktop only
 bool EndsWithNoCase(const std::string& theText, const char* theEnd)
 {
 	size_t n = strlen(theEnd);
@@ -210,6 +221,8 @@ void CopyTemplates()
 	SDL_Log("livesplit: templates: %d copied, %d already there, %d failed: %s", aCopied, aKept, aFailed, aTo.c_str());
 }
 
+#endif
+
 // The fields of "no board" (boardSerial 0): before the first board, and after the last one
 void ClearBoardFields()
 {
@@ -236,14 +249,16 @@ void Activate()
 	sShadow.qpcFrequency = SDL_GetPerformanceFrequency();
 	SDL_Log("livesplit: block at 0x%08x (layout %u, %u bytes)", (unsigned) sShadow.self, (unsigned) LIVESPLIT_LAYOUT_VERSION,
 		(unsigned) LIVESPLIT_SIZE_V1);
-	CopyTemplates();
+#ifndef __EMSCRIPTEN__
+	CopyTemplates(); // the web page ships its own templates (web/autosplit.js)
+#endif
 }
 
 } // namespace
 
 bool LiveSplitObserver::Wanted()
 {
-	return gGameConfig.mFeatures.mLiveSplit || sActive;
+	return FeatureOn() || sActive;
 }
 
 void LiveSplitObserver::SetLogFile(const std::string& theFileName)
@@ -254,7 +269,7 @@ void LiveSplitObserver::SetLogFile(const std::string& theFileName)
 void LiveSplitObserver::AfterUpdate(WinDMApp* theApp)
 {
 	LiveSplitBlockV1& aShadow = sShadow;
-	if (!gGameConfig.mFeatures.mLiveSplit)
+	if (!FeatureOn())
 	{
 		// NewGame's gGameConfig.Load() found the feature off: the script then asks for the mod
 		if (sActive)
@@ -393,6 +408,16 @@ void LiveSplitObserver::AfterUpdate(WinDMApp* theApp)
 	aShadow.qpc = SDL_GetPerformanceCounter();
 	Publish(theApp->mUpdateCount);
 }
+
+#ifdef __EMSCRIPTEN__
+// The page's speedrun timer: the block's address in the game's memory (a HEAPU8 offset); asking turns its writing on from the
+// next update, as features.livesplit does (web/autosplit.js)
+extern "C" EMSCRIPTEN_KEEPALIVE uint32_t byopop_livesplit_block()
+{
+	sPageAsked = true;
+	return (uint32_t) (uintptr_t) &gLiveSplitBlock;
+}
+#endif
 
 void LiveSplitObserver::AppDestroyed(WinDMApp* theApp)
 {
