@@ -258,8 +258,6 @@ enum ResourceId {
 	RESOURCE_ID_MAX
 };
 
-bool ExtractResourcesByName(ResourceManager* theManager, const char* theName);  // 0x5d8b5d
-const char* GetStringIdById(int theId);       // 0x5d3ffd
 Image* GetImageById(int theId);               // 0x5d3fca: the global of an image id (null for a font or sound id)
 
 // 3dImages: 0x5d4aa5

@@ -149,37 +149,6 @@ int Board::GetRowY(int theRow)
 	return theRow * 84 + 0x2b;
 }
 
-// 0x594c19
-int Board::GetColAt(int theX)
-{
-	for (int aCol = 0; aCol < 8; aCol++)
-	{
-		int aX = GetColX(aCol);
-		if (aX <= theX && theX < aX + 84)
-			return aCol;
-	}
-	return -1;
-}
-
-// 0x594c42
-int Board::GetRowAt(int theY)
-{
-	for (int aRow = 0; aRow < 8; aRow++)
-	{
-		int aY = GetRowY(aRow);
-		if (aY <= theY && theY < aY + 84)
-			return aRow;
-	}
-	return -1;
-}
-
-// 0x5957b2
-void Board::GetBoardSize(int* theWidth, int* theHeight)
-{
-	*theWidth = 84 - GetColX(0) + GetColX(7);
-	*theHeight = 84 - GetRowY(0) + GetRowY(7);
-}
-
 // 0x5957f3
 void Board::GetBoardCenter(int* theX, int* theY)
 {
@@ -268,29 +237,6 @@ unsigned int Board::GetBoardHash()
 				aByte = (unsigned char)aPiece->m58;
 			}
 			aBuffer.WriteByte(aByte);
-		}
-	}
-	return aBuffer.GetCRC32(0);
-}
-
-// 0x5963ba: the same for the older file format (the types are one higher)
-unsigned int Board::GetOldBoardHash()
-{
-	Buffer aBuffer;
-	for (int aRow = 0; aRow < 8; aRow++)
-	{
-		for (int aCol = 0; aCol < 8; aCol++)
-		{
-			Piece* aPiece = mBoard[aRow][aCol];
-			if (aPiece == NULL)
-				aBuffer.WriteByte(0);
-			else
-			{
-				aBuffer.WriteByte((unsigned char)(aPiece->mType + 1));
-				aBuffer.WriteByte(aPiece->m70 ? 0x50 : 0);
-				if (aPiece->mType == 7)
-					aBuffer.WriteByte((unsigned char)aPiece->m58);
-			}
 		}
 	}
 	return aBuffer.GetCRC32(0);
@@ -425,35 +371,6 @@ Piece* Board::GetPieceAt(int theX, int theY)
 				mApp->ScaleNum(aPiece->mX, 0.0f) <= (float)theX && (float)theX < mApp->ScaleNum(aPiece->mX + 84.0f, 0.0f) &&
 				mApp->ScaleNum(aPiece->mY, 0.0f) <= (float)theY && (float)theY < mApp->ScaleNum(aPiece->mY + 84.0f, 0.0f))
 				return aPiece;
-		}
-	}
-	return NULL;
-}
-
-// 0x59597c: the gem under a pixel, made when the square is empty (the editor of the first Diamond Mine builds)
-Piece* Board::GetOrMakePieceAt(int theX, int theY)
-{
-	for (int aRow = 0; aRow < 8; aRow++)
-	{
-		int aY = GetRowY(aRow);
-		for (int aCol = 0; aCol < 8; aCol++)
-		{
-			int aX = GetColX(aCol);
-			if (mApp->ScaleNum(aX, 0) <= theX && theX < mApp->ScaleNum(aX + 84, 0) &&
-				mApp->ScaleNum(aY, 0) <= theY && theY < mApp->ScaleNum(aY + 84, 0))
-			{
-				Piece* aPiece = mBoard[aRow][aCol];
-				if (aPiece != NULL)
-					return aPiece;
-				aPiece = new Piece();
-				aPiece->mCol = aCol;
-				aPiece->mX = (float)aX;
-				aPiece->mRow = aRow;
-				aPiece->mY = (float)aY;
-				mBoard[aRow][aCol] = aPiece;
-				MarkDirty();
-				return aPiece;
-			}
 		}
 	}
 	return NULL;

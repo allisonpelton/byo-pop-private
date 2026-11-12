@@ -483,10 +483,11 @@
         "site-features",
         "coverage",
         "performance",
-        "collection"
+        "collection",
+        "unneeded-code"
       ],
       "na": [],
-      "now": "unneeded-code",
+      "now": "readability",
       "note": ""
     },
     "venice": {

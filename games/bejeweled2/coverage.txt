@@ -491,3 +491,22 @@ none 005a552f std::vector<Lightning*> member instantiated in the game's code (Bo
 none 005a58e5 std::vector<Lightning*> member instantiated in the game's code (Board's list of flashes: operator[], size, capacity, the iterator arithmetic, push_back's insert and growth helpers, erase; the port uses std::vector<Lightning*> mLightning)
 none 005993d4 std::list iterator member (operator*, with its debug checks) instantiated in the game's code (the undo lists of Buffers; the port uses std::list<Buffer>)
 none 005c2346 empty virtual function (a no-op slot: HelpScreen's slot 54; the port's HelpScreen does not override it)
+# Taken out of the port (2026-11-11, the pass that removes the code the game does not need): no code of the original calls them and no run reaches them
+# (GAME_NOTES, "Coverage check": list two). The port's own code never called them either.
+none 00594c19 Board::GetColAt: no caller (the column under a pixel)
+none 00594c42 Board::GetRowAt: no caller (the row under a pixel)
+none 005957b2 Board::GetBoardSize: no caller
+none 0059597c Board::GetOrMakePieceAt: no caller (an editor's helper of the first Diamond Mine builds)
+none 005963ba Board::GetOldBoardHash: no caller (the hash of the older saved game format)
+none 005a50a0 Board::NewGame: only the yes button of the "New Game?" question calls it, and ConfirmNewGame (0x5e119e), which asks it, has no caller
+none 005aef96 CurvedVal::SetInRange: no caller
+none 005d3ffd the exe's table of resource names by id: no caller (the ids are the port's own enum, Res.h)
+none 005d8b5d the exe's finder of a resource group by name: no caller
+none 005d31e4-005d34c8 HighScoreNameDialog (the box for a new high score's name): its only creator, 0x5dcdf0, has no caller
+none 005dcdf0 WinDMApp's opener of the high score name box: no caller
+none 005dc25b WinDMApp::DoPuzzleRating: no caller (the puzzle rating box, dialog 35, is never opened)
+none 005e1a45 WinDMApp::FinishPuzzleRatingDialog: only the puzzle rating box's buttons call it
+none 005df3d7 WinDMApp::ShowInstructionsDialog: no caller
+none 005df4d9 WinDMApp::ShowFullInstructionsDialog: no caller
+none 005df614 WinDMApp::ShowColorDepthDialog: no caller
+none 005e119e WinDMApp::ConfirmNewGame: no caller

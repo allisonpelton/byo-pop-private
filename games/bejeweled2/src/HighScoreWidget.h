@@ -71,7 +71,6 @@ public:
 
 	virtual void	ProcessScoreStuff();                            // 0x5c385d (slot 70, through the thunk at 0x5c38f2)
 	virtual void	NameEntered(const std::string& theName);        // 0x5c5029 (slot 71)
-	void			SetHighScoreName(const std::string& theName) { NameEntered(theName); }  // (what the dialog for a new high score calls)
 
 	void			ResetHighScores();                              // 0x5c38f7
 	void			ReadFromFile();                                 // 0x5c3add
