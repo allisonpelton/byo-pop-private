@@ -733,4 +733,8 @@ each recorded by `tools/shots/botrec.py` and played again with the block on; a g
 and continued; and the game with no mod (no block, no log), each checked against the events it must log. Then
 `tools/check.sh dynomite`'s three identical-play cases with the block off, on and in the frozen baseline, whose state logs
 must be identical. `-livesplitlog=<file>` writes one line for each write of the block whose rule fields changed (not one
-per update: the updates, tick and scores are left out of the test).
+per update: the updates, tick and scores are left out of the test). The site's session read this block for Dynomite's row of the
+Splits window (claude/site-easy-b32d6e, 185f1b18 and edae2cbe), and with c9a76e15 the row passed all six of its pane checks
+on 2026-11-12: Endless to 5,000 points split at 1,000, an Endless game lost, a Time Trial timed from the first egg, the
+Fossil Challenge (three level clears a fossil, one each fragment) and the whole tutorial. The tutorial's win comes in the
+same update as its board's removal, which the site's decider takes as it is.

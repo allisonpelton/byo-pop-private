@@ -4,15 +4,18 @@ A port of PopCap's Dynomite Deluxe (2003) that plays natively (Windows, SDL2) an
 translation of the original's game classes into code on the shared framework; it ships none of the game's pictures,
 sounds, music, puzzle packs or texts, which come from your own copy of the game.
 
-## Status (2026-11-11)
+## Status (2026-11-12)
 
 Both phases of the identical-play pass are done (`IDENTICAL_PLAY.md`): the same input plays the same games in the
 original and the port, and the screens, the dialogs, the sound, the focus and the web build were compared with the
 original's, with real-input play natively and in the browser. The pass found no fix candidate, so there is no fixes
 mod. The coverage check, the performance pass, taking out the code the port does not need, the readability pass and the
-check against the PopCap Game Collection's copy are done too (`GAME_NOTES.md`, sections 6 to 10). Of the definition of
-done (`docs/COORDINATION.md`, "Done means every phase but modding") only the game's features on the site are left: its
-Music entries and soundboard presets, which the site's session builds.
+check against the PopCap Game Collection's copy are done too (`GAME_NOTES.md`, sections 6 to 10). The native port now
+draws its screen in software as the original does, and at 640 by 480 it is under the original's processor time
+(`GAME_NOTES.md`, "The software screen"). The lite mod step found nothing worth a toggle (`LITE_MOD.md`), and the
+autosplit block serves the site's Splits window (`GAME_NOTES.md`, section 11). Of the definition of done
+(`docs/COORDINATION.md`, "Done means every phase but modding") only the rest of the game's features on the site are
+left: its Music entries and soundboard presets, which the site's session builds.
 
 The game is translated: the loading and title screens, the main menu with its pages (start, modes, skill, the fossil
 challenge's kind, saved games, puzzle packs), the side bar with Inchy and his call-outs, the board with the slingshot, the

@@ -327,11 +327,12 @@
         "readability",
         "collection",
         "site-features",
-        "performance"
+        "performance",
+        "lite-mod"
       ],
       "na": [],
-      "now": "lite-mod",
-      "note": "performance done through SoftwareScreenDisplay: 8.46 against the original's 9.63 G cycles a minute at 640x480; the default 2x window takes the GPU path (about 1.87 M cycles an update on a quiet GPU)"
+      "now": null,
+      "note": "done but the site's Music entries and soundboard presets: performance 0.88 of its original at 640x480 through SoftwareScreenDisplay; no lite mod (the update is 3% of its cycles; DropLoose's search never nears its cap)"
     },
     "bookwormadv2": {
       "title": "Bookworm Adventures Volume 2",
