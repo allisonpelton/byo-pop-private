@@ -319,8 +319,8 @@ would change what the player sees, so it would be a mod.
 ## The processor-time target (2026-11-11)
 
 The user's rule (docs/COORDINATION.md, "The target"): a port's processor time is at most its original's, measured like for like.
-Cosmic Bugs is not there yet: on a board the port uses about 2.1 to 2.4 times the original's cycles. This section says where they
-go, thread by thread, and what the host did and did not change.
+Cosmic Bugs is not there yet: on a board the port uses about 1.8 times the original's cycles in the latest alternation (2.1 to
+2.4 in the first of the day, below). This section says where they go, thread by thread, and what the host did and did not change.
 
 **How it is measured.** `tools/perf/alt.sh` alternates the original (its main loop patched to sleep 16 ms a pass, as the wait for a
 60 Hz screen would; unpatched it spins and takes a whole core), the port, and the port with its sound and music off (`portmute`:
@@ -333,17 +333,38 @@ the Nvidia driver's worker is a thread of its own. The sampler cannot show where
 cycles to the wait it ends in), so the per-call figures below come from QueryThreadCycleTime timers around the calls in a scratch
 build that was not kept.
 
-| Median of 3 (Mcycles a second) | Original, 60 Hz | Port | Port, sound off |
-|---|---|---|---|
-| First board, all threads | 119 | 264 | 257 |
-| Main thread | 118 | 155 | 163 |
-| Nvidia driver worker (nvwgf2um.dll) | none | 90 to 105 | 90 to 105 |
-| SDL audio thread | none | 13 | 1.5 |
-| Title, all threads | 285 | 406 | 365 |
+**The window each run had** (2026-11-12, after the Mahjong session pointed out that a window state that differs between the two sides
+puts a measurement 20 to 30% off). The original is windowed at 800x600: `cp.cfg` has `fullscreen="0"`, and its window is created and
+sized by `AdjustWindowRectEx` for a client area of 800x600 (0x42e530, called with 800 and 600 from 0x42ae60). The port, with the same
+`cp.cfg` and a fresh user directory (the framework's ScreenMode is windowed), starts its window at 2x the game's size when it fits the
+desktop, which it does on rundesk's 3840x2160: 1600x1200, the size a `screenshotfull` in a run has (`perf.py port --verify` takes
+one and records its size). `-windowscale=1` (the test option from the Mahjong session's commit cf1dea5f, used here in a scratch build,
+not committed; it reaches the trunk with the presenter) puts it at 800x600. Every run, original and port, ran on rundesk's hidden
+desktop: the port on SDL's Direct3D 11 renderer (the Nvidia driver's worker thread below is its sign), the original on DirectDraw
+through origrun's stand-in, which has no device thread of its own. `alt.sh` takes the window as a suffix on the kind (`portmute@1`).
 
-The port before this session's host change (the bounding box of the engine's update rectangles, the whole image uploaded) measured
-251 on a board and 152 on the main thread in the same alternation: the host change below is a correctness change and moved the
-cycles by less than the machine's noise (the runs of one kind spread by 15%).
+| Median of 3 (Mcycles a second, a board) | Original, 800x600 | Port, 2x window, sound off | Port, 800x600, sound off | Port, 800x600, sound on |
+|---|---|---|---|---|
+| All threads | 106 | 189 | 192 | 215 |
+| Main thread | 106 | 114 | 119 | 127 |
+| Nvidia driver worker (nvwgf2um.dll) | none | 72 | 71 | 77 |
+| SDL audio thread | none | 1.2 | 1.2 | 10 |
+| Title, all threads | 240 | 269 | 268 | 301 |
+
+The port's window size does not matter here: 189 at 2x, 192 at 1x, the difference smaller than the runs' own spread (the three
+runs of one kind range over 187 to 204). A present of an 800x600 picture and of a 1600x1200 one cost the same, the worker's cost being
+per present and not per pixel, so what the Mahjong ports saw (their port had started full screen at 3840x2160) does not apply. The
+like-for-like comparison is the first column against the third: the port at the original's window size, with its sound off as origrun's
+original mixes none (turning the sound on adds the audio thread's 9 and about 8 on the main thread). So the port takes 1.8 times the
+original's cycles on a board, 1.1 times on the main thread, and the rest is the renderer's worker thread.
+
+The first table of the day (the same alternation under a heavier load, 2 to 5 other sessions' games, in the 2x window) measured the
+original at 119, the port at 264 and 257 with the sound off, the port's main thread at 155 and 163 and the driver worker at 90 to 105:
+the port's threads are 25 to 45% higher there and the original's 12%. I did not find a cause beyond the machine's load (the same
+exe's runs spread 15% within one alternation); the figures above are the later alternation, with the others' games at 3 to 4. The
+port before this session's host change (the bounding box of the engine's update rectangles, the whole image uploaded) measured
+251 on a board and 152 on the main thread in the first alternation: the host change below is a correctness change and moved the
+cycles by less than the machine's noise.
 
 **Where the main thread's cycles go** (a board; per drawn frame, 60 a second, in Mcycles; the thread's 2.8M a frame is 168 a second):
 
@@ -355,6 +376,9 @@ cycles by less than the machine's noise (the runs of one kind spread by 15%).
 | `SDL_UpdateTexture`, the whole image | 1.16 to 1.30 | 70 to 78 |
 | `SDL_RenderPresent` and the copy to the window | 0.44 to 0.49 | 27 to 29 |
 | Events, the frame's set-up | 0.05 | 3 |
+
+(These per-call timings come from the first alternation, in its 2x window and heavier load; the main thread's total in the later one
+is 25 to 35% lower, so read them as proportions of the thread's time: the upload and the present are about 60% of it.)
 
 The upload and the present, 100 Mc/s on the main thread, and the driver worker's 90 to 105 that they feed are the renderer path;
 the game's own updates are the same code as the original's. A bare SDL presenter with no game in it (800x600, D3D11, vsync, one
