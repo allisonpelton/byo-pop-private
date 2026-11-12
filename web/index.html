@@ -313,8 +313,8 @@ html:not(.d95-desk) #chat { display: none !important; }
 .mu-lcd-time { flex: none; font-size: 20px; font-weight: 700; letter-spacing: 1px; font-variant-numeric: tabular-nums; }
 .mu-lcd-names { display: flex; flex-direction: column; flex: 1; min-width: 0; }
 .mu-lcd-tune, .mu-lcd-game { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.mu-lcd-tune { min-height: 1.25em; }
-.mu-lcd-game { font-size: 10px; opacity: .7; min-height: 1.25em; }
+.mu-lcd-tune { min-height: 15px; }
+.mu-lcd-game { font-size: 10px; opacity: .7; min-height: 13px; }   /* whole pixels: a fraction put every row below on half a pixel */
 .mu-lcd-total { flex: none; align-self: flex-start; font-size: 11px; opacity: .7; font-variant-numeric: tabular-nums; }
 .mu-vis { position: relative; height: calc(12px + var(--mu-rows, 5) * 12px); margin-top: 3px; cursor: pointer; }
 .mu-vis:focus-visible { outline: 1px dotted currentColor; outline-offset: 1px; }
@@ -379,9 +379,9 @@ html:not(.d95-desk) #chat { display: none !important; }
 .mu-vol { width: 90px; margin: 0 0 0 2px; }
 /* the playlist: a line a tune, its number, name and length, the one playing marked */
 .mu-list { font-size: 12px; max-width: 520px; }
-.mu-game { margin: 6px 0 1px; font-size: 11px; font-weight: 600; color: var(--muted); }
+.mu-game { margin: 6px 0 1px; font-size: 11px; line-height: 14px; font-weight: 600; color: var(--muted); }
 .mu-tunes { list-style: none; margin: 0; padding: 0; }
-#music .mu-tune { width: 100%; display: flex; align-items: baseline; gap: 6px; min-height: 0; padding: 1px 4px; font-size: 12px; text-align: left;
+#music .mu-tune { width: 100%; display: flex; align-items: baseline; gap: 6px; min-height: 0; padding: 1px 4px; font-size: 12px; line-height: 15px; text-align: left;
   color: inherit; background: none; border: 0; border-radius: 0; box-shadow: none; }
 #music .mu-tune:hover { background: rgba(127, 127, 127, .15); }
 #music .mu-tune[aria-current] { background: var(--accent); color: #fff; }

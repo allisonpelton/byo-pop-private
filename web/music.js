@@ -360,6 +360,16 @@ var ByopopMusic = (function () {
   }
 
   // ---------- the tunes ----------
+  // Where a file lies in the game's folder, as the copy has it, for a tooltip (the user, 2026-11-12: "The descriptions should
+  // include the path to the audio file within the game folder"): its path, or the file it is inside and where in it
+  // ("Resource.dll, WAVE resource 373", "TipTop.dat: sounds/Pop.ogg")
+  function filePlace(rel) {
+    var bar = rel.indexOf("|");
+    if (bar < 0) return rel;
+    var host = rel.slice(0, bar), pick = rel.slice(bar + 1), m = /^pe:([^:]+):(.+)$/.exec(pick);
+    if (m) return T("music.in_resource", { file: host, type: m[1], id: m[2] });
+    return T("music.in_archive", { file: host, entry: pick.replace(/^[a-z]+:/, "") });
+  }
   // A file's name without its folder and extension
   function baseName(rel) {
     var bar = rel.indexOf("|");
@@ -2913,7 +2923,8 @@ var ByopopMusic = (function () {
           b.setAttribute("data-tune", String(i));
           b.appendChild(make("span", "mu-num", String(g.items.indexOf(i) + 1)));
           var t = tunes[i], name = make("span", "mu-name", t.name);
-          name.title = t.name;
+          // its name, and where its files lie in the game's folder
+          name.title = t.name + "\n" + t.keys.map(function (k) { return filePlace(k.slice(t.game.persist.length + 6)); }).join("\n");
           b.appendChild(name);
           // where the game plays it (or that it never does), and its format
           var where = make("span", "mu-where", t.unused ? T("music.unused") : t.where);
@@ -2998,6 +3009,6 @@ var ByopopMusic = (function () {
 
   // (the Sounds window, web/sounds.js, reads the games' files with the same read-only reader, draws its Stop and speaker with the
   // same pictures, and falls back on the same stb_vorbis decoder)
-  return { init: init, patternRe: patternRe, glyph: glyph, decoder: decoder, stbOgg: stbOgg, msAdpcm: msAdpcm, wavMp3: wavMp3, numbered: numbered,
+  return { init: init, patternRe: patternRe, glyph: glyph, decoder: decoder, stbOgg: stbOgg, msAdpcm: msAdpcm, wavMp3: wavMp3, filePlace: filePlace, numbered: numbered,
     files: { open: openExisting, list: gameFiles, read: readFile } };
 })();
