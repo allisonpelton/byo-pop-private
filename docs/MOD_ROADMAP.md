@@ -81,9 +81,13 @@ definition of done? Each mod would need to explain where exactly the difference 
 So each game gets one **lite** mod beside its fixes mod, and each of its settings is a toggle for one change. A change
 computes something the game computes, faster, in a way that may give another result: a search that stops at the first
 good answer instead of the best, a tie broken another way, random numbers drawn in another order, a shortcut that is
-right in all but rare cases (TipTop's skipped paint, wrong in 13 of 50,054 bot passes). It keeps the game's look, frame
-rate, pace and rules; a change that trades those for speed, as Bejeweled's `lean` does with its frame rate, is not lite.
-A change that gives the same result is not lite either: it goes into the port in its performance pass.
+right in all but rare cases (TipTop's skipped paint, wrong in 13 of 50,054 bot passes). That it can give another result
+is proved before a change goes into the lite mod (the user, 2026-11-12: "Prove those things can change given the
+possible level parameters before deciding they go in a lite mod"): a state the game can reach, from its own levels and
+parameters, where the two give different results (a level, a seed and the moves), or an argument from the game's data
+that one exists. A change that cannot differ in any state the game reaches gives the same result, so it is not lite: it
+goes into the port in its performance pass. A lite change keeps the game's look, frame rate, pace and rules; a change
+that trades those for speed, as Bejeweled's `lean` does with its frame rate, is not lite.
 
 A change goes in only when it measurably cuts the processor time of a stretch of play where it runs (cycle counts and
 alternating pairs, `docs/COORDINATION.md`, "The target"). With the mod on, a game still plays the same on every run with
@@ -91,37 +95,41 @@ the same seed and input, and with it off the port is unchanged, as its frozen ba
 off: it changes play, so the player turns it on.
 
 Each game's `docs/LITE_MOD.md` explains every change for the user: the function (the original's address and the port's
-name), what the original does and what the mod does instead, where play or the picture can differ and how to see it (a
-seed and the moves, a board, a screen), how often it differs in a bot's games, and the gain measured. A game where
-nothing is worth changing gets the file too, saying what was looked at and why nothing was taken, and its lite-mod step
-is then done with no mod. Few games are expected to have much: their boards are small and their rules cheap, and most of
-their processor time goes to the picture. The candidates come from the performance pass, which lists under "Lite
-candidates" in the game's notes each speed-up it turned down because it changes what the game does.
+name), what the original does and what the mod does instead, where play or the picture can differ and the proof that it
+can, with how to see it (a seed and the moves, a board, a screen), how often it differs in a bot's games, and the gain
+measured. A game where nothing is worth changing gets the file too, saying what was looked at and why nothing was taken,
+and its lite-mod step is then done with no mod. Few games are expected to have much: their boards are small and their
+rules cheap, and most of their processor time goes to the picture. The candidates come from the performance pass, which
+lists under "Lite candidates" in the game's notes each speed-up it turned down because it changes what the game does.
 
-### Candidates found in the code (2026-11-13)
+### Candidates found in the code (2026-11-12)
 
 A read of every port's game logic (not drawing) for searches, fills and solvers. None has a measured cost yet: each
 game's performance pass measures its own before anything changes. A faster method that gives the same answer goes into
-the port; one that can give another answer (a route, a hint, a deal) is a lite change.
+the port; one goes into the lite mod only once a state the game can reach is shown where it gives another answer (a
+route, a hint, a deal). Each "lite" below says only where a difference could come from; none is proved yet.
 
 - Ning Po and the Mahjong Escapes' engine: whether a tile is free is a linear scan (Ning Po's tileAtCell walks all 144
   tiles, up to 15 times a tile; the engine's Layout::IsFree walks a z-sorted list, so UpdateFree is quadratic), after
   every move and in each move count and hint. A cell-to-tile grid gives the same answers. The Escapes' Deal::Solve, a
   backtracking search for a winnable deal, runs under a wall-clock budget (2 s, 1 s on a redeal), so the original's
-  deals already depend on the machine's speed; a faster solver changes deals unless it searches in the same order.
+  deals already depend on the machine's speed; a faster solver changes deals unless it searches in the same order (to
+  be shown on the real layouts before it counts as lite).
 - Noah's Ark: HasMove, every 48 updates, runs a fresh breadth-first search for each candidate pair on the 9x9 grid
   (about half a million steps when no move is left). One labelling of the connected empty regions gives the same yes
-  or no, so it belongs in the port's performance pass. SearchPath's route ties go by its direction order: a lite
-  change.
+  or no, so it belongs in the port's performance pass. SearchPath breaks ties between routes of the same cost by its
+  direction order: lite only if a level can hold two such routes.
 - Atomica: PathFinder, a pruned depth-first search of up to 50 segments, on every mouse move while a placed atom is
-  selected; a breadth-first search over cell and direction may draw another route of the same cost: a lite change.
+  selected; a breadth-first search over cell and direction could draw another route of the same cost: lite only if the
+  9x8 grid and its pieces allow two.
 - Dynomite: EggGrid::DropLoose copies the 1,500-cell grid and runs a recursive search capped at 399 steps for each egg
   with room above it, after every match, blast and row push. One flood from the top row is faster, but an egg whose
-  search meets the cap counts as attached in the original: a lite change unless the cap is kept.
+  search meets the cap counts as attached in the original: lite only if a grid the game can reach makes a search take
+  399 steps; if none can, the flood goes into the port.
 - Mummy Maze: CheckSolvable, after every explorer move on mazes under 7x7, is a depth-first search over the
   explorer's, mummies', scorpion's and gate's states that copies its path at each branch. A breadth-first search with
   a hashed visited set gives the same yes or no (the performance pass); the solution Abandon Hope plays depends on the
-  search order.
+  search order: lite only if a maze has more than one solution the two searches would choose between.
 - Word Harmony: findHints walks the 61,691-node hint tree after every word; its notes measure the game's own logic at
   a few percent per function, and the hints are shown in tree order. Bonnie's Bookstore: findHint's random walks run
   up to 120 ms of wall clock when a hint is asked for, and a wildcard isWord scans a letter's whole bucket.
