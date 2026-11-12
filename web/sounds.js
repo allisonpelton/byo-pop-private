@@ -55,6 +55,12 @@ var ByopopSounds = (function () {
   function decode(ctx, rel, bytes) {
     if (/\.au$/i.test(rel)) return new Promise(function (resolve) { resolve(decodeAu(ctx, bytes)); });
     return ctx.decodeAudioData(bytes.slice().buffer).catch(function (e) {
+      var w = /\.wav$/i.test(rel) ? ByopopMusic.msAdpcm(bytes) : null;   // an MS ADPCM WAV, which the browsers do not read
+      if (w) {
+        var wb = ctx.createBuffer(w.channels.length, Math.max(1, w.channels[0].length), w.rate);
+        w.channels.forEach(function (d, c) { wb.getChannelData(c).set(d); });
+        return wb;
+      }
       if (!/\.ogg$/i.test(rel)) throw e;
       return ByopopMusic.decoder().then(function (M) {
         var d = ByopopMusic.stbOgg(M, bytes, ctx.sampleRate), n = d.length >> 1, buf = ctx.createBuffer(2, n, ctx.sampleRate);
@@ -418,7 +424,7 @@ var ByopopSounds = (function () {
     if (board || !document.getElementById("games-title") || typeof ByopopMusic === "undefined") return null;
     var games = Array.prototype.map.call(document.querySelectorAll("a.tile[data-game]"), function (t) {
       return { id: t.getAttribute("data-game"), title: t.querySelector(".name").textContent, persist: t.getAttribute("data-persist") };
-    });
+    }).sort(function (a, b) { return a.title.localeCompare(b.title); });   // by title, as the listing and the Start menu list them
     board = build(games);
     var foot = document.querySelector("body > footer");
     if (foot && foot.parentNode) foot.parentNode.insertBefore(board.el, foot); else document.body.appendChild(board.el);

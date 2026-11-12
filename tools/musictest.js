@@ -135,6 +135,23 @@ function protracker() {
     return src.slice(a, i + 1);
   }
   const R = new Function(grab("peResources") + grab("zipEntry") + grab("baseName") + "return { peResources, zipEntry, baseName };")();
+  // places numbered as the game reaches them, in that order where the files' order put them; the others where they were
+  const NB = new Function(grab("numbered") + "return numbered;")();
+  check("numbered places in order", NB([{ where: "Main Menu" }, { where: "Level Theme 3" }, { where: "Level Theme 2" }, { where: "" }, { where: "Level Theme 1" }])
+    .map((k) => k.where).join(",") === "Main Menu,Level Theme 1,Level Theme 2,,Level Theme 3");
+  // an MS ADPCM WAV: one mono block (predictor 1 of 2, step 16, samples 100 then 50), codes 0, 1 and 15, and a fact chunk of 5
+  const A = new Function(src.match(/var ADAPT = \[[^\]]*\];/)[0] + grab("msAdpcm") + "return msAdpcm;")();
+  const fmtc = Buffer.alloc(30); fmtc.writeUInt16LE(2, 0); fmtc.writeUInt16LE(1, 2); fmtc.writeUInt32LE(22050, 4); fmtc.writeUInt16LE(9, 12);
+  fmtc.writeUInt16LE(4, 14); fmtc.writeUInt16LE(4, 18); fmtc.writeUInt16LE(2, 20); fmtc.writeInt16LE(256, 22); fmtc.writeInt16LE(0, 24); fmtc.writeInt16LE(512, 26); fmtc.writeInt16LE(-256, 28);
+  const blk = Buffer.from([1, 16, 0, 100, 0, 50, 0, 0x01, 0xf0]);
+  const chunk = (id, b) => { const h = Buffer.alloc(8); h.write(id, 0, "latin1"); h.writeUInt32LE(b.length, 4); return Buffer.concat([h, b]); };
+  const fact = Buffer.alloc(4); fact.writeUInt32LE(5, 0);
+  const wbody = Buffer.concat([Buffer.from("WAVE", "latin1"), chunk("fmt ", fmtc), chunk("fact", fact), chunk("data", blk)]);
+  const riff = Buffer.concat([Buffer.from("RIFF", "latin1"), Buffer.alloc(4), wbody]); riff.writeUInt32LE(wbody.length, 4);
+  const ad = A(new Uint8Array(riff));
+  // codes 0, 1, 15, 0: 2*100 - 50 = 150 (the step 16*230/256 = 14, kept at 16); 2*150 - 100 + 16 = 216; 2*216 - 150 - 16 = 266; the fact ends it
+  check("adpcm: a block's samples", ad && ad.rate === 22050 && JSON.stringify(Array.from(ad.channels[0], (v) => Math.round(v * 32768))) === "[50,100,150,216,266]", ad && Array.from(ad.channels[0], (v) => Math.round(v * 32768)));
+  check("adpcm: not a WAV of it", A(new Uint8Array(Buffer.from("RIFF\0\0\0\0WAVEfmt \x10\0\0\0\x01\0", "latin1"))) === null);
   // a PE32 module with one section (.rsrc at RVA 0x1000, file offset 0x200) holding type 10 > id 335 > language 0, 8 bytes
   const pe = Buffer.alloc(0x200 + 0x100);
   pe.write("MZ", 0, "latin1"); pe.writeUInt32LE(0x40, 0x3c); pe.write("PE\0\0", 0x40, "latin1");
