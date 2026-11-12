@@ -266,6 +266,10 @@ The handler of event 3 (0x403fd0, `Brick::OnDie`) fires the "popped" event 0x1a 
     (2D mode only; in 3D the card does it): that is most of the shots counted "faint" in the report. The port's 2D screen is the
     GPU's, so matching it takes a software screen and the 2004 arithmetic (about 5,500 lines of x86 in the two functions, 16 and
     32 bit, with and without a colour, transparent or not): shared code, not done, no difference that a person sees.
+  - **The launch pad's glow in 3D** (2026-11-12, the wipe comparison, section 10): the glow and sparks above the launch pad of the main
+    menu (x 216 to 417, y 383 to 443) differ by at most 25 levels between the original on its Direct3D and the port on SDL's, in every frame of
+    four runs that shows the menu (180 frames, about 350 to 480 pixels once the menu is uncovered). The card does the blending on both
+    sides here, so it is another blend or another rounding of the same additive halos; no one sees it (shotdiff counts it faint). Not chased.
   - The title screen changes its picture (Vixx, Turbot, ...) every 600 updates of its own count. The port loads at the machine's speed
     (CLAUDE.md: loading is made fast in the port itself), so its title starts at another update than the original's and a shot at a fixed update
     can land on the other picture (the tour `menus` a01_title; the next shot, a02, matches). It is a timing of the loader, not a
@@ -291,8 +295,9 @@ The handler of event 3 (0x403fd0, `Brick::OnDie`) fires the "popped" event 0x1a 
    waits for `docs/MOD_ROADMAP.md`'s turn. Done since: the coverage check and the removal of code the game does not need (section 10), the
    performance pass (section 11), the readability pass (section 12) and the check against the PopCap Game Collection's copy (section 13: its exe is
    another build; the port plays equal on its files) and the music's state against the original's (section 14: the port had no music; fixed).
-   The original's 3D screen wipe was reached on the night of 2026-11-12 (section 10). The performance step is open: in 3D the port is a few percent
-   over its original (section 11, the shared presentation path); 2D passes.
+   The original's 3D screen wipe was reached on the night of 2026-11-12 and compared frame by frame with the port's, all four kinds: the same
+   pictures (section 10). The performance step is open: in 3D the port is a few percent over its original (section 11, the shared
+   presentation path); 2D passes.
 4. (Done: the gap of the removed More Games button is closed, section 6.) The app's destructor does not delete its screens (as the original's).
 5. (Done in phase two, the sites it lists and the other drawing and screen functions read against the asm; the float rounding of the drawing
    code follows section 4.) Phase two of the pass: the x87 compares of the drawing and screen code that were not checked in phase one against the asm for the `<` / `<=` idiom of section 4 (0x40c8a0, 0x433500, 0x433920, 0x439c20, 0x444520, 0x461010, 0x461e50, 0x467af0, 0x487f00, 0x48a110 and the other `TEST AH` sites listed by `grep -l 'TEST AH' re/astropop/asm/*.asm`); the gameplay ones (every Brick method, the group and fall code, CheckStackHeight, OnBrickGone) were read in phase one.
@@ -352,8 +357,31 @@ one run shows one kind, and `games/astropop/tools/origcmp/wipeseeds.py` runs the
 origrun's `seed` patch in the copy) until the coverage has reached all six functions. Seed 1 gave the right edge (0x40b430), seeds 2, 4, 7,
 8 and 10 the random clearing (0x426370), 3, 5, 6, 9 and 12 the left edge (0x40b340), 11, 13 and 14 the right edge again, and seed 15 the rows
 (0x40b540); the draw (0x40b5e0) and the check (0x4264a0) ran in every one. **All six functions are reached.** The port's four steps, its
-draw and its check were read against the export before (nothing differed), and the wipe's pictures were not compared frame by frame with the
-port's (the same seed gives the same kind in both, so it can be done: a script that shoots the wipe's updates on both sides).
+draw and its check were read against the export before (nothing differed).
+
+**The wipe, frame by frame** (the same night). The same seed gives the same kind in the port, so `origcmp/wipe.sh <seed>` runs the chain for
+one kind: a classic game of the in-game tour (`tour/ingame1.txt` up to its last move), Escape, the options box's Main Menu button and the
+End Game box's Yes, which starts the wipe, then a shot every few updates (`wipeshots.py`). The original runs on the desktop on the real clock
+(`visrun3d.py --shots`, its window at the top right; 22:00 to 08:00); each input lands on the update it was asked for and each shot is
+written with the update it landed at, a shot waiting until the original's draw flag (`[app]+0x488`, found by `probe3d.py`: the one field of
+the app object that reads 1 for a moment after each update, 0 when it is drawn) says the last update was drawn and reading the client area
+off the screen while the game is held 30 ms. The port's script puts the same inputs at the same
+updates (the tour's own offset for each kind of input) and shoots **every** update (`-fast -drawevery`, rundesk, `Is3D` 1, the same seed), and
+`wipematch.py` matches each of the original's pictures with the best of the port's pictures within four updates, so that the unknown part
+of a real-clock shot (a picture shows the frame of the update it was taken at or of one or two before it) does not matter: the wipe is
+monotonic, so the best match is the same state, and what is judged is how small the difference is there and that the offset does not drift
+over the wipe (a wipe that ran at another speed would). The offsets were 0 or -1 update in 172 of the 180 frames of the four runs; the other
+eight are the first frame of each run (the board as it was before the wipe moved, which the port's range of shots starts on) and four where
+the screen showed a frame seven to nine updates old (the same picture as the shot before it: the screen had not changed since, the
+compositor's doing and not the game's; the next shot is at 0 again). Seeds 1 (right edge), 2 (random), 3 (left edge) and 15 (rows) gave 180 frames, 58 of them with the
+wipe under way (12 to 17 a kind): **no pixel differs visibly** (shotdiff: 17 frames equal, 163 "only faintly", none differing). Everything
+that differs, at most 25 levels, lies in one place, x 216 to 417 and y 383 to 443, the launch pad's glow of the main menu that the wipe
+uncovers, and is as large in the frames after the wipe
+(section 8, "the launch pad's glow in 3D"); what is left out of the comparison is the menu's right column, where the port has no More
+Games button (section 6), and the window's bottom corners, which Windows 11 rounds. The inputs and the draw counter: `visrun3d.py`'s
+header. The wipe is therefore the original's in its picture, its speed and its start, for all four kinds, in 3D on the desktop; its start
+to within the one update that a real-clock shot cannot resolve (the first frames match at offset 0 or -1, and a start two updates apart
+would put the edge twelve columns or the random pixels four thousand apart).
 
 **Taken out** (2026-11-11, in the pass that removes what the game does not need; no play of the original reaches them and the port's
 own code never called them): `Brick::SetSpeedX` and `SetSpeedY` (0x4062a0, 0x4062b0), the fuel cell's `GetColumn` and `GetRow` (0x402a70,
@@ -400,7 +428,7 @@ pairs with its range. The memory is private bytes in MiB; the load is the time f
 G and +1.23 G, +0.2 G less with the mixer counted apart), with a noise the same size as the difference, so none of the three sets
 proves more than "about equal, a little over". 2D passes with room. The cause is not the game's code (below) but the display path that every
 game of the framework shares; what could be done about it is listed under the shared costs, and the Direct3D 11 hint (the shared commit
-`ccec8c20`) is the one change made.
+`4ab9c0a0`) is the one change made.
 
 **Which renderer.** SDL's own first choice on a Windows desktop is Direct3D 9 (the NVIDIA `nvd3dum.dll` driver, a second thread busy in
 system calls: about 35% of the process). Varying `SDL_RENDER_DRIVER` for three runs each, back to back on one core (the stretch, G
@@ -446,7 +474,7 @@ heap, in the display path, the same as Bejeweled Twist's jump at a level-up (`do
    level-up jump, below the heap. To find it: count texture creations in the display layer during the first second of a game
    (`astropop.exe -realinput=<script> -seed=11` with `memreport` before and after the first board).
 5. *SDL's first renderer on a Windows desktop is Direct3D 9, which rundesk's private desktop cannot start* (see "Which renderer"): the
-   `shared:` commit `ccec8c20` asks for Direct3D 11 first (a default-priority hint, so `SDL_RENDER_DRIVER` still decides), logs the renderer's
+   `shared:` commit `4ab9c0a0` asks for Direct3D 11 first (a default-priority hint, so `SDL_RENDER_DRIVER` still decides), logs the renderer's
    name once and rewords the scale-mode comment. It changes every DDInterface game's renderer on the desktop, so it is the coordinator's to merge.
 6. *The framework presents in step with the display* (`InitDDInterface` passes `vsync = !mFastMode`), and a present costs 1.35 M cycles on the
    main thread and about 1.4 M on the driver's: 70% of the port's 3D stretch, against an original that, with no wait for the display in a window, may draw more often at a lower cost each.

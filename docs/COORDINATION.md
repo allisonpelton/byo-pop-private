@@ -162,8 +162,13 @@ holds the rules every session follows; this file does not repeat them.
     started with a fresh userdir takes its original's defaults, often full screen, and under rundesk that is the
     whole 3840x2160 desktop at render scale 4 (Mahjong, 2026-11-12); a port's window also starts at twice the game's
     size where it fits. So the port is measured windowed (FullScreen=0 in its settings) at the game's own size in
-    pixels (a test option such as `-windowscale=1`), and the log line naming the window's size is checked. The
-    default window's cost is measured as well, beside it, since that is what a player gets.
+    pixels (`-windowscale=1`), and its log's display line is checked ("display: client WxH px, logical WxH, render
+    scale N, windowed|full screen, renderer <name>", logged when the window is made and at each size or mode change;
+    docs/TEST_COMMANDS.md, "The window line"). The default window's cost is measured as well, beside it, since that
+    is what a player gets. Where a session needs to know which part of a frame costs what, `-cyclesplit` in the port
+    and `origrun --count` in the original split update, draw and present on both sides (docs/TEST_COMMANDS.md,
+    "Picking the functions"); per-update figures compare, per-call ones do not, since a port presents in step with
+    the display and an original's Blt does not wait (BookWorm, 2026-11-12).
   - **The renderer a player gets.** On the visible desktop SDL picks Direct3D 9; on rundesk's private desktop it
     gets Direct3D 11 (TipTop and AstroPop, 2026-11-12). TipTop's bench put a frame's present at 2.5 to 2.9 M cycles
     on the visible desktop (D3D9) against 2.0 to 2.6 M on rundesk's (D3D11), and a window-surface present at 0.9 to
