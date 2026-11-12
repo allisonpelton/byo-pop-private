@@ -103,7 +103,7 @@ asked.
 | Cosmic Bugs | 0.6 to 0.9 s | 0.4 to 1.0 s | 18 to 19 % of one core | 4.7 and 5.6 % of one core | 130 MB | 88 and 89 MB |
 | Water Bugs | 2.76 s | 3.16 s | 10 s a minute | 58 s a minute | 160 MB | 97 and 101 MB |
 | Rocket Mania Deluxe | 1.8 to 2.0 s | 0.9 and 1.1 s | 4.6 to 5.7 s a minute | 8.6 to 9.3 s a minute | 132 MB | 62 MB |
-| Dynomite Deluxe | 0.96 s | 2.2 s | 4.6 and 4.9 s a minute | 11.6 and 13.2 s a minute | 92 and 94 MB | 65 MB |
+| Dynomite Deluxe | 0.96 s | 2.2 s | 11.2 G cycles a minute against the original at 60 Hz, 13.3 against it windowed | 13.3 G cycles a minute at 60 Hz, 20.6 windowed | 92 and 94 MB | 65 MB |
 | Bookworm Adventures Volume 2 | | | | | | |
 | Mahjong Escape: Ancient Japan | 1.31 s | | 6.0 % of one core | 3.1 % of one core | 146 MB | 40 MB |
 | Mahjong Escape: Ancient China | 1.29 s | | 7.3 % of one core | 1.7 % of one core | 104 MB | 31 MB |
@@ -121,6 +121,9 @@ minute (Atomica's runs from launch to a fixed update; Bejeweled Twist and Bookwo
 the menu and the title; TipTop's and Cosmic Bugs' originals are paced at 60 Hz, as on a player's screen). Most runs
 shared the machine with other sessions' games, and each game has its own play and its own measure, so a row compares a
 port with its own original, never one game with another; an empty cell means the notes give no number.
+Dynomite Deluxe's processor time is the cycles its threads ran in the same scripted minute of Time Trial, the
+medians of alternating pinned pairs, with its original drawing at most 60 times a second as in full screen, and
+windowed.
 
 Two things differ in every native port on purpose, the user's choice for all of them, with no mod needed. Full screen is
 a borderless window over the whole monitor at the desktop's own resolution, never the originals' change of the display's
