@@ -27,8 +27,8 @@ std::vector<const char*> exeStringArray(uint32_t theAddress, int theCount);
 // Runs what the exe's C++ static initializers (the CRT's __initterm table, 0x466000-0x466284) do to its data: they
 // store numbers and construct the global strings from literals, nothing else. The numbers go into the loaded image;
 // the strings are kept by their addresses. Answers how many initializers were understood; the others are listed in
-// theUnknown.
-int runStaticInitializers(std::vector<uint32_t>* theUnknown = nullptr);
+// theNotUnderstood.
+int runStaticInitializers(std::vector<uint32_t>* theNotUnderstood = nullptr);
 // The text a static initializer gave the global string at theAddress ("" when none did)
 const std::string& exeGlobalString(uint32_t theAddress);
 

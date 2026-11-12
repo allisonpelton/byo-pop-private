@@ -88,21 +88,7 @@ Font* App::getFont(const char* theName)
 	Font* aFont;
 	if (anIt == mFonts.end() || (aFont = anIt->second) == nullptr)
 	{
-		aFont = createFont(theName, false);
-		mFonts[aName] = aFont;
-	}
-	return aFont;
-}
-
-// 0x437e90
-Font* App::getFileFont(const char* theName)
-{
-	std::string aName = theName;
-	std::map<std::string, Ref<Font>>::iterator anIt = mFonts.find(aName);
-	Font* aFont;
-	if (anIt == mFonts.end() || (aFont = anIt->second) == nullptr)
-	{
-		aFont = createFont(theName, true);
+		aFont = createFont(theName);
 		mFonts[aName] = aFont;
 	}
 	return aFont;
@@ -145,15 +131,6 @@ Image* App::createImage(const char* theName, bool theFromFile)
 	return anImage;
 }
 
-// 0x437ca0
-bool App::addImage(Image* theImage, const char* theName)
-{
-	if (findImage(theName) != nullptr)
-		return false;
-	mImages.insert(std::make_pair(std::string(theName), Ref<Image>(theImage)));
-	return true;
-}
-
 // 0x436a70
 Image* App::findImage(const char* theName)
 {
@@ -161,6 +138,15 @@ Image* App::findImage(const char* theName)
 	if (anIt != mImages.end())
 		return anIt->second;
 	return nullptr;
+}
+
+// port (the "memreport" test command): the pictures of the image table and their pixels, 4 bytes each
+int App::getImageMemory(size_t* theBytes) const
+{
+	*theBytes = 0;
+	for (std::map<std::string, Ref<Image>>::const_iterator anIt = mImages.begin(); anIt != mImages.end(); ++anIt)
+		*theBytes += (size_t)anIt->second->getWidth() * anIt->second->getHeight() * 4;
+	return (int)mImages.size();
 }
 
 void App::log(const char* theText)
@@ -180,44 +166,12 @@ void App::quit(int theCode)
 	getHost()->quit();
 }
 
-// 0x4540a0, 0x454110
-Font* App::createFont(const char* theName, bool theFromFile)
+// 0x4540a0 (0x454110, the same from a loose file, is left out)
+Font* App::createFont(const char* theName)
 {
 	Font* aFont = new Font(mResources);
-	if (theFromFile)
-		aFont->loadFile(theName);
-	else
-		aFont->load(theName);
+	aFont->load(theName);
 	return aFont;
-}
-
-// 0x437f60: a multimap, so names may repeat
-void App::registerNode(Node* theNode)
-{
-	mNodes.insert(std::make_pair(theNode->getName(), theNode));
-}
-
-// 0x436ff0
-void App::unregisterNode(Node* theNode)
-{
-	std::pair<std::multimap<std::string, Node*>::iterator, std::multimap<std::string, Node*>::iterator> aRange =
-		mNodes.equal_range(theNode->getName());
-	for (std::multimap<std::string, Node*>::iterator anIt = aRange.first; anIt != aRange.second; ++anIt)
-	{
-		if (anIt->second == theNode)
-		{
-			mNodes.erase(anIt);
-			return;
-		}
-	}
-}
-
-Node* App::findNode(const std::string& theName)
-{
-	std::multimap<std::string, Node*>::iterator anIt = mNodes.find(theName);
-	if (anIt != mNodes.end())
-		return anIt->second;
-	return nullptr;
 }
 
 // 0x4552b0, before its loop

@@ -176,13 +176,14 @@
         "coverage",
         "performance",
         "unneeded-code",
-        "readability"
+        "readability",
+        "site-features"
       ],
       "na": [
         "collection"
       ],
-      "now": "site-features",
-      "note": "No soundboard yet"
+      "now": null,
+      "note": ""
     },
     "mahjongchina": {
       "title": "Mahjong Escape: Ancient China",
@@ -195,13 +196,14 @@
         "coverage",
         "performance",
         "unneeded-code",
-        "readability"
+        "readability",
+        "site-features"
       ],
       "na": [
         "collection"
       ],
-      "now": "site-features",
-      "note": "No soundboard yet"
+      "now": null,
+      "note": ""
     },
     "bejeweledtwist": {
       "title": "Bejeweled Twist",
@@ -215,11 +217,12 @@
         "performance",
         "unneeded-code",
         "readability",
-        "site-features"
+        "site-features",
+        "collection"
       ],
       "na": [],
-      "now": "collection",
-      "note": "Whether the Collection check applies is unconfirmed"
+      "now": null,
+      "note": ""
     },
     "typershark": {
       "title": "Typer Shark! Deluxe",
@@ -237,7 +240,7 @@
       ],
       "na": [],
       "now": "identical-look",
-      "note": "Medal screens still to compare"
+      "note": "Medal screens equal in 2D and the web build; 3D tonight"
     },
     "astropop": {
       "title": "AstroPop Deluxe",
@@ -255,7 +258,7 @@
       ],
       "na": [],
       "now": "identical-look",
-      "note": "Music-state comparison; the port had played no music"
+      "note": "Music equal; the 3D screen wipe tonight"
     },
     "ningpo": {
       "title": "Ning Po Mahjong Deluxe",
@@ -268,11 +271,12 @@
         "coverage",
         "performance",
         "unneeded-code",
-        "readability"
+        "readability",
+        "collection"
       ],
       "na": [],
       "now": "site-features",
-      "note": "Soundboard in; presets wait on the site; Collection check unconfirmed"
+      "note": "Presets wait on the site"
     },
     "pixelus": {
       "title": "Pixelus Deluxe",
@@ -297,7 +301,7 @@
       ],
       "na": [],
       "now": "identical-look",
-      "note": "A few comparisons open"
+      "note": "3D screens still to compare (tonight)"
     },
     "dynomite": {
       "title": "Dynomite Deluxe",
@@ -306,21 +310,28 @@
         "identical-play",
         "registration-out",
         "fixes-mod",
+        "identical-look",
+        "coverage",
+        "performance",
+        "unneeded-code",
+        "readability",
+        "collection",
         "site-features"
       ],
       "na": [],
-      "now": "identical-look",
-      "note": "Last differences open"
+      "now": null,
+      "note": ""
     },
     "bookwormadv2": {
       "title": "Bookworm Adventures Volume 2",
       "done": [
         "port",
-        "site-features"
+        "site-features",
+        "registration-out"
       ],
       "na": [],
       "now": "identical-play",
-      "note": "Bot stuck in prologue; later chapters open"
+      "note": "The bot plays into book 4; chapter comparison under way"
     },
     "bookwormadv": {
       "title": "Bookworm Adventures Deluxe",
@@ -344,10 +355,15 @@
         "registration-out",
         "identical-look",
         "fixes-mod",
-        "site-features"
+        "site-features",
+        "coverage",
+        "performance",
+        "unneeded-code",
+        "readability",
+        "collection"
       ],
       "na": [],
-      "now": "coverage",
+      "now": null,
       "note": ""
     },
     "bigmoney": {
@@ -372,11 +388,12 @@
         "identical-play",
         "registration-out",
         "identical-look",
-        "fixes-mod"
+        "fixes-mod",
+        "coverage"
       ],
       "na": [],
-      "now": "coverage",
-      "note": "No soundboard or tunes yet"
+      "now": "performance",
+      "note": ""
     },
     "wordharmony": {
       "title": "Word Harmony",
@@ -386,10 +403,14 @@
         "registration-out",
         "identical-look",
         "fixes-mod",
-        "site-features"
+        "site-features",
+        "coverage",
+        "performance",
+        "unneeded-code",
+        "readability"
       ],
       "na": [],
-      "now": "coverage",
+      "now": "collection",
       "note": ""
     },
     "cosmicbugs": {
@@ -400,10 +421,15 @@
         "registration-out",
         "identical-look",
         "fixes-mod",
-        "site-features"
+        "site-features",
+        "coverage",
+        "performance",
+        "unneeded-code",
+        "readability",
+        "collection"
       ],
       "na": [],
-      "now": "coverage",
+      "now": null,
       "note": ""
     },
     "waterbugs": {
@@ -418,11 +444,12 @@
         "performance",
         "unneeded-code",
         "readability",
-        "site-features"
+        "site-features",
+        "collection"
       ],
       "na": [],
-      "now": "collection",
-      "note": "Whether the Collection check applies is unconfirmed"
+      "now": null,
+      "note": ""
     },
     "bonnies": {
       "title": "Bonnie's Bookstore Deluxe",
@@ -432,11 +459,16 @@
         "registration-out",
         "identical-look",
         "fixes-mod",
-        "coverage"
+        "coverage",
+        "performance",
+        "unneeded-code",
+        "readability",
+        "collection",
+        "site-features"
       ],
       "na": [],
-      "now": "performance",
-      "note": "Soundboard presets wait on sound log"
+      "now": null,
+      "note": ""
     },
     "bejeweled2": {
       "title": "Bejeweled 2 Deluxe",
@@ -446,18 +478,20 @@
         "registration-out",
         "identical-look",
         "fixes-mod",
-        "site-features"
+        "site-features",
+        "coverage",
+        "performance"
       ],
       "na": [],
-      "now": "coverage",
+      "now": "unneeded-code",
       "note": ""
     },
     "venice": {
       "title": "Venice Deluxe",
       "done": [],
       "na": [],
-      "now": null,
-      "note": "Not started"
+      "now": "port",
+      "note": "Started 2026-11-12, the first port written to the standards from its first draft"
     },
     "heavyweapon": {
       "title": "Heavy Weapon Deluxe",

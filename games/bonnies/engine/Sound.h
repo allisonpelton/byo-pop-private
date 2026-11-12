@@ -13,7 +13,7 @@ namespace bonnies
 struct Sample
 {
 	void* mHandle = nullptr;
-	int mUnused = 0;
+	int mSpare = 0;           // never used
 };
 
 class SoundSystem
@@ -25,9 +25,9 @@ public:
 	// 0x41e9c0: plays theSample with theVolume (times the options' sound volume) and thePitch (a frequency factor, used
 	// outside 0.99-1.01); with theDelay > 0 it is queued and played theDelay ms later, then at pitch 1. The result is the
 	// channel, -1 when queued, 0 when it was not played.
-	int play(Sample* theSample, float theVolume, int theUnused, int theDelay, float thePitch);
+	int play(Sample* theSample, float theVolume, int thePassedOn, int theDelay, float thePitch);
 	// 0x41eb40: the same with the sample named (Sound/<name>.ogg through the resources)
-	int play(const Str& theName, float theVolume, int theUnused, int theDelay, float thePitch);
+	int play(const Str& theName, float theVolume, int thePassedOn, int theDelay, float thePitch);
 	// 0x41ec60: the music's volume, the options' music volume times theFactor
 	void setMusicVolume(float theFactor);
 	// 0x41ece0
@@ -52,12 +52,12 @@ public:
 	void update();
 
 	int mPaused;          // +0x00 (play() plays only while it is below 1)
-	int mUnused4;         // +0x04 (-1)
+	int mLastChannel;     // +0x04: (-1) set at the start; nothing reads it
 	int mFocusPaused;     // +0x08
 	struct Delayed
 	{
 		Sample* mSample;
-		int mUnused;
+		int mPassedOn;           // passed along with the sample and never read
 		float mVolume;
 		uint32_t mDue;
 		Delayed* mNext;

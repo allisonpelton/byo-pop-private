@@ -585,7 +585,13 @@ var ByopopSoundboards = {
       ["sounds/bad.ogg", "Bad", "Loaded, never played"]
     ] },
   ] },
-  bonnies: { groups: [
+  bonnies: {
+    presets: [
+      { name: "Level Up", when: "A level's last word", steps: [["Sound/Level_Up_Quick", 0], ["Sound/Word_06", 0], ["Sound/Level_Up", 1440, {"v": -194}], ["Sound/AddPoint", 2940, {"v": -796, "r": 2.0}], ["Sound/AddPoint", 3000, {"v": -796, "r": 2.07}], ["Sound/AddPoint", 3090, {"v": -796, "r": 2.14}], ["Sound/AddPoint", 3150, {"v": -796, "r": 2.21}], ["Sound/AddPoint", 3210, {"v": -796, "r": 2.28}], ["Sound/AddPoint", 3300, {"v": -796, "r": 2.35}], ["Sound/AddPoint", 3360, {"v": -796, "r": 2.42}], ["Sound/AddPoint", 3420, {"v": -796, "r": 2.49}], ["Sound/AddPoint", 3480, {"v": -796, "r": 2.56}], ["Sound/AddPoint", 3540, {"v": -796, "r": 2.63}], ["Sound/AddPoint", 3600, {"v": -796, "r": 2.7}], ["Sound/AddPoint", 3660, {"v": -796, "r": 2.77}], ["Sound/AddPoint", 3720, {"v": -796, "r": 2.84}], ["Sound/AddPoint", 3780, {"v": -796, "r": 2.91}], ["Sound/AddPoint", 3840, {"v": -796, "r": 2.98}], ["Sound/AddPoint", 3900, {"v": -796, "r": 3.05}], ["Sound/AddPoint", 3960, {"v": -796, "r": 3.12}], ["Sound/AddPoint", 4020, {"v": -796, "r": 3.19}], ["Sound/AddPoint", 4080, {"v": -796, "r": 3.26}], ["Sound/AddPoint", 4110, {"v": -796, "r": 3.33}], ["Sound/AddPoint", 4170, {"v": -796, "r": 3.4}], ["Sound/AddPoint", 4230, {"v": -796, "r": 3.47}], ["Sound/AddPoint", 4290, {"v": -796, "r": 3.54}], ["Sound/AddPoint", 4320, {"v": -796, "r": 3.61}], ["Sound/AddPoint", 4380, {"v": -796, "r": 3.68}], ["Sound/AddPoint", 4440, {"v": -796, "r": 3.75}], ["Sound/AddPoint", 4470, {"v": -796, "r": 3.82}], ["Sound/AddPoint", 4530, {"v": -796, "r": 3.89}], ["Sound/AddPoint", 4560, {"v": -796, "r": 3.96}], ["Sound/AddPoint", 4620, {"v": -796, "r": 4.03}], ["Sound/AddPoint", 4650, {"v": -796, "r": 4.1}], ["Sound/AddPoint", 4710, {"v": -796, "r": 4.17}], ["Sound/AddPoint", 4740, {"v": -796, "r": 4.24}], ["Sound/AddPoint", 4800, {"v": -796, "r": 4.31}], ["Sound/AddPoint", 4830, {"v": -796, "r": 4.38}], ["Sound/AddPoint", 4860, {"v": -796, "r": 4.45}], ["Sound/AddPoint", 4920, {"v": -796, "r": 4.52}], ["Sound/AddPoint", 4950, {"v": -796, "r": 4.59}], ["Sound/AddPoint", 4980, {"v": -796, "r": 4.66}], ["Sound/AddPoint", 5040, {"v": -796, "r": 4.73}], ["Sound/AddPoint", 5070, {"v": -796, "r": 4.8}], ["Sound/AddPoint", 5100, {"v": -796, "r": 4.87}], ["Sound/AddPoint", 5130, {"v": -796, "r": 4.94}], ["Sound/AddPoint", 5160, {"v": -796, "r": 5.01}], ["Sound/AddPoint", 5220, {"v": -796, "r": 5.08}], ["Sound/AddPoint", 5250, {"v": -796, "r": 5.15}], ["Sound/AddPoint", 5280, {"v": -796, "r": 5.22}], ["Sound/AddPoint", 5310, {"v": -796, "r": 5.29}], ["Sound/AddPoint", 5340, {"v": -796, "r": 5.36}], ["Sound/AddPoint", 5370, {"v": -796, "r": 5.43}], ["Sound/AddPoint", 5400, {"v": -796, "r": 5.5}], ["Sound/AddPoint", 5430, {"v": -796, "r": 5.57}], ["Sound/AddPoint", 5490, {"v": -796, "r": 5.64}], ["Sound/AddPoint", 5520, {"v": -796, "r": 5.71}], ["Sound/AddPoint", 5550, {"v": -796, "r": 5.78}], ["Sound/AddPoint", 5580, {"v": -796, "r": 5.85}], ["Sound/AddPoint", 5610, {"v": -796, "r": 5.92}], ["Sound/AddPoint", 5640, {"v": -796, "r": 5.99}], ["Sound/AddPoint", 5670, {"v": -796, "r": 6.06}]]},
+      { name: "Typewriter", when: "A story page types itself", steps: [["Sound/Type_01", 0, {"v": -699}], ["Sound/Type_01", 60, {"v": -699}], ["Sound/Type_02", 120, {"v": -699}], ["Sound/type_space_01", 150, {"v": -699}], ["Sound/Type_03", 330, {"v": -699}], ["Sound/Type_02", 390, {"v": -699}], ["Sound/Type_02", 450, {"v": -699}], ["Sound/Type_01", 540, {"v": -699}], ["Sound/Type_01", 600, {"v": -699}], ["Sound/type_space_01", 630, {"v": -699}], ["Sound/Type_02", 780, {"v": -699}], ["Sound/Type_03", 870, {"v": -699}], ["Sound/type_space_01", 900, {"v": -699}], ["Sound/Type_01", 1050, {"v": -699}], ["Sound/Type_02", 1140, {"v": -699}], ["Sound/Type_01", 1200, {"v": -699}], ["Sound/Type_01", 1260, {"v": -699}], ["Sound/Type_01", 1320, {"v": -699}], ["Sound/Type_02", 1410, {"v": -699}], ["Sound/type_space_01", 1440, {"v": -699}], ["Sound/Type_01", 1590, {"v": -699}], ["Sound/Type_02", 1680, {"v": -699}], ["Sound/Type_02", 1740, {"v": -699}], ["Sound/Type_03", 1830, {"v": -699}], ["Sound/Type_02", 1920, {"v": -699}], ["Sound/type_space_01", 1950, {"v": -699}], ["Sound/Type_01", 2070, {"v": -699}], ["Sound/Type_03", 2160, {"v": -699}], ["Sound/Type_01", 2220, {"v": -699}], ["Sound/typewriter_carriagereturn_01", 2250, {"v": -605}]]},
+      { name: "Blocker Fallout", when: "A word takes a blocker off the shelf", steps: [["Sound/Word_04", 0], ["Sound/Blocker_Fallout", 810, {"v": -378}]]}
+    ],
+    groups: [
     { name: "Buttons and menus", sounds: [
       ["Sound/Button_Press.ogg", "Button press", "A button without a sound of its own is pressed"],
       ["Sound/Button_Release.ogg", "Button release", "A button without a sound of its own is released"],
@@ -911,7 +917,11 @@ var ByopopSoundboards = {
     presets: [
       { name: "Battle Start", when: "A battle opens: the fireworks, the warm-up call and the cymbal", steps: [["sounds/firework2", 0], ["sounds/v_warmup", 0], ["sounds/cymbalcrash", 4310]]},
       { name: "Fire Hit", when: "A fire word hits the foe: the blow, the flames and the cymbal", steps: [["sounds/largeimpact_01", 0], ["sounds/smallimpact_01", 0], ["sounds/fire6", 0], ["sounds/cymbalcrash", 2110]]},
-      { name: "Low Health", when: "A foe's blow leaves Lex low, and the alarm starts", steps: [["sounds/largeimpact_01", 0], ["sounds/low_health", 210, {"end": 650}], ["sounds/low_health", 650, {"end": 1090}], ["sounds/low_health", 1090]]}
+      { name: "Low Health", when: "A foe's blow leaves Lex low, and the alarm starts", steps: [["sounds/largeimpact_01", 0], ["sounds/low_health", 210, {"end": 650}], ["sounds/low_health", 650, {"end": 1090}], ["sounds/low_health", 1090]]},
+      { name: "Killing Blow", when: "The word that defeats a foe: the blows, the voice's call, a gem and the foe's own death cry (here a fiddler's)", steps: [["sounds/largeimpact_01", 0, {"v": -146}], ["sounds/smallimpact_01", 0, {"v": -146}], ["sounds/vo_crushed", 0, {"v": -146}], ["sounds/gemspawn", 0, {"v": -146}], ["sounds/stringdeath", 0, {"v": -146}], ["sounds/swordspearimpact_withwoosh", 0, {"v": -146}]]},
+      { name: "New Treasure", when: "A treasure is won after a battle: its chime, then the fireworks and the crowd", steps: [["sounds/newtreasure", 0, {"v": -146}], ["sounds/firework2", 500, {"v": -146}], ["sounds/crowdcheer", 500]]},
+      { name: "Boss Battle", when: "A boss battle opens: the fireworks and the call", steps: [["sounds/firework2", 0, {"v": -146}], ["sounds/v_bossbattle", 0, {"v": -146}]]},
+      { name: "Level Up", when: "Lex goes up a level after a battle: the fireworks and his cheer", steps: [["sounds/firework1", 0, {"v": -146}], ["sounds/firework2", 590, {"v": -146}], ["sounds/lex_levelup", 640, {"v": -146}]]}
     ],
     groups: [
     { name: "Menus", sounds: [
@@ -1262,11 +1272,11 @@ var ByopopSoundboards = {
     ],
     groups: [
     { name: "Menus", sounds: [
-      ["audio/click.wav", "Click", "A menu item is clicked or auto-clicked"]
+      ["audio/click.wav", "Click", "A menu item is clicked or auto-clicked; also a click on the board that fires no beam because an enemy is near the ship (the code asks for a sound the game never loads)"]
     ] },
     { name: "The ship and its beams", sounds: [
       ["audio/drill_shoot.wav", "Beam shot", "The ship fires its beams (when fewer than three beams are out)"],
-      ["audio/drill.wav", "Beam drilling", "While the beams run, every 66 updates after the shot"],
+      ["audio/drill.wav", "Beam drilling", "While the beams run, every 66 updates after the shot, once for each beam, the two together"],
       ["audio/clank.wav", "Beam clank", "A beam's head meets a cell that is not open and stops"],
       ["audio/fill.wav", "Fill", "A captured side fills in; repeats every 120 updates while fills run, and when a beam pair ends"],
       ["audio/fill_end.wav", "Fill ends", "The last but one fill of a board finishes"],
@@ -1286,29 +1296,52 @@ var ByopopSoundboards = {
       ["audio/exp200.wav", "Kill 200", "An enemy dies as the second of its chain (200 points)"],
       ["audio/exp300.wav", "Kill 300", "An enemy dies as the third of its chain (300 points)"],
       ["audio/exp400.wav", "Kill 400", "An enemy dies as the fourth of its chain (400 points)"],
-      ["audio/exp500.wav", "Kill 500", "An enemy dies as the fifth of its chain, or in a time bomb's blast (500 points)"],
+      ["audio/exp500.wav", "Kill 500", "An enemy dies as the fifth of its chain, or in the blast of a mine, missile or time bomb (500 points)"],
       ["audio/exp600.wav", "Kill 600", "An enemy dies as the sixth of its chain (600 points)"],
       ["audio/exp700.wav", "Kill 700", "An enemy dies as the seventh of its chain (700 points)"],
       ["audio/exp800.wav", "Kill 800", "An enemy dies as the eighth of its chain (800 points)"],
-      ["audio/exp900.wav", "Kill 900", "An enemy dies as the ninth of its chain (900 points)"]
+      ["audio/exp900.wav", "Kill 900", "An enemy dies as the ninth of its chain (900 points); the tenth and later kills of one chain play the click sound instead, still 900 points (the code asks for sounds the game never loads)"]
     ] },
     { name: "Power-ups and weapons", sounds: [
       ["audio/powerup.wav", "Power-up", "A power-up is caught, except slow shot, hyper motion and flip flopper"],
       ["audio/powerdn.wav", "Power-down", "A slow shot, hyper motion or flip flopper power-up is caught"],
-      ["audio/mine.wav", "Mine launched", "A mine, magnet or time bomb is launched by a click"],
+      ["audio/mine.wav", "Mine launched", "A mine or time bomb is launched by a click"],
       ["audio/ice_launch.wav", "Ice shot launched", "An ice shot is launched by a click"],
       ["audio/missile.wav", "Missile launched", "A missile is launched by a click"],
       ["audio/fuse.wav", "Time bomb fuse", "A time bomb burns its fuse; repeats every 230 updates of its age"]
     ] },
     { name: "Unused", sounds: [
-      ["audio/spawn.wav", "Spawn (unused)", "Never played"]
+      ["audio/spawn.wav", "Spawn (unused)", "Never played"],
+      ["audio/clank2.wav", "Clank 2 (unused)", "Never loaded"],
+      ["audio/purple.wav", "Purple (unused)", "Never loaded"],
+      ["audio/rail.wav", "Rail (unused)", "Never loaded"]
     ] },
   ] },
   dynomite: {
     presets: [
-      { name: "Blast Chain", when: "A big hit sets off blasts", steps: [["sounds/explosion", 0], ["sounds/fireinthehole", 0], ["sounds/explosion", 400], ["sounds/explosion", 770], ["sounds/blastit", 770], ["sounds/xcombo", 1260], ["sounds/explosion", 1910], ["sounds/blastit", 1910], ["sounds/explosion", 2600], ["sounds/explosion", 2830], ["sounds/explosion", 3460], ["sounds/blastit", 3460], ["sounds/explosion", 3810]]},
-      { name: "Combo Ladder", when: "Combos follow one after another", steps: [["sounds/xsupercombo", 0], ["sounds/xcambriancombo", 420], ["sounds/xtriassiccombo", 740], ["sounds/xjurassiccombo", 1060], ["sounds/xcretaceouscombo", 1390], ["sounds/xdynamitecombo", 1840], ["sounds/thunderbolt", 3150]]},
-      { name: "Whirleys Coming", when: "The hourglass runs low", steps: [["sounds/ticktock", 0, {"loop": 1, "end": 2000}], ["sounds/whirleysiren", 2000], ["sounds/xwhirleyscoming1", 3000]]}
+      { name: "Welcome", when: "The main menu opens: the pop-up and the welcome", steps: [["sounds/inchypop", 0], ["sounds/xwelcometodynomite", 500]]},
+      { name: "Shot", when: "The slingshot fires and the egg lands", steps: [["sounds/rubbershot", 0], ["sounds/egglands", 350]]},
+      { name: "Big Match", when: "A shot breaks five eggs or more: the breaks, the blast and the tank's shout", steps: [["sounds/rubbershot", 0], ["sounds/egglands", 290], ["sounds/breakegg", 290], ["sounds/explosion", 290], ["sounds/charge", 290]]},
+      { name: "Combo Chain", when: "A chain of matches climbs to a dynamite, one call a match, and the thunderbolt makes it", steps: [["sounds/xcombo", 0], ["sounds/xsupercombo", 550], ["sounds/xcambriancombo", 1080], ["sounds/xtriassiccombo", 1610], ["sounds/xjurassiccombo", 2230], ["sounds/xcretaceouscombo", 2830], ["sounds/xdynamitecombo", 3360], ["sounds/thunderbolt", 4840]]},
+      { name: "Dynamite Blast", when: "A dynamite goes off: the shout and a blast for each cell", steps: [["sounds/explosion", 0], ["sounds/kaboom", 0], ["sounds/explosion", 0], ["sounds/explosion", 0], ["sounds/explosion", 0], ["sounds/explosion", 0], ["sounds/explosion", 0], ["sounds/explosion", 0], ["sounds/explosion", 0], ["sounds/explosion", 0]]},
+      { name: "Baby Dinosaur", when: "A baby egg is broken free, then the baby leaves with its points", steps: [["sounds/mama1", 0], ["sounds/reward", 1380]]},
+      { name: "Bonus Egg", when: "A shot breaks a bonus egg", steps: [["sounds/egglands", 0], ["sounds/breakegg", 0], ["sounds/explosion", 0], ["sounds/popbonus", 0]]},
+      { name: "Score Multiplier", when: "A match while the score multiplier is on", steps: [["sounds/egglands", 0], ["sounds/breakegg", 0], ["sounds/explosion", 0], ["sounds/scoremultiplier", 0], ["sounds/fireinthehole", 0]]},
+      { name: "Whirleys Coming", when: "Endless: the timer ticks down, the siren, and the call that the whirleys are on their way", steps: [["sounds/ticktock", 0, {"loop": 1, "end": 2000}], ["sounds/whirleysiren", 2000], ["sounds/xwhirleyscoming1", 3000]]},
+      { name: "Whirley Hit", when: "An egg hits a whirley, and the ceiling speeds up", steps: [["sounds/breakegg", 0], ["sounds/whirleyhit", 0]]},
+      { name: "Endless Game Over", when: "Endless: the eggs run off the board, then the game-over talk", steps: [["sounds/breakegg", 0], ["sounds/breakegg", 10], ["sounds/breakegg", 20], ["sounds/breakegg", 30], ["sounds/breakegg", 40], ["sounds/breakegg", 50], ["sounds/breakegg", 60], ["sounds/breakegg", 70], ["sounds/breakegg", 80], ["sounds/breakegg", 90], ["sounds/breakegg", 100], ["sounds/breakegg", 110], ["sounds/breakegg", 120], ["sounds/footlands", 160], ["sounds/whirleysiren", 1120], ["sounds/inchypop", 1410], ["sounds/xgameover", 1910]]},
+      { name: "The Foot", when: "Stomped: the warnings, the foot on its way, and the stomp", steps: [["sounds/warning", 0], ["sounds/footfallrumble", 1040, {"loop": 1, "end": 1610}], ["sounds/warning", 1250], ["sounds/footfall", 1610]]},
+      { name: "Round Cleared", when: "Stomped: a round is cleared, the bonus lines pop up, and the walls move", steps: [["sounds/egglands", 0], ["sounds/breakegg", 0], ["sounds/explosion", 0], ["sounds/chime", 10], ["sounds/inchypop", 1010], ["sounds/inchypop", 1410], ["sounds/inchypop", 1810], ["sounds/inchypop", 2510], ["sounds/grind", 4520, {"loop": 1, "end": 4540}]]},
+      { name: "Stomped Game Over", when: "Stomped: the eggs run off the board, then the game-over talk", steps: [["sounds/breakegg", 0], ["sounds/breakegg", 10], ["sounds/breakegg", 20], ["sounds/breakegg", 40], ["sounds/breakegg", 50], ["sounds/breakegg", 60], ["sounds/breakegg", 70], ["sounds/breakegg", 80], ["sounds/breakegg", 90], ["sounds/breakegg", 100], ["sounds/footlands", 130], ["sounds/inchypop", 1380], ["sounds/xgameover", 1880]]},
+      { name: "Fragment Found", when: "Fossil Challenge: a fragment's fossil falls, the bonus lines, the new fragment in the museum, and the walls move", steps: [["sounds/chime", 0], ["sounds/inchypop", 1000], ["sounds/inchypop", 1400], ["sounds/inchypop", 1800], ["sounds/inchypop", 2500], ["sounds/fossil", 5590], ["sounds/grind", 9220, {"loop": 1, "end": 10820}]]},
+      { name: "Fossil Whole", when: "Fossil Challenge: a fossil's last fragment, and the fossil is whole in the museum", steps: [["sounds/chime", 0], ["sounds/inchypop", 1000], ["sounds/inchypop", 1400], ["sounds/inchypop", 1800], ["sounds/inchypop", 2500], ["sounds/fossil", 5590], ["sounds/chime", 6400], ["sounds/grind", 9180, {"loop": 1, "end": 9500}]]},
+      { name: "Rex Attack", when: "Fossil Challenge: the last fossil, the Rex's steps and roar, and the Rex beaten", steps: [["sounds/fossil", 0], ["sounds/chime", 810], ["sounds/footstep", 4550], ["sounds/footstep", 6150], ["sounds/footstep", 7750], ["sounds/footstep", 9350], ["sounds/roar", 9350], ["sounds/chime", 12520]]},
+      { name: "Sand Out Strategic", when: "Fossil Challenge, strategic: the timer ticks down, the siren and the warning call, and the eggs come down a row", steps: [["sounds/ticktock", 0, {"loop": 1, "end": 2000}], ["sounds/whirleysiren", 2000], ["sounds/xtimesrunningout", 3000], ["sounds/footfall", 5470]]},
+      { name: "Sand Out Panic", when: "Fossil Challenge, panic: the timer ticks down, the siren and the warning call, and the ceiling speeds up", steps: [["sounds/ticktock", 0, {"loop": 1, "end": 2000}], ["sounds/whirleysiren", 2000], ["sounds/xtimesrunningout", 3000], ["sounds/speedup", 5470]]},
+      { name: "Fossil Game Over", when: "Fossil Challenge: the eggs run off the board, then the game-over talk", steps: [["sounds/breakegg", 0], ["sounds/breakegg", 10], ["sounds/breakegg", 20], ["sounds/breakegg", 30], ["sounds/breakegg", 40], ["sounds/breakegg", 50], ["sounds/breakegg", 60], ["sounds/breakegg", 70], ["sounds/breakegg", 80], ["sounds/breakegg", 90], ["sounds/breakegg", 110], ["sounds/breakegg", 120], ["sounds/footlands", 150], ["sounds/inchypop", 1400], ["sounds/xgameover", 1900]]},
+      { name: "Time Trial Cleared", when: "Time Trial: the last match clears the board, then the talk", steps: [["sounds/egglands", 0], ["sounds/breakegg", 0], ["sounds/explosion", 0], ["sounds/inchypop", 1260], ["sounds/xgameover", 1760]]},
+      { name: "Tutorial Step", when: "The tutorial moves on to its next page", steps: [["sounds/inchypop", 0], ["sounds/inchypop", 480]]},
+      { name: "Tutorial End", when: "The tutorial ends", steps: [["sounds/inchypop", 0], ["sounds/chime", 0]]}
     ],
     groups: [
     { name: "Menus", sounds: [
@@ -1370,7 +1403,22 @@ var ByopopSoundboards = {
       ["sounds/mama2.ogg", "Mama 2 (unused)", "Never played"]
     ] },
   ] },
-  mahjongchina: { groups: [
+  mahjongchina: {
+    // presets from the sound logs of the Mahjong session's driven runs (5 ms an update; mahjong-soundlogs/INDEX.md)
+    presets: [
+      { name: "Pair", when: "A free tile is selected, then its partner", steps: [["Resource.dll|pe:WAVE:175", 0], ["Resource.dll|pe:WAVE:176", 210]]},
+      { name: "Not Free", when: "A pair is taken, then a covered tile is clicked", steps: [["Resource.dll|pe:WAVE:176", 0], ["Resource.dll|pe:WAVE:174", 205]]},
+      { name: "Bonus", when: "A pair that matches the tray's tile", steps: [["Resource.dll|pe:WAVE:175", 0], ["Resource.dll|pe:WAVE:352", 205], ["Resource.dll|pe:WAVE:176", 205]]},
+      { name: "Gold Match", when: "A gold pair is matched", steps: [["Resource.dll|pe:WAVE:175", 0], ["Resource.dll|pe:WAVE:377", 205]]},
+      { name: "Level Clear", when: "The last tiles have flown off; the map comes back", steps: [["Resource.dll|pe:WAVE:373", 0], ["Resource.dll|pe:WAVE:340", 585], ["Resource.dll|pe:WAVE:381", 1575]]},
+      { name: "Key", when: "A key tile is selected, matched and joins its lock", steps: [["Resource.dll|pe:WAVE:378", 0, {"loop": 1, "end": 205}], ["Resource.dll|pe:WAVE:175", 0], ["Resource.dll|pe:WAVE:176", 205], ["Resource.dll|pe:WAVE:379", 615]]},
+      { name: "Magnet", when: "A magnet tile is selected and matched", steps: [["Resource.dll|pe:WAVE:348", 0, {"loop": 1, "end": 205}], ["Resource.dll|pe:WAVE:175", 0], ["Resource.dll|pe:WAVE:176", 205]]},
+      { name: "Joker", when: "A joker tile is selected and matched", steps: [["Resource.dll|pe:WAVE:347", 0, {"loop": 1, "end": 205}], ["Resource.dll|pe:WAVE:175", 0], ["Resource.dll|pe:WAVE:176", 205]]},
+      { name: "Undo", when: "The Undo button", steps: [["Resource.dll|pe:WAVE:105", 0], ["Resource.dll|pe:WAVE:351", 0]]},
+      { name: "Shuffle", when: "The Shuffle button", steps: [["Resource.dll|pe:WAVE:105", 0], ["Resource.dll|pe:WAVE:349", 0]]},
+      { name: "Ending", when: "The last stage's text goes, then the ending's fanfare", steps: [["Resource.dll|pe:WAVE:382", 0], ["Resource.dll|pe:WAVE:373", 2300]]}
+    ],
+    groups: [
     { name: "Menus", sounds: [
       ["Resource.dll|pe:WAVE:105", "Click", "A button or other control of a screen is pressed; also the layout and map screens' clicks"]
     ] },
@@ -1405,7 +1453,22 @@ var ByopopSoundboards = {
       ["Resource.dll|pe:WAVE:106", "Unused MP3", "The game never plays it; its code never refers to the resource"]
     ] },
   ] },
-  mahjongjapan: { groups: [
+  mahjongjapan: {
+    // presets from the sound logs of the Mahjong session's driven runs (5 ms an update; mahjong-soundlogs/INDEX.md)
+    presets: [
+      { name: "Pair", when: "A free tile is selected, then its partner", steps: [["Resource.dll|pe:WAVE:175", 0], ["Resource.dll|pe:WAVE:176", 210]]},
+      { name: "Not Free", when: "A pair is taken, then a covered tile is clicked", steps: [["Resource.dll|pe:WAVE:176", 0], ["Resource.dll|pe:WAVE:174", 205]]},
+      { name: "Bonus", when: "A pair that matches the tray's tile", steps: [["Resource.dll|pe:WAVE:175", 0], ["Resource.dll|pe:WAVE:352", 205], ["Resource.dll|pe:WAVE:176", 205]]},
+      { name: "Gold Match", when: "A gold pair is matched", steps: [["Resource.dll|pe:WAVE:175", 0], ["Resource.dll|pe:WAVE:377", 205]]},
+      { name: "Level Clear", when: "The last tiles have flown off; the map comes back", steps: [["Resource.dll|pe:WAVE:373", 0], ["Resource.dll|pe:WAVE:340", 485], ["Resource.dll|pe:WAVE:381", 1475]]},
+      { name: "Key", when: "A key tile is selected, matched and joins its lock", steps: [["Resource.dll|pe:WAVE:378", 0, {"loop": 1, "end": 205}], ["Resource.dll|pe:WAVE:175", 0], ["Resource.dll|pe:WAVE:176", 205], ["Resource.dll|pe:WAVE:379", 610]]},
+      { name: "Magnet", when: "A magnet tile is selected and matched", steps: [["Resource.dll|pe:WAVE:348", 0, {"loop": 1, "end": 205}], ["Resource.dll|pe:WAVE:175", 0], ["Resource.dll|pe:WAVE:176", 205]]},
+      { name: "Joker", when: "A joker tile is selected and matched", steps: [["Resource.dll|pe:WAVE:347", 0, {"loop": 1, "end": 205}], ["Resource.dll|pe:WAVE:175", 0], ["Resource.dll|pe:WAVE:176", 205]]},
+      { name: "Undo", when: "The Undo button", steps: [["Resource.dll|pe:WAVE:105", 0], ["Resource.dll|pe:WAVE:351", 0]]},
+      { name: "Shuffle", when: "The Shuffle button", steps: [["Resource.dll|pe:WAVE:105", 0], ["Resource.dll|pe:WAVE:349", 0]]},
+      { name: "Ending", when: "The last stage's text goes, then the ending's fanfare", steps: [["Resource.dll|pe:WAVE:382", 0], ["Resource.dll|pe:WAVE:373", 2300]]}
+    ],
+    groups: [
     { name: "Menus", sounds: [
       ["Resource.dll|pe:WAVE:105", "Click", "A button or other control of a screen is pressed; also the layout and map screens' clicks"]
     ] },
@@ -1480,7 +1543,11 @@ var ByopopSoundboards = {
       ["sounds/opentreasure.ogg", "Open treasure", "The ending of an adventure or classic game begins its fade"]
     ] },
   ] },
-  ningpo: { groups: [
+  ningpo: {
+    presets: [
+      { name: "You Win", when: "The last pair is taken", steps: [["ningpo.pyz|zip:nm_match.ogg", 0], ["ningpo.pyz|zip:nm_youwin.ogg", 500]]}
+    ],
+    groups: [
     { name: "Menus", sounds: [
       ["ningpo.pyz|zip:nm_guiclick.wav", "Screen click", "A button of a screen or dialog is pressed (also pause, new game, and the like)"]
     ] },
@@ -1488,7 +1555,8 @@ var ByopopSoundboards = {
       ["ningpo.pyz|zip:nm_click.wav", "Tile selected", "A free tile is selected; also an arrow of the title screen is clicked"],
       ["ningpo.pyz|zip:nm_unclick.wav", "Tile deselected", "The selected tile is clicked again and deselected"],
       ["ningpo.pyz|zip:nm_blocked.ogg", "Blocked tile", "A tile that is not free is clicked, or a free tile that does not match the selected one"],
-      ["ningpo.pyz|zip:nm_match.ogg", "Pair matched", "A pair is taken and the game goes on"]
+      ["ningpo.pyz|zip:nm_match.ogg", "Pair matched", "A pair is taken and the game goes on"],
+      ["ningpo.pyz|zip:nm_youwin.ogg", "You win", "The last pair is taken"]
     ] },
     { name: "Buttons", sounds: [
       ["ningpo.pyz|zip:nm_hint.ogg", "Hint, shuffle, undo", "The hint button, the shuffle or the undo is used"]

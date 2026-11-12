@@ -24,6 +24,9 @@ public:
 	BonniesWidget();
 	virtual ~BonniesWidget();
 
+	// whether the game's screen differs from what the last Draw copied
+	bool ScreenDiffers() const;
+
 	void Update() override;
 	void Draw(Graphics* g) override;
 	void KeyChar(SexyChar theChar) override;
@@ -58,6 +61,7 @@ public:
 	void LostFocus() override;
 	bool HandleScriptCommand(const ScriptCommand& theCommand) override;
 	void SwitchScreenMode(bool wantWindowed, bool is3d, bool force = false) override;
+	void AddMemReportHolders(Platform::MemReport* theReport) override;
 	using SexyAppBase::SwitchScreenMode;
 
 	// bonnies::Host::sleep: the framework runs for theMs

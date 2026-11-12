@@ -35,11 +35,6 @@ void Sys_SetHost(SysHost* theHost)
 	gHost = theHost;
 }
 
-SysHost* Sys_Host()
-{
-	return gHost;
-}
-
 bool Sys_ReadFile(const char* thePath, std::vector<uint8_t>& theData)
 {
 	theData.clear();
@@ -52,8 +47,6 @@ void Sys_AddUpdateRect(int x, int y, int theWidth, int theHeight)
 	if (gHost != nullptr)
 		gHost->AddUpdateRect(x, y, theWidth, theHeight);
 }
-
-int gPumpMessages = 0;
 
 // 0x428890 (cosmicbugs), 0x428d70 (waterbugs)
 void Sys_SetMousePos(int x, int y)
@@ -306,12 +299,6 @@ void Sys_Sleep(int)
 {
 }
 
-// 0x428ec0 (cosmicbugs), 0x4293a0 (waterbugs): the callback the original runs after PumpMessages opened the screen
-// again; the port never loses the screen, so nothing runs it
-void SetScreenLostCallback(void (*)(const PixelFormat*))
-{
-}
-
 // 0x428ed0 (cosmicbugs), 0x4293b0 (waterbugs): called after PumpMessages opened the screen again
 void SetScreenChangeCallback(void (*theCallback)())
 {
@@ -380,7 +367,7 @@ int PumpMessages()
 {
 	if (gHost != nullptr)
 		Sys_Activate(gHost->IsActive() ? 1 : 0);
-	if (gPumpMessages != 1 && gActive == 0)
+	if (gActive == 0)
 		return 0;
 	if (gToggleCentered == 1)
 	{

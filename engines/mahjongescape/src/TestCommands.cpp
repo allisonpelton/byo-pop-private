@@ -9,10 +9,16 @@
 //   level <n>          adventure level n: the player's progress set to the level before it, the map opened and its
 //                      Continue pressed, so the level starts as the game starts it (a saved game of the level goes)
 //   unlock all         the adventure's progress goes to its last level (nothing else is locked)
-//   set <name> <n>     score or progress
+//   set <name> <n>     score or progress; pace n: the updates between a pair's two clicks and after it (0, the default,
+//                      clicks one update apart, as a driver's moves go; a hand's gap is about 40, 5 ms each);
+//                      player <name>: the first player, as the new player box makes it, so that a run needs no typing
 //   win                the game's own moves, from the bot's way to the end, until it ends the game
 //   lose, seed <n>     ERROR: a game here is never lost, and every deal has its seed from the game's own clock
 //   move               MOVE {json}: the bot's next move (Bot.h) and the real input that makes it; changes nothing
+//   settle              TestFrame's own, queued while a command waits for its screen under -hold; does nothing
+//
+// state's "over" is true when a board has been played and the run is back at a screen that waits for the driver: the
+// classic list, the map with its Continue ready (a level won), or the ending; tools/playbymove stops there.
 //
 // The commands that switch screens answer once the new screen has settled (so a driver need not poll), from the
 // frame that runs after the command.
@@ -74,6 +80,8 @@ struct Pending
 
 Pending gPending;
 Bot gBot;
+bool gPlayed = false;  // a board has started in this run (state's "over")
+int gPace = 0;         // set pace: the updates between a pair's two clicks
 
 void Reply(const std::string& theLine)
 {
@@ -338,6 +346,22 @@ int Levels()
 	return (int)(sizeof(((MapLayer*)nullptr)->mLevels) / sizeof(MapLayer::Level));
 }
 
+// A board has been played and the screen waits for the driver (the run's end for tools/playbymove)
+bool IsOver()
+{
+	if (!gPlayed || IsBusy())
+		return false;
+	jb::Layer* aTop = TopLayer();
+	std::string aName = InfoOf(aTop).mName;
+	if (aName == "classic list" || aName == "ending")
+		return true;
+	if (aName == "map")
+		for (const Btn& aButton : TopButtons())
+			if (aButton.mCmd == 0xe6)
+				return true;
+	return false;
+}
+
 std::string StateJson()
 {
 	jb::Layer* aScreen = ScreenLayer();
@@ -348,6 +372,7 @@ std::string StateJson()
 		aDialog = "\"" + std::string(InfoOf(aTop).mName) + "\"";
 	std::string aJson = "{\"screen\":\"" + aScreenName + "\",\"dialog\":" + aDialog;
 	aJson += ",\"busy\":" + std::string(IsBusy() ? "true" : "false");
+	aJson += ",\"over\":" + std::string(IsOver() ? "true" : "false");
 	aJson += ",\"player\":" + std::string(gPlayers.mCurrent == -1 ? "null" : "\"" + std::string(gPlayers.GetName(gPlayers.mCurrent)) + "\"");
 	aJson += ",\"progress\":" + Num(gUser.mProgress) + ",\"levels\":" + Num(Levels());
 	aJson += ",\"updates\":" + Num(gApp != nullptr ? gApp->mUpdateCount : 0);
@@ -380,6 +405,13 @@ std::string Click(int theX, int theY)
 	return "{\"move\":[" + Num(theX) + "," + Num(theY) + "]},{\"click\":[" + Num(theX) + "," + Num(theY) + "]}";
 }
 
+// The pair's two clicks, a hand's gap apart when set pace gave one
+std::string PairInput(const BotMove& theMove)
+{
+	std::string aGap = gPace != 0 ? ",{\"wait\":" + Num(gPace) + "}," : ",";
+	return Click(theMove.mX1, theMove.mY1) + aGap + Click(theMove.mX2, theMove.mY2);
+}
+
 // The answer to `move`: the bot's pair, a shuffle when no pair is free, or the dialog's button
 void ReplyMove()
 {
@@ -398,7 +430,8 @@ void ReplyMove()
 		{
 			std::string aLine = "MOVE {\"kind\":\"" + std::string(aMove.mSpecial ? "special" : "pair") + "\",\"tiles\":[" +
 				Num(aMove.mFirstKind) + "," + Num(aMove.mSecondKind) + "],\"ends\":" + (aMove.mEnds ? "true" : "false") +
-				",\"input\":[" + Click(aMove.mX1, aMove.mY1) + "," + Click(aMove.mX2, aMove.mY2) + "]}";
+				",\"input\":[" + PairInput(aMove) + "]" +
+					(gPace != 0 ? ",\"updates\":" + Num(gPace) : "") + "}";
 			Reply(aLine);
 			return;
 		}
@@ -464,6 +497,20 @@ bool NeedPlayer(const std::string& theCommand)
 
 namespace Sexy
 {
+
+// Every update, before the frame's pacing (called from MahjongApp::RunFrame): a board is in play (state's "over"), and
+// a command that waits for its screen under -hold keeps the updates running. -hold runs an update only while a command
+// waits, and the frame that settles the screen comes some updates apart, so a no-op (settle) is kept waiting.
+void MahjongApp::TestUpdate()
+{
+	if (jb::gManager == nullptr)
+		return;
+	if (PlayLayer* aPlay = ActivePlay())
+		if (aPlay->mBoard != nullptr && aPlay->mBoard->mStarted)
+			gPlayed = true;
+	if (gPending.mKind != PENDING_NONE && !mCommandsFileName.empty() && mLiveCommands.empty())
+		QueueLiveCommand("settle", 0);
+}
 
 // The frame after a command that waits for its screen (called from MahjongApp::RunFrame while it has one)
 void MahjongApp::TestFrame()
@@ -533,9 +580,11 @@ bool MahjongApp::HandleScriptCommand(const ScriptCommand& theCommand)
 	const std::string& anArgs = theCommand.mArgs;
 	bool aKnown = aCommand == "state" || aCommand == "move" || aCommand == "goto" || aCommand == "level" ||
 		aCommand == "unlock" || aCommand == "set" || aCommand == "win" || aCommand == "lose" || aCommand == "seed" ||
-		aCommand == "memreport";
+		aCommand == "memreport" || aCommand == "settle";
 	if (!aKnown)
 		return false;
+	if (aCommand == "settle")
+		return true;  // TestFrame's own: nothing to do
 	std::string aText = CommandText(theCommand);
 	if (!mGameStarted || mGameEnded || jb::gManager == nullptr)
 	{
@@ -592,7 +641,21 @@ bool MahjongApp::HandleScriptCommand(const ScriptCommand& theCommand)
 		std::string aName = anArgs.substr(0, anArgs.find(' '));
 		int aValue = anArgs.find(' ') == std::string::npos ? 0 : atoi(anArgs.c_str() + anArgs.find(' ') + 1);
 		PlayLayer* aPlay = ActivePlay();
-		if (aName == "score" && aPlay != nullptr)
+		if (aName == "pace" && 0 <= aValue)
+		{
+			gPace = aValue;
+			ReplyOK(aText);
+		}
+		else if (aName == "player" && anArgs.size() > aName.size() + 1 && gPlayers.mCurrent == -1)
+		{
+			// as the new player box makes the first player (NewPlayerBox::Accept), and the main menu then loads it
+			int anId = gPlayers.Add(anArgs.c_str() + aName.size() + 1);
+			gPlayers.mCurrent = anId;
+			gPlayers.Save();
+			gUser.Load(anId, gPlayers.GetName(anId));
+			ReplyOK(aText);
+		}
+		else if (aName == "score" && aPlay != nullptr)
 		{
 			aPlay->AddScore(aValue - aPlay->mScore);
 			ReplyOK(aText);
@@ -603,7 +666,8 @@ bool MahjongApp::HandleScriptCommand(const ScriptCommand& theCommand)
 			ReplyOK(aText);
 		}
 		else
-			ReplyError(aText, "score (in a game) or progress (0-" + Num(Levels()) + ", with a player)");
+			ReplyError(aText, "score (in a game), progress (0-" + Num(Levels()) +
+				", with a player), pace <updates> or player <name>");
 		return true;
 	}
 	if (aCommand == "win")

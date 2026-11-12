@@ -1,3 +1,5 @@
+// port(mod): the feature switches of the shared mods (ModFeatures.h).
+
 #include "ModFeatures.h"
 #include "platform/ModManager.h"
 

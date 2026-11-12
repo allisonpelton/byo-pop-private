@@ -241,3 +241,91 @@ fast in the port itself (the user, 2026-11-07), see "Deviations from the origina
 With `seededBlocks` and `steadyClock` on, three real-time runs of one bot game (`-seed=5 -autoplay=3`, 2500 updates) wrote the same
 state log; with the mod off, two such runs differed from the title screen on (the title screen's end, the first game's start, and so
 on). The meter's start value outside the timed mode (an oddity of the original, nothing reads it) still differs from run to run.
+
+## Coverage check (2026-11-11)
+
+The coverage check of `docs/COVERAGE.md`: origrun's `--coverage` recorded which of the original's functions ran, and
+`tools/coverage.py` laid the hits beside the port's sources. `games/tiptop/coverage.txt` is its settings file and
+`tools/coverage/` the scripts (`run.sh`, `all.sh` and the extra runs' `extra1.txt` to `extra4.txt`).
+
+**The runs: eleven, on the host,** each one game process on origrun's virtual clock with the scripted cursor, phase one's
+patch list with the music's (its player runs, its MIDI calls are skipped) and origrun's recording sound stand-in, so that
+LOWOS's sound code and the music sequencer run too:
+
+- the phase-two tours 1, 2 and 3 as origrun scripts without their shots (`run.sh tour`): the menus and their hovers, the
+  high scores with the clear question answered No, the options, the instruction pages, the credits, the quit question
+  answered No and the new game screen; phase one's whole regular game with its summaries, the name and the high score
+  screen; pause, the window losing and regaining the focus, the options and instructions from the game, End game with its
+  save, and the saved game continued and left;
+- the four bot cases of phase one (`str`, `spd`, `save`, `reg2`: a strategy, a speed and a regular game, the saved game,
+  two regular games in a row), played from the script of the phase-one baseline's bot (`build/baseline-tiptop-phase1`).
+  The first set of these played the current port's script against the original, whose title takes 202 updates longer, so
+  their clicks came before the title took one and they never left the splash (576 functions each); they were run again
+  with the baseline's script and reached 743 to 765 functions;
+- four short runs for what those miss: the options' two sliders pressed and dragged, then the main menu's quit question
+  answered Yes (`extra1`); a game started and the window closed in the middle of it (`extra2`); the high scores' clear
+  question answered Yes (`extra3`); tour 2's whole game followed by the summary's Play Again (`extra4`).
+
+All but the two runs that end in the quit question ended at origrun's timeout, since the original asks "Are you sure?"
+when its window is closed and nothing answers; the two that click Yes end with the game's own exit, code 0.
+
+**The settings.** The game's own code is 0x401000-0x418b51 and 0x4197c6-0x42cfae (the board, the application, the GUI,
+the configuration reader and the MIDI sequencer), LOWOS 0x42d020-0x4382b0 and the resource manager 0x438390-0x439d70:
+462 functions. Between the configuration reader and the application the linker put the MSVC library's `std::string`
+(42 small functions at 0x418f68-0x4197b5, which the export leaves unnamed); the range leaves them out. The runs reached
+367 of the 462, and the port has a counterpart for 370.
+
+**Reached in the original with no counterpart in the port: 62 at first, none at the end.** No game logic was missing.
+
+- **Placed: 8.** The blitter's pixel loops. The original has 44 specialised routines (0x4346f0-0x437b73) and the port
+  one function, `lowos::BlitPixels`, that does them all. The 8 the runs reached are a plain copy, the alpha-byte copies,
+  the color key, translucency and the additive blend, all for the 32-bit display the game sets. All 44 addresses stand
+  in the comment above `BlitPixels` (the other 36, for other pixel formats, show in the report's list of functions never
+  reached).
+- **Left out on purpose: 54, as `none` lines with a reason each.** 47 are LOWOS's plumbing that the platform and the host
+  replace: DirectDraw's modes, surfaces and window update (`CompleteScreen`, `UpdateScreen`, `UpdateSurfaces`, the video
+  surface search), the message pump, DirectInput's devices, DirectSound's buffers, COM, LOWOS's own heap and its
+  start-up, a thread start, Winsock's cleanup (the game never uses the network) and a stopwatch around DirectDraw's
+  blits whose total nothing reads. Five are the registration's, which the registered flag turns into pass-throughs (the
+  quit and save questions' unregistered flavours, `TrialCheck`, and `CountPlay`'s file and registry writes, reached with
+  the flag read as set). One is `SetCurrentDirectory` to the exe's folder and one is `std::string::size`.
+
+**Defined in the port, never reached: 57 at the end** (the report's second list), 36 of them the blitter's routines
+above. The other 21, sorted:
+
+- *Reached after the first runs, by an extra run:* `ResetHighScores` (0x411c85), by `extra3`.
+- *Candidates for taking out (no play of the original can reach them),* not removed in this step:
+  - the hidden timed mode (mode 1): `GetMeter` (0x4103dd), the time trial's gauge (0x41c599) and `App::SetCrossed`
+    (0x41ee83), and every branch of it inside shared functions. Its button sits at (1000, 1000), off the 640x480 screen,
+    and no key presses it;
+  - what the shipped configuration (`tiptap.cfg` in `TipTop.dat`) switches off: `DeleteGameDialog` (0x425ffa) and the
+    commands 0x25-0x28 that call it (`DELETEGAMEWARNING_DISABLE` is TRUE), and `AnimationProc` (0x42cbe4), the level
+    complete animation (`LEVELCOMPLETE_DISABLE` is TRUE);
+  - code with no sender: `PlayAgainDialog` (0x4264a8) is the other branch of command 0x2a, which asks only when the
+    high scores screen came from a screen other than the main menu, and the main menu's button is the only way into that
+    screen (nothing else calls `SetScreen(SCREEN_HIGHSCORES)`; the summary's own Play Again button sends 0x2d);
+    `SlideImageProc` (0x421f9f) is made by command 0x1c, which no literal of the export sends; `ScrollBarProc`
+    (0x429fd5) with its helper 0x429e79 and `InflateDirty` (0x428d6d, called only by it) belong to a layer whose
+    content is bigger than its window, which none of the game's screens is (every text and picture comes from
+    `TipTop.dat`).
+- *Stay, since some input reaches them:* the Tab keys of the name field (`NextHandler`, `PrevHandler`) and the full
+  screen key (`lowos::KeyIsDown`), which origrun cannot post (the original reads its keys through DirectInput); the error
+  exits (`lowos_MessageBox_`, `lowos_ScreenScope`: "Not enough memory..."); `Board::Ramp` (0x40b3ad), the levels past the
+  end of a mode's list, which a very long game reaches (the bot's best was level 12 of a speed game); and
+  `SetInputState` (0x431130), the original's DirectInput queue writer, which the posted window messages of these runs
+  bypass and which the port's input path takes (read against the export in phase one, "How both sides are driven").
+- *Read against the export, not run:* `App::ToggleFullScreen` (0x41b36c), `OnRestore` (0x41b34b) and `ReloadSurfaces`
+  (0x4274d9), since the original would switch the machine's display mode. The port's full screen played in phase two's
+  real-input run (windowed and full screen).
+
+**Never reached and not defined: 38** (the third list). The registration's helpers (`ScrambleRegistration` 0x428437,
+the run count file's reader and writer 0x412bc6 and 0x411f2a), four of `std::string`'s, LOWOS's DirectDraw,
+DirectInput, DirectSound and Winsock code (the rest of what the `none` lines name), and the resource manager's requests
+for background loading (0x4382b0, 0x438410, 0x438480, 0x439cf0, which the game never fills) and its BMP loader
+(0x4392f0, 0x439440; the archive holds PCX and JPEG images). Nothing that a play of the game reaches.
+
+**What changed:** comments only (the blitter's routine addresses above `BlitPixels`, and a range in `Lowos.h` that named
+a function of the Winsock code as the sound code's end), `games/tiptop/coverage.txt` and the run scripts.
+`tools/check.sh tiptop` still matches the frozen baseline. The runs took about an hour and a half of wall time, most of
+it waiting for a free game slot (4 to 7 game processes ran on the machine the whole time); the runs themselves held a
+slot for about 40 minutes in all.

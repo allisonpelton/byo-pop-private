@@ -30,28 +30,25 @@ public:
 	virtual void update();
 	// slot 4, 0x42a570
 	virtual int handleEvent(Event* theEvent);
-	// slots 5-8 (0x421700, 0x421620, 0x421530, 0x421430) pass their texts on with empty ones; slot 9, 0x42a580: a message
-	// box with theText1 (the game's shows its own dialog with the texts as its title, text and buttons)
+	// slot 9: a message box with theText1 (the game's shows its own dialog with the texts as its title, text and
+	// buttons). The base's default (0x42a580, and slots 5-8's layouts, which pass their texts on with empty ones) went
+	// to the system's message box; the game's app is the only platform object and overrides it.
 	virtual int messageBox(int theFlags, const Str& theText1, const Str& theText2 = Str(), const Str& theText3 = Str(),
-		const Str& theText4 = Str(), const Str& theText5 = Str());
+		const Str& theText4 = Str(), const Str& theText5 = Str()) = 0;
 	// slot 10, 0x42a4d0
 	virtual int isPaused();
-	// slot 11, 0x4217d0
-	virtual bool isRunning();
-	// slots 12, 13, 0x4217e0: the options' volumes
-	virtual float getSoundVolume();
-	virtual float getMusicVolume();
-	// slot 14, 0x4217f0: the window moved (WM_MOVE)
-	virtual void windowMoved(int theX, int theY, int theClientX, int theClientY);
-	// slots 15, 16, 0x401050: where the window goes
-	virtual void getWindowPos(int* theX, int* theY);
-	virtual void getWindowPos2(int* theX, int* theY);
+	// slot 11: the app's own (the base's default, 0x4217d0, was "not paused")
+	virtual bool isRunning() = 0;
+	// slots 12, 13: the options' volumes (the base's default, 0x4217e0, was 1)
+	virtual float getSoundVolume() = 0;
+	virtual float getMusicVolume() = 0;
+	// slot 14: the window moved (WM_MOVE; the base's default, 0x4217f0, did nothing)
+	virtual void windowMoved(int theX, int theY, int theClientX, int theClientY) = 0;
+	// slots 15, 16: where the window goes (the base's default, 0x401050, was 30, 50)
+	virtual void getWindowPos(int* theX, int* theY) = 0;
+	virtual void getWindowPos2(int* theX, int* theY) = 0;
 	// slot 17, 0x42a4d0: whether the app idles (the frame rate drops to 0.75 a second)
 	virtual int isIdle();
-	// slot 18, 0x421800: a command of the window menu (which the port has not: see ENGINE.md)
-	virtual void menuCommand(int theCommand);
-	// slot 19, 0x42a4d0 (the app's: whether a modal screen is up)
-	virtual int isModal();
 	// slots 20, 21, 0x41f560: around a screen's push
 	virtual void beginScreen();
 	virtual void endScreen();
@@ -62,22 +59,20 @@ public:
 	int mFlashRects;        // +0x10: the redrawn rectangles outlined
 	int mFullRedraw;        // +0x14: the whole screen redrawn each frame
 	int mFrameLimit;        // +0x18: frames a second at most (0 none)
-	int mField1C;           // +0x1c (1)
+	int mShimmerWaits;      // +0x1c: (1) the shimmer waits until a text made to shimmer is drawn without it
 	int mDesktopWidth;      // +0x20
 	int mDesktopHeight;     // +0x24
 	int mDesktopBits;       // +0x28
 	int mSkipDraws;         // +0x2c: frames not drawn
 	uint32_t mActiveTime;   // +0x30: the last update while active
 	uint32_t mInactiveTime; // +0x34: the last update while inactive
-	int mField38;           // +0x38
+	int mSpare;             // +0x38: cleared at the start; nothing reads it
 };
 
 extern Platform* gPlatform;  // 0x481a58
 extern int gQuit;            // 0x481a5c
 
 // 0x41f9b0: sets 0x4809b8 and runs the main loop (0x403b80, the game's)
-// 0x41f9d0: MessageBoxA; theFlags 1 OK (2 with cancel), 4 yes/no (2 with cancel); the result 1 OK, 2 cancel, 4 yes, 8 no
-int systemMessageBox(const Str& theText, const Str& theCaption, unsigned int theFlags);
 // 0x41fb20: the window's menu (none: the menu handle 0x4809c4 is never set) and its frame
 void updateWindowMenu();
 // 0x41fbb0: CheckMenuItem on that menu
@@ -114,8 +109,6 @@ int isInactive();
 // 0x420580: whether Windows is Vista or later; 0x420590: whether the desktop has 256 colours or fewer
 bool isVista();
 int isLowColour();
-// 0x4205c0: ShellExecuteA "open"
-void openURL(const Str& theURL);
 // 0x420760: pumps the events once
 void pumpEvents();
 // 0x420770: waits until theTime, pumping events and sleeping; with theInactive it wakes up every 200 ms and stops

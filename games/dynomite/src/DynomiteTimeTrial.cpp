@@ -26,13 +26,13 @@ DynomiteTimeTrial::DynomiteTimeTrial()
 	mGameType = 3;
 	strcpy(mHighScoreTitle, GTC(0x4fa0e4));
 	mHighScores = new HighScores(3);
-	mField149 = false;
-	mField148 = false;
+	mPastLineLoses = false;
+	mCountsChains = false;
 	mRowsCleared = 0;
 	mEggsBroken = 0;
 	mEggsDropped = 0;
 	mSong = 0;
-	mField74 = 0xfa;
+	mLineY = 0xfa;
 	// the score is minus the time in hundredths: 12 minutes down to 2 and a half
 	mScoreRanks[0] = -72000;
 	mScoreRanks[1] = -69000;
@@ -54,7 +54,7 @@ DynomiteTimeTrial::DynomiteTimeTrial()
 	mScoreRanks[17] = -21000;
 	mScoreRanks[18] = -18000;
 	mScoreRanks[19] = -15000;
-	mField23c = 0x2b;
+	mSongOffset = 0x2b;
 }
 
 // 0x4121a0
@@ -119,7 +119,7 @@ void DynomiteTimeTrial::Update()
 {
 	if (mApp->mActive == false)
 		return;
-	if (mField132 == true)
+	if (mGameOverShown == true)
 	{
 		UpdateGameOver();
 		return;
@@ -127,7 +127,7 @@ void DynomiteTimeTrial::Update()
 	if (mPauseCount > 0)
 		return;
 	Dynomite::Update();
-	if (mField134 == 0)
+	if (mGameOverDelay == 0)
 	{
 		SetPaused(true);
 		if (mHighScores->IsHighScore(mApp->mSideBar->mScore, (int) mStartTicks) == true)
@@ -137,21 +137,21 @@ void DynomiteTimeTrial::Update()
 	if (aGrid->mCeiling < 30.0f)
 		aGrid->mCeiling = (float) ((double) aGrid->mCeiling + 1.0f);
 	aGrid = mGrid;
-	if (mField74 < aGrid->mBottom)
+	if (mLineY < aGrid->mBottom)
 	{
-		aGrid->mCeiling = (float) ((double) aGrid->mCeiling - (double) ((aGrid->mBottom - mField74) / 3));
-		mField104 = (int) aGrid->mCeiling;
+		aGrid->mCeiling = (float) ((double) aGrid->mCeiling - (double) ((aGrid->mBottom - mLineY) / 3));
+		mCeilingGoal = (int) aGrid->mCeiling;
 	}
-	if ((mFieldB0 == true) && (mField131 == false))
+	if ((mPlaying == true) && (mGameOver == false))
 		mApp->mSideBar->mScore--;
 	if (mGrid->mEggCount == 0)
 	{
-		if (mField131 == false)
+		if (mGameOver == false)
 		{
 			// every egg is gone: "cleared", Inchy and the end's music
 			mTalker = new MenuTalker(mApp, this, 2);
-			mField131 = true;
-			mField140 = 0;
+			mGameOver = true;
+			mGameOverAlpha = 0;
 			mApp->mMusicInterface->SetSongVolume(0, 1.0);
 			mApp->mMusicInterface->PlayMusic(0, 0x27, false);
 			int aRank = 0;
@@ -163,9 +163,9 @@ void DynomiteTimeTrial::Update()
 			} while (aRank < 0x14);
 			return;
 		}
-		mField140 = mField140 + 2;
-		if (mField140 > 0xff)
-			mField140 = 0xff;
+		mGameOverAlpha = mGameOverAlpha + 2;
+		if (mGameOverAlpha > 0xff)
+			mGameOverAlpha = 0xff;
 	}
 }
 
@@ -180,16 +180,16 @@ void DynomiteTimeTrial::AddPoints(int x, int y, int thePoints, int theMultiplier
 void DynomiteTimeTrial::Draw(Graphics* g)
 {
 	Dynomite::Draw(g);
-	if ((mField131 == true) && (mField132 == false))
+	if ((mGameOver == true) && (mGameOverShown == false))
 	{
 		Graphics* aGraphics = GetDrawGraphics();
 		aGraphics->SetColorizeImages(true);
-		aGraphics->SetColor(Color(0, 0, 0, mField140));
+		aGraphics->SetColor(Color(0, 0, 0, mGameOverAlpha));
 		Pic* aPic = mApp->mPicCleared;
-		aPic->Draw((mField70 - (aPic->mWidth >> 1)) + 3, 0xdf - (aPic->mHeight >> 1));
-		aGraphics->SetColor(Color(0xff, 0xff, 0xff, mField140));
+		aPic->Draw((mPlayMiddleX - (aPic->mWidth >> 1)) + 3, 0xdf - (aPic->mHeight >> 1));
+		aGraphics->SetColor(Color(0xff, 0xff, 0xff, mGameOverAlpha));
 		aPic = mApp->mPicCleared;
-		aPic->Draw(mField70 - (aPic->mWidth >> 1), 0xdc - (aPic->mHeight >> 1));
+		aPic->Draw(mPlayMiddleX - (aPic->mWidth >> 1), 0xdc - (aPic->mHeight >> 1));
 		aGraphics->SetColorizeImages(false);
 	}
 }
@@ -200,9 +200,9 @@ void DynomiteTimeTrial::Init(FossilizedApp* theApp, int theDifficulty)
 	Dynomite::Init(theApp, theDifficulty);
 	mFirePrompt->mOwnLine1 = mApp->GetString("CLEAR_ALL_THE_EGGS");
 	mFirePrompt->mOwnLine2 = mApp->GetString("AS_FAST_AS_YOU_CAN");
-	mSteggy->mField28 = false;
-	mField68 = 0x1a0;
-	mField6c = 0xd0;
+	mSteggy->mInRound = false;
+	mPlayWidth = 0x1a0;
+	mPlayHalfWidth = 0xd0;
 	mApp->mSideBar->mShowTime = true;
 	mLauncher->Load(1);
 	int aRows;
@@ -222,7 +222,7 @@ void DynomiteTimeTrial::Init(FossilizedApp* theApp, int theDifficulty)
 		aRows = 0xf;
 	}
 	mGrid->mCeiling = (float) (aRows * -0x21);
-	mField104 = (int) mGrid->mCeiling;
+	mCeilingGoal = (int) mGrid->mCeiling;
 	int i = 0;
 	if (aRows != 0)
 	{
@@ -233,7 +233,7 @@ void DynomiteTimeTrial::Init(FossilizedApp* theApp, int theDifficulty)
 		} while (i < aRows);
 	}
 	mGrid->ResetCeiling();
-	mGrid->mField46d0 = true;
+	mGrid->mCeilingDrawn = true;
 	mGrid->mBabyEggsOn = false;
 }
 
@@ -241,12 +241,12 @@ void DynomiteTimeTrial::Init(FossilizedApp* theApp, int theDifficulty)
 void DynomiteTimeTrial::DrawScenery()
 {
 	Dynomite::DrawScenery();
-	mApp->mPicRowstogo->Draw(0x192, mField74 + 0x17);
+	mApp->mPicRowstogo->Draw(0x192, mLineY + 0x17);
 	Graphics* g = GetDrawGraphics();
 	g->SetFont(mApp->mWhiteFontSmall);
 	g->SetColor(Color(0xff, 0xff, 0xff));
 	char aText[16];
-	if (mField131 == true)
+	if (mGameOver == true)
 		sprintf(aText, "0");
 	else
 	{
@@ -255,7 +255,7 @@ void DynomiteTimeTrial::DrawScenery()
 		if ((double) mRowsCleared < aRowsToGo)
 			mRowsCleared = (int) aRowsToGo;
 	}
-	g->DrawString(aText, 0x1cd - mApp->mWhiteFontSmall->StringWidth(aText), mField74 + 0x52);
+	g->DrawString(aText, 0x1cd - mApp->mWhiteFontSmall->StringWidth(aText), mLineY + 0x52);
 }
 
 // 0x412cb0: each line has a black shadow two pixels down and right; the numbers are right-aligned
@@ -278,24 +278,24 @@ void DynomiteTimeTrial::DrawGameOver(Graphics* g)
 	int aDroppedWidth = g->GetFont()->StringWidth(aDropped);
 	int aTimeWidth = g->GetFont()->StringWidth(aTime);
 	g->SetColor(Color(0, 0, 0));
-	g->DrawString(mApp->GetString("ROWS_CLEARED"), 0xe3, mField1c8 + 0x57);
-	g->DrawString(mApp->GetString("EGGS_BROKEN"), 0xe3, mField1c8 + 0x6b);
-	g->DrawString(mApp->GetString("EGGS_DROPPED"), 0xe3, mField1c8 + 0x7f);
-	g->DrawString(mApp->GetString("FINAL_SCORE"), 0xe3, mField1c8 + 0x93);
-	g->DrawString(aRows, 0x1b7 - aRowsWidth, mField1c8 + 0x57);
-	g->DrawString(aBroken, 0x1b7 - aBrokenWidth, mField1c8 + 0x6b);
-	g->DrawString(aDropped, 0x1b7 - aDroppedWidth, mField1c8 + 0x7f);
-	g->DrawString(aTime, 0x1b7 - aTimeWidth, mField1c8 + 0x93);
+	g->DrawString(mApp->GetString("ROWS_CLEARED"), 0xe3, mPanelTop + 0x57);
+	g->DrawString(mApp->GetString("EGGS_BROKEN"), 0xe3, mPanelTop + 0x6b);
+	g->DrawString(mApp->GetString("EGGS_DROPPED"), 0xe3, mPanelTop + 0x7f);
+	g->DrawString(mApp->GetString("FINAL_SCORE"), 0xe3, mPanelTop + 0x93);
+	g->DrawString(aRows, 0x1b7 - aRowsWidth, mPanelTop + 0x57);
+	g->DrawString(aBroken, 0x1b7 - aBrokenWidth, mPanelTop + 0x6b);
+	g->DrawString(aDropped, 0x1b7 - aDroppedWidth, mPanelTop + 0x7f);
+	g->DrawString(aTime, 0x1b7 - aTimeWidth, mPanelTop + 0x93);
 	g->SetColor(Color(0xe6, 0xe6, 0xff));
-	g->DrawString(mApp->GetString("ROWS_CLEARED"), 0xe1, mField1c8 + 0x55);
-	g->DrawString(mApp->GetString("EGGS_BROKEN"), 0xe1, mField1c8 + 0x69);
-	g->DrawString(mApp->GetString("EGGS_DROPPED"), 0xe1, mField1c8 + 0x7d);
-	g->DrawString(aRows, 0x1b5 - aRowsWidth, mField1c8 + 0x55);
-	g->DrawString(aBroken, 0x1b5 - aBrokenWidth, mField1c8 + 0x69);
-	g->DrawString(aDropped, 0x1b5 - aDroppedWidth, mField1c8 + 0x7d);
+	g->DrawString(mApp->GetString("ROWS_CLEARED"), 0xe1, mPanelTop + 0x55);
+	g->DrawString(mApp->GetString("EGGS_BROKEN"), 0xe1, mPanelTop + 0x69);
+	g->DrawString(mApp->GetString("EGGS_DROPPED"), 0xe1, mPanelTop + 0x7d);
+	g->DrawString(aRows, 0x1b5 - aRowsWidth, mPanelTop + 0x55);
+	g->DrawString(aBroken, 0x1b5 - aBrokenWidth, mPanelTop + 0x69);
+	g->DrawString(aDropped, 0x1b5 - aDroppedWidth, mPanelTop + 0x7d);
 	g->SetColor(Color(0xff, 0xff, 0xff));
-	g->DrawString(mApp->GetString("FINAL_SCORE"), 0xe1, mField1c8 + 0x91);
-	g->DrawString(aTime, 0x1b5 - aTimeWidth, mField1c8 + 0x91);
+	g->DrawString(mApp->GetString("FINAL_SCORE"), 0xe1, mPanelTop + 0x91);
+	g->DrawString(aTime, 0x1b5 - aTimeWidth, mPanelTop + 0x91);
 }
 
 // 0x4126b0

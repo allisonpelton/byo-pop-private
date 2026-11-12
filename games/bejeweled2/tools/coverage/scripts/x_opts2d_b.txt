@@ -1,0 +1,41 @@
+# exploration (portshots.sh): what the 2D Options dialog's checkboxes ask
+at 562 shot title
+at 566 move 320 401
+at 568 click 320 401
+at 762 text Ali
+at 764 key 13
+at 953 key 27
+at 962 move 79 428
+at 964 click 79 428
+at 1050 shot options
+at 1060 move 407 208
+at 1062 click 407 208
+at 1120 shot v_highres
+at 1130 key 13
+at 1190 shot v_highres_yes
+at 1200 move 340 251
+at 1202 click 340 251
+at 1260 shot v_backdrops
+at 1270 key 27
+at 1330 shot v_backdrops_no
+at 1340 move 277 208
+at 1342 click 277 208
+at 1400 shot v_accel
+at 1410 key 13
+at 1470 shot v_accel_yes
+at 1480 move 146 208
+at 1482 click 146 208
+at 1540 shot v_full
+at 1550 key 13
+at 1610 shot v_full_yes
+at 1620 move 210 251
+at 1622 click 210 251
+at 1680 shot v_cursors
+at 1690 move 450 124
+at 1692 click 450 124
+at 1700 move 400 162
+at 1702 click 400 162
+at 1760 shot v_sliders
+at 1770 move 319 301
+at 1772 click 319 301
+at 1850 shot v_help

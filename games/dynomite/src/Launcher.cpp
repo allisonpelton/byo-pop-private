@@ -23,31 +23,31 @@ Launcher::Launcher(FossilizedApp* theApp, Dynomite* theBoard)
 	mBoard = theBoard;
 	// port: the original sets only the first two, and saves and loads all of it; zeroed, so a saved game's bytes are
 	// the same from run to run
-	memset(mField38, 0, sizeof(mField38));
+	memset(mBandPull, 0, sizeof(mBandPull));
 	mAngle = 0;
 	mLoaded = NULL;
 	mFlying = NULL;
-	mField1c = 0;
+	mSavedZero = 0;
 	mRecoilX = 0;
 	mRecoilY = 0;
 	// port: the 2003 MTRand::SRand (0x442d90; compat2004); -seed=N stands for the tick count, as the test patch
 	// gives the original's
 	SeedMTRand2004(mRand, gSexyAppBase->mHasSeedParam ? (unsigned long) gSexyAppBase->mRandSeed : (unsigned long) GetTickCount());
-	mField18 = 0;
-	mFieldA5c = 0x32;
-	int x = mBoard->mField158 + mBoard->mField70;
+	mHandPose = 0;
+	mArrowCountdown = 0x32;
+	int x = mBoard->mLauncherOffsetX + mBoard->mPlayMiddleX;
 	mAimX = x;
-	mFieldA60 = 0;
-	mFieldA64 = 0;
-	mFieldA68 = 0;
-	mFieldA70 = 0;
+	mPathDepth = 0;
+	mPathDepthGoal = 0;
+	mPathDepthFloor = 0;
+	mArrowGreenBlue = 0;
 	mFrozen = false;
 	mHeld = NULL;
-	mFieldAac = 0;
+	mReloadSlide = 0;
 	mSlingX = x;
 	mSlingY = 0x1b0;
 	mAimY = 0x17e;
-	mFieldA6c = 0xff;
+	mArrowRed = 0xff;
 }
 
 // 0x401160
@@ -90,8 +90,8 @@ void Launcher::Fire()
 {
 	if ((mLoaded != NULL) && (mFrozen != true))
 	{
-		mBoard->mField160 = mLoaded->mColor;
-		mBoard->mField15c = mBoard->mField160;
+		mBoard->mLastFiredColor = mLoaded->mColor;
+		mBoard->mAvoidColor = mBoard->mLastFiredColor;
 		mApp->mSndRubbershot->Play();
 		AngleTable* anAngles = mApp->mAngles;
 		float aDX = anAngles->mDX[mAngle];
@@ -148,7 +148,7 @@ void Launcher::Freeze(Egg* theEgg)
 {
 	mFrozen = true;
 	mHeld = theEgg;
-	mFieldAac = 0;
+	mReloadSlide = 0;
 }
 
 // 0x401940: the slingshot and its loaded egg, drawn lower by the ceiling's depth plus half the slingshot's height
@@ -182,7 +182,7 @@ void Launcher::DrawBand()
 	if ((float) mSlingY < aLimit)
 		anOffset.mY = (int) aLimit;
 	AddDrawOffset(anOffset);
-	int aMiddle = mBoard->mField158 + mBoard->mField70;
+	int aMiddle = mBoard->mLauncherOffsetX + mBoard->mPlayMiddleX;
 	if ((mLoaded == NULL) && (mFlying == NULL))
 		mApp->mPicRubberband->DrawLine(aMiddle - 0x36, 0x18c, aMiddle + 0x36, 0x18c);
 	Cell* aHand;
@@ -191,18 +191,18 @@ void Launcher::DrawBand()
 		mApp->mPicRubberband->DrawLine(aMiddle - 0x36, 0x18c, (int) (mLoaded->mX - 16.0f), (int) mLoaded->mY);
 		mApp->mPicRubberband->DrawLine(aMiddle + 0x36, 0x18c, (int) (mLoaded->mX + 16.0f), (int) mLoaded->mY);
 		mApp->mPicRubberband->DrawLine((int) (mLoaded->mX + 16.0f), (int) mLoaded->mY,
-			(int) ((float) mField38[0] + mLoaded->mX), (int) ((float) mField38[1] + mLoaded->mY));
+			(int) ((float) mBandPull[0] + mLoaded->mX), (int) ((float) mBandPull[1] + mLoaded->mY));
 		mApp->mPicRubberband->DrawLine((int) (mLoaded->mX - 16.0f), (int) mLoaded->mY,
-			(int) ((float) mField38[0] + mLoaded->mX), (int) ((float) mField38[1] + mLoaded->mY));
-		mField20[0] = (int) ((float) (mField38[0] * 2) + mLoaded->mX);
-		mField20[1] = (int) ((mLoaded->mY - 10.0f) + (float) mField38[1] + 50.0f);
-		aHand = mApp->mHandCells[8 - mField18 / 8];
-		aHand->Draw(mField20[0] - (aHand->mWidth >> 1), mField20[1] - (aHand->mHeight >> 1));
+			(int) ((float) mBandPull[0] + mLoaded->mX), (int) ((float) mBandPull[1] + mLoaded->mY));
+		mHandPos[0] = (int) ((float) (mBandPull[0] * 2) + mLoaded->mX);
+		mHandPos[1] = (int) ((mLoaded->mY - 10.0f) + (float) mBandPull[1] + 50.0f);
+		aHand = mApp->mHandCells[8 - mHandPose / 8];
+		aHand->Draw(mHandPos[0] - (aHand->mWidth >> 1), mHandPos[1] - (aHand->mHeight >> 1));
 	}
 	else
 	{
-		aHand = mApp->mHandCells[8 - mField18 / 8];
-		aHand->Draw(mField20[0] - (aHand->mWidth >> 1), (mField20[1] - (aHand->mHeight >> 1)) + 0x1e);
+		aHand = mApp->mHandCells[8 - mHandPose / 8];
+		aHand->Draw(mHandPos[0] - (aHand->mWidth >> 1), (mHandPos[1] - (aHand->mHeight >> 1)) + 0x1e);
 	}
 	if (mFlying != NULL)
 	{
@@ -228,16 +228,16 @@ void Launcher::PlaceEgg(float& theX, float& theY)
 	theX = (float) ((double) mSlingX + aX);
 	double aBack = (double) mSlingY - (double) aY;
 	theY = (float) aBack;
-	theY = (float) ((double) mFieldAac + aBack);
-	mField30[0] = (int) ((double) mSlingX - aX * 0.4);
-	mField30[1] = (int) ((double) aY * 0.4 + (double) mSlingY);
+	theY = (float) ((double) mReloadSlide + aBack);
+	mBandBackPoint[0] = (int) ((double) mSlingX - aX * 0.4);
+	mBandBackPoint[1] = (int) ((double) aY * 0.4 + (double) mSlingY);
 	int anAngle = mAngle;
 	if (anAngle >= 0x168)
 		anAngle = anAngle - 0x168;
 	if (anAngle < 0)
 		anAngle = anAngle + 0x168;
-	mField38[0] = (int) ((double) anAngles->mDY[anAngle] * 0.0 - (double) anAngles->mDX[anAngle] * 10.0);
-	mField38[1] = mFieldAac - (int) ((double) anAngles->mDX[anAngle] * 0.0 + (double) anAngles->mDY[anAngle] * 10.0);
+	mBandPull[0] = (int) ((double) anAngles->mDY[anAngle] * 0.0 - (double) anAngles->mDX[anAngle] * 10.0);
+	mBandPull[1] = mReloadSlide - (int) ((double) anAngles->mDX[anAngle] * 0.0 + (double) anAngles->mDY[anAngle] * 10.0);
 }
 
 // 0x401e40: aims at a point no lower than 10 above the slingshot's middle; the hand turns with the aim
@@ -251,16 +251,16 @@ void Launcher::Aim(int theX, int theY)
 	int anAngle = mApp->mAngles->AngleTo(mSlingX, mSlingY, theX, theY);
 	mAngle = anAngle;
 	anAngle = anAngle & ~1;
-	mField18 = anAngle;
+	mHandPose = anAngle;
 	if (anAngle > 0x5a)
 		anAngle = (anAngle - 0x11e) >> 1;
 	else
 		anAngle = (anAngle >> 1) + 0x25;
-	mField18 = anAngle;
+	mHandPose = anAngle;
 	if (anAngle < 0)
-		mField18 = 0;
-	if (mField18 > 0x47)
-		mField18 = 0x47;
+		mHandPose = 0;
+	if (mHandPose > 0x47)
+		mHandPose = 0x47;
 	if (mLoaded != NULL)
 		PlaceEgg(mLoaded->mX, mLoaded->mY);
 }
@@ -308,7 +308,7 @@ void Launcher::DrawArrow(Graphics* g)
 		aTailLeftY = (float) ((double) aTailLeftY + aSideY);
 		float aHeadLeftX = (float) (aSideX * 0.5 + (double) aShaftLeftX);
 		float aHeadLeftY = (float) (aSideY * 0.5 + (double) aShaftLeftY);
-		g->SetColor(Color(mFieldA6c, mFieldA70, mFieldA70, 0x78));
+		g->SetColor(Color(mArrowRed, mArrowGreenBlue, mArrowGreenBlue, 0x78));
 		Point aPoints[7];
 		aPoints[0].mX = (int) aTailRightX;
 		aPoints[0].mY = (int) aTailRightY;
@@ -515,8 +515,8 @@ void Launcher::Update()
 	{
 		if (mHeld != NULL)
 		{
-			mFieldAac++;
-			if (mFieldAac > 0x37)
+			mReloadSlide++;
+			if (mReloadSlide > 0x37)
 			{
 				if (mLoaded != NULL)
 					delete mLoaded;
@@ -526,43 +526,43 @@ void Launcher::Update()
 		}
 		else
 		{
-			mFieldAac--;
-			if (mFieldAac < 1)
+			mReloadSlide--;
+			if (mReloadSlide < 1)
 				mFrozen = false;
 		}
 	}
 	Dynomite* aBoard = mBoard;
-	mFieldA64 = 0;
+	mPathDepthGoal = 0;
 	if ((aBoard->mBonusBits & 1) != 0)
 	{
-		mFieldA6c--;
-		if (mFieldA6c < 0)
-			mFieldA6c = 0;
-		mFieldA70++;
-		if (mFieldA70 > 0xff)
-			mFieldA70 = 0xff;
-		mFieldA64 = -600;
+		mArrowRed--;
+		if (mArrowRed < 0)
+			mArrowRed = 0;
+		mArrowGreenBlue++;
+		if (mArrowGreenBlue > 0xff)
+			mArrowGreenBlue = 0xff;
+		mPathDepthGoal = -600;
 	}
 	else
 	{
-		mFieldA70--;
-		if (mFieldA70 < 0)
-			mFieldA70 = 0;
-		mFieldA6c++;
-		if (mFieldA6c > 0xff)
-			mFieldA6c = 0xff;
-		if (mFieldA60 < mFieldA68)
-			mFieldA60 = mFieldA68;
+		mArrowGreenBlue--;
+		if (mArrowGreenBlue < 0)
+			mArrowGreenBlue = 0;
+		mArrowRed++;
+		if (mArrowRed > 0xff)
+			mArrowRed = 0xff;
+		if (mPathDepth < mPathDepthFloor)
+			mPathDepth = mPathDepthFloor;
 	}
-	if (mFieldA60 > mFieldA64)
-		mFieldA60--;
-	if (mFieldA60 < mFieldA64)
-		mFieldA60++;
-	mSlingX = aBoard->mField158 + aBoard->mField70;
-	mFieldA5c--;
+	if (mPathDepth > mPathDepthGoal)
+		mPathDepth--;
+	if (mPathDepth < mPathDepthGoal)
+		mPathDepth++;
+	mSlingX = aBoard->mLauncherOffsetX + aBoard->mPlayMiddleX;
+	mArrowCountdown--;
 	mSlingY = 0x1b0;
-	if (mFieldA5c < 0)
-		mFieldA5c = 0x18;
+	if (mArrowCountdown < 0)
+		mArrowCountdown = 0x18;
 	if (mLoaded != NULL)
 		PlaceEgg(mLoaded->mX, mLoaded->mY);
 	mRecoilX = mRecoilX * 0.85f;
@@ -609,7 +609,7 @@ void Launcher::DrawPath(Graphics* g)
 		aPoints.Add(aPoint);
 		aLastVX = anEgg->mVX;
 		anEgg->mCol = -1;
-		while (anEgg->Update() && ((float) (mFieldA60 + mAimY - 0x10) <= anEgg->mY))
+		while (anEgg->Update() && ((float) (mPathDepth + mAimY - 0x10) <= anEgg->mY))
 		{
 			if (anEgg->mVX != aLastVX)
 			{
@@ -635,7 +635,7 @@ void Launcher::DrawPath(Graphics* g)
 		aPoint[0] = (float) ((double) anEgg->mX - (double) anEgg->mVX * 25.0);
 		aPoint[1] = (float) ((double) anEgg->mY - (double) anEgg->mVY * 25.0);
 		aPoints.Add(aPoint);
-		mFieldA68 = (int) (anEgg->mY - (float) mAimY);
+		mPathDepthFloor = (int) (anEgg->mY - (float) mAimY);
 		if ((float) (mSlingY - 0x32) > anEgg->mY)
 		{
 			int aLast = aPoints.mCount - 1;
@@ -704,7 +704,7 @@ void Launcher::DrawPath(Graphics* g)
 				delete aCorner;
 				aCorner = mPathLeft.Next();
 			}
-			g->SetColor(Color(mFieldA6c, mFieldA70, mFieldA70, 0x78));
+			g->SetColor(Color(mArrowRed, mArrowGreenBlue, mArrowGreenBlue, 0x78));
 			g->PolyFill(aPolygon, mPathLeft.mCount + mPathRight.mCount);
 			delete[] aPolygon;
 			mPathRight.Clear();
@@ -727,18 +727,18 @@ void Launcher::DrawPath(Graphics* g)
 }
 
 // 0x4033a0: the aim, while the mouse is over the board and nothing else holds it: the path (clipped to the board)
-// while +0xa60 is away from 0 and the aim is above 421, else the arrow
+// while mPathDepth is away from 0 and the aim is above 421, else the arrow
 void Launcher::Draw(Graphics* g)
 {
 	Dynomite* aBoard = mBoard;
-	if ((aBoard->mField130 != true) && (aBoard->mField131 != true) && (aBoard->mIsOver == true) &&
-		(aBoard->mField244 == false) && ((mApp->mInTutorial != true) || (aBoard->mPauseCount < 1)))
+	if ((aBoard->mLosing != true) && (aBoard->mGameOver != true) && (aBoard->mIsOver == true) &&
+		(aBoard->mInputLocked == false) && ((mApp->mInTutorial != true) || (aBoard->mPauseCount < 1)))
 	{
-		if ((mAimY <= 0x1a4) && (mFieldA60 != 0))
+		if ((mAimY <= 0x1a4) && (mPathDepth != 0))
 		{
 			Graphics aClipG(*g);
 			aBoard = mBoard;
-			aClipG.ClipRect(aBoard->mField70 - aBoard->mField6c, 0, aBoard->mField68, 0x1e0);
+			aClipG.ClipRect(aBoard->mPlayMiddleX - aBoard->mPlayHalfWidth, 0, aBoard->mPlayWidth, 0x1e0);
 			DrawPath(&aClipG);
 			return;
 		}
@@ -750,25 +750,25 @@ void Launcher::Draw(Graphics* g)
 void Launcher::SaveState(BinFile* theFile)
 {
 	theFile->WriteInt(mAngle);
-	theFile->WriteInt(mField18);
-	theFile->WriteInt(mField1c);
-	theFile->Write(mField20, 8);
+	theFile->WriteInt(mHandPose);
+	theFile->WriteInt(mSavedZero);
+	theFile->Write(mHandPos, 8);
 	theFile->WriteFloat(mRecoilX);
 	theFile->WriteFloat(mRecoilY);
-	theFile->Write(mField30, 8);
-	theFile->Write(mField38, 0x50);
+	theFile->Write(mBandBackPoint, 8);
+	theFile->Write(mBandPull, 0x50);
 	theFile->WriteInt(mAimX);
 	theFile->WriteInt(mAimY);
 	theFile->WriteInt(mSlingX);
 	theFile->WriteInt(mSlingY);
-	theFile->WriteInt(mFieldA5c);
-	theFile->WriteInt(mFieldA60);
-	theFile->WriteInt(mFieldA64);
-	theFile->WriteInt(mFieldA68);
-	theFile->WriteInt(mFieldA6c);
-	theFile->WriteInt(mFieldA70);
+	theFile->WriteInt(mArrowCountdown);
+	theFile->WriteInt(mPathDepth);
+	theFile->WriteInt(mPathDepthGoal);
+	theFile->WriteInt(mPathDepthFloor);
+	theFile->WriteInt(mArrowRed);
+	theFile->WriteInt(mArrowGreenBlue);
 	theFile->WriteBool(mFrozen);
-	theFile->WriteInt(mFieldAac);
+	theFile->WriteInt(mReloadSlide);
 	if (mLoaded == NULL)
 		theFile->WriteBool(false);
 	else
@@ -797,25 +797,25 @@ void Launcher::SaveState(BinFile* theFile)
 void Launcher::LoadState(BinFile* theFile)
 {
 	mAngle = theFile->ReadInt();
-	mField18 = theFile->ReadInt();
-	mField1c = theFile->ReadInt();
-	theFile->Read(mField20, 8);
+	mHandPose = theFile->ReadInt();
+	mSavedZero = theFile->ReadInt();
+	theFile->Read(mHandPos, 8);
 	mRecoilX = theFile->ReadFloat();
 	mRecoilY = theFile->ReadFloat();
-	theFile->Read(mField30, 8);
-	theFile->Read(mField38, 0x50);
+	theFile->Read(mBandBackPoint, 8);
+	theFile->Read(mBandPull, 0x50);
 	mAimX = theFile->ReadInt();
 	mAimY = theFile->ReadInt();
 	mSlingX = theFile->ReadInt();
 	mSlingY = theFile->ReadInt();
-	mFieldA5c = theFile->ReadInt();
-	mFieldA60 = theFile->ReadInt();
-	mFieldA64 = theFile->ReadInt();
-	mFieldA68 = theFile->ReadInt();
-	mFieldA6c = theFile->ReadInt();
-	mFieldA70 = theFile->ReadInt();
+	mArrowCountdown = theFile->ReadInt();
+	mPathDepth = theFile->ReadInt();
+	mPathDepthGoal = theFile->ReadInt();
+	mPathDepthFloor = theFile->ReadInt();
+	mArrowRed = theFile->ReadInt();
+	mArrowGreenBlue = theFile->ReadInt();
 	mFrozen = theFile->ReadBool();
-	mFieldAac = theFile->ReadInt();
+	mReloadSlide = theFile->ReadInt();
 	if (mLoaded != NULL)
 	{
 		delete mLoaded;

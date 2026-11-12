@@ -102,7 +102,7 @@ mods leave unmodded play as compared with the original.
 
 ## Phase 2: how it was compared
 
-Seven tours (`games/dynomite/tools/shots/tours.txt`, run by `tour.sh`) play the same input in the port and in the
+Nine tours (`games/dynomite/tools/shots/tours.txt`, run by `tour.sh`) play the same input in the port and in the
 original and take a screenshot at the same update in both. The original runs in Windows Sandbox (`origrun --sandbox`),
 where its DirectDraw window can be captured while nothing shows on the user's desktop; its shots carry the window's frame,
 which shotdiff cuts away. shotdiff (`docs/SHOTDIFF.md`) compared every pair with no tolerance for a difference I had not
@@ -117,23 +117,35 @@ judged, and I looked at the crop of every box it flagged. The tours are:
 | t5 | 8 | Fossil Challenge, Panic: the same |
 | t6 | 10 | Time Trial, Normal: thirty shots, the focus lost for two seconds and regained, pause and resume, thirty more |
 | t7 | 12 | Endless: twenty shots, the side bar's save (the slots, the name, saved), Continue Game from the main menu, ten shots |
+| t8 | 26 | Endless: five shots, then the board paused and resumed by each of its keys (P, Space, Escape, F1), five shots |
+| t9 | 28 | Fossil Challenge, Strategic: ten shots, the museum opened and closed by M and by the keypad's minus, five shots |
+| t10 | 4 | Stomped Puzzle as t3 to its end, the high score's name ended by Return, Play Again, ten shots, a save whose name is ended by Return, Continue Game, five shots |
+| t11 | 32 | Fossil Challenge, Strategic: ten shots, the museum opened by M, a save with the museum open, Continue Game, the museum closed, five shots |
+| t12 | 34 | the options' Music slider clicked, then Time Trial, Normal: ten shots, a save, Continue Game, five shots |
+
+t10 to t12 were added for the coverage check (`GAME_NOTES.md`, section 10): until then no run of the original had saved
+any game but Endless or pressed Return in a name box.
 
 **Sound.** `sound.sh` plays each tour again with the original's sound logged by origrun's stand-in (`--sound wav`, and
 Big Money's BASS proxy for the music) and the port's by `BYOPOP_SOUNDLOG`, and `soundcmp.py` lines up the two: every
 sample played (named by its length, rate and channels), its update, volume and pan, and every music call (play, stop,
-pause, resume, volume). t1, t2, t4, t5 and t6 are identical. In t3 one sample is named by its length only, because the
-original streams that buffer (the footfall), at the same updates; its last music volume of 0 is the port quitting. t7 is
-identical up to the continued game, where the shots differ (below).
+pause, resume, volume). Every tour's sound is the same in both but t7's continued game: every sample at the same update
+with the same volume and pan, and every music call. The original streams one sample, Stomped's footfall, so its log
+names it only by its length; `soundcmp.py` matches it to the port's play in that update (t3 has two). Plays started in
+one update are compared in name order. The one music difference left in t3 and in t9 is the port's last call, a volume
+of 0 as it quits. t7 is the same through the save and the load, and parts at the continued game's first shot (update
+27603), whose eggs the save's tick count seeds (below).
 
 **Focus.** t2 and t6 take the focus away and give it back (origrun's `focus` and the port's script); the board pauses and
 resumes in both, the screens match, and the sound logs are the same (neither program calls the music while the focus is
 away).
 
 **The web build.** `web.sh` plays each tour's script in the web build under Node and compares its shots with the native
-port's, with no difference allowed. t1, t2, t6 and t7 match, but for the options' Full Screen box (the native runs start
-full screen, a page cannot). In t3, t4 and t5 the board of Stomped and the Fossil Challenge shows a one-pixel difference
-over its whole background: those modes shake the board while the grind sound plays, and under Node there is no Web Audio,
-so the grind never plays and the web board holds still. In a browser it plays as natively.
+port's, with no difference allowed. Taken again against the native shots at render scale 1, with the screen kept, t1,
+t2, t4, t5, t6, t8 and t9 match in every shot. t7, t10, t11 and t12 differ only after their load, in the continued
+game, which a save's tick count seeds (below); in t10, a Stomped game, already in the loaded shot. In t3 (and in t10, which plays t3's game) six shots (24 of 255) in one column at the board's right edge, x 493: Stomped shakes the board by a pixel while the
+grind sound plays, and under Node there is no Web Audio, so the grind never plays and the web board holds still. In a
+browser it plays as natively.
 
 ## Phase 2: what was changed
 
@@ -148,14 +160,18 @@ so the grind never plays and the web board holds still. In a browser it plays as
 | An empty save slot's picture was clear, showing the dialog behind it. | The dialog fills it with opaque black (0x433910). | Opaque black. | 5899db40 |
 | The title showed "thanks for registering" over a dark box under the loading bar. | The registered copy draws it unless the property NoReg is set (0x4391a0). | Left out with the rest of the registration code (the user, 2026-11-08), with its flag and the NoReg read; the title differs from the original's there by design. | 593cae73 |
 | The web build crashed when a board started without a sound device. | The three looping sounds' instances are made once when loading; without sound there are none, and every board calls through them. | A shared silent instance stands in (a deviation, below). | 5899db40 |
+| After the tutorial the main menu showed the welcome sign, Inchy's first greeting and the Tutorial item lit, and during the tutorial the menu's "welcome to Dynomite" played. | `StartTutorial` (0x419040) takes the main menu down (the app's +0x19e8); the port's translation took down the tutorial (+0x10bc) there, so the first menu stayed behind the tutorial, still talking, was never freed, and was drawn over the new menu after it. | It takes the main menu down. | 0dbf96c3 |
+| Every egg that joined a stick of dynamite to its colour left the stick it replaced in memory (a leak, found by `tools/profile/leakcheck.sh`). | `EggGrid::Place` (0x416590) takes the old stick off the list and never deletes it. | It deletes it; nothing else holds it. | 2d9eb014 |
+| Each showing of the save dialog left its empty slot picture and cell and its Save and Cancel buttons in memory (a leak). | The dialog's destructor (0x433420) never deletes them. | It deletes them after the slots' buttons that show the cell. | 0dbf96c3 |
+| While the museum came up after a fossil was cleared, the board above it was black; the original still shows the board's last picture there ("Cleared!" and its bonus line) until the museum covers it. | The original's screen is one DirectDraw surface that keeps what the last frame drew, and while the museum is open the fossil board draws only the museum (0x408bf0), so what the board drew last stays above it. | The game keeps its screen (the framework's `DDInterface::mKeepScreen`, as Bejeweled 2's 2D screen does); a screenshot is then the screen as it is, with no draw of its own. Found in the Fossil and Panic recordings (22 of their shots). | d012ac13 |
+| Steggy was drawn a pixel off at the two points of his bob where the angle table is near zero (90 and 270), and an aim at a whole degree's edge could fall in the next degree. | The angle table's pi is 0x40490fda, the float just below pi (0x42bb5b); the port had 3.1415927f (0x40490fdb), so every entry differed in its last bits and the entries near zero had the other sign. | The exe's value; the table now equals the original's bit for bit where it was read (DY at 90 and 270, DX at 1, 180 and 359, DY at 45). | 0dbf96c3 |
 
 ## Phase 2: what remains
 
 In t1 the options dialog is shorter in the port: the original has a "More Games" link above Done, which the port leaves
 out (no button leads out of the game), and the credits' two names are plain text where the original has links. The
-credits' edges differ only where the taller options dialog shows behind them. The options' Full Screen box is ticked in
-the port and clear in the original: both read the same registry value, but origrun runs the original in a window and the
-port's test runs start in full screen.
+credits' edges differ only where the taller options dialog shows behind them. The options' Full Screen box matches: the
+port's tours run windowed (`port.sh`'s `SCREENMODE`), as origrun runs the original, and both read the same registry value.
 
 t7's continued game differs from the original's from its first egg: `Dynomite::Load` (0x405590) seeds the egg picker with
 the tick count the save wrote, so a continued game's colours depend on the moment of saving, in the original as in the
@@ -165,11 +181,98 @@ load one file in both, play the same. Native and web runs of the port differ the
 The name box's caret in t5's name dialog is on in one shot and off in the other: the caret blinks on the edit box's own
 count from when it got the focus. The same dialog matches in t3 and t4. It is masked in t5's over shot.
 
-Natively the board of Stomped and the Fossil Challenge differs faintly in some shots (t3's s2) by the same one-pixel
-shake as in the web build: whether the grind sound counts as playing differs between the original's sound stand-in and
-the port's silent driver. shotdiff rates it below visible.
+The tours' port sides were first taken on a desktop scaled 200%, where the board of t3, t4 and t5 differed faintly in some
+shots (up to 58 of 255 in one channel, none of it visible) and the shots over a finished board kept a few such rows at
+its edges. Taken again at render scale 1 (below, the stomping foot), every shot of t3 and t4 matches, and t5 differs in
+a single pixel of one shot (f3, 487,32): the tip of the launcher's aim path, a translucent polygon that
+`Launcher::Draw` fills with `PolyFill`, has one more pixel in the port, the same kind of edge pixel as the tutorial's
+arrow (Oddities). At render scale 1 every tour's shots match but for the differences this section explains: t1's
+options and credits (four shots) and t12's options (two), the continued games of t7, t10, t11 and t12 (one shot
+each, after the load; the shot just after each load matches), the tutorial's arrow (seven faint shots) and that pixel.
 
-One stick of dynamite in t2's Endless game is drawn a few pixels from the original's after the pause (Oddities).
+In t2's Endless game, from the shot after the window loses the focus on, one egg near the top (about x 380, y 30 to 120)
+and its stick of dynamite sit a few pixels from where the original draws them, by a different amount in each shot
+(measured by the best shift of the box). The egg's cell holds a baby egg (bit 0x100), and
+`EggGrid::Draw` (0x417760) shakes such a cell, and the stick drawn with it, by `rand() % 9 - 4` in x and y on every draw.
+That shake is the only use of the C runtime's generator in the game (its one other caller, the framework's HTML template
+at 0x48bbe0, is never reached), so the two programs shake alike only while they draw the board equally often; while the
+window is without the focus the original's count of board draws, and so of `rand()` calls, comes out different from the
+port's, which draws once an update (`-drawevery`). The shake is drawn from nothing else and changes nothing in play (the
+twister's index runs the same through the pause, watched at 0x531490), so it counts as animation on its own clock and
+is masked in t2's lost, regained, newq, e2 and e3 shots. Why the original's draws differ there was not looked into
+further. Before the port kept its screen (above, the museum), each of its screenshots drew the screen once more, which
+moved the shake already at the pause's resumed shot; that shot now matches unmasked.
+
+In the tutorial's recording (below) one shot, taken seven updates after a shot is fired (step 27), showed the slingshot's
+band let go in the port and still wrapped round the flying egg in the original. `Launcher::DrawBand` (0x401a10) draws the
+band to the flying egg and lets go of the egg in the same draw once it is above y 388, which in both programs happens in
+the draw of update 26598. The port's screenshot drew the screen once more after that frame, so it showed the band of the
+frame after, and the bonus baby egg at the top shaken once more. Now that the port keeps its screen, a screenshot is the
+frame itself, and step 27 matches with no mask.
+
+The tutorial's recording first had four more faint shots, those of the stomping foot (steps 46 to 48 and 75): stripes
+about nine columns wide every twenty columns across the foot, up to 67 of 255. The foot's picture, 291 pixels wide, is
+stretched over the board's 306 with the fast stretch (`EggGrid::Draw` through `Pic::DrawStretched`, 0x436b50, into the
+screen's `StretchBlt`), and the
+original's columns, matched one by one against the picture, are `floor((x + 0.5) × 291 / 306)`, a sample at each pixel's
+centre, as the port's GPU samples it. The port's tours had run on a desktop scaled 200%, where the port draws at twice the
+size and a 640×480 shot is that picture averaged down: the two halves of a column then take their own source columns,
+and where they differ the shot blends them. At render scale 1 the foot matches the original, so `port.sh` now runs the
+port with `-renderscale=1`, as the original draws, and every tour's port side was taken again that way.
+
+Seven shots of the tutorial differ in 1 to 19 pixels, every one on an edge of the tutorial's arrow or of its shadow: a
+pixel of the edge falls on the other side, or (steps 1 and 8, 19 and 7 pixels) a short stretch of one edge of the shadow
+lies a pixel over. shotdiff rates none of them visible. The cause was not found (Oddities).
+
+## Phase 2: the tutorial and whole games, recorded
+
+The tours stop after forty shots or so; the tutorial and whole games of every mode were compared too, on input recorded
+from the port's own bot. `tools/shots/botrec.py` plays the port by the bot through the `move` command on the live
+channel with `-hold`, so an update runs only when the driver's line lets it, and writes every input line with the update
+it ran in. That script is then played as any tour's (`SCRIPT=... SEED=... tour.sh`): by the port with `-script` and by the
+original through `toorig.py` and origrun, with a screenshot every 50 shots (each step of the tutorial), and again for
+the sound (`sound.sh`). The port draws every update while it records and while it replays (`-drawevery`), as the
+original draws: Stomped's `Draw` takes two of the twister's numbers for its shake while the grind plays
+(`DynomiteStomped::Draw`, 0x40fa80), and the shake of a baby egg takes the C runtime's, so the draws must match for the
+numbers to.
+
+| recording | seed | the bot's play | screens | sound |
+|---|---|---|---|---|
+| tutorial | 14 | 133 moves (40 shots), every step to the main menu | 108 shots: 101 the same, 7 faint (the arrow's edge pixels, Oddities) | the same |
+| Endless | 16 | 417 shots to the end, 13610 | 13 shots, all the same | the same |
+| Stomped Puzzle | 18 | 412 shots, round 13, 13870 | 13 shots: 11 the same, 2 faint (below) | the same |
+| Fossil Challenge | 20 | 402 shots, fossil 5, 33870 | 26 shots: 7 the same, 19 faint (below) | the same |
+| Fossil Panic | 22 | 395 shots, fossil 7, 55720 | 30 shots: 27 the same, 3 faint in one or two pixels | the same |
+| Time Trial | 24 | 234 shots, the board cleared at 2:11 (update 38990), the results, the name and the table | 9 shots, all the same | the same |
+
+"The same" for the sound means every sample played at the same update, with the same volume and pan, and every music
+call the same; plays started in one update are compared in name order, and the footfall, which the original streams, is
+named by its length and matched to the port's play in that update (`soundcmp.py`). The music's fades back to a song
+already playing (a fade-in with offset -1) are the original's plain `BASS_MusicPlay`, at the same updates.
+
+Endless, Stomped, Panic and Time Trial replayed in the port end exactly as recorded. Fossil was recorded before the
+angle table's pi was corrected (above), and in the replay an aim that falls on a degree's edge lands one degree over, at
+update 29023; from there the replay's clicks no longer fit the board, and the game plays on differently from the
+recording, to a game over at 5350 with the end panel and the name dialog. Both programs replay the same input and play
+the same game, so the comparison holds; the recording only lost the bot's good play. Time Trial's first recording,
+made before the fix too, parted at update 38989, one update before the board was cleared, so its replay never reached
+the clear or Time Trial's results (`DynomiteTimeTrial::DrawGameOver`, 0x412cb0); it was recorded again on the current
+exe, and that recording is the one in the table.
+
+Endless's shot 400 first showed one red egg and its stick of dynamite a few pixels from where the original draws them, a
+baby egg's `rand()` shake moved by the port's screenshots drawing the screen once more; with the screen kept (above)
+it matches. Before the screen was kept, 31 shots of the Stomped, Fossil and Panic recordings differed: Fossil's and
+Panic's 22 the museum coming up over a black board (the fix above), and Stomped's 9, which all match with the screen kept.
+
+What is left is faint, and shotdiff rates none of it visible. Stomped's two: single columns of the stomping foot's
+stretched picture at the top of the board in shot 200 (one column up to 93 of 255, the rest under 45), the same
+sampling edge as the foot's stripes (above), and two pixels in shot 400. Panic's three: one or two pixels each. Fossil's
+19 are every shot from the game over on: the board's top and bottom edge rows (0 to 10 and 475 to 479), which the end
+panel leaves uncovered, differ in about 50 pixels by at most 44 of 255, the same in every one of those shots; the cause
+was not found (Oddities).
+
+The original's runs need origrun's virtual clock to reach each of the script's updates in step (its counter barrier):
+on a busy machine the first run of Fossil's recording missed it, the game ran free, and its shots were taken again.
 
 ## Phase 2: played with real input
 
@@ -237,12 +340,26 @@ already made fast in the port). So Dynomite has no fixes mod yet; `GAME_NOTES.md
 
 ## Oddities (skipped)
 
-- **A match at the tutorial's step 45 stalls it.** Step 45 waits for the board it has pushed past the line to be lost
-  (`Tutorial::Update`, the step's wait on the board's end). A shot fired in that wait that makes a match clears the
-  rows above the line, the launcher stays empty, and the tutorial waits for good; the side bar's buttons still leave
-  it. The port's step follows the original's code, but whether the original stalls the same way was not run. To see
-  it: in the tutorial, fire a matching shot as soon as step 45 begins. It would take a run of the original's tutorial
-  under origrun with the same shot; if it stalls too, it is a soft lock for the port to fix.
+- **A match at the tutorial's step 45 can stall it.** Step 45 stops the ceiling and waits for the board it has pushed
+  past the line to be lost (`Tutorial::Update`, the step's wait on the board's end). In a browser run a shot fired in
+  that wait made a match that cleared the eggs past the line; the launcher stayed empty and the tutorial waited for
+  good (the side bar's buttons still leave it). The port's step follows the original's code. The original was then run
+  on a matching shot at the same step: `tools/shots/botrec.py --match45` plays the tutorial by the bot and fires, at step
+  45, the game's own `matchmove` (the shot that joins the most eggs of the loaded colour). On seeds 15 to 20 no shot
+  could join three; on seed 21 it joined three, and on that input both programs went on to step 74 (the original under
+  origrun, watching the step at `[0x5315b4]+0x60`). That match did not clear the eggs past the line, so the stall was
+  not met in either. To see it: in the tutorial, fire a shot at step 45 that clears the eggs below the line. It would
+  take finding such a shot for the bot and running the original on it; if the original stalls too, it is a soft lock
+  for the port to fix.
+- **The tutorial's arrow has a few edge pixels of its own.** `Tutorial::DrawArrow` (0x43a580) fills a seven-point
+  polygon for the arrow and again for its shadow, and in seven of the tutorial's shots 1 to 19 pixels on those edges
+  differ. Both programs fill with PopCap's scan conversion (0x45dec0 and its edge insertion 0x45de20 are the framework's
+  `Graphics::PolyFill`, but for the order of two whole-number additions), and the points come from the same
+  `Normalize` (0x42be00) and angle table. A stretch of one edge a pixel over points to one of the points truncating to the
+  next whole number, from the last bits of the double arithmetic before the truncation. To see it: shotdiff's faint
+  boxes on the tutorial's arrow (`tour.sh tut`). It would take reading the seven points in the original at the draw.
+  The launcher's aim path, the other polygon the game fills (`Launcher::Draw`, its points from the path's two sides),
+  has one such pixel at its tip in t5's f3.
 - **The original sometimes plays a run differently.** Two of about seventy runs of the original differed from the port
   and from their own repeats. In one, en1's run that watches the eggs' colours had other colours from the first egg
   (Steggy's first was 2 where every other run had 1). In one run of sv1 the saved game's launcher+0xa68 (the last landed
@@ -265,13 +382,14 @@ already made fast in the port). So Dynomite has no fixes mod yet; `GAME_NOTES.md
   both programs set the flag and zero the count (`EggGrid::Update`), and from then on they blink alike. The warning is drawn
   only while the eggs are past the line, so nothing on screen differs. The port starts the count at 0, so its flag toggles
   unseen before then. To see it: watch `[[0x531ee4]+0x8c]+0x468c` and `+0x4688`.
-- **One stick of dynamite in t2 is drawn a few pixels off.** In t2's Endless game, after the pause, one stick near the
-  top (about x 378, y 30) and its fuse's spark sit about four pixels lower against their eggs in the port than in the
-  original; every other stick and egg matches, and the game plays the same. The stick's picture and slide come from the
-  app's twister when it is made, and the twister's index follows the same course in both programs through the pause
-  (watched at 0x531490), so the cause is not a draw of random numbers. It was not found within the hour. To see it: t2's
-  resumed, e2 and e3 shots (`tour.sh t2 port orig cmp`). It would take watching the grid's list of sticks (+0x466c) in
-  the original.
+
+- **The fossil board's edge rows at the end panel.** In the Fossil recording every shot from the game over on (the end
+  panel, the name dialog, the table) differs in the board's top and bottom edge rows (0 to 10 and 475 to 479, between
+  x 300 and 520), which the panel leaves uncovered: about 50 pixels by at most 44 of 255, the same in every one of those
+  shots, while the shot before the game over matches. The pixels are not the jungle picture at any offset of a pixel, so
+  they are something drawn over it, and with the screen kept a frame that drew there last may be what differs. To see it:
+  the faint boxes of `tour.sh bfossil` (the recording's `SCRIPT=` and `SEED=20`). It would take shots of both programs
+  at every update from the last shot to the game over.
 
 ## Deviations left
 

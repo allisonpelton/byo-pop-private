@@ -231,7 +231,18 @@ full screen would stretch the canvas.
 
 **Its text** is Byopop Sans, `web/fonts/byopop-sans.woff`, built by `tools/web/pixelfont.py` from W95FA by Alina Sava
 (SIL OFL 1.1, as is ours); after a change to the script, run it and commit the file. The font is sharp only at 11
-pixels and its multiples, so every text is set at 11 (a few at 22), and a new part sets no size of its own.
+pixels and its multiples, so every text is set at 11 (a few at 22), and a new part sets no size of its own. A glyph's
+body has one pixel of bearing on its left, as W95FA's have but for y, ý and ÿ, which the script moves right a pixel (the
+user approved it, 2026-11-11, of "ry" touching).
+
+**Its zoom.** One pixel of the font is one of the screen's only where `devicePixelRatio` is whole, so a desktop page zooms
+(`zoom` on `<html>`, set by `web/skins.js`) by that ratio rounded over the ratio: at 125% it is drawn as at 100%, at 150% as
+at 200% (the user, 2026-11-11: "Zoom desktop to a whole-number scale"). A page inside one of its windows finds the
+rounded ratio as its own and zooms by 1. Under the zoom a pointer's position, `getBoundingClientRect` and the window's
+`clientWidth` and `innerWidth` are the screen's CSS pixels while a style's are the page's, so code that turns the one into
+the other divides by `ByopopSkin.zoom()` (`unzoom`, `viewW`, `viewH`), a canvas drawn at the screen's pixels uses
+`ByopopSkin.ratio()`, and the style sheets' viewport units are divided by `--d95-z` (`calc(100vw / var(--d95-z, 1))`;
+a new rule with `vw` or `vh` does the same). `?deskzoom=<z>` sets the zoom for a test at any scale.
 
 **Colour schemes.** `scheme` picks one of nine schemes of our own named after soda flavours, "Standard" being the
 original look (the user, 2026-11-11, of the proposal's schemes and patterns: "Yes, 1 then 2"). `web/schemes.js` sets
@@ -269,7 +280,92 @@ opens a tab.
 ### The Library
 
 The listing's second window of the games (`web/library.js`): a sortable grid evoking a game client of 2004, named for
-no real program, built from the listing's own tiles and `ByopopPlay` so the two windows agree.
+no real program, built from the listing's own tiles and `ByopopPlay` so the two windows agree. A game's Properties
+(its menu) are a property sheet of its values and, below them, a table of each site player's plays, time, first and last
+day (the user, 2026-11-11: playtime per profile). `ByopopPlay` (`web/settings.js`) keeps them in `byopop-play`, by the
+current player's id in `by` beside the totals, and the save backup keeps and merges them (`web/saves.js`, `mergedPlay`).
+
+### Desktop themes
+
+Settings > Appearance > Theme (`web/themes.js`, its table `web/themedata.js`; the user, 2026-11-11) gives the desktop one
+game's look, as a 1995 Desktop Themes pack did: one of the game's own backgrounds as the wallpaper (in place of the pattern
+and wallpaper, at the wallpaper's Display), the game's own cursor set (`web/cursors.js`, once its page has kept it), and
+sounds from its soundboard for the window events that `web/skins.js` and `web/deskapps.js` send as `byopop-desk-event`
+(open, close, minimize, restore, maximize, menu, ding). A theme is listed for each game in the table whose files are in this
+browser, by the game's title. Everything comes from the player's own files at run time: the listing page, where they can be
+read, prepares the chosen theme into `byopop-theme-wallpaper` (a JPEG data URL) and `byopop-theme-sounds` (the files' bytes,
+each at most 96 KB) for every page; None, or the game's files forgotten, removes both. The sounds play at the Sounds
+window's volume and mute and never at `?silent=1`.
+
+A wallpaper the browser cannot decode as it is goes through `web/gamepics.js`: an image of a Retro64 bank (Cosmic Bugs,
+Water Bugs; the table's `"<bank>.dat|bbk:<name>"`), raw pixels that the `.bbk` index beside it places and gives a palette;
+and a JPEG 2000 picture (Bejeweled Twist's `.jp2`), by the framework's own decoder (`platform/openjpeg/JP2Decoder.cpp`) built
+on its own as `jp2.js` and `jp2.wasm` (`web/jp2/jp2_web.cpp`, about 250 KB), loaded only when such a theme is prepared.
+Both are tested by `tools/gamepicstest.js` (unit-web) on pictures made for it. The wallpaper becomes a JPEG, so a
+picture's alpha mask is not read: each wallpaper chosen has none.
+
+### The screen saver
+
+Settings > Screen Saver (`web/saver.js`; the user, 2026-11-11) has the game, None by default, then each game with a bot
+whose files are here; the Wait in minutes; and Preview. When the listing's desktop has had no key, mouse or touch for the
+Wait, it goes dark and the game plays itself silently in a frame over it; any key or mouse movement ends it and leaves
+everything as it was. The frame is the game's player-only page at `?saver=1`, which reads the player's own files and writes
+nothing back (its `Storage` writes and IDBFS syncs do nothing), so a saver's games touch no save, high score or record.
+Its page centres the game on black (`html.saver`), and a key pressed while the game's canvas has the focus ends the saver
+too. The driver runs with `?begin=mode`, which starts a game still on its title or menus in the mode its state names.
+
+**The bot's hook.** The game plays by one call that asks it for its next move. Today that is the test command `move`
+(`docs/TEST_COMMANDS.md`, "The bot behind move"), sent through `byopop_test_command` by the page's `?driver=move`; it exists
+only on a development host, so the live site lists None alone. A game's bot mod (`docs/MOD_ROADMAP.md`, standard mod 11,
+made in its modding phase) answers the same question in a live build through `byopop_bot_move()`: an export taking no
+argument and returning the same text `move` prints after `MOVE ` (the move as JSON with its `input` steps in game
+coordinates, or `null`), changing nothing in the game. The saver lists a game on the live site once its build exports it,
+and plays each answer's `input` as real events, as the driver does.
+
+### The trophy cabinet
+
+The Trophy Cabinet (`web/trophies.js`; the user, 2026-11-11) is a Desktop 95 window on the listing's desktop that gathers each
+game's own records from its saves in this browser and shows them, a table for each of the game's lists, under the names the
+games give their modes. Its Player drop-down picks a site player (`web/profiles.js`), and then only the rows under that
+player's name are shown, compared as the games compare names, without regard to case. It reads the files as the Sounds window
+does (`ByopopMusic.files`), each time the window opens, and writes nothing.
+
+Every reader follows the port's own save code, which its entry in `RECORDS` names, and is tested under Node by
+`tools/trophiestest.js` (unit-web) on files made for it. A file that is missing, of the wrong size or version, or cut short
+gives what it holds or nothing. The rows are shown as the game keeps them, its built-in rows too, in its order. A day's best
+appears as the Today place only on the day it was set, by the game's own day count. Times are shown as m:ss, or as h:mm:ss
+where they can run past an hour (the Mahjong Escapes, BookWorm Adventures' arena).
+
+| Game | Read from (in the game's user folder) | Tables |
+|---|---|---|
+| Bejeweled, Big Money, Alchemy, Seven Seas, Noah's Ark, Mummy Maze, Rocket Mania, Bejeweled 2 | `hiscores.dat` (Rocket Mania `Players/`, Bejeweled 2 `users/`): PopCap's checked high-score records | one table a mode, with Today where the game keeps it |
+| Atomica | `HS.CFG` | Strategy, Action, with Today |
+| Dynomite | `STOMPED.HS`, `ENDLESS.HS`, `FOSSIL.HS`, `TIMETRIAL.HS` | one table a file; Time Trial as m:ss |
+| Bejeweled Twist | `users/scores.dat` | Classic, Blitz |
+| AstroPop | `users/datahs.usr` | Classic by points, Survival by its time (m:ss) |
+| Cosmic Bugs, Water Bugs | `cb.dat` | the eight high scores |
+| Typer Shark | `users/user.idx` | the score table and the abyss's |
+| Bonnie's Bookstore | `Data/HighScores.dat` | Classic, Action, with the longest word |
+| Tip Top | `Preferences.dat`, its first 560 bytes | Regular, Speed, Strategy (the Timed table, which no button reaches, left out); empty places not shown |
+| BookWorm | `registry.ini`, the key `Scores` | Classic, Action, Best Word, Longest Word |
+| Ning Po | `registry.ini`, the values `HS:<layout>x<rank>` | the played places of each layout, as m:ss |
+| Word Harmony | `registry.ini`, the keys `scores\<mode>` | Puzzle, Solitaire, Action |
+| Mahjong Escape: Ancient China, Ancient Japan | every player's `<id>.usr` | each layout and escape level someone has won, the players by score with their best times |
+| BookWorm Adventures and its Volume 2 | every player's `users/<name>.bwa` | Top Words, Arena (by stage, with its time) |
+
+The registry's games are read from the port's registry file (`userdata/registry.ini`, `framework/SexyAppBase.cpp`), whose
+values a small parser decodes (`parseIni`). Where a game builds its list across players (the Mahjong Escapes, BookWorm
+Adventures), the cabinet builds it as the game's code does, from every player's file. A Word column appears where a game keeps
+a word beside the name (BookWorm, Bonnie's Bookstore, BookWorm Adventures' top words), and a Time column where it keeps a best
+time beside the score (the Mahjong Escapes).
+
+Names are read at run time from the player's own files and never written into the site: a Mahjong layout's name is the name
+of its `LAYOUTS` resource in the player's own `Resource.dll`. Where a game names something only in a picture, the table gets a
+number (Ning Po's layouts, "Layout n"; the Mahjong Escapes' escape levels).
+
+Left out on purpose: BookWorm Adventures' mini-game tables, which the game's scripts name and format; Bejeweled Twist's
+challenge progress and per-player bests in `profile.dat`, and AstroPop's per-player bests, which are a player's record rather
+than a high-score list; Pixelus, which keeps no score list.
 
 ### The fixes mod on the site
 
@@ -693,7 +789,9 @@ async function of `t` (`byopop.test`); what it returns becomes `byopop.test.resu
 **The built-in driver `?driver=move`** plays any game by its port's own bot (`docs/TEST_COMMANDS.md`, "The bot behind
 `move`"). It loops `state()`, `botMove()`, `playMove()`, so every move is real input. It stops when the state says
 `"over": true`, on `MOVE null` twice running while the game is not busy, on an ERROR, or after `?steps=` moves (2000 by
-default); while the state says `busy`, `MOVE null` means "not yet" and it waits 5 updates. The result is
+default); while the state says `busy`, `MOVE null` means "not yet" and it waits 5 updates. With `?begin=mode`, the first
+`MOVE null` twice running while the state names a `mode` (the game on its title or menus) sends `goto <mode>` once and
+goes on, as the native loop's `--first` does (the screen saver uses it). The result is
 `{moves, stop, state, updates, errors}`, with `stop` one of "over", "limit", "no move", "busy" or "error: <message>".
 `playByMove({steps})` runs the same loop from a session's own driver.
 

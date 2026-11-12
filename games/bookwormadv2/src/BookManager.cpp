@@ -267,7 +267,7 @@ void BookManager::MouseMove(int x, int y)
 
 void BookManager::MouseDown(int x, int y, int theBtnNum, int theClickCount)
 {
-	if ((mApp->mLoadingChapter && mApp->mChapterLoadScreen != nullptr) || mApp->mQueuedHydraLockout)
+	if ((mApp->mLoadingChapter && mApp->mChapterLoadScreen != nullptr))
 		return;
 	// (not the Lua object's: the arrow hints hear it)
 	if (mApp->mArrowHintManager != nullptr)
@@ -276,7 +276,7 @@ void BookManager::MouseDown(int x, int y, int theBtnNum, int theClickCount)
 
 void BookManager::MouseUp(int x, int y, int theBtnNum, int theClickCount)
 {
-	if (IsAsleep(true) || mApp->mQueuedHydraLockout)
+	if (IsAsleep(true))
 		return;
 	LuaWidget::MouseUp(x, y, theBtnNum, theClickCount);
 }

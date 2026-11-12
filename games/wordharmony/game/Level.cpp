@@ -117,7 +117,7 @@ Level::Level(Level* thePrevious)
 	mLongestPiece = 2;
 	mPieces = 0;
 	mGravity = Point(0, 500.0f);
-	for (int i = 0; i < 14; i++)
+	for (int i = 0; i < LEVEL_WORDS; i++)
 		mBonuses[i] = 0;
 	if (thePrevious != NULL)
 	{
@@ -152,7 +152,7 @@ Level::Level(const Level& theLevel)
 		i--;
 	} while (i != 0);
 	aText = mWords;
-	i = 14;
+	i = LEVEL_WORDS;
 	do
 	{
 		*aText = theLevel.mWords[aText - mWords];
@@ -160,7 +160,7 @@ Level::Level(const Level& theLevel)
 		i--;
 	} while (i != 0);
 	aText = mDefinitions;
-	i = 14;
+	i = LEVEL_WORDS;
 	do
 	{
 		*aText = theLevel.mDefinitions[aText - mDefinitions];
@@ -168,7 +168,7 @@ Level::Level(const Level& theLevel)
 		i--;
 	} while (i != 0);
 	int* aBonus = mBonuses;
-	i = 14;
+	i = LEVEL_WORDS;
 	do
 	{
 		*aBonus = theLevel.mBonuses[aBonus - mBonuses];
@@ -288,7 +288,7 @@ void LevelHandler::startElement(const std::string& theName, const XmlAttributes&
 				break;
 			}
 			i++;
-		} while (i < 14);
+		} while (i < LEVEL_WORDS);
 	}
 	if (theName.compare(0, theName.size(), "obstacle", 8) == 0)
 	{

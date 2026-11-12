@@ -51,6 +51,10 @@ library.menu.props = Properties
 library.props.title = {game} Properties
 library.props.released = Released
 library.props.plays = Plays
+library.props.first = First played
+library.props.player = Player
+library.props.no_player = (none)
+library.props.removed = (removed)
 library.props.win95 = Windows 95
 library.props.yes = Yes
 library.props.no = No
@@ -150,6 +154,27 @@ settings.wallpaper.remove = Remove
 settings.wallpaper.kept = A picture is kept
 settings.wallpaper.none_kept = No picture kept
 settings.wallpaperfit.label = Display
+settings.theme.label = Theme
+trophies.title = Trophy Cabinet
+trophies.player = Player:
+trophies.everyone = (All)
+trophies.today = Today
+trophies.col.table = Table
+trophies.col.place = #
+trophies.col.name = Name
+trophies.col.score = Score
+trophies.col.time = Time
+trophies.col.word = Word
+trophies.layout = Layout {n}
+trophies.escape = Escape {n}
+trophies.count = {n} games
+settings.section.saver = Screen Saver
+settings.saver.label = Screen Saver
+settings.saver.none = (None)
+settings.saver.preview = Preview
+settings.saverwait.label = Wait
+settings.saverwait.minutes = {n} min
+settings.theme.none = (None)
 settings.wallpaperfit.hint = How a picture of your own sits on the desktop.
 settings.wallpaperfit.centre = Centre
 settings.wallpaperfit.tile = Tile
@@ -349,6 +374,8 @@ index.footer.music_html = The Music player plays the music from the game files y
   <a href="licenses/libxmp-lite.txt" target="_blank" rel="noopener">libxmp-lite<span class="visually-hidden newtab"> (opens in a new tab)</span></a>; its score view draws with
   <a href="licenses/vexflow.txt" target="_blank" rel="noopener">VexFlow<span class="visually-hidden newtab"> (opens in a new tab)</span></a> and its fonts
   <a href="licenses/bravura.txt" target="_blank" rel="noopener">Bravura and Academico<span class="visually-hidden newtab"> (opens in a new tab)</span></a> by Steinberg.
+  Desktop themes decode JPEG 2000 pictures with
+  <a href="licenses/openjpeg.txt" target="_blank" rel="noopener">OpenJPEG<span class="visually-hidden newtab"> (opens in a new tab)</span></a>.
   The desktop's text is set in
   <a href="licenses/byopop-sans.txt" target="_blank" rel="noopener">Byopop Sans<span class="visually-hidden newtab"> (opens in a new tab)</span></a>,
   made from W95FA by Alina Sava.
@@ -502,6 +529,7 @@ game.import.unpacking = Unpacking {names}…
 # {done} of {total} files copied so far
 game.import.progress_text = {done} of {total} files
 # {markers} names the files that make a folder the game's install (from the game's page), {title} the game
+game.import.exe = This copy's {exe} can't be read. The Steam or PopCap copy works.
 game.import.wrong_folder = Missing files: {markers}. Pick the {title} install folder
   itself.
 # A folder that holds a game the site recognises but does not play (cmake/ByopopOthers.cmake): elsewhere is followed by a link to
@@ -683,6 +711,8 @@ import.err.no_locks = This browser can't tell whether {title}'s page is open, so
 import.err.working = This page is still working on {title}. Wait for it to finish and try again.
 import.err.in_use = {title}'s files are in use, by its page in another tab or window or by this page. Close
   the game's page, or wait, and try again.
+# a copy whose exe the port can't read its texts from (web/gameimport.js, exeUnreadable): one line, no more
+import.err.exe = This copy's {exe} can't be read. The Steam or PopCap copy works.
 import.err.wrong_folder = That folder doesn't hold {title}'s {markers}.
 import.say.unpacking = Unpacking…
 import.say.copying = Copying {count} files…

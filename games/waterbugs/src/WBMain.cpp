@@ -364,7 +364,6 @@ void Screen_Redraw()
 		Image_Copy(&gBackBuffer, gLevels.mCurrent->mBackground);
 		Font_SetTarget(&gFontSmall, gBackBuffer.mBits, gBackBuffer.mPitch, &gBackBuffer.mFmt, gBackBuffer.mW,
 			gBackBuffer.mH);
-		Font_SetClipped(&gFontSmall, 1);
 		// (the background covers both texts just after, so the original never shows them; 16 is the screen's
 		// bits per pixel, 0x460008)
 		Font_Draw(&gFontSmall, GT(0x458b3c), 10, 0x244, 0);

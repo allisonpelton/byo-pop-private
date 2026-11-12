@@ -61,6 +61,16 @@ void WinDMApp::AddDialog(int theDialogId, Dialog* theDialog)
 		mWidgetManager->SetFocus(theDialog);
 }
 
+// 0x5dceb6 (slot 76): when the last dialog is gone the board has the keyboard focus (the board is null on the menu: no focus then)
+bool WinDMApp::KillDialog(int theDialogId)
+{
+	if (!SexyApp::KillDialog(theDialogId))
+		return false;
+	if (mDialogMap.empty())
+		mWidgetManager->SetFocus(mBoard);
+	return true;
+}
+
 // a dialog with one button, its text "OK" (the profile errors, the name conflicts)
 Dialog* WinDMApp::ShowMessage(int theDialogId, const std::string& theHeader, const std::string& theLines, int theButtonMode)
 {

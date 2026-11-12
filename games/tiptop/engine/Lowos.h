@@ -168,7 +168,7 @@ void UninitMouse();                                                             
 uint32_t NextMouseEvent();                                                       // 0x431ee0
 void GetMousePos(uint16_t* x, uint16_t* y);                                      // 0x431f80
 
-// --- sound (0x432330-0x433240) ---
+// --- sound (from 0x432330 to the network code behind it) ---
 char InitSound();                                                                // 0x432e50 (0 = success)
 void UninitSound();                                                              // 0x432e70
 Sound* CreateSound(const void* theWav, uint32_t theSize, uint32_t theParam, uint8_t theFlags);  // 0x432ea0

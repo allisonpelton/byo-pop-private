@@ -186,7 +186,8 @@ EffectOverlay::EffectOverlay(WinDMApp* theApp)
 	mBarStep = 0;
 }
 
-// 0x5b8cee: the original never frees the text's picture; the port does
+// 0x5b8cee: the original never frees the text's picture, and no code of it ever deletes the overlay (Board::~Board 0x5a5abe leaves it
+// out), so every board leaked both; the port does: ~Board deletes the overlay, and this its text picture
 EffectOverlay::~EffectOverlay()
 {
 	delete mTextImage;

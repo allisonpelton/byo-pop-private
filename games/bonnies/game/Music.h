@@ -20,7 +20,7 @@ struct MusicTrack
 	int mStartOrder;          // +0x14
 	int mStopOrder;           // +0x18
 	Str mName;                // +0x1c
-	Str mStr24;               // +0x24
+	Str mSecondName;          // +0x24: nothing reads it
 };
 
 extern MusicTrack gTracks[10];  // 0x473c70
@@ -44,7 +44,7 @@ public:
 	// 0x40e080: the fades, and a new track when the last ended
 	void update();
 
-	int mField00;             // +0x00 (1)
+	int mAlive;               // +0x00: (1) the music object exists (nothing reads it)
 	int mKind;                // +0x04: the kind playing (0 none)
 	int mIndex;               // +0x08: the track playing
 	int mCount;               // +0x0c: the tracks played
