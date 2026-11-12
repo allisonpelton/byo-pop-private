@@ -271,7 +271,13 @@ holds the rules every session follows; this file does not repeat them.
     while the original's cycles rise, so a player's quiet machine is the port's worst case. Vsync off costs more, SDL's
     Direct3D 9 costs 8.3 G and OpenGL 4.3 G, and drawing straight into the back buffer at render scale 1 (no screen
     texture pass) saved nothing. Mummy Maze's port draws 37 frames a second against the original's 53, since each
-    present waits for the display and two updates run between draws.
+    present waits for the display and two updates run between draws. AstroPop measured the cap against vsync in 3D
+    at 1x (GAME_NOTES 11d, 2026-11-12, `-presentlog` for the intervals): no clear gain (105% of the original with the
+    cap, 114% with vsync, about +-30% a run), and the cap's presents are lumpy, quantised to the loop's 10 ms updates,
+    so keep vsync on the GPU path. Per present its present call plus driver thread cost 1.9 to 2.4 M cycles against the
+    original's 1.2 M; the driver thread runs the frame's ~120 draw calls (one per texture change), so only fewer,
+    larger submissions cut it (the next item). The port's mixer thread, about 0.13 M an update, has no counterpart in
+    the original's process.
   - Draw calls (Typer Shark, 2026-11-12). `DDInterface::DrawTexturedQuad` makes one SDL call a quad: 593 a frame for
     about 20 texture changes, DrawScreen 466 M cycles in 20 s. Joining consecutive quads of one texture into one
     SDL_RenderGeometry call would take about half of that, some 6% of the port. The draw order stays, and every port's

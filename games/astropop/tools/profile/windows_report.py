@@ -77,7 +77,7 @@ def report(d, busy_max=9.0):
     names = {'orig': ('orig*', 'counts.jsonl'), 'port-w1': ('port-w1-*', 'split.jsonl'), 'port-w2': ('port-w2-*', 'split.jsonl')}
     rows = {}
     for k in kinds:
-        pat, fn = names.get(k, (None, None))
+        pat, fn = names.get(k, (k + '-*', 'split.jsonl') if k.startswith('port-') else (None, None))     # port-vsync, port-pace (vsync.sh)
         if not pat:
             continue
         for f in glob.glob(os.path.join(d, pat, '**', fn), recursive=True):

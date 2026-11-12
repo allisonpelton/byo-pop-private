@@ -215,6 +215,11 @@ public:
 	// when the frames take longer than that). A renderer held by vsync (a GPU's) is never held here.
 	bool FrameHeldByPace(unsigned int theNowMs);
 
+	// port: -presentlog=<file>, a test option: the time of every present and the length of its call, written when the app ends
+	// (docs/TEST_COMMANDS.md, "The present log"). Native only.
+	static void StartPresentLog(const std::string& theFileName);
+	static void WritePresentLog();
+
 	// Converts window coordinates (as reported by SDL mouse events) to logical screen coordinates.
 	virtual void WindowToLogical(int theWindowX, int theWindowY, int* theX, int* theY);
 	// port: the inverse, a game point to window coordinates (SexyAppBase::WarpMouse)

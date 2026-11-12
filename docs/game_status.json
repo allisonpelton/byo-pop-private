@@ -261,7 +261,7 @@
       ],
       "na": [],
       "now": "performance",
-      "note": "at the original's 640x480: 2D 69% of the original's cycles, 3D 134%; the game's own code is cheaper in 3D, the excess is the present and the Direct3D 11 driver thread; next the display-rate cap's measurement"
+      "note": "3D at 1x 105 to 121% of the original (the pace cap no clear gain over vsync); the excess is a shared cost per present (the driver thread's ~120 draw calls a frame) and the mixer thread; 2D 69%"
     },
     "ningpo": {
       "title": "Ning Po Mahjong Deluxe",

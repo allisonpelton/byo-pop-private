@@ -22,6 +22,8 @@ PERF_WINDOW sets the port's window state: `1` (the default since 2026-11-12) is 
 ScreenMode=0 and -windowscale=1); `2` is the framework's default window, twice the game's size (ScreenMode=0 only); `full` is what these
 runs did before (no ScreenMode: the port started full screen on a 3840x2160 desktop, render scale 4: not like for like with the
 original's 640x480 window). The original's window is its own size in every run (origrun's copy; visrun3d's, ScreenMode 0).
+PERF_PRESENTLOG=1 adds -presentlog=<dir>/presents.txt (the present intervals, read by present_intervals.py; vsync.sh sets it). SDL_RENDER_VSYNC=0
+in PERF_ENV turns the display's vsync off, so that the frame loop's own pace holds the presents to the refresh rate.
 PERF_SPLIT=1 is the cycle split (docs/TEST_COMMANDS.md, "The cycle split"): the port runs with -cyclesplit=<dir>/split.jsonl and the
 script's `cyclesplit a` at the stretch's first update and `cyclesplit b` 20 updates after the last input; orig counts the functions of count.txt with origrun's
 --count (`at N count a` / `b`), orig3d with countsnap.py (the same counters read from outside); the files are compared with
@@ -466,6 +468,8 @@ def port_minute(out):
             env[kv.split('=', 1)[0]] = kv.split('=', 1)[1]
         extra = dict(startupinfo=si, creationflags=0x4000, env=env)
     split = ['-cyclesplit=' + os.path.join(out, 'split.jsonl')] if SPLIT else []
+    if os.environ.get('PERF_PRESENTLOG') == '1':      # the time of each present (docs/TEST_COMMANDS.md, "The present log"): presents.txt
+        split += ['-presentlog=' + os.path.join(out, 'presents.txt')]
     p = subprocess.Popen([exe, '-userdir=' + user, '-seed=%d' % SEED, '-realinput=' + os.path.join(out, 'script.txt')] +
                          window_args() + split + ([] if REAL else ['-fast']), cwd=out, stdout=log, stderr=subprocess.STDOUT, **extra)
     h = k32.OpenProcess(QUERY | VM_READ | QUERY_LIMITED, False, p.pid)
