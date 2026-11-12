@@ -59,6 +59,7 @@ static const int LoadStateLoading = 2;
 
 static int sTickBase = 0; // 0xa2a1ac: the update count the game has run up to (0 until the first update sets it)
 static int sPreviousBatch = 1; // 0x5b51c8: how many updates the last batch ran
+static int sFramesDone = 0; // port: the updates of the widget since the loading was done, for a test
 
 // 0x4407c0
 void ResetTickBase()
@@ -226,7 +227,35 @@ static void DrawScenes()
 	}
 }
 
-// 0x440650: the updates the clock is behind by, run one after the other (a long delay is not made up for)
+// 0x440650 (after the loading): the updates the clock is behind by, run one after the other (a long delay is not made up for)
+static int RunDueUpdates(int theFrame)
+{
+	int aLoadState = gLoadState;
+	int aTickCount = (int)(gApp->GetClockTime() / UpdateMilliseconds);
+	if (sTickBase == 0)
+		sTickBase = aTickCount;
+	int aUpdatesBehind = aTickCount - sTickBase;
+	if (aUpdatesBehind > GiveUpBehindUpdates) {
+		aUpdatesBehind = sPreviousBatch < MaxCatchUpUpdates + 1 ? sPreviousBatch : MaxCatchUpUpdates;
+		sTickBase = aTickCount - aUpdatesBehind;
+	}
+	// port: a test can give the ticks each frame runs (the original's, from a run of it), whatever the clock says
+	int aScheduledTicks = gApp->ScheduledTicks(theFrame);
+	if (aScheduledTicks >= 0)
+		aUpdatesBehind = aScheduledTicks;
+	if (aUpdatesBehind == 0)
+		return 0;
+	for (int anUpdate = 0; anUpdate < aUpdatesBehind; anUpdate++) {
+		// without the focus (once the logos are over), and while the focus counts down, time passes and nothing updates
+		if ((gHasFocus || aLoadState <= LoadStateLogosShowing) && gFocusFrames != 1)
+			UpdateScenes();
+		sTickBase++;
+	}
+	sPreviousBatch = aUpdatesBehind;
+	return aUpdatesBehind;
+}
+
+// 0x440650
 void VeniceWidget::Update()
 {
 	MarkDirty();
@@ -238,23 +267,15 @@ void VeniceWidget::Update()
 		return;
 	}
 
-	int aTickCount = (int)(gApp->GetClockTime() / UpdateMilliseconds);
-	if (sTickBase == 0)
-		sTickBase = aTickCount;
-	int aUpdatesBehind = aTickCount - sTickBase;
-	if (aUpdatesBehind > GiveUpBehindUpdates) {
-		aUpdatesBehind = sPreviousBatch < MaxCatchUpUpdates + 1 ? sPreviousBatch : MaxCatchUpUpdates;
-		sTickBase = aTickCount - aUpdatesBehind;
-	}
-	if (aUpdatesBehind == 0)
+	// port: the frames a test counts are the ones after the loading (the logos before it run on the clock)
+	if (aLoadState < LoadStateLoadingScreen) {
+		RunDueUpdates(-1);
 		return;
-	for (int anUpdate = 0; anUpdate < aUpdatesBehind; anUpdate++) {
-		// without the focus (once the logos are over), and while the focus counts down, time passes and nothing updates
-		if ((gHasFocus || aLoadState <= LoadStateLogosShowing) && gFocusFrames != 1)
-			UpdateScenes();
-		sTickBase++;
 	}
-	sPreviousBatch = aUpdatesBehind;
+	gApp->RunFrameCommands(sFramesDone);
+	int aTicksRun = RunDueUpdates(sFramesDone);
+	gApp->TraceFrame(sFramesDone, aTicksRun);
+	sFramesDone++;
 }
 
 // 0x4407d0: a scene that shows a picture: it waits (nothing is drawn), fades the picture in over half a second at the middle of

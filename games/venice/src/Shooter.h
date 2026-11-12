@@ -53,4 +53,7 @@ private:
 	void UpdateBeam(); // the beam of the power shot (a part of 0x4199e0)
 };
 
+// port: the slot counts the colour choice reads (0x5ba3f4, eleven of them, and the number of colours at 0x5ba420), for a test's trace
+void GetSlotKindCountsForTest(int* theCounts);
+
 #endif

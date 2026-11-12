@@ -264,7 +264,7 @@ public:
 	int mTilesUp = 0;
 	int mTilesDown = 0;
 	int mBilinear = 1;
-	int mSelectable = 1;
+	int mSelectable = 0;
 	int mSnap = 1;
 	bool mFlipX = false;
 	bool mFlipY = false;

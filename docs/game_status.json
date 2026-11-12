@@ -502,11 +502,12 @@
     "venice": {
       "title": "Venice Deluxe",
       "done": [
-        "port"
+        "port",
+        "identical-play"
       ],
       "na": [],
-      "now": "identical-play",
-      "note": "playable natively and on the web; phase one, plays identical, next"
+      "now": "identical-look",
+      "note": "plays identical in every mode against the original, its 3D for 16,143 frames (then a 3D rounding oddity); phase two next"
     },
     "heavyweapon": {
       "title": "Heavy Weapon Deluxe",
