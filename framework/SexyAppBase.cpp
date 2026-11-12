@@ -2787,6 +2787,16 @@ void SexyAppBase::UpdateFTimeAcc()
 	mLastTimeCheck = aCurTime;
 }
 
+// port: a renderer that no vertical blank holds (SDL's software renderer) draws as often as the loop has time, every update and more
+// than any display shows. Its frames are held to the display's refresh rate (DDInterface::FrameHeldByPace); the updates keep their
+// own. Not with -fast, -drawevery or -hold, whose drawing is the test's own, and not before the game has loaded.
+static bool DrawHeldByPace(SexyAppBase* theApp)
+{
+	if ((!theApp->mLoaded) || (theApp->mDDInterface == NULL) || (theApp->mFastMode) || (theApp->mDrawEvery) || (theApp->mCommandsHold))
+		return false;
+	return theApp->mDDInterface->FrameHeldByPace((unsigned int) timeGetTime());
+}
+
 // One step of 1.3's update state machine: an update when one is due (every mFrameTime ms of game
 // time), otherwise a draw when one is pending, otherwise a sleep until the next update. At most ~10
 // updates run back to back before a draw is forced (the game slows down instead of skipping frames).
@@ -2880,7 +2890,8 @@ bool SexyAppBase::Process(bool allowSleep)
 			mNonDrawCount = 0;
 
 			// port: with -fast only every FAST_DRAW_INTERVAL-th update is drawn (and the first frame)
-			if ((mHasPendingDraw) && ((!mFastMode) || (mDrawEvery) || (mDrawCount == 0) || (mUpdateCount - mLastFastDrawUpdate >= FAST_DRAW_INTERVAL)))
+			if ((mHasPendingDraw) && ((!mFastMode) || (mDrawEvery) || (mDrawCount == 0) || (mUpdateCount - mLastFastDrawUpdate >= FAST_DRAW_INTERVAL)) &&
+				(!DrawHeldByPace(this)))
 			{
 				DrawDirtyStuff();
 				mLastFastDrawUpdate = mUpdateCount;

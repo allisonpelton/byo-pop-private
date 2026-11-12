@@ -461,6 +461,7 @@ def port_idle(out):
     if os.environ.get('PERF_SHOT'):     # PERF_SHOT=1: a picture of the idle board at update 5000, to compare two builds' drawing
         os.makedirs(os.path.join(out, 'shots'))
         lines.insert(-2, '5000 screenshot shots/idle.png')
+        lines.insert(-2, '5001 screenshotfull shots/idlefull.png')   # its size is the render scale times 640 by 480: the window state of the run
     script = os.path.join(out, 'script.txt')
     open(script, 'w', newline=chr(10)).write(chr(10).join(lines) + chr(10))
     others0 = game_processes(mine_prefixes())

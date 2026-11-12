@@ -493,7 +493,7 @@
       ],
       "na": [],
       "now": "performance",
-      "note": "2D on SDL's software renderer: waits on the framework"
+      "note": "idle board under the original at its own 640x480 in 2D software (6.6% of a core against 9.4%), 2D GPU (7.5%) and 3D (8.8%); the software renderer at the default 2x window (48.5%) waits for the user's window-size choice"
     },
     "venice": {
       "title": "Venice Deluxe",
