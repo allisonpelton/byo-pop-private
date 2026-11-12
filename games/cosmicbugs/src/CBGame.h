@@ -20,55 +20,63 @@ namespace cb
 
 using namespace r64;
 
+// The board: 50 columns by 37 rows of 16-pixel cells, 800 by 592 pixels of the screen's 800 by 600
+constexpr int CELL_SIZE = 16;
+constexpr int CELL_HALF = 8;                                  // from a cell's corner to its middle
+constexpr int GRID_COLUMNS = 50;
+constexpr int GRID_ROWS = 37;
+constexpr int BOARD_WIDTH = GRID_COLUMNS * CELL_SIZE;         // 800
+constexpr int BOARD_HEIGHT = GRID_ROWS * CELL_SIZE;           // 592
+
 // The game's lists: {current, head, tail} of nodes that start with {next, prev}
 template <class T>
 struct List
 {
-	T* current;
-	T* head;
-	T* tail;
+	T* mCurrent;
+	T* mHead;
+	T* mTail;
 };
 
 // A node's links, as the list's own type (kinds that extend Obj keep Obj links)
 template <class T>
 T* Node_Next(T* theNode)
 {
-	return static_cast<T*>(theNode->next);
+	return static_cast<T*>(theNode->mNext);
 }
 
 template <class T>
 T* Node_Prev(T* theNode)
 {
-	return static_cast<T*>(theNode->prev);
+	return static_cast<T*>(theNode->mPrev);
 }
 
 // 0x4108b0 and the like
 template <class T>
 void List_Init(List<T>* theList)
 {
-	theList->current = nullptr;
-	theList->head = nullptr;
-	theList->tail = nullptr;
+	theList->mCurrent = nullptr;
+	theList->mHead = nullptr;
+	theList->mTail = nullptr;
 }
 
 // 0x420b10 and the like: a new node at the tail, made current. 0x4108c0 is one (the level's key map is another)
 template <class T>
 T* List_Append(List<T>* theList, T* theNode)
 {
-	if (theList->current == nullptr)
+	if (theList->mCurrent == nullptr)
 	{
-		theNode->next = nullptr;
-		theNode->prev = nullptr;
-		theList->head = theNode;
+		theNode->mNext = nullptr;
+		theNode->mPrev = nullptr;
+		theList->mHead = theNode;
 	}
 	else
 	{
-		theNode->prev = theList->tail;
-		theNode->next = nullptr;
-		theList->tail->next = theNode;
+		theNode->mPrev = theList->mTail;
+		theNode->mNext = nullptr;
+		theList->mTail->mNext = theNode;
 	}
-	theList->current = theNode;
-	theList->tail = theNode;
+	theList->mCurrent = theNode;
+	theList->mTail = theNode;
 	return theNode;
 }
 
@@ -94,41 +102,41 @@ void List_DeleteNode(T* theNode)
 template <class T>
 bool List_RemoveCurrent(List<T>* theList)
 {
-	T* aNode = theList->current;
+	T* aNode = theList->mCurrent;
 	if (aNode == nullptr)
 		return false;
 	T* aPrev = Node_Prev(aNode);
 	if (aPrev == nullptr)
 	{
-		if (aNode->next != nullptr)
+		if (aNode->mNext != nullptr)
 		{
 			T* aNext = Node_Next(aNode);
-			aNext->prev = nullptr;
-			theList->current = aNext;
-			theList->head = aNext;
+			aNext->mPrev = nullptr;
+			theList->mCurrent = aNext;
+			theList->mHead = aNext;
 			List_DeleteNode(aNode);
 			return true;
 		}
 	}
-	else if (aNode->next != nullptr)
+	else if (aNode->mNext != nullptr)
 	{
-		aPrev->next = aNode->next;
-		aNode->next->prev = aNode->prev;
-		theList->current = Node_Next(aNode);
+		aPrev->mNext = aNode->mNext;
+		aNode->mNext->mPrev = aNode->mPrev;
+		theList->mCurrent = Node_Next(aNode);
 		List_DeleteNode(aNode);
 		return true;
 	}
 	if (aPrev == nullptr)
 	{
-		theList->current = nullptr;
-		theList->head = nullptr;
-		theList->tail = nullptr;
+		theList->mCurrent = nullptr;
+		theList->mHead = nullptr;
+		theList->mTail = nullptr;
 	}
 	else
 	{
-		aPrev->next = nullptr;
-		theList->current = aPrev;
-		theList->tail = aPrev;
+		aPrev->mNext = nullptr;
+		theList->mCurrent = aPrev;
+		theList->mTail = aPrev;
 	}
 	List_DeleteNode(aNode);
 	return true;
@@ -138,39 +146,39 @@ bool List_RemoveCurrent(List<T>* theList)
 template <class T>
 bool List_Unlink(List<T>* theList)
 {
-	T* aNode = theList->current;
+	T* aNode = theList->mCurrent;
 	if (aNode == nullptr)
 		return false;
 	T* aPrev = Node_Prev(aNode);
 	if (aPrev == nullptr)
 	{
-		if (aNode->next != nullptr)
+		if (aNode->mNext != nullptr)
 		{
 			T* aNext = Node_Next(aNode);
-			aNext->prev = nullptr;
-			theList->current = aNext;
-			theList->head = aNext;
+			aNext->mPrev = nullptr;
+			theList->mCurrent = aNext;
+			theList->mHead = aNext;
 			return true;
 		}
 	}
-	else if (aNode->next != nullptr)
+	else if (aNode->mNext != nullptr)
 	{
-		aPrev->next = aNode->next;
-		aNode->next->prev = aNode->prev;
-		theList->current = Node_Next(aNode);
+		aPrev->mNext = aNode->mNext;
+		aNode->mNext->mPrev = aNode->mPrev;
+		theList->mCurrent = Node_Next(aNode);
 		return true;
 	}
 	if (aPrev == nullptr)
 	{
-		theList->current = nullptr;
-		theList->head = nullptr;
-		theList->tail = nullptr;
+		theList->mCurrent = nullptr;
+		theList->mHead = nullptr;
+		theList->mTail = nullptr;
 	}
 	else
 	{
-		aPrev->next = nullptr;
-		theList->current = aPrev;
-		theList->tail = aPrev;
+		aPrev->mNext = nullptr;
+		theList->mCurrent = aPrev;
+		theList->mTail = aPrev;
 	}
 	return true;
 }
@@ -179,24 +187,24 @@ bool List_Unlink(List<T>* theList)
 template <class T>
 T* List_InsertBefore(List<T>* theList, T* theNode)
 {
-	if (theList->current == nullptr)
+	if (theList->mCurrent == nullptr)
 	{
-		theNode->next = nullptr;
-		theNode->prev = nullptr;
+		theNode->mNext = nullptr;
+		theNode->mPrev = nullptr;
 	}
 	else
 	{
-		theNode->next = theList->current;
-		theNode->prev = theList->current->prev;
-		if (theList->current->prev != nullptr)
-			theList->current->prev->next = theNode;
-		theList->current->prev = theNode;
+		theNode->mNext = theList->mCurrent;
+		theNode->mPrev = theList->mCurrent->mPrev;
+		if (theList->mCurrent->mPrev != nullptr)
+			theList->mCurrent->mPrev->mNext = theNode;
+		theList->mCurrent->mPrev = theNode;
 	}
-	theList->current = theNode;
-	if (theNode->next == nullptr)
-		theList->tail = theNode;
-	if (theNode->prev == nullptr)
-		theList->head = theNode;
+	theList->mCurrent = theNode;
+	if (theNode->mNext == nullptr)
+		theList->mTail = theNode;
+	if (theNode->mPrev == nullptr)
+		theList->mHead = theNode;
 	return theNode;
 }
 
@@ -204,15 +212,15 @@ T* List_InsertBefore(List<T>* theList, T* theNode)
 template <class T>
 bool List_Next(List<T>* theList)
 {
-	T* aNode = theList->current;
+	T* aNode = theList->mCurrent;
 	if (aNode != nullptr)
 	{
-		if (aNode->next != nullptr)
+		if (aNode->mNext != nullptr)
 		{
-			theList->current = Node_Next(aNode);
+			theList->mCurrent = Node_Next(aNode);
 			return true;
 		}
-		theList->current = theList->head;
+		theList->mCurrent = theList->mHead;
 	}
 	return false;
 }
@@ -221,23 +229,23 @@ bool List_Next(List<T>* theList)
 template <class T>
 int List_Count(List<T>* theList)
 {
-	T* aHead = theList->head;
+	T* aHead = theList->mHead;
 	int aCount = 0;
-	theList->current = aHead;
+	theList->mCurrent = aHead;
 	if (aHead != nullptr)
 	{
 		while (true)
 		{
-			T* aNode = theList->current;
+			T* aNode = theList->mCurrent;
 			aCount = aCount + 1;
 			if (aNode == nullptr)
 				break;
-			if (aNode->next == nullptr)
+			if (aNode->mNext == nullptr)
 			{
-				theList->current = aHead;
+				theList->mCurrent = aHead;
 				return aCount;
 			}
-			theList->current = Node_Next(aNode);
+			theList->mCurrent = Node_Next(aNode);
 		}
 	}
 	return aCount;
@@ -247,9 +255,9 @@ int List_Count(List<T>* theList)
 template <class T>
 void List_Clear(List<T>* theList)
 {
-	if (theList->current != nullptr)
+	if (theList->mCurrent != nullptr)
 	{
-		theList->current = theList->head;
+		theList->mCurrent = theList->mHead;
 		bool aMore;
 		do
 		{
@@ -263,21 +271,21 @@ void List_Clear(List<T>* theList)
 template <class T, class F>
 void List_Each(List<T>* theList, F theFunc)
 {
-	if (theList->current != nullptr)
+	if (theList->mCurrent != nullptr)
 	{
-		theList->current = theList->head;
+		theList->mCurrent = theList->mHead;
 		while (true)
 		{
-			theFunc(theList->current);
-			T* aNode = theList->current;
+			theFunc(theList->mCurrent);
+			T* aNode = theList->mCurrent;
 			if (aNode == nullptr)
 				return;
-			if (aNode->next == nullptr)
+			if (aNode->mNext == nullptr)
 			{
-				theList->current = theList->head;
+				theList->mCurrent = theList->mHead;
 				return;
 			}
-			theList->current = Node_Next(aNode);
+			theList->mCurrent = Node_Next(aNode);
 		}
 	}
 }
@@ -285,19 +293,19 @@ void List_Each(List<T>* theList, F theFunc)
 // 0x5dcc bytes: an animation's frames, from art.bbk, a FLIC (with its mask FLIC) or a TGA
 struct Animation
 {
-	Animation* next;          // +0x000
-	Animation* prev;          // +0x004
-	char name[0x80];          // +0x008
-	Image* frames[256];       // +0x088
-	int count;                // +0x488
-	int frameTime;            // +0x48c
-	char swap1[0x20];         // +0x490
-	char swap2[0x20];         // +0x4b0
-	char swap3[0x20];         // +0x4d0
-	char file[0x80];          // +0x4f0  a bank image's name (the first of count), or X.eco for X.flc, or X.tga
-	int rotation;             // +0x570  degrees the frames are turned when loaded
-	Palette palette;          // +0x574  a FLIC's colours
-	Palette tints[10];        // +0xd7c  the colours with their green parts changed (Animation_BuildTints)
+	Animation* mNext;          // +0x000
+	Animation* mPrev;          // +0x004
+	char mName[0x80];          // +0x008
+	Image* mFrames[256];       // +0x088
+	int mCount;                // +0x488
+	int mFrameTime;            // +0x48c
+	char mSwap1[0x20];         // +0x490
+	char mSwap2[0x20];         // +0x4b0
+	char mSwap3[0x20];         // +0x4d0
+	char mFile[0x80];          // +0x4f0  a bank image's name (the first of count), or X.eco for X.flc, or X.tga
+	int mRotation;             // +0x570  degrees the frames are turned when loaded
+	Palette mPalette;          // +0x574  a FLIC's colours
+	Palette mTints[10];        // +0xd7c  the colours with their green parts changed (Animation_BuildTints)
 
 	Animation();  // 0x401480
 	~Animation(); // 0x401b00
@@ -318,24 +326,26 @@ int Animation_FromXml(Animation* theAnim, const XmlTag* theTag);
 // Utilities (0x420090..0x420850)
 // 0x420090: the whole file, malloc'd, with a 0 after it (the port's; not counted in theSize); null if missing
 uint8_t* ReadWholeFile(const char* thePath, size_t* theSize);
-void ParseHex4(const char* theText, int* a, int* b, int* c, int* d);       // 0x420110: "rrggbbaa"
-void ParseHex3(const char* theText, int* a, int* b, int* c);               // 0x4201f0: "rrggbb"
+// 0x420110: "rrggbbaa"
+void ParseHex4(const char* theText, int* theRed, int* theGreen, int* theBlue, int* theAlpha);
+void ParseHex3(const char* theText, int* theRed, int* theGreen, int* theBlue);               // 0x4201f0: "rrggbb"
 void Rand();                                                               // 0x420290
 void SeedRand(int theSeed);                                                // 0x4202c0
 uint32_t RandMod(uint32_t theRange);                                       // 0x4202d0
 int RandRange(int theLow, int theHigh);                                    // 0x4202e0
 int RandValue();                                                           // the generator's state
-float Dist3(const float* a, const float* b);                               // 0x420300
-float SegmentDist3(const float* p, const float* a, const float* b);        // 0x420360
-float SegmentDist(float px, float py, float ax, float ay, float bx, float by); // 0x420460
+float Dist3(const float* theFrom, const float* theTo);                               // 0x420300
+float SegmentDist3(const float* thePoint, const float* theStart, const float* theEnd);        // 0x420360
+float SegmentDist(float thePx, float thePy, float theAx, float theAy, float theBx, float theBy); // 0x420460
 // 0x4204c0: recolours the pixel *thePixel (in theFmt) if the component the flags pick is over each other one's
 // share theShare (percent); the others' mean replaces it, then setR/G/B take that dominant value and mulR/G/B
 // scale (x/128, at most the dominant value)
 void ColourShift(uint32_t* thePixel, const PixelFormat* theFmt, char theRed, char theGreen, char theBlue,
 	uint8_t theMulR, uint8_t theMulG, uint8_t theMulB, int theSetR, int theSetG, int theSetB, int theShare);
 void SwapColours(Image* theImage, const char* theSwap);                    // 0x420700
-double CircleOverlap(float x1, float y1, float r1, float x2, float y2, float r2); // 0x420780
-int BoxOverlap(float x1, float y1, float w1, float h1, float x2, float y2, float w2, float h2); // 0x4207d0
+double CircleOverlap(float theX1, float theY1, float theR1, float theX2, float theY2, float theR2); // 0x420780
+// 0x4207d0
+int BoxOverlap(float theX1, float theY1, float theW1, float theH1, float theX2, float theY2, float theW2, float theH2);
 void RotateImage(Image* theImage, int theAngle);                           // 0x4208c0
 
 // Globals
@@ -345,7 +355,7 @@ extern List<Animation> gAnims;   // 0x46f35c
 extern Palette gGreyPalette;     // 0x460058: r = g = b = index (its packed colours stay 0)
 extern int gGreyPaletteUnset;    // 0x460860
 extern Dirty gDirty;             // 0x472a7c
-extern const int kScreenClip[4]; // 0x460010: {0, 0, 799, 599}
+extern const int SCREEN_CLIP[4]; // 0x460010: {0, 0, 799, 599}
 
 } // namespace cb
 

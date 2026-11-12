@@ -49,7 +49,6 @@ Where a function does something different for a game, a switch the game's own co
 |---|---|---|
 | A font draws its glyphs clipped (through `mClip`) or unclipped | `Font_SetClipped` (`Font::mClipped`, +0x408) | the game's font loader, its screen redraw and `TextInput_Draw`, in the original (Water Bugs sets 1 where the original does; Cosmic Bugs' code sets it too) |
 | A text input draws on the screen or on a surface of its own over a background | the surface and background given to `TextInput_Init` | the game; neither game gives one |
-| `PumpMessages` goes on while the window is not the active one | `gPumpMessages` (0 by default) | Cosmic Bugs' demo code |
 | The fixes mod's hooks | `Sys_FixOn` (`SysHost::FixOn`, false by default) | the host, for the games that have the mod |
 
 `SysHost` has one more virtual than Cosmic Bugs' copy did (`FixOn`, for the fixes mod), which moves the vtable of that
@@ -69,8 +68,10 @@ layout as named padding (`mClippedUnused`, `mTextureUnused`, `mSurfaceUnused`, `
 the layout asserts and the games' `Text` and `FontEntry` sizes hold. Each game's `coverage.txt` names the two reached
 functions that have no counterpart now (`Font_SetClipped`, `SetScreenLostCallback`).
 
-Stay, as the coordinator decided: `Sys_Sleep` (called by Cosmic Bugs' start code), `gPumpMessages` (Cosmic Bugs' demo code,
-now gone, was its only setter) and `Key_Push` (the name entry's on-screen keys, in both games). `Sys_FixOn` is the other way
+Stay, as the coordinator decided: `Sys_Sleep` (called by Cosmic Bugs' start code) and `Key_Push` (the name entry's on-screen keys,
+in both games). `gPumpMessages`, the flag that kept `PumpMessages` going while the window was not the active one (only Cosmic Bugs'
+demo code set it, and that is gone), went out in Cosmic Bugs' readability pass: `PumpMessages` returns at once while the window
+is not the active one, as it always did. `Sys_FixOn` is the other way
 round: only Water Bugs' host calls it. The pixel-format blitters and other functions the runs did not reach stay until
 Water Bugs' coverage check agrees.
 

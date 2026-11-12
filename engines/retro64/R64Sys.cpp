@@ -48,8 +48,6 @@ void Sys_AddUpdateRect(int x, int y, int theWidth, int theHeight)
 		gHost->AddUpdateRect(x, y, theWidth, theHeight);
 }
 
-int gPumpMessages = 0;
-
 // 0x428890 (cosmicbugs), 0x428d70 (waterbugs)
 void Sys_SetMousePos(int x, int y)
 {
@@ -369,7 +367,7 @@ int PumpMessages()
 {
 	if (gHost != nullptr)
 		Sys_Activate(gHost->IsActive() ? 1 : 0);
-	if (gPumpMessages != 1 && gActive == 0)
+	if (gActive == 0)
 		return 0;
 	if (gToggleCentered == 1)
 	{

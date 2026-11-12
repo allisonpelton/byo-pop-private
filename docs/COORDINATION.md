@@ -132,12 +132,23 @@ holds the rules every session follows; this file does not repeat them.
 - **Shared costs waiting for a fix:**
   - Loading GIFs: decoded to 32 bits (`_stbi__out_gif_code`) and quantized back to 8 (`Sexy::Quantize8Bit`, a binary
     search a pixel; a cache of the last colour gives the identical table), about a quarter of a load's processor time,
-    0.15 to 0.2 s of a load in any game with GIFs (Typer Shark, AstroPop, GAME_NOTES section 11).
-  - imagehlp.dll, 5 to 7.6% of a run's cycles, from a call site not yet found (Typer Shark, AstroPop).
+    0.15 to 0.2 s of a load in any game with GIFs (Typer Shark, AstroPop, GAME_NOTES section 11). With the JPEG and
+    Vorbis decoders and Platform::DecodeImage, the load's decoding is about 12% of Bejeweled 2's 3D run without waiting.
+  - imagehlp.dll, 2.4 to 7.6% of a run's cycles, from a call site not yet found (Typer Shark, AstroPop, Bejeweled 2).
+  - The 2D path on SDL's software renderer (`DDInterface.cpp`, `mIs3D` false, about lines 784 to 833): every sprite an
+    SDL_RenderCopyEx or SDL_RenderGeometry blended in software, 15 to 25 ms a drawn frame in Bejeweled 2's 2D mode (81%
+    of a core where the original takes 18%, 83.6% of the cycles in SDL2.dll, 31 s for a `-drawevery` test run). It
+    reaches a player without an accelerated renderer and every 2D test run. Drawing the dirty widgets into one CPU
+    surface with the framework's own blitters and uploading it once a frame, as SexyAppFramework's DirectDraw path does,
+    would cut it; test with `games/bejeweled2/tools/profile/pairs.sh` and `tools/check.sh --changed` (2026-11-12).
+  - A relative `-userdir` (`./u3/`) is not found where the same folder by its absolute path is (Bejeweled 2): harmless
+    for players, a trap for scripts.
   - Memory: the Direct3D 11 device (20 to 25 MB and about 0.2 s of start); every image's pixels kept after upload (19
     MB of Bejeweled's 55, 20.6 of Typer Shark's 85); about 54 MB in every process before it reads a game file;
     libopenmpt decoding a module whole (51 MB of Ancient Japan's 146), and an OGG tune the same (Ning Po's 5.6 MB),
-    where a streaming render would hold one buffer; Mahjong Escape's engine keeping each image's decoded bits beside its 32-bit copy.
+    where a streaming render would hold one buffer; Mahjong Escape's engine keeping each image's decoded bits beside its 32-bit copy;
+    in 2D, a picture loaded as 8-bit pixels and a palette kept as 32-bit pixels and a texture once drawn (Bejeweled 2's
+    private bytes go from 59 to 101 MB at a game's start, the original's from 40 to 43; memreport with PERF_MEM=1).
   - A memory jump beneath the heap: Twist's 2D level-up raises private memory by about 165 MB for ten seconds (the
     original flat), AstroPop's game start by about 60 MB for a few seconds, so it is likely the display layer. Count
     texture creations there in the first second of an AstroPop game, or hook malloc with a `--wrap` link.

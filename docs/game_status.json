@@ -404,10 +404,11 @@
         "fixes-mod",
         "site-features",
         "coverage",
-        "performance"
+        "performance",
+        "unneeded-code"
       ],
       "na": [],
-      "now": "unneeded-code",
+      "now": "readability",
       "note": ""
     },
     "cosmicbugs": {
@@ -421,10 +422,12 @@
         "site-features",
         "coverage",
         "performance",
-        "unneeded-code"
+        "unneeded-code",
+        "readability",
+        "collection"
       ],
       "na": [],
-      "now": "readability",
+      "now": null,
       "note": ""
     },
     "waterbugs": {
@@ -457,11 +460,13 @@
         "coverage",
         "performance",
         "unneeded-code",
-        "readability"
+        "readability",
+        "collection",
+        "site-features"
       ],
       "na": [],
-      "now": "collection",
-      "note": "Collection check to do (the Collection exe is another build)"
+      "now": null,
+      "note": ""
     },
     "bejeweled2": {
       "title": "Bejeweled 2 Deluxe",
@@ -472,18 +477,19 @@
         "identical-look",
         "fixes-mod",
         "site-features",
-        "coverage"
+        "coverage",
+        "performance"
       ],
       "na": [],
-      "now": "performance",
+      "now": "unneeded-code",
       "note": ""
     },
     "venice": {
       "title": "Venice Deluxe",
       "done": [],
       "na": [],
-      "now": null,
-      "note": "Not started"
+      "now": "port",
+      "note": "Started 2026-11-12, the first port written to the standards from its first draft"
     },
     "heavyweapon": {
       "title": "Heavy Weapon Deluxe",
