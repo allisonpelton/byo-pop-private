@@ -377,6 +377,20 @@ the rectangle 430,362 to 590,438), so they gain nothing. The picture is the same
 byte for byte those of the exe before this round, and their state logs are identical but for the first lines' uninitialised
 memory (below); `tools/check.sh build build-web:tiptop tiptop` passes with the rerun and the baseline identical.
 
+**The changed area, ready for the surface presenter** (the coordinator, 2026-11-12: the present path is the shared `SurfaceDisplay`,
+which takes the app's screen pixels and the changed rectangles; the game does not build one). `TipTopWidget::Draw` now copies the
+game screen into `mScreenImage` only in the blocks of 16 pixels that differ from what the image holds (the alpha bytes are 0xff
+from the first copy, which takes everything), and keeps where it copied: `mChangedX`, `mChangedY`, `mChangedWidth`,
+`mChangedHeight` (the bounding rectangle, block-exact in x, empty when the picture was as before) and `mChangedRects`, the runs of
+32x32 tiles that hold a changed block, one tile row at a time. Nothing reads them yet. Measured in three bot games (regular,
+strategy, speed; every frame drawn): the changed pixels are 5.3 to 6.4% of the 640x480, the tiles 12.9 to 16.9% and the bounding
+rectangle 39 to 43%, so in play a list of rectangles carries a third of what one rectangle does (the main menu's animation is one
+box of 160x76, 4%). A temporary check in `Draw` compared every frame's image with the one before: none of the 10,400 frames
+changed a pixel outside the bounding rectangle or the tiles (removed again). The copy itself costs 136 to 158 microseconds a frame
+against 149 to 160 for the full copy it replaced (measured in the same runs), so it pays for the rectangles. An empty list does not mean that nothing needs
+presenting: the framework draws after an expose, a resize or a device reset with the picture unchanged, and the presenter must
+treat those frames as whole.
+
 **The pass rate** (written up for the coordinator before any change): the original's pass is one trip of the main loop, whose
 `lowos_EndFrame` waits for the vertical blank, so it runs 60 passes a second on a 60 Hz screen (144 on a 144 Hz one). The game's
 speed follows the clock, not the pass count: `GameTime()` is milliseconds from the performance counter, `Board::Draw` (0x40e766)

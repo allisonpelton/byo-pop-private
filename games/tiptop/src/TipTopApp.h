@@ -8,6 +8,8 @@
 #include "SexyAppBase.h"
 #include "Widget.h"
 
+#include <vector>
+
 namespace Sexy
 {
 
@@ -20,6 +22,16 @@ public:
 	MemoryImage* mScreenImage;
 	uint32_t mShownWrites;  // lowos::HostScreenWrites() when mScreenImage last held the screen (Draw), or when the screen was found the same
 	bool mHasShown;         // Draw has filled mScreenImage once
+	// The rectangle of the image that Draw changed in its last call, to the block of 16 pixels in x (empty, width 0, when the
+	// picture was as before; the whole image at the first call), for a presenter that sends only what changed
+	int mChangedX, mChangedY, mChangedWidth, mChangedHeight;
+	// and the same pixels more closely: the runs of 32x32 tiles, one row of tiles at a time, that hold a changed pixel (in play
+	// the changed pixels fill 5 to 6% of the image, the tiles 14 to 17% and the one rectangle 39 to 43%)
+	struct ChangedRect
+	{
+		int x, y, width, height;
+	};
+	std::vector<ChangedRect> mChangedRects;
 	bool ScreenDiffersFromShown();
 
 	TipTopWidget();

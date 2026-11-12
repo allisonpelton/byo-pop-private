@@ -55,6 +55,7 @@ TipTopWidget::TipTopWidget()
 	mScreenImage->mUploadAsIs = true;
 	mShownWrites = 0;
 	mHasShown = false;
+	mChangedX = mChangedY = mChangedWidth = mChangedHeight = 0;
 	mWantsFocus = true;
 }
 
@@ -113,12 +114,56 @@ void TipTopWidget::Draw(Graphics* g)
 	int aWidth, aHeight;
 	lowos::HostScreenSize(&aWidth, &aHeight);
 	mShownWrites = lowos::HostScreenWrites();
+	bool isFirstDraw = !mHasShown;
 	mHasShown = true;
 	ulong* aBits = mScreenImage->GetBits();
-	// the top left 640x480 of a larger -canvas screen
+	// The top left 640x480 of a larger -canvas screen. Only the blocks of 16 pixels that differ from the picture in the image are
+	// copied (their alpha bytes are 0xff already: the first call, with nothing shown, copies everything), and where they lie is
+	// kept for a presenter: the bounding rectangle of the blocks and the tiles of 32x32 pixels that hold one.
+	int aLeft = 640, aTop = 480, aRight = 0, aBottom = 0;
+	bool aTiles[480 / 32][640 / 32] = {};
 	for (int y = 0; y < 480; y++)
-		for (int x = 0; x < 640; x++)
-			aBits[y * 640 + x] = 0xff000000 | aScreen[y * aWidth + x];
+	{
+		const uint32_t* aRow = aScreen + y * aWidth;
+		ulong* aShownRow = aBits + y * 640;
+		for (int x = 0; x < 640; x += 16)
+		{
+			uint32_t aDifference = 0;
+			for (int i = 0; i < 16; i++)
+				aDifference |= aRow[x + i] ^ (uint32_t)aShownRow[x + i];
+			if (((aDifference & 0x00ffffff) == 0) && !isFirstDraw)
+				continue;
+			for (int i = 0; i < 16; i++)
+				aShownRow[x + i] = 0xff000000 | aRow[x + i];
+			aTiles[y >> 5][x >> 5] = true;
+			if (x < aLeft)
+				aLeft = x;
+			if (x + 16 > aRight)
+				aRight = x + 16;
+			if (y < aTop)
+				aTop = y;
+			aBottom = y + 1;
+		}
+	}
+	mChangedX = aLeft;
+	mChangedY = aTop;
+	mChangedWidth = (aRight > aLeft) ? aRight - aLeft : 0;
+	mChangedHeight = (aBottom > aTop) ? aBottom - aTop : 0;
+	// the same pixels as the runs of changed 32x32 tiles of each tile row
+	mChangedRects.clear();
+	for (int aTileY = 0; aTileY < 480 / 32; aTileY++)
+	{
+		for (int aTileX = 0; aTileX < 640 / 32; aTileX++)
+		{
+			if (!aTiles[aTileY][aTileX])
+				continue;
+			int aRunEnd = aTileX;
+			while ((aRunEnd < 640 / 32) && aTiles[aTileY][aRunEnd])
+				aRunEnd++;
+			mChangedRects.push_back(ChangedRect{aTileX * 32, aTileY * 32, (aRunEnd - aTileX) * 32, 32});
+			aTileX = aRunEnd;
+		}
+	}
 	mScreenImage->BitsChanged();
 	g->DrawImage(mScreenImage, 0, 0);
 }
