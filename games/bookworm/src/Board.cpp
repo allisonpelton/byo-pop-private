@@ -49,7 +49,7 @@ using namespace Sexy;
 // --------------------------------------------------------------------------------------------------------
 // Tables (rdata), board_logic.md 2.5
 
-// 0x4f97e0: cumulative game score at which level n (0-based) is complete (LevelThreshold)
+// 0x4f97e0: cumulative game score at which level n (0-based) is complete (GetPointsAtLevel)
 const int Sexy::gLevelThresholds[42] =
 {
 	3000, 7000, 12000, 18000, 25000, 34000, 44000, 56000, 69000, 80000, 100000, 120000, 140000, 160000,
@@ -98,9 +98,9 @@ int Sexy::gSubmitColorsValid[2][3] = { { 255, 200, 14 }, { 255, 200, 14 } };
 
 int Sexy::gLivePieceCount = 0;          // 0x534720 debug counter
 static int gLastLetterIdx = -1;         // 0x52e2b0 RandomLetter: the previous letter, program-wide
-static int gLastRefillLevel = -1;       // 0x52e3a0 Refill: level of the previous refill, survives games
+static int gLastRefillLevel = -1;       // 0x52e3a0 CheckForFalling: level of the previous refill, survives games
 namespace Sexy { double gActionSpeedValue = 1.0; } // 0x52e278 written by SetActionSpeed, never read
-static int gLen6Gate = 0;               // 0x5347c8 never written: AwardSpecialTile's 6-letter draw is dead
+static int gLen6Gate = 0;               // 0x5347c8 never written: GenerateSuperBonusTiles's 6-letter draw is dead
 
 // The hint dialogs' texts (Update step 19), indexed by BoardHintId; only 1, 2, 4 and 10 are scheduled.
 // Hint 10 has an action-mode and a classic text.
@@ -507,7 +507,7 @@ void Board::SetActionSpeed(double theSpeed)
 }
 
 // 0x403880: the score at which level n is complete; past the table it grows quadratically
-int Board::LevelThreshold(unsigned int theLevel)
+int Board::GetPointsAtLevel(unsigned int theLevel)
 {
 	unsigned int anIndex = (theLevel > 40) ? 41 : theLevel;
 	int aThreshold = gLevelThresholds[anIndex];
@@ -602,9 +602,9 @@ Board::Board(BookWormApp* theApp)
 	mLexPraisePending = false;
 	mLexPraiseType = 0;
 
-	mSubmitButton = MakeButton(BOARD_BUTTON_SUBMIT, Rect(6, 100, 211, 30), NULL, NULL, NULL, GameText(GT_BOARD_SUBMIT));
-	DialogButton* anOptionsButton = MakeButton(BOARD_BUTTON_OPTIONS, Rect(6, 181, 211, 30), NULL, NULL, NULL, GameText(GT_OPTIONS));
-	MakeButton(BOARD_BUTTON_LEAVE, Rect(6, 446, 211, 30), NULL, NULL, NULL, GameText(GT_BOARD_LEAVE_GAME));
+	mSubmitButton = CreateControlButton(BOARD_BUTTON_SUBMIT, Rect(6, 100, 211, 30), NULL, NULL, NULL, GameText(GT_BOARD_SUBMIT));
+	DialogButton* anOptionsButton = CreateControlButton(BOARD_BUTTON_OPTIONS, Rect(6, 181, 211, 30), NULL, NULL, NULL, GameText(GT_OPTIONS));
+	CreateControlButton(BOARD_BUTTON_LEAVE, Rect(6, 446, 211, 30), NULL, NULL, NULL, GameText(GT_BOARD_LEAVE_GAME));
 
 	// port(mod): the word solver's HINT takes the right part of SUBMIT's plank
 	mSolver = NULL;
@@ -613,7 +613,7 @@ Board::Board(BookWormApp* theApp)
 	{
 		mSolver = new Solver(this);
 		mSubmitButton->Resize(6, 100, 130, 30);
-		mHintButton = MakeButton(BOARD_BUTTON_HINT, Rect(136, 100, 81, 30), NULL, NULL, NULL, "HINT");
+		mHintButton = CreateControlButton(BOARD_BUTTON_HINT, Rect(136, 100, 81, 30), NULL, NULL, NULL, "HINT");
 	}
 
 	// port(mod): undo's UNDO takes the right part of OPTIONS' plank
@@ -640,7 +640,7 @@ Board::Board(BookWormApp* theApp)
 	{
 		mUndo = new UndoStack(this);
 		anOptionsButton->Resize(6, 181, 130, 30);
-		mUndoButton = MakeButton(BOARD_BUTTON_UNDO, Rect(136, 181, 81, 30), NULL, NULL, NULL, "UNDO");
+		mUndoButton = CreateControlButton(BOARD_BUTTON_UNDO, Rect(136, 181, 81, 30), NULL, NULL, NULL, "UNDO");
 	}
 
 	// new MTRand(Sexy::Rand()) with the 2004 seeding; the EffectMgr and EmberListMgr ctors draw the next two
@@ -721,7 +721,7 @@ Board::Board(BookWormApp* theApp)
 		}
 	}
 
-	NewBoard();
+	SetupBoard();
 	mSavedZeroAfterPauseFade = 0;
 	if (mApp->mGameMode == GAMEMODE_ACTION)
 		SetActionSpeed((double)gActionSpeed[(mLevel > 8) ? 9 : mLevel]);
@@ -731,7 +731,7 @@ Board::Board(BookWormApp* theApp)
 // deleted when they were removed (SafeDeleteWidget), only their list nodes go here.
 Board::~Board()
 {
-	RemoveLevelUpWidget();
+	KillLevelUpWidget();
 
 	delete mSolver;     // port(mod)
 	mSolver = NULL;
@@ -776,7 +776,7 @@ Board::~Board()
 	}
 
 	DeleteAllPieces();
-	DeleteButtons();
+	DeleteControlButtons();
 
 	if (mGameStats != NULL)
 	{
@@ -802,7 +802,7 @@ Board::~Board()
 
 // 0x40ad00: a DialogButton with the dialog button image, the board as listener, no images of its own,
 // the hand cursor, LockerGnome 14 outline and the "invalid word" colours, added to the app's manager
-DialogButton* Board::MakeButton(int theId, const Rect& theRect, Image* theButtonImage, Image* theOverImage,
+DialogButton* Board::CreateControlButton(int theId, const Rect& theRect, Image* theButtonImage, Image* theOverImage,
 	Image* theDownImage, const SexyString& theLabel)
 {
 	DialogButton* aButton = new DialogButton(mApp->mImages[IMAGE_DIALOGBUTTON], theId, this);
@@ -836,7 +836,7 @@ void Board::DeleteAllPieces()
 }
 
 // 0x405de0
-void Board::DeleteButtons()
+void Board::DeleteControlButtons()
 {
 	if (mButtons.size() == 0)
 		return;
@@ -855,7 +855,7 @@ void Board::DeleteButtons()
 }
 
 // 0x405810
-void Board::RemoveButtons()
+void Board::RemoveControlButtonWidgets()
 {
 	if (mButtons.size() == 0)
 		return;
@@ -868,7 +868,7 @@ void Board::RemoveButtons()
 }
 
 // 0x405850
-void Board::SetButtonsVisible(bool isVisible)
+void Board::SetControlButtonsVisible(bool isVisible)
 {
 	if (mButtons.size() == 0)
 		return;
@@ -921,7 +921,7 @@ void Board::AddedToManager(WidgetManager* theWidgetManager)
 void Board::RemovedFromManager(WidgetManager* theWidgetManager)
 {
 	Widget::RemovedFromManager(theWidgetManager);
-	RemoveButtons();
+	RemoveControlButtonWidgets();
 
 	if ((mLex != NULL) && (theWidgetManager->HasWidget(mLex)))
 		theWidgetManager->RemoveWidget(mLex);
@@ -935,7 +935,7 @@ void Board::RemovedFromManager(WidgetManager* theWidgetManager)
 		mApp->SafeDeleteWidget(aPopup);
 	}
 	mPopups.clear();
-	// port: the original keeps mLastMessage pointing at the deleted popup (ShowMessage would read it)
+	// port: the original keeps mLastMessage pointing at the deleted popup (WriteBonusText would read it)
 	mLastMessage = NULL;
 }
 
@@ -967,7 +967,7 @@ void Board::OrderInManagerChanged()
 void Board::SetVisible(bool isVisible)
 {
 	Widget::SetVisible(isVisible);
-	SetButtonsVisible(isVisible);
+	SetControlButtonsVisible(isVisible);
 	if (mLex != NULL)
 		mLex->SetVisible(isVisible);
 }
@@ -977,7 +977,7 @@ void Board::SetVisible(bool isVisible)
 void Board::SetDisabled(bool isDisabled)
 {
 	Widget::SetDisabled(isDisabled);
-	SetButtonsVisible(isDisabled);
+	SetControlButtonsVisible(isDisabled);
 	if (mLex != NULL)
 		mLex->SetVisible(isDisabled);
 }
@@ -1013,8 +1013,8 @@ void Board::KeyChar(SexyChar theChar)
 
 	if (theChar == ' ')
 	{
-		mApp->PauseAllMusic(mPauseCount == 0);
-		Pause(mPauseCount == 0);
+		mApp->MuteGameMusic(mPauseCount == 0);
+		SetPause(mPauseCount == 0);
 	}
 }
 
@@ -1149,7 +1149,7 @@ Piece* Board::PieceBelow(Piece* thePiece)
 
 // 0x404150: a full board of normal tiles dropping in from above. Per column one mRand draw, then per tile
 // RandomLetter (gGameRand) and one mRand draw.
-void Board::NewBoard()
+void Board::SetupBoard()
 {
 	mLevelProgress = 0.0;
 	mShownProgress = 0.0;
@@ -1180,7 +1180,7 @@ void Board::NewBoard()
 
 // 0x40b540: compacts every column, drops new tiles in, places the fire tiles that are due, and repairs the
 // selection when tiles moved
-void Board::Refill()
+void Board::CheckForFalling()
 {
 	bool isLevelUp = mLevel > gLastRefillLevel;
 	bool aMoved = false;
@@ -1243,8 +1243,8 @@ void Board::Refill()
 				mFireTileCount++;
 				if (mSelection.size() != 0)
 				{
-					mWord.Build(&mSelection);
-					mWord.CheckValid(&mApp->mDictionary);
+					mWord.CalcTileStats(&mSelection);
+					mWord.Validate(&mApp->mDictionary);
 				}
 				if (!mFlameSoundPlayed)
 				{
@@ -1260,11 +1260,11 @@ void Board::Refill()
 				aPiece->SetType(TILE_GREEN, true);
 				if (mSelection.size() != 0)
 				{
-					mWord.Build(&mSelection);
-					mWord.CheckValid(&mApp->mDictionary);
+					mWord.CalcTileStats(&mSelection);
+					mWord.Validate(&mApp->mDictionary);
 				}
 				mApp->PlaySample(SOUND_APPEAR2);
-				mLex->PlayAnim(LEXANIM_OH, false);
+				mLex->PlayAnimSeq(LEXANIM_OH, false);
 				if ((!mApp->mGreenTileHintShown) && (mHintDelay == 0))
 				{
 					mApp->mGreenTileHintShown = true;
@@ -1422,12 +1422,12 @@ void Board::BurnTiles(bool advance)
 							if ((aPiece->mSelected) || (aBelow->mSelected))
 							{
 								std::for_each(mSelection.begin(), mSelection.end(), Piece::Deselect);
-								ClearWord();
+								ClearSelection();
 							}
 						}
 						else if (aBelow->mSelected)
 						{
-							// classic: a selected tile does not burn; its countdown stays 0 until Refill
+							// classic: a selected tile does not burn; its countdown stays 0 until CheckForFalling
 							continue;
 						}
 
@@ -1455,7 +1455,7 @@ void Board::BurnTiles(bool advance)
 				if (mOverlay != NULL)
 				{
 					mOverlay->mBalloon->Show(0);
-					ShowOverlay(false);
+					ShowBonusWord(false);
 				}
 				SetDisabled(true);
 				mState = BOARD_GAMEOVER_PENDING;
@@ -1567,14 +1567,14 @@ void Board::Scramble()
 		mFireTileCount++;
 		if (mSelection.size() != 0)
 		{
-			mWord.Build(&mSelection);
-			mWord.CheckValid(&mApp->mDictionary);
+			mWord.CalcTileStats(&mSelection);
+			mWord.Validate(&mApp->mDictionary);
 		}
 		if (!mFlameSoundPlayed)
 		{
 			mFlameSoundPlayed = true;
 			mApp->PlaySample(SOUND_FLAMETILE);
-			mLex->PlayAnim(LEXANIM_SCRAMBLE, false);
+			mLex->PlayAnimSeq(LEXANIM_SCRAMBLE, false);
 			mApp->PlaySample(SOUND_LEX_SCRAMBLE);
 		}
 		aCandidates.erase(aCandidates.begin() + anIndex);
@@ -1608,8 +1608,8 @@ void Board::Scramble()
 				aPiece->mNextLetter = (char)RandomLetter();
 				if (mSelection.size() != 0)
 				{
-					mWord.Build(&mSelection);
-					mWord.CheckValid(&mApp->mDictionary);
+					mWord.CalcTileStats(&mSelection);
+					mWord.Validate(&mApp->mDictionary);
 				}
 			}
 		}
@@ -1623,7 +1623,7 @@ void Board::Scramble()
 	}
 
 	BurnTiles(mApp->mGameMode == GAMEMODE_CLASSIC);
-	Refill();
+	CheckForFalling();
 	CheckBottomFire();
 	mState = BOARD_SCRAMBLING;
 	mScrambleProgress = 0.0;
@@ -1635,7 +1635,7 @@ void Board::Scramble()
 // Special tiles (board_logic.md 4.5)
 
 // 0x40ba80: a special tile for a long word or a word with special tiles, on a random normal tile
-void Board::AwardSpecialTile(const WordScore& theWord)
+void Board::GenerateSuperBonusTiles(const WordScore& theWord)
 {
 	int aLength = (int)theWord.mWord.size();
 	unsigned int aType = TILE_NORMAL;
@@ -1730,8 +1730,8 @@ void Board::AwardSpecialTile(const WordScore& theWord)
 	aPiece->SetType((int)aType, true);
 	if (mSelection.size() != 0)
 	{
-		mWord.Build(&mSelection);
-		mWord.CheckValid(&mApp->mDictionary);
+		mWord.CalcTileStats(&mSelection);
+		mWord.Validate(&mApp->mDictionary);
 	}
 	mApp->PlaySample(SOUND_SPINSUPERBONUS);
 	mLexPraisePending = true;
@@ -1758,11 +1758,11 @@ void Board::AddLetter(Piece* thePiece)
 	bool wasSelected = thePiece->mSelected;
 	thePiece->mSelected = true;
 	mSelection.push_back(thePiece);
-	mWord.Build(&mSelection);
+	mWord.CalcTileStats(&mSelection);
 
 	bool hasSpecial = (mWord.mTypeCount[TILE_GREEN] > 0) || (mWord.mTypeCount[TILE_GOLD] > 0) ||
 		(mWord.mTypeCount[TILE_SAPPHIRE] > 0) || (mWord.mTypeCount[TILE_DIAMOND] > 0);
-	mWord.CheckValid(&mApp->mDictionary);
+	mWord.Validate(&mApp->mDictionary);
 
 	if (!mWord.mValid)
 		mSubmitButton->SetColors(gSubmitColorsInvalid, 2);
@@ -1788,10 +1788,10 @@ void Board::SelectTiles(const std::vector<Piece*>& thePath)
 		thePath[i]->mSelected = true;
 		mSelection.push_back(thePath[i]);
 	}
-	mWord.Build(&mSelection);
-	mWord.CheckValid(&mApp->mDictionary);
+	mWord.CalcTileStats(&mSelection);
+	mWord.Validate(&mApp->mDictionary);
 	mSubmitButton->SetColors(mWord.mValid ? gSubmitColorsValid : gSubmitColorsInvalid, 2);
-	// ClearWord, after the last word, marks the button not under the mouse even where it still is; a
+	// ClearSelection, after the last word, marks the button not under the mouse even where it still is; a
 	// button takes a click only under the mouse, so a hint asked for by key and then Submit clicked without
 	// leaving the button would do nothing
 	mSubmitButton->mIsOver = (mWidgetManager != NULL) && (mWidgetManager->mOverWidget == mSubmitButton);
@@ -1813,7 +1813,7 @@ void Board::TruncateAfter(Piece* thePiece)
 }
 
 // 0x407bf0: empties the selection (without deselecting the tiles) and the word
-void Board::ClearWord()
+void Board::ClearSelection()
 {
 	mSelection.clear();
 	mWord.Clear();
@@ -1935,7 +1935,7 @@ void Board::Submit(int x, int y)
 		{
 			unsigned int aBonusIndex = (unsigned int)mGameStats->mBonusWords;
 			int aPoints = gBonusWordPoints[(aBonusIndex > 9) ? 10 : aBonusIndex];
-			BonusWordScored(aPoints, x, y);
+			UseBonusWord(aPoints, x, y);
 			mSkipRandomFire = true;
 			mFireMeter = (double)aLength + mFireMeter;
 			mGameLog.WriteNumBits(0xb, 4);
@@ -1968,8 +1968,8 @@ void Board::Submit(int x, int y)
 
 		int aPrevThreshold = 0;
 		if (mLevel != 0)
-			aPrevThreshold = LevelThreshold((unsigned int)mLevel - 1);
-		int aThreshold = LevelThreshold((unsigned int)mLevel);
+			aPrevThreshold = GetPointsAtLevel((unsigned int)mLevel - 1);
+		int aThreshold = GetPointsAtLevel((unsigned int)mLevel);
 		mLevelProgress = (double)mLevelStats->mScore / (double)(aThreshold - aPrevThreshold);
 		if ((mGameStats->mScore >= aThreshold) && (mState == BOARD_PLAYING))
 		{
@@ -1982,13 +1982,13 @@ void Board::Submit(int x, int y)
 		mModFireDue = 0;
 		if ((isModWord) && (mState == BOARD_PLAYING))
 			mModFireDue = aModEffects.mEveryTile ? BOARD_ROWS * BOARD_COLS : aModEffects.mFire;
-		Refill();
+		CheckForFalling();
 		if ((!isModWord) || (aModEffects.mBonus == MODWORD_BONUS_KEEP))
-			AwardSpecialTile(mWord);
+			GenerateSuperBonusTiles(mWord);
 		else if (aModEffects.mBonus == MODWORD_BONUS_REMOVE)
 			RemoveBonusTiles();
-		AddScorePopup(mWord.mScore, x, y);
-		ClearWord();
+		AddPoints(mWord.mScore, x, y);
+		ClearSelection();
 		CheckBottomFire();
 		mSelectMode = SELECT_NONE;
 	}
@@ -2025,8 +2025,8 @@ void Board::SetModFire(const std::vector<Piece*>& theNewTiles, int theCount)
 		return;
 	if (mSelection.size() != 0)
 	{
-		mWord.Build(&mSelection);
-		mWord.CheckValid(&mApp->mDictionary);
+		mWord.CalcTileStats(&mSelection);
+		mWord.Validate(&mApp->mDictionary);
 	}
 	if (!mFlameSoundPlayed)
 	{
@@ -2055,8 +2055,8 @@ void Board::RemoveBonusTiles()
 	}
 	if ((aRemoved) && (mSelection.size() != 0))
 	{
-		mWord.Build(&mSelection);
-		mWord.CheckValid(&mApp->mDictionary);
+		mWord.CalcTileStats(&mSelection);
+		mWord.Validate(&mApp->mDictionary);
 	}
 }
 
@@ -2081,31 +2081,31 @@ void Board::AddModWordsAllTime(int theDelta)
 }
 
 // 0x40abd0: bonus word message and stats, the next bonus word is picked and the banner slides away
-void Board::BonusWordScored(int thePoints, int x, int y)
+void Board::UseBonusWord(int thePoints, int x, int y)
 {
 	mApp->PlaySample(SOUND_BONUSWORD);
-	mLex->PlayAnim(LEXANIM_BONUS, false);
-	ShowMessage(StrFormat(GameTextC(GT_BOARD_BONUS_FORMAT), thePoints), y + 60);
+	mLex->PlayAnimSeq(LEXANIM_BONUS, false);
+	WriteBonusText(StrFormat(GameTextC(GT_BOARD_BONUS_FORMAT), thePoints), y + 60);
 	mLevelStats->AddBonusWord(thePoints);
 	mGameStats->AddBonusWord(thePoints);
 
 	if (mBonusWord != "")
 	{
-		PickBonusWord();
+		GetNextBonusWord();
 		mBonusWord = "";
 	}
 
 	if (mOverlay != NULL)
 	{
-		ShowOverlay(false);
+		ShowBonusWord(false);
 		mOverlay->mBannerTargetY = mHeight;
 	}
 }
 
-// 0x408030 (also the app's StartGame): the next bonus word, of the length the count of words handed out
+// 0x408030 (also the app's NewGame): the next bonus word, of the length the count of words handed out
 // asks for and not the current one, into the app's mBonusWord (the banner picks it up in Update); gives up
 // silently after as many tries as there are words
-void Board::PickBonusWord()
+void Board::GetNextBonusWord()
 {
 	unsigned int aGivenIndex = (unsigned int)mBonusWordsGiven;
 	int aWantedLength = gBonusWordLength[(aGivenIndex > 8) ? 9 : aGivenIndex];
@@ -2127,7 +2127,7 @@ void Board::PickBonusWord()
 }
 
 // 0x409970: the "+N" popup of a word at (x, y) on the board; lives score / 3 ticks (150..600)
-void Board::AddScorePopup(int theScore, int x, int y)
+void Board::AddPoints(int theScore, int x, int y)
 {
 	int aShownScore = (int)((double)theScore * mScoreScale);
 	int aLife = (int)((double)theScore * 0.3333333333333333);
@@ -2153,7 +2153,7 @@ void Board::AddScorePopup(int theScore, int x, int y)
 }
 
 // 0x409b70: a left-aligned message at x 233; stacks under the previous one while that one lives
-void Board::ShowMessage(const SexyString& theText, int theY)
+void Board::WriteBonusText(const SexyString& theText, int theY)
 {
 	int aY = theY;
 	if ((mLastMessage != NULL) && (mLastMessage->mLife > 0) && (theY < mLastMessage->mY + 36))
@@ -2166,7 +2166,7 @@ void Board::ShowMessage(const SexyString& theText, int theY)
 }
 
 // 0x405a80
-void Board::ClearPopups()
+void Board::RemovePoints()
 {
 	for (std::list<Points*>::iterator anItr = mPopups.begin(); anItr != mPopups.end(); ++anItr)
 	{
@@ -2175,7 +2175,7 @@ void Board::ClearPopups()
 		mApp->SafeDeleteWidget(aPopup);
 	}
 	mPopups.clear();
-	// port: the original keeps mLastMessage pointing at the deleted popup (ShowMessage would read it)
+	// port: the original keeps mLastMessage pointing at the deleted popup (WriteBonusText would read it)
 	mLastMessage = NULL;
 }
 
@@ -2196,10 +2196,10 @@ void Board::MouseDown(int x, int y, int theClickCount)
 
 	if (mPauseCount >= 1)
 	{
-		Pause(false);
+		SetPause(false);
 		if (mPauseCount == 0)
 		{
-			mApp->PauseAllMusic(false);
+			mApp->MuteGameMusic(false);
 			mApp->mResumeUpdateCnt = mApp->mUpdateCount;
 		}
 		return;
@@ -2211,7 +2211,7 @@ void Board::MouseDown(int x, int y, int theClickCount)
 	if (theClickCount < 0)
 	{
 		std::for_each(mSelection.begin(), mSelection.end(), Piece::Deselect);
-		ClearWord();
+		ClearSelection();
 		mLastWord = mWord;
 		return;
 	}
@@ -2367,7 +2367,7 @@ void Board::ButtonPress(int theId, int theClickCount)
 	if ((theClickCount < 0) && (theId == BOARD_BUTTON_SUBMIT))
 	{
 		std::for_each(mSelection.begin(), mSelection.end(), Piece::Deselect);
-		ClearWord();
+		ClearSelection();
 		mLastWord = mWord;
 	}
 }
@@ -2379,7 +2379,7 @@ void Board::ButtonDepress(int theId)
 	if (IsWatched())
 	{
 		if (theId == BOARD_BUTTON_OPTIONS)
-			mApp->ShowOptions();
+			mApp->DoOptions();
 		else if (theId == BOARD_BUTTON_LEAVE)
 			mApp->StopWatch();
 		return;
@@ -2406,20 +2406,20 @@ void Board::ButtonDepress(int theId)
 		}
 	}
 	else if (theId == BOARD_BUTTON_OPTIONS)
-		mApp->ShowOptions();
+		mApp->DoOptions();
 	else if ((theId == BOARD_BUTTON_HINT) && (mSolver != NULL))
 		mSolver->RequestHint();     // port(mod)
 	else if ((theId == BOARD_BUTTON_UNDO) && (mUndo != NULL))
 		mUndo->RequestUndo();       // port(mod)
 	else if ((theId == BOARD_BUTTON_LEAVE) && (IsInProgress()))
-		mApp->GoToMainMenu();
+		mApp->ConfirmEndGame();
 }
 
 // --------------------------------------------------------------------------------------------------------
 // Overlay, pause, levels (board_logic.md 4.1, 4.8)
 
 // 0x403d80: slides the bonus-word banner in (406) or out (the board's height)
-void Board::ShowOverlay(bool show)
+void Board::ShowBonusWord(bool show)
 {
 	if (mOverlay == NULL)
 		return;
@@ -2439,7 +2439,7 @@ void Board::ShowOverlay(bool show)
 
 // 0x405be0: counted pause; the popups hide while paused; the level clock is banked at the first pause and
 // restarts at the last unpause
-void Board::Pause(bool pause)
+void Board::SetPause(bool pause)
 {
 	int anOldCount = mPauseCount;
 	if (pause)
@@ -2472,7 +2472,7 @@ void Board::Pause(bool pause)
 }
 
 // 0x403ae0: the pause shade fades in while paused, out after
-void Board::UpdatePauseFade()
+void Board::UpdatePause()
 {
 	if (mPauseCount < 1)
 	{
@@ -2498,7 +2498,7 @@ void Board::UpdatePauseFade()
 }
 
 // 0x403ea0
-void Board::RemoveLevelUpWidget()
+void Board::KillLevelUpWidget()
 {
 	if (mLevelUpWidget == NULL)
 		return;
@@ -2509,9 +2509,9 @@ void Board::RemoveLevelUpWidget()
 }
 
 // 0x404b40: closes the level clock and shows the level / game summary (it follows the help screen's state)
-void Board::ShowSummary()
+void Board::DoLevelUpWidget()
 {
-	RemoveLevelUpWidget();
+	KillLevelUpWidget();
 
 	int aLevelSeconds = (int)((unsigned long)mLevelSecondsBanked +
 		((unsigned long)GameTickCount() - mLevelStartTick) / 1000);
@@ -2534,8 +2534,8 @@ void Board::ShowSummary()
 // 0x407a50: next level: the level stats restart with the score carried over the threshold
 void Board::LevelUp()
 {
-	mLevelStats->Reset();
-	mLevelStats->mScore = mGameStats->mScore - LevelThreshold((unsigned int)mLevel);
+	mLevelStats->Clear();
+	mLevelStats->mScore = mGameStats->mScore - GetPointsAtLevel((unsigned int)mLevel);
 	mLevel++;
 	mGameLog.WriteNumBits(0xe, 4);
 	mGameLog.WriteShort((short)mLevel);
@@ -2551,8 +2551,8 @@ void Board::LevelUp()
 	mState = BOARD_PLAYING;
 	int aPrevThreshold = 0;
 	if (mLevel != 0)
-		aPrevThreshold = LevelThreshold((unsigned int)mLevel - 1);
-	int aThreshold = LevelThreshold((unsigned int)mLevel);
+		aPrevThreshold = GetPointsAtLevel((unsigned int)mLevel - 1);
+	int aThreshold = GetPointsAtLevel((unsigned int)mLevel);
 	mShownProgress = 0.0;
 	mBestWordThisLevel = 0;
 	mSavedZeroResetByLevelUp = 0;
@@ -2568,10 +2568,10 @@ void Board::NextLevel()
 	LevelUp();
 }
 
-// 0x405cd0 (the app's ShowGameSelector)
+// 0x405cd0 (the app's DoGameSelector)
 void Board::Abandon()
 {
-	ClearPopups();
+	RemovePoints();
 	mState = BOARD_INACTIVE;
 }
 
@@ -2591,7 +2591,7 @@ void Board::Update()
 	if (mState == BOARD_INACTIVE)
 		return;
 
-	UpdatePauseFade();
+	UpdatePause();
 	if (mPauseCount > 0)
 		return;
 
@@ -2624,11 +2624,11 @@ void Board::Update()
 	if (mState == BOARD_PLAYING)
 	{
 		if ((mBonusWord.size() == 0) && ((mLevel > 1) || ((mLevel == 1) && (mLevelStats->mWords >= 1))) &&
-			(!mOverlay->IsBannerMoving()))
+			(!mOverlay->IsBonusWordMoving()))
 		{
 			mBonusWord = mApp->mBonusWord;
 			if (mBonusWord.size() != 0)
-				ShowOverlay(true);
+				ShowBonusWord(true);
 		}
 
 		if ((mHighlightKey != 0) && (mUpdateCnt % 32 == 0))
@@ -2644,26 +2644,26 @@ void Board::Update()
 				switch (mRand->Next() & 3)
 				{
 				case 0:
-					mLex->PlayAnim(LEXANIM_CAREFUL, false);
+					mLex->PlayAnimSeq(LEXANIM_CAREFUL, false);
 					mApp->PlaySample(SOUND_LEX_CAREFUL);
 					break;
 				case 1:
-					mLex->PlayAnim(LEXANIM_DANGER, false);
+					mLex->PlayAnimSeq(LEXANIM_DANGER, false);
 					mApp->PlaySample(SOUND_LEX_DANGER);
 					break;
 				case 2:
-					mLex->PlayAnim(LEXANIM_LOOKOUT, false);
+					mLex->PlayAnimSeq(LEXANIM_LOOKOUT, false);
 					mApp->PlaySample(SOUND_LEX_LOOKOUT);
 					break;
 				case 3:
-					mLex->PlayAnim(LEXANIM_WATCHOUT, false);
+					mLex->PlayAnimSeq(LEXANIM_WATCHOUT, false);
 					mApp->PlaySample(SOUND_LEX_WATCHOUT);
 					break;
 				}
 			}
 
 			if (!mLex->IsBusy())
-				mLex->PlayAnim(LEXANIM_SWEAT, true);
+				mLex->PlayAnimSeq(LEXANIM_SWEAT, true);
 		}
 
 		if (mApp->mGameMode == GAMEMODE_ACTION)
@@ -2675,12 +2675,12 @@ void Board::Update()
 			}
 			else if (mUpdateCnt % 100 == 0)
 			{
-				ShowMessage(StrFormat("%d", mActionCountdown), 180);
+				WriteBonusText(StrFormat("%d", mActionCountdown), 180);
 				mApp->PlaySample(SOUND_WARNING);
 				if (--mActionCountdown < 0)
 				{
 					std::for_each(mSelection.begin(), mSelection.end(), Piece::Deselect);
-					ClearWord();
+					ClearSelection();
 				}
 			}
 		}
@@ -2690,17 +2690,17 @@ void Board::Update()
 			mLexGreetPending = false;
 			if (mApp->mGameMode == GAMEMODE_ACTION)
 			{
-				mLex->PlayAnim(LEXANIM_GETREADY, false);
+				mLex->PlayAnimSeq(LEXANIM_GETREADY, false);
 				mApp->PlaySample(SOUND_LEX_GETREADY);
 			}
 			else if (mRand->Next() % 100 < 50)
 			{
-				mLex->PlayAnim(LEXANIM_GO, false);
+				mLex->PlayAnimSeq(LEXANIM_GO, false);
 				mApp->PlaySample(SOUND_LEX_GO);
 			}
 			else
 			{
-				mLex->PlayAnim(LEXANIM_LETSGO, false);
+				mLex->PlayAnimSeq(LEXANIM_LETSGO, false);
 				mApp->PlaySample(SOUND_LEX_LETSGO);
 			}
 			// port(mod): the daily board's day, at the game's start
@@ -2720,8 +2720,8 @@ void Board::Update()
 			mActionCountdown = 10;
 			if ((mApp->mGameMode == GAMEMODE_ACTION) && (mLex->mSweating))
 			{
-				ShowMessage(GameText(GT_BOARD_TIME_BONUS), 160);
-				mLex->PlayAnim(LEXANIM_BONUS, false);
+				WriteBonusText(GameText(GT_BOARD_TIME_BONUS), 160);
+				mLex->PlayAnimSeq(LEXANIM_BONUS, false);
 				mApp->PlaySample(SOUND_WORDCOMPLETE);
 			}
 		}
@@ -2835,8 +2835,8 @@ void Board::Update()
 						aPiece->SetType(TILE_FIRE, true);
 						if (mSelection.size() != 0)
 						{
-							mWord.Build(&mSelection);
-							mWord.CheckValid(&mApp->mDictionary);
+							mWord.CalcTileStats(&mSelection);
+							mWord.Validate(&mApp->mDictionary);
 						}
 						aPiece->mNextLetter = aPiece->mLetter;
 						aPiece->mFlipProgress = 0.0;
@@ -2885,7 +2885,7 @@ void Board::Update()
 					Sparkle* aSparkle = new Sparkle(mEffectMgr);
 					aSparkle->mX = (double)(mRand->Next() % 57) + aPiece->mX - 28.0;
 					aSparkle->mY = (double)(mRand->Next() % 57) + aPiece->mY - 28.0;
-					mEffectMgr->AddEffect(aSparkle);
+					mEffectMgr->Add(aSparkle);
 				}
 
 				// d. a fire tile shakes the gold / sapphire / diamond tile below it (harder as its countdown
@@ -3096,7 +3096,7 @@ void Board::Update()
 			BurnTiles(mApp->mGameMode == GAMEMODE_ACTION);
 		if (aRefill)
 		{
-			Refill();
+			CheckForFalling();
 			CheckBottomFire();
 		}
 		else if (aBurn)
@@ -3144,7 +3144,7 @@ void Board::Update()
 	if (mState == BOARD_GAMEOVER_MUSIC)
 	{
 		if ((LexIdle(mLex)) && (mLex->mSweating) && (!mBurnedDown))
-			mLex->PlayAnim(LEXANIM_SWEAT, true);
+			mLex->PlayAnimSeq(LEXANIM_SWEAT, true);
 		if ((!mSummaryShown) && (!isFlying) && (LexCalm(mLex)))
 		{
 			mApp->KillDialog(DIALOG_HINT);
@@ -3163,7 +3163,7 @@ void Board::Update()
 					mRecorder = NULL;
 				}
 			}
-			ShowSummary();
+			DoLevelUpWidget();
 		}
 		mState = BOARD_GAMEOVER;
 	}
@@ -3174,7 +3174,7 @@ void Board::Update()
 		if ((mState == BOARD_GAMEOVER_PENDING) && (LexCalm(mLex)))
 		{
 			if ((LexIdle(mLex)) && (mLex->mSweating) && (!mBurnedDown))
-				mLex->PlayAnim(LEXANIM_SWEAT, true);
+				mLex->PlayAnimSeq(LEXANIM_SWEAT, true);
 			mState = BOARD_GAMEOVER;
 		}
 
@@ -3186,7 +3186,7 @@ void Board::Update()
 				{
 					mBurping = true;
 					mBurpAlpha = 1.0;
-					mLex->PlayAnim(LEXANIM_BURP, false);
+					mLex->PlayAnimSeq(LEXANIM_BURP, false);
 					mApp->PlaySample(SOUND_LEX_BURP);
 				}
 				mBurpPending = false;
@@ -3199,7 +3199,7 @@ void Board::Update()
 	{
 		mBurpAlpha = mBurpAlpha - 0.005;
 		if ((mBurpAlpha < 0.9) && (mLex->mAnim == LEXANIM_BURP))
-			mLex->PlayAnim(LEXANIM_EAT_END, false);
+			mLex->PlayAnimSeq(LEXANIM_EAT_END, false);
 		if (mBurpAlpha < 0.0)
 			mBurping = false;
 		MarkDirty();
@@ -3366,7 +3366,7 @@ void Board::Update()
 				GameTextId aLines = gHintLines[mHintId];
 				if ((mHintId == HINT_FIRE_ALERT) && (mApp->mGameMode != GAMEMODE_ACTION))
 					aLines = gHintFireAlertClassic;
-				mApp->ShowHint(mHintId, GameText(gHintHeaders[mHintId]), GameText(aLines), GameText(GT_HINT_CONTINUE),
+				mApp->DoHintDialog(mHintId, GameText(gHintHeaders[mHintId]), GameText(aLines), GameText(GT_HINT_CONTINUE),
 					Dialog::BUTTONS_FOOTER);
 			}
 		}
@@ -3513,14 +3513,14 @@ void Board::Update()
 			}
 		}
 
-		SetButtonsVisible(false);
-		ClearPopups();
+		SetControlButtonsVisible(false);
+		RemovePoints();
 		mFireLinePiece = NULL;
 		mFireLineAlpha = 0.0;
 		mBoardBurnAlpha = 1.0;
 		mBurnedDown = true;
 		if (LexCalm(mLex))
-			mLex->PlayAnim(LEXANIM_BURNT_BLINK, false);
+			mLex->PlayAnimSeq(LEXANIM_BURNT_BLINK, false);
 		MarkDirty();
 	}
 
@@ -3568,12 +3568,12 @@ void Board::Update()
 			if (!mLevelUpPending)
 			{
 				if (!mSummaryShown)
-					ShowSummary();
+					DoLevelUpWidget();
 			}
 			else
 			{
 				mApp->PlaySample(SOUND_LEX_LEVELUP);
-				mLex->PlayAnim(LEXANIM_LEVELUP, false);
+				mLex->PlayAnimSeq(LEXANIM_LEVELUP, false);
 				mLex->Say(GameText(GT_LEVEL_UP), mApp->mFonts[FONT_VERDANA12BOLD], 75);
 				mLevelUpPending = false;
 			}
@@ -3586,7 +3586,7 @@ void Board::Update()
 		mModDangerPending = false;
 		if (mState == BOARD_PLAYING)
 		{
-			mLex->PlayAnim(LEXANIM_DANGER, false);
+			mLex->PlayAnimSeq(LEXANIM_DANGER, false);
 			mApp->PlaySample(SOUND_LEX_DANGER);
 		}
 	}
@@ -3644,7 +3644,7 @@ void Board::Update()
 		}
 
 		if (anAnim != LEXANIM_NONE)
-			mLex->PlayAnim(anAnim, false);
+			mLex->PlayAnimSeq(anAnim, false);
 	}
 
 	if (mRecorder != NULL)
@@ -3654,26 +3654,26 @@ void Board::Update()
 // --------------------------------------------------------------------------------------------------------
 // Saved games (board_logic.md 6): players/<user>/classic.dat and action.dat, version 5
 
-// 0x406c40 (the app's ShutdownWidgets and 2028): the prologue drops every effect and Lex's animation,
+// 0x406c40 (the app's CleanupWidgets and 2028): the prologue drops every effect and Lex's animation,
 // closes the help screen and banks the level clock; then the record of board_logic.md 6.1
 bool Board::SaveGame(int theMode)
 {
 	if (mPlayer != NULL)
 		return false;   // port(mod): a watched replay is never saved (Replay.h)
 	if (mEffectMgr != NULL)
-		mEffectMgr->Clear();
+		mEffectMgr->EraseAll();
 	if (mEmberMgr != NULL)
-		mEmberMgr->Clear();
+		mEmberMgr->DestroyAll();
 	if ((mOverlay != NULL) && (mOverlay->mEffectMgr != NULL))
-		mOverlay->mEffectMgr->Clear();
+		mOverlay->mEffectMgr->EraseAll();
 	if (mLex != NULL)
 		mLex->Reset();
 
 	mShownScore = mGameStats->mScore;
 	bool isHelpOpen = (!mApp->mShowHelp) && (mApp->mHelpWidget != NULL);
-	mApp->HideHelp();
-	Pause(true);
-	Pause(false);
+	mApp->KillHelp();
+	SetPause(true);
+	SetPause(false);
 
 	// port: the original builds "players\<name>\" + file, creates both folders (_mkdir) and fopens it next
 	// to the exe; the framework's VFS puts the file (and its folders) in the user dir
@@ -3694,7 +3694,7 @@ bool Board::SaveGame(int theMode)
 // port (BookWormApp::GetShutdownSaves, web persistence): the bytes SaveGame(theMode) would write now, without
 // changing the board: the prologue's effects on the record are applied for the write and undone after
 // (the effect lists set aside, Lex's animation fields, the shown score, the pause count and banked level
-// seconds HideHelp and the pause / unpause would leave)
+// seconds KillHelp and the pause / unpause would leave)
 bool Board::SaveGameSnapshot(int theMode, Buffer* theBuffer)
 {
 	SexyString aPath = BookWormApp::GetSaveGamePath(mApp->mUserManager->GetCurrentUserName(), theMode);
@@ -3731,8 +3731,8 @@ bool Board::SaveGameSnapshot(int theMode, Buffer* theBuffer)
 	mShownScore = mGameStats->mScore;
 	bool isHelpOpen = (!mApp->mShowHelp) && (mApp->mHelpWidget != NULL);
 
-	// HideHelp unpauses the board once when the help screen is up; then Pause(true) / Pause(false) bank the
-	// level clock when that leaves the board unpaused (after HideHelp's unpause the clock restarted: 0)
+	// KillHelp unpauses the board once when the help screen is up; then SetPause(true) / SetPause(false) bank the
+	// level clock when that leaves the board unpaused (after KillHelp's unpause the clock restarted: 0)
 	unsigned long aNow = GameTickCount();
 	unsigned long aStartTick = mLevelStartTick;
 	if ((mApp->mHelpWidget != NULL) && (mApp->mBoard == this))
@@ -3943,11 +3943,11 @@ void Board::WriteSavedGame(FILE* theFile, int theMode, bool isHelpOpen)
 		mDaily->Write(theFile);
 }
 
-// 0x408ab0 (the app's 2005, after StartGame made a fresh board): reads the record into this board. Versions
+// 0x408ab0 (the app's 2005, after NewGame made a fresh board): reads the record into this board. Versions
 // 2-4 lack fields 2-4, version 2 also the level seconds, versions up to 3 the help byte.
 bool Board::LoadGame(int theMode)
 {
-	mApp->HideHelp();
+	mApp->KillHelp();
 
 	SexyString aPath = BookWormApp::GetSaveGamePath(mApp->mUserManager->GetCurrentUserName(), theMode);
 	if (aPath.size() == 0)
@@ -3995,13 +3995,13 @@ bool Board::LoadGame(int theMode)
 	{
 		int aLevelSeconds = mLevelSeconds;
 		int aTotalSeconds = mTotalSeconds;
-		ShowSummary();
+		DoLevelUpWidget();
 		mLevelSeconds = aLevelSeconds;
 		mTotalSeconds = aTotalSeconds;
 	}
 
 	if ((mApp->mShowHelp) || (isHelpOpen))
-		mApp->ShowHelp();
+		mApp->DoHelp();
 
 	return true;
 }
@@ -4055,9 +4055,9 @@ bool Board::ReadSavedGame(FILE* theFile, bool* isHelpOpen)
 	FileReadInt(theFile, &mTotalSeconds);
 	FileReadInt(theFile, &mLevelSecondsBanked);
 	mOverlay->LoadState(theFile);
-	mEffectMgr->Clear();
+	mEffectMgr->EraseAll();
 	mEffectMgr->Load(theFile);
-	mEmberMgr->Clear();
+	mEmberMgr->DestroyAll();
 	mEmberMgr->Load(theFile);
 
 	FileReadInt(theFile, &mState);
@@ -4243,7 +4243,7 @@ void Board::ReadBots(FILE* theFile)
 	mBotsChecked = mBots != NULL;
 }
 
-// port(mod): the next Refill is the level's first, so it leaves out the fire meter (the solver's "fewerFire")
+// port(mod): the next CheckForFalling is the level's first, so it leaves out the fire meter (the solver's "fewerFire")
 bool Board::RefillIsLevelsFirst() const
 {
 	return mLevel > gLastRefillLevel;

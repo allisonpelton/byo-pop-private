@@ -7,7 +7,7 @@
 //                         timer (Action's fire timer), fire (Classic's fire meter), bonus, over, busy and the board
 //                         (its state, the letters and tile types by row, the selection)
 //   goto <screen>         menu (the game selector), options, help, highscores (the Hall of Fame), credits, classic or
-//                         action (that mode through the selector's own SelectGameMode: the continue question when a
+//                         action (that mode through the selector's own TryConfirmLoad: the continue question when a
 //                         game is saved). title is an error once it is gone
 //   level <n>             level n of the game being played, from level n - 1's threshold through the game's own NextLevel
 //   unlock all            ERROR: nothing in the game is locked
@@ -454,20 +454,20 @@ bool BookWormApp::HandleScriptCommand(const ScriptCommand& theCommand)
 			return true;
 		}
 		if (anArg == "menu")
-			ShowGameSelector();
+			DoGameSelector();
 		else if (anArg == "options")
-			ShowOptions();
+			DoOptions();
 		else if (anArg == "help")
-			ShowHelp();
+			DoHelp();
 		else if (anArg == "highscores")
-			ShowHallOfFame();
+			DoFameWidget();
 		else if (anArg == "credits")
-			ShowCredits();
+			DoCredits();
 		else if ((anArg == "classic") || (anArg == "action"))
 		{
 			if (mGameSelector == NULL)
-				ShowGameSelector();
-			SelectGameMode((anArg == "action") ? GAMEMODE_ACTION : GAMEMODE_CLASSIC);
+				DoGameSelector();
+			TryConfirmLoad((anArg == "action") ? GAMEMODE_ACTION : GAMEMODE_CLASSIC);
 		}
 		else
 		{
@@ -531,7 +531,7 @@ bool BookWormApp::HandleScriptCommand(const ScriptCommand& theCommand)
 		if (anArg == "score")
 		{
 			// the level's score follows, so the level bar and the level's end see it as a word's points
-			int aPrevThreshold = (aBoard->mLevel != 0) ? Board::LevelThreshold((unsigned int)aBoard->mLevel - 1) : 0;
+			int aPrevThreshold = (aBoard->mLevel != 0) ? Board::GetPointsAtLevel((unsigned int)aBoard->mLevel - 1) : 0;
 			aBoard->mGameStats->mScore = anInt;
 			aBoard->mLevelStats->mScore = anInt - aPrevThreshold;
 		}
@@ -555,8 +555,8 @@ bool BookWormApp::HandleScriptCommand(const ScriptCommand& theCommand)
 		if (aBoard == NULL)
 			return true;
 		// the level's threshold reached, as Submit does when a word reaches it
-		int aPrevThreshold = (aBoard->mLevel != 0) ? Board::LevelThreshold((unsigned int)aBoard->mLevel - 1) : 0;
-		int aThreshold = Board::LevelThreshold((unsigned int)aBoard->mLevel);
+		int aPrevThreshold = (aBoard->mLevel != 0) ? Board::GetPointsAtLevel((unsigned int)aBoard->mLevel - 1) : 0;
+		int aThreshold = Board::GetPointsAtLevel((unsigned int)aBoard->mLevel);
 		if (aBoard->mGameStats->mScore < aThreshold)
 		{
 			aBoard->mGameStats->mScore = aThreshold;
@@ -614,7 +614,7 @@ bool BookWormApp::HandleScriptCommand(const ScriptCommand& theCommand)
 		}
 		// level aLevel - 1 just completed: its threshold scored, then the game's own NextLevel (LevelUp)
 		aBoard->mLevel = aLevel - 2;
-		aBoard->mGameStats->mScore = Board::LevelThreshold((unsigned int)aBoard->mLevel);
+		aBoard->mGameStats->mScore = Board::GetPointsAtLevel((unsigned int)aBoard->mLevel);
 		aBoard->NextLevel();
 		Ok(aLine);
 		return true;

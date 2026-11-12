@@ -80,7 +80,7 @@ void HintDialog::ButtonDepress(int theId)
 	}
 }
 
-// 0x42af50. The creator (BookWormApp::ShowHint) sizes it to the screen, then to
+// 0x42af50. The creator (BookWormApp::DoHintDialog) sizes it to the screen, then to
 // (233, 110, 400, GetPreferredHeight(400)).
 HintDialog::HintDialog(BookWormApp* theApp, int theHintId, const SexyString& theDialogHeader,
 	const SexyString& theDialogLines, const SexyString& theDialogFooter, int theButtonMode) :

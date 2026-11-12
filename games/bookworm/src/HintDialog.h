@@ -4,7 +4,7 @@
 // HintDialog.cpp: dialog 15 (DIALOG_HINT), the board's tutorial hints (Board.cpp gHintHeaders/gHintLines).
 // The footer button (2015, GT_HINT_CONTINUE) is moved up above a second button (GT_HINT_DISABLE,
 // BUTTON_HINT_DISABLE, 26), which turns hints off for the session.
-// Original: class Sexy::HintDialog : public Dialog, sizeof 0x120 (new in BookWormApp::ShowHint 0x4105d0).
+// Original: class Sexy::HintDialog : public Dialog, sizeof 0x120 (new in BookWormApp::DoHintDialog 0x4105d0).
 // Vtables: 0x4fd434 (52 slots), ButtonListener 0x4fd414 (+0x58). Offsets are absolute. Behaviour spec:
 // re/bookworm/analysis/dialogs.md section 8.
 

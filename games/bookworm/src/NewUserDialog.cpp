@@ -91,7 +91,7 @@ void NewUserDialog::DrawEditBox(Graphics* g, const Rect& theRect)
 		aClipG.DrawImage(anEditBoxImage, theRect.mX + 32 + i * 32, theRect.mY, Rect(32, 0, 32, 32));
 }
 
-// 0x42e7c0. The creator (BookWormApp::ShowNewUserDialog) disables the game selector, then sizes it to
+// 0x42e7c0. The creator (BookWormApp::DoNewUserDialog) disables the game selector, then sizes it to
 // (238, 174, 400, GetPreferredHeight(400)).
 NewUserDialog::NewUserDialog(BookWormApp* theApp, const SexyString& theDialogLines) :
 	MoneyDialog(theApp, theApp->mImages[IMAGE_DIALOG], theApp->mImages[IMAGE_DIALOGBUTTON], DIALOG_NEW_USER, true,

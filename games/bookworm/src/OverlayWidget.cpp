@@ -92,7 +92,7 @@ void OverlayWidget::OrderInManagerChanged()
 }
 
 // 0x430a00
-bool OverlayWidget::IsBannerMoving()
+bool OverlayWidget::IsBonusWordMoving()
 {
 	return mBannerY != mBannerTargetY;
 }
@@ -104,7 +104,7 @@ void OverlayWidget::AddEffect(Effect* theEffect)
 	if (mEffectMgr != NULL)
 	{
 		theEffect->mEffectMgr = mEffectMgr;
-		mEffectMgr->AddEffect(theEffect);
+		mEffectMgr->Add(theEffect);
 		return;
 	}
 
@@ -124,7 +124,7 @@ bool OverlayWidget::HasEffects(int theType)
 {
 	if (mEffectMgr == NULL)
 		return false;
-	return mEffectMgr->HasEffectOfType(theType);
+	return mEffectMgr->CheckByType(theType);
 }
 
 // 0x430ab0: part of the board's saved game (Board::SaveGame): 33 bytes, little-endian int mBannerTargetY,
@@ -153,7 +153,7 @@ void OverlayWidget::LoadState(FILE* theFile)
 	fread(&mBannerRect.mY, 1, 4, theFile);
 	fread(&mBannerRect.mWidth, 1, 4, theFile);
 	fread(&mBannerRect.mHeight, 1, 4, theFile);
-	mEffectMgr->Clear();
+	mEffectMgr->EraseAll();
 	mEffectMgr->Load(theFile);
 }
 

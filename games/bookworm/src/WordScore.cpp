@@ -50,7 +50,7 @@ WordScore::WordScore()
 	mLevel = -1;
 }
 
-// 0x406560 (only BoardDraw::DrawWord copies one)
+// 0x406560 (only BoardDraw::DrawWordScore copies one)
 WordScore::WordScore(const WordScore& theOther)
 {
 	mApp = theOther.mApp;
@@ -94,7 +94,7 @@ void WordScore::Clear()
 
 // 0x406a10: the word of the tiles in order ("QU" for a Q tile) and its score. Does nothing but Clear
 // without an app or a list.
-void WordScore::Build(const PieceList* thePieces)
+void WordScore::CalcTileStats(const PieceList* thePieces)
 {
 	Clear();
 	if ((mApp == NULL) || (thePieces == NULL))
@@ -157,7 +157,7 @@ int WordScore::CalcScore()
 }
 
 // 0x406130: in the dictionary (case-sensitive: the app's set holds upper-case words)
-bool WordScore::CheckValid(const std::set<SexyString>* theDictionary)
+bool WordScore::Validate(const std::set<SexyString>* theDictionary)
 {
 	if ((mWord.size() > 2) && (theDictionary->size() != 0) &&
 		(theDictionary->find(mWord) != theDictionary->end()))

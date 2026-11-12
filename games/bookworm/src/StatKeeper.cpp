@@ -43,11 +43,11 @@ static void ReadString(FILE* theFile, SexyString* theString)
 StatKeeper::StatKeeper(BookWormApp* theApp)
 {
 	mApp = theApp;
-	// port: the original never initialises these two (heap garbage, also not cleared by Reset); nothing
+	// port: the original never initialises these two (heap garbage, also not cleared by Clear); nothing
 	// shows them (NAMES.md D39)
 	mSapphireTilesUsed = 0;
 	mDiamondTilesUsed = 0;
-	Reset();
+	Clear();
 }
 
 // 0x405140 (scalar deleting dtor 0x4059c0)
@@ -56,7 +56,7 @@ StatKeeper::~StatKeeper()
 }
 
 // 0x406950: everything but the sapphire and diamond counters
-void StatKeeper::Reset()
+void StatKeeper::Clear()
 {
 	mScore = 0;
 	mWords = 0;

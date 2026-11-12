@@ -620,7 +620,7 @@ void ReplayPlayer::Apply(bool isInTick)
 				if (aPath.empty())
 				{
 					std::for_each(mBoard->mSelection.begin(), mBoard->mSelection.end(), Piece::Deselect);
-					mBoard->ClearWord();
+					mBoard->ClearSelection();
 				}
 				else
 					mBoard->SelectTiles(aPath);

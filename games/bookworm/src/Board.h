@@ -4,7 +4,7 @@
 // Board.cpp: the 7x8 letter grid of BookWorm Deluxe - rules, per-tick update, input, scoring, fire tiles,
 // levels and the saved game (players/<user>/classic.dat, action.dat). The drawing half (Draw and the
 // Draw* helpers declared below) is in BoardDraw.cpp (board_draw).
-// Original: class Sexy::Board : public Widget, public ButtonListener, sizeof 0x3f0 (BookWormApp::StartGame
+// Original: class Sexy::Board : public Widget, public ButtonListener, sizeof 0x3f0 (BookWormApp::NewGame
 // 0x410d10 does new(0x3f0)), vftables 0x4f9b7c (Widget, 47 slots) and 0x4f9b60 (ButtonListener at +0x58).
 // Board data starts at +0x5c; offsets in the comments are absolute (the port's base classes have other
 // sizes, nothing depends on them).
@@ -55,7 +55,7 @@ enum BoardState
 	BOARD_PLAYING = 0,
 	BOARD_GAMEOVER_MUSIC = 1,       // one tick: high scores and the summary, then BOARD_GAMEOVER
 	BOARD_GAMEOVER = 2,             // final
-	BOARD_INACTIVE = 3,             // Update returns at once (Abandon, app StartGame with dialog 5 up)
+	BOARD_INACTIVE = 3,             // Update returns at once (Abandon, app NewGame with dialog 5 up)
 	BOARD_GAMEOVER_PENDING = 4,     // a fire tile burned through the bottom; waits for Lex and the flying tiles
 	BOARD_LEVEL_COMPLETE = 5,       // the level threshold was reached: the level-up announcement, then the summary
 	BOARD_NEXT_LEVEL = 6,           // request from the summary's continue button: Update calls NextLevel
@@ -81,7 +81,7 @@ enum BoardButtonId
 	BOARD_BUTTON_UNDO = 20          // port(mod): UNDO, beside OPTIONS (Undo.h)
 };
 
-// Board::mHintId (+0x34c), passed to BookWormApp::ShowHint; only 1, 2, 4 and 10 are ever scheduled
+// Board::mHintId (+0x34c), passed to BookWormApp::DoHintDialog; only 1, 2, 4 and 10 are ever scheduled
 enum BoardHintId
 {
 	HINT_HOW_TO_PLAY = 0,
@@ -132,7 +132,7 @@ public:
 	Buffer				mGameLog;               // +0x160 bit-packed event log (board_logic.md 7)
 	unsigned long		mStartTick;             // +0x180 GetTickCount() in the ctor; never read
 	unsigned long		mLevelStartTick;        // +0x184 when the level clock last (re)started
-	int					mLevelSeconds;          // +0x188 seconds of the level (ShowSummary)
+	int					mLevelSeconds;          // +0x188 seconds of the level (DoLevelUpWidget)
 	int					mTotalSeconds;          // +0x18c sum of mLevelSeconds
 	int					mLevelSecondsBanked;    // +0x190 seconds banked by pauses
 	int					mState;                 // +0x194 BoardState
@@ -153,7 +153,7 @@ public:
 	double				mShownProgress;         // +0x1d0 animated bar value
 	WordScore			mWord;                  // +0x1d8 the current selection's word
 	WordScore			mLastWord;              // +0x220 the word drawn above the board
-	Color				mLastWordColor;         // +0x268 written by DrawWord
+	Color				mLastWordColor;         // +0x268 written by DrawWordScore
 	double				mLastWordAlpha;         // +0x278 1.0 while selecting, fades after
 	double				mScoreGlow;             // +0x280 score glow 0..0.85
 	int					mBonusWordsGiven;       // +0x288 bonus words handed out (gBonusWordLength index)
@@ -215,7 +215,7 @@ public:
 	int					mShownScore;            // +0x39c rolling score display
 	double				mScoreScale;            // +0x3a0 always 1.0
 	std::list<Points*>	mPopups;                // +0x3a8 floating texts
-	Points*				mLastMessage;           // +0x3b4 last ShowMessage popup (stacking)
+	Points*				mLastMessage;           // +0x3b4 last WriteBonusText popup (stacking)
 	int					mMouseX;                // +0x3b8 never read
 	int					mMouseY;                // +0x3bc never read
 	bool				mSummaryShown;          // +0x3c0 the LevelUpWidget is up
@@ -242,7 +242,7 @@ public:
 	UndoStack*			mUndo;
 	DialogButton*		mUndoButton;
 	// port(mod): a mod's words with effects (ModWordEffects, mod "rude-words"): the fire tiles the next
-	// Refill sets among its new tiles (set by Submit, 0 otherwise), Lex's danger clip once he has eaten the
+	// CheckForFalling sets among its new tiles (set by Submit, 0 otherwise), Lex's danger clip once he has eaten the
 	// word, and the words of the game the stats count (kept at the end of the saved game while such a mod is
 	// on; the player's all-time total is in the registry, ModWordStatsValueName)
 	int					mModFireDue;
@@ -321,12 +321,12 @@ public:
 
 	// random letters, levels
 	static int			RandomLetter();                                 // 0x403d10 (gGameRand)
-	static int			LevelThreshold(unsigned int theLevel);          // 0x403880 (cdecl)
+	static int			GetPointsAtLevel(unsigned int theLevel);          // 0x403880 (cdecl)
 	static void			SetActionSpeed(double theSpeed);                // 0x402fd0 (writes a dead global)
 
 	// board contents
-	void				NewBoard();                                     // 0x404150
-	void				Refill();                                       // 0x40b540
+	void				SetupBoard();                                     // 0x404150
+	void				CheckForFalling();                                       // 0x40b540
 	void				SetModFire(const std::vector<Piece*>& theNewTiles, int theCount); // port(mod)
 	void				RemoveBonusTiles();                             // port(mod)
 	int					GetModWordsAllTime();                           // port(mod)
@@ -334,7 +334,7 @@ public:
 	void				UpdateBots();                                   // port(mod)
 	void				UpdateSelectDefinition();                       // port(mod)
 	void				ReadBots(FILE* theFile);                        // port(mod)
-	bool				RefillIsLevelsFirst() const;                    // port(mod): the next Refill skips the fire
+	bool				RefillIsLevelsFirst() const;                    // port(mod): the next CheckForFalling skips the fire
 	                                                                    // meter (SolverFireRater)
 	void				DeleteAllPieces();                              // 0x4036e0
 	void				RemovePieces(PieceList* thePieces);             // 0x4052d0
@@ -342,33 +342,33 @@ public:
 	void				CheckBottomFire();                              // 0x4042c0
 	void				BurnTiles(bool advance);                        // 0x408700
 	void				Scramble();                                     // 0x40ed70 (Lex::MouseUp)
-	void				AwardSpecialTile(const WordScore& theWord);     // 0x40ba80
+	void				GenerateSuperBonusTiles(const WordScore& theWord);     // 0x40ba80
 
 	// selection and words
 	void				AddLetter(Piece* thePiece);                     // 0x409c60
 	void				TruncateAfter(Piece* thePiece);                 // 0x405cf0
 	// port(mod): selects thePath as clicks on its tiles would (the solver's hints)
 	void				SelectTiles(const std::vector<Piece*>& thePath);
-	void				ClearWord();                                    // 0x407bf0
+	void				ClearSelection();                                    // 0x407bf0
 	void				Submit(int x, int y);                           // 0x40f5b0
-	void				BonusWordScored(int thePoints, int x, int y);   // 0x40abd0
-	void				PickBonusWord();                                // 0x408030 (also the app's StartGame)
-	void				AddScorePopup(int theScore, int x, int y);      // 0x409970
-	void				ShowMessage(const SexyString& theText, int theY); // 0x409b70
-	void				ClearPopups();                                  // 0x405a80
+	void				UseBonusWord(int thePoints, int x, int y);   // 0x40abd0
+	void				GetNextBonusWord();                                // 0x408030 (also the app's NewGame)
+	void				AddPoints(int theScore, int x, int y);      // 0x409970
+	void				WriteBonusText(const SexyString& theText, int theY); // 0x409b70
+	void				RemovePoints();                                  // 0x405a80
 
 	// buttons, overlay, pause, levels
-	DialogButton*		MakeButton(int theId, const Rect& theRect, Image* theButtonImage, Image* theOverImage,
+	DialogButton*		CreateControlButton(int theId, const Rect& theRect, Image* theButtonImage, Image* theOverImage,
 							Image* theDownImage, const SexyString& theLabel); // 0x40ad00
-	void				RemoveButtons();                                // 0x405810
-	void				SetButtonsVisible(bool isVisible);              // 0x405850
+	void				RemoveControlButtonWidgets();                                // 0x405810
+	void				SetControlButtonsVisible(bool isVisible);              // 0x405850
 	void				SetButtonsDisabled(bool isDisabled);            // 0x405890
-	void				DeleteButtons();                                // 0x405de0
-	void				ShowOverlay(bool show);                         // 0x403d80
-	void				Pause(bool pause);                              // 0x405be0 (counted)
-	void				UpdatePauseFade();                              // 0x403ae0
-	void				ShowSummary();                                  // 0x404b40
-	void				RemoveLevelUpWidget();                          // 0x403ea0
+	void				DeleteControlButtons();                                // 0x405de0
+	void				ShowBonusWord(bool show);                         // 0x403d80
+	void				SetPause(bool pause);                              // 0x405be0 (counted)
+	void				UpdatePause();                              // 0x403ae0
+	void				DoLevelUpWidget();                                  // 0x404b40
+	void				KillLevelUpWidget();                          // 0x403ea0
 	void				LevelUp();                                      // 0x407a50
 	void				NextLevel();                                    // 0x408000
 	void				StartGameOverMusic();                           // 0x4038c0
@@ -394,14 +394,14 @@ public:
 	bool				SaveGameSnapshot(int theMode, Buffer* theBuffer);
 
 	// drawing (BoardDraw.cpp, board_draw)
-	void				DrawPieces(Graphics* g);                        // 0x40a160
+	void				DrawTiles(Graphics* g);                        // 0x40a160
 	void				DrawPiece(Graphics* g, Piece* thePiece);        // 0x4044f0
-	void				DrawPieceBlank(Graphics* g, Piece* thePiece);   // 0x404380 (action mode, paused)
-	void				DrawSelection(Graphics* g);                     // 0x405340
-	void				DrawLevelText(Graphics* g);                     // 0x4056e0
-	void				DrawProgressBar(Graphics* g);                   // 0x403c00
+	void				DrawBlankPiece(Graphics* g, Piece* thePiece);   // 0x404380 (action mode, paused)
+	void				DrawTileArrows(Graphics* g);                     // 0x405340
+	void				DrawLevel(Graphics* g);                     // 0x4056e0
+	void				DrawProgress(Graphics* g);                   // 0x403c00
 	void				DrawScore(Graphics* g);                         // 0x405580
-	void				DrawWord(Graphics* g);                          // 0x407c60 (writes mLastWordColor)
+	void				DrawWordScore(Graphics* g);                          // 0x407c60 (writes mLastWordColor)
 	// port(mod): a groove across a left-panel plank at theX, where a mod's button splits it
 	void				DrawPlankDivider(Graphics* g, int theX, int theY);
 };

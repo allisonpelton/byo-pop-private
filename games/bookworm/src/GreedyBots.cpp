@@ -192,7 +192,7 @@ Piece* BotGame::Below(Piece* thePiece) const
 	return NULL;
 }
 
-// Board::Refill in Classic (the new tiles start above the board: the game draws their heights from mRand)
+// Board::CheckForFalling in Classic (the new tiles start above the board: the game draws their heights from mRand)
 void BotGame::Refill()
 {
 	bool isLevelUp = mLevel > mLastRefillLevel;
@@ -322,7 +322,7 @@ void BotGame::BurnTiles()
 	}
 }
 
-// Board::AwardSpecialTile (its 6-letter draw is dead: gLen6Gate is never written)
+// Board::GenerateSuperBonusTiles (its 6-letter draw is dead: gLen6Gate is never written)
 void BotGame::AwardSpecialTile(const WordScore& theWord)
 {
 	int aLength = (int)theWord.mWord.size();
@@ -429,7 +429,7 @@ void BotGame::RemoveBonusTiles()
 	}
 }
 
-// Board::PickBonusWord: into the app's next bonus word
+// Board::GetNextBonusWord: into the app's next bonus word
 void BotGame::PickBonusWord()
 {
 	unsigned int aGivenIndex = (unsigned int)mBonusWordsGiven;
@@ -467,7 +467,7 @@ bool BotGame::Submit(const std::vector<Piece*>& thePath)
 	WordScore aWord;
 	aWord.mApp = mApp;
 	aWord.mLevel = mLevel;
-	aWord.Build(&aList);
+	aWord.CalcTileStats(&aList);
 
 	ModWordEffects aModEffects;
 	bool isModWord = ModWordGetEffects(aWord.mWord, &aModEffects);
@@ -519,7 +519,7 @@ bool BotGame::Submit(const std::vector<Piece*>& thePath)
 		}
 	}
 
-	if ((mScore >= Board::LevelThreshold((unsigned int)mLevel)) && (mState == BOARD_PLAYING))
+	if ((mScore >= Board::GetPointsAtLevel((unsigned int)mLevel)) && (mState == BOARD_PLAYING))
 		mState = BOARD_LEVEL_COMPLETE;
 
 	mModFireDue = 0;
@@ -694,7 +694,7 @@ void BotGame::Settle()
 
 	if (mState == BOARD_LEVEL_COMPLETE)
 	{
-		mLevelScore = mScore - Board::LevelThreshold((unsigned int)mLevel);
+		mLevelScore = mScore - Board::GetPointsAtLevel((unsigned int)mLevel);
 		mLevelWords = 0;
 		mLevel++;
 		mState = BOARD_PLAYING;

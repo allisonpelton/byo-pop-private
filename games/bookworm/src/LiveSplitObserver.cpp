@@ -6,9 +6,9 @@
 // update (BookWormApp::UpdateFrames), reads the board's fields and the score key only, and sees each update's
 // end state, not what happened inside it.
 //
-// BookWorm keeps a board after the player leaves it: BookWormApp::ShowGameSelector abandons it (BOARD_INACTIVE)
+// BookWorm keeps a board after the player leaves it: BookWormApp::DoGameSelector abandons it (BOARD_INACTIVE)
 // and takes it off the widget manager, but BookWormApp::mBoard stays until the selector's roll-down is done
-// (RemoveBoard). A saved game that is continued is a new Board that LoadGame fills in the same call that
+// (KillBoard). A saved game that is continued is a new Board that LoadGame fills in the same call that
 // makes it (BookWormApp::ButtonDepress, DIALOG_CONTINUE), so the observer never sees it before mResumed is set.
 //
 // Events, for the current board (Board::mBoardSerial):

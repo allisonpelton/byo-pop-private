@@ -22,9 +22,9 @@ class WordScore
 {
 public:
 	// +0x00 vfptr
-	BookWormApp*	mApp;                       // +0x04 set by the Board ctor; Build does nothing while NULL
+	BookWormApp*	mApp;                       // +0x04 set by the Board ctor; CalcTileStats does nothing while NULL
 	SexyString		mWord;                      // +0x08 upper case; a 'Q' tile adds "QU"
-	bool			mValid;                     // +0x24 in the dictionary (CheckValid)
+	bool			mValid;                     // +0x24 in the dictionary (Validate)
 	// +0x25..+0x27 padding
 	int				mTypeCount[NUM_TILE_TYPES]; // +0x28..+0x3c tiles of each TileType
 	int				mNumPieces;                 // +0x40 tiles in the word
@@ -34,14 +34,14 @@ public:
 
 public:
 	WordScore();                                                // 0x405190
-	WordScore(const WordScore& theOther);                       // 0x406560 (BoardDraw::DrawWord)
+	WordScore(const WordScore& theOther);                       // 0x406560 (BoardDraw::DrawWordScore)
 	virtual ~WordScore();                                       // 0x4051d0 body, 0x4059f0 slot 0
 	WordScore&		operator=(const WordScore& theOther);       // 0x407b90
 
 	void			Clear();                                    // 0x4069c0 (mScore is kept)
-	void			Build(const PieceList* thePieces);          // 0x406a10
+	void			CalcTileStats(const PieceList* thePieces);          // 0x406a10
 	int				CalcScore();                                // 0x404f60 (the only formula)
-	bool			CheckValid(const std::set<SexyString>* theDictionary); // 0x406130
+	bool			Validate(const std::set<SexyString>* theDictionary); // 0x406130
 	SexyString		CommonPrefix(const SexyString& theOther);   // 0x406b00 (OverlayWidget::Draw)
 	void			Save(FILE* theFile);                        // 0x404fe0
 	void			Load(FILE* theFile);                        // 0x406180

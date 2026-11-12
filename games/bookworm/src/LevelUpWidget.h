@@ -1,8 +1,8 @@
 #ifndef __BOOKWORM_LEVELUPWIDGET_H__
 #define __BOOKWORM_LEVELUPWIDGET_H__
 
-// LevelUpWidget.cpp (0x42b980-0x42d050; DeletePanel and CreatePanel sit at the end of LabelWidget.cpp's
-// range): the level-complete / game-over summary. Board::ShowSummary creates it over the board. A 490x390
+// LevelUpWidget.cpp (0x42b980-0x42d050; FreeImageData and CreateImageData sit at the end of LabelWidget.cpp's
+// range): the level-complete / game-over summary. Board::DoLevelUpWidget creates it over the board. A 490x390
 // panel (best word, longest word, level and total time, the rank picture, name and next rank) is painted
 // once into an off-screen image, falls from the top with two independently bouncing corners (tilted while
 // they differ), then a header bar (level up or game over, with the level number) slides down and a footer
@@ -66,7 +66,7 @@ public:
 	int				mFooterY;               // +0xcc y of the footer bar
 	MemoryImage*	mPanelImage;            // +0xd0 off-screen panel, size of dialog_levelup (owned)
 	Graphics*		mPanelGraphics;         // +0xd4 Graphics on mPanelImage (owned)
-	bool			mPanelDirty;            // +0xd8 repaint the panel at the next Draw (CreatePanel)
+	bool			mPanelDirty;            // +0xd8 repaint the panel at the next Draw (CreateImageData)
 	bool			mLexArrived;            // +0xd9 Lex was idle in BOARD_LEVEL_COMPLETE
 	// port(mod): the mods' results at game over (the greedy bots', the daily board's), in a balloon above Lex;
 	// owned, NULL until shown. mModsText: its text blocks as last laid out
@@ -96,9 +96,9 @@ public:
 	virtual void	ButtonPress(int theId) override;                        // 0x42bc80 (+0x58) slot 3
 	virtual void	ButtonDepress(int theId) override;                      // 0x42bc90 (+0x58) slot 4
 
-	void			DeletePanel();                                          // 0x42b980
-	void			CreatePanel();                                          // 0x42b9c0
-	void			DrawPanel(Graphics* g);                                 // 0x42c210
+	void			FreeImageData();                                          // 0x42b980
+	void			CreateImageData();                                          // 0x42b9c0
+	void			DrawToImage(Graphics* g);                                 // 0x42c210
 	void			UpdateModsBalloon();                                    // port(mod)
 	// port(mod): Enter is Continue on a level's summary once the footer is in (mod "type-word"); false: not taken
 	bool			KeyContinue(KeyCode theKey);

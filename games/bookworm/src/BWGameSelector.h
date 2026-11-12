@@ -5,7 +5,7 @@
 // of Fame, Quit), a speech bubble greeting the current player with a change-player link, and a scroll-like
 // transition: the screen rolls up when a game starts and unrolls when the player comes back from one.
 // Original: class Sexy::BWGameSelector : public Widget, public ButtonListener, sizeof 0xb0 (new in
-// BookWormApp::ShowGameSelector 0x410f00), vftable 0x4f93e4 (50 slots: Widget's 47 + 47..49),
+// BookWormApp::DoGameSelector 0x410f00), vftable 0x4f93e4 (50 slots: Widget's 47 + 47..49),
 // ButtonListener vftable 0x4f93c8 (+0x58). Offsets are absolute (the 2004 Widget is 0x58 bytes).
 // Behaviour spec: re/bookworm/analysis/screens.md.
 
@@ -75,8 +75,8 @@ public:
 	virtual void	Draw(Graphics* g) override;                     // 0x402cb0 slot 16
 	virtual void	Update() override;                              // 0x402190 slot 17
 	virtual void	StartGame();                                    // 0x401460 slot 47
-	virtual void	StartOpenTransition();                          // 0x4010c0 slot 48
-	virtual void	StartCloseTransition();                         // 0x4011f0 slot 49
+	virtual void	DoShow();                          // 0x4010c0 slot 48
+	virtual void	DoHide();                         // 0x4011f0 slot 49
 
 	void			SetGameMode(int theMode) { mGameMode = theMode; }           // 0x401340
 	void			DrawBubble(Graphics* g);                        // 0x402a50

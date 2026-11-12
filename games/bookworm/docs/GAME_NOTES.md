@@ -7069,8 +7069,8 @@ The step after the coverage check and the performance pass: what the game does n
 Each removal below is one the original's own code allows (nothing in the port can reach it), and the frozen baseline proves
 it (`tools/check.sh bookworm`: the same state at every update in the two-mode, three-mode and saved-and-continued games;
 `build-web:bookworm` builds). Every function that came out has a `none` line in `coverage.txt` with its reason, so the
-coverage report lists no function the port defines and no run reaches (`coverage.txt` holds 100 `none` lines now, the
-78 of the coverage check and these 22).
+coverage report lists no function the port defines and no run reaches (`coverage.txt` held 100 `none` lines after this step, the
+78 of the coverage check and these 22; the readability pass added a 101st).
 
 **The 19 functions of the coverage check.**
 
@@ -7112,7 +7112,7 @@ coverage report lists no function the port defines and no run reaches (`coverage
 
 **What stays, and why.** Saved-game fields the original writes (the count fields above, `Board`'s unused fields, the
 `Alias` of a user), so that a file stays the original's format and an original's saves load. The app's `mGameOption` and the
-selector's copy of it, which only copy each other, wait for the readability pass, which has to name or remove them.
+selector's copy of it, which only copied each other, came out in the readability pass (below).
 
 **What it came to.** 22 functions, the `Math` class with its member and 12 other fields, a table, 3 data rows, 8 dialog
 cases and 12 dialog ids: 496 lines of source out and 85 in (mostly comments), no behaviour changed but one wait message
@@ -7191,3 +7191,101 @@ unchanged by this pass, which added only the profile tools and these notes.
 port's `-autoplaylog` of the bot game, shifted as `identical/case.sh` does) to `<out>/scenario.txt` and run
 `OG_STAGE=C:/byo-og/bwpp bash games/bookworm/tools/profile/pairs.sh <out> 3` (about 4 minutes a pair), then
 `python -I games/bookworm/tools/profile/summary.py <out>`; `variants.sh <out> 2` and `summary.py <out> v` for the renderer settings.
+
+## The readability pass (2026-11-11)
+
+The rules are `docs/CODE_STANDARDS.md`; `python tools/namecheck.py games/bookworm` checks the ones a tool can check and reports no
+finding now (440 at the start of the pass, 460 before the unneeded code came out; `games/bookworm/namecheck.txt` does not exist, so
+nothing is excused). Nothing the port does changed: every unit compiles to the same object code as before the renames (`tools/objsnap.py`:
+49 objects, 1,422 functions, 0 objects differ, once for the first batch of renames and once for the Mac names), and what the pass
+took out (below) is proved by the game's suite against the frozen baseline (`tools/check.sh build bookworm build-web:bookworm`: the
+two-mode, three-mode and saved-and-continued games identical to the baseline at every update; the web build builds).
+
+**Names from the Mac build (rule 1).** `tools/macmatch.py` paired the Mac binary with the export (942 pairs, 372 of the Mac's 800
+game functions) and the port's 444 functions that name an address were set beside the Mac names. 73 methods that do the same job took the
+Mac's name, among them `Board::LevelThreshold` (`GetPointsAtLevel`), `Refill` (`CheckForFalling`), `AwardSpecialTile`
+(`GenerateSuperBonusTiles`), `BonusWordScored` (`UseBonusWord`), `PickBonusWord` (`GetNextBonusWord`), `NewBoard` (`SetupBoard`),
+`ShowSummary` (`DoLevelUpWidget`), `AddScorePopup` (`AddPoints`), `ClearPopups` (`RemovePoints`), `Pause` (`SetPause`), the button
+helpers (`MakeButton` is `CreateControlButton`, and `RemoveButtons`, `DeleteButtons` and `SetButtonsVisible` follow) and the drawing
+steps (`DrawPieces` is `DrawTiles`, `DrawSelection` `DrawTileArrows`, `DrawLevelText` `DrawLevel`, `DrawProgressBar` `DrawProgress`,
+`DrawWord` `DrawWordScore`, `DrawPieceBlank` `DrawBlankPiece`); in `BookWormApp` the `Show...`/`Remove...` pairs are the Mac's
+`Do...`/`Kill...` (`ShowHelp` is `DoHelp`, `HideHelp` `KillHelp`, `ShowGameSelector` `DoGameSelector`, `RemoveBoard` `KillBoard`, `ShowHallOfFame`
+`DoFameWidget`, ...) and `StartGame` is `NewGame`, `SelectGameMode` `TryConfirmLoad`, `ShowQuitDialog` `ConfirmQuit`, `GoToMainMenu`
+`ConfirmEndGame`, `LoadHighScores` `ReadFameRegistry`, `LoadUserSettings` `LoadUserConfig`, `LoadImage` `DoLoadImage`; the selector's
+`StartOpenTransition` and `StartCloseTransition` are `DoShow` and `DoHide`, `WordScore::CheckValid` `Validate` and `Build`
+`CalcTileStats`, `StatKeeper::Reset` `Clear`, and the effect managers' `Clear`, `AddEffect` and `HasEffectOfType` are `EraseAll` (`DestroyAll`
+for the ember list), `Add` and `CheckByType`. Not taken: the pairs that are merges or splits (`PreSubmit`/`PostSubmit` for the port's
+`BurnTiles` and `CheckBottomFire`, `AddPiece`, `MakeLastPiece`, `GameOver`: the Mac compiler kept steps the Windows exe has inline or the
+other way round, as `MAC_COMPARISON.md` says), pairs by call order with a name for a different job (`HintDialog::WasHintShown` and the
+Mac's `IsHintDisabled`, which behave differently, as that file says; `Board::LevelUp`, whose Mac name `NextLevel` the port's own
+`NextLevel` at 0x408000 already has; `Effect::Draw`, `Sparkle::GetType` and `HintDialog::Draw`, which matched the wrong function),
+and the `UserManager`'s methods, whose Mac class is `UserProfileMgr` (a class the port named for the original's `User`). The renames were
+made by the compiler, not by search and replace: a throwaway script (Typer Shark's `tools/readability/rename.py`, adapted, not committed), which renames a method at
+its declaration, compiles every unit with `-fsyntax-only` and replaces the old name exactly where the compiler reports it missing, with the
+class taken from the error, so that two classes with a method of one name never mix; here it also finds a name after a qualifier
+such as `Board::`). It changed 363 places beyond the 73 declarations. No string literal of the 71 changed sources differs from the
+sources before the pass (a comparison of each file's literals, comments left out), the web-only code included. The comments that named the old names were
+brought along by a script (97 mentions), except the registry values `ShowHelp` and `ShowHints`, which are the original's file format and keep their
+spelling. Earlier sections of these notes and `IDENTICAL_PLAY.md` keep the names of their time.
+
+
+The 73 renames, as `Class::old` to new (the sections above, `IDENTICAL_PLAY.md` and `MAC_COMPARISON.md` use the old names):
+
+- `BWGameSelector`: `StartOpenTransition` `DoShow`, `StartCloseTransition` `DoHide`
+- `BigLex`: `PlayAnim` `PlayAnimSeq`
+- `Lex`: `PlayAnim` `PlayAnimSeq`
+- `Board`: `LevelThreshold` `GetPointsAtLevel`, `UpdatePauseFade` `UpdatePause`, `DrawProgressBar` `DrawProgress`, `ShowOverlay` `ShowBonusWord`, `RemoveLevelUpWidget` `KillLevelUpWidget`, `NewBoard` `SetupBoard`, `DrawPieceBlank` `DrawBlankPiece`, `ShowSummary` `DoLevelUpWidget`, `DrawSelection` `DrawTileArrows`, `DrawLevelText` `DrawLevel`, `RemoveButtons` `RemoveControlButtonWidgets`, `SetButtonsVisible` `SetControlButtonsVisible`, `ClearPopups` `RemovePoints`, `Pause` `SetPause`, `DeleteButtons` `DeleteControlButtons`, `ClearWord` `ClearSelection`, `DrawWord` `DrawWordScore`, `PickBonusWord` `GetNextBonusWord`, `AddScorePopup` `AddPoints`, `ShowMessage` `WriteBonusText`, `DrawPieces` `DrawTiles`, `BonusWordScored` `UseBonusWord`, `MakeButton` `CreateControlButton`, `Refill` `CheckForFalling`, `AwardSpecialTile` `GenerateSuperBonusTiles`
+- `WordScore`: `CheckValid` `Validate`, `Build` `CalcTileStats`
+- `StatKeeper`: `Reset` `Clear`
+- `BookWormApp`: `ShutdownWidgets` `CleanupWidgets`, `RemoveBoard` `KillBoard`, `ShowHelp` `DoHelp`, `HideHelp` `KillHelp`, `RemoveGameSelector` `KillGameSelector`, `RemoveFameWidget` `KillFameWidget`, `ShowSelectUserDialog` `DoSelectUserDialog`, `ShowHint` `DoHintDialog`, `ShowCredits` `DoCredits`, `ShowOptions` `DoOptions`, `ShowNewUserDialog` `DoNewUserDialog`, `StartGame` `NewGame`, `ShowGameSelector` `DoGameSelector`, `ShowHallOfFame` `DoFameWidget`, `LoadUserSettings` `LoadUserConfig`, `StartGameForUser` `PreNewGame`, `LoadImage` `DoLoadImage`, `LoadFont` `DoLoadImageFont`, `CheckRegistryAccess` `VerifyHKLMAccess`, `SelectGameMode` `TryConfirmLoad`, `ShowQuitDialog` `ConfirmQuit`, `GoToMainMenu` `ConfirmEndGame`, `PauseAllMusic` `MuteGameMusic`, `ShowDeleteUserDialog` `DoDeleteUserDialog`, `LoadHighScores` `ReadFameRegistry`
+- `DeleteUserDialog`: `ConfirmDelete` `DoConfirmDeleteDialog`
+- `EffectMgr`: `Clear` `EraseAll`, `HasEffectOfType` `CheckByType`, `AddEffect` `Add`
+- `EmberListMgr`: `Clear` `DestroyAll`
+- `FameWidget`: `DrawLocalScores` `DrawLocalFame`
+- `HelpWidget`: `DrawTopicText` `DrawHelp`
+- `LevelUpWidget`: `DeletePanel` `FreeImageData`, `CreatePanel` `CreateImageData`, `DrawPanel` `DrawToImage`
+- `OverlayWidget`: `IsBannerMoving` `IsBonusWordMoving`
+- `SelectUserDialog`: `UpdateList` `ResetUserListWidget`
+- `TitleScreen`: `DrawLoadingBar` `DrawLoadMeter`
+- `WordBalloon`: `GetTextHeight` `GetWordWrappedHeight`, `DrawPlain` `DrawBalloon`, `DrawBox` `DrawComponentBalloon`
+
+**Fields.** The 25 fields of `Piece` and the 8 of `Board` that only the save code touches (the original writes and reads them and
+nothing else does: 14 ints, 7 bools and 4 doubles of `Piece`, which are 0, false or 0.0 from the constructor, and the one int that is
+1) are named for the value they hold and numbered by letter in each type: `mSavedZeroIntA` to `mSavedZeroIntN`, `mSavedOneInt`,
+`mSavedFalseBoolA` to `mSavedFalseBoolG`, `mSavedZeroDoubleA` to `mSavedZeroDoubleD`. Their offsets stay in the comments. `Board`'s are
+`mSavedUninitialisedByte` (+0x1b2), `mSavedEmptyStringA` and `mSavedEmptyStringB` (+0x2b0, +0x2d0) with `mSavedZeroAfterStringA` and
+`mSavedZeroAfterStringB` after each (+0x2cc, +0x2ec), `mSavedZeroAfterPauseFade` (+0x3d8), `mSavedZeroResetByLevelUp` (+0x3e8) and
+`mSavedZeroLast` (+0x3ec). They are kept because the saved game's record holds them (an original's save may carry a value there, and
+the port writes it back as it read it). Taken out because nothing reads them and no save holds them: the app's `mGameOption` and the selector's
+copy of it with `BWGameSelector::SetGameOption` (0x401350, which has a `none` line in `coverage.txt`: it only copied one to the other),
+the selector's two unused fields (+0x8c, +0x90), the help widget's (+0x68, +0x6c), the hint dialog's (+0x11c), the level-up widget's two
+(+0x78, +0xa8) and `MoneyDialog`'s `mLightPhase` (+0x118, Big Money's, never initialised or used). Each leaves a comment line where the field
+was, with its offset, so that the offsets around it still read. `LevelUpWidget::mFrozenB0`, which is read (a constant false), is `mFrozen`.
+
+**Addresses and markers (rule 6).** The 13 files of the mods (`Solver`, `GreedyBots`, `Replay`, `SidePanel`, `WordReview`, `TypedWord`,
+`DailyBoard`, `ModWords`, `Undo`, `ModFeatures`, `TileSymbols`, `WordJournal`, `JournalWidget`) now carry `port(mod):` in their first comment, as
+their headers do, which covers 205 functions. The other 44 are helpers of the original's code: the record helpers of the saved game
+(`FileWriteInt` and the rest, in `Board.cpp`, `StatKeeper.cpp`, `WordScore.cpp`), `GameText`'s lookups, the replay watch's hooks in `Board` and
+the app, `StateLog`'s four functions, and the small ones the original has inline (`TopRow`, `LexIdle`, `LexCalm`, `UserDataPath`,
+`FadedColor`, `RestoreMTRand2004`, `UserValueName`, `WriteMultiString`); each has a `port:` or `port(mod):` line that says what it is.
+
+**One-letter names (rule 5) and others.** 19 names used over more than 10 lines have words: `Reader r` is `aReader`, the live-split
+observer's `b` and `s` are `aBlock` and `aShadow`, `theBlock`, `aTempPath`, the bots' comparators take `theFirst` and `theSecond`, the test
+hooks' `Board* b` is `aBoard` or `theBoard`, `char c` is `aByte` or `aChar`, and the autoplay bot's `theWord1` and `theWord2` are `theFirstWord`
+and `theSecondWord`. The four comments that told a development stage ("Phase 1" of the level-up widget's animation, `mUndoPhase`'s fourth
+state) say what the code does, and the two that said "meaning unknown" say that nothing reads the field.
+
+**`tools/splitfields.py`** (`python tools/splitfields.py bookworm --export re/bookworm/gh/decomp`): no member is declared twice under two
+names, none is read and never assigned, and one is written and never read: the autoplay bot's `mLevelUps` (a counter of the test hook, which says so
+in its comment now). The export check lists 37 members in 47 functions that the original touches and the port's translation of that
+function does not name. The five with a write are each judged: `this[0x21]` and `this[0x28]` on a byte-sized `this` are read as four-byte
+slots (the selector's `mGameMode` and `mBackdropY`, `TitleScreen`'s `mBarDY`); the click on a balloon is `WordBalloon::MouseDown`, which
+calls the port's `Close`, where `mTimer` is set; `LoadGame` reads `mHighlightKey` and zeroes it, as the original does after its read;
+`mGameOverPiece` is saved by the port's `SaveGame` (the check pairs the function by address and the port splits the save). The other
+32 are reads of fields (`mRand`, `mWord`, `mEffectMgr` and the like) that the original's `SaveGame`, `LoadGame` and a few handlers
+reach by offset, and the port reaches by name from the helper it split the function into; they were not compared one by one, and the
+identical-play comparisons (`IDENTICAL_PLAY.md`) and the baseline's saved-and-continued game stand behind them.
+
+**Not done, on purpose.** The registry values and the saved game's field names keep their spelling (the original's format). The
+comments of `Board.h`'s declarations kept their columns where a rename made a name longer than its slot, so a few comments sit a space
+or two off.

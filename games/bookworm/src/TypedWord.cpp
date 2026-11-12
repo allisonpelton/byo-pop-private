@@ -54,7 +54,7 @@ void TypedWord::Clear()
 	if (SelectionIsTyped())
 	{
 		std::for_each(mBoard->mSelection.begin(), mBoard->mSelection.end(), Piece::Deselect);
-		mBoard->ClearWord();
+		mBoard->ClearSelection();
 	}
 	Reset();
 }

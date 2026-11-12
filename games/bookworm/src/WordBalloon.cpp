@@ -91,9 +91,9 @@ void WordBalloon::Draw(Graphics* g)
 	if ((aBoard != NULL) && (aBoard->mLex != NULL) && (mAlpha > 0.0))
 	{
 		if (mPlainImage != NULL)
-			DrawPlain(g);
+			DrawBalloon(g);
 		else
-			DrawBox(g);
+			DrawComponentBalloon(g);
 	}
 }
 
@@ -147,7 +147,7 @@ void WordBalloon::SetBoxImages(Image* theBoxImage, Image* theTailImage, Point th
 
 // 0x4365d0 slot 50
 // Height of a word-wrapped block (0 for no text or no font).
-int WordBalloon::GetTextHeight(int theWidth, const SexyString& theText, Font* theFont, int theJustify,
+int WordBalloon::GetWordWrappedHeight(int theWidth, const SexyString& theText, Font* theFont, int theJustify,
 	int theLineSpacing)
 {
 	if ((theText.length() == 0) || (theFont == NULL))
@@ -172,17 +172,17 @@ int WordBalloon::GetPreferredHeight(int theWidth)
 	{
 		int anInnerWidth = theWidth - (mTextInsets.mRight + mTextInsets.mLeft + mImageInsets.mRight + mImageInsets.mLeft);
 		if ((mHeader.length() != 0) && (mHeaderFont != NULL))
-			aHeight = GetTextHeight(anInnerWidth, mHeader, mHeaderFont, mHeaderJustify, mHeaderFont->GetLineSpacing());
+			aHeight = GetWordWrappedHeight(anInnerWidth, mHeader, mHeaderFont, mHeaderJustify, mHeaderFont->GetLineSpacing());
 		if ((mText.length() != 0) && (mTextFont != NULL))
-			aHeight += GetTextHeight(anInnerWidth, mText, mTextFont, mTextJustify, mTextFont->GetLineSpacing());
+			aHeight += GetWordWrappedHeight(anInnerWidth, mText, mTextFont, mTextJustify, mTextFont->GetLineSpacing());
 		if ((mFooter.length() != 0) && (mFooterFont != NULL))
-			aHeight += GetTextHeight(anInnerWidth, mFooter, mFooterFont, mFooterJustify, mFooterFont->GetLineSpacing());
+			aHeight += GetWordWrappedHeight(anInnerWidth, mFooter, mFooterFont, mFooterJustify, mFooterFont->GetLineSpacing());
 		aHeight += mTextInsets.mBottom + mTextInsets.mTop + mImageInsets.mBottom + mImageInsets.mTop;
 	}
 	return aHeight;
 }
 
-// port: the block loop of DrawPlain (0x4367a0) and DrawBox (0x436c40). Header, text, footer in that
+// port: the block loop of DrawBalloon (0x4367a0) and DrawComponentBalloon (0x436c40). Header, text, footer in that
 // order, each with its colour (1, 2, 3) faded, its font and its justification, one under the other.
 void WordBalloon::DrawTextBlocks(Graphics* g, Rect theRect)
 {
@@ -209,7 +209,7 @@ void WordBalloon::DrawTextBlocks(Graphics* g, Rect theRect)
 // 0x4367a0 slot 47
 // The plain image tinted with colour 0, the text centred vertically in the area inside the insets. The
 // measuring pass checks only the strings (a block with text but no font would crash; never happens).
-void WordBalloon::DrawPlain(Graphics* g)
+void WordBalloon::DrawBalloon(Graphics* g)
 {
 	g->SetColorizeImages(true);
 	g->SetColor(FadedColor(GetColor(0), mAlpha));
@@ -222,11 +222,11 @@ void WordBalloon::DrawPlain(Graphics* g)
 
 	int aTextHeight = 0;
 	if (mHeader.length() != 0)
-		aTextHeight = GetTextHeight(aWidth, mHeader, mHeaderFont, mHeaderJustify, mHeaderFont->GetLineSpacing());
+		aTextHeight = GetWordWrappedHeight(aWidth, mHeader, mHeaderFont, mHeaderJustify, mHeaderFont->GetLineSpacing());
 	if (mText.length() != 0)
-		aTextHeight += GetTextHeight(aWidth, mText, mTextFont, mTextJustify, mTextFont->GetLineSpacing());
+		aTextHeight += GetWordWrappedHeight(aWidth, mText, mTextFont, mTextJustify, mTextFont->GetLineSpacing());
 	if (mFooter.length() != 0)
-		aTextHeight += GetTextHeight(aWidth, mFooter, mFooterFont, mFooterJustify, mFooterFont->GetLineSpacing());
+		aTextHeight += GetWordWrappedHeight(aWidth, mFooter, mFooterFont, mFooterJustify, mFooterFont->GetLineSpacing());
 
 	DrawTextBlocks(g, Rect(aX, (aHeight - aTextHeight) / 2 + aY, aWidth, aTextHeight));
 	g->SetColorizeImages(false);
@@ -235,7 +235,7 @@ void WordBalloon::DrawPlain(Graphics* g)
 // 0x436c40 slot 48
 // The box tiled from the 9-slice image over the widget minus the tail's height, the left half of the
 // tail image under it at mTailPos (tinted with colour 0 only when a box was drawn), the text from the top.
-void WordBalloon::DrawBox(Graphics* g)
+void WordBalloon::DrawComponentBalloon(Graphics* g)
 {
 	g->SetColorizeImages(true);
 	Color aBackColor = FadedColor(GetColor(0), mAlpha);

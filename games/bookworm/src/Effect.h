@@ -27,7 +27,7 @@ class Piece;
 class EffectMgr;
 class EmberListMgr;
 
-// Effect::GetType, which EffectMgr::HasEffectOfType and GetEffectsOfType ask for
+// Effect::GetType, which EffectMgr::CheckByType and GetEffectsOfType ask for
 enum EffectType
 {
 	EFFECT_SPARKLE = 0,
@@ -56,7 +56,7 @@ class Effect
 {
 public:
 	// +0x00 vfptr
-	EffectMgr*		mEffectMgr;             // +0x04 owner (set by OverlayWidget::AddEffect)
+	EffectMgr*		mEffectMgr;             // +0x04 owner (set by OverlayWidget::Add)
 	int				mUpdateCnt;             // +0x08 ++ per Update
 	bool			mDead;                  // +0x0c EffectMgr::Update deletes the effect when set
 	// +0x0d..+0x0f padding
@@ -125,14 +125,14 @@ public:
 	EffectMgr(BookWormApp* theApp);                                 // 0x4201c0 (one Sexy::Rand() draw)
 	virtual ~EffectMgr();                                           // 0x420060 body, 0x420270 slot 0
 
-	void			Clear();                                        // 0x41f930 deletes every effect
+	void			EraseAll();                                        // 0x41f930 deletes every effect
 	bool			Update();                                       // 0x41f990 true if it had effects before updating
 	void			Draw(Graphics* g);                              // 0x41fa10
-	void			AddEffect(Effect* theEffect);                   // 0x4207f0 push_back, takes ownership
-	bool			HasEffectOfType(int theType);                   // 0x41fa50
+	void			Add(Effect* theEffect);                   // 0x4207f0 push_back, takes ownership
+	bool			CheckByType(int theType);                   // 0x41fa50
 	std::list<Effect*>* GetEffectsOfType(int theType);              // 0x420830 new list or NULL (caller deletes)
 	void			Save(FILE* theFile);                            // 0x41faa0 (writes the count 0: see the file header)
-	void			Load(FILE* theFile);                            // 0x420b70 callers Clear() first
+	void			Load(FILE* theFile);                            // 0x420b70 callers EraseAll() first
 };
 
 // Original: struct Ember (no vtable, no RTTI name), sizeof 0x60. Lives in EmberListMgr.
@@ -179,14 +179,14 @@ public:
 	EmberListMgr(BookWormApp* theApp, int thePoolSize);             // 0x421070 (one Sexy::Rand() draw)
 	virtual ~EmberListMgr();                                        // 0x4203a0 body, 0x420520 slot 0
 
-	void			Clear();                                        // 0x4202d0 deletes the active and the pooled embers
+	void			DestroyAll();                                        // 0x4202d0 deletes the active and the pooled embers
 	Ember*			NewEmber();                                     // 0x420d60 the pool's last ember, or a new one
 	void			AddEmber(int theType, double theX, double theY, double theVX, double theVY, bool theLoop,
 						double theAlpha, double theAlphaDecay);     // 0x420e00
 	bool			Update();                                       // 0x420fd0 true if it had embers before updating
 	void			Draw(Graphics* g);                              // 0x41f8d0
 	void			Save(FILE* theFile);                            // 0x41ff80 (writes the count 0: see the file header)
-	void			Load(FILE* theFile);                            // 0x420e70 callers Clear() first
+	void			Load(FILE* theFile);                            // 0x420e70 callers DestroyAll() first
 };
 
 }

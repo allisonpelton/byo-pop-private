@@ -15,7 +15,7 @@
 
 using namespace Sexy;
 
-// The level-up book's columns (panel coordinates, as LevelUpWidget::DrawPanel): left x 34, 206 wide; right
+// The level-up book's columns (panel coordinates, as LevelUpWidget::DrawToImage): left x 34, 206 wide; right
 // x 256, 204 wide
 static const int LEFT_X = 34;
 static const int LEFT_W = 206;

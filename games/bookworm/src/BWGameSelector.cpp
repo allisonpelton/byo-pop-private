@@ -186,30 +186,30 @@ void BWGameSelector::ButtonDepress(int theId)
 	switch (theId)
 	{
 	case NOT_YOU_LINK_ID:
-		mApp->ShowSelectUserDialog();
+		mApp->DoSelectUserDialog();
 		break;
 
 	case CLASSIC_BUTTON_ID:
 		SetGameMode(GAMEMODE_CLASSIC);
-		mApp->SelectGameMode(GAMEMODE_CLASSIC);
+		mApp->TryConfirmLoad(GAMEMODE_CLASSIC);
 		break;
 
 	case ACTION_BUTTON_ID:
 		SetGameMode(GAMEMODE_ACTION);
-		mApp->SelectGameMode(GAMEMODE_ACTION);
+		mApp->TryConfirmLoad(GAMEMODE_ACTION);
 		break;
 
 	case HALL_OF_FAME_BUTTON_ID:
-		mApp->ShowHallOfFame();
+		mApp->DoFameWidget();
 		break;
 
 	case QUIT_BUTTON_ID:
-		mApp->ShowQuitDialog();
+		mApp->ConfirmQuit();
 		break;
 	}
 }
 
-// 0x401460: called by BookWormApp::SelectGameMode (no saved game) and for the continue-game dialog's buttons
+// 0x401460: called by BookWormApp::TryConfirmLoad (no saved game) and for the continue-game dialog's buttons
 void BWGameSelector::StartGame()
 {
 	// Dead default: the app's mGameMode starts at 0
@@ -217,13 +217,13 @@ void BWGameSelector::StartGame()
 		mGameMode = GAMEMODE_CLASSIC;
 
 	mApp->mGameMode = mGameMode;
-	mApp->StartGameForUser();
+	mApp->PreNewGame();
 	SetDisabled(true);
 }
 
 // 0x4010c0: coming back from a game. The selector is drawn normally into a snapshot (the board was already
 // removed from the manager), then Update unrolls it.
-void BWGameSelector::StartOpenTransition()
+void BWGameSelector::DoShow()
 {
 	if (mOpening)
 		return;
@@ -249,7 +249,7 @@ void BWGameSelector::StartOpenTransition()
 
 // 0x4011f0: a game starts (the board is already added behind the selector); Update rolls it up and
 // removes it
-void BWGameSelector::StartCloseTransition()
+void BWGameSelector::DoHide()
 {
 	if (mClosing)
 		return;
@@ -287,7 +287,7 @@ void BWGameSelector::Update()
 	{
 		mApp->mWelcomePlayed = true;
 		mApp->PlaySample(SOUND_LEX_WELCOME);
-		mBigLex->PlayAnim(0, false);
+		mBigLex->PlayAnimSeq(0, false);
 	}
 
 	if (mClosing)
@@ -300,7 +300,7 @@ void BWGameSelector::Update()
 		if (mBandHeight < 1)
 		{
 			mBandHeight = 0;
-			mApp->RemoveGameSelector(); // SafeDeleteWidget: this stays valid until the frame ends
+			mApp->KillGameSelector(); // SafeDeleteWidget: this stays valid until the frame ends
 		}
 		MarkDirty();
 		return;
@@ -320,7 +320,7 @@ void BWGameSelector::Update()
 			mHallButton->SetVisible(true);
 			mQuitButton->SetVisible(true);
 			OrderInManagerChanged();
-			mApp->RemoveBoard();
+			mApp->KillBoard();
 		}
 		mBandHeight += 8;
 		if (mBandHeight > TRANSITION_BAND_H)
@@ -334,7 +334,7 @@ void BWGameSelector::Update()
 	{
 		if (mApp->GetDialog(DIALOG_NEW_USER) == NULL)
 		{
-			mApp->ShowNewUserDialog(GameText(GT_SELECTOR_ENTER_NAME));
+			mApp->DoNewUserDialog(GameText(GT_SELECTOR_ENTER_NAME));
 			NewUserDialog* aDialog = (NewUserDialog*)mApp->GetDialog(DIALOG_NEW_USER);
 			if ((aDialog != NULL) &&
 				(mApp->mUserName.find_first_not_of(" AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz") == std::string::npos))
