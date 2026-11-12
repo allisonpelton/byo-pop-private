@@ -165,6 +165,13 @@ framework's (a GPU display has 1), the renderer SDL's name for it or a GPU displ
 game's own size when the desktop has room, and `-windowscale=1` makes it the game's own, as the original's (`-windowscale=N`
 for N times the logical size; `-renderscale=N` is the render target's size, a separate setting).
 
+**The present log.** `-presentlog=<file>` (native only) writes, when the app ends, one line for each `SDL_RenderPresent` call: the
+call's start in microseconds from the first present and its length. Its header says what held the presents: `renderer <name>
+vsync_asked <0|1> vsync_flag <0|1> pace_ms <ms>`, where `pace_ms` above 0 means the renderer has no vertical blank under it and the
+frame loop holds the draws to the display's refresh interval (`DDInterface::FrameHeldByPace`), and 0 means the blank holds them. The
+intervals between starts show whether the presents come evenly (the blank's 16.7 ms at 60 Hz, or the pace's). Without the option a
+present costs the test of one flag; with it, two counter reads and one record.
+
 ## The bot behind `move`
 
 The user, 2026-11-07: "If it would save usage, the scripts that play the games should be developed in a way that

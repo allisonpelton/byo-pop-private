@@ -12,6 +12,10 @@
 
 #include <SDL.h>
 #include <math.h>
+#include <stdio.h>
+#include <string>
+#include <utility>
+#include <vector>
 
 using namespace Sexy;
 
@@ -481,6 +485,43 @@ void DDInterface::BeginFrame()
 	SDL_RenderClear(mRenderer);
 }
 
+// port: -presentlog=<file> (a test option): one record for each SDL_RenderPresent call, its start (SDL's performance counter) and its
+// length, so that a run's present intervals can be read afterwards (whether they come evenly, at the vertical blank or at the
+// frame loop's pace). Written by WritePresentLog when the app ends; without the option a present costs the test of one flag.
+#ifndef __EMSCRIPTEN__
+static std::string gPresentLogFile;
+static std::vector<std::pair<Uint64, Uint64> > gPresentLog;
+static std::string gPresentLogHeader;
+
+void DDInterface::StartPresentLog(const std::string& theFileName)
+{
+	gPresentLogFile = theFileName;
+	gPresentLog.reserve(100000);
+}
+
+void DDInterface::WritePresentLog()
+{
+	if (gPresentLogFile.empty())
+		return;
+	FILE* aFile = fopen(gPresentLogFile.c_str(), "w");
+	if (aFile == NULL)
+	{
+		SDL_Log("presentlog: cannot write %s", gPresentLogFile.c_str());
+		return;
+	}
+	// the header says what held the presents: vsync (the renderer waits for the blank), or the frame loop's pace (pace_ms > 0)
+	fprintf(aFile, "# %s\n# counter_hz %llu\n# columns: start_us length_us (from the first present)\n", gPresentLogHeader.c_str(), (unsigned long long) SDL_GetPerformanceFrequency());
+	double aToUs = 1000000.0 / (double) SDL_GetPerformanceFrequency();
+	for (size_t i = 0; i < gPresentLog.size(); i++)
+		fprintf(aFile, "%.1f %.1f\n", (double) (gPresentLog[i].first - gPresentLog[0].first) * aToUs, (double) gPresentLog[i].second * aToUs);
+	fclose(aFile);
+	SDL_Log("presentlog: %d presents written to %s", (int) gPresentLog.size(), gPresentLogFile.c_str());
+}
+#else
+void DDInterface::StartPresentLog(const std::string&) {}
+void DDInterface::WritePresentLog() {}
+#endif
+
 void DDInterface::Present()
 {
 	if (mRenderer == NULL)
@@ -501,6 +542,25 @@ void DDInterface::Present()
 
 	DrawCursor();
 
+#ifndef __EMSCRIPTEN__
+	if (!gPresentLogFile.empty())
+	{
+		if (gPresentLog.empty())
+		{
+			SDL_RendererInfo aInfo;
+			SDL_GetRendererInfo(mRenderer, &aInfo);
+			char aHeader[256];
+			snprintf(aHeader, sizeof(aHeader), "renderer %s vsync_asked %d vsync_flag %d pace_ms %.3f", aInfo.name, mVSync ? 1 : 0,
+				(aInfo.flags & SDL_RENDERER_PRESENTVSYNC) != 0 ? 1 : 0, mPaceIntervalMs);
+			gPresentLogHeader = aHeader;
+		}
+		Uint64 aStart = SDL_GetPerformanceCounter();
+		SDL_RenderPresent(mRenderer);
+		gPresentLog.push_back(std::make_pair(aStart, SDL_GetPerformanceCounter() - aStart));
+		mFrameCount++;
+		return;
+	}
+#endif
 	SDL_RenderPresent(mRenderer);
 	mFrameCount++;
 }

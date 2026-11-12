@@ -3182,6 +3182,7 @@ void SexyAppBase::MainLoopFinished()
 		(timeGetTime() - mTimeLoaded) / 1000.0, mSleepCount, mUpdateCount, mDrawCount);
 
 	Platform::CycleSplitFinish(mUpdateCount);
+	DDInterface::WritePresentLog();
 
 	PreTerminate();
 
@@ -3565,6 +3566,9 @@ void SexyAppBase::HandleCmdLineParam(const std::string& theParamName, const std:
 	// (platform/CycleSplit.h)
 	else if (theParamName == "-cyclesplit")
 		Platform::CycleSplitStart(theParamValue);
+	// port: the time of every present, for reading the intervals between them (DDInterface::StartPresentLog)
+	else if (theParamName == "-presentlog")
+		DDInterface::StartPresentLog(theParamValue);
 	// port: the site's "Always skip start-up logos" natively, for testing a game's wiring (framework/WebSettings.h)
 	else if (theParamName == "-skiplogos")
 		Byopop::SetSiteSkipLogos(true);
