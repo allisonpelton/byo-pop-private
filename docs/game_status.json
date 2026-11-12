@@ -406,10 +406,11 @@
         "site-features",
         "coverage",
         "performance",
-        "unneeded-code"
+        "unneeded-code",
+        "readability"
       ],
       "na": [],
-      "now": "readability",
+      "now": "collection",
       "note": ""
     },
     "cosmicbugs": {

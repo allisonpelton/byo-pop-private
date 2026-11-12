@@ -26,6 +26,10 @@
 
 using namespace engine;
 
+// Where the level end, game over, congratulations and paused screens sit on the game screen
+const float DIALOG_X = 210.0f;
+const float DIALOG_Y = 90.0f;
+
 Game* Game::sInstance = nullptr;
 bool Game::sSplashHold = false;
 
@@ -116,9 +120,9 @@ void Game::configure(AppConfig& theConfig)
 	theConfig.mTitle = "Word Harmony";
 	theConfig.mIcon = 101;
 	theConfig.mFrameRate = 30;
-	theConfig.mWidth = 800;
-	theConfig.mHeight = 600;
-	theConfig.mUnknown9C = false;
+	theConfig.mWidth = SCREEN_WIDTH;
+	theConfig.mHeight = SCREEN_HEIGHT;
+	theConfig.mFullScreen = false;
 	sInstance = this;
 	readCommandLine();
 #ifdef __EMSCRIPTEN__
@@ -691,28 +695,28 @@ void Game::makeGameScreen()
 	mLevelEnd = new ScreenLayout();
 	mLevelEnd->addRef();
 	mLevelEnd->loadLayout("config\\levelEndScreen.xml");
-	mLevelEnd->setPosition(210.0f, 90.0f);
+	mLevelEnd->setPosition(DIALOG_X, DIALOG_Y);
 	mGameScreen->addChild(mLevelEnd);
 	mLevelEnd->setVisible(false);
 
 	mGameOverScreen = new GameOverScreen();
 	mGameOverScreen->addRef();
 	mGameOverScreen->loadLayout("config\\gameOverScreen.xml");
-	mGameOverScreen->setPosition(210.0f, 90.0f);
+	mGameOverScreen->setPosition(DIALOG_X, DIALOG_Y);
 	mGameScreen->addChild(mGameOverScreen);
 	mGameOverScreen->setVisible(false);
 
 	mCongratsScreen = new CongratsScreen();
 	mCongratsScreen->addRef();
 	mCongratsScreen->loadLayout("config\\congrats.xml");
-	mCongratsScreen->setPosition(210.0f, 90.0f);
+	mCongratsScreen->setPosition(DIALOG_X, DIALOG_Y);
 	mGameScreen->addChild(mCongratsScreen);
 	mCongratsScreen->setVisible(false);
 
 	mPausedScreen = new ScreenLayout();
 	mPausedScreen->addRef();
 	mPausedScreen->loadLayout("config\\gamePausedScreen.xml");
-	mPausedScreen->setPosition(210.0f, 90.0f);
+	mPausedScreen->setPosition(DIALOG_X, DIALOG_Y);
 	mGameScreen->addChild(mPausedScreen);
 	mPausedScreen->setVisible(false);
 

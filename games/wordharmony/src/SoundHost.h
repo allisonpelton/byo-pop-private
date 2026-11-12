@@ -85,7 +85,7 @@ public:
 	bool load(const char* theName, const char* theFile) override;
 	// 0x443b60
 	bool loadStream(const char* theName, const char* theFile) override { return load(theName, theFile); }
-	engine::Sound* createSound(const char* theName, int theArg1, int theArg2) override;
+	engine::Sound* createSound(const char* theName, bool theStatic, int theCategory) override;
 	void setVolume(float theVolume) override;
 	// 0x443a20
 	float getVolume() override { return mVolume; }

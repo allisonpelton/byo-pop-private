@@ -93,7 +93,7 @@ ScreenImage* wordharmony::decodeImage(const std::vector<uint8_t>& theData, const
 namespace
 {
 
-// port (performance pass): the pixel functions are inlined into the loops of the blit they are called from, where they were
+// port (for speed): the pixel functions are inlined into the loops of the blit they are called from, where they were
 // a call and a switch a pixel
 #if defined(__GNUC__) || defined(__clang__)
 #define BLIT_INLINE inline __attribute__((always_inline))
@@ -101,7 +101,7 @@ namespace
 #define BLIT_INLINE inline
 #endif
 
-// Each channel is (source * alpha + destination * (255 - alpha)) / 255. Port (performance pass): red and blue are worked out
+// Each channel is (source * alpha + destination * (255 - alpha)) / 255. Port (for speed): red and blue are worked out
 // together in the two 16-bit lanes of a word, and a sum x of at most 65025 divided by 255 as (x + 1 + (x >> 8)) >> 8, which
 // is the same for every x up to 65534 (checked against the division for every alpha, every pair of channel values and 400
 // million random pixels)
@@ -144,7 +144,7 @@ struct PixelOp
 };
 
 // 0x45c780 and 0x45ce90: the pixel loops of the alpha-test and blend blitters, with the scanline helpers they share
-// (0x4579c0, 0x4581c0, 0x458230, 0x458560, 0x458cb0). The operation is a template parameter (port, performance pass: the
+// (0x4579c0, 0x4581c0, 0x458230, 0x458560, 0x458cb0). The operation is a template parameter (port, for speed: the
 // blit picks it once and its pixel loops have no switch); a pixel the blend would leave as it is is not written.
 template <int OP>
 BLIT_INLINE void applyPixel(const PixelOp& theOp, uint32_t& theDest, uint32_t theSrc)
@@ -200,7 +200,7 @@ std::vector<int> sBlitColumns;
 
 }
 
-// port (performance pass): the frame's clear is made when something is drawn that does not cover the screen, or at the end of
+// port (for speed): the frame's clear is made when something is drawn that does not cover the screen, or at the end of
 // the frame (finish), not at its start: most frames begin with an opaque copy of a full-screen picture, which writes every
 // pixel and would leave the 1.9 MB of the clear's stores for nothing
 void ScreenGraphics::clear()
@@ -208,6 +208,7 @@ void ScreenGraphics::clear()
 	mCleared = true;
 }
 
+// port: the clear that clear() put off is made now
 void ScreenGraphics::finish()
 {
 	if (!mCleared)
@@ -285,7 +286,7 @@ void ScreenGraphics::drawImage(Image* theImage, const IntRect& theSrc, float x, 
 		int aY1 = std::min(mHeight, (int)std::ceil(aBottom - 0.5f));
 		if (aX0 >= aX1 || aY0 >= aY1)
 			return;
-		// port (performance pass): the column each destination column reads is worked out once for the blit, not for each
+		// port (for speed): the column each destination column reads is worked out once for the blit, not for each
 		// pixel of each row (the same float expression); the columns inside the source that follow one another (any blit
 		// not mirrored or scaled) are then copied or blended as a run
 		int aCount = aX1 - aX0;
@@ -374,17 +375,17 @@ void ScreenGraphics::drawImage(Image* theImage, const IntRect& theSrc, float x, 
 	// is mapped back into the source
 	if (std::fabs(aScaleX) < 1e-6f || std::fabs(aScaleY) < 1e-6f)
 		return;
-	float c = std::cos(aRotation);
-	float s = std::sin(aRotation);
-	// forward: X = c*sx*(u-px) - s*sy*(v-py) + x, Y = s*sx*(u-px) + c*sy*(v-py) + y
+	float aCos = std::cos(aRotation);
+	float aSin = std::sin(aRotation);
+	// forward: X = cos*sx*(u-px) - sin*sy*(v-py) + x, Y = sin*sx*(u-px) + cos*sy*(v-py) + y
 	float aCorners[4][2] = {{0, 0}, {(float)aWidth, 0}, {0, (float)aHeight}, {(float)aWidth, (float)aHeight}};
 	float aMinX = 1e9f, aMinY = 1e9f, aMaxX = -1e9f, aMaxY = -1e9f;
 	for (int i = 0; i < 4; i++)
 	{
 		float u = (aCorners[i][0] - aPivotX) * aScaleX;
 		float v = (aCorners[i][1] - aPivotY) * aScaleY;
-		float aX = c * u - s * v + x;
-		float aY = s * u + c * v + y;
+		float aX = aCos * u - aSin * v + x;
+		float aY = aSin * u + aCos * v + y;
 		aMinX = std::min(aMinX, aX);
 		aMaxX = std::max(aMaxX, aX);
 		aMinY = std::min(aMinY, aY);
@@ -408,8 +409,8 @@ void ScreenGraphics::drawImage(Image* theImage, const IntRect& theSrc, float x, 
 			{
 				float aRelX = dx + 0.5f - x;
 				// the inverse rotation, then the inverse scale
-				float u = (c * aRelX + s * aRelY) * anInvX + aPivotX;
-				float v = (-s * aRelX + c * aRelY) * anInvY + aPivotY;
+				float u = (aCos * aRelX + aSin * aRelY) * anInvX + aPivotX;
+				float v = (-aSin * aRelX + aCos * aRelY) * anInvY + aPivotY;
 				if (u < 0 || v < 0 || u >= aWidth || v >= aHeight)
 					continue;
 				int aU = (int)u + theSrc.left;
@@ -422,7 +423,7 @@ void ScreenGraphics::drawImage(Image* theImage, const IntRect& theSrc, float x, 
 	});
 }
 
-// Slot 7: a one-pixel line (with the translation) in the state's colour and opacity
+// Slot 7 (0x45e180): a one-pixel line (with the translation) in the state's colour and opacity
 void ScreenGraphics::drawLine(const Point& theFrom, const Point& theTo)
 {
 	finish();

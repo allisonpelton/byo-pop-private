@@ -19,7 +19,7 @@ namespace engine
 class InputStream;
 }
 
-// The nodes' memory, the original's pools of 1024 nodes that are never freed (0x41fed0, 0x420d70; port, performance pass: the
+// The nodes' memory, the original's pools of 1024 nodes that are never freed (0x41fed0, 0x420d70; port, for speed: the
 // two lists are some 440,000 nodes, which as one allocation each cost a header and padding apiece, 7 MB, and the time of the
 // calls). A node's class takes its memory from the pool of its own size with its operator new; delete frees nothing.
 template <class Node>
