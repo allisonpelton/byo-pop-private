@@ -90,13 +90,32 @@ and the frozen baseline) gives the same results as before them.
 | Command | Does |
 |---|---|
 | `state` | `STATE {"screen","mode","over","dialog","busy","paused","inactive","updates"}` (`inactive`: paused because the window lost the focus, which a driver ends by giving it back; `updates`: the game's update count, for a driver that waits n updates), and on the board screens `"level","score","bonus","blocksleft","levelComplete","gameOver"` and `"board":{"columns","rows","next":[4 kinds],"grid":[rows of characters]}`. `screen` is title, menu, options, help, credits, newgame, board, bonus, summary, highscores or gameover; `mode` regular, strategy, speed or timed. A grid character is the kind of the block at that cell (`0`-`9` the fruit, `a`-`g` the specials 10-16, `.` empty), row 0 first. `over` is true once the game over screen's Play again button is up (after the high score's name, if any). |
-| `goto <screen>` | menu, options, help, highscores, credits (the game's own screens), or a mode to start: regular, strategy, speed or **timed**, through the game's own start commands (0x20-0x23). The timed mode's button is off the screen of TipTop Deluxe (configuration), so this is the one way in. ERROR on the title screen while it loads, and while a dialog is open. |
+| `goto <screen>` | menu, options, help, highscores, credits (the game's own screens), or a mode to start: regular, strategy, speed or **timed**, through the game's own start commands (0x20-0x23). The timed mode's button is off the screen of TipTop Deluxe (configuration), so this is the one way in. From the title screen it goes through the title's button first (ERROR while the title still loads); ERROR while a dialog is open. |
 | `level <n>` | level n of the game in play, as the game goes on after a bonus round (`NextLevel`, then the game screen built again). ERROR with a dialog open, an animation running, in a bonus round or at the end of a level. |
 | `set <name> <value>` | `score`, `blocksleft` (the board's), `mode regular\|strategy\|speed` (the mode `move` picks on the new game screen), `botseed <n>` |
 | `win`, `lose` | the board's own flags, `mLevelComplete` or `mGameOver` (and for the timed mode `SetCrossed`), that `Board::Draw` sets itself; the level summary or the game over screen follow as in play. ERROR in a bonus round and while the game is busy. |
 | `seed <n>` | `tiptop::SRand(n)`: the C library generator (the game reseeds it from its clock when it chooses the first block, so a seed set after a game began holds only until then; the fixes mod's `seededBlocks` removes that) |
 | `unlock all` | ERROR: the game has nothing locked |
 | `move` | `MOVE {"kind","input":[{"move":[x,y]},{"click":[x,y]}],"updates"}` (the steps are docs/TEST_COMMANDS.md's ordered list; the high score's name is `{"key":"B"},{"key":"o"},{"key":"t"}` before its click): what the bot does next on this screen, in game coordinates. `kind` is start (the title's button), play, mode, dialog (the tips dialog's default button), drop (a column; `column` is the number), continue (the level summary's button), unpause (the pause image is up: a click on it; while the window is inactive it is wait), name (types "Bot" and clicks OK), or wait (no input, `updates` to wait: the game is busy). It answers for the whole game, from the title to the game over screen, and is `MOVE null` only once the game is over. The column is `-autoplay`'s choice (`BotChooseColumn`: the biggest group the block joins, else one of the emptiest columns), with dice that are a function of the update and `botseed`, so asking twice gives the same move. |
+
+**`move` and the title screen.** `move` waits (a wait move of 10 updates) while the title's load bar fills and offers the
+play button's click once it is full, and `goto` from the title goes through it to the main menu (it answered ERROR "click
+its button first" from the title, which stopped a driver that began with `goto <mode>`).
+
+## The sound log (BYOPOP_SOUNDLOG, for the site's presets)
+
+`BYOPOP_SOUNDLOG=<file>` writes the framework's sound log (`tools/soundpreset.py` reads it): a `load` line for each of
+the 36 sounds, by the name TipTop.dat stores it under (`sounds/MouseOver.ogg`), then `play`, `stop` and `volume` lines
+with the update they happen on. LOWOS has no instances, so each PlaySound call of mode 1 or 2 that starts a sound is a
+play, with the amplitude it was asked for in hundredths of a decibel (the loudest play of a log is the reference, so the
+sound effects level drops out), and mode 0 or a restart is a stop. Whether a sound is still playing (mode 2 starts it
+only when it is not) comes from its length in updates, not from the mixer, which keeps the machine's clock in a `-fast`
+run: the board's shake and time warning sounds, restarted every update with mode 2, come out as a play each time the
+sound ends, as they sound at the game's own speed. Nothing changes without the variable, and the old `-soundlog`, which
+the sound comparison with the original reads, is what it was. `games/tiptop/tools/soundlog/` has `run.sh` (one run,
+through `realplay.py`: a whole game of a mode by the bot's `move` from the title, a phase-two tour, or `options.py`, the
+options' two sliders dragged), `all.sh` (every run the site was given) and `index.py` (a table of contents of a log: each
+sound's plays, and the bursts of plays at most 30 updates apart, which are the sequences a preset is made of).
 
 ## Deviations from the original
 
