@@ -26,6 +26,7 @@
 #include "../platform/VFS.h"
 #include "../platform/ImageLoader.h"
 #include "../platform/ModManager.h"
+#include "../platform/GameOptions.h"
 #include "../platform/WebPersist.h"
 #include "../platform/UserFiles.h"
 #include "../platform/Relaunch.h"
@@ -3564,6 +3565,9 @@ void SexyAppBase::HandleCmdLineParam(const std::string& theParamName, const std:
 		mForcedRenderScale = atoi(theParamValue.c_str());
 	else if (theParamName == "-windowscale")
 		mForcedWindowScale = std::max(0, std::min(4, atoi(theParamValue.c_str())));
+	// port: -original, -fix=<id>[=off] and -lite=<id>[=off], the game's improvements (platform/GameOptions.h)
+	else if ((theParamName == "-original") || (theParamName == "-fix") || (theParamName == "-lite"))
+		Platform::HandleOptionParam(theParamName, theParamValue);
 	// port: stand-ins for missing game files (platform/Placeholders.h)
 	else if (theParamName == "-placeholders")
 		Platform::SetPlaceholders(true);
