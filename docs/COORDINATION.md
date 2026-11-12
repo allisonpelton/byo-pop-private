@@ -285,7 +285,8 @@ holds the rules every session follows; this file does not repeat them.
     screen for 2D SexyApp ports, drawn by the framework's MemoryImage blitters into the screen's bits as the original's
     DirectDraw path draws, shown through SurfaceDisplay with the dirty rects (the original's software draw is 0.75 M an
     update; Dynomite's board, 77% of the screen, is dirty every update in play). It would serve Dynomite, Alchemy and
-    the other 2D SexyApp ports over their originals. Not decided yet.
+    the other 2D SexyApp ports over their originals. The user said yes ("Yes, build it", 2026-11-12): the Dynomite
+    session builds it as shared commits, design note first, proved on Dynomite, every other port unchanged.
   - Draw calls (Typer Shark, 2026-11-12). `DDInterface::DrawTexturedQuad` makes one SDL call a quad: 593 a frame for
     about 20 texture changes, DrawScreen 466 M cycles in 20 s. Joining consecutive quads of one texture into one
     SDL_RenderGeometry call would take about half of that, some 6% of the port. The draw order stays, and every port's
