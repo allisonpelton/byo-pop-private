@@ -13,6 +13,10 @@ class Image;
 // and drawn with DrawImageF). Nothing is drawn for a cel outside the strip.
 void DrawImageCelF(Graphics* g, Image* theImageStrip, double theX, double theY, int theCelCol, int theCelRow);
 
+// 0x4052a0: a bar of an empty picture with a full one drawn over it as far as theFill (0 to 1) reaches
+void DrawFillBar(Graphics* g, Image* theEmptyImage, Image* theFullImage, int theX, int theY, double theFill, int theMargin,
+	int theFadeWidth);
+
 }
 
 #endif
