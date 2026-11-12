@@ -439,11 +439,12 @@
         "coverage",
         "unneeded-code",
         "readability",
-        "collection"
+        "collection",
+        "performance"
       ],
       "na": [],
-      "now": "performance",
-      "note": "under its original through SurfaceDisplay: 86 against 110 M cycles a second on the board at the original's 800x600 (92 with sound, 102 in the default 2x window); the screen comparison, real-input play and window checks with the new display are next"
+      "now": "lite-mod",
+      "note": "performance done: 86 against 110 M cycles a second at 800x600 through SurfaceDisplay; real-input play, window changes and the screens pass with it; the autosplit block, then the lite mod"
     },
     "waterbugs": {
       "title": "Water Bugs",
