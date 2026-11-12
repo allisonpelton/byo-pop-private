@@ -889,3 +889,28 @@ so `IsPlaying` is false for both slots when the focus is lost, the paused-slots 
 empty and nothing of its behaviour can be read. The code is the same translated function: `AstroPopApp::PauseMusicForFocus` (0x4252b0) pauses
 each slot that plays and keeps its number in the list, and the regain resumes the listed slots and clears it. A run of the original on the real
 desktop with sound, in the night window, could show it. The sound itself (the port's decoder against BASS) is not compared either.
+
+## 15. The autosplit block (2026-11-12; `docs/WEB_PLAYER.md`, "One design for every port")
+
+AstroPop writes the shared autosplit block, layout 2, id `APDX`, from `src/LiveSplitObserver.cpp` (after each `AstroPopApp::UpdateFrames`). It
+is written once something asks: the web page (`byopop_livesplit_block`, exported in `CMakeLists.txt`), an enabled mod with the feature
+`livesplit` (none exists yet; the mods are looked at once in a hundred updates), or `-livesplitlog=<file>` (a test: one line when the block
+changes but for the clocks, scores and tick). Until then an update costs one test. Three inert values in the Board (`mBoardSerial`,
+`mRestoredGame`, `mGameOverCause`) are the only game code it needed.
+
+| Block field | AstroPop |
+|---|---|
+| mode | `Board::mGameType`: 1 classic, 2 survival; -1 off a game (the demonstration under the title and the menus is no game) |
+| skill | the pilot (`Board::mMode`): 0 Vector, 1 Sprocket, 2 Turbot, 3 Vixx |
+| GO | the first update of a fresh game (classic from level 1, or survival); not a saved game that goes on, not a classic game from a checkpoint or any level but 1 (both set `RESUMED`), not a game already on when the block was asked for |
+| level clear | `Board::LevelComplete`, seen as `mLevelsCompleted` rising: the update in which the goal is reached and the "Level Up" text starts (the levels before a multiple of four start their bonus round at once instead); `progress` = the level just cleared (`mLevelNumber` changes only at the warp gate), 0 before the first, -1 in survival |
+| game over | `Board::GameOver` (`mGameOver`): kind 0 a new row pushed a column to the ship, 1 the stack filled the field, 2 the player left (the menu came up over a game still on), 3 other (a test command's `lose`); no win: the classic game goes on after level 32 |
+| gameOwn | bytes 0 to 3: SUPA weapon starts in this game (`mPowerupActive` going to 1: `BeginPlay`), u32; bytes 4 to 7: the level the game began at, i32 |
+| state | 0 playing, 1 a level is complete (level-up screen, warp, gate), 2 a bonus round, 3 game over |
+| displayLevel | `mLevelNumber` in classic (the "Level N" on screen), `mStageNumber` in survival (a minute of play each) |
+
+Proof that it is inert: `games/astropop/tools/livesplit/inert.sh <dir>` plays check.sh's three bot games with the frozen baseline, the port with
+the block off and the port with it on, and the driver transcripts are identical (1470, 1758 and 2002 lines). `scripted.py` plays the short games
+of the replay logs (classic with two levels cleared, survival, a SUPA start; each ends in `lose`). Kinds 0 and 1 of the game over were not seen in
+a log: the bot does not lose by itself in the time a driver has, and the idle game that was tried stayed paused at a hint; they are read from the
+two places that call `GameOver` (`BoardRows.cpp`, `BoardFill.cpp`).
