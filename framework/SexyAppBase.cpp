@@ -33,6 +33,7 @@
 #include "../platform/Json.h"
 #include "../platform/Audio.h"
 #include "../platform/MemReport.h"
+#include "../platform/CycleSplit.h"
 
 #include <SDL.h>
 #include <stb_image_write.h>
@@ -1678,6 +1679,8 @@ void SexyAppBase::DoUpdateFramesF(float theFrac)
 
 bool SexyAppBase::DoUpdateFrames()
 {
+	Platform::CycleScope aCycleScope(Platform::CYCLE_UPDATE);      // the "update" part of -cyclesplit
+
 	if ((mLoadingThreadCompleted) && (!mLoaded))
 	{
 		mLoaded = true;
@@ -1702,6 +1705,8 @@ bool SexyAppBase::DoUpdateFrames()
 
 void SexyAppBase::Redraw(Rect* theClipRect)
 {
+	Platform::CycleScope aCycleScope(Platform::CYCLE_PRESENT);     // the "present" part of -cyclesplit
+
 	// Do mIsDrawing check because we could enter here at a bad time if any windows messages
 	//  are processed during WidgetManager->Draw
 	if ((mIsDrawing) || (mShutdown))
@@ -1714,6 +1719,8 @@ void SexyAppBase::Redraw(Rect* theClipRect)
 
 bool SexyAppBase::DrawDirtyStuff()
 {
+	Platform::CycleScope aCycleScope(Platform::CYCLE_DRAW);        // the "draw" part of -cyclesplit, less the present inside it
+
 	MTAutoDisallowRand aDisallowRand;
 
 	DWORD aStartTime = timeGetTime();
@@ -3136,6 +3143,8 @@ void SexyAppBase::MainLoopFinished()
 	SDL_Log("Seconds = %g, Sleep Count = %d, Update Count = %d, Draw Count = %d",
 		(timeGetTime() - mTimeLoaded) / 1000.0, mSleepCount, mUpdateCount, mDrawCount);
 
+	Platform::CycleSplitFinish(mUpdateCount);
+
 	PreTerminate();
 
 	WriteToRegistry();
@@ -3514,6 +3523,10 @@ void SexyAppBase::HandleCmdLineParam(const std::string& theParamName, const std:
 		mCommandsHold = true;
 	else if (theParamName == "-fast")
 		mFastMode = true;
+	// port: where the processor time goes, by part and thread, at the boundaries origrun --count uses in the original
+	// (platform/CycleSplit.h)
+	else if (theParamName == "-cyclesplit")
+		Platform::CycleSplitStart(theParamValue);
 	// port: the site's "Always skip start-up logos" natively, for testing a game's wiring (framework/WebSettings.h)
 	else if (theParamName == "-skiplogos")
 		Byopop::SetSiteSkipLogos(true);
@@ -3714,6 +3727,17 @@ int SexyAppBase::RunScriptCommand(const ScriptCommand& theCommand, std::string* 
 		if (!DoMemReport(aCommand.mArgs))
 			SDL_Log("ERROR memreport %s: cannot write the file", aCommand.mArgs.c_str());
 		return SCRIPT_GAME;
+	}
+	else if (aName == "cyclesplit")
+	{
+		// a snapshot of -cyclesplit's counters, labelled by the argument (platform/CycleSplit.h): a stretch is the difference
+		// between two of them
+		if (!Platform::gCycleSplitOn)
+		{
+			*theError = "cyclesplit needs -cyclesplit=<file>";
+			return SCRIPT_FAILED;
+		}
+		Platform::CycleSplitMark(aCommand.mArgs.empty() ? std::string("mark") : aCommand.mArgs, mUpdateCount);
 	}
 	else if ((aName == "pointer") && (mWidgetManager != NULL))
 	{
@@ -4449,6 +4473,17 @@ int SexyAppBase::RunRealInputCommand(const ScriptCommand& theCommand, std::strin
 		if (!DoMemReport(aCommand.mArgs))
 			SDL_Log("ERROR memreport %s: cannot write the file", aCommand.mArgs.c_str());
 		return SCRIPT_GAME;
+	}
+	else if (aName == "cyclesplit")
+	{
+		// a snapshot of -cyclesplit's counters, labelled by the argument (platform/CycleSplit.h): a stretch is the difference
+		// between two of them
+		if (!Platform::gCycleSplitOn)
+		{
+			*theError = "cyclesplit needs -cyclesplit=<file>";
+			return SCRIPT_FAILED;
+		}
+		Platform::CycleSplitMark(aCommand.mArgs.empty() ? std::string("mark") : aCommand.mArgs, mUpdateCount);
 	}
 	else if ((aName == "pointer") && (mWidgetManager != NULL))
 	{

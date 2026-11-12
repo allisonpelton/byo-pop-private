@@ -36,6 +36,7 @@ test hooks of their own keep them and add these names beside them, sharing the c
 | `seed <n>` | seeds the game's random numbers, where the game draws them from one generator |
 | `move` | prints the move the game's bot would make next, `MOVE {...}`: what it is (the swap, the word, the tile, the shot) and `input`, the real input that makes it, as an ordered list of steps in game coordinates (below); or `MOVE null` when there is none; it changes nothing |
 | `memreport [file]` | prints what the game holds in memory as one JSON line, `MEMREPORT {...}` (below); with a file it also writes the detail there (a SexyAppFramework port: every picture with its copies, and the heaps). It changes nothing |
+| `cyclesplit [label]` | with `-cyclesplit=<file>`: a snapshot of the cycle counters, kept in memory and written with the file at exit ("The cycle split", below); an error without the option |
 
 `memreport` answers with the same line in every game, so that a game's memory splits the same way everywhere:
 `{"images":{"count","pixels","copies","textures"},"sounds":{"count","bytes"},"music":{"count","tracks","moduleFiles"},`
@@ -68,6 +69,54 @@ the pointer there (a hover: a piece that hangs from the pointer needs one before
 there, with `"button":"right"` for the right button, `{"press":[x,y]}` and `{"release":[x,y]}` hold and let go for a
 drag (the `move` steps between them carry it), `{"key":"B"}` presses and releases a key, and `{"wait":n}` waits n
 updates. A port that printed `clicks` or `drags` lists earlier moves over to `input`.
+
+## The cycle split
+
+Where a run's processor time goes, split the same way in a port and in its original, so that a game's code is compared part by
+part and drawing, which is most of every game's time, does not hide a gain in the rest (the user, 2026-11-12: "separate out the
+cost of frame drawing for performance comparisons ... so I can see the significant speedups from better code more plainly").
+The target of `docs/COORDINATION.md` stays on the total; the split is reported beside it.
+
+**The parts**, counted in cycles of the thread that ran the game loop (`QueryThreadCycleTime`, so the time a thread waited is not
+in it), each exclusive of the counted parts it calls:
+
+| Part | The port (SexyAppBase) | The original (SexyApp; addresses in each game's export) |
+|---|---|---|
+| update (game logic) | `DoUpdateFrames`: the script, the widgets' updates, the music update | the same function, vtable slot 8 (BookWorm 0x47e220) |
+| draw | `DrawDirtyStuff` less the present inside it: the dirty scan, `BeginFrame`, `DrawScreen` | the same function, slot 65 (0x486510) less its `Redraw` |
+| present | `Redraw`: `DDInterface::Present` (SDL_RenderPresent, the cursor) | the same function, slot 66 (0x4884f0), which ends in `DDInterface::Redraw`'s Blt or Flip |
+
+Every other thread is listed with its cycles, its name (`SetThreadDescription`) and the module its start address is in, and the
+process's total (`QueryProcessCycleTime`, which counts the threads that ended too) closes the account: what the loop thread did
+outside the three parts is "loop" (events, waking from Sleep, the snapshots and the cycle readings themselves), and the other
+threads are "driver" (a module of the graphics driver or runtime), "audio" (SDL's audio thread, BASS, FMOD, DirectSound) and
+"other". `tools/cyclesplit.py` does the sums.
+
+**The limit**, to be stated wherever a split is shown: a GPU renderer batches its draw calls until the present, and DirectDraw can
+blit asynchronously, so a side that draws through one has its drawing partly in `present` and in the driver's threads. Such a side
+is reported as "picture" (draw, present and driver threads together) and never split; the three are split only for a side that
+draws in software (the 2D software renderer, the original's own blitters).
+
+**The port.** `-cyclesplit=<file>` (native only; the web build has no thread cycle counters and compiles it out): a test of one
+flag at the three sites when off, and when on a cycle reading (a system call, 716 cycles measured on the development machine, about
+0.3 us) at each boundary, six for a frame that is drawn, and nothing else during the run. The script (or live) command
+`cyclesplit [label]` takes a snapshot in memory (a thread listing, a millisecond or two, which falls in the next stretch's "loop");
+the file is written with one more snapshot, labelled `exit`, when the loop ends, so a run of 7,000 updates costs the 40 thousand
+or so readings and nothing else: for BookWorm at 100 updates a second that is 0.16 % of its processor time. The code is
+`platform/CycleSplit.{h,cpp}`. The option is not a test-run flag by itself: a measurement is a `-script` run (no `-commands`,
+whose poll costs 340 thousand cycles an update).
+
+**The file**, the same from the port and from origrun's `--count` (`docs/ORIGRUN.md`): one JSON object a snapshot, a line each,
+
+    {"label":"a","update":200,"wall_s":3.93,"process_cycles":...,"main_thread_id":...,"main_thread_cycles":...,
+     "parts":{"update":{"calls":..,"cycles":..},"draw":{...},"present":{...}},
+     "counter":{"calls":..,"cycles_each":..},"misses":..,
+     "threads":[{"tid":..,"name":"SDLAudioP2","start":"sdl2.dll+0x11f810","cycles":..}, ...]}
+
+`threads` holds every thread but the loop's; `counter` is the readings made and what one costs, so that a reader can take them out;
+`misses` counts a part that was left unclosed or nested deeper than eight (a port: never; the original: a longjmp or an exception
+that skipped a return). `python -I tools/cyclesplit.py <file> [<the original's file>] --from <label> --to <label>` prints a stretch's
+parts in million cycles an update and as a share of a core, and the two sides side by side.
 
 ## The bot behind `move`
 
