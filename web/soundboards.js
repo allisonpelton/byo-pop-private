@@ -1433,34 +1433,34 @@ var ByopopSoundboards = {
     ],
     groups: [
     { name: "Menus", sounds: [
-      ["Resource.dll|pe:WAVE:105", "Click", "A button or other control of a screen is pressed; also the layout and map screens' clicks"]
+      ["Resource.dll|pe:WAVE:105", "Click", "A button, slider or list row is pressed; also a level clicked on the map, a layout slot clicked, and a double-click on the background picture or the style choice"]
     ] },
     { name: "Tiles", sounds: [
-      ["Resource.dll|pe:WAVE:175", "Tile selected", "A free tile is clicked and becomes the selected one"],
-      ["Resource.dll|pe:WAVE:174", "Tile blocked", "A tile that is not free is clicked"],
-      ["Resource.dll|pe:WAVE:176", "Pair matched", "Two matching tiles are taken, also by a key, joker or magnet tile"],
-      ["Resource.dll|pe:WAVE:349", "Shuffle", "The tiles are shuffled"],
-      ["Resource.dll|pe:WAVE:350", "Deal", "A new board is dealt at the start of a game"],
-      ["Resource.dll|pe:WAVE:351", "Undo", "A move is taken back"]
+      ["Resource.dll|pe:WAVE:175", "Tile selected", "A click on a free tile that can pair makes it the selected one, or deselects it when it was already selected"],
+      ["Resource.dll|pe:WAVE:174", "Tile blocked", "A click that hits no tile that can be selected and paired (a covered tile or empty space), while no tiles are flying in or out"],
+      ["Resource.dll|pe:WAVE:176", "Pair matched", "Two matching tiles are taken, including a key with its lock and a joker or magnet with its partner; not for a gold pair"],
+      ["Resource.dll|pe:WAVE:349", "Shuffle", "A shuffle starts, from the Shuffle button or the shuffle choice of the no-moves dialog"],
+      ["Resource.dll|pe:WAVE:350", "Deal", "A game's board is dealt, when a level or layout game starts or is restarted; all other sounds are stopped first"],
+      ["Resource.dll|pe:WAVE:351", "Undo", "A move is taken back, from the Undo button or the undo choice of the no-moves dialog; nothing plays when no move has been made"]
     ] },
     { name: "Special tiles", sounds: [
-      ["Resource.dll|pe:WAVE:347", "Joker loop", "Plays on a loop while a joker tile is selected"],
-      ["Resource.dll|pe:WAVE:348", "Magnet loop", "Plays on a loop while a magnet tile is selected"],
-      ["Resource.dll|pe:WAVE:378", "Key loop", "Plays on a loop while a key tile is selected"],
-      ["Resource.dll|pe:WAVE:379", "Key joins lock", "A key tile is taken and joins the lock"],
-      ["Resource.dll|pe:WAVE:377", "Gold match", "A gold pair is matched"],
-      ["Resource.dll|pe:WAVE:376", "Fly-off loop", "Plays on a loop as the remaining tiles fly off after a gold match"],
-      ["Resource.dll|pe:WAVE:352", "Bonus", "The pair taken matches the tray's tile and scores a bonus"]
+      ["Resource.dll|pe:WAVE:347", "Joker loop", "A joker tile is selected; it loops until the tile is paired, deselected or the selection is cleared"],
+      ["Resource.dll|pe:WAVE:348", "Magnet loop", "A magnet tile is selected; it loops until the tile is paired, deselected or the selection is cleared"],
+      ["Resource.dll|pe:WAVE:378", "Key loop", "A key tile is selected; it loops until the tile is paired, deselected or the selection is cleared"],
+      ["Resource.dll|pe:WAVE:379", "Key joins lock", "A key's flight onto its lock ends and the two join"],
+      ["Resource.dll|pe:WAVE:377", "Gold match", "The two gold tiles are paired, which ends the level in the map game"],
+      ["Resource.dll|pe:WAVE:376", "Fly-off loop", "The gold pair's flight ends with more than 2 tiles left on the board; it loops as the rest fly off, until the level-complete dialog opens"],
+      ["Resource.dll|pe:WAVE:352", "Bonus", "A normal pair is taken that matches the tile shown in the tray and scores points, adding the 500-point bonus"]
     ] },
     { name: "Map", sounds: [
-      ["Resource.dll|pe:WAVE:340", "Map curtain", "A level is started from the map, or the map steps back, with the curtain moving"],
-      ["Resource.dll|pe:WAVE:381", "Map move", "The map moves on to the next level"],
-      ["Resource.dll|pe:WAVE:380", "New stage", "The map moves on into a new stage"],
-      ["Resource.dll|pe:WAVE:382", "Stage text gone", "The new stage's text has faded out"]
+      ["Resource.dll|pe:WAVE:340", "Map curtain", "The map screen comes back after a level or layout game, with its curtain closing; also when a level is started from the map, with the curtain opening"],
+      ["Resource.dll|pe:WAVE:381", "Map move", "The map screen comes back after a level that unlocked the next one and the map marker moves on, unless that level ended its stage"],
+      ["Resource.dll|pe:WAVE:380", "New stage", "The map screen comes back after the level that ended a stage, and the stage-completed text fades in"],
+      ["Resource.dll|pe:WAVE:382", "Stage text gone", "The stage-completed text, held for 3000 milliseconds (3 seconds) once faded in, has faded out"]
     ] },
     { name: "Level end", sounds: [
-      ["Resource.dll|pe:WAVE:375", "Layout result", "The result dialog of a layout is shown"],
-      ["Resource.dll|pe:WAVE:373", "Ending fanfare", "The ending screen opens after the last level"]
+      ["Resource.dll|pe:WAVE:375", "Layout result", "The result dialog opens at the end of a layout game, once the last tiles are gone"],
+      ["Resource.dll|pe:WAVE:373", "Fanfare", "The level-complete dialog opens after a map level (its gold tiles in the tray); also the ending screen opens, 1 second after the map's final move or from the map's ending button"]
     ] },
     { name: "Unused", sounds: [
       ["Resource.dll|pe:WAVE:106", "MP3 resource 106 (unused)", "Never played: its code never refers to the resource"]
@@ -1483,34 +1483,34 @@ var ByopopSoundboards = {
     ],
     groups: [
     { name: "Menus", sounds: [
-      ["Resource.dll|pe:WAVE:105", "Click", "A button or other control of a screen is pressed; also the layout and map screens' clicks"]
+      ["Resource.dll|pe:WAVE:105", "Click", "A button, slider or list row is pressed; also a level clicked on the map, a layout slot clicked, and a double-click on the background picture or the style choice"]
     ] },
     { name: "Tiles", sounds: [
-      ["Resource.dll|pe:WAVE:175", "Tile selected", "A free tile is clicked and becomes the selected one"],
-      ["Resource.dll|pe:WAVE:174", "Tile blocked", "A tile that is not free is clicked"],
-      ["Resource.dll|pe:WAVE:176", "Pair matched", "Two matching tiles are taken, also by a key, joker or magnet tile"],
-      ["Resource.dll|pe:WAVE:349", "Shuffle", "The tiles are shuffled"],
-      ["Resource.dll|pe:WAVE:350", "Deal", "A new board is dealt at the start of a game"],
-      ["Resource.dll|pe:WAVE:351", "Undo", "A move is taken back"]
+      ["Resource.dll|pe:WAVE:175", "Tile selected", "A click on a free tile that can pair makes it the selected one, or deselects it when it was already selected"],
+      ["Resource.dll|pe:WAVE:174", "Tile blocked", "A click that hits no tile that can be selected and paired (a covered tile or empty space), while no tiles are flying in or out"],
+      ["Resource.dll|pe:WAVE:176", "Pair matched", "Two matching tiles are taken, including a key with its lock and a joker or magnet with its partner; not for a gold pair"],
+      ["Resource.dll|pe:WAVE:349", "Shuffle", "A shuffle starts, from the Shuffle button or the shuffle choice of the no-moves dialog"],
+      ["Resource.dll|pe:WAVE:350", "Deal", "A game's board is dealt, when a level or layout game starts or is restarted; all other sounds are stopped first"],
+      ["Resource.dll|pe:WAVE:351", "Undo", "A move is taken back, from the Undo button or the undo choice of the no-moves dialog; nothing plays when no move has been made"]
     ] },
     { name: "Special tiles", sounds: [
-      ["Resource.dll|pe:WAVE:347", "Joker loop", "Plays on a loop while a joker tile is selected"],
-      ["Resource.dll|pe:WAVE:348", "Magnet loop", "Plays on a loop while a magnet tile is selected"],
-      ["Resource.dll|pe:WAVE:378", "Key loop", "Plays on a loop while a key tile is selected"],
-      ["Resource.dll|pe:WAVE:379", "Key joins lock", "A key tile is taken and joins the lock"],
-      ["Resource.dll|pe:WAVE:377", "Gold match", "A gold pair is matched"],
-      ["Resource.dll|pe:WAVE:376", "Fly-off loop", "Plays on a loop as the remaining tiles fly off after a gold match"],
-      ["Resource.dll|pe:WAVE:352", "Bonus", "The pair taken matches the tray's tile and scores a bonus"]
+      ["Resource.dll|pe:WAVE:347", "Joker loop", "A joker tile is selected; it loops until the tile is paired, deselected or the selection is cleared"],
+      ["Resource.dll|pe:WAVE:348", "Magnet loop", "A magnet tile is selected; it loops until the tile is paired, deselected or the selection is cleared"],
+      ["Resource.dll|pe:WAVE:378", "Key loop", "A key tile is selected; it loops until the tile is paired, deselected or the selection is cleared"],
+      ["Resource.dll|pe:WAVE:379", "Key joins lock", "A key's flight onto its lock ends and the two join"],
+      ["Resource.dll|pe:WAVE:377", "Gold match", "The two gold tiles are paired, which ends the level in the map game"],
+      ["Resource.dll|pe:WAVE:376", "Fly-off loop", "The gold pair's flight ends with more than 2 tiles left on the board; it loops as the rest fly off, until the level-complete dialog opens"],
+      ["Resource.dll|pe:WAVE:352", "Bonus", "A normal pair is taken that matches the tile shown in the tray and scores points, adding the 500-point bonus"]
     ] },
     { name: "Map", sounds: [
-      ["Resource.dll|pe:WAVE:340", "Map curtain", "A level is started from the map, or the map steps back, with the curtain moving"],
-      ["Resource.dll|pe:WAVE:381", "Map move", "The map moves on to the next level"],
-      ["Resource.dll|pe:WAVE:380", "New stage", "The map moves on into a new stage"],
-      ["Resource.dll|pe:WAVE:382", "Stage text gone", "The new stage's text has faded out"]
+      ["Resource.dll|pe:WAVE:340", "Map curtain", "The map screen comes back after a level or layout game, with its curtain closing; also when a level is started from the map, with the curtain opening"],
+      ["Resource.dll|pe:WAVE:381", "Map move", "The map screen comes back after a level that unlocked the next one and the map marker moves on, unless that level ended its stage"],
+      ["Resource.dll|pe:WAVE:380", "New stage", "The map screen comes back after the level that ended a stage, and the stage-completed text fades in"],
+      ["Resource.dll|pe:WAVE:382", "Stage text gone", "The stage-completed text, held for 3000 milliseconds (3 seconds) once faded in, has faded out"]
     ] },
     { name: "Level end", sounds: [
-      ["Resource.dll|pe:WAVE:375", "Layout result", "The result dialog of a layout is shown"],
-      ["Resource.dll|pe:WAVE:373", "Ending fanfare", "The ending screen opens after the last level"]
+      ["Resource.dll|pe:WAVE:375", "Layout result", "The result dialog opens at the end of a layout game, once the last tiles are gone"],
+      ["Resource.dll|pe:WAVE:373", "Fanfare", "The level-complete dialog opens after a map level (its gold tiles in the tray); also the ending screen opens, 1 second after the map's final move or from the map's ending button"]
     ] },
   ] },
   mummymaze: {
@@ -1558,21 +1558,23 @@ var ByopopSoundboards = {
   ] },
   ningpo: {
     presets: [
-      { name: "You Win", when: "The last pair is taken", steps: [["ningpo.pyz|zip:nm_match.ogg", 0], ["ningpo.pyz|zip:nm_youwin.ogg", 500]]}
+      { name: "You Win", when: "The last pair is taken", steps: [["ningpo.pyz|zip:nm_youwin.ogg", 0]]}
     ],
     groups: [
     { name: "Menus", sounds: [
-      ["ningpo.pyz|zip:nm_guiclick.wav", "Screen click", "A button of a screen or dialog is pressed (also pause, new game, and the like)"]
+      ["ningpo.pyz|zip:nm_splash.ogg", "Splash", "The game starts, as its screen opens and before its files load"],
+      ["ningpo.pyz|zip:nm_guiclick.wav", "Screen click", "A button of a screen or dialog is pressed (exit, pause, options, new game, rules, the title's start arrow and the end screen's arrow, the dialogs' own buttons); also any click while the game is paused"]
     ] },
     { name: "Tiles", sounds: [
-      ["ningpo.pyz|zip:nm_click.wav", "Tile selected", "A free tile is selected; also an arrow of the title screen is clicked"],
+      ["ningpo.pyz|zip:nm_click.wav", "Tile selected", "A click on a free tile when none is selected, in a game in progress; also an arrow of the title screen's settings is clicked"],
       ["ningpo.pyz|zip:nm_unclick.wav", "Tile deselected", "The selected tile is clicked again and deselected"],
-      ["ningpo.pyz|zip:nm_blocked.ogg", "Blocked tile", "A tile that is not free is clicked, or a free tile that does not match the selected one"],
-      ["ningpo.pyz|zip:nm_match.ogg", "Pair matched", "A pair is taken and the game goes on"],
-      ["ningpo.pyz|zip:nm_youwin.ogg", "You win", "The last pair is taken"]
+      ["ningpo.pyz|zip:nm_blocked.ogg", "Blocked tile", "A click on a tile that is not free, or on a free tile of another kind than the selected one (which also drops the selection)"],
+      ["ningpo.pyz|zip:nm_match.ogg", "Pair matched", "A pair is taken while tiles are left and a move still exists; the last pair and a pair that leaves no move play their ending sounds instead"],
+      ["ningpo.pyz|zip:nm_youwin.ogg", "You win", "The last pair is taken and the game is won"],
+      ["ningpo.pyz|zip:nm_gameover.ogg", "Game over", "A pair is taken that leaves tiles but no move, and the game is lost"]
     ] },
     { name: "Buttons", sounds: [
-      ["ningpo.pyz|zip:nm_hint.ogg", "Hint, shuffle, undo", "The hint button, the shuffle or the undo is used"]
+      ["ningpo.pyz|zip:nm_hint.ogg", "Hint, shuffle, undo", "The hint (button, or the F or H key), the shuffle (button, S key or the no-moves dialog) or the Undo button is used while a game is on and not paused; the U key undoes without a sound"]
     ] },
   ] },
   noahsark: {
@@ -1818,51 +1820,51 @@ var ByopopSoundboards = {
     ],
     groups: [
     { name: "Menus", sounds: [
-      ["TipTop.dat|tiptop:sounds/splash.ogg", "\"Welcome to Tip Top\"", "The splash screen's loading bar shows"],
-      ["TipTop.dat|tiptop:sounds/MouseOver.ogg", "Mouse over", "The pointer comes onto a button, also on the level summary's button"],
-      ["TipTop.dat|tiptop:sounds/MouseClick.ogg", "Mouse click", "A button is pressed, or Enter on the level summary"],
-      ["TipTop.dat|tiptop:sounds/VolumeAdjust.ogg", "Volume test", "The sound volume slider is moved"]
+      ["TipTop.dat|tiptop:sounds/splash.ogg", "\"Welcome to Tip Top\"", "The splash screen opens, as its loading bar starts"],
+      ["TipTop.dat|tiptop:sounds/MouseOver.ogg", "Mouse over", "The pointer comes onto a button or check box; also onto the level summary's button"],
+      ["TipTop.dat|tiptop:sounds/MouseClick.ogg", "Mouse click", "A button is pressed, or Enter or Esc on a button that answers to that key; also a click or Enter on the level summary's button"],
+      ["TipTop.dat|tiptop:sounds/VolumeAdjust.ogg", "Volume test", "The sound volume slider is moved or its track is clicked, unless the sound is still playing; it plays at the new volume"]
     ] },
     { name: "Level start and end", sounds: [
-      ["TipTop.dat|tiptop:sounds/GameStart.ogg", "Game start", "The first level of a game begins"],
-      ["TipTop.dat|tiptop:sounds/LevelStart.ogg", "Level start", "A later level begins"],
-      ["TipTop.dat|tiptop:sounds/LevelWin.ogg", "Level won", "A level is completed"],
-      ["TipTop.dat|tiptop:sounds/GameLost.ogg", "Game lost", "The game ends in a loss"],
+      ["TipTop.dat|tiptop:sounds/GameStart.ogg", "Game start", "A game's first level begins (the level is the configured start level)"],
+      ["TipTop.dat|tiptop:sounds/LevelStart.ogg", "Level start", "A later level begins; also when a bonus round begins"],
+      ["TipTop.dat|tiptop:sounds/LevelWin.ogg", "Level won", "A level is completed, as its completed picture and sparkles appear; also when a bonus round is completed"],
+      ["TipTop.dat|tiptop:sounds/GameLost.ogg", "Game lost", "The game is over, in the normal game or in a bonus round"],
       ["TipTop.dat|tiptop:sounds/EmptyRowCount.ogg", "Empty row", "A cleared row scores the empty-row bonus"]
     ] },
     { name: "Matches", sounds: [
-      ["TipTop.dat|tiptop:sounds/ColorMatch.ogg", "Match of 3", "A match of three blocks"],
-      ["TipTop.dat|tiptop:sounds/ColorMatchGroup4.ogg", "Match of 4", "A match of four blocks"],
-      ["TipTop.dat|tiptop:sounds/ColorMatchGroup5.ogg", "Match of 5", "A match of five blocks"],
-      ["TipTop.dat|tiptop:sounds/ColorMatchGroup6.ogg", "Match of 6 or more", "A match of six or more blocks"],
-      ["TipTop.dat|tiptop:sounds/ColorMatchCascade1.ogg", "\"Double!\"", "The second match of a chain"],
-      ["TipTop.dat|tiptop:sounds/ColorMatchCascade2.ogg", "Cascade 3", "The third match of a chain"],
-      ["TipTop.dat|tiptop:sounds/ColorMatchCascade3.ogg", "\"Quad!\"", "The fourth match of a chain"],
-      ["TipTop.dat|tiptop:sounds/ColorMatchCascade4.ogg", "\"Super combo!\"", "The fifth match of a chain or beyond"]
+      ["TipTop.dat|tiptop:sounds/ColorMatch.ogg", "Match of 3", "A match of exactly three blocks that is the first of its chain"],
+      ["TipTop.dat|tiptop:sounds/ColorMatchGroup4.ogg", "Match of 4", "A match of four blocks that is the first of its chain"],
+      ["TipTop.dat|tiptop:sounds/ColorMatchGroup5.ogg", "Match of 5", "A match of five blocks that is the first of its chain"],
+      ["TipTop.dat|tiptop:sounds/ColorMatchGroup6.ogg", "Match of 6 or more", "A match of six or more blocks that is the first of its chain"],
+      ["TipTop.dat|tiptop:sounds/ColorMatchCascade1.ogg", "\"Double!\"", "The second match of a chain, whatever its size"],
+      ["TipTop.dat|tiptop:sounds/ColorMatchCascade2.ogg", "Cascade 3", "The third match of a chain, whatever its size"],
+      ["TipTop.dat|tiptop:sounds/ColorMatchCascade3.ogg", "\"Quad!\"", "The fourth match of a chain, whatever its size"],
+      ["TipTop.dat|tiptop:sounds/ColorMatchCascade4.ogg", "\"Super combo!\"", "The fifth match of a chain or any later one, whatever its size"]
     ] },
     { name: "Blocks", sounds: [
-      ["TipTop.dat|tiptop:sounds/BlockLaunch.ogg", "Block launched", "The player's block starts to move"],
-      ["TipTop.dat|tiptop:sounds/FloaterLaunched.ogg", "Floater launched", "A floating block starts to move"],
-      ["TipTop.dat|tiptop:sounds/LaunchBlockMoves.ogg", "Launcher moves", "The launcher moves to another column"],
-      ["TipTop.dat|tiptop:sounds/BlocksFall.ogg", "Blocks fall", "The blocks drop after a row is cleared"]
+      ["TipTop.dat|tiptop:sounds/BlockLaunch.ogg", "Block launched", "The player launches a plain block from the bottom of its column"],
+      ["TipTop.dat|tiptop:sounds/FloaterLaunched.ogg", "Floater launched", "A plain block enters from the top of the board (a block of the queue that is not the player's)"],
+      ["TipTop.dat|tiptop:sounds/LaunchBlockMoves.ogg", "Launcher moves", "The launcher's column changes while the preview block is drawn, but not when its first column is set"],
+      ["TipTop.dat|tiptop:sounds/BlocksFall.ogg", "Blocks fall", "At the end of a level, when blocks are left on the board and start to fly off the screen, row after row"]
     ] },
     { name: "Power pieces", sounds: [
-      ["TipTop.dat|tiptop:sounds/RocketLaunch.ogg", "Rocket launch", "A rocket starts to move"],
-      ["TipTop.dat|tiptop:sounds/RocketCollision.ogg", "Rocket hits", "A rocket lands and goes off"],
-      ["TipTop.dat|tiptop:sounds/HammerLaunch.ogg", "Hammer launch", "A hammer starts to move"],
-      ["TipTop.dat|tiptop:sounds/HammerCollision.ogg", "Hammer hits", "A hammer lands and goes off"],
-      ["TipTop.dat|tiptop:sounds/MagnetLaunch.ogg", "Magnet launch", "A magnet starts to move"],
-      ["TipTop.dat|tiptop:sounds/RainbowLaunch.ogg", "Rainbow launch", "A rainbow piece starts to move"],
-      ["TipTop.dat|tiptop:sounds/RainbowCollision.ogg", "Rainbow hits", "A rainbow piece lands and goes off"],
-      ["TipTop.dat|tiptop:sounds/ColorbombLaunch.ogg", "Color bomb launch", "A color bomb starts to move"],
-      ["TipTop.dat|tiptop:sounds/ColorBombCollision.ogg", "Color bomb hits", "A color bomb lands and goes off"],
-      ["TipTop.dat|tiptop:sounds/ColumnNukeLaunch.ogg", "Column nuke launch", "A column nuke starts to move"],
-      ["TipTop.dat|tiptop:sounds/ColumnNukeCollision.ogg", "Column nuke hits", "A column nuke lands and goes off"]
+      ["TipTop.dat|tiptop:sounds/RocketLaunch.ogg", "Rocket launch", "A rocket piece starts to move: launched by the player, or entering from the top"],
+      ["TipTop.dat|tiptop:sounds/RocketCollision.ogg", "Rocket hits", "A rocket reaches the first block in its way (the one row it taps) and goes off"],
+      ["TipTop.dat|tiptop:sounds/HammerLaunch.ogg", "Hammer launch", "A hammer piece starts to move: launched by the player, or entering from the top"],
+      ["TipTop.dat|tiptop:sounds/HammerCollision.ogg", "Hammer hits", "A hammer reaches the first block in its way (the one row it taps) and goes off"],
+      ["TipTop.dat|tiptop:sounds/MagnetLaunch.ogg", "Magnet launch", "A magnet piece starts to move: launched by the player, or entering from the top"],
+      ["TipTop.dat|tiptop:sounds/RainbowLaunch.ogg", "Rainbow launch", "A rainbow piece starts to move: launched by the player, or entering from the top"],
+      ["TipTop.dat|tiptop:sounds/RainbowCollision.ogg", "Rainbow hits", "A rainbow piece comes to rest and goes off"],
+      ["TipTop.dat|tiptop:sounds/ColorbombLaunch.ogg", "Color bomb launch", "A color bomb piece starts to move: launched by the player, or entering from the top"],
+      ["TipTop.dat|tiptop:sounds/ColorBombCollision.ogg", "Color bomb hits", "A color bomb piece comes to rest and goes off"],
+      ["TipTop.dat|tiptop:sounds/ColumnNukeLaunch.ogg", "Column nuke launch", "A column nuke piece starts to move: launched by the player, or entering from the top"],
+      ["TipTop.dat|tiptop:sounds/ColumnNukeCollision.ogg", "Column nuke hits", "A column nuke piece comes to rest and goes off"]
     ] },
     { name: "Warnings", sounds: [
-      ["TipTop.dat|tiptop:sounds/timewarning.ogg", "Time warning", "Loops while the level's meter is low during play"],
-      ["TipTop.dat|tiptop:sounds/shake0.ogg", "Shake 0", "Loops while the stack is near the top, when the game's table sets it for that nearness"],
-      ["TipTop.dat|tiptop:sounds/shake1.ogg", "Shake 1", "Loops while the stack is near the top, when the game's table sets it for that nearness"],
+      ["TipTop.dat|tiptop:sounds/timewarning.ogg", "Time warning", "Loops while the level's meter is at or below a sixth of full, in Timed mode or a bonus round on the game screen; it stops otherwise"],
+      ["TipTop.dat|tiptop:sounds/shake0.ogg", "Shake 0", "Loops, restarted every update, while play is on (not game over, level complete, a bonus round or a busy screen) and the stack's nearest distance to the edge is 1 row or less; every mode's table sets it"],
+      ["TipTop.dat|tiptop:sounds/shake1.ogg", "Shake 1", "Loops, restarted every update, while play is on (not game over, level complete, a bonus round or a busy screen) and the stack's nearest distance to the edge is 2 rows or less; only the Timed and Speed tables set it"],
       ["TipTop.dat|tiptop:sounds/shake2.ogg", "Shake 2 (unused)", "Never played: no mode's shake table (Regular and Strategy 5,0,5,5,5; Timed and Speed 5,0,1,5,5) selects it"]
     ] },
   ] },

@@ -958,6 +958,7 @@ var ByopopMusic = (function () {
       if (!ms) return;
       try {
         var t = tunes[current];
+        sink(false);
         if (!t || state === "idle") { ms.metadata = null; ms.playbackState = "none"; return; }
         var art = [];
         try { var rec = ByopopGameFiles.all()[t.game.id]; if (rec && rec.icon) art.push({ src: rec.icon, sizes: "32x32", type: "image/png" }); } catch (e) {}
@@ -1016,7 +1017,43 @@ var ByopopMusic = (function () {
     }
     if (window.MutationObserver) new MutationObserver(hookMediaKeys).observe(document.body, { childList: true });
     document.addEventListener("load", function (ev) { if (ev.target && ev.target.classList && ev.target.classList.contains("d95-app-frame")) hookMediaKeys(); }, true);
-    setInterval(hookMediaKeys, 2000);
+    setInterval(function () { hookMediaKeys(); sink(false); }, 2000);
+
+    // ---------- the media keys with the browser in the background ----------
+    // (the user, 2026-11-12: "Yes, prototype") A browser hands a page its media session, and so the keyboard's media keys while
+    // another window has the focus, only while a media element of the page plays; Web Audio alone does not count. While Music's
+    // window is open its sound goes through a MediaStreamDestination into a hidden <audio> element that plays while a tune plays
+    // or is paused, and the session's handlers (wireMedia) hear the keys. The element's path adds output latency, so with the
+    // window closed (where the keys do nothing anyway) the sound goes straight to the speakers again.
+    var tail = null, streamOut = null, streamEl = null, viaStream = false;
+    function sink(force) {
+      if (!ctx || !tail) return;
+      var want = playerOpen() && state !== "idle" && typeof ctx.createMediaStreamDestination === "function";
+      if (want && !streamOut) {
+        try {
+          streamOut = ctx.createMediaStreamDestination();
+          streamEl = document.createElement("audio");
+          streamEl.srcObject = streamOut.stream;
+        } catch (e) { streamOut = null; streamEl = null; want = false; }
+      }
+      if (force || want !== viaStream) {
+        try { tail.disconnect(); } catch (e) {}
+        tail.connect(want ? streamOut : ctx.destination);
+        viaStream = want;
+      }
+      if (streamEl) {
+        if (want && streamEl.paused) { var p = streamEl.play(); if (p && p.catch) p.catch(function () {}); }
+        else if (!want && !streamEl.paused) streamEl.pause();
+      }
+    }
+    function dropSink() {
+      if (streamEl) { try { streamEl.pause(); streamEl.srcObject = null; } catch (e) {} }
+      streamEl = null; streamOut = null; viaStream = false; tail = null;
+    }
+    (function watchWindow() {
+      var win = root.closest(".d95-win");
+      if (win && window.MutationObserver) new MutationObserver(function () { sink(false); }).observe(win, { attributes: true, attributeFilter: ["class"] });
+    })();
 
     // ---------- the sound ----------
     // A play chosen while the worklet is still being added waits for the same setup (audioReady): it once found the context
@@ -1037,12 +1074,13 @@ var ByopopMusic = (function () {
       gain.gain.value = muted ? 0 : volume / 100;
       // at ?silent=1 the sound passes through a gain of 0 (CLAUDE.md: tests in a pane that may be hidden): the speakers get exact
       // zeros, and the graph still reaches the destination, without which the browser never runs the worklet
+      tail = gain;
       if (silentPage()) {
-        var mute = ctx.createGain();
-        mute.gain.value = 0;
-        gain.connect(mute);
-        mute.connect(ctx.destination);
-      } else gain.connect(ctx.destination);
+        tail = ctx.createGain();
+        tail.gain.value = 0;
+        gain.connect(tail);
+      }
+      sink(true);
       var url = URL.createObjectURL(new Blob([WORKLET], { type: "text/javascript" }));
       return ctx.audioWorklet.addModule(url).then(function () {
         URL.revokeObjectURL(url);
@@ -1395,6 +1433,7 @@ var ByopopMusic = (function () {
       if (node) { try { node.port.onmessage = null; node.disconnect(); } catch (e) {} node = null; }
       if (analyser) { try { analyser.disconnect(); } catch (e) {} analyser = null; }
       if (gain) { try { gain.disconnect(); } catch (e) {} gain = null; }
+      dropSink();
       if (ctx) { try { ctx.close(); } catch (e) {} ctx = null; }
       queued = 0; flushes = 0; ended = false; heads = [];
       M = null;
@@ -3071,7 +3110,7 @@ var ByopopMusic = (function () {
       position: function () { return source ? source.position() : 0; }, elapsed: function () { return elapsed(); },
       seek: function (s) { seekTo(s); }, minHeight: windowLeast, shutdown: shutdown,
       // for tests: whether any of the sound is still held (the context and its state, the worklet, the decoder)
-      held: function () { return { ctx: ctx ? ctx.state : null, node: !!node, decoder: !!M, media: wired }; }, view: function () { return { tracker: !tracker.hidden, row: shownRow, spectrum: !!analyser && !spectrum.hidden, rows: rows }; },
+      held: function () { return { ctx: ctx ? ctx.state : null, node: !!node, decoder: !!M, media: wired, sink: viaStream ? "stream" : "direct", element: streamEl ? (streamEl.paused ? "paused" : "playing") : null, latency: ctx ? { base: ctx.baseLatency, output: ctx.outputLatency } : null }; }, view: function () { return { tracker: !tracker.hidden, row: shownRow, spectrum: !!analyser && !spectrum.hidden, rows: rows }; },
       // for tests: the game the views follow, where its module is, and whether its output is tapped
       playing: function () { return state === "playing"; },
       // for tests: the player's own tune's channels, each as its header shows it (muted: struck through; null where the header
