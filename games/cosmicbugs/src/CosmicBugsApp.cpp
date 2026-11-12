@@ -236,20 +236,21 @@ void CosmicBugsWidget::Update()
 }
 
 static_assert(r64::SCREEN_WIDTH % CosmicBugsWidget::CHANGE_BLOCK == 0, "a row has whole blocks");
-static_assert(CosmicBugsWidget::CHANGE_BLOCK % 4 == 0, "a block is whole 64-bit words");
+static_assert(CosmicBugsWidget::CHANGE_BLOCK % 8 == 0, "a block is whole 16-byte vectors");
 
-// Whether two runs of the screen's pixels (a multiple of four of them) are the same
+// Sixteen bytes (eight pixels) at a time, in the compiler's vector type (one SSE2 or WebAssembly SIMD register, else
+// plain words), loaded from any address
+typedef uint32_t PixelVector __attribute__((vector_size(16), aligned(4), may_alias));
+
+// Whether two runs of the screen's pixels (a multiple of eight of them) are the same
 static bool SamePixels(const uint16_t* theFirst, const uint16_t* theSecond, int theCount)
 {
-	uint64_t aDifference = 0;
-	for (int i = 0; i < theCount; i += 4)
-	{
-		uint64_t aFirstFour, aSecondFour;
-		std::memcpy(&aFirstFour, theFirst + i, 8);
-		std::memcpy(&aSecondFour, theSecond + i, 8);
-		aDifference |= aFirstFour ^ aSecondFour;
-	}
-	return aDifference == 0;
+	const PixelVector* aFirst = reinterpret_cast<const PixelVector*>(theFirst);
+	const PixelVector* aSecond = reinterpret_cast<const PixelVector*>(theSecond);
+	PixelVector aDifference = {0, 0, 0, 0};
+	for (int i = 0; i < theCount / 8; i++)
+		aDifference |= aFirst[i] ^ aSecond[i];
+	return (aDifference[0] | aDifference[1] | aDifference[2] | aDifference[3]) == 0;
 }
 
 // The blocks of the screen that differ from the copy the image was last widened from. The engine's dirty rectangles
