@@ -115,6 +115,10 @@ public:
 	virtual void		Draw(Graphics* g) override;
 	virtual void		ButtonPress(int theId) override;
 	virtual void		ButtonDepress(int theId) override;
+	// the original's dialog that stays where it is put (its Move, 0x415c30, does nothing and its MouseDown, 0x403880, only
+	// marks the widget down): a click does not start a drag
+	virtual void		Move(int theNewX, int theNewY) override {}
+	virtual void		MouseDown(int x, int y, int theBtnNum, int theClickCount) override {}
 	using Widget::Resize;
 };
 
@@ -141,6 +145,10 @@ public:
 	virtual void		Draw(Graphics* g) override;
 	virtual void		ButtonPress(int theId) override;
 	virtual void		ButtonDepress(int theId) override;
+	// the original's dialog that stays where it is put (its Move, 0x415c30, does nothing and its MouseDown, 0x403880, only
+	// marks the widget down): a click does not start a drag
+	virtual void		Move(int theNewX, int theNewY) override {}
+	virtual void		MouseDown(int x, int y, int theBtnNum, int theClickCount) override {}
 	using Widget::Resize;
 };
 
@@ -185,6 +193,9 @@ public:
 	virtual void		Update() override;                                             // 0x408450
 	virtual void		ButtonPress(int theId) override;                               // 0x408800
 	virtual void		ButtonDepress(int theId) override;                             // 0x408820
+	// a whole-screen scene: the original's MouseDown (0x410470) and MouseDrag (0x415c30) do nothing, so a drag does not move it
+	virtual void		MouseDown(int x, int y, int theBtnNum, int theClickCount) override {}
+	virtual void		MouseDrag(int x, int y) override {}
 };
 
 // 0x414060: id 3 "HIGH SCORE": the line about the score that was made, and a field for the name; OK enters it
@@ -252,6 +263,10 @@ public:
 	virtual void		Draw(Graphics* g) override;                                 // 0x40aef0
 	virtual void		ButtonPress(int theId) override;                            // 0x40c190
 	virtual void		ButtonDepress(int theId) override;                          // 0x40c1e0
+	// the original's dialog that stays where it is put (its Move, 0x415c30, does nothing and its MouseDown, 0x403880, only
+	// marks the widget down): a click does not start a drag
+	virtual void		Move(int theNewX, int theNewY) override {}
+	virtual void		MouseDown(int x, int y, int theBtnNum, int theClickCount) override {}
 
 private:
 	// the pieces of Draw; theTime counts from the picture's own start (it is negative before it)
@@ -307,6 +322,9 @@ public:
 	virtual void		Update() override;                                  // 0x410340
 	virtual void		Draw(Graphics* g) override;                         // 0x40f660
 	virtual void		ButtonDepress(int theId) override;                  // 0x4102c0
+	// a whole-screen scene: the original's MouseDown (0x410470) and MouseDrag (0x415c30) do nothing, so a drag does not move it
+	virtual void		MouseDown(int x, int y, int theBtnNum, int theClickCount) override {}
+	virtual void		MouseDrag(int x, int y) override {}
 
 private:
 	// the pages, in the lower left of the dialog (centred on x = 0x61)

@@ -21,6 +21,9 @@ public:
 	// the machine's own clock, which the deal's time limit reads whatever clock the game runs on (fixes mod
 	// "steadyClock")
 	virtual uint32_t RealTickCount() { return TickCount(); }
+	// port: the number of the update the game is in, for the test log of the sound (BYOPOP_SOUNDLOG, whose lines the
+	// framework's sound log writes the same way); the clock when the host counts none
+	virtual uint32_t UpdateCount() { return TickCount(); }
 	// the number that seeds the random generator: the clock, or the seed given to the run (fixes mod "seededDeals")
 	virtual uint32_t SeedTick() { return TickCount(); }
 	// FindResourceA, SizeofResource, LockResource: a type given by name ("TXT", "JPG"...) or, with a null name, by

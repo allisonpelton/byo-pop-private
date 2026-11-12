@@ -48,7 +48,7 @@ enum LexAnim
 	LEXANIM_GETREADY = 17,          // Board action greeting + SOUND_LEX_GETREADY
 	LEXANIM_SCRAMBLE = 18,          // Board::Scramble + SOUND_FLAMETILE, SOUND_LEX_SCRAMBLE
 	LEXANIM_SWEAT = 19,             // looped while in danger (FlyingPieceList and OverlayWidget test it)
-	LEXANIM_OH = 20,                // Board::Refill green tile + SOUND_APPEAR2
+	LEXANIM_OH = 20,                // Board::CheckForFalling green tile + SOUND_APPEAR2
 	LEXANIM_EAT = 21,               // FlyingPieceList: mouth open (held 200000 updates, until replaced)
 	LEXANIM_EAT_END = 22,           // FlyingPieceList (all eaten), Board (burp fade)
 	LEXANIM_BURP = 23,              // Board::Update burp + SOUND_LEX_BURP (held like LEXANIM_EAT)
@@ -124,7 +124,7 @@ public:
 	using Widget::MouseDown;
 	using Widget::MouseUp;
 
-	void			PlayAnim(int theAnim, bool theLoop);            // 0x42d320
+	void			PlayAnimSeq(int theAnim, bool theLoop);            // 0x42d320
 	void			SetSweating(bool isSweating);                   // 0x42d3c0
 	void			Reset();                                        // 0x42d680
 	void			Say(const SexyString& theText, Font* theFont, int theDuration);     // 0x42d6c0 speech box, 106..213 wide

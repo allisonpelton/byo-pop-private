@@ -68,7 +68,6 @@ public:
 };
 
 void Sys_SetHost(SysHost* theHost);
-SysHost* Sys_Host();
 
 // fopen/fseek/ftell/fread on the whole file, as the loaders do: false when it cannot be read
 bool Sys_ReadFile(const char* thePath, std::vector<uint8_t>& theData);
@@ -120,8 +119,6 @@ uint32_t TimeMs();                       // 0x428e70 (cosmicbugs), 0x429350 (wat
 void Sys_Sleep(int theMs);               // 0x428820 (cosmicbugs), 0x428d00 (waterbugs)
 bool Sys_FixOn(const char* theFix);      // port(mod): a fix of the fixes mod is on
 bool Sys_SkipLogos();                    // port(site): the start-up logos are skipped, as Esc on the first one does
-// 0x428ec0 (cosmicbugs), 0x4293a0 (waterbugs): called after PumpMessages opened the screen again, with the screen's format
-void SetScreenLostCallback(void (*theCallback)(const PixelFormat*));
 // 0x428ed0 (cosmicbugs), 0x4293b0 (waterbugs): called after PumpMessages opened the screen again
 void SetScreenChangeCallback(void (*theCallback)());
 int Screen_Fullscreen();                 // 0x428f00 (cosmicbugs), 0x4293e0 (waterbugs)

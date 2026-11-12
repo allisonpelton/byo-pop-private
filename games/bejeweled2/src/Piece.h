@@ -67,6 +67,7 @@ struct Effect
 	int				mFrame;         // +0x0c
 	int				mDelay;         // +0x10 updates to wait before the animation starts
 
+	// 0x594721 (the original's constructor does not set mDelay; the port zeroes it)
 	Effect() { mKind = 0; mX = 0; mY = 0; mFrame = 0; mDelay = 0; }
 };
 
@@ -127,6 +128,7 @@ struct Lightning
 	float			mSwingX;        // +0x84 how far the line swings sideways
 	float			mSwingY;        // +0x88
 
+	// 0x5989ae
 	Lightning() { for (int i = 0; i < 8; i++) for (int j = 0; j < 4; j++) mPoint[i][j] = 0; mProgress = 0; mSwingX = 0; mSwingY = 0; }
 };
 

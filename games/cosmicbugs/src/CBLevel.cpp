@@ -937,22 +937,13 @@ int Level_Update(Level* theLevel)
 	}
 	if (theLevel->state == 2)
 		return Level_UpdatePaused(theLevel);
-	if (gDemo == 0 || theLevel->kind != 0)
-	{
-		theLevel->clicked = Mouse_Pressed(1);
-		int aRight;
-		if (Mouse_Pressed(2) == 0)
-			aRight = Key_Pressed(0x20) != 0 ? 1 : 0;
-		else
-			aRight = 1;
-		theLevel->rightClicked = aRight;
-	}
+	theLevel->clicked = Mouse_Pressed(1);
+	int aRight;
+	if (Mouse_Pressed(2) == 0)
+		aRight = Key_Pressed(0x20) != 0 ? 1 : 0;
 	else
-	{
-		int r = RandRange(1, 200);
-		gLevels.current->clicked = r == 4 ? 1 : 0;
-		gLevels.current->rightClicked = r == 5 ? 1 : 0;
-	}
+		aRight = 1;
+	theLevel->rightClicked = aRight;
 	if (theLevel->seed == 0)
 	{
 		if (theLevel->musicPending != 0)
@@ -1016,8 +1007,7 @@ int Level_Update(Level* theLevel)
 			if (aFills->current == nullptr)
 			{
 				if (theLevel->kind == 0 && theLevel->powerups.current == nullptr && theLevel->totalCells != 0 &&
-					(theLevel->fillQuota <= (theLevel->filledCells * 100) / theLevel->totalCells ||
-						(gDemo != 0 && 0x32 < theLevel->shots)) &&
+					theLevel->fillQuota <= (theLevel->filledCells * 100) / theLevel->totalCells &&
 					(theLevel->menus.current == nullptr || theLevel->menus.current->requesters.current == nullptr))
 					Level_Won(theLevel);
 				else
@@ -1407,13 +1397,6 @@ int Pointer_Update(Obj* thePointer)
 	{
 		thePointer->shadow = 1;
 		thePointer->alpha = 0xff;
-		if (gDemo != 0)
-		{
-			thePointer->x = (float)RandRange(0, 799);
-			thePointer->y = (float)RandRange(0, 599);
-			Obj_Update(thePointer);
-			return 1;
-		}
 		int v;
 		if (gMouseX < 0x321)
 			v = gMouseX < 0 ? 0 : gMouseX;

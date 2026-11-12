@@ -1020,8 +1020,9 @@ RecordScoreDialog::RecordScoreDialog(RocketApp* theApp, const SexyString& theMes
 	SetColor(1, mApp->mDialogColors[1]);
 	SetColor(3, mApp->mDialogColors[2]);
 
-	// the colours of the name field (0x4e5dc0): the background, outline, text, selection and selected text
-	static int aEditColors[5][3] = {{0, 0, 0}, {0, 0, 0}, {0, 0, 240}, {240, 255, 255}, {255, 255, 255}};
+	// the colours of the name field (0x4e5dc0, red, green, blue and alpha each): the background and the outline (both
+	// clear, so the box picture's own dark middle shows), the text, the selection and the selected text
+	static int aEditColors[5][4] = {{0, 0, 0, 0}, {0, 0, 0, 0}, {240, 240, 255, 255}, {255, 255, 255, 255}, {0, 0, 0, 255}};
 	mEdit = new EditWidget(0, this);
 	mEdit->SetFont(mApp->mFonts[FONT_DOMO14_BOLD]);
 	mEdit->SetColors(aEditColors, 5);

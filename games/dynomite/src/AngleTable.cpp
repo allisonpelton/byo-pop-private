@@ -6,7 +6,7 @@ using namespace Sexy;
 // 0x42bb50 (the x87 code works in long double)
 AngleTable::AngleTable()
 {
-	mPi = 3.1415927f;
+	mPi = 3.1415925f;	// 0x40490fda, the float just below pi (the exe stores these bits)
 	int i = 0;
 	do
 	{

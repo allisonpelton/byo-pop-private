@@ -35,11 +35,6 @@ void Sys_SetHost(SysHost* theHost)
 	gHost = theHost;
 }
 
-SysHost* Sys_Host()
-{
-	return gHost;
-}
-
 bool Sys_ReadFile(const char* thePath, std::vector<uint8_t>& theData)
 {
 	theData.clear();
@@ -303,12 +298,6 @@ bool Sys_SkipLogos()
 
 // 0x428820 (cosmicbugs), 0x428d00 (waterbugs): SleepEx; the port's frames are the host's, so nothing waits
 void Sys_Sleep(int)
-{
-}
-
-// 0x428ec0 (cosmicbugs), 0x4293a0 (waterbugs): the callback the original runs after PumpMessages opened the screen
-// again; the port never loses the screen, so nothing runs it
-void SetScreenLostCallback(void (*)(const PixelFormat*))
 {
 }
 

@@ -67,7 +67,11 @@ holds the rules every session follows; this file does not repeat them.
   hard to test; phase one, plays identical; phase two, looks identical, with registration and every button that leads
   out of the game removed; its fixes mod; the coverage check; the performance pass; the other code it does not need
   taken out; the readability pass; for a game ported only from its Steam copy, the check against its PopCap Game
-  Collection version (the user's ISO in their Downloads folder), its build working with that version's files too; and
+  Collection version (the user's ISO in their Downloads folder), its build working with that version's files too (also
+  for a game ported from another copy when the Collection's is another build: BookWorm's and Word Harmony's Collection
+  exes differ from their retail ones, so players with the Collection need the check, 2026-11-11; where every file
+  matches, as Ning Po's and Water Bugs' exes do by size, the check is that comparison and one port run; the ISO's
+  file groups are `<Title>Component`, listed with `E:/retools/unshield-build/unshield.exe g data1.cab`); and
   its features on the site. The registered original is the reference for every comparison; each removal is listed in
   the game's notes and proved by its frozen baseline, and how a protection was taken apart stays in private blocks.
 - **What a phase two needs to merge (2026-11-03):** sound compared against the original (origrun's `--sound wav` log
@@ -128,7 +132,15 @@ holds the rules every session follows; this file does not repeat them.
     it, a visible change, so a mod. The whole-screen SDL_UpdateTexture of a software-drawn game (7% of Alchemy's main
     thread): uploading only a MemoryImage's changed rectangle would cut it. SexyApp::Init's window and device, 250 to
     310 ms of Noah's Ark's 0.6 s start (no threads, so no fix found). SDL's software renderer, the fallback without a
-    GPU, 10 to 13 ms a frame at 640x480 against 0.26 ms with Direct3D 11.
+    GPU, 10 to 13 ms a frame at 640x480 against 0.26 ms with Direct3D 11. A partial upload helps a game whose dirty
+    rectangle is most of the screen little (87% on Cosmic Bugs' board); a streaming or 16-bit texture would cut the bytes.
+  - `SexyAppBase::PollLiveCommands` stats the `-commands` file every 10 ms update, about 0.34 M cycles a call: an eighth
+    of the main thread in a run that uses the channel (`-commands`, `-realinput`), and every update under `-fast`. Poll
+    every tenth update or on a change notification; any suite that uses the channel must give the same results (Cosmic
+    Bugs, 2026-11-11).
+  - A cycle-weighted EIP sampler charges a thread's bursts to the wait it stands in (54% of Cosmic Bugs' cycles on
+    `ZwWaitForSingleObject`); timers around the calls with `QueryThreadCycleTime` find the real split. Cosmic Bugs'
+    `tools/perf/cpuprof.py` has `CALLERS=1` (the exe function and the DLL on the stack).
   - For profiles, `tools/profile/callprof.py` puts 86% of samples in ntdll whatever the thread does; per-thread cycle
     counters are the way.
 - **Memory broken down, and a software path to test (the user, 2026-11-11):** "I'd want the more granular performance

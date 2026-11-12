@@ -8,6 +8,9 @@
 # digitally under the publisher's license, linked on their own trusted sites: the publisher's store (the EA app),
 # platforms like Steam, and established game stores (Big Fish Games, GameHouse, iWin, Pogo, Shockwave, Amazon's
 # downloads and the like). No key resellers and no second-hand sales (old discs on Amazon or eBay).
+# Shockwave's copies wrap the exe with Armadillo; BookWorm's tested 2026-11-11, its texts unreadable (its game sections are
+# packed and encrypted on disk, and the import refuses such an exe, web/exeprobes.js). So no game whose port reads its exe
+# (the table there) lists Shockwave: only those that read none keep it.
 # Checked 2026-11-02, every game below on Shockwave (shockwave.com): it sells PC downloads by a one-off purchase ("Buy
 # Now" on the game's page, gamelanding/<name>) or free with its Shockwave Unlimited subscription. Its own search
 # (prod.shockwave.com/api/games/search?title=) lists every game it shows, and a page for a game it does not sell gives
@@ -34,8 +37,7 @@ set(BYOPOP_BUY_bejeweled 2026-11-02
 set(BYOPOP_BUY_bigmoney 2026-10-25
   Steam "https://store.steampowered.com/app/3360/"
   "EA app" "https://www.ea.com/games/big-money/big-money")
-set(BYOPOP_BUY_bookworm 2026-11-02
-  Shockwave "https://storefront.shockwave.com/sw/cart/purchase.jsp?add=bookworm-pc")
+set(BYOPOP_BUY_bookworm 2026-11-02)
 set(BYOPOP_BUY_noahsark 2026-10-25)
 set(BYOPOP_BUY_sevenseas 2026-10-25)
 # Games being ported, checked the same day (Steam's store search, EA's store): none for sale. Bookworm Adventures was
@@ -60,13 +62,11 @@ set(BYOPOP_BUY_cosmicbugs 2026-10-26)
 # Checked 2026-10-26: Water Bugs (Retro64, published by PopCap in 2005) is not in Steam's store search or on PopCap's
 # Steam publisher page, not in EA's library, and has no store page at GameHouse, Big Fish Games, iWin or Pogo; Retro64's
 # site no longer answers, and only third-party archive pages mention it.
-set(BYOPOP_BUY_waterbugs 2026-11-02
-  Shockwave "https://www.shockwave.com/gamelanding/waterbugs")
+set(BYOPOP_BUY_waterbugs 2026-11-02)
 # Checked 2026-10-26: Rocket Mania Deluxe (PopCap, 2004) keeps its Steam page (app 3440), which says it is no longer
 # available on the Steam store; EA's library does not list it, Amazon has only an old disc, and GameHouse, iWin, Big Fish
 # Games and Pogo showed no page for it (their search pages render with JavaScript, so a listing could have been missed).
-set(BYOPOP_BUY_rocketmania 2026-11-02
-  Shockwave "https://www.shockwave.com/gamelanding/rocketmania")
+set(BYOPOP_BUY_rocketmania 2026-11-02)
 # Checked 2026-10-26: Bookworm Adventures Volume 2 (PopCap, 2009; Steam app 3630) has no Steam page any more (it
 # redirects to the store front and the store API knows no such app) and is not in Steam's store search; it is not on
 # EA's PopCap games page and EA has no game page for it; iWin's search finds none, Pogo has only the original Bookworm,
@@ -80,8 +80,7 @@ set(BYOPOP_BUY_bookwormadv2 2026-10-26)
 # is its Deluxe edition, which is only the naming convention (the user, 2026-11-01).
 set(BYOPOP_BUY_dynomite 2026-11-02
   Steam "https://store.steampowered.com/app/3380/Dynomite_Deluxe/"
-  "EA app" "https://www.ea.com/games/dynomite/dynomite"
-  Shockwave "https://www.shockwave.com/gamelanding/dynomite")
+  "EA app" "https://www.ea.com/games/dynomite/dynomite")
 # Checked 2026-11-01: Mahjong Escape: Ancient Japan and Mahjong Escape: Ancient China (SpinTop Games, sold by PopCap in
 # the PopCap Game Collection) are not in Steam's store search ("mahjong escape": no results) and not on EA's PopCap page;
 # iWin's search and GameHouse's mahjong games showed neither in their first page of results (the rest load only with
@@ -91,14 +90,12 @@ set(BYOPOP_BUY_mahjongjapan 2026-11-01)
 set(BYOPOP_BUY_mahjongchina 2026-11-01)
 # Checked 2026-11-01: Bonnie's Bookstore Deluxe (New Crayon Games, published by PopCap) is not in Steam's store search
 # ("bonnie's bookstore": no results) and not on EA's PopCap page; other stores were not checked.
-set(BYOPOP_BUY_bonnies 2026-11-02
-  Shockwave "https://www.shockwave.com/gamelanding/bonniesbookstore")
+set(BYOPOP_BUY_bonnies 2026-11-02)
 # Checked 2026-11-01: Steam sells Bejeweled Twist (app 3560, as in the user's own library) and the EA app sells it (its
 # page on ea.com); other stores were not checked.
 set(BYOPOP_BUY_bejeweledtwist 2026-11-02
   Steam "https://store.steampowered.com/app/3560/"
-  "EA app" "https://www.ea.com/games/bejeweled/bejeweled-twist"
-  Shockwave "https://www.shockwave.com/gamelanding/bejeweledtwist")
+  "EA app" "https://www.ea.com/games/bejeweled/bejeweled-twist")
 
 # The games still to come (BYOPOP_WEB_UPCOMING, cmake/ByopopWeb.cmake), whose "Coming soon" tiles show where to buy them.
 # Checked 2026-11-02. Shockwave: its search API found every game but Gyromancer, each landing page answers (gamelanding/<name>,
@@ -127,11 +124,9 @@ set(BYOPOP_BUY_bejeweled2 2026-11-02
   Steam "https://store.steampowered.com/app/3300/"
   Shockwave "https://www.shockwave.com/gamelanding/bejeweled2")
 set(BYOPOP_BUY_astropop 2026-11-02
-  Steam "https://store.steampowered.com/app/3340/"
-  Shockwave "https://www.shockwave.com/gamelanding/astropop")
+  Steam "https://store.steampowered.com/app/3340/")
 set(BYOPOP_BUY_typershark 2026-11-02
-  Steam "https://store.steampowered.com/app/3450/"
-  Shockwave "https://www.shockwave.com/gamelanding/typershark")
+  Steam "https://store.steampowered.com/app/3450/")
 set(BYOPOP_BUY_pizzafrenzy 2026-11-02
   Steam "https://store.steampowered.com/app/3430/"
   Shockwave "https://www.shockwave.com/gamelanding/pizzafrenzy")

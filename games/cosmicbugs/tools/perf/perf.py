@@ -2,7 +2,9 @@
 """perf.py: load time, memory and processor time of Cosmic Bugs, the original against the port (README.md, "Performance").
 
   build/native/rundesk.exe python games/cosmicbugs/tools/perf/perf.py port [--exe build/native/cosmicbugs.exe] [--label port] [--out DIR]
-  python games/cosmicbugs/tools/perf/perf.py orig [--label original] [--out DIR]
+  python games/cosmicbugs/tools/perf/perf.py orig [--paced 16] [--label original] [--out DIR]
+  python games/cosmicbugs/tools/perf/perf.py summary DIR...      (a table of the result.json files of runs)
+  games/cosmicbugs/tools/perf/alt.sh N KIND[:EXE]...             (the runs alternated, N rounds, then the summary)
 
 Both run in real time (the port without -fast, the original on the wall clock), invisibly and silently, windowed, on a fresh
 save: the port under rundesk (so start this script under it), the original through tools/origrun (which puts it under rundesk
@@ -16,16 +18,20 @@ the process's memory):
   board      the title's Start Game at update 13000, the instructions page's Play at 14500 (a fresh save shows the page),
              then the shooter's first board with no input (the enemies move, the ship waits), updates 16000..46000
 
-Memory (peak working set, peak private bytes) and processor time (user + kernel seconds) are sampled every 20 ms over the whole
-run and over each window; a window's processor time is the difference between the samples at its two counter values, divided
-by their wall time. The other game processes on the machine are counted at the start and the end (they share the cores).
-The port's two input files (-commands and -realinput, which the test channel polls) are on in its run, to click with.
+Memory (peak working set, peak private bytes), processor time (user + kernel seconds) and processor cycles are sampled every
+20 ms over the whole run and over each window. The cycles are QueryThreadCycleTime's, summed over the process's threads (a handle
+kept to each thread, so a thread that ended still counts), and split into the busiest thread's and the others': they do not move
+with the scheduler's ticks or with what else the machine runs, which GetProcessTimes does. The other game processes on the
+machine are counted at the start and the end (they share the cores, and the memory bus).
+The port is driven by a -script (the framework reads it once: its two live input files, which the test channel polls, would
+cost it a tenth of the main thread's cycles that a player's run does not spend); the original by origrun's script.
 """
 import argparse
 import ctypes
 import ctypes.wintypes as W
 import json
 import os
+import statistics
 import subprocess
 import sys
 import threading
@@ -45,6 +51,9 @@ k32 = ctypes.WinDLL("kernel32", use_last_error=True)
 psapi = ctypes.WinDLL("psapi", use_last_error=True)
 k32.OpenProcess.restype = W.HANDLE
 k32.OpenProcess.argtypes = [W.DWORD, W.BOOL, W.DWORD]
+k32.OpenThread.restype = W.HANDLE
+k32.OpenThread.argtypes = [W.DWORD, W.BOOL, W.DWORD]
+k32.QueryThreadCycleTime.argtypes = [W.HANDLE, ctypes.POINTER(ctypes.c_uint64)]
 k32.ReadProcessMemory.argtypes = [W.HANDLE, ctypes.c_void_p, ctypes.c_void_p, ctypes.c_size_t, ctypes.POINTER(ctypes.c_size_t)]
 k32.QueryFullProcessImageNameW.argtypes = [W.HANDLE, W.DWORD, W.LPWSTR, ctypes.POINTER(W.DWORD)]
 k32.CloseHandle.argtypes = [W.HANDLE]
@@ -52,6 +61,8 @@ k32.CreateToolhelp32Snapshot.restype = W.HANDLE
 k32.CreateToolhelp32Snapshot.argtypes = [W.DWORD, W.DWORD]
 k32.Process32FirstW.argtypes = [W.HANDLE, ctypes.c_void_p]
 k32.Process32NextW.argtypes = [W.HANDLE, ctypes.c_void_p]
+k32.Thread32First.argtypes = [W.HANDLE, ctypes.c_void_p]
+k32.Thread32Next.argtypes = [W.HANDLE, ctypes.c_void_p]
 psapi.EnumProcessModulesEx.argtypes = [W.HANDLE, ctypes.POINTER(ctypes.c_void_p), W.DWORD, ctypes.POINTER(W.DWORD), W.DWORD]
 psapi.GetModuleFileNameExW.argtypes = [W.HANDLE, ctypes.c_void_p, W.LPWSTR, W.DWORD]
 
@@ -60,6 +71,11 @@ class PE32(ctypes.Structure):
     _fields_ = [("dwSize", W.DWORD), ("cntUsage", W.DWORD), ("th32ProcessID", W.DWORD), ("th32DefaultHeapID", ctypes.c_size_t),
                 ("th32ModuleID", W.DWORD), ("cntThreads", W.DWORD), ("th32ParentProcessID", W.DWORD),
                 ("pcPriClassBase", ctypes.c_long), ("dwFlags", W.DWORD), ("szExeFile", ctypes.c_wchar * 260)]
+
+
+class TE32(ctypes.Structure):
+    _fields_ = [("dwSize", W.DWORD), ("cntUsage", W.DWORD), ("th32ThreadID", W.DWORD), ("th32OwnerProcessID", W.DWORD),
+                ("tpBasePri", W.LONG), ("tpDeltaPri", W.LONG), ("dwFlags", W.DWORD)]
 
 
 class PMC(ctypes.Structure):
@@ -77,6 +93,20 @@ def processes():
     while ok:
         out.append((e.th32ProcessID, e.th32ParentProcessID, e.szExeFile))
         ok = k32.Process32NextW(snap, ctypes.byref(e))
+    k32.CloseHandle(snap)
+    return out
+
+
+def thread_ids(pid):
+    snap = k32.CreateToolhelp32Snapshot(4, 0)
+    out = []
+    e = TE32()
+    e.dwSize = ctypes.sizeof(TE32)
+    ok = k32.Thread32First(snap, ctypes.byref(e))
+    while ok:
+        if e.th32OwnerProcessID == pid:
+            out.append(e.th32ThreadID)
+        ok = k32.Thread32Next(snap, ctypes.byref(e))
     k32.CloseHandle(snap)
     return out
 
@@ -107,7 +137,7 @@ def image_path(pid):
 def other_game_processes(mine):
     """The game processes on the machine that are not this run's: executables of the repository's builds and of the staged originals."""
     skip = {"rundesk.exe", "origrun.exe", "cmake.exe", "ninja.exe", "python.exe", "bash.exe", "lsprobe.exe"}
-    keys = ("\\build\\native", "\\build\\baseline", "\\byo-og\\", "\\build\\origrun\\", "\\build\\web")
+    keys = ("\\build\\native", "\\build\\baseline", "\\byo-og\\", "\\build\\origrun\\", "\\build\\web", "\\build\\cbperf")
     n = 0
     for (pid, _, name) in processes():
         if pid in mine or name.lower() in skip:
@@ -131,6 +161,8 @@ class Proc:
         c, e, kt, ut = W.FILETIME(), W.FILETIME(), W.FILETIME(), W.FILETIME()
         k32.GetProcessTimes(self.h, ctypes.byref(c), ctypes.byref(e), ctypes.byref(kt), ctypes.byref(ut))
         self.created = filetime_epoch(c)
+        self.threads = {}   # thread id -> handle (kept after the thread ends, so that its cycles still read)
+        self.last_scan = 0.0
 
     def base(self, exe_name):
         """The load address of the module with the exe's name (the module list can be empty right after the process starts)"""
@@ -170,15 +202,32 @@ class Proc:
         f = lambda t: ((t.dwHighDateTime << 32) | t.dwLowDateTime) / 1e7
         return f(kt) + f(ut)
 
+    def cycles(self):
+        """{thread id: cycles used} of every thread seen so far (the thread list is looked at again every 0.2 s)"""
+        now = time.time()
+        if now - self.last_scan > 0.2:
+            self.last_scan = now
+            for tid in thread_ids(self.pid):
+                if tid not in self.threads:
+                    h = k32.OpenThread(0x0800, False, tid)  # THREAD_QUERY_LIMITED_INFORMATION
+                    if h:
+                        self.threads[tid] = h
+        out = {}
+        for tid, h in self.threads.items():
+            c = ctypes.c_uint64()
+            if k32.QueryThreadCycleTime(h, ctypes.byref(c)):
+                out[tid] = c.value
+        return out
+
 
 class Sampler(threading.Thread):
-    """Every 20 ms: the game's update counter, working set, private bytes and processor time"""
+    """Every 20 ms: the game's update counter, working set, private bytes, processor time and every thread's cycles"""
 
     def __init__(self, proc, frame_addr):
         super().__init__(daemon=True)
         self.proc, self.frame_addr = proc, frame_addr
         self.stop_flag = False
-        self.samples = []       # (seconds since creation, counter, working set, private bytes, cpu seconds)
+        self.samples = []       # (seconds since creation, counter, working set, private bytes, cpu seconds, {thread id: cycles})
         self.frame = 0
         self.loaded_at = None   # seconds since creation, the counter first above 1
 
@@ -191,7 +240,7 @@ class Sampler(threading.Thread):
                 if self.loaded_at is None and f >= 2:
                     self.loaded_at = t
             m = self.proc.memory()
-            self.samples.append((t, self.frame, m.WorkingSetSize, m.PrivateUsage, self.proc.cpu()))
+            self.samples.append((t, self.frame, m.WorkingSetSize, m.PrivateUsage, self.proc.cpu(), self.proc.cycles()))
             time.sleep(0.02)
 
 
@@ -214,6 +263,14 @@ def wait_for_game(parent_pid, exe_name, timeout=60):
     raise TimeoutError("no " + exe_name)
 
 
+def cycle_delta(a, b):
+    """(all threads, the busiest thread, the others) in millions of cycles between two samples' thread tables"""
+    d = {tid: b.get(tid, 0) - a.get(tid, 0) for tid in b}
+    total = sum(d.values())
+    main = max(d.values()) if d else 0
+    return round(total / 1e6, 1), round(main / 1e6, 1), round((total - main) / 1e6, 1)
+
+
 def summarize(s, label):
     MB = 1 << 20
     smp = s.samples
@@ -226,13 +283,14 @@ def summarize(s, label):
         return None
 
     if smp:
+        total, main, other = cycle_delta({}, smp[-1][5])
         res["whole_run"] = {"peak_working_set_mb": round(max(x[2] for x in smp) / MB, 1),
                             "peak_private_mb": round(max(x[3] for x in smp) / MB, 1), "cpu_s": round(smp[-1][4], 2),
-                            "seconds": round(smp[-1][0], 1), "last_counter": smp[-1][1]}
+                            "seconds": round(smp[-1][0], 1), "last_counter": smp[-1][1], "mcycles": total}
     if s.loaded_at is not None:
         sel = [x for x in smp if x[0] <= s.loaded_at]
         res["load"] = {"peak_working_set_mb": round(max(x[2] for x in sel) / MB, 1), "peak_private_mb": round(max(x[3] for x in sel) / MB, 1),
-                       "cpu_s": round(sel[-1][4], 2)}
+                       "cpu_s": round(sel[-1][4], 2), "mcycles": cycle_delta({}, sel[-1][5])[0]}
     for name, (lo, hi) in WINDOWS.items():
         a, b = at_counter(lo), at_counter(hi)
         if a is None or b is None:
@@ -240,58 +298,71 @@ def summarize(s, label):
             continue
         sel = [x for x in smp if a[0] <= x[0] <= b[0]]
         wall = b[0] - a[0]
+        total, main, other = cycle_delta(a[5], b[5])
         res[name] = {"updates": b[1] - a[1], "seconds": round(wall, 2), "cpu_s": round(b[4] - a[4], 3),
                      "cpu_percent_of_a_core": round(100 * (b[4] - a[4]) / wall, 1),
+                     "mcycles": total, "main_mcycles": main, "other_mcycles": other, "mcycles_a_second": round(total / wall, 1),
                      "peak_working_set_mb": round(max(x[2] for x in sel) / MB, 1), "peak_private_mb": round(max(x[3] for x in sel) / MB, 1)}
     return res
 
 
 def run_port(args):
-    sys.path.insert(0, str(ROOT / "games/cosmicbugs/tools/play"))
-    import drive
-    drive.T0 = time.time()
     exe = Path(args.exe).resolve()
     out = Path(args.out)
     (out / "user").mkdir(parents=True, exist_ok=True)
     (out / "user" / "cp.cfg").write_text(CONFIG)
+    # the framework's updates are 10 ms, the game's 1 ms: a command at game update N is the framework's N / 10; a click holds 3 updates
+    lines = ["# generated by perf.py"]
+    for (u, x, y) in CLICKS:
+        lines += ["%d down %d %d" % (u // 10, x, y), "%d up %d %d" % (u // 10 + 3, x, y)]
+    if args.verify:
+        lines += ["600 state", "3000 state"]
+    lines += ["%d quit" % ((END + 300) // 10)]  # the game ends itself, so that its log (block-buffered into a pipe) reaches the file
+    script = out / "port-script.txt"
+    script.write_text("\n".join(lines) + "\n")
     before = other_game_processes(set())
-    g = drive.Game(str(out), str(exe), fast=False)
+    logf = open(out / "game.log", "w")
+    # the mods folder of the build in build/native, whichever exe (a frozen copy has none beside it), so that every run has the same mods
+    cmd = [str(exe), "-gamedir=" + str(ROOT / "assets/cosmicbugs"), "-userdir=" + str(out / "user"), "-script=" + str(script),
+           "-modsdir=" + str(ROOT / "build/native/mods-cosmicbugs")]
+    # (a pipe, as tools/play/drive.py reads it: the game's log did not reach a file handle it was given)
+    p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1, cwd=str(ROOT))
+
+    def copy_log():
+        for line in p.stdout:
+            logf.write(line)
+            logf.flush()
+    reader = threading.Thread(target=copy_log, daemon=True)
+    reader.start()
     try:
-        proc = Proc(g.proc.pid)
+        proc = Proc(p.pid)
         base = proc.base(exe.name)
         s = Sampler(proc, symbol_addr(exe, base, "__ZN2cb6gFrameE"))
         s.start()
-        todo = list(CLICKS)
-        checks = []
-        if args.verify:
-            todo += [(6000, None, None), (30000, None, None)]
-            todo.sort()
-        up = None
         t0 = time.time()
-        while s.frame < END and time.time() - t0 < 240 and g.proc.poll() is None:
-            if up is not None and s.frame >= up[0]:
-                g.ask("up game %d %d" % (up[1], up[2]))
-                up = None
-            elif up is None and todo and s.frame >= todo[0][0]:
-                (_, x, y) = todo.pop(0)
-                if x is None:
-                    checks.append("update %d: %s" % (s.frame, g.state()["screen"]))
-                    continue
-                g.ask("down game %d %d" % (x, y))
-                up = (s.frame + 30, x, y)
-            time.sleep(0.005)
-        st = g.state()
-        final = {"screen": st["screen"], "level": st.get("level"), "lives": st.get("lives"), "shooter": st.get("shooter"), "updates": st["updates"]}
+        while s.frame < END and time.time() - t0 < 240 and p.poll() is None:
+            time.sleep(0.02)
+        final = {"updates": proc.read32(s.frame_addr)}
         s.stop_flag = True
         s.join()
+        try:
+            p.wait(timeout=30)
+        except subprocess.TimeoutExpired:
+            pass
         res = summarize(s, args.label)
         res["final_state"] = final
-        res["checks"] = checks
         res["others_before"] = before
         res["others_after"] = other_game_processes({proc.pid})
+        res["exe"] = str(exe)
         return res
     finally:
-        g.close()
+        if p.poll() is None:
+            p.kill()
+            p.wait(timeout=60)
+        reader.join(timeout=5)
+        logf.close()
+        if args.verify:
+            res["checks"] = [ln for ln in (out / "game.log").read_text(errors="replace").splitlines() if "STATE " in ln][:4]
 
 
 def run_orig(args):
@@ -368,7 +439,38 @@ def run_orig(args):
         logf.close()
 
 
+def summary(dirs):
+    """One line a run: load, the title's and the board's cycles a second, the board's busiest thread, processor time, memory"""
+    rows = []
+    for d in dirs:
+        f = Path(d) / "result.json"
+        if not f.exists():
+            continue
+        r = json.loads(f.read_text())
+        t, b, ld = r.get("title"), r.get("board"), r.get("load")
+        if not b or not t:
+            continue
+        rows.append((r["label"], r.get("loaded_s"), t["mcycles_a_second"], t["cpu_percent_of_a_core"], b["mcycles_a_second"],
+                     b["main_mcycles"] / b["seconds"], b["cpu_percent_of_a_core"], b["peak_working_set_mb"], b["peak_private_mb"],
+                     r["others_before"], r["others_after"]))
+    print("%-14s %7s | %10s %6s | %10s %9s %6s | %7s %7s | others" % ("run", "load s", "title Mc/s", "% core", "board Mc/s", "main Mc/s", "% core", "WS MB", "priv MB"))
+    for r in rows:
+        print("%-14s %7s | %10.1f %6.1f | %10.1f %9.1f %6.1f | %7.1f %7.1f | %d, %d" % r)
+    groups = {}
+    for r in rows:
+        key = r[0].rstrip("0123456789_-")
+        groups.setdefault(key, []).append(r)
+    print()
+    for key, g in groups.items():
+        print("%-14s median of %d: load %.2f s, title %.1f Mc/s, board %.1f Mc/s (main thread %.1f), board %.1f%% of a core" % (
+            key, len(g), statistics.median([x[1] for x in g if x[1]] or [0]), statistics.median([x[2] for x in g]),
+            statistics.median([x[4] for x in g]), statistics.median([x[5] for x in g]), statistics.median([x[6] for x in g])))
+
+
 def main():
+    if len(sys.argv) > 1 and sys.argv[1] == "summary":
+        summary(sys.argv[2:])
+        return
     ap = argparse.ArgumentParser()
     ap.add_argument("kind", choices=["port", "orig"])
     ap.add_argument("--exe", default=str(ROOT / "build/native/cosmicbugs.exe"))

@@ -1,3 +1,5 @@
+// port(mod): mod "daily-board", the daily board (DailyBoard.h). Not part of the original game.
+
 #include "DailyBoard.h"
 #include "Board.h"
 #include "BookWormApp.h"

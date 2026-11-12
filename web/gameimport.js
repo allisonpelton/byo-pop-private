@@ -472,6 +472,70 @@ var ByopopImport = (function () {
       }).catch(reject);
     });
   }
+  // ---- whether the game's exe gives up what its port reads from it ----
+  // The ports that read texts or tables out of their game's exe (GameText.cpp and the like) need it as a plain image, or as PopCap's
+  // own launcher with the plain image appended. A copy whose exe is packed and encrypted (a store's own wrapper) would import
+  // and then miss its texts, so the import checks it first (the user, 2026-11-11, of the Shockwave copies). The table
+  // (web/exeprobes.js, ByopopExeProbes) names, for each such game, the exe's names and one or more probes, each the address of
+  // one text the port reads, its length and the FNV-1a hash of its bytes (never the text): an exe passes when any probe holds.
+  // tools/exeprobe.py is the same check.
+  var POPCAP_MARKERS = ["!popcapdrmprotect!", "!popcapcdprotect!"];
+  function u16(b, i) { return i + 2 <= b.length ? b[i] | (b[i + 1] << 8) : 0; }
+  function u32(b, i) { return i + 4 <= b.length ? (b[i] | (b[i + 1] << 8) | (b[i + 2] << 16) | (b[i + 3] << 24)) >>> 0 : 0; }
+  function find(b, text, from) {
+    var n = text.length, c = text.charCodeAt(0);
+    for (var i = from || 0; i + n <= b.length; i++) {
+      if (b[i] !== c) continue;
+      var k = 1;
+      while (k < n && b[i + k] === text.charCodeAt(k)) k++;
+      if (k === n) return i;
+    }
+    return -1;
+  }
+  // where the game's image starts: after PopCap's launcher marker, at its MZ, else at the file's start
+  function imageBase(b) {
+    for (var m = 0; m < POPCAP_MARKERS.length; m++) {
+      var at = find(b, POPCAP_MARKERS[m]);
+      if (at >= 0) { var mz = find(b, "MZ", at + POPCAP_MARKERS[m].length); return mz >= 0 ? mz : b.length; }
+    }
+    return 0;
+  }
+  // the file offset of a virtual address of the image at base, or -1
+  function vaOffset(b, base, va) {
+    if (b[base] !== 0x4d || b[base + 1] !== 0x5a) return -1;
+    var pe = base + u32(b, base + 0x3c);
+    if (u32(b, pe) !== 0x4550) return -1;
+    var n = u16(b, pe + 6), sec = pe + 24 + u16(b, pe + 20), image = u32(b, pe + 24 + 28);
+    for (var i = 0; i < n; i++, sec += 40) {
+      var start = image + u32(b, sec + 12), size = u32(b, sec + 16);
+      if (va >= start && va < start + size) return base + u32(b, sec + 20) + (va - start);
+    }
+    return -1;
+  }
+  function fnv1a(b, at, n) {
+    var h = 2166136261;
+    for (var i = 0; i < n; i++) { h ^= b[at + i]; h = Math.imul(h, 16777619) >>> 0; }
+    return h >>> 0;
+  }
+  function probeHolds(b, p) {
+    var at = vaOffset(b, imageBase(b), p.va);
+    return at >= 0 && at + p.len < b.length && b[at + p.len] === 0 && fnv1a(b, at, p.len) === (p.fnv >>> 0);
+  }
+  // Resolves with null when the game reads no exe, when none of its exe's names is among the files (the markers say what is
+  // missing) or when a probe holds; else with the exe's name as the files have it, for the message
+  function exeUnreadable(id, files) {
+    var t = (typeof ByopopExeProbes !== "undefined" && ByopopExeProbes[id]) || null;
+    if (!t || !t.probes || !t.probes.length) return Promise.resolve(null);
+    var names = t.files.map(function (n) { return n.toLowerCase(); }), exe = null;
+    for (var i = 0; i < names.length && !exe; i++)
+      exe = files.filter(function (f) { return f.rel.toLowerCase() === names[i]; })[0] || null;
+    if (!exe) return Promise.resolve(null);
+    return Promise.resolve(exe.read()).then(function (data) {
+      var b = data instanceof Uint8Array ? data : new Uint8Array(data);
+      return t.probes.some(function (p) { return probeHolds(b, p); }) ? null : exe.rel;
+    }, function () { return null; });
+  }
+
   // Adds one game's files from the listing page: g a games entry, entries the folder's files, root its game root (sort, or
   // findRoot). Resolves with the number of files; rejects with an Error to show. pak and safeRel: web/modpanel.js's. say(text)
   // reports the steps. The record of the game's files (ByopopGameFiles) is kept as the game page keeps it after an import.
@@ -482,6 +546,8 @@ var ByopopImport = (function () {
         var files = pick(spec, all, root, safeRel);
         if (!hasMarkers(spec, files.map(function (f) { return f.rel; })))
           throw new Error(ByopopStrings.t("import.err.wrong_folder", {title: g.title, markers: missingIn(spec, files.map(function (f) { return f.rel; }))}));
+        return exeUnreadable(spec.id, files).then(function (bad) {
+        if (bad) throw new Error(ByopopStrings.t("import.err.exe", {exe: bad}));
         if (say) say(ByopopStrings.t("import.say.copying", {count: files.length}));
         return writeGame(spec.persist, ordered(spec, files), function (n, total) { if (say) say(ByopopStrings.t("import.say.progress", {percent: Math.round(n * 100 / total)})); },
           function () { try { ByopopGameFiles.replacing(spec.id); } catch (e) {} })  // the old copy is gone
@@ -491,6 +557,7 @@ var ByopopImport = (function () {
             try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(function () {}); } catch (e) {}
             return files.length;
           });
+        });
       });
     });
   }
@@ -522,7 +589,7 @@ var ByopopImport = (function () {
     }).catch(function () { return none; });
   }
 
-  return { markerPattern: markerPattern, findRoot: findRoot, withPaks: withPaks, pick: pick, hasMarkers: hasMarkers, exeIcon: exeIcon,
+  return { exeUnreadable: exeUnreadable, probeHolds: probeHolds, markerPattern: markerPattern, findRoot: findRoot, withPaks: withPaks, pick: pick, hasMarkers: hasMarkers, exeIcon: exeIcon,
     games: games, add: add, sort: sort, otherGame: otherGame, otherNote: otherNote, nameScore: nameScore, fromDrop: fromDrop, hasFiles: hasFiles, writeGame: writeGame, addGame: addGame,
     forgetGame: forgetGame, ordered: ordered, missingIn: missingIn, missingMarkers: missingMarkers, markerList: markerList };
 })();

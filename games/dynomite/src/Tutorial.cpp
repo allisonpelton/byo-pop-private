@@ -23,7 +23,7 @@
 
 using namespace Sexy;
 
-// the arrow's point (the original's two-int class)
+// port: split out of Step 0x43b2c0: the arrow's point (the original's two-int class)
 static GridPoint* NewPoint(int theX, int theY)
 {
 	GridPoint* aPoint = new GridPoint();
@@ -32,7 +32,7 @@ static GridPoint* NewPoint(int theX, int theY)
 	return aPoint;
 }
 
-// a cell's picture over its egg (bits 9 to 12)
+// port: split out of Step 0x43b2c0: a cell's picture over its egg (bits 9 to 12)
 static void SetKind(GridCell& theCell, int theKind)
 {
 	theCell.mBits = theKind << 9 | (theCell.mBits & 0xffffe1ff);
@@ -161,7 +161,7 @@ void Tutorial::SetupBoard(int theMode)
 		aBoard = new DynomiteStomped();
 		aBoard->Resize(0x96, 0, 0x1ea, 0x1e0);
 		aBoard->Init(mApp, 2);
-		aBoard->mField108 = 0;
+		aBoard->mNextEggKind = 0;
 		mApp->mWidgetManager->AddWidget(aBoard);
 		mApp->mBoard = aBoard;
 		break;
@@ -169,7 +169,7 @@ void Tutorial::SetupBoard(int theMode)
 		aBoard = new DynomitePanic();
 		aBoard->Resize(0x96, 0, 0x1ea, 0x1e0);
 		aBoard->Init(mApp, 1);
-		aBoard->mField108 = 0;
+		aBoard->mNextEggKind = 0;
 		mApp->mWidgetManager->AddWidget(aBoard);
 		mApp->mBoard = aBoard;
 		((DynomitePanic*) aBoard)->mKroney->Start(100000.0f);
@@ -277,7 +277,7 @@ void Tutorial::Start()
 	SetupBoard(2);
 	mApp->mBoard->MouseMove(0x131, 300);
 	mApp->mSideBar->SetPauseState(2);
-	mApp->mBoard->mField244 = true;
+	mApp->mBoard->mInputLocked = true;
 	mStep = 0;
 }
 
@@ -492,16 +492,16 @@ void Tutorial::Step()
 		mText = mApp->GetString(GT(0x4ff278));
 		ContinueY(0x1a4);
 		Resize(0xe6, 100, mBoxX + 0x1a4, mBoxY + 100);
-		mApp->mBoard->mField100 = true;
-		mApp->mBoard->mField104 = -35;
+		mApp->mBoard->mCeilingAtGoal = true;
+		mApp->mBoard->mCeilingGoal = -35;
 		break;
 	case 0xc:
 		mApp->mSndInchypop->Play();
 		mText = mApp->GetString(GT(0x4ff228));
 		ContinueY(0x1a4);
 		Resize(0xe6, 0x50, mBoxX + 0x1a4, mBoxY + 100);
-		mApp->mBoard->mField244 = false;
-		mApp->mBoard->mField80 = true;
+		mApp->mBoard->mInputLocked = false;
+		mApp->mBoard->mFireBlocked = true;
 		mApp->mBoard->mGrid->Clear();
 		break;
 	case 0xd:
@@ -509,8 +509,8 @@ void Tutorial::Step()
 		mText = mApp->GetString(GT(0x4ff180));
 		ContinueY(0x1a4);
 		Resize(0xe6, 0x50, mBoxX + 0x1a4, mBoxY + 100);
-		mApp->mBoard->mField244 = false;
-		mApp->mBoard->mField80 = false;
+		mApp->mBoard->mInputLocked = false;
+		mApp->mBoard->mFireBlocked = false;
 		break;
 	case 0xe:
 	{
@@ -529,8 +529,8 @@ void Tutorial::Step()
 		mText = mApp->GetString(GT(0x4ff120));
 		ContinueY(0x1a4);
 		Resize(0xe6, 0x78, mBoxX + 0x1a4, mBoxY + 100);
-		mApp->mBoard->mField244 = true;
-		mApp->mBoard->mField80 = true;
+		mApp->mBoard->mInputLocked = true;
+		mApp->mBoard->mFireBlocked = true;
 		break;
 	}
 	case 0xf:
@@ -538,8 +538,8 @@ void Tutorial::Step()
 		mText = mApp->GetString(GT(0x4ff0d0));
 		ContinueY(0x1a4);
 		Resize(0xe6, 0x78, mBoxX + 0x1a4, mBoxY + 100);
-		mApp->mBoard->mField244 = true;
-		mApp->mBoard->mField80 = true;
+		mApp->mBoard->mInputLocked = true;
+		mApp->mBoard->mFireBlocked = true;
 		break;
 	case 0x10:
 		mNoContinue = true;
@@ -547,32 +547,32 @@ void Tutorial::Step()
 		mText = mApp->GetString(GT(0x4ff088));
 		ContinueY(0x1a4);
 		Resize(0xe6, 200, mBoxX + 0x1a4, mBoxY + 100);
-		mApp->mBoard->mField244 = false;
-		mApp->mBoard->mField80 = false;
+		mApp->mBoard->mInputLocked = false;
+		mApp->mBoard->mFireBlocked = false;
 		break;
 	case 0x11:
 		mApp->mSndInchypop->Play();
 		mText = mApp->GetString(GT(0x4ff000));
 		ContinueY(0x1a4);
 		Resize(0xe6, 200, mBoxX + 0x1a4, mBoxY + 100);
-		mApp->mBoard->mField244 = true;
-		mApp->mBoard->mField80 = true;
+		mApp->mBoard->mInputLocked = true;
+		mApp->mBoard->mFireBlocked = true;
 		break;
 	case 0x12:
 		mApp->mSndInchypop->Play();
 		mText = mApp->GetString(GT(0x4fef90));
 		ContinueY(0x1a4);
 		Resize(0xe6, 200, mBoxX + 0x1a4, mBoxY + 100);
-		mApp->mBoard->mField244 = true;
-		mApp->mBoard->mField80 = true;
+		mApp->mBoard->mInputLocked = true;
+		mApp->mBoard->mFireBlocked = true;
 		break;
 	case 0x13:
 		mApp->mSndInchypop->Play();
 		mText = mApp->GetString(GT(0x4fef30));
 		ContinueY(0x1a4);
 		Resize(0xe6, 0xdc, mBoxX + 0x1a4, mBoxY + 100);
-		mApp->mBoard->mField244 = true;
-		mApp->mBoard->mField80 = true;
+		mApp->mBoard->mInputLocked = true;
+		mApp->mBoard->mFireBlocked = true;
 		break;
 	case 0x14:
 	{
@@ -591,8 +591,8 @@ void Tutorial::Step()
 		mApp->mBoard->mLauncher->Freeze(anEgg);
 		ContinueY(0x1a4);
 		Resize(0xe6, 200, mBoxX + 0x1a4, mBoxY + 100);
-		mApp->mBoard->mField244 = true;
-		mApp->mBoard->mField80 = true;
+		mApp->mBoard->mInputLocked = true;
+		mApp->mBoard->mFireBlocked = true;
 		break;
 	}
 	case 0x15:
@@ -603,8 +603,8 @@ void Tutorial::Step()
 		mText = mApp->GetString(GT(0x4feeb8));
 		ContinueY(0x1a4);
 		Resize(0xe6, 200, mBoxX + 0x1a4, mBoxY + 100);
-		mApp->mBoard->mField244 = false;
-		mApp->mBoard->mField80 = false;
+		mApp->mBoard->mInputLocked = false;
+		mApp->mBoard->mFireBlocked = false;
 		break;
 	case 0x16:
 		mNoContinue = false;
@@ -612,8 +612,8 @@ void Tutorial::Step()
 		mText = mApp->GetString(GT(0x4fee58));
 		ContinueY(0x1a4);
 		Resize(0xe6, 200, mBoxX + 0x1a4, mBoxY + 100);
-		mApp->mBoard->mField244 = true;
-		mApp->mBoard->mField80 = true;
+		mApp->mBoard->mInputLocked = true;
+		mApp->mBoard->mFireBlocked = true;
 		break;
 	case 0x17:
 		mArrow = NewPoint(0x192, 0x8a);
@@ -631,18 +631,18 @@ void Tutorial::Step()
 		mText = mApp->GetString(GT(0x4fede0));
 		ContinueY(0x1a4);
 		Resize(0xe6, 0xb4, mBoxX + 0x1a4, mBoxY + 100);
-		mApp->mBoard->mField244 = true;
-		mApp->mBoard->mField80 = true;
-		mApp->mBoard->mField100 = true;
-		mApp->mBoard->mField104 = -35;
+		mApp->mBoard->mInputLocked = true;
+		mApp->mBoard->mFireBlocked = true;
+		mApp->mBoard->mCeilingAtGoal = true;
+		mApp->mBoard->mCeilingGoal = -35;
 		break;
 	case 0x18:
 		mApp->mSndInchypop->Play();
 		mText = mApp->GetString(GT(0x4fed70));
 		ContinueY(0x1a4);
 		Resize(0xe6, 200, mBoxX + 0x1a4, mBoxY + 100);
-		mApp->mBoard->mField244 = true;
-		mApp->mBoard->mField80 = true;
+		mApp->mBoard->mInputLocked = true;
+		mApp->mBoard->mFireBlocked = true;
 		break;
 	case 0x19:
 	{
@@ -675,8 +675,8 @@ void Tutorial::Step()
 			mApp->mBoard->mGrid->mBabyEggs.Add(aBaby);
 		ContinueY(0x17c);
 		Resize(0x14a, 0x82, mBoxX + 0x17c, mBoxY + 100);
-		mApp->mBoard->mField244 = true;
-		mApp->mBoard->mField80 = true;
+		mApp->mBoard->mInputLocked = true;
+		mApp->mBoard->mFireBlocked = true;
 		break;
 	}
 	case 0x1a:
@@ -684,8 +684,8 @@ void Tutorial::Step()
 		mText = mApp->GetString(GT(0x4fec90));
 		ContinueY(0x1a4);
 		Resize(0xe6, 200, mBoxX + 0x1a4, mBoxY + 100);
-		mApp->mBoard->mField244 = true;
-		mApp->mBoard->mField80 = true;
+		mApp->mBoard->mInputLocked = true;
+		mApp->mBoard->mFireBlocked = true;
 		break;
 	case 0x1b:
 		mNoContinue = true;
@@ -694,8 +694,8 @@ void Tutorial::Step()
 		mText = mApp->GetString(GT(0x4fec50));
 		ContinueY(0x1a4);
 		Resize(0xe6, 0xfa, mBoxX + 0x1a4, mBoxY + 100);
-		mApp->mBoard->mField244 = false;
-		mApp->mBoard->mField80 = false;
+		mApp->mBoard->mInputLocked = false;
+		mApp->mBoard->mFireBlocked = false;
 		break;
 	case 0x1c:
 		mNoContinue = true;
@@ -710,8 +710,8 @@ void Tutorial::Step()
 		mText = mApp->GetString(GT(0x4febb8));
 		ContinueY(0x1a4);
 		Resize(0xfa, 0xdc, mBoxX + 0x1a4, mBoxY + 0x96);
-		mApp->mBoard->mField244 = false;
-		mApp->mBoard->mField80 = false;
+		mApp->mBoard->mInputLocked = false;
+		mApp->mBoard->mFireBlocked = false;
 		break;
 	case 0x1d:
 		mArrow = NewPoint(0x18b, 0x1cc);
@@ -720,8 +720,8 @@ void Tutorial::Step()
 		mText = mApp->GetString(GT(0x4feb68));
 		ContinueY(0x1a4);
 		Resize(0xff, 0x131, mBoxX + 0x1a4, mBoxY + 0x96);
-		mApp->mBoard->mField244 = true;
-		mApp->mBoard->mField80 = true;
+		mApp->mBoard->mInputLocked = true;
+		mApp->mBoard->mFireBlocked = true;
 		break;
 	case 0x1e:
 		mApp->mBoard->mGrid->mMaxColor = 2;
@@ -729,8 +729,8 @@ void Tutorial::Step()
 		mText = mApp->GetString(GT(0x4feb10));
 		ContinueY(0x1a4);
 		Resize(0xe6, 200, mBoxX + 0x1a4, mBoxY + 100);
-		mApp->mBoard->mField244 = true;
-		mApp->mBoard->mField80 = true;
+		mApp->mBoard->mInputLocked = true;
+		mApp->mBoard->mFireBlocked = true;
 		break;
 	case 0x1f:
 		mApp->mBoard->mGrid->mMaxColor = 2;
@@ -759,8 +759,8 @@ void Tutorial::Step()
 		SetKind(mApp->mBoard->mGrid->mCells[6][2], 9);
 		ContinueY(0x1a4);
 		Resize(200, 0x96, mBoxX + 0x1a4, mBoxY + 100);
-		mApp->mBoard->mField244 = true;
-		mApp->mBoard->mField80 = true;
+		mApp->mBoard->mInputLocked = true;
+		mApp->mBoard->mFireBlocked = true;
 		break;
 	case 0x20:
 		mArrow = NewPoint(0x17b, 0xe3);
@@ -769,8 +769,8 @@ void Tutorial::Step()
 		mText = mApp->GetString(GT(0x4fea28));
 		ContinueY(0x1a4);
 		Resize(300, 0x50, mBoxX + 0x1a4, mBoxY + 0x96);
-		mApp->mBoard->mField244 = true;
-		mApp->mBoard->mField80 = true;
+		mApp->mBoard->mInputLocked = true;
+		mApp->mBoard->mFireBlocked = true;
 		break;
 	case 0x21:
 		mArrow = NewPoint(0x13b, 0x9f);
@@ -779,8 +779,8 @@ void Tutorial::Step()
 		mText = mApp->GetString(GT(0x4fe9b0));
 		ContinueY(0x1a4);
 		Resize(0xfa, 10, mBoxX + 0x1a4, mBoxY + 0x96);
-		mApp->mBoard->mField244 = true;
-		mApp->mBoard->mField80 = true;
+		mApp->mBoard->mInputLocked = true;
+		mApp->mBoard->mFireBlocked = true;
 		break;
 	case 0x22:
 		mArrow = NewPoint(0x1f1, 0xc1);
@@ -790,8 +790,8 @@ void Tutorial::Step()
 		mText = mApp->GetString(GT(0x4fe978));
 		ContinueY(0x140);
 		Resize(400, 0xbe, mBoxX + 0x140, mBoxY + 100);
-		mApp->mBoard->mField244 = true;
-		mApp->mBoard->mField80 = true;
+		mApp->mBoard->mInputLocked = true;
+		mApp->mBoard->mFireBlocked = true;
 		break;
 	case 0x23:
 		mArrow = NewPoint(0x1ae, 0x7d);
@@ -801,8 +801,8 @@ void Tutorial::Step()
 		mText = mApp->GetString(GT(0x4fe930));
 		ContinueY(0x1a4);
 		Resize(0x140, 0x69, mBoxX + 0x1a4, mBoxY + 100);
-		mApp->mBoard->mField244 = true;
-		mApp->mBoard->mField80 = true;
+		mApp->mBoard->mInputLocked = true;
+		mApp->mBoard->mFireBlocked = true;
 		break;
 	case 0x24:
 		mArrow = NewPoint(0x16d, 0x7d);
@@ -812,10 +812,10 @@ void Tutorial::Step()
 		mText = mApp->GetString(GT(0x4fe904));
 		ContinueY(0x1a4);
 		Resize(0x140, 0x7d, mBoxX + 0x1a4, mBoxY + 100);
-		mApp->mBoard->mField244 = true;
-		mApp->mBoard->mField80 = true;
-		mApp->mBoard->mField100 = true;
-		mApp->mBoard->mField104 = -35;
+		mApp->mBoard->mInputLocked = true;
+		mApp->mBoard->mFireBlocked = true;
+		mApp->mBoard->mCeilingAtGoal = true;
+		mApp->mBoard->mCeilingGoal = -35;
 		break;
 	case 0x25:
 		mArrow = NewPoint(0x1ce, 0x3b);
@@ -825,8 +825,8 @@ void Tutorial::Step()
 		mText = mApp->GetString(GT(0x4fe8a0));
 		ContinueY(0x172);
 		Resize(0x172, 0x3b, mBoxX + 0x172, mBoxY + 0x6e);
-		mApp->mBoard->mField244 = true;
-		mApp->mBoard->mField80 = true;
+		mApp->mBoard->mInputLocked = true;
+		mApp->mBoard->mFireBlocked = true;
 		break;
 	case 0x26:
 	{
@@ -838,10 +838,10 @@ void Tutorial::Step()
 		mApp->mBoard->mLauncher->Freeze(anEgg);
 		ContinueY(0x208);
 		Resize(0xb4, 200, mBoxX + 0x208, mBoxY + 0x6e);
-		mApp->mBoard->mField244 = true;
-		mApp->mBoard->mField80 = true;
-		mApp->mBoard->mField100 = true;
-		mApp->mBoard->mField104 = -35;
+		mApp->mBoard->mInputLocked = true;
+		mApp->mBoard->mFireBlocked = true;
+		mApp->mBoard->mCeilingAtGoal = true;
+		mApp->mBoard->mCeilingGoal = -35;
 		break;
 	}
 	case 0x27:
@@ -858,8 +858,8 @@ void Tutorial::Step()
 		mApp->mBoard->mGrid->ResetCeiling();
 		ContinueY(0x1a4);
 		Resize(0xe6, 200, mBoxX + 0x1a4, mBoxY + 100);
-		mApp->mBoard->mField244 = false;
-		mApp->mBoard->mField80 = false;
+		mApp->mBoard->mInputLocked = false;
+		mApp->mBoard->mFireBlocked = false;
 		break;
 	case 0x28:
 		mArrow = NewPoint(0x233, 0x82);
@@ -868,8 +868,8 @@ void Tutorial::Step()
 		mText = mApp->GetString(GT(0x4fe7a0));
 		ContinueY(0x140);
 		Resize(400, 0x9b, mBoxX + 0x140, mBoxY + 0x6e);
-		mApp->mBoard->mField244 = true;
-		mApp->mBoard->mField80 = true;
+		mApp->mBoard->mInputLocked = true;
+		mApp->mBoard->mFireBlocked = true;
 		break;
 	case 0x29:
 		mBoxY = 0x1e;
@@ -891,8 +891,8 @@ void Tutorial::Step()
 		mText = mApp->GetString(GT(0x4fe760));
 		ContinueY(0x1a4);
 		Resize(0xe6, 200, mBoxX + 0x1a4, mBoxY + 0x6e);
-		mApp->mBoard->mField244 = true;
-		mApp->mBoard->mField80 = true;
+		mApp->mBoard->mInputLocked = true;
+		mApp->mBoard->mFireBlocked = true;
 		break;
 	case 0x2a:
 		mArrow = NewPoint(0x195, 0x184);
@@ -901,8 +901,8 @@ void Tutorial::Step()
 		mText = mApp->GetString(GT(0x4fe6f8));
 		ContinueY(0x1a4);
 		Resize(300, 0xe1, mBoxX + 0x1a4, mBoxY + 0x96);
-		mApp->mBoard->mField244 = true;
-		mApp->mBoard->mField80 = true;
+		mApp->mBoard->mInputLocked = true;
+		mApp->mBoard->mFireBlocked = true;
 		break;
 	case 0x2b:
 		mNoContinue = true;
@@ -910,16 +910,16 @@ void Tutorial::Step()
 		mText = mApp->GetString(GT(0x4fe690));
 		ContinueY(0x1a4);
 		Resize(0xe6, 0xb4, mBoxX + 0x1a4, mBoxY + 100);
-		mApp->mBoard->mField244 = false;
-		mApp->mBoard->mField80 = false;
+		mApp->mBoard->mInputLocked = false;
+		mApp->mBoard->mFireBlocked = false;
 		break;
 	case 0x2c:
 		mApp->mSndInchypop->Play();
 		mText = mApp->GetString(GT(0x4fe620));
 		ContinueY(0x1a4);
 		Resize(0xe6, 200, mBoxX + 0x1a4, mBoxY + 100);
-		mApp->mBoard->mField244 = false;
-		mApp->mBoard->mField80 = false;
+		mApp->mBoard->mInputLocked = false;
+		mApp->mBoard->mFireBlocked = false;
 		mApp->mBoard->mPauseCount = 1;
 		break;
 	case 0x2d:
@@ -932,8 +932,8 @@ void Tutorial::Step()
 		mText = mApp->GetString(GT(0x4fe618));
 		ContinueY(300);
 		Resize(300, 0xa0, mBoxX + 300, mBoxY + 0x96);
-		mApp->mBoard->mField244 = false;
-		mApp->mBoard->mField80 = false;
+		mApp->mBoard->mInputLocked = false;
+		mApp->mBoard->mFireBlocked = false;
 		mApp->mBoard->mPauseCount = 1;
 		break;
 	case 0x2f:
@@ -943,8 +943,8 @@ void Tutorial::Step()
 		mText = mApp->GetString(GT(0x4fe5a8));
 		ContinueY(0x1a4);
 		Resize(0x1e, 0x118, mBoxX + 0x1a4, mBoxY + 0x96);
-		mApp->mBoard->mField244 = false;
-		mApp->mBoard->mField80 = false;
+		mApp->mBoard->mInputLocked = false;
+		mApp->mBoard->mFireBlocked = false;
 		mApp->mBoard->mPauseCount = 1;
 		break;
 	case 0x30:
@@ -952,8 +952,8 @@ void Tutorial::Step()
 		mText = mApp->GetString(GT(0x4fe550));
 		ContinueY(0x1a4);
 		Resize(0xe6, 0xb4, mBoxX + 0x1a4, mBoxY + 0x96);
-		mApp->mBoard->mField244 = false;
-		mApp->mBoard->mField80 = false;
+		mApp->mBoard->mInputLocked = false;
+		mApp->mBoard->mFireBlocked = false;
 		mApp->mBoard->mPauseCount = 1;
 		break;
 	case 0x31:
@@ -961,15 +961,15 @@ void Tutorial::Step()
 		mText = mApp->GetString(GT(0x4fe4b0));
 		ContinueY(0x1a4);
 		Resize(0xe6, 0xb4, mBoxX + 0x1a4, mBoxY + 0x96);
-		mApp->mBoard->mField244 = false;
-		mApp->mBoard->mField80 = false;
+		mApp->mBoard->mInputLocked = false;
+		mApp->mBoard->mFireBlocked = false;
 		mApp->mBoard->mPauseCount = 1;
 		break;
 	case 0x32:
 		// the Endless puzzle's part
 		SetupBoard(2);
-		mApp->mBoard->mField244 = true;
-		mApp->mBoard->mField80 = true;
+		mApp->mBoard->mInputLocked = true;
+		mApp->mBoard->mFireBlocked = true;
 		mApp->mBoard->mPauseCount = 0;
 		break;
 	case 0x33:
@@ -977,8 +977,8 @@ void Tutorial::Step()
 		mText = mApp->GetString(GT(0x4fe408));
 		ContinueY(0x1a4);
 		Resize(0xe6, 200, mBoxX + 0x1a4, mBoxY + 0x96);
-		mApp->mBoard->mField244 = true;
-		mApp->mBoard->mField80 = true;
+		mApp->mBoard->mInputLocked = true;
+		mApp->mBoard->mFireBlocked = true;
 		mApp->mBoard->mPauseCount = 0;
 		break;
 	case 0x34:
@@ -986,8 +986,8 @@ void Tutorial::Step()
 		mText = mApp->GetString(GT(0x4fe3e4));
 		ContinueY(0x1a4);
 		Resize(0xe6, 0xb4, mBoxX + 0x1a4, mBoxY + 0x96);
-		mApp->mBoard->mField244 = true;
-		mApp->mBoard->mField80 = true;
+		mApp->mBoard->mInputLocked = true;
+		mApp->mBoard->mFireBlocked = true;
 		mApp->mBoard->mPauseCount = 0;
 		break;
 	case 0x35:
@@ -997,8 +997,8 @@ void Tutorial::Step()
 		mBoxY = 0x19;
 		ContinueY(0x1a4);
 		Resize(0xe6, 200, mBoxX + 0x1a4, mBoxY + 0x96);
-		mApp->mBoard->mField244 = true;
-		mApp->mBoard->mField80 = true;
+		mApp->mBoard->mInputLocked = true;
+		mApp->mBoard->mFireBlocked = true;
 		mApp->mBoard->mPauseCount = 0;
 		break;
 	case 0x36:
@@ -1007,8 +1007,8 @@ void Tutorial::Step()
 		mText = mApp->GetString(GT(0x4fe338));
 		ContinueY(0x1a4);
 		Resize(0xe6, 0x28, mBoxX + 0x1a4, mBoxY + 0x96);
-		mApp->mBoard->mField244 = false;
-		mApp->mBoard->mField80 = false;
+		mApp->mBoard->mInputLocked = false;
+		mApp->mBoard->mFireBlocked = false;
 		mApp->mBoard->mPauseCount = 0;
 		break;
 	case 0x37:
@@ -1016,8 +1016,8 @@ void Tutorial::Step()
 		mText = mApp->GetString(GT(0x4fe2a0));
 		ContinueY(0x1a4);
 		Resize(0xe6, 200, mBoxX + 0x1a4, mBoxY + 0x96);
-		mApp->mBoard->mField244 = true;
-		mApp->mBoard->mField80 = true;
+		mApp->mBoard->mInputLocked = true;
+		mApp->mBoard->mFireBlocked = true;
 		mApp->mBoard->mPauseCount = 0;
 		break;
 	case 0x38:
@@ -1081,8 +1081,8 @@ void Tutorial::Step()
 		mApp->mSndInchypop->Play();
 		ContinueY(0x1a4);
 		Resize(0xe6, 0xa0, mBoxX + 0x1a4, mBoxY + 0x82);
-		mApp->mBoard->mField244 = false;
-		mApp->mBoard->mField80 = false;
+		mApp->mBoard->mInputLocked = false;
+		mApp->mBoard->mFireBlocked = false;
 		mApp->mBoard->mPauseCount = 0;
 		break;
 	}
@@ -1110,8 +1110,8 @@ void Tutorial::Step()
 	case 0x42:
 		// the Stomped puzzle's part
 		SetupBoard(1);
-		mApp->mBoard->mField244 = true;
-		mApp->mBoard->mField80 = true;
+		mApp->mBoard->mInputLocked = true;
+		mApp->mBoard->mFireBlocked = true;
 		mApp->mBoard->mPauseCount = 0;
 		mApp->mBoard->mGrid->ClearDynamite();
 		break;
@@ -1120,8 +1120,8 @@ void Tutorial::Step()
 		mApp->mSndInchypop->Play();
 		ContinueY(0x1a4);
 		Resize(0xe6, 200, mBoxX + 0x1a4, mBoxY + 0x82);
-		mApp->mBoard->mField244 = true;
-		mApp->mBoard->mField80 = true;
+		mApp->mBoard->mInputLocked = true;
+		mApp->mBoard->mFireBlocked = true;
 		mApp->mBoard->mPauseCount = 0;
 		break;
 	case 0x44:
@@ -1129,8 +1129,8 @@ void Tutorial::Step()
 		mApp->mSndInchypop->Play();
 		ContinueY(0x1a4);
 		Resize(0xe6, 0xb4, mBoxX + 0x1a4, mBoxY + 0x82);
-		mApp->mBoard->mField244 = true;
-		mApp->mBoard->mField80 = true;
+		mApp->mBoard->mInputLocked = true;
+		mApp->mBoard->mFireBlocked = true;
 		mApp->mBoard->mPauseCount = 0;
 		break;
 	case 0x45:
@@ -1138,8 +1138,8 @@ void Tutorial::Step()
 		mApp->mSndInchypop->Play();
 		ContinueY(0x1a4);
 		Resize(0xe6, 200, mBoxX + 0x1a4, mBoxY + 0x82);
-		mApp->mBoard->mField244 = true;
-		mApp->mBoard->mField80 = true;
+		mApp->mBoard->mInputLocked = true;
+		mApp->mBoard->mFireBlocked = true;
 		mApp->mBoard->mPauseCount = 0;
 		break;
 	case 0x46:
@@ -1149,8 +1149,8 @@ void Tutorial::Step()
 		mApp->mSndInchypop->Play();
 		ContinueY(0x14a);
 		Resize(400, 300, mBoxX + 0x14a, mBoxY + 0x78);
-		mApp->mBoard->mField244 = true;
-		mApp->mBoard->mField80 = true;
+		mApp->mBoard->mInputLocked = true;
+		mApp->mBoard->mFireBlocked = true;
 		mApp->mBoard->mPauseCount = 0;
 		break;
 	case 0x47:
@@ -1158,8 +1158,8 @@ void Tutorial::Step()
 		mApp->mSndInchypop->Play();
 		ContinueY(0x1a4);
 		Resize(0xe6, 200, mBoxX + 0x1a4, mBoxY + 0x82);
-		mApp->mBoard->mField244 = true;
-		mApp->mBoard->mField80 = true;
+		mApp->mBoard->mInputLocked = true;
+		mApp->mBoard->mFireBlocked = true;
 		mApp->mBoard->mPauseCount = 0;
 		break;
 	case 0x48:
@@ -1173,8 +1173,8 @@ void Tutorial::Step()
 		mApp->mSndInchypop->Play();
 		ContinueY(0x140);
 		Resize(0x17c, 0x32, mBoxX + 0x140, mBoxY + 0x82);
-		mApp->mBoard->mField244 = false;
-		mApp->mBoard->mField80 = false;
+		mApp->mBoard->mInputLocked = false;
+		mApp->mBoard->mFireBlocked = false;
 		mApp->mBoard->mPauseCount = 0;
 		break;
 	}
@@ -1184,8 +1184,8 @@ void Tutorial::Step()
 		mApp->mSndInchypop->Play();
 		ContinueY(0x140);
 		Resize(0x1af, 0xe2, mBoxX + 0x140, mBoxY + 0x82);
-		mApp->mBoard->mField244 = true;
-		mApp->mBoard->mField80 = true;
+		mApp->mBoard->mInputLocked = true;
+		mApp->mBoard->mFireBlocked = true;
 		mApp->mBoard->mPauseCount = 0;
 		break;
 	case 0x4a:
@@ -1194,8 +1194,8 @@ void Tutorial::Step()
 		mApp->mSndInchypop->Play();
 		ContinueY(0x1a4);
 		Resize(0xe6, 0x32, mBoxX + 0x1a4, mBoxY + 0x82);
-		mApp->mBoard->mField244 = false;
-		mApp->mBoard->mField80 = false;
+		mApp->mBoard->mInputLocked = false;
+		mApp->mBoard->mFireBlocked = false;
 		mApp->mBoard->mPauseCount = 0;
 		break;
 	case 0x4b:
@@ -1203,8 +1203,8 @@ void Tutorial::Step()
 		mApp->mSndInchypop->Play();
 		ContinueY(0x1a4);
 		Resize(0xe6, 200, mBoxX + 0x1a4, mBoxY + 0x82);
-		mApp->mBoard->mField244 = true;
-		mApp->mBoard->mField80 = true;
+		mApp->mBoard->mInputLocked = true;
+		mApp->mBoard->mFireBlocked = true;
 		mApp->mBoard->mPauseCount = 0;
 		break;
 	case 0x4c:
@@ -1212,8 +1212,8 @@ void Tutorial::Step()
 		mApp->mSndInchypop->Play();
 		ContinueY(0x1a4);
 		Resize(0xe6, 0xfa, mBoxX + 0x1a4, mBoxY + 0x82);
-		mApp->mBoard->mField244 = true;
-		mApp->mBoard->mField80 = true;
+		mApp->mBoard->mInputLocked = true;
+		mApp->mBoard->mFireBlocked = true;
 		mApp->mBoard->mPauseCount = 0;
 		break;
 	case 0x4d:
@@ -1221,8 +1221,8 @@ void Tutorial::Step()
 		mApp->mSndInchypop->Play();
 		ContinueY(0x1a4);
 		Resize(0xe6, 0xdc, mBoxX + 0x1a4, mBoxY + 0x82);
-		mApp->mBoard->mField244 = true;
-		mApp->mBoard->mField80 = true;
+		mApp->mBoard->mInputLocked = true;
+		mApp->mBoard->mFireBlocked = true;
 		mApp->mBoard->mPauseCount = 0;
 		break;
 	case 0x4e:
@@ -1230,15 +1230,15 @@ void Tutorial::Step()
 		mApp->mSndInchypop->Play();
 		ContinueY(0x1a4);
 		Resize(0xe6, 0xd2, mBoxX + 0x1a4, mBoxY + 0x82);
-		mApp->mBoard->mField244 = true;
-		mApp->mBoard->mField80 = true;
+		mApp->mBoard->mInputLocked = true;
+		mApp->mBoard->mFireBlocked = true;
 		mApp->mBoard->mPauseCount = 0;
 		break;
 	case 0x4f:
 		// the Fossil Challenge's part
 		SetupBoard(3);
-		mApp->mBoard->mField244 = true;
-		mApp->mBoard->mField80 = true;
+		mApp->mBoard->mInputLocked = true;
+		mApp->mBoard->mFireBlocked = true;
 		mApp->mBoard->mPauseCount = 0;
 		((DynomiteFossil*) mApp->mBoard)->mKroney->Start(100000.0f);
 		break;
@@ -1247,8 +1247,8 @@ void Tutorial::Step()
 		mApp->mSndInchypop->Play();
 		ContinueY(0x1a4);
 		Resize(0xe6, 0xd2, mBoxX + 0x1a4, mBoxY + 0x82);
-		mApp->mBoard->mField244 = true;
-		mApp->mBoard->mField80 = true;
+		mApp->mBoard->mInputLocked = true;
+		mApp->mBoard->mFireBlocked = true;
 		mApp->mBoard->mPauseCount = 0;
 		break;
 	case 0x51:
@@ -1256,8 +1256,8 @@ void Tutorial::Step()
 		mApp->mSndInchypop->Play();
 		ContinueY(0x1a4);
 		Resize(0xe6, 0xd2, mBoxX + 0x1a4, mBoxY + 0x82);
-		mApp->mBoard->mField244 = true;
-		mApp->mBoard->mField80 = true;
+		mApp->mBoard->mInputLocked = true;
+		mApp->mBoard->mFireBlocked = true;
 		mApp->mBoard->mPauseCount = 0;
 		break;
 	case 0x52:
@@ -1267,8 +1267,8 @@ void Tutorial::Step()
 		mApp->mSndInchypop->Play();
 		ContinueY(0x140);
 		Resize(0x17c, 0x71, mBoxX + 0x140, mBoxY + 0x82);
-		mApp->mBoard->mField244 = true;
-		mApp->mBoard->mField80 = true;
+		mApp->mBoard->mInputLocked = true;
+		mApp->mBoard->mFireBlocked = true;
 		mApp->mBoard->mPauseCount = 0;
 		break;
 	case 0x53:
@@ -1276,8 +1276,8 @@ void Tutorial::Step()
 		mApp->mSndInchypop->Play();
 		ContinueY(0x1a4);
 		Resize(0xe6, 200, mBoxX + 0x1a4, mBoxY + 0x82);
-		mApp->mBoard->mField244 = true;
-		mApp->mBoard->mField80 = true;
+		mApp->mBoard->mInputLocked = true;
+		mApp->mBoard->mFireBlocked = true;
 		mApp->mBoard->mPauseCount = 0;
 		break;
 	case 0x54:
@@ -1285,8 +1285,8 @@ void Tutorial::Step()
 		mApp->mSndInchypop->Play();
 		ContinueY(0x1a4);
 		Resize(0xe6, 0xd2, mBoxX + 0x1a4, mBoxY + 0x82);
-		mApp->mBoard->mField244 = true;
-		mApp->mBoard->mField80 = true;
+		mApp->mBoard->mInputLocked = true;
+		mApp->mBoard->mFireBlocked = true;
 		mApp->mBoard->mPauseCount = 0;
 		break;
 	case 0x55:
@@ -1294,8 +1294,8 @@ void Tutorial::Step()
 		mApp->mSndInchypop->Play();
 		ContinueY(0x1a4);
 		Resize(0xe6, 0xd7, mBoxX + 0x1a4, mBoxY + 0x82);
-		mApp->mBoard->mField244 = true;
-		mApp->mBoard->mField80 = true;
+		mApp->mBoard->mInputLocked = true;
+		mApp->mBoard->mFireBlocked = true;
 		mApp->mBoard->mPauseCount = 0;
 		break;
 	case 0x56:
@@ -1303,8 +1303,8 @@ void Tutorial::Step()
 		mApp->mSndInchypop->Play();
 		ContinueY(0x1a4);
 		Resize(0xe6, 200, mBoxX + 0x1a4, mBoxY + 0x82);
-		mApp->mBoard->mField244 = true;
-		mApp->mBoard->mField80 = true;
+		mApp->mBoard->mInputLocked = true;
+		mApp->mBoard->mFireBlocked = true;
 		mApp->mBoard->mPauseCount = 0;
 		break;
 	case 0x57:
@@ -1312,8 +1312,8 @@ void Tutorial::Step()
 		mApp->mSndInchypop->Play();
 		ContinueY(0x1a4);
 		Resize(0xe6, 200, mBoxX + 0x1a4, mBoxY + 0x82);
-		mApp->mBoard->mField244 = true;
-		mApp->mBoard->mField80 = true;
+		mApp->mBoard->mInputLocked = true;
+		mApp->mBoard->mFireBlocked = true;
 		mApp->mBoard->mPauseCount = 0;
 		break;
 	case 0x58:
@@ -1323,8 +1323,8 @@ void Tutorial::Step()
 		mApp->mSndInchypop->Play();
 		ContinueY(0x14a);
 		Resize(400, 0xaa, mBoxX + 0x14a, mBoxY + 0x82);
-		mApp->mBoard->mField244 = true;
-		mApp->mBoard->mField80 = true;
+		mApp->mBoard->mInputLocked = true;
+		mApp->mBoard->mFireBlocked = true;
 		mApp->mBoard->mPauseCount = 0;
 		break;
 	case 0x59:
@@ -1333,8 +1333,8 @@ void Tutorial::Step()
 		mApp->mSndInchypop->Play();
 		ContinueY(0x1a4);
 		Resize(0xe6, 0xaa, mBoxX + 0x1a4, mBoxY + 0x82);
-		mApp->mBoard->mField244 = true;
-		mApp->mBoard->mField80 = true;
+		mApp->mBoard->mInputLocked = true;
+		mApp->mBoard->mFireBlocked = true;
 		mApp->mBoard->mPauseCount = 0;
 		break;
 	case 0x5a:
@@ -1343,8 +1343,8 @@ void Tutorial::Step()
 		mApp->mSndInchypop->Play();
 		ContinueY(0x1a4);
 		Resize(0xe6, 0xaa, mBoxX + 0x1a4, mBoxY + 0x82);
-		mApp->mBoard->mField244 = true;
-		mApp->mBoard->mField80 = true;
+		mApp->mBoard->mInputLocked = true;
+		mApp->mBoard->mFireBlocked = true;
 		mApp->mBoard->mPauseCount = 0;
 		break;
 	case 0x5b:
@@ -1353,8 +1353,8 @@ void Tutorial::Step()
 		mApp->mSndInchypop->Play();
 		ContinueY(0x1a4);
 		Resize(200, 0xaa, mBoxX + 0x1a4, mBoxY + 0x82);
-		mApp->mBoard->mField244 = true;
-		mApp->mBoard->mField80 = true;
+		mApp->mBoard->mInputLocked = true;
+		mApp->mBoard->mFireBlocked = true;
 		mApp->mBoard->mPauseCount = 0;
 		break;
 	case 0x5c:
@@ -1363,8 +1363,8 @@ void Tutorial::Step()
 		mApp->mSndInchypop->Play();
 		ContinueY(0x1a4);
 		Resize(0xcd, 0xaa, mBoxX + 0x1a4, mBoxY + 0x82);
-		mApp->mBoard->mField244 = true;
-		mApp->mBoard->mField80 = true;
+		mApp->mBoard->mInputLocked = true;
+		mApp->mBoard->mFireBlocked = true;
 		mApp->mBoard->mPauseCount = 0;
 		break;
 	case 0x5d:
@@ -1375,8 +1375,8 @@ void Tutorial::Step()
 		mApp->mSndInchypop->Play();
 		ContinueY(0x1a4);
 		Resize(0x7c, 0x172, mBoxX + 0x1a4, mBoxY + 0x82);
-		mApp->mBoard->mField244 = true;
-		mApp->mBoard->mField80 = true;
+		mApp->mBoard->mInputLocked = true;
+		mApp->mBoard->mFireBlocked = true;
 		mApp->mBoard->mPauseCount = 0;
 		break;
 	case 0x5e:
@@ -1384,8 +1384,8 @@ void Tutorial::Step()
 		mApp->mSndInchypop->Play();
 		ContinueY(0x1a4);
 		Resize(0xe6, 200, mBoxX + 0x1a4, mBoxY + 0x82);
-		mApp->mBoard->mField244 = true;
-		mApp->mBoard->mField80 = true;
+		mApp->mBoard->mInputLocked = true;
+		mApp->mBoard->mFireBlocked = true;
 		mApp->mBoard->mPauseCount = 0;
 		break;
 	case 0x5f:
@@ -1393,8 +1393,8 @@ void Tutorial::Step()
 		mApp->mSndInchypop->Play();
 		ContinueY(0x1a4);
 		Resize(0xe6, 0xcd, mBoxX + 0x1a4, mBoxY + 0x82);
-		mApp->mBoard->mField244 = true;
-		mApp->mBoard->mField80 = true;
+		mApp->mBoard->mInputLocked = true;
+		mApp->mBoard->mFireBlocked = true;
 		mApp->mBoard->mPauseCount = 0;
 		break;
 	case 0x60:
@@ -1402,8 +1402,8 @@ void Tutorial::Step()
 		mApp->mSndInchypop->Play();
 		ContinueY(0x1a4);
 		Resize(0xe6, 0xd2, mBoxX + 0x1a4, mBoxY + 0x82);
-		mApp->mBoard->mField244 = true;
-		mApp->mBoard->mField80 = true;
+		mApp->mBoard->mInputLocked = true;
+		mApp->mBoard->mFireBlocked = true;
 		mApp->mBoard->mPauseCount = 0;
 		break;
 	case 0x61:
@@ -1411,8 +1411,8 @@ void Tutorial::Step()
 		mApp->mSndInchypop->Play();
 		ContinueY(0x1a4);
 		Resize(0xe6, 0xd2, mBoxX + 0x1a4, mBoxY + 0x82);
-		mApp->mBoard->mField244 = true;
-		mApp->mBoard->mField80 = true;
+		mApp->mBoard->mInputLocked = true;
+		mApp->mBoard->mFireBlocked = true;
 		mApp->mBoard->mPauseCount = 0;
 		break;
 	case 0x62:
@@ -1429,15 +1429,15 @@ void Tutorial::Step()
 		mApp->mSndInchypop->Play();
 		ContinueY(0x1a4);
 		Resize(0xe6, 0xd2, mBoxX + 0x1a4, mBoxY + 0x82);
-		mApp->mBoard->mField244 = true;
-		mApp->mBoard->mField80 = true;
+		mApp->mBoard->mInputLocked = true;
+		mApp->mBoard->mFireBlocked = true;
 		mApp->mBoard->mPauseCount = 0;
 		break;
 	case 99:
 		// the Time Trial's part
 		SetupBoard(4);
-		mApp->mBoard->mField244 = true;
-		mApp->mBoard->mField80 = true;
+		mApp->mBoard->mInputLocked = true;
+		mApp->mBoard->mFireBlocked = true;
 		mApp->mBoard->mPauseCount = 0;
 		break;
 	case 100:
@@ -1445,8 +1445,8 @@ void Tutorial::Step()
 		mApp->mSndInchypop->Play();
 		ContinueY(0x1a4);
 		Resize(0xe6, 0xd2, mBoxX + 0x1a4, mBoxY + 0x82);
-		mApp->mBoard->mField244 = true;
-		mApp->mBoard->mField80 = true;
+		mApp->mBoard->mInputLocked = true;
+		mApp->mBoard->mFireBlocked = true;
 		mApp->mBoard->mPauseCount = 0;
 		break;
 	case 0x65:
@@ -1454,8 +1454,8 @@ void Tutorial::Step()
 		mApp->mSndInchypop->Play();
 		ContinueY(0x1a4);
 		Resize(0xe6, 200, mBoxX + 0x1a4, mBoxY + 0x82);
-		mApp->mBoard->mField244 = true;
-		mApp->mBoard->mField80 = true;
+		mApp->mBoard->mInputLocked = true;
+		mApp->mBoard->mFireBlocked = true;
 		mApp->mBoard->mPauseCount = 0;
 		break;
 	case 0x66:
@@ -1463,8 +1463,8 @@ void Tutorial::Step()
 		mApp->mSndInchypop->Play();
 		ContinueY(0x1a4);
 		Resize(0xe6, 200, mBoxX + 0x1a4, mBoxY + 0x82);
-		mApp->mBoard->mField244 = true;
-		mApp->mBoard->mField80 = true;
+		mApp->mBoard->mInputLocked = true;
+		mApp->mBoard->mFireBlocked = true;
 		mApp->mBoard->mPauseCount = 0;
 		break;
 	case 0x67:
@@ -1473,8 +1473,8 @@ void Tutorial::Step()
 		mApp->mSndInchypop->Play();
 		ContinueY(0x1a4);
 		Resize(0xe6, 100, mBoxX + 0x1a4, mBoxY + 0x82);
-		mApp->mBoard->mField244 = false;
-		mApp->mBoard->mField80 = false;
+		mApp->mBoard->mInputLocked = false;
+		mApp->mBoard->mFireBlocked = false;
 		mApp->mBoard->mPauseCount = 0;
 		break;
 	case 0x68:
@@ -1482,8 +1482,8 @@ void Tutorial::Step()
 		mApp->mSndInchypop->Play();
 		ContinueY(0x1a4);
 		Resize(0xe6, 200, mBoxX + 0x1a4, mBoxY + 0x82);
-		mApp->mBoard->mField244 = true;
-		mApp->mBoard->mField80 = true;
+		mApp->mBoard->mInputLocked = true;
+		mApp->mBoard->mFireBlocked = true;
 		mApp->mBoard->mPauseCount = 0;
 		break;
 	case 0x69:
@@ -1493,8 +1493,8 @@ void Tutorial::Step()
 		mApp->mSndInchypop->Play();
 		ContinueY(0x104);
 		Resize(0x1d6, 0x139, mBoxX + 0x104, mBoxY + 0x82);
-		mApp->mBoard->mField244 = true;
-		mApp->mBoard->mField80 = true;
+		mApp->mBoard->mInputLocked = true;
+		mApp->mBoard->mFireBlocked = true;
 		mApp->mBoard->mPauseCount = 0;
 		break;
 	case 0x6a:
@@ -1502,8 +1502,8 @@ void Tutorial::Step()
 		mApp->mSndInchypop->Play();
 		ContinueY(0x1a4);
 		Resize(0xe6, 200, mBoxX + 0x1a4, mBoxY + 0x82);
-		mApp->mBoard->mField244 = true;
-		mApp->mBoard->mField80 = true;
+		mApp->mBoard->mInputLocked = true;
+		mApp->mBoard->mFireBlocked = true;
 		mApp->mBoard->mPauseCount = 0;
 		break;
 	case 0x6b:
@@ -1511,8 +1511,8 @@ void Tutorial::Step()
 		mApp->mSndInchypop->Play();
 		ContinueY(0x1a4);
 		Resize(0xe6, 0xd2, mBoxX + 0x1a4, mBoxY + 0x82);
-		mApp->mBoard->mField244 = true;
-		mApp->mBoard->mField80 = true;
+		mApp->mBoard->mInputLocked = true;
+		mApp->mBoard->mFireBlocked = true;
 		mApp->mBoard->mPauseCount = 0;
 		break;
 	case 0x6c:
@@ -1520,8 +1520,8 @@ void Tutorial::Step()
 		mApp->mSndInchypop->Play();
 		ContinueY(0x1a4);
 		Resize(0xe6, 200, mBoxX + 0x1a4, mBoxY + 0x82);
-		mApp->mBoard->mField244 = true;
-		mApp->mBoard->mField80 = true;
+		mApp->mBoard->mInputLocked = true;
+		mApp->mBoard->mFireBlocked = true;
 		mApp->mBoard->mPauseCount = 0;
 		break;
 	case 0x6d:
@@ -1529,8 +1529,8 @@ void Tutorial::Step()
 		mApp->mSndInchypop->Play();
 		ContinueY(0x1a4);
 		Resize(0xe6, 200, mBoxX + 0x1a4, mBoxY + 0x82);
-		mApp->mBoard->mField244 = true;
-		mApp->mBoard->mField80 = true;
+		mApp->mBoard->mInputLocked = true;
+		mApp->mBoard->mFireBlocked = true;
 		mApp->mBoard->mPauseCount = 0;
 		break;
 	case 0x6e:
@@ -1539,8 +1539,8 @@ void Tutorial::Step()
 		mApp->mSndChime->Play();
 		ContinueY(0x1a4);
 		Resize(0xe6, 0xd2, mBoxX + 0x1a4, mBoxY + 0x82);
-		mApp->mBoard->mField244 = true;
-		mApp->mBoard->mField80 = true;
+		mApp->mBoard->mInputLocked = true;
+		mApp->mBoard->mFireBlocked = true;
 		mApp->mBoard->mPauseCount = 0;
 		break;
 	case 0x6f:
@@ -1716,9 +1716,9 @@ void Tutorial::Update()
 	case 0x2d:
 		// the game is over and its "game over" has faded in
 		((DynomitePanic*) mApp->mBoard)->mCeilingSpeed->mSpeed = 0.0f;
-		if (mApp->mBoard->mField131 != true)
+		if (mApp->mBoard->mGameOver != true)
 			return;
-		if (0x32 < mApp->mBoard->mField140)
+		if (0x32 < mApp->mBoard->mGameOverAlpha)
 			ButtonPress(0);
 		break;
 	case 0x32:
@@ -1748,7 +1748,7 @@ void Tutorial::Update()
 		((DynomitePanic*) aBoard)->mCeilingSpeed->mSpeed = 0.04f;
 		if (0xfa < aBoard->mGrid->mBottom)
 			((DynomitePanic*) aBoard)->mCeilingSpeed->mSpeed = 0.0f;
-		if (3 < aBoard->mFieldB4)
+		if (3 < aBoard->mShotCount)
 		{
 			ButtonPress(0);
 			return;
@@ -1836,7 +1836,7 @@ void Tutorial::Update()
 		}
 		break;
 	case 0x67:
-		if (3 < mApp->mBoard->mFieldB4)
+		if (3 < mApp->mBoard->mShotCount)
 			ButtonPress(0);
 		break;
 	}

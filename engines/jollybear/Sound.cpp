@@ -6,6 +6,7 @@
 #include "platform/openmpt/OpenMPTPlayer.h"
 
 #include <algorithm>
+#include <cmath>
 #include <cstdarg>
 #include <cstdio>
 #include <cstdlib>
@@ -126,28 +127,66 @@ static float Gain(int theVolume)
 	return theVolume / 100.0f;
 }
 
+// A log file named by an environment variable, opened at its first line
+struct LogFile
+{
+	const char* mVariable;
+	FILE* mFile;
+	bool mOpened;
+};
+
+static bool LogOn(LogFile& theLog)
+{
+	if (!theLog.mOpened)
+	{
+		theLog.mOpened = true;
+		const char* aPath = getenv(theLog.mVariable);
+		if (aPath != nullptr && aPath[0] != 0)
+			theLog.mFile = fopen(aPath, "w");
+	}
+	return theLog.mFile != nullptr;
+}
+
+static void WriteLog(LogFile& theLog, uint32_t theStamp, const char* theFormat, va_list theArguments)
+{
+	if (!LogOn(theLog))
+		return;
+	fprintf(theLog.mFile, "%u ", theStamp);
+	vfprintf(theLog.mFile, theFormat, theArguments);
+	fputc('\n', theLog.mFile);
+	fflush(theLog.mFile);
+}
+
+static LogFile gBassLog = {"MJ_SOUNDLOG", nullptr, false};
+static LogFile gUpdateLog = {"BYOPOP_SOUNDLOG", nullptr, false};
+
 // A record of what the sound plays, for comparing with the original's BASS calls (tools/soundlog.py): written only
-// when the environment's MJ_SOUNDLOG names a file
+// when the environment's MJ_SOUNDLOG names a file, each line stamped with the clock's milliseconds
 static void SoundLog(const char* theFormat, ...)
 {
-	static FILE* sFile = nullptr;
-	static bool sOpened = false;
-	if (!sOpened)
-	{
-		sOpened = true;
-		const char* aPath = getenv("MJ_SOUNDLOG");
-		if (aPath != nullptr && aPath[0] != 0)
-			sFile = fopen(aPath, "w");
-	}
-	if (sFile == nullptr)
-		return;
-	fprintf(sFile, "%u ", GetHost()->TickCount());
 	va_list anArgs;
 	va_start(anArgs, theFormat);
-	vfprintf(sFile, theFormat, anArgs);
+	WriteLog(gBassLog, GetHost()->TickCount(), theFormat, anArgs);
 	va_end(anArgs);
-	fputc('\n', sFile);
-	fflush(sFile);
+}
+
+// port: the sound effects in the framework's sound log (framework/SDLSoundManager.h), the lines tools/soundpreset.py
+// reads for the soundboard's presets, written only when the environment's BYOPOP_SOUNDLOG names a file, each line
+// stamped with the update (5 ms in these games). A sample is named "Resource <id>", its WAVE resource in Resource.dll;
+// its volume is the channel's gain in hundredths of a decibel, its pan 0 and its pitch 1 (BASS plays a sample as it is)
+static void UpdateLog(const char* theFormat, ...)
+{
+	va_list anArgs;
+	va_start(anArgs, theFormat);
+	WriteLog(gUpdateLog, GetHost()->UpdateCount(), theFormat, anArgs);
+	va_end(anArgs);
+}
+
+static int LogVolume(int theVolume)
+{
+	if (theVolume <= 0)
+		return -10000;
+	return std::max(-10000, std::min(0, (int)(2000.0 * std::log10(theVolume / 100.0))));
 }
 
 static uint32_t Crc32(const uint8_t* theData, uint32_t theSize)
@@ -221,6 +260,8 @@ void Sound::Load(int theId, bool theLoop)
 	if (aSound == nullptr)
 		return;
 	SoundLog("load %d %08x %d", theId, Crc32(aData, aSize), theLoop ? 1 : 0);
+	UpdateLog("load %d Resource %d frames=%d rate=%d ch=%d", theId, theId & 0xffff, (int)aSound->mFrames, aSound->mRate,
+		aSound->mChannels);
 	Sample* aSample = new Sample();
 	aSample->mData = aSound;
 	aSample->mLoop = theLoop;
@@ -244,6 +285,7 @@ void Sound::Play(int theId)
 		[&](int theVoice) { return !aMixer.IsVoicePlaying(theVoice); }), aVoices.end());
 	if ((int)aVoices.size() >= aSample->mMax)
 	{
+		LogStop(theId, aVoices.front());
 		aMixer.StopVoice(aVoices.front());
 		aVoices.erase(aVoices.begin());
 	}
@@ -251,6 +293,12 @@ void Sound::Play(int theId)
 	int aVoice = aMixer.StartVoice(aSample->mData, Gain(mVolume), Gain(mVolume), 1.0, aSample->mLoop);
 	if (aVoice > 0)
 	{
+		if (LogOn(gUpdateLog))
+		{
+			mLogNumbers[aVoice] = ++mLogCount;
+			UpdateLog("play %d #%d vol=%d pan=0 pitch=1.0000 loop=%d", theId, mLogCount, LogVolume(mVolume),
+				aSample->mLoop ? 1 : 0);
+		}
 		aVoices.push_back(aVoice);
 		aSample->mLast = aVoice;
 		aSample->mLastPaused = false;
@@ -268,7 +316,10 @@ void Sound::Stop(int theId)
 	Sample* aSample = anIt->second;
 	SoundLog("stop %d", theId);
 	for (int aVoice : aSample->mVoices)
+	{
+		LogStop(theId, aVoice);
 		Platform::Mixer::Get().StopVoice(aVoice);
+	}
 	aSample->mVoices.clear();
 	aSample->mLastPaused = false;
 	aSample->mPaused = false;
@@ -284,6 +335,16 @@ void Sound::StopAllExcept(int theId)
 		if (anEntry.first != theId)
 			Stop(anEntry.first);
 	}
+}
+
+void Sound::LogStop(int theId, int theVoice)
+{
+	auto aNumber = mLogNumbers.find(theVoice);
+	if (aNumber == mLogNumbers.end())
+		return;
+	if (Platform::Mixer::Get().IsVoicePlaying(theVoice))
+		UpdateLog("stop %d #%d", theId, aNumber->second);
+	mLogNumbers.erase(aNumber);
 }
 
 int Sound::LastState(Sample* theSample)
@@ -327,7 +388,12 @@ void Sound::SetVolume(int theVolume)
 		Sample* aSample = anEntry.second;
 		int aState = LastState(aSample);
 		if (aState == 1)
+		{
 			ApplyVolume(aSample, aSample->mLast);
+			auto aNumber = mLogNumbers.find(aSample->mLast);
+			if (aNumber != mLogNumbers.end())
+				UpdateLog("volume %d #%d %d", anEntry.first, aNumber->second, LogVolume(mVolume));
+		}
 		// a paused channel takes the volume when it resumes (PauseVoice)
 	}
 }

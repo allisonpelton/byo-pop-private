@@ -171,7 +171,7 @@ constructor does clear).
 - **galaxy.xml's case mismatch**: one file name is "26. green right.bpz" where the file is "26. Green right.bpz" (Windows
   does not care).
 - **PuzzleStateOverlay::DrawFront** draws the unlit pods picture on `g` (colorize off) while it sets the alpha on a copy of
-  the Graphics, so the alpha does not apply. The port repeats it (the fixes mod's `podFade` mends it).
+  the Graphics, so the alpha does not apply. The port repeats it (the fixes mod's `podFade` mends it, off by default).
 - **NewBoard reads freed gems** (0x597efd): it frees the 64 gems of the old board without clearing their pointers and
   then makes the new gems one square at a time, asking HasSet after every colour it draws, so HasSet looks at the
   freed gems of the squares that are not made yet. Their memory holds what the allocator left there. The port clears
@@ -257,22 +257,25 @@ constructor does clear).
 
 ## The fixes mod and the fix candidates
 
-`mods/fixes/mod.json` is the one mod `fixes` (`docs/MOD_ROADMAP.md`, "The fixes mod"): a toggle for each fix, on by default on the
-site, off when a test must play as the original does (`-nomods`, or no mods folder). The port reads a toggle with `FixEnabled("<id>")`
+`mods/fixes/mod.json` is the one mod `fixes` (`docs/MOD_ROADMAP.md`, "The fixes mod"): a toggle for each fix, at its default on the
+site, all off when a test must play as the original does (`-nomods`, or no mods folder). A fix starts on unless the original's
+behaviour looks intended and is not widely known as a bug (the user, 2026-11-11: "Off by default for functionality that seems
+intended but where the bug is not well known to be a bug"; `docs/MOD_ROADMAP.md`, "The fixes mod"): `tunnelEdge` starts on, `podFade` off. The port reads a toggle with `FixEnabled("<id>")`
 (`Fixes.h`, the mod manager's live value), so the original's behaviour stays in the code as it was and each fix is one branch.
 Before it the port loaded no mods at all: `main.cpp` now sets the mods folder (`-modsdir=<dir>`, by default `mods-bejeweled2` beside
 the exe, `/bej2persist/mods` on the web) and reads it unless `-nomods` is given; the framework's mod menu (F2) and the site's page
 (which installs the shipped `bejeweled2-fixes/` on) do the rest, as for every game that loads mods.
 
-| Toggle | The fault in the original | What the fix does |
+| Toggle (default) | The fault in the original | What the fix does |
 | --- | --- | --- |
-| `tunnelEdge` | The 3D hyperspace tunnel's triangles are drawn one pixel to the right of their points: the original's drawing routine takes the one that stands for "blend" for the distance to move the vertices in x (`Hyperspace::Draw3dPortal`, 0x5c620e). | The tunnel is drawn with no shift. Three quarters of a tunnel frame's pixels change (591 thousand of 786 thousand at update 1902), since the whole tunnel moves a pixel. |
-| `podFade` | `PuzzleStateOverlay::DrawFront` (0x5d2004) sets the alpha of an unlit pod's picture on a copy of the Graphics and draws that picture with the Graphics whose colorizing is off, so the picture never fades: the lit one fades in over an unlit one that stays fully drawn. | The unlit picture is drawn with the copy, so it fades out as the lit one fades in. Over the 250 updates of a pod lighting (puzzle solved) the pod dips darker, the dome's dark backdrop showing through, then ends as the original's does. |
+| `tunnelEdge` (on) | The 3D hyperspace tunnel's triangles are drawn one pixel to the right of their points: the original's drawing routine takes the one that stands for "blend" for the distance to move the vertices in x (`Hyperspace::Draw3dPortal`, 0x5c620e). | The tunnel is drawn with no shift. Three quarters of a tunnel frame's pixels change (591 thousand of 786 thousand at update 1902), since the whole tunnel moves a pixel. |
+| `podFade` (off) | `PuzzleStateOverlay::DrawFront` (0x5d2004) sets the alpha of an unlit pod's picture on a copy of the Graphics and draws that picture with the Graphics whose colorizing is off, so the picture never fades: the lit one fades in over an unlit one that stays fully drawn. | The unlit picture is drawn with the copy, so it fades out as the lit one fades in. Over the 250 updates of a pod lighting (puzzle solved) the pod dips darker, the dome's dark backdrop showing through, then ends as the original's does. |
 
 `tools/fixes_check.sh` plays a Hyper tour (the tunnel is on screen from the board's state 10 to the new board's, 310 updates here) and
-a Puzzle tour (a solved puzzle lights its pod) in 3D under `-fast -drawevery` with the same seed, with the mod absent (`-nomods`), on,
-all toggles off, and all on but one, and compares the shots and the board's trace: in all of them the trace is the original's (15,060
-lines in the Hyper tour, 2,583 in the Puzzle tour), the shots with every toggle off are the original's, `tunnelEdge` changes the six
+a Puzzle tour (a solved puzzle lights its pod) in 3D under `-fast -drawevery` with the same seed, with the mod absent (`-nomods`), at its
+defaults, all toggles on, all off, and all on but one, and compares the shots and the board's trace: in all of them the trace is the
+original's (15,060 lines in the Hyper tour, 2,583 in the Puzzle tour), the shots with every toggle off are the original's, the shots at
+the defaults are those of all on in the Hyper tour (`tunnelEdge` is on) and those of all off in the Puzzle tour (`podFade` is off), `tunnelEdge` changes the six
 shots along the tunnel (updates 1822 to 2022) and `podFade` the three shots of the pod's fade (1594 to 1674), by 4,000 pixels each, inside
 the pod's 83 by 69 box. With every toggle off the port is the original (`tools/check.sh bejeweled2`, with no mods folder, plays as before).
 
@@ -287,4 +290,90 @@ updates in the Hyper tour, each ending in a screen the player plays on), so no t
 runs a star's angle below zero, which is only drawn, so nothing shows; the star lines of Hyperspace's 2D jump depend on the
 screen's width, which is a difference between two sizes and not a fault of either; and the two above are the only ones with
 a picture to mend. `podFade` is the judgment call of the two: it mends what the code plainly meant, but it changes how a pod looks
-for a moment, so a user who prefers the original's look turns it off, or drops it.
+for a moment, and the original's look may be taken as intended, so it starts off (the rule above) and a user who wants the fade
+turns it on.
+
+## Coverage check (2026-11-11; `docs/COVERAGE.md`, `games/bejeweled2/coverage.txt`, `games/bejeweled2/tools/coverage/`)
+
+**Status: done for this pass. List one is empty, five faults are fixed, and list two (the port's functions that no run reached) is judged: 52 are left,
+each read again against the export (43 faithful, 4 differences, all in dead code) and listed below as a candidate for the phase that takes out code the
+game does not need.** The numbers are the game's own code, 0x5936ad to 0x5e3675: 2,095 functions.
+
+**The runs.** The original ran on the host under origrun's `--coverage`, one run at a time (`tools/coverage/run.sh`, `runall.sh`; the lists
+of runs are in `build/coverage/bejeweled2/list*.txt`, git-ignored). They are: the port's recorded plays of the modes converted to origrun
+scripts (`origcmp/to_origrun.py`: Classic, Action, Endless, Puzzle, Twilight, Hyper, Cognito, Finity, the dialogs and the help tour, the second
+tour), the resume and name-entry tours, the five 3D recordings under dgVoodoo2 (`HIRES=1`), the long Twilight and Action plays to their game over (`tools/coverage/record_plays.sh`: the port records them, the original plays them back),
+the saved game loaded and its first hyper cube swapped (`c_load`, `c_loadh`, profile `build/logs/bej2/save10`), and scripts of this pass in `tools/coverage/scripts/`: `game_a` (a Classic board with the hint, every cheat word, the focus lost and regained, the
+in-game options, the window closed mid-game; also run on the real clock with the silent stand-in as `sound_a`), `opts_a`, `menu_a`, `title_q`,
+`menu_c` (the menu's Quit, scores, reset and every way out), `users_a` (create, rename and delete a user, each answered both ways) and `puzzle_a`
+(the puzzle from its first puzzle on, then the hint, the undo, the galaxy map: planets hovered and clicked, CLOSE MAP, WARP TO PLANET). Later ones: `puzzle_h` (the tutorial panel closed, then HINT four times: the panel covers the board and takes
+the HINT click until "Continue" at (408,266)), `puzzle_u` (one move, then UNDO: `Board::LoadState` is the undo's restore, not the saved game's load),
+`load_b` ("Load Game?" answered CANCEL at (320,235), then Classic again and NO at (382,199): `DeleteSavedGame`, `CancelNewGame`; YES is (257,199)),
+`menu_d` (the mouse over each mode button, Quit asked and answered YES at (260,182): the shutdown timer) and `cheat_c` (COLORSWAP first, NORMAL
+after 2,700 updates). One more thing the first runs got wrong: `run.sh` drops a script's `mark` lines, so a recorded play that ends with an idle
+to the game's end (`at 17583 mark`) quit right after its last input and never reached the game over; `record_plays.sh` now turns that last `mark` into
+a mouse move off the gems. A Finity, Classic and Hyper play took half an hour or more each to record on a busy machine and would reach the same
+game-over functions as Action, so only Twilight and Action are recorded.
+The scripts' coordinates were found with `tools/coverage/portshots.sh`, which plays an origrun script in the port (same updates, `-fast`) and
+takes its `shot` lines. Things the first runs got wrong, so the next session need not find them again:
+- **The recordings are seed 909** (`record_port.sh ... 909`); the lists ran them at seed 1, where the boards are other boards: no move cleared a
+  gem, and 25 runs reached none of the clearing, scoring and game-over code. At 909 Classic changes the board's state 206 times.
+- A recorded play assumes the original's timing, so `run.sh` keeps each script's `at N` and first waits for the title's loaded flag
+  (`[[0x67ccd8]+0xe78]+0x9d >= 0x01000000`; the load progress at +0x90 reads 1.0 at update 35, long before) and makes a `mark`; a run whose
+  title loaded later than 30 updates before the first input is made again. The 2D game takes the Play click from update 566 on (the port's
+  recordings say 350: `record_plays.sh` passes `PLAY_AT=566`).
+- A list file must have LF line endings (a CR ended up in `CLOCK=real`).
+- The cheat words that reload every image (NORMAL after COLORSWAP or a colour screen) take no keys while they run: they come last in `game_a`.
+
+**Counts.** Before the sorting the runs reached 914 of the 2,095 functions and 537 of the reached ones had no definition in the port (list one);
+now they reach 1,060, the port defines 518, 595 are left out on purpose (`coverage.txt`, each with its reason: the standard library's
+instantiations, among them the lightning vector's, compiler-made destructors, the original's event recorder, outbound code, the loading thread,
+registration code) and list one is empty. 52 port functions are not reached (list two, below); 1,005 are neither reached nor defined (list
+three: exception-handling funclets, `Catch_All` blocks, registration and outbound code, the recorder).
+
+**What it found and fixed.** One Sonnet agent sorted list one in three parts (its detail lines in `build/coverage/bejeweled2/list1_res_*.tsv`);
+the gaps were checked against the export by hand:
+- `Board::MouseUp` (0x59596f, vtable slot 56) was not translated: the board's "button is down" flag (`m15f38`) stayed set after the first press
+  of a game, so `UpdateFalling` called `Board::MouseMove` at every idle update (the cursor back to the pointer). It clears the flag now.
+- `WinDMApp::KillDialog` (0x5dceb6, slot 76): when the last dialog is gone the board has the keyboard focus (the port left it to
+  `WidgetManager::RemoveBaseModal`'s restore). Translated.
+- `PuzzleStateOverlay::ButtonPress` (0x5d1b49): the galaxy map's dome button clicks (`SOUND_CLICK_DIALOG`) when it goes down. Translated.
+- `StarField::~StarField` (0x5d8fac) did not delete the nebula image that `Init` loads (one image leaked per STARFIELD/NETWORK toggle). Fixed.
+- `Board::~Board` (0x5a5abe) never deleted its `EffectOverlay` (found by reading `~EffectOverlay` 0x5b8cee, which no run reaches because nothing
+  deletes the overlay: the original's `Board::~Board` deletes +0x90 and +0x94 and leaves +0x98 out). The overlay, its tables and its text
+  picture leaked with every board, one per game started. The port deletes the overlay now (`~EffectOverlay` already deletes the picture).
+- Comments only: 30 addresses were put above the port functions that hold them (constructors and destructors, `CurvedVal`, `FancyBackdrop`,
+  the resource group functions in `Res.h`, which `resgen.py` now writes with their addresses).
+`tools/check.sh bejeweled2` (the bot's games in the nine modes, the frozen baseline) passes after the five changes: none changes a trace.
+Differences found and kept (no effect in play, listed for the readability pass): `BackdropsParser::Parse` has other error and end-of-file paths than the
+original (only a malformed `backdrops.xml` shows it); `~TitleScreen` leaves out the register link (registration code); the `Profile` and `Planet`
+constructors zero fields the original leaves unset; `Board::~Board` deletes the score texts from the front, the original from the back.
+
+**List two, judged** (52 port functions no run reached; the second batch of runs took 17 off the 69: the game over, its animation and the score table,
+the hint, `LoadState`, `DeleteSavedGame`, `CancelNewGame`, the shutdown timer, the lightning and `PixelsRotate`). One Sonnet agent read each of them
+(and the few more that are only reached through them) against the export: 43 are faithful and four differ, all in code nothing runs: `GetOrMakePieceAt`
+marks the board dirty with `MarkDirtyFull` where the original calls slot 0x44 (`MarkDirty`; fixed, dead code), `DoPuzzleRating` and
+`FinishPuzzleRatingDialog` are empty stubs (`WinDMAppStubs.cpp`; the rating dialog 0x23 is never created), and `~EffectOverlay` also deletes the
+text picture (the leak fix above). The rest, by why no run reaches it. None is removed now: they are the candidates of the phase that takes out
+code the game does not need.
+- **Dead in the original** (no caller, no vtable slot: 15): `GetColAt` 0x594c19, `GetRowAt` 0x594c42, `GetBoardSize` 0x5957b2, `GetOrMakePieceAt`
+  0x59597c, `GetOldBoardHash` 0x5963ba, 0x5aef96 (`CurvedVal`), 0x5d3ffd and 0x5d8b5d (resource helpers), `DoPuzzleRating` 0x5dc25b,
+  `ShowInstructionsDialog` 0x5df3d7, `ShowFullInstructionsDialog` 0x5df4d9, `ShowColorDepthDialog` 0x5df614, `ConfirmNewGame` 0x5e119e, `Board::NewGame`
+  0x5a50a0 (only the dead dialog's button calls it) and `UpdateLevelTransition` 0x5a510a (no code sets board state 11).
+- **The high-score name dialog** (8: `HighScoreNameDialog`, 0x5d31e4-0x5d34c8 and 0x5d3382): its only creator, 0x5dcdf0, has no callers; the score table takes
+  the profile's name (`HighScoreWidget::NameEntered`, reached in the Action run).
+- **The puzzle pack selector** (10: `PuzzlePackSelector` 0x5d0f09-0x5d13ae, `DoPuzzlePackSelector` 0x5dc1f6, `FinishPuzzlePackSelector` 0x5e15ea): shown only
+  when `puzzles/` holds more than one pack folder; the shipped game has one (Galaxy One).
+- **Error paths** (3: `BackdropsParser::Fail` 0x593732, `GalaxyParser::Fail` 0x5be56d and 0x5be07b): only a malformed or missing `backdrops.xml` or `galaxy.xml`.
+- **The galaxy's finale** (6: `InitFace` 0x5b9071, the shape interpolation 0x5b592c and 0x5b5960, `powf` 0x5b5229, `GetPuzzleNum` 0x5d0ee6, `~EffectOverlay`
+  0x5b8cee): the last planet of the puzzle galaxy; `DoHyperspace` sets `m191c` when the planet index is the last, and a profile with the whole galaxy
+  open and a warp to it would reach them (a puzzle driver with the test commands; not done). `~EffectOverlay` never runs in the original.
+- **`GalaxyMap` slot 47** (0x5ba705, a bare return: the map is never the focus widget).
+- **Rare states and inputs** (9): `UpdateBoardDropping` 0x59814e (Action, no move left), `ShowNow` 0x59828a (a new game with no main menu around),
+  `ShowPlanetCount` 0x59de98 (a planet starting with nothing solved and a pod chosen), `UndoAll` 0x59bb11 (the secret puzzles' "Reset Puzzle"),
+  `UndoUntilSolvable` 0x5a96f9 (a puzzle made unsolvable, then HINT), `FinishPuzzleRatingDialog` 0x5e1a45, `SwitchScreenMode` 0x5e0b03 (Alt+Enter and
+  the full-screen switch: a run that changes the window, kept for the overnight window), `DrawMouseover` 0x5c8afd (the original's hover run, `menu_d`,
+  reaches `PodButton::MouseEnter` and `SelectMode` but never draws the glow; `Update`'s glow loop and `Draw`'s call read the same as the port's, and the
+  port draws it; an oddity, not chased) and `WinDMApp::ButtonPress` 0x5dc1cf (the pod dialogs' own `ButtonPress` plays the click and does not call it).
+- Not done, for later: the full-screen toggle run, the finale, the secret puzzle's reset, a puzzle made unsolvable. The Collection check (the PopCap Game
+  Collection's Bejeweled2DeluxeComponent) and the site features come after the performance pass.

@@ -1,0 +1,13 @@
+# The options dialog on a fresh Classic board (where its controls lie for the coverage runs of the original).
+400 screenshot title
+420 click 386 384
+470 text A
+485 key RETURN
+560 screenshot selector
+600 click 485 89
+700 screenshot help
+701 click 314 444
+800 screenshot board
+820 click 111 196
+920 screenshot opt
+1000 quit

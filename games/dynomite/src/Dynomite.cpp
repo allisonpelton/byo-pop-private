@@ -34,51 +34,51 @@ Dynomite::Dynomite()
 {
 	gBoardGlobal5304a0 = 0;
 	mInitialized = false;
-	mFieldB0 = false;
-	mField74 = 0x160;
-	mField80 = false;
+	mPlaying = false;
+	mLineY = 0x160;
+	mFireBlocked = false;
 	mApp = NULL;
-	mField104 = 0;
-	mField108 = 0;
+	mCeilingGoal = 0;
+	mNextEggKind = 0;
 	mPowerUpAngle = 0;
-	mField130 = false;
-	mField131 = false;
-	mField13c = 0;
-	mField138 = 0;
-	mField140 = 0;	// port: the original leaves it to the mode
+	mLosing = false;
+	mGameOver = false;
+	mShakeY = 0;
+	mShakeX = 0;
+	mGameOverAlpha = 0;	// port: the original leaves it to the mode
 	mPowerUps.Clear();
 	mTalker = NULL;
-	mField148 = true;
+	mCountsChains = true;
 	mChain = -1;
 	mPauseCount = 0;
 	mThunderbolt = NULL;
-	mField134 = 0x15e;
-	mField132 = false;
-	mField1c8 = -0x1e0;
-	mField1cc = 0;
+	mGameOverDelay = 0x15e;
+	mGameOverShown = false;
+	mPanelTop = -0x1e0;
+	mPlayTicks = 0;
 	mHighScores = NULL;
 	mHighScoreTitle[0] = 0;	// port: the mode sets it
 	mBabies = 0;
 	mLongestChain = 0;
 	mReplayButton = NULL;
-	mField149 = true;
-	mField158 = 0;
+	mPastLineLoses = true;
+	mLauncherOffsetX = 0;
 	mBonusBits = 0;
-	mField15c = -1;
-	mField160 = -1;
-	mField16c = false;
+	mAvoidColor = -1;
+	mLastFiredColor = -1;
+	mFiredThisRound = false;
 	mRank = 0;
 	mRankChanged = false;
-	mField100 = false;
+	mCeilingAtGoal = false;
 	mSong = 0;
-	mField23c = 0;
-	mField244 = false;
+	mSongOffset = 0;
+	mInputLocked = false;
 	mStartTicks = GetTickCount();
-	mFieldB4 = 0;
+	mShotCount = 0;
 	// port: the fields the original constructor leaves to Init (slot 46)
 	mLauncher = NULL;
 	mFirePrompt = NULL;
-	mField64 = 0;
+	mSavedZero = 0;
 	mSteggy = NULL;
 	mTank = NULL;
 	mGrid = NULL;
@@ -172,12 +172,12 @@ void Dynomite::Init(FossilizedApp* theApp, int theDifficulty)
 	gScoreNames = mApp->GetStringVector("gScoreNames");
 	mInitialized = true;
 	mPowerUpAngle = 0;
-	mField128 = 0;
+	mPowerUpSpin = 0;
 	strcpy(mReplayText, mApp->GetString("PLAY_THIS_PUZZLE_AGAIN").c_str());
 	mDifficulty = theDifficulty;
-	mField68 = 0x132;
-	mField6c = 0x99;
-	mField70 = 0xfa;
+	mPlayWidth = 0x132;
+	mPlayHalfWidth = 0x99;
+	mPlayMiddleX = 0xfa;
 	mLauncher = new Launcher(theApp, this);
 	mApp->mSideBar->mShowTime = false;
 	mGrid = new EggGrid(theApp, this);
@@ -204,23 +204,23 @@ void Dynomite::Draw(Graphics* g)
 	else
 		mApp->mPicJungleback->Draw(0, 0);
 	mGrid->Draw();
-	int x = mField70 - mField6c;
-	if (x < mField6c + mField70)
+	int x = mPlayMiddleX - mPlayHalfWidth;
+	if (x < mPlayHalfWidth + mPlayMiddleX)
 	{
 		Pic* aRope = mApp->mPicRope;
 		do
 		{
-			aRope->Draw(x, mField74 + 0x21);
+			aRope->Draw(x, mLineY + 0x21);
 			aRope = mApp->mPicRope;
 			x += aRope->mWidth;
-		} while (x < mField6c + mField70);
+		} while (x < mPlayHalfWidth + mPlayMiddleX);
 	}
 	mLauncher->Draw(g);
 	mFlyingEggs.ResetIter();
 	FlyingEgg* anEgg = mFlyingEggs.Next();
 	while (anEgg != NULL)
 	{
-		if (anEgg->mField20 == false)
+		if (anEgg->mInFrontOfSling == false)
 			anEgg->Draw();
 		anEgg = mFlyingEggs.Next();
 	}
@@ -229,7 +229,7 @@ void Dynomite::Draw(Graphics* g)
 	anEgg = mFlyingEggs.Next();
 	while (anEgg != NULL)
 	{
-		if (anEgg->mField20 == true)
+		if (anEgg->mInFrontOfSling == true)
 			anEgg->Draw();
 		anEgg = mFlyingEggs.Next();
 	}
@@ -238,7 +238,7 @@ void Dynomite::Draw(Graphics* g)
 	DrawMode();
 	DrawEffects();
 	mFirePrompt->Draw();
-	if (mField132 == true)
+	if (mGameOverShown == true)
 		DrawGameOver(g);
 	if (mTalker != NULL)
 		mTalker->Draw();
@@ -249,7 +249,7 @@ void Dynomite::Update()
 {
 	if (mApp->mActive != false)
 	{
-		if (mField132 == true)
+		if (mGameOverShown == true)
 		{
 			UpdateGameOver();
 			return;
@@ -282,18 +282,18 @@ void Dynomite::Update()
 		mSteggy->Update();
 		mTank->Update();
 		mGrid->Update();
-		if ((mField149 == true) && (0x145 < mGrid->mPastLineFrames) && ((mBonusBits & 0x10) == 0))
+		if ((mPastLineLoses == true) && (0x145 < mGrid->mPastLineFrames) && ((mBonusBits & 0x10) == 0))
 		{
-			if (mField130 == false)
+			if (mLosing == false)
 				mApp->mSideBar->mInchy->Sink(0);
-			mField130 = true;
+			mLosing = true;
 			mGrid->mBreakPastLine = true;
 		}
 		UpdateBoard();
-		if (mField131 == true)
+		if (mGameOver == true)
 		{
-			mField134--;
-			if ((mField134 == 0) && (mField132 == false))
+			mGameOverDelay--;
+			if ((mGameOverDelay == 0) && (mGameOverShown == false))
 			{
 				mReplayButton = new ButtonWidget(5, mApp);
 				mReplayButton->mButtonImage = mApp->mPicLargedbutton->mImage;
@@ -303,7 +303,7 @@ void Dynomite::Update()
 				mReplayButton->SetColor(ButtonWidget::COLOR_LABEL, Color(0xff, 0xff, 0xff));
 				mReplayButton->SetColor(ButtonWidget::COLOR_LABEL_HILITE, Color(0xff, 0xff, 0xff));
 				mApp->mWidgetManager->AddWidget(mReplayButton);
-				mField132 = true;
+				mGameOverShown = true;
 			}
 		}
 		MarkDirty();
@@ -323,7 +323,7 @@ void Dynomite::KeyDown(KeyCode theKey)
 void Dynomite::MouseMove(int x, int y)
 {
 	Widget::MouseMove(x, y);
-	if ((mPauseCount == 0) && (mField244 == false))
+	if ((mPauseCount == 0) && (mInputLocked == false))
 		mLauncher->Aim(x, y);
 }
 
@@ -331,45 +331,45 @@ void Dynomite::MouseMove(int x, int y)
 void Dynomite::MouseDrag(int x, int y)
 {
 	Widget::MouseDrag(x, y);
-	if ((mPauseCount == 0) && (mField244 == false))
+	if ((mPauseCount == 0) && (mInputLocked == false))
 		mLauncher->Aim(x, y);
 }
 
 // 0x404980: any button
 void Dynomite::MouseDown(int x, int y, int theClickCount)
 {
-	if ((mField244 != true) && (mPauseCount < 1) && (mField80 != true) && (mThunderbolt == NULL) &&
-		(mField130 == false) && (mField131 == false))
+	if ((mInputLocked != true) && (mPauseCount < 1) && (mFireBlocked != true) && (mThunderbolt == NULL) &&
+		(mLosing == false) && (mGameOver == false))
 	{
 		mLauncher->Fire();
-		mFieldB4++;
+		mShotCount++;
 		if ((gBoardGlobal5304a0 == 0) && (mApp->mInTutorial == false))
 		{
-			mApp->mMusicInterface->FadeIn(mSong, mField23c, 0.002, false);
+			mApp->mMusicInterface->FadeIn(mSong, mSongOffset, 0.002, false);
 			gBoardGlobal5304a0 = 1;
 		}
-		mField16c = true;
-		mFieldB0 = true;
+		mFiredThisRound = true;
+		mPlaying = true;
 	}
 }
 
 // 0x405070
 void Dynomite::UpdateGameOver()
 {
-	mField1c8 = (int) ((double) mField1c8 * (double) 0.9f);
-	mReplayButton->Resize(400 - mApp->mPicLargedbutton->mWidth / 2, mField1c8 + 0x172, 0x17e, 0x41);
+	mPanelTop = (int) ((double) mPanelTop * (double) 0.9f);
+	mReplayButton->Resize(400 - mApp->mPicLargedbutton->mWidth / 2, mPanelTop + 0x172, 0x17e, 0x41);
 	MarkDirty();
 }
 
 // 0x406160
 void Dynomite::UpdateBoard()
 {
-	int aSpin = mField128 + 1;
+	int aSpin = mPowerUpSpin + 1;
 	if (0x167 < aSpin)
-		aSpin = mField128 - 0x167;
+		aSpin = mPowerUpSpin - 0x167;
 	if (aSpin < 0)
 		aSpin += 0x168;
-	mField128 = aSpin;
+	mPowerUpSpin = aSpin;
 	mFlyingEggs.ResetIter();
 	FlyingEgg* anEgg = mFlyingEggs.Next();
 	while (anEgg != NULL)
@@ -384,16 +384,14 @@ void Dynomite::UpdateBoard()
 		anEgg = mFlyingEggs.Next();
 	}
 	EggGrid* aGrid = mGrid;
-	float aTarget = (float) mField104;
-	if ((aGrid->mCeiling < aTarget) && (mField100 == false))
+	float aTarget = (float) mCeilingGoal;
+	if ((aGrid->mCeiling < aTarget) && (mCeilingAtGoal == false))
 		aGrid->mCeiling = (float) (((double) aTarget - aGrid->mCeiling) * (double) 0.05f + aGrid->mCeiling);
-	if (mField104 <= (int) mGrid->mCeiling)
-		mField100 = true;
-	if ((mFieldB0 == true) && (mField131 == false))
+	if (mCeilingGoal <= (int) mGrid->mCeiling)
+		mCeilingAtGoal = true;
+	if ((mPlaying == true) && (mGameOver == false))
 	{
-		mField1cc++;
-		if (mField1cc == 6000)
-			mApp->mField4d8++;
+		mPlayTicks++;
 	}
 	mEffects.ResetIter();
 	Effect* anEffect = mEffects.Next();
@@ -422,19 +420,19 @@ void Dynomite::UpdateBoard()
 // 0x404660
 void Dynomite::DrawScenery()
 {
-	mApp->mPicLeftwall->Draw((mField70 - mField6c) - 0x38, 0);
-	mApp->mPicRightwall->Draw(mField6c - 0x1e + mField70, 0);
+	mApp->mPicLeftwall->Draw((mPlayMiddleX - mPlayHalfWidth) - 0x38, 0);
+	mApp->mPicRightwall->Draw(mPlayHalfWidth - 0x1e + mPlayMiddleX, 0);
 	mSteggy->Draw();
 	mTank->Draw();
-	mApp->mPicEggpilesheet_c1->Draw(mField158 - 0x110 + mField70, 0x185);
-	mApp->mPicEggpilesheet_c1->Draw(mField158 - 0x1a6 + mField70, 0x185);
-	mApp->mPicEggpilesheet_c0->Draw(mField158 + 0x50 + mField70, 400);
-	mApp->mPicEggpilesheet_c0->Draw(mField158 + 0xe6 + mField70, 400);
+	mApp->mPicEggpilesheet_c1->Draw(mLauncherOffsetX - 0x110 + mPlayMiddleX, 0x185);
+	mApp->mPicEggpilesheet_c1->Draw(mLauncherOffsetX - 0x1a6 + mPlayMiddleX, 0x185);
+	mApp->mPicEggpilesheet_c0->Draw(mLauncherOffsetX + 0x50 + mPlayMiddleX, 400);
+	mApp->mPicEggpilesheet_c0->Draw(mLauncherOffsetX + 0xe6 + mPlayMiddleX, 400);
 	mPowerUps.ResetIter();
 	PowerUp* aPowerUp = mPowerUps.Next();
 	while (aPowerUp != NULL)
 	{
-		aPowerUp->Draw(mField128);
+		aPowerUp->Draw(mPowerUpSpin);
 		aPowerUp = mPowerUps.Next();
 	}
 	if (mThunderbolt != NULL)
@@ -470,9 +468,9 @@ void Dynomite::DrawEffects()
 		std::string aText = mApp->GetString("PAUSED");
 		PicFont* aFont = mApp->mAnnounceFont1928;
 		// the shadow is PAUSED's text; both are measured, and the yellow one drawn, with the exe's own word
-		aFont->Draw(aText.c_str(), (mField70 - aFont->Width(GTC(0x4f7594)) / 2) + 4, 0x194);
+		aFont->Draw(aText.c_str(), (mPlayMiddleX - aFont->Width(GTC(0x4f7594)) / 2) + 4, 0x194);
 		g->SetColor(Color(0xff, 0xff, 0, 0xff));
-		aFont->Draw(GTC(0x4f7594), mField70 - aFont->Width(GTC(0x4f7594)) / 2, 400);
+		aFont->Draw(GTC(0x4f7594), mPlayMiddleX - aFont->Width(GTC(0x4f7594)) / 2, 400);
 		g->SetColorizeImages(false);
 	}
 }
@@ -482,22 +480,22 @@ void Dynomite::DrawMode()
 {
 }
 
-// 0x406f70: a dialog panel (mField1c8 from the top) with the game's time, the rank, the mode's title and its high
+// 0x406f70: a dialog panel (mPanelTop from the top) with the game's time, the rank, the mode's title and its high
 // scores; each text has a black shadow two pixels down and right (the labels' shadows are the properties' texts,
 // the labels themselves the exe's)
 void Dynomite::DrawGameOver(Graphics* g)
 {
-	mApp->mDialogCells[0]->Draw(10, mField1c8);
+	mApp->mDialogCells[0]->Draw(10, mPanelTop);
 	int x = 0x3a;
 	do
 	{
-		mApp->mDialogCells[1]->Draw(x, mField1c8);
+		mApp->mDialogCells[1]->Draw(x, mPanelTop);
 		x = x + 0x30;
 	} while (x < 0x1ba);
-	mApp->mDialogCells[2]->Draw(x, mField1c8);
+	mApp->mDialogCells[2]->Draw(x, mPanelTop);
 	int aRight = x;
-	int y = mField1c8 + 0x30;
-	if (y < mField1c8 + 0x1b0)
+	int y = mPanelTop + 0x30;
+	if (y < mPanelTop + 0x1b0)
 	{
 		do
 		{
@@ -510,7 +508,7 @@ void Dynomite::DrawGameOver(Graphics* g)
 			} while (aX < 0x1ba);
 			mApp->mDialogCells[5]->Draw(aRight, y);
 			y = y + 0x30;
-		} while (y < mField1c8 + 0x1b0);
+		} while (y < mPanelTop + 0x1b0);
 	}
 	mApp->mDialogCells[6]->Draw(10, y);
 	x = 0x3a;
@@ -523,32 +521,32 @@ void Dynomite::DrawGameOver(Graphics* g)
 
 	g->SetFont(mApp->mWhiteFontSmall);
 	char aTime[32];
-	int aSeconds = mField1cc / 100;
+	int aSeconds = mPlayTicks / 100;
 	sprintf(aTime, "%d:%.2d", aSeconds / 60, aSeconds % 60);
 	int aTimeWidth = g->GetFont()->StringWidth(aTime);
 	g->SetColor(Color(0, 0, 0));
-	g->DrawString(mApp->GetString("GAME_TIME"), 0xe3, mField1c8 + 0x43);
-	g->DrawString(aTime, 0x1b7 - aTimeWidth, mField1c8 + 0x43);
+	g->DrawString(mApp->GetString("GAME_TIME"), 0xe3, mPanelTop + 0x43);
+	g->DrawString(aTime, 0x1b7 - aTimeWidth, mPanelTop + 0x43);
 	g->SetColor(Color(0xff, 0xff, 0xff));
-	g->DrawString(GT(0x4f75b4), 0xe1, mField1c8 + 0x41);
-	g->DrawString(aTime, 0x1b5 - aTimeWidth, mField1c8 + 0x41);
+	g->DrawString(GT(0x4f75b4), 0xe1, mPanelTop + 0x41);
+	g->DrawString(aTime, 0x1b5 - aTimeWidth, mPanelTop + 0x41);
 
 	g->SetFont(mApp->mWhiteFont);
 	g->SetColor(Color(0, 0, 0));
-	g->DrawString(mApp->GetString("RANK"), 0xe3, mField1c8 + 0xbb);
-	g->DrawString(gScoreNames[mRank], 0xe3, mField1c8 + 0xd2);
+	g->DrawString(mApp->GetString("RANK"), 0xe3, mPanelTop + 0xbb);
+	g->DrawString(gScoreNames[mRank], 0xe3, mPanelTop + 0xd2);
 	g->SetColor(Color(0xff, 200, 200));
-	g->DrawString(GT(0x4f75a4), 0xe1, mField1c8 + 0xb9);
+	g->DrawString(GT(0x4f75a4), 0xe1, mPanelTop + 0xb9);
 	g->SetColor(Color(200, 0xff, 200));
-	g->DrawString(gScoreNames[mRank], 0xe1, mField1c8 + 0xd0);
+	g->DrawString(gScoreNames[mRank], 0xe1, mPanelTop + 0xd0);
 
 	int aHalf = g->GetFont()->StringWidth(mHighScoreTitle) / 2;
 	g->SetColor(Color(0, 0, 0));
-	g->DrawString(mHighScoreTitle, 0xf7 - aHalf, mField1c8 + 0x106);
+	g->DrawString(mHighScoreTitle, 0xf7 - aHalf, mPanelTop + 0x106);
 	g->SetColor(Color(0xff, 0xff, 0xff));
-	g->DrawString(mHighScoreTitle, 0xf5 - aHalf, mField1c8 + 0x104);
+	g->DrawString(mHighScoreTitle, 0xf5 - aHalf, mPanelTop + 0x104);
 	g->SetFont(mApp->mWhiteFontSmall);
-	mHighScores->Draw(g, 0x3a, mField1c8 + 0x10e, 0x180, 0x5a);
+	mHighScores->Draw(g, 0x3a, mPanelTop + 0x10e, 0x180, 0x5a);
 }
 
 // 0x404fb0
@@ -576,10 +574,10 @@ void Dynomite::SetActive(bool isActive)
 		mClipRect[1] = 0;
 		mClipRect[2] = 800;
 		mClipRect[3] = 600;
-		mFieldA0 = 0;
-		mFieldA4 = 0;
-		mFieldA8 = 400;
-		mFieldAc = 400;
+		mWindowLeft = 0;
+		mWindowTop = 0;
+		mClipPointX = 400;
+		mClipPointY = 400;
 		if (isActive == true)
 		{
 			// port: the window's client area is the app's size at the screen's origin; the original asks
@@ -592,17 +590,17 @@ void Dynomite::SetActive(bool isActive)
 			mClipRect[2] = aRight;
 			mClipRect[3] = aBottom;
 			int aBoardLeft = mX + aLeft;
-			mFieldA0 = aLeft;
+			mWindowLeft = aLeft;
 			mClipRect[1] = aBoardTop;
 			mClipRect[0] = aBoardLeft;
-			mFieldA4 = aTop;
-			mFieldA8 = (aRight - aBoardLeft) / 2 + aBoardLeft;
-			mFieldAc = aBoardTop + 400;
-			// TODO: ClipCursor(mClipRect) wants a platform call (a shared change); nothing sets LockCursor
-			// until the registry and the options dialog are ported
+			mWindowTop = aTop;
+			mClipPointX = (aRight - aBoardLeft) / 2 + aBoardLeft;
+			mClipPointY = aBoardTop + 400;
+			// port: the original clips the cursor to mClipRect here (ClipCursor). Only the registry's LockCursor turns it
+			// on, which no dialog sets, and the platform has no call for it, so the port leaves it out (README.md)
 			return;
 		}
-		// TODO: ClipCursor(NULL), as above
+		// port: and frees it here (ClipCursor(NULL)), as above
 	}
 }
 
@@ -663,22 +661,22 @@ Egg* Dynomite::NextEgg()
 				aColor = mApp->mPicker.Random(0x14, false);
 				if (aPresent[aColor] == 0)
 					aColor = 0;
-				if (aColor == mField15c)
+				if (aColor == mAvoidColor)
 					aColor = 0;
 				aTries++;
 			} while ((aTries <= 0x32) && (aColor == 0));
 		}
 		if (aTries <= 0x32)
 			break;
-		// past 50 tries the colour fired last is allowed once more; then the board's +0x160 or any colour
-		if (mField15c == -1)
+		// past 50 tries the colour fired last is allowed once more; then mLastFiredColor or any colour
+		if (mAvoidColor == -1)
 		{
-			aColor = mField160;
+			aColor = mLastFiredColor;
 			if (aColor == -1)
 				aColor = mApp->mPicker.Random(mGrid->mMaxColor, false) + 1;
 			break;
 		}
-		mField15c = -1;
+		mAvoidColor = -1;
 	}
 	while (aColor == 0)
 		aColor = mApp->mRand.NextNoAssert() % (unsigned int) mGrid->mMaxColor + 1;
@@ -789,7 +787,7 @@ void Dynomite::Chain(int x, int y, bool isMatch)
 {
 	if (isMatch != false)
 	{
-		if (mField148 == false)
+		if (mCountsChains == false)
 			return;
 		mApp->mSideBar->mInchy->Combo(0x32, mChain);
 		int aChain = mChain + 1;
@@ -852,39 +850,39 @@ void Dynomite::Save()
 	mBinFile.WriteInt(mApp->mSideBar->mScore);
 	mBinFile.WriteInt(mDifficulty);
 	mBinFile.WriteInt(mGameType);
-	mBinFile.WriteInt(mField64);
-	mBinFile.WriteInt(mField68);
-	mBinFile.WriteInt(mField6c);
-	mBinFile.WriteInt(mField70);
-	mBinFile.WriteInt(mField74);
-	mBinFile.WriteBool(mFieldB0);
+	mBinFile.WriteInt(mSavedZero);
+	mBinFile.WriteInt(mPlayWidth);
+	mBinFile.WriteInt(mPlayHalfWidth);
+	mBinFile.WriteInt(mPlayMiddleX);
+	mBinFile.WriteInt(mLineY);
+	mBinFile.WriteBool(mPlaying);
 	mBinFile.WriteBool(mInitialized);
-	mBinFile.WriteInt(mField104);
-	mBinFile.WriteInt(mField108);
+	mBinFile.WriteInt(mCeilingGoal);
+	mBinFile.WriteInt(mNextEggKind);
 	mBinFile.WriteInt(mPowerUpAngle);
-	mBinFile.WriteInt(mField128);
+	mBinFile.WriteInt(mPowerUpSpin);
 	mBinFile.WriteInt(mBonusBits);
-	mBinFile.WriteBool(mField130);
-	mBinFile.WriteBool(mField131);
-	mBinFile.WriteBool(mField132);
-	mBinFile.WriteInt(mField134);
-	mBinFile.WriteInt(mField138);
-	mBinFile.WriteInt(mField13c);
-	mBinFile.WriteInt(mField140);
+	mBinFile.WriteBool(mLosing);
+	mBinFile.WriteBool(mGameOver);
+	mBinFile.WriteBool(mGameOverShown);
+	mBinFile.WriteInt(mGameOverDelay);
+	mBinFile.WriteInt(mShakeX);
+	mBinFile.WriteInt(mShakeY);
+	mBinFile.WriteInt(mGameOverAlpha);
 	mBinFile.WriteInt(mChain);
-	mBinFile.WriteInt(mField158);
-	mBinFile.WriteInt(mField15c);
-	mBinFile.WriteInt(mField160);
-	mBinFile.WriteInt(mField1c8);
-	mBinFile.WriteInt(mField1cc);
+	mBinFile.WriteInt(mLauncherOffsetX);
+	mBinFile.WriteInt(mAvoidColor);
+	mBinFile.WriteInt(mLastFiredColor);
+	mBinFile.WriteInt(mPanelTop);
+	mBinFile.WriteInt(mPlayTicks);
 	mBinFile.WriteInt(mLongestChain);
 	mBinFile.WriteInt(mBabies);
 	mBinFile.WriteString(mHighScoreTitle);
-	mBinFile.WriteBool(mField16c);
-	mBinFile.WriteBool(mField100);
+	mBinFile.WriteBool(mFiredThisRound);
+	mBinFile.WriteBool(mCeilingAtGoal);
 	mBinFile.WriteInt(mRank);
 	mBinFile.WriteBool(mRankChanged);
-	mBinFile.WriteBool(mField80);
+	mBinFile.WriteBool(mFireBlocked);
 	mGrid->SaveState(&mBinFile);
 	mLauncher->SaveState(&mBinFile);
 	mSteggy->SaveState(&mBinFile);
@@ -910,7 +908,7 @@ void Dynomite::Save()
 		mBinFile.WriteFloat(anEgg->mVY);
 		mBinFile.WriteInt(anEgg->mCol);
 		mBinFile.WriteInt(anEgg->mRow);
-		mBinFile.WriteBool(anEgg->mField20);
+		mBinFile.WriteBool(anEgg->mInFrontOfSling);
 		mBinFile.WriteBool(anEgg->mGhost);
 		anEgg = mFlyingEggs.Next();
 	}
@@ -964,8 +962,8 @@ void Dynomite::CloseSaveFile()
 	mBinFile.Close();
 }
 
-// Load's effect of a saved kind, made as the original does before its Load reads the rest. Port: the original has
-// this switch twice, for the effects and the popups; a kind above 9 makes nothing and gives the last one again.
+// port: split out of Load 0x405590: the effect of a saved kind, made as the original does before its Load reads the
+// rest. The original has this switch twice, for the effects and the popups; a kind above 9 makes nothing and gives the last one again.
 static Effect* NewSavedEffect(int theType, FossilizedApp* theApp, Dynomite* theBoard, Effect* theLast)
 {
 	switch (theType)
@@ -1037,44 +1035,44 @@ void Dynomite::Load()
 	bool wasPlaying = mBinFile.ReadBool();
 	gBoardGlobal5304a0 = wasPlaying;
 	if (wasPlaying == true)
-		mApp->mMusicInterface->FadeIn(mSong, mField23c, 0.002, false);
+		mApp->mMusicInterface->FadeIn(mSong, mSongOffset, 0.002, false);
 	mStartTicks = (unsigned int) mBinFile.ReadInt();
 	mApp->mSideBar->mScore = mBinFile.ReadInt();
 	mDifficulty = mBinFile.ReadInt();
 	mGameType = mBinFile.ReadInt();
-	mField64 = mBinFile.ReadInt();
-	mField68 = mBinFile.ReadInt();
-	mField6c = mBinFile.ReadInt();
-	mField70 = mBinFile.ReadInt();
-	mField74 = mBinFile.ReadInt();
-	mFieldB0 = mBinFile.ReadBool();
+	mSavedZero = mBinFile.ReadInt();
+	mPlayWidth = mBinFile.ReadInt();
+	mPlayHalfWidth = mBinFile.ReadInt();
+	mPlayMiddleX = mBinFile.ReadInt();
+	mLineY = mBinFile.ReadInt();
+	mPlaying = mBinFile.ReadBool();
 	mInitialized = mBinFile.ReadBool();
-	mField104 = mBinFile.ReadInt();
-	mField108 = mBinFile.ReadInt();
+	mCeilingGoal = mBinFile.ReadInt();
+	mNextEggKind = mBinFile.ReadInt();
 	mPowerUpAngle = mBinFile.ReadInt();
-	mField128 = mBinFile.ReadInt();
+	mPowerUpSpin = mBinFile.ReadInt();
 	mBonusBits = mBinFile.ReadInt();
-	mField130 = mBinFile.ReadBool();
-	mField131 = mBinFile.ReadBool();
-	mField132 = mBinFile.ReadBool();
-	mField134 = mBinFile.ReadInt();
-	mField138 = mBinFile.ReadInt();
-	mField13c = mBinFile.ReadInt();
-	mField140 = mBinFile.ReadInt();
+	mLosing = mBinFile.ReadBool();
+	mGameOver = mBinFile.ReadBool();
+	mGameOverShown = mBinFile.ReadBool();
+	mGameOverDelay = mBinFile.ReadInt();
+	mShakeX = mBinFile.ReadInt();
+	mShakeY = mBinFile.ReadInt();
+	mGameOverAlpha = mBinFile.ReadInt();
 	mChain = mBinFile.ReadInt();
-	mField158 = mBinFile.ReadInt();
-	mField15c = mBinFile.ReadInt();
-	mField160 = mBinFile.ReadInt();
-	mField1c8 = mBinFile.ReadInt();
-	mField1cc = mBinFile.ReadInt();
+	mLauncherOffsetX = mBinFile.ReadInt();
+	mAvoidColor = mBinFile.ReadInt();
+	mLastFiredColor = mBinFile.ReadInt();
+	mPanelTop = mBinFile.ReadInt();
+	mPlayTicks = mBinFile.ReadInt();
 	mLongestChain = mBinFile.ReadInt();
 	mBabies = mBinFile.ReadInt();
 	mBinFile.ReadString(mHighScoreTitle);
-	mField16c = mBinFile.ReadBool();
-	mField100 = mBinFile.ReadBool();
+	mFiredThisRound = mBinFile.ReadBool();
+	mCeilingAtGoal = mBinFile.ReadBool();
 	mRank = mBinFile.ReadInt();
 	mRankChanged = mBinFile.ReadBool();
-	mField80 = mBinFile.ReadBool();
+	mFireBlocked = mBinFile.ReadBool();
 	mGrid->LoadState(&mBinFile);
 	mLauncher->LoadState(&mBinFile);
 	mSteggy->LoadState(&mBinFile);
@@ -1112,7 +1110,7 @@ void Dynomite::Load()
 		anEgg->mVY = mBinFile.ReadFloat();
 		anEgg->mCol = mBinFile.ReadInt();
 		anEgg->mRow = mBinFile.ReadInt();
-		anEgg->mField20 = mBinFile.ReadBool();
+		anEgg->mInFrontOfSling = mBinFile.ReadBool();
 		anEgg->mGhost = mBinFile.ReadBool();
 		mFlyingEggs.Add(anEgg);
 	}

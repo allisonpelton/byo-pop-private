@@ -102,14 +102,6 @@ void Widget::setFont(FontDesc* theDesc)
 	mFont = gResources->getFont(theDesc);
 }
 
-// 0x42c410
-void Widget::setImage(const Str& theName)
-{
-	if (mImage != nullptr)
-		gResources->release(mImage);
-	mImage = gResources->getImage(theName);
-}
-
 // 0x42b9a0
 int Widget::contains(float theX, float theY)
 {
@@ -607,9 +599,9 @@ void TextField::draw()
 }
 
 // 0x42cbd0
-void TextField::refreshDisplay(int theUnused)
+void TextField::refreshDisplay(int theIgnored)
 {
-	(void)theUnused;
+	(void)theIgnored;
 	mDisplay = mText;
 	uint32_t aBlink = ~((int)(host()->getTicks() - mBlinkTime) / 0x1a4) & 1;
 	mBlinkOn = (int)aBlink;
@@ -879,33 +871,6 @@ void TextField::update()
 		refreshDisplay();
 }
 
-// ---- Type 2, the picture
-
-Picture::Picture()
-{
-}
-
-// 0x42f530
-Picture::~Picture()
-{
-}
-
-// 0x42f540
-void Picture::init()
-{
-	Widget::init();
-	mType = 2;
-	mFrame = 0;
-}
-
-// 0x42f560
-void Picture::draw()
-{
-	if (mImage != nullptr)
-		drawFrame(&mImage->mFrames[mFrame], (float)((double)mOwner->mX + mX), (float)((double)mOwner->mY + mY), 1.0f, 0);
-	Widget::draw();
-}
-
 // ---- Type 3, the check box
 
 // 0x42d6c0
@@ -1170,7 +1135,7 @@ ListItem::ListItem()
 {
 	mText = "";
 	mData = 0;
-	mField0C = 0;
+	mSpare = 0;
 }
 
 // 0x42f6d0
@@ -1180,7 +1145,7 @@ ListItem& ListItem::operator=(const ListItem& theItem)
 	{
 		mText = theItem.mText;
 		mData = theItem.mData;
-		mField0C = theItem.mField0C;
+		mSpare = theItem.mSpare;
 	}
 	return *this;
 }
@@ -1346,7 +1311,7 @@ void ListBox::insert(const Str& theText, int theData, int theIndex)
 	ListItem anItem;
 	anItem.mText = theText;
 	anItem.mData = theData;
-	anItem.mField0C = 0;
+	anItem.mSpare = 0;
 	insert(anItem, theIndex);
 }
 

@@ -32,11 +32,13 @@ var ByopopSoundtracks = {
     where: { "alch_intro#0": "Title Screen", "1985-hehasnoface#0": "In-Game" },
     unused: ["1985-hehasnoface#1"]
   },
-  // AstroPop's one module holds every tune, which the game starts at an order of it (PlaySong); its subsongs stand for them
+  // AstroPop's one module holds every tune, which the game starts at an order of it (PlaySong); its subsongs stand for them,
+  // each starting at one of the orders the game plays (0 loading, 5 the menus, 9 a level, 35 the danger siren, 39 the game's
+  // end, 41 a level's tally and level-up: games/astropop/src, checked 2026-11-11 once its music played)
   astropop: {
     files: ["music/*.mo3"],
     where: { "music#0": "Loading", "music#1": "Main Menu", "music#2": "In-Game", "music#3": "Danger", "music#4": "Game Over",
-      "music#5": "Level Start" }
+      "music#5": "Level Complete" }
   },
   atomica: {
     files: ["music/*.it"],
@@ -114,10 +116,12 @@ var ByopopSoundtracks = {
   dynomite: {
     files: ["music/*.it"],
     cuts: { "amazonas#2": [64] },
-    where: { "amazonas#0": "Classic Mode", "amazonas#1": "Title Screen", "amazonas#2": "Game Over", "amazonas#4": "Stage Clear",
-      "amazonas#5": "Game Start", "amazonas#6": "Time Trial", "amazonas#2@64": "Fossil Ending", "amazonas#7": "Panic", "amazonas#8": "Fossil Mode",
+    // the places from the Dynomite session (2026-11-11): #2@64 is where the won challenge starts, and the game over (#2) and
+    // Time Trial's clear (#4) jump into it; #7 is Endless (the port's DynomitePanic); #9, two seconds, nothing starts or jumps to
+    where: { "amazonas#0": "Fossil Challenge", "amazonas#1": "Title Screen", "amazonas#2": "Game Over", "amazonas#4": "Time Trial Clear",
+      "amazonas#5": "Game Start", "amazonas#6": "Time Trial", "amazonas#2@64": "Challenge Won", "amazonas#7": "Endless", "amazonas#8": "Museum",
       "omniphilia#0": "Stomped" },
-    unused: ["amazonas#3"]
+    unused: ["amazonas#3", "amazonas#9"]
   },
   sevenseas: {
     files: ["music/*.it"],

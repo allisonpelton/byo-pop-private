@@ -65,7 +65,7 @@ int Rider_Update(Rider* theRider)
 {
 	int aResult = 1;
 	Obj_Update(theRider);
-	if (0.0f <= theRider->x && theRider->x < 800.0f && 0.0f <= theRider->y && theRider->y <= 592.0f)
+	if (0.0f <= theRider->x && theRider->x < 800.0f && 0.0f <= theRider->y && theRider->y < 592.0f)
 	{
 		int aCol = (int)theRider->x;
 		int aRow = (int)theRider->y;
@@ -103,7 +103,7 @@ int Rider_Update(Rider* theRider)
 				float aHitY = (float)((double)theRider->vy / 12.0);
 				float aHitX = (float)((double)theRider->vx / 6.0);
 				Shooter_Hit(aShooter, aHitX, aHitY);
-				if (gLives != 0 && gDemo == 0)
+				if (gLives != 0)
 					gLives = gLives - 1;
 				gProfiles[gProfile].riderHits = gProfiles[gProfile].riderHits + 1;
 			}
@@ -262,10 +262,12 @@ int Beam_Update(Beam* theBeam)
 // difficulty)
 void Beam_Destroy(Beam* theBeam)
 {
-	if (theBeam->next == nullptr && theBeam->prev == nullptr)
+	// (the ship's own destructor deletes its last beam after the ship has left the level's list, when the original would
+	// write through the empty list's null current: the port leaves the ship alone then)
+	Shooter* aShooter = gLevels.current != nullptr ? gLevels.current->shooters.current : nullptr;
+	if (theBeam->next == nullptr && theBeam->prev == nullptr && aShooter != nullptr)
 	{
-		gLevels.current->shooters.current->flags = 0;
-		Shooter* aShooter = gLevels.current->shooters.current;
+		aShooter->flags = 0;
 		double aSpeed = (double)gBeamSpeed - (double)gDifficulty * 0.05;
 		if (aSpeed <= (double)aShooter->beamSpeed)
 			aSpeed = aShooter->beamSpeed;

@@ -51,7 +51,7 @@ void drawPanel(float theX, float theY, float theW, float theH, int theRadius, ui
 	int y0 = ftol((double)aH * theY + (double)0.01f);
 	int x1 = ftol(((double)theX + theW) * aW + (double)0.01f - 1.0);
 	int y1 = ftol(((double)theY + theH) * aH + (double)0.01f - 1.0);
-	int r = aBorder + theRadius;
+	int aCornerRadius = aBorder + theRadius;
 	int cx0 = x0;
 	if (x0 < gClipX0)
 		cx0 = gClipX0;
@@ -81,41 +81,41 @@ void drawPanel(float theX, float theY, float theW, float theH, int theRadius, ui
 				int aHorizontal = aFromRight;
 				if (x < x1 + x0 >> 1)
 					aHorizontal = aFromLeft;
-				int d = aVertical;
+				int anEdgeDistance = aVertical;
 				if (aHorizontal < aVertical)
-					d = aHorizontal;
-				if (d <= r)
+					anEdgeDistance = aHorizontal;
+				if (anEdgeDistance <= aCornerRadius)
 				{
 					int aCorner = 999;
-					int aCx = x1 - r;
+					int aCx = x1 - aCornerRadius;
 					bool aInX = aCx <= x;
 					if (!aInX)
 					{
-						aCx = r + x0;
+						aCx = aCornerRadius + x0;
 						aInX = x <= aCx;
 					}
 					if (aInX)
 					{
-						int aCy = y1 - r;
+						int aCy = y1 - aCornerRadius;
 						bool aInY = aCy <= y;
 						if (!aInY)
 						{
-							aCy = r + y0;
+							aCy = aCornerRadius + y0;
 							aInY = y <= aCy;
 						}
 						if (aInY)
-							aCorner = r - intDistance(x, y, aCx, aCy);
+							aCorner = aCornerRadius - intDistance(x, y, aCx, aCy);
 					}
-					if (aCorner < d)
-						d = aCorner;
+					if (aCorner < anEdgeDistance)
+						anEdgeDistance = aCorner;
 				}
-				if (-1 < d)
+				if (-1 < anEdgeDistance)
 				{
 					uint32_t aColor = theFill;
-					if (d < aBorder && (x < ix0 || ix1 < x || y < iy0 || iy1 < y))
+					if (anEdgeDistance < aBorder && (x < ix0 || ix1 < x || y < iy0 || iy1 < y))
 					{
 						aColor = theOuter;
-						if (theOuterWidth <= d)
+						if (theOuterWidth <= anEdgeDistance)
 							aColor = theInner;
 					}
 					uint32_t* p = pixelAt(x, y);
@@ -164,13 +164,13 @@ void drawSweep(float theX, float theY, float theW, float theH, uint32_t theColor
 		int aDy = y - aCy;
 		int aUp = aCy - y;
 		float aPhase = (float)((double)(float)(aTime % 0x578) * (double)0.0007142857f * (double)6.28318f);
-		uint32_t a = theColor >> 0x18;
+		uint32_t aColorAlpha = theColor >> 0x18;
 		do
 		{
-			uint32_t* p = pixelAt(cx0, y);
+			uint32_t* aPixelPtr = pixelAt(cx0, y);
 			int aAbsDy = std::abs(aDy);
 			int aDx = cx0 - (x1 + x0 >> 1);
-			int n = (cx1 - cx0) + 1;
+			int aCount = (cx1 - cx0) + 1;
 			do
 			{
 				int aFar = std::abs(aDx);
@@ -186,15 +186,15 @@ void drawSweep(float theX, float theY, float theW, float theH, uint32_t theColor
 						double aFade = 1.0 - aDiff * (double)0.4420974f;
 						if ((double)0.01f <= aFade)
 						{
-							int k = ftol((double)a * aFade);
-							*p = blend(*p, theColor >> 0x10 & 0xff, theColor >> 8 & 0xff, theColor & 0xff, k);
+							int k = ftol((double)aColorAlpha * aFade);
+							*aPixelPtr = blend(*aPixelPtr, theColor >> 0x10 & 0xff, theColor >> 8 & 0xff, theColor & 0xff, k);
 						}
 					}
 				}
-				p = p + 1;
+				aPixelPtr = aPixelPtr + 1;
 				aDx = aDx + 1;
-				n = n - 1;
-			} while (n != 0);
+				aCount = aCount - 1;
+			} while (aCount != 0);
 			y = y + 1;
 			aDy = aDy + 1;
 			aUp = aUp - 1;
@@ -262,29 +262,29 @@ void drawFrameGlow(const Frame* theFrame, float theX, float theY, float theAlpha
 					if ((!aClip || (gClipX0 <= x && gClipY0 <= y && x < gClipX1 + 1 && y < gClipY1 + 1)) &&
 						aPixel >> 0x18 != 0)
 					{
-						uint32_t a = aPixel >> 0x18;
+						uint32_t aPixelAlpha = aPixel >> 0x18;
 						int aBright = (int)(aPixel & 0xff) + theBright;
 						if (0xff < aBright)
 							aBright = 0xff;
 						if (anAlpha != 0xff)
-							a = a * anAlpha >> 8;
+							aPixelAlpha = aPixelAlpha * anAlpha >> 8;
 						double anAngle = (double)tableAngle(aDx, aDy) + (double)aPhase;
 						if (anAngle < 0.0)
 							anAngle = anAngle + (double)6.28318f;
-						float v = (float)(anAngle * (double)0.4744f);
-						uint32_t* p = pixelAt(x, y);
+						float aRamp = (float)(anAngle * (double)0.4744f);
+						uint32_t* aPixelPtr = pixelAt(x, y);
 						if (theMode != 0)
 						{
-							double t = (double)v * (double)0.6666667f;
+							double aRampPart = (double)aRamp * (double)0.6666667f;
 							int k;
 							int aInv;
 							uint32_t aWeight;
 							uint32_t aR;
 							uint32_t aG;
 							uint32_t aB;
-							if (1.0 <= t)
+							if (1.0 <= aRampPart)
 							{
-								k = ftol((t - 1.0) * 255.0);
+								k = ftol((aRampPart - 1.0) * 255.0);
 								aInv = 0xff - k;
 								aWeight = (uint32_t)(k * c48 + aInv * c10) >> 8;
 								aR = (uint32_t)(aInv * c14) >> 8;
@@ -293,46 +293,46 @@ void drawFrameGlow(const Frame* theFrame, float theX, float theY, float theAlpha
 							}
 							else
 							{
-								k = ftol(t * 255.0);
+								k = ftol(aRampPart * 255.0);
 								aInv = 0xff - k;
 								aWeight = (uint32_t)(k * c10 + aInv * c3c) >> 8;
 								aR = (uint32_t)(k * c14) >> 8;
 								aG = (uint32_t)(k * c18 + aInv * c40) >> 8;
 								aB = (uint32_t)(k * c1c + aInv * c44) >> 8;
 							}
-							*p = blend(*p, aR, aG, aB, aWeight);
+							*aPixelPtr = blend(*aPixelPtr, aR, aG, aB, aWeight);
 						}
 						else
 						{
 							double aR;
 							float aG;
 							float aB;
-							if ((double)v < 1.0)
+							if ((double)aRamp < 1.0)
 							{
-								aR = 1.0 - (double)v;
-								aG = v;
+								aR = 1.0 - (double)aRamp;
+								aG = aRamp;
 								aB = 0.0f;
 							}
-							else if ((double)v < 2.0)
+							else if ((double)aRamp < 2.0)
 							{
-								aG = (float)(2.0 - (double)v);
-								aB = (float)((double)v - 1.0);
+								aG = (float)(2.0 - (double)aRamp);
+								aB = (float)((double)aRamp - 1.0);
 								aR = 0.0;
 							}
 							else
 							{
 								aG = 0.0f;
-								aR = (double)v - 2.0;
-								aB = (float)(3.0 - (double)v);
+								aR = (double)aRamp - 2.0;
+								aB = (float)(3.0 - (double)aRamp);
 							}
 							float aLevel = (float)aBright;
 							int r = ftol((double)aLevel * aR);
 							int g = ftol((double)aLevel * aG * (double)0.8f);
 							int b = ftol((double)aLevel * aB);
-							if (a == 0xff)
-								*p = ((uint32_t)r << 8 | g) << 8 | b;
+							if (aPixelAlpha == 0xff)
+								*aPixelPtr = ((uint32_t)r << 8 | g) << 8 | b;
 							else
-								*p = blend(*p, r, g, b, a);
+								*aPixelPtr = blend(*aPixelPtr, r, g, b, aPixelAlpha);
 						}
 					}
 					aSrc += aBytes;
@@ -389,7 +389,7 @@ void drawFrameTinted(const Frame* theFrame, float theX, float theY, uint32_t the
 		{
 			const uint32_t* aSrc = anImage->mPixels +
 				(((y - y0) + theFrame->mY) * (anImage->mPitch >> 2) + theFrame->mX);
-			uint32_t* p = gPixels + (gPitch4 * y + x0);
+			uint32_t* aPixelPtr = gPixels + (gPitch4 * y + x0);
 			if (x0 <= x1)
 			{
 				int aDx = x0 - aCx;
@@ -399,59 +399,59 @@ void drawFrameTinted(const Frame* theFrame, float theX, float theY, uint32_t the
 					if ((!aClip || (gClipX0 <= x && gClipY0 <= y && x < gClipX1 + 1 && y < gClipY1 + 1)) &&
 						0xffffff < *aSrc)
 					{
-						uint32_t a = *aSrc >> 0x18;
+						uint32_t aSrcAlpha = *aSrc >> 0x18;
 						if (anAlpha != 0xff)
-							a = a * anAlpha >> 8;
+							aSrcAlpha = aSrcAlpha * anAlpha >> 8;
 						bool aBlend = true;
 						if (aRainbow)
 						{
 							double anAngle = (double)tableAngle(aDx, aDy) + (double)aPhase;
 							if (anAngle < 0.0)
 								anAngle = anAngle + (double)6.28318f;
-							float v = (float)(anAngle * (double)0.4744f);
+							float aRamp = (float)(anAngle * (double)0.4744f);
 							double aR;
 							float aGreen;
 							float aB;
-							if ((double)v < 1.0)
+							if ((double)aRamp < 1.0)
 							{
-								aR = 1.0 - (double)v;
-								aGreen = v;
+								aR = 1.0 - (double)aRamp;
+								aGreen = aRamp;
 								aB = 0.0f;
 							}
-							else if ((double)v < 2.0)
+							else if ((double)aRamp < 2.0)
 							{
-								aGreen = (float)(2.0 - (double)v);
-								aB = (float)((double)v - 1.0);
+								aGreen = (float)(2.0 - (double)aRamp);
+								aB = (float)((double)aRamp - 1.0);
 								aR = 0.0;
 							}
 							else
 							{
 								aGreen = 0.0f;
-								aR = (double)v - 2.0;
-								aB = (float)(3.0 - (double)v);
+								aR = (double)aRamp - 2.0;
+								aB = (float)(3.0 - (double)aRamp);
 							}
 							int r = ftol(aR * 255.0);
 							int g = ftol((double)aGreen * 200.0);
 							int b = ftol((double)aB * 255.0);
 							aRB = (uint32_t)r << 0x10 | b;
 							aG = g;
-							if (a == 0xff)
+							if (aSrcAlpha == 0xff)
 							{
-								*p = ((uint32_t)r << 8 | g) << 8 | b;
+								*aPixelPtr = ((uint32_t)r << 8 | g) << 8 | b;
 								aBlend = false;
 							}
 						}
-						else if (a == 0xff)
+						else if (aSrcAlpha == 0xff)
 						{
-							*p = theColor;
+							*aPixelPtr = theColor;
 							aBlend = false;
 						}
 						if (aBlend)
-							*p = ((*p & 0xff00ff) * (0xff - a) + a * aRB >> 8 & 0xff00ff) |
-								((*p >> 8 & 0xff) * (0xff - a) + a * aG & 0xff00);
+							*aPixelPtr = ((*aPixelPtr & 0xff00ff) * (0xff - aSrcAlpha) + aSrcAlpha * aRB >> 8 & 0xff00ff) |
+								((*aPixelPtr >> 8 & 0xff) * (0xff - aSrcAlpha) + aSrcAlpha * aG & 0xff00);
 					}
 					aSrc = aSrc + 1;
-					p = p + 1;
+					aPixelPtr = aPixelPtr + 1;
 					x = x + 1;
 					aDx = aDx + 1;
 				} while (x <= x1);
@@ -549,8 +549,8 @@ void drawFrame(const Frame* theFrame, float theX, float theY, float theAlpha, in
 		do
 		{
 			const uint32_t* aSrc = (const uint32_t*)((const uint8_t*)anImage->mPixels + anOffset + aSrcX * 4);
-			uint32_t* p = pixelAt(x0, y0 + aRow);
-			int n = aWidth;
+			uint32_t* aPixelPtr = pixelAt(x0, y0 + aRow);
+			int aCount = aWidth;
 			if (anAlpha == 0)
 			{
 				do
@@ -559,14 +559,14 @@ void drawFrame(const Frame* theFrame, float theX, float theY, float theAlpha, in
 					if (c < 0xff000000)
 					{
 						if (0xffffff < c)
-							*p = blendPacked(*p, c, c >> 0x18);
+							*aPixelPtr = blendPacked(*aPixelPtr, c, c >> 0x18);
 					}
 					else
-						*p = c;
+						*aPixelPtr = c;
 					aSrc = aSrc + 1;
-					p = p + 1;
-					n = n - 1;
-				} while (n != 0);
+					aPixelPtr = aPixelPtr + 1;
+					aCount = aCount - 1;
+				} while (aCount != 0);
 			}
 			else
 			{
@@ -574,11 +574,11 @@ void drawFrame(const Frame* theFrame, float theX, float theY, float theAlpha, in
 				{
 					uint32_t c = *aSrc;
 					if (0xffffff < c)
-						*p = blendPacked(*p, c, (c >> 0x18) * anAlpha >> 8);
+						*aPixelPtr = blendPacked(*aPixelPtr, c, (c >> 0x18) * anAlpha >> 8);
 					aSrc = aSrc + 1;
-					p = p + 1;
-					n = n - 1;
-				} while (n != 0);
+					aPixelPtr = aPixelPtr + 1;
+					aCount = aCount - 1;
+				} while (aCount != 0);
 			}
 			aRow = aRow + 1;
 			anOffset = anOffset + aPitch;
@@ -601,27 +601,27 @@ void drawFrameTurned(const Frame* theFrame, float theX, float theY, int theTurn)
 	int aLastRow = aHeight - 1;
 	const Image* anImage = theFrame->mOwner;
 	int aBytes = anImage->mBits >> 3;
-	int r = 0;
+	int aRowOffset = 0;
 	if (-1 < aLastRow)
 	{
 		int aTurnedX = aLastRow + x0;
 		do
 		{
 			const uint8_t* aSrc = (const uint8_t*)anImage->mPixels + theFrame->mX * aBytes +
-				(theFrame->mY + r) * anImage->mPitch;
+				(theFrame->mY + aRowOffset) * anImage->mPitch;
 			if (-1 < aWidth - 1)
 			{
 				int aBack = aWidth - 1 + x0;
 				int aShift = y0 - x0;
 				int aForward = x0;
-				int n = aWidth;
+				int aCount = aWidth;
 				do
 				{
 					int y;
 					int x;
 					if (aTurn == 0)
 					{
-						y = r + y0;
+						y = aRowOffset + y0;
 						x = aForward;
 					}
 					else if (aTurn == 1)
@@ -637,7 +637,7 @@ void drawFrameTurned(const Frame* theFrame, float theX, float theY, int theTurn)
 					else
 					{
 						y = aBack + aShift;
-						x = (x0 - y0) + r + y0;
+						x = (x0 - y0) + aRowOffset + y0;
 					}
 					if (!aClip || (gClipX0 <= x && gClipY0 <= y && x <= gClipX1 && y <= gClipY1))
 					{
@@ -655,12 +655,12 @@ void drawFrameTurned(const Frame* theFrame, float theX, float theY, int theTurn)
 					aSrc += aBytes;
 					aBack = aBack - 1;
 					aForward = aForward + 1;
-					n = n - 1;
-				} while (n != 0);
+					aCount = aCount - 1;
+				} while (aCount != 0);
 			}
-			r = r + 1;
+			aRowOffset = aRowOffset + 1;
 			aTurnedX = aTurnedX - 1;
-		} while (r <= aLastRow);
+		} while (aRowOffset <= aLastRow);
 	}
 }
 
@@ -717,14 +717,14 @@ void drawLine(float theX1, float theY1, float theX2, float theY2, uint32_t theCo
 		{
 			int aCol = aFixedX >> 0x10;
 			int aRow = (aY >> 0x10) - aHalf;
-			uint8_t* p = aPixels + gPitch * aRow + aCol * 4;
+			uint8_t* aPixelAddress = aPixels + gPitch * aRow + aCol * 4;
 			if (aClip)
 			{
 				for (int n = theThickness; n > 0; n--)
 				{
 					if (aCol >= gClipX0 && aCol <= gClipX1 && aRow >= gClipY0 && aRow <= gClipY1)
-						*(uint32_t*)p = theColor;
-					p += gPitch;
+						*(uint32_t*)aPixelAddress = theColor;
+					aPixelAddress += gPitch;
 					aRow++;
 				}
 			}
@@ -732,8 +732,8 @@ void drawLine(float theX1, float theY1, float theX2, float theY2, uint32_t theCo
 			{
 				for (int n = theThickness; n > 0; n--)
 				{
-					*(uint32_t*)p = theColor;
-					p += gPitch;
+					*(uint32_t*)aPixelAddress = theColor;
+					aPixelAddress += gPitch;
 				}
 			}
 			aFixedX += aStepX;
@@ -755,21 +755,21 @@ void drawLine(float theX1, float theY1, float theX2, float theY2, uint32_t theCo
 	{
 		int aRow = aFixedY >> 0x10;
 		int aCol = (aX >> 0x10) - aHalf;
-		uint8_t* p = aPixels + gPitch * aRow + aCol * 4;
+		uint8_t* aPixelBytes = aPixels + gPitch * aRow + aCol * 4;
 		if (aClip)
 		{
 			// The original steps this pointer by one byte, not one pixel
 			for (int n = theThickness; n > 0; n--)
 			{
 				if (aCol >= gClipX0 && aCol <= gClipX1 && aRow >= gClipY0 && aRow <= gClipY1)
-					std::memcpy(p, &theColor, 4);
-				p++;
+					std::memcpy(aPixelBytes, &theColor, 4);
+				aPixelBytes++;
 				aCol++;
 			}
 		}
 		else
 		{
-			uint32_t* q = (uint32_t*)p;
+			uint32_t* q = (uint32_t*)aPixelBytes;
 			for (int n = theThickness; n != 0; n--)
 				*q++ = theColor;
 		}
@@ -792,14 +792,14 @@ void drawVignette(float theAmount)
 	int aDiv = aRadius < 1 ? 1 : aRadius;
 	float aScale = (float)(aRest / ((double)aDiv * (double)(1.0f / 255.0f)));
 	int aDist = 0;
-	int r = 0;
+	int aRow = 0;
 	if (gHeight <= 0)
 		return;
 	do
 	{
-		uint32_t* p = pixelAt(0, r);
+		uint32_t* aPixelPtr = pixelAt(0, aRow);
 		int aWait = 0;
-		int c = 0;
+		int aColumn = 0;
 		if (gWidth > 0)
 		{
 			do
@@ -807,23 +807,23 @@ void drawVignette(float theAmount)
 				int aLast = aWait--;
 				if (aLast <= 0)
 				{
-					aDist = intDistance(c, r, aCx, aCy) + anInner;
+					aDist = intDistance(aColumn, aRow, aCx, aCy) + anInner;
 					aWait = 5;
 				}
 				int v = ftol((double)(anOuter - aDist) * aScale);
 				if (v <= 0)
-					*p = 0;
+					*aPixelPtr = 0;
 				else if (v < 0xff)
 				{
-					uint32_t aPixel = *p;
-					*p = (((aPixel & 0xffff00ff) * v ^ (aPixel & 0xff00) * v) & 0xff0000 ^ (aPixel & 0xff00ff) * v) >> 8;
+					uint32_t aPixel = *aPixelPtr;
+					*aPixelPtr = (((aPixel & 0xffff00ff) * v ^ (aPixel & 0xff00) * v) & 0xff0000 ^ (aPixel & 0xff00ff) * v) >> 8;
 				}
-				p++;
-				c++;
-			} while (c < gWidth);
+				aPixelPtr++;
+				aColumn++;
+			} while (aColumn < gWidth);
 		}
-		r++;
-	} while (r < gHeight);
+		aRow++;
+	} while (aRow < gHeight);
 }
 
 namespace
@@ -903,61 +903,61 @@ void drawAngleFrame(float theX, float theY, float theW, float theH, uint32_t the
 	int anInX0 = x0 + theBorder - 1;
 	int anInX1 = x1 - theBorder + 1;
 	float aTurn = (float)((double)theTurn * (double)0.0027777778f * (double)-6.28318f);
-	int r = y0;
-	if (r > y1)
+	int aRow = y0;
+	if (aRow > y1)
 		return;
 	int aRelY = aCy - y0;
 	do
 	{
-		int c = x0;
-		if (c <= x1)
+		int aColumn = x0;
+		if (aColumn <= x1)
 		{
 			int aRelX = x0 - aCx;
 			do
 			{
-				if ((!aClip || (c >= gClipX0 && r >= gClipY0 && c <= gClipX1 && r <= gClipY1)) &&
-					(r < anInY0 || r > anInY1 || c < anInX0 || c > anInX1))
+				if ((!aClip || (aColumn >= gClipX0 && aRow >= gClipY0 && aColumn <= gClipX1 && aRow <= gClipY1)) &&
+					(aRow < anInY0 || aRow > anInY1 || aColumn < anInX0 || aColumn > anInX1))
 				{
-					double v = (double)tableAngle(aRelX, aRelY) + aTurn;
-					if (v < 0.0)
-						v += (double)6.28318f;
-					v *= (double)0.3183f;
-					uint32_t a, rr, g, b;
-					if (v < 1.0)
+					double aHalfTurns = (double)tableAngle(aRelX, aRelY) + aTurn;
+					if (aHalfTurns < 0.0)
+						aHalfTurns += (double)6.28318f;
+					aHalfTurns *= (double)0.3183f;
+					uint32_t anAlpha, aRed, aGreen, aBlue;
+					if (aHalfTurns < 1.0)
 					{
-						uint32_t t = (uint32_t)ftol(v * 255.0);
+						uint32_t t = (uint32_t)ftol(aHalfTurns * 255.0);
 						uint32_t u = 0xff - t;
-						a = t * a2 + u * a1;
-						rr = t * r2 + u * r1;
-						g = t * g2 + u * g1;
-						b = t * b2 + u * b1;
+						anAlpha = t * a2 + u * a1;
+						aRed = t * r2 + u * r1;
+						aGreen = t * g2 + u * g1;
+						aBlue = t * b2 + u * b1;
 					}
 					else
 					{
-						uint32_t t = (uint32_t)ftol((v - 1.0) * 255.0);
+						uint32_t t = (uint32_t)ftol((aHalfTurns - 1.0) * 255.0);
 						uint32_t u = 0xff - t;
-						a = t * a3 + u * a2;
-						rr = t * r3 + u * r2;
-						g = t * g3 + u * g2;
-						b = t * b3 + u * b2;
+						anAlpha = t * a3 + u * a2;
+						aRed = t * r3 + u * r2;
+						aGreen = t * g3 + u * g2;
+						aBlue = t * b3 + u * b2;
 					}
-					b >>= 8;
-					a >>= 8;
-					g >>= 8;
-					rr >>= 8;
-					uint32_t* p = gPixels + (r * gPitch4 + c);
-					if (a >= 0xfa)
-						*p = (rr << 8 | g) << 8 | b;
+					aBlue >>= 8;
+					anAlpha >>= 8;
+					aGreen >>= 8;
+					aRed >>= 8;
+					uint32_t* p = gPixels + (aRow * gPitch4 + aColumn);
+					if (anAlpha >= 0xfa)
+						*p = (aRed << 8 | aGreen) << 8 | aBlue;
 					else
-						*p = blend(*p, rr, g, b, a);
+						*p = blend(*p, aRed, aGreen, aBlue, anAlpha);
 				}
-				c++;
+				aColumn++;
 				aRelX++;
-			} while (c <= x1);
+			} while (aColumn <= x1);
 		}
-		r++;
+		aRow++;
 		aRelY--;
-	} while (r <= y1);
+	} while (aRow <= y1);
 }
 
 // 0x425d50: theFrame scaled by theScale and centred on theX, theY (its top left corner there with theCorner), faded by
@@ -1056,7 +1056,7 @@ void drawFrameScaled(const Frame* theFrame, float theX, float theY, float theSca
 	int aRows = y1 - ys + 1;
 	do
 	{
-		uint32_t* d = aDstRow;
+		uint32_t* aDstPtr = aDstRow;
 		const uint32_t* aRow = aSrc + (aFy >> 0x10) * aSrcPitch;
 		int aFx = aStartX;
 		if (aSmooth)
@@ -1069,40 +1069,40 @@ void drawFrameScaled(const Frame* theFrame, float theX, float theY, float theSca
 			int aCount = x1 - xs + 1;
 			do
 			{
-				uint32_t c = aRow[aFx >> 0x10];
-				int a = (int)(c >> 0x18);
+				uint32_t aSrcPixel = aRow[aFx >> 0x10];
+				int aSrcAlpha = (int)(aSrcPixel >> 0x18);
 				if (anAlpha != 0)
-					a = a * anAlpha >> 8;
+					aSrcAlpha = aSrcAlpha * anAlpha >> 8;
 				if (aSmooth)
 				{
 					aFx += aStepX;
 					uint32_t c2 = aRow2[aFx >> 0x10];
-					if (a == 0xff)
-						*d = ((c2 & 0xff) + (c & 0xff) | (c2 & 0xfe0000) + (c & 0xfe0000) | (c2 & 0xfe00) + (c & 0xfe00)) >> 1;
-					else if (a > 0)
+					if (aSrcAlpha == 0xff)
+						*aDstPtr = ((c2 & 0xff) + (aSrcPixel & 0xff) | (c2 & 0xfe0000) + (aSrcPixel & 0xfe0000) | (c2 & 0xfe00) + (aSrcPixel & 0xfe00)) >> 1;
+					else if (aSrcAlpha > 0)
 					{
-						uint32_t u = 0xff - a;
-						uint32_t aScreen = *d;
-						*d = (((aScreen & 0xff0000) * u + (c & 0xff0000) * a & 0xff0000ff | (aScreen & 0xff) * u + (c & 0xff) * a) >>
-							8) | ((aScreen >> 8 & 0xff) * u + (c >> 8 & 0xff) * a & 0xff00);
+						uint32_t u = 0xff - aSrcAlpha;
+						uint32_t aScreen = *aDstPtr;
+						*aDstPtr = (((aScreen & 0xff0000) * u + (aSrcPixel & 0xff0000) * aSrcAlpha & 0xff0000ff | (aScreen & 0xff) * u + (aSrcPixel & 0xff) * aSrcAlpha) >>
+							8) | ((aScreen >> 8 & 0xff) * u + (aSrcPixel >> 8 & 0xff) * aSrcAlpha & 0xff00);
 					}
 				}
 				else
 				{
 					if (theTint != 0)
-						c = theTint;
-					if (a == 0xff)
-						*d = c;
-					else if (a > 0)
+						aSrcPixel = theTint;
+					if (aSrcAlpha == 0xff)
+						*aDstPtr = aSrcPixel;
+					else if (aSrcAlpha > 0)
 					{
-						uint32_t u = 0xff - a;
-						uint32_t aScreen = *d;
-						*d = ((aScreen >> 8 & 0xff) * u + (c >> 8 & 0xff) * a & 0xff00) |
-							((aScreen & 0xff00ff) * u + (c & 0xff00ff) * a >> 8 & 0xff00ff);
+						uint32_t u = 0xff - aSrcAlpha;
+						uint32_t aScreen = *aDstPtr;
+						*aDstPtr = ((aScreen >> 8 & 0xff) * u + (aSrcPixel >> 8 & 0xff) * aSrcAlpha & 0xff00) |
+							((aScreen & 0xff00ff) * u + (aSrcPixel & 0xff00ff) * aSrcAlpha >> 8 & 0xff00ff);
 					}
 				}
 				aFx += aStepX;
-				d++;
+				aDstPtr++;
 			} while (--aCount != 0);
 		}
 		aFy += aStepY;
@@ -1174,51 +1174,51 @@ void drawFrameRotated(const Frame* theFrame, float theX, float theY, float theAn
 	float aCxf = (float)aCx;
 	float aCyf = (float)aCy;
 	// The corners, clockwise from the top left one when unturned
-	float X[4], Y[4];
-	X[0] = (float)(std::sin(anAngle0) * aRadius + aCxf);
-	Y[0] = (float)(-std::cos(anAngle0) * aRadius + aCyf);
-	X[1] = (float)(std::sin((double)anAngle1) * aRadius + aCxf);
+	float aCornersX[4], aCornersY[4];
+	aCornersX[0] = (float)(std::sin(anAngle0) * aRadius + aCxf);
+	aCornersY[0] = (float)(-std::cos(anAngle0) * aRadius + aCyf);
+	aCornersX[1] = (float)(std::sin((double)anAngle1) * aRadius + aCxf);
 	double aY1 = -std::cos((double)anAngle1) * aRadius + aCyf;
-	Y[1] = (float)aY1;
-	X[2] = (float)(std::sin((double)anAngle2) * aRadius + aCxf);
-	Y[2] = (float)(-std::cos((double)anAngle2) * aRadius + aCyf);
-	X[3] = (float)(std::sin((double)anAngle3) * aRadius + aCxf);
-	Y[3] = (float)(-std::cos((double)anAngle3) * aRadius + aCyf);
-	int aTop = aY1 < Y[0] ? 1 : 0;
-	if (Y[2] < Y[aTop])
+	aCornersY[1] = (float)aY1;
+	aCornersX[2] = (float)(std::sin((double)anAngle2) * aRadius + aCxf);
+	aCornersY[2] = (float)(-std::cos((double)anAngle2) * aRadius + aCyf);
+	aCornersX[3] = (float)(std::sin((double)anAngle3) * aRadius + aCxf);
+	aCornersY[3] = (float)(-std::cos((double)anAngle3) * aRadius + aCyf);
+	int aTop = aY1 < aCornersY[0] ? 1 : 0;
+	if (aCornersY[2] < aCornersY[aTop])
 		aTop = 2;
-	if (Y[3] < Y[aTop])
+	if (aCornersY[3] < aCornersY[aTop])
 		aTop = 3;
 	int aBottom = aTop - 2 & 3;
-	int aRow = ftol((double)Y[aTop] + 0.5);
-	int aLastRow = ftol((double)Y[aBottom] + 0.5);
+	int aRow = ftol((double)aCornersY[aTop] + 0.5);
+	int aLastRow = ftol((double)aCornersY[aBottom] + 0.5);
 	// The frame's corners in the image, in the same order
 	double aWm = (double)theFrame->mWidth - (double)0.001f;
 	double aHm = (double)theFrame->mHeight - (double)0.001f;
 	float aFx = (float)theFrame->mX;
 	float aFy = (float)theFrame->mY;
-	float U[4], V[4];
-	U[0] = aFx;
-	U[1] = (float)((double)aFx + (double)(float)aWm);
-	U[2] = (float)((double)aFx + aWm);
-	U[3] = aFx;
-	V[0] = aFy;
-	V[1] = aFy;
-	V[2] = (float)((double)aFy + (double)(float)aHm);
-	V[3] = (float)((double)aFy + aHm);
+	float aCornersU[4], aCornersV[4];
+	aCornersU[0] = aFx;
+	aCornersU[1] = (float)((double)aFx + (double)(float)aWm);
+	aCornersU[2] = (float)((double)aFx + aWm);
+	aCornersU[3] = aFx;
+	aCornersV[0] = aFy;
+	aCornersV[1] = aFy;
+	aCornersV[2] = (float)((double)aFy + (double)(float)aHm);
+	aCornersV[3] = (float)((double)aFy + aHm);
 	// The left edge runs from the top corner through the one before it to the bottom one, the right edge through the one
 	// after it
 	int aLeftFrom = aTop;
 	int aLeftTo = aTop - 1 & 3;
 	int aRightFrom = aTop;
 	int aRightTo = aTop + 1 & 3;
-	double aLeftX = X[aTop];
-	double aLeftY = Y[aTop];
-	float aLeftEndX = X[aLeftTo];
-	float aRightX = X[aTop];
-	float aRightY = Y[aTop];
-	float aRightEndX = X[aRightTo];
-	float aRightEndY = Y[aRightTo];
+	double aLeftX = aCornersX[aTop];
+	double aLeftY = aCornersY[aTop];
+	float aLeftEndX = aCornersX[aLeftTo];
+	float aRightX = aCornersX[aTop];
+	float aRightY = aCornersY[aTop];
+	float aRightEndX = aCornersX[aRightTo];
+	float aRightEndY = aCornersY[aRightTo];
 	const uint32_t* aSrc = anImage->mPixels;
 	int aSrcPitch = anImage->mPitch >> 2;
 	int aDstPitch = gPitch >> 2;
@@ -1228,7 +1228,7 @@ void drawFrameRotated(const Frame* theFrame, float theX, float theY, float theAn
 		aLastRow = gClipY1;
 	if (aRow > aLastRow)
 		return;
-	double aLeftDy = (double)Y[aLeftTo] - aLeftY;
+	double aLeftDy = (double)aCornersY[aLeftTo] - aLeftY;
 	do
 	{
 		double k = 0.1f > aLeftDy ? (double)0.1f : aLeftDy;
@@ -1241,10 +1241,10 @@ void drawFrameRotated(const Frame* theFrame, float theX, float theY, float theAn
 				continue;
 			aLeftFrom = aLeftTo;
 			aLeftTo = aBottom;
-			aLeftX = X[aLeftFrom];
-			aLeftY = Y[aLeftFrom];
-			aLeftEndX = X[aBottom];
-			aLeftDy = (double)Y[aBottom] - aLeftY;
+			aLeftX = aCornersX[aLeftFrom];
+			aLeftY = aCornersY[aLeftFrom];
+			aLeftEndX = aCornersX[aBottom];
+			aLeftDy = (double)aCornersY[aBottom] - aLeftY;
 			k = 0.1f > aLeftDy ? (double)0.1f : aLeftDy;
 			aLeftT = (float)(((double)aRowF - aLeftY + 0.5) / k);
 		}
@@ -1256,60 +1256,60 @@ void drawFrameRotated(const Frame* theFrame, float theX, float theY, float theAn
 			if (aRightTo == aBottom)
 				continue;
 			aRightFrom = aRightTo;
-			aRightX = X[aRightFrom];
-			aRightY = Y[aRightFrom];
-			aRightEndY = Y[aBottom];
+			aRightX = aCornersX[aRightFrom];
+			aRightY = aCornersY[aRightFrom];
+			aRightEndY = aCornersY[aBottom];
 			aRightTo = aBottom;
-			aRightEndX = X[aBottom];
+			aRightEndX = aCornersX[aBottom];
 			aRightDy = (double)aRightEndY - aRightY;
 			k = 0.1f > aRightDy ? (double)0.1f : aRightDy;
 			aRightT = ((double)aRowF - aRightY + 0.5) / k;
 		}
 		double aLeftU = 1.0 - aLeftT;
-		float u0 = (float)(aLeftT * (double)U[aLeftTo] + aLeftU * U[aLeftFrom]);
-		float v0 = (float)(aLeftT * (double)V[aLeftTo] + aLeftU * V[aLeftFrom]);
+		float u0 = (float)(aLeftT * (double)aCornersU[aLeftTo] + aLeftU * aCornersU[aLeftFrom]);
+		float v0 = (float)(aLeftT * (double)aCornersV[aLeftTo] + aLeftU * aCornersV[aLeftFrom]);
 		int x0 = ftol(aLeftU * aLeftX + aLeftT * (double)aLeftEndX);
 		double aRightU = 1.0 - aRightT;
 		int x1 = ftol((double)aRightX * aRightU + aRightT * aRightEndX);
 		int aCount = x1 - x0 + 1;
-		uint32_t* d = gPixels + (aRow * aDstPitch + x0);
+		uint32_t* aDstPtr = gPixels + (aRow * aDstPitch + x0);
 		double aCountD = aCount;
-		int du = ftol((aRightT * U[aRightTo] + aRightU * U[aRightFrom] - u0) / aCountD * 65536.0);
-		int dv = ftol((aRightT * V[aRightTo] + aRightU * V[aRightFrom] - v0) / aCountD * 65536.0);
-		int u = ftol((double)u0 * 65536.0);
-		int v = ftol((double)v0 * 65536.0);
+		int du = ftol((aRightT * aCornersU[aRightTo] + aRightU * aCornersU[aRightFrom] - u0) / aCountD * 65536.0);
+		int dv = ftol((aRightT * aCornersV[aRightTo] + aRightU * aCornersV[aRightFrom] - v0) / aCountD * 65536.0);
+		int aTexU = ftol((double)u0 * 65536.0);
+		int aTexV = ftol((double)v0 * 65536.0);
 		if (x0 < 0)
 		{
 			int n = -x0;
 			aCount -= n;
-			u += n * du;
-			v += n * dv;
-			d += n;
+			aTexU += n * du;
+			aTexV += n * dv;
+			aDstPtr += n;
 		}
 		if (x1 >= gClipX1 + 1)
 			aCount += gClipX1 - x1;
 		auto aPixel = [&](uint32_t* thePixel)
 		{
-			if (u >= 0 && (float)(u >> 0x10) < anImageW && v >= 0 && (float)(v >> 0x10) < anImageH)
+			if (aTexU >= 0 && (float)(aTexU >> 0x10) < anImageW && aTexV >= 0 && (float)(aTexV >> 0x10) < anImageH)
 			{
-				uint32_t c = aSrc[(v >> 0x10) * aSrcPitch + (u >> 0x10)];
-				int a = (int)(c >> 0x18);
+				uint32_t aSrcPixel = aSrc[(aTexV >> 0x10) * aSrcPitch + (aTexU >> 0x10)];
+				int aSrcAlpha = (int)(aSrcPixel >> 0x18);
 				if (anAlpha != 0)
-					a = a * anAlpha >> 8;
+					aSrcAlpha = aSrcAlpha * anAlpha >> 8;
 				if (theTint != 0)
-					c = theTint;
-				if (a == 0xff)
-					*thePixel = c;
-				else if (a > 0)
+					aSrcPixel = theTint;
+				if (aSrcAlpha == 0xff)
+					*thePixel = aSrcPixel;
+				else if (aSrcAlpha > 0)
 				{
-					uint32_t aU = 0xff - a;
+					uint32_t aU = 0xff - aSrcAlpha;
 					uint32_t aScreen = *thePixel;
-					*thePixel = ((aScreen >> 8 & 0xff) * aU + (c >> 8 & 0xff) * a & 0xff00) |
-						((aScreen & 0xff00ff) * aU + (c & 0xff00ff) * a >> 8 & 0xff00ff);
+					*thePixel = ((aScreen >> 8 & 0xff) * aU + (aSrcPixel >> 8 & 0xff) * aSrcAlpha & 0xff00) |
+						((aScreen & 0xff00ff) * aU + (aSrcPixel & 0xff00ff) * aSrcAlpha >> 8 & 0xff00ff);
 				}
 			}
-			u += du;
-			v += dv;
+			aTexU += du;
+			aTexV += dv;
 		};
 		int i = 0;
 		if (aCount >= 4)
@@ -1318,11 +1318,11 @@ void drawFrameRotated(const Frame* theFrame, float theX, float theY, float theAn
 			i = aGroups * 4;
 			do
 			{
-				aPixel(d);
-				aPixel(d + 1);
-				aPixel(d + 2);
-				aPixel(d + 3);
-				d += 4;
+				aPixel(aDstPtr);
+				aPixel(aDstPtr + 1);
+				aPixel(aDstPtr + 2);
+				aPixel(aDstPtr + 3);
+				aDstPtr += 4;
 			} while (--aGroups != 0);
 		}
 		if (i < aCount)
@@ -1330,8 +1330,8 @@ void drawFrameRotated(const Frame* theFrame, float theX, float theY, float theAn
 			int n = aCount - i;
 			do
 			{
-				aPixel(d);
-				d++;
+				aPixel(aDstPtr);
+				aDstPtr++;
 			} while (--n != 0);
 		}
 	} while (++aRow <= aLastRow);
