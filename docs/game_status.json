@@ -481,7 +481,8 @@
         "fixes-mod",
         "site-features",
         "coverage",
-        "performance"
+        "performance",
+        "collection"
       ],
       "na": [],
       "now": "unneeded-code",

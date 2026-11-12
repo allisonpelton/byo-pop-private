@@ -376,7 +376,8 @@ code the game does not need.
   reaches `PodButton::MouseEnter` and `SelectMode` but never draws the glow; `Update`'s glow loop and `Draw`'s call read the same as the port's, and the
   port draws it; an oddity, not chased) and `WinDMApp::ButtonPress` 0x5dc1cf (the pod dialogs' own `ButtonPress` plays the click and does not call it).
 - Not done, for later: the full-screen toggle run, the finale, the secret puzzle's reset, a puzzle made unsolvable. The Collection check (the PopCap Game
-  Collection's Bejeweled2DeluxeComponent) and the site features come after the performance pass.
+  Collection's Bejeweled2DeluxeComponent) came after the performance pass (done: the section "The PopCap Game Collection version"
+  below) and the site features come next.
 
 ## Performance (2026-11-11; `docs/COORDINATION.md`, "Performance pass")
 
@@ -468,3 +469,112 @@ run: `node -r games/bejeweled2/tools/profile/nodemem.js games/bejeweled/tools/ve
 folder> -userdir=<absolute folder with users/ and registry.ini> -commands=<file> -realinput=<empty file> -seed=909 -hold -fast`. Traps: a relative
 `-userdir` (`u3`, `./u3/`) is not found by the port, though the same folder by its absolute path is (no player: the first mode click asks for a
 name; the cause is the framework's, not looked for), the port needs `-hold` to play a recording, and `rundesk.exe` needs absolute paths. The raw samples and runs were deleted once these figures were written.
+
+## The PopCap Game Collection version (2026-11-11; `docs/COORDINATION.md`, "Done means")
+
+The port was made from the Steam copy (`WinBej2.exe`, the launcher with the game appended; the game carved out of it is
+`re/bejeweled2/bin/Bejeweled2Game.exe`), so it is checked against the game's version on the PopCap Game Collection disc: the two
+versions compared, and the port run on the Collection's files. The procedure is Bejeweled's (its GAME_NOTES section 23), Typer
+Shark's (section 15) and AstroPop's (section 13); `tools/collection/` holds the tools and `run.sh`.
+
+**Getting the files.** `unshield` (built for Bejeweled's check, `E:\retools\unshield-build`; the user allowed it on 2026-11-10) read the
+disc image's cabinet, which was mounted read-only and dismounted afterwards. The group `Bejeweled2DeluxeComponent` came out: 874 files,
+26 MB, in the main checkout's `re/_installers/Bejeweled2DeluxeCollection` (git-ignored). The copy has no launcher: `Bejeweled2.exe` is
+the game itself, beside `bass.dll`, `vhwb.dat` (15 bytes, the Steam copy has the same file), `license.txt`, `readme.html` and the folders
+`data`, `edata`, `images`, `music`, `properties`, `puzzles`, `sm_images` and `sounds`. The extraction names the puzzle folder
+`Galaxy_One`; both exes spell the pack "Galaxy One" (the profile's default pack, `Profile.cpp`), so a copy of the game has the space and
+`stage_assets.py` stages it so.
+
+**The exe is another build, unlike Bejeweled's and Typer Shark's.** Set beside the carved game image (`tools/collection/cmpexe.py`), the
+Collection's `Bejeweled2.exe` was linked on 21 January 2009 (the Steam game: 11 April 2007), is 2,880,808 bytes against 2,715,648
+(the Steam image as carved), and has a bigger `.text` (2,400,256 raw bytes against 2,260,992) and `.rdata` (290,816 against 270,336); `.data`
+and `.rsrc` are the same size. None of the four is the Steam image's bytes with other addresses, 18 of the 20 resources are the same, and
+5,416 bytes of signature follow the last section. Its strings (`tools/collection/textcmp.py`, runs of six or more printable
+characters with four letters in them) say what changed: of the Steam image's 2,598, 2,586 are in the Collection's exe, and the 12 that are
+not are build details (the PDB path `C:\GameSrc\cpp\WinBej2\Release\WinBej.pdb` and the source paths of the modifiable values, the
+zlib banner, the C runtime's floating-point message, the profiler's format, the day and month table) and one error text: "Failed to create
+high score file! Please report to support@popcap.com." The Collection's 80 others are the same kind of thing (`c:\p4root\cvs\GameSrc\...`,
+its own runtime texts, the profiler's new format) plus a newer framework's: `SexyCacheData`, `SexyCacheReq#%d` and `SexyCacheMessage`
+(a file mapping of decoded pictures), `ImageFont2:`, `DDImage:`, `ResMan`, the locale name, a second "Redraw FullScreen Flip" text, a
+`CustomerSupportLocation` property with `http://www.popcap.com/support`, and the same high-score error told another way ("Please contact
+Customer Suppport at"). The game's own texts are in the data folders (the port reads none from the exe), and `default.xml` is the same file
+in both versions.
+
+What is not known: whether the 2009 build plays exactly like the 2007 one. Its code differs throughout (another build of the framework),
+so no function was compared, and the Collection's own exe was not run (the end of this section). What speaks for it: every text, picture,
+sound, song and puzzle of the game is the Steam game's, with the six constants below as the one change of data that affects play.
+
+**The files** (`tools/collection/cmpfiles.py`; the extraction's `Galaxy_One` is not the Steam copy's `Galaxy One`, so the puzzles were compared
+apart, by hash, once renamed). Of the Steam copy's 791 files and the Collection's 874, 466 are the same byte for byte and 26 differ (the 21
+pictures, the licence, the readme, `config.xml`, `partner.xml` and its signature, below); the 240 puzzle files the Collection has are the
+Steam copy's, byte for byte. Besides those, the Steam copy has the launcher's files (`winbej2.exe`, `steam.dll`, `flash.ocx`,
+`drm.swf`, `drm.xml`, `drmss.jpg`, `drm/`, 51 files), `puzzles/Galaxy One/sol.txt` (a note of the developers' tool, the solution of
+tutorial puzzle 8; nothing reads it) and `properties/Backdrops.xml`; the Collection has 142 more: `bejeweled2.exe` and `sm_images/` (141 TGA
+pictures of the interface that the exe never names). The differences:
+
+- **`properties/Backdrops.xml` is missing.** Both exes name `backdrops.xml` (`WinDMApp::Init` 0x5e2a19 reads it, ignores whether the read
+  worked and parses the buffer). The file gives each backdrop a `UIColorize` and a `GemColorize`, which `BackdropsParser` stores in
+  `WinDMApp::mBackdropColors`, and the port, which translates every function the runs reach, never reads those colours back. With no file
+  the parse of an empty buffer returns at once, as the original's loop does, and the game plays as before: every play below shows it.
+- **`properties/partner.xml`.** The settings' registry key is `PopCap\Bejeweled2`, not `Steam\Bejeweled2`; the Collection's file has no
+  `Width`, `Height`, `VistaCompliant`, partner name, display name, "more games" link or Steam id, and adds `ProdVersion` 1.1.3.2523,
+  `ProdLanguage` and `InstallTag`. `partner.xml.sig` is another signature. The port reads four of the keys (`NoReg`, `ProdName`,
+  `DefaultWindowed` and `RegistryKey`, `SexyApp.cpp` and `SexyAppBase.cpp`), and only the last differs, so its settings file has its
+  section as `[SOFTWARE\PopCap\Bejeweled2]` on the Collection's files; the window's size is the game's own (640 by 480, or 1024 by 768 in 3D).
+- **21 pictures** have other bytes (`tools/collection/cmpimages.py`: an encoder's other choices, a grey picture stored as RGB, a palette
+  picture as RGB). 18 decode to the same pixels in every channel: the fonts `_continuumbold26`, `_halfmoon30`, `bombfont` and `scorefont1`,
+  `_alphaback1`, `comet`, `dialogtitle`, `editbox`, `lightning`, `lightning_center`, `mapbuttonglow`, `nr_ringdude`, `portal_`,
+  `star_sparkle`, `starfield2`, `toggle`, `tunnelend` and `tunnelend_`. Three differ: `loaderbar` (767 of 45,710 pixels, by up to 138 levels:
+  the rim of the loading screen's bar), `slider-thumb` (97 of 961, up to 70, at the edges of the Options sliders' knob) and `holemask` (8,882
+  of 16,384 by one level of alpha, an encoder's rounding). The loading screen draws only while the load takes frames, and the port's
+  runs load without drawing, so `loaderbar` is the one picture no screenshot of this check shows; the Options screenshots (`opts_a`) show
+  the slider's knob, and are the same on both sets, so the knob's differing pixels are not visible there.
+- **`properties/config.xml`: six constants.** Everything else of it is the same. The Steam copy has `PowerGemChance` 1.0, `ExplosionChainBonus`
+  1000, `ExplosionChainBonusAdd` 1000, `ElectNormalBonus` 400, `EndlessBonus` 1 and `EndlessBonusMult` 1; the Collection has 0.05, 40, 10, 20,
+  500 and 150. They are what a gem caught in a blast and a gem a hyper cube strikes are worth (`BoardEffects.cpp`, `BoardMatch.cpp`: 1,000 and 400
+  times the level's point value on the Steam files, 40 and 20 on the Collection's), the level's worth in Endless (`SetupLevelData`, `BoardLevel.cpp`:
+  the points a level adds to the score before it ends, (level times `EndlessBonusMult` plus `EndlessBonus`) times the point value of a gem)
+  and the chance that a gem dealt in Finity is a power gem. The game's own defaults for the three it names in code (10, 40 and 20) are
+  neither file's, apart from the 20 (the Collection's 40 and 10 are the first two swapped). So the two versions' games score differently: in Classic the bot's game first differs at a blast on
+  level 2 (update 7,755), where the Steam files' game stands at 5,902 and the Collection's at 1,492. The port takes whichever file it is
+  given, as the original does.
+
+**The port on the Collection's files** (`tools/collection/run.sh`; `tools/stage_assets.py` stages a Collection folder as it does a Steam
+one: it takes `Bejeweled2.exe` as well as `WinBej2.exe` and renames the puzzle folder). `portshots.sh` takes `PORT_EXE` and `REGKEY`
+for the second set's copy of the exe and its settings section. The staging was run in two sets: the Collection's files as they are,
+and the Collection's files with the Steam copy's `config.xml` (the one change of data that alters play), each with a copy of the exe in
+a folder of its own, so a result that differs belongs to the six constants alone.
+- **The nine modes' bot games** of `tools/check.sh bejeweled2` (`tools/playbymove`, seed 1; Classic to 1,200 steps, the others to 300 to
+  500), whose transcripts and end screens that check holds as hashes for the Steam files: with the Steam `config.xml`, all nine are the
+  same, transcript and end screen, on the Collection's files. With the Collection's own `config.xml`, six are the same (Action, Puzzle,
+  Twilight, Hyper, Cognito and Hidden, which use none of the six constants) and three differ, the three the constants reach: Classic
+  (first at the blast of update 7,755: 5,902 against 1,492), Endless (at update 800 the Steam files' game has finished its first level,
+  whose worth is a few points, and the Collection's is still playing it) and Finity (the power gems it deals). Each is the game the constants make; no run showed an error, a
+  missing-file line or a crash.
+- **Screens**, played from the coverage scripts (`tools/coverage/scripts`: `menu_a`, the title and the main menu with Quit asked and the
+  scores' reset question; `opts_a`, the Options dialog with each of its controls and its questions; `users_a`, the players' dialog: create,
+  rename, delete; `title_q`, the window closed at the title; `game_a`, a Classic board with the hint, every cheat word, the focus lost and regained, the
+  in-game options and the window closed in the middle of the game, two shots) once on each set of files, from the same
+  profile, seed and input, compared by shotdiff (`bejeweled2-coll`, no crop: both sets are the port's own 640 by 480 pictures): 31
+  pictures (`menu_a` 3, `opts_a` 15, `users_a` 10, `title_q` 1, `game_a` 2) on each of the two Collection sets are equal to the Steam
+  files' pixel for pixel (shotdiff at tolerance 0: all matching, none faint), as are the nine end screens of the bot games above (the six
+  that the six constants do not reach, on the Collection's own).
+- **The web build under Node** (`wasmrun.js`, the page's code, no canvas): `menu_a` and `opts_a` (18 pictures), played on the Steam files
+  and on the Collection's. The web build's pictures on the Collection's files are equal, pixel for pixel, to the web build's own on the
+  Steam files, and each set is a few levels of colour off the native port's on the same files, at most 3 and 4 of 255 in faint boxes
+  only (the web build's usual difference in 2D: the numbers are the same on both sets).
+- **The importer** (`games/bejeweled2/web/page.js`: markers `properties/resources.xml` and `music/beyondnetwork.mo3`, the folders it
+  takes): an ad-hoc run of `web/gameimport.js`'s rules on the Collection's folder as extracted and on its staging found the game root
+  and picked the same 727 files (`data` 52, `edata` 8, `images` 371, `music` 1, `properties` 5, `puzzles` 240, `sounds` 50) with the
+  markers present; `sm_images`, the exe and the licence are left out as the Steam copy's launcher files are. (`tools/gameimporttest.js`
+  registers only the games the site lists as finished, so it has no Bejeweled 2 line.)
+
+**Not done.** The Collection's own exe was not run, so none of its screens or sounds was compared with the port's. It is a 2009 build
+whose code differs from the Steam image's, and a run needs the watches of `origcmp` (the board's score, level and state, the generator),
+which are addresses of the Steam image: a run of the Collection's game means finding them in its exe first, by pairing its functions
+with the export (strings and calls; the exe carries RTTI for the framework's classes, the Steam image's does too). The definition of done
+asks that the port work with the Collection's files, which it does, so this is left as AstroPop's was (its section 13). What it would
+show is whether the 2009 build's code reads the six constants as the Steam image does. Also not done: a save of a Collection copy (no
+Collection copy of the game was installed here, so where it keeps its players is not known: `platform/saveimport.json`'s entry for
+Bejeweled 2 covers the Steam copy's folder and its registry key `Steam\Bejeweled2` only, and the Collection's key is `PopCap\Bejeweled2`),
+and the Collection's drawing in 3D (the game under dgVoodoo2 was never run from the Collection's exe).
