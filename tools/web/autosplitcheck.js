@@ -79,6 +79,8 @@ async function botStep() {
   var m = await t.botMove();
   if (m === null) { await t.wait(5); return null; }
   await t.playMove(m);
+  // (a move with no input, such as AstroPop's "wait" through a warp flight, lets the game run its updates)
+  if (!m.input || !m.input.length) await t.wait(m.updates || 10);
   return m;
 }
 // the command, after as many of the bot's moves as it takes for it to be answered OK
@@ -91,7 +93,7 @@ async function until(line, max) {
   throw new Error(line + ": never OK");
 }
 // (AstroPop's bot stays on its title, where the `goto` is answered: its plan sends it from there)
-var titleGoto = false;
+var titleGoto = false, unpauseFirst = false;
 // a new game: the command (BookWorm's selector bot picks the mode), then the bot's moves until a new board is in play
 async function newGame(line) {
   step += "+new";
@@ -104,7 +106,13 @@ async function newGame(line) {
     for (var c of [].concat(line)) { if (typeof c === "string") await until(c, 50); else await t.playMove({ input: [c] }); }
   for (var k = 0; k < 400; k++) {
     var s = snap();
-    if (s && s.boardSerial && s.boardSerial !== before && s.inGame) { await settle(); return s.boardSerial; }
+    if (s && s.boardSerial && s.boardSerial !== before && s.inGame) {
+      // (AstroPop's new game opens with its full-screen help, which pauses it: a `win` under it counts a clear but never
+      // goes on to the next level, so the bot closes it first)
+      for (var u = 0; unpauseFirst && u < 100 && (snap().flags & 0x80); u++) await botStep();
+      await settle();
+      return s.boardSerial;
+    }
     await botStep();
   }
   throw new Error("no new game");
@@ -126,6 +134,9 @@ async function load(category) {
 var splitByProgress = false;
 async function clearLevel() {
   var before = snap().boardLevelClears, p0 = snap().progress;
+  // (AstroPop takes a `win` in any state, and one under its help or during the warp flight counts a clear that never goes
+  // on to the next level: with unpauseFirst the bot plays until the board is in play, state 0, before it)
+  for (var u = 0; unpauseFirst && u < 2000 && (snap().state !== 0 || (snap().flags & 0x80)); u++) await botStep();
   await until("win");
   for (var k = 0; k < 400 && snap().boardLevelClears === before; k++) await botStep();
   for (var j = 0; splitByProgress && j < 400 && snap().progress === p0; j++) await botStep();
@@ -195,10 +206,41 @@ async function common(category, levels, newLine, opts) {
   note("lost", resetCause !== null && att().phase === "idle", "reset " + resetCause + ", then " + att().phase + "; deaths " + [s.death0, s.death1, s.death2, s.death3].join(","));
 }
 
+// Cosmic Bugs' instructions page, then its Play button
+var CB_PLAY = ["goto instructions", { wait: 10 }, { move: [400, 563] }, { wait: 3 }, { click: [400, 563] }];
 // Mummy Maze's Quit to Main button, in the game's sidebar
 var MM_QUIT = [{ click: [64, 462] }];
 
 var PLANS = {
+  cosmicbugs: async function () {
+    // a run starts at Play on the instructions page, which `goto instructions` opens (its Play, at 400,563, is clicked here:
+    // the bot answers null on that page); the first board
+    // splits, the next two don't (the next split is board 49's), and running out of lives resets. The 577 boards to the
+    // win are the replay test's (tools/autosplittest.js)
+    titleGoto = true;
+    snap();
+    await t.wait(5);
+    var s0 = snap();
+    note("attach", !!s0 && s0.active === 1, s0 ? "active " + s0.active : "no block read");
+    await load("Any%");
+    await newGame(CB_PLAY);
+    var a0 = att();
+    note("start", a0.phase === "running" && a0.index === 0, "phase " + a0.phase + ", index " + a0.index + " (board " + snap().boardSerial + ")");
+    var idx = [];
+    for (var lv = 1; lv <= 3; lv++) idx.push((await clearLevel()).index);
+    note("split", idx.join(",") === "1,1,1", "index after boards 1 to 3: " + idx.join(","));
+    var resetCause = null;
+    var p = (async function () { resetCause = await sawReset(30000); })();
+    await lose();
+    await p;
+    note("lost", resetCause !== null && att().phase === "idle", "reset " + resetCause + ", then " + att().phase + "; deaths " + [snap().death0, snap().death1].join(","));
+    // a board started by the `level` command (as a continued game or a chosen board) starts nothing
+    var g = snap().goCount;
+    await until("level 5");
+    for (var k = 0; k < 100 && !snap().inGame; k++) await botStep();
+    await settle();
+    note("resumed", att().phase === "idle" && snap().goCount === g && (snap().flags & 0x02), "after `level 5`: " + att().phase + ", GOs " + g + " to " + snap().goCount + ", flags " + snap().flags.toString(16));
+  },
   typershark: async function () {
     splitByProgress = true;
     titleGoto = true;
@@ -217,6 +259,7 @@ var PLANS = {
   astropop: async function () {
     await cmd("unlock all");
     titleGoto = true;
+    unpauseFirst = true;
     await common("Any% - Vector", 32, "goto classic 1 0");
     // No SUPA Weapon: a charged weapon, which the bot starts, resets the run
     await resetByHand();
@@ -224,15 +267,9 @@ var PLANS = {
     await newGame("goto classic 1 0");
     var a0 = att(), resetCause = null;
     var p = (async function () { resetCause = await sawReset(60000); })();
-    // (a charged weapon's key, Return, first brings the box that explains the weapon; its OK, at 320,377, starts it. The
-    // bot answers that box with the full-screen help's click, which misses it)
-    for (var k = 0; k < 10 && !snap().own0; k++) {
-      await cmd("set charge");
-      await t.key("Enter");
-      await t.wait(20);
-      await t.playMove({ input: [{ move: [320, 377] }, { wait: 2 }, { click: [320, 377] }] });
-      await t.wait(20);
-    }
+    // (the bot closes the help, starts the charged weapon with its key and answers the box that explains it)
+    await cmd("set charge");
+    for (var k = 0; k < 200 && !snap().own0; k++) await botStep();
     await settle();
     await p;
     note("supa", a0.phase === "running" && snap().own0 > 0 && resetCause !== null, "started " + a0.phase + "; SUPA uses " + snap().own0 + "; reset " + resetCause);

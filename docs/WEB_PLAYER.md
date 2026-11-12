@@ -657,7 +657,8 @@ off and with it on.
 
   and, where a category's splits are not its levels, `by: "progress"`: each segment but the last splits when the game's
   progress reaches its number (Mummy Maze's treasures).
-  `limit: {field, max, setting}` resets the run when a block field passes `max` (AstroPop's SUPA Weapon count, in No SUPA
+  `targets: [N, ...]` splits each segment but the last at that many level clears, for a game of many levels (Cosmic
+  Bugs' 577 boards in 13 segments). `limit: {field, max, setting}` resets the run when a block field passes `max` (AstroPop's SUPA Weapon count, in No SUPA
   Weapon). `games: N` makes a run of N games, a segment each, each ending at the end's progress; between them the run
   waits, and goes on with the next new game of a skill it hasn't had (AstroPop's 100%, one game a pilot).
 
@@ -702,7 +703,11 @@ ends on returning to the map after level 11 is beaten. Its progress is the level
 comes back, so the splits are `by: "progress"`; a level's own clear comes earlier, before the player leaves it. Abyss
 Mode ends `lost`, at its game over (the screen's time is the game's, in its own first word, which the site doesn't use
 yet), and Death% at an adventure's first game over. "End this game" in the options is no game over: the game goes
-away, a quit. Big Money has no board, so its row is its native
+away, a quit. Cosmic Bugs (speedrun.com: Cosmic Bugs; its board's 2005 PC game is Retro64's, the one PopCap
+published in 2007): Any%, from Play on the instructions page, the screen a new player's Start Game shows, to the
+mission-complete screen, its win. A continued game or a chosen board skips that page and starts nothing. A mission is
+577 boards, so the template has `targets`: the level clears at which each segment splits, here the first board and the
+last of each of the 12 steps of 48 boards, and the end at the win. Big Money has no board, so its row is its native
 script's rules, with mode and skill in the category's name and levels or scores as segments. Both replay their native
 scripts' scenarios in `tools/autosplittest.js`. Every other game with a board gets its row in Milestone 3, from the
 speedrun.com categories and its session's answer on where in its code GO, a level clear, a game over and a win happen.

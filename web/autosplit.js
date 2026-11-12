@@ -266,7 +266,9 @@ var ByopopAutosplit = (function () {
           if (end.kind === "lost") return lostEnd();
           if (end.kind === "progress") return current.progress >= end.n;
         }
-        // (a template with by "progress" splits on the game's own figure instead: Mummy Maze's treasures)
+        // (a template with by "progress" splits on the game's own figure instead: Mummy Maze's treasures; one with targets
+        // at the level clears it lists, a segment for many levels: Cosmic Bugs' steps of 48 boards)
+        if (template && template.targets) return current.boardLevelClears >= template.targets[i];
         var s = splits[i];
         if (template && template.by === "progress") return current.progress >= s.target;
         return (s.score ? current.displayScoreMax : current.boardLevelClears) >= s.target;
@@ -470,6 +472,21 @@ var ByopopAutosplit = (function () {
                { category: "Death%", segments: ["Death"], end: "lost", mode: 0 }])
   };
 
+  // Cosmic Bugs (speedrun.com: Cosmic Bugs): Any%, from the click on Play on the instructions page (its GO, the update
+  // that click makes the first board in; a new player's Start Game shows that page, a continued or chosen board does not
+  // and starts nothing) to the "Congratulations! Mission complete" screen, its win. A mission is 577 boards, the first
+  // made by hand and then 12 steps of 48, so the splits are the first board and each step's last (`targets`, the level
+  // clears each needs); the last is the win, which follows the 577th board's clicked-through texts. One mode; the
+  // difficulty has no screen to change it, so any.
+  var CB_RULES = {
+    name: "Cosmic Bugs", id: "CBDX",
+    modes: {}, skills: {},
+    deaths: [{ setting: "resetLives", what: "out of lives" }, { setting: "resetLeft", what: "the game left for another screen (Esc)" },
+             { setting: null, what: "(none)" }, { setting: null, what: "(none)" }],
+    templates: [{ category: "Any%", segments: ["Board 1"].concat([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(function (k) { return "Step " + k; })),
+                  targets: [1, 49, 97, 145, 193, 241, 289, 337, 385, 433, 481, 529], end: "won", mode: 0 }]
+  };
+
   // A row of GAMES from a row of the rules table
   function ruled(rules) {
     return { name: rules.name, block: "_byopop_livesplit_block", read: blockReader(rules.id), decider: makeDecider(rules),
@@ -487,7 +504,8 @@ var ByopopAutosplit = (function () {
     rocketmania: ruled(RM_RULES),
     alchemy: ruled(AL_RULES),
     astropop: ruled(AP_RULES),
-    typershark: ruled(TS_RULES)
+    typershark: ruled(TS_RULES),
+    cosmicbugs: ruled(CB_RULES)
   };
 
   // The front game's block, read from its window: {game, snap} or null (no game with an auto splitter in front, or it has not

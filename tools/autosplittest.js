@@ -346,5 +346,18 @@ check(blockReplay("typershark", "Abyss Mode", tsLog("abyss_deep_dive_resumed")) 
 check(blockReplay("typershark", "Death%", tsLog("adventure_left_from_options")) === "start; reset resetQuit", "Typer Shark: end this game resets as a quit");
 check(blockReplay("typershark", "Death%", tsLog("adventure_continued_save")) === "", "Typer Shark: a continued save never starts a run");
 
+// Cosmic Bugs: its block logs (tools/autosplit/cosmicbugs/, the port's scripted games; a line at each change), and a whole
+// mission made up of its fields (577 board clears, then the win)
+function cbLog(name) { return fs.readFileSync(path.join(__dirname, "autosplit", "cosmicbugs", name + ".block.log"), "utf8").split(/\r?\n/); }
+check(blockReplay("cosmicbugs", "Any%", cbLog("game")) === "start; split; reset resetLives", "Cosmic Bugs Any%: the first board splits, out of lives resets");
+check(blockReplay("cosmicbugs", "Any%", cbLog("left")) === "start; reset resetLeft; start; reset resetLives", "Cosmic Bugs: a game left with Esc resets, the next one starts");
+check(blockReplay("cosmicbugs", "Any%", cbLog("resume")) === "start; split; reset resetLeft" && blockReplay("cosmicbugs", "Any%", cbLog("select")) === "start; split; reset resetLives",
+      "Cosmic Bugs: a continued game or a chosen board starts nothing");
+var cbMission = ["u=0 seq=1 active=1 flags=00 board=0 go=0/0 over=0/0 deaths=0,0,0,0 mode=-1 skill=0 ingame=0 progress=-1 blc=0 wins=0/0"];
+for (var cb = 0; cb <= 577; cb++) cbMission.push("u=" + (cb + 1) + " seq=1 active=1 flags=04 board=1 go=1/1 over=0/0 deaths=0,0,0,0 mode=0 skill=0 ingame=1 progress=-1 blc=" + cb + " wins=0/0");
+cbMission.push("u=600 seq=1 active=1 flags=104 board=1 go=1/1 over=0/0 deaths=0,0,0,0 mode=0 skill=0 ingame=0 progress=-1 blc=577 wins=1/1");
+check(blockReplay("cosmicbugs", "Any%", cbMission) === "start; " + splits(13), "Cosmic Bugs Any%: splits at boards 1, 49 ... 529, the end at the win after board 577");
+check(blockReplay("cosmicbugs", "Any%", cbMission.slice(0, 579)) === "start; " + splits(12), "Cosmic Bugs Any%: the 577th board's clear is not the end");
+
 console.log("autosplittest: " + (fx.cases.length + bm.cases.length + bw.cases.length) + " scenario replays, " + checks + " checks, " + fails + " failed");
 process.exit(fails ? 1 : 0);
