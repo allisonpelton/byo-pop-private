@@ -38,8 +38,7 @@ public:
 	// +0x58 ButtonListener vfptr, +0x5c CheckboxListener vfptr
 	BookWormApp*	mApp;                   // +0x60
 	bool			mRefreshTopics;         // +0x64 a topic was clicked: Update swaps the topic button images
-	int				mUnused68;              // +0x68 zeroed, never read
-	int				mUnused6C;              // +0x6c zeroed, never read
+	// +0x68 and +0x6c (two ints the ctor zeroes, never read): not ported
 	bool			mTopicChosen;           // +0x70 a topic was clicked (ends the label attention cycle)
 	int				mCurTopic;              // +0x74 button id 28..32 of the shown topic, -1 = none
 	Checkbox*		mShowHelpCheckbox;      // +0x78 id 27 at (215, 395), checked = help off at startup

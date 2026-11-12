@@ -10,7 +10,6 @@ MoneyDialog::MoneyDialog(BookWormApp* theApp, Image* theComponentImage, Image* t
 		theDialogFooter, theButtonMode)
 {
 	mApp = theApp;
-	mUnusedLightPhase = 0.0;    // port: never initialised in the original (and never read)
 }
 
 // 0x42e420 (body; scalar deleting dtor 0x42e450)

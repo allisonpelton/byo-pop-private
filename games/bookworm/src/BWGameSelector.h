@@ -53,11 +53,10 @@ public:
 	HyperlinkWidget* mNotYouLink;           // +0x74 id 0 change-player link (GT_SELECTOR_NOT_YOU) in the bubble
 	int				mBubbleX;               // +0x78 14
 	int				mBubbleY;               // +0x7c 114
-	int				mGameOption;            // +0x80 copied from/to app->mGameOption (nothing reads it)
+	// +0x80 mGameOption (copied from and to the app's, which nothing reads): not ported
 	int				mGameMode;              // +0x84 GameMode, copied from/to app->mGameMode
 	int				mBackdropY;             // +0x88 backdrop y, 0
-	int				mUnused8C;              // +0x8c never used
-	double			mUnused90;              // +0x90 zeroed by the ctor, never read
+	// +0x8c and +0x90 (an int and a double the ctor zeroes, never used): not ported
 	bool			mOpening;               // +0x98 open transition running (coming back from a game)
 	bool			mClosing;               // +0x99 close transition running (a game starts); the app tests it
 	DDImage*		mSnapshot;              // +0x9c screen snapshot drawn during the transitions
@@ -80,7 +79,6 @@ public:
 	virtual void	StartCloseTransition();                         // 0x4011f0 slot 49
 
 	void			SetGameMode(int theMode) { mGameMode = theMode; }           // 0x401340
-	void			SetGameOption(int theOption) { mGameOption = theOption; }   // 0x401350
 	void			DrawBubble(Graphics* g);                        // 0x402a50
 
 	virtual void	ButtonPress(int theId, int theClickCount) override;      // 0x401450 ButtonListener slot 2 (shared with TitleScreen)

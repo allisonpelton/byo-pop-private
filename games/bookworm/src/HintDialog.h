@@ -24,7 +24,7 @@ public:
 	BookWormApp*	mApp;                   // +0x110 ctor arg
 	DialogButton*	mDisableButton;         // +0x114 id BUTTON_HINT_DISABLE (26), listener this, colours 0x52f27c
 	int				mHintId;                // +0x118 ctor arg (the board's BoardHintId); never read
-	int				mUnused11C;             // +0x11c 0; never read
+	// +0x11c (an int the ctor zeroes, never read): not ported
 
 public:
 	HintDialog(BookWormApp* theApp, int theHintId, const SexyString& theDialogHeader,

@@ -57,8 +57,6 @@ HelpWidget::HelpWidget(BookWormApp* theApp)
 {
 	mApp = theApp;
 	mRefreshTopics = false;
-	mUnused68 = 0;
-	mUnused6C = 0;
 	mTopicChosen = false;
 	mShowHelpCheckbox = NULL;
 	mContinueButton = NULL;

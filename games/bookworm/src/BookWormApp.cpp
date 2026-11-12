@@ -285,7 +285,6 @@ BookWormApp::BookWormApp()
 	mScrambleHintShown = false;
 	mResumeUpdateCnt = 0;
 	mPlayTicks = 0;
-	mGameOption = 1;
 	mShowHelp = true;
 	mShowHints = true;
 	mShowDefs = true;

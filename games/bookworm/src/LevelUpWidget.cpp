@@ -96,14 +96,12 @@ LevelUpWidget::LevelUpWidget(BookWormApp* theApp)
 	mRightY = -174.0;
 	mRightVel = 0.0;
 	mPanelY = -150.0;
-	mUnusedA8 = 189.0;
 	mFrozen = false;
 	mSlide = 0.0;
 	mSlidePhase = 0.0;
 	mHeaderY = 0;
 	mFooterY = 0;
 	mLexArrived = false;
-	mUnused78 = 0.03;
 	mModsBalloon = NULL;
 	mJournalButton = NULL;
 	mJournal = NULL;

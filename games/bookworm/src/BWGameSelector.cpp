@@ -33,7 +33,6 @@ BWGameSelector::BWGameSelector(BookWormApp* theApp)
 
 	mBubbleX = 14;
 	mGameMode = -1;
-	mGameOption = -1;
 	mBubbleY = 114;
 	mClassicButton = NULL;
 	mActionButton = NULL;
@@ -41,9 +40,6 @@ BWGameSelector::BWGameSelector(BookWormApp* theApp)
 	mQuitButton = NULL;
 	mNotYouLink = NULL;
 	SetGameMode(mApp->mGameMode);
-	SetGameOption(mApp->mGameOption);
-	mUnused8C = 0; // port: initialised (never used)
-	mUnused90 = 0.0;
 	mBackdropY = 0;
 	mClosing = false;
 	mOpening = false;
@@ -216,14 +212,11 @@ void BWGameSelector::ButtonDepress(int theId)
 // 0x401460: called by BookWormApp::SelectGameMode (no saved game) and for the continue-game dialog's buttons
 void BWGameSelector::StartGame()
 {
-	// Dead defaults: the app's fields start at 0 and 1
+	// Dead default: the app's mGameMode starts at 0
 	if (mGameMode == -1)
 		mGameMode = GAMEMODE_CLASSIC;
-	if (mGameOption == -1)
-		mGameOption = 1;
 
 	mApp->mGameMode = mGameMode;
-	mApp->mGameOption = mGameOption;
 	mApp->StartGameForUser();
 	SetDisabled(true);
 }

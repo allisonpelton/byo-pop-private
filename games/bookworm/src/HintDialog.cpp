@@ -88,8 +88,7 @@ HintDialog::HintDialog(BookWormApp* theApp, int theHintId, const SexyString& the
 		theDialogHeader, theDialogLines, theDialogFooter, theButtonMode),
 	mApp(theApp),
 	mDisableButton(NULL),
-	mHintId(theHintId),
-	mUnused11C(0)
+	mHintId(theHintId)
 {
 	mHasAlpha = true;
 
