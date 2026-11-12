@@ -14,12 +14,6 @@ Definitionator::~Definitionator()
 {
 }
 
-// 0x41d910 slot 0 (folded with Font::GetLineSpacingOffset: `return [this+0x10]`)
-int Definitionator::GetNumDefinitions()
-{
-	return (int)mDefinitions.size();
-}
-
 // 0x41d920
 // One definition per line: WORD, then the first space or tab, then the definition, trimmed of spaces, tabs,
 // CR and LF on both sides. Lines without a separator, with an empty word or definition, or with the

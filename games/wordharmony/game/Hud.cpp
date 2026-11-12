@@ -219,8 +219,14 @@ void Hud::buttonPress(std::string theName)
 	}
 	else if ((theName == "wildcard") && !anEditor)
 	{
-		aGame->mBallSystem->addWildcard();
-		aGame->mWildcards--;
+		// port: a press of the faded-out, disabled button still arrives here, and the original then made a wildcard from
+		// none and left the count at -1, which the next level's start turned into a loop of 2^32 letters (std::bad_alloc
+		// in the port, "Exception Code Honeysuckle" in the original): no wildcard held, no press
+		if (aGame->mWildcards > 0)
+		{
+			aGame->mBallSystem->addWildcard();
+			aGame->mWildcards--;
+		}
 	}
 	else if ((theName == "hint") && !anEditor)
 	{

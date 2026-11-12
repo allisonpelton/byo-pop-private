@@ -71,7 +71,6 @@ public:
 	{
 		int				mCol;
 		int				mRow;
-		int				mUnused[2];
 	};
 
 	Visit				mVisited[400];		// +4
@@ -119,21 +118,21 @@ public:
 	int					mPastLineFrames;	// +0x4684 frames the eggs have been past the board's line
 	bool				mWarning;			// +0x4688 the warning's blink, on or off
 	int					mWarningBlink;		// +0x468c
-	bool				mField4690;			// +0x4690 (Draw hides nothing past the line while it is set)
-	bool				mField4691;			// +0x4691 (set when the eggs first pass the line)
+	bool				mShowPastLine;		// +0x4690 Draw draws the rows past the line during the warning too (only a saved game could set it)
+	bool				mAlarmDue;			// +0x4691 the eggs have just passed the line: the mode plays the alarm and clears it
 	PtrList<GridTarget>	mTargets;			// +0x4694
 	bool				mBabyEggsOn;		// +0x46ac
 	int					mBabyEggChance;		// +0x46b0 one in this many frames (200)
-	int					mField46b4;			// +0x46b4 (200)
+	int					mBaseBabyEggChance;	// +0x46b4 the baby eggs' chance before the level's factor (200)
 	PtrList<BabyEgg>	mBabyEggs;			// +0x46b8
-	bool				mField46d0;			// +0x46d0 the ceiling is drawn (20 pixels higher foot)
+	bool				mCeilingDrawn;		// +0x46d0 the ceiling is drawn, and the foot 20 pixels higher (false in Fossil and Panic)
 	bool				mBreakPastLine;		// +0x46d1 Update breaks the eggs past the line
 	int					mBlastX;			// +0x46d4 Blast's sums, then the middle
 	int					mBlastY;			// +0x46d8
 	int					mBlastCount;		// +0x46dc
 	int					mEggCount;			// +0x46e0 matchable eggs in the lowest ten rows (100)
 	bool				mLoneEgg;			// +0x46e4 set before a landing egg is placed; cleared when it touches its colour
-	bool				mField46e5;			// +0x46e5 (eggs past the right edge are kept)
+	bool				mKeepPastRight;		// +0x46e5 eggs past the right edge are kept (Stomped)
 
 	EggGrid(FossilizedApp* theApp, Dynomite* theBoard);		// 0x415770
 	virtual ~EggGrid();										// 0x417420

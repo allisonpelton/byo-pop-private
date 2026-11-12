@@ -128,23 +128,23 @@ Widget* MoveButton(FossilizedApp* theApp)
 		return aClose->mVisible ? aClose : NULL;	// a click while it is disabled (the rex's attack) does nothing
 	}
 	if ((theApp->mTutor != NULL) && (theApp->mTutor->mStep == 0x5d) && (theApp->mSideBar != NULL))
-		return theApp->mSideBar->mButton5;
+		return theApp->mSideBar->mMuseumButton;
 	return NULL;
 }
 
 std::string StateJson(FossilizedApp* theApp)
 {
 	std::string s = "{\"screen\":\"";
-	Dynomite* b = theApp->mBoard;
+	Dynomite* aBoard = theApp->mBoard;
 	if (theApp->mTitleScreen != NULL)
 		s += "title";
-	else if (b != NULL)
+	else if (aBoard != NULL)
 		s += "game";
 	else if (theApp->mIntroScreen != NULL)
 		s += "menu";
 	else
 		s += "none";
-	s += "\"";
+	s += StrFormat("\",\"update\":%d", theApp->mUpdateCount);	// the update the line ran at, for a script that repeats a run
 	if (theApp->mTutor != NULL)
 		s += StrFormat(",\"tutorial\":%d", theApp->mTutor->mStep);
 	else if (theApp->mIntroScreen != NULL)
@@ -154,32 +154,32 @@ std::string StateJson(FossilizedApp* theApp)
 	s += StrFormat(",\"dialog\":%d", TopDialogId(theApp));
 	if (theApp->mSideBar != NULL)
 		s += StrFormat(",\"score\":%d", theApp->mSideBar->mScore);
-	if (b != NULL)
+	if (aBoard != NULL)
 	{
 		// busy: no shot can be fired now (none loaded, one in flight, frozen, paused, or a match or the end running)
-		bool isBusy = (b->mLauncher == NULL) || (b->mLauncher->mLoaded == NULL) || b->mLauncher->mFrozen ||
-			(b->mFlyingEggs.mCount > 0) || (b->mPauseCount > 0) || b->mField244 || b->mField80 ||
-			(b->mThunderbolt != NULL) || b->mField130 || b->mField131 || b->mField132;
+		bool isBusy = (aBoard->mLauncher == NULL) || (aBoard->mLauncher->mLoaded == NULL) || aBoard->mLauncher->mFrozen ||
+			(aBoard->mFlyingEggs.mCount > 0) || (aBoard->mPauseCount > 0) || aBoard->mInputLocked || aBoard->mFireBlocked ||
+			(aBoard->mThunderbolt != NULL) || aBoard->mLosing || aBoard->mGameOver || aBoard->mGameOverShown;
 		if ((TutorialContinue(theApp) != NULL) || (MoveButton(theApp) != NULL))
 			isBusy = false;	// a button to press is a move
 		// over: the game has ended; the tutorial's board loses once on purpose (step 45) and the tutorial goes on
-		bool isOver = (b->mField131 || b->mField132) && (theApp->mTutor == NULL);
-		s += StrFormat(",\"mode\":\"%s\",\"paused\":%d,\"busy\":%s,\"over\":%s", ModeName(b->mGameType),
-			b->mPauseCount, isBusy ? "true" : "false", isOver ? "true" : "false");
-		if (b->mGameType == 2)
+		bool isOver = (aBoard->mGameOver || aBoard->mGameOverShown) && (theApp->mTutor == NULL);
+		s += StrFormat(",\"mode\":\"%s\",\"paused\":%d,\"busy\":%s,\"over\":%s", ModeName(aBoard->mGameType),
+			aBoard->mPauseCount, isBusy ? "true" : "false", isOver ? "true" : "false");
+		if (aBoard->mGameType == 2)
 		{
-			DynomiteFossil* f = (DynomiteFossil*) b;
+			DynomiteFossil* f = (DynomiteFossil*) aBoard;
 			s += StrFormat(",\"level\":%d,\"round\":%d", f->mLevel, f->mRound);
 		}
-		else if (b->mGameType == 0)
-			s += StrFormat(",\"level\":%d", ((DynomiteStomped*) b)->mRound);
-		else if (b->mGameType == 1)
-			s += StrFormat(",\"level\":%d", ((DynomitePanic*) b)->mWhirleyLevel);
-		EggGrid* g = b->mGrid;
-		Launcher* l = b->mLauncher;
+		else if (aBoard->mGameType == 0)
+			s += StrFormat(",\"level\":%d", ((DynomiteStomped*) aBoard)->mRound);
+		else if (aBoard->mGameType == 1)
+			s += StrFormat(",\"level\":%d", ((DynomitePanic*) aBoard)->mWhirleyLevel);
+		EggGrid* g = aBoard->mGrid;
+		Launcher* l = aBoard->mLauncher;
 		s += StrFormat(",\"board\":{\"eggs\":%d,\"loaded\":%d,\"next\":%d,\"frozen\":%s,\"rows\":[", g->mEggCount,
 			(l && l->mLoaded) ? l->mLoaded->mColor : -1,
-			(b->mSteggy && b->mSteggy->mNext) ? b->mSteggy->mNext->mColor : -1, (l && l->mFrozen) ? "true" : "false");
+			(aBoard->mSteggy && aBoard->mSteggy->mNext) ? aBoard->mSteggy->mNext->mColor : -1, (l && l->mFrozen) ? "true" : "false");
 		int aRows = (int) g->mRows;
 		for (int r = 0; (r <= aRows) && (r < 100); r++)
 		{
@@ -207,7 +207,7 @@ void ToMenu(FossilizedApp* theApp)
 		theApp->KillDialog(anIds[i]);
 	if (theApp->mTitleScreen != NULL)
 		theApp->TitleScreenDone();
-	else if (theApp->mInTutorial || ((theApp->mBoard != NULL) && theApp->mBoard->mField131))
+	else if (theApp->mInTutorial || ((theApp->mBoard != NULL) && theApp->mBoard->mGameOver))
 		theApp->MenuButton();
 	else if ((theApp->mBoard != NULL) || (theApp->mIntroScreen == NULL))
 		theApp->ShowMainMenu();
@@ -231,13 +231,16 @@ bool StartFromMenu(FossilizedApp* theApp, int theStartChoice, int theMode)
 bool HandleStandardCommand(FossilizedApp* theApp, const std::string& theName, const std::string& theArgs)
 {
 	std::string aLine = theArgs.empty() ? theName : (theName + " " + theArgs);
-	Dynomite* b = theApp->mBoard;
+	Dynomite* aBoard = theApp->mBoard;
 	if (theName == "state")
 	{
 		Reply("STATE " + StateJson(theApp));
 		return true;
 	}
-	if (theName == "move")
+	// "matchmove": the shot a player would make at the tutorial's steps 43 and 45 too, the one that makes a match (the
+	// bot's own lands low there, without a match, so the tutorial goes on); the framework takes "move" with an argument
+	// for a mouse move, so it is a command of its own
+	if ((theName == "move") || (theName == "matchmove"))
 	{
 		BotShot aShot;
 		CellButton* aContinue = TutorialContinue(theApp);
@@ -256,7 +259,8 @@ bool HandleStandardCommand(FossilizedApp* theApp, const std::string& theName, co
 			Reply(StrFormat("MOVE {\"kind\":\"button\",\"input\":[{\"move\":[%d,%d]},{\"click\":[%d,%d]}]}",
 				x, y, x, y));
 		}
-		else if (!BotChooseShot(b, &aShot, (theApp->mTutor != NULL) && ((theApp->mTutor->mStep == 0x2b) || (theApp->mTutor->mStep == 0x2d)),
+		else if (!BotChooseShot(aBoard, &aShot, (theName == "move") && (theApp->mTutor != NULL) &&
+			((theApp->mTutor->mStep == 0x2b) || (theApp->mTutor->mStep == 0x2d)),
 			(theApp->mTutor != NULL) && (theApp->mTutor->mStep == 0x3e)))
 			Reply("MOVE null");
 		else
@@ -315,13 +319,13 @@ bool HandleStandardCommand(FossilizedApp* theApp, const std::string& theName, co
 	if (theName == "level")
 	{
 		int aLevel = atoi(theArgs.c_str());
-		if ((b == NULL) || (b->mGameType != 2))
+		if ((aBoard == NULL) || (aBoard->mGameType != 2))
 			Error(aLine, "only the Fossil Challenge has levels to start");
 		else if ((aLevel < 1) || (aLevel > 15))
 			Error(aLine, "a fossil is 1 to 15");
 		else
 		{
-			DynomiteFossil* f = (DynomiteFossil*) b;
+			DynomiteFossil* f = (DynomiteFossil*) aBoard;
 			f->mLevel = aLevel;
 			f->mRound = 1;
 			f->StartRound(aLevel, 1);
@@ -352,34 +356,34 @@ bool HandleStandardCommand(FossilizedApp* theApp, const std::string& theName, co
 	}
 	if (theName == "lose")
 	{
-		if ((b == NULL) || b->mField131 || b->mField132)
+		if ((aBoard == NULL) || aBoard->mGameOver || aBoard->mGameOverShown)
 			Error(aLine, "no game in play");
-		else if (!b->mFieldB0)
+		else if (!aBoard->mPlaying)
 			Error(aLine, "the game starts with its first shot");
 		else
 		{
 			// as Dynomite::Update when the eggs have been past the line too long
-			if (b->mField130 == false)
+			if (aBoard->mLosing == false)
 				theApp->mSideBar->mInchy->Sink(0);
-			b->mField130 = true;
-			b->mGrid->mBreakPastLine = true;
+			aBoard->mLosing = true;
+			aBoard->mGrid->mBreakPastLine = true;
 			Ok(aLine);
 		}
 		return true;
 	}
 	if (theName == "win")
 	{
-		if ((b == NULL) || b->mField131 || b->mField132)
+		if ((aBoard == NULL) || aBoard->mGameOver || aBoard->mGameOverShown)
 			Error(aLine, "no game in play");
-		else if ((b->mGameType != 0) && (b->mGameType != 3))
+		else if ((aBoard->mGameType != 0) && (aBoard->mGameType != 3))
 			Error(aLine, "Endless and the Fossil Challenge have no win to give");
 		else
 		{
-			b->mGrid->ClearDynamite();
+			aBoard->mGrid->ClearDynamite();
 			for (int c = 0; c < 15; c++)
 				for (int r = 0; r < 100; r++)
-					b->mGrid->mCells[c][r].mBits = 0;
-			b->mGrid->CountRows();
+					aBoard->mGrid->mCells[c][r].mBits = 0;
+			aBoard->mGrid->CountRows();
 			Ok(aLine);
 		}
 		return true;
@@ -498,44 +502,44 @@ void FossilizedApp::LogState()
 	aValues.push_back(StateInt(mPicker.mI));							// fibi
 	aValues.push_back(StateInt(mPicker.mJ));							// fibj
 	aValues.push_back((mSideBar != NULL) ? StateInt(mSideBar->mScore) : "-");	// score
-	Dynomite* b = mBoard;
+	Dynomite* aBoard = mBoard;
 	const char* aNone = "-";
-	aValues.push_back(b ? StateInt(b->mGameType) : aNone);				// type
-	aValues.push_back(b ? StateInt(b->mChain) : aNone);					// chain
-	aValues.push_back(b ? StateInt(b->mLongestChain) : aNone);			// longest
-	aValues.push_back(b ? StateInt(b->mBabies) : aNone);				// babies
-	aValues.push_back(b ? StateInt(b->mBonusBits) : aNone);				// bonus
-	aValues.push_back(b ? StateInt(b->mRank) : aNone);					// rank
-	aValues.push_back(b ? StateInt(b->mPauseCount) : aNone);			// pause
-	aValues.push_back(b ? StateInt(b->mField15c) : aNone);				// fired
-	EggGrid* g = b ? b->mGrid : NULL;
+	aValues.push_back(aBoard ? StateInt(aBoard->mGameType) : aNone);				// type
+	aValues.push_back(aBoard ? StateInt(aBoard->mChain) : aNone);					// chain
+	aValues.push_back(aBoard ? StateInt(aBoard->mLongestChain) : aNone);			// longest
+	aValues.push_back(aBoard ? StateInt(aBoard->mBabies) : aNone);				// babies
+	aValues.push_back(aBoard ? StateInt(aBoard->mBonusBits) : aNone);				// bonus
+	aValues.push_back(aBoard ? StateInt(aBoard->mRank) : aNone);					// rank
+	aValues.push_back(aBoard ? StateInt(aBoard->mPauseCount) : aNone);			// pause
+	aValues.push_back(aBoard ? StateInt(aBoard->mAvoidColor) : aNone);				// fired
+	EggGrid* g = aBoard ? aBoard->mGrid : NULL;
 	aValues.push_back(g ? StateInt(g->mEggCount) : aNone);				// eggs
 	aValues.push_back(g ? StateInt(g->mMaxColor) : aNone);				// maxcolor
 	aValues.push_back(g ? StateInt(g->mBottom) : aNone);				// bottom
 	aValues.push_back(g ? StateFloat(g->mCeiling) : aNone);				// ceiling
 	aValues.push_back(g ? StateFloat(g->mRows) : aNone);				// rows
 	aValues.push_back(g ? StateInt(g->mPastLineFrames) : aNone);		// pastline
-	Launcher* l = b ? b->mLauncher : NULL;
+	Launcher* l = aBoard ? aBoard->mLauncher : NULL;
 	aValues.push_back(l ? StateInt(l->mAngle) : aNone);					// angle
 	aValues.push_back((l && l->mLoaded) ? StateInt(l->mLoaded->mColor) : aNone);	// loaded
 	aValues.push_back((l && l->mHeld) ? StateInt(l->mHeld->mColor) : aNone);		// held
 	aValues.push_back(l ? StateInt(l->mFrozen) : aNone);				// frozen
-	Steggy* st = b ? b->mSteggy : NULL;
+	Steggy* st = aBoard ? aBoard->mSteggy : NULL;
 	aValues.push_back((st && st->mNext) ? StateInt(st->mNext->mColor) : aNone);	// next: the egg Steggy holds
 	// the mode's own: Stomped, Panic, Fossil, Time Trial (four slots, by the board's type)
-	int aType = b ? b->mGameType : -1;
+	int aType = aBoard ? aBoard->mGameType : -1;
 	for (int i = 0; i < 4; i++)
 	{
 		std::string aValue = aNone;
 		if (aType == 0)
 		{
-			DynomiteStomped* s = (DynomiteStomped*) b;
+			DynomiteStomped* s = (DynomiteStomped*) aBoard;
 			int aFields[4] = { s->mRound, s->mShotsLeft, s->mEggIndex, s->mShots };
 			aValue = StateInt(aFields[i]);
 		}
 		else if (aType == 1)
 		{
-			DynomitePanic* p = (DynomitePanic*) b;
+			DynomitePanic* p = (DynomitePanic*) aBoard;
 			if (i == 2)
 				aValue = StateFloat(p->mKick);
 			else
@@ -546,13 +550,13 @@ void FossilizedApp::LogState()
 		}
 		else if (aType == 2)
 		{
-			DynomiteFossil* f = (DynomiteFossil*) b;
+			DynomiteFossil* f = (DynomiteFossil*) aBoard;
 			int aFields[4] = { f->mLevel, f->mRound, f->mPushes, f->mFossilFell };
 			aValue = StateInt(aFields[i]);
 		}
 		else if (aType == 3)
 		{
-			DynomiteTimeTrial* t = (DynomiteTimeTrial*) b;
+			DynomiteTimeTrial* t = (DynomiteTimeTrial*) aBoard;
 			int aFields[4] = { t->mEggsBroken, t->mEggsDropped, t->mRowsCleared, 0 };
 			aValue = StateInt(aFields[i]);
 		}

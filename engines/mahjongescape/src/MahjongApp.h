@@ -90,6 +90,8 @@ public:
 	// The standard test commands (TestCommands.cpp, docs/TEST_COMMANDS.md); only a test's -script, -commands or
 	// -realinput reaches them
 	bool HandleScriptCommand(const ScriptCommand& theCommand) override;
+	// Every update: a board in play is noted, and a command waiting for its screen keeps -hold's updates running
+	void TestUpdate();
 	// The frame after a test command that waits for a screen to settle
 	void TestFrame();
 

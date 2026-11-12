@@ -602,19 +602,4 @@ int Bank_Load(Bank* theBank, const char* thePath, int theMode, const PixelFormat
 	return 1;
 }
 
-// 0x428160 (cosmicbugs), 0x428640 (waterbugs): after the screen's format changed
-int Bank_Reconvert(Bank* theBank, const PixelFormat* theFmt)
-{
-	if (theBank->mPalettesBuilt == 1 && Bank_BuildPalettes(theBank, theFmt) == 0)
-		return 0;
-	if (theBank->mMode != 1)
-		return 1;
-	if (Bank_LoadConverted(theBank, theBank->mDataPath, theFmt) == 0)
-		return 0;
-	SelfMask8(theBank);
-	if (Bank_LinkMasks(theBank) == 0)
-		return 0;
-	return 1;
-}
-
 } // namespace r64

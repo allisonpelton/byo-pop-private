@@ -247,7 +247,8 @@ None so far (docs/MOD_ROADMAP.md, "The fixes mod"). Both phases of the identical
 bug of the original that changes play (its scores, timing or rules) and no wait that only costs the player time; the
 loading already runs at the machine's speed in the port. So the port has no fixes mod yet, and no mod loading. One
 thing could become a fix of the port itself rather than of the mod: if the original's tutorial also stalls after a
-match at step 45 (`IDENTICAL_PLAY.md`, "Oddities"), that is a soft lock.
+match at step 45 that clears the eggs past the line, that is a soft lock. A three-egg match there goes on in both
+programs; the clearing match was not found for the original (`IDENTICAL_PLAY.md`, "Oddities").
 
 ## 6. Performance (measured 2026-11-08, original and port back to back)
 
@@ -275,5 +276,195 @@ updates from there (the original's counter reached 8864 of them before origrun q
 | port, run B | 92.0 MB | 91.8 MB | 4.6 s |
 
 The port uses well under half the original's processor time for the same minute of play, and holds about 28 MB more
-private memory; where that memory goes was not looked into, which is the performance pass's work. No speed-up of the
-port's own has been made yet.
+private memory.
+
+### The performance pass (2026-11-11)
+
+The machine was never quiet that day (other sessions ran three to six game processes throughout), so the comparison
+above stands, and what follows is the port alone.
+
+**Where the port's time goes.** Bejeweled's sampler (`games/bejeweled/tools/profile/cpuprof.py`) ran the port under
+rundesk on the scripted minute's input with `-fast -drawevery`, every update drawn and nothing waited: 10.0 G cycles in
+41 s. 48% are in ntdll (the system's calls, two thirds of them on the main thread and the rest on the GPU driver's own
+thread), 17% in the NVIDIA driver, 6% in win32u and 4% in SDL. 16% are the port's exe, and most of that is loading's decoders (the GIFs 2.6%,
+Ogg Vorbis about 3%, JPEG under 1%) and the framework's drawing (`PolyFill` 1.5%, `DrawImage` 1%, the textured quads
+0.6%). The game's own code is under 2%: the board's draw 0.4% and its update 0.2%, the cells and the side bar less.
+(`CellButton::Update` shows 1.3%, but it only forwards a held button's tick, so those are samples landing beside it.)
+Nothing in the game's own code is worth speeding up. The costs that are there are shared ones already listed in
+`docs/COORDINATION.md` (the GIF decode and its quantizing back to 8 bits, imagehlp, `SDL_RenderPresent`), for the
+framework to fix once for every game.
+
+**Memory.** The port's 28 MB of private bytes over the original's are two of those shared costs: the Direct3D 11 device
+(20 to 25 MB a process) and the images' pixels, which the framework keeps after their upload.
+
+**Leaks.** `tools/profile/leakcheck.sh` builds the port with `tools/profile/leakhook.cpp` (a scratch build, never
+shipped), plays each of its cases once with one round and once with two, and lists the callers whose live blocks grew
+with the second round. Two leaks of the original were found and are fixed in the port: the stick of dynamite that a
+placed egg replaces (`EggGrid::Place`, 0x416590, takes it off the list and never deletes it; 2d9eb014), and the save
+dialog's empty slot picture and its cell, Save button and Cancel button, which its destructor (0x433420) never deletes,
+so each showing of the dialog leaked them. The growth left is caches (the registry's text, the file finder's names, the
+string tables) and blocks of the screen each run ends on (the eggs of the board in play).
+
+**The web build.** `tools/profile/webperf.js` drove the player-only page in the Browser pane (Chrome 156, the pane
+hidden, its frames given by a 16 ms timer) at the game's own speed: the title clicked through, eight seconds on the main
+menu, then twenty seconds of Endless played by the bot through `move` (54 shots). On the menu 23 of 382 frames drew
+(only what changed is drawn), at 0.11 ms a frame and 1.9 ms at most, 0.5% of the real time. In play every frame drew, at
+1.9 ms a frame and 19.4 ms at most (on a machine busy with other sessions' games), 9.4% of the real time. The wasm
+heap stands at 46 MB, 44 of it in use: the 149 images' pixels are 34.6 MB and the 41 sounds 3.8 MB, the same images kept
+after their upload as natively. The JavaScript heap is 12 MB. No error was logged. Nothing there needs speeding up.
+
+## 7. The PopCap Game Collection version (2026-11-11)
+
+The Collection disc (the user's ISO, 2009) has Dynomite Deluxe as the group `DynomiteDeluxeComponent`: 227 files, 4.1 MB.
+`unshield` (`E:\retools\unshield-build`, built for Bejeweled's check) read it from the image mounted read-only, dismounted
+afterwards, into the main checkout's `re/_installers/DynomiteDeluxeCollection` (git-ignored).
+
+**The same game.** The Collection's `Dynomite.exe` is the game itself, with no wrapper around it. Set beside the game
+image carved out of Steam's wrapper (`re/dynomite/bin/DynomiteGame.exe`; Bejeweled's `tools/collection/cmpexe.py`), it
+has the same link time (2003-07-08 21:48:08), the same entry point and the same sections. `.text` and `.data` are byte for
+byte the same; `.rdata` differs in 7 bytes, the digits of a partner stamp at 0x5039a1; `.rsrc` is larger (143,360 bytes
+against 28,672: more icons), a few header bytes differ and a signature of 5,424 bytes follows the last section. So
+everything the decompilation, the identical-play pass and the coverage check found holds for the Collection's game too.
+The port finds the game image in either file (`LoadGameTexts` takes the image whose texts match), and the texts are the
+same by address and hash.
+
+**The files** (Bejeweled's `tools/collection/cmpfiles.py`, against the Steam install). Of the Steam folder's 272 files
+and the Collection's 227, 218 are the same byte for byte: every sound, song, data file, the puzzle pack and every picture
+but these:
+
+- `images/title.jpg`, the loading screen: the Steam copy's carries the flat "PopCap Games" logo with the web address at the
+  bottom right; the Collection's is another encoding with PopCap's round logo and two TM marks. The port draws the file it
+  is given.
+- `images/whitefont.png`, `whitefont2.png` and `whitefontsmall.png`: palette pictures in Steam's copy, RGBA in the
+  Collection's, with the same alpha and the same colour wherever a pixel shows.
+- `properties/partner.xml`: the same product name, registry key (`PopCap\Dynomite`), `NoReg` and `DefaultWindowed`. The
+  Collection's sets `DontUpdate` false and links "Play More Great Games!" to PopCap's site, with an `Offering` number;
+  Steam's has its store id and buy link and one "More Games" link. The update check and the links are not in the port.
+- Only in the Steam folder: the wrapper's files (`drm.swf`, `drm.xml`, `drmss.jpg`, `Flash.ocx`), the user's high scores
+  (`fossil.hs`, `timetrial.hs`), `stomped/readme.txt`, and 38 `sounds/cached_*.wav`. Those are the original's own cache:
+  its sound manager (0x495db0) loads `cached_<name>.wav` when it exists, else the sound's own file, and passes a decoded
+  Ogg or MP3 to 0x4943e0 under the cached name, so a Collection install makes them on its first run. The port decodes the Ogg files and reads no cached file.
+
+## 8. Removal of code the port does not need (2026-11-11)
+
+The registration code and the buttons that lead out of the game went earlier (`README.md`, "Registration and loading").
+A scan of the port for what nothing calls or uses (every function defined in `src/` whose name appears nowhere but its
+declaration, every picture the app loads and nothing draws, every field nothing reads, checked against the export)
+found, and took out:
+
+- `FossilizedApp::PumpLoading`, the port's own, which nothing called; `CeilingSpeed::ResetSpeed` (0x435dc0), which
+  nothing calls in the port or in the original (Ghidra found no caller and made no function there).
+- The update check's wait bar, `images/waitbar` (+0x1224): the original draws it only in its online update check
+  (0x41f4c0), which the port does not have.
+- Two cells of the main menu's signs that the original cuts and never draws ("select the game you want to play" and
+  "select a difficulty level", +0x12fc and +0x1300). Their two steps of the loading count stay, so the bar reaches the
+  original's 394.
+- The count of games that lasted a minute (+0x4d8), which only the unregistered copy's screens read.
+- Fields nothing touches or only clears: the main menu's +0x64, +0x238 and +0x274, the title's +0x90 and the
+  two spare ints of each cell the ceiling check visits.
+- The parameter of Stomped's `LoadGrid` (0x40eef0) and `NextPuzzle` (0x40fc30), which the original's functions do not
+  take (Ghidra's listing gave them one, and every call passed 1).
+
+Kept on purpose: the fields that only a saved game holds (the board's +0x64, the launcher's +0x1c, +0x30 and +0xa5c,
+the fire prompt's +0xc and +0x1c, Steggy's +0x28 and +0x2c, the Fossil Challenge's +0x264), since the saved game's
+format stays the original's; each is named for what it holds and says that nothing reads it. The staging tool no
+longer copies the 38 `sounds/cached_*.wav` the original writes on its first run (section 7), which the port never read.
+
+## 9. The readability pass (2026-11-11)
+
+`tools/namecheck.py games/dynomite` went from 1130 findings to none. There is no Mac build of Dynomite, so every name
+comes from how the code uses the thing, read in the port and checked in the export where the port's uses left it
+open.
+
+- **61 stand-in names** (`mField70` and the like, 1085 uses) named for what they hold: the board's play field
+  (`mPlayWidth`, `mPlayHalfWidth`, `mPlayMiddleX`, `mLineY`), its game's end (`mLosing`, `mGameOver`, `mGameOverShown`,
+  `mGameOverDelay`, `mPanelTop`), the shot (`mFireBlocked`, `mPlaying`, `mShotCount`, `mFiredThisRound`, `mAvoidColor`,
+  `mLastFiredColor`, `mInputLocked` for the tutorial), the ceiling (`mCeilingGoal`, `mCeilingAtGoal`), the grid's
+  `mAlarmDue`, `mCeilingDrawn`, `mKeepPastRight` and `mShowPastLine`, the launcher's hand, band, aim path and arrow,
+  and the rest. A field that is saved and loaded and that nothing reads (section 8) says so; three hold 0 throughout
+  and are `mSavedZero`, after Alchemy's and Atomica's.
+- **The picture cells** named for what they show (`mPicNextButton`, `mPicBackButton`, `mPicPlayButton` and their
+  hover cells, `mPicNewGameIcon`, `mPicPanicIcon`, `mPicWelcomeSign`, `mPicStartNewGameSign`, the side bar's
+  `mPicMenuButton`, `mPicOptionsButton`, `mPicExitButton`, `mPicMuseumButton`), and the side bar's numbered buttons
+  (`mButton1`, `mButton2`, `mButton5`) as `mOptionsButton`, `mExitButton` and `mMuseumButton`.
+- **Nine functions** given their original's address or the port marker: the helpers split out of `Dynomite::Load`
+  (0x405590), the main menu's constructor (0x424e90), `PuzzleListWidget::LoadPacks` (0x4312b0) and `Tutorial::Step`
+  (0x43b2c0) name it; `WarpToBoard` names the two places the original does it inline; the memory file and the game
+  texts are the port's.
+- **Seven one-letter names** that lived past ten lines, and the comments that named a renamed field by its offset.
+
+The renames are proved by the object code (`tools/objsnap.py`): every object of the game compiles to the same
+instructions before and after, but for `DynomiteStomped.cpp`, where the dropped parameter of section 8 changes the
+calls. `tools/splitfields.py dynomite` finds no member declared twice; its "never written" members are character
+arrays filled by `strcpy`, and its read-only offsets are calls through the virtual table.
+
+## 10. Coverage check (2026-11-11)
+
+The whole coverage check (`docs/COVERAGE.md`). origrun's `--coverage` recorded which of the original's functions ran in
+19 runs, every one of them the original's side of a phase-two sound comparison (`tools/shots/sound.sh <tour> orig` with
+`ORIG_ARGS="--coverage ..."`, the hits in `build/coverage/dynomite/hits/`): on the host, on the virtual clock, with the
+recording sound stand-in, so the mixer's and the music's code run. They are the tutorial, the recorded games of every
+mode (Endless, Stomped, Fossil, Panic and Time Trial, the last recorded twice, `IDENTICAL_PLAY.md`) and tours t1 to
+t12. Each reached 1259 to 1532 of the exe's 6531 functions, and every one ended with the game exiting by itself.
+
+`games/dynomite/coverage.txt` sets the game's own code as 0x401000-0x442690 (the game classes in link order, to the
+whirley and its small effects); the rest of the exe is the 2003 SexyApp framework, its libraries and the C runtime. The
+game's code has 670 functions; the runs reached 593 of them, the port defines 556, and 114 are left out on purpose.
+
+**Reached in the original with no counterpart in the port: 65 at first (the first four runs), none at the end.**
+
+- **The compiler's scalar deleting destructors: 45**, each a call of the destructor proper and a free, as `none` lines.
+- **Left out on purpose: 15 more**, each a `none` line with its reason: the C++ library's string and vector code that the
+  linker put among the game's (`std::string` assignment, append and compare, a vector of strings' copy), two of the
+  framework's inline defaults in the name dialog's table, `CRect`'s constructor, the cursor override that always calls
+  SexyApp's own (its flag is never set), and the update check on quitting (it goes online). The registration code, the
+  update check's question and download, opening a URL and the credits' two links were `none` lines already (sections
+  7 and 8).
+- **Placed: 5.** Functions the port has inline got their address in the comment over the code that holds them: the
+  angle table's lookup, the list's constructor, a picture's size, Steggy's draw helper and the program's entry.
+- **No missing game logic was found.**
+
+**Defined in the port, never reached: 135 after the first four runs, 33 at the end.** The tours t1 to t9 and the
+Panic and Time Trial recordings reached the save and load of Endless, the options, credits and high scores, the exit
+question, the pause and museum keys and Time Trial's scoring (50 left). Three tours were then added for what no run had
+done, t10 to t12 (`IDENTICAL_PLAY.md`): a save and Continue Game in Stomped, in Fossil with the museum open and in Time
+Trial, Return in the high score's name box and in the save's, and the options' Music slider. Time Trial was recorded
+again on the current exe, since the first recording's replay stopped one update short of clearing the board and so never
+drew Time Trial's results (0x412cb0, 3.2 KB). Those runs reached 17 more, among them the three modes' and the museum's
+save and load, both name boxes' Return, the slider and the results.
+
+Every one of the 33 left, and nine that the last runs then reached, was read again against the export: 41 in two Sonnet
+passes, where a save was also checked against its load, field by field and width by width, and `EggGrid::PickColor`
+earlier in the session. All match but one,
+which differs only where nothing reaches it:
+
+- **`PicFont::~PicFont` (0x4365d0)**: the original deletes the font's image itself, shared or not and without clearing
+  the pointer, and then `~Pic` deletes it again, a double delete. Neither program ever deletes a font (all three live as
+  long as the app), so it never runs; the port deletes the image once, and its comment says so.
+
+What reaches the 33, none of which a run of the original met:
+
+- **A save with something alive that the runs' saves never caught**: five effects' save and load (a baby dinosaur, a
+  bonus egg's prize in flight, a dynamite's boom, confetti, a broken egg's shell quarters), the thunderbolt's, Panic's
+  whirleys' and the Rex attack's (16).
+- **The Rex attack** on the museum's last wall (level 15, round 3, after the Beware button): its constructor, destructor,
+  update and draw (4), and `EggGrid::PickColor`, for a level's cells of kind 0x14, which no run's levels had (1).
+- **Input no run gave**: a bomb's blast on the fossil board (`DynomiteFossil::Blasted`, its kick), Stomped's pack list
+  under the mouse (its scrolling, hover and click: no run moved the mouse over the list), and the dialog that the
+  options show when the desktop allows only full screen (`ShowNoWindowed`), and the destructors of a fossil and of the side bar's small Inchy's bubble
+  (`~Fossil`, `~InchyBubble`, through their scalar deleting destructors): every run quits from the game it played, and
+  the original exits without deleting its objects (7).
+- **Nothing in either program**: the destructors of a font and of a sound, which live as long as the app (`~PicFont`,
+  `~GameSound`), the board's empty `DrawPiece` (only the fossil board's own runs, and fossil pieces exist only there),
+  `CellButton::SetFont` and `PtrList::SortedAdd` (5).
+
+**Candidates for taking out**, none removed now: `PtrList::SortedAdd` with the list's sort mode and offset (no list of the
+game is sorted: the constructor zeroes the mode, nothing sets it, and `Add` runs in every run while `SortedAdd` never
+does), and `CellButton::SetFont` (nothing calls it on a cell button; the original's calls are on plain buttons). The
+destructors stay, as a class needs them, and so does the rest: code that only some input or a long game reaches.
+
+The coverage check found one fault of the port's, though not through a function: the first comparison of the Fossil and
+Panic recordings' screens showed the museum coming up over a black board, and the port now keeps its screen as the
+original's does (`IDENTICAL_PLAY.md`, "Phase 2: what was changed", d012ac13). The extra runs cost about 40 minutes of
+machine time (the new recording, three tours, each in both programs with screens and sound), and the two rereads about
+275,000 Sonnet tokens.

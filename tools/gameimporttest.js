@@ -10,6 +10,7 @@
 const fs = require("fs");
 const path = require("path");
 const vm = require("vm");
+const waits = [];
 
 const root = path.join(__dirname, "..");
 const ctx = { window: {}, console };
@@ -168,5 +169,51 @@ check("either: AstroPop's Collection exe", I.findRoot(spec("astropop"), ap("Astr
 check("either: AstroPop with neither exe", I.findRoot(spec("astropop"), ap(null), false), null);
 check("either: AstroPop with neither exe, named", I.missingMarkers(spec("astropop"), ap(null)), "WinAP.exe or AstroPop.exe");
 
+// The exe check (exeUnreadable): a made-up image with one section at 0x401000 (raw data at 0x200) holding a text at 0x401010.
+// The probe holds in the plain image and in the same image behind PopCap's launcher marker, and fails once the section's
+// bytes are scrambled, as a packed and encrypted copy's are, or for a wrong hash.
+{
+  const img = new Uint8Array(0x400);
+  img[0] = 0x4d; img[1] = 0x5a;
+  const dv = new DataView(img.buffer);
+  dv.setUint32(0x3c, 0x80, true);
+  img.set([0x50, 0x45, 0, 0], 0x80);
+  dv.setUint16(0x80 + 6, 1, true); dv.setUint16(0x80 + 20, 0xe0, true); dv.setUint32(0x80 + 24 + 28, 0x400000, true);
+  const sec = 0x80 + 24 + 0xe0;
+  dv.setUint32(sec + 12, 0x1000, true); dv.setUint32(sec + 16, 0x200, true); dv.setUint32(sec + 20, 0x200, true);
+  const text = [0x47, 0x65, 0x6d], at = 0x210;
+  img.set(text, at); img[at + 3] = 0;
+  let h = 2166136261; for (const c of text) { h ^= c; h = Math.imul(h, 16777619) >>> 0; }
+  const probe = { va: 0x401010, len: 3, fnv: h };
+  check("exe: plain image", I.probeHolds(img, probe), true);
+  const marker = Array.from("junk!popcapdrmprotect!pad").map((c) => c.charCodeAt(0));
+  const wrapped = new Uint8Array(0x300 + marker.length + img.length);
+  wrapped[0] = 0x4d; wrapped[1] = 0x5a; wrapped.set(marker, 0x300); wrapped.set(img, 0x300 + marker.length);
+  check("exe: PopCap's launcher with the image appended", I.probeHolds(wrapped, probe), true);
+  const packed = img.slice(); for (let i = 0x200; i < 0x400; i++) packed[i] ^= 0x5a;
+  check("exe: the section packed", I.probeHolds(packed, probe), false);
+  check("exe: a wrong hash", I.probeHolds(img, { va: probe.va, len: 3, fnv: (h ^ 1) >>> 0 }), false);
+  ctx.ByopopExeProbes = { alchemy: { files: ["AlchemyGame.exe"], probes: [probe] } };
+  const one = (bytes) => [{ rel: "AlchemyGame.exe", read: () => Promise.resolve(bytes) }];
+  waits.push(I.exeUnreadable("alchemy", one(img)).then((r) => check("exe: a readable copy passes", r, null)));
+  waits.push(I.exeUnreadable("alchemy", one(packed)).then((r) => check("exe: a packed copy is named", r, "AlchemyGame.exe")));
+  waits.push(I.exeUnreadable("alchemy", []).then((r) => check("exe: no exe is the markers' to say", r, null)));
+  waits.push(I.exeUnreadable("bejeweled", one(packed)).then((r) => check("exe: a game with no probes passes", r, null)));
+}
+
+// The real tables (web/exeprobes.js): every game's probes hold in no exe they should not, and Shockwave's BookWorm (Armadillo:
+// its game sections packed and encrypted), when a copy sits in build/shockwave/BookWorm.exe (git-ignored), is refused
+{
+  const tab = new Function(fs.readFileSync(path.join(root, "web", "exeprobes.js"), "utf8") + "; return ByopopExeProbes;")();
+  check("exe table: every game has names and probes", Object.keys(tab).every((g) => tab[g].files.length > 0 && tab[g].probes.length > 0), true);
+  const sw = path.join(root, "build", "shockwave", "BookWorm.exe");
+  if (fs.existsSync(sw)) {
+    const b = new Uint8Array(fs.readFileSync(sw));
+    check("exe: Shockwave's BookWorm is refused", tab.bookworm.probes.some((q) => I.probeHolds(b, q)), false);
+  }
+}
+
+Promise.all(waits).then(() => {
 console.log(`gameimporttest: ${checks} checks, ${failed} failed`);
 process.exit(failed ? 1 : 0);
+});

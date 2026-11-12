@@ -23,7 +23,6 @@ class IntroScreen : public Widget, public ButtonListener
 {
 public:
 	FossilizedApp*		mApp;					// +0x60
-	int					mField64;				// +0x64
 	int					mStartChoice;			// +0x68 the start page's choice (ids 10-12 give 0-2)
 	Pic*				mSlotPics[8];			// +0x70 the saved games' pictures
 	Cell*				mSlotCells[8];			// +0x90
@@ -33,7 +32,6 @@ public:
 	char				mSlotModes[8][0x14];	// +0xd8 the mode's name in each saved game
 	char				mSlotInfos[8][0x14];	// +0x178
 	int					mSlotNumbers[8];		// +0x218 n of SLOTn.SAV
-	int					mField238;				// +0x238
 	CellButton*			mStartButtons[3];		// +0x23c ids 10-12
 	CellButton*			mSkillButtons[3];		// +0x248 ids 0-2
 	CellButton*			mModeButtons[4];		// +0x254 ids 3-6
@@ -41,10 +39,9 @@ public:
 	CellButton*			mBackButton;			// +0x268 id 9
 	ScrollbarWidget*	mScrollbar;				// +0x26c
 	PuzzleListWidget*	mPuzzleList;			// +0x270
-	int					mField274;				// +0x274
 	MenuTalker*			mTalker;				// +0x278
 	int					mPage;					// +0x27c 0 start, 1 modes, 2 skill, 3 saved games, 5 puzzles, 6 fossil skill
-	bool				mField280;				// +0x280
+	bool				mKeepMusic;				// +0x280 a game or the tutorial starts: the destructor leaves the music playing
 
 	IntroScreen(FossilizedApp* theApp);			// 0x424e90
 	virtual ~IntroScreen();						// 0x425570

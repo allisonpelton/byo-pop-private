@@ -34,7 +34,7 @@ void Options::reset()
 	mFullScreen = 0;
 	if (gPortalConfig != nullptr)
 		mFullScreen = gPortalConfig->mStartFullScreen;
-	mField1C = 0;
+	mWindowSpare = 0;
 	mInterstitial = 0;
 	mWindowX = 0x32;
 	mWindowY = 0x46;
@@ -60,7 +60,7 @@ void Options::load()
 			fileReadInt(aFile, &mFullScreen);
 			fileReadInt(aFile, &mWindowX);
 			fileReadInt(aFile, &mWindowY);
-			fileReadInt(aFile, &mField1C);
+			fileReadInt(aFile, &mWindowSpare);
 			fileReadInt(aFile, &mClientX);
 			fileReadInt(aFile, &mClientY);
 			fileReadInt(aFile, &mInterstitial);
@@ -83,7 +83,7 @@ void Options::save()
 		fileWriteInt(aFile, &mFullScreen);
 		fileWriteInt(aFile, &mWindowX);
 		fileWriteInt(aFile, &mWindowY);
-		fileWriteInt(aFile, &mField1C);
+		fileWriteInt(aFile, &mWindowSpare);
 		fileWriteInt(aFile, &mClientX);
 		fileWriteInt(aFile, &mClientY);
 		fileWriteInt(aFile, &mInterstitial);

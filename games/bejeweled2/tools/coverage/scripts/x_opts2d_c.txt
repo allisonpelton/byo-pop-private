@@ -1,0 +1,30 @@
+# exploration (portshots.sh): the 2D Options dialog's checkboxes, each answered with Escape
+at 562 shot title
+at 566 move 320 401
+at 568 click 320 401
+at 762 text Ali
+at 764 key 13
+at 953 key 27
+at 962 move 79 428
+at 964 click 79 428
+at 1050 shot options
+at 1060 move 407 208
+at 1062 click 407 208
+at 1124 shot a_highres
+at 1131 key 27
+at 1193 shot b_highres
+at 1200 move 340 251
+at 1202 click 340 251
+at 1264 shot a_backdrops
+at 1271 key 27
+at 1333 shot b_backdrops
+at 1340 move 277 208
+at 1342 click 277 208
+at 1404 shot a_accel
+at 1411 key 27
+at 1473 shot b_accel
+at 1480 move 146 208
+at 1482 click 146 208
+at 1544 shot a_full
+at 1551 key 27
+at 1613 shot b_full

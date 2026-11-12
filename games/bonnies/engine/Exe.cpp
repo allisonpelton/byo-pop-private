@@ -111,71 +111,71 @@ bool runInitializer(uint32_t theAddress)
 	uint32_t pc = theAddress;
 	for (int aCount = 0; aCount < 100000; aCount++)
 	{
-		const uint8_t* p = exePtr(pc);
-		uint8_t op = p[0];
+		const uint8_t* aCode = exePtr(pc);
+		uint8_t op = aCode[0];
 		if (op == 0xc3 || op == 0xc2 || op == 0xe9 || op == 0xeb)
 			return true;
 		if (op == 0x90)
 		{
 			pc += 1;
 		}
-		else if (op == 0xc7 && p[1] == 0x05)
+		else if (op == 0xc7 && aCode[1] == 0x05)
 		{
 			uint32_t anAddress;
-			std::memcpy(&anAddress, p + 2, 4);
-			std::memcpy((void*)exePtr(anAddress), p + 6, 4);
+			std::memcpy(&anAddress, aCode + 2, 4);
+			std::memcpy((void*)exePtr(anAddress), aCode + 6, 4);
 			pc += 10;
 		}
 		else if (op == 0xa3)
 		{
 			uint32_t anAddress;
-			std::memcpy(&anAddress, p + 1, 4);
+			std::memcpy(&anAddress, aCode + 1, 4);
 			std::memcpy((void*)exePtr(anAddress), &aRegs[0], 4);
 			pc += 5;
 		}
-		else if (op == 0x89 && (p[1] & 0xc7) == 0x05)
+		else if (op == 0x89 && (aCode[1] & 0xc7) == 0x05)
 		{
 			uint32_t anAddress;
-			std::memcpy(&anAddress, p + 2, 4);
-			std::memcpy((void*)exePtr(anAddress), &aRegs[p[1] >> 3 & 7], 4);
+			std::memcpy(&anAddress, aCode + 2, 4);
+			std::memcpy((void*)exePtr(anAddress), &aRegs[aCode[1] >> 3 & 7], 4);
 			pc += 6;
 		}
-		else if ((op == 0x89 || op == 0x88 || op == 0x8b) && (p[1] & 0xc7) == 0x44 && p[2] == 0x24)
+		else if ((op == 0x89 || op == 0x88 || op == 0x8b) && (aCode[1] & 0xc7) == 0x44 && aCode[2] == 0x24)
 		{
 			pc += 4;  // a store to or load from the stack frame (the unwind state)
 		}
-		else if ((op == 0x89 || op == 0x88 || op == 0x8b) && (p[1] & 0xc7) == 0x45)
+		else if ((op == 0x89 || op == 0x88 || op == 0x8b) && (aCode[1] & 0xc7) == 0x45)
 		{
 			pc += 3;
 		}
-		else if (op == 0xc7 && p[1] == 0x44 && p[2] == 0x24)
+		else if (op == 0xc7 && aCode[1] == 0x44 && aCode[2] == 0x24)
 		{
 			pc += 8;
 		}
-		else if (op == 0xc6 && p[1] == 0x44 && p[2] == 0x24)
+		else if (op == 0xc6 && aCode[1] == 0x44 && aCode[2] == 0x24)
 		{
 			pc += 5;
 		}
 		else if (op >= 0xb8 && op <= 0xbf)
 		{
-			std::memcpy(&aRegs[op - 0xb8], p + 1, 4);
+			std::memcpy(&aRegs[op - 0xb8], aCode + 1, 4);
 			pc += 5;
 		}
-		else if ((op == 0x33 || op == 0x31) && (p[1] & 0xc0) == 0xc0)
+		else if ((op == 0x33 || op == 0x31) && (aCode[1] & 0xc0) == 0xc0)
 		{
-			aRegs[p[1] & 7] = 0;
+			aRegs[aCode[1] & 7] = 0;
 			pc += 2;
 		}
 		else if (op == 0x68)
 		{
 			uint32_t aValue;
-			std::memcpy(&aValue, p + 1, 4);
+			std::memcpy(&aValue, aCode + 1, 4);
 			aStack.push_back(aValue);
 			pc += 5;
 		}
 		else if (op == 0x6a)
 		{
-			aStack.push_back((uint32_t)(int32_t)(int8_t)p[1]);
+			aStack.push_back((uint32_t)(int32_t)(int8_t)aCode[1]);
 			pc += 2;
 		}
 		else if (op >= 0x50 && op <= 0x57)
@@ -189,22 +189,22 @@ bool runInitializer(uint32_t theAddress)
 				aStack.pop_back();
 			pc += 1;
 		}
-		else if (op == 0x64 && p[1] == 0xa1)
+		else if (op == 0x64 && aCode[1] == 0xa1)
 		{
 			pc += 6;
 		}
-		else if (op == 0x64 && p[1] == 0x89)
+		else if (op == 0x64 && aCode[1] == 0x89)
 		{
 			pc += 7;
 		}
-		else if (op == 0x83 && (p[1] == 0xc4 || p[1] == 0xec))
+		else if (op == 0x83 && (aCode[1] == 0xc4 || aCode[1] == 0xec))
 		{
 			pc += 3;
 		}
 		else if (op == 0xe8)
 		{
 			int32_t aDelta;
-			std::memcpy(&aDelta, p + 1, 4);
+			std::memcpy(&aDelta, aCode + 1, 4);
 			uint32_t aTarget = pc + 5 + (uint32_t)aDelta;
 			if (aTarget == 0x41d720)
 			{
@@ -225,7 +225,7 @@ bool runInitializer(uint32_t theAddress)
 const std::string kEmpty;
 }
 
-int runStaticInitializers(std::vector<uint32_t>* theUnknown)
+int runStaticInitializers(std::vector<uint32_t>* theNotUnderstood)
 {
 	int aDone = 0;
 	for (uint32_t anEntry = 0x466000; anEntry < 0x466284; anEntry += 4)
@@ -235,8 +235,8 @@ int runStaticInitializers(std::vector<uint32_t>* theUnknown)
 			continue;
 		if (runInitializer(anInit))
 			aDone++;
-		else if (theUnknown != nullptr)
-			theUnknown->push_back(anInit);
+		else if (theNotUnderstood != nullptr)
+			theNotUnderstood->push_back(anInit);
 	}
 	return aDone;
 }

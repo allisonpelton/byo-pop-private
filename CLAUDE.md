@@ -110,6 +110,10 @@ Every call re-reads the whole context, so what costs is context times calls, and
   or one Bash command with the reads separated by `echo ---`.
 - Test with `tools/check.sh <suite>...` (`--help` lists them): one line per suite, logs in files.
 - Give an agent the files and sections it needs, so it need not read the design docs to find them.
+- **No clearing between steps (the user, 2026-11-12: "Keep it at 400k. I determined this was ideal").** Sessions keep
+  their conversation and compact on their own at the full window; nobody clears them or writes handoff notes for it. A
+  day of clearing (2026-11-11) left contexts at 170k to 255k a call, since a step regrows them, and cost the
+  coordinator its own calls. Monitors notify when a run ends, not on progress lines.
 
 ## Sessions, ownership and git
 

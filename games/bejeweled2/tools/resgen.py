@@ -104,7 +104,7 @@ def main():
     c += ['\t\t%s,' % (('&' + rid) if kind[rid] == 'image' else 'nullptr') for rid in ids]
     c += ['\t};', '\treturn (unsigned)theId < RESOURCE_ID_MAX && aImages[theId] != nullptr ? *aImages[theId] : nullptr;', '}', '']
     for g, items in groups:
-        h.append('// %s' % g)
+        h.append('// %s: 0x%x' % (g, int(dict(GROUPS)[g], 16)))   # the group's function in the exe (the coverage check finds it by this address)
         h.append('bool Extract%sResources(ResourceManager* theManager);' % g)
         for k, rid in items:
             h.append('extern %s %s;' % (KINDS[k], rid))

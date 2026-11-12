@@ -156,26 +156,6 @@ static const DefaultHighScore gDefaultBestWords[BookWormApp::NUM_WORD_SCORES] =
 static const char* const gPlayersDir = "players";
 
 //////////////////////////////////////////////////////////////////////////
-// Math (Math.cpp 0x42e330-0x42e3d0)
-
-// 0x42e330: the tables are computed in x87 extended precision and stored as floats; the port computes
-// them in double precision (nobody reads them).
-Math::Math()
-{
-	mPi = 3.1415925f; // 0x40490fda
-	for (int i = 0; i < 360; i++)
-	{
-		mSin[i] = (float) sin((double) mPi * (double) i * 0.005555555555555556);
-		mNegCos[i] = (float) -cos((double) i * (double) mPi * 0.005555555555555556);
-	}
-}
-
-// 0x42e390
-Math::~Math()
-{
-}
-
-//////////////////////////////////////////////////////////////////////////
 // High-score predicates
 
 // 0x4115d0
@@ -274,15 +254,11 @@ BookWormApp::BookWormApp()
 	mBuildNum = 190;
 	mBuildDate = "Thu Apr 15 14:52:08 2004";
 
-	mUnusedString2 = "";
-	mInitDone = false;
 	mMusicInterface = NULL;
 	for (int i = 0; i < NUM_FONTS; i++)
 		mFonts[i] = NULL;
 	for (int i = 0; i < NUM_TILESETS; i++)
 		mTileSetImages[i] = NULL;
-	for (int i = 0; i < 4; i++)
-		mUnusedImages[i] = NULL;
 	mSelectedGameMode = -1;
 	mCheckboxOnImage = NULL;
 	mCheckboxOffImage = NULL;
@@ -301,23 +277,14 @@ BookWormApp::BookWormApp()
 	mRegKey = "PopCap\\BookWorm";
 	mCustomCursorsEnabled = false;
 	mGameMode = GAMEMODE_CLASSIC;
-	mScoringMethod = 1;
 	mUserTimesPlayed = 0;
-	mScrambled = false;
 	mWelcomePlayed = false;
-	mInternetOK = false;
-	mUnused12eb = false;
 	mWatchOutHintShown = false;
 	mFireAlertHintShown = false;
 	mGreenTileHintShown = false;
-	mUnused12ef = false;
 	mScrambleHintShown = false;
-	for (int i = 0; i < 11; i++)
-		mUnusedHintFlags[i] = false;
 	mResumeUpdateCnt = 0;
 	mPlayTicks = 0;
-	mGameOption = 1;
-	mUnused12e6 = true;
 	mShowHelp = true;
 	mShowHints = true;
 	mShowDefs = true;
@@ -357,7 +324,7 @@ BookWormApp::BookWormApp()
 	mWatchSavedRefillLevel = -1;
 }
 
-// 0x4187b0. The widgets were removed and deleted by ShutdownWidgets (the help widget is not: original).
+// 0x4187b0. The widgets were removed and deleted by CleanupWidgets (the help widget is not: original).
 BookWormApp::~BookWormApp()
 {
 	delete mAutoplayBot; // port: the -autoplay test hook
@@ -375,8 +342,6 @@ BookWormApp::~BookWormApp()
 		delete mFonts[i];
 	for (int i = 0; i < NUM_TILESETS; i++)
 		delete mTileSetImages[i];
-	for (int i = 0; i < 4; i++)
-		delete mUnusedImages[i];
 	delete mCheckboxOnImage;
 	delete mCheckboxOffImage;
 	for (std::list<MemoryImage*>::iterator anItr = mCopiedImages.begin(); anItr != mCopiedImages.end(); ++anItr)
@@ -427,7 +392,7 @@ void BookWormApp::ButtonDepress(int theId)
 		{
 		case DIALOG_UNUSED_0:
 			KillDialog(DIALOG_UNUSED_0);
-			ShowGameSelector();
+			DoGameSelector();
 			return;
 
 		case DIALOG_OPTIONS:
@@ -442,17 +407,6 @@ void BookWormApp::ButtonDepress(int theId)
 			mGameSelector->StartGame();
 			mBoard->LoadGame(mSelectedGameMode);
 			mBoard->DeleteSavedGame(mGameMode);
-			return;
-
-		case DIALOG_INTERNET_REQUIRED:
-			KillDialog(DIALOG_INTERNET_REQUIRED);
-			mInternetOK = true;
-			// not ported: FameWidget::StartNetTransfer (internet high scores)
-			return;
-
-		case DIALOG_ASK_UPDATE_CHECK:
-			KillDialog(DIALOG_ASK_UPDATE_CHECK);
-			// 0x415de0 DoUpdateCheck not ported (update check)
 			return;
 
 		case DIALOG_QUIT:
@@ -512,38 +466,11 @@ void BookWormApp::ButtonDepress(int theId)
 			return;
 		}
 
-		case DIALOG_ALIAS:
-			// not ported: the internet alias (SetCurrentAlias from the GetStringDialog, then
-			// ConfirmInternetConnect when the hall of fame is up)
-			KillDialog(DIALOG_ALIAS);
-			return;
-
-		case DIALOG_NAME_TAKEN:
-			KillDialog(DIALOG_NAME_TAKEN);
-			// 0x414080 ShowAliasDialog(GetCurrentAlias()) not ported (internet high scores)
-			return;
-
-		case DIALOG_CONNECTING:
-			// not ported: FameWidget's mNetState = 0 (internet high scores)
-			KillDialog(DIALOG_CONNECTING);
-			return;
-
 		case DIALOG_LEAVE_GAME:
 			KillDialog(DIALOG_LEAVE_GAME);
 			if ((mBoard != NULL) && (mBoard->IsInProgress()))
 				mBoard->SaveGame(mGameMode);
-			ShowGameSelector();
-			return;
-
-		case DIALOG_UPDATE_AVAILABLE:
-			KillDialog(DIALOG_UPDATE_AVAILABLE);
-			KillDialog(DIALOG_UPDATE_CHECK);
-			// not ported: OpenURL(mInternetManager->GetUpdateURL(), true) (update check)
-			return;
-
-		case DIALOG_UPDATE_NONE:
-			KillDialog(DIALOG_UPDATE_NONE);
-			KillDialog(DIALOG_UPDATE_CHECK);
+			DoGameSelector();
 			return;
 
 		default:
@@ -586,11 +513,6 @@ void BookWormApp::ButtonDepress(int theId)
 			}
 			if (mGameSelector != NULL)
 				mGameSelector->SetDisabled(false);
-			return;
-
-		case DIALOG_UPDATE_AVAILABLE:
-			KillDialog(DIALOG_UPDATE_AVAILABLE);
-			KillDialog(DIALOG_UPDATE_CHECK);
 			return;
 
 		default:
@@ -688,7 +610,7 @@ void BookWormApp::LoadingThreadCompleted()
 {
 }
 
-// port: SexyAppBase::Init runs this first, then ReadFromRegistry (LoadHighScores adds the default rows, which
+// port: SexyAppBase::Init runs this first, then ReadFromRegistry (ReadFameRegistry adds the default rows, which
 // are game texts), then the window and BookWormApp::Init (the title screen). The texts come from the game
 // folder's Bookworm.exe; properties/texts.xml, when present (a mod or language pack), overrides any of them
 // by id.
@@ -737,7 +659,7 @@ void BookWormApp::Init()
 		SetRandMTState(aState, anIndex);
 	}
 
-	if (!CheckRegistryAccess())
+	if (!VerifyHKLMAccess())
 	{
 		Shutdown();
 		return;
@@ -753,7 +675,7 @@ void BookWormApp::Init()
 	{
 		if (gImageNames[i] == NULL)
 			continue;   // an image only registration drew
-		if (!LoadImage(i))
+		if (!DoLoadImage(i))
 		{
 			Shutdown();
 			return;
@@ -763,7 +685,7 @@ void BookWormApp::Init()
 
 	for (int i = 0; i < NUM_INIT_FONTS; i++)
 	{
-		if (!LoadFont(i))
+		if (!DoLoadImageFont(i))
 		{
 			Shutdown();
 			return;
@@ -785,7 +707,6 @@ void BookWormApp::Init()
 	SetCursorImage(CURSOR_HAND, mImages[IMAGE_CURSOR_HAND]);
 	SetCursorImage(CURSOR_DRAGGING, mImages[IMAGE_CURSOR_DRAGGING]);
 	SetCursorImage(CURSOR_TEXT, mImages[IMAGE_CURSOR_TEXT]);
-	mInitDone = true;
 
 	mTitleScreen = new TitleScreen(this);
 	mTitleScreen->Resize(0, 0, GAME_SCREEN_WIDTH, mHeight);
@@ -819,7 +740,7 @@ void BookWormApp::LoadingThreadProc()
 
 	for (int i = NUM_INIT_FONTS; i < NUM_FONTS; i++)
 	{
-		if ((!LoadFont(i)) || (mShutdown))
+		if ((!DoLoadImageFont(i)) || (mShutdown))
 		{
 			mLoadingFailed = true;
 			return;
@@ -829,7 +750,7 @@ void BookWormApp::LoadingThreadProc()
 
 	for (int i = NUM_INIT_IMAGES; i < NUM_IMAGES; i++)
 	{
-		if ((!LoadImage(i)) || (mShutdown))
+		if ((!DoLoadImage(i)) || (mShutdown))
 		{
 			mLoadingFailed = true;
 			return;
@@ -973,7 +894,7 @@ void BookWormApp::ReadFromRegistry()
 {
 	SexyApp::ReadFromRegistry();
 	mUserManager = new UserManager(this);
-	LoadHighScores();
+	ReadFameRegistry();
 }
 
 // 0x410970 slot 20: the plain dialog (green Verdana10 look; DoDialog restyles it)
@@ -993,38 +914,11 @@ Dialog* BookWormApp::NewDialog(int theDialogId, bool isModal, const SexyString& 
 	return aDialog;
 }
 
-// 0x414fa0 slot 24
-void BookWormApp::URLOpenFailed(const std::string& theURL)
-{
-	SexyApp::URLOpenFailed(theURL);
-	KillDialog(DIALOG_OPENING_BROWSER);
+// 0x414fa0 URLOpenFailed, 0x410b10 URLOpenSucceeded and 0x415100 OpenURL (slots 24 to 26) are not ported: only a
+// link button of the original led to them (the game's links are out), and the framework's OpenURL serves the
+// port's dictionary link (a mod) without the original's wait message and its "open it by hand" dialog.
 
-	Dialog* aDialog = NewDialog(DIALOG_URL_FAILED, true, GameText(GT_OPEN_BROWSER_HEADER),
-		GameText(GT_OPEN_BROWSER_LINES) + theURL, GameText(GT_DIALOG_OK), Dialog::BUTTONS_FOOTER);
-	aDialog->Resize(100, 50, 440, aDialog->GetPreferredHeight(440));
-	AddDialog(DIALOG_URL_FAILED, aDialog);
-}
-
-// 0x410b10 slot 25
-void BookWormApp::URLOpenSucceeded(const std::string& theURL)
-{
-	SexyApp::URLOpenSucceeded(theURL);
-	KillDialog(DIALOG_OPENING_BROWSER);
-}
-
-// 0x415100 slot 26: a wait message (GT_OPENING_BROWSER) until the framework reports (the port's framework
-// never opens a URL in a test run: it reports success at once)
-bool BookWormApp::OpenURL(const std::string& theURL, bool shutdownOnOpen)
-{
-	Dialog* aDialog = NewDialog(DIALOG_OPENING_BROWSER, true, "", GameText(GT_OPENING_BROWSER), "",
-		Dialog::BUTTONS_NONE);
-	aDialog->mContentInsets = Insets(36, 36, 36, 36);
-	aDialog->Resize(164, 140, 312, 98);
-	AddDialog(DIALOG_OPENING_BROWSER, aDialog);
-	return SexyApp::OpenURL(theURL, shutdownOnOpen);
-}
-
-// 0x410ca0 slot 33: saves a game in progress (ShutdownWidgets), then adds the minutes played to the framework's
+// 0x410ca0 slot 33: saves a game in progress (CleanupWidgets), then adds the minutes played to the framework's
 // TimesPlayed (the title shows its first-run text while that is 0). The original does this as the trial's
 // time count, under the property MaxTime (60 when unset, as in the retail build; with MaxTime 0 it counted
 // levels reached under MaxPlays instead): the port keeps the retail build's path only.
@@ -1033,7 +927,7 @@ void BookWormApp::Shutdown()
 	if (mShutdown)
 		return;
 
-	ShutdownWidgets();
+	CleanupWidgets();
 	mTimesPlayed = (int) ((unsigned int) mTimesPlayed + (unsigned int) mPlayTicks / 6000);
 	SexyApp::Shutdown();
 }
@@ -1090,14 +984,14 @@ bool BookWormApp::KillDialog(int theDialogId)
 void BookWormApp::ModalOpen()
 {
 	if (mBoard != NULL)
-		mBoard->Pause(true);
+		mBoard->SetPause(true);
 }
 
 // 0x410af0 slot 61
 void BookWormApp::ModalClose()
 {
 	if (mBoard != NULL)
-		mBoard->Pause(false);
+		mBoard->SetPause(false);
 }
 
 // 0x419000 slot 62 (after the framework unmuted)
@@ -1106,9 +1000,9 @@ void BookWormApp::GotFocus()
 	SexyApp::GotFocus();
 	if (mBoard != NULL)
 	{
-		mBoard->Pause(false);
+		mBoard->SetPause(false);
 		if (mBoard->mPauseCount == 0)
-			PauseAllMusic(false);
+			MuteGameMusic(false);
 		mResumeUpdateCnt = mUpdateCount;
 	}
 }
@@ -1120,8 +1014,8 @@ void BookWormApp::LostFocus()
 	if (mBoard != NULL)
 	{
 		if (mBoard->mPauseCount == 0)
-			PauseAllMusic(true);
-		mBoard->Pause(true);
+			MuteGameMusic(true);
+		mBoard->SetPause(true);
 	}
 }
 
@@ -1134,8 +1028,8 @@ void BookWormApp::TitleScreenDone()
 
 	SexyString aName = mUserManager->mCurrentUser;
 	if (aName.length() != 0)
-		LoadUserSettings();
-	ShowGameSelector();
+		LoadUserConfig();
+	DoGameSelector();
 
 	// port(mod): -replay=<file>: watched at once, as if a game were started from the menu (Replay.h)
 	if (!mWatchPath.empty())
@@ -1160,7 +1054,7 @@ MusicInterface* BookWormApp::CreateMusicInterface()
 	return aMusicInterface;
 }
 
-// port (web): the save Shutdown() would write now (ShutdownWidgets: a game in progress to
+// port (web): the save Shutdown() would write now (CleanupWidgets: a game in progress to
 // players/<name>/<mode>.dat), taken without changing the board (see SexyAppBase::UpdateUserDataBackup)
 void BookWormApp::GetShutdownSaves(std::vector<ShutdownSave>* theSaves)
 {
@@ -1193,7 +1087,7 @@ void BookWormApp::WriteShutdownRegistry()
 }
 
 // 0x40ffa0 (only Shutdown): removes the screens; a game in progress is saved
-void BookWormApp::ShutdownWidgets()
+void BookWormApp::CleanupWidgets()
 {
 	KillDialog(DIALOG_HINT);
 	EndWatch();     // port(mod): the app's own state back (Replay.h)
@@ -1237,7 +1131,7 @@ void BookWormApp::ShutdownWidgets()
 }
 
 // 0x410180
-void BookWormApp::RemoveBoard()
+void BookWormApp::KillBoard()
 {
 	if (mBoard != NULL)
 	{
@@ -1248,7 +1142,7 @@ void BookWormApp::RemoveBoard()
 }
 
 // 0x4101c0: closes the options, then the help screen covers the (paused, hidden) board and summary
-void BookWormApp::ShowHelp()
+void BookWormApp::DoHelp()
 {
 	OptionsDialog* anOptions = (OptionsDialog*) GetDialog(DIALOG_OPTIONS);
 	if (anOptions != NULL)
@@ -1262,7 +1156,7 @@ void BookWormApp::ShowHelp()
 		mHelpWidget->Resize(0, 0, GAME_SCREEN_WIDTH, mHeight);
 		if (mBoard != NULL)
 		{
-			mBoard->Pause(true);
+			mBoard->SetPause(true);
 			mBoard->SetVisible(false);
 			if (mBoard->mLevelUpWidget != NULL)
 			{
@@ -1274,7 +1168,7 @@ void BookWormApp::ShowHelp()
 }
 
 // 0x4102d0
-void BookWormApp::HideHelp()
+void BookWormApp::KillHelp()
 {
 	if (mHelpWidget != NULL)
 	{
@@ -1283,7 +1177,7 @@ void BookWormApp::HideHelp()
 		mHelpWidget = NULL;
 		if (mBoard != NULL)
 		{
-			mBoard->Pause(false);
+			mBoard->SetPause(false);
 			mBoard->SetVisible(true);
 			if ((mBoard->mLevelUpWidget != NULL) && (mBoard->mSummaryShown))
 			{
@@ -1295,7 +1189,7 @@ void BookWormApp::HideHelp()
 }
 
 // 0x410360
-void BookWormApp::RemoveGameSelector()
+void BookWormApp::KillGameSelector()
 {
 	if (mGameSelector != NULL)
 	{
@@ -1306,7 +1200,7 @@ void BookWormApp::RemoveGameSelector()
 }
 
 // 0x4103a0
-void BookWormApp::RemoveFameWidget()
+void BookWormApp::KillFameWidget()
 {
 	if (mFameWidget != NULL)
 	{
@@ -1317,10 +1211,10 @@ void BookWormApp::RemoveFameWidget()
 }
 
 // 0x410d10: a new Board for mGameMode, behind the selector (which slides away)
-void BookWormApp::StartGame()
+void BookWormApp::NewGame()
 {
 	KillDialog(DIALOG_UNUSED_3);
-	HideHelp();
+	KillHelp();
 
 	for (int i = 0; i < NUM_SONGS; i++)
 	{
@@ -1347,18 +1241,18 @@ void BookWormApp::StartGame()
 	else
 		mMusicInterface->FadeOut(SONG_CLASSIC, true, 0.005);
 
-	RemoveBoard();
+	KillBoard();
 	mBoard = new Board(this);
 	mBoard->Resize(0, 0, GAME_SCREEN_WIDTH, mHeight);
 	mWidgetManager->AddWidget(mBoard);
 	mWidgetManager->BringToBack(mBoard);
 	mWidgetManager->SetFocus(mBoard);
-	mBoard->ShowOverlay(false);
-	mBoard->PickBonusWord();
+	mBoard->ShowBonusWord(false);
+	mBoard->GetNextBonusWord();
 	if (GetDialog(DIALOG_CONTINUE) != NULL)
 		mBoard->mState = BOARD_INACTIVE; // dead in practice: dialog 5 is killed before
 	if (mGameSelector != NULL)
-		mGameSelector->StartCloseTransition();
+		mGameSelector->DoHide();
 }
 
 // port(mod): replays (Replay.h): watches the replay thePath, a new board in its mode with the one-time hints as
@@ -1401,10 +1295,11 @@ bool BookWormApp::StartWatch(const std::string& thePath)
 	mFireAlertHintShown = (aFile.mAppFlags & Replay::APP_FIRE_ALERT_HINT) != 0;
 	mGreenTileHintShown = (aFile.mAppFlags & Replay::APP_GREEN_TILE_HINT) != 0;
 	mScrambleHintShown = (aFile.mAppFlags & Replay::APP_SCRAMBLE_HINT) != 0;
-	StartGame();    // the board's constructor takes mWatchFile
+	NewGame();    // the board's constructor takes mWatchFile
 	return true;
 }
 
+// port(mod): ends a replay watch, putting back what the game had (Replay.h)
 void BookWormApp::EndWatch()
 {
 	if (mWatchFile == NULL)
@@ -1422,14 +1317,15 @@ void BookWormApp::EndWatch()
 	Board::SetGlobalState(mWatchSavedLetterIdx, mWatchSavedRefillLevel);
 }
 
-// The watch is over (its game-over page's Continue, MENU or Escape): the main menu slides in over the watched
+// port: The watch is over (its game-over page's Continue, MENU or Escape): the main menu slides in over the watched
 // board, which the next game removes
 void BookWormApp::StopWatch()
 {
 	EndWatch();
-	ShowGameSelector();
+	DoGameSelector();
 }
 
+// port(mod): watches the replay of the game just played (Replay.h)
 void BookWormApp::WatchLastReplay()
 {
 	if ((mBoard != NULL) && (mBoard->mState == BOARD_GAMEOVER) && (mBoard->mPlayer == NULL))
@@ -1439,7 +1335,7 @@ void BookWormApp::WatchLastReplay()
 
 // 0x410f00: the main menu; a board in play is suspended under it (not deleted) and the selector slides
 // in over a snapshot of it
-void BookWormApp::ShowGameSelector()
+void BookWormApp::DoGameSelector()
 {
 	KillDialog(DIALOG_UNUSED_3);
 	for (int i = 0; i < NUM_SONGS; i++)
@@ -1448,7 +1344,7 @@ void BookWormApp::ShowGameSelector()
 			mMusicInterface->FadeOut(i, true, 0.01);
 	}
 
-	RemoveGameSelector();
+	KillGameSelector();
 	mGameSelector = new BWGameSelector(this);
 	mGameSelector->Resize(0, 0, GAME_SCREEN_WIDTH, mHeight);
 	mWidgetManager->AddWidget(mGameSelector);
@@ -1456,7 +1352,7 @@ void BookWormApp::ShowGameSelector()
 	{
 		mBoard->Abandon();
 		mWidgetManager->RemoveWidget(mBoard);
-		mGameSelector->StartOpenTransition();
+		mGameSelector->DoShow();
 	}
 
 	if (!mMusicInterface->IsPlaying(SONG_MENU))
@@ -1464,26 +1360,26 @@ void BookWormApp::ShowGameSelector()
 }
 
 // 0x411020
-void BookWormApp::ShowHallOfFame()
+void BookWormApp::DoFameWidget()
 {
-	RemoveFameWidget();
+	KillFameWidget();
 	mFameWidget = new FameWidget(this);
 	mFameWidget->Resize(0, 0, GAME_SCREEN_WIDTH, mHeight);
 	mWidgetManager->AddWidget(mFameWidget);
 }
 
 // 0x413c80 (the selector's StartGame)
-void BookWormApp::StartGameForUser()
+void BookWormApp::PreNewGame()
 {
-	LoadUserSettings();
-	StartGame();
+	LoadUserConfig();
+	NewGame();
 	if (mShowHelp)
-		ShowHelp();
+		DoHelp();
 }
 
 // 0x4153c0 (the selector's Classic / Action buttons): offers the player's saved game of that mode, else
 // starts a game
-void BookWormApp::SelectGameMode(int theMode)
+void BookWormApp::TryConfirmLoad(int theMode)
 {
 	mSelectedGameMode = theMode;
 	if (HasSavedGame(mUserManager->GetCurrentUserName(), mSelectedGameMode))
@@ -1507,7 +1403,7 @@ void BookWormApp::SelectGameMode(int theMode)
 }
 
 // 0x4157e0 (the Board's menu button)
-void BookWormApp::GoToMainMenu()
+void BookWormApp::ConfirmEndGame()
 {
 	if (mBoard == NULL)
 	{
@@ -1532,11 +1428,11 @@ void BookWormApp::GoToMainMenu()
 		return;
 	}
 
-	ShowGameSelector();
+	DoGameSelector();
 }
 
 // 0x410520
-void BookWormApp::ShowSelectUserDialog()
+void BookWormApp::DoSelectUserDialog()
 {
 	SelectUserDialog* aDialog = new SelectUserDialog(this);
 	aDialog->SetColor(Dialog::COLOR_HEADER, Color(255, 255, 255));
@@ -1545,7 +1441,7 @@ void BookWormApp::ShowSelectUserDialog()
 }
 
 // 0x4105d0 (Board::Update): one hint at a time, only with hints on
-void BookWormApp::ShowHint(int theHintId, const SexyString& theHeader, const SexyString& theLines,
+void BookWormApp::DoHintDialog(int theHintId, const SexyString& theHeader, const SexyString& theLines,
 	const SexyString& theFooter, int theButtonMode)
 {
 	if ((!HintDialog::WasHintShown(theHintId)) && (mShowHints) && ((mBoard == NULL) || (mBoard->mPlayer == NULL)))
@@ -1559,7 +1455,7 @@ void BookWormApp::ShowHint(int theHintId, const SexyString& theHeader, const Sex
 }
 
 // 0x4106c0 (Options): centred over the board area (x offset 233)
-void BookWormApp::ShowCredits()
+void BookWormApp::DoCredits()
 {
 	CreditsDialog* aDialog = new CreditsDialog(this);
 	aDialog->SetColor(Dialog::COLOR_HEADER, Color(255, 255, 255));
@@ -1571,7 +1467,7 @@ void BookWormApp::ShowCredits()
 }
 
 // 0x4107c0 (the Board's options button): starts off-screen right and slides in
-void BookWormApp::ShowOptions()
+void BookWormApp::DoOptions()
 {
 	OptionsDialog* aDialog = new OptionsDialog(this);
 	aDialog->SetColor(Dialog::COLOR_HEADER, Color(255, 255, 255));
@@ -1584,7 +1480,7 @@ void BookWormApp::ShowOptions()
 }
 
 // 0x4108c0
-void BookWormApp::ShowNewUserDialog(const SexyString& theText)
+void BookWormApp::DoNewUserDialog(const SexyString& theText)
 {
 	if (mGameSelector != NULL)
 		mGameSelector->SetDisabled(true);
@@ -1597,7 +1493,7 @@ void BookWormApp::ShowNewUserDialog(const SexyString& theText)
 }
 
 // 0x415660 (the selector's quit button)
-void BookWormApp::ShowQuitDialog()
+void BookWormApp::ConfirmQuit()
 {
 	SexyString aLines = GameText(GT_QUIT_LINES);
 	if ((mBoard != NULL) && (mBoard->IsInProgress()))
@@ -1607,7 +1503,7 @@ void BookWormApp::ShowQuitDialog()
 }
 
 // 0x418590 (SelectUserDialog)
-void BookWormApp::ShowDeleteUserDialog(std::vector<SexyString> theNames)
+void BookWormApp::DoDeleteUserDialog(std::vector<SexyString> theNames)
 {
 	DeleteUserDialog* aDialog = new DeleteUserDialog(this, theNames);
 	aDialog->SetColor(Dialog::COLOR_HEADER, Color(255, 255, 255));
@@ -1622,15 +1518,8 @@ void BookWormApp::ShowDeleteUserDialog(std::vector<SexyString> theNames)
 // 0x415c40 AskForUpdateCheck, 0x415de0 DoUpdateCheck not ported (update check: dialogs 7 and 8)
 // 0x416090 GetGameSEHInfo not ported (crash report: the base text + mSEHInfo)
 
-// 0x4152a0: false in the retail build (the property NoInternetScores). port: always false (internet high scores
-// are not ported)
-bool BookWormApp::IsInternetScoresEnabled()
-{
-	return false;
-}
-
 // 0x414910: the original tests that it may write HKEY_LOCAL_MACHINE (the emulated registry always can)
-bool BookWormApp::CheckRegistryAccess()
+bool BookWormApp::VerifyHKLMAccess()
 {
 	if (!RegistryWriteInteger("test", 1))
 	{
@@ -1643,7 +1532,7 @@ bool BookWormApp::CheckRegistryAccess()
 }
 
 // 0x4144b0
-bool BookWormApp::LoadImage(int theImageId)
+bool BookWormApp::DoLoadImage(int theImageId)
 {
 	static SexyString sImagePath = GetString("ImagePath", "images\\");
 
@@ -1659,7 +1548,7 @@ bool BookWormApp::LoadImage(int theImageId)
 }
 
 // 0x4146d0: the font is stored even when it failed
-bool BookWormApp::LoadFont(int theFontId)
+bool BookWormApp::DoLoadImageFont(int theFontId)
 {
 	static SexyString sFontPath = GetString("FontPath", "fonts\\");
 
@@ -1708,17 +1597,17 @@ bool BookWormApp::LoadWordList(const SexyString& theFileName, std::set<SexyStrin
 			return false;
 		}
 
-		char c = (char) aChar;
-		if ((c >= '0') && (c <= '9'))
+		char aByte = (char) aChar;
+		if ((aByte >= '0') && (aByte <= '9'))
 		{
 			if (!inNumber)
 			{
 				aPrefixLength = 0;
 				inNumber = true;
 			}
-			aPrefixLength = aPrefixLength * 10 + (c - '0');
+			aPrefixLength = aPrefixLength * 10 + (aByte - '0');
 		}
-		else if ((c == '\r') || (c == '\n'))
+		else if ((aByte == '\r') || (aByte == '\n'))
 		{
 			if (aLength > 0)
 			{
@@ -1746,7 +1635,7 @@ bool BookWormApp::LoadWordList(const SexyString& theFileName, std::set<SexyStrin
 				aLength = aCopyLength;
 			}
 			if (aLength < BUFFER_SIZE)
-				aWord[aLength++] = c;
+				aWord[aLength++] = aByte;
 		}
 	}
 
@@ -1768,7 +1657,7 @@ bool BookWormApp::LoadBonusWords(const SexyString& theFileName, std::vector<Sexy
 }
 
 // 0x413a40: the current player's options and play count, each only if the profile has it
-void BookWormApp::LoadUserSettings()
+void BookWormApp::LoadUserConfig()
 {
 	SexyString aName = mUserManager->GetCurrentUserName();
 	if (aName.length() == 0)
@@ -1871,6 +1760,8 @@ static std::string ScoresValueName(const char* theTable)
 	return "Scores" + ScoreKeySuffix() + "\\" + theTable;
 }
 
+// port: a list of strings as one value, each string ending in a 0 and the list in one more (a REG_MULTI_SZ's bytes,
+// stored with RegistryWriteData; see ReadMultiString); an empty list writes nothing
 static void WriteMultiString(SexyAppBase* theApp, const std::string& theValueName, const std::vector<SexyString>& theStrings)
 {
 	std::string aData;
@@ -1888,7 +1779,7 @@ static void WriteMultiString(SexyAppBase* theApp, const std::string& theValueNam
 // 0x419080 (ReadFromRegistry): the four tables of the registry key Scores, then the defaults where a table
 // is short. Classic / Action rows are name, score; Best rows name, word, score; Longest rows name, word
 // (the score is the word's length). No size limit on load.
-void BookWormApp::LoadHighScores()
+void BookWormApp::ReadFameRegistry()
 {
 	// port: the original's loops step twice per row and test for the end only after the second step, so
 	// a value with an odd string count (not a multiple of 3 for Best) loops for ever; these stop at the end
@@ -2116,7 +2007,7 @@ void BookWormApp::SubmitHighScores(StatKeeper* theStats)
 
 // 0x4184d0: pause remembers the songs that were playing; resume restarts those (a second pause before a
 // resume finds them paused, not playing, and keeps the list)
-void BookWormApp::PauseAllMusic(bool pause)
+void BookWormApp::MuteGameMusic(bool pause)
 {
 	if (pause)
 	{

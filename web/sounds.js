@@ -446,5 +446,5 @@ var ByopopSounds = (function () {
     watch();
     return board;
   }
-  return { attach: attach, panel: function () { return board; } };
+  return { attach: attach, panel: function () { return board; }, decode: decode };
 })();

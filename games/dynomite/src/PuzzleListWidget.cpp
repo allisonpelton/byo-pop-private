@@ -23,7 +23,7 @@ PuzzleListWidget::PuzzleListWidget(FossilizedApp* theApp)
 	mNeedsScrollbar = false;
 	mScrollY = 0;
 	LoadPacks();
-	mSelected = mApp->mField1090;
+	mSelected = mApp->mChosenPack;
 	if (mPacks.mCount - 1 < mSelected)
 		mSelected = 0;
 	PuzzlePack* aPack = mPacks.Get(mSelected);
@@ -48,11 +48,11 @@ PuzzleListWidget::~PuzzleListWidget()
 		delete aPack;
 		aPack = mPacks.Next();
 	}
-	mApp->mField1090 = mSelected;
+	mApp->mChosenPack = mSelected;
 }
 
-// A pack's file: its name, the three skills' puzzle offsets (-1 none) and its picture. The original has this
-// twice, inline, for DEFAULT.EGG and for the STOMPED folder's packs.
+// port: split out of LoadPacks 0x4312b0. A pack's file: its name, the three skills' puzzle offsets (-1 none) and its
+// picture. The original has this twice, inline, for DEFAULT.EGG and for the STOMPED folder's packs.
 static bool ReadPack(FossilizedApp* theApp, const char* theFile, PuzzlePack* thePack, PtrList<PuzzlePack>& thePacks)
 {
 	// port: the original news the file and never deletes it

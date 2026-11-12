@@ -930,6 +930,7 @@ void Board::FinishBurn()
 	m490 = 0;
 	m494 = 0;
 	bool aLit[9];
+	int aLitCount = 0;
 	for (int aRow = 0; aRow < mRows; aRow++)
 	{
 		Piece* aPiece = mGrid[aRow][0];
@@ -940,19 +941,22 @@ void Board::FinishBurn()
 		{
 			Ignite(aRow, -1, aRow, 0, false);
 			aLit[aRow] = true;
+			aLitCount++;
 		}
 	}
 	mApp->PlaySample(0x18);
+	// the launch's points show beside the fuse where half of the lit fuses are reached (the decompiler named the count of the
+	// lit fuses by a lost local)
 	int aCount = 0;
 	for (int aRow = 0; aRow < mRows; aRow++)
 	{
-		if (aLit[aRow] && (aCount = aCount + 1, mRows / 2 <= aCount))
+		if (aLit[aRow] && (aCount = aCount + 1, aLitCount / 2 <= aCount))
 		{
 			F429060(aRow);
 			break;
 		}
 	}
-	if (mApp->mMode == 2 && 0 < mRows && !m4a9 && !m4a8 && !m4da && 0 < m108)
+	if (mApp->mMode == 2 && 0 < aLitCount && !m4a9 && !m4a8 && !m4da && 0 < m108)
 	{
 		MakeFlame1();
 		m108 = m108 - 1;

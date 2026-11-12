@@ -115,6 +115,11 @@ public:
 		return SDL_GetTicks();
 	}
 
+	uint32_t UpdateCount() override
+	{
+		return (uint32_t)gApp->mUpdateCount;
+	}
+
 	uint32_t SeedTick() override
 	{
 		if (gSeededDeals && gApp->mHasSeedParam)
@@ -539,6 +544,7 @@ void MahjongApp::RunFrame()
 		Shutdown();
 		return;
 	}
+	TestUpdate();
 	if ((int)(GameClock() - mNextFrame) < 0)
 		return;
 	mGame->mManager.Frame();

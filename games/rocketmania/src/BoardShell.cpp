@@ -63,6 +63,8 @@ Board::Board(RocketApp* theApp, bool theContinuing)
 	// (the original also stores -1 in the two fields that are not zero)
 	m348 = -1;
 	m2f0 = -1;
+	// the game-over kind starts at 3 (none of the kinds 0 to 2; nothing reads it before F421de0 sets it, but the save file holds it)
+	m460 = 3;
 	if (mApp->mMode == 0)
 		m444 = mGen->Rows20();
 	else if (mApp->mMode == 1 || mApp->mMode == 2)

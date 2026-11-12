@@ -28,6 +28,7 @@ enum
 class Image : public Object
 {
 public:
+	// 0x45e670
 	Image() : mAlphaMode(ALPHA_NONE), mAlphaThreshold(0) {}
 	virtual int getWidth() = 0;   // slot 0x00: 0x4572a0
 	virtual int getHeight() = 0;  // slot 0x04: 0x4572b0

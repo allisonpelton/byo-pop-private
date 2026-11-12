@@ -6,9 +6,9 @@
 // update (BookWormApp::UpdateFrames), reads the board's fields and the score key only, and sees each update's
 // end state, not what happened inside it.
 //
-// BookWorm keeps a board after the player leaves it: BookWormApp::ShowGameSelector abandons it (BOARD_INACTIVE)
+// BookWorm keeps a board after the player leaves it: BookWormApp::DoGameSelector abandons it (BOARD_INACTIVE)
 // and takes it off the widget manager, but BookWormApp::mBoard stays until the selector's roll-down is done
-// (RemoveBoard). A saved game that is continued is a new Board that LoadGame fills in the same call that
+// (KillBoard). A saved game that is continued is a new Board that LoadGame fills in the same call that
 // makes it (BookWormApp::ButtonDepress, DIALOG_CONTINUE), so the observer never sees it before mResumed is set.
 //
 // Events, for the current board (Board::mBoardSerial):
@@ -68,43 +68,43 @@ const char* const	gCauseNames[4] = { "fire", "countdown", "left", "other" };
 // One write: seq odd, the fields, seq even (LiveSplitBlock.h)
 void Publish(int theUpdate)
 {
-	volatile LiveSplitBlockV1& b = gLiveSplitBlock;
-	const LiveSplitBlockV1& s = sShadow;
-	uint32_t aSeq = b.seq + 1;
-	b.seq = aSeq;
+	volatile LiveSplitBlockV1& aBlock = gLiveSplitBlock;
+	const LiveSplitBlockV1& aShadow = sShadow;
+	uint32_t aSeq = aBlock.seq + 1;
+	aBlock.seq = aSeq;
 	std::atomic_thread_fence(std::memory_order_release);
-	b.self = s.self;
-	b.active = s.active;
-	b.updates = s.updates;
-	b.flags = s.flags;
-	b.boardSerial = s.boardSerial;
-	b.goCount = s.goCount;
-	b.goSerial = s.goSerial;
-	b.levelClears = s.levelClears;
-	b.levelClearSerial = s.levelClearSerial;
-	b.gameOvers = s.gameOvers;
-	b.gameOverSerial = s.gameOverSerial;
-	b.deathsFire = s.deathsFire;
-	b.deathsCountdown = s.deathsCountdown;
-	b.deathsNewGame = s.deathsNewGame;
-	b.deathsOther = s.deathsOther;
-	b.tick = s.tick;
-	b.state = s.state;
-	b.level = s.level;
-	b.displayLevel = s.displayLevel;
-	b.displayScore = s.displayScore;
-	b.score = s.score;
-	b.boardLevelClears = s.boardLevelClears;
-	b.goTick = s.goTick;
-	b.scoreMax = s.scoreMax;
-	b.mode = s.mode;
-	b.skill = s.skill;
+	aBlock.self = aShadow.self;
+	aBlock.active = aShadow.active;
+	aBlock.updates = aShadow.updates;
+	aBlock.flags = aShadow.flags;
+	aBlock.boardSerial = aShadow.boardSerial;
+	aBlock.goCount = aShadow.goCount;
+	aBlock.goSerial = aShadow.goSerial;
+	aBlock.levelClears = aShadow.levelClears;
+	aBlock.levelClearSerial = aShadow.levelClearSerial;
+	aBlock.gameOvers = aShadow.gameOvers;
+	aBlock.gameOverSerial = aShadow.gameOverSerial;
+	aBlock.deathsFire = aShadow.deathsFire;
+	aBlock.deathsCountdown = aShadow.deathsCountdown;
+	aBlock.deathsNewGame = aShadow.deathsNewGame;
+	aBlock.deathsOther = aShadow.deathsOther;
+	aBlock.tick = aShadow.tick;
+	aBlock.state = aShadow.state;
+	aBlock.level = aShadow.level;
+	aBlock.displayLevel = aShadow.displayLevel;
+	aBlock.displayScore = aShadow.displayScore;
+	aBlock.score = aShadow.score;
+	aBlock.boardLevelClears = aShadow.boardLevelClears;
+	aBlock.goTick = aShadow.goTick;
+	aBlock.scoreMax = aShadow.scoreMax;
+	aBlock.mode = aShadow.mode;
+	aBlock.skill = aShadow.skill;
 	for (int i = 0; i < 8; i++)
-		b.scoreKey[i] = s.scoreKey[i];
-	b.qpc = s.qpc;
-	b.qpcFrequency = s.qpcFrequency;
+		aBlock.scoreKey[i] = aShadow.scoreKey[i];
+	aBlock.qpc = aShadow.qpc;
+	aBlock.qpcFrequency = aShadow.qpcFrequency;
 	std::atomic_thread_fence(std::memory_order_release);
-	b.seq = aSeq + 1;
+	aBlock.seq = aSeq + 1;
 	sShadow.seq = aSeq + 1;
 
 	if (!sLogFileName.empty())
@@ -161,15 +161,15 @@ bool CopyHostFile(const std::string& theFrom, const std::string& theTo)
 	fclose(anIn);
 	if (!isRead)
 		return false;
-	std::string aTemp = theTo + ".tmp";
-	FILE* anOut = fopen(aTemp.c_str(), "wb");
+	std::string aTempPath = theTo + ".tmp";
+	FILE* anOut = fopen(aTempPath.c_str(), "wb");
 	if (anOut == NULL)
 		return false;
 	bool isWritten = aData.empty() || (fwrite(&aData[0], 1, aData.size(), anOut) == aData.size());
 	isWritten = (fclose(anOut) == 0) && isWritten;
-	if (isWritten && (rename(aTemp.c_str(), theTo.c_str()) == 0))
+	if (isWritten && (rename(aTempPath.c_str(), theTo.c_str()) == 0))
 		return true;
-	remove(aTemp.c_str());
+	remove(aTempPath.c_str());
 	return false;
 }
 
@@ -226,20 +226,20 @@ void CopyTemplates()
 // The fields of "no board" (boardSerial 0): before the first board, and after the last one
 void ClearBoardFields()
 {
-	LiveSplitBlockV1& s = sShadow;
-	s.boardSerial = 0;
-	s.boardLevelClears = 0;
-	s.goTick = -1;
-	s.scoreMax = 0;
-	s.flags = 0;
-	s.tick = 0;
-	s.state = -1;
-	s.level = 0;
-	s.displayLevel = 0;
-	s.displayScore = 0;
-	s.score = 0;
-	s.mode = -1;
-	s.skill = 0;
+	LiveSplitBlockV1& aShadow = sShadow;
+	aShadow.boardSerial = 0;
+	aShadow.boardLevelClears = 0;
+	aShadow.goTick = -1;
+	aShadow.scoreMax = 0;
+	aShadow.flags = 0;
+	aShadow.tick = 0;
+	aShadow.state = -1;
+	aShadow.level = 0;
+	aShadow.displayLevel = 0;
+	aShadow.displayScore = 0;
+	aShadow.score = 0;
+	aShadow.mode = -1;
+	aShadow.skill = 0;
 }
 
 void Activate()
@@ -268,7 +268,7 @@ void LiveSplitObserver::AfterUpdate(BookWormApp* theApp)
 {
 	if ((!sActive) && (!ModFeatureEnabled("livesplit")))
 		return;
-	LiveSplitBlockV1& s = sShadow;
+	LiveSplitBlockV1& aShadow = sShadow;
 	// On activation the current board (or none) is new to the block: it is never given a GO
 	bool isActivation = !sActive;
 	if (isActivation)
@@ -276,13 +276,13 @@ void LiveSplitObserver::AfterUpdate(BookWormApp* theApp)
 
 	Board* aBoard = theApp->mBoard;
 	uint32_t aSerial = (aBoard != NULL) ? aBoard->mBoardSerial : 0;
-	bool isNewBoard = isActivation || (aSerial != s.boardSerial);
+	bool isNewBoard = isActivation || (aSerial != aShadow.boardSerial);
 	if (isNewBoard)
 	{
-		s.boardSerial = aSerial;
-		s.boardLevelClears = 0;
-		s.goTick = -1;
-		s.scoreMax = 0;
+		aShadow.boardSerial = aSerial;
+		aShadow.boardLevelClears = 0;
+		aShadow.goTick = -1;
+		aShadow.scoreMax = 0;
 		sGameOver = false;
 		sGoPossible = false;
 		sPrevState = -1;
@@ -316,9 +316,9 @@ void LiveSplitObserver::AfterUpdate(BookWormApp* theApp)
 			else if ((aState == BOARD_PLAYING) && (aBoard->mPauseCount == 0))
 			{
 				sGoPossible = false;
-				s.goCount++;
-				s.goSerial = aSerial;
-				s.goTick = aBoard->mUpdateCnt;
+				aShadow.goCount++;
+				aShadow.goSerial = aSerial;
+				aShadow.goTick = aBoard->mUpdateCnt;
 				SDL_Log("livesplit: board %u GO at tick %d (mode %d)", (unsigned) aSerial, aBoard->mUpdateCnt, theApp->mGameMode);
 			}
 		}
@@ -327,10 +327,10 @@ void LiveSplitObserver::AfterUpdate(BookWormApp* theApp)
 		{
 			if ((aState == BOARD_LEVEL_COMPLETE) && (sPrevState != BOARD_LEVEL_COMPLETE))
 			{
-				s.levelClears++;
-				s.levelClearSerial = aSerial;
-				s.boardLevelClears++;
-				SDL_Log("livesplit: board %u level clear %d (level %d) at tick %d", (unsigned) aSerial, (int) s.boardLevelClears,
+				aShadow.levelClears++;
+				aShadow.levelClearSerial = aSerial;
+				aShadow.boardLevelClears++;
+				SDL_Log("livesplit: board %u level clear %d (level %d) at tick %d", (unsigned) aSerial, (int) aShadow.boardLevelClears,
 					aBoard->mLevel + 1, aBoard->mUpdateCnt);
 			}
 			if ((!sGameOver) && (isOverState || isLeft))
@@ -339,25 +339,25 @@ void LiveSplitObserver::AfterUpdate(BookWormApp* theApp)
 				if (isLeft)
 				{
 					aCause = 2;
-					s.deathsNewGame++;
+					aShadow.deathsNewGame++;
 				}
 				else if (theApp->mGameMode == GAMEMODE_CLASSIC)
 				{
 					aCause = 0;
-					s.deathsFire++;
+					aShadow.deathsFire++;
 				}
 				else if (theApp->mGameMode == GAMEMODE_ACTION)
 				{
 					aCause = 1;
-					s.deathsCountdown++;
+					aShadow.deathsCountdown++;
 				}
 				else
 				{
 					aCause = 3;
-					s.deathsOther++;
+					aShadow.deathsOther++;
 				}
-				s.gameOvers++;
-				s.gameOverSerial = aSerial;
+				aShadow.gameOvers++;
+				aShadow.gameOverSerial = aSerial;
 				isOverNow = true;
 				SDL_Log("livesplit: board %u game over (%s) at tick %d", (unsigned) aSerial, gCauseNames[aCause], aBoard->mUpdateCnt);
 			}
@@ -366,7 +366,7 @@ void LiveSplitObserver::AfterUpdate(BookWormApp* theApp)
 		// The score the splitter reads is the highest the game's score reached, frozen at the game over
 		// (LiveSplitBlock.h says why it is not the HUD's)
 		if (!sGameOver)
-			s.scoreMax = std::max(s.scoreMax, (int32_t) aStats->mScore);
+			aShadow.scoreMax = std::max(aShadow.scoreMax, (int32_t) aStats->mScore);
 		if (isOverNow)
 			sGameOver = true;
 
@@ -381,21 +381,21 @@ void LiveSplitObserver::AfterUpdate(BookWormApp* theApp)
 			aFlags |= LIVESPLIT_FLAG_GAME_OVER;
 		if (aBoard->mPauseCount > 0)
 			aFlags |= LIVESPLIT_FLAG_PAUSED;
-		s.flags = aFlags;
-		s.tick = aBoard->mUpdateCnt;
-		s.state = aState;
-		s.level = aBoard->mLevel;
-		s.displayLevel = aBoard->mLevel + 1;
-		s.displayScore = aBoard->mShownScore;
-		s.score = aStats->mScore;
-		s.mode = theApp->mGameMode;
-		s.skill = 0;
+		aShadow.flags = aFlags;
+		aShadow.tick = aBoard->mUpdateCnt;
+		aShadow.state = aState;
+		aShadow.level = aBoard->mLevel;
+		aShadow.displayLevel = aBoard->mLevel + 1;
+		aShadow.displayScore = aBoard->mShownScore;
+		aShadow.score = aStats->mScore;
+		aShadow.mode = theApp->mGameMode;
+		aShadow.skill = 0;
 
 		sPrevState = aState;
 	}
 
-	s.updates++;
-	s.qpc = SDL_GetPerformanceCounter();
+	aShadow.updates++;
+	aShadow.qpc = SDL_GetPerformanceCounter();
 	Publish(theApp->mUpdateCount);
 }
 

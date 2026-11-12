@@ -50,6 +50,7 @@ void Obj_Init(Obj* theObj)
 	theObj->exploSound = -1;
 }
 
+// 0x40f0f0, and 0x419780 (a jump to it, which the nodes of another list end in)
 void Obj_Destroy(Obj* theObj)
 {
 	List_Clear(&theObj->children);
@@ -177,11 +178,6 @@ void Obj_Draw(Obj* theObj)
 void Obj_UpdateEmitters(Obj* theObj)
 {
 	List_Each(&theObj->emitters, [](Obj* anEmitter) { Emitter_Update(anEmitter); });
-}
-
-void Obj_ClearChildren(List<Obj>* theList)
-{
-	List_Clear(theList);
 }
 
 void Obj_Copy(Obj* theObj, const Obj* theFrom)

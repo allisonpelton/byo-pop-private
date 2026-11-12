@@ -59,8 +59,6 @@ public:
 		DIALOG_CONTINUE_GAME = 19,  // the arena's "continue your saved game?" (MainMenu::StartArena): yes goes on with it, no begins a new run
 		DIALOG_SKIP_MOVIE = 20,  // a click on a cut scene: skip it?
 		DIALOG_ARENA_WIN = 21,   // the arena's win (ArenaWinDialog): pausing the board mutes it only without this dialog
-		DIALOG_NEW_PROFILE = 22, // the trial's end, asked in MainMenu (0x46b3b0): a new profile? Its yes opens the players' dialog; the port has no trial
-		DIALOG_TRIAL_COMPLETE = 23,  // the trial's end ("buy the full version?", UpdateFrames V1:0x44aa50): the port has no trial
 		DIALOG_CONTINUE_ADVENTURE = 26,  // a finished adventure's portal: "Continue your current adventure?" (a replay is in
 		                                 // progress): yes goes on with it, no picks a book on the BookSelectScreen
 	};
@@ -157,7 +155,6 @@ public:
 	bool mLoadingDone = false;                     // +0x919
 	bool mNoMusic = false;                         // +0x91a
 	bool mTitleToMainMenu = false;                 // +0x91b
-	bool mQueuedHydraLockout = false;              // +0x91d (not ported yet: the trial's)
 	bool mTimedMode = false;                       // Volume 2: +0x9aa; playing the timed mode (its TM_ profile keys)
 	bool mReplayMode = false;                      // Volume 2: +0x9ab; replaying a finished adventure (its Replay* profile keys)
 	bool mLeetMode = false;                        // +0x95b: the word ELITE, typed on the menu, switched the 1337 tiles on

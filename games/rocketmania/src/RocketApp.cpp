@@ -13,6 +13,7 @@
 #include "Graphics.h"
 #include "ImageFont.h"
 #include "DDImage.h"
+#include "DDInterface.h"
 #include "MemoryImage.h"
 #include "MusicInterface.h"
 #include "SoundManager.h"
@@ -63,6 +64,13 @@ RocketApp::RocketApp()
 	mProductVersion = "1.01";      // the exe's version resource says ProductVersion 1.01
 	mTitle = "Rocket Mania Deluxe " + mProductVersion;
 	mRegKey = "PopCap\\RocketMania";
+	// the original's DrawImageBox (0x443772) is the 2003 framework's: the tiled middle of a box is cut as wide as the
+	// corners, not as the remainder, so a dialog or a menu button tiles from the same pixels as the original's
+	Graphics::mDrawImageBox2003 = true;
+	// the music starts at 0.595 and the sounds at 0.85 until the registry says otherwise (the exe stores them as the
+	// two halves of each double, 0x3fe30a3d70a3d70a and 0x3feb333333333333)
+	mMusicVolume = 0.595;
+	mSfxVolume = 0.85;
 	mWidth = GAME_WIDTH;
 	mHeight = GAME_HEIGHT;
 
@@ -323,6 +331,18 @@ void RocketApp::HandleCmdLineParam(const std::string& theParamName, const std::s
 
 void RocketApp::UpdateFrames()
 {
+	// port: the original's game without 3D (MakeWindow reads "Is3D", and its D3DTester turns 3D on only where the card
+	// passes) draws into a software screen, where a rotation is its DDImage::BltRotated (0x441127), a bilinear
+	// blit with jagged edges, and the screen is one surface that keeps the last frame; the framework's software
+	// transforms do the same where the GPU would smooth the edges. The 3D game keeps the GPU's, as the original's
+	// Direct3D does. The stretches stay with SDL in both: the original's software screen averages them (0x44abeb, an
+	// older routine than the framework's 0x433ca0 StretchCopy, which the software stretch would use and which
+	// comes out sharper on the head in its hole), and SDL's bilinear filter lands within a few levels of that.
+	if (mDDInterface != NULL)
+	{
+		mDDInterface->mSoftwareTransforms = !Is3DAccelerated();
+		mDDInterface->mKeepScreen = !Is3DAccelerated();
+	}
 	SexyApp::UpdateFrames();
 
 	if (!mUiParams.mStateFile.empty())
@@ -603,7 +623,9 @@ void RocketApp::ShowGameSelector()
 		mHead->SetSlide(false);
 		mHead->Move(250, -300);
 		mBoard->mState = 3;
+		// 0x42e9f0: the board leaves the widget manager and is deleted (the port left it behind: 100 KB a game)
 		mWidgetManager->RemoveWidget((Widget*) mBoard);
+		SafeDeleteWidget(mBoard);
 		mBoard = NULL;
 	}
 	if (mGameSelector != NULL)

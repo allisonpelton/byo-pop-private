@@ -28,27 +28,11 @@ XmlTag::XmlTag()
 	mEmpty = 0;
 }
 
-// (frees the attributes, as Xml_Reset does besides forgetting the tag: Xml_NextTag starts each tag afresh)
+// (frees the attributes; 0x41e970 (cosmicbugs), 0x41ee70 (waterbugs) forgot the tag and freed them, and the port's
+// Xml_NextTag starts each tag afresh)
 XmlTag::~XmlTag()
 {
 	std::free(mAttrs);
-}
-
-// 0x41e970 (cosmicbugs), 0x41ee70 (waterbugs): forgets the tag and frees its attributes
-void Xml_Reset(XmlTag* theTag)
-{
-	theTag->mCount = 0;
-	theTag->mName[0] = '\0';
-	theTag->mText = nullptr;
-	theTag->mTextLen = 0;
-	theTag->mClosing = 0;
-	theTag->mEmpty = 0;
-	theTag->mCapacity = 0;
-	if (theTag->mAttrs != nullptr)
-	{
-		std::free(theTag->mAttrs);
-		theTag->mAttrs = nullptr;
-	}
 }
 
 // 0x42d3c0 (cosmicbugs), 0x42d8a0 (waterbugs). The names and values have no bound in the original; the port cuts them

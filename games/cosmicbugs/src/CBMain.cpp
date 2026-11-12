@@ -32,7 +32,6 @@ int gProfile = 0;                      // 0x46e24c
 HighScore gHighScores[9];              // 0x46e250
 int gMouseX = 0;                       // 0x46e5bc
 int gMouseY = 0;                       // 0x46e5c0
-int gDemo = 0;                         // 0x46e5c8
 int gQuit = 0;                         // 0x46e5d0
 int gFirstRun = 0;                     // 0x46e5d4
 int gDifficulty = 0;                   // 0x46e5e0
@@ -363,7 +362,6 @@ void Screen_Redraw()
 		Image_Copy(&gBackBuffer, gLevels.current->background);
 		Font_SetTarget(&gFontSmall, gBackBuffer.mBits, gBackBuffer.mPitch, &gBackBuffer.mFmt, gBackBuffer.mW,
 			gBackBuffer.mH);
-		Font_SetClipped(&gFontSmall, 1);
 		// (the background covers both texts just after, so the original never shows them; 16 is the screen's
 		// bits per pixel, 0x460008)
 		Font_Draw(&gFontSmall, GT(0x458afc), 10, 0x244, 0);

@@ -54,6 +54,9 @@ public:
 	std::map<int, Music*> mMusics;   // +0x20
 	bool mInactive = false;        // +0x30
 	bool mMusicPaused = false;     // +0x31
+	// port: the number each playing channel has in the test log (BYOPOP_SOUNDLOG), by channel
+	std::map<int, int> mLogNumbers;
+	int mLogCount = 0;
 
 	// 0x4328a0 (mahjongchina), 0x436620 (mahjongjapan)
 	Sound() {}
@@ -100,6 +103,8 @@ private:
 	// 0x433820 (mahjongchina), 0x437520 (mahjongjapan)
 	void PauseSamples(bool thePause);
 	void PauseVoice(int theVoice, bool thePause);
+	// port: a stop in the test log, for a channel of theId that is still playing
+	void LogStop(int theId, int theVoice);
 	void ApplyVolume(Sample* theSample, int theVoice);
 	// BASS_ChannelIsActive of a sample's last channel: 0 stopped, 1 playing, 3 paused
 	int LastState(Sample* theSample);

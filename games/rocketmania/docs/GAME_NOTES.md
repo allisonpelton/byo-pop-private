@@ -397,3 +397,49 @@ unregistered or trial copy reaches is in it:
 Looked at and kept: "buy rockets" is the game's own rocket shop (coins), not a purchase; no "registered to <name>" stamp or status
 line exists in the game's texts (the strings were searched for register, trial, thank, license, order, www, http). Visible change:
 none in the registered game; the Options dialog is shorter by the "More Games" row.
+
+## What the screen comparison showed (phase two, 2026-11-11)
+
+Found while lining the port's screens up with the original's (`IDENTICAL_PLAY.md`, "Phase two"); each is a trap for later work.
+
+- **Image numbers after the removed "register" picture.** The port dropped the picture at the original's index 19, so every port
+  index after it is one lower. A literal number copied from the original's code is a bug; use the `IMAGE_*` names. Four were
+  found that way (the sidebar's launch icon, the gems of the board's draw, the multiplier and clock pictures, the buy-rockets
+  rocket).
+- **2D or 3D.** The original reads the registry value `Is3D` (the string at 0x4ecae0). The game's app constructor sets
+  `mTest3D`, so the first start runs the framework's 3D tester and turns 3D on when the card passes. Inside Windows Sandbox (no
+  GPU) the original is therefore a 2D (software) run, and its Options dialog's "Hardware Acceleration" box is unchecked. The port
+  starts in 3D (GPU) by default. The screen comparisons use `RM_REG="Is3D=0,ScreenMode=0"` (`port.sh`, `best.sh`, `lag.sh` and
+  `play.py --reg` take it): 2D, and windowed, since without a `ScreenMode` value the port's Options dialog shows its Fullscreen
+  box checked. Comparing 3D needs `orig.sh ... --sandbox-vgpu`, which `CLAUDE.md` allows from 22:00 to 08:00 only.
+- **2D draws rotations in software.** With 3D off the original rotates tiles with `DDImage::BltRotated` (0x441127) and keeps the
+  screen between frames; the port's `RocketApp::UpdateFrames` turns `mSoftwareTransforms` and `mKeepScreen` on in that case. The
+  original's software stretch (0x44abeb, the talking head in its hole) is not ported: the framework's `StretchCopy` (0x433ca0)
+  is sharper than it, and SDL's bilinear stretch lands within a few levels of the original (about 800 pixels of the head differ,
+  none by more than 40 levels), so `mSoftwareStretch` stays off.
+- **Dialogs that do not drag.** The difficulty, continue and hint dialogs do not move when dragged, and the high-score and
+  level-up dialogs ignore a press and a drag too (the original overrides `Move` (slot 14) and `MouseDown` (slot 26) and, for the
+  last two, `MouseDrag` (slot 29) with empty functions: 0x415c30, 0x403880, 0x410470). Options, credits and the record-score
+  dialog drag as the framework's `Dialog` does, clamped to 8 pixels.
+- **Board fields the original leaves as the heap had them.** The constructor (0x41ae80) sets `+0x444` (the arcade mode's drop
+  delay) only for the arcade mode, so in the other modes it holds whatever the heap held (a 2 in the runs that were looked at),
+  and nothing reads it there. The port's board starts as zeros. The constructor does set `+0x460`, the game-over kind, to 3,
+  which the port now does too (nothing reads it before it is set, but the save file holds it).
+- **The save files.** After the same play the two high-score files (`Players/hiscores.dat`) are the same 604 bytes. The strategy
+  mode's `savec.dat` has the same size and differs in raw heap addresses (each piece's own number, and its special and host: the
+  original writes the pointers, `Board::ReadPiece` turns them into numbers again), in the seconds-played fields (`+0x360`
+  to `+0x368`: real clock) and in `+0x444`, above.
+- **A leak of the port, fixed.** `RocketApp::ShowGameSelector` removed the board from the widget manager and set `mBoard` to
+  NULL; the original (0x42e9f0) also deletes it. The board, its effect pool (80 KB), generator, tip and pieces stayed: about
+  100 KB a game. Found by listing the live blocks after 10 and 40 game cycles by their call sites (a throw-away
+  `operator new` that recorded the caller's return address, resolved against the linker's map file), then
+  `driver/leakcheck.py` over games, the options, high-score and credits screens and a lost game (140 cycles): private bytes stay
+  flat from the 80th cycle on (154.57 MB; the three modes alone drift by about 6 KB a cycle). The tracker is not in the tree; to repeat it, replace the global `operator new` and `delete` in a
+  scratch build linked with `-static` (the shared libc++ has its own).
+- **The shift search of `shotdiff` hides a whole-screen shift of up to 8 pixels.** A dialog that moved 8 pixels (the drag above)
+  came out as "shifted" and its only box as a line of text. Read a pair's `shift` in `summary.json` (and `lagscan.py`'s line)
+  before judging a box. `lagscan.py` also takes the alignment from the label's own frame now; it took it from the first frame of
+  the window, which could be a different screen.
+- **The original's loading takes more than 10000 updates in the sandbox** (a loading thread on the wall clock, updates on the
+  virtual one), so a tour's first click belongs at update 40000 or later; the tours `t3` to `t7` were moved there. A first
+  shot of the original that shows the loading screen means the click came too early.

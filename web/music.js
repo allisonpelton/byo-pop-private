@@ -11,6 +11,8 @@
 // The player is one state at a time (state below): idle (nothing chosen), loading (a tune's file being read), playing, paused.
 var ByopopMusic = (function () {
   "use strict";
+  // the desktop's zoom (web/skins.js): a pointer's movement is the screen's CSS pixels, the window's sizes the page's
+  function zoomOf() { try { return ByopopSkin.zoom(); } catch (e) { return 1; } }
   var DB_STORE = "FILE_DATA";
   var MIN_TUNE = 2;          // seconds: a shorter subsong is a silence or a sting between tunes, not a tune
   var CHUNK = 4096;          // frames a message to the worklet carries
@@ -720,7 +722,7 @@ var ByopopMusic = (function () {
     });
     split.addEventListener("pointermove", function (ev) {
       if (!splitDrag || ev.pointerId !== splitDrag.id) return;
-      setRows(splitDrag.rows + Math.round((ev.clientY - splitDrag.y) / ROW_PX), false, true);
+      setRows(splitDrag.rows + Math.round((ev.clientY - splitDrag.y) / zoomOf() / ROW_PX), false, true);
     });
     function endSplit(ev) {
       if (!splitDrag || ev.pointerId !== splitDrag.id) return;
@@ -1732,7 +1734,7 @@ var ByopopMusic = (function () {
         var range = !follow && source && source.range ? source.range() : null;
         if (range) { roll.lo = range[0]; roll.hi = range[1]; roll.exact = true; }
       }
-      var w = piano.clientWidth, hgt = piano.clientHeight, dpr = window.devicePixelRatio || 1;
+      var w = piano.clientWidth, hgt = piano.clientHeight, dpr = (window.ByopopSkin && ByopopSkin.ratio ? ByopopSkin.ratio() : window.devicePixelRatio || 1);
       var style = getComputedStyle(piano), g = piano.getContext("2d");
       g.font = "10px " + style.fontFamily;
       // the pitch names in a margin at the left; in the rest a row as wide as lets about a pattern (ROLL_ROWS rows) fill it (the
@@ -2287,7 +2289,7 @@ var ByopopMusic = (function () {
       // the followed game's own output where it is tapped, else the player's own analyser
       var tap = follow && follow.tap, an = tap ? tap.an : analyser, live = tap ? true : state === "playing", rate = tap ? tap.rate : ctx && ctx.sampleRate;
       if (spectrum.hidden || !an) return;
-      var w = spectrum.clientWidth, hgt = spectrum.clientHeight, dpr = window.devicePixelRatio || 1;
+      var w = spectrum.clientWidth, hgt = spectrum.clientHeight, dpr = (window.ByopopSkin && ByopopSkin.ratio ? ByopopSkin.ratio() : window.devicePixelRatio || 1);
       if (!w || !hgt) return;
       if (spectrum.width !== Math.round(w * dpr) || spectrum.height !== Math.round(hgt * dpr)) { spectrum.width = Math.round(w * dpr); spectrum.height = Math.round(hgt * dpr); }
       if (!bins || bins.length !== an.frequencyBinCount) bins = new Uint8Array(an.frequencyBinCount);
@@ -2698,7 +2700,7 @@ var ByopopMusic = (function () {
       ev.preventDefault(); ev.stopPropagation();
       var startX = ev.clientX, startFirst = firstChannel, room = hbTrack.clientWidth - hbThumb.offsetWidth;
       try { hbThumb.setPointerCapture(ev.pointerId); } catch (e) {}
-      function move(e) { if (room > 0) scrollTo(startFirst + Math.round((e.clientX - startX) / room * (totalChannels - shownChannels))); }
+      function move(e) { if (room > 0) scrollTo(startFirst + Math.round((e.clientX - startX) / zoomOf() / room * (totalChannels - shownChannels))); }
       function up() { hbThumb.removeEventListener("pointermove", move); hbThumb.removeEventListener("pointerup", up); hbThumb.removeEventListener("pointercancel", up); }
       hbThumb.addEventListener("pointermove", move); hbThumb.addEventListener("pointerup", up); hbThumb.addEventListener("pointercancel", up);
     });

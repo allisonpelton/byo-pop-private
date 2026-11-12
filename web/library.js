@@ -44,7 +44,7 @@ var ByopopLibrary = (function () {
       var badge = tile.querySelector(".badge");
       var released = li.getAttribute("data-released") || "";
       return { id: id, li: li, tile: tile, href: tile.href || "", title: li.getAttribute("data-title") || id, status: status,
-        seconds: p.seconds > 0 ? p.seconds : 0, plays: p.plays > 0 ? p.plays : 0, last: p.last || "", released: released,
+        seconds: p.seconds > 0 ? p.seconds : 0, plays: p.plays > 0 ? p.plays : 0, first: p.first || "", last: p.last || "", by: p.by || {}, released: released,
         year: /^\d{4}/.test(released) ? +released.slice(0, 4) : 0, icon: icon,
         tag: badge ? (badge.getAttribute("data-initials") || badge.textContent) : "", colour: li.style.getPropertyValue("--tile") || "",
         fav: li.querySelector("button.fav"), buy: Array.prototype.filter.call(li.querySelectorAll("a[href]"), function (a) { return a !== tile && /^https?:/.test(a.href) && a.host !== location.host; }),
@@ -225,17 +225,40 @@ var ByopopLibrary = (function () {
       tb.appendChild(tt);
       var dl = make("dl", "lib-props-list");
       [["library.col.name", g.title], ["library.col.status", statusText(g.status)], ["library.props.released", lastText(g.released) || g.released],
-       ["library.props.plays", String(g.plays)], ["library.col.time", timeText(g.seconds) || "0"], ["library.col.last", lastText(g.last)],
+       ["library.props.plays", String(g.plays)], ["library.col.time", timeText(g.seconds) || "0"], ["library.props.first", lastText(g.first)],
+       ["library.col.last", lastText(g.last)],
        ["library.props.win95", T(g.win95 === "yes" ? "library.props.yes" : "library.props.no")]].forEach(function (p) {
         dl.appendChild(make("dt", "", T(p[0]))); dl.appendChild(make("dd", "", p[1] || "—"));
       });
+      // the play of each site player (web/profiles.js; ByopopPlay's by), the players in their own order, then play with none chosen
+      // and play of a player since removed, each on a row of its own
+      var by = g.by || {}, names = {}, order = [];
+      try { ByopopProfiles.list().forEach(function (p) { names[p.id] = p.name; order.push(p.id); }); } catch (e) {}
+      Object.keys(by).forEach(function (pid) { if (order.indexOf(pid) < 0) order.push(pid); });
+      var rows = order.filter(function (pid) { return by[pid] && (by[pid].plays || by[pid].seconds); });
+      var table = null;
+      if (rows.length) {
+        table = make("table", "lib-props-time");
+        var head = make("tr", "");
+        ["library.props.player", "library.props.plays", "library.col.time", "library.props.first", "library.col.last"].forEach(function (k) {
+          var th = make("th", "", T(k)); th.scope = "col"; head.appendChild(th);
+        });
+        table.appendChild(head);
+        rows.forEach(function (pid) {
+          var r = by[pid], tr = make("tr", "");
+          var who = make("th", "", pid === "" ? T("library.props.no_player") : names[pid] || T("library.props.removed"));
+          who.scope = "row"; tr.appendChild(who);
+          [String(r.plays), timeText(r.seconds) || "0", lastText(r.first), lastText(r.last)].forEach(function (v) { tr.appendChild(make("td", "", v || "—")); });
+          table.appendChild(tr);
+        });
+      }
       var ok = make("button", "", T("library.ok"));
       ok.type = "button";
       ok.addEventListener("click", function () { d.close(); });
       d.addEventListener("keydown", function (ev) { if (ev.key === "Escape" || ev.key === "Enter") { ev.preventDefault(); ev.stopPropagation(); d.close(); } });
       d.addEventListener("close", function () { if (d.parentNode) d.parentNode.removeChild(d); if (sel) select(sel, true); });
       var row = make("div", "lib-props-row"); row.appendChild(ok);
-      d.appendChild(tb); d.appendChild(dl); d.appendChild(row);
+      d.appendChild(tb); d.appendChild(dl); if (table) d.appendChild(table); d.appendChild(row);
       document.body.appendChild(d);
       try { d.showModal(); } catch (e) { d.setAttribute("open", ""); }
       ok.focus();
