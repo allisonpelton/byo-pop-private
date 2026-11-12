@@ -657,6 +657,9 @@ off and with it on.
 
   and, where a category's splits are not its levels, `by: "progress"`: each segment but the last splits when the game's
   progress reaches its number (Mummy Maze's treasures).
+  `limit: {field, max, setting}` resets the run when a block field passes `max` (AstroPop's SUPA Weapon count, in No SUPA
+  Weapon). `games: N` makes a run of N games, a segment each, each ending at the end's progress; between them the run
+  waits, and goes on with the next new game of a skill it hasn't had (AstroPop's 100%, one game a pilot).
 
 One decider reads every entry. It starts at a GO in the template's mode and skill, but never on a resumed save or a
 replay. It splits at each level clear, or when the score reaches a segment's number (Bejeweled's naming rules: "Level 3",
@@ -686,7 +689,14 @@ can clear the level in Classic. It has no win. Alchemy (speedrun.com: Alchemy De
 Strategic or Time Trial, from the click on Start New Game to the board's result screen (the statistics panel), with any
 skill, and Tutorial%, which ends `won` at the tutorial's last step appearing: that is the code's one moment for done, and
 the button under it only leaves. Its deaths are the forge overflowing (one kind in each mode), the Time Trial forge
-staying full, and leaving a game mid-board. Big Money has no board, so its row is its native
+staying full, and leaving a game mid-board. AstroPop (speedrun.com: Astropop Deluxe): Any% and Any% (No SUPA Weapon)
+for each pilot (the skill), a new Classic game from level 1 to level 32's "Level Up". Its GO is the new game's first
+update: the board's start click comes before the pilot is chosen, which the block can't see. Its progress is the level
+just cleared, since a fast warp gate skips levels, so the splits are `by: "progress"`. No SUPA Weapon has a `limit`: the
+game's own first word (`own0`, block 0x80) counts the weapon's uses, and the first resets the run (`resetSupa`). 100% is
+the four pilots, each a new game, and a template with `games: 4`: a segment a game, each ending at that game's `progress
+32`. Between games the run waits: the finished game's END GAME resets nothing, and the next new game with a pilot the run
+hasn't had carries it on. Survival has no timer. Big Money has no board, so its row is its native
 script's rules, with mode and skill in the category's name and levels or scores as segments. Both replay their native
 scripts' scenarios in `tools/autosplittest.js`. Every other game with a board gets its row in Milestone 3, from the
 speedrun.com categories and its session's answer on where in its code GO, a level clear, a game over and a win happen.

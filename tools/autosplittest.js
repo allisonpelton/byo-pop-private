@@ -224,6 +224,8 @@ function blockReplay(game, category, lines) {
       else if (ONE[k]) s[ONE[k]] = +v;
       else if (k === "flags") s.flags = parseInt(v, 16);
       else if (k === "deaths") v.split(",").forEach(function (n, i) { s["death" + i] = +n; });
+      // (the game's own bytes: their first word, little-endian)
+      else if (k === "own") s.own0 = parseInt(v.slice(6, 8) + v.slice(4, 6) + v.slice(2, 4) + v.slice(0, 2), 16);
     });
     d.poll(0, s);
   });
@@ -286,6 +288,48 @@ check(blockReplay("alchemy", "1 Board - Strategic", alLog("tutorial")) === "", "
 check(blockReplay("alchemy", "Tutorial%", alLog("strategic1")) === "", "Alchemy: a game never starts Tutorial%");
 check(blockReplay("alchemy", "1 Board - Strategic", alLog("left")) === "start; reset resetLeft; start; reset resetForgeDiscard", "Alchemy: leaving a game resets, the next game starts again");
 check(blockReplay("alchemy", "1 Board - Strategic", alLog("resume")) === "", "Alchemy: a continued save never starts a run");
+
+// AstroPop: its block logs (tools/autosplit/astropop/, the port's scripted games; a line at each change), and runs of 100%
+// made up of its fields (four pilots, a game each)
+function apLog(name) { return fs.readFileSync(path.join(__dirname, "autosplit", "astropop", name + ".block.log"), "utf8").split(/\r?\n/); }
+check(blockReplay("astropop", "Any% - Sprocket", apLog("classic")) === "start; split; split; reset resets", "AstroPop Any%: a split at each level, the test's game over resets");
+check(blockReplay("astropop", "Any% (No SUPA Weapon) - Sprocket", apLog("classic")) === "start; split; reset resetSupa",
+      "AstroPop No SUPA Weapon: the first SUPA Weapon use resets");
+check(blockReplay("astropop", "Any% (No SUPA Weapon) - Vector", apLog("supa")) === "start; reset resetSupa", "AstroPop No SUPA Weapon: a use before any level resets");
+check(blockReplay("astropop", "Any% - Vector", apLog("supa")) === "start; reset resets", "AstroPop Any% allows the SUPA Weapon");
+check(blockReplay("astropop", "Any% - Vector", apLog("classic")) === "", "AstroPop: another pilot's game never starts the run");
+check(blockReplay("astropop", "Any% - Turbot", apLog("survival")) === "" && blockReplay("astropop", "100%", apLog("survival")) === "",
+      "AstroPop: a Survival game never starts a run");
+// a made-up game in the log's fields: from its GO (serial n, the nth GO) through progress up to `to`, then `after`: "left"
+// (END GAME, kind 2), "lost" (kind 0) or nothing
+function apGame(n, pilot, to, after, deathsBefore) {
+  var d = deathsBefore || [0, 0, 0, 0], over = d[0] + d[1] + d[2] + d[3], out = [];
+  function line(p, flags, dd, ov, ing) {
+    out.push("u=" + (n * 1000 + out.length) + " seq=1 active=1 flags=" + flags + " board=" + n + " go=" + n + "/" + n + " over=" + ov + "/" + (ov ? n : 0) +
+             " deaths=" + dd.join(",") + " mode=1 skill=" + pilot + " ingame=" + ing + " progress=" + p + " own=0000000001000000");
+  }
+  for (var p = 0; p <= to; p++) line(p, "04", d, over, 1);
+  if (after === "left") { var l = d.slice(); l[2]++; line(to, "44", l, over + 1, 0); d = l; }
+  if (after === "lost") { var k = d.slice(); k[0]++; line(to, "44", k, over + 1, 0); d = k; }
+  return { lines: out, deaths: d };
+}
+function apRun(games) {
+  // (the first line is the decider's baseline: the title, no game)
+  var lines = ["u=0 seq=1 active=1 flags=00 board=0 go=0/0 over=0/0 deaths=0,0,0,0 mode=-1 skill=0 ingame=0 progress=-1"], d = [0, 0, 0, 0];
+  games.forEach(function (g, i) {
+    var r = apGame(i + 1, g[0], g[1], g[2], d);
+    // (the game is polled again at its end: a poll that splits is never the last)
+    lines = lines.concat(r.lines, [r.lines[r.lines.length - 1]]); d = r.deaths;
+  });
+  return blockReplay("astropop", "100%", lines);
+}
+check(apRun([[0, 32, "left"], [1, 32, "left"], [2, 32]]) === "start; split; split; split",
+      "AstroPop 100%: after the third pilot's level 32 the run waits for the fourth (found in the pane: the end split again)");
+check(apRun([[0, 32, "left"], [3, 32, "left"], [1, 32, "left"], [2, 32]]) === "start; split; split; split; split",
+      "AstroPop 100%: a split at each pilot's level 32, END GAME between pilots resets nothing");
+check(apRun([[0, 32, "left"], [0, 32, "left"], [1, 32]]) === "start; split; split", "AstroPop 100%: a pilot already played never counts again");
+check(apRun([[0, 32, "left"], [1, 5, "lost"]]) === "start; split; reset resetRowPush", "AstroPop 100%: a loss in a later pilot's game resets");
+check(apRun([[0, 10, "left"], [1, 32]]) === "start; reset resetLeft; start; split", "AstroPop 100%: leaving a pilot's game before level 32 resets");
 
 console.log("autosplittest: " + (fx.cases.length + bm.cases.length + bw.cases.length) + " scenario replays, " + checks + " checks, " + fails + " failed");
 process.exit(fails ? 1 : 0);
