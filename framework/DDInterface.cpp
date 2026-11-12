@@ -779,9 +779,10 @@ void DDInterface::DrawTexturedQuad(Image* theImage, const float theX[4], const f
 	float aScale = (float) mRenderScale;
 
 	// port: SDL's software renderer blends a texture with a blend mode pixel by pixel, at about twice the cost of a copy. An image with no
-	// alpha and no transparent pixel, drawn at full alpha in the normal mode, is a copy: the same pixels come out, at half the time of a
-	// frame of Bejeweled 2's 2D mode.
-	if ((!mIs3D) && (theDrawMode != Graphics::DRAWMODE_ADDITIVE) && (aColor.a == 255) && (aData->mScale == 1))
+	// alpha and no transparent pixel, drawn at full alpha in the normal mode, is a copy: the same pixels come out. Not an image in forced
+	// mode (SetImageMode): CommitBits leaves its flags as the game set them, which say nothing of its texels (a render target made by
+	// Create() starts at alpha 0, and what is drawn into it can be semi-transparent), so it stays blended.
+	if ((!mIs3D) && (theDrawMode != Graphics::DRAWMODE_ADDITIVE) && (aColor.a == 255) && (aData->mScale == 1) && (!aSrcImage->mForcedMode))
 	{
 		aSrcImage->CommitBits();
 		if ((!aSrcImage->mHasAlpha) && (!aSrcImage->mHasTrans))

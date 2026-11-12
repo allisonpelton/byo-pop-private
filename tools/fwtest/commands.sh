@@ -70,9 +70,17 @@ wait_for "got shorter; reading it from its start"
 wait_for "OK wait 3"
 # The file deleted and a new one moved to its name, longer than what was read: the lines after that position of the
 # new file run (the old file, still open in the game and deleted, would show no new line), and the ones before it do not
+# (Windows without POSIX delete semantics keeps a deleted file's name until the game, which holds it open, looks again at the
+# next update: the mv is tried again until it goes through, 10 s at most.)
 printf 'wait 9\nwait 4\n' > "$CF.new"
 rm -f "$CF"
-mv "$CF.new" "$CF"
+t=0
+until mv "$CF.new" "$CF" 2> /dev/null; do
+	kill -0 $PID 2> /dev/null || fail "fwtest ended before the file could be replaced"
+	sleep 0.1
+	t=$((t + 1))
+	[ $t -lt 100 ] || fail "the deleted file kept its name for 10 s"
+done
 wait_for "OK wait 4"
 grep -q -F "OK wait 9" "$LOG" && fail "a line already read was run again"
 printf 'report\n' >> "$CF"

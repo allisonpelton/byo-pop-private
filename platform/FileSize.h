@@ -27,7 +27,9 @@ public:
 	// one comes, so a file deleted and made again is the new one. Every 256th call looks by name regardless. If
 	// the directory cannot be watched, each call looks by name. One thing the open handle changes for the file's
 	// writers: another process cannot rename a file over it (MoveFileEx with MOVEFILE_REPLACE_EXISTING fails with
-	// access denied); appending, truncating, deleting and recreating it work.
+	// access denied), nor rename or move the folder it is in; appending, truncating, deleting and recreating it work, and
+	// so does deleting the folder after the file. A file deleted while it is open keeps its name until the handle closes
+	// on Windows without POSIX delete semantics: the next Query (it sees the file is delete-pending) closes it.
 	bool Query(const std::string& theFile, long long* theSize);
 
 private:
