@@ -78,5 +78,7 @@ As `GAME_NOTES.md` lists them: none changes play.
 
 ### Left in phase one
 
-More Journey levels (the bot loses after the first few), a run with a window that loses and regains the focus, and a run with
-tries, wings and the power-ups.
+Phase one ends here: the games play out the same in every mode, for the length of the scripts. The levels past the first few
+of each mode, with their bumpers, tossers, warps and baskets, and the power-ups, wings and tries that the bot never reaches,
+come in the coverage check (the bot loses early, and a level is reached with a profile that has it unlocked), and the focus loss
+and regain with phase two.
