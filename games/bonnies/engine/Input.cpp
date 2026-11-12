@@ -15,16 +15,16 @@ Input::Input()
 {
 	mPinnedX = 0;
 	mPinnedY = 0;
-	mField14 = 0;
-	mField18 = 0;
-	mField1C = 0;
+	mSpareFirst = 0;
+	mSpareSecond = 0;
+	mSpareThird = 0;
 	mDownTime = 0;
 	mDownX = 0;
 	mDownY = 0;
 	mPinned = 0;
 	mSkipMotion = 0;
 	for (int i = 0; i < 0x13d; i++)
-		mFields[i] = 0;
+		mSpareBlock[i] = 0;
 }
 
 // 0x42b640

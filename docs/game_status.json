@@ -444,10 +444,11 @@
         "fixes-mod",
         "coverage",
         "performance",
-        "unneeded-code"
+        "unneeded-code",
+        "readability"
       ],
       "na": [],
-      "now": "readability",
+      "now": "collection",
       "note": "Collection check to do (the Collection exe is another build)"
     },
     "bejeweled2": {

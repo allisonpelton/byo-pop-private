@@ -599,9 +599,9 @@ void TextField::draw()
 }
 
 // 0x42cbd0
-void TextField::refreshDisplay(int theUnused)
+void TextField::refreshDisplay(int theIgnored)
 {
-	(void)theUnused;
+	(void)theIgnored;
 	mDisplay = mText;
 	uint32_t aBlink = ~((int)(host()->getTicks() - mBlinkTime) / 0x1a4) & 1;
 	mBlinkOn = (int)aBlink;
@@ -1135,7 +1135,7 @@ ListItem::ListItem()
 {
 	mText = "";
 	mData = 0;
-	mField0C = 0;
+	mSpare = 0;
 }
 
 // 0x42f6d0
@@ -1145,7 +1145,7 @@ ListItem& ListItem::operator=(const ListItem& theItem)
 	{
 		mText = theItem.mText;
 		mData = theItem.mData;
-		mField0C = theItem.mField0C;
+		mSpare = theItem.mSpare;
 	}
 	return *this;
 }
@@ -1311,7 +1311,7 @@ void ListBox::insert(const Str& theText, int theData, int theIndex)
 	ListItem anItem;
 	anItem.mText = theText;
 	anItem.mData = theData;
-	anItem.mField0C = 0;
+	anItem.mSpare = 0;
 	insert(anItem, theIndex);
 }
 

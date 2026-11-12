@@ -123,17 +123,17 @@ void loadLanguage()
 				if (aLast - aFirst > 1999)
 					aLast = aFirst + 2000;
 				char aBuffer[2108];
-				int n = 0;
+				int aBufferSize = 0;
 				bool anEscape = false;
 				int aStop = aLast - 1;
 				for (int j = aFirst + 1; j <= aStop; j++)
 				{
-					char c = (char)at(aText, j);
-					if (c == '\\' && j < aLength)
+					char aChar = (char)at(aText, j);
+					if (aChar == '\\' && j < aLength)
 					{
 						if (anEscape)
 						{
-							aBuffer[n++] = '\\';
+							aBuffer[aBufferSize++] = '\\';
 							anEscape = false;
 						}
 						else
@@ -141,28 +141,28 @@ void loadLanguage()
 					}
 					else if (anEscape)
 					{
-						switch (toUpper((unsigned char)c))
+						switch (toUpper((unsigned char)aChar))
 						{
 						case '"':
-							aBuffer[n++] = '"';
+							aBuffer[aBufferSize++] = '"';
 							break;
 						case 'N':
 						case 'R':
-							aBuffer[n++] = '\n';
+							aBuffer[aBufferSize++] = '\n';
 							break;
 						case 'T':
-							aBuffer[n++] = '\t';
+							aBuffer[aBufferSize++] = '\t';
 							break;
 						default:
-							aBuffer[n++] = c;
+							aBuffer[aBufferSize++] = aChar;
 							break;
 						}
 						anEscape = false;
 					}
 					else
-						aBuffer[n++] = c;
+						aBuffer[aBufferSize++] = aChar;
 				}
-				aBuffer[n] = 0;
+				aBuffer[aBufferSize] = 0;
 				gTexts[anId] += aBuffer;
 				gHasText[anId] = 1;
 			} while (i < aLength);

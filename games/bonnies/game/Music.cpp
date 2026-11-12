@@ -34,9 +34,9 @@ Music::Music()
 		gTracks[i].mStartOrder = exeI32(anAddress + 0x14);
 		gTracks[i].mStopOrder = exeI32(anAddress + 0x18);
 		gTracks[i].mName = Str(exeGlobalString(anAddress + 0x1c));
-		gTracks[i].mStr24 = Str(exeGlobalString(anAddress + 0x24));
+		gTracks[i].mSecondName = Str(exeGlobalString(anAddress + 0x24));
 	}
-	mField00 = 1;
+	mAlive = 1;
 	mKind = 0;
 	mIndex = 0;
 	mCount = 0;
@@ -50,7 +50,7 @@ Music::Music()
 // 0x42f0a0
 Music::~Music()
 {
-	mField00 = 0;
+	mAlive = 0;
 }
 
 // 0x40ddc0

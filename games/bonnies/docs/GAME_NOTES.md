@@ -270,3 +270,66 @@ window has no menu to give) went with the event type that carried it, which the 
 the engine and the host (its only callers were the registration panel's links); and so are `Widget::setImage` (0x42c410,
 a slot nothing calls) and the `Picture` widget (type 2, 0x42f530 to 0x42f560, which the game never makes). The
 application's own `messageBox`, which only an error path of the original reaches, stays.
+
+## The readability pass (2026-11-11)
+
+`python tools/namecheck.py games/bonnies` finds nothing now (it found 852 before, once `namecheck.txt` added the game's
+`engine/` and `game/` folders beside `src/`; the file holds those two `folder` lines and no exception). The object code
+of all 31 units is what it was (`tools/objsnap.py`: 840 functions, 0 objects differ), no string literal of the sources
+changed, and the frozen baseline is identical (`tools/check.sh bonnies`).
+
+**Names.** Bonnie's has no Mac build, so every name comes from how the code uses the thing, read against the original's
+function. The 98 members that were named by their offsets (`mFieldC5C`, `mStrCC8`, `mDebug1E8`) are words now, each with
+a comment saying what it holds, in `Game.h` (the player's record and the game), `GameScreen.h` and the smaller classes.
+The ones worth knowing when reading the game:
+
+| Name | What it is |
+|---|---|
+| `Game::mClassic` | 1 in the classic game (no clock: `mGoal` counts the moves left), 0 in the action game (the clock runs, `mClock` falls from 1 to 0) |
+| `Game::mClock`, `mClockLag` | the action game's time left, and the time a long word gave that the shown clock has not caught up with yet (the shown clock is their sum) |
+| `Game::mMovesLag`, `mCountTime` | the classic game's moves given and not yet counted into the display, and when the count last ticked |
+| `Game::mLevelBestWord`, `mBestWord` | the longest word of the level (the summary shows it) and of the game (the high score table's "best word") |
+| `Game::mWordsPlayed`, `mGameWords`, `mShuffles` | counters the tutorial's hints test: words on this level, in this game, shuffles on this level |
+| `Game::mChangeTimes`, `mOldLetters` | when a tile last changed and the letter it had (a stone counted up, a copycat copied, a fixed tile freed, `'^'`), for the animations |
+| `GameScreen::mSequenceState` | the screen's state: 1 in play, 2 the level won, 3 to 16 the steps of the summary after it, 0x11 to 0x13 the end |
+| `GameScreen::mBoardFade`, `mSummaryFade`, `mLeaveFade`, `mBookOpen`, `mSummaryDark` | the fades the sequence's steps run, 0 to 1 |
+| `Record::mWords`, `mLetters`, `mLongestWord`, `mBestStreak`, `mStreak` | the player's statistics page: the average word is `mLetters / mWords` |
+
+Names that are judgements from the code's use and not from anything the original says are `Game::mWildFell` (a `?` tile
+came from the super wild odds and its hint is due), `Game::mMovesAtHint`, `Book::mTwoFills` (a tile takes two words to
+mark, the flags 0x10 then 0x20), `Book::mFastOdds` (a long word adds more to the special tiles' odds), `GameScreen::mClicks`
+and `Platform::mShimmerWaits`. The three debug menu flags (`BonniesApp::mFreeMoves`, `mAnyWord`, `mNoHints`) keep the
+menu item they belonged to in their comments; nothing in the port sets them.
+
+**Fields nothing reads (rule 3).** These stay, named for what they hold or sit beside, with a comment saying that nothing
+reads them: `Record::mSpare` (saved with the record), `Options::mWindowSpare` (saved with the options), `Game::mWordFrame`,
+`Game::mPathClearTime`, `Graphics::mModeFrame`, `BonniesApp::mPrevState`, `BonniesApp::mRedrawCount`, `Music::mAlive`,
+`MusicTrack::mSecondName`, `Pak::mInUse`, `GameScreen::mSummaryStart`, the `Platform`, `Input`, `ListItem`, `Sample`,
+`SoundSystem` and screen spares, and the startup scratch object (`gStartupScratch`, made and freed and never used).
+`tools/splitfields.py` finds no member declared twice at one offset and none that is never written; its export check
+lists six members (`GameScreen::update`'s picture and chapter, and `Game`'s path rows, path length and level), which the
+original's functions touch directly and the port's reach through the accessors it translated separately (`pathRow`,
+`pathLetter`, `currentBook`) or through the helper that holds the code.
+
+**One-letter names (rule 5).** Fifty-nine locals of the drawing code (`Draw.cpp`, `Graphics.cpp`), `Str.cpp`'s `addColor`
+and a few parsers were one letter over many lines; they are words (`aPixelPtr`, `anAlpha`, `aSrcPixel`, `aCornerRadius`,
+`aRamp`, `aCornersX`) and the colour components beside them follow (`aRed`, `aGreen`, `aBlue`). The unused parameters
+that were `theUnused` are `thePassedOn` (the sound call's flag, which the original passes through and never reads) and
+`theIgnored`; the rest of the stand-ins are `aNewFile`, `aNotUnderstood`, `aSecondFlag`, `aSkipped` and, for the intro's
+two animation clocks at 0x478538 and 0x47853c, `gHandsTime` and `gHandsFrameTime` (beside the mouth's and the head's
+`...Time` and `...FrameTime`). `BonniesHost.cpp` and `ModFeatures.cpp` carry the port marker in their first comment
+(rule 6).
+
+**Numbers named (rule 7).** `game/Board.h`: `BOARD_COLUMNS` and `BOARD_ROWS` (9 each: a cell is
+`column * BOARD_ROWS + row`), `BOARD_CELLS` (81), `PATH_LETTERS` (20, the most tiles on the path and in a hint's word)
+and `LEVEL_COUNT` (50), about 190 uses in the game's sources. Left as numbers: `Book::mBannedIn[9]` (what the nine are
+is not settled), the spawn store's `2 * (0x13 + 9)` in `refill`, and every other 0x14 and 0x32 (a flag, a colour step, a
+50 ms step, a window position).
+
+**How it was done.** Compiler-driven, as `docs/CODE_STANDARDS.md` says: the declarations were renamed class by class,
+every translation unit was compiled with `-fsyntax-only -ferror-limit=0`, and the old name was replaced exactly where the
+compiler reported it missing (the class named in the message keeps two classes' `mFieldAC` apart; an unqualified use
+takes its class from the function around it). The one-letter locals were renamed over the block that holds them by a
+second script that reads code only, not comments or strings, and refuses a new name that the function already has. The
+five sites in a constructor that the first script could not place (`Input::Input`, `Music::Music`,
+`ListItem::ListItem`) were fixed by hand. Neither script is in the repository; the shared notes folder holds them.
