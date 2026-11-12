@@ -682,3 +682,50 @@ the default path's memory (that is the driver's).
 
 **Not measured.** The software path's sound or loading time; Bookworm Adventures' pictures (compared on Alchemy only); the
 long pair for the software path at the window's scale and for Bookworm Adventures; the visible desktop's hand-over cost.
+
+## 13. The autosplit block (2026-11-12)
+
+The port writes the shared autosplit block (`platform/AutosplitBlock.h`, layout 2, game id `ALDX`) for the site's Splits window
+(`web/autosplit.js`; `docs/WEB_PLAYER.md`, "One design for every port"), because Alchemy Deluxe has a speedrun.com board:
+**1 Board** and **7 Boards**, each by Strategic or Time Trial, timed from the click that starts the game to the "1 Board" or "7 Boards"
+cleared panel, and **Tutorial%**, from the tutorial's start to its end. `src/LiveSplitObserver.cpp` fills it after every update
+(`WinAlchApp::UpdateFrames`), and only reads the game: it is asked for by the page (`byopop_livesplit_block`, exported in
+`CMakeLists.txt`) or, natively, by an enabled mod with the feature `livesplit`; until then it tests one flag. `Board` has two fields
+for it that nothing in the game reads: `mBoardSerial` (a counter bumped in the constructor, so every game, tutorial and continued
+game is a board of its own) and `mResumed` (`LoadGame` ran). Block off, block on and the frozen baseline play identically.
+
+| Field | Alchemy's value |
+|---|---|
+| `mode` | 0 Strategic, 1 Time Trial, 2 Tutorial; -1 off a board |
+| `skill` | the game's own level: 1 Easy, 2 Average, 3 Hard (`Board::mSkillBase / 5 + 1`); 0 in the tutorial and off a board |
+| `level`, `displayLevel` | boards cleared (0-based), and that plus one, the number the board's header shows |
+| `state` | `Board::mState`: 0 playing, 1 clearing, 2 ending, 3 game over, 4 won (the pieces vanish), 5 cleared (the panel), 6 next board |
+| `displayScore` | the side panel's rolling score (`Sidebar::mScoreAnim`); `score` is `Board::mScore` |
+| `deaths[0..3]` | 0 Strategic: the forge overflowed by a discard; 1 Time Trial: the forge stayed full for more than 0x95 updates; 2 left: another game or the selector replaced the board mid-game; 3 Time Trial: a discard overflowed the forge |
+| `progress` | -1 (unused) |
+| flags | RESUMED for a continued game, VANILLA (no gameplay mod exists) unless a test's `-seed` chose one (CHOSEN_SEED), PAUSED while a dialog or the key's cover pauses the board, GAME_OVER and WON latched per board |
+
+Where each event is, against the board's rules:
+
+- **GO.** The board is made inside the click on the selector's start (or tutorial) button, so the first update after it sees a fresh
+  board in `STATE_PLAYING` and raises GO at that update's end, at most one update (10 ms) after the click. A continued game
+  (`mResumed`), a board first seen at activation and a board that has been played on when first seen never get one.
+- **Board cleared** (`LevelClear`). `Board::ShowBoardComplete` puts the panel up in the update after the last piece has vanished,
+  and the observer sees `STATE_BOARD_CLEARED` at that update's end: the same update as the result screen. The game's own title
+  reads "1 Board Cleared" and "N Boards Cleared" (the rules say "Complete"). The 7th clear is the "7 Boards" end; `boardLevelClears`
+  counts them. The click on the panel's button goes on to the next board of the same game (`mBoardsCleared + 1`), which is
+  not a new GO.
+- **Game over.** `Board::GameOver` sets `STATE_ENDING` (with no pieces left the same update goes on to `STATE_GAME_OVER`, which
+  the observer takes for the same game over), at the end of the update that ran it. A game left by a new game or the selector
+  writes its game over when the board is gone, on that board's serial, one write before the next board's.
+- **Win.** The tutorial's last step (`NextTutorial`, step 0xe, "TUTORIAL_DONE") is shown after the player's click on the bomb
+  step's "next" button. That is the one moment the code has for "completed": the wizard's closing words and the "Click here to
+  start playing!" button, whose click (`Board::ButtonDepress`, id 1) only returns to the selector and deletes the board. A rule that
+  ends the tutorial run on that click would end it a player's reading time later; the board's tutorial step is `mTutorialStep`.
+
+The tests are `games/alchemy/tools/livesplit/run_tests.sh <out dir>` (under rundesk, about 6 minutes when the machine has room):
+scripted Strategic games with one board and with seven boards won and then lost, Time Trial games lost by the forge staying full and
+by a discard, the bot's tutorial, a game left for the selector, a continued game, and the game with no mod (no block, no log), each
+checked against the events it must log; then the three mouse-played games of `tools/check.sh alchemy` with the block off, on and in
+the frozen baseline, whose state logs must be identical. `-livesplitlog=<file>` writes one line for each write of the block whose
+rule fields changed (not one per update: the updates, tick and scores are left out of the test).

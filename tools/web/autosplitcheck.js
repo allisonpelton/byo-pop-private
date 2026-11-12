@@ -79,6 +79,8 @@ async function botStep() {
   var m = await t.botMove();
   if (m === null) { await t.wait(5); return null; }
   await t.playMove(m);
+  // (a move with no input, such as AstroPop's "wait" through a warp flight, lets the game run its updates)
+  if (!m.input || !m.input.length) await t.wait(m.updates || 10);
   return m;
 }
 // the command, after as many of the bot's moves as it takes for it to be answered OK
@@ -90,6 +92,8 @@ async function until(line, max) {
   }
   throw new Error(line + ": never OK");
 }
+// (AstroPop's bot stays on its title, where the `goto` is answered: its plan sends it from there)
+var titleGoto = false, unpauseFirst = false;
 // a new game: the command (BookWorm's selector bot picks the mode), then the bot's moves until a new board is in play
 async function newGame(line) {
   step += "+new";
@@ -98,11 +102,17 @@ async function newGame(line) {
   for (var j = 0; j < 50 && (await t.state()).screen === "map"; j++) await botStep();
   // (a list of commands, or of real input steps such as {click: [x, y]}: Mummy Maze leaves a game only by its Quit to Main
   // button, and its bot starts the game `set botmode` names from the main menu)
-  if ((await t.state()).screen !== "title")
+  if (titleGoto || (await t.state()).screen !== "title")
     for (var c of [].concat(line)) { if (typeof c === "string") await until(c, 50); else await t.playMove({ input: [c] }); }
   for (var k = 0; k < 400; k++) {
     var s = snap();
-    if (s && s.boardSerial && s.boardSerial !== before && s.inGame) { await settle(); return s.boardSerial; }
+    if (s && s.boardSerial && s.boardSerial !== before && s.inGame) {
+      // (AstroPop's new game opens with its full-screen help, which pauses it: a `win` under it counts a clear but never
+      // goes on to the next level, so the bot closes it first)
+      for (var u = 0; unpauseFirst && u < 100 && (snap().flags & 0x80); u++) await botStep();
+      await settle();
+      return s.boardSerial;
+    }
     await botStep();
   }
   throw new Error("no new game");
@@ -119,10 +129,16 @@ async function load(category) {
 // clears the level in play, once the bot has reached one: the timer's index after the auto splitter saw it
 // (BookWorm's clear is the `win` itself; Seven Seas' comes when the level's panel is closed, so the bot plays on until the
 // block counts it)
+// (Typer Shark's split is the return to the map after the level is left, its progress rising: with splitByProgress the bot
+// plays on until it has)
+var splitByProgress = false;
 async function clearLevel() {
-  var before = snap().boardLevelClears;
-  await until("win");
+  var before = snap().boardLevelClears, p0 = snap().progress;
+  // (AstroPop answers ERROR to a `win` until the level is in play and a brick has been taken, so the bot plays through its
+  // help, the bonus round and the warp flight first: a longer wait with unpauseFirst)
+  await until("win", unpauseFirst ? 3000 : 400);
   for (var k = 0; k < 400 && snap().boardLevelClears === before; k++) await botStep();
+  for (var j = 0; splitByProgress && j < 400 && snap().progress === p0; j++) await botStep();
   await settle();
   return att();
 }
@@ -189,10 +205,88 @@ async function common(category, levels, newLine, opts) {
   note("lost", resetCause !== null && att().phase === "idle", "reset " + resetCause + ", then " + att().phase + "; deaths " + [s.death0, s.death1, s.death2, s.death3].join(","));
 }
 
+// Cosmic Bugs' instructions page, then its Play button
+var CB_PLAY = ["goto instructions", { wait: 10 }, { move: [400, 563] }, { wait: 3 }, { click: [400, 563] }];
 // Mummy Maze's Quit to Main button, in the game's sidebar
 var MM_QUIT = [{ click: [64, 462] }];
 
 var PLANS = {
+  cosmicbugs: async function () {
+    // a run starts at Play on the instructions page, which `goto instructions` opens (its Play, at 400,563, is clicked here:
+    // the bot answers null on that page); the first board
+    // splits, the next two don't (the next split is board 49's), and running out of lives resets. The 577 boards to the
+    // win are the replay test's (tools/autosplittest.js)
+    titleGoto = true;
+    snap();
+    await t.wait(5);
+    var s0 = snap();
+    note("attach", !!s0 && s0.active === 1, s0 ? "active " + s0.active : "no block read");
+    await load("Any%");
+    await newGame(CB_PLAY);
+    var a0 = att();
+    note("start", a0.phase === "running" && a0.index === 0, "phase " + a0.phase + ", index " + a0.index + " (board " + snap().boardSerial + ")");
+    var idx = [];
+    for (var lv = 1; lv <= 3; lv++) idx.push((await clearLevel()).index);
+    note("split", idx.join(",") === "1,1,1", "index after boards 1 to 3: " + idx.join(","));
+    var resetCause = null;
+    var p = (async function () { resetCause = await sawReset(30000); })();
+    await lose();
+    await p;
+    note("lost", resetCause !== null && att().phase === "idle", "reset " + resetCause + ", then " + att().phase + "; deaths " + [snap().death0, snap().death1].join(","));
+    // a board started by the `level` command (as a continued game or a chosen board) starts nothing
+    var g = snap().goCount;
+    await until("level 5");
+    for (var k = 0; k < 100 && !snap().inGame; k++) await botStep();
+    await settle();
+    note("resumed", att().phase === "idle" && snap().goCount === g && (snap().flags & 0x02), "after `level 5`: " + att().phase + ", GOs " + g + " to " + snap().goCount + ", flags " + snap().flags.toString(16));
+  },
+  typershark: async function () {
+    splitByProgress = true;
+    titleGoto = true;
+    await common("Adventure Mode - Easy", 11, "goto adventure 0");
+    // a game of another difficulty, or the Abyss, never starts the Easy run
+    await resetByHand();
+    await newGame("goto adventure 4");
+    note("skill", att().phase === "idle", "an X-Treme! game (skill " + snap().skill + "): " + att().phase);
+    // Abyss Mode: from the dive's GO to its game over
+    await load("Abyss Mode");
+    await newGame("goto abyss");
+    var a0 = att();
+    await lose();
+    note("abyss", a0.phase === "running" && att().phase === "ended", "started " + a0.phase + " (mode " + snap().mode + "); after the game over " + att().phase);
+  },
+  astropop: async function () {
+    await cmd("unlock all");
+    titleGoto = true;
+    unpauseFirst = true;
+    await common("Any% - Vector", 32, "goto classic 1 0");
+    // No SUPA Weapon: a charged weapon, which the bot starts, resets the run
+    await resetByHand();
+    await load("Any% (No SUPA Weapon) - Vector");
+    await newGame("goto classic 1 0");
+    var a0 = att(), resetCause = null;
+    var p = (async function () { resetCause = await sawReset(60000); })();
+    // (the bot closes the help, starts the charged weapon with its key and answers the box that explains it)
+    await cmd("set charge");
+    for (var k = 0; k < 200 && !snap().own0; k++) await botStep();
+    await settle();
+    await p;
+    note("supa", a0.phase === "running" && snap().own0 > 0 && resetCause !== null, "started " + a0.phase + "; SUPA uses " + snap().own0 + "; reset " + resetCause);
+    // 100%: four pilots, a game each; each game's level 32 (set to it, then won) splits, the next pilot's new game goes on
+    // with the run, and a pilot already played doesn't
+    await resetByHand();
+    await load("100%");
+    var idx = [], phases = [], first = null;
+    for (var pilot of [0, 3, 0, 1, 2]) {
+      await newGame("goto classic 1 " + pilot);
+      if (first === null) first = att().phase;
+      await cmd("set level 32");
+      idx.push((await clearLevel()).index);
+      phases.push(att().phase);
+    }
+    note("allpilots", first === "running" && idx.join(",") === "1,2,2,3,4" && phases[4] === "ended",
+         "started " + first + "; index after each pilot's level 32 (Vector, Vixx, Vector again, Sprocket, Turbot) " + idx.join(",") + "; then " + phases.join(","));
+  },
   alchemy: async function () {
     // (the bot takes Alchemy's title to the selector but starts no game there, so the plan passes the title first and
     // the `goto` starts each game)

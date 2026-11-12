@@ -205,6 +205,10 @@ public:
 	ImageVariantTable		mPiranhaImages;         // +0x920 [type][(variant, 0)]: the piranha images
 	// (sizeof 0x930)
 
+	// port: the autosplit block's inert state (LiveSplitObserver.cpp); nothing in the game reads either
+	unsigned int			mAutosplitGameSerial;   // the number of the game in play, counted from 1 over the run: CreateBoard and RestartBoard start a game
+	bool					mAutosplitContinued;    // the game in play continues the profile's saved game (the "CONTINUE?" question answered yes)
+
 public:
 	WinWSApp();                                                         // 0x4373b0
 	virtual ~WinWSApp();                                                // 0x4366a0 (scalar deleting 0x437960, slot 14)
@@ -214,6 +218,7 @@ public:
 	virtual void			Init() override;                                        // 0x428500 slot 16
 	virtual void			LoadingThreadProc() override;                           // 0x435560 slot 17
 	virtual void			UpdateFrames() override;                                // 0x4127a0 slot 7
+	virtual void			HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue) override;   // port: -livesplitlog
 	virtual void			SetMusicVolume(double theVolume) override;              // 0x4127c0 slot 47
 	virtual void			ButtonPress(int theId) override;                        // 0x412820 slot 3
 	virtual void			ButtonDepress(int theId) override;                      // 0x431630 slot 4 (WinWSAppButtons.cpp)

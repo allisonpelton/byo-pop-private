@@ -110,6 +110,8 @@ public:
 	virtual void	SwitchScreenMode(bool wantWindowed) override; // 0x4090d0 slot 53
 	virtual void	GotFocus() override;                        // 0x4253e0 slot 62
 	virtual void	LostFocus() override;                       // 0x425380 slot 63
+	// port(autosplit): -livesplitlog=<file> (a test option of the autosplit block's observer, LiveSplitObserver.h), the rest to the framework
+	virtual void	HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue) override;
 
 	// port: the 2004 SexyApp makes a BassMusicInterface itself (slot 15, 0x408e30); here an SDLMusicInterface
 	// with BASS 2.0's music gain (docs/FRAMEWORK_2004.md section 6)

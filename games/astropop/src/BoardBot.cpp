@@ -144,9 +144,17 @@ std::string ClickStep(int theCol, bool theRight)
 	return StrFormat("{\"click\":[%d,%d]%s}", ColumnX(theCol), kShipY, theRight ? ",\"button\":\"right\"" : "");
 }
 
-std::string WaitMove()
+std::string WaitMove(int theUpdates = 10)
 {
-	return "{\"kind\":\"wait\",\"updates\":10,\"input\":[]}";
+	return StrFormat("{\"kind\":\"wait\",\"updates\":%d,\"input\":[]}", theUpdates);
+}
+
+// No move to make now. A bonus round goes on without one (its minute runs out, then the bricks left are counted), so the bot waits
+// there instead of answering null: the drivers stop at a null, and a bonus field with no group to shoot ended their games with
+// most of the minute still to play
+std::string NoMove(bool theBonusRound)
+{
+	return theBonusRound ? WaitMove(50) : "null";
 }
 
 }
@@ -175,6 +183,36 @@ int Board::BotBusyReason()
 bool Board::BotBusy()
 {
 	return BotBusyReason() != 0;
+}
+
+// Why the test command `win` (LevelComplete, called straight) must be refused now, NULL when the board is in play. The original calls it
+// only from IsSettled, in a level the player is playing: with the help, a pause, a level-up, a warp or a bonus round on, a level
+// that no brick has been taken in (mPlayStarted, which UpdateIntroAndTally's turn in the update waits for: a bonus round won before it
+// never ends) or a game that is over, it would count a clear that never moves the game on, or restart the bonus round at each call.
+// port: the test commands (docs/TEST_COMMANDS.md); the original has none
+const char* Board::WinBlockedReason()
+{
+	if (mGameOver)
+		return "the game is over";
+	if (mApp->mHelpScreen != NULL)
+		return "the full-screen help is up";
+	if (mDemoPlaying)
+		return "the demo plays";
+	if (mStoryScreen != NULL)
+		return "a story is up";
+	if (mPauseCount != 0)
+		return "the game is paused";
+	if (mBonusRoundOn || mBonusWarpIn)
+		return "a bonus round is on";
+	if (mLevelUpPhase || mWarpActive || mWarpFlight || mAtWarpGate || mWarpGatePicked || mWarpCharging)
+		return "the level is won already (the level-up or the warp is on)";
+	if (mScreenWiping || mClearCountRunning || mStreaksFadingOut || mLevelUpPanelHeight + mLevelUpPanelY > 0)
+		return "a screen is on (a count, a fade or the level-up panel)";
+	if (!mPlayStarted)
+		return "no brick has been taken in this level yet (play has not started)";
+	if (mLevelCompleteBlocked)
+		return "the level cannot be completed now";
+	return NULL;
 }
 
 // The move the bot makes next: a text (JSON) with what it is and `input`, the real input that makes it. "null" when there is
@@ -241,9 +279,15 @@ std::string Board::BotMove()
 	if (BotBusy())
 		return WaitMove();
 
-	// the weapon of the pilot, charged: the Return key starts it (the middle button and the start button do the same)
+	// a bonus round starts its minute with the first click (MouseDown); a click that picks up a brick does that too, but a field with
+	// no group to shoot would never start it
+	if (mBonusRoundOn && !mBonusRoundStarted && !mBricksRevealing && !mBonusWarpIn)
+		return "{\"kind\":\"bonus\",\"updates\":10," + Steps("{\"click\":[320,300]}") + "}";
+
+	// the weapon of the pilot, charged: the Return key starts it (the middle button and the start button do the same). The step
+	// names it as a DOM key does ("Enter"), the name that both drivers know: the web page's test kit throws on SDL's "Return"
 	if (mPowerupActive == 0 && mWeaponCharge == mWeaponChargeMax && !mNewRowBouncing && !mBonusRoundOn && !mDemoPlaying)
-		return "{\"kind\":\"weapon\",\"updates\":10," + Steps("{\"key\":\"Return\"}") + "}";
+		return "{\"kind\":\"weapon\",\"updates\":10," + Steps("{\"key\":\"Enter\"}") + "}";
 
 	FieldGrid aGrid;
 	for (int r = 0; r < kRows; r++)
@@ -300,7 +344,7 @@ std::string Board::BotMove()
 		aHandKind = (mHandKindBrick != NULL) ? (mHandKindBrick->mMutated == 1 ? 0xc : mHandKindBrick->mType) : mHeldBricks.front()->GetEffectiveType();
 		aHandCount = (int) mHeldBricks.size();
 		if (!IsColour(aHandKind))
-			return "null";
+			return NoMove(mBonusRoundOn);
 	}
 
 	int aBestScore = -100000;
@@ -366,7 +410,7 @@ std::string Board::BotMove()
 	}
 
 	if (aBestDrop < 0)
-		return "null";
+		return NoMove(mBonusRoundOn);
 
 	std::string aSteps;
 	if (!aHolding)

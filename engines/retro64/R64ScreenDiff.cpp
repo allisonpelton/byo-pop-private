@@ -1,10 +1,10 @@
-// port: see CBScreenDiff.h.
+// port: see R64ScreenDiff.h.
 
-#include "CBScreenDiff.h"
+#include "R64ScreenDiff.h"
 
 #include <cstring>
 
-namespace cb
+namespace r64
 {
 
 namespace
@@ -28,7 +28,7 @@ void BuildPixelsFromScreen16()
 	gPixelsFromScreen16Built = true;
 }
 
-static_assert(r64::SCREEN_WIDTH % ScreenDiff::BLOCK == 0, "a row has whole blocks");
+static_assert(SCREEN_WIDTH % ScreenDiff::BLOCK == 0, "a row has whole blocks");
 static_assert(ScreenDiff::BLOCK % 8 == 0, "a block is whole 16-byte vectors");
 
 // Sixteen bytes (eight pixels) at a time, in the compiler's vector type (one SSE2 or WebAssembly SIMD register, else
@@ -60,11 +60,11 @@ ScreenDiff::ScreenDiff()
 void ScreenDiff::FindChangedBlocks(const uint16_t* theScreen)
 {
 	std::memset(mChangedBlocks, 0, sizeof(mChangedBlocks));
-	for (int y = 0; y < r64::SCREEN_HEIGHT; y++)
+	for (int y = 0; y < SCREEN_HEIGHT; y++)
 	{
-		const uint16_t* aNow = theScreen + y * r64::SCREEN_WIDTH;
-		const uint16_t* aBefore = mCopiedScreen.data() + y * r64::SCREEN_WIDTH;
-		if (SamePixels(aNow, aBefore, r64::SCREEN_WIDTH))
+		const uint16_t* aNow = theScreen + y * SCREEN_WIDTH;
+		const uint16_t* aBefore = mCopiedScreen.data() + y * SCREEN_WIDTH;
+		if (SamePixels(aNow, aBefore, SCREEN_WIDTH))
 			continue;
 		for (int aColumn = 0; aColumn < COLUMNS; aColumn++)
 		{
@@ -87,7 +87,7 @@ void ScreenDiff::CollectChangedRects()
 	{
 		aNowOpen.clear();
 		int aTop = aRow * BLOCK;
-		int aBottom = aTop + BLOCK < r64::SCREEN_HEIGHT ? aTop + BLOCK : r64::SCREEN_HEIGHT;
+		int aBottom = aTop + BLOCK < SCREEN_HEIGHT ? aTop + BLOCK : SCREEN_HEIGHT;
 		int aColumn = 0;
 		while (aColumn < COLUMNS)
 		{
@@ -134,9 +134,9 @@ void ScreenDiff::Update(const uint16_t* theScreen, uint32_t* theDestination)
 	if (mCopiedScreen.empty())
 	{
 		// the first picture is the whole screen
-		for (int i = 0; i < r64::SCREEN_WIDTH * r64::SCREEN_HEIGHT; i++)
+		for (int i = 0; i < SCREEN_WIDTH * SCREEN_HEIGHT; i++)
 			theDestination[i] = gPixelsFromScreen16[theScreen[i]];
-		mCopiedScreen.assign(theScreen, theScreen + r64::SCREEN_WIDTH * r64::SCREEN_HEIGHT);
+		mCopiedScreen.assign(theScreen, theScreen + SCREEN_WIDTH * SCREEN_HEIGHT);
 		mRects.clear();
 		mWhole = true;
 		return;
@@ -148,13 +148,13 @@ void ScreenDiff::Update(const uint16_t* theScreen, uint32_t* theDestination)
 	{
 		for (int y = aRect.mY; y < aRect.mY + aRect.mHeight; y++)
 		{
-			const uint16_t* aSource = theScreen + y * r64::SCREEN_WIDTH;
-			uint32_t* aDestination = theDestination + y * r64::SCREEN_WIDTH;
+			const uint16_t* aSource = theScreen + y * SCREEN_WIDTH;
+			uint32_t* aDestination = theDestination + y * SCREEN_WIDTH;
 			for (int x = aRect.mX; x < aRect.mX + aRect.mWidth; x++)
 				aDestination[x] = gPixelsFromScreen16[aSource[x]];
-			std::memcpy(&mCopiedScreen[y * r64::SCREEN_WIDTH + aRect.mX], aSource + aRect.mX, aRect.mWidth * 2);
+			std::memcpy(&mCopiedScreen[y * SCREEN_WIDTH + aRect.mX], aSource + aRect.mX, aRect.mWidth * 2);
 		}
 	}
 }
 
-} // namespace cb
+} // namespace r64
