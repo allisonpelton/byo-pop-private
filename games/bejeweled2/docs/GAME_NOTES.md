@@ -456,6 +456,14 @@ folder, `bejeweled2_2d_software_prototype.diff`; none is committed):
    display's rate, where the port redraws the whole picture on every update it has time for; the software path could draw at most 60 frames a second
    (as a player's screen shows them) and skip a frame when nothing was marked dirty.
 
+**Done on this branch after the table (2026-11-11, evening): two shared commits, to be merged with the other games' checks.** Change 1 is in
+the framework as `e19af272` (the blend mode of an image with no transparency, at the draw call; the idle-board screenshot at update 5000 is pixel for
+pixel the same; the port's idle share 95.7% of a core before, 76.7% after, five alternating pairs on a machine with other games running meanwhile,
+so a quiet machine reads lower). The commands file's poll is cheap on Windows as `fa73221e` (0.11 s of processor time over the recorded game's 643
+calls before, 0.015 s after). Change 3 goes into the presenter (the Mahjong session's window-surface presenter); change 2 (render scale 1 and a
+nearest-neighbour present, which changes the look) waits for the user, and only if the first and third leave the software path over the target.
+The table above is the measurement before these: repeat it after the merge.
+
 **Where the processor time goes in 3D and on the GPU** (the same counters, the GPU run, 3,424 frames in 61 s): 243,522 quads a run, 0.14 µs each (the
 recording of a draw call), 71 a frame; per-thread cycles of the idle run: the main thread 66 to 69%, a second thread 25 to 27% (the Direct3D 11
 driver's worker), the audio thread 4 to 5%. The idle board's 8.6 to 9.3% of a core is the frame's presentation (`ntdll` waits and the driver) and the
@@ -488,7 +496,7 @@ at the title and 93 MB with the board up (Node's own resident set peaks at 165 M
 4. *The pixels the framework keeps after upload and the first draw's expansion* (3D: 128 MB at the title, of which the libraries and devices
    30.8 MB, the pictures 38.7 MB and the sounds 9.9 MB; 2D: 59 MB at the title and 101 MB with the board up, where the original holds 40 and 43).
 5. *The commands file's poll* (a `stat` of the file on every pass of the main loop, about 340 k cycles a call): test-only, 1% of the recorded game's
-   processor time here (0.1 s of 9.9), counted and taken off; the coordinator is making it cheap.
+   processor time here (0.1 s of 9.9), counted and taken off; made cheap on Windows by `fa73221e` (a kept handle, about 49 k cycles a call with the reads).
 
 **To repeat.** `WAIT_S=60 python -I <main checkout>/tools/pincore.py -- bash games/bejeweled2/tools/profile/pairs.sh <out dir> 5` from the worktree root
 (about 35 minutes; `KINDS="..."` runs only some of the kinds: `orig-idle port-idle port2dgpu-idle orig3d-idle port3d-idle`, the same with `-work` and
