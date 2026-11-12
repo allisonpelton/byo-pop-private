@@ -18,7 +18,7 @@ var ByopopThemeData = {
   bejeweled2: { wallpaper: "images/backdrops/backdrop00.jpg",
     sounds: { open: "sounds/menuclick.ogg", close: "sounds/mainmenu_mouseoff.ogg", minimize: "sounds/panelslide1.ogg", restore: "sounds/mainmenu_mouseover.ogg", maximize: "sounds/panelslide1.ogg", menu: "sounds/menuclick2.ogg", ding: "sounds/bad2.ogg" } },
   // Bejeweled Twist
-  bejeweledtwist: {
+  bejeweledtwist: { wallpaper: "images/1200/visualizers/magicsnake_bg.jp2",
     sounds: { open: "sounds/click.ogg", close: "sounds/click_dialog.ogg", minimize: "sounds/menu_slide.ogg", restore: "sounds/doorlock2.ogg", maximize: "sounds/steamlock1.ogg", menu: "sounds/mouseover1.ogg", ding: "sounds/badmove.ogg" } },
   // Big Money
   bigmoney: { wallpaper: "images/titleback.jpg",
@@ -36,7 +36,7 @@ var ByopopThemeData = {
   bookwormadv2: { wallpaper: "images/minigames/tentbackground.jpg",
     sounds: { open: "sounds/click1.ogg", close: "sounds/click2.ogg", minimize: "sounds/tile_undo.ogg", restore: "sounds/click1.ogg", maximize: "sounds/lex_chomp.ogg", menu: "sounds/click2.ogg", ding: "sounds/buzzer.ogg" } },
   // Cosmic Bugs
-  cosmicbugs: {
+  cosmicbugs: { wallpaper: "art.dat|bbk:logo_background",
     sounds: { open: "audio/click.wav", close: "audio/clank.wav", minimize: "audio/powerdn.wav", restore: "audio/powerup.wav", maximize: "audio/fill_end.wav", menu: "audio/click.wav", ding: "audio/clank.wav" } },
   // Dynomite
   dynomite: { wallpaper: "images/title.jpg",
@@ -72,7 +72,7 @@ var ByopopThemeData = {
   typershark: { wallpaper: "images/titlescreen.jpg",
     sounds: { open: "sounds/buttonclick.ogg", close: "sounds/shipmove.ogg", minimize: "sounds/type.ogg", restore: "sounds/type3.ogg", maximize: "sounds/divebell1.ogg", menu: "sounds/buttonclick.ogg", ding: "sounds/wrong.ogg" } },
   // Water Bugs
-  waterbugs: {
+  waterbugs: { wallpaper: "water_art.dat|bbk:mainmenu",
     sounds: { open: "audio/click.wav", close: "audio/pop.wav", minimize: "audio/clank.wav", restore: "audio/fill.wav", maximize: "audio/fill_end.wav", menu: "audio/click.wav", ding: "audio/buzzer.wav" } },
   // Word Harmony
   wordharmony: { wallpaper: "res/splash/sproutSplash.jpg",

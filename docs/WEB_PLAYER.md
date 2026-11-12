@@ -297,6 +297,13 @@ read, prepares the chosen theme into `byopop-theme-wallpaper` (a JPEG data URL) 
 each at most 96 KB) for every page; None, or the game's files forgotten, removes both. The sounds play at the Sounds
 window's volume and mute and never at `?silent=1`.
 
+A wallpaper the browser cannot decode as it is goes through `web/gamepics.js`: an image of a Retro64 bank (Cosmic Bugs,
+Water Bugs; the table's `"<bank>.dat|bbk:<name>"`), raw pixels that the `.bbk` index beside it places and gives a palette;
+and a JPEG 2000 picture (Bejeweled Twist's `.jp2`), by the framework's own decoder (`platform/openjpeg/JP2Decoder.cpp`) built
+on its own as `jp2.js` and `jp2.wasm` (`web/jp2/jp2_web.cpp`, about 250 KB), loaded only when such a theme is prepared.
+Both are tested by `tools/gamepicstest.js` (unit-web) on pictures made for it. The wallpaper becomes a JPEG, so a
+picture's alpha mask is not read: each wallpaper chosen has none.
+
 ### The screen saver
 
 Settings > Screen Saver (`web/saver.js`; the user, 2026-11-11) has the game, None by default, then each game with a bot
