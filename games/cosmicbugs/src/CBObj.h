@@ -62,7 +62,6 @@ int Obj_Update(Obj* theObj);
 void Obj_DrawTo(Obj* theObj, uint8_t* theDst, int theDPitch);
 void Obj_Draw(Obj* theObj);                                      // 0x40ec70: onto the screen
 void Obj_UpdateEmitters(Obj* theObj);                            // 0x40ee40
-void Obj_ClearChildren(List<Obj>* theList);                      // 0x40f040
 
 // 0x40e3c0: the fields a copy of an object takes (not the links, lists, tint, age, frame step or loop)
 void Obj_Copy(Obj* theObj, const Obj* theFrom);

@@ -29,17 +29,13 @@ void Panel_AppendItem(List<Obj>* theList)
 	List_Append(theList, anItem);
 }
 
-// 0x4183b0: ten entries for each kind from 0 to 9, 0 for the indexes past 99 but six more of 10 at 110..115 (the
-// test for kinds 15 and 16 never holds)
+// 0x4183b0: ten entries for each kind from 0 to 9, 0 for the indexes past 99 but six more of 10 at 110..115
 void Powerup_BuildKinds()
 {
 	for (uint32_t i = 0; (int)i < 0x78; i++)
 	{
-		uint32_t aKind = i / 10;
-		gPowerupKinds[i] = aKind;
+		gPowerupKinds[i] = i / 10;
 		if (99 < (int)i)
-			gPowerupKinds[i] = 0;
-		if ((aKind == 0x10 || aKind == 0xf) && (i & 1) == 0)
 			gPowerupKinds[i] = 0;
 	}
 	gPowerupKinds[110] = 10;
@@ -114,39 +110,6 @@ void Powerup_FlipFlopper()
 	aShip->flags = aShip->flags | 8;
 }
 
-// 0x418590 and 0x4185d0 (explode all floaters, all walkers) would set the countdowns of a kind range to 300, 600 and
-// so on, but neither range can hold (the bounds are the original's, in variables to keep the compiler quiet). No
-// power-up is of these kinds anyway (see Powerup_Init).
-void Powerup_ExplodeFloaters()
-{
-	int aDelay = 300;
-	int aOver = 0xe;
-	int anUnder = 4;
-	for (Enemy* anEnemy = gLevels.current->enemies.head; anEnemy != nullptr; anEnemy = Node_Next(anEnemy))
-	{
-		if (aOver < anEnemy->kind && anEnemy->kind < anUnder)
-		{
-			anEnemy->countdown = aDelay;
-			aDelay = aDelay + 300;
-		}
-	}
-}
-
-void Powerup_ExplodeWalkers()
-{
-	int aDelay = 300;
-	int aOver = 0x14;
-	int anUnder = 0x14;
-	for (Enemy* anEnemy = gLevels.current->enemies.head; anEnemy != nullptr; anEnemy = Node_Next(anEnemy))
-	{
-		if (aOver < anEnemy->kind && anEnemy->kind < anUnder)
-		{
-			anEnemy->countdown = aDelay;
-			aDelay = aDelay + 300;
-		}
-	}
-}
-
 // 0x418610
 void Powerup_Invincibubble()
 {
@@ -165,7 +128,7 @@ void Weapon_Append(List<Weapon>* theList)
 
 void Weapon_Setup(Weapon* theWeapon, float x, float y, float theRadius, int theKind);
 
-// 0x418720, 0x418770, 0x4187c0, 0x418810, 0x418860, 0x4188b0: a weapon where the power-up is
+// 0x418720, 0x4187c0, 0x418810, 0x418860: a weapon where the power-up is
 void Powerup_GiveWeapon(Powerup* thePowerup, float theRadius, int theKind)
 {
 	Weapon_Append(&gLevels.current->weapons);
@@ -228,18 +191,6 @@ int Powerup_Collect(Powerup* thePowerup)
 	case 0xd:
 		Powerup_Invincibubble();
 		break;
-	case 0xe:
-		Powerup_GiveWeapon(thePowerup, 50.0f, 6);
-		break;
-	case 0xf:
-		Powerup_ExplodeWalkers();
-		break;
-	case 0x10:
-		Powerup_ExplodeFloaters();
-		break;
-	case 0x11:
-		Powerup_GiveWeapon(thePowerup, 50.0f, 5);
-		break;
 	}
 	aSound = "audio\\powerup.wav";
 play:
@@ -262,14 +213,6 @@ int Powerup_Fall(Powerup* thePowerup)
 {
 	thePowerup->vy = thePowerup->gravity + thePowerup->vy;
 	Obj_Update(thePowerup);
-	if (thePowerup->attached != nullptr)
-	{
-		Obj_Update(thePowerup->attached);
-		Obj* anAttached = thePowerup->attached;
-		double aShift = (double)anAttached->image->mW * (double)anAttached->vx;
-		anAttached->x = (float)((aShift + aShift) / 3.0 + (double)thePowerup->x);
-		thePowerup->attached->y = thePowerup->y;
-	}
 	Shooter* aShip = gLevels.current->shooters.current;
 	if (aShip != nullptr && aShip->state == 3 &&
 		CircleOverlap(thePowerup->x, thePowerup->y, (float)(thePowerup->image->mH / 2), aShip->x, aShip->y,
@@ -314,87 +257,6 @@ int Sign(float x)
 		return 0;
 	if (x <= 0.0f)
 		return -1;
-	return 1;
-}
-
-// 0x419a60 (the magnet): off cells that are not open, a third of its size ahead; it slows only over open cells
-int Weapon_Bounce(Weapon* theWeapon)
-{
-	int aCol = (int)theWeapon->x / 16;
-	int aRow = (int)theWeapon->y / 16;
-	Level* aLevel = gLevels.current;
-	if (aLevel->columns[aCol][aRow].kind == 0)
-	{
-		Image* anImage = theWeapon->image;
-		int x = (int)((double)(anImage->mW * Sign(theWeapon->vx) / 3) + (double)theWeapon->x);
-		if (aLevel->columns[x / 16][aRow].kind != 0)
-		{
-			theWeapon->vx = -theWeapon->vx;
-			aLevel = gLevels.current;
-		}
-		int y = (int)((double)(anImage->mH * Sign(theWeapon->vy) / 3) + (double)theWeapon->y);
-		if (aLevel->columns[aCol][y / 16].kind != 0)
-			theWeapon->vy = -theWeapon->vy;
-		theWeapon->drag = 0.996f;
-		// (its own cell was open above, so this never holds)
-		if (gLevels.current->columns[aCol][aRow].kind != 0)
-		{
-			theWeapon->vx = -theWeapon->vx;
-			theWeapon->vy = -theWeapon->vy;
-			return 0;
-		}
-	}
-	else
-		theWeapon->drag = 1.0f;
-	return 0;
-}
-
-// 0x419be0 (the anchor): settles in the middle of its cell and makes that cell and the four beside it edges
-int Anchor_Drop(Weapon* theWeapon)
-{
-	int aCol = (int)theWeapon->x / 16;
-	int aRow = (int)theWeapon->y / 16;
-	theWeapon->x = (float)(aCol * 0x10 + 8);
-	theWeapon->y = (float)(aRow * 0x10 + 8);
-	for (int dc = -1; dc < 2; dc++)
-	{
-		for (int dr = -1; dr < 2; dr++)
-		{
-			if ((dr == 0 || dc == 0) && 0 < dc + aCol && dc + aCol < 0x31 && 0 < dr + aRow && dr + aRow < 0x24)
-			{
-				Cell* aCell = &gLevels.current->columns[aCol + dc][aRow + dr];
-				if (aCell->kind == 0)
-					gLevels.current->totalCells = gLevels.current->totalCells - 1;
-				aCell->kind = 3;
-				aCell->image = Animation_Frame(gLevels.current->cornerTiles, 0);
-				Cell_Redraw(aCell);
-			}
-		}
-	}
-	return 0;
-}
-
-// 0x419d20 (the magnet): fades out over its last 1000 updates, pulling the moving enemies it touches a 300th of
-// the way to it each update
-int Magnet_Pull(Weapon* theWeapon)
-{
-	if (9000.0f < theWeapon->age)
-	{
-		if (theWeapon->age >= 10000.0f)
-			return 0;
-		theWeapon->alpha = (int)((10000.0 - (double)theWeapon->age) * 255.0 / 1000.0);
-	}
-	List_Each(&gLevels.current->enemies, [&](Enemy* anEnemy) {
-		if (anEnemy->state == 3 &&
-			CircleOverlap(theWeapon->x, theWeapon->y, (float)theWeapon->image->mW, anEnemy->x, anEnemy->y,
-				(float)anEnemy->image->mW) != 0.0)
-		{
-			if (anEnemy->vx != 0.0f)
-				anEnemy->x = (float)(((double)theWeapon->x - (double)anEnemy->x) / 300.0 + (double)anEnemy->x);
-			if (anEnemy->vy != 0.0f)
-				anEnemy->y = (float)(((double)theWeapon->y - (double)anEnemy->y) / 300.0 + (double)anEnemy->y);
-		}
-	});
 	return 1;
 }
 
@@ -503,7 +365,7 @@ void Weapon_Launch(Weapon* theWeapon)
 			const char* aSound;
 			if (aKind == 3)
 				aSound = "audio\\ice_launch.wav";
-			else if (aKind == 0 || aKind == 5)
+			else if (aKind == 0)
 				aSound = "audio\\mine.wav";
 			else
 			{
@@ -511,11 +373,8 @@ void Weapon_Launch(Weapon* theWeapon)
 				{
 					Sound_Play(Sound_Find("audio\\mine.wav"));
 					theWeapon->lifetime = 2000.0f;
-					return;
 				}
-				if (aKind != 6)
-					return;
-				aSound = "audio\\anchor.wav";
+				return;
 			}
 			Sound_Play(Sound_Find(aSound));
 			return;
@@ -566,13 +425,6 @@ int Weapon_Move(Weapon* theWeapon)
 		break;
 	case 4:
 		aResult = TimeBomb_Update(theWeapon);
-		break;
-	case 5:
-		Weapon_Bounce(theWeapon);
-		aResult = Magnet_Pull(theWeapon);
-		break;
-	case 6:
-		aResult = Anchor_Drop(theWeapon);
 		break;
 	}
 	Obj_UpdateEmitters(theWeapon);
@@ -658,18 +510,6 @@ void Weapon_Setup(Weapon* theWeapon, float x, float y, float theRadius, int theK
 		theWeapon->fuseSound = Sound_Find("audio\\fuse.wav");
 		break;
 	}
-	case 5:
-		theWeapon->anim = Animation_Find("shooter_magnet", &theWeapon->frameCount, &theWeapon->frameTime);
-		theWeapon->launchSpeed = 0.35f;
-		theWeapon->drag = 0.996f;
-		break;
-	case 6:
-		theWeapon->anim = Animation_Find("anchor", &theWeapon->frameCount, &theWeapon->frameTime);
-		theWeapon->launchSpeed = 0.0f;
-		theWeapon->drag = 1.001f;
-		theWeapon->particle = Bank_IndexOf(&gArtBank, "particle_0");
-		theWeapon->shadow = 0;
-		break;
 	}
 	theWeapon->dirty = 1;
 	theWeapon->drawKind = 4;
@@ -826,25 +666,19 @@ void Panel_Draw(Panel* thePanel, int theAll)
 void Powerup_Draw(Powerup* thePowerup)
 {
 	Obj_Draw(thePowerup);
-	if (thePowerup->attached != nullptr && thePowerup->state == 4)
-		Obj_Draw(thePowerup->attached);
 }
 
 void List_DeleteNode(Powerup* thePowerup)
 {
 	// 0x4186c0
-	if (thePowerup->attached != nullptr)
-	{
-		Obj_Destroy(thePowerup->attached);
-		::operator delete(thePowerup->attached);
-	}
 	Obj_Destroy(thePowerup);
 	::operator delete(thePowerup);
 }
 
-// A kind by the level (the later the level, the more kinds; only sweepers in the demo, which nothing starts), and its text, animation and three emitters of sparkles. The keys 0..9 and A..D,
-// held while it is made, choose kinds 0..13 (the developers' test). The table gives kinds 0..10 (0 a faster beam), so
-// only those keys make 12 and 13, and nothing makes the anchor, the explode-alls or the magnet (14..17).
+// A kind by the level (the later the level, the more kinds), and its text, animation and three emitters of sparkles.
+// The keys 0..9 and A..D, held while it is made, choose kinds 0..13 (the developers' test). The table gives kinds
+// 0..10 (0 a faster beam), so only those keys make 12 and 13. The original's kinds 14..17 (an anchor, two
+// explode-alls and a magnet) nothing makes, and the port leaves them out (docs/README.md, "The unneeded code").
 Powerup* Powerup_Init(Powerup* thePowerup)
 {
 	Obj_Init(thePowerup);
@@ -855,11 +689,6 @@ Powerup* Powerup_Init(Powerup* thePowerup)
 		aRange = 0xb;
 	aRange = aRange * 10 + 9;
 	thePowerup->kind = gPowerupKinds[RandRange(0, aRange)];
-	if (gDemo != 0)
-	{
-		thePowerup->kind = 9;
-		gPumpMessages = 1;
-	}
 	std::sprintf(thePowerup->text, "^%d", RandRange(1, 8));
 	if (Key_Down('0') != 0)
 		thePowerup->kind = 0;
@@ -946,22 +775,6 @@ Powerup* Powerup_Init(Powerup* thePowerup)
 		aText = GTA(0x45970c);
 		aName = "powerup_invincibubble";
 		break;
-	case 0xe:
-		aText = GTA(0x4596ec);
-		aName = "powerup_anchor";
-		break;
-	case 0xf:
-		aText = GTA(0x459734);
-		aName = "powerup_destroywalkers";
-		break;
-	case 0x10:
-		aText = GTA(0x459764);
-		aName = "powerup_destroyrollers";
-		break;
-	case 0x11:
-		aText = GTA(0x459824);
-		aName = "powerup_magnet";
-		break;
 	}
 	std::strcat(thePowerup->text, GT(aText));
 	thePowerup->state = 4;
@@ -994,7 +807,6 @@ Powerup* Powerup_Init(Powerup* thePowerup)
 	aLast->endG = 200;
 	aLast->endB = 0xff;
 	aLast->variance = 0;
-	thePowerup->attached = nullptr;
 	// (the original then calls 0x40fe10, which is empty, while the flag at 0x460a40 is set)
 	return thePowerup;
 }

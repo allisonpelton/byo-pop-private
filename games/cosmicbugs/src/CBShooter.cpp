@@ -45,8 +45,7 @@ void Shooter_Turn(Shooter* theShooter)
 // and burst when it arrives
 void Shooter_Appear(Shooter* theShooter)
 {
-	if (gDemo == 0)
-		Sys_SetMousePos(400, 300);
+	Sys_SetMousePos(400, 300);
 	theShooter->x = 400.0f;
 	theShooter->y = 300.0f;
 	if (theShooter->age == 1.0f)
@@ -165,12 +164,10 @@ void Shooter_Fill(Shooter* theShooter, Cell* theCell)
 
 // 0x41ba40: the open span about the ship along its row (theLeft to theRight) and its column (theTop to theBottom):
 // each end walks 16 pixels a step to the first cell not open, then back a pixel a step onto an open one. All four
-// are 0 when the ship is within 16 pixels of the screen's edge; the demo leaves them as they are. Every walk's
-// guard checks the left end's column and the top end's row, as the original's do.
+// are 0 when the ship is within 16 pixels of the screen's edge. Every walk's guard checks the left end's column and
+// the top end's row, as the original's do.
 void Shooter_Extents(Shooter* theShooter, float* theLeft, float* theTop, float* theRight, float* theBottom)
 {
-	if (gDemo != 0)
-		return;
 	if (16.0f < theShooter->x && theShooter->x < 784.0f && 16.0f < theShooter->y && theShooter->y < 584.0f)
 	{
 		float aLeft = 0.0f <= theShooter->x ? theShooter->x : 0.0f;
@@ -403,8 +400,6 @@ void Sweeper_Push(Shooter* theShooter)
 // 0x41cc80: the aiming guides along the open span, 11 lines across the beams' path, fainter at the edges
 void Shooter_Guides(Shooter* theShooter)
 {
-	if (gDemo != 0)
-		return;
 	int anAlpha = 5;
 	if ((theShooter->flags & 4) != 0)
 		anAlpha = 0x1e;
@@ -705,19 +700,10 @@ void Shooter_Control(Shooter* theShooter)
 	if (gAutoFire == 0)
 		theShooter->noAutoTurn = 1;
 	int aTurn = gLevels.current->rightClicked;
-	if (gDemo == 0)
-	{
-		double aX = ((double)gMouseX + (double)theShooter->x) * 0.5;
-		theShooter->x = (float)(799.0 < aX ? 799.0 : (aX < 0.0 ? 0.0 : aX));
-		double aY = ((double)gMouseY + (double)theShooter->y) * 0.5;
-		theShooter->y = (float)(599.0 < aY ? 599.0 : (aY < 0.0 ? 0.0 : aY));
-	}
-	else
-	{
-		theShooter->x = (float)RandRange(0, 799);
-		theShooter->y = (float)RandRange(0, 599);
-		RandRange(1, 1000);
-	}
+	double aX = ((double)gMouseX + (double)theShooter->x) * 0.5;
+	theShooter->x = (float)(799.0 < aX ? 799.0 : (aX < 0.0 ? 0.0 : aX));
+	double aY = ((double)gMouseY + (double)theShooter->y) * 0.5;
+	theShooter->y = (float)(599.0 < aY ? 599.0 : (aY < 0.0 ? 0.0 : aY));
 	Shooter_Fire(theShooter);
 	Shooter_UpdateExtras(theShooter);
 	Shooter_Extents(theShooter, &theShooter->extLeft, &theShooter->extTop, &theShooter->extRight,
@@ -865,8 +851,7 @@ void Shooter_DropBeams(Shooter* theShooter)
 	theShooter->wingsV.anim = Animation_Find("wings_vertical", &theShooter->wingsV.frameCount,
 		&theShooter->wingsV.frameTime);
 	theShooter->wingsV.frame = 0;
-	if (gDemo == 0)
-		Sys_SetMousePos((int)theShooter->x, (int)theShooter->y);
+	Sys_SetMousePos((int)theShooter->x, (int)theShooter->y);
 	theShooter->noAutoTurn = 0;
 	// turned twice: the orientation stays, and the ship's animation is its plain one again
 	Shooter_Turn(theShooter);

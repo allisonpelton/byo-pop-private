@@ -259,7 +259,7 @@ void GameStart()
 	gLastTime = (int)TimeMs();
 }
 
-// The time passed (at most 512 ms: else the last pass's; the demo's always 202) is stepped through, then the screen
+// The time passed (at most 512 ms: else the last pass's) is stepped through, then the screen
 // drawn and shown. (The original also times each part for nothing, and calls an empty function after the drawing.)
 int GameFrame()
 {
@@ -274,8 +274,6 @@ int GameFrame()
 		gElapsedMs = gLastElapsed;
 	int aNow = (int)TimeMs();
 	gLastElapsed = gElapsedMs;
-	if (gDemo != 0)
-		gElapsedMs = 0xca;
 	gLastTime = aNow;
 	int aMode = Screen_Fullscreen();
 	if (gLastMode != aMode)

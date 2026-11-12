@@ -32,7 +32,6 @@ int gProfile = 0;                      // 0x46e24c
 HighScore gHighScores[9];              // 0x46e250
 int gMouseX = 0;                       // 0x46e5bc
 int gMouseY = 0;                       // 0x46e5c0
-int gDemo = 0;                         // 0x46e5c8
 int gQuit = 0;                         // 0x46e5d0
 int gFirstRun = 0;                     // 0x46e5d4
 int gDifficulty = 0;                   // 0x46e5e0

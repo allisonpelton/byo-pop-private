@@ -10,6 +10,7 @@ game 00401000-004428b0
 # Game code the port leaves out on purpose (the coverage check of 2026-11-11, games/cosmicbugs/docs/README.md): the engine is the one
 # Water Bugs' port shares, so each function of it that Water Bugs' coverage.txt leaves out is left out here, found through the two
 # exes' function match; the reasons are Water Bugs', with this exe's addresses and the port's names.
+none 0040c0d0 ParticleSystem's constructor (the start-up table runs it on each of the pool gSystems, Obj_Init and an empty particle list); the port's pool is a static array, zero at the start, and ParticleSystem_New (CBEmitter.cpp) empties the particle list of the entry it takes, so the port has no constructor (the port's unused copy of it was taken out in the unneeded-code pass)
 none 0040c0f0 ParticleSystem's destructor (run through 0x4113c0): unlinks its pooled particles, then the Obj destructor; the port's ParticleSystems are entries of the static pool gSystems that Level_UnlinkAll unlinks and nothing deletes
 none 0040fe10 an empty function (returns at once), called from the level's draw and the main loop; the port leaves the calls out (CBPowerup.cpp says so)
 none 00410340 the trial's "Free Trial Remaining" clock text (drawn only while unregistered); the port is the registered game, with no trial code
