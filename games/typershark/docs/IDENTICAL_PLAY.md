@@ -287,7 +287,8 @@ fast stretch off), where the port used a texture filter, which gave the medal a 
 levels; the dialog: 8801 pixels, up to 39). The port now does the same in 2D (`mSoftwareStretch` in its display, and `gSlowStretchRenormalizesAlpha`). Result: the
 four statistics tours (14 shots each) and the three dialog tours (49 shots each: the board, the map through the final scroll, the dialog at every
 update of its opening, the hover over both buttons, RETURN HOME and the statistics screen) equal the original's pixel for pixel, and so does KEEP GOING
-(40 shots, the first 600 updates of the endless level). Not compared: the two screens in 3D and in the web build. `tools/check.sh typershark` is unchanged.
+(40 shots, the first 600 updates of the endless level). The web build under Node (the same tours, native port's shots as the reference) differs by at most 3 levels
+everywhere, as in every web tour. Not compared: the two screens in 3D. `tools/check.sh typershark` is unchanged.
 
 ### Oddities (not chased)
 

@@ -1087,9 +1087,14 @@ and the medal are therefore the original's.
 **The control.** The same dialog tour with the exe built without the two changes against the exe with them: 14 of the 49 shots differ (8801
 pixels, up to 39 levels, in the box x 130 to 479, y 156 to 334: the medal and the ten pictures), so the tour sees the stretch (the statistics screen of that silver player is the same with and without them).
 
+**The web build.** The same tours under Node (`tools/phase2/webshots.sh <tour>`, with `USERS=<fixture>`: the wasm of `build/web/typershark.js` run by
+`wasmrun.js game` from the same script, its shots against the native port's with no tolerance): the dialog for bronze, silver and gold (49 shots
+each), KEEP GOING (40) and the statistics screens of the players with `NGC` 1 and 12 (14 each). Every pair differs by at most 3 levels of 255 and
+by nothing stronger, over the whole picture: the two builds' picture decoding, as in every web tour (`IDENTICAL_PLAY.md`, "The web build"). The
+medal's edge, which the missing software stretch had moved by up to 39 levels, is the native port's in the web build too. Not run in a browser.
+
 **Not compared.** The medal and the ten pictures with 3D on (the original's textured quads against the port's SDL renderer: needs the desktop route
-of section 16); the web build (the same code, no run of the dialog there); the board of site 35 itself (its boss and treasure are not played in the
-original: a saved game starts it and the space bar leaves it).
+of section 16); the board of site 35 itself (its boss and treasure are not played in the original: a saved game starts it and the space bar leaves it).
 
 Tools (`tools/phase2`): `mksaved.sh` makes the saved adventure, `mkprofile.py` the profiles, `tour_medal.py` the tours (`stats`, `dialog`, `dialogkeep`,
 and `win`, the first try: the whole-adventure route up to the dialog, which the original could not finish in the sandbox), `medal.sh <ngc: 0, 2 or 4>

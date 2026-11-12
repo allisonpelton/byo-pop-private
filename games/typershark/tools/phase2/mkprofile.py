@@ -6,6 +6,7 @@ adventures (NGC: 1 or 2 bronze, 3 or 4 silver, 5 or more gold); a profile with N
     python mkprofile.py 3        writes  build/ts-p1/fixtures/medal-ngc3        the port's user folder (registry.ini, users/)
                                          build/ts-p2/profiles/ngc3/orig.reg     the original's registry preset (--reg, sandbox)
                                          build/ts-p2/profiles/ngc3/orig.users/  its users folder (STAGE=, the same two files)
+    python mkprofile.py 3 [saved] 3d   the port's fixture with Is3D on (named medal-ngc3-3d, medal-sv3-3d), for a 3D comparison
     python mkprofile.py 3 saved  the same with the folder of a saved adventure at the last site (mksaved.sh): the profiles are
                                  named medal-sv3 and sv3. The menu's Adventure then asks to continue the game, and YES goes to
                                  the map's final scroll and the end-of-adventure dialog (no adventure to play through)
@@ -69,10 +70,11 @@ def set_saved_totals(path):
 
 def main():
     ngc = int(sys.argv[1])
-    saved = len(sys.argv) > 2 and sys.argv[2] == "saved"
+    saved = "saved" in sys.argv[2:]
+    three_d = "3d" in sys.argv[2:]
     src_users = os.path.join(ROOT, "build", "ts-p2", "mk1" if saved else "g_tut18", "ud", "users")
     tag = ("sv%d" if saved else "ngc%d") % ngc
-    port_dir = os.path.join(ROOT, "build", "ts-p1", "fixtures", "medal-" + tag)
+    port_dir = os.path.join(ROOT, "build", "ts-p1", "fixtures", "medal-" + tag + ("-3d" if three_d else ""))
     prof_dir = os.path.join(ROOT, "build", "ts-p2", "profiles", tag)
     for d in (port_dir, prof_dir):
         shutil.rmtree(d, ignore_errors=True)
@@ -87,7 +89,7 @@ def main():
 
     # the port's emulated registry (registry.ini)
     ini = ["; Settings (emulated Windows registry, HKEY_CURRENT_USER)", "", "[SOFTWARE\\PopCap\\TyperShark]"]
-    ini += ["%s=dword:%d" % kv for kv in SETTINGS_PORT]
+    ini += ["%s=dword:%d" % ((k, 1 if three_d and k == "Is3D" else v)) for k, v in SETTINGS_PORT]
     ini += ["", "[SOFTWARE\\PopCap\\TyperShark\\Users]", "User=sz:Tester", "", "[SOFTWARE\\PopCap\\TyperShark\\Users\\Tester]"]
     for name, kind, val in PROFILE:
         val = val.format(ngc=ngc)
