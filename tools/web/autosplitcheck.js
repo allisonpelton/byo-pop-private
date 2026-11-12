@@ -211,6 +211,75 @@ var CB_PLAY = ["goto instructions", { wait: 10 }, { move: [400, 563] }, { wait: 
 var MM_QUIT = [{ click: [64, 462] }];
 
 var PLANS = {
+  dynomite: async function () {
+    // (the `goto`s start each mode from the main menu with the difficulty last chosen, the game's Normal: the board's Easy)
+    titleGoto = true;
+    snap();
+    await t.wait(5);
+    var s0 = snap();
+    note("attach", !!s0 && s0.active === 1, s0 ? "active " + s0.active : "no block read");
+    // Endless Puzzle 5K: the difficulty's click starts it, the score on screen splits at 1K and ends at 5K
+    await load("Endless Puzzle - 5K - Easy");
+    await newGame("goto endless");
+    var a0 = att(), sk = snap().skill;
+    var idx = [];
+    for (var sc of [1000, 5000]) {
+      await until("set score " + sc);
+      for (var k = 0; k < 400 && att().index === idx.length && att().phase === "running"; k++) await botStep();
+      await settle();
+      idx.push(att().index);
+    }
+    note("endless", a0.phase === "running" && a0.index === 0 && idx.join(",") === "1,2" && att().phase === "ended",
+         "started " + a0.phase + " (skill " + sk + "); index after 1,000 and 5,000 on screen " + idx.join(",") + "; then " + att().phase);
+    // the eggs off the bottom reset it (`lose` once the first shot is in)
+    await resetByHand();
+    await load("Endless Puzzle - 5K - Easy");
+    await newGame("goto endless");
+    var resetCause = null;
+    var p = (async function () { resetCause = await sawReset(30000); })();
+    await lose();
+    await p;
+    var s = snap();
+    note("lost", resetCause !== null && att().phase === "idle", "reset " + resetCause + ", then " + att().phase + "; deaths " + [s.death0, s.death1, s.death2, s.death3].join(","));
+    // Time Trial: the first egg starts it (GO after the shot, not the click), the board cleared ends it
+    await resetByHand();
+    await load("Time Trial - Easy");
+    await newGame("goto timetrial");
+    a0 = att();
+    var go = snap().goTick;
+    await until("win");
+    for (var j = 0; j < 400 && att().phase === "running"; j++) await botStep();
+    await settle();
+    note("timetrial", a0.phase === "running" && go >= 1 && att().phase === "ended", "started " + a0.phase + " at tick " + go + "; after the board cleared " + att().phase);
+    // Fossil Challenge: Let's Play! starts it, each fossil found splits; a jump to fossil 15 (`level`) and its win split
+    // once more, not to the end
+    await resetByHand();
+    await load("Fossil Challenge - Strategic");
+    await newGame("goto fossil");
+    a0 = att();
+    var fi = [];
+    for (var f = 0; f < 2; f++) fi.push((await clearLevel()).index);
+    await until("level 15");
+    for (var q = 0; q < 50 && snap().state !== 1; q++) await botStep();
+    fi.push((await clearLevel()).index);
+    note("fossil", a0.phase === "running" && fi.join(",") === "1,2,3" && att().phase === "running" && snap().wins > 0,
+         "started " + a0.phase + "; index after fossils 1, 2 and 15 " + fi.join(",") + "; then " + att().phase + "; wins " + snap().wins);
+    // Tutorial: Next starts it, each mode's part splits, the main menu with every part done ends it (the bot plays it)
+    await resetByHand();
+    await load("Tutorial");
+    var g = snap().goCount;
+    await until("goto tutorial");
+    for (var u = 0; u < 400 && att().phase !== "running"; u++) await botStep();
+    a0 = att();
+    var ti = [];
+    for (var v = 0; v < 4000 && att().phase === "running"; v++) {
+      await botStep();
+      if (ti[ti.length - 1] !== att().index) ti.push(att().index);
+    }
+    await settle();
+    note("tutorial", a0.phase === "running" && att().phase === "ended",
+         "started " + a0.phase + " (GO " + (snap().goCount - g) + "); indexes " + ti.join(",") + "; then " + att().phase + "; parts " + snap().progress);
+  },
   cosmicbugs: async function () {
     // a run starts at Play on the instructions page, which `goto instructions` opens (its Play, at 400,563, is clicked here:
     // the bot answers null on that page); the first board
