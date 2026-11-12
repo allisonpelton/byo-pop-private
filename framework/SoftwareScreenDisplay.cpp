@@ -50,6 +50,9 @@ SoftwareScreenDisplay::SoftwareScreenDisplay(SexyAppBase* theApp) :
 	}
 	mNoGpuRenderer = false;
 	mChangingMode = false;
+	mCursorSeen = false;
+	mCursorNoted = false;
+	mClearedBits = NULL;
 	mGpuPresents = 0;
 	SoftwareScreen();
 }
@@ -79,6 +82,13 @@ void SoftwareScreenDisplay::No3D()
 
 int SoftwareScreenDisplay::WantedSurfaceScale()
 {
+	// a drawn cursor is the renderer's to draw (SurfaceDisplay), and once the app has drawn one the window keeps its
+	// renderer: with no GPU the cursor's every entry and exit of the window would otherwise make and destroy one (with
+	// a GPU SurfaceDisplay keeps it anyway, mWindowHadRenderer)
+	if (mCursorImage != NULL)
+		mCursorSeen = true;
+	if (mCursorSeen)
+		return 0;
 	const int aScale = SurfaceDisplay::WantedSurfaceScale();
 	// above 1x the screen is drawn on the GPU where the window's renderer is accelerated, so SurfaceDisplay makes the
 	// renderer to find out (NoteRenderer); with no accelerated renderer the surface shows the software screen at 2x to 4x
@@ -87,15 +97,37 @@ int SoftwareScreenDisplay::WantedSurfaceScale()
 	return aScale;
 }
 
+bool SoftwareScreenDisplay::WindowAtScreenSize()
+{
+	int aWidth = 0, aHeight = 0;
+	SDL_GetWindowSizeInPixels(mWindow, &aWidth, &aHeight);
+	return (aWidth == mWidth) && (aHeight == mHeight);
+}
+
 void SoftwareScreenDisplay::NoteRenderer()
 {
 	if ((mGpuScreen) || (mSurfaceMode) || (mRenderer == NULL))
+		return;
+	// a minimised window's size is no size to judge by
+	if ((SDL_GetWindowFlags(mWindow) & SDL_WINDOW_MINIMIZED) != 0)
 		return;
 	SDL_RendererInfo anInfo;
 	if (SDL_GetRendererInfo(mRenderer, &anInfo) != 0)
 		return;
 	if (((anInfo.flags & SDL_RENDERER_ACCELERATED) != 0) && ((anInfo.flags & SDL_RENDERER_SOFTWARE) == 0))
 	{
+		// at the game's own size the renderer is there for a drawn cursor (or the window has had one): the screen stays
+		// in software, its frames going to the window through the renderer's frame texture
+		if (WindowAtScreenSize())
+		{
+			if (!mCursorNoted)
+			{
+				mCursorNoted = true;
+				SDL_Log("SoftwareScreenDisplay: the window at 1x has the %s renderer (for a drawn cursor), so the "
+					"software screen goes through it", anInfo.name);
+			}
+			return;
+		}
 		DrawOnGpu(anInfo.name);
 		return;
 	}
@@ -137,7 +169,11 @@ int SoftwareScreenDisplay::Init(SDL_Window* theWindow, bool vsync)
 	mChangingMode = false;
 	NoteRenderer();
 	if (!mGpuScreen)
+	{
 		No3D();
+		// the screen's bits, black, before anything draws into them
+		ScreenPixels();
+	}
 	mShowWhole = true;
 	return aResult;
 }
@@ -168,6 +204,10 @@ void SoftwareScreenDisplay::Cleanup()
 		SDL_Log("SoftwareScreenDisplay: %d frames drawn on the GPU", mGpuPresents);
 	mGpuPresents = 0;
 	mNoGpuRenderer = false;
+	mCursorSeen = false;
+	mCursorNoted = false;
+	// the screen image goes (DDInterface::Cleanup), and the next one's bits may be at the same address
+	mClearedBits = NULL;
 	SurfaceDisplay::Cleanup();
 	SoftwareScreen();
 }
@@ -185,13 +225,20 @@ void SoftwareScreenDisplay::UpdateDisplaySize()
 		SurfaceDisplay::UpdateDisplaySize();
 		return;
 	}
+	// a minimised window keeps its mode until it is restored: the size SDL reports for it is no size to show the screen
+	// at, and DrawDirtyStuff still draws a frame a second while minimised (no 3D), whose BeginFrame asks here
+	if ((SDL_GetWindowFlags(mWindow) & SDL_WINDOW_MINIMIZED) != 0)
+		return;
 	mChangingMode = true;
 	SurfaceDisplay::UpdateDisplaySize();
 	mChangingMode = false;
 	NoteRenderer();
 	// a change of mode sets the 3D flags from the renderer (DDInterface::Init) or as a GPU display's (SurfaceDisplay)
 	if (!mGpuScreen)
+	{
 		No3D();
+		ScreenPixels();
+	}
 }
 
 bool SoftwareScreenDisplay::CheckDestination(DDImage* theImage)
@@ -204,11 +251,14 @@ const uint32_t* SoftwareScreenDisplay::ScreenPixels()
 {
 	if ((mScreenImage == NULL) || (mScreenImage->mWidth != mWidth) || (mScreenImage->mHeight != mHeight))
 		return NULL;
-	bool isNew = mScreenImage->mBits == NULL;
 	ulong* aBits = mScreenImage->GetBits();
-	// a new screen is opaque black, as a new DirectDraw surface is cleared, not the heap's leftovers
-	if ((isNew) && (aBits != NULL))
+	// a new screen is opaque black, as a new DirectDraw surface is cleared, not the heap's leftovers: bits not seen here
+	// before are cleared, whoever made them (asked here first after Init and every change of mode, so before any draw)
+	if ((aBits != NULL) && (aBits != mClearedBits))
+	{
 		std::fill(aBits, aBits + (size_t) mWidth * mHeight, (ulong) 0xFF000000);
+		mClearedBits = aBits;
+	}
 	// the screen is opaque, as the original's DirectDraw surface: the blitters take their paths for a destination without
 	// alpha (MI_NormalBlt.inc's run-length path, which copies opaque runs and writes 0xFF into the top byte). A new
 	// MemoryImage counts as transparent with alpha (MemoryImage::Create), which would blend every pixel with the

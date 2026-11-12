@@ -61,7 +61,8 @@ build/native/rundesk.exe build/native/dynomite.exe
 ```
 
 (`rundesk` keeps test runs invisible and silent; see CLAUDE.md. For a normal game run `dynomite.exe` directly.) Options:
-`-gamedir=`, `-userdir=`, `-seed=N`, `-fast`, `-script=<file>`.
+`-gamedir=`, `-userdir=`, `-modsdir=` (default `mods-dynomite` beside the exe; a mod with the feature `livesplit` turns
+on the autosplit block, GAME_NOTES section 11), `-nomods`, `-seed=N`, `-fast`, `-script=<file>`, `-livesplitlog=<file>`.
 
 The web build is `build/web/dynomite.html` (`cmake --build build/web --target dynomite`). Its page asks for the game's
 folder or a zip of it the first time and keeps the files in the browser; the preview `dynomite-web` in

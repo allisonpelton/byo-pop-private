@@ -21,6 +21,7 @@
 #include "IntroScreen.h"
 #include "TitleScreen.h"
 #include "Tutorial.h"
+#include "LiveSplitObserver.h"
 #include "compat2004/Compat2004.h"
 #include "DDImage.h"
 #include "DDInterface.h"
@@ -87,6 +88,7 @@ FossilizedApp::FossilizedApp()
 // 0x419320
 FossilizedApp::~FossilizedApp()
 {
+	LiveSplitObserver::AppDestroyed(this);	// port(mod): the autosplit block's last write
 	if (mSavePic != NULL)
 	{
 		delete mSavePic;
@@ -651,6 +653,7 @@ void FossilizedApp::LoadSavedGame(const char* theFile)
 		mBoard->SkipSaveHeader();
 		mBoard->Load();
 		mBoard->CloseSaveFile();
+		mBoard->mResumed = true;	// port(livesplit): a continued game is never a run's start (LiveSplitObserver.h)
 	}
 }
 
