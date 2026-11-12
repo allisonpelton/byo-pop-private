@@ -26,7 +26,7 @@ SYMBOLS = os.path.join(ROOT, "games", "venice", "docs", "symbols.txt")
 HEADER = re.compile(r"^// ([0-9a-f]{8})  (.*)$", re.M)
 DECLARATION = re.compile(
     r"^\s*(undefined\d?|int|uint|char|byte|bool|float|double|float10|long|short|ushort|longlong|ulonglong|void|"
-    r"size_t|DWORD|HANDLE|LPVOID|code|[A-Za-z_][\w:<>,]*)\s*\**\s*\**[A-Za-z_]\w*(\[[0-9a-fx]+\])?;\s*$")
+    r"size_t|DWORD|HANDLE|LPVOID|code|[A-Za-z_][\w:<>,]*)(?:\s+\**|\s*\*+)\s*[A-Za-z_]\w*(\[[0-9a-fx]+\])?;\s*$")
 NOISE = re.compile(
     r"^\s*/\* WARNING|^\s*\*/\s*$|std::basic_fstream<char>::vbase_dtor|_Tidy\(.*'\x01'\)")
 FRAME_NOISE = re.compile(
@@ -103,7 +103,8 @@ def string_note(match):
 def compact(text, names):
     lines = []
     for line in text.split("\n"):
-        if NOISE.search(line) or DECLARATION.match(line):
+        keeps = re.match(r"^\s*(return|break|continue|goto)\b", line)
+        if not keeps and (NOISE.search(line) or DECLARATION.match(line)):
             continue
         if not line.strip():
             continue
@@ -120,6 +121,7 @@ def compact(text, names):
     text = re.sub(r"\b(FUN_|DAT_|PTR_FUN_)([0-9a-f]{8})\b", replace, text)
     text = re.sub(r"&(?:PTR_)?DAT_([0-9a-f]{8})\b", string_note, text)
     text = re.sub(r"\b0x[0-9a-f]{8}\b", float_note, text)
+    text = re.sub(r"\b0x(5[0-9a-f]{5})\b", string_note, text)  # a name passed as a bare address
     return text
 
 

@@ -27,7 +27,7 @@ DEFAULT_INSTALLS = [
     r"A:\SteamLibrary\steamapps\common\Venice Deluxe",
     r"C:\Program Files (x86)\Steam\steamapps\common\Venice Deluxe",
 ]
-LOOSE_FILES = ["config.xml", "properties/partner.xml"]
+LOOSE_FILES = ["config.xml", "properties/partner.xml", "developer_logo.png"]
 REQUIRED = ["config.xml", "properties/partner.xml", "levels/blank.xml", "gfx/font1.png", "audio/basket.ogg"]
 
 
