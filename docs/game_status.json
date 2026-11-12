@@ -435,7 +435,7 @@
       ],
       "na": [],
       "now": "performance",
-      "note": "processor time over the original's: second performance round (the user's target, 2026-11-11)"
+      "note": "board 264 against the original's 119 M cycles a second: waits on the surface presenter"
     },
     "waterbugs": {
       "title": "Water Bugs",
@@ -446,15 +446,14 @@
         "identical-look",
         "fixes-mod",
         "coverage",
-        "performance",
         "unneeded-code",
         "readability",
         "site-features",
         "collection"
       ],
       "na": [],
-      "now": null,
-      "note": ""
+      "now": "performance",
+      "note": "over its paced original while the renderer presents its software screen: waits on the surface presenter"
     },
     "bonnies": {
       "title": "Bonnie's Bookstore Deluxe",

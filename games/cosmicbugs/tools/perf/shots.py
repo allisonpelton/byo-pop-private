@@ -2,13 +2,18 @@
 """shots.py: two exes' screenshots over one scripted play, compared byte by byte: the proof that a change of how the port draws
 (the performance pass) leaves the pictures as they were.
 
-  build/native/rundesk.exe python games/cosmicbugs/tools/perf/shots.py A.exe B.exe [OUTDIR]
+  build/native/rundesk.exe python games/cosmicbugs/tools/perf/shots.py A.exe B.exe [OUTDIR] [--long SEED] [--env-a K=V]
 
 Each exe runs the same -script windowed with -fast -drawevery (every update is drawn, so a screenshot shows its update's frame):
 the logo, the title, the instructions page, the first board and shots fired into it, 14 screenshots in all. Prints one line,
-"SAME n of n" or the names of the pictures that differ (and exits 1).
+"SAME n of n" or the names of the pictures that differ (and exits 1). With --long SEED the play is 90 s of game time: after the
+first board's clicks, random clicks (a seeded generator, the aim switched at random, as tools/play/gen.py plays) and a picture every
+300 updates, 300 in all (a few hundred MB: the script deletes them when they are the same); --env-a K=V sets an environment
+variable for the first exe only.
 """
 import filecmp
+import os
+import random
 import shutil
 import subprocess
 import sys
@@ -22,32 +27,62 @@ CLICKS = [(300, 175, 313), (400, 400, 563), (750, 400, 300), (900, 200, 200), (1
 SHOTS = [100, 250, 350, 700, 800, 1000, 1400, 1800, 2400, 3100, 3700, 4200, 4600, 5000]
 
 
-def run(exe, out):
+def long_play(seed):
+    """(clicks, right clicks, shots, the last update) of 90 s of game time: random clicks 1.5 to 3.5 s apart on the first board"""
+    rng = random.Random(seed)
+    clicks, rights = list(CLICKS[:2]), []
+    u = 600
+    while u < 9000:
+        if rng.random() < 0.4:
+            rights.append(u - 50)
+        clicks.append((u, rng.randint(120, 680), rng.randint(130, 500)))
+        u += rng.randint(150, 350)
+    return clicks, rights, list(range(300, 9000, 30)), 9010
+
+
+def run(exe, out, long_seed=None, env=None):
     shutil.rmtree(out, ignore_errors=True)
     (out / "user").mkdir(parents=True)
     (out / "user" / "cp.cfg").write_text(CONFIG)
+    clicks, rights, shots, end = (CLICKS, [], SHOTS, 5010) if long_seed is None else long_play(long_seed)
     lines = []
-    for (u, x, y) in CLICKS:
+    for (u, x, y) in clicks:
         lines += ["%d down %d %d" % (u, x, y), "%d up %d %d" % (u + 3, x, y)]
-    lines += ["%d screenshot %s" % (u, (out / ("s%04d.png" % u)).as_posix()) for u in SHOTS]
-    lines += ["5010 quit"]
+    for u in rights:
+        lines += ["%d down 2" % u, "%d up 2" % (u + 3)]
+    lines += ["%d screenshot %s" % (u, (out / ("s%04d.png" % u)).as_posix()) for u in shots]
+    lines += ["%d quit" % end]
     script = out / "script.txt"
     script.write_text("\n".join(lines) + "\n")
     cmd = [str(Path(exe).resolve()), "-gamedir=" + str(ROOT / "assets/cosmicbugs"), "-userdir=" + str(out / "user"), "-fast", "-drawevery",
            "-script=" + str(script), "-modsdir=" + str(ROOT / "build/native/mods-cosmicbugs")]
-    subprocess.run(cmd, cwd=str(ROOT), stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=300)
+    subprocess.run(cmd, cwd=str(ROOT), stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=900, env=dict(os.environ, **(env or {})))
     return sorted(out.glob("s*.png"))
 
 
 def main():
-    a, b = sys.argv[1], sys.argv[2]
-    out = Path(sys.argv[3]) if len(sys.argv) > 3 else ROOT / "build/cbperf/shots"
-    pa, pb = run(a, out / "a"), run(b, out / "b")
+    args = sys.argv[1:]
+    seed, env_a = None, {}
+    if "--long" in args:
+        i = args.index("--long")
+        seed = int(args[i + 1])
+        del args[i:i + 2]
+    if "--env-a" in args:
+        i = args.index("--env-a")
+        k, v = args[i + 1].split("=", 1)
+        env_a = {k: v}
+        del args[i:i + 2]
+    a, b = args[0], args[1]
+    out = Path(args[2]) if len(args) > 2 else ROOT / "build/cbperf/shots"
+    pa, pb = run(a, out / "a", seed, env_a), run(b, out / "b", seed)
+    count = len(SHOTS) if seed is None else len(long_play(seed)[2])
     bad = [x.name for x in pa if not (out / "b" / x.name).exists() or not filecmp.cmp(x, out / "b" / x.name, shallow=False)]
-    if len(pa) != len(SHOTS) or len(pb) != len(SHOTS) or bad:
-        print("DIFFERENT: %d and %d pictures of %d; differing: %s" % (len(pa), len(pb), len(SHOTS), ", ".join(bad)))
+    if len(pa) != count or len(pb) != count or bad:
+        print("DIFFERENT: %d and %d pictures of %d; differing: %s" % (len(pa), len(pb), count, ", ".join(bad[:20])))
         sys.exit(1)
-    print("SAME %d of %d" % (len(pa), len(SHOTS)))
+    print("SAME %d of %d" % (len(pa), count))
+    if seed is not None:
+        shutil.rmtree(out, ignore_errors=True)
 
 
 main()
