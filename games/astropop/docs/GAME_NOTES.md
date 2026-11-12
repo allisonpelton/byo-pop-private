@@ -96,6 +96,15 @@ and `games/astropop/tools/web/winlevels.js` (the page, real DOM input) play it: 
 and 84,700 updates natively and 1,900 moves and 95,000 updates in the page, with 24 upgrade boxes, 8 bonus starts and the
 gate 32 times.
 
+A game that a test command starts while the full-screen help of the one before is up (`goto classic`, `goto survival`, `level`; the
+original's player cannot, the help is modal) left the help under the new Board: `StartClassicGame` deletes the old Board and adds the new
+one over the help widget, so the help is not drawn, takes no click, and `mHelpScreen` stays set, which holds the Board's updates and
+its input. The bot then answered "help" for good (click on a button that nothing receives), also after `win`; a driver that
+restarts games over an open help (the Site session's page did) met it. The three commands close the help first
+(`CloseHelpBeforeGame` in `testhooks/TestCommands.cpp`, test code only). `games/astropop/tools/web/gotohelp.js` repeats it: three
+restarts with the help up, then 90 bot moves with a `win`; one "help" answer, then shots, the gate and level 2 (before: 20 of 20
+answers "help").
+
 A player is two things, and a test that starts with one needs both: the file `users\data<n>.usr` and the registry key
 `Users\<name>` with `Users\LastUser` (the original keeps them under HKLM, the port in its `registry.ini`). `Init` deletes
 every player and file when the registry's `SGFVersion` is missing or below 15, so a preset carries that value as well
