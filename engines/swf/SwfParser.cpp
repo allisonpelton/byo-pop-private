@@ -1,12 +1,13 @@
 // Reads a .swf file into SwfData (SwfTypes.h), from the public SWF file format specification (version 10). Only
-// what the game's four cutscenes use is read: DefineShape, 2 and 3, DefineMorphShape, DefineSprite, DefineText and
-// 2, DefineFont2, PlaceObject2, RemoveObject2, ShowFrame, FrameLabel, SetBackgroundColor, DoAction (Play, Stop and
-// GetURL) and Protect. Any other tag, and any other action or feature of the ones read, is skipped and counted in
+// what the games' cutscenes use is read: DefineShape, 2 and 3, DefineMorphShape, DefineSprite, DefineText and
+// 2, DefineFont2, the bitmaps (DefineBits with JPEGTables, DefineBitsJPEG2 and 3, DefineBitsLossless and 2),
+// PlaceObject2, RemoveObject2, ShowFrame, FrameLabel, SetBackgroundColor, DoAction (Play, Stop and GetURL) and Protect. Any other tag, and any other action or feature of the ones read, is skipped and counted in
 // SwfData::mUnsupported, so that a test run reports it.
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <algorithm>
+#include <string>
 #include <stb_image.h>
 
 #include "SwfTypes.h"
@@ -170,6 +171,170 @@ SwfColor ReadColor(Reader& r, bool theAlpha)
 	return c;
 }
 
+// ---- bitmaps ----
+
+// A bitmap from thePixels, 0xAARRGGBB, whose colors are multiplied by their alpha here unless theMultiplied
+std::shared_ptr<const SwfBitmap> MakeBitmap(int theWidth, int theHeight, std::vector<uint32_t>& thePixels, bool theMultiplied)
+{
+	if (theWidth <= 0 || theHeight <= 0 || thePixels.size() != (size_t)theWidth * (size_t)theHeight)
+		return nullptr;
+	if (!theMultiplied) {
+		for (size_t i = 0; i < thePixels.size(); i++) {
+			uint32_t c = thePixels[i];
+			uint32_t a = c >> 24;
+			if (a == 255)
+				continue;
+			uint32_t r = (((c >> 16) & 255) * a + 127) / 255, g = (((c >> 8) & 255) * a + 127) / 255, b = ((c & 255) * a + 127) / 255;
+			thePixels[i] = (a << 24) | (r << 16) | (g << 8) | b;
+		}
+	}
+	std::shared_ptr<SwfBitmap> aBitmap = std::make_shared<SwfBitmap>();
+	aBitmap->mWidth = theWidth;
+	aBitmap->mHeight = theHeight;
+	aBitmap->mPixels.swap(thePixels);
+	return aBitmap;
+}
+
+// A bitmap from an image file's bytes (JPEG, or the PNG and GIF that later versions allow), with theAlpha (one byte
+// for each pixel, or null) as its alpha
+std::shared_ptr<const SwfBitmap> DecodeImage(const uint8_t* theData, size_t theSize, const uint8_t* theAlpha, size_t theAlphaSize)
+{
+	int w = 0, h = 0, aComps = 0;
+	uint8_t* aRGBA = stbi_load_from_memory(theData, (int)theSize, &w, &h, &aComps, 4);
+	if (aRGBA == nullptr)
+		return nullptr;
+	std::vector<uint32_t> aPixels((size_t)w * (size_t)h);
+	bool anAlphaOfItsOwn = aComps == 4 || theAlpha == nullptr;
+	for (size_t i = 0; i < aPixels.size(); i++) {
+		uint32_t a = anAlphaOfItsOwn ? aRGBA[i * 4 + 3] : (i < theAlphaSize ? theAlpha[i] : 255);
+		aPixels[i] = (a << 24) | ((uint32_t)aRGBA[i * 4] << 16) | ((uint32_t)aRGBA[i * 4 + 1] << 8) | aRGBA[i * 4 + 2];
+	}
+	stbi_image_free(aRGBA);
+	return MakeBitmap(w, h, aPixels, false);
+}
+
+// The JPEG data of a bitmap tag: an erroneous leading end and start of image marker pair that old files have is dropped
+void SkipJpegPrefix(const uint8_t*& theData, size_t& theSize)
+{
+	if (theSize >= 4 && theData[0] == 0xff && theData[1] == 0xd9 && theData[2] == 0xff && theData[3] == 0xd8) {
+		theData += 4;
+		theSize -= 4;
+	}
+}
+
+// DefineBitsLossless (theVersion 1, RGB) and DefineBitsLossless2 (2, with alpha): a zlib stream of a color table and
+// indices (format 3), of 15-bit (4) or 32-bit (5) pixels, each row padded to a whole number of 32-bit words
+std::shared_ptr<const SwfBitmap> DecodeLossless(Reader& r, int theVersion)
+{
+	int aFormat = r.U8();
+	int w = r.U16();
+	int h = r.U16();
+	int aColors = aFormat == 3 ? r.U8() + 1 : 0;
+	if (!r.mOk || w <= 0 || h <= 0 || r.Remaining() == 0)
+		return nullptr;
+	int aLength = 0;
+	uint8_t* aRaw = (uint8_t*)stbi_zlib_decode_malloc((const char*)r.mData + r.mPos, (int)r.Remaining(), &aLength);
+	if (aRaw == nullptr)
+		return nullptr;
+	std::vector<uint32_t> aPixels((size_t)w * (size_t)h, 0);
+	size_t aSize = (size_t)aLength;
+	bool anOk = true;
+	if (aFormat == 3) {
+		size_t anEntry = theVersion == 2 ? 4 : 3;
+		size_t aTable = (size_t)aColors * anEntry;
+		size_t aStride = ((size_t)w + 3) & ~(size_t)3;
+		anOk = aSize >= aTable + aStride * (size_t)h;
+		for (int y = 0; anOk && y < h; y++)
+			for (int x = 0; x < w; x++) {
+				int anIndex = aRaw[aTable + aStride * y + x];
+				const uint8_t* c = aRaw + (anIndex < aColors ? anIndex : 0) * anEntry;
+				aPixels[(size_t)y * w + x] = ((theVersion == 2 ? (uint32_t)c[3] : 255u) << 24) | ((uint32_t)c[0] << 16) | ((uint32_t)c[1] << 8) | c[2];
+			}
+	}
+	else if (aFormat == 4) {
+		size_t aStride = ((size_t)w * 2 + 3) & ~(size_t)3;
+		anOk = aSize >= aStride * (size_t)h;
+		for (int y = 0; anOk && y < h; y++)
+			for (int x = 0; x < w; x++) {
+				unsigned v = ((unsigned)aRaw[aStride * y + x * 2] << 8) | aRaw[aStride * y + x * 2 + 1];
+				unsigned r5 = (v >> 10) & 31, g5 = (v >> 5) & 31, b5 = v & 31;
+				aPixels[(size_t)y * w + x] = 0xff000000u | (((r5 << 3) | (r5 >> 2)) << 16) | (((g5 << 3) | (g5 >> 2)) << 8) | ((b5 << 3) | (b5 >> 2));
+			}
+	}
+	else if (aFormat == 5) {
+		anOk = aSize >= (size_t)w * (size_t)h * 4;
+		for (size_t i = 0; anOk && i < aPixels.size(); i++) {
+			const uint8_t* c = aRaw + i * 4;
+			// the first byte is the alpha of version 2 (the colors are then already multiplied by it), padding in version 1
+			aPixels[i] = ((theVersion == 2 ? (uint32_t)c[0] : 255u) << 24) | ((uint32_t)c[1] << 16) | ((uint32_t)c[2] << 8) | c[3];
+		}
+	}
+	else
+		anOk = false;
+	free(aRaw);
+	if (!anOk)
+		return nullptr;
+	// the colors of a table are not multiplied by their alpha, the pixels of format 5 are
+	return MakeBitmap(w, h, aPixels, aFormat == 5 && theVersion == 2);
+}
+
+// The bitmap tags: 6 DefineBits, 8 JPEGTables, 20 DefineBitsLossless, 21 DefineBitsJPEG2, 35 DefineBitsJPEG3,
+// 36 DefineBitsLossless2
+void ReadBitmapTag(Reader& r, SwfData& theMovie, int theTag)
+{
+	if (theTag == 8) {
+		theMovie.mJpegTables.assign(r.mData + r.mPos, r.mData + r.mSize);
+		return;
+	}
+	int anId = r.U16();
+	std::shared_ptr<const SwfBitmap> aBitmap;
+	const uint8_t* aData = r.mData + r.mPos;
+	size_t aSize = r.Remaining();
+	if (theTag == 20 || theTag == 36)
+		aBitmap = DecodeLossless(r, theTag == 36 ? 2 : 1);
+	else if (theTag == 35) {
+		size_t anAlphaOffset = r.U32();
+		aData = r.mData + r.mPos;
+		aSize = r.Remaining();
+		if (anAlphaOffset > aSize)
+			anAlphaOffset = aSize;
+		std::vector<uint8_t> anAlpha;
+		if (anAlphaOffset < aSize) {
+			int aLength = 0;
+			char* anInflated = stbi_zlib_decode_malloc((const char*)aData + anAlphaOffset, (int)(aSize - anAlphaOffset), &aLength);
+			if (anInflated != nullptr) {
+				anAlpha.assign((const uint8_t*)anInflated, (const uint8_t*)anInflated + aLength);
+				free(anInflated);
+			}
+		}
+		size_t aJpegSize = anAlphaOffset;
+		SkipJpegPrefix(aData, aJpegSize);
+		aBitmap = DecodeImage(aData, aJpegSize, anAlpha.empty() ? nullptr : anAlpha.data(), anAlpha.size());
+	}
+	else if (theTag == 21) {
+		SkipJpegPrefix(aData, aSize);
+		aBitmap = DecodeImage(aData, aSize, nullptr, 0);
+	}
+	else {
+		// DefineBits: the JPEG tables (without their end marker) and then the data (without its start marker)
+		std::vector<uint8_t> aJoined;
+		if (theMovie.mJpegTables.size() >= 4 && aSize >= 2 && aData[0] == 0xff && aData[1] == 0xd8) {
+			size_t aTables = theMovie.mJpegTables.size();
+			if (theMovie.mJpegTables[aTables - 2] == 0xff && theMovie.mJpegTables[aTables - 1] == 0xd9)
+				aTables -= 2;
+			aJoined.assign(theMovie.mJpegTables.begin(), theMovie.mJpegTables.begin() + aTables);
+			aJoined.insert(aJoined.end(), aData + 2, aData + aSize);
+			aData = aJoined.data();
+			aSize = aJoined.size();
+		}
+		aBitmap = DecodeImage(aData, aSize, nullptr, 0);
+	}
+	if (aBitmap == nullptr)
+		theMovie.mUnsupported["a bitmap that did not decode"]++;
+	else
+		theMovie.mBitmaps[anId] = aBitmap;
+}
+
 // A hash of what a gradient's colors are (its type and stops)
 uint64_t HashStops(const SwfFillStyle& theStyle)
 {
@@ -209,11 +374,24 @@ void ReadFillStyles(Reader& r, int theShapeVersion, bool theAlpha, std::vector<S
 			}
 			f.mStopsHash = HashStops(f);
 		}
+		else if (f.mType >= 0x40 && f.mType <= 0x43) {
+			int aBitmapId = r.U16();
+			f.mMatrix = ReadMatrix(r);
+			std::unordered_map<int, std::shared_ptr<const SwfBitmap> >::const_iterator anItr = theMovie.mBitmaps.find(aBitmapId);
+			if (anItr != theMovie.mBitmaps.end())
+				f.mBitmap = anItr->second;
+			else {
+				// 65535 is the id of no bitmap, which shows nothing; any other id that has no bitmap (it did not decode) is a gray fill
+				f.mType = 0;
+				f.mColor.r = f.mColor.g = f.mColor.b = 128;
+				if (aBitmapId == 0xffff)
+					f.mColor.a = 0;
+				else
+					theMovie.mUnsupported["bitmap fill without its bitmap " + std::to_string(aBitmapId)]++;
+			}
+		}
 		else {
-			// A bitmap fill (the game's cutscenes have none): its bitmap is not here, so the fill is a gray
-			theMovie.mUnsupported["bitmap fill"]++;
-			r.Skip(2);
-			ReadMatrix(r);
+			theMovie.mUnsupported["fill style of an unknown type"]++;
 			f.mType = 0;
 			f.mColor.r = f.mColor.g = f.mColor.b = 128;
 		}
@@ -374,11 +552,25 @@ void ReadMorphFillStyles(Reader& r, SwfRawShape& theStart, SwfRawShape& theEnd, 
 				e.mStops.push_back(anEnd);
 			}
 		}
+		else if (s.mType >= 0x40 && s.mType <= 0x43) {
+			int aBitmapId = r.U16();
+			s.mMatrix = ReadMatrix(r);
+			e.mMatrix = ReadMatrix(r);
+			std::unordered_map<int, std::shared_ptr<const SwfBitmap> >::const_iterator anItr = theMovie.mBitmaps.find(aBitmapId);
+			if (anItr != theMovie.mBitmaps.end())
+				s.mBitmap = e.mBitmap = anItr->second;
+			else {
+				s.mType = e.mType = 0;
+				s.mColor.r = s.mColor.g = s.mColor.b = 128;
+				if (aBitmapId == 0xffff)
+					s.mColor.a = 0;
+				else
+					theMovie.mUnsupported["bitmap fill without its bitmap " + std::to_string(aBitmapId)]++;
+				e.mColor = s.mColor;
+			}
+		}
 		else {
-			theMovie.mUnsupported["bitmap fill"]++;
-			r.Skip(2);
-			ReadMatrix(r);
-			ReadMatrix(r);
+			theMovie.mUnsupported["fill style of an unknown type"]++;
 			s.mType = e.mType = 0;
 			s.mColor.r = s.mColor.g = s.mColor.b = 128;
 			e.mColor = s.mColor;
@@ -692,6 +884,7 @@ bool ReadTags(Reader& r, SwfData& theMovie, SwfTimelineDef& theTimeline, bool th
 			aFrame.mCmds.push_back(c);
 			break;
 		}
+		case 6: case 8: case 20: case 21: case 35: case 36: ReadBitmapTag(aBody, theMovie, aTag); break;
 		case 12: ReadDoAction(aBody, theMovie, aFrame); break;
 		case 43: aFrame.mLabel = aBody.CString(); break;
 		case 9:
@@ -699,6 +892,8 @@ bool ReadTags(Reader& r, SwfData& theMovie, SwfTimelineDef& theTimeline, bool th
 				theMovie.mBackground = ReadColor(aBody, false);
 			break;
 		case 24:  // Protect
+			break;
+		case 88:  // DefineFontName: the name and copyright of a font, which nothing here shows
 			break;
 		default: {
 			char aName[64];

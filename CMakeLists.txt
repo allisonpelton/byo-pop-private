@@ -302,13 +302,18 @@ option(BUILD_VENICE "Build the Venice Deluxe port" ON)
 if(BUILD_VENICE AND EXISTS ${PROJECT_SOURCE_DIR}/games/venice/CMakeLists.txt)
   add_subdirectory(games/venice)
 endif()
-# Bookworm Adventures Deluxe: optional while it is new; the build skips it if its folder is missing
+# The SWF player (engines/swf), one copy for the ports that play Flash cutscenes: built when any of them is
 option(BUILD_BOOKWORMADV "Build the Bookworm Adventures Deluxe port" ON)
+option(BUILD_BOOKWORMADV2 "Build the Bookworm Adventures Volume 2 port" ON)
+if((BUILD_BOOKWORMADV AND EXISTS ${PROJECT_SOURCE_DIR}/games/bookwormadv/CMakeLists.txt) OR
+   (BUILD_BOOKWORMADV2 AND EXISTS ${PROJECT_SOURCE_DIR}/games/bookwormadv2/CMakeLists.txt))
+  add_subdirectory(engines/swf)
+endif()
+# Bookworm Adventures Deluxe: optional while it is new; the build skips it if its folder is missing
 if(BUILD_BOOKWORMADV AND EXISTS ${PROJECT_SOURCE_DIR}/games/bookwormadv/CMakeLists.txt)
   add_subdirectory(games/bookwormadv)
 endif()
 # Bookworm Adventures Volume 2: the same engine as Volume 1, copied into its own folder; optional while it is new
-option(BUILD_BOOKWORMADV2 "Build the Bookworm Adventures Volume 2 port" ON)
 if(BUILD_BOOKWORMADV2 AND EXISTS ${PROJECT_SOURCE_DIR}/games/bookwormadv2/CMakeLists.txt)
   add_subdirectory(games/bookwormadv2)
 endif()
