@@ -298,7 +298,7 @@ var ByopopSoundboards = {
       ["sounds/select.ogg", "Select", "A gem is clicked and becomes the selected one, panned to its side of the board"],
       ["sounds/bad2.ogg", "Bad swap", "A swap that makes no match is undone, or two gems that are not neighbours are swapped; a locked planet is clicked on the galaxy map. Also in Bejeweled 3, as sounds/badmove.ogg."],
       ["sounds/gotset2.ogg", "Match", "An update finds exactly one set of three or more, with no flame gem made by a gem in two sets; also when the sound volume slider is let go. Also in Chuzzle Deluxe, as sounds/Bonus/GotJewel.ogg."],
-      ["sounds/gotsetbig2.ogg", "Big match", "One update finds two or more sets at the same time (no gem shared between sets and no four in a row) Resembles Chuzzle Deluxe's sounds/Bonus/GotJewel.ogg, the same sound, longer."],
+      ["sounds/gotsetbig2.ogg", "Big match", "One update finds two or more sets at the same time (no gem shared between sets and no four in a row). Resembles Chuzzle Deluxe's sounds/Bonus/GotJewel.ogg, the same sound, longer."],
       ["sounds/multishot.ogg", "Multi match", "A match makes a flame gem: four in a row, or one gem in two sets (an L, a T or a cross); plays instead of the Match sound"],
       ["sounds/gemongem2.ogg", "Gems land", "Falling gems land, at most once every 10 updates (0.1 s); also when the logo's face gems land on the title screen. Also in Bejeweled 3, as sounds/gem_hit.ogg. Also in Chuzzle Deluxe, as sounds/Bonus/JewelLand.ogg."],
       ["sounds/combo22.ogg", "Cascade 1", "Together with the match sound, when the move's chain is at its first match (a swap resets the chain)"],
@@ -378,7 +378,7 @@ var ByopopSoundboards = {
       ["sounds/zenstart.ogg", "Zen start", "A Zen game starts, new or continued; no other mode plays it"],
       ["sounds/typewriter1.ogg", "Typewriter", "A letter, digit or space is typed into a name box; other keys make no sound"],
       ["sounds/screenprint.ogg", "Screen print", "A high scores category is picked by a click, so its page prints on (it does not play when the page is set at once)"],
-      ["sounds/transfer.ogg", "Volume check", "The Sound volume slider in Options is let go (not while it is being dragged) Also in Chuzzle Deluxe, as sounds/Bonus/GotJewel.ogg."],
+      ["sounds/transfer.ogg", "Volume check", "The Sound volume slider in Options is let go (not while it is being dragged). Also in Chuzzle Deluxe, as sounds/Bonus/GotJewel.ogg."],
       ["sounds/bubblepop.ogg", "Dialog pop", "Any dialog pops up"],
       ["sounds/voice_goodbye.ogg", "\"Goodbye\"", "Quit is confirmed in the quit dialog; the game closes once the voice has finished"]
     ] },
@@ -688,7 +688,7 @@ var ByopopSoundboards = {
       ["sounds/wordcomplete.ogg", "Word scored", "A word with no fire tile is scored; also an Action level's time bonus (the next level starts with the countdown under 10 while Lex sweats)"],
       ["sounds/redtilecleared.ogg", "Fire word scored", "A word containing at least one fire tile is scored (it replaces the usual word-scored sound)"],
       ["sounds/chomp.ogg", "Chomp", "A scored word's tile reaches Lex's mouth, at most once every 4 updates (0.04 s), so a long word chomps several times"],
-      ["sounds/bad.ogg", "Bad (unused)", "Never played: it is loaded, but no code asks for it (a wrong word plays the buzzer) Also in Alchemy as Bad move: a click on the grid with a tile held when the tile cannot go there, an off-grid click too. Also in Big Money as Bad (trial only): played when an invalid registration code is typed in. Also in Peggle Deluxe, Peggle Extreme, Peggle Nights and Peggle World of Warcraft Edition, as sounds/pegpop.ogg."]
+      ["sounds/bad.ogg", "Bad (unused)", "Never played: it is loaded, but no code asks for it (a wrong word plays the buzzer). Also in Alchemy as Bad move: a click on the grid with a tile held when the tile cannot go there, an off-grid click too. Also in Big Money as Bad (trial only): played when an invalid registration code is typed in. Also in Peggle Deluxe, Peggle Extreme, Peggle Nights and Peggle World of Warcraft Edition, as sounds/pegpop.ogg."]
     ] },
     { name: "Word notes", sounds: [
       ["sounds/up1.ogg", "1st letter", "After a word is scored, 20 updates (0.2 s) later; one note per letter follows every 10 updates (0.1 s), rising up to the 8th"],
@@ -711,7 +711,7 @@ var ByopopSoundboards = {
     { name: "Danger and game over", sounds: [
       ["sounds/warning.ogg", "Warning", "Classic: three beeps 64 updates (0.64 s) apart when a fire tile reaches the bottom row; one beep with the first fire-tile hint; Action: every 100 updates (1 s) while Lex sweats"],
       ["sounds/screenburngameover.ogg", "\"The end!\"", "A fire tile on the bottom row ends the game (Classic: not in the selection; Action: countdown below 0); when the fire line's delay runs out, once Lex is idle"],
-      ["sounds/gameovertone.ogg", "Game over tone (unused)", "Never played: it is loaded, but no code asks for it (game over plays the screen-burn clip) Also in Big Money as Game over tone: the game ends."]
+      ["sounds/gameovertone.ogg", "Game over tone (unused)", "Never played: it is loaded, but no code asks for it (game over plays the screen-burn clip). Also in Big Money as Game over tone: the game ends."]
     ] },
     { name: "Menus", sounds: [
       ["sounds/buttonclick.ogg", "Click", "Any button is pressed: title, game selector, board, dialogs, options, help, journal, fame, level summary; also Lex is clicked"],
@@ -849,17 +849,17 @@ var ByopopSoundboards = {
       ["sounds/male_low_pain.ogg", "Male low pain", "Death sound of Firebreather; Attack or hit of Nessus, Thieves 4-5, Shaitan and 1 more (Arena too)"],
       ["sounds/male_low_warcry.ogg", "Male low warcry", "Opening sound of Nessus, Firebreather, Cannoneer and 5 more; Death sound of Thieves 4-5; Attack or hit of Shaitan (Arena too)"],
       ["sounds/male_pain.ogg", "Male pain", "Death sound of Swashbuckler, Warrenstein, Fallen Swashbuckler Hero; Attack or hit of Bandit, Sword Swallower, Thieves 9-11 and 3 more (Arena too)"],
-      ["sounds/moan_01.ogg", "Moan 1", "Death sound of Bandit, Sword Swallower, Highwayman; Attack or hit of Alexander, Polydamas, Trojan Captain and 8 more (Arena too) Also in Bookworm Adventures Volume 2 as Moan 1 (unused)."],
+      ["sounds/moan_01.ogg", "Moan 1", "Death sound of Bandit, Sword Swallower, Highwayman; Attack or hit of Alexander, Polydamas, Trojan Captain and 8 more (Arena too). Also in Bookworm Adventures Volume 2 as Moan 1 (unused)."],
       ["sounds/witch_groan_01.ogg", "Witch groan 1", "Opening sound of Deino, Enyo, Pemphredo; Death sound of Haggard Heckler; Attack or hit of Wandering Hag, Connystein, Quag Hag"],
       ["sounds/witchy_laugh_01.ogg", "Witchy laugh 1", "Opening sound of Haggard Heckler, Quag Hag; Attack or hit of Deino, Enyo, Pemphredo and 1 more"],
       ["sounds/witchy_laugh_02.ogg", "Witchy laugh 2", "Opening sound of Scylla, Sea Witch, Harpy and 3 more; Death sound of Deino, Enyo, Pemphredo; Attack or hit of Mirage Skeleton, Haggard Heckler"]
     ] },
     { name: "Animals", sounds: [
-      ["sounds/bat_death_01.ogg", "Bat death 1", "Attack or hit of Mama Roc (Arena too) Also in Bookworm Adventures Volume 2 as Bat death 1 (unused)."],
+      ["sounds/bat_death_01.ogg", "Bat death 1", "Attack or hit of Mama Roc (Arena too). Also in Bookworm Adventures Volume 2 as Bat death 1 (unused)."],
       ["sounds/dog_barking_01.ogg", "Dog barking 1", "Opening sound of Thieves 6-8, Wolf Pack; Attack or hit of Orthrus, Flying Wolf, Carrion Dog"],
       ["sounds/dog_barking_02.ogg", "Dog barking 2", "Opening sound of War Hound, Enchanted Hound, Flying Wolf; Attack or hit of Thieves 6-8, Undead Hound"],
       ["sounds/dog_whimper_01.ogg", "Dog whimper 1", "Death sound of War Hound, Enchanted Hound, Wolf Pack and 1 more; Attack or hit of Thieves 6-8"],
-      ["sounds/eagle_cry_01.ogg", "Eagle cry 1", "Opening sound of Enchanted Eagle, Griffon, Bronze Stymphalian and 3 more; Death sound of Bronze Stymphalian, Steel Stymphalian, Roc Hatchling; Attack or hit of Mama Roc (Arena too) Also in Bookworm Adventures Volume 2 as Eagle cry 1 (unused)."],
+      ["sounds/eagle_cry_01.ogg", "Eagle cry 1", "Opening sound of Enchanted Eagle, Griffon, Bronze Stymphalian and 3 more; Death sound of Bronze Stymphalian, Steel Stymphalian, Roc Hatchling; Attack or hit of Mama Roc (Arena too). Also in Bookworm Adventures Volume 2 as Eagle cry 1 (unused)."],
       ["sounds/feline_whimper_01.ogg", "Feline whimper 1", "Opening sound of Carrion Dog; Death sound of Bilge Dog, Flying Wolf; Attack or hit of Enchanted Lion, Nemean Lion, Wolfman (Arena too)"],
       ["sounds/feline_whimper_02.ogg", "Feline whimper 2", "Opening sound of Orthrus, Undead Hound, Bilge Dog; Death sound of Nemean Lion; Attack or hit of Cerberus, Wolfman, Codex (Arena too)"],
       ["sounds/generic_slosh_02.ogg", "Generic slosh 2", "Opening sound of Sea Elemental, Air Spirit; Attack or hit of Helead, Deck Swabber, Hateful Housemaid and 2 more"],
@@ -880,17 +880,17 @@ var ByopopSoundboards = {
       ["sounds/generic_animal_grumble_01.ogg", "Generic animal grumble 1", "Opening sound of Cerberus, Minotaur, Nemean Lion; Death sound of Chimera, Minotaur (Arena too)"],
       ["sounds/giantgruntdry1.ogg", "Giant grunt dry 1", "Opening sound of Cyclops Herder, Cyclops Warrior; Attack or hit of Polyphemus, Manticore, Minotaur and 1 more (Arena too)"],
       ["sounds/giantgruntecho2.ogg", "Giant grunt echo 2", "Death sound of Cyclops Herder, Cyclops Warrior, Polyphemus and 1 more; Attack or hit of The Creature (Arena too)"],
-      ["sounds/kubwa_barh.ogg", "Kubwa barh", "Attack or hit of Thieves 12-14 (Arena too) Also in Bookworm Adventures Volume 2 as Kubwa barh (unused)."],
+      ["sounds/kubwa_barh.ogg", "Kubwa barh", "Attack or hit of Thieves 12-14 (Arena too). Also in Bookworm Adventures Volume 2 as Kubwa barh (unused)."],
       ["sounds/kubwa_greeting.ogg", "Kubwa greeting", "Used in the Arena fights. Also in Bookworm Adventures Volume 2 as Kubwa greeting (unused)."],
-      ["sounds/kubwa_greeting2.ogg", "Kubwa greeting 2", "Opening sound of Thieves 12-14 (Arena too) Also in Bookworm Adventures Volume 2 as Kubwa greeting 2 (unused)."],
+      ["sounds/kubwa_greeting2.ogg", "Kubwa greeting 2", "Opening sound of Thieves 12-14 (Arena too). Also in Bookworm Adventures Volume 2 as Kubwa greeting 2 (unused)."],
       ["sounds/kubwa_roar.ogg", "Kubwa roar", "Death sound of Thieves 12-14 (Arena too)"],
-      ["sounds/roar_01.ogg", "Roar 1", "Opening sound of Charybdis, Enchanted Lion, Phantom and 2 more; Attack or hit of Griffon (Arena too) Also in Bookworm Adventures Volume 2 as Roar 1 (unused)."]
+      ["sounds/roar_01.ogg", "Roar 1", "Opening sound of Charybdis, Enchanted Lion, Phantom and 2 more; Attack or hit of Griffon (Arena too). Also in Bookworm Adventures Volume 2 as Roar 1 (unused)."]
     ] },
     { name: "Spirits and magic", sounds: [
       ["sounds/fading_ghostly_wail_01.ogg", "Fading ghostly wail 1", "Opening sound of Banshee, Manes, Tombstone Gargoyle and 1 more; Death sound of Medusa, Sphinx, Flying Armor; Attack or hit of Phantom, Grim (Arena too)"],
       ["sounds/fading_ghostly_wail_02.ogg", "Fading ghostly wail 2", "Opening sound of Medusa, Flying Armor, Necromancer; Death sound of Charybdis, Banshee, Manes and 4 more; Attack or hit of Hypnotist (Arena too)"],
       ["sounds/fading_ghostly_wail_03.ogg", "Fading ghostly wail 3", "Opening sound of Shade, Specter, Embalmed Guardian and 1 more; Death sound of Mummified Servant, Tombstone Gargoyle, Gargoyle; Attack or hit of Manes, Grim (Arena too)"],
-      ["sounds/pulsing_attack_01.ogg", "Pulsing attack 1", "Attack or hit of Circe, Dryad, Helead and 3 more (Arena too) Also in Bookworm Adventures Volume 2 as Pulsing attack 1 (unused)."],
+      ["sounds/pulsing_attack_01.ogg", "Pulsing attack 1", "Attack or hit of Circe, Dryad, Helead and 3 more (Arena too). Also in Bookworm Adventures Volume 2 as Pulsing attack 1 (unused)."],
       ["sounds/skeleton_warcry_01.ogg", "Skeleton warcry 1", "Opening sound of Limping Leper, Disturbed Skeleton, Ghoul Minion"],
       ["sounds/sonic_attack_02.ogg", "Sonic attack 2", "Opening sound of Hypnotist; Death sound of Mirage Nymph; Attack or hit of Shade, Specter, Snake Charmer and 5 more (Arena too)"],
       ["sounds/wail_03.ogg", "Wail 3", "Opening sound of Parkerstein; Death sound of Necromancer; Attack or hit of Phantom, Shade, Specter"],
@@ -916,10 +916,10 @@ var ByopopSoundboards = {
       ["sounds/v_autological.ogg", "\"Autological\"", "Lex says it in the animation of the Codex fight. Also in Bookworm Adventures Volume 2 as \"Autological\" (unused). Also in Bookworm Adventures Volume 2 as \"Autological\" (unused)."]
     ] },
     { name: "Unused", sounds: [
-      ["sounds/lex_autological.ogg", "\"Autological\"", "The game never plays it. Also in Bookworm Adventures Volume 2 as \"Autological\" (unused). Also in Bookworm Adventures Volume 2 as \"Autological\" (unused)."],
-      ["sounds/lex_unbelievable.ogg", "\"Unbelievable\"", "The game never plays it. Also in Bookworm Adventures Volume 2 as \"Unbelievable\" (unused)."],
-      ["sounds/v_buynow.ogg", "\"Buy now\"", "The game never plays it. Also in Bookworm Adventures Volume 2 as \"Buy now\" (unused)."],
-      ["sounds/vo_routed.ogg", "\"Routed\"", "The game never plays it. Also in Bookworm Adventures Volume 2 as \"Routed\" (unused)."]
+      ["sounds/lex_autological.ogg", "\"Autological\" (unused)", "Never played: loaded as LEX_AUTOLOGICAL, but no code or script asks for it. Also in Bookworm Adventures Volume 2 as \"Autological\" (unused). Also in Bookworm Adventures Volume 2 as \"Autological\" (unused)."],
+      ["sounds/lex_unbelievable.ogg", "\"Unbelievable\" (unused)", "Never played: the file is not in the game's resource list, so nothing loads it. Also in Bookworm Adventures Volume 2 as \"Unbelievable\" (unused)."],
+      ["sounds/v_buynow.ogg", "\"Buy now\" (trial only)", "Trial only: the upsell trailer the trial showed said it once; the port, made from the full game, has no trial and leaves the trailer's resources out. Also in Bookworm Adventures Volume 2 as \"Buy now\" (trial only)."],
+      ["sounds/vo_routed.ogg", "\"Routed\" (unused)", "Never played: loaded as OVERKILL_ROUTED, but the scripts' overkill table names only the seven other overkill voices. Also in Bookworm Adventures Volume 2 as \"Routed\" (unused)."]
     ] }
   ] },
   bookwormadv2: {
@@ -1216,67 +1216,67 @@ var ByopopSoundboards = {
       ["sounds/wetimpact4.ogg", "Wet impact 4", "Attack or hit of Mrs. Sprat, Shark Sergeant, Shrimp Soldier and 2 more"]
     ] },
     { name: "Unused", sounds: [
-      ["sounds/curtainsclose.ogg", "Curtainsclose", "The game never plays it"],
-      ["sounds/curtainscloseclap.ogg", "Curtainscloseclap", "The game never plays it"],
-      ["sounds/curtainsopen.ogg", "Curtainsopen", "The game never plays it"],
-      ["sounds/curtainsopenclap.ogg", "Curtainsopenclap", "The game never plays it"],
-      ["sounds/giantgruntdry1.ogg", "Giant grunt dry 1", "The game never plays it"],
-      ["sounds/lex_unbelievable.ogg", "\"Unbelievable\"", "The game never plays it. Also in Bookworm Adventures as \"Unbelievable\" (unused)."],
-      ["sounds/lextravelloop.ogg", "Lextravel loop", "The game never plays it"],
-      ["sounds/plateimpact3.ogg", "Plate impact 3", "The game never plays it"],
-      ["sounds/textreadblip.ogg", "Textreadblip", "The game never plays it"],
-      ["sounds/textreadtype02.ogg", "Textreadtype 02", "The game never plays it"],
-      ["sounds/textreadtype03.ogg", "Textreadtype 03", "The game never plays it"],
-      ["sounds/textreadtype04.ogg", "Textreadtype 04", "The game never plays it"],
-      ["sounds/textreadtype05.ogg", "Textreadtype 05", "The game never plays it"],
-      ["sounds/textreadtype06.ogg", "Textreadtype 06", "The game never plays it"],
-      ["sounds/textreadtype07.ogg", "Textreadtype 07", "The game never plays it"],
-      ["sounds/textreadtype08.ogg", "Textreadtype 08", "The game never plays it"],
-      ["sounds/textreadtype09.ogg", "Textreadtype 09", "The game never plays it"],
-      ["sounds/textreadtype10.ogg", "Textreadtype 10", "The game never plays it"],
-      ["sounds/v_astonishing.ogg", "\"Astonishing\"", "The game never plays it"],
-      ["sounds/v_awesome.ogg", "\"Awesome\"", "The game never plays it"],
-      ["sounds/v_buynow.ogg", "\"Buy now\"", "The game never plays it. Also in Bookworm Adventures as \"Buy now\" (unused)."],
-      ["sounds/v_excellent.ogg", "\"Excellent\"", "The game never plays it"],
-      ["sounds/v_fantastic.ogg", "\"Fantastic\"", "The game never plays it"],
-      ["sounds/v_good.ogg", "\"Good\"", "The game never plays it"],
-      ["sounds/v_illbeback.ogg", "\"I'll be back\"", "The game never plays it"],
-      ["sounds/v_incredible.ogg", "\"Incredible\"", "The game never plays it"],
-      ["sounds/v_letsgo.ogg", "\"Let's go\"", "The game never plays it"],
-      ["sounds/v_levelup.ogg", "\"Levelup\"", "The game never plays it"],
-      ["sounds/v_newtreasure.ogg", "\"New treasure\"", "The game never plays it"],
-      ["sounds/v_nice.ogg", "\"Nice\"", "The game never plays it"],
-      ["sounds/v_timeforbed.ogg", "\"Time for bed\"", "The game never plays it"],
-      ["sounds/v_unbelievable.ogg", "\"Unbelievable\"", "The game never plays it"],
-      ["sounds/v_verygood.ogg", "\"Very good\"", "The game never plays it"],
-      ["sounds/v_watchout.ogg", "\"Watch out\"", "The game never plays it"],
-      ["sounds/v_wow.ogg", "\"Wow\"", "The game never plays it"],
-      ["sounds/vo_routed.ogg", "\"Routed\"", "The game never plays it. Also in Bookworm Adventures as \"Routed\" (unused)."]
+      ["sounds/curtainsclose.ogg", "Curtainsclose (unused)", "Never played: loaded as CURTAIN_CLOSE, but the curtain transition plays no sound and nothing else asks for it"],
+      ["sounds/curtainscloseclap.ogg", "Curtainscloseclap (unused)", "Never played: loaded as CURTAIN_CLOSE_CLAP, but the curtain transition plays no sound and nothing else asks for it"],
+      ["sounds/curtainsopen.ogg", "Curtainsopen (unused)", "Never played: loaded as CURTAIN_OPEN, but the curtain transition plays no sound and nothing else asks for it"],
+      ["sounds/curtainsopenclap.ogg", "Curtainsopenclap (unused)", "Never played: loaded as CURTAIN_OPEN_CLAP, but the curtain transition plays no sound and nothing else asks for it"],
+      ["sounds/giantgruntdry1.ogg", "Giant grunt dry 1 (unused)", "Never played: the game never plays it"],
+      ["sounds/lex_unbelievable.ogg", "\"Unbelievable\" (unused)", "Never played: the game never plays it. Also in Bookworm Adventures as \"Unbelievable\" (unused)."],
+      ["sounds/lextravelloop.ogg", "Lextravel loop (unused)", "Never played: the game never plays it"],
+      ["sounds/plateimpact3.ogg", "Plate impact 3 (unused)", "Never played: listed only in book4.xml, and no script asks for it (the scripts play plate impacts 4 to 6)"],
+      ["sounds/textreadblip.ogg", "Textreadblip (unused)", "Never played: the game never plays it"],
+      ["sounds/textreadtype02.ogg", "Textreadtype 02 (unused)", "Never played: loaded as TEXT_BLIP1, but a conversation's typing plays only TEXT_BLIP (Textreadtype 01)"],
+      ["sounds/textreadtype03.ogg", "Textreadtype 03 (unused)", "Never played: loaded as TEXT_BLIP2, but a conversation's typing plays only TEXT_BLIP (Textreadtype 01)"],
+      ["sounds/textreadtype04.ogg", "Textreadtype 04 (unused)", "Never played: loaded as TEXT_BLIP3, but a conversation's typing plays only TEXT_BLIP (Textreadtype 01)"],
+      ["sounds/textreadtype05.ogg", "Textreadtype 05 (unused)", "Never played: loaded as TEXT_BLIP4, but a conversation's typing plays only TEXT_BLIP (Textreadtype 01)"],
+      ["sounds/textreadtype06.ogg", "Textreadtype 06 (unused)", "Never played: loaded as TEXT_BLIP5, but a conversation's typing plays only TEXT_BLIP (Textreadtype 01)"],
+      ["sounds/textreadtype07.ogg", "Textreadtype 07 (unused)", "Never played: loaded as TEXT_BLIP6, but a conversation's typing plays only TEXT_BLIP (Textreadtype 01)"],
+      ["sounds/textreadtype08.ogg", "Textreadtype 08 (unused)", "Never played: loaded as TEXT_BLIP7, but a conversation's typing plays only TEXT_BLIP (Textreadtype 01)"],
+      ["sounds/textreadtype09.ogg", "Textreadtype 09 (unused)", "Never played: loaded as TEXT_BLIP8, but a conversation's typing plays only TEXT_BLIP (Textreadtype 01)"],
+      ["sounds/textreadtype10.ogg", "Textreadtype 10 (unused)", "Never played: loaded as TEXT_BLIP9, but a conversation's typing plays only TEXT_BLIP (Textreadtype 01)"],
+      ["sounds/v_astonishing.ogg", "\"Astonishing\" (unused)", "Never played: the game never plays it"],
+      ["sounds/v_awesome.ogg", "\"Awesome\" (unused)", "Never played: the game never plays it"],
+      ["sounds/v_buynow.ogg", "\"Buy now\" (trial only)", "Trial only: the upsell trailer the trial showed said it once; the port, made from the full game, has no trial and leaves the trailer's resources out. Also in Bookworm Adventures as \"Buy now\" (trial only)."],
+      ["sounds/v_excellent.ogg", "\"Excellent\" (unused)", "Never played: the game never plays it"],
+      ["sounds/v_fantastic.ogg", "\"Fantastic\" (unused)", "Never played: the game never plays it"],
+      ["sounds/v_good.ogg", "\"Good\" (unused)", "Never played: the game never plays it"],
+      ["sounds/v_illbeback.ogg", "\"I'll be back\" (unused)", "Never played: loaded with the main menu's voices as MM_ILLBEBACK, but no menu item's reaction uses it"],
+      ["sounds/v_incredible.ogg", "\"Incredible\" (unused)", "Never played: the game never plays it"],
+      ["sounds/v_letsgo.ogg", "\"Let's go\" (unused)", "Never played: the game never plays it"],
+      ["sounds/v_levelup.ogg", "\"Levelup\" (unused)", "Never played: the game never plays it"],
+      ["sounds/v_newtreasure.ogg", "\"New treasure\" (unused)", "Never played: the game never plays it"],
+      ["sounds/v_nice.ogg", "\"Nice\" (unused)", "Never played: the game never plays it"],
+      ["sounds/v_timeforbed.ogg", "\"Time for bed\" (unused)", "Never played: loaded with the main menu's voices as MM_BEDTIME, but no menu item's reaction uses it"],
+      ["sounds/v_unbelievable.ogg", "\"Unbelievable\" (unused)", "Never played: the game never plays it"],
+      ["sounds/v_verygood.ogg", "\"Very good\" (unused)", "Never played: the game never plays it"],
+      ["sounds/v_watchout.ogg", "\"Watch out\" (unused)", "Never played: the game never plays it"],
+      ["sounds/v_wow.ogg", "\"Wow\" (unused)", "Never played: the game never plays it"],
+      ["sounds/vo_routed.ogg", "\"Routed\" (unused)", "Never played: loaded as OVERKILL_ROUTED, but the scripts' overkill table names only the seven other overkill voices. Also in Bookworm Adventures as \"Routed\" (unused)."]
     ] },
     { name: "Bookworm Adventures leftovers", sounds: [
-      ["sounds/bat_death_01.ogg", "Bat death 1 (unused)", "The game never plays it. Also in Bookworm Adventures as Bat death 1: attack or hit of Mama Roc (Arena too)."],
-      ["sounds/bowfiring.ogg", "Bow firing (unused)", "The game never plays it. Also in Bookworm Adventures as Bow firing: opening sound of Unliving Archer."],
-      ["sounds/codex_flinch.ogg", "Codex flinch (unused)", "The game never plays it. Also in Bookworm Adventures as Codex flinch: attack or hit of Codex."],
-      ["sounds/codex_laugh.ogg", "Codex laugh (unused)", "The game never plays it. Also in Bookworm Adventures as Codex laugh: a Codex animation of the last chapter laughs."],
-      ["sounds/codex_nyah.ogg", "Codex nyah (unused)", "The game never plays it. Also in Bookworm Adventures as Codex nyah: a Codex animation of the last chapter taunts."],
-      ["sounds/dragon_roar.ogg", "Dragon roar (unused)", "The game never plays it. Also in Bookworm Adventures as Dragon roar: opening sound of Kraken, Hydra, Basilisk and 2 more."],
-      ["sounds/eagle_cry_01.ogg", "Eagle cry 1 (unused)", "The game never plays it. Also in Bookworm Adventures as Eagle cry 1: opening sound of Enchanted Eagle, Griffon, Bronze Stymphalian and 3 more."],
-      ["sounds/elephant_01.ogg", "Elephant 1 (unused)", "The game never plays it. Also in Bookworm Adventures as Elephant 1: opening sound of Elephant, Mirage Skeleton."],
-      ["sounds/elephant_death_01.ogg", "Elephant death 1 (unused)", "The game never plays it. Also in Bookworm Adventures as Elephant death 1: opening sound of Bull Elephant."],
-      ["sounds/elephant_death_02.ogg", "Elephant death 2 (unused)", "The game never plays it. Also in Bookworm Adventures as Elephant death 2: death sound of Elephant."],
-      ["sounds/elephant_death_03.ogg", "Elephant death 3 (unused)", "The game never plays it. Also in Bookworm Adventures as Elephant death 3: death sound of Bull Elephant."],
-      ["sounds/kubwa_barh.ogg", "Kubwa barh (unused)", "The game never plays it. Also in Bookworm Adventures as Kubwa barh: attack or hit of Thieves 12-14 (Arena too)."],
-      ["sounds/kubwa_greeting.ogg", "Kubwa greeting (unused)", "The game never plays it. Also in Bookworm Adventures as Kubwa greeting: used in the Arena fights."],
-      ["sounds/kubwa_greeting2.ogg", "Kubwa greeting 2 (unused)", "The game never plays it. Also in Bookworm Adventures as Kubwa greeting 2: opening sound of Thieves 12-14 (Arena too)."],
-      ["sounds/lex_autological.ogg", "\"Autological\" (unused)", "The game never plays it. Also in Bookworm Adventures as \"Autological\": Lex says it in the animation of the Codex fight. Also in Bookworm Adventures as \"Autological\" (unused)."],
-      ["sounds/lexbeam.ogg", "Lex beam (unused)", "The game never plays it. Also in Bookworm Adventures as Lex beam: Lex's beam animation in the fight with the Codex."],
-      ["sounds/moan_01.ogg", "Moan 1 (unused)", "The game never plays it. Also in Bookworm Adventures as Moan 1: death sound of Bandit, Sword Swallower, Highwayman."],
-      ["sounds/nemesis_laugh.ogg", "Nemesis laugh (unused)", "The game never plays it. Also in Bookworm Adventures as Nemesis laugh: the animation of Cassandra and the Nemesis laughs."],
-      ["sounds/pulsing_attack_01.ogg", "Pulsing attack 1 (unused)", "The game never plays it. Also in Bookworm Adventures as Pulsing attack 1: attack or hit of Circe, Dryad, Helead and 3 more (Arena too)."],
-      ["sounds/roar_01.ogg", "Roar 1 (unused)", "The game never plays it. Also in Bookworm Adventures as Roar 1: opening sound of Charybdis, Enchanted Lion, Phantom and 2 more."],
-      ["sounds/sloooowdown.ogg", "Sloooowdown (unused)", "The game never plays it. Also in AstroPop as Slow down: the atomic pilot's power. Also in Bookworm Adventures as Slow down: a hidden word is spelled outside the mini-games."],
-      ["sounds/v_autological.ogg", "\"Autological\" (unused)", "The game never plays it. Also in Bookworm Adventures as \"Autological\": Lex says it in the animation of the Codex fight. Also in Bookworm Adventures as \"Autological\" (unused)."],
-      ["sounds/v_clipsandgiggles.ogg", "\"Clips and giggles\" (unused)", "The game never plays it. Also in Bookworm Adventures as \"Clips and Giggles\": Lex reacts when the pointer moves onto the film reel item of the main menu."]
+      ["sounds/bat_death_01.ogg", "Bat death 1 (unused)", "Never played: the file is not in the game's resource list, so nothing loads it. Also in Bookworm Adventures as Bat death 1: attack or hit of Mama Roc (Arena too)."],
+      ["sounds/bowfiring.ogg", "Bow firing (unused)", "Never played: listed as SOUND7 in book6.xml, but no script asks for it. Also in Bookworm Adventures as Bow firing: opening sound of Unliving Archer."],
+      ["sounds/codex_flinch.ogg", "Codex flinch (unused)", "Never played: the file is not in the game's resource list, so nothing loads it. Also in Bookworm Adventures as Codex flinch: attack or hit of Codex."],
+      ["sounds/codex_laugh.ogg", "Codex laugh (unused)", "Never played: the file is not in the game's resource list, so nothing loads it. Also in Bookworm Adventures as Codex laugh: a Codex animation of the last chapter laughs."],
+      ["sounds/codex_nyah.ogg", "Codex nyah (unused)", "Never played: the file is not in the game's resource list, so nothing loads it. Also in Bookworm Adventures as Codex nyah: a Codex animation of the last chapter taunts."],
+      ["sounds/dragon_roar.ogg", "Dragon roar (unused)", "Never played: the file is not in the game's resource list, so nothing loads it. Also in Bookworm Adventures as Dragon roar: opening sound of Kraken, Hydra, Basilisk and 2 more."],
+      ["sounds/eagle_cry_01.ogg", "Eagle cry 1 (unused)", "Never played: the file is not in the game's resource list, so nothing loads it. Also in Bookworm Adventures as Eagle cry 1: opening sound of Enchanted Eagle, Griffon, Bronze Stymphalian and 3 more."],
+      ["sounds/elephant_01.ogg", "Elephant 1 (unused)", "Never played: the file is not in the game's resource list, so nothing loads it. Also in Bookworm Adventures as Elephant 1: opening sound of Elephant, Mirage Skeleton."],
+      ["sounds/elephant_death_01.ogg", "Elephant death 1 (unused)", "Never played: the file is not in the game's resource list, so nothing loads it. Also in Bookworm Adventures as Elephant death 1: opening sound of Bull Elephant."],
+      ["sounds/elephant_death_02.ogg", "Elephant death 2 (unused)", "Never played: the file is not in the game's resource list, so nothing loads it. Also in Bookworm Adventures as Elephant death 2: death sound of Elephant."],
+      ["sounds/elephant_death_03.ogg", "Elephant death 3 (unused)", "Never played: the file is not in the game's resource list, so nothing loads it. Also in Bookworm Adventures as Elephant death 3: death sound of Bull Elephant."],
+      ["sounds/kubwa_barh.ogg", "Kubwa barh (unused)", "Never played: the file is not in the game's resource list, so nothing loads it. Also in Bookworm Adventures as Kubwa barh: attack or hit of Thieves 12-14 (Arena too)."],
+      ["sounds/kubwa_greeting.ogg", "Kubwa greeting (unused)", "Never played: the file is not in the game's resource list, so nothing loads it. Also in Bookworm Adventures as Kubwa greeting: used in the Arena fights."],
+      ["sounds/kubwa_greeting2.ogg", "Kubwa greeting 2 (unused)", "Never played: the file is not in the game's resource list, so nothing loads it. Also in Bookworm Adventures as Kubwa greeting 2: opening sound of Thieves 12-14 (Arena too)."],
+      ["sounds/lex_autological.ogg", "\"Autological\" (unused)", "Never played: loaded as LEX_AUTOLOGICAL, but no code or script asks for it. Also in Bookworm Adventures as \"Autological\": Lex says it in the animation of the Codex fight. Also in Bookworm Adventures as \"Autological\" (unused)."],
+      ["sounds/lexbeam.ogg", "Lex beam (unused)", "Never played: the file is not in the game's resource list, so nothing loads it. Also in Bookworm Adventures as Lex beam: Lex's beam animation in the fight with the Codex."],
+      ["sounds/moan_01.ogg", "Moan 1 (unused)", "Never played: the file is not in the game's resource list, so nothing loads it. Also in Bookworm Adventures as Moan 1: death sound of Bandit, Sword Swallower, Highwayman."],
+      ["sounds/nemesis_laugh.ogg", "Nemesis laugh (unused)", "Never played: the file is not in the game's resource list, so nothing loads it. Also in Bookworm Adventures as Nemesis laugh: the animation of Cassandra and the Nemesis laughs."],
+      ["sounds/pulsing_attack_01.ogg", "Pulsing attack 1 (unused)", "Never played: listed as PULSING_ATTACK in book5.xml, but no script asks for it. Also in Bookworm Adventures as Pulsing attack 1: attack or hit of Circe, Dryad, Helead and 3 more (Arena too)."],
+      ["sounds/roar_01.ogg", "Roar 1 (unused)", "Never played: the file is not in the game's resource list, so nothing loads it. Also in Bookworm Adventures as Roar 1: opening sound of Charybdis, Enchanted Lion, Phantom and 2 more."],
+      ["sounds/sloooowdown.ogg", "Sloooowdown (unused)", "Never played: loaded as SLOWDOWN, but no code or script asks for it. Also in AstroPop as Slow down: the atomic pilot's power. Also in Bookworm Adventures as Slow down: a hidden word is spelled outside the mini-games."],
+      ["sounds/v_autological.ogg", "\"Autological\" (unused)", "Never played: the file is not in the game's resource list, so nothing loads it. Also in Bookworm Adventures as \"Autological\": Lex says it in the animation of the Codex fight. Also in Bookworm Adventures as \"Autological\" (unused)."],
+      ["sounds/v_clipsandgiggles.ogg", "\"Clips and giggles\" (unused)", "Never played: loaded with the main menu's voices as MM_CNG, but no menu item's reaction uses it. Also in Bookworm Adventures as \"Clips and Giggles\": Lex reacts when the pointer moves onto the film reel item of the main menu."]
     ] }
   ] },
   cosmicbugs: {
@@ -1463,7 +1463,7 @@ var ByopopSoundboards = {
       ["Resource.dll|pe:WAVE:373", "Ending fanfare", "The ending screen opens after the last level"]
     ] },
     { name: "Unused", sounds: [
-      ["Resource.dll|pe:WAVE:106", "Unused MP3", "The game never plays it; its code never refers to the resource"]
+      ["Resource.dll|pe:WAVE:106", "MP3 resource 106 (unused)", "Never played: its code never refers to the resource"]
     ] },
   ] },
   mahjongjapan: {
@@ -1651,7 +1651,7 @@ var ByopopSoundboards = {
       ["sounds/seagull 04b.ogg", "Seagull 2", "At random intervals while the island map is open"],
       ["sounds/island - ocean surf 04b.ogg", "Ocean surf", "The island's waves roll in, every second wave cycle"],
       ["sounds/island - lightning 02c.ogg", "Lightning 1", "Lightning flashes on the island at random (one of two lightning sounds, chosen at random, at a random volume)"],
-      ["sounds/island - lightning 03d.ogg", "Lightning 2", "Lightning flashes on the island at random (one of two lightning sounds, chosen at random, at a random volume) Also in Hammer Heads Deluxe, as sounds/Gnome King - Flashing.ogg."]
+      ["sounds/island - lightning 03d.ogg", "Lightning 2", "Lightning flashes on the island at random (one of two lightning sounds, chosen at random, at a random volume). Also in Hammer Heads Deluxe, as sounds/Gnome King - Flashing.ogg."]
     ] },
     { name: "Temples", sounds: [
       ["sounds/pixelus inside temple v01.ogg", "Inside the temple", "A temple's puzzle screen opens"],
@@ -1786,7 +1786,7 @@ var ByopopSoundboards = {
     ] },
     { name: "Enemies", sounds: [
       ["sounds/moveevil.ogg", "Enemies move", "The enemy ships start their move after any turning is finished"],
-      ["sounds/explode.ogg", "Small explosion", "A small explosion is spawned at a cell (panned) Resembles Dynomite's Explode (unused) (sounds/explode.ogg), the same sound, mixed differently."],
+      ["sounds/explode.ogg", "Small explosion", "A small explosion is spawned at a cell (panned). Resembles Dynomite's Explode (unused) (sounds/explode.ogg), the same sound, mixed differently."],
       ["sounds/explode2.ogg", "Big explosion", "A big explosion is spawned at a cell (panned)"],
       ["sounds/monster.ogg", "Sea monster", "A sea monster ship is shot, or sails into the player's cell or another ship (panned)"],
       ["sounds/sink.ogg", "Ship sinks", "A life is lost"]
