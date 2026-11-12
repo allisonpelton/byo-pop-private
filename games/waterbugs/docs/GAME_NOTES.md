@@ -603,3 +603,60 @@ the site's import takes the Collection's folder as it is (checked ad hoc under N
 because the game is not yet in the finished list). The page's hint named `Program Files/PopCap Games/Water Bugs`, which is not where the
 Collection installs the game; it now names `Popcap Game Collection/Water Bugs`. Not run: the web build under Node on these files, since
 its input would be the same bytes.
+
+## Processor time, like for like (2026-11-12)
+
+The target of `docs/COORDINATION.md` ("The target"): the port's processor time at most the original's over the same stretch of
+play, the original paced as on a player's 60 Hz screen, cycles per thread (QueryThreadCycleTime), the port driven by a
+`-script` (no `-commands` channel), alternating runs and medians under `tools/pincore.py`. The README's 58 s a minute for the
+original was the original spinning (its main loop waits for a vertical blank that the hidden desktop never gives); paced, it
+takes about 4 to 5 s a minute.
+
+**The tools** (`tools/perf/`, from Cosmic Bugs'). `perf.py` runs one side over the scripted play and writes `result.json`: the
+clicks at game updates 2600, 3600 and 5000 (Start Game, the first world, the story's button; the port's at the same counts, its
+framework update U being game update 10 U + 6), then the first board with the ship at rest, the window the game updates 16000 to
+76000 (the scripted minute); memory, processor seconds and the cycles of every thread, sampled every 20 ms, with the busiest
+thread apart. `orig --paced 16` patches the original's main loop (VA 0x41f562, a timer read whose result nothing uses, 11 bytes
+→ `push 0; push 16; call [SleepEx]; nop`, the import at 0x458160) so that a pass lasts 16 ms, and holds each click 40 updates
+(a paced pass is 16 updates, so a click held 5 goes down and up inside one pass and is lost). Its `board_reached` checks that every
+click came through and that the level was entered after the map's click. `--nosound` runs the port with its sound and music off,
+which is how origrun's original (a stand-in that mixes nothing) is counted; with sound on, the audio thread is a row of its own.
+`alt.sh N label=kind[:exe]...` alternates the runs (every run of a round, then the next round) and prints the medians; it is run as
+`python -I tools/pincore.py -- bash games/waterbugs/tools/perf/alt.sh 5 orig=orig before=port:<exe> after=port:<exe>`. `shots.py A B`
+compares two exes' screenshots over one `-fast -drawevery` play (`--long SEED`: 90 s of random clicks, a picture every 300 ms).
+
+**What the port's main thread spends** (a scratch build with QueryThreadCycleTime timers around the calls; 60 presented frames
+and 100 updates a second, steady over 60 s; Mcycles a second). Total 198: the game's steps and its drawing into the 16-bit screen
+37; the host's scan for what changed 38 (before the vector compare below); widening the changed blocks about 12; the framework's
+upload of the whole 800x600 picture inside `DrawImage` 77; the present and the rest 34. Besides, the graphics driver's worker
+thread (`nvwgf2um.dll`) takes about 80 to 96 and the audio thread 7 to 11. So about 111 of the main thread's 198 and all of the
+driver thread's are the shared renderer path (docs/COORDINATION.md, "Shared costs waiting for a fix"), which only a presenter that
+needs no texture can remove.
+
+**What changed in the host.** The same change Cosmic Bugs made (its README): the engine's update rectangles say what it copies
+from its back buffer, not everything it draws (sprites, beams, text and fades go straight into the screen), so the host no longer
+widens them. It compares each presented screen with the copy its image was last widened from, sixteen bytes (eight pixels) at a
+time, a row first and then 16-pixel blocks, widens only the blocks that differ, copies them into the last copy, and keeps them as
+rectangles (`mChangedRects`, runs two blocks apart joined, equal runs of consecutive rows joined) for a presenter that takes a
+dirty rectangle; the framework still uploads the whole image. The engine's `AddUpdateRect` is no longer used by the host.
+
+**Proof that the pictures are unchanged.** A scratch build compared the image with a full widening of the engine's screen after
+every presented frame: 0 frames differed in about 14,000 (the 5100-update play of `shots.py` and 90 s of random play from two
+seeds). Screenshots of two builds are a weaker proof here, because a frozen exe differs from itself between two runs in a few pixels
+(three to eight pixels in a box near x 758 to 788, y 484 to 500, and a few at x 42 to 57 on the left edge; the bubbles and the
+fade of a loss are drawn from an unseeded generator, as `tools/check.sh` notes for the loss screen): of 16 and 250 pictures the old
+and new exes differed in 1 and 15 pictures, by up to 8 pixels, and the same exe against itself in 1 and 2 to 6.
+`tools/check.sh waterbugs build build-web:waterbugs` passes, the frozen screens and states unchanged.
+
+**Numbers** (medians of five pairs under pincore, the board's scripted minute, Mcycles a second):
+
+| | Original, paced | Port before | Port after the host change |
+|---|---|---|---|
+| All threads | 128.8 | 262.1 | 235.4 |
+| Busiest (main) thread | 128.8 | 160.5 | 140.1 |
+
+(The runs spread widely with the other sessions' games: the port before 208 to 332, after 225 to 289, the original 110 to 154.)
+A second set on the trunk of 2026-11-12 (the framework asking SDL for Direct3D 11 first) gave the port 221.6 over 6 runs against
+the original's 105.8 over 3: the driver thread's 80 and the main thread's 120 to 130 did not move. So the port is about twice
+the paced original, and what stands between it and the target is the renderer path: the presenter that draws into the window
+surface and takes the host's changed rectangles. Opting in to it, and the numbers with it, are the next entry here.
