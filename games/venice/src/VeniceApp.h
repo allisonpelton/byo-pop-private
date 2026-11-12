@@ -27,6 +27,13 @@ public:
 	void GotFocus() override; // 0x440450
 	void WriteToRegistry() override;
 	bool HandleScriptCommand(const Sexy::ScriptCommand& theCommand) override; // TestCommands.cpp: the standard test commands
+
+	// port (TestCommands.cpp): what a test can ask of the frames since the loading was done (frame 0 is the first update after it):
+	// commands that wait for a frame (after), a trace of each frame's end, and the ticks each frame runs
+	void RunFrameCommands(int theFramesDone);
+	void GiveBotInput(int theFramesDone, const char* theName);
+	void TraceFrame(int theFrame, int theTicksRun);
+	int ScheduledTicks(int theFrame);
 };
 
 // The one app (0xa2a178)

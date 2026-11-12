@@ -12,6 +12,7 @@
 #include <cmath>
 #include <cstdlib>
 #include <cstring>
+#include <vector>
 
 namespace
 {
@@ -28,8 +29,8 @@ bool LevelIsInPlay()
 }
 
 // where a click dismisses the scene on top: anywhere for a scene that takes a click anywhere, else the centre of the first
-// object with a click event
-bool FindClickPoint(const SceneObject* theScene, int* theX, int* theY)
+// object with a click event (not when only a click anywhere is wanted: a level has buttons that a click must not reach)
+bool FindClickPoint(const SceneObject* theScene, bool theAnywhereOnly, int* theX, int* theY)
 {
 	for (const SceneObject* aChild = theScene->mChildren.mHead; aChild != nullptr; aChild = aChild->mNext) {
 		const SceneStage* aStage = aChild->mStages.mCursor;
@@ -47,6 +48,70 @@ bool FindClickPoint(const SceneObject* theScene, int* theX, int* theY)
 		}
 	}
 	return false;
+}
+
+// whether the object's own stage has an event that takes a click anywhere
+bool TakesClickAnywhere(const SceneObject* theObject)
+{
+	const SceneStage* aStage = theObject->mStages.mCursor;
+	for (const SceneEvent* anEvent = aStage == nullptr ? nullptr : aStage->mEvents.mHead; anEvent != nullptr; anEvent = anEvent->mNext) {
+		if (anEvent->mTrigger == TriggerClickAnywhere)
+			return true;
+	}
+	return false;
+}
+
+// the scene or an object in it, at any depth, takes a click anywhere (a summary screen, the level select), and the middle of the
+// screen is the click's place
+bool FindClickAnywhere(const SceneObject* theObject, int* theX, int* theY)
+{
+	bool aFound = TakesClickAnywhere(theObject);
+	for (const SceneObject* aChild = theObject->mChildren.mHead; !aFound && aChild != nullptr; aChild = aChild->mNext)
+		aFound = FindClickAnywhere(aChild, theX, theY);
+	if (aFound) {
+		*theX = (int)gScreenWidth / 2;
+		*theY = (int)gScreenHeight / 2;
+	}
+	return aFound;
+}
+
+// A slot that a shot has been aimed at is left alone while the jewel flies there, so that two jewels are not thrown at one slot
+struct SlotClaim
+{
+	const Slot* mSlot;
+	float mLevelTick; // the level's tick count when the shot was chosen
+};
+std::vector<SlotClaim> sClaims;
+const float JewelSpeed = 2.3f; // pixels an update, up the screen
+const float ClaimMargin = 40.0f; // updates after the flight is over that a slot is still left alone
+
+bool IsClaimed(const Slot* theSlot)
+{
+	for (size_t aClaim = 0; aClaim < sClaims.size(); aClaim++) {
+		if (sClaims[aClaim].mSlot == theSlot)
+			return true;
+	}
+	return false;
+}
+
+// forgets the claims whose shot has arrived (or whose level is another)
+void ExpireClaims()
+{
+	// a level that is another (or begun again) has other slots, and the old ones are gone
+	static const Level* sClaimLevel = nullptr;
+	static float sLastTick = 0;
+	if (gActiveLevel != sClaimLevel || gActiveLevel->mTickCount < sLastTick)
+		sClaims.clear();
+	sClaimLevel = gActiveLevel;
+	sLastTick = gActiveLevel->mTickCount;
+	size_t aKept = 0;
+	for (size_t aClaim = 0; aClaim < sClaims.size(); aClaim++) {
+		float anAge = gActiveLevel->mTickCount - sClaims[aClaim].mLevelTick;
+		float aFlight = (gShooter->mWorld[AttributeY] - sClaims[aClaim].mSlot->mWorld[AttributeY]) / JewelSpeed + ClaimMargin;
+		if (anAge >= 0 && anAge < aFlight && sClaims[aClaim].mSlot->mFilled == 0)
+			sClaims[aKept++] = sClaims[aClaim];
+	}
+	sClaims.resize(aKept);
 }
 
 bool StageHas(const SceneObject* theObject, const char* theText)
@@ -70,27 +135,45 @@ bool PlayIsOver()
 	return LevelIsInPlay() && (StageHas(gMiddleLayer, "victory") || StageHas(gMiddleLayer, "defeat"));
 }
 
+bool gBotContinuesPastSummaries = false;
+
 BotMove ChooseBotMove()
 {
 	BotMove aMove;
-	if (gScenes.mTail == nullptr || PlayIsOver())
+	if (gScenes.mTail == nullptr)
 		return aMove;
+	if (PlayIsOver()) {
+		if (gBotContinuesPastSummaries) {
+			aMove.mAction = BotAction::Wait;
+			if (!LevelIsInPlay() && FindClickAnywhere(gScenes.mTail, &aMove.mX, &aMove.mY))
+				aMove.mAction = BotAction::Click;
+		}
+		return aMove;
+	}
 	if (!LevelIsInPlay()) {
 		// a screen that is loading or fading out is waited for; a menu has no move
 		if (strstr(gScenes.mTail->mName, "loading") != nullptr)
 			aMove.mAction = BotAction::Wait;
-		else if (gScenes.mHead != gScenes.mTail && strncmp(gScenes.mTail->mName, "cupid", 5) == 0) {
+		else if (gBotContinuesPastSummaries && strcmp(gScenes.mTail->mName, "level_select") == 0) {
+			// the level select starts the level that the marker stands at
+			aMove.mAction = FindClickAnywhere(gScenes.mTail, &aMove.mX, &aMove.mY) ? BotAction::Click : BotAction::Wait;
+		} else if (gScenes.mHead != gScenes.mTail && strncmp(gScenes.mTail->mName, "cupid", 5) == 0) {
 			// the click's object comes at a later stage of the message, so there is a wait first
-			aMove.mAction = FindClickPoint(gScenes.mTail, &aMove.mX, &aMove.mY) ? BotAction::Click : BotAction::Wait;
+			aMove.mAction = FindClickPoint(gScenes.mTail, false, &aMove.mX, &aMove.mY) ? BotAction::Click : BotAction::Wait;
 		}
 		return aMove;
 	}
 	aMove.mAction = BotAction::Wait;
 	Jewel* aReadyJewel = gShooter->GetReadyJewel();
 	if (aReadyJewel == nullptr || gShooter->mCanShoot == 0 || !StageHas(gShooter, "ready") ||
-		!(StageHas(gMiddleLayer, "scrolling") || StageHas(gMiddleLayer, "still")))
+		!(StageHas(gMiddleLayer, "scrolling") || StageHas(gMiddleLayer, "still"))) {
+		// the tutorial holds the shooter until a click starts it, and a lost level waits for the click that plays it again
+		if (FindClickPoint(gActiveLevel, true, &aMove.mX, &aMove.mY))
+			aMove.mAction = BotAction::Click;
 		return aMove;
+	}
 
+	ExpireClaims();
 	const Slot* aTarget = nullptr;
 	float aShooterX = gShooter->mWorld[AttributeX];
 	float aLowestY = 0;
@@ -101,7 +184,7 @@ BotMove ChooseBotMove()
 			const Slot* aSlot = static_cast<const Slot*>(aSlotObject);
 			float aX = aSlot->mWorld[AttributeX];
 			float aY = aSlot->mWorld[AttributeY];
-			if (aSlot->mFilled != 0 || !Fills(aReadyJewel, aSlot) || aY < TopMargin || aY > gShooter->mWorld[AttributeY] - ShooterMargin ||
+			if (aSlot->mFilled != 0 || IsClaimed(aSlot) || !Fills(aReadyJewel, aSlot) || aY < TopMargin || aY > gShooter->mWorld[AttributeY] - ShooterMargin ||
 				aX < 0 || aX > gScreenWidth)
 				continue;
 			if (aTarget == nullptr || aY > aLowestY || (aY == aLowestY && std::fabs(aX - aShooterX) < std::fabs(aTarget->mWorld[AttributeX] - aShooterX))) {
@@ -114,6 +197,8 @@ BotMove ChooseBotMove()
 		return aMove;
 
 	aMove.mAction = BotAction::Shoot;
+	SlotClaim aClaim = {aTarget, gActiveLevel->mTickCount};
+	sClaims.push_back(aClaim);
 	aMove.mX = (int)aTarget->mWorld[AttributeX];
 	aMove.mY = AimY;
 	float aDistance = std::fabs((float)aMove.mX - aShooterX);

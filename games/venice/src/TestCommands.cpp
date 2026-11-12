@@ -13,6 +13,14 @@
 // seed <n>             seeds the game's random numbers
 // move                 prints MOVE {"kind","input"} for the bot's next shot (Bot.h), MOVE {"kind":"wait",...} while a level is not ready
 //                      for one and MOVE null when no level is on screen
+// after <n> <command>  runs the command once n frames have run since the first update after the loading (frame 0), so that a
+//                      comparison with the original can give an input at the update the original took it
+// trace <file>|off     writes a FRAME line at the end of each of those updates: the ticks it ran, the random seed and the
+//                      values the original's memory holds at the same places (floats as their bits), for that comparison
+// bot <frames>|off     the bot (Bot.h) plays for that many frames: its shots are given as input a frame at a time (the
+//                      trace logs each as an INPUT line) instead of the move command's reply
+// ticks <file>         the ticks each frame runs, one number a frame from frame 0 (the original's, taken from a run of it),
+//                      whatever the clock says; after the list the clock decides again
 
 #include "VeniceApp.h"
 
@@ -26,18 +34,21 @@
 #include "SceneLoader.h"
 #include "SceneObject.h"
 #include "Scoring.h"
+#include "Slot.h"
 #include "Shooter.h"
 #include "VeniceGlobals.h"
 #include "VeniceMath.h"
 
 #include "SexyAppBase.h"
 
+#include <SDL.h>
 #include <cctype>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <sstream>
 #include <string>
+#include <vector>
 
 namespace
 {
@@ -68,6 +79,32 @@ std::string Quoted(const char* theText)
 		aQuoted += *aLetter;
 	}
 	return aQuoted + "\"";
+}
+
+// adds an entry for each object of the tree that a click works on (an event of a stage of the object takes the click)
+void AppendButtons(SceneObject* theObject, std::string* theButtons)
+{
+	const SceneEvent* aClickEvent = nullptr;
+	for (const SceneStage* aStage = theObject->mStages.mHead; aStage != nullptr && aClickEvent == nullptr; aStage = aStage->mNext) {
+		for (const SceneEvent* anEvent = aStage->mEvents.mHead; anEvent != nullptr; anEvent = anEvent->mNext) {
+			if (anEvent->mTrigger == TriggerClick) {
+				aClickEvent = anEvent;
+				break;
+			}
+		}
+	}
+	if (aClickEvent != nullptr) {
+		char aText[400];
+		snprintf(aText, sizeof(aText), "%s{\"name\":%s,\"x\":%d,\"y\":%d,\"w\":%d,\"h\":%d,\"action\":%d,\"parm1\":%s}",
+			theButtons->size() > 1 ? "," : "", Quoted(theObject->mName).c_str(), (int)theObject->mWorld[AttributeX],
+			(int)theObject->mWorld[AttributeY],
+			(int)((theObject->mSourceRight - theObject->mSourceLeft) * theObject->mLocal[AttributeXScale]),
+			(int)((theObject->mSourceBottom - theObject->mSourceTop) * theObject->mLocal[AttributeYScale]), aClickEvent->mAction,
+			Quoted(aClickEvent->mParm1).c_str());
+		*theButtons += aText;
+	}
+	for (SceneObject* aChild = theObject->mChildren.mHead; aChild != nullptr; aChild = aChild->mNext)
+		AppendButtons(aChild, theButtons);
 }
 
 int ModeFromName(const std::string& theName)
@@ -126,6 +163,47 @@ std::string StateJson()
 	return aState + "}";
 }
 
+// port: a command that waits for a frame (after)
+struct FrameCommand
+{
+	int mFrame;
+	Sexy::ScriptCommand mCommand;
+};
+
+std::vector<FrameCommand> sFrameCommands; // by frame; those of one frame in the order given
+std::vector<int> sTickSchedule; // the ticks each frame runs
+
+// port: the bot's play inside the frames (bot <frames>): the move command's shots, as input given frame by frame
+enum BotPhase
+{
+	BotPhaseChoosing,
+	BotPhaseAiming,
+	BotPhasePressed,
+	BotPhaseRecovering,
+};
+
+struct BotPlay
+{
+	int mFramesLeft = 0;
+	int mPhase = BotPhaseChoosing;
+	int mWait = 0;
+	int mX = 0;
+	int mY = 0;
+};
+
+BotPlay sBotPlay;
+FILE* sTraceFile = nullptr;
+}
+namespace
+{
+
+int FloatBits(float theValue)
+{
+	int aBits;
+	memcpy(&aBits, &theValue, sizeof(aBits));
+	return aBits;
+}
+
 // the scenes already there go, and a screen or level is pushed over them (they are removed at the next update)
 void KillAllScenes()
 {
@@ -171,6 +249,43 @@ bool VeniceApp::HandleScriptCommand(const Sexy::ScriptCommand& theCommand)
 
 	if (aName == "state") {
 		Reply("STATE " + StateJson());
+		return true;
+	}
+	if (aName == "plates") {
+		// every plate of the level in play: its shape, where it is and the kind and state of each slot
+		if (gPlateLayer == nullptr || gActiveLevel == nullptr || gActiveLevel != gScenes.mTail) {
+			Error(aLine, "no level is in play");
+			return true;
+		}
+		std::string aPlates = "[";
+		SceneObject* aPlate = nullptr;
+		while ((aPlate = gPlateLayer->FindChildByType(ObjectTypePlate, aPlate)) != nullptr) {
+			char aText[200];
+			snprintf(aText, sizeof(aText), "%s{\"shape\":\"%s\",\"x\":%.2f,\"y\":%.2f,\"stage\":\"%s\",\"slots\":[", aPlates.size() > 1 ? "," : "",
+				static_cast<Plate*>(aPlate)->mShapeName, aPlate->mWorld[AttributeX], aPlate->mWorld[AttributeY], aPlate->mStages.mCursor->mName);
+			aPlates += aText;
+			SceneObject* aSlot = nullptr;
+			bool aFirst = true;
+			while ((aSlot = aPlate->FindChildByType(ObjectTypeSlot, aSlot)) != nullptr) {
+				snprintf(aText, sizeof(aText), "%s[%d,%d]", aFirst ? "" : ",", static_cast<Slot*>(aSlot)->mKind, static_cast<Slot*>(aSlot)->mFilled);
+				aPlates += aText;
+				aFirst = false;
+			}
+			aPlates += "]}";
+		}
+		Reply("PLATES " + aPlates + "]");
+		return true;
+	}
+	if (aName == "buttons") {
+		// the objects of the screen on top that a click works: where each is (its centre, in the 800 x 600 screen) and how big, for
+		// a driver that clicks with real input
+		if (gScenes.mTail == nullptr) {
+			Error(aLine, "no screen is up");
+			return true;
+		}
+		std::string aButtons = "[";
+		AppendButtons(gScenes.mTail, &aButtons);
+		Reply("BUTTONS " + aButtons + "]");
 		return true;
 	}
 	if (aName == "goto") {
@@ -258,6 +373,71 @@ bool VeniceApp::HandleScriptCommand(const Sexy::ScriptCommand& theCommand)
 		Ok(aLine);
 		return true;
 	}
+	if (aName == "after") {
+		std::string aCommandName;
+		anArgs >> aCommandName;
+		if (anArg.empty() || aCommandName.empty()) {
+			Error(aLine, "after <frame> <command> [arguments]");
+			return true;
+		}
+		FrameCommand aFrameCommand;
+		aFrameCommand.mFrame = atoi(anArg.c_str());
+		aFrameCommand.mCommand.mUpdateCount = 0;
+		aFrameCommand.mCommand.mCommand = aCommandName;
+		std::string aRest;
+		std::getline(anArgs, aRest);
+		size_t aStart = aRest.find_first_not_of(" \t");
+		aFrameCommand.mCommand.mArgs = aStart == std::string::npos ? "" : aRest.substr(aStart);
+		aFrameCommand.mCommand.mLine = theCommand.mLine;
+		size_t aPosition = sFrameCommands.size();
+		while (aPosition > 0 && sFrameCommands[aPosition - 1].mFrame > aFrameCommand.mFrame)
+			aPosition--;
+		sFrameCommands.insert(sFrameCommands.begin() + aPosition, aFrameCommand);
+		Ok(aLine);
+		return true;
+	}
+	if (aName == "bot") {
+		sBotPlay = BotPlay();
+		sBotPlay.mFramesLeft = anArg == "off" ? 0 : atoi(anArg.c_str());
+		std::string aKeyword;
+		anArgs >> aKeyword;
+		gBotContinuesPastSummaries = aKeyword == "continue";
+		Ok(aLine);
+		return true;
+	}
+	if (aName == "ticks") {
+		FILE* aFile = anArg.empty() ? nullptr : fopen(anArg.c_str(), "r");
+		if (aFile == nullptr) {
+			Error(aLine, "ticks <file>: cannot read it");
+			return true;
+		}
+		sTickSchedule.clear();
+		int aTicks;
+		while (fscanf(aFile, "%d", &aTicks) == 1)
+			sTickSchedule.push_back(aTicks);
+		fclose(aFile);
+		Ok(aLine);
+		return true;
+	}
+	if (aName == "trace") {
+		if (sTraceFile != nullptr) {
+			fclose(sTraceFile);
+			sTraceFile = nullptr;
+		}
+		if (anArg.empty()) {
+			Error(aLine, "trace <file> or trace off");
+			return true;
+		}
+		if (anArg != "off") {
+			sTraceFile = fopen(anArg.c_str(), "w");
+			if (sTraceFile == nullptr) {
+				Error(aLine, "cannot open " + anArg);
+				return true;
+			}
+		}
+		Ok(aLine);
+		return true;
+	}
 	if (aName == "move") {
 		BotMove aMove = ChooseBotMove();
 		if (aMove.mAction == BotAction::None)
@@ -280,4 +460,94 @@ bool VeniceApp::HandleScriptCommand(const Sexy::ScriptCommand& theCommand)
 		return true;
 	}
 	return false;
+}
+
+// port: the commands that were waiting for the frames done to reach their frame, before the next frame
+void VeniceApp::RunFrameCommands(int theFramesDone)
+{
+	if (sBotPlay.mFramesLeft > 0) {
+		sBotPlay.mFramesLeft--;
+		switch (sBotPlay.mPhase) {
+		case BotPhaseChoosing: {
+			BotMove aMove = ChooseBotMove();
+			if (aMove.mAction == BotAction::Shoot || aMove.mAction == BotAction::Click) {
+				sBotPlay.mX = aMove.mX;
+				sBotPlay.mY = aMove.mY;
+				GiveBotInput(theFramesDone, "move");
+				sBotPlay.mPhase = BotPhaseAiming;
+				sBotPlay.mWait = aMove.mAction == BotAction::Click ? 2 : aMove.mUpdatesToAim;
+			}
+			break;
+		}
+		case BotPhaseAiming:
+			if (--sBotPlay.mWait <= 0) {
+				GiveBotInput(theFramesDone, "down");
+				sBotPlay.mPhase = BotPhasePressed;
+				sBotPlay.mWait = 2;
+			}
+			break;
+		case BotPhasePressed:
+			if (--sBotPlay.mWait <= 0) {
+				GiveBotInput(theFramesDone, "up");
+				sBotPlay.mPhase = BotPhaseRecovering;
+				sBotPlay.mWait = 20;
+			}
+			break;
+		default:
+			if (--sBotPlay.mWait <= 0)
+				sBotPlay.mPhase = BotPhaseChoosing;
+			break;
+		}
+	}
+	while (!sFrameCommands.empty() && sFrameCommands.front().mFrame < theFramesDone) {
+		const Sexy::ScriptCommand aCommand = sFrameCommands.front().mCommand;
+		sFrameCommands.erase(sFrameCommands.begin());
+		std::string anError;
+		int aResult = RunScriptCommand(aCommand, &anError);
+		if (aResult == SCRIPT_FAILED)
+			SDL_Log("after: line %d: %s", aCommand.mLine, anError.c_str());
+		else if (aResult == SCRIPT_UNKNOWN)
+			SDL_Log("after: line %d: unknown command '%s %s'", aCommand.mLine, aCommand.mCommand.c_str(), aCommand.mArgs.c_str());
+	}
+}
+
+// port: one input of the bot's play, run now and written to the trace as the frame it comes after (`after <frame>` gives it
+// back), so that the original can be given the same
+void VeniceApp::GiveBotInput(int theFramesDone, const char* theName)
+{
+	Sexy::ScriptCommand aCommand;
+	aCommand.mUpdateCount = 0;
+	aCommand.mCommand = theName;
+	aCommand.mArgs = std::to_string(sBotPlay.mX) + " " + std::to_string(sBotPlay.mY);
+	aCommand.mLine = 0;
+	if (sTraceFile != nullptr)
+		fprintf(sTraceFile, "INPUT f=%d %s %s\n", theFramesDone - 1, aCommand.mCommand.c_str(), aCommand.mArgs.c_str());
+	std::string anError;
+	RunScriptCommand(aCommand, &anError);
+}
+
+// port: the ticks a test gives a frame, or -1 when it gives none
+int VeniceApp::ScheduledTicks(int theFrame)
+{
+	return theFrame >= 0 && theFrame < (int)sTickSchedule.size() ? sTickSchedule[theFrame] : -1;
+}
+
+// port: a line of the trace at the end of a frame (the comparison with the original reads the same values from its memory:
+// 0x5b5174, the last scene's tick at 0x100, the shooter's x at 0xa8 (while the level is the last scene), the level's tick, hits (0x3b0) and shots fired (0x3ac),
+// and the first profile's score)
+void VeniceApp::TraceFrame(int theFrame, int theTicksRun)
+{
+	if (sTraceFile == nullptr)
+		return;
+	int aSceneTick = gScenes.mTail != nullptr ? FloatBits(gScenes.mTail->mTickCount) : 0;
+	int aKinds[12];
+	GetSlotKindCountsForTest(aKinds);
+	bool aLevelIsThere = gActiveLevel != nullptr && gActiveLevel == gScenes.mTail; // the original's pointer outlives the level
+	fprintf(sTraceFile, "FRAME f=%d ticks=%d seed=%d scene=%d shooter=%d level=%d hits=%d shots=%d score=%d middle=%d plates=%d kinds=%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d\n", theFrame,
+		theTicksRun, (int)gRandomSeed, aSceneTick, aLevelIsThere && gShooter != nullptr ? FloatBits(gShooter->mWorld[AttributeX]) : 0,
+		aLevelIsThere ? FloatBits(gActiveLevel->mTickCount) : 0, aLevelIsThere ? gActiveLevel->mHits : 0,
+		aLevelIsThere ? gActiveLevel->mShotsFired : 0, gProfiles[0].mScore,
+		aLevelIsThere && gMiddleLayer != nullptr ? FloatBits(gMiddleLayer->mWorld[AttributeY]) : 0,
+		aLevelIsThere && gPlateLayer != nullptr ? FloatBits(gPlateLayer->mWorld[AttributeY]) : 0, aKinds[0], aKinds[1],
+		aKinds[2], aKinds[3], aKinds[4], aKinds[5], aKinds[6], aKinds[7], aKinds[8], aKinds[9], aKinds[10], aKinds[11]);
 }

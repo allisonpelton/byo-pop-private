@@ -58,6 +58,7 @@ void SceneObject::Reset()
 	mIsHot = false;
 	mBlitStyle = 0;
 	mFullscreenOnly = 0;
+	mSelectable = 0; // a new object is not selectable until its data says so, so a slot made by code is dropped when a data slot loads after it
 }
 
 // 0x42aed0

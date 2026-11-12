@@ -23,6 +23,10 @@ struct BotMove
 	int mUpdatesToAim = 0;
 };
 
+// whether the bot goes on past a level's end: it clicks a summary screen away (a level that was won or lost goes on to its summary
+// by itself), and the next level begins; otherwise it has no move once the play is over
+extern bool gBotContinuesPastSummaries;
+
 // the move the bot would make now (a screen with no level in play has none)
 BotMove ChooseBotMove();
 
