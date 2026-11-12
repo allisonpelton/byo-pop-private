@@ -13,6 +13,7 @@ enum class BotAction
 	Wait, // the level is not ready for a shot
 	Shoot, // move the pointer to (mX, mY), wait mUpdatesToAim updates for the shooter to catch up, and click
 	Click, // a message over the level (the cupid's) is dismissed by a click at (mX, mY)
+	Swap, // the jewel that waits is brought forward by a right click at (mX, mY), the pointer's place
 };
 
 struct BotMove

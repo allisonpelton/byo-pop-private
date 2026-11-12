@@ -16,6 +16,7 @@ Reachable only from a test (`-script`, `-commands`, the web page's test call; `d
 | `level <n>` | starts level n of the current mode (a trick shot's number in Trick Shot) over the scenes there |
 | `unlock all` | the flags that unlock Flood, Trick Shot and Survival and every Journey and Flood level |
 | `set score\|mode\|level\|lives <v>` | the profile's score, mode, level or tries |
+| `save` | writes the profiles file (the game writes it when a player is made or a level ends, not at quit), so that a run can make a player for another run |
 | `win`, `lose` | the level in play goes to its victory stage, or is lost as a shot that fell is |
 | `seed <n>` | seeds the game's random numbers |
 | `move` | `MOVE {"kind","input"}` for the bot's next shot (`Bot.cpp`), a `wait` while the level is not ready for one, or `MOVE null` |
@@ -28,7 +29,7 @@ Reachable only from a test (`-script`, `-commands`, the web page's test call; `d
 | `bot <frames> [continue]` / `bot off` | plays for that many frames with the bot's moves, as real input (`move`, `down` and `up` at the pointer's place); with `continue` it also clicks the summaries and the level select away, so that it goes on from level to level |
 
 The commands wait for a player: the name screen is up until a name is typed (`key T` ... then `keydown RETURN` and `keyup RETURN`
-a few updates apart, since a button's alt key needs both). The bot reads the game's state and draws no random number. The shooter always points straight up and follows the pointer's x, so a shot is an x: the bot aims at the lowest unfilled slot on the screen that the ready jewel fills (any for a wild one), moves the pointer there, waits for the shooter to catch up (it closes 1/1.3 of the distance an update), presses, waits two updates and releases; it also clicks away the cupid's messages and the click that starts the tutorial. It leaves a slot alone while a jewel it threw is on the way, but does not allow for plates that move or turn, nor for bumpers, and it never swaps jewels or uses a power-up, so it fills about two thirds of what it shoots at on the first levels and loses the later ones. The press is held two updates because the game reads the button's state once an update: a press and release that both come between two updates (the burst a posted click is) is not seen, as in the original.
+a few updates apart, since a button's alt key needs both). The bot reads the game's state and draws no random number. The shooter always points straight up and follows the pointer's x, so a shot is an x: the bot aims at the lowest unfilled slot on the screen that the ready jewel fills (any for a wild one), moves the pointer there, waits for the shooter to catch up (it closes 1/1.3 of the distance an update), presses, waits two updates and releases; it also clicks away the cupid's messages and the click that starts the tutorial or explains a Flood level. When the ready jewel fits no slot but the one waiting behind it does, it swaps them with a right click (the burst of one is seen: the game keeps the right button as a key state). In Trick Shot, where one shot goes by way of bumpers, each attempt aims at another x. It leaves a slot alone while a jewel it threw is on the way, but does not allow for plates that move or turn, nor for bumpers, and it never uses a power-up, so it fills about two thirds of what it shoots at on the first levels and loses the later ones. The press is held two updates because the game reads the button's state once an update: a press and release that both come between two updates (the burst a posted click is) is not seen, as in the original.
 
 ## Deviations (each without a visible effect)
 
@@ -70,6 +71,20 @@ None found yet.
 - The layer parallax is unstable in the original too, when the parent layer is taller than the tiles layer and the tiles are at
   rest (the content heights measured at the merge decide it).
 - A scripted key press needs its release some updates apart.
+- The original's 3D mode (Direct3D 7, here over dgVoodoo2) plays a little differently from its software mode and the port,
+  and the two part after about 16000 updates. In the `journey3d` script (the first Journey levels played by the bot) the
+  plate that turns and wobbles after a hit (plate 8 of the level in play) is 0.014 degrees off in the 3D original before any
+  jewel is near it (the plates that turn at a constant rate agree to 0.00005 degrees, the rounding of a float), a jewel that
+  bounces off one of its slots leaves 0.05 degrees off, and at update 16144 a falling jewel that is past the bottom edge by
+  0.24 pixels in the port is already past it, by the box test of `Jewel::KeepInBounds`, in the original: the original draws
+  the 58 random numbers of the splash one update sooner and the seeds differ from then on. The same inputs on the original in
+  its software mode match the port for all 20001 frames, and the 3D original matches the port for the first 16143. Cause
+  not found: `docs/FRAMEWORK_2004.md` ("3D and the FPU") infers that Direct3D 7 leaves the x87 at 24-bit precision (no
+  DDSCL_FPUPRESERVE), and the plate's drift is the size of a rounded sine filter's, but rounding that filter to float in
+  the port changed nothing in plate 8's rotation, and the drift is already there 6 updates before the jewel that starts
+  the visible difference is thrown. What it would take: the original's plate 8 value by update from its last hit on
+  (origrun peeks, one run of about 7 minutes each, the line of peeks limited to about 900 characters) to find the first
+  value that differs, or the x87 rounded to 24 bits for every double expression of the port when its 3D mode is on.
 
 ## Not translated: what nothing in play can reach
 

@@ -35,6 +35,7 @@
 #include "SceneObject.h"
 #include "Scoring.h"
 #include "Slot.h"
+#include "TextObject.h"
 #include "Shooter.h"
 #include "VeniceGlobals.h"
 #include "VeniceMath.h"
@@ -94,13 +95,26 @@ void AppendButtons(SceneObject* theObject, std::string* theButtons)
 		}
 	}
 	if (aClickEvent != nullptr) {
+		// the place the click works at: the object's own picture, or the rectangle that a text's letters cover
+		float aCenterX = theObject->GetWorldX(theObject->mLocal[AttributeX], theObject->mLocal[AttributeY]);
+		float aCenterY = theObject->GetWorldY(theObject->mLocal[AttributeX], theObject->mLocal[AttributeY]);
+		float aWidth = (theObject->mSourceRight - theObject->mSourceLeft) * theObject->mLocal[AttributeXScale];
+		float aHeight = (theObject->mSourceBottom - theObject->mSourceTop) * theObject->mLocal[AttributeYScale];
+		if (theObject->mType == ObjectTypeText) {
+			float aBoundsWidth;
+			float aBoundsHeight;
+			float aBoundsX;
+			float aBoundsY;
+			static_cast<TextObject*>(theObject)->GetBounds(&aBoundsWidth, &aBoundsHeight, &aBoundsX, &aBoundsY);
+			aCenterX += aBoundsX * theObject->mLocal[AttributeXScale];
+			aCenterY += aBoundsY * theObject->mLocal[AttributeYScale];
+			aWidth = aBoundsWidth * theObject->mLocal[AttributeXScale];
+			aHeight = aBoundsHeight * theObject->mLocal[AttributeYScale];
+		}
 		char aText[400];
 		snprintf(aText, sizeof(aText), "%s{\"name\":%s,\"x\":%d,\"y\":%d,\"w\":%d,\"h\":%d,\"action\":%d,\"parm1\":%s}",
-			theButtons->size() > 1 ? "," : "", Quoted(theObject->mName).c_str(), (int)theObject->mWorld[AttributeX],
-			(int)theObject->mWorld[AttributeY],
-			(int)((theObject->mSourceRight - theObject->mSourceLeft) * theObject->mLocal[AttributeXScale]),
-			(int)((theObject->mSourceBottom - theObject->mSourceTop) * theObject->mLocal[AttributeYScale]), aClickEvent->mAction,
-			Quoted(aClickEvent->mParm1).c_str());
+			theButtons->size() > 1 ? "," : "", Quoted(theObject->mName).c_str(), (int)aCenterX, (int)aCenterY, (int)aWidth,
+			(int)aHeight, aClickEvent->mAction, Quoted(aClickEvent->mParm1).c_str());
 		*theButtons += aText;
 	}
 	for (SceneObject* aChild = theObject->mChildren.mHead; aChild != nullptr; aChild = aChild->mNext)
@@ -334,6 +348,13 @@ bool VeniceApp::HandleScriptCommand(const Sexy::ScriptCommand& theCommand)
 		Ok(aLine);
 		return true;
 	}
+	if (aName == "save") {
+		// the profiles file is written where the game writes it (a user made, a level ended), not at quit: a test that makes a
+		// player for another run asks for it
+		SaveProfiles();
+		Ok(aLine);
+		return true;
+	}
 	if (aName == "set") {
 		std::string aValue;
 		anArgs >> aValue;
@@ -444,7 +465,11 @@ bool VeniceApp::HandleScriptCommand(const Sexy::ScriptCommand& theCommand)
 			Reply("MOVE null");
 		else if (aMove.mAction == BotAction::Wait)
 			Reply("MOVE {\"kind\":\"wait\",\"input\":[{\"wait\":10}]}");
-		else if (aMove.mAction == BotAction::Click) {
+		else if (aMove.mAction == BotAction::Swap) {
+			char aText[200];
+			snprintf(aText, sizeof(aText), "MOVE {\"kind\":\"swap\",\"input\":[{\"rclick\":[%d,%d]},{\"wait\":20}]}", aMove.mX, aMove.mY);
+			Reply(aText);
+		} else if (aMove.mAction == BotAction::Click) {
 			char aText[200];
 			snprintf(aText, sizeof(aText),
 				"MOVE {\"kind\":\"message\",\"input\":[{\"move\":[%d,%d]},{\"wait\":2},{\"press\":[%d,%d]},{\"wait\":2},{\"release\":[%d,%d]},{\"wait\":20}]}",
@@ -470,7 +495,13 @@ void VeniceApp::RunFrameCommands(int theFramesDone)
 		switch (sBotPlay.mPhase) {
 		case BotPhaseChoosing: {
 			BotMove aMove = ChooseBotMove();
-			if (aMove.mAction == BotAction::Shoot || aMove.mAction == BotAction::Click) {
+			if (aMove.mAction == BotAction::Swap) {
+				sBotPlay.mX = aMove.mX;
+				sBotPlay.mY = aMove.mY;
+				GiveBotInput(theFramesDone, "rclick");
+				sBotPlay.mPhase = BotPhaseRecovering;
+				sBotPlay.mWait = 20;
+			} else if (aMove.mAction == BotAction::Shoot || aMove.mAction == BotAction::Click) {
 				sBotPlay.mX = aMove.mX;
 				sBotPlay.mY = aMove.mY;
 				GiveBotInput(theFramesDone, "move");

@@ -5,9 +5,11 @@
 #include "Jewel.h"
 #include "Level.h"
 #include "Plate.h"
+#include "Profiles.h"
 #include "Shooter.h"
 #include "Slot.h"
 #include "VeniceGlobals.h"
+#include "VeniceInput.h"
 
 #include <cmath>
 #include <cstdlib>
@@ -17,6 +19,12 @@
 namespace
 {
 const int AimY = 300; // the pointer's height: only its x aims, and no panel button is here
+const int TrickShotFirstX = 60; // the left of the places a trick shot aims at
+const int TrickShotStepX = 97; // how far the next attempt aims from the last
+const int TrickShotSpanX = 680; // the width the places wrap around in
+int sTrickShotAttempts = 0; // the trick shots tried so far
+const float SwapPauseTicks = 40.0f; // updates after a swap before another is tried (the jewels move to their places)
+float sLastSwapTick = -1000.0f; // the level tick count of the last swap
 const float TopMargin = 30.0f; // a slot nearer the top of the screen than this is not aimed at
 const float ShooterMargin = 40.0f; // nor one that close above the shooter
 const float FollowDivisor = 1.3f; // the shooter closes its distance to the pointer by this each update (Shooter::FollowMouse)
@@ -124,6 +132,42 @@ bool Fills(const Jewel* theJewel, const Slot* theSlot)
 {
 	return theJewel->mKind >= FirstWildJewelKind || theJewel->mKind == theSlot->mKind;
 }
+
+// the lowest slot on the screen, nearer the shooter's x among equals, that a shot of the jewel could fill, if there is one
+const Slot* FindTarget(const Jewel* theJewel)
+{
+	const Slot* aTarget = nullptr;
+	float aShooterX = gShooter->mWorld[AttributeX];
+	float aLowestY = 0;
+	SceneObject* aPlate = nullptr;
+	while ((aPlate = gPlateLayer->FindChildByType(ObjectTypePlate, aPlate)) != nullptr) {
+		SceneObject* aSlotObject = nullptr;
+		while ((aSlotObject = aPlate->FindChildByType(ObjectTypeSlot, aSlotObject)) != nullptr) {
+			const Slot* aSlot = static_cast<const Slot*>(aSlotObject);
+			float aX = aSlot->mWorld[AttributeX];
+			float aY = aSlot->mWorld[AttributeY];
+			if (aSlot->mFilled != 0 || IsClaimed(aSlot) || !Fills(theJewel, aSlot) || aY < TopMargin || aY > gShooter->mWorld[AttributeY] - ShooterMargin ||
+				aX < 0 || aX > gScreenWidth)
+				continue;
+			if (aTarget == nullptr || aY > aLowestY || (aY == aLowestY && std::fabs(aX - aShooterX) < std::fabs(aTarget->mWorld[AttributeX] - aShooterX))) {
+				aTarget = aSlot;
+				aLowestY = aY;
+			}
+		}
+	}
+	return aTarget;
+}
+
+// the jewel that waits behind the ready one in the shooter's row
+const Jewel* FindWaitingJewel()
+{
+	SceneObject* aJewel = nullptr;
+	while ((aJewel = gShooter->FindChildByType(ObjectTypeJewel, aJewel)) != nullptr) {
+		if (StageHas(aJewel, "waiting"))
+			return static_cast<const Jewel*>(aJewel);
+	}
+	return nullptr;
+}
 }
 
 bool PlayIsOver()
@@ -160,6 +204,9 @@ BotMove ChooseBotMove()
 		} else if (gScenes.mHead != gScenes.mTail && strncmp(gScenes.mTail->mName, "cupid", 5) == 0) {
 			// the click's object comes at a later stage of the message, so there is a wait first
 			aMove.mAction = FindClickPoint(gScenes.mTail, false, &aMove.mX, &aMove.mY) ? BotAction::Click : BotAction::Wait;
+		} else if (gScenes.mHead != gScenes.mTail && FindClickAnywhere(gScenes.mTail, &aMove.mX, &aMove.mY)) {
+			// any other message over a scene (the Flood mode's first level explains itself) goes away on a click
+			aMove.mAction = BotAction::Click;
 		}
 		return aMove;
 	}
@@ -174,32 +221,30 @@ BotMove ChooseBotMove()
 	}
 
 	ExpireClaims();
-	const Slot* aTarget = nullptr;
 	float aShooterX = gShooter->mWorld[AttributeX];
-	float aLowestY = 0;
-	SceneObject* aPlate = nullptr;
-	while ((aPlate = gPlateLayer->FindChildByType(ObjectTypePlate, aPlate)) != nullptr) {
-		SceneObject* aSlotObject = nullptr;
-		while ((aSlotObject = aPlate->FindChildByType(ObjectTypeSlot, aSlotObject)) != nullptr) {
-			const Slot* aSlot = static_cast<const Slot*>(aSlotObject);
-			float aX = aSlot->mWorld[AttributeX];
-			float aY = aSlot->mWorld[AttributeY];
-			if (aSlot->mFilled != 0 || IsClaimed(aSlot) || !Fills(aReadyJewel, aSlot) || aY < TopMargin || aY > gShooter->mWorld[AttributeY] - ShooterMargin ||
-				aX < 0 || aX > gScreenWidth)
-				continue;
-			if (aTarget == nullptr || aY > aLowestY || (aY == aLowestY && std::fabs(aX - aShooterX) < std::fabs(aTarget->mWorld[AttributeX] - aShooterX))) {
-				aTarget = aSlot;
-				aLowestY = aY;
-			}
+	const Slot* aTarget = FindTarget(aReadyJewel);
+	if (aTarget == nullptr) {
+		// nothing for the ready jewel: the jewel that waits behind it, when it has a slot, is brought forward by a right click
+		const Jewel* aWaitingJewel = FindWaitingJewel();
+		if (aWaitingJewel != nullptr && gActiveLevel->mTickCount - sLastSwapTick > SwapPauseTicks && FindTarget(aWaitingJewel) != nullptr) {
+			sLastSwapTick = gActiveLevel->mTickCount;
+			aMove.mAction = BotAction::Swap;
+			aMove.mX = gMouseX;
+			aMove.mY = gMouseY;
 		}
-	}
-	if (aTarget == nullptr)
 		return aMove;
+	}
 
 	aMove.mAction = BotAction::Shoot;
 	SlotClaim aClaim = {aTarget, gActiveLevel->mTickCount};
 	sClaims.push_back(aClaim);
 	aMove.mX = (int)aTarget->mWorld[AttributeX];
+	if (CurrentProfile().mMode == GameModeTrickShot) {
+		// a trick shot is a single shot that goes by way of bumpers, which the bot does not follow: each attempt aims at another
+		// place, so that the levels now and then are won
+		aMove.mX = TrickShotFirstX + (sTrickShotAttempts * TrickShotStepX) % TrickShotSpanX;
+		sTrickShotAttempts++;
+	}
 	aMove.mY = AimY;
 	float aDistance = std::fabs((float)aMove.mX - aShooterX);
 	aMove.mUpdatesToAim = 2;

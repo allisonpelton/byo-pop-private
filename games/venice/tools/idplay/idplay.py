@@ -53,6 +53,7 @@ MAX_CATCH_UP = 20                       # ticks the game runs in one frame at mo
 
 PORT_EXE = os.path.join(ROOT, 'build', 'native', 'venice.exe')
 RUNDESK = os.path.join(ROOT, 'build', 'native', 'rundesk.exe')
+DGVOODOO = os.environ.get('ORIGRUN_DGVOODOO', 'E:/retools/dgVoodoo2_87_5')  # the folder of dgVoodoo2 (origrun's --dgvoodoo)
 ORIGRUN = os.path.join(ROOT, 'build', 'origrun-bin', 'origrun.exe')
 ORIGINAL_EXE = os.path.join(ROOT, 'build', 'origrun', 'venice', 'game', 'VeniceGame.exe')
 PATCHES = os.path.join(ROOT, 'tools', 'origrun', 'patches', 'venice.txt')
@@ -243,24 +244,54 @@ def wait_for_slot():
         time.sleep(15)
 
 
-def start_profile(scenario):
-    """the profiles file a run starts with: the scenario's PROFILE (a file under scenarios/), else none (a new player)"""
+def start_profile(name, scenario):
+    """the profiles file a run starts with: the one made for the scenario's PROFILE_COMMANDS (make_profile), else its PROFILE (a
+    file under scenarios/), else none (a new player)"""
+    if hasattr(scenario, 'PROFILE_COMMANDS'):
+        return os.path.join(RUN_DIR, name, 'start_profile.dat')
     profile = getattr(scenario, 'PROFILE', None)
     return os.path.join(os.path.dirname(os.path.abspath(__file__)), 'scenarios', profile) if profile else None
+
+
+def make_profile(name, scenario):
+    """the port makes the player a scenario starts with: the name Test typed, the scenario's commands (for example `unlock all`
+    and `goto menu`) and a quit, which saves the profiles file; both games are then started with it"""
+    run = os.path.join(RUN_DIR, name)
+    user_dir = os.path.join(run, 'profile.user')
+    shutil.rmtree(user_dir, ignore_errors=True)
+    os.makedirs(user_dir, exist_ok=True)
+    set_port_mode(user_dir, scenario)
+    lines = ['3000 key T', '3010 key E', '3020 key S', '3030 key T', '3200 keydown RETURN', '3204 keyup RETURN']
+    lines += ['%d %s' % (3900 + 10 * index, command) for index, command in enumerate(scenario.PROFILE_COMMANDS)]
+    lines.append('%d save' % (3900 + 10 * len(scenario.PROFILE_COMMANDS)))
+    lines.append('5000 quit')
+    script = os.path.join(run, 'profile.txt')
+    with open(script, 'w') as out:
+        out.write('\n'.join(lines) + '\n')
+    wait_for_slot()
+    command = [RUNDESK, PORT_EXE, '-gamedir=' + GAMEDIR, '-userdir=' + user_dir, '-fast', '-seed=1', '-script=' + script]
+    with open(os.path.join(run, 'profile.out'), 'w') as out:
+        subprocess.call(command, stdout=out, stderr=subprocess.STDOUT, cwd=ROOT)
+    shutil.copyfile(os.path.join(user_dir, 'profiles.dat'), start_profile(name, scenario))
 
 
 def run_original(name, scenario, start, log):
     if os.path.exists(ORIGINAL_PROFILES):
         os.remove(ORIGINAL_PROFILES)
-    if start_profile(scenario):
-        shutil.copyfile(start_profile(scenario), ORIGINAL_PROFILES)
+    if start_profile(name, scenario):
+        shutil.copyfile(start_profile(name, scenario), ORIGINAL_PROFILES)
     script = os.path.join(RUN_DIR, name, 'original.txt')
     with open(script, 'w') as out:
         out.write(original_script(scenario, start))
     wait_for_slot()
+    accelerated = getattr(scenario, 'ACCELERATED', False)
+    timeout = min(3600, (600 + scenario.END // 10) if accelerated else (240 + scenario.END // 40))
     command = [ORIGRUN, '--exe', ORIGINAL_EXE, '--script', script, '--clock', 'virtual', '--cursor', 'scripted', '--keys', 'scripted',
-               '--counter', FRAME_COUNTER, '--update-ms', '4', '--patches', PATCHES, '--seed', '1',
-               '--timeout', str(min(3600, 240 + scenario.END // 40))]
+               '--counter', FRAME_COUNTER, '--update-ms', '4', '--patches', PATCHES, '--seed', '1', '--timeout', str(timeout)]
+    if accelerated:
+        # the original's 3D mode (Direct3D 7 over dgVoodoo2, docs/ORIGRUN.md, "Hardware acceleration"); it runs slower than software
+        command += ['--3d', 'on', '--3d-key', r'Software\PopCap\Venice', '--3d-flag', '[[0xa2a178]+0x36c]+0x38',
+                    '--dgvoodoo', DGVOODOO]
     with open(log, 'w') as out:
         subprocess.call(command, stdout=out, stderr=subprocess.STDOUT, cwd=ROOT)
 
@@ -287,9 +318,8 @@ def run_port(name, scenario, start, first, holds, ticks, log):
     shutil.rmtree(user_dir, ignore_errors=True)
     os.makedirs(user_dir, exist_ok=True)
     set_port_mode(user_dir, scenario)
-    if start_profile(scenario):
-        os.makedirs(os.path.join(user_dir, 'userdata'), exist_ok=True)
-        shutil.copyfile(start_profile(scenario), os.path.join(user_dir, 'userdata', 'profiles.dat'))
+    if start_profile(name, scenario):
+        shutil.copyfile(start_profile(name, scenario), os.path.join(user_dir, 'profiles.dat'))
     wait_for_slot()
     command = [RUNDESK, PORT_EXE, '-gamedir=' + GAMEDIR, '-userdir=' + user_dir, '-fast', '-drawevery', '-seed=1', '-script=' + script]
     with open(log, 'w') as out:
@@ -318,6 +348,8 @@ def bot_inputs(name, scenario):
     shutil.rmtree(user_dir, ignore_errors=True)
     os.makedirs(user_dir, exist_ok=True)
     set_port_mode(user_dir, scenario)
+    if start_profile(name, scenario):
+        shutil.copyfile(start_profile(name, scenario), os.path.join(user_dir, 'profiles.dat'))
     wait_for_slot()
     command = [RUNDESK, PORT_EXE, '-gamedir=' + GAMEDIR, '-userdir=' + user_dir, '-fast', '-drawevery', '-seed=1', '-script=' + script]
     with open(os.path.join(run, 'bot.out'), 'w') as out:
@@ -353,6 +385,8 @@ def main():
     name = scenario_name(args.scenario)
     run = os.path.join(RUN_DIR, name)
     os.makedirs(run, exist_ok=True)
+    if args.action in ('run', 'original') and hasattr(scenario, 'PROFILE_COMMANDS'):
+        make_profile(name, scenario)
     with_bot(name, scenario, args.action in ('run', 'original'))
     if args.action in ('run', 'original'):
         run_original(name, scenario, args.start, os.path.join(run, 'original.log'))

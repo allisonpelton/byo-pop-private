@@ -20,8 +20,13 @@ drawn in a different place, or not drawn, shows at once and stays different for 
 Two details of the harness matter. The original draws after every update, and its shooter puts the pointer under itself
 when it draws (`Shooter::Draw`), so the port runs with `-drawevery`; without it the same step ran inside the next update and
 the shooter followed the pointer a frame late. And the original on rundesk's desktop runs in software drawing (the layer merge
-adds the backdrop repeats there), so the port runs with its registry's `Is3D` at 0; a comparison against the original's 3D mode
-needs dgVoodoo (`docs/ORIGRUN.md`) and is listed below under what is left.
+adds the backdrop repeats there), so the port runs with its registry's `Is3D` at 0; the original's 3D mode is run over
+dgVoodoo2 (`docs/ORIGRUN.md`, "Hardware acceleration") by the scenario `journey3d`, below.
+
+The scenarios that start from a player with the modes unlocked (Flood, Survival, Trick Shot) are given one by the port: it
+types the name, runs `unlock all`, `goto menu` and `save` and quits, and both games then start from that profiles file (the
+original's is put where it reads it, the previous one removed first, since a player left by an earlier run changes the name
+screen).
 
 The input does not come from a person: `bot` (`Bot.cpp`) is the port's player, which reads the game's state, aims at an unfilled
 slot, and presses with the real input path's moves, presses and releases; its inputs are written to a file and given to both
@@ -34,6 +39,10 @@ play the same.
 | `name` | 2801 | a name typed (key edges) and entered, up to the tutorial's start |
 | `tutorial` | 6501 | the tutorial played by the bot: its lessons, 31 shots, 15 hits |
 | `journey` | 60501 | the tutorial, then Journey levels played by the bot (`bot ... continue` also clicks away the summaries, the level select and the cupid's messages): first level in play, a lost level (the shooter sinks), its tries, the summaries |
+| `flood` | 30001 | a player with every mode unlocked (the port makes the profile with `unlock all` and `save`, both games start from that file), the menu clicked to Flood and its new game, the bot playing the levels that follow (the level's explanation and the summaries clicked away) |
+| `survival` | 20001 | the same, the menu clicked to Survival |
+| `trickshot` | 20001 | the same, the menu clicked to Trick Shot; the bot gives each attempt another x, since a shot goes by way of the bumpers |
+| `journey3d` | 16101 | the `journey` script with the original in its 3D mode (Direct3D 7 over dgVoodoo2) against the port's default: it matches for 16101 frames, and the two part at frame 16144 (the oddity below) |
 
 ### Differences found and fixed
 
@@ -47,7 +56,21 @@ play the same.
 
 ### Oddities skipped
 
-None yet.
+**The original's 3D mode against the port (found with `journey3d`).** The same inputs on the original in its software mode
+match the port for all 20001 frames of the script. In its 3D mode (Direct3D 7 over dgVoodoo2) the original matches for the
+first 16143 frames and then parts: the jewel thrown from x 281 at original frame 17922 falls past the bottom edge one update
+sooner than the port's (the box test of `Jewel::KeepInBounds` against the screen, with a margin of 0.24 pixels), the splash's
+58 random numbers are drawn a frame earlier, and the seeds differ from then on. Before that the 3D original's jewels and plates
+are the same to a float's rounding (a jewel that flies straight up agrees to 0.001 pixel) except one thing: the plate that
+wobbles after a hit (plate 8) is already 0.014 degrees off at original frame 17918, a jewel's bounce off one of its slots leaves
+0.05 degrees off, and that grows to 1.6 pixels in the falling jewel's height by the frame of the test. What I tried: peeks of
+the plates' world y and rotation, and of three jewels' positions, around the frames; the port's plate and jewel values for the
+same frames; the same inputs in the original's software mode (0 differ); and the port's sine filter rounded to float the way
+a 24-bit x87 would (no change in plate 8). The framework notes infer that Direct3D 7 leaves the x87 at 24 bits (no
+`DDSCL_FPUPRESERVE`), which would make every double expression of the original round like a float in 3D, but nothing here shows
+that it is the cause. Not chased further: the plate's first differing value needs the original's plate 8 by update from its last
+hit on, and the port would need a 24-bit mode for every double expression to follow it if that is the cause. `journey3d` ends at
+frame 16100, before the difference. See `GAME_NOTES.md`, "Oddities".
 
 ### Deviations that remain
 
@@ -55,6 +78,5 @@ As `GAME_NOTES.md` lists them: none changes play.
 
 ### Left in phase one
 
-Flood, Survival and Trick Shot played the same way (a profile with every mode unlocked, the menu clicked to each mode), more
-Journey levels (the bot loses after the first few), the 3D mode of the original against the port's default, a run with a
-window that loses and regains the focus, and a run with tries, wings and the power-ups.
+More Journey levels (the bot loses after the first few), a run with a window that loses and regains the focus, and a run with
+tries, wings and the power-ups.
