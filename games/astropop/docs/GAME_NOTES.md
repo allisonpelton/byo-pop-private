@@ -298,7 +298,8 @@ The handler of event 3 (0x403fd0, `Brick::OnDie`) fires the "popped" event 0x1a 
    The original's 3D screen wipe was reached on the night of 2026-11-12 and compared frame by frame with the port's, all four kinds: the same
    pictures (section 10). The performance step is open: in 3D the port is over its original (134% at the original's window size,
    section 11c; all of it the presentation and the Direct3D 11 driver's thread, the game's own update and drawing being at or under the
-   original's); 2D passes (69%). The lite survey (section 11b) found no candidate worth a toggle: the game's logic is 0.6% of the process
+   original's; 105 to 121% in the later set with the presents held by the frame loop's pace or by vsync, section 11d, the present and
+   driver costing the port 1.9 to 2.4 M cycles a present against the original's 1.2, a shared cost); 2D passes (69%). The lite survey (section 11b) found no candidate worth a toggle: the game's logic is 0.6% of the process
    and every faster method keeps the answer.
 4. (Done: the gap of the removed More Games button is closed, section 6.) The app's destructor does not delete its screens (as the original's).
 5. (Done in phase two, the sites it lists and the other drawing and screen functions read against the asm; the float rounding of the drawing
@@ -645,6 +646,81 @@ games/astropop/tools/profile/windows_report.py --busy-max 0.6 <dir>`. A single s
 and `PERF_SPLIT=1 PERF_3D=1 PERF_DESKTOP=1 PERF_CLOCK=real python -I profile/perf.py port-minute <dir>`, then `python -I
 tools/cyclesplit.py <port's split.jsonl> <original's counts.jsonl> --from a --to b`. The raw run folders (their samples and logs) were
 deleted once these figures were written.
+
+### 11d. Presents held by the frame loop's pace against the display's vsync, in 3D (2026-11-12)
+
+**The question** (the coordinator's): the framework asks the renderer for vsync by default, and a present then costs the port a driver
+thread and a wait for the blank; Bejeweled 2's `DDInterface::FrameHeldByPace` (`22aa5b7b`) holds a draw to the display's refresh interval
+when the renderer has no vsync. Does presenting that way, in a window, cost the 3D stretch less? **Setting:** the 3D scenario of section
+11, on the desktop (22:00 to 08:00), the window at the original's size (`PERF_WINDOW=1`, display line `client 640x480 px, logical 640x480,
+render scale 1, windowed, renderer direct3d11` in every run), real time, one process at a time turn about on one core under `pincore.py`,
+the original (`perf.py orig3d`) in every round (`profile/vsync.sh`, six rounds without counting, four with the cycle split). *vsync* is
+the default; *pace* is `SDL_RENDER_VSYNC=0`, which takes the renderer's vsync flag away so that the pace engages. Every port run wrote
+its present log (`-presentlog`, the shared commit `41636a8a`, `docs/TEST_COMMANDS.md`, "The present log"), whose header says which it had:
+`renderer direct3d11 vsync_asked 1 vsync_flag 1 pace_ms 0.000` (vsync: the blank holds the presents) or `vsync_asked 1 vsync_flag 0 pace_ms
+16.667` (pace). The display is 60 Hz (the vsync runs' median interval is 16.8 ms).
+
+| Six rounds, no counting | Original | Port, vsync | Port, pace |
+|---|---|---|---|
+| stretch, G cycles (median, range) | 3.18 (2.43 to 3.64) | 3.64 (3.19 to 4.09) | 3.34 (3.07 to 4.10) |
+| an update, M cycles | 1.57 | 1.79 | 1.65 |
+| against the original | | 114% | 105% |
+
+The pairs of one round differ by +0.23, +0.83, -0.01, -0.06, +0.18 and -0.21 G (vsync less pace): a median of 0.1 G, 3%, and the
+spread of one run is 30%, so the cap's gain is somewhere between none and the 8% of the medians; this set does not resolve it.
+
+| Four rounds, the cycle split, M cycles an update | Original | Port, vsync | Port, pace |
+|---|---|---|---|
+| update | 0.073 | 0.039 | 0.060 |
+| draw | 0.386 | 0.327 | 0.370 |
+| present (the main thread's call) | 1.150 | 0.429 | 0.294 |
+| the driver's threads | 0 | 0.759 | 0.812 |
+| **picture: draw + present + driver** | **1.536** | **1.542** | **1.488** |
+| audio (the port's mixer) | 0 | 0.133 | 0.133 |
+| loop | 0.233 | 0.070 | 0.118 |
+| total | 1.874 | 1.783 | 1.795 |
+| presents an update | 0.97 | 0.50 | 0.58 |
+| present + driver, per update | 1.15 | 1.19 | 1.11 |
+| **present + driver, per present** | **1.19** | **2.38** | **1.91** |
+
+**The cadence** (`profile/present_intervals.py`, the intervals between the starts of consecutive presents over the last 40 seconds of
+each run, medians of the six):
+
+| | Presents a second | Interval median | 5th to 95th percentile | Within a quarter of the median | Over one and a half intervals | The call |
+|---|---|---|---|---|---|---|
+| vsync | 50.5 | 16.8 ms | 10.8 to 40.6 ms | 75% | 15% | 18.9 ms on average (16.4 median: it waits for the blank) |
+| pace | 54.5 | 19.2 ms | 7.4 to 29.3 ms | 54% | 5% | 2.4 ms on average (0.3 to 0.65 median) |
+
+The pace's presents do not stay even: a draw is held to the next update that finds the interval over, and the updates come every 10 ms, so
+the intervals are 10, 20 and 30 ms (a median of 19 against the target 16.7) and only about half lie within a quarter of the median. The
+vsync's cadence is the display's 16.7 ms for three presents in four, with a missed beat (a gap of 25 ms or more) in one in seven.
+
+**What it shows.** (1) The cap moves the cost and does not remove it: the main thread's present falls by 0.14 M an update, the driver's
+worker thread rises by 0.05, the loop by 0.05 and the update part by 0.02 (the loop wakes more often with nothing to wait for in a
+present; counting costs 2.1% of the pace runs against 0.6% of the vsync's), so the total is the same in the split (1.78 and 1.80) and
+about 8% lower in the medians of the totals, which is inside the noise. (2) The picture costs the port what it costs the original **per
+update** (present + driver: 1.19 with vsync, 1.11 with the pace, 1.15 for the original), but the port presents about every second update
+and the original nearly every one, so **per present the port spends 2.38 M cycles with vsync and 1.91 M with the pace against the
+original's 1.19 M** (the main thread's present plus the driver's worker, over the presents). The cap lowers that by a fifth and does not
+close it. (3) The driver thread (`nvwgf2um.dll`, 0.76 to 0.83 M an update, 1.4 to 1.5 M a present) is the largest single cost of the port's 3D
+and does not depend on the window size (1x and 2x in 11c) or on the pace: it is the Direct3D 11 driver executing what a frame submits (80
+geometry and 41 fill calls a frame, one draw per change of texture: section 11), so what cuts it is fewer, larger submissions per frame,
+which is the framework's to do, not the game's. The mixer (0.13 M an update, 0.27 G a stretch, in the totals above) is the other cost the
+original's process does not have; the totals without it are 1.66 M an update with vsync and 1.52 with the pace against the original's
+1.57. (4) The cap is not recommended for the GPU path on these figures: it saves nothing the noise lets us see, and its cadence is
+lumpier than the display's own.
+
+**How far over, in this set, and why it varies.** The same-round pairs (the original's run of a round with the port's) put the port at
+121% (vsync) and 107% (pace) of the original as medians of the six rounds (the medians of the stretches, 114% and 105%); the four counted
+rounds' own stretches put both at 107%, with the split's window, which is not the stretch, giving 95% and 96%; 11c's set, 134%. The
+machine was busy (0.42 to 0.76 of it) and the original's cost went up with it in the six totals rounds: its three stretches at 0.42 to
+0.48 busy were 2.4 to 3.0 G (3.3 at 0.51) and its two at 0.61 to 0.66 were 3.6 G, while the port's (vsync) ran 3.2 to 4.1 G across the
+same loads with no such rise. So in the stretch totals the port is over by about 5 to 35% in 3D, depending on the load, in every set so far
+(the split's window alone has it under), and none of them is a quiet machine, which this measurement cannot make.
+
+**To repeat.** From the worktree root, 22:00 to 08:00, in the background: `SPLIT=0 bash games/astropop/tools/profile/vsync.sh <dir> 6` (`SPLIT=1`
+for the split; `FIRST=7 APPEND=1` adds rounds), then `python -I games/astropop/tools/profile/windows_report.py <dir>` and `python -I
+games/astropop/tools/profile/present_intervals.py <dir>`. The raw run folders were deleted once these figures were written.
 
 ## 12. The readability pass (2026-11-11; `docs/CODE_STANDARDS.md`)
 
