@@ -411,6 +411,14 @@ go through `playbymove`, which does use `-commands`. The machine was never quiet
 run (0.5 to 0.9 of the machine busy), and the stretches of one build spread by plus or minus 30%, so a figure is the median of five or six
 pairs with its range. The memory is private bytes in MiB; the load is the time from the creation of the process to the title taking input.
 
+**Window state of these figures (found 2026-11-12, after the Mahjong session's report; they are to be measured again).** The port's runs had
+no `ScreenMode` in their `registry.ini`, and the port then starts full screen: a `screenshotfull` in a run under rundesk (a 3840x2160
+desktop), 2D and 3D, is 2560x1920, a render scale of 4 on the game's 640x480, where the original ran windowed at its own 640x480 (scale
+1). With `ScreenMode=0` the port's window is 1280x960 (scale 2, the framework's default window). So the tables below set a full-screen
+port against a window of the original's size: not like for like. Their renderers were Direct3D 11 in every rundesk run and, on the desktop,
+Direct3D 9 for the first 3D rows and Direct3D 11 with the hint (below). The 3D desktop runs very probably started full screen too (the
+visible desktop is also 3840x2160), which the display line of the next runs, with `-windowscale=1` and `ScreenMode=0`, will show.
+
 | 2D, five pairs, rundesk, 2026-11-11 | Original | Port |
 |---|---|---|
 | The stretch, G cycles (median) | 7.22 | 5.78 (80%) |
