@@ -390,12 +390,11 @@
         "registration-out",
         "identical-look",
         "fixes-mod",
-        "coverage",
-        "performance"
+        "coverage"
       ],
       "na": [],
-      "now": "unneeded-code",
-      "note": ""
+      "now": "performance",
+      "note": "processor time halved (d1321ef0), still 3 to 4 times the original's; a second round"
     },
     "wordharmony": {
       "title": "Word Harmony",
