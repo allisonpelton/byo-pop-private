@@ -401,56 +401,67 @@ state machine, which the port keeps whole), the puzzle pack selector (the origin
 port follows the data it is given), the parsers' error paths, the finale, `GalaxyMap` slot 47, and the rare states and inputs above, which a player
 can reach.
 
-## Performance (2026-11-11; `docs/COORDINATION.md`, "Performance pass")
+## Performance (2026-11-11; `docs/COORDINATION.md`, "Performance pass" and "The target")
 
-**Method.** `games/bejeweled2/tools/profile/perf.py` and `pairs.sh` (as AstroPop's, Typer Shark's and Atomica's): the original and the port play the
-same scripted Classic game turn about, one process at a time, and each run samples the game's process every 0.1 s (working set, private bytes,
-processor time) and records how many game processes of other sessions ran at its start and end. The machine was never quiet (0.5 to 0.95 of it
-busy, 1 to 5 other game processes), so a figure is the median of three pairs with its range. The scenario is `scenario/classic909.json`: the
-inputs of a recorded Classic game (seed 909, the profile player, 2D at 640 by 480, the title's link, the mode, the first move at update 1213,
-36 swaps, 6,421 updates), played by the port as a `-commands` file under `-hold` (the recording's own clock: without `-hold` the first game's board is another one and the
-moves are all illegal) and by the original as origrun script lines. The play was
-checked to be the recorded one: the port's `state` after the last move says score 565, level 2, and the original's board says 565 then 580 once
-the last swap has cleared (its score and state are watched, `final_score`). The port's 3D game (1024 by 768 on the GPU renderer, what a player's
-machine runs) plays `scenario/classic909_3d.json`, a bot's game recorded in 3D (`record_port.sh classic 80`, 7,897 updates, level 1 and the
-level-up to 2, score 1,475 at the end); the original is measured in 2D only, since its 3D is DirectDraw and Direct3D 7 under dgVoodoo2 and that
-wrapper's cost is not the game's. Real time (`PERF_CLOCK=real`): the port without `-fast`, origrun on its real clock, which is what a player's
-machine does; there the first board is not the recorded one (what runs before it is timed by the clock) and the scripted moves are illegal ones
-(the Illegal Move box stays up), so a real-time run is the idle board's animation, not a game of cascades. A
-run without waiting (`-fast`, origrun's virtual clock) plays the recorded game and is the work a test run does. The port's 2D is SDL's software
-renderer (`SDL_RENDER_DRIVER=software`, `DDInterface::mIs3D` false), as the recordings and every test run it; its 3D is the machine's Direct3D 11.
+**Status.** The processor-time target (the port's at most the original's, like for like) is met in 3D and in 2D on a GPU renderer and **not met in 2D on
+SDL's software renderer** (the fallback for a machine with no accelerated renderer, and what every 2D test run uses): the performance step is open for
+that path. The cause is the framework's (the software path draws at the window's resolution; a spec for the coordinator below); the game's own code
+is 2.5% of the process there and 0.14 ms an update everywhere, and nothing in it was changed.
 
-| Three pairs, 2026-11-11 | Original, 2D | Port, 2D | Port, 3D |
-|---|---|---|---|
-| Load to the title (taking input) | 4.4 to 5.4 s (median 5.0; 2.05 s of processor time) | 0.93 to 1.85 s (median 1.7) | 1.75 to 2.45 s (median 1.87) |
-| Private bytes at the title | 39.7 MB | 58.8 MB | 127.9 MB |
-| Peak private bytes, real time | 42.8 MB (42.6 to 43.6) | 107.8 MB (107.0 to 107.8) | 137.4 MB (137.3 to 138.2) |
-| Peak working set, real time | 59.0 MB | 119.3 MB | 138.4 MB |
-| Real time, whole run's processor time | 12.0 s in 66 s (9.7 to 12.3; 18% of a core) | 53.6 s in 66 s (53.4 to 56.2; 81%) | 7.7 s in 81 s (6.4 to 7.7; 9.4%) |
-| Real time, the 20 s stretch before the last input | 2.84 s (2.22 to 2.97) | not read (the port has no counter outside) | not read |
-| Updates a second in real time | 99.9 to 100 | 97 (6,422 in 66 s with the load) | 98 (7,898 in 81 s) |
-| No waiting, whole run's processor time | 14.5 s (13.6 to 16.0) | 16.1 s (15.7 to 16.7; 644 draws) | 2.9 s (2.4 to 3.1; 790 draws) |
-| No waiting, after the title | 11.8 s | 15.2 s | 1.1 s (7,900 updates: 0.14 ms each) |
+**Method.** `games/bejeweled2/tools/profile/` (`perf.py`, `pairs.sh`, `summarize.py`; `statspatch.py` for the counters): the port and the original play the
+same stretch, alternating, five pairs, the whole loop on one performance core of its own (`tools/pincore.py`), the medians with their ranges.
+*Processor time is the process's cycle count* (`QueryProcessCycleTime`, every thread's `QueryThreadCycleTime` with the exited ones) over the machine's
+2.112 GHz clock, never `GetProcessTimes` (charged by the scheduler's 15.6 ms tick: a first pass of this section read 15.2 s where the cycles say 10.8 s
+for the same run). The stretches: (1) *the idle board in real time*: the recording's inputs up to the click that dismisses the first dialog of a Classic
+game, nothing after, to update 5700, and the last 20 s of it; the original on origrun's real clock (its 12.7% of a core is no spin on a vertical blank, which would take
+all of one), the port as a `-script` file, so it has no commands file to poll; both end on an
+idle board (`state`: phase idle, score 0, no dialog; the original's board state 1). (2) *the recorded game without waiting* (`scenario/classic909.json`:
+seed 909, 36 swaps, 6,421 updates; the 3D scenario's 7,897): the work of the game's code and drawing; the original on origrun's virtual clock counts only
+if its final score is the recorded game's (5 of 5 did), and the port plays it as a `-commands` file under `-hold`, whose poll of the file (a `stat` a
+pass, test-only) was counted in a build with `statspatch.py` and is taken off the figure (0.1 s of 9.9). (3) *the load*: from the start of the process
+to the title taking input. The original's 3D is its DirectDraw and Direct3D 7 under dgVoodoo2 (`--dgvoodoo`, as every 3D comparison of this game runs
+it), so its 3D figures hold that wrapper. Sound: origrun's stand-in takes the original's DirectSound, so the original mixes nothing; the port's
+mixer is its SDL audio thread (`SDLAudioP2`, silent driver under rundesk) and is counted apart: 0.10 to 0.17 s in the 20 s (about 0.7% of a core).
 
-The port plays the recorded game on a little more processor time than the original in 2D (15.2 against 11.8 s for 6,400 updates: 2.4 ms against
-1.8 ms an update, nearly all of it drawing, below), loads about three times faster (median 5.0 s against 1.7 and 1.87 s), and holds two and a half to three times the memory. In 3D, the mode a
-player's machine uses, it plays that game on 1.1 s of processor time (a seventh of a millisecond an update) and in real time on 9% of a core
-(6.05 s of it after the title), half of the original's 18% in 2D; the memory is the cost.
+| Five pairs, 2026-11-11 | Original, 2D | Port, 2D, GPU renderer | Port, 2D, SDL software renderer | Original, 3D (dgVoodoo2) | Port, 3D |
+|---|---|---|---|---|---|
+| Idle board, share of one core | 12.7% (10.9 to 13.7) | **8.6%** (8.1 to 10.5; 7.9 less the audio thread) | **93.7%** (91.6 to 96.1) | 61.3% (52.2 to 64.5) | **9.3%** (8.1 to 10.4; 8.7 less the audio thread) |
+| The recorded game without waiting, after the title | 7.71 s (6.65 to 9.80) | 0.21 s (0.05 to 0.28) | **9.83 s** (8.94 to 11.48) | not run (it spins on its virtual clock) | 0.61 s (0.56 to 0.83; 7,900 updates) |
+| Load to the title | 4.41 s (4.07 to 6.58) | 1.18 s (1.02 to 1.41) | 0.89 s (0.78 to 3.48) | 4.71 s (4.31 to 5.22) | 1.42 s (1.28 to 1.62) |
+| Private bytes at the title | 39.9 MB | 88 MB | 59 MB | 144.6 MB | 128 MB |
+| Peak private bytes of the idle run | 41.9 MB | 82.3 MB | 103.5 MB | 149.3 MB | 109.4 MB |
 
-**Where the processor time goes** (`games/bejeweled/tools/profile/cpuprof.py`, cycles by module, under rundesk). *2D, no waiting* (33.7 G
-cycles): SDL2.dll 83.6%, the exe 6.1%, win32u 4.4%, ntdll 4.1%. The game's own code is nowhere in it: 644 draws cost about 15 ms each in SDL's
-software renderer, where every sprite of the board (the gems, their shadows and glints, 64 of them and their overlays) is an `SDL_RenderCopyEx` or
-`SDL_RenderGeometry` blended in software, where SexyAppFramework's own DirectDraw path draws the dirty widgets into one surface. With `-drawevery` (a draw after every
-update, which the identical-play comparisons use) the same run took 31 s of processor time and 1,381 draws at 20 ms: a test run of this game in
-2D is paid for in draws. *3D, real time* (38.1 G cycles in 81 s, 470 M cycles a second): ntdll 77.6% (system calls and waits, which for a 32-bit
-process on 64-bit Windows includes the frame's presentation), the Nvidia Direct3D 11 driver 12.9%, the exe 3.8%, KERNELBASE 1.8%, win32u 0.9%;
-the main thread has 71.5% of the cycles and a second thread 9%, seventeen more 0 to 4.5% each, nearly all waits. *3D, no waiting* (6.2 G
-cycles, the load and 7,900 updates): ntdll 39%, the exe 29%, win32u 8.5%, `imagehlp.dll` 2.4%; of the exe's share the load's decoders:
-`Platform::DecodeImage` 3.5%, `Quantize8Bit` 2.9%, the JPEG decoder (`_ycc_rgb_convert` 1.7%, `_decode_mcu` 1.1%, `_jpeg_idct_islow` 0.9%), the GIF
-decoder 1.6%, the Vorbis decoder (`_inverse_mdct`, `_codebook_decode_deinterleave_repeat` and two more: about 2%), `DDInterface::GetTextureData` 1.3% and
-`PrepareTexture` 0.5%, and 4.3% in `stbi_zlib_compress`, which is this harness's own screenshot at the title (the game does not compress a PNG).
-The game's code, `Board::Update`, `DrawBoard` and the rest, does not show above 0.1%. What a player's machine spends on this game is the display
-path and the load, not the game's code.
+So in 2D on a GPU the port takes two thirds of the original's processor time idle and a thirty-seventh of it for the recorded game, and in 3D a seventh of the
+original's idle (the original's 3D on dgVoodoo2 is the dearer way to run it). In 2D on the software renderer it takes seven times the original's idle
+and 28% more for the recorded game. Memory stays the framework's (about 54 MB in every process before it reads a game file, the pixels kept after upload);
+it is not a target. The earlier figures of this section (the first pass of the day) are replaced by these.
+
+**Where the 2D software path's processor time goes** (a build with `statspatch.py`: every SDL draw call counted and timed; the idle board, 61 s, 3,786
+drawn frames; `DRAWSTATS=1`). 98% of the process's time is inside those SDL calls (55.0 s of 56.3 s: the game's code and the rest are 2.5%). A frame is
+14.5 ms: 64.6 copies of images drawn at full alpha (11.8 ms, 183 µs each, 1.9 Mpixels a frame: a screen and a half at the render scale), 7.2 additive (0.64 ms),
+1.4 with alpha (0.35 ms), the copy of the screen to the window (0.85 ms) and the present (0.85 ms); what the 64 are was not itemised (the board's 64 gems
+are the obvious part). Two things make a copy that dear. The window is 1,280 by 960 on this machine (the screen copy's destination is 1.23 Mpixels), so
+the framework's render scale is 2 and every sprite is stretched to twice its size by SDL's software stretch (a copy of a 29,000-pixel sprite takes
+183 µs, about 6 ns a pixel); and a texture is blended when it is drawn, whether or not its image has any transparency. With nothing to wait on the port draws 64 frames a second at that price
+(the GPU path is paced by the present's vertical blank: its `Present` takes 16.4 ms and 1.96 s of the 20 s are processor time).
+Three changes to the framework's 2D path were tried in a scratch build (one run each, the unpinned machine; the diff is in the coordinator's notes
+folder, `bejeweled2_2d_software_prototype.diff`; none is committed):
+1. *An image with no transparency, drawn at full alpha, as a copy* (`SDL_SetTextureBlendMode(NONE)` when `!mHasAlpha && !mHasTrans && alpha == 255 && normal mode`):
+   the copy takes 87 µs in place of 171 and a frame 7.8 ms in place of 13.2; the picture (a screenshot at update 5000) is the same pixel for pixel.
+2. *Rendering at the logical size (`-renderscale=1`) and stretching once at the present with nearest-neighbour*: a frame 2.6 ms, the idle board
+   **23.8% of a core** (5.5 times less; the port then draws 93 frames a second). With the linear copy the cost only moves (the final stretch is
+   12.5 ms a frame, 55 s in all). This changes the picture (a screenshot at render scale 1 differs from the scale 2 one inside (47,21) to (607,437) of the 640 by 480
+   picture: the sprites are drawn at the logical size and doubled), so it is the user's look to decide.
+3. What is left to reach the original's 12.7% is drawing less: the original's DirectDraw path redraws only the dirty rectangles and draws at the
+   display's rate, where the port redraws the whole picture on every update it has time for; the software path could draw at most 60 frames a second
+   (as a player's screen shows them) and skip a frame when nothing was marked dirty.
+
+**Where the processor time goes in 3D and on the GPU** (the same counters, the GPU run, 3,424 frames in 61 s): 243,522 quads a run, 0.14 µs each (the
+recording of a draw call), 71 a frame; per-thread cycles of the idle run: the main thread 66 to 69%, a second thread 25 to 27% (the Direct3D 11
+driver's worker), the audio thread 4 to 5%. The idle board's 8.6 to 9.3% of a core is the frame's presentation (`ntdll` waits and the driver) and the
+game's code is 0.14 ms an update, below 1%. In the first pass of this section (cycles of the whole 3D run without waiting: 6.2 G, ntdll 39%, the
+exe 29%) the exe's share was the load's decoders: `Platform::DecodeImage`, `Quantize8Bit`, the JPEG, GIF and Vorbis decoders, `imagehlp.dll` 2.4%; the
+port loads 3 to 5 times faster than the original even so.
 
 **Where the memory goes** (the framework's `memreport`, in the commands file at the title, with the board up and at the end of the run). *3D*:
 `privateAtStart` 30.8 MB (the libraries and the devices), 236 pictures at the title (38.7 MB of pixels and palettes, 17 of them with a texture,
@@ -466,31 +477,29 @@ own wasm, `wasmrun.js game`): the same 6,423 updates and 643 draws and score 565
 at the title and 93 MB with the board up (Node's own resident set peaks at 165 MB with its 33 MB and the game files' copy). Its frame time in a browser was not measured: the Browser pane may be hidden and runs no
 `requestAnimationFrame` then, and a measurement in the user's own Chrome is the user's to ask for.
 
-**Shared costs** (none of them is in this game's code; sent to the coordinator in one message with the figures above):
-1. *The 2D path's drawing* (`DDInterface` with `mIs3D` false on SDL's software renderer): 15 to 25 ms a drawn frame, so 81% of a core in real time
-   against the original's 18%, and 31 s for a `-drawevery` test run. It matters for a player who turns 3D acceleration off or whose machine has
-   no accelerated renderer, and for every test run in 2D. What the original does is blit the changed rectangles into one surface.
-2. *The load's decoders*, as in AstroPop and Typer Shark: `Quantize8Bit` and the GIF decoder (the GIFs are decoded to 32 bits and quantized
-   back to 8), the JPEG and Vorbis decoders, and in 2D `CustomResourceManager::ShrinkImage` and the stretch copies that make the 640 by 480
-   pictures (about 1% and 0.1% of a run's cycles).
-3. *`imagehlp.dll`*, 2.4% of the cycles of a 3D run without waiting, from a call site not found (Typer Shark 7.6%, AstroPop 5%).
+**Shared costs** (none of them is in this game's code; sent to the coordinator with the figures above):
+1. *The 2D software path* (`DDInterface` with `mIs3D` false on SDL's software renderer): the three changes above. The spec: in the software fallback
+   render at the logical size (the render scale forced to 1 where the renderer is software) and present with a nearest-neighbour copy at an integer
+   ratio (linear only for a ratio that is not one); draw an image with no transparency as a copy; draw at most at the display's rate and skip a frame
+   when nothing was marked dirty. Test with `games/bejeweled2/tools/profile/pairs.sh` (`KINDS="port-idle orig-idle"`) and `tools/check.sh --changed`.
+2. *The load's decoders*, as in AstroPop and Typer Shark: `Quantize8Bit` and the GIF decoder, the JPEG and Vorbis decoders, and in 2D
+   `CustomResourceManager::ShrinkImage` and the stretch copies that make the 640 by 480 pictures.
+3. *`imagehlp.dll`*, 2.4% of the cycles of a 3D run without waiting, from a call site not found.
 4. *The pixels the framework keeps after upload and the first draw's expansion* (3D: 128 MB at the title, of which the libraries and devices
    30.8 MB, the pictures 38.7 MB and the sounds 9.9 MB; 2D: 59 MB at the title and 101 MB with the board up, where the original holds 40 and 43).
+5. *The commands file's poll* (a `stat` of the file on every pass of the main loop, about 340 k cycles a call): test-only, 1% of the recorded game's
+   processor time here (0.1 s of 9.9), counted and taken off; the coordinator is making it cheap.
 
-**Nothing was changed in the game's code for speed.** The game's own code is under 0.14 ms an update and does not show in any profile; the port
-already loads faster than the original and in 3D uses half its processor time; the costs above are the framework's. A lazier load of pictures the
-mode in play never draws (`GMAP`, the galaxy map's art, 3 MB) would save a few megabytes and change what a game loads, so it was left as it is.
-The frozen baseline (`tools/check.sh bejeweled2`) is unchanged by this pass: it added only the profile tools (`perf.py`, `pairs.sh`, `nodemem.js`,
-the two scenarios) and these notes.
-
-**To repeat.** `WAIT_S=300 bash games/bejeweled2/tools/profile/pairs.sh <out dir> [pairs]` from the worktree root (about 5 minutes a pair when the
-machine has a free slot; it waits for one), then read `<out dir>/runs.txt` (one JSON line a run, each with its kind). `PERF_MODE=3d` plays the 3D
-scenario, `PERF_RENDER=gpu|software` picks the port's renderer, `PERF_SHOTS=1` takes pictures at 1,000, 3,000 and 6,400, `PERF_MEM=1` puts
-`memreport` lines into the port's commands, `BEFORE_EXE=<name>` adds a run of an exe kept in `build/native` from before a change. The web build's
-run: `node -r games/bejeweled2/tools/profile/nodemem.js games/bejeweled/tools/verify/wasmrun.js game build/web/bejeweled2.js -gamedir=<assets
-folder> -userdir=<absolute folder with users/ and registry.ini> -commands=<file> -realinput=<empty file> -seed=909 -hold -fast`. Traps: a relative
-`-userdir` (`u3`, `./u3/`) is not found by the port, though the same folder by its absolute path is (no player: the first mode click asks for a
-name; the cause is the framework's, not looked for), the port needs `-hold` to play a recording, and `rundesk.exe` needs absolute paths. The raw samples and runs were deleted once these figures were written.
+**To repeat.** `WAIT_S=60 python -I <main checkout>/tools/pincore.py -- bash games/bejeweled2/tools/profile/pairs.sh <out dir> 5` from the worktree root
+(about 35 minutes; `KINDS="..."` runs only some of the kinds: `orig-idle port-idle port2dgpu-idle orig3d-idle port3d-idle`, the same with `-work` and
+`-load`), then `python games/bejeweled2/tools/profile/summarize.py <out dir>/runs.txt`. A build with the draw and poll counters:
+`python games/bejeweled2/tools/profile/statspatch.py apply`, build, run with `DRAWSTATS=1` (and `PERF_ARGS=-renderscale=1` for the logical-size render,
+`PERF_SHOT=1` for a picture at update 5000), then `statspatch.py revert` and rebuild before any check. `PERF_STRETCH=idle`, `PERF_MODE=3d`,
+`PERF_RENDER=gpu|software`, `PERF_CLOCK=real` and `PERF_MEM=1` are perf.py's own switches (its header). The web build's memory:
+`node -r games/bejeweled2/tools/profile/nodemem.js games/bejeweled/tools/verify/wasmrun.js game build/web/bejeweled2.js -gamedir=<assets folder>
+-userdir=<absolute folder with users/ and registry.ini> -commands=<file> -realinput=<empty file> -seed=909 -hold -fast`. Traps: a relative `-userdir`
+(`u3`, `./u3/`) is not found by the port, though the same folder by its absolute path is, the port needs `-hold` to play a recording, and
+`rundesk.exe` needs absolute paths. The raw samples and runs were deleted once these figures were written.
 
 ## The PopCap Game Collection version (2026-11-11; `docs/COORDINATION.md`, "Done means")
 

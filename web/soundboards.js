@@ -28,12 +28,12 @@ var ByopopSoundboards = {
     groups: [
     { name: "Menus", sounds: [
       ["sounds/click.ogg", "Click", "Any button pressed (the game's updates run 100 a second): title, intro and high score screens, the options dialog's buttons, and the board's side buttons including the sound button"],
-      ["sounds/button.ogg", "Button (unused)", "Never played: it is not in the game's sound table, so nothing loads or plays it"],
+      ["sounds/button.ogg", "Button (unused)", "Never played: it is not in the game's sound table, so nothing loads or plays it. Also in Peggle Deluxe, Peggle Extreme, Peggle Nights and Peggle World of Warcraft Edition, as sounds/button.ogg."],
       ["sounds/slideback.ogg", "Slide back (unused)", "Never played: it is not in the game's sound table, so nothing loads or plays it"],
       ["sounds/v4-welcome.ogg", "\"Welcome to Alchemy\"", "On the intro screen, 60 updates (0.6 seconds) after it opens, only while the player has not yet played a game; the wizard speaks with it"]
     ] },
     { name: "Placing tiles", sounds: [
-      ["sounds/bad.ogg", "Bad move", "A click on the grid with a tile held when the tile cannot go there, an off-grid click too; a help line may show as well"],
+      ["sounds/bad.ogg", "Bad move", "A click on the grid with a tile held when the tile cannot go there, an off-grid click too; a help line may show as well. Also in BookWorm as Bad (unused). Also in Peggle Deluxe, Peggle Extreme, Peggle Nights and Peggle World of Warcraft Edition, as sounds/pegpop.ogg."],
       ["sounds/thunk.ogg", "Tile placed", "Every tile or bomb set on the board by a valid click, together with the forge-down sound where it applies"],
       ["sounds/skull.ogg", "Skull bomb", "A bomb tile is set down: it takes the tile in that cell with it. The tile-placed thunk plays as well"],
       ["sounds/melt.ogg", "Tile melts", "A tile is discarded (forge click or button) and the forge has not overflowed; the next tile comes 25 updates (0.25 seconds) later"]
@@ -76,7 +76,7 @@ var ByopopSoundboards = {
       ["sounds/hyperspaceloop1.ogg", "Hyperspace loop", "Loops while the field is in the warp, from the moment the warp begins until it ends; the engine loop is stopped meanwhile"],
       ["sounds/magzap3.ogg", "Pick up", "A click picks up bricks from the field; not repeated while the button is held down"],
       ["sounds/magzap2.ogg", "Fire", "A right click fires the bricks held, unless the level summary is counting"],
-      ["sounds/magzap1.ogg", "Can't do that", "A click that fails: six bricks already held, nothing to take, a locked brick, the pointer too low, a power not ready; not repeated while held"],
+      ["sounds/magzap1.ogg", "Can't do that", "A click that fails: six bricks already held, nothing to take, a locked brick, the pointer too low, a power not ready; not repeated while held. Also in Zuma's Revenge, as sounds/magzap1.ogg."],
       ["sounds/laser.ogg", "Laser", "Laser pilot, power active: a click on a brick removes it from the bottom of its column, panned by column"],
       ["sounds/psychic.ogg", "Psychic", "Psychic pilot, power active: a click takes out every lit cell at once, when nothing is moving"],
       ["sounds/activated.ogg", "Tool picked up", "A tool brick is among the bricks picked up from a column, once for each tool brick"]
@@ -115,7 +115,7 @@ var ByopopSoundboards = {
       ["sounds/v_weaponready.ogg", "\"Weapon ready\"", "The power meter reaches 18000, filling by 1 an update at the base level (3 minutes), faster with upgrades; only while play runs and no power is active"],
       ["sounds/v_poweractivated.ogg", "\"Power activated\"", "The player starts the power from a full meter (laser, atomic, turbot or psychic pilot)"],
       ["sounds/explosion.ogg", "Weapon blast", "The turbot pilot's power starts; the atomic pilot's blast, 150 updates (1.5 s) after its symbol appears"],
-      ["sounds/sloooowdown.ogg", "Slow down", "The atomic pilot's power: the final, eighth blast, after seven; also the ships screen opening from the main menu's secret order, 50 updates (0.5 s) later"],
+      ["sounds/sloooowdown.ogg", "Slow down", "The atomic pilot's power: the final, eighth blast, after seven; also the ships screen opening from the main menu's secret order, 50 updates (0.5 s) later. Also in Bookworm Adventures Volume 2 as Sloooowdown (unused)."],
       ["sounds/powerupwearsoff.ogg", "Power wears off", "The power meter has drained to 0 and the power ends (not the atomic pilot's)"],
       ["sounds/v_weaponupgrade.ogg", "\"Weapon upgraded\"", "The upgrade box has settled in, then 100 updates (1 s) later"]
     ] },
@@ -237,7 +237,7 @@ var ByopopSoundboards = {
       ["sounds/gotset2.ogg", "Match", "A scoring pass whose longest run is exactly 3 gems, panned by the runs' average column; plays with that pass's cascade sound"],
       ["sounds/gotsetbig2.ogg", "Big match", "A scoring pass whose longest run is 4 or more gems; plays with that pass's cascade sound (the arrows mod uses it for an arrow shot)"],
       ["sounds/multishot.ogg", "Two matches", "A scoring pass finds two or more separate runs at once, on top of the match and cascade sounds"],
-      ["sounds/bad2.ogg", "Bad swap", "A swap that makes no match swings back, or two gems that are not neighbours are swapped; also a refused undo"],
+      ["sounds/bad2.ogg", "Bad swap", "A swap that makes no match swings back, or two gems that are not neighbours are swapped; also a refused undo. Also in Bejeweled 3, as sounds/badmove.ogg."],
       ["sounds/gemongem2.ogg", "Gems land", "Gems land after falling; at most once every 10 updates (0.1 s; the game runs 100 updates a second), panned by where they land"],
       ["sounds/excellent1.ogg", "\"Excellent!\"", "A move's matches pass 120 points × the level's multiplier, once a move. A match: 10, 20, 30, 40, 60, 80, 110, 160, 210 for the move's 1st to 9th, +10 a gem past 3 and past 5"]
     ] },
@@ -253,7 +253,7 @@ var ByopopSoundboards = {
       ["sounds/go1.ogg", "\"Go!\"", "Update 150 of a new board (1.5 s after it starts), as the Go text bounces in"],
       ["sounds/whirlpool1.ogg", "Whirlpool", "A level is won: loops while the vortex pulls the gems to the middle, its volume rising with the vortex, until the next board or the next vortex"],
       ["sounds/levelup1.ogg", "Level up", "In the level-won vortex, the farthest gem comes within 80 pixels of the middle (gems move in 1 pixel an update)"],
-      ["sounds/firecrackle.ogg", "Crackle", "The vortex has finished and the gems are gone: the next level's wipe starts; also a lightning gem's blast in a rules mod with special gems"],
+      ["sounds/firecrackle.ogg", "Crackle", "The vortex has finished and the gems are gone: the next level's wipe starts; also a lightning gem's blast in a rules mod with special gems. Also in Bejeweled 2 as Fire crackle (unused)."],
       ["sounds/warning1.ogg", "Warning", "Timed mode: the bar is under 15% full; repeats every 240 updates (2.4 s) at 15%, down to every 80 updates (0.8 s) at 5% and below"]
     ] },
     { name: "Game over", sounds: [
@@ -262,7 +262,7 @@ var ByopopSoundboards = {
     ] },
     { name: "Menus", sounds: [
       ["sounds/menuclick.ogg", "Click", "Any button pressed in the menus and dialogs, and every button of the options dialog (its Done button clicks twice)"],
-      ["sounds/click2.ogg", "Click 2 (unused)", "Never played: it is in the sound table, but no code plays it"],
+      ["sounds/click2.ogg", "Click 2 (unused)", "Never played: it is in the sound table, but no code plays it. Also in Bejeweled 2 as Click 2 (unused)."],
       ["sounds/sidebarclick2.ogg", "Side bar click (unused)", "Never played: it is not in the sound table, so it is never loaded"],
       ["sounds/welcome1.ogg", "Welcome (unused)", "Never played: it is not in the sound table, so it is never loaded"],
       ["sounds/goodbye1.ogg", "\"Goodbye!\" (unused)", "Never played: it is not in the sound table, so it is never loaded"]
@@ -288,7 +288,7 @@ var ByopopSoundboards = {
       ["sounds/mainmenu_gamestart.ogg", "Game start", "A game starts from the main menu, as the board is set up and the portal opens"],
       ["sounds/menuclick.ogg", "Click", "A button goes down on the board (menu, hint), the galaxy map or the high scores (not while it closes), or on the main menu apart from the four game buttons and the secret one"],
       ["sounds/menuclick2.ogg", "Dialog click", "A button goes down in a dialog (Options, name, confirm) or on the puzzle dome; also when an option in Options is switched"],
-      ["sounds/click2.ogg", "Click 2 (unused)", "Never played: the file is not in the game's resource list and no code plays it"],
+      ["sounds/click2.ogg", "Click 2 (unused)", "Never played: the file is not in the game's resource list and no code plays it. Also in Bejeweled as Click 2 (unused)."],
       ["sounds/panelslide1.ogg", "Panel slide", "The high scores panel opens or starts closing; a galaxy map or puzzle dome button is released; Options is closed with OK"],
       ["sounds/Welcome.ogg", "\"Welcome\"", "The main menu opens after the title screen with no player name and no saved player; the name dialog follows 1.25 s later"],
       ["sounds/Welcome_Back.ogg", "\"Welcome back\"", "The main menu opens after the title screen when a player name is set or a saved player exists"],
@@ -296,13 +296,13 @@ var ByopopSoundboards = {
     ] },
     { name: "Swaps and matches", sounds: [
       ["sounds/select.ogg", "Select", "A gem is clicked and becomes the selected one, panned to its side of the board"],
-      ["sounds/bad2.ogg", "Bad swap", "A swap that makes no match is undone, or two gems that are not neighbours are swapped; a locked planet is clicked on the galaxy map"],
-      ["sounds/gotset2.ogg", "Match", "An update finds exactly one set of three or more, with no flame gem made by a gem in two sets; also when the sound volume slider is let go"],
-      ["sounds/gotsetbig2.ogg", "Big match", "One update finds two or more sets at the same time (no gem shared between sets and no four in a row)"],
+      ["sounds/bad2.ogg", "Bad swap", "A swap that makes no match is undone, or two gems that are not neighbours are swapped; a locked planet is clicked on the galaxy map. Also in Bejeweled 3, as sounds/badmove.ogg."],
+      ["sounds/gotset2.ogg", "Match", "An update finds exactly one set of three or more, with no flame gem made by a gem in two sets; also when the sound volume slider is let go. Also in Chuzzle Deluxe, as sounds/Bonus/GotJewel.ogg."],
+      ["sounds/gotsetbig2.ogg", "Big match", "One update finds two or more sets at the same time (no gem shared between sets and no four in a row). Resembles Chuzzle Deluxe's sounds/Bonus/GotJewel.ogg, the same sound, longer."],
       ["sounds/multishot.ogg", "Multi match", "A match makes a flame gem: four in a row, or one gem in two sets (an L, a T or a cross); plays instead of the Match sound"],
-      ["sounds/gemongem2.ogg", "Gems land", "Falling gems land, at most once every 10 updates (0.1 s); also when the logo's face gems land on the title screen"],
+      ["sounds/gemongem2.ogg", "Gems land", "Falling gems land, at most once every 10 updates (0.1 s); also when the logo's face gems land on the title screen. Also in Bejeweled 3, as sounds/gem_hit.ogg. Also in Chuzzle Deluxe, as sounds/Bonus/JewelLand.ogg."],
       ["sounds/combo22.ogg", "Cascade 1", "Together with the match sound, when the move's chain is at its first match (a swap resets the chain)"],
-      ["sounds/combo32.ogg", "Cascade 2", "Together with the match sound, for the second match of a move: one fall of new gems after the first"],
+      ["sounds/combo32.ogg", "Cascade 2", "Together with the match sound, for the second match of a move: one fall of new gems after the first. Also in Bejeweled 3, as sounds/combo_2.ogg. Resembles Bejeweled 3's sounds/speedmatch3.ogg, sounds/speedmatch4.ogg, sounds/speedmatch5.ogg, sounds/speedmatch6.ogg, sounds/speedmatch7.ogg, sounds/speedmatch8.ogg and sounds/speedmatch9.ogg, the same sound, mixed differently."],
       ["sounds/combo42.ogg", "Cascade 3", "Together with the match sound, for the third match of a move"],
       ["sounds/combo52.ogg", "Cascade 4", "Together with the match sound, for the fourth match of a move"],
       ["sounds/combo62.ogg", "Cascade 5", "Together with the match sound, for the fifth match of a move"],
@@ -326,7 +326,6 @@ var ByopopSoundboards = {
       ["sounds/Go.ogg", "\"Go\"", "3 s (300 updates) after a board opens, 0.5 s after Play Again, 0.75 s after Continue on a planet; not while the board slides out"],
       ["sounds/whirlpool1.ogg", "Whirlpool", "A whirlpool warp begins: a level is won and its score has counted up, another planet is chosen, the puzzle dome is clicked, or a secret puzzle run ends"],
       ["sounds/Level_Complete.ogg", "\"Level complete\"", "The level bar is full (not in Puzzle), the board has settled and nothing is still clearing; the whirlpool follows when the score is counted"],
-      ["sounds/firecrackle.ogg", "Fire crackle (unused)", "Never played: it is loaded, but no code plays it, by id or by number"],
       ["sounds/warning1.ogg", "Warning", "A timed (Action) game's bar is under 15% and has stopped moving: every 0.8 s to 2.4 s, faster as the bar empties; not once the game is over"]
     ] },
     { name: "Puzzles", sounds: [
@@ -342,6 +341,9 @@ var ByopopSoundboards = {
       ["sounds/Time_Up.ogg", "\"Time up\"", "A timed (Action) game's bar runs out while the board is idle; the explosion follows 2 s later"],
       ["sounds/Game_Over.ogg", "\"Game over\" (unused)", "Never played: it is loaded, but the game ends with the No more moves or Time up voice instead"],
       ["sounds/A_New_High_Score.ogg", "\"A new high score\"", "A game ends and its final score earns a place (rank 1 to the list's end) on the high scores"]
+    ] },
+    { name: "Bejeweled leftovers", sounds: [
+      ["sounds/firecrackle.ogg", "Fire crackle (unused)", "Never played: it is loaded, but no code plays it, by id or by number. Also in Bejeweled as Crackle: the vortex has finished and the gems are gone."]
     ] }
   ] },
   bejeweledtwist: {
@@ -376,16 +378,16 @@ var ByopopSoundboards = {
       ["sounds/zenstart.ogg", "Zen start", "A Zen game starts, new or continued; no other mode plays it"],
       ["sounds/typewriter1.ogg", "Typewriter", "A letter, digit or space is typed into a name box; other keys make no sound"],
       ["sounds/screenprint.ogg", "Screen print", "A high scores category is picked by a click, so its page prints on (it does not play when the page is set at once)"],
-      ["sounds/transfer.ogg", "Volume check", "The Sound volume slider in Options is let go (not while it is being dragged)"],
+      ["sounds/transfer.ogg", "Volume check", "The Sound volume slider in Options is let go (not while it is being dragged). Also in Chuzzle Deluxe, as sounds/Bonus/GotJewel.ogg."],
       ["sounds/bubblepop.ogg", "Dialog pop", "Any dialog pops up"],
       ["sounds/voice_goodbye.ogg", "\"Goodbye\"", "Quit is confirmed in the quit dialog; the game closes once the voice has finished"]
     ] },
     { name: "Starting and the cursor", sounds: [
       ["sounds/voice_go.ogg", "\"Go!\"", "The board has settled and its wait is over: at a game's start (not Blitz, not in the tutorial; a Zen jump tip can come first) and 1 s after each level's start"],
       ["sounds/select.ogg", "Cursor tick", "The cursor moves onto a different gem while it is shown and input is free (not in a solved puzzle); panned to the gem's column"],
-      ["sounds/start_rotate.ogg", "Twist start", "A group of four gems starts to turn: normal pitch if the twist will make a match, 5 steps lower if it will not"],
+      ["sounds/start_rotate.ogg", "Twist start", "A group of four gems starts to turn: normal pitch if the twist will make a match, 5 steps lower if it will not. Also in Bejeweled 3, as sounds/start_rotate.ogg."],
       ["sounds/gem_prelock.ogg", "Gem about to lock", "A gem is marked for a lock, two twists from locking (matching it first saves it); also when a doom gem is placed"],
-      ["sounds/badmove.ogg", "Bad move", "A twist is tried before the level starts or locked gems block it; also a twist ends with no match (not in Challenge), 2 steps lower"],
+      ["sounds/badmove.ogg", "Bad move", "A twist is tried before the level starts or locked gems block it; also a twist ends with no match (not in Challenge), 2 steps lower. Also in Bejeweled 3, as sounds/badmove.ogg."],
       ["sounds/tutorial_snap.ogg", "Tutorial snap", "The cursor is moved onto the gem a tutorial step points at"],
       ["sounds/tutorial-match.ogg", "Tutorial match", "The gems of a twist land while the match flash is up: a twist about to make the first flame or electro gem, in Classic or Zen, before its tip has been shown"],
       ["sounds/tutorialcomplete.ogg", "Tutorial done", "The tutorial's last step shows its graduation dialog"],
@@ -394,17 +396,17 @@ var ByopopSoundboards = {
     ] },
     { name: "Matches and chains", sounds: [
       ["sounds/combo_1.ogg", "Match 1 (unused)", "Never played: a twist's first match counts as chain step 1 and the code adds that to this sound's number, so the first match plays Match 2"],
-      ["sounds/combo_2.ogg", "Match 2", "The 1st match of a twist (step 1 of its chain), when no match in it has six or more gems; also when the wheel's bomb is disarmed"],
+      ["sounds/combo_2.ogg", "Match 2", "The 1st match of a twist (step 1 of its chain), when no match in it has six or more gems; also when the wheel's bomb is disarmed. Also in Bejeweled 3, as sounds/combo_2.ogg. Resembles Bejeweled 3's sounds/speedmatch3.ogg, sounds/speedmatch4.ogg, sounds/speedmatch5.ogg, sounds/speedmatch6.ogg, sounds/speedmatch7.ogg, sounds/speedmatch8.ogg and sounds/speedmatch9.ogg, the same sound, mixed differently."],
       ["sounds/combo_3.ogg", "Match 3", "The 2nd match of a twist (chain step 2), when no match in it has six or more gems"],
       ["sounds/combo_4.ogg", "Match 4", "The 3rd match of a twist (chain step 3), when no match in it has six or more gems"],
       ["sounds/combo_5.ogg", "Match 5", "The 4th match of a twist (chain step 4), when no match in it has six or more gems"],
       ["sounds/combo_6.ogg", "Match 6", "The 5th match of a twist (chain step 5), when no match in it has six or more gems"],
       ["sounds/combo_7.ogg", "Match 7", "The 6th match of a twist and every one after it (chain step 6 and up), when no match in it has six or more gems"],
-      ["sounds/sixmatch.ogg", "Six-gem match", "A match of six or more gems is found, instead of the Match sound of that step; pitched one step higher for each gem beyond six"],
+      ["sounds/sixmatch.ogg", "Six-gem match", "A match of six or more gems is found, instead of the Match sound of that step; pitched one step higher for each gem beyond six. Resembles Bejeweled 3's sounds/quest_get.ogg, the same sound, mixed differently."],
       ["sounds/doubleset.ogg", "Double set", "Two or more sets are matched in the same step: normal pitch for two, one step higher for three or more"],
       ["sounds/chainx1.ogg", "Chain note", "A twist's first match joins the chain of matching twists: two notes an octave apart, climbing a step with each link and wrapping every 12"],
       ["sounds/chainparticle1.ogg", "Chain smoke", "A yellow puff of smoke released by the level bar itself reaches its light; the smoke that carries points there is silent"],
-      ["sounds/gem_hit.ogg", "Gem lands", "Falling gems land (fruit gems do not count), at most once every 10 updates (0.1 s), panned to where they landed"],
+      ["sounds/gem_hit.ogg", "Gem lands", "Falling gems land (fruit gems do not count), at most once every 10 updates (0.1 s), panned to where they landed. Also in Bejeweled 3, as sounds/gem_hit.ogg. Also in Chuzzle Deluxe, as sounds/Bonus/JewelLand.ogg."],
       ["sounds/speedbonus.ogg", "Speed bonus", "Every 6th quick twist in a row (each within 1 s of the last) gives a bonus: 500, 1000, then 2000 points; pitch rises with the bonus level"],
       ["sounds/multiplier_up2_1.ogg", "Level up 1 (unused)", "Never played: the multiplier starts at 1, and a rise to level 2 plays Level up 3, so this one is never chosen"],
       ["sounds/multiplier_up2_2.ogg", "Level up 2 (unused)", "Never played: the code picks the file by the new level plus one, starting from level 2, so this one is skipped"],
@@ -420,7 +422,7 @@ var ByopopSoundboards = {
     ] },
     { name: "Special gems", sounds: [
       ["sounds/powergem_created.ogg", "Flame gem made", "A gem becomes a flame gem (a match of four); not while the board fills quietly, as when a game is loaded"],
-      ["sounds/preblast.ogg", "Flame gem charging", "A flame gem goes off: it plays at the instant of the blast, together with Flame gem blast, and starts the first-flame tip once per player"],
+      ["sounds/preblast.ogg", "Flame gem charging", "A flame gem goes off: it plays at the instant of the blast, together with Flame gem blast, and starts the first-flame tip once per player. Also in Bejeweled 3, as sounds/preblast.ogg."],
       ["sounds/gem_shatters.ogg", "Flame gem blast", "A flame gem goes off, blasting the gems one cell around it, at the same instant as Flame gem charging"],
       ["sounds/electrogem_created.ogg", "Electro gem made", "A gem becomes an electro gem (a match of five); not while the board fills quietly"],
       ["sounds/electro_start1.ogg", "Electro start", "A plain electro gem is matched and goes off; a flame electro gem plays Flame electro instead"],
@@ -437,20 +439,20 @@ var ByopopSoundboards = {
       ["sounds/gem_lock_end.ogg", "Lock closes", "A new lock finishes closing over its gem, 50 updates (0.5 s) after Lock starts; a doom lock becomes a doom gem with a count then"],
       ["sounds/gem_lock_break.ogg", "Lock breaks", "A match breaks the lock on a gem, shattering it into shards"],
       ["sounds/coal_blasted.ogg", "Coal blasted", "A coal gem is broken by a match or blast next to it, shedding its pieces"],
-      ["sounds/geode.ogg", "Geode", "A geode pops and shows its points, pitched up one step for each geode before it (at most 10); also each rank bonus light that fills, up to 6 steps up"],
+      ["sounds/geode.ogg", "Geode", "A geode pops and shows its points, pitched up one step for each geode before it (at most 10); also each rank bonus light that fills, up to 6 steps up. Also in Bejeweled 3, as sounds/rank_countup.ogg."],
       ["sounds/soulify.ogg", "Gem becomes a soul", "A gem is turned into a soul, 80 updates (0.8 s) after the soul effect starts"],
       ["sounds/gemsoul-lands3.ogg", "Soul lands", "A soul lands on the board and gives its gem its special; at most one sound every 2 updates, and one more when the first soul lands"]
     ] },
     { name: "Bombs and counters", sounds: [
       ["sounds/gem_countdown.ogg", "Counter gem falls", "A countdown gem lands for the first time (not in Puzzle)"],
       ["sounds/counter_warning.ogg", "Counter warning", "After a move, the lowest countdown gem shows 5 or fewer: the pitch starts 3 steps below normal at 5 and rises one step for each number it falls"],
-      ["sounds/gem_countdown_destroyed.ogg", "Counter gem destroyed", "A countdown gem is matched and defused; also when a new row slides into the high scores list, 3 steps up"],
+      ["sounds/gem_countdown_destroyed.ogg", "Counter gem destroyed", "A countdown gem is matched and defused; also when a new row slides into the high scores list, 3 steps up. Resembles Bejeweled 3's sounds/gem_countdown_destroyed.ogg, the same sound, mixed differently."],
       ["sounds/bomb_explode.ogg", "Bomb explodes", "A countdown gem reaches zero; also when a burst goes off (once per update), a nuke's blast grows past 1.6, and the end glass hits the floor"],
       ["sounds/doomgem_appears.ogg", "Doom gem appears", "A plain gem inside the board's border that no twist would match is turned into a doom gem"],
-      ["sounds/doomgem_countdown.ogg", "Doom gem ticks", "A doom gem's count drops by one with each move, and when a doom lock closes into its doom gem with its count"],
+      ["sounds/doomgem_countdown.ogg", "Doom gem ticks", "A doom gem's count drops by one with each move, and when a doom lock closes into its doom gem with its count. Resembles Bejeweled 3's sounds/bomb_appears.ogg, the same sound, mixed differently."],
       ["sounds/doomgem_destroyed.ogg", "Doom gem destroyed", "A doom gem is matched or blasted"],
       ["sounds/doomgemgameover.ogg", "Doom gem game over", "The game ends by a nuke caused by a doom gem going off"],
-      ["sounds/endfinal6b.ogg", "Board blows up", "The game ends by a nuke: a countdown gem is the one that ended it, or the wheel stopped on a bad slot"]
+      ["sounds/endfinal6b.ogg", "Board blows up", "The game ends by a nuke: a countdown gem is the one that ended it, or the wheel stopped on a bad slot. Resembles Bejeweled 3's sounds/timebombexplode.ogg, the same sound, mixed differently."]
     ] },
     { name: "Time and levels", sounds: [
       ["sounds/voice_thirtyseconds.ogg", "\"Thirty seconds\"", "The Blitz clock's seconds left reach 30"],
@@ -479,7 +481,7 @@ var ByopopSoundboards = {
       ["sounds/zentransition3.ogg", "Zen change 3", "The Zen picture's second change passes 30% of its run, 1.5 s after the first one finishes"],
       ["sounds/spinsequencer1.ogg", "Spin sequence", "A countdown gem reaches zero and the skull wheel starts to spin up"],
       ["sounds/rewind.ogg", "Rewind", "A move is run backwards in a replay; it loops until the replay moves on"],
-      ["sounds/replay_popup.ogg", "Replay pops up", "The replay pod rises, in Classic or Zen only, once the board has settled after the first flame gem or the first geode of a player"]
+      ["sounds/replay_popup.ogg", "Replay pops up", "The replay pod rises, in Classic or Zen only, once the board has settled after the first flame gem or the first geode of a player. Resembles Bejeweled 3's sounds/replay_popup.ogg, the same sound, mixed differently."]
     ] },
     { name: "The wheel", sounds: [
       ["sounds/x_spinnerappears1.ogg", "Wheel appears", "The skull wheel has opened fully and its slots come into view"],
@@ -505,7 +507,7 @@ var ByopopSoundboards = {
       ["sounds/voice_newchallengeunlocked.ogg", "\"New challenge unlocked\"", "The challenge screen's dimming passes 90% while a new challenge is announced"],
       ["sounds/gameunlocked.ogg", "Mode unlocked", "A game mode is unlocked for the profile for the first time, as its banner comes up"],
       ["sounds/lightbar_blink.ogg", "Rank light", "The rank bonus bar fills a slot and lights up"],
-      ["sounds/rank_completion.ogg", "Rank complete", "Continue is pressed on an award screen, or the rank bonus screen is clicked once it is filled"],
+      ["sounds/rank_completion.ogg", "Rank complete", "Continue is pressed on an award screen, or the rank bonus screen is clicked once it is filled. Resembles Bejeweled 3's sounds/multiplier_appears.ogg, the same sound, mixed differently."],
       ["sounds/trophy_awarded.ogg", "Trophy", "A trophy or award is shown: the credits open, the fruit award screen starts, and an award screen's text fades in (about 40% in)"],
       ["sounds/eclipseintro1.ogg", "Eclipse intro (unused)", "Never played: it is loaded, but no code plays it, by id or by number, in the port or in the original"],
       ["sounds/badloop.ogg", "Bad loop (trial only)", "Trial only: the unregistered game's trial limit dialog sets up this looping sound when it opens; the port removed the dialog"],
@@ -548,7 +550,7 @@ var ByopopSoundboards = {
       ["sounds/clearcoins.ogg", "Clear, small", "A click clears a group of 2 to 4 coins; also when a pickpocket clears a group"],
       ["sounds/clearcoins2.ogg", "Clear, medium", "A click clears a group of 5 to 9 coins"],
       ["sounds/clearcoins3.ogg", "Clear, big", "A click clears a group of 10 coins or more"],
-      ["sounds/tone1.ogg", "Tone 1", "After a Strategy or Action clear, when the meter is less than 1/9 full; in the Puzzle end sweep, the first scoring row"],
+      ["sounds/tone1.ogg", "Tone 1", "After a Strategy or Action clear, when the meter is less than 1/9 full; in the Puzzle end sweep, the first scoring row. Also in Insaniquarium Deluxe, as sounds/bonuscollect.ogg."],
       ["sounds/tone2.ogg", "Tone 2", "After a Strategy or Action clear, when the meter is 1/9 to under 2/9 full; in the Puzzle end sweep, the second scoring row"],
       ["sounds/tone3.ogg", "Tone 3", "After a Strategy or Action clear, when the meter is 2/9 to under 3/9 full; in the Puzzle end sweep, the third scoring row"],
       ["sounds/tone4.ogg", "Tone 4", "After a Strategy or Action clear, when the meter is 3/9 to under 4/9 full; in the Puzzle end sweep, the fourth scoring row"],
@@ -559,7 +561,7 @@ var ByopopSoundboards = {
       ["sounds/tone9.ogg", "Tone 9", "After a Strategy or Action clear, when the meter is 8/9 full or more; in the Puzzle end sweep, the ninth scoring row and every one after"],
       ["sounds/tonepuzzle.ogg", "Puzzle tone", "After every click's clear in the Puzzle game (it replaces the meter tones there)"],
       ["sounds/cointube.ogg", "Coin in meter", "Each cleared coin that runs down the tube and reaches the meter"],
-      ["sounds/explode.au", "Coin blast", "A dollar bomb goes off and the coins of its colour explode one after another, each with this sound"]
+      ["sounds/explode.au", "Coin blast", "A dollar bomb goes off and the coins of its colour explode one after another, each with this sound. Also in Peggle Deluxe, Peggle Extreme, Peggle Nights and Peggle World of Warcraft Edition, as sounds/explode.ogg. Also in Insaniquarium Deluxe, as sounds/explode.au."]
     ] },
     { name: "Bags and bonuses", sounds: [
       ["sounds/bonusdrop.au", "Bag drops", "The meter becomes full while playing and a moneybag drops in; the meter empties"],
@@ -584,10 +586,10 @@ var ByopopSoundboards = {
       ["sounds/one.ogg", "\"One\"", "After a Strategy click or move that leaves exactly 1 move; in Action, 2 s into the 3 s overflow countdown, before the game ends at 3 s"],
       ["sounds/warning.ogg", "Warning", "Action: coins within 2 rows of the top, every 1.2 s falling to 0.4 s as they rise; Strategy and Puzzle: coins at the top row, every 1.5 s (150 updates)"],
       ["sounds/levelup.ogg", "\"Level up!\"", "The bags a level needs are banked and the level is complete, as the bills fall and the board falls away"],
-      ["sounds/gameovertone.ogg", "Game over tone", "The game ends: coins overflow the top in Strategy or Puzzle, or the 3 s countdown ends in Action"],
+      ["sounds/gameovertone.ogg", "Game over tone", "The game ends: coins overflow the top in Strategy or Puzzle, or the 3 s countdown ends in Action. Also in BookWorm as Game over tone (unused)."],
       ["sounds/gameover.ogg", "\"Game over\"", "After the game ends, once the board's last coins have been flung away and no loose pieces are left"],
       ["sounds/anewhighscore.ogg", "\"A new high score!\"", "The high scores open on a final score that is the best of today or earns a rank on the list"],
-      ["sounds/bad.ogg", "Bad (trial only)", "Trial only: played when an invalid registration code is typed in; the port removed that path"]
+      ["sounds/bad.ogg", "Bad (trial only)", "Trial only: played when an invalid registration code is typed in; the port removed that path. Also in BookWorm as Bad (unused). Also in Peggle Deluxe, Peggle Extreme, Peggle Nights and Peggle World of Warcraft Edition, as sounds/pegpop.ogg."]
     ] },
   ] },
   bonnies: {
@@ -686,7 +688,7 @@ var ByopopSoundboards = {
       ["sounds/wordcomplete.ogg", "Word scored", "A word with no fire tile is scored; also an Action level's time bonus (the next level starts with the countdown under 10 while Lex sweats)"],
       ["sounds/redtilecleared.ogg", "Fire word scored", "A word containing at least one fire tile is scored (it replaces the usual word-scored sound)"],
       ["sounds/chomp.ogg", "Chomp", "A scored word's tile reaches Lex's mouth, at most once every 4 updates (0.04 s), so a long word chomps several times"],
-      ["sounds/bad.ogg", "Bad (unused)", "Never played: it is loaded, but no code asks for it (a wrong word plays the buzzer)"]
+      ["sounds/bad.ogg", "Bad (unused)", "Never played: it is loaded, but no code asks for it (a wrong word plays the buzzer). Also in Alchemy as Bad move: a click on the grid with a tile held when the tile cannot go there, an off-grid click too. Also in Big Money as Bad (trial only): played when an invalid registration code is typed in. Also in Peggle Deluxe, Peggle Extreme, Peggle Nights and Peggle World of Warcraft Edition, as sounds/pegpop.ogg."]
     ] },
     { name: "Word notes", sounds: [
       ["sounds/up1.ogg", "1st letter", "After a word is scored, 20 updates (0.2 s) later; one note per letter follows every 10 updates (0.1 s), rising up to the 8th"],
@@ -709,7 +711,7 @@ var ByopopSoundboards = {
     { name: "Danger and game over", sounds: [
       ["sounds/warning.ogg", "Warning", "Classic: three beeps 64 updates (0.64 s) apart when a fire tile reaches the bottom row; one beep with the first fire-tile hint; Action: every 100 updates (1 s) while Lex sweats"],
       ["sounds/screenburngameover.ogg", "\"The end!\"", "A fire tile on the bottom row ends the game (Classic: not in the selection; Action: countdown below 0); when the fire line's delay runs out, once Lex is idle"],
-      ["sounds/gameovertone.ogg", "Game over tone (unused)", "Never played: it is loaded, but no code asks for it (game over plays the screen-burn clip)"]
+      ["sounds/gameovertone.ogg", "Game over tone (unused)", "Never played: it is loaded, but no code asks for it (game over plays the screen-burn clip). Also in Big Money as Game over tone: the game ends."]
     ] },
     { name: "Menus", sounds: [
       ["sounds/buttonclick.ogg", "Click", "Any button is pressed: title, game selector, board, dialogs, options, help, journal, fame, level summary; also Lex is clicked"],
@@ -732,7 +734,7 @@ var ByopopSoundboards = {
     { name: "Main menu voices", sounds: [
       ["sounds/v_adventure.ogg", "\"Adventure\"", "Lex reacts when the pointer moves onto the Adventure item of the main menu"],
       ["sounds/v_arena.ogg", "\"Arena\"", "Lex reacts when the pointer moves onto the Arena item of the main menu"],
-      ["sounds/v_clipsandgiggles.ogg", "\"Clips and Giggles\"", "Lex reacts when the pointer moves onto the film reel item of the main menu"],
+      ["sounds/v_clipsandgiggles.ogg", "\"Clips and Giggles\"", "Lex reacts when the pointer moves onto the film reel item of the main menu. Also in Bookworm Adventures Volume 2 as \"Clips and giggles\" (unused)."],
       ["sounds/v_dontleaveme.ogg", "\"Don't leave me\"", "The quit confirmation opens on the main menu"],
       ["sounds/v_halloffame.ogg", "\"Hall of Fame\"", "Lex reacts when the pointer moves onto the Hall of Fame item of the main menu"],
       ["sounds/v_minigames.ogg", "\"Mini-games\"", "Lex reacts when the pointer moves onto the Mini-games item of the main menu"],
@@ -745,7 +747,7 @@ var ByopopSoundboards = {
       ["sounds/buzzer.ogg", "Word refused", "A word is refused in timed mode, submit is pressed with no valid word, or a potion is clicked while it cannot be used"],
       ["sounds/gemspawn.ogg", "Gem appears", "A gem appears on a tile (the tutorial, the letter mini-games and some creatures do this)"],
       ["sounds/sheepbleat.ogg", "Sheep bleat", "A hidden word is spelled; also a sheep, ewe, ram or goat creature bleats"],
-      ["sounds/sloooowdown.ogg", "Slow down", "A hidden word is spelled outside the mini-games"],
+      ["sounds/sloooowdown.ogg", "Slow down", "A hidden word is spelled outside the mini-games. Also in Bookworm Adventures Volume 2 as Sloooowdown (unused)."],
       ["sounds/tile_select.ogg", "Tile select", "A letter tile is picked on the board, or a potion is picked by its number key"],
       ["sounds/v_cashmoney.ogg", "\"Cash money\"", "A hidden word is spelled"],
       ["sounds/v_iloveyou.ogg", "\"I love you\"", "A hidden word is spelled"],
@@ -777,7 +779,7 @@ var ByopopSoundboards = {
       ["sounds/swordspearimpact_withwoosh.ogg", "Sword with woosh", "Lex's word attack lands (his default attack and many creatures' fights use it)"]
     ] },
     { name: "Battle", sounds: [
-      ["sounds/low_health.wav", "Low health", "Lex has little health left, in a fight or in a mini-game"],
+      ["sounds/low_health.wav", "Low health", "Lex has little health left, in a fight or in a mini-game. Also in Zuma's Revenge, as sounds/challenge_countdown.ogg."],
       ["sounds/v_bossbattle.ogg", "\"Boss battle\"", "A boss fight begins, after the boss has opened it"],
       ["sounds/warpin.ogg", "Warp in", "Lex warps into a chapter, or a mirage creature appears"],
       ["sounds/warpout.ogg", "Warp out", "Lex warps out of a chapter"]
@@ -785,7 +787,7 @@ var ByopopSoundboards = {
     { name: "Rewards", sounds: [
       ["sounds/chaching.ogg", "Cash register", "Coins are counted up in a mini-game; the Mirage Trojan fight uses it too"],
       ["sounds/crowdcheer.ogg", "Crowd cheers", "A fight is won, a level is gained or a mini-game ends well"],
-      ["sounds/firework1.ogg", "Firework 1", "The level-up effect and fight-won effect fire a rocket"],
+      ["sounds/firework1.ogg", "Firework 1", "The level-up effect and fight-won effect fire a rocket. Also in Bejeweled 3, as sounds/firework_thump.ogg."],
       ["sounds/firework2.ogg", "Firework 2", "The level-up effect and fight-won effect fire a rocket"],
       ["sounds/lex_levelup.ogg", "\"Level up\"", "Lex gains a level"],
       ["sounds/newtreasure.ogg", "\"New treasure!\"", "A treasure is won at the end of a fight, or shown on the treasure screen"],
@@ -813,7 +815,7 @@ var ByopopSoundboards = {
       ["sounds/boardstunned_01.ogg", "Board stunned", "A creature stuns the board so no word can be made"],
       ["sounds/fire1.ogg", "Fire effect", "A fire effect begins (about ten creatures)"],
       ["sounds/ice1.ogg", "Frozen effect", "A frozen effect begins"],
-      ["sounds/ice4.ogg", "Petrify effect", "A petrify effect begins"],
+      ["sounds/ice4.ogg", "Petrify effect", "A petrify effect begins. Also in Zuma's Revenge, as sounds/freeze.ogg."],
       ["sounds/lightning_attack_01.ogg", "Lightning", "A lightning attack lands (Circe, Hydra, Sea Elemental and wizards)"],
       ["sounds/lockit.ogg", "Tile locked", "A creature locks tiles (about a dozen creatures)"],
       ["sounds/petrify_attack_01.ogg", "Tiles petrified", "A creature turns tiles to stone (Basilisk, Medusa and others)"],
@@ -847,17 +849,17 @@ var ByopopSoundboards = {
       ["sounds/male_low_pain.ogg", "Male low pain", "Death sound of Firebreather; Attack or hit of Nessus, Thieves 4-5, Shaitan and 1 more (Arena too)"],
       ["sounds/male_low_warcry.ogg", "Male low warcry", "Opening sound of Nessus, Firebreather, Cannoneer and 5 more; Death sound of Thieves 4-5; Attack or hit of Shaitan (Arena too)"],
       ["sounds/male_pain.ogg", "Male pain", "Death sound of Swashbuckler, Warrenstein, Fallen Swashbuckler Hero; Attack or hit of Bandit, Sword Swallower, Thieves 9-11 and 3 more (Arena too)"],
-      ["sounds/moan_01.ogg", "Moan 1", "Death sound of Bandit, Sword Swallower, Highwayman; Attack or hit of Alexander, Polydamas, Trojan Captain and 8 more (Arena too)"],
+      ["sounds/moan_01.ogg", "Moan 1", "Death sound of Bandit, Sword Swallower, Highwayman; Attack or hit of Alexander, Polydamas, Trojan Captain and 8 more (Arena too). Also in Bookworm Adventures Volume 2 as Moan 1 (unused)."],
       ["sounds/witch_groan_01.ogg", "Witch groan 1", "Opening sound of Deino, Enyo, Pemphredo; Death sound of Haggard Heckler; Attack or hit of Wandering Hag, Connystein, Quag Hag"],
       ["sounds/witchy_laugh_01.ogg", "Witchy laugh 1", "Opening sound of Haggard Heckler, Quag Hag; Attack or hit of Deino, Enyo, Pemphredo and 1 more"],
       ["sounds/witchy_laugh_02.ogg", "Witchy laugh 2", "Opening sound of Scylla, Sea Witch, Harpy and 3 more; Death sound of Deino, Enyo, Pemphredo; Attack or hit of Mirage Skeleton, Haggard Heckler"]
     ] },
     { name: "Animals", sounds: [
-      ["sounds/bat_death_01.ogg", "Bat death 1", "Attack or hit of Mama Roc (Arena too)"],
+      ["sounds/bat_death_01.ogg", "Bat death 1", "Attack or hit of Mama Roc (Arena too). Also in Bookworm Adventures Volume 2 as Bat death 1 (unused)."],
       ["sounds/dog_barking_01.ogg", "Dog barking 1", "Opening sound of Thieves 6-8, Wolf Pack; Attack or hit of Orthrus, Flying Wolf, Carrion Dog"],
       ["sounds/dog_barking_02.ogg", "Dog barking 2", "Opening sound of War Hound, Enchanted Hound, Flying Wolf; Attack or hit of Thieves 6-8, Undead Hound"],
       ["sounds/dog_whimper_01.ogg", "Dog whimper 1", "Death sound of War Hound, Enchanted Hound, Wolf Pack and 1 more; Attack or hit of Thieves 6-8"],
-      ["sounds/eagle_cry_01.ogg", "Eagle cry 1", "Opening sound of Enchanted Eagle, Griffon, Bronze Stymphalian and 3 more; Death sound of Bronze Stymphalian, Steel Stymphalian, Roc Hatchling; Attack or hit of Mama Roc (Arena too)"],
+      ["sounds/eagle_cry_01.ogg", "Eagle cry 1", "Opening sound of Enchanted Eagle, Griffon, Bronze Stymphalian and 3 more; Death sound of Bronze Stymphalian, Steel Stymphalian, Roc Hatchling; Attack or hit of Mama Roc (Arena too). Also in Bookworm Adventures Volume 2 as Eagle cry 1 (unused)."],
       ["sounds/feline_whimper_01.ogg", "Feline whimper 1", "Opening sound of Carrion Dog; Death sound of Bilge Dog, Flying Wolf; Attack or hit of Enchanted Lion, Nemean Lion, Wolfman (Arena too)"],
       ["sounds/feline_whimper_02.ogg", "Feline whimper 2", "Opening sound of Orthrus, Undead Hound, Bilge Dog; Death sound of Nemean Lion; Attack or hit of Cerberus, Wolfman, Codex (Arena too)"],
       ["sounds/generic_slosh_02.ogg", "Generic slosh 2", "Opening sound of Sea Elemental, Air Spirit; Attack or hit of Helead, Deck Swabber, Hateful Housemaid and 2 more"],
@@ -870,25 +872,25 @@ var ByopopSoundboards = {
       ["sounds/dragon_bite.ogg", "Dragon bite", "Opening sound of Bayou Beast; Attack or hit of Hydra, Basilisk, Greater Basilisk and 1 more"],
       ["sounds/dragon_death.ogg", "Dragon death", "Death sound of Hydra, Basilisk, Greater Basilisk and 2 more; Attack or hit of The Mummy (Arena too)"],
       ["sounds/dragon_pain.ogg", "Dragon pain", "Attack or hit of Kraken, Basilisk, Greater Basilisk and 2 more (Arena too)"],
-      ["sounds/dragon_roar.ogg", "Dragon roar", "Opening sound of Kraken, Hydra, Basilisk and 2 more; Attack or hit of Kraken, Bilge Dog"],
-      ["sounds/elephant_01.ogg", "Elephant 1", "Opening sound of Elephant, Mirage Skeleton"],
-      ["sounds/elephant_death_01.ogg", "Elephant death 1", "Opening sound of Bull Elephant"],
-      ["sounds/elephant_death_02.ogg", "Elephant death 2", "Death sound of Elephant"],
-      ["sounds/elephant_death_03.ogg", "Elephant death 3", "Death sound of Bull Elephant"],
+      ["sounds/dragon_roar.ogg", "Dragon roar", "Opening sound of Kraken, Hydra, Basilisk and 2 more; Attack or hit of Kraken, Bilge Dog. Also in Bookworm Adventures Volume 2 as Dragon roar (unused)."],
+      ["sounds/elephant_01.ogg", "Elephant 1", "Opening sound of Elephant, Mirage Skeleton. Also in Bookworm Adventures Volume 2 as Elephant 1 (unused)."],
+      ["sounds/elephant_death_01.ogg", "Elephant death 1", "Opening sound of Bull Elephant. Also in Bookworm Adventures Volume 2 as Elephant death 1 (unused)."],
+      ["sounds/elephant_death_02.ogg", "Elephant death 2", "Death sound of Elephant. Also in Bookworm Adventures Volume 2 as Elephant death 2 (unused)."],
+      ["sounds/elephant_death_03.ogg", "Elephant death 3", "Death sound of Bull Elephant. Also in Bookworm Adventures Volume 2 as Elephant death 3 (unused)."],
       ["sounds/generic_animal_grumble_01.ogg", "Generic animal grumble 1", "Opening sound of Cerberus, Minotaur, Nemean Lion; Death sound of Chimera, Minotaur (Arena too)"],
       ["sounds/giantgruntdry1.ogg", "Giant grunt dry 1", "Opening sound of Cyclops Herder, Cyclops Warrior; Attack or hit of Polyphemus, Manticore, Minotaur and 1 more (Arena too)"],
       ["sounds/giantgruntecho2.ogg", "Giant grunt echo 2", "Death sound of Cyclops Herder, Cyclops Warrior, Polyphemus and 1 more; Attack or hit of The Creature (Arena too)"],
-      ["sounds/kubwa_barh.ogg", "Kubwa barh", "Attack or hit of Thieves 12-14 (Arena too)"],
-      ["sounds/kubwa_greeting.ogg", "Kubwa greeting", "Used in the Arena fights"],
-      ["sounds/kubwa_greeting2.ogg", "Kubwa greeting 2", "Opening sound of Thieves 12-14 (Arena too)"],
+      ["sounds/kubwa_barh.ogg", "Kubwa barh", "Attack or hit of Thieves 12-14 (Arena too). Also in Bookworm Adventures Volume 2 as Kubwa barh (unused)."],
+      ["sounds/kubwa_greeting.ogg", "Kubwa greeting", "Used in the Arena fights. Also in Bookworm Adventures Volume 2 as Kubwa greeting (unused)."],
+      ["sounds/kubwa_greeting2.ogg", "Kubwa greeting 2", "Opening sound of Thieves 12-14 (Arena too). Also in Bookworm Adventures Volume 2 as Kubwa greeting 2 (unused)."],
       ["sounds/kubwa_roar.ogg", "Kubwa roar", "Death sound of Thieves 12-14 (Arena too)"],
-      ["sounds/roar_01.ogg", "Roar 1", "Opening sound of Charybdis, Enchanted Lion, Phantom and 2 more; Attack or hit of Griffon (Arena too)"]
+      ["sounds/roar_01.ogg", "Roar 1", "Opening sound of Charybdis, Enchanted Lion, Phantom and 2 more; Attack or hit of Griffon (Arena too). Also in Bookworm Adventures Volume 2 as Roar 1 (unused)."]
     ] },
     { name: "Spirits and magic", sounds: [
       ["sounds/fading_ghostly_wail_01.ogg", "Fading ghostly wail 1", "Opening sound of Banshee, Manes, Tombstone Gargoyle and 1 more; Death sound of Medusa, Sphinx, Flying Armor; Attack or hit of Phantom, Grim (Arena too)"],
       ["sounds/fading_ghostly_wail_02.ogg", "Fading ghostly wail 2", "Opening sound of Medusa, Flying Armor, Necromancer; Death sound of Charybdis, Banshee, Manes and 4 more; Attack or hit of Hypnotist (Arena too)"],
       ["sounds/fading_ghostly_wail_03.ogg", "Fading ghostly wail 3", "Opening sound of Shade, Specter, Embalmed Guardian and 1 more; Death sound of Mummified Servant, Tombstone Gargoyle, Gargoyle; Attack or hit of Manes, Grim (Arena too)"],
-      ["sounds/pulsing_attack_01.ogg", "Pulsing attack 1", "Attack or hit of Circe, Dryad, Helead and 3 more (Arena too)"],
+      ["sounds/pulsing_attack_01.ogg", "Pulsing attack 1", "Attack or hit of Circe, Dryad, Helead and 3 more (Arena too). Also in Bookworm Adventures Volume 2 as Pulsing attack 1 (unused)."],
       ["sounds/skeleton_warcry_01.ogg", "Skeleton warcry 1", "Opening sound of Limping Leper, Disturbed Skeleton, Ghoul Minion"],
       ["sounds/sonic_attack_02.ogg", "Sonic attack 2", "Opening sound of Hypnotist; Death sound of Mirage Nymph; Attack or hit of Shade, Specter, Snake Charmer and 5 more (Arena too)"],
       ["sounds/wail_03.ogg", "Wail 3", "Opening sound of Parkerstein; Death sound of Necromancer; Attack or hit of Phantom, Shade, Specter"],
@@ -896,7 +898,7 @@ var ByopopSoundboards = {
     ] },
     { name: "Attacks and impacts", sounds: [
       ["sounds/arrow_shot_01.ogg", "Arrow shot 1", "Attack or hit of Alexander, Polydamas, Centaur Archer and 4 more (Arena too)"],
-      ["sounds/bowfiring.ogg", "Bow firing", "Opening sound of Unliving Archer; Attack or hit of Fallen Huntress Hero"],
+      ["sounds/bowfiring.ogg", "Bow firing", "Opening sound of Unliving Archer; Attack or hit of Fallen Huntress Hero. Also in Bookworm Adventures Volume 2 as Bow firing (unused)."],
       ["sounds/largeimpact_01.ogg", "Large impact 1", "Death sound of Cernian Hind, Enchanted Eagle, Enchanted Lion and 14 more; Attack or hit of Thieves 12-14, Calydonian Boar, Centaur Warrior and 25 more (Arena too)"],
       ["sounds/slicing_attack_01.ogg", "Slicing attack 1", "Opening sound of Mysterious Assassin, Fallen Warrior Hero, Vampire Cultist; Attack or hit of Trojan Captain, Trojan Warrior, Sea Witch and 29 more (Arena too)"],
       ["sounds/slicing_attack_02.ogg", "Slicing attack 2", "Opening sound of Unliving Brute; Attack or hit of War Hound, Scylla, Enchanted Eagle and 25 more (Arena too)"],
@@ -906,18 +908,18 @@ var ByopopSoundboards = {
       ["sounds/swordspearimpact_dry.ogg", "Sword spear impact dry", "Death sound of Mr. Blobs; Attack or hit of Crazy Murray, Flying Pig, Flying Snake and 1 more (Arena too)"]
     ] },
     { name: "Codex and Nemesis", sounds: [
-      ["sounds/codex_flinch.ogg", "Codex flinch", "Attack or hit of Codex"],
-      ["sounds/codex_laugh.ogg", "Codex laugh", "A Codex animation of the last chapter laughs"],
-      ["sounds/codex_nyah.ogg", "Codex nyah", "A Codex animation of the last chapter taunts"],
-      ["sounds/lexbeam.ogg", "Lex beam", "Lex's beam animation in the fight with the Codex"],
-      ["sounds/nemesis_laugh.ogg", "Nemesis laugh", "The animation of Cassandra and the Nemesis laughs"],
-      ["sounds/v_autological.ogg", "\"Autological\"", "Lex says it in the animation of the Codex fight"]
+      ["sounds/codex_flinch.ogg", "Codex flinch", "Attack or hit of Codex. Also in Bookworm Adventures Volume 2 as Codex flinch (unused)."],
+      ["sounds/codex_laugh.ogg", "Codex laugh", "A Codex animation of the last chapter laughs. Also in Bookworm Adventures Volume 2 as Codex laugh (unused)."],
+      ["sounds/codex_nyah.ogg", "Codex nyah", "A Codex animation of the last chapter taunts. Also in Bookworm Adventures Volume 2 as Codex nyah (unused)."],
+      ["sounds/lexbeam.ogg", "Lex beam", "Lex's beam animation in the fight with the Codex. Also in Bookworm Adventures Volume 2 as Lex beam (unused)."],
+      ["sounds/nemesis_laugh.ogg", "Nemesis laugh", "The animation of Cassandra and the Nemesis laughs. Also in Bookworm Adventures Volume 2 as Nemesis laugh (unused)."],
+      ["sounds/v_autological.ogg", "\"Autological\"", "Lex says it in the animation of the Codex fight. Also in Bookworm Adventures Volume 2 as \"Autological\" (unused). Also in Bookworm Adventures Volume 2 as \"Autological\" (unused)."]
     ] },
     { name: "Unused", sounds: [
-      ["sounds/lex_autological.ogg", "\"Autological\"", "The game never plays it"],
-      ["sounds/lex_unbelievable.ogg", "\"Unbelievable\"", "The game never plays it"],
-      ["sounds/v_buynow.ogg", "\"Buy now\"", "The game never plays it"],
-      ["sounds/vo_routed.ogg", "\"Routed\"", "The game never plays it"]
+      ["sounds/lex_autological.ogg", "\"Autological\" (unused)", "Never played: loaded as LEX_AUTOLOGICAL, but no code or script asks for it. Also in Bookworm Adventures Volume 2 as \"Autological\" (unused). Also in Bookworm Adventures Volume 2 as \"Autological\" (unused)."],
+      ["sounds/lex_unbelievable.ogg", "\"Unbelievable\" (unused)", "Never played: the file is not in the game's resource list, so nothing loads it. Also in Bookworm Adventures Volume 2 as \"Unbelievable\" (unused)."],
+      ["sounds/v_buynow.ogg", "\"Buy now\" (trial only)", "Trial only: the upsell trailer the trial showed said it once; the port, made from the full game, has no trial and leaves the trailer's resources out. Also in Bookworm Adventures Volume 2 as \"Buy now\" (trial only)."],
+      ["sounds/vo_routed.ogg", "\"Routed\" (unused)", "Never played: loaded as OVERKILL_ROUTED, but the scripts' overkill table names only the seven other overkill voices. Also in Bookworm Adventures Volume 2 as \"Routed\" (unused)."]
     ] }
   ] },
   bookwormadv2: {
@@ -1000,7 +1002,7 @@ var ByopopSoundboards = {
       ["sounds/swordspearimpact_withwoosh.ogg", "Sword with woosh", "Lex's word attack lands; many creatures use it too"]
     ] },
     { name: "Battle", sounds: [
-      ["sounds/low_health.ogg", "Low health", "Lex has little health left, in a fight or in a mini-game"],
+      ["sounds/low_health.ogg", "Low health", "Lex has little health left, in a fight or in a mini-game. Also in Zuma's Revenge, as sounds/challenge_countdown.ogg."],
       ["sounds/v_bossbattle.ogg", "\"Boss battle\"", "A boss fight begins, after the boss has opened it"],
       ["sounds/v_survivalbattle.ogg", "\"Survival battle\"", "A survival-style fight against the Hydra opens"],
       ["sounds/v_warmup.ogg", "\"Warm up\"", "The warm-up fight of the first chapter opens"],
@@ -1021,7 +1023,7 @@ var ByopopSoundboards = {
     { name: "Rewards", sounds: [
       ["sounds/chaching.ogg", "Cash register", "Coins are counted up in a mini-game; the Mirage Trojan fight uses it too"],
       ["sounds/crowdcheer.ogg", "Crowd cheers", "A fight is won, a level is gained or a mini-game ends well"],
-      ["sounds/firework1.ogg", "Firework 1", "The level-up effect and fight-won effect fire a rocket"],
+      ["sounds/firework1.ogg", "Firework 1", "The level-up effect and fight-won effect fire a rocket. Also in Bejeweled 3, as sounds/firework_thump.ogg."],
       ["sounds/firework2.ogg", "Firework 2", "The level-up effect and fight-won effect fire a rocket"],
       ["sounds/lex_levelup.ogg", "\"Level up\"", "Lex gains a level"],
       ["sounds/newtreasure.ogg", "\"New treasure!\"", "A treasure is won at the end of a fight, or shown on the treasure screen"],
@@ -1051,7 +1053,7 @@ var ByopopSoundboards = {
       ["sounds/boardstunned_01.ogg", "Board stunned", "A creature stuns the board so no word can be made"],
       ["sounds/fire1.ogg", "Fire effect", "A fire effect begins (about ten creatures)"],
       ["sounds/ice1.ogg", "Frozen effect", "A frozen effect begins"],
-      ["sounds/ice4.ogg", "Petrify effect", "A petrify effect begins"],
+      ["sounds/ice4.ogg", "Petrify effect", "A petrify effect begins. Also in Zuma's Revenge, as sounds/freeze.ogg."],
       ["sounds/lightning_attack_01.ogg", "Lightning", "A lightning attack lands (Circe, Hydra, Sea Elemental and wizards)"],
       ["sounds/lockit.ogg", "Tile locked", "A creature locks tiles (about a dozen creatures)"],
       ["sounds/petrify_attack_01.ogg", "Tiles petrified", "A creature turns tiles to stone (Basilisk, Medusa and others)"],
@@ -1214,65 +1216,67 @@ var ByopopSoundboards = {
       ["sounds/wetimpact4.ogg", "Wet impact 4", "Attack or hit of Mrs. Sprat, Shark Sergeant, Shrimp Soldier and 2 more"]
     ] },
     { name: "Unused", sounds: [
-      ["sounds/bat_death_01.ogg", "Bat death 1", "The game never plays it"],
-      ["sounds/bowfiring.ogg", "Bow firing", "The game never plays it"],
-      ["sounds/codex_flinch.ogg", "Codex flinch", "The game never plays it"],
-      ["sounds/codex_laugh.ogg", "Codex laugh", "The game never plays it"],
-      ["sounds/codex_nyah.ogg", "Codex nyah", "The game never plays it"],
-      ["sounds/curtainsclose.ogg", "Curtainsclose", "The game never plays it"],
-      ["sounds/curtainscloseclap.ogg", "Curtainscloseclap", "The game never plays it"],
-      ["sounds/curtainsopen.ogg", "Curtainsopen", "The game never plays it"],
-      ["sounds/curtainsopenclap.ogg", "Curtainsopenclap", "The game never plays it"],
-      ["sounds/dragon_roar.ogg", "Dragon roar", "The game never plays it"],
-      ["sounds/eagle_cry_01.ogg", "Eagle cry 1", "The game never plays it"],
-      ["sounds/elephant_01.ogg", "Elephant 1", "The game never plays it"],
-      ["sounds/elephant_death_01.ogg", "Elephant death 1", "The game never plays it"],
-      ["sounds/elephant_death_02.ogg", "Elephant death 2", "The game never plays it"],
-      ["sounds/elephant_death_03.ogg", "Elephant death 3", "The game never plays it"],
-      ["sounds/giantgruntdry1.ogg", "Giant grunt dry 1", "The game never plays it"],
-      ["sounds/kubwa_barh.ogg", "Kubwa barh", "The game never plays it"],
-      ["sounds/kubwa_greeting.ogg", "Kubwa greeting", "The game never plays it"],
-      ["sounds/kubwa_greeting2.ogg", "Kubwa greeting 2", "The game never plays it"],
-      ["sounds/lex_autological.ogg", "\"Autological\"", "The game never plays it"],
-      ["sounds/lex_unbelievable.ogg", "\"Unbelievable\"", "The game never plays it"],
-      ["sounds/lexbeam.ogg", "Lex beam", "The game never plays it"],
-      ["sounds/lextravelloop.ogg", "Lextravel loop", "The game never plays it"],
-      ["sounds/moan_01.ogg", "Moan 1", "The game never plays it"],
-      ["sounds/nemesis_laugh.ogg", "Nemesis laugh", "The game never plays it"],
-      ["sounds/plateimpact3.ogg", "Plate impact 3", "The game never plays it"],
-      ["sounds/pulsing_attack_01.ogg", "Pulsing attack 1", "The game never plays it"],
-      ["sounds/roar_01.ogg", "Roar 1", "The game never plays it"],
-      ["sounds/sloooowdown.ogg", "Sloooowdown", "The game never plays it"],
-      ["sounds/textreadblip.ogg", "Textreadblip", "The game never plays it"],
-      ["sounds/textreadtype02.ogg", "Textreadtype 02", "The game never plays it"],
-      ["sounds/textreadtype03.ogg", "Textreadtype 03", "The game never plays it"],
-      ["sounds/textreadtype04.ogg", "Textreadtype 04", "The game never plays it"],
-      ["sounds/textreadtype05.ogg", "Textreadtype 05", "The game never plays it"],
-      ["sounds/textreadtype06.ogg", "Textreadtype 06", "The game never plays it"],
-      ["sounds/textreadtype07.ogg", "Textreadtype 07", "The game never plays it"],
-      ["sounds/textreadtype08.ogg", "Textreadtype 08", "The game never plays it"],
-      ["sounds/textreadtype09.ogg", "Textreadtype 09", "The game never plays it"],
-      ["sounds/textreadtype10.ogg", "Textreadtype 10", "The game never plays it"],
-      ["sounds/v_astonishing.ogg", "\"Astonishing\"", "The game never plays it"],
-      ["sounds/v_autological.ogg", "\"Autological\"", "The game never plays it"],
-      ["sounds/v_awesome.ogg", "\"Awesome\"", "The game never plays it"],
-      ["sounds/v_buynow.ogg", "\"Buy now\"", "The game never plays it"],
-      ["sounds/v_clipsandgiggles.ogg", "\"Clips and giggles\"", "The game never plays it"],
-      ["sounds/v_excellent.ogg", "\"Excellent\"", "The game never plays it"],
-      ["sounds/v_fantastic.ogg", "\"Fantastic\"", "The game never plays it"],
-      ["sounds/v_good.ogg", "\"Good\"", "The game never plays it"],
-      ["sounds/v_illbeback.ogg", "\"I'll be back\"", "The game never plays it"],
-      ["sounds/v_incredible.ogg", "\"Incredible\"", "The game never plays it"],
-      ["sounds/v_letsgo.ogg", "\"Let's go\"", "The game never plays it"],
-      ["sounds/v_levelup.ogg", "\"Levelup\"", "The game never plays it"],
-      ["sounds/v_newtreasure.ogg", "\"New treasure\"", "The game never plays it"],
-      ["sounds/v_nice.ogg", "\"Nice\"", "The game never plays it"],
-      ["sounds/v_timeforbed.ogg", "\"Time for bed\"", "The game never plays it"],
-      ["sounds/v_unbelievable.ogg", "\"Unbelievable\"", "The game never plays it"],
-      ["sounds/v_verygood.ogg", "\"Very good\"", "The game never plays it"],
-      ["sounds/v_watchout.ogg", "\"Watch out\"", "The game never plays it"],
-      ["sounds/v_wow.ogg", "\"Wow\"", "The game never plays it"],
-      ["sounds/vo_routed.ogg", "\"Routed\"", "The game never plays it"]
+      ["sounds/curtainsclose.ogg", "Curtainsclose (unused)", "Never played: loaded as CURTAIN_CLOSE, but the curtain transition plays no sound and nothing else asks for it"],
+      ["sounds/curtainscloseclap.ogg", "Curtainscloseclap (unused)", "Never played: loaded as CURTAIN_CLOSE_CLAP, but the curtain transition plays no sound and nothing else asks for it"],
+      ["sounds/curtainsopen.ogg", "Curtainsopen (unused)", "Never played: loaded as CURTAIN_OPEN, but the curtain transition plays no sound and nothing else asks for it"],
+      ["sounds/curtainsopenclap.ogg", "Curtainsopenclap (unused)", "Never played: loaded as CURTAIN_OPEN_CLAP, but the curtain transition plays no sound and nothing else asks for it"],
+      ["sounds/giantgruntdry1.ogg", "Giant grunt dry 1 (unused)", "Never played: the game never plays it"],
+      ["sounds/lex_unbelievable.ogg", "\"Unbelievable\" (unused)", "Never played: the game never plays it. Also in Bookworm Adventures as \"Unbelievable\" (unused)."],
+      ["sounds/lextravelloop.ogg", "Lextravel loop (unused)", "Never played: the game never plays it"],
+      ["sounds/plateimpact3.ogg", "Plate impact 3 (unused)", "Never played: listed only in book4.xml, and no script asks for it (the scripts play plate impacts 4 to 6)"],
+      ["sounds/textreadblip.ogg", "Textreadblip (unused)", "Never played: the game never plays it"],
+      ["sounds/textreadtype02.ogg", "Textreadtype 02 (unused)", "Never played: loaded as TEXT_BLIP1, but a conversation's typing plays only TEXT_BLIP (Textreadtype 01)"],
+      ["sounds/textreadtype03.ogg", "Textreadtype 03 (unused)", "Never played: loaded as TEXT_BLIP2, but a conversation's typing plays only TEXT_BLIP (Textreadtype 01)"],
+      ["sounds/textreadtype04.ogg", "Textreadtype 04 (unused)", "Never played: loaded as TEXT_BLIP3, but a conversation's typing plays only TEXT_BLIP (Textreadtype 01)"],
+      ["sounds/textreadtype05.ogg", "Textreadtype 05 (unused)", "Never played: loaded as TEXT_BLIP4, but a conversation's typing plays only TEXT_BLIP (Textreadtype 01)"],
+      ["sounds/textreadtype06.ogg", "Textreadtype 06 (unused)", "Never played: loaded as TEXT_BLIP5, but a conversation's typing plays only TEXT_BLIP (Textreadtype 01)"],
+      ["sounds/textreadtype07.ogg", "Textreadtype 07 (unused)", "Never played: loaded as TEXT_BLIP6, but a conversation's typing plays only TEXT_BLIP (Textreadtype 01)"],
+      ["sounds/textreadtype08.ogg", "Textreadtype 08 (unused)", "Never played: loaded as TEXT_BLIP7, but a conversation's typing plays only TEXT_BLIP (Textreadtype 01)"],
+      ["sounds/textreadtype09.ogg", "Textreadtype 09 (unused)", "Never played: loaded as TEXT_BLIP8, but a conversation's typing plays only TEXT_BLIP (Textreadtype 01)"],
+      ["sounds/textreadtype10.ogg", "Textreadtype 10 (unused)", "Never played: loaded as TEXT_BLIP9, but a conversation's typing plays only TEXT_BLIP (Textreadtype 01)"],
+      ["sounds/v_astonishing.ogg", "\"Astonishing\" (unused)", "Never played: the game never plays it"],
+      ["sounds/v_awesome.ogg", "\"Awesome\" (unused)", "Never played: the game never plays it"],
+      ["sounds/v_buynow.ogg", "\"Buy now\" (trial only)", "Trial only: the upsell trailer the trial showed said it once; the port, made from the full game, has no trial and leaves the trailer's resources out. Also in Bookworm Adventures as \"Buy now\" (trial only)."],
+      ["sounds/v_excellent.ogg", "\"Excellent\" (unused)", "Never played: the game never plays it"],
+      ["sounds/v_fantastic.ogg", "\"Fantastic\" (unused)", "Never played: the game never plays it"],
+      ["sounds/v_good.ogg", "\"Good\" (unused)", "Never played: the game never plays it"],
+      ["sounds/v_illbeback.ogg", "\"I'll be back\" (unused)", "Never played: loaded with the main menu's voices as MM_ILLBEBACK, but no menu item's reaction uses it"],
+      ["sounds/v_incredible.ogg", "\"Incredible\" (unused)", "Never played: the game never plays it"],
+      ["sounds/v_letsgo.ogg", "\"Let's go\" (unused)", "Never played: the game never plays it"],
+      ["sounds/v_levelup.ogg", "\"Levelup\" (unused)", "Never played: the game never plays it"],
+      ["sounds/v_newtreasure.ogg", "\"New treasure\" (unused)", "Never played: the game never plays it"],
+      ["sounds/v_nice.ogg", "\"Nice\" (unused)", "Never played: the game never plays it"],
+      ["sounds/v_timeforbed.ogg", "\"Time for bed\" (unused)", "Never played: loaded with the main menu's voices as MM_BEDTIME, but no menu item's reaction uses it"],
+      ["sounds/v_unbelievable.ogg", "\"Unbelievable\" (unused)", "Never played: the game never plays it"],
+      ["sounds/v_verygood.ogg", "\"Very good\" (unused)", "Never played: the game never plays it"],
+      ["sounds/v_watchout.ogg", "\"Watch out\" (unused)", "Never played: the game never plays it"],
+      ["sounds/v_wow.ogg", "\"Wow\" (unused)", "Never played: the game never plays it"],
+      ["sounds/vo_routed.ogg", "\"Routed\" (unused)", "Never played: loaded as OVERKILL_ROUTED, but the scripts' overkill table names only the seven other overkill voices. Also in Bookworm Adventures as \"Routed\" (unused)."]
+    ] },
+    { name: "Bookworm Adventures leftovers", sounds: [
+      ["sounds/bat_death_01.ogg", "Bat death 1 (unused)", "Never played: the file is not in the game's resource list, so nothing loads it. Also in Bookworm Adventures as Bat death 1: attack or hit of Mama Roc (Arena too)."],
+      ["sounds/bowfiring.ogg", "Bow firing (unused)", "Never played: listed as SOUND7 in book6.xml, but no script asks for it. Also in Bookworm Adventures as Bow firing: opening sound of Unliving Archer."],
+      ["sounds/codex_flinch.ogg", "Codex flinch (unused)", "Never played: the file is not in the game's resource list, so nothing loads it. Also in Bookworm Adventures as Codex flinch: attack or hit of Codex."],
+      ["sounds/codex_laugh.ogg", "Codex laugh (unused)", "Never played: the file is not in the game's resource list, so nothing loads it. Also in Bookworm Adventures as Codex laugh: a Codex animation of the last chapter laughs."],
+      ["sounds/codex_nyah.ogg", "Codex nyah (unused)", "Never played: the file is not in the game's resource list, so nothing loads it. Also in Bookworm Adventures as Codex nyah: a Codex animation of the last chapter taunts."],
+      ["sounds/dragon_roar.ogg", "Dragon roar (unused)", "Never played: the file is not in the game's resource list, so nothing loads it. Also in Bookworm Adventures as Dragon roar: opening sound of Kraken, Hydra, Basilisk and 2 more."],
+      ["sounds/eagle_cry_01.ogg", "Eagle cry 1 (unused)", "Never played: the file is not in the game's resource list, so nothing loads it. Also in Bookworm Adventures as Eagle cry 1: opening sound of Enchanted Eagle, Griffon, Bronze Stymphalian and 3 more."],
+      ["sounds/elephant_01.ogg", "Elephant 1 (unused)", "Never played: the file is not in the game's resource list, so nothing loads it. Also in Bookworm Adventures as Elephant 1: opening sound of Elephant, Mirage Skeleton."],
+      ["sounds/elephant_death_01.ogg", "Elephant death 1 (unused)", "Never played: the file is not in the game's resource list, so nothing loads it. Also in Bookworm Adventures as Elephant death 1: opening sound of Bull Elephant."],
+      ["sounds/elephant_death_02.ogg", "Elephant death 2 (unused)", "Never played: the file is not in the game's resource list, so nothing loads it. Also in Bookworm Adventures as Elephant death 2: death sound of Elephant."],
+      ["sounds/elephant_death_03.ogg", "Elephant death 3 (unused)", "Never played: the file is not in the game's resource list, so nothing loads it. Also in Bookworm Adventures as Elephant death 3: death sound of Bull Elephant."],
+      ["sounds/kubwa_barh.ogg", "Kubwa barh (unused)", "Never played: the file is not in the game's resource list, so nothing loads it. Also in Bookworm Adventures as Kubwa barh: attack or hit of Thieves 12-14 (Arena too)."],
+      ["sounds/kubwa_greeting.ogg", "Kubwa greeting (unused)", "Never played: the file is not in the game's resource list, so nothing loads it. Also in Bookworm Adventures as Kubwa greeting: used in the Arena fights."],
+      ["sounds/kubwa_greeting2.ogg", "Kubwa greeting 2 (unused)", "Never played: the file is not in the game's resource list, so nothing loads it. Also in Bookworm Adventures as Kubwa greeting 2: opening sound of Thieves 12-14 (Arena too)."],
+      ["sounds/lex_autological.ogg", "\"Autological\" (unused)", "Never played: loaded as LEX_AUTOLOGICAL, but no code or script asks for it. Also in Bookworm Adventures as \"Autological\": Lex says it in the animation of the Codex fight. Also in Bookworm Adventures as \"Autological\" (unused)."],
+      ["sounds/lexbeam.ogg", "Lex beam (unused)", "Never played: the file is not in the game's resource list, so nothing loads it. Also in Bookworm Adventures as Lex beam: Lex's beam animation in the fight with the Codex."],
+      ["sounds/moan_01.ogg", "Moan 1 (unused)", "Never played: the file is not in the game's resource list, so nothing loads it. Also in Bookworm Adventures as Moan 1: death sound of Bandit, Sword Swallower, Highwayman."],
+      ["sounds/nemesis_laugh.ogg", "Nemesis laugh (unused)", "Never played: the file is not in the game's resource list, so nothing loads it. Also in Bookworm Adventures as Nemesis laugh: the animation of Cassandra and the Nemesis laughs."],
+      ["sounds/pulsing_attack_01.ogg", "Pulsing attack 1 (unused)", "Never played: listed as PULSING_ATTACK in book5.xml, but no script asks for it. Also in Bookworm Adventures as Pulsing attack 1: attack or hit of Circe, Dryad, Helead and 3 more (Arena too)."],
+      ["sounds/roar_01.ogg", "Roar 1 (unused)", "Never played: the file is not in the game's resource list, so nothing loads it. Also in Bookworm Adventures as Roar 1: opening sound of Charybdis, Enchanted Lion, Phantom and 2 more."],
+      ["sounds/sloooowdown.ogg", "Sloooowdown (unused)", "Never played: loaded as SLOWDOWN, but no code or script asks for it. Also in AstroPop as Slow down: the atomic pilot's power. Also in Bookworm Adventures as Slow down: a hidden word is spelled outside the mini-games."],
+      ["sounds/v_autological.ogg", "\"Autological\" (unused)", "Never played: the file is not in the game's resource list, so nothing loads it. Also in Bookworm Adventures as \"Autological\": Lex says it in the animation of the Codex fight. Also in Bookworm Adventures as \"Autological\" (unused)."],
+      ["sounds/v_clipsandgiggles.ogg", "\"Clips and giggles\" (unused)", "Never played: loaded with the main menu's voices as MM_CNG, but no menu item's reaction uses it. Also in Bookworm Adventures as \"Clips and Giggles\": Lex reacts when the pointer moves onto the film reel item of the main menu."]
     ] }
   ] },
   cosmicbugs: {
@@ -1298,7 +1302,7 @@ var ByopopSoundboards = {
       ["audio/laser.wav", "Laser", "A laser walker fires a shot: more than 4000 updates (4 s) since its last, and one of the ship's beams lines up with it"],
       ["audio/beam_hit.wav", "Laser hits beams", "A laser shot touches a beam; the beams burst into sparks"],
       ["audio/electricity.wav", "Electricity", "An enemy not yet riding a beam touches it while the ship is firing, and more than 1000 updates (1 s) have passed since that enemy's last zap"],
-      ["audio/ice.wav", "Freezing", "An enemy is frozen in an ice capsule by an ice shot; plays again as the capsule is set up if it is fully opaque"]
+      ["audio/ice.wav", "Freezing", "An enemy is frozen in an ice capsule by an ice shot; plays again as the capsule is set up if it is fully opaque. Resembles The Wizard's Pen's audio/ice.ogg, the same sound, mixed differently."]
     ] },
     { name: "Kill scores", sounds: [
       ["audio/exp100.wav", "Kill 100", "A walker or roller dies as the 1st kill of a chain (100 points); the sound is chosen by the chain times 100, and the chain restarts at 1 once the fills end"],
@@ -1408,7 +1412,7 @@ var ByopopSoundboards = {
       ["sounds/roar.ogg", "Roar", "The tyrannosaurus roars after his last step"]
     ] },
     { name: "Unused", sounds: [
-      ["sounds/explode.ogg", "Explode (unused)", "Never played: the game never loads this file, and the explosion uses the other explosion sound"],
+      ["sounds/explode.ogg", "Explode (unused)", "Never played: the game never loads this file, and the explosion uses the other explosion sound. Resembles Seven Seas' Small explosion (sounds/explode.ogg), the same sound, mixed differently."],
       ["sounds/mama2.ogg", "Mama 2 (unused)", "Never played: the game loads the first mama file twice instead, so this one is never loaded"]
     ] },
   ] },
@@ -1429,37 +1433,37 @@ var ByopopSoundboards = {
     ],
     groups: [
     { name: "Menus", sounds: [
-      ["Resource.dll|pe:WAVE:105", "Click", "A button or other control of a screen is pressed; also the layout and map screens' clicks"]
+      ["Resource.dll|pe:WAVE:105", "Click", "A button, slider or list row is pressed; also a level clicked on the map, a layout slot clicked, and a double-click on the background picture or the style choice"]
     ] },
     { name: "Tiles", sounds: [
-      ["Resource.dll|pe:WAVE:175", "Tile selected", "A free tile is clicked and becomes the selected one"],
-      ["Resource.dll|pe:WAVE:174", "Tile blocked", "A tile that is not free is clicked"],
-      ["Resource.dll|pe:WAVE:176", "Pair matched", "Two matching tiles are taken, also by a key, joker or magnet tile"],
-      ["Resource.dll|pe:WAVE:349", "Shuffle", "The tiles are shuffled"],
-      ["Resource.dll|pe:WAVE:350", "Deal", "A new board is dealt at the start of a game"],
-      ["Resource.dll|pe:WAVE:351", "Undo", "A move is taken back"]
+      ["Resource.dll|pe:WAVE:175", "Tile selected", "A click on a free tile that can pair makes it the selected one, or deselects it when it was already selected"],
+      ["Resource.dll|pe:WAVE:174", "Tile blocked", "A click that hits no tile that can be selected and paired (a covered tile or empty space), while no tiles are flying in or out"],
+      ["Resource.dll|pe:WAVE:176", "Pair matched", "Two matching tiles are taken, including a key with its lock and a joker or magnet with its partner; not for a gold pair"],
+      ["Resource.dll|pe:WAVE:349", "Shuffle", "A shuffle starts, from the Shuffle button or the shuffle choice of the no-moves dialog"],
+      ["Resource.dll|pe:WAVE:350", "Deal", "A game's board is dealt, when a level or layout game starts or is restarted; all other sounds are stopped first"],
+      ["Resource.dll|pe:WAVE:351", "Undo", "A move is taken back, from the Undo button or the undo choice of the no-moves dialog; nothing plays when no move has been made"]
     ] },
     { name: "Special tiles", sounds: [
-      ["Resource.dll|pe:WAVE:347", "Joker loop", "Plays on a loop while a joker tile is selected"],
-      ["Resource.dll|pe:WAVE:348", "Magnet loop", "Plays on a loop while a magnet tile is selected"],
-      ["Resource.dll|pe:WAVE:378", "Key loop", "Plays on a loop while a key tile is selected"],
-      ["Resource.dll|pe:WAVE:379", "Key joins lock", "A key tile is taken and joins the lock"],
-      ["Resource.dll|pe:WAVE:377", "Gold match", "A gold pair is matched"],
-      ["Resource.dll|pe:WAVE:376", "Fly-off loop", "Plays on a loop as the remaining tiles fly off after a gold match"],
-      ["Resource.dll|pe:WAVE:352", "Bonus", "The pair taken matches the tray's tile and scores a bonus"]
+      ["Resource.dll|pe:WAVE:347", "Joker loop", "A joker tile is selected; it loops until the tile is paired, deselected or the selection is cleared"],
+      ["Resource.dll|pe:WAVE:348", "Magnet loop", "A magnet tile is selected; it loops until the tile is paired, deselected or the selection is cleared"],
+      ["Resource.dll|pe:WAVE:378", "Key loop", "A key tile is selected; it loops until the tile is paired, deselected or the selection is cleared"],
+      ["Resource.dll|pe:WAVE:379", "Key joins lock", "A key's flight onto its lock ends and the two join"],
+      ["Resource.dll|pe:WAVE:377", "Gold match", "The two gold tiles are paired, which ends the level in the map game"],
+      ["Resource.dll|pe:WAVE:376", "Fly-off loop", "The gold pair's flight ends with more than 2 tiles left on the board; it loops as the rest fly off, until the level-complete dialog opens"],
+      ["Resource.dll|pe:WAVE:352", "Bonus", "A normal pair is taken that matches the tile shown in the tray and scores points, adding the 500-point bonus"]
     ] },
     { name: "Map", sounds: [
-      ["Resource.dll|pe:WAVE:340", "Map curtain", "A level is started from the map, or the map steps back, with the curtain moving"],
-      ["Resource.dll|pe:WAVE:381", "Map move", "The map moves on to the next level"],
-      ["Resource.dll|pe:WAVE:380", "New stage", "The map moves on into a new stage"],
-      ["Resource.dll|pe:WAVE:382", "Stage text gone", "The new stage's text has faded out"]
+      ["Resource.dll|pe:WAVE:340", "Map curtain", "The map screen comes back after a level or layout game, with its curtain closing; also when a level is started from the map, with the curtain opening"],
+      ["Resource.dll|pe:WAVE:381", "Map move", "The map screen comes back after a level that unlocked the next one and the map marker moves on, unless that level ended its stage"],
+      ["Resource.dll|pe:WAVE:380", "New stage", "The map screen comes back after the level that ended a stage, and the stage-completed text fades in"],
+      ["Resource.dll|pe:WAVE:382", "Stage text gone", "The stage-completed text, held for 3000 milliseconds (3 seconds) once faded in, has faded out"]
     ] },
     { name: "Level end", sounds: [
-      ["Resource.dll|pe:WAVE:375", "Layout result", "The result dialog of a layout is shown"],
-      ["Resource.dll|pe:WAVE:373", "Ending fanfare", "The ending screen opens after the last level"]
+      ["Resource.dll|pe:WAVE:375", "Layout result", "The result dialog opens at the end of a layout game, once the last tiles are gone"],
+      ["Resource.dll|pe:WAVE:373", "Fanfare", "The level-complete dialog opens after a map level (its gold tiles in the tray); also the ending screen opens, 1 second after the map's final move or from the map's ending button"]
     ] },
     { name: "Unused", sounds: [
-      ["Resource.dll|pe:WAVE:106", "Unused MP3", "The game never plays it; its code never refers to the resource"]
+      ["Resource.dll|pe:WAVE:106", "MP3 resource 106 (unused)", "Never played: its code never refers to the resource"]
     ] },
   ] },
   mahjongjapan: {
@@ -1479,34 +1483,34 @@ var ByopopSoundboards = {
     ],
     groups: [
     { name: "Menus", sounds: [
-      ["Resource.dll|pe:WAVE:105", "Click", "A button or other control of a screen is pressed; also the layout and map screens' clicks"]
+      ["Resource.dll|pe:WAVE:105", "Click", "A button, slider or list row is pressed; also a level clicked on the map, a layout slot clicked, and a double-click on the background picture or the style choice"]
     ] },
     { name: "Tiles", sounds: [
-      ["Resource.dll|pe:WAVE:175", "Tile selected", "A free tile is clicked and becomes the selected one"],
-      ["Resource.dll|pe:WAVE:174", "Tile blocked", "A tile that is not free is clicked"],
-      ["Resource.dll|pe:WAVE:176", "Pair matched", "Two matching tiles are taken, also by a key, joker or magnet tile"],
-      ["Resource.dll|pe:WAVE:349", "Shuffle", "The tiles are shuffled"],
-      ["Resource.dll|pe:WAVE:350", "Deal", "A new board is dealt at the start of a game"],
-      ["Resource.dll|pe:WAVE:351", "Undo", "A move is taken back"]
+      ["Resource.dll|pe:WAVE:175", "Tile selected", "A click on a free tile that can pair makes it the selected one, or deselects it when it was already selected"],
+      ["Resource.dll|pe:WAVE:174", "Tile blocked", "A click that hits no tile that can be selected and paired (a covered tile or empty space), while no tiles are flying in or out"],
+      ["Resource.dll|pe:WAVE:176", "Pair matched", "Two matching tiles are taken, including a key with its lock and a joker or magnet with its partner; not for a gold pair"],
+      ["Resource.dll|pe:WAVE:349", "Shuffle", "A shuffle starts, from the Shuffle button or the shuffle choice of the no-moves dialog"],
+      ["Resource.dll|pe:WAVE:350", "Deal", "A game's board is dealt, when a level or layout game starts or is restarted; all other sounds are stopped first"],
+      ["Resource.dll|pe:WAVE:351", "Undo", "A move is taken back, from the Undo button or the undo choice of the no-moves dialog; nothing plays when no move has been made"]
     ] },
     { name: "Special tiles", sounds: [
-      ["Resource.dll|pe:WAVE:347", "Joker loop", "Plays on a loop while a joker tile is selected"],
-      ["Resource.dll|pe:WAVE:348", "Magnet loop", "Plays on a loop while a magnet tile is selected"],
-      ["Resource.dll|pe:WAVE:378", "Key loop", "Plays on a loop while a key tile is selected"],
-      ["Resource.dll|pe:WAVE:379", "Key joins lock", "A key tile is taken and joins the lock"],
-      ["Resource.dll|pe:WAVE:377", "Gold match", "A gold pair is matched"],
-      ["Resource.dll|pe:WAVE:376", "Fly-off loop", "Plays on a loop as the remaining tiles fly off after a gold match"],
-      ["Resource.dll|pe:WAVE:352", "Bonus", "The pair taken matches the tray's tile and scores a bonus"]
+      ["Resource.dll|pe:WAVE:347", "Joker loop", "A joker tile is selected; it loops until the tile is paired, deselected or the selection is cleared"],
+      ["Resource.dll|pe:WAVE:348", "Magnet loop", "A magnet tile is selected; it loops until the tile is paired, deselected or the selection is cleared"],
+      ["Resource.dll|pe:WAVE:378", "Key loop", "A key tile is selected; it loops until the tile is paired, deselected or the selection is cleared"],
+      ["Resource.dll|pe:WAVE:379", "Key joins lock", "A key's flight onto its lock ends and the two join"],
+      ["Resource.dll|pe:WAVE:377", "Gold match", "The two gold tiles are paired, which ends the level in the map game"],
+      ["Resource.dll|pe:WAVE:376", "Fly-off loop", "The gold pair's flight ends with more than 2 tiles left on the board; it loops as the rest fly off, until the level-complete dialog opens"],
+      ["Resource.dll|pe:WAVE:352", "Bonus", "A normal pair is taken that matches the tile shown in the tray and scores points, adding the 500-point bonus"]
     ] },
     { name: "Map", sounds: [
-      ["Resource.dll|pe:WAVE:340", "Map curtain", "A level is started from the map, or the map steps back, with the curtain moving"],
-      ["Resource.dll|pe:WAVE:381", "Map move", "The map moves on to the next level"],
-      ["Resource.dll|pe:WAVE:380", "New stage", "The map moves on into a new stage"],
-      ["Resource.dll|pe:WAVE:382", "Stage text gone", "The new stage's text has faded out"]
+      ["Resource.dll|pe:WAVE:340", "Map curtain", "The map screen comes back after a level or layout game, with its curtain closing; also when a level is started from the map, with the curtain opening"],
+      ["Resource.dll|pe:WAVE:381", "Map move", "The map screen comes back after a level that unlocked the next one and the map marker moves on, unless that level ended its stage"],
+      ["Resource.dll|pe:WAVE:380", "New stage", "The map screen comes back after the level that ended a stage, and the stage-completed text fades in"],
+      ["Resource.dll|pe:WAVE:382", "Stage text gone", "The stage-completed text, held for 3000 milliseconds (3 seconds) once faded in, has faded out"]
     ] },
     { name: "Level end", sounds: [
-      ["Resource.dll|pe:WAVE:375", "Layout result", "The result dialog of a layout is shown"],
-      ["Resource.dll|pe:WAVE:373", "Ending fanfare", "The ending screen opens after the last level"]
+      ["Resource.dll|pe:WAVE:375", "Layout result", "The result dialog opens at the end of a layout game, once the last tiles are gone"],
+      ["Resource.dll|pe:WAVE:373", "Fanfare", "The level-complete dialog opens after a map level (its gold tiles in the tray); also the ending screen opens, 1 second after the map's final move or from the map's ending button"]
     ] },
   ] },
   mummymaze: {
@@ -1554,21 +1558,23 @@ var ByopopSoundboards = {
   ] },
   ningpo: {
     presets: [
-      { name: "You Win", when: "The last pair is taken", steps: [["ningpo.pyz|zip:nm_match.ogg", 0], ["ningpo.pyz|zip:nm_youwin.ogg", 500]]}
+      { name: "You Win", when: "The last pair is taken", steps: [["ningpo.pyz|zip:nm_youwin.ogg", 0]]}
     ],
     groups: [
     { name: "Menus", sounds: [
-      ["ningpo.pyz|zip:nm_guiclick.wav", "Screen click", "A button of a screen or dialog is pressed (also pause, new game, and the like)"]
+      ["ningpo.pyz|zip:nm_splash.ogg", "Splash", "The game starts, as its screen opens and before its files load"],
+      ["ningpo.pyz|zip:nm_guiclick.wav", "Screen click", "A button of a screen or dialog is pressed (exit, pause, options, new game, rules, the title's start arrow and the end screen's arrow, the dialogs' own buttons); also any click while the game is paused"]
     ] },
     { name: "Tiles", sounds: [
-      ["ningpo.pyz|zip:nm_click.wav", "Tile selected", "A free tile is selected; also an arrow of the title screen is clicked"],
+      ["ningpo.pyz|zip:nm_click.wav", "Tile selected", "A click on a free tile when none is selected, in a game in progress; also an arrow of the title screen's settings is clicked"],
       ["ningpo.pyz|zip:nm_unclick.wav", "Tile deselected", "The selected tile is clicked again and deselected"],
-      ["ningpo.pyz|zip:nm_blocked.ogg", "Blocked tile", "A tile that is not free is clicked, or a free tile that does not match the selected one"],
-      ["ningpo.pyz|zip:nm_match.ogg", "Pair matched", "A pair is taken and the game goes on"],
-      ["ningpo.pyz|zip:nm_youwin.ogg", "You win", "The last pair is taken"]
+      ["ningpo.pyz|zip:nm_blocked.ogg", "Blocked tile", "A click on a tile that is not free, or on a free tile of another kind than the selected one (which also drops the selection)"],
+      ["ningpo.pyz|zip:nm_match.ogg", "Pair matched", "A pair is taken while tiles are left and a move still exists; the last pair and a pair that leaves no move play their ending sounds instead"],
+      ["ningpo.pyz|zip:nm_youwin.ogg", "You win", "The last pair is taken and the game is won"],
+      ["ningpo.pyz|zip:nm_gameover.ogg", "Game over", "A pair is taken that leaves tiles but no move, and the game is lost"]
     ] },
     { name: "Buttons", sounds: [
-      ["ningpo.pyz|zip:nm_hint.ogg", "Hint, shuffle, undo", "The hint button, the shuffle or the undo is used"]
+      ["ningpo.pyz|zip:nm_hint.ogg", "Hint, shuffle, undo", "The hint (button, or the F or H key), the shuffle (button, S key or the no-moves dialog) or the Undo button is used while a game is on and not paused; the U key undoes without a sound"]
     ] },
   ] },
   noahsark: {
@@ -1636,28 +1642,28 @@ var ByopopSoundboards = {
     { name: "Menus", sounds: [
       ["sounds/ui menu mouseover 02.ogg", "Menu hover", "The mouse comes onto a main menu button"],
       ["sounds/ui menu click 01c.ogg", "Menu click", "A main menu button is pressed"],
-      ["sounds/ui little beep 05b.ogg", "Little beep", "A dialog or screen button is pressed (Continue, OK and the like), or a dialog's Yes or No"],
+      ["sounds/ui little beep 05b.ogg", "Little beep", "A dialog or screen button is pressed (Continue, OK and the like), or a dialog's Yes or No. Also in Hammer Heads Deluxe, as sounds/UI - Check.ogg."],
       ["sounds/ui general click 02.ogg", "General click (unused)", "Never played"]
     ] },
     { name: "Island map", sounds: [
       ["sounds/ui island mouseover 02.ogg", "Island hover", "The mouse rests on a temple on the island for 50 updates; its pitch follows which temple"],
       ["sounds/ui island click 01.ogg", "Island click", "The mouse comes onto a temple's button on the island"],
-      ["sounds/pixelus temple screen v01.ogg", "Temple opens", "A new temple opens on the island map"],
+      ["sounds/pixelus temple screen v01.ogg", "Temple opens", "A new temple opens on the island map. Also in Hammer Heads Deluxe, as sounds/Sting - Gnome King.ogg."],
       ["sounds/seagull 05.ogg", "Seagull 1", "At random intervals while the island map is open"],
       ["sounds/seagull 04b.ogg", "Seagull 2", "At random intervals while the island map is open"],
       ["sounds/island - ocean surf 04b.ogg", "Ocean surf", "The island's waves roll in, every second wave cycle"],
       ["sounds/island - lightning 02c.ogg", "Lightning 1", "Lightning flashes on the island at random (one of two lightning sounds, chosen at random, at a random volume)"],
-      ["sounds/island - lightning 03d.ogg", "Lightning 2", "Lightning flashes on the island at random (one of two lightning sounds, chosen at random, at a random volume)"]
+      ["sounds/island - lightning 03d.ogg", "Lightning 2", "Lightning flashes on the island at random (one of two lightning sounds, chosen at random, at a random volume). Also in Hammer Heads Deluxe, as sounds/Gnome King - Flashing.ogg."]
     ] },
     { name: "Temples", sounds: [
       ["sounds/pixelus inside temple v01.ogg", "Inside the temple", "A temple's puzzle screen opens"],
       ["sounds/temple mouseover 01.ogg", "Puzzle hover", "The mouse comes onto a puzzle's picture in a temple"],
       ["sounds/chain breaking 01.ogg", "Chain breaks", "A temple's last puzzle becomes open (the chain on it breaks)"],
       ["sounds/pixelus hint screen v01.ogg", "Hint screen (unused)", "Never played"],
-      ["sounds/hint popup 01.ogg", "Hint popup (unused)", "Never played"]
+      ["sounds/hint popup 01.ogg", "Hint popup (unused)", "Never played. Also in Hammer Heads Deluxe, as sounds/Hint Popup 01.ogg. Also in Hammer Heads Deluxe, as sounds/UI - Target Over Gnome.ogg."]
     ] },
     { name: "Puzzles", sounds: [
-      ["sounds/pixelus start of puzzle v02.ogg", "Puzzle starts", "A puzzle appears, once the help screen is gone"],
+      ["sounds/pixelus start of puzzle v02.ogg", "Puzzle starts", "A puzzle appears, once the help screen is gone. Also in Hammer Heads Deluxe, as sounds/UI - Time Bonus.ogg."],
       ["sounds/tile moving 02d.ogg", "Tile moves", "A tile is thrown in or pulled back, also in an undo and in the help screen's demonstration"],
       ["sounds/tile target 02c.ogg", "Tile on target", "A tile comes to rest on a wanted cell or a start spot; also in the help screen's demonstration"],
       ["sounds/tile non-target 02b.ogg", "Tile off target", "A tile comes to rest on a cell nobody wants"],
@@ -1680,7 +1686,7 @@ var ByopopSoundboards = {
     ],
     groups: [
     { name: "Menus and voices", sounds: [
-      ["sounds/ui little beep 05b.ogg", "Button beep", "A button is pressed or let go; a dialog button is pressed; the sound volume slider is moved"],
+      ["sounds/ui little beep 05b.ogg", "Button beep", "A button is pressed or let go; a dialog button is pressed; the sound volume slider is moved. Also in Hammer Heads Deluxe, as sounds/UI - Check.ogg."],
       ["sounds/voice/welcome to rocket mania 03.ogg", "\"Welcome to Rocket Mania\"", "The main menu, a moment after it opens, the first time in a run"],
       ["sounds/voice/let's launch some fireworks 01.ogg", "\"Let's launch some fireworks\"", "The main menu, a moment after it opens, on later visits"],
       ["sounds/voice/these are the master rocketeers 06.ogg", "\"These are the master rocketeers\"", "The high scores are shown"],
@@ -1692,7 +1698,7 @@ var ByopopSoundboards = {
       ["sounds/voice/get ready 02.ogg", "\"Get ready\"", "A level starts (the first level says nothing when hints are off)"],
       ["sounds/voice/click on the tile to rotate it___ 01.ogg", "\"Click on the tile to rotate it\"", "The first level, when the player has not moved for a while"],
       ["sounds/lantern 01.ogg", "Lantern", "A lantern lights on the board's top bar"],
-      ["sounds/dragon breathing fire 05.ogg", "Dragon fire", "The talking head flies in on a rocket at a level's end"],
+      ["sounds/dragon breathing fire 05.ogg", "Dragon fire", "The talking head flies in on a rocket at a level's end. Also in Hammer Heads Deluxe, as sounds/Gnome King - Droning.ogg."],
       ["sounds/ot - new ice cubes 01b.ogg", "Ice cubes", "A wait before a timed stretch ends and the board resumes"]
     ] },
     { name: "Tiles and fuses", sounds: [
@@ -1702,7 +1708,7 @@ var ByopopSoundboards = {
       ["sounds/fuse burning 01d short.ogg", "Fuse burns", "A burn finishes and the fuses are lit row by row"],
       ["sounds/fuse burning 01.ogg", "Special tile flashes", "A special tile, a lit one, starts to flash"],
       ["sounds/magic tinkeling sound with ping 01b.ogg", "Special appears", "A bomb or another special tile is put on a free tile"],
-      ["sounds/explosion 01.ogg", "Bomb", "A bomb counts down or goes off; a tile at the top blows up"]
+      ["sounds/explosion 01.ogg", "Bomb", "A bomb counts down or goes off; a tile at the top blows up. Also in Hammer Heads Deluxe, as sounds/Bomb Face - Explosion.ogg."]
     ] },
     { name: "Launching rockets", sounds: [
       ["sounds/rocket launch woosh 03b.ogg", "Rocket launch", "A rocket is launched, three times over for each group of rockets"],
@@ -1712,14 +1718,14 @@ var ByopopSoundboards = {
       ["sounds/ba ding 04b.ogg", "Ding 4", "Four groups of rockets are launched"],
       ["sounds/ba ding 05b.ogg", "Ding 5", "Five or more groups of rockets are launched"],
       ["sounds/firework explosion 01.ogg", "Firework 1", "A rocket bursts; one of these six at random"],
-      ["sounds/firework explosion 03.ogg", "Firework 2", "A rocket bursts; one of these six at random"],
+      ["sounds/firework explosion 03.ogg", "Firework 2", "A rocket bursts; one of these six at random. Also in Bejeweled 3, as sounds/firework_thump.ogg."],
       ["sounds/firework explosion 04.ogg", "Firework 3", "A rocket bursts; one of these six at random"],
       ["sounds/firework explosion 05.ogg", "Firework 4", "A rocket bursts; one of these six at random"],
       ["sounds/firework explosion 06.ogg", "Firework 5", "A rocket bursts; one of these six at random"],
-      ["sounds/firework explosion 07.ogg", "Firework 6", "A rocket bursts; one of these six at random"],
-      ["sounds/crowd applause 01.ogg", "Applause, small", "Two or three launches go off at once"],
-      ["sounds/crowd applause 02.ogg", "Applause, medium", "Four or five launches at once; the level-end dialog opens"],
-      ["sounds/crowd applause 04.ogg", "Applause, large", "Six or more launches at once; a launch that wins the full-board bonus"]
+      ["sounds/firework explosion 07.ogg", "Firework 6", "A rocket bursts; one of these six at random. Resembles Bejeweled 3's sounds/firework_crackle.ogg, the same sound, shorter."],
+      ["sounds/crowd applause 01.ogg", "Applause, small", "Two or three launches go off at once. Also in Hammer Heads Deluxe, as sounds/Crowd Applause 01.ogg."],
+      ["sounds/crowd applause 02.ogg", "Applause, medium", "Four or five launches at once; the level-end dialog opens. Also in Hammer Heads Deluxe, as sounds/Crowd Applause 02.ogg."],
+      ["sounds/crowd applause 04.ogg", "Applause, large", "Six or more launches at once; a launch that wins the full-board bonus. Also in Hammer Heads Deluxe, as sounds/Crowd Applause 04.ogg. Also in Chuzzle Deluxe, as sounds/TrophyJoy.ogg."]
     ] },
     { name: "Scoring", sounds: [
       ["sounds/ting 02b.ogg", "Multiplier ting 1 (unused)", "Never played"],
@@ -1730,7 +1736,7 @@ var ByopopSoundboards = {
       ["sounds/ching 01.ogg", "Ching, 1", "A small coin reaches the counter"],
       ["sounds/ching 02.ogg", "Ching, 2", "A medium coin reaches the counter; part of the biggest one"],
       ["sounds/ching 05.ogg", "Ching, 5", "A large coin reaches the counter; part of the biggest one"],
-      ["sounds/gem picked up.ogg", "Gem 1", "A gem is picked up"],
+      ["sounds/gem picked up.ogg", "Gem 1", "A gem is picked up. Also in Hammer Heads Deluxe, as sounds/Flag Mole - Picked and Moving.ogg."],
       ["sounds/gem picked up shift 1.ogg", "Gem 2", "A gem is picked up in a run: the second one"],
       ["sounds/gem picked up shift 2.ogg", "Gem 3", "A gem is picked up in a run: the third one"],
       ["sounds/gem picked up shift 3.ogg", "Gem 4", "A gem is picked up in a run: the fourth one"],
@@ -1782,7 +1788,7 @@ var ByopopSoundboards = {
     ] },
     { name: "Enemies", sounds: [
       ["sounds/moveevil.ogg", "Enemies move", "The enemy ships start their move after any turning is finished"],
-      ["sounds/explode.ogg", "Small explosion", "A small explosion is spawned at a cell (panned)"],
+      ["sounds/explode.ogg", "Small explosion", "A small explosion is spawned at a cell (panned). Resembles Dynomite's Explode (unused) (sounds/explode.ogg), the same sound, mixed differently."],
       ["sounds/explode2.ogg", "Big explosion", "A big explosion is spawned at a cell (panned)"],
       ["sounds/monster.ogg", "Sea monster", "A sea monster ship is shot, or sails into the player's cell or another ship (panned)"],
       ["sounds/sink.ogg", "Ship sinks", "A life is lost"]
@@ -1814,51 +1820,51 @@ var ByopopSoundboards = {
     ],
     groups: [
     { name: "Menus", sounds: [
-      ["TipTop.dat|tiptop:sounds/splash.ogg", "\"Welcome to Tip Top\"", "The splash screen's loading bar shows"],
-      ["TipTop.dat|tiptop:sounds/MouseOver.ogg", "Mouse over", "The pointer comes onto a button, also on the level summary's button"],
-      ["TipTop.dat|tiptop:sounds/MouseClick.ogg", "Mouse click", "A button is pressed, or Enter on the level summary"],
-      ["TipTop.dat|tiptop:sounds/VolumeAdjust.ogg", "Volume test", "The sound volume slider is moved"]
+      ["TipTop.dat|tiptop:sounds/splash.ogg", "\"Welcome to Tip Top\"", "The splash screen opens, as its loading bar starts"],
+      ["TipTop.dat|tiptop:sounds/MouseOver.ogg", "Mouse over", "The pointer comes onto a button or check box; also onto the level summary's button"],
+      ["TipTop.dat|tiptop:sounds/MouseClick.ogg", "Mouse click", "A button is pressed, or Enter or Esc on a button that answers to that key; also a click or Enter on the level summary's button"],
+      ["TipTop.dat|tiptop:sounds/VolumeAdjust.ogg", "Volume test", "The sound volume slider is moved or its track is clicked, unless the sound is still playing; it plays at the new volume"]
     ] },
     { name: "Level start and end", sounds: [
-      ["TipTop.dat|tiptop:sounds/GameStart.ogg", "Game start", "The first level of a game begins"],
-      ["TipTop.dat|tiptop:sounds/LevelStart.ogg", "Level start", "A later level begins"],
-      ["TipTop.dat|tiptop:sounds/LevelWin.ogg", "Level won", "A level is completed"],
-      ["TipTop.dat|tiptop:sounds/GameLost.ogg", "Game lost", "The game ends in a loss"],
+      ["TipTop.dat|tiptop:sounds/GameStart.ogg", "Game start", "A game's first level begins (the level is the configured start level)"],
+      ["TipTop.dat|tiptop:sounds/LevelStart.ogg", "Level start", "A later level begins; also when a bonus round begins"],
+      ["TipTop.dat|tiptop:sounds/LevelWin.ogg", "Level won", "A level is completed, as its completed picture and sparkles appear; also when a bonus round is completed"],
+      ["TipTop.dat|tiptop:sounds/GameLost.ogg", "Game lost", "The game is over, in the normal game or in a bonus round"],
       ["TipTop.dat|tiptop:sounds/EmptyRowCount.ogg", "Empty row", "A cleared row scores the empty-row bonus"]
     ] },
     { name: "Matches", sounds: [
-      ["TipTop.dat|tiptop:sounds/ColorMatch.ogg", "Match of 3", "A match of three blocks"],
-      ["TipTop.dat|tiptop:sounds/ColorMatchGroup4.ogg", "Match of 4", "A match of four blocks"],
-      ["TipTop.dat|tiptop:sounds/ColorMatchGroup5.ogg", "Match of 5", "A match of five blocks"],
-      ["TipTop.dat|tiptop:sounds/ColorMatchGroup6.ogg", "Match of 6 or more", "A match of six or more blocks"],
-      ["TipTop.dat|tiptop:sounds/ColorMatchCascade1.ogg", "\"Double!\"", "The second match of a chain"],
-      ["TipTop.dat|tiptop:sounds/ColorMatchCascade2.ogg", "Cascade 3", "The third match of a chain"],
-      ["TipTop.dat|tiptop:sounds/ColorMatchCascade3.ogg", "\"Quad!\"", "The fourth match of a chain"],
-      ["TipTop.dat|tiptop:sounds/ColorMatchCascade4.ogg", "\"Super combo!\"", "The fifth match of a chain or beyond"]
+      ["TipTop.dat|tiptop:sounds/ColorMatch.ogg", "Match of 3", "A match of exactly three blocks that is the first of its chain"],
+      ["TipTop.dat|tiptop:sounds/ColorMatchGroup4.ogg", "Match of 4", "A match of four blocks that is the first of its chain"],
+      ["TipTop.dat|tiptop:sounds/ColorMatchGroup5.ogg", "Match of 5", "A match of five blocks that is the first of its chain"],
+      ["TipTop.dat|tiptop:sounds/ColorMatchGroup6.ogg", "Match of 6 or more", "A match of six or more blocks that is the first of its chain"],
+      ["TipTop.dat|tiptop:sounds/ColorMatchCascade1.ogg", "\"Double!\"", "The second match of a chain, whatever its size"],
+      ["TipTop.dat|tiptop:sounds/ColorMatchCascade2.ogg", "Cascade 3", "The third match of a chain, whatever its size"],
+      ["TipTop.dat|tiptop:sounds/ColorMatchCascade3.ogg", "\"Quad!\"", "The fourth match of a chain, whatever its size"],
+      ["TipTop.dat|tiptop:sounds/ColorMatchCascade4.ogg", "\"Super combo!\"", "The fifth match of a chain or any later one, whatever its size"]
     ] },
     { name: "Blocks", sounds: [
-      ["TipTop.dat|tiptop:sounds/BlockLaunch.ogg", "Block launched", "The player's block starts to move"],
-      ["TipTop.dat|tiptop:sounds/FloaterLaunched.ogg", "Floater launched", "A floating block starts to move"],
-      ["TipTop.dat|tiptop:sounds/LaunchBlockMoves.ogg", "Launcher moves", "The launcher moves to another column"],
-      ["TipTop.dat|tiptop:sounds/BlocksFall.ogg", "Blocks fall", "The blocks drop after a row is cleared"]
+      ["TipTop.dat|tiptop:sounds/BlockLaunch.ogg", "Block launched", "The player launches a plain block from the bottom of its column"],
+      ["TipTop.dat|tiptop:sounds/FloaterLaunched.ogg", "Floater launched", "A plain block enters from the top of the board (a block of the queue that is not the player's)"],
+      ["TipTop.dat|tiptop:sounds/LaunchBlockMoves.ogg", "Launcher moves", "The launcher's column changes while the preview block is drawn, but not when its first column is set"],
+      ["TipTop.dat|tiptop:sounds/BlocksFall.ogg", "Blocks fall", "At the end of a level, when blocks are left on the board and start to fly off the screen, row after row"]
     ] },
     { name: "Power pieces", sounds: [
-      ["TipTop.dat|tiptop:sounds/RocketLaunch.ogg", "Rocket launch", "A rocket starts to move"],
-      ["TipTop.dat|tiptop:sounds/RocketCollision.ogg", "Rocket hits", "A rocket lands and goes off"],
-      ["TipTop.dat|tiptop:sounds/HammerLaunch.ogg", "Hammer launch", "A hammer starts to move"],
-      ["TipTop.dat|tiptop:sounds/HammerCollision.ogg", "Hammer hits", "A hammer lands and goes off"],
-      ["TipTop.dat|tiptop:sounds/MagnetLaunch.ogg", "Magnet launch", "A magnet starts to move"],
-      ["TipTop.dat|tiptop:sounds/RainbowLaunch.ogg", "Rainbow launch", "A rainbow piece starts to move"],
-      ["TipTop.dat|tiptop:sounds/RainbowCollision.ogg", "Rainbow hits", "A rainbow piece lands and goes off"],
-      ["TipTop.dat|tiptop:sounds/ColorbombLaunch.ogg", "Color bomb launch", "A color bomb starts to move"],
-      ["TipTop.dat|tiptop:sounds/ColorBombCollision.ogg", "Color bomb hits", "A color bomb lands and goes off"],
-      ["TipTop.dat|tiptop:sounds/ColumnNukeLaunch.ogg", "Column nuke launch", "A column nuke starts to move"],
-      ["TipTop.dat|tiptop:sounds/ColumnNukeCollision.ogg", "Column nuke hits", "A column nuke lands and goes off"]
+      ["TipTop.dat|tiptop:sounds/RocketLaunch.ogg", "Rocket launch", "A rocket piece starts to move: launched by the player, or entering from the top"],
+      ["TipTop.dat|tiptop:sounds/RocketCollision.ogg", "Rocket hits", "A rocket reaches the first block in its way (the one row it taps) and goes off"],
+      ["TipTop.dat|tiptop:sounds/HammerLaunch.ogg", "Hammer launch", "A hammer piece starts to move: launched by the player, or entering from the top"],
+      ["TipTop.dat|tiptop:sounds/HammerCollision.ogg", "Hammer hits", "A hammer reaches the first block in its way (the one row it taps) and goes off"],
+      ["TipTop.dat|tiptop:sounds/MagnetLaunch.ogg", "Magnet launch", "A magnet piece starts to move: launched by the player, or entering from the top"],
+      ["TipTop.dat|tiptop:sounds/RainbowLaunch.ogg", "Rainbow launch", "A rainbow piece starts to move: launched by the player, or entering from the top"],
+      ["TipTop.dat|tiptop:sounds/RainbowCollision.ogg", "Rainbow hits", "A rainbow piece comes to rest and goes off"],
+      ["TipTop.dat|tiptop:sounds/ColorbombLaunch.ogg", "Color bomb launch", "A color bomb piece starts to move: launched by the player, or entering from the top"],
+      ["TipTop.dat|tiptop:sounds/ColorBombCollision.ogg", "Color bomb hits", "A color bomb piece comes to rest and goes off"],
+      ["TipTop.dat|tiptop:sounds/ColumnNukeLaunch.ogg", "Column nuke launch", "A column nuke piece starts to move: launched by the player, or entering from the top"],
+      ["TipTop.dat|tiptop:sounds/ColumnNukeCollision.ogg", "Column nuke hits", "A column nuke piece comes to rest and goes off"]
     ] },
     { name: "Warnings", sounds: [
-      ["TipTop.dat|tiptop:sounds/timewarning.ogg", "Time warning", "Loops while the level's meter is low during play"],
-      ["TipTop.dat|tiptop:sounds/shake0.ogg", "Shake 0", "Loops while the stack is near the top, when the game's table sets it for that nearness"],
-      ["TipTop.dat|tiptop:sounds/shake1.ogg", "Shake 1", "Loops while the stack is near the top, when the game's table sets it for that nearness"],
+      ["TipTop.dat|tiptop:sounds/timewarning.ogg", "Time warning", "Loops while the level's meter is at or below a sixth of full, in Timed mode or a bonus round on the game screen; it stops otherwise"],
+      ["TipTop.dat|tiptop:sounds/shake0.ogg", "Shake 0", "Loops, restarted every update, while play is on (not game over, level complete, a bonus round or a busy screen) and the stack's nearest distance to the edge is 1 row or less; every mode's table sets it"],
+      ["TipTop.dat|tiptop:sounds/shake1.ogg", "Shake 1", "Loops, restarted every update, while play is on (not game over, level complete, a bonus round or a busy screen) and the stack's nearest distance to the edge is 2 rows or less; only the Timed and Speed tables set it"],
       ["TipTop.dat|tiptop:sounds/shake2.ogg", "Shake 2 (unused)", "Never played: no mode's shake table (Regular and Strategy 5,0,5,5,5; Timed and Speed 5,0,1,5,5) selects it"]
     ] },
   ] },
@@ -1932,7 +1938,7 @@ var ByopopSoundboards = {
       ["audio/drill_shoot.wav", "Beam shot", "The ship fires its beams (when fewer than three beams are out)"],
       ["audio/drill.wav", "Beam drilling", "While the beams run, every 66 updates after the shot"],
       ["audio/clank.wav", "Beam clank", "A beam's head meets a cell that is not open and stops"],
-      ["audio/buzzer.wav", "Buzzer", "A click with an enemy near the ship while the fill quota is not yet passed; no beams fire"],
+      ["audio/buzzer.wav", "Buzzer", "A click with an enemy near the ship while the fill quota is not yet passed; no beams fire. Also in Banana Bugs, as sounds/buzzer.ogg."],
       ["audio/fill.wav", "Fill", "A captured side fills in; repeats every 120 updates while fills run, and when a beam pair ends"],
       ["audio/fill_end.wav", "Fill ends", "The last but one fill of a board finishes"],
       ["audio/explosion2.wav", "Ship explodes", "The ship explodes"],

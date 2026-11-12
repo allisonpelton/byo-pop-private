@@ -90,7 +90,9 @@ the same machine. A plain run opens a window, raises it over whatever the user i
   any of the games on my desktop or sandbox with sound to test play". Between 22:00 and 08:00 local time a session may
   run any game, port or original, on the visible desktop or in Windows Sandbox (`--sandbox-vgpu` and
   `--sandbox-connect` included), with real sound, scripted and driven runs too; a run started in that window ends by
-  08:00. Everything else above still holds: at most 6 game processes, no link, "Buy" or "More Games" click, the
+  08:00. Benchmarks and other test programs that open a window (a presenter or vsync bench) may run there on the same
+  terms (the user, 2026-11-12, asked whether rundesk's desktop, which may never signal a vertical blank, makes a
+  present cost more than on a player's screen: "Yes"). Everything else above still holds: at most 6 game processes, no link, "Buy" or "More Games" click, the
   user's cursor and keyboard never touched (input posted to the game's own window), the window, registry and saves
   put back as `docs/ORIGRUN.md` says, nothing left running. Outside those hours the rules above apply unchanged.
 
