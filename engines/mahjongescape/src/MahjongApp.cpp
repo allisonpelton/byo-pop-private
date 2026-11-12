@@ -525,9 +525,14 @@ DDInterface* MahjongApp::CreateDDInterface()
 {
 	// test only (a test run reads it): SURFACE_DISPLAY=off keeps the framework's own display and the widget's image (the path before the
 	// SurfaceDisplay), to measure the two against each other
-	const char* aMode = SDL_getenv("SURFACE_DISPLAY");
-	if ((IsTestRun()) && (aMode != nullptr) && (strcmp(aMode, "off") == 0))
-		return SexyAppBase::CreateDDInterface();
+	// (IsTestRun reads the environment too, and SDL_getenv answers from one shared buffer on Windows: it is asked first and
+	// the value is used before the next SDL_getenv)
+	if (IsTestRun())
+	{
+		const char* aMode = SDL_getenv("SURFACE_DISPLAY");
+		if ((aMode != nullptr) && (strcmp(aMode, "off") == 0))
+			return SexyAppBase::CreateDDInterface();
+	}
 	return new SurfaceDisplay(this);
 }
 #endif
