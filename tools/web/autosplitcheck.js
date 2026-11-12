@@ -206,10 +206,41 @@ async function common(category, levels, newLine, opts) {
   note("lost", resetCause !== null && att().phase === "idle", "reset " + resetCause + ", then " + att().phase + "; deaths " + [s.death0, s.death1, s.death2, s.death3].join(","));
 }
 
+// Cosmic Bugs' instructions page, then its Play button
+var CB_PLAY = ["goto instructions", { wait: 10 }, { move: [400, 563] }, { wait: 3 }, { click: [400, 563] }];
 // Mummy Maze's Quit to Main button, in the game's sidebar
 var MM_QUIT = [{ click: [64, 462] }];
 
 var PLANS = {
+  cosmicbugs: async function () {
+    // a run starts at Play on the instructions page, which `goto instructions` opens (its Play, at 400,563, is clicked here:
+    // the bot answers null on that page); the first board
+    // splits, the next two don't (the next split is board 49's), and running out of lives resets. The 577 boards to the
+    // win are the replay test's (tools/autosplittest.js)
+    titleGoto = true;
+    snap();
+    await t.wait(5);
+    var s0 = snap();
+    note("attach", !!s0 && s0.active === 1, s0 ? "active " + s0.active : "no block read");
+    await load("Any%");
+    await newGame(CB_PLAY);
+    var a0 = att();
+    note("start", a0.phase === "running" && a0.index === 0, "phase " + a0.phase + ", index " + a0.index + " (board " + snap().boardSerial + ")");
+    var idx = [];
+    for (var lv = 1; lv <= 3; lv++) idx.push((await clearLevel()).index);
+    note("split", idx.join(",") === "1,1,1", "index after boards 1 to 3: " + idx.join(","));
+    var resetCause = null;
+    var p = (async function () { resetCause = await sawReset(30000); })();
+    await lose();
+    await p;
+    note("lost", resetCause !== null && att().phase === "idle", "reset " + resetCause + ", then " + att().phase + "; deaths " + [snap().death0, snap().death1].join(","));
+    // a board started by the `level` command (as a continued game or a chosen board) starts nothing
+    var g = snap().goCount;
+    await until("level 5");
+    for (var k = 0; k < 100 && !snap().inGame; k++) await botStep();
+    await settle();
+    note("resumed", att().phase === "idle" && snap().goCount === g && (snap().flags & 0x02), "after `level 5`: " + att().phase + ", GOs " + g + " to " + snap().goCount + ", flags " + snap().flags.toString(16));
+  },
   typershark: async function () {
     splitByProgress = true;
     titleGoto = true;
