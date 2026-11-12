@@ -12,4 +12,4 @@ until python tools/gamecount.py --limit 6 > /dev/null 2>&1; do sleep 20; done
 RM_REG="Is3D=1,ScreenMode=0,HintsDisabled=0${RM_EXTRA:+,$RM_EXTRA}" timeout 1800 "$TOOLS/port.sh" "$D" -seed=${GS:-1} -script="$(win "$D/port3d.txt")" | tail -1
 python games/rocketmania/tools/shots/lag3d.py "$N" compare "$@" > "$D/best.txt"
 python tools/shotdiff/shotdiff.py --game rocketmania --orig "build/ph2/$N/orig3d" --port "$D/best" --run ${N}3dbest | tail -1
-rm -rf "${D:?}/port"   # the window's frames (about fourteen to a shot) are not kept; best/ is
+[ -n "$KEEP_FRAMES" ] || rm -rf "${D:?}/port"   # the window's frames (about fourteen to a shot) are not kept (KEEP_FRAMES=1 keeps them); best/ is
