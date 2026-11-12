@@ -606,7 +606,7 @@ var ByopopSoundboards = {
       ["Sound/Button2_Release.ogg", "Round button release", "A button is released on the options menu, the player list and the new-player name box"],
       ["Sound/PaperButton_Press.ogg", "Paper button press", "A button is pressed on the dialogs, the help arrows, the high scores, the story and the interstitial screens"],
       ["Sound/PaperButton_Release.ogg", "Paper button release", "A button is released on the dialogs, the help arrows, the high scores, the story and the interstitial screens"],
-      ["Sound/Checkbox_Press.ogg", "Check box press", "A check box is pressed, or the sound volume slider is moved"],
+      ["Sound/Checkbox_Press.ogg", "Check box press", "A check box is pressed, or the sound volume slider is let go (full volume)"],
       ["Sound/Logo.ogg", "Logo", "The logo screen's first update, 20 ms later (it plays once as the logo screen starts, before the title)"],
       ["Sound/Bell.ogg", "Shop bell", "The bell area of the main menu's picture is clicked, every click (full volume)"],
       ["Sound/CashRegister.ogg", "Cash register", "The cash register area of the main menu's picture is clicked, every click (full volume)"],
@@ -619,7 +619,7 @@ var ByopopSoundboards = {
       ["Sound/Place_02.ogg", "Tile placed 2", "A tile is clicked or dragged onto the word's path (a different tile from the last one): a 1 in 3 draw among the three place sounds"],
       ["Sound/Place_03.ogg", "Tile placed 3", "A tile is clicked or dragged onto the word's path (a different tile from the last one): a 1 in 3 draw among the three place sounds"],
       ["Sound/Cancel.ogg", "Path dropped", "A right click in the game while the word's path holds at least one tile (not during the tutorial's first steps or a pause); the path is dropped at 75% volume"],
-      ["Sound/Error.ogg", "Error", "A tile that cannot join the path is picked (at most once per 700 ms); Submit on a non-word; the 3rd and later taps on a fixed or blocker tile; a refused Alt+Enter"],
+      ["Sound/Error.ogg", "Error", "A wrong tile is picked during the tutorial (at most once per 700 ms); a fixed or star tile is clicked once both hints have been shown, or while the tutorial's hint shows; a path that is not a word is submitted (85% volume); Alt+Enter is refused because the desktop is too small (full volume)"],
       ["Sound/Scramble.ogg", "Shuffle", "The shuffle button is pressed and the board still has a move to shuffle into (otherwise the game ends instead); plays at 75% volume"]
     ] },
     { name: "Scoring words", sounds: [
@@ -630,10 +630,10 @@ var ByopopSoundboards = {
       ["Sound/Blocker_Fallout.ogg", "Blocker falls out", "At a refill, each blocker tile with no cell below it that has bounced fewer than 3 times drops out of the board, at 65% volume"]
     ] },
     { name: "Level end", sounds: [
-      ["Sound/Level_Up_Quick.ogg", "Level won", "A scored word leaves no more cells to fill on the board (the level's fill count is met), so the level is won"],
+      ["Sound/Level_Up_Quick.ogg", "Level won", "A scored word leaves no more cells to fill on the board (the level's fill count is met), so the level is won; it plays together with that word's sound"],
       ["Sound/Level_Up.ogg", "Level summary", "The level's summary page starts after a win (80% volume, 10 ms after the page begins)"],
       ["Sound/AddPoint.ogg", "Score counts up", "Each step of the level's bonus counted into the score, every 34 to 100 ms; the pitch starts at 2x and rises 0.07 a step for 80 steps (40% volume)"],
-      ["Sound/GameOver.ogg", "Game over", "The game ends (the timed clock reaches 0, or no moves are left); starts 150 ms after the game-over state is set"]
+      ["Sound/GameOver.ogg", "Game over", "The game ends (time is up, the goal is lost or no moves are left); starts 150 ms after the game-over state is set"]
     ] },
     { name: "Story typewriter", sounds: [
       ["Sound/type_space_01.ogg", "Typewriter space", "A space of the story is typed on the intro screen (45% volume; the next key waits 1.8 times the usual delay)"],
@@ -1682,6 +1682,7 @@ var ByopopSoundboards = {
     presets: [
       { name: "Rocket Launch", when: "A fuse reaches a rocket", steps: [["sounds/Fuse Burning 01d short", 0], ["sounds/Ba Ding 01b", 460], ["sounds/Rocket Launch Woosh 03b", 460], ["sounds/Rocket Launch Woosh 03b", 460], ["sounds/Rocket Launch Woosh 03b", 460], ["sounds/Fuse Burning 01d short", 1520], ["sounds/Firework Explosion 04", 1950]]},
       { name: "Level Up", when: "The last rocket a level needs", steps: [["sounds/Fuse Burning 01d short", 0], ["sounds/Firework Explosion 06", 480], ["sounds/Crowd Applause 04", 520], ["sounds/Ba Ding 03b", 520], ["sounds/Rocket Launch Woosh 03b", 520], ["sounds/Rocket Launch Woosh 03b", 520], ["sounds/Rocket Launch Woosh 03b", 520], ["sounds/Crowd Applause 01", 520], ["sounds/voice/Level Up 02", 910], ["sounds/Dragon Breathing Fire 05", 1510], ["sounds/Firework Explosion 01", 2010], ["sounds/Crowd Oohs 11", 2510], ["sounds/Firework Explosion 06", 2510], ["sounds/Crowd Applause 01", 3010], ["sounds/Firework Explosion 03", 3010], ["sounds/voice/Well Done 01", 4530, {"end": 4690}], ["sounds/Crowd Applause 02", 4530], ["sounds/voice/Get Ready 02", 4690]]},
+      { name: "Buy Rockets", when: "Between levels the coins collected fly out one by one, each buying a rocket, one upgrading a launcher; then the next level's Get Ready", steps: [["sounds/Coin Leaving Treasure Chest 05", 0], ["sounds/Coin Leaving Treasure Chest 05", 500], ["sounds/Rocket Being Bought 02", 550], ["sounds/Coin Leaving Treasure Chest 05", 1000], ["sounds/Rocket Being Bought 02", 1050], ["sounds/Coin Leaving Treasure Chest 05", 1500], ["sounds/Rocket Being Bought 02", 1550], ["sounds/Coin Leaving Treasure Chest 05", 2000], ["sounds/Rocket Being Bought 02", 2050], ["sounds/Rocket Being Bought 02", 2550], ["sounds/Magic Rocket Upgraded 03", 2550], ["sounds/voice/Get Ready 02", 2840]]},
       { name: "Time Up", when: "Classic mode's night timer runs out", steps: [["sounds/Timer Danger 06", 0], ["sounds/Timer Danger 06", 1000], ["sounds/Timer Danger 06", 2000], ["sounds/Tubetricks Sting Two v01", 2820], ["sounds/voice/Game Over 02", 2820], ["sounds/Fuse Burning 01d short", 3480], ["sounds/Ba Ding 01b", 3940], ["sounds/Rocket Launch Woosh 03b", 3940], ["sounds/Rocket Launch Woosh 03b", 3940], ["sounds/Rocket Launch Woosh 03b", 3940], ["sounds/Firework Explosion 03", 5430], ["sounds/voice/This Is Your Final Rank 07", 5820, {"end": 5900}], ["sounds/Crowd Applause 02", 5820], ["sounds/voice/These Are The Master Rocketeers 06", 5900]]}
     ],
     groups: [
@@ -1927,6 +1928,9 @@ var ByopopSoundboards = {
   ] },
   waterbugs: {
     presets: [
+      { name: "Beam Shot", when: "A click fires the beams: they drill across the board until each meets a closed cell", steps: [["audio/drill_shoot", 0], ["audio/drill", 60], ["audio/drill", 60], ["audio/drill", 130], ["audio/drill", 130], ["audio/drill", 190], ["audio/drill", 190], ["audio/drill", 260], ["audio/drill", 260], ["audio/drill", 330], ["audio/drill", 330], ["audio/drill", 390], ["audio/drill", 390], ["audio/drill", 460], ["audio/drill", 460], ["audio/drill", 520], ["audio/drill", 520], ["audio/drill", 590], ["audio/drill", 590], ["audio/drill", 660], ["audio/drill", 660], ["audio/drill", 720], ["audio/drill", 720], ["audio/drill", 790], ["audio/drill", 790], ["audio/drill", 850], ["audio/drill", 850], ["audio/drill", 920], ["audio/drill", 920], ["audio/drill", 990], ["audio/drill", 990], ["audio/drill", 1050], ["audio/drill", 1050], ["audio/drill", 1120], ["audio/drill", 1120], ["audio/drill", 1180], ["audio/drill", 1180], ["audio/clank", 1200]]},
+      { name: "Fill", when: "The beams close off a side, which fills in steps until it is done", steps: [["audio/fill", 0], ["audio/fill", 180], ["audio/fill", 360], ["audio/fill", 540], ["audio/fill", 720], ["audio/fill", 900], ["audio/fill", 1080], ["audio/fill", 1260], ["audio/fill", 1440], ["audio/fill_end", 1540]]},
+      { name: "Ship Zapped", when: "An enemy touches a beam while the ship is firing, and the ship explodes", steps: [["audio/electricity", 0], ["audio/explosion2", 90]]},
       { name: "Board Summary", when: "A board's figures appear", steps: [["audio/pop", 0], ["audio/pop", 300], ["audio/pop", 600]]}
     ],
     groups: [
