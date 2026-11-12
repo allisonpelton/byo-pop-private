@@ -388,11 +388,12 @@
         "identical-play",
         "registration-out",
         "identical-look",
-        "fixes-mod"
+        "fixes-mod",
+        "coverage"
       ],
       "na": [],
-      "now": "coverage",
-      "note": "No soundboard or tunes yet"
+      "now": "performance",
+      "note": ""
     },
     "wordharmony": {
       "title": "Word Harmony",
@@ -405,10 +406,11 @@
         "site-features",
         "coverage",
         "performance",
-        "unneeded-code"
+        "unneeded-code",
+        "readability"
       ],
       "na": [],
-      "now": "readability",
+      "now": "collection",
       "note": ""
     },
     "cosmicbugs": {
