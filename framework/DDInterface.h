@@ -206,6 +206,11 @@ public:
 	// SDL_RENDER_DEVICE_RESET.
 	virtual void ReleaseTextures();
 
+	// The window's pixels may be lost or not the screen's any more (an expose, a restore from minimised, a size change): a
+	// display that keeps what it shows between frames (SurfaceDisplay) shows the whole screen at the next frame. Here nothing:
+	// every frame is drawn whole.
+	virtual void ScreenInvalidated() {}
+
 	// Frame
 	virtual void BeginFrame();
 	virtual void Present();
