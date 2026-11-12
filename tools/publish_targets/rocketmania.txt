@@ -1,0 +1,46 @@
+# A derived, read-only repository for one finished game (docs/PUBLISHING.md, "Derived repositories"):
+#   python tools/publish.py --target rocketmania [--push] --model "..."
+# One directive a line. include takes a file or a folder from the trunk; exclude takes out paths (and * ? patterns) of
+# what was included; file <path> <trunk path> puts a trunk file at another path; transform <path> <trunk path> <name> [arg]
+# puts the output of one of publish.py's TRANSFORMS in place of a trunk file's text. The .publishignore paths and the
+# private blocks are left out of every file, as in the whole-repository snapshot.
+
+name rocketmania
+url https://github.com/allisonpelton/byo-pop-rocketmania
+
+# the game: its code and notes, and from its tools only what builds, stages and smoke-tests it. Left out: the identical-play,
+# collection, profiling, coverage, readability and screenshot tools (they run the original exe, origrun or the Ghidra
+# exports, which this repository does not have), the generators that read the Ghidra exports (gen_res.py, make_*.py,
+# dumpdata.py and the other address tools), the LiveSplit test script (needs lsprobe and rundesk), and the web page parts
+# (the browser version is built from byo-pop, which has the site)
+include games/rocketmania/CMakeLists.txt
+include games/rocketmania/src
+include games/rocketmania/docs
+include games/rocketmania/mods
+include games/rocketmania/tools/stage_rocketmania_assets.py
+include games/rocketmania/tools/menu_test.txt
+include games/rocketmania/tools/board_test.txt
+
+# the shared code the game links: the framework, the platform layer without its MO3 and JPEG 2000 players (openmpt/,
+# openjpeg/: no Rocket Mania code uses them), and the libraries of the targets it links (sexyframework, sexycompat2004):
+# stb, IJG libjpeg, libxmp-lite, Tremor and minimp3 (which sits in libopenmpt's folder)
+include framework
+exclude framework/CMakeLists.txt
+include platform
+exclude platform/openmpt
+exclude platform/openjpeg
+include third_party/stb
+include third_party/libjpeg
+exclude third_party/libjpeg/test
+include third_party/libxmp-lite
+include third_party/tremor
+include third_party/libopenmpt/include/minimp3
+include cmake/llvm-mingw-i686.cmake
+
+# generated: a top-level CMakeLists.txt that builds this game only, the framework's and third_party's lists without the
+# libraries that were left out, a README and the ignore file
+transform CMakeLists.txt CMakeLists.txt toplevel rocketmania
+transform framework/CMakeLists.txt framework/CMakeLists.txt framework
+transform third_party/CMakeLists.txt third_party/CMakeLists.txt third_party
+file README.md tools/publish_targets/rocketmania.README.md
+file .gitignore tools/publish_targets/derived.gitignore
