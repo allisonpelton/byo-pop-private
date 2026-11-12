@@ -6,7 +6,10 @@
 // EffectMgr - and the particle system: Ember and its pooled owner EmberListMgr (sparks, embers, smoke).
 // The managers own an MTRand each (new MTRand(Sexy::Rand()) in the original: SeedMTRand2004 here);
 // EffectMgr::mRand is drawn only by FlyingPieceList::Update, EmberListMgr::mRand never (it is only saved).
-// Both managers are saved inside the game save (classic.dat / action.dat), byte for byte as the original.
+// Both managers are saved inside the game save (classic.dat / action.dat), byte for byte as the original: their
+// random generator's state and a count of effects, which is always 0, since Board::SaveGame clears the effects,
+// the embers and the overlay's effects before it writes. The effects themselves have no save code (the original's
+// Effect, Sparkle, FlyingPieceList and Ember Save and Load were never reached; GAME_NOTES, "Code taken out").
 // Offsets in the comments are absolute (the original's); nothing depends on them.
 // Behaviour spec: re/bookworm/analysis/board_draw.md section 3; names: re/bookworm/analysis/NAMES.md.
 
@@ -24,10 +27,9 @@ class Piece;
 class EffectMgr;
 class EmberListMgr;
 
-// Effect::GetType, also the type word of the effect records in the game save
+// Effect::GetType, which EffectMgr::HasEffectOfType and GetEffectsOfType ask for
 enum EffectType
 {
-	EFFECT_NONE = -1,
 	EFFECT_SPARKLE = 0,
 	EFFECT_FLYING_PIECES = 1
 };
@@ -48,12 +50,13 @@ enum EmberType
 	EMBER_SMOKE_PUFF = 10           // fx_smoke_sm, normal, alpha mAlpha * 255, at (x - 15, y - 15)
 };
 
-// Original: class Sexy::Effect, sizeof 0x10, vftable 0x4fc450 (8 slots). Never allocated on its own.
+// Original: class Sexy::Effect, sizeof 0x10, vftable 0x4fc450 (8 slots; the port has no slots 5 and 6, Save and Load).
+// Never allocated on its own.
 class Effect
 {
 public:
 	// +0x00 vfptr
-	EffectMgr*		mEffectMgr;             // +0x04 owner (set again by EffectMgr::Load, OverlayWidget::AddEffect)
+	EffectMgr*		mEffectMgr;             // +0x04 owner (set by OverlayWidget::AddEffect)
 	int				mUpdateCnt;             // +0x08 ++ per Update
 	bool			mDead;                  // +0x0c EffectMgr::Update deletes the effect when set
 	// +0x0d..+0x0f padding
@@ -63,10 +66,8 @@ public:
 	virtual void	DeleteEffect(Effect* theEffect);                // 0x41e950 slot 0: deletes theEffect, not this
 	virtual void	Update();                                       // 0x41e8c0 slot 1
 	virtual void	Draw(Graphics* g) {}                            // 0x401570 slot 2 (empty)
-	virtual int		GetType() { return EFFECT_NONE; }               // 0x41f260 slot 3
+	virtual int		GetType() = 0;                                  // 0x41f260 slot 3 (the base's returns -1, never called)
 	virtual bool	IsDead() { return mDead; }                      // 0x451af0 slot 4
-	virtual void	Save(FILE* theFile);                            // 0x41e8d0 slot 5
-	virtual void	Load(FILE* theFile);                            // 0x41e920 slot 6
 	virtual ~Effect();                                              // 0x41f270 body, 0x41f280 slot 7
 };
 
@@ -81,8 +82,7 @@ public:
 	double			mVY;                    // +0x28 added to mY per update
 	double			mGravity;               // +0x30 added to mVY per update
 	int				mDelay;                 // +0x38 updates to wait before moving/animating (drawn meanwhile)
-	bool			mUnknown3c;             // +0x3c only saved and loaded
-	// +0x3d..+0x3f padding
+	// +0x3c a flag only the (unreached) Sparkle::Save and Load used, +0x3d..+0x3f padding
 	int				mImage;                 // +0x40 app image id, ctor IMAGE_SPARKLE_LARGE (0x8d)
 	int				mFrame;                 // +0x44 0..13; dead when it wraps to 0
 
@@ -91,8 +91,6 @@ public:
 	virtual void	Update() override;                              // 0x41e970 slot 1
 	virtual void	Draw(Graphics* g) override;                     // 0x41e9e0 slot 2
 	virtual int		GetType() override { return EFFECT_SPARKLE; }            // 0x4ba8e0 slot 3 (shared "return 0" stub)
-	virtual void	Save(FILE* theFile) override;                   // 0x41eb00 slot 5
-	virtual void	Load(FILE* theFile) override;                   // 0x41eba0 slot 6
 	virtual ~Sparkle();                                             // 0x41f8a0 slot 7
 };
 
@@ -109,8 +107,6 @@ public:
 	virtual void	Update() override;                              // 0x421150 slot 1
 	virtual void	Draw(Graphics* g) override;                     // 0x41fba0 slot 2
 	virtual int		GetType() override { return EFFECT_FLYING_PIECES; }      // 0x4201b0 slot 3
-	virtual void	Save(FILE* theFile) override;                   // 0x41fee0 slot 5
-	virtual void	Load(FILE* theFile) override;                   // 0x4209f0 slot 6
 	virtual ~FlyingPieceList();                                     // 0x4200f0 body, 0x4202a0 slot 7
 };
 
@@ -135,8 +131,8 @@ public:
 	void			AddEffect(Effect* theEffect);                   // 0x4207f0 push_back, takes ownership
 	bool			HasEffectOfType(int theType);                   // 0x41fa50
 	std::list<Effect*>* GetEffectsOfType(int theType);              // 0x420830 new list or NULL (caller deletes)
-	void			Save(FILE* theFile);                            // 0x41faa0
-	void			Load(FILE* theFile);                            // 0x420b70 appends: callers Clear() first
+	void			Save(FILE* theFile);                            // 0x41faa0 (writes the count 0: see the file header)
+	void			Load(FILE* theFile);                            // 0x420b70 callers Clear() first
 };
 
 // Original: struct Ember (no vtable, no RTTI name), sizeof 0x60. Lives in EmberListMgr.
@@ -166,8 +162,6 @@ struct Ember
 	void			Reset(EmberListMgr* theMgr);                    // 0x41ec50 every field to its default
 	void			Update();                                       // 0x41ecb0
 	void			Draw(Graphics* g);                              // 0x41f320
-	void			Save(FILE* theFile);                            // 0x41f0a0
-	void			Load(FILE* theFile);                            // 0x41f180
 };
 
 // Original: class Sexy::EmberListMgr, sizeof 0x2c, vftable 0x4fc4c4 (1 slot: deleting dtor).
@@ -191,7 +185,7 @@ public:
 						double theAlpha, double theAlphaDecay);     // 0x420e00
 	bool			Update();                                       // 0x420fd0 true if it had embers before updating
 	void			Draw(Graphics* g);                              // 0x41f8d0
-	void			Save(FILE* theFile);                            // 0x41ff80
+	void			Save(FILE* theFile);                            // 0x41ff80 (writes the count 0: see the file header)
 	void			Load(FILE* theFile);                            // 0x420e70 callers Clear() first
 };
 

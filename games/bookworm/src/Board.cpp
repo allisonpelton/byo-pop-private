@@ -64,9 +64,6 @@ const int Sexy::gLetterValues[26] =
 	1, 4, 4, 3, 1, 5, 3, 5, 1, 8, 7, 2, 4, 2, 1, 4, 7, 2, 1, 2, 2, 5, 6, 8, 6, 10
 };
 
-// 0x4f98f0: WordScore::CalcScoreByLength's bonus by length (dead formula)
-const int Sexy::gLengthBonus[9] = { 0, 0, 0, 50, 100, 200, 400, 600, 1000 };
-
 // 0x4f9918: letter frequencies A..Z for RandomLetter and the timed fire pick (sum 95500)
 const int Sexy::gLetterWeights[26] =
 {
@@ -1539,7 +1536,6 @@ void Board::Scramble()
 		mUndo->Push();  // port(mod): the board before the scramble
 	mModMoves++;        // port(mod): the move, for the -autoplay bot's model check
 	mModLastMove.clear();
-	mApp->mScrambled = true;
 
 	std::for_each(mSelection.begin(), mSelection.end(), Piece::Deselect);
 	mSelection.clear();
@@ -2084,7 +2080,6 @@ void Board::BonusWordScored(int thePoints, int x, int y)
 
 	if (mBonusWord != "")
 	{
-		mApp->mUsedBonusWords.insert(mBonusWord);
 		PickBonusWord();
 		mBonusWord = "";
 	}

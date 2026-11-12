@@ -7027,8 +7027,8 @@ options dialog's fullscreen box and its 3D box were left alone:
 the footer button applies them, and either switches the display mode. The 3D box's own branch in
 `OptionsDialog::CheckboxChecked` is a few lines of a function the other boxes reached.
 
-**The 19 left.** No play of the original reaches them. Each was read again against the export and matches it; none is
-removed now. They are the candidates for taking out unneeded code:
+**The 19 left.** No play of the original reaches them. Each was read again against the export and matches it. They were
+the candidates for taking out unneeded code, and came out in the step after (see "Code taken out", below):
 
 - **Effects in a saved game, 9 functions**: `Effect::Save`, `Effect::Load`, `Sparkle::Save`, `Sparkle::Load`, `Ember::Save`,
   `Ember::Load`, `FlyingPieceList::Save` and `FlyingPieceList::Load`, and the 4-byte `Effect::GetType`. `Board::SaveGame`
@@ -7062,6 +7062,68 @@ origrun makes fail at once), and the original's 3D mode as such.
 **What it cost.** The runs took about an hour of machine time, 2 or 3 game processes at a time. No agent was used: this
 session wrote the tools (`run.sh`, `all.sh`, `port.sh`, `extra.py`, `effects.sh`), read the reports and placed the `none`
 lines.
+
+## Code taken out (2026-11-11)
+
+The step after the coverage check and the performance pass: what the game does not need comes out of `games/bookworm/src`.
+Each removal below is one the original's own code allows (nothing in the port can reach it), and the frozen baseline proves
+it (`tools/check.sh bookworm`: the same state at every update in the two-mode, three-mode and saved-and-continued games;
+`build-web:bookworm` builds). Every function that came out has a `none` line in `coverage.txt` with its reason, so the
+coverage report lists no function the port defines and no run reaches (`coverage.txt` holds 100 `none` lines now, the
+78 of the coverage check and these 22).
+
+**The 19 functions of the coverage check.**
+
+- *Effects in a saved game, 9 functions*: `Effect::Save` and `Load`, `Sparkle::Save` and `Load`, `Ember::Save` and `Load`,
+  `FlyingPieceList::Save` and `Load`, and the base `Effect::GetType` (now pure: no object is a bare `Effect`).
+  `Board::SaveGame` clears the effect, ember and overlay lists before it writes, so `EffectMgr::Save` and
+  `EmberListMgr::Save` (both kept) always write the random generator's state and a count of 0, and the records that follow a
+  count never exist. `Save` now writes the 0 and `Load` reads the count and nothing after it; a file the game wrote loads
+  as before (the s1 and s1b games of the baseline save, quit and continue). The file keeps its format byte for byte
+  (checked below). Taken out with them: `Sparkle::mUnknown3c` (a flag only the save code touched), the `EFFECT_NONE`
+  value and the `ReadBool` and `WriteBool` helpers of `Effect.cpp`. `Piece::Save` and `Load` stay (the board's grid).
+- *Links, 3 functions*: `BookWormApp::OpenURL`, `URLOpenSucceeded` and `URLOpenFailed`, with dialogs 11 and 12 (the wait
+  message and the URL to open by hand), their three texts in `GameTextTable.inc` (`GT_OPENING_BROWSER`,
+  `GT_OPEN_BROWSER_HEADER`, `GT_OPEN_BROWSER_LINES`; `tools/make_gametext.py` writes the table from a git-ignored working
+  list, so a rerun from a list that still has them brings the three rows back) and the two names in the test hooks'
+  `DialogName`. The port's dictionary link (a mod; a left click on a word's balloon) now calls the framework's `OpenURL`
+  directly: it no longer shows the original's "opening your browser" message while the framework opens the page. Nothing else
+  of the game leads out of it.
+- *Nothing calls them, 7 functions*: `WordScore::CalcScoreByLength` (the formula `mScoringMethod` 0 selected; the field
+  itself, always 1, and the table `gLengthBonus` it used came out, and `WordScore::Build` now calls `CalcScore` alone),
+  `ColorizedButton::SetImageColor` and the three-value `SetImageColors`, `UserManager::SetCurrentAlias` and
+  `GetCurrentAlias` (the alias stays in a user's registry record), `Font::GetLineSpacingOffset`, which is
+  `Definitionator::GetNumDefinitions` at the same address (the linker folded the two), and `HelpWidget::OrderInManagerChanged`.
+  The framework calls that hook only from `BringToFront`, `BringToBack`, `PutBehind` and `PutInfront`, and the game puts
+  only the board, Lex, the overlay and its balloon, the journal and the selector through them: the help widget is added to
+  its manager and removed, never moved.
+
+**Dead state and branches found on the way** (nothing wrote or read them, or only their own copies):
+
+- The `Math` class (the sine and cosine tables embedded in `BookWormApp` that "nobody reads"; its constructor and
+  destructor are the two `none` lines 0x42e330 and 0x42e390) and the app's fields: four image pointers, three unused flags
+  and eleven unused hint flags, two unused strings, `mScrambled` (set by every scramble, never read), `mInitDone`,
+  `mInternetOK`, `mSEHInfo` and `mUsedBonusWords` (an insert on every bonus word, never read).
+- `BookWormApp::IsInternetScoresEnabled` (always false; only the Hall of Fame's internet button, which is not ported,
+  asked it) and the button handler's cases for the dialogs of the internet and update-check features, which no code
+  creates (6 and 7, the internet alias 23, 24 and 25, and the framework's update dialogs): each did only what the `default`
+  case does, a `KillDialog` of itself. Their ids (and 8, 26, 27, 10008 and 20008) went from `Res.h`, where a comment
+  names the numbers.
+
+**What stays, and why.** Saved-game fields the original writes (the count fields above, `Board`'s unused fields, the
+`Alias` of a user), so that a file stays the original's format and an original's saves load. The app's `mGameOption` and the
+selector's copy of it, which only copy each other, wait for the readability pass, which has to name or remove them.
+
+**What it came to.** 22 functions, the `Math` class with its member and 12 other fields, a table, 3 data rows, 8 dialog
+cases and 12 dialog ids: 496 lines of source out and 85 in (mostly comments), no behaviour changed but one wait message
+of a mod.
+
+**The saved file.** The s1 session of the baseline test (a Classic bot game quit at update 3000, so the game saves as it
+shuts down) was run with the frozen baseline exe and with the current one, and the two `classic.dat` files (20,883 bytes
+each) compared: they are the same but for one or two low bytes of a value 169 bytes from the end, at offset 20714. Two runs
+of the baseline itself differ at the same place by as much, so it is a value that changes from run to run (not looked into:
+the state log of every update is identical in all four runs), and none of the bytes that the effect and ember code wrote
+differ.
 
 ## Performance pass (2026-11-11; `docs/COORDINATION.md`, "A performance pass before the readability pass")
 

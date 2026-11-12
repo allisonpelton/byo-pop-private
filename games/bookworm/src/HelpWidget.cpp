@@ -183,19 +183,8 @@ void HelpWidget::RemovedFromManager(WidgetManager* theWidgetManager)
 	}
 }
 
-// 0x429940
-void HelpWidget::OrderInManagerChanged()
-{
-	if (mShowHelpCheckbox != NULL)
-		mWidgetManager->PutInfront(mShowHelpCheckbox, this);
-	if (mContinueButton != NULL)
-		mWidgetManager->PutInfront(mContinueButton, this);
-	for (int i = 0; i < NUM_TOPICS; i++)
-	{
-		if (mTopicButtons[i] != NULL)
-			mWidgetManager->PutInfront(mTopicButtons[i], this);
-	}
-}
+// 0x429940 OrderInManagerChanged (slot 3: puts the controls in front of the widget) is not ported: the help
+// widget is added to its manager and removed, never moved in it.
 
 // 0x429990: the controls follow the screen (BookWormApp::ShowHelp places it off screen first, then at 0,0)
 void HelpWidget::Resize(int theX, int theY, int theWidth, int theHeight)

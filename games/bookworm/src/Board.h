@@ -107,7 +107,6 @@ enum
 // Tables (rdata), board_logic.md 2.5
 extern const int	gLevelThresholds[42];       // 0x4f97e0 cumulative score at which level n is complete
 extern const int	gLetterValues[26];          // 0x4f9888 letter scores A..Z (also BoardDraw and the app's tile sets)
-extern const int	gLengthBonus[9];            // 0x4f98f0 CalcScoreByLength (dead)
 extern const int	gLetterWeights[26];         // 0x4f9918 letter frequencies A..Z (sum 95500)
 extern const int	gFireChanceByLevel[13];     // 0x4f9980 percent, index min(level, 12)
 extern const double	gFireMeterRefill[12];       // 0x4f99b8 index min(level, 11)

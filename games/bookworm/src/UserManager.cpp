@@ -191,30 +191,6 @@ bool UserManager::SetCurrentUser(const SexyString& theName)
 	return false;
 }
 
-// 0x435880 (the internet alias; its callers are not ported)
-bool UserManager::SetCurrentAlias(const SexyString& theAlias)
-{
-	User* aUser = FindUser(mCurrentUser);
-	if (aUser == NULL)
-		return false;
-	aUser->mAlias = theAlias;
-	SaveUser(aUser);
-	return true;
-}
-
-// 0x435910
-SexyString UserManager::GetCurrentAlias()
-{
-	SexyString aName = mCurrentUser;
-	if (aName.length() != 0)
-	{
-		User* aUser = FindUser(aName);
-		if ((aUser != NULL) && (aUser->mAlias.length() != 0))
-			return aUser->mAlias;
-	}
-	return aName;
-}
-
 // 0x4359b0: Users\User (not checked against the list), else the first user that can be made current
 SexyString UserManager::GetLastUser()
 {

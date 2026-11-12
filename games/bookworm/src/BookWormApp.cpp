@@ -156,26 +156,6 @@ static const DefaultHighScore gDefaultBestWords[BookWormApp::NUM_WORD_SCORES] =
 static const char* const gPlayersDir = "players";
 
 //////////////////////////////////////////////////////////////////////////
-// Math (Math.cpp 0x42e330-0x42e3d0)
-
-// 0x42e330: the tables are computed in x87 extended precision and stored as floats; the port computes
-// them in double precision (nobody reads them).
-Math::Math()
-{
-	mPi = 3.1415925f; // 0x40490fda
-	for (int i = 0; i < 360; i++)
-	{
-		mSin[i] = (float) sin((double) mPi * (double) i * 0.005555555555555556);
-		mNegCos[i] = (float) -cos((double) i * (double) mPi * 0.005555555555555556);
-	}
-}
-
-// 0x42e390
-Math::~Math()
-{
-}
-
-//////////////////////////////////////////////////////////////////////////
 // High-score predicates
 
 // 0x4115d0
@@ -274,15 +254,11 @@ BookWormApp::BookWormApp()
 	mBuildNum = 190;
 	mBuildDate = "Thu Apr 15 14:52:08 2004";
 
-	mUnusedString2 = "";
-	mInitDone = false;
 	mMusicInterface = NULL;
 	for (int i = 0; i < NUM_FONTS; i++)
 		mFonts[i] = NULL;
 	for (int i = 0; i < NUM_TILESETS; i++)
 		mTileSetImages[i] = NULL;
-	for (int i = 0; i < 4; i++)
-		mUnusedImages[i] = NULL;
 	mSelectedGameMode = -1;
 	mCheckboxOnImage = NULL;
 	mCheckboxOffImage = NULL;
@@ -301,23 +277,15 @@ BookWormApp::BookWormApp()
 	mRegKey = "PopCap\\BookWorm";
 	mCustomCursorsEnabled = false;
 	mGameMode = GAMEMODE_CLASSIC;
-	mScoringMethod = 1;
 	mUserTimesPlayed = 0;
-	mScrambled = false;
 	mWelcomePlayed = false;
-	mInternetOK = false;
-	mUnused12eb = false;
 	mWatchOutHintShown = false;
 	mFireAlertHintShown = false;
 	mGreenTileHintShown = false;
-	mUnused12ef = false;
 	mScrambleHintShown = false;
-	for (int i = 0; i < 11; i++)
-		mUnusedHintFlags[i] = false;
 	mResumeUpdateCnt = 0;
 	mPlayTicks = 0;
 	mGameOption = 1;
-	mUnused12e6 = true;
 	mShowHelp = true;
 	mShowHints = true;
 	mShowDefs = true;
@@ -375,8 +343,6 @@ BookWormApp::~BookWormApp()
 		delete mFonts[i];
 	for (int i = 0; i < NUM_TILESETS; i++)
 		delete mTileSetImages[i];
-	for (int i = 0; i < 4; i++)
-		delete mUnusedImages[i];
 	delete mCheckboxOnImage;
 	delete mCheckboxOffImage;
 	for (std::list<MemoryImage*>::iterator anItr = mCopiedImages.begin(); anItr != mCopiedImages.end(); ++anItr)
@@ -444,17 +410,6 @@ void BookWormApp::ButtonDepress(int theId)
 			mBoard->DeleteSavedGame(mGameMode);
 			return;
 
-		case DIALOG_INTERNET_REQUIRED:
-			KillDialog(DIALOG_INTERNET_REQUIRED);
-			mInternetOK = true;
-			// not ported: FameWidget::StartNetTransfer (internet high scores)
-			return;
-
-		case DIALOG_ASK_UPDATE_CHECK:
-			KillDialog(DIALOG_ASK_UPDATE_CHECK);
-			// 0x415de0 DoUpdateCheck not ported (update check)
-			return;
-
 		case DIALOG_QUIT:
 			KillDialog(DIALOG_QUIT);
 			Shutdown();
@@ -512,38 +467,11 @@ void BookWormApp::ButtonDepress(int theId)
 			return;
 		}
 
-		case DIALOG_ALIAS:
-			// not ported: the internet alias (SetCurrentAlias from the GetStringDialog, then
-			// ConfirmInternetConnect when the hall of fame is up)
-			KillDialog(DIALOG_ALIAS);
-			return;
-
-		case DIALOG_NAME_TAKEN:
-			KillDialog(DIALOG_NAME_TAKEN);
-			// 0x414080 ShowAliasDialog(GetCurrentAlias()) not ported (internet high scores)
-			return;
-
-		case DIALOG_CONNECTING:
-			// not ported: FameWidget's mNetState = 0 (internet high scores)
-			KillDialog(DIALOG_CONNECTING);
-			return;
-
 		case DIALOG_LEAVE_GAME:
 			KillDialog(DIALOG_LEAVE_GAME);
 			if ((mBoard != NULL) && (mBoard->IsInProgress()))
 				mBoard->SaveGame(mGameMode);
 			ShowGameSelector();
-			return;
-
-		case DIALOG_UPDATE_AVAILABLE:
-			KillDialog(DIALOG_UPDATE_AVAILABLE);
-			KillDialog(DIALOG_UPDATE_CHECK);
-			// not ported: OpenURL(mInternetManager->GetUpdateURL(), true) (update check)
-			return;
-
-		case DIALOG_UPDATE_NONE:
-			KillDialog(DIALOG_UPDATE_NONE);
-			KillDialog(DIALOG_UPDATE_CHECK);
 			return;
 
 		default:
@@ -586,11 +514,6 @@ void BookWormApp::ButtonDepress(int theId)
 			}
 			if (mGameSelector != NULL)
 				mGameSelector->SetDisabled(false);
-			return;
-
-		case DIALOG_UPDATE_AVAILABLE:
-			KillDialog(DIALOG_UPDATE_AVAILABLE);
-			KillDialog(DIALOG_UPDATE_CHECK);
 			return;
 
 		default:
@@ -785,7 +708,6 @@ void BookWormApp::Init()
 	SetCursorImage(CURSOR_HAND, mImages[IMAGE_CURSOR_HAND]);
 	SetCursorImage(CURSOR_DRAGGING, mImages[IMAGE_CURSOR_DRAGGING]);
 	SetCursorImage(CURSOR_TEXT, mImages[IMAGE_CURSOR_TEXT]);
-	mInitDone = true;
 
 	mTitleScreen = new TitleScreen(this);
 	mTitleScreen->Resize(0, 0, GAME_SCREEN_WIDTH, mHeight);
@@ -993,36 +915,9 @@ Dialog* BookWormApp::NewDialog(int theDialogId, bool isModal, const SexyString& 
 	return aDialog;
 }
 
-// 0x414fa0 slot 24
-void BookWormApp::URLOpenFailed(const std::string& theURL)
-{
-	SexyApp::URLOpenFailed(theURL);
-	KillDialog(DIALOG_OPENING_BROWSER);
-
-	Dialog* aDialog = NewDialog(DIALOG_URL_FAILED, true, GameText(GT_OPEN_BROWSER_HEADER),
-		GameText(GT_OPEN_BROWSER_LINES) + theURL, GameText(GT_DIALOG_OK), Dialog::BUTTONS_FOOTER);
-	aDialog->Resize(100, 50, 440, aDialog->GetPreferredHeight(440));
-	AddDialog(DIALOG_URL_FAILED, aDialog);
-}
-
-// 0x410b10 slot 25
-void BookWormApp::URLOpenSucceeded(const std::string& theURL)
-{
-	SexyApp::URLOpenSucceeded(theURL);
-	KillDialog(DIALOG_OPENING_BROWSER);
-}
-
-// 0x415100 slot 26: a wait message (GT_OPENING_BROWSER) until the framework reports (the port's framework
-// never opens a URL in a test run: it reports success at once)
-bool BookWormApp::OpenURL(const std::string& theURL, bool shutdownOnOpen)
-{
-	Dialog* aDialog = NewDialog(DIALOG_OPENING_BROWSER, true, "", GameText(GT_OPENING_BROWSER), "",
-		Dialog::BUTTONS_NONE);
-	aDialog->mContentInsets = Insets(36, 36, 36, 36);
-	aDialog->Resize(164, 140, 312, 98);
-	AddDialog(DIALOG_OPENING_BROWSER, aDialog);
-	return SexyApp::OpenURL(theURL, shutdownOnOpen);
-}
+// 0x414fa0 URLOpenFailed, 0x410b10 URLOpenSucceeded and 0x415100 OpenURL (slots 24 to 26) are not ported: only a
+// link button of the original led to them (the game's links are out), and the framework's OpenURL serves the
+// port's dictionary link (a mod) without the original's wait message and its "open it by hand" dialog.
 
 // 0x410ca0 slot 33: saves a game in progress (ShutdownWidgets), then adds the minutes played to the framework's
 // TimesPlayed (the title shows its first-run text while that is 0). The original does this as the trial's
@@ -1621,13 +1516,6 @@ void BookWormApp::ShowDeleteUserDialog(std::vector<SexyString> theNames)
 // 0x415a20 ConfirmInternetConnect not ported (internet high scores: dialog 6)
 // 0x415c40 AskForUpdateCheck, 0x415de0 DoUpdateCheck not ported (update check: dialogs 7 and 8)
 // 0x416090 GetGameSEHInfo not ported (crash report: the base text + mSEHInfo)
-
-// 0x4152a0: false in the retail build (the property NoInternetScores). port: always false (internet high scores
-// are not ported)
-bool BookWormApp::IsInternetScoresEnabled()
-{
-	return false;
-}
 
 // 0x414910: the original tests that it may write HKEY_LOCAL_MACHINE (the emulated registry always can)
 bool BookWormApp::CheckRegistryAccess()

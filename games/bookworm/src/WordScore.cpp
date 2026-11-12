@@ -119,12 +119,9 @@ void WordScore::Build(const PieceList* thePieces)
 			mWord.append(1, 'U');
 	}
 
-	if (mApp->mScoringMethod == 0)
-		mScore = CalcScoreByLength();
-	else if (mApp->mScoringMethod == 1)
-		mScore = CalcScore();
-	else
-		mScore = 0;
+	// the original picks the formula by the app's mScoringMethod, always 1 (0 would select the length formula
+	// 0x4040e0, which the port leaves out)
+	mScore = CalcScore();
 	mScore = ModWordScore(mWord, mScore);  // port(mod): a mod's points multiplier (rude-words)
 }
 
@@ -154,22 +151,6 @@ int WordScore::CalcScore()
 
 	int aLevel = (mLevel >= 0) ? mLevel : mApp->mBoard->mLevel;
 	return aMult * (aSum + aLevel + 1) * 10;
-}
-
-// 0x4040e0: the length formula, selected by mScoringMethod 0 (never: the app sets 1)
-int WordScore::CalcScoreByLength()
-{
-	unsigned int aLength = (unsigned int)mWord.size();
-	if (aLength < 3)
-		return 0;
-
-	unsigned int anIndex = (aLength > 7) ? 8 : aLength;
-	int aBase = ((mLevel >= 0) ? mLevel : mApp->mBoard->mLevel) + gLengthBonus[anIndex];
-	if (aLength > 8)
-		aBase += (int)(aLength - 8) * 500;
-
-	return (mTypeCount[TILE_GREEN] * 2 + 1 + mTypeCount[TILE_GOLD] * 4 + mTypeCount[TILE_SAPPHIRE] * 7 +
-		mTypeCount[TILE_DIAMOND] * 10) * aBase * 10;
 }
 
 // 0x406130: in the dictionary (case-sensitive: the app's set holds upper-case words)

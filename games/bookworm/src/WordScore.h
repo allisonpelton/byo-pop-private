@@ -40,8 +40,7 @@ public:
 
 	void			Clear();                                    // 0x4069c0 (mScore is kept)
 	void			Build(const PieceList* thePieces);          // 0x406a10
-	int				CalcScore();                                // 0x404f60 (the live formula, app mScoringMethod 1)
-	int				CalcScoreByLength();                        // 0x4040e0 (mScoringMethod 0: never selected)
+	int				CalcScore();                                // 0x404f60 (the only formula)
 	bool			CheckValid(const std::set<SexyString>* theDictionary); // 0x406130
 	SexyString		CommonPrefix(const SexyString& theOther);   // 0x406b00 (OverlayWidget::Draw)
 	void			Save(FILE* theFile);                        // 0x404fe0
