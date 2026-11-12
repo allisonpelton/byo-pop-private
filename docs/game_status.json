@@ -230,7 +230,6 @@
         "registration-out",
         "fixes-mod",
         "coverage",
-        "performance",
         "unneeded-code",
         "readability",
         "collection",
@@ -238,7 +237,7 @@
       ],
       "na": [],
       "now": "identical-look",
-      "note": "Medal screens equal in 2D and the web build; 3D tonight"
+      "note": "Medal screens equal in 2D and the web build; 3D tonight; then a CPU round (over its original)"
     },
     "astropop": {
       "title": "AstroPop Deluxe",
