@@ -1110,7 +1110,7 @@ void Level_Draw(Level* theLevel)
 	}
 	List_Each(&theLevel->mMenus, [](Menu* theMenu) { Menu_Draw(theMenu); });
 	DrawList_Flush();
-	// the first orbiting one (state 3) says so when an enemy is too close to launch it, and ends the walk
+	// the first orbiting one says so when an enemy is too close to launch it, and ends the walk
 	List_Each(&theLevel->mWeapons, [&](Weapon* theWeapon) {
 		if (theWeapon->mState == WEAPON_ORBITING)
 		{
@@ -1126,7 +1126,7 @@ void Level_Draw(Level* theLevel)
 		DrawPaused();
 }
 
-// The enemies not in state 1
+// The enemies not dying (ENEMY_DYING)
 int Level_EnemiesLeft(Level* theLevel)
 {
 	int aCount = 0;
@@ -1164,8 +1164,8 @@ void Level_AddStars(Level* theLevel)
 	} while (aStarsLeft != 0);
 }
 
-// The first walk places mirrored pairs (kinds 7 on), the second single enemies (kinds 0 on); an enemy that finds no
-// place is removed
+// The first walk places mirrored pairs (the walkers, from ENEMY_LINE_WALKER on), the second single enemies (every
+// kind); an enemy that finds no place is removed
 void Level_AddRandomEnemies(Level* theLevel, int theFirst, int theSecond)
 {
 	int aTint = RandRange(2, 8);
@@ -1298,7 +1298,7 @@ void Level_StartRandom(Level* theLevel)
 	Dirty_AddClipped(&gDirty, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_CLIP);
 	if (theLevel->mNext != nullptr && Node_Next(theLevel)->mKind == LEVEL_MISSION_COMPLETE)
 		gGoTo = LEVEL_MISSION_COMPLETE;
-	// inside the frame the cells start as state 6 (not yet reached by the fill); the fill starts in the corner
+	// inside the frame the cells start as CELL_WAITING (not yet reached by the fill); the fill starts in the corner
 	for (int aRow = 1; aRow < gLevels.mCurrent->mRows - 1; aRow++)
 	{
 		for (int aCol = 1; aCol < gLevels.mCurrent->mCols - 1; aCol++)
@@ -1358,7 +1358,7 @@ void List_DeleteNode(Panel* thePanel)
 	::operator delete(thePanel);
 }
 
-// The select-level screen's marker (an item of kind 0x15) along the current level set, up to two levels past the
+// The select-level screen's marker (an ITEM_SELECT_SLIDE item) along the current level set, up to two levels past the
 // furthest one reached
 void Level_UpdateProgressStars()
 {

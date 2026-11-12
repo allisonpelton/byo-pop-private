@@ -242,7 +242,7 @@ int Jellyfish_Move(Enemy* theEnemy)
 	return Enemy_Bounce(theEnemy);
 }
 
-// 0x405970 has this twice: a bounce in x off a beam's line (kind 2) pushes the line's column one cell on into the
+// 0x405970 has this twice: a bounce in x off a beam's line (CELL_LINE) pushes the line's column one cell on into the
 // filled cells behind it, a bounce in y its row. The line has to have open cells on the roller's side and two filled
 // ones behind it all along, and end on four cells of one kind at both ends.
 static void BumpRoller_Push(Cell* theHit, int theD, bool theInX)
@@ -455,7 +455,7 @@ int Frog_Move(Enemy* theEnemy)
 	return 1;
 }
 
-// Kind 0xd, a laser walker's shot: bursts in a ring inside a cell that is not open (0: done)
+// ENEMY_LASER_SHOT, a laser walker's shot: bursts in a ring inside a cell that is not open (0: done)
 int LaserShot_Move(Enemy* theEnemy)
 {
 	int aCol = (int)theEnemy->mX / CELL_SIZE;
@@ -839,7 +839,7 @@ void Walker_Turn(Enemy* theEnemy)
 	} while (aTry <= 3);
 }
 
-// Kind 0xd (a laser walker's shot) on a beam: the ship's beams all burst into sparks along their length, and it
+// ENEMY_LASER_SHOT (a laser walker's shot) on a beam: the ship's beams all burst into sparks along their length, and it
 // loses them
 int LaserShot_HitBeams(Enemy* theEnemy)
 {
@@ -868,7 +868,7 @@ int LaserShot_HitBeams(Enemy* theEnemy)
 	return 0;
 }
 
-// A walker somewhere on an edge cell (kind 3) with no other walker near: up to 10 random cells, each walked towards
+// A walker somewhere on an edge cell (CELL_EDGE) with no other walker near: up to 10 random cells, each walked towards
 // the middle in x or in y (0: no room)
 int Enemy_PlaceFirst(Enemy* theEnemy)
 {
@@ -928,8 +928,9 @@ static void Teleporter_Sparkles(Enemy* theEnemy)
 	}
 }
 
-// Kind 0x10: loops the first 32 frames of its animation for 5000 updates, its children circling it for the first
-// 2000; then plays on, and past frame 48 vanishes in sparkles to come back somewhere else, a trail of them between
+// ENEMY_TELEPORTER_ROLLER: loops the first 32 frames of its animation for 5000 updates, its children circling it for
+// the first 2000; then plays on, and past frame 48 vanishes in sparkles to come back somewhere else, a trail of them
+// between
 int Teleporter_Move(Enemy* theEnemy)
 {
 	if (theEnemy->mIce != nullptr)
@@ -1189,8 +1190,8 @@ void Enemy_Kill(Enemy* theEnemy, int thePoints)
 	}
 }
 
-// Kind 5: mShotDelay updates after its last shot fires a snake (kind 6) from 50 pixels out, at an angle its
-// animation's frame and a random quarter turn give, when the cell there is open
+// ENEMY_SNAKE_SHOOTER: mShotDelay updates after its last shot fires a snake (ENEMY_SNAKE) from 50 pixels out, at an
+// angle its animation's frame and a random quarter turn give, when the cell there is open
 int SnakeShooter_Move(Enemy* theEnemy)
 {
 	int aResult = Enemy_Bounce(theEnemy);
@@ -1246,7 +1247,7 @@ int SnakeShooter_Move(Enemy* theEnemy)
 	return aResult;
 }
 
-// Kind 6, a snake shooter's snake: bursts on hitting anything not open, holing the board 3 cells round
+// ENEMY_SNAKE, a snake shooter's snake: bursts on hitting anything not open, holing the board 3 cells round
 int Snake_Move(Enemy* theEnemy)
 {
 	theEnemy->mHitCell = nullptr;
@@ -1261,8 +1262,8 @@ int Snake_Move(Enemy* theEnemy)
 	return 1;
 }
 
-// Kind 0xc, a cannon walker's ball: rises and falls through its animation over its lifetime, then bursts, holing
-// the board 3 cells round (0: done)
+// ENEMY_CANNON_BALL, a cannon walker's ball: rises and falls through its animation over its lifetime, then bursts,
+// holing the board 3 cells round (0: done)
 int CannonBall_Move(Enemy* theEnemy)
 {
 	if (theEnemy->mAge < theEnemy->mLifetime)
@@ -1298,7 +1299,7 @@ int Walker_Move(Enemy* theEnemy, int theKind)
 	return 0;
 }
 
-// Kind 8: speeds up (to three times its speed) while the ship has beams out, and slows back down without
+// ENEMY_SCURRY_WALKER: speeds up (to three times its speed) while the ship has beams out, and slows back down without
 void ScurryWalker_Move(Enemy* theEnemy)
 {
 	Shooter* aShip = gLevels.mCurrent->mShooters.mCurrent;
@@ -1323,8 +1324,8 @@ void ScurryWalker_Move(Enemy* theEnemy)
 	Walker_Move(theEnemy, CELL_LINE);
 }
 
-// Kind 9: 1000 updates after it last did, turns towards the ship when that is within 150 pixels; slows (to a third
-// of its speed) while a beam across its way is that near, and speeds back up without
+// ENEMY_SMART_WALKER: 1000 updates after it last did, turns towards the ship when that is within 150 pixels; slows (to
+// a third of its speed) while a beam across its way is that near, and speeds back up without
 void SmartWalker_Move(Enemy* theEnemy)
 {
 	Shooter* aShip = gLevels.mCurrent->mShooters.mCurrent;
@@ -1375,8 +1376,8 @@ void SmartWalker_Move(Enemy* theEnemy)
 	Walker_Move(theEnemy, CELL_LINE);
 }
 
-// Kind 10: 4000 updates after its last shot, when the 9 by 9 cells 16 cells ahead of it hold 29 filled ones or
-// lines, fires a cannon ball (kind 0xc) that way in a puff of smoke
+// ENEMY_CANNON_WALKER: 4000 updates after its last shot, when the 9 by 9 cells 16 cells ahead of it hold 29 filled ones
+// or lines, fires a cannon ball (ENEMY_CANNON_BALL) that way in a puff of smoke
 void CannonWalker_Move(Enemy* theEnemy)
 {
 	if ((double)theEnemy->mLastShot + 4000.0 < (double)theEnemy->mAge)
@@ -1440,8 +1441,8 @@ void CannonWalker_Move(Enemy* theEnemy)
 	Walker_Move(theEnemy, CELL_LINE);
 }
 
-// Kind 0xb: faces the ship across its way; 4000 updates after its last shot, while it is within the length of a
-// beam going its way, shoots a laser (kind 0xd) at it
+// ENEMY_LASER_WALKER: faces the ship across its way; 4000 updates after its last shot, while it is within the length of
+// a beam going its way, shoots a laser (ENEMY_LASER_SHOT) at it
 void LaserWalker_Move(Enemy* theEnemy)
 {
 	Animation* anAnim = theEnemy->mDownAnim;
@@ -1531,8 +1532,8 @@ void LaserWalker_Move(Enemy* theEnemy)
 	Walker_Move(theEnemy, CELL_LINE);
 }
 
-// Kind 0x13: walks the edges alone (kind 3), facing the ship across its way; at frame 12 of its animation it nips
-// the cell two ahead of where it faces, holing the board 2 cells round when that is filled or a line
+// ENEMY_CRAB_WALKER: walks the edges alone (CELL_EDGE), facing the ship across its way; at frame 12 of its animation it
+// nips the cell two ahead of where it faces, holing the board 2 cells round when that is filled or a line
 int CrabWalker_Move(Enemy* theEnemy)
 {
 	Animation* anAnim = theEnemy->mDownAnim;
@@ -1599,7 +1600,7 @@ int CrabWalker_Move(Enemy* theEnemy)
 	return aResult;
 }
 
-// Kind 0x15: its speed swings with the sine of an eighth of its age, its animation keeping step
+// ENEMY_LOBSTER_WALKER: its speed swings with the sine of an eighth of its age, its animation keeping step
 int LobsterWalker_Move(Enemy* theEnemy)
 {
 	int aResult = Walker_Move(theEnemy, CELL_LINE);
@@ -1631,8 +1632,8 @@ static void Turtle_Puff(Enemy* theEnemy, int theEndR, int theEndG, int theEndB)
 		theEndR, theEndG, theEndB, 0x154, 10, aLifetime, 1.0f, 0.0f, 5);
 }
 
-// Kind 0x14: on turning round stops for 2000 updates (its age set to 2000), playing frames 0..28 at half rate;
-// walking it plays frames 29 on and puffs smoke behind it
+// ENEMY_TURTLE_WALKER: on turning round stops for 2000 updates (its age set to 2000), playing frames 0..28 at half
+// rate; walking it plays frames 29 on and puffs smoke behind it
 int TurtleWalker_Move(Enemy* theEnemy)
 {
 	int aResult = Walker_Move(theEnemy, CELL_LINE);
@@ -1660,8 +1661,8 @@ int TurtleWalker_Move(Enemy* theEnemy)
 	return aResult;
 }
 
-// The update of an enemy about (state 3, and while it appears): three passes while the ship has time slowed (flags
-// 2); while it has time frozen (flags 1) all but every fourth update only age it. A beam it touches gets a
+// The update of an enemy about (ENEMY_ALIVE, and while ENEMY_APPEARING): three passes while the ship has time slowed
+// (flags 2); while it has time frozen (flags 1) all but every fourth update only age it. A beam it touches gets a
 // beamrider running back to the ship (and its shield flashes); it dies on a filled cell (a roller on a line too),
 // and a walker beside a capture.
 int Enemy_Step(Enemy* theEnemy)

@@ -3,8 +3,8 @@
 // The game's players are the ten slots of gProfiles (cb.dat), each with a name (a free slot has the placeholder text
 // Localize(GT(...))), the level reached and the game in progress; the eleventh slot keeps the difficulty. The menu
 // chooses (a slot item), renames and deletes the current player, and a free slot asks for a name. This implements the
-// page's view with the same fields and SaveProfiles, as those menu items do (CBMenu.cpp, the cases 0x1b to 0x1f and
-// Level_SetUserName).
+// page's view with the same fields and SaveProfiles, as those menu items do (CBMenu.cpp, the items ITEM_USER_SLOT to
+// ITEM_DELETE_OKAY and Level_SetUserName).
 
 #ifdef __EMSCRIPTEN__
 #include "SiteProfiles.h"
@@ -80,8 +80,8 @@ public:
 
 	virtual std::string Fit(const std::string& theName) { return Typed(theName, 0xc, 0, Font_Find("bonus_font")); }
 
-	// A free slot's request for a name (case 0x1b) and its OK (Level_SetUserName): the slot is chosen and takes the
-	// name
+	// A free slot's request for a name (ITEM_USER_SLOT) and its OK (Level_SetUserName): the slot is chosen and takes
+	// the name
 	virtual bool Create(const std::string& theName, std::string* theWhy)
 	{
 		for (int i = 0; i < 10; i++)
@@ -99,7 +99,7 @@ public:
 		return false;
 	}
 
-	// A slot of another player (case 0x1b)
+	// A slot of another player (ITEM_USER_SLOT)
 	virtual bool Select(const std::string& theName)
 	{
 		int aSlot = SlotOf(theName);
@@ -127,8 +127,8 @@ public:
 
 	virtual bool CanDelete() { return true; }
 
-	// Case 0x1f: the slot is emptied (name, level reached, shooter mode) and the first player left is chosen; the game
-	// does not delete the only player
+	// ITEM_DELETE_OKAY: the slot is emptied (name, level reached, shooter mode) and the first player left is chosen;
+	// the game does not delete the only player
 	virtual bool Delete(const std::string& theName, std::string* theWhy)
 	{
 		int aSlot = SlotOf(theName);

@@ -525,9 +525,9 @@ void GameStep()
 	}
 escape:
 	// (port: the site's "Always skip start-up logos", which the player sets on the site or the exe takes as -skiplogos:
-	// on a logo screen (kind 0xe, the PopCap logo, again for each portal animation file) it goes on as Esc on it does,
-	// the original's own skip, to the main menu. The logos draw no random number (the seed's series is the same with
-	// Esc and without), so the game's draws afterwards are the same.)
+	// on a logo screen (LEVEL_LOGO, the PopCap logo, again for each portal animation file) it goes on as Esc on it
+	// does, the original's own skip, to the main menu. The logos draw no random number (the seed's series is the same
+	// with Esc and without), so the game's draws afterwards are the same.)
 	bool aSkipLogo = gLevels.mCurrent != nullptr && gLevels.mCurrent->mKind == LEVEL_LOGO && Sys_SkipLogos();
 	if (Key_Pressed(0x1b) == 0 && !aSkipLogo)
 	{

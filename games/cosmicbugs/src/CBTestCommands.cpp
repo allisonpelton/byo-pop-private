@@ -164,7 +164,7 @@ struct Grid
 {
 	int mCols;
 	int mRows;
-	unsigned char mOpen[MAX_COLS][MAX_ROWS];     // the cell is open (kind 0)
+	unsigned char mOpen[MAX_COLS][MAX_ROWS];     // the cell is open (CELL_OPEN)
 	unsigned char mFireable[MAX_COLS][MAX_ROWS]; // open and not yet reached by a flood (Shooter_Fire's test)
 };
 
@@ -543,10 +543,10 @@ bool HasScreen(int theKind)
 	return false;
 }
 
-// Starts board theNumber (1 up) as the level selection's Play does (CBMenu.cpp, kind 1): the board's index and level
-// set chosen, then the screen left for gGoTo 0, which reads the board file and drops the boards before the chosen one
-// (GameStep). From a board the title comes first, as Esc takes it there, since the board file is then loaded again
-// from the menus. A new game's lives and score are set when the current screen is not a board.
+// Starts board theNumber (1 up) as the level selection's Play does (CBMenu.cpp, ITEM_START): the board's index and
+// level set chosen, then the screen left for gGoTo LEVEL_BOARD, which reads the board file and drops the boards before
+// the chosen one (GameStep). From a board the title comes first, as Esc takes it there, since the board file is then
+// loaded again from the menus. A new game's lives and score are set when the current screen is not a board.
 std::string StartBoard(int theNumber, bool theNewGame)
 {
 	if (gLevels.mCurrent == nullptr)

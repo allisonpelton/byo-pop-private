@@ -1152,7 +1152,7 @@ void Menu_ShowRequester(Menu* theMenu, int theKind, const char* theText, const c
 	default:
 		return;
 	}
-	// cases 0 and 3: okay and cancel
+	// REQUESTER_DELETE_PLAYER and REQUESTER_QUIT: okay and cancel
 	strcpy(aList->mCurrent->mItems.mCurrent->mName, GT(0x459474));
 	MenuItem_Append(&aList->mCurrent->mItems);
 	anItem = aList->mCurrent->mItems.mCurrent;

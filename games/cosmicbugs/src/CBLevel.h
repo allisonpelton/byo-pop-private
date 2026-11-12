@@ -1,8 +1,8 @@
 #ifndef __COSMICBUGS_CBLEVEL_H__
 #define __COSMICBUGS_CBLEVEL_H__
 
-// Levels (0x40f170..0x413d10). A level is a screen of the game: a board to fill (kind 0) or one of the menus and
-// screens (kinds 1..0x10), each with its lists of objects. The kinds a level holds are only partly translated:
+// Levels (0x40f170..0x413d10). A level is a screen of the game: a board to fill (LEVEL_BOARD) or one of the menus and
+// screens (the other LevelKinds), each with its lists of objects. The kinds a level holds are only partly translated:
 // their structs name the members the level code uses so far.
 
 #include "CBEmitter.h"
@@ -676,7 +676,7 @@ void List_DeleteNode(Menu* theMenu);                             // 0x411340's d
 void Menu_FromXml(Menu* theMenu, const char* theCursor, const XmlTag* theTag); // 0x415310
 void Menu_DrawToBackground(Menu* theMenu);                       // 0x413b30: its image and logo, about their middles
 int Menu_Update(Menu* theMenu);                                  // 0x417c10: 0 when its screen is done
-// 0x415900: 0 delete the player, 1 a message, 2 a name, 3 quit, 4 a board's end, 5 resume
+// 0x415900: theKind is a RequesterKind
 void Menu_ShowRequester(Menu* theMenu, int theKind, const char* theText, const char* theSecond);
 void Pointer_Append(List<Obj>* theList);                         // 0x4109d0
 void Pointer_Insert(List<Obj>* theList);                         // 0x410920

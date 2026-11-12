@@ -41,8 +41,8 @@ void Shooter_Turn(Shooter* theShooter)
 	theShooter->mBeamAcross = 0;
 }
 
-// 0x41b370 (state 4): sparks close in on the middle of the screen in three spinning arms while the ship fades in,
-// and burst when it arrives
+// 0x41b370 (SHIP_COMING_IN): sparks close in on the middle of the screen in three spinning arms while the ship fades
+// in, and burst when it arrives
 void Shooter_Appear(Shooter* theShooter)
 {
 	Sys_SetMousePos(SCREEN_CENTRE_X, SCREEN_CENTRE_Y);
@@ -485,7 +485,7 @@ void Shooter_DrawExtras(Shooter* theShooter)
 		Obj_Draw(&theShooter->mBubble);
 }
 
-// 0x41d260 (state 6): once the explosion has played, the next life comes in, or the game is over
+// 0x41d260 (SHIP_DYING): once the explosion has played, the next life comes in, or the game is over
 void Shooter_Dying(Shooter* theShooter)
 {
 	while (List_RemoveCurrent(&theShooter->mBeams))
@@ -529,7 +529,7 @@ void Beam_Insert(List<Beam>* theList)
 	List_InsertBefore(theList, Beam_Init(aBeam));
 }
 
-// 0x41d630 (state 5): the beams run on; when both have stopped, the cells under them become the beam's, and the
+// 0x41d630 (SHIP_FIRING): the beams run on; when both have stopped, the cells under them become the beam's, and the
 // smaller side (else the one with fewer enemies, ...) fills
 void Shooter_Firing(Shooter* theShooter)
 {
@@ -707,8 +707,8 @@ void Shooter_Fire(Shooter* theShooter)
 	}
 }
 
-// 0x41df40 (state 3): the ship eases toward the mouse; it fires, and turns on a right click (or by itself, unless
-// the player has turned it or the auto-turn option is off, toward the shorter way across the span)
+// 0x41df40 (SHIP_CONTROLLED): the ship eases toward the mouse; it fires, and turns on a right click (or by itself,
+// unless the player has turned it or the auto-turn option is off, toward the shorter way across the span)
 void Shooter_Control(Shooter* theShooter)
 {
 	if (gAutoFire == 0)
