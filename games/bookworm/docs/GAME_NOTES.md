@@ -7209,6 +7209,10 @@ on origrun's real clock (every run below). It never waits for a vertical blank i
 is behind the registry value `WaitForVSync`, which the constructor sets to false. So a player's screen paces it the same way, by its own
 `Sleep`, and nothing needed patching. The port runs at the same 100 updates a second (99.8 to 100.5 below).
 
+**The windows.** The port ran in its 1280x960 window (client area, windowed; twice the game's size, the framework's choice when the
+desktop has room), drawn at render scale 2, against the original's 640x480 window, so the port did twice the pixels and is still under
+the original; no new pairs are needed for that (the cycle split below also runs the port at the game's own size, `-windowscale=1`).
+
 **Method** (`games/bookworm/tools/profile/cycles.py`, `pairs2.sh`). The cycle counts are `QueryProcessCycleTime` (every thread, the ones
 that ended too) and `QueryThreadCycleTime` for each thread, read at four marker updates and never in between: nothing samples or
 suspends the game. The scenario is the first pass's (`scenario.txt`, a Classic game of the port's bot, seed 1, 7,060 updates), in real
@@ -7244,6 +7248,66 @@ and core), which is why the pairs alternate and the figures are medians.
 **Result.** At or under the original, by a factor of 2.2 to 2.6 in cycles an update (the medians), so the target holds and nothing in
 the port's code or the framework needed changing. The first pass's figures by `GetProcessTimes` (9.5 to 11.9 % against 18.6 to 22.9 %)
 fall inside these ranges. Load time and memory were not measured again (the target is processor time).
+
+### The cycle split (2026-11-12)
+
+The user asked for the processor time to be split, so that frame drawing does not hide a gain in the rest ("I'd also like to be able
+to see the significant speedups from better code more plainly"). Both sides count the loop thread's cycles in three functions and
+list every other thread (`docs/TEST_COMMANDS.md`, "The cycle split"): the port with `-cyclesplit=<file>` around `DoUpdateFrames`,
+`DrawDirtyStuff` and `Redraw`, the original with origrun's `--count games/bookworm/tools/profile/count.txt` on the same three
+functions in the exe (update 0x47e220, draw 0x486510, present 0x4884f0; a counted function's cycles are its own, less the counted
+functions it calls, so the present inside the draw is not in the draw). `cycles.py` with `PERF_SPLIT=1` runs the like-for-like scenario
+(the same markers) with a `count` or `cyclesplit` line at each; `python -I tools/cyclesplit.py <port file> <original file> --from m1500
+--to m7059` prints a stretch. Medians of three runs of the original, three of the port in the game's own window (`-windowscale=1`:
+client 640x480, render scale 1, Direct3D 11, as `display:` in the log says) and six in its default 1280x960 window (render scale 2;
+the counting runs of the on/off pairs), updates 1,500 to 7,059, one run at a time on a core of its own, million cycles an update:
+
+| Part | Original (DirectDraw, 640x480) | Port, 640x480 | Port, 1280x960 |
+|---|---:|---:|---:|
+| update (game logic) | 0.082 | 0.055 (0.67) | 0.058 (0.71) |
+| draw, the game's own (less the present) | 3.70 | 0.18 | 0.19 |
+| present (the call, on the loop thread) | 0.88 | 1.48 | 1.10 |
+| graphics driver's threads | none | 0.78 | 0.78 |
+| picture: draw, present and driver threads | 4.61 | 2.43 (0.53) | 2.02 (0.44) |
+| audio thread | none | 0.27 | 0.23 |
+| loop (events, sleeps, the readings) | 0.32 | 0.09 | 0.09 |
+| the original's own second thread | 0.40 | | |
+| total (process cycles) | 5.42 | 2.86 (0.53) | 2.37 (0.44) |
+
+The ratios to the original are in brackets. The game's logic is a third cheaper in the port (0.67 to 0.71 of the original's
+cycles), picture and total about half (0.44 to 0.53); with the port in the original's own window size the total is 0.53 of the
+original's, in its default window 0.44. The limit of the split: the port draws through Direct3D 11 and the original through
+DirectDraw, so the port's `draw` is the batching of draw calls and the cost of the picture falls into `present` (the driver's
+command building runs inside it) and the driver threads; only "picture" is a like-for-like figure, and the original's `draw`
+(software blits into DirectDraw surfaces, 3.70) against the port's 0.18 means nothing alone. The port's picture is the cost of the
+GPU path as a player gets it on this machine's Direct3D 11 (rundesk's desktop; a visible desktop's Direct3D 9 can cost a present
+up to 30 % more, `docs/COORDINATION.md`). Both sides' audio: the port's SDL thread (the original's stand-in mixes nothing, so the
+original has none here).
+
+The two sides do not make the same number of calls: per update the original calls the draw 0.98 times and the present 0.92, the port
+0.57 to 0.62 and 0.50 to 0.55, since the port presents in step with the display (its renderer is made with vsync, 60 Hz on this desktop; 100
+updates a second either way) and the original's Blt does not wait. So per-call costs are not compared, and the port's total
+would rise on a faster screen. The per-update figures above are the comparable ones. The ranges are wide on this machine (4 to 8
+other sessions' games ran in every run; the machine was 0.54 to 0.91 busy for the original's and the 640x480 port's runs, 0.51 to
+0.98 for the 1280x960 port's): the original's total 4.64 to 5.55, the port's 1.91 to 3.19. The original's median here (5.42) is
+above the pairs' 3.9 to 4.8 (a busier machine slows every cycle's work; counting adds 0.2 %), and the port's total over the original's
+is 0.44 here against 0.39 to 0.46 there. A figure for the target is taken without counting.
+
+**Checks.** In all twelve runs the loop thread's cycles plus the other threads' add up to the process's cycles (99.8 to 100.0 %), the
+counted parts are 92.5 to 93.5 % of the loop thread's cycles in the original's and 86 to 96 % in the port's (the rest is the loop's
+own: waking from `Sleep`, messages, the readings), no frame was dropped without a return (`misses` 0), and the original's counted update
+calls equal its own update counter at each snapshot (7,057 at the marker for 7,059).
+
+**What counting costs.** A cycle reading takes 500 to 860 cycles in a tight loop but 2.4 to 3.5 thousand in the running port and 6.2 to 7.3
+thousand in the original (the file's `counter`), so the first accounting (0.12 % of the total) was wrong by a factor of five; the
+cost was measured as a whole, counting alternated with `cyclesplit pause` or `count pause` in blocks of 200 updates on the idle title
+screen (`toggleruns.sh`, `cycles.py toggle`). The port, twelve runs in two sets of six: the first adds 8 to 37 thousand cycles an
+update (23 thousand on average), the second, a build that also times its readings, -10 to +24 thousand (7.5 thousand on average), so
+0.4 to 1.1 % of the scenario's 2.0 to 2.4 million; the original, six
+runs, adds 9.5 thousand on average (from -4 to +23 thousand; the neighbouring blocks' median ratio is 1.004), about 0.2 % of its 4.6 to
+5.4 million. Pairs of counting and plain runs of the whole scenario could not see it: the six on/off pairs of the port had a median
+16 % higher with counting on, which was the machine (the same scenario's plain runs differ by a quarter from one to the next), and
+the alternation inside one run is what shows an effect of a few tenths of a percent.
 
 ## The readability pass (2026-11-11)
 

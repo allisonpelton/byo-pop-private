@@ -365,8 +365,8 @@
         "collection"
       ],
       "na": [],
-      "now": null,
-      "note": ""
+      "now": "lite-mod",
+      "note": "the cycle split measured: 0.53 of the original's processor time at 640x480, 0.44 at 1280x960; the lite survey next"
     },
     "bigmoney": {
       "title": "Big Money Deluxe",
