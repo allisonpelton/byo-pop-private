@@ -27,28 +27,28 @@ var ByopopSoundboards = {
     ],
     groups: [
     { name: "Menus", sounds: [
-      ["sounds/click.ogg", "Click", "A button is pressed: the title, intro, high scores and options screens, the sound button"],
-      ["sounds/button.ogg", "Button (unused)", "Never played"],
-      ["sounds/slideback.ogg", "Slide back (unused)", "Never played"],
-      ["sounds/v4-welcome.ogg", "Welcome voice", "The intro screen, a second after it opens, before the first game"]
+      ["sounds/click.ogg", "Click", "Any button pressed (the game's updates run 100 a second): title, intro and high score screens, the options dialog's buttons, and the board's side buttons including the sound button"],
+      ["sounds/button.ogg", "Button (unused)", "Never played: it is not in the game's sound table, so nothing loads or plays it"],
+      ["sounds/slideback.ogg", "Slide back (unused)", "Never played: it is not in the game's sound table, so nothing loads or plays it"],
+      ["sounds/v4-welcome.ogg", "Welcome voice", "On the intro screen, 60 updates (0.6 seconds) after it opens, only while the player has not yet played a game; the wizard speaks with it"]
     ] },
     { name: "Placing tiles", sounds: [
-      ["sounds/bad.ogg", "Bad move", "A tile is clicked where it cannot go"],
-      ["sounds/thunk.ogg", "Tile placed", "A tile is set on the board"],
-      ["sounds/skull.ogg", "Skull bomb", "A bomb tile is set down and blows"],
-      ["sounds/melt.ogg", "Tile melts", "A tile is thrown into the discard"]
+      ["sounds/bad.ogg", "Bad move", "A click on the grid with a tile held when the tile cannot go there, an off-grid click too; a help line may show as well"],
+      ["sounds/thunk.ogg", "Tile placed", "Every tile or bomb set on the board by a valid click, together with the forge-down sound where it applies"],
+      ["sounds/skull.ogg", "Skull bomb", "A bomb tile is set down: it takes the tile in that cell with it. The tile-placed thunk plays as well"],
+      ["sounds/melt.ogg", "Tile melts", "A tile is discarded (forge click or button) and the forge has not overflowed; the next tile comes 25 updates (0.25 seconds) later"]
     ] },
     { name: "The forge", sounds: [
-      ["sounds/forgedown.ogg", "Forge down", "A placed tile lowers the forge's level (not in the timed game)"],
-      ["sounds/warning.ogg", "Forge warning", "The forge is nearly full; repeats every few seconds while it stays so"],
-      ["sounds/gemchange.ogg", "Gems change", "The next board's tiles fade in after a board is cleared"]
+      ["sounds/forgedown.ogg", "Forge down", "A tile is placed while the forge level is above 0, lowering it by 1; never in the timed game"],
+      ["sounds/warning.ogg", "Forge warning", "Untimed game only: while the forge level is above 2.3 of 3, once every 150 updates (1.5 seconds) until the game ends"],
+      ["sounds/gemchange.ogg", "Gems change", "The next board's tiles have finished fading in, about 67 updates (0.7 seconds) after the statistics button is pressed"]
     ] },
     { name: "Board end", sounds: [
-      ["sounds/finalvanish.ogg", "Row clears", "A full row or column clears; the board is wiped for the next one"],
-      ["sounds/finalgong.ogg", "Final gong", "Every tile of the board is lit"],
-      ["sounds/endofgame.ogg", "End of game", "The game ends"],
-      ["sounds/v4-levelcomplete.ogg", "Level complete voice", "The wizard appears after a board is cleared"],
-      ["sounds/v4-gameover.ogg", "Game over voice", "The wizard appears when the game ends"]
+      ["sounds/finalvanish.ogg", "Row clears", "A placed tile completes its row or column; also the click that starts the next board after one is cleared"],
+      ["sounds/finalgong.ogg", "Final gong", "The placed tile lights the last unlit square, so the board is won"],
+      ["sounds/endofgame.ogg", "End of game", "The game ends: the forge overflows (a discard takes it past 3), or in the timed game it stays full for 150 updates (1.5 seconds)"],
+      ["sounds/v4-levelcomplete.ogg", "Level complete voice", "After a board is won, once the wizard has fully faded in over the cleared board and its tiles have all gone"],
+      ["sounds/v4-gameover.ogg", "Game over voice", "The wizard has fully faded in after the game ends (forge overflow or the timed forge staying full)"]
     ] },
   ] },
   astropop: {
@@ -65,85 +65,85 @@ var ByopopSoundboards = {
     ],
     groups: [
     { name: "Menus", sounds: [
-      ["sounds/mouseover.ogg", "Menu hover", "The pointer enters a main menu button (pitched by button); the quit box and the options window open"],
-      ["sounds/click2.ogg", "Button click", "Any button goes down: menus, dialogs, pilot choice, story screens, the warp panels"],
-      ["sounds/warpbutton.ogg", "Warp gate click", "A gate is clicked on the checkpoint box"],
-      ["sounds/v_chooseyourpilot.ogg", "\"Choose your pilot\"", "The pilot choice screen opens"],
-      ["sounds/timer1.ogg", "Tick", "The sound volume slider is let go; the weapon box's OK (a fix leaves it out)"]
+      ["sounds/mouseover.ogg", "Menu hover", "The pointer enters a main menu button (Classic, Survival, Hall of Fame, Options, Quit), each at its own pitch; also when the quit box opens and when the options window opens"],
+      ["sounds/click2.ogg", "Button click", "Any button goes down: menus, dialogs, pilot choice, story screens, hall of fame, a click on a warp gate panel on the warp screen"],
+      ["sounds/warpbutton.ogg", "Warp gate click", "A click on the left or right gate of the checkpoint box, which choose the stage to go on from"],
+      ["sounds/v_chooseyourpilot.ogg", "\"Choose your pilot\"", "The pilot choice screen opens; it cuts off any menu voice"],
+      ["sounds/timer1.ogg", "Tick", "The sound volume slider is changed without dragging (a click or key); also the weapon box's OK (a fix leaves that out)"]
     ] },
     { name: "Ship", sounds: [
-      ["sounds/engineloop.ogg", "Engine loop", "A game is under way and the field is not in the warp (loops)"],
-      ["sounds/hyperspaceloop1.ogg", "Hyperspace loop", "The field is in the warp (loops)"],
-      ["sounds/magzap3.ogg", "Pick up", "A brick is picked up from the field"],
-      ["sounds/magzap2.ogg", "Fire", "The ship fires the bricks it holds (right click)"],
-      ["sounds/magzap1.ogg", "Can't do that", "A click that cannot pick up or fire"],
-      ["sounds/laser.ogg", "Laser", "A laser shot removes a brick"],
-      ["sounds/psychic.ogg", "Psychic", "The psychic tool is used"],
-      ["sounds/activated.ogg", "Tool picked up", "A tool brick is picked up"]
+      ["sounds/engineloop.ogg", "Engine loop", "Loops from the game's first update, and again after the warp ends or a story screen closes; off while the field is in the warp or the game is paused"],
+      ["sounds/hyperspaceloop1.ogg", "Hyperspace loop", "Loops while the field is in the warp, from the moment the warp begins until it ends; the engine loop is stopped meanwhile"],
+      ["sounds/magzap3.ogg", "Pick up", "A click picks up bricks from the field; not repeated while the button is held down"],
+      ["sounds/magzap2.ogg", "Fire", "A right click fires the bricks held, unless the level summary is counting"],
+      ["sounds/magzap1.ogg", "Can't do that", "A click that fails: six bricks already held, nothing to take, a locked brick, the pointer too low, a power not ready; not repeated while held"],
+      ["sounds/laser.ogg", "Laser", "Laser pilot, power active: a click on a brick removes it from the bottom of its column, panned by column"],
+      ["sounds/psychic.ogg", "Psychic", "Psychic pilot, power active: a click takes out every lit cell at once, when nothing is moving"],
+      ["sounds/activated.ogg", "Tool picked up", "A tool brick is among the bricks picked up from a column, once for each tool brick"]
     ] },
     { name: "Bricks", sounds: [
-      ["sounds/gemongem2.ogg", "Brick lands", "A brick falls to the floor"],
-      ["sounds/blockhit.ogg", "Brick hit", "A brick next to a set is hit as the set is made"],
-      ["sounds/explode1.ogg", "Brick pops", "A brick is taken out beside a set, a kill-all brick goes off, or a slow-mo brick spins"],
-      ["sounds/steelclang1.ogg", "Steel clang", "A whole steel brick is hit for the first time"],
-      ["sounds/mutator1.ogg", "Mutation", "A brick mutates"],
-      ["sounds/mudestroy3.ogg", "Mutant dies", "A mutated brick is destroyed"],
-      ["sounds/hyperbrick_sound.ogg", "Booster pulse", "A booster brick pulses"],
-      ["sounds/freezeblock1.ogg", "Freeze", "A freeze brick goes off"]
+      ["sounds/gemongem2.ogg", "Brick lands", "A held brick has landed on the ship with none still in flight, panned by the ship's column; also a fired brick lands in the field"],
+      ["sounds/blockhit.ogg", "Brick hit", "Fired bricks land and join fewer than 4 of a kind, so no set is made; played at a random fired brick's column"],
+      ["sounds/explode1.ogg", "Brick pops", "A brick is taken out because a neighbour is of the kind a kill-all brick kills; the atomic pilot's marked bricks blow up one by one (every 40 updates, then 20)"],
+      ["sounds/steelclang1.ogg", "Steel clang", "A whole steel brick takes its first hit (the second hit breaks it silently)"],
+      ["sounds/mutator1.ogg", "Mutation", "A brick turns into a mutant brick"],
+      ["sounds/mudestroy3.ogg", "Mutant dies", "A mutant brick is destroyed"],
+      ["sounds/hyperbrick_sound.ogg", "Booster pulse", "A galaxy brick in the field pulses: every 100 updates (1 s), speeding to every 12 updates over its last 200 of 1000 updates"],
+      ["sounds/freezeblock1.ogg", "Freeze", "A freeze brick goes off (not while a level is ending or the game is over)"]
     ] },
     { name: "Sets and combos", sounds: [
-      ["sounds/gotset2.ogg", "Set", "A set of bricks is made"],
-      ["sounds/gotsetbig.ogg", "Big set", "A big set of bricks is made"],
-      ["sounds/bubbly.ogg", "Set with a mark", "A set is made that holds a marked brick (instead of the set sounds)"],
-      ["sounds/combo_tone.ogg", "Combo ping", "A chain goes past its first set, pitched higher up the chain; not twice within 45 updates"],
-      ["sounds/v_combo1.ogg", "Combo voice 1", "A chain reaches 2"],
-      ["sounds/v_combo2.ogg", "Combo voice 2", "A chain reaches 3"],
-      ["sounds/v_combo3.ogg", "Combo voice 3", "A chain reaches 4"],
-      ["sounds/v_combo4.ogg", "Combo voice 4", "A chain reaches 5"],
-      ["sounds/v_combo5.ogg", "Combo voice 5", "A chain reaches 6"],
-      ["sounds/v_combo6.ogg", "Combo voice 6", "A chain reaches 7"],
-      ["sounds/v_combo65.ogg", "Combo voice 7", "A chain reaches 8"],
-      ["sounds/v_combo7.ogg", "Combo voice 8", "A chain reaches 9 or more"]
+      ["sounds/gotset2.ogg", "Set", "Fired bricks make a set of 4 to 6 bricks of one kind, at a random set brick's column; the bubbly sound plays instead if a mark is set for that kind"],
+      ["sounds/gotsetbig.ogg", "Big set", "A set of 7 or more bricks is made; the bubbly sound plays instead if a mark is set for that kind"],
+      ["sounds/bubbly.ogg", "Set with a mark", "A set is made while a supercharge mark for its brick kind is set; only a mark restored from a saved game's profile record, which a new game never makes"],
+      ["sounds/combo_tone.ogg", "Combo ping", "Each set that makes a chain 2 or longer, rising one step a set up to the 11th; at most once every 45 updates (0.45 s)"],
+      ["sounds/v_combo1.ogg", "Combo voice 1", "A chain of 2 ends, 100 updates (1 s) after its last set; not in a bonus round or once the stage's brick goal is reached"],
+      ["sounds/v_combo2.ogg", "Combo voice 2", "A chain of 3 ends, 100 updates (1 s) after its last set; not in a bonus round or once the stage's brick goal is reached"],
+      ["sounds/v_combo3.ogg", "Combo voice 3", "A chain of 4 ends, 100 updates (1 s) after its last set; not in a bonus round or once the stage's brick goal is reached"],
+      ["sounds/v_combo4.ogg", "Combo voice 4", "A chain of 5 ends, 100 updates (1 s) after its last set; not in a bonus round or once the stage's brick goal is reached"],
+      ["sounds/v_combo5.ogg", "Combo voice 5", "A chain of 6 ends, 100 updates (1 s) after its last set; not in a bonus round or once the stage's brick goal is reached"],
+      ["sounds/v_combo6.ogg", "Combo voice 6", "A chain of 7 ends, 100 updates (1 s) after its last set; not in a bonus round or once the stage's brick goal is reached"],
+      ["sounds/v_combo65.ogg", "Combo voice 7", "A chain of 8 ends, 100 updates (1 s) after its last set; not in a bonus round or once the stage's brick goal is reached"],
+      ["sounds/v_combo7.ogg", "Combo voice 8", "A chain of 9 or more ends, 100 updates (1 s) after its last set; not in a bonus round or once the stage's brick goal is reached"]
     ] },
     { name: "Power-ups", sounds: [
-      ["sounds/killall_explode.ogg", "Kill-all blast", "A kill-all brick goes off"],
-      ["sounds/star_explode.ogg", "Star blast", "A star brick goes off"],
-      ["sounds/nukeexplosion1.ogg", "Row nuke", "A row nuke goes off"],
-      ["sounds/ckiller4.ogg", "Column nuke", "A column nuke goes off; a column killer is fired"],
-      ["sounds/galaxy.ogg", "Galaxy", "A galaxy brick goes off (with the column nuke)"],
-      ["sounds/star9.ogg", "Fuel cell", "A fuel cell is destroyed"],
-      ["sounds/v_weaponready.ogg", "\"Weapon ready\"", "The power meter fills"],
-      ["sounds/v_poweractivated.ogg", "\"Power activated\"", "A power is started"],
-      ["sounds/explosion.ogg", "Weapon blast", "A weapon explodes; a power's blast goes off"],
-      ["sounds/sloooowdown.ogg", "Slow down", "The slow-mo power starts; the ships screen opens"],
-      ["sounds/powerupwearsoff.ogg", "Power wears off", "A power runs out"],
-      ["sounds/v_weaponupgrade.ogg", "\"Weapon upgrade\"", "The upgrade box shows"]
+      ["sounds/killall_explode.ogg", "Kill-all blast", "A kill-all brick goes off (not while a level is ending or the game is over, and not as a mutant)"],
+      ["sounds/star_explode.ogg", "Star blast", "A star brick goes off (not while a level is ending or the game is over)"],
+      ["sounds/nukeexplosion1.ogg", "Row nuke", "A row nuke brick goes off (not while a level is ending or the game is over)"],
+      ["sounds/ckiller4.ogg", "Column nuke", "A column nuke or galaxy brick goes off, or a column nuke is fired from the ship's hand; all of its column goes"],
+      ["sounds/galaxy.ogg", "Galaxy", "A galaxy brick goes off, together with the column nuke sound; not while a level is ending or the game is over"],
+      ["sounds/star9.ogg", "Fuel cell", "A fuel cell brick is destroyed, unless it is a mutant"],
+      ["sounds/v_weaponready.ogg", "\"Weapon ready\"", "The power meter reaches 18000, filling by 1 an update at the base level (3 minutes), faster with upgrades; only while play runs and no power is active"],
+      ["sounds/v_poweractivated.ogg", "\"Power activated\"", "The player starts the power from a full meter (laser, atomic, turbot or psychic pilot)"],
+      ["sounds/explosion.ogg", "Weapon blast", "The turbot pilot's power starts; the atomic pilot's blast, 150 updates (1.5 s) after its symbol appears"],
+      ["sounds/sloooowdown.ogg", "Slow down", "The atomic pilot's power: the final, eighth blast, after seven; also the ships screen opening from the main menu's secret order, 50 updates (0.5 s) later"],
+      ["sounds/powerupwearsoff.ogg", "Power wears off", "The power meter has drained to 0 and the power ends (not the atomic pilot's)"],
+      ["sounds/v_weaponupgrade.ogg", "\"Weapon upgrade\"", "The upgrade box has settled in, then 100 updates (1 s) later"]
     ] },
     { name: "Levels and warp", sounds: [
-      ["sounds/v_welcome.ogg", "\"Welcome\"", "A game begins"],
-      ["sounds/v_getready.ogg", "\"Get ready\"", "A story or warp ends and the stage starts"],
-      ["sounds/warp3.ogg", "Warp", "The warp starts and ends"],
-      ["sounds/v_warpengaged.ogg", "\"Warp engaged\"", "The warp starts"],
-      ["sounds/comptext.ogg", "Computer text", "The warp's text is typed out, a character at a time"],
-      ["sounds/hyperspacethunder1.ogg", "Thunder 1", "In the warp, a lightning flash (one of two at random)"],
-      ["sounds/hyperspacethunder2.ogg", "Thunder 2", "In the warp, a lightning flash (one of two at random)"],
-      ["sounds/level_up1.ogg", "Hundred left", "The last hundred bricks of a stage begin"],
-      ["sounds/level_up2.ogg", "Fifty left", "The last fifty bricks of a stage begin"],
-      ["sounds/brickmilestone.ogg", "Milestone", "A part of the stage's bricks is cleared"],
-      ["sounds/v_levelcomplete.ogg", "\"Level complete\"", "A level is won"],
-      ["sounds/wordswoosh.ogg", "Word swoosh", "A big word flies across the field (level complete, milestones)"],
-      ["sounds/v_bonusround.ogg", "\"Bonus round\"", "A bonus round starts"],
-      ["sounds/v_perfect.ogg", "\"Perfect!\"", "The field is cleared; the perfect bonus is shown"],
-      ["sounds/count.ogg", "Score count", "The bonus points are counted up on the level summary"]
+      ["sounds/v_welcome.ogg", "\"Welcome\"", "The first update of every game board that is not the attract-mode demo"],
+      ["sounds/v_getready.ogg", "\"Get ready\"", "A story screen closes, or the warp ends and the next level's bricks load"],
+      ["sounds/warp3.ogg", "Warp", "The level-end warp's charge flash reaches its peak (150 of 255); also, every other update, as a bonus round's warp-in white flash passes 59"],
+      ["sounds/v_warpengaged.ogg", "\"Warp engaged\"", "The warp starts: the level-up screen's text has faded out and the ship flies off"],
+      ["sounds/comptext.ogg", "Computer text", "Each letter of the warp's text typed out, one every 5 updates (0.05 s)"],
+      ["sounds/hyperspacethunder1.ogg", "Thunder 1", "In the warp, a lightning flash comes every 100 to 299 updates (1 to 3 s); this or thunder 2, 1 in 2, at a random column's pan"],
+      ["sounds/hyperspacethunder2.ogg", "Thunder 2", "In the warp, a lightning flash comes every 100 to 299 updates (1 to 3 s); this or thunder 1, 1 in 2, at a random column's pan"],
+      ["sounds/level_up1.ogg", "Hundred left", "100 or fewer bricks are left to pass the stage, once a stage; not in survival"],
+      ["sounds/level_up2.ogg", "Fifty left", "50 or fewer bricks are left to pass the stage, once a stage; not in survival"],
+      ["sounds/brickmilestone.ogg", "Milestone", "A quarter, half or three quarters of the stage's bricks are cleared; also a galaxy brick starts (it adds 15% of the stage)"],
+      ["sounds/v_levelcomplete.ogg", "\"Level complete\"", "The stage's brick goal is reached and the level-up begins, after any chain bonus is paid; not when it starts a bonus round"],
+      ["sounds/wordswoosh.ogg", "Word swoosh", "A big word flies across: level complete, quarter, half and three-quarter marks, and survival's minute text every 6000 updates (1 minute)"],
+      ["sounds/v_bonusround.ogg", "\"Bonus round\"", "A level ends and the classic game's next screen is a bonus round, which starts at once"],
+      ["sounds/v_perfect.ogg", "\"Perfect!\"", "The field is cleared in a stage (the clear bonus is paid), or the level summary's bar fills with no bricks left"],
+      ["sounds/count.ogg", "Score count", "The level summary counts its numbers up: every 2nd step of the penalty, every 4th of the clean bonus, every 8th of the pay-out"]
     ] },
     { name: "Danger and game over", sounds: [
-      ["sounds/klaxon.ogg", "Klaxon", "The field has no room for the next piece (loops)"],
-      ["sounds/v_caution.ogg", "\"Caution\"", "The field's siren sounds as it fills up"],
-      ["sounds/v_danger.ogg", "\"Danger\"", "Loaded, never played"],
-      ["sounds/v_nomoremoves.ogg", "\"No more moves\"", "No move is left in the field"],
-      ["sounds/v_gameover.ogg", "\"Game over\"", "The game ends"],
-      ["sounds/megaexplosion.ogg", "Mega explosion", "The game ends"],
-      ["sounds/v_newhighscore.ogg", "\"New high score\"", "A game ends with a new high score"]
+      ["sounds/klaxon.ogg", "Klaxon", "Loops while the ship's column has no room for the next brick (the held bricks included); stops when there is room; not in a bonus round or warp"],
+      ["sounds/v_caution.ogg", "\"Caution\"", "The tallest column reaches 14 rows high and the siren is idle, not during a bonus round or warp; the siren animation starts with it"],
+      ["sounds/v_danger.ogg", "\"Danger\" (unused)", "Never played: it is loaded, but no code plays it; only the caution voice sounds when the stack gets high"],
+      ["sounds/v_nomoremoves.ogg", "\"No more moves\"", "Bonus rounds only: no move is left and nothing is moving, the banner shows for 400 updates (4 s) and the field is counted out"],
+      ["sounds/v_gameover.ogg", "\"Game over\"", "The game ends, with the mega explosion at the same moment"],
+      ["sounds/megaexplosion.ogg", "Mega explosion", "The game ends, with the game over voice at the same moment"],
+      ["sounds/v_newhighscore.ogg", "\"New high score\"", "200 updates (2 s) after the game ends, if the score takes the top place of the high scores"]
     ] }
   ] },
   atomica: {
@@ -155,69 +155,69 @@ var ByopopSoundboards = {
     ],
     groups: [
     { name: "Menus", sounds: [
-      ["sounds/capclick.ogg", "Cap click", "A button is pressed: the main menu, high scores box, quit box, hint box check box, most options buttons; also the bomb button lighting up and the bonus molecule frame sliding in or out"],
-      ["sounds/swoop.ogg", "Swoop", "A menu panel slides in or out of the main menu (and when a game is started from it)"],
-      ["sounds/doorslam.ogg", "Door slam", "The main menu's door shuts as the board closes"],
-      ["sounds/dooropen.ogg", "Door open", "The main menu's door opens once its panel has slid away"]
+      ["sounds/capclick.ogg", "Cap click", "Any menu, dialog or hint box button pressed (the main menu only once its door has slammed); the options dialog's buttons 6, 7, 8 and 10; the bomb button lighting up; the bonus molecule frame sliding in or out"],
+      ["sounds/swoop.ogg", "Swoop", "A menu panel slides in or out of the main menu: once when it leaves, once when it lands; and when a game is started from the game-over panel"],
+      ["sounds/doorslam.ogg", "Door slam", "The main menu's door shuts as the board closes, once per slam"],
+      ["sounds/dooropen.ogg", "Door open", "The main menu's door opens, once its panel has slid fully away"]
     ] },
     { name: "Atoms", sounds: [
-      ["sounds/atomappear.ogg", "Atom appears", "A new atom finishes starting to appear on the grid"],
-      ["sounds/selectatom.ogg", "Select atom", "An atom is picked up; the options dialog's reset-hints button"],
-      ["sounds/moveatom.ogg", "Move atom", "A picked atom is sent along a path to a new cell"],
-      ["sounds/movebioatom.ogg", "Move biohazard", "A biohazard atom is sent along a path to a new cell"],
-      ["sounds/whoosh.ogg", "Whoosh", "Atoms fly away (a molecule made, an element atom shatters, the grid is cleared, a bonus ring starts); a new level's atoms arrive"],
-      ["sounds/lowwhoosh.ogg", "Low whoosh", "Each atom a swirl carries off disappears"],
-      ["sounds/magnet.ogg", "Magnet", "Atoms are pulled along toward each other after a move"]
+      ["sounds/atomappear.ogg", "Atom appears", "A new atom's appearance reaches its last step (24); several in one update give one sound"],
+      ["sounds/selectatom.ogg", "Select atom", "An atom is clicked to pick it up; also the options dialog's reset-hints button"],
+      ["sounds/moveatom.ogg", "Move atom", "A second click sends the picked atom along a path to a new cell"],
+      ["sounds/movebioatom.ogg", "Move biohazard", "A second click sends the picked biohazard atom along a path to a new cell"],
+      ["sounds/whoosh.ogg", "Whoosh", "Atoms fly away: a molecule made (once per update), the grid cleared, a swirl taking more than 6 atoms, an element atom, a bonus ring; also a new level's atoms arrive"],
+      ["sounds/lowwhoosh.ogg", "Low whoosh", "Each atom a swirl carries off disappears, one sound per atom"],
+      ["sounds/magnet.ogg", "Magnet", "After a move, atoms slide toward each other and at least one moves; once per move"]
     ] },
     { name: "Molecules and combos", sounds: [
-      ["sounds/createmolecule.ogg", "Molecule created", "Atoms join to make a molecule"],
-      ["sounds/electric1.ogg", "Electric 1", "Lightning bonds between neighbouring atoms of one type; one of the three picked at random; the infection bolt plays all three at once and then one every 10 updates"],
-      ["sounds/electric2.ogg", "Electric 2", "Lightning bonds between neighbouring atoms of one type; one of the three picked at random; the infection bolt plays all three at once and then one every 10 updates"],
-      ["sounds/electric3.ogg", "Electric 3", "Lightning bonds between neighbouring atoms of one type; one of the three picked at random; the infection bolt plays all three at once and then one every 10 updates"],
-      ["sounds/geiger1.ogg", "Geiger counter 1", "Loops while the combo is 2 or more, its volume following the combo; stops when it fades to 0 or the grid is reset"],
-      ["sounds/geiger2.ogg", "Geiger counter 2", "Loops while the combo is above 3, its volume following the combo; stops when it fades to 0 or the grid is reset"],
-      ["sounds/voices/combo.ogg", "Combo voice", "The combo reaches 2"],
-      ["sounds/voices/supercombo.ogg", "Super combo voice", "The combo reaches 3"],
-      ["sounds/voices/megacombo.ogg", "Mega combo voice", "The combo reaches 4"],
-      ["sounds/voices/ultracombo.ogg", "Ultra combo voice", "The combo reaches 5"],
-      ["sounds/voices/hypercombo.ogg", "Hyper combo voice", "The combo reaches 6"],
-      ["sounds/voices/gigacombo.ogg", "Giga combo voice", "The combo reaches 7"],
-      ["sounds/voices/maxcombo.ogg", "Max combo voice", "The combo reaches 8"]
+      ["sounds/createmolecule.ogg", "Molecule created", "A molecule is made: a 3 by 2, 2 by 3 or 2 by 2 block of one atom type; one sound for each block found in a check"],
+      ["sounds/electric1.ogg", "Electric 1", "Lightning bolt: one of the three at random for each bolt joining an atom to a same-type neighbour, and each drawn frame of a shaking made molecule; the infection bolt plays all three, then one every 10 updates (0.1 s)"],
+      ["sounds/electric2.ogg", "Electric 2", "Lightning bolt: one of the three at random for each bolt joining an atom to a same-type neighbour, and each drawn frame of a shaking made molecule; the infection bolt plays all three, then one every 10 updates (0.1 s)"],
+      ["sounds/electric3.ogg", "Electric 3", "Lightning bolt: one of the three at random for each bolt joining an atom to a same-type neighbour, and each drawn frame of a shaking made molecule; the infection bolt plays all three, then one every 10 updates (0.1 s)"],
+      ["sounds/geiger1.ogg", "Geiger counter 1", "Loops while the combo is 2 or more, its volume rising 0.1 an update toward (combo - 1) / 12; fades out by 0.01 an update after the combo ends"],
+      ["sounds/geiger2.ogg", "Geiger counter 2", "Loops while the combo is above 3, its volume rising 0.1 an update toward (combo - 3) / 8; fades out by 0.01 an update after the combo ends"],
+      ["sounds/voices/combo.ogg", "Combo voice", "A molecule takes the combo to 2: the voice comes 30 updates (0.3 s) later, or when he stops talking"],
+      ["sounds/voices/supercombo.ogg", "Super combo voice", "A molecule takes the combo to 3: the voice comes 30 updates (0.3 s) later, or when he stops talking"],
+      ["sounds/voices/megacombo.ogg", "Mega combo voice", "A molecule takes the combo to 4: the voice comes 30 updates (0.3 s) later, or when he stops talking"],
+      ["sounds/voices/ultracombo.ogg", "Ultra combo voice", "A molecule takes the combo to 5: the voice comes 30 updates (0.3 s) later, or when he stops talking"],
+      ["sounds/voices/hypercombo.ogg", "Hyper combo voice", "A molecule takes the combo to 6: the voice comes 30 updates (0.3 s) later, or when he stops talking"],
+      ["sounds/voices/gigacombo.ogg", "Giga combo voice", "A molecule takes the combo to 7: the voice comes 30 updates (0.3 s) later, or when he stops talking"],
+      ["sounds/voices/maxcombo.ogg", "Max combo voice", "A molecule takes the combo to 8: the voice comes 30 updates (0.3 s) later, or when he stops talking; no voice above 8"]
     ] },
     { name: "Bombs and biohazards", sounds: [
-      ["sounds/nukeblast.ogg", "Nuke blast", "An atom is destroyed by the atomic bomb or an element's blast"],
-      ["sounds/heartbeat.ogg", "Heartbeat", "A biohazard atom's glow reaches its brightest; repeats with the pulse"],
-      ["sounds/voices/atomicbombready.ogg", "Bomb ready voice", "The atomic bomb button finishes lighting"],
-      ["sounds/voices/atomicbomb.ogg", "Atomic bomb voice", "The bomb becomes available with atoms on the grid"],
-      ["sounds/voices/biohazard.ogg", "Biohazard voice", "The first biohazard atom of a grid finishes appearing (one of two choices, both this voice)"],
-      ["sounds/voices/biohazardalert.ogg", "Biohazard alert (unused)", "Never played"]
+      ["sounds/nukeblast.ogg", "Nuke blast", "An atom is destroyed: the atomic bomb bursts it, or an element's expanding ring pops it, or a biohazard atom's molecule shatters it; one sound per atom"],
+      ["sounds/heartbeat.ogg", "Heartbeat", "A biohazard atom's glow reaches full brightness, once per pulse of its glow"],
+      ["sounds/voices/atomicbombready.ogg", "Bomb ready voice", "The atomic bomb button finishes lighting up (its frame reaches 15 of 24); 50 updates (0.5 s) later"],
+      ["sounds/voices/atomicbomb.ogg", "Atomic bomb voice", "The bomb button is pressed with atoms on the grid and no level-up showing; the voice follows 1 update later"],
+      ["sounds/voices/biohazard.ogg", "Biohazard voice", "The first biohazard atom of a grid finishes appearing; 10 updates (0.1 s) later (one of two random choices, both this voice)"],
+      ["sounds/voices/biohazardalert.ogg", "Biohazard alert (unused)", "Never played: it is not loaded, and no code asks for it; only the biohazard voice sounds"]
     ] },
     { name: "Elements and bonus molecules", sounds: [
-      ["sounds/freeze.ogg", "Freeze", "A freeze takes hold of the board (the freeze progress reaches 128)"],
-      ["sounds/voices/fire.ogg", "Fire voice", "A fire element atom is placed"],
-      ["sounds/voices/ice.ogg", "Ice voice", "A water (ice) element atom is placed"],
-      ["sounds/voices/lightning.ogg", "Lightning voice", "An earth (lightning) element atom is placed"],
-      ["sounds/voices/wind.ogg", "Wind voice", "An air (wind) element atom is placed"],
-      ["sounds/voices/ether.ogg", "Ether voice", "An ether element atom is placed"],
-      ["sounds/voices/bonusmolecule.ogg", "Bonus molecule voice", "A bonus molecule is made"],
-      ["sounds/voices/bonusmoleculeready.ogg", "Bonus ready voice", "The bonus molecule frame has slid into place with its pattern ready"],
-      ["sounds/voices/bonusmoleculeupgraded.ogg", "Bonus upgraded voice", "A bonus molecule is upgraded"]
+      ["sounds/freeze.ogg", "Freeze", "A freeze takes hold of the board: its progress reaches 128, one step an update, so 1.28 s after it begins"],
+      ["sounds/voices/fire.ogg", "Fire voice", "A fire element atom is placed; the voice comes 25 updates (0.25 s) later"],
+      ["sounds/voices/ice.ogg", "Ice voice", "A water (ice) element atom is placed; the voice comes 25 updates (0.25 s) later"],
+      ["sounds/voices/lightning.ogg", "Lightning voice", "An earth (lightning) element atom is placed; the voice comes 25 updates (0.25 s) later"],
+      ["sounds/voices/wind.ogg", "Wind voice", "An air (wind) element atom is placed; the voice comes 25 updates (0.25 s) later"],
+      ["sounds/voices/ether.ogg", "Ether voice", "An ether element atom is placed; the voice comes 25 updates (0.25 s) later"],
+      ["sounds/voices/bonusmolecule.ogg", "Bonus molecule voice", "A bonus molecule is made; the voice comes 5 updates later"],
+      ["sounds/voices/bonusmoleculeready.ogg", "Bonus ready voice", "The bonus molecule frame has slid into place with a new pattern; the voice comes 50 updates (0.5 s) later"],
+      ["sounds/voices/bonusmoleculeupgraded.ogg", "Bonus upgraded voice", "A bonus molecule of a higher level is made (an upgrade); the voice comes 5 updates later"]
     ] },
     { name: "Level start and end", sounds: [
-      ["sounds/voices/getready.ogg", "Get ready voice", "A level begins"],
-      ["sounds/voices/go.ogg", "Go voice", "The grid's field is revealed and play starts"],
-      ["sounds/voices/levelup.ogg", "Level up voice", "The meter fills and the level goes up"],
-      ["sounds/voices/gameover.ogg", "Game over voice", "The game ends (300 updates into the game-over count)"],
-      ["sounds/voices/anewhighscore.ogg", "New high score voice", "The name entry box opens for a score that earns a place"],
-      ["sounds/voices/cool.ogg", "Cool voice", "Okay is pressed on a high score name: one of six voices at random"],
-      ["sounds/voices/excellent.ogg", "Excellent voice", "Okay is pressed on a high score name: one of six voices at random"],
-      ["sounds/voices/great.ogg", "Great voice", "Okay is pressed on a high score name: one of six voices at random"],
-      ["sounds/voices/nifty.ogg", "Nifty voice", "Okay is pressed on a high score name: one of six voices at random"],
-      ["sounds/voices/terrific.ogg", "Terrific voice", "Okay is pressed on a high score name: one of six voices at random"],
-      ["sounds/voices/wicked.ogg", "Wicked voice", "Okay is pressed on a high score name: one of six voices at random"],
-      ["sounds/voices/awesome.ogg", "Awesome voice (unused)", "Never played"],
-      ["sounds/voices/levelcomplete.ogg", "Level complete voice (unused)", "Never played"],
-      ["sounds/voices/beautiful.ogg", "Beautiful voice (unused)", "Never played"]
+      ["sounds/voices/getready.ogg", "Get ready voice", "A level begins, 50 updates (0.5 s) after the board starts"],
+      ["sounds/voices/go.ogg", "Go voice", "Every atom of the grid has finished appearing, once per level; the voice follows 1 update later"],
+      ["sounds/voices/levelup.ogg", "Level up voice", "The meter fills and the level goes up (the action mode: its meter passes its maximum); in the strategy mode it clears other queued voices"],
+      ["sounds/voices/gameover.ogg", "Game over voice", "300 updates (3 s) into the game-over count of 600, when the atoms fly away; not while a saved game loads"],
+      ["sounds/voices/anewhighscore.ogg", "New high score voice", "The name entry box opens for a score that earns a place on the table or the best of the day"],
+      ["sounds/voices/cool.ogg", "Cool voice", "Okay is pressed on a high score name: one of six voices (this, excellent, great, nifty, terrific, wicked), 1 in 6 each"],
+      ["sounds/voices/excellent.ogg", "Excellent voice", "Okay is pressed on a high score name: one of six voices (cool, this, great, nifty, terrific, wicked), 1 in 6 each"],
+      ["sounds/voices/great.ogg", "Great voice", "Okay is pressed on a high score name: one of six voices (cool, excellent, this, nifty, terrific, wicked), 1 in 6 each"],
+      ["sounds/voices/nifty.ogg", "Nifty voice", "Okay is pressed on a high score name: one of six voices (cool, excellent, great, this, terrific, wicked), 1 in 6 each"],
+      ["sounds/voices/terrific.ogg", "Terrific voice", "Okay is pressed on a high score name: one of six voices (cool, excellent, great, nifty, this, wicked), 1 in 6 each"],
+      ["sounds/voices/wicked.ogg", "Wicked voice", "Okay is pressed on a high score name: one of six voices (cool, excellent, great, nifty, terrific, this), 1 in 6 each"],
+      ["sounds/voices/awesome.ogg", "Awesome voice (unused)", "Never played: it is not loaded, and the high score voices choose among six others only"],
+      ["sounds/voices/levelcomplete.ogg", "Level complete voice (unused)", "Never played: it is not loaded, and the level-up voice is used when a level ends"],
+      ["sounds/voices/beautiful.ogg", "Beautiful voice (unused)", "Never played: it is not loaded, and the high score voices choose among six others only"]
     ] },
   ] },
   bejeweled: {
@@ -233,39 +233,39 @@ var ByopopSoundboards = {
     ],
     groups: [
     { name: "Matches", sounds: [
-      ["sounds/select.ogg", "Select", "A gem is clicked"],
-      ["sounds/gotset2.ogg", "Match", "A match of three"],
-      ["sounds/gotsetbig2.ogg", "Big match", "A match of four or more"],
-      ["sounds/multishot.ogg", "Two matches", "Two or more matches at once"],
-      ["sounds/bad2.ogg", "Bad swap", "A swap that makes no match"],
-      ["sounds/gemongem2.ogg", "Gems land", "Falling gems land"],
+      ["sounds/select.ogg", "Select", "A gem is selected by a click, panned by its column; also the first step of an arrow gem's move in the arrows mod"],
+      ["sounds/gotset2.ogg", "Match", "A scoring pass whose longest run is exactly 3 gems, panned by the runs' average column; plays with that pass's cascade sound"],
+      ["sounds/gotsetbig2.ogg", "Big match", "A scoring pass whose longest run is 4 or more gems; plays with that pass's cascade sound (the arrows mod uses it for an arrow shot)"],
+      ["sounds/multishot.ogg", "Two matches", "A scoring pass finds two or more separate runs at once, on top of the match and cascade sounds"],
+      ["sounds/bad2.ogg", "Bad swap", "A swap that makes no match swings back, or two gems that are not neighbours are swapped; also a refused undo"],
+      ["sounds/gemongem2.ogg", "Gems land", "Gems land after falling; at most once every 10 updates (0.1 s; the game runs 100 updates a second), panned by where they land"],
       ["sounds/excellent1.ogg", "\"Excellent!\"", "A move's matches pass 120 points × the level's multiplier, once a move. A match: 10, 20, 30, 40, 60, 80, 110, 160, 210 for the move's 1st to 9th, +10 a gem past 3 and past 5"]
     ] },
     { name: "Cascades", sounds: [
-      ["sounds/combo22.ogg", "Cascade 1", "Every match a move makes first"],
-      ["sounds/combo32.ogg", "Cascade 2", "The second match of a move"],
-      ["sounds/combo42.ogg", "Cascade 3", "The third match of a move"],
-      ["sounds/combo52.ogg", "Cascade 4", "The fourth match of a move and every one after"],
-      ["sounds/combo62.ogg", "Cascade 5 (unused)", "Never played"],
-      ["sounds/combo72.ogg", "Cascade 6 (unused)", "Never played"]
+      ["sounds/combo22.ogg", "Cascade 1", "Every scoring pass that is the move's first; plays with the match sound"],
+      ["sounds/combo32.ogg", "Cascade 2", "A move's second scoring pass, the gems that fell making another match; plays with the match sound"],
+      ["sounds/combo42.ogg", "Cascade 3", "A move's third scoring pass; plays with the match sound"],
+      ["sounds/combo52.ogg", "Cascade 4", "A move's fourth scoring pass and every one after it (the sound table repeats this file for 5 and more)"],
+      ["sounds/combo62.ogg", "Cascade 5 (unused)", "Never played: the sound table loads cascade 4's file again for fifth and later passes; this file is never loaded"],
+      ["sounds/combo72.ogg", "Cascade 6 (unused)", "Never played: the sound table has no entry for it; this file is never loaded"]
     ] },
     { name: "Levels", sounds: [
-      ["sounds/go1.ogg", "\"Go!\"", "A new game's board has fallen in"],
-      ["sounds/whirlpool1.ogg", "Whirlpool", "The level is won: the board drains away (loops)"],
-      ["sounds/levelup1.ogg", "Level up", "The draining gems reach the middle"],
-      ["sounds/firecrackle.ogg", "Crackle", "The board has drained: the next level's starts falling"],
-      ["sounds/warning1.ogg", "Warning", "Timed mode's bar is low, faster as it empties"]
+      ["sounds/go1.ogg", "\"Go!\"", "Update 150 of a new board (1.5 s after it starts), as the Go text bounces in"],
+      ["sounds/whirlpool1.ogg", "Whirlpool", "A level is won: loops while the vortex pulls the gems to the middle, its volume rising with the vortex, until the next board or the next vortex"],
+      ["sounds/levelup1.ogg", "Level up", "In the level-won vortex, the farthest gem comes within 80 pixels of the middle (gems move in 1 pixel an update)"],
+      ["sounds/firecrackle.ogg", "Crackle", "The vortex has finished and the gems are gone: the next level's wipe starts; also a lightning gem's blast in a rules mod with special gems"],
+      ["sounds/warning1.ogg", "Warning", "Timed mode: the bar is under 15% full; repeats every 240 updates (2.4 s) at 15%, down to every 80 updates (0.8 s) at 5% and below"]
     ] },
     { name: "Game over", sounds: [
-      ["sounds/explode2.ogg", "Explosion", "The board shakes, then the gems fall away"],
-      ["sounds/gameover1.ogg", "\"Game over\"", "The gems have fallen away"]
+      ["sounds/explode2.ogg", "Explosion", "Game over: 200 updates (2 s) after the game ends the shake stops and the gems blow apart; 50 updates after New Game mid-game; a flame gem's blast in a rules mod"],
+      ["sounds/gameover1.ogg", "\"Game over\"", "The last gem has fallen off the board after the game ended; not when a New Game ended it"]
     ] },
     { name: "Menus", sounds: [
-      ["sounds/menuclick.ogg", "Click", "A button is pressed"],
-      ["sounds/click2.ogg", "Click 2 (unused)", "Loaded, never played"],
-      ["sounds/sidebarclick2.ogg", "Side bar click (unused)", "Never played"],
-      ["sounds/welcome1.ogg", "Welcome (unused)", "Never played"],
-      ["sounds/goodbye1.ogg", "Goodbye (unused)", "Never played"]
+      ["sounds/menuclick.ogg", "Click", "Any button pressed in the menus and dialogs, and every button of the options dialog (its Done button clicks twice)"],
+      ["sounds/click2.ogg", "Click 2 (unused)", "Never played: it is in the sound table, but no code plays it"],
+      ["sounds/sidebarclick2.ogg", "Side bar click (unused)", "Never played: it is not in the sound table, so it is never loaded"],
+      ["sounds/welcome1.ogg", "Welcome (unused)", "Never played: it is not in the sound table, so it is never loaded"],
+      ["sounds/goodbye1.ogg", "Goodbye (unused)", "Never played: it is not in the sound table, so it is never loaded"]
     ] }
   ] },
   bejeweled2: {
@@ -1800,13 +1800,13 @@ var ByopopSoundboards = {
     // presets from the Tip Top session's sound logs (-fast, 10 ms updates; tiptop-soundlogs/INDEX.md), the bot's own input
     // (MouseOver, MouseClick, LaunchBlockMoves, BlockLaunch) left out
     presets: [
-      { name: "Level Won", when: "A level's quota is met: the win, the empty rows counted one by one, the blocks drop", steps: [["TipTop.dat|tiptop:sounds/LevelWin", 0], ["TipTop.dat|tiptop:sounds/EmptyRowCount", 270, {"end": 670}], ["TipTop.dat|tiptop:sounds/EmptyRowCount", 670, {"end": 1070}], ["TipTop.dat|tiptop:sounds/EmptyRowCount", 1070, {"end": 1470}], ["TipTop.dat|tiptop:sounds/EmptyRowCount", 1470, {"end": 1870}], ["TipTop.dat|tiptop:sounds/EmptyRowCount", 1870, {"end": 2320}], ["TipTop.dat|tiptop:sounds/EmptyRowCount", 2320], ["TipTop.dat|tiptop:sounds/BlocksFall", 2780]]},
-      { name: "Rocket Cascade", when: "A rocket lands and its blast starts a match of 5, then cascades 2 to 5", steps: [["TipTop.dat|tiptop:sounds/RocketLaunch", 0, {"end": 500}], ["TipTop.dat|tiptop:sounds/RocketCollision", 500], ["TipTop.dat|tiptop:sounds/ColorMatchGroup5", 690, {"end": 690}], ["TipTop.dat|tiptop:sounds/ColorMatchCascade1", 690, {"end": 1220}], ["TipTop.dat|tiptop:sounds/ColorMatchCascade2", 1220, {"end": 1220}], ["TipTop.dat|tiptop:sounds/ColorMatchCascade3", 1220, {"end": 1660}], ["TipTop.dat|tiptop:sounds/FloaterLaunched", 1500], ["TipTop.dat|tiptop:sounds/ColorMatchCascade4", 1660, {"end": 1660}], ["TipTop.dat|tiptop:sounds/ColorMatchCascade4", 1660, {"end": 2070}]]},
-      { name: "Hammer", when: "A hammer is launched, lands and smashes, and a floater rises", steps: [["TipTop.dat|tiptop:sounds/HammerLaunch", 0, {"end": 250}], ["TipTop.dat|tiptop:sounds/HammerCollision", 250], ["TipTop.dat|tiptop:sounds/FloaterLaunched", 380]]},
-      { name: "Rainbow", when: "A rainbow piece is launched and lands, matching its colour", steps: [["TipTop.dat|tiptop:sounds/RainbowLaunch", 0, {"end": 250}], ["TipTop.dat|tiptop:sounds/RainbowCollision", 250], ["TipTop.dat|tiptop:sounds/ColorMatch", 260]]},
-      { name: "Column Nuke", when: "A column nuke is launched and clears its column", steps: [["TipTop.dat|tiptop:sounds/ColumnNukeLaunch", 0, {"end": 190}], ["TipTop.dat|tiptop:sounds/ColumnNukeCollision", 190]]},
-      { name: "Color Bomb", when: "A color bomb is launched and goes off, the stack shaking", steps: [["TipTop.dat|tiptop:sounds/shake1", 0], ["TipTop.dat|tiptop:sounds/ColorbombLaunch", 70, {"end": 560}], ["TipTop.dat|tiptop:sounds/shake1", 450, {"end": 560}], ["TipTop.dat|tiptop:sounds/FloaterLaunched", 550], ["TipTop.dat|tiptop:sounds/ColorBombCollision", 560]]},
-      { name: "Game Lost", when: "The stack reaches the top: the shake, then the loss", steps: [["TipTop.dat|tiptop:sounds/shake0", 0, {"end": 250}], ["TipTop.dat|tiptop:sounds/FloaterLaunched", 220, {"end": 230}], ["TipTop.dat|tiptop:sounds/GameLost", 260]]}
+      { name: "Level Won", when: "A level's quota is met: the win, the empty rows counted one by one, the blocks drop", steps: [["TipTop.dat|tiptop:sounds/LevelWin.ogg", 0], ["TipTop.dat|tiptop:sounds/EmptyRowCount.ogg", 270, {"end": 670}], ["TipTop.dat|tiptop:sounds/EmptyRowCount.ogg", 670, {"end": 1070}], ["TipTop.dat|tiptop:sounds/EmptyRowCount.ogg", 1070, {"end": 1470}], ["TipTop.dat|tiptop:sounds/EmptyRowCount.ogg", 1470, {"end": 1870}], ["TipTop.dat|tiptop:sounds/EmptyRowCount.ogg", 1870, {"end": 2320}], ["TipTop.dat|tiptop:sounds/EmptyRowCount.ogg", 2320], ["TipTop.dat|tiptop:sounds/BlocksFall.ogg", 2780]]},
+      { name: "Rocket Cascade", when: "A rocket lands and its blast starts a match of 5, then cascades 2 to 5", steps: [["TipTop.dat|tiptop:sounds/RocketLaunch.ogg", 0, {"end": 500}], ["TipTop.dat|tiptop:sounds/RocketCollision.ogg", 500], ["TipTop.dat|tiptop:sounds/ColorMatchGroup5.ogg", 690, {"end": 690}], ["TipTop.dat|tiptop:sounds/ColorMatchCascade1.ogg", 690, {"end": 1220}], ["TipTop.dat|tiptop:sounds/ColorMatchCascade2.ogg", 1220, {"end": 1220}], ["TipTop.dat|tiptop:sounds/ColorMatchCascade3.ogg", 1220, {"end": 1660}], ["TipTop.dat|tiptop:sounds/FloaterLaunched.ogg", 1500], ["TipTop.dat|tiptop:sounds/ColorMatchCascade4.ogg", 1660, {"end": 1660}], ["TipTop.dat|tiptop:sounds/ColorMatchCascade4.ogg", 1660, {"end": 2070}]]},
+      { name: "Hammer", when: "A hammer is launched, lands and smashes, and a floater rises", steps: [["TipTop.dat|tiptop:sounds/HammerLaunch.ogg", 0, {"end": 250}], ["TipTop.dat|tiptop:sounds/HammerCollision.ogg", 250], ["TipTop.dat|tiptop:sounds/FloaterLaunched.ogg", 380]]},
+      { name: "Rainbow", when: "A rainbow piece is launched and lands, matching its colour", steps: [["TipTop.dat|tiptop:sounds/RainbowLaunch.ogg", 0, {"end": 250}], ["TipTop.dat|tiptop:sounds/RainbowCollision.ogg", 250], ["TipTop.dat|tiptop:sounds/ColorMatch.ogg", 260]]},
+      { name: "Column Nuke", when: "A column nuke is launched and clears its column", steps: [["TipTop.dat|tiptop:sounds/ColumnNukeLaunch.ogg", 0, {"end": 190}], ["TipTop.dat|tiptop:sounds/ColumnNukeCollision.ogg", 190]]},
+      { name: "Color Bomb", when: "A color bomb is launched and goes off, the stack shaking", steps: [["TipTop.dat|tiptop:sounds/shake1.ogg", 0], ["TipTop.dat|tiptop:sounds/ColorbombLaunch.ogg", 70, {"end": 560}], ["TipTop.dat|tiptop:sounds/shake1.ogg", 450, {"end": 560}], ["TipTop.dat|tiptop:sounds/FloaterLaunched.ogg", 550], ["TipTop.dat|tiptop:sounds/ColorBombCollision.ogg", 560]]},
+      { name: "Game Lost", when: "The stack reaches the top: the shake, then the loss", steps: [["TipTop.dat|tiptop:sounds/shake0.ogg", 0, {"end": 250}], ["TipTop.dat|tiptop:sounds/FloaterLaunched.ogg", 220, {"end": 230}], ["TipTop.dat|tiptop:sounds/GameLost.ogg", 260]]}
     ],
     groups: [
     { name: "Menus", sounds: [
