@@ -32,7 +32,7 @@
 #   unit-web     rulestest, modsettingstest and jpegtest (the JPEG decoder's error paths, through Emscripten's longjmp) under Node (needs build-web); paktest (the page's pak reader), with
 #                Bookworm Adventures' main.pak against assets/bookwormadv when both are there; profilestest (the page's
 #                settings and players code, web/settings.js and web/profiles.js, on a fake localStorage), savestest (the
-#                save backup's zip, paths and merge, web/saves.js), trophiestest (the trophy cabinet's reader, web/trophies.js), saveimporttest (the import of saves from an installed game:
+#                save backup's zip, paths and merge, web/saves.js), trophiestest (the trophy cabinet's reader, web/trophies.js), gamepicstest (the themes' picture decoders, web/gamepics.js), saveimporttest (the import of saves from an installed game:
 #                platform/saveimport.json, the .reg reader and the conversion, web/saveimport.js), chattest (the chat's username,
 #                text and rate rules, its stored history and local source, and that a message goes on the page as text only,
 #                web/chat.js), gameimporttest (the import rules for a game's files and the sorting of dropped folders into games,
@@ -749,6 +749,9 @@ suite_unit-web() {
 	# the trophy cabinet's reader of the games' high-score files (web/trophies.js)
 	"$NODE" tools/trophiestest.js > "$1.tr" 2>&1 || st=1
 	tr="$(lastof "$1.tr" 'trophiestest:')"
+	# the desktop themes' picture decoders (web/gamepics.js)
+	"$NODE" tools/gamepicstest.js "$web/jp2.js" > "$1.gp" 2>&1 || st=1
+	gp="$(lastof "$1.gp" 'gamepicstest:')"
 	# the import of saves from an installed game (web/saveimport.js, and the table platform/saveimport.json it shares with the native games)
 	"$NODE" tools/saveimporttest.js > "$1.si" 2>&1 || st=1
 	g="$(lastof "$1.si" 'saveimporttest:')"
@@ -801,7 +804,7 @@ suite_unit-web() {
 	o="$(lastof "$1.jpg" 'jpeg: [0-9]+ checks, [0-9]+ failed')"
 	cat "$1.mst" "$1.pak" "$1.pt" "$1.sv" "$1.si" "$1.ch" "$1.gi" "$1.a11y" "$1.str" "$1.pc" "$1.pcp" "$1.tt" "$1.cur" "$1.lk" "$1.mu" "$1.su" "$1.ls" "$1.sc" "$1.jpg" >> "$1"
 	rm -f "$1.mst" "$1.pak" "$1.pt" "$1.sv" "$1.si" "$1.ch" "$1.gi" "$1.a11y" "$1.str" "$1.pc" "$1.pcp" "$1.tt" "$1.cur" "$1.lk" "$1.mu" "$1.su" "$1.ls" "$1.sc" "$1.jpg"
-	SUMMARY="$a; $b; $c; $d; $e; $tr; $g; $h; $i; $f; $j; $k; $l; $m; $n; $q; $r; $u; $v; $w; $o"
+	SUMMARY="$a; $b; $c; $d; $e; $tr; $gp; $g; $h; $i; $f; $j; $k; $l; $m; $n; $q; $r; $u; $v; $w; $o"
 	return $st
 }
 

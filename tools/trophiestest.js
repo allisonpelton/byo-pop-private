@@ -100,5 +100,39 @@ const b2 = Buffer.concat([magic, ...Array.from({ length: 90 }, (_, i) => rec("B"
 same("bejeweled2: nine tables of ten after the magic", R.parse(R.RECORDS.bejeweled2, new Uint8Array(b2)).map((x) => x.rows.length), [10, 10, 10, 10, 10, 10, 10, 10, 10]);
 same("bejeweled2: another file is none", R.parse(R.RECORDS.bejeweled2, new Uint8Array(b2.subarray(4))), []);
 same("a short file gives what it holds", R.parse(R.RECORDS.mummymaze, new Uint8Array(Buffer.concat(five(500).slice(0, 2))))[0].rows.length, 2);
+// Cosmic Bugs' and Water Bugs' cb.dat: exactly 49052 bytes, eight 36-byte high scores first
+const cb = Buffer.alloc(0xbf9c);
+for (let i = 0; i < 8; i++) { cb.write("Bug" + i, i * 36, "latin1"); cb.writeInt32LE(8000 - i * 1000, i * 36 + 32); }
+same("cosmicbugs: the eight high scores", R.parse(R.RECORDS.cosmicbugs, new Uint8Array(cb))[0].rows.map((r) => r.name + r.score).slice(0, 2), ["Bug08000", "Bug17000"]);
+same("waterbugs: a file of another size is none", R.parse(R.RECORDS.waterbugs, new Uint8Array(cb.subarray(1))), []);
+// Typer Shark's users/user.idx: framework strings, the numbers as text
+const fs16 = (t) => { const n = Buffer.from(t, "latin1"), b = Buffer.alloc(2 + n.length); b.writeUInt16LE(n.length, 0); n.copy(b, 2); return b; };
+const tsEntry = (score, name) => [fs16(String(score)), fs16("1"), fs16(name), fs16("3")];
+const ts = (v) => Buffer.concat([fs16(v), fs16("100"), ...Array.from({ length: 20 }, (_, i) => tsEntry(20000 - i * 100, "T" + i)).flat()]);
+const tst = R.parse(R.RECORDS.typershark, new Uint8Array(ts("1.0")));
+same("typershark: the score and abyss tables", tst.map((t) => [t.name, t.rows.length, t.rows[0].name, t.rows[0].score]), [["High Scores", 10, "T0", 20000], ["Abyss", 10, "T10", 19000]]);
+same("typershark: a file before 0.48 is the defaults, so none", R.parse(R.RECORDS.typershark, new Uint8Array(ts("0.40"))), []);
+// The registry file
+const hex = (b) => Buffer.from(b).toString("hex");
+const multi = (list) => Buffer.from(list.join("\0") + "\0\0", "latin1");
+const ini = (lines) => new Uint8Array(Buffer.from(lines.join("\r\n") + "\r\n", "latin1"));
+same("registry: sz escapes, dword, hex", (() => { const m = R.parseIni(ini(["; Settings", "", "[SOFTWARE\\A]", "S=sz:a\\\\b\\nc", "D=dword:-5", "H=hex:00ff"])); return [m["software\\a\\s"], m["software\\a\\d"], Array.from(m["software\\a\\h"])]; })(), ["a\\b\nc", -5, [0, 255]]);
+const bw = R.parse(R.RECORDS.bookworm, ini(["[SOFTWARE\\PopCap\\BookWorm\\Scores]", "Action=hex:" + hex(multi(["Lex", "500", "Ann", "900"])),
+  "Best=hex:" + hex(multi(["Ann", "QUIZ", "220"])), "Longest=hex:" + hex(multi(["Bo", "BOOKWORMS", "Ann", "ZEBRAS"]))]));
+same("bookworm: tables by score, words in their column, Longest by the word's length, no empty table",
+  bw.map((t) => [t.name, t.rows.map((r) => [r.place, r.name, r.word, r.score])]),
+  [["Action", [["1", "Ann", undefined, 900], ["2", "Lex", undefined, 500]]], ["Best Word", [["1", "Ann", "QUIZ", 220]]], ["Longest Word", [["1", "Bo", "BOOKWORMS", 9], ["2", "Ann", "ZEBRAS", 6]]]]);
+const np = (name, time, tiles) => { const b = Buffer.alloc(0x30); b.writeInt32LE(0x300, 0); b.write(name, 4, "latin1"); b.writeInt32LE(time, 0x24); b.writeInt32LE(time, 0x28); b.writeInt32LE(tiles, 0x2c); return hex(b); };
+const npt = R.parse(R.RECORDS.ningpo, ini(["[SOFTWARE\\Pyrogon\\NingPo]", "HS:0x0=hex:" + np("nobody", 5999, 144), "HS:2x0=hex:" + np("Ann", 125, 0), "HS:2x1=hex:" + np("nobody", 5999, 144)]));
+same("ningpo: only played places, by layout, the time as m:ss", npt.map((t) => [t.name, t.rows.map((r) => [r.place, r.name, r.text])]), [["trophies.layout", [["1", "Ann", "2:05"]]]]);
+const wh = R.parse(R.RECORDS.wordharmony, ini(["[SOFTWARE\\GameHouse\\WordHarmony\\scores\\action]", "scoreName0=sz:Ann", "scoreValue0=dword:700", "scoreName1=sz:Bo", "scoreValue1=dword:0"]));
+same("wordharmony: a table's rows, a score of 0 skipped", wh.map((t) => [t.name, t.rows.map((r) => [r.place, r.name, r.score])]), [["Action", [["1", "Ann", 700]]]]);
+// Bonnie's Data/HighScores.dat: ten entries (used, name and word as an i32 length and bytes, score), Classic then Action
+const s32 = (t) => { const n = Buffer.from(t, "latin1"), b = Buffer.alloc(4 + n.length); b.writeInt32LE(n.length, 0); n.copy(b, 4); return b; };
+const i32 = (v) => { const b = Buffer.alloc(4); b.writeInt32LE(v, 0); return b; };
+const bon = Buffer.concat(Array.from({ length: 10 }, (_, i) => Buffer.concat([i32(i === 4 ? 0 : 1), s32("N" + i), s32("WORD" + i), i32(1000 - i)])));
+same("bonnies: Classic then Action, the longest word, an unused entry skipped",
+  R.parse(R.RECORDS.bonnies, new Uint8Array(bon)).map((t) => [t.name, t.rows.length, t.rows[0].name, t.rows[0].word, t.rows[0].score]),
+  [["Classic", 4, "N0", "WORD0", 1000], ["Action", 5, "N5", "WORD5", 995]]);
 console.log("trophiestest: " + checks + " checks, " + failed + " failed");
 process.exit(failed ? 1 : 0);
