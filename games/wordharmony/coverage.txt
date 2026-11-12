@@ -467,3 +467,20 @@ none 0045ebf0 the PNG reader's libpng wrappers: the platform's decoder replaces 
 none 0045ec10 the PNG reader's libpng wrappers: the platform's decoder replaces them (src/Render.cpp, decodeImage)
 none 0045ec40 the PNG reader's libpng wrappers: the platform's decoder replaces them (src/Render.cpp, decodeImage)
 none 0045eca0 the PNG reader's libpng wrappers: the platform's decoder replaces them (src/Render.cpp, decodeImage)
+# Taken out by the unneeded-code step (2026-11-11, docs/README.md, "The unneeded code"): code the original reached that the
+# port no longer has, since nothing in this build uses what it did.
+none 00401000 the empty function (a bare return) that the original's virtual slots with nothing to do share: the port leaves those slots out or empty
+none 004109e0 Obstacle::getType, which the level editor's save wrote: the editor is left out
+none 00427000 the selector's current index, which the port reads as the field
+none 0042b6a0 the particle system's own automatic stop (its duration, its countdown in the update, 0x42b8c0, and the attribute read by 0x433e10): no data of this build sets it, since autoStop is on the streams
+none 0042b8c0 the particle system's own automatic stop (its duration, its countdown in the update, 0x42b8c0, and the attribute read by 0x433e10): no data of this build sets it, since autoStop is on the streams
+none 00433e10 the particle system's own automatic stop (its duration, its countdown in the update, 0x42b8c0, and the attribute read by 0x433e10): no data of this build sets it, since autoStop is on the streams
+none 0042c2c0 the text button and its layout element (0x42e2b0, with 0x435040, 0x435050, 0x435080 and 0x435240 for its text): only the level editor's HUD (EditorHUD.xml, loaded and never shown) used them
+none 0042e2b0 the text button and its layout element (0x42e2b0, with 0x435040, 0x435050, 0x435080 and 0x435240 for its text): only the level editor's HUD (EditorHUD.xml, loaded and never shown) used them
+none 00435040 the text button and its layout element (0x42e2b0, with 0x435040, 0x435050, 0x435080 and 0x435240 for its text): only the level editor's HUD (EditorHUD.xml, loaded and never shown) used them
+none 00435050 the text button and its layout element (0x42e2b0, with 0x435040, 0x435050, 0x435080 and 0x435240 for its text): only the level editor's HUD (EditorHUD.xml, loaded and never shown) used them
+none 00435080 the text button and its layout element (0x42e2b0, with 0x435040, 0x435050, 0x435080 and 0x435240 for its text): only the level editor's HUD (EditorHUD.xml, loaded and never shown) used them
+none 00435240 the text button and its layout element (0x42e2b0, with 0x435040, 0x435050, 0x435080 and 0x435240 for its text): only the level editor's HUD (EditorHUD.xml, loaded and never shown) used them
+none 00436ff0 the application's map from node names to nodes (0x437f60 adds, 0x436ff0 removes): only a particle stream's anchor read it, and no data has one
+none 00437f60 the application's map from node names to nodes (0x437f60 adds, 0x436ff0 removes): only a particle stream's anchor read it, and no data has one
+none 0043d3c0 the float rectangle's intersection, which the original's drawing clips with: the port's drawing clips on its own (src/Render.cpp)

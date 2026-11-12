@@ -54,45 +54,6 @@ void SoundGroup::play(float theVolume, float thePitch)
 	aSound->play();
 }
 
-// 0x435940
-int SoundGroup::getPlayingCount()
-{
-	int aCount = 0;
-	std::vector<Sound*>::iterator anIt = mSounds.begin();
-	if (anIt != mSounds.end())
-	{
-		do
-		{
-			if ((*anIt)->isPlaying())
-				aCount++;
-			++anIt;
-		} while (anIt != mSounds.end());
-	}
-	return aCount;
-}
-
-// 0x435af0
-Sound* SoundGroup::getFreeSound(bool theMake)
-{
-	std::vector<Sound*>::iterator anIt = mSounds.begin();
-	if (anIt != mSounds.end())
-	{
-		do
-		{
-			if (!(*anIt)->isPlaying())
-				return *anIt;
-			++anIt;
-		} while (anIt != mSounds.end());
-	}
-	if (theMake)
-	{
-		Sound* aSound = mSystem->createSound(mName.c_str(), 1, 0);
-		mSounds.push_back(aSound);
-		return aSound;
-	}
-	return nullptr;
-}
-
 // 0x426ac0
 SoundBank::SoundBank()
 {

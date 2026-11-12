@@ -58,12 +58,6 @@ void Ball::setOn(bool theOn)
 	static_cast<Selector*>(mSelector)->select(theOn ? 1 : 0, 0.0f, true);
 }
 
-// 0x4111b0
-void Ball::setLetter(char theLetter)
-{
-	mLetter = (char)toupper(theLetter);
-}
-
 // 0x40ec20
 BallArray::BallArray()
 {
@@ -203,34 +197,6 @@ float BallArray::getGap(int theFirst, int theSecond)
 	if (dy < dx)
 		dy = dx;
 	return dy;
-}
-
-Follow::Follow(Node* theNode, float theC, float theRate, float theBlend, float theGrid)
-{
-	mNode = theNode;
-	mC = theC;
-	mRate = theRate;
-	mBlend = theBlend;
-	mLength = 0;
-	mGrid = theGrid;
-	mSnap = false;
-}
-
-// 0x40e170: the grid snap rounds towards zero (the x87 conversion) and adds 22, half a cell
-void Follow::apply()
-{
-	if (!mActive)
-		return;
-	Point p = *mNode->getPosition();
-	p.x = (float)(((double)mTarget.x - p.x) * mRate + p.x);
-	p.y = (float)(((double)mTarget.y - p.y) * mRate + p.y);
-	if (mSnap)
-	{
-		double k = 1.0 / mGrid;
-		p.x = (float)((double)(int)(k * mTarget.x) * mGrid + 22.0);
-		p.y = (float)((double)(int)(k * mTarget.y) * mGrid + 22.0);
-	}
-	mNode->setPosition(p);
 }
 
 Rope::Rope(Ball* theBall, const Point& theOffset, float theMaxStep, float theRate, float theBlend)

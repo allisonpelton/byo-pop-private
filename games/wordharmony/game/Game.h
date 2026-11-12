@@ -90,8 +90,6 @@ public:
 	void gameOver(bool theQuit, bool theSave);
 	// 0x404f60: a random hint word of theMin to theMax letters
 	std::string makeLetters(unsigned int theMin, unsigned int theMax);
-	// 0x4050f0: theCount random letters
-	std::string randomLetters(int theCount);
 	// 0x4055f0: the next state of the state machine (+0x1d8)
 	void setState(int theState);
 	// 0x406430: the retry button: the level again, its points and hints given back (less a hint)
@@ -126,8 +124,6 @@ public:
 	bool mContinue;                         // +0x6c: the load screen's click (or no wait)
 	engine::TextEffects* mTextEffects;      // +0x70: config\splats.xml
 	Settings mSettings;                     // +0x74
-	engine::ScreenLayout* mEditorHud;       // +0x104: config\EditorHUD.xml (the editor's, never shown)
-	bool mGridSnap;                         // +0x108: the editor's grid
 	// +0x10c: the beta's play time upload (InternetOpen; init gives it its URL, nothing sends): left out
 	float mLevelTime;                       // +0x18c: the level's seconds
 	engine::Node* mNextRoot;                // +0x190: to be the root window's only child at the next update
@@ -250,7 +246,7 @@ private:
 	void newGame(int theMode, int theLevel);
 	// 0x406f30: a saved game continued
 	void continueGame(SavedGame* theGame);
-	// 0x408190: the levels, the words, the sounds and the editor's HUD
+	// 0x408190: the levels, the words and the sounds
 	void loadData();
 	// 0x408fd0: the splash screen's update
 	void updateSplash(engine::UpdateInfo& theInfo);

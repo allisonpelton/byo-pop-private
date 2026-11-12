@@ -18,14 +18,11 @@ class Sound
 public:
 	virtual ~Sound() {}
 	virtual void play() = 0;                       // 0x00: from where it is; nothing when it plays
-	virtual void halt() = 0;                       // 0x04: 0x443dd0, stops where it is
 	virtual void stop() = 0;                       // 0x08: 0x443df0, a fade-out, or halt and rewind
 	virtual void rewind() = 0;                     // 0x0c: 0x443e40
 	virtual void close() = 0;                      // 0x10: 0x4447b0
 	virtual void setPitch(float thePitch) = 0;     // 0x14: 0x443ea0 (1 the sound's own rate)
 	virtual float getPitch() = 0;                  // 0x18: 0x4444b0
-	virtual void setPan(float thePan) = 0;         // 0x1c: 0x443f10 (-1 to 1)
-	virtual float getPan() = 0;                    // 0x20
 	virtual void setVolume(float theVolume) = 0;   // 0x24: 0x443f70 (0 to 1)
 	virtual float getVolume() = 0;                 // 0x28
 	virtual void setLoop(bool theLoop) = 0;        // 0x2c: 0x443fb0
@@ -46,10 +43,6 @@ public:
 	virtual bool load(const char* theName, const char* theFile) = 0;
 	// 0x04: 0x443b60, the same for a sound played from its file as it goes (the music)
 	virtual bool loadStream(const char* theName, const char* theFile) = 0;
-	// 0x0c: 0x443120, unloads the sounds no voice uses
-	virtual void unloadUnused() = 0;
-	// 0x10: 0x443190
-	virtual void unload(const char* theName) = 0;
 	// 0x14: 0x4435e0, a new voice of a loaded sound (the system keeps it); null when the name is not loaded
 	virtual Sound* createSound(const char* theName, int theArg1, int theArg2) = 0;
 	// 0x18: 0x4425a0 (0 to 1)

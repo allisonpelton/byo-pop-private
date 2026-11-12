@@ -26,10 +26,6 @@ public:
 
 	// 0x04: 0x4358e0, on the first voice not playing; nothing when all play
 	virtual void play(float theVolume, float thePitch);
-	// 0x435940
-	int getPlayingCount();
-	// 0x435af0: a voice not playing, or (theMake) a new one
-	Sound* getFreeSound(bool theMake);
 
 	std::string mName;            // +0x04: the original keeps the caller's pointer (a temporary's characters)
 	std::vector<Sound*> mSounds;  // +0x0c

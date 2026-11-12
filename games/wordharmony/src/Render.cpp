@@ -422,46 +422,6 @@ void ScreenGraphics::drawImage(Image* theImage, const IntRect& theSrc, float x, 
 	});
 }
 
-// Slot 5: the rectangle (with the translation) in the state's colour and opacity
-void ScreenGraphics::fillRect(const Rect& theRect)
-{
-	finish();
-	const RenderState& aState = state();
-	int aX0 = std::max(0, (int)(theRect.left + aState.mTranslation.x));
-	int aY0 = std::max(0, (int)(theRect.top + aState.mTranslation.y));
-	int aX1 = std::min(mWidth, (int)(theRect.right + aState.mTranslation.x));
-	int aY1 = std::min(mHeight, (int)(theRect.bottom + aState.mTranslation.y));
-	uint32_t aColor = (uint32_t)(clampByte((int)(aState.mColor.r * 255)) << 16 |
-		clampByte((int)(aState.mColor.g * 255)) << 8 | clampByte((int)(aState.mColor.b * 255)));
-	int anAlpha = clampByte((int)(aState.mOpacity * 255));
-	for (int y = aY0; y < aY1; y++)
-		for (int x = aX0; x < aX1; x++)
-			mBits[y * mWidth + x] = blend(mBits[y * mWidth + x], aColor, anAlpha);
-}
-
-// Slot 6: the same added to the screen
-void ScreenGraphics::fillRectAdditive(const Rect& theRect)
-{
-	finish();
-	const RenderState& aState = state();
-	int aX0 = std::max(0, (int)(theRect.left + aState.mTranslation.x));
-	int aY0 = std::max(0, (int)(theRect.top + aState.mTranslation.y));
-	int aX1 = std::min(mWidth, (int)(theRect.right + aState.mTranslation.x));
-	int aY1 = std::min(mHeight, (int)(theRect.bottom + aState.mTranslation.y));
-	int r = (int)(aState.mColor.r * aState.mOpacity * 255);
-	int g = (int)(aState.mColor.g * aState.mOpacity * 255);
-	int b = (int)(aState.mColor.b * aState.mOpacity * 255);
-	for (int y = aY0; y < aY1; y++)
-	{
-		for (int x = aX0; x < aX1; x++)
-		{
-			uint32_t& p = mBits[y * mWidth + x];
-			p = 0xff000000 | clampByte((int)((p >> 16) & 0xff) + r) << 16 | clampByte((int)((p >> 8) & 0xff) + g) << 8 |
-				clampByte((int)(p & 0xff) + b);
-		}
-	}
-}
-
 // Slot 7: a one-pixel line (with the translation) in the state's colour and opacity
 void ScreenGraphics::drawLine(const Point& theFrom, const Point& theTo)
 {

@@ -26,14 +26,12 @@ public:
 	~HostSound() override;
 
 	void play() override;
-	void halt() override;
+	void halt();  // 0x443dd0: stops where it is (the original's slot 4; only the sound's own functions call it)
 	void stop() override;
 	void rewind() override;
 	void close() override;
 	void setPitch(float thePitch) override;
 	float getPitch() override { return mPitch; }
-	void setPan(float thePan) override;
-	float getPan() override { return mPan; }
 	void setVolume(float theVolume) override;
 	float getVolume() override { return mVolume; }
 	// 0x443fb0
@@ -48,9 +46,8 @@ public:
 	int getCategory() override { return mCategory; }
 	void update(int theMs) override;
 
-	// The gains the mixer plays the voice at (0x444730: category x master x the faded volume, and the pan)
+	// The gains the mixer plays the voice at (0x444730: category x master x the faded volume; the pan is always the middle)
 	void applyGain();
-	const std::shared_ptr<Platform::SoundData>& getData() const { return mData; }
 
 private:
 	HostSoundSystem* mSystem;
@@ -59,7 +56,6 @@ private:
 	bool mPlaying;
 	bool mLoop;
 	float mVolume;
-	float mPan;
 	float mPitch;
 	float mFadeIn;
 	float mFadeOut;
@@ -89,8 +85,6 @@ public:
 	bool load(const char* theName, const char* theFile) override;
 	// 0x443b60
 	bool loadStream(const char* theName, const char* theFile) override { return load(theName, theFile); }
-	void unloadUnused() override;
-	void unload(const char* theName) override;
 	engine::Sound* createSound(const char* theName, int theArg1, int theArg2) override;
 	void setVolume(float theVolume) override;
 	// 0x443a20
