@@ -1497,6 +1497,6 @@ splits.down = Move Down
 splits.yes = Yes
 splits.no = No
 splits.cancel = Cancel
-splits.keepgolds = You have beaten some of your best segments. Do you want to keep them?
+splits.keepgolds = You have beaten some of your best times. Do you want to update them?
 splits.badtime = A time could not be read.
 splits.badfile = This file is not a splits file.

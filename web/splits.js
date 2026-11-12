@@ -369,14 +369,14 @@ var ByopopSplits = (function () {
       draw();
     }
     function finish() { att.phase = "ended"; }
-    // a finished run faster than the personal best, in the method being timed, becomes it (a first run always does); kept at
-    // Reset, as LiveSplit keeps it, so an undone last split leaves the personal best as it was
-    function keepPB() {
-      if (att.phase !== "ended") return false;
+    // a finished run faster than the personal best, in the method being timed, would become it (a first run always does): its
+    // split times, or null. Nothing changes until Reset's question is answered Yes, as in LiveSplit, so an undone last split
+    // or a No leaves the personal best as it was
+    function newPB() {
+      if (att.phase !== "ended") return null;
       var k = m(), last = run.segments.length - 1, t = att.times[last], pb = run.segments[last].pb[k];
-      if (!t || t[k] === null || (pb !== null && t[k] >= pb)) return false;
-      run.segments.forEach(function (sg, i) { var x = att.times[i]; sg.pb = { rt: x ? x.rt : null, gt: x ? x.gt : null }; });
-      return true;
+      if (!t || t[k] === null || (pb !== null && t[k] >= pb)) return null;
+      return run.segments.map(function (sg, i) { var x = att.times[i]; return { rt: x ? x.rt : null, gt: x ? x.gt : null }; });
     }
     function undo() {
       // undoing the last split takes the run back up: the timer runs on from where it is now
@@ -399,19 +399,22 @@ var ByopopSplits = (function () {
       else if (att.phase === "paused") { att.pausedFor += now() - att.pausedAt; att.phase = "running"; startTicking(); }
       draw();
     }
-    // Reset: new golds in either method are kept if the player says so
+    // Reset: a new personal best and new golds in either method are kept only if the player says so (LiveSplit's "update
+    // times?"); No, or closing the question or the page, leaves the stored splits exactly as they were before the attempt (the
+    // user, 2026-11-11)
     var asking = false;
     function reset() {
       if (att.phase === "idle" || asking) return;
       var golds = [];
       ["rt", "gt"].forEach(function (k) { for (var i = 0; i < att.times.length; i++) if (isGold(i, k)) golds.push([i, k, segTime(att.times, i, k)]); });
+      var pb = newPB();
       function clear() { att = { phase: "idle", index: 0, times: [], t0: 0, pausedAt: 0, pausedFor: 0, gameWin: null, gameStep: 10, c0: 0, gtLast: null }; draw(); }
-      if (keepPB()) saveRun(run);
-      if (!golds.length) { clear(); return; }
+      if (!golds.length && !pb) { clear(); return; }
       if (att.phase === "running") pause();
       asking = true;
       ask(T("splits.title"), T("splits.keepgolds"), function () {
         asking = false;
+        if (pb) run.segments.forEach(function (sg, i) { sg.pb = pb[i]; });
         golds.forEach(function (g) { run.segments[g[0]].best[g[1]] = g[2]; });
         saveRun(run);
         clear();
