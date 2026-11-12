@@ -393,8 +393,12 @@ html:not(.d95-desk) #chat { display: none !important; }
 #music .mu-where { flex: 0 1 auto; max-width: 40%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; color: var(--muted); }
 #music .mu-where.mu-unused { text-decoration: line-through; }
 .mu-format { flex: none; width: 3em; font-size: 10px; color: var(--muted); text-align: center; }
+#music .mu-composer { flex: 0 1 auto; width: 9em; max-width: 25%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; color: var(--muted); }
+#music .mu-fold { display: flex; align-items: baseline; gap: 4px; width: 100%; min-height: 0; margin: 0; padding: 0 2px; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: default; }
+#music .mu-fold-mark { flex: none; width: 9px; height: 9px; line-height: 7px; border: 1px solid #808080; background: #fff; color: #000; font-size: 9px; text-align: center; align-self: center; }
+#music .mu-game-sum { font-weight: normal; }
 #music .mu-tune[aria-current] .mu-num, #music .mu-tune[aria-current] .mu-time, #music .mu-tune[aria-current] .mu-where,
-#music .mu-tune[aria-current] .mu-format { color: inherit; }
+#music .mu-tune[aria-current] .mu-format, #music .mu-tune[aria-current] .mu-composer { color: inherit; }
 /* The import from an installed game (web/saveimport.js) */
 #saves-body select { font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 5px 8px; max-width: 100%; }
 /* the import's wizard (web/saveimport.js): its picture (drawn only by Desktop 95, web/skins.css), one page at a time, and

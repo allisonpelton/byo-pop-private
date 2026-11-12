@@ -1317,6 +1317,10 @@ setup.summary = Installed {installed} of {total}
 # The music player (web/music.js): the listing page's Music tab
 # the tooltip of the followed game's tag while the game is not heard; {game} is the game's title, and its tune's
 music.follow.muted = {game} (muted)
+music.game_sum = ({tracks}, {time})
+music.game_tracks = {n} track | {n} tracks
+music.game_minutes = {n} minute | {n} minutes
+music.composer_unknown = Unknown
 music.unavailable = The music player is not available.
 music.none = None of the games you added has music the player can play yet.
 music.reading = Reading the games' music…
