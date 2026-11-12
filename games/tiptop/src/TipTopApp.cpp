@@ -48,6 +48,11 @@ TipTopWidget::TipTopWidget()
 {
 	mScreenImage = new MemoryImage(gApp);
 	mScreenImage->Create(640, 480);
+	// opaque, so that the framework need not look through the 307200 pixels for alpha after each change, and with every
+	// alpha byte 0xff (Draw), so that it need not copy and premultiply them pixel by pixel in strips to upload them
+	// (where premultiplying changes nothing): the same pixels reach the screen, in one upload
+	mScreenImage->SetImageMode(false, false);
+	mScreenImage->mUploadAsIs = true;
 	mWantsFocus = true;
 }
 
