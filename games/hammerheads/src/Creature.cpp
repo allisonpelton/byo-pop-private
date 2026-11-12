@@ -10,13 +10,36 @@
 #include "Floater.h"
 #include "GameScreen.h"
 #include "Gameplay.h"
+#include "GnomeBomb.h"
+#include "GnomeBonus.h"
+#include "GnomeBubbleHead.h"
+#include "GnomeChallenge.h"
+#include "GnomeChest.h"
+#include "GnomeClover.h"
+#include "GnomeCoin.h"
+#include "GnomeCupido.h"
+#include "GnomeForkyChap.h"
+#include "GnomeHeart.h"
+#include "GnomeHide.h"
+#include "GnomeKing.h"
+#include "GnomeMultiplier.h"
+#include "GnomeNapoleon.h"
+#include "GnomePowerUp.h"
+#include "GnomeRabbit.h"
+#include "GnomeSave.h"
+#include "GnomeShop.h"
 #include "GnomeSilver.h"
+#include "GnomeStrawberry.h"
+#include "GnomeStrong.h"
+#include "GnomeSwitcher.h"
+#include "GnomeWoman.h"
 #include "Graphics.h"
 #include "Hearts.h"
 #include "ImageBlast.h"
 #include "MemoryImage.h"
 #include "Popper.h"
 #include "Res.h"
+#include "ShopItem.h"
 #include "Stats.h"
 
 using namespace Sexy;
@@ -791,4 +814,51 @@ Image* Sexy::GetGlowImage(Image* theImage)
 
 	aCache[theImage] = aGlow;
 	return aGlow;
+}
+
+// 0x432290: the creature of the class that goes with a kind (Cubby::Spawn calls it); the shop's items are also given how
+// low their cubby is, which sets how far they stand above it. The jester and the aviator are not creatures of a cubby, and
+// their kinds (10 and 11) make a plain one, as kinds with no class of their own do.
+Creature* Sexy::MakeCreature(int theKind, double theCubbyY)
+{
+	switch (theKind)
+	{
+	case KIND_WOMAN: return new GnomeWoman();
+	case KIND_STRONG: return new GnomeStrong();
+	case KIND_BOMB: return new GnomeBomb();
+	case KIND_BUBBLEHEAD: return new GnomeBubbleHead();
+	case KIND_HIDE: return new GnomeHide();
+	case KIND_FORKY_CHAP: return new GnomeForkyChap();
+	case KIND_SILVER: return new GnomeSilver();
+	case KIND_MULTIPLIER: return new GnomeMultiplier();
+	case KIND_CUPIDO: return new GnomeCupido();
+	case KIND_HEART: return new GnomeHeart();
+	case KIND_COIN:
+	case KIND_BIG_COIN: return new GnomeCoin(theKind);
+	case KIND_SHOP: return new GnomeShop();
+	case KIND_CHALLENGE: return new GnomeChallenge();
+	case KIND_CHEST: return new GnomeChest();
+	case KIND_CLOVER: return new GnomeClover();
+	case KIND_BONUS_ICE_CREAM:
+	case KIND_BONUS_DUCK: return new GnomeBonus(theKind);
+	case KIND_STRAWBERRY: return new GnomeStrawberry();
+	case KIND_RABBIT: return new GnomeRabbit();
+	case KIND_KING: return new GnomeKing();
+	case KIND_SAVE: return new GnomeSave();
+	case KIND_NAPOLEON: return new GnomeNapoleon();
+	case KIND_POWER_UP: return new GnomePowerUp();
+	case KIND_SWITCHER: return new GnomeSwitcher();
+	case KIND_SHOP_HEART:
+	case KIND_SHOP_BIG_HEART:
+	case KIND_SHOP_EXTRA_HEART:
+	case KIND_SHOP_HAMMER_2:
+	case KIND_SHOP_HAMMER_3:
+	case KIND_SHOP_HAMMER_4:
+	case KIND_SHOP_ICE_CREAM:
+	case KIND_SHOP_CLOVER:
+	case KIND_SHOP_STRAWBERRY: return new ShopItem(theKind, theCubbyY);
+	case KIND_SHOP_FLAME: return new ShopItemFlame(theKind, theCubbyY);
+	case KIND_SHOP_GIFT: return new ShopItemGift(theKind, theCubbyY);
+	default: return new Creature(theKind);
+	}
 }

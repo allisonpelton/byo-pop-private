@@ -26,6 +26,18 @@ inline int ToInt(double theValue)
 // and drawn with DrawImageF). Nothing is drawn for a cel outside the strip.
 void DrawImageCelF(Graphics* g, Image* theImageStrip, double theX, double theY, int theCelCol, int theCelRow);
 
+// 0x405080: one cel of a strip image, drawn rotated by theRotation (radians) at a whole-number position. Nothing is drawn for a
+// cel outside the strip.
+void DrawCelRotated(Graphics* g, Image* theImageStrip, int theX, int theY, int theCelCol, int theCelRow, double theRotation);
+
+// 0x405100: the same, and a cel that the hammer is over is drawn once more over itself, added, lit by a grey of 50
+void DrawCelRotatedLit(Graphics* g, Image* theImageStrip, int theX, int theY, int theCelCol, int theCelRow, bool theHover,
+	double theRotation);
+
+// 0x4048d0: a picture drawn at a whole-number position, and one that the hammer is over is drawn once more over itself,
+// added, lit by a grey of 50
+void DrawImageLit(Graphics* g, Image* theImage, int theX, int theY, bool theHover);
+
 // 0x4052a0: a bar of an empty picture with a full one drawn over it as far as theFill (0 to 1) reaches
 void DrawFillBar(Graphics* g, Image* theEmptyImage, Image* theFullImage, int theX, int theY, double theFill, int theMargin,
 	int theFadeWidth);

@@ -139,8 +139,9 @@ public:
 // The creatures that exist (0x597f30)
 extern std::vector<Creature*> gCreatures;
 
-// 0x4326xx: a creature of the class that goes with its kind (the factory the cubby calls)
-Creature* MakeCreature(int theKind);
+// 0x432290: a creature of the class that goes with its kind (the factory the cubby calls); theCubbyY is the height of the
+// cubby on the screen, which only the shop's items use
+Creature* MakeCreature(int theKind, double theCubbyY);
 
 // 0x41c4c0: the sheet of white silhouettes that goes with a creature's sheet, made on first use and kept
 Image* GetGlowImage(Image* theImage);

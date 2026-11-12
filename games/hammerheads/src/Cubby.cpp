@@ -277,7 +277,7 @@ bool Cubby::Hit(int theX, int theY, const std::vector<Point>& theMask, int theWi
 // 0x432290
 void Cubby::Spawn(int theKind)
 {
-	mCreature = MakeCreature(theKind);
+	mCreature = MakeCreature(theKind, mY);
 	UpdateHitRect();
 	mCreatureCount++;
 	mCreature->SetCubby(this);
