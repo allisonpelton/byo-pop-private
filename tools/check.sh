@@ -1606,7 +1606,10 @@ wordharmony_game() {  # <name> <think|tsunami> [exe]: a scripted game (-fast, se
 		"3170 click 360 325" "3400 screenshot $d/shots/menu.png" "3420 quit" >> "$d/script.txt"
 	# -splashhold: the original's two seconds of splash (the port shows the menu once it has loaded), so that the script's
 	# updates line up with the original's and the baseline's
-	timeout 300 "${3:-$W/build/native/wordharmony.exe}" -gamedir=assets/wordharmony -userdir="$d/user" -fast -seed=1 \
+	# WH_GAMEDIR: the port's runs take another game folder (the Collection's files, games/wordharmony/tools/collection);
+	# a given exe (the frozen baseline) keeps assets/wordharmony
+	local gd=assets/wordharmony; [ -n "${3:-}" ] || gd="${WH_GAMEDIR:-$gd}"
+	timeout 300 "${3:-$W/build/native/wordharmony.exe}" -gamedir="$gd" -userdir="$d/user" -fast -seed=1 \
 		-splashhold -statelog="$d/state.txt" -script="$d/script.txt" > "$d/stdout.txt" 2> "$d/stderr.txt"
 	rc=$?
 	[ $rc -eq 0 ] || { echo "exit status $rc"; return; }

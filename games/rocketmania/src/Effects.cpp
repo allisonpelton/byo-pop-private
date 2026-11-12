@@ -80,7 +80,7 @@ void ParticlePool::Give(Particle* theParticle)
 // ---------------------------------------------------------------------------------------------------------
 // Effect
 
-// 0x4172f0
+// 0x4172f0 (0x416f50, the normalising of a vector, inline in it)
 Effect::Effect(RocketApp* theApp, EffectManager* theManager, int theKind, bool theFlag) :
 	mApp(theApp), mManager(theManager), mKind(theKind), mNotifyBoard(false), mSounds(false), mColorChoice(0), m40(-1),
 	mFlag(theFlag), mX(0), mY(0), mZ(0), mSpreadX(0), mSpreadY(0), mSpreadZ(0), m78(0), m80(0), m88(0), m90(false),
@@ -173,7 +173,7 @@ Effect::~Effect()
 		mApp->mBoard->F428d10();
 }
 
-// 0x419020: new particles at the front of the list
+// 0x419020 (0x416f50 inline in it): new particles at the front of the list
 void Effect::Spawn(int theCount)
 {
 	int aCount = 0;
@@ -533,7 +533,7 @@ EffectManager::EffectManager(RocketApp* theApp) :
 {
 }
 
-// 0x41a8c0
+// 0x41a8c0 (with the pool's destructor 0x41ad00)
 EffectManager::~EffectManager()
 {
 	mClosing = true;

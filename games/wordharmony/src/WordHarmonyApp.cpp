@@ -1,4 +1,4 @@
-// The port's host for Word Harmony (see WordHarmonyApp.h).
+// port: the host for Word Harmony (see WordHarmonyApp.h).
 
 #include "WordHarmonyApp.h"
 #include "Render.h"
@@ -33,11 +33,8 @@ namespace
 bool gTestSeedGiven = false;
 unsigned int gTestSeed = 0;
 
-const int SCREEN_WIDTH = 800;
-const int SCREEN_HEIGHT = 600;
-
 // 0x48a450, the text WinMain shows for an exception that is not the engine's own (0x45559a)
-const char* const kUnknownException = "Exception Code Honeysuckle";
+const char* const OTHER_EXCEPTION_TEXT = "Exception Code Honeysuckle";
 
 // The framework's side of engine::Host
 class WordHarmonyHost : public engine::Host
@@ -158,8 +155,13 @@ WordHarmonyHost gHost;
 WordHarmonyWidget::WordHarmonyWidget()
 {
 	mScreenImage = new MemoryImage(gApp);
-	mScreenImage->Create(SCREEN_WIDTH, SCREEN_HEIGHT);
-	mGraphics = new wordharmony::ScreenGraphics((uint32_t*)mScreenImage->GetBits(), SCREEN_WIDTH, SCREEN_HEIGHT);
+	mScreenImage->Create(engine::SCREEN_WIDTH, engine::SCREEN_HEIGHT);
+	// port (for speed): opaque, so that the framework need not look through the 480000 pixels for alpha after each
+	// change, and with every alpha byte 0xff (RunFrame fills the screen with it and every blit writes it), so that it
+	// need not premultiply them pixel by pixel to upload them: the pixels uploaded are the same
+	mScreenImage->SetImageMode(false, false);
+	mScreenImage->mUploadAsIs = true;
+	mGraphics = new wordharmony::ScreenGraphics((uint32_t*)mScreenImage->GetBits(), engine::SCREEN_WIDTH, engine::SCREEN_HEIGHT);
 	mLastLoop = gApp->GetClockTime();
 	mAccumulated = 0;
 	mLastSoundTick = gApp->mSteadyClock ? (DWORD)(gApp->mUpdateCount * gApp->mFrameTime) : mLastLoop;
@@ -260,12 +262,12 @@ engine::Point clampToScreen(int x, int y)
 {
 	if (x < 0)
 		x = 0;
-	else if (x > SCREEN_WIDTH - 1)
-		x = SCREEN_WIDTH - 1;
+	else if (x > engine::SCREEN_WIDTH - 1)
+		x = engine::SCREEN_WIDTH - 1;
 	if (y < 0)
 		y = 0;
-	else if (y > SCREEN_HEIGHT - 1)
-		y = SCREEN_HEIGHT - 1;
+	else if (y > engine::SCREEN_HEIGHT - 1)
+		y = engine::SCREEN_HEIGHT - 1;
 	return engine::Point((float)x, (float)y);
 }
 
@@ -314,8 +316,8 @@ WordHarmonyApp::WordHarmonyApp()
 	mTitle = "Word Harmony";
 	// the original's key (0x421750: HKEY_CURRENT_USER\Software\GameHouse\WordHarmony)
 	mRegKey = "GameHouse\\WordHarmony";
-	mWidth = SCREEN_WIDTH;
-	mHeight = SCREEN_HEIGHT;
+	mWidth = engine::SCREEN_WIDTH;
+	mHeight = engine::SCREEN_HEIGHT;
 	mWidget = nullptr;
 	mEngineRunning = false;
 	mQuitRequested = false;
@@ -377,7 +379,7 @@ void WordHarmonyApp::Init()
 	}
 	catch (...)
 	{
-		EngineFailed(kUnknownException);
+		EngineFailed(OTHER_EXCEPTION_TEXT);
 	}
 }
 
@@ -385,8 +387,8 @@ void WordHarmonyApp::RunFrame()
 {
 	try
 	{
-		uint32_t* aBits = (uint32_t*)mWidget->mScreenImage->GetBits();
-		std::fill(aBits, aBits + SCREEN_WIDTH * SCREEN_HEIGHT, 0xff000000);
+		// the screen starts black (port: made by the first draw that does not cover it, or at the end of the frame)
+		mWidget->mGraphics->clear();
 		// what the input since the last frame changed is logged under that frame, as origrun logs the original's
 		if (mStateLog != nullptr)
 			LogState();
@@ -395,6 +397,7 @@ void WordHarmonyApp::RunFrame()
 		mFrames++;
 		wordharmony::HostSound::sLogFrame = mFrames;
 		engine::App::instance()->frame(mWidget->mGraphics);
+		mWidget->mGraphics->finish();
 		mWidget->mScreenImage->BitsChanged();
 		if (mStateLog != nullptr)
 			LogState();
@@ -406,7 +409,7 @@ void WordHarmonyApp::RunFrame()
 	}
 	catch (...)
 	{
-		EngineFailed(kUnknownException);
+		EngineFailed(OTHER_EXCEPTION_TEXT);
 		return;
 	}
 	if (mQuitRequested)
@@ -510,7 +513,7 @@ void WordHarmonyApp::LogState()
 }
 
 // WinMain's catch blocks (0x455567 and 0x45559a, around a frame; 0x45578a shows the box): the engine's own exception shows
-// its message, anything else (a failed allocation, say) the fixed text of kUnknownException (0x45559a); the box is captioned
+// its message, anything else (a failed allocation, say) the fixed text of OTHER_EXCEPTION_TEXT (0x45559a); the box is captioned
 // "Exception" with the error icon, and the loop ends
 void WordHarmonyApp::EngineFailed(const char* theWhat)
 {

@@ -90,8 +90,6 @@ struct App
 	static void ToggleFullScreen(char theMode);  // 0x41b36c
 	int Init();                           // 0x41b42e
 	void SetConfig(Config* theConfig);    // 0x41b755
-	void FreeImages();                    // 0x41b771
-	void Shutdown();                      // 0x41b98a
 	int Frame();                          // 0x41b9fe
 	void NextSummaryEvent();              // 0x41bbce
 	void NewGame();                       // 0x41bc36

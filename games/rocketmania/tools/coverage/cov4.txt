@@ -1,0 +1,19 @@
+# A game of the arcade mode with clicks in the strip left of the board where there is no button (Board::MouseDown hides the speech
+# bubble, 0x416a80 and 0x415d40), and the window losing and regaining the focus in the game (the pause of 0x42f270 and 0x42f290).
+# Coverage run (tools/coverage/run.sh, host settings with hints on).
+40000 click 320 451
+40099 click 71 227
+40145 click 215 297
+40181 click 320 432
+40500 click 10 300
+40520 click 120 330
+40540 click 20 400
+40560 click 110 420
+40580 click 126 450
+40600 click 5 270
+40700 click 313 435
+40750 click 10 300
+40800 focus lose
+40900 focus regain
+41000 click 313 435
+41100 quit

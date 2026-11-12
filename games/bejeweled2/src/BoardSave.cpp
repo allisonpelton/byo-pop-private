@@ -39,9 +39,9 @@ void Board::SaveState(Buffer& theBuffer)
 			else
 			{
 				theBuffer.WriteByte((uchar)aPiece->mType);
-				theBuffer.WriteByte(aPiece->m70 != 0);
+				theBuffer.WriteByte(aPiece->mFlame != 0);
 				if (aPiece->mType == 8)
-					theBuffer.WriteByte((uchar)aPiece->m58);
+					theBuffer.WriteByte((uchar)aPiece->mCountdown);
 			}
 		}
 	}
@@ -50,14 +50,14 @@ void Board::SaveState(Buffer& theBuffer)
 // 0x59b957
 void Board::LoadState(const Buffer& theBuffer)
 {
-	m15eac = -1;
-	m15ea9 = false;
+	mHintFromCol = -1;
+	mHintAccepted = false;
 	theBuffer.SeekFront();
 	ClearBoard();
 	mScore = theBuffer.ReadLong();
-	if (mIsPuzzle && mIsSecret && m1918 > 0)
-		mScore = m1774;
-	m15e40 = mScore;
+	if (mIsPuzzle && mIsSecret && mHintsUsed > 0)
+		mScore = mScoreSnapshot;
+	mShownScore = mScore;
 	mSolutionValid = theBuffer.ReadBoolean();
 	mSolutionMoves = theBuffer.ReadShort();
 	mSolutionNode = theBuffer.ReadShort();
@@ -77,9 +77,9 @@ void Board::LoadState(const Buffer& theBuffer)
 				aPiece->mX = (float)GetColX(aCol);
 				aPiece->mY = (float)GetRowY(aRow);
 				if (aType == 8)
-					aPiece->m58 = theBuffer.ReadByte();
+					aPiece->mCountdown = theBuffer.ReadByte();
 				if ((aFlags & 1) != 0)
-					aPiece->m70 = true;
+					aPiece->mFlame = true;
 				mBoard[aRow][aCol] = aPiece;
 			}
 		}
@@ -186,41 +186,41 @@ bool Board::SaveGame()
 	PUT(aBuffer, mIsAction);
 	PUT(aBuffer, mIsPuzzle);
 	PUT(aBuffer, mInUndoPreview);
-	PUT(aBuffer, m1723);
+	PUT(aBuffer, mFreeMode);
 	PUT(aBuffer, mNoMoveYet);
-	PUT(aBuffer, m1994);
+	PUT(aBuffer, mBarShown);
 	PUT(aBuffer, mPlayedSeconds);
 	PUT(aBuffer, mHintCountdown);
 	PUT(aBuffer, mScore);
 	PUT(aBuffer, mLevelValue);
-	PUT(aBuffer, m15e40);
-	PUT(aBuffer, m15e44);
-	PUT(aBuffer, m15e4c);
+	PUT(aBuffer, mShownScore);
+	PUT(aBuffer, mGemsCleared);
+	PUT(aBuffer, mSetsInMove);
 	PUT(aBuffer, mCascadeCount);
-	PUT(aBuffer, m15e6c);
-	PUT(aBuffer, m15e70);
-	PUT(aBuffer, m15ee0);
-	PUT(aBuffer, m15ee4);
-	PUT(aBuffer, m15ee8);
-	PUT(aBuffer, m15eec);
-	PUT(aBuffer, m15ef0);
-	PUT(aBuffer, m15ef8);
-	PUT(aBuffer, m15f00);
-	PUT(aBuffer, m15f08);
-	PUT(aBuffer, m15f10);
-	PUT(aBuffer, m15f1c);
-	PUT(aBuffer, m15f7c);
-	PUT(aBuffer, m15f84);
-	PUT(aBuffer, m15f90);
-	PUT(aBuffer, m15fa8);
-	PUT(aBuffer, m194d);
-	PUT(aBuffer, m194e);
-	PUT(aBuffer, m15e30);
-	PUT(aBuffer, m15e38);
+	PUT(aBuffer, mBiggestCascade);
+	PUT(aBuffer, mBiggestCombo);
+	PUT(aBuffer, mSkipBestRecords);
+	PUT(aBuffer, mNeverSetScoreMark);
+	PUT(aBuffer, mLevelStartScore);
+	PUT(aBuffer, mLevelGoalScore);
+	PUT(aBuffer, mLevelGoalPoints);
+	PUT(aBuffer, mDrain);
+	PUT(aBuffer, mDrainSpeed);
+	PUT(aBuffer, mDrainAccel);
+	PUT(aBuffer, mDrainJerk);
+	PUT(aBuffer, mTimerFrame);
+	PUT(aBuffer, mSweepY);
+	PUT(aBuffer, mBlackHoleFrame);
+	PUT(aBuffer, mWarpFade);
+	PUT(aBuffer, mSavedNeverSet);
+	PUT(aBuffer, mPowerGemTipShown);
+	PUT(aBuffer, mHyperCubeTipShown);
+	PUT(aBuffer, mTimedGoal);
+	PUT(aBuffer, mTimedGoalStep);
 	PUT(aBuffer, mSweep1);
 	PUT(aBuffer, mSweep2);
 	PUT(aBuffer, mSweep0);
-	PUT(aBuffer, m15f68);
+	PUT(aBuffer, mCountBombs);
 	PUT(aBuffer, mIsFinity);
 	PUT(aBuffer, mIsSecret);
 	PUT(aBuffer, mIsTwilight);
@@ -229,7 +229,7 @@ bool Board::SaveGame()
 	PUT(aBuffer, mSecretModeUnlocked);
 	if (mIsPuzzle && mIsSecret)
 	{
-		PUT(aBuffer, m1774);
+		PUT(aBuffer, mScoreSnapshot);
 		PUT(aBuffer, mSecretPuzzleCount);
 		PUT(aBuffer, mSecretSolved);
 		PUT(aBuffer, mSecretRun);
@@ -238,9 +238,9 @@ bool Board::SaveGame()
 			aBuffer.WriteString(mSecretPuzzles[i]);
 		aBuffer.WriteString(mPuzzleFile);
 	}
-	PUT(aBuffer, m1918);
-	PUT(aBuffer, m15e7c);
-	PUT(aBuffer, m15e84);
+	PUT(aBuffer, mHintsUsed);
+	PUT(aBuffer, mPowerGemsMade);
+	PUT(aBuffer, mHyperCubesMade);
 	return mApp->WriteBufferToFile(aFileName, &aBuffer);
 }
 
@@ -279,8 +279,8 @@ bool Board::LoadGame()
 			{
 				Piece* aPiece = new Piece();
 				aBuffer.ReadBytes((uchar*)aPiece, 0xe0);
-				aPiece->m5C = 0;
-				aPiece->m60 = 0;
+				aPiece->mMoveTick = 0;
+				aPiece->mHypercubeTick = 0;
 				mBoard[aRow][aCol] = aPiece;
 			}
 		}
@@ -291,43 +291,43 @@ bool Board::LoadGame()
 	GET(aBuffer, mIsAction);
 	GET(aBuffer, mIsPuzzle);
 	GET(aBuffer, mInUndoPreview);
-	GET(aBuffer, m1723);
+	GET(aBuffer, mFreeMode);
 	GET(aBuffer, mNoMoveYet);
-	GET(aBuffer, m1994);
+	GET(aBuffer, mBarShown);
 	GET(aBuffer, mPlayedSeconds);
-	m15e18 = mPlayedSeconds;
+	mSecondsCredited = mPlayedSeconds;
 	GET(aBuffer, mHintCountdown);
 	GET(aBuffer, mScore);
 	GET(aBuffer, mLevelValue);
-	GET(aBuffer, m15e40);
-	GET(aBuffer, m15e44);
-	m15e48 = m15e44;
-	GET(aBuffer, m15e4c);
+	GET(aBuffer, mShownScore);
+	GET(aBuffer, mGemsCleared);
+	mGemsCredited = mGemsCleared;
+	GET(aBuffer, mSetsInMove);
 	GET(aBuffer, mCascadeCount);
-	GET(aBuffer, m15e6c);
-	GET(aBuffer, m15e70);
-	GET(aBuffer, m15ee0);
-	GET(aBuffer, m15ee4);
-	GET(aBuffer, m15ee8);
-	GET(aBuffer, m15eec);
-	GET(aBuffer, m15ef0);
-	GET(aBuffer, m15ef8);
-	GET(aBuffer, m15f00);
-	GET(aBuffer, m15f08);
-	GET(aBuffer, m15f10);
-	GET(aBuffer, m15f1c);
-	GET(aBuffer, m15f7c);
-	GET(aBuffer, m15f84);
-	GET(aBuffer, m15f90);
-	GET(aBuffer, m15fa8);
-	GET(aBuffer, m194d);
-	GET(aBuffer, m194e);
-	GET(aBuffer, m15e30);
-	GET(aBuffer, m15e38);
+	GET(aBuffer, mBiggestCascade);
+	GET(aBuffer, mBiggestCombo);
+	GET(aBuffer, mSkipBestRecords);
+	GET(aBuffer, mNeverSetScoreMark);
+	GET(aBuffer, mLevelStartScore);
+	GET(aBuffer, mLevelGoalScore);
+	GET(aBuffer, mLevelGoalPoints);
+	GET(aBuffer, mDrain);
+	GET(aBuffer, mDrainSpeed);
+	GET(aBuffer, mDrainAccel);
+	GET(aBuffer, mDrainJerk);
+	GET(aBuffer, mTimerFrame);
+	GET(aBuffer, mSweepY);
+	GET(aBuffer, mBlackHoleFrame);
+	GET(aBuffer, mWarpFade);
+	GET(aBuffer, mSavedNeverSet);
+	GET(aBuffer, mPowerGemTipShown);
+	GET(aBuffer, mHyperCubeTipShown);
+	GET(aBuffer, mTimedGoal);
+	GET(aBuffer, mTimedGoalStep);
 	GET(aBuffer, mSweep1);
 	GET(aBuffer, mSweep2);
 	GET(aBuffer, mSweep0);
-	GET(aBuffer, m15f68);
+	GET(aBuffer, mCountBombs);
 	GET(aBuffer, mIsFinity);
 	GET(aBuffer, mIsSecret);
 	GET(aBuffer, mIsTwilight);
@@ -336,12 +336,12 @@ bool Board::LoadGame()
 	GET(aBuffer, mSecretModeUnlocked);
 	if (mIsPuzzle && mIsSecret)
 	{
-		GET(aBuffer, m1774);
+		GET(aBuffer, mScoreSnapshot);
 		GET(aBuffer, mSecretPuzzleCount);
 		GET(aBuffer, mSecretSolved);
 		GET(aBuffer, mSecretRun);
-		mScore = m1774;
-		m15e40 = m1774;
+		mScore = mScoreSnapshot;
+		mShownScore = mScoreSnapshot;
 		long aCount = aBuffer.ReadLong();
 		mSecretPuzzles.clear();
 		for (long i = 0; i < aCount; i++)
@@ -350,11 +350,11 @@ bool Board::LoadGame()
 		LoadPuzzle(mPuzzleFile);
 		MakePuzzleCrazy();
 	}
-	GET(aBuffer, m1918);
-	GET(aBuffer, m15e7c);
-	m15e80 = m15e7c;
-	GET(aBuffer, m15e84);
-	m15e88 = m15e84;
+	GET(aBuffer, mHintsUsed);
+	GET(aBuffer, mPowerGemsMade);
+	mPowerGemsCredited = mPowerGemsMade;
+	GET(aBuffer, mHyperCubesMade);
+	mHyperCubesCredited = mHyperCubesMade;
 	// (the original also clears a byte of the app that nothing reads)
 	for (int aRow = 0; aRow < 8; aRow++)
 	{

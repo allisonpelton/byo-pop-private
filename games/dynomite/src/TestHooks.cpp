@@ -23,7 +23,8 @@
 //                         started through the main menu's own pages with their present choices of skill and pack
 //   level <n>             Fossil: fossil n (1-15) from its first fragment, as the museum starts one
 //   set score <n>         the side bar's score
-//   win                   Stomped and Time Trial: every egg goes, so the board's own end follows
+//   win                   Stomped and Time Trial: every egg goes, so the board's own end follows; the Fossil
+//                         Challenge: every egg goes and the fossil falls, so the fragment's own end follows
 //   lose                  the eggs have passed the line: Inchy sinks and the eggs run off, as in play (once the
 //                         first shot has started the game)
 //   seed <n>              the app's twister and its picker, as the original seeds them from the tick count
@@ -375,8 +376,26 @@ bool HandleStandardCommand(FossilizedApp* theApp, const std::string& theName, co
 	{
 		if ((aBoard == NULL) || aBoard->mGameOver || aBoard->mGameOverShown)
 			Error(aLine, "no game in play");
-		else if ((aBoard->mGameType != 0) && (aBoard->mGameType != 3))
-			Error(aLine, "Endless and the Fossil Challenge have no win to give");
+		else if ((aBoard->mGameType != 0) && (aBoard->mGameType != 2) && (aBoard->mGameType != 3))
+			Error(aLine, "Endless has no win to give");
+		else if (aBoard->mGameType == 2)
+		{
+			// the Fossil Challenge's round ends when its fossil (the pieces of colour 0x32 on) falls off the board: every
+			// egg goes, and the grid drops what no longer hangs from the ceiling, as after a match
+			if (((DynomiteFossil*) aBoard)->mFossilFell)
+				Error(aLine, "the fossil has fallen already");
+			else
+			{
+				aBoard->mGrid->ClearDynamite();
+				for (int c = 0; c < 15; c++)
+					for (int r = 0; r < 100; r++)
+						if ((unsigned char) aBoard->mGrid->mCells[c][r].mBits < 0x32)
+							aBoard->mGrid->mCells[c][r].mBits = 0;
+				aBoard->mGrid->CountRows();
+				aBoard->mGrid->DropLoose();
+				Ok(aLine);
+			}
+		}
 		else
 		{
 			aBoard->mGrid->ClearDynamite();

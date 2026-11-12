@@ -57,7 +57,7 @@ static bool pushFromCorner(const Point& theOrigin, const Point& theExtents, Ball
 // 0x40fb00
 Box::Box(const Point& theOrigin, int theType)
 {
-	mExtents = Point(22.0f, 22.0f);
+	mExtents = Point(BALL_RADIUS, BALL_RADIUS);
 	mType = theType;
 	mActive = true;
 	mImage = nullptr;
@@ -128,7 +128,7 @@ void Box::collide(BallArray* theBalls)
 	do
 	{
 		Ball* aBall = theBalls->getBall(i);
-		if (aBall->mState != BALL_GONE && !aBall->mFixed && aBall->mState != BALL_STATE_4)
+		if (aBall->mState != BALL_GONE && !aBall->mFixed && aBall->mState != BALL_SPAWNING)
 		{
 			// The x87 code in double: dy is kept unrounded to the end; |dy| is compared before it is stored
 			float hx = mExtents.x + aBall->mRadius;
@@ -177,35 +177,6 @@ void Box::collide(BallArray* theBalls)
 	} while (i < theBalls->mCount);
 }
 
-// 0x40f750
-bool Box::touches(BallArray* theBalls, int theIndex, float theMargin)
-{
-	Ball* aBall = theBalls->getBall(theIndex);
-	Point aReach = mExtents;
-	aReach.x = aReach.x + aBall->mRadius + theMargin;
-	aReach.y = aReach.y + aBall->mRadius + theMargin;
-	Point d = *aBall->getPosition();
-	d.subtract(mPosition);
-	return fabsf(d.x) < aReach.x && fabsf(d.y) < aReach.y;
-}
-
-// 0x40fd70
-std::string Box::toXml()
-{
-	std::string aText = "<obstacle ";
-	aText += "type=\"box\" ";
-	aText += "origin=\"";
-	aText += pointText(mPosition);
-	aText += "\" ";
-	aText += "extents=\"";
-	aText += pointText(mExtents);
-	aText += "\" ";
-	if (mType == 1)
-		aText += "boxType=\"star\"";
-	aText += "/>\n";
-	return aText;
-}
-
 // 0x40fc70
 Obstacle* Box::clone()
 {
@@ -219,7 +190,7 @@ Obstacle* Box::clone()
 // 0x4109f0
 Ramp::Ramp(const Point& theOrigin, int theRotation)
 {
-	mExtents = Point(22.0f, 22.0f);
+	mExtents = Point(BALL_RADIUS, BALL_RADIUS);
 	mRotation = theRotation;
 	mActive = true;
 	mImage = nullptr;
@@ -446,38 +417,6 @@ void Ramp::collide(BallArray* theBalls)
 		}
 		i++;
 	} while (i < theBalls->mCount);
-}
-
-// 0x4106d0 (the same as the block's)
-bool Ramp::touches(BallArray* theBalls, int theIndex, float theMargin)
-{
-	Ball* aBall = theBalls->getBall(theIndex);
-	Point aReach = mExtents;
-	aReach.x = aReach.x + aBall->mRadius + theMargin;
-	aReach.y = aReach.y + aBall->mRadius + theMargin;
-	Point d = *aBall->getPosition();
-	d.subtract(mPosition);
-	return fabsf(d.x) < aReach.x && fabsf(d.y) < aReach.y;
-}
-
-// 0x410c90
-std::string Ramp::toXml()
-{
-	std::string aText = "<obstacle ";
-	aText += "type=\"ramp\" ";
-	aText += "origin=\"";
-	aText += pointText(mPosition);
-	aText += "\" ";
-	aText += "extents=\"";
-	aText += pointText(mExtents);
-	aText += "\" ";
-	aText += "rotation=\"";
-	char aNumber[32];
-	snprintf(aNumber, sizeof(aNumber), "%d", mRotation);
-	aText += aNumber;
-	aText += "\" ";
-	aText += "/>\n";
-	return aText;
 }
 
 // 0x410b90

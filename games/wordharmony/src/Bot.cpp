@@ -41,7 +41,8 @@ struct BotBall
 {
 	int mIndex;
 	char mLetter;  // '?' for a wildcard
-	float x, y, r;
+	float x, y;
+	float mRadius;
 	bool mUsable;  // a free letter ball the mouse can carry
 	bool mChained; // a free letter ball of a chain: a letter of a word, never carried (the chain would come along)
 	bool mResting;
@@ -118,25 +119,25 @@ std::vector<BotBall> readBalls(Game* theGame)
 		Ball* aBall = aSystem->getBall(i);
 		if (aBall->mState == BALL_GONE)
 			continue;
-		BotBall b;
-		b.mIndex = (int)i;
-		b.x = aBall->getPosition()->x;
-		b.y = aBall->getPosition()->y;
-		b.r = aBall->mRadius;
-		b.mLetter = (aBall->mSpecial & BALL_WILDCARD) != 0 ? '?' : (char)std::toupper((unsigned char)aBall->mLetter);
+		BotBall aBotBall;
+		aBotBall.mIndex = (int)i;
+		aBotBall.x = aBall->getPosition()->x;
+		aBotBall.y = aBall->getPosition()->y;
+		aBotBall.mRadius = aBall->mRadius;
+		aBotBall.mLetter = (aBall->mSpecial & BALL_WILDCARD) != 0 ? '?' : (char)std::toupper((unsigned char)aBall->mLetter);
 		unsigned int aHeavy = BALL_BLOCK | BALL_HEAVY | BALL_STONE | BALL_BREAKABLE | BALL_X2 | BALL_X3 | BALL_X4;
-		b.mUsable = aBall->mState == BALL_FREE && !aBall->mFixed && aBall->mChain == nullptr && (aBall->mSpecial & aHeavy) == 0
-			&& std::isalpha((unsigned char)b.mLetter | 0x20) && b.y <= aWaterTop && b.y > 0.0f;
-		if (b.mLetter == '?')
-			b.mUsable = aBall->mState == BALL_FREE && !aBall->mFixed && aBall->mChain == nullptr && b.y <= aWaterTop;
-		b.mChained = aBall->mState == BALL_FREE && !aBall->mFixed && aBall->mChain != nullptr && b.y <= aWaterTop;
-		float dx = b.x - aBall->mOld.x, dy = b.y - aBall->mOld.y;
-		b.mResting = b.mFixed || dx * dx + dy * dy < (b.mChained ? 4.0f : 0.25f);
+		aBotBall.mUsable = aBall->mState == BALL_FREE && !aBall->mFixed && aBall->mChain == nullptr && (aBall->mSpecial & aHeavy) == 0
+			&& std::isalpha((unsigned char)aBotBall.mLetter | 0x20) && aBotBall.y <= aWaterTop && aBotBall.y > 0.0f;
+		if (aBotBall.mLetter == '?')
+			aBotBall.mUsable = aBall->mState == BALL_FREE && !aBall->mFixed && aBall->mChain == nullptr && aBotBall.y <= aWaterTop;
+		aBotBall.mChained = aBall->mState == BALL_FREE && !aBall->mFixed && aBall->mChain != nullptr && aBotBall.y <= aWaterTop;
+		float dx = aBotBall.x - aBall->mOld.x, dy = aBotBall.y - aBall->mOld.y;
+		aBotBall.mResting = aBotBall.mFixed || dx * dx + dy * dy < (aBotBall.mChained ? 4.0f : 0.25f);
 		// a letter fixed in place: a stone, or a block with a letter on it (RELAX's "fixed in stone")
-		b.mFixed = aBall->mState == BALL_FREE && (aBall->mFixed || (aBall->mSpecial & (BALL_STONE | BALL_BREAKABLE)) != 0)
-			&& (aBall->mSpecial & (BALL_BLOCK | BALL_HEAVY)) == 0 && std::isalpha((unsigned char)b.mLetter | 0x20);
-		b.mLiftable = b.mUsable && regionAt(b.x, b.y) >= 0;
-		aBalls.push_back(b);
+		aBotBall.mFixed = aBall->mState == BALL_FREE && (aBall->mFixed || (aBall->mSpecial & (BALL_STONE | BALL_BREAKABLE)) != 0)
+			&& (aBall->mSpecial & (BALL_BLOCK | BALL_HEAVY)) == 0 && std::isalpha((unsigned char)aBotBall.mLetter | 0x20);
+		aBotBall.mLiftable = aBotBall.mUsable && regionAt(aBotBall.x, aBotBall.y) >= 0;
+		aBalls.push_back(aBotBall);
 	}
 	return aBalls;
 }
@@ -147,13 +148,13 @@ bool letterFits(char theWanted, char theLetter)
 }
 
 // Something under a place for a ball of radius r at (x, y): a ball, an obstacle or the floor
-bool supported(WordBallSystem* theSystem, const std::vector<BotBall>& theBalls, float x, float y, float r)
+bool supported(WordBallSystem* theSystem, const std::vector<BotBall>& theBalls, float x, float y, float theRadius)
 {
-	if (y + r >= FIELD_H - 3.0f)
+	if (y + theRadius >= FIELD_H - 3.0f)
 		return true;
 	for (const BotBall& b : theBalls)
 	{
-		if (std::fabs(b.x - x) < r * 1.2f && b.y - y > r && b.y - y < r + b.r + 6.0f)
+		if (std::fabs(b.x - x) < theRadius * 1.2f && b.y - y > theRadius && b.y - y < theRadius + b.mRadius + 6.0f)
 			return true;
 	}
 	if (theSystem->mObstacles != nullptr)
@@ -161,21 +162,21 @@ bool supported(WordBallSystem* theSystem, const std::vector<BotBall>& theBalls, 
 		for (Obstacle* anObstacle : *theSystem->mObstacles)
 		{
 			Point p = *anObstacle->getPosition();
-			if (std::fabs(p.x - x) < r + 4.0f && p.y - y > r && p.y - y < r + 34.0f)
+			if (std::fabs(p.x - x) < theRadius + 4.0f && p.y - y > theRadius && p.y - y < theRadius + 34.0f)
 				return true;
 		}
 	}
 	return false;
 }
 
-bool inField(float x, float y, float r)
+bool inField(float x, float y, float theRadius)
 {
 	// a place at most 4 px into the wall: a ball let go there rests against it, still within a place's 7 px
-	return x >= r - 4.0f && x <= FIELD_W - r + 4.0f && y >= r + 30.0f;
+	return x >= theRadius - 4.0f && x <= FIELD_W - theRadius + 4.0f && y >= theRadius + 30.0f;
 }
 
 // The ball in a place for a ball of radius r at (x, y) (the one nearest it), or null
-const BotBall* occupant(const std::vector<BotBall>& theBalls, float x, float y, float r, int theAnchor)
+const BotBall* occupant(const std::vector<BotBall>& theBalls, float x, float y, float theRadius, int theAnchor)
 {
 	const BotBall* aFound = nullptr;
 	float aNearest = 0.0f;
@@ -185,7 +186,7 @@ const BotBall* occupant(const std::vector<BotBall>& theBalls, float x, float y, 
 			continue;
 		float dx = b.x - x, dy = b.y - y;
 		float d2 = dx * dx + dy * dy;
-		if (d2 < (r + b.r - 3.0f) * (r + b.r - 3.0f) && (aFound == nullptr || d2 < aNearest))
+		if (d2 < (theRadius + b.mRadius - 3.0f) * (theRadius + b.mRadius - 3.0f) && (aFound == nullptr || d2 < aNearest))
 		{
 			aFound = &b;
 			aNearest = d2;
@@ -194,14 +195,14 @@ const BotBall* occupant(const std::vector<BotBall>& theBalls, float x, float y, 
 	return aFound;
 }
 
-bool clearOfObstacles(WordBallSystem* theSystem, float x, float y, float r)
+bool clearOfObstacles(WordBallSystem* theSystem, float x, float y, float theRadius)
 {
 	if (theSystem->mObstacles != nullptr)
 	{
 		for (Obstacle* anObstacle : *theSystem->mObstacles)
 		{
 			Point p = *anObstacle->getPosition();
-			if (std::fabs(p.x - x) < r + 18.0f && std::fabs(p.y - y) < r + 18.0f)
+			if (std::fabs(p.x - x) < theRadius + 18.0f && std::fabs(p.y - y) < theRadius + 18.0f)
 				return false;
 		}
 	}
@@ -213,11 +214,15 @@ bool clearOfObstacles(WordBallSystem* theSystem, float x, float y, float r)
 // move; each free cell carries the number of its region (the cells a ball can be carried between).
 const float GRID = 4.0f;
 const float GRID_TOP = -20.0f;  // the field's top edge: a ball is carried a little above it, over the highest ledge
+// The path search's cost of a step to a neighbouring cell: a straight one, and a diagonal one (the square root of 2 times it,
+// rounded), each times the cell's cost
+const int STRAIGHT_STEP_COST = 10;
+const int DIAGONAL_STEP_COST = 14;
 
 struct Grid
 {
 	int mW = 0, mH = 0;
-	float mR = 22.0f;
+	float mR = BALL_RADIUS;
 	std::vector<int> mRegion;  // -1 blocked
 	bool valid(int cx, int cy) const { return cx >= 0 && cy >= 0 && cx < mW && cy < mH; }
 	int at(int cx, int cy) const { return valid(cx, cy) ? mRegion[cy * mW + cx] : -1; }
@@ -227,9 +232,9 @@ struct Grid
 
 Grid gGrid;
 
-bool cellFree(WordBallSystem* theSystem, float x, float y, float r)
+bool cellFree(WordBallSystem* theSystem, float x, float y, float theRadius)
 {
-	if (x < r - 4.0f || x > FIELD_W - r + 4.0f || y > FIELD_H - r + 2.0f)
+	if (x < theRadius - 4.0f || x > FIELD_W - theRadius + 4.0f || y > FIELD_H - theRadius + 2.0f)
 		return false;
 	if (theSystem->mObstacles != nullptr)
 	{
@@ -238,7 +243,7 @@ bool cellFree(WordBallSystem* theSystem, float x, float y, float r)
 			Point p = anObstacle->getOrigin();
 			Point e = anObstacle->getExtents();
 			float dx = std::max(std::fabs(p.x - x) - e.x, 0.0f), dy = std::max(std::fabs(p.y - y) - e.y, 0.0f);
-			if (dx * dx + dy * dy < (r - 2.0f) * (r - 2.0f))
+			if (dx * dx + dy * dy < (theRadius - 2.0f) * (theRadius - 2.0f))
 				return false;
 		}
 	}
@@ -248,17 +253,17 @@ bool cellFree(WordBallSystem* theSystem, float x, float y, float r)
 		Ball* aBall = theSystem->getBall(i);
 		if (aBall->mState != BALL_FREE || !(aBall->mFixed || (aBall->mSpecial & (BALL_STONE | BALL_BREAKABLE)) != 0))
 			continue;
-		float dx = aBall->getPosition()->x - x, dy = aBall->getPosition()->y - y, aReach = aBall->mRadius + r - 2.0f;
+		float dx = aBall->getPosition()->x - x, dy = aBall->getPosition()->y - y, aReach = aBall->mRadius + theRadius - 2.0f;
 		if (dx * dx + dy * dy < aReach * aReach)
 			return false;
 	}
 	return true;
 }
 
-void buildGrid(WordBallSystem* theSystem, float r)
+void buildGrid(WordBallSystem* theSystem, float theRadius)
 {
 	Grid& g = gGrid;
-	g.mR = r;
+	g.mR = theRadius;
 	g.mW = (int)(FIELD_W / GRID) + 1;
 	g.mH = (int)((FIELD_H - GRID_TOP) / GRID) + 1;
 	g.mRegion.assign((size_t)(g.mW * g.mH), -2);
@@ -266,7 +271,7 @@ void buildGrid(WordBallSystem* theSystem, float r)
 	{
 		for (int cx = 0; cx < g.mW; cx++)
 		{
-			if (!cellFree(theSystem, g.x(cx), g.y(cy), r))
+			if (!cellFree(theSystem, g.x(cx), g.y(cy), theRadius))
 				g.mRegion[cy * g.mW + cx] = -1;
 		}
 	}
@@ -336,8 +341,8 @@ std::vector<Point> findWay(const std::vector<BotBall>& theBalls, const BotBall& 
 	int aFrom = cellNear(theBall.x, theBall.y), aTo = cellNear(toX, toY);
 	if (aFrom < 0 || aTo < 0 || g.mRegion[aFrom] != g.mRegion[aTo])
 		return aWay;
-	int n = g.mW * g.mH;
-	std::vector<int> aCost(n, 1 << 30), aBack(n, -1);
+	int aCellCount = g.mW * g.mH;
+	std::vector<int> aCost(aCellCount, 1 << 30), aBack(aCellCount, -1);
 	// a cell's own cost: 1, more within reach of another ball
 	auto cellCost = [&](int i)
 	{
@@ -347,43 +352,43 @@ std::vector<Point> findWay(const std::vector<BotBall>& theBalls, const BotBall& 
 		{
 			if (b.mIndex == theBall.mIndex)
 				continue;
-			float dx = b.x - x, dy = b.y - y, reach = b.r + theBall.r + 2.0f;
+			float dx = b.x - x, dy = b.y - y, reach = b.mRadius + theBall.mRadius + 2.0f;
 			if (dx * dx + dy * dy < reach * reach)
 				c += thePlaced.count(b.mIndex) != 0 ? 60 : 8;
 		}
 		return c;
 	};
-	std::vector<int> aOwn(n, -1);
+	std::vector<int> aOwn(aCellCount, -1);
 	typedef std::pair<int, int> Entry;
 	std::priority_queue<Entry, std::vector<Entry>, std::greater<Entry>> aOpen;
 	aCost[aFrom] = 0;
 	aOpen.push(Entry(0, aFrom));
 	while (!aOpen.empty())
 	{
-		Entry e = aOpen.top();
+		Entry anEntry = aOpen.top();
 		aOpen.pop();
-		if (e.first != aCost[e.second])
+		if (anEntry.first != aCost[anEntry.second])
 			continue;
-		if (e.second == aTo)
+		if (anEntry.second == aTo)
 			break;
-		int cx = e.second % g.mW, cy = e.second / g.mW;
+		int cx = anEntry.second % g.mW, cy = anEntry.second / g.mW;
 		const int aDx[8] = { 1, -1, 0, 0, 1, 1, -1, -1 }, aDy[8] = { 0, 0, 1, -1, 1, -1, 1, -1 };
-		for (int d = 0; d < 8; d++)
+		for (int aDirection = 0; aDirection < 8; aDirection++)
 		{
-			int nx = cx + aDx[d], ny = cy + aDy[d];
+			int nx = cx + aDx[aDirection], ny = cy + aDy[aDirection];
 			if (g.at(nx, ny) < 0)
 				continue;
 			// a diagonal step only between two free cells
-			if (d >= 4 && (g.at(cx + aDx[d], cy) < 0 || g.at(cx, cy + aDy[d]) < 0))
+			if (aDirection >= 4 && (g.at(cx + aDx[aDirection], cy) < 0 || g.at(cx, cy + aDy[aDirection]) < 0))
 				continue;
 			int i = ny * g.mW + nx;
 			if (aOwn[i] < 0)
 				aOwn[i] = cellCost(i);
-			int c = e.first + aOwn[i] * (d >= 4 ? 14 : 10);
+			int c = anEntry.first + aOwn[i] * (aDirection >= 4 ? DIAGONAL_STEP_COST : STRAIGHT_STEP_COST);
 			if (c < aCost[i])
 			{
 				aCost[i] = c;
-				aBack[i] = e.second;
+				aBack[i] = anEntry.second;
 				aOpen.push(Entry(c, i));
 			}
 		}
@@ -464,7 +469,7 @@ bool makePlan(Game* theGame, const std::vector<BotBall>& theBalls, Plan& thePlan
 			for (int anIndex : aChain->mIndices)
 			{
 				Ball* aBall = aSystem->getBall(anIndex);
-				if (aBall->mState == BALL_FREE || aBall->mState == BALL_STATE_4)
+				if (aBall->mState == BALL_FREE || aBall->mState == BALL_SPAWNING)
 					aLying.push_back(std::make_pair(aBall->getPosition()->x, aBall->mLetter));
 			}
 			std::sort(aLying.begin(), aLying.end(),
@@ -535,14 +540,14 @@ bool makePlan(Game* theGame, const std::vector<BotBall>& theBalls, Plan& thePlan
 				if (!letterFits(aWord[k], anAnchor.mLetter))
 					continue;
 				char aKey[64];
-				std::snprintf(aKey, sizeof(aKey), "%s@%d@%d%s", aWord.c_str(), anAnchor.mIndex, (int)(anAnchor.x / 22.0f),
+				std::snprintf(aKey, sizeof(aKey), "%s@%d@%d%s", aWord.c_str(), anAnchor.mIndex, (int)(anAnchor.x / BALL_RADIUS),
 					aColumn ? "v" : "");
 				if (gMemory.mFailed.count(aKey) != 0 || gMemory.mFailures[aWord] >= 8)
 					continue;
 				// each place costs a drag, two when another letter sits there and must be carried off first, none when
 				// its letter is there already; a place in an obstacle, out of the field, over nothing or under a ball the
 				// mouse cannot carry rules the anchor out
-				float d = anAnchor.r * 2.0f + 0.5f;
+				float aSpacing = anAnchor.mRadius * 2.0f + 0.5f;
 				bool aGood = true;
 				int aCost = 0;
 				std::vector<float> aSlots, aSlotsY;
@@ -550,17 +555,17 @@ bool makePlan(Game* theGame, const std::vector<BotBall>& theBalls, Plan& thePlan
 				std::vector<std::pair<char, int>> aNeeds;  // the letters to bring, each with its place's region
 				for (size_t j = 0; j < aWord.size() && aGood; j++)
 				{
-					float x = aColumn ? anAnchor.x : anAnchor.x + ((float)j - (float)k) * d;
-					float y = aColumn ? anAnchor.y + ((float)j - (float)k) * d : anAnchor.y;
+					float x = aColumn ? anAnchor.x : anAnchor.x + ((float)j - (float)k) * aSpacing;
+					float y = aColumn ? anAnchor.y + ((float)j - (float)k) * aSpacing : anAnchor.y;
 					aSlots.push_back(x);
 					aSlotsY.push_back(y);
 					if (j == k)
 						continue;
-					const BotBall* anOccupant = occupant(theBalls, x, y, anAnchor.r, anAnchor.mIndex);
+					const BotBall* anOccupant = occupant(theBalls, x, y, anAnchor.mRadius, anAnchor.mIndex);
 					bool aFits = anOccupant != nullptr && letterFits(aWord[j], anOccupant->mLetter)
 						&& (anOccupant->mUsable || anOccupant->mFixed) && std::fabs(anOccupant->x - x) < 7.0f
 						&& std::fabs(anOccupant->y - y) < 7.0f;
-					if (!inField(x, y, anAnchor.r) || !clearOfObstacles(aSystem, x, y, anAnchor.r))
+					if (!inField(x, y, anAnchor.mRadius) || !clearOfObstacles(aSystem, x, y, anAnchor.mRadius))
 						aGood = false, aNotFree++;
 					else if (aColumn && j > k && !aFits && !anAnchor.mFixed)
 						aGood = false, aNotSupported++;  // a column's places under its anchor hold it up: already its letters
@@ -568,7 +573,7 @@ bool makePlan(Game* theGame, const std::vector<BotBall>& theBalls, Plan& thePlan
 					{
 						// over nothing: in a column the place below is filled first; in RELAX the last letter of a word can be
 						// held in its place until the word counts (a word is scored while its balls touch, 0x41b2d0)
-						if (!supported(aSystem, theBalls, x, y, anAnchor.r) && !(aColumn && j + 1 < aWord.size()))
+						if (!supported(aSystem, theBalls, x, y, anAnchor.mRadius) && !(aColumn && j + 1 < aWord.size()))
 							aHanging++;
 						aGood = placeReachable(theBalls, x, y - 2.0f);
 						aNeeds.push_back(std::make_pair(aWord[j], regionAt(x, y - 2.0f)));
@@ -602,9 +607,9 @@ bool makePlan(Game* theGame, const std::vector<BotBall>& theBalls, Plan& thePlan
 					{
 						for (size_t j = 0; j < aWord.size(); j++)
 						{
-							float x = anAnchor.x + ((float)j - (float)k) * d + theShift;
-							if (!inField(x, anAnchor.y, anAnchor.r) || !clearOfObstacles(aSystem, x, anAnchor.y, anAnchor.r)
-								|| !supported(aSystem, theBalls, x, anAnchor.y, anAnchor.r) || regionAt(x, anAnchor.y - 2.0f) < 0)
+							float x = anAnchor.x + ((float)j - (float)k) * aSpacing + theShift;
+							if (!inField(x, anAnchor.y, anAnchor.mRadius) || !clearOfObstacles(aSystem, x, anAnchor.y, anAnchor.mRadius)
+								|| !supported(aSystem, theBalls, x, anAnchor.y, anAnchor.mRadius) || regionAt(x, anAnchor.y - 2.0f) < 0)
 								return false;
 						}
 						return true;
@@ -620,7 +625,7 @@ bool makePlan(Game* theGame, const std::vector<BotBall>& theBalls, Plan& thePlan
 						}
 						aSlots.clear();
 						for (size_t j = 0; j < aWord.size(); j++)
-							aSlots.push_back(anAnchor.x + ((float)j - (float)k) * d + aShift);
+							aSlots.push_back(anAnchor.x + ((float)j - (float)k) * aSpacing + aShift);
 						aSlotsY.assign(aWord.size(), anAnchor.y);
 						aCost = (int)aWord.size();
 					}
@@ -699,7 +704,7 @@ void failPlan(int theWhy)
 		std::fprintf(stderr, "fail %s: %d\n", gMemory.mPlan.mWord.c_str(), theWhy);
 	char aKey[64];
 	std::snprintf(aKey, sizeof(aKey), "%s@%d@%d", gMemory.mPlan.mWord.c_str(), gMemory.mPlan.mAnchor,
-		(int)(gMemory.mPlan.mAnchorX / 22.0f));
+		(int)(gMemory.mPlan.mAnchorX / BALL_RADIUS));
 	gMemory.mFailed.insert(aKey);
 	gMemory.mFailures[gMemory.mPlan.mWord]++;
 	gMemory.mHavePlan = false;
@@ -804,7 +809,7 @@ bool parkPlace(const Plan& thePlan, const BotBall& theBall, float& theX, float& 
 	int aRegion = regionAt(theBall.x, theBall.y);
 	if (aRegion < 0)
 		return false;
-	float aLow = thePlan.mSlotX.front() - theBall.r * 2.0f, aHigh = thePlan.mSlotX.back() + theBall.r * 2.0f;
+	float aLow = thePlan.mSlotX.front() - theBall.mRadius * 2.0f, aHigh = thePlan.mSlotX.back() + theBall.mRadius * 2.0f;
 	bool aFound = false;
 	float aBestScore = 0.0f;
 	for (int cx = 0; cx < g.mW; cx++)
@@ -863,7 +868,7 @@ BotAction playMove(Game* theGame)
 		anAction.mSteps = { { BotStep::MOVE, (int)p.x, (int)p.y, 0 }, { BotStep::WAIT, 0, 0, 2 }, { BotStep::RCLICK, (int)p.x, (int)p.y, 0 } };
 		return anAction;
 	}
-	buildGrid(aSystem, 22.0f);
+	buildGrid(aSystem, BALL_RADIUS);
 	std::vector<BotBall> aBalls = readBalls(theGame);
 	for (int aTry = 0; aTry < 2; aTry++)
 	{
@@ -894,7 +899,7 @@ BotAction playMove(Game* theGame)
 		{
 			for (size_t i = 0; i < aPlan.mSlotX.size(); i++)
 			{
-				float aAlong = ((float)i - (float)aPlan.mAnchorAt) * (anAnchor->r * 2.0f + 0.5f);
+				float aAlong = ((float)i - (float)aPlan.mAnchorAt) * (anAnchor->mRadius * 2.0f + 0.5f);
 				aPlan.mSlotX[i] = aPlan.mColumn ? anAnchor->x : anAnchor->x + aAlong;
 				aPlan.mSlotY[i] = aPlan.mColumn ? anAnchor->y + aAlong : anAnchor->y;
 			}
@@ -909,7 +914,7 @@ BotAction playMove(Game* theGame)
 		// a place with nothing under it: no block or ball under it yet
 		auto aHangs = [&](int i) {
 			if (aShifted || aSystem->mMode != MODE_PUZZLE
-				|| supported(aSystem, aBalls, aPlan.mSlotX[i], aPlan.mSlotY[i], anAnchor->r))
+				|| supported(aSystem, aBalls, aPlan.mSlotX[i], aPlan.mSlotY[i], anAnchor->mRadius))
 				return false;
 			return true;
 		};
@@ -955,7 +960,7 @@ BotAction playMove(Game* theGame)
 				return aLift;
 			}
 		}
-		const BotBall* anOccupant = occupant(aBalls, aPlan.mSlotX[aNext], aPlan.mSlotY[aNext], anAnchor->r, aPlan.mAnchor);
+		const BotBall* anOccupant = occupant(aBalls, aPlan.mSlotX[aNext], aPlan.mSlotY[aNext], anAnchor->mRadius, aPlan.mAnchor);
 		if (anOccupant != nullptr && (!anOccupant->mUsable || aPlaced.count(anOccupant->mIndex) != 0))
 		{
 			failPlan(3);
@@ -977,22 +982,22 @@ BotAction playMove(Game* theGame)
 		}
 		// the letter from the top of the field, never one the plan's places rest on
 		const BotBall* aBest = nullptr;
-		for (const BotBall& b : aBalls)
+		for (const BotBall& aBotBall : aBalls)
 		{
-			if (!b.mUsable || !b.mLiftable || aPlaced.count(b.mIndex) != 0 || !letterFits(aPlan.mWord[aNext], b.mLetter))
+			if (!aBotBall.mUsable || !aBotBall.mLiftable || aPlaced.count(aBotBall.mIndex) != 0 || !letterFits(aPlan.mWord[aNext], aBotBall.mLetter))
 				continue;
 			bool aUnder = false;
 			for (size_t i = 0; i < aPlan.mSlotX.size(); i++)
 			{
-				if (std::fabs(b.x - aPlan.mSlotX[i]) < b.r * 2.0f && b.y > aPlan.mSlotY[i] && b.y - aPlan.mSlotY[i] < b.r * 2.0f + 8.0f)
+				if (std::fabs(aBotBall.x - aPlan.mSlotX[i]) < aBotBall.mRadius * 2.0f && aBotBall.y > aPlan.mSlotY[i] && aBotBall.y - aPlan.mSlotY[i] < aBotBall.mRadius * 2.0f + 8.0f)
 					aUnder = true;
 			}
 			if (aUnder)
 				continue;
-			if (regionAt(b.x, b.y) != regionAt(aPlan.mSlotX[aNext], aPlan.mSlotY[aNext] - 2.0f))
+			if (regionAt(aBotBall.x, aBotBall.y) != regionAt(aPlan.mSlotX[aNext], aPlan.mSlotY[aNext] - 2.0f))
 				continue;
-			if (aBest == nullptr || b.y < aBest->y)
-				aBest = &b;
+			if (aBest == nullptr || aBotBall.y < aBest->y)
+				aBest = &aBotBall;
 		}
 		if (aBest == nullptr)
 		{
@@ -1040,14 +1045,14 @@ BotAction playMove(Game* theGame)
 			if (!aBackwards || !aAllResting)
 				continue;
 			// aLast lies leftmost: carried over aFirst to its right; else aFirst carried left of aLast
-			float d = aFirst->r * 2.0f + 0.5f, aTop = FIELD_H;
+			float d = aFirst->mRadius * 2.0f + 0.5f, aTop = FIELD_H;
 			for (const BotBall* b : aPieces)
 				aTop = std::min(aTop, b->y);
 			const BotBall* aMoved = aLast;
 			float aToX = aFirst->x + d;
-			if (aToX > FIELD_W - aFirst->r)
+			if (aToX > FIELD_W - aFirst->mRadius)
 				aMoved = aFirst, aToX = aLast->x - d;
-			if (aToX < aFirst->r)
+			if (aToX < aFirst->mRadius)
 				continue;
 			float aToY = aMoved == aLast ? aFirst->y - 2.0f : aLast->y - 2.0f;
 			aTop = std::max(aTop - d * (float)aPieces.size(), 30.0f);

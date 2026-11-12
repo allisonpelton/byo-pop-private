@@ -333,3 +333,45 @@ takes its class from the function around it). The one-letter locals were renamed
 second script that reads code only, not comments or strings, and refuses a new name that the function already has. The
 five sites in a constructor that the first script could not place (`Input::Input`, `Music::Music`,
 `ListItem::ListItem`) were fixed by hand. Neither script is in the repository; the shared notes folder holds them.
+
+## The PopCap Game Collection version (2026-11-11)
+
+The port was made from the staged copy's files (`tools/stage_bonnies_assets.py`), so it is checked against the game's
+version on the PopCap Game Collection disc (`docs/COORDINATION.md`), whose exe is another build of the file. `unshield` read
+the group `BonniesBookstoreDeluxeComponent` out of the disc image's cabinet (mounted read-only, dismounted afterwards): 237
+files, 11.9 MB, in `build/bonnies-coll` (git-ignored, deleted once this was written). The folder has `BonniesBookstore.exe`
+(657,112 bytes against the staged copy's 2,268,632), `data/` (lower case), `Graphics/`, `Sound/`, `SavedGames/`,
+`properties/` (a 311-byte `partner.xml` and its signature), the six DLLs (SDL, SDL_image, FMOD, jpeg, libpng13, zlib), a
+licence and a readme.
+
+**The exe is the same build.** Its link time stamp is the same (2006-11-10 20:35:35 UTC) and `.text`, `.rdata` and `.data`
+are equal byte for byte, so every text and table the port reads from the exe is at the same address. Only the resource
+section differs (167,000 bytes against 167,312); the port maps every section but reads nothing from the resources (no
+address from 0x484000 up appears in its sources), and mapped by `loadExe`, the two images differ only there, in
+0x48431c-0x4acd8e. No change to the port was needed: `LoadGameExe` (`src/main.cpp`) looks for the wrapper's marker and, with
+none in the file, takes the whole file from its start.
+<!-- private -->
+How the copies differ: the Collection's exe is the game itself, not wrapped. The staged copy's holds the game after a
+`!popcapdrmprotect!` marker (at 1,605,632, the `MZ` at 1,606,050, 662,582 bytes to the end of the file); against the
+Collection's exe those bytes differ in the PE header (the checksum, 0xa2cb1 against 0xa5e69, and a few more bytes at file
+offsets 0x160, 0x194 and 0x280), in the resource section (1,077 runs of changed bytes) and in the 5,470 bytes that the
+staged copy's file holds after the point where the Collection's ends (the Collection's 5,448-byte security directory at
+0x9f190 ends at the end of its file; the security directory's position and size are the same in both headers).
+<!-- /private -->
+
+**The files.** Of the 227 files the staging script copies (the pak, the dictionary, the texts, `Portal.cfg`, every picture
+and sound, the preferences file), 226 are the Collection's byte for byte (sha256, paths compared without case); the exe is
+the 227th. Ten files exist only in the Collection (the six DLLs, the licence, the readme and the two `properties/` files),
+none read by the port (the staging script's header says which files it needs). The site's importer takes the folder as it
+is: its markers (`web/gameimport.js` through `games/bonnies/web/page.js`) are `BonniesBookstore.exe` and `Data/Bonnie.pak`
+and match without case, so the lower-case `data/` folder is found.
+
+**The port on the Collection's files** (`games/bonnies/tools/collection_run.sh`, under rundesk). The suite's tour
+(`tools/check.sh bonnies`: `tools/tour_test.txt`, 25 screenshots from the logos to the main menu's Quit, `-fast -seed=1`) run
+once on the staged files and once on the Collection's, with the same exe: every one of the 25 screens is byte for byte the
+same, the saved files (the new player's record) are the same, and the three frozen screens (played, highscores, timeup) are
+the frozen ones on both. No text is reported missing and no static initializer is "not understood". The web build under Node
+(`wasmrun.js`, the same tour on the Collection's files) was started but cut off at 400 seconds, at the tour's update 20450
+(the paused action game), with no error in its log; its screens were not collected, so only the native run is the check.
+Nothing about the Collection's files is specific to the web build: it loads them through the same `LoadGameExe`, and the
+importer's markers are the ones above.

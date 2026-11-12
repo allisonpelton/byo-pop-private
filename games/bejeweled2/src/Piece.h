@@ -2,8 +2,7 @@
 #define __PIECE_H__
 
 // Piece.h: the things a board holds or throws around: Piece (a gem, 0xe0 bytes), Effect (an explosion frame, 0x14 bytes)
-// and Shard (a particle, 0x70 bytes). Offsets in the comments are the original's. Fields whose use is not understood
-// yet are named after their offset (mXX).
+// and Shard (a particle, 0x70 bytes). Offsets in the comments are the original's.
 
 #include "Color.h"
 
@@ -24,35 +23,35 @@ struct Piece
 	float			mVZ;            // +0x20
 	float			mRot;           // +0x24
 	float			mVRot;          // +0x28
-	bool			m2C;            // +0x2c
-	float			m30;            // +0x30 the lightning's progress through the gem (0 to 1)
+	bool			mLightningHit;  // +0x2c the lightning of a hyper cube has reached the gem
+	float			mLightningProgress; // +0x30 the lightning's progress through the gem (0 to 1)
 	float			mGlow[9];       // +0x34 the eight light levels around the gem (AddPointLight adds to them) and, at +0x54, the ninth that DrawBoard fills
-	int				m58;            // +0x58 the counter of a special gem (saved)
-	int				m5C;            // +0x5c
-	int				m60;            // +0x60 -1
-	int				m64;            // +0x64
-	int				m68;            // +0x68
-	int				m6C;            // +0x6c
-	bool			m70;            // +0x70 a flag that is saved with the gem (flame gem)
-	int				m74;            // +0x74
-	int				m78;            // +0x78
-	int				m7C;            // +0x7c
-	int				m80;            // +0x80
+	int				mCountdown;     // +0x58 the counter of a special gem (saved)
+	int				mMoveTick;      // +0x5c the update count at which the gem was made or last swapped (the newest gem of a set gets the power gem)
+	int				mHypercubeTick; // +0x60 the update count at which the gem became a hyper cube (-1 for never)
+	int				mTypeBeforeHypercube; // +0x64 the gem's colour before it became a hyper cube: FindSets counts it as that colour in the same update
+	int				mJitterX;       // +0x68 how far the bomb gem shakes
+	int				mJitterY;       // +0x6c
+	bool			mFlame;         // +0x70 a flag that is saved with the gem (flame gem)
+	int				mFlameTick;     // +0x74 the update count at which the gem became a flame gem (it does not explode in that update)
+	int				mExplodeDelay;  // +0x78 updates until the flame or bomb gem explodes (a chain, 10 each)
+	int				mSwapOffsetX;   // +0x7c where the gem is from the middle of the swap
+	int				mSwapOffsetY;   // +0x80
 	int				mSwapDX;        // +0x84 where the gem is going during a swap (-1, 0, 1)
 	int				mSwapDY;        // +0x88
-	bool			m8C;            // +0x8c
-	double			m90;            // +0x90
-	float			m98;            // +0x98
-	bool			m9C;            // +0x9c
-	int				mA0;            // +0xa0
-	int				mA4;            // +0xa4 the hint shows on this gem
+	bool			mGemHovered;    // +0x8c the mouse is over the gem: its glow rises
+	double			mGemHoverGlow;  // +0x90 how bright the glow is, 0 to 1
+	float			mGemHoverFrame; // +0x98 the frame of the glow's animation, 0 to 10
+	bool			mInSet;         // +0x9c the gem is in a set that is being cleared (it shrinks)
+	int				mShrinkStep;    // +0xa0 how far the gem has shrunk, 0 to 6
+	int				mGemFrame;      // +0xa4 the frame of the gem's picture that the hint and the selected gem use (0: the plain gem)
 	int				mHintTime;      // +0xa8
 	int				mHintFrame;     // +0xac
-	int				mB0;            // +0xb0
-	int				mB4;            // +0xb4
-	int				mB8;            // +0xb8
-	int				mBC;            // +0xbc
-	float			mC0;            // +0xc0
+	int				mHintMoveX;     // +0xb0 where the hinted gem goes: the columns and rows to move (a gem moving to an empty square)
+	int				mHintMoveY;     // +0xb4
+	int				mHyperRole;     // +0xb8 1: the hyper cube of a swap, 2: the gem it was swapped with
+	int				mHyperDelay;    // +0xbc updates before the hyper cube fades in
+	float			mHyperFade;     // +0xc0 0 to 1: how far the hyper cube has appeared
 	unsigned char	mRest[0x1c];    // +0xc4..+0xe0 (not touched by the constructor)
 
 	Piece();        // 0x5947a7

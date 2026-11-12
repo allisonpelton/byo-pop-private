@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""botrec.py <mode> <seed> <out script> [--shots <dir>] [--moves N] [--match45]: plays the port by its own bot and writes
+"""botrec.py <mode> <seed> <out script> [--shots <dir>] [--moves N] [--match45] [--level N]
+[--museumwait N] [--winafter N]: plays the port by its own bot and writes
 the run as a port -script, so that the same input can be played again in the port and in the original (tour.sh with
 SCRIPT=, toorig.py). <mode> is tutorial, endless, stomped, fossil, panic or timetrial.
 
@@ -17,6 +18,13 @@ line goes into the script before each button move, 40 updates after each new ste
 the game's end, in the name dialog and at the table. With --match45 the bot's first shot at the tutorial's step 45 is
 the one a player would make (`matchmove`, which makes a match; IDENTICAL_PLAY.md, "Oddities"), and the run ends 3000
 updates later.
+With --level N (Fossil) the run starts fossil N at its first fragment by the `level` test command once the game is up.
+With --museumwait N the museum's button is pressed N updates after the bot first offers it, and again N updates after
+each press while it is still offered, so that the museum's own sounds play: the fragment's at its fade-in, the chime of
+a fossil's last fragment, and after fossil 15 the Rex attack's footsteps, roar and chime, which take about 900 updates
+from the press of its "Beware" button (the button stays disabled meanwhile, and a press of it does nothing).
+With --winafter N (the Fossil Challenge) the `win` test command ends each fragment after the bot's N-th shot of it, so
+a run reaches the last fossil and the Rex attack, which the bot's own play does not (fossil 14 beat it).
 """
 import atexit
 import json
@@ -31,6 +39,9 @@ mode, seed, out = sys.argv[1], int(sys.argv[2]), sys.argv[3]
 match45 = '--match45' in sys.argv
 shotdir = sys.argv[sys.argv.index('--shots') + 1] if '--shots' in sys.argv else None
 maxmoves = int(sys.argv[sys.argv.index('--moves') + 1]) if '--moves' in sys.argv else 400
+startlevel = int(sys.argv[sys.argv.index('--level') + 1]) if '--level' in sys.argv else None
+museumwait = int(sys.argv[sys.argv.index('--museumwait') + 1]) if '--museumwait' in sys.argv else 0
+winafter = int(sys.argv[sys.argv.index('--winafter') + 1]) if '--winafter' in sys.argv else 0
 # the main menu's clicks for each mode (mkscript.py's): New Game, the mode, Next, the page's choice, Let's Play
 MENU = {'tutorial': [(486, 355), (488, 432)],
         'endless': [(486, 213), (465, 160), (488, 432)],
@@ -152,11 +163,18 @@ u = click(320, 450, 25000)
 for x, y in MENU[mode]:
     u = click(x, y, u + 60)
 wait(60 if mode == 'tutorial' else 500)
+if startlevel is not None:
+    at(state()['update'] + 1, 'level %d' % startlevel)
+    wait(100)
 shot('start')
 step = None
 moves = shots = buttons = 0
 nulls = 0
 end = None
+offered = None	# the update the bot first offered the museum's button (--museumwait)
+fragment = None	# the fragment (level, round) and the bot's shots in it (--winafter)
+fragshots = 0
+won = set()
 while True:
     s = state()
     if mode == 'tutorial':
@@ -172,6 +190,14 @@ while True:
     if s.get('busy'):
         wait(10)
         continue
+    if winafter and 'round' in s:
+        if (s['level'], s['round']) != fragment:
+            fragment, fragshots = (s['level'], s['round']), 0
+        if fragshots >= winafter and fragment not in won:
+            at(s['update'] + 1, 'win')
+            won.add(fragment)
+            wait(100)
+            continue
     any45 = match45 and step == 0x2d and end is None
     if mode != 'tutorial' and moves >= maxmoves:
         m = 'MOVE {"kind":"up","input":[{"click":[400,60]}]}'	# straight up from the slingshot
@@ -186,6 +212,15 @@ while True:
     nulls = 0
     mv = json.loads(m[5:])
     x, y = mv['input'][-1]['click']
+    if museumwait and mv['kind'] == 'button' and mode != 'tutorial':
+        if offered is None:
+            offered = s['update']
+        if s['update'] < offered + museumwait:
+            wait(min(30, offered + museumwait - s['update']))
+            continue
+        offered = state()['update'] + 6	# a press that leaves the button offered waits again
+    elif mv['kind'] != 'button':
+        offered = None
     if mv['kind'] in ('button', 'continue') and mode != 'tutorial':
         buttons += 1
         shot('button%02d' % buttons)
@@ -193,6 +228,7 @@ while True:
     moves += 1
     if mv['kind'] in ('shot', 'up'):
         shots += 1
+        fragshots += 1
         if shots % 50 == 0:
             shot('shot%04d' % shots, 30)
     if any45:

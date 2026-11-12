@@ -387,7 +387,7 @@ one byte after its 16-character buffer, the port four, with the same string. The
   demo mode: `gDemo` is never assigned in the original, so its 17 branches in the port are dead. (The name entry's on-screen
   keys, `MenuItem_TypeKey` 0x415580 and `Key_Push` 0x428ad0, were listed here as well; that was a mistake, see "The unneeded
   code": the entry screen has 52 of them and a player can click any, by the code.) `Sys_Sleep` (0x428820, which the patched wait skipped)
-  and `gPumpMessages` stay.
+  and `gPumpMessages` stayed (it went in the readability pass, below).
 - The quit requester's other half (0x416d70), the empty-list clear (0x40f040, whose callers are unwind funclets) and `Log`
   (0x428db0, which only the untranslated network code calls).
 
@@ -427,11 +427,129 @@ screen of `bugs.xml` has 52 key items, which the menu code takes as clicks, so a
 and the data, since the one run of the original that was to click one never reached the screen: its random play did not
 lose its last life); `Sys_Sleep` and
 `gPumpMessages` (the coordinator's decision, although nothing sets `gPumpMessages` now that the demo is gone: it was its
-only setter); `Screen_SetFullscreen` (the options item and F7 reach the host through it); the effects of the power-up
+only setter; the readability pass then took it out, below); `Screen_SetFullscreen` (the options item and F7 reach the host through it); the effects of the power-up
 kinds 0 to 13 and the enemy kinds no shipped level uses (a game file can use them); and the engine blitters of the pixel
 formats the shipped art does not use, until Water Bugs' own check agrees. After the pass the port defines 523 of the
 original's 741 functions, 50 of them never reached by the runs (71 before; the list is the coverage section's), and 57
 are left out on purpose.
+
+## The readability pass (2026-11-11)
+
+The pass of `docs/CODE_STANDARDS.md`. Nothing the port does changed (the proof is at the end), and
+`python tools/namecheck.py games/cosmicbugs` finds nothing. It has two exceptions, in `namecheck.txt`: `engine retro64`
+(Retro64 is the engine Cosmic Bugs shares with Water Bugs, `engines/retro64`, so it is checked like the rest) and
+`allow offset gScreenFormat565` (the pixel format's name: red 5 bits, green 6, blue 5, which is not an offset). These
+notes use the new names; the sections above that report a past run (the performance figures, the coverage check, the
+unneeded code) keep the names of their time.
+
+**Names.** Cosmic Bugs has no Mac build, so every name comes from how the code uses the thing. Rule 5: a one-letter
+name past ten lines of its declaration is a word (`theWidth` and `theHeight` for `w` and `h`, a blitter's `srcX`,
+`maskY`; the loops keep `i`, `j`, `k` and the coordinates `x`, `y`). Rule 2: no member or local is called unknown, and
+none is named by its offset. Rule 4: the framework's prefixes on every member (`m`), parameter (`the`, `an`), local
+(`a`, `an`), global (`g`) and static (`s`), the constants and enum values in UPPER_CASE. Rule 6: the host
+(`CosmicBugsApp.cpp`) and the mod and test files carry the port marker, and every function has its address or says it
+is the port's.
+
+**The prefixes came from clang-tidy, as in Water Bugs** (its notes, "The readability pass", have the four things to know
+about the tool). `tools/readability/tidyrename.py` runs `readability-identifier-naming` once for each unit and applies
+every fix file together (6884 places), with its own builder for the new names, since clang-tidy mangles a name that
+begins with its prefix's letter (`mask` becomes `mAsk`). It does not reach `offsetof` arguments, members of
+anonymous-namespace structs or a member read through a template, nor the `__EMSCRIPTEN__` blocks and
+`SiteProfiles.cpp`, which the native build leaves out: those were found by the compiler and by
+`tools/check.sh build-web:cosmicbugs`, and fixed by hand. `tools/readability/scoperename.py` renames a local or a
+parameter inside one function (it skips strings and comments), for the long-lived one-letter names. A renamed
+parameter `aX` to `theX` can shadow an outer `theX`; the object comparison caught one, in the lambda of
+`Weapon_TakeSlot` (now `theOther`). The comments that named a renamed identifier were changed with a script that
+touches comments only.
+
+**Fields named for what they hold (rule 3).** `tools/splitfields.py cosmicbugs` finds no member declared twice at one
+offset, none that nothing writes, and three that nothing reads: the ship's `mSlowMotionTime` (+0x490) and
+`mHyperMotionTime` (+0x494), which the two power-ups set and the original reads nowhere (the flags beside them are what
+its code tests), and a text's `mDormant` (+0x1c0). They are the original's and stay, with their comments saying that
+nothing reads them, as do two objects built and destroyed and never used (a beam's `mHarpoon`, which Water Bugs draws a
+tip with, and the ship's `mIdleObj`). The padding that keeps a struct's layout is named for the field it aligns
+(`mBonusPadding`, `mItemsPadding`, `mDragPadding`, `mLaunchSpeedPadding`, `mInputPadding`, `mWingsPadding`).
+
+**Numbers named (rule 7).** Where one value meant one thing in many places it has a name, the same names as Water Bugs
+where the thing is the same:
+
+| names | what they are | uses |
+|---|---|---|
+| `SCREEN_WIDTH`, `SCREEN_HEIGHT`, `SCREEN_CENTRE_X`, `SCREEN_CENTRE_Y` (`engines/retro64/R64.h`) | the 800 by 600 screen and its middle | 141, in the game and the host |
+| `CELL_SIZE`, `CELL_HALF`, `GRID_COLUMNS`, `GRID_ROWS`, `BOARD_WIDTH`, `BOARD_HEIGHT` (`CBGame.h`) | the 16-pixel cell, half of it, the 50 by 37 board and its 800 by 592 pixels | 259: every position over 16 is a cell index |
+| `CellKind`: `CELL_OPEN`, `CELL_BEAM`, `CELL_LINE`, `CELL_EDGE`, `CELL_FILLED`, `CELL_SOLID`; `CellState`: `CELL_STILL`, `CELL_CAPTURING`, `CELL_WAITING`, `CELL_IN_WAVE` | what a cell is and where it is in its life | 181 |
+| `EnemyKind` (twenty names: `ENEMY_FROG`, `ENEMY_BUMP_ROLLER`, `ENEMY_CANNON_BALL`...) and `EnemyState`: `ENEMY_APPEARING`, `ENEMY_DYING`, `ENEMY_FADING`, `ENEMY_ALIVE` | what an enemy is and where it is in its life | 108 |
+| `ShipState`: `SHIP_HIT`, `SHIP_IDLE`, `SHIP_CONTROLLED`, `SHIP_COMING_IN`, `SHIP_FIRING`, `SHIP_DYING` | the player's ship | 28 |
+| `PowerupKind` (thirteen names), `POWERUP_FALLING`, `WeaponKind`: `WEAPON_MINE`, `WEAPON_MISSILE`, `WEAPON_ICE_SHOT`, `WEAPON_TIME_BOMB`, and `WeaponState`: `WEAPON_ORBITING`, `WEAPON_LAUNCHED` | what a power-up and a weapon are | 85 |
+| `LevelKind` (seventeen screens, from `LEVEL_BOARD` to `LEVEL_CHANGE_USER`), `LevelState`, `ItemKind` (what a menu item does: `ITEM_START` to `ITEM_RESUME_NO`) and `RequesterKind` (`REQUESTER_DELETE_PLAYER` to `REQUESTER_RESUME`) | the screens, their states, the menu's items and its requesters | 268 |
+| `TextKind`, `TextState`, `TEXT_IDLE_FOREVER`, `TEXT_EMPTY_PROFILE` | what a text shows and its life; its idle time of 0x986fc8 ms (about three hours: it stays until it is clicked away); the text id of an unused profile slot's name | 86 |
+| `EmitterKind`: `EMITTER_ANGULAR`, `EMITTER_SCATTERED`, `EMITTER_TRAILING` | how an emitter places its particles | 7 |
+
+The kinds and states were found from the AST, not by reading: `tools/readability/kindscan.py` (clang's
+`-ast-dump=json`) lists every integer literal that is compared with, assigned to or switched on a member named `mKind`
+or `mState`, with the struct the member belongs to, which a text search cannot tell (a cell's `mKind` 4 is not an
+enemy's). A rules file, `kinds.rules`, maps each (struct, member, value) to a name, and the same tool rewrites the
+literals; the arguments that take a kind (`Cell_StartCapture`'s) are listed in the file too. `CBTestCommands.cpp`,
+whose AST is larger than the tool takes, was done by hand. The kinds' meanings come from how the code uses them and from
+the comments the earlier passes wrote over the structs; two are judgements. `CELL_LINE` is what a beam leaves (the
+walkers follow it and the bump rollers push it), and a blast's rim is made of lines too; `CELL_BEAM` is a cell a growing
+beam crosses, which the capture turns into a line. The power-up kinds are named for the function each calls; the test
+keys `0` to `9` and `A` to `D` make kinds 0 to 13, and any other number is the fast shot. The screen's size appears
+twice in `Obj_FromXml` and the text and emitter loaders as `x * 800 / 800`: the original scales the authored position by
+the screen's size over itself, and the port keeps both factors, now named. The shooter's range test (`16 < x < 784`,
+`16 < y < 584`) is the screen less a cell, not the board (592 is the board's bottom).
+
+What stays a number, each where its comment or the line makes it plain: the board's mirror (`528 - y`, the board's height
+less four rows), a level file's 32 rows (the boards that have a background image), the level numbers that choose a
+board's background and song, the draw kinds, the particle systems' colours and counts, times in
+milliseconds, speeds, scores and the points of a chain. They are the original's own tuning and appear once or twice
+each; naming them would be a list of constants nobody reads twice.
+
+**One shared change.** `gPumpMessages` is out of the engine (`shared: Retro64: gPumpMessages out`, 838ee5e4): nothing
+has set it since the demo mode went in the unneeded-code pass, and `PumpMessages` now returns at once while the window
+is inactive, which is what the flag was for. `docs/ENGINES.md` says so, and `tools/check.sh --changed main` runs Water
+Bugs' suite with it. Water Bugs' own notes still name the global in the sections about its past runs.
+
+**Lines.** None is over 120 columns (tabs of 4). Code lines were wrapped by `clang-format` limited to the long lines
+(`--lines`), with a style written to match the code's (Allman braces, tabs, a break after a comma, no reflow of
+comments); a script wrapped the comments, and a trailing comment that did not fit went above its line. The object
+comparison proves that no wrap changed anything.
+
+**Comments.** They name the kinds by their enums (`ENEMY_LASER_SHOT` for "kind 0xd") and describe the code as it is: no
+stage or phase labels (the `stage` check of `namecheck` finds none), and nothing about what a line used to say.
+
+**The proof.** `tools/objsnap.py` took the game's objects before the first change (31 objects, 711 functions) and
+compared them after every part: each function's instructions with the names taken out, and the data bytes, which hold
+every string, log line and table. All of them are identical except two things. The unit `CBShooter.cpp` is one byte
+shorter, in `.llvm_addrsig`, the table of the symbols whose address is taken (linker metadata, no instruction and no
+data; it lists symbols by their index in the object's symbol table, and the renames changed that table's order). The
+engine's `R64Sys.cpp` differs because `gPumpMessages` went (the shared change above). The comparison caught one slip on
+the way, the lambda parameter that shadowed an outer name. `tools/check.sh cosmicbugs` (the suite against the frozen
+baseline) passes, and so do `tools/check.sh build` (every target and tool), `build-web:cosmicbugs` (the native build
+compiles none of the `__EMSCRIPTEN__` blocks nor `SiteProfiles.cpp`) and `tools/check.sh --changed main`.
+
+## The PopCap Game Collection version (2026-11-11)
+
+The port's files come from a PopCap Game Collection install (the staging script's default folder is the Collection's
+`Cosmic Bugs`), so the check against the disc is a comparison and one port run, as Ning Po's and Water Bugs' were
+(`docs/COORDINATION.md`). `unshield` read the group `CosmicBugsComponent` from the user's disc image, mounted read-only and
+dismounted afterwards: 178 files, 18.2 MB, into a folder under `build/` that was deleted once this was written. The layout
+is the install's: `CosmicBugs.exe`, the two art banks, `animations/`, `audio/`, `bass.dll`, a licence and a readme.
+
+**Every file the port reads is the same.** All 171 files the staging script copies (the exe, the banks, the 124 animation
+files and the XML game files, the sounds and the five modules) are the same byte for byte as the staged copy's, the exe
+among them, so no text and no table that `CBGameText.cpp` reads from it moves, and the start-up check of every text passes
+on it. The seven other files are the ones the script leaves out: `bass.dll`, the licence, the readme, the launcher's
+`properties/partner.xml` and its `.sig` (the product's name, the registry key `PopCap\CosmicBugs` and a window of 640 by
+480, which the game never reads: its exe has no string "partner" or "properties"), and the authors' two tools in
+`animations/`, `encrypto.exe` and `i.bat` (which names the three XML files it was run on). The tools are never run and
+never staged.
+
+**The port on the Collection's files** (`cosmicbugs_run` under rundesk, the suite's scripted game: Start Game, the
+instructions' Play, a line down the first board, the aim switched with the right button and a line across, 28 seconds
+of game time). It gives the same two state lines as the run on the staged copy (score 526, filled 426 of 85% at 17 s;
+score 729, filled 629 of 85% at 28 s) and the same two screenshots, byte for byte. No change to the port was needed, and
+the frozen baseline is unchanged.
 
 ## Where the work was hard
 

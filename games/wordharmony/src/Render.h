@@ -37,18 +37,22 @@ class ScreenGraphics : public engine::Graphics
 public:
 	// 0x45dcb0
 	ScreenGraphics(uint32_t* theBits, int theWidth, int theHeight)
-		: mBits(theBits), mWidth(theWidth), mHeight(theHeight) {}
+		: mBits(theBits), mWidth(theWidth), mHeight(theHeight), mCleared(false) {}
+
+	// The screen starts the frame black (clear) and is that by the first write that does not cover it, or by finish at the
+	// frame's end (Render.cpp)
+	void clear();
+	void finish();
 
 	void drawImage(engine::Image* theImage, const engine::IntRect& theSrc, float x, float y) override;
 	using engine::Graphics::drawImage;
-	void fillRect(const engine::Rect& theRect) override;
-	void fillRectAdditive(const engine::Rect& theRect) override;
 	void drawLine(const engine::Point& theFrom, const engine::Point& theTo) override;
 
 private:
 	uint32_t* mBits;
 	int mWidth;
 	int mHeight;
+	bool mCleared;  // clear() was called and its black is not in the pixels yet
 };
 
 } // namespace wordharmony

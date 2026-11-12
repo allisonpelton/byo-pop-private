@@ -27,7 +27,8 @@ static int Ftol(double theValue)
 	return (int) theValue;
 }
 
-// 0x41f540
+// 0x41f540, with the two small counts at the left inline: 0x41ef20 (the matches left, strategy mode) and 0x41f0b0 (the rockets
+// the level still needs)
 void Board::Draw(Graphics* g)
 {
 	if (mFc == 1)
