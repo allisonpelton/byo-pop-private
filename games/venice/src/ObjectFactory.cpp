@@ -23,6 +23,7 @@
 #include "Slot.h"
 #include "TextObject.h"
 #include "Tooltip.h"
+#include "Tutorial.h"
 #include "Turret.h"
 #include "Warp.h"
 
@@ -85,6 +86,7 @@ namespace
 		{"level_scroller", Create<LevelScroller>},
 		{"level_locker", Create<LevelLocker>},
 		{"tooltip", Create<Tooltip>},
+		{"tutorial", Create<Tutorial>},
 	};
 }
 
