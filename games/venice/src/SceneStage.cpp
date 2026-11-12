@@ -221,6 +221,7 @@ void SceneStage::ApplyAttributeFilters(float* theProgress)
 	}
 }
 
+// port: lets CheckEvents know that an event freed the stage
 SceneStage::~SceneStage()
 {
 	if (mFreedDuringEvents != nullptr)
