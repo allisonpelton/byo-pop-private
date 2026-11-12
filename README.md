@@ -93,7 +93,7 @@ asked.
 | Noah's Ark Deluxe | 0.60 s | 2.12 s | 8.0 s a minute | 18.1 and 19.0 s a minute | 63 and 66 MB | 67 MB |
 | Seven Seas Deluxe | 1.07 s | 1 to 2 s | 4.8 to 5.5 % of one core | 2.2 to 8.7 % of one core | 66 MB | 41.5 to 51.2 MB |
 | Atomica Deluxe | 1.20 s | 1.07 s | 1.7 s to update 4,400 | 2.5 s to update 4,400 | 184 MB | 62 MB |
-| Mummy Maze Deluxe | 0.38 and 0.44 s | 4.5 s | 2.2 s a minute | 5.7 and 5.8 s a minute | 58 MB | 65 and 66 MB |
+| Mummy Maze Deluxe | 0.38 and 0.44 s | 4.5 s | 6.4 G cycles a minute | 8.4 G cycles a minute | 58 MB | 65 and 66 MB |
 | TipTop Deluxe | 0.6 to 0.9 s | 4.7 and 4.8 s | 14 and 20 % of one core | 5 % of one core | 82 and 83 MB | 46 MB |
 | Bookworm Adventures Deluxe | 1.70 s | 6.4 s | 2.9 to 3.2 % of one core | 7.8 to 9.4 % of one core | 165 MB | 94 MB |
 | Ning Po Mahjong Deluxe | 0.36 s | 0.82 s | 6.3 % of one core | 14.9 % of one core | 54 MB | 21 MB |
@@ -118,7 +118,7 @@ original under origrun, back to back on one machine, windowed and silent, over t
 time from the process's start to the first screen that takes input and the memory the peak of the process's private
 bytes. Processor time is as each game measured it, a share of one core over a stretch of play or seconds over a scripted
 minute (Atomica's runs from launch to a fixed update; Bookworm Adventures was measured at rest on the title; Bejeweled
-Twist's is the cycles its threads ran in a minute of the same seeded Classic game, the memory that game's peak; TipTop's and Cosmic Bugs' originals are paced at 60 Hz, as on a player's screen). Most runs
+Twist's and Mummy Maze's are the cycles their threads ran in a minute of the same scripted game (Mummy Maze's the medians of ten alternating pairs), the memory that game's peak; TipTop's and Cosmic Bugs' originals are paced at 60 Hz, as on a player's screen). Most runs
 shared the machine with other sessions' games, and each game has its own play and its own measure, so a row compares a
 port with its own original, never one game with another; an empty cell means the notes give no number.
 

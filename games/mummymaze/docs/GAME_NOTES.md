@@ -304,6 +304,10 @@ for both. In memory the port is the larger of the two: 7 MB more working set and
 into. In processor time the port used 0.64 to 0.88 ms an update against the original's 0.95 ms, and its two runs differ by a third,
 which is the busy machine: the processor time of a run follows what the other sessions do to the caches and the other half of its core.
 
+**Superseded (2026-11-12): the processor-time rows and the "74 and 81 updates a second" above.** The processor times were read from
+GetProcessTimes (charged at the 15.6 ms tick), and the 74 and 81 were the original's sleep counter (app+0x328), which origrun timed
+its input by, not its updates: the original keeps 100 updates a second. "Processor time like for like" below measures again.
+
 **Not measured: the web build's load.** The only page that can be timed is the player-only test page, and it fetches the staged game files
 from the loopback server and imports them into its test profile on every load, while the player on the site reads a folder it has
 already imported; the Browser pane is often hidden here, and a hidden pane paces its frames itself instead of the game. A figure from that page
@@ -355,6 +359,74 @@ coordinator. The stb GIF decoder is shared too; a faster GIF decode would speed 
 own code was not profiled further: a scripted minute uses about 2 s of processor time for 60 s of play. The web build's load was
 not measured (see above); it builds (`tools/check.sh build-web:mummymaze` passes) but was not run, so the lazy decode was not
 timed there.
+
+### Processor time like for like (2026-11-12)
+
+The target of `docs/COORDINATION.md` ("The target", the user, 2026-11-11): a port's processor time at most its original's, over the
+same stretch of play, the original paced as on a player's screen, sound counted the same way on both sides, as cycle counts. The
+figures above (the original's 5.7 and 5.8 s a minute against the port's 2.2) were not that, so these replace them.
+
+**How the original paces itself.** Its main loop (`SexyApp::vf03`, 0x438310) times its 100 updates a second with `timeGetTime` and
+`Sleep`: it makes an update when 5 ms or more of the 10 ms frame have passed (up to ten in a row without a draw), and otherwise
+draws (`vf05`, 0x4375a0: only when a widget is dirty, or a second has passed since the last draw) and sleeps out the rest of the
+frame. It waits for no vertical blank in the windowed mode its registry holds (`ScreenMode` 0, the flag at app+0x230 reads 1), so
+the unpatched copy on rundesk's desktop is paced as it would be on a player's windowed screen, and no patch was needed. (`Sleep(1)`
+averages 1.76 ms there as on the ordinary desktop, so the hidden desktop does not coarsen its timer.) The counters at app+0x328,
++0x32c and +0x330 are its sleeps, draws and updates; origrun's counter for this game is the first. The original keeps 100 updates
+a second (100.0 in nine of ten runs, 98.8 in one) and sleeps once an update only when it is never late: a wake 5 ms late makes
+the update up in the same pass without a sleep, so its sleeps were 1 to 11 % fewer than its updates (5351 to 5921 in the 6000).
+The earlier "74 and 81 updates a second" were that sleep count on a machine too busy for the game, not its pace.
+
+**The same play, timed by updates.** Both sides play phase two's scenario `c6` from the classic game's start click, seed 21 (the
+port's updates 1020 to 7020, the original's 3321 to 9321: 6000 updates, 60 s). Timing the original's keys by its sleep counter
+(origrun's default) would land them late in game time (up to 6 s by the end), and a key meant to last one update spans two in a
+pass that makes one up. So `tools/profile/cycles.py` times the original's input to its update counter (`mark` at the start
+click, then `at +N`), and the pollers (that script, origrun) run at idle priority, below the game's, so that they do not keep it from
+its core. The board's state read from the original's memory at the stretch's two ends shows the same game: explorer, chamber and
+score are the same in 7 of the 10 runs at the end (explorer at cell (1,2), chamber index 0), in two the board was between
+chambers at that instant, and in one the chamber had ended a few updates earlier (score 150): the stretch ends where a chamber
+does, so a few updates' difference decides which. The port plays its script exactly by update, as in the identical-play pass; its
+state was not read.
+
+**What is counted.** Processor time is the cycles of every thread of the game process between the two ends (`QueryProcessCycleTime`
+and each thread's `QueryThreadCycleTime`, read from outside every 5 ms, so that the ends are the counters' values), never
+`GetProcessTimes`. The port is the player's exe as built (`build/native/mummymaze.exe`) under rundesk with only `-script`: no
+`-commands`, no per-update log, no screenshots. The original runs under origrun on the real clock with its patch list (registration
+check, seed). Sound: the original's FMOD runs two threads of its own (their start address is in fmod.dll, from a probe; the second
+and third of its cycles) that mix into origrun's stand-in DirectSound without playing, and the port's SDL audio thread
+(`SDLAudioP2`) mixes into rundesk's silent driver, so both totals hold the mixing; the table gives the totals and the figures
+without sound. `tools/profile/pairs.sh` runs the pairs (the original first, a pair after a pair, each run started when the machine
+had room for a game process, the whole loop under `python -I tools/pincore.py --`); the machine was shared with 2 to 6 other
+sessions' game processes throughout.
+
+| Pairs | Original, G cycles in the stretch | Port, G cycles in the stretch | Medians |
+|---|---|---|---|
+| First five | 7.263, 7.115, 9.701, 9.733, 9.609 | 6.729, 5.927, 6.135, 5.734, 5.868 | 9.609 against 5.927 (0.62) |
+| Second five | 7.159, 6.555, 7.066, 10.39, 9.847 | 8.583, 8.24, 6.784, 7.142, 5.598 | 7.159 against 7.142 (1.00) |
+| All ten | | | 8.436 against 6.432 (0.76) |
+
+Over the ten pairs the port is under its original in 8, and over in two (8.583 against 7.159, 8.24 against 6.555). Without sound
+(the original less its two FMOD threads, the port less its audio thread) the medians are 7.56 and 5.76 G (0.76), and the sound alone
+is 0.88 G for the original and 0.63 for the port. The port ran at 99.7 to 100.2 updates a second in eight of the ten runs and at 96.3 and
+87.0 in two (the machine loaded); the original's runs fall into two groups, 6.6 to 7.3 and 9.6 to 10.4 G, the port's spread 5.6 to
+8.6. Six further port-only runs beside these (three alternating with visible-desktop runs, three before the second set) read 6.2,
+7.5, 8.0, 7.2, 9.1 and 10.3 G: with them the port's median over its 16 rundesk runs is 6.96 G, still under the original's 8.44.
+
+**Where the port's cycles go.** In a run of 6.4 G, its main thread is about 3.0 G, one unnamed thread (its samples include the
+NVIDIA driver, `nvwgf2um.dll`) about 2.6 G, the audio thread 0.63 G, and everything else under 0.15 G; the game's own code (the exe) is
+about 1 % of a profile's samples, and the rest is waits, wake-ups and the driver. The main thread swings from 2.6 to 6.6 G between
+runs and the driver thread from 1.5 to 3.0 G, with what the machine's other game processes do to the GPU: the swing is shared cost
+(the framework's present path), not the game's code. A sampling profile (`games/tiptop/tools/perf/cpuprof2.py`) charges 79 % of its
+cycles to waits, as its header warns, so it says nothing finer. The port draws 2,235 frames in the 6000 updates (37 a second:
+each present waits for the vertical blank, so two updates run between two draws) against the original's 3,200 (53 a second); on
+the user's own desktop it draws 2,391 to 2,415 in the stretch and costs 5.7 to 6.4 G (three runs, `ORACLE_VISIBLE`, alternating
+with rundesk runs of 6.2 to 8.0 G), so rundesk's private desktop does not make the port look cheaper.
+
+**Verdict.** The port is at or under its original in the medians of the first five pairs (0.62), of all ten (0.76) and of its
+16 runs against the original's ten, and level in the second five. It is not under in every pair, and its spread is the shared
+present path's, so the README row gives the ten pairs' medians. No cost of the game's own code was found, so there is nothing to
+change in it and no spec for the coordinator beyond the draw rate above (37 to 40 frames a second against the original's 53 on a 60 Hz
+screen, which the screen-by-screen comparison does not see).
 
 ## Coverage check (2026-11-08)
 
