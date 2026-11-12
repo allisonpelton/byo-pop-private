@@ -252,7 +252,6 @@
         "registration-out",
         "fixes-mod",
         "coverage",
-        "performance",
         "unneeded-code",
         "readability",
         "collection",
@@ -260,7 +259,7 @@
       ],
       "na": [],
       "now": "identical-look",
-      "note": "Music equal; the 3D screen wipe tonight"
+      "note": "3D screen wipe reached, not yet compared frame by frame; performance reopened: 3D over its original, waits on the framework's present"
     },
     "ningpo": {
       "title": "Ning Po Mahjong Deluxe",
