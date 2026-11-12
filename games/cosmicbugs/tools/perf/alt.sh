@@ -10,7 +10,8 @@ cd "$(dirname "$0")/../../../.." || exit 1
 N=$1
 shift
 dirs=""
-for round in $(seq 1 "$N"); do
+START=${START:-0}   # START=5 numbers the rounds from 6 on, to add rounds to an earlier set (its run directories stay)
+for round in $(seq $((START + 1)) $((START + N))); do
 	for spec in "$@"; do
 		label=${spec%%=*}
 		rest=${spec#*=}
@@ -24,15 +25,19 @@ for round in $(seq 1 "$N"); do
 		name="$label$round"
 		until python tools/gamecount.py --limit 6 > /dev/null; do sleep 10; done
 		echo "run $name ($kind $exe)"
+		# every run on a performance core of its own (docs/COORDINATION.md, "Alternating runs"): its children inherit the core
+		PIN="python -I tools/pincore.py --"
 		if [ "$kind" = orig ]; then
-			python games/cosmicbugs/tools/perf/perf.py orig --paced 16 --label "$name" > "build/cbperf/$name.log" 2>&1
+			$PIN python games/cosmicbugs/tools/perf/perf.py orig --paced 16 --label "$name" > "build/cbperf/$name.log" 2>&1
 		elif [ -n "$exe" ]; then
-			build/native/rundesk.exe python games/cosmicbugs/tools/perf/perf.py port --exe "$exe" ${scale:+--windowscale $scale} --label "$name" > "build/cbperf/$name.log" 2>&1
+			$PIN build/native/rundesk.exe python games/cosmicbugs/tools/perf/perf.py port --exe "$exe" ${scale:+--windowscale $scale} --label "$name" > "build/cbperf/$name.log" 2>&1
 		elif [ "$kind" = portmute ]; then
-			build/native/rundesk.exe python games/cosmicbugs/tools/perf/perf.py port --nosound ${scale:+--windowscale $scale} --label "$name" > "build/cbperf/$name.log" 2>&1
+			$PIN build/native/rundesk.exe python games/cosmicbugs/tools/perf/perf.py port --nosound ${scale:+--windowscale $scale} --label "$name" > "build/cbperf/$name.log" 2>&1
 		else
-			build/native/rundesk.exe python games/cosmicbugs/tools/perf/perf.py port ${scale:+--windowscale $scale} --label "$name" > "build/cbperf/$name.log" 2>&1
+			$PIN build/native/rundesk.exe python games/cosmicbugs/tools/perf/perf.py port ${scale:+--windowscale $scale} --label "$name" > "build/cbperf/$name.log" 2>&1
 		fi
+		# the window and the renderer the run got (the framework's display line, from the port's log)
+		[ -f "build/cbperf/$name/game.log" ] && echo "$name: $(grep -h -m1 'display: client' "build/cbperf/$name/game.log" | cut -c1-200)" >> build/cbperf/display-lines.txt
 		dirs="$dirs build/cbperf/$name"
 	done
 done
