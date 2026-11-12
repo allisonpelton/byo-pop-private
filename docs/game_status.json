@@ -297,11 +297,12 @@
         "port",
         "identical-play",
         "registration-out",
-        "site-features"
+        "site-features",
+        "coverage"
       ],
       "na": [],
       "now": "identical-look",
-      "note": "3D screens still to compare (tonight)"
+      "note": "3D screens still to compare (tonight); no fix candidate so far"
     },
     "dynomite": {
       "title": "Dynomite Deluxe",

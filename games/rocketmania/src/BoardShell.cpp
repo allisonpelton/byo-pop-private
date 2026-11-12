@@ -28,7 +28,7 @@ static int Ftol(double theValue)
 	return (int) theValue;
 }
 
-// 0x41ad90's initialisation of a new board (the pieces are made through Piece(int))
+// 0x41ae80: a new board (its pieces are made through Piece(int), 0x41ad90)
 Board::Board(RocketApp* theApp, bool theContinuing)
 {
 	mApp = theApp;
@@ -83,6 +83,7 @@ Board::Board(RocketApp* theApp, bool theContinuing)
 	mApp->mMusicInterface->FadeIn(SONG_GAME, -1, 0.666, false);
 }
 
+// 0x41b2a0
 Board::~Board()
 {
 	ClearBoard(false);

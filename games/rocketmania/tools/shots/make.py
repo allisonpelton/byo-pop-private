@@ -32,4 +32,6 @@ else:
         if cmd == 'char':
             cmd = 'text'
         print("at %d %s %s" % (k - 1, cmd, a))
+    if side == 'host':   # origrun's plain quit follows the last line at once: let the tour's last updates (its shots' too) run first
+        print("at %d move 5 5" % (max(k for k, cmd, a in lines) - 1))
     print("quit")

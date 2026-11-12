@@ -37,7 +37,7 @@ LoadingScreen::LoadingScreen(RocketApp* theApp) :
 	mPlayLink->mUnderlineSize = 0;
 }
 
-// 0x410ab0
+// 0x410b40, and the deleting destructor 0x410ab0
 LoadingScreen::~LoadingScreen()
 {
 	delete mPlayLink;
@@ -56,7 +56,7 @@ void LoadingScreen::RemovedFromManager(WidgetManager* theWidgetManager)
 	theWidgetManager->RemoveWidget(mPlayLink);
 }
 
-// 0x4111b0
+// 0x4111b0 (0x410ae0, when the game has loaded, inline in it)
 void LoadingScreen::Update()
 {
 	Widget::Update();
@@ -183,6 +183,7 @@ GameSelector::GameSelector(RocketApp* theApp) :
 	HeadBesideMenu();
 }
 
+// 0x405890
 GameSelector::~GameSelector()
 {
 	delete mEffects;
@@ -205,7 +206,7 @@ void GameSelector::AddedToManager(WidgetManager* theWidgetManager)
 	theWidgetManager->AddWidget(mOptionsButton);
 }
 
-// 0x405e40
+// 0x405de0
 void GameSelector::RemovedFromManager(WidgetManager* theWidgetManager)
 {
 	Widget::RemovedFromManager(theWidgetManager);
@@ -215,6 +216,18 @@ void GameSelector::RemovedFromManager(WidgetManager* theWidgetManager)
 	theWidgetManager->RemoveWidget(mQuitButton);
 	theWidgetManager->RemoveWidget(mHighScoresButton);
 	theWidgetManager->RemoveWidget(mOptionsButton);
+}
+
+// 0x405e40: when the menu is moved in the order of the widgets (to the back, when it is shown) its six buttons follow it, one after
+// the other each directly in front of it, so that they end up behind the talking head and the dialogs
+void GameSelector::OrderInManagerChanged()
+{
+	mWidgetManager->PutInfront(mModeButtons[BUTTON_ARCADE], this);
+	mWidgetManager->PutInfront(mModeButtons[BUTTON_CLASSIC], this);
+	mWidgetManager->PutInfront(mModeButtons[BUTTON_STRATEGY], this);
+	mWidgetManager->PutInfront(mQuitButton, this);
+	mWidgetManager->PutInfront(mHighScoresButton, this);
+	mWidgetManager->PutInfront(mOptionsButton, this);
 }
 
 // 0x405bd0: the hint under the picture follows the hovered button and fades in
@@ -306,7 +319,7 @@ void GameSelector::ButtonPress(int theId)
 	mApp->ButtonPress(0);
 }
 
-// 0x406220
+// 0x406220 (0x4061f0, a mode button's, inline in it)
 void GameSelector::ButtonDepress(int theId)
 {
 	switch (theId)
