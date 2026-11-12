@@ -458,8 +458,12 @@ folder, `bejeweled2_2d_software_prototype.diff`; none is committed):
 
 **Done on this branch after the table (2026-11-11, evening): two shared commits, to be merged with the other games' checks.** Change 1 is in
 the framework as `e19af272` (the blend mode of an image with no transparency, at the draw call; the idle-board screenshot at update 5000 is pixel for
-pixel the same; the port's idle share 95.7% of a core before, 76.7% after, five alternating pairs on a machine with other games running meanwhile,
-so a quiet machine reads lower). The commands file's poll is cheap on Windows as `fa73221e` (0.11 s of processor time over the recorded game's 643
+pixel the same; the port's idle share 95.7% of a core before, 76.7% after, five alternating pairs on a machine with other games running meanwhile).
+A review found that images in forced mode (`SetImageMode`, which the board's static background is) say nothing of their texels, so `fec8a8a5` leaves
+them blended; measured again with three builds turn about (machine 50 to 90% busy): share of a core 82.6% none, 79.4% with `e19af272`, 87.8% with
+`fec8a8a5`, frames a second 44, 73 and 53. The software path has no pace for its draws, so a cheaper frame shows as more frames a second at the same share (the
+first figures above were that); the board's own forced background was two thirds of `e19af272`'s saving, and about 10% a frame is left. An exact test (the
+alpha bytes read at the texture's upload, no flags) would bring the rest back; not done. The commands file's poll is cheap on Windows as `fa73221e` (0.11 s of processor time over the recorded game's 643
 calls before, 0.015 s after). Change 3 goes into the presenter (the Mahjong session's window-surface presenter); change 2 (render scale 1 and a
 nearest-neighbour present, which changes the look) waits for the user, and only if the first and third leave the software path over the target.
 The table above is the measurement before these: repeat it after the merge.
