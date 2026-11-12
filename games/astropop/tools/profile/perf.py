@@ -23,7 +23,7 @@ ScreenMode=0 and -windowscale=1); `2` is the framework's default window, twice t
 runs did before (no ScreenMode: the port started full screen on a 3840x2160 desktop, render scale 4: not like for like with the
 original's 640x480 window). The original's window is its own size in every run (origrun's copy; visrun3d's, ScreenMode 0).
 PERF_SPLIT=1 is the cycle split (docs/TEST_COMMANDS.md, "The cycle split"): the port runs with -cyclesplit=<dir>/split.jsonl and the
-script's `cyclesplit a` / `cyclesplit b` at the stretch's first and last update; orig counts the functions of count.txt with origrun's
+script's `cyclesplit a` at the stretch's first update and `cyclesplit b` 20 updates after the last input; orig counts the functions of count.txt with origrun's
 --count (`at N count a` / `b`), orig3d with countsnap.py (the same counters read from outside); the files are compared with
 `tools/cyclesplit.py <port file> <original file> --from a --to b`. A split run is for the proportions: the target's total comes from a
 run without counting.
@@ -362,7 +362,7 @@ def port_script(dst, mark):
         f.write('%d screenshot %s\n' % (sc['last'] - MINUTE, mark.replace('\\', '/')))
         if SPLIT:
             f.write('%d cyclesplit a\n' % (sc['last'] - MINUTE))
-            f.write('%d cyclesplit b\n' % sc['last'])
+            f.write('%d cyclesplit b\n' % (sc['last'] + 20))
         f.write('%d quit\n' % (sc['last'] + 30))
     return sc['last']
 
@@ -497,11 +497,23 @@ def port_minute(out):
     print(json.dumps(res))
 
 
+def split_lines(lines, extra):
+    """Puts `at N <cmd>` lines for (N, cmd) in `extra` into a script's lines in the order of their updates (the lines that are not
+    `at` lines, the mark's `quit`, stay last)."""
+    at = [l for l in lines if l.startswith('at ')]
+    rest = [l for l in lines if not l.startswith('at ')]
+    at += ['at %d %s' % (n, c) for n, c in extra]
+    at.sort(key=lambda l: int(l.split()[1]))     # stable: the mark stays after a count line at its update
+    return at + rest
+
+
 def orig_script(dst):
     """The scenario as origrun's script lines (origcmp/to_origrun.py): a mark 30 updates after the last input, then quit."""
     import to_origrun
     sc = scenario()
     lines = to_origrun.convert(sc['events'], 0, 30, None, sc['last'])
+    if SPLIT:     # snapshots of the counters at the stretch's first update and just before the mark, in the script's order
+        lines = split_lines(lines, [(sc['last'] - MINUTE, 'count a'), (sc['last'] + 20, 'count b')])
     with open(dst, 'w', newline='\n') as f:
         f.write('\n'.join(lines) + '\n')
     return sc['last'] + 30
@@ -534,9 +546,13 @@ def orig_run(out, runs, load_only=False):
         s0 = system_times()
         log = open(os.path.join(d, 'origrun.log'), 'wb')
         t_start = time.time()
+        counts = os.path.join(root, 'build', 'origrun', RUN, 'counts.jsonl')
+        if os.path.exists(counts):
+            os.remove(counts)      # origrun appends its snapshots
         p = subprocess.Popen([origrun, '--game', 'astropop', '--run', RUN, '--exe', gameexe, '--seed', str(SEED),
                               '--clock', 'real' if (load_only or REAL) else 'virtual', '--cursor', 'scripted',
-                              '--reg-map', 'popcap', '--timeout', '400', '--script', sc], stdout=log, stderr=subprocess.STDOUT)
+                              '--reg-map', 'popcap', '--timeout', '400', '--script', sc] +
+                             (['--count', COUNT_LIST] if SPLIT and not load_only else []), stdout=log, stderr=subprocess.STDOUT)
         h = None
         created = ready = spawned = load_began = None
         started = False      # the title's click landed: the board exists
@@ -604,6 +620,8 @@ def orig_run(out, runs, load_only=False):
         if h:
             res['cycles_check'] = cycle_check(h)
         json.dump({'samples': samples, 'counters': counters, 'result': res}, open(os.path.join(d, 'perf.json'), 'w'))
+        if os.path.exists(counts):
+            shutil.copy(counts, os.path.join(d, 'counts.jsonl'))
         if h:
             k32.CloseHandle(h)
         log.close()
@@ -641,6 +659,14 @@ def orig3d_run(out, runs, load_only=False):
         env.update({'ORIGRUN_DIR': os.path.join(v.WORK, 'logs'), 'ORIGRUN_SOUND': 'stub', 'ORIGRUN_REGMAP': 'popcap',
                     'ORIGRUN_CURSOR': 'scripted', 'ORIGRUN_CURSOR_ID': run_id})
         os.makedirs(env['ORIGRUN_DIR'], exist_ok=True)
+        ctr = None
+        counts_file = os.path.join(d, 'counts.jsonl')
+        if SPLIT and not load_only:       # the stand-in counts the functions of count.txt; the block's counters are read from here
+            import countsnap
+            resolved = os.path.join(d, 'count-resolved.txt')
+            countsnap.resolve_list(os.path.join(v.GAME, 'AstroPopGame.exe'), COUNT_LIST, resolved)
+            map_name = 'Local\\apcount_' + uuid.uuid4().hex[:12]
+            env.update({'ORIGRUN_COUNT': resolved, 'ORIGRUN_COUNT_MAP': map_name})
         others0 = game_processes(mine_prefixes())
         s0 = system_times()
         g = None
@@ -649,6 +675,8 @@ def orig3d_run(out, runs, load_only=False):
         try:
             g = v.Game(os.path.join(v.GAME, 'AstroPopGame.exe'), env)
             created = creation_time(g.h)
+            if SPLIT and not load_only:
+                ctr = countsnap.Counter(g.h, map_name)
 
             def sampler():
                 next_sample = 0
@@ -692,7 +720,15 @@ def orig3d_run(out, runs, load_only=False):
                         if v.wait_counter(g, n, log) is None:
                             break
                         if cmd == 'mark':
+                            if SPLIT:       # the split's last snapshot comes 20 updates after the last input, past the mark
+                                continue
                             break
+                        if cmd == 'count':       # a snapshot of the counters at this update; nothing is held, as origrun's
+                            if not ctr.ready():
+                                print('count %s: the stand-in has made no counters: %s' % (args[0], ctr.error() if ctr.mm else 'no block'), file=log, flush=True)
+                            else:
+                                ctr.snapshot(args[0], g.counter(), counts_file)
+                            continue
                         g.hold()
                         try:
                             v.post_input(g, cur, cmd, args)
