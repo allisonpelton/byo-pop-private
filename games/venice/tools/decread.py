@@ -24,8 +24,10 @@ DECLARATION = re.compile(
     r"^\s*(undefined\d?|int|uint|char|byte|bool|float|double|float10|long|short|ushort|longlong|ulonglong|void|"
     r"size_t|DWORD|HANDLE|LPVOID|code|[A-Za-z_][\w:<>,]*)\s*\**\s*\**[A-Za-z_]\w*(\[[0-9a-fx]+\])?;\s*$")
 NOISE = re.compile(
-    r"ExceptionList|^\s*puStack_c = |^\s*local_8 = |^\s*local_8\._\d_\d = |^\s*local_10 = |^\s*local_14 = 0;$|"
     r"^\s*/\* WARNING|^\s*\*/\s*$|std::basic_fstream<char>::vbase_dtor|_Tidy\(.*'\x01'\)")
+FRAME_NOISE = re.compile(
+    r"ExceptionList|^\s*puStack_c = |^\s*local_8 = (0x)?[0-9a-f]+;|^\s*local_8 = \(uint\)local_8\._1_3_ << 8;|"
+    r"^\s*local_8 = CONCAT31|^\s*local_8\._\d_\d = |^\s*local_10 = ExceptionList")
 
 
 def load_symbols():
