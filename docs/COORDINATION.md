@@ -176,8 +176,9 @@ holds the rules every session follows; this file does not repeat them.
     GPU-drawn port's graphics card scales; neither costs much (Bejeweled 2 on the GPU: 8.5% of a core at 2x against the
     original's 9.4%). The one costly case is SDL's software renderer, which SDL uses only on a machine with no GPU
     renderer: there Bejeweled 2 stretches every sprite on the processor (48.5% at 2x). No game gets a 1x default for
-    it; that fallback takes the software screen (SoftwareScreenDisplay, Dynomite's) once it is on the trunk, a low
-    priority. Where a session needs to know which part of a frame costs what, `-cyclesplit` in the port
+    it. That fallback should take the software screen (SoftwareScreenDisplay, on the trunk since f7f021ac), which stays
+    in software at every size when no accelerated renderer exists. It is a low priority, for Bejeweled 2 after the
+    weekly reset. Where a session needs to know which part of a frame costs what, `-cyclesplit` in the port
     and `origrun --count` in the original split update, draw and present on both sides (docs/TEST_COMMANDS.md,
     "Picking the functions"); per-update figures compare, per-call ones do not, since a port presents in step with
     the display and an original's Blt does not wait (BookWorm, 2026-11-12).
@@ -298,7 +299,12 @@ holds the rules every session follows; this file does not repeat them.
     DirectDraw path draws, shown through SurfaceDisplay with the dirty rects (the original's software draw is 0.75 M an
     update; Dynomite's board, 77% of the screen, is dirty every update in play). It would serve Dynomite, Alchemy and
     the other 2D SexyApp ports over their originals. The user said yes ("Yes, build it", 2026-11-12): the Dynomite
-    session builds it as shared commits, design note first, proved on Dynomite, every other port unchanged.
+    session builds it as shared commits, design note first, proved on Dynomite, every other port unchanged. It has been
+    on the trunk since f7f021ac (2026-11-12) as `framework/SoftwareScreenDisplay`, a hybrid. At 1x the screen is drawn
+    in software. At any other size, where SDL's renderer is accelerated, it hands over to the GPU path for good, because
+    doubling a full-screen redraw in software and copying four times the pixels cost more than the GPU's scaling
+    (Dynomite's 2x window: 2.42 M cycles an update in software, 1.87 on the GPU). With no accelerated renderer it stays
+    in software at every size. Dynomite is at 8.46 against its original's 9.63 G cycles a minute at 640x480.
   - Draw calls (Typer Shark, 2026-11-12). `DDInterface::DrawTexturedQuad` makes one SDL call a quad: 593 a frame for
     about 20 texture changes, DrawScreen 466 M cycles in 20 s. Joining consecutive quads of one texture into one
     SDL_RenderGeometry call would take about half of that, some 6% of the port. The draw order stays, and every port's
