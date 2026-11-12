@@ -1305,7 +1305,7 @@ var ByopopSoundboards = {
     { name: "Power-ups and weapons", sounds: [
       ["audio/powerup.wav", "Power-up", "A power-up is caught, except slow shot, hyper motion and flip flopper"],
       ["audio/powerdn.wav", "Power-down", "A slow shot, hyper motion or flip flopper power-up is caught"],
-      ["audio/mine.wav", "Mine launched", "A mine, magnet or time bomb is launched by a click"],
+      ["audio/mine.wav", "Mine launched", "A mine or time bomb is launched by a click"],
       ["audio/ice_launch.wav", "Ice shot launched", "An ice shot is launched by a click"],
       ["audio/missile.wav", "Missile launched", "A missile is launched by a click"],
       ["audio/fuse.wav", "Time bomb fuse", "A time bomb burns its fuse; repeats every 230 updates of its age"]
