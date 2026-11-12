@@ -34,11 +34,15 @@
 
 using namespace Sexy;
 
+// port: the number the next board takes (Board::mBoardSerial, for the autosplit observer)
+static unsigned int sBoardSerials = 0;
+
 // 0x4544b0: the fields are set in the original's order. The Widget part comes first (Widget(), then the vftable), then the
 // zeroed BgLayers and lists, the nine WSTimers are made one after another among the other fields, and the two random
 // numbers of mSparkles are drawn from gGameRand in the middle of it.
 Board::Board(WinWSApp* theApp)
 {
+	mBoardSerial = ++sBoardSerials;
 	// the two BgLayers (0x170 to 0x1b0) are zeroed first
 	int i = 2;
 	char* aLayerBytes = (char*)mBgLayers;

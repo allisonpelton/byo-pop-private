@@ -581,7 +581,7 @@ one for the fields at that class's offsets) and the port (`-fast -seed -script -
 differing updates and a verdict line. `queue.sh` runs a jobs file one job at a time; `endcmp.py <tag>` compares the registry
 and `users` folders at the end; `show.py`, `summ.py`, `peek_expr.py` and `peek_more.py` are for finding the cause of a
 difference. `tools/leak` holds the counting build's scripts (`build.sh`, `scenarios.py`, `runall.sh`, `leaksites.py`), whose
-scratch commands (`leak`, `press`, `dyes`, `dno`, `dlist`, `dname`) exist only in that build. `tools/regress.py` is a
+scratch commands (`leak`, `dlist`, `dname`) exist only in that build (`press <id>`, `dyes` and `dno <dialog id>`, which the scenarios and the autosplit tests use, are standard test commands since 2026-11-12). `tools/regress.py` is a
 regression check on the port's own play (it was uncommitted when these notes were written; to check its state).
 
 ## 10. The fixes mod and the fix candidates (2026-11-09)
@@ -1223,3 +1223,81 @@ Tools (`tools/phase2`): `mksaved.sh` makes the saved adventure, `mkprofile.py` t
 and `win`, the first try: the whole-adventure route up to the dialog, which the original could not finish in the sandbox), `medal.sh <ngc: 0, 2 or 4>
 [dialog|dialogkeep]` runs a dialog tour on both programs with the patched byte (`runorig.sh` takes `PATCHES=<file under build/ts-p2>`: the list of
 `tools/origrun/patches/typershark.txt` plus the line `test TyperSharkGame.exe va:0x454e9b 83f807 83f801 <reason>`) and `shotdiff`.
+
+## 19. The autosplit block (2026-11-12)
+
+Typer Shark Deluxe has a speedrun.com board (Adventure Mode on each of the five difficulties, Abyss Mode, and Death%), so the port writes the
+shared autosplit block the site's Splits window reads (`platform/AutosplitBlock.h`, layout 2; `docs/WEB_PLAYER.md`, "One design for every
+port"). The observer is `src/LiveSplitObserver.cpp` (called after each update from `WinWSApp::UpdateFrames`, and from `~WinWSApp` for the last
+write). The block's game id is `TSDX`. It reads the game and writes nothing of it: until something asks for it, it only tests a flag (the mod
+list is looked at every 64 updates). The page asks by calling `byopop_livesplit_block` (exported in the web build: `EXPORTS
+_byopop_livesplit_block` in `games/typershark/CMakeLists.txt`); natively the `livesplit` feature of an enabled mod does
+(`mods/livesplit/mod.json`, a manifest only). `-livesplitlog=<file>` writes one line for each write that changes what a splitter acts on
+(board, events, state, level, mode, skill, flags), and the events go to the log as `livesplit: game 1 GO at tick 4200 (mode 0, skill 1)` and
+the like.
+
+**A block "board" is a game, not a Board.** The game builds a new `Board` for every level (`WinWSApp::StartBoard`, from the map's start
+button) and shows the map screen between two of them, so one game is many Boards. The block's board serial is `WinWSApp::mAutosplitGameSerial`,
+which `CreateBoard` (the first Board of a game: the difficulty button, the Abyss button, a continued save) and `RestartBoard` (play again)
+count; `Board::mBoardSerial` counts the Boards, which the observer uses for the per-level baseline. Both are written by the port only to be
+read by the observer (the inert state of the standing rule). `WinWSApp::mAutosplitContinued` is set by the "CONTINUE?" dialog's yes for a saved
+adventure. When the menu comes back (the options' "end this game", a game over answered, a quit) there is no Board and the block shows none.
+
+**Numbering.** `mode` 0 Adventure, 1 Abyss. `skill` is `WinWSApp::mDifficulty`: 0 Easy, 1 Normal, 2 Hard, 3 Expert, 4 X-Treme!, and 0 in the
+Abyss (which has none; the game stores -1). Death kinds: 0 an adventure out of lives, 1 an Abyss dive out of lives; 2 and 3 are unused.
+`state` is the diver's state (`Player::mState`: 0 swimming, 1 climbing down, 2, 3 and 10 beaten, 4 on the floor, 5 the streak game or the clams,
+6 waiting or the treasure, 7 and 12 level won, 8 game over, 9 afraid of a boss), or the block's own 20 while the map screen is up between two
+levels. `level` is the diver's level number (`Player::mLevelNumber`, 0 for the first level of the game: it counts levels played in this game,
+not the map's site number); `displayLevel` is the number the HUD shows (`level + 1`). `displayScore` is the HUD's points
+(`Player::mScore`); `score` is the same, except in the Abyss where it is the depth in feet (`Board::mScore`). `tick` is the app's update count
+(`mUpdateCount`; the WSTimers count 10 milliseconds an update, so 100 updates are a second of game time). `progress`, in an adventure, is the
+levels beaten and left: `mLevelNumber`, plus one while the map is up after a level, so that it **reaches N on the update on which the map
+comes back after the Nth beaten level**, and it stays N through the next level's board until that is beaten; -1 in the Abyss.
+`gameOwn` holds two int32: the game's time in milliseconds as the game-over screen shows it (`WinWSApp::mGameTimeSoFar` plus the Board's timer
+minus its paused time; the same number the dialog's `mGameTime` gets in `Board::PlayerEaten`, which the observer reads from the dialog once
+it exists, so it is frozen at the game over to the very value shown) and the depth an Abyss game started at (0 from the surface and in an
+adventure). The flags are RESUMED (a continued save, or an Abyss dive that starts below the surface), VANILLA (no score key, i.e. no mod
+that changes scores is on) and PAUSED (`Board::mPaused`: the options, a hint box or the pause key).
+
+**Events** (for the current game):
+- *GO*: the first update of a new game that is not a continued save, not a dive that starts below the surface, and not first seen at
+  activation. That is the update after the difficulty button (Adventure) or the Abyss button made the first Board, the moment the board's
+  rule "the time starts after the difficulty is chosen" names. A "play again" is a new game with its own GO.
+- *Level clear*: the diver enters state 12 (`Board::Update` after the treasure: the level bonus is added, `mStats.mReserved[7]` takes the
+  level's time), or state 7 without it, or state 6 in a bonus level (the treasure shown). That is when the level is won, **before** the player
+  leaves it: the space bar (`Board::KeyChar` at state 7 or a bonus level's state 6) or the continue link (`WinWSApp::ReturnToMap`) brings
+  the map back, and that is when `progress` rises. In a script that does nothing after `win` it takes 554 updates from state 12 to state 7
+  (the treasure's 3000 timer units and the fade of its alpha), and the map comes back whenever the player presses the space bar. A Board seen
+  already won raises no level clear. The Abyss has no level end.
+- *Game over*: the diver enters state 8 (`Board::PlayerEaten` with no life left: the game-over dialog opens the same update). Kind 0 in an
+  adventure, 1 in the Abyss. Leaving a game from the options' "end this game" (which saves it) is not a game over.
+- *Win*: the win dialog (`DIALOG_WIN_GAME`, 0x8d) appears. `MapScreen::Update` creates it when the map's final scroll after the last site is
+  done, so it comes about 120 updates (a second and a bit) **after** `progress` reaches the last level's number and the map is back; the
+  board's end moment (the return to the map after level 11) is the `progress` edge, not this event.
+
+A game's first update is a baseline for the level clear, the game over and the win (a game seen already over has had its game over), and a
+Board's first update is a baseline for its own level clear.
+
+**The board's level 11.** The adventure's whole-adventure regression route (`adventure-route-s1`, the typing bot on Easy) plays the sites 0, 1, 6, 9,
+21, 26, 27, 32, 33, 34 and 35, eleven levels (the HUD shows 1 to 11), and the last, site 35, is the final level whose win opens the
+end-of-adventure dialog; so on that route `progress` reaches 11 on the update on which the map comes back after the 11th level (the board's
+"returning to the map after beating level 11"), and `displayLevel` is 11 while it is played. Only this one route was played to the end (the
+sites between depend on the chests taken at the map's forks), so whether every route has eleven levels is not shown here; the win event does not
+depend on it, and `progress` is what counts levels beaten.
+
+**Tests.** `games/typershark/tools/livesplit/run_tests.py <out dir>` (under rundesk with `-fast`, one game at a time; about 15 minutes on a
+busy machine): scripted games of the standard commands (`goto`, `win`, `lose`, `level <n>`, and `press <id>`, `dyes <dialog id>`, which are now
+standard test commands, no longer only the leak-counting build's, and the framework's `char SPACE`): an adventure on each difficulty (a win,
+the space bar, a second level, a win, the space bar, a third level, then the last life lost: one GO, two level clears, one game over of kind 0,
+`progress` 0, 1, 2 with the map as state 20 between them), an Abyss game lost (GO, kind 1, the game-over time in `gameOwn`: 15,380 ms at update
+5800), an Abyss dive started at 1,200 feet (RESUMED, no GO, `gameOwn` start depth 1200), a game left from the options (a GO, no game over, no
+board after it), a saved game continued (the "CONTINUE?" dialog's yes: RESUMED, no GO, `progress` 1) and a game won (`level 35`, `win`, the
+space bar: one win, `wins=1`, 118 updates after the map came back). A new profile has hints on, and a hint box opens 138 updates after a Board
+starts and pauses it (`AUTOSPLIT_FLAG_PAUSED`), so the scripts close it (`dyes 0x3f3`) before they win. The block logs of these runs (the
+adventure on each difficulty, the Abyss, the deep dive, the left game, the continued game, the win) went to the site session.
+
+**Proof that it is inert.** `run_tests.py` ends with `games/typershark/tools/regress.py --quick` run with `TSMODSDIR` pointing at a folder
+that holds only the `livesplit` mod, so the block is on (the port's log says `livesplit: block at ...`): the five games' state logs hash to
+`regress_expected.txt` and the frozen baseline's, unchanged (`tools/check.sh typershark`, which has no mod, passes too). The change to
+`tools/phase1/cmp.py` only lets that mods folder lack the `fixes` mod. The web build links with the export (`typershark.js` carries
+`byopop_livesplit_block`).
