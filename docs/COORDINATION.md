@@ -168,9 +168,11 @@ holds the rules every session follows; this file does not repeat them.
     is what a player gets. The default stays twice the game's size where it fits (the user, 2026-11-12: "I want the 2x
     default"). Windows enlarges a window only when the desktop's scale is above 100% (the user's 4K desktop is at 100%),
     so the port does the 2x itself: the surface presenter repeats each pixel in the copy it makes anyway, and a
-    GPU-drawn port's graphics card scales; neither costs much. The exception is Bejeweled 2's software mode, where SDL's
-    software renderer scales the whole frame each frame (48.5% of a core against the original's 9.4%): it takes the
-    software screen (SoftwareScreenDisplay, Dynomite's) once that is on the trunk. Where a session needs to know which part of a frame costs what, `-cyclesplit` in the port
+    GPU-drawn port's graphics card scales; neither costs much (Bejeweled 2 on the GPU: 8.5% of a core at 2x against the
+    original's 9.4%). The one costly case is SDL's software renderer, which SDL uses only on a machine with no GPU
+    renderer: there Bejeweled 2 stretches every sprite on the processor (48.5% at 2x). No game gets a 1x default for
+    it; that fallback takes the software screen (SoftwareScreenDisplay, Dynomite's) once it is on the trunk, a low
+    priority. Where a session needs to know which part of a frame costs what, `-cyclesplit` in the port
     and `origrun --count` in the original split update, draw and present on both sides (docs/TEST_COMMANDS.md,
     "Picking the functions"); per-update figures compare, per-call ones do not, since a port presents in step with
     the display and an original's Blt does not wait (BookWorm, 2026-11-12).
