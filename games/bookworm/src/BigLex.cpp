@@ -33,7 +33,7 @@ BigLex::~BigLex()
 }
 
 // 0x402e40
-void BigLex::PlayAnim(int theAnim, bool theLoop)
+void BigLex::PlayAnimSeq(int theAnim, bool theLoop)
 {
 	mAnim = theAnim;
 	mAnimStep = 0;

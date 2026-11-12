@@ -10,24 +10,27 @@ using namespace Sexy;
 // WordScore.cpp (in the original part of Board.cpp): the word a list of tiles spells and its score.
 // Spec: re/bookworm/analysis/board_logic.md 2.3 (behaviour) and 6.3 (record).
 
-// Record helpers: little-endian raw fields as the original's fwrite/fread. A field the file does not hold
+// port: Record helpers: little-endian raw fields as the original's fwrite/fread. A field the file does not hold
 // (a truncated file) keeps its value, as with the original's fread.
 static void WriteInt(FILE* theFile, int theValue)
 {
 	fwrite(&theValue, 1, 4, theFile);
 }
 
+// port: a saved-game record field (the original's fread of the field)
 static void ReadInt(FILE* theFile, int* theValue)
 {
 	fread(theValue, 1, 4, theFile);
 }
 
+// port: a saved-game record field
 static void WriteBool(FILE* theFile, bool theValue)
 {
 	unsigned char aByte = theValue ? 1 : 0;
 	fwrite(&aByte, 1, 1, theFile);
 }
 
+// port: a saved-game record field
 static void ReadBool(FILE* theFile, bool* theValue)
 {
 	unsigned char aByte = *theValue ? 1 : 0;
@@ -47,7 +50,7 @@ WordScore::WordScore()
 	mLevel = -1;
 }
 
-// 0x406560 (only BoardDraw::DrawWord copies one)
+// 0x406560 (only BoardDraw::DrawWordScore copies one)
 WordScore::WordScore(const WordScore& theOther)
 {
 	mApp = theOther.mApp;
@@ -91,7 +94,7 @@ void WordScore::Clear()
 
 // 0x406a10: the word of the tiles in order ("QU" for a Q tile) and its score. Does nothing but Clear
 // without an app or a list.
-void WordScore::Build(const PieceList* thePieces)
+void WordScore::CalcTileStats(const PieceList* thePieces)
 {
 	Clear();
 	if ((mApp == NULL) || (thePieces == NULL))
@@ -154,7 +157,7 @@ int WordScore::CalcScore()
 }
 
 // 0x406130: in the dictionary (case-sensitive: the app's set holds upper-case words)
-bool WordScore::CheckValid(const std::set<SexyString>* theDictionary)
+bool WordScore::Validate(const std::set<SexyString>* theDictionary)
 {
 	if ((mWord.size() > 2) && (theDictionary->size() != 0) &&
 		(theDictionary->find(mWord) != theDictionary->end()))

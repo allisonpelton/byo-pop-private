@@ -20,7 +20,7 @@
 
 using namespace Sexy;
 
-// The 2004 MTRand::SRand(const std::string&): the 624 state words when the string has exactly that size
+// port: The 2004 MTRand::SRand(const std::string&): the 624 state words when the string has exactly that size
 // (the generator's index is kept, as the port's SRand does), else SRand(4357), whose 1.2 seeding the
 // port's SRand(4357) would not reproduce.
 static void RestoreMTRand2004(MTRand* theRand, const std::string& theState)
@@ -181,7 +181,7 @@ void FlyingPieceList::Update()
 	if (mPieces.size() == 0)
 	{
 		mDead = true;
-		aLex->PlayAnim(LEXANIM_EAT_END, false);
+		aLex->PlayAnimSeq(LEXANIM_EAT_END, false);
 		return;
 	}
 
@@ -189,7 +189,7 @@ void FlyingPieceList::Update()
 
 	Piece* aFirstPiece = mPieces.front();
 	if ((aFirstPiece != NULL) && (aFirstPiece->mX < 233.0) && (!aLex->IsBusy() || (aLex->mAnim == LEXANIM_SWEAT)))
-		aLex->PlayAnim(LEXANIM_EAT, false);
+		aLex->PlayAnimSeq(LEXANIM_EAT, false);
 
 	Piece* aPrevPiece = NULL;
 	std::list<Piece*>::iterator anItr = mPieces.begin();
@@ -288,7 +288,7 @@ void FlyingPieceList::Update()
 				Sparkle* aSparkle = new Sparkle(mEffectMgr);
 				aSparkle->mX = ((double)(mEffectMgr->mRand->Next() % 57) + aPiece->mX) - 28.0;
 				aSparkle->mY = ((double)(mEffectMgr->mRand->Next() % 57) + aPiece->mY) - 28.0;
-				mEffectMgr->AddEffect(aSparkle);
+				mEffectMgr->Add(aSparkle);
 			}
 			++anItr;
 		}
@@ -374,11 +374,11 @@ EffectMgr::~EffectMgr()
 {
 	if (mRand != NULL)
 		delete mRand;
-	Clear();
+	EraseAll();
 }
 
 // 0x41f930
-void EffectMgr::Clear()
+void EffectMgr::EraseAll()
 {
 	std::list<Effect*>::iterator anItr = mEffects.begin();
 	while (anItr != mEffects.end())
@@ -422,13 +422,13 @@ void EffectMgr::Draw(Graphics* g)
 }
 
 // 0x4207f0
-void EffectMgr::AddEffect(Effect* theEffect)
+void EffectMgr::Add(Effect* theEffect)
 {
 	mEffects.push_back(theEffect);
 }
 
 // 0x41fa50
-bool EffectMgr::HasEffectOfType(int theType)
+bool EffectMgr::CheckByType(int theType)
 {
 	if (mEffects.size() != 0)
 	{
@@ -477,7 +477,7 @@ void EffectMgr::Save(FILE* theFile)
 // 0x420b70
 // Restores the RNG words (the generator's index is kept) and reads the effect count. A file the game wrote has
 // 0 there and no records (see Save); the original reads a record for each effect, the port has no code to
-// read one. Callers Clear() first.
+// read one. Callers EraseAll() first.
 void EffectMgr::Load(FILE* theFile)
 {
 	unsigned int aLength = 0;
@@ -736,7 +736,7 @@ EmberListMgr::EmberListMgr(BookWormApp* theApp, int thePoolSize)
 // 0x4203a0 (body), 0x420520 (scalar deleting destructor, slot 0)
 EmberListMgr::~EmberListMgr()
 {
-	Clear();
+	DestroyAll();
 	if (mRand != NULL)
 		delete mRand;
 	mApp = NULL;
@@ -745,7 +745,7 @@ EmberListMgr::~EmberListMgr()
 // 0x4202d0
 // Deletes the active embers, then the pool (front to back); both vectors end up empty, so new embers
 // are allocated afterwards until dead ones refill the pool.
-void EmberListMgr::Clear()
+void EmberListMgr::DestroyAll()
 {
 	while (mEmbers.size() != 0)
 	{
@@ -851,7 +851,7 @@ void EmberListMgr::Save(FILE* theFile)
 
 // 0x420e70
 // Restores the RNG words and reads the ember count, as EffectMgr::Load does (a file the game wrote has 0
-// there). Callers Clear() first: the original frees the active vector's buffer here without deleting the
+// there). Callers DestroyAll() first: the original frees the active vector's buffer here without deleting the
 // embers in it (port: the same, the vector is emptied).
 void EmberListMgr::Load(FILE* theFile)
 {

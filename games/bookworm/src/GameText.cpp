@@ -110,6 +110,7 @@ const char* const gMarker = "!popcapcdprotect!";
 
 }
 
+// port: the original keeps its texts in the exe; the port reads each from the player's own exe by address (GameText.h)
 bool Sexy::LoadGameTexts()
 {
 	std::vector<SexyString>& aTexts = Texts();
@@ -186,6 +187,7 @@ bool Sexy::LoadGameTexts()
 	return aMatched > 0;
 }
 
+// port: a game text by id
 const SexyString& Sexy::GameText(GameTextId theId)
 {
 	static const SexyString sEmpty;
@@ -194,11 +196,13 @@ const SexyString& Sexy::GameText(GameTextId theId)
 	return Texts()[theId];
 }
 
+// port: a game text by id, as a C string
 const char* Sexy::GameTextC(GameTextId theId)
 {
 	return GameText(theId).c_str();
 }
 
+// port: the name of a game text's entry
 const char* Sexy::GameTextName(GameTextId theId)
 {
 	if ((theId < 0) || (theId >= NUM_GAME_TEXTS))

@@ -1,3 +1,5 @@
+// port(mod): BookWorm's side of the shared mods (ModFeatures.h). Not part of the original game.
+
 #include "ModFeatures.h"
 #include "platform/ModManager.h"
 

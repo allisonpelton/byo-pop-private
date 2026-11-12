@@ -107,3 +107,4 @@ none 00429940 HelpWidget::OrderInManagerChanged: the help widget is added and re
 none 0042e330 Math::Math: the constructor of the sine and cosine tables embedded in BookWormApp, which nothing reads (taken out with its fields)
 none 0042e390 Math::~Math: the destructor of the tables above
 none 004152a0 BookWormApp::IsInternetScoresEnabled: false in the retail build; only the Hall of Fame's internet button (not ported) asked it
+none 00401350 BWGameSelector::SetGameOption: sets the selector's mGameOption, which only the app's copy of it ever read back; both fields are out

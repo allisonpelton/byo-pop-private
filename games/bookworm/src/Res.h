@@ -299,17 +299,17 @@ enum TileSetId
 // the port's Dialog::BUTTONS_NONE / YES_NO / OK_CANCEL / FOOTER (0..3).
 enum DialogId
 {
-	DIALOG_UNUSED_0 = 0,                    // never created; 2000 -> KillDialog(0) + ShowGameSelector
-	DIALOG_OPTIONS = 1,                     // OptionsDialog (ShowOptions)
+	DIALOG_UNUSED_0 = 0,                    // never created; 2000 -> KillDialog(0) + DoGameSelector
+	DIALOG_OPTIONS = 1,                     // OptionsDialog (DoOptions)
 	// 2 the RegisterDialog: taken out (registration)
-	DIALOG_UNUSED_3 = 3,                    // never created; killed by StartGame / ShowGameSelector
+	DIALOG_UNUSED_3 = 3,                    // never created; killed by NewGame / DoGameSelector
 	// 4 the trial-expired dialog: taken out
-	DIALOG_CONTINUE = 5,                    // continue the saved game? (SelectGameMode)
+	DIALOG_CONTINUE = 5,                    // continue the saved game? (TryConfirmLoad)
 	// 6 the internet connection question, 7 and 8 the update check: not ported (online features)
 	// 9 the invalid registration code: taken out
 	// 11 the wait message of OpenURL and 12 the URL to open by hand (URLOpenFailed): taken out
-	DIALOG_QUIT = 13,                       // quit confirmation (ShowQuitDialog)
-	DIALOG_HINT = 15,                       // HintDialog (ShowHint) and the Board's can't-scramble messages
+	DIALOG_QUIT = 13,                       // quit confirmation (ConfirmQuit)
+	DIALOG_HINT = 15,                       // HintDialog (DoHintDialog) and the Board's can't-scramble messages
 	DIALOG_CREDITS = 16,                    // CreditsDialog
 	// 17 the Board's and Fame's registration upsells: taken out
 	DIALOG_MESSAGE = 18,                    // OK-only messages (new-user name checks, Options warnings)
@@ -318,7 +318,7 @@ enum DialogId
 	DIALOG_CONFIRM_DELETE_USER = 21,        // delete confirmation (DeleteUserDialog)
 	DIALOG_NEW_USER = 22,                   // NewUserDialog
 	// 23 the internet alias, 24 to 27 the Hall of Fame's resubmit message, wait dialog, error and warning: not ported
-	DIALOG_LEAVE_GAME = 28                  // leave-game confirmation (GoToMainMenu)
+	DIALOG_LEAVE_GAME = 28                  // leave-game confirmation (ConfirmEndGame)
 };
 
 // Button ids heard by more than one class

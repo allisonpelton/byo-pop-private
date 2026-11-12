@@ -6,7 +6,7 @@
 // whose labels take turns turning brown until one is clicked, the chosen topic's text in a box, the
 // hide-at-startup checkbox (GT_HELP_DONT_SHOW) and a continue button. It pauses the board while shown.
 // Original: class Sexy::HelpWidget : public Widget, public ButtonListener, public CheckboxListener, sizeof
-// 0xa0 (new in BookWormApp::ShowHelp 0x4101c0), vftable 0x4fcd24 (47 slots), ButtonListener vftable
+// 0xa0 (new in BookWormApp::DoHelp 0x4101c0), vftable 0x4fcd24 (47 slots), ButtonListener vftable
 // 0x4fcd04 (+0x58), CheckboxListener vftable 0x4fccfc (+0x5c). Offsets are absolute (the 2004 Widget is
 // 0x58 bytes). Behaviour spec: re/bookworm/analysis/screens.md.
 
@@ -38,8 +38,7 @@ public:
 	// +0x58 ButtonListener vfptr, +0x5c CheckboxListener vfptr
 	BookWormApp*	mApp;                   // +0x60
 	bool			mRefreshTopics;         // +0x64 a topic was clicked: Update swaps the topic button images
-	int				mUnused68;              // +0x68 zeroed, never read
-	int				mUnused6C;              // +0x6c zeroed, never read
+	// +0x68 and +0x6c (two ints the ctor zeroes, never read): not ported
 	bool			mTopicChosen;           // +0x70 a topic was clicked (ends the label attention cycle)
 	int				mCurTopic;              // +0x74 button id 28..32 of the shown topic, -1 = none
 	Checkbox*		mShowHelpCheckbox;      // +0x78 id 27 at (215, 395), checked = help off at startup
@@ -59,7 +58,7 @@ public:
 	virtual void	Draw(Graphics* g) override;                     // 0x42a420 slot 16
 	virtual void	Update() override;                              // 0x429a50 slot 17
 
-	void			DrawTopicText(Graphics* g);                     // 0x42a170
+	void			DrawHelp(Graphics* g);                     // 0x42a170
 
 	virtual void	ButtonPress(int theId) override;                // 0x4220c0 ButtonListener slot 3 (shared with FameWidget)
 	virtual void	ButtonDepress(int theId) override;              // 0x429c70 ButtonListener slot 4

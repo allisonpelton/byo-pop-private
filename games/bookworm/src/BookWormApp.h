@@ -89,11 +89,11 @@ public:
 	};
 
 	// +0x618 mMath (0xb48 bytes), built by the ctor and never read: not ported
-	Board*					mBoard;             // +0x1160 current game (StartGame); after a game it stays, unparented, under the selector until RemoveBoard
+	Board*					mBoard;             // +0x1160 current game (StartGame); after a game it stays, unparented, under the selector until KillBoard
 	TitleScreen*			mTitleScreen;       // +0x1164 Init .. TitleScreenDone (the original ctor leaves it uninitialised; port: NULL)
-	BWGameSelector*			mGameSelector;      // +0x1168 main menu or NULL (ShowGameSelector)
-	HelpWidget*				mHelpWidget;        // +0x116c help screen or NULL (ShowHelp / HideHelp)
-	FameWidget*				mFameWidget;        // +0x1170 hall of fame or NULL (ShowHallOfFame)
+	BWGameSelector*			mGameSelector;      // +0x1168 main menu or NULL (DoGameSelector)
+	HelpWidget*				mHelpWidget;        // +0x116c help screen or NULL (DoHelp / KillHelp)
+	FameWidget*				mFameWidget;        // +0x1170 hall of fame or NULL (DoFameWidget)
 	Definitionator*			mDefinitionator;    // +0x1174 popdefs.txt, NULL until the loading thread made it
 	UserManager*			mUserManager;       // +0x1178 profiles (ReadFromRegistry; the original ctor leaves it uninitialised; port: NULL)
 	HighScoreByScoreSet		mClassicScores;     // +0x117c top 10 classic (registry Scores\Classic)
@@ -112,13 +112,13 @@ public:
 	MemoryImage*			mRankStripImage;    // +0x124c copy of IMAGE_RANKSTRIP (the original is deleted)
 	// +0x1250 mInitDone: set at the end of Init, never read: not ported
 	int						mGameMode;          // +0x1254 GameMode of the current / last game; ctor 0
-	int						mSelectedGameMode;  // +0x1258 mode picked in the selector (SelectGameMode); ctor -1
+	int						mSelectedGameMode;  // +0x1258 mode picked in the selector (TryConfirmLoad); ctor -1
 	// +0x125c mScoringMethod: ctor 1, never changed; not ported (0 would select the length formula 0x4040e0)
 	std::set<SexyString>	mDictionary;        // +0x1260 wordlist.txt, upper case, length >= 3
 	std::vector<SexyString>	mBonusWords;        // +0x126c bonus_word_dictionary.txt in file order, upper case
 	// +0x127c mUsedBonusWords (the bonus words completed, never read), +0x1288 and +0x12a4 two unused strings: not ported
-	SexyString				mBonusWord;         // +0x12c0 next bonus word (Board::PickBonusWord)
-	int						mGameOption;        // +0x12dc ctor 1; only copied to / from the selector; meaning unknown
+	SexyString				mBonusWord;         // +0x12c0 next bonus word (Board::GetNextBonusWord)
+	// +0x12dc mGameOption (1 from the ctor, only copied to and from the selector's, which nothing reads): not ported
 	int						mUserTimesPlayed;   // +0x12e0 per-user "TimesPlayed"
 	// +0x12e4 mScrambled: set by every Board::Scramble, never read: not ported
 	bool					mWelcomePlayed;     // +0x12e5 the selector played lex_welcome (once per run)
@@ -133,7 +133,7 @@ public:
 	// +0x12ef a flag nothing reads: not ported
 	bool					mScrambleHintShown; // +0x12f0 HINT_SCRAMBLE
 	// +0x12f1 eleven hint flags the ctor clears and nothing reads: not ported
-	std::vector<int>		mPausedSongs;       // +0x12fc songs paused by PauseAllMusic(true)
+	std::vector<int>		mPausedSongs;       // +0x12fc songs paused by MuteGameMusic(true)
 	int						mResumeUpdateCnt;   // +0x130c mUpdateCount when the board was last resumed (Board ignores input for 15 updates after; GotFocus)
 	// +0x1310 mSEHInfo: appended to the crash report, never written: not ported
 	int						mPlayTicks;         // +0x132c ++ per Board update in play (Shutdown: minutes = / 6000)
@@ -236,62 +236,62 @@ public:
 	virtual void	HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue) override;
 
 	// Screens and widgets
-	void			ShutdownWidgets();                          // 0x40ffa0 (Shutdown) saves a game in progress
-	void			RemoveBoard();                              // 0x410180
-	void			ShowHelp();                                 // 0x4101c0
-	void			HideHelp();                                 // 0x4102d0
-	void			RemoveGameSelector();                       // 0x410360
-	void			RemoveFameWidget();                         // 0x4103a0
-	void			StartGame();                                // 0x410d10 new Board for mGameMode
-	void			ShowGameSelector();                         // 0x410f00
-	void			ShowHallOfFame();                           // 0x411020
+	void			CleanupWidgets();                          // 0x40ffa0 (Shutdown) saves a game in progress
+	void			KillBoard();                              // 0x410180
+	void			DoHelp();                                 // 0x4101c0
+	void			KillHelp();                                 // 0x4102d0
+	void			KillGameSelector();                       // 0x410360
+	void			KillFameWidget();                         // 0x4103a0
+	void			NewGame();                                // 0x410d10 new Board for mGameMode
+	void			DoGameSelector();                         // 0x410f00
+	void			DoFameWidget();                           // 0x411020
 	// port(mod): replays (Replay.h)
 	bool			StartWatch(const std::string& thePath);     // false (and a message) when it cannot be played
 	void			EndWatch();                                 // the app's state back; the board stays
 	void			StopWatch();                                // EndWatch, then the main menu
 	void			WatchLastReplay();                          // R on the game-over page
-	void			StartGameForUser();                         // 0x413c80 LoadUserSettings + StartGame (+ help)
-	void			SelectGameMode(int theMode);                // 0x4153c0 the continue-game dialog or start
-	void			GoToMainMenu();                             // 0x4157e0 the Board's menu button
+	void			PreNewGame();                         // 0x413c80 LoadUserConfig + StartGame (+ help)
+	void			TryConfirmLoad(int theMode);                // 0x4153c0 the continue-game dialog or start
+	void			ConfirmEndGame();                             // 0x4157e0 the Board's menu button
 
 	// Dialogs
-	void			ShowSelectUserDialog();                     // 0x410520 (DIALOG_SELECT_USER)
-	void			ShowHint(int theHintId, const SexyString& theHeader, const SexyString& theLines,
+	void			DoSelectUserDialog();                     // 0x410520 (DIALOG_SELECT_USER)
+	void			DoHintDialog(int theHintId, const SexyString& theHeader, const SexyString& theLines,
 						const SexyString& theFooter, int theButtonMode); // 0x4105d0 (DIALOG_HINT)
-	void			ShowCredits();                              // 0x4106c0 (DIALOG_CREDITS)
-	void			ShowOptions();                              // 0x4107c0 (DIALOG_OPTIONS)
-	void			ShowNewUserDialog(const SexyString& theText); // 0x4108c0 (DIALOG_NEW_USER)
-	void			ShowQuitDialog();                           // 0x415660 (DIALOG_QUIT)
-	void			ShowDeleteUserDialog(std::vector<SexyString> theNames); // 0x418590 (DIALOG_DELETE_USER)
+	void			DoCredits();                              // 0x4106c0 (DIALOG_CREDITS)
+	void			DoOptions();                              // 0x4107c0 (DIALOG_OPTIONS)
+	void			DoNewUserDialog(const SexyString& theText); // 0x4108c0 (DIALOG_NEW_USER)
+	void			ConfirmQuit();                           // 0x415660 (DIALOG_QUIT)
+	void			DoDeleteUserDialog(std::vector<SexyString> theNames); // 0x418590 (DIALOG_DELETE_USER)
 	// 0x4152a0 IsInternetScoresEnabled: false in the retail build; its callers (the Hall of Fame's internet button) are not ported
 	// Taken out (registration): ShowRegisterDialog 0x413cb0, ShowInvalidCodeDialog 0x413f30. Not ported
 	// (internet high scores / update check): ShowAliasDialog 0x414080, ConfirmInternetConnect 0x415a20,
 	// AskForUpdateCheck 0x415c40, DoUpdateCheck 0x415de0
 
 	// Resources
-	bool			CheckRegistryAccess();                      // 0x414910
-	bool			LoadImage(int theImageId);                  // 0x4144b0
-	bool			LoadFont(int theFontId);                    // 0x4146d0
+	bool			VerifyHKLMAccess();                      // 0x414910
+	bool			DoLoadImage(int theImageId);                  // 0x4144b0
+	bool			DoLoadImageFont(int theFontId);                    // 0x4146d0
 	bool			LoadWordList(const SexyString& theFileName, std::set<SexyString>* theSet,
 						std::vector<SexyString>* theVector);    // 0x41a5b0
 	bool			LoadDictionary(const SexyString& theFileName, std::set<SexyString>* theSet); // 0x41a860
 	bool			LoadBonusWords(const SexyString& theFileName, std::vector<SexyString>* theVector); // 0x41a880
 
 	// Users, saved games, high scores
-	void			LoadUserSettings();                         // 0x413a40
+	void			LoadUserConfig();                         // 0x413a40
 	bool			SaveCurrentUser();                          // 0x412100 (OptionsDialog)
 	bool			HasSavedGame(const SexyString& theUserName, int theMode); // 0x412190
 	// port: the saved-game file of a player and mode, "players/<name>/classic.dat" or ".../action.dat"
 	// (relative: the framework's file helpers put it in the user dir), "" for other modes. The original
 	// builds the same path in HasSavedGame and in Board's SaveGame / LoadGame / DeleteSavedGame (NAMES L4).
 	static SexyString GetSaveGamePath(const SexyString& theUserName, int theMode);
-	void			LoadHighScores();                           // 0x419080
+	void			ReadFameRegistry();                           // 0x419080
 	void			AddDefaultHighScores();                     // 0x418bd0
 	void			SaveHighScores();                           // 0x412ec0
 	void			SubmitHighScores(StatKeeper* theStats);     // 0x419cd0 (Board, game over)
 
 	// Misc
-	void			PauseAllMusic(bool pause);                  // 0x4184d0
+	void			MuteGameMusic(bool pause);                  // 0x4184d0
 	SexyString		FormatTime(int theSeconds);                 // 0x411cd0 "[d:][hh:]mm:ss", "" without a board
 	SexyString		GetLevelTimeString(const SexyString& thePrefix); // 0x411ea0
 	SexyString		GetTotalTimeString(const SexyString& thePrefix); // 0x411f50

@@ -57,8 +57,6 @@ HelpWidget::HelpWidget(BookWormApp* theApp)
 {
 	mApp = theApp;
 	mRefreshTopics = false;
-	mUnused68 = 0;
-	mUnused6C = 0;
 	mTopicChosen = false;
 	mShowHelpCheckbox = NULL;
 	mContinueButton = NULL;
@@ -100,7 +98,7 @@ void HelpWidget::AddedToManager(WidgetManager* theWidgetManager)
 	Widget::AddedToManager(theWidgetManager);
 
 	if (mApp->mBoard != NULL)
-		mApp->mBoard->Pause(true);
+		mApp->mBoard->SetPause(true);
 
 	Image* aCheckboxes = mApp->mImages[IMAGE_CHECKBOXES_HELP];
 	int aHeight = aCheckboxes->GetHeight();
@@ -167,7 +165,7 @@ void HelpWidget::AddedToManager(WidgetManager* theWidgetManager)
 void HelpWidget::RemovedFromManager(WidgetManager* theWidgetManager)
 {
 	if (mApp->mBoard != NULL)
-		mApp->mBoard->Pause(false);
+		mApp->mBoard->SetPause(false);
 	mTopicChosen = false;
 
 	Widget::RemovedFromManager(theWidgetManager);
@@ -186,7 +184,7 @@ void HelpWidget::RemovedFromManager(WidgetManager* theWidgetManager)
 // 0x429940 OrderInManagerChanged (slot 3: puts the controls in front of the widget) is not ported: the help
 // widget is added to its manager and removed, never moved in it.
 
-// 0x429990: the controls follow the screen (BookWormApp::ShowHelp places it off screen first, then at 0,0)
+// 0x429990: the controls follow the screen (BookWormApp::DoHelp places it off screen first, then at 0,0)
 void HelpWidget::Resize(int theX, int theY, int theWidth, int theHeight)
 {
 	Widget::Resize(theX, theY, theWidth, theHeight);
@@ -272,7 +270,7 @@ void HelpWidget::ButtonDepress(int theId)
 	{
 		SetVisible(false);
 		SetDisabled(true);
-		mApp->HideHelp(); // removes and safe-deletes this widget, shows and unpauses the board
+		mApp->KillHelp(); // removes and safe-deletes this widget, shows and unpauses the board
 	}
 
 	if ((theId >= TOPIC_BUTTON_ID_FIRST) && (theId < TOPIC_BUTTON_ID_FIRST + NUM_TOPICS))
@@ -298,7 +296,7 @@ void HelpWidget::CheckboxChecked(int theId, bool checked)
 }
 
 // 0x42a170
-void HelpWidget::DrawTopicText(Graphics* g)
+void HelpWidget::DrawHelp(Graphics* g)
 {
 	Image* aBox = mApp->mImages[IMAGE_BACKDROP_HELP_BOX];
 
@@ -336,7 +334,7 @@ void HelpWidget::DrawTopicText(Graphics* g)
 void HelpWidget::Draw(Graphics* g)
 {
 	g->DrawImage(mApp->mImages[IMAGE_BACKDROP_HELP], 0, 0);
-	DrawTopicText(g);
+	DrawHelp(g);
 
 	// Captions under the four pictures of the backdrop, centred
 	g->SetColor(Color(0, 0, 0));

@@ -86,7 +86,7 @@ void OptionsDialog::Update()
 	MarkDirty();
 }
 
-// 0x42ed00 (slot 52): the footer button (the app on 2001/3001) and BookWormApp::ShowHelp
+// 0x42ed00 (slot 52): the footer button (the app on 2001/3001) and BookWormApp::DoHelp
 void OptionsDialog::ApplyAndClose()
 {
 	bool wantWindowed = !mFullscreenCheckbox->IsChecked();
@@ -273,9 +273,9 @@ void OptionsDialog::ButtonDepress(int theId)
 	// are not ported
 
 	if (theId == HELP_BUTTON_ID)
-		mApp2->ShowHelp();         // applies and closes this dialog, then opens the help screen
+		mApp2->DoHelp();         // applies and closes this dialog, then opens the help screen
 	else if (theId == CREDITS_BUTTON_ID)
-		mApp2->ShowCredits();      // CreditsDialog on top of this one
+		mApp2->DoCredits();      // CreditsDialog on top of this one
 }
 
 // 0x42fc90 (body; scalar deleting dtor 0x42fe60). The dialog is out of the widget manager by now
@@ -293,7 +293,7 @@ OptionsDialog::~OptionsDialog()
 	delete mHelpButton;
 }
 
-// 0x42fe90. The creator (BookWormApp::ShowOptions) then sets colours 0, 1 (white) and 3 (black, through
+// 0x42fe90. The creator (BookWormApp::DoOptions) then sets colours 0, 1 (white) and 3 (black, through
 // SetColor above), sizes it to 388 x GetPreferredHeight at x = mWidth (off-screen right) and sets
 // mSlideOffset = 240.
 OptionsDialog::OptionsDialog(BookWormApp* theApp) :
