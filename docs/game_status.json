@@ -474,11 +474,12 @@
         "unneeded-code",
         "readability",
         "collection",
-        "site-features"
+        "site-features",
+        "performance"
       ],
       "na": [],
-      "now": "performance",
-      "note": "processor time over the original's: second performance round (the user's target, 2026-11-11)"
+      "now": "lite-mod",
+      "note": "processor time 0.85 of the original's at 800x600 and 0.83 in the default window, through SurfaceDisplay (full screen keeps the renderer, about 1.1); the lite survey next"
     },
     "bejeweled2": {
       "title": "Bejeweled 2 Deluxe",
