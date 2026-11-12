@@ -9,6 +9,9 @@ kinds:
   survival   a survival game with Turbot (pilot 2): 80 moves, then `lose`
   supa       a classic game with Vector (pilot 0) whose weapon starts charged (`set chargestart 18000`): the bot starts the SUPA
              weapon at once; 60 moves, then `lose`
+  levels     a classic game with Vector (pilot 0) whose levels are cleared by the test command `win`, two bot moves into each, and
+             the bot takes the warp screen's gate and the boxes on the way: until level 33 is on the screen (32 level clears, the
+             Any% category's length) or 20000 moves, then `lose`
 The run folder holds game.log (the observer's `livesplit:` lines among the game's), block.log (-livesplitlog: a line each time the
 block changes but for the clocks and the scores) and driver.txt (every command sent and its answer).
 """
@@ -23,21 +26,23 @@ sys.path.insert(0, os.path.join(ROOT, 'tools', 'playbymove'))
 import playbymove as pbm          # noqa: E402
 
 KINDS = {
-    #            first commands                                    moves  stop at level  end with `lose`
-    'classic':  (['goto classic 1 1'],                              1500,  3,             True),
-    'survival': (['goto survival 2'],                               80,    None,          True),
-    'supa':     (['set chargestart 18000', 'goto classic 1 0'],     60,    None,          True),
+    #            first commands                                    moves  stop at level  end with `lose`  `win` after n moves on a level
+    'classic':  (['goto classic 1 1'],                              1500,  3,             True,            None),
+    'survival': (['goto survival 2'],                               80,    None,          True,            None),
+    'supa':     (['set chargestart 18000', 'goto classic 1 0'],     60,    None,          True,            None),
+    'levels':   (['goto classic 1 0'],                              20000, 33,            True,            2),
 }
 
 
 def play(kind, out, exe):
-    firsts, limit, stop_level, lose = KINDS[kind]
+    firsts, limit, stop_level, lose, win_after = KINDS[kind]
     os.makedirs(out, exist_ok=True)
     args = types.SimpleNamespace(dir=out, exe=exe, timeout=120, realtime=False,
                                  game_args=['-seed=1', '-userdir=' + os.path.join(out, 'user'),
                                             '-livesplitlog=' + os.path.join(out, 'block.log')])
     game = pbm.Game(args)
     moves, state, stop = 0, None, None
+    level, on_level, won = 1, 0, False
     try:
         for line in firsts:
             game.send(line)
@@ -56,6 +61,8 @@ def play(kind, out, exe):
             if stop_level is not None and st.get('level', 0) >= stop_level:
                 stop = 'level %d' % st['level']
                 break
+            if st.get('level', 0) != level:
+                level, on_level, won = st.get('level', 0), 0, False
             m = json.loads(answers[-1][len('MOVE '):])
             if m is None:
                 nulls += 1
@@ -73,6 +80,10 @@ def play(kind, out, exe):
                 batch.append(line)
             updates = m.get('updates', 1)
             batch.append('wait %d' % (updates if isinstance(updates, int) and updates > 0 else 1))
+            on_level += 1
+            if win_after is not None and not won and on_level >= win_after and m.get('kind') == 'shoot':
+                won = True
+                batch += ['win', 'wait 20']
         if lose and stop != 'over':
             game.send('lose')
             game.send('wait 10', 'state')
