@@ -55,9 +55,12 @@ try {
       await t.wait(5);
     }
     if (!won && !charge && m.kind === "shoot" && onLevel >= before) {
-      won = true;
-      await t.command("win");
-      await t.wait(20);
+      // `win` is answered with an ERROR unless the level is in play: asked again after the next shot
+      var w = await t.command("win");
+      if (/^OK/.test(w[w.length - 1])) {
+        won = true;
+        await t.wait(20);
+      }
     }
   }
   if (!result.stop) result.stop = "limit";

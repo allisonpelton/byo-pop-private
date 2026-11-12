@@ -318,13 +318,20 @@ bool AstroPopApp::HandleScriptCommand(const ScriptCommand& theCommand)
 
 	if (theCommand.mCommand == "win")
 	{
-		// the level is complete (a classic game); the second type of game has no win: it ends
+		// the level in play is complete (a classic game); the second type of game has no win: it ends
 		if (mBoard == NULL)
 			ReplyError(theCommand, "needs a game");
 		else if (mBoard->mGameType == 1)
 		{
-			mBoard->LevelComplete();
-			ReplyOK(theCommand);
+			// only a level in play is won (Board::WinBlockedReason): a driver that retries until OK plays on until it is
+			const char* aBlocked = mBoard->WinBlockedReason();
+			if (aBlocked != NULL)
+				ReplyError(theCommand, std::string("the level is not in play: ") + aBlocked);
+			else
+			{
+				mBoard->LevelComplete();
+				ReplyOK(theCommand);
+			}
 		}
 		else
 			ReplyError(theCommand, "win needs a classic game (lose ends the other)");

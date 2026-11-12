@@ -42,13 +42,25 @@ def play(kind, out, exe):
                                             '-livesplitlog=' + os.path.join(out, 'block.log')])
     game = pbm.Game(args)
     moves, state, stop = 0, None, None
-    level, on_level, won = 1, 0, False
+    level, on_level, won, want_win = 1, 0, False, False
     try:
         for line in firsts:
             game.send(line)
         batch = []
         nulls = 0
         while True:
+            if want_win:
+                # `win` is answered with an ERROR unless the level is in play (a level with no brick taken yet, a level-up, a bonus
+                # round...): then it is asked again after the next shot
+                want_win = False
+                try:
+                    game.send(*(batch + ['win']))
+                    won = True
+                    batch = ['wait 20']
+                except pbm.Stop as e:
+                    if not str(e).startswith('error: ERROR win'):
+                        raise
+                    batch = []
             answers = game.send(*(batch + ['state', 'move']))
             state = answers[-2][len('STATE '):]
             st = json.loads(state)
@@ -62,7 +74,7 @@ def play(kind, out, exe):
                 stop = 'level %d' % st['level']
                 break
             if st.get('level', 0) != level:
-                level, on_level, won = st.get('level', 0), 0, False
+                level, on_level, won, want_win = st.get('level', 0), 0, False, False
             m = json.loads(answers[-1][len('MOVE '):])
             if m is None:
                 nulls += 1
@@ -82,8 +94,7 @@ def play(kind, out, exe):
             batch.append('wait %d' % (updates if isinstance(updates, int) and updates > 0 else 1))
             on_level += 1
             if win_after is not None and not won and on_level >= win_after and m.get('kind') == 'shoot':
-                won = True
-                batch += ['win', 'wait 20']
+                want_win = True
         if lose and stop != 'over':
             game.send('lose')
             game.send('wait 10', 'state')
