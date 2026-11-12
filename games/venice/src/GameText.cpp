@@ -107,7 +107,7 @@ static void TranslateNextLevel(Profile& theProfile)
 	gLevelNumber = theProfile.mLevelIndex[aMode] + 1;
 	if (aMode == GameModeTrickShot) {
 		strcpy(sText, "NEXT_TRICKSHOT");
-	} else if (aMode == GameModeSurvival || gLevelNumber > 1 || theProfile.mLevelSelectSeen != 0 ||
+	} else if (aMode == GameModeSurvival || gLevelNumber > 1 || theProfile.mInstructionsHidden != 0 ||
 		strstr(gScenes.mHead->mName, "tutorial") != nullptr) {
 		if (aMode == GameModeSurvival) {
 			strcpy(sText, "endless");
@@ -120,7 +120,7 @@ static void TranslateNextLevel(Profile& theProfile)
 			if (aLevelSelectShown) {
 				sprintf(sText, "%d", gLevelNumber);
 			} else {
-				theProfile.mLevelSelectSeen = 1;
+				theProfile.mInstructionsHidden = 1;
 				strcpy(sText, "level_select");
 			}
 		} else if (aMode == GameModeJourney && (unsigned int)gLevelNumber == gRelaxedScenes.mTail->mNumber - 1u) {
@@ -134,7 +134,7 @@ static void TranslateNextLevel(Profile& theProfile)
 				theProfile.mFlagReachedBuilding3 = 1;
 			sprintf(sText, "%d", gLevelNumber);
 		} else {
-			theProfile.mLevelSelectSeen = 1;
+			theProfile.mInstructionsHidden = 1;
 			strcpy(sText, "level_select");
 		}
 	} else {

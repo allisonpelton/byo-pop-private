@@ -6,6 +6,8 @@
 #include "DDImage.h"
 #include "Graphics.h"
 #include "ImageRecord.h"
+#include "Level.h"
+#include "SceneLoader.h"
 #include "SexyMatrix.h"
 #include "VeniceApp.h"
 #include "VeniceGlobals.h"
@@ -21,6 +23,38 @@ bool IsAccelerated()
 bool IsWindowedOnScreen()
 {
 	return gApp->mIsWindowed;
+}
+
+// 0x4418a0
+void SetAcceleratedDisplay(bool theAccelerated)
+{
+	if (theAccelerated) {
+		if (!gApp->Is3DAccelerationSupported()) {
+			PushSceneByName("3d_not_supported");
+			return;
+		}
+		if (!gApp->Is3DAccelerationRecommended()) {
+			PushSceneByName("3d_not_recommended");
+			return;
+		}
+	}
+	gApp->Set3DAcclerated(theAccelerated, true);
+}
+
+// 0x441930 (the original also refuses a window on a desktop that is neither 16 nor 32 bits deep, which no desktop the port runs
+// on is)
+void SetWindowedDisplay(bool theWindowed)
+{
+	if ((float)gApp->mDesktopWidth <= gScreenWidth && (float)gApp->mDesktopHeight <= gScreenHeight) {
+		if (gScenes.mHead != nullptr)
+			PushSceneByName("no_windowed");
+		return;
+	}
+	gApp->SwitchScreenMode(theWindowed, IsAccelerated(), true);
+	if (gScenes.mTail != nullptr) {
+		Level* aTopScene = static_cast<Level*>(gScenes.mTail);
+		gApp->WarpMouse((int)aTopScene->mMouseX, (int)aTopScene->mMouseY);
+	}
 }
 
 // 0x441de0: a style other than 0 and 1 changes nothing

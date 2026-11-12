@@ -30,7 +30,7 @@ struct Profile
 	char mName[ProfileNameSize]; // empty for an unused slot
 	int mLevelIndex[GameModeCount]; // the number of the level the player is on, less one, for each mode
 	int mUnused50;
-	int mLevelSelectSeen; // set once the level select screen has been shown for the mode being played
+	int mInstructionsHidden; // the first level's instructions are not shown again: set by the tick on the tutorial screen and once the level select screen has been sent
 	int mCupidMessageSeen; // set once the cupid has come and its message has been shown
 	int mScore;
 	int mMode; // the GameMode being played

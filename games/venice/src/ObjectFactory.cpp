@@ -26,6 +26,7 @@
 #include "Tutorial.h"
 #include "Turret.h"
 #include "Warp.h"
+#include "Widgets.h"
 
 #include <cstring>
 
@@ -46,8 +47,12 @@ namespace
 	const ClassEntry kClasses[] = {
 		{"text", Create<TextObject>},
 		{"input_box", Create<InputBox>},
+		{"slider", Create<Slider>},
+		{"checkbox", Create<Checkbox>},
+		{"user_list_box", Create<UserListBox>},
 		{"layer", Create<Layer>},
 		{"cursor", Create<Cursor>},
+		{"user_data_display", Create<UserDataDisplay>},
 		{"emitter", Create<Emitter>},
 		{"round_plate", Create<RoundPlate>},
 		{"semicircle_plate", Create<SemicirclePlate>},

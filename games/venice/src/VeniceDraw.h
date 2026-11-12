@@ -13,6 +13,12 @@ const float ParticleZOrder = 9.0f;
 bool IsAccelerated();
 // 0x441a20: whether the game is in a window (the objects that only show in full screen are hidden then)
 bool IsWindowedOnScreen();
+// 0x4418a0: turns the accelerated display on or off. A display that cannot be accelerated, or should not be, shows its message
+// screen instead.
+void SetAcceleratedDisplay(bool theAccelerated);
+// 0x441930: puts the game in a window or on the full screen. A desktop no bigger than the game's screen has no room for a
+// window, and its message screen shows instead.
+void SetWindowedDisplay(bool theWindowed);
 // 0x441de0: the blend mode of what is drawn next, 0 for normal and 1 for additive
 void SetBlitStyleOnTarget(int theBlitStyle);
 // 0x441a60: the clip to the rectangle between the corners, cut to the screen's size
