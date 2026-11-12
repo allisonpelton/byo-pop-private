@@ -1,0 +1,10 @@
+# The functions origrun's --count counts in Dynomite Deluxe's original (DynomiteGame.exe), at the boundaries the port's -cyclesplit
+# counts (docs/TEST_COMMANDS.md, "The cycle split"; docs/ORIGRUN.md, "Counting cycles inside the original's functions"), for
+# cycles.py with CYC_SPLIT=1. A line is: label, address, len=N (whole instructions: tools/origrun/prologue.py checks it).
+#   update   SexyApp::DoUpdateFrames (vf05): an update, called by the main loop (vf04, 0x4834b0) once a tick
+#   draw     SexyApp::DrawDirtyStuff (vf06), less the present it reaches: the widgets' draw, and with WaitForVSync the
+#            sleep to the next refresh (which runs no cycles)
+#   present  SexyApp::Redraw (vf09): the Blt to the window (0x469f50), or the Flip in full screen
+update   0x481110  len=9
+draw     0x488920  len=5
+present  0x48a200  len=6

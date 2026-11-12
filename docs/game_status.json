@@ -318,15 +318,14 @@
         "fixes-mod",
         "identical-look",
         "coverage",
-        "performance",
         "unneeded-code",
         "readability",
         "collection",
         "site-features"
       ],
       "na": [],
-      "now": null,
-      "note": ""
+      "now": "performance",
+      "note": "19% over its original at 640x480 (12.7 G cycles a minute against 10.6), 4% over in the default window; the game's code costs the same, the excess is the present and the D3D11 driver thread: waits on the surface presenter"
     },
     "bookwormadv2": {
       "title": "Bookworm Adventures Volume 2",
