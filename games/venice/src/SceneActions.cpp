@@ -16,9 +16,6 @@
 #include <cstdlib>
 #include <cstring>
 
-static const int FirstSceneNumber = 1;
-static const int LastSceneNumber = 1999; // a name that is a number between these is the number of a level to push
-
 // 0x43a6d0
 static void TrimTrailingSpaces(char* theText)
 {
@@ -69,11 +66,7 @@ void SceneEvent::Fire()
 		if (aRoot->mNext == nullptr || strstr(gScenes.mTail->mName, "pause") != nullptr) {
 			char aName[260];
 			strcpy(aName, TranslateText(mParm1));
-			long aNumber = atol(aName);
-			if (aNumber < FirstSceneNumber || aNumber > LastSceneNumber)
-				PushSceneByName(aName);
-			else
-				PushSceneByNumber((int)aNumber);
+			PushSceneByText(aName);
 		}
 		break;
 	}

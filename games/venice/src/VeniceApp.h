@@ -26,6 +26,7 @@ public:
 	void LostFocus() override; // 0x440410
 	void GotFocus() override; // 0x440450
 	void WriteToRegistry() override;
+	bool HandleScriptCommand(const Sexy::ScriptCommand& theCommand) override; // TestCommands.cpp: the standard test commands
 };
 
 // The one app (0xa2a178)

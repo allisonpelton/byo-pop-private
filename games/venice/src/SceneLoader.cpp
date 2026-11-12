@@ -18,6 +18,7 @@
 #include "platform/VFS.h"
 
 #include <cstdint>
+#include <cstdlib>
 #include <cstring>
 #include <vector>
 
@@ -142,6 +143,28 @@ void PushSceneByName(const char* theName)
 	if (gScenes.mTail != nullptr)
 		static_cast<Level*>(gScenes.mTail)->mNumber = gGameScenes.mCursor->mNumber;
 	ResetTickBase();
+}
+
+void PushSceneByText(const char* theText)
+{
+	const long FirstSceneNumber = 1;
+	const long LastSceneNumber = 1999;
+	long aNumber = atol(theText);
+	if (aNumber < FirstSceneNumber || aNumber > LastSceneNumber)
+		PushSceneByName(theText);
+	else
+		PushSceneByNumber((int)aNumber);
+}
+
+bool SceneFileExists(const char* theName)
+{
+	bool aFound = gGameScenes.Begin();
+	while (aFound) {
+		if (strcmp(gGameScenes.mCursor->mName, theName) == 0)
+			return true;
+		aFound = gGameScenes.Next();
+	}
+	return false;
 }
 
 // 0x438c90
