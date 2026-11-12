@@ -185,6 +185,18 @@ var ByopopSoundtracks = {
       "music#8": "Credits", "music#9": "Monster Battle", "music#10": "Monster Map", "music#11": "Monster Boss",
       "music#12": "Main Menu", "music#14": "Mini-Games", "music#15": "Game Over" },
     when: {
+      "music#0": "Order 0; a battle in Book 1, and in timed mode, which uses Book 1's tunes",
+      "music#1": "Order 27; Book 1's map between battles, and timed mode's",
+      "music#2": "Order 32; a book's final boss fight in Book 1, and timed mode's",
+      "music#3": "Order 39; a battle is won",
+      "music#4": "Order 40; a boss fight is won",
+      "music#5": "Order 42; a battle in Book 2",
+      "music#6": "Order 67; Book 2's map between battles",
+      "music#7": "Order 72; Book 2's final boss fight",
+      "music#9": "Order 102; a battle in Book 3",
+      "music#10": "Order 128; Book 3's map between battles",
+      "music#11": "Order 133; Book 3's final boss fight",
+      "music#15": "Order 158; Lex is defeated",
       "music#8": "Order 78; the credits, looping",
       "music#12": "Order 140; main menu, back from the credits, leaving the stats book (loops, fade 0.005)",
       "music#14": "Order 150; a mini-game starts; loops"
@@ -367,9 +379,16 @@ var ByopopSoundtracks = {
       fairy_tale_map: "Fairy Tale Map", fairy_tale_level: "Fairy Tale Levels", fairy_tale_boss: "Fairy Tale Boss",
       scifi_map: "Sci-Fi Map", scifi_level: "Sci-Fi Levels", scifi_boss: "Sci-Fi Boss", dance_battle_level: "Dance Battle" },
     when: {
-      "fairy_tale_level": "Main menu while the profile's current book is 4 or less",
-      "chinese_level": "Main menu while the profile's current book is 5",
-      "scifi_level": "Main menu while the profile's current book is above 5"
+      "fairy_tale_map": "Book 4's map (and Book 0's): on entering it, and again after a battle or boss is won; also Letter Rip, Link 'n Spell, Word Master and Word Up",
+      "chinese_map": "Book 5's map: on entering it, and again after a battle or boss is won; also the Golden Coins mini-game",
+      "scifi_map": "Book 6's map: on entering it, and again after a battle or boss is won; also the Mutawords mini-game",
+      "fairy_tale_boss": "Book 4's boss fights, chapters 1 to 10 (the Caterpillar's among them)",
+      "chinese_boss": "Book 5's boss fights, chapters 1 to 10 (the Monkey King's among them)",
+      "scifi_boss": "Book 6's boss fights, chapters 1 to 6 and 8 to 10 (The Machine's among them)",
+      "dance_battle_level": "Book 6, chapter 7: the dance battle, for its ordinary fights and its boss alike (it has no boss tune)",
+      "fairy_tale_level": "Book 4's ordinary battles (chapters 1 to 10); also the main menu while the profile's current book is 4 or less",
+      "chinese_level": "Book 5's ordinary battles (chapters 1 to 10); also the main menu while the profile's current book is 5",
+      "scifi_level": "Book 6's ordinary battles (chapters 1 to 6 and 8 to 10); also the main menu while the profile's current book is above 5"
     },
   },
   // Noah's Ark: mainintro plays once as play starts and runs on into mainloop, which loops: one tune, repeating from the loop
