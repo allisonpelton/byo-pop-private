@@ -199,5 +199,61 @@ check(eventReplay("sevenseas", "Level 30 (Hard)", ss30, ssDeath) === "start; " +
 check(A.games.sevenseas.templates.map(function (x) { return x.category + " " + x.skill + " " + x.end; }).join("|") ===
       "Level 30 (Easy) 1 progress 30|Level 30 (Average) 2 progress 30|Level 30 (Hard) 3 progress 30", "Seven Seas' three speedrun.com categories");
 
+// A game's -livesplitlog in the full form ("u=<update> <event> | seq=... board=... go=a/b lc=a/b over=a/b deaths=a,b,c,d
+// ... wins=a/b mode=m skill=k ingame=i progress=p", Mummy Maze's): each line the block as it was, polled once, through the
+// game's decider with the template named category. Returns the timer's calls.
+function blockReplay(game, category, lines) {
+  var g = A.games[game], tp = g.templates.filter(function (x) { return (x.sub ? x.category + " - " + x.sub : x.category) === category; })[0];
+  var ev = [], t = { ph: "NotRunning", idx: -1 }, d;
+  var timer = { phase: function () { return t.ph; }, index: function () { return t.idx; },
+    start: function () { t.ph = "Running"; t.idx = 0; d.onStart(); ev.push("start"); },
+    split: function () { t.idx++; ev.push("split"); if (t.idx >= tp.segments.length) t.ph = "Ended"; },
+    reset: function (c) { t.ph = "NotRunning"; t.idx = -1; ev.push("reset " + c); d.onReset(); } };
+  d = g.decider(timer, { category: category, segments: tp.segments });
+  var PAIRS = { go: ["goCount", "goSerial"], lc: ["levelClears", "levelClearSerial"], over: ["gameOvers", "gameOverSerial"], wins: ["wins", "winSerial"] };
+  var ONE = { board: "boardSerial", blc: "boardLevelClears", dsmax: "displayScoreMax", mode: "mode", skill: "skill", ingame: "inGame",
+              progress: "progress", active: "active", tick: "tick", state: "state" };
+  lines.forEach(function (line) {
+    var bar = line.indexOf("|");
+    if (bar < 0) return;
+    var s = {};
+    line.slice(bar + 1).trim().split(/\s+/).forEach(function (kv) {
+      var eq = kv.indexOf("="), k = kv.slice(0, eq), v = kv.slice(eq + 1);
+      if (PAIRS[k]) { var ab = v.split("/"); s[PAIRS[k][0]] = +ab[0]; s[PAIRS[k][1]] = +ab[1]; }
+      else if (ONE[k]) s[ONE[k]] = +v;
+      else if (k === "flags") s.flags = parseInt(v, 16);
+      else if (k === "deaths") v.split(",").forEach(function (n, i) { s["death" + i] = +n; });
+    });
+    d.poll(0, s);
+  });
+  return ev.join("; ");
+}
+function mmLog(name) { return fs.readFileSync(path.join(__dirname, "autosplit", "mummymaze-" + name + ".log"), "utf8").split(/\r?\n/); }
+check(blockReplay("mummymaze", "1st Pyramid", mmLog("c1")) === "start; split; split; split; reset resetAbandon",
+      "Mummy Maze 1st Pyramid (from chamber 14): a split at each chamber, Abandon Hope resets");
+check(blockReplay("mummymaze", "1st Pyramid", mmLog("c2")) === "start; split; split", "Mummy Maze: the last pyramid's win is no reset");
+check(blockReplay("mummymaze", "100% Run", mmLog("c2")) === "", "Mummy Maze 100% Run never starts on a Classic game");
+check(blockReplay("mummymaze", "100% Run", mmLog("a1")) === "start; split; split", "Mummy Maze 100% Run: a split at each treasure, none at a chamber");
+check(blockReplay("mummymaze", "100% Run", mmLog("a2")) === "" && blockReplay("mummymaze", "1st Pyramid", mmLog("r1")) === "",
+      "Mummy Maze: a resumed game never starts a run");
+// the ends, on made-up blocks: 1st Pyramid ends at progress 1 after its 15 chambers, 100% at the win after 14 treasures
+function mmRun(category, mode, steps) {
+  var lines = [], s = { board: 1, go: "1/1", blc: 0, progress: 0, wins: "0/0", over: "0/0", mode: mode, ingame: 1, active: 1, flags: "04" };
+  function line() { return "u=0 x | " + Object.keys(s).map(function (k) { return k + "=" + s[k]; }).join(" "); }
+  lines.push(line().replace("go=1/1", "go=0/0"));
+  lines.push(line());
+  steps.forEach(function (p) { Object.keys(p).forEach(function (k) { s[k] = p[k]; }); lines.push(line()); });
+  return blockReplay("mummymaze", category, lines);
+}
+var mmSteps = [];
+for (var ch = 1; ch <= 15; ch++) mmSteps.push({ blc: ch });
+mmSteps.push({ progress: 1 });
+var mmWant = "start; " + Array(17).join("split; ").replace(/; $/, "");
+check(mmRun("1st Pyramid", 0, mmSteps) === mmWant, "Mummy Maze 1st Pyramid: 15 chamber splits, then the end at the next pyramid");
+var mmAdv = [];
+for (var tr = 1; tr <= 14; tr++) mmAdv.push({ blc: tr * 15, progress: tr });
+mmAdv.push({ blc: 225, progress: 15, wins: "1/1" });
+check(mmRun("100% Run", 1, mmAdv) === "start; " + Array(16).join("split; ").replace(/; $/, ""), "Mummy Maze 100% Run: 14 treasure splits, the last at the win");
+
 console.log("autosplittest: " + (fx.cases.length + bm.cases.length + bw.cases.length) + " scenario replays, " + checks + " checks, " + fails + " failed");
 process.exit(fails ? 1 : 0);

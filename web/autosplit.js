@@ -252,7 +252,9 @@ var ByopopAutosplit = (function () {
           if (end.kind === "lost") return lostEnd();
           if (end.kind === "progress") return current.progress >= end.n;
         }
+        // (a template with by "progress" splits on the game's own figure instead: Mummy Maze's treasures)
         var s = splits[i];
+        if (template && template.by === "progress") return current.progress >= s.target;
         return (s.score ? current.displayScoreMax : current.boardLevelClears) >= s.target;
       }
       return {
@@ -354,6 +356,22 @@ var ByopopAutosplit = (function () {
     })
   };
 
+  // Mummy Maze (speedrun.com: Mummy Maze Deluxe): a board is a whole game, menu to menu, its GO the first update the explorer
+  // takes moves, and a level clear the level-complete screen of each chamber (15 a pyramid). Its progress is the treasures
+  // collected; in Classic it rises when the next pyramid has begun, which is 1st Pyramid's end (the spawn in the next
+  // pyramid). 100% Run (Adventure) splits at each treasure and ends at the win, the last pyramid's chest. Being caught is no
+  // game over (the chamber is tried again); the one game over is Abandon Hope, in Classic.
+  var MM_RULES = {
+    name: "Mummy Maze Deluxe", id: "MMDX",
+    modes: { Classic: 0, Adventure: 1 }, skills: {},
+    deaths: [{ setting: "resetAbandon", what: "Abandon Hope (Classic)" }, { setting: null, what: "(none)" }, { setting: null, what: "(none)" },
+             { setting: null, what: "(none)" }],
+    templates: [{ category: "1st Pyramid", segments: levels(15).map(function (x) { return x.replace("Level", "Chamber"); }).concat(["Next Pyramid"]),
+                  end: "progress 1", mode: 0 },
+                { category: "100% Run", segments: levels(15).map(function (x) { return x.replace("Level", "Pyramid"); }), end: "won", mode: 1,
+                  by: "progress" }]
+  };
+
   // A row of GAMES from a row of the rules table
   function ruled(rules) {
     return { name: rules.name, block: "_byopop_livesplit_block", read: blockReader(rules.id), decider: makeDecider(rules),
@@ -366,7 +384,8 @@ var ByopopAutosplit = (function () {
     bejeweled: { name: "Bejeweled Deluxe", block: "_byopop_livesplit_block", read: readBlock, decider: bejeweled, templates: BJ_TEMPLATES },
     bigmoney: ruled(BM_RULES),
     bookworm: ruled(BW_RULES),
-    sevenseas: ruled(SS_RULES)
+    sevenseas: ruled(SS_RULES),
+    mummymaze: ruled(MM_RULES)
   };
 
   // The front game's block, read from its window: {game, snap} or null (no game with an auto splitter in front, or it has not

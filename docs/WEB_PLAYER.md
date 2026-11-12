@@ -652,7 +652,10 @@ off and with it on.
   - `won` (`wins` rises);
   - `lost` (a game over; for a death% category), or `lost N` (a game over while the game's progress is at most N; any
     other game over resets the run as usual);
-  - `progress N` (the game's own figure reaches N).
+  - `progress N` (the game's own figure reaches N);
+
+  and, where a category's splits are not its levels, `by: "progress"`: each segment but the last splits when the game's
+  progress reaches its number (Mummy Maze's treasures).
 
 One decider reads every entry. It starts at a GO in the template's mode and skill, but never on a resumed save or a
 replay. It splits at each level clear, or when the score reaches a segment's number (Bejeweled's naming rules: "Level 3",
@@ -667,7 +670,12 @@ it plus one). Bookworm Supreme (Any%) is `progress 31`, reached on the update th
 (Death%) is `lost 0`, a game over before the first level is cleared. Seven Seas (speedrun.com: Seven Seas Deluxe) has
 Level 30 on Easy, Average and Hard (skill 1, 2, 3): its level clear is the update its level counter goes up, after the level's
 panel, and the map after levels 10, 20 and 30 is made in that same update, so `progress 30` (levels completed) ends the run
-where the board's rules do; its one game over is running out of lives, and New Game takes the board away (a quit). Big Money has no board, so its row is its native
+where the board's rules do; its one game over is running out of lives, and New Game takes the board away (a quit). Mummy
+Maze (speedrun.com: Mummy Maze Deluxe): a board is a whole game, menu to menu, and a level clear is each chamber's
+level-complete page. Its progress is the treasures collected, which in Classic rises when the next pyramid has begun: 1st
+Pyramid (Classic) is 15 chamber splits and the end at `progress 1`, the spawn in the next pyramid. 100% Run (Adventure)
+splits at each treasure, a template with `by: "progress"` (each segment's split is the progress reaching its number, not
+a level clear), and ends `won`, at the last pyramid's chest. Being caught is no game over; Abandon Hope is the only one. Big Money has no board, so its row is its native
 script's rules, with mode and skill in the category's name and levels or scores as segments. Both replay their native
 scripts' scenarios in `tools/autosplittest.js`. Every other game with a board gets its row in Milestone 3, from the
 speedrun.com categories and its session's answer on where in its code GO, a level clear, a game over and a win happen.

@@ -13,7 +13,8 @@
 //   split      each level cleared splits it, and the category's end ends it
 //   replaced   a new game during a run resets it, and the new game starts the next
 //   lost       a game over during the run resets it
-// and the game's own: BookWorm's Bookburner ends at a game over at rank 0 ("death") and resets at rank 1 ("rank1"); Seven
+// (Mummy Maze: its catch is no game over, so "caught" checks the run goes on) and the game's own: Mummy Maze's 100% Run never
+// starts on a Classic game ("mode") and splits at the first treasure, not at a chamber ("treasure"); BookWorm's Bookburner ends at a game over at rank 0 ("death") and resets at rank 1 ("rank1"); Seven
 // Seas' Easy run never starts on a Hard game ("skill").
 // Every reset's question (keep the new bests?) is answered No; the stored splits of the categories it ran are removed at the
 // end, and the last run the window had open is put back.
@@ -129,7 +130,10 @@ async function sawReset(ms) {
 
 // the checks every plan makes on a category ending at its last level: a run started at a new game (newLine), split at each
 // level and ended at the last, then reset by a new game and by a game over
-async function common(category, levels, newLine) {
+// opts.finish: the end comes after the last level clear (Mummy Maze's next pyramid), so the bot plays on until the run ends;
+// opts.noGameOver: the game's `lose` is no game over (Mummy Maze's catch), so the check is that it leaves the run running
+async function common(category, levels, newLine, opts) {
+  opts = opts || {};
   snap();
   await t.wait(5);
   var s0 = snap();
@@ -141,8 +145,9 @@ async function common(category, levels, newLine) {
   note("start", a.phase === "running" && a.index === 0, category + ": phase " + a.phase + ", index " + a.index + ", board " + serial);
   var idx = [];
   for (var lv = 1; lv <= levels; lv++) idx.push((await clearLevel()).index);
+  if (opts.finish) { for (var k = 0; k < 400 && att().phase === "running"; k++) await botStep(); await settle(); }
   a = att();
-  var wantIdx = idx.slice(0, levels - 1).every(function (x, k) { return x === k + 1; });
+  var wantIdx = idx.slice(0, opts.finish ? levels : levels - 1).every(function (x, k) { return x === k + 1; });
   note("split", wantIdx && a.phase === "ended", "indexes after each clear " + idx.join(",") + "; then " + a.phase + ", progress " + snap().progress);
   await resetByHand();
 
@@ -158,8 +163,16 @@ async function common(category, levels, newLine) {
   note("replaced", a1.phase === "running" && a1.index === 1 && resetCause !== null && a.phase === "running" && a.index === 0,
        "before: " + a1.phase + " at " + a1.index + " (board " + s1 + "); reset " + resetCause + "; after: " + a.phase + " at " + a.index + " (board " + serial2 + ")");
 
-  // a game over resets
   await clearLevel();
+  if (opts.noGameOver) {
+    await until("lose");
+    for (var j = 0; j < 30; j++) await botStep();
+    await settle();
+    a = att();
+    note("caught", a.phase === "running" && a.index === 1, "after the catch and a try again: " + a.phase + " at " + a.index + "; game overs " + snap().gameOvers);
+    return;
+  }
+  // a game over resets
   resetCause = null;
   p = (async function () { resetCause = await sawReset(30000); })();
   await lose();
@@ -188,6 +201,23 @@ var PLANS = {
     await lose();
     await p;
     note("rank1", b0.phase === "running" && resetCause !== null && att().phase === "idle", "started " + b0.phase + "; reset " + resetCause + " at rank " + snap().progress + ", then " + att().phase);
+  },
+  mummymaze: async function () {
+    await cmd("set botmode classic");
+    await common("1st Pyramid", 15, "goto classic", { finish: true, noGameOver: true });
+    // 100% Run: a classic game never starts it; an adventure does, and its first treasure splits
+    await resetByHand();
+    load("100% Run");
+    await newGame("goto classic");
+    note("mode", att().phase === "idle", "a Classic game (mode " + snap().mode + "): " + att().phase);
+    await cmd("set botmode adventure");
+    await newGame("goto adventure");
+    var a0 = att(), idx = [];
+    for (var lv = 1; lv <= 15; lv++) idx.push((await clearLevel()).index);
+    for (var k = 0; k < 200 && snap().progress < 1; k++) await botStep();
+    await settle();
+    note("treasure", a0.phase === "running" && idx.every(function (x) { return x === 0; }) && att().index === 1,
+         "started " + a0.phase + "; index after each chamber " + idx.join(",") + "; after the first treasure " + att().index + " (progress " + snap().progress + ")");
   },
   sevenseas: async function () {
     await common("Level 30 (Easy)", 30, "goto easy");
