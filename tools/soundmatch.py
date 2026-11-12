@@ -9,7 +9,8 @@ length (within 15%) are compared by the peak of their envelopes' cross-correlati
 (normalised, at 8 kHz, within a 50 ms shift): "same" when the waveforms correlate at 0.97 or more (the same recording,
 re-encoded or renamed), "near" when the envelopes do at 0.90 or more and the waveforms at 0.75 (a variant: trimmed,
 pitched, mixed). Only pairs with at least one side the board marks unused, or one side from --extra, are listed unless
---all. Results: build/soundmatch/matches.json and a readable matches.txt.
+--all. Results: build/soundmatch/matches.json and a readable matches.txt; the 100 closest pairs turned down (envelopes
+at 0.8 or more) in turned.json, for tools/web/soundcompare.html.
 
   python tools/soundmatch.py [--assets DIR] [--extra NAME=DIR ...] [--all] [--pair A,B]
 """
@@ -51,6 +52,7 @@ def extra_wav(name, path, base):
 class Clip:
     def __init__(self, game, ref, label, when, wav, extra=False):
         self.game, self.ref, self.label, self.when, self.extra = game, ref, label, when, extra
+        self.src = None  # an unported game's file, read only
         x = samples(wav)
         # trim leading and trailing silence, so a padded copy still lines up
         loud = np.nonzero(np.abs(x) > 0.004)[0]
@@ -74,13 +76,26 @@ def xcorr_peak(a, b, max_shift):
     return float(np.max(np.abs(c)))
 
 
-def compare(p, q):
+def side(c):
+    d = dict(game=c.game, file=c.ref, label=c.label, when=c.when)
+    if c.src:
+        d["src"] = c.src
+    return d
+
+
+def compare(p, q, missed=None):
+    """("same" or "near", envelope score, waveform score), or None; a pair turned down whose envelopes still correlate at 0.8
+    goes into missed with its scores, so the closest of them can be listed for a person to judge"""
     if min(p.secs, q.secs) < 0.03 or abs(p.secs - q.secs) > 0.15 * max(p.secs, q.secs):
         return None
     e = xcorr_peak(p.env, q.env, 5)
     if e < 0.9:
+        if missed is not None and e >= 0.8:
+            missed.append((e, xcorr_peak(p.wave, q.wave, 400)))
         return None
     w = xcorr_peak(p.wave, q.wave, 400)
+    if w < 0.75 and missed is not None:
+        missed.append((e, w))
     if w >= 0.97:
         return ("same", e, w)
     if w >= 0.75:
@@ -133,7 +148,9 @@ def main():
                 if f.lower().endswith(SOUND_EXT):
                     wav, rel = extra_wav(name, os.path.join(d, f), b)
                     if wav:
-                        clips.append(Clip(name, rel, rel, "", wav, extra=True))
+                        c = Clip(name, rel, rel, "", wav, extra=True)
+                        c.src = os.path.join(d, f).replace("\\", "/")
+                        clips.append(c)
     print("clips", len(clips), flush=True)
     if a.pair:
         want = [s.split(":", 1) for s in a.pair.split(",")]
@@ -142,7 +159,7 @@ def main():
         print(p.secs, q.secs, "env", xcorr_peak(p.env, q.env, 5), "wave", xcorr_peak(p.wave, q.wave, 400))
         return
     clips.sort(key=lambda c: c.secs)
-    hits = []
+    hits, turned = [], []
     for i, p in enumerate(clips):
         j = i + 1
         while j < len(clips) and clips[j].secs <= p.secs * 1.15 + 0.01:
@@ -152,13 +169,19 @@ def main():
                 continue
             if not (a.all or p.unused or q.unused or p.extra or q.extra):
                 continue
-            r = compare(p, q)
+            missed = []
+            r = compare(p, q, missed)
+            if missed:
+                turned.append(dict(kind="turned down", env=round(missed[0][0], 3), wave=round(missed[0][1], 3),
+                                   a=side(p), b=side(q)))
             if r:
                 hits.append(dict(kind=r[0], env=round(r[1], 3), wave=round(r[2], 3),
-                                 a=dict(game=p.game, file=p.ref, label=p.label, when=p.when),
-                                 b=dict(game=q.game, file=q.ref, label=q.label, when=q.when)))
+                                 a=side(p), b=side(q)))
     hits.sort(key=lambda h: (h["kind"] != "same", -h["wave"]))
     json.dump(hits, open(os.path.join(OUT, "matches.json"), "w", encoding="utf-8"), indent=1, ensure_ascii=False)
+    # the closest pairs turned down, by the mean of their two scores: for a person to catch a near match the thresholds missed
+    turned.sort(key=lambda h: -(h["env"] + h["wave"]))
+    json.dump(turned[:100], open(os.path.join(OUT, "turned.json"), "w", encoding="utf-8"), indent=1, ensure_ascii=False)
     with open(os.path.join(OUT, "matches.txt"), "w", encoding="utf-8") as f:
         for h in hits:
             f.write("%s %.2f/%.2f  %s %s [%s]  =  %s %s [%s]\n" % (h["kind"], h["env"], h["wave"], h["a"]["game"], h["a"]["file"],
