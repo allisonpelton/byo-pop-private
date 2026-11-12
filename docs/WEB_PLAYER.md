@@ -579,8 +579,82 @@ Bejeweled publishes the desktop's LiveSplit block (`games/bejeweled/src/LiveSpli
 or when the score on screen reaches a segment's number, and reset when the run's board ends, with each reset kind a setting.
 `tools/autosplittest.js` (in `check.sh unit-web`) replays lsdecide.py's 27 scenarios, 53 replays on the game and probe logs,
 from `tools/autosplit/bejeweled-scenarios.json.gz`. `tools/autosplit/bejeweled_fixture.py` writes that file from
-`run_tests.sh`'s runs, with the events lsdecide.py decides, and every event, its poll and its board must agree. The design
-for every other game is Milestone 2's, still to come.
+`run_tests.sh`'s runs, with the events lsdecide.py decides, and every event, its poll and its board must agree.
+
+#### One design for every port
+
+Every other port publishes the same block and is read by one decider, driven by a table of the game's rules. Bejeweled
+keeps its own decider, which is lsdecide.py's, but its block is already the shared one.
+
+**The block** is the one Bejeweled, Big Money and BookWorm already write, kept as it is: the magic `BYOPOP-LIVESPLIT`
+F0 F1 F2 F3, a four-letter game id, the version and size, the `seq` protocol (odd while the game writes), and the
+append-only rule. In all three, bytes 0x00 to 0x7F already mean the same thing: `active`, the `updates` heartbeat,
+`flags` (RESUMED, VANILLA, CHOSEN_SEED, REPLAY, GAME_OVER, PAUSED), the board serial, the GO, level-clear and game-over
+counters with the serial of the board each happened on, four death kinds that add up to the game overs, and `tick`,
+`state`, `level`, `displayLevel`, `displayScore`, `score`, `boardLevelClears`, `goTick` and the board's highest score.
+Bytes 0x80 to 0x9F are the game's own (Bejeweled's rules id; Big Money's and BookWorm's mode, skill and score key), and
+0xA0 holds the clock. Layout 2 moves nothing and appends 0x20 bytes at 0xB0, for a size of 0xD0:
+
+| Offset | Field | Meaning |
+|---|---|---|
+| 0xB0 | u32 `wins`, `winSerial` | the game was won (its last level, an escape, the final chapter), and on which board |
+| 0xB8 | i32 `mode` | the mode being played, as the game's table numbers it; -1 off a board |
+| 0xBC | i32 `skill` | the difficulty, as the table numbers it; 0 for a game without one |
+| 0xC0 | u32 `inGame` | 1 from the board's GO until its game over or win, 0 otherwise (a pause keeps it 1) |
+| 0xC4 | i32 `progress` | a figure of the game's own that a category ends on, where level and score can't say it; -1 when unused |
+| 0xC8 | u8 `reserved[8]` | zero |
+
+These are the six things a speedrun.com category needs. The mode and skill are at 0xB8 and 0xBC in every game, so the
+decider needs no per-game offsets. The level is `displayLevel`, with `levelClears` as its events. The score is
+`displayScore`, with the board's highest score frozen at its game over. In-game is `inGame`. Won is `wins`, and lost is
+`gameOvers` with its death kinds. A game whose code has no GO moment of its own takes the first update on which a fresh
+board accepts input. The death kinds keep each game's own names: the table says what they mean.
+
+**The writer** is a shared header, `platform/AutosplitBlock.h`, with the struct, its `static_assert`s, the log line
+`-livesplitlog` writes, and a small writer class. A port calls `Begin(gameId, mode, skill)` when a board starts,
+`Go()`, `LevelClear()`, `GameOver(kind)` and `Win()` at those moments, and `Update(level, score, ...)` after every update.
+The class keeps the counters and serials and does the `seq` writes. Bejeweled's, Big Money's and BookWorm's headers
+become thin includes of it; their bytes stay as they are, apart from the append.
+
+**Inert.** The block is written only once something asks for it: on the web, the page asking for its address
+(`byopop_livesplit_block`, which every port exports under the same name); natively, `features.livesplit`. Until then the
+only cost is one test of a flag after each update. The writer only reads the game: no random draw, no game state, no
+save, no drawing, no timing. Each converted game proves it with its frozen baseline, run unchanged both with the block
+off and with it on.
+
+**The rules table** is in `web/autosplit.js`, one entry for each game:
+
+- `name`: the game's name on speedrun.com, which the splits' game name must match;
+- `id`: the block's game id;
+- `modes` and `skills`: the names behind the block's numbers;
+- `deaths`: what each of the four death kinds is (each one a reset setting, as in Bejeweled);
+- `templates`: one per speedrun.com category and subcategory, each with `mode` and `skill` (none for any), its
+  segments, and `end`, how the run finishes:
+  - `levels N` (the Nth level clear);
+  - `score N` (the score on screen reaches N);
+  - `won` (`wins` rises);
+  - `lost` (a game over; for a death% category);
+  - `progress N` (the game's own figure reaches N).
+
+One decider reads every entry. It starts at a GO in the template's mode and skill, but never on a resumed save or a
+replay. It splits at each level clear, or when the score reaches a segment's number (Bejeweled's naming rules: "Level 3",
+"25,000", "25K"), and makes the last split on the template's `end`. It resets when the run's board is lost (unless `end`
+is `lost`), replaced, or quit, or when its window closes, with each kind a setting. It reports the timer's Game Time
+as now: the game's updates times its update step. A category's timing rules, real time or game time and where they say
+it starts, are noted in the template, and the template follows them.
+
+**Rows written so far.** BookWorm (speedrun.com: Bookworm Deluxe): Bookworm Supreme is `levels 31`, since the rank the
+summary shows is the level reached, up to 31; Bookburner is `lost`, a game over on the first level being rank 0. Big
+Money has no board, so its templates are the native script's suggestions: mode and skill in the name, levels or scores
+as segments. Every other game with a board gets its row in Milestone 3, from the speedrun.com categories and its
+session's answer on where in its code GO, a level clear, a game over and a win happen.
+
+**Native** keeps a LiveSplit `.asl` per game, as Bejeweled's, Big Money's and BookWorm's. Because the block and the
+decider are now one, the next step is one script that reads the table (exported from the same entries) instead of a
+script per game. That is a tools change for the coordinator, not part of this milestone.
+
+**Tests.** `tools/autosplittest.js` gets a replay set per converted game, as Bejeweled's: block logs from the game's
+bot and scripted runs, the events the decider must see, and each template's start, splits and end.
 
 ### Music levels
 
