@@ -18,6 +18,9 @@ class TipTopWidget : public Widget
 {
 public:
 	MemoryImage* mScreenImage;
+	uint32_t mShownWrites;  // lowos::HostScreenWrites() when mScreenImage last held the screen (Draw), or when the screen was found the same
+	bool mHasShown;         // Draw has filled mScreenImage once
+	bool ScreenDiffersFromShown();
 
 	TipTopWidget();
 	virtual ~TipTopWidget();
@@ -86,6 +89,12 @@ public:
 	void StartCanvasShot(const std::string& theFile);
 	void SaveCanvasShot();
 	std::string mCanvasShot;  // the file of a canvasshot, saved after the next frame
+	// testhooks/Canvas.cpp: -scramble fills the screen with noise before each pass and -screenhash=<file> logs a hash of the
+	// screen after each pass: a pass that paints the whole screen gives the same hashes with and without the noise
+	void ScrambleScreen();
+	void LogScreenHash();
+	bool mScrambleScreen = false;
+	FILE* mScreenHashLog = nullptr;
 	// The music's SoundFont bank (MusicSynth.h): -soundfont=<file>, else tiptop.sf2 beside the program
 	std::string mSoundFont;
 	using SexyAppBase::SwitchScreenMode;

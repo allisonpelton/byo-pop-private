@@ -24,6 +24,7 @@ static int SCREEN_H = 480;
 static const PixelFormat SCREEN_FORMAT = {8, 16, 8, 8, 8, 0};
 
 static std::vector<uint32_t> gScreen(640 * 480);
+static uint32_t gScreenWrites = 1;    // port: HostScreenWrites
 static ClockFunc gClock = nullptr;
 static MessageFunc gMessageFunc = nullptr;
 static bool gActive = true;
@@ -49,6 +50,11 @@ uint32_t* HostScreen()
 	return gScreen.data();
 }
 
+uint32_t HostScreenWrites()
+{
+	return gScreenWrites;
+}
+
 void HostScreenSize(int* theWidth, int* theHeight)
 {
 	*theWidth = SCREEN_W;
@@ -60,6 +66,7 @@ void HostSetCanvas(int theWidth, int theHeight)
 	SCREEN_W = theWidth;
 	SCREEN_H = theHeight;
 	gScreen.assign((size_t)theWidth * (size_t)theHeight, 0);
+	gScreenWrites++;
 }
 
 void HostSetClock(ClockFunc theClock)
@@ -384,6 +391,7 @@ char InitScreen(uint8_t theMode, ActivateCallback theActivate, CloseCallback the
 	gModeRequest = theWindowed == 1 ? 1 : 2;
 	gWindowed = theWindowed != 1;
 	std::fill(gScreen.begin(), gScreen.end(), 0);
+	gScreenWrites++;
 	gScreenInited = true;
 	return gWindowed ? 2 : 1;
 }
@@ -738,6 +746,7 @@ void Blit(int theWidth, int theHeight, int theDestX, int theDestY, int theSrcX, 
 			aFlags = theFlags & 0xfb;
 	}
 	uint32_t aKey = ConvertColor(&SCREEN_FORMAT, &SCREEN_FORMAT, gColorKey);
+	gScreenWrites++;
 	uint8_t* aDest = (uint8_t*)gScreen.data() + theDestY * SCREEN_W * 4 + theDestX * 4;
 	const uint8_t* aSrc = theSrcBits + theSrcY * theSrcPitch + theSrcX * (4 + ((aFlags >> 1) & 1));
 	BlitPixels(&SCREEN_FORMAT, &SCREEN_FORMAT, aDest, aSrc, theHeight, theWidth, SCREEN_W * 4, theSrcPitch,
@@ -754,6 +763,7 @@ void SetColorKey(uint32_t theColor)
 void FillRectangle(int theWidth, int theHeight, int theX, int theY, uint32_t theColor)
 {
 	uint32_t aColor = ConvertColor(&SCREEN_FORMAT, &SCREEN_FORMAT, theColor);
+	gScreenWrites++;
 	for (int y = theY; y < theY + theHeight; y++)
 	{
 		if (y < 0 || y >= SCREEN_H)
@@ -805,6 +815,7 @@ uint32_t BlitScaled(int theDestWidth, int theDestHeight, int theSrcWidth, int th
 	uint32_t aKey = gColorKey;
 	uint32_t aPitch = 0;
 	uint8_t* aScreen = LockScreen(&aPitch);
+	gScreenWrites++;
 	uint32_t aStepX = ((uint32_t)theSrcWidth << 16) / (uint32_t)(theDestWidth + 1);
 	uint32_t aStepY = ((uint32_t)theSrcHeight << 16) / (uint32_t)(theDestHeight + 1);
 	uint32_t aSrcY = (uint32_t)theSrcY << 16;

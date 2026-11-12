@@ -13,9 +13,17 @@
 # to the wait it returns from, so its shares cannot be trusted for a total): each thread's cycle count is read every quarter
 # second and the four largest are printed beside the process's times. The comparison that counts is that one, with the builds
 # alternating (the performance pass, GAME_NOTES.md).
+# Profiling the original (second round): CPUPROF_ATTACH=TipTop.exe profiles the first descendant of the command with that
+# name instead of the command itself (origrun's game), CPUPROF_DELAY=<seconds> waits that long after it is found before it
+# samples (past the load and the menus), and CPUPROF_EXPORT=<dir> names the samples in the original's TipTop.exe by the
+# function of the Ghidra export (<8 hex digits of the address>_<name>.c) they fall in. CPUPROF_RUNNING=1 counts each look
+# (a millisecond apart) at a thread that used cycles since the last one as one sample and drops the ones that find the thread in
+# a wait (Zw*Wait*, ZwDelayExecution), so that a game that sleeps between its bursts of work shows what the bursts hold; the
+# cycle weights of the default mode charge a burst to the wait the thread is found in afterwards.
 import ctypes, ctypes.wintypes as W, bisect, os, subprocess, sys, time
 from collections import Counter, defaultdict
 
+RUNNING = bool(os.environ.get('CPUPROF_RUNNING'))
 k32 = ctypes.WinDLL('kernel32', use_last_error=True)
 psapi = ctypes.WinDLL('psapi', use_last_error=True)
 NM = os.environ.get('LLVM_NM', 'E:/retools/llvm-mingw-20261006-ucrt-x86_64/bin/llvm-nm.exe')
@@ -159,6 +167,69 @@ def exe_frames(hp, esp, base, size, depth=3, scan=16384):
     return tuple(out)
 
 
+class PE32W(ctypes.Structure):
+    _fields_ = [('dwSize', W.DWORD), ('cntUsage', W.DWORD), ('th32ProcessID', W.DWORD), ('th32DefaultHeapID', ctypes.c_size_t),
+                ('th32ModuleID', W.DWORD), ('cntThreads', W.DWORD), ('th32ParentProcessID', W.DWORD),
+                ('pcPriClassBase', ctypes.c_long), ('dwFlags', W.DWORD), ('szExeFile', ctypes.c_wchar * 260)]
+
+
+def descendant_named(root_pid, name):
+    snap = k32.CreateToolhelp32Snapshot(2, 0)
+    e = PE32W(); e.dwSize = ctypes.sizeof(e)
+    procs = {}
+    k32.Process32FirstW.argtypes = [W.HANDLE, ctypes.c_void_p]
+    k32.Process32NextW.argtypes = [W.HANDLE, ctypes.c_void_p]
+    ok = k32.Process32FirstW(snap, ctypes.byref(e))
+    while ok:
+        procs[e.th32ProcessID] = (e.th32ParentProcessID, e.szExeFile)
+        ok = k32.Process32NextW(snap, ctypes.byref(e))
+    k32.CloseHandle(snap)
+    for pid, (par, exe) in procs.items():
+        if exe.lower() == name.lower():
+            q = par
+            while q in procs and q != root_pid:
+                q = procs[q][0]
+            if q == root_pid:
+                return pid
+    return None
+
+
+class Attached:
+    """Stands in for the Popen of the profiled process: a descendant of the command that was started (origrun's game)."""
+    def __init__(self, pid, launcher):
+        self.pid = pid
+        self.launcher = launcher
+        self._handle = k32.OpenProcess(0x1000 | 0x0400 | 0x0010 | 0x0001 | 0x00100000, False, pid)  # + synchronize
+        self.returncode = None
+
+    def poll(self):
+        code = W.DWORD()
+        k32.GetExitCodeProcess(ctypes.c_void_p(self._handle), ctypes.byref(code))
+        if code.value != 259:
+            self.returncode = code.value
+            return code.value
+        return None
+
+    def wait(self, timeout=None):
+        # the profile is done: the game and the launcher that started it end here
+        subprocess.run(['taskkill', '/T', '/F', '/PID', str(self.launcher.pid)], capture_output=True)
+        k32.TerminateProcess(ctypes.c_void_p(self._handle), 1)
+        self.returncode = 1
+
+
+def export_names(path):
+    """(addresses, names) of the functions of a Ghidra export folder, for the original's exe (no symbol table)."""
+    import re
+    addrs = []
+    for root, _, files in os.walk(path):
+        for n in files:
+            m = re.match(r'([0-9a-f]{8})_(.*)\.c$', n)
+            if m:
+                addrs.append((int(m.group(1), 16), m.group(2)))
+    addrs.sort()
+    return ([a for a, _ in addrs], [n for _, n in addrs]) if addrs else None
+
+
 def main():
     out, seconds = sys.argv[1], float(sys.argv[2])
     i = 3
@@ -168,6 +239,14 @@ def main():
     cmd = sys.argv[i + 1:]
     p = subprocess.Popen(cmd, cwd=os.path.dirname(os.path.abspath(out)), env=env, stdout=subprocess.DEVNULL,
                          stderr=subprocess.DEVNULL)
+    attach = os.environ.get('CPUPROF_ATTACH')
+    if attach:
+        pid = None
+        while pid is None and p.poll() is None:
+            pid = descendant_named(p.pid, attach)
+            time.sleep(0.05)
+        p = Attached(pid, p)
+    time.sleep(float(os.environ.get('CPUPROF_DELAY', '0')))
     hp = int(p._handle)
     handles, last = {}, {}
     samples = Counter()  # (tid, eip)
@@ -195,6 +274,8 @@ def main():
             if weight == 0:
                 continue
             last[tid] = c
+            if RUNNING:
+                weight = 1
             if k32.Wow64SuspendThread(h) == 0xFFFFFFFF:
                 continue
             ctx = WOW64_CONTEXT(); ctx.ContextFlags = WOW64_CONTEXT_CONTROL
@@ -223,10 +304,10 @@ def main():
     syms = {}
     by_mod, by_fn, by_thread = Counter(), Counter(), defaultdict(Counter)
     total = sum(samples.values())
+    waits = 0
     for (tid, eip), cnt in samples.items():
         j = bisect.bisect_right(bases, eip) - 1
         mod = os.path.basename(mods[j][2]) if j >= 0 and eip < mods[j][0] + mods[j][1] else '?'
-        by_mod[mod] += cnt
         fn = mod
         if j >= 0 and mod != '?':
             path = mods[j][2]
@@ -235,13 +316,20 @@ def main():
                 real = path.replace('SYSTEM32', 'SysWOW64').replace('System32', 'SysWOW64') if mods[j][0] < 2 ** 32 else path
                 if not os.path.exists(real):
                     real = path
-                syms[path] = (symbols(real) or export_symbols(real), preferred_base(real))
+                st0 = symbols(real) or export_symbols(real)
+                if st0 is None and os.environ.get('CPUPROF_EXPORT') and real.lower().endswith('tiptop.exe'):
+                    st0 = export_names(os.environ['CPUPROF_EXPORT'])
+                syms[path] = (st0, preferred_base(real))
             st, pref = syms[path]
             if st:
                 a = eip - mods[j][0] + pref
                 k = bisect.bisect_right(st[0], a) - 1
                 if k >= 0:
                     fn = '%s!%s' % (mod, st[1][k][:90])
+        if RUNNING and ('!Zw' in fn and ('Wait' in fn or 'Delay' in fn)):
+            waits += cnt
+            continue
+        by_mod[mod] += cnt
         by_fn[fn] += cnt
         by_thread[tid][mod] += cnt
     by_caller = Counter()
@@ -267,7 +355,12 @@ def main():
         for (tid, eip), cnt in samples.most_common(6):
             print('eip', hex(eip), cnt)
     with open(out, 'w') as f:
-        f.write('%.2f G cycles sampled in %.1f s\n\nby module:\n' % (total / 1e9, time.time() - t0))
+        if RUNNING:
+            f.write('%d running samples (looks that found the thread out of a wait), %d more in waits, over %.1f s\n\nby module:\n'
+                    % (total - waits, waits, time.time() - t0))
+            total -= waits
+        else:
+            f.write('%.2f G cycles sampled in %.1f s\n\nby module:\n' % (total / 1e9, time.time() - t0))
         for m, c in by_mod.most_common(25):
             f.write('  %5.1f%%  %s\n' % (100.0 * c / total, m))
         f.write('\nby thread:\n')

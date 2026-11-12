@@ -318,6 +318,83 @@ original is the framework's and the renderer's (the Direct3D 11 device is the sh
 The load time is as before (0.6 to 0.7 s). The web build was not timed (the pane is hidden, see the loading section above); it
 runs the same C++, so the blits gain the same, and it builds (`build-web:tiptop`).
 
+## Performance, second round (2026-11-12, `tools/perf/`)
+
+The target of `docs/COORDINATION.md` ("The target", 2026-11-11) is a port at its original's processor time or below, measured like
+for like. After the first round the port was at about twice the paced original's. This round measured the original and the port the
+same way, found where the rest is, changed what the game itself can change, and wrote the rest up as a shared spec.
+
+**Measuring like for like.** `tools/perf/perf.py` reads each thread's cycle count (`QueryThreadCycleTime`) every quarter second.
+`perf.py portscript` plays the scripted minute from the port's `-script` with no `-commands` or `-realinput` file: the framework
+polls that channel every update (a `stat()`, about 0.34 M cycles a call, the coordinator's figure), which a player's copy never
+pays, and the runs through the channel measured 0.148 to 0.153 of a core against 0.12 to 0.13 without it. `perf.py orig --paced 16`
+is the original under origrun with a 16 ms sleep a pass (as a 60 Hz screen's blank would; it has no music in these runs), and the
+port runs without music too (`--port-arg=-soundfont=<no such file>`), so neither side counts sound; with its music the port's
+synthesizer thread adds 34 to 42 M cycles a second (about 0.5 s of a 30 s window), which the paced original's MIDI never shows.
+`--menu` leaves the main menu alone for the window, `--menu --menu-click 265,157` the options screen. **The machine was busy** (2 to 10
+other game processes, each result's `others_before` and `others_after`), and the same exe gave 1.6 to 3.3 s of processor time at
+the main menu, so only large differences are read and the table gives ranges.
+
+| | Paced original | Port at the start of the round | Port now |
+|---|---|---|---|
+| Strategy minute, 30 s window (clicks as in the first round) | 1.9 s (3.89 s in 60 s, 2.20 s in 34.65 s: 0.065 and 0.064 of a core) | 3.64 s clean (0.12), 3.75 to 3.81 with the music | the same: the screen changes every frame |
+| Main menu left alone, 20 s | 1.20 s (2.43 G cycles) | 1.6 to 3.4 s (3.5 to 6 G) | the same: the menu animates every pass |
+| Options screen left alone, 20 s | 1.39 and 1.31 s (2.8 and 3.2 G) | 2.25, 2.89, 3.11 s (5.9 to 6.2 G) | **1.17, 1.09, 1.30 s (2.6 to 3.3 G)** |
+
+**What is left is the framework's present.** The port's cycles split into the main thread and the Direct3D driver's thread (2.0
+to 2.7 G of 4 to 6 G a 30 s window in the strategy minute, and 1.4 to 2.2 G in 20 s at the menu), against the original's single
+thread. `tools/perf/presentbench.cpp` presents a 640x480 picture with no game in it: SDL's path costs 2.0 to 2.9 M cycles a frame
+(main thread 0.8 to 1.35 M, the driver's threads 0.95 to 1.97 M) whichever driver SDL picks, and 1.8 to 1.9 M even with no
+upload at all; a 1x1 or a 160x76 upload, a streaming texture and vsync off cost the same, so it is the frame and not the upload
+or its size. A picture copied into `SDL_GetWindowSurface` and `SDL_UpdateWindowSurface` costs 0.9 to 1.2 M a frame on both the
+hidden and the visible desktop, with no driver thread. At 60 frames a second the first is 110 to 175 M cycles a second; the
+paced original's whole process at the main menu takes about 120 M. So the port cannot reach its original through this present
+whatever the game does. It is the "SDL_RenderPresent, a driver cost per presented frame" item of `docs/COORDINATION.md`; the
+spec for presenting an opaque software-drawn frame through the window's surface went to the coordinator (shared code, not
+changed here).
+
+**What the game changed.** The framework now draws a frame only when the screen shows something new. `lowos::HostScreenWrites`
+counts the writes to the screen (a blit, a fill, a stretched blit, a new canvas); after a pass that wrote and when no frame is
+already due, `TipTopWidget::Update` compares the screen with the pixels last shown (`ScreenDiffersFromShown`, in blocks of 16
+pixels with an early exit, the alpha byte aside) and marks the widget dirty only if they differ. Where the framework has no dirty
+widget it draws no frame (one a second at least, and at once on an expose, a restore or a device reset: its own rules in
+`DrawDirtyStuff`), so a screen that stands still, the options, the instruction pages and the credits, costs no upload, no
+present and no driver thread: the options screen fell from 2.25 to 3.11 s to 1.09 to 1.30 s per 20 s, the original's 1.31 to
+1.39 s. The main menu, the high scores and the game animate every pass (the main menu changes about 3300 pixels a pass in
+the rectangle 430,362 to 590,438), so they gain nothing. The picture is the same: the screenshots of the six tours (172) are
+byte for byte those of the exe before this round, and their state logs are identical but for the first lines' uninitialised
+memory (below); `tools/check.sh build build-web:tiptop tiptop` passes with the rerun and the baseline identical.
+
+**The pass rate** (written up for the coordinator before any change): the original's pass is one trip of the main loop, whose
+`lowos_EndFrame` waits for the vertical blank, so it runs 60 passes a second on a 60 Hz screen (144 on a 144 Hz one). The game's
+speed follows the clock, not the pass count: `GameTime()` is milliseconds from the performance counter, `Board::Draw` (0x40e766)
+adds the elapsed time to the field (`mTotalTime += now - clock`), and the 35 ms tick clock keeps its remainder; only the load
+bar's entries are counted per pass. The port runs the framework's 100 passes a second (`mFrameTime` 10, an int), which is a rate the
+original never had; a pass costs about 0.34 ms (0.7 M cycles) of the main thread. Matching it would be `mFrameTime` 16 (62.5 Hz)
+in `TipTopApp`'s constructor, about 0.4 s of 3.7 s in 30 s of play; but `-fast`'s virtual clock advances `mFrameTime` a pass,
+so the state logs, the frozen baseline and the identical-play scripts (the original patched to 10 ms a pass) would all change
+unless `-fast` stays at 10 ms. **Not changed: the rate waits for the coordinator's answer.**
+
+**Why the paint of a pass that is not shown is not skipped** (about 4 passes in 10 at 100 passes against 60 frames a second):
+`Board::Draw` is the game's update and its paint in one function, so only the pixel writes could be left out, and the original
+does not paint the whole screen every pass. `-scramble` fills the screen with noise before each pass and `-screenhash=<file>`
+logs a hash of the screen after it (`src/testhooks/Canvas.cpp`): the six tours (33,000 passes) give the same hash after every
+pass with and without the noise, and the same state logs; three bot games through the menus in the regular mode (50,054 passes)
+give 13 passes whose picture depends on the screen before them, and the three I looked at are the pass that switches to screen 7
+(the level summary), which paints only part of it and leaves the rest to the next pass. A pass skipped just before one of those
+would show different pixels for a frame. The speed and strategy modes were started and stopped unfinished.
+
+**The first lines of a state log** read `level`, `blocksleft` and `meter` of a board that exists before its first pass and holds
+whatever the heap held: with the screen noise, or in another run, they differ (it is the original's uninitialised memory, as
+in the first round). `meter` in the regular mode stays garbage for the game, adding to it as it goes.
+
+**Tried and not kept** (each on the 20 s menu, alternating with the exe without it, the driver's cycles read): the framework drawing
+straight into the window's back buffer with no screen texture (no change); the screen image as a streaming texture
+(`SDL_LockTexture`; no change); uploading only the changed rectangle (mean 8% of the screen: no change); SDL's other render
+drivers (OpenGL and Direct3D 11 no better; the software renderer used a whole core, 29.98 s in 30 s, with the framework's
+present); a compare-and-copy that finds the changed rectangle. The audio synthesizer is already compiled `-O3 -msse2
+-mfpmath=sse`; its 1 ms sequencer steps are the music's timing and stay.
+
 ## Fix candidates and the fixes mod (`mods/fixes`, `src/ModFeatures.cpp`)
 
 The port is the original; these are what the original wastes or leaves to chance, kept in the port and mended by the fixes mod
@@ -535,3 +612,30 @@ the six phase-two tours (172) and of two games in each mode with `-autoplayshots
 from the commit before this step and from the one after, and so are their state logs but for the lines the original's uninitialised
 memory decides (the meter's start value and the level and blocks left at update 1). None of those plays reaches the code taken
 out except the high scores screen's way back (command 0x2a), which tour 1 clicks (the main menu's options button works right after it).
+
+## The PopCap Game Collection version (2026-11-12)
+
+TipTop is ported from the player's own retail copy; the check of `docs/COORDINATION.md` asks that the build also work with the
+files of the PopCap Game Collection's copy (the user's ISO in their Downloads folder, the file group `TipTopDeluxeComponent`,
+extracted with `E:/retools/unshield-build/unshield.exe g data1.cab` into the scratch folder, not the repository). It holds four
+files: `TipTop.exe`, `TipTop.dat`, `Readme.txt` (the game's version 1.1 of 16 December 2002) and `license.txt`. The port reads the
+first two.
+
+**The files.** `TipTop.dat` is byte for byte the retail one (3,226,562 bytes, `cmp` finds no difference). `TipTop.exe` has the
+same size (565,248 bytes) and the same link time stamp, and differs in 4 bytes in three places, all in the code (`.text`, none
+in the data, so none of the texts the port reads from the exe by address): three conditional jumps on the registered flag
+(`gRegistered`, "Registration out" above), whose targets the Collection's exe sets to the next instruction, so that the flag
+is set whatever the configuration byte and the registry say. The port has no registration code, so none of that reaches it.
+
+<!-- private
+The three places, as file offset and virtual address: 0x1208f (0x41208f, the byte 0x0c -> 0x00), 0x123c8 (0x4123c8, 0x09 -> 0x00)
+and 0x206dd (0x4206dd, the two bytes 0x94 0x01 -> 0x00 0x00): each the displacement of a `je` on the configuration byte or the
+registered flag.
+-->
+
+**The run.** Tours 1 and 2 of `tools/shots/` (`-fast -seed=1`, the main menu, options, instructions, credits, high scores and the
+games' screens by the script) ran once with `-gamedir` the retail staged copy and once with `-gamedir` the Collection's folder, in
+the same way as the passes' other comparisons: tour 1 gives 31 screenshots and 76 lines of state log, tour 2 54 screenshots and 41
+lines, and every screenshot is byte for byte the same on the two sets of files, and so are the state logs. The build needs nothing
+for it (`-gamedir` or the install folder finds the files); the web page imports the same two files by name, which the Collection's
+folder has. **The check passes; no change to the port, and nothing to list as a deviation.**

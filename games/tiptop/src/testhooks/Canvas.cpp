@@ -21,6 +21,33 @@
 
 using namespace Sexy;
 
+// -scramble: noise on the whole screen before each pass, from the pass's number
+void TipTopApp::ScrambleScreen()
+{
+	int aWidth, aHeight;
+	lowos::HostScreenSize(&aWidth, &aHeight);
+	uint32_t* aScreen = lowos::HostScreen();
+	uint32_t aState = 0x9e3779b9u * (uint32_t)(mUpdateCount + 1);
+	for (size_t i = 0; i < (size_t)aWidth * (size_t)aHeight; i++)
+	{
+		aState = aState * 1664525u + 1013904223u;
+		aScreen[i] = (aState >> 8) & 0xffffff;
+	}
+}
+
+// -screenhash=<file>: the pass's number and an FNV-1a hash of the 640x480 screen after the pass
+void TipTopApp::LogScreenHash()
+{
+	int aWidth, aHeight;
+	lowos::HostScreenSize(&aWidth, &aHeight);
+	const uint32_t* aScreen = lowos::HostScreen();
+	uint32_t aHash = 2166136261u;
+	for (int y = 0; y < 480; y++)
+		for (int x = 0; x < 640; x++)
+			aHash = (aHash ^ (aScreen[y * aWidth + x] & 0xffffff)) * 16777619u;
+	fprintf(mScreenHashLog, "%d %08x %u\n", mUpdateCount, aHash, lowos::HostScreenWrites());
+}
+
 // The -script command canvasshot <file> (Script.cpp)
 void TipTopApp::StartCanvasShot(const std::string& theFile)
 {

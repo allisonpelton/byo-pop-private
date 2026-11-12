@@ -75,6 +75,9 @@ struct Sound
 // larger
 uint32_t* HostScreen();
 void HostScreenSize(int* theWidth, int* theHeight);
+// A count of the writes to the screen (a blit, a fill, a stretched blit, a new canvas): it is the same after a frame that
+// wrote nothing, and then the screen shows what the host last showed
+uint32_t HostScreenWrites();
 // Test runs: a screen of theWidth x theHeight (at least 640x480), set before InitScreen. The game sizes its screen
 // layers to the display, so it draws what the original placed beyond 640x480 (the host still shows the top left)
 void HostSetCanvas(int theWidth, int theHeight);
