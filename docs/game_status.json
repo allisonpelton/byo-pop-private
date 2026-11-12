@@ -402,11 +402,12 @@
         "coverage",
         "unneeded-code",
         "readability",
-        "collection"
+        "collection",
+        "performance"
       ],
       "na": [],
-      "now": "performance",
-      "note": "animated screens over the original's processor time: waits on the surface presenter"
+      "now": "lite-mod",
+      "note": "performance done: 0.82 of its original in the strategy minute and 0.90 on the main menu, through SurfaceDisplay and real-time passes at 16 ms like the original's"
     },
     "wordharmony": {
       "title": "Word Harmony",

@@ -1,0 +1,7 @@
+# The functions origrun's --count counts in TipTop's original (TipTop.exe), for the cycle split beside the port's -cyclesplit
+# (docs/TEST_COMMANDS.md, "The cycle split"; docs/ORIGRUN.md, "Counting cycles inside the original's functions").
+# A line is: label, address, len=N (the first instructions' length, whole instructions: tools/origrun/prologue.py checks it).
+#   update   App::Frame (0x41b9fe): the pass's game work, the board's update and its painting into LOWOS's screen in one
+#   present  LOWOS_EndFrame (0x42f9f0): the Blt or Flip to the screen, and the input poll
+update   0x41b9fe  len=5
+present  0x42f9f0  len=6
