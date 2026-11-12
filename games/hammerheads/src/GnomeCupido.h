@@ -14,8 +14,8 @@ class GnomeCupido : public Creature
 public:
 	double			mFrame;						// +0xc0: the flap of his wings; its whole part, eleven at a time round, is the cel
 	double			mFrameSpeed;				// +0xc8: 0.1
-	double			mX;							// +0xd0: where he stands
-	double			mY;							// +0xd8
+	double			mCupidX;					// +0xd0: where he stands
+	double			mCupidY;					// +0xd8
 	int				mStage;						// +0xe0: 0 waiting, 1 flying off (the second row of cels), 2 gone
 	double			mTimer;						// +0xe8: counts down from 1 while he flies off
 	bool			mHasCalled;					// +0xf0: he has said his "love" once

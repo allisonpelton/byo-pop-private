@@ -227,7 +227,7 @@ void Creature::GetPositionInCell(double thePos[2], double theX, double theY) con
 	thePos[1] = (theY - mAnchorY) - mHeight;
 }
 
-// 0x42f620: how much of the flash shows at a point of the flash's time (0 to pi); the bomb and a silver gnome in its armor never flash
+// 0x42f620: how much of the flash shows at a point of the flash's time (0 to pi); the bomb and a silver gnome in its last (fading) stage never flash
 int Creature::FlashAlpha(double theTime) const
 {
 	if (0.0 <= theTime && theTime <= 3.1415926535 && mKind != KIND_BOMB)
@@ -235,7 +235,7 @@ int Creature::FlashAlpha(double theTime) const
 		if (mKind == KIND_SILVER)
 		{
 			const GnomeSilver* aSilver = dynamic_cast<const GnomeSilver*>(this);
-			if (aSilver != nullptr && aSilver->IsArmored())
+			if (aSilver != nullptr && aSilver->IsFading())
 				return 0;
 		}
 		return (int)(fabs(sin(((4.0 - (theTime * 0.31830988619288864 + theTime * 0.31830988619288864)) * theTime) * 5.0)) * 255.0);

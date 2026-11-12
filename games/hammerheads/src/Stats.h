@@ -43,6 +43,7 @@ enum StatIndex
 	STAT_BONUS_HITS = 31,
 	STAT_BONUS_MISSES = 32,
 	STAT_LEVEL_OF_LAST_PURCHASE = 33,
+	STAT_LEVEL_OF_FIRST_HEART = 34,		// set when the first heart is collected (saved in the profile)
 	STAT_LEVEL_OF_LAST_HEART = 35,
 	STAT_LEVEL_OF_LAST_COIN = 36,
 	STAT_HAS_ICE_CREAM = 37,			// the three power-ups bought in the shop and waiting for the next level (provisional names)

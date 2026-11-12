@@ -13,8 +13,8 @@ GnomeCupido::GnomeCupido() :
 	Creature(KIND_CUPIDO),
 	mFrame(0.0),
 	mFrameSpeed(0.1),
-	mX(0.0),
-	mY(0.0),
+	mCupidX(0.0),
+	mCupidY(0.0),
 	mStage(0),
 	mTimer(0.0),
 	mHasCalled(false)
@@ -37,8 +37,8 @@ void GnomeCupido::GetSheetCell(double theCell[2]) const
 void GnomeCupido::Update(const double thePos[2])
 {
 	Creature::Update(thePos);
-	mX = thePos[0];
-	mY = thePos[1];
+	mCupidX = thePos[0];
+	mCupidY = thePos[1];
 	mFrame = mFrameSpeed + mFrame;
 
 	if (mStage == 1)
@@ -84,7 +84,7 @@ bool GnomeCupido::Hit()
 		ConvertToHearts(this);
 		gApp->PlaySample(SOUND_CUPIDO_MAGIC);
 		gApp->PlaySample(SOUND_VOICE_CUPID_AU);
-		MakeFloater(FLOATER_SCORE_POP, mX, mY, "Love!", 0, "");
+		MakeFloater(FLOATER_SCORE_POP, mCupidX, mCupidY, "Love!", 0, "");
 	}
 	return aHit;
 }
@@ -93,8 +93,8 @@ bool GnomeCupido::Hit()
 std::string GnomeCupido::SaveExtra()
 {
 	ValueList aList;
-	aList.Add(mX);
-	aList.Add(mY);
+	aList.Add(mCupidX);
+	aList.Add(mCupidY);
 	aList.Add(mFrame);
 	aList.Add(mFrameSpeed);
 	aList.AddInt(mStage);
@@ -107,8 +107,8 @@ std::string GnomeCupido::SaveExtra()
 void GnomeCupido::LoadExtra(const std::string& theData)
 {
 	ValueList aList(theData);
-	mX = aList.NextDouble();
-	mY = aList.NextDouble();
+	mCupidX = aList.NextDouble();
+	mCupidY = aList.NextDouble();
 	mFrame = aList.NextDouble();
 	mFrameSpeed = aList.NextDouble();
 	mStage = aList.NextInt();
