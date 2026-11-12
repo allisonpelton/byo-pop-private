@@ -169,7 +169,6 @@ EffectOverlay::EffectOverlay(WinDMApp* theApp)
 	mTextStretch = 0;
 	mTextStretchVel = 0;
 	mTextAge = 0;
-	mB4 = 0;
 	mTextHold = 0;
 	mTextFadeIn = 0;
 	mTextSettleA = 0;
@@ -210,7 +209,6 @@ void EffectOverlay::DoStrechyText(const std::string& theText, int theDelay)
 	else
 		aDelay = theDelay;
 
-	mB4 = 0.0f;
 	mTextFadeIn = aDelay + 0x5a;
 	mTextScale = 1.0f;
 	mTextSettleA = aDelay + 0x3c;

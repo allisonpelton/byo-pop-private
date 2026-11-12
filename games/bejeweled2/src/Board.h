@@ -179,7 +179,6 @@ public:
 	bool			mFlipped;           // +0x1721 mode 4: the board is upside down (rows count from the bottom)
 	bool			mInUndoPreview;     // +0x1722 (selects the undo list)
 	bool			m1723;
-	bool			m1724;
 	bool			mSecretModeUnlocked; // +0x1725 the profile has unlocked the secret version of this mode (so says no more)
 	SoundInstance*	m1728;              // +0x1728 never set
 	bool			mNoMoveYet;         // +0x172c
@@ -268,13 +267,12 @@ public:
 	bool			m165ad;             // XMAS
 	bool			m165ae;             // COLORSWAP, BLACKANDWHITE, AMBERSCREEN, GREENSCREEN: the images have been changed
 	bool			m165af;             // SLOMO
-	int				m165b4;
 	bool			m165b8;             // NAUSEA
 	bool			m165c0;             // NOFRAME
 
 	// the rest, named by their offsets
-	bool			m1750, m1751;
-	int				m1764, m1768, m176c;
+	bool			m1751;
+	int				m1764, m1768;
 	bool			m1770;
 	int				m1774;
 	int				mSecretPuzzleCount; // +0x17a4 the puzzles queued for the secret galaxy (Cognito)
@@ -289,15 +287,12 @@ public:
 	double			m1858, m1860;
 	int				mSolutionFirstNode; // +0x18f0 the first node of the solution file (-1 without one)
 	unsigned char	mSolutionMove;      // +0x18fc the move just made, as the solution file writes one
-	int				m190c, m1910, m1914, m1918;
+	int				m190c, m1910, m1918;
 	bool			m191c;              // +0x191c
 	bool			mIsPlanetIntro;     // +0x191d the planet's intro puzzle is on the board (SelectPuzzlePod with -1)
 	float			m1944, m1948;
 	bool			m194c, m194d, m194e;
 	float			m1954;          // +0x1954 the phase of the arrow over the hint gem (EffectOverlay::Draw takes its cosine)
-	int				m195c;
-	bool			m1960;
-	int				m1964, m1968, m196c, m1970, m1974;
 	int				m1994, m1998;
 	float			m15d9c;
 	int				m15da0, m15da4;
@@ -319,12 +314,10 @@ public:
 	bool			mExplodeHappened;   // +0x15e78 a gem exploded in this update: Update plays the sound once
 	int				m15e7c, m15e80, m15e84, m15e88;
 	int				mLastExplodeSoundTick; // +0x15e8c the update at which a hyper cube in a blast last sounded
-	int				m15e90, m15e94, m15e98;
+	int				m15e94, m15e98;
 	double			m15ea0;
 	bool			m15ea8, m15ea9;
 	int				m15eac, m15eb0, m15eb4, m15eb8;
-	bool			m15ebc;
-	Font*			m15ed8;
 	Font*			m15edc;
 	bool			m15ee0;
 	int				m15ee4, m15ee8, m15eec, m15ef0;
@@ -334,13 +327,11 @@ public:
 	bool			m15f24;
 	int				m15f30, m15f34;
 	bool			m15f38;
-	Widget*			m15f40;
-	bool			m15f50;
 	MemoryImage*	m15f60;             // the static half of the screen (a DDImage that DrawNormal2d makes)
 	MemoryImage*	m15f64;             // a picture that DrawBoard draws the gems of the 2D game into
-	bool			m15f68, m15f69, m15f6a;
-	int				m15f6c, m15f70;
-	int				m15f7c, m15f80;
+	bool			m15f68, m15f69;
+	int				m15f6c;
+	int				m15f7c;
 	float			m15f84;             // the frame of the black hole (0 to 5) that the whirlpool turns through
 	int				m15f88;
 	double			m15f90, m15f98, m15fa0;
@@ -352,8 +343,6 @@ public:
 	double			mStarRot;           // +0x15fc0 the turn of the first star on the selected gem
 	double			mStarDrift;         // +0x15fc8 the turn of the second star, the other way
 	double			mStarPhase;         // +0x15fd0 0 to 1: the flicker between the two stars and of the flames
-	double			m15fd8;
-	bool			m16020;
 	int				m16024, m16028, m1602c, m16030;
 
 public:

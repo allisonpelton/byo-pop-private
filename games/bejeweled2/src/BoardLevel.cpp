@@ -79,7 +79,6 @@ void Board::PrepareLevelImages()
 		mNextBackdropImage->mD3DFlags = 1;
 		mNextBackdropImage->SetImageMode(false, false);
 	}
-	m15f6a = false;
 }
 
 // 0x5a5024
@@ -91,7 +90,6 @@ void Board::PrepareLevelImagesStub(void* theBoard)
 // 0x5a571e: the original hands this to its worker thread
 void Board::StartPrepareLevelImages()
 {
-	m15f6a = true;
 	mApp->mWorker->DoTask(PrepareLevelImagesStub, this);
 }
 
@@ -126,7 +124,6 @@ void Board::InitialBackdropProcessing()
 void Board::SetupLevelData()
 {
 	double anOldValue = mLevelValue;
-	m15f50 = true;
 	if (!mIsAction)
 	{
 		double aBonus;
@@ -178,7 +175,6 @@ void Board::GameOver(int theDelay)
 {
 	DeleteSavedGame();
 	mSelectedPiece = NULL;
-	m1960 = false;
 	mApp->KillDialog(0x25);
 	mState = STATE_GAME_OVER_FALL;
 	m15e14 = (unsigned int)(mUpdateCnt - mPlayStartTick) / 100 + mPlayedSeconds;
@@ -207,7 +203,7 @@ void Board::UpdateLevelTransition()
 		}
 	}
 	if (mUpdateCnt % 4 == 0)
-		m15f80 = Rand() % 0x80;
+		Rand();   // the original keeps the number where nothing reads it; the draw stays
 	MarkDirty();
 	m15f7c += 3;
 	if (mHeight < m15f7c)

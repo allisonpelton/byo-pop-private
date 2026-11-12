@@ -39,7 +39,6 @@ static const int sStartScores[10] = {2000, 1900, 1800, 1700, 1600, 1000, 900, 80
 // 0x5c530a
 HighScoreWidget::HighScoreWidget(WinDMApp* theApp)
 {
-	mUnused90 = 0;
 	mApp = theApp;
 	mHueOffset = 0;
 	mHasAlpha = true;
@@ -174,7 +173,6 @@ void HighScoreWidget::RemovedFromManager(WidgetManager* theManager)
 void HighScoreWidget::Resize(int theX, int theY, int theWidth, int theHeight)
 {
 	Widget::Resize(theX, theY, theWidth, theHeight);
-	mUnused90 = -theHeight;
 }
 
 // 0x5c37fe

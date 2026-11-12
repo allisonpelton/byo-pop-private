@@ -110,9 +110,6 @@ void Board::DoUpdate()
 		return;
 	}
 
-	if (mState != STATE_PUZZLE_SOLVED)
-		m1914++;
-
 	if (mPauseCount == mInterfacePauseCount && mInterfacePauseCount > 0)
 	{
 		// only the interface is paused: the bonus bar and its fade carry on
@@ -199,14 +196,6 @@ void Board::DoUpdate()
 			m15f84 = (float)((double)m15f84 + 5.0);
 		m15fa0 = m15fa0 + 0.0005000000237487257;
 		m15f98 = m15f98 - m15fa0;
-		MarkDirty();
-	}
-
-	if (m1960 && mUpdateCnt % 4 == 0)
-	{
-		m1964 += m1968;
-		if (abs(m1964) > 2)
-			m1968 = -m1968;
 		MarkDirty();
 	}
 
@@ -352,7 +341,6 @@ void Board::DoUpdate()
 	if (mSelectedPiece != NULL && mUpdateCnt % 8 == 0)
 	{
 		MarkDirty();
-		m195c++;
 	}
 
 	// the gems

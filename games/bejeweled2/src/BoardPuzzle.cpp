@@ -269,7 +269,6 @@ bool Board::LoadPuzzle(const std::string& theFileName)
 	m1850 = false;
 	mSolutionHash = 0;
 	mSolutionNodes.clear();
-	m1914 = 0;
 	m1918 = 0;
 	m1774 = mScore;
 	ClearUndoBuffers();

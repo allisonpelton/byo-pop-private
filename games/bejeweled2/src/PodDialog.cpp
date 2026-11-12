@@ -49,8 +49,6 @@ PodButton::PodButton(int theId, ButtonListener* theListener) :
 	mBlinkGlow = 0.32f;
 	mHasAlpha = true;
 	mBlinkPeriod = 50;
-	mUnusedGlow = 0.5f;
-	mUnusedGlow2 = 1.0f;
 }
 
 // 0x5cdf1e (the destructor proper; 0x5ce2ef is its deleting one)

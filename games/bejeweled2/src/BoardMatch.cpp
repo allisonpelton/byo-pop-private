@@ -20,7 +20,6 @@ bool Board::FindSets()
 	if (m15e4c == 0)
 	{
 		m15e94 = 0;
-		m15e90 = 0;
 	}
 	if (mInUndoPreview)
 		return false;
@@ -342,16 +341,6 @@ void Board::SwapPieces(Piece* theFirst, Piece* theSecond)
 			mHyperSwap = true;
 		}
 	}
-	if (aNormal)
-	{
-		if (m1960 && theFirst->mCol == m196c && theFirst->mRow == m1970 &&
-			theSecond->mCol == m1974 && theSecond->mRow == m1970)
-		{
-			m1960 = false;
-			mApp->KillDialog(0x25);
-		}
-	}
-
 	theFirst->mHintTime = 0;
 	theSecond->mHintTime = 0;
 	mSwapTime = 0;
@@ -460,11 +449,6 @@ void Board::UpdateSwapping()
 				mSwapPiece[0] = NULL;
 				mSwapPiece[1] = NULL;
 				mState = 5;
-				if (m1960)
-				{
-					m1960 = false;
-					mApp->KillDialog(0x25);
-				}
 				mNoMoveYet = false;
 			}
 		}

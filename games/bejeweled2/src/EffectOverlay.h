@@ -68,7 +68,6 @@ public:
 	float			mTextStretch;       // +0xa8 how much the text is stretched sideways (1, damped to 0)
 	float			mTextStretchVel;    // +0xac its speed
 	float			mTextAge;           // +0xb0 0 to 1 over 25 updates: the damping of the stretch
-	float			mB4;                // +0xb4 set to 0 by DoStrechyText and never read
 	int				mTextHold;          // +0xb8 updates before the spring starts (30)
 	int				mTextFadeIn;        // +0xbc updates that the text fades in (the delay and 90)
 	int				mTextSettleA;       // +0xc0 updates until the spring stops aiming at 1.75 (the delay and 60)

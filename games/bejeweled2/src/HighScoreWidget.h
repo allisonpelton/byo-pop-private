@@ -39,7 +39,6 @@ public:
 
 public:
 	WinDMApp*		mApp;               // +0x8c (the ButtonListener subobject is at +0x88)
-	int				mUnused90;          // +0x90 set to the negative height by Resize, never read
 	PodButton*		mBackButton;        // +0x94 id 0
 	PodButton*		mActionButton;      // +0x98 id 1 (play again), or id 2 (reset the scores) when no game is open
 	int				mSlideDelay;        // +0x9c updates before the panel slides in

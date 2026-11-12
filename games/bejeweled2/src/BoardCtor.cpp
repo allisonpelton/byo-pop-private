@@ -71,7 +71,6 @@ Board::Board(WinDMApp* theApp)
 	mEndInfoProcessed = false;
 	mBackdropImage = NULL;
 	mNextBackdropImage = NULL;
-	m15f6a = false;
 	m1848 = false;
 	for (int aRow = 0; aRow < 8; aRow++)
 		for (int aCol = 0; aCol < 8; aCol++)
@@ -118,7 +117,6 @@ Board::Board(WinDMApp* theApp)
 	m15f18 = false;
 	mHyperspace = NULL;
 	m15df0 = 0;
-	m1750 = true;
 	m15de8 = false;
 	m15db0.SetOutRange(0.0, 1.0);
 	m15db0.SetMode(0);
@@ -174,18 +172,14 @@ Board::Board(WinDMApp* theApp)
 	mShakeSize = 0.0f;
 	m191c = false;
 	mShakeTime = 0.0f;
-	m1724 = false;
 	m1723 = false;
 	mInUndoPreview = false;
 	m190c = 0;
-	m195c = 0;
 	mSelectedPiece = NULL;
 	m15e54 = 0;
 	m15e58 = 0;
 	mShakeX = 0;
 	mShakeY = 0;
-	m15ebc = false;
-	m1960 = false;
 	m15e14 = 0;
 	m15e18 = 0;
 	mPlayedSeconds = 0;
@@ -202,7 +196,6 @@ Board::Board(WinDMApp* theApp)
 	m15f1c = 0x17;
 	m15f20 = 0;
 	m15e94 = 0;
-	m15e90 = 0;
 	mHoverPod = -1;
 	mPendingPod = -1;
 	mDropDelay = mIsPuzzle ? 0 : 0xb4;
@@ -233,10 +226,8 @@ Board::Board(WinDMApp* theApp)
 	mSwapPiece[0] = NULL;
 	mSwapPiece[1] = NULL;
 	mSwapFade = 1.0f;
-	m15ed8 = FONT_DIGIT;
 	m15edc = FONT_SCORE;
 	mNextLevel = 1;
-	m15f40 = NULL;
 	// the picture that the level text is drawn into for the glow (+0x15f54)
 	// the picture of the level number that the endless mode keeps
 	mFontGlowImage = new MemoryImage(mApp);
@@ -246,26 +237,17 @@ Board::Board(WinDMApp* theApp)
 	SetupLevelData();
 	m15eec = m15ef0;
 	m1998 = 0;
-	m15f50 = false;
 	m1994 = 0;
 	m15f88 = 0xfa;
-	m15f80 = 0;
 	m15f90 = 0.0;
 	m15f98 = 0.0;
 	m15fa0 = 0.0;
 	m1728 = NULL;
 	m15e4c = 0;
 	mCascadeCount = 0;
-	m16020 = false;
-	m1964 = 0;
-	m1968 = 1;
-	m196c = -1;
-	m1970 = -1;
-	m1974 = -1;
 	mStarRot = 0.0;
 	mStarDrift = 0.0;
 	mStarPhase = 0.0;
-	m15fd8 = 0.0;
 	for (int i = 0; i < 8; i++)
 		mColumnExplodeTick[i] = 0;
 	mExplodeHappened = false;
@@ -291,7 +273,6 @@ Board::Board(WinDMApp* theApp)
 	}
 	mEffectOverlay = new EffectOverlay(mApp);
 	mEffectOverlay->Resize(0, 0, mApp->ScaleNum(0x400, 0), mApp->ScaleNum(0x300, 0));
-	m15f70 = 0;
 	if (mIsPuzzle && !mIsSecret)
 		SelectPuzzlePod(mPuzzleOverlay->mSelectedPod);
 
@@ -331,7 +312,6 @@ Board::Board(WinDMApp* theApp)
 	m15f69 = true;
 	m17d0 = false;
 	m17d4 = 0;
-	m176c = 0;
 	mSweep0 = 0;
 	mSweep1 = 0;
 	mSweep2 = 0;
@@ -355,7 +335,6 @@ Board::Board(WinDMApp* theApp)
 	m165ad = false;
 	mCheated = false;
 	m165af = false;
-	m165b4 = 0;
 	m165b8 = false;
 	m165bc = NULL;
 	m165c0 = false;
@@ -388,7 +367,6 @@ Board::~Board()
 	delete mPuzzleOverlay;
 	delete m15f64;
 	delete m15f60;
-	delete m15f40;
 	delete mFontGlowImage;
 	delete mBackdropImage;
 	delete mNextBackdropImage;

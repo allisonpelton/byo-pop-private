@@ -420,8 +420,6 @@ void Board::Draw(Graphics* g)
 	g->Translate(aShakeX, aShakeY);
 	int aCenterX, aCenterY;
 	GetBoardCenter(&aCenterX, &aCenterY);
-	if (m1750)
-		m1750 = false;
 
 	if (mState == STATE_WHIRLPOOL)
 	{
@@ -600,53 +598,6 @@ void Board::Draw(Graphics* g)
 				mBackLink->mColor = Color(0xff, 0xff, 0xff, anAlpha);
 				mBackLink->mOverColor = Color(0xff, 0xff, 0xff, anAlpha);
 			}
-		}
-	}
-
-	// the test displays that the cheats switch on
-	if (m1724)
-	{
-		if (mInUndoPreview)
-		{
-			g->SetColor(Color(0xff, 0xff, 0));
-			g->DrawString("CREATING MODE", 0x12, 600);
-		}
-		if (mIsPuzzle)
-		{
-			g->SetColor(Color(100, 100, 0xff));
-			g->DrawString("PUZZLE MODE", 0x12, 0x276);
-			if (!mInUndoPreview)
-			{
-				std::string aText;
-				if (!mSolutionValid)
-				{
-					g->SetColor(Color(0xff, 0xff, 0xff));
-					aText = "Solution Unknown";
-				}
-				else if (mSolutionMoves < 1)
-				{
-					g->SetColor(Color(0xff, 0xff, 0xff));
-					aText = "No Longer Solvable";
-				}
-				else
-				{
-					char aBuf[256];
-					sprintf(aBuf, "%d Valid Moves", mSolutionMoves);
-					g->SetColor(Color(0xff, 0xff, 0xff));
-					aText = aBuf;
-				}
-				g->DrawString(aText, 0x12, 0x294);
-			}
-		}
-		if (m1723)
-		{
-			g->SetColor(Color(0, 0xff, 0));
-			g->DrawString("FREE MODE", 0x12, 0x2b2);
-		}
-		if (mIsAction)
-		{
-			g->SetColor(Color(0xff, 100, 100));
-			g->DrawString("TIMED MODE", 0x12, 0x2d0);
 		}
 	}
 

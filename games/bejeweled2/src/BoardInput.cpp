@@ -141,7 +141,6 @@ void Board::MouseDown(int theX, int theY, int theClickCount)
 					return;
 				}
 			}
-			m195c = 0;
 			mSelectedPiece = aPiece;
 			MarkDirtyFull();
 			mApp->PlaySample(SOUND_SELECT, GetPanPosition((int)mSelectedPiece->mX + 0x2a));

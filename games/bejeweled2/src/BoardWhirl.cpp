@@ -182,19 +182,6 @@ void Board::PickNextBackdrop()
 // 0x5aafae: the whirlpool of the warp: the mesh of points spirals inward and the levels change underneath
 void Board::UpdateWhirlpool()
 {
-	if (m1724)
-	{
-		// no warp is drawn: the level changes at once
-		ProcessLevelImages();
-		if (!mIsPuzzle)
-			PickNextBackdrop();
-		else
-			m15f6c++;
-		StartPrepareLevelImages();
-		EndWhirlpool();
-		return;
-	}
-
 	bool anEnd = false;
 	float aFade = (float)((double)mFadeIn - 0.014999999664723873);
 	mFadeIn = aFade;

@@ -57,20 +57,13 @@ void Board::UpdateGameOverAnim()
 		}
 		if (anAllGone)
 		{
-			if (!m15ebc)
+			if (mScreenState == 1)
 			{
-				if (mScreenState == 1)
-				{
-					m15f24 = false;
-					mState = 7;
-					mApp->DoHighScoreWidget();
-					MarkDirty();
-					mApp->DoGameOver();
-				}
-			}
-			else
-			{
-				mApp->NewGame();
+				m15f24 = false;
+				mState = 7;
+				mApp->DoHighScoreWidget();
+				MarkDirty();
+				mApp->DoGameOver();
 			}
 		}
 	}
