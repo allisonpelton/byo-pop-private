@@ -81,8 +81,6 @@ void Sys_UserName(char* theName, int theSize);
 void Sys_AddUpdateRect(int x, int y, int theWidth, int theHeight);
 // 0x428890 (cosmicbugs), 0x428d70 (waterbugs)
 void Sys_SetMousePos(int x, int y);
-// 1: PumpMessages goes on while the window is not the active one (the game's demo mode sets it)
-extern int gPumpMessages;
 // The input (0x4289d0..0x428b20 (cosmicbugs), 0x428eb0..0x429000 (waterbugs)), which the window's messages fill: the
 // mouse buttons held, the keys held (by virtual-key code) and a ring of the last 100 keys pressed. The host feeds them
 // its events with Sys_KeyEvent and Sys_MouseButton.

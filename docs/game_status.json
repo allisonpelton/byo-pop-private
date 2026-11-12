@@ -421,10 +421,12 @@
         "site-features",
         "coverage",
         "performance",
-        "unneeded-code"
+        "unneeded-code",
+        "readability",
+        "collection"
       ],
       "na": [],
-      "now": "readability",
+      "now": null,
       "note": ""
     },
     "waterbugs": {
