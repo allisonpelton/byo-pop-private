@@ -134,6 +134,10 @@ holds the rules every session follows; this file does not repeat them.
     310 ms of Noah's Ark's 0.6 s start (no threads, so no fix found). SDL's software renderer, the fallback without a
     GPU, 10 to 13 ms a frame at 640x480 against 0.26 ms with Direct3D 11. A partial upload helps a game whose dirty
     rectangle is most of the screen little (87% on Cosmic Bugs' board); a streaming or 16-bit texture would cut the bytes.
+    In Word Harmony the frame's present is about 35% of what is left after its pass (the whole 1.9 MB screen picture
+    to a static texture, then the copy to the target and the window); SDL's other drivers cost the same or more. A
+    rectangle upload fed by a list of changed rectangles the game gives the screen image would help it; test with its
+    `tools/profile/pair.sh` against the original (2026-11-11).
   - `SexyAppBase::PollLiveCommands` stats the `-commands` file every 10 ms update, about 0.34 M cycles a call: an eighth
     of the main thread in a run that uses the channel (`-commands`, `-realinput`), and every update under `-fast`. Poll
     every tenth update or on a change notification; any suite that uses the channel must give the same results (Cosmic

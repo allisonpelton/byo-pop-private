@@ -4,7 +4,15 @@ A port of PopCap's Dynomite Deluxe (2003) that plays natively (Windows, SDL2) an
 translation of the original's game classes into code on the shared framework; it ships none of the game's pictures,
 sounds, music, puzzle packs or texts, which come from your own copy of the game.
 
-## Status (2026-10-26)
+## Status (2026-11-11)
+
+Both phases of the identical-play pass are done (`IDENTICAL_PLAY.md`): the same input plays the same games in the
+original and the port, and the screens, the dialogs, the sound, the focus and the web build were compared with the
+original's, with real-input play natively and in the browser. The pass found no fix candidate, so there is no fixes
+mod. The coverage check, the performance pass, taking out the code the port does not need, the readability pass and the
+check against the PopCap Game Collection's copy are done too (`GAME_NOTES.md`, sections 6 to 10). Of the definition of
+done (`docs/COORDINATION.md`, "Done means every phase but modding") only the game's features on the site are left: its
+Music entries and soundboard presets, which the site's session builds.
 
 The game is translated: the loading and title screens, the main menu with its pages (start, modes, skill, the fossil
 challenge's kind, saved games, puzzle packs), the side bar with Inchy and his call-outs, the board with the slingshot, the
@@ -16,16 +24,14 @@ overwrite and "no slot" dialogs, and Continue from the main menu. It runs unmodi
 
 Left out on purpose: the unregistered copy's pieces (the register dialog, vtable 0x4fc890; the purchase pitch, 0x4ff5e0;
 the dialogs 14 and 21 at 0x432740 and 0x4411d0), because the Steam copy is registered. The cursor clip of the board
-(`ClipCursor`, `Dynomite.cpp`) is a TODO for a platform call, but nothing in the game turns it on.
+(`ClipCursor`, `Dynomite.cpp`) is left out, since the platform has no call for it: only the registry value
+`LockCursor` turns it on in the original, and no dialog sets it.
 
 Two things differ from the original's files on disk. The saved games (`SLOT0.SAV` to `SLOT7.SAV`), and the high scores (the
 `.HS` files) are in the user folder rather than beside the exe. Stomped Puzzle copies its pack to
 `STOMPED.TMP` in the game's folder; the port keeps that copy in memory (`BinFile::SetMemoryFile`). A Stomped saved game
 still holds the whole pack, as the original's does, so each such slot is about 267 KB; in the browser the saves are kept in
 IndexedDB and backed up in localStorage, where eight of them would take about 2.9 MB of the origin's space.
-
-Still to do: a pass that compares each screen and rule with the original running (the fidelity pass), and the stores line
-`BYOPOP_BUY_dynomite` in `cmake/ByopopStores.cmake`, which is a placeholder until the coordinator supplies it.
 
 ## The binary
 
@@ -43,7 +49,9 @@ python games/dynomite/tools/stage_dynomite_assets.py ["<install folder>"]
 
 copies images, data, sounds, music, the Stomped folder, `DEFAULT.EGG`, the properties and `Dynomite.exe` from your install
 (the Steam library's `Dynomite Deluxe` folder by default) into the git-ignored `assets/dynomite/`. Nothing is written into
-the install, and the DRM wrapper's files, `bass.dll` and your own high scores and saved games are not copied.
+the install, and the DRM wrapper's files, `bass.dll`, your own high scores and saved games and the sounds the original
+caches on its first run (`sounds/cached_*.wav`) are not copied. The PopCap Game Collection's copy stages the same way
+(`GAME_NOTES.md`, section 7).
 
 ## Building and running
 
@@ -81,12 +89,15 @@ the `loaded` and `next` colours, `frozen` and `rows`, the grid's cells a row a s
 empty. `goto` opens `menu`, `options`, `highscores` or `credits`, or starts `endless`, `stomped`, `fossil`,
 `timetrial` or `tutorial` through the main menu's own pages (their present skill and pack). `level <n>` starts fossil
 n of the Fossil Challenge from its first fragment. `set score <n>` sets the side bar's score. `win` clears the board in
-Stomped and Time Trial, so the board's own end follows; `lose` puts the eggs past the line as in play (Inchy sinks and
+Stomped and Time Trial, so the board's own end follows, and in the Fossil Challenge takes every egg and lets the fossil
+fall, so the fragment's own end follows (its museum, and after fossil 15 the Rex attack); `lose` puts the eggs past the line as in play (Inchy sinks and
 the eggs run off), once the first shot has started the game. `seed <n>` seeds the app's twister and its picker.
 `unlock all` answers with an error: nothing is locked in the port. `move` prints the bot's next move (`src/Bot.cpp`):
 in the tutorial its Continue button while it shows, then the museum's own button while the museum is open (and the side bar's museum button at the tutorial's step 93, which waits for it), at the tutorial's whirley step the shot whose flight meets the whirley, and at its steps 43 and 45 the lowest shot without a match, else the shot that joins the most eggs of the loaded colour, found
 by flying every angle the mouse can give with the grid's own probes, with its `input` (a move to the point that aims it
-and a click there). The bot reads the board and changes nothing.
+and a click there). The bot reads the board and changes nothing. `matchmove`, the game's own, is `move` without the
+low shots of steps 43 and 45: there it gives the shot that joins the most eggs, as a player would make (`tools/shots/botrec.py
+--match45` uses it to see what the original does then).
 
 `tools/realplay/play.sh <steps> <out>` plays the port natively with real input only, through Bejeweled Twist's driver
 (`games/bejeweledtwist/tools/realplay/drive.py`); `tools/realplay/*.txt` are its step files (the tutorial and a game of

@@ -349,6 +349,9 @@ std::string GameApp::MoveForTests()
 		return Move("talk", Click(400, 150));
 	std::string aScreen = ScreenForTests();
 	bool aBattle = mBoard != nullptr && mBoard->mVisible && !mBoard->IsMiniGame();
+	// a cut scene (the prologue's): a click asks to skip it, and the dialog that follows is answered above
+	if (aScreen == "cutscene")
+		return Move("cutscene", Click(400, 300));
 	// the first battle's tutorial: one tile at a time, then Attack
 	std::string aState;
 	if (aBattle &&
@@ -372,6 +375,39 @@ std::string GameApp::MoveForTests()
 		if (aCount == 0 && !mBoard->mSelected.empty() && anAttack != mBoard->mButtons.end() && anAttack->second != nullptr)
 			return Move("tutorial", Click(mBoard->mX + anAttack->second->mX + anAttack->second->mWidth / 2,
 			                              mBoard->mY + anAttack->second->mY + anAttack->second->mHeight / 2));
+	}
+	// the first battle's potion tutorial ("Clicking on red potions restores some of Lex's health!", then the blue and the
+	// green ones): the grid waits for a click on the potion. The profile's tutorial flag stays set until it is used, so a
+	// click that left it standing (a potion that did nothing) is not asked again for 120 updates.
+	if (aBattle && mProfile != nullptr && gBattleEngine != nullptr && !mBoard->IsPaused() &&
+	    gBattleEngine->mState == BattleEngine::BE_IDLE && gBattleEngine->CanClickItems() &&
+	    gBattleEngine->CallLinkedMethod("AttackerIsPlayer", 0).Bool()) {
+		static const struct {
+			const char* mFlag;
+			const char* mHas;
+			int mX;
+		} kPotions[3] = {{"TutorialNeedsHealth", "PlayerHasHP", 68},
+		                {"TutorialNeedsPower", "PlayerHasAP", 143},
+		                {"TutorialNeedsPurify", "PlayerHasPP", 225}};
+		static int sPotionAt[3] = {-1000, -1000, -1000};
+		for (int i = 0; i < 3; i++)
+			if (mProfile->GetBool(kPotions[i].mFlag) && gBattleEngine->CallLinkedMethod(kPotions[i].mHas, 0).Bool() &&
+			    mUpdateCount - sPotionAt[i] > 120) {
+				sPotionAt[i] = mUpdateCount;
+				return Move("potion", Click(kPotions[i].mX, 330));
+			}
+	}
+	// the second battle's scramble tutorial (the arrow over the Scramble button stands while the profile's TutorialScrambleArrow is true; the key stays, false, after it)
+	if (aBattle && mProfile != nullptr && gBattleEngine != nullptr && !mBoard->IsPaused() &&
+	    mProfile->GetBool("TutorialScrambleArrow")) {
+		static int sScrambleAt = -1000;
+		auto aScramble = mBoard->mButtons.find(Board::BUTTON_SCRAMBLE);
+		if (aScramble != mBoard->mButtons.end() && aScramble->second != nullptr && !aScramble->second->mDisabled &&
+		    mUpdateCount - sScrambleAt > 120) {
+			sScrambleAt = mUpdateCount;
+			return Move("tutorial", Click(mBoard->mX + aScramble->second->mX + aScramble->second->mWidth / 2,
+			                              mBoard->mY + aScramble->second->mY + aScramble->second->mHeight / 2));
+		}
 	}
 	// a lost turn (Lex stunned), once two questions 30 updates apart or more have seen it (a turn changing shows one for
 	// a moment): a click on the grid ends its round

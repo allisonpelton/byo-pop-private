@@ -1,0 +1,58 @@
+# coverage script (2D, the profile player): the Options dialog from the main menu: the sliders (a click on the track, a drag of the
+# thumb), Custom Cursors on and off, Random Backdrops (its question answered yes, then off), Hardware Accelerate (the "Not Supported"
+# message), High Resolution (its question answered no and then yes)
+at 562 shot title
+at 566 move 320 401
+at 568 click 320 401
+at 808 shot menu
+at 811 move 79 428
+at 813 click 79 428
+at 900 shot options
+at 910 move 450 124
+at 912 click 450 124
+at 920 move 400 162
+at 922 click 400 162
+at 930 down 450 124
+at 932 move 420 124
+at 934 move 380 124
+at 936 up 380 124
+at 940 down 400 162
+at 942 move 440 162
+at 944 move 480 162
+at 946 up 480 162
+at 960 shot sliders
+at 970 move 210 251
+at 972 click 210 251
+at 990 shot cursors_on
+at 1000 click 210 251
+at 1020 move 340 251
+at 1022 click 340 251
+at 1060 shot backdrops_q
+at 1070 move 263 239
+at 1072 click 263 239
+at 1100 shot backdrops_on
+at 1110 move 340 251
+at 1112 click 340 251
+at 1140 shot backdrops_off
+at 1150 move 277 208
+at 1152 click 277 208
+at 1190 shot accel_msg
+at 1200 move 319 239
+at 1202 click 319 239
+at 1240 shot accel_ok
+at 1250 move 407 208
+at 1252 click 407 208
+at 1290 shot highres_q1
+at 1300 move 376 239
+at 1302 click 376 239
+at 1340 shot highres_no
+at 1350 move 407 208
+at 1352 click 407 208
+at 1390 shot highres_q2
+at 1400 move 263 239
+at 1402 click 263 239
+at 1440 shot highres_yes
+at 1450 move 319 342
+at 1452 click 319 342
+at 1500 shot done
+quit

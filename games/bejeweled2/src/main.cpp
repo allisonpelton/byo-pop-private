@@ -78,6 +78,7 @@ static std::string FindGameDir()
 }
 #endif
 
+// 0x5dba99 (the original's main calls WinDMApp::Init, SexyApp::Start and WinDMApp::Shutdown; the port reads its arguments first)
 int main(int argc, char** argv)
 {
 	std::string gameDir = ArgValue(argc, argv, "gamedir");

@@ -173,6 +173,7 @@ public:
 	virtual void	GotFocus() override;                            // 0x5dc086
 	virtual void	LostFocus() override;                           // 0x5dc0a3
 	virtual void	AddDialog(int theDialogId, Dialog* theDialog) override; // 0x5dc03b
+	virtual bool	KillDialog(int theDialogId) override;                   // 0x5dceb6
 	virtual void	SwitchScreenMode(bool wantWindowed) override;   // 0x5e0b03
 	virtual DDImage* GetImage(const std::string& theFileName, bool commitBits = true) override;   // port: see mShrinkLoads
 	virtual void	Done3dTesting() override;                       // 0x5dbe1f
@@ -188,6 +189,7 @@ public:
 	bool			mTestUnlock;            // "unlock all" was given before there was a profile
 	using SexyApp::SwitchScreenMode;
 	using SexyApp::AddDialog;
+	using SexyApp::KillDialog;
 	using SexyApp::PlaySample;
 
 	// the functions the original added to the vtable

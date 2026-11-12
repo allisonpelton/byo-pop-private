@@ -79,6 +79,7 @@ public:
 	virtual void	AddedToManager(WidgetManager* theManager) override;     // 0x5d1731
 	virtual void	RemovedFromManager(WidgetManager* theManager) override; // 0x5d1754
 	virtual void	Update() override;                          // 0x5d1c27
+	virtual void	ButtonPress(int theId) override;            // 0x5d1b49
 	virtual void	ButtonDepress(int theId) override;          // 0x5d1b5d
 };
 

@@ -64,6 +64,8 @@ static std::string FindGameDir()
 }
 #endif
 
+// 0x442690: WinMain, from "The original keeps the app" on (Init, Start and Shutdown on the global app); before it, the
+// platform's start: the folders and the save import
 int main(int argc, char** argv)
 {
 	std::string gameDir = ArgValue(argc, argv, "gamedir");

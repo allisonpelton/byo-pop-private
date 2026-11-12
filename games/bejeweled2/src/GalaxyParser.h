@@ -54,6 +54,7 @@ public:
 	std::vector<TutorialMove>	mTutorialMoves; // +0xd0 the <Move> steps of the tutorial
 
 public:
+	// 0x5bedc3 (the original's constructor only makes the strings and vectors; the port also zeroes the map place)
 	Planet() : mMapX(0), mMapY(0) {}
 
 	int				GetPuzzleCount() const { return (int)mMoons.size(); }

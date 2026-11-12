@@ -1,0 +1,64 @@
+{
+  "ignore": [
+    {
+      "rect": [
+        372,
+        21,
+        46,
+        108
+      ],
+      "pairs": "lost.png",
+      "label": "a baby egg's cell and its stick of dynamite, shaken on every draw by rand() % 9 - 4 in x and y (EggGrid::Draw, 0x417760; the C runtime's generator has no other use in the game); while t2's window is without the focus the original draws the board a different number of times than the port, which draws once an update, so the two shakes part from the focus's loss on (IDENTICAL_PLAY.md, \"Phase 2: what remains\"); play is unaffected"
+    },
+    {
+      "rect": [
+        372,
+        21,
+        46,
+        108
+      ],
+      "pairs": "regained.png",
+      "label": "a baby egg's cell and its stick of dynamite, shaken on every draw by rand() % 9 - 4 in x and y (EggGrid::Draw, 0x417760; the C runtime's generator has no other use in the game); while t2's window is without the focus the original draws the board a different number of times than the port, which draws once an update, so the two shakes part from the focus's loss on (IDENTICAL_PLAY.md, \"Phase 2: what remains\"); play is unaffected"
+    },
+    {
+      "rect": [
+        372,
+        21,
+        46,
+        108
+      ],
+      "pairs": "newq.png",
+      "label": "a baby egg's cell and its stick of dynamite, shaken on every draw by rand() % 9 - 4 in x and y (EggGrid::Draw, 0x417760; the C runtime's generator has no other use in the game); while t2's window is without the focus the original draws the board a different number of times than the port, which draws once an update, so the two shakes part from the focus's loss on (IDENTICAL_PLAY.md, \"Phase 2: what remains\"); play is unaffected"
+    },
+    {
+      "rect": [
+        372,
+        21,
+        46,
+        108
+      ],
+      "pairs": "e2.png",
+      "label": "a baby egg's cell and its stick of dynamite, shaken on every draw by rand() % 9 - 4 in x and y (EggGrid::Draw, 0x417760; the C runtime's generator has no other use in the game); while t2's window is without the focus the original draws the board a different number of times than the port, which draws once an update, so the two shakes part from the focus's loss on (IDENTICAL_PLAY.md, \"Phase 2: what remains\"); play is unaffected"
+    },
+    {
+      "rect": [
+        372,
+        21,
+        46,
+        108
+      ],
+      "pairs": "e3.png",
+      "label": "a baby egg's cell and its stick of dynamite, shaken on every draw by rand() % 9 - 4 in x and y (EggGrid::Draw, 0x417760; the C runtime's generator has no other use in the game); while t2's window is without the focus the original draws the board a different number of times than the port, which draws once an update, so the two shakes part from the focus's loss on (IDENTICAL_PLAY.md, \"Phase 2: what remains\"); play is unaffected"
+    },
+    {
+      "rect": [
+        258,
+        321,
+        10,
+        28
+      ],
+      "pairs": "over.png",
+      "label": "the name box's caret, which blinks on the edit box's own count from when it got the focus (IDENTICAL_PLAY.md, \"Phase 2: what remains\")"
+    }
+  ]
+}

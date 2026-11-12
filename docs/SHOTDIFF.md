@@ -15,6 +15,12 @@ file. Then run `python tools/shotdiff/shotdiff.py --game <game> --orig <original
 It prints one line with the counts and the page's path, and takes seconds. The run id names the comparison (default
 `latest`); a new id keeps the old run beside it, and the all-games page shows the newest run of each game.
 
+Take the port's shots with `-renderscale=1`. On the user's 200% desktop a port's logical screenshot is otherwise the 2x
+picture box-averaged, which blends stretched draws (Dynomite's stomping foot showed stripes up to 67/255). A SexyApp 1.x
+game whose original draws on a software DirectDraw screen keeps the last frame where a board draws only part of itself,
+so its port sets `DDInterface::mKeepScreen` (Dynomite's museum, 2026-11-11). Without it the port draws black there, and its
+screenshot draws the frame once more, which moves any `rand()`-driven drawing and shows as spurious differences.
+
 Read `build/shotreview/<game>/<run>/summary.json`, not the page. It lists every pair with its status (`match`, `differ` or
 `error`), the percentage of differing pixels and its boxes, each with its position, size, pixel count and the path of its
 crop. A crop is one small image: the original on the left and the port on the right, the region around the box enlarged
@@ -156,4 +162,5 @@ keeps its marks in the browser and "Copy marks" copies a short text of them. The
 The alignment search is a global shift of the whole picture; a part of the screen that moves on its own is a difference. A
 capture that cannot be made at the same moment as the other (a screen with a timer, animated bubbles) needs an ignore
 rectangle or, better, a state both sides can reach exactly. Captures from a game whose original draws outside GDI come out
-black or blank (`docs/ORIGRUN.md`) and differ everywhere.
+black or blank (`docs/ORIGRUN.md`) and differ everywhere. A mask matches pair names only, across every run of a game, so
+it cannot be limited to one run; name a run's pairs apart when a mask must not reach them.

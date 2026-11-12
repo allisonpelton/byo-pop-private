@@ -8,6 +8,7 @@
 
 using namespace Sexy;
 
+// 0x5d3dec (the original keeps the app at +0x88; mDrawn is the port's)
 ReloadDisplay::ReloadDisplay(WinDMApp* theApp)
 {
 	mApp = theApp;

@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstring>
+#include <type_traits>
 
 using namespace engine;
 using namespace wordharmony;
@@ -92,17 +93,31 @@ ScreenImage* wordharmony::decodeImage(const std::vector<uint8_t>& theData, const
 namespace
 {
 
-inline uint32_t blend(uint32_t theDest, uint32_t theRGB, int theAlpha)
+// port (performance pass): the pixel functions are inlined into the loops of the blit they are called from, where they were
+// a call and a switch a pixel
+#if defined(__GNUC__) || defined(__clang__)
+#define BLIT_INLINE inline __attribute__((always_inline))
+#else
+#define BLIT_INLINE inline
+#endif
+
+// Each channel is (source * alpha + destination * (255 - alpha)) / 255. Port (performance pass): red and blue are worked out
+// together in the two 16-bit lanes of a word, and a sum x of at most 65025 divided by 255 as (x + 1 + (x >> 8)) >> 8, which
+// is the same for every x up to 65534 (checked against the division for every alpha, every pair of channel values and 400
+// million random pixels)
+BLIT_INLINE uint32_t blend(uint32_t theDest, uint32_t theRGB, int theAlpha)
 {
 	if (theAlpha >= 255)
 		return 0xff000000 | (theRGB & 0x00ffffff);
 	if (theAlpha <= 0)
 		return theDest;
-	int anInverse = 255 - theAlpha;
-	uint32_t r = (((theRGB >> 16) & 0xff) * theAlpha + ((theDest >> 16) & 0xff) * anInverse) / 255;
-	uint32_t g = (((theRGB >> 8) & 0xff) * theAlpha + ((theDest >> 8) & 0xff) * anInverse) / 255;
-	uint32_t b = ((theRGB & 0xff) * theAlpha + (theDest & 0xff) * anInverse) / 255;
-	return 0xff000000 | (r << 16) | (g << 8) | b;
+	uint32_t anAlpha = (uint32_t)theAlpha;
+	uint32_t anInverse = 255 - anAlpha;
+	uint32_t rb = (theRGB & 0x00ff00ff) * anAlpha + (theDest & 0x00ff00ff) * anInverse;
+	rb = ((rb + 0x00010001 + ((rb >> 8) & 0x00ff00ff)) >> 8) & 0x00ff00ff;
+	uint32_t g = ((theRGB >> 8) & 0xff) * anAlpha + ((theDest >> 8) & 0xff) * anInverse;
+	g = (g + 1 + (g >> 8)) >> 8;
+	return 0xff000000 | rb | (g << 8);
 }
 
 inline int clampByte(int theValue)
@@ -126,36 +141,79 @@ struct PixelOp
 	int mThreshold;
 	int mOpacity;  // 0-255
 	int mOffsetR, mOffsetG, mOffsetB;
-
-	// 0x45c780 and 0x45ce90: the pixel loops of the alpha-test and blend blitters, with the scanline helpers they share
-	// (0x4579c0, 0x4581c0, 0x458230, 0x458560, 0x458cb0)
-	inline void apply(uint32_t& theDest, uint32_t theSrc) const
-	{
-		int anAlpha = (int)(theSrc >> 24);
-		switch (mOp)
-		{
-		case OP_COPY:
-			theDest = 0xff000000 | (theSrc & 0x00ffffff);
-			break;
-		case OP_TEST:
-			if (anAlpha > mThreshold)
-				theDest = blend(theDest, theSrc, anAlpha);
-			break;
-		case OP_BLEND:
-			theDest = blend(theDest, theSrc, anAlpha * mOpacity / 255);
-			break;
-		case OP_OFFSET:
-		{
-			int r = clampByte((int)((theSrc >> 16) & 0xff) + mOffsetR);
-			int g = clampByte((int)((theSrc >> 8) & 0xff) + mOffsetG);
-			int b = clampByte((int)(theSrc & 0xff) + mOffsetB);
-			theDest = blend(theDest, (uint32_t)((r << 16) | (g << 8) | b), anAlpha * mOpacity / 255);
-			break;
-		}
-		}
-	}
 };
 
+// 0x45c780 and 0x45ce90: the pixel loops of the alpha-test and blend blitters, with the scanline helpers they share
+// (0x4579c0, 0x4581c0, 0x458230, 0x458560, 0x458cb0). The operation is a template parameter (port, performance pass: the
+// blit picks it once and its pixel loops have no switch); a pixel the blend would leave as it is is not written.
+template <int OP>
+BLIT_INLINE void applyPixel(const PixelOp& theOp, uint32_t& theDest, uint32_t theSrc)
+{
+	int anAlpha = (int)(theSrc >> 24);
+	if (OP == OP_COPY)
+		theDest = 0xff000000 | (theSrc & 0x00ffffff);
+	else if (OP == OP_TEST)
+	{
+		if (anAlpha > theOp.mThreshold)
+			theDest = blend(theDest, theSrc, anAlpha);
+	}
+	else if (OP == OP_BLEND)
+	{
+		int aBlendAlpha = anAlpha * theOp.mOpacity / 255;
+		if (aBlendAlpha > 0)
+			theDest = blend(theDest, theSrc, aBlendAlpha);
+	}
+	else
+	{
+		int r = clampByte((int)((theSrc >> 16) & 0xff) + theOp.mOffsetR);
+		int g = clampByte((int)((theSrc >> 8) & 0xff) + theOp.mOffsetG);
+		int b = clampByte((int)(theSrc & 0xff) + theOp.mOffsetB);
+		int aBlendAlpha = anAlpha * theOp.mOpacity / 255;
+		if (aBlendAlpha > 0)
+			theDest = blend(theDest, (uint32_t)((r << 16) | (g << 8) | b), aBlendAlpha);
+	}
+}
+
+// Calls theBody with the operation as a std::integral_constant, so that the body is compiled once for each
+template <class Body>
+void withOp(int theOp, Body&& theBody)
+{
+	switch (theOp)
+	{
+	case OP_COPY:
+		theBody(std::integral_constant<int, OP_COPY>());
+		break;
+	case OP_TEST:
+		theBody(std::integral_constant<int, OP_TEST>());
+		break;
+	case OP_BLEND:
+		theBody(std::integral_constant<int, OP_BLEND>());
+		break;
+	default:
+		theBody(std::integral_constant<int, OP_OFFSET>());
+		break;
+	}
+}
+
+// The source column each destination column of an unrotated blit reads, -1 where the blit leaves it
+std::vector<int> sBlitColumns;
+
+}
+
+// port (performance pass): the frame's clear is made when something is drawn that does not cover the screen, or at the end of
+// the frame (finish), not at its start: most frames begin with an opaque copy of a full-screen picture, which writes every
+// pixel and would leave the 1.9 MB of the clear's stores for nothing
+void ScreenGraphics::clear()
+{
+	mCleared = true;
+}
+
+void ScreenGraphics::finish()
+{
+	if (!mCleared)
+		return;
+	mCleared = false;
+	std::fill(mBits, mBits + (size_t)mWidth * mHeight, 0xff000000);
 }
 
 // 0x45e2d0: the position with the state's translation, snapped (truncated) as the state says; the source rectangle
@@ -225,7 +283,39 @@ void ScreenGraphics::drawImage(Image* theImage, const IntRect& theSrc, float x, 
 		int aY0 = std::max(0, (int)std::ceil(aTop - 0.5f));
 		int aX1 = std::min(mWidth, (int)std::ceil(aRight - 0.5f));
 		int aY1 = std::min(mHeight, (int)std::ceil(aBottom - 0.5f));
-		for (int dy = aY0; dy < aY1; dy++)
+		if (aX0 >= aX1 || aY0 >= aY1)
+			return;
+		// port (performance pass): the column each destination column reads is worked out once for the blit, not for each
+		// pixel of each row (the same float expression); the columns inside the source that follow one another (any blit
+		// not mirrored or scaled) are then copied or blended as a run
+		int aCount = aX1 - aX0;
+		sBlitColumns.resize(aCount);
+		int aFirst = -1;
+		int aLast = -1;
+		bool aRun = true;
+		for (int i = 0; i < aCount; i++)
+		{
+			int u = (int)((aX0 + i + 0.5f - aLeft) / aSX);
+			if (u >= aWidth)
+				u = aWidth - 1;
+			if (aScaleX < 0)
+				u = aWidth - 1 - u;
+			u += theSrc.left;
+			int aColumn = (u < aSrcX || u >= aSrcRight) ? -1 : u;
+			sBlitColumns[i] = aColumn;
+			if (aColumn < 0)
+				continue;
+			if (aFirst < 0)
+				aFirst = i;
+			else if (aLast != i - 1 || aColumn != sBlitColumns[i - 1] + 1)
+				aRun = false;
+			aLast = i;
+		}
+		if (aFirst < 0)
+			return;
+		const int* aColumns = sBlitColumns.data();
+		// the source row each destination row reads (the float mapping of 0x45c070), -1 where the blit leaves it
+		auto aSourceRow = [&](int dy)
 		{
 			int v = (int)((dy + 0.5f - aTop) / aSY);
 			if (v >= aHeight)
@@ -233,23 +323,50 @@ void ScreenGraphics::drawImage(Image* theImage, const IntRect& theSrc, float x, 
 			if (aScaleY < 0)
 				v = aHeight - 1 - v;
 			v += theSrc.top;
-			if (v < aSrcY || v >= aSrcBottom)
-				continue;
-			uint32_t* aDest = mBits + dy * mWidth;
-			const uint32_t* aRow = aSrcBits + v * aSrcPitch;
-			for (int dx = aX0; dx < aX1; dx++)
-			{
-				int u = (int)((dx + 0.5f - aLeft) / aSX);
-				if (u >= aWidth)
-					u = aWidth - 1;
-				if (aScaleX < 0)
-					u = aWidth - 1 - u;
-				u += theSrc.left;
-				if (u < aSrcX || u >= aSrcRight)
-					continue;
-				anOp.apply(aDest[dx], aRow[u]);
-			}
+			return (v < aSrcY || v >= aSrcBottom) ? -1 : v;
+		};
+		if (mCleared)
+		{
+			// the screen's clear is not made yet: an opaque copy that writes every pixel of the screen makes it unneeded
+			bool aCovers = anOp.mOp == OP_COPY && aX0 == 0 && aX1 == mWidth && aY0 == 0 && aY1 == mHeight &&
+				aFirst == 0 && aLast == aCount - 1;
+			for (int i = 0; aCovers && !aRun && i < aCount; i++)
+				aCovers = aColumns[i] >= 0;
+			for (int dy = aY0; aCovers && dy < aY1; dy++)
+				aCovers = aSourceRow(dy) >= 0;
+			if (aCovers)
+				mCleared = false;
+			else
+				finish();
 		}
+		withOp(anOp.mOp, [&](auto theTag)
+		{
+			constexpr int OP = decltype(theTag)::value;
+			for (int dy = aY0; dy < aY1; dy++)
+			{
+				int v = aSourceRow(dy);
+				if (v < 0)
+					continue;
+				uint32_t* aDest = mBits + dy * mWidth + aX0;
+				const uint32_t* aRow = aSrcBits + v * aSrcPitch;
+				if (aRun)
+				{
+					uint32_t* __restrict d = aDest + aFirst;
+					const uint32_t* __restrict s = aRow + aColumns[aFirst];
+					int aRunLength = aLast - aFirst + 1;
+					for (int i = 0; i < aRunLength; i++)
+						applyPixel<OP>(anOp, d[i], s[i]);
+				}
+				else
+				{
+					for (int i = aFirst; i <= aLast; i++)
+					{
+						if (aColumns[i] >= 0)
+							applyPixel<OP>(anOp, aDest[i], aRow[aColumns[i]]);
+					}
+				}
+			}
+		});
 		return;
 	}
 
@@ -279,30 +396,36 @@ void ScreenGraphics::drawImage(Image* theImage, const IntRect& theSrc, float x, 
 	int aY1 = std::min(mHeight, (int)std::ceil(aMaxY));
 	float anInvX = 1.0f / aScaleX;
 	float anInvY = 1.0f / aScaleY;
-	for (int dy = aY0; dy < aY1; dy++)
+	finish();
+	withOp(anOp.mOp, [&](auto theTag)
 	{
-		uint32_t* aDest = mBits + dy * mWidth;
-		float aRelY = dy + 0.5f - y;
-		for (int dx = aX0; dx < aX1; dx++)
+		constexpr int OP = decltype(theTag)::value;
+		for (int dy = aY0; dy < aY1; dy++)
 		{
-			float aRelX = dx + 0.5f - x;
-			// the inverse rotation, then the inverse scale
-			float u = (c * aRelX + s * aRelY) * anInvX + aPivotX;
-			float v = (-s * aRelX + c * aRelY) * anInvY + aPivotY;
-			if (u < 0 || v < 0 || u >= aWidth || v >= aHeight)
-				continue;
-			int aU = (int)u + theSrc.left;
-			int aV = (int)v + theSrc.top;
-			if (aU < aSrcX || aU >= aSrcRight || aV < aSrcY || aV >= aSrcBottom)
-				continue;
-			anOp.apply(aDest[dx], aSrcBits[aV * aSrcPitch + aU]);
+			uint32_t* aDest = mBits + dy * mWidth;
+			float aRelY = dy + 0.5f - y;
+			for (int dx = aX0; dx < aX1; dx++)
+			{
+				float aRelX = dx + 0.5f - x;
+				// the inverse rotation, then the inverse scale
+				float u = (c * aRelX + s * aRelY) * anInvX + aPivotX;
+				float v = (-s * aRelX + c * aRelY) * anInvY + aPivotY;
+				if (u < 0 || v < 0 || u >= aWidth || v >= aHeight)
+					continue;
+				int aU = (int)u + theSrc.left;
+				int aV = (int)v + theSrc.top;
+				if (aU < aSrcX || aU >= aSrcRight || aV < aSrcY || aV >= aSrcBottom)
+					continue;
+				applyPixel<OP>(anOp, aDest[dx], aSrcBits[aV * aSrcPitch + aU]);
+			}
 		}
-	}
+	});
 }
 
 // Slot 5: the rectangle (with the translation) in the state's colour and opacity
 void ScreenGraphics::fillRect(const Rect& theRect)
 {
+	finish();
 	const RenderState& aState = state();
 	int aX0 = std::max(0, (int)(theRect.left + aState.mTranslation.x));
 	int aY0 = std::max(0, (int)(theRect.top + aState.mTranslation.y));
@@ -319,6 +442,7 @@ void ScreenGraphics::fillRect(const Rect& theRect)
 // Slot 6: the same added to the screen
 void ScreenGraphics::fillRectAdditive(const Rect& theRect)
 {
+	finish();
 	const RenderState& aState = state();
 	int aX0 = std::max(0, (int)(theRect.left + aState.mTranslation.x));
 	int aY0 = std::max(0, (int)(theRect.top + aState.mTranslation.y));
@@ -341,6 +465,7 @@ void ScreenGraphics::fillRectAdditive(const Rect& theRect)
 // Slot 7: a one-pixel line (with the translation) in the state's colour and opacity
 void ScreenGraphics::drawLine(const Point& theFrom, const Point& theTo)
 {
+	finish();
 	const RenderState& aState = state();
 	int x0 = (int)(theFrom.x + aState.mTranslation.x);
 	int y0 = (int)(theFrom.y + aState.mTranslation.y);

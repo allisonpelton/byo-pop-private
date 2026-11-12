@@ -1,0 +1,8 @@
+at 562 shot title
+at 566 move 320 401
+at 568 click 320 401
+at 808 shot menu
+at 811 move 320 62
+at 813 click 320 62
+at 900 shot users
+quit
