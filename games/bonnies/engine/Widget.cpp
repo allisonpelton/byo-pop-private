@@ -102,14 +102,6 @@ void Widget::setFont(FontDesc* theDesc)
 	mFont = gResources->getFont(theDesc);
 }
 
-// 0x42c410
-void Widget::setImage(const Str& theName)
-{
-	if (mImage != nullptr)
-		gResources->release(mImage);
-	mImage = gResources->getImage(theName);
-}
-
 // 0x42b9a0
 int Widget::contains(float theX, float theY)
 {
@@ -877,33 +869,6 @@ void TextField::update()
 {
 	if (mEditing != 0)
 		refreshDisplay();
-}
-
-// ---- Type 2, the picture
-
-Picture::Picture()
-{
-}
-
-// 0x42f530
-Picture::~Picture()
-{
-}
-
-// 0x42f540
-void Picture::init()
-{
-	Widget::init();
-	mType = 2;
-	mFrame = 0;
-}
-
-// 0x42f560
-void Picture::draw()
-{
-	if (mImage != nullptr)
-		drawFrame(&mImage->mFrames[mFrame], (float)((double)mOwner->mX + mX), (float)((double)mOwner->mY + mY), 1.0f, 0);
-	Widget::draw();
 }
 
 // ---- Type 3, the check box

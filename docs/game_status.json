@@ -349,11 +349,12 @@
         "identical-look",
         "fixes-mod",
         "site-features",
-        "coverage"
+        "coverage",
+        "performance"
       ],
       "na": [],
-      "now": "performance",
-      "note": ""
+      "now": "unneeded-code",
+      "note": "Collection check to do (the Collection exe is another build)"
     },
     "bigmoney": {
       "title": "Big Money Deluxe",
@@ -407,10 +408,11 @@
         "identical-look",
         "fixes-mod",
         "site-features",
-        "coverage"
+        "coverage",
+        "performance"
       ],
       "na": [],
-      "now": "performance",
+      "now": "unneeded-code",
       "note": ""
     },
     "waterbugs": {
@@ -440,10 +442,11 @@
         "identical-look",
         "fixes-mod",
         "coverage",
-        "performance"
+        "performance",
+        "unneeded-code"
       ],
       "na": [],
-      "now": "unneeded-code",
+      "now": "readability",
       "note": "Collection check to do (the Collection exe is another build)"
     },
     "bejeweled2": {
