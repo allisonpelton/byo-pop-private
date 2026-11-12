@@ -7147,6 +7147,8 @@ of play. The machine was never quiet (0.54 to 0.90 of it busy, 3 to 5 other game
 | Updates a second in the stretch | 99.9 to 100.0 | 97.8 to 99.3 |
 | Peak private bytes of the run | 41.0 to 41.2 MB | 95.8 to 97.9 MB |
 
+The processor-time figures of this table are by `GetProcessTimes`; the cycle counts of "Processor time like for like" below replace them.
+
 Without waiting (the port's `-fast`, origrun's virtual clock: the work a test run does) the whole run took 1.73 s of processor time in the
 port (one run) against 3.75 and 5.08 s in the original (two), and the stretch 0.23 s against 0.39 and 0.62 s. A first real-time run of the
 original that read 0.84 s for the stretch (its load took 40 s on a busy machine) was dropped; the three pairs agree with each other.
@@ -7192,6 +7194,56 @@ unchanged by this pass, which added only the profile tools and these notes.
 port's `-autoplaylog` of the bot game, shifted as `identical/case.sh` does) to `<out>/scenario.txt` and run
 `OG_STAGE=C:/byo-og/bwpp bash games/bookworm/tools/profile/pairs.sh <out> 3` (about 4 minutes a pair), then
 `python -I games/bookworm/tools/profile/summary.py <out>`; `variants.sh <out> 2` and `summary.py <out> v` for the renderer settings.
+
+### Processor time like for like (2026-11-11; `docs/COORDINATION.md`, "The target")
+
+The user's target is that a port's processor time is at most its original's, measured like for like. The first pass above counted
+processor time with `GetProcessTimes` (what Windows charges by sampling at its 15.6 ms tick), over a stretch of one scenario, so it is
+measured again here with cycle counts, on the same scenario, and the figures of the first pass stand only as the order of
+magnitude.
+
+**How the original paces itself.** It sleeps and does not spin: `SexyApp::Process` (0x480700) runs an update when 10 ms have passed, and
+when it is ahead of that draws once (`DrawDirtyStuff`, 0x486510) and `Sleep`s the rest of the 10 ms, so it makes 100.0 updates a second
+on origrun's real clock (every run below). It never waits for a vertical blank in the windowed mode this runs in: `DDInterface::Redraw`
+(0x4538f0) blits with `DDBLT_WAIT` and has no `WaitForVerticalBlank`, and the one wait in the draw path, a sleep to the refresh period,
+is behind the registry value `WaitForVSync`, which the constructor sets to false. So a player's screen paces it the same way, by its own
+`Sleep`, and nothing needed patching. The port runs at the same 100 updates a second (99.8 to 100.5 below).
+
+**Method** (`games/bookworm/tools/profile/cycles.py`, `pairs2.sh`). The cycle counts are `QueryProcessCycleTime` (every thread, the ones
+that ended too) and `QueryThreadCycleTime` for each thread, read at four marker updates and never in between: nothing samples or
+suspends the game. The scenario is the first pass's (`scenario.txt`, a Classic game of the port's bot, seed 1, 7,060 updates), in real
+time on both sides: the port as a `-script` (the original through origrun's real clock, its markers read out of its update counter),
+with no `-fast`, no `-commands` channel and no state log, only `pointer` lines at the markers, which log one line each. The markers are
+at updates 1,500, 3,500, 5,060 and 7,059, so there are three stretches: 2,000 updates of play across two level-ups (levels 2 to 4), 1,560
+of the fourth level (a scramble, a fire tile), and the first pass's stretch (5,060 to 7,059: the end of the fourth level, the fifth
+until a fire tile burns through the bottom at 5,584, the game-over screens, the Hall of Fame, the selector). The port's `pointer` lines reach the script as OutputDebugString output the moment
+SDL logs them (`DebugOutput`; the game's stdout is a file its C runtime keeps until exit, and `-commands` flushes it but polls a file
+every update), so only one such listener may run on the machine at a time. A share of a core is the cycles over the cycle counter's rate
+(2.09 to 2.10 GHz, measured by a spinning thread at each run's start) and the stretch's wall time. Six pairs, port then original, each
+run under `tools/pincore.py` (a performance core of its own) with rundesk, one game process at a time of the six the machine allows,
+medians and ranges; the machine was 0.42 to 0.79 busy and 3 to 6 other sessions' games ran.
+
+**Sound.** origrun's stand-in takes the original's DirectSound and mixes nothing, and no thread of the original played or decoded music
+(its threads were the main thread and one of the game's own, 1.2 to 1.6 % of a core, apart from the main one), so the original's number
+holds no mixing. The port's SDL audio thread (`SDLAudioP2`, under rundesk SDL's silent driver, which still calls the mixer in real time:
+the sounds and the libopenmpt-decoded music) is 1.0 to 1.3 % of a core, counted below with the port and without it.
+
+| Stretch (updates) | Port, share of one core | Port without its audio thread | Original | Cycles an update, port / original |
+|---|---|---|---|---|
+| 1,500 to 3,500 | 9.8 % (8.3 to 13.2) | 8.8 % (7.4 to 12.1) | 23.0 % (17.5 to 31.2) | 1.89 M / 4.83 M (0.39) |
+| 3,500 to 5,060 | 9.6 % (8.5 to 11.8) | 8.7 % (7.4 to 10.7) | 21.6 % (16.4 to 30.5) | 1.96 M / 4.54 M (0.43) |
+| 5,060 to 7,059 | 9.6 % (7.3 to 12.2) | 8.2 % (6.4 to 11.3) | 18.6 % (15.7 to 26.7) | 1.79 M / 3.91 M (0.46) |
+
+The port is below the original in every stretch of every pair, with and without its audio thread; the closest pair is the third
+stretch of the first (12.2 % against 15.7 %). Where the cycles go, by thread (medians): the port's main thread 4.4 to 5.1 %, the graphics
+driver's own thread 3.5 to 4.2 % (Direct3D 11; the original's DirectDraw runs inside its main thread) and the audio thread; the
+original's main thread 17 to 21 %. Both sides' numbers rise and fall together with the machine's load (the original's from 15.7 to
+31.2 % between its quietest and busiest runs, the port's from 7.3 to 13.2 %), since a busy machine slows each cycle (a shared cache
+and core), which is why the pairs alternate and the figures are medians.
+
+**Result.** At or under the original, by a factor of 2.2 to 2.6 in cycles an update (the medians), so the target holds and nothing in
+the port's code or the framework needed changing. The first pass's figures by `GetProcessTimes` (9.5 to 11.9 % against 18.6 to 22.9 %)
+fall inside these ranges. Load time and memory were not measured again (the target is processor time).
 
 ## The readability pass (2026-11-11)
 
