@@ -1,0 +1,84 @@
+#!/usr/bin/env node
+// The speedrun timer's auto splitters (web/autosplit.js) against their references. Bejeweled: every scenario of
+// games/bejeweled/tools/livesplit/lsdecide.py (27, each on the game's log and on lsprobe's real polling log: 50 replays),
+// from tools/autosplit/bejeweled-scenarios.json.gz (tools/autosplit/bejeweled_fixture.py writes it from run_tests.sh's runs, with
+// the events lsdecide.py decides), through the page's decider with a timer that behaves as LiveSplit's does in lsdecide.py:
+// every event, its poll and its board must be the same. Also the block reader on a block laid out as LiveSplitBlock.h says.
+//   node tools/autosplittest.js
+var path = require("path"), fs = require("fs");
+var A = require(path.join(__dirname, "..", "web", "autosplit.js"));
+var fails = 0, checks = 0;
+function check(ok, what) { checks++; if (!ok) { fails++; console.log("FAIL " + what); } }
+
+var fx = JSON.parse(require("zlib").gunzipSync(fs.readFileSync(path.join(__dirname, "autosplit", "bejeweled-scenarios.json.gz"))).toString("utf8"));
+function expand(packed) {
+  var polls = [];
+  packed.forEach(function (p) {
+    if (p === null) { polls.push([0, null]); return; }
+    if (!Array.isArray(p)) { polls.push([p.t, p.f]); return; }
+    for (var i = 0; i < p[0]; i++) polls.push([0, p[1]]);
+  });
+  return polls.map(function (x) {
+    if (!x[1]) return [x[0], null];
+    var snap = {};
+    fx.fields.forEach(function (k, i) { snap[k] = x[1][i]; });
+    return [x[0], snap];
+  });
+}
+var logs = {};
+Object.keys(fx.logs).forEach(function (k) { logs[k] = expand(fx.logs[k]); });
+
+fx.cases.forEach(function (c) {
+  var polls = logs[c.log], events = [], i = 0;
+  var t = { ph: "NotRunning", idx: -1, runBoard: 0, segs: c.segments.length };
+  var d;
+  var timer = {
+    phase: function () { return t.ph; }, index: function () { return t.idx; },
+    start: function (label) {
+      if (t.ph !== "NotRunning") return;
+      t.ph = "Running"; t.idx = 0;
+      d.onStart(); t.runBoard = d.board();
+      events.push((label || "start") + " " + i + " board=" + d.board());
+    },
+    split: function () {
+      t.idx++;
+      events.push("split " + (t.idx - 1) + " " + i + " board=" + d.board());
+      if (t.idx >= t.segs) t.ph = "Ended";
+    },
+    reset: function (cause) {
+      if (t.ph === "NotRunning") return;
+      t.ph = "NotRunning"; t.idx = -1;
+      events.push(cause === "exit" ? "reset exit " + polls.length + " board=" + t.runBoard : "reset " + cause + " " + i + " board=" + d.board());
+      d.onReset();
+    }
+  };
+  d = A.bejeweled(timer, { category: c.category, segments: c.segments, settings: c.settings });
+  // the polls before the attach are not seen; the message box's 10 s count from the first poll seen
+  for (i = c.attach; i < polls.length; i++) {
+    if (d.poll(polls[i][0], polls[i][1])) events.push("messagebox " + i);
+    if (c.manual !== null && i === c.manual) timer.start("manualstart");
+  }
+  d.exit();
+  check(JSON.stringify(events) === JSON.stringify(c.events), c.name + " (" + c.log + "): page [" + events.join("; ") + "], lsdecide [" + c.events.join("; ") + "]");
+});
+
+// the block reader: a block as the game lays it out, then one the game is writing, one of another game
+var heap = new Uint8Array(4096), at = 256, dv = new DataView(heap.buffer);
+[0x42, 0x59, 0x4F, 0x50, 0x4F, 0x50, 0x2D, 0x4C, 0x49, 0x56, 0x45, 0x53, 0x50, 0x4C, 0x49, 0x54, 0xF0, 0xF1, 0xF2, 0xF3].forEach(function (b, i) { heap[at + i] = b; });
+dv.setUint32(at + 0x14, 0x58444A42, true); dv.setUint16(at + 0x18, 1, true); dv.setUint16(at + 0x1A, 0xB0, true);
+dv.setUint32(at + 0x20, 6, true); dv.setUint32(at + 0x24, 1, true); dv.setUint32(at + 0x30, 3, true); dv.setUint32(at + 0x74, 2, true);
+dv.setInt32(at + 0x78, -1, true); dv.setInt32(at + 0x7C, 12345, true);
+var b = A.readBlock(heap, at);
+check(b && b.active === 1 && b.boardSerial === 3 && b.boardLevelClears === 2 && b.goTick === -1 && b.displayScoreMax === 12345, "readBlock: the fields at their offsets");
+dv.setUint32(at + 0x20, 7, true);
+check(A.readBlock(heap, at) === null, "readBlock: a block being written (seq odd) is not read");
+dv.setUint32(at + 0x20, 6, true); heap[at + 19] = 0;
+check(A.readBlock(heap, at) === null, "readBlock: another magic is not read");
+check(A.readBlock(heap, 4000) === null && A.readBlock(heap, 0) === null, "readBlock: out of the heap, or no address");
+check(JSON.stringify(A.parseSplits(["Level 1", "10000", "25,000", "50K", "-{Act} Level 2", "999"])) ===
+      JSON.stringify([{ score: false, target: 1 }, { score: true, target: 10000 }, { score: true, target: 25000 }, { score: true, target: 50000 },
+                      { score: false, target: 2 }, { score: false, target: 3 }]), "parseSplits: lsdecide.py's reading of segment names");
+check(A.games.bejeweled.templates.length === 12, "Bejeweled's 12 split templates");
+
+console.log("autosplittest: " + fx.cases.length + " scenario replays, " + checks + " checks, " + fails + " failed");
+process.exit(fails ? 1 : 0);
