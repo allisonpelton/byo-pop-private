@@ -397,3 +397,74 @@ The renames are proved by the object code (`tools/objsnap.py`): every object of 
 instructions before and after, but for `DynomiteStomped.cpp`, where the dropped parameter of section 8 changes the
 calls. `tools/splitfields.py dynomite` finds no member declared twice; its "never written" members are character
 arrays filled by `strcpy`, and its read-only offsets are calls through the virtual table.
+
+## 10. Coverage check (2026-11-11)
+
+The whole coverage check (`docs/COVERAGE.md`). origrun's `--coverage` recorded which of the original's functions ran in
+19 runs, every one of them the original's side of a phase-two sound comparison (`tools/shots/sound.sh <tour> orig` with
+`ORIG_ARGS="--coverage ..."`, the hits in `build/coverage/dynomite/hits/`): on the host, on the virtual clock, with the
+recording sound stand-in, so the mixer's and the music's code run. They are the tutorial, the recorded games of every
+mode (Endless, Stomped, Fossil, Panic and Time Trial, the last recorded twice, `IDENTICAL_PLAY.md`) and tours t1 to
+t12. Each reached 1259 to 1532 of the exe's 6531 functions, and every one ended with the game exiting by itself.
+
+`games/dynomite/coverage.txt` sets the game's own code as 0x401000-0x442690 (the game classes in link order, to the
+whirley and its small effects); the rest of the exe is the 2003 SexyApp framework, its libraries and the C runtime. The
+game's code has 670 functions; the runs reached 593 of them, the port defines 556, and 114 are left out on purpose.
+
+**Reached in the original with no counterpart in the port: 65 at first (the first four runs), none at the end.**
+
+- **The compiler's scalar deleting destructors: 45**, each a call of the destructor proper and a free, as `none` lines.
+- **Left out on purpose: 15 more**, each a `none` line with its reason: the C++ library's string and vector code that the
+  linker put among the game's (`std::string` assignment, append and compare, a vector of strings' copy), two of the
+  framework's inline defaults in the name dialog's table, `CRect`'s constructor, the cursor override that always calls
+  SexyApp's own (its flag is never set), and the update check on quitting (it goes online). The registration code, the
+  update check's question and download, opening a URL and the credits' two links were `none` lines already (sections
+  7 and 8).
+- **Placed: 5.** Functions the port has inline got their address in the comment over the code that holds them: the
+  angle table's lookup, the list's constructor, a picture's size, Steggy's draw helper and the program's entry.
+- **No missing game logic was found.**
+
+**Defined in the port, never reached: 135 after the first four runs, 33 at the end.** The tours t1 to t9 and the
+Panic and Time Trial recordings reached the save and load of Endless, the options, credits and high scores, the exit
+question, the pause and museum keys and Time Trial's scoring (50 left). Three tours were then added for what no run had
+done, t10 to t12 (`IDENTICAL_PLAY.md`): a save and Continue Game in Stomped, in Fossil with the museum open and in Time
+Trial, Return in the high score's name box and in the save's, and the options' Music slider. Time Trial was recorded
+again on the current exe, since the first recording's replay stopped one update short of clearing the board and so never
+drew Time Trial's results (0x412cb0, 3.2 KB). Those runs reached 17 more, among them the three modes' and the museum's
+save and load, both name boxes' Return, the slider and the results.
+
+Every one of the 33 left, and nine that the last runs then reached, was read again against the export: 41 in two Sonnet
+passes, where a save was also checked against its load, field by field and width by width, and `EggGrid::PickColor`
+earlier in the session. All match but one,
+which differs only where nothing reaches it:
+
+- **`PicFont::~PicFont` (0x4365d0)**: the original deletes the font's image itself, shared or not and without clearing
+  the pointer, and then `~Pic` deletes it again, a double delete. Neither program ever deletes a font (all three live as
+  long as the app), so it never runs; the port deletes the image once, and its comment says so.
+
+What reaches the 33, none of which a run of the original met:
+
+- **A save with something alive that the runs' saves never caught**: five effects' save and load (a baby dinosaur, a
+  bonus egg's prize in flight, a dynamite's boom, confetti, a broken egg's shell quarters), the thunderbolt's, Panic's
+  whirleys' and the Rex attack's (16).
+- **The Rex attack** on the museum's last wall (level 15, round 3, after the Beware button): its constructor, destructor,
+  update and draw (4), and `EggGrid::PickColor`, for a level's cells of kind 0x14, which no run's levels had (1).
+- **Input no run gave**: a bomb's blast on the fossil board (`DynomiteFossil::Blasted`, its kick), Stomped's pack list
+  under the mouse (its scrolling, hover and click: no run moved the mouse over the list), and the dialog that the
+  options show when the desktop allows only full screen (`ShowNoWindowed`), and the destructors of a fossil and of the side bar's small Inchy's bubble
+  (`~Fossil`, `~InchyBubble`, through their scalar deleting destructors): every run quits from the game it played, and
+  the original exits without deleting its objects (7).
+- **Nothing in either program**: the destructors of a font and of a sound, which live as long as the app (`~PicFont`,
+  `~GameSound`), the board's empty `DrawPiece` (only the fossil board's own runs, and fossil pieces exist only there),
+  `CellButton::SetFont` and `PtrList::SortedAdd` (5).
+
+**Candidates for taking out**, none removed now: `PtrList::SortedAdd` with the list's sort mode and offset (no list of the
+game is sorted: the constructor zeroes the mode, nothing sets it, and `Add` runs in every run while `SortedAdd` never
+does), and `CellButton::SetFont` (nothing calls it on a cell button; the original's calls are on plain buttons). The
+destructors stay, as a class needs them, and so does the rest: code that only some input or a long game reaches.
+
+The coverage check found one fault of the port's, though not through a function: the first comparison of the Fossil and
+Panic recordings' screens showed the museum coming up over a black board, and the port now keeps its screen as the
+original's does (`IDENTICAL_PLAY.md`, "Phase 2: what was changed", d012ac13). The extra runs cost about 40 minutes of
+machine time (the new recording, three tours, each in both programs with screens and sound), and the two rereads about
+275,000 Sonnet tokens.
