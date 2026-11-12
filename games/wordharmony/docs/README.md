@@ -442,6 +442,73 @@ screen: that exe was frozen before the shared JPEG decoder changed, and a build 
 decoder) matches the pass exactly. No string of the sources changed, and the web build compiles
 (`tools/check.sh build-web:wordharmony`).
 
+## The PopCap Game Collection version (2026-11-12)
+
+The port was made from the retail copy (`WordHarmony.exe`, 983,458 bytes: the launcher with the game after it, beside
+`WHArchive.saf` and `res/`), and the game is also on the PopCap Game Collection disc (2009; the group
+`WordHarmonyDeluxeComponent`), so the port is checked against that version too: the two compared, and the port run on the
+Collection's files (`docs/COORDINATION.md`). The procedure is Bejeweled's (its GAME_NOTES, section 23) and Astro Pop's
+(section 13).
+
+**Getting the files.** `unshield` 1.5.1 (`E:\retools\unshield-build`; the user allowed it on 2026-11-10) read the disc
+image's cabinet, which was mounted read-only and dismounted afterwards: 60 files, 6.7 MB, in the main checkout's
+`re/_installers/WordHarmonyDeluxeCollection` (git-ignored, deleted once this result was written down;
+`unshield -g WordHarmonyDeluxeComponent -d . x F:/data1.cab`, in a folder made first, brings them back).
+
+**The game is the same build.** The Collection's `WordHarmony.exe` (771,784 bytes) has no launcher around it. Set beside the
+game carved out of the retail exe (`re/wordharmony/bin/WordHarmonyGame.exe`, `tools/collection/cmpexe.py`) it has the same
+link time (22 February 2006, 02:49:43), and `.text` (520,192 bytes), `.rdata`, `.data` and `.reloc` are byte for byte the same.
+Only `.rsrc` differs (100 KB against 8 KB: the icons and their group, 14 more resources), with 25 header bytes (the checksum
+and the resource sizes) and 5,832 bytes after the last section, the exe's signature. `WordHarmony.scr`, the screen saver
+the disc adds, is the same bytes as the carved game (the same SHA-1), and `SSInstaller.exe` installs it. So the
+decompilation, the identical-play pass and the coverage check hold for the Collection's game as they are, and no code was
+compared further. The Collection's own exe was not run.
+
+**The files** (`tools/collection/cmpfiles.py`). Of the retail copy's 63 files and the Collection's 60, 51 are the same
+byte for byte: `WHArchive.saf` (every picture, font, screen layout, level and word list), every sound and every piece of
+music, and the buttons' pictures. The differences:
+
+- `res/splash/sproutsplash.jpg` (`tools/collection/cmpimages.py`): other artwork, 88,601 of its 480,000 pixels. The
+  retail picture says "Presented by" PopCap and "Developed by" Sprout Games under the title, with the TM beside the
+  title; the Collection's has only a bigger PopCap logo and the TM after "HARMONY". The port draws the file it is given.
+  The Collection also has the same picture in `images/sproutsplash.jpg`, which the game does not read.
+- `properties/partner.xml` (and its `.sig`): the display name "Word Harmony Deluxe", another offering number, `NoReg`,
+  `DontUpdate` and `DefaultWindowed`; the registry key `PopCap\WordHarmony` and the 640 by 480 size are in both. The port
+  does not read it.
+- The licence and the readme, and the exe.
+- The retail copy alone has the launcher's files (`drm.swf`, `drmss.jpg`, `Flash.ocx`), `PopUninstall.exe`, Windows'
+  `Thumbs.db` files; the Collection alone has `SSInstaller.exe`, `WordHarmony.scr` and the splash picture's second copy.
+
+**Saves.** The code that reads and writes them is the same bytes, so a Collection game keeps its settings and saved games
+under `HKCU\Software\GameHouse\WordHarmony` in the same format, which `platform/saveimport.json`'s Word Harmony entry
+reads. No save of a Collection copy was at hand, so none was imported.
+
+**The port on the Collection's files** (`tools/collection/run.sh <the Collection's WordHarmonyDeluxeComponent folder>`).
+`stage_wordharmony_assets.py` stages the folder as it does a retail one (52 files). The texts come from its exe at the
+same addresses (`GameText.cpp` finds a game image after the retail launcher's marker or takes the file as the image
+itself): a run logs no `GameText` line, so every text matched. The runs are the port's, `-fast`, seed 1, with the
+original's splash hold, through `WH_GAMEDIR` (`tools/check.sh`, `tools/identical/port.sh` and `tools/shots/web.sh` take
+the game folder from it):
+
+- `tools/check.sh wordharmony` on the Collection's files: the THINK and TSUNAMI games end in the states it expects and
+  each plays every update as the frozen baseline does on the retail files.
+- The five tours of `tools/shots` (the title and menu, a TSUNAMI game, the high scores, a saved THINK game, the focus;
+  tour 4 starts from the suite's saved THINK game), each once on each set of files: the state logs (75, 47,486,
+  25,085, 10,195 and 4,848 lines) and the sound logs are the same, and 94 of the 95 screenshots are the same pixel for
+  pixel. The last is the first shot of tour 1 (`title_30`, the splash), where the five boxes shotdiff finds are the
+  logos and the title: the artwork above. The shots after it, the menu and every dialog, are equal.
+- The web build under Node on each set of files, tours 1 and 2: the state logs of the two sets are the same, 41 of the 42
+  shots are the same (the splash again), and each web run against the native port on the same files has the differences
+  the identical-play report records (the Options box's Fullscreen check box, 6 pairs of tour 1).
+- The page importer's rules (`web/gameimport.js`, an ad-hoc run on the two folders' file lists): the Collection's folder
+  is taken as a Word Harmony folder, its `WHArchive.saf`, `WordHarmony.exe` and `res` (53 files) are picked, and the
+  markers check passes.
+
+**Not done.** The Collection's exe was not run, so none of its screens was compared with the port's (the code is the same
+bytes, the resources and files above differ). A Collection save was not imported. The port's executable is called
+`wordharmony.exe`, the name of the Collection's game on Windows: the installer that puts a native port beside the
+original (`docs/STEAM_LAUNCH.md`) must not write it into a Collection folder under that name.
+
 ## Mods
 
 The fixes mod, `mods/fixes/mod.json` (`docs/MOD_ROADMAP.md`, "The fixes mod"): `steadyClock` times every frame as one
@@ -472,5 +539,5 @@ once; the port keeps that order.
 ## Changes outside the Word Harmony folders
 
 `CMakeLists.txt` (the `BUILD_WORDHARMONY` option), `platform/Audio.cpp` (MP3 inside a WAV), `tools/check.sh` (the
-`wordharmony` suite), `.claude/launch.json` (the `wordharmony-web` preview on port 18778) and, from the coordinator,
+`wordharmony` suite, which takes `WH_GAMEDIR` for the Collection check), `.claude/launch.json` (the `wordharmony-web` preview on port 18778) and, from the coordinator,
 the store entry in `cmake/ByopopStores.cmake`.

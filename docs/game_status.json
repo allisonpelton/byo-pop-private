@@ -407,10 +407,11 @@
         "coverage",
         "performance",
         "unneeded-code",
-        "readability"
+        "readability",
+        "collection"
       ],
       "na": [],
-      "now": "collection",
+      "now": null,
       "note": ""
     },
     "cosmicbugs": {
