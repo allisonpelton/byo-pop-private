@@ -296,8 +296,9 @@ The handler of event 3 (0x403fd0, `Brick::OnDie`) fires the "popped" event 0x1a 
    performance pass (section 11), the readability pass (section 12) and the check against the PopCap Game Collection's copy (section 13: its exe is
    another build; the port plays equal on its files) and the music's state against the original's (section 14: the port had no music; fixed).
    The original's 3D screen wipe was reached on the night of 2026-11-12 and compared frame by frame with the port's, all four kinds: the same
-   pictures (section 10). The performance step is open: in 3D the port is a few percent over its original (section 11, the shared
-   presentation path); 2D passes. The lite survey (section 11b) found no candidate worth a toggle: the game's logic is 0.6% of the process
+   pictures (section 10). The performance step is open: in 3D the port is over its original (134% at the original's window size,
+   section 11c; all of it the presentation and the Direct3D 11 driver's thread, the game's own update and drawing being at or under the
+   original's); 2D passes (69%). The lite survey (section 11b) found no candidate worth a toggle: the game's logic is 0.6% of the process
    and every faster method keeps the answer.
 4. (Done: the gap of the removed More Games button is closed, section 6.) The app's destructor does not delete its screens (as the original's).
 5. (Done in phase two, the sites it lists and the other drawing and screen functions read against the asm; the float rounding of the drawing
@@ -410,6 +411,14 @@ back afterwards, reads the 3D flag out of its app object and posts the scenario'
 go through `playbymove`, which does use `-commands`. The machine was never quiet: three to six other sessions' games ran during every
 run (0.5 to 0.9 of the machine busy), and the stretches of one build spread by plus or minus 30%, so a figure is the median of five or six
 pairs with its range. The memory is private bytes in MiB; the load is the time from the creation of the process to the title taking input.
+
+**Window state of these figures (found 2026-11-12, after the Mahjong session's report; they are to be measured again).** The port's runs had
+no `ScreenMode` in their `registry.ini`, and the port then starts full screen: a `screenshotfull` in a run under rundesk (a 3840x2160
+desktop), 2D and 3D, is 2560x1920, a render scale of 4 on the game's 640x480, where the original ran windowed at its own 640x480 (scale
+1). With `ScreenMode=0` the port's window is 1280x960 (scale 2, the framework's default window). So the tables below set a full-screen
+port against a window of the original's size: not like for like. Their renderers were Direct3D 11 in every rundesk run and, on the desktop,
+Direct3D 9 for the first 3D rows and Direct3D 11 with the hint (below). The 3D desktop runs very probably started full screen too (the
+visible desktop is also 3840x2160), which the display line of the next runs, with `-windowscale=1` and `ScreenMode=0`, will show.
 
 | 2D, five pairs, rundesk, 2026-11-11 | Original | Port |
 |---|---|---|
@@ -559,6 +568,83 @@ asked for them. (3) The 3D stretch's excess, the one place where the port is ove
 **To repeat.** The instrumented build was a throwaway: a `FNPROF("name")` line at the top of each function (an RAII `rdtsc` pair adding to a
 table, written to a file named by `PROF_OUT` at exit), built as a second executable, and run by the scenario's usual script
 (`profile/perf.py`'s `port_script`) under rundesk with `-fast`. Nothing of it was committed.
+
+### 11c. The cycle split, at the original's window size (2026-11-12)
+
+**Why again.** The tables above set a port that started full screen (render scale 4 on a 3840x2160 desktop, no `ScreenMode` in its
+registry file) against an original in a window of its own size, and their original side carried the sound stand-in's module rescan
+(`223d9bdf`: about 1 to 1.6 G cycles of a stretch, found by Typer Shark), so they are superseded by the figures here. Both were taken
+by `profile/windows.sh` (the original, the port at the game's own size and the port in the framework's default window, one process at a
+time, turn about, on one core under `pincore.py`, real time, the 2,030-update stretch of section 11; `PERF_WINDOW=1` is `ScreenMode=0` and
+`-windowscale=1`, `2` is `ScreenMode=0` alone) with a rebuilt `build/origrun-bin` (the rescan fix; the staged copy's `dsound.dll` is the
+rebuilt one, checked by hash). The window state and renderer of every run are in its result line (`display`: `client 640x480 px, logical
+640x480, render scale 1, windowed, renderer direct3d11` at 1x, `client 1280x960 px, logical 640x480, render scale 2, windowed,
+renderer direct3d11` at 2x; every port run, 2D under rundesk and 3D on the desktop, got Direct3D 11 through the hint). The original is
+windowed at 640x480 in every run (origrun's copy; `visrun3d.py`'s with `ScreenMode` 0). `profile/windows_report.py` prints the sets.
+
+**Totals, no counting, G cycles of the stretch** (medians of five or six turns, the range beside them; the machine was 0.35 to 0.5 busy):
+
+| | Original | Port at 1x | Port at 2x |
+|---|---|---|---|
+| 2D (rundesk, five turns) | 6.13 (5.74 to 8.14), 3.02 M an update | 4.25 (4.05 to 4.65), 2.09 M | 4.25 (3.92 to 4.75), 2.09 M |
+| 3D (the desktop, six turns) | 2.76 (2.44 to 3.44), 1.36 M an update | 3.70 (3.12 to 5.07), 1.82 M | 3.83 (3.01 to 4.69), 1.89 M |
+
+2D: the port is at 69% of the original at either window size. 3D: it is at 134% at 1x and 139% at 2x, of which the port's mixer thread,
+which the original under origrun's stand-in does not have (it mixes nothing), is 0.2 G: 126% without it. The window size makes no
+difference to the port's processor time within the noise (the GPU does the scaling). **The target is not met in 3D** (the earlier tables'
+"over by 5 to 25%" had an original 1.6 G and a port 1.2 G higher than here).
+
+**The split, M cycles an update** (`-cyclesplit` in the port, `--count` in the original under origrun in 2D, the same counters read from
+outside by `origcmp/countsnap.py` in 3D, the three functions of `profile/count.txt`: `DoUpdateFrames` 0x4d0450, `DrawDirtyStuff` 0x4d8760
+and `Redraw` 0x4da210, checked by the calls: one update call an update, 0.9 draws and 0.9 presents an update in the original, no misses;
+snapshots at the stretch's first update and 20 after the last input; medians of the runs the machine was at most 0.6 busy for):
+
+| 3D, a desktop window | Original (5 runs) | Port at 1x (4) | Port at 2x (5) |
+|---|---|---|---|
+| update | 0.064 | 0.039 | 0.036 |
+| draw (the game's own, up to the hand-off) | 0.326 | 0.319 | 0.302 |
+| present (the main thread's call) | 0.981 | 0.617 | 0.424 |
+| the driver's threads (`nvwgf2um.dll`) | 0 | 0.773 | 0.717 |
+| **picture: draw + present + driver** | **1.306** | **1.715** | **1.424** |
+| audio (the port's mixer) | 0 | 0.103 | 0.114 |
+| loop (events, sleeps, the readings) | 0.205 | 0.065 | 0.066 |
+| total | 1.596 | 1.928 | 1.650 |
+| draws and presents an update | 0.92 and 0.92 | 0.52 and 0.52 | 0.48 and 0.48 |
+
+| 2D (rundesk), three runs | Original | Port at 1x | Port at 2x |
+|---|---|---|---|
+| update | 0.069 | 0.048 | 0.049 |
+| draw | 2.073 (the original's own blitters) | 0.308 | 0.341 |
+| present | 0.634 | 0.556 | 0.559 |
+| the driver's threads | 0 | 0.923 | 0.854 |
+| picture | 2.703 | 1.787 | 1.711 |
+| audio (the port's mixer) | 0 | 0.115 | 0.119 |
+| loop | 0.160 | 0.067 | 0.062 |
+| total | 2.950 | 2.012 | 1.932 |
+
+**What it shows.** The game's own code is not the excess, in 3D or 2D: the port's update costs 30 to 45% less than the original's (0.036
+to 0.049 against 0.064 to 0.069), its own drawing is the same in 3D (0.30 to 0.32 against 0.33) and a seventh of the original's in 2D, and
+its loop costs a third to two fifths. What is over in 3D is all in the presentation: the picture (draw, present and the driver together, which cannot be split,
+the draw calls being batched until the present) is 1.42 to 1.72 against 1.31, 9 to 31% over, and the Direct3D 11 driver's own worker
+thread is 0.72 to 0.78 an update on average in each set of runs, against no driver thread at all in the original. A present
+and its driver work cost the port about 2.7 M cycles (the present 0.62 and the driver 0.77 over 0.52 presents an update) against the
+original's 1.07 for one (0.98 over 0.92). The port presents every second update or so where the original presents nearly every one, so
+per-call figures do not compare, per-update ones do. The mixer's 0.10 to 0.12 is the other thing the original does not pay in these runs.
+In 2D the port is under the original in every row but the mixer, because the original's own blitting (2.07) dwarfs the port's.
+
+**What this measurement cannot say.** The three counted parts are the same functions on both sides, but the picture is not split (the
+limit in `docs/TEST_COMMANDS.md`, "The cycle split"). The counting costs the original 1.4 to 3.3% of its total and the port 0.5 to 1.4% (the
+files' `counter` lines). The machine was not quiet: a stretch of the 3D runs (04:36 to 04:50) was taken with the whole machine busy and
+the original rose to 3.2 to 5.0 G of a stretch (a loading time of 6 to 24 s) while the port stayed at 3.5 to 3.9; those runs are left
+out of the table (`windows_report.py --busy-max 0.6`), and the runs that are in spread by plus or minus 30%. The 3D split has four to
+five quiet runs a column; the totals have six. The split is for the proportions: the target's figure is the totals.
+
+**To repeat.** From the worktree root, in the background: `MODE=3d SPLIT=1 bash games/astropop/tools/profile/windows.sh <dir> <rounds>`
+(`MODE=2d` for rundesk; `SPLIT=0` for the totals; 22:00 to 08:00 for 3D; `FIRST=4 APPEND=1` adds rounds), then `python -I
+games/astropop/tools/profile/windows_report.py --busy-max 0.6 <dir>`. A single split: `PERF_SPLIT=1 python -I profile/perf.py orig3d <dir> 1`
+and `PERF_SPLIT=1 PERF_3D=1 PERF_DESKTOP=1 PERF_CLOCK=real python -I profile/perf.py port-minute <dir>`, then `python -I
+tools/cyclesplit.py <port's split.jsonl> <original's counts.jsonl> --from a --to b`. The raw run folders (their samples and logs) were
+deleted once these figures were written.
 
 ## 12. The readability pass (2026-11-11; `docs/CODE_STANDARDS.md`)
 

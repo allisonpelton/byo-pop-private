@@ -148,7 +148,7 @@
         "collection"
       ],
       "now": "lite-mod",
-      "note": "processor time like for like 0.76 of the original's (6.4 G cycles a minute against 8.4); the lite survey next"
+      "note": "processor time like for like 0.89 of the original's at its 640x480 window (7.7 G cycles a minute against 8.7), 0.82 in the default 2x window; the lite survey next"
     },
     "sevenseas": {
       "title": "Seven Seas Deluxe",
@@ -261,7 +261,7 @@
       ],
       "na": [],
       "now": "performance",
-      "note": "3D over its original, waits on the framework's present (Bejeweled 2's pace code, then the vsync measurement); the 3D cycle split next; lite: nothing taken (LITE_MOD.md)"
+      "note": "at the original's 640x480: 2D 69% of the original's cycles, 3D 134%; the game's own code is cheaper in 3D, the excess is the present and the Direct3D 11 driver thread; next the display-rate cap's measurement"
     },
     "ningpo": {
       "title": "Ning Po Mahjong Deluxe",
@@ -301,11 +301,13 @@
         "identical-play",
         "registration-out",
         "site-features",
-        "coverage"
+        "coverage",
+        "identical-look",
+        "fixes-mod"
       ],
       "na": [],
-      "now": "identical-look",
-      "note": "3D screens still to compare (tonight); no fix candidate so far"
+      "now": "performance",
+      "note": "3D screens compared with the original on the desktop, no fix candidate (fixes mod: none needed); performance: port 1.65-1.9 M cycles an update against the original's 4.0-4.4 M in a first trial"
     },
     "dynomite": {
       "title": "Dynomite Deluxe",
@@ -316,15 +318,14 @@
         "fixes-mod",
         "identical-look",
         "coverage",
-        "performance",
         "unneeded-code",
         "readability",
         "collection",
         "site-features"
       ],
       "na": [],
-      "now": null,
-      "note": ""
+      "now": "performance",
+      "note": "19% over its original at 640x480 (12.7 G cycles a minute against 10.6), 4% over in the default window; the game's code costs the same, the excess is the present and the D3D11 driver thread: waits on the surface presenter"
     },
     "bookwormadv2": {
       "title": "Bookworm Adventures Volume 2",
@@ -491,7 +492,7 @@
       ],
       "na": [],
       "now": "performance",
-      "note": "2D on SDL's software renderer: waits on the framework"
+      "note": "idle board under the original at its own 640x480 in 2D software (6.6% of a core against 9.4%), 2D GPU (7.5%) and 3D (8.8%); the software renderer at the default 2x window (48.5%) waits for the user's window-size choice"
     },
     "venice": {
       "title": "Venice Deluxe",

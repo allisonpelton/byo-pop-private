@@ -36,9 +36,10 @@ struct DDTextureData
 	int						mScale;				// texels per logical pixel (1, or the HD scale)
 	int						mImageWidth;		// logical image size the textures are built for
 	int						mImageHeight;
+	bool					mOpaque;			// every alpha byte of the pixels of the last upload is 255 (set for scale 1 only)
 
 	DDTextureData() :
-		mWidth(0), mHeight(0), mScale(1), mImageWidth(0), mImageHeight(0)
+		mWidth(0), mHeight(0), mScale(1), mImageWidth(0), mImageHeight(0), mOpaque(false)
 	{
 		for (int i = 0; i < NUM_FILTERS; i++)
 		{
@@ -56,6 +57,7 @@ struct DDTextureData
 			mTextures[i] = NULL;
 			mBitsChangedCount[i] = -1;
 		}
+		mOpaque = false;
 	}
 };
 
@@ -67,6 +69,15 @@ static const int kPixelBufferSize = 65536; // pixels a texture upload converts a
 static std::vector<uint32_t> gReadBuffer;
 static std::vector<SDL_Vertex> gVertices;
 static std::vector<int> gIndices;
+
+// The AND of theCount pixels: its top byte is 255 when every pixel's alpha is
+static inline uint32_t AndPixels(const uint32_t* thePixels, int theCount)
+{
+	uint32_t anAnd = 0xFFFFFFFFu;
+	for (int i = 0; i < theCount; i++)
+		anAnd &= thePixels[i];
+	return anAnd;
+}
 
 static inline int ClampByte(int theValue)
 {
@@ -143,6 +154,10 @@ DDInterface::DDInterface(SexyAppBase* theApp)
 	mCan3D = false;
 	mIsWindowed = true;
 	mVSync = false;
+	mPaceIntervalMs = 0;
+	mPaceNextMs = 0;
+	mPaceOriginMs = 0;
+	mPaceStarted = false;
 	// Unscaled 1x blits sample texels exactly, as at 1x in 1.3. Linear filtering them at a render scale
 	// above 1 pulls in the neighbouring cell of sprite sheets and fonts (visible slivers between glyphs).
 	mPixelPerfect = true;
@@ -229,6 +244,22 @@ int DDInterface::Init(SDL_Window* theWindow, bool vsync)
 		mCan3D = mIs3D;
 		mMaxTextureWidth = (anInfo.max_texture_width > 0) ? anInfo.max_texture_width : 16384;
 		mMaxTextureHeight = (anInfo.max_texture_height > 0) ? anInfo.max_texture_height : 16384;
+
+		// port: the pace of a renderer that no vertical blank holds (SDL's software renderer): the display's refresh rate, 60 when SDL
+		// does not know it. That renderer reports SDL_RENDERER_PRESENTVSYNC when it is asked for it, yet presents with a blit of the
+		// window's surface and never waits for a blank (fwtest drew at its updates' 100 a second under it), so it counts as unheld
+		// whatever its flags say. The web's frames are the browser's.
+		mPaceIntervalMs = 0;
+		mPaceStarted = false;
+#ifndef __EMSCRIPTEN__
+		if (((anInfo.flags & SDL_RENDERER_SOFTWARE) != 0) || ((anInfo.flags & SDL_RENDERER_PRESENTVSYNC) == 0))
+		{
+			SDL_DisplayMode aMode;
+			int aDisplay = SDL_GetWindowDisplayIndex(mWindow);
+			int aRate = ((aDisplay >= 0) && (SDL_GetCurrentDisplayMode(aDisplay, &aMode) == 0)) ? aMode.refresh_rate : 0;
+			mPaceIntervalMs = 1000.0 / ((aRate > 0) ? aRate : 60);
+		}
+#endif
 	}
 
 	SetupBlendModes();
@@ -250,6 +281,25 @@ int DDInterface::Init(SDL_Window* theWindow, bool vsync)
 
 	BeginFrame();
 	return RESULT_OK;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+bool DDInterface::FrameHeldByPace(unsigned int theNowMs)
+{
+	if (mPaceIntervalMs <= 0)
+		return false;
+	if (!mPaceStarted)
+	{
+		mPaceStarted = true;
+		mPaceOriginMs = theNowMs;
+		mPaceNextMs = 0;
+	}
+	double aNow = (double) (unsigned int) (theNowMs - mPaceOriginMs);
+	if (aNow < mPaceNextMs)
+		return true;
+	mPaceNextMs = std::max(mPaceNextMs + mPaceIntervalMs, aNow);
+	return false;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -616,6 +666,10 @@ SDL_Texture* DDInterface::PrepareTexture(MemoryImage* theImage, DDTextureData* t
 		int aHeight = theData->mHeight;
 		const uint32_t* aPixels = NULL;
 		bool isPalletized = false;
+		// Whether every alpha byte is 255 is read from the pixels as they go to the texture (DrawTexturedQuad draws such a
+		// texture as a copy), not from the image's flags: a forced-mode image's flags say nothing of its texels
+		bool aScanAlpha = (theData->mScale == 1) && (!isScreen);
+		uint32_t anAlphaAnd = 0xFFFFFFFFu;
 		if (theData->mScale > 1)
 			aPixels = &theImage->mHDBits[0];
 		else if ((theImage->mBits == NULL) && (theImage->mColorTable != NULL) && (theImage->mColorIndices != NULL))
@@ -628,7 +682,11 @@ SDL_Texture* DDInterface::PrepareTexture(MemoryImage* theImage, DDTextureData* t
 		}
 
 		if ((!isPalletized) && ((!mPremultiplied) || (theImage->mUploadAsIs)))
+		{
+			if (aScanAlpha)
+				anAlphaAnd = AndPixels(aPixels, aWidth * aHeight);
 			SDL_UpdateTexture(aTexture, NULL, aPixels, aWidth * 4);
+		}
 		else
 		{
 			// converted a strip of rows at a time, so the buffer stays small instead of growing to the largest image
@@ -649,6 +707,8 @@ SDL_Texture* DDInterface::PrepareTexture(MemoryImage* theImage, DDTextureData* t
 					for (int i = 0; i < aCount; i++)
 						gPixelBuffer[i] = aPixels[aStart + i];
 				}
+				if (aScanAlpha)
+					anAlphaAnd &= AndPixels(&gPixelBuffer[0], aCount);
 				if (mPremultiplied)
 				{
 					for (int i = 0; i < aCount; i++)
@@ -659,6 +719,7 @@ SDL_Texture* DDInterface::PrepareTexture(MemoryImage* theImage, DDTextureData* t
 			}
 		}
 		theData->mBitsChangedCount[aFilter] = theImage->mBitsChangedCount;
+		theData->mOpaque = aScanAlpha && ((anAlphaAnd >> 24) == 0xFF);
 	}
 
 	int aBlendMode = (theDrawMode == Graphics::DRAWMODE_ADDITIVE) ? mBlendAdditive : mBlendNormal;
@@ -795,16 +856,11 @@ void DDInterface::DrawTexturedQuad(Image* theImage, const float theX[4], const f
 	SDL_Color aColor = MakeVertexColor(theColor, mPremultiplied);
 	float aScale = (float) mRenderScale;
 
-	// port: SDL's software renderer blends a texture with a blend mode pixel by pixel, at about twice the cost of a copy. An image with no
-	// alpha and no transparent pixel, drawn at full alpha in the normal mode, is a copy: the same pixels come out. Not an image in forced
-	// mode (SetImageMode): CommitBits leaves its flags as the game set them, which say nothing of its texels (a render target made by
-	// Create() starts at alpha 0, and what is drawn into it can be semi-transparent), so it stays blended.
-	if ((!mIs3D) && (theDrawMode != Graphics::DRAWMODE_ADDITIVE) && (aColor.a == 255) && (aData->mScale == 1) && (!aSrcImage->mForcedMode))
-	{
-		aSrcImage->CommitBits();
-		if ((!aSrcImage->mHasAlpha) && (!aSrcImage->mHasTrans))
-			SDL_SetTextureBlendMode(aTexture, SDL_BLENDMODE_NONE);
-	}
+	// port: SDL's software renderer blends a texture with a blend mode pixel by pixel, at about twice the cost of a copy. A texture
+	// whose every alpha byte is 255 (PrepareTexture reads them at the upload: an exact test of the texels, which an image's flags are
+	// not, forced mode's least of all), drawn at full alpha in the normal mode, is a copy: the same pixels come out.
+	if ((!mIs3D) && (theDrawMode != Graphics::DRAWMODE_ADDITIVE) && (aColor.a == 255) && (aData->mScale == 1) && (aData->mOpaque))
+		SDL_SetTextureBlendMode(aTexture, SDL_BLENDMODE_NONE);
 
 	// port: SDL's software renderer turns an axis-aligned quad back into a copy whose source rect is
 	// truncated from the UVs ((int) (u * width)), which can land a texel short and shift sprite-sheet

@@ -390,8 +390,8 @@ state was not read.
 
 **What is counted.** Processor time is the cycles of every thread of the game process between the two ends (`QueryProcessCycleTime`
 and each thread's `QueryThreadCycleTime`, read from outside every 5 ms, so that the ends are the counters' values), never
-`GetProcessTimes`. The port is the player's exe as built (`build/native/mummymaze.exe`) under rundesk with only `-script`: no
-`-commands`, no per-update log, no screenshots. The original runs under origrun on the real clock with its patch list (registration
+`GetProcessTimes`. The port is the player's exe as built (`build/native/mummymaze.exe`) under rundesk with only `-script` (and
+`-windowscale=1`, below): no `-commands`, no per-update log, no screenshots. The original runs under origrun on the real clock with its patch list (registration
 check, seed). Sound: the original's FMOD runs two threads of its own (their start address is in fmod.dll, from a probe; the second
 and third of its cycles) that mix into origrun's stand-in DirectSound without playing, and the port's SDL audio thread
 (`SDLAudioP2`) mixes into rundesk's silent driver, so both totals hold the mixing; the table gives the totals and the figures
@@ -399,7 +399,11 @@ without sound. `tools/profile/pairs.sh` runs the pairs (the original first, a pa
 had room for a game process, the whole loop under `python -I tools/pincore.py --`); the machine was shared with 2 to 6 other
 sessions' game processes throughout.
 
-| Pairs | Original, G cycles in the stretch | Port, G cycles in the stretch | Medians |
+**First measurement: the port in the wrong window.** These ten pairs ran the port with the framework's default window, 1280x960
+at render scale 2, beside an original in its own 640x480 window (the Mahjong session pointed out that a window of another size is not
+like for like, `docs/COORDINATION.md`, "The same window on both sides"); the second measurement below repeats them in the same window.
+
+| Pairs | Original, G cycles in the stretch | Port (2x window), G cycles in the stretch | Medians |
 |---|---|---|---|
 | First five | 7.263, 7.115, 9.701, 9.733, 9.609 | 6.729, 5.927, 6.135, 5.734, 5.868 | 9.609 against 5.927 (0.62) |
 | Second five | 7.159, 6.555, 7.066, 10.39, 9.847 | 8.583, 8.24, 6.784, 7.142, 5.598 | 7.159 against 7.142 (1.00) |
@@ -412,7 +416,34 @@ is 0.88 G for the original and 0.63 for the port. The port ran at 99.7 to 100.2 
 8.6. Six further port-only runs beside these (three alternating with visible-desktop runs, three before the second set) read 6.2,
 7.5, 8.0, 7.2, 9.1 and 10.3 G: with them the port's median over its 16 rundesk runs is 6.96 G, still under the original's 8.44.
 
-**Where the port's cycles go.** In a run of 6.4 G, its main thread is about 3.0 G, one unnamed thread (its samples include the
+**Second measurement: the same window, and the renderer.** Five rounds, each the original, the port in a window of the game's own
+size (`-windowscale=1`) and the port in its default window, the two port runs in the other order every other round
+(`pairs.sh`; the machine had 5 to 8 other game processes at the starts). The port's display line says what each got: `client
+640x480 px, logical 640x480, render scale 1, windowed, renderer direct3d11` for the first and `client 1280x960 px, logical 640x480,
+render scale 2, windowed, renderer direct3d11` for the second, on rundesk's private desktop, where SDL gets Direct3D 11. The
+original runs on the same desktop, windowed (its flag at app+0x230 reads 1) at its own 640x480 (the 2002 framework has no scaling),
+drawing through DirectDraw: `ddraw.dll` and `dxgi.dll` were loaded in all five runs, and in three also `d3d11.dll` and
+`d3d10warp.dll` (Windows' software rasterizer; the module list is in each run's `video` field). The three runs with it cost 10.7, 9.3 and 8.1 G, the two without 7.9 and 8.7: too few
+to say whether it explains the two groups the first ten runs fell into. The visible desktop (Direct3D 9) was measured only for the
+port, three runs of the first measurement's 2x window.
+
+| Round | Original | Port, 640x480 | Port, 1280x960 |
+|---|---|---|---|
+| 1 | 10.711 | 7.961 | 7.185 |
+| 2 | 7.907 | 7.144 | 7.424 |
+| 3 | 8.744 | 7.740 | 7.087 |
+| 4 | 9.323 | 6.319 | 6.602 |
+| 5 | 8.101 | 7.896 | 7.624 |
+| Median | 8.744 | 7.740 (0.89) | 7.185 (0.82) |
+
+G cycles in the 6000-update stretch. The port is under the original in every round, in either window; the two windows are within each
+other's spread (6.3 to 8.0 and 6.6 to 7.6 G), so the window's size does not move this game's cost. Against the 15 original runs of
+both measurements (median 8.744) the figures are the same. All runs kept 99.6 to 100 updates a second. The port draws about 2,280
+frames in the stretch against the original's 3,150 (2,256 in the first run, the one that cost most). Its threads: the main
+thread 3.2 to 4.9 G, the unnamed driver thread 2.4 to 2.8 G, the audio thread 0.45 to 0.63 G; the original's main thread 7.2 to
+9.6 G, its FMOD mixer thread 0.66 to 0.94 G.
+
+**Where the port's cycles go (first measurement, 2x window).** In a run of 6.4 G, its main thread is about 3.0 G, one unnamed thread (its samples include the
 NVIDIA driver, `nvwgf2um.dll`) about 2.6 G, the audio thread 0.63 G, and everything else under 0.15 G; the game's own code (the exe) is
 about 1 % of a profile's samples, and the rest is waits, wake-ups and the driver. The main thread swings from 2.6 to 6.6 G between
 runs and the driver thread from 1.5 to 3.0 G, with what the machine's other game processes do to the GPU: the swing is shared cost
@@ -422,9 +453,10 @@ each present waits for the vertical blank, so two updates run between two draws)
 the user's own desktop it draws 2,391 to 2,415 in the stretch and costs 5.7 to 6.4 G (three runs, `ORACLE_VISIBLE`, alternating
 with rundesk runs of 6.2 to 8.0 G), so rundesk's private desktop does not make the port look cheaper.
 
-**Verdict.** The port is at or under its original in the medians of the first five pairs (0.62), of all ten (0.76) and of its
-16 runs against the original's ten, and level in the second five. It is not under in every pair, and its spread is the shared
-present path's, so the README row gives the ten pairs' medians. No cost of the game's own code was found, so there is nothing to
+**Verdict.** In the same window the port is under its original in every one of five rounds: the medians are 7.74 G against 8.74
+(0.89) at the game's own 640x480 and 7.19 (0.82) in the default window. The first measurement's ten pairs, with the port in its 2x
+window, gave 6.43 against 8.44 (0.76) and are consistent with it. The port's spread is the shared present path's, so the README
+row gives the same-window medians. No cost of the game's own code was found, so there is nothing to
 change in it and no spec for the coordinator beyond the draw rate above (37 to 40 frames a second against the original's 53 on a 60 Hz
 screen, which the screen-by-screen comparison does not see).
 
