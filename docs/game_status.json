@@ -392,11 +392,13 @@
         "identical-look",
         "fixes-mod",
         "coverage",
-        "unneeded-code"
+        "unneeded-code",
+        "readability",
+        "collection"
       ],
       "na": [],
       "now": "performance",
-      "note": "processor time halved (d1321ef0), still 3 to 4 times the original's; a second round; unneeded code out (ea92f894)"
+      "note": "animated screens over the original's processor time: waits on the surface presenter"
     },
     "wordharmony": {
       "title": "Word Harmony",

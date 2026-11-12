@@ -143,17 +143,17 @@ void Sequence()
 				}
 				else
 				{
-					uint8_t aData2;
+					uint8_t aSecondDataByte;
 					if (((aStatus & 0xf0) == 0xb0) && (*aTrack.mPos == 7))
 					{
 						gChannelVolumes[aStatus & 0xf] = aTrack.mPos[1];
-						aData2 = gVolumes[aTrack.mPos[1]];
+						aSecondDataByte = gVolumes[aTrack.mPos[1]];
 					}
 					else
 					{
-						aData2 = aTrack.mPos[1];
+						aSecondDataByte = aTrack.mPos[1];
 					}
-					aMessage = (uint32_t)aStatus | (uint32_t)aData2 << 0x10;
+					aMessage = (uint32_t)aStatus | (uint32_t)aSecondDataByte << 0x10;
 					aMessage = aMessage | (uint32_t)*aTrack.mPos << 8;
 					aTrack.mPos = aTrack.mPos + 2;
 				}
