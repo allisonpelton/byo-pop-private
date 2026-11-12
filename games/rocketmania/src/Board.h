@@ -17,7 +17,6 @@
 // docs/GAME_NOTES.md has the map of what is where.
 
 #include "Widget.h"
-#include "ButtonListener.h"
 #include "Common.h"
 #include "Effects.h"
 #include <list>
@@ -157,7 +156,7 @@ public:
 	virtual void Draw(Graphics* g) override;                     // 0x42a2d0
 };
 
-class Board : public Widget, public ButtonListener
+class Board : public Widget
 {
 public:
 	RocketApp*		mApp;               // +0x4dc
@@ -170,7 +169,7 @@ public:
 
 	// ------------------------------------------------------------------ saved state, in the file's order
 	// (+0x4c is the base class's mUpdateCnt, which Widget::Update counts)
-	int				mState;             // +0x5c 0 playing, 1 game over, 2 finished (saved), 3, 4/5/6/7 end-of-level screens
+	int				mState;             // +0x5c 0 playing, 1 game over, 2 finished (saved), 3, 4/5/6 end-of-level screens (the original's code for a state 7, a new board dealt row by row, is never entered)
 	int				mScore;             // +0x60
 	double			m68;                // +0x68 the length of the night (classic mode)
 	int				mLevel;             // +0x70 the level number counted from 0 (0x42a460 reads it)
@@ -194,7 +193,7 @@ public:
 	double			m300, m308, m310, m318, m320;   // +0x300 m300 the fraction of the level done, m308 its smooth value; m310 the night left, m318 smooth, m320 its step
 	int				m328[6];            // +0x328 the countdowns of the six hints
 	bool			m340[6];            // +0x340
-	int				m348, m34c, m350;   // +0x348 m350: paused
+	int				m348, m34c, m350;   // +0x348 m350: paused; m348 and m34c are state 7's start and row, kept for the save file only
 	double			m358;               // +0x358 the fade of the pause
 	int				m360, m364, m368, m36c, m370, m374;     // +0x360 m360 the seconds played, m364/m368 the tick count, m36c the end-of-level countdown
 	int				m108, m10c;         // +0x108
@@ -202,7 +201,7 @@ public:
 	int				m384[30];           // +0x384
 	bool			m3fc[30];           // +0x3fc
 	bool			m41a[30];           // +0x41a
-	bool			m438, m439;         // +0x438
+	bool			m438, m439;         // +0x438; m439 (set by a right click) was only read to show the speech bubble: kept for the save file
 	int				m43c, m440, m444, m448, m44c, m450, m454, m458;     // +0x43c
 	bool			m45c;               // +0x45c
 	int				m460, m464;         // +0x460
@@ -222,7 +221,6 @@ public:
 
 	// ------------------------------------------------------------------ not saved
 	int				m4f4, m4f8;         // +0x4f4 the pointer's place
-	Effect*			m4fc;               // +0x4fc the sweep effect of state 7
 	int				m51c, m50c, m510;   // +0x51c; +0x50c the last click
 	Widget*			m4e0;               // +0x4e0 a widget the board owns (deleted in RemovedFromManager)
 	Widget*			m51cWidget;         // +0x51c
@@ -242,7 +240,6 @@ public:
 	virtual void	Draw(Graphics* g) override;
 	virtual void	RemovedFromManager(WidgetManager* theWidgetManager) override;   // 0x424260
 	virtual void	OrderInManagerChanged() override;                               // 0x424340
-	virtual void	ButtonDepress(int theId) override;
 	virtual void	KeyChar(SexyChar theChar) override;                     // 0x427a90
 	virtual void	MouseLeave() override;                                  // 0x4285b0
 	virtual void	MouseMove(int x, int y) override;                       // 0x4285d0
@@ -350,9 +347,7 @@ public:
 	void			F428780();
 	bool			F428ae0();
 	void			RotatePiece(Piece* thePiece, bool theCounter);          // 0x428340
-	bool			EdgeOpen(int theRow, int theColumn);                    // 0x428e80
 	void			F4282a0(int thePath);
-	void			F428ef0();
 	void			F428d10();
 	void			ShowBuyRockets();                                      // 0x428620
 	void			F4286b0();                                             // 0x4286b0: after the level-up screen, the question of the next level

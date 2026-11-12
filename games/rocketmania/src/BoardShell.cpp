@@ -217,9 +217,7 @@ void Board::Update()
 	}
 	if (mState != 2)
 	{
-		if (mState == 7)
-			F428ef0();
-		else if (mState == 4)
+		if (mState == 4)
 		{
 			if (m36c < 300)
 				mApp->mHead->Follow(mEffects);
@@ -269,14 +267,6 @@ void Board::Update()
 			Bounce(mTop[aColumn]);
 		Bounce(mSpare);
 	}
-}
-
-// 0x428600: a released button makes the click sound (no button has the board as its listener: the app handles the three
-// beside the board)
-void Board::ButtonDepress(int theId)
-{
-	(void) theId;
-	mApp->PlaySample(0);
 }
 
 // ---------------------------------------------------------------------------------------------------------

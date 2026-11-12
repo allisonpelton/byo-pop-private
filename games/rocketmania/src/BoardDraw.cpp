@@ -118,7 +118,7 @@ void Board::Draw(Graphics* g)
 
 	// the chest and the coins under it (not in strategy mode), then the specials
 	bool aBars = false;
-	if (mState == 0 || mState == 7 || m4e0 != NULL || mState == 4 || mState == 5 || mState == 1 || mState == 6)
+	if (mState == 0 || m4e0 != NULL || mState == 4 || mState == 5 || mState == 1 || mState == 6)
 	{
 		aBars = true;
 		if (mApp->mMode != 2)

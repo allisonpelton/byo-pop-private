@@ -97,7 +97,6 @@ RocketApp::RocketApp()
 	mHintDialog = NULL;
 	mBoard = NULL;
 	mHead = NULL;
-	mBubble = NULL;
 	mWelcomed = false;
 	mFirstGameHint = false;
 	mHeadCountdown = 0;
@@ -122,11 +121,6 @@ RocketApp::~RocketApp()
 	{
 		mWidgetManager->RemoveWidget(mHead);
 		delete mHead;
-	}
-	if (mBubble != NULL)
-	{
-		mWidgetManager->RemoveWidget(mBubble);
-		delete mBubble;
 	}
 	delete mBubbleFlipH;
 	delete mBubbleFlipV;
@@ -606,9 +600,6 @@ void RocketApp::CreateHead()
 	mHead->Resize(0, 0, mImages[IMAGE_BODY]->GetWidth() + 0x19, mImages[IMAGE_BODY]->GetHeight() + 0x28);
 	mHead->Move(-200, 0);
 	mWidgetManager->AddWidget(mHead);
-	mBubble = new SpeechBubble(this);
-	mWidgetManager->AddWidget(mBubble);
-	mBubble->SetVisible(false);
 }
 
 // 0x42e010, with 0x4220a0 (the head climbs back, the board's state is 3; the removal of the board's text widgets, 0x41d3a0, is done

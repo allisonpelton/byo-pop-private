@@ -1,5 +1,5 @@
 // The Board's input and the first board (RocketManiaGame 0x427a90, 0x4281a0-0x428520, 0x4285b0-0x4285d0, 0x428780-0x428ae0,
-// 0x428e80-0x428ef0, 0x421f30). See BoardLogic.cpp for the rules.
+// 0x421f30). See BoardLogic.cpp for the rules.
 
 #include "Board.h"
 #include "RocketApp.h"
@@ -130,50 +130,6 @@ void Board::RotatePiece(Piece* thePiece, bool theCounter)
 		F4282a0(thePiece->mPath);
 }
 
-// 0x428e80: the tile at a cell has an open end on the edge of the board (left at the first column, right at the last)
-bool Board::EdgeOpen(int theRow, int theColumn)
-{
-	Piece* aPiece = mGrid[theRow][theColumn];
-	if (theColumn == 0 && (gPipeMask[aPiece->mRotation + aPiece->mKind * 4] & 8) != 0)
-		return true;
-	if (theColumn == mCols - 1 && (gPipeMask[aPiece->mRotation + aPiece->mKind * 4] & 2) != 0)
-		return true;
-	return false;
-}
-
-// 0x428ef0: state 7, the new board is dealt row by row, from the bottom up, while a sweep effect climbs; each row's
-// tiles are drawn again until none of them is open to the edge of the board
-void Board::F428ef0()
-{
-	int aTime = mUpdateCnt - m348;
-	if (m4fc != NULL && mEffects->Has(m4fc))
-		m4fc->mY = (double) CellY(mRows - 1) + 14.0 -
-			(double) aTime * 0.011111111111111112 * (double) (CellY(mRows - 1) - CellY(0));
-	if (aTime % 10 != 0)
-		return;
-	int aRow = m34c;
-	for (int aColumn = 0; aColumn < mCols; aColumn++)
-	{
-		Piece* aPiece = mGrid[aRow][aColumn];
-		if (aPiece == NULL)
-			continue;
-		do
-		{
-			aPiece->mRotation = (int) (mRand->Next() & 3);
-			aPiece->mKind = mGen->DrawKind();
-		}
-		while (EdgeOpen(aRow, aColumn));
-	}
-	if (m34c == 0)
-	{
-		mEffects->Remove(m4fc);
-		m4fc = NULL;
-		mState = 0;
-	}
-	else
-		m34c--;
-}
-
 // 0x421f30: pauses (theOn) or resumes; the head goes down into its hole for the pause and up again after it, and the app's
 // call 0x42d270 tells the buttons the pause state.
 void Board::F421f30(bool theOn)
@@ -230,7 +186,7 @@ void Board::MouseMove(int x, int y)
 }
 
 // 0x4283e0. Arcade mode takes the tile under the pointer (a click at the top strip drops more tiles; the turn happens on
-// release); the other modes turn the tile at once. A click at the lower left, where the head stands, fades its bubble.
+// release); the other modes turn the tile at once.
 void Board::MouseDown(int x, int y, int theClickCount)
 {
 	if (theClickCount < 0)
@@ -268,8 +224,6 @@ void Board::MouseDown(int x, int y, int theClickCount)
 		if (aPiece != NULL && (aPiece->mType == 1 || (aPiece->mType == 4 && m2f4 == 0)))
 			RotatePiece(aPiece, 0 < theClickCount);
 	}
-	if (-1 < x && x < 0x88 && 0xf9 < y && y < 0x1dc)
-		mApp->mHead->HideBubble();
 }
 
 // 0x428520: arcade mode turns the tile that the pointer was pressed on when it is released on the same tile (unless it

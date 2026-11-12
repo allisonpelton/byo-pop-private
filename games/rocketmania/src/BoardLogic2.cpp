@@ -1099,36 +1099,30 @@ void Board::Timers()
 		case 0:
 			if (mApp->mMode == 1)       // 0x42f6f0
 			{
-				mApp->mHead->ShowBubble();
 				m340[i] = true;
 			}
 			break;
 		case 1:
 			if (0 < mLevel)
 			{
-				mApp->mHead->ShowBubble();
 				m340[i] = true;
 			}
 			break;
 		case 2:
 			if (mApp->mMode == 0)
 			{
-				mApp->mHead->ShowBubble();
 				m340[i] = true;
 			}
 			break;
 		case 3:
 			if (2 < mLevel)
 			{
-				mApp->mHead->ShowBubble();
 				m340[i] = true;
 			}
 			break;
 		case 4:
 			if (3 < mLevel)
 			{
-				if (!m439)
-					mApp->mHead->ShowBubble();
 				m340[i] = true;
 			}
 			break;

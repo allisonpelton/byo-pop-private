@@ -16,7 +16,7 @@ image is linked 2003-09-08, base 0x400000, app class `WinTubeTricksApp` (the por
 | ContinueDialog | 0x402630 | id 0xf: NEW GAME or CONTINUE SAVED GAME (ported, the loading half waits for the Board) |
 | Board | 0x41ae80 | the game: Update 0x426f40, Draw 0x41f540, input 0x4285b0 to 0x4283e0, helpers 0x41b270 to 0x429460 |
 | Rocket (the effects) | 0x4172f0, manager 0x41a830 | the particle effects: fireworks, sparkles, flames and the menu's petals (ported, Effects.cpp) |
-| TalkingHead, SpeechBubble | 0x4161a0, 0x415c70 | the dragon announcer, its (never shown) bubble and the hover tips 0x413aa0 (ported, TalkingHead.cpp) |
+| TalkingHead | 0x4161a0 | the dragon announcer and the hover tips 0x413aa0 (ported, TalkingHead.cpp); its speech bubble, SpeechBubble 0x415c70, is never shown and was taken out (see "Coverage check") |
 | HighScoreDisplayDialog | 0x4064e0 | id 0xe |
 | OptionsDialog | 0x411ba0 | id 1 |
 | RecordScoreDialog | 0x414060 | the name entry after a high score |
@@ -128,7 +128,7 @@ the autoplay hook (src/testhooks/Autoplay.cpp: random clicks and drags, a straig
 and then, a check of every grid cell) and sees launches score (scores 130, 1604, 1630 at update 3000) and the strategy
 mode end. Translated since the status above: Update 0x426f40, KeyChar/MouseMove/MouseLeave/MouseDown/MouseUp/MouseDrag,
 pause 0x421f30, the first board of the timed modes 0x428780/0x428ae0, the dealing of a new board (state 7) 0x428ef0 with
-0x428e80, game over 0x421de0, 0x4282a0, 0x428090, 0x428d10, 0x428de0, 0x41f280, 0x429050-0x429080, the app's StartBoard
+0x428e80 (never entered: taken out again, see "Coverage check"), game over 0x421de0, 0x4282a0, 0x428090, 0x428d10, 0x428de0, 0x41f280, 0x429050-0x429080, the app's StartBoard
 0x42ea30.
 
 ### Draw (2026-10-26, late)
@@ -310,8 +310,8 @@ steps after a delay, and Surface brings it to the front. For the end of a level 
 trail effect of the board's effects (kind 0, 300 updates) and puts it at the top, where it swings down on a sine path, and
 Follow puts the trail's flames under it and clears the board's rows to that height; FlyOut sends it to the side. Dialogs and
 the menu call HeadBesideMenu or HeadBesideDialog (StepAside, Place and BringToFront) to put it next to what is open. The
-speech bubble (0x415c70) never gets a message in the shipped game (the function that would set one, 0x415d30, is empty), so
-it stays invisible; only its fade and its place in the widget order are kept. The hover tips (HoverTip, 0x413aa0) watch the
+original's speech bubble (0x415c70) never gets a message in the shipped game (the function that would set one, 0x415d30, is empty), so
+it stays invisible and the port has none (taken out, see "Coverage check"). The hover tips (HoverTip, 0x413aa0) watch the
 pointer on the board: seven regions, and a pointer resting for 81 updates in one shows its tip (not in region 1 unless the
 mode is classic, not in region 2 in strategy), which fades in over 16 updates (alpha `shown * 4`) and goes when the pointer
 leaves. The tip's picture is the bubble (turned or flipped by region), its text eight lines centred in Arial 10 in the colour
@@ -560,16 +560,29 @@ decoder is shared by every game, so it is listed here and not chased.
 **Defined in the port, never reached in the runs: 12 at first.**
 
 - **Reached by the extra runs:** the first-click hide of the speech bubble (`HideBubble`, `FadeOut`: cov4; the bubble never has a
-  message in the shipped game, so it does nothing), and the level-up pages the bots held open.
+  message in the shipped game, so it did nothing; it is taken out, below), and the level-up pages the bots held open.
 - **Read again against the export:** `Points::SetBack` (0x42a230) is reached only by five or more rockets launched together; it
   matches the export (the image, then a colour of three values, then the place is set again).
-- **Candidates for taking out unneeded code, none removed now** (no play of the original reaches them):
-  - the board's states 6 and 7 of its draw and update that nothing sets: state 7 (a new board dealt row by row, `F428ef0` 0x428ef0 and
-    `EdgeOpen` 0x428e80) is never entered, the original has no store of 7 to the state;
-  - `Board::ButtonDepress` (0x428600): no button has the board as its listener;
-  - the speech bubble's whole class and the head's `ShowBubble`/`HideBubble`: the one function that sets a message (0x415d30) is an
-    empty stub in the shipped game, so the bubble's message stays at "none", it is never visible and never drawn (its `Update`
-    keeps it hidden).
+- **Taken out as unneeded code (the unneeded-code pass, 2026-11-12):** nothing in the original reaches them, so play is unchanged
+  (the frozen baseline's state logs are the same):
+  - the board's state 7 (a new board dealt row by row: `F428ef0` 0x428ef0, `EdgeOpen` 0x428e80, the sweep effect's pointer, the state's
+    place in the update and the draw): the original has no store of 7 to the state, and the saves keep no 7 (the original never saves
+    one; a hand-edited save with 7 would no longer deal a board). Its two saved fields (+0x348, +0x34c) stay for the save file's format.
+    State 6, which the first notes listed with it, is entered (state 5 sets it when the level-up dialog is shown) and stays;
+  - `Board::ButtonDepress` (0x428600) and the board's `ButtonListener` base: no button has the board as its listener;
+  - the speech bubble's whole class (0x415c70, `Update` 0x415d90, `FadeOut` 0x415d40, the destructor 0x415d20), the head's
+    `ShowBubble` (0x416a30) and `HideBubble` (0x416a80), the board's calls to them (the hint countdowns' case 0 to 4 and the click at the
+    lower left) and the app's pointer: the one function that sets a message (0x415d30) is an empty stub in the shipped game, so the
+    bubble's message stays at "none", it is never visible, never takes a click and is never drawn. What the calls did to the order of
+    the widgets was the bubble's own place only (`BringToFront`, which reorders one widget and marks nothing dirty), so the other
+    widgets' order, updates and drawing are the same. The board's `m439` (a right click, read only to decide whether to show the
+    bubble) stays for the save file. The tips' pictures, `mBubbleFlipH` and `mBubbleFlipV`, are the hover tips' and stay.
+  Proved by `tools/check.sh rocketmania` (the three bot games' state logs equal the frozen baseline's) and by the tours u2, t1, t3,
+  t5 and hf1 (`tools/shots/port.sh`, the hint dialogs on, 2D): 307 shots, every one pixel-identical to the frozen baseline's (the
+  PNG files differ in their bytes, the pictures do not).
+  `coverage.txt` lists each as `none` with its reason, and the coverage report's "Reached with no definition in the port" and
+  "Never reached and not defined" lists are empty again; what is left under "Defined in the port, never reached" are the two read
+  above (0x40ee40 and 0x42a230).
 - **Level-up page 8, the matches (`LevelUpDialog::DrawMatchesPage`, 0x40ee40, strategy mode only): no run reached it, read against the
   export.** The page shows only in the strategy mode, and the strategy bots never reached a level-up screen (no page's drawing ran): bot7 (easy,
   cap 80000) and bot8 (hard, cap 300000) played to the bot's cap. The port's state log of the same bot with a cap of 60000 shows the game in
