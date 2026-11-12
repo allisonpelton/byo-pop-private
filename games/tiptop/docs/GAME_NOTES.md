@@ -146,7 +146,9 @@ of a 30 s strategy minute. It stays because the other rate would be another conf
 time and `-fast` redoes the frozen baseline and the identical-play scripts (the original patched to 10 ms a pass, `-fast`'s virtual
 clock advancing `mFrameTime` a pass) for a tenth of the processor gap, and a 16 ms real-time step with `-fast` kept at 10 would
 ship a configuration the baseline never proves. Revisit only if the port is still over its original's processor time once the
-present path is cut (the surface presenter of the shared framework, `docs/COORDINATION.md`).
+present path is cut (the surface presenter of the shared framework, `docs/COORDINATION.md`); it is cut now (below, "The surface display"),
+and the port is at its original's processor time in the strategy minute and 11% over it at the main menu, within the runs' noise, so
+the rate stays.
 
 **No "Visit PopCap.com for More Games" button on the options screen** (the user, 2026-11-07, "Yes, now too": every button that
 leads out of a game comes out of the ports). The original's options screen has an oval button between the TipTop logo and the
@@ -388,7 +390,7 @@ hidden and the visible desktop, with no driver thread. At 60 frames a second the
 paced original's whole process at the main menu takes about 120 M. So the port cannot reach its original through this present
 whatever the game does. It is the "SDL_RenderPresent, a driver cost per presented frame" item of `docs/COORDINATION.md`; the
 spec for presenting an opaque software-drawn frame through the window's surface went to the coordinator (shared code, not
-changed here).
+changed here). It is built since (the Mahjong session's `SurfaceDisplay`): "The surface display", below.
 
 **What the game changed.** The framework now draws a frame only when the screen shows something new. `lowos::HostScreenWrites`
 counts the writes to the screen (a blit, a fill, a stretched blit, a new canvas); after a pass that wrote and when no frame is
@@ -407,7 +409,8 @@ which takes the app's screen pixels and the changed rectangles; the game does no
 game screen into `mScreenImage` only in the blocks of 16 pixels that differ from what the image holds (the alpha bytes are 0xff
 from the first copy, which takes everything), and keeps where it copied: `mChangedX`, `mChangedY`, `mChangedWidth`,
 `mChangedHeight` (the bounding rectangle, block-exact in x, empty when the picture was as before) and `mChangedRects`, the runs of
-32x32 tiles that hold a changed block, one tile row at a time. Nothing reads them yet. Measured in three bot games (regular,
+32x32 tiles that hold a changed block, one tile row at a time. The window's `SurfaceDisplay` reads the tiles (below; the bounding
+rectangle is not used any more). Measured in three bot games (regular,
 strategy, speed; every frame drawn): the changed pixels are 5.3 to 6.4% of the 640x480, the tiles 12.9 to 16.9% and the bounding
 rectangle 39 to 43%, so in play a list of rectangles carries a third of what one rectangle does (the main menu's animation is one
 box of 160x76, 4%). A temporary check in `Draw` compared every frame's image with the one before: none of the 10,400 frames
@@ -415,6 +418,43 @@ changed a pixel outside the bounding rectangle or the tiles (removed again). The
 against 149 to 160 for the full copy it replaced (measured in the same runs), so it pays for the rectangles. An empty list does not mean that nothing needs
 presenting: the framework draws after an expose, a resize or a device reset with the picture unchanged, and the presenter must
 treat those frames as whole.
+
+**The surface display (2026-11-12, `TipTopApp::CreateDDInterface`, `TipTopWidget::Draw`; the shared `framework/SurfaceDisplay.h` of the
+Mahjong session).** A native build's window shows the screen through its own surface instead of an SDL renderer's frame: the app
+overrides `CreateDDInterface` to make a `SurfaceDisplay`, and `Draw` hands it the pixels of `mScreenImage` (640x480, the alpha bytes
+0xff) with the changed tiles, `SetFrame(pixels, 640 * 4, mChangedRects, count)` (count -1 at the first draw, everything), and draws
+nothing through the widget. The display copies the tiles into the window's surface, each pixel repeated twice at the default 2x
+window, and has SDL update those rects (one GDI blit, no Direct3D device, no driver thread); at 1x, 2x, 3x or 4x it is surface
+mode, at any other window size (and in full screen, or after the window has ever had a renderer) it is its renderer mode, with
+only the changed tiles uploaded, which costs what the framework's display did. The web build keeps the widget's image and the
+framework's display (`#ifndef __EMSCRIPTEN__`). The picture is the same: a bot game (regular, seed 2, bot seed 7, 15,191 updates)
+with `SURFACE_VERIFY=1`, which compares the window's surface with the screen after every present, presented 1520 frames with no
+difference, and its four screenshots and its log are byte for byte those of the same game on the framework's display
+(`SURFACE_DISPLAY=off`, a test hook of `CreateDDInterface`; a test run only).
+
+Processor time, the original paced at 16 ms a pass against the port with the surface display (at the default 2x and at 1x) and
+the framework's display (Direct3D 11, at 2x), music out of both, no `-commands` file, 0 to 3 other game processes (the machine was
+quieter than in the first round), alternating; seconds of processor time, then thread cycles in millions in brackets:
+
+| | Paced original | Port, surface display, 2x | Port, surface display, 1x | Port, framework's display, 2x |
+|---|---|---|---|---|
+| Strategy minute, 30 s window | 1.64 to 2.28 s (3.1 to 4.5 G; 6 runs, mean 3.69 G) | 1.45 to 2.28 s (3.05 to 4.11 G; 6 runs, mean 3.65 G) | 1.36 to 1.81 s (2.9 to 4.1 G; 3 runs) | 2.42 to 2.70 s (5.1 to 6.2 G; 3 runs) |
+| Main menu left alone, 20 s | 1.00 to 1.47 s (2.1 to 2.8 G; 4 runs, mean 2.54 G) | 1.05 to 1.70 s (2.7 to 2.9 G; 4 runs, mean 2.83 G) | 1.11 to 1.20 s (2.7 G; 2 runs) | 2.03 to 2.80 s (4.7 to 5.0 G; 2 runs) |
+
+The surface display takes the port from 1.4 to 1.7 times its original to the same: the strategy minute is 1% under it on the mean of
+six rounds, the main menu 11% over (the menu animates a box of 160x76 pixels every pass, and the port runs 100 passes a second
+where the original ran 60). The runs differ by a third from one to the next, so only the framework's display against the others
+is a difference. The cycle split of the same minute (`-cyclesplit`, 3000 updates, 100 a second, `tools/cyclesplit.py`) shows
+where it went: with the framework's display 1.98 M cycles an update, 0.94 the game's pass, 0.95 the picture (the draw, the present
+and the driver's thread: a half of the process), 0.07 the loop; with the surface display 1.23 M, 0.89 the pass, 0.23 the picture,
+0.09 the loop (an earlier run of it: 1.04 M, 0.75 the pass, 0.20 the picture). What is left is the game's own pass, 72% of the
+process.
+
+**Two mistakes of the first measurement, kept so they are not made again.** `SDL_getenv` on Windows returns a buffer that the next
+`SDL_getenv` call overwrites, and `IsTestRun()` reads two variables: read `SURFACE_DISPLAY` first and ask `IsTestRun()` before
+using it, and the switch never fires (a log line "mode=1" showed it; the first "old display" rounds ran the surface display on
+both sides, and are not in the table). A run says which display it got in its log: `display: ... renderer none` is the surface,
+`renderer direct3d11` the framework's.
 
 **The pass rate** (written up for the coordinator before any change): the original's pass is one trip of the main loop, whose
 `lowos_EndFrame` waits for the vertical blank, so it runs 60 passes a second on a 60 Hz screen (144 on a 144 Hz one). The game's

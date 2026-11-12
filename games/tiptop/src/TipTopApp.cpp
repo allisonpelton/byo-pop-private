@@ -8,6 +8,9 @@
 #include "platform/Audio.h"
 #include "Graphics.h"
 #include "MemoryImage.h"
+#ifndef __EMSCRIPTEN__
+#include "SurfaceDisplay.h"
+#endif
 #include "WidgetManager.h"
 #include "compat2004/Compat2004.h"
 
@@ -160,10 +163,20 @@ void TipTopWidget::Draw(Graphics* g)
 			int aRunEnd = aTileX;
 			while ((aRunEnd < 640 / 32) && aTiles[aTileY][aRunEnd])
 				aRunEnd++;
-			mChangedRects.push_back(ChangedRect{aTileX * 32, aTileY * 32, (aRunEnd - aTileX) * 32, 32});
+			mChangedRects.push_back(Rect(aTileX * 32, aTileY * 32, (aRunEnd - aTileX) * 32, 32));
 			aTileX = aRunEnd;
 		}
 	}
+#ifndef __EMSCRIPTEN__
+	if (SurfaceDisplay* aDisplay = dynamic_cast<SurfaceDisplay*>(gApp->mDDInterface))
+	{
+		// The window shows the image's pixels, only the changed tiles of them (a window that was exposed or resized asks for all
+		// of the picture itself), and nothing is drawn through the widgets.
+		aDisplay->SetFrame((const uint32_t*)aBits, 640 * 4, mChangedRects.data(),
+			isFirstDraw ? -1 : (int)mChangedRects.size());
+		return;
+	}
+#endif
 	mScreenImage->BitsChanged();
 	g->DrawImage(mScreenImage, 0, 0);
 }
@@ -361,6 +374,22 @@ void TipTopApp::LostFocus()
 	SexyAppBase::LostFocus();
 	lowos::HostSetActive(false);
 }
+
+#ifndef __EMSCRIPTEN__
+DDInterface* TipTopApp::CreateDDInterface()
+{
+	// test only (a test run reads it): SURFACE_DISPLAY=off keeps the framework's display and the widget's image, to compare the two.
+	// SDL_getenv's result is a buffer the next SDL_getenv call overwrites on Windows (IsTestRun reads two variables), so the
+	// variable is read after the test run is known and used at once.
+	if (IsTestRun())
+	{
+		const char* aMode = SDL_getenv("SURFACE_DISPLAY");
+		if ((aMode != nullptr) && (strcmp(aMode, "off") == 0))
+			return SexyAppBase::CreateDDInterface();
+	}
+	return new SurfaceDisplay(this);
+}
+#endif
 
 // Alt+Enter (and the web page's full screen button) go to the game like the original's Alt+Enter; the game then
 // asks for the mode through LOWOS_ScreenScope, which RunFrame applies.
