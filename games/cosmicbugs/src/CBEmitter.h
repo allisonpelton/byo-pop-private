@@ -13,12 +13,20 @@ namespace cb
 
 struct ParticleSystem;
 
+// What an emitter does with its particles (Emitter::mKind): angular (turns with the parent's animation), scattered, or
+// trailing (the game file makes angular and trailing ones)
+enum EmitterKind
+{
+	EMITTER_ANGULAR = 0,
+	EMITTER_SCATTERED = 1,
+	EMITTER_TRAILING = 2,
+};
+
 // 0xe4 bytes (0x407cb0 allocates one; 0x40b4f0 sets it up)
 struct Emitter : Obj
 {
-	// kind +0x08: 0 angular (turns with the parent's animation), 1 scattered, 2 trailing (the game file makes 0
-	// and 2); oldX/oldY +0x1c: the offset from the parent's position; vx/vy: the particles' speed (per update);
-	// anim, frameCount, frameTime: the particles' animation
+	// mKind +0x08 an EmitterKind; mOldX/mOldY +0x1c: the offset from the parent's position; mVx/mVy: the particles' speed (per update);
+	// mAnim, mFrameCount, mFrameTime: the particles' animation
 	int mFrequency;             // +0xb0  updates between particles
 	int mRotation;              // +0xb4  angular: degrees over the parent's whole animation
 	Obj* mParent;               // +0xb8

@@ -32,19 +32,19 @@ const char* ScreenName(int theKind)
 {
 	switch (theKind)
 	{
-	case 0: return "board";
-	case 1: return "title";
-	case 2: return "highscore_entry";
-	case 3: return "highscores";
-	case 4: return "credits";
-	case 5: return "levelselect";
-	case 6: return "levelselect2";
-	case 7: return "options";
-	case 0xb: return "mission_complete";
-	case 0xc: return "help";
-	case 0xd: return "instructions";
-	case 0xe: return "logo";
-	case 0x10: return "change_user";
+	case LEVEL_BOARD: return "board";
+	case LEVEL_MAIN_MENU: return "title";
+	case LEVEL_HIGH_SCORE_ENTRY: return "highscore_entry";
+	case LEVEL_HIGH_SCORES: return "highscores";
+	case LEVEL_CREDITS: return "credits";
+	case LEVEL_SELECT_LEVEL: return "levelselect";
+	case LEVEL_SELECT_LEVEL2: return "levelselect2";
+	case LEVEL_OPTIONS: return "options";
+	case LEVEL_MISSION_COMPLETE: return "mission_complete";
+	case LEVEL_HELP: return "help";
+	case LEVEL_HELP2: return "instructions";
+	case LEVEL_LOGO: return "logo";
+	case LEVEL_CHANGE_USER: return "change_user";
 	}
 	return "unknown";
 }
@@ -62,14 +62,14 @@ const char* ShooterName()
 Shooter* Ship()
 {
 	Level* aLevel = gLevels.mCurrent;
-	return aLevel != nullptr && aLevel->mKind == 0 ? aLevel->mShooters.mHead : nullptr;
+	return aLevel != nullptr && aLevel->mKind == LEVEL_BOARD ? aLevel->mShooters.mHead : nullptr;
 }
 
 int WeaponsOrbiting()
 {
 	int aCount = 0;
 	List_Each(&gLevels.mCurrent->mWeapons, [&](Weapon* theWeapon) {
-		if (theWeapon->mState == 3)
+		if (theWeapon->mState == WEAPON_ORBITING)
 			aCount = aCount + 1;
 	});
 	return aCount;
@@ -106,7 +106,7 @@ int Fill(Level* theLevel)
 // board is paused or won, or cells are still being filled
 bool Busy(Level* theLevel, Shooter* theShip)
 {
-	return theShip == nullptr || theShip->mState != 3 || theLevel->mState != 1 || theLevel->mGameOver != 0 ||
+	return theShip == nullptr || theShip->mState != SHIP_CONTROLLED || theLevel->mState != LEVEL_PLAYING || theLevel->mGameOver != 0 ||
 		theLevel->mFills.mCurrent != nullptr || theLevel->mTotalCells == 0;
 }
 
@@ -122,9 +122,9 @@ std::string StateJson()
 	bool aRequester = aLevel != nullptr && HasRequester(aLevel);
 	s += Fmt(",\"requester\":%s,\"fullscreen\":%s,\"stretched\":%s,\"updates\":%d", aRequester ? "true" : "false",
 		r64::Screen_Fullscreen() != 0 ? "true" : "false", r64::Screen_Centered() == 0 ? "true" : "false", gFrame);
-	if (aLevel == nullptr || aKind != 0)
+	if (aLevel == nullptr || aKind != LEVEL_BOARD)
 	{
-		s += Fmt(",\"busy\":false,\"over\":%s}", aKind == 0xb ? "true" : "false");
+		s += Fmt(",\"busy\":false,\"over\":%s}", aKind == LEVEL_MISSION_COMPLETE ? "true" : "false");
 		return s;
 	}
 	Shooter* aShip = Ship();
@@ -132,7 +132,7 @@ std::string StateJson()
 	s += Fmt(",\"level\":%d,\"fill\":%d,\"quota\":%d,\"shots\":%d,\"cells\":%d,\"filled\":%d", aLevel->mNumber, Fill(aLevel),
 		aLevel->mFillQuota, aLevel->mShots, aLevel->mTotalCells, aLevel->mFilledCells);
 	s += Fmt(",\"playing\":%s,\"busy\":%s,\"paused\":%s,\"won\":%s,\"over\":%s", !aBusy ? "true" : "false",
-		aBusy ? "true" : "false", aLevel->mState == 2 ? "true" : "false", aLevel->mState == 3 ? "true" : "false",
+		aBusy ? "true" : "false", aLevel->mState == LEVEL_PAUSED ? "true" : "false", aLevel->mState == LEVEL_WON ? "true" : "false",
 		aLevel->mGameOver != 0 ? "true" : "false");
 	if (aShip != nullptr)
 		s += Fmt(",\"ship\":{\"x\":%d,\"y\":%d,\"state\":%d,\"across\":%s,\"weapons\":%d}", (int)aShip->mX, (int)aShip->mY,
@@ -189,8 +189,8 @@ void ReadGrid(Level* theLevel, Grid& theGrid)
 		for (int r = 0; r < theGrid.mRows; r++)
 		{
 			Cell* aCell = &theLevel->mColumns[c][r];
-			theGrid.mOpen[c][r] = aCell->mKind == 0;
-			theGrid.mFireable[c][r] = aCell->mKind == 0 && aCell->mUnmarked != 0;
+			theGrid.mOpen[c][r] = aCell->mKind == CELL_OPEN;
+			theGrid.mFireable[c][r] = aCell->mKind == CELL_OPEN && aCell->mUnmarked != 0;
 		}
 	}
 }
@@ -299,8 +299,9 @@ bool Rolls(const Enemy* theEnemy)
 {
 	switch (theEnemy->mKind)
 	{
-	case 0: case 1: case 2: case 3: case 4: case 0x10: case 0x11:
-	case 6: case 0xc: case 0xd:
+	case ENEMY_ROLLER: case ENEMY_BURST_ROLLER: case ENEMY_SPIN_ROLLER: case ENEMY_TURN_ROLLER:
+	case ENEMY_BUMP_ROLLER: case ENEMY_TELEPORTER_ROLLER: case ENEMY_JELLYFISH_ROLLER:
+	case ENEMY_SNAKE: case ENEMY_CANNON_BALL: case ENEMY_LASER_SHOT:
 		return true;
 	}
 	return false;
@@ -442,11 +443,11 @@ std::string Move()
 	Level* aLevel = gLevels.mCurrent;
 	Shooter* aShip = Ship();
 	// a won board shows its bonus texts, each clicked away in turn; the click after the last one goes on to the next board
-	if (aLevel != nullptr && aLevel->mKind == 0 && aLevel->mState == 3 && aLevel->mGameOver == 0 && aLevel->mTexts.mHead != nullptr)
+	if (aLevel != nullptr && aLevel->mKind == LEVEL_BOARD && aLevel->mState == LEVEL_WON && aLevel->mGameOver == 0 && aLevel->mTexts.mHead != nullptr)
 		return "MOVE {\"kind\":\"continue\",\"input\":[{\"click\":[400,300]},{\"wait\":20}]}";
 	// the board waits while the pointer is over its panel (Level_IsPlaying): a click that started the board, on the
 	// instructions page's Play button, leaves it there, and a player moves it up into the board
-	if (aLevel != nullptr && aLevel->mKind == 0 && aLevel->mState == 1 && aLevel->mGameOver == 0 && aLevel->mTotalCells != 0 &&
+	if (aLevel != nullptr && aLevel->mKind == LEVEL_BOARD && aLevel->mState == LEVEL_PLAYING && aLevel->mGameOver == 0 && aLevel->mTotalCells != 0 &&
 		Level_IsPlaying(aLevel) == 0 && (aLevel->mMenus.mCurrent == nullptr || aLevel->mMenus.mCurrent->mRequesters.mCurrent == nullptr))
 	{
 		int aY = 300;
@@ -463,7 +464,7 @@ std::string Move()
 	{
 		bool aTooClose = false;
 		List_Each(&aLevel->mWeapons, [&](Weapon* theWeapon) {
-			if (theWeapon->mState == 3 && theWeapon->mTooClose != 0)
+			if (theWeapon->mState == WEAPON_ORBITING && theWeapon->mTooClose != 0)
 				aTooClose = true;
 		});
 		if (aTooClose)
@@ -474,7 +475,7 @@ std::string Move()
 	if (aPlanOk)
 	{
 		Cell* aCell = &aLevel->mColumns[gPlan.mCol][gPlan.mRow];
-		aPlanOk = aCell->mKind == 0 && aCell->mUnmarked != 0;
+		aPlanOk = aCell->mKind == CELL_OPEN && aCell->mUnmarked != 0;
 	}
 	if (!aPlanOk && !ChoosePlan(aLevel, aShip, gPlan.mLevel == aLevel && gPlan.mFailures >= 30))
 		return "MOVE {\"kind\":\"wait\",\"input\":[{\"wait\":10}]}";
@@ -534,7 +535,7 @@ std::string StartBoard(int theNumber, bool theNewGame)
 {
 	if (gLevels.mCurrent == nullptr)
 		return "no screen is current";
-	bool aFromBoard = gLevels.mCurrent->mKind == 0;
+	bool aFromBoard = gLevels.mCurrent->mKind == LEVEL_BOARD;
 	if (theNewGame || !aFromBoard || gLives <= 0)
 	{
 		gLives = 6;
@@ -545,7 +546,7 @@ std::string StartBoard(int theNumber, bool theNewGame)
 	if (aFromBoard)
 	{
 		gGoTo = 1;
-		if (!ChangeScreen() || gLevels.mCurrent->mKind == 0)
+		if (!ChangeScreen() || gLevels.mCurrent->mKind == LEVEL_BOARD)
 			return "the title did not come";
 	}
 	gLives = aLives;
@@ -676,7 +677,7 @@ bool TestCommand(const std::string& theCommand, const std::string& theArgs, std:
 	if (theCommand == "win" || theCommand == "lose")
 	{
 		Shooter* aShip = Ship();
-		if (aLevel->mKind != 0 || aShip == nullptr || aLevel->mState != 1 || aLevel->mTotalCells == 0 || aLevel->mGameOver != 0)
+		if (aLevel->mKind != LEVEL_BOARD || aShip == nullptr || aLevel->mState != LEVEL_PLAYING || aLevel->mTotalCells == 0 || aLevel->mGameOver != 0)
 		{
 			Error(theReplies, theCommand, theArgs, "no board is being played");
 			return true;
@@ -728,28 +729,28 @@ bool TestCommand(const std::string& theCommand, const std::string& theArgs, std:
 	}
 	int aKind = -1;
 	if (aWhere == "title" || aWhere == "menu")
-		aKind = 1;
+		aKind = LEVEL_MAIN_MENU;
 	else if (aWhere == "options")
-		aKind = 7;
+		aKind = LEVEL_OPTIONS;
 	else if (aWhere == "help")
-		aKind = 0xc;
+		aKind = LEVEL_HELP;
 	else if (aWhere == "instructions" || aWhere == "help2")
-		aKind = 0xd;
+		aKind = LEVEL_HELP2;
 	else if (aWhere == "highscores")
-		aKind = 3;
+		aKind = LEVEL_HIGH_SCORES;
 	else if (aWhere == "credits")
-		aKind = 4;
+		aKind = LEVEL_CREDITS;
 	else if (aWhere == "levelselect")
-		aKind = 5;
+		aKind = LEVEL_SELECT_LEVEL;
 	else if (aWhere == "changeuser")
-		aKind = 0x10;
+		aKind = LEVEL_CHANGE_USER;
 	if (aKind < 0)
 	{
 		Error(theReplies, theCommand, theArgs, "no such screen (title, options, help, instructions, highscores, credits, levelselect, changeuser, game, easy, normal, hard, manual, auto)");
 		return true;
 	}
 	// a board's list holds the board file's screens only: from a board only the title is reached, as Esc does
-	if ((aLevel->mKind == 0 && aKind != 1) || (aLevel->mKind != 0 && !HasScreen(aKind)))
+	if ((aLevel->mKind == LEVEL_BOARD && aKind != LEVEL_MAIN_MENU) || (aLevel->mKind != LEVEL_BOARD && !HasScreen(aKind)))
 	{
 		Error(theReplies, theCommand, theArgs, "that screen cannot be reached from here (from a board, go to the title first)");
 		return true;

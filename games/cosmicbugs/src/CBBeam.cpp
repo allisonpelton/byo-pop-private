@@ -69,7 +69,7 @@ int Rider_Update(Rider* theRider)
 	{
 		int aCol = (int)theRider->mX;
 		int aRow = (int)theRider->mY;
-		if (gLevels.mCurrent->mColumns[aCol / 16][aRow / 16].mKind != 5)
+		if (gLevels.mCurrent->mColumns[aCol / 16][aRow / 16].mKind != CELL_SOLID)
 		{
 			if (RandRange(1, 10) == 1)
 			{
@@ -216,7 +216,7 @@ int Beam_Update(Beam* theBeam)
 	theBeam->mY = aY;
 	int aCol = (int)((double)theBeam->mVx + (double)aX);
 	int aRow = (int)((double)aY + (double)theBeam->mVy);
-	if (gLevels.mCurrent->mColumns[aCol / 16][aRow / 16].mKind == 0)
+	if (gLevels.mCurrent->mColumns[aCol / 16][aRow / 16].mKind == CELL_OPEN)
 	{
 		theBeam->mX = aX + theBeam->mVx;
 		theBeam->mY = aY + theBeam->mVy;

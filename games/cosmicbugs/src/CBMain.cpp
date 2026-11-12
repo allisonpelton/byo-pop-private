@@ -184,7 +184,7 @@ void SaveProfiles()
 		std::fwrite(&gAutoFire, 4, 1, aFile);
 		Profile* aProfile = &gProfiles[gProfile];
 		aProfile->mAutoFire = gAutoFire;
-		if (gLevels.mCurrent != nullptr && gLevels.mCurrent->mKind == 0)
+		if (gLevels.mCurrent != nullptr && gLevels.mCurrent->mKind == LEVEL_BOARD)
 		{
 			if (gLives < 1)
 			{
@@ -408,10 +408,10 @@ void FreeAll()
 // their locked animation.
 void GoToScreen()
 {
-	if (gGoTo == 2)
+	if (gGoTo == LEVEL_HIGH_SCORE_ENTRY)
 	{
 		gHighScores[8].mScore = gScore;
-		gGoTo = 3;
+		gGoTo = LEVEL_HIGH_SCORES;
 		std::strcpy(gHighScores[8].mName, gProfiles[gProfile].mName);
 		SortHighScores();
 	}
@@ -424,7 +424,7 @@ void GoToScreen()
 				if (aLevel->mKind == gGoTo)
 				{
 					gLevels.mCurrent = aLevel;
-					if (gGoTo != 5)
+					if (gGoTo != LEVEL_SELECT_LEVEL)
 						return;
 					if (aLevel->mBackground != nullptr)
 					{
@@ -462,7 +462,7 @@ void GoToScreen()
 			Music_Load(gLevelSets.mCurrent->mSong);
 			FreeAll();
 			LoadGameFile();
-			if (gLevels.mCurrent->mKind == 0)
+			if (gLevels.mCurrent->mKind == LEVEL_BOARD)
 			{
 				Music_SetVolume(0x8c);
 				Music_Play();
@@ -481,12 +481,12 @@ void GoToScreen()
 // current afterwards (the tests' commands call this as well, CBTestCommands.cpp).
 bool ChangeScreen()
 {
-	if (gLevels.mCurrent->mKind == 0 || gLevels.mCurrent->mKind == 0xe)
+	if (gLevels.mCurrent->mKind == LEVEL_BOARD || gLevels.mCurrent->mKind == LEVEL_LOGO)
 		List_RemoveCurrent(&gLevels);
 	else
 		Level_UnlinkAll(gLevels.mCurrent);
 	GoToScreen();
-	if (gLevels.mCurrent->mKind == 0)
+	if (gLevels.mCurrent->mKind == LEVEL_BOARD)
 	{
 		for (; gLevelInSet != 0; gLevelInSet = gLevelInSet + -1)
 		{
@@ -525,23 +525,23 @@ escape:
 	// logo screen (kind 0xe, the PopCap logo, again for each portal animation file) it goes on as Esc on it does, the original's
 	// own skip, to the main menu. The logos draw no random number (the seed's series is the same with Esc and without), so the
 	// game's draws afterwards are the same.)
-	bool aSkipLogo = gLevels.mCurrent != nullptr && gLevels.mCurrent->mKind == 0xe && Sys_SkipLogos();
+	bool aSkipLogo = gLevels.mCurrent != nullptr && gLevels.mCurrent->mKind == LEVEL_LOGO && Sys_SkipLogos();
 	if (Key_Pressed(0x1b) == 0 && !aSkipLogo)
 	{
 		gEscape = 0;
 		return;
 	}
-	if (gLevels.mCurrent != nullptr && gLevels.mCurrent->mKind == 1)
+	if (gLevels.mCurrent != nullptr && gLevels.mCurrent->mKind == LEVEL_MAIN_MENU)
 	{
 		gQuit = 1;
 		return;
 	}
-	if (gLevels.mCurrent->mKind == 0)
+	if (gLevels.mCurrent->mKind == LEVEL_BOARD)
 	{
 		gEscape = 1;
 		return;
 	}
-	gGoTo = 1;
+	gGoTo = LEVEL_MAIN_MENU;
 	GoToScreen();
 	if (gLevels.mCurrent != nullptr)
 		Screen_Redraw();

@@ -35,7 +35,7 @@ Cell* Cell_Init(Cell* theCell)
 	theCell->mUnmarked = 1;
 	theCell->mDrawKind = 1;
 	theCell->mSteps = 0xb4;
-	theCell->mKind = 5;
+	theCell->mKind = CELL_SOLID;
 	theCell->mAlpha = 0xff;
 	return theCell;
 }
@@ -57,7 +57,7 @@ void Cell_Redraw(Cell* theCell)
 	int aY = (int)theCell->mY;
 	int aSy = aY % anImage->mH;
 	int aState = theCell->mState;
-	if (aState == 5)
+	if (aState == CELL_CAPTURING)
 	{
 		int aStep = theCell->mStep;
 		int aSteps = theCell->mSteps;
@@ -72,9 +72,9 @@ void Cell_Redraw(Cell* theCell)
 			return;
 		}
 	}
-	else if (aState == 7)
+	else if (aState == CELL_IN_WAVE)
 	{
-		if (theCell->mKind != 5)
+		if (theCell->mKind != CELL_SOLID)
 		{
 			float t = (float)((double)theCell->mStep / (double)theCell->mSteps);
 			if (gLevels.mCurrent->mFilledCells == 0)
@@ -96,7 +96,7 @@ void Cell_Redraw(Cell* theCell)
 			}
 		}
 	}
-	else if (aState != 6)
+	else if (aState != CELL_WAITING)
 	{
 		Image* aFill = gLevels.mCurrent->mFillImage;
 		int aFsx = aX % aFill->mW;
@@ -106,56 +106,56 @@ void Cell_Redraw(Cell* theCell)
 		const PixelFormat* aFmt = &gBackBuffer.mFmt;
 		int aCol = theCell->mCol;
 		int aRow = theCell->mRow;
-		if (theCell->mKind == 3 || theCell->mKind == 2)
+		if (theCell->mKind == CELL_EDGE || theCell->mKind == CELL_LINE)
 		{
 			// the filled neighbours' halves next to this cell
-			if (At(aCol - 1, aRow)->mKind == 4)
+			if (At(aCol - 1, aRow)->mKind == CELL_FILLED)
 				Alpha16Mask(aBack, aPitch, aFmt, aX, aY, aFill->mBits, aFill->mPitch, aFsx, aFsy, aFill->mMask->mBits,
 					aFill->mMask->mPitch, 0, 0, 8, 0x10);
-			if (At(aCol + 1, aRow)->mKind == 4)
+			if (At(aCol + 1, aRow)->mKind == CELL_FILLED)
 				Alpha16Mask(aBack, aPitch, aFmt, (int)((double)theCell->mX + 8.0), (int)theCell->mY, aFill->mBits,
 					aFill->mPitch, aFsx + 8, aFsy, aFill->mMask->mBits, aFill->mMask->mPitch, 0, 0, 8, 0x10);
-			if (At(aCol, aRow + 1)->mKind == 4)
+			if (At(aCol, aRow + 1)->mKind == CELL_FILLED)
 				Alpha16Mask(aBack, aPitch, aFmt, (int)theCell->mX, (int)((double)theCell->mY + 8.0), aFill->mBits,
 					aFill->mPitch, aFsx, aFsy + 8, aFill->mMask->mBits, aFill->mMask->mPitch, 0, 0, 0x10, 8);
-			if (At(aCol, aRow - 1)->mKind == 4)
+			if (At(aCol, aRow - 1)->mKind == CELL_FILLED)
 				Alpha16Mask(aBack, aPitch, aFmt, (int)theCell->mX, (int)theCell->mY, aFill->mBits, aFill->mPitch, aFsx, aFsy,
 					aFill->mMask->mBits, aFill->mMask->mPitch, 0, 0, 0x10, 8);
 			// the beam neighbours' halves
 			Cell* aNext = At(aCol - 1, aRow);
-			if (aNext->mKind == 2)
+			if (aNext->mKind == CELL_LINE)
 			{
 				Image* anImg = aNext->mImage;
 				Alpha16Mask(aBack, aPitch, aFmt, (int)theCell->mX, (int)theCell->mY, anImg->mBits, anImg->mPitch, 0, 0,
 					anImg->mMask->mBits, anImg->mMask->mPitch, 0, 0, 8, 0x10);
 			}
 			aNext = At(aCol + 1, aRow);
-			if (aNext->mKind == 2)
+			if (aNext->mKind == CELL_LINE)
 			{
 				Image* anImg = aNext->mImage;
 				Alpha16Mask(aBack, aPitch, aFmt, (int)((double)theCell->mX + 8.0), (int)theCell->mY, anImg->mBits,
 					anImg->mPitch, 8, 0, anImg->mMask->mBits, anImg->mMask->mPitch, 0, 0, 8, 0x10);
 			}
 			aNext = At(aCol, aRow + 1);
-			if (aNext->mKind == 2)
+			if (aNext->mKind == CELL_LINE)
 			{
 				Image* anImg = aNext->mImage;
 				Alpha16Mask(aBack, aPitch, aFmt, (int)theCell->mX, (int)((double)theCell->mY + 8.0), anImg->mBits,
 					anImg->mPitch, 0, 8, anImg->mMask->mBits, anImg->mMask->mPitch, 0, 0, 0x10, 8);
 			}
 			aNext = At(aCol, aRow - 1);
-			if (aNext->mKind == 2)
+			if (aNext->mKind == CELL_LINE)
 			{
 				Image* anImg = aNext->mImage;
 				Alpha16Mask(aBack, aPitch, aFmt, (int)theCell->mX, (int)theCell->mY, anImg->mBits, anImg->mPitch, 0, 0,
 					anImg->mMask->mBits, anImg->mMask->mPitch, 0, 0, 0x10, 8);
 			}
 		}
-		if (theCell->mKind == 2 || theCell->mKind == 3)
+		if (theCell->mKind == CELL_LINE || theCell->mKind == CELL_EDGE)
 		{
 			// its shadow, once, on filled cells to the right and below
 			Cell* aRight = At(aCol + 1, aRow);
-			if (aRight->mKind == 4 && aRight->mShadowRight == 0)
+			if (aRight->mKind == CELL_FILLED && aRight->mShadowRight == 0)
 			{
 				Image* aMask = theCell->mImage->mMask;
 				Fill16MaskAlpha(aBack, aPitch, aFmt, (int)((double)theCell->mX + 5.0), (int)theCell->mY, aSx, aSy,
@@ -163,7 +163,7 @@ void Cell_Redraw(Cell* theCell)
 				At(aCol + 1, aRow)->mShadowRight = 1;
 			}
 			Cell* aBelow = At(aCol, aRow + 1);
-			if (aBelow->mKind == 4 && aBelow->mShadowBelow == 0)
+			if (aBelow->mKind == CELL_FILLED && aBelow->mShadowBelow == 0)
 			{
 				Image* aMask = theCell->mImage->mMask;
 				Fill16MaskAlpha(aBack, aPitch, aFmt, (int)theCell->mX, (int)((double)theCell->mY + 5.0), aSx, aSy,
@@ -214,7 +214,7 @@ void Cell_Flood(Cell* theCell)
 				r <= gLevels.mCurrent->mRows)
 			{
 				Cell* aNext = At(k, r);
-				if (aNext->mKind == 0 && aNext->mUnmarked == 1)
+				if (aNext->mKind == CELL_OPEN && aNext->mUnmarked == 1)
 					Cell_Flood(aNext);
 			}
 		}
@@ -228,12 +228,12 @@ int Cell_PickImage(Cell* theCell)
 	uint32_t aSameNeighbours = Cell_SameNeighbours(theCell);
 	Level* aLevel = gLevels.mCurrent;
 	int aKind = theCell->mKind;
-	if (aKind == 0)
+	if (aKind == CELL_OPEN)
 	{
 		theCell->mImage = aLevel->mEmpty;
 		return 1;
 	}
-	if (aKind == 3)
+	if (aKind == CELL_EDGE)
 	{
 		uint32_t aLeft = aSameNeighbours & 8;
 		if (aLeft != 0 && (aSameNeighbours & 0x20) != 0)
@@ -268,7 +268,7 @@ int Cell_PickImage(Cell* theCell)
 			return 1;
 		}
 	}
-	else if (aKind == 1 || aKind == 2)
+	else if (aKind == CELL_BEAM || aKind == CELL_LINE)
 	{
 		uint32_t aDown = aSameNeighbours & 0x80;
 		if (aDown == 0 || (aSameNeighbours & 8) == 0)
@@ -312,7 +312,7 @@ void Cell_StartCapture(Cell* theCell, Image* theImage, int theFrom, int theTo)
 	theCell->mFromKind = theFrom;
 	theCell->mToKind = theTo;
 	theCell->mKind = theTo;
-	theCell->mState = 5;
+	theCell->mState = CELL_CAPTURING;
 	theCell->mImage = theImage;
 	int anAngle = RandRange(0, 0x167);
 	theCell->mOffX = (int)((double)CosDeg(anAngle) * 18.0);
@@ -330,13 +330,13 @@ void Cell_StartFill(Cell* theCell)
 		theCell->mOffX = 0;
 		theCell->mOffY = 0x32;
 		theCell->mStep = 0;
-		theCell->mState = 7;
+		theCell->mState = CELL_IN_WAVE;
 		return;
 	}
 	theCell->mOffX = RandRange(-40, 40);
 	theCell->mOffY = RandRange(-40, 40);
 	theCell->mStep = 0;
-	theCell->mState = 7;
+	theCell->mState = CELL_IN_WAVE;
 }
 
 // ' ' solid, ':' open, 'X' edge, '$' filled; any other code is a key (Level_AddKey) on an edge cell when the cell
@@ -348,27 +348,27 @@ void Cell_Set(Cell* theCell, char theCode, int theCol, int theRow)
 		switch (theCode)
 		{
 		case ' ':
-			theCell->mKind = 5;
+			theCell->mKind = CELL_SOLID;
 			goto place;
 		default:
 			Level_AddKey(gLevels.mCurrent, theCode, theCol, theRow);
-			if (At(theCol - 1, theRow)->mKind == 3 || At(theCol, theRow - 1)->mKind == 3)
+			if (At(theCol - 1, theRow)->mKind == CELL_EDGE || At(theCol, theRow - 1)->mKind == CELL_EDGE)
 				theCode = 'X';
 			else
 				theCode = ':';
 			break;
 		case '$':
-			theCell->mKind = 0;
-			Cell_StartCapture(theCell, gLevels.mCurrent->mFillImage, 0, 4);
+			theCell->mKind = CELL_OPEN;
+			Cell_StartCapture(theCell, gLevels.mCurrent->mFillImage, CELL_OPEN, CELL_FILLED);
 			goto place;
 		case ':':
-			theCell->mKind = 0;
+			theCell->mKind = CELL_OPEN;
 			gLevels.mCurrent->mTotalCells = gLevels.mCurrent->mTotalCells + 1;
 			theCell->mImage = gLevels.mCurrent->mEmpty;
 			goto place;
 		case 'X':
 			theCell->mImage = Bank_FindImage2(&gArtBank, "cell_base");
-			theCell->mKind = 3;
+			theCell->mKind = CELL_EDGE;
 			theCell->mAlpha = 0;
 			goto place;
 		}
@@ -386,15 +386,15 @@ place:
 void Cell_FillNext(Cell* theCell)
 {
 	Cell* aNext = At(theCell->mCol + 1, theCell->mRow);
-	if (aNext->mState == 6 || (aNext = At(theCell->mCol - 1, theCell->mRow), aNext->mState == 6))
+	if (aNext->mState == CELL_WAITING || (aNext = At(theCell->mCol - 1, theCell->mRow), aNext->mState == CELL_WAITING))
 		Cell_StartFill(aNext);
 	Cell* aCell = At(theCell->mCol, theCell->mRow);
-	if (aCell[1].mState == 6)
+	if (aCell[1].mState == CELL_WAITING)
 	{
 		Cell_StartFill(&aCell[1]);
 		return;
 	}
-	if (aCell[-1].mState == 6)
+	if (aCell[-1].mState == CELL_WAITING)
 	{
 		Cell_StartFill(&aCell[-1]);
 		return;
@@ -405,16 +405,16 @@ void Cell_FillNext(Cell* theCell)
 void Cell_SpreadCapture(Cell* theCell)
 {
 	Cell* aNext = At(theCell->mCol + 1, theCell->mRow);
-	if (aNext->mKind == theCell->mFromKind && aNext->mUnmarked == 0 && aNext->mState != 5)
+	if (aNext->mKind == theCell->mFromKind && aNext->mUnmarked == 0 && aNext->mState != CELL_CAPTURING)
 		Cell_StartCapture(aNext, theCell->mImage, theCell->mFromKind, theCell->mToKind);
 	aNext = At(theCell->mCol - 1, theCell->mRow);
-	if (aNext->mKind == theCell->mFromKind && aNext->mUnmarked == 0 && aNext->mState != 5)
+	if (aNext->mKind == theCell->mFromKind && aNext->mUnmarked == 0 && aNext->mState != CELL_CAPTURING)
 		Cell_StartCapture(aNext, theCell->mImage, theCell->mFromKind, theCell->mToKind);
 	Cell* aCell = At(theCell->mCol, theCell->mRow);
-	if (aCell[1].mKind == theCell->mFromKind && aCell[1].mUnmarked == 0 && aCell[1].mState != 5)
+	if (aCell[1].mKind == theCell->mFromKind && aCell[1].mUnmarked == 0 && aCell[1].mState != CELL_CAPTURING)
 		Cell_StartCapture(&aCell[1], theCell->mImage, theCell->mFromKind, theCell->mToKind);
 	aCell = At(theCell->mCol, theCell->mRow);
-	if (aCell[-1].mKind == theCell->mFromKind && aCell[-1].mUnmarked == 0 && aCell[-1].mState != 5)
+	if (aCell[-1].mKind == theCell->mFromKind && aCell[-1].mUnmarked == 0 && aCell[-1].mState != CELL_CAPTURING)
 		Cell_StartCapture(&aCell[-1], theCell->mImage, theCell->mFromKind, theCell->mToKind);
 }
 
@@ -447,7 +447,7 @@ int Cell_UpdateCapture(Cell* theCell)
 	}
 	gScore = gScore + gLevels.mCurrent->mShooters.mCurrent->mCellPoints;
 	theCell->mUnmarked = 1;
-	theCell->mState = 3;
+	theCell->mState = CELL_STILL;
 	gLevels.mCurrent->mFilledCells = gLevels.mCurrent->mFilledCells + 1;
 	Cell_Redraw(theCell);
 	int anAlpha = (theCell->mStep * 0x142) / theCell->mSteps;
@@ -464,7 +464,7 @@ int Cell_UpdateCapture(Cell* theCell)
 			{
 				Cell* aNext = At(theCell->mCol + aDx, theCell->mRow + aDy);
 				int aKind = aNext->mKind;
-				if ((aKind == 3 || aKind == 2) && (theCell->mKind == 4 || aKind == 3))
+				if ((aKind == CELL_EDGE || aKind == CELL_LINE) && (theCell->mKind == CELL_FILLED || aKind == CELL_EDGE))
 					Cell_Redraw(aNext);
 			}
 		}
@@ -475,7 +475,7 @@ int Cell_UpdateCapture(Cell* theCell)
 int Cell_UpdateFill(Cell* theCell)
 {
 	int aResult = 1;
-	if (theCell->mKind != 5)
+	if (theCell->mKind != CELL_SOLID)
 	{
 		float t = (float)((double)theCell->mStep / (double)theCell->mSteps);
 		if (gLevels.mCurrent->mFilledCells == 0)
@@ -496,11 +496,11 @@ int Cell_UpdateFill(Cell* theCell)
 	theCell->mStep = theCell->mStep + 1;
 	if (theCell->mSteps < theCell->mStep)
 	{
-		theCell->mState = 3;
+		theCell->mState = CELL_STILL;
 		aResult = 0;
 		if (gLevels.mCurrent->mFilledCells == 0)
 		{
-			if (theCell->mKind != 5 && 0 < theCell->mKind)
+			if (theCell->mKind != CELL_SOLID && CELL_OPEN < theCell->mKind)
 			{
 				for (int i = 0; i < 3; i++)
 				{
@@ -519,7 +519,7 @@ int Cell_UpdateFill(Cell* theCell)
 			Cell_Redraw(theCell);
 			return 0;
 		}
-		theCell->mKind = 5;
+		theCell->mKind = CELL_SOLID;
 		float anOffX = (float)theCell->mOffX;
 		int aDx = (int)(((double)theCell->mX + (double)anOffX) - (double)anOffX);
 		float anOffY = (float)theCell->mOffY;
@@ -537,9 +537,9 @@ int Cell_UpdateFill(Cell* theCell)
 
 int Fill_Update(Cell* theCell)
 {
-	if (theCell->mState == 5)
+	if (theCell->mState == CELL_CAPTURING)
 		return Cell_UpdateCapture(theCell);
-	if (theCell->mState == 7)
+	if (theCell->mState == CELL_IN_WAVE)
 		return Cell_UpdateFill(theCell);
 	return 0;
 }
@@ -572,15 +572,15 @@ void Level_Blast(int theCol, int theRow, int theRadius)
 			if (InBoard(aCol, aRow))
 			{
 				Cell* aCell = At(aCol, aRow);
-				if ((aCell->mKind == 4 || aCell->mKind == 2) && aCell->mUnmarked != 0)
+				if ((aCell->mKind == CELL_FILLED || aCell->mKind == CELL_LINE) && aCell->mUnmarked != 0)
 				{
-					aCell->mKind = 0;
-					aCell->mState = 3;
+					aCell->mKind = CELL_OPEN;
+					aCell->mState = CELL_STILL;
 					aCell->mImage = gLevels.mCurrent->mEmpty;
 					Cell_Uncover(aCell);
 					Cell_Redraw(aCell);
 					if (theRadius + -1 < std::abs(aCol - theCol) || theRadius + -1 < std::abs(aRow - theRow))
-						aCell->mKind = 2;
+						aCell->mKind = CELL_LINE;
 					else
 						gLevels.mCurrent->mFilledCells = gLevels.mCurrent->mFilledCells + -1;
 				}
@@ -594,7 +594,7 @@ void Level_Blast(int theCol, int theRow, int theRadius)
 			if (InBoard(aCol, aRow))
 			{
 				Cell* aCell = At(aCol, aRow);
-				if (aCell->mKind == 2)
+				if (aCell->mKind == CELL_LINE)
 				{
 					Cell_PickImage(aCell);
 					Cell_Redraw(aCell);
@@ -626,11 +626,11 @@ void Level_Blast(int theCol, int theRow, int theRadius)
 			{
 				for (int aCol2 = theCol - theRadius; aCol2 <= theCol + theRadius; aCol2++)
 				{
-					if (InBoard(aCol2, aRow2) && At(aCol2, aRow2)->mKind == 2)
+					if (InBoard(aCol2, aRow2) && At(aCol2, aRow2)->mKind == CELL_LINE)
 					{
 						Cell* aCell = At(aCol2, aRow2);
 						// the four sides' bits of Cell_Touches: left 8, right 0x20, up 2, down 0x80
-						uint32_t aSides = Cell_Touches(aCell, 0);
+						uint32_t aSides = Cell_Touches(aCell, CELL_OPEN);
 						int aCount = (aSides & 8) != 0;
 						if ((aSides & 0x20) != 0)
 							aCount = aCount + 1;
@@ -638,7 +638,7 @@ void Level_Blast(int theCol, int theRow, int theRadius)
 							aCount = aCount + 1;
 						if ((aSides & 0x80) != 0)
 							aCount = aCount + 1;
-						aSides = Cell_Touches(aCell, 3);
+						aSides = Cell_Touches(aCell, CELL_EDGE);
 						if ((aSides & 8) != 0)
 							aCount = aCount + 1;
 						if ((aSides & 0x20) != 0)
@@ -649,7 +649,7 @@ void Level_Blast(int theCol, int theRow, int theRadius)
 							aCount = aCount + 1;
 						if (2 < aCount)
 						{
-							aCell->mKind = 0;
+							aCell->mKind = CELL_OPEN;
 							aCell->mImage = gLevels.mCurrent->mEmpty;
 							Cell_Uncover(aCell);
 							Cell_Redraw(aCell);

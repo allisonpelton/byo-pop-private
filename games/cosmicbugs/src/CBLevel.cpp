@@ -130,15 +130,15 @@ void Level_MakeRandom(Level* theLevel, int theSeed)
 						Cell* aCell = CellAt(x, y);
 						if (aClear == 0)
 						{
-							if (aCell->mKind == 0)
+							if (aCell->mKind == CELL_OPEN)
 							{
-								aCell->mKind = 5;
+								aCell->mKind = CELL_SOLID;
 								theLevel->mTotalCells = theLevel->mTotalCells + -1;
 							}
 						}
-						else if (aCell->mKind == 5)
+						else if (aCell->mKind == CELL_SOLID)
 						{
-							aCell->mKind = 0;
+							aCell->mKind = CELL_OPEN;
 							theLevel->mTotalCells = theLevel->mTotalCells + 1;
 						}
 					}
@@ -153,8 +153,8 @@ void Level_MakeRandom(Level* theLevel, int theSeed)
 			Cell* aCell = CellAt(x, y);
 			aCell->mCol = x;
 			aCell->mRow = y;
-			if (aCell->mKind == 0 && Cell_Touches(aCell, 5) != 0)
-				aCell->mKind = 3;
+			if (aCell->mKind == CELL_OPEN && Cell_Touches(aCell, CELL_SOLID) != 0)
+				aCell->mKind = CELL_EDGE;
 		}
 	}
 	bool aChanged;
@@ -166,20 +166,20 @@ void Level_MakeRandom(Level* theLevel, int theSeed)
 			for (int x = 0; x < 50; x++)
 			{
 				Cell* aCell = &theLevel->mColumns[x][y];
-				if (aCell->mKind == 3)
+				if (aCell->mKind == CELL_EDGE)
 				{
 					unsigned int aSolid = 0;
-					if (0 < x && theLevel->mColumns[x - 1][y].mKind == 5)
+					if (0 < x && theLevel->mColumns[x - 1][y].mKind == CELL_SOLID)
 						aSolid = 1;
-					if (x + 1 < 50 && theLevel->mColumns[x + 1][y].mKind == 5)
+					if (x + 1 < 50 && theLevel->mColumns[x + 1][y].mKind == CELL_SOLID)
 						aSolid = aSolid + 1;
-					if (0 < y && aCell[-1].mKind == 5)
+					if (0 < y && aCell[-1].mKind == CELL_SOLID)
 						aSolid = aSolid + 1;
-					if (y + 1 < 0x25 && aCell[1].mKind == 5)
+					if (y + 1 < 0x25 && aCell[1].mKind == CELL_SOLID)
 						aSolid = aSolid + 1;
 					if (2 < aSolid)
 					{
-						aCell->mKind = 5;
+						aCell->mKind = CELL_SOLID;
 						aCell->mImage = nullptr;
 						aChanged = true;
 					}
@@ -194,11 +194,11 @@ void Level_MakeRandom(Level* theLevel, int theSeed)
 		{
 			Cell* aCell = CellAt(x, y);
 			int aKind = aCell->mKind;
-			if (aKind == 0)
+			if (aKind == CELL_OPEN)
 				Cell_Set(aCell, ':', x, y);
-			else if (aKind == 3)
+			else if (aKind == CELL_EDGE)
 				Cell_Set(aCell, 'X', x, y);
-			else if (aKind == 5)
+			else if (aKind == CELL_SOLID)
 				Cell_Set(aCell, ' ', x, y);
 		}
 	}
@@ -326,7 +326,7 @@ void Level_MakeEdges(Level* theLevel)
 	{
 		for (int x = 0; x < gLevels.mCurrent->mCols; x++)
 		{
-			if (theLevel->mColumns[x][y].mKind == 3)
+			if (theLevel->mColumns[x][y].mKind == CELL_EDGE)
 				Cell_PickImage(&theLevel->mColumns[x][y]);
 		}
 	}
@@ -466,7 +466,7 @@ void DrawPaused()
 
 int Level_IsPlaying(Level* theLevel)
 {
-	if ((theLevel->mKind != 0 || (theLevel->mMenus.mCurrent != nullptr && theLevel->mMenus.mCurrent->mRequesters.mCurrent != nullptr) ||
+	if ((theLevel->mKind != LEVEL_BOARD || (theLevel->mMenus.mCurrent != nullptr && theLevel->mMenus.mCurrent->mRequesters.mCurrent != nullptr) ||
 			(theLevel->mPanels.mCurrent != nullptr && theLevel->mPanels.mCurrent->mY <= (float)gMouseY)) &&
 		100.0f < theLevel->mAge)
 		return 0;
@@ -573,7 +573,7 @@ Level* Level_Init(Level* theLevel)
 	theLevel->mTotalCells = 0;
 	theLevel->mFilledCells = 0;
 	theLevel->mTitle[0] = 0;
-	theLevel->mKind = 0;
+	theLevel->mKind = LEVEL_BOARD;
 	theLevel->mBackground = nullptr;
 	theLevel->mGameOver = 0;
 	theLevel->mFillSound = 0;
@@ -639,39 +639,39 @@ void Level_Load(Level* theLevel, const char* theCursor, XmlTag* theTag)
 	{
 		std::strcpy(aType, Xml_GetString(theTag, "type"));
 		if (std::strcmp(aType, "credits") == 0)
-			theLevel->mKind = 4;
+			theLevel->mKind = LEVEL_CREDITS;
 		else if (std::strcmp(aType, "options") == 0)
-			theLevel->mKind = 7;
+			theLevel->mKind = LEVEL_OPTIONS;
 		else if (std::strcmp(aType, "high_scores") == 0)
-			theLevel->mKind = 3;
+			theLevel->mKind = LEVEL_HIGH_SCORES;
 		else if (std::strcmp(aType, "high_score_entry") == 0)
-			theLevel->mKind = 2;
+			theLevel->mKind = LEVEL_HIGH_SCORE_ENTRY;
 		else if (std::strcmp(aType, "main_menu") == 0)
-			theLevel->mKind = 1;
+			theLevel->mKind = LEVEL_MAIN_MENU;
 		else if (std::strcmp(aType, "select_level") == 0)
-			theLevel->mKind = 5;
+			theLevel->mKind = LEVEL_SELECT_LEVEL;
 		else if (std::strcmp(aType, "select_level2") == 0)
-			theLevel->mKind = 6;
+			theLevel->mKind = LEVEL_SELECT_LEVEL2;
 		// (the trial's nag screens are still read, as inert levels nothing goes to: loading them draws from the game's
 		// generator, so leaving them out would move every draw after them)
 		else if (std::strcmp(aType, "opening_nag") == 0)
-			theLevel->mKind = 8;
+			theLevel->mKind = LEVEL_OPENING_NAG;
 		else if (std::strcmp(aType, "closing_nag") == 0)
-			theLevel->mKind = 9;
+			theLevel->mKind = LEVEL_CLOSING_NAG;
 		else if (std::strcmp(aType, "expiring_nag") == 0)
-			theLevel->mKind = 10;
+			theLevel->mKind = LEVEL_EXPIRING_NAG;
 		else if (std::strcmp(aType, "change_user") == 0)
-			theLevel->mKind = 0x10;
+			theLevel->mKind = LEVEL_CHANGE_USER;
 		else if (std::strcmp(aType, "logo") == 0)
-			theLevel->mKind = 0xe;
+			theLevel->mKind = LEVEL_LOGO;
 		else if (std::strcmp(aType, "mission_complete") == 0)
-			theLevel->mKind = 0xb;
+			theLevel->mKind = LEVEL_MISSION_COMPLETE;
 		else if (std::strcmp(aType, "help") == 0)
-			theLevel->mKind = 0xc;
+			theLevel->mKind = LEVEL_HELP;
 		else if (std::strcmp(aType, "help2") == 0)
-			theLevel->mKind = 0xd;
+			theLevel->mKind = LEVEL_HELP2;
 	}
-	if (theLevel->mKind == 0)
+	if (theLevel->mKind == LEVEL_BOARD)
 	{
 		if (Xml_GetString(theTag, "name") == nullptr)
 			std::sprintf(theLevel->mTitle, GT(0x459028), 4);
@@ -787,13 +787,13 @@ void Level_Load(Level* theLevel, const char* theCursor, XmlTag* theTag)
 	}
 	if (theLevel->mSeed == 0)
 		Level_MakeEdges(theLevel);
-	theLevel->mState = 1;
-	if (theLevel->mPanels.mCurrent == nullptr && theLevel->mKind == 0 && aNoPanel == 0)
+	theLevel->mState = LEVEL_PLAYING;
+	if (theLevel->mPanels.mCurrent == nullptr && theLevel->mKind == LEVEL_BOARD && aNoPanel == 0)
 	{
 		Panel_Append(&theLevel->mPanels);
 		Panel_Setup(theLevel->mPanels.mCurrent);
 	}
-	if (theLevel->mShooters.mCurrent == nullptr && theLevel->mKind == 0)
+	if (theLevel->mShooters.mCurrent == nullptr && theLevel->mKind == LEVEL_BOARD)
 	{
 		Shooter_Insert(&theLevel->mShooters);
 		Shooter_Setup(theLevel->mShooters.mCurrent);
@@ -805,7 +805,7 @@ void Level_Load(Level* theLevel, const char* theCursor, XmlTag* theTag)
 		for (int y = 1; y < gLevels.mCurrent->mRows + -1; y++)
 		{
 			for (int x = 1; x < gLevels.mCurrent->mCols + -1; x++)
-				theLevel->mColumns[x][y].mState = 6;
+				theLevel->mColumns[x][y].mState = CELL_WAITING;
 		}
 		Cell_StartFill(&theLevel->mColumns[gLevels.mCurrent->mCols + -2][gLevels.mCurrent->mRows + -2]);
 	}
@@ -844,12 +844,12 @@ static void Level_Won(Level* theLevel)
 		*aReached = n;
 	}
 	SaveProfiles();
-	theLevel->mState = 3;
+	theLevel->mState = LEVEL_WON;
 	for (int y = 1; y < gLevels.mCurrent->mRows + -1; y++)
 	{
 		for (int x = 1; x < gLevels.mCurrent->mCols + -1; x++)
 		{
-			theLevel->mColumns[x][y].mState = 6;
+			theLevel->mColumns[x][y].mState = CELL_WAITING;
 			theLevel->mColumns[x][y].mSteps = 0x168;
 		}
 	}
@@ -857,7 +857,7 @@ static void Level_Won(Level* theLevel)
 	List_Each(&theLevel->mTexts, [&](Text* theText) {
 		if (5 < std::strlen(theText->mText) || theText->mFont == Font_Find("main_font"))
 		{
-			theText->mState = 7;
+			theText->mState = TEXT_FADING_OUT;
 			theLevel->mTexts.mCurrent->mLifetime = 100.0f;
 			theLevel->mTexts.mCurrent->mAge = 1.0f;
 		}
@@ -893,7 +893,7 @@ static void Level_Won(Level* theLevel)
 	std::sprintf(aText, "^1%s", Localize(GT(0x4590fc)));
 	AddText(theLevel, aText, 400, aY + 100, 100, 400, 200, 400, 200, 0);
 	List_Each(&theLevel->mEnemies, [&](Enemy* theEnemy) {
-		theEnemy->mState = 2;
+		theEnemy->mState = ENEMY_FADING;
 		if (theLevel->mEnemies.mCurrent->mIce != nullptr)
 			theLevel->mEnemies.mCurrent->mIce->mState = 2;
 	});
@@ -904,7 +904,7 @@ static void Level_Won(Level* theLevel)
 		theLevel->mShooters.mCurrent = theLevel->mShooters.mHead;
 		while (true)
 		{
-			theLevel->mShooters.mCurrent->mState = 2;
+			theLevel->mShooters.mCurrent->mState = SHIP_IDLE;
 			Beams_RemoveAll(&theLevel->mShooters.mCurrent->mBeams);
 			Enemy* anEnemy = theLevel->mEnemies.mCurrent;
 			if (anEnemy == nullptr)
@@ -922,20 +922,20 @@ static void Level_Won(Level* theLevel)
 int Level_Update(Level* theLevel)
 {
 	int aResult = 1;
-	if (gLevels.mCurrent->mKind == 0xe && theLevel->mTexts.mCurrent == nullptr)
+	if (gLevels.mCurrent->mKind == LEVEL_LOGO && theLevel->mTexts.mCurrent == nullptr)
 	{
 		gLogoCount = gLogoCount + 1;
 		gGoTo = (gLogoCount <= PortalCount()) ? 0xe : 1;
 		return 0;
 	}
-	if (theLevel->mKind == 5 && theLevel->mAge < 3.0f)
+	if (theLevel->mKind == LEVEL_SELECT_LEVEL && theLevel->mAge < 3.0f)
 		Screen_Redraw();
-	if (gEscape != 0 && theLevel->mKind == 0 && theLevel->mState != 2)
+	if (gEscape != 0 && theLevel->mKind == LEVEL_BOARD && theLevel->mState != LEVEL_PAUSED)
 	{
-		theLevel->mState = 2;
+		theLevel->mState = LEVEL_PAUSED;
 		gEscape = 0;
 	}
-	if (theLevel->mState == 2)
+	if (theLevel->mState == LEVEL_PAUSED)
 		return Level_UpdatePaused(theLevel);
 	theLevel->mClicked = Mouse_Pressed(1);
 	int aRight;
@@ -1001,12 +1001,12 @@ int Level_Update(Level* theLevel)
 	}
 	if (aResult != 0)
 	{
-		if (theLevel->mState == 1)
+		if (theLevel->mState == LEVEL_PLAYING)
 		{
 			List<Cell>* aFills = &theLevel->mFills;
 			if (aFills->mCurrent == nullptr)
 			{
-				if (theLevel->mKind == 0 && theLevel->mPowerups.mCurrent == nullptr && theLevel->mTotalCells != 0 &&
+				if (theLevel->mKind == LEVEL_BOARD && theLevel->mPowerups.mCurrent == nullptr && theLevel->mTotalCells != 0 &&
 					theLevel->mFillQuota <= (theLevel->mFilledCells * 100) / theLevel->mTotalCells &&
 					(theLevel->mMenus.mCurrent == nullptr || theLevel->mMenus.mCurrent->mRequesters.mCurrent == nullptr))
 					Level_Won(theLevel);
@@ -1018,14 +1018,14 @@ int Level_Update(Level* theLevel)
 			}
 			else
 			{
-				if ((int)theLevel->mAge % 0x78 == 0 && theLevel->mKind == 0 && gLevels.mCurrent->mKind != 0xe &&
+				if ((int)theLevel->mAge % 0x78 == 0 && theLevel->mKind == LEVEL_BOARD && gLevels.mCurrent->mKind != LEVEL_LOGO &&
 					theLevel->mTotalCells != 0)
 					Sound_Play(theLevel->mFillSound);
 				List_Each(aFills, [&](Cell* theFill) {
 					if (theLevel->mTotalCells != 0 && Fill_Update(theFill) == 0)
 					{
 						List_Unlink(aFills);
-						if (List_Count(aFills) == 1 && theLevel->mKind == 0)
+						if (List_Count(aFills) == 1 && theLevel->mKind == LEVEL_BOARD)
 							Sound_Play(theLevel->mFillEndSound);
 					}
 				});
@@ -1035,7 +1035,7 @@ int Level_Update(Level* theLevel)
 					List_RemoveCurrent(&theLevel->mPowerups);
 			});
 		}
-		else if (theLevel->mState == 3)
+		else if (theLevel->mState == LEVEL_WON)
 		{
 			List<Cell>* aFills = &theLevel->mFills;
 			if (aFills->mCurrent == nullptr)
@@ -1054,7 +1054,7 @@ int Level_Update(Level* theLevel)
 			List_Each(&theLevel->mTexts, [&](Text* theText) {
 				bool aShown = false;
 				if (theText->mLoopTime == 0)
-					aShown = 5 < theText->mState;
+					aShown = TEXT_FADING_IN < theText->mState;
 				else if (theText->mPrev != nullptr)
 					aShown = 5 < theText->mPrev->mState;
 				else if (theText->mNext != nullptr)
@@ -1064,10 +1064,10 @@ int Level_Update(Level* theLevel)
 				}
 				if (theLevel->mClicked != 0 && aShown)
 				{
-					if (theText->mState != 7)
+					if (theText->mState != TEXT_FADING_OUT)
 						theText->mAge = 0.0f;
 					theLevel->mTexts.mCurrent->mLifetime = (float)theLevel->mTexts.mCurrent->mFadeOut;
-					theLevel->mTexts.mCurrent->mState = 7;
+					theLevel->mTexts.mCurrent->mState = TEXT_FADING_OUT;
 					theLevel->mTexts.mCurrent->mLoopTime = 0;
 				}
 			});
@@ -1108,7 +1108,7 @@ void Level_Draw(Level* theLevel)
 	DrawList_Flush();
 	// the first orbiting one (state 3) says so when an enemy is too close to launch it, and ends the walk
 	List_Each(&theLevel->mWeapons, [&](Weapon* theWeapon) {
-		if (theWeapon->mState == 3)
+		if (theWeapon->mState == WEAPON_ORBITING)
 		{
 			Weapon_DrawTooClose(theWeapon);
 			if (theLevel->mWeapons.mCurrent != nullptr)
@@ -1118,7 +1118,7 @@ void Level_Draw(Level* theLevel)
 	List_Each(&theLevel->mTexts, [](Text* theText) { Text_Draw(theText); });
 	List_Each(&theLevel->mPointers, [](Obj* thePointer) { Pointer_Draw(thePointer); });
 	DrawList_Flush();
-	if (theLevel->mState == 2)
+	if (theLevel->mState == LEVEL_PAUSED)
 		DrawPaused();
 }
 
@@ -1127,7 +1127,7 @@ int Level_EnemiesLeft(Level* theLevel)
 {
 	int aCount = 0;
 	List_Each(&theLevel->mEnemies, [&](Enemy* theEnemy) {
-		if (theEnemy->mState != 1)
+		if (theEnemy->mState != ENEMY_DYING)
 			aCount = aCount + 1;
 	});
 	return aCount;
@@ -1172,7 +1172,7 @@ void Level_AddRandomEnemies(Level* theLevel, int theFirst, int theSecond)
 	for (int i = 0; i < theFirst; i = i + 1)
 	{
 		if (i % 2 == 0)
-			aKind = RandRange(7, aFirstKinds + 7);
+			aKind = RandRange(ENEMY_LINE_WALKER, aFirstKinds + ENEMY_LINE_WALKER);
 		List_Each(&gEnemyDefs, [&](Enemy* theDef) {
 			if (theDef->mKind != aKind)
 				return;
@@ -1224,7 +1224,7 @@ void Level_AddRandomEnemies(Level* theLevel, int theFirst, int theSecond)
 	}
 	for (int i = 0; i < theSecond; i = i + 1)
 	{
-		int aSecondKind = RandRange(0, aSecondKinds);
+		int aSecondKind = RandRange(ENEMY_ROLLER, aSecondKinds);
 		List_Each(&gEnemyDefs, [&](Enemy* theDef) {
 			if (theDef->mKind != aSecondKind)
 				return;
@@ -1258,7 +1258,7 @@ static void StrUpper(char* theText)
 void Level_ShowStart(Level* theLevel)
 {
 	char aText[64];
-	if (theLevel->mKind == 0)
+	if (theLevel->mKind == LEVEL_BOARD)
 	{
 		std::sprintf(aText, GT(0x458ee0), (int)theLevel->mTitle[0], (int)theLevel->mTitle[1], theLevel->mNumber);
 		List<Text>* aTexts = &theLevel->mTexts;
@@ -1292,13 +1292,13 @@ void Level_StartRandom(Level* theLevel)
 	Screen_Redraw();
 	Level_AddPointer(theLevel);
 	Dirty_AddClipped(&gDirty, 0, 0, 800, 600, SCREEN_CLIP);
-	if (theLevel->mNext != nullptr && Node_Next(theLevel)->mKind == 0xb)
-		gGoTo = 0xb;
+	if (theLevel->mNext != nullptr && Node_Next(theLevel)->mKind == LEVEL_MISSION_COMPLETE)
+		gGoTo = LEVEL_MISSION_COMPLETE;
 	// inside the frame the cells start as state 6 (not yet reached by the fill); the fill starts in the corner
 	for (int aRow = 1; aRow < gLevels.mCurrent->mRows - 1; aRow++)
 	{
 		for (int aCol = 1; aCol < gLevels.mCurrent->mCols - 1; aCol++)
-			theLevel->mColumns[aCol][aRow].mState = 6;
+			theLevel->mColumns[aCol][aRow].mState = CELL_WAITING;
 	}
 	Cell_StartFill(&theLevel->mColumns[gLevels.mCurrent->mCols - 2][gLevels.mCurrent->mRows - 2]);
 }
@@ -1309,11 +1309,11 @@ int Level_UpdatePaused(Level* theLevel)
 		;
 	if (gEscape != 0)
 	{
-		gGoTo = 1;
+		gGoTo = LEVEL_MAIN_MENU;
 		return 0;
 	}
 	if (Key_Pressed(0xd) != 0)
-		theLevel->mState = 1;
+		theLevel->mState = LEVEL_PLAYING;
 	return 1;
 }
 

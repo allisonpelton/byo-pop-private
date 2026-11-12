@@ -149,46 +149,46 @@ int Powerup_Collect(Powerup* thePowerup)
 	const char* aSound;
 	switch (thePowerup->mKind)
 	{
-	case 1:
+	case POWERUP_SLOW_MOTION:
 		Powerup_SlowMotion();
 		break;
-	case 2:
+	case POWERUP_MULTIPLIER:
 		Powerup_Multiplier();
 		break;
-	case 3:
+	case POWERUP_SLOW_SHOT:
 		Powerup_SlowShot();
 		aSound = "audio\\powerdn.wav";
 		goto play;
-	case 4:
-		Powerup_GiveWeapon(thePowerup, 50.0f, 4);
+	case POWERUP_TIME_BOMB:
+		Powerup_GiveWeapon(thePowerup, 50.0f, WEAPON_TIME_BOMB);
 		break;
-	case 5:
+	case POWERUP_HYPER_MOTION:
 		Powerup_HyperMotion();
 		aSound = "audio\\powerdn.wav";
 		goto play;
-	case 6:
-		Powerup_GiveWeapon(thePowerup, 40.0f, 1);
+	case POWERUP_MISSILE:
+		Powerup_GiveWeapon(thePowerup, 40.0f, WEAPON_MISSILE);
 		break;
-	case 7:
-		Powerup_GiveWeapon(thePowerup, 40.0f, 3);
+	case POWERUP_FREEZE:
+		Powerup_GiveWeapon(thePowerup, 40.0f, WEAPON_ICE_SHOT);
 		break;
-	case 8:
-		Powerup_GiveWeapon(thePowerup, 50.0f, 0);
+	case POWERUP_MINE:
+		Powerup_GiveWeapon(thePowerup, 50.0f, WEAPON_MINE);
 		break;
-	case 9:
+	case POWERUP_SWEEPERS:
 		Powerup_Sweepers();
 		break;
-	case 10:
+	case POWERUP_EXTRA_LIFE:
 		Powerup_ExtraLife();
 		break;
 	default:
 		Powerup_FastShot();
 		break;
-	case 0xc:
+	case POWERUP_FLIP_FLOPPER:
 		Powerup_FlipFlopper();
 		aSound = "audio\\powerdn.wav";
 		goto play;
-	case 0xd:
+	case POWERUP_INVINCIBUBBLE:
 		Powerup_Invincibubble();
 		break;
 	}
@@ -214,7 +214,7 @@ int Powerup_Fall(Powerup* thePowerup)
 	thePowerup->mVy = thePowerup->mGravity + thePowerup->mVy;
 	Obj_Update(thePowerup);
 	Shooter* aShip = gLevels.mCurrent->mShooters.mCurrent;
-	if (aShip != nullptr && aShip->mState == 3 &&
+	if (aShip != nullptr && aShip->mState == SHIP_CONTROLLED &&
 		CircleOverlap(thePowerup->mX, thePowerup->mY, (float)(thePowerup->mImage->mH / 2), aShip->mX, aShip->mY,
 			(float)(aShip->mImage->mH / 4)) != 0.0)
 	{
@@ -230,7 +230,7 @@ int Powerup_Fall(Powerup* thePowerup)
 // The weapons. 0x4199c0: a missile's animation by the way it points
 void Missile_Face(Weapon* theWeapon)
 {
-	if (theWeapon->mKind == 1)
+	if (theWeapon->mKind == WEAPON_MISSILE)
 	{
 		if (theWeapon->mAcross == 0)
 		{
@@ -265,7 +265,7 @@ int Weapon_Blast(Weapon* theWeapon)
 {
 	int aResult = 1;
 	List_Each(&gLevels.mCurrent->mEnemies, [&](Enemy* theEnemy) {
-		if (theEnemy->mState == 3 &&
+		if (theEnemy->mState == ENEMY_ALIVE &&
 			CircleOverlap(theWeapon->mX, theWeapon->mY, (float)(theWeapon->mImage->mW / 3), theEnemy->mX, theEnemy->mY,
 				(float)(theEnemy->mImage->mW / 3)) != 0.0)
 		{
@@ -282,7 +282,7 @@ int Ice_Freeze(Weapon* theWeapon)
 {
 	int aResult = 1;
 	List_Each(&gLevels.mCurrent->mEnemies, [&](Enemy* theEnemy) {
-		if (theEnemy->mState == 3 &&
+		if (theEnemy->mState == ENEMY_ALIVE &&
 			CircleOverlap(theWeapon->mX, theWeapon->mY, (float)(theWeapon->mImage->mW / 3), theEnemy->mX, theEnemy->mY,
 				(float)(theEnemy->mImage->mW / 3)) != 0.0)
 		{
@@ -290,7 +290,7 @@ int Ice_Freeze(Weapon* theWeapon)
 			Enemy_Freeze(theEnemy);
 		}
 	});
-	if (theWeapon->mKind == 3 && RandRange(1, 0x23) == 1)
+	if (theWeapon->mKind == WEAPON_ICE_SHOT && RandRange(1, 0x23) == 1)
 	{
 		ParticleSystem_New();
 		int aParticle = theWeapon->mParticle;
@@ -334,7 +334,7 @@ int TimeBomb_Update(Weapon* theWeapon)
 	else if ((double)theWeapon->mAge == anEnd)
 	{
 		List_Each(&gLevels.mCurrent->mEnemies, [&](Enemy* theEnemy) {
-			if (theEnemy->mState == 3 &&
+			if (theEnemy->mState == ENEMY_ALIVE &&
 				CircleOverlap(theWeapon->mX, theWeapon->mY, 100.0f, theEnemy->mX, theEnemy->mY,
 					(float)(theEnemy->mImage->mW / 3)) != 0.0)
 			{
@@ -355,21 +355,21 @@ void Weapon_Launch(Weapon* theWeapon)
 	if (theWeapon->mTooClose == 0)
 	{
 		theWeapon->mVx = (float)Sign(theWeapon->mVx) * theWeapon->mLaunchSpeed;
-		theWeapon->mState = 4;
+		theWeapon->mState = WEAPON_LAUNCHED;
 		theWeapon->mVy = (float)Sign(theWeapon->mVy) * theWeapon->mLaunchSpeed;
 		theWeapon->mAge = 0.0f;
 		int aKind = theWeapon->mKind;
 		// (each sound is panned by x: the port's Sound_Play takes no pan)
-		if (aKind != 1)
+		if (aKind != WEAPON_MISSILE)
 		{
 			const char* aSound;
-			if (aKind == 3)
+			if (aKind == WEAPON_ICE_SHOT)
 				aSound = "audio\\ice_launch.wav";
-			else if (aKind == 0)
+			else if (aKind == WEAPON_MINE)
 				aSound = "audio\\mine.wav";
 			else
 			{
-				if (aKind == 4)
+				if (aKind == WEAPON_TIME_BOMB)
 				{
 					Sound_Play(Sound_Find("audio\\mine.wav"));
 					theWeapon->mLifetime = 2000.0f;
@@ -414,16 +414,16 @@ int Weapon_Move(Weapon* theWeapon)
 	theWeapon->mVy = theWeapon->mVy * theWeapon->mDrag;
 	switch (theWeapon->mKind)
 	{
-	case 0:
+	case WEAPON_MINE:
 		aResult = Weapon_Blast(theWeapon);
 		break;
-	case 1:
+	case WEAPON_MISSILE:
 		aResult = Weapon_Blast(theWeapon);
 		break;
-	case 3:
+	case WEAPON_ICE_SHOT:
 		aResult = Ice_Freeze(theWeapon);
 		break;
-	case 4:
+	case WEAPON_TIME_BOMB:
 		aResult = TimeBomb_Update(theWeapon);
 		break;
 	}
@@ -453,7 +453,7 @@ void Weapon_TakeSlot(Weapon* theWeapon)
 		return;
 	}
 	List_Each(aWeapons, [&](Weapon* theOther) {
-		if (theOther->mState == 3 && theOther != theWeapon)
+		if (theOther->mState == WEAPON_ORBITING && theOther != theWeapon)
 		{
 			if (aCount == 0)
 				theWeapon->mAngle = (theOther->mAngle + 0xb4) % 0x168;
@@ -472,7 +472,7 @@ void Weapon_Setup(Weapon* theWeapon, float x, float y, float theRadius, int theK
 	theWeapon->mTooClose = 0;
 	theWeapon->mY = y;
 	theWeapon->mKind = theKind;
-	theWeapon->mState = 3;
+	theWeapon->mState = WEAPON_ORBITING;
 	theWeapon->mRadius = theRadius;
 	theWeapon->mDepth = 3;
 	theWeapon->mShadow = 1;
@@ -526,7 +526,7 @@ void Weapon_Orbit(Weapon* theWeapon)
 	List_Each(&gLevels.mCurrent->mEnemies, [&](Enemy* theEnemy) {
 		if (CircleOverlap(theWeapon->mX, theWeapon->mY, (float)(theWeapon->mImage->mW / 2), theEnemy->mX, theEnemy->mY,
 				(float)(theEnemy->mImage->mW / 2)) != 0.0 &&
-			theWeapon->mKind != 4)
+			theWeapon->mKind != WEAPON_TIME_BOMB)
 			theWeapon->mTooClose = 1;
 	});
 	Shooter* aShip = gLevels.mCurrent->mShooters.mCurrent;
@@ -691,75 +691,75 @@ Powerup* Powerup_Init(Powerup* thePowerup)
 	thePowerup->mKind = gPowerupKinds[RandRange(0, aRange)];
 	std::sprintf(thePowerup->mText, "^%d", RandRange(1, 8));
 	if (Key_Down('0') != 0)
-		thePowerup->mKind = 0;
+		thePowerup->mKind = POWERUP_FAST_SHOT;
 	if (Key_Down('1') != 0)
-		thePowerup->mKind = 1;
+		thePowerup->mKind = POWERUP_SLOW_MOTION;
 	if (Key_Down('2') != 0)
-		thePowerup->mKind = 2;
+		thePowerup->mKind = POWERUP_MULTIPLIER;
 	if (Key_Down('3') != 0)
-		thePowerup->mKind = 3;
+		thePowerup->mKind = POWERUP_SLOW_SHOT;
 	if (Key_Down('4') != 0)
-		thePowerup->mKind = 4;
+		thePowerup->mKind = POWERUP_TIME_BOMB;
 	if (Key_Down('5') != 0)
-		thePowerup->mKind = 5;
+		thePowerup->mKind = POWERUP_HYPER_MOTION;
 	if (Key_Down('6') != 0)
-		thePowerup->mKind = 6;
+		thePowerup->mKind = POWERUP_MISSILE;
 	if (Key_Down('7') != 0)
-		thePowerup->mKind = 7;
+		thePowerup->mKind = POWERUP_FREEZE;
 	if (Key_Down('8') != 0)
-		thePowerup->mKind = 8;
+		thePowerup->mKind = POWERUP_MINE;
 	if (Key_Down('9') != 0)
-		thePowerup->mKind = 9;
+		thePowerup->mKind = POWERUP_SWEEPERS;
 	if (Key_Down('A') != 0)
-		thePowerup->mKind = 10;
+		thePowerup->mKind = POWERUP_EXTRA_LIFE;
 	if (Key_Down('B') != 0)
 		thePowerup->mKind = 11;
 	if (Key_Down('C') != 0)
-		thePowerup->mKind = 12;
+		thePowerup->mKind = POWERUP_FLIP_FLOPPER;
 	if (Key_Down('D') != 0)
-		thePowerup->mKind = 13;
+		thePowerup->mKind = POWERUP_INVINCIBUBBLE;
 	// The texts and names are the exe's (each strcat'd from its .rdata)
 	uint32_t aText;
 	const char* aName;
 	switch (thePowerup->mKind)
 	{
-	case 1:
+	case POWERUP_SLOW_MOTION:
 		aText = GTA(0x4598d0);
 		aName = "powerup_slowmo";
 		break;
-	case 2:
+	case POWERUP_MULTIPLIER:
 		aText = GTA(0x459854);
 		aName = "powerup_2x";
 		break;
-	case 3:
+	case POWERUP_SLOW_SHOT:
 		aText = GTA(0x459894);
 		aName = "powerup_slow";
 		break;
-	case 4:
+	case POWERUP_TIME_BOMB:
 		aText = GTA(0x4597b8);
 		aName = "powerup_timebomb";
 		break;
-	case 5:
+	case POWERUP_HYPER_MOTION:
 		aText = GTA(0x4598b0);
 		aName = "powerup_hypermo";
 		break;
-	case 6:
+	case POWERUP_MISSILE:
 		aText = GTA(0x459808);
 		aName = "powerup_missile";
 		break;
-	case 7:
+	case POWERUP_FREEZE:
 		aText = GTA(0x4597d4);
 		aName = "powerup_freeze";
 		break;
-	case 8:
+	case POWERUP_MINE:
 		aText = GTA(0x45983c);
 		aName = "powerup_mine";
 		break;
-	case 9:
+	case POWERUP_SWEEPERS:
 		aText = GTA(0x4597ec);
 		aName = "powerup_sweeper";
 		break;
-	case 10:
+	case POWERUP_EXTRA_LIFE:
 		aText = GTA(0x459878);
 		aName = "powerup_plusone";
 		break;
@@ -767,17 +767,17 @@ Powerup* Powerup_Init(Powerup* thePowerup)
 		aText = GTA(0x4596d0);
 		aName = "powerup_speed";
 		break;
-	case 0xc:
+	case POWERUP_FLIP_FLOPPER:
 		aText = GTA(0x459794);
 		aName = "powerup_flip_flopper";
 		break;
-	case 0xd:
+	case POWERUP_INVINCIBUBBLE:
 		aText = GTA(0x45970c);
 		aName = "powerup_invincibubble";
 		break;
 	}
 	std::strcat(thePowerup->mText, GT(aText));
-	thePowerup->mState = 4;
+	thePowerup->mState = POWERUP_FALLING;
 	thePowerup->mDepth = 1;
 	thePowerup->mX = gLevels.mCurrent->mEnemies.mCurrent->mX;
 	thePowerup->mY = gLevels.mCurrent->mEnemies.mCurrent->mY;
@@ -813,7 +813,7 @@ Powerup* Powerup_Init(Powerup* thePowerup)
 
 int Powerup_Update(Powerup* thePowerup)
 {
-	if (thePowerup->mState == 4)
+	if (thePowerup->mState == POWERUP_FALLING)
 		return Powerup_Fall(thePowerup);
 	return 0;
 }
@@ -821,7 +821,7 @@ int Powerup_Update(Powerup* thePowerup)
 void Weapon_Draw(Weapon* theWeapon)
 {
 	Obj_Draw(theWeapon);
-	if (theWeapon->mKind == 4 && theWeapon->mState == 4)
+	if (theWeapon->mKind == WEAPON_TIME_BOMB && theWeapon->mState == WEAPON_LAUNCHED)
 	{
 		int aFuse = (int)(9.0 - (double)theWeapon->mAge * 8.0 / (double)theWeapon->mLifetime);
 		double aBase = (double)theWeapon->mY - (double)(theWeapon->mImage->mH / 2);
@@ -871,18 +871,18 @@ void Weapon_DrawTooClose(Weapon* theWeapon)
 // 0 when it is done, and whenever the ship is dying
 int Weapon_Update(Weapon* theWeapon)
 {
-	if (gLevels.mCurrent->mShooters.mCurrent->mState == 6)
+	if (gLevels.mCurrent->mShooters.mCurrent->mState == SHIP_DYING)
 		return 0;
 	float x = theWeapon->mX;
 	float y = theWeapon->mY;
 	int aResult = Obj_Update(theWeapon);
-	if (theWeapon->mState == 3)
+	if (theWeapon->mState == WEAPON_ORBITING)
 	{
 		theWeapon->mX = x;
 		theWeapon->mY = y;
 		Weapon_Orbit(theWeapon);
 	}
-	else if (theWeapon->mState == 4)
+	else if (theWeapon->mState == WEAPON_LAUNCHED)
 	{
 		int aCol = (int)theWeapon->mX / 16;
 		if (-1 < aCol && aCol < 0x32)

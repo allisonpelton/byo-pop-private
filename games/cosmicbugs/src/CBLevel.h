@@ -12,12 +12,34 @@
 namespace cb
 {
 
+// What a cell is (Cell::mKind): open, the two a beam makes (1 where a growing beam crosses it, which the capture turns
+// into 2, the line the beam leaves, that the enemies bounce off and the walkers follow), the edge beside a filled
+// cell, filled, or solid (part of the board's frame)
+enum CellKind
+{
+	CELL_OPEN = 0,
+	CELL_BEAM = 1,
+	CELL_LINE = 2,
+	CELL_EDGE = 3,
+	CELL_FILLED = 4,
+	CELL_SOLID = 5,
+};
+
+// A cell's life (Cell::mState): still, being captured (the flood spreads from it), waiting for the board's wave, or in
+// the wave (which builds the board at the start, and takes it down when won)
+enum CellState
+{
+	CELL_STILL = 3,
+	CELL_CAPTURING = 5,
+	CELL_WAITING = 6,
+	CELL_IN_WAVE = 7,
+};
+
 // A cell of the board, 16 by 16 pixels (0xe4 bytes; the loader makes each column with new[], 0x4034f0 constructs
 // a cell, 0x419780 destroys one)
 struct Cell : Obj
 {
-	// kind +0x08: 0 open, 1 and 2 a beam's, 3 edge, 4 filled, 5 solid; state +0x0c: 3 still, 5 being captured,
-	// 6 waiting for the board's wave, 7 in the wave (which builds the board at the start, and takes it down when won)
+	// mKind +0x08 a CellKind, mState +0x0c a CellState
 	int mRow;                   // +0xb0
 	int mCol;                   // +0xb4
 	int mStep;                  // +0xb8  of the capture or the wave
@@ -58,17 +80,50 @@ void List_DeleteNode(Panel* thePanel);                           // 0x411fd0's d
 
 struct Beam;
 
+// What an enemy is (Enemy::mKind; Enemy_FromXml's tags, Enemy_Update's switch): the rollers, the walkers, the frog, and
+// the shots (a snake shooter's snake, a cannon ball, a laser shot). The numbers are the original's, with none at 0xe,
+// 0x12 or past 0x15.
+enum EnemyKind
+{
+	ENEMY_ROLLER = 0,
+	ENEMY_BURST_ROLLER = 1,
+	ENEMY_SPIN_ROLLER = 2,
+	ENEMY_TURN_ROLLER = 3,
+	ENEMY_BUMP_ROLLER = 4,
+	ENEMY_SNAKE_SHOOTER = 5,
+	ENEMY_SNAKE = 6,
+	ENEMY_LINE_WALKER = 7,
+	ENEMY_SCURRY_WALKER = 8,
+	ENEMY_SMART_WALKER = 9,
+	ENEMY_CANNON_WALKER = 10,
+	ENEMY_LASER_WALKER = 0xb,
+	ENEMY_CANNON_BALL = 0xc,
+	ENEMY_LASER_SHOT = 0xd,
+	ENEMY_FROG = 0xf,
+	ENEMY_TELEPORTER_ROLLER = 0x10,
+	ENEMY_JELLYFISH_ROLLER = 0x11,
+	ENEMY_CRAB_WALKER = 0x13,
+	ENEMY_TURTLE_WALKER = 0x14,
+	ENEMY_LOBSTER_WALKER = 0x15,
+};
+
+// An enemy's life (Enemy::mState): it fades in with the cell under it, goes about, and dies (slowing down while its
+// dying animation plays, then fading out); a won board fades the enemies out at once
+enum EnemyState
+{
+	ENEMY_APPEARING = 0,
+	ENEMY_DYING = 1,
+	ENEMY_FADING = 2,
+	ENEMY_ALIVE = 3,
+};
+
 // An enemy (0x110 bytes, 0x404fc0 constructs one). The game file's enemy tags make a level's enemies, and outside
-// a level the defaults (gEnemyDefs) that random boards copy. kind +0x08: 0 roller, 1 burst_roller, 2 spin_roller,
-// 3 turn_roller, 4 bump_roller, 5 snake_shooter, 7 line_walker, 8 scurry_walker, 9 smart_walker, 10 cannon_walker,
-// 0xb laser_walker, 0xf frog, 0x10 teleporter_roller, 0x11 jellyfish_roller, 0x13 crab_walker, 0x14 turtle_walker,
-// 0x15 lobster_walker, and the shots: 6 a snake shooter's snake, 0xc a cannon ball, 0xd a laser shot; state +0x0c:
-// 0 appearing, 1 and 2 dying, 3 about
+// a level the defaults (gEnemyDefs) that random boards copy. mKind +0x08 an EnemyKind, mState +0x0c an EnemyState
 struct Enemy : Obj
 {
 	Animation* mLeftAnim;       // +0xb0
 	Animation* mRightAnim;      // +0xb4
-	Animation* mUpAnim;         // +0xb8  Enemy_Face shows it going down the screen (and downAnim going up)
+	Animation* mUpAnim;         // +0xb8  Enemy_Face shows it going down the screen (and mDownAnim going up)
 	Animation* mDownAnim;       // +0xbc
 	int mPhase;                 // +0xc0  a spin roller's, a frog's, a teleporter's
 	int mFirstParticle;         // +0xc4
@@ -119,8 +174,19 @@ struct Rider : Obj
 };
 static_assert(sizeof(Rider) == 0xc0, "Rider");
 
-// The player's ship (0x4c4 bytes, 0x41d540 constructs one; CBShooter.cpp). state +0x0c: 1 hit, 3 under the
-// player's control, 4 coming in, 5 firing, 6 dying
+// The ship's life (Shooter::mState): hit (it blows up at the next update), idle (the board is won: nothing updates it
+// any more), under the player's control, coming in, firing (its beams are out), dying
+enum ShipState
+{
+	SHIP_HIT = 1,
+	SHIP_IDLE = 2,
+	SHIP_CONTROLLED = 3,
+	SHIP_COMING_IN = 4,
+	SHIP_FIRING = 5,
+	SHIP_DYING = 6,
+};
+
+// The player's ship (0x4c4 bytes, 0x41d540 constructs one; CBShooter.cpp). mState +0x0c a ShipState
 struct Shooter : Obj
 {
 	char mVertName[0x20];       // +0xb0  the vertical animation's name (each new life starts with it)
@@ -158,9 +224,46 @@ static_assert(sizeof(Shooter) == 0x4c4, "Shooter");
 
 struct Text;
 
-// A menu's item (0x1dc bytes; 0x415270 appends one, 0x4151b0 inserts one; CBMenu.cpp). kind +0x08 what a click
-// does (MenuItem_FromXml's types: 0 buy_now .. 0x23 a requester's no); it is drawn with its animation, else as its
-// name in its font (with the setting it changes)
+// What a click on a menu's item does (MenuItem::mKind; MenuItem_FromXml's types and the requesters' buttons, handled by
+// MenuItem_Update's switch). The numbers are the original's; 0 was the buy button.
+enum ItemKind
+{
+	ITEM_START = 1,
+	ITEM_OPTIONS = 2,
+	ITEM_QUIT = 3,
+	ITEM_HELP = 4,
+	ITEM_HELP2 = 5,
+	ITEM_HIGH_SCORES = 7,
+	ITEM_NEXT_LEVEL = 8,
+	ITEM_HS_ENTERED = 9,
+	ITEM_HS_STUFF = 10,
+	ITEM_CREDITS = 0xb,
+	ITEM_VIDEO = 0xc,
+	ITEM_LCD = 0xd,
+	ITEM_SOUND = 0xe,
+	ITEM_MUSIC = 0xf,
+	ITEM_DIFFICULTY = 0x10,
+	ITEM_SHOOTER_MODE = 0x11,
+	ITEM_SELECT_LEVEL = 0x12,
+	ITEM_SELECT_UP = 0x13,
+	ITEM_SELECT_DOWN = 0x14,
+	ITEM_SELECT_SLIDE = 0x15,
+	ITEM_SELECT_WORLD = 0x18,
+	ITEM_BACK = 0x19,
+	ITEM_CHANGE_USER = 0x1a,
+	ITEM_USER_SLOT = 0x1b,
+	ITEM_USER_RENAME = 0x1c,
+	ITEM_NAME_OKAY = 0x1d,      // a name entry's okay: the player is named
+	ITEM_USER_DELETE = 0x1e,
+	ITEM_DELETE_OKAY = 0x1f,    // the delete's okay: the slot is emptied
+	ITEM_CANCEL = 0x20,         // a requester's cancel (or okay, where there is only one button)
+	ITEM_CONFIRM_QUIT = 0x21,
+	ITEM_RESUME_YES = 0x22,     // the saved game is resumed
+	ITEM_RESUME_NO = 0x23,      // a new game starts
+};
+
+// A menu's item (0x1dc bytes; 0x415270 appends one, 0x4151b0 inserts one; CBMenu.cpp). mKind +0x08 an ItemKind (what a
+// click does); it is drawn with its animation, else as its name in its font (with the setting it changes)
 struct MenuItem : Obj
 {
 	char mName[0x80];           // +0xb0  (localized; a profile slot's number, a key's character)
@@ -179,10 +282,23 @@ struct MenuItem : Obj
 };
 static_assert(sizeof(MenuItem) == 0x1dc, "MenuItem");
 
+// What a requester (a menu over a menu) asks (the state of its Menu; Menu_ShowRequester's kind): to confirm deleting
+// a player, a message to close, a name to type, to confirm leaving the game, the end of a board (its fill and shots
+// against the records, and the bonus), or yes or no to resuming the saved game
+enum RequesterKind
+{
+	REQUESTER_DELETE_PLAYER = 0,
+	REQUESTER_MESSAGE = 1,
+	REQUESTER_NAME = 2,
+	REQUESTER_QUIT = 3,
+	REQUESTER_BOARD_END = 4,
+	REQUESTER_RESUME = 5,
+};
+
 // A menu (0x1e4 bytes, 0x415690 constructs one, 0x4156e0 destroys it; CBMenu.cpp)
 struct Menu : Obj
 {
-	Image* mLogo;               // +0xb0  logo_animation's first frame, drawn about (logoX, logoY)
+	Image* mLogo;               // +0xb0  logo_animation's first frame, drawn about (mLogoX, mLogoY)
 	int mLogoX;                 // +0xb4
 	int mLogoY;                 // +0xb8
 	int mItemsPadding;           // +0xbc  the four bytes before items: nothing reads them
@@ -196,10 +312,37 @@ struct Menu : Obj
 };
 static_assert(sizeof(Menu) == 0x1e4, "Menu");
 
-// A text on the screen (0x407dd0 makes one, 0x410a80 destroys it; CBText.cpp). state +0x0c: 3 a high score's
-// name being typed; else 4 dormant, 5 fading in, 6 shown, 7 fading out, 8 gone (it loops back to 5, or is removed).
-// kind +0x08 what it shows and refreshes each update: 0 its text, 1 a high score's name, 2 its score, 3 the level,
-// 5 shots fired, 6 lives lost, 7 bugs killed, 8 power-ups caught
+// What a text shows and refreshes each update (Text::mKind): its own text, the name of a high score, its score, or one
+// of the counts of the finished board
+enum TextKind
+{
+	TEXT_PLAIN = 0,
+	TEXT_HIGH_SCORE_NAME = 1,
+	TEXT_HIGH_SCORE = 2,
+	TEXT_LEVEL = 3,
+	TEXT_SHOTS = 5,
+	TEXT_LIVES_LOST = 6,
+	TEXT_BUGS_KILLED = 7,
+	TEXT_POWERUPS_CAUGHT = 8,
+};
+
+// A text's life (Text::mState): the name of a high score being typed, or dormant, fading in, shown, fading out and gone
+// (it loops back to fading in, or is removed)
+enum TextState
+{
+	TEXT_NAME_ENTRY = 3,
+	TEXT_DORMANT = 4,
+	TEXT_FADING_IN = 5,
+	TEXT_SHOWN = 6,
+	TEXT_FADING_OUT = 7,
+	TEXT_GONE = 8,
+};
+
+// The idle time of a text that stays until it is clicked away (0x986fc8 ms: about three hours)
+constexpr int TEXT_IDLE_FOREVER = 0x986fc8;
+
+// A text on the screen (0x407dd0 makes one, 0x410a80 destroys it; CBText.cpp). mState +0x0c a TextState, mKind
+// +0x08 a TextKind
 struct Text : Obj
 {
 	Font* mFont;                // +0xb0
@@ -207,7 +350,7 @@ struct Text : Obj
 	int mFadeIn;                // +0x1b4  ms
 	int mFadeOut;               // +0x1b8  ms (also how long it takes once clicked away)
 	int mIdle;                  // +0x1bc  ms shown
-	int mDormant;               // +0x1c0  ms before it fades in
+	int mDormant;               // +0x1c0  ms before it fades in; nothing reads it (mLifetime starts from it)
 	int mLoopTime;              // +0x1c4  ms gone before it fades in again (0: it is removed; CBLevel: clicked away with its neighbours)
 	int mAlign;                 // +0x1c8  0 left, 1 right, 2 centred on x
 	int mRow;                   // +0x1cc  a high score's
@@ -219,9 +362,32 @@ struct Text : Obj
 };
 static_assert(sizeof(Text) == 0x6c8, "Text");
 
+// What a power-up does (Powerup::mKind; Powerup_Collect's switch): a weapon (the time bomb, the missile, the freeze, the
+// mine), a change to the ship or the shots, the sweepers or the extra life. Any other number is the fast shot (as is
+// kind 0). The test keys '0' to '9' and 'A' to 'D' make kinds 0 to 13.
+enum PowerupKind
+{
+	POWERUP_FAST_SHOT = 0,
+	POWERUP_SLOW_MOTION = 1,
+	POWERUP_MULTIPLIER = 2,
+	POWERUP_SLOW_SHOT = 3,
+	POWERUP_TIME_BOMB = 4,
+	POWERUP_HYPER_MOTION = 5,
+	POWERUP_MISSILE = 6,
+	POWERUP_FREEZE = 7,
+	POWERUP_MINE = 8,
+	POWERUP_SWEEPERS = 9,
+	POWERUP_EXTRA_LIFE = 10,
+	POWERUP_FLIP_FLOPPER = 0xc,
+	POWERUP_INVINCIBUBBLE = 0xd,
+};
+
+// A power-up while it falls (Powerup::mState)
+constexpr int POWERUP_FALLING = 4;
+
 // A power-up (0xd8 bytes; 0x418900 makes one of a random kind, 0x4186c0 destroys it; CBPowerup.cpp). It falls
-// from where an enemy died until the ship (under the player's control) touches it. kind +0x08 the effect (1
-// slow motion .. 0xd an invincibubble, else a faster beam); state +0x0c 4 while it falls
+// from where an enemy died until the ship (under the player's control) touches it. mKind +0x08 a PowerupKind;
+// mState +0x0c POWERUP_FALLING while it falls
 struct Powerup : Obj
 {
 	float mGravity;             // +0xb0  added to vy each update
@@ -229,16 +395,32 @@ struct Powerup : Obj
 	Obj* mAttached;             // +0xd4  the original's follower of the power-up; nothing sets one, kept for the layout
 };
 
+// What a weapon is (Weapon::mKind): a mine, a missile, an ice shot (the freeze power-up) or a time bomb
+enum WeaponKind
+{
+	WEAPON_MINE = 0,
+	WEAPON_MISSILE = 1,
+	WEAPON_ICE_SHOT = 3,
+	WEAPON_TIME_BOMB = 4,
+};
+
+// A weapon orbits the ship until a click launches it (Weapon::mState)
+enum WeaponState
+{
+	WEAPON_ORBITING = 3,
+	WEAPON_LAUNCHED = 4,
+};
+
 // A weapon a power-up gives (0xd8 bytes, in the level's list at +0x46c; CBPowerup.cpp). It orbits the ship
-// (state 3) until a click launches it (state 4) straight out the way it is from the ship. kind +0x08: 0 a mine,
-// 1 a missile, 3 an ice shot, 4 a time bomb
+// (WEAPON_ORBITING) until a click launches it (WEAPON_LAUNCHED) straight out the way it is from the ship. mKind +0x08
+// a WeaponKind
 struct Weapon : Obj
 {
 	int mDragPadding;            // +0xb0  the four bytes before drag: nothing reads them
 	float mDrag;                // +0xb4  the speed is multiplied by it each update once launched
-	int mLaunchSpeedPadding;     // +0xb8  the four bytes before launchSpeed: nothing reads them
+	int mLaunchSpeedPadding;     // +0xb8  the four bytes before mLaunchSpeed: nothing reads them
 	float mLaunchSpeed;         // +0xbc
-	int mAcross;                // +0xc0  the ship's beamAcross at the last update
+	int mAcross;                // +0xc0  the ship's mBeamAcross at the last update
 	int mParticle;              // +0xc4  particle_0's index in the art bank
 	int mTooClose;              // +0xc8  an enemy touches it: it cannot be launched
 	int mFuseSound;             // +0xcc
@@ -258,12 +440,41 @@ struct KeyMapNode
 	char mKey;                  // +0x10
 };
 
+// What a screen is (Level::mKind; Level_Load's types): a board to fill or one of the menus and screens. gGoTo holds
+// the kind of the screen to go to next, and LEVEL_SAVED_GAME is only ever that: the saved game's board.
+enum LevelKind
+{
+	LEVEL_BOARD = 0,
+	LEVEL_MAIN_MENU = 1,
+	LEVEL_HIGH_SCORE_ENTRY = 2,
+	LEVEL_HIGH_SCORES = 3,
+	LEVEL_CREDITS = 4,
+	LEVEL_SELECT_LEVEL = 5,
+	LEVEL_SELECT_LEVEL2 = 6,
+	LEVEL_OPTIONS = 7,
+	LEVEL_OPENING_NAG = 8,      // the trial's screens, read and never gone to
+	LEVEL_CLOSING_NAG = 9,
+	LEVEL_EXPIRING_NAG = 10,
+	LEVEL_MISSION_COMPLETE = 0xb,
+	LEVEL_HELP = 0xc,
+	LEVEL_HELP2 = 0xd,
+	LEVEL_LOGO = 0xe,
+	LEVEL_SAVED_GAME = 0xf,
+	LEVEL_CHANGE_USER = 0x10,
+};
+
+// A screen's state (Level::mState)
+enum LevelState
+{
+	LEVEL_PLAYING = 1,
+	LEVEL_PAUSED = 2,
+	LEVEL_WON = 3,
+};
+
 // 0x478 bytes (0x41e880 allocates one, 0x413620 constructs it)
 struct Level : Obj
 {
-	// kind +0x08: 0 a board, 1 main_menu, 2 high_score_entry, 3 high_scores, 4 credits, 5 select_level,
-	// 6 select_level2, 7 options, 0xb mission_complete, 0xc help,
-	// 0xd help2, 0xe logo, 0x10 change_user; state +0x0c: 1 playing, 2 paused, 3 won
+	// mKind +0x08 a LevelKind, mState +0x0c a LevelState
 	Cell* mColumns[50];               // +0x0b0
 	char mTitle[0x40];                // +0x178
 	int mNumber;                      // +0x1b8

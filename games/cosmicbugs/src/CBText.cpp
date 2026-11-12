@@ -74,7 +74,7 @@ void Text_Make(Text* theText, const char* theString, Font* theFont, int theX, in
 	theText->mAlpha = 0;
 	theText->mDepth = 0xb;
 	theText->mLoopTime = theLoopTime;
-	theText->mState = 4;
+	theText->mState = TEXT_DORMANT;
 	theText->mAlign = 2;
 	theText->mBlink = theBlink;
 	theText->mFirstParticle = Bank_IndexOf(&gArtBank, "bubble02");
@@ -85,7 +85,7 @@ void Text_Make(Text* theText, const char* theString, Font* theFont, int theX, in
 int Text_Update(Text* theText)
 {
 	int aResult = 1;
-	if (theText->mState == 3)
+	if (theText->mState == TEXT_NAME_ENTRY)
 	{
 		TextInput* anInput = &theText->mInput;
 		TextInput_Update(anInput, (double)0.001f);
@@ -109,36 +109,36 @@ int Text_Update(Text* theText)
 		return 1;
 	}
 	int aKind = theText->mKind;
-	if (aKind == 1)
+	if (aKind == TEXT_HIGH_SCORE_NAME)
 	{
 		sprintf(theText->mText, "^%d%s", theText->mRow + 2, gHighScores[theText->mRow].mName);
 		if (gHighScores[theText->mRow].mScore == gScore)
 			theText->mBlink = 0x2ee;
 	}
-	else if (aKind == 2)
+	else if (aKind == TEXT_HIGH_SCORE)
 		sprintf(theText->mText, "^%d%d", theText->mRow + 2, gHighScores[theText->mRow].mScore);
-	else if (aKind == 3)
+	else if (aKind == TEXT_LEVEL)
 		sprintf(theText->mText, "^4%d", gLevelInSet + 1);
 	else
 	{
 		char* aMark;
 		int aValue;
-		if (aKind == 6)
+		if (aKind == TEXT_LIVES_LOST)
 		{
 			aMark = strstr(theText->mText, "LL");
 			aValue = gProfiles[gProfile].mRiderHits;
 		}
-		else if (aKind == 5)
+		else if (aKind == TEXT_SHOTS)
 		{
 			aMark = strstr(theText->mText, "SF");
 			aValue = gProfiles[gProfile].mBeamsFired;
 		}
-		else if (aKind == 7)
+		else if (aKind == TEXT_BUGS_KILLED)
 		{
 			aMark = strstr(theText->mText, "BK");
 			aValue = gProfiles[gProfile].mKills;
 		}
-		else if (aKind == 8)
+		else if (aKind == TEXT_POWERUPS_CAUGHT)
 		{
 			aMark = strstr(theText->mText, "PC");
 			aValue = gProfiles[gProfile].mPowerupsCaught;
@@ -154,7 +154,7 @@ int Text_Update(Text* theText)
 		theText->mState = theText->mState + 1;
 		int aState = theText->mState;
 		theText->mAge = 0;
-		if (aState == 5)
+		if (aState == TEXT_FADING_IN)
 		{
 			theText->mLifetime = (float)theText->mFadeIn;
 			if (theText->mAppearSound != 0)
@@ -185,18 +185,18 @@ int Text_Update(Text* theText)
 				} while (aCount != 0);
 			}
 		}
-		else if (aState == 6)
+		else if (aState == TEXT_SHOWN)
 			theText->mLifetime = (float)theText->mIdle;
-		else if (aState == 7)
+		else if (aState == TEXT_FADING_OUT)
 			theText->mLifetime = (float)theText->mFadeOut;
-		else if (aState == 8)
+		else if (aState == TEXT_GONE)
 			theText->mLifetime = (float)theText->mLoopTime;
 	}
-	if (8 < theText->mState)
+	if (TEXT_GONE < theText->mState)
 	{
 		if (theText->mLoopTime != 0)
 		{
-			theText->mState = 5;
+			theText->mState = TEXT_FADING_IN;
 			theText->mAlpha = 0xff;
 			theText->mLifetime = (float)theText->mFadeIn;
 			theText->mAge = 0;
@@ -211,21 +211,21 @@ void Text_Draw(Text* theText)
 {
 	int aState = theText->mState;
 	float aProgress = theText->mAge / theText->mLifetime;
-	if (aState == 3)
+	if (aState == TEXT_NAME_ENTRY)
 	{
 		TextInput_Draw(&theText->mInput, gScreenBits, gScreenPitch, Sys_ScreenFormat(), &gDirty);
 		return;
 	}
-	if (aState == 6)
+	if (aState == TEXT_SHOWN)
 	{
 		int aBlink = theText->mBlink;
 		aProgress = 1.0f;
 		if (aBlink != 0 && aBlink / 2 < (int)theText->mAge % aBlink)
 			return;
 	}
-	else if (aState == 7)
+	else if (aState == TEXT_FADING_OUT)
 		aProgress = 1.0f - aProgress;
-	if (aState == 4 || aState == 8)
+	if (aState == TEXT_DORMANT || aState == TEXT_GONE)
 		return;
 	theText->mAlpha = (int)((double)aProgress * 255.0);
 	if (theText->mAnim != nullptr)
@@ -288,14 +288,14 @@ int Text_FromXml(Text* theText, const char* theCursor, const XmlTag* theTag)
 				Xml_GetInt(theTag, "dormant_time"), Xml_GetInt(theTag, "fade_in_time"), Xml_GetInt(theTag, "idle_time"),
 				Xml_GetInt(theTag, "fade_out_time"), 0, 0);
 			theText->mAlign = 0;
-			theText->mKind = 1;
+			theText->mKind = TEXT_HIGH_SCORE_NAME;
 			sprintf(aBuf, "^%d%d", theText->mRow + 2, gHighScores[theText->mRow].mScore);
 			Text_Append(&gLevels.mCurrent->mTexts);
 			Text_Make(gLevels.mCurrent->mTexts.mCurrent, aBuf, Font_Find(Xml_GetString(theTag, "font")), 0x302,
 				(Xml_GetInt(theTag, "y") * 600) / 600, Xml_GetInt(theTag, "dormant_time"),
 				Xml_GetInt(theTag, "fade_in_time"), Xml_GetInt(theTag, "idle_time"), Xml_GetInt(theTag, "fade_out_time"),
 				0, 0);
-			gLevels.mCurrent->mTexts.mCurrent->mKind = 2;
+			gLevels.mCurrent->mTexts.mCurrent->mKind = TEXT_HIGH_SCORE;
 			gLevels.mCurrent->mTexts.mCurrent->mRow = theText->mRow;
 			gLevels.mCurrent->mTexts.mCurrent->mAlign = 1;
 			gLevels.mCurrent->mTexts.mCurrent = theText;
@@ -318,19 +318,19 @@ int Text_FromXml(Text* theText, const char* theCursor, const XmlTag* theTag)
 			TextInput_SetFillColour(anInput, 100, 100, 100, 100);
 			TextInput_SetOutline(anInput, 0);
 			TextInput_SetOnEnter(anInput, HighScore_Entered);
-			theText->mState = 3;
+			theText->mState = TEXT_NAME_ENTRY;
 			return 1;
 		}
 		if (strcmp(Xml_GetString(theTag, "type"), "level_select") == 0)
-			theText->mKind = 3;
+			theText->mKind = TEXT_LEVEL;
 		else if (strcmp(Xml_GetString(theTag, "type"), "shots_fired") == 0)
-			theText->mKind = 5;
+			theText->mKind = TEXT_SHOTS;
 		else if (strcmp(Xml_GetString(theTag, "type"), "lives_lost") == 0)
-			theText->mKind = 6;
+			theText->mKind = TEXT_LIVES_LOST;
 		else if (strcmp(Xml_GetString(theTag, "type"), "bugs_killed") == 0)
-			theText->mKind = 7;
+			theText->mKind = TEXT_BUGS_KILLED;
 		else if (strcmp(Xml_GetString(theTag, "type"), "powerups_caught") == 0)
-			theText->mKind = 8;
+			theText->mKind = TEXT_POWERUPS_CAUGHT;
 		else
 			return 1;
 		Text_Make(theText, Xml_GetString(theTag, "text"), Font_Find(Xml_GetString(theTag, "font")),

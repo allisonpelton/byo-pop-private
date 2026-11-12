@@ -127,63 +127,63 @@ void MenuItem_FromXml(MenuItem* theItem, const char* p, const XmlTag* theTag)
 	else
 		strcpy(aType, Xml_GetString(theTag, "fv_type"));
 	if (strcmp(aType, "help") == 0)
-		theItem->mKind = 4;
+		theItem->mKind = ITEM_HELP;
 	else if (strcmp(aType, "help2") == 0)
-		theItem->mKind = 5;
+		theItem->mKind = ITEM_HELP2;
 	else if (strcmp(aType, "start") == 0)
-		theItem->mKind = 1;
+		theItem->mKind = ITEM_START;
 	else if (strcmp(aType, "quit") == 0)
-		theItem->mKind = 3;
+		theItem->mKind = ITEM_QUIT;
 	else if (strcmp(aType, "credits") == 0)
-		theItem->mKind = 0xb;
+		theItem->mKind = ITEM_CREDITS;
 	else if (strcmp(aType, "back") == 0)
-		theItem->mKind = 0x19;
+		theItem->mKind = ITEM_BACK;
 	else if (strcmp(aType, "options") == 0)
-		theItem->mKind = 2;
+		theItem->mKind = ITEM_OPTIONS;
 	else if (strcmp(aType, "music") == 0)
-		theItem->mKind = 0xf;
+		theItem->mKind = ITEM_MUSIC;
 	else if (strcmp(aType, "sound") == 0)
-		theItem->mKind = 0xe;
+		theItem->mKind = ITEM_SOUND;
 	else if (strcmp(aType, "video") == 0)
-		theItem->mKind = 0xc;
+		theItem->mKind = ITEM_VIDEO;
 	else if (strcmp(aType, "lcd") == 0)
-		theItem->mKind = 0xd;
+		theItem->mKind = ITEM_LCD;
 	else if (strcmp(aType, "difficulty") == 0)
-		theItem->mKind = 0x10;
+		theItem->mKind = ITEM_DIFFICULTY;
 	else if (strcmp(aType, "high_scores") == 0)
-		theItem->mKind = 7;
+		theItem->mKind = ITEM_HIGH_SCORES;
 	else if (strcmp(aType, "hs_entered") == 0)
-		theItem->mKind = 9;
+		theItem->mKind = ITEM_HS_ENTERED;
 	else if (strcmp(aType, "select_level") == 0)
-		theItem->mKind = 0x12;
+		theItem->mKind = ITEM_SELECT_LEVEL;
 	else if (strcmp(aType, "select_up") == 0)
-		theItem->mKind = 0x13;
+		theItem->mKind = ITEM_SELECT_UP;
 	else if (strcmp(aType, "select_down") == 0)
-		theItem->mKind = 0x14;
+		theItem->mKind = ITEM_SELECT_DOWN;
 	else if (strcmp(aType, "select_slide") == 0)
-		theItem->mKind = 0x15;
+		theItem->mKind = ITEM_SELECT_SLIDE;
 	else if (strcmp(aType, "shooter_mode") == 0)
-		theItem->mKind = 0x11;
+		theItem->mKind = ITEM_SHOOTER_MODE;
 	else if (strcmp(aType, "next_level") == 0)
-		theItem->mKind = 8;
+		theItem->mKind = ITEM_NEXT_LEVEL;
 	else if (strcmp(aType, "closing_nag") == 0)
-		theItem->mKind = 3;  // (the title's QUIT: it quits)
+		theItem->mKind = ITEM_QUIT;  // (the title's QUIT: it quits)
 	else if (strcmp(aType, "hs_stuff") == 0)
-		theItem->mKind = 10;
+		theItem->mKind = ITEM_HS_STUFF;
 	else if (strcmp(aType, "select_world") == 0)
-		theItem->mKind = 0x18;
+		theItem->mKind = ITEM_SELECT_WORLD;
 	else if (strcmp(aType, "change_user") == 0)
-		theItem->mKind = 0x1a;
+		theItem->mKind = ITEM_CHANGE_USER;
 	else if (strcmp(aType, "user_slot") == 0)
-		theItem->mKind = 0x1b;
+		theItem->mKind = ITEM_USER_SLOT;
 	else if (strcmp(aType, "user_rename") == 0)
-		theItem->mKind = 0x1c;
+		theItem->mKind = ITEM_USER_RENAME;
 	else if (strcmp(aType, "user_delete") == 0)
-		theItem->mKind = 0x1e;
+		theItem->mKind = ITEM_USER_DELETE;
 	else if (strcmp(aType, "user_rename") == 0)
-		theItem->mKind = 0x1c;
+		theItem->mKind = ITEM_USER_RENAME;
 	else if (strcmp(aType, "confirm_quit") == 0)
-		theItem->mKind = 0x21;
+		theItem->mKind = ITEM_CONFIRM_QUIT;
 	theItem->mShowOnlyHot = Xml_GetInt(theTag, "show_only_hot");
 	theItem->mHeightAdder = Xml_GetInt(theTag, "height_adder");
 	theItem->mBox = Xml_GetInt(theTag, "box");
@@ -264,7 +264,7 @@ void MenuItem_Draw(MenuItem* theItem)
 		if (theItem->mFrameCount != 2)
 		{
 			theItem->mTint = aHot != 0 ? 2 : 5;
-			if (theItem->mKind != 0x18)
+			if (theItem->mKind != ITEM_SELECT_WORLD)
 				theItem->mShadow = 1;
 			Obj_Draw(theItem);
 			return;
@@ -286,17 +286,17 @@ void MenuItem_Draw(MenuItem* theItem)
 	sprintf(aShown, "%s", theItem->mName);
 	sprintf(aDrawn, theItem->mHot == 0 ? "^1%s" : "^4%s", theItem->mName);
 	int aKind = theItem->mKind;
-	if (aKind == 0x11)
+	if (aKind == ITEM_SHOOTER_MODE)
 		AddValue(aShown, aDrawn, theItem->mHot, gAutoFire == 0 ? GT(0x459350) : GT(0x459360));
-	else if (aKind == 0xf)
+	else if (aKind == ITEM_MUSIC)
 		AddValue(aShown, aDrawn, theItem->mHot, Music_On() == 0 ? GT(0x459348) : GT(0x45934c));
-	else if (aKind == 0xe)
+	else if (aKind == ITEM_SOUND)
 		AddValue(aShown, aDrawn, theItem->mHot, Sound_On() == 0 ? GT(0x459348) : GT(0x45934c));
-	else if (aKind == 0xc)
+	else if (aKind == ITEM_VIDEO)
 		AddValue(aShown, aDrawn, theItem->mHot, Screen_Fullscreen() == 0 ? GT(0x459334) : GT(0x45933c));
-	else if (aKind == 0xd)
+	else if (aKind == ITEM_LCD)
 		AddValue(aShown, aDrawn, theItem->mHot, Screen_Centered() == 0 ? GT(0x45931c) : GT(0x459328));
-	else if (aKind == 0x10)
+	else if (aKind == ITEM_DIFFICULTY)
 	{
 		if (gDifficulty == -1)
 		{
@@ -309,7 +309,7 @@ void MenuItem_Draw(MenuItem* theItem)
 		else
 			AddValue(aShown, aDrawn, theItem->mHot, GT(0x4592fc));
 	}
-	else if (aKind == 0x1a)
+	else if (aKind == ITEM_CHANGE_USER)
 	{
 		// the name in place of its marker, all in the font's first colour
 		if (strstr(theItem->mName, Localize(GT(0x4592f0))) != nullptr)
@@ -326,7 +326,7 @@ void MenuItem_Draw(MenuItem* theItem)
 			i = i + 1;
 		} while (c != 0);
 	}
-	else if (aKind == 0x1b)
+	else if (aKind == ITEM_USER_SLOT)
 	{
 		// a player's slot: the player's name, on a light bar when it is the current player
 		int aSlot = atol(theItem->mName);
@@ -421,7 +421,7 @@ void MenuItem_TypeKey(MenuItem* theItem)
 		return;
 	}
 	List_Each(&gLevels.mCurrent->mTexts, [&](Text* theText) {
-		if (theText->mState == 3)
+		if (theText->mState == TEXT_NAME_ENTRY)
 		{
 			TextInput* anInput = &theText->mInput;
 			char aName[0x100];
@@ -448,8 +448,8 @@ void MenuItem_ConfirmQuit(MenuItem* theItem)
 	strcpy(gSavedName, gProfiles[gProfile].mName);
 	gSavedProfile = aProfile;
 	const char* aSecond = Localize(GT(0x4594d8));
-	Menu_ShowRequester(gLevels.mCurrent->mMenus.mCurrent, 3, Localize(GT(0x4594bc)), aSecond);
-	gLevels.mCurrent->mState = 2;
+	Menu_ShowRequester(gLevels.mCurrent->mMenus.mCurrent, REQUESTER_QUIT, Localize(GT(0x4594bc)), aSecond);
+	gLevels.mCurrent->mState = LEVEL_PAUSED;
 	theItem->mHot = 0;
 }
 
@@ -502,10 +502,10 @@ int MenuItem_Update(MenuItem* theItem)
 			int aProfile = gProfile;
 			switch (theItem->mKind)
 			{
-			case 1:
-				gGoTo = 0;
+			case ITEM_START:
+				gGoTo = LEVEL_BOARD;
 				aResult = 0;
-				if (gLevels.mCurrent->mKind == 6)
+				if (gLevels.mCurrent->mKind == LEVEL_SELECT_LEVEL2)
 				{
 					gProfiles[gProfile].mSavedLevel = 0;
 					gProfiles[gProfile].mSavedLives = 0;
@@ -513,78 +513,78 @@ int MenuItem_Update(MenuItem* theItem)
 				}
 				SaveProfiles();
 				break;
-			case 2:
+			case ITEM_OPTIONS:
 				aResult = 0;
-				gGoTo = 7;
+				gGoTo = LEVEL_OPTIONS;
 				break;
-			case 3:
+			case ITEM_QUIT:
 				SaveProfiles();
 				aResult = 0;
 				gQuit = 1;
 				break;
-			case 4:
+			case ITEM_HELP:
 				aResult = 0;
-				gGoTo = 0xc;
+				gGoTo = LEVEL_HELP;
 				break;
-			case 5:
+			case ITEM_HELP2:
 				aResult = 0;
-				gGoTo = 0xd;
+				gGoTo = LEVEL_HELP2;
 				break;
-			case 7:
+			case ITEM_HIGH_SCORES:
 				aResult = 0;
-				if (gLevels.mCurrent->mKind == 1)
+				if (gLevels.mCurrent->mKind == LEVEL_MAIN_MENU)
 					gScore = 0;
 				gGoTo = (gScore <= gHighScores[7].mScore ? 1 : 0) + 2;
 				break;
-			case 8:
+			case ITEM_NEXT_LEVEL:
 				aResult = 0;
-				gGoTo = 0xf;
+				gGoTo = LEVEL_SAVED_GAME;
 				break;
-			case 9:
+			case ITEM_HS_ENTERED:
 				aResult = 0;
-				gGoTo = 3;
+				gGoTo = LEVEL_HIGH_SCORES;
 				SortHighScores();
 				break;
-			case 10:
+			case ITEM_HS_STUFF:
 				MenuItem_TypeKey(theItem);
 				break;
-			case 0xb:
+			case ITEM_CREDITS:
 				aResult = 0;
-				gGoTo = 4;
+				gGoTo = LEVEL_CREDITS;
 				break;
-			case 0xc:
+			case ITEM_VIDEO:
 				Screen_SetFullscreen(1 - Screen_Fullscreen());
 				break;
-			case 0xd:
+			case ITEM_LCD:
 				Screen_SetCentered(1 - Screen_Centered());
 				break;
-			case 0xe:
+			case ITEM_SOUND:
 				Sound_SetOn(1 - Sound_On());
 				break;
-			case 0xf:
+			case ITEM_MUSIC:
 				Music_SetOn(1 - Music_On());
 				break;
-			case 0x10:
+			case ITEM_DIFFICULTY:
 				gDifficulty = gDifficulty + 1;
 				if (1 < gDifficulty)
 					gDifficulty = -1;
 				break;
-			case 0x11:
+			case ITEM_SHOOTER_MODE:
 				gAutoFire = 1 - gAutoFire;
 				SaveProfiles();
 				break;
-			case 0x12:
+			case ITEM_SELECT_LEVEL:
 				gLives = 6;
 				aResult = 0;
 				gScore = 0;
 				if (gProfiles[gProfile].mLevelReached == 0)
-					gGoTo = 0xd;
+					gGoTo = LEVEL_HELP2;
 				else if (gProfiles[gProfile].mSavedLives < 1)
-					gGoTo = 5;
+					gGoTo = LEVEL_SELECT_LEVEL;
 				else
-					Menu_ShowRequester(gLevels.mCurrent->mMenus.mTail, 5, GT(0x459594), GT(0x4595b0));
+					Menu_ShowRequester(gLevels.mCurrent->mMenus.mTail, REQUESTER_RESUME, GT(0x459594), GT(0x4595b0));
 				break;
-			case 0x13:
+			case ITEM_SELECT_UP:
 			{
 				// up a level, no further than the furthest reached and the set's last
 				int aReached = gProfiles[gProfile].mLevelReached;
@@ -605,7 +605,7 @@ int MenuItem_Update(MenuItem* theItem)
 				Level_UpdateProgressStars();
 				break;
 			}
-			case 0x14:
+			case ITEM_SELECT_DOWN:
 			{
 				if (gLevelSets.mCurrent->mEnd < gLevelInSet)
 					gLevelInSet = gLevelSets.mCurrent->mEnd;
@@ -616,7 +616,7 @@ int MenuItem_Update(MenuItem* theItem)
 				Level_UpdateProgressStars();
 				break;
 			}
-			case 0x18:
+			case ITEM_SELECT_WORLD:
 			{
 				// a world: the level set holding this menu's locked level, from the furthest level reached in it
 				aResult = 0;
@@ -646,22 +646,22 @@ int MenuItem_Update(MenuItem* theItem)
 				{
 					gProfiles[aProfile].mSavedLevel = 0;
 					gProfiles[aProfile].mSavedLives = 0;
-					gGoTo = 0;
+					gGoTo = LEVEL_BOARD;
 					gProfiles[aProfile].mSavedScore = 0;
 				}
 				else
-					gGoTo = 6;
+					gGoTo = LEVEL_SELECT_LEVEL2;
 				break;
 			}
-			case 0x19:
+			case ITEM_BACK:
 				aResult = 0;
-				gGoTo = 1;
+				gGoTo = LEVEL_MAIN_MENU;
 				break;
-			case 0x1a:
+			case ITEM_CHANGE_USER:
 				aResult = 0;
-				gGoTo = 0x10;
+				gGoTo = LEVEL_CHANGE_USER;
 				break;
-			case 0x1b:
+			case ITEM_USER_SLOT:
 				// a player's slot: an empty one asks for a name, the current one goes back, another is chosen
 				strcpy(gSavedName, gProfiles[gProfile].mName);
 				gSavedProfile = aProfile;
@@ -669,7 +669,7 @@ int MenuItem_Update(MenuItem* theItem)
 				{
 					theItem->mHot = 0;
 					gProfile = atol(theItem->mName);
-					Menu_ShowRequester(gLevels.mCurrent->mMenus.mCurrent, 2, Localize(GT(0x45954c)), nullptr);
+					Menu_ShowRequester(gLevels.mCurrent->mMenus.mCurrent, REQUESTER_NAME, Localize(GT(0x45954c)), nullptr);
 #ifdef __EMSCRIPTEN__
 					// the web page's player (framework/WebProfiles.h): under "fill" and "create" the box starts with it
 					SiteFillName(&gLevels.mCurrent->mMenus.mCurrent->mRequesters.mCurrent->mEntry->mInput);
@@ -678,7 +678,7 @@ int MenuItem_Update(MenuItem* theItem)
 				else if (gProfile == atol(theItem->mName))
 				{
 					aResult = 0;
-					gGoTo = 1;
+					gGoTo = LEVEL_MAIN_MENU;
 				}
 				else
 				{
@@ -686,24 +686,24 @@ int MenuItem_Update(MenuItem* theItem)
 					gAutoFire = gProfiles[gProfile].mAutoFire;
 				}
 				break;
-			case 0x1c:
+			case ITEM_USER_RENAME:
 				// rename: the name entry starts empty
 				theItem->mHot = 0;
 				gSavedProfile = gProfile;
 				strcpy(gSavedName, gProfiles[gProfile].mName);
 				gProfiles[gProfile].mName[0] = 0;
-				Menu_ShowRequester(gLevels.mCurrent->mMenus.mCurrent, 2, Localize(GT(0x459534)), nullptr);
+				Menu_ShowRequester(gLevels.mCurrent->mMenus.mCurrent, REQUESTER_NAME, Localize(GT(0x459534)), nullptr);
 				TextInput_SetText(&gLevels.mCurrent->mMenus.mCurrent->mRequesters.mCurrent->mEntry->mInput,
 					gProfiles[gProfile].mName);
 #ifdef __EMSCRIPTEN__
 				SiteFillName(&gLevels.mCurrent->mMenus.mCurrent->mRequesters.mCurrent->mEntry->mInput);	// as above
 #endif
 				break;
-			case 0x1d:
+			case ITEM_NAME_OKAY:
 				Level_SetUserName(
 					TextInput_GetText(&gLevels.mCurrent->mMenus.mCurrent->mRequesters.mCurrent->mEntry->mInput));
 				break;
-			case 0x1e:
+			case ITEM_USER_DELETE:
 			{
 				// delete, unless it is the only player
 				int aPlayers = 0;
@@ -718,16 +718,16 @@ int MenuItem_Update(MenuItem* theItem)
 				{
 					strcpy(gSavedName, gProfiles[gProfile].mName);
 					const char* aSecond = Localize(GT(0x45950c));
-					Menu_ShowRequester(gLevels.mCurrent->mMenus.mCurrent, 1, Localize(GT(0x4594f4)), aSecond);
+					Menu_ShowRequester(gLevels.mCurrent->mMenus.mCurrent, REQUESTER_MESSAGE, Localize(GT(0x4594f4)), aSecond);
 				}
 				else
 				{
 					strcpy(gSavedName, gProfiles[gProfile].mName);
-					Menu_ShowRequester(gLevels.mCurrent->mMenus.mCurrent, 0, GT(0x459528), nullptr);
+					Menu_ShowRequester(gLevels.mCurrent->mMenus.mCurrent, REQUESTER_DELETE_PLAYER, GT(0x459528), nullptr);
 				}
 				break;
 			}
-			case 0x1f:
+			case ITEM_DELETE_OKAY:
 				// the delete's okay: the slot is emptied and the first player left is chosen
 				gProfiles[gProfile].mAutoFire = 1;
 				gProfiles[gProfile].mLevelReached = 0;
@@ -743,27 +743,27 @@ int MenuItem_Update(MenuItem* theItem)
 				SaveProfiles();
 				aResult = 0;
 				break;
-			case 0x20:
+			case ITEM_CANCEL:
 				// cancel: back to the player and name before
-				if (gLevels.mCurrent->mKind == 0x10)
+				if (gLevels.mCurrent->mKind == LEVEL_CHANGE_USER)
 				{
 					gProfile = gSavedProfile;
 					strcpy(gProfiles[gSavedProfile].mName, gSavedName);
 				}
-				aLevel->mState = 1;
+				aLevel->mState = LEVEL_PLAYING;
 				aResult = 0;
 				break;
-			case 0x21:
+			case ITEM_CONFIRM_QUIT:
 				MenuItem_ConfirmQuit(theItem);
 				break;
-			case 0x22:
+			case ITEM_RESUME_YES:
 			{
 				// resume the saved game
 				int aSaved = gProfiles[gProfile].mSavedLevel;
 				gScore = gProfiles[gProfile].mSavedScore;
 				gLives = gProfiles[gProfile].mSavedLives;
 				aResult = 0;
-				gGoTo = 0xf;
+				gGoTo = LEVEL_SAVED_GAME;
 				gLevelInSet = aSaved;
 				if (gLevelSets.mCurrent != nullptr)
 				{
@@ -776,7 +776,7 @@ int MenuItem_Update(MenuItem* theItem)
 				}
 				break;
 			}
-			case 0x23:
+			case ITEM_RESUME_NO:
 				aResult = 0;
 				gLives = 6;
 				gScore = 0;
@@ -798,7 +798,7 @@ int MenuItem_Update(MenuItem* theItem)
 				aLast, 0, 0xff, 0xff, 0xff, 0xff, 0xff, 0, 400, 10, aLifetime, 0.998f, 0.0003f, 5);
 		}
 	}
-	if (theItem->mKind == 0x15)
+	if (theItem->mKind == ITEM_SELECT_SLIDE)
 	{
 		if (gWorldChanged != 0)
 		{
@@ -820,7 +820,7 @@ void HighScore_Entered(const char*)
 	List_Each(&gLevels.mCurrent->mMenus, [](Menu* theMenu) {
 		List_Each(&theMenu->mItems, [](MenuItem* theItem) {
 			int aKind = theItem->mKind;
-			if (aKind == 9 || aKind == 1 || aKind == 0x19)
+			if (aKind == ITEM_HS_ENTERED || aKind == ITEM_START || aKind == ITEM_BACK)
 				theItem->mAutoClick = 1;
 		});
 	});
@@ -946,38 +946,38 @@ void Menu_ShowRequester(Menu* theMenu, int theKind, const char* theText, const c
 	MenuItem* anItem;
 	switch (theKind)
 	{
-	case 0:
+	case REQUESTER_DELETE_PLAYER:
 		// deleting the player
 		sprintf(aBuf, "%s%s,", Localize(GT(0x4594a4)), gProfiles[gProfile].mName);
-		Text_Make(aList->mCurrent->mTexts[0], aBuf, Font_Find("bonus_font"), 400, 0xfa, 0, 100, 0x986fc8, 500, 0, 0);
+		Text_Make(aList->mCurrent->mTexts[0], aBuf, Font_Find("bonus_font"), 400, 0xfa, 0, 100, TEXT_IDLE_FOREVER, 500, 0, 0);
 		Requester_AddText(aList->mCurrent);
 		sprintf(aBuf, "%s", Localize(GT(0x45948c)));
 		Text_Make(aList->mCurrent->mTexts[aList->mCurrent->mTextCount], aBuf, Font_Find("bonus_font"), 400, 0x10c, 0, 100,
-			0x986fc8, 500, 0, 0);
+			TEXT_IDLE_FOREVER, 500, 0, 0);
 		aList->mCurrent->mTextCount = aList->mCurrent->mTextCount + 1;
 		MenuItem_Insert(&aList->mCurrent->mItems);
 		anItem = aList->mCurrent->mItems.mCurrent;
 		Button_Setup(anItem, "okay", 340.0f, 330.0f);
 		anItem->mMidHandle = 1;
-		anItem->mKind = 0x1f;
+		anItem->mKind = ITEM_DELETE_OKAY;
 		break;
-	case 1:
+	case REQUESTER_MESSAGE:
 		// a message to close
-		Text_Make(aList->mCurrent->mTexts[0], theText, Font_Find("bonus_font"), 400, 0xfa, 0, 0, 0x986fc8, 500, 0, 0);
+		Text_Make(aList->mCurrent->mTexts[0], theText, Font_Find("bonus_font"), 400, 0xfa, 0, 0, TEXT_IDLE_FOREVER, 500, 0, 0);
 		if (theSecond != nullptr)
 		{
 			Text* aText = Requester_AddText(aList->mCurrent);
-			Text_Make(aText, theSecond, Font_Find("bonus_font"), 400, 0x10c, 0, 100, 0x986fc8, 500, 0, 0);
+			Text_Make(aText, theSecond, Font_Find("bonus_font"), 400, 0x10c, 0, 100, TEXT_IDLE_FOREVER, 500, 0, 0);
 			aList->mCurrent->mTextCount = aList->mCurrent->mTextCount + 1;
 		}
 		MenuItem_Append(&aList->mCurrent->mItems);
 		anItem = aList->mCurrent->mItems.mCurrent;
 		Button_Setup(anItem, "okay", 400.0f, 330.0f);
 		anItem->mMidHandle = 1;
-		anItem->mKind = 0x20;
+		anItem->mKind = ITEM_CANCEL;
 		strcpy(anItem->mName, GT(0x459460));
 		return;
-	case 2:
+	case REQUESTER_NAME:
 	{
 		// a name to type
 		Text_Append(&gLevels.mCurrent->mTexts);
@@ -991,38 +991,38 @@ void Menu_ShowRequester(Menu* theMenu, int theKind, const char* theText, const c
 		TextInput_SetFillColour(anInput, 100, 100, 100, 100);
 		TextInput_SetOutline(anInput, 0);
 		TextInput_SetOnEnter(anInput, Level_SetUserName);
-		anEntry->mState = 3;
-		Text_Make(aList->mCurrent->mTexts[0], theText, Font_Find("bonus_font"), 400, 0xfa, 0, 0, 0x986fc8, 500, 0, 0);
+		anEntry->mState = TEXT_NAME_ENTRY;
+		Text_Make(aList->mCurrent->mTexts[0], theText, Font_Find("bonus_font"), 400, 0xfa, 0, 0, TEXT_IDLE_FOREVER, 500, 0, 0);
 		MenuItem_Insert(&aList->mCurrent->mItems);
 		anItem = aList->mCurrent->mItems.mCurrent;
 		Button_Setup(anItem, "okay", 340.0f, 330.0f);
 		anItem->mMidHandle = 1;
-		anItem->mKind = 0x1d;
+		anItem->mKind = ITEM_NAME_OKAY;
 		strcpy(anItem->mName, GT(0x459474));
 		MenuItem_Append(&aList->mCurrent->mItems);
 		anItem = aList->mCurrent->mItems.mCurrent;
 		Button_Setup(anItem, "cancel", 460.0f, 330.0f);
 		anItem->mMidHandle = 1;
-		anItem->mKind = 0x20;
+		anItem->mKind = ITEM_CANCEL;
 		strcpy(anItem->mName, GT(0x459460));
 		return;
 	}
-	case 3:
+	case REQUESTER_QUIT:
 		// leaving the game
-		Text_Make(aList->mCurrent->mTexts[0], theText, Font_Find("bonus_font"), 400, 0xfa, 0, 100, 0x986fc8, 500, 0, 0);
+		Text_Make(aList->mCurrent->mTexts[0], theText, Font_Find("bonus_font"), 400, 0xfa, 0, 100, TEXT_IDLE_FOREVER, 500, 0, 0);
 		if (theSecond != nullptr)
 		{
 			Text* aText = Requester_AddText(aList->mCurrent);
-			Text_Make(aText, theSecond, Font_Find("bonus_font"), 400, 0x10c, 0, 100, 0x986fc8, 500, 0, 0);
+			Text_Make(aText, theSecond, Font_Find("bonus_font"), 400, 0x10c, 0, 100, TEXT_IDLE_FOREVER, 500, 0, 0);
 			aList->mCurrent->mTextCount = aList->mCurrent->mTextCount + 1;
 		}
 		MenuItem_Insert(&aList->mCurrent->mItems);
 		anItem = aList->mCurrent->mItems.mCurrent;
 		Button_Setup(anItem, "okay", 340.0f, 330.0f);
 		anItem->mMidHandle = 1;
-		anItem->mKind = 0x19;
+		anItem->mKind = ITEM_BACK;
 		break;
-	case 4:
+	case REQUESTER_BOARD_END:
 	{
 		// a board's end: its fill and shots against the records, and the bonus
 		aRequester = aList->mCurrent;
@@ -1030,51 +1030,51 @@ void Menu_ShowRequester(Menu* theMenu, int theKind, const char* theText, const c
 		aRequester->mAlpha = 0;
 		aRequester->mDrawKind = 4;
 		aRequester->mY = 260.0f;
-		Text_Make(aRequester->mTexts[0], theText, Font_Find("bonus_font"), 400, 0x5c, 0, 100, 0x986fc8, 500, 0, 0);
+		Text_Make(aRequester->mTexts[0], theText, Font_Find("bonus_font"), 400, 0x5c, 0, 100, TEXT_IDLE_FOREVER, 500, 0, 0);
 		if (theSecond != nullptr)
 		{
 			Level* aLevel = gLevels.mCurrent;
 			LevelRecord* aRecord;
 			Text* aText = Requester_AddText(aList->mCurrent);
-			Text_Make(aText, theSecond, Font_Find("bonus_font2"), 400, 0x87, 0, 0, 0x986fc8, 500, 0, 0);
+			Text_Make(aText, theSecond, Font_Find("bonus_font2"), 400, 0x87, 0, 0, TEXT_IDLE_FOREVER, 500, 0, 0);
 			aList->mCurrent->mTextCount = aList->mCurrent->mTextCount + 1;
 			sprintf(aBuf, "%d%s", (aLevel->mFilledCells * 100) / aLevel->mTotalCells, "%");
 			aText = Requester_AddText(aList->mCurrent);
-			Text_Make(aText, aBuf, Font_Find("bonus_font"), 400, 0x98, 300, 0x32, 0x986fc8, 500, 0, 0);
+			Text_Make(aText, aBuf, Font_Find("bonus_font"), 400, 0x98, 300, 0x32, TEXT_IDLE_FOREVER, 500, 0, 0);
 			aList->mCurrent->mTexts[aList->mCurrent->mTextCount]->mAppearSound = Sound_Find("audio\\pop.wav");
 			aList->mCurrent->mTextCount = aList->mCurrent->mTextCount + 1;
 			aText = Requester_AddText(aList->mCurrent);
-			Text_Make(aText, GT(0x459410), Font_Find("bonus_font2"), 400, 0xb4, 0, 0, 0x986fc8, 500, 0, 0);
+			Text_Make(aText, GT(0x459410), Font_Find("bonus_font2"), 400, 0xb4, 0, 0, TEXT_IDLE_FOREVER, 500, 0, 0);
 			aList->mCurrent->mTextCount = aList->mCurrent->mTextCount + 1;
 			aRecord = &gLevelRecords[gLevels.mCurrent->mNumber];
 			sprintf(aBuf, "%s, %d%s", aRecord->mFillName, aRecord->mBestFill, "%");
 			aText = Requester_AddText(aList->mCurrent);
-			Text_Make(aText, aBuf, Font_Find("bonus_font"), 400, 0xc5, 600, 0x32, 0x986fc8, 500, 0, 0);
+			Text_Make(aText, aBuf, Font_Find("bonus_font"), 400, 0xc5, 600, 0x32, TEXT_IDLE_FOREVER, 500, 0, 0);
 			aList->mCurrent->mTexts[aList->mCurrent->mTextCount]->mAppearSound = Sound_Find("audio\\pop.wav");
 			aList->mCurrent->mTextCount = aList->mCurrent->mTextCount + 1;
 			aText = Requester_AddText(aList->mCurrent);
-			Text_Make(aText, GT(0x4593f0), Font_Find("bonus_font2"), 400, 0xeb, 0, 0, 0x986fc8, 500, 0, 0);
+			Text_Make(aText, GT(0x4593f0), Font_Find("bonus_font2"), 400, 0xeb, 0, 0, TEXT_IDLE_FOREVER, 500, 0, 0);
 			aList->mCurrent->mTextCount = aList->mCurrent->mTextCount + 1;
 			sprintf(aBuf, "%d", gLevels.mCurrent->mShots);
 			aText = Requester_AddText(aList->mCurrent);
-			Text_Make(aText, aBuf, Font_Find("bonus_font"), 400, 0xfc, 900, 0x32, 0x986fc8, 500, 0, 0);
+			Text_Make(aText, aBuf, Font_Find("bonus_font"), 400, 0xfc, 900, 0x32, TEXT_IDLE_FOREVER, 500, 0, 0);
 			aList->mCurrent->mTexts[aList->mCurrent->mTextCount]->mAppearSound = Sound_Find("audio\\pop.wav");
 			aList->mCurrent->mTextCount = aList->mCurrent->mTextCount + 1;
 			aText = Requester_AddText(aList->mCurrent);
-			Text_Make(aText, GT(0x4593e0), Font_Find("bonus_font2"), 400, 0x118, 0, 0, 0x986fc8, 500, 0, 0);
+			Text_Make(aText, GT(0x4593e0), Font_Find("bonus_font2"), 400, 0x118, 0, 0, TEXT_IDLE_FOREVER, 500, 0, 0);
 			aList->mCurrent->mTextCount = aList->mCurrent->mTextCount + 1;
 			aRecord = &gLevelRecords[gLevels.mCurrent->mNumber];
 			sprintf(aBuf, "%s, %d", aRecord->mShotsName, aRecord->mFewestShots);
 			aText = Requester_AddText(aList->mCurrent);
-			Text_Make(aText, aBuf, Font_Find("bonus_font"), 400, 0x129, 0x4b0, 0x32, 0x986fc8, 500, 0, 0);
+			Text_Make(aText, aBuf, Font_Find("bonus_font"), 400, 0x129, 0x4b0, 0x32, TEXT_IDLE_FOREVER, 500, 0, 0);
 			aList->mCurrent->mTexts[aList->mCurrent->mTextCount]->mAppearSound = Sound_Find("audio\\pop.wav");
 			aList->mCurrent->mTextCount = aList->mCurrent->mTextCount + 1;
 			aText = Requester_AddText(aList->mCurrent);
-			Text_Make(aText, GT(0x4593c8), Font_Find("bonus_font2"), 400, 0x14f, 0, 0, 0x986fc8, 500, 0, 0);
+			Text_Make(aText, GT(0x4593c8), Font_Find("bonus_font2"), 400, 0x14f, 0, 0, TEXT_IDLE_FOREVER, 500, 0, 0);
 			aList->mCurrent->mTextCount = aList->mCurrent->mTextCount + 1;
 			sprintf(aBuf, "%d", gLevels.mCurrent->mBonus);
 			aText = Requester_AddText(aList->mCurrent);
-			Text_Make(aText, aBuf, Font_Find("bonus_font"), 400, 0x160, 0x5dc, 0x32, 0x986fc8, 500, 0, 0);
+			Text_Make(aText, aBuf, Font_Find("bonus_font"), 400, 0x160, 0x5dc, 0x32, TEXT_IDLE_FOREVER, 500, 0, 0);
 			aList->mCurrent->mTexts[aList->mCurrent->mTextCount]->mAppearSound = Sound_Find("audio\\pop.wav");
 			aList->mCurrent->mTextCount = aList->mCurrent->mTextCount + 1;
 		}
@@ -1090,7 +1090,7 @@ void Menu_ShowRequester(Menu* theMenu, int theKind, const char* theText, const c
 		anItem->mY = 416.0f;
 		anItem->mDepth = 0x15e;
 		anItem->mMidHandle = 1;
-		anItem->mKind = 8;
+		anItem->mKind = ITEM_NEXT_LEVEL;
 		anItem->mName[0] = ' ';
 		anItem->mName[1] = 0;
 		anItem->mAlwaysHot = 1;
@@ -1102,26 +1102,26 @@ void Menu_ShowRequester(Menu* theMenu, int theKind, const char* theText, const c
 		}
 		return;
 	}
-	case 5:
+	case REQUESTER_RESUME:
 		// yes or no
-		Text_Make(aList->mCurrent->mTexts[0], theText, Font_Find("bonus_font"), 400, 0xfa, 0, 100, 0x986fc8, 500, 0, 0);
+		Text_Make(aList->mCurrent->mTexts[0], theText, Font_Find("bonus_font"), 400, 0xfa, 0, 100, TEXT_IDLE_FOREVER, 500, 0, 0);
 		if (theSecond != nullptr)
 		{
 			Text* aText = Requester_AddText(aList->mCurrent);
-			Text_Make(aText, theSecond, Font_Find("bonus_font"), 400, 0x10c, 0, 100, 0x986fc8, 500, 0, 0);
+			Text_Make(aText, theSecond, Font_Find("bonus_font"), 400, 0x10c, 0, 100, TEXT_IDLE_FOREVER, 500, 0, 0);
 			aList->mCurrent->mTextCount = aList->mCurrent->mTextCount + 1;
 		}
 		MenuItem_Insert(&aList->mCurrent->mItems);
 		anItem = aList->mCurrent->mItems.mCurrent;
 		Button_Setup(anItem, "yes", 340.0f, 330.0f);
 		anItem->mMidHandle = 1;
-		anItem->mKind = 0x22;
+		anItem->mKind = ITEM_RESUME_YES;
 		strcpy(anItem->mName, GT(0x416435));
 		MenuItem_Append(&aList->mCurrent->mItems);
 		anItem = aList->mCurrent->mItems.mCurrent;
 		Button_Setup(anItem, "no", 460.0f, 330.0f);
 		anItem->mMidHandle = 1;
-		anItem->mKind = 0x23;
+		anItem->mKind = ITEM_RESUME_NO;
 		strcpy(anItem->mName, GT(0x459454));
 		return;
 	default:
@@ -1133,7 +1133,7 @@ void Menu_ShowRequester(Menu* theMenu, int theKind, const char* theText, const c
 	anItem = aList->mCurrent->mItems.mCurrent;
 	Button_Setup(anItem, "cancel", 460.0f, 330.0f);
 	anItem->mMidHandle = 1;
-	anItem->mKind = 0x20;
+	anItem->mKind = ITEM_CANCEL;
 	strcpy(anItem->mName, GT(0x459460));
 }
 
@@ -1156,15 +1156,15 @@ int Menu_Update(Menu* theMenu)
 			return 1;
 		if (aName[0] == 0)
 			return 1;
-		if (aRequesters->mCurrent->mState != 2)
+		if (aRequesters->mCurrent->mState != REQUESTER_NAME)
 			return 1;
 	}
 	List_RemoveCurrent(aRequesters);
-	if (gGoTo != 1 && gGoTo != 5 && gGoTo != 0xd)
+	if (gGoTo != LEVEL_MAIN_MENU && gGoTo != LEVEL_SELECT_LEVEL && gGoTo != LEVEL_HELP2)
 	{
-		if (gGoTo != 0xf)
+		if (gGoTo != LEVEL_SAVED_GAME)
 			return 1;
-		gGoTo = 0;
+		gGoTo = LEVEL_BOARD;
 	}
 	return 0;
 }

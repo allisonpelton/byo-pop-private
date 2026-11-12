@@ -177,7 +177,7 @@ void Emitter_FromXml(Emitter* theEmitter, const XmlTag* theTag)
 	}
 	// (a missing emit_type would crash the original; here it is not angular)
 	const char* aType = Xml_GetString(theTag, "emit_type");
-	int aKind = (aType != nullptr && std::strcmp(aType, "angular") == 0) ? 0 : 2;
+	int aKind = (aType != nullptr && std::strcmp(aType, "angular") == 0) ? EMITTER_ANGULAR : EMITTER_TRAILING;
 	Obj* aParent;
 	if (gLevels.mCurrent != nullptr && gLevels.mCurrent->mEnemies.mCurrent != nullptr)
 		aParent = gLevels.mCurrent->mEnemies.mCurrent;
@@ -341,7 +341,7 @@ void Emitter_Update(Obj* theObj)
 	int aLast = anEmitter->mFrameCount - 1;
 	int x;
 	int y;
-	if (anEmitter->mKind == 0)
+	if (anEmitter->mKind == EMITTER_ANGULAR)
 	{
 		int anAngle = (aParent->mFrame * anEmitter->mRotation) / aParent->mAnim->mCount;
 		int aRx = (int)((double)CosDeg(anAngle) * anEmitter->mOldX - (double)SinDeg(anAngle) * anEmitter->mOldY);
@@ -365,7 +365,7 @@ void Emitter_Update(Obj* theObj)
 	}
 	else
 	{
-		if (anEmitter->mKind == 1)
+		if (anEmitter->mKind == EMITTER_SCATTERED)
 		{
 			RandMod(360);
 			float aVxScaled = (float)((double)aVx * 1000.0);
