@@ -461,7 +461,7 @@
       ],
       "na": [],
       "now": "performance",
-      "note": "1.9x its paced original at the original's window (200.8 against 102.8 M cycles a second; main thread 114, the driver's thread 73 to 76): the host now keeps the changed rects; waits on its own SurfaceDisplay opt-in"
+      "note": "under its original through SurfaceDisplay: 117.8 against 135.8 M cycles a second at the original's 800x600 (0.86, 10 of 10 rounds; 0.92 in the default 2x window); the real-input window runs with the new display are next"
     },
     "bonnies": {
       "title": "Bonnie's Bookstore Deluxe",
