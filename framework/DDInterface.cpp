@@ -141,6 +141,7 @@ DDInterface::DDInterface(SexyAppBase* theApp)
 	mCan3D = false;
 	mIsWindowed = true;
 	mVSync = false;
+	mMinPresentInterval = 0;
 	// Unscaled 1x blits sample texels exactly, as at 1x in 1.3. Linear filtering them at a render scale
 	// above 1 pulls in the neighbouring cell of sprite sheets and fonts (visible slivers between glyphs).
 	mPixelPerfect = true;

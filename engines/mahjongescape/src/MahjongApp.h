@@ -77,6 +77,11 @@ public:
 	virtual ~MahjongApp();
 
 	void Init() override;
+#ifndef __EMSCRIPTEN__
+	// port: the window's own display (framework/SurfaceDisplay.h): the engine's screen buffer and the rects that changed
+	// go to it, and it shows them through the window's surface when the window is 1:1 and through the renderer otherwise
+	DDInterface* CreateDDInterface() override;
+#endif
 	void HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue) override;
 	void Shutdown() override;
 	void CloseRequestAsync() override;

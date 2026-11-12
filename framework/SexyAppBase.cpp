@@ -710,6 +710,7 @@ SexyAppBase::SexyAppBase()
 	mHasSeedParam = false;
 	mFastMode = false;
 	mForcedRenderScale = 0;
+	mForcedWindowScale = 0;
 	mDrawingLogicalShot = false;
 	mTraceMode = false;
 	mDrawEvery = false;
@@ -1791,6 +1792,14 @@ bool SexyAppBase::DrawDirtyStuff()
 	else
 		mNextDrawTick = aEndTime;
 
+	// port: a display without a vsync of its own draws at most at the display's rate (DDInterface::mMinPresentInterval)
+	if (mDDInterface->mMinPresentInterval > 0)
+	{
+		DWORD aNextDrawTick = aStartTime + mDDInterface->mMinPresentInterval;
+		if ((int) (aNextDrawTick - mNextDrawTick) > 0)
+			mNextDrawTick = aNextDrawTick;
+	}
+
 	mHasPendingDraw = false;
 	mCustomCursorDirty = false;
 
@@ -2164,6 +2173,8 @@ void SexyAppBase::HandleEvent(const SDL_Event& theEvent)
 							Unmute(true);
 
 						mWidgetManager->MarkAllDirty();
+						if (mDDInterface != NULL)
+							mDDInterface->ScreenInvalidated();
 					}
 				}
 
@@ -2183,10 +2194,14 @@ void SexyAppBase::HandleEvent(const SDL_Event& theEvent)
 #endif
 			mIsPhysWindowed = mIsWindowed;
 			mWidgetManager->MarkAllDirty();
+			if (mDDInterface != NULL)
+				mDDInterface->ScreenInvalidated();
 			break;
 
 		case SDL_WINDOWEVENT_EXPOSED:
 			mWidgetManager->MarkAllDirty();
+			if (mDDInterface != NULL)
+				mDDInterface->ScreenInvalidated();
 			break;
 
 		case SDL_WINDOWEVENT_MOVED:
@@ -2465,6 +2480,9 @@ void SexyAppBase::MakeWindow()
 			// Scale the window up to 2x when that still fits, leaving room for the window frame
 			if ((mWidth * 2 <= aDesktopRect.w - 32) && (mHeight * 2 <= aDesktopRect.h - 64))
 				aScale = 2;
+			// -windowscale=N: a test run's window is the size the run asks for (the original's own, at 1)
+			if (mForcedWindowScale > 0)
+				aScale = mForcedWindowScale;
 
 			if (hasPreferredPos)
 			{
@@ -3523,6 +3541,8 @@ void SexyAppBase::HandleCmdLineParam(const std::string& theParamName, const std:
 		mDrawEvery = true;
 	else if (theParamName == "-renderscale")
 		mForcedRenderScale = atoi(theParamValue.c_str());
+	else if (theParamName == "-windowscale")
+		mForcedWindowScale = std::max(0, std::min(4, atoi(theParamValue.c_str())));
 	// port: stand-ins for missing game files (platform/Placeholders.h)
 	else if (theParamName == "-placeholders")
 		Platform::SetPlaceholders(true);

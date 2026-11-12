@@ -12,6 +12,9 @@
 #include "Players.h"
 #include "ScreenLog.h"
 #include "Splash.h"
+#ifndef __EMSCRIPTEN__
+#include "SurfaceDisplay.h"
+#endif
 #include "User.h"
 #include "Graphics.h"
 #include "KeyCodes.h"
@@ -258,6 +261,24 @@ public:
 		MahjongWidget* aWidget = gApp->mWidget;
 		if (aWidget == nullptr)
 			return;
+#ifndef __EMSCRIPTEN__
+		SurfaceDisplay* aDisplay = dynamic_cast<SurfaceDisplay*>(gApp->mDDInterface);
+		if (aDisplay != nullptr)
+		{
+			// port: the display keeps the buffer's pixels and shows the rects that changed (the rest of the window is the
+			// last frame's)
+			mRects.clear();
+			for (int i = 0; i < theCount; i++)
+				mRects.push_back(Rect(theRects[i].left, theRects[i].top, theRects[i].right - theRects[i].left,
+					theRects[i].bottom - theRects[i].top));
+			aDisplay->SetFrame((const uint32_t*)thePixels, thePitch, mRects.data(), theCount);
+			if (jb::screenlog::Verifying())
+				VerifyRects(thePixels, thePitch, theRects, theCount);
+			if (0 < theCount)
+				aWidget->mScreenChanged = true;
+			return;
+		}
+#endif
 		// port: the rects that changed copied from the engine's buffer into the widget's image (the rest of the image
 		// is the last frame's). The screen is opaque: the buffer's alpha bytes are not its pixels' alpha (the engine's
 		// drawing leaves them as they are).
@@ -296,6 +317,39 @@ public:
 			aWidget->mScreenChanged = true;
 		}
 	}
+
+private:
+	// JB_VERIFY_FRAMES for a display that keeps the buffer: a copy of the screen made of the rects alone is the screen
+	void VerifyRects(const uint8_t* thePixels, int thePitch, const jb::Rect* theRects, int theCount)
+	{
+		if (mShadow.empty())
+			mShadow.assign((size_t)jb::SCREEN_WIDTH * jb::SCREEN_HEIGHT, 0xff000000);
+		for (int i = 0; i < theCount; i++)
+		{
+			for (int y = theRects[i].top; y < theRects[i].bottom; y++)
+			{
+				const uint32_t* aSrc = (const uint32_t*)(thePixels + y * thePitch);
+				for (int x = theRects[i].left; x < theRects[i].right; x++)
+					mShadow[y * jb::SCREEN_WIDTH + x] = 0xff000000 | (aSrc[x] & 0xffffff);
+			}
+		}
+		for (int y = 0; y < jb::SCREEN_HEIGHT; y++)
+		{
+			const uint32_t* aSrc = (const uint32_t*)(thePixels + y * thePitch);
+			for (int x = 0; x < jb::SCREEN_WIDTH; x++)
+			{
+				if (mShadow[y * jb::SCREEN_WIDTH + x] != (0xff000000 | (aSrc[x] & 0xffffff)))
+				{
+					fprintf(stderr, "screenlog: the rects of the frame do not make the screen at (%d, %d)\n", x, y);
+					fflush(stderr);
+					abort();
+				}
+			}
+		}
+	}
+
+	std::vector<Rect> mRects;
+	std::vector<uint32_t> mShadow;
 };
 
 MahjongHost gHost;
@@ -307,15 +361,22 @@ MahjongHost gHost;
 
 MahjongWidget::MahjongWidget()
 {
-	mScreenImage = new MemoryImage(gApp);
-	mScreenImage->Create(jb::SCREEN_WIDTH, jb::SCREEN_HEIGHT);
-	// port: opaque, so that the framework need not look through the 480000 pixels for alpha after each present
-	mScreenImage->SetImageMode(false, false);
-	// and its alpha bytes are all 0xff (Present), so the framework need not premultiply it pixel by pixel to upload it
-	mScreenImage->mUploadAsIs = true;
-	ulong* aBits = mScreenImage->GetBits();
-	for (int i = 0; i < jb::SCREEN_WIDTH * jb::SCREEN_HEIGHT; i++)
-		aBits[i] = 0xff000000;
+	mScreenImage = nullptr;
+#ifndef __EMSCRIPTEN__
+	// port: the window's display keeps the screen (CreateDDInterface); the widget then has no image of its own
+	if (dynamic_cast<SurfaceDisplay*>(gApp->mDDInterface) == nullptr)
+#endif
+	{
+		mScreenImage = new MemoryImage(gApp);
+		mScreenImage->Create(jb::SCREEN_WIDTH, jb::SCREEN_HEIGHT);
+		// port: opaque, so that the framework need not look through the 480000 pixels for alpha after each present
+		mScreenImage->SetImageMode(false, false);
+		// and its alpha bytes are all 0xff (Present), so the framework need not premultiply it pixel by pixel to upload it
+		mScreenImage->mUploadAsIs = true;
+		ulong* aBits = mScreenImage->GetBits();
+		for (int i = 0; i < jb::SCREEN_WIDTH * jb::SCREEN_HEIGHT; i++)
+			aBits[i] = 0xff000000;
+	}
 	mScreenChanged = true;
 	mButtons = 0;
 	mWantsFocus = true;
@@ -337,7 +398,9 @@ void MahjongWidget::Update()
 void MahjongWidget::Draw(Graphics* g)
 {
 	mScreenChanged = false;
-	g->DrawImage(mScreenImage, 0, 0);
+	// (a display that keeps the screen shows it itself)
+	if (mScreenImage != nullptr)
+		g->DrawImage(mScreenImage, 0, 0);
 }
 
 // WM_CHAR
@@ -449,8 +512,25 @@ MahjongApp::~MahjongApp()
 		mWidgetManager->RemoveWidget(mWidget);
 		delete mWidget;
 	}
+#ifndef __EMSCRIPTEN__
+	// the engine's screen buffer goes with the game
+	if (SurfaceDisplay* aDisplay = dynamic_cast<SurfaceDisplay*>(mDDInterface))
+		aDisplay->SetFrame(nullptr, 0, nullptr, -1);
+#endif
 	delete mGame;
 }
+
+#ifndef __EMSCRIPTEN__
+DDInterface* MahjongApp::CreateDDInterface()
+{
+	// test only: SURFACE_DISPLAY=off keeps the framework's own display and the widget's image (the path before the
+	// SurfaceDisplay), to measure the two against each other
+	const char* aMode = SDL_getenv("SURFACE_DISPLAY");
+	if ((aMode != nullptr) && (strcmp(aMode, "off") == 0))
+		return SexyAppBase::CreateDDInterface();
+	return new SurfaceDisplay(this);
+}
+#endif
 
 // 0x42b600 (mahjongchina), 0x426850 (mahjongjapan) inlined here: the exe's file version for the logo screen (the block
 // after LoadGameTexts)

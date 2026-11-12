@@ -61,6 +61,10 @@ public:
 	bool mCan3D;  // port: the renderer is hardware accelerated (what mIs3D is before a game switches 3D off)
 	bool mIsWindowed;
 	bool mVSync;
+	// The shortest time between two frames shown, in milliseconds (0: no limit; the renderer's vsync paces its frames).
+	// DrawDirtyStuff draws again only once this has passed since the last draw, and the widgets stay dirty meanwhile, so no
+	// change is lost: a display that has no vsync of its own (SurfaceDisplay's window surface) sets it to the refresh interval.
+	int mMinPresentInterval;
 	bool mPixelPerfect;  // nearest filtering for unscaled 1x blits when the screen is scaled (default true)
 	int mFrameCount;
 
@@ -198,6 +202,11 @@ public:
 	// Frees every cached texture and the screen texture; they are recreated on demand. Call on
 	// SDL_RENDER_DEVICE_RESET.
 	virtual void ReleaseTextures();
+
+	// The window's pixels may be lost or not the screen's any more (an expose, a restore from minimised, a size change): a
+	// display that keeps what it shows between frames (SurfaceDisplay) shows the whole screen at the next frame. Here nothing:
+	// every frame is drawn whole.
+	virtual void ScreenInvalidated() {}
 
 	// Frame
 	virtual void BeginFrame();
