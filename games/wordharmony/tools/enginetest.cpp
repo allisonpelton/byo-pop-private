@@ -136,14 +136,11 @@ public:
 		mLeftMs = 3000;
 		mPlays++;
 	}
-	void halt() override { mLeftMs = 0; }
 	void stop() override { mLeftMs = 0; }
 	void rewind() override {}
 	void close() override {}
 	void setPitch(float thePitch) override { mPitch = thePitch; }
 	float getPitch() override { return mPitch; }
-	void setPan(float) override {}
-	float getPan() override { return 0; }
 	void setVolume(float theVolume) override { mVolume = theVolume; }
 	float getVolume() override { return mVolume; }
 	void setLoop(bool theLoop) override { mLoop = theLoop; }
@@ -187,8 +184,6 @@ public:
 		return true;
 	}
 	bool loadStream(const char* theName, const char* theFile) override { return load(theName, theFile); }
-	void unloadUnused() override {}
-	void unload(const char* theName) override { mLoaded.erase(theName); }
 	Sound* createSound(const char* theName, int, int) override
 	{
 		std::map<std::string, std::string>::iterator anIt = mLoaded.find(theName);
@@ -327,7 +322,10 @@ int main(int argc, char** argv)
 			while (aFrames < 300 || (!aSystem->isDone() && aFrames < 300 + anAfter))
 			{
 				if (aFrames == 300)
-					aSystem->stopEmitting();
+				{
+					for (Node* aStream : aSystem->mChildren)
+						static_cast<ParticleStream*>(aStream)->stopEmitting();
+				}
 				UpdateInfo anInfo;
 				anInfo.mSeconds = 1.0f / 60;
 				aSystem->update(anInfo);

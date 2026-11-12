@@ -46,8 +46,6 @@ public:
 
 	void drawImage(engine::Image* theImage, const engine::IntRect& theSrc, float x, float y) override;
 	using engine::Graphics::drawImage;
-	void fillRect(const engine::Rect& theRect) override;
-	void fillRectAdditive(const engine::Rect& theRect) override;
 	void drawLine(const engine::Point& theFrom, const engine::Point& theTo) override;
 
 private:

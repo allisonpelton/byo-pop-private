@@ -66,7 +66,6 @@ public:
 	virtual void setPosition(const Point& thePosition);              // 0x14: 0x439aa0
 	virtual void setPosition(float x, float y);                      // 0x18: 0x439a70
 	virtual void setScale(float theScaleX, float theScaleY);         // 0x1c: 0x439ae0
-	virtual void setRotation(float theRotation) { mRotation = theRotation; }  // 0x20: 0x439b00
 	virtual Rect* getBounds() { return &mBounds; }                   // 0x24: 0x439a60
 	virtual void setOpacity(float theOpacity) { mOpacity = theOpacity; }  // 0x28: 0x439ad0
 	virtual float getOpacity() { return mOpacity; }                 // 0x2c: 0x409d00
@@ -75,20 +74,15 @@ public:
 	virtual std::string getName() { return mName; }                  // 0x38: 0x43a020
 	virtual void applyTransform(Graphics* g);                        // 0x3c: 0x439df0
 	virtual bool contains(Point& p);                                 // 0x40: 0x439b10
-	virtual Node* hitTest(Point& p);                                 // 0x44: 0x439b30
 	virtual Node* hitTest(unsigned int theFlags, Point& p);          // 0x48: 0x439d60
 	virtual void toLocal(Point& p);                                  // 0x4c: 0x439b60
-	virtual void parentToLocal(Point& p);                            // 0x50: 0x439b90
 	virtual void setVisible(bool theVisible) { mVisible = theVisible; }  // 0x54: 0x438fd0
 	virtual bool isVisible() { return mVisible; }                    // 0x58: 0x439bb0
 	virtual void setEnabled(bool theEnabled) { mEnabled = theEnabled; }  // 0x5c: 0x438fe0
 	virtual bool isEnabled() { return mEnabled; }                    // 0x60: 0x439bc0
-	virtual void start() {}                                          // 0x64: 0x401000
-	virtual void stop() {}                                           // 0x68: 0x401000
 	virtual void draw(Graphics* g) = 0;                              // 0x6c
 	virtual void update(UpdateInfo& theInfo);                        // 0x70: 0x439bd0
 	virtual void layout() = 0;                                       // 0x74
-	virtual void dump(int theIndent);                                // 0x78: 0x43a0a0
 	// The mouse: the public slots call the protected ones, which do nothing here
 	virtual void mouseDown(Point& p) { onMouseDown(p); }             // 0x7c: 0x439c00
 	virtual void mouseUp(Point& p) { onMouseUp(p); }                 // 0x84: 0x439c10
@@ -99,7 +93,6 @@ public:
 	virtual void mouseExit(Point& p) { onMouseExit(p); }             // 0xa8: 0x439c50
 	virtual void setParent(Node* theParent);                         // 0xb0: 0x439c60
 	virtual void clearParent(Node* theParent);                       // 0xb4: 0x439c80
-	virtual Node* getParent() { return mParent; }                    // 0xb8: 0x439ca0
 	virtual void setFlags(unsigned int theFlags);                    // 0xbc: 0x439000
 	virtual void clearFlags(unsigned int theFlags);                  // 0xc0: 0x439cf0
 	virtual void notify(UpdateInfo& theInfo);                        // 0xc4: 0x439e60
@@ -148,14 +141,10 @@ public:
 	Container();            // 0x40f110
 	~Container() override;  // 0x439460
 
-	Node* hitTest(Point& p) override;                         // 0x44: 0x439060
 	Node* hitTest(unsigned int theFlags, Point& p) override;  // 0x48: 0x4390f0
-	void start() override;                                    // 0x64: 0x4391b0
-	void stop() override;                                     // 0x68: 0x4391e0
 	void draw(Graphics* g) override;                          // 0x6c: 0x4392b0
 	void update(UpdateInfo& theInfo) override;                // 0x70: 0x439510
 	void layout() override;                                   // 0x74: 0x439210
-	void dump(int theIndent) override;                        // 0x78: 0x439620
 	void clearFlags(unsigned int theFlags) override;          // 0xc0: 0x439310
 	virtual void removeChild(Node* theChild);                 // 0xc8: 0x4395e0
 	virtual void setRect(float l, float t, float r, float b) { mRect.set(l, t, r, b); }  // 0xcc: 0x438ff0
@@ -186,12 +175,10 @@ public:
 	void handleRightDown(const Point& p);           // 0x4388d0
 	void handleRightUp(const Point& p);             // 0x438940
 	void handleMouseMove(const Point& p);           // 0x4389b0
-	const Point& getMousePosition() const { return mMousePosition; }
 
 	Node* mHover;                           // +0xa8 (counted)
 	std::vector<KeyHandler*> mKeyHandlers;  // +0xac (counted)
 	Point mUnknownBC;                       // +0xbc
-	Point mMousePosition;                   // +0xc4
 
 private:
 	// 0x4386c0: the node under the mouse changes

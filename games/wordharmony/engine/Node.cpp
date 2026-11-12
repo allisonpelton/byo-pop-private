@@ -18,8 +18,6 @@ Node::Node()
 // 0x439e90: the listeners' memory goes, not their references (0x439fa0 releases them)
 Node::~Node()
 {
-	if (!mName.empty())
-		App::instance()->unregisterNode(this);
 	if (mFont != nullptr)
 		mFont->release();
 }
@@ -57,15 +55,9 @@ void Node::setFont(Font* theFont)
 	setFlags(NODE_LAYOUT);
 }
 
-// 0x43a050: the application keeps a map from names to nodes
-void Node::setName(const std::string& theName)
-{
-	App* anApp = App::instance();
-	if (!mName.empty())
-		anApp->unregisterNode(this);
-	mName = theName;
-	anApp->registerNode(this);
-}
+// 0x43a050: (the original also kept a map from names to nodes in the application, which only the particle streams'
+// anchors read, and no data has one)
+void Node::setName(const std::string& theName) { mName = theName; }
 
 // 0x439df0
 void Node::applyTransform(Graphics* g)
@@ -83,17 +75,6 @@ void Node::applyTransform(Graphics* g)
 bool Node::contains(Point& p)
 {
 	return mBounds.contains(p.x, p.y);
-}
-
-// 0x439b30
-Node* Node::hitTest(Point& p)
-{
-	if (mVisible && mEnabled)
-	{
-		if (contains(p))
-			return this;
-	}
-	return nullptr;
 }
 
 // 0x439d60
@@ -119,38 +100,12 @@ void Node::toLocal(Point& p)
 	}
 }
 
-// 0x439b90
-void Node::parentToLocal(Point& p)
-{
-	if (mParent != nullptr)
-		mParent->toLocal(p);
-}
-
 // 0x439bd0
 void Node::update(UpdateInfo& theInfo)
 {
 	mAbsPosition.x = mPosition.x + theInfo.mOrigin.x;
 	mAbsPosition.y = mPosition.y + theInfo.mOrigin.y;
 	notify(theInfo);
-}
-
-// 0x43a0a0
-void Node::dump(int theIndent)
-{
-	App* anApp = App::instance();
-	if (mName.compare("") == 0)
-		mName.assign("unknown");
-	int i = theIndent;
-	while (0 < i)
-	{
-		anApp->log("  ");
-		i--;
-	}
-	char aLine[256];
-	snprintf(aLine, sizeof(aLine), "<%s visible=\"%s\" flags=\"%x\" refCount=\"%d\" bounds=\"(%.2f,%.2f),(%.2f,%.2f)\" />\n",
-		mName.c_str(), mVisible ? "true" : "false", mAllFlags, refCount(), mBounds.left, mBounds.top, mBounds.right,
-		mBounds.bottom);
-	anApp->log(aLine);
 }
 
 // 0x439c60: the parent's link is a reference on the child
@@ -248,35 +203,7 @@ Container::~Container()
 	removeAllChildren();
 }
 
-// 0x439060: the point becomes the container's local point, and stays so for the caller (the children each subtract
-// their own position from the same point); the last child hit wins
-Node* Container::hitTest(Point& p)
-{
-	if (!mEnabled || contains(p))
-	{
-		Node* aHit = nullptr;
-		p.x = p.x - mPosition.x;
-		p.y = p.y - mPosition.y;
-		std::vector<Node*>::iterator anIt = mChildren.begin();
-		if (anIt != mChildren.end())
-		{
-			do
-			{
-				Node* aChildHit = (*anIt)->hitTest(p);
-				if (aChildHit != nullptr)
-					aHit = aChildHit;
-				++anIt;
-			} while (anIt != mChildren.end());
-			if (aHit != nullptr)
-				return aHit;
-		}
-		if (mEnabled && mVisible)
-			return this;
-	}
-	return nullptr;
-}
-
-// 0x4390f0: as above, but each child starts from the container's local point
+// 0x4390f0: the point becomes the container's local point; each child starts from it, and the last child hit wins
 Node* Container::hitTest(unsigned int theFlags, Point& p)
 {
 	if (!mEnabled || contains(p))
@@ -303,34 +230,6 @@ Node* Container::hitTest(unsigned int theFlags, Point& p)
 			return this;
 	}
 	return nullptr;
-}
-
-// 0x4391b0
-void Container::start()
-{
-	std::vector<Node*>::iterator anIt = mChildren.begin();
-	if (anIt != mChildren.end())
-	{
-		do
-		{
-			(*anIt)->start();
-			++anIt;
-		} while (anIt != mChildren.end());
-	}
-}
-
-// 0x4391e0
-void Container::stop()
-{
-	std::vector<Node*>::iterator anIt = mChildren.begin();
-	if (anIt != mChildren.end())
-	{
-		do
-		{
-			(*anIt)->stop();
-			++anIt;
-		} while (anIt != mChildren.end());
-	}
 }
 
 // 0x4392b0
@@ -405,41 +304,6 @@ void Container::layout()
 	clearFlags(NODE_LAYOUT);
 }
 
-// 0x439620
-void Container::dump(int theIndent)
-{
-	App* anApp = App::instance();
-	if (mName.compare("") == 0)
-		mName.assign("unknown");
-	int i = theIndent;
-	while (0 < i)
-	{
-		anApp->log("  ");
-		i--;
-	}
-	char aLine[256];
-	snprintf(aLine, sizeof(aLine), "<%s visible=\"%s\" flags=\"%x\" refCount=\"%d\" bounds=\"(%.2f,%.2f),(%.2f,%.2f)\" >\n",
-		mName.c_str(), mVisible ? "true" : "false", mAllFlags, refCount(), mBounds.left, mBounds.top, mBounds.right,
-		mBounds.bottom);
-	anApp->log(aLine);
-	std::vector<Node*>::iterator anIt = mChildren.begin();
-	if (anIt != mChildren.end())
-	{
-		do
-		{
-			(*anIt)->dump(theIndent + 1);
-			++anIt;
-		} while (anIt != mChildren.end());
-	}
-	i = theIndent;
-	while (0 < i)
-	{
-		anApp->log("  ");
-		i--;
-	}
-	anApp->log(("</" + mName + ">\n").c_str());
-}
-
 // 0x439310: the flags are those not cleared, the own ones and the children's
 void Container::clearFlags(unsigned int theFlags)
 {
@@ -508,7 +372,7 @@ void Container::removeAllChildren()
 
 // 0x438e70
 Window::Window()
-	: mHover(nullptr), mUnknownBC(0, 0), mMousePosition(0, 0)
+	: mHover(nullptr), mUnknownBC(0, 0)
 {
 	mEnabled = false;
 	setName("Window");
@@ -597,7 +461,6 @@ void Window::setHover(Node* theNode, Point& p)
 // The common part of 0x4387f0, 0x438860, 0x4388d0, 0x438940 and 0x4389b0: the node under the mouse that takes it
 Node* Window::mouseTarget(const Point& p, Point& theLocal)
 {
-	mMousePosition = p;
 	theLocal = p;
 	Node* aNode = hitTest(NODE_MOUSE, theLocal);
 	setHover(aNode, theLocal);

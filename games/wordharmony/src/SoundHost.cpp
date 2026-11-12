@@ -18,7 +18,7 @@ static double lengthMs(const Platform::SoundData* theData)
 
 // 0x443fc0
 HostSound::HostSound(HostSoundSystem* theSystem, const std::shared_ptr<Platform::SoundData>& theData)
-	: mSystem(theSystem), mData(theData), mVoice(0), mPlaying(false), mLoop(false), mVolume(1), mPan(0), mPitch(1),
+	: mSystem(theSystem), mData(theData), mVoice(0), mPlaying(false), mLoop(false), mVolume(1), mPitch(1),
 	  mFadeIn(0), mFadeOut(0), mCategory(0), mFadeState(1), mFadeLeft(0), mFadeVolume(1), mPosition(0), mStartTime(0)
 {
 }
@@ -57,7 +57,7 @@ void HostSound::play()
 		std::fprintf(sLog, "%d play %.0f %s vol=%.3f\n", sLogFrame, lengthMs(mData.get()), mLoop ? "looping" : "once", mVolume);
 }
 
-// Slot 4 (0x443dd0)
+// 0x443dd0
 void HostSound::halt()
 {
 	if (mVoice != 0 && sLog != nullptr)
@@ -99,13 +99,6 @@ void HostSound::setPitch(float thePitch)
 	mPitch = thePitch;
 	if (mVoice != 0)
 		Platform::Mixer::Get().SetVoicePitch(mVoice, thePitch);
-}
-
-// Slot 0x1c (0x443f10)
-void HostSound::setPan(float thePan)
-{
-	mPan = thePan;
-	applyGain();
 }
 
 // Slot 0x24 (0x443f70)
@@ -194,9 +187,7 @@ void HostSound::applyGain()
 	if (mVoice == 0)
 		return;
 	float aGain = mSystem->getCategoryVolume(mCategory) * mSystem->getVolume() * mVolume * mFadeVolume;
-	float aLeft = aGain * (mPan <= 0 ? 1 : 1 - mPan);
-	float aRight = aGain * (mPan >= 0 ? 1 : 1 + mPan);
-	Platform::Mixer::Get().SetVoiceGain(mVoice, aLeft, aRight);
+	Platform::Mixer::Get().SetVoiceGain(mVoice, aGain, aGain);
 }
 
 // 0x443980
@@ -234,27 +225,6 @@ int HostSoundSystem::getSoundMemory(size_t* theBytes) const
 	for (std::map<std::string, std::shared_ptr<Platform::SoundData>>::const_iterator it = mData.begin(); it != mData.end(); ++it)
 		*theBytes += it->second->Bytes();
 	return (int)mData.size();
-}
-
-// Slot 0xc (0x443120)
-void HostSoundSystem::unloadUnused()
-{
-	for (std::map<std::string, std::shared_ptr<Platform::SoundData>>::iterator it = mData.begin(); it != mData.end();)
-	{
-		bool aUsed = false;
-		for (HostSound* aSound : mSounds)
-			aUsed = aUsed || aSound->getData() == it->second;
-		if (aUsed)
-			++it;
-		else
-			it = mData.erase(it);
-	}
-}
-
-// Slot 0x10 (0x443190)
-void HostSoundSystem::unload(const char* theName)
-{
-	mData.erase(theName);
 }
 
 // Slot 0x14 (0x4435e0)

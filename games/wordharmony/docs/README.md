@@ -341,7 +341,7 @@ a run of its own:
 
 **Candidates for taking out** (step 3 of this pass, before the readability pass): the editor's functions above and the
 branches of live functions that only it reaches, `randomLetters`, the dead engine functions, and the layout and particle
-features that no data uses. None is removed yet.
+features that no data uses. They are taken out in the next section.
 
 **Left open.** The recycle button and the bonus word's `pickAll` are the two paths of play that no comparison has run: the
 first needs a THINK level that takes several words, the second a found word that makes the bonus word. Both are read against
@@ -350,6 +350,55 @@ the export. The original's wildcard crash is not kept (above).
 **Cost.** Roughly an hour of machine time for the 18 runs and the few thrown away, one to three game processes at a time,
 and a long session for the sorting (the 485 functions went into about 20 groups by a script that read their names, callers
 and sizes).
+
+## The unneeded code (2026-11-11)
+
+Step 3 of the passes: the code that nothing in this build runs, taken out. The list is the coverage check's candidates
+(above), each one searched for in the port first (a function with a caller anywhere stays) and the engine's other functions
+that have no caller in the port scanned for the same way, then the layout and particle features no data file of the archive
+uses (every XML file was read for the attribute or element). The sources went from 20,324 to 19,150 lines (engine, game
+and src); the frozen baseline writes the same state log and screenshots as before.
+
+**Taken out.**
+
+- *The level editor and its HUD.* `WordBallSystem`'s editor mode (the flag, the dragged ball's `Follow`, the level backup,
+  the editor branches of the mouse handlers, `step`, `spawn`, `startLevel`, `update`, `clear` and the key switch, whose
+  other keys only the editor used), `findObstacle`, `Ball::setLetter`, the obstacles' `touches`, `isActive`, `setOrigin`,
+  `getLetter`, `getType` and `toXml`, `Level`'s assignment (the editor's backup), the HUD's editor branches (`buttonPress`'s
+  editor argument, the ball count buttons), `Game`'s grid snap and `randomLetters`, the editor modes of `chooseLevel`, and
+  `config\EditorHUD.xml`, which `Game::loadData` read at the start and nothing ever showed. With it went `TextButton`
+  and the layout's `textButton` element (only that file used them), `Button::setBaseScale` and `setFlash`.
+- *Engine functions with no caller.* `Node::hitTest(Point&)`, `parentToLocal`, `start`, `stop`, `dump`, `getParent` and
+  `setRotation`, and the container's `hitTest(Point&)`, `start`, `stop` and `dump`; `App::addImage` and `getFileFont`,
+  `Font::loadFile` and `createFont`'s loose-file branch (the archive is the only source); `Graphics::drawImage(x, y)`,
+  `getColor`, `fillRect` and `fillRectAdditive` (with the screen's two); `IntRect::offset` and `intersect`, `Rect::intersect`;
+  the jitter listener's setters; `Selector::getSelectedIndex`; the sound system's `unload` and `unloadUnused`, `getPan`
+  and `setPan` (a voice is never panned, so both channels get the same gain, as before), `halt` as a virtual,
+  `SoundGroup::getPlayingCount` and `getFreeSound`; `HighScoreScreen::reset`; the window's stored mouse position;
+  `Exception::getMessage` and `MemoryStream::getData`.
+- *Features no data of this build reaches.* The layout's `include` and `textSub` elements; a particle stream's `parent`
+  attribute (its anchor), and with it the application's map from node names to nodes (`registerNode`, `unregisterNode`
+  and `findNode`; setting a name no longer inserts into a map); a particle system's own automatic stop (`setDuration`, the
+  countdown in its update, `stopEmitting` and the `autoStop` read of the system element; the data sets `autoStop` on the
+  streams, which stays).
+
+**Kept**, each with its reason: the 14 destructors (the port frees what it allocates; the original
+leaves through `ExitProcess`), the screen saver (its code is read against the export and matches), `HostSound::halt`
+(`stop`, `close` and the destructor call it), `Graphics::setColor`, `Rect::offset`, `Obstacle::getOrigin`, `getExtents`,
+`setLetter` and `clone`, `Bubble::toXml` (`SavedGame` writes bubbles), `Hud::hideBallButtons` (`Hud::load` calls it),
+`Rect::width` and `height` and `IntRect`'s (the geometry types' small accessors, which the original's drawing reached),
+`MemoryStream::seek` (the stream interface), and the XML reader's numeric entities (`startsWith`: the reader is the original's
+and a hand-edited file can carry one).
+
+**`coverage.txt`.** Fifteen of the removed functions were reached by the original in the five tours (the editor HUD's
+text buttons are made at every start, the node map's functions at every named node, the empty function the original's slots
+share): they now have `none` lines, with the reasons above, and the report of the five tours lists no reached function
+without a definition or a line. The 18 runs of the coverage check were not repeated (the logs were gone); the removed
+functions the original did not reach in them are the candidates of the list above, so no deeper run can add to the lines.
+
+**Checks.** The native build and `wordharmony_enginetest` (52 XML files of the archive parsed, 0 failed; the 7 particle
+files with their 8 streams, the 4 music files and the 17 sounds run); `tools/check.sh wordharmony` (the THINK and TSUNAMI games, each twice with the
+same screenshots, then against `build/baseline-wordharmony`: identical); the web build.
 
 ## Mods
 
@@ -363,8 +412,8 @@ mods from `/whpersist/mods` and the site serves the fixes mod on; natively they 
 ## Status (2026-10-26)
 
 The game plays natively and in the browser. Left out: the beta's play time reporter (an online feature) and the crash
-reporter's minidump; the level editor's own functions, which this build never reaches (the branches for it inside
-live functions are ported). The engine's ACM reader is not needed: the music clips are MP3 inside WAV files, which the
+reporter's minidump; the level editor, with its HUD, which this build never reaches (taken out, "The unneeded code").
+The engine's ACM reader is not needed: the music clips are MP3 inside WAV files, which the
 platform's mixer now decodes (`platform/Audio.cpp`). On the web the game's full screen (its options and its
 settings at the start) goes to the page's stage, as the page's Fullscreen button does; a browser grants it only soon
 after a click, so the game always starts in the page.

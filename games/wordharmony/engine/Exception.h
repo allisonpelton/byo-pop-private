@@ -15,7 +15,6 @@ class Exception : public std::exception
 public:
 	Exception(const std::string& theMessage) : mMessage(theMessage) {}  // 0x402700
 	const char* what() const noexcept override { return mMessage.c_str(); }
-	const std::string& getMessage() const { return mMessage; }
 
 private:
 	std::string mMessage;

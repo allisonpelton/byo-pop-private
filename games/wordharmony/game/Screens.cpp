@@ -127,13 +127,6 @@ void HighScoreScreen::setTables(HighScores* thePuzzle, HighScores* theSolitaire,
 	mFirst = 0;
 }
 
-// 0x40b6a0
-void HighScoreScreen::reset()
-{
-	mFirst = 0;
-	showScores();
-}
-
 namespace
 {
 
