@@ -85,6 +85,8 @@ public:
 	void LogState();
 	// port: the standard test commands (docs/TEST_COMMANDS.md, src/TestCommands.cpp)
 	bool HandleScriptCommand(const ScriptCommand& theCommand) override;
+	// port: the memreport test command: what the engine holds beside the framework's own pictures and sounds
+	void AddMemReportHolders(Platform::MemReport* theReport) override;
 	// port: the state command's JSON
 	std::string TestState();
 	// port: the botplay test command: the bot's moves fed to the widget's mouse handlers before each frame, up to frame

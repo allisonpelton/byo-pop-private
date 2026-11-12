@@ -159,6 +159,11 @@ WordHarmonyWidget::WordHarmonyWidget()
 {
 	mScreenImage = new MemoryImage(gApp);
 	mScreenImage->Create(SCREEN_WIDTH, SCREEN_HEIGHT);
+	// port (performance pass): opaque, so that the framework need not look through the 480000 pixels for alpha after each
+	// change, and with every alpha byte 0xff (RunFrame fills the screen with it and every blit writes it), so that it
+	// need not premultiply them pixel by pixel to upload them: the pixels uploaded are the same
+	mScreenImage->SetImageMode(false, false);
+	mScreenImage->mUploadAsIs = true;
 	mGraphics = new wordharmony::ScreenGraphics((uint32_t*)mScreenImage->GetBits(), SCREEN_WIDTH, SCREEN_HEIGHT);
 	mLastLoop = gApp->GetClockTime();
 	mAccumulated = 0;
@@ -385,8 +390,8 @@ void WordHarmonyApp::RunFrame()
 {
 	try
 	{
-		uint32_t* aBits = (uint32_t*)mWidget->mScreenImage->GetBits();
-		std::fill(aBits, aBits + SCREEN_WIDTH * SCREEN_HEIGHT, 0xff000000);
+		// the screen starts black (port: made by the first draw that does not cover it, or at the end of the frame)
+		mWidget->mGraphics->clear();
 		// what the input since the last frame changed is logged under that frame, as origrun logs the original's
 		if (mStateLog != nullptr)
 			LogState();
@@ -395,6 +400,7 @@ void WordHarmonyApp::RunFrame()
 		mFrames++;
 		wordharmony::HostSound::sLogFrame = mFrames;
 		engine::App::instance()->frame(mWidget->mGraphics);
+		mWidget->mGraphics->finish();
 		mWidget->mScreenImage->BitsChanged();
 		if (mStateLog != nullptr)
 			LogState();

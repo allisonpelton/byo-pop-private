@@ -139,9 +139,14 @@ It still stops on some RELAX levels whose letters lie walled in until another wo
 `WH_BOTDEBUG=1`, or the command `botdebug` (`botdebug off`
 ends it; for the web build, which has no environment), prints its plans on stderr.
 
-## Performance (2026-11-08)
+`memreport [file]` prints what the port holds in memory as one `MEMREPORT {...}` line (the standard line, `docs/TEST_COMMANDS.md`):
+the pictures' pixels and the screen texture, the decoded sounds, the two word trees under `others`, and the process's working set
+and private bytes; with a file it writes the detail there too (each picture, the heaps' block sizes). The framework answers it
+and `WordHarmonyApp::AddMemReportHolders` (`src/TestCommands.cpp`) adds the game's holders. It changes nothing.
 
-Measured as `build/slots/news.md` (2026-11-08) asks, with `tools/profile/perf.py` and `run_all.sh`, the original and the
+## Performance before the pass (2026-11-08)
+
+The performance pass (2026-11-11) follows this section. Measured as `build/slots/news.md` (2026-11-08) asks, with `tools/profile/perf.py` and `run_all.sh`, the original and the
 port back to back on this machine, every run started only once `tools/gamecount.py --limit 3` had room. The original ran
 under origrun on its real clock from a fresh copy of the staged game with phase one's patches (the update counter and the
 seed), its registry key cleared first; the port ran natively without `-fast`. Both were sampled every 0.1 s: working set,
@@ -169,7 +174,94 @@ minute starts 67 s after launch on both sides.
 A second pair (B) was taken too; its port run met six game processes of other sessions and a machine 99% busy (its
 frames fell to 22.8 a second), so it is left out and pair C replaces it. The original's B run: 77.8 MB, 55.5 MB, 5.05 s.
 The port needs about three to four times the original's processor time over the minute (17 to 23% of one core against
-4 to 6%) and two to three times its memory. Nothing has been done about either yet; that is the performance pass's.
+4 to 6%) and two to three times its memory. Nothing had been done about either yet; that was the performance pass's.
+
+## Performance pass (2026-11-11)
+
+The pass changes how the port works, never what it does: its changes are in `src/Render.cpp`, `src/WordHarmonyApp.cpp` and
+`game/Dictionary.h`, no draw call, game rule or random draw changed, and the frozen baseline (`tools/check.sh wordharmony`:
+the two scripted games, their saves and screenshots) and the pictures of phase two's tours 1, 2, 3 and 5 (74 shots and each
+tour's state log, `tools/profile/pixcmp.sh <old exe> <new exe> <dir>`, the old and the new exe side by side with `-fast`
+and seed 1) are byte for byte the same after each step.
+
+**Where the time went.** `tools/profile/cpu.py` samples the running threads of the port in the scripted minute (as
+Bejeweled's `cpuprof.py`; its stack walker is `cpuprof_stacks.py`, which follows the frame-pointer chain of a build made
+with `-fno-omit-frame-pointer`, so that the time in Windows and the graphics driver is charged to the exe function that
+called out). Of the main thread's cycles, the software blitter was about 36% (`ScreenGraphics::drawImage` and
+`PixelOp::apply`, a call and a switch for every pixel), the framework's presenting of the frame (`PrepareTexture`'s
+`SDL_UpdateTexture` of the 800x600 picture 4%, the Direct3D 11 driver's worker thread 14%) the next largest, and the game's own logic (`WordNode::find`, `AnagramNode::findWords`, `Container::update`) a few percent each. A first
+profile that charged samples by the cycles used read "`GetTickCountMS` 24%" and "ntdll 35 to 67%": the sampler, whose long
+interval puts a burst of work on whatever instruction is running when it wakes, made them up. The loop in `SexyAppBase::Process` that
+looked like a spin on the clock is not one (counting its calls and the thread's cycles shows no spin), so the profiler now
+counts only the samples at which the thread's cycle counter advanced.
+
+**What the pass changed**, in the order of their gain:
+
+1. The blitter chooses the pixel operation (copy, colour key, blend, add) once for a blit, in a template (`applyPixel<OP>`,
+   `withOp`), not once for every pixel; an unrotated blit works out which source column each destination column reads once
+   (`sBlitColumns`) and, when each destination column reads the next source column (an unscaled blit), does a row as one run
+that the compiler makes into wide loads and stores. The blend works
+   on the red and blue channels in one 32-bit multiply and divides by 255 as `(x + 1 + (x >> 8)) >> 8`, which equals `x / 255`
+   for every product the blend makes (0 to 65534; checked against the old per-channel formula for every channel, alpha and
+   destination value, and 400 million random pixels). A blended pixel of alpha zero is not written.
+2. The screen is cleared lazily (`ScreenGraphics::clear`/`finish`): when a frame's first blit is an opaque copy of the whole
+   screen (the menu's and the game's backdrops), the clear and its 1.9 MB of writes are skipped; any other first draw clears
+   the screen first, so a frame never shows the last frame.
+3. The screen picture is opaque and uploaded as it is (`SetImageMode(false, false)` and `mUploadAsIs` in `WordHarmonyApp`'s
+   widget, as Water Bugs and Cosmic Bugs do): the framework no longer scans the 480,000 pixels for alpha and premultiplies
+   them again every frame before `SDL_UpdateTexture`.
+4. The two word trees (the match tree, 381,205 nodes; the hint tree, 61,691 nodes and their word lists) allocate their nodes
+   from pools of 1,024 (`NodePool` in `game/Dictionary.h`), never freed, as the trees live as long as the game: no heap
+   header on each of the 443,000 nodes (about 3.5 MB by count), and the nodes of a word lie together for the lookups. The
+   process's private bytes vary by more than that between runs (below), so the saving does not show in them.
+5. `memreport`, the standard memory report (`docs/TEST_COMMANDS.md`), reached from a script (below, "Test commands"): the
+   pictures (`App::getImageMemory`), the sounds (`HostSoundSystem::getSoundMemory`) and the two trees, with the process's own
+   numbers, and with a file argument the heaps' block sizes. `tools/profile/mem.py` plays the scripted minute to its middle
+   and asks it, then `tools/memmap.py` reads the process's address space; with `--series` it asks eight times over the
+   whole tour (frames 600 to 7450).
+
+**Processor time** over the scripted minute (tour 2's TSUNAMI game, frames 2000 to 3800, in real time with the machine's other
+sessions running, as in the table above). Processor time moves with the machine's load: run back to back, the same port took
+11.1 s with the machine 83% busy and 6.5 s with it 69% busy, so the runs that count are side by side, two processes started
+together that meet the same load (`tools/profile/pair.sh`, `perf.py` for each). All of them drew 30.3 frames a second.
+
+| Side by side | Original | Port before the pass | Port after the pass |
+| --- | --- | --- | --- |
+| Original and port after | 4.20 s, 3.19 s | | 6.86 s, 5.69 s |
+| Port before and port after | | 34.5 s, 16.3 s | 7.17 s, 6.97 s |
+
+The port needs about 1.7 to 2.2 times the original's processor time over the minute (9 to 12% of one core against 5 to 7%),
+where before the pass it needed three to four times (the table above, back to back) and, side by side, 16 to 35 s. The frames are the same. The original's own figure moves from 2.2 s (a quiet
+machine, 2026-11-08) to 5.2 s with the machine busy.
+
+**What is left** is mostly not the game's. About 38% of the running samples are the blitter, of which a third is one
+instruction, the load of the source pixels in the backdrop's whole-screen copy (480,000 pixels read and written 30 times a
+second, the samples sit on the memory's wait and not on the loop's work), and about 35% is the framework's presenting of each frame
+(`SexyAppBase::Redraw` and `DDInterface::PrepareTexture`: `SDL_UpdateTexture` of the whole 1.9 MB picture, the copy into the
+screen texture, the Direct3D 11 driver and its worker thread). Another SDL render driver does not help: Direct3D 9 costs the
+same (6.2 s against 6.25 s side by side), OpenGL more (7.4 s), the software renderer far more (92 s). Two changes that would
+cut both halves are not made, since they change how the screen is drawn and one is the framework's: drawing only the tiles
+whose draw calls differ from the last frame's, and uploading only those rectangles. They go to the coordinator as a spec.
+
+**Loading** (`perf.py port-load`, five runs): 0.79, 0.79, 0.82, 0.85 and 0.99 s, median 0.82 s, from the process's creation to
+the main menu, the original's 3.24, 3.35 and 3.31 s (its two seconds of splash included). Before the pass it was 0.71 s; the
+pass did not touch loading, and the machine was 53 to 64% busy during these runs.
+
+**Memory.** The report at frame 2700 of the real-time minute: 119 pictures hold 15.4 MB (the screen picture, 1.83 MB, is
+the only one with a texture of its own), the 55 decoded sounds 20.2 MB, the match tree 5.8 MB and the hint tree 2.1 MB, 43.5
+MB the game holds. The process's private bytes were 87.5 MB (the same exe's series runs ended 88, 92, 92 and 94 MB, the exe
+before the pass's 91.5 MB in two runs: the part outside the game's own holders differs from run to run); the first heap holds 50.9
+MB in 43,000 blocks and the rest, about 37 MB, is outside the heaps: the graphics driver's private memory, thread stacks
+(2.4 MB) and mapped files (10.2 MB). `memmap.py` sees the driver's own libraries too (`nvwgf2um.dll` 50.7 MB and
+`nvgpucomp32.dll` 26.6 MB of mapped images, which are shared and not private). Over the whole tour the private bytes
+grow by 0.5 to 0.7 MB between frames 600 and 7450 in each run, so nothing leaks. The original holds 53 to 57 MB private and 69 to 79 MB
+working set at the same point, so the port keeps 30 to 40 MB more: the decoded sounds, 20 MB, and the Direct3D driver's
+memory against the original's DirectDraw; how the original's own memory splits was not measured (`tools/memmap.py` on its copy under
+origrun would). The earlier 154 MB private came from runs that also took screenshots (the PNG encoder's buffers); `perf.py`'s minute
+still takes its two marking shots, so its peak is about 150 MB, and `mem.py` takes none.
+
+The tools are in `tools/profile`: `perf.py` (the load, the minute, the original's run), `run_all.sh` (back to back),
+`pair.sh` (side by side), `cpu.py` with `cpuprof_stacks.py` (the sampling profile), `mem.py` and `pixcmp.sh`.
 
 ## Coverage check (2026-11-11)
 

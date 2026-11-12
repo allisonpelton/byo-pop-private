@@ -100,6 +100,8 @@ public:
 	void update(int theMs) override;
 
 	void removeSound(HostSound* theSound);
+	// port (the "memreport" test command): the sounds held and the bytes of their decoded samples
+	int getSoundMemory(size_t* theBytes) const;
 
 private:
 	std::map<std::string, std::shared_ptr<Platform::SoundData>> mData;  // +0x124
