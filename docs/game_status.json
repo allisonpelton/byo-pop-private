@@ -460,7 +460,7 @@
       ],
       "na": [],
       "now": "performance",
-      "note": "over its paced original while the renderer presents its software screen: waits on the surface presenter"
+      "note": "1.9x its paced original at the original's window (200.8 against 102.8 M cycles a second; main thread 114, the driver's thread 73 to 76): the host now keeps the changed rects; waits on its own SurfaceDisplay opt-in"
     },
     "bonnies": {
       "title": "Bonnie's Bookstore Deluxe",
