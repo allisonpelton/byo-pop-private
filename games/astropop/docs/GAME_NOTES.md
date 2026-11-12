@@ -98,7 +98,8 @@ gate 32 times.
 
 The test command `win` (LevelComplete, called straight) is answered with an ERROR unless the level is in play
 (`Board::WinBlockedReason`, BoardBot.cpp): not with the help, a pause, a story, a level-up, a warp, a bonus round, a count or a game
-over on, and not in a level in which no brick has been taken yet (`mPlayStarted`; `BoardReset` clears it for each level). The original
+over on, and not in a level in which no brick has been taken yet (`mPlayStarted`; `BoardReset` clears it for each level; the bricks the
+ship holds do not count: in a game's first stage (below stage 2) play starts only when the first shot arrives, `BoardArrive`). The original
 calls LevelComplete only from IsSettled in a level being played. A `win` before the first brick of a level was not harmless: the update
 skips `UpdateIntroAndTally` while `mPlayStarted` is false, so a bonus round won that way never ran its warp-in (state frozen at
 `mBonusWarpPhase` 1, the bot's shots going nowhere), and each `win` sent during a bonus round restarted it; under the help or in a warp
@@ -106,14 +107,18 @@ it counted a level clear (`mLevelsCompleted`, the autosplit block's `lc`) that n
 until it answers OK, as the Splits window's does, now plays on until the level is in play; `scripted.py levels`, `winlevels.js` and
 `gotohelp.js` ask again after the next shot.
 
-A game that a test command starts while the full-screen help of the one before is up (`goto classic`, `goto survival`, `level`; the
-original's player cannot, the help is modal) left the help under the new Board: `StartClassicGame` deletes the old Board and adds the new
-one over the help widget, so the help is not drawn, takes no click, and `mHelpScreen` stays set, which holds the Board's updates and
-its input. The bot then answered "help" for good (click on a button that nothing receives), also after `win`; a driver that
-restarts games over an open help (the Site session's page did) met it. The three commands close the help first
-(`CloseHelpBeforeGame` in `testhooks/TestCommands.cpp`, test code only). `games/astropop/tools/web/gotohelp.js` repeats it: three
-restarts with the help up, then 90 bot moves with a `win`; one "help" answer, then shots, the gate and level 2 (before: 20 of 20
-answers "help").
+A game that a test command starts while the full-screen help or a box of the one before is up (`goto classic`, `goto survival`,
+`level`; the original's player cannot, they are modal) left it under the new Board: `StartClassicGame` deletes the old Board and adds the
+new one over the help widget and the dialogs, so they are not drawn and take no click. The help also stays in `mHelpScreen`, which
+holds the Board's updates and input; a box (the warp screen's upgrade box 0x76, the weapon's 0x7b, ...) stays in the dialog map, so
+that the bot goes on answering it, its click reaching the Board (which takes a brick with it: `hand` 1 or 2, the score 0, and `win` refused as
+"play has not started"). The bot then answered "help" or "upgrade" for good, also after `win`; a driver that restarts games over an
+open help or box (the Site session's page did, after its Any% game and with the upgrade box of the last warp still up) met it. The three
+commands close them first (`CloseOldGameScreens` in `testhooks/TestCommands.cpp`, test code only: the help with its own Continue, every
+dialog of ids 100 to 0x7c killed). `games/astropop/tools/web/gotohelp.js` repeats the help case (three restarts over it, then 90 bot
+moves with a `win`: one "help" answer, then shots, the gate and level 2; before: 20 of 20 answers "help") and `winlevels.js` with
+`againat=upgrade` (or `againat=power` with `charge=1`) the box case (before: one "help", then "upgrade" 39 times of 40 moves; after:
+one "help", then shots and a `win` that is answered OK).
 
 A player is two things, and a test that starts with one needs both: the file `users\data<n>.usr` and the registry key
 `Users\<name>` with `Users\LastUser` (the original keeps them under HKLM, the port in its `registry.ini`). `Init` deletes

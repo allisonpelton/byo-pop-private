@@ -65,13 +65,22 @@ void EnsureUser(AstroPopApp* theApp)
 	theApp->ValidateUser();
 }
 
-// A game that a test command starts while the full-screen help of the one before is still up (the original's player cannot: the help is
-// modal): the help goes first, with its own Continue. Left up, it stays under the new Board, which is added over it, so that it is not
-// drawn, takes no click (the Board turns the pointer away while mHelpScreen is set) and holds the game paused for good
-void CloseHelpBeforeGame(AstroPopApp* theApp)
+// A game that a test command starts while the previous game's full-screen help or a box of its is still up (the original's player
+// cannot: they are modal): they go first, the help with its own Continue and each box killed as its button would (the boxes of the
+// game are ids 100 to 0x7c: the upgrade box of the warp screen, the weapon's, the checkpoint's, how to play, options, leave).
+// Left up, they stay under the new Board, which is added over them, so that they are not drawn, take no click (the help also holds
+// the Board's updates and input while mHelpScreen is set) and the bot answers them for good ("help", "upgrade", "power": its click
+// reaches the Board, not the button)
+void CloseOldGameScreens(AstroPopApp* theApp)
 {
 	if (theApp->mHelpScreen != NULL)
 		theApp->CloseFullScreenHelp();
+	for (int anId = 100; anId <= 0x7c; anId++)
+	{
+		if (theApp->GetDialog(anId) != NULL)
+			theApp->KillDialog(anId);
+	}
+	theApp->mOpenDialogs = 0;
 }
 
 // The title screen and the selector both go before a game starts: the title's button is pressed (the descriptor and the
@@ -82,7 +91,7 @@ void LeaveMenus(AstroPopApp* theApp)
 		theApp->OnClickToPlay();
 	EnsureUser(theApp);
 	theApp->CloseMainMenu();
-	CloseHelpBeforeGame(theApp);
+	CloseOldGameScreens(theApp);
 }
 
 // The words of a command's arguments as numbers (missing ones stay as they are)
@@ -226,7 +235,7 @@ bool AstroPopApp::HandleScriptCommand(const ScriptCommand& theCommand)
 		else
 		{
 			EnsureUser(this);
-			CloseHelpBeforeGame(this);
+			CloseOldGameScreens(this);
 			StartClassicGame(aLevel, false, true);
 			ReplyOK(theCommand);
 		}
