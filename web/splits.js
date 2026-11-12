@@ -402,28 +402,24 @@ var ByopopSplits = (function () {
     }
     // Reset: a new personal best and new golds in either method are kept only if the player says so (LiveSplit's "update
     // times?"); No, or closing the question or the page, leaves the stored splits exactly as they were before the attempt (the
-    // user, 2026-11-11)
-    var asking = false;
+    // user, 2026-11-11). The timer is back to idle before the question is asked, so that the next run starts on time: an auto
+    // splitter's reset for a new game comes with that game's start, which a timer still waiting on the answer would miss. The
+    // answer then applies to the attempt that was reset, where its times are still the better ones.
     function reset() {
-      if (att.phase === "idle" || asking) return;
-      var golds = [];
+      if (att.phase === "idle") return;
+      var golds = [], r = run, k = m(), last = r.segments.length - 1;
       ["rt", "gt"].forEach(function (k) { for (var i = 0; i < att.times.length; i++) if (isGold(i, k)) golds.push([i, k, segTime(att.times, i, k)]); });
       var pb = newPB();
-      function clear() {
-        att = { phase: "idle", index: 0, times: [], t0: 0, pausedAt: 0, pausedFor: 0, gameWin: null, gameStep: 10, c0: 0, gtLast: null };
-        if (auto.d) auto.d.onReset();
-        draw();
-      }
-      if (!golds.length && !pb) { clear(); return; }
-      if (att.phase === "running") pause();
-      asking = true;
+      att = { phase: "idle", index: 0, times: [], t0: 0, pausedAt: 0, pausedFor: 0, gameWin: null, gameStep: 10, c0: 0, gtLast: null };
+      if (auto.d) auto.d.onReset();
+      draw();
+      if (!golds.length && !pb) return;
       ask(T("splits.title"), T("splits.keepgolds"), function () {
-        asking = false;
-        if (pb) run.segments.forEach(function (sg, i) { sg.pb = pb[i]; });
-        golds.forEach(function (g) { run.segments[g[0]].best[g[1]] = g[2]; });
-        saveRun(run);
-        clear();
-      }, function () { asking = false; clear(); });
+        if (pb && (r.segments[last].pb[k] === null || pb[last][k] < r.segments[last].pb[k])) r.segments.forEach(function (sg, i) { sg.pb = pb[i]; });
+        golds.forEach(function (g) { var b = r.segments[g[0]].best; if (b[g[1]] === null || g[2] < b[g[1]]) b[g[1]] = g[2]; });
+        saveRun(r);
+        if (r === run) draw();
+      }, function () {});
     }
 
     // ---- File ----

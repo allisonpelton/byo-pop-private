@@ -580,8 +580,9 @@ every port of a game with a leaderboard on speedrun.com"). `web/autosplit.js` ho
 the port publishes, how to read it and the decisions. With Options, Auto Splitter on (the default), the window polls a game
 every 10 ms, as LiveSplit does. That is the game window in front while the timer is idle, and the run's own window while it
 runs. It does so only when the game has an auto splitter and the splits' game name is the game's speedrun.com name. Its
-decisions go through the timer's own Start, Split and Reset, so an automatic reset asks about new bests as the player's does;
-a split undone by hand is split again on the next poll, and the run's window closing is the script's exit. File, New from
+decisions go through the timer's own Start, Split and Reset, so an automatic reset asks about new bests as the player's does.
+The timer is idle again before that question is asked, and the answer applies to the attempt that was reset: a reset for a
+new game comes with that game's start, which a timer waiting on the answer would miss. A split undone by hand is split again on the next poll, and the run's window closing is the script's exit. File, New from
 Template offers each game's templates, named after its speedrun.com categories, and opens the stored splits of the same
 name when they exist. Game pages export `HEAPU8`, which the page reads the block from.
 
@@ -748,13 +749,18 @@ pixels wide). For each window it checks that structure and runs the checker on t
 `window.byopopDeskCheck.result`, and the page's title ends with "deskcheck: PASS" or "FAIL". The chat's window is checked
 closed, because opening it starts the chat.
 
-Three more checks run the same way, each named in `driver=` and each reporting through the same result and title.
+Four more checks run the same way, each named in `driver=` and each reporting through the same result and title.
 `tools/web/closecheck.js` closes game windows whose page never answers the close: a page that is not there, a frame that
 could not load, and a page that takes the close but never hands the window back. The window must go at once, or, for the
 silent page, after its four-second wait, and at once on a second Close (`web/deskapps.js`, `closeApp`).
 `tools/web/splitscheck.js` resets the speedrun timer with No, with Escape, after an abandoned run and after an Undo, and
 compares the stored splits with what they were before the attempt. It then answers Yes and checks that the run's times were
-kept (`web/splits.js`, `reset`); it removes its own test splits at the end. `tools/web/musicmutecheck.js` mutes a channel from
+kept (`web/splits.js`, `reset`); it removes its own test splits at the end. `tools/web/autosplitcheck.js` opens BookWorm
+in a desktop window with the test kit in its frame (`player=1&assets=1&fast=1` added to the window's own address), plays
+runs of its speedrun.com categories by its bot and the `win` and `lose` commands, and checks that the Splits window, as a
+player has it, reads the block, starts each run at a new game, splits on every level cleared and ends Any% at rank 31, resets
+on a new game (and starts the next run at once), resets Any% on a game over, ends Bookburner at a game over at rank 0 and
+resets it on one at rank 1. It answers every question No and removes the splits it stored. `tools/web/musicmutecheck.js` mutes a channel from
 Music's tracker, turns the view off and on, switches tunes and comes back, and compares the tracker's header with what the
 player itself has muted (`bm_mute_status`). It then sends the keyboard's media keys with Music open and closed and checks
 the player's state and its sound context, not its buttons (`web/music.js`, `syncMutes` and the media keys). It needs games
