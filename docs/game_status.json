@@ -1,5 +1,5 @@
 {
-  "updated": "2026-11-11",
+  "updated": "2026-11-12",
   "steps": [
     {
       "id": "port",
@@ -515,15 +515,15 @@
       "title": "Heavy Weapon Deluxe",
       "done": [],
       "na": [],
-      "now": null,
-      "note": "Not started"
+      "now": "port",
+      "note": "started 2026-11-12 (Opus): the port and phase one (plays identical); the later steps wait for the user"
     },
     "hammerheads": {
       "title": "Hammer Heads Deluxe",
       "done": [],
       "na": [],
-      "now": null,
-      "note": "Not started"
+      "now": "port",
+      "note": "started 2026-11-12 (Sonnet): the port and phase one (plays identical); the later steps wait for the user"
     },
     "pizzafrenzy": {
       "title": "Pizza Frenzy",

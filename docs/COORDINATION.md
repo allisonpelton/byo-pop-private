@@ -93,7 +93,12 @@ holds the rules every session follows; this file does not repeat them.
   Frenzy 2), each taken all the way through. The first pair is watched for trouble: "When we get to it, see if running
   two-by-two causes issues. If not, continue with two". A game that builds on another's engine waits for that game; a
   slot the next game cannot use yet goes to the cheapest remaining one. Within a step, the lowest-effort games go first
-  ("Start with lowest effort", 2026-11-03).
+  ("Start with lowest effort", 2026-11-03). The user has made exceptions to the first sentence. Venice started early,
+  on 2026-11-12, to test the rule below. Later that day, after Venice's port and both phases of identical play came in
+  under its estimate, the user asked "Would it be wasteful if I asked for the plays identical step for some of the
+  other decomps this week?" and then said "Start both". So Heavy Weapon (Opus) and Hammer Heads (Sonnet) started side
+  by side, each through the port and phase one only. Their later steps wait for the user's word. Heavy Weapon moves
+  Bookworm Adventures' SWF player under `engines/`, and Hammer Heads uses it from there.
 - **A new port writes to the standards from its first draft (the user, 2026-11-12: "Yes, add it").** Of what the
   eleven smaller games spent after their first playable merge (about $2,200 at Opus prices), about half went on the
   checks against the original (identical play, screens and sound, coverage, the Collection), a fifth on performance and
