@@ -349,7 +349,6 @@ int Font_LoadXml(const char*, const XmlTag* theTag)
 	}
 	Font_SetAlign(&gFonts.current->font, 0);
 	Font_SetSpacing(&gFonts.current->font, Xml_GetInt(theTag, "spacing"));
-	Font_SetClipped(&gFonts.current->font, 1);
 	Font_SetEscapes(&gFonts.current->font, 1);
 	std::strcpy(gFonts.current->name, Xml_GetString(theTag, "name"));
 	std::strcpy(gFonts.current->strip, Xml_GetString(theTag, "face"));

@@ -985,7 +985,7 @@ void Menu_ShowRequester(Menu* theMenu, int theKind, const char* theText, const c
 		Text* anEntry = aList->current->entry;
 		anEntry->font = Font_Find("bonus_font");
 		TextInput* anInput = &anEntry->input;
-		TextInput_Init(anInput, nullptr, nullptr, Font_Find("bonus_font"), 0xc, 4, 0x113, 0x113, 0x20d, 300);
+		TextInput_Init(anInput, Font_Find("bonus_font"), 0xc, 4, 0x113, 0x113, 0x20d, 300);
 		TextInput_SetFocus(anInput, 1);
 		TextInput_SetCaseMode(anInput, 1);
 		TextInput_SetFillColour(anInput, 100, 100, 100, 100);
