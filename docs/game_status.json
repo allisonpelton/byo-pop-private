@@ -320,11 +320,12 @@
       "title": "Bookworm Adventures Volume 2",
       "done": [
         "port",
-        "site-features"
+        "site-features",
+        "registration-out"
       ],
       "na": [],
       "now": "identical-play",
-      "note": "Bot stuck in prologue; later chapters open"
+      "note": "The bot plays into book 4; chapter comparison under way"
     },
     "bookwormadv": {
       "title": "Bookworm Adventures Deluxe",

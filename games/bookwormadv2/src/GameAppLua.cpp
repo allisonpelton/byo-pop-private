@@ -64,7 +64,7 @@ bool HasPlayedGameBefore(GameApp* app) { return app->HasPlayedGameBefore(); }
 void ClearUpdateBacklog(GameApp* app) { app->ClearUpdateBacklog(false); }  // V1:0x442eb0
 // V1:0x442ec0: the original's two vsync flags; the port's display has neither
 bool SmoothScrolling(GameApp* app) { return false; }
-// V1:0x429cc0 (+0x91d): the trial's lockout does not exist in the port yet
+// V1:0x429cc0: the scripts still ask; there is no lockout, so never
 bool QueuedHydraLockout(GameApp* app) { return false; }
 bool ShowingStatsBook(GameApp* app) { return app->mBookScreen != nullptr; }  // V1:0x416380
 void AddStatsBook(GameApp* app, bool theFromGame, bool theBestiary, bool theMediaPlayer)  // V1:0x444150
@@ -271,16 +271,13 @@ int DrawBonusText(GameApp* app, lua_State* L)
 	return 0;
 }
 
-// V1:0x451c80: whether the trial's lockout follows the hydra's conversation (a distribution of the trial, not
-// registered, past the first book's seventh chapter). port: the port plays as registered, so never
+// V1:0x451c80: the scripts still ask whether a lockout follows the hydra's conversation; there is none, so never
 bool ShouldDoHydraLockout(GameApp* app) { return false; }
-// V1:0x451e30: the conversation panel comes up again, and the warp-in sound plays once it is off (the lockout's
-// callback V1:0x451eb0 instead, in the trial)
+// V1:0x451e30: the conversation panel comes up again, and the warp-in sound plays once it is off
 void DoAfterHydraConvPanel(GameApp* app)
 {
 	app->mConversationPanel->Activate(true);
-	if (!ShouldDoHydraLockout(app))
-		app->mConversationPanel->mInactiveCallback = "Book.PlayWarpInSound";
+	app->mConversationPanel->mInactiveCallback = "Book.PlayWarpInSound";
 }
 
 // V1:0x44c390: a message box with the title "ERROR"
