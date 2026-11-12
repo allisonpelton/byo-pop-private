@@ -364,6 +364,14 @@ void DDInterface::UpdateDisplaySize()
 		SDL_SetRenderTarget(mRenderer, aTarget);
 }
 
+std::string DDInterface::RendererName() const
+{
+	SDL_RendererInfo anInfo;
+	if ((mRenderer != NULL) && (SDL_GetRendererInfo(mRenderer, &anInfo) == 0) && (anInfo.name != NULL))
+		return anInfo.name;
+	return "none";
+}
+
 bool DDInterface::CreateScreenTexture(int theRenderScale)
 {
 	if (mScreenTexture != NULL)

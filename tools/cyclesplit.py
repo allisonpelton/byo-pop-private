@@ -77,8 +77,9 @@ def split(a, b):
     d['process'] = b['process_cycles'] - a['process_cycles']
     d['main'] = b['main_thread_cycles'] - a['main_thread_cycles']
     for p in ('update', 'draw', 'present'):
-        d[p] = b['parts'][p]['cycles'] - a['parts'][p]['cycles']
-        d[p + '_calls'] = b['parts'][p]['calls'] - a['parts'][p]['calls']
+        none = {'calls': 0, 'cycles': 0}      # a list may leave a part out
+        d[p] = b['parts'].get(p, none)['cycles'] - a['parts'].get(p, none)['cycles']
+        d[p + '_calls'] = b['parts'].get(p, none)['calls'] - a['parts'].get(p, none)['calls']
     d['counter_calls'] = b['counter']['calls'] - a['counter']['calls']
     d['counter_each'] = b['counter']['cycles_each']
     before = {t['tid']: t['cycles'] for t in a['threads']}

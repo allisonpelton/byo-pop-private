@@ -6,6 +6,7 @@
 
 #include <SDL.h>
 #include <windows.h>
+#include <intrin.h>
 #include <tlhelp32.h>
 
 #include <algorithm>
@@ -19,6 +20,7 @@ namespace Platform
 {
 
 bool gCycleSplitOn = false;
+static bool gCycleSplitStarted = false;     // Start() succeeded; gCycleSplitOn is false while counting is paused
 
 namespace
 {
@@ -41,7 +43,8 @@ struct State
 	uint64_t mCycles[CYCLE_NUM_PARTS] = {};
 	uint64_t mCalls[CYCLE_NUM_PARTS] = {};
 	uint64_t mReads = 0;                // cycle readings made by Enter and Leave
-	uint64_t mReadCycles = 0;           // what one reading costs, measured at the start
+	uint64_t mReadCycles = 0;           // what one reading costs in a run of them, measured at the start
+	uint64_t mReadTsc = 0;              // the time-stamp counter's ticks spent in the readings Enter and Leave made, in the running game
 	uint64_t mMisses = 0;               // a Leave with no part open, or a part nested deeper than the stack holds
 	int64_t mCounterStart = 0;          // QueryPerformanceCounter at the start
 	double mCounterFreq = 0;
@@ -58,6 +61,17 @@ inline uint64_t ThreadCycles()
 {
 	ULONG64 aCycles = 0;
 	QueryThreadCycleTime(GetCurrentThread(), &aCycles);
+	return aCycles;
+}
+
+// A reading as Enter and Leave make it, timed by the time-stamp counter (about 25 cycles each side). In the running game a reading
+// costs several times what a run of them in a row does (the system call finds cold caches and predictors after the game's own
+// code), so the file's cycles_each is this one.
+inline uint64_t TimedThreadCycles()
+{
+	uint64_t aBefore = __rdtsc();
+	uint64_t aCycles = ThreadCycles();
+	gState.mReadTsc += __rdtsc() - aBefore;
 	return aCycles;
 }
 
@@ -162,8 +176,9 @@ void Snapshot(const std::string& theLabel, int theUpdateCount)
 			(unsigned long long) gState.mCalls[i], (unsigned long long) gState.mCycles[i]);
 		aLine += aBuf;
 	}
-	snprintf(aBuf, sizeof(aBuf), "},\"counter\":{\"calls\":%llu,\"cycles_each\":%llu},\"misses\":%llu,\"threads\":[",
-		(unsigned long long) gState.mReads, (unsigned long long) gState.mReadCycles, (unsigned long long) gState.mMisses);
+	snprintf(aBuf, sizeof(aBuf), "},\"counter\":{\"calls\":%llu,\"cycles_each\":%llu,\"cycles_in_a_row\":%llu},\"misses\":%llu,\"threads\":[",
+		(unsigned long long) gState.mReads, (unsigned long long) ((gState.mReads > 0) ? gState.mReadTsc / gState.mReads : gState.mReadCycles),
+		(unsigned long long) gState.mReadCycles, (unsigned long long) gState.mMisses);
 	aLine += aBuf;
 
 	// every other thread of the process; ones that ended since the process began are in the process total only
@@ -208,7 +223,7 @@ void Snapshot(const std::string& theLabel, int theUpdateCount)
 
 bool CycleSplitStart(const std::string& theFileName)
 {
-	if (gCycleSplitOn)
+	if (gCycleSplitStarted)
 		return true;
 	if (theFileName.empty())
 	{
@@ -236,6 +251,7 @@ bool CycleSplitStart(const std::string& theFileName)
 		ThreadCycles();
 	gState.mReadCycles = (ThreadCycles() - aFirst) / (kProbes + 1);
 
+	gCycleSplitStarted = true;
 	gCycleSplitOn = true;
 	SDL_Log("cyclesplit: counting to %s (a cycle reading costs %llu cycles)", theFileName.c_str(), (unsigned long long) gState.mReadCycles);
 	return true;
@@ -254,13 +270,13 @@ bool CycleSplitEnter(CyclePart thePart)
 	aFrame.mPart = thePart;
 	aFrame.mChild = 0;
 	gState.mReads++;
-	aFrame.mStart = ThreadCycles();     // last, so that this function's own work is outside the part
+	aFrame.mStart = TimedThreadCycles();     // last, so that this function's own work is outside the part
 	return true;
 }
 
 void CycleSplitLeave()
 {
-	uint64_t aNow = ThreadCycles();     // first, for the same reason
+	uint64_t aNow = TimedThreadCycles();     // first, for the same reason
 	gState.mReads++;
 	if (gState.mDepth <= 0)
 	{
@@ -282,9 +298,17 @@ void CycleSplitMark(const std::string& theLabel, int theUpdateCount)
 	Snapshot(theLabel, theUpdateCount);
 }
 
+bool CycleSplitPause(bool thePause)
+{
+	if (!gCycleSplitStarted)
+		return false;
+	gCycleSplitOn = !thePause;
+	return true;
+}
+
 void CycleSplitFinish(int theUpdateCount)
 {
-	if ((!gCycleSplitOn) || (gState.mFinished))
+	if ((!gCycleSplitStarted) || (gState.mFinished))
 		return;
 	Snapshot("exit", theUpdateCount);
 	gState.mFinished = true;

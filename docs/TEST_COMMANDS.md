@@ -36,7 +36,7 @@ test hooks of their own keep them and add these names beside them, sharing the c
 | `seed <n>` | seeds the game's random numbers, where the game draws them from one generator |
 | `move` | prints the move the game's bot would make next, `MOVE {...}`: what it is (the swap, the word, the tile, the shot) and `input`, the real input that makes it, as an ordered list of steps in game coordinates (below); or `MOVE null` when there is none; it changes nothing |
 | `memreport [file]` | prints what the game holds in memory as one JSON line, `MEMREPORT {...}` (below); with a file it also writes the detail there (a SexyAppFramework port: every picture with its copies, and the heaps). It changes nothing |
-| `cyclesplit [label]` | with `-cyclesplit=<file>`: a snapshot of the cycle counters, kept in memory and written with the file at exit ("The cycle split", below); an error without the option |
+| `cyclesplit [label]` | with `-cyclesplit=<file>`: a snapshot of the cycle counters, kept in memory and written with the file at exit ("The cycle split", below); `cyclesplit pause` and `cyclesplit resume` stop and start the readings; an error without the option |
 
 `memreport` answers with the same line in every game, so that a game's memory splits the same way everywhere:
 `{"images":{"count","pixels","copies","textures"},"sounds":{"count","bytes"},"music":{"count","tracks","moduleFiles"},`
@@ -98,11 +98,23 @@ is reported as "picture" (draw, present and driver threads together) and never s
 draws in software (the 2D software renderer, the original's own blitters).
 
 **The port.** `-cyclesplit=<file>` (native only; the web build has no thread cycle counters and compiles it out): a test of one
-flag at the three sites when off, and when on a cycle reading (a system call, 716 cycles measured on the development machine, about
-0.3 us) at each boundary, six for a frame that is drawn, and nothing else during the run. The script (or live) command
-`cyclesplit [label]` takes a snapshot in memory (a thread listing, a millisecond or two, which falls in the next stretch's "loop");
-the file is written with one more snapshot, labelled `exit`, when the loop ends, so a run of 7,000 updates costs the 40 thousand
-or so readings and nothing else: for BookWorm at 100 updates a second that is 0.16 % of its processor time. The code is
+flag at the three sites when off, and when on a cycle reading (a system call) at each boundary: two for each part a call of it
+makes, so about four an update for BookWorm (an update and a draw, a present now and then), and nothing else during the run. The
+script (or live) command
+`cyclesplit [label]` takes a snapshot in memory (a thread listing, a millisecond or two, which falls in the next stretch's "loop"), and
+`cyclesplit pause` and `cyclesplit resume` stop and start the readings (the sites then cost the test of one flag, as without the option);
+the file is written with one more snapshot, labelled `exit`, when the loop ends.
+
+**What counting costs** (BookWorm, measured, 2026-11-12). One reading takes 500 to 860 cycles in a tight loop (the file's
+`counter.cycles_in_a_row`, measured at the start) but 3 to 13 thousand in the running game (`counter.cycles_each`: the time-stamp
+ticks the readings took, a mean that includes whatever interrupted one), since a system call made after game code finds its
+kernel path cold. The two sums disagree by a factor of ten, so the cost was measured as a whole: the same run alternates counting
+and `cyclesplit pause` in blocks of 200 updates on the idle title screen (the machine's noise, about a quarter run to run, falls
+on both), and the loop thread's cycles an update are compared (`games/bookworm/tools/profile/toggleruns.sh`, then `cycles.py
+toggle`). Twelve runs of the port: counting adds 7 to 23 thousand cycles an update on average (a run's figure from -10 to 37
+thousand), about four readings at 2 to 5 thousand; against the like-for-like scenario's 2.0 million an update that is 0.4 to 1.1 %
+of the port's total, under what moves a run's total from one run to the next. A split states it beside its numbers, and it is no
+reason to run a measurement of the total with counting on: the target's figure comes from a run without it. The code is
 `platform/CycleSplit.{h,cpp}`. The option is not a test-run flag by itself: a measurement is a `-script` run (no `-commands`,
 whose poll costs 340 thousand cycles an update).
 
@@ -110,13 +122,48 @@ whose poll costs 340 thousand cycles an update).
 
     {"label":"a","update":200,"wall_s":3.93,"process_cycles":...,"main_thread_id":...,"main_thread_cycles":...,
      "parts":{"update":{"calls":..,"cycles":..},"draw":{...},"present":{...}},
-     "counter":{"calls":..,"cycles_each":..},"misses":..,
+     "counter":{"calls":..,"cycles_each":..,"cycles_in_a_row":..},"misses":..,
      "threads":[{"tid":..,"name":"SDLAudioP2","start":"sdl2.dll+0x11f810","cycles":..}, ...]}
 
-`threads` holds every thread but the loop's; `counter` is the readings made and what one costs, so that a reader can take them out;
+`threads` holds every thread but the loop's; `counter` is the readings made and what one cost, in the running game and in a tight
+loop (see "What counting costs"), so that a reader can take them out;
 `misses` counts a part that was left unclosed or nested deeper than eight (a port: never; the original: a longjmp or an exception
 that skipped a return). `python -I tools/cyclesplit.py <file> [<the original's file>] --from <label> --to <label>` prints a stretch's
 parts in million cycles an update and as a share of a core, and the two sides side by side.
+
+**Picking the functions** (a game that is not a SexyApp game, or whose original differs from BookWorm's). The three parts are
+roles, and SexyApp's functions above are the standard case: a game on another engine (Retro64, the Mahjong engine, Venice's)
+maps each role to its own functions, the same ones on both sides.
+
+- *update* is everything that moves the game one step: the function the loop calls once a tick, with the logic, the widgets'
+  or scenes' updates and the music's tick below it, and nothing that draws. *draw* is the game's own code that builds a frame's
+  picture, up to the hand-off to the display (the dirty scan, the begin-frame, the screen's draw). *present* is the hand-off
+  itself: the call that uploads, flips or swaps (SDL_RenderPresent, a Blt or Flip, a swap buffers) and what the game does
+  around it (the cursor). Audio is not a part: it is the other threads, found by name.
+- Where a role has several functions, pick the outermost that holds the whole step, never a callee of it, since a part's
+  cycles are its own less the counted parts it calls; a present inside the draw (BookWorm's `DrawDirtyStuff` calls `Redraw`) is
+  fine and is taken out of the draw. Do not count the same function under two labels.
+- *The port:* put `Platform::CycleScope aScope(Platform::CYCLE_UPDATE)` (or `CYCLE_DRAW`, `CYCLE_PRESENT`) at the top of the
+  function that plays the role, in the engine's code, once each, on the loop's thread (`platform/CycleSplit.h`). A SexyApp game
+  has them in the framework already and adds nothing.
+- *The original:* find the three functions in the game's export (the loop's tick, the frame's draw, the present), and check
+  them against the game before listing them: the update counter says how many updates ran (`--count` shows each function's
+  calls, so update calls equal the counter, draw is about one a drawn frame, present no more than draw). `python tools/origrun/prologue.py
+  <exe> update=0x<va> draw=0x<va> present=0x<va>` prints each function's `len=` (the first whole instructions, five bytes or
+  more, with no relative jump or call among them), and the three lines go in `games/<game>/tools/profile/count.txt`: a label,
+  an address and a length, nothing of the game's bytes, which `--count` reads out of the exe (`docs/ORIGRUN.md`, "Counting
+  cycles inside the original's functions"; BookWorm's file and `cycles.py` with `PERF_SPLIT=1` are the worked example).
+- *Checks before a split is reported:* the counted parts are most of the loop thread's cycles (the rest is "loop": events and
+  waking from Sleep), `misses` is 0, and the file's `counter` line says what the readings cost, which a split reports beside its
+  numbers. A game whose GPU renderer batches its calls reports "picture" (draw, present and the driver's threads) and not the
+  three, as above.
+
+**The window line.** A run says what it measured in: `display: client 1280x960 px, logical 640x480, render scale 2, windowed,
+renderer direct3d11` is logged (SDL_Log, so in the run's log) when the display is made and again at every size or mode change
+(a line that repeats the last is not logged again). The client size is the drawable's in pixels, the render scale the
+framework's (a GPU display has 1), the renderer SDL's name for it or a GPU display's description. The port's window is 2x the
+game's own size when the desktop has room, and `-windowscale=1` makes it the game's own, as the original's (`-windowscale=N`
+for N times the logical size; `-renderscale=N` is the render target's size, a separate setting).
 
 ## The bot behind `move`
 

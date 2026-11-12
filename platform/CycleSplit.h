@@ -14,9 +14,11 @@
 // waking from Sleep) is whatever its total has beyond the three parts. A snapshot also holds the process's cycles, which count
 // the threads that ended too, so the parts always add up to the total.
 //
-// Off by default: every site is a test of one flag. On, a main-thread cycle reading at each boundary (a system call, about 0.8 us:
-// six to a frame that is drawn; the file records how many were made and what one costs) and nothing else during the run: snapshots
-// are taken in memory by the "cyclesplit <label>" command and written, with one more at exit, as JSON lines when the loop ends.
+// Off by default: every site is a test of one flag. On, a main-thread cycle reading at each boundary (a system call: two for each
+// call of a part, about four an update for BookWorm; the file records how many were made and what one cost, 500 to 860 cycles in a
+// tight loop but 2 to 5 thousand in the running game, so counting adds about 0.4 to 1 % to BookWorm's total: docs/TEST_COMMANDS.md,
+// "What counting costs") and nothing else during the run: snapshots are taken in memory by the "cyclesplit <label>" command and
+// written, with one more at exit, as JSON lines when the loop ends.
 // Native only (Windows); the web build has no thread cycle counters and compiles every call out.
 
 #include <string>
@@ -44,6 +46,9 @@ void CycleSplitLeave();
 // A snapshot of the counters, kept in memory (a thread listing and a few reads: a millisecond or two, on the loop's thread, with
 // the open parts' time so far credited to them first, so that the snapshot falls exactly between two stretches)
 void CycleSplitMark(const std::string& theLabel, int theUpdateCount);
+// Stops the readings (the scopes then cost a test of one flag, as without the option) or starts them again, to see what counting
+// costs: a run that alternates the two in blocks of updates compares them under the machine's own noise. False without Start().
+bool CycleSplitPause(bool thePause);
 // The last snapshot ("exit"), then the file. Once.
 void CycleSplitFinish(int theUpdateCount);
 
@@ -63,6 +68,7 @@ private:
 static const bool gCycleSplitOn = false;
 inline bool CycleSplitStart(const std::string&) { return false; }
 inline void CycleSplitMark(const std::string&, int) {}
+inline bool CycleSplitPause(bool) { return false; }
 inline void CycleSplitFinish(int) {}
 
 class CycleScope
