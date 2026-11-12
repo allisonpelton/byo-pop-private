@@ -6,6 +6,7 @@
 #include "TalkingHead.h"
 #include "Dialogs.h"
 #include "Board.h"
+#include "LiveSplitObserver.h"
 #include "Dialog.h"
 #include "ButtonWidget.h"
 #include "GameText.h"
@@ -111,6 +112,7 @@ RocketApp::RocketApp()
 // 0x42b3f0
 RocketApp::~RocketApp()
 {
+	LiveSplitObserver::AppDestroyed(this);   // port: the autosplit block's last write (LiveSplitObserver.h)
 	delete mStateLog;
 	delete mUiBot;
 	if (mBoard != NULL)
@@ -318,7 +320,9 @@ bool RocketApp::HandleScriptCommand(const ScriptCommand& theCommand)
 // port: the test hooks (testhooks/UiBot.h)
 void RocketApp::HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue)
 {
-	if (!mUiParams.Parse(theParamName, theParamValue))
+	if (theParamName == "-livesplitlog")
+		LiveSplitObserver::SetLogFile(theParamValue);   // port: one line for each change the autosplit block shows (tests)
+	else if (!mUiParams.Parse(theParamName, theParamValue))
 		SexyApp::HandleCmdLineParam(theParamName, theParamValue);
 }
 
@@ -351,6 +355,7 @@ void RocketApp::UpdateFrames()
 			mUiBot = new UiBot(this, mUiParams);
 		mUiBot->Update();
 	}
+	LiveSplitObserver::AfterUpdate(this);   // port: the autosplit block, after the update (LiveSplitObserver.h)
 }
 
 // 0x42ed10: the dialogs' buttons arrive as 2000 + dialog id (yes, ok) and 3000 + dialog id (no, cancel)

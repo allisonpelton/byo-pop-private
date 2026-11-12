@@ -307,11 +307,12 @@
         "performance",
         "lite-mod",
         "unneeded-code",
-        "readability"
+        "readability",
+        "collection"
       ],
       "na": [],
-      "now": "collection",
-      "note": "lite mod: none taken (the whole update is 1.7% of the port's cycles); unneeded code out and the readability pass done, baseline identical; the Collection check next"
+      "now": null,
+      "note": "done: every step but modding; the Collection's exe is the same 2003 game image, its files play and draw the same; not for sale as of 2026-11-02"
     },
     "dynomite": {
       "title": "Dynomite Deluxe",
