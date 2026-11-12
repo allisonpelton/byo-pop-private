@@ -122,7 +122,8 @@ or over. The input steps are those the drivers send as real events: `{"move": [x
 `"button": "right"` for the aim switch), `{"press": ...}`/`{"release": ...}`, `{"key": "Escape"}` and `{"wait": n}`
 (n game updates). The `kind` says why: `hover` (put the pointer on the board, since a pointer over the bottom panel stops
 the play), `aim` (move to the line's start), `turn` (the right click that switches across and down), `shot` (the
-click), `launch` (the button a title, options or instructions screen needs), `continue` (a click through a won board's
+click), `launch` (the instructions page's Play button, or a power-up weapon's launch click on a board; the title's and
+options' buttons are the driver's own), `continue` (a click through a won board's
 texts), `wait` (nothing to do for 10 updates) and null. The bot searches the cells where a line fills most of the board without crossing an enemy's
 path in the time the line takes (`Safe`), and when it finds none for 30 asks in a row on a board it takes the best gain
 anyway, so a board always ends. It plays the game's own rules from the game's own state, one shot at a time, and a mod
