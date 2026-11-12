@@ -55,7 +55,7 @@ DynomiteStomped::DynomiteStomped()
 	mCleared = false;
 	mClearedAlpha = 0;
 	mClearedFrames = 0;
-	mField23c = 0;
+	mSongOffset = 0;
 	mScoreRanks[0] = 0;
 	mFirstRound = true;
 	mSong = 1;
@@ -104,24 +104,24 @@ Egg* DynomiteStomped::NextEgg()
 	if (mEggCount < mEggIndex)
 	{
 		anEgg = Dynomite::NextEgg();
-		if ((mField108 != 0) && (anEgg->mColor < 0xf))
+		if ((mNextEggKind != 0) && (anEgg->mColor < 0xf))
 		{
-			if (mField108 == 0x14)
+			if (mNextEggKind == 0x14)
 			{
 				if ((0x168 < mGrid->mBottom) && (mApp->mPicker.Random(2, false) == 0))
-					mField108 = 5;
-				if (mField108 == 0x14)
+					mNextEggKind = 5;
+				if (mNextEggKind == 0x14)
 				{
 					if (0x178 < mGrid->mBottom)
-						mField108 = 5;
-					if ((mField108 == 0x14) && (mApp->mPicker.Random(6, false) == 2))
-						mField108 = 1;
+						mNextEggKind = 5;
+					if ((mNextEggKind == 0x14) && (mApp->mPicker.Random(6, false) == 2))
+						mNextEggKind = 1;
 				}
-				if (mField108 == 0x14)
-					mField108 = mApp->mPicker.Random(3, false) + 8;
+				if (mNextEggKind == 0x14)
+					mNextEggKind = mApp->mPicker.Random(3, false) + 8;
 			}
-			anEgg->mKind = mField108;
-			mField108 = 0;
+			anEgg->mKind = mNextEggKind;
+			mNextEggKind = 0;
 		}
 		return anEgg;
 	}
@@ -139,29 +139,29 @@ Egg* DynomiteStomped::NextEgg()
 		anEgg->mKind = aKind;
 		return anEgg;
 	}
-	if ((mField108 != 0) && (anEgg->mColor < 0xf))
+	if ((mNextEggKind != 0) && (anEgg->mColor < 0xf))
 	{
-		if (mField108 == 0x14)
+		if (mNextEggKind == 0x14)
 		{
 			if ((300 < mGrid->mBottom) && (mApp->mPicker.Random(3, false) == 0))
-				mField108 = 5;
-			if (mField108 == 0x14)
+				mNextEggKind = 5;
+			if (mNextEggKind == 0x14)
 			{
 				if (mApp->mPicker.Random(6, false) == 2)
-					mField108 = 1;
-				if (mField108 == 0x14)
-					mField108 = mApp->mPicker.Random(3, false) + 8;
+					mNextEggKind = 1;
+				if (mNextEggKind == 0x14)
+					mNextEggKind = mApp->mPicker.Random(3, false) + 8;
 			}
 		}
-		anEgg->mKind = mField108;
-		mField108 = 0;
+		anEgg->mKind = mNextEggKind;
+		mNextEggKind = 0;
 	}
 	return anEgg;
 }
 
 // 0x40eef0: the grid again from the round's place in the pack; in the tutorial rows 4 to 9 of the first ten columns
 // are emptied. The ceiling then comes down from above to where the puzzle has it.
-void DynomiteStomped::LoadGrid(int theUnused)
+void DynomiteStomped::LoadGrid()
 {
 	mPack.Open("STOMPED.TMP", true);
 	mPack.Seek(mPackPos);
@@ -195,7 +195,7 @@ void DynomiteStomped::LoadGrid(int theUnused)
 	mGrid->ResetCeiling();
 	mShotsLeft = mShotsPerDrop;
 	mCeilingMoving = true;
-	mSteggy->mField28 = true;
+	mSteggy->mInRound = true;
 	mShots = 0;
 	mStartEggs = 0;
 }
@@ -333,7 +333,7 @@ void DynomiteStomped::EggAlone(int theColor)
 // 0x40f420
 void DynomiteStomped::GetPowerUpCenter(int* x, int* y)
 {
-	*x = mField70 + mField6c;
+	*x = mPlayMiddleX + mPlayHalfWidth;
 	*y = 0xbe;
 }
 
@@ -377,11 +377,11 @@ void DynomiteStomped::SkipPuzzles(int theCount)
 // 0x40fa80
 void DynomiteStomped::Draw(Graphics* g)
 {
-	if (mField131 == true)
+	if (mGameOver == true)
 	{
-		SetDrawOffset(Point(mField138, mField13c));
-		mField138 = mField138 / 2;
-		mField13c = mField13c / 2;
+		SetDrawOffset(Point(mShakeX, mShakeY));
+		mShakeX = mShakeX / 2;
+		mShakeY = mShakeY / 2;
 	}
 	else if ((mApp->mGrindInstance->IsPlaying() == true) || (mShotsLeft == 1))
 	{
@@ -390,16 +390,16 @@ void DynomiteStomped::Draw(Graphics* g)
 		SetDrawOffset(Point(aShakeX, aShakeY));
 	}
 	Dynomite::Draw(g);
-	if ((mField131 == true) && (mField132 == false))
+	if ((mGameOver == true) && (mGameOverShown == false))
 	{
 		Graphics* aGraphics = GetDrawGraphics();
 		aGraphics->SetColorizeImages(true);
-		aGraphics->SetColor(Color(0, 0, 0, mField140));
+		aGraphics->SetColor(Color(0, 0, 0, mGameOverAlpha));
 		Pic* aPic = mApp->mPicGameover;
-		aPic->Draw((mField70 - (aPic->mWidth >> 1)) + 3, 0xf3 - (aPic->mHeight >> 1));
-		aGraphics->SetColor(Color(0xff, 0xff, 0xff, mField140));
+		aPic->Draw((mPlayMiddleX - (aPic->mWidth >> 1)) + 3, 0xf3 - (aPic->mHeight >> 1));
+		aGraphics->SetColor(Color(0xff, 0xff, 0xff, mGameOverAlpha));
 		aPic = mApp->mPicGameover;
-		aPic->Draw(mField70 - (aPic->mWidth >> 1), 0xf0 - (aPic->mHeight >> 1));
+		aPic->Draw(mPlayMiddleX - (aPic->mWidth >> 1), 0xf0 - (aPic->mHeight >> 1));
 		aGraphics->SetColorizeImages(false);
 	}
 	SetDrawOffset(Point(0, 0));
@@ -408,7 +408,7 @@ void DynomiteStomped::Draw(Graphics* g)
 // 0x40fc30: a puzzle is its width, its launcher's place, its shots a row, its baby eggs' chance (the eggs' frames
 // between babies are 100 plus 10,000 times one less it), its name, its first eggs' colours and kinds (256 each) and
 // its grid. The grid is read here and again by LoadGrid once the walls are in place.
-void DynomiteStomped::NextPuzzle(int theUnused)
+void DynomiteStomped::NextPuzzle()
 {
 	char aColors[256];
 	char aKinds[256];
@@ -444,8 +444,8 @@ void DynomiteStomped::NextPuzzle(int theUnused)
 	mCeilingTarget = -100.0f;
 	mRound++;
 	mLauncherX = aLauncherX;
-	mField104 = -100;
-	mField16c = false;
+	mCeilingGoal = -100;
+	mFiredThisRound = false;
 	mRoundLoaded = false;
 	mWidth = aWidth;
 	// port: bounded (the field is 21 bytes)
@@ -454,7 +454,7 @@ void DynomiteStomped::NextPuzzle(int theUnused)
 	mTextTimer = 500;
 	mTextHold = 10;
 	mSettingUp = true;
-	mFirePrompt->mField1c = true;
+	mFirePrompt->mRoundTextShown = true;
 	mEggIndex = 0;
 	mStartEggs = 0;
 	mShots = 0;
@@ -488,28 +488,28 @@ void DynomiteStomped::NextPuzzle(int theUnused)
 	mPackPos = mPack.Tell();
 	mGrid->mMaxColor = 8;
 	mGrid->Load(&mPack);
-	mGrid->mField46e5 = true;
+	mGrid->mKeepPastRight = true;
 	mGrid->ResetCeiling();
 	mCeilingMoving = false;
-	mField104 = (int) mGrid->mCeiling;
+	mCeilingGoal = (int) mGrid->mCeiling;
 	mPack.Close();
 }
 
 // 0x40ffc0
 void DynomiteStomped::DrawScenery()
 {
-	mApp->mPicLeftwall->Draw((mField70 - mField6c) - 0x38, 0);
-	mApp->mPicRightwall->Draw(mField6c - 0x1e + mField70, 0);
-	mApp->mPicMamameter_c1->Draw(mField6c - 7 + mField70, 0x107);
-	mApp->mPicMamameter_c0->DrawPart(mField6c - 7 + mField70, 0x107, 0, 0, 0x27, 0x8a - mMeter);
+	mApp->mPicLeftwall->Draw((mPlayMiddleX - mPlayHalfWidth) - 0x38, 0);
+	mApp->mPicRightwall->Draw(mPlayHalfWidth - 0x1e + mPlayMiddleX, 0);
+	mApp->mPicMamameter_c1->Draw(mPlayHalfWidth - 7 + mPlayMiddleX, 0x107);
+	mApp->mPicMamameter_c0->DrawPart(mPlayHalfWidth - 7 + mPlayMiddleX, 0x107, 0, 0, 0x27, 0x8a - mMeter);
 	Pic* aPic = mApp->mPicMamaportrait;
-	aPic->Draw((mField6c + 0x14 + mField70) - (aPic->mWidth >> 1), 0xd2 - (aPic->mHeight >> 1));
+	aPic->Draw((mPlayHalfWidth + 0x14 + mPlayMiddleX) - (aPic->mWidth >> 1), 0xd2 - (aPic->mHeight >> 1));
 	mSteggy->Draw();
 	mTank->Draw();
-	mApp->mPicEggpilesheet_c1->Draw(mField158 - 0x110 + mField70, 0x185);
-	mApp->mPicEggpilesheet_c1->Draw(mField158 - 0x1a6 + mField70, 0x185);
-	mApp->mPicEggpilesheet_c0->Draw(mField158 + 0x50 + mField70, 400);
-	mApp->mPicEggpilesheet_c0->Draw(mField158 + 0xe6 + mField70, 400);
+	mApp->mPicEggpilesheet_c1->Draw(mLauncherOffsetX - 0x110 + mPlayMiddleX, 0x185);
+	mApp->mPicEggpilesheet_c1->Draw(mLauncherOffsetX - 0x1a6 + mPlayMiddleX, 0x185);
+	mApp->mPicEggpilesheet_c0->Draw(mLauncherOffsetX + 0x50 + mPlayMiddleX, 400);
+	mApp->mPicEggpilesheet_c0->Draw(mLauncherOffsetX + 0xe6 + mPlayMiddleX, 400);
 	if ((mShotsLeft < 4) && (0 < mShotsLeft))
 	{
 		// the glow fades from each warning's beat
@@ -518,14 +518,14 @@ void DynomiteStomped::DrawScenery()
 		g->SetColorizeImages(true);
 		g->SetColor(Color(0xff, 0xff, 0xff, (int) anAlpha));
 		aPic = mApp->mPicThermoglow;
-		aPic->Draw((mField6c + 7 + mField70) - (aPic->mWidth >> 1), 0x19a - (aPic->mHeight >> 1));
+		aPic->Draw((mPlayHalfWidth + 7 + mPlayMiddleX) - (aPic->mWidth >> 1), 0x19a - (aPic->mHeight >> 1));
 		g->SetColorizeImages(false);
 	}
 	mPowerUps.ResetIter();
 	PowerUp* aPowerUp = mPowerUps.Next();
 	while (aPowerUp != NULL)
 	{
-		aPowerUp->Draw(mField128);
+		aPowerUp->Draw(mPowerUpSpin);
 		aPowerUp = mPowerUps.Next();
 	}
 	Graphics* g = GetDrawGraphics();
@@ -534,10 +534,10 @@ void DynomiteStomped::DrawScenery()
 		g->SetColorizeImages(true);
 		g->SetColor(Color(0, 0, 0, mClearedAlpha));
 		aPic = mApp->mPicCleared;
-		aPic->Draw((mField70 + 3) - (aPic->mWidth >> 1), 0xb2 - (aPic->mHeight >> 1));
+		aPic->Draw((mPlayMiddleX + 3) - (aPic->mWidth >> 1), 0xb2 - (aPic->mHeight >> 1));
 		g->SetColor(Color(0xff, 0xff, 0xff, mClearedAlpha));
 		aPic = mApp->mPicCleared;
-		aPic->Draw(mField70 - (aPic->mWidth >> 1), 0xaf - (aPic->mHeight >> 1));
+		aPic->Draw(mPlayMiddleX - (aPic->mWidth >> 1), 0xaf - (aPic->mHeight >> 1));
 		g->SetColorizeImages(false);
 	}
 	if (0x32 < mClearedFrames)
@@ -554,9 +554,9 @@ void DynomiteStomped::DrawScenery()
 		int aWidth = aFont->Width(mApp->GetString("ROUND_CLEARED_BONUS").c_str());
 		g->SetColorizeImages(true);
 		g->SetColor(Color(0, 0, 0, 0xff));
-		aFont->Draw(aText.c_str(), (mField70 - aWidth / 2) + 4, 0xdb);
+		aFont->Draw(aText.c_str(), (mPlayMiddleX - aWidth / 2) + 4, 0xdb);
 		g->SetColor(Color(0xff, 0xff, 0, 0xff));
-		aFont->Draw(aText.c_str(), (mField70 - aWidth / 2) + 4, 0xd7);
+		aFont->Draw(aText.c_str(), (mPlayMiddleX - aWidth / 2) + 4, 0xd7);
 		g->SetColorizeImages(false);
 	}
 	if (mThunderbolt != NULL)
@@ -573,11 +573,11 @@ void DynomiteStomped::DrawScenery()
 		int aRoundWidth = aFont->Width(mRoundText);
 		int aNameWidth = aFont->Width(mPuzzleName);
 		g->SetColor(Color(0, 0, 0, mTextAlpha));
-		aFont->Draw(mRoundText, (mField70 - (aRoundWidth >> 1)) + 3, 0x71);
-		aFont->Draw(mPuzzleName, (mField70 - (aNameWidth >> 1)) + 3, 0x8a);
+		aFont->Draw(mRoundText, (mPlayMiddleX - (aRoundWidth >> 1)) + 3, 0x71);
+		aFont->Draw(mPuzzleName, (mPlayMiddleX - (aNameWidth >> 1)) + 3, 0x8a);
 		g->SetColor(Color(0xff, 0xff, 0xff, mTextAlpha));
-		aFont->Draw(mRoundText, mField70 - (aRoundWidth >> 1), 0x6e);
-		aFont->Draw(mPuzzleName, mField70 - (aNameWidth >> 1), 0x87);
+		aFont->Draw(mRoundText, mPlayMiddleX - (aRoundWidth >> 1), 0x6e);
+		aFont->Draw(mPuzzleName, mPlayMiddleX - (aNameWidth >> 1), 0x87);
 		g->SetColorizeImages(false);
 	}
 }
@@ -589,8 +589,8 @@ void DynomiteStomped::NextRound()
 	mCleared = false;
 	mCeilingTarget = 25.0f;
 	mCeilingMoving = true;
-	NextPuzzle(1);
-	mFieldB0 = true;
+	NextPuzzle();
+	mPlaying = true;
 	Egg* anEgg = NextEgg();
 	Egg* aLoaded = mLauncher->mLoaded;
 	if ((aLoaded->mColor == anEgg->mColor) && (aLoaded->mKind == anEgg->mKind))
@@ -632,24 +632,24 @@ void DynomiteStomped::DrawGameOver(Graphics* g)
 	sprintf(aBabies, "%d", mBabies);
 	int aBabiesWidth = g->GetFont()->StringWidth(aBabies);
 	g->SetColor(Color(0, 0, 0));
-	g->DrawString(GTC(0x4f9fe4), 0xe3, mField1c8 + 0x57);
-	g->DrawString(GTC(0x4f9fd4), 0xe3, mField1c8 + 0x6b);
-	g->DrawString(GTC(0x4f9fc4), 0xe3, mField1c8 + 0x7f);
-	g->DrawString(GTC(0x4f9fb4), 0xe3, mField1c8 + 0x93);
-	g->DrawString(aCombo, 0x1b7 - aComboWidth, mField1c8 + 0x57);
-	g->DrawString(aRounds, 0x1b7 - aRoundsWidth, mField1c8 + 0x7f);
-	g->DrawString(aScore, 0x1b7 - aScoreWidth, mField1c8 + 0x93);
-	g->DrawString(aBabies, 0x1b7 - aBabiesWidth, mField1c8 + 0x6b);
+	g->DrawString(GTC(0x4f9fe4), 0xe3, mPanelTop + 0x57);
+	g->DrawString(GTC(0x4f9fd4), 0xe3, mPanelTop + 0x6b);
+	g->DrawString(GTC(0x4f9fc4), 0xe3, mPanelTop + 0x7f);
+	g->DrawString(GTC(0x4f9fb4), 0xe3, mPanelTop + 0x93);
+	g->DrawString(aCombo, 0x1b7 - aComboWidth, mPanelTop + 0x57);
+	g->DrawString(aRounds, 0x1b7 - aRoundsWidth, mPanelTop + 0x7f);
+	g->DrawString(aScore, 0x1b7 - aScoreWidth, mPanelTop + 0x93);
+	g->DrawString(aBabies, 0x1b7 - aBabiesWidth, mPanelTop + 0x6b);
 	g->SetColor(Color(0xe6, 0xe6, 0xff));
-	g->DrawString(GTC(0x4f9fe4), 0xe1, mField1c8 + 0x55);
-	g->DrawString(aCombo, 0x1b5 - aComboWidth, mField1c8 + 0x55);
-	g->DrawString(GTC(0x4f9fd4), 0xe1, mField1c8 + 0x69);
-	g->DrawString(GTC(0x4f9fc4), 0xe1, mField1c8 + 0x7d);
-	g->DrawString(aRounds, 0x1b5 - aRoundsWidth, mField1c8 + 0x7d);
-	g->DrawString(aBabies, 0x1b5 - aBabiesWidth, mField1c8 + 0x69);
+	g->DrawString(GTC(0x4f9fe4), 0xe1, mPanelTop + 0x55);
+	g->DrawString(aCombo, 0x1b5 - aComboWidth, mPanelTop + 0x55);
+	g->DrawString(GTC(0x4f9fd4), 0xe1, mPanelTop + 0x69);
+	g->DrawString(GTC(0x4f9fc4), 0xe1, mPanelTop + 0x7d);
+	g->DrawString(aRounds, 0x1b5 - aRoundsWidth, mPanelTop + 0x7d);
+	g->DrawString(aBabies, 0x1b5 - aBabiesWidth, mPanelTop + 0x69);
 	g->SetColor(Color(0xff, 0xff, 0xff));
-	g->DrawString(GTC(0x4f9fb4), 0xe1, mField1c8 + 0x91);
-	g->DrawString(aScore, 0x1b5 - aScoreWidth, mField1c8 + 0x91);
+	g->DrawString(GTC(0x4f9fb4), 0xe1, mPanelTop + 0x91);
+	g->DrawString(aScore, 0x1b5 - aScoreWidth, mPanelTop + 0x91);
 }
 
 // 0x411370: the pack's header is its name, the puzzles each skill skips (-1 none) and its picture
@@ -680,9 +680,9 @@ void DynomiteStomped::Init(FossilizedApp* theApp, int theDifficulty)
 	mRound = 0;
 	mRoundsCleared = 0;
 	mGrid->mMaxColor = 5;
-	NextPuzzle(1);
+	NextPuzzle();
 	mLauncher->SetLoaded(NextEgg());
-	mGrid->mField46d0 = true;
+	mGrid->mCeilingDrawn = true;
 	mGrid->ResetCeiling();
 }
 
@@ -699,7 +699,7 @@ void DynomiteStomped::UpdateCleared()
 	{
 		aGrid->mCeiling = (float) ((double) aGrid->mCeiling - 2.0f);
 		aGrid = mGrid;
-		mField104 = (int) aGrid->mCeiling;
+		mCeilingGoal = (int) aGrid->mCeiling;
 	}
 	if ((mClearedAlpha == 0xff) && (aGrid->mCeiling < -20.0f))
 	{
@@ -709,7 +709,7 @@ void DynomiteStomped::UpdateCleared()
 		if (mClearedFrames == 200)
 		{
 			mRoundBonus = 100;
-			AddPoints(mField70, 0x10e, 100, 0, true);
+			AddPoints(mPlayMiddleX, 0x10e, 100, 0, true);
 			mApp->mSndInchypop->Play();
 		}
 		if (mClearedFrames == 400)
@@ -722,7 +722,7 @@ void DynomiteStomped::Update()
 {
 	if (mApp->mActive == false)
 		return;
-	if (mField132 == true)
+	if (mGameOverShown == true)
 	{
 		UpdateGameOver();
 		return;
@@ -739,7 +739,7 @@ void DynomiteStomped::Update()
 	if (mSettingUp == true)
 	{
 		// the walls and the launcher move a pixel a frame to the puzzle's, grinding; then the eggs come in
-		mField80 = true;
+		mFireBlocked = true;
 		mLauncher->Update();
 		mSteggy->Update();
 		mTank->Update();
@@ -748,27 +748,27 @@ void DynomiteStomped::Update()
 		bool isMoving = false;
 		if (mFirstRound == true)
 		{
-			mField68 = mWidth;
-			mField6c = mWidth >> 1;
-			mField158 = mLauncherX;
+			mPlayWidth = mWidth;
+			mPlayHalfWidth = mWidth >> 1;
+			mLauncherOffsetX = mLauncherX;
 			mGrindFrames = 0;
 		}
-		if (mField68 != mWidth)
+		if (mPlayWidth != mWidth)
 		{
 			isMoving = true;
-			if (mWidth < mField68)
-				mField68--;
-			if (mField68 < mWidth)
-				mField68++;
-			mField6c = mField68 >> 1;
+			if (mWidth < mPlayWidth)
+				mPlayWidth--;
+			if (mPlayWidth < mWidth)
+				mPlayWidth++;
+			mPlayHalfWidth = mPlayWidth >> 1;
 		}
-		if (mField158 != mLauncherX)
+		if (mLauncherOffsetX != mLauncherX)
 		{
 			isMoving = true;
-			if (mLauncherX < mField158)
-				mField158--;
-			if (mField158 < mLauncherX)
-				mField158++;
+			if (mLauncherX < mLauncherOffsetX)
+				mLauncherOffsetX--;
+			if (mLauncherOffsetX < mLauncherX)
+				mLauncherOffsetX++;
 		}
 		if (isMoving == true)
 		{
@@ -786,30 +786,30 @@ void DynomiteStomped::Update()
 			mTextAlpha = mTextAlpha + 3;
 			if (0xff < mTextAlpha)
 				mTextAlpha = 0xff;
-			mFirePrompt->mField1c = true;
+			mFirePrompt->mRoundTextShown = true;
 		}
 		else if (0 < mTextHold)
 		{
 			mTextHold--;
-			mFirePrompt->mField1c = true;
+			mFirePrompt->mRoundTextShown = true;
 		}
 		if (isMoving == false)
 		{
-			mField80 = false;
+			mFireBlocked = false;
 			mApp->mGrindInstance->Stop();
 			if (mRoundLoaded == false)
 			{
-				LoadGrid(1);
+				LoadGrid();
 				mRoundLoaded = true;
 			}
 			mFirstRound = false;
 			mSettingUp = false;
-			mFieldB0 = true;
+			mPlaying = true;
 		}
 		if (0 < mTextHold)
 		{
 			mSettingUp = true;
-			mFieldB0 = false;
+			mPlaying = false;
 		}
 		if (0 < mClearedAlpha)
 		{
@@ -828,14 +828,14 @@ void DynomiteStomped::Update()
 	}
 	else if (mCleared == true)
 	{
-		mField80 = true;
+		mFireBlocked = true;
 		if (0 < mTextAlpha)
 		{
 			mTextAlpha = mTextAlpha - 2;
 			if (mTextAlpha < 0)
 				mTextAlpha = 0;
 		}
-		mFieldB0 = false;
+		mPlaying = false;
 		mLauncher->Update();
 		mSteggy->Update();
 		mTank->Update();
@@ -846,7 +846,7 @@ void DynomiteStomped::Update()
 	else
 	{
 		Dynomite::Update();
-		mField80 = false;
+		mFireBlocked = false;
 		if ((mBonusBits & 0x70) == 0)
 		{
 			if (mApp->mGrindInstance->IsPlaying() == true)
@@ -862,7 +862,7 @@ void DynomiteStomped::Update()
 			else
 				aGrid->mCeiling = (float) ((double) aGrid->mCeiling - 0.1f);
 		}
-		if (mField16c == true)
+		if (mFiredThisRound == true)
 		{
 			if (0 < mTextAlpha)
 			{
@@ -890,7 +890,7 @@ void DynomiteStomped::Update()
 		}
 		if (mStartEggs == 0)
 			mStartEggs = mGrid->mEggCount;
-		if ((mGrid->mEggCount < 1) && (mField16c == true) && (mField130 == false) && (mField131 == false))
+		if ((mGrid->mEggCount < 1) && (mFiredThisRound == true) && (mLosing == false) && (mGameOver == false))
 		{
 			// the round is cleared
 			mPowerUps.ResetIter();
@@ -903,7 +903,7 @@ void DynomiteStomped::Update()
 				aPowerUp = mPowerUps.Next();
 			}
 			mBonusBits = 0;
-			mSteggy->mField28 = false;
+			mSteggy->mInRound = false;
 			mShotsLeft = mShotsPerDrop;
 			mCleared = true;
 			mMeterTarget = (int) ((double) 132.0f -
@@ -916,17 +916,17 @@ void DynomiteStomped::Update()
 			mShotsLeft = 100;
 			mChain = -1;
 			mClearedFrames = 0;
-			mField108 = 0;
-			mField16c = false;
+			mNextEggKind = 0;
+			mFiredThisRound = false;
 		}
-		if (mFieldB0 == true)
+		if (mPlaying == true)
 		{
-			if (mField130 == false)
+			if (mLosing == false)
 			{
 				EggGrid* aGrid = mGrid;
-				if (aGrid->mField4691 == true)
+				if (aGrid->mAlarmDue == true)
 				{
-					aGrid->mField4691 = false;
+					aGrid->mAlarmDue = false;
 					mApp->mSndAooga->Play();
 				}
 				aGrid = mGrid;
@@ -967,7 +967,7 @@ void DynomiteStomped::Update()
 				else
 					mApp->mFootfallRumbleInstance->Stop();
 			}
-			else if (mField131 == false)
+			else if (mGameOver == false)
 			{
 				// the eggs run down off the board, then "game over"
 				mGrid->mCeiling = (float) ((double) mGrid->mCeiling + 32.0f);
@@ -975,14 +975,14 @@ void DynomiteStomped::Update()
 				if (aGrid->mCeiling > 496.0f)
 				{
 					aGrid->mCeiling = 496.0f;
-					mField131 = true;
-					mField13c = 0x3c;
+					mGameOver = true;
+					mShakeY = 0x3c;
 					mWarnTimer = 0;
 					mApp->mSndFootlands->Play();
 					mApp->mMusicInterface->StopMusic(mSong);
 					mApp->mMusicInterface->SetSongVolume(4, 1.0);
 					mApp->mMusicInterface->PlayMusic(4, 0x23, false);
-					mField140 = 0;
+					mGameOverAlpha = 0;
 					mTalker = new MenuTalker(mApp, this, 2);
 				}
 			}
@@ -992,13 +992,13 @@ void DynomiteStomped::Update()
 					mApp->mFootfallRumbleInstance->Stop();
 				if (mApp->mGrindInstance->IsPlaying() == true)
 					mApp->mGrindInstance->Stop();
-				mField140 = mField140 + 2;
-				if (0xff < mField140)
-					mField140 = 0xff;
+				mGameOverAlpha = mGameOverAlpha + 2;
+				if (0xff < mGameOverAlpha)
+					mGameOverAlpha = 0xff;
 			}
 		}
 	}
-	if (mField134 == 0)
+	if (mGameOverDelay == 0)
 	{
 		SetPaused(true);
 		if (mHighScores->IsHighScore(mApp->mSideBar->mScore, (int) mStartTicks) == true)

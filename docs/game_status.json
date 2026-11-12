@@ -310,11 +310,16 @@
         "identical-play",
         "registration-out",
         "fixes-mod",
-        "site-features"
+        "identical-look",
+        "coverage",
+        "performance",
+        "unneeded-code",
+        "readability",
+        "collection"
       ],
       "na": [],
-      "now": "identical-look",
-      "note": "Last differences open"
+      "now": "site-features",
+      "note": "Music placed; presets being checked against the code"
     },
     "bookwormadv2": {
       "title": "Bookworm Adventures Volume 2",

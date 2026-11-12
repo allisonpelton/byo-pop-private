@@ -32,7 +32,6 @@ public:
 	virtual ~CeilingSpeed();									// 0x435d10
 
 	int					Update();			// 0x435d20: 2 when it slowed down, 1 when it sped up, else 0
-	void				ResetSpeed();		// 0x435dc0
 	void				LevelUp();			// 0x435e70: a whirley was hit
 	void				Reset();			// 0x435eb0: a whirley got away
 	void				SaveState(BinFile* theFile);	// 0x435dd0

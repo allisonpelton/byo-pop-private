@@ -87,7 +87,7 @@ LoadedEgg::~LoadedEgg()
 // 0x414d10
 FlyingEgg::FlyingEgg()
 {
-	mField20 = true;
+	mInFrontOfSling = true;
 	mGhost = false;
 }
 
@@ -126,9 +126,9 @@ bool FlyingEgg::Update()
 			break;
 		i++;
 	} while (i < 10);
-	int aMiddle = mBoard->mField70;
+	int aMiddle = mBoard->mPlayMiddleX;
 	if (((aMiddle < aStartX) && (mX < (float) aMiddle)) || ((aStartX < aMiddle) && ((float) aMiddle < mX)))
-		mField20 = false;
+		mInFrontOfSling = false;
 	if (((aHits & 4) != 0) || ((aHits & 0x10) != 0))
 	{
 		Land();

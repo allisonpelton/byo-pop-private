@@ -55,7 +55,7 @@ DynomitePanic::DynomitePanic()
 	mScoreRanks[17] = 145000;
 	mScoreRanks[18] = 170000;
 	mScoreRanks[19] = 200000;
-	mField23c = 0x47;
+	mSongOffset = 0x47;
 	// port: the original leaves these to Init
 	mKroney = NULL;
 	mCeilingSpeed = NULL;
@@ -82,7 +82,7 @@ DynomitePanic::~DynomitePanic()
 // 0x40d050
 void DynomitePanic::GetPowerUpCenter(int* x, int* y)
 {
-	*x = mField70 - 0xc + mField6c;
+	*x = mPlayMiddleX - 0xc + mPlayHalfWidth;
 	*y = (int) ((double) mKroney->mY - 4.0);
 }
 
@@ -116,7 +116,7 @@ void DynomitePanic::DrawMode()
 Egg* DynomitePanic::NextEgg()
 {
 	int aColor = mApp->mPicker.Random(mGrid->mMaxColor, false) + 1;
-	if ((((4 - mGrid->mMaxColor) * 0x10 + mField74) <= mGrid->mBottom) &&
+	if ((((4 - mGrid->mMaxColor) * 0x10 + mLineY) <= mGrid->mBottom) &&
 		(mApp->mRand.NextNoAssert() % 3 != 1))
 	{
 		unsigned char aPresent[20];
@@ -154,7 +154,7 @@ Egg* DynomitePanic::NextEgg()
 					aColor = mApp->mPicker.Random(0x14, false);
 					if (aPresent[aColor] == 0)
 						aColor = 0;
-					if (aColor == mField15c)
+					if (aColor == mAvoidColor)
 						aColor = 0;
 					aTries++;
 				} while ((aTries <= 0x32) && (aColor == 0));
@@ -162,48 +162,48 @@ Egg* DynomitePanic::NextEgg()
 			if (aTries <= 0x32)
 				break;
 			// past 50 tries the colour fired last is allowed once more; then any colour
-			if (mField15c == -1)
+			if (mAvoidColor == -1)
 			{
 				aColor = mApp->mPicker.Random(mGrid->mMaxColor, false) + 1;
 				break;
 			}
-			mField15c = -1;
+			mAvoidColor = -1;
 		}
 		while (aColor == 0)
 			aColor = mApp->mRand.NextNoAssert() % (unsigned int) mGrid->mMaxColor + 1;
 	}
 	Egg* anEgg = new Egg();
 	anEgg->Init(mApp, this, aColor);
-	if (mField108 != 0)
+	if (mNextEggKind != 0)
 	{
-		if (mField108 == 0x14)
+		if (mNextEggKind == 0x14)
 		{
 			if ((0x118 < mGrid->mBottom) && (mApp->mPicker.Random(3, false) == 0))
-				mField108 = 5;
-			if ((mField108 == 0x14) && (0x154 < mGrid->mBottom))
-				mField108 = 5;
-			if (mField108 == 0x14)
+				mNextEggKind = 5;
+			if ((mNextEggKind == 0x14) && (0x154 < mGrid->mBottom))
+				mNextEggKind = 5;
+			if (mNextEggKind == 0x14)
 			{
 				if (mApp->mPicker.Random(5, false) == 2)
 				{
 					int aKind = mApp->mPicker.Random(3, false);
 					if (aKind == 0)
-						mField108 = 1;
+						mNextEggKind = 1;
 					else if (aKind == 1)
-						mField108 = 6;
+						mNextEggKind = 6;
 					else if (aKind == 2)
-						mField108 = 7;
+						mNextEggKind = 7;
 				}
-				if (mField108 == 0x14)
+				if (mNextEggKind == 0x14)
 				{
-					mField108 = mApp->mPicker.Random(3, false) + 2;
+					mNextEggKind = mApp->mPicker.Random(3, false) + 2;
 					if (mApp->mPicker.Random(2, false) == 0)
-						mField108 = mField108 + 6;
+						mNextEggKind = mNextEggKind + 6;
 				}
 			}
 		}
-		anEgg->mKind = mField108;
-		mField108 = 0;
+		anEgg->mKind = mNextEggKind;
+		mNextEggKind = 0;
 	}
 	return anEgg;
 }
@@ -227,24 +227,24 @@ void DynomitePanic::DrawGameOver(Graphics* g)
 	sprintf(aBabies, "%d", mBabies);
 	int aBabiesWidth = g->GetFont()->StringWidth(aBabies);
 	g->SetColor(Color(0, 0, 0));
-	g->DrawString(mApp->GetString("BEST_COMBO"), 0xe3, mField1c8 + 0x57);
-	g->DrawString(mApp->GetString("BABIES_HATCHED"), 0xe3, mField1c8 + 0x6b);
-	g->DrawString(mApp->GetString("WHIRLEYS_WHACKED"), 0xe3, mField1c8 + 0x7f);
-	g->DrawString(mApp->GetString("FINAL_SCORE"), 0xe3, mField1c8 + 0x93);
-	g->DrawString(aCombo, 0x1b7 - aComboWidth, mField1c8 + 0x57);
-	g->DrawString(aWhirleys, 0x1b7 - aWhirleysWidth, mField1c8 + 0x7f);
-	g->DrawString(aScore, 0x1b7 - aScoreWidth, mField1c8 + 0x93);
-	g->DrawString(aBabies, 0x1b7 - aBabiesWidth, mField1c8 + 0x6b);
+	g->DrawString(mApp->GetString("BEST_COMBO"), 0xe3, mPanelTop + 0x57);
+	g->DrawString(mApp->GetString("BABIES_HATCHED"), 0xe3, mPanelTop + 0x6b);
+	g->DrawString(mApp->GetString("WHIRLEYS_WHACKED"), 0xe3, mPanelTop + 0x7f);
+	g->DrawString(mApp->GetString("FINAL_SCORE"), 0xe3, mPanelTop + 0x93);
+	g->DrawString(aCombo, 0x1b7 - aComboWidth, mPanelTop + 0x57);
+	g->DrawString(aWhirleys, 0x1b7 - aWhirleysWidth, mPanelTop + 0x7f);
+	g->DrawString(aScore, 0x1b7 - aScoreWidth, mPanelTop + 0x93);
+	g->DrawString(aBabies, 0x1b7 - aBabiesWidth, mPanelTop + 0x6b);
 	g->SetColor(Color(0xe6, 0xe6, 0xff));
-	g->DrawString(mApp->GetString("BEST_COMBO"), 0xe1, mField1c8 + 0x55);
-	g->DrawString(aCombo, 0x1b5 - aComboWidth, mField1c8 + 0x55);
-	g->DrawString(mApp->GetString("BABIES_HATCHED"), 0xe1, mField1c8 + 0x69);
-	g->DrawString(mApp->GetString("WHIRLEYS_WHACKED"), 0xe1, mField1c8 + 0x7d);
-	g->DrawString(aWhirleys, 0x1b5 - aWhirleysWidth, mField1c8 + 0x7d);
-	g->DrawString(aBabies, 0x1b5 - aBabiesWidth, mField1c8 + 0x69);
+	g->DrawString(mApp->GetString("BEST_COMBO"), 0xe1, mPanelTop + 0x55);
+	g->DrawString(aCombo, 0x1b5 - aComboWidth, mPanelTop + 0x55);
+	g->DrawString(mApp->GetString("BABIES_HATCHED"), 0xe1, mPanelTop + 0x69);
+	g->DrawString(mApp->GetString("WHIRLEYS_WHACKED"), 0xe1, mPanelTop + 0x7d);
+	g->DrawString(aWhirleys, 0x1b5 - aWhirleysWidth, mPanelTop + 0x7d);
+	g->DrawString(aBabies, 0x1b5 - aBabiesWidth, mPanelTop + 0x69);
 	g->SetColor(Color(0xff, 0xff, 0xff));
-	g->DrawString(mApp->GetString("FINAL_SCORE"), 0xe1, mField1c8 + 0x91);
-	g->DrawString(aScore, 0x1b5 - aScoreWidth, mField1c8 + 0x91);
+	g->DrawString(mApp->GetString("FINAL_SCORE"), 0xe1, mPanelTop + 0x91);
+	g->DrawString(aScore, 0x1b5 - aScoreWidth, mPanelTop + 0x91);
 }
 
 // 0x40d2a0
@@ -252,9 +252,9 @@ void DynomitePanic::Draw(Graphics* g)
 {
 	if ((mBonusBits & 0x70) == 0)
 	{
-		SetDrawOffset(Point(mField138, mField13c));
-		mField138 = mField138 / 2;
-		mField13c = mField13c / 2;
+		SetDrawOffset(Point(mShakeX, mShakeY));
+		mShakeX = mShakeX / 2;
+		mShakeY = mShakeY / 2;
 	}
 	else
 	{
@@ -263,16 +263,16 @@ void DynomitePanic::Draw(Graphics* g)
 		SetDrawOffset(Point(aShakeX, aShakeY));
 	}
 	Dynomite::Draw(g);
-	if ((mField131 == true) && (mField132 == false) && (mApp->mInTutorial == false))
+	if ((mGameOver == true) && (mGameOverShown == false) && (mApp->mInTutorial == false))
 	{
 		Graphics* aGraphics = GetDrawGraphics();
 		aGraphics->SetColorizeImages(true);
-		aGraphics->SetColor(Color(0, 0, 0, mField140));
+		aGraphics->SetColor(Color(0, 0, 0, mGameOverAlpha));
 		Pic* aPic = mApp->mPicGameover;
-		aPic->Draw((mField70 - (aPic->mWidth >> 1)) + 3, 0xf3 - (aPic->mHeight >> 1));
-		aGraphics->SetColor(Color(0xff, 0xff, 0xff, mField140));
+		aPic->Draw((mPlayMiddleX - (aPic->mWidth >> 1)) + 3, 0xf3 - (aPic->mHeight >> 1));
+		aGraphics->SetColor(Color(0xff, 0xff, 0xff, mGameOverAlpha));
 		aPic = mApp->mPicGameover;
-		aPic->Draw(mField70 - (aPic->mWidth >> 1), 0xf0 - (aPic->mHeight >> 1));
+		aPic->Draw(mPlayMiddleX - (aPic->mWidth >> 1), 0xf0 - (aPic->mHeight >> 1));
 		aGraphics->SetColorizeImages(false);
 	}
 }
@@ -312,7 +312,7 @@ void DynomitePanic::Init(FossilizedApp* theApp, int theDifficulty)
 		aFactor = 0.5f;
 		break;
 	}
-	aGrid->mBabyEggChance = (int) ((double) aGrid->mField46b4 * aFactor);
+	aGrid->mBabyEggChance = (int) ((double) aGrid->mBaseBabyEggChance * aFactor);
 	mLauncher->Load(1);
 	mKroney = new Kroney();
 	mKroney->mBoard = this;
@@ -325,12 +325,12 @@ void DynomitePanic::Init(FossilizedApp* theApp, int theDifficulty)
 	mGrid->AddRow(3);
 	mGrid->AddRow(4);
 	mGrid->AddRow(5);
-	mGrid->mField46d0 = false;
+	mGrid->mCeilingDrawn = false;
 	mGrid->ResetCeiling();
 	mWhirleys.Clear();
 	mWhirleyLevel = 0;
 	if (theDifficulty != 3)
-		mField108 = 1;
+		mNextEggKind = 1;
 }
 
 // 0x40d7b0
@@ -338,7 +338,7 @@ void DynomitePanic::Update()
 {
 	if (mApp->mActive == false)
 		return;
-	if (mField132 == true)
+	if (mGameOverShown == true)
 	{
 		UpdateGameOver();
 		return;
@@ -357,7 +357,7 @@ void DynomitePanic::Update()
 		return;
 	}
 	Dynomite::Update();
-	if (mField134 == 0)
+	if (mGameOverDelay == 0)
 	{
 		SetPaused(true);
 		if (mHighScores->IsHighScore(mApp->mSideBar->mScore, (int) mStartTicks) == true)
@@ -378,17 +378,17 @@ void DynomitePanic::Update()
 	{
 		if ((mBonusBits & 0x20) != 0)
 		{
-			mField68++;
-			if (mField68 > 0x1b5)
-				mField68 = 0x1b5;
-			mField6c = mField68 >> 1;
+			mPlayWidth++;
+			if (mPlayWidth > 0x1b5)
+				mPlayWidth = 0x1b5;
+			mPlayHalfWidth = mPlayWidth >> 1;
 		}
 		if ((mBonusBits & 0x40) != 0)
 		{
-			mField68--;
-			if (mField68 < 0xca)
-				mField68 = 0xca;
-			mField6c = mField68 >> 1;
+			mPlayWidth--;
+			if (mPlayWidth < 0xca)
+				mPlayWidth = 0xca;
+			mPlayHalfWidth = mPlayWidth >> 1;
 		}
 	}
 	gPanicWallFrame = 1 - aWallFrame;
@@ -412,14 +412,14 @@ void DynomitePanic::Update()
 	}
 	if (mKroney->Update() == true)
 		mWhirleys.Add(new Whirley(mApp, this, mGrid, mWhirleyLevel, mGrid->mMaxColor + 1));
-	if (mFieldB0 != true)
+	if (mPlaying != true)
 		return;
-	if (mField130 == false)
+	if (mLosing == false)
 	{
 		EggGrid* aGrid = mGrid;
-		if (aGrid->mField4691 == true)
+		if (aGrid->mAlarmDue == true)
 		{
-			aGrid->mField4691 = false;
+			aGrid->mAlarmDue = false;
 			mApp->mSndAooga->Play();
 		}
 		aGrid = mGrid;
@@ -433,16 +433,16 @@ void DynomitePanic::Update()
 			if (aKick < 1.0)
 				mKick = 0.0f;
 		}
-		else if (mField100 == true)
+		else if (mCeilingAtGoal == true)
 			aGrid->mCeiling = (float) ((double) mCeilingSpeed->mSpeed + aGrid->mCeiling);
 		aGrid = mGrid;
-		if ((aGrid->mCeiling > -10.0f) && (mField100 == true))
+		if ((aGrid->mCeiling > -10.0f) && (mCeilingAtGoal == true))
 		{
 			aGrid->PushDown();
 			aGrid->mCeiling = (float) ((double) aGrid->mCeiling - 66.0f);
 		}
 	}
-	else if (mField131 == false)
+	else if (mGameOver == false)
 	{
 		// the eggs run down off the board, then "game over"
 		mGrid->mCeiling = (float) ((double) mGrid->mCeiling + 32.0f);
@@ -450,8 +450,8 @@ void DynomitePanic::Update()
 		if (aGrid->mCeiling > 496.0f)
 		{
 			aGrid->mCeiling = 496.0f;
-			mField131 = true;
-			mField13c = 0x3c;
+			mGameOver = true;
+			mShakeY = 0x3c;
 			mApp->mSndFootlands->Play();
 			if (mApp->mInTutorial == false)
 			{
@@ -459,16 +459,16 @@ void DynomitePanic::Update()
 				mApp->mMusicInterface->SetSongVolume(4, 1.0);
 				mApp->mMusicInterface->PlayMusic(4, 0x23, false);
 			}
-			mField140 = 0;
+			mGameOverAlpha = 0;
 			if (mApp->mInTutorial == false)
 				mTalker = new MenuTalker(mApp, this, 2);
 		}
 	}
 	else
 	{
-		mField140 = mField140 + 2;
-		if (mField140 > 0xff)
-			mField140 = 0xff;
+		mGameOverAlpha = mGameOverAlpha + 2;
+		if (mGameOverAlpha > 0xff)
+			mGameOverAlpha = 0xff;
 	}
 }
 
