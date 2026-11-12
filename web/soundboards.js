@@ -239,7 +239,7 @@ var ByopopSoundboards = {
       ["sounds/multishot.ogg", "Two matches", "Two or more matches at once"],
       ["sounds/bad2.ogg", "Bad swap", "A swap that makes no match"],
       ["sounds/gemongem2.ogg", "Gems land", "Falling gems land"],
-      ["sounds/excellent1.ogg", "\"Excellent!\"", "One move scores 120 points or more (times the level's multiplier)"]
+      ["sounds/excellent1.ogg", "\"Excellent!\"", "A move's matches pass 120 points × the level's multiplier, once a move. A match: 10, 20, 30, 40, 60, 80, 110, 160, 210 for the move's 1st to 9th, +10 a gem past 3 and past 5"]
     ] },
     { name: "Cascades", sounds: [
       ["sounds/combo22.ogg", "Cascade 1", "Every match a move makes first"],
@@ -317,9 +317,9 @@ var ByopopSoundboards = {
       ["sounds/bombexplode.ogg", "Gem explodes", "A flame gem is matched, or a bomb gem's count runs out"]
     ] },
     { name: "Praise", sounds: [
-      ["sounds/Good.ogg", "\"Good\"", "A single chain after a long quiet stretch"],
-      ["sounds/excellent1.ogg", "\"Excellent\"", "A chain of two; the logo's gem finishes forming"],
-      ["sounds/Incredible.ogg", "\"Incredible\"", "A chain of three or more"]
+      ["sounds/Good.ogg", "\"Good\"", "A move's points reach 60 × the level's multiplier, at most once in 120 s (12,000 updates); never in Puzzle"],
+      ["sounds/excellent1.ogg", "\"Excellent\"", "A move's points reach 125 × the level's multiplier (the word too, but not in Action); never in Puzzle. Also: the logo's gem finishes forming"],
+      ["sounds/Incredible.ogg", "\"Incredible\"", "A move's points reach 275 × the level's multiplier (the word too, but not in Action); never in Puzzle"]
     ] },
     { name: "Levels", sounds: [
       ["sounds/Get_ready.ogg", "\"Get ready\"", "A level's warp finishes"],
@@ -411,12 +411,12 @@ var ByopopSoundboards = {
       ["sounds/multiplier_up2_3.ogg", "Level up 3", "The multiplier goes up to level 3"],
       ["sounds/multiplier_up2_4.ogg", "Level up 4", "The multiplier goes up to level 4 and above"],
       ["sounds/multiplier_down.ogg", "Multiplier down", "The multiplier drops back"],
-      ["sounds/voice_good.ogg", "\"Good\"", "A praise for a small cascade"],
-      ["sounds/voice_excellent.ogg", "\"Excellent\"", "A praise for a bigger cascade"],
-      ["sounds/voice_awesome.ogg", "\"Awesome\"", "A praise for a big cascade"],
-      ["sounds/voice_incredible.ogg", "\"Incredible\"", "A praise for a bigger one"],
-      ["sounds/voice_spectacular.ogg", "\"Spectacular\"", "A praise for a huge one"],
-      ["sounds/voice_unbelievable.ogg", "\"Unbelievable\"", "A praise for the biggest"]
+      ["sounds/voice_good.ogg", "\"Good\"", "A twist's rating reaches 3 (once a twist; a later match can raise it to a higher praise). Rating: (the chain's length - 1)^1.5, (gems cleared this twist / 15)^1.5, 8 a gem past 5 in the level's biggest match, and the level's fruit squared, locks broken, bombs matched and flame gems made, with 2 each less 1 for its star gems made, flame gems and star gems set off and coal broken. Never in Challenge, a replay or Blitz's first 10 s"],
+      ["sounds/voice_excellent.ogg", "\"Excellent\"", "A twist's rating reaches 6 (once a twist; a later match can raise it to a higher praise). Rating: (the chain's length - 1)^1.5, (gems cleared this twist / 15)^1.5, 8 a gem past 5 in the level's biggest match, and the level's fruit squared, locks broken, bombs matched and flame gems made, with 2 each less 1 for its star gems made, flame gems and star gems set off and coal broken. Never in Challenge, a replay or Blitz's first 10 s"],
+      ["sounds/voice_awesome.ogg", "\"Awesome\"", "A twist's rating reaches 12 (once a twist; a later match can raise it to a higher praise). Rating: (the chain's length - 1)^1.5, (gems cleared this twist / 15)^1.5, 8 a gem past 5 in the level's biggest match, and the level's fruit squared, locks broken, bombs matched and flame gems made, with 2 each less 1 for its star gems made, flame gems and star gems set off and coal broken. Never in Challenge, a replay or Blitz's first 10 s"],
+      ["sounds/voice_incredible.ogg", "\"Incredible\"", "A twist's rating reaches 20 (once a twist; a later match can raise it to a higher praise). Rating: (the chain's length - 1)^1.5, (gems cleared this twist / 15)^1.5, 8 a gem past 5 in the level's biggest match, and the level's fruit squared, locks broken, bombs matched and flame gems made, with 2 each less 1 for its star gems made, flame gems and star gems set off and coal broken. Never in Challenge, a replay or Blitz's first 10 s"],
+      ["sounds/voice_spectacular.ogg", "\"Spectacular\"", "A twist's rating reaches 30 (once a twist; a later match can raise it to a higher praise). Rating: (the chain's length - 1)^1.5, (gems cleared this twist / 15)^1.5, 8 a gem past 5 in the level's biggest match, and the level's fruit squared, locks broken, bombs matched and flame gems made, with 2 each less 1 for its star gems made, flame gems and star gems set off and coal broken. Never in Challenge, a replay or Blitz's first 10 s"],
+      ["sounds/voice_unbelievable.ogg", "\"Unbelievable\"", "A twist's rating reaches 45 (once a twist; a later match can raise it to a higher praise). Rating: (the chain's length - 1)^1.5, (gems cleared this twist / 15)^1.5, 8 a gem past 5 in the level's biggest match, and the level's fruit squared, locks broken, bombs matched and flame gems made, with 2 each less 1 for its star gems made, flame gems and star gems set off and coal broken. Never in Challenge, a replay or Blitz's first 10 s"]
     ] },
     { name: "Special gems", sounds: [
       ["sounds/powergem_created.ogg", "Power gem made", "A match of four makes a power gem"],
@@ -517,9 +517,14 @@ var ByopopSoundboards = {
   ] },
   bigmoney: {
     presets: [
-      { name: "Get Ready", when: "A game starts", steps: [["sounds/getready", 0], ["sounds/welcome", 370], ["sounds/go", 1390]]},
-      { name: "Big Clear", when: "A clear of many coins", steps: [["sounds/bigmoney", 0], ["sounds/clearcoins3", 0], ["sounds/tone1", 0], ["sounds/unbelievable", 130], ["sounds/clearcoins3", 130], ["sounds/tone9", 130], ["sounds/awesome", 260], ["sounds/clearcoins2", 260], ["sounds/tone9", 260]]},
-      { name: "Coin Chain", when: "Clears follow one another", steps: [["sounds/clearcoins2", 0], ["sounds/tone1", 0], ["sounds/clearcoins", 130], ["sounds/tone1", 130], ["sounds/clearcoins2", 260], ["sounds/tone1", 260], ["sounds/cointube", 270], ["sounds/cointube", 290], ["sounds/cointube", 330], ["sounds/cointube", 390], ["sounds/clearcoins2", 390], ["sounds/tone2", 390], ["sounds/cointube", 410], ["sounds/cointube", 450], ["sounds/cointube", 510], ["sounds/cointube", 520], ["sounds/cointube", 520], ["sounds/clearcoins", 520], ["sounds/tone3", 520], ["sounds/cointube", 540], ["sounds/cointube", 570], ["sounds/cointube", 590], ["sounds/cointube", 630], ["sounds/cointube", 630], ["sounds/clearcoins2", 650], ["sounds/tone3", 650], ["sounds/cointube", 660], ["sounds/cointube", 700], ["sounds/cointube", 730], ["sounds/cointube", 760], ["sounds/clearcoins2", 780], ["sounds/tone4", 780], ["sounds/cointube", 790], ["sounds/cointube", 850], ["sounds/cointube", 860], ["sounds/cointube", 860], ["sounds/cointube", 880], ["sounds/cointube", 900], ["sounds/clearcoins", 910], ["sounds/tone5", 910], ["sounds/cointube", 940], ["sounds/cointube", 970], ["sounds/cointube", 970], ["sounds/cointube", 1000], ["sounds/cointube", 1030], ["sounds/clearcoins2", 1040], ["sounds/tone5", 1040], ["sounds/cointube", 1070], ["sounds/cointube", 1100], ["sounds/cointube", 1130], ["sounds/clearcoins", 1170], ["sounds/tone6", 1170], ["sounds/cointube", 1190], ["sounds/cointube", 1200], ["sounds/cointube", 1220], ["sounds/cointube", 1260], ["sounds/cointube", 1300], ["sounds/clearcoins", 1300], ["sounds/tone6", 1300], ["sounds/cointube", 1330], ["sounds/cointube", 1350], ["sounds/cointube", 1420], ["sounds/clearcoins", 1430], ["sounds/tone7", 1430], ["sounds/cointube", 1440], ["sounds/cointube", 1470], ["sounds/cointube", 1540], ["sounds/clearcoins", 1560], ["sounds/tone7", 1560], ["sounds/cointube", 1570], ["sounds/cointube", 1640], ["sounds/cointube", 1690], ["sounds/clearcoins", 1690], ["sounds/tone7", 1690], ["sounds/cointube", 1760], ["sounds/cointube", 1810], ["sounds/clearcoins2", 1820], ["sounds/tone7", 1820], ["sounds/cointube", 1880], ["sounds/cointube", 1910], ["sounds/cointube", 1940], ["sounds/clearcoins2", 1950], ["sounds/tone8", 1950], ["sounds/cointube", 1970], ["sounds/cointube", 2020], ["sounds/cointube", 2020], ["sounds/cointube", 2030], ["sounds/cointube", 2040], ["sounds/cointube", 2040], ["sounds/cointube", 2060], ["sounds/cointube", 2080], ["sounds/clearcoins", 2080], ["sounds/tone9", 2080], ["sounds/cointube", 2120], ["sounds/cointube", 2130], ["sounds/cointube", 2150], ["sounds/cointube", 2190], ["sounds/clearcoins", 2210], ["sounds/tone9", 2210], ["sounds/cointube", 2230]]},
+      // the voices of a game start and of combos, from Board.cpp (the log they first came from had its bot clicking every 13
+      // updates, and the game selector's welcome, 100 updates after it opens, landing on the start): Get Ready at the board's
+      // first update and Go 139 updates later (mGoTimer 140); a combo's voice is the click's, by its size and the two before,
+      // so those presets are clicks a second apart
+      { name: "Get Ready", when: "A game starts: Get ready! at once, Go! 1.39 s later", steps: [["sounds/getready", 0], ["sounds/go", 1390]]},
+      { name: "Big Clear", when: "One click of 15 to 19 coins, the click before under 10: Big money! (+200)", steps: [["sounds/bigmoney", 0], ["sounds/clearcoins3", 0], ["sounds/tone1", 0]]},
+      { name: "Triple Combo", when: "Three clicks of 7 to 9 coins in a row, 1 s apart: Good job! on the 2nd (+75), Awesome! on the 3rd (+100)", steps: [["sounds/clearcoins2", 0], ["sounds/tone1", 0], ["sounds/goodjob", 1000], ["sounds/clearcoins2", 1000], ["sounds/tone2", 1000], ["sounds/awesome", 2000], ["sounds/clearcoins2", 2000], ["sounds/tone3", 2000]]},
+      { name: "Triple Mega", when: "Three clicks of 10 to 12 coins in a row, 1 s apart: Excellent! (+25), Incredible! (+250), Unbelievable! (+350)", steps: [["sounds/excellent", 0], ["sounds/clearcoins3", 0], ["sounds/tone1", 0], ["sounds/incredible", 1000], ["sounds/clearcoins3", 1000], ["sounds/tone2", 1000], ["sounds/unbelievable", 2000], ["sounds/clearcoins3", 2000], ["sounds/tone3", 2000]]},
       { name: "Level Up", when: "The last bag of a level is won", steps: [["sounds/clearcoins", 0], ["sounds/tone9", 0], ["sounds/cointube", 20], ["sounds/cointube", 40], ["sounds/levelup", 70], ["sounds/cointube", 80], ["sounds/cointube", 160]]},
       { name: "Game Over", when: "The coins reach the top", steps: [["sounds/gameovertone", 0], ["sounds/gameover", 2800], ["sounds/anewhighscore", 5590]]}
     ],
@@ -566,12 +571,12 @@ var ByopopSoundboards = {
       ["sounds/megamoney.ogg", "Mega money", "Loaded, never played"]
     ] },
     { name: "Combo voices", sounds: [
-      ["sounds/goodjob.ogg", "\"Good job!\"", "A double combo"],
-      ["sounds/excellent.ogg", "\"Excellent!\"", "A clear of 10 or more coins"],
-      ["sounds/incredible.ogg", "\"Incredible!\"", "Two large clears in a row"],
-      ["sounds/awesome.ogg", "\"Awesome!\"", "A very large clear, or three big clears in a row"],
-      ["sounds/unbelievable.ogg", "\"Unbelievable!\"", "Three large clears in a row, or two huge ones"],
-      ["sounds/bigmoney.ogg", "\"Big money!\"", "A clear of 15 or more coins"]
+      ["sounds/goodjob.ogg", "\"Good job!\"", "This click and the one before: 7+ coins each (+75), when no bigger combo applies"],
+      ["sounds/excellent.ogg", "\"Excellent!\"", "A click of 10 to 14 coins, when no combo applies (+25)"],
+      ["sounds/incredible.ogg", "\"Incredible!\"", "This click and the one before: 10+ coins each (+250), not both 13+"],
+      ["sounds/awesome.ogg", "\"Awesome!\"", "A click of 20+ coins (+400); three clicks in a row of 13+ (+450); or of 7+ (+100)"],
+      ["sounds/unbelievable.ogg", "\"Unbelievable!\"", "Three clicks in a row of 10+ coins, or two of 13+ (+350)"],
+      ["sounds/bigmoney.ogg", "\"Big money!\"", "A click of 15 to 19 coins, the click before under 10 (+200)"]
     ] },
     { name: "Warnings and endings", sounds: [
       ["sounds/three.ogg", "\"Three\"", "Three moves are left in the strategy game"],
@@ -1791,7 +1796,19 @@ var ByopopSoundboards = {
       ["sounds/bonuslose.ogg", "Ghost", "A square holding a ghost is dug"]
     ] },
   ] },
-  tiptop: { groups: [
+  tiptop: {
+    // presets from the Tip Top session's sound logs (-fast, 10 ms updates; tiptop-soundlogs/INDEX.md), the bot's own input
+    // (MouseOver, MouseClick, LaunchBlockMoves, BlockLaunch) left out
+    presets: [
+      { name: "Level Won", when: "A level's quota is met: the win, the empty rows counted one by one, the blocks drop", steps: [["TipTop.dat|tiptop:sounds/LevelWin", 0], ["TipTop.dat|tiptop:sounds/EmptyRowCount", 270, {"end": 670}], ["TipTop.dat|tiptop:sounds/EmptyRowCount", 670, {"end": 1070}], ["TipTop.dat|tiptop:sounds/EmptyRowCount", 1070, {"end": 1470}], ["TipTop.dat|tiptop:sounds/EmptyRowCount", 1470, {"end": 1870}], ["TipTop.dat|tiptop:sounds/EmptyRowCount", 1870, {"end": 2320}], ["TipTop.dat|tiptop:sounds/EmptyRowCount", 2320], ["TipTop.dat|tiptop:sounds/BlocksFall", 2780]]},
+      { name: "Rocket Cascade", when: "A rocket lands and its blast starts a match of 5, then cascades 2 to 5", steps: [["TipTop.dat|tiptop:sounds/RocketLaunch", 0, {"end": 500}], ["TipTop.dat|tiptop:sounds/RocketCollision", 500], ["TipTop.dat|tiptop:sounds/ColorMatchGroup5", 690, {"end": 690}], ["TipTop.dat|tiptop:sounds/ColorMatchCascade1", 690, {"end": 1220}], ["TipTop.dat|tiptop:sounds/ColorMatchCascade2", 1220, {"end": 1220}], ["TipTop.dat|tiptop:sounds/ColorMatchCascade3", 1220, {"end": 1660}], ["TipTop.dat|tiptop:sounds/FloaterLaunched", 1500], ["TipTop.dat|tiptop:sounds/ColorMatchCascade4", 1660, {"end": 1660}], ["TipTop.dat|tiptop:sounds/ColorMatchCascade4", 1660, {"end": 2070}]]},
+      { name: "Hammer", when: "A hammer is launched, lands and smashes, and a floater rises", steps: [["TipTop.dat|tiptop:sounds/HammerLaunch", 0, {"end": 250}], ["TipTop.dat|tiptop:sounds/HammerCollision", 250], ["TipTop.dat|tiptop:sounds/FloaterLaunched", 380]]},
+      { name: "Rainbow", when: "A rainbow piece is launched and lands, matching its colour", steps: [["TipTop.dat|tiptop:sounds/RainbowLaunch", 0, {"end": 250}], ["TipTop.dat|tiptop:sounds/RainbowCollision", 250], ["TipTop.dat|tiptop:sounds/ColorMatch", 260]]},
+      { name: "Column Nuke", when: "A column nuke is launched and clears its column", steps: [["TipTop.dat|tiptop:sounds/ColumnNukeLaunch", 0, {"end": 190}], ["TipTop.dat|tiptop:sounds/ColumnNukeCollision", 190]]},
+      { name: "Color Bomb", when: "A color bomb is launched and goes off, the stack shaking", steps: [["TipTop.dat|tiptop:sounds/shake1", 0], ["TipTop.dat|tiptop:sounds/ColorbombLaunch", 70, {"end": 560}], ["TipTop.dat|tiptop:sounds/shake1", 450, {"end": 560}], ["TipTop.dat|tiptop:sounds/FloaterLaunched", 550], ["TipTop.dat|tiptop:sounds/ColorBombCollision", 560]]},
+      { name: "Game Lost", when: "The stack reaches the top: the shake, then the loss", steps: [["TipTop.dat|tiptop:sounds/shake0", 0, {"end": 250}], ["TipTop.dat|tiptop:sounds/FloaterLaunched", 220, {"end": 230}], ["TipTop.dat|tiptop:sounds/GameLost", 260]]}
+    ],
+    groups: [
     { name: "Menus", sounds: [
       ["TipTop.dat|tiptop:sounds/splash.ogg", "Splash", "The splash screen's loading bar shows"],
       ["TipTop.dat|tiptop:sounds/MouseOver.ogg", "Mouse over", "The pointer comes onto a button, also on the level summary's button"],
@@ -1838,7 +1855,7 @@ var ByopopSoundboards = {
       ["TipTop.dat|tiptop:sounds/timewarning.ogg", "Time warning", "Loops while the level's meter is low during play"],
       ["TipTop.dat|tiptop:sounds/shake0.ogg", "Shake 0", "Loops while the stack is near the top, when the game's table sets it for that nearness"],
       ["TipTop.dat|tiptop:sounds/shake1.ogg", "Shake 1", "Loops while the stack is near the top, when the game's table sets it for that nearness"],
-      ["TipTop.dat|tiptop:sounds/shake2.ogg", "Shake 2", "Loops while the stack is near the top, when the game's table sets it for that nearness"]
+      ["TipTop.dat|tiptop:sounds/shake2.ogg", "Shake 2 (unused)", "Never played: no mode's shake table (Regular and Strategy 5,0,5,5,5; Timed and Speed 5,0,1,5,5) selects it"]
     ] },
   ] },
   typershark: {

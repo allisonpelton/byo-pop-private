@@ -20,6 +20,11 @@
 //           tunes of one place numbered as the game reaches them), from the game's code (its session's answer) or, for an Ogg
 //           game, its file's name; shown beside the tune and in the display
 //   unused  ["<file name>#<n>", ...]: tunes the game's code never plays (left in its files), shown as such
+//   when    {"<file name>#<n>" ...: "<when>"}: exactly when the game's code plays it, as numbers (levels, orders, updates), the
+//           place's tooltip
+//   composer  who wrote the music, by the game's own credits (its credits screen, text or exe; a company where they name no
+//           person); none for a game whose credits name nobody for it, shown as Unknown. composers {"<id>": "<name>"} where
+//           the credits split the music by tune (none does)
 //   level   the level the game plays its modules at, where it is not the renderer's own (platform/MusicLevels.h):
 //           {bassAmplify: n} the BASS amplify it sets (0 to 100), {fmod3XM: true} FMOD 3's XM pre-amp. The renderer is the
 //           game's own (libopenmpt for MO3 and OXM, libxmp-lite for the rest: web/music/openmpt_web.c)
@@ -36,11 +41,13 @@ var ByopopSoundtracks = {
   // each starting at one of the orders the game plays (0 loading, 5 the menus, 9 a level, 35 the danger siren, 39 the game's
   // end, 41 a level's tally and level-up: games/astropop/src, checked 2026-11-11 once its music played)
   astropop: {
+    composer: "Phillipe Charon",
     files: ["music/*.mo3"],
     where: { "music#0": "Loading", "music#1": "Main Menu", "music#2": "In-Game", "music#3": "Danger", "music#4": "Game Over",
       "music#5": "Level Complete" }
   },
   atomica: {
+    composer: "Hannu Salonen",
     files: ["music/*.it"],
     where: { "atomica#2": "Title Screen", "atomica#3": "Level Theme 1", "atomica#5": "Level Theme 2", "atomica#7": "Main Menu", "atomica#9": "Level Theme 3",
       "atomica#8": "Game Over 1", "atomica#10": "Game Over 2" },
@@ -54,6 +61,7 @@ var ByopopSoundtracks = {
   // one module, BeyondNetwork.mo3: the game plays it from a starting order for each screen (properties/music.xml), so its
   // subsongs are the tunes
   bejeweled2: {
+    composer: "Skaven",
     files: ["music/*.mo3"],
     cuts: { "BeyondNetwork#1": [122] },
     where: { "BeyondNetwork#1": "Classic Mode", "BeyondNetwork#1@122": "Action Mode", "BeyondNetwork#2": "Main Menu", "BeyondNetwork#5": "Title Screen",
@@ -61,6 +69,7 @@ var ByopopSoundtracks = {
     unused: ["BeyondNetwork#3", "BeyondNetwork#4", "BeyondNetwork#7"]
   },
   bejeweledtwist: {
+    composer: "Phillipe Charon & Peter Hajba",
     files: ["music/*.mo3"],
     cuts: { "bejewel twist 06.10#3": [72], "bejewel twist 06.10#7": [73], "bejeweledtwist24#0": [24] },
     skip: ["bejewel twist 06.10#3@72"],
@@ -74,6 +83,7 @@ var ByopopSoundtracks = {
       "bejewel twist 06.10#13", "bejeweledtwist24#8"]
   },
   bigmoney: {
+    composer: "Skaven",
     files: ["music/*.it"],
     cuts: { "QualityTime_BigMoney#1": [24], "QualityTime_BigMoney#3": [41], "QualityTime_BigMoney#5": [64] },
     where: { "QualityTime_BigMoney#0": "Puzzle Mode", "QualityTime_BigMoney#1": "Puzzle Level Up", "QualityTime_BigMoney#1@24": "Puzzle Pause",
@@ -82,6 +92,7 @@ var ByopopSoundtracks = {
       "QualityTime_BigMoney#6": "Game Over", "QualityTime_BigMoney#7": "Title Screen" }
   },
   bookworm: {
+    composer: "Skaven",
     files: ["music/*.mo3"],
     where: { "bookworm1#0": "Classic Mode", "bookworm1#1": "Title Screen", "bookworm1#2": "Action Mode",
       "bookworm1#3": "Danger 1", "bookworm1#4": "Hall of Fame", "bookworm1#5": "Game Over 2", "bookworm1#6": "Game Over 1",
@@ -89,6 +100,7 @@ var ByopopSoundtracks = {
   },
   // Bookworm Adventures sets its music's amplify to 12.0, which BASS holds at 100
   bookwormadv: {
+    composer: "Reflexive Audio",
     files: ["sounds/music.mo3"],
     level: { bassAmplify: 100 },
     where: { "music#0": "Greek Battle", "music#1": "Greek Map", "music#2": "Greek Boss", "music#3": "Level Complete",
@@ -101,6 +113,7 @@ var ByopopSoundtracks = {
   // title and menus; a board the song of its level set, 0-9 cosmo4, 10-19 cosmo3, 20-49 cosmo2, 50-99 cosmo5, then again by
   // hundreds from cosmo4 at 100; a new song only at a set's first level, and cosmo1 again on leaving a board
   cosmicbugs: {
+    composer: "Staffan Melin",
     files: ["audio/*.mo3"],
     where: { "cosmo1#0": "Main Menu", "cosmo4#0": "Level Theme 1", "cosmo3#0": "Level Theme 2",
       "cosmo2#0": "Level Theme 3", "cosmo5#0": "Level Theme 4" }
@@ -109,11 +122,13 @@ var ByopopSoundtracks = {
   // 0-9 cosmo4, 10-19 cosmo3, 20-49 cosmo2, 50-99 cosmo5, then again from cosmo4 at 100 (Level_SetBackground's own song
   // table is never played)
   waterbugs: {
+    composer: "Staffan Melin",
     files: ["audio/*.mo3"],
     where: { "cosmo1#0": "Main Menu", "cosmo4#0": "Level Theme 1", "cosmo3#0": "Level Theme 2",
       "cosmo2#0": "Level Theme 3", "cosmo5#0": "Level Theme 4" }
   },
   dynomite: {
+    composer: "Skaven",
     files: ["music/*.it"],
     cuts: { "amazonas#2": [64] },
     // the places from the Dynomite session (2026-11-11): #2@64 is where the won challenge starts, and the game over (#2) and
@@ -132,6 +147,7 @@ var ByopopSoundtracks = {
   },
   // Typer Shark's one module (wordshar.mo3) holds every tune, which the game starts at an order of it (ChangeMusic); its subsongs stand for them
   typershark: {
+    composer: "Jonne Valtonen",
     files: ["music/*.mo3"],
     cuts: { "wordshar#1": [20] },
     where: { "wordshar#0": "In-Game", "wordshar#1": "Main Menu", "wordshar#1@20": "Map", "wordshar#2": "Game Over", "wordshar#3": "Level Complete",
@@ -139,6 +155,7 @@ var ByopopSoundtracks = {
     unused: ["wordshar#5"]
   },
   mummymaze: {
+    composer: "Hannu Salonen",
     files: ["music/*.it"],
     cuts: { "game#9": [67], "game#10": [77] },
     where: { "game#0": "Main Menu", "game#1": "Tutorial", "game#2": "In-Game", "game#3": "Stage Clear",
@@ -166,6 +183,7 @@ var ByopopSoundtracks = {
   // with which height is not known), here as one tune, each piece once; its other modes pick single instrument samples at
   // random, which are not tunes and are left out, as is intense-levelend (a sound); intenseEnd is the game over's jingle (Game::gameOver)
   wordharmony: {
+    composer: "Guy Whitmore",
     files: ["res/music/menuMusic.wav", "res/music/intenseEnd.wav"],
     joined: [{ id: "intense", pieces: ["res/music/intense0.wav", "res/music/intense-between.wav", "res/music/intense1.wav",
       "res/music/intense-between.wav", "res/music/intense1b.wav", "res/music/intense-between.wav", "res/music/intense2.wav",
@@ -177,6 +195,7 @@ var ByopopSoundtracks = {
     where: { theme_np: "In-Game", nm_splash: "Splash Screen", nm_gameover: "Game Over", nm_youwin: "Victory" } },
   // the Ogg games
   bookwormadv2: {
+    composer: "Staffan Melin",
     files: ["music/*.ogg"],
     where: { chinese_map: "Chinese Map", chinese_level: "Chinese Levels", chinese_boss: "Chinese Boss",
       fairy_tale_map: "Fairy Tale Map", fairy_tale_level: "Fairy Tale Levels", fairy_tale_boss: "Fairy Tale Boss",
@@ -191,6 +210,7 @@ var ByopopSoundtracks = {
   // Bonnie's Bookstore plays its one module as tracks, each a range of orders (its track table, games/bonnies/game/Music.cpp:
   // the first for the menu, the rest in a game), and a logo tune
   bonnies: {
+    composer: "Barry Leitch",
     files: ["sound/logo.ogg", "sound/music.oxm"],
     level: { fmod3XM: true },
     parts: { music: [[1, 18], [20, 52], [54, 82], [84, 99], [101, 126], [128, 150], [152, 168], [170, 196], [198, 220]] },

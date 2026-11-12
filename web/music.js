@@ -382,8 +382,12 @@ var ByopopMusic = (function () {
       function placeOf(k, rel) {
         k.format = formats[rel] || (rel.match(/\.([^.\/]+)$/) || ["", ""])[1].toUpperCase();
         var low = k.id.toLowerCase();
-        k.where = "";
-        Object.keys(entry.where || {}).forEach(function (w) { if (w.toLowerCase() === low) k.where = entry.where[w]; });
+        k.where = byId(entry.where, k.id) || "";
+        // when exactly the game plays it, for the place's tooltip (the user, 2026-11-12: "Make hovering over the brief track
+        // description explain when it plays")
+        k.when = byId(entry.when, k.id) || "";
+        // who wrote it, from the game's own credits: the tune's own where they split the music, else the game's
+        k.composer = byId(entry.composers, k.id) || entry.composer || "";
         k.unused = (entry.unused || []).some(function (u) { return u.toLowerCase() === low; });
       }
       function add(rel, list) {
@@ -606,6 +610,7 @@ var ByopopMusic = (function () {
     return svg;
   }
   var VIS_KEY = "byopop-music-vis", MUTE_KEY = "byopop-music-mute";
+  var FOLD_KEY = "byopop-music-folded";   // the games folded in the list, their ids joined by spaces
   var VIS = ["spectrum", "tracker", "piano", "score", "off"];  // what the display's lower half shows; a click on it goes to the next
   var SLICE = 512;           // frames between two looks at the decoder's row while the tracker view is shown
   // The display's height, in the tracker's rows (the user, 2026-11-09: "increase how many rows show in the tracker"): five at
@@ -823,8 +828,16 @@ var ByopopMusic = (function () {
     // player won't navigate through the songs; instead, it scrolls"), Home and End to the first and the last; Enter or Space
     // plays the one that has the focus, as a click does. With the focus elsewhere in the list they start at the tune playing.
     list.addEventListener("keydown", function (ev) {
-      if (ev.altKey || ev.ctrlKey || ev.metaKey || ["ArrowDown", "ArrowUp", "Home", "End"].indexOf(ev.key) < 0) return;
-      var all = Array.prototype.slice.call(list.querySelectorAll(".mu-tune"));
+      if (ev.altKey || ev.ctrlKey || ev.metaKey || ["ArrowDown", "ArrowUp", "Home", "End", "ArrowLeft", "ArrowRight"].indexOf(ev.key) < 0) return;
+      if (ev.key === "ArrowLeft" || ev.key === "ArrowRight") {
+        if (!document.activeElement || !document.activeElement.classList.contains("mu-fold")) return;
+      }
+      if ((ev.key === "ArrowLeft" || ev.key === "ArrowRight") && document.activeElement && document.activeElement.classList.contains("mu-fold")) {
+        ev.preventDefault();
+        fold(document.activeElement, ev.key === "ArrowLeft");
+        return;
+      }
+      var all = Array.prototype.filter.call(list.querySelectorAll(".mu-fold, .mu-tune"), function (b) { return b.getClientRects().length > 0; });
       if (!all.length) return;
       var at = all.indexOf(document.activeElement);
       if (at < 0) at = Math.max(0, all.indexOf(list.querySelector('.mu-tune[data-tune="' + current + '"]')));
@@ -886,7 +899,11 @@ var ByopopMusic = (function () {
       stateGlyph.replaceChild(glyph(state === "playing" ? "play" : state === "paused" ? "pause" : "stop"), stateGlyph.firstChild);
       stateGlyph.classList.toggle("mu-blink", state === "loading" || state === "paused");
       Array.prototype.forEach.call(list.querySelectorAll("button[data-tune]"), function (b) {
-        if (+b.getAttribute("data-tune") === current && state !== "idle") b.setAttribute("aria-current", "true"); else b.removeAttribute("aria-current");
+        if (+b.getAttribute("data-tune") === current && state !== "idle") {
+          b.setAttribute("aria-current", "true");
+          var ol = b.closest("ol"), head = ol && ol.previousSibling && ol.previousSibling.querySelector && ol.previousSibling.querySelector(".mu-fold");
+          if (head && ol.hidden) fold(head, false);   // the tune playing is never hidden in a folded game
+        } else b.removeAttribute("aria-current");
       });
       var t = tunes[current];
       if (t && state !== "idle") {
@@ -2849,10 +2866,25 @@ var ByopopMusic = (function () {
         if (!g) { g = { game: t.game, items: [] }; byGame.push(g); }
         g.items.push(i);
       });
+      var folded = [];
+      try { folded = (localStorage.getItem(FOLD_KEY) || "").split(" "); } catch (e) {}
       byGame.forEach(function (g) {
-        var h = make("h3", "mu-game", g.game.title), ol = make("ol", "mu-tunes");
+        // the game's heading: a button that folds its tunes away, with how many there are and how long they last together
+        // (the user, 2026-11-12: "make each game collapsible in the player, have each game show its track count and total length")
+        var h = make("h3", "mu-game"), ol = make("ol", "mu-tunes"), btn = make("button", "mu-fold");
+        var secs = g.items.reduce(function (n, i) { return n + (tunes[i].seconds || 0); }, 0);
+        btn.type = "button";
+        btn.setAttribute("data-game", g.game.id);
+        btn.appendChild(make("span", "mu-fold-mark", ""));
+        btn.appendChild(make("span", "mu-game-name", g.game.title));
+        btn.appendChild(make("span", "mu-game-sum", T("music.game_sum", { tracks: T("music.game_tracks", { n: g.items.length }), time: T("music.game_minutes", { n: Math.max(1, Math.round(secs / 60)) }) })));
+        btn.addEventListener("click", function () { fold(btn, !ol.hidden); });
+        h.appendChild(btn);
         h.id = "music-game-" + g.game.id;
+        ol.id = "music-tunes-" + g.game.id;
+        btn.setAttribute("aria-controls", ol.id);
         ol.setAttribute("aria-labelledby", h.id);
+        setFold(btn, ol, folded.indexOf(g.game.id) >= 0);
         g.items.forEach(function (i) {
           var li = make("li"), b = make("button", "mu-tune");
           b.type = "button";
@@ -2863,9 +2895,12 @@ var ByopopMusic = (function () {
           b.appendChild(name);
           // where the game plays it (or that it never does), and its format
           var where = make("span", "mu-where", t.unused ? T("music.unused") : t.where);
-          where.title = where.textContent;
+          where.title = t.when ? where.textContent + "\n" + t.when : where.textContent;
           if (t.unused) where.classList.add("mu-unused");
           b.appendChild(where);
+          var by = make("span", "mu-composer", t.composer || T("music.composer_unknown"));
+          by.title = by.textContent;
+          b.appendChild(by);
           b.appendChild(make("span", "mu-format", t.format || ""));
           b.appendChild(make("span", "mu-time", clock(t.seconds)));
           b.addEventListener("click", function () { play(i); });
@@ -2875,6 +2910,21 @@ var ByopopMusic = (function () {
         list.appendChild(h);
         list.appendChild(ol);
       });
+    }
+    function setFold(btn, ol, shut) {
+      ol.hidden = shut;
+      btn.setAttribute("aria-expanded", String(!shut));
+      btn.firstChild.textContent = shut ? "+" : "-";
+    }
+    // folds a game's tunes away (shut) or opens them, and keeps the games folded for this browser
+    function fold(btn, shut) {
+      var ol = document.getElementById(btn.getAttribute("aria-controls"));
+      if (!ol) return;
+      if (shut && ol.querySelector("[aria-current]")) shut = false;   // the tune playing stays in view
+      setFold(btn, ol, shut);
+      var ids = Array.prototype.filter.call(list.querySelectorAll(".mu-fold"), function (b) { return b.getAttribute("aria-expanded") === "false"; })
+        .map(function (b) { return b.getAttribute("data-game"); });
+      try { localStorage.setItem(FOLD_KEY, ids.join(" ")); } catch (e) {}
     }
     // The games the player has, with music in the table, read once, the first time the tab is shown
     function scan() {
