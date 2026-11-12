@@ -95,6 +95,10 @@ code. Then three lists:
   (a feature the runs missed), or read the port's function again against the export. One that no play of the original
   can reach is a candidate for taking out; that is the game session's call, and code that only some input reaches (an
   error path, a rare dialog) stays. A function with a `none` line is not listed here, only with those left out.
+  The linker finds what nothing in the port references at all (TipTop, 2026-11-11). Build at -O0 in its own build
+  folder with `-ffunction-sections -fdata-sections` and link with `-Wl,--gc-sections -Wl,--verbose` (lld has no
+  `--print-gc-sections`). The "Discarded" list then names every unreferenced function and variable. Repeat after
+  each cut, since a function only the dead ones called shows up next.
 - **Never reached and not defined in the port.** Dead code of the original, or code only input the runs never gave
   reaches. Nothing to do unless a run should have reached it.
 

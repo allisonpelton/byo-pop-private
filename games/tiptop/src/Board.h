@@ -37,6 +37,18 @@ enum
 	KIND_NONE = 0x11,
 };
 
+// Positions on the field (Piece::mY, mTargetY, mShakeX and mShakeY, and the steps of a motion) are fixed point with 8 bits
+// of fraction: FIXED_ONE is one pixel (the row of a block is y >> FIXED_SHIFT over the block's height).
+constexpr int FIXED_SHIFT = 8;
+constexpr int FIXED_ONE = 1 << FIXED_SHIFT;
+
+// The ring of the chain counters (Field::mChains), and the group number of a piece that is in no chain
+constexpr int CHAIN_COUNT = 0x400;
+constexpr int NO_CHAIN = CHAIN_COUNT;
+
+// How long a block flashes once before a column nuke's or a color bomb's effect removes it (ms)
+constexpr int FLASH_TIME = 0xfa;
+
 // Piece flags (Piece::mFlags)
 enum
 {
@@ -105,19 +117,19 @@ template <typename T> inline T& ConfigAt(Config& theConfig, size_t theOffset)
 {
 	return *reinterpret_cast<T*>(reinterpret_cast<uint8_t*>(&theConfig) + theOffset);
 }
-inline int32_t& CfgStopRow(Config& c)          { return ConfigAt<int32_t>(c, 0x04); }   // Level m08: the row the next block stops at (-1 the middle, -2/-3 specials)
-inline int32_t& CfgStopRowAdd(Config& c)       { return ConfigAt<int32_t>(c, 0x08); }   // Level m0c
-inline int32_t& CfgStartRows(Config& c)        { return ConfigAt<int32_t>(c, 0x110); }  // Level m00: rows of blocks at the start
-inline int32_t& CfgStartRowsAdd(Config& c)     { return ConfigAt<int32_t>(c, 0x114); }  // Level m04
-inline int32_t& CfgGoal(Config& c)             { return ConfigAt<int32_t>(c, 0x118); }  // Level m58: blocks to clear / the bar's goal (Config.h names it mBonusTime: in gConfig it is the bonus round's seconds)
-inline int32_t& CfgSpawnThreshold(Config& c)   { return ConfigAt<int32_t>(c, 0x120); }  // Level m60
-inline float& CfgFloatsPerRemoval(Config& c)   { return ConfigAt<float>(c, 0x130); }    // Level m10
-inline float& CfgFloatsPerTap(Config& c)       { return ConfigAt<float>(c, 0x134); }    // Level m14
-inline int32_t& CfgRange(Config& c, int i)     { return ConfigAt<int32_t>(c, 0x138 + i * 4); }  // Level m18[i]: min and max of the interval between two blocks of each special (8 pairs)
-inline int32_t& CfgNumColors(Config& c)        { return ConfigAt<int32_t>(c, 0x18c); }  // Level m5c
-inline int32_t& CfgLevelM64(Config& c)         { return ConfigAt<int32_t>(c, 0x468); }  // Level m64 (the third list: the meter's start)
-inline float& CfgLevelM68(Config& c)           { return ConfigAt<float>(c, 0x46c); }    // Level m68
-inline int32_t& CfgLevelM6c(Config& c)         { return ConfigAt<int32_t>(c, 0x470); }  // Level m6c * 1000
+inline int32_t& CfgStopRow(Config& c)          { return ConfigAt<int32_t>(c, 0x04); }   // Level mStopRow: the row the next block stops at (-1 the middle, -2/-3 specials)
+inline int32_t& CfgStopRowAdd(Config& c)       { return ConfigAt<int32_t>(c, 0x08); }   // Level mStopRowAdd
+inline int32_t& CfgStartRows(Config& c)        { return ConfigAt<int32_t>(c, 0x110); }  // Level mStartRows: rows of blocks at the start
+inline int32_t& CfgStartRowsAdd(Config& c)     { return ConfigAt<int32_t>(c, 0x114); }  // Level mStartRowsAdd
+inline int32_t& CfgGoal(Config& c)             { return ConfigAt<int32_t>(c, 0x118); }  // Level mGoal: blocks to clear / the bar's goal (Config.h names it mBonusTime: in gConfig it is the bonus round's seconds)
+inline int32_t& CfgSpawnThreshold(Config& c)   { return ConfigAt<int32_t>(c, 0x120); }  // Level mSpawnThreshold
+inline float& CfgFloatsPerRemoval(Config& c)   { return ConfigAt<float>(c, 0x130); }    // Level mFloatsPerRemoval
+inline float& CfgFloatsPerTap(Config& c)       { return ConfigAt<float>(c, 0x134); }    // Level mFloatsPerTap
+inline int32_t& CfgRange(Config& c, int i)     { return ConfigAt<int32_t>(c, 0x138 + i * 4); }  // Level mRange[i]: min and max of the interval between two blocks of each special (8 pairs)
+inline int32_t& CfgNumColors(Config& c)        { return ConfigAt<int32_t>(c, 0x18c); }  // Level mNumColors
+inline int32_t& CfgMeterStart(Config& c)         { return ConfigAt<int32_t>(c, 0x468); }  // Level mMeterStart (the third list: the meter's start)
+inline float& CfgMeterLoss(Config& c)           { return ConfigAt<float>(c, 0x46c); }    // Level mMeterLoss
+inline int32_t& CfgMeterDoublingTime(Config& c)         { return ConfigAt<int32_t>(c, 0x470); }  // Level mMeterDoublingTime * 1000
 
 // The grid and the rules (0x96c bytes; 0x4012e6)
 struct Field
@@ -139,7 +151,7 @@ struct Field
 	uint8_t mQueue[0x40] = {};             // +0x094 the columns the next floaters come in (floater determination 2)
 	uint32_t mQueueHead = 0;               // +0x0d4
 	uint32_t mQueueCount = 0;              // +0x0d8
-	int16_t mChains[0x400] = {};           // +0x0dc matches of each chain (a ring: mNextChain); use Chain()
+	int16_t mChains[CHAIN_COUNT] = {};           // +0x0dc matches of each chain (a ring: mNextChain); use Chain()
 	int32_t mLowRow = -1;                  // +0x8dc the lowest row that has a block at rest (-1 none)
 	int32_t mHighRow = -1;                 // +0x8e0 the highest
 	int32_t mBlockWidth = 0;               // +0x8e4
@@ -176,7 +188,7 @@ struct Field
 	Field(int theColumns, int theRows, const int32_t* theBlockSize);  // 0x4012e6
 	virtual ~Field();                      // 0x401455 (the deleting destructor), body 0x40147e
 
-	// The chain counter theIndex (mChains[theIndex]; 0x400 means "no chain" in CheckGroup and is never read)
+	// The chain counter theIndex (mChains[theIndex]; NO_CHAIN means "no chain" in CheckGroup and is never read)
 	int16_t& Chain(int32_t theIndex);
 	Piece* PieceAt(uint32_t theIndex);                 // 0x4014e1
 	BoardState* SetState(BoardState* theState);        // 0x40150a (0 clears it and returns 0, else returns the old one)
@@ -241,8 +253,8 @@ struct Board
 	uint32_t mRows = 0;                    // +0x010
 	int32_t mX = 0;                        // +0x014 the field's place on the screen
 	int32_t mY = 0;                        // +0x018
-	int32_t mRight = 0;                    // +0x01c
-	int32_t mBottom = 0;                   // +0x020
+	int32_t mRight = 0;                    // +0x01c mX + mWidth; nothing reads it
+	int32_t mBottom = 0;                   // +0x020 mY + mHeight; nothing reads it
 	int32_t mBlockWidth = 0;               // +0x024
 	int32_t mBlockHeight = 0;              // +0x028
 	lowos::Surface* mBlocks = nullptr;     // +0x02c image 0x24: the blocks, one row of frames per kind
@@ -262,7 +274,7 @@ struct Board
 	BoardState mState;                     // +0x35c
 	uint32_t mGlowPitch = 0;               // +0x1610 the pitch of the three glow buffers (the App makes them)
 	uint8_t* mGlowBuffer = nullptr;        // +0x1614
-	uint32_t m1618 = 0;                    // +0x1618
+	uint32_t mGlowBufferUnused = 0;              // +0x1618 cleared with mGlowBuffer; nothing reads it
 	uint8_t* mGlowBufferA = nullptr;       // +0x161c the glow as drawn for the column mGlowColumn
 	uint8_t mGlowValidA = 0;               // +0x1620
 	uint8_t* mGlowBufferB = nullptr;       // +0x1624 and for the second sweep (the timed game)

@@ -70,7 +70,7 @@ Effect* Board::AllocEffect()
 // 0x5a6236: floating score text at (theX, theY); puzzle boards show none (except the secret ones with no moves left)
 void Board::DoPoints(int thePoints, int theX, int theY, const Color& theColor)
 {
-	if (!mIsPuzzle || (mIsSecret && m1918 < 1))
+	if (!mIsPuzzle || (mIsSecret && mHintsUsed < 1))
 	{
 		int aSize = FTol(std::min((double)thePoints / mLevelValue, 80.0));
 		int aLife = aSize * 2 + 70;
@@ -127,7 +127,7 @@ void Board::ExplodeAtHelper(int theCol, int theRow)
 			if (aCol < 8 && aRow < 8)
 			{
 				Piece* aPiece = mBoard[aRow][aCol];
-				if (aPiece != NULL && aPiece->m78 == 0)
+				if (aPiece != NULL && aPiece->mExplodeDelay == 0)
 				{
 					int aType = aPiece->mType;
 					bool aKeep = false;
@@ -177,7 +177,7 @@ void Board::ExplodeAtHelper(int theCol, int theRow)
 						gShardExplodeCenter[n][0] = aX;
 						gShardExplodeCenter[n][1] = aY;
 						gShardCount = n + 1;
-						if (aType == 8 || aPiece->m70)
+						if (aType == 8 || aPiece->mFlame)
 							aKeep = true;
 					}
 
@@ -189,7 +189,7 @@ void Board::ExplodeAtHelper(int theCol, int theRow)
 						aBonus = FTol((double)aBonus * mLevelValue);
 						DoPoints(aBonus, FTol(42.0 + aPiece->mX), FTol(aPiece->mY + 42.0 - 8.0), gPointColors[aType]);
 						mChainCount++;
-						aPiece->m78 = 10;
+						aPiece->mExplodeDelay = 10;
 					}
 					else
 					{
@@ -232,21 +232,21 @@ void Board::ExplodeAt(int theCol, int theRow)
 				int aDX = aPX - gShardExplodeCenter[aShard][0];
 				int aDY = aPY - gShardExplodeCenter[aShard][1];
 				double aDir = atan2((double)aDY, (double)aDX);
-				Shard* s = new Shard();
+				Shard* aNewShard = new Shard();
 				int aType = gShardTypes[aShard];
 				if (aType == 7)
-					s->mKind = 1;
+					aNewShard->mKind = 1;
 				else
-					s->mColor = gGemColors[aType];
-				s->mX = (float)(aPX - 15);
-				s->mY = (float)(aPY - 15);
+					aNewShard->mColor = gGemColors[aType];
+				aNewShard->mX = (float)(aPX - 15);
+				aNewShard->mY = (float)(aPY - 15);
 				double aJitterX = ((double)(CrtRand() % 100) / 100.0 - 0.5) * 3.1;
-				s->mVX = (float)(cos(aDir) * 4.0 + aJitterX);
+				aNewShard->mVX = (float)(cos(aDir) * 4.0 + aJitterX);
 				double aJitterY = ((double)(CrtRand() % 100) / 100.0 - 1.0) * 3.1;
-				s->mVY = (float)(sin(aDir) * 4.0 + aJitterY);
-				s->mFrame = Rand() % 0x28;
-				s->mFrameDelay = Rand() % 4 + 1;
-				mShards.push_back(s);
+				aNewShard->mVY = (float)(sin(aDir) * 4.0 + aJitterY);
+				aNewShard->mFrame = Rand() % 0x28;
+				aNewShard->mFrameDelay = Rand() % 4 + 1;
+				mShards.push_back(aNewShard);
 			}
 		}
 	}
@@ -272,14 +272,14 @@ void Board::ExplodeAt(int theCol, int theRow)
 				int aDX = aPX - gShardExplodeCenter[anExplode][0];
 				int aDY = aPY - gShardExplodeCenter[anExplode][1];
 				double aDir = atan2((double)aDY, (double)aDX);
-				Shard* s = new Shard();
-				s->mKind = 2;
-				s->mX = (float)aPX;
-				s->mY = (float)aPY;
-				s->mVX = (float)(cos(aDir) * aRadiusD * (double)0.351f);
-				s->mVY = (float)(sin(aDir) * aRadiusD * (double)0.351f);
-				s->mFrameDelay = Rand() % 4 + 3;
-				mShards.push_back(s);
+				Shard* aNewShard = new Shard();
+				aNewShard->mKind = 2;
+				aNewShard->mX = (float)aPX;
+				aNewShard->mY = (float)aPY;
+				aNewShard->mVX = (float)(cos(aDir) * aRadiusD * (double)0.351f);
+				aNewShard->mVY = (float)(sin(aDir) * aRadiusD * (double)0.351f);
+				aNewShard->mFrameDelay = Rand() % 4 + 3;
+				mShards.push_back(aNewShard);
 			}
 		}
 
@@ -367,20 +367,20 @@ void Board::SmallExplodeAt(int theCol, int theRow)
 			int aDX = aSX - aX;
 			int aDY = aSY - aY;
 			double aDir = atan2((double)aDY, (double)aDX);
-			Shard* s = new Shard();
+			Shard* aNewShard = new Shard();
 			if (aPiece->mType == 7)
-				s->mKind = 1;
+				aNewShard->mKind = 1;
 			else
-				s->mColor = gGemColors[aPiece->mType];
-			s->mX = (float)(aSX - 15);
-			s->mY = (float)(aSY - 15);
+				aNewShard->mColor = gGemColors[aPiece->mType];
+			aNewShard->mX = (float)(aSX - 15);
+			aNewShard->mY = (float)(aSY - 15);
 			double aJitterX = ((double)(CrtRand() % 100) / 100.0 - 0.5) * 1.9;
-			s->mVX = (float)(cos(aDir) * 2.5 + aJitterX);
+			aNewShard->mVX = (float)(cos(aDir) * 2.5 + aJitterX);
 			double aJitterY = ((double)(CrtRand() % 100) / 100.0 - 1.0) * 1.9;
-			s->mVY = (float)(sin(aDir) * 2.5 + aJitterY);
-			s->mFrame = Rand() % 0x28;
-			s->mFrameDelay = Rand() % 4 + 1;
-			mShards.push_back(s);
+			aNewShard->mVY = (float)(sin(aDir) * 2.5 + aJitterY);
+			aNewShard->mFrame = Rand() % 0x28;
+			aNewShard->mFrameDelay = Rand() % 4 + 1;
+			mShards.push_back(aNewShard);
 		}
 	}
 	if (mSelectedPiece == aPiece)
@@ -395,7 +395,7 @@ void Board::DoneClearing()
 {
 	for (int aRow = 7; aRow >= 0; aRow--)
 		for (int aCol = 0; aCol < 8; aCol++)
-			if (mBoard[aRow][aCol] != NULL && mBoard[aRow][aCol]->m78 > 0)
+			if (mBoard[aRow][aCol] != NULL && mBoard[aRow][aCol]->mExplodeDelay > 0)
 				return;
 
 	std::vector<Piece*> aNewPieces;
@@ -437,7 +437,7 @@ void Board::DoneClearing()
 								aPiece->mVY = (float)((double)aPiece->mVY + anInitialVY);
 							else
 								aPiece->mVY = (float)((double)aPiece->mVY - anInitialVY);
-							aPiece->m5C = mUpdateCnt;
+							aPiece->mMoveTick = mUpdateCnt;
 						}
 						aPiece->mRow++;
 						aLastVY = (double)aPiece->mVY;
@@ -456,7 +456,7 @@ void Board::DoneClearing()
 						aNew->mVY = (float)(aLastVY - 0.55);
 					else
 						aNew->mVY = (float)(aLastVY + 0.35);
-					aNew->m5C = mUpdateCnt;
+					aNew->mMoveTick = mUpdateCnt;
 					aNew->mCol = aCol;
 					aNew->mRow = 0;
 					aNew->mX = (float)GetColX(aCol);
@@ -501,8 +501,8 @@ void Board::DoneClearing()
 			for (int i = 0; i < (int)aNewPieces.size(); i++)
 			{
 				Piece* aPiece = aNewPieces[i];
-				aPiece->m58 = 0;
-				aPiece->m70 = false;
+				aPiece->mCountdown = 0;
+				aPiece->mFlame = false;
 				aPiece->mType = mRand.Next() % 7;
 				if (mIsFinity)
 				{
@@ -516,7 +516,7 @@ void Board::DoneClearing()
 						{
 							aRoll = (double)(mRand.Next() % 1000) / 1000.0;
 							if (aRoll < mApp->GetDouble("PowerGemChance"))
-								aPiece->m70 = true;
+								aPiece->mFlame = true;
 						}
 						else
 							aPiece->mType = 7;
@@ -524,14 +524,14 @@ void Board::DoneClearing()
 					else
 					{
 						aPiece->mType = 8;
-						aPiece->m58 = mApp->GetInteger("BombCountdown");
+						aPiece->mCountdown = mApp->GetInteger("BombCountdown");
 					}
 				}
 
 				aCount++;
 				if (aCount >= 500 && i == 0)
 				{
-					aPiece->m58 = 0;
+					aPiece->mCountdown = 0;
 					aPiece->mType = 8;
 					aHasMove = true;
 				}
@@ -544,7 +544,7 @@ void Board::DoneClearing()
 		} while (!aHasMove);
 
 		if (aNewPieces.size() > 1 && mIsFinity && aAllSame && aCount > 1)
-			aNewPieces[1]->m70 = true;
+			aNewPieces[1]->mFlame = true;
 	}
 
 	MarkDirtyFull();
@@ -558,50 +558,50 @@ void Board::UpdateEffects()
 	for (int i = 0; i < (int)mShards.size(); i++)
 	{
 		bool aRemove = false;
-		Shard* s = mShards[i];
-		if (s->mCycleColor)
+		Shard* aShard = mShards[i];
+		if (aShard->mCycleColor)
 		{
-			s->mHue = (s->mHue + 8) & 0xff;
-			s->mColor = Color(mApp->HSLToRGB(s->mHue, 0xff, 0x80));
+			aShard->mHue = (aShard->mHue + 8) & 0xff;
+			aShard->mColor = Color(mApp->HSLToRGB(aShard->mHue, 0xff, 0x80));
 		}
-		if (0.0f < s->mTrailChance)
+		if (0.0f < aShard->mTrailChance)
 		{
 			int aRnd = Rand() % 100000;
-			if ((float)aRnd / 100000.0 < (double)s->mTrailChance)
+			if ((float)aRnd / 100000.0 < (double)aShard->mTrailChance)
 			{
 				Shard* aTrail = new Shard();
 				aTrail->mKind = 2;
-				aTrail->mX = s->mX;
-				aTrail->mY = s->mY;
-				aTrail->mVX = (float)((double)s->mVX * 0.35);
-				aTrail->mVY = (float)((double)s->mVY * 0.35 + 0.25);
+				aTrail->mX = aShard->mX;
+				aTrail->mY = aShard->mY;
+				aTrail->mVX = (float)((double)aShard->mVX * 0.35);
+				aTrail->mVY = (float)((double)aShard->mVY * 0.35 + 0.25);
 				aTrail->mFrameDelay = 5;
 				mShards.push_back(aTrail);
 			}
-			s->mTrailChance = s->mTrailStep + s->mTrailChance;
+			aShard->mTrailChance = aShard->mTrailStep + aShard->mTrailChance;
 		}
 
-		s->mAge++;
-		if (s->mKind != 5)
+		aShard->mAge++;
+		if (aShard->mKind != 5)
 		{
-			if (s->mKind == 3)
+			if (aShard->mKind == 3)
 			{
-				float aSwing = (float)sin((double)(s->mFrequency * (float)s->mAge));
-				s->mX = s->mAmplitude * aSwing + s->mBaseX;
-				int aReach = abs(FTol((double)s->mVY * 3.0 + (double)s->mY2));
-				if (s->mLimit <= (float)aReach)
-					s->mFading = true;
-				if (!s->mFading)
+				float aSwing = (float)sin((double)(aShard->mFrequency * (float)aShard->mAge));
+				aShard->mX = aShard->mAmplitude * aSwing + aShard->mBaseX;
+				int aReach = abs(FTol((double)aShard->mVY * 3.0 + (double)aShard->mY2));
+				if (aShard->mLimit <= (float)aReach)
+					aShard->mFading = true;
+				if (!aShard->mFading)
 				{
-					float anAlpha = (float)((double)s->mAlpha + 0.1);
+					float anAlpha = (float)((double)aShard->mAlpha + 0.1);
 					if (1.0f <= anAlpha)
 						anAlpha = 1.0f;
-					s->mAlpha = anAlpha;
+					aShard->mAlpha = anAlpha;
 				}
 				else
 				{
-					float anAlpha = (float)((double)s->mAlpha - 0.1);
-					s->mAlpha = anAlpha;
+					float anAlpha = (float)((double)aShard->mAlpha - 0.1);
+					aShard->mAlpha = anAlpha;
 					if (anAlpha <= 0.0f)
 						aRemove = true;
 				}
@@ -609,44 +609,44 @@ void Board::UpdateEffects()
 			else
 			{
 				float aVY;
-				if (s->mKind == 2)
+				if (aShard->mKind == 2)
 				{
-					s->mVX = (float)((double)s->mVX * 0.98);
-					float aSlowed = (float)((double)s->mVY * 0.98);
-					aVY = (float)((double)s->mWeight * 0.07 + (double)aSlowed);
+					aShard->mVX = (float)((double)aShard->mVX * 0.98);
+					float aSlowed = (float)((double)aShard->mVY * 0.98);
+					aVY = (float)((double)aShard->mWeight * 0.07 + (double)aSlowed);
 				}
 				else
-					aVY = (float)((double)s->mWeight * 0.15 + (double)s->mVY);
-				s->mVY = aVY;
+					aVY = (float)((double)aShard->mWeight * 0.15 + (double)aShard->mVY);
+				aShard->mVY = aVY;
 			}
 		}
 
-		float aVY = s->mGravity + s->mVY;
-		s->mVY = aVY;
-		s->mX = s->mVX + s->mX;
-		s->mY = aVY + s->mY;
-		s->mY2 = aVY + s->mY2;
+		float aVY = aShard->mGravity + aShard->mVY;
+		aShard->mVY = aVY;
+		aShard->mX = aShard->mVX + aShard->mX;
+		aShard->mY = aVY + aShard->mY;
+		aShard->mY2 = aVY + aShard->mY2;
 		MarkDirtyFull();
-		if (s->mKind == 3)
+		if (aShard->mKind == 3)
 		{
-			float aDX = s->mX - s->mCenterX;
-			float aDY = s->mY - s->mCenterY;
-			float aCos = (float)cos((double)s->mAngle);
-			float aSin = (float)sin((double)s->mAngle);
-			s->mPosX = (aCos * aDX + s->mCenterX) - aSin * aDY;
-			s->mPosY = aSin * aDX + aCos * aDY + s->mCenterY;
+			float aDX = aShard->mX - aShard->mCenterX;
+			float aDY = aShard->mY - aShard->mCenterY;
+			float aCos = (float)cos((double)aShard->mAngle);
+			float aSin = (float)sin((double)aShard->mAngle);
+			aShard->mPosX = (aCos * aDX + aShard->mCenterX) - aSin * aDY;
+			aShard->mPosY = aSin * aDX + aCos * aDY + aShard->mCenterY;
 		}
-		if (mUpdateCnt % s->mFrameDelay == 0)
-			s->mFrame = (s->mFrame + 1) % 0x28;
-		if (s->mKind == 2 && s->mFrame == 0xe)
+		if (mUpdateCnt % aShard->mFrameDelay == 0)
+			aShard->mFrame = (aShard->mFrame + 1) % 0x28;
+		if (aShard->mKind == 2 && aShard->mFrame == 0xe)
 			aRemove = true;
-		if ((double)mHeight <= (double)mApp->ScaleNum(s->mY, 0.0f))
+		if ((double)mHeight <= (double)mApp->ScaleNum(aShard->mY, 0.0f))
 			aRemove = true;
 
 		if (aRemove)
 		{
 			// the last one takes its place
-			delete s;
+			delete aShard;
 			mShards[i] = mShards.back();
 			mShards.pop_back();
 			i--;
@@ -655,18 +655,18 @@ void Board::UpdateEffects()
 
 	for (int i = 0; i < (int)mEffects.size(); i++)
 	{
-		Effect* e = mEffects[i];
-		if (e->mKind == 0)
+		Effect* anEffect = mEffects[i];
+		if (anEffect->mKind == 0)
 		{
-			if (e->mDelay < 1)
+			if (anEffect->mDelay < 1)
 			{
 				if ((mUpdateCnt & 1) == 0)
 				{
-					e->mFrame++;
+					anEffect->mFrame++;
 					MarkDirtyFull();
-					if (e->mFrame == 0x14)
+					if (anEffect->mFrame == 0x14)
 					{
-						delete e;
+						delete anEffect;
 						mEffects[i] = mEffects.back();
 						mEffects.pop_back();
 						i--;
@@ -674,17 +674,17 @@ void Board::UpdateEffects()
 				}
 			}
 			else
-				e->mDelay--;
+				anEffect->mDelay--;
 		}
 	}
 
 	for (int i = 0; i < (int)mShockWaves.size(); i++)
 	{
-		ShockWave& w = mShockWaves[i];
-		if (!w.mGrowing)
+		ShockWave& aWave = mShockWaves[i];
+		if (!aWave.mGrowing)
 		{
-			w.mProgress = w.mProgress - w.mFadeStep;
-			if (w.mProgress <= 0.0f)
+			aWave.mProgress = aWave.mProgress - aWave.mFadeStep;
+			if (aWave.mProgress <= 0.0f)
 			{
 				mShockWaves.erase(mShockWaves.begin() + i);
 				i--;
@@ -692,11 +692,11 @@ void Board::UpdateEffects()
 		}
 		else
 		{
-			w.mProgress = w.mGrowStep + w.mProgress;
-			if (w.mProgress >= 1.0f)
+			aWave.mProgress = aWave.mGrowStep + aWave.mProgress;
+			if (aWave.mProgress >= 1.0f)
 			{
-				w.mProgress = 1.0f;
-				w.mGrowing = false;
+				aWave.mProgress = 1.0f;
+				aWave.mGrowing = false;
 			}
 		}
 	}
@@ -720,15 +720,15 @@ void Board::AddAlphaSparkle(int theX, int theY, MemoryImage* theImage, int theWi
 		int aY = Rand() % theHeight;
 		if (0xa0000000 < (aBits[theImage->GetWidth() * aY + aX] & 0xff000000))
 		{
-			Shard* s = new Shard();
-			s->mKind = 2;
-			s->mX = (float)(aX + theX);
-			s->mY = (float)(aY + theY);
-			s->mVX = 0;
-			s->mVY = (float)(fabsf(GetRandFloat()) * 0.5);
-			s->mFrameDelay = Rand() % 4 + 3;
-			s->mWeight = 0.1f;      // 0x3dcccccd
-			mShards.push_back(s);
+			Shard* aNewShard = new Shard();
+			aNewShard->mKind = 2;
+			aNewShard->mX = (float)(aX + theX);
+			aNewShard->mY = (float)(aY + theY);
+			aNewShard->mVX = 0;
+			aNewShard->mVY = (float)(fabsf(GetRandFloat()) * 0.5);
+			aNewShard->mFrameDelay = Rand() % 4 + 3;
+			aNewShard->mWeight = 0.1f;      // 0x3dcccccd
+			mShards.push_back(aNewShard);
 			break;
 		}
 	}

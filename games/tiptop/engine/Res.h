@@ -79,11 +79,13 @@ void* Get(int theGroup, int theId);
 int IndexOf(int theGroup, int theId);
 // The size the archive read gave (entry +0x48)
 int32_t SizeOf(int theGroup, int theId);
+// BYOPOP_SOUNDLOG: the name an entry of the archive is stored under (the case TipTop.dat spells it in, which the table's
+// name matches without regard to case), or null while the archive's table is not read
+const char* StoredName(int theGroup, int theId);
 
 // The converters, for the game's own use
 lowos::Image* ConvertPcx(const uint8_t* theFile, uint32_t theSize);
 lowos::Image* ConvertJpeg(const uint8_t* theFile, uint32_t theSize);
-void FreeImage(lowos::Image* theImage);
 
 } // namespace res
 

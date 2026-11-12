@@ -240,7 +240,7 @@ The handler of event 3 (0x403fd0, `Brick::OnDie`) fires the "popped" event 0x1a 
 ## 7. Fix candidates (original bugs and waits, kept in the port, for the fixes mod)
 
 - The OK button of the box that explains a weapon plays the one-second timer's tick after its click (the sample number at +0x118,
-  section 6): a stray sound. Made: the fixes mod's toggle `weaponBoxTick` (`mods/fixes/mod.json`, read with `FixEnabled` in
+  section 6): a stray sound. Made: the fixes mod's toggle `weaponBoxTick` (`mods/fixes/mod.json`, read with `Platform::FixOn` in
   `src/Fixes.cpp`; on in an enabled mod, so the box's OK is silent; with the mod off, as in the port, it ticks).
   `games/astropop/tools/fixes_check.sh` proves it: the bot plays one game with real input (`realplay.py --charge 18000`, so the box
   comes up) with no mods and with the mod, and the sound logs differ by that one play of `sounds/timer1`, the other sounds and the
@@ -266,6 +266,10 @@ The handler of event 3 (0x403fd0, `Brick::OnDie`) fires the "popped" event 0x1a 
     (2D mode only; in 3D the card does it): that is most of the shots counted "faint" in the report. The port's 2D screen is the
     GPU's, so matching it takes a software screen and the 2004 arithmetic (about 5,500 lines of x86 in the two functions, 16 and
     32 bit, with and without a colour, transparent or not): shared code, not done, no difference that a person sees.
+  - **The launch pad's glow in 3D** (2026-11-12, the wipe comparison, section 10): the glow and sparks above the launch pad of the main
+    menu (x 216 to 417, y 383 to 443) differ by at most 25 levels between the original on its Direct3D and the port on SDL's, in every frame of
+    four runs that shows the menu (180 frames, about 350 to 480 pixels once the menu is uncovered). The card does the blending on both
+    sides here, so it is another blend or another rounding of the same additive halos; no one sees it (shotdiff counts it faint). Not chased.
   - The title screen changes its picture (Vixx, Turbot, ...) every 600 updates of its own count. The port loads at the machine's speed
     (CLAUDE.md: loading is made fast in the port itself), so its title starts at another update than the original's and a shot at a fixed update
     can land on the other picture (the tour `menus` a01_title; the next shot, a02, matches). It is a timing of the loader, not a
@@ -291,7 +295,10 @@ The handler of event 3 (0x403fd0, `Brick::OnDie`) fires the "popped" event 0x1a 
    waits for `docs/MOD_ROADMAP.md`'s turn. Done since: the coverage check and the removal of code the game does not need (section 10), the
    performance pass (section 11), the readability pass (section 12) and the check against the PopCap Game Collection's copy (section 13: its exe is
    another build; the port plays equal on its files) and the music's state against the original's (section 14: the port had no music; fixed).
-   Still to do for the game to be done: a night run of the original in 3D for the screen wipe (section 10).
+   The original's 3D screen wipe was reached on the night of 2026-11-12 and compared frame by frame with the port's, all four kinds: the same
+   pictures (section 10). The performance step is open: in 3D the port is a few percent over its original (section 11, the shared
+   presentation path); 2D passes. The lite survey (section 11b) found no candidate worth a toggle: the game's logic is 0.6% of the process
+   and every faster method keeps the answer.
 4. (Done: the gap of the removed More Games button is closed, section 6.) The app's destructor does not delete its screens (as the original's).
 5. (Done in phase two, the sites it lists and the other drawing and screen functions read against the asm; the float rounding of the drawing
    code follows section 4.) Phase two of the pass: the x87 compares of the drawing and screen code that were not checked in phase one against the asm for the `<` / `<=` idiom of section 4 (0x40c8a0, 0x433500, 0x433920, 0x439c20, 0x444520, 0x461010, 0x461e50, 0x467af0, 0x487f00, 0x48a110 and the other `TEST AH` sites listed by `grep -l 'TEST AH' re/astropop/asm/*.asm`); the gameplay ones (every Brick method, the group and fall code, CheckStackHeight, OnBrickGone) were read in phase one.
@@ -339,10 +346,43 @@ Turbot's power-up (0x4022f0), the brick kinds' settle, draw and activate functio
 the board's `RecordStep` (0x434570), `PulsePair::Update` (0x433850), the mutation counter's event (0x438e10), the piece-brick event
 (0x451430), the power brick's done event (0x45e920), the search for a move that is left (`AnalyseSecond` 0x453a50 and `RunTotal` 0x43a960 of `AnyMoveLeft`),
 the pause that a full field makes at its start (0x4329c0), the weapon box's key and height (0x483a20, 0x483b90), the dialog's line setters
-(0x4840c0, 0x487970, 0x4879d0, 0x4897b0) and the four steps of the 3D screen wipe with its draw and its
-check (0x40b340, 0x40b430, 0x40b540, 0x40b5e0, 0x426370, 0x4264a0). The screen wipe plays only in 3D (`RedrawAfterDialog` closes the
-board first when the screen is not accelerated) and the original in Windows Sandbox has no Direct3D, so a run that reaches it is a
-night run on the visible desktop; it is listed under the next steps.
+(0x4840c0, 0x487970, 0x4879d0, 0x4897b0). The four steps of the 3D screen wipe with its draw and its check were on this list until the
+night of 2026-11-12 (the next paragraph).
+
+**The 3D screen wipe** (2026-11-12, the night run, on the visible desktop). The wipe plays only in 3D (`RedrawAfterDialog` closes the
+board first when the screen is not accelerated), the original in Windows Sandbox has no Direct3D, and dgVoodoo's wrapper failed on it, so
+`games/astropop/tools/origcmp/visrun3d.py` runs a copy of the staged original on the desktop (22:00 to 08:00 only: `Is3D` 1 in the
+registry key, put back after, the script's input posted to the window, `--coverage` on). The wipe's kind is drawn when a board is made
+(`Board::Board`: `AstroRand() % 500000000 % 4`; 0 clears pixels at random, 1 moves an edge to the left, 2 to the right, 3 clears rows), so
+one run shows one kind, and `games/astropop/tools/origcmp/wipeseeds.py` runs the same tour once for each seed (it patches the seed bytes of
+origrun's `seed` patch in the copy) until the coverage has reached all six functions. Seed 1 gave the right edge (0x40b430), seeds 2, 4, 7,
+8 and 10 the random clearing (0x426370), 3, 5, 6, 9 and 12 the left edge (0x40b340), 11, 13 and 14 the right edge again, and seed 15 the rows
+(0x40b540); the draw (0x40b5e0) and the check (0x4264a0) ran in every one. **All six functions are reached.** The port's four steps, its
+draw and its check were read against the export before (nothing differed).
+
+**The wipe, frame by frame** (the same night). The same seed gives the same kind in the port, so `origcmp/wipe.sh <seed>` runs the chain for
+one kind: a classic game of the in-game tour (`tour/ingame1.txt` up to its last move), Escape, the options box's Main Menu button and the
+End Game box's Yes, which starts the wipe, then a shot every few updates (`wipeshots.py`). The original runs on the desktop on the real clock
+(`visrun3d.py --shots`, its window at the top right; 22:00 to 08:00); each input lands on the update it was asked for and each shot is
+written with the update it landed at, a shot waiting until the original's draw flag (`[app]+0x488`, found by `probe3d.py`: the one field of
+the app object that reads 1 for a moment after each update, 0 when it is drawn) says the last update was drawn and reading the client area
+off the screen while the game is held 30 ms. The port's script puts the same inputs at the same
+updates (the tour's own offset for each kind of input) and shoots **every** update (`-fast -drawevery`, rundesk, `Is3D` 1, the same seed), and
+`wipematch.py` matches each of the original's pictures with the best of the port's pictures within four updates, so that the unknown part
+of a real-clock shot (a picture shows the frame of the update it was taken at or of one or two before it) does not matter: the wipe is
+monotonic, so the best match is the same state, and what is judged is how small the difference is there and that the offset does not drift
+over the wipe (a wipe that ran at another speed would). The offsets were 0 or -1 update in 172 of the 180 frames of the four runs; the other
+eight are the first frame of each run (the board as it was before the wipe moved, which the port's range of shots starts on) and four where
+the screen showed a frame seven to nine updates old (the same picture as the shot before it: the screen had not changed since, the
+compositor's doing and not the game's; the next shot is at 0 again). Seeds 1 (right edge), 2 (random), 3 (left edge) and 15 (rows) gave 180 frames, 58 of them with the
+wipe under way (12 to 17 a kind): **no pixel differs visibly** (shotdiff: 17 frames equal, 163 "only faintly", none differing). Everything
+that differs, at most 25 levels, lies in one place, x 216 to 417 and y 383 to 443, the launch pad's glow of the main menu that the wipe
+uncovers, and is as large in the frames after the wipe
+(section 8, "the launch pad's glow in 3D"); what is left out of the comparison is the menu's right column, where the port has no More
+Games button (section 6), and the window's bottom corners, which Windows 11 rounds. The inputs and the draw counter: `visrun3d.py`'s
+header. The wipe is therefore the original's in its picture, its speed and its start, for all four kinds, in 3D on the desktop; its start
+to within the one update that a real-clock shot cannot resolve (the first frames match at offset 0 or -1, and a start two updates apart
+would put the edge twelve columns or the random pixels four thousand apart).
 
 **Taken out** (2026-11-11, in the pass that removes what the game does not need; no play of the original reaches them and the port's
 own code never called them): `Brick::SetSpeedX` and `SetSpeedY` (0x4062a0, 0x4062b0), the fuel cell's `GetColumn` and `GetRow` (0x402a70,
@@ -351,47 +391,68 @@ that nothing calls), its `HandleCmdLineParam` (0x40e060: its one switch, `-mycra
 port now passes `-mycrash` on like any other argument) and `DoDialog` (0x412360, which no code of the game or framework calls). Each has
 a `none` line in `coverage.txt`. Left in: the fuel cell's `SetFiredFromShip`, which `BoardInput.cpp` calls.
 
-## 11. Performance (2026-11-11; `docs/COORDINATION.md`, "Performance pass")
+## 11. Performance (2026-11-11 and 12; `docs/COORDINATION.md`, "Performance pass" and "The target")
 
-**Method.** `games/astropop/tools/profile/perf.py` and `pairs.sh` (as Atomica's and Typer Shark's): the port and the original play the
-same game turn about, one process at a time. The game is `scenario/classic11.json`, the inputs of a recorded classic game (seed 11: the
-title's link, the name, the mode, the pilot, then 60 moves, 5,636 updates), replayed by the port as `-realinput` lines and by origrun
-as script lines; the run was checked to play the recorded game (the same score watch). "The stretch" is the 2,000 updates before the last
-input (20 s of play). Every run samples the game's process every 0.1 s (working set, private bytes, processor time) and records how many
-game processes of other sessions ran at its start and end: the machine was never quiet (0.4 to 0.65 of it busy, 1 to 6 other game
-processes), so a figure is a median of three, with its range. Real time is `PERF_CLOCK=real` (the port without `-fast`, origrun on its
-real clock: what a player's machine does); without it neither waits (the port's `-fast`, origrun's virtual clock: the work a test run
-does). The load is the time from the creation of the process to the title taking input (the port asks `state`; the original's
-loading-thread flag is read out of its memory). Memory is private bytes in MiB.
+**Method.** `games/astropop/tools/profile/perf.py` and `pairs.sh`: the port and the original play the same game turn about, one process
+at a time, the whole alternating loop under `tools/pincore.py` (one performance core of its own; `profile/pin2.py` takes two). The game is
+`scenario/classic11.json`, the inputs of a recorded classic game (seed 11: the title's link, the name, the mode, the pilot, then 60 moves,
+5,636 updates), replayed by the port as `-realinput` lines and by origrun (2D) or `origcmp/visrun3d.py` (3D) as script lines; the run was
+checked to play the recorded game (the same score watch). "The stretch" is the 2,000 updates before the last input (20 s of play).
+**Processor time is the sum of every thread's `QueryThreadCycleTime`** (a thread that has ended keeps its last count;
+`QueryProcessCycleTime`, read beside it, agrees to 1%), sampled every 0.1 s and given in G cycles (2.1 G cycles are a second at the nominal
+clock). The port's SDL audio thread, its mixer, is counted apart (`audio_g`: 0.2 to 0.3 G of a stretch, 0.7 to 0.9 G of a run; the
+original under origrun's stand-in mixes nothing). Real time is `PERF_CLOCK=real` (the port without `-fast`, the original on its real
+clock: what a player's machine does). **2D** is run as every game's is, under rundesk (the port; the original through origrun's copy,
+`Is3D` 0). **3D** is run on the visible desktop, 22:00 to 08:00 only (`PERF_3D=1 PERF_DESKTOP=1`: a window that takes no focus and SDL's
+silent audio driver; the original through `perf.py orig3d`, which starts a copy of the staged original with `Is3D` 1 in the registry, put
+back afterwards, reads the 3D flag out of its app object and posts the scenario's input to its window). The port's minutes used
+`-realinput` and not `-commands` (the live command poll costs the port a `stat()` every update that the original never pays); the load runs
+go through `playbymove`, which does use `-commands`. The machine was never quiet: three to six other sessions' games ran during every
+run (0.5 to 0.9 of the machine busy), and the stretches of one build spread by plus or minus 30%, so a figure is the median of five or six
+pairs with its range. The memory is private bytes in MiB; the load is the time from the creation of the process to the title taking input.
 
-| Three pairs, 2026-11-11 | Original | Port |
+| 2D, five pairs, rundesk, 2026-11-11 | Original | Port |
 |---|---|---|
-| Load to the title | 0.94 to 1.33 s (median 1.22) | 0.93 to 1.07 s (median 1.02) |
-| Private bytes at the title | 68.6 to 73.3 | 93.5 to 98 |
-| Real time, the stretch's processor time (20 s) | 3.70 to 4.31 s (median 3.72) | 1.83 to 2.23 s (median 1.84) |
-| Real time, the whole run (58 s) | 6.33 to 7.09 s | 4.05 to 4.48 s |
-| Updates a second in the stretch (real time) | 100 | 99.4 to 100.0 |
-| Peak private bytes of the run | 81.7 to 84.4 | 147.9 to 150.6 |
-| No waiting, the whole run's processor time | 5.03 to 5.83 s | 1.47 to 1.56 s |
-| No waiting, the stretch (2,030 updates) | 2.84 to 3.48 s | 0.11 to 0.12 s (7,500 to 8,000 updates a second) |
-| Peak private bytes of the run without waiting | 82.3 to 85.7 | 161 to 165 |
+| The stretch, G cycles (median) | 7.22 | 5.78 (80%) |
+| Load to the title | 1.51 s | 1.22 s |
+| Peak private bytes of the run | 81 to 83 | 159 to 164 |
 
-The port loads about as fast as the original and plays on about half of its processor time (a tenth of a core in real time); the one
-cost it has more of is memory, 65 MiB more at the peak.
+| 3D, six pairs a row, the desktop, 2026-11-12: the stretch in G cycles | Original | Port |
+|---|---|---|
+| SDL's own renderer choice (Direct3D 9 on the desktop), one core | 3.50 3.51 3.84 4.18 4.49 4.50 (median 4.01) | 2.81 2.98 4.54 4.70 4.84 4.88 (4.62) |
+| With the Direct3D 11 hint, one core | 3.41 4.07 4.31 4.51 4.84 4.95 (4.41) | 4.00 4.36 4.88 4.95 5.46 5.61 (4.92, of which the mixer 0.2 to 0.3) |
+| With the hint, two cores (`pin2.py`) | 3.11 3.30 4.87 5.40 5.43 5.82 (5.13) | 5.00 5.05 5.45 6.75 6.89 6.92 (6.10) |
+| Load to the title (3D) | 5.1 to 13.5 s (median about 7.5) | 0.85 to 1.5 s |
+| Peak private bytes of the run (3D) | 116 to 118 | 159 to 164 |
 
-**Where the port's processor time goes** (`games/bejeweled/tools/profile/cpuprof.py`, cycles by module and function). The run without
-waiting (4.31 G cycles, the load and 2,030 updates) is almost all load: ntdll 41% (file and memory system calls), the exe 28%, win32u 9%,
-`imagehlp.dll` 5%, the C library 4.8%, the Nvidia driver 4.4%, `Windows.Storage.dll` 3.4%. Of the exe's 28%: the JPEG decoder (`_ycc_rgb_convert`
-5.0%, `_jpeg_idct_islow` 2.5%, the Huffman steps another 3%), `Sexy::Quantize8Bit` 4.7% and the GIF decoder `_stbi__out_gif_code`
-1.8% (the GIFs are decoded to 32 bits and quantized back to 8), the Vorbis decoder of the sounds (`_inverse_mdct`, `_vorbis_decode_packet`,
-`_decode_residue`: about 2.5% together), `Platform::DecodeImage` 1.5%. The game's own code (`Brick::Retire`, `Board`, the drawing)
-shows at 0.1% each: two thousand updates cost 0.12 s.
-In real time (one run over the scenario, 17.0 G cycles in 59.6 s sampled, 285 million a second over every thread) the exe is 6.1% of the
-cycles, ntdll 78% (system calls and waits: the frame's presentation and the sleeps), win32u 5.6%, the Nvidia Direct3D 11 driver 4.9%,
-`imagehlp.dll` 1.7%. The main thread has 53% of the cycles (69% of them in ntdll, 11% in the exe) and the driver's own thread 16%; nine more
-threads of 2 to 3% each are all waits. Inside the exe the biggest functions are still the load's decoders (`Quantize8Bit`, `_stbi__out_gif_code`,
-the JPEG and Vorbis decoders, 0.2 to 0.6% each); what play costs is `Board::DrawFrame` and `ImageFont::DrawStringEx`, 0.1% each. What a
-player's machine spends on this game is the display path, not the game's code, and the original's DirectDraw path spends more of it.
+**The 3D result is that the port is over its original, by 5 to 25% in every set** (the pair-by-pair differences' median is +0.43 G, +0.33
+G and +1.23 G, +0.2 G less with the mixer counted apart), with a noise the same size as the difference, so none of the three sets
+proves more than "about equal, a little over". 2D passes with room. The cause is not the game's code (below) but the display path that every
+game of the framework shares; what could be done about it is listed under the shared costs, and the Direct3D 11 hint (the shared commit
+`4ab9c0a0`) is the one change made.
+
+**Which renderer.** SDL's own first choice on a Windows desktop is Direct3D 9 (the NVIDIA `nvd3dum.dll` driver, a second thread busy in
+system calls: about 35% of the process). Varying `SDL_RENDER_DRIVER` for three runs each, back to back on one core (the stretch, G
+cycles): Direct3D 9 5.25, 5.91, 5.44; Direct3D 11 3.84, 3.88, 3.71; OpenGL 4.83, 4.70, 4.92 (the whole runs 15.2 to 16.6, 11.5 to 13.0 and
+13.5 to 15.1); the 28 frames of a tour of the same play are equal on all three but one, where 15 pixels differ by one level on Direct3D 9.
+**Under rundesk the game never had Direct3D 9**: asked for `direct3d` on the private desktop it gets `direct3d11` (the new `Renderer:` line
+of the log says so; opengl and software are honoured), so every rundesk figure of this pass and of the other games was taken on Direct3D 11,
+while a player's desktop got Direct3D 9. With the hint both are Direct3D 11. The hint costs 7 MB at the title (93.5 MB on Direct3D 9, 100.5 on
+Direct3D 11; the peak of a minute +3 to +5), no load time (1.2 s either way, three runs each, 2D and 3D) and no 2D time (the 2D stretch
+on the desktop: 5.99 to 6.18 G on Direct3D 9, 4.08 and 4.16 G on Direct3D 11, one run disturbed at 8.21).
+
+**Where the port's time goes** (an instrumented build, not kept: `QueryThreadCycleTime` around the main loop's parts and counts of SDL's
+calls; one run, Direct3D 11, 3D, one core). The main thread used 8.24 G in the run: the load about 2.5 G; `SDL_RenderPresent` 3.76 G (2,782
+frames, **1.35 M cycles each**, with the draws SDL has queued, the swap chain's `Present(1)` and the driver's wait for the display); drawing the scene
+1.05 G (80 `SDL_RenderGeometry` calls and 41 fill calls a frame: the game's own draw code is in it); `ProcessEvents` 0.44 G (9,029 calls of
+48 K cycles); the updates 0.37 G (65 K cycles an update, 98 a second); the sleeps nothing. The driver's own thread used 3.8 G, the mixer
+0.8 G (SDL's silent driver still runs the callback). Over the minutes of one run the process costs 0.16 G a second at the menus and 0.17
+to 0.25 in play, so it is a fixed cost per frame, not the game's logic: updates and drawing together are about a seventh of the process,
+and presenting (the main thread's part and the driver thread's) is about 70% of the stretch. With vsync switched off (`SDL_RENDER_VSYNC=0`)
+a present cost 0.52 M cycles on the main thread, but the game then draws on every update (5,080 frames) and the driver's thread takes the
+difference (5.2 G): the whole run took 14.1 G against 13.1 G. The original does not wait for the display in a window (`mWaitForVSync` is false by default), so it may draw more
+often at a lower cost each. `cpuprof2.py` (the stack-scanning sampler) and `profport.py` are in `tools/profile`; their shares are a
+guide only, since a thread that waits is charged what it used before the wait.
 
 **Where the port's memory goes.** The framework's `memreport` command (a game command in a `-realinput` script) at the title, the main
 menu, a game just begun and the game over (`build/logs/ap/perf/mem`, scratch): 352 pictures at the title (38.1 MB of 32-bit pixels, 4.2 MB
@@ -405,23 +466,99 @@ The rest of the peak is the start of a game, where private bytes rise from 98 MB
 into the run) and fall back to 132 MB: the heap grows by 9 MB and the textures' estimate by 10 MB, so most of the rise is below the game's
 heap, in the display path, the same as Bejeweled Twist's jump at a level-up (`docs/COORDINATION.md`).
 
-**Shared costs** (none of them is in this game's code; sent to the coordinator in one message):
+**Shared costs** (none of them is in this game's code; sent to the coordinator in two messages, 2026-11-11 and 12):
 1. *The load's decoders*, as in Typer Shark: `Quantize8Bit` and the GIF decoder together 6.5% of a run's cycles, 0.15 to 0.2 s of the load.
 2. *`imagehlp.dll`*, 5% of the cycles of a run without waiting, from a call site not yet found (Typer Shark 7.6%).
-3. *The Direct3D 11 device and the pixels the framework keeps after upload* (the 22 MB the port holds more at the title).
+3. *The Direct3D 11 device and the pixels the framework keeps after upload* (the 22 MB the port holds more at the title; the device alone is 7 MB
+   over Direct3D 9's).
 4. *The start of a game raises private memory by 60 MB for a few seconds* (AstroPop, in 2D, 2026-11-11): the same shape as Twist's
    level-up jump, below the heap. To find it: count texture creations in the display layer during the first second of a game
    (`astropop.exe -realinput=<script> -seed=11` with `memreport` before and after the first board).
+5. *SDL's first renderer on a Windows desktop is Direct3D 9, which rundesk's private desktop cannot start* (see "Which renderer"): the
+   `shared:` commit `4ab9c0a0` asks for Direct3D 11 first (a default-priority hint, so `SDL_RENDER_DRIVER` still decides), logs the renderer's
+   name once and rewords the scale-mode comment. It changes every DDInterface game's renderer on the desktop, so it is the coordinator's to merge.
+6. *The framework presents in step with the display* (`InitDDInterface` passes `vsync = !mFastMode`), and a present costs 1.35 M cycles on the
+   main thread and about 1.4 M on the driver's: 70% of the port's 3D stretch, against an original that, with no wait for the display in a window, may draw more often at a lower cost each.
+   What might lower it, to be tried and judged against the other games' shots: a window that presents without the display's wait (0.52 M cycles a
+   present) but draws no more often than the display refreshes, keeping the wait for full screen, where its absence would tear; fewer state
+   changes in a frame (80 geometry and 41 fill calls a frame, one draw per change of texture); and `ProcessEvents` (48 K cycles a call, called
+   more often than there are updates) and `UpdateDisplaySize` (asked every frame), which are small.
 
-**Nothing was changed in the game's code for speed.** The port already does less than the original on every figure but memory; the only
-AstroPop-side memory it could save is by loading fewer pictures at the start of a game or freeing the ones that were drawn once (the
-`nebula` backgrounds), which the original does not do and which would change what a game loads, so it was left as it is. The frozen
-baseline (`tools/check.sh astropop`) is unchanged by this pass: it added only the profile tools and notes.
+**Nothing was changed in the game's code for speed.** The port already does less than the original on every 2D figure but memory, and in 3D
+what is over is the shared presentation path. The only AstroPop-side memory it could save is by loading fewer pictures at the start of a game
+or freeing the ones that were drawn once (the `nebula` backgrounds), which the original does not do and which would change what a game loads,
+so it was left as it is. The frozen baseline (`tools/check.sh astropop`) is unchanged by this pass: it added the profile tools and notes and,
+in the framework, the renderer hint and a log line.
 
-**To repeat.** `bash games/astropop/tools/profile/pairs.sh <out dir> [pairs]` from the worktree root (about 3 minutes a pair when the
-machine has a free slot; it waits for one), `BEFORE_EXE=<name>` adds a run of an exe kept in `build/native` from before a change; the
-memory split is the standard `memreport <file>` test command (`docs/TEST_COMMANDS.md`) put into a `-realinput` script at the points
-wanted. The raw samples were deleted once these figures were written.
+**To repeat.** 2D: `bash games/astropop/tools/profile/pairs.sh <out dir> [pairs]` from the worktree root (about 3 minutes a pair when the
+machine has a free slot; it waits for one, and runs itself under `pincore.py`), `BEFORE_EXE=<name>` adds a run of an exe kept in
+`build/native` from before a change. 3D (22:00 to 08:00, the desktop): the port is `PERF_3D=1 PERF_DESKTOP=1 PERF_CLOCK=real python -I
+games/astropop/tools/profile/perf.py port-minute <dir>`, the original `python -I games/astropop/tools/profile/perf.py orig3d <dir> 1`
+(`... 1 load` for its load), turn about under `pincore.py`; `PERF_ENV="SDL_RENDER_DRIVER=opengl,..."` sets variables for the port. Each
+result line carries `cycles_g` and `audio_g` of the stretch, the `top_threads`, the 3D flag of the original and the graphics libraries the
+port loaded. The memory split is the standard `memreport <file>` test command (`docs/TEST_COMMANDS.md`) put into a `-realinput` script at the
+points wanted. The raw samples were deleted once these figures were written.
+
+### 11b. Lite candidates (2026-11-12; `docs/MOD_ROADMAP.md`, "The lite mod")
+
+**Result: none is worth a toggle.** AstroPop's game logic costs about 0.6% of the processor time of a stretch of play, and every faster
+method found for the searches in it gives the same answer in every state, so each is an exact change, not a lite one; the gain of the best
+of them is two parts in ten thousand of the process, far below what a pair of runs can resolve. The step is not applicable to this game.
+
+**What was measured.** A temporary build of the port (an `rdtsc` count around each function below, one thread, the counts written out at
+the end; reverted, it is in no commit) played the performance pass's scenario `classic11` (seed 11, `-fast`, under rundesk, 2D): 2,477
+updates of `Board::Update`, 249 draws. The figures are cycles (TSC, 2.112 GHz nominal). For scale, the whole process costs about 2.9 M
+cycles an update in the 2D stretch (5.78 G cycles for 2,000 updates, section 11), and the 3D stretch costs more. The start of a game costs
+three single calls that are not per-update work and are left out of every mean below: a `Board::Update` of 42.5 M cycles (the level is
+built inside it), a `UpdateStates` of 15.9 M and a first `Board::Draw` of 16.8 M.
+
+*What runs every update.* Everything the board does in a quiet update, set against the 2.9 M of the process:
+
+| Function (original address; port file) | Cycles an update | Where it goes |
+|---|---|---|
+| `Board::Update` as a whole (`BoardUpdate.cpp`) | 16.7 K (0.6%) | the rest of this table, and the lists of effects and texts it steps |
+| `UpdateBricks` (0x46e9b0; `BoardBricks.cpp`) | 6.7 K | 36.7 `Brick::Update` calls an update at about 135 cycles each (the 190 cells of the field are walked, an empty one costs a test; the falling, fired, taken and faded lists are stepped) |
+| `SpawnControl` (`BoardUpdate.cpp`) | 0.9 K | the quiet-field test and the spawn clock |
+| `UpdateScenery` (0x43a1f0; `BoardCore.cpp`) | 0.4 K | the layers, stars and streaks of the background (the drawing of them is not here) |
+| `UpdateStates` (0x475040; `BoardTick.cpp`) | 0.4 K | the timers, banners and fades |
+| `UpdateAnimCounters` (0x433500), `UpdateExplosion`, `IsSettled` (0x43d2f0), `SweepSprockets`, `SweepTurbots` | 25 to 42 each | counters and flag tests |
+
+`Board::Draw` is not in this list: it is the picture (0.62 M cycles a draw in this run), and a lite change keeps the look (MOD_ROADMAP), so
+it is outside the mod. Its cost and the present path under it are section 11's.
+
+*The searches and scans, which run on events (a piece landing, a clear, a fall, a new row) or while the field is quiet.*
+
+| Function (original address; port file) | Calls | Mean, worst (cycles) | Total | What it does, the faster method, and whether it can differ |
+|---|---|---|---|---|
+| `AnyMoveLeft` (0x459bc0; `BoardMoves.cpp`) | 127 | 3.6 K, 9.4 K | 0.45 M | The original's counting argument for whether a group can still be made: two walks of the field, the runs and spots of each colour, and `Partition`, each part of it calling `CollectConnected` with a limit. It is a pure function of the field, the hand, the set size and the moving bricks. Memoised on a version number that any change to those bumps, it gives the same answer. **Exact.** (A real search of the moves would give other answers where the argument over-counts, but it would be slower, not faster.) |
+| `CollectConnected` (0x450a30; `BoardFill.cpp`) | 240 outermost | 0.8 K, 7.0 K | 0.20 M | A recursive flood that tests each new cell against `mConnectedCells` by a scan (at most 190 cells) and against the skip list by `HasCell`. A visited grid in place of the scans, with the same direction order, gathers the same cells in the same order, also when `theLimit` cuts the flood short. **Exact.** A breadth-first flood would gather another set of `theLimit` cells at a cut, so it would be lite; the gain would be nothing and it was not tried. Part of this cost is inside `AnyMoveLeft`'s. |
+| `DropUnsupported` (0x46cc20; `BoardBricks.cpp`) | 74 | 1.2 K, 24 K | 0.09 M | Sorts the emptied cells, scans each column for what has lost its support and puts each falling group before the first group of its column that starts higher, by scans of the list of groups. A per-column pass keeping that insertion order is **exact.** |
+| `IsInFallingGroup94` (0x438a30), `IsInGroups` (0x4389c0), `HasCell` (0x438d60), `SortFallingGroups` (0x46cfd0; `BoardBricks.cpp`, `BoardCore.cpp`, `BoardGone.cpp`) | 22, 22, 124, 11 | under 3 K | 0.04 M | Linear scans of the lists of falling groups and cells (a few tens of bricks) and an insertion sort of the groups. A set or a grid answers the same; the insertion sort keeps equal heights in order, and any other sort would have to as well. **Exact.** |
+| `NoRoomLeft` (0x438b60) and `FindBottomRow` (0x437590; `BoardCore.cpp`) | 282, 2,278 | 0.9 K, 8.2 K; 84, 3.7 K | 0.24 M, 0.19 M | `NoRoomLeft` calls `FindBottomRow` for the same column three times and then counts the filled cells of every column. One call, and a fill count kept per column, give the same value. **Exact.** |
+| `CountMovingBricks` (0x439b70; `BoardCore.cpp`) | 2,698 | 43 | 0.12 M | A scan of the falling groups to count bricks not yet at their targets. A count kept up to date at each fall would give the same number, with the risk of drifting from it; it saves 43 cycles a call. **Exact.** |
+| `OnBrickGone` (`BoardGone.cpp`) | 87 | 11.6 K, 196 K | 1.0 M | The handler of a brick's end: score, meters, effects, the checks for a cleared field and no move left. It is no search; its cost is in creating the effects. Not a candidate. |
+
+The searches taken together cost about 1.4 M cycles in the 2,416 updates of the run (the overlap of `CollectConnected` and `FindBottomRow`
+with their callers counted once), 0.6 K an update, against 2.9 M an update for the process.
+
+**The one change with a visible gain.** `UpdateBricks` is 6.7 K an update (0.23% of the process), almost all of it in `Brick::Update` calls
+on bricks with nothing running. A skip for those bricks is exact only if an idle `Brick::Update` changes nothing: each call runs the state
+switch, `CheckParticlesDone`, the glow animation, the rainbow, fade, light, mutation, spark and wobble steps, and a shaking brick draws
+`AstroRand` in its update, so the skip would have to be shown to leave every state and every random draw alone before it counted, brick state
+by brick state. A skip that did leave a draw out would be a lite change (the game would draw another sequence of random numbers), but it
+would gain less than 0.23% of the process, which a pair of runs cannot resolve, and its difference would be a different shake of a brick
+for nothing a player could name; it was not pursued.
+
+**Why none is taken.** (1) A lite change has to cut a stretch's processor time measurably (the mod's own rule). If the whole of the game's
+logic cost nothing, the process would drop by 0.6%; the stretches of one build spread by plus or minus 30%, and the median of five pairs
+resolves a few percent at best. (2) Every faster method above keeps the answer, so there is no state to show where it differs: they are not
+lite, and at two parts in ten thousand they do not earn a place in the performance pass either; they are listed in case that pass is ever
+asked for them. (3) The 3D stretch's excess, the one place where the port is over its original, is the present path and the driver (section
+11), not the game's logic, and a lite change does not touch the picture or the pace.
+
+**To repeat.** The instrumented build was a throwaway: a `FNPROF("name")` line at the top of each function (an RAII `rdtsc` pair adding to a
+table, written to a file named by `PROF_OUT` at exit), built as a second executable, and run by the scenario's usual script
+(`profile/perf.py`'s `port_script`) under rundesk with `-fast`. Nothing of it was committed.
 
 ## 12. The readability pass (2026-11-11; `docs/CODE_STANDARDS.md`)
 

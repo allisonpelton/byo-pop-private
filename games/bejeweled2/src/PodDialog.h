@@ -36,8 +36,6 @@ public:
 	int				mBlinkPeriod;       // +0x160 updates per blink
 	int				mBlinkTimer;        // +0x15c
 	float			mBlinkGlow;         // +0x164 the glow of a button while it blinks
-	float			mUnusedGlow;        // +0x168 (set, never read)
-	float			mUnusedGlow2;       // +0x16c (set, never read)
 
 public:
 	PodButton(int theId, ButtonListener* theListener);

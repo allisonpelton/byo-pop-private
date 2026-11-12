@@ -30,6 +30,10 @@
       "label": "Performance"
     },
     {
+      "id": "lite-mod",
+      "label": "Lite mod"
+    },
+    {
       "id": "unneeded-code",
       "label": "Unneeded code"
     },
@@ -143,8 +147,8 @@
       "na": [
         "collection"
       ],
-      "now": null,
-      "note": ""
+      "now": "lite-mod",
+      "note": "processor time like for like 0.76 of the original's (6.4 G cycles a minute against 8.4); the lite survey next"
     },
     "sevenseas": {
       "title": "Seven Seas Deluxe",
@@ -174,7 +178,6 @@
         "identical-look",
         "fixes-mod",
         "coverage",
-        "performance",
         "unneeded-code",
         "readability",
         "site-features"
@@ -182,8 +185,8 @@
       "na": [
         "collection"
       ],
-      "now": null,
-      "note": ""
+      "now": "performance",
+      "note": "processor time over the original's: second performance round (the user's target, 2026-11-11)"
     },
     "mahjongchina": {
       "title": "Mahjong Escape: Ancient China",
@@ -194,7 +197,6 @@
         "identical-look",
         "fixes-mod",
         "coverage",
-        "performance",
         "unneeded-code",
         "readability",
         "site-features"
@@ -202,8 +204,8 @@
       "na": [
         "collection"
       ],
-      "now": null,
-      "note": ""
+      "now": "performance",
+      "note": "processor time over the original's: second performance round (the user's target, 2026-11-11)"
     },
     "bejeweledtwist": {
       "title": "Bejeweled Twist",
@@ -232,15 +234,15 @@
         "registration-out",
         "fixes-mod",
         "coverage",
-        "performance",
         "unneeded-code",
         "readability",
         "collection",
-        "site-features"
+        "site-features",
+        "identical-look"
       ],
       "na": [],
-      "now": "identical-look",
-      "note": "Medal screens equal in 2D and the web build; 3D tonight"
+      "now": "performance",
+      "note": "level with its original on a busy machine, over on a quiet one; the whole gap is the shared present path (the Direct3D 11 driver thread); the original's side measured again after origrun's rescan fix"
     },
     "astropop": {
       "title": "AstroPop Deluxe",
@@ -250,15 +252,16 @@
         "registration-out",
         "fixes-mod",
         "coverage",
-        "performance",
         "unneeded-code",
         "readability",
         "collection",
-        "site-features"
+        "site-features",
+        "identical-look",
+        "lite-mod"
       ],
       "na": [],
-      "now": "identical-look",
-      "note": "Music equal; the 3D screen wipe tonight"
+      "now": "performance",
+      "note": "3D over its original, waits on the framework's present (Bejeweled 2's pace code, then the vsync measurement); the 3D cycle split next; lite: nothing taken (LITE_MOD.md)"
     },
     "ningpo": {
       "title": "Ning Po Mahjong Deluxe",
@@ -297,11 +300,12 @@
         "port",
         "identical-play",
         "registration-out",
-        "site-features"
+        "site-features",
+        "coverage"
       ],
       "na": [],
       "now": "identical-look",
-      "note": "3D screens still to compare (tonight)"
+      "note": "3D screens still to compare (tonight); no fix candidate so far"
     },
     "dynomite": {
       "title": "Dynomite Deluxe",
@@ -363,8 +367,8 @@
         "collection"
       ],
       "na": [],
-      "now": null,
-      "note": ""
+      "now": "lite-mod",
+      "note": "the cycle split measured: 0.53 of the original's processor time at 640x480, 0.44 at 1280x960; the lite survey next"
     },
     "bigmoney": {
       "title": "Big Money Deluxe",
@@ -389,11 +393,14 @@
         "registration-out",
         "identical-look",
         "fixes-mod",
-        "coverage"
+        "coverage",
+        "unneeded-code",
+        "readability",
+        "collection"
       ],
       "na": [],
       "now": "performance",
-      "note": ""
+      "note": "animated screens over the original's processor time: waits on the surface presenter"
     },
     "wordharmony": {
       "title": "Word Harmony",
@@ -405,12 +412,13 @@
         "fixes-mod",
         "site-features",
         "coverage",
-        "performance",
         "unneeded-code",
-        "readability"
+        "readability",
+        "collection",
+        "performance"
       ],
       "na": [],
-      "now": "collection",
+      "now": null,
       "note": ""
     },
     "cosmicbugs": {
@@ -423,14 +431,13 @@
         "fixes-mod",
         "site-features",
         "coverage",
-        "performance",
         "unneeded-code",
         "readability",
         "collection"
       ],
       "na": [],
-      "now": null,
-      "note": ""
+      "now": "performance",
+      "note": "board 264 against the original's 119 M cycles a second: waits on the surface presenter"
     },
     "waterbugs": {
       "title": "Water Bugs",
@@ -441,15 +448,14 @@
         "identical-look",
         "fixes-mod",
         "coverage",
-        "performance",
         "unneeded-code",
         "readability",
         "site-features",
         "collection"
       ],
       "na": [],
-      "now": null,
-      "note": ""
+      "now": "performance",
+      "note": "over its paced original while the renderer presents its software screen: waits on the surface presenter"
     },
     "bonnies": {
       "title": "Bonnie's Bookstore Deluxe",
@@ -460,15 +466,14 @@
         "identical-look",
         "fixes-mod",
         "coverage",
-        "performance",
         "unneeded-code",
         "readability",
         "collection",
         "site-features"
       ],
       "na": [],
-      "now": null,
-      "note": ""
+      "now": "performance",
+      "note": "processor time over the original's: second performance round (the user's target, 2026-11-11)"
     },
     "bejeweled2": {
       "title": "Bejeweled 2 Deluxe",
@@ -480,18 +485,22 @@
         "fixes-mod",
         "site-features",
         "coverage",
-        "performance"
+        "collection",
+        "unneeded-code",
+        "readability"
       ],
       "na": [],
-      "now": "unneeded-code",
-      "note": ""
+      "now": "performance",
+      "note": "2D on SDL's software renderer: waits on the framework"
     },
     "venice": {
       "title": "Venice Deluxe",
-      "done": [],
+      "done": [
+        "port"
+      ],
       "na": [],
-      "now": "port",
-      "note": "Started 2026-11-12, the first port written to the standards from its first draft"
+      "now": "identical-play",
+      "note": "playable natively and on the web; phase one, plays identical, next"
     },
     "heavyweapon": {
       "title": "Heavy Weapon Deluxe",

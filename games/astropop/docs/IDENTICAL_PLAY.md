@@ -343,6 +343,21 @@ game.
 focus against the native build, the keys the page keeps from the browser, the pointer at other sizes, a second copy, a reload mid-game): 11
 pass, 0 fail and 1 information.
 
+### The 3D screen wipe
+
+The wipe that takes the field away when a game is ended from the menu plays only in 3D, and the original has no Direct3D in Windows Sandbox,
+so it was compared on the user's desktop at night (2026-11-12; `games/astropop/tools/origcmp/wipe.sh`, GAME_NOTES section 10). One seed
+gives one of the wipe's four kinds, in the original and in the port alike (1 the edge sweeping to the right, 2 pixels at random, 3 the edge
+to the left, 15 rows). For each, the original played a classic game, opened the options box, chose Main Menu and answered Yes to End Game,
+and was shot every few updates on the real clock; the port played the same inputs at the same updates and was shot at every update, and each
+of the original's pictures was matched with the port's best one within four updates (the real clock gives no exact update to a shot, the
+wipe's state does). In all 180 frames, 58 of them with the wipe under way, the offset was 0 or one update (but for the first frame of
+each run, the board before the wipe moved, and four frames where the screen showed a picture seven to nine updates old), and no pixel
+differs visibly: shotdiff finds 17 frames equal and 163 that differ only faintly, none that differ. What differs is one patch, the glow
+above the launch pad of the main menu that the wipe uncovers, by at most 25 levels (also in the frames after the wipe), plus what was left out of the
+comparison: the menu's right column, where the port has one button less than the original (More Games, taken out), and the window's
+rounded corners. The wipe's four kinds, its draw and its check are therefore the original's in the picture they make.
+
 ### The changes the phase made
 
 | the difference | its cause in the original | what the port does now | commit |
@@ -372,7 +387,8 @@ The tools changed too: `gamerun.sh` plays a recorded game and takes its shots, `
 
 GAME_NOTES section 8 has each one. In short: the 2D blit and stretch arithmetic of `DDImage` (above; shared code), the title's
 slide timing and the original's early landing of a fast shot (harness), the biohazard pulse of a web run (frames skipped), and
-the original's font loading on Windows 11 (worked around in the staged copy). Apart from the blends above (a few levels at the edge of a
+the original's font loading on Windows 11 (worked around in the staged copy), and the launch pad's glow in 3D (25 levels at most, in the
+main menu, found in the wipe comparison). Apart from the blends above (a few levels at the edge of a
 halo, up to 91 levels at the edge of the explosion ring) nothing in a screen, a sound effect or a page differs in the tours.
 
 ### The fixes mod, the baseline, the rest

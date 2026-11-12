@@ -7,12 +7,14 @@
 // auto splitter (games/bejeweled/tools/livesplit/BejeweledDeluxe-byopop.asl) turns into start, split and
 // reset. It only reads the game: no Rand(), no game state, no saves, no drawing.
 //
-// Desktop (Windows) builds only: elsewhere these are empty inlines, the feature is still parsed (so
-// mods-status.json is the same) and GameConfig warns that it is ignored.
+// Desktop (Windows) and web builds: elsewhere these are empty inlines, the feature is still parsed (so
+// mods-status.json is the same) and GameConfig warns that it is ignored. In the web build the page's
+// speedrun timer (web/splits.js, web/autosplit.js) turns the block on by asking for its address
+// (byopop_livesplit_block), as the feature does, and reads it from the game's memory every frame.
 
 #include <string>
 
-#if defined(_WIN32) && !defined(__EMSCRIPTEN__)
+#if defined(_WIN32) || defined(__EMSCRIPTEN__)
 #define BEJ_HAS_LIVESPLIT 1
 #endif
 

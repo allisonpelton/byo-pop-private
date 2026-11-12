@@ -43,6 +43,7 @@ public:
 	int Init(SDL_Window* theWindow, bool vsync) override;
 	void Cleanup() override;
 	void UpdateDisplaySize() override;
+	std::string RendererName() const override;
 	void ReleaseTextures() override;
 
 	// The GL context was lost and given back (the web's webglcontextlost and webglcontextrestored events; a native GL

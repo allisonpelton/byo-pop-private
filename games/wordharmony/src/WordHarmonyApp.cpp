@@ -2,7 +2,7 @@
 
 #include "WordHarmonyApp.h"
 #include "Render.h"
-#include "ModFeatures.h"
+#include "platform/GameOptions.h"
 #include "SoundHost.h"
 #include "engine/App.h"
 #include "engine/Exception.h"
@@ -44,7 +44,7 @@ public:
 	// a frame (WordHarmonyWidget::Update)
 	uint32_t timeMs() override { return gApp->mFastMode || gApp->mSteadyClock ? gApp->mEngineClock : gApp->GetClockTime(); }
 
-	bool fixOn(const char* theFix) override { return Sexy::FixOn(theFix); }
+	bool fixOn(const char* theFix) override { return Platform::FixOn(theFix); }
 
 	// port: -seed=N, for the game's srand of the tick count
 	bool testSeed(unsigned int& theSeed) override
@@ -214,7 +214,6 @@ void WordHarmonyWidget::Update()
 			gApp->mEngineClock += aPeriod;
 	}
 	gApp->RunFrame();
-	MarkDirty();
 }
 
 void WordHarmonyWidget::Draw(Graphics* g)
@@ -360,7 +359,7 @@ void WordHarmonyApp::Init()
 	engine::setHost(&gHost);
 	// fixes mod, "steadyClock" (read at the start: its toggle applies on a restart): the sounds end by the engine's clock
 	// too, so the music's draws from the game's random numbers when a clip ends fall on the same frames on every run
-	mSteadyClock = !mFastMode && FixOn("steadyClock");
+	mSteadyClock = !mFastMode && Platform::FixOn("steadyClock");
 	wordharmony::HostSound::sGameClock = mFastMode || mSteadyClock;
 	mWidget = new WordHarmonyWidget();
 	mWidget->Resize(0, 0, mWidth, mHeight);
@@ -387,7 +386,8 @@ void WordHarmonyApp::RunFrame()
 {
 	try
 	{
-		// the screen starts black (port: made by the first draw that does not cover it, or at the end of the frame)
+		// the screen starts black (port: the frame's draw calls are recorded, and drawn at its end, in the tiles that differ from
+		// the last frame's)
 		mWidget->mGraphics->clear();
 		// what the input since the last frame changed is logged under that frame, as origrun logs the original's
 		if (mStateLog != nullptr)
@@ -397,8 +397,15 @@ void WordHarmonyApp::RunFrame()
 		mFrames++;
 		wordharmony::HostSound::sLogFrame = mFrames;
 		engine::App::instance()->frame(mWidget->mGraphics);
-		mWidget->mGraphics->finish();
-		mWidget->mScreenImage->BitsChanged();
+		// port (for speed): a frame that drew the same calls as the last leaves the screen picture as it is, and is neither
+		// uploaded nor drawn again (the framework draws the screen again every second, and when the window is exposed)
+		if (mWidget->mGraphics->finish())
+		{
+			mWidget->mScreenImage->BitsChanged();
+			mWidget->MarkDirty();
+		}
+		if (mFrameHashLog != nullptr)
+			LogFrameHash();
 		if (mStateLog != nullptr)
 			LogState();
 	}
@@ -427,6 +434,11 @@ void WordHarmonyApp::HandleCmdLineParam(const std::string& theParamName, const s
 	if (theParamName == "-statelog")
 	{
 		mStateLog = fopen(theParamValue.c_str(), "w");
+		return;
+	}
+	if (theParamName == "-framehash")
+	{
+		mFrameHashLog = fopen(theParamValue.c_str(), "w");
 		return;
 	}
 	if (theParamName == "-inputlog")
@@ -458,6 +470,22 @@ std::string floatText(float theValue)
 	return std::to_string(aBits);
 }
 
+}
+
+// port: -framehash. The tool that shows two builds draw every frame alike, not only the frames a tour photographs
+// (tools/profile/hashcmp.sh): the pixels folded into 64 bits, eight at a time
+void WordHarmonyApp::LogFrameHash()
+{
+	const uint64_t* aPixels = (const uint64_t*)mWidget->mScreenImage->GetBits();
+	uint64_t aHash = 1469598103934665603ull;
+	for (int i = 0; i < engine::SCREEN_WIDTH * engine::SCREEN_HEIGHT / 2; i++)
+	{
+		aHash ^= aPixels[i];
+		aHash *= 1099511628211ull;
+		aHash ^= aHash >> 29;
+	}
+	fprintf(mFrameHashLog, "%d %016llx\n", mFrames, (unsigned long long)aHash);
+	fflush(mFrameHashLog);
 }
 
 // The values compared with the original's (the names of games/wordharmony/tools/identical/case.sh), "-" while they do not

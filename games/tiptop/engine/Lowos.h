@@ -75,6 +75,9 @@ struct Sound
 // larger
 uint32_t* HostScreen();
 void HostScreenSize(int* theWidth, int* theHeight);
+// A count of the writes to the screen (a blit, a fill, a stretched blit, a new canvas): it is the same after a frame that
+// wrote nothing, and then the screen shows what the host last showed
+uint32_t HostScreenWrites();
 // Test runs: a screen of theWidth x theHeight (at least 640x480), set before InitScreen. The game sizes its screen
 // layers to the display, so it draws what the original placed beyond 640x480 (the host still shows the top left)
 void HostSetCanvas(int theWidth, int theHeight);
@@ -117,8 +120,7 @@ typedef void (*CloseCallback)();
 typedef void (*SwitchCallback)(char theMode);
 typedef uint32_t (*RestoreCallback)();
 char InitScreen(uint8_t theMode, ActivateCallback theActivate, CloseCallback theClose, SwitchCallback theOnSwitch,
-	RestoreCallback theRestore, const char* theTitle, char theWindowed, uint8_t theUnknown);  // 0x42f290
-void UninitScreen();                                                             // 0x42f750
+	RestoreCallback theRestore, const char* theTitle, char theWindowed, uint8_t theDirectDrawOptions);  // 0x42f290
 uint8_t GetDisplayFormat(PixelFormat* theFormat, uint16_t* theWidth, uint16_t* theHeight);  // 0x42f850
 uint8_t GetLogicalFormat(PixelFormat* theFormat, uint16_t* theWidth, uint16_t* theHeight);  // 0x42f8c0
 char ScreenScope(char theMode);                                                  // 0x42fda0 LOWOS_ScreenScope
@@ -170,7 +172,6 @@ void GetMousePos(uint16_t* x, uint16_t* y);                                     
 
 // --- sound (from 0x432330 to the network code behind it) ---
 char InitSound();                                                                // 0x432e50 (0 = success)
-void UninitSound();                                                              // 0x432e70
 Sound* CreateSound(const void* theWav, uint32_t theSize, uint32_t theParam, uint8_t theFlags);  // 0x432ea0
 void FreeSound(Sound* theSound);                                                 // 0x432f30
 void PlaySound(Sound* theSound, uint32_t theVolume, char theMode);               // 0x432f80

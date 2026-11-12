@@ -266,17 +266,30 @@ var ByopopApps = (function () {
     } catch (e) {}
   }
   // Close: a game's own way out (its saves first, web/shell.html closeProgram), which then hands its window back (closed)
+  // Closing never depends on the page in the window (the user, 2026-11-11: a window whose game failed to load could not be
+  // closed): a frame that never loaded, or an error page the desktop may not read, has no ByopopEmbed and goes at once; a page
+  // that takes its close but never hands the window back (a game that stopped answering, a save that never ends) is dropped
+  // after CLOSE_WAIT, and a second Close drops it at once.
+  var CLOSE_WAIT = 4000;
   function closeApp(app) {
-    var w = inner(app);
-    if (app.kind === "game" && w && w.ByopopEmbed && !app.closing) {
+    var embed = null;
+    if (app.kind === "game" && !app.closing) {
+      try { var w = inner(app); embed = w && w.ByopopEmbed && typeof w.ByopopEmbed.close === "function" ? w.ByopopEmbed : null; } catch (e) {}
+    }
+    if (embed) {
       app.closing = true;
-      try { w.ByopopEmbed.close(); return; } catch (e) {}
+      try {
+        embed.close();
+        app.closeTimer = setTimeout(function () { drop(app); }, CLOSE_WAIT);
+        return;
+      } catch (e) {}
     }
     drop(app);
   }
   function drop(app) {
     var i = apps.indexOf(app);
     if (i < 0) return;
+    if (app.closeTimer) clearTimeout(app.closeTimer);
     apps.splice(i, 1);
     if (lastGame === app) lastGame = null;
     desk.remove(app.id);

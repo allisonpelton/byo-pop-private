@@ -263,6 +263,82 @@ still takes its two marking shots, so its peak is about 150 MB, and `mem.py` tak
 The tools are in `tools/profile`: `perf.py` (the load, the minute, the original's run), `run_all.sh` (back to back),
 `pair.sh` (side by side), `cpu.py` with `cpuprof_stacks.py` (the sampling profile), `mem.py` and `pixcmp.sh`.
 
+## Performance, second round: the target (2026-11-11)
+
+The user's rule (docs/COORDINATION.md, "The target"): a port's processor time is at most its original's, measured like for
+like. This round reopened the step. **The processor-time figures above (every table of seconds, and the "1.7 to 2.2 times")
+came from `GetProcessTimes`, which charges by the 15.6 ms clock tick, so they are replaced by this section's.**
+
+**The method.** Processor time is the cycles of every thread of the process, `QueryThreadCycleTime` summed over the threads
+(`perf.py`'s `ThreadSampler`: the thread list from Toolhelp every second, each thread's cycle counter every 0.1 s, the
+last value kept for a thread that ends, a thread named by the module its start address is in; the figure is
+`cycles_in_minute_g`, in billions, over the same scripted minute as above). The original and the port run alternately,
+five pairs, the original first in odd rounds, the whole loop on one pinned core (`python -I tools/pincore.py -- bash
+games/wordharmony/tools/profile/alt.sh <out dir> 5`), summarised by `altsum.py` (the median of each side, the port's against
+the original's, with and without the port's audio thread). The original runs under origrun on its real clock with
+`--update-ms 33` (a frame every 33 ms, as the port's 30.3 a second) and the patches in `tools/origrun/patches/wordharmony.txt`
+(its screen-copy patch included; a variant without it measured the same); the port runs with `-script` and no `-commands`.
+A cycle count still moves with the machine (cache and memory contention, frequency: single runs of one exe differed by up to
+twice), so only the pairs count.
+
+**Where the time goes, thread by thread** (the scripted minute, billions of cycles, medians of five pairs):
+
+| | Total | Main thread | Graphics driver's worker | SDL audio thread |
+| --- | --- | --- | --- | --- |
+| Original | 11.88 | 11.88 (its only thread) | | |
+| Port before this round (one early pair, HEAD's renderer) | 9.95 to 11.5 | about 8.9 | about 1.1 to 2.5 | 0.12 |
+| Port now | 8.12 | 5.65 | 2.34 | 0.12 |
+
+The original's runs ranged 10.1 to 14.1 G and the port's now 6.7 to 10.1 G; the port was lower in all five pairs
+(original / port: 12.7 / 7.8, 10.1 / 6.7, 11.9 / 8.1, 11.2 / 9.6, 14.1 / 10.1). **The port's total is 0.68 of the original's
+(0.67 without the audio thread, a software mixer the original's DirectSound has no counterpart of in the exe).** Before this
+round the port's main thread alone was about the original's whole, and the driver's worker was the excess.
+
+On the idle main menu (600 frames, three pairs) the original takes 2.97 G and the port 2.75 G, 0.93 (0.91 without the audio
+thread): a frame that changes nothing costs the port nothing now, and what is left there is the driver's worker (about 0.85 G) and the
+framework's redraw once a second.
+
+**Where the main thread's cycles went before the cut** (one instrumented 900-frame run, per frame, in millions of cycles; the
+instrumentation was reverted): RunFrame 2.66, of which the draw calls 2.44 (about 200 a frame); the whole-picture
+`SDL_UpdateTexture` 0.58; `SDL_RenderPresent` 0.77; the rest about 0.4, 4.46 in all, with the driver's worker about 1.15 more.
+In the TSUNAMI window only about 7,900 of the 480,000 pixels change from one frame to the next.
+
+**What changed: retained drawing** (`src/Render.cpp`, `ScreenGraphics`; item 2 above's lazy clear and item 1's
+`sBlitColumns` are gone, the pixel operations are the same templates). `drawImage` and `drawLine` no longer draw: they record
+the call (`Blit`: image serial, operation, the rectangles, colour, 23 32-bit words, and for an unrotated call its
+source column and row maps). `finish()` sorts the calls into per-tile lists (32 by 32 pixels, 25 by 19 tiles) and redraws a
+tile (a black fill, then its calls clipped to it) only if its list differs from the last frame's, and a call counts as the
+same if its record is equal or it has the same image, operation and rectangle and equal column and row maps: the same
+per-pixel code on the same inputs gives the same pixels, so no tile that is kept can differ from what a redraw would give. About 52
+tiles of 475 are redrawn a frame in the TSUNAMI window (a first version, comparing the raw records, redrew 97 because
+fractional positions change a call's record and not its pixels). A frame in which no tile changed returns
+false from `finish()`, and `RunFrame` then calls neither `BitsChanged()` nor `MarkDirty()`: the framework neither uploads the
+picture nor presents, and its once-a-second redraw (`DrawDirtyStuff`) still shows the window. A frame that changes calls
+`BitsChanged()` as before, so the whole 1.9 MB is still uploaded then (TipTop measured an upload at 0.3 to 0.45 ms a call
+whatever its size, so uploading only the changed tiles would not pay as several calls).
+
+**Proof that nothing visible changed.** `-framehash=<file>` writes the frame number and a 64-bit hash of the whole 800x600
+picture after every frame, and `tools/profile/hashcmp.sh <old exe> <new exe> <dir>` runs tours 1, 2, 3 and 5 with both exes
+(`-fast`, seed 1) and compares them frame by frame, and their state logs: 16,346 frames, identical, the old (draw at once)
+renderer against the final one. `tools/check.sh wordharmony` (the frozen baseline: the two scripted games, their saves and
+screenshots) is the same, and so is `tools/profile/pixcmp.sh` (74 shots).
+
+**The two questions.** Does the screen need uploading on a frame where nothing changed? No, and it is no longer (above).
+Does the original draw as many frames a second as the port? Yes: one frame every 33 ms, 30.3 a second on both sides (the
+original redraws the whole root window every frame, the port's frame is the same one), so the port's saving is not fewer
+frames.
+
+**What is left, for the coordinator** (the shared costs, not changed here). The main thread's `SDL_UpdateTexture` of the whole
+1.9 MB (about 0.58 Mcycles a frame) and `SDL_RenderPresent` with vsync (about 0.77, plus the driver's worker thread at about
+1.15) are on every frame that changes. The framework draws the screen texture into the window in a second pass. A
+dirty-rectangle upload (a `MemoryImage` rectangle that `PrepareTexture` consumes) would need a framework change and is
+unproven by TipTop's measure. Vsync off (`-fast`) looked cheaper in a noisy single run, but Alchemy's notes found it
+costlier; neither is a measure like for like.
+
+The new tools in `tools/profile`: `alt.sh` (the alternating runs), `altsum.py` (their summary), `hashcmp.sh` (the per-frame
+hash comparison), and in `perf.py` the thread sampler and the knobs `WH_PERF_PATCHES` (the original's patch file),
+`WH_PERF_FRAMES=<from>:<to>` (a shorter window) and `WH_PERF_EXE`.
+
 ## Coverage check (2026-11-11)
 
 `docs/COVERAGE.md` describes the check. `coverage.txt` beside this folder is its settings file (the export, the sources, the
@@ -442,6 +518,73 @@ screen: that exe was frozen before the shared JPEG decoder changed, and a build 
 decoder) matches the pass exactly. No string of the sources changed, and the web build compiles
 (`tools/check.sh build-web:wordharmony`).
 
+## The PopCap Game Collection version (2026-11-12)
+
+The port was made from the retail copy (`WordHarmony.exe`, 983,458 bytes: the launcher with the game after it, beside
+`WHArchive.saf` and `res/`), and the game is also on the PopCap Game Collection disc (2009; the group
+`WordHarmonyDeluxeComponent`), so the port is checked against that version too: the two compared, and the port run on the
+Collection's files (`docs/COORDINATION.md`). The procedure is Bejeweled's (its GAME_NOTES, section 23) and Astro Pop's
+(section 13).
+
+**Getting the files.** `unshield` 1.5.1 (`E:\retools\unshield-build`; the user allowed it on 2026-11-10) read the disc
+image's cabinet, which was mounted read-only and dismounted afterwards: 60 files, 6.7 MB, in the main checkout's
+`re/_installers/WordHarmonyDeluxeCollection` (git-ignored, deleted once this result was written down;
+`unshield -g WordHarmonyDeluxeComponent -d . x F:/data1.cab`, in a folder made first, brings them back).
+
+**The game is the same build.** The Collection's `WordHarmony.exe` (771,784 bytes) has no launcher around it. Set beside the
+game carved out of the retail exe (`re/wordharmony/bin/WordHarmonyGame.exe`, `tools/collection/cmpexe.py`) it has the same
+link time (22 February 2006, 02:49:43), and `.text` (520,192 bytes), `.rdata`, `.data` and `.reloc` are byte for byte the same.
+Only `.rsrc` differs (100 KB against 8 KB: the icons and their group, 14 more resources), with 25 header bytes (the checksum
+and the resource sizes) and 5,832 bytes after the last section, the exe's signature. `WordHarmony.scr`, the screen saver
+the disc adds, is the same bytes as the carved game (the same SHA-1), and `SSInstaller.exe` installs it. So the
+decompilation, the identical-play pass and the coverage check hold for the Collection's game as they are, and no code was
+compared further. The Collection's own exe was not run.
+
+**The files** (`tools/collection/cmpfiles.py`). Of the retail copy's 63 files and the Collection's 60, 51 are the same
+byte for byte: `WHArchive.saf` (every picture, font, screen layout, level and word list), every sound and every piece of
+music, and the buttons' pictures. The differences:
+
+- `res/splash/sproutsplash.jpg` (`tools/collection/cmpimages.py`): other artwork, 88,601 of its 480,000 pixels. The
+  retail picture says "Presented by" PopCap and "Developed by" Sprout Games under the title, with the TM beside the
+  title; the Collection's has only a bigger PopCap logo and the TM after "HARMONY". The port draws the file it is given.
+  The Collection also has the same picture in `images/sproutsplash.jpg`, which the game does not read.
+- `properties/partner.xml` (and its `.sig`): the display name "Word Harmony Deluxe", another offering number, `NoReg`,
+  `DontUpdate` and `DefaultWindowed`; the registry key `PopCap\WordHarmony` and the 640 by 480 size are in both. The port
+  does not read it.
+- The licence and the readme, and the exe.
+- The retail copy alone has the launcher's files (`drm.swf`, `drmss.jpg`, `Flash.ocx`), `PopUninstall.exe`, Windows'
+  `Thumbs.db` files; the Collection alone has `SSInstaller.exe`, `WordHarmony.scr` and the splash picture's second copy.
+
+**Saves.** The code that reads and writes them is the same bytes, so a Collection game keeps its settings and saved games
+under `HKCU\Software\GameHouse\WordHarmony` in the same format, which `platform/saveimport.json`'s Word Harmony entry
+reads. No save of a Collection copy was at hand, so none was imported.
+
+**The port on the Collection's files** (`tools/collection/run.sh <the Collection's WordHarmonyDeluxeComponent folder>`).
+`stage_wordharmony_assets.py` stages the folder as it does a retail one (52 files). The texts come from its exe at the
+same addresses (`GameText.cpp` finds a game image after the retail launcher's marker or takes the file as the image
+itself): a run logs no `GameText` line, so every text matched. The runs are the port's, `-fast`, seed 1, with the
+original's splash hold, through `WH_GAMEDIR` (`tools/check.sh`, `tools/identical/port.sh` and `tools/shots/web.sh` take
+the game folder from it):
+
+- `tools/check.sh wordharmony` on the Collection's files: the THINK and TSUNAMI games end in the states it expects and
+  each plays every update as the frozen baseline does on the retail files.
+- The five tours of `tools/shots` (the title and menu, a TSUNAMI game, the high scores, a saved THINK game, the focus;
+  tour 4 starts from the suite's saved THINK game), each once on each set of files: the state logs (75, 47,486,
+  25,085, 10,195 and 4,848 lines) and the sound logs are the same, and 94 of the 95 screenshots are the same pixel for
+  pixel. The last is the first shot of tour 1 (`title_30`, the splash), where the five boxes shotdiff finds are the
+  logos and the title: the artwork above. The shots after it, the menu and every dialog, are equal.
+- The web build under Node on each set of files, tours 1 and 2: the state logs of the two sets are the same, 41 of the 42
+  shots are the same (the splash again), and each web run against the native port on the same files has the differences
+  the identical-play report records (the Options box's Fullscreen check box, 6 pairs of tour 1).
+- The page importer's rules (`web/gameimport.js`, an ad-hoc run on the two folders' file lists): the Collection's folder
+  is taken as a Word Harmony folder, its `WHArchive.saf`, `WordHarmony.exe` and `res` (53 files) are picked, and the
+  markers check passes.
+
+**Not done.** The Collection's exe was not run, so none of its screens was compared with the port's (the code is the same
+bytes, the resources and files above differ). A Collection save was not imported. The port's executable is called
+`wordharmony.exe`, the name of the Collection's game on Windows: the installer that puts a native port beside the
+original (`docs/STEAM_LAUNCH.md`) must not write it into a Collection folder under that name.
+
 ## Mods
 
 The fixes mod, `mods/fixes/mod.json` (`docs/MOD_ROADMAP.md`, "The fixes mod"): `steadyClock` times every frame as one
@@ -472,5 +615,5 @@ once; the port keeps that order.
 ## Changes outside the Word Harmony folders
 
 `CMakeLists.txt` (the `BUILD_WORDHARMONY` option), `platform/Audio.cpp` (MP3 inside a WAV), `tools/check.sh` (the
-`wordharmony` suite), `.claude/launch.json` (the `wordharmony-web` preview on port 18778) and, from the coordinator,
+`wordharmony` suite, which takes `WH_GAMEDIR` for the Collection check), `.claude/launch.json` (the `wordharmony-web` preview on port 18778) and, from the coordinator,
 the store entry in `cmake/ByopopStores.cmake`.

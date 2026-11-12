@@ -37,8 +37,8 @@ public:
 	std::string mPuzzlePack;                            // +0x38 the pack the player is on ("Galaxy One")
 	bool mIsNew;                                        // +0x54 just created by CreateProfile
 	int mStat[NUM_STATS];                               // +0x58..+0x74 counters the Board's end of game updates
-	bool mFlag78;                                       // +0x78 the Options dialog's checkbox 0x1ac sets it
-	int mTotal7C;                                       // +0x7c counter that unlocks mode 6 at 80
+	bool mRandomBackdrops;                              // +0x78 the Options dialog's backdrops checkbox: the next backdrop is random, not the next in the list
+	int mGalaxyOneSolved;                               // +0x7c the most puzzles of the first galaxy solved at once: 80 unlock mode 6, and the ranks
 	int mModeLevel[NUM_MODE_LEVELS];                    // +0x80..+0x8c counters that unlock modes 4, 5 and 7 (at 17, 8, 280)
 	unsigned int mHints;                                // +0x90 bit n set: hint n is turned off (DisableHint)
 

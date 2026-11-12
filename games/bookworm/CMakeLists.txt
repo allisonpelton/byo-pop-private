@@ -18,7 +18,8 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/src/BookWormApp.cpp)
     target_compile_options(bookworm PRIVATE -Wall -Wno-unused-private-field)
   endif()
   if(EMSCRIPTEN)
-    byopop_web_game(bookworm TITLE "BookWorm"
+    # _byopop_livesplit_block: the page's speedrun timer asks for the autosplit block's address (src/LiveSplitObserver.cpp)
+    byopop_web_game(bookworm EXPORTS _byopop_livesplit_block TITLE "BookWorm"
       COPYRIGHT "BookWorm © 2002, 2003 PopCap Games, Inc. All rights reserved." LICENSES libopenmpt)
   else()
     add_custom_command(TARGET bookworm POST_BUILD

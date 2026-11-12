@@ -1,7 +1,7 @@
-// The port's host for TipTop (see TipTopApp.h).
+// port: the port's host for TipTop (see TipTopApp.h).
 
 #include "TipTopApp.h"
-#include "ModFeatures.h"
+#include "platform/GameOptions.h"
 #include "Game.h"
 #include "Lowos.h"
 #include "MusicSynth.h"
@@ -48,6 +48,14 @@ TipTopWidget::TipTopWidget()
 {
 	mScreenImage = new MemoryImage(gApp);
 	mScreenImage->Create(640, 480);
+	// opaque, so that the framework need not look through the 307200 pixels for alpha after each change, and with every
+	// alpha byte 0xff (Draw), so that it need not copy and premultiply them pixel by pixel in strips to upload them
+	// (where premultiplying changes nothing): the same pixels reach the screen, in one upload
+	mScreenImage->SetImageMode(false, false);
+	mScreenImage->mUploadAsIs = true;
+	mShownWrites = 0;
+	mHasShown = false;
+	mChangedX = mChangedY = mChangedWidth = mChangedHeight = 0;
 	mWantsFocus = true;
 }
 
@@ -60,7 +68,43 @@ void TipTopWidget::Update()
 {
 	Widget::Update();
 	gApp->RunFrame();
-	MarkDirty();
+	// The framework gets a frame only when the screen shows something new. A pass that wrote nothing to it, or wrote the
+	// pixels that were there (a menu draws all of its layers every pass), leaves the picture as shown, and the framework
+	// then draws no frame (it draws one a second at least, and at once when the window needs it), as the original's
+	// dirty layers drew nothing on a screen that stood still.
+	uint32_t aWrites = lowos::HostScreenWrites();
+	if (!mHasShown)
+		MarkDirty();
+	else if ((aWrites != mShownWrites) && (!mDirty))
+	{
+		if (ScreenDiffersFromShown())
+			MarkDirty();
+		else
+			mShownWrites = aWrites;
+	}
+}
+
+// Whether the screen holds other pixels than mScreenImage, which Draw filled from it (the alpha byte aside)
+bool TipTopWidget::ScreenDiffersFromShown()
+{
+	const uint32_t* aScreen = lowos::HostScreen();
+	int aWidth, aHeight;
+	lowos::HostScreenSize(&aWidth, &aHeight);
+	const ulong* aShown = mScreenImage->GetBits();
+	for (int y = 0; y < 480; y++)
+	{
+		const uint32_t* aRow = aScreen + y * aWidth;
+		const ulong* aShownRow = aShown + y * 640;
+		for (int x = 0; x < 640; x += 16)
+		{
+			uint32_t aDifference = 0;
+			for (int i = 0; i < 16; i++)
+				aDifference |= (aRow[x + i] ^ (uint32_t)aShownRow[x + i]) & 0x00ffffff;
+			if (aDifference != 0)
+				return true;
+		}
+	}
+	return false;
 }
 
 // The original flipped its back buffer at the end of each pass; here the last pass's screen is shown
@@ -69,11 +113,57 @@ void TipTopWidget::Draw(Graphics* g)
 	const uint32_t* aScreen = lowos::HostScreen();
 	int aWidth, aHeight;
 	lowos::HostScreenSize(&aWidth, &aHeight);
+	mShownWrites = lowos::HostScreenWrites();
+	bool isFirstDraw = !mHasShown;
+	mHasShown = true;
 	ulong* aBits = mScreenImage->GetBits();
-	// the top left 640x480 of a larger -canvas screen
+	// The top left 640x480 of a larger -canvas screen. Only the blocks of 16 pixels that differ from the picture in the image are
+	// copied (their alpha bytes are 0xff already: the first call, with nothing shown, copies everything), and where they lie is
+	// kept for a presenter: the bounding rectangle of the blocks and the tiles of 32x32 pixels that hold one.
+	int aLeft = 640, aTop = 480, aRight = 0, aBottom = 0;
+	bool aTiles[480 / 32][640 / 32] = {};
 	for (int y = 0; y < 480; y++)
-		for (int x = 0; x < 640; x++)
-			aBits[y * 640 + x] = 0xff000000 | aScreen[y * aWidth + x];
+	{
+		const uint32_t* aRow = aScreen + y * aWidth;
+		ulong* aShownRow = aBits + y * 640;
+		for (int x = 0; x < 640; x += 16)
+		{
+			uint32_t aDifference = 0;
+			for (int i = 0; i < 16; i++)
+				aDifference |= aRow[x + i] ^ (uint32_t)aShownRow[x + i];
+			if (((aDifference & 0x00ffffff) == 0) && !isFirstDraw)
+				continue;
+			for (int i = 0; i < 16; i++)
+				aShownRow[x + i] = 0xff000000 | aRow[x + i];
+			aTiles[y >> 5][x >> 5] = true;
+			if (x < aLeft)
+				aLeft = x;
+			if (x + 16 > aRight)
+				aRight = x + 16;
+			if (y < aTop)
+				aTop = y;
+			aBottom = y + 1;
+		}
+	}
+	mChangedX = aLeft;
+	mChangedY = aTop;
+	mChangedWidth = (aRight > aLeft) ? aRight - aLeft : 0;
+	mChangedHeight = (aBottom > aTop) ? aBottom - aTop : 0;
+	// the same pixels as the runs of changed 32x32 tiles of each tile row
+	mChangedRects.clear();
+	for (int aTileY = 0; aTileY < 480 / 32; aTileY++)
+	{
+		for (int aTileX = 0; aTileX < 640 / 32; aTileX++)
+		{
+			if (!aTiles[aTileY][aTileX])
+				continue;
+			int aRunEnd = aTileX;
+			while ((aRunEnd < 640 / 32) && aTiles[aTileY][aRunEnd])
+				aRunEnd++;
+			mChangedRects.push_back(ChangedRect{aTileX * 32, aTileY * 32, (aRunEnd - aTileX) * 32, 32});
+			aTileX = aRunEnd;
+		}
+	}
 	mScreenImage->BitsChanged();
 	g->DrawImage(mScreenImage, 0, 0);
 }
@@ -159,6 +249,8 @@ TipTopApp::~TipTopApp()
 		fclose(mStateLog);
 	if (mButtonLog != nullptr)
 		fclose(mButtonLog);
+	if (mScreenHashLog != nullptr)
+		fclose(mScreenHashLog);
 	if (mSoundLog != nullptr)
 	{
 		lowos::SetSoundLog(nullptr, nullptr);
@@ -173,7 +265,7 @@ void TipTopApp::Init()
 		return;
 	// 0x411fff seeds the C library's generator with GetTickCount(); -seed=N makes a run repeatable
 	tiptop::SRand(mHasSeedParam ? (unsigned int)mRandSeed : (unsigned int)GetClockTime());
-	gSteadyClock = !mFastMode && Sexy::FixOn("steadyClock");  // a -fast run is steady already
+	gSteadyClock = !mFastMode && Platform::FixOn("steadyClock");  // a -fast run is steady already
 	lowos::HostSetClock(AppClock);
 	lowos::HostSetMessageFunc(AppMessage);
 	lowos::HostSetWindowed(mIsWindowed);
@@ -220,6 +312,8 @@ void TipTopApp::RunFrame()
 		if (mShutdown)
 			return;
 	}
+	if (mScrambleScreen)
+		ScrambleScreen();
 	if (!tiptop::GameFrame())
 	{
 		mGameEnded = true;
@@ -227,6 +321,8 @@ void TipTopApp::RunFrame()
 		Shutdown();
 		return;
 	}
+	if (mScreenHashLog != nullptr)
+		LogScreenHash();
 	if (!mStateLogName.empty())
 		UpdateStateLog();
 	if (!mButtonLogName.empty())
@@ -290,7 +386,7 @@ void TipTopApp::SetMusicVolume(double theVolume)
 
 // the command line: -autoplay=<seed> -autoplaymode=regular|strategy|speed -autoplaygames=N -autoplaycap=N
 // -autoplaylog=<file> -autoplayshots=<prefix> -autoplayui -autoplaysave=N -autoplayscript=<file> -statelog=<file> -buttonlog=<file> -soundlog=<file> (testhooks/Autoplay.cpp); -canvas=<width>x<height> (testhooks/Canvas.cpp);
-// -soundfont=<file> (MusicSynth.h)
+// -scramble, -screenhash=<file> (testhooks/Canvas.cpp); -soundfont=<file> (MusicSynth.h)
 void TipTopApp::HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue)
 {
 	if (theParamName == "-autoplay")
@@ -326,6 +422,10 @@ void TipTopApp::HandleCmdLineParam(const std::string& theParamName, const std::s
 		if (mSoundLog != nullptr)
 			lowos::SetSoundLog(mSoundLog, &mUpdateCount);
 	}
+	else if (theParamName == "-scramble")
+		mScrambleScreen = true;
+	else if (theParamName == "-screenhash")
+		mScreenHashLog = fopen(theParamValue.c_str(), "w");
 	else if (theParamName == "-canvas")
 	{
 		int aWidth = 0, aHeight = 0;

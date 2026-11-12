@@ -21,6 +21,7 @@
 #include "Buffer.h"
 #include "SharedImage.h"
 #include "Ratio.h"
+#include "../platform/FileSize.h"
 
 struct SDL_Window;
 union SDL_Event;
@@ -367,6 +368,10 @@ public:
 	//                   update on any machine; the game runs slower than real time if drawing is slow
 	//   -renderscale=N  render at N times the logical size (1..4) whatever the window size, e.g. to
 	//                   check HD art with screenshotfull
+	//   -windowscale=N  make the window N times the logical size (1..4) instead of 2x when the desktop has room
+	//                   (native only), e.g. -windowscale=1 for the game's own size, as the original's window
+	//   -fix=<id>[=off], -lite=<id>[=off]  one of the game's fixes or lite changes on (or off), whatever the mods
+	//                   say; -original  every other one off, the original game (platform/GameOptions.h)
 	//   -realinput=<file>  real input: timed SDL events pushed into SDL's own queue (SDL_PushEvent), so they take
 	//                   the path a hand's events take (SDL_PollEvent, HandleEvent, the window-to-game mapping, the
 	//                   widget manager, F2 and Alt+Enter); the system's own mouse, keyboard, text and focus events
@@ -435,6 +440,8 @@ public:
 	bool mTraceMode;
 	bool mDrawEvery;  // -drawevery
 	int mForcedRenderScale;  // -renderscale=N
+	int mForcedWindowScale;  // -windowscale=N
+	void LogDisplay(const char* theWhy);  // the display line (SDL_Log): the window's client size, render scale, mode and renderer
 	bool mDrawingLogicalShot;  // SaveScreenshot at the logical size is drawing
 	DWORD mFastClock;          // -fast: virtual milliseconds, advanced instead of sleeping
 	int mLastFastDrawUpdate;   // -fast: mUpdateCount at the last draw
@@ -455,6 +462,7 @@ public:
 	std::vector<int> mRealKeysDown;  // the SDL keycodes held
 	// live commands: -commands=<file> natively, byopop_test_command on the web (RunLiveCommands)
 	std::string mCommandsFileName;
+	Platform::FileSizeWatch mCommandsFileWatch;  // how big the file is, asked on every update (PollLiveCommands)
 	long long mCommandsFilePos;    // bytes of the file read so far
 	int mCommandsFileLine;         // its lines read so far
 	bool mCommandsWaitLogged;      // "waiting for" the file was logged

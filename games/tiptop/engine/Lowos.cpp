@@ -2,9 +2,12 @@
 // what DirectX did (surfaces, flips, input devices, sound buffers) is done on the port's buffers instead.
 
 #include "Lowos.h"
+#include "framework/SDLSoundManager.h"
+#include "framework/SexyAppBase.h"
 #include "platform/Audio.h"
 
 #include <algorithm>
+#include <cmath>
 #include <cstdio>
 #include <cstring>
 #include <memory>
@@ -21,6 +24,7 @@ static int SCREEN_H = 480;
 static const PixelFormat SCREEN_FORMAT = {8, 16, 8, 8, 8, 0};
 
 static std::vector<uint32_t> gScreen(640 * 480);
+static uint32_t gScreenWrites = 1;    // port: HostScreenWrites
 static ClockFunc gClock = nullptr;
 static MessageFunc gMessageFunc = nullptr;
 static bool gActive = true;
@@ -46,6 +50,11 @@ uint32_t* HostScreen()
 	return gScreen.data();
 }
 
+uint32_t HostScreenWrites()
+{
+	return gScreenWrites;
+}
+
 void HostScreenSize(int* theWidth, int* theHeight)
 {
 	*theWidth = SCREEN_W;
@@ -57,6 +66,7 @@ void HostSetCanvas(int theWidth, int theHeight)
 	SCREEN_W = theWidth;
 	SCREEN_H = theHeight;
 	gScreen.assign((size_t)theWidth * (size_t)theHeight, 0);
+	gScreenWrites++;
 }
 
 void HostSetClock(ClockFunc theClock)
@@ -369,30 +379,21 @@ void InitLock(volatile char* theLock)
 // 0x42f290: the window, DirectDraw and the screen mode. theMode 1 is 640x480 in 32 bits (the only mode the
 // game uses); the callbacks: theActivate (0x41b2da) and theClose (0x41b2b8) came from the window procedure,
 // theOnSwitch (0x41b36c) from the keyboard's switch request, theRestore (0x41b34b) after a display format change
-// (never in the port: the format is fixed). Returns 1 in full screen, 2 windowed.
+// (never in the port: the format is fixed); theDirectDrawOptions are bits that the original's DirectDraw setup reads
+// (the port has none). Returns 1 in full screen, 2 windowed.
 char InitScreen(uint8_t theMode, ActivateCallback theActivate, CloseCallback theClose, SwitchCallback theOnSwitch,
-	RestoreCallback theRestore, const char* theTitle, char theWindowed, uint8_t theUnknown)
+	RestoreCallback theRestore, const char* theTitle, char theWindowed, uint8_t theDirectDrawOptions)
 {
-	(void)theMode; (void)theRestore; (void)theTitle; (void)theUnknown;
+	(void)theMode; (void)theRestore; (void)theTitle; (void)theDirectDrawOptions;
 	gActivate = theActivate;
 	gClose = theClose;
 	gOnSwitch = theOnSwitch;
 	gModeRequest = theWindowed == 1 ? 1 : 2;
 	gWindowed = theWindowed != 1;
 	std::fill(gScreen.begin(), gScreen.end(), 0);
+	gScreenWrites++;
 	gScreenInited = true;
 	return gWindowed ? 2 : 1;
-}
-
-// 0x42f750
-void UninitScreen()
-{
-	if (gScreenInited)
-	{
-		gScreenInited = false;
-		while (gSurfaces != nullptr)
-			UnregisterSurface(gSurfaces);
-	}
 }
 
 // 0x42f850: the display mode's format, size and bytes per pixel
@@ -599,40 +600,70 @@ void BlitPixels(const PixelFormat* theSrcFormat, const PixelFormat* theDestForma
 	bool aKey = (theFlags & SURF_COLORKEY) != 0;
 	bool anAlphaByte = (theFlags & SURF_ALPHABYTE) != 0;
 	bool aConvert = !SameFormat(theSrcFormat, theDestFormat);
+	// Nearly every call is an opaque copy or a color-keyed one between 32-bit pixels of one format (the background and the
+	// sprites): the loop below does them a byte and a branch at a time, so these two make the same copy a pixel at a time.
+	// (A source that overlaps the destination keeps the loop, whose order of reads and writes the result may depend on.)
+	if (theSrcBpp == 4 && theDestBpp == 4 && !aConvert && !anAlphaByte && !aBlend && (theFlags & SURF_ADDITIVE) == 0)
+	{
+		uintptr_t aSrcStart = (uintptr_t)theSrc, aSrcEnd = aSrcStart + (uintptr_t)theHeight * theSrcPitch;
+		uintptr_t aDestStart = (uintptr_t)theDest, aDestEnd = aDestStart + (uintptr_t)theHeight * theDestPitch;
+		if (aSrcEnd <= aDestStart || aDestEnd <= aSrcStart)
+		{
+			for (int y = 0; y < theHeight; y++)
+			{
+				const uint8_t* aSrcPos = theSrc + y * theSrcPitch;
+				uint8_t* aDestPos = theDest + y * theDestPitch;
+				if (!aKey)
+				{
+					memcpy(aDestPos, aSrcPos, (size_t)theWidth * 4);
+					continue;
+				}
+				for (int x = 0; x < theWidth; x++)
+				{
+					uint32_t aPixel, aDest;
+					memcpy(&aPixel, aSrcPos + x * 4, 4);
+					memcpy(&aDest, aDestPos + x * 4, 4);
+					aPixel = aPixel == theColorKey ? aDest : aPixel;
+					memcpy(aDestPos + x * 4, &aPixel, 4);
+				}
+			}
+			return;
+		}
+	}
 	for (int y = 0; y < theHeight; y++)
 	{
-		const uint8_t* s = theSrc + y * theSrcPitch;
-		uint8_t* d = theDest + y * theDestPitch;
-		for (int x = 0; x < theWidth; x++, s += theSrcBpp, d += theDestBpp)
+		const uint8_t* aSrcPos = theSrc + y * theSrcPitch;
+		uint8_t* aDestPos = theDest + y * theDestPitch;
+		for (int x = 0; x < theWidth; x++, aSrcPos += theSrcBpp, aDestPos += theDestBpp)
 		{
 			uint8_t aLevel = theLevel;
 			if (anAlphaByte)
 			{
 				// 0x436e0c, 0x436ec3 (32 bits): the pixel's own level in the byte before it, times the level when
 				// translucent (the table at 0x47ebc4 holds a * level / 255); 0 draws nothing
-				aLevel = *s;
-				s = s + 1;
+				aLevel = *aSrcPos;
+				aSrcPos = aSrcPos + 1;
 				if (aBlend)
 					aLevel = (uint8_t)((uint32_t)aLevel * theLevel / 0xff);
 				if (aLevel == 0)
 					continue;
 			}
-			uint32_t v = ReadPixel(s, theSrcBpp);
-			if (aKey && v == theColorKey)
+			uint32_t aPixel = ReadPixel(aSrcPos, theSrcBpp);
+			if (aKey && aPixel == theColorKey)
 				continue;
 			if (aConvert)
-				v = ConvertColor(theSrcFormat, theDestFormat, v);
+				aPixel = ConvertColor(theSrcFormat, theDestFormat, aPixel);
 			if ((theFlags & SURF_ADDITIVE) != 0)
 			{
 				// 0x4370a5, 0x437129 (32 bits): black adds nothing; each channel adds, scaled by the level when
 				// translucent (the table at 0x47ebc0 holds c * level / 255), and saturates
-				if (v == 0)
+				if (aPixel == 0)
 					continue;
-				uint32_t aDest = ReadPixel(d, theDestBpp);
+				uint32_t aDest = ReadPixel(aDestPos, theDestBpp);
 				uint32_t aResult = aDest;
 				for (int aShift = 0; aShift < 24; aShift += 8)
 				{
-					int sc = (int)(v >> aShift & 0xff);
+					int sc = (int)(aPixel >> aShift & 0xff);
 					if (aBlend)
 						sc = sc * theLevel / 0xff;
 					int c = (int)(aDest >> aShift & 0xff) + sc;
@@ -640,23 +671,23 @@ void BlitPixels(const PixelFormat* theSrcFormat, const PixelFormat* theDestForma
 						c = 0xff;
 					aResult = (aResult & ~(0xffu << aShift)) | (uint32_t)c << aShift;
 				}
-				WritePixel(d, theDestBpp, aResult);
+				WritePixel(aDestPos, theDestBpp, aResult);
 				continue;
 			}
 			if (aBlend || anAlphaByte)
 			{
-				uint32_t aDest = ReadPixel(d, theDestBpp);
-				uint32_t aResult = v;
+				uint32_t aDest = ReadPixel(aDestPos, theDestBpp);
+				uint32_t aResult = aPixel;
 				for (int aShift = 0; aShift < 24; aShift += 8)
 				{
-					int sc = (int)(v >> aShift & 0xff);
+					int sc = (int)(aPixel >> aShift & 0xff);
 					int dc = (int)(aDest >> aShift & 0xff);
 					int c = sc + (int)((int64_t)(dc - sc) * (0xff - aLevel) / 0xff);
 					aResult = (aResult & ~(0xffu << aShift)) | (uint32_t)c << aShift;
 				}
-				v = aResult;
+				aPixel = aResult;
 			}
-			WritePixel(d, theDestBpp, v);
+			WritePixel(aDestPos, theDestBpp, aPixel);
 		}
 	}
 }
@@ -715,6 +746,7 @@ void Blit(int theWidth, int theHeight, int theDestX, int theDestY, int theSrcX, 
 			aFlags = theFlags & 0xfb;
 	}
 	uint32_t aKey = ConvertColor(&SCREEN_FORMAT, &SCREEN_FORMAT, gColorKey);
+	gScreenWrites++;
 	uint8_t* aDest = (uint8_t*)gScreen.data() + theDestY * SCREEN_W * 4 + theDestX * 4;
 	const uint8_t* aSrc = theSrcBits + theSrcY * theSrcPitch + theSrcX * (4 + ((aFlags >> 1) & 1));
 	BlitPixels(&SCREEN_FORMAT, &SCREEN_FORMAT, aDest, aSrc, theHeight, theWidth, SCREEN_W * 4, theSrcPitch,
@@ -731,6 +763,7 @@ void SetColorKey(uint32_t theColor)
 void FillRectangle(int theWidth, int theHeight, int theX, int theY, uint32_t theColor)
 {
 	uint32_t aColor = ConvertColor(&SCREEN_FORMAT, &SCREEN_FORMAT, theColor);
+	gScreenWrites++;
 	for (int y = theY; y < theY + theHeight; y++)
 	{
 		if (y < 0 || y >= SCREEN_H)
@@ -782,6 +815,7 @@ uint32_t BlitScaled(int theDestWidth, int theDestHeight, int theSrcWidth, int th
 	uint32_t aKey = gColorKey;
 	uint32_t aPitch = 0;
 	uint8_t* aScreen = LockScreen(&aPitch);
+	gScreenWrites++;
 	uint32_t aStepX = ((uint32_t)theSrcWidth << 16) / (uint32_t)(theDestWidth + 1);
 	uint32_t aStepY = ((uint32_t)theSrcHeight << 16) / (uint32_t)(theDestHeight + 1);
 	uint32_t aSrcY = (uint32_t)theSrcY << 16;
@@ -937,6 +971,11 @@ struct SoundSlot
 {
 	std::shared_ptr<Platform::SoundData> mData;
 	int mVoice = 0;
+	// BYOPOP_SOUNDLOG: the number of the play the log has running (0 = none) and the update it ends on by the sound's
+	// length, so that a run on the virtual clock (-fast) logs the plays the real clock would
+	int mLogNum = 0;
+	int mLogEnd = 0;
+	int mLogVolume = 0;
 };
 
 static bool gSoundInited = false;     // 0x48a294
@@ -948,15 +987,6 @@ char InitSound()
 {
 	gSoundInited = true;
 	return 0;
-}
-
-// 0x432e70
-void UninitSound()
-{
-	gSoundInited = false;
-	while (gSounds != nullptr)
-		FreeSound(gSounds);
-	gSlots.clear();
 }
 
 static FILE* gSoundLog = nullptr;
@@ -1010,6 +1040,41 @@ void FreeSound(Sound* theSound)
 	delete theSound;
 }
 
+// BYOPOP_SOUNDLOG (tools/soundpreset.py): a call of PlaySound as the framework's sound log words it. Whether a sound is
+// still playing is taken from its length in updates, not from the mixer, which a run on the virtual clock (-fast) keeps
+// on the machine's clock: the log is the one a run at the game's own speed gives.
+static void LogSoundCall(const Sound* theSound, SoundSlot& theSlot, uint32_t theVolume, char theMode)
+{
+	int aNow = Sexy::gSexyAppBase->mUpdateCount;
+	bool isPlaying = theSlot.mLogNum != 0 && theSlot.mLogEnd > aNow;
+	// the volume in hundredths of a decibel, as DirectSound had it (0 = full)
+	int aCentiDb = theVolume == 0 ? -10000 : (int)(2000.0 * log10((double)theVolume / 4294967295.0));
+	if (aCentiDb > 0)
+		aCentiDb = 0;
+	if ((theMode == 0 || theMode == 1) && theSlot.mLogNum != 0)
+	{
+		Sexy::SoundLog("stop %d #%d", theSound->mHandle, theSlot.mLogNum);
+		theSlot.mLogNum = 0;
+	}
+	if (theMode == 0)
+		return;
+	if (theMode == 2 && isPlaying)
+	{
+		if (aCentiDb != theSlot.mLogVolume)
+			Sexy::SoundLog("volume %d #%d %d", theSound->mHandle, theSlot.mLogNum, aCentiDb);
+		theSlot.mLogVolume = aCentiDb;
+		return;
+	}
+	if (theVolume == 0 || !theSlot.mData)
+		return;
+	static int sLogNum = 0;
+	theSlot.mLogNum = ++sLogNum;
+	theSlot.mLogVolume = aCentiDb;
+	theSlot.mLogEnd = aNow + (int)std::ceil((double)theSlot.mData->mFrames * 1000.0 / theSlot.mData->mRate /
+		Sexy::gSexyAppBase->mFrameTime);
+	Sexy::SoundLog("play %d #%d vol=%d pan=0 pitch=1.0000 loop=0", theSound->mHandle, theSlot.mLogNum, aCentiDb);
+}
+
 // 0x432f80: theMode 0 stops the sound, 1 (re)starts it, 2 starts it unless it is playing. theVolume is a linear
 // amplitude, 0xffffffff = full (the original made it DirectSound decibels: 2000 * log10(volume / 2^32)).
 void PlaySound(Sound* theSound, uint32_t theVolume, char theMode)
@@ -1030,6 +1095,8 @@ void PlaySound(Sound* theSound, uint32_t theVolume, char theMode)
 		fprintf(gSoundLog, "%d stop %d\n", *gSoundLogUpdate, theSound->mHandle);
 	if (!gActive)
 		return;
+	if (Sexy::SoundLogOn())
+		LogSoundCall(theSound, aSlot, theVolume, theMode);
 	float aGain = (float)((double)(theVolume >> 14) * (1.0 / 262144.0));
 	if (theMode != 0 && aSlot.mVoice != 0 && isPlaying)
 		aMixer.SetVoiceGain(aSlot.mVoice, aGain, aGain);

@@ -347,6 +347,17 @@ EMSCRIPTEN_KEEPALIVE int bm_mute(bm_module* b, int channel, int on) {
   return xmp_channel_mute(b->xmp, channel, on ? 1 : 0) >= 0 ? 1 : 0;
 }
 
+/* Whether a channel is muted in the player itself: 1 muted, 0 playing, -1 not known (out of range, no interactive interface).
+   What the tracker's header shows is checked against it (tools/web/musicmutecheck.js). */
+EMSCRIPTEN_KEEPALIVE int bm_mute_status(bm_module* b, int channel) {
+  if (b->mpt) {
+    if (!b->has_interactive || channel < 0 || channel >= openmpt_module_get_num_channels(b->mpt)) return -1;
+    return b->interactive.get_channel_mute_status(b->ext, channel) ? 1 : 0;
+  }
+  if (channel < 0 || channel >= info(b).mod->chn) return -1;
+  return xmp_channel_mute(b->xmp, channel, -1) > 0 ? 1 : 0;
+}
+
 /* Plays on from seconds into the selected subsong (the seek bar), the decoder at rate; the position it reached (libxmp-lite goes
    to the frame nearest it) */
 EMSCRIPTEN_KEEPALIVE double bm_seek(bm_module* b, int rate, double seconds) {

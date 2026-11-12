@@ -3,6 +3,7 @@
 
   perf.py port --exe build/native/tiptop.exe --label after [--seconds 60] [--out DIR] [--modsdir DIR]
   perf.py orig --label original [--seconds 60] [--out DIR]
+  perf.py portscript --exe ... --label after [--seconds 30] [--window-from 8]   (the port without a commands or real-input file)
 
 Both run in real time (the port without -fast, the original on the wall clock), invisibly and silently: the port under
 rundesk, the original through tools/origrun (which puts it under rundesk itself), with only the patches the original needs
@@ -54,6 +55,11 @@ k32.QueryFullProcessImageNameW.argtypes = [W.HANDLE, W.DWORD, W.LPWSTR, ctypes.P
 k32.CloseHandle.argtypes = [W.HANDLE]
 k32.CreateToolhelp32Snapshot.restype = W.HANDLE
 k32.CreateToolhelp32Snapshot.argtypes = [W.DWORD, W.DWORD]
+k32.OpenThread.restype = W.HANDLE
+k32.OpenThread.argtypes = [W.DWORD, W.BOOL, W.DWORD]
+k32.QueryThreadCycleTime.argtypes = [W.HANDLE, ctypes.POINTER(ctypes.c_uint64)]
+k32.Thread32First.argtypes = [W.HANDLE, ctypes.c_void_p]
+k32.Thread32Next.argtypes = [W.HANDLE, ctypes.c_void_p]
 k32.Process32FirstW.argtypes = [W.HANDLE, ctypes.c_void_p]
 k32.Process32NextW.argtypes = [W.HANDLE, ctypes.c_void_p]
 psapi.EnumProcessModulesEx.argtypes = [W.HANDLE, ctypes.POINTER(ctypes.c_void_p), W.DWORD, ctypes.POINTER(W.DWORD), W.DWORD]
@@ -63,6 +69,25 @@ class PE32(ctypes.Structure):
     _fields_ = [("dwSize", W.DWORD), ("cntUsage", W.DWORD), ("th32ProcessID", W.DWORD), ("th32DefaultHeapID", ctypes.c_size_t),
                 ("th32ModuleID", W.DWORD), ("cntThreads", W.DWORD), ("th32ParentProcessID", W.DWORD),
                 ("pcPriClassBase", ctypes.c_long), ("dwFlags", W.DWORD), ("szExeFile", ctypes.c_wchar * 260)]
+
+
+class TE32(ctypes.Structure):
+    _fields_ = [("dwSize", W.DWORD), ("cntUsage", W.DWORD), ("th32ThreadID", W.DWORD), ("th32OwnerProcessID", W.DWORD),
+                ("tpBasePri", W.LONG), ("tpDeltaPri", W.LONG), ("dwFlags", W.DWORD)]
+
+
+def thread_ids(pid):
+    snap = k32.CreateToolhelp32Snapshot(4, 0)
+    e = TE32()
+    e.dwSize = ctypes.sizeof(e)
+    out = []
+    ok = k32.Thread32First(snap, ctypes.byref(e))
+    while ok:
+        if e.th32OwnerProcessID == pid:
+            out.append(e.th32ThreadID)
+        ok = k32.Thread32Next(snap, ctypes.byref(e))
+    k32.CloseHandle(snap)
+    return out
 
 
 class PMC(ctypes.Structure):
@@ -128,6 +153,7 @@ def filetime_epoch(ft):
 class Proc:
     def __init__(self, pid):
         self.pid = pid
+        self.threads = {}
         self.h = k32.OpenProcess(0x1000 | 0x0400 | 0x0010 | 0x0001, False, pid)  # limited + query + vm read + terminate
         if not self.h:
             raise OSError("OpenProcess %d: %d" % (pid, ctypes.get_last_error()))
@@ -169,6 +195,21 @@ class Proc:
         psapi.GetProcessMemoryInfo(self.h, ctypes.byref(m), m.cb)
         return m
 
+    def thread_cycles(self):
+        """{thread id: cycles used so far}, exact (QueryThreadCycleTime) and read without stopping any thread."""
+        out = {}
+        for tid in thread_ids(self.pid):
+            h = self.threads.get(tid)
+            if h is None:
+                h = k32.OpenThread(0x0040 | 0x0800, False, tid)  # query information, query limited information
+                if not h:
+                    continue
+                self.threads[tid] = h
+            c = ctypes.c_uint64()
+            if k32.QueryThreadCycleTime(h, ctypes.byref(c)):
+                out[tid] = c.value
+        return out
+
     def cpu(self):
         c, e, kt, ut = W.FILETIME(), W.FILETIME(), W.FILETIME(), W.FILETIME()
         k32.GetProcessTimes(self.h, ctypes.byref(c), ctypes.byref(e), ctypes.byref(kt), ctypes.byref(ut))
@@ -189,6 +230,8 @@ class Sampler(threading.Thread):
         self.game_at = None        # the game screen first seen (originals: read from memory)
         self.over_at = None        # the game over screen first seen after it
         self.last_mem = 0.0
+        self.last_threads = 0.0
+        self.thread_samples = []   # (seconds since creation, {thread id: cycles})
 
     def run(self):
         while not self.stop_flag:
@@ -210,6 +253,9 @@ class Sampler(threading.Thread):
                 self.last_mem = now
                 m = self.proc.memory()
                 self.samples.append((t, m.WorkingSetSize, m.PrivateUsage, self.proc.cpu()))
+            if now - self.last_threads >= 0.25:
+                self.last_threads = now
+                self.thread_samples.append((t, self.proc.thread_cycles()))
             time.sleep(0.002)
 
 
@@ -244,6 +290,9 @@ MODE_BUTTON = {"regular": (232, 185), "strategy": (145, 260), "speed": (240, 325
 
 
 def schedule():
+    if PACE.get("menu"):
+        # --menu: the title's button, then the main menu stays up, or (--menu-click X,Y) one more click on it 1.5 s later
+        return [STEPS[0]] + ([(1.5,) + tuple(int(v) for v in PACE["menu_click"].split(","))] if PACE.get("menu_click") else [])
     sched = [(w, x, y) if (x, y) != (232, 185) else (w,) + MODE_BUTTON[PACE.get("mode", "regular")] for (w, x, y) in STEPS]
     for i in range(PACE["count"]):
         sched.append((FIRST_COLUMN + i * PACE["every"], COLUMNS[i % len(COLUMNS)], 234))
@@ -270,6 +319,18 @@ def summarize(s, label, window):
             return None
         return round(b[-1][3] - a[-1][3], 3)
 
+    def threads_between(lo, hi):
+        """The cycles each thread used from lo to hi, in millions, largest first (the main thread is the lowest id)."""
+        a = [x for x in s.thread_samples if x[0] <= lo]
+        b = [x for x in s.thread_samples if x[0] <= hi]
+        if not a or not b:
+            return None
+        first, last = a[-1][1], b[-1][1]
+        rows = sorted(((last[tid] - first.get(tid, 0)) / 1e6, tid) for tid in last)
+        main = min(last) if last else None
+        return {"main_thread_id": main, "mcycles": [(round(c), tid) for c, tid in reversed(rows[-6:])],
+                "total_mcycles": round(sum(c for c, _ in rows))}
+
     if samples:
         res["whole_run"] = peak(0, 1e9)
         res["whole_run"]["cpu_s"] = round(samples[-1][3], 3)
@@ -282,6 +343,7 @@ def summarize(s, label, window):
         res["window"] = peak(lo, hi)
         res["window"]["cpu_s"] = cpu_between(lo, hi)
         res["window"]["seconds"] = round(hi - lo, 2)
+        res["window"]["threads"] = threads_between(lo, hi)
     return res
 
 
@@ -344,6 +406,75 @@ def run_port(args):
         g.close()
 
 
+def run_port_script(args):
+    """The same scripted minute through -script (the clicks at fixed update numbers, 100 a second in real time), with no commands
+    file and no real-input file: the framework polls those every update (a stat() of the commands file, about 340,000 cycles),
+    a cost a player's copy never pays. The window is a stretch of wall time from the process's creation (--from, --seconds),
+    chosen inside the minute the script plays (the game screen is up from about 6 s)."""
+    out = Path(args.out)
+    if out.exists():
+        import shutil
+        shutil.rmtree(out)
+    (out / "user").mkdir(parents=True)
+    exe = Path(args.exe).resolve()
+    lines = []
+    for (when, x, y) in schedule():
+        # the steps' times are the driver's (the bar full at 0); the script's updates start at the process, the bar is full by about
+        # update 100, so the first click is at update 102 as in tour 2
+        lines.append("%d click %d %d" % (102 + int(when * 100), x, y))
+    last = int(lines[-1].split()[0])
+    if args.menu:
+        last = 102 + int((args.window_from + args.seconds + 2) * 100)
+    # the state where the window starts and ends, to see what the window held
+    lines.append("%d state" % (102 + int(args.window_from * 100) + 100))
+    lines.append("%d state" % (102 + int((args.window_from + args.seconds) * 100) - 100))
+    for u in range(500, last, 500):  # a look at the game every 5 seconds
+        lines.append("%d state" % u)
+    lines.sort(key=lambda l: int(l.split()[0]))
+    lines.append("%d state" % (last + 20))
+    lines.append("%d quit" % (last + 40))
+    script = out / "script.txt"
+    script.write_text(chr(10).join(lines) + chr(10))
+    cmd = [str(ROOT / "build/native/rundesk.exe"), str(exe), "-gamedir=" + str(ROOT / "assets/tiptop"), "-userdir=" + str(out / "user"),
+           "-seed=1", "-script=" + str(script)]
+    if args.modsdir:
+        cmd.append("-modsdir=" + str(Path(args.modsdir).resolve()))
+    cmd += args.port_arg
+    mine_before = other_game_processes(set())
+    logf = open(out / "log.txt", "wb")
+    p = subprocess.Popen(cmd, stdout=logf, stderr=subprocess.STDOUT, cwd=str(out))
+    try:
+        pid = wait_for_game(p.pid, exe.name)
+        proc = Proc(pid)
+        s = Sampler(proc, 0, 0)
+        s.start()
+        lo, hi = args.window_from, args.window_from + args.seconds
+        while time.time() - proc.created < hi + 1 and p.poll() is None:
+            time.sleep(0.05)
+        s.stop_flag = True
+        s.join()
+        res = summarize(s, args.label, (lo, hi))
+        res["others_before"] = mine_before
+        res["others_after"] = other_game_processes({pid, p.pid})
+        res["script_updates"] = last
+        states = []
+        for l in (out / "log.txt").read_text(errors="replace").splitlines():
+            if l.startswith("STATE "):
+                st = json.loads(l[6:])
+                states.append({k: st.get(k) for k in ("screen", "mode", "over", "updates", "level", "score")})
+        res["states"] = states
+        return res
+    finally:
+        for (cpid, cname) in descendants(p.pid):
+            try:
+                Proc(cpid).terminate()
+            except OSError:
+                pass
+        if p.poll() is None:
+            p.kill()
+        logf.close()
+
+
 def run_orig(args):
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
@@ -391,7 +522,7 @@ def run_orig(args):
                 owned.append(Proc(par))  # the rundesk origrun started the game under
         s = Sampler(proc, 0x489eb4, 0x489eb8, 0x4887ec)
         s.start()
-        while p.poll() is None and s.over_at is None and (s.game_at is None or time.time() - proc.created < s.game_at + args.seconds):
+        while p.poll() is None and s.over_at is None and (s.game_at is None or time.time() - proc.created < s.game_at + args.seconds) and not (args.menu and time.time() - proc.created > args.window_from + args.seconds + 1):
             if args.probe and s.loaded_at is not None and time.time() - proc.created > s.loaded_at + 2:
                 break
             time.sleep(0.05)
@@ -399,6 +530,8 @@ def run_orig(args):
         s.stop_flag = True
         s.join()
         window = (s.game_at, min(s.game_at + args.seconds, s.over_at if s.over_at else 1e9)) if s.game_at else None
+        if args.menu:
+            window = (args.window_from, args.window_from + args.seconds)
         res = summarize(s, args.label, window)
         res["final_state"] = final
         res["others_before"] = mine_before
@@ -424,7 +557,7 @@ def run_orig(args):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("kind", choices=["port", "orig"])
+    ap.add_argument("kind", choices=["port", "orig", "portscript"])
     ap.add_argument("--exe", default=str(ROOT / "build/native/tiptop.exe"))
     ap.add_argument("--label", default=None)
     ap.add_argument("--out", default=None)
@@ -434,15 +567,19 @@ def main():
     ap.add_argument("--count", type=int, default=100, help="how many column clicks the script holds")
     ap.add_argument("--mode", default="regular", choices=["regular", "strategy", "speed"], help="the mode the scripted minute plays")
     ap.add_argument("--paced", type=int, default=0, help="orig: the original's main loop sleeps this many ms a pass (16 for a 60 Hz screen)")
+    ap.add_argument("--window-from", type=float, default=8.0, help="portscript: the window starts this many seconds after the process's creation")
+    ap.add_argument("--port-arg", action="append", default=[], help="portscript: an extra argument of the port (-soundfont=<no such file> leaves the music out, as the original's is in these runs)")
+    ap.add_argument("--menu", action="store_true", help="only the title's button: the window is the main menu left alone (orig and portscript; --window-from, --seconds from the process's creation)")
+    ap.add_argument("--menu-click", default=None, help="with --menu: X,Y of one more click on the main menu (265,157 the options, 245,243 the instructions)")
     ap.add_argument("--probe", action="store_true", help="orig: only measure the load, play nothing")
     ap.add_argument("--orig-load", type=float, default=8.0, help="seconds the original's script waits before its first click")
     args = ap.parse_args()
     import faulthandler
     faulthandler.dump_traceback_later(int(args.seconds + 200), exit=True)  # a run that hangs says where, then ends
     args.label = args.label or args.kind
-    PACE["every"], PACE["count"], PACE["mode"] = args.every, args.count, args.mode
+    PACE["every"], PACE["count"], PACE["mode"], PACE["menu"], PACE["menu_click"] = args.every, args.count, args.mode, args.menu, args.menu_click
     args.out = args.out or str(ROOT / "build/tt/perf" / args.label)
-    res = run_port(args) if args.kind == "port" else run_orig(args)
+    res = {"port": run_port, "orig": run_orig, "portscript": run_port_script}[args.kind](args)
     Path(args.out).mkdir(parents=True, exist_ok=True)
     Path(args.out, "result.json").write_text(json.dumps(res, indent=1))
     print("RESULT " + json.dumps(res))

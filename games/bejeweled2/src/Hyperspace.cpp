@@ -15,7 +15,7 @@
 #include "DDInterface.h"
 #include "TriVertex.h"
 #include "Common.h"
-#include "Fixes.h"
+#include "platform/GameOptions.h"
 #include "Compat2004.h"
 #include <math.h>
 
@@ -30,7 +30,7 @@ static inline float Sinf(float theAngle)
 	return (float)sin((double)theAngle);
 }
 
-// The original sets the texture addressing of Direct3D's stage 0 round the tunnel's triangles (SetTextureStageState with
+// port: The original sets the texture addressing of the first texture stage of Direct3D round the tunnel's triangles (SetTextureStageState with
 // 0xd and 0xe: u and v; 1 is wrap, 3 clamp): wrap, so that the picture repeats where a point's coordinate goes past 1,
 // and clamp for a v below 0. The framework's display takes the same two settings (DDInterface::SetTextureAddress); it cuts
 // the triangles at whole-number u and v and draws the pieces clamped (framework/TriangleWrap.h).
@@ -397,7 +397,7 @@ void Hyperspace::DoUpdate()
 void Hyperspace::Draw2dPortal(Graphics* g)
 {
 	Board* aBoard = mApp->mBoard;
-	if (mReady && aBoard->m15f60 != NULL)
+	if (mReady && aBoard->mStaticImage != NULL)
 	{
 		if (mNeedBgCache)
 		{
@@ -414,13 +414,13 @@ void Hyperspace::Draw2dPortal(Graphics* g)
 			int aRow = 0;
 			do
 			{
-				g->DrawImage(aBoard->m15f60, aShakeX, aShakeY + aRow, Rect(0, FTol((double)aSourceY), mWidth, 1));
+				g->DrawImage(aBoard->mStaticImage, aShakeX, aShakeY + aRow, Rect(0, FTol((double)aSourceY), mWidth, 1));
 				aRow++;
 				aSourceY = (float)((double)mStretch + (double)aSourceY);
 			} while (aRow < mHeight);
 		}
 	}
-	if (aBoard->m165bc == NULL)
+	if (aBoard->mCheatStars == NULL)
 	{
 		float aOpen = (float)((double)mPosA + (double)mPosA);
 		double aOpenScaled = (double)mApp->ScaleNum(aOpen, 0.0f);
@@ -522,7 +522,7 @@ void Hyperspace::Draw3dPortal(Graphics* g)
 		float aCenterY = (float)((1.0 - (double)mProgress) * (double)mRings[23].mScreenY + (double)mProgress * 768.0 * 0.5);
 		if (aWidth > 0 && aHeight > 0)
 		{
-			if (aBoard->m165bc == NULL)
+			if (aBoard->mCheatStars == NULL)
 			{
 				g->SetColorizeImages(true);
 				g->SetColor(Color(aAlpha, aAlpha, aAlpha));
@@ -535,7 +535,7 @@ void Hyperspace::Draw3dPortal(Graphics* g)
 				g->SetColorizeImages(false);
 			}
 			else
-				aBoard->m165bc->Draw(g, aBoard->m165b8);
+				aBoard->mCheatStars->Draw(g, aBoard->mNausea);
 		}
 		// the picture at the far end of the tunnel, with black round it
 		int aEndSize = FTol((double)mRings[23].mSize * 2.5);
@@ -624,7 +624,7 @@ void Hyperspace::Draw3dPortal(Graphics* g)
 						aTexture = aLayer == 0 ? IMAGE_HYPERSPACE : IMAGE_WARP_LINES;
 					// the original draws a triangle at a time with x moved by 1 (it passes the 1 that stands for "blend"
 					// to the float that moves the vertices); the fixes mod's "tunnelEdge" leaves the tunnel where its points are
-					float aMoveX = FixEnabled("tunnelEdge") ? 0.0f : 1.0f;
+					float aMoveX = Platform::FixOn("tunnelEdge") ? 0.0f : 1.0f;
 					TriVertex aFirst[1][3] = {{aVerts[0], aVerts[1], aVerts[2]}};
 					mApp->mDDInterface->DrawTrianglesTex(aTexture, aFirst, 1, NULL, Color(aGrey, aGrey, aGrey, 255), 1, aMoveX, 0.0f, true);
 					TriVertex aSecond[1][3] = {{aVerts[1], aVerts[2], aVerts[3]}};

@@ -7,7 +7,7 @@
 #include "Host.h"
 #include "MainMenu.h"
 #include "Manager.h"
-#include "ModFeatures.h"
+#include "platform/GameOptions.h"
 #include "PeResources.h"
 #include "Players.h"
 #include "Splash.h"
@@ -467,8 +467,8 @@ void MahjongApp::Init()
 	jb::gFastStart = !gKeepLogos;
 	// the fixes mod (the game's mods/fixes; docs/MOD_ROADMAP.md): none without a mod folder, and the game is the
 	// original
-	gSteadyClock = !mFastMode && FixOn("steadyClock");  // a -fast run is steady already
-	gSeededDeals = FixOn("seededDeals");
+	gSteadyClock = !mFastMode && Platform::FixOn("steadyClock");  // a -fast run is steady already
+	gSeededDeals = Platform::FixOn("seededDeals");
 
 	mWidget = new MahjongWidget();
 	mWidget->Resize(0, 0, mWidth, mHeight);
