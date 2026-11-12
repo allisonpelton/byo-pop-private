@@ -128,6 +128,7 @@ struct Lightning
 	float			mSwingX;        // +0x84 how far the line swings sideways
 	float			mSwingY;        // +0x88
 
+	// 0x5989ae
 	Lightning() { for (int i = 0; i < 8; i++) for (int j = 0; j < 4; j++) mPoint[i][j] = 0; mProgress = 0; mSwingX = 0; mSwingY = 0; }
 };
 

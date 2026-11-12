@@ -407,6 +407,8 @@ Board::~Board()
 	// (the trial's counter of games played, at the application's +0x734, is not ported)
 	delete mHyperspace;
 	ClearLightning();
+	// the effect overlay (the original never deletes it: its text picture and its tables leaked with every board)
+	delete mEffectOverlay;
 	// (the lists, vectors and strings of the board go with the object)
 }
 
