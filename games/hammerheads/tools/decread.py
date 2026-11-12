@@ -6,9 +6,13 @@ bookkeeping and blank lines dropped, names from games/hammerheads/docs/symbols.t
     python games/hammerheads/tools/decread.py 401000-402000         # every function that starts in a range
     python games/hammerheads/tools/decread.py --list 401000-402000  # one line each: address, size, name, strings
     python games/hammerheads/tools/decread.py --raw 4092a0          # without the compaction
+    python games/hammerheads/tools/decread.py --class Avatar 42d730 # fields of Avatar by name (docs/fields/Avatar.txt)
+    python games/hammerheads/tools/decread.py --no-offsets 42d730   # leave the pointer arithmetic as the decompiler printed it
 
 games/hammerheads/docs/symbols.txt has one name a line, "<address> <name>" (a function, or a global when the address is in
 .data); a line may continue with " -- a note". A function named there prints under that name everywhere.
+A field access prints as `var->_<offset in hex>[:type]` (tools/offsets.py); games/hammerheads/docs/fields/<Class>.txt names a
+class's fields ("<offset> <name> -- note", offsets in hex) and --class applies it to `this` (the first parameter).
 """
 import json
 import os
@@ -17,6 +21,7 @@ import struct
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import offsets
 import pe
 
 ROOT = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", ".."))
@@ -61,19 +66,47 @@ def slot_tables():
     return _SLOTS
 
 
-def slot_note(match):
-    """Annotates a virtual call (**(fn**)(*obj + 0xNN)) with the slot's name in the app, widget and dialog tables."""
+# the allocation and constructor call that the compiler wraps in a null check:
+#   p = operator_new(N); if (p == 0) { q = 0; } else { q = Ctor(p); }  ->  q = new(N) Ctor(p);
+NEW_OBJECT = re.compile(
+    r"(\w+) = operator_new\((0x[0-9a-f]+|\d+)\);\n\s*(?:\w+ = \w+;\n\s*)?if \(\1 == (?:\([\w *]+\))?0x0\) \{\n\s*(\w+) = (?:\([\w *]+\))?0x?0?;\n"
+    r"\s*\}\n\s*else \{\n\s*\3 = (?:\([\w *]+\))?([\w:~]+)\(\1((?:,[^;\n]*)?)\);\n\s*\}")
+# the inlined std::string destructor and reset the compiler leaves after each temporary, and the string assignments
+STRING_TIDY = re.compile(r"\n\s*if \(0xf < \(?(?:uint\)?)?\)?\w+\) \{\n\s*_free\([^;\n]*\);\n(?:\s*\w+ = \w+;\n)?\s*\}")
+STRING_RESET = re.compile(r"\n\s*\w+ = 0xf;\n\s*\w+ = (?:\(void \*\))?0x?0?;\n\s*\w+ = \(void \*\)\(\(uint\)\w+ & 0xffffff00\);")
+STRING_ASSIGN = re.compile(r'std::string::assign_ptr_len\s*\(\s*(?:\(string \*\))?(&?[\w>.\-]+),\s*\(u32\*\)\s*("(?:[^"\\]|\\.)*")(?:/\*.*?\*/)?\s*,\s*\w+\s*\);')
+STRING_FROM = re.compile(r'std::string::string_cstr\s*\(\s*(?:\(string \*\))?(&?[\w>.\-]+),\s*("(?:[^"\\]|\\.)*")\s*\);')
+VIRTUAL_CALL = re.compile(r"\(\*\*\(fn\*\*\)\(\*(.+?) \+ (0x[0-9a-f]+|\d+)\)\)")
+OBJECT_CAST = re.compile(r"^\(\w+ ?\*+\)")
+
+
+OWNER = {"name": None, "table": None}
+
+
+def virtual_call(match):
+    """Rewrites a virtual call (**(fn**)(*obj + 0xNN)) as obj->vfNN<Name>: the slot's name in the app, widget and dialog
+    tables of the 1.2 framework (one name when the tables agree, each table's otherwise)."""
     text = match.group(2)
     offset = int(text, 16) if text.startswith("0x") else int(text)
     tables = slot_tables()
-    names = ["%s:%s" % (c, tables[c][offset]) for c in SLOT_CLASSES if c in tables and offset in tables[c]]
-    # the three tables agree on the listener slots 0..0x18 and differ elsewhere
-    return "%s/*+0x%x %s*/" % (match.group(0), offset, " ".join(names))
+    classes = SLOT_CLASSES
+    if OWNER["table"] and OBJECT_CAST.sub("", match.group(1)) == OWNER["name"]:
+        classes = (OWNER["table"],)
+    names = [(c, tables[c][offset]) for c in classes if c in tables and offset in tables[c]]
+    if not names:
+        label = ""
+    elif len(classes) == 1:
+        return "%s->%s" % (OBJECT_CAST.sub("", match.group(1)), names[0][1])
+    elif len({n for c, n in names}) == 1:
+        label = "<%s>" % names[0][1]
+    else:
+        label = "<%s>" % "|".join("%s:%s" % cn for cn in names)
+    return "%s->vf%x%s" % (OBJECT_CAST.sub("", match.group(1)), offset, label)
 
 
 def load_symbols():
     names = {}
-    for path in (os.path.join(os.path.dirname(SYMBOLS), "resglobals.txt"), SYMBOLS):
+    for path in (os.path.join(os.path.dirname(SYMBOLS), "autonames.txt"), os.path.join(os.path.dirname(SYMBOLS), "resglobals.txt"), SYMBOLS):
         if os.path.exists(path):
             for line in open(path, encoding="utf-8"):
                 line = line.split(" -- ")[0].strip()
@@ -143,7 +176,11 @@ def string_note(match):
     return '"%s"/*%s*/' % (value, match.group(0))
 
 
-def compact(text, names):
+def compact(text, names, fields=None, normalize=True):
+    types = offsets.variable_types(text)
+    owner = offsets.owner_of(text)
+    OWNER["name"] = owner
+    OWNER["table"] = (fields or {}).get("table")
     lines = []
     has_frame = "ExceptionList" in text
     for line in text.split("\n"):
@@ -163,10 +200,17 @@ def compact(text, names):
         return name if name else match.group(0)
 
     text = re.sub(r"\b(FUN_|DAT_|PTR_FUN_)([0-9a-f]{8})\b", replace, text)
-    text = re.sub(r"\(\*\*\(fn\*\*\)\(\*(\w+(?:\[\w+\])?) \+ (0x[0-9a-f]+|\d+)\)\)", slot_note, text)
     text = re.sub(r"&(?:PTR_)?DAT_([0-9a-f]{8})\b", string_note, text)
     text = re.sub(r"(?<![\w)\]])(-?)(0x[0-9a-f]{8})\b", float_note, text)
     text = re.sub(r"\b0x(5[0-9a-f]{5})\b", string_note, text)  # a name passed as a bare address
+    if normalize:
+        text = offsets.normalize(text, fields, owner, types)
+    text = VIRTUAL_CALL.sub(virtual_call, text)
+    text = STRING_TIDY.sub("", text)
+    text = STRING_RESET.sub("", text)
+    text = STRING_ASSIGN.sub(lambda m: "%s = %s;" % (m.group(1).lstrip("&"), m.group(2)), text)
+    text = STRING_FROM.sub(lambda m: "%s = %s;" % (m.group(1).lstrip("&"), m.group(2)), text)
+    text = NEW_OBJECT.sub(lambda m: "%s = new(%s) %s(%s);" % (m.group(3), m.group(2), m.group(4), m.group(5)), text)
     return text
 
 
@@ -176,7 +220,13 @@ def main():
         sys.exit(__doc__)
     raw = "--raw" in arguments
     listing = "--list" in arguments
-    arguments = [a for a in arguments if a not in ("--raw", "--list")]
+    normalize = "--no-offsets" not in arguments
+    fields = None
+    if "--class" in arguments:
+        at = arguments.index("--class")
+        fields = offsets.load_map(os.path.join(ROOT, "games", "hammerheads", "docs", "fields", arguments[at + 1] + ".txt"))
+        del arguments[at:at + 2]
+    arguments = [a for a in arguments if a not in ("--raw", "--list", "--no-offsets")]
     names = load_symbols()
     functions = load_functions()
     records = {}
@@ -202,7 +252,7 @@ def main():
             print("// %08x not in the export\n" % address)
             continue
         label = names.get("%08x" % address)
-        out = text if raw else compact(text, names)
+        out = text if raw else compact(text, names, fields, normalize)
         if label:
             out = out.replace("// %08x  Global::FUN_%08x" % (address, address), "// %08x  %s" % (address, label), 1)
         print(out)

@@ -1,0 +1,2 @@
+framework SexyAppBase SexyApp
+table SexyApp

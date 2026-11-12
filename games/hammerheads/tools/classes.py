@@ -19,8 +19,8 @@ sys.path.insert(0, HERE)
 import pe  # noqa: E402
 
 IMAGE_FILE = pe.Image()
-TEXT = (0x401000, 0x401000 + 0x183596)
-RDATA = (0x585000, 0x585000 + 0x2F51C)
+TEXT = (0x401000, 0x401000 + 0x14f0b6)
+RDATA = (0x551000, 0x551000 + 0x3e60c)
 
 
 def main():
