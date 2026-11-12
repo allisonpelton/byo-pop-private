@@ -82,7 +82,28 @@ The command wrote 0x57 until 2026-11-09, which worked in the run that set it and
 The bot (`move`) plays the weapons too: it clicks the button of the box that explains a weapon (dialog 0x7b), starts a
 charged weapon with Return, fires the laser (Vector) at the bottom brick of the tallest column, puts the pointer on that
 brick and clicks for the psychic (Vixx; two moves inside the cell, because a move lights its cell only when the pointer's
-last position was in the field already) and waits while Sprocket's and Turbot's weapons run by themselves.
+last position was in the field already) and waits while Sprocket's and Turbot's weapons run by themselves. It names the weapon's
+key as a DOM key does (`Enter`): the web page's test kit throws on SDL's `Return`, and the native driver maps `Enter` to it.
+
+A classic game cleared level by level with `win` and the bot (the Splits window's Any% check: 32 level clears in one game) needs the
+bot to answer everything the clears bring. After a `win` the level-up and the warp flight take about 700 to 1000 updates, during
+which the bot waits (`busy` 2, 3 and 5); then it clicks the gate (`gate`), and the boxes on the way (`upgrade`, the stories,
+the hints) with their own buttons. A bonus round (the end of levels 3, 7 ... 31) starts its minute only with a click (`mBonusRoundStarted`,
+`MouseDown`): the bot makes it (`bonus`), and with no group to shoot in the bonus field it waits instead of answering null, as the
+minute runs out by itself (a driver stops at a null). Without those two answers a game stopped in the bonus round of level 7 (native,
+null) or 19 (web) and one stayed in level 23's bonus round for good. `games/astropop/tools/livesplit/scripted.py levels` (native)
+and `games/astropop/tools/web/winlevels.js` (the page, real DOM input) play it: 32 clears and level 33 on the screen, in 4,620 moves
+and 84,700 updates natively and 1,900 moves and 95,000 updates in the page, with 24 upgrade boxes, 8 bonus starts and the
+gate 32 times.
+
+A game that a test command starts while the full-screen help of the one before is up (`goto classic`, `goto survival`, `level`; the
+original's player cannot, the help is modal) left the help under the new Board: `StartClassicGame` deletes the old Board and adds the new
+one over the help widget, so the help is not drawn, takes no click, and `mHelpScreen` stays set, which holds the Board's updates and
+its input. The bot then answered "help" for good (click on a button that nothing receives), also after `win`; a driver that
+restarts games over an open help (the Site session's page did) met it. The three commands close the help first
+(`CloseHelpBeforeGame` in `testhooks/TestCommands.cpp`, test code only). `games/astropop/tools/web/gotohelp.js` repeats it: three
+restarts with the help up, then 90 bot moves with a `win`; one "help" answer, then shots, the gate and level 2 (before: 20 of 20
+answers "help").
 
 A player is two things, and a test that starts with one needs both: the file `users\data<n>.usr` and the registry key
 `Users\<name>` with `Users\LastUser` (the original keeps them under HKLM, the port in its `registry.ini`). `Init` deletes
