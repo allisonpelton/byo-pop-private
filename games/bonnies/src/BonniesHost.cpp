@@ -14,6 +14,9 @@
 #include "platform/MusicLevels.h"
 #include "platform/VFS.h"
 #include "SDLSoundManager.h"
+#ifndef __EMSCRIPTEN__
+#include "SurfaceDisplay.h"
+#endif
 
 #include <SDL.h>
 #include <stb_image.h>
@@ -291,10 +294,17 @@ public:
 	}
 
 	// SDL 1.2's 32x32 cursor (a set mask bit: black where the data bit is set, else white; a clear one: clear, or
-	// inverted where the data bit is set, drawn black) as the framework's image cursor. The framework centres the
-	// image on the mouse, so the cursor sits in a 64x64 image with its hot spot in the middle.
+	// inverted where the data bit is set, drawn black). On the desktop it is the window's own cursor, as SDL 1.2's was
+	// (BonniesHostApp::EnforceCursor shows it), so that the window's display has nothing to draw over the game's screen. On
+	// the web it is the framework's image cursor, which the framework centres on the mouse, so the cursor sits in a 64x64
+	// image with its hot spot in the middle.
 	void setCursor(const uint8_t* theData, const uint8_t* theMask, int theHotX, int theHotY) override
 	{
+#ifndef __EMSCRIPTEN__
+		gHostApp->SetWindowCursor(SDL_CreateCursor(theData, theMask, 32, 32, theHotX, theHotY));
+		gHostApp->SetCursor(mCursorShown ? CURSOR_CUSTOM : CURSOR_NONE);
+		return;
+#else
 		if (mCursorImage == nullptr)
 		{
 			mCursorImage = new MemoryImage(gHostApp);
@@ -323,12 +333,18 @@ public:
 		mCursorImage->BitsChanged();
 		gHostApp->SetCursorImage(CURSOR_CUSTOM, mCursorImage);
 		gHostApp->SetCursor(mCursorShown ? CURSOR_CUSTOM : CURSOR_NONE);
+#endif
 	}
 
 	void showCursor(bool theShow) override
 	{
 		mCursorShown = theShow;
-		gHostApp->SetCursor(!theShow ? CURSOR_NONE : mCursorImage != nullptr ? CURSOR_CUSTOM : CURSOR_POINTER);
+#ifndef __EMSCRIPTEN__
+		bool aHasCursor = gHostApp->mWindowCursor != nullptr;
+#else
+		bool aHasCursor = mCursorImage != nullptr;
+#endif
+		gHostApp->SetCursor(!theShow ? CURSOR_NONE : aHasCursor ? CURSOR_CUSTOM : CURSOR_POINTER);
 	}
 
 	void iconify() override
@@ -884,6 +900,18 @@ void Motion(int x, int y)
 
 BonniesWidget::BonniesWidget()
 {
+	mScreenImage = nullptr;
+	mShownWhole = false;
+#ifndef __EMSCRIPTEN__
+	// the window's display keeps the game's screen itself (CreateDDInterface), so the widget has no picture of it
+	if (dynamic_cast<SurfaceDisplay*>(gHostApp->mDDInterface) != nullptr)
+	{
+		mShown.assign(kScreenWidth * kScreenHeight, 0);
+		mScreenChanged = true;
+		mWantsFocus = true;
+		return;
+	}
+#endif
 	mScreenImage = new MemoryImage(gHostApp);
 	mScreenImage->Create(kScreenWidth, kScreenHeight);
 	// every pixel is drawn opaque (Draw below): the image is said to be opaque, so that the framework need not look through
@@ -928,24 +956,108 @@ extern "C" EMSCRIPTEN_KEEPALIVE const char* bonnies_test_command(const char* the
 // The game presents its screen about 30 times a second whether or not anything moved (a board waiting for the player is
 // presented as often as one in motion; two in three presents of the tutorial's board matched the one before), and the same
 // screen need not be copied, uploaded and shown again: the framework shows the picture it last drew until it is told
-// otherwise. The comparison is on the pixels, so what is on screen never differs from what the game drew. Compared in
-// blocks, so that the loop can use the processor's vector instructions.
-bool BonniesWidget::ScreenDiffers() const
+// otherwise. The comparison is on the pixels, so what is on screen never differs from what the game drew. It runs in blocks,
+// so that the loop can use the processor's vector instructions, and a block that differs is copied at once, whole, so that the
+// screen is read once and written only where it changed (a board in motion changes a part of it, a wait for the player
+// nothing) and Draw has nothing left to copy.
+bool BonniesWidget::CopyScreenChanges()
 {
 	const int kBlock = 256;
 	static_assert(kScreenWidth * kScreenHeight % kBlock == 0, "the screen is a whole number of blocks");
-	const ulong* aBits = mScreenImage->GetBits();
+	ulong* aBits = mScreenImage->GetBits();
 	const uint32_t* aScreen = gHost.mScreen.data();
+	bool aChanged = false;
 	for (int aStart = 0; aStart < kScreenWidth * kScreenHeight; aStart += kBlock)
 	{
 		uint32_t aDifference = 0;
 		for (int i = aStart; i < aStart + kBlock; i++)
 			aDifference |= (uint32_t)aBits[i] ^ (0xff000000 | (aScreen[i] & 0xffffff));
 		if (aDifference != 0)
-			return true;
+		{
+			for (int i = aStart; i < aStart + kBlock; i++)
+				aBits[i] = 0xff000000 | (aScreen[i] & 0xffffff);
+			aChanged = true;
+		}
 	}
+	return aChanged;
+}
+
+// The rows of the game's screen that differ from what the window's display last had, handed to it as rects: a run of rows
+// that differ is one rect, from the leftmost to the rightmost pixel that differs in it. The display copies only those rects
+// into its window and shows them. The first call hands it the whole screen. What is compared is the game's pixels (0x00RRGGBB,
+// the top byte is not read), so what is on screen never differs from what the game drew, and a screen that the game
+// presented without changing anything shows nothing new.
+#ifndef __EMSCRIPTEN__
+bool BonniesWidget::SendScreenChanges()
+{
+	SurfaceDisplay* aDisplay = dynamic_cast<SurfaceDisplay*>(gHostApp->mDDInterface);
+	if (aDisplay == nullptr)
+		return false;
+
+	const uint32_t* aScreen = gHost.mScreen.data();
+	uint32_t* aShown = mShown.data();
+	static std::vector<Rect> sRects;
+	sRects.clear();
+	if (!mShownWhole)
+	{
+		mShownWhole = true;
+		memcpy(aShown, aScreen, sizeof(uint32_t) * kScreenWidth * kScreenHeight);
+		aDisplay->SetFrame(aScreen, kScreenWidth * 4, nullptr, -1);
+		return true;
+	}
+
+	int aRunTop = -1, aRunLeft = 0, aRunRight = 0;
+	for (int y = 0; y <= kScreenHeight; y++)
+	{
+		int aLeft = 0, aRight = -1;
+		if (y < kScreenHeight)
+		{
+			const uint32_t* aRow = aScreen + y * kScreenWidth;
+			uint32_t* aOldRow = aShown + y * kScreenWidth;
+			uint32_t aDifference = 0;
+			for (int x = 0; x < kScreenWidth; x++)
+				aDifference |= (aRow[x] ^ aOldRow[x]) & 0xffffff;
+			if (aDifference != 0)
+			{
+				while (((aRow[aLeft] ^ aOldRow[aLeft]) & 0xffffff) == 0)
+					aLeft++;
+				aRight = kScreenWidth - 1;
+				while (((aRow[aRight] ^ aOldRow[aRight]) & 0xffffff) == 0)
+					aRight--;
+				memcpy(aOldRow + aLeft, aRow + aLeft, sizeof(uint32_t) * (aRight - aLeft + 1));
+			}
+		}
+		if (aRight >= aLeft)
+		{
+			if (aRunTop < 0)
+			{
+				aRunTop = y;
+				aRunLeft = aLeft;
+				aRunRight = aRight;
+			}
+			else
+			{
+				aRunLeft = std::min(aRunLeft, aLeft);
+				aRunRight = std::max(aRunRight, aRight);
+			}
+		}
+		else if (aRunTop >= 0)
+		{
+			sRects.push_back(Rect(aRunLeft, aRunTop, aRunRight - aRunLeft + 1, y - aRunTop));
+			aRunTop = -1;
+		}
+	}
+	if (sRects.empty())
+		return false;
+	aDisplay->SetFrame(aScreen, kScreenWidth * 4, sRects.data(), (int)sRects.size());
+	return true;
+}
+#else
+bool BonniesWidget::SendScreenChanges()
+{
 	return false;
 }
+#endif
 
 void BonniesWidget::Update()
 {
@@ -953,8 +1065,16 @@ void BonniesWidget::Update()
 	if (mScreenChanged)
 	{
 		mScreenChanged = false;
-		if (ScreenDiffers())
+		if (mScreenImage == nullptr)
+		{
+			if (SendScreenChanges())
+				MarkDirty();
+		}
+		else if (CopyScreenChanges())
+		{
+			mScreenImage->BitsChanged();
 			MarkDirty();
+		}
 	}
 #ifndef __EMSCRIPTEN__
 	// port (test runs): the game's state for tools/realplay.py, which plays from it with real input (Start.h), written
@@ -978,15 +1098,26 @@ void BonniesWidget::Update()
 #endif
 }
 
-// The game's screen (0x00RRGGBB) as it was last presented
+// The game's screen (0x00RRGGBB) as it was last presented: the picture already holds it (Update), except for a screen the
+// game presented since the last update, or the first one; and the framework uploads the picture only when it changed
 void BonniesWidget::Draw(Graphics* g)
 {
-	mScreenChanged = false;
-	ulong* aBits = mScreenImage->GetBits();
-	const uint32_t* aScreen = gHost.mScreen.data();
-	for (int i = 0; i < kScreenWidth * kScreenHeight; i++)
-		aBits[i] = 0xff000000 | (aScreen[i] & 0xffffff);
-	mScreenImage->BitsChanged();
+	if (mScreenImage == nullptr)
+	{
+		// (the window's display shows the screen itself)
+		if (mScreenChanged)
+		{
+			mScreenChanged = false;
+			SendScreenChanges();
+		}
+		return;
+	}
+	if (mScreenChanged)
+	{
+		mScreenChanged = false;
+		if (CopyScreenChanges())
+			mScreenImage->BitsChanged();
+	}
 	g->DrawImage(mScreenImage, 0, 0);
 }
 
@@ -1120,6 +1251,9 @@ BonniesHostApp::BonniesHostApp()
 	mMouseInside = false;
 	mLastFrameworkRun = 0;
 	mScriptNoFocus = false;
+#ifndef __EMSCRIPTEN__
+	mWindowCursor = nullptr;
+#endif
 }
 
 BonniesHostApp::~BonniesHostApp()
@@ -1129,7 +1263,51 @@ BonniesHostApp::~BonniesHostApp()
 		mWidgetManager->RemoveWidget(mWidget);
 		delete mWidget;
 	}
+#ifndef __EMSCRIPTEN__
+	// the game's screen buffer goes with the game
+	if (SurfaceDisplay* aDisplay = dynamic_cast<SurfaceDisplay*>(mDDInterface))
+		aDisplay->SetFrame(nullptr, 0, nullptr, -1);
+#endif
 }
+
+#ifndef __EMSCRIPTEN__
+DDInterface* BonniesHostApp::CreateDDInterface()
+{
+	// test only: SURFACE_DISPLAY=off keeps the framework's own display and the widget's picture (the path before the
+	// SurfaceDisplay), to measure the two against each other
+	const char* aMode = SDL_getenv("SURFACE_DISPLAY");
+	if ((aMode != nullptr) && (strcmp(aMode, "off") == 0))
+		return SexyAppBase::CreateDDInterface();
+	return new SurfaceDisplay(this);
+}
+
+// The game's own cursor is the window's cursor, as SDL 1.2's was, not a picture that the framework draws over the screen (a
+// drawn cursor image keeps the window's display from showing the screen through the window's own surface): while the
+// mouse is in the window and the game has asked for its cursor, the window shows it, and the framework's other cursors
+// (the pointer outside the window, none when the game hides it) are as they were.
+void BonniesHostApp::EnforceCursor()
+{
+	if ((mWindowCursor != nullptr) && (mCursorNum == CURSOR_CUSTOM) && (mMouseIn) && (!mSEHOccured))
+	{
+		if (SDL_GetCursor() != mWindowCursor)
+			SDL_SetCursor(mWindowCursor);
+		SDL_ShowCursor(SDL_ENABLE);
+		return;
+	}
+	SexyAppBase::EnforceCursor();
+}
+
+// The window's cursor made from the game's bitmap (nullptr: none). The one before it is freed once the window shows the new
+// one (SDL_FreeCursor puts the default cursor in place of one that is still showing).
+void BonniesHostApp::SetWindowCursor(SDL_Cursor* theCursor)
+{
+	SDL_Cursor* anOldCursor = mWindowCursor;
+	mWindowCursor = theCursor;
+	EnforceCursor();
+	if (anOldCursor != nullptr)
+		SDL_FreeCursor(anOldCursor);
+}
+#endif
 
 void BonniesHostApp::Init()
 {
@@ -1156,12 +1334,16 @@ void BonniesHostApp::DoMainLoop()
 		mGameRunning = true;
 		bonnies::bonniesMain();
 		mGameRunning = false;
+#ifndef __EMSCRIPTEN__
+		SetWindowCursor(nullptr);
+#else
 		if (gHost.mCursorImage != nullptr)
 		{
 			SetCursorImage(CURSOR_CUSTOM, nullptr);
 			delete gHost.mCursorImage;
 			gHost.mCursorImage = nullptr;
 		}
+#endif
 		Shutdown();
 	}
 	SexyAppBase::DoMainLoop();
