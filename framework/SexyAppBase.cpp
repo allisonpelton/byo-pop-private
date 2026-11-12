@@ -2489,8 +2489,9 @@ void SexyAppBase::MakeWindow()
 			// Scale the window up to 2x when that still fits, leaving room for the window frame
 			if ((mWidth * 2 <= aDesktopRect.w - 32) && (mHeight * 2 <= aDesktopRect.h - 64))
 				aScale = 2;
-			// port: -windowscale=N, the window at a size of the test's choosing (1 is the game's own, the original's)
-			if (mForcedWindowScale > 0)
+			// port: -windowscale=N, the window at a size of the test's choosing (1 is the game's own, the original's); a test
+			// option, so only a test run (IsTestRun) honours it and a player's run ignores it
+			if ((mForcedWindowScale > 0) && (IsTestRun()))
 				aScale = mForcedWindowScale;
 
 			if (hasPreferredPos)

@@ -369,7 +369,8 @@ public:
 	//   -renderscale=N  render at N times the logical size (1..4) whatever the window size, e.g. to
 	//                   check HD art with screenshotfull
 	//   -windowscale=N  make the window N times the logical size (1..4) instead of 2x when the desktop has room
-	//                   (native only), e.g. -windowscale=1 for the game's own size, as the original's window
+	//                   (native only), e.g. -windowscale=1 for the game's own size, as the original's window (a test option:
+	//                   only a test run, IsTestRun, honours it)
 	//   -fix=<id>[=off], -lite=<id>[=off]  one of the game's fixes or lite changes on (or off), whatever the mods
 	//                   say; -original  every other one off, the original game (platform/GameOptions.h)
 	//   -realinput=<file>  real input: timed SDL events pushed into SDL's own queue (SDL_PushEvent), so they take

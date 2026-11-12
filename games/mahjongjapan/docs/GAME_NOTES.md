@@ -87,12 +87,12 @@ and every classic layout solves, the slowest stage in about 3 s. When no pair is
 click, and `MOVE null` while a flight runs, on a board with no tile left or when nothing can be played. A dialog is
 answered by its default button (command 1), the pause box by a click on it, the map by Continue.
 
-**Test options** (reachable only from a test: the framework honours them only when `IsTestRun()` is true, that is under
-`BYOPOP_TEST_RUN`, `-script`, `-realinput`, `-commands` or scripted input, so a player's exe ignores them): `-windowscale=N` (the trunk's option, from
-BookWorm's cycle split: the window starts at N times the logical size, 1 to 4, where it would otherwise start at 2x when that fits
-the desktop; `perfrun.sh` uses 1 for the original's window and 2 for the player's). In the environment, for the display's own tests (they read the
-environment on any run, change nothing a player sees and are listed with the presenter below): `SURFACE_DISPLAY=0|off`,
-`SURFACE_VERIFY=1`, `SURFACE_MAXRECTS=n`, and the engine's `JB_VERIFY_FRAMES=1`.
+**Test options** (a test run only: the framework reads them when `IsTestRun()` is true, that is under `BYOPOP_TEST_RUN`, which
+rundesk sets, `-script`, `-realinput`, `-commands` or scripted input, so a player's exe ignores them): `-windowscale=N`, the trunk's
+option from BookWorm's cycle split (the window starts at N times the logical size, 1 to 4, where it would otherwise start at 2x when
+that fits the desktop; `perfrun.sh` uses 1 for the original's window and 2 for the player's); in the environment, the display's
+own hooks (listed with the presenter below) `SURFACE_DISPLAY=0|off`, `SURFACE_VERIFY=1` and `SURFACE_MAXRECTS=n`. The engine's
+`JB_VERIFY_FRAMES=1` (every incremental frame checked against a full redraw) is read on any run and changes nothing a player sees.
 
 ## Fix candidates and the fixes mod (2026-11-08)
 
