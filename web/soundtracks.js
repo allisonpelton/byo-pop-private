@@ -116,10 +116,12 @@ var ByopopSoundtracks = {
   dynomite: {
     files: ["music/*.it"],
     cuts: { "amazonas#2": [64] },
-    where: { "amazonas#0": "Classic Mode", "amazonas#1": "Title Screen", "amazonas#2": "Game Over", "amazonas#4": "Stage Clear",
-      "amazonas#5": "Game Start", "amazonas#6": "Time Trial", "amazonas#2@64": "Fossil Ending", "amazonas#7": "Panic", "amazonas#8": "Fossil Mode",
+    // the places from the Dynomite session (2026-11-11): #2@64 is where the won challenge starts, and the game over (#2) and
+    // Time Trial's clear (#4) jump into it; #7 is Endless (the port's DynomitePanic); #9, two seconds, nothing starts or jumps to
+    where: { "amazonas#0": "Fossil Challenge", "amazonas#1": "Title Screen", "amazonas#2": "Game Over", "amazonas#4": "Time Trial Clear",
+      "amazonas#5": "Game Start", "amazonas#6": "Time Trial", "amazonas#2@64": "Challenge Won", "amazonas#7": "Endless", "amazonas#8": "Museum",
       "omniphilia#0": "Stomped" },
-    unused: ["amazonas#3"]
+    unused: ["amazonas#3", "amazonas#9"]
   },
   sevenseas: {
     files: ["music/*.it"],

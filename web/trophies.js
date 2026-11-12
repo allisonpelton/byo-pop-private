@@ -72,6 +72,12 @@ var ByopopTrophies = (function () {
     // an i32 length and its bytes, an i32 score), five of Classic (Language 1194) then five of Action (1195), best first; both
     // rank points (the Bonnie's session, 2026-11-11)
     bonnies: { file: "Data/HighScores.dat", kind: "bonnies", tables: ["Classic", "Action"], places: 5 },
+    // games/bookwormadv/src/Profile.cpp and games/bookwormadv2/src/Profile.cpp: a player a file, users/<name>.bwa, records of a key
+    // and a typed value (kind "bwa", parseBwa); the Hall of Fame (HallOfFame.cpp) ranks every profile's TopWordsEverSpelled (a
+    // word and its points, each word once a profile) and its TM_Top10Times (arena runs, by the stage reached, a time in
+    // hundredths). The mini-games' tables are named and shown by the game's scripts, so they are left out
+    bookwormadv: { kind: "bwa", tables: ["Top Words", "Arena"] },
+    bookwormadv2: { kind: "bwa", tables: ["Top Words", "Arena"] },
     // games/bejeweled2/src/HighScoreWidget.cpp, ReadFromFile
     bejeweled2: { file: "users/hiscores.dat", kind: "popcap", magic: 0xb9e7e3f8,
       tables: ["Classic", "Action", "Puzzle", "Endless", "Twilight", "Hyper", "Cognito", "Finity", "Hidden"], places: 10 }
@@ -233,6 +239,62 @@ var ByopopTrophies = (function () {
     }
     return out;
   }
+  // A BookWorm Adventures profile: records to the end, each a string key (u16 length and bytes) and a value: a u32 type (0 an
+  // i32; 1 a float as a string of its text; 2 a byte; 3 a string; 4 a table; 5 nothing, an empty table's one entry), a table
+  // being entries of a byte "another follows", a byte "the key is a string", the key (a string or an i32) and a value.
+  // -> {key: value}, a table as an array of {key, value}; null when the file does not read to its end
+  function parseBwa(b) {
+    var dv = new DataView(b.buffer, b.byteOffset, b.byteLength), at = 0;
+    function need(n) { if (at + n > b.length) throw 0; }
+    function str() { need(2); var n = dv.getUint16(at, true); need(2 + n); var r = cString(b, at + 2, n); at += 2 + n; return r; }
+    function value(depth) {
+      need(4); var type = dv.getUint32(at, true); at += 4;
+      if (type === 0) { need(4); at += 4; return dv.getInt32(at - 4, true); }
+      if (type === 1) return parseFloat(str());
+      if (type === 2) { need(1); return !!b[at++]; }
+      if (type === 3) return str();
+      if (type === 5) return null;
+      if (type !== 4 || depth > 16) throw 0;
+      var list = [];
+      for (;;) {
+        need(2); var more = b[at], named = b[at + 1]; at += 2;
+        var key;
+        if (named) key = str(); else { need(4); key = dv.getInt32(at, true); at += 4; }
+        list.push({ key: key, value: value(depth + 1) });
+        if (!more) return list;
+      }
+    }
+    var out = {};
+    try { while (at < b.length) { var k = str(); out[k] = value(0); } } catch (e) { return null; }
+    return out;
+  }
+  // a table's entries that are tables, each as {field: value}
+  function bwaRows(t) {
+    return Array.isArray(t) ? t.filter(function (e) { return Array.isArray(e.value); }).map(function (e) {
+      var o = {}; e.value.forEach(function (f) { o[f.key] = f.value; }); return o;
+    }) : [];
+  }
+  function hmsCents(t) { return hms(Math.floor(t / 100)); }
+  // The Hall of Fame's tables from the players' profiles [{name, data}]: their top words, best first, each word once a player;
+  // their arena runs, by the stage reached, then name
+  function bwaTables(spec, players) {
+    var words = [], runs = [];
+    players.forEach(function (p) {
+      var seen = {};
+      bwaRows(p.data.TopWordsEverSpelled).forEach(function (r) {
+        if (typeof r.mWord !== "string" || seen[r.mWord]) return;
+        seen[r.mWord] = true;
+        words.push({ name: p.name, word: r.mWord, score: r.mValue | 0 });
+      });
+      bwaRows(p.data.TM_Top10Times).forEach(function (r) { runs.push({ name: p.name, score: r.mStage | 0, time: hmsCents(r.mTime | 0) }); });
+    });
+    words.sort(function (a, c) { return c.score - a.score; });
+    runs.sort(function (a, c) { return c.score - a.score || (a.name < c.name ? -1 : a.name > c.name ? 1 : 0); });
+    return [[spec.tables[0], words], [spec.tables[1], runs]].filter(function (t) { return t[1].length; }).map(function (t) {
+      t[1].forEach(function (r, k) { r.place = String(k + 1); });
+      return { name: t[0], rows: t[1] };
+    });
+  }
   function parseTypershark(spec, b) {
     var dv = new DataView(b.buffer, b.byteOffset, b.byteLength), at = 0;
     function str() { var r = lenString(b, dv, at, cString); if (!r) return null; at = r.end; return r.s; }
@@ -368,19 +430,39 @@ var ByopopTrophies = (function () {
     });
   }
 
+  // the keys of the files under dir whose names after it match re
+  function userKeys(db, dir, re) {
+    return new Promise(function (resolve) {
+      try {
+        var st = db.objectStoreNames[0], r = db.transaction(st, "readonly").objectStore(st).getAllKeys(IDBKeyRange.bound(dir, dir + "￿"));
+        r.onsuccess = function () { resolve(r.result.map(String).filter(function (k) { return re.test(k.substring(dir.length)); })); };
+        r.onerror = function () { resolve([]); };
+      } catch (e) { resolve([]); }
+    });
+  }
+  // BookWorm Adventures' tables: its players' profiles (userdata/users/<name>.bwa), each named by its file
+  function readBwa(game, spec) {
+    var F = ByopopMusic.files;
+    return F.open(game.persist).then(function (db) {
+      if (!db) return [];
+      var dir = game.persist + "/userdata/users/";
+      return userKeys(db, dir, /^[^\/]+\.bwa$/i).then(function (list) {
+        return Promise.all(list.map(function (k) {
+          return F.read(db, k).then(function (b) {
+            var data = b ? parseBwa(b) : null;
+            return data ? { name: decodeName(k.substring(dir.length, k.length - 4)), data: data } : null;
+          }, function () { return null; });
+        }));
+      }).then(function (players) { db.close(); return bwaTables(spec, players.filter(Boolean)); }, function () { db.close(); return []; });
+    });
+  }
   // a Mahjong Escape's tables: its players' files (userdata/<id>.usr) and its layouts' names from the player's Resource.dll
   function readMahjong(game, spec) {
     var F = ByopopMusic.files;
     return F.open(game.persist).then(function (db) {
       if (!db) return [];
       var user = game.persist + "/userdata/";
-      var keys = new Promise(function (resolve) {
-        try {
-          var st = db.objectStoreNames[0], r = db.transaction(st, "readonly").objectStore(st).getAllKeys(IDBKeyRange.bound(user, user + "￿"));
-          r.onsuccess = function () { resolve(r.result.map(String).filter(function (k) { return /^\d+\.usr$/i.test(k.substring(user.length)); })); };
-          r.onerror = function () { resolve([]); };
-        } catch (e) { resolve([]); }
-      });
+      var keys = userKeys(db, user, /^\d+\.usr$/i);
       return keys.then(function (list) {
         return Promise.all(list.map(function (k) { return F.read(db, k).then(function (b) { return b ? parseMahjongPlayer(spec, b) : null; }, function () { return null; }); }));
       }).then(function (players) {
@@ -434,7 +516,7 @@ var ByopopTrophies = (function () {
         var head = make("tr", "");
         // a Time column where the game keeps best times beside its scores (the Mahjong Escapes)
         var timed = tables.some(function (t) { return t.rows.some(function (r) { return r.time !== undefined; }); });
-        // a Word column where the game keeps a word beside the name (BookWorm's best and longest words, Bonnie's longest)
+        // a Word column where the game keeps a word beside the name (BookWorm's best and longest words, Bonnie's longest, BookWorm Adventures' top words)
         var worded = tables.some(function (t) { return t.rows.some(function (r) { return r.word !== undefined; }); });
         [T("trophies.col.table"), T("trophies.col.place"), T("trophies.col.name")].concat(worded ? [T("trophies.col.word")] : [], [T("trophies.col.score")], timed ? [T("trophies.col.time")] : []).forEach(function (h) { var th = make("th", "", h); th.scope = "col"; head.appendChild(th); });
         table.appendChild(head);
@@ -460,6 +542,9 @@ var ByopopTrophies = (function () {
       found = [];
       // a game whose tables are in several files (spec.files) reads each, its tables in the files' order
       var reads = games.filter(function (g) { return RECORDS[g.id]; }).map(function (g) {
+        if (RECORDS[g.id].kind === "bwa") return readBwa(g, RECORDS[g.id]).then(function (tables) {
+          if (tables.length) found.push({ id: g.id, title: g.title, tables: tables });
+        }, function () {});
         if (RECORDS[g.id].kind === "mahjong") return readMahjong(g, RECORDS[g.id]).then(function (tables) {
           if (tables.length) found.push({ id: g.id, title: g.title, tables: tables });
         }, function () {});
@@ -508,6 +593,6 @@ var ByopopTrophies = (function () {
     watch();
     return win;
   }
-  return { attach: attach, parse: parse, parseIni: parseIni, parseMahjongPlayer: parseMahjongPlayer, mahjongTables: mahjongTables, layoutName: layoutName, RECORDS: RECORDS };
+  return { attach: attach, parse: parse, parseIni: parseIni, parseBwa: parseBwa, bwaTables: bwaTables, parseMahjongPlayer: parseMahjongPlayer, mahjongTables: mahjongTables, layoutName: layoutName, RECORDS: RECORDS };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = ByopopTrophies;

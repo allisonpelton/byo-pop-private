@@ -134,5 +134,21 @@ const bon = Buffer.concat(Array.from({ length: 10 }, (_, i) => Buffer.concat([i3
 same("bonnies: Classic then Action, the longest word, an unused entry skipped",
   R.parse(R.RECORDS.bonnies, new Uint8Array(bon)).map((t) => [t.name, t.rows.length, t.rows[0].name, t.rows[0].word, t.rows[0].score]),
   [["Classic", 4, "N0", "WORD0", 1000], ["Action", 5, "N5", "WORD5", 995]]);
+// BookWorm Adventures' users/<name>.bwa: key and typed value records; tables of {another follows, string key, key, value}
+const u16s = (t) => { const n = Buffer.from(t, "latin1"), b = Buffer.alloc(2 + n.length); b.writeUInt16LE(n.length, 0); n.copy(b, 2); return b; };
+const u32 = (v) => { const b = Buffer.alloc(4); b.writeUInt32LE(v, 0); return b; };
+const vInt = (v) => Buffer.concat([u32(0), i32(v)]);
+const vTable = (entries) => Buffer.concat([u32(4), ...entries.map(([k, v], i) => Buffer.concat([Buffer.from([i < entries.length - 1 ? 1 : 0, typeof k === "string" ? 1 : 0]), typeof k === "string" ? u16s(k) : i32(k), v]))]);
+const fields = (o) => vTable(Object.keys(o).map((k) => [k, typeof o[k] === "string" ? Buffer.concat([u32(3), u16s(o[k])]) : vInt(o[k])]));
+const bwa = Buffer.concat([u16s("XPLevel"), vInt(12), u16s("XPPercent"), u32(1), u16s("37.500000"), u16s("AdventureComplete"), u32(2), Buffer.from([1]),
+  u16s("TopWordsEverSpelled"), vTable([[0, fields({ mWord: "QUIXOTIC", mValue: 90 })], [1, fields({ mWord: "ZAP", mValue: 40 })], [2, fields({ mWord: "ZAP", mValue: 40 })]]),
+  u16s("TM_Top10Times"), vTable([[0, fields({ mTime: 372500, mStage: 7 })]]), u16s("Empty"), vTable([[0, u32(5)]])]);
+const bp = R.parseBwa(new Uint8Array(bwa));
+same("bwa: ints, floats, bools and tables", [bp.XPLevel, bp.XPPercent, bp.AdventureComplete, bp.TopWordsEverSpelled.length, bp.Empty], [12, 37.5, true, 3, [{ key: 0, value: null }]]);
+same("bwa: a cut file is none", R.parseBwa(new Uint8Array(bwa.subarray(0, bwa.length - 3))), null);
+const bwt = R.bwaTables(R.RECORDS.bookwormadv2, [{ name: "Ann", data: bp }, { name: "Bo", data: { TM_Top10Times: [{ key: 0, value: [{ key: "mTime", value: 100 }, { key: "mStage", value: 9 }] }] } }]);
+same("bwa: top words once a player, best first; arena runs by stage with their times",
+  bwt.map((t) => [t.name, t.rows.map((r) => [r.place, r.name, r.word, r.score, r.time])]),
+  [["Top Words", [["1", "Ann", "QUIXOTIC", 90, undefined], ["2", "Ann", "ZAP", 40, undefined]]], ["Arena", [["1", "Bo", undefined, 9, "0:00:01"], ["2", "Ann", undefined, 7, "1:02:05"]]]]);
 console.log("trophiestest: " + checks + " checks, " + failed + " failed");
 process.exit(failed ? 1 : 0);
