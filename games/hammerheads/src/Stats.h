@@ -28,6 +28,7 @@ enum StatIndex
 	STAT_SUPPLIES_BOUGHT = 16,
 	STAT_HEARTS_MISSED = 17,
 	STAT_HAMMER_LEVEL = 18,
+	STAT_CHALLENGE_MISSES = 21,			// clicks that hit nothing in a challenge (provisional name; written by the Avatar)
 	STAT_COMBO = 22,					// the score multiplier, 1.0 to 2.0
 	STAT_QUICK_STREAK = 23,
 	STAT_SPEED_CHAIN = 24,
@@ -41,6 +42,10 @@ enum StatIndex
 	STAT_LEVEL_OF_LAST_PURCHASE = 33,
 	STAT_LEVEL_OF_LAST_HEART = 35,
 	STAT_LEVEL_OF_LAST_COIN = 36,
+	STAT_FREEZE_TIMER = 45,				// time left of the ice-cream power
+	STAT_ROUND_SMASHED = 46,			// gnomes smashed since the last bonus round (ClearBonusCounts clears 45 to 49)
+	STAT_STREAK = 47,					// gnomes smashed since the last miss
+	STAT_BEST_STREAK = 48,
 	STAT_MISSES_IN_LEVEL = 41,			// the three counts of the level being played (ClearLevelCounts)
 	STAT_SWINGS_IN_LEVEL = 42
 };

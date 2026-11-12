@@ -96,6 +96,8 @@ def main():
                 # forms: "st(1), st" (dest st1), "st, st(1)" (dest st0), "st(1)" (dest st1 in the p forms)
                 if not pop and arg.startswith("st, "):
                     index = int(re.search(r"st\((\d)\)", arg).group(1)) if "(" in arg else 0
+                    if len(stack) <= index:
+                        continue
                     left, right = stack[-1], stack[-1 - index]
                     if reverse:
                         left, right = right, left

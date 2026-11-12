@@ -9,6 +9,7 @@
 #include <string>
 
 #include "Rect.h"
+#include "Point.h"
 
 namespace Sexy
 {
@@ -16,6 +17,7 @@ namespace Sexy
 class Graphics;
 class Image;
 class Cubby;
+class ImageBlast;
 
 enum CreatureKind
 {
@@ -79,6 +81,7 @@ public:
 	double			mGravity;
 	int				mHealth;			// hits it takes
 	int				mScore;
+	bool			mCountsTowardLimit;	// counts against the level's limit of creatures up at once (Gameplay's pops)
 	std::vector<int> mCarriedItems;		// the kinds it may drop; one is chosen the first time it is asked (GetCarriedItem)
 	int				mAge;
 	int				mFrozenTimer;		// above 0 the creature is frozen; set to 600
@@ -112,11 +115,11 @@ public:
 	virtual bool	MaskHit(const double thePos[2], int theX, int theY, const std::vector<Point>& theMask, int theRectX, int theRectY, int theRectW, int theRectH);	// 0x4300a0
 	virtual bool	Hit();										// 0x42f6f0: the hammer's damage; true when the health is gone
 	virtual void	Unused20();									// 0x408d10
-	virtual std::string GetName();								// 0x431ac0
-	virtual void	DrawExtra(Graphics* g, double theX, double theY);	// 0x4314b0
+	virtual std::string SaveExtra();							// 0x431ac0: what the creature adds to a saved game (a ValueList's text); nothing here
+	virtual void	LoadExtra(const std::string& theData);		// 0x4314b0: reads it back
 	virtual int		GetScore();									// 0x42fa80
 	virtual void	Remove();									// 0x42fa90
-	virtual void	SpawnPieces(bool theFlag);					// 0x4301f0
+	virtual ImageBlast* SpawnPieces(bool theFlag);				// 0x4301f0: the pieces it breaks into (the cubby draws them)
 	virtual int		GetHealth();								// 0x42faa0
 	virtual void	SetFrozen(bool theFrozen);					// 0x42f350
 
@@ -126,7 +129,7 @@ public:
 	bool			IsFrozen() const;							// 0x42f340
 	int				GetCarriedItem();							// 0x4318b0: the kind it drops, chosen on the first call
 	int				FlashAlpha(double theTime) const;			// 0x42f620
-	void			GetCellRect(Rect& theRect) const;			// 0x430040: the sheet's cell the creature is on, as a source rect
+	Rect			GetScreenRect(const double thePos[2]) const;	// 0x430040: where the creature's cell is drawn when it stands at thePos
 	void			DrawShadow(Graphics* g, double theX, double theY);	// 0x42f550
 	void			DrawBody(Graphics* g, double theX, double theY, int theCol, int theRow, int theFlash, double theAlpha);	// 0x42fab0
 	void			DrawHealth(Graphics* g, double theX, double theY, int theHealth);	// 0x4314d0

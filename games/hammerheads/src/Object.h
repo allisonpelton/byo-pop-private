@@ -11,6 +11,7 @@
 #include <map>
 
 #include "Rect.h"
+#include "Point.h"
 
 namespace Sexy
 {
@@ -56,6 +57,7 @@ public:
 	int				mLayers;			// layer mask
 	std::string		mName;
 	bool			mActive;			// an inactive object is neither updated nor drawn
+	bool			mHover;				// the avatar's hammer is over it (set by Avatar's hit test)
 	int				mTickCount;			// fixed steps taken; the first one adopts the children
 	double			mAge;				// in hundredths of the time passed to Update
 	ObjectRef		mParent;			// set by the parent's first fixed step
@@ -70,6 +72,9 @@ public:
 	virtual void	Update(float theFrac);					// 0x402950
 	virtual void	Kill();									// 0x402970
 	virtual void	Draw(Graphics* g);						// 0x41ee00: nothing
+	virtual bool	MouseOver(int theX, int theY);			// 0x440d70: whether the point is on the object; most objects are never on
+	// 0x440d80: whether the hammer, a mask of points laid at (theX, theY) with the given size, touches the object
+	virtual bool	Hit(int theX, int theY, const std::vector<Point>& theMask, int theWidth, int theHeight);
 	virtual const char* TypeName() const = 0;				// the original's typeid(*this).name(), "class Sexy::Cubby"
 };
 
@@ -87,6 +92,8 @@ public:
 public:
 	explicit SimpleObject(int theLayers);					// 0x405c20
 	virtual ~SimpleObject();								// 0x405c00
+
+	virtual void	Strike(double theX, double theY) = 0;	// the hammer lands at the point (Cubby 0x433a00, Sticker 0x443050)
 };
 
 // 0x4042d0: owns the objects between Add and the pass that deletes them.

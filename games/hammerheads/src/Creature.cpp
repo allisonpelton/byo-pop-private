@@ -36,6 +36,7 @@ struct KindData
 	double			mAnchorX, mAnchorY, mHeadX, mHeadY;
 	double			mHeight, mHeightVelocity, mGravity;
 	int				mHealth, mScore;
+	bool			mCountsTowardLimit;
 	int				mEscapePenalty;
 	int				mVariant;
 	bool			mIsGnome;
@@ -56,6 +57,7 @@ Creature::Creature(int theKind)
 	mHeadX = 0.0;
 	mHeadY = 0.0;
 	mScore = 0;
+	mCountsTowardLimit = false;
 	mAge = 0;
 	mFrozenTimer = 0;
 	mDarkened = false;
@@ -91,6 +93,7 @@ Creature::Creature(int theKind)
 		mGravity = aData.mGravity;
 		mHealth = aData.mHealth;
 		mScore = aData.mScore;
+		mCountsTowardLimit = aData.mCountsTowardLimit;
 		mEscapePenalty = aData.mEscapePenalty;
 		mVariant = aData.mVariant;
 		mIsGnome = aData.mIsGnome;
@@ -139,8 +142,6 @@ Creature::~Creature()
 					aCombo = 1.0;
 				GetStats()->Set(STAT_COMBO, aCombo);
 			}
-			if (mCubby != nullptr)
-				mCubby->StartEscape();
 		}
 	}
 }
@@ -312,16 +313,13 @@ bool Creature::MaskHit(const double thePos[2], int theX, int theY, const std::ve
 }
 
 // 0x430040
-void Creature::GetCellRect(Rect& theRect) const
+Rect Creature::GetScreenRect(const double thePos[2]) const
 {
-	int aCellW = mImage->mWidth / mImage->mNumCols;
 	int aCellH = mImage->mHeight / mImage->mNumRows;
-	double aCell[2];
-	GetSheetCell(aCell);
-	theRect.mX = (int)aCell[1];
-	theRect.mY = (int)aCell[0];
-	theRect.mWidth = aCellW;
-	theRect.mHeight = aCellH;
+	int aCellW = mImage->mWidth / mImage->mNumCols;
+	int aY = (int)((thePos[1] - mAnchorY) - mHeight);
+	int aX = (int)(thePos[0] - mAnchorX);
+	return Rect(aX, aY, aCellW, aCellH);
 }
 
 // 0x4314d0: the health as hearts over the creature, or "x 7" when there are too many to line up
@@ -495,7 +493,7 @@ void Creature::Draw(Graphics* g, double theX, double theY, int theHover, double 
 }
 
 // 0x4301f0: the pieces it breaks into when it is smashed
-void Creature::SpawnPieces(bool theFlag)
+ImageBlast* Creature::SpawnPieces(bool theFlag)
 {
 	double aCell[2];
 	GetSheetCell(aCell);
@@ -515,17 +513,17 @@ void Creature::SpawnPieces(bool theFlag)
 	else
 		aStyle = (mKind != KIND_KING ? 0 : 2);
 	bool aShatter = mFrozenTimer > 0 || mShatters;
-	MakeImageBlast(aStyle, aX, aY, mImage, &aSrcRect, aCellH / 20, aCellW / 20, mY, aCubby, theFlag, aShatter);
+	return MakeImageBlast(aStyle, aX, aY, mImage, &aSrcRect, aCellH / 20, aCellW / 20, mY, aCubby, theFlag, aShatter);
 }
 
 // 0x431ac0
-std::string Creature::GetName()
+std::string Creature::SaveExtra()
 {
 	return "";
 }
 
 // 0x4314b0
-void Creature::DrawExtra(Graphics* g, double theX, double theY)
+void Creature::LoadExtra(const std::string& theData)
 {
 }
 

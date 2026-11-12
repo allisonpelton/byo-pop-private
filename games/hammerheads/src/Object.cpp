@@ -270,6 +270,7 @@ Object::Object(int theLayers) :
 	mDead(false),
 	mLayers(theLayers),
 	mActive(true),
+	mHover(false),
 	mTickCount(0),
 	mAge(0)
 {
@@ -324,6 +325,18 @@ void Object::Kill()
 // 0x41ee00
 void Object::Draw(Graphics* g)
 {
+}
+
+// 0x440d70
+bool Object::MouseOver(int theX, int theY)
+{
+	return false;
+}
+
+// 0x440d80
+bool Object::Hit(int theX, int theY, const std::vector<Point>& theMask, int theWidth, int theHeight)
+{
+	return false;
 }
 
 
