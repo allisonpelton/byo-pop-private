@@ -45,6 +45,9 @@ static void InitShip(Ship* theShip, int theType, int theX, int theY)
 Board::Board(SevenSeasApp* theApp, bool theLoad) :
 	mApp(theApp)
 {
+	static uint32_t sBoardSerials = 0;   // port(mod): see LiveSplitObserver.cpp
+	mBoardSerial = ++sBoardSerials;
+	mResumed = theLoad;
 	// the water's scroll and its speeds (+0x588 .. +0x5a4)
 	mWaveA = 0.0;
 	mWaveB = 0.0;
