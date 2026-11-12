@@ -276,6 +276,11 @@ void TipTopApp::Init()
 	SexyAppBase::Init();
 	if (mShutdown)
 		return;
+	// The original ran one pass of its main loop per vertical blank, 60 a second on a 60 Hz screen (GAME_NOTES.md, "The pass rate"), where
+	// the framework's own step is 10 ms, 100 a second: real-time play takes 16 ms a pass, 62.5 a second. A -fast run keeps the 10 ms:
+	// its virtual clock moves a pass's time at a time, and the state logs, the frozen baseline and the identical-play scripts count passes.
+	if (!mFastMode)
+		mFrameTime = 16;
 	// 0x411fff seeds the C library's generator with GetTickCount(); -seed=N makes a run repeatable
 	tiptop::SRand(mHasSeedParam ? (unsigned int)mRandSeed : (unsigned int)GetClockTime());
 	gSteadyClock = !mFastMode && Platform::FixOn("steadyClock");  // a -fast run is steady already

@@ -136,19 +136,21 @@ mod the three cases play other games than before, so `tools/check.sh`'s expected
 and the frozen baseline moved with it: `build/baseline-tiptop/` is the port at the commit of this change
 (`FROZEN_AT.txt`), the phase-one baseline kept beside it as `build/baseline-tiptop-phase1/`.
 
-**100 passes a second** (`TipTopApp`, `mFrameTime` 10; the coordinator, 2026-11-12: "keep 100 a second, change nothing"). The
-original's pass is one trip of the main loop, whose `lowos_EndFrame` waits for the vertical blank, so its rate is the display's: 60
-passes a second on a 60 Hz screen, 144 on a 144 Hz one, and nothing in the game depends on it, since the board's time is the clock's
-(`GameTime()`, added up from the elapsed milliseconds in `Board::Draw`) and the 35 ms tick clock keeps its remainder. The port's
-rate is the framework's, 100 a second, which the original never ran at on a 60 Hz screen; a pass costs about 0.34 ms of the main
-thread (0.7 M cycles), so the 40 passes a second above 60 cost about 14 ms a second of 1000, 1.4% of a core, and 0.4 s of the 3.7 s
-of a 30 s strategy minute. It stays because the other rate would be another configuration to prove: 16 ms a pass for both real
-time and `-fast` redoes the frozen baseline and the identical-play scripts (the original patched to 10 ms a pass, `-fast`'s virtual
-clock advancing `mFrameTime` a pass) for a tenth of the processor gap, and a 16 ms real-time step with `-fast` kept at 10 would
-ship a configuration the baseline never proves. Revisit only if the port is still over its original's processor time once the
-present path is cut (the surface presenter of the shared framework, `docs/COORDINATION.md`); it is cut now (below, "The surface display"),
-and the port is at its original's processor time in the strategy minute and 11% over it at the main menu, within the runs' noise, so
-the rate stays.
+**62.5 passes a second in real time** (`TipTopApp::Init`: `mFrameTime` 16, and 10 under `-fast`; changed 2026-11-12 from the framework's 100
+a second, which the coordinator had kept, "keep 100 a second, change nothing", to be revisited only if the port was still over its original's
+processor time once the present path was cut: it was). The original's pass is one trip of the main loop, whose `lowos_EndFrame` waits for
+the vertical blank, so its rate is the display's: 60 passes a second on a 60 Hz screen, 144 on a 144 Hz one, and nothing in the game
+depends on it, since the board's time is the clock's (`GameTime()`, added up from the elapsed milliseconds in `Board::Draw`) and the 35 ms
+tick clock keeps its remainder. The port's 100 a second was a rate the original never ran at, and it cost more than the first estimate
+(14 ms a second, a tenth of the gap): the cycle split of the main menu gives a pass 0.98 to 1.16 M cycles (the game's own pass; the
+original's `App::Frame` takes 1.09 to 1.17 M) and the picture 0.4 to 0.7 M, so 100 passes a second took 7.3 and 8.3% of a core and
+62.5 took 6.2 and 5.3%, and in six rounds of the main menu with the port at both rates and the original (62 passes a second)
+interleaved, the port at 100 took 2.50 G cycles in 20 s, at 62.5 it took 1.88 G (lower in each of the six rounds) and the original
+1.89 G (below, "The surface display"). `-fast` keeps 10 ms because its virtual clock advances `mFrameTime` a pass and the state logs, the
+frozen baseline and the identical-play scripts (the original patched to 10 ms a pass) count passes: `tools/check.sh tiptop` passes
+with the baseline identical; real-time play takes the 16 ms, where nothing is compared pass for pass. A whole game with real input in
+real time (`tools/realplay.py play regular --real-time`, with two Alt+Enter changes) plays to the game over. The fixes mod's `steadyClock`
+runs its clocks on `mFrameTime` ms an update, so 16 ms in real time.
 
 **No "Visit PopCap.com for More Games" button on the options screen** (the user, 2026-11-07, "Yes, now too": every button that
 leads out of a game comes out of the ports). The original's options screen has an oval button between the TipTop logo and the
@@ -441,14 +443,45 @@ quieter than in the first round), alternating; seconds of processor time, then t
 | Strategy minute, 30 s window | 1.64 to 2.28 s (3.1 to 4.5 G; 6 runs, mean 3.69 G) | 1.45 to 2.28 s (3.05 to 4.11 G; 6 runs, mean 3.65 G) | 1.36 to 1.81 s (2.9 to 4.1 G; 3 runs) | 2.42 to 2.70 s (5.1 to 6.2 G; 3 runs) |
 | Main menu left alone, 20 s | 1.00 to 1.47 s (2.1 to 2.8 G; 4 runs, mean 2.54 G) | 1.05 to 1.70 s (2.7 to 2.9 G; 4 runs, mean 2.83 G) | 1.11 to 1.20 s (2.7 G; 2 runs) | 2.03 to 2.80 s (4.7 to 5.0 G; 2 runs) |
 
-The surface display takes the port from 1.4 to 1.7 times its original to the same: the strategy minute is 1% under it on the mean of
-six rounds, the main menu 11% over (the menu animates a box of 160x76 pixels every pass, and the port runs 100 passes a second
-where the original ran 60). The runs differ by a third from one to the next, so only the framework's display against the others
-is a difference. The cycle split of the same minute (`-cyclesplit`, 3000 updates, 100 a second, `tools/cyclesplit.py`) shows
+That was the first measurement (not pinned to a core, the port's window 2x and the original's 1x, the port at 100 passes a second and the
+original paced at 16 ms, which gives it 52 a second, below): the surface display takes the port from 1.4 to 1.7 times its original to the
+same, the strategy minute 1% under it on the mean of six rounds and the main menu 11% over. The runs differ by a third from one to the
+next, so only the framework's display against the others is a difference. The cycle split of the same minute (`-cyclesplit`, 3000 updates, 100 a second, `tools/cyclesplit.py`) shows
 where it went: with the framework's display 1.98 M cycles an update, 0.94 the game's pass, 0.95 the picture (the draw, the present
 and the driver's thread: a half of the process), 0.07 the loop; with the surface display 1.23 M, 0.89 the pass, 0.23 the picture,
 0.09 the loop (an earlier run of it: 1.04 M, 0.75 the pass, 0.20 the picture). What is left is the game's own pass, 72% of the
 process.
+
+**Like for like (2026-11-12, the coordinator's rules: both sides' window 1x, the original's size, `-windowscale=1`, music out of both, pairs
+interleaved one after the other, each run on a performance core of its own through `tools/pincore.py`, at most one game process of
+mine at a time).** `tools/perf/pairs.sh <dir> strategy|menu 6` runs the pairs and `pairsum.py <dir>` summarises them. Thread cycles of
+the window in G, seconds of processor time in brackets (the main thread holds 98 to 99% of the cycles; the other threads, the audio
+mixer's, 20 to 70 M):
+
+| | Original, 62 to 63 passes a second (`--paced 13`) | Port, 62.5 passes a second, surface display | Port / original, the six pairs |
+|---|---|---|---|
+| Strategy minute, 30 s window | 4.25 to 5.50 G (1.88 to 2.89 s), mean 4.96 | 3.38 to 4.95 G (1.62 to 2.28 s), mean 4.07 | 0.67 0.98 0.89 0.72 0.65 1.07: median 0.76, mean 0.82 |
+| Main menu left alone, 20 s | 1.64 to 2.48 G (0.70 to 1.25 s), mean 2.07 | 1.52 to 2.22 G (0.61 to 1.03 s), mean 1.87 | 0.82 0.95 0.93 1.12 0.88 0.78: median 0.89, mean 0.90 |
+
+The port is at or under its original's processor time in both. **The original has to be paced at the same pass rate as the port:** its
+loop sleeps `--paced` ms a pass, and `Sleep`'s granularity makes the rate jump (measured with the cycle split's call counts over the
+menu's 20 s: `--paced 16` gives 52 passes a second, 14 gives 56, 13 gives 62 to 63, 12 gives 73), so the original of the rounds before,
+paced at 16, ran 52 passes a second, 13% fewer than a 60 Hz screen gives it, and the port at 62.5 was 0.97 of it in the strategy minute and
+1.15 of it at the menu (six pairs each; the machine had 3 to 5 other game processes). The port at 100 passes a second was 1.09 and 1.08 of
+that slow original and 1.32 of the one at 62 passes a second (the menu, six rounds). **The measurement is noisy:** the same exe's cycles
+for the same work differ by a factor of two from one pair to the next (the original's strategy minute: 2.5 G in one set, 5.0 G in the
+next; the menu's port at 100 passes: 3.75 G in the first pair of a set and 1.68 G in the sixth), a part of it other sessions' runs on
+the same core's other hyperthread, so only the pairs of one set are compared, and a single pair says nothing.
+
+**Where the main menu's time went** (the coordinator asked after the first round's 11%; `perf.py portscript|orig --menu --split`,
+`-cyclesplit` on the port and origrun's `--count` of `App::Frame` (0x41b9fe) and `LOWOS_EndFrame` (0x42f9f0) on the original,
+`tools/perf/count.txt`, `tools/cyclesplit.py <port file> <original file> --from a --to b`): all of it on the game thread, in the number
+of passes. Per pass the original's `Frame` takes 1.09 to 1.17 M cycles and its `EndFrame`, the DirectDraw blit of the whole screen, 1.06
+to 1.17 M. The port's pass takes 0.98 to 1.16 M (the same game code, so the same), its picture (the screen copy of the changed blocks and
+the tile list, 0.39 M a frame, and the surface display's present, 0.41 M) 0.63 to 0.74 M a pass at 62.5 passes a second, and the loop
+(events, the timer's wake-up, the cycle readings) 0.14 M: 1.8 to 2.1 M a pass against the original's 2.2 to 2.3. At 100 passes a second
+the picture is paid on 60 of the 100 and the pass 100 times: 1.54 and 1.74 M an update, 7.3 and 8.3% of a core, which is where the 11%
+over was, whatever the first estimate said. What is left is the game's own pass, about 55% of the port's cycles, the same as the original's.
 
 **Two mistakes of the first measurement, kept so they are not made again.** `SDL_getenv` on Windows returns a buffer that the next
 `SDL_getenv` call overwrites, and `IsTestRun()` reads two variables: read `SURFACE_DISPLAY` first and ask `IsTestRun()` before
@@ -456,16 +489,12 @@ using it, and the switch never fires (a log line "mode=1" showed it; the first "
 both sides, and are not in the table). A run says which display it got in its log: `display: ... renderer none` is the surface,
 `renderer direct3d11` the framework's.
 
-**The pass rate** (written up for the coordinator before any change): the original's pass is one trip of the main loop, whose
-`lowos_EndFrame` waits for the vertical blank, so it runs 60 passes a second on a 60 Hz screen (144 on a 144 Hz one). The game's
-speed follows the clock, not the pass count: `GameTime()` is milliseconds from the performance counter, `Board::Draw` (0x40e766)
-adds the elapsed time to the field (`mTotalTime += now - clock`), and the 35 ms tick clock keeps its remainder; only the load
-bar's entries are counted per pass. The port runs the framework's 100 passes a second (`mFrameTime` 10, an int), which is a rate the
-original never had; a pass costs about 0.34 ms (0.7 M cycles) of the main thread. Matching it would be `mFrameTime` 16 (62.5 Hz)
-in `TipTopApp`'s constructor, about 0.4 s of 3.7 s in 30 s of play; but `-fast`'s virtual clock advances `mFrameTime` a pass,
-so the state logs, the frozen baseline and the identical-play scripts (the original patched to 10 ms a pass) would all change
-unless `-fast` stays at 10 ms. **Not changed (the coordinator, 2026-11-12): the port keeps its 100 passes a second**, listed under
-"Deviations from the original" with its reasons.
+**The pass rate** (written up for the coordinator before any change; changed in the end, "62.5 passes a second in real time" under "Deviations
+from the original"): the original's pass is one trip of the main loop, whose `lowos_EndFrame` waits for the vertical blank, so it runs 60
+passes a second on a 60 Hz screen (144 on a 144 Hz one). The game's speed follows the clock, not the pass count: `GameTime()` is
+milliseconds from the performance counter, `Board::Draw` (0x40e766) adds the elapsed time to the field (`mTotalTime += now - clock`), and
+the 35 ms tick clock keeps its remainder; only the load bar's entries are counted per pass. The first estimate, that matching 60 would
+save about 0.4 s of 3.7 s in 30 s of play, was too low (below).
 
 **Why the paint of a pass that is not shown is not skipped** (about 4 passes in 10 at 100 passes against 60 frames a second):
 `Board::Draw` is the game's update and its paint in one function, so only the pixel writes could be left out, and the original
@@ -498,7 +527,7 @@ fast in the port itself (the user, 2026-11-07), see "Deviations from the origina
 | Toggle | The original | What the fix changes |
 |---|---|---|
 | `seededBlocks` | The first time the field chooses a block's kind (`Field::RandomKind`, 0x40428c) it calls `srand` with the game clock again, discarding the seed of the start. A seed given at the start (`-seed`, the site's `?seed=`) therefore changes nothing, and the blocks depend on the millisecond that first block was chosen. | The second seeding is left out, so the seed of the start decides the blocks of every game. |
-| `steadyClock` | The game's two clocks are the machine's (`GetTickCount`), so the frame times, and with them the blocks' positions, the spawn delays and the draw of `rand` after each, vary from run to run: the same seed and the same moves do not play the same game twice. | The clocks run on the updates, 10 ms each (what `-fast` does), so the same seed and the same moves play the same game on every run, however fast the machine. A pause or a lost focus still stops the game clock, as in the original. |
+| `steadyClock` | The game's two clocks are the machine's (`GetTickCount`), so the frame times, and with them the blocks' positions, the spawn delays and the draw of `rand` after each, vary from run to run: the same seed and the same moves do not play the same game twice. | The clocks run on the updates, `mFrameTime` ms each (16 in real time, 10 under `-fast`, whose game the real-time one therefore does not repeat move for move), so the same seed and the same moves play the same game on every real-time run, however fast the machine. A pause or a lost focus still stops the game clock, as in the original. |
 
 With `seededBlocks` and `steadyClock` on, three real-time runs of one bot game (`-seed=5 -autoplay=3`, 2500 updates) wrote the same
 state log; with the mod off, two such runs differed from the title screen on (the title screen's end, the first game's start, and so
