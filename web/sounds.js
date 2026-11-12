@@ -333,7 +333,7 @@ var ByopopSounds = (function () {
         // group named with its game when a search found it
         var n = 0;
         var keep = function (s) {
-          var text = (s.name + " " + s.when).toLowerCase();
+          var text = (s.name + " " + s.when + " " + s.rel).toLowerCase();
           return (!voice || isVoice(s)) && (!unused || isUnused(s)) && words.every(function (w) { return text.indexOf(w) >= 0; });
         };
         (words.length ? boards : [board]).forEach(function (bd) {
@@ -378,7 +378,8 @@ var ByopopSounds = (function () {
         b.tabIndex = -1;
         b.appendChild(make("span", "sb-name", s.name));
         b.setAttribute("aria-label", s.name);
-        b.title = s.when ? s.name + "\n" + s.when : s.name;
+        // its label, when the game plays it, and where its file lies in the game's folder
+        b.title = [s.name, s.when, s.rel ? ByopopMusic.filePlace(s.rel) : ""].filter(function (x) { return x; }).join("\n");
         wire(s, b);
         b.addEventListener("focus", function () { setCurrent(b); });
         row.appendChild(b);
