@@ -16,9 +16,12 @@ the standard mods. Left out on purpose: the shareware pieces (the trial clock 0x
 Both phases of the identical-play pass are done (`IDENTICAL_PLAY.md`: plays identical, then looks identical, in 2D and 3D, with a leak
 of the port fixed), and so are the fixes mod (no candidates), the coverage check, the performance pass (the port at 0.25 to 0.78 of the
 original's processor time in every pair; GAME_NOTES, "Performance"), the lite mod (none: `LITE_MOD.md`), the removal of code the game
-does not need (GAME_NOTES, "Coverage check") and the readability pass (GAME_NOTES, "The readability pass"). Still to do, in the order of
-CLAUDE.md: the check against the PopCap Game Collection version, and the stores line
-`BYOPOP_BUY_rocketmania` in `cmake/ByopopStores.cmake`, which the coordinator supplies.
+does not need (GAME_NOTES, "Coverage check") and the readability pass (GAME_NOTES, "The readability pass"). The port also writes the
+shared autosplit block for the speedrun.com board's Splits window (GAME_NOTES, "The autosplit block"; `tools/livesplit/run_tests.sh`).
+The check against the PopCap Game
+Collection version is done too (GAME_NOTES, "The PopCap Game Collection version"; `tools/collection/run.sh`): its exe is the same game
+image and the port plays identically on its files. Still to do, in the order of CLAUDE.md: the stores line `BYOPOP_BUY_rocketmania` in
+`cmake/ByopopStores.cmake`, which the coordinator supplies.
 
 ## The binary
 

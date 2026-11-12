@@ -678,7 +678,7 @@ the 200, is the driver thread that the SDL renderer path brings, plus the sound'
 (origrun's stand-in mixes none; the muted row counts the port the same way). The spread was narrower than before (the port 171
 to 217, the original 94 to 114), the machine being quieter. What stands between the port and the target is the renderer path:
 the presenter that draws into the window surface and takes the host's changed rectangles (`SurfaceDisplay`, not on the trunk
-yet). Opting in to it, and the numbers with it, are the next entry here.
+yet at that time; the next entry is the port with it).
 
 **The first set, at the framework's default window instead of the original's size** (medians of five pairs under pincore, the board's scripted minute, Mcycles a second):
 
@@ -692,3 +692,90 @@ A second set on the trunk of 2026-11-12 (the framework asking SDL for Direct3D 1
 the original's 105.8 over 3: the driver thread's 80 and the main thread's 120 to 130 did not move. So the port is about twice
 the paced original, and what stands between it and the target is the renderer path: the presenter that draws into the window
 surface and takes the host's changed rectangles. Opting in to it, and the numbers with it, are the next entry here.
+
+**The surface presenter (2026-11-12): the target met at the original's window size.** The native build opts in to the framework's
+`SurfaceDisplay` (`framework/SurfaceDisplay.h`), as Bonnie's does: `WaterBugsApp::CreateDDInterface` returns one (a test run's
+`SURFACE_DISPLAY=off`, asked after `IsTestRun` as Mahjong's is, keeps the framework's own display and the widget's picture, the
+path before this), and the widget keeps no `MemoryImage` then: `Draw` widens the changed rectangles (the 16-pixel blocks of the
+comparison above) into its own 32-bit buffer `mScreen32`, and hands the display that buffer and `mChangedRects` with `SetFrame`
+(everything for the first picture), before the framework draws the widgets; the display copies just those rects into the window's
+SDL surface and has the window update them, with no SDL renderer, texture, Direct3D device or driver thread. `~WaterBugsApp`
+takes the buffer back from the display first. The web build is as it was (`#ifndef __EMSCRIPTEN__`). The rectangles are exact by
+construction (every pixel that differs from the last copy is inside one), so the pictures cannot differ from the old path's.
+
+**Proof.** `tools/check.sh waterbugs build build-web:waterbugs` passes, the screens as frozen. `SURFACE_VERIFY=1` (every present
+compared with the engine's screen) over the measured play: 4,503 frames at the original's window size and 4,498 at the default 2x
+window, none differing, no frame through a renderer. A scripted F7 (the game's full-screen key, 0x76) with the check on: the
+window starts in surface mode, F7 moves it to the 3840x2160 full screen in the presenter's renderer mode (render scale 4; the
+menu's screenshot is whole) and F7 again to the window, which stays in renderer mode by the presenter's rule (a Direct3D 11 swap
+chain keeps its last frame on the window); 486 frames through the surface, 800 through the renderer, none differing. The same
+exe's `shots.py` play with `SURFACE_DISPLAY=off` against the default: 14 of 16 pictures byte-identical, and the other two
+differ in 8 and 1 pixels (up to 8 and 4 in a channel, in the menu's bubbles: the unseeded generator that a frozen exe's own two
+runs differ in, above).
+
+**Numbers** (ten rounds under pincore, five in the first set and five in the second, each round one run of each side, the board's
+scripted minute, Mcycles a second, the trunk of 2026-11-12 with the presenter (1faa4ed3); the port's window 800x600 unless said
+(`display: client 800x600 px, logical 800x600, render scale 1, windowed, renderer none`; the default window `client 1600x1200
+px, render scale 2`, also surface mode); the original paced, windowed at its own size):
+
+| | All threads, median (range) | Main thread, median | Per round against the original: rounds at or below, median ratio |
+|---|---|---|---|
+| Original | 135.8 (109.5 to 152.3) | 135.5 | |
+| Port, sound on | 117.8 (97.9 to 138.3) | 108.5 | 10 of 10, 0.86 |
+| Port, sound off (as origrun's original, which mixes none, is counted) | 107.8 (82.1 to 126.0) | 106.3 | 9 of 10, 0.78 |
+| Port, sound on, the default 2x window | 128.0 (104.6 to 153.9) | 118.9 | 6 of 10, 0.92 |
+
+The machine was busier than for the first measurement above (the original 109 to 152 where it had been 94 to 114), so the
+rounds' ratios are the comparison, not the absolute figures. In the first five rounds the port on the framework's own display
+(the exe before this change, on the same trunk) ran 1.46 to 1.74 times the original in each round (median 1.69). Threads of
+one round with the surface: the main thread 115 and the audio thread 9.8 with sound on, 109 and 1.5 muted: the graphics driver's
+worker thread (67 to 76 before) is gone. Memory: working set 113 MB, private 104 MB (the original 110 and 97; the old display
+134 and 136). The 2x default window repeats each pixel into a 2x2 block in the blit and costs about 10% more than 1x, so at the
+default window the port is at about the original's cost, not below it.
+
+## Real input through the window, with the surface presenter (2026-11-12)
+
+**The driver** (`tools/realplay/play.py`, with the steps files beside it). Posted window messages to the game's own window under
+rundesk (`BYOPOP_POSTED_INPUT`, the live channel `-commands` for the game's answers, which that run flushes line by line), the real
+clock, and the window itself changed with the Win32 calls a player's actions make (`SetWindowPos`, `ShowWindow`, Alt+Enter as
+`WM_SYSKEYDOWN`, F7). Two checks run at every step. A *shot* takes the game's own screenshot (`BYOPOP_SHOT_REQUEST`) and
+`PrintWindow` of the window, fits the window's picture into the rectangle the game is drawn in (scaled to fit and centred) and
+reports the mean difference per channel (a shot over 12 fails; the figures below are the pictures of a still scene, under 1 at 1x). A *probe* opens
+the board's quit box with a click on its button and closes it with a click on Cancel: the game's picture must change in the
+box's area by more than 25 and return to within 12 of the first. `SURFACE_VERIFY=1` compares every presented surface frame with
+the game's screen. The runs, each PASS (`tools/realplay/*.txt`):
+
+| Steps file | Start | Covers | Probes | Largest shot difference | Surface frames checked |
+|---|---|---|---|---|---|
+| `windowed.txt` | `-windowscale=1` (800x600, surface) | the menu, map, story and board by clicks; the surface at 1x, 2x, 3x; minimise and restore in the surface; 3200x2141, 1000x700, 700x900, 1234x567 and 800x600 in the renderer; minimise and restore there; Alt+Enter to full screen and back; F7 both ways | 16 | 8.2 | 2,183, none differing |
+| `default2x.txt` | the framework's window (1600x1200, surface 2x) | minimise and restore in the surface; Alt+Enter to full screen from the surface and back; 800x600 | 6 | 4.5 | 1,683, none |
+| `f7.txt` | `-windowscale=1` | F7 to full screen from the surface and back; Alt+Enter; F7 | 5 | 4.5 | 1,344, none |
+| `fullscreen-start.txt` | cp.cfg `fullscreen="1"` (the original's default) | the menus and the board in full screen (the renderer, 3840x2160 on rundesk); Alt+Enter to a window; 1000x700; minimise and restore; 1600x1200; Alt+Enter to full screen; F7 back | 7 | 8.2 | 0 (the renderer presents every frame) |
+
+The largest differences (8.2) are in the renderer's sizes, where the game is scaled by a fraction and smoothed against the game's
+unscaled screenshot; the surface's whole-pixel scales are under 5.
+
+**What it found.** Nothing in the game or the presenter. Four things about the test, kept so that the next reader does not meet
+them again: (1) the host hands the engine each press and release (`Sys_MouseButton`) and the engine keeps only the button's state, read at
+each update, so a posted press must last past an update (the driver holds it 0.1 s; a press and release posted together is missed). (2) Windows draws nothing of a window beyond the screen's edge: an 800x600 window centred on the 3840x2160
+desktop and resized in place to 2400x1800 was drawn only inside the desktop (black right of x 2320 and below y 1380 of the
+window, a mean difference of 22), and drawn whole once moved onto the screen (2.4), so the presenter repaints on a move; the
+driver keeps each resized window on the screen. (3) The 4x surface (3200x2400) cannot be held on this desktop (2160 rows): the window is
+held to 3200x2141, no whole scale, and takes the renderer, so surface mode is checked at 1x, 2x and 3x only. (4) A window that has had the
+renderer never goes back to the surface (the presenter's rule), so every size after the first renderer is the renderer. On the
+board the game moves the pointer itself (the board's start puts it in the middle, the ship follows), so the `pointer` answer is
+compared with a click's point on the menus only, and the board's input is the probe. A start in full screen (cp.cfg's default)
+opens the framework's window first, and the game's own switch (`SetGameScreenMode`, called from `Init`) makes it full screen before the
+first picture, so that run presents no frame through the surface.
+
+**The page** (`tools/web/pagecheck.js`, the shared page check, with this game's table in `tools/web/pagecheck.js` beside it; in the
+Browser pane with `?silent=1`; `docs/WEB_PLAYER.md`, "The page check"): 11 passed, 0 failed, 1 information. The table starts the
+game with `seed 1` and `level 1` (the first board, which that command stops at the story screen: the bot's first move presses
+its button), takes the focus answer from the native build (`frame` and `update` change while the page is hidden and after, as they
+do natively), and aims the pointer at 400,300 in canvases drawn at 1.5, 0.75, 2 and 1 times the game's size. The information line is the list of
+function keys the browser cancels while the game has the focus. The web build is as it was: the SurfaceDisplay opt-in is native only
+(`#ifndef __EMSCRIPTEN__`).
+
+**Not done here:** a whole game of every mode played through real events (the driver plays the first board's start, and the quit box is its
+proof of input; a bot's moves sent as real events come with the bot), `-realinput`'s focus loss and its pause, the 4x surface (this
+desktop has no room), and a run on the visible desktop, which the night window (22:00 to 08:00) allows.

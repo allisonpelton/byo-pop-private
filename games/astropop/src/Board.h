@@ -609,6 +609,10 @@ public:
 	int	mTutorialPickTimer = 0;// +0x1a58 the tutorial's updates since the first brick was picked up; at 1000 the tutorial's hint dialog opens; restarted by the second pick-up
 	int	mTutorialPickCount = 0;// +0x1a5c the bricks picked up so far while the tutorial is on (counted in the pick-up loop of the hand); the first one starts mTutorialPickTimer
 	int	mGameType = 0;// +0x1a60 the kind of game this Board plays: 0 the demonstration, 1 the classic game, 2 survival (constructor argument); also the table of its Hall of Fame records
+	// port(autosplit): three inert values that only the autosplit block's observer (LiveSplitObserver.cpp) reads; the game's own code never does
+	unsigned int	mBoardSerial = 0;   // 1, 2, ... in the order the Boards are made (the demonstration's included): which game the observer is looking at
+	bool			mRestoredGame = false;  // RestoreGame ran: the board continues a saved game
+	int				mGameOverCause = -1;    // why GameOver was called: 0 a new row pushed a column to the ship, 1 the stack filled the field; -1 not from either (a test command)
 	int	mSupportedBrickCount = 0;// +0x1a68 the bricks that rise on a support brick (event 0x10 from Brick::SetTargetY counts up, 0x11 from FireLanded down); the next row waits for 0
 	int	mSlowGateX = 0;// +0x1a70 the x of the slow gate on the warp screen: 182 when two gates are shown, else centred; its click area is 120 wide
 	int	mFastGateX = 0;// +0x1a74 the x of the fast gate on the warp screen (402); -1 when none is offered

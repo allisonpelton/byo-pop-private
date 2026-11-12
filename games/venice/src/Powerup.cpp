@@ -40,20 +40,22 @@ bool ShooterCanTakeEffect()
 		(strstr(gShooter->mStages.mCursor->mName, "ready") != nullptr || strstr(gShooter->mStages.mCursor->mName, "rise") != nullptr);
 }
 
-// one letter group of the WINGS message: it flies up from below with a swing
+// one letter group of the WINGS message: it flies up from below with a swing. The letters are given their places (virtual calls,
+// which a text object hands to its letters) and the group itself the movement, easing and swing (the original calls the scene
+// object's own 0x428610 and 0x428700 on the text object, so the letters turn and move together about the group's anchor)
 void AddWingsText(const char* theLetters, int theJustification, float theX, float theRotationAmplitude)
 {
 	TextObject* aText = NewEffectText(theLetters, 0, theJustification);
 	aText->AddStage(3000.0f, 0, 0, 1, nullptr);
 	aText->SetAttribute(AttributeY, 0, 0);
 	aText->SetAttribute(AttributeX, 0, 0);
-	aText->AddFilter(FilterSuperCos, AttributeAll, 2.0f, 0.0f, 0);
-	aText->SetAttribute(AttributeRotation, 0.0f, 0);
-	aText->SetAttribute(AttributeY, 30.0f, -330.0f);
-	aText->SetAttribute(AttributeX, theX, theX);
+	aText->SceneObject::AddFilter(FilterSuperCos, AttributeAll, 2.0f, 0.0f, 0);
+	aText->SceneObject::SetAttribute(AttributeRotation, 0.0f, 0);
+	aText->SceneObject::SetAttribute(AttributeY, 30.0f, -330.0f);
+	aText->SceneObject::SetAttribute(AttributeX, theX, theX);
 	if (theRotationAmplitude != 0.0f)
-		aText->AddFilter(FilterSined, AttributeRotation, theRotationAmplitude, 5.0f, 0);
-	aText->AddFilter(FilterSined, AttributeY, 10.0f, 5.0f, 0);
+		aText->SceneObject::AddFilter(FilterSined, AttributeRotation, theRotationAmplitude, 5.0f, 0);
+	aText->SceneObject::AddFilter(FilterSined, AttributeY, 10.0f, 5.0f, 0);
 	ShowEffectText(aText);
 }
 }

@@ -93,7 +93,12 @@ holds the rules every session follows; this file does not repeat them.
   Frenzy 2), each taken all the way through. The first pair is watched for trouble: "When we get to it, see if running
   two-by-two causes issues. If not, continue with two". A game that builds on another's engine waits for that game; a
   slot the next game cannot use yet goes to the cheapest remaining one. Within a step, the lowest-effort games go first
-  ("Start with lowest effort", 2026-11-03).
+  ("Start with lowest effort", 2026-11-03). The user has made exceptions to the first sentence. Venice started early,
+  on 2026-11-12, to test the rule below. Later that day, after Venice's port and both phases of identical play came in
+  under its estimate, the user asked "Would it be wasteful if I asked for the plays identical step for some of the
+  other decomps this week?" and then said "Start both". So Heavy Weapon (Opus) and Hammer Heads (Sonnet) started side
+  by side, each through the port and phase one only. Their later steps wait for the user's word. Heavy Weapon moves
+  Bookworm Adventures' SWF player under `engines/`, and Hammer Heads uses it from there.
 - **A new port writes to the standards from its first draft (the user, 2026-11-12: "Yes, add it").** Of what the
   eleven smaller games spent after their first playable merge (about $2,200 at Opus prices), about half went on the
   checks against the original (identical play, screens and sound, coverage, the Collection), a fifth on performance and
@@ -165,7 +170,14 @@ holds the rules every session follows; this file does not repeat them.
     pixels (`-windowscale=1`), and its log's display line is checked ("display: client WxH px, logical WxH, render
     scale N, windowed|full screen, renderer <name>", logged when the window is made and at each size or mode change;
     docs/TEST_COMMANDS.md, "The window line"). The default window's cost is measured as well, beside it, since that
-    is what a player gets. Where a session needs to know which part of a frame costs what, `-cyclesplit` in the port
+    is what a player gets. The default stays twice the game's size where it fits (the user, 2026-11-12: "I want the 2x
+    default"). Windows enlarges a window only when the desktop's scale is above 100% (the user's 4K desktop is at 100%),
+    so the port does the 2x itself: the surface presenter repeats each pixel in the copy it makes anyway, and a
+    GPU-drawn port's graphics card scales; neither costs much (Bejeweled 2 on the GPU: 8.5% of a core at 2x against the
+    original's 9.4%). The one costly case is SDL's software renderer, which SDL uses only on a machine with no GPU
+    renderer: there Bejeweled 2 stretches every sprite on the processor (48.5% at 2x). No game gets a 1x default for
+    it; that fallback takes the software screen (SoftwareScreenDisplay, Dynomite's) once it is on the trunk, a low
+    priority. Where a session needs to know which part of a frame costs what, `-cyclesplit` in the port
     and `origrun --count` in the original split update, draw and present on both sides (docs/TEST_COMMANDS.md,
     "Picking the functions"); per-update figures compare, per-call ones do not, since a port presents in step with
     the display and an original's Blt does not wait (BookWorm, 2026-11-12).

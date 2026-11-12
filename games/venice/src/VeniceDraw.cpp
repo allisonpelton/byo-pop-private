@@ -89,11 +89,62 @@ static int ClampChannel(int theChannel)
 	return theChannel < 0 ? 0 : theChannel;
 }
 
+// 0x442490: the picture drawn into the render target (the layer merge's tall pictures) with a graphics of its own on the target.
+// The original keeps this as a second copy of the draw below, with its own differences: the offset of one pixel is always
+// there (on an accelerated display too), a picture wider than 700 pixels is read one column wider (and a flip of the height
+// shifts it a column left, which the original's test of that flag does), and the picture is transformed whenever the display
+// is accelerated.
+static void DrawImageRecordOnTarget(ImageRecord* theImage, float theSourceLeft, float theSourceTop, float theSourceRight,
+	float theSourceBottom, float theX, float theY, float theRotation, float theXScale, float theYScale, float theRed,
+	float theGreen, float theBlue, float theAlpha, bool theFlipX, bool theFlipY)
+{
+	Sexy::Graphics aGraphics(gRenderTarget);
+	aGraphics.SetClipRect(0, 0, gRenderTarget->mWidth, gRenderTarget->mHeight);
+	int aRed = ColorChannel(theRed);
+	int aGreen = ColorChannel(theGreen);
+	int aBlue = ColorChannel(theBlue);
+	int anAlpha = ColorChannel(theAlpha);
+	float aXScale = theFlipX ? theXScale * -1.0f : theXScale;
+	float aYScale = theFlipY ? theYScale * -1.0f : theYScale;
+	if (aRed == 0xff && aGreen == 0xff && aBlue == 0xff && anAlpha == 0xff) {
+		aGraphics.SetColorizeImages(false);
+	} else {
+		aGraphics.SetColorizeImages(true);
+		aGraphics.SetColor(Sexy::Color(ClampChannel(aRed), ClampChannel(aGreen), ClampChannel(aBlue), ClampChannel(anAlpha)));
+	}
+	theX = theX + 1.0f;
+	theY = theY + 1.0f;
+	int anExtraWidth = 0;
+	if (700.0f < theSourceRight - theSourceLeft) {
+		if (theFlipY)
+			theX = theX - 1.0f;
+		anExtraWidth = 1;
+	}
+	Sexy::Rect aSourceRect((int)theSourceLeft, (int)theSourceTop, ((int)theSourceRight - (int)theSourceLeft) + anExtraWidth,
+		(int)theSourceBottom - (int)theSourceTop);
+	if (aXScale == 1.0f && aYScale == 1.0f && theRotation == 0.0f && !IsAccelerated()) {
+		aGraphics.DrawImageMirror(theImage->mImage, (int)theX, (int)theY, aSourceRect, theFlipX);
+	} else {
+		Sexy::SexyTransform2D aTransform;
+		aTransform.LoadIdentity();
+		aTransform.Scale(aXScale, aYScale);
+		aTransform.RotateDeg(theRotation);
+		aTransform.Translate((float)((double)(theSourceRight - theSourceLeft) / 2.0 + 0.0),
+			(float)((double)(theSourceBottom - theSourceTop) / 2.0 + 0.0));
+		aGraphics.DrawImageMatrix(theImage->mImage, aTransform, aSourceRect, theX, theY);
+	}
+}
+
 // 0x442080
 void DrawImageRecord(ImageRecord* theImage, float theSourceLeft, float theSourceTop, float theSourceRight,
 	float theSourceBottom, float theX, float theY, float theRotation, float theXScale, float theYScale, float theRed,
 	float theGreen, float theBlue, float theAlpha, bool theFlipX, bool theFlipY)
 {
+	if (gRenderTarget != nullptr) {
+		DrawImageRecordOnTarget(theImage, theSourceLeft, theSourceTop, theSourceRight, theSourceBottom, theX, theY, theRotation,
+			theXScale, theYScale, theRed, theGreen, theBlue, theAlpha, theFlipX, theFlipY);
+		return;
+	}
 	bool anAccelerated = IsAccelerated();
 	float anAcceleratedOffset = anAccelerated ? 1.0f : 0.0f;
 	int aRed = ColorChannel(theRed);
@@ -123,7 +174,14 @@ void DrawImageRecord(ImageRecord* theImage, float theSourceLeft, float theSource
 		aTransform.RotateDeg(theRotation);
 		aTransform.Translate((float)((double)(theSourceRight - theSourceLeft) / 2.0 + (double)anAcceleratedOffset * 0.5),
 			(float)((double)(theSourceBottom - theSourceTop) / 2.0 + (double)anAcceleratedOffset * 0.5));
+		// phase two, found by comparing the loading screen's sparkles (blit style 1, scaled) with the original's window: its
+		// software surface blends a transformed picture normally whatever the draw mode says; only the accelerated target
+		// adds. (The draw mode stays what the scene set, for the pictures that are not transformed.)
+		int aSavedMode = gGraphics->GetDrawMode();
+		if (!anAccelerated)
+			gGraphics->SetDrawMode(Sexy::Graphics::DRAWMODE_NORMAL);
 		gGraphics->DrawImageMatrix(theImage->mImage, aTransform, aSourceRect, theX, theY);
+		gGraphics->SetDrawMode(aSavedMode);
 	}
 }
 

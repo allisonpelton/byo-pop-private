@@ -825,6 +825,7 @@ void Board::FillTopRow(bool theSpecials, bool theTutorial, bool theFromTop, bool
 	}
 	else if (mGameType != 0)
 	{
+		mGameOverCause = 1;     // port(autosplit)
 		GameOver();
 		return;
 	}
