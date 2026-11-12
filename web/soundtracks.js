@@ -32,11 +32,13 @@ var ByopopSoundtracks = {
     where: { "alch_intro#0": "Title Screen", "1985-hehasnoface#0": "In-Game" },
     unused: ["1985-hehasnoface#1"]
   },
-  // AstroPop's one module holds every tune, which the game starts at an order of it (PlaySong); its subsongs stand for them
+  // AstroPop's one module holds every tune, which the game starts at an order of it (PlaySong); its subsongs stand for them,
+  // each starting at one of the orders the game plays (0 loading, 5 the menus, 9 a level, 35 the danger siren, 39 the game's
+  // end, 41 a level's tally and level-up: games/astropop/src, checked 2026-11-11 once its music played)
   astropop: {
     files: ["music/*.mo3"],
     where: { "music#0": "Loading", "music#1": "Main Menu", "music#2": "In-Game", "music#3": "Danger", "music#4": "Game Over",
-      "music#5": "Level Start" }
+      "music#5": "Level Complete" }
   },
   atomica: {
     files: ["music/*.it"],

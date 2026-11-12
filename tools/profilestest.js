@@ -229,14 +229,17 @@ function same(name, a, b) { check(name, JSON.stringify(a) === JSON.stringify(b),
 
 // ---------- play times (ByopopPlay) ----------
 {
-  const { T, data } = load();
+  const { T, P, data } = load();
   check("play: a start", T.started("pixelus") && T.started("pixelus"));
   check("play: time", T.played("pixelus", 61400) && T.played("pixelus", 400) === false);
   const r = T.all().pixelus;
-  same("play: the record", [r.plays, r.seconds, r.last], [2, 61, T.today()]);
+  same("play: the record", [r.plays, r.seconds, r.first, r.last], [2, 61, T.today(), T.today()]);
+  same("play: with no player chosen, under \"\"", Object.keys(r.by), [""]);
+  const pa = P.add("Ann").profile;
+  check("play: a player's own record", T.started("pixelus") && T.all().pixelus.by[pa.id].plays === 1 && T.all().pixelus.by[""].plays === 2 && T.all().pixelus.plays === 3);
   check("play: a bad game id is refused", T.started("../evil") === false && !("../evil" in T.all()));
   data["byopop-play"] = JSON.stringify({ pixelus: { plays: -3, seconds: "x", last: "yesterday" }, list: [1] });
-  same("play: a damaged record reads as zero", T.all(), { pixelus: { plays: 0, seconds: 0, last: "" } });
+  same("play: a damaged record reads as zero", T.all(), { pixelus: { plays: 0, seconds: 0, first: "", last: "", by: {} } });
   data["byopop-play"] = "{nope";
   same("play: damaged storage reads as none", T.all(), {});
   same("play: durations", [T.duration(30), T.duration(60), T.duration(3599), T.duration(3600), T.duration(12000)],

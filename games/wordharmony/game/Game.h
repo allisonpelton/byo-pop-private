@@ -236,7 +236,6 @@ private:
 	void makeGameScreen();
 	// 0x404170: the load screen (theAtOnce: the continue line without a fade)
 	void showLoadScreen(bool theShow, bool theAtOnce);
-	// 0x404320: the main menu's game link
 	// 0x4047d0: a level's start: its introduction on the load screen
 	void startLevel();
 	// 0x4049b0: a level's end: the bonus lines

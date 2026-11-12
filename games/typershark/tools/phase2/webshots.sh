@@ -3,7 +3,7 @@
 # (games/bejeweled/tools/verify/wasmrun.js game: no window, no sound, no URL) and by build/native/typershark.exe, the
 # shots compared by shotdiff (the native port's are the ones compared with the original).
 #   games/typershark/tools/phase2/webshots.sh <tour name> [seed]
-# Reads build/ts-p2/<name>/port.txt, writes build/ts-p2/<name>/web/*.png and build/ts-p2/<name>/port/*.png, and prunes both
+# USERS names the users-folder fixture (default port-win), as for runport.sh. Reads build/ts-p2/<name>/port.txt, writes build/ts-p2/<name>/web/*.png and build/ts-p2/<name>/port/*.png, and prunes both
 # once they are compared (KEEP=1 keeps them).
 set -uo pipefail
 ROOT="$(cd "$(dirname "$0")/../../../.." && pwd)"
@@ -14,7 +14,7 @@ D="build/ts-p2/$N"; W="$D/webrun"
 [ -s "$D/port.txt" ] || { echo "no port script for $N"; exit 1; }
 bash games/typershark/tools/phase2/waitroom.sh || exit 3
 rm -rf "$W" "$D/web"; mkdir -p "$W/shots" "$D/web"
-cp -r build/ts-p1/fixtures/port-win "$W/ud"
+cp -r "build/ts-p1/fixtures/${USERS:-port-win}" "$W/ud"
 # the script with the shots inside the run's own folder (Node writes back only what lies in the working directory)
 sed -E "s#^([0-9]+) shot .*/([^/]+\.png)\$#\1 shot shots/\2#" "$D/port.txt" > "$W/script.txt"
 NODE="$(ls "${EMSDK_ROOT:-E:/retools/emsdk}"/node/*/node.exe 2>/dev/null | head -n 1)"

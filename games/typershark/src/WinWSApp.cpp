@@ -370,6 +370,12 @@ void WinWSApp::Init()
 	// game's code sets it), so a widget's stretched picture averages. The shared 1.3 WidgetManager sets it on every widget
 	gWidgetsDrawWithoutFastStretch = true;
 
+	// port: this game's MemoryImage::SlowStretchBlt (0x48d9b0) blends the averaged colour with the weight 255 * a / (a + the
+	// alpha that is there) (its last loop: `(a * 0xff) / (destAlpha + a)`), as AstroPop's does and the 1.4 framework's has commented
+	// out. It matters at the stretched medal's partly transparent edge pixels (the statistics screen's adventure panel and the
+	// end-of-adventure dialog): with the line off the edge pixels differed from the original's by up to 24 levels (GAME_NOTES section 18)
+	gSlowStretchRenormalizesAlpha = true;
+
 	SexyApp::Init();
 
 	// port: the 2004 SexyApp::Init seeds the C library generator with srand(GetTickCount()); -seed=N test runs seed it
@@ -658,11 +664,24 @@ void WinWSApp::GotFocus()
 // by running it on the desktop, GAME_NOTES.md "The 3D drawing") ends the divider under a tab's title one pixel short of the
 // 2D screen's, where MemoryImage::DrawLine sets both end points. Only horizontal and vertical lines are cut (the game draws no
 // other, and the rule for a slanted one was not seen); a line of one pixel is left alone.
+//
+// The display of a 2D run also draws a stretch as the original's software screen does (DDImage::StretchBlt 0x4a2fb0, the
+// non-fast branch): the picture is averaged (MemoryImage::SlowStretchBlt 0x48d9b0) into a transparent picture of the
+// destination's size, and that is blitted with the draw's colour and mode (DDInterface::mSoftwareStretch). The game stretches in
+// two places, the medal and the end-of-adventure dialog's ten pictures (GAME_NOTES section 18), and the GPU's filter, which a
+// stretch took before, differs from the average at a partly transparent edge. In 3D the original's textured quads, and the
+// port's GPU, sample at pixel centres. Is3D can change from one run to the next, so the choice is made at each stretch.
 class TyperSharkDisplay : public DDInterface
 {
 public:
 	TyperSharkDisplay(SexyAppBase* theApp) : DDInterface(theApp)
 	{
+	}
+
+	virtual void StretchBlt(Image* theImage, const FRect& theDestRect, const Rect& theSrcRect, const Rect* theClipRect, const Color& theColor, int theDrawMode, bool fastStretch, bool mirror = false) override
+	{
+		mSoftwareStretch = !mIs3D;
+		DDInterface::StretchBlt(theImage, theDestRect, theSrcRect, theClipRect, theColor, theDrawMode, fastStretch, mirror);
 	}
 
 	virtual void DrawLine(double theStartX, double theStartY, double theEndX, double theEndY, const Color& theColor, int theDrawMode, bool antiAlias) override

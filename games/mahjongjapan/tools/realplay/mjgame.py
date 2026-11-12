@@ -45,9 +45,10 @@ class Game:
         threading.Thread(target=self.reader, daemon=True).start()
         self.shots = 0
         self.asked = 0
+        self.updates = 0  # the update the last state came from, for the log's lines
 
     def say(self, text):
-        print('%8.2f %s' % (time.time() - T0, text), file=self.log, flush=True)
+        print('%8.2f u%-7d %s' % (time.time() - T0, self.updates, text), file=self.log, flush=True)
 
     def reader(self):
         for line in self.proc.stdout:
@@ -81,7 +82,9 @@ class Game:
                     if ln is None:
                         raise Failed('the game exited at "%s"' % line)
                     if line == 'state' and ln.startswith('STATE '):
-                        return json.loads(ln[6:])
+                        st = json.loads(ln[6:])
+                        self.updates = st['updates']
+                        return st
                     if line == 'move' and ln.startswith('MOVE '):
                         v = ln[5:]
                         return None if v == 'null' else json.loads(v)

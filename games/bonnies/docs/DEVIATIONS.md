@@ -25,6 +25,11 @@ on the framework (`ENGINE.md`, "The port"). What follows from that:
   Natively the bytes go as they are.
 - **The cursor.** SDL 1.2's 32x32 black-and-white cursors become the framework's image cursor, drawn with the same
   pixels and the same hot spot.
+- **The screen.** The game draws into one 800x600 buffer and presents about 30 times a second, whether or not anything
+  moved. The host copies the buffer into a framework picture (opaque, uploaded as it is) when its pixels differ from the
+  last copy, and when they do not it draws nothing: the framework keeps showing the last picture, which is the same
+  one (`BonniesWidget::Update`). Two in three presents of the tutorial's board matched the one before. Nothing visible
+  changes (the frozen screens are unchanged), and the game's own drawing, its rects and its frame timing are untouched.
 - **Messages and the window menu.** The window never had a menu (its handle, 0x4809c4, is never set), and the window
   messages SDL passed on (0x420630) only served that menu, so the host sends none. Refreshing the window frame for the
   menu (0x41fb20) does nothing.
@@ -43,7 +48,7 @@ on the framework (`ENGINE.md`, "The port"). What follows from that:
   Under the setting's default nothing changes.
 - **Test runs.** These differences only appear under rundesk or a script (`IsTestRun`), never in play. The game always
   has the input focus, as the user's window would. The desktop is reported as 1920x1080, the player's Windows name is
-  empty, and message boxes take their first button without being shown. The window is never moved, minimized or
+  empty. The window is never moved, minimized or
   given clipboard text. `-seed=N` seeds `rand` with N instead of the time (`seedRandom`, 0x41f4e0), so a script's
   boards repeat. A script's `focus 0` and `focus 1` take the focus away and give it back, as a click on another
   window would; while it is away in a `-fast` run, the game's wait for its next frame (0x420770), which pumps without
@@ -115,6 +120,10 @@ is one letter and Q is two), or the game's own hint when the bot has none (`kind
 `input`: a click off the board (which clears a path left over), a click on each tile, then Submit, in game pixels. The
 bot reads the game and changes nothing; its search is kept for a board it has searched before. Scramble, the story's
 pages and the dialogs are left to the driver (`tools/paneplay.js`, `tools/realmove.py`).
+
+`memreport [file]` is the framework's own (`SexyAppBase::DoMemReport`; the table with a file name), which asks the
+port for what the game keeps beside the framework's pictures (`BonniesHostApp::AddMemReportHolders`): the resource
+cache's images, the dictionary, the decoded samples and the screen buffer. It only reads.
 
 ## Memory the original leaks
 

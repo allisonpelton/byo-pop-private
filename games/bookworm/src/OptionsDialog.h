@@ -7,7 +7,7 @@
 // NumOptionsLinks, OptionsLinkText%d, OptionsLinkURL%d: one "more games" button in the retail partner.xml)
 // are not ported, the user's decision (2026-10-24); the dialog is 36 px shorter for it.
 // Original: class Sexy::OptionsDialog : public MoneyDialog, public SliderListener, public CheckboxListener,
-// sizeof 0x188 (new in BookWormApp::ShowOptions 0x4107c0). Vtables: primary 0x500b4c (53 slots),
+// sizeof 0x188 (new in BookWormApp::DoOptions 0x4107c0). Vtables: primary 0x500b4c (53 slots),
 // ButtonListener 0x500b2c (+0x58), SliderListener 0x500b24 (+0x120), CheckboxListener 0x500b1c (+0x124).
 // Offsets are absolute. Behaviour spec: re/bookworm/analysis/dialogs.md section 3.
 // The register button (id 34, which the registered build created but never showed) is taken out.
@@ -44,7 +44,7 @@ public:
 		SFX_SLIDER_ID = 43,
 
 		SLIDE_BASE_X = 240,             // resting x; Update resizes to SLIDE_BASE_X + offset
-		SLIDE_START_OFFSET = 240,       // written by the creator (app ShowOptions)
+		SLIDE_START_OFFSET = 240,       // written by the creator (app DoOptions)
 		SLIDE_CLOSE_OFFSET = -240,      // written by ApplyAndClose (only its sign matters)
 		ROW_PITCH = 36,
 		DEFAULT_DIALOG_HEIGHT = 330     // OptionsDialogHeight default (partner.xml: 315)

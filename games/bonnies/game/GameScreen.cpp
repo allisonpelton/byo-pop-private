@@ -55,15 +55,15 @@ static int gMouth;                // 0x478528
 static uint32_t gHeadTime;        // 0x47852c
 static uint32_t gHeadFrameTime;   // 0x478530
 static int gHead;                 // 0x478534
-static uint32_t gHandsTime;       // 0x47853c
+static uint32_t gHandsFrameTime;  // 0x47853c
 static int gHands;                // 0x478540
 static uint32_t gEyeTime;         // 0x478544
 static int gEyeFrame;             // 0x478548: her eyes' two frames, swapped while they move
 static uint32_t gEyeFrameTime;    // 0x47854c
 static uint32_t gLastMove;        // 0x478550: when any of them last moved
 static uint32_t gScreenStart;     // 0x47850c
-// 0x478538: set with the others and never read
-static uint32_t gField478538;
+// 0x478538: the hands' time, set with the others and never read (the mouth's and the head's are used as these)
+static uint32_t gHandsTime;
 
 // The chapter's text as it was wrapped last (0x40f240)
 static Str gChapterSource;        // 0x47855c
@@ -101,10 +101,10 @@ void GameScreen::setChapter(Str theName)
 // 0x40ed00
 void GameScreen::refresh()
 {
-	mField58 = 3;
-	mFieldC8 = 0;
-	mField5C = ticks();
-	mField60 = ticks() + 300;
+	mSequenceState = 3;
+	mSummaryStart = 0;
+	mStepStart = ticks();
+	mStepEnd = ticks() + 300;
 	gGame->beginLevel();
 }
 
@@ -118,27 +118,27 @@ void GameScreen::setMessage(Str theText, int theTime)
 // 0x40edb0
 void GameScreen::reset()
 {
-	mFieldE8 = 0;
-	mFieldE4 = 0;
-	mFieldF4 = ticks();
-	mField88 = -1;
-	mField8C = -1;
-	mField90 = -1.0f;
-	mField94 = -1.0f;
-	mFieldA4 = 0;
-	mField7C = 0;
-	mField58 = 1;
-	mField5C = ticks();
-	mField60 = 0;
-	mField80 = -1;
-	mField84 = -1;
+	mCountedPoints = 0;
+	mCountTime = 0;
+	mLastUpdate = ticks();
+	mCursorColumn = -1;
+	mCursorRow = -1;
+	mMouseX = -1.0f;
+	mMouseY = -1.0f;
+	mMouseDown = 0;
+	mStarAtBottom = 0;
+	mSequenceState = 1;
+	mStepStart = ticks();
+	mStepEnd = 0;
+	mLastColumn = -1;
+	mLastRow = -1;
 	mHintTime = 0;
 	mHintShown = 0;
 	mHintAgain = 0;
-	mField70 = 0;
-	mField74 = 0;
-	mField78 = 0;
-	mFieldC8 = 0;
+	mHintClock = 0;
+	mBlinkStart = 0;
+	mBlinking = 0;
+	mSummaryStart = 0;
 	setChapter(gGame->currentBook()->name());
 }
 
@@ -150,9 +150,9 @@ void GameScreen::shutdown()
 	if (mPicture != nullptr)
 		gResources->release(mPicture);
 	mPicture = nullptr;
-	if (mField54 != nullptr)
-		gResources->release(mField54);
-	mField54 = nullptr;
+	if (mLastPicture != nullptr)
+		gResources->release(mLastPicture);
+	mLastPicture = nullptr;
 	gGameScreen = nullptr;
 }
 
@@ -183,9 +183,9 @@ void firstCellPos(float* theX, float* theY)
 				return;
 			}
 			aRow++;
-		} while (aRow < 9);
+		} while (aRow < BOARD_ROWS);
 		aColumn++;
-	} while (aColumn < 9);
+	} while (aColumn < BOARD_COLUMNS);
 	*theY = 0.0f;
 	*theX = 0.0f;
 }
@@ -216,9 +216,9 @@ void GameScreen::getRect(float* theX0, float* theY0, float* theX1, float* theY1,
 					aMaxHalf = aHalf;
 			}
 			aRow++;
-		} while (aRow < 9);
+		} while (aRow < BOARD_ROWS);
 		aColumn++;
-	} while (aColumn < 9);
+	} while (aColumn < BOARD_COLUMNS);
 	if (aMaxColumn < 0)
 	{
 		*theX0 = 0.0f;
@@ -236,7 +236,7 @@ void GameScreen::getRect(float* theX0, float* theY0, float* theX1, float* theY1,
 	*theX1 = (float)(*theX1 + (double)0.0075f);
 	*theY0 = (float)(*theY0 - (double)0.01f);
 	*theY1 = (float)(*theY1 + (double)0.01f);
-	if (theAll != 0 && frameCount() <= gGraphics->mField00 + 3)
+	if (theAll != 0 && frameCount() <= gGraphics->mFloatTextFrame + 3)
 	{
 		*theX0 = (float)(*theX0 - (double)0.10625f);
 		*theX1 = (float)(*theX1 + (double)0.1375f);
@@ -261,7 +261,7 @@ void GameScreen::tilePos(int theColumn, int theRow, float* theX, float* theY)
 static Str chapterText()
 {
 	int i = 0;
-	if (50 < gGame->mLevel)
+	if (LEVEL_COUNT < gGame->mLevel)
 		return Str("");
 	if (equalsNoCase(Str(getText(exeI32(0x46665c + gGame->mLevel * 4))), gChapterSource))
 		return gChapterText;
@@ -325,7 +325,7 @@ void GameScreen::drawIntro()
 	aText += lit(0x457c64);
 	float aFade = 0.0f;
 	int aTyped = 0;
-	if (mField58 == 0xd || mField58 == 9)
+	if (mSequenceState == 0xd || mSequenceState == 9)
 	{
 		mTyped = 0;
 		gEyeX = -1.0f;
@@ -341,11 +341,11 @@ void GameScreen::drawIntro()
 		gHeadTime = ticks() - aRandom;
 		gHead = 0;
 		aRandom = randomRange(0, 300);
-		gField478538 = ticks() - aRandom;
+		gHandsTime = ticks() - aRandom;
 		gHands = 0;
 		gLastMove = 0;
 	}
-	else if (mField58 == 0xe)
+	else if (mSequenceState == 0xe)
 	{
 		if (mTyped < 999)
 		{
@@ -389,51 +389,51 @@ void GameScreen::drawIntro()
 				mTypeTime = ftol(mTypeTime + (double)aDelay);
 		}
 	}
-	else if (mField58 == 0xf)
+	else if (mSequenceState == 0xf)
 	{
-		aFade = mFieldB4;
+		aFade = mLeaveFade;
 		mTyped = 9999;
 	}
 typed:
 	{
 		int aShown = 0;
-		char c = 0;
+		char aTypingChar = 0;
 		mSpaces = 0;
 		int i = 0;
 		if (0 < (int)aSource.size())
 		{
 			do
 			{
-				char d;
+				char aSourceChar;
 				if (i < (int)aSource.size())
 				{
-					d = aSource[i];
-					if (d == ' ')
+					aSourceChar = aSource[i];
+					if (aSourceChar == ' ')
 					{
 						mSpaces++;
 						goto append;
 					}
-					if (d <= ' ')
+					if (aSourceChar <= ' ')
 						goto append;
 				}
 				else
-					d = 'A';
+					aSourceChar = 'A';
 				if (mTyped <= aShown)
 				{
-					c = d;
+					aTypingChar = aSourceChar;
 					break;
 				}
 				aShown++;
 			append:
-				aText += d;
+				aText += aSourceChar;
 				i++;
 			} while (i < (int)aSource.size());
 		}
 		gBonnies->mFonts[0]->drawText(aText, 0.08f, 0.08f, 0.56375f, 0.5f, 0xffefefef, 0, 0x12, 1.0f, 0.0f);
 		if (i < (int)aSource.size() || (int)ticks() >= mTypeTime + 500)
 		{
-			if (0 < c)
-				aText += c;
+			if (0 < aTypingChar)
+				aText += aTypingChar;
 			mLines = gBonnies->mFonts[0]->countLines(aText, 0, 0.56375f, nullptr, 1.0f) - 4;
 		}
 		else
@@ -515,7 +515,7 @@ typed:
 		aStill = true;
 		gMouthTime = ticks();
 		gHeadTime = gMouthTime;
-		gField478538 = gMouthTime;
+		gHandsTime = gMouthTime;
 		gBlinkTime = gMouthTime;
 	}
 	// Blinking
@@ -607,9 +607,9 @@ typed:
 	if (gMouth != 0 || gBlink != 0 || gHead != 0)
 		gLastMove = ticks();
 	// Her hands, while she types
-	if (150 < (int)(ticks() - gHandsTime) && aTyped)
+	if (150 < (int)(ticks() - gHandsFrameTime) && aTyped)
 	{
-		gHandsTime = ticks();
+		gHandsFrameTime = ticks();
 		gHands++;
 		if (2 < gHands)
 		{
@@ -690,18 +690,18 @@ int hitTile(float theX, float theY, int* theColumn, int* theRow, float* theDista
 				}
 			}
 			aRow++;
-		} while (aRow < 9);
+		} while (aRow < BOARD_ROWS);
 		aColumn++;
-		aCell += 9;
-	} while (aCell < 0x51);
+		aCell += BOARD_ROWS;
+	} while (aCell < BOARD_CELLS);
 	return 0;
 }
 
 // 0x4103a0
 void GameScreen::showHint(Str theText, int theStep, float theX, float theY, int theSide, int theFlag)
 {
-	gGame->mFieldCAC = gGame->mFieldCA8 + gGame->mFieldCA0;
-	mStrCC = theText;
+	gGame->mMovesAtHint = gGame->mShuffles + gGame->mWordsPlayed;
+	mHintText = theText;
 	mHintX = theX;
 	mHintY = theY;
 	mHintSide = theSide;
@@ -721,7 +721,7 @@ void GameScreen::showHint(Str theText, int theStep, float theX, float theY, int 
 	if (theFlag != 0 && gOverlayScreen->findWidget(0xcc) == nullptr)
 	{
 		float aRect[4];
-		gBonnies->balloon(mStrCC, mHintX, mHintY, mHintSide, theFlag, aRect, 0);
+		gBonnies->balloon(mHintText, mHintX, mHintY, mHintSide, theFlag, aRect, 0);
 		Button* aButton = new Button();
 		aButton->init();
 		gOverlayScreen->addWidget(aButton);
@@ -747,22 +747,22 @@ void GameScreen::showHint(Str theText, int theStep, float theX, float theY, int 
 // 0x410650
 bool GameScreen::isBusy()
 {
-	return !mStrCC.empty();
+	return !mHintText.empty();
 }
 
 // 0x410660
 void GameScreen::updateHint()
 {
-	mFieldAC = 0;
+	mShuffleEndsGame = 0;
 	Widget* aButton = findWidget(0xcb);
 	if (aButton != nullptr && gGame != nullptr)
 	{
-		if (gGame->mFieldC5C == 0 || 1 < gGame->mGoal || gGame->mFieldC5C == 0)
+		if (gGame->mClassic == 0 || 1 < gGame->mGoal || gGame->mClassic == 0)
 		{
 			aButton->mText = getText(0x542);
 			return;
 		}
-		mFieldAC = 1;
+		mShuffleEndsGame = 1;
 		aButton->mText = getText(0x543);
 	}
 }
@@ -777,11 +777,11 @@ void GameScreen::showHintWord()
 		if (gGame->mHintFound == 0)
 			goto done;
 	}
-	mHintAgain = 0 < mFieldB0;
+	mHintAgain = 0 < mHintDue;
 	mHintTime = ticks();
 	mHintShown = 1;
 done:
-	mFieldB0 = 0;
+	mHintDue = 0;
 }
 
 // 0x410740
@@ -796,7 +796,7 @@ void GameScreen::flash(int theTime, uint32_t theColor)
 int GameScreen::isPlaying()
 {
 	int aResult = 1;
-	if (mField58 != 1 || gGame->mFieldC60 != 0)
+	if (mSequenceState != 1 || gGame->mGameOverTime != 0)
 		aResult = 0;
 	return aResult;
 }
@@ -807,32 +807,32 @@ void GameScreen::init()
 	gGameScreen = this;
 	Screen::init();
 	gApp->mStatusFlags = 0x10c;
-	mField11C = 0;
+	mHintsChecked = 0;
 	mSpacesTyped = 0;
 	mSpaces = 0;
 	mLinesTyped = 0;
 	mLines = 0;
 	mTyped = 0;
-	mFieldF0 = 0;
+	mCountStart = 0;
 	mFlashTime = 0;
 	mFlashLength = 0;
 	mFlashColor = 0;
-	mFieldC0 = 1.0f;
-	mFieldC4 = 0;
-	mFieldBC = 1.0f;
-	mFieldB8 = 1.0f;
-	mFieldB4 = 1.0f;
+	mBookOpen = 1.0f;
+	mSummaryDark = 0;
+	mSummaryFade = 1.0f;
+	mBoardFade = 1.0f;
+	mLeaveFade = 1.0f;
 	mChapter = "";
 	mPicture = nullptr;
-	mField54 = nullptr;
+	mLastPicture = nullptr;
 	mMessage = "";
-	mStrCC = "";
+	mHintText = "";
 	mTutorialStep = -1;
 	mHintX = 0.0f;
 	mHintY = 0.0f;
 	mHintSide = 0;
-	mFieldAC = 0;
-	mFieldB0 = 0;
+	mShuffleEndsGame = 0;
+	mHintDue = 0;
 	mMessageEnd = 0;
 	int i = 0;
 	do
@@ -840,12 +840,12 @@ void GameScreen::init()
 		Button* aButton = new Button();
 		aButton->init();
 		addWidget(aButton);
-		if (gGame->mFieldC5C == 0)
+		if (gGame->mClassic == 0)
 			aButton->mX = (float)((i * 0x86 + 0x20) * (double)0.00125f + 0.515f);
 		else
 			aButton->mX = (float)((i * 0xf4 + 0x20) * (double)0.00125f + 0.44625f);
 		aButton->mY = 0.90666664f;
-		if (gGame->mFieldC5C == 0)
+		if (gGame->mClassic == 0)
 			aButton->mY = 0.86166668f;
 		aButton->mWidth = 0.1575f;
 		aButton->mHeight = 0.053333335f;
@@ -958,10 +958,10 @@ void GameScreen::drawBoard()
 		gScoreTime = ticks();
 	else
 	{
-		if ((int)(ticks() - gGame->mFieldC70) <= 0xf0)
+		if ((int)(ticks() - gGame->mScoreTime) <= 0xf0)
 		{
 			int aElapsed = ticks() - gScoreTime;
-			int aLeft = (gGame->mFieldC70 - ticks()) + 0xf0 + aElapsed;
+			int aLeft = (gGame->mScoreTime - ticks()) + 0xf0 + aElapsed;
 			int aTotal = 1;
 			if (1 <= aLeft)
 				aTotal = aLeft;
@@ -1002,7 +1002,7 @@ void GameScreen::drawBoard()
 	aText += intToStr(aScoreShown);
 	gBonnies->mFonts[3]->drawText(aText, 0.016249999f, 0.10333333f, (float)(aWidth + (double)0.05f), 0.06666667f,
 		0xffffffff, 0x8f000000, 0x10a, 1.0f, 0.0f);
-	if (gGame->mFieldC5C != 0)
+	if (gGame->mClassic != 0)
 		drawFrame(gBonnies->mImages[2]->mFrames, 0.44624999f, 0.88666666f, 1.0f, 0);
 	else
 		drawFrame(gBonnies->mImages[32]->mFrames, 0.51499999f, 0.84166664f, 1.0f, 0);
@@ -1035,9 +1035,9 @@ void GameScreen::drawBoard()
 				}
 			}
 			aRow++;
-		} while (aRow < 9);
+		} while (aRow < BOARD_ROWS);
 		aColumn++;
-	} while (aColumn < 9);
+	} while (aColumn < BOARD_COLUMNS);
 	// The cells
 	aColumn = 0;
 	int aCell = 0;
@@ -1063,8 +1063,8 @@ void GameScreen::drawBoard()
 					aLit = 1;
 					aColor = addColor(aColor, 0, -0x18, 0x3c, -0x28);
 				}
-				if (gBonnies->inModal() == 0 && mField7C == 0 && gGame->mFieldC60 == 0 && gBonnies->mPaused == 0 &&
-					mField58 == 1)
+				if (gBonnies->inModal() == 0 && mStarAtBottom == 0 && gGame->mGameOverTime == 0 && gBonnies->mPaused == 0 &&
+					mSequenceState == 1)
 				{
 					bool aOnPath = onPath(aColumn, aRow);
 					if (aOnPath)
@@ -1075,7 +1075,7 @@ void GameScreen::drawBoard()
 						else
 							aColor = addColor(aColor, 0x28, 0x32, 0x1e, 0x1e);
 					}
-					if (mField88 == aColumn && mField8C == aRow)
+					if (mCursorColumn == aColumn && mCursorRow == aRow)
 					{
 						aCursor = 1;
 						if (aLit == 0)
@@ -1093,9 +1093,9 @@ void GameScreen::drawBoard()
 					drawFrame(&gBonnies->mImages[5]->mFrames[0], aX, aY, 1.0f, 0);
 					drawFrame(&gBonnies->mImages[5]->mFrames[1], aX, aY, 1.0f, 0);
 				}
-				else if (gGame->mField43C[i] == '^')
+				else if (gGame->mOldLetters[i] == '^')
 				{
-					int aTime = ticks() - gGame->mField2F8[i];
+					int aTime = ticks() - gGame->mChangeTimes[i];
 					int aFrame = aTime / 40;
 					if (10 < aFrame)
 						aFrame = 10;
@@ -1106,8 +1106,8 @@ void GameScreen::drawBoard()
 					{
 						if (!(aAlpha < 1.0f))
 						{
-							gGame->mField2F8[i] = 0;
-							gGame->mField43C[i] = 0;
+							gGame->mChangeTimes[i] = 0;
+							gGame->mOldLetters[i] = 0;
 						}
 						drawFrame(&gBonnies->mImages[3]->mFrames[(aColumn % 3) * 3 + aRow % 3], aX, aY, aAlpha, 0);
 					}
@@ -1137,9 +1137,9 @@ void GameScreen::drawBoard()
 			}
 		nextCell:
 			aRow++;
-		} while (aRow < 9);
+		} while (aRow < BOARD_ROWS);
 		aColumn++;
-		aCell += 9;
+		aCell += BOARD_ROWS;
 	} while (aCell + 0x6d < 0xbe);
 	// The tiles: the letter that was there fades out and the new one in
 	aColumn = 0;
@@ -1148,7 +1148,7 @@ void GameScreen::drawBoard()
 		int aRow = 0;
 		do
 		{
-			int aBase = aColumn * 9;
+			int aBase = aColumn * BOARD_ROWS;
 			if (gGame->currentBook()->isCell(aColumn, aRow) != 0 && gGame->mLetters[aBase + aRow] != 0)
 			{
 				float aX;
@@ -1157,8 +1157,8 @@ void GameScreen::drawBoard()
 				float aY = (float)aYD;
 				uint32_t aColor = 0xff48252c;
 				float aAngle = 0.0f;
-				if (gBonnies->inModal() == 0 && mField7C == 0 && gGame->mFieldC60 == 0 && gBonnies->mPaused == 0 &&
-					mField58 == 1)
+				if (gBonnies->inModal() == 0 && mStarAtBottom == 0 && gGame->mGameOverTime == 0 && gBonnies->mPaused == 0 &&
+					mSequenceState == 1)
 				{
 					if (onPath(aColumn, aRow))
 					{
@@ -1167,7 +1167,7 @@ void GameScreen::drawBoard()
 						else
 							aColor = addColor(0xff48252c, 0, 0x8c, 10, 10);
 					}
-					if (mField88 == aColumn && mField8C == aRow)
+					if (mCursorColumn == aColumn && mCursorRow == aRow)
 					{
 						if (gGame->mPathLength < 1)
 							aColor = addColor(aColor, 0, 0x50, 0x32, 0x32);
@@ -1176,23 +1176,23 @@ void GameScreen::drawBoard()
 					}
 				}
 				int i = aBase + aRow;
-				int aTime = ticks() - gGame->mField2F8[i];
+				int aTime = ticks() - gGame->mChangeTimes[i];
 				float aProgress = (float)(aTime * (double)0.0016666667f);
 				if (aProgress < 0.0f)
 					aProgress = 0.0f;
-				if (gGame->mField2F8[i] == 0 || gGame->mField43C[i] == 0)
+				if (gGame->mChangeTimes[i] == 0 || gGame->mOldLetters[i] == 0)
 					aProgress = 1.0f;
-				else if (!(aProgress <= 1.0f) && gGame->mField43C[i] != '^')
+				else if (!(aProgress <= 1.0f) && gGame->mOldLetters[i] != '^')
 				{
-					gGame->mField2F8[i] = 0;
-					gGame->mField43C[i] = 0;
+					gGame->mChangeTimes[i] = 0;
+					gGame->mOldLetters[i] = 0;
 				}
 				int aPass = 0;
 				do
 				{
 					char aLetter;
 					if (aPass == 0)
-						aLetter = gGame->mField43C[i];
+						aLetter = gGame->mOldLetters[i];
 					else
 						aLetter = gGame->mLetters[i];
 					uint32_t aTextColor = aColor;
@@ -1202,7 +1202,7 @@ void GameScreen::drawBoard()
 						aPhase = (float)(1.0f - (double)aProgress);
 					else
 						aPhase = aProgress;
-					if (gGame->mField43C[i] == '^')
+					if (gGame->mOldLetters[i] == '^')
 					{
 						if (aPass == 0)
 							goto nextPass;
@@ -1255,8 +1255,8 @@ void GameScreen::drawBoard()
 							aTextColor = 0xffffffff;
 							aAlpha = (float)((std::sin(aGlow * (double)0.00055555557f * 3.14159f) * 0.4f + 0.5f) * aAlpha);
 						}
-						if ((gGame->mFieldC5C != 0 || (gBonnies->isPaused() == 0 && isInactive() == 0) ||
-								gGame->mFieldC44 != 0) &&
+						if ((gGame->mClassic != 0 || (gBonnies->isPaused() == 0 && isInactive() == 0) ||
+								gGame->mGameOver != 0) &&
 							0.02f < aAlpha && (gGame->mTileFlags[i] & 2) == 0)
 						{
 							float aDrawX = aX;
@@ -1268,16 +1268,16 @@ void GameScreen::drawBoard()
 								aStart = gGame->mShuffleTime;
 								goto shuffle;
 							}
-							if (gGame->mFieldC7C != 0 && (gGame->mKinds[i] & 2) != 0)
+							if (gGame->mCopyTime != 0 && (gGame->mKinds[i] & 2) != 0)
 							{
-								aStart = gGame->mFieldC7C;
+								aStart = gGame->mCopyTime;
 								aSwapping = 1;
 							shuffle:
 								float aStep = (float)((int)(ticks() - aStart) * (double)0.0016666667f);
 								if (!(aStep < 1.0f))
 								{
 									gGame->mShuffleTime = 0;
-									gGame->mFieldC7C = 0;
+									gGame->mCopyTime = 0;
 									aStep = 1.0f;
 								}
 								float aFromX;
@@ -1311,7 +1311,7 @@ void GameScreen::drawBoard()
 								{
 									aDrawY = (float)(gGame->mFallOffsets[i] + (double)aY);
 									aLetterText = "";
-									aLetterText += gGame->mField43C[i];
+									aLetterText += gGame->mOldLetters[i];
 									gBonnies->mFonts[6]->drawText(aLetterText, (float)(aX + (double)0.0025f),
 										(float)(aDrawY + (double)0.0016666667f), 0.055f, 0.07333333f, aTextColor, aShadow,
 										0x100, 1.0f, aAngle);
@@ -1324,9 +1324,9 @@ void GameScreen::drawBoard()
 				} while (aPass < 2);
 			}
 			aRow++;
-		} while (aRow < 9);
+		} while (aRow < BOARD_ROWS);
 		aColumn++;
-	} while (aColumn < 9);
+	} while (aColumn < BOARD_COLUMNS);
 	// The hint's word glows letter by letter
 	int aPeriod = 0xbe;
 	if (mHintAgain != 0)
@@ -1343,8 +1343,8 @@ void GameScreen::drawBoard()
 			aHintTime = 0;
 		}
 	}
-	if (mField78 != 0 && 0x4b0 < (int)(ticks() - mField74))
-		mField78 = 0;
+	if (mBlinking != 0 && 0x4b0 < (int)(ticks() - mBlinkStart))
+		mBlinking = 0;
 	aColumn = 0;
 	aCell = 0;
 	do
@@ -1401,9 +1401,9 @@ void GameScreen::drawBoard()
 						} while (j < gGame->mHintLength);
 					}
 				}
-				else if (mField78 != 0 && (gGame->mTileFlags[i] & 0x20) == 0)
+				else if (mBlinking != 0 && (gGame->mTileFlags[i] & 0x20) == 0)
 				{
-					int aTime = ticks() - mField74;
+					int aTime = ticks() - mBlinkStart;
 					int aNear = 0x4b0 - aTime;
 					if (aTime < aNear)
 						aNear = aTime;
@@ -1421,9 +1421,9 @@ void GameScreen::drawBoard()
 				}
 			}
 			aRow++;
-		} while (aRow < 9);
+		} while (aRow < BOARD_ROWS);
 		aColumn++;
-		aCell += 9;
+		aCell += BOARD_ROWS;
 	} while (aCell + 0x6d < 0xbe);
 	// The path's arrows (a word longer than ten letters gets a mark at the eleventh instead)
 	int aLetters = 0;
@@ -1440,7 +1440,7 @@ void GameScreen::drawBoard()
 			aX = (float)(aX + (double)0.0275f);
 			aLetters++;
 			float aY = (float)(aHalf * 0.07666667f + aRowY + 0.036666665f);
-			char c = gGame->mLetters[gGame->pathColumn(i) * 9 + gGame->pathRow(i)];
+			char c = gGame->mLetters[gGame->pathColumn(i) * BOARD_ROWS + gGame->pathRow(i)];
 			if (c == 'Q' || c == 'a' || c == 'c' || c == 'e' || c == 'i' || c == 'l' || c == 'r' || c == 's' ||
 				c == 't')
 				aLetters++;
@@ -1493,7 +1493,7 @@ void GameScreen::drawBoard()
 		aLine += intToStr(aScore);
 	}
 	float aLineY;
-	if (gGame->mFieldC5C != 0)
+	if (gGame->mClassic != 0)
 	{
 		aLineY = 0.831666708f;
 		if (8 < gGame->currentBook()->mRows)
@@ -1511,11 +1511,11 @@ void GameScreen::drawBoard()
 		gBonnies->mFonts[5]->drawText(aLine, 0.49000001f, aLineY, 0.452499986f, 0.0416666679f, 0xffffffff, aShadow,
 			0 < aScore ? 0x908 : 0x108, 1.0f, 0.0f);
 	if (aScore == 0 || aWord.empty())
-		gBonnies->mField1C = 1;
-	if (gGame->mFieldC5C != 0)
+		gBonnies->mShimmerWaits = 1;
+	if (gGame->mClassic != 0)
 	{
 		aLine = "";
-		int aMoves = gGame->mGoal + gGame->mFieldC88;
+		int aMoves = gGame->mGoal + gGame->mMovesLag;
 		aMoves = (aMoves < 0 ? 0 : aMoves);
 		aLine += getText(0x52c);
 		aLine += intToStr(aMoves);
@@ -1533,7 +1533,7 @@ void GameScreen::drawBoard()
 	else
 	{
 		drawFrame(&gBonnies->mImages[34]->mFrames[1], 0.54124999f, 0.943333328f, 1.0f, 0);
-		float aClock = (float)(gGame->mFieldC94 + (double)gGame->mFieldC8C);
+		float aClock = (float)(gGame->mClock + (double)gGame->mClockLag);
 		if (0.001f < aClock)
 		{
 			float aAlpha = 1.0f;
@@ -1558,76 +1558,76 @@ static int gSummaryLast;          // 0x478500: the chapter was its book's last
 static int gSummaryBook;          // 0x478504
 static int gSummaryLevel;         // 0x478508
 
-// 0x410790: the next step of the screen's sequence (mField58) when its time (mField60) is up
+// 0x410790: the next step of the screen's sequence (mSequenceState) when its time (mStepEnd) is up
 void GameScreen::advance()
 {
-	mField5C = ticks();
-	mField60 = 0;
-	switch (mField58)
+	mStepStart = ticks();
+	mStepEnd = 0;
+	switch (mSequenceState)
 	{
 	case 2:
 		if (gBonnies->mLoadImages[0] == 0)
 		{
 			gBonnies->mLoadImages[7] = 1;
-			mField60 = ticks() + 10;
+			mStepEnd = ticks() + 10;
 			return;
 		}
 		gBonnies->mLoadImages[7] = 0;
 		refresh();
 		return;
 	case 3:
-		mField58 = 4;
-		mFieldC0 = 0.0f;
-		mFieldC4 = 0.0f;
-		gSummaryName = gGame->mStrCC8;
+		mSequenceState = 4;
+		mBookOpen = 0.0f;
+		mSummaryDark = 0.0f;
+		gSummaryName = gGame->mLevelBestWord;
 		gSummaryLast = gGame->currentBook()->mLast;
 		gSummaryBook = gGame->currentBook()->mBook;
 		gSummaryLevel = gGame->mLevel - 1;
-		mField60 = ticks() + 0x96;
+		mStepEnd = ticks() + 0x96;
 		playSound(Str(lit(0x4582fc)), 0.8f, 1, 10);
 		return;
 	case 4:
-		mField58 = 5;
-		mFieldE4 = 0;
-		mField60 = ticks() + 0xfa;
+		mSequenceState = 5;
+		mCountTime = 0;
+		mStepEnd = ticks() + 0xfa;
 		return;
 	case 5:
-		mField58 = 6;
-		mFieldE4 = 0;
-		mFieldEC = 0;
-		mField60 = 0;
-		if (mFieldC8 == 0)
-			mFieldC8 = ticks();
+		mSequenceState = 6;
+		mCountTime = 0;
+		mCountStep = 0;
+		mStepEnd = 0;
+		if (mSummaryStart == 0)
+			mSummaryStart = ticks();
 		return;
 	case 6:
 		gGame->currentBook();
-		mField58 = 8;
-		mField60 = ticks() + 1;
+		mSequenceState = 8;
+		mStepEnd = ticks() + 1;
 		return;
 	case 7:
-		mField58 = 8;
-		mField60 = ticks() + 100;
+		mSequenceState = 8;
+		mStepEnd = ticks() + 100;
 		return;
 	case 8:
-		if (mField54 != nullptr)
-			gResources->release(mField54);
-		mField54 = mPicture;
+		if (mLastPicture != nullptr)
+			gResources->release(mLastPicture);
+		mLastPicture = mPicture;
 		mPicture = nullptr;
 		mChapter = "";
 		if (gGame->currentBook()->mLast != 0)
 		{
-			mField58 = 9;
+			mSequenceState = 9;
 			showBookEnd();
-			mFieldB4 = 1.0f;
-			mField60 = ticks();
-			mField58 = 0xd;
+			mLeaveFade = 1.0f;
+			mStepEnd = ticks();
+			mSequenceState = 0xd;
 			return;
 		}
 		gGame->nextLevel();
 		reset();
-		mFieldB4 = 0.0f;
-		mField60 = ticks() + 0xfa;
-		mField58 = 0xd;
+		mLeaveFade = 0.0f;
+		mStepEnd = ticks() + 0xfa;
+		mSequenceState = 0xd;
 		return;
 	case 12:
 	case 13:
@@ -1637,30 +1637,30 @@ void GameScreen::advance()
 		mLinesTyped = 0;
 		mLines = 0;
 		mTypeTime = ticks() + 400;
-		mField58 = 0xe;
-		mField60 = ticks() + 0xfa;
+		mSequenceState = 0xe;
+		mStepEnd = ticks() + 0xfa;
 		return;
 	case 14:
 		if (mTyped == 9999)
 		{
-			mField58 = 0xf;
-			mFieldB4 = 0.0f;
-			mField60 = ticks() + 400;
+			mSequenceState = 0xf;
+			mLeaveFade = 0.0f;
+			mStepEnd = ticks() + 400;
 			Str aName = "";
 			aName += lit(0x4582e8);
 			appendInt(aName, (gGame->mLevel & 3) + 1);
 			playSound(aName);
 			return;
 		}
-		mField60 = ticks() + 5;
+		mStepEnd = ticks() + 5;
 		return;
 	case 15:
-		mField58 = 0x10;
-		mField60 = ticks() + 200;
+		mSequenceState = 0x10;
+		mStepEnd = ticks() + 200;
 		return;
 	case 16:
-		mField58 = 1;
-		mField60 = 0;
+		mSequenceState = 1;
+		mStepEnd = 0;
 		findWidget(0xc9)->mFlags &= ~WIDGET_INACTIVE;
 		findWidget(0xca)->mFlags &= ~WIDGET_INACTIVE;
 		findWidget(0xcb)->mFlags &= ~WIDGET_INACTIVE;
@@ -1671,27 +1671,27 @@ void GameScreen::advance()
 // 0x413020
 void GameScreen::draw()
 {
-	if (mField58 == 9 && gGame->currentBook()->mLast == 0)
+	if (mSequenceState == 9 && gGame->currentBook()->mLast == 0)
 		drawIntro();
-	else if (mField58 == 0xd)
+	else if (mSequenceState == 0xd)
 	{
 		drawIntro();
-		if (mField54 != nullptr)
-			drawFrame(mField54->mFrames, 0.0f, 0.0f, (float)(1.0f - (double)mFieldB4), 1);
+		if (mLastPicture != nullptr)
+			drawFrame(mLastPicture->mFrames, 0.0f, 0.0f, (float)(1.0f - (double)mLeaveFade), 1);
 	}
-	else if (mField58 == 0xe || mField58 == 0xf)
+	else if (mSequenceState == 0xe || mSequenceState == 0xf)
 		drawIntro();
-	else if (mField58 == 9 && mField54 != nullptr)
-		drawFrame(mField54->mFrames, 0.0f, 0.0f, 1.0f, 1);
-	else if (mField58 == 10 && mField54 != nullptr)
-		drawFrame(mField54->mFrames, 0.0f, 0.0f, 1.0f, 1);
+	else if (mSequenceState == 9 && mLastPicture != nullptr)
+		drawFrame(mLastPicture->mFrames, 0.0f, 0.0f, 1.0f, 1);
+	else if (mSequenceState == 10 && mLastPicture != nullptr)
+		drawFrame(mLastPicture->mFrames, 0.0f, 0.0f, 1.0f, 1);
 	else if (mPicture != nullptr)
 		drawFrame(mPicture->mFrames, 0.0f, 0.0f, 1.0f, 1);
-	if (!(mFieldB8 < 0.001f))
+	if (!(mBoardFade < 0.001f))
 	{
 		drawBoard();
 		Screen::draw();
-		if (!mStrCC.empty())
+		if (!mHintText.empty())
 		{
 			int aStep = mTutorialStep;
 			if (aStep == 0xe || ((aStep == 0 || aStep == 1 || aStep == 2 || aStep == 3) && gGame->mPathLength == 4))
@@ -1702,12 +1702,12 @@ void GameScreen::draw()
 						(float)(aButton->mY - (double)0.0033333334f), 1.0f, 0, 0, 0, 1);
 			}
 		}
-		if (mFieldB8 < 1.0f && mPicture != nullptr)
-			drawFrame(mPicture->mFrames, 0.0f, 0.0f, (float)(1.0f - (double)mFieldB8), 1);
+		if (mBoardFade < 1.0f && mPicture != nullptr)
+			drawFrame(mPicture->mFrames, 0.0f, 0.0f, (float)(1.0f - (double)mBoardFade), 1);
 	}
 	host()->trace(lit(0x45844c));
-	if (!mStrCC.empty())
-		gBonnies->balloon(mStrCC, mHintX, mHintY, mHintSide, gOverlayScreen->findWidget(0xcc) != nullptr, nullptr, 1);
+	if (!mHintText.empty())
+		gBonnies->balloon(mHintText, mHintX, mHintY, mHintSide, gOverlayScreen->findWidget(0xcc) != nullptr, nullptr, 1);
 	if (mFlashTime != 0)
 	{
 		double aLevel = (double)(int)((ticks() - mFlashTime) * 2) / mFlashLength;
@@ -1730,19 +1730,19 @@ void GameScreen::draw()
 		host()->trace(lit(0x458418));
 		return;
 	}
-	int aState = mField58;
+	int aState = mSequenceState;
 	if (aState == 4 || aState == 5 || aState == 6 || aState == 7 || aState == 0xd || aState == 10 || aState == 8 ||
 		(aState == 9 && gGame->currentBook()->mLast != 0))
 	{
 		// The chapter's summary over the board
 		int aFinal = 0;
-		aState = mField58;
+		aState = mSequenceState;
 		if (aState == 0xd || aState == 10 || aState == 8 || (aState == 9 && gGame->currentBook()->mLast != 0))
 			aFinal = 1;
-		float aShow = mFieldBC;
-		aState = mField58;
+		float aShow = mSummaryFade;
+		aState = mSequenceState;
 		if (aState == 0xf || aState == 0xd || aState == 10)
-			aShow = (float)(1.0f - (double)mFieldB4);
+			aShow = (float)(1.0f - (double)mLeaveFade);
 		float aHide = (float)(1.0f - (double)aShow);
 		int aFade = ftol(aHide * (double)-255.0f);
 		uint32_t aColor = addColor(0xffffffff, aFade, 0, 0, 0);
@@ -1750,23 +1750,23 @@ void GameScreen::draw()
 		if (0.0f < aShow)
 		{
 			double aDark = aShow * (double)1.6666666f;
-			if (!(aDark <= mFieldC4))
-				aDark = mFieldC4;
+			if (!(aDark <= mSummaryDark))
+				aDark = mSummaryDark;
 			if (!(aDark <= 1.0f))
 				aDark = 1.0f;
 			uint32_t aBack = (uint32_t)ftol(aDark * 114.75f) << 24;
 			if (aBack != 0)
 				fillRect(0.0f, 0.0f, 1.0f, 1.0f, aBack);
-			if (0.01f < mFieldC0)
+			if (0.01f < mBookOpen)
 			{
 				int aImage = (gSummaryLast != 0 ? 0x16 : 0) + 0xd;
-				if (mFieldC0 < 0.99f)
-					drawFrameRotated(gBonnies->mImages[aImage]->mFrames, 0.5f, 0.466666669f, 0.0f, mFieldC0, aShow, 0, 0);
+				if (mBookOpen < 0.99f)
+					drawFrameRotated(gBonnies->mImages[aImage]->mFrames, 0.5f, 0.466666669f, 0.0f, mBookOpen, aShow, 0, 0);
 				else
 					drawFrame(gBonnies->mImages[aImage]->mFrames, 0.11f, 0.163333327f, aShow, 0);
 			}
 			Font* aFont = gBonnies->mFonts[10];
-			if (mField58 != 5 && mField58 != 4)
+			if (mSequenceState != 5 && mSequenceState != 4)
 			{
 				float aY = 0.423333347f;
 				int aLength;
@@ -1791,13 +1791,13 @@ void GameScreen::draw()
 					case 1:
 					{
 						int aTime;
-						if (gGame->mFieldC5C != 0)
+						if (gGame->mClassic != 0)
 							aTime = gGame->mGoal;
 						else
-							aTime = gGame->mFieldC9C;
+							aTime = gGame->mClockBonus;
 						if (aFinal != 0)
 							aTime = 0;
-						if (gGame->mFieldC5C != 0)
+						if (gGame->mClassic != 0)
 						{
 							aName += getText(0x52f);
 							appendInt(aValue, aTime);
@@ -1815,7 +1815,7 @@ void GameScreen::draw()
 					}
 					case 2:
 						aName += getText(0x534);
-						aValue = format(Str(getText(0x535)), intToStr(gSummaryLevel + 1), intToStr(0x32),
+						aValue = format(Str(getText(0x535)), intToStr(gSummaryLevel + 1), intToStr(LEVEL_COUNT),
 							Str(lit(0x457426)));
 						break;
 					case 3:
@@ -1851,13 +1851,13 @@ void GameScreen::draw()
 // 0x413a30: the tutorial's hint is put away (theClear: the marks on the board too)
 void GameScreen::leave(int theClear)
 {
-	if (!mStrCC.empty())
+	if (!mHintText.empty())
 	{
 		findWidget(0xc9)->mFlags &= ~WIDGET_INACTIVE;
 		findWidget(0xcb)->mFlags &= ~WIDGET_INACTIVE;
 		findWidget(0xca)->mFlags &= ~WIDGET_INACTIVE;
 		mTutorialStep = -1;
-		mStrCC = "";
+		mHintText = "";
 		if (theClear != 0)
 			gGame->clearTileMarks();
 	}
@@ -1875,51 +1875,51 @@ static int gLeaveHint;
 // 0x413ae0
 void GameScreen::update()
 {
-	int aDelta = (int)(ticks() - mFieldF4);
-	mFieldF4 = ticks();
+	int aDelta = (int)(ticks() - mLastUpdate);
+	mLastUpdate = ticks();
 	if (500 < aDelta)
 		aDelta = 500;
-	mFieldC0 = 1.0f;
-	mFieldBC = 1.0f;
-	mFieldB4 = 1.0f;
-	if (mField58 == 0x13 && gBonnies->inModal() == 0)
+	mBookOpen = 1.0f;
+	mSummaryFade = 1.0f;
+	mLeaveFade = 1.0f;
+	if (mSequenceState == 0x13 && gBonnies->inModal() == 0)
 	{
-		mField58 = 1;
+		mSequenceState = 1;
 		if (gBonnies->mLastResult == 1 && gGame != nullptr)
 		{
-			gGame->mFieldC94 = 0.0f;
+			gGame->mClock = 0.0f;
 			gGame->mGoal = 0;
-			gGame->mFieldC8C = 0.0f;
-			gGame->mFieldC88 = 0;
-			gGame->mFieldC48 = 1;
-			gGame->mFieldC60 = ticks() - 1;
+			gGame->mClockLag = 0.0f;
+			gGame->mMovesLag = 0;
+			gGame->mNoMoves = 1;
+			gGame->mGameOverTime = ticks() - 1;
 		}
 	}
-	if (mField58 == 0x12 && gBonnies->inModal() == 0)
+	if (mSequenceState == 0x12 && gBonnies->inModal() == 0)
 	{
 		showInterstitial(0, 1);
-		gGameScreen->mField58 = 0x11;
+		gGameScreen->mSequenceState = 0x11;
 	}
-	int aState = mField58;
+	int aState = mSequenceState;
 	if (aState == 0x11)
 	{
 		if (gBonnies->inModal() == 0)
 		{
-			if (gGame->mLevel == 0x33 || gGame->mFieldC44 != 0)
+			if (gGame->mLevel == LEVEL_COUNT + 1 || gGame->mGameOver != 0)
 			{
-				gGame->mFieldC44 = 1;
+				gGame->mGameOver = 1;
 				gBonnies->setState(2, 1, 0);
 				return;
 			}
-			mFieldB8 = 0.0f;
+			mBoardFade = 0.0f;
 			mTyped = 0;
 			mSpacesTyped = 0;
 			mSpaces = 0;
 			mLinesTyped = 0;
 			mLines = 0;
 			mTypeTime = ticks() + 400;
-			mField58 = 0xe;
-			mField60 = ticks();
+			mSequenceState = 0xe;
+			mStepEnd = ticks();
 		}
 	}
 	else
@@ -1928,77 +1928,77 @@ void GameScreen::update()
 		bool aFull = false;
 		if (aState == 3)
 		{
-			int aStart = mField5C;
-			aLevel = (float)(1.0 - (double)(float)(int)(ticks() - aStart) / (double)(float)(mField60 - aStart));
-			mFieldB8 = aLevel;
+			int aStart = mStepStart;
+			aLevel = (float)(1.0 - (double)(float)(int)(ticks() - aStart) / (double)(float)(mStepEnd - aStart));
+			mBoardFade = aLevel;
 			if (aLevel <= 1.0f)
 			{
 				if (aLevel < 0.0f)
-					mFieldB8 = 0.0f;
+					mBoardFade = 0.0f;
 			}
 			else
 				aFull = true;
 		}
 		else if (aState == 4)
 		{
-			mFieldC0 = 0.0f;
-			aLevel = (float)((double)(float)(int)(ticks() - mField5C) / (double)(float)(mField60 - mField5C));
-			mFieldC4 = aLevel;
+			mBookOpen = 0.0f;
+			aLevel = (float)((double)(float)(int)(ticks() - mStepStart) / (double)(float)(mStepEnd - mStepStart));
+			mSummaryDark = aLevel;
 			if (aLevel < 1.0f)
 			{
 				if (aLevel < 0.0f)
-					mFieldC4 = 0.0f;
+					mSummaryDark = 0.0f;
 			}
 			else
-				mFieldC4 = 1.0f;
+				mSummaryDark = 1.0f;
 		}
 		else if (aState == 5)
 		{
-			aLevel = (float)((double)(float)(int)(ticks() - mField5C) / (double)(float)(mField60 - mField5C));
-			mFieldC0 = aLevel;
+			aLevel = (float)((double)(float)(int)(ticks() - mStepStart) / (double)(float)(mStepEnd - mStepStart));
+			mBookOpen = aLevel;
 			if (aLevel < 1.0f)
 			{
 				if (aLevel < 0.0f)
-					mFieldC0 = 0.0f;
+					mBookOpen = 0.0f;
 			}
 			else
-				mFieldC0 = 1.0f;
+				mBookOpen = 1.0f;
 		}
 		else if (aState == 7)
 		{
-			int aStart = mField5C;
-			aLevel = (float)(1.0 - (double)(float)(int)(ticks() - aStart) / (double)(float)(mField60 - aStart));
-			mFieldBC = aLevel;
+			int aStart = mStepStart;
+			aLevel = (float)(1.0 - (double)(float)(int)(ticks() - aStart) / (double)(float)(mStepEnd - aStart));
+			mSummaryFade = aLevel;
 			if (aLevel <= 1.0f)
 			{
-				// The exe tests mFieldB8 here
-				if (mFieldB8 < 0.0f)
-					mFieldBC = 0.0f;
+				// The exe tests mBoardFade here
+				if (mBoardFade < 0.0f)
+					mSummaryFade = 0.0f;
 			}
 			else
-				mFieldBC = 1.0f;
+				mSummaryFade = 1.0f;
 		}
 		else if (aState == 0xd || aState == 0xf || aState == 0xc || aState == 10)
 		{
-			aLevel = (float)((double)(float)(int)(ticks() - mField5C) / (double)(float)(mField60 - mField5C));
-			mFieldB4 = aLevel;
+			aLevel = (float)((double)(float)(int)(ticks() - mStepStart) / (double)(float)(mStepEnd - mStepStart));
+			mLeaveFade = aLevel;
 			if (aLevel <= 1.0f)
 			{
 				if (aLevel < 0.0f)
-					mFieldB4 = 0.0f;
+					mLeaveFade = 0.0f;
 			}
 			else
-				mFieldB4 = 1.0f;
+				mLeaveFade = 1.0f;
 		}
 		else if (aState == 0x10)
 		{
 			// The same as state 3's (the exe jumps into it)
-			aLevel = (float)((double)(float)(int)(ticks() - mField5C) / (double)(float)(mField60 - mField5C));
-			mFieldB8 = aLevel;
+			aLevel = (float)((double)(float)(int)(ticks() - mStepStart) / (double)(float)(mStepEnd - mStepStart));
+			mBoardFade = aLevel;
 			if (aLevel <= 1.0f)
 			{
 				if (aLevel < 0.0f)
-					mFieldB8 = 0.0f;
+					mBoardFade = 0.0f;
 			}
 			else
 				aFull = true;
@@ -2008,61 +2008,61 @@ void GameScreen::update()
 		else if (aState == 6)
 		{
 			// The bonus for the time or the moves left, counted into the score
-			int aTime = mFieldE4 + aDelta;
-			mFieldE4 = aTime;
+			int aTime = mCountTime + aDelta;
+			mCountTime = aTime;
 			aTime = aTime & -(int)(0 <= aTime);
-			mFieldE4 = aTime;
+			mCountTime = aTime;
 			if (0x9c4 < aTime)
 				aTime = 0x9c4;
-			int aStep = mFieldEC;
-			mFieldE4 = aTime;
+			int aStep = mCountStep;
+			mCountTime = aTime;
 			if (aStep == 0)
 			{
-				mFieldE8 = 0;
+				mCountedPoints = 0;
 				if (999 < aTime)
 				{
-					mFieldE4 = 0;
-					mFieldEC = 1;
-					mFieldF0 = ticks();
+					mCountTime = 0;
+					mCountStep = 1;
+					mCountStart = ticks();
 				}
 			}
 			else if (aStep == 1)
 			{
-				int aSince = (int)(ticks() - mFieldF0);
+				int aSince = (int)(ticks() - mCountStart);
 				if (aSince < 0)
 					aSince = 0;
 				else if (0x9c4 < aSince)
 					aSince = 0x9c4;
-				int aCount = gGame->mFieldC5C != 0 ? 3 : 4;
+				int aCount = gGame->mClassic != 0 ? 3 : 4;
 				int anInterval = ftol((double)aCount * (((1.0f - aSince * (double)0.0004f) * 0.55f) + 0.45f) * 25.0f);
 				bool aCounted = false;
-				if (anInterval < mFieldE4)
+				if (anInterval < mCountTime)
 				{
 					do
 					{
-						mFieldE4 -= anInterval;
-						if (gGame->mFieldC5C == 0)
+						mCountTime -= anInterval;
+						if (gGame->mClassic == 0)
 						{
-							int aLeft = gGame->mFieldC9C;
+							int aLeft = gGame->mClockBonus;
 							if (aLeft < 1)
 							{
-								mFieldE4 = 0;
-								mFieldEC = 2;
+								mCountTime = 0;
+								mCountStep = 2;
 							}
 							else
 							{
 								int aTake = aLeft % 10 + 10;
 								if (aTake <= aLeft)
 									aLeft = aTake;
-								gGame->mFieldC9C -= aLeft;
+								gGame->mClockBonus -= aLeft;
 								gGame->mScore += (unsigned char)gGame->difficultyFactor() * (gGame->mLevel + 1) * aLeft * 5;
 								aCounted = true;
 							}
 						}
 						else if (gGame->mGoal < 1)
 						{
-							mFieldE4 = 0;
-							mFieldEC = 2;
+							mCountTime = 0;
+							mCountStep = 2;
 						}
 						else
 						{
@@ -2070,30 +2070,30 @@ void GameScreen::update()
 							gGame->mScore += (unsigned char)gGame->difficultyFactor() * (gGame->mLevel + 1) * 0x14;
 							aCounted = true;
 						}
-					} while (anInterval < mFieldE4);
+					} while (anInterval < mCountTime);
 					if (aCounted)
 					{
 						int aRise = 0x50;
-						if (mFieldE8 < 0x51)
-							aRise = mFieldE8;
+						if (mCountedPoints < 0x51)
+							aRise = mCountedPoints;
 						double aPitch = (double)aRise * 0.035f + 1.0f;
 						gSound->play(Str(lit(0x45845c)), 0.4f, 1, 0, (float)(aPitch + aPitch));
-						mFieldE8++;
+						mCountedPoints++;
 					}
 				}
-				gGame->mFieldC70 = gGame->mScore;
+				gGame->mScoreTime = gGame->mScore;
 			}
 			else if (aStep == 2 && 500 < aTime)
 			{
-				mFieldE4 = 0;
-				mFieldEC = 3;
+				mCountTime = 0;
+				mCountStep = 3;
 			}
 		}
 		if (aFull)
-			mFieldB8 = 1.0f;
+			mBoardFade = 1.0f;
 	}
 	gGame->update();
-	if (mField60 != 0 && mField60 <= (int)ticks())
+	if (mStepEnd != 0 && mStepEnd <= (int)ticks())
 	{
 		advance();
 		return;
@@ -2103,45 +2103,45 @@ void GameScreen::update()
 		gLeaveHint = 0;
 		leave(1);
 	}
-	if (mField58 == 1)
+	if (mSequenceState == 1)
 	{
-		if (mField78 != 0)
-			mField70 = ticks();
+		if (mBlinking != 0)
+			mHintClock = ticks();
 		int aHintAfter = (-(int)(gGame->mDifficulty != 0) & 2000) + 18000;
 		int anIdleAfter = (-(int)(gGame->mDifficulty != 0) & 4000) + 13000;
 		if (gGame->mRecord.mBestLevel < 1)
 		{
 			// New players get their hints sooner
 			float aFactor;
-			if (gGame->mFieldCA0 < 3)
+			if (gGame->mWordsPlayed < 3)
 				aFactor = 5.0f;
-			else if (gGame->mFieldCA0 < 5)
+			else if (gGame->mWordsPlayed < 5)
 				aFactor = 0.5f;
 			else
 				aFactor = 0.75f;
 			aHintAfter = ftol((double)aHintAfter * aFactor);
 			anIdleAfter = ftol((double)anIdleAfter * aFactor);
 		}
-		if (!mStrCC.empty() && mHintSide != 6 && mHintShown == 0 && mField78 == 0)
+		if (!mHintText.empty() && mHintSide != 6 && mHintShown == 0 && mBlinking == 0)
 		{
-			mField70 = ticks();
+			mHintClock = ticks();
 			mHintTime = ticks();
 			Screen::update();
 			return;
 		}
-		if (gBonnies->inModal() == 0 && mField7C == 0 && gGame->mFieldC60 == 0 && gBonnies->mPaused == 0)
+		if (gBonnies->inModal() == 0 && mStarAtBottom == 0 && gGame->mGameOverTime == 0 && gBonnies->mPaused == 0)
 		{
 			if (mHintShown == 0)
 			{
-				if (mField78 == 0 && ((0 < mFieldB0 && mFieldB0 < (int)ticks()) ||
-					(aHintAfter < (int)(ticks() - gGame->mFieldD8C) && anIdleAfter < (int)(ticks() - mHintTime))))
+				if (mBlinking == 0 && ((0 < mHintDue && mHintDue < (int)ticks()) ||
+					(aHintAfter < (int)(ticks() - gGame->mLastMoveTime) && anIdleAfter < (int)(ticks() - mHintTime))))
 				{
 					showHintWord();
-					mField70 += 3000;
+					mHintClock += 3000;
 					Screen::update();
 					return;
 				}
-				if (mHintShown == 0 && mField78 == 0 && 2000 < (int)(ticks() - mField70))
+				if (mHintShown == 0 && mBlinking == 0 && 2000 < (int)(ticks() - mHintClock))
 				{
 					int aMarked = gGame->countFlag20();
 					int aTiles = gGame->countTiles();
@@ -2156,17 +2156,17 @@ void GameScreen::update()
 					int aTotal = 1;
 					if (0 < aTiles)
 						aTotal = aTiles;
-					if (aWait <= (int)(ticks() - mField70))
+					if (aWait <= (int)(ticks() - mHintClock))
 					{
 						if ((double)aMarked / (double)aTotal < 0.85f)
 						{
-							mField70 = ticks() + 2000;
+							mHintClock = ticks() + 2000;
 							Screen::update();
 							return;
 						}
-						mField78 = 1;
-						mField70 = ticks();
-						mField74 = mField70;
+						mBlinking = 1;
+						mHintClock = ticks();
+						mBlinkStart = mHintClock;
 						if (2 < aMissing)
 						{
 							mHintTime += 0xdac;
@@ -2181,7 +2181,7 @@ void GameScreen::update()
 		{
 			mHintShown = 0;
 			mHintTime = ticks();
-			mField70 = ticks();
+			mHintClock = ticks();
 		}
 	}
 	Screen::update();
@@ -2194,8 +2194,8 @@ static uint32_t gUpLast;
 // 0x414400
 int GameScreen::handleEvent(Event* theEvent)
 {
-	int aLastRow = mField8C;
-	int aLastColumn = mField88;
+	int aLastRow = mCursorRow;
+	int aLastColumn = mCursorColumn;
 	bool aShared = false;
 	switch (theEvent->mType)
 	{
@@ -2214,15 +2214,15 @@ int GameScreen::handleEvent(Event* theEvent)
 	if (aShared)
 	{
 		// A click or key ends the waits, the count and the typing, or puts the tutorial's hint away
-		int aState = mField58;
+		int aState = mSequenceState;
 		if (aState == 0xb)
 		{
-			mField60 = ticks() - 1;
+			mStepEnd = ticks() - 1;
 			return 0;
 		}
 		if (aState == 6)
 		{
-			mField60 = ticks() - 1;
+			mStepEnd = ticks() - 1;
 			gGame->addLevelBonus();
 			return 0;
 		}
@@ -2234,7 +2234,7 @@ int GameScreen::handleEvent(Event* theEvent)
 			mTyped = aTyped;
 			return 0;
 		}
-		if (!mStrCC.empty() && (mHintSide == 5 || mHintSide == 6) && gOverlayScreen->findWidget(0xcc) == nullptr)
+		if (!mHintText.empty() && (mHintSide == 5 || mHintSide == 6) && gOverlayScreen->findWidget(0xcc) == nullptr)
 		{
 			int aType = theEvent->mType;
 			if (((aType == 8 || aType == 9) && (theEvent->mA == 0x1b || theEvent->mA == 0xd)) || aType == 6 ||
@@ -2260,15 +2260,15 @@ int GameScreen::handleEvent(Event* theEvent)
 	{
 	case 1:
 		// The mouse moved: the cursor's cell, and with a button down the cells it crossed
-		if (mField88 != -1 || !(distance(theEvent->mX, theEvent->mY, mField90, mField94) < 0.00375f))
+		if (mCursorColumn != -1 || !(distance(theEvent->mX, theEvent->mY, mMouseX, mMouseY) < 0.00375f))
 		{
-			if (gBonnies->inModal() == 0 && mField58 == 1 && gBonnies->mPaused == 0 && mField7C == 0 &&
-				gGame->mFieldC60 == 0)
+			if (gBonnies->inModal() == 0 && mSequenceState == 1 && gBonnies->mPaused == 0 && mStarAtBottom == 0 &&
+				gGame->mGameOverTime == 0)
 			{
-				int aSteps = ftol(distance(theEvent->mX, theEvent->mY, mField90, mField94) * 156.52174f);
+				int aSteps = ftol(distance(theEvent->mX, theEvent->mY, mMouseX, mMouseY) * 156.52174f);
 				if (aSteps < 2)
 					aSteps = 1;
-				if (mFieldA4 == 0)
+				if (mMouseDown == 0)
 					aSteps = 1;
 				int i = 0;
 				if (0 < aSteps)
@@ -2278,36 +2278,36 @@ int GameScreen::handleEvent(Event* theEvent)
 					{
 						i++;
 						double aPart = (double)(float)i / aCount;
-						float aX = (float)(aPart * theEvent->mX + (1.0f - aPart) * mField90);
-						float aY = (float)(aPart * theEvent->mY + (1.0f - aPart) * mField94);
+						float aX = (float)(aPart * theEvent->mX + (1.0f - aPart) * mMouseX);
+						float aY = (float)(aPart * theEvent->mY + (1.0f - aPart) * mMouseY);
 						int aColumn, aRow;
 						float aDistance;
 						if (hitTile(aX, aY, &aColumn, &aRow, &aDistance, 1) == 0)
 						{
-							mField88 = -1;
-							mField8C = -1;
+							mCursorColumn = -1;
+							mCursorRow = -1;
 						}
-						else if (aDistance <= 0.0299f || mFieldA4 == 0)
+						else if (aDistance <= 0.0299f || mMouseDown == 0)
 						{
-							mField88 = aColumn;
-							mField8C = aRow;
+							mCursorColumn = aColumn;
+							mCursorRow = aRow;
 						}
 						else
 							continue;
-						if (mFieldA4 == 0)
+						if (mMouseDown == 0)
 							break;
-						if (mField88 != -1)
+						if (mCursorColumn != -1)
 						{
-							gGame->pick(mField88, mField8C, aLastColumn, aLastRow, 1);
-							aLastColumn = mField88;
-							aLastRow = mField8C;
+							gGame->pick(mCursorColumn, mCursorRow, aLastColumn, aLastRow, 1);
+							aLastColumn = mCursorColumn;
+							aLastRow = mCursorRow;
 						}
 					} while (i < aSteps);
 				}
 			}
-			mField90 = theEvent->mX;
-			mField94 = theEvent->mY;
-			if (mFieldA4 != 0)
+			mMouseX = theEvent->mX;
+			mMouseY = theEvent->mY;
+			if (mMouseDown != 0)
 				return 0;
 		}
 		break;
@@ -2315,21 +2315,21 @@ int GameScreen::handleEvent(Event* theEvent)
 	{
 		if (Screen::handleEvent(theEvent) == 0)
 			return 0;
-		mField90 = theEvent->mX;
-		mField94 = theEvent->mY;
+		mMouseX = theEvent->mX;
+		mMouseY = theEvent->mY;
 		// A click on the path's last tile again is silent
 		bool aMuted = false;
-		if (0 < gGame->mPathLength && mField80 == mField88 && mField84 == mField8C &&
-			gGame->pathColumn(gGame->mPathLength - 1) == mField88 && gGame->pathRow(gGame->mPathLength - 1) == mField8C)
+		if (0 < gGame->mPathLength && mLastColumn == mCursorColumn && mLastRow == mCursorRow &&
+			gGame->pathColumn(gGame->mPathLength - 1) == mCursorColumn && gGame->pathRow(gGame->mPathLength - 1) == mCursorRow)
 		{
 			aMuted = true;
 			gSound->mPaused++;
 		}
-		if (gBonnies->inModal() == 0 && mField58 == 1 && gBonnies->mPaused == 0 && mField7C == 0 &&
-			gGame->mFieldC60 == 0)
+		if (gBonnies->inModal() == 0 && mSequenceState == 1 && gBonnies->mPaused == 0 && mStarAtBottom == 0 &&
+			gGame->mGameOverTime == 0)
 		{
 			bool aPick = true;
-			if (mField88 == -1)
+			if (mCursorColumn == -1)
 			{
 				int aColumn, aRow;
 				float aDistance;
@@ -2337,29 +2337,29 @@ int GameScreen::handleEvent(Event* theEvent)
 				{
 					if (0 < gBonnies->mSpecialMode)
 					{
-						mField88 = aColumn;
-						mField8C = aRow;
+						mCursorColumn = aColumn;
+						mCursorRow = aRow;
 					}
-					else if ((gGame->mTileFlags[aColumn * 9 + aRow] & 2) != 0)
+					else if ((gGame->mTileFlags[aColumn * BOARD_ROWS + aRow] & 2) != 0)
 					{
 						// A fixed tile: the hint twice, then the error sound
 						aPick = false;
-						int aSeen = gGame->mRecord.mFieldAC;
-						gGame->mRecord.mFieldAC = aSeen + 1;
+						int aSeen = gGame->mRecord.mFixedTileTaps;
+						gGame->mRecord.mFixedTileTaps = aSeen + 1;
 						if (aSeen < 2)
 							gGameScreen->showHint(Str(getText(0x53c)), 999, 0.5f, 0.4f, 5, 1);
 						else
 							playSound(Str(lit(0x457620)), 0.65f);
 					}
-					else if (gGame->mLetters[aColumn * 9 + aRow] == '*')
+					else if (gGame->mLetters[aColumn * BOARD_ROWS + aRow] == '*')
 					{
 						aPick = false;
-						if (!mStrCC.empty() && mTutorialStep == 10)
+						if (!mHintText.empty() && mTutorialStep == 10)
 							playSound(Str(lit(0x457620)), 0.65f);
 						else
 						{
-							int aSeen = gGame->mRecord.mFieldB0;
-							gGame->mRecord.mFieldB0 = aSeen + 1;
+							int aSeen = gGame->mRecord.mStarTileTaps;
+							gGame->mRecord.mStarTileTaps = aSeen + 1;
 							if (aSeen < 2)
 								gGameScreen->showHint(Str(getText(0x53d)), 999, 0.5f, 0.4f, 5, 1);
 							else
@@ -2369,7 +2369,7 @@ int GameScreen::handleEvent(Event* theEvent)
 				}
 			}
 			if (aPick)
-				gGame->pick(mField88, mField8C, aLastColumn, aLastRow, 0);
+				gGame->pick(mCursorColumn, mCursorRow, aLastColumn, aLastRow, 0);
 		}
 		if (aMuted)
 			gSound->mPaused--;
@@ -2388,16 +2388,16 @@ int GameScreen::handleEvent(Event* theEvent)
 			return 0;
 		}
 		// Letting go over a word spells it, and so does a double click on the path's last tile
-		if ((mFieldA4 == 0 || mField88 != -1) &&
-			((mFieldA4 != 0 && gGame->isWord() != 0 && 1 < mFieldA8) ||
-				(doubleClickDistance() <= aSince && aSince <= doubleClickTime() && mFieldA4 != 0 && mFieldA8 == 1 &&
-					1 < gGame->mPathLength && mField80 == mField88 && mField84 == mField8C &&
-					gGame->pathColumn(gGame->mPathLength - 1) == mField88 &&
-					gGame->pathRow(gGame->mPathLength - 1) == mField8C)))
+		if ((mMouseDown == 0 || mCursorColumn != -1) &&
+			((mMouseDown != 0 && gGame->isWord() != 0 && 1 < mClicks) ||
+				(doubleClickDistance() <= aSince && aSince <= doubleClickTime() && mMouseDown != 0 && mClicks == 1 &&
+					1 < gGame->mPathLength && mLastColumn == mCursorColumn && mLastRow == mCursorRow &&
+					gGame->pathColumn(gGame->mPathLength - 1) == mCursorColumn &&
+					gGame->pathRow(gGame->mPathLength - 1) == mCursorRow)))
 			gGame->submit();
-		mField80 = mField88;
-		mField84 = mField8C;
-		mFieldA4 = 0;
+		mLastColumn = mCursorColumn;
+		mLastRow = mCursorRow;
+		mMouseDown = 0;
 		break;
 	}
 	case 6:
@@ -2405,13 +2405,13 @@ int GameScreen::handleEvent(Event* theEvent)
 		// The right button drops the path
 		if (gOverlayScreen != nullptr && gOverlayScreen->findWidget(0xcc) != nullptr)
 			gLeaveHint = 1;
-		mFieldA4 = 0;
-		if (gBonnies->inModal() == 0 && mField7C == 0 && gGame->mFieldC60 == 0 && mField58 == 1 &&
-			gBonnies->mPaused == 0 && (mStrCC.empty() || (mTutorialStep != 1 && mTutorialStep != 3)))
+		mMouseDown = 0;
+		if (gBonnies->inModal() == 0 && mStarAtBottom == 0 && gGame->mGameOverTime == 0 && mSequenceState == 1 &&
+			gBonnies->mPaused == 0 && (mHintText.empty() || (mTutorialStep != 1 && mTutorialStep != 3)))
 		{
 			if (0 < gGame->mPathLength)
 			{
-				gGame->mFieldCDC = ticks();
+				gGame->mPathClearTime = ticks();
 				playSound(Str(lit(0x458490)), 0.75f);
 			}
 			gGame->mPathLength = 0;
@@ -2426,7 +2426,7 @@ int GameScreen::handleEvent(Event* theEvent)
 			if (aKey == 0x20 || aKey == 0x13)
 			{
 				// Space and Pause
-				if (gBonnies->mPaused != 0 || (mField58 == 1 && gGame->mFieldC60 == 0))
+				if (gBonnies->mPaused != 0 || (mSequenceState == 1 && gGame->mGameOverTime == 0))
 					gBonnies->mPaused = (gBonnies->mPaused == 0);
 				return 0;
 			}
@@ -2445,7 +2445,7 @@ int GameScreen::handleEvent(Event* theEvent)
 		else if (aKey == 0x11a)
 		{
 			// F1: the help
-			if (gBonnies->inModal() == 0 && isPlaying() != 0 && mStrCC.empty())
+			if (gBonnies->inModal() == 0 && isPlaying() != 0 && mHintText.empty())
 				gBonnies->setState(4, 1, 0);
 			return 0;
 		}
@@ -2458,22 +2458,22 @@ int GameScreen::handleEvent(Event* theEvent)
 			showGameMenu();
 			return 0;
 		case 0xca:
-			if (!gGameScreen->mStrCC.empty() && gGameScreen->mTutorialStep == 0xe)
+			if (!gGameScreen->mHintText.empty() && gGameScreen->mTutorialStep == 0xe)
 				leave(1);
 			gGame->submit();
 			return 0;
 		case 0xcb:
 		{
-			if (mField11C == 0)
+			if (mHintsChecked == 0)
 				return 0;
 			if (findWidget(0xcb) != nullptr && (findWidget(0xcb)->mFlags & WIDGET_INACTIVE) != 0)
 				return 0;
-			if (mFieldAC != 0)
+			if (mShuffleEndsGame != 0)
 			{
 				// No moves left to shuffle: the game is over
 				messageDialog(0, Str(getText(0x53e)), Str(getText(0x53f)), Str(getText(0x540)), Str(""), Str(""), 0, 0,
 					0, 0, 0);
-				mField58 = 0x13;
+				mSequenceState = 0x13;
 				return 0;
 			}
 			int aStar = (int)(0 < gGame->mRecord.mBestLevel);
@@ -2489,7 +2489,7 @@ int GameScreen::handleEvent(Event* theEvent)
 				if (aStar != 0)
 					gGame->mRecord.mSeen[24] = 1;
 				leave(1);
-				if (gGame->mFieldC5C == 0)
+				if (gGame->mClassic == 0)
 				{
 					aText = exeI32(0x4581dc + (-(int)(aStar != 0) & -7) * 4);
 					aStep = 0x10;
@@ -2559,19 +2559,19 @@ std::string testState()
 	if (gGameScreen == nullptr || gGame == nullptr)
 		return aText;
 	snprintf(aLine, sizeof aLine, "game %d %d %d %d %d %d %d\n", gGame->mLevel, gGame->mScore, gGame->mGoal,
-		gGame->mInProgress, gGameScreen->mField58, gGameScreen->isBusy(), gGame->mFieldC60);
+		gGame->mInProgress, gGameScreen->mSequenceState, gGameScreen->isBusy(), gGame->mGameOverTime);
 	aText += aLine;
-	snprintf(aLine, sizeof aLine, "balloon %d %d %d\n", gGameScreen->mStrCC.empty() ? 0 : 1, gGameScreen->mHintSide,
+	snprintf(aLine, sizeof aLine, "balloon %d %d %d\n", gGameScreen->mHintText.empty() ? 0 : 1, gGameScreen->mHintSide,
 		gGameScreen->mTutorialStep);
 	aText += aLine;
 	// the tutorial's balloon text, on one line, and the tiles it marks for its word
-	std::string aBalloon = gGameScreen->mStrCC;
+	std::string aBalloon = gGameScreen->mHintText;
 	for (size_t i = 0; i < aBalloon.size(); i++)
 		if (aBalloon[i] == '\n' || aBalloon[i] == '\r')
 			aBalloon[i] = ' ';
 	aText += "says " + aBalloon + "\n";
 	aText += "marked";
-	for (int aCell = 0; aCell < 81; aCell++)
+	for (int aCell = 0; aCell < BOARD_CELLS; aCell++)
 	{
 		if ((gGame->mTileFlags[aCell] & 0x40) == 0 || gGame->mLetters[aCell] == 0)
 			continue;
@@ -2587,7 +2587,7 @@ std::string testState()
 	{
 		float aX, aY;
 		gGameScreen->tilePos(gGame->mHintColumns[i], gGame->mHintRows[i], &aX, &aY);
-		snprintf(aLine, sizeof aLine, " %c %.4f %.4f", gGame->mLetters[gGame->mHintColumns[i] * 9 + gGame->mHintRows[i]],
+		snprintf(aLine, sizeof aLine, " %c %.4f %.4f", gGame->mLetters[gGame->mHintColumns[i] * BOARD_ROWS + gGame->mHintRows[i]],
 			aX, aY);
 		aText += aLine;
 	}
@@ -2623,7 +2623,7 @@ static int testFill(const std::vector<int>& thePath)
 		if ((aFlags & 8) != 0)
 			aFill += (aFlags & 0x20) != 0 ? -2 : 2;
 		else if ((aFlags & 0x20) == 0)
-			aFill += gGame->currentBook()->mField38 == 0 || (aFlags & 0x10) != 0 ? 2 : 1;
+			aFill += gGame->currentBook()->mTwoFills == 0 || (aFlags & 0x10) != 0 ? 2 : 1;
 	}
 	return aFill;
 }
@@ -2633,7 +2633,7 @@ static int testFill(const std::vector<int>& thePath)
 static int testStars(const std::vector<int>& thePath)
 {
 	int aGain = 0;
-	for (int aCell = 0; aCell < 81; aCell++)
+	for (int aCell = 0; aCell < BOARD_CELLS; aCell++)
 	{
 		if (gGame->mLetters[aCell] != '*')
 			continue;
@@ -2659,7 +2659,7 @@ static int testValue(const std::vector<int>& thePath)
 	if (thePath.size() < 3)
 		return -100000;
 	int aLength = (int)thePath.size();
-	int aShortest = (gGame->mFieldC5C != 0) + 5;
+	int aShortest = (gGame->mClassic != 0) + 5;
 	int aTurns = aLength < aShortest ? -1 : aLength - aShortest + 1;
 	int aTurnWeight = gGame->mGoal <= 10 ? 40 : 12;
 	return testFill(thePath) * 8 + aTurns * aTurnWeight + testStars(thePath) * 6 + aLength;
@@ -2704,7 +2704,7 @@ static void testSearch(int theColumn, int theRow, std::string& theWord, std::str
 		int aColumn, aRow;
 		if (gGame->neighbour(theColumn, theRow, aDirection, &aColumn, &aRow) == 0)
 			continue;
-		int aCell = aColumn * 9 + aRow;
+		int aCell = aColumn * BOARD_ROWS + aRow;
 		if (!testTile(aCell) || std::find(thePath.begin(), thePath.end(), aCell) != thePath.end())
 			continue;
 		testStep(aCell, theWord, theSpelled, thePath, theBest, theBestWord, theVisits);
@@ -2728,7 +2728,7 @@ static void testStep(int theCell, std::string& theWord, std::string& theSpelled,
 		theSpelled += expandWord(Str(1, aLetter), 0);
 		thePath.push_back(theCell);
 		if (testPrefix(theSpelled))
-			testSearch(theCell / 9, theCell % 9, theWord, theSpelled, thePath, theBest, theBestWord, theVisits);
+			testSearch(theCell / BOARD_ROWS, theCell % BOARD_ROWS, theWord, theSpelled, thePath, theBest, theBestWord, theVisits);
 		thePath.pop_back();
 		theSpelled.resize(aSize);
 		theWord.pop_back();
@@ -2743,7 +2743,7 @@ static void testBest(std::vector<int>& thePath, std::string& theWord)
 {
 	static std::string sKey, sWord;
 	static std::vector<int> sPath;
-	std::string aKey(gGame->mLetters, gGame->mLetters + 81);
+	std::string aKey(gGame->mLetters, gGame->mLetters + BOARD_CELLS);
 	aKey.append((const char*)gGame->mTileFlags, sizeof gGame->mTileFlags);
 	aKey += std::to_string(gGame->mGoal) + " " + std::to_string(gGame->mLevel);
 	if (aKey == sKey)
@@ -2760,7 +2760,7 @@ static void testBest(std::vector<int>& thePath, std::string& theWord)
 	std::vector<int> aStarts;
 	for (int aPass = 0; aPass < 2; aPass++)
 	{
-		for (int aCell = 0; aCell < 81; aCell++)
+		for (int aCell = 0; aCell < BOARD_CELLS; aCell++)
 		{
 			if (!testTile(aCell) || gGame->currentBook()->isCell(aCell / 9, aCell % 9) == 0)
 				continue;
@@ -2806,7 +2806,7 @@ static bool testTouch(int theCell, int theOther)
 	for (int aDirection = 0; aDirection < 6; aDirection++)
 	{
 		int aColumn, aRow;
-		if (gGame->neighbour(theCell / 9, theCell % 9, aDirection, &aColumn, &aRow) != 0 && aColumn * 9 + aRow == theOther)
+		if (gGame->neighbour(theCell / BOARD_ROWS, theCell % BOARD_ROWS, aDirection, &aColumn, &aRow) != 0 && aColumn * BOARD_ROWS + aRow == theOther)
 			return true;
 	}
 	return false;
@@ -2854,8 +2854,8 @@ static void testCentre(Screen* theScreen, Widget* theWidget, int* theX, int* the
 static std::string testMove()
 {
 	if (gBonnies == nullptr || gBonnies->mState != 3 || gGameScreen == nullptr || gGame == nullptr ||
-		gDictionary == nullptr || gDictionary->mCount == 0 || gBonnies->inModal() || gGameScreen->mField58 != 1 ||
-		gGame->mFieldC60 != 0)
+		gDictionary == nullptr || gDictionary->mCount == 0 || gBonnies->inModal() || gGameScreen->mSequenceState != 1 ||
+		gGame->mGameOverTime != 0)
 		return "MOVE null";
 	char aLine[96];
 	// a balloon's own button (Continue, on the balloon's screen): any active button of a visible screen but the board's
@@ -2875,7 +2875,7 @@ static std::string testMove()
 		}
 	}
 	std::vector<int> aMarked;
-	for (int aCell = 0; aCell < 81; aCell++)
+	for (int aCell = 0; aCell < BOARD_CELLS; aCell++)
 	{
 		if ((gGame->mTileFlags[aCell] & 0x40) != 0 && gGame->mLetters[aCell] != 0)
 			aMarked.push_back(aCell);
@@ -2883,10 +2883,10 @@ static std::string testMove()
 	std::vector<int> aPath;
 	std::string aWord;
 	const char* aKind = "word";
-	if (!gGameScreen->mStrCC.empty() && !aMarked.empty())
+	if (!gGameScreen->mHintText.empty() && !aMarked.empty())
 	{
 		// the balloon's word: its first word of three or more capitals
-		const std::string& aText = gGameScreen->mStrCC;
+		const std::string& aText = gGameScreen->mHintText;
 		std::string aToken;
 		for (size_t i = 0; i <= aText.size() && aWord.empty(); i++)
 		{
@@ -2909,14 +2909,14 @@ static std::string testMove()
 	}
 	else
 		testBest(aPath, aWord);
-	if (aPath.size() < 3 && (gGameScreen->mStrCC.empty() || aMarked.empty()) && gGameScreen->mHintShown != 0 &&
+	if (aPath.size() < 3 && (gGameScreen->mHintText.empty() || aMarked.empty()) && gGameScreen->mHintShown != 0 &&
 		gGame->mHintFound != 0 && gGame->mHintLength >= 3)
 	{
 		aPath.clear();
 		aWord.clear();
 		for (int i = 0; i < gGame->mHintLength && i < 20; i++)
 		{
-			int aCell = gGame->mHintColumns[i] * 9 + gGame->mHintRows[i];
+			int aCell = gGame->mHintColumns[i] * BOARD_ROWS + gGame->mHintRows[i];
 			aPath.push_back(aCell);
 			aWord += gGame->mLetters[aCell];
 		}
@@ -2960,14 +2960,14 @@ static std::string testJsonState()
 	aText += aLine;
 	if (aState == 3 && gGameScreen != nullptr && gGame != nullptr)
 	{
-		bool aClassic = gGame->mFieldC5C != 0;
+		bool aClassic = gGame->mClassic != 0;
 		snprintf(aLine, sizeof aLine, ",\"mode\":\"%s\",\"level\":%d,\"score\":%d,\"phase\":%d", aClassic ? "classic" :
-			"action", gGame->mLevel, gGame->mScore, gGameScreen->mField58);
+			"action", gGame->mLevel, gGame->mScore, gGameScreen->mSequenceState);
 		aText += aLine;
 		if (aClassic)
 			snprintf(aLine, sizeof aLine, ",\"moves\":%d", gGame->mGoal);
 		else
-			snprintf(aLine, sizeof aLine, ",\"timer\":%.3f", gGame->mFieldC94);
+			snprintf(aLine, sizeof aLine, ",\"timer\":%.3f", gGame->mClock);
 		aText += aLine;
 		snprintf(aLine, sizeof aLine, ",\"filled\":%d,\"fill\":%d", gGame->countFlag20(), gGame->currentBook()->mFillCount);
 		aText += aLine;
@@ -2975,12 +2975,12 @@ static std::string testJsonState()
 		// lower case a two-letter tile), '.' no cell, ' ' an empty cell; "fixed" the cells of locked tiles, as column*9+row
 		aText += ",\"board\":[";
 		std::string aFixed;
-		for (int aRow = 0; aRow < 9; aRow++)
+		for (int aRow = 0; aRow < BOARD_ROWS; aRow++)
 		{
 			std::string aLineText;
-			for (int aColumn = 0; aColumn < 9; aColumn++)
+			for (int aColumn = 0; aColumn < BOARD_COLUMNS; aColumn++)
 			{
-				int aCell = aColumn * 9 + aRow;
+				int aCell = aColumn * BOARD_ROWS + aRow;
 				char aLetter = gGame->mLetters[aCell];
 				if (gGame->currentBook()->isCell(aColumn, aRow) == 0)
 					aLineText += '.';
@@ -2994,7 +2994,7 @@ static std::string testJsonState()
 		aText += "],\"fixed\":[" + aFixed + "]";
 		// the cells still to fill (no flag 0x20), as column*9+row
 		std::string aOpen;
-		for (int aCell = 0; aCell < 81; aCell++)
+		for (int aCell = 0; aCell < BOARD_CELLS; aCell++)
 		{
 			if (gGame->currentBook()->isCell(aCell / 9, aCell % 9) != 0 && (gGame->mTileFlags[aCell] & 0x20) == 0)
 				aOpen += (aOpen.empty() ? "" : ",") + std::to_string(aCell);
@@ -3004,10 +3004,21 @@ static std::string testJsonState()
 	return aText + "}";
 }
 
+void memoryHolders(std::vector<std::pair<std::string, size_t>>* theRows)
+{
+	if (gResources == nullptr)
+		return;
+	Resources::MemoryUse aUse = Resources::memoryUse();
+	theRows->push_back({"images in the cache (" + std::to_string(aUse.mImageCount) + ", 32 bits; the fonts' are among them)",
+		aUse.mImageBytes});
+	if (gDictionary != nullptr)
+		theRows->push_back({"dictionary (" + std::to_string(gDictionary->mCount) + " words)", gDictionary->memoryBytes()});
+}
+
 static bool testInPlay()
 {
 	return gBonnies != nullptr && gBonnies->mState == 3 && gGameScreen != nullptr && gGame != nullptr &&
-		gGameScreen->mField58 == 1 && !gBonnies->inModal();
+		gGameScreen->mSequenceState == 1 && !gBonnies->inModal();
 }
 
 std::string testCommand(const std::string& theCommand, const std::string& theArgs)
@@ -3038,7 +3049,7 @@ std::string testCommand(const std::string& theCommand, const std::string& theArg
 	if (theCommand == "level")
 	{
 		int aLevel = atoi(theArgs.c_str());
-		if (aLevel < 1 || aLevel > 50)
+		if (aLevel < 1 || aLevel > LEVEL_COUNT)
 			return "ERROR " + aLine + ": levels are 1 to 50";
 		if (!testInPlay())
 			return "ERROR " + aLine + ": no level in play";
@@ -3059,10 +3070,10 @@ std::string testCommand(const std::string& theCommand, const std::string& theArg
 		if (!testInPlay())
 			return "ERROR " + aLine + ": no level in play";
 		// out of turns or of time: Game::update ends the game as it does then
-		if (gGame->mFieldC5C != 0)
+		if (gGame->mClassic != 0)
 			gGame->mGoal = 0;
 		else
-			gGame->mFieldC94 = 0.0f;
+			gGame->mClock = 0.0f;
 		return "OK " + aLine;
 	}
 	if (theCommand == "set")
@@ -3079,10 +3090,10 @@ std::string testCommand(const std::string& theCommand, const std::string& theArg
 			gGame->mScore = atoi(aValue.c_str());
 			gGame->mShownScore = gGame->mScore;
 		}
-		else if (aName == "moves" && gGame->mFieldC5C != 0)
+		else if (aName == "moves" && gGame->mClassic != 0)
 			gGame->mGoal = atoi(aValue.c_str());
-		else if (aName == "timer" && gGame->mFieldC5C == 0)
-			gGame->mFieldC94 = (float)atof(aValue.c_str());
+		else if (aName == "timer" && gGame->mClassic == 0)
+			gGame->mClock = (float)atof(aValue.c_str());
 		else
 			return "ERROR " + aLine + ": the keys are score, and moves in the classic mode or timer (0 to 1) in the action "
 				"mode";

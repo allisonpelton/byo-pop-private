@@ -10,7 +10,8 @@ Posting Windows messages to the window under rundesk covers only part of it. SDL
 mouse leaves the window (`TrackMouseEvent`), and on rundesk's desktop the real cursor is never over it, so right after any
 posted `WM_MOUSEMOVE` SDL takes the real cursor's position (`GetCursorPos`) and sends the window's LEAVE. A move, press and
 release posted back to back are all handled before that, so a click posted in one burst lands where it should (Seven Seas'
-`realinput.py` and Bonnie's `realplay.py` click this way), and posted keys with their scan codes type as they should. But a
+`realinput.py` clicks this way, as Bonnie's `realplay.py` does without `--live`), and posted keys with their scan codes type
+as they should. But a
 move on its own (a hover) is followed in the same millisecond by a motion to the real cursor and the LEAVE; a button held
 across frames is dragged to the real cursor at once; every move of a drag jumps there and back; and the window can never
 gain the focus there (`SetForegroundWindow` fails, and posted activation messages make no focus events), so a focus loss
@@ -51,7 +52,9 @@ again through `AddScriptCommand` leaves real input alone.
 A driver that decides as it goes (a solver that reads the board before each move) gives `-commands=<file>` as well,
 with an empty `-realinput` file: the lines it appends to the commands file, with no update count, are played the same
 way at the next update and answered on the log (`OK click game 320 450`), and the game's test commands (`state`,
-`goto`, docs/TEST_COMMANDS.md) answer through the same file. `tools/fwtest/commands.sh` drives fwtest that way.
+`goto`, docs/TEST_COMMANDS.md) answer through the same file. `tools/fwtest/commands.sh` drives fwtest that way, and Bonnie's
+`realplay.py --live` drives its board that way (Bonnie's has its own engine and its own `-realinput`): the board follows a
+press held from frame to frame, which a posted burst never gives it, and each move comes from the port's `move` command.
 
 ## How it differs from a hand
 

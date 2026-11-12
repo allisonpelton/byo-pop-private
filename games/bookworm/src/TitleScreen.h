@@ -60,7 +60,7 @@ public:
 	virtual void	Draw(Graphics* g) override;                     // 0x433900 slot 16
 	virtual void	Update() override;                              // 0x433e80 slot 17
 	// slot 47 ShowTrialExpiredDialog 0x4336f0: trial only, taken out
-	virtual void	DrawLoadingBar(Graphics* g);                    // 0x433570 slot 48
+	virtual void	DrawLoadMeter(Graphics* g);                    // 0x433570 slot 48
 
 	virtual void	ButtonPress(int theId, int theClickCount) override;      // 0x401450 ButtonListener slot 2 (shared with BWGameSelector)
 	virtual void	ButtonDepress(int theId) override;              // 0x433500 ButtonListener slot 4
