@@ -147,8 +147,8 @@
       "na": [
         "collection"
       ],
-      "now": null,
-      "note": ""
+      "now": "lite-mod",
+      "note": "processor time like for like 0.76 of the original's (6.4 G cycles a minute against 8.4); the lite survey next"
     },
     "sevenseas": {
       "title": "Seven Seas Deluxe",
@@ -242,7 +242,7 @@
       ],
       "na": [],
       "now": "performance",
-      "note": "over its original's processor time: measuring like for like"
+      "note": "level with its original on a busy machine, over on a quiet one; the whole gap is the shared present path (the Direct3D 11 driver thread); the original's side measured again after origrun's rescan fix"
     },
     "astropop": {
       "title": "AstroPop Deluxe",
@@ -255,11 +255,13 @@
         "unneeded-code",
         "readability",
         "collection",
-        "site-features"
+        "site-features",
+        "identical-look",
+        "lite-mod"
       ],
       "na": [],
-      "now": "identical-look",
-      "note": "3D screen wipe reached, not yet compared frame by frame; performance reopened: 3D over its original, waits on the framework's present"
+      "now": "performance",
+      "note": "3D over its original, waits on the framework's present (Bejeweled 2's pace code, then the vsync measurement); the 3D cycle split next; lite: nothing taken (LITE_MOD.md)"
     },
     "ningpo": {
       "title": "Ning Po Mahjong Deluxe",
@@ -365,8 +367,8 @@
         "collection"
       ],
       "na": [],
-      "now": null,
-      "note": ""
+      "now": "lite-mod",
+      "note": "the cycle split measured: 0.53 of the original's processor time at 640x480, 0.44 at 1280x960; the lite survey next"
     },
     "bigmoney": {
       "title": "Big Money Deluxe",

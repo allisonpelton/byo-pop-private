@@ -162,12 +162,25 @@ holds the rules every session follows; this file does not repeat them.
     started with a fresh userdir takes its original's defaults, often full screen, and under rundesk that is the
     whole 3840x2160 desktop at render scale 4 (Mahjong, 2026-11-12); a port's window also starts at twice the game's
     size where it fits. So the port is measured windowed (FullScreen=0 in its settings) at the game's own size in
-    pixels (a test option such as `-windowscale=1`), and the log line naming the window's size is checked. The
-    default window's cost is measured as well, beside it, since that is what a player gets.
+    pixels (`-windowscale=1`), and its log's display line is checked ("display: client WxH px, logical WxH, render
+    scale N, windowed|full screen, renderer <name>", logged when the window is made and at each size or mode change;
+    docs/TEST_COMMANDS.md, "The window line"). The default window's cost is measured as well, beside it, since that
+    is what a player gets. Where a session needs to know which part of a frame costs what, `-cyclesplit` in the port
+    and `origrun --count` in the original split update, draw and present on both sides (docs/TEST_COMMANDS.md,
+    "Picking the functions"); per-update figures compare, per-call ones do not, since a port presents in step with
+    the display and an original's Blt does not wait (BookWorm, 2026-11-12).
   - **The renderer a player gets.** On the visible desktop SDL picks Direct3D 9; on rundesk's private desktop it
     gets Direct3D 11 (TipTop and AstroPop, 2026-11-12). TipTop's bench put a frame's present at 2.5 to 2.9 M cycles
     on the visible desktop (D3D9) against 2.0 to 2.6 M on rundesk's (D3D11), and a window-surface present at 0.9 to
     1.2 M on both. So name the renderer each run used, and compare a port and its original on one desktop.
+  - **origrun's own cost.** Until 223d9bdf the stand-in listed the copy's modules up to once each 15 ms from any hooked
+    call, which in an original that asks for the cursor every 10 ms added about 1 G cycles in 20 s (Typer Shark: its
+    earlier "0.76 of the original" was this). Now it looks only after the loader maps a DLL. A count of an original made
+    before that merge is high by up to that much when the original polls the cursor often, so such a game measures again.
+  - **The update counter.** Mummy Maze's original keeps three counters side by side, sleeps at app+0x328, draws at
+    +0x32c and updates at +0x330, and its origrun counter had been the sleeps, which run 1 to 11% behind the updates
+    (2026-11-12). Other originals of that framework's age may keep the same three, so a session checks that the counter
+    it times input and per-update figures by is the updates.
   Where the excess is a shared cost, the session sends the spec, and the game waits for the framework's fix instead of
   being let off.
   Shared costs are found once and fixed in the framework for every game; the list below holds them.
@@ -251,7 +264,18 @@ holds the rules every session follows; this file does not repeat them.
     port's 3D stretch was the present path and under 15% the game's code (2026-11-12, instrumented scratch build). The
     original does not wait for the display in a window. A window's frames are composed by the desktop, so presenting
     without vsync should not tear; a candidate is no vsync with presents capped at the display's rate by the frame
-    loop's own timing (Bejeweled 2's pace code), measured against vsync and checked for even pacing.
+    loop's own timing (Bejeweled 2's pace code), measured against vsync and checked for even pacing. Typer Shark
+    measured the same path (2026-11-12, 2,000 updates of its adventure recording, five pinned pairs on the visible
+    desktop). The Direct3D 11 driver thread is about 60% of the port's cycles, 1.7 to 2.7 M a presented frame whatever
+    is drawn. It falls when the machine is busy (3.2 to 3.6 G in 20 s on a quiet machine, 1.8 to 2.5 G on a busy one)
+    while the original's cycles rise, so a player's quiet machine is the port's worst case. Vsync off costs more, SDL's
+    Direct3D 9 costs 8.3 G and OpenGL 4.3 G, and drawing straight into the back buffer at render scale 1 (no screen
+    texture pass) saved nothing. Mummy Maze's port draws 37 frames a second against the original's 53, since each
+    present waits for the display and two updates run between draws.
+  - Draw calls (Typer Shark, 2026-11-12). `DDInterface::DrawTexturedQuad` makes one SDL call a quad: 593 a frame for
+    about 20 texture changes, DrawScreen 466 M cycles in 20 s. Joining consecutive quads of one texture into one
+    SDL_RenderGeometry call would take about half of that, some 6% of the port. The draw order stays, and every port's
+    frozen baseline must hold.
   - A cycle-weighted EIP sampler charges a thread's bursts to the wait it stands in (54% of Cosmic Bugs' cycles on
     `ZwWaitForSingleObject`); timers around the calls with `QueryThreadCycleTime` find the real split. Cosmic Bugs'
     `tools/perf/cpuprof.py` has `CALLERS=1` (the exe function and the DLL on the stack).

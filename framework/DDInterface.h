@@ -194,6 +194,8 @@ public:
 	virtual int Init(SDL_Window* theWindow, bool vsync);
 	virtual void Cleanup();
 	virtual void UpdateDisplaySize();
+	// The renderer's name as SDL reports it (direct3d11, direct3d, opengl, software...), for the display line SexyAppBase::LogDisplay logs
+	virtual std::string RendererName() const;
 
 	// Frees every cached texture and the screen texture; they are recreated on demand. Call on
 	// SDL_RENDER_DEVICE_RESET.
