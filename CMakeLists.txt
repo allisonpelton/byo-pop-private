@@ -297,6 +297,11 @@ option(BUILD_MUMMYMAZE "Build the Mummy Maze Deluxe port" ON)
 if(BUILD_MUMMYMAZE AND EXISTS ${PROJECT_SOURCE_DIR}/games/mummymaze/CMakeLists.txt)
   add_subdirectory(games/mummymaze)
 endif()
+# Venice Deluxe: optional while it is new; the build skips it if its folder is missing
+option(BUILD_VENICE "Build the Venice Deluxe port" ON)
+if(BUILD_VENICE AND EXISTS ${PROJECT_SOURCE_DIR}/games/venice/CMakeLists.txt)
+  add_subdirectory(games/venice)
+endif()
 # Bookworm Adventures Deluxe: optional while it is new; the build skips it if its folder is missing
 option(BUILD_BOOKWORMADV "Build the Bookworm Adventures Deluxe port" ON)
 if(BUILD_BOOKWORMADV AND EXISTS ${PROJECT_SOURCE_DIR}/games/bookwormadv/CMakeLists.txt)

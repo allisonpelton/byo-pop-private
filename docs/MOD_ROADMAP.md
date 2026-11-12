@@ -72,6 +72,32 @@ mods yet (the `BYOPOP_WEB_NO_MODS` list in `cmake/ByopopWeb.cmake`) learns to lo
 that finds a fix keeps the original's behaviour in the port and lists the fix in its game's notes under "Fix
 candidates": what the original does, how to see it, and what the fix would change.
 
+## The lite mod
+
+The user, 2026-11-12: "could we make a Lite optimization mod that's not quite on the level of Bejeweled's Lean that
+replaces algorithms with faster ones where applicable, knowing it can affect gameplay then, and make that part of the
+definition of done? Each mod would need to explain where exactly the difference is."
+
+So each game gets one **lite** mod beside its fixes mod, and each of its settings is a toggle for one change. A change
+computes something the game computes, faster, in a way that may give another result: a search that stops at the first
+good answer instead of the best, a tie broken another way, random numbers drawn in another order, a shortcut that is
+right in all but rare cases (TipTop's skipped paint, wrong in 13 of 50,054 bot passes). It keeps the game's look, frame
+rate, pace and rules; a change that trades those for speed, as Bejeweled's `lean` does with its frame rate, is not lite.
+A change that gives the same result is not lite either: it goes into the port in its performance pass.
+
+A change goes in only when it measurably cuts the processor time of a stretch of play where it runs (cycle counts and
+alternating pairs, `docs/COORDINATION.md`, "The target"). With the mod on, a game still plays the same on every run with
+the same seed and input, and with it off the port is unchanged, as its frozen baseline proves. The site starts the mod
+off: it changes play, so the player turns it on.
+
+Each game's `docs/LITE_MOD.md` explains every change for the user: the function (the original's address and the port's
+name), what the original does and what the mod does instead, where play or the picture can differ and how to see it (a
+seed and the moves, a board, a screen), how often it differs in a bot's games, and the gain measured. A game where
+nothing is worth changing gets the file too, saying what was looked at and why nothing was taken, and its lite-mod step
+is then done with no mod. Few games are expected to have much: their boards are small and their rules cheap, and most of
+their processor time goes to the picture. The candidates come from the performance pass, which lists under "Lite
+candidates" in the game's notes each speed-up it turned down because it changes what the game does.
+
 ## The user's notes on the mods that exist
 
 From the user's test notes, moved here in their own words when the notes were cleared (2026-11-04). Like every mod,

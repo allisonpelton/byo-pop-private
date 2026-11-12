@@ -1,4 +1,4 @@
-// Test hooks: TipTop's -script commands besides the framework's
+// port: test hooks: TipTop's -script commands besides the framework's
 //
 //   canvasshot <file>           the whole screen of a -canvas run, after the next frame (Canvas.cpp)
 //   musicwav <file> <seconds>   the music from its start, rendered into a WAV file without the audio device

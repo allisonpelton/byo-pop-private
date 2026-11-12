@@ -30,6 +30,10 @@
       "label": "Performance"
     },
     {
+      "id": "lite-mod",
+      "label": "Lite mod"
+    },
+    {
       "id": "unneeded-code",
       "label": "Unneeded code"
     },
@@ -233,11 +237,12 @@
         "unneeded-code",
         "readability",
         "collection",
-        "site-features"
+        "site-features",
+        "identical-look"
       ],
       "na": [],
-      "now": "identical-look",
-      "note": "Medal screens equal in 2D and the web build; 3D tonight; then a CPU round (over its original)"
+      "now": "performance",
+      "note": "over its original's processor time: measuring like for like"
     },
     "astropop": {
       "title": "AstroPop Deluxe",
@@ -247,7 +252,6 @@
         "registration-out",
         "fixes-mod",
         "coverage",
-        "performance",
         "unneeded-code",
         "readability",
         "collection",
@@ -255,7 +259,7 @@
       ],
       "na": [],
       "now": "identical-look",
-      "note": "Music equal; the 3D screen wipe tonight"
+      "note": "3D screen wipe reached, not yet compared frame by frame; performance reopened: 3D over its original, waits on the framework's present"
     },
     "ningpo": {
       "title": "Ning Po Mahjong Deluxe",
@@ -388,11 +392,13 @@
         "identical-look",
         "fixes-mod",
         "coverage",
-        "unneeded-code"
+        "unneeded-code",
+        "readability",
+        "collection"
       ],
       "na": [],
       "now": "performance",
-      "note": "processor time halved (d1321ef0), still 3 to 4 times the original's; a second round; unneeded code out (ea92f894)"
+      "note": "animated screens over the original's processor time: waits on the surface presenter"
     },
     "wordharmony": {
       "title": "Word Harmony",
@@ -429,7 +435,7 @@
       ],
       "na": [],
       "now": "performance",
-      "note": "processor time over the original's: second performance round (the user's target, 2026-11-11)"
+      "note": "board 264 against the original's 119 M cycles a second: waits on the surface presenter"
     },
     "waterbugs": {
       "title": "Water Bugs",
@@ -440,15 +446,14 @@
         "identical-look",
         "fixes-mod",
         "coverage",
-        "performance",
         "unneeded-code",
         "readability",
         "site-features",
         "collection"
       ],
       "na": [],
-      "now": null,
-      "note": ""
+      "now": "performance",
+      "note": "over its paced original while the renderer presents its software screen: waits on the surface presenter"
     },
     "bonnies": {
       "title": "Bonnie's Bookstore Deluxe",
@@ -488,10 +493,12 @@
     },
     "venice": {
       "title": "Venice Deluxe",
-      "done": [],
+      "done": [
+        "port"
+      ],
       "na": [],
-      "now": "port",
-      "note": "Started 2026-11-12, the first port written to the standards from its first draft"
+      "now": "identical-play",
+      "note": "playable natively and on the web; phase one, plays identical, next"
     },
     "heavyweapon": {
       "title": "Heavy Weapon Deluxe",

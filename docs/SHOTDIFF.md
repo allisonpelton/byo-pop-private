@@ -16,7 +16,10 @@ It prints one line with the counts and the page's path, and takes seconds. The r
 `latest`); a new id keeps the old run beside it, and the all-games page shows the newest run of each game.
 
 Take the port's shots with `-renderscale=1`. On the user's 200% desktop a port's logical screenshot is otherwise the 2x
-picture box-averaged, which blends stretched draws (Dynomite's stomping foot showed stripes up to 67/255). A SexyApp 1.x
+picture box-averaged, which blends stretched draws (Dynomite's stomping foot showed stripes up to 67/255). It holds for 3D
+runs too, and on any desktop: the render scale is the window's size over the game's, rounded up, so a test window larger
+than the game's size gives scale 2 and every 3D shot comes out slightly blurred (Typer Shark's sea, up to 55 levels off at
+column 0, 2026-11-12). A SexyApp 1.x
 game whose original draws on a software DirectDraw screen keeps the last frame where a board draws only part of itself,
 so its port sets `DDInterface::mKeepScreen` (Dynomite's museum, 2026-11-11). Without it the port draws black there, and its
 screenshot draws the frame once more, which moves any `rand()`-driven drawing and shows as spurious differences.
