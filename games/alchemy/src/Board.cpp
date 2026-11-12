@@ -48,6 +48,9 @@ static int BitsRequired(int theNum)
 Board::Board(WinAlchApp* theApp)
 {
 	mApp = theApp;
+	static unsigned int sBoardSerials = 0; // port: the autosplit observer's (LiveSplitObserver.h)
+	mBoardSerial = ++sBoardSerials;
+	mResumed = false;
 	mState = STATE_PLAYING;
 	mSavedZero = 0;
 	mCurPiece = NULL;

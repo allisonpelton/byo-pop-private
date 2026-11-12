@@ -286,6 +286,7 @@ bool Board::LoadGame()
 	// a light that was dissolving in when the game was saved has no pictures: it is over
 	mLightOn = false;
 	mPristine = false;
+	mResumed = true;    // port: a resumed game never starts an autosplit run (LiveSplitObserver.h)
 	mStartTick = GameTickCount();
 	DetermineValidMoves();
 	RedrawBackground();
