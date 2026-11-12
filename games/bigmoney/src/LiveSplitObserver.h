@@ -8,11 +8,12 @@
 // drawing. On activation it copies the mod's split templates (livesplit/*.lss) to <user dir>/livesplit,
 // each only if it is missing there.
 //
-// Windows builds only (LiveSplit is a Windows program): elsewhere these are empty inlines.
+// Windows and web builds (LiveSplit is a Windows program; on the web the page's speedrun timer asks for the block
+// through byopop_livesplit_block): elsewhere these are empty inlines.
 
 #include <string>
 
-#if defined(_WIN32) && !defined(__EMSCRIPTEN__)
+#if defined(_WIN32) || defined(__EMSCRIPTEN__)
 #define BIGMONEY_HAS_LIVESPLIT 1
 #endif
 

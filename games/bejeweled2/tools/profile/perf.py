@@ -14,7 +14,7 @@ The scenario is scenario/classic909.json: origcmp/record.py's events.json of a C
 (origcmp/to_commands.py) under -hold, which the recording's board needs (without it the first board differs and every move is illegal), the
 original as origrun script lines (origcmp/to_origrun.py), so both play the same game; the original's board score (+0x15e20) and state
 (+0x170c) are watched and printed as final_score and final_state, the port's `state` after the last move as final_state. PERF_MODE=3d plays
-scenario/classic909_3d.json instead (the 1024 by 768 game on the GPU renderer; port only). PERF_RENDER=software|gpu picks the port's
+scenario/classic909_3d.json instead (the 1024 by 768 game on the GPU renderer; the original in 3D, under dgVoodoo2, as origcmp's HIRES=1 runs it). PERF_RENDER=software|gpu picks the port's
 renderer (default: software in 2D, the machine's in 3D); PERF_SHOTS=1 takes pictures at 1000, 3000 and 6400; PERF_MEM=1 puts memreport
 lines into the port's commands (game.log, shots/mem_*.txt).
 
@@ -27,8 +27,9 @@ the recording's, so the moves are illegal ones); without it neither waits (the p
 time is the work done. `orig ... load` stops when the title has loaded. orig starts origrun directly: origrun puts the game under rundesk
 itself.
 
-Both sample the game's process every 0.1 s: working set, private bytes (and the system's own peaks of both), processor time (kernel +
-user). Each run prints one JSON line with the peaks and the processor time over the whole run (the original's also over the 2,000 updates
+Both sample the game's process every 0.1 s: working set, private bytes (and the system's own peaks of both), processor time (the
+cycle count over the machine's clock, see sample()). port-idle plays the idle stretch (PERF_STRETCH=idle) as a -script file in real time and the
+counters of a patched framework (statspatch.py) are read from the game's log. Each run prints one JSON line with the peaks and the processor time over the whole run (the original's also over the 2,000 updates
 before the last input, `scripted_stretch`; the port's after the title, `play_processor_s`), the machine's busy
 fraction during the run and the game processes of other sessions running when it started and ended. The original's run is stopped
 from here once its update counter ([0x67ccd8] + 0x484) passes the script's last update; a run counts only if the play click landed
@@ -71,7 +72,15 @@ APP = 0x67CCD8                 # the original's app object: a static pointer to 
 COUNTER, BOARD, TITLE = 0x484, 0xE68, 0xE78   # offsets in the app: the update counter, the board, the title screen (its loaded flag: the dword at +0x9d, the byte on top)
 MODE3D = os.environ.get('PERF_MODE') == '3d'    # PERF_MODE=3d: the 1024 by 768 game on the GPU renderer, what a player's machine runs
 SCENARIO = os.path.join(HERE, 'scenario', 'classic909_3d.json' if MODE3D else 'classic909.json')
+# PERF_STRETCH=idle: the recording's inputs up to the click that dismisses the board's first dialog, then nothing, to update 5700 (the
+# board idle, 57 s of play from the first click): the same stretch on both sides in real time, where the recorded game cannot be played
+# (the first board is another one, the moves are illegal). The port plays it as a -script file: no -commands file, so no poll of one.
+IDLE = os.environ.get('PERF_STRETCH') == 'idle'
+IDLE_UNTIL = 738 if MODE3D else 956
+IDLE_LAST = 5700
 RUN = 'bej2'                   # build/origrun/bej2: the staged copy of the original
+# the original's 3D (DirectDraw and Direct3D 7) runs under dgVoodoo2, its Direct3D 11 translation, as every 3D comparison of this game does
+DGVOODOO = ['--dgvoodoo', os.environ.get('ORIGRUN_DGVOODOO', 'E:/retools/dgVoodoo2_87_5')] if MODE3D else []
 PROFILE = os.environ.get('PROFILE', 'build/logs/bej2/profile')   # the player (make_profile.py), as the recordings have it
 USERS = 'C:/ProgramData/Steam/Bejeweled2/users'   # where the original keeps its players
 
@@ -92,17 +101,79 @@ def filetime_seconds(t):
     return ((t.dwHighDateTime << 32) | t.dwLowDateTime) / 1e7
 
 
+def cpu_hz():
+    """The rate the cycle counters tick at (the machine's TSC: a thread that spins for a second counts this many; the registry's ~MHz
+    of processor 0 is the same to 1%), to turn cycles into the seconds of one core that the notes and the README give."""
+    import winreg
+    with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r'HARDWARE\DESCRIPTION\System\CentralProcessor\0') as k:
+        return winreg.QueryValueEx(k, '~MHz')[0] * 1e6
+
+
+CPU_HZ = cpu_hz()
+k32.QueryProcessCycleTime.argtypes = [W.HANDLE, ctypes.POINTER(ctypes.c_uint64)]
+k32.QueryThreadCycleTime.argtypes = [W.HANDLE, ctypes.POINTER(ctypes.c_uint64)]
+
+
 def sample(h):
-    """(working set, private bytes, peak working set, peak private, processor seconds) of the process, or None."""
+    """(working set, private bytes, peak working set, peak private, processor seconds) of the process, or None. The processor
+    seconds are the process's cycle count (QueryProcessCycleTime: every thread's QueryThreadCycleTime, the exited ones too) over
+    CPU_HZ. GetProcessTimes and GetThreadTimes are charged by the scheduler's 15.6 ms tick and moved by 20% in a run of exactly
+    known work (the coordinator's test, 2026-11-11), so nothing here reads them."""
     m = PMC()
     m.cb = ctypes.sizeof(PMC)
     if not psapi.GetProcessMemoryInfo(h, ctypes.byref(m), m.cb):
         return None
-    c, e, k, u = W.FILETIME(), W.FILETIME(), W.FILETIME(), W.FILETIME()
-    if not k32.GetProcessTimes(h, ctypes.byref(c), ctypes.byref(e), ctypes.byref(k), ctypes.byref(u)):
+    cycles = ctypes.c_uint64()
+    if not k32.QueryProcessCycleTime(h, ctypes.byref(cycles)):
         return None
-    return (m.WorkingSetSize, m.PrivateUsage, m.PeakWorkingSetSize, m.PeakPagefileUsage,
-            filetime_seconds(k) + filetime_seconds(u))
+    return (m.WorkingSetSize, m.PrivateUsage, m.PeakWorkingSetSize, m.PeakPagefileUsage, cycles.value / CPU_HZ)
+
+
+class THREADENTRY32(ctypes.Structure):
+    _fields_ = [('dwSize', W.DWORD), ('cntUsage', W.DWORD), ('th32ThreadID', W.DWORD), ('th32OwnerProcessID', W.DWORD),
+                ('tpBasePri', W.LONG), ('tpDeltaPri', W.LONG), ('dwFlags', W.DWORD)]
+
+
+k32.OpenThread.restype = W.HANDLE
+k32.OpenThread.argtypes = [W.DWORD, W.BOOL, W.DWORD]
+k32.Thread32First.argtypes = [W.HANDLE, ctypes.POINTER(THREADENTRY32)]
+k32.Thread32Next.argtypes = [W.HANDLE, ctypes.POINTER(THREADENTRY32)]
+k32.GetThreadDescription.argtypes = [W.HANDLE, ctypes.POINTER(ctypes.c_wchar_p)]
+
+
+def thread_table(pid):
+    """{thread id: (processor seconds from the thread's cycle count, name)} of the process's live threads: where the process's time goes by thread (the game's main
+    thread, SDL's audio thread, the driver's threads). The name is what the thread says it is (SDL names its own), or ''."""
+    out = {}
+    snap = k32.CreateToolhelp32Snapshot(0x4, 0)      # TH32CS_SNAPTHREAD
+    if not snap or snap == W.HANDLE(-1).value:
+        return out
+    e = THREADENTRY32()
+    e.dwSize = ctypes.sizeof(e)
+    ok = k32.Thread32First(snap, ctypes.byref(e))
+    while ok:
+        if e.th32OwnerProcessID == pid:
+            th = k32.OpenThread(0x0800, False, e.th32ThreadID)      # THREAD_QUERY_LIMITED_INFORMATION
+            if th:
+                cycles = ctypes.c_uint64()
+                if k32.QueryThreadCycleTime(th, ctypes.byref(cycles)):
+                    name = ctypes.c_wchar_p()
+                    nm = ''
+                    if k32.GetThreadDescription(th, ctypes.byref(name)) >= 0 and name.value:
+                        nm = name.value
+                    out[e.th32ThreadID] = (cycles.value / CPU_HZ, nm)
+                k32.CloseHandle(th)
+        e.dwSize = ctypes.sizeof(e)
+        ok = k32.Thread32Next(snap, ctypes.byref(e))
+    k32.CloseHandle(snap)
+    return out
+
+
+def thread_summary(table):
+    """The threads that used the most time, as [seconds, name or id], with the share of all the threads'."""
+    total = sum(v[0] for v in table.values()) or 1.0
+    top = sorted(table.items(), key=lambda kv: -kv[1][0])[:6]
+    return [{'thread': (v[1] or str(t)), 'cpu_s': round(v[0], 2), 'share': round(v[0] / total, 3)} for t, v in top]
 
 
 def creation_time(h):
@@ -200,7 +271,25 @@ def summarise(samples, lo, hi=None):
 
 
 def scenario():
-    return json.load(open(SCENARIO))
+    sc = json.load(open(SCENARIO))
+    if IDLE:
+        sc['events'] = [e for e in sc['events'] if e[0] <= IDLE_UNTIL]
+        sc['last'] = IDLE_LAST
+    return sc
+
+
+def log_stats(text):
+    """The temporary counters of a patched framework (instr.py, never committed): the cycles of the commands file's poll, which a test
+    run pays and the original never does, and, with DRAWSTATS set, the draw calls by kind."""
+    r = {}
+    m = re.search(r'POLLSTATS calls (\d+) cycles (\d+)', text)
+    if m:
+        r['poll_calls'] = int(m.group(1))
+        r['poll_s'] = round(int(m.group(2)) / CPU_HZ, 3)
+    d = re.findall(r'DRAWSTATS (.+)', text)
+    if d:
+        r['draw_stats'] = d
+    return r
 
 
 def port_exe():
@@ -319,12 +408,19 @@ def port_minute(out):
     created = creation_time(h)
     samples = []
     at_title = None
+    threads = {}
+    next_threads = 0
     while p.poll() is None:
         s = sample(h)
         if s:
             samples.append((round(time.time() - created, 3),) + s)
             if at_title is None and os.path.exists(mark):
                 at_title = samples[-1]
+        if time.time() >= next_threads:       # a table a second: the last one is the run's, less the last second
+            t = thread_table(p.pid)
+            if t:
+                threads = t
+            next_threads = time.time() + 1.0
         time.sleep(0.1)
     end = samples[-1][0] if samples else 0
     s1 = system_times()
@@ -341,8 +437,71 @@ def port_minute(out):
                 'play_processor_s': round(play, 2) if play is not None else None,
                 'play_wall_s': round(end - at_title[0], 1) if at_title else None,
                 'updates': int(m.group(3)) if m else None, 'draws': int(m.group(4)) if m else None,
-                'final_state': json.loads(st.group(1)) if st else None,
+                'final_state': json.loads(st.group(1)) if st else None, 'threads': thread_summary(threads), **log_stats(text),
                 'others_start': len(others0), 'others_end': len(game_processes(mine_prefixes()))})
+    json.dump({'samples': samples, 'result': res}, open(os.path.join(out, 'perf.json'), 'w'))
+    k32.CloseHandle(h)
+    print(json.dumps(res))
+
+
+def port_idle(out):
+    """The idle scenario in real time as a -script run (see IDLE): the last 20 s before its quit are the stretch, with the processor
+    time of the SDL audio thread (the framework's mixer; the original under origrun mixes nothing) counted apart."""
+    out = os.path.abspath(out)
+    shutil.rmtree(out, ignore_errors=True)
+    os.makedirs(out)
+    sc = scenario()
+    lines = []
+    for u, cmd, *_ in sc['events']:
+        verb, space, x, y = cmd.split()
+        assert space == 'game', cmd
+        lines.append('%d %s %s %s' % (u, verb, x, y))
+    last = sc['last']
+    lines += ['%d state' % (last - 5), '%d quit' % last]
+    if os.environ.get('PERF_SHOT'):     # PERF_SHOT=1: a picture of the idle board at update 5000, to compare two builds' drawing
+        os.makedirs(os.path.join(out, 'shots'))
+        lines.insert(-2, '5000 screenshot shots/idle.png')
+        lines.insert(-2, '5001 screenshotfull shots/idlefull.png')   # its size is the render scale times 640 by 480: the window state of the run
+    script = os.path.join(out, 'script.txt')
+    open(script, 'w', newline=chr(10)).write(chr(10).join(lines) + chr(10))
+    others0 = game_processes(mine_prefixes())
+    s0 = system_times()
+    log = open(os.path.join(out, 'game.log'), 'wb')
+    p = subprocess.Popen([port_exe(), '-gamedir=', '-userdir=' + port_user(out), '-script=' + script, '-seed=%d' % SEED] + os.environ.get('PERF_ARGS', '').split(),
+                         cwd=out, env=port_env(), stdout=log, stderr=subprocess.STDOUT)
+    h = k32.OpenProcess(QUERY | VM_READ | QUERY_LIMITED, False, p.pid)
+    created = creation_time(h)
+    samples = []
+    timeline = []      # (seconds from the creation, thread table) a second
+    next_threads = 0
+    while p.poll() is None:
+        s = sample(h)
+        if s:
+            samples.append((round(time.time() - created, 3),) + s)
+        if time.time() >= next_threads:
+            t = thread_table(p.pid)
+            if t:
+                timeline.append((time.time() - created, t))
+            next_threads = time.time() + 1.0
+        time.sleep(0.1)
+    end = samples[-1][0] if samples else 0
+    s1 = system_times()
+    log.close()
+    text = open(os.path.join(out, 'game.log'), errors='replace').read()
+    m = re.search(r'Seconds = ([\d.]+), Sleep Count = (\d+), Update Count = (\d+), Draw Count = (\d+)', text)
+    st = re.search(r'STATE (\{.*\})', text)
+    res = summarise(samples, end - 20.0)
+    # the audio thread's share of the stretch: the thread tables nearest to its two ends
+    def nearest(t):
+        return min(timeline, key=lambda e: abs(e[0] - t))[1] if timeline else {}
+    a, b = nearest(end - 20.0), nearest(end)
+    audio = sum(b[t][0] - a[t][0] for t in b if t in a and b[t][1].startswith('SDLAudio'))
+    if res['scripted_stretch']:
+        res['scripted_stretch']['audio_s'] = round(audio, 3)
+    res.update({'exit': p.returncode, 'run_s': round(end, 1), 'machine_busy': round(busy_fraction(s0, s1), 2),
+                'updates': int(m.group(3)) if m else None, 'draws': int(m.group(4)) if m else None,
+                'final_state': json.loads(st.group(1)) if st else None, 'threads': thread_summary(timeline[-1][1] if timeline else {}),
+                'others_start': len(others0), 'others_end': len(game_processes(mine_prefixes())), **log_stats(text)})
     json.dump({'samples': samples, 'result': res}, open(os.path.join(out, 'perf.json'), 'w'))
     k32.CloseHandle(h)
     print(json.dumps(res))
@@ -353,7 +512,7 @@ def orig_script(dst):
     coverage/run.sh does (the recording's first input is at update 566; the title loads on the wall clock)."""
     import to_origrun
     sc = scenario()
-    lines = [l for l in to_origrun.convert({'events': sc['events']}, 0, 30, None) if ' shot ' not in l and not l.endswith(' mark') and l != 'quit']
+    lines = [l for l in to_origrun.convert({'events': sc['events']}, 0, 30, None, dialog_shift=-1 if MODE3D else 0) if ' shot ' not in l and not l.endswith(' mark') and l != 'quit']
     lines = [l for l in lines if not l.startswith('#')]
     lines.insert(0, 'waitfor [[0x67ccd8]+0xe78]+0x9d >= 0x01000000 180000')
     with open(dst, 'w', newline='\n') as f:
@@ -396,13 +555,15 @@ def orig_run(out, runs, load_only=False):
         t_start = time.time()
         p = subprocess.Popen([origrun, '--game', 'bejeweled2', '--run', RUN, '--exe', gameexe, '--seed', str(SEED),
                               '--clock', 'real' if (load_only or REAL) else 'virtual', '--cursor', 'scripted',
-                              '--timeout', '400', '--script', sc, '--watch', '[[0x67ccd8]+0xe68]+0x15e20', '--watch', '[[0x67ccd8]+0xe68]+0x170c'], stdout=log, stderr=subprocess.STDOUT)
+                              '--timeout', '400'] + DGVOODOO + ['--script', sc, '--watch', '[[0x67ccd8]+0xe68]+0x15e20', '--watch', '[[0x67ccd8]+0xe68]+0x170c'], stdout=log, stderr=subprocess.STDOUT)
         h = None
         created = ready = spawned = None
         started = False      # the play click landed: the board exists
         ready_mem = None
         samples = []
         counters = []   # (time, update counter)
+        threads = {}
+        next_threads = 0
         next_sample = 0
         done = False
         deadline = time.time() + 420
@@ -433,6 +594,11 @@ def orig_run(out, runs, load_only=False):
                         samples.append((round(now - created, 3),) + s)
                         counters.append((round(now - created, 3), c))
                     next_sample = now + 0.1
+                    if now >= next_threads:
+                        t = thread_table(pid)
+                        if t:
+                            threads = t
+                        next_threads = now + 1.0
                     if c is not None and c >= last:   # the script's last input and its tail have run: stop the original here
                         done = True
             time.sleep(0.004 if ready is None else 0.02)
@@ -464,6 +630,7 @@ def orig_run(out, runs, load_only=False):
         for m in re.finditer(r'watch (\d): \S+ -> (\S+) at update (\d+)', open(os.path.join(d, 'origrun.log'), errors='replace').read()):
             watched[m.group(1)] = m.group(2)
         res['final_score'], res['final_state'] = watched.get('1'), watched.get('2')
+        res['threads'] = thread_summary(threads)
         json.dump({'samples': samples, 'counters': counters, 'result': res}, open(os.path.join(d, 'perf.json'), 'w'))
         if h:
             k32.CloseHandle(h)
@@ -478,6 +645,8 @@ if __name__ == '__main__':
         port_load(sys.argv[2], int(sys.argv[3]) if len(sys.argv) > 3 else 3)
     elif mode == 'port-minute':
         port_minute(sys.argv[2])
+    elif mode == 'port-idle':
+        port_idle(sys.argv[2])
     elif mode == 'orig':
         orig_run(sys.argv[2], int(sys.argv[3]) if len(sys.argv) > 3 else 1, len(sys.argv) > 4 and sys.argv[4] == 'load')
     else:

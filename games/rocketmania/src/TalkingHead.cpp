@@ -1,5 +1,4 @@
-// The talking head, its speech bubble and the hover tips (RocketManiaGame 0x413aa0-0x414000, 0x4161a0-0x416eb0,
-// 0x415c70-0x415d90). See TalkingHead.h.
+// The talking head and the hover tips (RocketManiaGame 0x413aa0-0x414000, 0x4161a0-0x416eb0). See TalkingHead.h.
 
 #include "TalkingHead.h"
 #include "Effects.h"
@@ -21,6 +20,7 @@
 using namespace Sexy;
 
 // the fall of the original's float to int conversion (__ftol): truncation
+// port: the original's float to int conversion (__ftol): truncation
 static int Ftol(double theValue)
 {
 	return (int) theValue;
@@ -333,7 +333,7 @@ void TalkingHead::FlyIn(EffectManager* theEffects)
 	mFlying = true;
 	mTrail = theEffects->Add(0, false);
 	mTrail->mLife = 300;
-	mTrail->mc0 = 2;
+	mTrail->mDelay = 2;
 	SetMood(0);
 	mApp->PlaySample(8);
 }
@@ -347,7 +347,7 @@ void TalkingHead::Follow(EffectManager* theEffects)
 	{
 		mTrail->mX = mPosX + 145.0;
 		mTrail->mY = mPosY + 95.0;
-		mApp->mBoard->F428de0(Ftol(mPosY + 75.0));
+		mApp->mBoard->ClearRowsAbove(Ftol(mPosY + 75.0));
 		return;
 	}
 	mTrail = NULL;
@@ -394,109 +394,6 @@ void TalkingHead::StepAside()
 	SetShadow(true);
 	mTiltSpeed = 0.004;
 	mTilt = 0.0;
-}
-
-// 0x416a30 (the empty call 0x415d30 before it is left out)
-void TalkingHead::ShowBubble()
-{
-	if (!mApp->mNoHints)
-		mWidgetManager->BringToFront(mApp->mBubble);
-}
-
-// 0x416a80
-void TalkingHead::HideBubble()
-{
-	if (!mApp->mNoHints)
-		mApp->mBubble->FadeOut();
-}
-
-// ---------------------------------------------------------------------------------------------------------
-// SpeechBubble
-
-// 0x415c70
-SpeechBubble::SpeechBubble(RocketApp* theApp) :
-	m58(0.0),
-	m60(0.0),
-	m68(0.0),
-	mMessage(5),
-	mState(0),
-	mApp(theApp)
-{
-	mMouseVisible = false;
-	mHasTransparencies = true;
-	Widget::Move(0, 0xde);
-}
-
-// 0x415d20
-SpeechBubble::~SpeechBubble()
-{
-}
-
-// 0x415d90
-void SpeechBubble::Update()
-{
-	Widget::Update();
-	if (mMessage == 5)
-		SetVisible(false);
-	else if (m58 <= 0.0)
-	{
-		SetVisible(true);
-		if (0.0 < m68)
-		{
-			double aOld = m68;
-			m68 = aOld - 0.015;
-			if (aOld - 0.015 < 0.0)
-			{
-				m68 = 0.0;
-				if (mState == 1)
-				{
-					mState = 2;
-					mApp->PlaySample(0x25);
-				}
-				else
-					mState = 0;
-			}
-		}
-		if (0.0 < m60)
-		{
-			m60 = m60 - 0.01;
-			if (m60 <= 1.0 && mState == 2)
-			{
-				mState = 3;
-				m68 = 1.0;
-			}
-			if (m60 <= 0.0)
-			{
-				m60 = 0.0;
-				mMessage = 5;
-				MarkDirtyFull();
-				return;
-			}
-		}
-	}
-	else
-	{
-		SetVisible(false);
-		m58 = m58 - 0.01;
-		if (m58 < 0.0)
-			m58 = 0.0;
-	}
-}
-
-// 0x415d40
-void SpeechBubble::FadeOut()
-{
-	if (mState != 0)
-	{
-		if (mState == 3)
-		{
-			if (1.0 < m68)
-				m68 = 1.0;
-			return;
-		}
-		m68 = 1.0;
-		mState = 3;
-	}
 }
 
 // ---------------------------------------------------------------------------------------------------------

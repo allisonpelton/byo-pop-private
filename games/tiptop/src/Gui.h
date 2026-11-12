@@ -22,6 +22,12 @@
 namespace tiptop
 {
 
+// The command of a button, a pop image or an animation (Create's b) carries flags in its top bits; the command is the rest
+constexpr uint32_t COMMAND_MASK = 0x3fffffff;
+constexpr uint32_t BUTTON_ENTER = 0x80000000;      // the Enter key presses the button
+constexpr uint32_t BUTTON_ESCAPE = 0x40000000;     // the Escape key does
+constexpr uint32_t ANIMATION_ADDITIVE = 0x80000000;  // an animation drawn additively
+
 enum
 {
 	MSG_CREATE = 0,
@@ -86,8 +92,8 @@ struct AnimationParams
 struct Layer
 {
 	GuiRect mRect;             // +0x00 (w 0: the slot is free)
-	uint16_t mContentWidth;    // +0x08
-	uint16_t mContentHeight;   // +0x0a
+	uint16_t mContentWidth;    // +0x08 SetLayerContent's width; nothing reads it
+	uint16_t mContentHeight;   // +0x0a SetLayerContent's height; nothing reads it
 	Handler* mVScroll;         // +0x0c
 	Handler* mHScroll;         // +0x10
 	Layer* mChild;             // +0x14
@@ -230,7 +236,6 @@ uint16_t LayerScrollY(Layer* theLayer);                                        /
 
 // --- layers and handlers (0x428eb5-0x429c75) ---
 void GuiInit(uint16_t theLayers, uint16_t theHandlers, lowos::Surface* theSkin);  // 0x428eb5
-void GuiShutdown();                                                            // 0x428fa3
 Layer* NewLayer(uint16_t theContentWidth, uint16_t theContentHeight, const GuiRect* theRect);  // 0x428fd3
 void PushModal(Layer* theLayer);                                               // 0x42907f
 // port (test hooks): every layer in use draws all its handlers again in the next frame

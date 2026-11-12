@@ -92,6 +92,88 @@ the game it played.
 
 ## Performance
 
+### Processor time like for like (2026-11-12)
+
+The target of `docs/COORDINATION.md`, "The target": the port's processor time is at most the original's, the same
+stretch of play, every thread of the process counted. The 2026-11-11 pass below measured something else: the port in a
+1600x1200 window against the original's 800x600 one, and with `-commands` polling the port's channel every 0.1 s, which
+put the poller's cycles on the port (`perf.py` now reads the game's state from the script's own state file and does not
+poll). Its "1.4 times" is superseded by this section.
+
+**What each run was.** The same tour, the minute from the first board (`perf.py`), the three builds of a round running at
+the same time so that they meet the same load, four rounds, and the per-round ratio is what is compared (the same build
+against itself, by `tools/fastcycles.py` with `TOGETHER=1`, gave 0.996, from 0.989 to 1.003, so a ratio of
+two builds is good to about 2 %; a busy machine adds cycles one way only and moved one build's minute from 7.8 to
+10.7 G between rounds). Every run was on rundesk's hidden desktop, windowed (registry `ScreenMode=0`), silent, with the
+machine 29 to 67 % busy.
+
+- **Original:** 800x600, windowed, under origrun: SDL 1.2's GDI blit and the system cursor, FMOD 3 mixing into origrun's
+  silent stand-in, so that the sound is mixed and dropped.
+- **Port, old display:** the framework's own (`SURFACE_DISPLAY=off`): the game's screen into a picture, uploaded to the
+  SDL renderer (Direct3D 11 on the hidden desktop; the visible desktop's renderer was not measured), at the original's
+  size (`-windowscale=1`, 800x600) and at the port's default window (`-windowscale=2`, 1600x1200, the screen drawn twice
+  as large). SDL's dummy audio driver beside it, as the original's silent sound: the mixer thread runs on both sides.
+- **Port, new display:** the same exe with `SurfaceDisplay` (shared, from the Mahjong ports, `framework/SurfaceDisplay.h`),
+  at `-windowscale=1` and `=2`: no SDL renderer, so no Direct3D device and none of its driver's thread. The game hands it
+  its 800x600 screen and the rectangles that changed since the last frame, and it copies those rows, each pixel repeated
+  twice at 2x, into the window's own surface and has them shown by a GDI blit, as the original's SDL 1.2 does. With
+  `SURFACE_VERIFY=1` the window's surface is compared with the game's screen after every present: the tour's 1,495
+  frames, at 1x and at 2x, all went through the surface and none differed. A window of any other size, such as
+  full screen, uses the display's renderer mode, which is the old display's cost again.
+
+| The minute, port against original | Original | Port, old display | Port, new display |
+|---|---|---|---|
+| 1x (800x600): cycles | 9.5 G (7.8 to 10.7) | 10.8 G (9.5 to 11.8) | 7.9 G (6.9 to 9.2) |
+| 1x: ratio to the original, per round | | 1.10 1.13 1.15 1.22, median 1.14 | 0.86 0.83 0.84 0.88, median 0.85 |
+| 1x: processor time | 3.7 s | 5.1 s | 3.7 s |
+| 2x (1600x1200): cycles | 7.3 G (7.3 to 7.5) | 8.2 G (7.7 to 9.2) | 6.1 G (6.0 to 6.4) |
+| 2x: ratio to the original, per round | | 1.26 1.17 1.06 1.07, median 1.12 | 0.88 0.82 0.83 0.84, median 0.83 |
+| 2x: processor time | 3.4 s | 3.7 s | 2.9 s |
+| Peak private bytes, 1x and 2x | 54 MB | 83 MB and 82 MB | 52 MB and 58 MB |
+
+The first integration of the presenter (the Mahjong branch's commit cf1dea5f, before its later changes), in two earlier
+sets of four rounds on a busier machine, gave the same ratios: 0.87 at 1x and 0.86 at 2x for the new display against
+1.08 and 1.05 for the old.
+
+**Thread by thread** (the minute, medians of the four rounds, G cycles):
+
+| | Original | Port, old display | Port, new display |
+|---|---|---|---|
+| Main thread, 1x | 8.7 | 9.0 | 7.4 |
+| Graphics driver (`nvwgf2um.dll`), 1x | | 1.27 | none |
+| Mixer thread, 1x | 0.79 (`fmod.dll`) | 0.49 (`SDL2.dll`) | 0.49 |
+| Main thread, 2x | 6.6 | 6.8 | 5.7 |
+| Graphics driver, 2x | | 1.06 | none |
+| Mixer thread, 2x | 0.69 | 0.39 | 0.39 |
+
+The old display's main thread was at the original's (the game's own code is the same, compiled the same way); what it
+added was the Direct3D driver's thread, 1.1 to 1.7 G a minute over all the rounds taken, which no way of using the renderer
+reduced: uploading a 64x64 rectangle instead of the screen left it where it was, SDL's software renderer cost 3 times
+the cycles in the main thread, and the OpenGL renderer's driver thread ran more (2.2 to 3.2 G). While a renderer exists
+it has a driver, so the way down was to have no renderer where the window shows the screen at its own size or a whole
+multiple of it. The new display's main thread is under the original's. The mixer thread is cheaper than the original's FMOD (0.4 to
+0.6 against 0.7 to 1.1 G), and both are counted.
+
+**What was cut in the port.** In the game's code, behaviour unchanged (the frozen baseline is identical): the check
+for a changed screen and the copy of it are one pass over 256-pixel blocks (the web build's path), and the vignette that
+darkens the screen towards its corners (0x427ab0, `drawVignette` in `engine/Draw.cpp`) works out its brightness once for
+each run of six pixels the original's loop measures one distance for, not for every pixel. In the host: with the shared
+display the screen goes to it as rectangles (`BonniesWidget::SendScreenChanges`: the rows that differ from the last
+frame shown, in one rectangle for each run of changed rows) and nothing is drawn through the widget; the game's own cursor is the window's own SDL cursor on the desktop (`BonniesHostApp::EnforceCursor`,
+`SetWindowCursor`), since a cursor drawn as a framework image keeps the display in renderer mode (1,460 renderer frames in
+a tour before that change, none after). The web build keeps the picture and the image cursor. The framework's part is
+shared and not Bonnie's: `SurfaceDisplay` came with the Mahjong ports' presenter and this pass uses it unchanged.
+
+**Left.** Full screen and window sizes other than 1x to 4x use the display's renderer mode, which costs what the old
+display did (1.1 to 1.14 times the original's cycles, the driver's thread). A window that has had a hardware
+renderer (the game's own full-screen request, a start in full screen) stays on the renderer for good, so a player who
+toggles full screen once goes back to the old cost. That is the shared display's rule (Direct3D 11's swap chain keeps
+showing its last frame over a GDI blit). The window's real-input run (`tools/realplay_window.txt`, Alt+Enter both ways at
+the menu and on a board, minimise, restore, close) went as before on this build: the window 1600x1200, full screen
+3840x2160, back to 1600x1200, restored in full screen as it left, and the board shown after the way back differs from the
+one before full screen only in the tutorial's pulsing outline of the marked letters. The performance pass's
+first-measurement table below is kept as it was.
+
 ### The performance pass (2026-11-11)
 
 `tools/perf.py` (its docstring has the commands) plays the same tour in the original and the port, in real time and

@@ -23,7 +23,6 @@ namespace Sexy
 
 class Board;
 class TalkingHead;
-class SpeechBubble;
 class LoadingScreen;
 class StateLog;
 class UiBot;
@@ -96,10 +95,8 @@ public:
 
 	LoadingScreen*			mLoadingScreen;         // app+0x870
 	GameSelector*			mGameSelector;          // app+0x890
-	Dialog*					mHintDialog;            // app+0x874 the hint dialog opened last (nothing reads it)
 	Board*					mBoard;                 // app+0x598 the game in progress, null in the menu
 	TalkingHead*			mHead;                  // app+0x59c the announcer, made when the loading screen is done (0x42d360)
-	SpeechBubble*			mBubble;                // app+0x5a0 its (always invisible) speech bubble
 	bool					mWelcomed;              // app+0x85c the head has welcomed the player in the menu (once per run)
 	bool					mFirstGameHint;         // app+0x85d the first game of the run has been started with the head's words
 	int						mHeadCountdown;         // app+0x860 updates until the head says its first lines in a game (0 none)
@@ -108,7 +105,6 @@ public:
 	UiBotParams				mUiParams;              // port: the test hooks (testhooks/UiBot.h)
 	StateLog*				mStateLog;
 	UiBot*					mUiBot;
-	bool					mNoPopLink;             // app+0x548 the "NoPopLink" property
 	bool					mNoHints;               // app+0x549 an option of the Options dialog (0x4130b0): no hint arrow, no talking head
 	bool					mHintFlags[8];          // app+0x54a to +0x551 the hints that were shown (kept as HintsDisabledFlag%d)
 	SexyString				mLastScoreName;         // app+0x538 the name typed for the last high score (kept as LastScoreName)

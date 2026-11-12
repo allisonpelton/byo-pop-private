@@ -22,8 +22,8 @@ echo "toolchain: $tc"
 
 CFLAGS="-O2 -Wall -Wno-unused-parameter -Wno-unused-variable -Wno-unused-function"
 
-echo "building dsound.dll (the sound stand-in, which also carries the virtual clock, the scripted cursor, the message-box hook, the registry map, the network block, the launch guard and the coverage recorder) ..."
-"$CC" $CFLAGS -shared -o "$out/dsound.dll" "$here/dsound_proxy.c" "$here/vclock.c" "$here/cursor.c" "$here/msgbox.c" "$here/regmap.c" "$here/net.c" "$here/coverage.c" "$here/dsound_proxy.def" \
+echo "building dsound.dll (the sound stand-in, which also carries the virtual clock, the scripted cursor, the message-box hook, the registry map, the network block, the launch guard, the coverage recorder and the cycle counters) ..."
+"$CC" $CFLAGS -shared -o "$out/dsound.dll" "$here/dsound_proxy.c" "$here/vclock.c" "$here/cursor.c" "$here/msgbox.c" "$here/regmap.c" "$here/net.c" "$here/coverage.c" "$here/count.c" "$here/dsound_proxy.def" \
   -Wl,--enable-stdcall-fixup -lole32 -lwinmm -luser32 -ladvapi32
 
 echo "building origrun.exe ..."
@@ -36,6 +36,9 @@ echo "building nettest.exe (check.sh's test of the network block and the launch 
 echo "building covtest.exe (check.sh's test of --coverage) ..."
 "$CC" $CFLAGS -o "$out/covtest.exe" "$here/covtest.c" -Wl,--dynamicbase
 
+echo "building counttest.exe (check.sh's test of --count; no ASLR, so the functions stay at their listed addresses) ..."
+"$CC" $CFLAGS -o "$out/counttest.exe" "$here/counttest.c" -Wl,--disable-dynamicbase
+
 cp -f "$here/games.tsv" "$out/games.tsv"
 echo "built:"
-ls -la "$out"/origrun.exe "$out"/dsound.dll "$out"/covtest.exe "$out"/nettest.exe
+ls -la "$out"/origrun.exe "$out"/dsound.dll "$out"/covtest.exe "$out"/nettest.exe "$out"/counttest.exe

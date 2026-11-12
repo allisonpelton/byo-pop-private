@@ -13,10 +13,12 @@ tips (`TalkingHead.cpp`) and the classic mode's lanterns. It runs unmodified, wi
 the standard mods. Left out on purpose: the shareware pieces (the trial clock 0x42f770 and the register dialogs 0x414790,
 0x415020, 0x4153b0), because the Steam copy is registered, and the partner and update links of the options dialog.
 
-Both phases of the identical-play pass are done (`IDENTICAL_PLAY.md`: plays identical, then looks identical, with a leak of the port fixed). Still to do, in the order of CLAUDE.md: the fixes mod (no
-candidates so far), the coverage check, the performance pass, code the game does not need, the readability pass, the check against
-the PopCap Game Collection version, and the stores line `BYOPOP_BUY_rocketmania` in `cmake/ByopopStores.cmake`, which the coordinator
-supplies.
+Both phases of the identical-play pass are done (`IDENTICAL_PLAY.md`: plays identical, then looks identical, in 2D and 3D, with a leak
+of the port fixed), and so are the fixes mod (no candidates), the coverage check, the performance pass (the port at 0.25 to 0.78 of the
+original's processor time in every pair; GAME_NOTES, "Performance"), the lite mod (none: `LITE_MOD.md`), the removal of code the game
+does not need (GAME_NOTES, "Coverage check") and the readability pass (GAME_NOTES, "The readability pass"). Still to do, in the order of
+CLAUDE.md: the check against the PopCap Game Collection version, and the stores line
+`BYOPOP_BUY_rocketmania` in `cmake/ByopopStores.cmake`, which the coordinator supplies.
 
 ## The binary
 

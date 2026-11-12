@@ -89,3 +89,15 @@ none 004293f0 WinMain
 none 00415ec0 the speech bubble's picture and text (SpeechBubble::Draw's helper)
 none 00416040 SpeechBubble::Draw
 none 00429260 the test "is the head mid-slide" that SpeechBubble::Draw makes
+# ... and so the unneeded-code pass took out the rest of the bubble: its class, the head's two calls to it and the board's calls (2026-11-12).
+none 00415c70 SpeechBubble's constructor
+none 00415d20 SpeechBubble's destructor
+none 00415d30 the empty stub that would give the bubble a message
+none 00415d40 SpeechBubble::FadeOut
+none 00415d90 SpeechBubble::Update: keeps it invisible
+none 00416a30 TalkingHead::ShowBubble: brings the invisible bubble to the front
+none 00416a80 TalkingHead::HideBubble: fades the bubble, which is not there
+# Code no play of the original can reach (the unneeded-code pass, 2026-11-12): the board's state 7 and a button listener with no button.
+none 00428600 Board's button handler (ButtonDepress): no button has the board as its listener
+none 00428e80 the state 7 test that a dealt tile is not open to the edge of the board
+none 00428ef0 the board's state 7 (a new board dealt row by row): nothing stores a 7 to the state

@@ -68,3 +68,14 @@ none 00411d0a the trial's run count file: CountPlay's write of the plays into a 
 none 00411f7a the trial's run count in the registry: CountPlay's RunCount value (registration out; the copy's patch list skips it)
 none 004262fa SaveGameRegDialog: the save question's unregistered flavour; with the registered flag set it calls the plain SaveGameDialog, which the port calls directly (registration out)
 none 00426fc7 App::TrialCheck: the "no more plays" check and its dialog (registration out; with the registered flag set it returns at once)
+# Taken out as unneeded (GAME_NOTES.md, "Unneeded code taken out"): the original's exit teardown, which the port's host does not
+# run, and the code that no input reaches.
+none 0041b771 App::FreeImages: the exit teardown of the app's images, fonts and particle state; the host ends the process (the port's GameShutdown saves the preferences)
+none 0041b98a App::Shutdown: the original's exit teardown (screen none, music stop, the board, the images, the GUI, LOWOS's devices); the host stops the music and ends the process
+none 00428fa3 GuiShutdown: frees the layer and handler tables at exit
+none 0042f750 LOWOS_UninitScreen: unregisters the surfaces and releases DirectDraw at exit
+none 00432e70 LOWOS_UninitSound: frees the sounds and DirectSound at exit
+none 00417cfd the size of a quoted string value of the configuration: only the registration's and links' strings (REGISTER_URL, PUBLISHER_URL, RIS_*) used it (registration out)
+none 00417d63 ReadString: reads a quoted string value of the configuration; only the registration's and links' strings used it (registration out)
+none 00421f9f SlideImageProc: an image that slides across the screen and then sends a command; only command 0x1c makes it, and nothing sends that command
+none 004264a8 PlayAgainDialog: the "play again?" question that command 0x2a asks when the high scores screen was entered from a screen other than the main menu; only the main menu's button enters it

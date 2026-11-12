@@ -2,6 +2,7 @@
 #include "WinBMApp.h"
 #include "Res.h"
 #include "ModRules.h"
+#include "platform/GameOptions.h"
 #include "Compat12.h"
 
 #include "Graphics.h"
@@ -60,7 +61,7 @@ void OptionsDialog::ButtonPress(int theId)
 	{
 		// port(mods): the fixes mod's "doneClicksOnce": the app plays the click for the dialog's own two buttons
 		// (the ids the check above was meant to skip)
-		if (((theId == Dialog::ID_YES) || (theId == Dialog::ID_NO)) && (ModFeatureBool("fixes", "doneClicksOnce", false)))
+		if (((theId == Dialog::ID_YES) || (theId == Dialog::ID_NO)) && (Platform::FixOn("doneClicksOnce")))
 			return;
 		mApp->PlaySample(SOUND_BUTTONCLICK);
 	}

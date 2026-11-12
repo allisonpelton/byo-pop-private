@@ -8,11 +8,13 @@
 // drawing. On activation it copies the mod's split templates (livesplit/*.lss) to <user dir>/livesplit,
 // each only if it is missing there.
 //
-// Windows builds only (LiveSplit is a Windows program): elsewhere these are empty inlines.
+// Windows and web builds: elsewhere these are empty inlines. In the web build the page's speedrun timer (web/splits.js,
+// web/autosplit.js) turns the block on by asking for its address (byopop_livesplit_block), as the feature does, and reads it
+// from the game's memory every frame.
 
 #include <string>
 
-#if defined(_WIN32) && !defined(__EMSCRIPTEN__)
+#if defined(_WIN32) || defined(__EMSCRIPTEN__)
 #define BOOKWORM_HAS_LIVESPLIT 1
 #endif
 

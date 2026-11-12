@@ -35,7 +35,7 @@ const PipeStep Sexy::gPipeSteps[4] = {
 	{0, 1, 2, 8}
 };
 
-// the fall of the original's float to int conversion (__ftol): truncation
+// port: the original's float to int conversion (__ftol): truncation
 static int Ftol(double theValue)
 {
 	return (int) theValue;
@@ -60,14 +60,14 @@ static int RoundNearest(double theValue)
 
 // 0x41ad90
 Piece::Piece(int theBorn) :
-	mId(0), m04(false), mX(0), mY(0),
-	m18(((double) GlobalRand() * 4.656612875245797e-10) * 10.0 - 5.0),   // the global generator, 0x45b9ae
-	m20(0), mMoving(false), m30(0), m38(0),
-	m40(0), m44(0), m48(0), m4c(0), mRow(0), mColumn(0), mFromRow(0), mFromColumn(0),
-	m60(false), m61(false), mType(7), mKind(-1), mRotation(-1), mBorn(theBorn),
-	mPath(0), mPathFrom(-1), m7c(0), m80(0), m88(theBorn),
-	mSpecial(NULL), mHost(NULL), m94(false), m98(0), mFlash(NULL),
-	mIndex(0), mIndex2(0), ma8(3), mac(0), mb0(0), mb4(0), mLoadedSpecial(0), mLoadedHost(0)
+	mId(0), mReferencesResolved(false), mX(0), mY(0),
+	mSpeedX(((double) GlobalRand() * 4.656612875245797e-10) * 10.0 - 5.0),   // the global generator, 0x45b9ae
+	mSpeedY(0), mMoving(false), mSlideProgress(0), mSlideStep(0),
+	mSlideStartX(0), mSlideStartY(0), mSlideEndX(0), mSlideEndY(0), mRow(0), mColumn(0), mFromRow(0), mFromColumn(0),
+	mUsed(false), mBlocked(false), mType(7), mKind(-1), mRotation(-1), mBorn(theBorn),
+	mPath(0), mPathFrom(-1), mFrame(0), mTilt(0), mTurnedAt(theBorn),
+	mSpecial(NULL), mHost(NULL), mInMoverList(false), mAlwaysZero(0), mFlash(NULL),
+	mIndex(0), mIndex2(0), mHitsLeft(3), mTrailLife(0), mMovedFromRow(0), mMovedFromColumn(0), mLoadedSpecial(0), mLoadedHost(0)
 {
 }
 
@@ -76,8 +76,8 @@ PieceGenerator::PieceGenerator(RocketApp* theApp, Board* theBoard, MTRand* theRa
 	mApp(theApp), mBoard(theBoard), mRand(theRand)
 {
 	ResetCounts();
-	m3c = 0;
-	m70 = 0;
+	mCoinCount = 0;
+	mLaunchBonus = 0;
 	for (int i = 0; i < 5; i++)
 		mThreshold[i] = 0;
 	mTableIndex = -1;
@@ -223,24 +223,24 @@ void PieceGenerator::ResetForLevel()
 	int aLevel = aBoard->mLevel;
 	switch (mApp->mDifficulty)
 	{
-	case 1: aBoard->m68 = 130.0; aBoard->m108 = 10; break;
-	case 2: aBoard->m68 = 100.0; aBoard->m108 = 8; break;
-	case 3: aBoard->m68 = 80.0; aBoard->m108 = 6; break;
+	case 1: aBoard->mNightLength = 130.0; aBoard->mMatchesLeft = 10; break;
+	case 2: aBoard->mNightLength = 100.0; aBoard->mMatchesLeft = 8; break;
+	case 3: aBoard->mNightLength = 80.0; aBoard->mMatchesLeft = 6; break;
 	}
 	if (mApp->mMode != 0 && mApp->mMode != 1)
 	{
-		aBoard->m7c = aBoard->mRows;
-		aBoard->m80 = aBoard->mRows;
-		aBoard->m84 = false;
-		aBoard->m74 = 1;
-		aBoard->m78 = aBoard->m74;
+		aBoard->mLeftCount = aBoard->mRows;
+		aBoard->mRightCount = aBoard->mRows;
+		aBoard->mRightEdgeLoaded = false;
+		aBoard->mLaunchesNeeded = 1;
+		aBoard->mLaunchesNeededCopy = aBoard->mLaunchesNeeded;
 		return;
 	}
-	aBoard->m74 = RocketsForLevel(aLevel + 1);
-	aBoard->m78 = aBoard->m74;
-	aBoard->m7c = aBoard->mRows;
-	aBoard->m80 = aBoard->mRows;
-	aBoard->m84 = false;   // (the original stores DL, which 0x42a77f has set to 0)
+	aBoard->mLaunchesNeeded = RocketsForLevel(aLevel + 1);
+	aBoard->mLaunchesNeededCopy = aBoard->mLaunchesNeeded;
+	aBoard->mLeftCount = aBoard->mRows;
+	aBoard->mRightCount = aBoard->mRows;
+	aBoard->mRightEdgeLoaded = false;   // (the original stores DL, which 0x42a77f has set to 0)
 }
 
 // 0x42a890: the updates a tile takes to fall in arcade mode, at a level (shorter as the level grows)
@@ -283,7 +283,7 @@ void PieceGenerator::CountSpecial(Piece* thePiece)
 	if (thePiece->mKind == 6)
 	{
 		mCoins[thePiece->mIndex]++;
-		m3c++;
+		mCoinCount++;
 	}
 }
 
@@ -309,8 +309,8 @@ void PieceGenerator::ShowBonus()
 	for (int i = 0; i < 10; i++)
 		aTotal = aTotal + mLaunched[i];
 	mTotal = mTotal + aTotal;
-	if (mBoard->mC8 < aTotal)   // board+0xc8: the largest launch
-		mBoard->mC8 = aTotal;
+	if (mBoard->mLevelMostRockets < aTotal)   // board+0xc8: the largest launch
+		mBoard->mLevelMostRockets = aTotal;
 
 	Board* aBoard = mBoard;
 	// the texts' addresses in the original (GameText.h), by the number of rockets launched together
@@ -341,18 +341,18 @@ void PieceGenerator::ShowBonus()
 	if (mApp->mMode == 2)
 	{
 		if (2 < aTotal)
-			m70 = aTotal - 2;
+			mLaunchBonus = aTotal - 2;
 	}
 	else
 	{
 		if (aTotal < 2)
-			m70 = m70 + mTotal - 1;
+			mLaunchBonus = mLaunchBonus + mTotal - 1;
 		else
-			m70 = m70 + (mTotal - 1) * aTotal;
+			mLaunchBonus = mLaunchBonus + (mTotal - 1) * aTotal;
 		int aLevel = aBoard->mLevel < 0x32 ? aBoard->mLevel : 0x32;
-		m70 = Ftol(((double) aLevel * 0.02 + 1.0) * (double) m70);
+		mLaunchBonus = Ftol(((double) aLevel * 0.02 + 1.0) * (double) mLaunchBonus);
 		if (mApp->mMode == 0)
-			m70 = Ftol((double) m70 * 1.5);
+			mLaunchBonus = Ftol((double) mLaunchBonus * 1.5);
 	}
 	mTotal = 0;
 	ResetCounts();
@@ -512,7 +512,7 @@ Piece* Board::FindLoadedPiece(int theId)
 {
 	if (theId != 0)
 	{
-		for (std::list<Piece*>::iterator anItr = m504.begin(); anItr != m504.end(); ++anItr)
+		for (std::list<Piece*>::iterator anItr = mLoadedPieces.begin(); anItr != mLoadedPieces.end(); ++anItr)
 		{
 			if ((*anItr)->mId == theId)
 				return *anItr;
@@ -524,31 +524,31 @@ Piece* Board::FindLoadedPiece(int theId)
 // 0x422120
 void Board::ResetState(bool theContinuing)
 {
-	m4da = false;
-	m10c = 0;
-	m4c0 = false;
-	m2f8 = 0;
-	m44c = 500;
+	mChainBurn = false;
+	mMatchesWarning = 0;
+	mHintsQuiet = false;
+	mTilesDropped = 0;
+	mOverflowTimer = 500;
 	if (!theContinuing)
 		mApp->mHead->GoToRest(true);
 	for (int i = 0; i < 14; i++)
 	{
 		if (mLevel < 1 || i != 7)
-			m8c[i] = 0;
+			mSpecialCounts[i] = 0;
 	}
 	mGen->ResetForLevel();
-	m310 = m68;
-	m318 = m68;
-	m320 = 0.01;
-	m464 = -1;
+	mNightLeft = mNightLength;
+	mNightLeftShown = mNightLength;
+	mNightStep = 0.01;
+	mLastLanternOut = -1;
 	for (int i = 0; i < 10; i++)
-		m468[i] = 0;
-	m300 = 0;
+		mLanternPuff[i] = 0;
+	mLevelFraction = 0;
 	// the head says "get ready" at every level but the first one, where (unless the hints are off) it has its own lines
 	bool aQuiet = false;
 	if (mLevel == 0)
 	{
-		m308 = 0;
+		mLevelFractionShown = 0;
 		aQuiet = !mApp->mNoHints;
 	}
 	if (!aQuiet)
@@ -556,49 +556,49 @@ void Board::ResetState(bool theContinuing)
 		mApp->mHead->Say(SOUND_VOICE_GET_READY_02);
 		mApp->mHead->SetMood(0xe);
 	}
-	m370 = 0;
-	m374 = 0;
-	m378 = 0;
-	m380 = 0xfa;
-	m43c = 0x82;
-	m440 = 0;
+	mTilesRemoved = 0;
+	mLaunchesDone = 0;
+	mLaunchesCounted = 0;
+	mEndCountdown = 0xfa;
+	mBannerTime = 0x82;
+	mGameOverDelay = 0;
 	int aTable = 0;
 	if (mApp->mMode != 0)
 		aTable = (mApp->mMode != 1) + 1;
 	mGen->BuildThresholds(mApp->mDifficulty - 1, mLevel, aTable);
-	m328[0] = Ftol(m68 * 50.0);
-	m328[2] = 1000;
-	m328[1] = 2000;
-	m328[3] = 3000;
-	m328[4] = 4000;
-	m328[5] = 2000;
-	m499 = false;
-	F429080();
-	F428090();
-	mC4 = 0;
-	mC8 = 0;
-	mCc = 0;
-	mD0 = 0;
-	mD4 = 0;
-	mD8 = 0;
-	mDc = 0;
-	m4ac = 0;
-	m4b0 = 0;
-	m4b8 = 0;
-	m4bc = 0;
-	m4b4 = 0;
-	m4c8 = false;
-	m4c9 = false;
+	mHintCountdown[0] = Ftol(mNightLength * 50.0);
+	mHintCountdown[2] = 1000;
+	mHintCountdown[1] = 2000;
+	mHintCountdown[3] = 3000;
+	mHintCountdown[4] = 4000;
+	mHintCountdown[5] = 2000;
+	mNightWarned = false;
+	FinishLaunchFlames();
+	RemoveSetOffSpecial();
+	mLevelMostTiles = 0;
+	mLevelMostRockets = 0;
+	mLevelCoins = 0;
+	mLevelGems = 0;
+	mLevelBombs = 0;
+	mLevelClocks = 0;
+	mLevelMatches = 0;
+	mAlwaysZero = 0;
+	mChainBonusTime = 0;
+	mShakeAmount = 0;
+	mFrozenTime = 0;
+	mShakeTime = 0;
+	mClockMade = false;
+	mClockDue = false;
 	unsigned int aValue = (unsigned int) mRand->Next();
 	if ((aValue & 1) == 0)
 	{
 		int aGlobal = GlobalRand();
-		m4d9 = false;
-		m4d0 = ((double) aGlobal * 4.656612875245797e-10 * 16.0 - 8.0) + 25.0;
+		mJustInTime = false;
+		mClockNightLeft = ((double) aGlobal * 4.656612875245797e-10 * 16.0 - 8.0) + 25.0;
 		return;
 	}
-	m4d0 = -1.0;
-	m4d9 = false;
+	mClockNightLeft = -1.0;
+	mJustInTime = false;
 }
 
 // 0x422390: a new rocket on the right edge
@@ -632,7 +632,7 @@ Piece* Board::NewTop(int theColumn)
 	aPiece->mRotation = (int) (mRand->Next() & 3);
 	aPiece->mType = 1;
 	aPiece->mSpecial = MaybeSpecial(aPiece);
-	aPiece->m98 = 0;
+	aPiece->mAlwaysZero = 0;
 	return aPiece;
 }
 
@@ -672,37 +672,37 @@ void Board::Burst(int theKind, int theX, int theY)
 	case 6: anEffect = mEffects->Add(0x11, true); anEffect->mLife = 100; break;
 	case 7:
 		// four sparklers of the same kind: the first stays where the kind puts it, the others are moved and set going
-		// (the original stores these as doubles that Ghidra shows as their halves: m78 and m80 are -5.0 or 5.0, mY 0.0)
+		// (the original stores these as doubles that Ghidra shows as their halves: mMoveX and mMoveY are -5.0 or 5.0, mY 0.0)
 		anEffect = mEffects->Add(0x12, true);
-		anEffect->m90 = true; anEffect->mLife = 0x3c; anEffect->mc0 = theX; anEffect->m40 = theY;
+		anEffect->mLayer = true; anEffect->mLife = 0x3c; anEffect->mDelay = theX; anEffect->mSound = theY;
 		anEffect = mEffects->Add(0x12, true);
 		anEffect->mLife = 0x3c;
-		anEffect->m78 = -5.0;
-		anEffect->m90 = true; anEffect->mc0 = theX; anEffect->m40 = theY;
+		anEffect->mMoveX = -5.0;
+		anEffect->mLayer = true; anEffect->mDelay = theX; anEffect->mSound = theY;
 		anEffect->mX = (double) (0x17c - GlobalRand() % 0x79);
 		anEffect = mEffects->Add(0x12, true);
-		anEffect->m78 = 5.0; anEffect->m80 = 5.0;
+		anEffect->mMoveX = 5.0; anEffect->mMoveY = 5.0;
 		anEffect->mLife = 0x3c;
 		anEffect->mY = 0.0;
-		anEffect->m90 = true; anEffect->mc0 = theX; anEffect->m40 = theY;
+		anEffect->mLayer = true; anEffect->mDelay = theX; anEffect->mSound = theY;
 		anEffect = mEffects->Add(0x12, true);
 		anEffect->mLife = 0x3c;
 		anEffect->mY = 0.0;
-		anEffect->m78 = -5.0; anEffect->m80 = 5.0;
+		anEffect->mMoveX = -5.0; anEffect->mMoveY = 5.0;
 		anEffect->mX = (double) (0x17c - GlobalRand() % 0x79);
 		break;
 	case 8:
 		anEffect = mEffects->Add(8, true);
-		anEffect->m90 = true; anEffect->mLife = 100; anEffect->mc0 = theX; anEffect->m40 = theY;
+		anEffect->mLayer = true; anEffect->mLife = 100; anEffect->mDelay = theX; anEffect->mSound = theY;
 		anEffect = mEffects->Add(8, true);
 		anEffect->mLife = 100; anEffect->mX = 490.0;
 		break;
 	}
 	if (anEffect != NULL)
 	{
-		anEffect->m90 = true;
-		anEffect->mc0 = theX;
-		anEffect->m40 = theY;
+		anEffect->mLayer = true;
+		anEffect->mDelay = theX;
+		anEffect->mSound = theY;
 	}
 }
 
@@ -721,15 +721,15 @@ void Board::BurstSome(int theKind, int theX, int theY)
 // 0x423120: the sound of the multiplier of a chain of tiles and the text "Score x<n>" where the piece was
 void Board::ComboSound(double theX, double theY)
 {
-	int aSound = m490++;
+	int aSound = mComboCount++;
 	aSound += 0x29;
 	if (0x2c < aSound)
 		aSound = 0x2c;
 	mApp->PlaySample(aSound);
-	if (1 < m490)
+	if (1 < mComboCount)
 	{
 		char aBuf[256];
-		snprintf(aBuf, sizeof(aBuf), "Score x%d", m490);
+		snprintf(aBuf, sizeof(aBuf), "Score x%d", mComboCount);
 		Points* aPoints = AddText(aBuf, Ftol(theX), Ftol(theY));
 		aPoints->mStatic = false;
 	}
@@ -753,10 +753,10 @@ int Board::BonusFor(int theIndex)
 void Board::SmokePuff(Piece* thePiece)
 {
 	Effect* anEffect = mEffects->Add(5, true);
-	anEffect->m108 = 0.94;
-	anEffect->ma8 = 0;
-	anEffect->md0 = 0;
-	anEffect->mc0 = 0;
+	anEffect->mDrag = 0.94;
+	anEffect->mAccelY = 0;
+	anEffect->mDirY = 0;
+	anEffect->mDelay = 0;
 	anEffect->mLife = 1;
 	anEffect->mX = thePiece->mX + 10.0;
 	anEffect->mY = thePiece->mY + 10.0;
@@ -773,7 +773,7 @@ void Board::DestroySpecial(Piece* thePiece, bool theFlag)
 		{
 			Effect* anEffect = mEffects->Add(0x13, false);
 			anEffect->mLife = 300;
-			anEffect->mc0 = 0;
+			anEffect->mDelay = 0;
 			anEffect->mX = thePiece->mX;
 			anEffect->mY = thePiece->mY;
 			thePiece->mFlash = anEffect;
@@ -793,22 +793,22 @@ void Board::DestroySpecial(Piece* thePiece, bool theFlag)
 		if (!theFlag)
 		{
 			thePiece->mHost = NULL;
-			thePiece->m40 = Ftol(thePiece->mX);
-			thePiece->m44 = Ftol(thePiece->mY);
-			thePiece->m48 = 0x28;
-			thePiece->m4c = 0x46;
-			thePiece->m30 = 0;
-			thePiece->m38 = 0.02;
+			thePiece->mSlideStartX = Ftol(thePiece->mX);
+			thePiece->mSlideStartY = Ftol(thePiece->mY);
+			thePiece->mSlideEndX = 0x28;
+			thePiece->mSlideEndY = 0x46;
+			thePiece->mSlideProgress = 0;
+			thePiece->mSlideStep = 0.02;
 			thePiece->mMoving = true;
 			thePiece->mKind = 3;
 			Effect* anEffect = mEffects->Add(4, true);
 			anEffect->mLife = 1;
-			anEffect->mc0 = 0;
+			anEffect->mDelay = 0;
 			anEffect->mX = thePiece->mX;
 			anEffect->mY = thePiece->mY;
 			if (mState != 3)
 			{
-				int aSound = m494++ + 0x2e;
+				int aSound = mLaunchStep++ + 0x2e;
 				if (0x31 < aSound)
 					aSound = 0x31;
 				mApp->PlaySample(aSound);
@@ -829,17 +829,17 @@ void Board::DestroySpecial(Piece* thePiece, bool theFlag)
 			if (!theFlag)
 			{
 				thePiece->mHost = NULL;
-				thePiece->m40 = Ftol(thePiece->mX);
-				thePiece->m44 = Ftol(thePiece->mY);
-				thePiece->m48 = 0x87;
-				thePiece->m4c = 0x1a4;
-				thePiece->m30 = 0;
-				thePiece->m38 = 0.02;
+				thePiece->mSlideStartX = Ftol(thePiece->mX);
+				thePiece->mSlideStartY = Ftol(thePiece->mY);
+				thePiece->mSlideEndX = 0x87;
+				thePiece->mSlideEndY = 0x1a4;
+				thePiece->mSlideProgress = 0;
+				thePiece->mSlideStep = 0.02;
 				thePiece->mMoving = true;
 				thePiece->mKind = 7;
 				Effect* anEffect = mEffects->Add(4, true);
 				anEffect->mLife = 2;
-				anEffect->mc0 = 0;
+				anEffect->mDelay = 0;
 				anEffect->mX = thePiece->mX;
 				anEffect->mY = thePiece->mY;
 				if (mState == 3)
@@ -858,10 +858,10 @@ void Board::DestroySpecial(Piece* thePiece, bool theFlag)
 			SmokePuff(thePiece);
 			break;
 		}
-		if (CountBurning() + m108 < 0x14)
+		if (CountBurning() + mMatchesLeft < 0x14)
 		{
-			thePiece->m4c = 0xaa;
-			thePiece->m60 = false;
+			thePiece->mSlideEndY = 0xaa;
+			thePiece->mUsed = false;
 		}
 		else
 		{
@@ -872,28 +872,28 @@ void Board::DestroySpecial(Piece* thePiece, bool theFlag)
 				Ftol((double) mY + thePiece->mY), 100, 0);
 			mTexts.push_back(aPoints);
 			mWidgetManager->AddWidget(aPoints);
-			thePiece->m4c = 0x46;
-			thePiece->m60 = true;
+			thePiece->mSlideEndY = 0x46;
+			thePiece->mUsed = true;
 		}
-		thePiece->m48 = 0x28;
+		thePiece->mSlideEndX = 0x28;
 		thePiece->mHost = NULL;
-		thePiece->m40 = Ftol(thePiece->mX);
-		thePiece->m44 = Ftol(thePiece->mY);
-		thePiece->m30 = 0;
-		thePiece->m38 = 0.02;
+		thePiece->mSlideStartX = Ftol(thePiece->mX);
+		thePiece->mSlideStartY = Ftol(thePiece->mY);
+		thePiece->mSlideProgress = 0;
+		thePiece->mSlideStep = 0.02;
 		thePiece->mMoving = true;
 		thePiece->mKind = 0xb;
 		{
 			Effect* anEffect = mEffects->Add(5, true);
 			anEffect->mLife = 1;
-			anEffect->mc0 = 0;
+			anEffect->mDelay = 0;
 			anEffect->mX = thePiece->mX;
 			anEffect->mY = thePiece->mY;
 		}
 		if (mState == 3)
 			return;
 		{
-			int aSound = m494 + 0x2d;
+			int aSound = mLaunchStep + 0x2d;
 			if (0x31 < aSound)
 				aSound = 0x31;
 			mApp->PlaySample(aSound);
@@ -905,22 +905,22 @@ void Board::DestroySpecial(Piece* thePiece, bool theFlag)
 		if (!theFlag)
 		{
 			thePiece->mHost = NULL;
-			thePiece->m40 = Ftol(thePiece->mX);
-			thePiece->m44 = Ftol(thePiece->mY);
-			thePiece->m4c = 0x28;
-			thePiece->m48 = CellX(3) - mApp->mImages[IMAGE_CLOCK]->GetWidth() / 2;
-			thePiece->m30 = 0;
-			thePiece->m38 = 0.02;
+			thePiece->mSlideStartX = Ftol(thePiece->mX);
+			thePiece->mSlideStartY = Ftol(thePiece->mY);
+			thePiece->mSlideEndY = 0x28;
+			thePiece->mSlideEndX = CellX(3) - mApp->mImages[IMAGE_CLOCK]->GetWidth() / 2;
+			thePiece->mSlideProgress = 0;
+			thePiece->mSlideStep = 0.02;
 			thePiece->mMoving = true;
 			thePiece->mKind = 0xd;
 			Effect* anEffect = mEffects->Add(4, true);
 			anEffect->mLife = 1;
-			anEffect->mc0 = 0;
+			anEffect->mDelay = 0;
 			anEffect->mX = thePiece->mX;
 			anEffect->mY = thePiece->mY;
 			if (mState == 3)
 				return;
-			int aSound = m494 + 0x2d;
+			int aSound = mLaunchStep + 0x2d;
 			if (0x31 < aSound)
 				aSound = 0x31;
 			mApp->PlaySample(aSound);
@@ -965,11 +965,11 @@ Piece* Board::MakeSpecial(int theKind, Piece* theHost)
 		}
 		else if (theKind == 10)
 		{
-			aPiece->m40 = Ftol(theHost->mX);
-			aPiece->m44 = 0;
+			aPiece->mSlideStartX = Ftol(theHost->mX);
+			aPiece->mSlideStartY = 0;
 		}
 		else if (theKind == 0xc)
-			m4c8 = true;
+			mClockMade = true;
 		break;
 	case 5:
 		aPiece->mX = theHost->mX;
@@ -992,9 +992,9 @@ Piece* Board::MakeSpecial(int theKind, Piece* theHost)
 // 0x423ca0
 Piece* Board::MaybeSpecial(Piece* theHost)
 {
-	if (m4c9 && !m4c8)
+	if (mClockDue && !mClockMade)
 	{
-		m4c9 = false;
+		mClockDue = false;
 		return MakeSpecial(0xc, theHost);
 	}
 	if (mGen->SpecialNow())
@@ -1052,56 +1052,56 @@ void Board::AttachSpecial10()
 		Piece* aSpecial = MakeSpecial(10, aTile);
 		aTile->mSpecial = aSpecial;
 		mApp->PlaySample(0x19);
-		m4d8 = true;
+		mMatchAttached = true;
 	}
 }
 
 // 0x424010: arcade mode: the next tile falls into the first row at the pointer's column
 void Board::DropTop()
 {
-	if (mGrid[0][m448] == NULL)
+	if (mGrid[0][mDropColumn] == NULL)
 	{
-		m44c = 500;
-		Piece* aPiece = mTop[m448];
+		mOverflowTimer = 500;
+		Piece* aPiece = mTop[mDropColumn];
 		if (aPiece != NULL)
 		{
-			m2f8 = m2f8 + 1;
-			if (mGen->Rows() * mCols - 1 < m2f8)
-				m444 = mGen->FallDelay(mLevel);
-			if (m37c != 0)
+			mTilesDropped = mTilesDropped + 1;
+			if (mGen->Rows() * mCols - 1 < mTilesDropped)
+				mFallPeriod = mGen->FallDelay(mLevel);
+			if (mQuickDrops != 0)
 			{
-				m444 = 2;
-				m37c = m37c - 1;
+				mFallPeriod = 2;
+				mQuickDrops = mQuickDrops - 1;
 			}
 			AddMover(aPiece);
 			aPiece->mType = 0;
-			mTop[m448] = NULL;
-			mGrid[0][m448] = aPiece;
+			mTop[mDropColumn] = NULL;
+			mGrid[0][mDropColumn] = aPiece;
 			aPiece->mRow = 0;
 			aPiece->mMoving = true;
-			aPiece->mColumn = m448;
-			aPiece->m40 = Ftol(aPiece->mX);
-			aPiece->m44 = Ftol(aPiece->mY + 42.0);
-			aPiece->m48 = CellX(m448);
-			aPiece->m4c = CellY(0);
-			aPiece->m30 = 0;
-			aPiece->m38 = 0.2;
-			mTop[m448] = mSpare;
-			m448 = (m448 + 1) % mCols;
-			mSpare = NewTop(m448);
+			aPiece->mColumn = mDropColumn;
+			aPiece->mSlideStartX = Ftol(aPiece->mX);
+			aPiece->mSlideStartY = Ftol(aPiece->mY + 42.0);
+			aPiece->mSlideEndX = CellX(mDropColumn);
+			aPiece->mSlideEndY = CellY(0);
+			aPiece->mSlideProgress = 0;
+			aPiece->mSlideStep = 0.2;
+			mTop[mDropColumn] = mSpare;
+			mDropColumn = (mDropColumn + 1) % mCols;
+			mSpare = NewTop(mDropColumn);
 		}
 	}
 	else
 	{
-		m44c = m44c - 1;
-		m2e0 = m444;
+		mOverflowTimer = mOverflowTimer - 1;
+		mFallDisplay = mFallPeriod;
 	}
 }
 
 // 0x424180: classic and strategy modes: the tile of the next column falls
 int Board::DropTopTimed()
 {
-	int aColumn = m454;
+	int aColumn = mTimedDropColumn;
 	if (mGrid[0][aColumn] == NULL)
 	{
 		Piece* aPiece = mTop[aColumn];
@@ -1109,21 +1109,21 @@ int Board::DropTopTimed()
 			return aColumn;
 		AddMover(aPiece);
 		aPiece->mType = 0;
-		mTop[m454] = NULL;
-		mGrid[0][m454] = aPiece;
+		mTop[mTimedDropColumn] = NULL;
+		mGrid[0][mTimedDropColumn] = aPiece;
 		aPiece->mRow = 0;
 		aPiece->mMoving = true;
-		aPiece->mColumn = m454;
-		aPiece->m40 = Ftol(aPiece->mX);
-		aPiece->m44 = CellY(0) - 0x4a;
-		aPiece->m48 = CellX(m454);
-		aPiece->m4c = CellY(0);
-		aPiece->m30 = 0;
-		aPiece->m38 = 0.08;
-		mTop[m454] = NewTop(m454);
-		aColumn = m454;
+		aPiece->mColumn = mTimedDropColumn;
+		aPiece->mSlideStartX = Ftol(aPiece->mX);
+		aPiece->mSlideStartY = CellY(0) - 0x4a;
+		aPiece->mSlideEndX = CellX(mTimedDropColumn);
+		aPiece->mSlideEndY = CellY(0);
+		aPiece->mSlideProgress = 0;
+		aPiece->mSlideStep = 0.08;
+		mTop[mTimedDropColumn] = NewTop(mTimedDropColumn);
+		aColumn = mTimedDropColumn;
 	}
-	m454 = (aColumn + 1) % mCols;
+	mTimedDropColumn = (aColumn + 1) % mCols;
 	return (aColumn + 1) / mCols;
 }
 
@@ -1159,7 +1159,7 @@ int Board::CountBurning()
 	for (std::list<Piece*>::iterator anItr = mObjects.begin(); anItr != mObjects.end(); ++anItr)
 	{
 		Piece* aPiece = *anItr;
-		if (aPiece->mType == 6 && aPiece->mKind == 0xb && !aPiece->m60)
+		if (aPiece->mType == 6 && aPiece->mKind == 0xb && !aPiece->mUsed)
 			aCount++;
 	}
 	return aCount;
@@ -1168,10 +1168,10 @@ int Board::CountBurning()
 // 0x424700
 void Board::Ping()
 {
-	if (m4c4 == 0)
+	if (mPingCooldown == 0)
 	{
 		mApp->PlaySample(1);
-		m4c4 = 0xf;
+		mPingCooldown = 0xf;
 	}
 }
 
@@ -1187,8 +1187,8 @@ int Board::AddScore(int thePoints)
 	else
 		aFactor = 2.0;
 	int aPoints = Ftol(aFactor * (double) thePoints);
-	if (1 < m490)
-		aPoints = m490 * aPoints;
+	if (1 < mComboCount)
+		aPoints = mComboCount * aPoints;
 	mScore = mScore + aPoints;
 	if (mScore < 0)
 		mScore = 0;
@@ -1198,10 +1198,10 @@ int Board::AddScore(int thePoints)
 // 0x425940
 void Board::EndLevelA()
 {
-	m44c = 500;
+	mOverflowTimer = 500;
 	mApp->mHead->StartSlide(false, 0);
 	mState = 4;
-	m36c = 400;
+	mLevelEndCountdown = 400;
 }
 
 // 0x425980
@@ -1220,6 +1220,7 @@ void Board::MakeFlame0()
 	aPiece->mIndex = IMAGE_ROCKET_GLOW;     // (the original's 0x6e, its table's entry of "rocket-glow")
 }
 
+// 0x425a30: the second flame marker (MakeFlame0 is 0x425a00)
 void Board::MakeFlame1()
 {
 	Piece* aPiece = MakeSpecial(8, NULL);
@@ -1240,13 +1241,13 @@ void Board::MakeMarker(int theRow, int theKind)
 void Board::MakeRocket(int theRow)
 {
 	Piece* aPiece = MakeSpecial(5, mRight[theRow]);
-	aPiece->m40 = Ftol(aPiece->mX + 1.0);
-	aPiece->m44 = Ftol(aPiece->mY - 77.0);
-	aPiece->m4c = aPiece->m44 - 200;
-	aPiece->m48 = aPiece->m40 + 200;
+	aPiece->mSlideStartX = Ftol(aPiece->mX + 1.0);
+	aPiece->mSlideStartY = Ftol(aPiece->mY - 77.0);
+	aPiece->mSlideEndY = aPiece->mSlideStartY - 200;
+	aPiece->mSlideEndX = aPiece->mSlideStartX + 200;
 	aPiece->mMoving = true;
-	aPiece->m38 = 0.015;
-	aPiece->m30 = 0;
+	aPiece->mSlideStep = 0.015;
+	aPiece->mSlideProgress = 0;
 	Effect* anEffect = mEffects->Add(3, false);
 	aPiece->mFlash = anEffect;
 	anEffect->mX = (aPiece->mX - 18.0) + 8.0;
@@ -1255,7 +1256,7 @@ void Board::MakeRocket(int theRow)
 }
 
 // 0x4251b0 floods the connected tiles from a tile of the first column (theFrom = 0) or the last: marks each tile
-// with the number of its path (mPath) and, in m384 / m3fc / m41a, which edges the path touches
+// with the number of its path (mPath) and, in mPathEdges / mPathLeftLive / mPathRightLive, which edges the path touches
 void Board::Flood(int theColumn, int theRow, int thePath, int* theCount, unsigned int* theEnds, int theFrom)
 {
 	Piece* aPiece = mGrid[theRow][theColumn];
@@ -1274,12 +1275,12 @@ void Board::Flood(int theColumn, int theRow, int thePath, int* theCount, unsigne
 			aEnds = aEnds | 0x10;
 		*theEnds = aEnds;
 		if (mLeft[theRow] != NULL)
-			m2c8[theRow] = true;
-		m384[thePath] = m384[thePath] | 1;
+			mLeftTouched[theRow] = true;
+		mPathEdges[thePath] = mPathEdges[thePath] | 1;
 		bool aValue = true;
-		if (!m3fc[thePath] && !m2c8[theRow])
+		if (!mPathLeftLive[thePath] && !mLeftTouched[theRow])
 			aValue = false;
-		m3fc[thePath] = aValue;
+		mPathLeftLive[thePath] = aValue;
 	}
 	else if (theColumn == mCols - 1 && (aMask & 2) != 0)
 	{
@@ -1289,13 +1290,13 @@ void Board::Flood(int theColumn, int theRow, int thePath, int* theCount, unsigne
 		else
 			aEnds = aEnds | 0x20;
 		*theEnds = aEnds;
-		if (mRight[theRow] != NULL || m84)
-			m2d1[theRow] = true;
-		m384[thePath] = m384[thePath] | 2;
+		if (mRight[theRow] != NULL || mRightEdgeLoaded)
+			mRightTouched[theRow] = true;
+		mPathEdges[thePath] = mPathEdges[thePath] | 2;
 		bool aValue = true;
-		if (!m41a[thePath] && mRight[theRow] == NULL)
+		if (!mPathRightLive[thePath] && mRight[theRow] == NULL)
 			aValue = false;
-		m41a[thePath] = aValue;
+		mPathRightLive[thePath] = aValue;
 	}
 	unsigned int aBits;
 	if (theRow == 0 && (aMask & 1) != 0)
@@ -1305,8 +1306,8 @@ void Board::Flood(int theColumn, int theRow, int thePath, int* theCount, unsigne
 			*theEnds = aEnds | 4;
 		else
 			*theEnds = aEnds | 0x40;
-		aBits = m384[thePath] | 4;
-		m384[thePath] = aBits;
+		aBits = mPathEdges[thePath] | 4;
+		mPathEdges[thePath] = aBits;
 	}
 	else if (theRow == mRows - 1 && (aMask & 4) != 0)
 	{
@@ -1315,8 +1316,8 @@ void Board::Flood(int theColumn, int theRow, int thePath, int* theCount, unsigne
 			*theEnds = aEnds | 8;
 		else
 			*theEnds = aEnds | 0x80;
-		aBits = m384[thePath] | 8;
-		m384[thePath] = aBits;
+		aBits = mPathEdges[thePath] | 8;
+		mPathEdges[thePath] = aBits;
 	}
 	for (int i = 0; i < 4; i++)
 	{

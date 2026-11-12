@@ -143,7 +143,19 @@ LiveSplit's tests (`games/bookworm/tools/livesplit/run_tests.sh <out dir>`, abou
 the block's offsets against the .asl, compile the .asl with the .NET Framework compiler (`asltest`), read the block
 from a running game with `lsprobe.py` (no torn reads, every write the game's), and run 29 scenarios through the
 real script (`lsdecide.py`: level and score splits, the mode guard, leaving and continuing a game, a modded game,
-the mod off). `-livesplitlog=<file>` logs each write of the block. LiveSplit itself is not part of the tests.
+the mod off), and a bot run's state log with the block on (a mod folder holding only the manifest), with no mod and in the
+frozen baseline, which must be byte-identical. `-livesplitlog=<file>` logs each write of the block. LiveSplit itself is not
+part of the tests.
+
+The block is the shared autosplit block (`platform/AutosplitBlock.h`, layout 2, 0xD0 bytes), written by its `AutosplitWriter`
+(2026-11-12; `docs/WEB_PLAYER.md`, "One design for every port"), and `src/LiveSplitBlock.h` is the layout-1 view of its first
+0xB0 bytes, which the .asl, `lsprobe.py` and the log line read, tied to it by `static_assert`s. Its layout-2 fields are the
+mode and skill (also at 0xB8 and 0xBC), `inGame` (from a board's GO until its game over), `wins` (always 0: BookWorm has no
+win) and `progress`, the rank the summary screen shows, the levels cleared (`Board::mLevel`, which counts up when the next level
+starts, plus one while the level-complete summary or its continue button is up), at most 31, -1 off a board. On the web the
+page's timer asks for the block (`byopop_livesplit_block`) and the same observer writes it. The conversion was checked by
+running the tests' eight bot, script and probe runs (63,944 block writes) with the old and the new observer: every log
+line and every byte of the first 0xB0 bytes but the layout, size, address and clock fields are identical.
 
 ```bash
 mkdir -p <dir>/mods && cp -r games/bookworm/mods/solver games/bookworm/mods/undo <dir>/mods/

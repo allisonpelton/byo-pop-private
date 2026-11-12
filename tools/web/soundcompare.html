@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Listening</title>
+<!-- tools/web/soundcompare.py serves this page, development only: what only the user's ears can judge, in three lists -->
+<style>
+  :root { --bg: #c0c0c0; --fg: #000; --row: #fff; --sel: #000080; --yes: #c8f0c8; --no: #f0c8c8; --mid: #f0f0c0; --line: #808080; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 12px Tahoma, "MS Sans Serif", Arial, sans-serif; }
+  #bar { position: sticky; top: 0; background: var(--bg); border-bottom: 1px solid var(--line); padding: 4px 8px; display: flex;
+         gap: 12px; align-items: center; flex-wrap: wrap; z-index: 1; min-height: 22px; }
+  #tabs button { padding: 2px 8px; }
+  #tabs button.on { font-weight: bold; box-shadow: inset 0 0 0 2px #000; }
+  .keys span { border: 1px solid var(--line); padding: 0 4px; background: #fff; margin-right: 2px; }
+  table { border-collapse: collapse; width: 100%; background: var(--row); }
+  th, td { border-bottom: 1px solid #ddd; padding: 2px 4px; text-align: left; vertical-align: middle; }
+  th { background: #e0e0e0; position: sticky; top: 31px; font-weight: normal; }
+  tr.sel td { outline: 2px solid var(--sel); outline-offset: -2px; }
+  tr.yes td.d { background: var(--yes); }
+  tr.no td.d { background: var(--no); }
+  tr.mid td.d { background: var(--mid); }
+  tr.sep td { background: #e0e0e0; font-weight: bold; }
+  td.p { color: #555; font-size: 11px; word-break: break-all; max-width: 260px; }
+  td.n { color: #555; text-align: right; }
+  td.h { color: #777; font-size: 11px; }
+  td:has(button) { white-space: nowrap; }
+  b.prop { font-weight: bold; }
+  button { font: inherit; min-width: 24px; }
+  button.on { font-weight: bold; box-shadow: inset 0 0 0 2px #000; }
+  button.playing { background: #ffffa0; }
+  input.t { font: inherit; width: 180px; }
+</style>
+</head>
+<body>
+<div id="bar">
+  <span id="tabs"></span>
+  <span id="save">-</span>
+  <span class="keys" id="keys"></span>
+</div>
+<table>
+  <thead id="head"></thead>
+  <tbody id="rows"></tbody>
+</table>
+<script>
+"use strict";
+// Three lists (tools/web/soundcompare.py): pairs of similar sounds, voice clips whose words are open, and the seams of the
+// tunes Music joins or cuts. Each list's decisions are saved on every change to its own file and read back on a reload.
+var LISTS = {
+  pairs: { title: "Pairs", keys: "<span>A</span>A <span>B</span>B <span>Space</span>A→B <span>S</span>Similar <span>N</span>Not similar",
+           head: "<tr><th>#</th><th>A</th><th></th><th>Path</th><th></th><th>B</th><th></th><th>Path</th><th></th><th>Env/Wave</th><th>Decision</th></tr>" },
+  voices: { title: "Voices", keys: "<span>Space</span>Play <span>Y</span>Accept <span>N</span>Not a voice <span>T</span>Type the words, <span>Enter</span>",
+            head: "<tr><th>#</th><th>Game</th><th>File</th><th>Board label</th><th>Proposed</th><th>Why</th><th>Whisper heard</th><th></th><th>Decision</th></tr>" },
+  seams: { title: "Seams", keys: "<span>Space</span>Play <span>Y</span>Sounds right <span>N</span>Sounds wrong <span>T</span>Note, <span>Enter</span>",
+           head: "<tr><th>#</th><th>Game</th><th>Tune</th><th>Seam</th><th>At</th><th></th><th>Decision</th></tr>" }
+};
+var items = {}, dec = {}, sel = {}, tab = "pairs", audio = new Audio(), chain = null;
+var rows = document.getElementById("rows");
+try { var saved = localStorage.getItem("soundcompare-tab"); if (saved && LISTS[saved]) tab = saved; } catch (e) { /* none */ }
+
+function esc(t) { return String(t).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+function list() { return items[tab] || []; }
+function rowOf(i) { return rows.querySelector('tr[data-i="' + i + '"]'); }
+function play(url, btn, then) {
+  audio.pause();
+  if (chain) clearTimeout(chain);
+  chain = null;
+  document.querySelectorAll("button.playing").forEach(function (b) { b.classList.remove("playing"); });
+  if (!url) return;
+  audio = new Audio(url);
+  if (btn) btn.classList.add("playing");
+  audio.onended = function () {
+    if (btn) btn.classList.remove("playing");
+    if (then) chain = setTimeout(then, 300);
+  };
+  audio.play().catch(function () { if (btn) btn.classList.remove("playing"); });
+}
+function snd(name) { return name ? "snd/" + encodeURIComponent(name) : null; }
+function seam(name) { return name ? "seam/" + encodeURIComponent(name) : null; }
+function playA(i) { var r = rowOf(i); play(snd(items.pairs[i].a.snd), r && r.querySelector(".pa")); }
+function playB(i) { var r = rowOf(i); play(snd(items.pairs[i].b.snd), r && r.querySelector(".pb")); }
+function playAB(i) {
+  var r = rowOf(i);
+  play(snd(items.pairs[i].a.snd), r && r.querySelector(".pab"), function () { play(snd(items.pairs[i].b.snd), r && r.querySelector(".pab")); });
+}
+function playRow(i) {
+  var r = rowOf(i);
+  if (tab === "pairs") playAB(i);
+  else if (tab === "voices") play(snd(items.voices[i].snd), r && r.querySelector(".pl"));
+  else play(seam(items.seams[i].snd), r && r.querySelector(".pl"));
+}
+
+// a row's decision: pairs "similar" / "not similar"; voices {verdict: "accept" | "not a voice" | "words", words};
+// seams {verdict: "right" | "wrong", note}
+function verdict(d) { return d && typeof d === "object" ? d.verdict : d; }
+function decided(d) {
+  var v = verdict(d);
+  return v === "accept" || v === "not a voice" || v === "right" || v === "wrong" || v === "similar" || v === "not similar" ||
+    (v === "words" && d.words);
+}
+
+function pairRow(p, i, d) {
+  function side(s) { return "<td>" + esc(s.game) + "</td><td>" + esc(s.label || "") + "</td><td class=p>" + esc(s.file) + "</td>"; }
+  return "<td class=n>" + (i + 1) + "</td>" + side(p.a) +
+    '<td><button class=pa title="Play A"' + (p.a.snd ? "" : " disabled") + ">▶</button></td>" + side(p.b) +
+    '<td><button class=pb title="Play B"' + (p.b.snd ? "" : " disabled") + '>▶</button> <button class=pab title="A then B">A→B</button></td>' +
+    "<td class=n>" + p.env.toFixed(2) + " / " + p.wave.toFixed(2) + "</td>" +
+    '<td class=d><button class="ys' + (d === "similar" ? " on" : "") + '">Similar</button> <button class="ns' + (d === "not similar" ? " on" : "") + '">Not similar</button></td>';
+}
+function voiceRow(v, i, d) {
+  var w = verdict(d);
+  return "<td class=n>" + (i + 1) + "</td><td>" + esc(v.games.join(", ")) + "</td><td class=p>" + esc(v.file) + "</td><td>" +
+    esc(v.label) + "</td><td><b class=prop>" + esc(v.proposal) + "</b></td><td>" + esc(v.evidence) + "</td><td class=h>" + esc(v.hint || "") + "</td>" +
+    '<td><button class=pl title="Play"' + (v.snd ? "" : " disabled") + ">▶</button></td>" +
+    '<td class=d><button class="ys' + (w === "accept" ? " on" : "") + '">Accept</button> <button class="ns' + (w === "not a voice" ? " on" : "") +
+    '">Not a voice</button> <input class=t placeholder="The words it says" value="' + esc(w === "words" ? d.words : "") + '"></td>';
+}
+function seamRow(s, i, d) {
+  var w = verdict(d);
+  return "<td class=n>" + (i + 1) + "</td><td>" + esc(s.game) + "</td><td>" + esc(s.tune) + "</td><td>" + esc(s.what) + "</td>" +
+    "<td class=n>" + (s.at != null ? s.at.toFixed(1) + " s" : "") + "</td>" +
+    '<td><button class=pl title="Play"' + (s.snd ? "" : " disabled") + ">▶</button></td>" +
+    '<td class=d><button class="ys' + (w === "right" ? " on" : "") + '">Sounds right</button> <button class="ns' + (w === "wrong" ? " on" : "") +
+    '">Sounds wrong</button> <input class=t placeholder="Note" value="' + esc(d && d.note ? d.note : "") + '"></td>';
+}
+
+function counts() {
+  var h = "";
+  Object.keys(LISTS).forEach(function (k, n) {
+    var l = items[k] || [], dk = dec[k] || {};
+    var done = l.filter(function (r) { return decided(dk[r.key]); }).length;
+    h += '<button data-tab="' + k + '"' + (k === tab ? ' class=on' : "") + ' title="Key ' + (n + 1) + '">' + LISTS[k].title + " " + done + " / " + l.length + "</button> ";
+  });
+  document.getElementById("tabs").innerHTML = h;
+}
+function draw() {
+  var h = "", last = "", dk = dec[tab] || {};
+  document.getElementById("head").innerHTML = LISTS[tab].head;
+  document.getElementById("keys").innerHTML = LISTS[tab].keys + " <span>↑</span><span>↓</span> <span>1</span><span>2</span><span>3</span>Lists";
+  list().forEach(function (r, i) {
+    var d = dk[r.key], w = verdict(d);
+    if (tab === "pairs" && r.list !== last) {
+      last = r.list;
+      h += "<tr class=sep><td colspan=11>" + (r.list === "near" ? "Near matches" : "Turned down") + "</td></tr>";
+    }
+    var cls = (w === "similar" || w === "accept" || w === "right") ? "yes" : (w === "not similar" || w === "not a voice" || w === "wrong") ? "no" :
+      (w === "words" && d.words) ? "mid" : "";
+    h += '<tr data-i="' + i + '" class="' + cls + '">' + (tab === "pairs" ? pairRow(r, i, d) : tab === "voices" ? voiceRow(r, i, d) : seamRow(r, i, d)) + "</tr>";
+  });
+  rows.innerHTML = h;
+  counts();
+  select(sel[tab] || 0);
+}
+function select(i, scroll) {
+  var l = list();
+  sel[tab] = Math.max(0, Math.min(l.length - 1, i));
+  rows.querySelectorAll("tr.sel").forEach(function (r) { r.classList.remove("sel"); });
+  var r = rowOf(sel[tab]);
+  if (r) { r.classList.add("sel"); if (scroll) r.scrollIntoView({ block: "nearest" }); }
+}
+function decide(i, value) {
+  var dk = dec[tab] = dec[tab] || {}, key = list()[i].key;
+  if (value === null) delete dk[key]; else dk[key] = value;
+  draw();
+  select(i);
+  save(tab);
+}
+function save(which) {
+  var s = document.getElementById("save");
+  s.textContent = "saving";
+  fetch("decisions/" + which, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(dec[which] || {}) })
+    .then(function (r) { s.textContent = r.ok ? "saved" : "not saved (" + r.status + ")"; })
+    .catch(function () { s.textContent = "not saved"; });
+}
+function switchTo(k) {
+  if (!LISTS[k]) return;
+  tab = k;
+  try { localStorage.setItem("soundcompare-tab", k); } catch (e) { /* none */ }
+  if (sel[k] === undefined) {
+    var dk = dec[k] || {}, first = list().findIndex(function (r) { return !decided(dk[r.key]); });
+    sel[k] = first < 0 ? 0 : first;
+  }
+  draw();
+  select(sel[k], true);
+}
+// the text box of a row: voices' words, seams' note
+function typed(i, text) {
+  var dk = dec[tab] || {}, d = dk[list()[i].key];
+  text = text.trim();
+  if (tab === "voices") decide(i, text ? { verdict: "words", words: text } : (verdict(d) === "words" ? null : d));
+  else decide(i, Object.assign({}, d && typeof d === "object" ? d : {}, { note: text }));
+}
+function yes(i) {
+  if (tab === "pairs") decide(i, "similar");
+  else if (tab === "voices") decide(i, { verdict: "accept" });
+  else decide(i, Object.assign({}, dec.seams && dec.seams[list()[i].key] || {}, { verdict: "right" }));
+}
+function no(i) {
+  if (tab === "pairs") decide(i, "not similar");
+  else if (tab === "voices") decide(i, { verdict: "not a voice" });
+  else decide(i, Object.assign({}, dec.seams && dec.seams[list()[i].key] || {}, { verdict: "wrong" }));
+}
+
+document.getElementById("tabs").addEventListener("click", function (e) {
+  var b = e.target.closest("button[data-tab]");
+  if (b) switchTo(b.dataset.tab);
+});
+rows.addEventListener("click", function (e) {
+  var b = e.target.closest("button"), tr = e.target.closest("tr[data-i]");
+  if (!tr) return;
+  var i = +tr.dataset.i;
+  select(i);
+  if (!b) return;
+  if (b.classList.contains("pa")) playA(i);
+  else if (b.classList.contains("pb")) playB(i);
+  else if (b.classList.contains("pab") || b.classList.contains("pl")) playRow(i);
+  else if (b.classList.contains("ys")) yes(i);
+  else if (b.classList.contains("ns")) no(i);
+});
+rows.addEventListener("change", function (e) {
+  var tr = e.target.closest("tr[data-i]");
+  if (tr && e.target.classList.contains("t")) typed(+tr.dataset.i, e.target.value);
+});
+document.addEventListener("keydown", function (e) {
+  if (e.ctrlKey || e.altKey || e.metaKey) return;
+  var k = e.key.toLowerCase(), i = sel[tab] || 0;
+  if (e.target.tagName === "INPUT") {
+    if (k === "enter") {
+      var tr = e.target.closest("tr[data-i]"), at = tr ? +tr.dataset.i : i;
+      e.target.blur();   // the change event saves it
+      select(at + 1, true);
+      e.preventDefault();
+    } else if (k === "escape") e.target.blur();
+    return;
+  }
+  if (!list().length) return;
+  if (k === "1" || k === "2" || k === "3") switchTo(Object.keys(LISTS)[+k - 1]);
+  else if (tab === "pairs" && k === "a") playA(i);
+  else if (tab === "pairs" && k === "b") playB(i);
+  else if (k === " ") playRow(i);
+  else if ((tab === "pairs" && k === "s") || (tab !== "pairs" && k === "y")) { yes(i); select(i + 1, true); }
+  else if (k === "n") { no(i); select(i + 1, true); }
+  else if (tab !== "pairs" && k === "t") { var r = rowOf(i), t = r && r.querySelector("input.t"); if (t) t.focus(); }
+  else if (k === "arrowdown") select(i + 1, true);
+  else if (k === "arrowup") select(i - 1, true);
+  else return;
+  e.preventDefault();
+});
+
+Promise.all([fetch("items.json").then(function (r) { return r.json(); })].concat(Object.keys(LISTS).map(function (k) {
+  return fetch("decisions/" + k).then(function (r) { return r.json(); }).catch(function () { return {}; });
+}))).then(function (v) {
+  items = v[0];
+  Object.keys(LISTS).forEach(function (k, n) { dec[k] = v[n + 1] || {}; });
+  var t = tab;
+  tab = "";
+  switchTo(t);
+  document.getElementById("save").textContent = "-";
+});
+</script>
+</body>
+</html>
