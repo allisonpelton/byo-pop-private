@@ -16,7 +16,17 @@ gives the process's own cycle count beside the threads' sum and the busiest thre
 `tools/pincore.py` (`profile/pin2.py` for two cores; pairs.sh does it). Environment: PERF_3D=1 (the port's registry file says Is3D=1),
 PERF_DESKTOP=1 (the port's window on the visible desktop, 22:00 to 08:00 only, no rundesk), PERF_ENV="K=V,K=V" (variables for the port's
 process, e.g. SDL_RENDER_DRIVER=opengl), PERF_EXE (another exe in build/native), PERF_CLOCK=real. Each port result names the graphics
-libraries it had loaded (`graphics_modules`: d3d9 or d3d11 or opengl).
+libraries it had loaded (`graphics_modules`: d3d9 or d3d11 or opengl) and the `display:` line of its log (`display`: client size, render
+scale, windowed or full screen, renderer; the framework logs it, docs/TEST_COMMANDS.md "The window line").
+PERF_WINDOW sets the port's window state: `1` (the default since 2026-11-12) is the game's own size, as the original's (registry
+ScreenMode=0 and -windowscale=1); `2` is the framework's default window, twice the game's size (ScreenMode=0 only); `full` is what these
+runs did before (no ScreenMode: the port started full screen on a 3840x2160 desktop, render scale 4: not like for like with the
+original's 640x480 window). The original's window is its own size in every run (origrun's copy; visrun3d's, ScreenMode 0).
+PERF_SPLIT=1 is the cycle split (docs/TEST_COMMANDS.md, "The cycle split"): the port runs with -cyclesplit=<dir>/split.jsonl and the
+script's `cyclesplit a` / `cyclesplit b` at the stretch's first and last update; orig counts the functions of count.txt with origrun's
+--count (`at N count a` / `b`), orig3d with countsnap.py (the same counters read from outside); the files are compared with
+`tools/cyclesplit.py <port file> <original file> --from a --to b`. A split run is for the proportions: the target's total comes from a
+run without counting.
 
 The scenario is scenario/classic11.json: the inputs (update, command) that origcmp/record.py's bot gave a classic game, seed 11,
 played from the title (the click on the title's link at update 3000, the name Test, the mode, the pilot, then 60 moves). The port
@@ -73,6 +83,9 @@ MINUTE = 2000   # updates of the stretch
 REAL = os.environ.get('PERF_CLOCK') == 'real'
 THREE_D = os.environ.get('PERF_3D') == '1'          # the port in 3D (the accelerated renderer); the original in 3D is `orig3d`, on the desktop
 DESKTOP = os.environ.get('PERF_DESKTOP') == '1'     # the port on the user's visible desktop (22:00 to 08:00 only), as a player runs it
+WINDOW = os.environ.get('PERF_WINDOW', '1')         # the port's window: '1' the game's own size, '2' the default window, 'full' as before 2026-11-12
+SPLIT = os.environ.get('PERF_SPLIT') == '1'         # the cycle split: -cyclesplit, --count, countsnap (see the docstring)
+COUNT_LIST = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'count.txt')
 APP = 0x5DC220                 # the original's app object: a static pointer to it
 COUNTER, LOADING, BOARD = 0x4A0, 0x50C, 0x628   # offsets in the app: the update counter, the loading started and completed bytes, the board
 SCENARIO = os.path.join(HERE, 'scenario', 'classic11.json')
@@ -347,6 +360,9 @@ def port_script(dst, mark):
         for u, cmd in sc['events']:
             f.write('%d %s\n' % (u, cmd))
         f.write('%d screenshot %s\n' % (sc['last'] - MINUTE, mark.replace('\\', '/')))
+        if SPLIT:
+            f.write('%d cyclesplit a\n' % (sc['last'] - MINUTE))
+            f.write('%d cyclesplit b\n' % sc['last'])
         f.write('%d quit\n' % (sc['last'] + 30))
     return sc['last']
 
@@ -368,7 +384,23 @@ def port_user(d):
     os.makedirs(os.path.join(d, 'user'), exist_ok=True)
     with open(os.path.join(d, 'user', 'registry.ini'), 'w', newline='\n') as f:   # 2D, as the original runs in these comparisons (PERF_3D=1: 3D)
         f.write('[SOFTWARE\\PopCap\\AstroPop]\nIs3D=dword:%d\n' % (1 if THREE_D else 0))
+        if WINDOW != 'full':       # windowed: with no ScreenMode the port starts full screen (render scale 4 on a 3840x2160 desktop)
+            f.write('ScreenMode=dword:0\n')
     return os.path.join(d, 'user')
+
+
+def display_line(log_path):
+    """The last `display:` line of the port's log (client size, render scale, windowed or full screen, renderer), or None."""
+    try:
+        lines = [l.strip() for l in open(log_path, errors='replace') if 'display:' in l]
+    except OSError:
+        return None
+    return lines[-1] if lines else None
+
+
+def window_args():
+    """-windowscale=1 (the game's own size, the original's) for PERF_WINDOW=1; the default window (2x) and full screen take no option."""
+    return ['-windowscale=1'] if WINDOW == '1' else []
 
 
 def port_load(out, runs):
@@ -380,7 +412,7 @@ def port_load(out, runs):
         d = os.path.abspath(os.path.join(out, 'load%d' % i))
         shutil.rmtree(d, ignore_errors=True)
         os.makedirs(d)
-        a = argparse.Namespace(dir=d, timeout=120, exe=exe, realtime=True, game_args=['-seed=%d' % SEED, '-userdir=' + port_user(d)])
+        a = argparse.Namespace(dir=d, timeout=120, exe=exe, realtime=True, game_args=['-seed=%d' % SEED, '-userdir=' + port_user(d)] + window_args())
         others0 = game_processes(mine_prefixes())
         s0 = system_times()
         if DESKTOP:        # no rundesk: the game opens its window on the desktop, with SDL's silent audio driver
@@ -433,8 +465,9 @@ def port_minute(out):
         for kv in filter(None, os.environ.get('PERF_ENV', '').split(',')):     # PERF_ENV="SDL_RENDER_DRIVER=opengl,...": an experiment's variables
             env[kv.split('=', 1)[0]] = kv.split('=', 1)[1]
         extra = dict(startupinfo=si, creationflags=0x4000, env=env)
+    split = ['-cyclesplit=' + os.path.join(out, 'split.jsonl')] if SPLIT else []
     p = subprocess.Popen([exe, '-userdir=' + user, '-seed=%d' % SEED, '-realinput=' + os.path.join(out, 'script.txt')] +
-                         ([] if REAL else ['-fast']), cwd=out, stdout=log, stderr=subprocess.STDOUT, **extra)
+                         window_args() + split + ([] if REAL else ['-fast']), cwd=out, stdout=log, stderr=subprocess.STDOUT, **extra)
     h = k32.OpenProcess(QUERY | VM_READ | QUERY_LIMITED, False, p.pid)
     created = creation_time(h)
     samples = []
@@ -456,6 +489,8 @@ def port_minute(out):
                 'others_start': len(others0), 'others_end': len(game_processes(mine_prefixes()))})
     res['cycles_check'] = cycle_check(h)
     res['graphics_modules'] = gfx
+    res['window'] = WINDOW
+    res['display'] = display_line(os.path.join(out, 'game.log'))
     json.dump({'samples': samples, 'result': res}, open(os.path.join(out, 'perf.json'), 'w'))
     k32.CloseHandle(h)
     log.close()
