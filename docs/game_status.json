@@ -261,7 +261,7 @@
       ],
       "na": [],
       "now": "performance",
-      "note": "3D over its original, waits on the framework's present (Bejeweled 2's pace code, then the vsync measurement); the 3D cycle split next; lite: nothing taken (LITE_MOD.md)"
+      "note": "at the original's 640x480: 2D 69% of the original's cycles, 3D 134%; the game's own code is cheaper in 3D, the excess is the present and the Direct3D 11 driver thread; next the display-rate cap's measurement"
     },
     "ningpo": {
       "title": "Ning Po Mahjong Deluxe",
