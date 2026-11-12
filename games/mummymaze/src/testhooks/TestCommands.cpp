@@ -146,9 +146,17 @@ bool BoardReady(Board* b)
 	return true;
 }
 
+// A tip the board made before `win` took the board away: the level-complete page was added after it, so the page is on top and
+// takes the clicks, and a click on the tip's button never reaches the tip (it goes to the page, if it hits it at all). Real play
+// cannot make this (the board is gone before the page); only the `win` command can, while a tip is up.
+bool TipBehindLevelComplete(MMApp* theApp)
+{
+	return theApp->mLevelComplete != NULL && theApp->mBoard == NULL && TopDialog(theApp) == DIALOG_TIP;
+}
+
 const char* ScreenName(MMApp* theApp)
 {
-	if (theApp->GetDialogCount() > 0)
+	if (theApp->GetDialogCount() > 0 && !TipBehindLevelComplete(theApp))
 		return "dialog";
 	if (theApp->mTitleScreen != NULL)
 		return theApp->mTitleScreen->mPlayShown ? "title" : "loading";
@@ -263,8 +271,8 @@ std::string DialogMove(MMApp* a, int theId)
 // The move for the screen the game is on
 std::string BotMove(MMApp* theApp)
 {
-	// the dialogs
-	if (theApp->GetDialogCount() > 0)
+	// the dialogs (not a tip behind the level-complete page: the page first; a tip still up after the page is answered like any dialog)
+	if (theApp->GetDialogCount() > 0 && !TipBehindLevelComplete(theApp))
 	{
 		int anId = TopDialog(theApp);
 		std::string aMove = anId >= 0 ? DialogMove(theApp, anId) : "";

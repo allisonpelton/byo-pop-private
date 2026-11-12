@@ -21,7 +21,8 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/src/MummyApp.cpp)
     endif()
   endif()
   if(EMSCRIPTEN)
-    byopop_web_game(mummymaze TITLE "Mummy Maze"
+    # _byopop_livesplit_block: the page's speedrun timer asks for the autosplit block's address (src/LiveSplitObserver.cpp)
+    byopop_web_game(mummymaze EXPORTS _byopop_livesplit_block TITLE "Mummy Maze"
       COPYRIGHT "Mummy Maze © 2002 PopCap Games, Inc. All rights reserved.")
   else()
     add_custom_command(TARGET mummymaze POST_BUILD
