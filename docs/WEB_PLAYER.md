@@ -624,10 +624,13 @@ decider needs no per-game offsets. The level is `displayLevel`, with `levelClear
 board accepts input. The death kinds keep each game's own names: the table says what they mean.
 
 **The writer** is a shared header, `platform/AutosplitBlock.h`, with the struct, its `static_assert`s, the log line
-`-livesplitlog` writes, and a small writer class. A port calls `Begin(gameId, mode, skill)` when a board starts,
-`Go()`, `LevelClear()`, `GameOver(kind)` and `Win()` at those moments, and `Update(level, score, ...)` after every update.
-The class keeps the counters and serials and does the `seq` writes. Bejeweled's, Big Money's and BookWorm's headers
-become thin includes of it; their bytes stay as they are, apart from the append.
+`-livesplitlog` writes, and a small writer class, `AutosplitWriter`. A port calls `Activate` when the block is first
+asked for, `NewBoard(serial)` when its board changes, `Go`, `LevelClear`, `GameOver(kind)` and `Win` at those moments,
+`SetDisplayScore` (or `RaiseScoreMax`, where the game's highest score follows another score than the one on screen), sets
+the rest of the update's fields in `Next()`, and calls `Publish` after every update. The class keeps the counters,
+serials and latched flags and does the `seq` writes. Big Money's and BookWorm's headers become views of its first 0xB0
+bytes, tied to it by `static_assert`s, so their scripts, logs and tools read the same bytes as before; Bejeweled's
+follows. Big Money writes it from Milestone 2, on the web too.
 
 **Inert.** The block is written only once something asks for it: on the web, the page asking for its address
 (`byopop_livesplit_block`, which every port exports under the same name); natively, `features.livesplit`. Until then the

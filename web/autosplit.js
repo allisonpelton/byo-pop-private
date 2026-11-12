@@ -9,6 +9,10 @@
 // score) or when the score on screen reaches a segment's number (1000 or more: "10000", "25,000", "25K"), and a reset when the
 // run's board ends (no moves, time up, New Game, replaced by another board, or the game quit), each reset kind a setting.
 // tools/autosplittest.js replays lsdecide.py's 27 scenarios through it (tools/autosplit/bejeweled-scenarios.json.gz).
+//
+// Every other port writes the shared block, layout 2 (platform/AutosplitBlock.h), which one decider reads, driven by the game's
+// row of the rules table below (docs/WEB_PLAYER.md, "One design for every port"). Big Money's row replays its native script's
+// scenarios (games/bigmoney/tools/livesplit/lsdecide.py; tools/autosplit/bigmoney-scenarios.json.gz).
 var ByopopAutosplit = (function () {
   "use strict";
 
@@ -160,10 +164,175 @@ var ByopopAutosplit = (function () {
       return { category: "Timetrial - Score Attack", sub: (t / 1000) + "K Points", segments: SCORES.filter(function (x) { return x <= t; }).map(String) };
     }));
 
+  // ---- Every other port: the shared block, layout 2 (platform/AutosplitBlock.h; docs/WEB_PLAYER.md, "One design for every
+  // port"), and one decider driven by the game's row of GAMES ----
+  var V2 = {
+    u32: { self: 0x1C, seq: 0x20, active: 0x24, updates: 0x28, flags: 0x2C, boardSerial: 0x30, goCount: 0x34, goSerial: 0x38,
+           levelClears: 0x3C, levelClearSerial: 0x40, gameOvers: 0x44, gameOverSerial: 0x48, death0: 0x4C, death1: 0x50,
+           death2: 0x54, death3: 0x58, wins: 0xB0, winSerial: 0xB4, inGame: 0xC0 },
+    i32: { tick: 0x5C, state: 0x60, level: 0x64, displayLevel: 0x68, displayScore: 0x6C, score: 0x70, boardLevelClears: 0x74,
+           goTick: 0x78, displayScoreMax: 0x7C, mode: 0xB8, skill: 0xBC, progress: 0xC4 }
+  };
+  var V2_FIELDS = Object.keys(V2.u32).concat(Object.keys(V2.i32));
+  var FLAG_RESUMED = 0x02;
+
+  // A reader of one game's layout-2 block (id: its four letters): one consistent copy, or null, as readBlock. A block of an
+  // older layout (a port not yet converted) is not read.
+  function blockReader(id) {
+    var want = 0;
+    for (var c = 3; c >= 0; c--) want = want * 256 + id.charCodeAt(c);
+    return function (heap, at) {
+      if (!heap || !at || at + 0xD0 > heap.length) return null;
+      var dv = new DataView(heap.buffer, heap.byteOffset + at, 0xD0);
+      for (var i = 0; i < BJ.magic.length; i++) if (dv.getUint8(i) !== BJ.magic[i]) return null;
+      if (dv.getUint32(0x14, true) !== want || dv.getUint16(0x18, true) < 2 || dv.getUint16(0x1A, true) < 0xD0) return null;
+      var s1 = dv.getUint32(0x20, true);
+      if (s1 & 1) return null;
+      var f = {};
+      for (var k in V2.u32) f[k] = dv.getUint32(V2.u32[k], true);
+      for (var j in V2.i32) f[j] = dv.getInt32(V2.i32[j], true);
+      if (dv.getUint32(0x20, true) !== s1) return null;
+      return f;
+    };
+  }
+
+  // The number a category's name gives from one of a game's tables ({name: number}): that of the one name it contains, else
+  // -1 (none, or more than one)
+  function named(category, table) {
+    var found = -1, c = String(category || "").toLowerCase();
+    Object.keys(table || {}).forEach(function (n) { if (c.indexOf(n.toLowerCase()) >= 0) found = found === -1 ? table[n] : -2; });
+    return found < 0 ? -1 : found;
+  }
+
+  function templateName(t) { return t.sub ? t.category + " - " + t.sub : t.category; }
+
+  // A template's end ("levels N", "score N", "won", "lost", "progress N") as {kind, n}
+  function parseEnd(text) {
+    var w = String(text || "").trim().split(/\s+/);
+    return w[0] ? { kind: w[0], n: parseInt(w[1], 10) || 0 } : null;
+  }
+
+  // The shared decider: Bejeweled's, with the game's rules in place of its own. rules: the game's row of GAMES. The run's
+  // template is the one named as the run's category; its mode and skill, else the mode and skill names the category contains,
+  // guard the start. Its end decides the last segment where the segments can't say it (won, lost, progress); every other
+  // split is the segment's level or score, as in Bejeweled. A game over on the run's board resets the run, each death kind
+  // its own setting, unless the end is "lost". timer and opts as bejeweled().
+  function makeDecider(rules) {
+    var settings = { modeGuard: [true, null], vanillaOnly: [false, null], resets: [true, null] };
+    rules.deaths.forEach(function (d) { if (d.setting) settings[d.setting] = [true, "resets"]; });
+    settings.resetReplaced = [true, "resets"];
+    settings.resetQuit = [true, "resets"];
+    var decider = function (timer, opts) {
+      var values = {};
+      Object.keys(settings).forEach(function (k) { values[k] = settings[k][0]; });
+      Object.keys((opts && opts.settings) || {}).forEach(function (k) { values[k] = !!opts.settings[k]; });
+      function setting(name) {
+        while (name) { if (!values[name]) return false; name = settings[name] ? settings[name][1] : null; }
+        return true;
+      }
+      var category = String((opts && opts.category) || ""), template = null;
+      (rules.templates || []).forEach(function (t) { if (templateName(t).toLowerCase() === category.toLowerCase()) template = t; });
+      var catMode = template && template.mode !== undefined ? template.mode : named(category, rules.modes);
+      var catSkill = template && template.skill !== undefined ? template.skill : named(category, rules.skills);
+      var end = template ? parseEnd(template.end) : null;
+      var splits = [], runSerial = 0, pending = null, baseline = true, seenActive = false, warned = false, attachT = null;
+      var current = {}, old = {};
+      V2_FIELDS.forEach(function (k) { current[k] = 0; });
+      function reached() {
+        var i = timer.index();
+        if (runSerial === 0 || current.boardSerial !== runSerial || i < 0 || i >= splits.length) return false;
+        if (end && i === splits.length - 1) {
+          if (end.kind === "won") return current.wins !== old.wins && current.winSerial === runSerial;
+          if (end.kind === "lost") return current.gameOvers !== old.gameOvers && current.gameOverSerial === runSerial;
+          if (end.kind === "progress") return current.progress >= end.n;
+        }
+        var s = splits[i];
+        return (s.score ? current.displayScoreMax : current.boardLevelClears) >= s.target;
+      }
+      return {
+        // the timer started (by the decider or by hand): the run is the current board's
+        onStart: function () { splits = parseSplits((opts && opts.segments) || []); runSerial = current.boardSerial; pending = null; },
+        onReset: function () { runSerial = 0; pending = null; },
+        board: function () { return current.boardSerial; },
+        poll: function (t, snap) {
+          if (attachT === null) attachT = t;
+          old = {};
+          for (var k in current) old[k] = current[k];
+          var updated = false, ask = false;
+          if (snap) {
+            if (!snap.active) {
+              if (!seenActive && !warned && t - attachT > 10000) { warned = true; ask = true; }
+              baseline = true;
+            } else {
+              seenActive = true;
+              V2_FIELDS.forEach(function (f) { current[f] = snap[f] || 0; });
+              if (baseline) baseline = false; else updated = true;
+            }
+          }
+          if (!updated) return ask;
+          var ph = timer.phase();
+          if (ph === "Running" || ph === "Paused") {
+            var cause = null;
+            if (setting("resets") && runSerial !== 0) {
+              // a new game over or board change, else one held back in an earlier poll
+              cause = pending; pending = null;
+              if (current.gameOvers !== old.gameOvers && current.gameOverSerial === runSerial && !(end && end.kind === "lost")) {
+                cause = "resets";
+                for (var d = 0; d < rules.deaths.length; d++)
+                  if (current["death" + d] !== old["death" + d]) { cause = rules.deaths[d].setting || "resets"; break; }
+              } else if (old.boardSerial === runSerial && current.boardSerial !== runSerial && !(old.flags & FLAG_GAME_OVER)) {
+                cause = current.boardSerial === 0 ? "resetQuit" : "resetReplaced";
+              }
+              if (cause !== null && !setting(cause)) cause = null;
+              // the segment was reached by the game over (the same poll saw both): split first
+              if (cause !== null && reached()) { pending = cause; cause = null; }
+            }
+            if (cause !== null) timer.reset(cause);
+            else if (reached()) timer.split();
+          }
+          if (timer.phase() === "NotRunning" && current.goCount !== old.goCount && current.goSerial === current.boardSerial &&
+              !(current.flags & (FLAG_REPLAY | FLAG_RESUMED)) && !(setting("vanillaOnly") && !(current.flags & FLAG_VANILLA)) &&
+              !(setting("modeGuard") && ((catMode >= 0 && catMode !== current.mode) || (catSkill >= 0 && catSkill !== current.skill))))
+            timer.start();
+          return ask;
+        },
+        // the game went away (its window closed, its page reloaded)
+        exit: function () {
+          var ph = timer.phase();
+          if ((ph === "Running" || ph === "Paused") && runSerial !== 0 && setting("resets") && setting("resetQuit")) timer.reset("exit");
+        }
+      };
+    };
+    decider.settings = settings;
+    return decider;
+  }
+
+  // The rules table, one row a game (docs/WEB_PLAYER.md, "The rules table"): its name on speedrun.com, its block's id, the
+  // names behind its mode and skill numbers, its four death kinds (each a reset setting, or none for the reset setting alone) and its templates.
+  //
+  // Big Money has no speedrun.com board: its rules are its native script's, its templates that script's suggestions
+  // (games/bigmoney/tools/make_example_mods.py LIVESPLIT_TEMPLATES), with the mode and skill in the category's name.
+  var BM_RULES = {
+    name: "Big Money Deluxe", id: "BMDX",
+    modes: { Action: 0, Strategy: 1, Puzzle: 2 }, skills: { Easy: 1, Normal: 2, Hard: 3 },
+    deaths: [{ setting: "resetOverflow", what: "the coins overflow (Action, Strategy)" }, { setting: "resetNoMoves", what: "no moves left (Puzzle)" },
+             { setting: "resetNewGame", what: "New Game" }, { setting: null, what: "any other game over (the reset setting only)" }],
+    templates: ["Action", "Strategy", "Puzzle"].reduce(function (a, mode) {
+      return a.concat(["Easy", "Hard"].map(function (skill) { return { category: mode + " " + skill, sub: "5 Levels", segments: levels(5), end: "levels 5" }; }));
+    }, []).concat([{ category: "Action Easy", sub: "25K Points", segments: ["5K", "10K", "25K"], end: "score 25000" }])
+  };
+
+  // A row of GAMES from a row of the rules table
+  function ruled(rules) {
+    return { name: rules.name, block: "_byopop_livesplit_block", read: blockReader(rules.id), decider: makeDecider(rules),
+             templates: rules.templates, rules: rules };
+  }
+
   // The games with an auto splitter: the page id, the game's name on speedrun.com, how to find its block, its decider and its
   // templates
   var GAMES = {
-    bejeweled: { name: "Bejeweled Deluxe", block: "_byopop_livesplit_block", read: readBlock, decider: bejeweled, templates: BJ_TEMPLATES }
+    bejeweled: { name: "Bejeweled Deluxe", block: "_byopop_livesplit_block", read: readBlock, decider: bejeweled, templates: BJ_TEMPLATES },
+    bigmoney: ruled(BM_RULES)
   };
 
   // The front game's block, read from its window: {game, snap} or null (no game with an auto splitter in front, or it has not
@@ -179,6 +348,7 @@ var ByopopAutosplit = (function () {
     } catch (e) { return null; }
   }
 
-  return { games: GAMES, sample: sample, readBlock: readBlock, parseSplits: parseSplits, bejeweled: bejeweled, settings: SETTINGS };
+  return { games: GAMES, sample: sample, readBlock: readBlock, blockReader: blockReader, parseSplits: parseSplits, bejeweled: bejeweled,
+           makeDecider: makeDecider, settings: SETTINGS };
 })();
 if (typeof module !== "undefined") module.exports = ByopopAutosplit;
