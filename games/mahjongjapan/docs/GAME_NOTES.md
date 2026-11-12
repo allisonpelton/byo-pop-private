@@ -87,6 +87,13 @@ and every classic layout solves, the slowest stage in about 3 s. When no pair is
 click, and `MOVE null` while a flight runs, on a board with no tile left or when nothing can be played. A dialog is
 answered by its default button (command 1), the pause box by a click on it, the map by Continue.
 
+**Test options** (reachable only from a test: the framework honours them only when `IsTestRun()` is true, that is under
+`BYOPOP_TEST_RUN`, `-script`, `-realinput`, `-commands` or scripted input, so a player's exe ignores them): `-windowscale=N` (the trunk's option, from
+BookWorm's cycle split: the window starts at N times the logical size, 1 to 4, where it would otherwise start at 2x when that fits
+the desktop; `perfrun.sh` uses 1 for the original's window and 2 for the player's). In the environment, for the display's own tests (they read the
+environment on any run, change nothing a player sees and are listed with the presenter below): `SURFACE_DISPLAY=0|off`,
+`SURFACE_VERIFY=1`, `SURFACE_MAXRECTS=n`, and the engine's `JB_VERIFY_FRAMES=1`.
+
 ## Fix candidates and the fixes mod (2026-11-08)
 
 The fixes mod (`mods/fixes/mod.json`, two toggles, both on by default on the site) is the original with two things
@@ -419,6 +426,52 @@ one of the quiet ones. In cycles the originals' own runs vary by a factor of 1.7
 China 2.81 to 5.78 G, above), more than the two games differ, their medians are 3.78 and 3.60 G, and with the renderer the two
 ports are within 0.4 G of each other in every configuration (the driver's 2 G is most of it). Only in surface mode China's port
 is 0.5 G lower, the games' own drawing in the main thread, not the present path. The differences in the README were noise.
+
+**What each way of showing a frame costs** (asked in the presenter's review, measured the night of 2026-11-12). The test programs
+`tools/display/present/scaletest.c` and `presenttest.c` (`build.sh`, `run3.sh`, `run4.sh`, `sumscale.py`, `sumrend.py`) keep an
+800x600 buffer in which a rect of 15 % of the screen (310x232) changes 40 times a second and show each frame in a window one way;
+the cycles are the sum over every thread of the process in a window of 15 s, the median of three runs, on one performance core
+(`tools/pincore.py`), the machine busy with other sessions' games. Visible desktop (DWM, NVIDIA's drivers); the private desktop
+of rundesk, measured the same way earlier, gave the GDI rows within 0.05 G and the renderer rows the same 1.6 to 2.3 G.
+
+| Way of showing the frame | G cycles per 15 s |
+|---|---|
+| SDL window surface, window 800x600 (rect copied, `SDL_UpdateWindowSurfaceRects`) | 0.26 |
+| software 2x nearest of the rect into the SDL surface, window 1600x1200 (the presenter's surface mode) | 0.50 |
+| software 4x nearest, window 3200x2400 (private desktop) | 1.40 |
+| GDI `StretchBlt` of the rect from a DIB, `COLORONCOLOR`, 2x (1600x1200) | 0.30 |
+| the same at 1.6x (1280x960, private desktop) and at 3.6x (3840x2160, letterboxed to 2880x2160) | 0.31 and 0.29 |
+| the same with `HALFTONE`: 2x, 1.6x, 3.6x | 2.18, 1.86 (private), 5.38 (private) |
+| Direct3D 11 forced (`SDL_RENDER_DRIVER`), the framework's chain, window 800x600 | 1.56 (1.47 to 1.72) |
+| the same, window 1600x1200 | 1.95 (1.31 to 2.03) |
+| the same with only the 15 % rect uploaded, window 1600x1200 | 1.79 (1.18 to 2.24) |
+| Direct3D 9 forced, the framework's chain, window 800x600 / 1600x1200 / rect upload | 1.78 / 1.85 / 1.27 |
+
+Every GPU path costs 1.3 to 2 G whichever way the frame goes up (a device and its driver thread), four to six times the
+software ones at the same window size, on the visible desktop as on the private one; the partial upload saves between nothing and a
+third there (Direct3D 11 1.95 to 1.79, Direct3D 9 1.85 to 1.27), as it did in the game. The
+software 2x copy costs 0.24 G more than 1:1 (in the game 0.055 to 0.075 G, since only the changed rects are repeated). `StretchBlt`
+with `COLORONCOLOR` costs what the 1:1 copy does at any window size, full screen included, so it could take the sizes that
+surface mode does not (a resized window, full screen) under the target as well; it is nearest-neighbour, which at a ratio that
+is not a whole number gives pixels of two sizes where the renderer's linear filter blends them, so it changes how full screen
+and a resized window look, and `HALFTONE`, which blends, is far too dear. Not done: that is the user's call
+(`docs/COORDINATION.md`, the performance target; the original's own full screen is the display's mode set to 800x600).
+
+**A frame cap for a renderer that is not paced by vsync** (Bejeweled 2's ask, answered, not built). Yes, the cap fits
+`DDInterface` itself: `mMinPresentInterval` is already a field of it that `DrawDirtyStuff` honours for every app, 0 by default.
+`DDInterface::Init` knows after `SDL_CreateRenderer` whether the renderer was made with vsync
+(`SDL_GetRendererInfo(...).flags & SDL_RENDERER_PRESENTVSYNC`: the flag is absent when vsync was not asked for, when the
+driver refused it, or when the software renderer is the fallback); when it is absent, and not on the web (where
+`requestAnimationFrame` paces the loop) and not under `-fast`, the field would be set to `1000 / refresh rate` of the window's
+display, as `SurfaceDisplay::EnterSurfaceMode` does now, and set again in `UpdateDisplaySize` (a window can move to another
+display). A skipped draw loses nothing, since the widgets stay dirty until the next one. It is about ten lines, a separate
+small shared change after the presenter, and it changes only a program whose renderer has no vsync (a vsync renderer's
+`Present` blocks until the refresh, so the cap would add nothing); not built here.
+
+**Other apps for the presenter.** `framework/SurfaceDisplay.h` says how each app that draws its screen into a CPU buffer would
+take it: TipTop (its own buffer and rect list), Word Harmony (the image its `ScreenGraphics` draws into and the tiles it
+redrew), Cosmic Bugs and Water Bugs (the Retro64 engine's 16-bit screen converted into a 32-bit buffer for its one dirty
+rect). Alchemy cannot: its screen is drawn by the GPU path and no CPU image of it exists.
 
 ## Coverage check (2026-11-08)
 

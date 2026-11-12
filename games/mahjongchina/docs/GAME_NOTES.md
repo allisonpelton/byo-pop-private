@@ -121,6 +121,8 @@ window of 800x600, 1.01 (0.46 to 1.12), and window of 1600x1200 (what a player g
 the original's, under the target; port with the renderer (a resized window, full screen), 4.0 to 4.8, where the presenter changes
 nothing (1.1 to 1.3 times the original's windowed figure, the Direct3D device's driver thread 2 G of it). The device's cost that
 surface mode does not pay: private bytes 34 against 61 MB, working set 54 against 68 MB, the game's 400th update 0.5 s sooner.
+The cost of each way of showing a frame (software and GDI against Direct3D 9 and 11, a 15 % rect at 40 a second), the frame cap
+for a renderer without vsync and the test option `-windowscale=N` (reachable only from a test) are in Japan's notes.
 
 **Why China's and Japan's percentages differed** (README: China's port 7.3 % of a core against its original's 1.7 %, Japan's 6.0 %
 against 3.1 %): five runs of each port and three of each original as percentages of one core on a busy machine, China's original
