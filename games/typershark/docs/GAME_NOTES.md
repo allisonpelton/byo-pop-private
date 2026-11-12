@@ -997,12 +997,36 @@ lines. With 3D on, a horizontal or vertical line was one pixel longer in the por
 vertical one on Y; a line of one pixel and a slanted line are left as the framework draws them (none of the game's lines is slanted).
 Without 3D nothing changes: `tools/check.sh typershark` is unchanged.
 
-**Open, and listed as oddities in `IDENTICAL_PLAY.md`.** (1) The sea's leftmost pixel column (x = 0, about 320 rows, one pixel wide) is up
-to 55 levels darker in blue in the port than the original, in every 3D shot with a sea; a candidate cause is the texture's addressing at
-u close to 0 in the shared `DDInterface::DrawTrianglesTex` (the vertices get +0.5; the original's device may pad where the framework wraps),
-which would be shared work. (2) Flat areas differ by at most 7 to 9 levels of 255 in 3D (the original's 3D picture is 2 to 3 levels
-brighter than its own 2D picture; the capture of its 2D picture is about 2 levels darker than the port's; the cause is not proven, 16-bit
-textures are the candidate). Both stay under shotdiff's tolerance of 8, except the column. (3) The real clock's differences, below.
+**Two things found with the medal screens (2026-11-12), and what they did to the list below.** The first 3D tours ran the port at the render
+scale its window gave it, 2 (`DisplayGeometry::UpdateDisplaySize` renders at the next whole multiple of the 640 by 480 screen, and `ReadScreen`
+box-downsamples a shot back), where a player's windowed 640 by 480 game renders at 1. A 3D picture drawn at 2 and averaged down is not the 3D
+picture at 1: it is a little blurred, and the sea's leftmost column differed by up to 55 levels. Every 3D run of the port now passes
+`-renderscale=1` (`vis3d.sh` does). The second is the blend. The original's Direct3D 9 draws with straight alpha: it filters a texture's
+red, green, blue and alpha apart, so a texel under zero alpha still colours the edge of a stretched picture. The framework's accelerated
+display uploads premultiplied textures whenever the renderer allows a custom blend mode (`DDInterface::SetupBlendModes`), so the same edge
+came out different: up to 44 levels on the medal and the ten pictures of the end-of-adventure dialog. Measured: the original's 3D capture of
+the medal equals a straight bilinear sample of its picture and alpha file (`medal_silver.gif` and `_medal_silver.gif`, 97 by 133, into the
+66 by 90 rectangle, sampled at the pixel centres) to 0.16 levels on average; the premultiplied sample is 0.9 off. `TyperSharkDisplay`
+(`WinWSApp.cpp`) now sets the framework's own fallback modes (straight `SDL_BLENDMODE_BLEND` and `_ADD`, textures uploaded as they are) at
+the start of each frame while 3D is on (`mIs3D`), and puts the premultiplied modes back, with the textures released and uploaded again, while it
+is off: the 2D mode's pictures equal the original's with the premultiplied modes, and with the straight ones 5810 pixels of the 2D dialog tour
+moved by a level. The check of that: the 2D dialog tour (48 shots) with the exe that has the straight modes in 3D only against the exe
+without the change: 0 shots differ.
+
+**Open, and listed as oddities in `IDENTICAL_PLAY.md`.** (1) The sea's leftmost pixel column was the render scale's, and is gone: at scale 1
+the paused board's column 0 differs by at most 3 levels (it was up to 55). (2) Flat areas of the sea still differ in 3D (the original's 3D
+picture is a little brighter than its own 2D picture; the cause is not proven, 16-bit textures are the candidate): at scale 1 by at most 3
+levels, 1 on average, in the paused board's sea, and up to 7 in the map screen's sea; under shotdiff's tolerance of 8. (3) The original's
+texture pieces, below. (4) The real clock's differences, below.
+
+**The original's texture pieces.** The original's 3D stretch (`DDImage::StretchBlt` 0x4a2fb0 hands it to `FUN_0049f480`, a scaled copy through
+`FUN_00498ce0`) draws one quad for each piece of the picture's texture (`FUN_004947f0` takes the piece of a pixel from a uniform grid, each
+piece with its own texture and so its own clamped addressing), and the pieces of a tall picture are cut at a power of two. The one row of the
+medal (97 by 133) that differs is where source row 128 lands: 150 + 128 * 90 / 133 = 236.6 in the dialog (row 236), and the same row of
+the statistics screen's copy (row 402). The original does not blend across that seam, and the port, with one texture, does. It is 10
+pixels of the dialog's medal (two runs of five) and 12 of the statistics screen's, up to 53 levels, and nothing else of the two screens
+differs. The piece size itself (128 rows and the 5 left) is read from that position, not from the export. To make it equal the port would cut each stretch at the
+pieces' edges and draw each piece from a copy of its own: code for about ten pixels, so it is an oddity (`IDENTICAL_PLAY.md`).
 
 **What the real clock does.** The runs show differences that the same tours in 2D on the desktop show too, so they are not the 3D
 drawing's: the hover fade (a shot 3 updates after a move catches it half-faded), the dialog-open animation, the sharks', diver's and
@@ -1093,8 +1117,23 @@ each), KEEP GOING (40) and the statistics screens of the players with `NGC` 1 an
 by nothing stronger, over the whole picture: the two builds' picture decoding, as in every web tour (`IDENTICAL_PLAY.md`, "The web build"). The
 medal's edge, which the missing software stretch had moved by up to 39 levels, is the native port's in the web build too. Not run in a browser.
 
-**Not compared.** The medal and the ten pictures with 3D on (the original's textured quads against the port's SDL renderer: needs the desktop route
-of section 16); the board of site 35 itself (its boss and treasure are not played in the original: a saved game starts it and the space bar leaves it).
+**In 3D** (2026-11-12, the desktop route of section 16 in the overnight window; `tools/phase2/medal3d.sh <dialog|dialogkeep|stats> <N>` does a whole
+tour, and refuses between 08:00 and 22:00). The original runs through `visrun3d.py` with three options made for this: `--users <dir>` puts the
+profile's two files over the clean users folder, `--reg <file.reg>` imports the profile's registry preset (the `HKLM` values of `mkprofile.py`)
+as `HKCU\Software\PopCap` after `Is3D` and `ScreenMode` are set, `--patch "va:0x454e9b 83f807 83f801"` patches the copy's exe (the byte of the
+dialog route above); the port runs with the `-3d` fixtures (`mkprofile.py <ngc> [saved] 3d`: `medal-sv<N>-3d`, `medal-ngc<N>-3d`) at `-renderscale=1`.
+Seven tours, each about two minutes of real time: the statistics screen for `NGC` 1, 5 and 12 (14 shots each), the dialog for bronze, silver and
+gold (47, 48, 48), KEEP GOING (40). Result (section 16 has the two changes it led to, the straight blend and the render scale): the dialog box
+(130 to 479, 156 to 334) of every shot from the one where the dialog is open on equals the original's except 10 or 11 pixels of one row
+of the medal's bottom (the original's texture pieces, section 16); the statistics screens have no visible box and 12 pixels of that row; the
+other boxes are the real clock's (the map's final scroll, a shot before the dialog opens; KEEP GOING's board at updates 300 and 600; the menu's
+hover fade 4 updates after the statistics screen closes), the first two with the same boxes in the tour run with the original in 2D on the desktop
+(`vis3d.sh m3d_dialog_2 2d`, `m3d_dialogkeep_2 2d`). How the model was found: the medal's source picture and its alpha file (`medal_silver.gif`,
+`_medal_silver.gif`) bilinear-sampled at the destination's pixel centres, over the dialog's grey, is the original's capture to 0.16 levels on average
+(`premultiplied`: 0.9; the port before the two changes: 2.2). The port's own 2D dialog tour is unchanged by the straight blend: 48 shots, 0 differ
+between the exe with it and the exe without it, so the 2D result above stands.
+
+**Not compared.** The board of site 35 itself (its boss and treasure are not played in the original: a saved game starts it and the space bar leaves it).
 
 Tools (`tools/phase2`): `mksaved.sh` makes the saved adventure, `mkprofile.py` the profiles, `tour_medal.py` the tours (`stats`, `dialog`, `dialogkeep`,
 and `win`, the first try: the whole-adventure route up to the dialog, which the original could not finish in the sandbox), `medal.sh <ngc: 0, 2 or 4>

@@ -237,11 +237,12 @@
         "unneeded-code",
         "readability",
         "collection",
-        "site-features"
+        "site-features",
+        "identical-look"
       ],
       "na": [],
-      "now": "identical-look",
-      "note": "Medal screens equal in 2D and the web build; 3D tonight; then a CPU round (over its original)"
+      "now": "performance",
+      "note": "over its original's processor time: measuring like for like"
     },
     "astropop": {
       "title": "AstroPop Deluxe",
