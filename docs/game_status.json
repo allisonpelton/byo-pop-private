@@ -315,11 +315,12 @@
         "performance",
         "unneeded-code",
         "readability",
-        "collection"
+        "collection",
+        "site-features"
       ],
       "na": [],
-      "now": "site-features",
-      "note": "Music placed; presets being checked against the code"
+      "now": null,
+      "note": ""
     },
     "bookwormadv2": {
       "title": "Bookworm Adventures Volume 2",

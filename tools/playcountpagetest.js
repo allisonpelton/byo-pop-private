@@ -58,7 +58,8 @@ function page(opts) {
   const base = opts.base === undefined ? "/api" : opts.base;
   vm.runInContext(base === null ? source : source.replace('"@BYOPOP_COUNTER@"', JSON.stringify(base)), ctx, { filename: "playcount.js" });
   return {
-    C: vm.runInContext("ByopopCounter", ctx), contacts, store, timers, FakeSocket,
+    // ready: the page's test-key check (terms.js), which hashes on Node's thread pool, so no count of ticks is sure to cover it
+    C: vm.runInContext("ByopopCounter", ctx), ready: vm.runInContext("ByopopTerms.ready", ctx), contacts, store, timers, FakeSocket,
     show() { document.visibilityState = "visible"; (listeners.visibilitychange || []).slice().forEach((f) => f()); },
     leave(persisted) { (listeners["w:pagehide"] || []).forEach((f) => f({ persisted: !!persisted })); },
     back() { (listeners["w:pageshow"] || []).forEach((f) => f({ persisted: true })); }
@@ -91,14 +92,14 @@ const tick = () => new Promise((r) => setImmediate(r));
     ["the test key in the fragment", { search: "#testkey=" + encodeURIComponent(KEY) }]]) {
     const p = page(opts);
     p.C.counts(() => {});
-    await tick(); await tick();
+    await p.ready; await tick(); await tick();
     p.C.playing("bejeweled");
     check("off, " + what, [p.C.on(), p.contacts.length], [false, 0]);
   }
   {
     const p = page({ href: "https://site.example/", search: "#testkey=wrong" });
     p.C.counts(() => {});
-    await tick(); await tick(); await tick();
+    await p.ready; await tick(); await tick();
     check("a wrong key: the counts are read once it is checked", p.contacts.length, 1);
   }
   // a game page
