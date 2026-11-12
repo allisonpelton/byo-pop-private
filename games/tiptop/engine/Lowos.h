@@ -118,7 +118,6 @@ typedef void (*SwitchCallback)(char theMode);
 typedef uint32_t (*RestoreCallback)();
 char InitScreen(uint8_t theMode, ActivateCallback theActivate, CloseCallback theClose, SwitchCallback theOnSwitch,
 	RestoreCallback theRestore, const char* theTitle, char theWindowed, uint8_t theUnknown);  // 0x42f290
-void UninitScreen();                                                             // 0x42f750
 uint8_t GetDisplayFormat(PixelFormat* theFormat, uint16_t* theWidth, uint16_t* theHeight);  // 0x42f850
 uint8_t GetLogicalFormat(PixelFormat* theFormat, uint16_t* theWidth, uint16_t* theHeight);  // 0x42f8c0
 char ScreenScope(char theMode);                                                  // 0x42fda0 LOWOS_ScreenScope
@@ -170,7 +169,6 @@ void GetMousePos(uint16_t* x, uint16_t* y);                                     
 
 // --- sound (from 0x432330 to the network code behind it) ---
 char InitSound();                                                                // 0x432e50 (0 = success)
-void UninitSound();                                                              // 0x432e70
 Sound* CreateSound(const void* theWav, uint32_t theSize, uint32_t theParam, uint8_t theFlags);  // 0x432ea0
 void FreeSound(Sound* theSound);                                                 // 0x432f30
 void PlaySound(Sound* theSound, uint32_t theVolume, char theMode);               // 0x432f80

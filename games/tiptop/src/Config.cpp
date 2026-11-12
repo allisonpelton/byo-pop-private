@@ -247,35 +247,6 @@ int ReadName(const std::string& theText, const char* theKey, char* theName)
 	return 0;
 }
 
-// 0x417cfd: the size of the quoted string on the key's line, with its NUL
-int StringLength(const std::string& theText, const char* theKey)
-{
-	int anOffset = FindKey(theText.c_str(), theKey);
-	int aLength = 0;
-	const char* aPos = theText.c_str() + anOffset;
-	ReadToken(&aPos);
-	SkipToToken(&aPos, 1);
-	for (; *aPos != '"'; aPos++)
-		aLength++;
-	return aLength + 1;
-}
-
-// 0x417d63
-int ReadString(const std::string& theText, const char* theKey, char* theString)
-{
-	int anOffset = FindKey(theText.c_str(), theKey);
-	const char* aPos = theText.c_str() + anOffset;
-	ReadToken(&aPos);
-	SkipToToken(&aPos, 1);
-	for (; *aPos != '"'; aPos++)
-	{
-		*theString = *aPos;
-		theString++;
-	}
-	*theString = 0;
-	return 0;
-}
-
 // 0x417dd2: theCount records of 13 numbers
 void ReadParticles(const std::string& theText, const char* theKey, Particle* theParticles, uint32_t theCount)
 {
@@ -668,12 +639,6 @@ int LoadConfig(Config* theConfig)
 	ReadLong(aText, GTC(0x0046dc84), &theConfig->mHighscoresmenuSkipy);
 	ReadLong(aText, GTC(0x0046dc6c), &theConfig->mHighscoresmenuNamex);
 	ReadLong(aText, GTC(0x0046dc54), &theConfig->mHighscoresmenuScorex);
-	ReadLong(aText, GTC(0x0046dc48), &theConfig->mPlayagainX);
-	ReadLong(aText, GTC(0x0046dc3c), &theConfig->mPlayagainY);
-	ReadLong(aText, GTC(0x0046dc2c), &theConfig->mPlayagainNox);
-	ReadLong(aText, GTC(0x0046dc1c), &theConfig->mPlayagainNoy);
-	ReadLong(aText, GTC(0x0046dc0c), &theConfig->mPlayagainYesx);
-	ReadLong(aText, GTC(0x0046dbfc), &theConfig->mPlayagainYesy);
 	ReadFloat(aText, GTC(0x0046dbe8), &theConfig->mNormalRocketRamp);
 	ReadFloat(aText, GTC(0x0046dbd4), &theConfig->mNormalExfaRamp);
 	ReadFloat(aText, GTC(0x0046dbc0), &theConfig->mNormalExflRamp);
