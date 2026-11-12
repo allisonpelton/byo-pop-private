@@ -42,10 +42,10 @@ class Failed(Exception):
 
 
 class Game:
-    def __init__(self, out, exe, fast, windowed_start=None):
+    def __init__(self, out, exe, fast, windowed_start=None, extra_args=None):
         self.out = os.path.abspath(out)
         os.makedirs(self.out, exist_ok=True)
-        extra = []
+        extra = list(extra_args or [])  # more arguments for the exe (a test's -modsdir, -livesplitlog)
         if windowed_start:
             # a window from the start (cp.cfg's fullscreen="0"), the window's own surface showing the screen: at 1x the game's size
             # (-windowscale=1, the original's window) or at the 2x the framework starts at
@@ -53,7 +53,7 @@ class Game:
             with open(os.path.join(self.out, 'user', 'cp.cfg'), 'w') as cfg:
                 cfg.write('<CP_CONFIG\n    fullscreen="0"\n    desktopResolution="0"\n    wave="1"\n    music="1"\n/>\n')
             if windowed_start == 'win1x':
-                extra = ['-windowscale=1']
+                extra.append('-windowscale=1')
         self.log = open(os.path.join(self.out, 'drive.log'), 'a')
         self.cf = os.path.join(self.out, 'commands.txt')
         empty = os.path.join(self.out, 'realinput.txt')

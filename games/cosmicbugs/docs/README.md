@@ -674,6 +674,51 @@ the way, the lambda parameter that shadowed an outer name. `tools/check.sh cosmi
 baseline) passes, and so do `tools/check.sh build` (every target and tool), `build-web:cosmicbugs` (the native build
 compiles none of the `__EMSCRIPTEN__` blocks nor `SiteProfiles.cpp`) and `tools/check.sh --changed main`.
 
+## The autosplit block (2026-11-12)
+
+Cosmic Bugs has a speedrun.com board (Any%: the clock starts at the click on Play on the instructions screen and stops when the
+"Congratulations! Mission complete" screen comes up), so the port writes the shared autosplit block the site's Splits window reads
+(`platform/AutosplitBlock.h`, layout 2; `docs/WEB_PLAYER.md`, "One design for every port"). The block's game id is `CBDX`. The observer
+is `src/LiveSplitObserver.cpp`, in the exe's host only (the game library and the headless runner do not have it; Water Bugs has no
+board and uses none): `CosmicBugsApp::RunFrame` calls `LiveSplitObserver::AfterUpdate` after each pass of the game's loop and the app's
+destructor calls `AppDestroyed` for the last write. It reads the game and writes nothing of it: until something asks for the block it only
+tests a flag (the mod list is looked at every 64 updates). The page asks by calling `byopop_livesplit_block` (exported in the web build,
+`byopop_web_game(... EXPORTS _byopop_livesplit_block)`); natively the `livesplit` feature of an enabled mod does
+(`mods/livesplit/mod.json`, a manifest only). `-livesplitlog=<file>` writes one line for each write that changes what a splitter acts on,
+and the events themselves go to the log as `livesplit: board 1 GO at tick 321 (board 1, difficulty 0, shooter 1)` and the like.
+
+**What it reads.** Two globals the port added in `CBMain.cpp` (`gGameSerial`, `gGameFromInstructions`, set in `ChangeScreen`; nothing in
+the game reads them, as the inert state of the standing rule): a game is the run of boards entered from a non-board screen, and the
+mission-complete screen keeps the serial of the game it ends. `mode` is always 0 (the one game mode), `skill` is `gDifficulty` (-1 easy,
+0 normal, 1 hard; the game has no screen that changes it, the profile's value counts), `level` is the board's `mNumber - 1` and
+`displayLevel` the number on screen (`mNumber`, 1 to 577), `state` is `Level::mState`, `score` and `displayScore` are `gScore`, `tick` is
+`mUpdateCount`, and `progress` is -1 (the game has no measure between the clears). The shooter (`gAutoFire`: 0 manual, 1 auto) is in the
+block's own words. A paused board has `AUTOSPLIT_FLAG_PAUSED`; a game that starts from a screen other than the instructions page has
+`AUTOSPLIT_FLAG_RESUMED`, and `AUTOSPLIT_FLAG_VANILLA` is on while the score key is empty (no mod changes the score).
+
+**Events.**
+- *GO*: the update in which a board is entered from the instructions page (`LEVEL_HELP2`): the click on Play is consumed in that update,
+  `ChangeScreen` makes the board current in it, and the first frame of the board is drawn right after, so GO is the speedrun's start with
+  no update between. The instructions page reached from the title's Instructions button has the same Play button and raises GO too.
+  A board entered any other way (Continue saved game's Yes, a board chosen on the level selection, the `level` test command from any
+  screen) raises no GO and is flagged RESUMED (the log says "starts from another screen than the instructions page: GO not counted").
+- *Level clear*: the board's state becomes `LEVEL_WON` (state 3, `Level_Won`: the fill reaches its quota, the profile's best level is
+  saved). The board's own texts and fills follow and the player clicks through them before the next board starts, so a level clear
+  precedes the next board by the time the player takes (221 updates in the scripted mission test, which clicks every 0.6 s).
+- *Game over*: kind 0 (out of lives) when `Level::mGameOver` is set (`Level_GameOver`, from the shooter's last life): the board is in
+  state 4, "Game Over" is drawn. Kind 1 (left) when the game is left for another screen before it ends (Esc, Esc to the title); the
+  fields of the game's last update are published with it, then the block shows no board. Kinds 2 and 3 are not used.
+- *Win*: the mission-complete screen (`LEVEL_MISSION_COMPLETE`, state 5) becomes the current level, the update after the last board's
+  texts are clicked away. It is the screen the rule names (the frame it is first drawn in). A mission has 577 boards (one hand-made and
+  48 random boards for each of 12 steps; `level 577` reaches the last), so a won mission is one GO, 577 level clears and a win.
+- A board that is left for the title is not a game over of the player's: it is kind 1 and the block shows no board afterwards.
+
+**Proof.** `games/cosmicbugs/tools/livesplit/run_tests.sh <out dir>` (under rundesk, about 10 minutes): games played through real input
+at `-fast` (`games.py`: a new game with two boards won and the third lost, kind 0; board 577 won to the mission-complete screen; a game left with
+Esc and a second one lost, kinds 1 and 0; a saved game continued, RESUMED with no GO; a board chosen on the level selection, RESUMED with
+no GO) and the inert proof: one scripted game (seeded, clicks at fixed updates, a win and a loss) three times, with the block on and with
+no mod twice, whose state lines are byte-identical. The block logs of the `game` and `mission` runs went to the site session.
+
 ## The PopCap Game Collection version (2026-11-11)
 
 The port's files come from a PopCap Game Collection install (the staging script's default folder is the Collection's
