@@ -59,7 +59,7 @@ public:
 	double			mSpeed;				// +0x100: multiplies the time that passes
 	int				mWaveMisses;		// +0x108
 	int				mWaveSwings;		// +0x10c: the swings of the level; 0, nothing is rated
-	int				mWaveBase;			// +0x110: the points the bonus is a part of (when 0, ending the banner starts the level music)
+	int				mWaveIndex;			// +0x110: which wave of the level ended (when 0, ending the banner starts the level music)
 	int				mWavePercent;		// +0x114: the wave's accuracy
 	int				mWaveBonus;			// +0x118: the points of the bonus it earned
 	int				mLevelSmashed;		// +0x11c: counts of the level summary
@@ -78,9 +78,9 @@ public:
 
 	void			SetImage(Image* theImage);									// 0x4449c0
 	void			SetSpeed(double theSpeed);									// 0x4449d0
-	// 0x4449e0: the accuracy is (theSwings - theMisses) of theTargets as a percentage; theBase is what a bonus of 20 (98 and
-	// up) or 10 (95 and up) percent is taken of
-	void			SetWaveResult(int theMisses, int theSwings, int theTargets, int theBase);
+	// 0x4449e0: the accuracy is the swings that did not miss, as a percentage of the swings; thePoints is what a bonus of 20
+	// percent (98 and up) or 10 percent (95 and up) is taken of (the exe's own order of arguments: misses, swings, points, wave)
+	void			SetWaveResult(int theMisses, int theSwings, int thePoints, int theWave);
 	void			DrawBar(Graphics* g, int theX, int theY, double thePercent, double theFill);	// 0x444c20
 	void			SetLevelCounts(int theSmashed, int theChain, int theSpeed);	// 0x444a80
 	void			SetPendingPoints(int thePoints);							// 0x444ab0

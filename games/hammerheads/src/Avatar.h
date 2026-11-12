@@ -70,6 +70,9 @@ private:
 Avatar* GetAvatar();					// 0x42d7f0: null until the screen has made one
 Avatar* MakeAvatar();					// 0x42e4f0
 
+// 0x42d6b0: the hammer's image for its level (0 to 3) and whether it is on fire
+Image* GetHammerImage(int theLevel, bool theFire);
+
 }
 
 #endif

@@ -35,6 +35,7 @@ enum StatIndex
 	STAT_SPEED_TIER = 25,
 	STAT_SPEED_TIMER = 26,
 	STAT_HAMMER_ON_FIRE = 27,
+	STAT_KINGS_RELEASED = 28,			// kings sent up in the level (provisional name; GnomeKing adds, GameScreen reads)
 	STAT_KINGS_DESTROYED = 29,
 	STAT_PERFECT_BONUS_SCREENS = 30,
 	STAT_BONUS_HITS = 31,
@@ -42,10 +43,16 @@ enum StatIndex
 	STAT_LEVEL_OF_LAST_PURCHASE = 33,
 	STAT_LEVEL_OF_LAST_HEART = 35,
 	STAT_LEVEL_OF_LAST_COIN = 36,
+	STAT_HAS_ICE_CREAM = 37,			// the three power-ups bought in the shop and waiting for the next level (provisional names)
+	STAT_HAS_CLOVER = 38,
+	STAT_HAS_STRAWBERRY = 39,
+	STAT_LEVEL_SCORE = 43,				// the points earned in the level being played (Score::AddQuiet adds to it)
+	STAT_MARATHON_TIME = 44,			// the seconds the marathon has run (the clock adds to it a step at a time)
 	STAT_FREEZE_TIMER = 45,				// time left of the ice-cream power
 	STAT_ROUND_SMASHED = 46,			// gnomes smashed since the last bonus round (ClearBonusCounts clears 45 to 49)
 	STAT_STREAK = 47,					// gnomes smashed since the last miss
 	STAT_BEST_STREAK = 48,
+	STAT_ROUND_SPEED_HITS = 49,			// speed hits in the round (provisional name; the level summary shows it)
 	STAT_MISSES_IN_LEVEL = 41,			// the three counts of the level being played (ClearLevelCounts)
 	STAT_SWINGS_IN_LEVEL = 42
 };

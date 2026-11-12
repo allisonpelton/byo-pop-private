@@ -604,8 +604,7 @@ bool Creature::IsFrozen() const
 static int PickBonusDrop()
 {
 	static const int aDrops[3] = { KIND_COIN, KIND_BIG_COIN, KIND_HEART };
-	GetHearts();
-	double aHealth = GetHealth();
+	double aHealth = GetPlayerHealth();
 	double aCapacity = GetHealthCapacity();
 	int aChoices = 2;
 	if (aHealth != aCapacity)
@@ -638,8 +637,7 @@ int Creature::GetCarriedItem()
 
 				if (gApp->mGameMode == GAME_MODE_CLASSIC || gApp->mGameMode == GAME_MODE_TOUGH_COOKIE)
 				{
-					GetHearts();
-					if (GetHealth() < 1.0)
+					if (GetPlayerHealth() < 1.0)
 					{
 						int aLevel = gApp->mGameScreen->mLevel;
 						int aHeartCount = CountHeartCreatures();

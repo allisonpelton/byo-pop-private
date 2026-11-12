@@ -23,7 +23,7 @@ using namespace Sexy;
 static ObjectRef gAvatarRef;			// 0x597f0c
 
 // 0x42d6b0: the hammer's image for its level (0 to 3) and whether it is on fire
-static Image* GetHammerImage(int theLevel, bool theFire)
+Image* Sexy::GetHammerImage(int theLevel, bool theFire)
 {
 	switch (theLevel)
 	{
@@ -284,14 +284,14 @@ void Avatar::HandleClick()
 	if (!gApp->IsShopOpen() && !gApp->IsChallengeOpen())
 	{
 		int aLevel = gApp->mGameScreen->mLevel;
-		if (GetGameplay()->IsTimerB0Active())
+		if (GetGameplay()->IsStrawberryActive())
 		{
 			MakeFloater(7, (double)aX, (double)aY, nullptr, 0, "");
 			gApp->PlaySample(SOUND_VARIOUS_SQUISH_STRAWBERRY);
 		}
 		else if (GetStats()->GetInt(STAT_KINGS_DESTROYED) == 0)
 		{
-			GetHearts()->LoseHealth(0, 0.0);
+			GetHearts()->ChangeHealth(HEALTH_MISS, 0.0);
 			GetStats()->AddInt(STAT_MISSES, 1);
 			GetStats()->AddInt(STAT_MISSES_IN_LEVEL, 1);
 			GetStats()->SetInt(STAT_LEVEL_OF_LAST_MISS, aLevel);
@@ -322,7 +322,7 @@ void Avatar::HandleClick()
 	// the miss shows in the level when it costs something, and in a challenge
 	bool aShowMiss;
 	if (!gApp->IsShopOpen())
-		aShowMiss = !GetGameplay()->IsTimerB0Active() || gApp->IsChallengeOpen();
+		aShowMiss = !GetGameplay()->IsStrawberryActive() || gApp->IsChallengeOpen();
 	else
 		aShowMiss = gApp->IsChallengeOpen();
 

@@ -35,18 +35,18 @@ public:
 	double			mNextPopTimer;			// +0xa0: time until the next cubby rises; 0 when none is due
 	// The power-ups: each has the time it has left and a delay that runs down first (both in the level's time units)
 	double			mCloverTimer;			// +0xa8: while above 0, a creature that carries nothing may drop a coin or a heart
-	double			mTimerB0;				// +0xb0
+	double			mStrawberryTimer;			// +0xb0: while above 0, a click that misses costs nothing (the strawberry)
 	double			mDoubleHitTimer;		// +0xb8: while above 0, the hammer is drawn with a "+2"
-	double			mTimerC0;				// +0xc0
+	double			mFiveTimesTimer;			// +0xc0: while above 0, every score counts five times (the x5 sign)
 	bool			mPopNow;				// +0xc8: a cubby is to rise at the next pass, without waiting
 	bool			mFirstCubbyStarted;		// +0xc9: level 1's first gnome has been started
 	bool			mChallengeShown;		// +0xca: this level's challenge sign has been sent up
 	bool			mChallengeDone;			// +0xcb: and has been dealt with
 	bool			mFlagCC;				// +0xcc
-	double			mDelayD0;				// +0xd0: before mCloverTimer starts to run
-	double			mDelayD8;				// +0xd8: before mTimerC0
-	double			mDelayE0;				// +0xe0: before mDoubleHitTimer
-	double			mDelayE8;				// +0xe8: before mTimerB0
+	double			mCloverDelay;				// +0xd0: before mCloverTimer starts to run
+	double			mFiveTimesDelay;				// +0xd8: before mFiveTimesTimer
+	double			mDoubleHitDelay;				// +0xe0: before mDoubleHitTimer
+	double			mStrawberryDelay;				// +0xe8: before mStrawberryTimer
 	Image*			mBackdrop;				// +0xf0
 	Image*			mCubbyBack;				// +0xf4
 	Image*			mPlatform;				// +0xf8
@@ -64,7 +64,7 @@ public:
 	Image*			GetPlatformImage() const;			// 0x434fe0
 	Image*			GetCrosshair() const;				// 0x434ff0: the plain one while the shop or a challenge is open
 	void			SetTheme();							// 0x434de0: the images of the level's season
-	bool			IsTimerB0Active() const;			// 0x42d660 (among the Avatar's functions): mTimerB0 is above 0; a click that misses costs nothing then
+	bool			IsStrawberryActive() const;			// 0x42d660 (among the Avatar's functions): mStrawberryTimer is above 0; a click that misses costs nothing then
 	bool			IsPlaying() const;					// 0x434c80: playing or draining
 	void			StartEnding();						// 0x435030: the level's time is up
 	void			SetPlaying();						// 0x435090

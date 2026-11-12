@@ -29,13 +29,6 @@ static const double PI_FLOAT = 3.1415927410125732;
 static const double TWO_PI_FLOAT = 6.2831854820251465;
 
 // What the exe's _ftol gives: the value cut toward zero, or the "indefinite" integer when it does not fit
-static int ToInt(double theValue)
-{
-	if (!(theValue > -2147483649.0 && theValue < 2147483648.0))
-		return INT_MIN;
-	return (int)theValue;
-}
-
 static std::string FormatInt(const char* theFormat, int theValue)
 {
 	char aBuffer[64];
@@ -83,7 +76,7 @@ Floater::Floater(int theType, double theX, double theY, const char* theText, int
 	mSpeed(1.0),
 	mWaveMisses(0),
 	mWaveSwings(0),
-	mWaveBase(0),
+	mWaveIndex(0),
 	mWavePercent(0),
 	mWaveBonus(0),
 	mLevelSmashed(0),
@@ -225,7 +218,7 @@ Floater::~Floater()
 		break;
 
 	case FLOATER_WAVE_RESULT:
-		if (mWaveBase == 0)
+		if (mWaveIndex == 0)
 			gApp->StartMusic(1, false);
 		GetStats()->Set(STAT_SPEED_TIMER, 0.0);
 		break;
@@ -253,20 +246,20 @@ void Floater::SetSpeed(double theSpeed)
 }
 
 // 0x4449e0
-void Floater::SetWaveResult(int theMisses, int theSwings, int theTargets, int theBase)
+void Floater::SetWaveResult(int theMisses, int theSwings, int thePoints, int theWave)
 {
 	mWaveMisses = theMisses;
 	mWaveSwings = theSwings;
-	mWaveBase = theBase;
+	mWaveIndex = theWave;
 	if (theSwings == 0)
 		mWavePercent = 0;
 	else
-		mWavePercent = ToInt((double)(theSwings - theMisses) / (double)theTargets * 100.0);
+		mWavePercent = ToInt((double)(theSwings - theMisses) / (double)theSwings * 100.0);
 
 	if (mWavePercent >= 0x62)
-		mWaveBonus = ToInt((double)theBase * 0.2);
+		mWaveBonus = ToInt((double)thePoints * 0.2);
 	else if (mWavePercent >= 0x5f)
-		mWaveBonus = ToInt((double)theBase * 0.1);
+		mWaveBonus = ToInt((double)thePoints * 0.1);
 	else
 		mWaveBonus = 0;
 }

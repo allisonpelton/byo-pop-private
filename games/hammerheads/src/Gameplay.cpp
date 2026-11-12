@@ -23,18 +23,18 @@ Gameplay::Gameplay() :
 	mPhaseTimer(0.0),
 	mNextPopTimer(0.0),
 	mCloverTimer(0.0),
-	mTimerB0(0.0),
+	mStrawberryTimer(0.0),
 	mDoubleHitTimer(0.0),
-	mTimerC0(0.0),
+	mFiveTimesTimer(0.0),
 	mPopNow(true),
 	mFirstCubbyStarted(false),
 	mChallengeShown(false),
 	mChallengeDone(false),
 	mFlagCC(false),
-	mDelayD0(0.0),
-	mDelayD8(0.0),
-	mDelayE0(0.0),
-	mDelayE8(0.0),
+	mCloverDelay(0.0),
+	mFiveTimesDelay(0.0),
+	mDoubleHitDelay(0.0),
+	mStrawberryDelay(0.0),
 	mBackdrop(nullptr),
 	mCubbyBack(nullptr),
 	mPlatform(nullptr),
@@ -154,9 +154,9 @@ void Gameplay::SetTheme()
 }
 
 // 0x42d660
-bool Gameplay::IsTimerB0Active() const
+bool Gameplay::IsStrawberryActive() const
 {
-	return mTimerB0 > 0.0;
+	return mStrawberryTimer > 0.0;
 }
 
 // 0x434c80
@@ -419,10 +419,10 @@ void Gameplay::Update(float theFrac)
 		if (gApp->mGameScreen->IsLevelRunning())
 		{
 			double aStep = (double)theFrac * 0.01;
-			StepTimer(mCloverTimer, mDelayD0, aStep);
-			StepTimer(mTimerB0, mDelayE8, aStep);
-			StepTimer(mDoubleHitTimer, mDelayE0, aStep);
-			StepTimer(mTimerC0, mDelayD8, aStep);
+			StepTimer(mCloverTimer, mCloverDelay, aStep);
+			StepTimer(mStrawberryTimer, mStrawberryDelay, aStep);
+			StepTimer(mDoubleHitTimer, mDoubleHitDelay, aStep);
+			StepTimer(mFiveTimesTimer, mFiveTimesDelay, aStep);
 
 			double aFreeze = GetStats()->Get(STAT_FREEZE_TIMER);
 			if (0.0 < aFreeze)
@@ -433,8 +433,7 @@ void Gameplay::Update(float theFrac)
 				GetStats()->Set(STAT_FREEZE_TIMER, aFreeze);
 			}
 		}
-		GetHearts();
-		if (GetHealth() == 0.0)
+		if (GetPlayerHealth() == 0.0)
 			GameOver();
 	}
 
