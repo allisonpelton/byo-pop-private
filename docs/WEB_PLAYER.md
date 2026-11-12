@@ -346,6 +346,7 @@ where they can run past an hour (the Mahjong Escapes, BookWorm Adventures' arena
 | Cosmic Bugs, Water Bugs | `cb.dat` | the eight high scores |
 | Typer Shark | `users/user.idx` | the score table and the abyss's |
 | Bonnie's Bookstore | `Data/HighScores.dat` | Classic, Action, with the longest word |
+| Tip Top | `Preferences.dat`, its first 560 bytes | Regular, Speed, Strategy (the Timed table, which no button reaches, left out); empty places not shown |
 | BookWorm | `registry.ini`, the key `Scores` | Classic, Action, Best Word, Longest Word |
 | Ning Po | `registry.ini`, the values `HS:<layout>x<rank>` | the played places of each layout, as m:ss |
 | Word Harmony | `registry.ini`, the keys `scores\<mode>` | Puzzle, Solitaire, Action |
@@ -364,8 +365,7 @@ number (Ning Po's layouts, "Layout n"; the Mahjong Escapes' escape levels).
 
 Left out on purpose: BookWorm Adventures' mini-game tables, which the game's scripts name and format; Bejeweled Twist's
 challenge progress and per-player bests in `profile.dat`, and AstroPop's per-player bests, which are a player's record rather
-than a high-score list; Pixelus, which keeps no score list. Tip Top has no reader yet: it waits on which of its four tables is
-which mode.
+than a high-score list; Pixelus, which keeps no score list.
 
 ### The fixes mod on the site
 
