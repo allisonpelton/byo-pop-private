@@ -917,7 +917,11 @@ var ByopopSoundboards = {
     presets: [
       { name: "Battle Start", when: "A battle opens: the fireworks, the warm-up call and the cymbal", steps: [["sounds/firework2", 0], ["sounds/v_warmup", 0], ["sounds/cymbalcrash", 4310]]},
       { name: "Fire Hit", when: "A fire word hits the foe: the blow, the flames and the cymbal", steps: [["sounds/largeimpact_01", 0], ["sounds/smallimpact_01", 0], ["sounds/fire6", 0], ["sounds/cymbalcrash", 2110]]},
-      { name: "Low Health", when: "A foe's blow leaves Lex low, and the alarm starts", steps: [["sounds/largeimpact_01", 0], ["sounds/low_health", 210, {"end": 650}], ["sounds/low_health", 650, {"end": 1090}], ["sounds/low_health", 1090]]}
+      { name: "Low Health", when: "A foe's blow leaves Lex low, and the alarm starts", steps: [["sounds/largeimpact_01", 0], ["sounds/low_health", 210, {"end": 650}], ["sounds/low_health", 650, {"end": 1090}], ["sounds/low_health", 1090]]},
+      { name: "Killing Blow", when: "The word that defeats a foe: the blows, the voice's call, a gem and the foe's own death cry (here a fiddler's)", steps: [["sounds/largeimpact_01", 0, {"v": -146}], ["sounds/smallimpact_01", 0, {"v": -146}], ["sounds/vo_crushed", 0, {"v": -146}], ["sounds/gemspawn", 0, {"v": -146}], ["sounds/stringdeath", 0, {"v": -146}], ["sounds/swordspearimpact_withwoosh", 0, {"v": -146}]]},
+      { name: "New Treasure", when: "A treasure is won after a battle: its chime, then the fireworks and the crowd", steps: [["sounds/newtreasure", 0, {"v": -146}], ["sounds/firework2", 500, {"v": -146}], ["sounds/crowdcheer", 500]]},
+      { name: "Boss Battle", when: "A boss battle opens: the fireworks and the call", steps: [["sounds/firework2", 0, {"v": -146}], ["sounds/v_bossbattle", 0, {"v": -146}]]},
+      { name: "Level Up", when: "Lex goes up a level after a battle: the fireworks and his cheer", steps: [["sounds/firework1", 0, {"v": -146}], ["sounds/firework2", 590, {"v": -146}], ["sounds/lex_levelup", 640, {"v": -146}]]}
     ],
     groups: [
     { name: "Menus", sounds: [
