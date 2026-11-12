@@ -126,8 +126,8 @@ shared the machine with other sessions' games, and each game has its own play an
 port with its own original, never one game with another; an empty cell means the notes give no number.
 Dynomite Deluxe's processor time is the cycles its threads ran in the same scripted minute of Time Trial, the
 medians of five pinned rounds run in turn, with its original windowed at 640x480 and drawing at most 60 times a second
-as in full screen. The port is over it by its present through the graphics driver, a shared cost waiting for the
-framework's software presenter. Rocket Mania's, Bejeweled 2's and AstroPop's ports ran in the original's own window
+as in full screen. The port is over it by the shared cost of presenting through the graphics driver; its screen
+is drawn on the GPU. Rocket Mania's, Bejeweled 2's and AstroPop's ports ran in the original's own window
 size too (Bejeweled 2's on an idle board); AstroPop's 3D is over its original by the same present cost.
 
 Two things differ in every native port on purpose, the user's choice for all of them, with no mod needed. Full screen is
