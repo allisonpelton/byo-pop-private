@@ -258,7 +258,7 @@
       ],
       "na": [],
       "now": "identical-look",
-      "note": "Music-state comparison; the port had played no music"
+      "note": "Music equal; the 3D screen wipe tonight"
     },
     "ningpo": {
       "title": "Ning Po Mahjong Deluxe",
@@ -301,7 +301,7 @@
       ],
       "na": [],
       "now": "identical-look",
-      "note": "3D and web screens still to compare"
+      "note": "3D screens still to compare (tonight)"
     },
     "dynomite": {
       "title": "Dynomite Deluxe",
@@ -315,11 +315,12 @@
         "performance",
         "unneeded-code",
         "readability",
-        "collection"
+        "collection",
+        "site-features"
       ],
       "na": [],
-      "now": "site-features",
-      "note": "Music placed; presets being checked against the code"
+      "now": null,
+      "note": ""
     },
     "bookwormadv2": {
       "title": "Bookworm Adventures Volume 2",
@@ -358,11 +359,12 @@
         "coverage",
         "performance",
         "unneeded-code",
-        "readability"
+        "readability",
+        "collection"
       ],
       "na": [],
-      "now": "collection",
-      "note": "Collection check to do (the Collection exe is another build)"
+      "now": null,
+      "note": ""
     },
     "bigmoney": {
       "title": "Big Money Deluxe",
@@ -401,10 +403,11 @@
         "identical-look",
         "fixes-mod",
         "site-features",
-        "coverage"
+        "coverage",
+        "performance"
       ],
       "na": [],
-      "now": "performance",
+      "now": "unneeded-code",
       "note": ""
     },
     "cosmicbugs": {
@@ -436,11 +439,12 @@
         "performance",
         "unneeded-code",
         "readability",
-        "site-features"
+        "site-features",
+        "collection"
       ],
       "na": [],
-      "now": "collection",
-      "note": "Collection check under way (the game is in the Collection)"
+      "now": null,
+      "note": ""
     },
     "bonnies": {
       "title": "Bonnie's Bookstore Deluxe",

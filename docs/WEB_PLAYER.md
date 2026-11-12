@@ -322,6 +322,51 @@ argument and returning the same text `move` prints after `MOVE ` (the move as JS
 coordinates, or `null`), changing nothing in the game. The saver lists a game on the live site once its build exports it,
 and plays each answer's `input` as real events, as the driver does.
 
+### The trophy cabinet
+
+The Trophy Cabinet (`web/trophies.js`; the user, 2026-11-11) is a Desktop 95 window on the listing's desktop that gathers each
+game's own records from its saves in this browser and shows them, a table for each of the game's lists, under the names the
+games give their modes. Its Player drop-down picks a site player (`web/profiles.js`), and then only the rows under that
+player's name are shown, compared as the games compare names, without regard to case. It reads the files as the Sounds window
+does (`ByopopMusic.files`), each time the window opens, and writes nothing.
+
+Every reader follows the port's own save code, which its entry in `RECORDS` names, and is tested under Node by
+`tools/trophiestest.js` (unit-web) on files made for it. A file that is missing, of the wrong size or version, or cut short
+gives what it holds or nothing. The rows are shown as the game keeps them, its built-in rows too, in its order. A day's best
+appears as the Today place only on the day it was set, by the game's own day count. Times are shown as m:ss, or as h:mm:ss
+where they can run past an hour (the Mahjong Escapes, BookWorm Adventures' arena).
+
+| Game | Read from (in the game's user folder) | Tables |
+|---|---|---|
+| Bejeweled, Big Money, Alchemy, Seven Seas, Noah's Ark, Mummy Maze, Rocket Mania, Bejeweled 2 | `hiscores.dat` (Rocket Mania `Players/`, Bejeweled 2 `users/`): PopCap's checked high-score records | one table a mode, with Today where the game keeps it |
+| Atomica | `HS.CFG` | Strategy, Action, with Today |
+| Dynomite | `STOMPED.HS`, `ENDLESS.HS`, `FOSSIL.HS`, `TIMETRIAL.HS` | one table a file; Time Trial as m:ss |
+| Bejeweled Twist | `users/scores.dat` | Classic, Blitz |
+| AstroPop | `users/datahs.usr` | Classic by points, Survival by its time (m:ss) |
+| Cosmic Bugs, Water Bugs | `cb.dat` | the eight high scores |
+| Typer Shark | `users/user.idx` | the score table and the abyss's |
+| Bonnie's Bookstore | `Data/HighScores.dat` | Classic, Action, with the longest word |
+| Tip Top | `Preferences.dat`, its first 560 bytes | Regular, Speed, Strategy (the Timed table, which no button reaches, left out); empty places not shown |
+| BookWorm | `registry.ini`, the key `Scores` | Classic, Action, Best Word, Longest Word |
+| Ning Po | `registry.ini`, the values `HS:<layout>x<rank>` | the played places of each layout, as m:ss |
+| Word Harmony | `registry.ini`, the keys `scores\<mode>` | Puzzle, Solitaire, Action |
+| Mahjong Escape: Ancient China, Ancient Japan | every player's `<id>.usr` | each layout and escape level someone has won, the players by score with their best times |
+| BookWorm Adventures and its Volume 2 | every player's `users/<name>.bwa` | Top Words, Arena (by stage, with its time) |
+
+The registry's games are read from the port's registry file (`userdata/registry.ini`, `framework/SexyAppBase.cpp`), whose
+values a small parser decodes (`parseIni`). Where a game builds its list across players (the Mahjong Escapes, BookWorm
+Adventures), the cabinet builds it as the game's code does, from every player's file. A Word column appears where a game keeps
+a word beside the name (BookWorm, Bonnie's Bookstore, BookWorm Adventures' top words), and a Time column where it keeps a best
+time beside the score (the Mahjong Escapes).
+
+Names are read at run time from the player's own files and never written into the site: a Mahjong layout's name is the name
+of its `LAYOUTS` resource in the player's own `Resource.dll`. Where a game names something only in a picture, the table gets a
+number (Ning Po's layouts, "Layout n"; the Mahjong Escapes' escape levels).
+
+Left out on purpose: BookWorm Adventures' mini-game tables, which the game's scripts name and format; Bejeweled Twist's
+challenge progress and per-player bests in `profile.dat`, and AstroPop's per-player bests, which are a player's record rather
+than a high-score list; Pixelus, which keeps no score list.
+
 ### The fixes mod on the site
 
 Every game is served with its fixes mod on (`docs/MOD_ROADMAP.md`, "The fixes mod"): one mod, `fixes`, each of whose

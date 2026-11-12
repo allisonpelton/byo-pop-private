@@ -150,5 +150,15 @@ const bwt = R.bwaTables(R.RECORDS.bookwormadv2, [{ name: "Ann", data: bp }, { na
 same("bwa: top words once a player, best first; arena runs by stage with their times",
   bwt.map((t) => [t.name, t.rows.map((r) => [r.place, r.name, r.word, r.score, r.time])]),
   [["Top Words", [["1", "Ann", "QUIXOTIC", 90, undefined], ["2", "Ann", "ZAP", 40, undefined]]], ["Arena", [["1", "Bo", undefined, 9, "0:00:01"], ["2", "Ann", undefined, 7, "1:02:05"]]]]);
+// Tip Top's Preferences.dat: four tables of five 28-byte entries, then the settings
+const tt = Buffer.alloc(0x230 + 8);
+for (let t = 0; t < 4; t++) for (let i = 0; i < 5; i++) {
+  const at = (t * 5 + i) * 0x1c;
+  tt.write(i < 2 ? "T" + t + i : "----", at, "latin1"); tt.writeInt32LE(i < 2 ? 900 - i * 100 + t : 0, at + 0x14); tt.writeInt32LE(1, at + 0x18);
+}
+same("tiptop: Regular, Speed and Strategy without Timed, empty places left out",
+  R.parse(R.RECORDS.tiptop, new Uint8Array(tt)).map((t) => [t.name, t.rows.map((r) => [r.place, r.name, r.score])]),
+  [["Regular", [["1", "T00", 900], ["2", "T01", 800]]], ["Speed", [["1", "T20", 902], ["2", "T21", 802]]], ["Strategy", [["1", "T30", 903], ["2", "T31", 803]]]]);
+same("tiptop: a file shorter than the tables is none", R.parse(R.RECORDS.tiptop, new Uint8Array(tt.subarray(0, 0x22f))), []);
 console.log("trophiestest: " + checks + " checks, " + failed + " failed");
 process.exit(failed ? 1 : 0);

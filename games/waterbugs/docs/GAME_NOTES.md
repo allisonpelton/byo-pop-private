@@ -577,3 +577,29 @@ ones); the log's line "game exited (its process's exit code ...)" does.
 processes (a run itself takes 40 to 150 s); the 20 extra runs about 40 minutes. One Sonnet agent sorted the first 70 reached
 functions (16 minutes, 300,000 tokens) and another read the 62 unreached ones (36 minutes, 340,000 tokens). This session's
 own work was about five hours.
+
+## The PopCap Game Collection version (2026-11-11)
+
+The port was staged from a PopCap Game Collection install (`stage_waterbugs_assets.py` looks first in `Program Files (x86)/Popcap Game
+Collection/Water Bugs`), and no other edition of the game is on this machine (Steam has none), so the check against the Collection's
+version (`docs/COORDINATION.md`) compares the disc's files with the staged copy. The procedure is AstroPop's (its GAME_NOTES section 13);
+`tools/collection/` holds the file comparison and the run.
+
+**Getting the files.** `unshield` (`E:\retools\unshield-build`) read the disc image's cabinet, mounted read-only and dismounted afterwards;
+the group `WaterBugsComponent` came out: 196 files, 24 MB, a flat folder with the names and layout of the staged copy (`WaterBugs.exe`,
+the four `water_art*` files, `audio/`, `wanims/`). **189 of them are the staged copy's byte for byte, `WaterBugs.exe` included** (513,320
+bytes, linked 2007-10-30, version 1.0.0.1), so the version is the same build and the port's reads of the exe (the texts) are the same
+reads. The other seven are files the port never reads and the stager never copies: `bass.dll`, `license.txt`, `readme.html`,
+`properties/partner.xml` and its `.sig` (product name, registry key `PopCap\WaterBugs`, offering number, 640 by 480), and the developer's
+tools `wanims/encrypto.exe` and `wanims/i.bat` (the batch file encrypts two of the XML files; neither was run).
+
+**The port on them** (`tools/collection/run.sh`). The stager makes the same 189-file tree from the disc's folder as from the install
+(`cmpfiles.py`: 189 the same, none only in one). The suite's three plays, once on each tree under rundesk with `-fast`: the headless
+runner's game (score 0 at 20 s, 494 with the beam at 32 s), the loss and the high scores, and the windowed exe's state after the beam, are
+the same on both, and the three screenshots' pixels are the frozen ones (`2a54908cecb8 42df2d86a04f 983a569fb1b6`). The page's importer
+rules (`web/page.js`: markers `water_art.bbk`, `water_art8.bbk` and `WaterBugs.exe`, the tools in `wanims/` skipped) on the disc's folder
+as loose files, as `Water Bugs/` and as `Popcap Game Collection/Water Bugs/` find the game's root and pick exactly those 189 files, so
+the site's import takes the Collection's folder as it is (checked ad hoc under Node; `tools/gameimporttest.js` has no Water Bugs line
+because the game is not yet in the finished list). The page's hint named `Program Files/PopCap Games/Water Bugs`, which is not where the
+Collection installs the game; it now names `Popcap Game Collection/Water Bugs`. Not run: the web build under Node on these files, since
+its input would be the same bytes.

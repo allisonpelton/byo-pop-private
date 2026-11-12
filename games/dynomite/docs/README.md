@@ -89,7 +89,8 @@ the `loaded` and `next` colours, `frozen` and `rows`, the grid's cells a row a s
 empty. `goto` opens `menu`, `options`, `highscores` or `credits`, or starts `endless`, `stomped`, `fossil`,
 `timetrial` or `tutorial` through the main menu's own pages (their present skill and pack). `level <n>` starts fossil
 n of the Fossil Challenge from its first fragment. `set score <n>` sets the side bar's score. `win` clears the board in
-Stomped and Time Trial, so the board's own end follows; `lose` puts the eggs past the line as in play (Inchy sinks and
+Stomped and Time Trial, so the board's own end follows, and in the Fossil Challenge takes every egg and lets the fossil
+fall, so the fragment's own end follows (its museum, and after fossil 15 the Rex attack); `lose` puts the eggs past the line as in play (Inchy sinks and
 the eggs run off), once the first shot has started the game. `seed <n>` seeds the app's twister and its picker.
 `unlock all` answers with an error: nothing is locked in the port. `move` prints the bot's next move (`src/Bot.cpp`):
 in the tutorial its Continue button while it shows, then the museum's own button while the museum is open (and the side bar's museum button at the tutorial's step 93, which waits for it), at the tutorial's whirley step the shot whose flight meets the whirley, and at its steps 43 and 45 the lowest shot without a match, else the shot that joins the most eggs of the loaded colour, found

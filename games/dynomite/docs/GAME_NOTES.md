@@ -449,6 +449,9 @@ What reaches the 33, none of which a run of the original met:
   whirleys' and the Rex attack's (16).
 - **The Rex attack** on the museum's last wall (level 15, round 3, after the Beware button): its constructor, destructor,
   update and draw (4), and `EggGrid::PickColor`, for a level's cells of kind 0x14, which no run's levels had (1).
+  Since then the soundboard's sound logs added a run that plays it in the port (botrec.py with `--level 14 --winafter
+  5 --museumwait 450`: `win` in the Fossil Challenge takes every egg and lets the fossil fall), not yet one in the
+  original.
 - **Input no run gave**: a bomb's blast on the fossil board (`DynomiteFossil::Blasted`, its kick), Stomped's pack list
   under the mouse (its scrolling, hover and click: no run moved the mouse over the list), and the dialog that the
   options show when the desktop allows only full screen (`ShowNoWindowed`), and the destructors of a fossil and of the side bar's small Inchy's bubble
