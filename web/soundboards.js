@@ -232,6 +232,13 @@ var ByopopSoundboards = {
       { name: "Time Up", when: "Timed mode's bar runs out", steps: [["sounds/warning1", 0], ["sounds/warning1", 940], ["sounds/warning1", 1790], ["sounds/warning1", 2590], ["sounds/warning1", 3390], ["sounds/warning1", 4190], ["sounds/warning1", 4990], ["sounds/warning1", 5790], ["sounds/warning1", 6590], ["sounds/warning1", 7390], ["sounds/warning1", 8190], ["sounds/warning1", 8990], ["sounds/warning1", 9790], ["sounds/warning1", 10590], ["sounds/warning1", 11390], ["sounds/warning1", 12190], ["sounds/explode2", 14640], ["sounds/gameover1", 15850]]}
     ],
     groups: [
+    { name: "Menus", sounds: [
+      ["sounds/menuclick.ogg", "Click", "Any button pressed in the menus and dialogs, and every button of the options dialog (its Done button clicks twice)"],
+      ["sounds/click2.ogg", "Click 2 (unused)", "Never played: it is in the sound table, but no code plays it. Also in Bejeweled 2 as Click 2 (unused)."],
+      ["sounds/sidebarclick2.ogg", "Side bar click (unused)", "Never played: it is not in the sound table, so it is never loaded"],
+      ["sounds/welcome1.ogg", "Welcome (unused)", "Never played: it is not in the sound table, so it is never loaded"],
+      ["sounds/goodbye1.ogg", "\"Goodbye!\" (unused)", "Never played: it is not in the sound table, so it is never loaded"]
+    ] },
     { name: "Matches", sounds: [
       ["sounds/select.ogg", "Select", "A gem is selected by a click, panned by its column; also the first step of an arrow gem's move in the arrows mod"],
       ["sounds/gotset2.ogg", "Match", "A scoring pass whose longest run is exactly 3 gems, panned by the runs' average column; plays with that pass's cascade sound"],
@@ -259,13 +266,6 @@ var ByopopSoundboards = {
     { name: "Game over", sounds: [
       ["sounds/explode2.ogg", "Explosion", "Game over: 200 updates (2 s) after the game ends the shake stops and the gems blow apart; 50 updates after New Game mid-game; a flame gem's blast in a rules mod"],
       ["sounds/gameover1.ogg", "\"Game over\"", "The last gem has fallen off the board after the game ended; not when a New Game ended it"]
-    ] },
-    { name: "Menus", sounds: [
-      ["sounds/menuclick.ogg", "Click", "Any button pressed in the menus and dialogs, and every button of the options dialog (its Done button clicks twice)"],
-      ["sounds/click2.ogg", "Click 2 (unused)", "Never played: it is in the sound table, but no code plays it. Also in Bejeweled 2 as Click 2 (unused)."],
-      ["sounds/sidebarclick2.ogg", "Side bar click (unused)", "Never played: it is not in the sound table, so it is never loaded"],
-      ["sounds/welcome1.ogg", "Welcome (unused)", "Never played: it is not in the sound table, so it is never loaded"],
-      ["sounds/goodbye1.ogg", "\"Goodbye!\" (unused)", "Never played: it is not in the sound table, so it is never loaded"]
     ] }
   ] },
   bejeweled2: {
@@ -658,6 +658,10 @@ var ByopopSoundboards = {
       { name: "Game Over", when: "A fire tile burns through the bottom row: the screen burns", steps: [["sounds/up1", 0], ["sounds/tileburn", 10], ["sounds/piece_hit", 40], ["sounds/piece_hit", 80], ["sounds/up2", 100], ["sounds/piece_hit", 140], ["sounds/up3", 200], ["sounds/piece_hit", 210], ["sounds/up4", 300], ["sounds/piece_hit", 320], ["sounds/piece_hit", 380], ["sounds/up5", 400], ["sounds/piece_hit", 440], ["sounds/chomp", 460], ["sounds/up6", 500], ["sounds/chomp", 600], ["sounds/chomp", 690], ["sounds/chomp", 760], ["sounds/chomp", 820], ["sounds/chomp", 880], ["sounds/screenburngameover", 890], ["sounds/piece_hit", 950]]}
     ],
     groups: [
+    { name: "Menus", sounds: [
+      ["sounds/buttonclick.ogg", "Click", "Any button is pressed: title, game selector, board, dialogs, options, help, journal, fame, level summary; also Lex is clicked"],
+      ["sounds/goldtile.ogg", "Volume test", "The Options' sound effects slider is let go (silent while it is dragged), at the new volume"]
+    ] },
     { name: "Lex", sounds: [
       ["sounds/lex_welcome.ogg", "\"Welcome to BookWorm!\"", "The game selector has been open for 100 updates (1 second); only the first time in a run, never again until the game is restarted"],
       ["sounds/lex_go.ogg", "\"Go!\"", "A Classic game starts and Lex is idle: a 50% draw between this and \"Let's go!\""],
@@ -712,10 +716,6 @@ var ByopopSoundboards = {
       ["sounds/warning.ogg", "Warning", "Classic: three beeps 64 updates (0.64 s) apart when a fire tile reaches the bottom row; one beep with the first fire-tile hint; Action: every 100 updates (1 s) while Lex sweats"],
       ["sounds/screenburngameover.ogg", "\"The end!\"", "A fire tile on the bottom row ends the game (Classic: not in the selection; Action: countdown below 0); when the fire line's delay runs out, once Lex is idle"],
       ["sounds/gameovertone.ogg", "Game over tone (unused)", "Never played: it is loaded, but no code asks for it (game over plays the screen-burn clip). Also in Big Money as Game over tone: the game ends."]
-    ] },
-    { name: "Menus", sounds: [
-      ["sounds/buttonclick.ogg", "Click", "Any button is pressed: title, game selector, board, dialogs, options, help, journal, fame, level summary; also Lex is clicked"],
-      ["sounds/goldtile.ogg", "Volume test", "The Options' sound effects slider is let go (silent while it is dragged), at the new volume"]
     ] }
   ] },
   bookwormadv: {
