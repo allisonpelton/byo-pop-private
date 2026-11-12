@@ -188,6 +188,7 @@ def build_check(target):
                      f"-DCMAKE_TOOLCHAIN_FILE={tree}/cmake/llvm-mingw-i686.cmake", f"-DSDL2_DIR={sdl}"],
                     ["cmake", "--build", build, "--target", target]):
             print("+", " ".join(cmd), flush=True)
+            cmd[0] = shutil.which(cmd[0], path=env["PATH"]) or sys.exit("build check: cmake is not installed")
             if subprocess.run(cmd, env=env).returncode:
                 sys.exit("build check: the derived tree does not build")
         exe = os.path.join(build, target + ".exe")
