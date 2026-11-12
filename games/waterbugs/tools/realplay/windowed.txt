@@ -1,0 +1,77 @@
+# Water Bugs played with posted input in a window of the game's own size (start it with -windowscale=1, so the window is
+# 800x600 and the display is the window's surface), then through every size and mode the window can be in. A shot compares the
+# window with the game's own picture; a probe opens the board's quit box with a click and closes it with another.
+wait 3
+shot menu
+clickp 400 303        # Start Game
+wait 1.5
+shot map
+clickp 76 263         # the first world
+wait 1.5
+shot story
+click 400 467         # the story's button
+wait 4
+shot board
+beams 6 watch
+wait 5                 # the beams' walls are built
+shot board_beams
+probe p1x
+# the surface, each pixel shown 2 and 3 times (4 times is 3200x2400, which this desktop's 2160 rows cannot hold: the window is
+# held to 3200x2141, no whole scale, and takes the renderer)
+resize 1600 1200
+wait 1
+probe p2x
+resize 2400 1800
+wait 1
+probe p3x
+# minimised and restored in the surface mode
+min
+wait 1.5
+restore
+wait 1.5
+probe surface_restored
+resize 3200 2400
+wait 1
+probe p3200x2141
+resize 800 600
+wait 1
+probe p1x_again
+# minimised and restored in the renderer mode (a window that has had the renderer keeps it)
+min
+wait 1.5
+restore
+wait 1.5
+probe restored_1
+# a size that is no whole scale: the renderer, the game scaled to fit and centred
+resize 1000 700
+wait 1
+probe p1000x700
+resize 700 900
+wait 1
+probe p700x900
+resize 800 600
+wait 1
+probe renderer_800x600
+min
+wait 1.5
+restore
+wait 1.5
+probe renderer_restored
+# Alt+Enter: full screen (the whole 3840x2160 desktop on rundesk), and back
+altenter
+wait 2
+probe full
+altenter
+wait 2
+probe windowed_again
+# the game's own F7
+key 118
+wait 2
+probe f7_full
+key 118
+wait 2
+probe f7_windowed
+resize 1234 567
+wait 1
+probe odd
+end

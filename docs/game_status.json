@@ -457,11 +457,12 @@
         "unneeded-code",
         "readability",
         "site-features",
-        "collection"
+        "collection",
+        "performance"
       ],
       "na": [],
-      "now": "performance",
-      "note": "under its original through SurfaceDisplay: 117.8 against 135.8 M cycles a second at the original's 800x600 (0.86, 10 of 10 rounds; 0.92 in the default 2x window); the real-input window runs with the new display are next"
+      "now": "lite-mod",
+      "note": "performance done: 0.86 of its original's processor time at 800x600 through SurfaceDisplay; real input through the window (4 step files) and the page check pass; the lite mod next"
     },
     "bonnies": {
       "title": "Bonnie's Bookstore Deluxe",
