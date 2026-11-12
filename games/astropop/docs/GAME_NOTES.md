@@ -297,7 +297,8 @@ The handler of event 3 (0x403fd0, `Brick::OnDie`) fires the "popped" event 0x1a 
    another build; the port plays equal on its files) and the music's state against the original's (section 14: the port had no music; fixed).
    The original's 3D screen wipe was reached on the night of 2026-11-12 and compared frame by frame with the port's, all four kinds: the same
    pictures (section 10). The performance step is open: in 3D the port is a few percent over its original (section 11, the shared
-   presentation path); 2D passes.
+   presentation path); 2D passes. The lite survey (section 11b) found no candidate worth a toggle: the game's logic is 0.6% of the process
+   and every faster method keeps the answer.
 4. (Done: the gap of the removed More Games button is closed, section 6.) The app's destructor does not delete its screens (as the original's).
 5. (Done in phase two, the sites it lists and the other drawing and screen functions read against the asm; the float rounding of the drawing
    code follows section 4.) Phase two of the pass: the x87 compares of the drawing and screen code that were not checked in phase one against the asm for the `<` / `<=` idiom of section 4 (0x40c8a0, 0x433500, 0x433920, 0x439c20, 0x444520, 0x461010, 0x461e50, 0x467af0, 0x487f00, 0x48a110 and the other `TEST AH` sites listed by `grep -l 'TEST AH' re/astropop/asm/*.asm`); the gameplay ones (every Brick method, the group and fall code, CheckStackHeight, OnBrickGone) were read in phase one.
@@ -497,6 +498,67 @@ games/astropop/tools/profile/perf.py port-minute <dir>`, the original `python -I
 result line carries `cycles_g` and `audio_g` of the stretch, the `top_threads`, the 3D flag of the original and the graphics libraries the
 port loaded. The memory split is the standard `memreport <file>` test command (`docs/TEST_COMMANDS.md`) put into a `-realinput` script at the
 points wanted. The raw samples were deleted once these figures were written.
+
+### 11b. Lite candidates (2026-11-12; `docs/MOD_ROADMAP.md`, "The lite mod")
+
+**Result: none is worth a toggle.** AstroPop's game logic costs about 0.6% of the processor time of a stretch of play, and every faster
+method found for the searches in it gives the same answer in every state, so each is an exact change, not a lite one; the gain of the best
+of them is two parts in ten thousand of the process, far below what a pair of runs can resolve. The step is not applicable to this game.
+
+**What was measured.** A temporary build of the port (an `rdtsc` count around each function below, one thread, the counts written out at
+the end; reverted, it is in no commit) played the performance pass's scenario `classic11` (seed 11, `-fast`, under rundesk, 2D): 2,477
+updates of `Board::Update`, 249 draws. The figures are cycles (TSC, 2.112 GHz nominal). For scale, the whole process costs about 2.9 M
+cycles an update in the 2D stretch (5.78 G cycles for 2,000 updates, section 11), and the 3D stretch costs more. The start of a game costs
+three single calls that are not per-update work and are left out of every mean below: a `Board::Update` of 42.5 M cycles (the level is
+built inside it), a `UpdateStates` of 15.9 M and a first `Board::Draw` of 16.8 M.
+
+*What runs every update.* Everything the board does in a quiet update, set against the 2.9 M of the process:
+
+| Function (original address; port file) | Cycles an update | Where it goes |
+|---|---|---|
+| `Board::Update` as a whole (`BoardUpdate.cpp`) | 16.7 K (0.6%) | the rest of this table, and the lists of effects and texts it steps |
+| `UpdateBricks` (0x46e9b0; `BoardBricks.cpp`) | 6.7 K | 36.7 `Brick::Update` calls an update at about 135 cycles each (the 190 cells of the field are walked, an empty one costs a test; the falling, fired, taken and faded lists are stepped) |
+| `SpawnControl` (`BoardUpdate.cpp`) | 0.9 K | the quiet-field test and the spawn clock |
+| `UpdateScenery` (0x43a1f0; `BoardCore.cpp`) | 0.4 K | the layers, stars and streaks of the background (the drawing of them is not here) |
+| `UpdateStates` (0x475040; `BoardTick.cpp`) | 0.4 K | the timers, banners and fades |
+| `UpdateAnimCounters` (0x433500), `UpdateExplosion`, `IsSettled` (0x43d2f0), `SweepSprockets`, `SweepTurbots` | 25 to 42 each | counters and flag tests |
+
+`Board::Draw` is not in this list: it is the picture (0.62 M cycles a draw in this run), and a lite change keeps the look (MOD_ROADMAP), so
+it is outside the mod. Its cost and the present path under it are section 11's.
+
+*The searches and scans, which run on events (a piece landing, a clear, a fall, a new row) or while the field is quiet.*
+
+| Function (original address; port file) | Calls | Mean, worst (cycles) | Total | What it does, the faster method, and whether it can differ |
+|---|---|---|---|---|
+| `AnyMoveLeft` (0x459bc0; `BoardMoves.cpp`) | 127 | 3.6 K, 9.4 K | 0.45 M | The original's counting argument for whether a group can still be made: two walks of the field, the runs and spots of each colour, and `Partition`, each part of it calling `CollectConnected` with a limit. It is a pure function of the field, the hand, the set size and the moving bricks. Memoised on a version number that any change to those bumps, it gives the same answer. **Exact.** (A real search of the moves would give other answers where the argument over-counts, but it would be slower, not faster.) |
+| `CollectConnected` (0x450a30; `BoardFill.cpp`) | 240 outermost | 0.8 K, 7.0 K | 0.20 M | A recursive flood that tests each new cell against `mConnectedCells` by a scan (at most 190 cells) and against the skip list by `HasCell`. A visited grid in place of the scans, with the same direction order, gathers the same cells in the same order, also when `theLimit` cuts the flood short. **Exact.** A breadth-first flood would gather another set of `theLimit` cells at a cut, so it would be lite; the gain would be nothing and it was not tried. Part of this cost is inside `AnyMoveLeft`'s. |
+| `DropUnsupported` (0x46cc20; `BoardBricks.cpp`) | 74 | 1.2 K, 24 K | 0.09 M | Sorts the emptied cells, scans each column for what has lost its support and puts each falling group before the first group of its column that starts higher, by scans of the list of groups. A per-column pass keeping that insertion order is **exact.** |
+| `IsInFallingGroup94` (0x438a30), `IsInGroups` (0x4389c0), `HasCell` (0x438d60), `SortFallingGroups` (0x46cfd0; `BoardBricks.cpp`, `BoardCore.cpp`, `BoardGone.cpp`) | 22, 22, 124, 11 | under 3 K | 0.04 M | Linear scans of the lists of falling groups and cells (a few tens of bricks) and an insertion sort of the groups. A set or a grid answers the same; the insertion sort keeps equal heights in order, and any other sort would have to as well. **Exact.** |
+| `NoRoomLeft` (0x438b60) and `FindBottomRow` (0x437590; `BoardCore.cpp`) | 282, 2,278 | 0.9 K, 8.2 K; 84, 3.7 K | 0.24 M, 0.19 M | `NoRoomLeft` calls `FindBottomRow` for the same column three times and then counts the filled cells of every column. One call, and a fill count kept per column, give the same value. **Exact.** |
+| `CountMovingBricks` (0x439b70; `BoardCore.cpp`) | 2,698 | 43 | 0.12 M | A scan of the falling groups to count bricks not yet at their targets. A count kept up to date at each fall would give the same number, with the risk of drifting from it; it saves 43 cycles a call. **Exact.** |
+| `OnBrickGone` (`BoardGone.cpp`) | 87 | 11.6 K, 196 K | 1.0 M | The handler of a brick's end: score, meters, effects, the checks for a cleared field and no move left. It is no search; its cost is in creating the effects. Not a candidate. |
+
+The searches taken together cost about 1.4 M cycles in the 2,416 updates of the run (the overlap of `CollectConnected` and `FindBottomRow`
+with their callers counted once), 0.6 K an update, against 2.9 M an update for the process.
+
+**The one change with a visible gain.** `UpdateBricks` is 6.7 K an update (0.23% of the process), almost all of it in `Brick::Update` calls
+on bricks with nothing running. A skip for those bricks is exact only if an idle `Brick::Update` changes nothing: each call runs the state
+switch, `CheckParticlesDone`, the glow animation, the rainbow, fade, light, mutation, spark and wobble steps, and a shaking brick draws
+`AstroRand` in its update, so the skip would have to be shown to leave every state and every random draw alone before it counted, brick state
+by brick state. A skip that did leave a draw out would be a lite change (the game would draw another sequence of random numbers), but it
+would gain less than 0.23% of the process, which a pair of runs cannot resolve, and its difference would be a different shake of a brick
+for nothing a player could name; it was not pursued.
+
+**Why none is taken.** (1) A lite change has to cut a stretch's processor time measurably (the mod's own rule). If the whole of the game's
+logic cost nothing, the process would drop by 0.6%; the stretches of one build spread by plus or minus 30%, and the median of five pairs
+resolves a few percent at best. (2) Every faster method above keeps the answer, so there is no state to show where it differs: they are not
+lite, and at two parts in ten thousand they do not earn a place in the performance pass either; they are listed in case that pass is ever
+asked for them. (3) The 3D stretch's excess, the one place where the port is over its original, is the present path and the driver (section
+11), not the game's logic, and a lite change does not touch the picture or the pace.
+
+**To repeat.** The instrumented build was a throwaway: a `FNPROF("name")` line at the top of each function (an RAII `rdtsc` pair adding to a
+table, written to a file named by `PROF_OUT` at exit), built as a second executable, and run by the scenario's usual script
+(`profile/perf.py`'s `port_script`) under rundesk with `-fast`. Nothing of it was committed.
 
 ## 12. The readability pass (2026-11-11; `docs/CODE_STANDARDS.md`)
 

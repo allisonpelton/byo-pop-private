@@ -256,11 +256,12 @@
         "readability",
         "collection",
         "site-features",
-        "identical-look"
+        "identical-look",
+        "lite-mod"
       ],
       "na": [],
       "now": "performance",
-      "note": "3D over its original, waits on the framework's present (Bejeweled 2's pace code, then the vsync measurement); lite survey and the cycle split meanwhile"
+      "note": "3D over its original, waits on the framework's present (Bejeweled 2's pace code, then the vsync measurement); the 3D cycle split next; lite: nothing taken (LITE_MOD.md)"
     },
     "ningpo": {
       "title": "Ning Po Mahjong Deluxe",
