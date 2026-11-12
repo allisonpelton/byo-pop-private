@@ -358,11 +358,12 @@
         "coverage",
         "performance",
         "unneeded-code",
-        "readability"
+        "readability",
+        "collection"
       ],
       "na": [],
-      "now": "collection",
-      "note": "Collection check to do (the Collection exe is another build)"
+      "now": null,
+      "note": ""
     },
     "bigmoney": {
       "title": "Big Money Deluxe",

@@ -7053,7 +7053,8 @@ scrollbar shows and `mPosition` stays 0.
 `Bookworm.exe` 1,425,425 bytes, the game carved out of it 1,318,912), and the user's PopCap Game Collection holds the game as
 the group `BookwormDeluxeComponent` with a `Bookworm.exe` of 1,770,800 bytes: another build. The port reads its texts from the
 exe, so the check against that version applies after every other step and before the site features (coordinator's correction,
-2026-11-11; AstroPop's GAME_NOTES section 13 is the model). It is not done yet.
+2026-11-11; AstroPop's GAME_NOTES section 13 is the model). It was done after the readability pass: see "The PopCap
+Game Collection version" below.
 
 **Not covered, and why.** The options dialog's fullscreen and 3D boxes (applying either switches the display mode), every
 link, "buy" and "more games" button (a script never clicks one), the Hall of Fame's internet tab (needs the network, which
@@ -7289,3 +7290,82 @@ identical-play comparisons (`IDENTICAL_PLAY.md`) and the baseline's saved-and-co
 **Not done, on purpose.** The registry values and the saved game's field names keep their spelling (the original's format). The
 comments of `Board.h`'s declarations kept their columns where a rename made a name longer than its slot, so a few comments sit a space
 or two off.
+
+## The PopCap Game Collection version (2026-11-11)
+
+The port was made from the retail 1.03 install (`Bookworm.exe`, the launcher with the game appended; the game carved out of it is
+`re/bookworm/bin/BookwormGame.exe`), so it is checked against the game's version on the PopCap Game Collection disc
+(`docs/COORDINATION.md`): the two versions compared, and the port run on the Collection's files. The procedure is Astropop's (its
+GAME_NOTES section 13), Bejeweled's (section 23) and Typer Shark's (section 15); `tools/collection/` holds the tools.
+
+**Getting the files.** `unshield` (built for Bejeweled's check, `E:\retools\unshield-build`; the user allowed it on 2026-11-10) read the
+disc image's cabinet, which was mounted read-only and dismounted afterwards. The group `BookwormDeluxeComponent` came out: 381 files,
+6.5 MB, in the main checkout's `re/_installers/BookwormDeluxeCollection` (git-ignored). The copy has no launcher: `Bookworm.exe` is the
+game itself, beside `bass.dll`, `license.txt`, `readme.html`, `readme.txt`, `register.tpl`, the word files and the folders `fonts`,
+`images`, `music`, `properties` and `sounds`.
+
+**The exe is another build.** Set beside the carved game image (`tools/collection/cmpexe.py`), the Collection's `Bookworm.exe` was linked
+on 30 April 2007 (the retail game: 15 April 2004), is 1,770,800 bytes against 1,318,912, and has a bigger `.text` (1.28 MB of raw data
+against 1.02 MB), `.rdata` (246 KB against 217 KB) and `.rsrc` (209 KB against 53 KB), and 5,424 bytes after its last section; no section
+is the retail game's bytes with other addresses. Its strings (`tools/collection/textcmp.py`) say what changed: a newer compiler runtime
+(Dinkumware 1992-2004; the retail build's is 1992-2001, with the old iostream classes in its RTTI where the Collection's has none), a pak
+reader (`PakInterface`, `main.pak`), a JPEG 2000 codec (`j2k-codec.dll`), a Direct3D 8 path (`d3d8.dll`, `Direct3DCreate8`; both builds
+have DirectDraw's), `_com_error`, and a screensaver mode (`-screensaver`). The game's own classes (`BookWormApp`, `Board`, `TitleScreen`,
+`SelectUserDialog`, `BWGameSelector` and the rest) are in both, and so are the names of the saved games (`classic.dat`, `action.dat`,
+`players`).
+
+Of the 187 texts the port reads from the exe (`src/GameTextTable.inc`, by address in the retail image), 185 are in the Collection's exe
+byte for byte, every one at another address. The two that are not are the Computer Administrator error and its header: the Collection's
+build has no check that it may write `HKEY_LOCAL_MACHINE` (`BookWormApp::VerifyHKLMAccess`), and the port's emulated registry always
+can, so the port never shows them. Every text the game shows is the same.
+
+What is not known: whether the 2007 build plays exactly like the 2004 one. Its code differs throughout (another compiler and a newer
+framework), so no function was compared, and the Collection's own exe was not run. What speaks for it: the texts, the word lists, the
+properties, the fonts, every sound and song and all but three pictures of the game are the same files, so the game it plays is the retail
+game's data under a newer framework.
+
+**The files** (`tools/collection/cmpfiles.py`). Of the retail copy's 431 files and the Collection's 381, 371 are the same byte for byte.
+The retail copy also has the launcher's files (`hw.dat`, `install.log`, `install_props.xml`, `popuninstall.exe`) and 46
+`sounds/cached_*.wav` (the original's runtime sound cache), which the port never asks for. The ten that differ:
+
+- `images/backdrop_title.jpg`, the title screen's picture (`tools/collection/cmpimages.py`): the retail copy has the Mumbo Jumbo logo at
+  the bottom left and PopCap's round "Games" badge at the bottom right; the Collection's has no Mumbo Jumbo logo, and its PopCap badge is
+  the plain round logo with a TM mark.
+- `images/logo_title.gif` and `images/_logo_title.gif`, the title screen's "Bookworm Deluxe!" logo (a different rim glow).
+- `images/backdrop_menu.gif`, the selector's backdrop: 69 pixels in a 13 by 10 patch at (281, 67) differ, by up to 143 levels.
+- `properties/partner.xml`: the same `NoReg`, `NoInternetScores`, `ShowTrialStatus`, `LoadingBarY` 330 and `OptionsDialogHeight` 315.
+  The Collection's has `DontUpdate` false (the port has no update check), `VistaCompliant`, `ProdName`, `RegistryKey`
+  (`PopCap\Bookworm`; the registry emulation compares keys without regard to case, so a profile made on either set of files is found on
+  the other), `Offering`, `InstallTag`, `DisplayName`, `Width` and `Height`, and, the one that changes what a player sees, `DefaultWindowed`
+  false: a first start is in full screen, as the original does with that file, so the options dialog's Full Screen box is ticked until the
+  player changes it. The retail file has the "More Games" link's referrer and `NoIHSUpsell`, which the port does not read.
+- `bass.dll` (the port plays music itself), `license.txt`, `readme.html` and the `.sig` of `partner.xml`.
+
+**The port on the Collection's files** (`tools/collection/run.sh`). `stage_bookworm_assets.py` stages a Collection folder as it does a
+retail one (375 files). The texts come from that exe: `GameText.cpp` takes `Bookworm.exe` as before (a plain game image, with no
+`!popcapcdprotect!` marker, parses from its start), and a text that is not at its address in the retail image is looked up by content
+(length and FNV hash, in every zero-terminated run of the exe and every tail of one, since the compiler pools texts that end alike). A run
+on the Collection logs "187 of 187 texts are not at their address in this executable; 185 found by their content" and "2 of 187 texts are
+not in this executable" (the two above); a run on the retail copy reads every text at its address and logs nothing, as before.
+`main.cpp`'s check of a game folder and the page importer (`games/bookworm/web/page.js`) look for `bookworm.exe` in either copy, so they
+needed no change but the importer's wording.
+- The four bot games of `tools/check.sh bookworm` (two games in both modes, three in a row, one Classic game quit half way and the same
+  continued; 23,101, 17,737, 433 and 1,934 state lines), each run once on each set of files with the same seeds: the state logs are
+  identical, update for update, so the Collection's files change nothing of how the game plays.
+- Three tours of phase two (menus, Classic and Action: `tools/shots`, port only), each run once on each set of files from a fresh profile
+  folder with the same seed and input, compared by shotdiff: 69 of 87 pairs are identical pixel for pixel (every one of the Classic
+  tour's 17 and the Action tour's 33), 14 differ only faintly and 4 visibly. The 14 are the selector's backdrop patch above, in the shots
+  that show the selector (the selector itself, its hovers, the new-player, quit, continue and player-list dialogs over it). The 4 are the
+  title screen and its hover, where the three boxes are the logo, the bottom left corner (the Mumbo Jumbo logo) and the bottom right
+  (the badge); and the options dialog with the credits closed again, where the Full Screen box is ticked (`DefaultWindowed`). All are
+  the files'.
+- The web build under Node on the Collection's files (`wasmrun.js`: the page's code, no canvas) on the menus tour, 37 pictures, against
+  the native port's on the same files: 33 identical, 2 faint, and 2 that differ in the options dialog's two boxes (Hardware Acceleration,
+  unchecked under Node as with the retail files, and Full Screen, which the web build leaves unticked since a browser refuses full screen
+  without a player's gesture); the same result as with the retail files (`IDENTICAL_PLAY.md`).
+
+**Not done.** The Collection's own exe was not run, so none of its screens was compared with the port's. Its code is another build's, and
+a run needs origrun's `--watch` values (`tools/identical/values.txt`), which are addresses of the retail image; the definition of done asks that the port work with the
+Collection's files, which it does. The 3D mode of the Collection's build (Direct3D 8) was not seen either. The port's executable is
+called `bookworm.exe`, the name of the Collection's game: the installer that puts a native port beside the original
+(`docs/STEAM_LAUNCH.md`) must not write it into a Collection folder under that name.
