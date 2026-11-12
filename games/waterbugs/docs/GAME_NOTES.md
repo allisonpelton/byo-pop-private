@@ -648,7 +648,39 @@ fade of a loss are drawn from an unseeded generator, as `tools/check.sh` notes f
 and new exes differed in 1 and 15 pictures, by up to 8 pixels, and the same exe against itself in 1 and 2 to 6.
 `tools/check.sh waterbugs build build-web:waterbugs` passes, the frozen screens and states unchanged.
 
-**Numbers** (medians of five pairs under pincore, the board's scripted minute, Mcycles a second):
+**The window each side ran in (2026-11-12, after Mahjong's note).** The first two sets below (the 262.1/235.4 and 221.6/105.8
+medians) were not like for like: the port's window started at 1600x1200 (render scale 2, the framework's default of twice the
+game's size where the desktop has room) while the original runs windowed at its own 800x600 (the staged `cp.cfg` has
+`fullscreen="0"`; the engine sizes its client area to 800x600, 0x42ea10; origrun's log prints no window size, so this is
+from the code and the settings, not a measured size). Every run now logs the framework's display line, and `perf.py port` takes
+`--scale N` (default 1, passed as `-windowscale=1`; 0 leaves the default) and stores the line in `result.json`: `display: client
+800x600 px, logical 800x600, render scale 1, windowed, renderer direct3d11` for the 1x runs and `client 1600x1200 px, logical
+800x600, render scale 2, windowed, renderer direct3d11` for the default window. Every port run here ran on rundesk's private
+desktop, so every one got Direct3D 11; the original has no renderer of the framework's (DirectDraw).
+
+**Numbers** (medians of five rounds under pincore, each round one run of each variant, the board's scripted minute, Mcycles a
+second, the trunk of 2026-11-12 (cc8a7c35); the port with sound on unless it says muted):
+
+| | All threads | Main thread |
+|---|---|---|
+| Original, paced, windowed 800x600 | 102.8 | 102.8 |
+| Port, the host before the change, 800x600 | 205.7 | 120.6 |
+| Port, the host change, 800x600 | 200.8 | 114.0 |
+| Port, the host change, 800x600, sound off | 187.3 | 111.3 |
+| Port, the host change, default window (1600x1200) | 195.5 | 110.7 |
+
+The window's size does not move the total (the framework's render target is the logical size either way; the 2x window only
+changes what the GPU stretches), and the host change takes about 5% off the main thread. The threads of one round (the third):
+the original's one thread 102.8; the port's main thread 110 to 111, the graphics driver's worker (`nvwgf2um.dll`) 73 to 76 at
+the original's window size and 53 at 2x in the one round read, the audio thread 6.5 with sound on, and a second driver thread
+and the text-services monitor about 1 each. So the main thread is within 8% of the original's and the gap, about 85 to 100 of
+the 200, is the driver thread that the SDL renderer path brings, plus the sound's 6.5 that the original's number does not hold
+(origrun's stand-in mixes none; the muted row counts the port the same way). The spread was narrower than before (the port 171
+to 217, the original 94 to 114), the machine being quieter. What stands between the port and the target is the renderer path:
+the presenter that draws into the window surface and takes the host's changed rectangles (`SurfaceDisplay`, not on the trunk
+yet). Opting in to it, and the numbers with it, are the next entry here.
+
+**The first set, at the framework's default window instead of the original's size** (medians of five pairs under pincore, the board's scripted minute, Mcycles a second):
 
 | | Original, paced | Port before | Port after the host change |
 |---|---|---|---|

@@ -369,6 +369,8 @@ def run_port(args):
     # the mods folder of the build in build/native, whichever exe (a frozen copy has none beside it), so that every run has the same mods
     cmd = [str(exe), "-gamedir=" + str(ROOT / "assets/waterbugs"), "-userdir=" + str(out / "user"), "-script=" + str(script),
            "-modsdir=" + str(ROOT / "build/native/mods-waterbugs")]
+    if args.scale:
+        cmd.append("-windowscale=%d" % args.scale)  # 1 is the game's own size, as the original's window (the default is 2x where the desktop has room)
     # (a pipe, as tools/play/drive.py reads it: the game's log did not reach a file handle it was given)
     p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1, cwd=str(ROOT))
 
@@ -398,6 +400,9 @@ def run_port(args):
         res["others_before"] = before
         res["others_after"] = other_game_processes({proc.pid})
         res["exe"] = str(exe)
+        reader.join(timeout=5)
+        # the window and renderer the run measured in (the framework's display line), so that a run can be told from another's
+        res["display"] = [l.strip() for l in open(out / "game.log", errors="replace") if "display:" in l][-2:]
         return res
     finally:
         if p.poll() is None:
@@ -547,6 +552,7 @@ def main():
     ap.add_argument("--label", default=None)
     ap.add_argument("--paced", type=int, default=0, help="orig: the original's main loop sleeps this many ms a pass (16 for a 60 Hz screen)")
     ap.add_argument("--nosound", action="store_true", help="port: the sound and the music off in the settings (origrun's stand-in mixes no sound, so this is the port counted the same way)")
+    ap.add_argument("--scale", type=int, default=1, help="port: -windowscale=N (1, the default, is the original's window size; 0 leaves the framework's default, 2x where the desktop has room)")
     ap.add_argument("--verify", action="store_true", help="check that the clicks reached the board (the original's level kind watched, the port's screen read at update 6000 and 30000); not for a measured run")
     ap.add_argument("--out", default=None)
     args = ap.parse_args()
