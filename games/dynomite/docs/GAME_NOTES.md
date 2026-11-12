@@ -445,10 +445,10 @@ build keeps the GPU path. It draws in software at the game's own size. At any ot
 path for good once the window's renderer turns out to be accelerated, and keeps drawing in software where it is not (a
 machine with no GPU), as "The default window" below explains. The pictures and the frozen baseline are covered in `IDENTICAL_PLAY.md`, "The software screen".
 
-**Which rects go over.** A first version found the changed rects by comparing the screen with the frame shown last,
-which cost 0.71 to 0.89 M cycles a frame, about 0.64 M an update. Now each software draw onto the screen notes the rect
-it covered, bounded by its clip. The display marks the 16-pixel blocks under it and joins them into rects at the
-present, at 2.8 to 4.8 k cycles a frame. In play the board is redrawn at every update and the sidebar while Inchy
+**Which rects go over.** What goes to the window is what was drawn: each software draw onto the screen notes the rect
+it covered, bounded by its clip, the display marks the 16-pixel blocks under it, and at the present it joins the blocks
+marked in the frame into rects, at 2.8 to 4.8 k cycles a frame. Frames are not compared; a first version that found the
+changed rects by comparing the screen with the frame shown last cost 0.71 to 0.89 M cycles a frame. In play the board is redrawn at every update and the sidebar while Inchy
 moves, so 97% of the screen goes over in each frame, as in the original's Blt. With SURFACE_VERIFY=1 the window's
 surface was compared with the screen at every pixel after each of 4,291 presents, and none differed.
 
@@ -477,6 +477,15 @@ machine without a GPU driver, or `SDL_RENDER_DRIVER=software`), its software ren
 processor (Bejeweled 2's 48.5% of a core at 2x), so there the software screen stays at every size: at 2x to 4x the
 window's surface shows it, at other sizes SurfaceDisplay's renderer mode. That case was run windowed at 2x and in full
 screen at 3840 by 2160: the log names the software renderer and the screen stays in software.
+
+Two things never hand the screen over (a review of the merge, fixed in a `shared:` commit). A minimised window keeps
+its mode until it is restored: with no 3D the framework still draws a frame a second while minimised, and the size SDL
+reports for a minimised window is no size to show the screen at. And the game's own cursors (the Custom Cursors option,
+off by default) are drawn by a renderer, as for any app of SurfaceDisplay: at 640 by 480 the window takes one for them
+and keeps it, and the screen stays in software, its frames shown through the renderer's frame texture with the cursor
+over them (logged as "the window at 1x has the direct3d11 renderer"); with no GPU the window keeps SDL's software
+renderer, rather than making and destroying one each time the mouse enters and leaves. The screen's bits are black
+from the start whoever asks for them first.
 
 **Five pinned rounds** (`tools/profile/pairs.sh`, the original windowed at 640 by 480 drawing at most 60 times a second,
 the port in turn at 640 by 480 and in its default window), on the merged binary, G cycles in the scripted minute:
