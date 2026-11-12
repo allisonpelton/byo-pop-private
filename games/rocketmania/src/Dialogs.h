@@ -289,7 +289,7 @@ private:
 // 150 updates (the score, the rank to come, the longest fuse, the largest launch and the items collected: the pages that do
 // not apply to the mode or the level are skipped, Step); fireworks burst behind it from time to time. For a level the figures
 // are the level's, for the game they are the sums (the dialog adds the level's into the sums when it opens). Its one link
-// goes on to the next question (kind 4, Board::F4286b0) or to the high scores (kind 5). It also draws the pause: when the
+// goes on to the next question (kind 4, Board::AfterLevelScreen) or to the high scores (kind 5). It also draws the pause: when the
 // window loses the focus it darkens and says so, and its link goes away until the focus comes back.
 class LevelUpDialog : public Dialog2004
 {

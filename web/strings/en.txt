@@ -1191,6 +1191,7 @@ mods.add_folder_title = A mod's folder, or a folder of mods: every folder in it 
 mods.add_zip = Add mod .zip
 mods.add_zip_title = A .zip containing one or more mods
 mods.list = Installed mods
+mods.original = Original
 mods.rescue = If a mod stops the game from starting, play once without mods, then turn that mod off in the mod
   menu or remove it here.
 mods.play_without = Play without mods

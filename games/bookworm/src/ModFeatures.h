@@ -18,8 +18,6 @@ bool			ModFeatureEnabled(const char* theName);
 // The live value of setting theSetting of the highest-priority enabled mod with feature theFeature;
 // theDefault without that mod or setting
 bool			ModFeatureBool(const char* theFeature, const char* theSetting, bool theDefault);
-// The fixes mod (mods/fixes) is enabled and its toggle theFix is on (each toggle is on by default)
-bool			FixEnabled(const char* theFix);
 int				ModFeatureInt(const char* theFeature, const char* theSetting, int theDefault, int theMin, int theMax);
 
 // "" with the original rules, else "-" and the 8-digit score key: appended to the registry key of the high

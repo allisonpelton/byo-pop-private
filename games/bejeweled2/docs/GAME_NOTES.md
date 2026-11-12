@@ -265,7 +265,7 @@ constructor does clear).
 `mods/fixes/mod.json` is the one mod `fixes` (`docs/MOD_ROADMAP.md`, "The fixes mod"): a toggle for each fix, at its default on the
 site, all off when a test must play as the original does (`-nomods`, or no mods folder). A fix starts on unless the original's
 behaviour looks intended and is not widely known as a bug (the user, 2026-11-11: "Off by default for functionality that seems
-intended but where the bug is not well known to be a bug"; `docs/MOD_ROADMAP.md`, "The fixes mod"): `tunnelEdge` starts on, `podFade` off. The port reads a toggle with `FixEnabled("<id>")`
+intended but where the bug is not well known to be a bug"; `docs/MOD_ROADMAP.md`, "The fixes mod"): `tunnelEdge` starts on, `podFade` off. The port reads a toggle with `Platform::FixOn("<id>")`
 (`Fixes.h`, the mod manager's live value), so the original's behaviour stays in the code as it was and each fix is one branch.
 Before it the port loaded no mods at all: `main.cpp` now sets the mods folder (`-modsdir=<dir>`, by default `mods-bejeweled2` beside
 the exe, `/bej2persist/mods` on the web) and reads it unless `-nomods` is given; the framework's mod menu (F2) and the site's page
@@ -403,10 +403,13 @@ can reach.
 
 ## Performance (2026-11-11; `docs/COORDINATION.md`, "Performance pass" and "The target")
 
-**Status.** The processor-time target (the port's at most the original's, like for like) is met in 3D and in 2D on a GPU renderer and **not met in 2D on
-SDL's software renderer** (the fallback for a machine with no accelerated renderer, and what every 2D test run uses): the performance step is open for
-that path. The cause is the framework's (the software path draws at the window's resolution; a spec for the coordinator below); the game's own code
-is 2.5% of the process there and 0.14 ms an update everywhere, and nothing in it was changed.
+**Status (2026-11-12).** The processor-time target (the port's at most the original's, like for like, the window at the original's own size) is **met**:
+idle, in 2D the port takes 6.6% of a core on SDL's software renderer and 7.5% on a GPU renderer against the original's 9.4%, and in 3D 8.8% (five rounds,
+the table "At the game's own size" below). At the player's default window, which is twice the game's size (1,280 by 960; 3D 2,048 by 1,536) and so has no
+original to compare with, the GPU paths cost the same (8.5% and 8.6%) and the software renderer 48.5%: the software stretch of every sprite to twice its
+size. The first measurement (2026-11-11, the table after the method) set the port's default window against the original's 640 by 480 and so read 93.7% against 12.7% in
+2D software: not like for like (the Mahjong session's finding, 2026-11-12). The game's own code is 2.5% of the process on the software path and 0.14 ms an update everywhere;
+nothing in it was changed.
 
 **Method.** `games/bejeweled2/tools/profile/` (`perf.py`, `pairs.sh`, `summarize.py`; `statspatch.py` for the counters): the port and the original play the
 same stretch, alternating, five pairs, the whole loop on one performance core of its own (`tools/pincore.py`), the medians with their ranges.
@@ -423,7 +426,7 @@ to the title taking input. The original's 3D is its DirectDraw and Direct3D 7 un
 it), so its 3D figures hold that wrapper. Sound: origrun's stand-in takes the original's DirectSound, so the original mixes nothing; the port's
 mixer is its SDL audio thread (`SDLAudioP2`, silent driver under rundesk) and is counted apart: 0.10 to 0.17 s in the 20 s (about 0.7% of a core).
 
-| Five pairs, 2026-11-11 | Original, 2D | Port, 2D, GPU renderer | Port, 2D, SDL software renderer | Original, 3D (dgVoodoo2) | Port, 3D |
+| Five pairs, 2026-11-11, **the port's window at its default 2x, the original's at 1x: not like for like** | Original, 2D | Port, 2D, GPU renderer | Port, 2D, SDL software renderer | Original, 3D (dgVoodoo2) | Port, 3D |
 |---|---|---|---|---|---|
 | Idle board, share of one core | 12.7% (10.9 to 13.7) | **8.6%** (8.1 to 10.5; 7.9 less the audio thread) | **93.7%** (91.6 to 96.1) | 61.3% (52.2 to 64.5) | **9.3%** (8.1 to 10.4; 8.7 less the audio thread) |
 | The recorded game without waiting, after the title | 7.71 s (6.65 to 9.80) | 0.21 s (0.05 to 0.28) | **9.83 s** (8.94 to 11.48) | not run (it spins on its virtual clock) | 0.61 s (0.56 to 0.83; 7,900 updates) |
@@ -456,6 +459,68 @@ folder, `bejeweled2_2d_software_prototype.diff`; none is committed):
    display's rate, where the port redraws the whole picture on every update it has time for; the software path could draw at most 60 frames a second
    (as a player's screen shows them) and skip a frame when nothing was marked dirty.
 
+**Done on this branch after the table (2026-11-11, evening): two shared commits, to be merged with the other games' checks.** Change 1 is in
+the framework as `e19af272` (the blend mode of an image with no transparency, at the draw call; the idle-board screenshot at update 5000 is pixel for
+pixel the same; the port's idle share 95.7% of a core before, 76.7% after, five alternating pairs on a machine with other games running meanwhile).
+A review found that images in forced mode (`SetImageMode`, which the board's static background is) say nothing of their texels, so `fec8a8a5` leaves
+them blended; measured again with three builds turn about (machine 50 to 90% busy): share of a core 82.6% none, 79.4% with `e19af272`, 87.8% with
+`fec8a8a5`, frames a second 44, 73 and 53. The software path has no pace for its draws, so a cheaper frame shows as more frames a second at the same share (the
+first figures above were that); the board's own forced background was two thirds of `e19af272`'s saving, and about 10% a frame is left. An exact test (the
+alpha bytes read at the texture's upload, no flags) would bring the rest back; not done. The commands file's poll is cheap on Windows as `fa73221e` (0.11 s of processor time over the recorded game's 643
+calls before, 0.015 s after). Change 3 goes into the presenter (the Mahjong session's window-surface presenter); change 2 (render scale 1 and a
+nearest-neighbour present, which changes the look) waits for the user, and only if the first and third leave the software path over the target.
+The table above is the measurement before these: repeat it after the merge.
+
+**Two more shared commits (2026-11-12, night): the exact opaque test and the software renderer's pace.** `7413ba61`: `PrepareTexture` notes at each
+upload whether every alpha byte of the image is 255 (not for the HD textures or the screen image), and `DrawTexturedQuad` sets the blend mode off from
+that, for every image, forced-mode ones included, so the board's background gets its saving back with no flags to trust; the conditions are as
+before (alpha 255, normal mode, 2D, scale 1). `5eac4e4a`: SDL's software renderer is held by no vertical blank (it even reports
+`SDL_RENDERER_PRESENTVSYNC` when asked, and presents with a blit of the window's surface), so the loop drew after every update; `DDInterface::FrameHeldByPace`
+now holds a draw that would come sooner than one refresh interval after the last, and not with `-fast`, `-drawevery`, `-hold`, before loading or on
+a renderer that vsync holds. fwtest on the software renderer: 1000 draws for 1000 updates before, 600 after. Pictures of the idle board at update
+5000 are byte for byte the same in all three builds below, and the recorded game's pictures and the suites (this game's baseline, Twist, Big Money, Alchemy, AstroPop,
+`unit`) are unchanged, on exes built after each change.
+
+The idle board on the software renderer, three builds turn about (four timed runs each, one pinned core, the machine 47 to 97% busy with other
+games, so the share moves a lot; the figures for each frame are the steadier ones; medians, then ranges):
+
+| build | share of a core | processor ms a frame | Mcycles a frame | draws a second | updates a second |
+|---|---|---|---|---|---|
+| before `e19af272` | 64.3% (44.8 to 99.1) | 22.6 (15.5 to 22.8) | 47.8 | 26.8 (20.0 to 52.6) | 93.3 |
+| `7413ba61`, exact opaque test | 60.3% (39.3 to 74.8) | 11.3 (9.4 to 13.3) | 23.9 | 53.6 (34.0 to 84.2) | 97.8 |
+| `5eac4e4a`, with the pace | 52.3% (44.7 to 72.6) | 11.0 (8.7 to 13.0) | 23.3 | 56.4 (38.5 to 57.5) | 97.4 |
+
+A frame costs half what it did, and the pace holds the draws to the display's rate where a quiet machine would otherwise draw at the updates' 100 a
+second (the frames here were already near 10 to 12 ms, so on this busy machine the load held the draws before the pace did; the
+fwtest run is the plain demonstration). These runs were all at the default 2x window (1,280 by 960), which is not the original's size; the like-for-like
+figures follow.
+
+**At the game's own size (2026-11-12, after the Mahjong session's finding that the framework starts a window at 2x the logical size when it fits the
+desktop, where the original's is the game's own).** The window state of each run was read from a `screenshotfull` taken in it (its size is the render scale
+times the game's size: 640 by 480 at 1x, 1,280 by 960 at the default 2x; 3D 1,024 by 768 and 2,048 by 1,536); the 1x window is the test option
+`-windowscale=1` (commit `cf1dea5f` of the Mahjong branch, a local copy of its hunk in the framework's `SexyAppBase`, not committed here; it reaches the trunk with that
+branch). Everything is the build at `5eac4e4a`, registry `ScreenMode=0` (windowed), the port under rundesk's hidden desktop (the renderer in the GPU
+rows is SDL's default there, Direct3D 11 by the Mahjong session's finding; the port's log names none; the software rows are `SDL_RENDER_DRIVER=software`), the original on origrun's real clock; five rounds, one game process
+at a time on one pinned core, the machine 34 to 51% busy with other sessions' games (up to six game processes at a start).
+
+| Idle board, share of one core (the last 20 s), median and range | Window | Renderer | Share | Less the audio thread | Draws a second |
+|---|---|---|---|---|---|
+| Original, 2D | 640 by 480 | DirectDraw (origrun) | 9.4% (8.9 to 10.3) | 9.4% | |
+| Port, 2D | 640 by 480 (1x) | SDL software | **6.6%** (6.4 to 7.2) | 6.1% | 58.6 |
+| Port, 2D | 1,280 by 960 (default 2x) | SDL software | 48.5% (43.3 to 49.7) | 47.8% | 58.2 |
+| Port, 2D | 640 by 480 (1x) | Direct3D 11 | **7.5%** (6.0 to 15.4) | 6.9% | 58.2 |
+| Port, 2D | 1,280 by 960 (default 2x) | Direct3D 11 | 8.5% (7.5 to 9.2) | 7.9% | 58.4 |
+| Port, 3D | 1,024 by 768 (1x) | Direct3D 11 | **8.8%** (8.0 to 12.5) | 8.3% | 58.2 |
+| Port, 3D | 2,048 by 1,536 (default 2x) | Direct3D 11 | 8.6% (6.7 to 11.1) | 8.0% | 58.4 |
+
+The original in 2D read 9.4% here and 12.7% in the first table (the machine was quieter now); the original's 3D under dgVoodoo2 was not run again (61.3% on 2026-11-11, with
+dgVoodoo2's own window, which was not looked at). At the original's own size the software path is under the original's idle in 2D (6.6% against 9.4%), the GPU paths
+are at or under it, and the exact opaque test and the pace are what got the software path there (at 1x the 2x window's cost of stretching every sprite is not
+paid). At the default 2x window the software renderer is the only path that pays for the size (48.5%): a machine that runs it has no GPU
+renderer, and what would lower it (render scale 1 with a nearest-neighbour present, which changes the look: the prototype took the 2x window to 23.8%) is the
+user's call. The logical `screenshot` of the software path at a 1x window is not byte for byte the 2x window's (the GPU path's is: the same hash in both); the screens
+of the frozen baselines are the default window's, and the difference was not looked into.
+
 **Where the processor time goes in 3D and on the GPU** (the same counters, the GPU run, 3,424 frames in 61 s): 243,522 quads a run, 0.14 µs each (the
 recording of a draw call), 71 a frame; per-thread cycles of the idle run: the main thread 66 to 69%, a second thread 25 to 27% (the Direct3D 11
 driver's worker), the audio thread 4 to 5%. The idle board's 8.6 to 9.3% of a core is the frame's presentation (`ntdll` waits and the driver) and the
@@ -478,7 +543,8 @@ at the title and 93 MB with the board up (Node's own resident set peaks at 165 M
 `requestAnimationFrame` then, and a measurement in the user's own Chrome is the user's to ask for.
 
 **Shared costs** (none of them is in this game's code; sent to the coordinator with the figures above):
-1. *The 2D software path* (`DDInterface` with `mIs3D` false on SDL's software renderer): the three changes above. The spec: in the software fallback
+1. *The 2D software path* (`DDInterface` with `mIs3D` false on SDL's software renderer): the three changes above; the first and third are done (`7413ba61`,
+   `5eac4e4a`), which meets the target at the original's window size, and the second matters only for the default 2x window. The spec as sent: in the software fallback
    render at the logical size (the render scale forced to 1 where the renderer is software) and present with a nearest-neighbour copy at an integer
    ratio (linear only for a ratio that is not one); draw an image with no transparency as a copy; draw at most at the display's rate and skip a frame
    when nothing was marked dirty. Test with `games/bejeweled2/tools/profile/pairs.sh` (`KINDS="port-idle orig-idle"`) and `tools/check.sh --changed`.
@@ -488,7 +554,7 @@ at the title and 93 MB with the board up (Node's own resident set peaks at 165 M
 4. *The pixels the framework keeps after upload and the first draw's expansion* (3D: 128 MB at the title, of which the libraries and devices
    30.8 MB, the pictures 38.7 MB and the sounds 9.9 MB; 2D: 59 MB at the title and 101 MB with the board up, where the original holds 40 and 43).
 5. *The commands file's poll* (a `stat` of the file on every pass of the main loop, about 340 k cycles a call): test-only, 1% of the recorded game's
-   processor time here (0.1 s of 9.9), counted and taken off; the coordinator is making it cheap.
+   processor time here (0.1 s of 9.9), counted and taken off; made cheap on Windows by `fa73221e` (a kept handle, about 49 k cycles a call with the reads).
 
 **To repeat.** `WAIT_S=60 python -I <main checkout>/tools/pincore.py -- bash games/bejeweled2/tools/profile/pairs.sh <out dir> 5` from the worktree root
 (about 35 minutes; `KINDS="..."` runs only some of the kinds: `orig-idle port-idle port2dgpu-idle orig3d-idle port3d-idle`, the same with `-work` and

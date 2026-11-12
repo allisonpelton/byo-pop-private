@@ -316,6 +316,87 @@ at every 10 ms update to look at a file that does not change (a poll every tenth
 `-fast` test run that cost; a player's run never has it). A frame cap or a lower present rate would cut the driver's share, but it
 would change what the player sees, so it would be a mod.
 
+## The processor-time target (2026-11-11)
+
+The user's rule (docs/COORDINATION.md, "The target"): a port's processor time is at most its original's, measured like for like.
+Cosmic Bugs is not there yet: on a board the port uses about 2.1 to 2.4 times the original's cycles. This section says where they
+go, thread by thread, and what the host did and did not change.
+
+**How it is measured.** `tools/perf/alt.sh` alternates the original (its main loop patched to sleep 16 ms a pass, as the wait for a
+60 Hz screen would; unpatched it spins and takes a whole core), the port, and the port with its sound and music off (`portmute`:
+origrun's stand-in mixes no sound, so the original's cycles are its main thread's alone), three rounds, in real time, with 2 to 5
+other sessions' games running; the board window is the 30 s that begin 8 s after the first board has started. Two traps in the
+measurement, both closed in `perf.py`: an original whose click was lost spends its window on the instructions page (280 to 305
+Mc/s, not 110), so every original run now watches the game's level kind and the summary skips a run that did not reach the board;
+and a thread's cycles are read per thread (`perf.py threads <run dirs>` prints the table), because the process total hides that
+the Nvidia driver's worker is a thread of its own. The sampler cannot show where a thread's cycles went (it charges every syscall's
+cycles to the wait it ends in), so the per-call figures below come from QueryThreadCycleTime timers around the calls in a scratch
+build that was not kept.
+
+| Median of 3 (Mcycles a second) | Original, 60 Hz | Port | Port, sound off |
+|---|---|---|---|
+| First board, all threads | 119 | 264 | 257 |
+| Main thread | 118 | 155 | 163 |
+| Nvidia driver worker (nvwgf2um.dll) | none | 90 to 105 | 90 to 105 |
+| SDL audio thread | none | 13 | 1.5 |
+| Title, all threads | 285 | 406 | 365 |
+
+The port before this session's host change (the bounding box of the engine's update rectangles, the whole image uploaded) measured
+251 on a board and 152 on the main thread in the same alternation: the host change below is a correctness change and moved the
+cycles by less than the machine's noise (the runs of one kind spread by 15%).
+
+**Where the main thread's cycles go** (a board; per drawn frame, 60 a second, in Mcycles; the thread's 2.8M a frame is 168 a second):
+
+| Call | Mcycles a frame | a second |
+|---|---|---|
+| The game's updates (1.7 a frame; `RunFrame`) | 0.30 to 0.65 (the scene) | 18 to 39 |
+| The host: compare the screen with its last copy | 0.57 | 34 |
+| The host: widen the changed blocks, copy them to the last copy | 0.15 | 9 |
+| `SDL_UpdateTexture`, the whole image | 1.16 to 1.30 | 70 to 78 |
+| `SDL_RenderPresent` and the copy to the window | 0.44 to 0.49 | 27 to 29 |
+| Events, the frame's set-up | 0.05 | 3 |
+
+The upload and the present, 100 Mc/s on the main thread, and the driver worker's 90 to 105 that they feed are the renderer path;
+the game's own updates are the same code as the original's. A bare SDL presenter with no game in it (800x600, D3D11, vsync, one
+texture upload and one present a frame) costs 105 to 150 Mc/s in the same threads, the original's whole budget; the D3D9 and OpenGL
+drivers cost the same, SDL's software renderer does not wait for the display and spins, and presenting through the window surface
+(`SDL_UpdateWindowSurfaceRects`) has no driver thread and costs about 15K cycles a rectangle. A partial texture upload (a
+`MemoryImage::BitsChangedRects` and a `PrepareTexture` that uploads only the rectangles that changed) took the main thread from 137
+to 89 Mc/s and the total from 221 to 181, and left the driver worker where it was: the worker's cost is per present, not per byte
+(the Mahjong measurement says the same). It stays out of the trunk by the coordinator's decision; the patch is in the shared notes folder
+(`cosmicbugs-partial-texture-upload.patch`). The shared surface presenter that is coming takes the renderer out of the path; with it the
+upload, the present and the driver worker (about 190 Mc/s in all) are replaced by a rectangle copy and a surface update of
+about 10 to 20, which puts the port under the original, so the host's job is to hand it the changed rectangles cheaply.
+
+**What the host does now, and why it compares the screen.** The engine's update rectangles (`Sys_AddUpdateRect`) are what its
+`Dirty_CopyTo` copies from the back buffer, not everything it draws: sprites, beams, text and fades are drawn straight into the
+800x600 screen (`DrawList_Flush`, `Beam_DrawTo`, `Alpha16MaskFade`, `Font_*`, ...) and some of their pixels lie outside every rectangle
+the game reported. One column of one, at x 0, y 490 to 498, changing every frame on the title after the Options screen is left,
+never was in a rectangle for the 1183 frames that followed. The host used to widen the bounding box of the rectangles, which
+covers 87% of the screen and hid it; widening only the rectangles (3.7% of the screen) showed it. So the host
+(`CosmicBugsWidget::FindChangedBlocks`) compares each presented screen with the copy its image was last widened from, a row at a
+time and the rows that differ a 16-pixel block at a time, 16 bytes at a time, widens just the blocks that differ, and keeps them as
+rectangles (`mChangedRects`) for a presenter that takes a dirty rectangle. The image equals a full widening of the screen after every
+Draw: a scratch check (not kept) compared them on every drawn frame, 0 pixels differ over 54000 frames of the menu tour
+(`test/tours/menus.txt`, up to its last board), 27500 frames of the end tour and scripted 90 s plays of random clicks (seeds 1 to 5,
+with and without `-drawevery`; the same check on the framework's rendered frame, through `SDL_RenderReadPixels`, ran before the partial
+upload was taken out), and the same check with a deliberately skipped rectangle flagged 8781 of 9000 frames, so it can fail.
+`tools/check.sh cosmicbugs` passes.
+
+**What is left, for the presenter.** The comparison is expensive and looks memory-bound: it reads the screen and its copy, 1.9 MB,
+in 0.57M cycles a frame (3.4 bytes a cycle, 34 Mc/s), a third of the original's whole budget; making it sixteen bytes at a time
+did not change that. With the presenter in, the main thread's host share is about that 34, the
+widening 9 and the updates 18 to 39, about 60 to 80 Mc/s against the original's 105 to 120, which is under the target but not by a
+wide margin. Ways to cut the comparison, all of which need the engine or Windows: report every screen write from the engine's blit
+routines (dozens of them in R64Blit.cpp, and the game's Beam, Obj and Font draws), which is exact and costs nothing a frame but is a
+large shared change; hash each block instead of keeping a copy, which reads half the bytes; or Windows' write watch on the screen
+buffer, which says which 4 KB pages were written (a page is 2.5 rows, and the engine rewrites a page for most rectangles, so it
+saves about a third). None is done; the surface presenter comes first.
+
+**An oddity noticed, not chased.** In `tools/perf/shots.py`, two runs of the same exe over the same script differ at update 250 (a
+title ship's animation frame) in about one run of three, with the same exe on both sides, under load: something on the title
+runs on a real clock under `-fast`. `shots.py` and the playback agree everywhere else (14 of 14 on the other pictures, every run).
+
 ## Coverage check (2026-11-11)
 
 The check of `docs/COVERAGE.md`: origrun's `--coverage` recorded which of the original's functions ran in 33 runs of a copy under

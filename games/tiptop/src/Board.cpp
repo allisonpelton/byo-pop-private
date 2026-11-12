@@ -2,7 +2,7 @@
 // Board.h for the classes. The functions keep the original's order and shape; a comment above each names its address.
 
 #include "Board.h"
-#include "ModFeatures.h"
+#include "platform/GameOptions.h"
 
 #include "App.h"
 #include "Config.h"
@@ -1147,7 +1147,7 @@ int32_t Field::RandomKind(int32_t theMode, int32_t theNotA, int32_t theNotB)
 	{
 		// fixes mod, "seededBlocks": the original seeds again from its clock here, which makes a seed given at the start
 		// change nothing; with the fix that seeding is left out
-		if (!Sexy::FixOn("seededBlocks"))
+		if (!Platform::FixOn("seededBlocks"))
 		{
 			uint32_t aTime = GameTime();
 			SRand(aTime);

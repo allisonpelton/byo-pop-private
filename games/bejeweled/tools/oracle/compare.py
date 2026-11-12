@@ -310,6 +310,7 @@ RUN_FILES = ("script.txt", "stdout.txt", "stderr.txt", "exit.txt", "modsdir-chan
 WALL_CLOCK = [(re.compile(r"Seconds = [0-9.e+-]+"), "Seconds = *"),
               (re.compile(r"Resource Loading Time: [0-9]+"), "Resource Loading Time: *"),
               (re.compile(r"(Update Count = -?[0-9]+, Draw Count = )[0-9]+"), r"\1*")]  # DRAWS: compare_log
+DISPLAY_LINE = re.compile(r"(INFO: )?display: client ")  # compare_streams
 DRAW_LINE = re.compile(r"Seconds = ([0-9.e+-]+), Sleep Count = -?[0-9]+, Update Count = -?[0-9]+, Draw Count = ([0-9]+)")
 EXPECT_KINDS = ("script", "load", "quitcut", "inert", "autoplay", "seeded", "recording", "samestream", "reference",
                 "playback", "variant", "colors", "ui")
@@ -1458,8 +1459,13 @@ def compare_streams(r, a, b, label):
         if not (os.path.exists(pa) and os.path.exists(pb)):
             r.fail("%s%s missing: %s / %s" % (label, stream, os.path.exists(pa), os.path.exists(pb)))
             continue
-        lb = read_lines(pb)
-        compare_log(r, read_lines(pa), lb, label + stream, (a, b))
+        la, lb = read_lines(pa), read_lines(pb)
+        if stream == "stderr.txt":
+            # the framework's display line (window size, render scale, mode, renderer: 96128267) describes the
+            # machine's window, not the game, and frozen baselines from before it never print it
+            la = [x for x in la if not DISPLAY_LINE.match(x)]
+            lb = [x for x in lb if not DISPLAY_LINE.match(x)]
+        compare_log(r, la, lb, label + stream, (a, b))
         if stream == "stdout.txt":
             count = len(lb)
     return count

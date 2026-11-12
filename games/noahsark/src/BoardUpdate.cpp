@@ -7,6 +7,7 @@
 #include "SexyAppBase.h"
 #include "WidgetManager.h"
 #include "ModFeatures.h"
+#include "platform/GameOptions.h"
 
 #include <algorithm>
 #include <cmath>
@@ -526,7 +527,7 @@ void Board::Update()
 	if (mState == BOARD_GET_READY)
 	{
 		// fix steadyClock: the 400 ms are 40 updates, not the machine's clock (which runs a frame or two either way)
-		bool aReleaseDue = ModFixOn("steadyClock") ? (mApp->mUpdateCount - mStartUpdate > 40) : (GameTickCount() - mStartTick > 400);
+		bool aReleaseDue = Platform::FixOn("steadyClock") ? (mApp->mUpdateCount - mStartUpdate > 40) : (GameTickCount() - mStartTick > 400);
 		if (AnyWaiting() && aReleaseDue)
 			ReleaseWaiting();
 		if ((mWaterY < mWaterTargetY) && (anApp->mGameMode != GAMEMODE_STRATEGY))

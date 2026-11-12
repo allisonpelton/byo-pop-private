@@ -16,7 +16,7 @@ image is linked 2003-09-08, base 0x400000, app class `WinTubeTricksApp` (the por
 | ContinueDialog | 0x402630 | id 0xf: NEW GAME or CONTINUE SAVED GAME (ported, the loading half waits for the Board) |
 | Board | 0x41ae80 | the game: Update 0x426f40, Draw 0x41f540, input 0x4285b0 to 0x4283e0, helpers 0x41b270 to 0x429460 |
 | Rocket (the effects) | 0x4172f0, manager 0x41a830 | the particle effects: fireworks, sparkles, flames and the menu's petals (ported, Effects.cpp) |
-| TalkingHead, SpeechBubble | 0x4161a0, 0x415c70 | the dragon announcer, its (never shown) bubble and the hover tips 0x413aa0 (ported, TalkingHead.cpp) |
+| TalkingHead | 0x4161a0 | the dragon announcer and the hover tips 0x413aa0 (ported, TalkingHead.cpp); its speech bubble, SpeechBubble 0x415c70, is never shown and was taken out (see "Coverage check") |
 | HighScoreDisplayDialog | 0x4064e0 | id 0xe |
 | OptionsDialog | 0x411ba0 | id 1 |
 | RecordScoreDialog | 0x414060 | the name entry after a high score |
@@ -116,10 +116,10 @@ the game-to-menu return.
 
 Hidden arguments the decompiler drops (found with tools/callargs.py): 0x4259c0 AddScore(int), 0x423120 ComboSound(double x,
 double y). The values pushed at every AddScore call were checked against the disassembly (2026-10-26: a launch scores 2000, or
-4000 while m4b0 (250 after each such score) is above 0; the bonus messages of 5 to 9 launches score 1000, 2500, 10000, 25000 and 100000; a torch 300;
+4000 while mChainBonusTime (250 after each such score) is above 0; the bonus messages of 5 to 9 launches score 1000, 2500, 10000, 25000 and 100000; a torch 300;
 a bonus tile BonusFor; a match 500; the coins of the buy-rockets screen their own points; each rocket of a launch 100 times
 its number). The floating texts do not rise: the board's update calls Move(x, y - 1) with the text's own y, which nothing
-lowers, so a text jumps once and stays (0x427451). m84 is 0 (DL at 0x42a77f). Guesses still to verify: DropTopTimed's use of m4c.
+lowers, so a text jumps once and stays (0x427451). mRightEdgeLoaded is 0 (DL at 0x42a77f). Guesses still to verify: DropTopTimed's use of mSlideEndY.
 
 ### Where the Board stands after the input work (2026-10-26, evening)
 
@@ -128,13 +128,13 @@ the autoplay hook (src/testhooks/Autoplay.cpp: random clicks and drags, a straig
 and then, a check of every grid cell) and sees launches score (scores 130, 1604, 1630 at update 3000) and the strategy
 mode end. Translated since the status above: Update 0x426f40, KeyChar/MouseMove/MouseLeave/MouseDown/MouseUp/MouseDrag,
 pause 0x421f30, the first board of the timed modes 0x428780/0x428ae0, the dealing of a new board (state 7) 0x428ef0 with
-0x428e80, game over 0x421de0, 0x4282a0, 0x428090, 0x428d10, 0x428de0, 0x41f280, 0x429050-0x429080, the app's StartBoard
+0x428e80 (never entered: taken out again, see "Coverage check"), game over 0x421de0, 0x4282a0, 0x428090, 0x428d10, 0x428de0, 0x41f280, 0x429050-0x429080, the app's StartBoard
 0x42ea30.
 
 ### Draw (2026-10-26, late)
 
 BoardDraw.cpp translates Draw 0x41f540 and its helpers as far as the board's own picture goes: the sky, sun, city, ground,
-column, poles, the tiles in their seven variants (0x41e770; the right-connected case with m41a set is variant 3, the
+column, poles, the tiles in their seven variants (0x41e770; the right-connected case with mPathRightLive set is variant 3, the
 decompile's `(rotation + 0x37 + kind * 4) * 0x1c` is the address of that variant, not another one), the tiles above the board
 (0x41e3e0, 0x41e530), the fuses and rocket launchers (0x41ec20, with the rocket picture chosen by 0x41d620), the pieces that
 move (0x41d420), the score digit by digit, the level and mode texts, the chest and the coins under it (0x41f240, 0x421b80),
@@ -145,8 +145,8 @@ time", combo, unfreezing and low on matches. Every text is named by its address 
 the dark copies behind "just in time" are a reading of the disassembly with one y value inferred from the other texts'
 pattern; compare with the original's picture when the test site can show both.
 
-The dimming and the pause window (m350 > 0, the dialog picture 11 over a 345 by 170 box) are in. The original's Draw returns
-without drawing once the dimming is complete (m358 == 1.0) and relies on its back buffer keeping the last frame; this port's
+The dimming and the pause window (mPause > 0, the dialog picture 11 over a 345 by 170 box) are in. The original's Draw returns
+without drawing once the dimming is complete (mPauseFade == 1.0) and relies on its back buffer keeping the last frame; this port's
 screen showed black, so the frame is drawn once more at that point (a port difference, noted in BoardDraw.cpp). StartBoard now
 removes and deletes the menu (0x42e190) as the original does, so nothing of it shows under the board.
 
@@ -186,12 +186,12 @@ and difficulty, the score, the level and the state, the random generator's state
 the 54 grid slots, the 6 top, the spare, the 9 left and the 9 right (a flag byte, then the piece when it is set), the board's
 plain fields, the generator's 25 counters, and the pieces that move about (a count, then the pieces). A piece is written
 with its own address as its number and its special and host as the addresses of those pieces; the loader reads a piece
-once per number (0x41b6f0, one list m504) and 0x41b690 turns the numbers into pieces. The port keeps the file layout, so
+once per number (0x41b6f0, one list mLoadedPieces) and 0x41b690 turns the numbers into pieces. The port keeps the file layout, so
 a save of the original loads (the random state apart, which the original wrote with its own 2003 generator). The file is
 Players/savea.dat (classic), saveb.dat (arcade) and savec.dat (strategy) in the user folder. A game in progress is saved
 when the player goes back to the menu (0x42e010) and when the app shuts down (0x42f730, the port's ShutdownHook) unless
 its state is 2 (finished); a new game deletes the mode's save (0x42ea30, 0x41d380) and CONTINUE SAVED GAME (0x403380) makes
-the board, loads the save into it and deletes the file. What a game saved in the middle of a level's end (mFc, m100, m104)
+the board, loads the save into it and deletes the file. What a game saved in the middle of a level's end (mCovered, mBuyRocketsState, mBuyRocketsPending)
 shows again after loading (AfterLoad, 0x41b7e0: the buy-rockets screen 0x428620, the question 0x4286b0 and the next level
 0x428bc0). One quirk of the originals is kept: the loop that should save the three per-path arrays (+0x384, +0x3fc, +0x41a:
 which edges a lit path touches) never moves its three addresses, so it writes, and reads, the same four bytes at +0x3fc and
@@ -243,7 +243,7 @@ pictures on a green board, each fading in 100 updates after the one before it, u
 To Play" starts the game that waited (StartBoard with the "continuing" flag the hint was given). The five bonus hints (3 gem, 4
 bomb, 5 clock, 6 coin, 7 matches) are a smaller box with the item's picture pulsing; 7 is opened by the board when the first matches
 special of a strategy game is attached (0x428d10), the others by the end-of-level question 0x4286b0, which comes with the level-up
-screen. Closing a bonus hint other than 7 opens the buy-rockets screen (0x428620); Board::m104 is 2 while one is up, so that a
+screen. Closing a bonus hint other than 7 opens the buy-rockets screen (0x428620); Board::mBuyRocketsPending is 2 while one is up, so that a
 game saved then comes back at that screen. The checkbox "Don't show this again" sets the app's hint flag (HintsDisabledFlag0-7 in the
 registry; the Options dialog's Reset Hints clears them). The test script command "hint <n>" opens hint n (a board is started first
 for 3 to 7).
@@ -256,13 +256,13 @@ down) over a pot, a jar with a page of figures in it, and one link at the bottom
 to the high scores after a game). Every 150 updates the page turns (Step 0x40f5a0): the score, the points to the next rank
 (a level's screen only; at the top rank it says so), bombs (level 5 on), the longest fuse, coins (not strategy), the largest launch,
 gems (level 3 on), clocks (level 7 on), matches (strategy) and the level (not strategy); a level's screen shows the level's
-figures (Board::mC4-mDc) and a game's the sums (mE0-mF8, which the dialog adds the level's into when it opens). The song fades
+figures (Board::mLevelMostTiles-mLevelMatches) and a game's the sums (mTotalMostTiles-mTotalMatches, which the dialog adds the level's into when it opens). The song fades
 to the level-up song, and fireworks burst behind the pot now and then (BurstSome); the head's lines are not translated yet. When the window is not active the page goes dark with a pause notice and the link is taken away
 until it is. Each of the rank-name strings is read from the table at 0x4e62e8 (make_gametext.py lists the pointer table). The
 test script command "levelup <kind> <mode> <level> <score> [<page>]" opens it.
 
 The buy-rockets screen (BuyRocketsWidget 0x401010) is a widget of the board's size that the board lays over itself after a level
-(ShowBuyRockets 0x428620, which the board keeps in m4e0) and, in its game-over form, when a game ends (0x421de0). It runs only
+(ShowBuyRockets 0x428620, which the board keeps in mBuyRocketsScreen) and, in its game-over form, when a game ends (0x421de0). It runs only
 while the board has the focus. Between two levels every five coins that were collected buy an upgrade of a launcher's meter
 (PieceGenerator::Upgrades 0x42ae10: the launchers in the order of the table at 0x4e6990, the lowest meters first, never more than
 one level above the rest): five coins fly one after the other, 50 updates apart, from the box of the coins to the launcher, each on a
@@ -270,8 +270,8 @@ path that is straight across and slows down going up or down, and the fifth rais
 meter is full, and at the end of a game, the coins turn into points instead: up to 15 coins fly to the score, 14 updates apart,
 and the first one adds 500 for each coin. With nothing to buy the screen shows the help for the coins (four lines) in the first
 five levels when the hints are on, waits 250 updates, and goes on; in any other level it goes on at once. Going on is
-Board::NextLevel (0x428bc0): the level goes up, the rank is kept in m88, the board is set up again and plays. The board's
-m100 says what a saved game was in the middle of (1 the buy-rockets screen, 2 the game's end), and AfterLoad (0x41b7e0) puts
+Board::NextLevel (0x428bc0): the level goes up, the rank is kept in mRank, the board is set up again and plays. The board's
+mBuyRocketsState says what a saved game was in the middle of (1 the buy-rockets screen, 2 the game's end), and AfterLoad (0x41b7e0) puts
 the screens up again. Board::RemovedFromManager (0x424260) deletes the widgets that the board owns. The test script command
 "buyrockets <over> <level> <coins> <meter>" opens the screen.
 
@@ -280,20 +280,20 @@ emitters of 24 kinds (0 to 0x17; the game makes 0 to 0x12). An effect holds a po
 the direction they fly (a unit vector made when it is built), their speed, drag, acceleration, life and how many it makes
 every so many updates; EffectKinds.inc is what the original constructor (0x4172f0) stores for each kind, generated from its
 disassembly. The board sets the rest after Add: where it is (mX, mY), how many updates it keeps making particles (mLife; zero
-stops it, below zero never), the delay before it starts (mc0) and, for the sounds, m40. Each update (0x419340) the effect moves,
+stops it, below zero never), the delay before it starts (mDelay) and, for the sounds, mSound. Each update (0x419340) the effect moves,
 every particle moves by its speed and then keeps the drag's fraction of it plus the acceleration, a particle at the end of its
 age goes back to the manager's pool (1000 particles, the same for all of its effects; an effect holds at most 200), and new
 ones are made while the effect has life. The manager removes a finished effect only when the flag given to Add is set. A
 particle's colour is a blend of a pair out of six colours that the effect holds (it takes the pair of 3 to 5 at random, the
 kinds 5 and 0xf one of 0 to 2 for each particle). The effect is drawn (0x4194d0) from strips of pictures chosen by the
-particle's age, with the add mode, in the layer given by m90: the explosion (0, 3, 0x14 to 0x16), the strip of nine (1, 0x11),
+particle's age, with the add mode, in the layer given by mLayer: the explosion (0, 3, 0x14 to 0x16), the strip of nine (1, 0x11),
 the leaf (2, the petals of the menu, whose first 60 updates fade in), the stars (4 to 6, 0xb to 0xe, 0x17; kind 6 turns every
 other one), the rotating fireworks and the novas (7 to 10) and the sparkles (0xf, 0x10, 0x12, 0x13). The effects behind the board
 (layer set) are drawn before the column, those in front after the grid; the level-up screen draws the layer that is set,
 clipped to the window, and the buy-rockets screen the other one; the menu keeps one effect of kind 2 with a life of -1. An
 effect of a kind that tells the board when it goes (the byte at +8; kinds 1, 7, 9, 0xa, 0xf, 0x10, 0x11, 0x12, 8) calls
-Board::F428d10 when it is deleted (not when the manager is) and plays a firework sound when its delay is over (+9; the board puts the
-sound in m40 and the delay in mc0). While the board is paused (m350) its effects stand still, as
+Board::AttachLaunchBonuses when it is deleted (not when the manager is) and plays a firework sound when its delay is over (+9; the board puts the
+sound in mSound and the delay in mDelay). While the board is paused (mPause) its effects stand still, as
 the original's update shows. The test script command "effect <kind> <x> <y> <life> [<layer>]" adds one.
 
 The talking head (TalkingHead.h, TalkingHead.cpp; the original class 0x4161a0, 0x110 bytes) is the dragon who announces the
@@ -310,8 +310,8 @@ steps after a delay, and Surface brings it to the front. For the end of a level 
 trail effect of the board's effects (kind 0, 300 updates) and puts it at the top, where it swings down on a sine path, and
 Follow puts the trail's flames under it and clears the board's rows to that height; FlyOut sends it to the side. Dialogs and
 the menu call HeadBesideMenu or HeadBesideDialog (StepAside, Place and BringToFront) to put it next to what is open. The
-speech bubble (0x415c70) never gets a message in the shipped game (the function that would set one, 0x415d30, is empty), so
-it stays invisible; only its fade and its place in the widget order are kept. The hover tips (HoverTip, 0x413aa0) watch the
+original's speech bubble (0x415c70) never gets a message in the shipped game (the function that would set one, 0x415d30, is empty), so
+it stays invisible and the port has none (taken out, see "Coverage check"). The hover tips (HoverTip, 0x413aa0) watch the
 pointer on the board: seven regions, and a pointer resting for 81 updates in one shows its tip (not in region 1 unless the
 mode is classic, not in region 2 in strategy), which fades in over 16 updates (alpha `shown * 4`) and goes when the pointer
 leaves. The tip's picture is the bubble (turned or flipped by region), its text eight lines centred in Arial 10 in the colour
@@ -362,22 +362,69 @@ progress directly, so the original has no minimum time of its own. The port's lo
 
 ## Performance
 
-Measured 2026-11-08 with `games/rocketmania/tools/profile/perf.py`: the original under origrun (real clock, scripted cursor, on its
-private desktop) and the port under rundesk, without `-fast`, back to back on the same machine, the same scripted 55 seconds
-(link, Arcade, Medium, a game of the bot's clicks; `build/ph2/perf/*.txt`). Seven other games' processes were running on the
-machine meanwhile (Bonnie's, BookWorm, Dynomite, Ning Po, Pixelus, TipTop, origrun), so the numbers are for a busy machine; the
-performance pass re-measures on a quiet one.
+**Processor time (the performance pass, 2026-11-12): the port is under half the original's, in every configuration, stretch and
+pair.** Measured as `docs/COORDINATION.md`'s target asks, by cycle counts: `tools/profile/pairs.sh <out dir>` runs rounds of the
+original and the port's three configurations, one game process at a time, each pinned to a performance core of its own
+(`tools/pincore.py`), over `tools/profile/scenario.txt` (the port's bot plays one game of each mode, Arcade, Classic and Strategy,
+difficulty Medium: 8,833 updates, 88 s at 100 updates a second). `tools/profile/cycles.py` reads the threads' cycle counts
+(QueryThreadCycleTime, summed over the process) at marker updates only: the port is the shipped exe reading a `-script` (no
+`-commands` channel, no state log, no bot) and prints a `pointer` line to SDL's log at each marker; the original's update counter
+(0x4f6850) is read from outside. The original runs under origrun on rundesk's private desktop (its software screen: no GPU there),
+windowed 640x480 on its real clock, which it paces by its own sleep as on a 60 Hz screen (no vertical-blank spin); `Players/save?.dat`
+and `hiscores.dat` are deleted before each run, since a save left by the last run turns the first game's start into a Continue dialog
+that swallowed the scripted clicks, and its registry values are reset. Sound: origrun's stand-in mixes nothing for the original, and
+the port's mixer thread (SDL's audio thread, 0.2 to 0.4% of a core, at most 1.2%) is inside the port's numbers.
+
+The port runs in three configurations, all on SDL's Direct3D 11 renderer (the display line each run logs): `port3d`, Hardware
+Acceleration on, windowed at the game's own size (`ScreenMode=0`, `-windowscale=1`, "client 640x480 px, render scale 1"), the one
+that is like for like with the original's window; `port2d`, the same with Hardware Acceleration off (`Is3D=0`); `portdef`, 3D on in the
+window the port opens by default (twice the game's size, "client 1280x960 px, render scale 2"), what a player gets. Medians of cycles
+an update in millions (share of one core at 100 updates a second), five originals and six runs of each configuration, the runs
+interleaved round by round (the first round order turns by one place each round):
+
+| Stretch (updates) | Original | port3d | port2d | portdef |
+|---|---|---|---|---|
+| 900 to 3200, Arcade play | 4.18 (19.9%) | 1.69 (8.2%) | 1.67 (9.4%) | 1.44 (8.6%) |
+| 3200 to 3500, game over and the next start | 4.31 (20.5%) | 2.08 (10.1%) | 2.50 (13.4%) | 1.91 (10.6%) |
+| 3500 to 5900, Classic play | 4.57 (21.7%) | 1.75 (8.8%) | 1.88 (11.2%) | 1.68 (9.7%) |
+| 5900 to 6200, game over and the next start | 4.02 (19.1%) | 1.89 (9.5%) | 2.45 (13.2%) | 1.77 (10.2%) |
+| 6200 to 8600, Strategy play | 4.10 (19.4%) | 1.82 (9.1%) | 1.85 (10.6%) | 1.85 (10.0%) |
+
+The port over the original, a pair taken from one round (the median of the five pairs by stretch, in the table's order, and the worst
+pair): `port3d` 0.41, 0.48, 0.38, 0.47, 0.41 (worst 0.63); `port2d` 0.39, 0.57, 0.46, 0.72, 0.48 (worst 0.78); `portdef` 0.33, 0.46, 0.41,
+0.48, 0.43 (worst 0.72). The runs were made on a busy machine (4 to 5 other game processes at the start of a run, median; the machine's
+load 0.36 to 1.0), so the spread is wide; the runs were interleaved so that a drift of the machine falls on each alike. A sixth round was needed because the third round's original lost its second game's
+start (modes 0, 0, 0, 0, 2, 2 at the six markers: the scripted clicks land on the original's real clock, which varies from run to run);
+`cycles.py summary` leaves out an original whose three games did not all start, so each ratio above is over the five valid pairs.
+
+Where the port's cycles go (`-cyclesplit`, one 23 s run of the Arcade stretch in each of 3D and 2D, `tools/cyclesplit.py`): the game's
+update is 0.027 M cycles an update in 3D (1.7% of the process) and 0.028 in 2D; the picture, the game's draw calls and the present on
+the loop's thread plus the Direct3D 11 driver's own thread (3.4% of a core), is 1.42 M (92%) in 3D and 1.34 M in 2D; the audio thread
+0.05 M and the loop's events, sleeps and readings 0.05 M. With a GPU renderer the draw calls are batched until the present, so the
+draw and the present are not split further. The game's update is not where the time goes, and half of the picture is the driver's own
+thread; with the target met at 0.25 to 0.78 of the original's in every pair, the pass made no change to the port.
+
+**Web build** (the Browser pane, Chrome 156, the page's own timers, no `fast=1`, `tools/profile/webperf.js` as `rocketmania.html?player=1&assets=1&silent=1&driver=...`,
+one run of 8 s a phase): the first frame takes 1.4 s (the load, in the loading screen's phase); then a frame costs 1.76 ms
+in Arcade (9.2% of real time at 100 updates a second, 430 frames drawn of 821 updates, longest frame 49.5 ms), 1.65 ms in Classic
+(8.7%, longest 20.7 ms) and 1.34 ms in Strategy (7.3%, longest 21.9 ms), with no page error. The wasm heap is 136 MB with 94 MB in
+use (23 MB in 281 pictures, 17 MB in 65 sounds) and the in-use figure is the same, within 0.5 MB, after the first game and after
+the third: no growth over three games. The hidden pane gets no animation frames, so the page's `requestAnimationFrame` was
+replaced by a 16 ms timer; the frame hook's milliseconds are the game's own cost either way.
+
+**Load time and memory** (measured 2026-11-08 with `games/rocketmania/tools/profile/perf.py`: the original under origrun and the
+port under rundesk, without `-fast`, back to back, the same scripted 55 seconds, on a machine with seven other games running; its
+processor-time row used GetProcessTimes and is replaced by the cycle counts above):
 
 | | Original | Port |
 |---|---|---|
 | Launch to the play link (s) | 2.4, 1.1, 0.9 (the first run was cold) | 1.8, 2.0, 1.8 (3.5 and 2.8 on cold runs) |
 | Peak working set (MB) | 85 | 138 |
 | Peak private bytes (MB) | 62 | 132 |
-| Processor time over the minute | 8.6 to 9.3 s of 53 s (16 to 17%) | 4.6 to 5.7 s of 57 s (8 to 10%) |
 
-The port loads more slowly than the original (its resource thread takes 1.2 s of that, in the log's "Resource Loading Time"), keeps
-about 70 MB more in private memory (the decoded pictures as 32-bit surfaces, the mixer's buffers, SDL) and uses about half of its
-processor time. The web build's load time was not timed.
+The port loads more slowly than the original (its resource thread takes 1.2 s of that, in the log's "Resource Loading Time") and keeps
+about 70 MB more in private memory (the decoded pictures as 32-bit surfaces, the mixer's buffers, SDL): the framework's fixed
+cost, which the target allows.
 
 ## Registration code removed
 
@@ -415,7 +462,10 @@ Found while lining the port's screens up with the original's (`IDENTICAL_PLAY.md
   GPU) the original is therefore a 2D (software) run, and its Options dialog's "Hardware Acceleration" box is unchecked. The port
   starts in 3D (GPU) by default. The screen comparisons use `RM_REG="Is3D=0,ScreenMode=0"` (`port.sh`, `best.sh`, `lag.sh` and
   `play.py --reg` take it): 2D, and windowed, since without a `ScreenMode` value the port's Options dialog shows its Fullscreen
-  box checked. Comparing 3D needs `orig.sh ... --sandbox-vgpu`, which `CLAUDE.md` allows from 22:00 to 08:00 only.
+  box checked. The 3D game was compared on the host's desktop on the night of 2026-11-12 (`tools/shots/run3d.sh`, `visrun3d.py`, `lag3d.sh <tour>`,
+  `IDENTICAL_PLAY.md`, "3D screens"): the original there reads `Is3D` 1 from its registry key at update 2708, and the port runs with
+  `RM_REG="Is3D=1,ScreenMode=0"`. The Options dialog's Hardware Acceleration box answers from the framework's `mCan3D` (`Is3DAccelerationSupported`),
+  so it can be ticked again after it was unticked, as in the original; before 1821bccf it could not.
 - **2D draws rotations in software.** With 3D off the original rotates tiles with `DDImage::BltRotated` (0x441127) and keeps the
   screen between frames; the port's `RocketApp::UpdateFrames` turns `mSoftwareTransforms` and `mKeepScreen` on in that case. The
   original's software stretch (0x44abeb, the talking head in its hole) is not ported: the framework's `StretchCopy` (0x433ca0)
@@ -510,21 +560,34 @@ decoder is shared by every game, so it is listed here and not chased.
 **Defined in the port, never reached in the runs: 12 at first.**
 
 - **Reached by the extra runs:** the first-click hide of the speech bubble (`HideBubble`, `FadeOut`: cov4; the bubble never has a
-  message in the shipped game, so it does nothing), and the level-up pages the bots held open.
+  message in the shipped game, so it did nothing; it is taken out, below), and the level-up pages the bots held open.
 - **Read again against the export:** `Points::SetBack` (0x42a230) is reached only by five or more rockets launched together; it
   matches the export (the image, then a colour of three values, then the place is set again).
-- **Candidates for taking out unneeded code, none removed now** (no play of the original reaches them):
-  - the board's states 6 and 7 of its draw and update that nothing sets: state 7 (a new board dealt row by row, `F428ef0` 0x428ef0 and
-    `EdgeOpen` 0x428e80) is never entered, the original has no store of 7 to the state;
-  - `Board::ButtonDepress` (0x428600): no button has the board as its listener;
-  - the speech bubble's whole class and the head's `ShowBubble`/`HideBubble`: the one function that sets a message (0x415d30) is an
-    empty stub in the shipped game, so the bubble's message stays at "none", it is never visible and never drawn (its `Update`
-    keeps it hidden).
+- **Taken out as unneeded code (the unneeded-code pass, 2026-11-12):** nothing in the original reaches them, so play is unchanged
+  (the frozen baseline's state logs are the same):
+  - the board's state 7 (a new board dealt row by row: `F428ef0` 0x428ef0, `EdgeOpen` 0x428e80, the sweep effect's pointer, the state's
+    place in the update and the draw): the original has no store of 7 to the state, and the saves keep no 7 (the original never saves
+    one; a hand-edited save with 7 would no longer deal a board). Its two saved fields (+0x348, +0x34c) stay for the save file's format.
+    State 6, which the first notes listed with it, is entered (state 5 sets it when the level-up dialog is shown) and stays;
+  - `Board::ButtonDepress` (0x428600) and the board's `ButtonListener` base: no button has the board as its listener;
+  - the speech bubble's whole class (0x415c70, `Update` 0x415d90, `FadeOut` 0x415d40, the destructor 0x415d20), the head's
+    `ShowBubble` (0x416a30) and `HideBubble` (0x416a80), the board's calls to them (the hint countdowns' case 0 to 4 and the click at the
+    lower left) and the app's pointer: the one function that sets a message (0x415d30) is an empty stub in the shipped game, so the
+    bubble's message stays at "none", it is never visible, never takes a click and is never drawn. What the calls did to the order of
+    the widgets was the bubble's own place only (`BringToFront`, which reorders one widget and marks nothing dirty), so the other
+    widgets' order, updates and drawing are the same. The board's `mRightClicked` (a right click, read only to decide whether to show the
+    bubble) stays for the save file. The tips' pictures, `mBubbleFlipH` and `mBubbleFlipV`, are the hover tips' and stay.
+  Proved by `tools/check.sh rocketmania` (the three bot games' state logs equal the frozen baseline's) and by the tours u2, t1, t3,
+  t5 and hf1 (`tools/shots/port.sh`, the hint dialogs on, 2D): 307 shots, every one pixel-identical to the frozen baseline's (the
+  PNG files differ in their bytes, the pictures do not).
+  `coverage.txt` lists each as `none` with its reason, and the coverage report's "Reached with no definition in the port" and
+  "Never reached and not defined" lists are empty again; what is left under "Defined in the port, never reached" are the two read
+  above (0x40ee40 and 0x42a230).
 - **Level-up page 8, the matches (`LevelUpDialog::DrawMatchesPage`, 0x40ee40, strategy mode only): no run reached it, read against the
   export.** The page shows only in the strategy mode, and the strategy bots never reached a level-up screen (no page's drawing ran): bot7 (easy,
   cap 80000) and bot8 (hard, cap 300000) played to the bot's cap. The port's state log of the same bot with a cap of 60000 shows the game in
   state 0 and the level 0 all the way, at 3.5 million points, so no level ended and the matches never ran out: a strategy game's own end is the matches at 0 with nothing burning for 250 updates
-  (`Board::Update`, `F421de0` 0x421de0 kind 2), and the bot's paths earn matches back (the match tiles) as fast as they spend them. A bot that plays
+  (`Board::Update`, `GameOver` 0x421de0 kind 2), and the bot's paths earn matches back (the match tiles) as fast as they spend them. A bot that plays
   badly on purpose would be new test code for one 1079-byte page, so the page was read again against the export instead: the same
   font and the title colour (25, 48, 79), "Matches" centred at x 97 at y 220 and "Collected" at y 245 (centred the same way), the light
   colour (191, 241, 241), then "1 match" or "%d matches" (0x4e505c, 0x4e5050) at y 275, the value the level's (board +0xdc) when the
@@ -533,3 +596,48 @@ decoder is shared by every game, so it is listed here and not chased.
 
 **Cost.** The runs took about an hour of machine time in all, one process at a time on the stage (the bots' long games 5 to 10 minutes,
 the others under two); the whole check took the session about two hours, most of it classifying the first list and waiting for runs.
+
+## The readability pass (2026-11-12)
+
+The names now come from the original or from what the code does with them (`docs/CODE_STANDARDS.md`); nothing the port does changed.
+Before the pass the port had 153 members named for their offsets (`m350`, `m4a0`, `m364`: 108 in `Board`, 20 in `Piece`, 17 in `Effect`, 6 in
+`EffectKind`, 2 in `PieceGenerator`), 13 functions named for their addresses (`F421f30`, `F428780`, ...), 60 functions with neither an
+address nor a `port:` marker and 11 one-letter names kept over more than ten lines. `python tools/namecheck.py games/rocketmania` finds none of
+them now and exits 0, with no exception in `namecheck.txt`.
+
+| Kind | What |
+|---|---|
+| Members | the 153 declarations and their 1,159 uses renamed by the compiler (`tools/readability/rename.py`): `Board`'s `m350` is `mPause`, `m364` `mPlayedMs`, `m37c` `mQuickDrops`, `m4a0` `mLaunchRow`, `m4d9` `mJustInTime` (it holds the "JUST IN TIME!" text's flag), `Piece`'s `m80` `mTilt`, `ma8` `mHitsLeft`, `mb0` and `mb4` `mMovedFromRow` and `mMovedFromColumn`. The `BOARD_COINS` macro of `BuyRockets.cpp` hid a member access from the compiler and was edited by hand. |
+| Functions | the 13 address-named functions are `SetPause` (0x421f30), `GameOver` (0x421de0), `AfterLevelScreen` (0x4286b0), `DealFirstBoard` (0x428780), `LeftReachesRight` (0x428ae0), `CancelBurn` (0x4282a0), `AttachLaunchBonuses` (0x428d10), `ClearRowsAbove` (0x428de0), `MeterFilledEffect` (0x41f280), `StartLaunchFlames`, `AddLaunchFlame` and `FinishLaunchFlames` (0x429060, 0x429050, 0x429080) and `RemoveSetOffSpecial` (0x428090); each keeps its address in the comment on its declaration. |
+| Parameters and locals | `RGBToHSV` and `HSVToRGB` of `AppImages.cpp` named their six parameters `r`, `g`, `b`, `h`, `s`, `v` (the `g` a colour, not a `Graphics`) and now have `theRed`, `theHue` and so on; the bot's update count `u` in `UiBotPlay.cpp` is `anUpdate`. |
+| Addresses | every function names its address or carries a `port:` marker: `Ftol` (the original's `__ftol`) in its six files, the WAV writer's little-endian helpers, `DrawOutlined`, the dialogs' line helpers, `SpreadRand`, `DrawFrames`, the text accessors of `RocketApp`, `GameText.cpp` and the four `testhooks` files (their first comments carry the marker). `MakeFlame1` is 0x425a30 and `ReadPlaylistLetters` is part of 0x429460. |
+| Comments | the old names in comments and in `docs/*.md` (58 places) follow the renames; the places where an old name was shared by two classes (nine comments) were decided by hand. |
+
+**Fields that nothing reads, taken out.** Each was read against the export. Out, because nothing saves or reads them: `Board`'s widget at
++0x51c (the original writes it NULL in its constructor and tests it in three functions, `RemovedFromManager`, `OrderInManagerChanged` and the
+function after a level's screen; nothing ever sets it, so the three blocks were dead), two integers the port had left unnamed (`m51c`,
+at the widget's offset, and `m520`), `mDownX` and `mDownY` (the original writes them on a click and reads neither), `mTileMoved` (written,
+never read), and `RocketApp`'s `mHintDialog` (the last hint dialog) and `mNoPopLink` (the "NoPopLink" property, which only the partner
+link read; those links are out). Kept, named for what they hold, because the saved game writes them: `Board::mAlwaysZero` (+0x4ac, set to 0
+at each level, saved, never read), `mRightClicked`, `mDealStart` and `mDealRow` (state 7's start and row; the state itself is out) and
+`Piece::mAlwaysZero` (+0x98).
+
+**Names with the least behind them:** the two `mAlwaysZero` fields (named for the value they hold). The others come from the field's uses and
+the text or picture it feeds.
+
+**Names that are formats.** The state log's labels (`m74`, `m78`, `m7c`, `m80`, `m108`, `m380`, `m36c`, `m37c`, `m370`, `m374`, `m378` in
+`UiBot.cpp`) are the original's board offsets, the labels that origrun's watches carry (`tools/identical/values*.txt`), so they keep their
+spelling (`namecheck` does not look inside strings, and a comment there says why).
+
+**Proof.** The renames: `python tools/objsnap.py cmp rocketmania` against a snapshot taken before the pass: 22 objects, 602 functions, 0 objects
+differ, after the member and function renames, the marker and comment edits and the one-letter names. The removals above change the layout of
+`Board` and `RocketApp`, so they were proved the other way, by the frozen baseline: `tools/check.sh rocketmania` reports "baseline identical"
+(the three modes' games). No string literal of the sources changed except "NoPopLink", which went with its property (the literals of every
+changed file were compared one against the other). `tools/check.sh build-web:rocketmania` builds.
+
+**`tools/splitfields.py`** reports `mDealRow` as never written (the constructor's `memset` zeroes it; the save reads it) and, after the
+removals, no member that is written without being read. Its 20 members from the export (26 functions) are all places where the export touches
+the same offset in another object (the `param_1` of 0x423270, 0x428340, 0x427d00, 0x419280, 0x42a990, 0x42a2d0 is a `Piece`, an `Effect`, a
+`Points` or the generator; 0x419340's `+0x98` is a virtual call) or where the port split the function (0x41d670's `DrawSpecial`,
+`DrawStretched` and `SpecialDy`; `ShowLevelUp` for the generator argument of 0x426860 and 0x426f40); none is a field that the original writes
+and the port never sets.

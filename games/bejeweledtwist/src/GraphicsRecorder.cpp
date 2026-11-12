@@ -3,7 +3,7 @@
 
 #include "Graphics.h"
 #include "Image.h"
-#include "ModFeatures.h"
+#include "platform/GameOptions.h"
 #include "SexyMatrix.h"
 #include "X86Math.h"
 
@@ -254,7 +254,7 @@ void GraphicsRecorder::DrawImageTransform(Graphics* g, Image* theImage, const Tr
 	// The exe repeats Graphics::DrawImageTransformHelper here, as it runs without Direct3D, so that it can record the
 	// simple cases. The cases it hands to the Graphics are drawn even while the draws are skipped (but the matrix).
 	// port(mods): the fixes mod's "rewindSkips" (NOTES.md, "The fixes mod") skips them too
-	bool aSkipAll = mSkipDraw && ModFeatureBool("fixes", "rewindSkips", false);
+	bool aSkipAll = mSkipDraw && Platform::FixOn("rewindSkips");
 	if (theTransform.mComplex) {
 		if (!mSkipDraw)
 			g->DrawImageMatrix(theImage, theTransform.GetMatrix(), theSrcRect, theX, theY);
