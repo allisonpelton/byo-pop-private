@@ -2,9 +2,12 @@
 // what DirectX did (surfaces, flips, input devices, sound buffers) is done on the port's buffers instead.
 
 #include "Lowos.h"
+#include "framework/SDLSoundManager.h"
+#include "framework/SexyAppBase.h"
 #include "platform/Audio.h"
 
 #include <algorithm>
+#include <cmath>
 #include <cstdio>
 #include <cstring>
 #include <memory>
@@ -937,6 +940,11 @@ struct SoundSlot
 {
 	std::shared_ptr<Platform::SoundData> mData;
 	int mVoice = 0;
+	// BYOPOP_SOUNDLOG: the number of the play the log has running (0 = none) and the update it ends on by the sound's
+	// length, so that a run on the virtual clock (-fast) logs the plays the real clock would
+	int mLogNum = 0;
+	int mLogEnd = 0;
+	int mLogVolume = 0;
 };
 
 static bool gSoundInited = false;     // 0x48a294
@@ -1010,6 +1018,41 @@ void FreeSound(Sound* theSound)
 	delete theSound;
 }
 
+// BYOPOP_SOUNDLOG (tools/soundpreset.py): a call of PlaySound as the framework's sound log words it. Whether a sound is
+// still playing is taken from its length in updates, not from the mixer, which a run on the virtual clock (-fast) keeps
+// on the machine's clock: the log is the one a run at the game's own speed gives.
+static void LogSoundCall(const Sound* theSound, SoundSlot& theSlot, uint32_t theVolume, char theMode)
+{
+	int aNow = Sexy::gSexyAppBase->mUpdateCount;
+	bool isPlaying = theSlot.mLogNum != 0 && theSlot.mLogEnd > aNow;
+	// the volume in hundredths of a decibel, as DirectSound had it (0 = full)
+	int aCentiDb = theVolume == 0 ? -10000 : (int)(2000.0 * log10((double)theVolume / 4294967295.0));
+	if (aCentiDb > 0)
+		aCentiDb = 0;
+	if ((theMode == 0 || theMode == 1) && theSlot.mLogNum != 0)
+	{
+		Sexy::SoundLog("stop %d #%d", theSound->mHandle, theSlot.mLogNum);
+		theSlot.mLogNum = 0;
+	}
+	if (theMode == 0)
+		return;
+	if (theMode == 2 && isPlaying)
+	{
+		if (aCentiDb != theSlot.mLogVolume)
+			Sexy::SoundLog("volume %d #%d %d", theSound->mHandle, theSlot.mLogNum, aCentiDb);
+		theSlot.mLogVolume = aCentiDb;
+		return;
+	}
+	if (theVolume == 0 || !theSlot.mData)
+		return;
+	static int sLogNum = 0;
+	theSlot.mLogNum = ++sLogNum;
+	theSlot.mLogVolume = aCentiDb;
+	theSlot.mLogEnd = aNow + (int)std::ceil((double)theSlot.mData->mFrames * 1000.0 / theSlot.mData->mRate /
+		Sexy::gSexyAppBase->mFrameTime);
+	Sexy::SoundLog("play %d #%d vol=%d pan=0 pitch=1.0000 loop=0", theSound->mHandle, theSlot.mLogNum, aCentiDb);
+}
+
 // 0x432f80: theMode 0 stops the sound, 1 (re)starts it, 2 starts it unless it is playing. theVolume is a linear
 // amplitude, 0xffffffff = full (the original made it DirectSound decibels: 2000 * log10(volume / 2^32)).
 void PlaySound(Sound* theSound, uint32_t theVolume, char theMode)
@@ -1030,6 +1073,8 @@ void PlaySound(Sound* theSound, uint32_t theVolume, char theMode)
 		fprintf(gSoundLog, "%d stop %d\n", *gSoundLogUpdate, theSound->mHandle);
 	if (!gActive)
 		return;
+	if (Sexy::SoundLogOn())
+		LogSoundCall(theSound, aSlot, theVolume, theMode);
 	float aGain = (float)((double)(theVolume >> 14) * (1.0 / 262144.0));
 	if (theMode != 0 && aSlot.mVoice != 0 && isPlaying)
 		aMixer.SetVoiceGain(aSlot.mVoice, aGain, aGain);

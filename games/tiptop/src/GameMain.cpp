@@ -13,9 +13,12 @@
 #endif
 
 #include "compat2004/Compat2004.h"
+#include "framework/SDLSoundManager.h"
 
+#include <algorithm>
 #include <cstdlib>
 #include <cstring>
+#include <string>
 
 namespace tiptop
 {
@@ -108,8 +111,18 @@ lowos::Sound* LoadSound(int theId)
 		memcpy(&aBits, aWav + 0x22, 2);
 		memcpy(&aSize, aWav + 0x28, 4);
 		memcpy(&aRate, aWav + 0x18, 4);
-		return lowos::CreateSound(aWav + 0x2c, aSize, aRate,
+		lowos::Sound* aSound = lowos::CreateSound(aWav + 0x2c, aSize, aRate,
 			(uint8_t)((aChannels != 2 ? 0x100 : 2) | (aBits != 0x10 ? 0x100 : 0xd)));
+		// port: BYOPOP_SOUNDLOG's line for the sound, by the name TipTop.dat stores it under (Sounds\X.ogg)
+		if (aSound != nullptr && Sexy::SoundLogOn())
+		{
+			const char* aStored = res::StoredName(res::GROUP_SOUNDS, theId);
+			std::string aName = aStored != nullptr ? aStored : "?";
+			std::replace(aName.begin(), aName.end(), '\\', '/');
+			Sexy::SoundLog("load %d %s frames=%d rate=%d ch=%d", aSound->mHandle, aName.c_str(),
+				(int)(aSize / (aChannels * (aBits / 8))), (int)aRate, (int)aChannels);
+		}
+		return aSound;
 	}
 	return nullptr;
 }
