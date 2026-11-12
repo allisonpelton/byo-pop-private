@@ -15,6 +15,7 @@
 #include "SevenSeasApp.h"
 #include "Bot.h"
 #include "Board.h"
+#include "LiveSplitObserver.h"
 #include "Screens.h"
 #include "Demo.h"
 #include "Dialogs.h"
@@ -78,6 +79,8 @@ void SevenSeasApp::HandleCmdLineParam(const std::string& theParamName, const std
 		mAutoplayCap = atoi(theParamValue.c_str());
 	else if (theParamName == "-autoplaylog")
 		mAutoplayLog = theParamValue;
+	else if (theParamName == "-livesplitlog")
+		LiveSplitObserver::SetLogFile(theParamValue);   // port(mod): test hook, one line per event
 	else if (theParamName == "-autoplayshots")
 		mAutoplayShots = theParamValue;
 	else
