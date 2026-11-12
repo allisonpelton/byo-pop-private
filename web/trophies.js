@@ -68,6 +68,10 @@ var ByopopTrophies = (function () {
     // games/wordharmony/game/HighScores.cpp, load (Game.cpp names the keys): scoreName0..9 and scoreValue0..9, a score of 0 skipped
     wordharmony: { file: "registry.ini", kind: "wordharmony", key: "SOFTWARE\\GameHouse\\WordHarmony\\scores",
       tables: [["normal", "Puzzle"], ["solitaire", "Solitaire"], ["action", "Action"]] },
+    // games/bonnies/game/HighScores.cpp, load: Data/HighScores.dat, ten entries (an i32 used flag, the name and the longest word as
+    // an i32 length and its bytes, an i32 score), five of Classic (Language 1194) then five of Action (1195), best first; both
+    // rank points (the Bonnie's session, 2026-11-11)
+    bonnies: { file: "Data/HighScores.dat", kind: "bonnies", tables: ["Classic", "Action"], places: 5 },
     // games/bejeweled2/src/HighScoreWidget.cpp, ReadFromFile
     bejeweled2: { file: "users/hiscores.dat", kind: "popcap", magic: 0xb9e7e3f8,
       tables: ["Classic", "Action", "Puzzle", "Endless", "Twilight", "Hyper", "Cognito", "Finity", "Hidden"], places: 10 }
@@ -207,6 +211,28 @@ var ByopopTrophies = (function () {
     for (var i = 0; i < 8; i++) rows.push({ place: String(i + 1), name: cString(b, i * 36, 32), score: dv.getInt32(i * 36 + 32, true) });
     return [{ name: spec.tables[0], rows: rows }];
   }
+  function parseBonnies(spec, b) {
+    var dv = new DataView(b.buffer, b.byteOffset, b.byteLength), at = 0, out = [];
+    function str() {
+      if (at + 4 > b.length) return null;
+      var n = dv.getInt32(at, true);
+      if (n < 0 || at + 4 + n > b.length) return null;
+      var r = cString(b, at + 4, n); at += 4 + n; return r;
+    }
+    for (var t = 0; t < spec.tables.length; t++) {
+      var rows = [];
+      for (var i = 0; i < spec.places; i++) {
+        if (at + 4 > b.length) break;
+        var used = dv.getInt32(at, true); at += 4;
+        var name = str(), word = name === null ? null : str();
+        if (word === null || at + 4 > b.length) break;
+        var score = dv.getInt32(at, true); at += 4;
+        if (used) rows.push({ place: String(i + 1), name: name, word: word, score: score });
+      }
+      out.push({ name: spec.tables[t], rows: rows });
+    }
+    return out;
+  }
   function parseTypershark(spec, b) {
     var dv = new DataView(b.buffer, b.byteOffset, b.byteLength), at = 0;
     function str() { var r = lenString(b, dv, at, cString); if (!r) return null; at = r.end; return r.s; }
@@ -307,6 +333,7 @@ var ByopopTrophies = (function () {
     if (spec.kind === "twist") return parseTwist(spec, b);
     if (spec.kind === "astropop") return parseAstropop(spec, b);
     if (spec.kind === "bugs") return parseBugs(spec, b);
+    if (spec.kind === "bonnies") return parseBonnies(spec, b);
     if (spec.kind === "typershark") return parseTypershark(spec, b);
     if (spec.kind === "bookworm") return parseBookworm(spec, parseIni(b));
     if (spec.kind === "ningpo") return parseNingpo(spec, parseIni(b));
@@ -407,7 +434,7 @@ var ByopopTrophies = (function () {
         var head = make("tr", "");
         // a Time column where the game keeps best times beside its scores (the Mahjong Escapes)
         var timed = tables.some(function (t) { return t.rows.some(function (r) { return r.time !== undefined; }); });
-        // a Word column where the game keeps a word beside the name (BookWorm's best and longest words)
+        // a Word column where the game keeps a word beside the name (BookWorm's best and longest words, Bonnie's longest)
         var worded = tables.some(function (t) { return t.rows.some(function (r) { return r.word !== undefined; }); });
         [T("trophies.col.table"), T("trophies.col.place"), T("trophies.col.name")].concat(worded ? [T("trophies.col.word")] : [], [T("trophies.col.score")], timed ? [T("trophies.col.time")] : []).forEach(function (h) { var th = make("th", "", h); th.scope = "col"; head.appendChild(th); });
         table.appendChild(head);

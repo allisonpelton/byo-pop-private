@@ -127,5 +127,12 @@ const npt = R.parse(R.RECORDS.ningpo, ini(["[SOFTWARE\\Pyrogon\\NingPo]", "HS:0x
 same("ningpo: only played places, by layout, the time as m:ss", npt.map((t) => [t.name, t.rows.map((r) => [r.place, r.name, r.text])]), [["trophies.layout", [["1", "Ann", "2:05"]]]]);
 const wh = R.parse(R.RECORDS.wordharmony, ini(["[SOFTWARE\\GameHouse\\WordHarmony\\scores\\action]", "scoreName0=sz:Ann", "scoreValue0=dword:700", "scoreName1=sz:Bo", "scoreValue1=dword:0"]));
 same("wordharmony: a table's rows, a score of 0 skipped", wh.map((t) => [t.name, t.rows.map((r) => [r.place, r.name, r.score])]), [["Action", [["1", "Ann", 700]]]]);
+// Bonnie's Data/HighScores.dat: ten entries (used, name and word as an i32 length and bytes, score), Classic then Action
+const s32 = (t) => { const n = Buffer.from(t, "latin1"), b = Buffer.alloc(4 + n.length); b.writeInt32LE(n.length, 0); n.copy(b, 4); return b; };
+const i32 = (v) => { const b = Buffer.alloc(4); b.writeInt32LE(v, 0); return b; };
+const bon = Buffer.concat(Array.from({ length: 10 }, (_, i) => Buffer.concat([i32(i === 4 ? 0 : 1), s32("N" + i), s32("WORD" + i), i32(1000 - i)])));
+same("bonnies: Classic then Action, the longest word, an unused entry skipped",
+  R.parse(R.RECORDS.bonnies, new Uint8Array(bon)).map((t) => [t.name, t.rows.length, t.rows[0].name, t.rows[0].word, t.rows[0].score]),
+  [["Classic", 4, "N0", "WORD0", 1000], ["Action", 5, "N5", "WORD5", 995]]);
 console.log("trophiestest: " + checks + " checks, " + failed + " failed");
 process.exit(failed ? 1 : 0);
