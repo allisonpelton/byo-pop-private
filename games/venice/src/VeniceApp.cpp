@@ -233,7 +233,7 @@ void VeniceWidget::Update()
 	int aLoadState = gLoadState;
 	if (aLoadState >= LoadStateLoadingScreen && aLoadState <= LoadStateLoadingDone) {
 		// the data loads while the loading screen draws; the original does it on a thread
-		if (aLoadState >= LoadStateLoading && ContinueLoadConfig(LoadSliceMilliseconds))
+		if (aLoadState >= LoadStateLoading && aLoadState < LoadStateLoadingDone && ContinueLoadConfig(LoadSliceMilliseconds))
 			gLoadState = LoadStateLoadingDone;
 		return;
 	}
