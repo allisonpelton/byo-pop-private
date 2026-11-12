@@ -11,16 +11,18 @@ Reachable only from a test (`-script`, `-commands`, the web page's test call; `d
 
 | command | what it does |
 | --- | --- |
-| `state` | `{screen, scenes, mode, modename, level, score, lives, profile}` and, while a level is in play, `timer` (updates), `moves` (shots fired) and `board` (`plates`, `slots`, `filled`, `middle`, `shooter`, `hits`) |
+| `state` | `{screen, scenes, mode, modename, level, score, lives, profile, over}` (`over`: a summary screen is up, or the level in play is won or lost) and, while a level is in play, `timer` (updates), `moves` (shots fired) and `board` (`plates`, `slots`, `filled`, `middle`, `shooter`, `hits`) |
 | `goto <screen>` | `menu`, `options`, `help`, `highscores`, `credits`, a mode (`journey`, `flood`, `survival`, `trickshot`) or the name of any screen the game has; the scenes there are killed |
 | `level <n>` | starts level n of the current mode (a trick shot's number in Trick Shot) over the scenes there |
 | `unlock all` | the flags that unlock Flood, Trick Shot and Survival and every Journey and Flood level |
 | `set score\|mode\|level\|lives <v>` | the profile's score, mode, level or tries |
 | `win`, `lose` | the level in play goes to its victory stage, or is lost as a shot that fell is |
 | `seed <n>` | seeds the game's random numbers |
+| `move` | `MOVE {"kind","input"}` for the bot's next shot (`Bot.cpp`), a `wait` while the level is not ready for one, or `MOVE null` |
+| `memreport` | the framework's, `MEMREPORT {...}` |
 
 The commands wait for a player: the name screen is up until a name is typed (`key T` ... then `keydown RETURN` and `keyup RETURN`
-a few updates apart, since a button's alt key needs both). There is no `move` yet: it comes with the port's bot.
+a few updates apart, since a button's alt key needs both). The bot reads the game's state and draws no random number. The shooter always points straight up and follows the pointer's x, so a shot is an x: the bot aims at the lowest unfilled slot on the screen that the ready jewel fills (any for a wild one), moves the pointer there, waits for the shooter to catch up (it closes 1/1.3 of the distance an update), presses, waits two updates and releases; it also clicks away the cupid's messages. It does not allow for plates that move or turn, nor for bumpers, and it never swaps jewels or uses a power-up, so it fills about half of what it shoots at (`tools/playbymove` on Journey level 5 made 26 shots, 11 hits and lost the level). The press is held two updates because the game reads the button's state once an update: a press and release that both come between two updates (the burst a posted click is) is not seen, as in the original.
 
 ## Deviations (each without a visible effect)
 

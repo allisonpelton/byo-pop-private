@@ -1,7 +1,7 @@
 // The standard test commands (docs/TEST_COMMANDS.md): script commands that put the game in a state or read it back. They are
 // reachable only from a test (-script, -commands and the web page's test call), so a normal run never meets them.
 //
-// state                prints STATE {"screen","scenes","mode","level","score","lives","timer","moves","profile","board"}
+// state                prints STATE {"screen","scenes","mode","level","score","lives","timer","moves","profile","over","board"}
 // goto <screen>        menu (or title), options, help, highscores, credits, journey, flood, survival, trickshot, or the name
 //                      of any screen the game has; the scenes there are killed
 // level <n>            starts level n (a trick shot's number in the Trick Shot mode) of the current mode, as a level is pushed
@@ -11,9 +11,12 @@
 // win, lose            ends the level in play: the middle layer goes to its victory stage, or the level is lost as a
 //                      shot that fell does (a try less in Journey)
 // seed <n>             seeds the game's random numbers
+// move                 prints MOVE {"kind","input"} for the bot's next shot (Bot.h), MOVE {"kind":"wait",...} while a level is not ready
+//                      for one and MOVE null when no level is on screen
 
 #include "VeniceApp.h"
 
+#include "Bot.h"
 #include "GameText.h"
 #include "Layer.h"
 #include "Level.h"
@@ -115,7 +118,7 @@ std::string StateJson()
 		",\"mode\":" + std::to_string(aProfile.mMode) + ",\"modename\":" + Quoted(ModeNames[aProfile.mMode]) +
 		",\"level\":" + std::to_string(aProfile.mLevelIndex[aProfile.mMode] + 1) + ",\"score\":" + std::to_string(aProfile.mScore) +
 		",\"lives\":" + std::to_string(aProfile.mTriesLeft[aProfile.mMode]) +
-		",\"profile\":" + Quoted(aProfile.mName);
+		",\"profile\":" + Quoted(aProfile.mName) + ",\"over\":" + (PlayIsOver() ? "true" : "false");
 	if (gActiveLevel != nullptr) {
 		aState += ",\"timer\":" + std::to_string((long long)gActiveLevel->mTickCount) + ",\"moves\":" + std::to_string(gActiveLevel->mShotsFired) +
 			",\"board\":" + BoardJson();
@@ -253,6 +256,27 @@ bool VeniceApp::HandleScriptCommand(const Sexy::ScriptCommand& theCommand)
 		}
 		SeedRandom((uint32_t)strtoul(anArg.c_str(), nullptr, 10));
 		Ok(aLine);
+		return true;
+	}
+	if (aName == "move") {
+		BotMove aMove = ChooseBotMove();
+		if (aMove.mAction == BotAction::None)
+			Reply("MOVE null");
+		else if (aMove.mAction == BotAction::Wait)
+			Reply("MOVE {\"kind\":\"wait\",\"input\":[{\"wait\":10}]}");
+		else if (aMove.mAction == BotAction::Click) {
+			char aText[200];
+			snprintf(aText, sizeof(aText),
+				"MOVE {\"kind\":\"message\",\"input\":[{\"move\":[%d,%d]},{\"wait\":2},{\"press\":[%d,%d]},{\"wait\":2},{\"release\":[%d,%d]},{\"wait\":20}]}",
+				aMove.mX, aMove.mY, aMove.mX, aMove.mY, aMove.mX, aMove.mY);
+			Reply(aText);
+		} else {
+			char aText[240];
+			snprintf(aText, sizeof(aText),
+				"MOVE {\"kind\":\"shot\",\"input\":[{\"move\":[%d,%d]},{\"wait\":%d},{\"press\":[%d,%d]},{\"wait\":2},{\"release\":[%d,%d]},{\"wait\":20}]}",
+				aMove.mX, aMove.mY, aMove.mUpdatesToAim, aMove.mX, aMove.mY, aMove.mX, aMove.mY);
+			Reply(aText);
+		}
 		return true;
 	}
 	return false;
