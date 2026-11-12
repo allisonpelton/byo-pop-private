@@ -152,6 +152,10 @@ DDInterface::DDInterface(SexyAppBase* theApp)
 	mCan3D = false;
 	mIsWindowed = true;
 	mVSync = false;
+	mPaceIntervalMs = 0;
+	mPaceNextMs = 0;
+	mPaceOriginMs = 0;
+	mPaceStarted = false;
 	// Unscaled 1x blits sample texels exactly, as at 1x in 1.3. Linear filtering them at a render scale
 	// above 1 pulls in the neighbouring cell of sprite sheets and fonts (visible slivers between glyphs).
 	mPixelPerfect = true;
@@ -231,6 +235,22 @@ int DDInterface::Init(SDL_Window* theWindow, bool vsync)
 		mCan3D = mIs3D;
 		mMaxTextureWidth = (anInfo.max_texture_width > 0) ? anInfo.max_texture_width : 16384;
 		mMaxTextureHeight = (anInfo.max_texture_height > 0) ? anInfo.max_texture_height : 16384;
+
+		// port: the pace of a renderer that no vertical blank holds (SDL's software renderer): the display's refresh rate, 60 when SDL
+		// does not know it. That renderer reports SDL_RENDERER_PRESENTVSYNC when it is asked for it, yet presents with a blit of the
+		// window's surface and never waits for a blank (fwtest drew at its updates' 100 a second under it), so it counts as unheld
+		// whatever its flags say. The web's frames are the browser's.
+		mPaceIntervalMs = 0;
+		mPaceStarted = false;
+#ifndef __EMSCRIPTEN__
+		if (((anInfo.flags & SDL_RENDERER_SOFTWARE) != 0) || ((anInfo.flags & SDL_RENDERER_PRESENTVSYNC) == 0))
+		{
+			SDL_DisplayMode aMode;
+			int aDisplay = SDL_GetWindowDisplayIndex(mWindow);
+			int aRate = ((aDisplay >= 0) && (SDL_GetCurrentDisplayMode(aDisplay, &aMode) == 0)) ? aMode.refresh_rate : 0;
+			mPaceIntervalMs = 1000.0 / ((aRate > 0) ? aRate : 60);
+		}
+#endif
 	}
 
 	SetupBlendModes();
@@ -252,6 +272,25 @@ int DDInterface::Init(SDL_Window* theWindow, bool vsync)
 
 	BeginFrame();
 	return RESULT_OK;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+bool DDInterface::FrameHeldByPace(unsigned int theNowMs)
+{
+	if (mPaceIntervalMs <= 0)
+		return false;
+	if (!mPaceStarted)
+	{
+		mPaceStarted = true;
+		mPaceOriginMs = theNowMs;
+		mPaceNextMs = 0;
+	}
+	double aNow = (double) (unsigned int) (theNowMs - mPaceOriginMs);
+	if (aNow < mPaceNextMs)
+		return true;
+	mPaceNextMs = std::max(mPaceNextMs + mPaceIntervalMs, aNow);
+	return false;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
