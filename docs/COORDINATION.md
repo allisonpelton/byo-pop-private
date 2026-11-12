@@ -128,6 +128,19 @@ holds the rules every session follows; this file does not repeat them.
   fixes mod when it keeps the original's look and only stops wasting time, otherwise a mod of its own that starts off
   (like Bejeweled's `lean`). No threads. A session may speed up its own port at any time under these rules ("Sessions
   should be allowed to improve performance early on so they can test with -fast and run even faster", 2026-11-08).
+  **The target (the user, 2026-11-11):** "I understand why our framework increases RAM usage on every game. Is there
+  an equivalent justification for some games being worse on CPU? If not, that should be an enforced target." There is
+  none: the framework adds a fixed amount of memory to every process, but a port's extra processor time has always
+  come from code that does more work than it needs to. So a port's processor time is at most its original's before the
+  pass is done, measured like for like:
+  - the same stretch of play;
+  - the original paced as on a player's 60 Hz screen, since one that waits for a vertical blank spins on the hidden
+    desktop;
+  - sound counted the same way on both sides. origrun's stand-in takes the original's DirectSound, and its MIDI device
+    calls may be skipped, so the original's number may hold no mixing or synthesis. Measure the port the same way, or
+    count its mixer and synthesizer apart.
+  Where the excess is a shared cost, the session sends the spec, and the game waits for the framework's fix instead of
+  being let off.
   Shared costs are found once and fixed in the framework for every game; the list below holds them.
 - **Shared costs waiting for a fix:**
   - Loading GIFs: decoded to 32 bits (`_stbi__out_gif_code`) and quantized back to 8 (`Sexy::Quantize8Bit`, a binary

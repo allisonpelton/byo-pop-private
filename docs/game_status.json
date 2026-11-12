@@ -174,7 +174,6 @@
         "identical-look",
         "fixes-mod",
         "coverage",
-        "performance",
         "unneeded-code",
         "readability",
         "site-features"
@@ -182,8 +181,8 @@
       "na": [
         "collection"
       ],
-      "now": null,
-      "note": ""
+      "now": "performance",
+      "note": "processor time over the original's: second performance round (the user's target, 2026-11-11)"
     },
     "mahjongchina": {
       "title": "Mahjong Escape: Ancient China",
@@ -194,7 +193,6 @@
         "identical-look",
         "fixes-mod",
         "coverage",
-        "performance",
         "unneeded-code",
         "readability",
         "site-features"
@@ -202,8 +200,8 @@
       "na": [
         "collection"
       ],
-      "now": null,
-      "note": ""
+      "now": "performance",
+      "note": "processor time over the original's: second performance round (the user's target, 2026-11-11)"
     },
     "bejeweledtwist": {
       "title": "Bejeweled Twist",
@@ -232,7 +230,6 @@
         "registration-out",
         "fixes-mod",
         "coverage",
-        "performance",
         "unneeded-code",
         "readability",
         "collection",
@@ -240,7 +237,7 @@
       ],
       "na": [],
       "now": "identical-look",
-      "note": "Medal screens equal in 2D and the web build; 3D tonight"
+      "note": "Medal screens equal in 2D and the web build; 3D tonight; then a CPU round (over its original)"
     },
     "astropop": {
       "title": "AstroPop Deluxe",
@@ -390,11 +387,12 @@
         "registration-out",
         "identical-look",
         "fixes-mod",
-        "coverage"
+        "coverage",
+        "unneeded-code"
       ],
       "na": [],
       "now": "performance",
-      "note": "processor time halved (d1321ef0), still 3 to 4 times the original's; a second round"
+      "note": "processor time halved (d1321ef0), still 3 to 4 times the original's; a second round; unneeded code out (ea92f894)"
     },
     "wordharmony": {
       "title": "Word Harmony",
@@ -406,14 +404,13 @@
         "fixes-mod",
         "site-features",
         "coverage",
-        "performance",
         "unneeded-code",
         "readability",
         "collection"
       ],
       "na": [],
-      "now": null,
-      "note": ""
+      "now": "performance",
+      "note": "processor time over the original's: second performance round (the user's target, 2026-11-11)"
     },
     "cosmicbugs": {
       "title": "Cosmic Bugs",
@@ -425,14 +422,13 @@
         "fixes-mod",
         "site-features",
         "coverage",
-        "performance",
         "unneeded-code",
         "readability",
         "collection"
       ],
       "na": [],
-      "now": null,
-      "note": ""
+      "now": "performance",
+      "note": "processor time over the original's: second performance round (the user's target, 2026-11-11)"
     },
     "waterbugs": {
       "title": "Water Bugs",
@@ -462,15 +458,14 @@
         "identical-look",
         "fixes-mod",
         "coverage",
-        "performance",
         "unneeded-code",
         "readability",
         "collection",
         "site-features"
       ],
       "na": [],
-      "now": null,
-      "note": ""
+      "now": "performance",
+      "note": "processor time over the original's: second performance round (the user's target, 2026-11-11)"
     },
     "bejeweled2": {
       "title": "Bejeweled 2 Deluxe",

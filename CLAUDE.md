@@ -264,7 +264,9 @@ Every call re-reads the whole context, so what costs is context times calls, and
   publish whatever games are ready by the end of December. I'm in no hurry to get games out in a less-than-stellar
   state." A game is done, and may go on the live site, only once it has been through all of them: the user's faults,
   both phases of identical play, registration and outbound buttons out, its fixes mod (the site serves every game with
-  it on), the readability pass, the coverage check, the performance pass (the user, 2026-11-03), taking out the other
+  it on), the readability pass, the coverage check, the performance pass (the user, 2026-11-03), which brings the port's processor time to its
+  original's or below, measured like for like (the user, 2026-11-11: "that should be an enforced target";
+  `docs/COORDINATION.md`, "The target"), taking out the other
   code it does not need, for a game ported from its Steam copy the check against its PopCap Game Collection
   version, and its features on the site (the user, 2026-11-11: "All these accessory features should be added to our
   definition of done"): Music's entries for its tunes placed, grouped and split as the game plays them, with no place
