@@ -1,7 +1,7 @@
-#ifndef __COSMICBUGS_CBSCREENDIFF_H__
-#define __COSMICBUGS_CBSCREENDIFF_H__
+#ifndef __R64SCREENDIFF_H__
+#define __R64SCREENDIFF_H__
 
-// port: what the host shows of the engine's 800x600 16-bit screen. The engine says what it copies from its back buffer
+// port: what a host shows of the engine's 800x600 16-bit screen (one copy for Cosmic Bugs and Water Bugs). The engine says what it copies from its back buffer
 // (Sys_AddUpdateRect), not everything it draws: sprites, beams, text and fades are drawn straight into the screen, and some
 // of their pixels lie outside every rectangle it reported. So the changes are found in the screen itself: ScreenDiff keeps a
 // copy of the screen as it last showed it, compares a row at a time and the rows that differ a block at a time, widens just
@@ -10,14 +10,14 @@
 // widening of the whole screen (a check on every drawn frame of long plays is described in games/cosmicbugs/docs/README.md,
 // "The processor-time target").
 //
-// It holds no framework type, so that it stays in the game's library.
+// It holds no framework type, so that it stays in the engine's library.
 
 #include "R64.h"
 
 #include <cstdint>
 #include <vector>
 
-namespace cb
+namespace r64
 {
 
 // A rectangle of the screen's pixels
@@ -33,8 +33,8 @@ public:
 	// still be one rectangle
 	static constexpr int BLOCK = 16;
 	static constexpr int GAP = 2;
-	static constexpr int COLUMNS = (r64::SCREEN_WIDTH + BLOCK - 1) / BLOCK;
-	static constexpr int ROWS = (r64::SCREEN_HEIGHT + BLOCK - 1) / BLOCK;
+	static constexpr int COLUMNS = (SCREEN_WIDTH + BLOCK - 1) / BLOCK;
+	static constexpr int ROWS = (SCREEN_HEIGHT + BLOCK - 1) / BLOCK;
 
 	ScreenDiff();
 
@@ -57,6 +57,6 @@ private:
 	bool mWhole;
 };
 
-} // namespace cb
+} // namespace r64
 
 #endif

@@ -252,7 +252,7 @@ void CosmicBugsWidget::Draw(Graphics* g)
 			else
 			{
 				mFrameRects.clear();
-				for (const cb::ChangedRect& aRect : mScreenDiff.Rects())
+				for (const r64::ChangedRect& aRect : mScreenDiff.Rects())
 					mFrameRects.push_back(Rect(aRect.mX, aRect.mY, aRect.mWidth, aRect.mHeight));
 				aDisplay->SetFrame(mPixels.data(), r64::SCREEN_WIDTH * 4, mFrameRects.data(), (int)mFrameRects.size());
 			}

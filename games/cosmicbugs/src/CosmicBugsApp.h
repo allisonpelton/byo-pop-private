@@ -7,7 +7,7 @@
 // which draws into the engine's 800x600 16-bit screen, and the widget presents that screen.
 
 #include "R64.h"
-#include "CBScreenDiff.h"
+#include "R64ScreenDiff.h"
 #include "SexyAppBase.h"
 #include "Widget.h"
 
@@ -27,7 +27,7 @@ public:
 	// rectangles. The web build, and a desktop run with SURFACE_DISPLAY=off, keep the framework's display, and the widget draws
 	// its picture of the screen (mScreenImage) instead.
 	MemoryImage* mScreenImage;
-	cb::ScreenDiff mScreenDiff;
+	r64::ScreenDiff mScreenDiff;
 	std::vector<uint32_t> mPixels;
 	std::vector<Rect> mFrameRects;
 
