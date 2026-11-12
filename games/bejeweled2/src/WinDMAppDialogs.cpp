@@ -35,7 +35,7 @@ void WinDMApp::SetupDialog(Dialog* theDialog, int theWidth)
 	theDialog->mSpaceAfterHeader = ScaleNum(0x1c, 0);
 
 	int aCenterX;
-	if (mBoard == nullptr || mBoard->mScreenState != 1)
+	if (mBoard == nullptr || mBoard->mScreenState != Board::SCREEN_SHOWN)
 		aCenterX = mWidth / 2;
 	else
 		aCenterX = ScaleNum(0x270, 0);
@@ -70,7 +70,7 @@ bool WinDMApp::KillDialog(int theDialogId)
 	return true;
 }
 
-// a dialog with one button, its text "OK" (the profile errors, the name conflicts)
+// port: a dialog with one button, its text "OK" (the profile errors, the name conflicts)
 Dialog* WinDMApp::ShowMessage(int theDialogId, const std::string& theHeader, const std::string& theLines, int theButtonMode)
 {
 	return DoDialog(theDialogId, true, theHeader, theLines, "OK", theButtonMode);
@@ -104,9 +104,9 @@ void WinDMApp::ButtonDepress(int theId)
 		case 17:
 		{
 			// "Load Game?": NO starts a new game and loses the saved one; the cancel button goes back to the menu
-			PodDialog* aDialog = static_cast<PodDialog*>(GetDialog(17));
+			PodDialog* aDialog = static_cast<PodDialog*>(GetDialog(DIALOG_LOAD_GAME));
 			bool anEscaped = aDialog->mEscaped;
-			KillDialog(17);
+			KillDialog(DIALOG_LOAD_GAME);
 			if (!anEscaped)
 			{
 				DoNewGame();
@@ -157,20 +157,20 @@ void WinDMApp::ButtonDepress(int theId)
 		static_cast<OptionsDialog*>(GetDialog(DIALOG_OPTIONS))->FinishOptionVerify(true);
 		break;
 	case 17:
-		KillDialog(17);
+		KillDialog(DIALOG_LOAD_GAME);
 		DoNewGame();
 		mBoard->LoadGame();
 		return;
 	case 22:
-		KillDialog(22);
+		KillDialog(DIALOG_UNDO);
 		mBoard->UndoUntilSolvable();
 		return;
 	case 23:
-		KillDialog(23);
+		KillDialog(DIALOG_HINT_WARNING);
 		mBoard->TryShowHint();
 		return;
 	case 24:
-		KillDialog(24);
+		KillDialog(DIALOG_NEXT_PUZZLE_MOVE);
 		mBoard->ShowNextPuzzleMove();
 		return;
 	case 25:
@@ -209,20 +209,20 @@ void WinDMApp::ButtonDepress(int theId)
 		FinishUserDialog(true);
 		return;
 	case 33:
-		KillDialog(33);
+		KillDialog(DIALOG_RESET_HIGH_SCORES);
 		mHighScoreWidget->ResetHighScores();
 		return;
 	case 34:
 		FinishPuzzlePackSelector(true);
 		return;
 	case 40:
-		FinishHelpScreen(static_cast<HelpScreen*>(GetDialog(40))->mNeverShowAgain);
+		FinishHelpScreen(static_cast<HelpScreen*>(GetDialog(DIALOG_HELP))->mNeverShowAgain);
 		return;
 	case 41:
 	{
 		// "Enter Name" was answered: back to the name of the new user
 		KillDialog(DIALOG_ENTER_NAME_ID);
-		CreateUserDialog* aDialog = static_cast<CreateUserDialog*>(GetDialog(27));
+		CreateUserDialog* aDialog = static_cast<CreateUserDialog*>(GetDialog(DIALOG_CREATE_USER));
 		if (aDialog != nullptr)
 			mWidgetManager->SetFocus(aDialog->mEdit);
 		return;

@@ -67,9 +67,9 @@ void Board::PrepareLevelImages()
 	{
 		mApp->mProfile->GetPuzzleProgress();
 		GalaxyParser* aGalaxy = mApp->mGalaxyParser;
-		if (m15f6c < aGalaxy->GetPlanetCount())
+		if (mPlanetNum < aGalaxy->GetPlanetCount())
 		{
-			mNextBackdropImage = (MemoryImage*)aResourceManager->GetCachedImage(aGalaxy->GetPlanet(m15f6c).mBackdrop);
+			mNextBackdropImage = (MemoryImage*)aResourceManager->GetCachedImage(aGalaxy->GetPlanet(mPlanetNum).mBackdrop);
 			mNextBackdropImage->mPurgeBits = true;
 			mNextBackdropImage->PurgeBits();
 		}
@@ -79,7 +79,6 @@ void Board::PrepareLevelImages()
 		mNextBackdropImage->mD3DFlags = 1;
 		mNextBackdropImage->SetImageMode(false, false);
 	}
-	m15f6a = false;
 }
 
 // 0x5a5024
@@ -91,7 +90,6 @@ void Board::PrepareLevelImagesStub(void* theBoard)
 // 0x5a571e: the original hands this to its worker thread
 void Board::StartPrepareLevelImages()
 {
-	m15f6a = true;
 	mApp->mWorker->DoTask(PrepareLevelImagesStub, this);
 }
 
@@ -102,7 +100,7 @@ void Board::InitialBackdropProcessing()
 	{
 		if (mBackdropNum == -1)
 		{
-			if (!mApp->mProfile->mFlag78)
+			if (!mApp->mProfile->mRandomBackdrops)
 				mBackdropNum = (unsigned int)mLevel % (unsigned int)mApp->mBackdrops.size();
 			else
 				mBackdropNum = (unsigned int)Rand() % (unsigned int)mApp->mBackdrops.size();
@@ -110,14 +108,14 @@ void Board::InitialBackdropProcessing()
 	}
 	else
 	{
-		m15f6c = mApp->mProfile->GetPuzzleProgress()->mPuzzleNum / 5;
+		mPlanetNum = mApp->mProfile->GetPuzzleProgress()->mPuzzleNum / 5;
 	}
 	StartPrepareLevelImages();
 	ProcessLevelImages();
 	if (!mIsPuzzle)
 		mBackdropNum = (mBackdropNum + 1U) % (unsigned int)mApp->mBackdrops.size();
 	else
-		m15f6c++;
+		mPlanetNum++;
 	StartPrepareLevelImages();
 	mCoversScreenFlag = true;
 }
@@ -126,7 +124,6 @@ void Board::InitialBackdropProcessing()
 void Board::SetupLevelData()
 {
 	double anOldValue = mLevelValue;
-	m15f50 = true;
 	if (!mIsAction)
 	{
 		double aBonus;
@@ -145,32 +142,32 @@ void Board::SetupLevelData()
 			mLevelValue = mApp->mNormPMMult * (double)mLevel + mApp->mNormPMBase;
 			aBonus = (double)mApp->mNormBonus + mApp->mNormBonusMult * (double)mLevel;
 		}
-		m15ef0 = (int)(aBonus * mLevelValue);
+		mLevelGoalPoints = (int)(aBonus * mLevelValue);
 	}
 	else
 	{
 		mLevelValue = (double)mLevel * mApp->mTimedPMMult + mApp->mTimedPMBase;
-		m15ef0 = (int)(mLevelValue * m15e30);
-		m15e30 = m15e38 + m15e30;
-		m15e38 = mApp->mTimedBonusAccel + m15e38;
+		mLevelGoalPoints = (int)(mLevelValue * mTimedGoal);
+		mTimedGoal = mTimedGoalStep + mTimedGoal;
+		mTimedGoalStep = mApp->mTimedBonusAccel + mTimedGoalStep;
 		if (anOldValue == 0.0)
 		{
-			m15f00 = mApp->GetDouble("TimedPV");
-			m15f08 = mApp->GetDouble("TimedPA");
-			m15f10 = mApp->GetDouble("TimedPJ");
+			mDrainSpeed = mApp->GetDouble("TimedPV");
+			mDrainAccel = mApp->GetDouble("TimedPA");
+			mDrainJerk = mApp->GetDouble("TimedPJ");
 		}
 		else
 		{
 			double aRatio = mLevelValue / anOldValue;
-			m15f00 = aRatio * m15f00;
-			m15f08 = m15f08 * aRatio;
-			m15f10 = aRatio * m15f10;
+			mDrainSpeed = aRatio * mDrainSpeed;
+			mDrainAccel = mDrainAccel * aRatio;
+			mDrainJerk = aRatio * mDrainJerk;
 			double anAdvance = mApp->GetDouble("TimedLevelAdvance");
-			m15f00 = m15f08 * anAdvance + m15f00;
-			m15f08 = anAdvance * m15f10 + m15f08;
+			mDrainSpeed = mDrainAccel * anAdvance + mDrainSpeed;
+			mDrainAccel = anAdvance * mDrainJerk + mDrainAccel;
 		}
 	}
-	m15ef8 = 0.0;
+	mDrain = 0.0;
 }
 
 // 0x5a5030: the game ends (the gems fall away after theDelay updates)
@@ -178,11 +175,10 @@ void Board::GameOver(int theDelay)
 {
 	DeleteSavedGame();
 	mSelectedPiece = NULL;
-	m1960 = false;
-	mApp->KillDialog(0x25);
+	mApp->KillDialog(DIALOG_MESSAGE);
 	mState = STATE_GAME_OVER_FALL;
-	m15e14 = (unsigned int)(mUpdateCnt - mPlayStartTick) / 100 + mPlayedSeconds;
-	m15e58 = theDelay;
+	mGameSeconds = (unsigned int)(mUpdateCnt - mPlayStartTick) / 100 + mPlayedSeconds;
+	mGameOverDelay = theDelay;
 	ProcessEndGameInfo();
 	// (the original counts the game in the trial's counter at app+0x718 here)
 }
@@ -190,31 +186,31 @@ void Board::GameOver(int theDelay)
 // 0x5a510a: the screen is swept away and the music fades; when the sweep has covered the board the next level starts
 void Board::UpdateLevelTransition()
 {
-	double aVolume = m15f90 - 0.015;
-	m15f90 = aVolume;
+	double aVolume = mWarpFade - 0.015;
+	mWarpFade = aVolume;
 	if (0.0 <= aVolume)
 	{
-		if (m1728 != NULL)
-			m1728->SetVolume(m15f90);
+		if (mFadingSound != NULL)
+			mFadingSound->SetVolume(mWarpFade);
 	}
 	else
 	{
-		m15f90 = 0.0;
-		if (m1728 != NULL)
+		mWarpFade = 0.0;
+		if (mFadingSound != NULL)
 		{
-			m1728->Release();
-			m1728 = NULL;
+			mFadingSound->Release();
+			mFadingSound = NULL;
 		}
 	}
 	if (mUpdateCnt % 4 == 0)
-		m15f80 = Rand() % 0x80;
+		Rand();   // the original keeps the number where nothing reads it; the draw stays
 	MarkDirty();
-	m15f7c += 3;
-	if (mHeight < m15f7c)
+	mSweepY += 3;
+	if (mHeight < mSweepY)
 	{
 		mNextLevel = mLevel + 1;
 		CreateFontGlowImages();
-		m15f88 = 100;
+		mDrainGrace = 100;
 		NewBoard();
 		// (the trial version asks for the registration here now and then)
 	}

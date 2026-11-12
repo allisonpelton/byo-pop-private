@@ -484,10 +484,11 @@
         "coverage",
         "performance",
         "collection",
-        "unneeded-code"
+        "unneeded-code",
+        "readability"
       ],
       "na": [],
-      "now": "readability",
+      "now": null,
       "note": ""
     },
     "venice": {

@@ -3,7 +3,7 @@
 
 // Board.h: the game board (Sexy::Board, 0x59483b-0x5ae34e; the object is 0x165c4 bytes). One class for every mode: the
 // mode flags below say which one is played (they are set from WinDMApp::mGameMode by the constructor). Offsets in the
-// comments are the original's; a member named after its offset (m15e4c) is not understood yet.
+// comments are the original's.
 //
 // The board is a grid of 8 by 8 Piece pointers, mBoard[row][col], null for an empty square. A piece sits at the pixel
 // position mX/mY (640x480 board space; WinDMApp::ScaleNum scales it when it is drawn or hit) and falls with mVY.
@@ -112,9 +112,9 @@ public:
 		STATE_COMMIT_SWAP = 4,
 		STATE_CLEARING = 5,
 		STATE_GAME_OVER_FALL = 6,
-		STATE_7 = 7,
+		STATE_GAME_OVER = 7,            // the score table is up
 		STATE_LEVEL_COMPLETE_WAIT = 8,
-		STATE_9 = 9,
+		STATE_LEVEL_COMPLETE_SCORE = 9, // the level is complete: the shown score runs up to the score, then the whirlpool
 		STATE_WHIRLPOOL = 10,
 		STATE_LEVEL_TRANSITION = 11,
 		STATE_BOARD_DROPPING = 12,
@@ -178,10 +178,9 @@ public:
 	bool			mIsHyper;           // +0x1720 mode 5
 	bool			mFlipped;           // +0x1721 mode 4: the board is upside down (rows count from the bottom)
 	bool			mInUndoPreview;     // +0x1722 (selects the undo list)
-	bool			m1723;
-	bool			m1724;
+	bool			mFreeMode;          // +0x1723 saved: a swap that makes no match is not swapped back (the original never sets it)
 	bool			mSecretModeUnlocked; // +0x1725 the profile has unlocked the secret version of this mode (so says no more)
-	SoundInstance*	m1728;              // +0x1728 never set
+	SoundInstance*	mFadingSound;       // +0x1728 the sound that fades with the level change (the original never sets it)
 	bool			mNoMoveYet;         // +0x172c
 	int				mDropDelay;         // +0x1730 updates to wait before gems fall into the board
 	int				mLevel;
@@ -263,98 +262,128 @@ public:
 
 	// the cheats
 	std::string		mCheatBuffer;       // +0x165a0 the last 24 letters typed
-	StarField*		m165bc;             // +0x165bc the star field or the dots of a cheat
-	bool			m165ac;             // OLDSKOOL: draws the board in 2D
-	bool			m165ad;             // XMAS
-	bool			m165ae;             // COLORSWAP, BLACKANDWHITE, AMBERSCREEN, GREENSCREEN: the images have been changed
-	bool			m165af;             // SLOMO
-	int				m165b4;
-	bool			m165b8;             // NAUSEA
-	bool			m165c0;             // NOFRAME
+	StarField*		mCheatStars;        // +0x165bc the star field or the dots of a cheat
+	bool			mOldSkool;          // +0x165ac OLDSKOOL: draws the board in 2D
+	bool			mXmas;              // +0x165ad XMAS
+	bool			mImagesChanged;     // +0x165ae COLORSWAP, BLACKANDWHITE, AMBERSCREEN, GREENSCREEN: the images have been changed
+	bool			mSlowMotion;        // +0x165af SLOMO
+	bool			mNausea;            // +0x165b8 NAUSEA
+	bool			mNoFrame;           // +0x165c0 NOFRAME
 
-	// the rest, named by their offsets
-	bool			m1750, m1751;
-	int				m1764, m1768, m176c;
-	bool			m1770;
-	int				m1774;
+	// the rest, in the order of the original's object
+	bool			mClearBacklog;      // +0x1751 the next Draw clears the update backlog (set when the whirlpool ends)
+	int				mStartCountdown;    // +0x1764 updates until the level starts: the GO sound
+	int				mLevelTextCountdown; // +0x1768 updates until the LEVEL text shows
+	bool			mStartGameMusic;    // +0x1770 the board's second update fades the menu song out and starts the game's (the Play Again button clears it)
+	int				mScoreSnapshot;     // +0x1774 the score when the puzzle began or the game was saved
 	int				mSecretPuzzleCount; // +0x17a4 the puzzles queued for the secret galaxy (Cognito)
 	int				mSecretSolved;      // +0x17a8 the puzzles solved without a hint
 	int				mSecretRun;         // +0x17ac the puzzles solved without a hint in this run of four (the bar)
-	int				m17d4, m17d8, m17dc;
-	bool			m17d0;
-	float			m17e0;
-	bool			m1848;
-	float			m184c;
-	bool			m1850;
-	double			m1858, m1860;
+	int				mHyperGlowDelay;    // +0x17d4 updates until the glow starts (15)
+	int				mHyperGlowX;        // +0x17d8 where the glow is
+	int				mHyperGlowY;        // +0x17dc
+	bool			mHyperGlow;         // +0x17d0 the glow of the swapped hyper cube is on
+	float			mHyperGlowPhase;    // +0x17e0 0 to 1
+	bool			mShootingStar;      // +0x1848 a shooting star runs behind the board
+	float			mShootingStarPos;   // +0x184c 0 to 1: how far it has run
+	bool			mPodArrowShown;     // +0x1850 the arrow over the next pod of the puzzle bobs (set when the board is quiet)
+	double			mPodArrowPhase;     // +0x1858 its phase (EffectOverlay::Draw takes its cosine)
+	double			mHintButtonArrowPhase; // +0x1860 the phase of the arrow that points at the hint button
 	int				mSolutionFirstNode; // +0x18f0 the first node of the solution file (-1 without one)
 	unsigned char	mSolutionMove;      // +0x18fc the move just made, as the solution file writes one
-	int				m190c, m1910, m1914, m1918;
-	bool			m191c;              // +0x191c
+	int				mShowPlanetCountAtStart; // +0x190c the start of the level shows the planet's puzzle count, not GO
+	int				mMoreHintsDelay;    // +0x1910 updates until the "More Hints?" box (25 after a puzzle was set back)
+	int				mHintsUsed;         // +0x1918 the hints that the puzzle has asked for (the secret puzzles count only those solved without one)
+	bool			mFinale;            // +0x191c the jump to the last planet's finale
 	bool			mIsPlanetIntro;     // +0x191d the planet's intro puzzle is on the board (SelectPuzzlePod with -1)
-	float			m1944, m1948;
-	bool			m194c, m194d, m194e;
-	float			m1954;          // +0x1954 the phase of the arrow over the hint gem (EffectOverlay::Draw takes its cosine)
-	int				m195c;
-	bool			m1960;
-	int				m1964, m1968, m196c, m1970, m1974;
-	int				m1994, m1998;
-	float			m15d9c;
-	int				m15da0, m15da4;
-	float			m15da8;
-	CurvedVal		m15db0;
-	double			m15de0;
-	bool			m15de8;
-	int				m15df0;
-	float			m15e04;
-	int				m15e08;
-	int				m15e14, m15e18;
+	float			mTutorialMoveFade;  // +0x1944 the tutorial pointer over the move that was made: 1 fading to 0
+	float			mTutorialNextFade;  // +0x1948 the pointer over the next move: 0 rising to 1
+	bool			mFlameFromCross;    // +0x194c the last power gem came from two sets crossing, not from four gems in a line
+	bool			mPowerGemTipShown;  // +0x194d saved: the power gem tip has been shown in this game
+	bool			mHyperCubeTipShown; // +0x194e saved: the hyper cube tip has been shown in this game
+	float			mHintArrowPhase;    // +0x1954 the phase of the arrow over the hint gem (EffectOverlay::Draw takes its cosine)
+	int				mBarShown;          // +0x1994 saved: the length of the level bar that is drawn (it runs after the target)
+	int				mPlayUpdates;       // +0x1998 the updates played in this game (the end of game info counts them as hundredths of a second)
+	float			mWhirlStrength;     // +0x15d9c how hard the whirlpool pulls the mesh in
+	int				mWhirlStrengthDelay; // +0x15da0 updates before the pull starts (90)
+	int				mInterfaceFlyDelay; // +0x15da4 updates before the interface starts to fly away (80)
+	float			mWhirlRadiusScale;  // +0x15da8 the scale of the whirlpool's spiral, 1 and rising
+	CurvedVal		mInterfaceFlyRamp;  // +0x15db0 speeds the interface up as it flies away
+	double			mInterfaceFly;      // +0x15de0 0 to 1: how far the interface has flown away
+	bool			mPlayWhirlSound;    // +0x15de8 the next Draw plays the whirlpool sound
+	int				mHyperspaceDelay;   // +0x15df0 updates until the whirlpool jumps (100)
+	float			mInterfaceRestore;  // +0x15e04 0 to 1: how far the interface has come back after the jump
+	int				mLightningColor;    // +0x15e08 the colour of the gems that the hyper cube's lightning hits
+	int				mGameSeconds;       // +0x15e14 the seconds played in this game
+	int				mSecondsCredited;   // +0x15e18 the seconds that the profile's statistics already hold
 	int				mHintCountdown;     // +0x15e1c
-	double			m15e30, m15e38;
-	int				m15e40, m15e44, m15e48, m15e4c;
+	double			mTimedGoal;         // +0x15e30 saved: the points the next level needs, in level values (the timed games)
+	double			mTimedGoalStep;     // +0x15e38 saved: what each level adds to it (it grows by TimedBonusAccel of the application)
+	int				mShownScore;        // +0x15e40 saved: the score that is shown (it runs after the score)
+	int				mGemsCleared;       // +0x15e44 saved: the gems collected
+	int				mGemsCredited;      // +0x15e48 the gems that the profile's statistics already hold
+	int				mSetsInMove;        // +0x15e4c saved: the sets cleared since the move began (the second one scores more)
 	int				mCascadeCount;      // +0x15e50 the clears that followed the move so far (DoneClearing counts, a swap clears it): the combo sound's step
-	int				m15e54, m15e58;
-	int				m15e6c, m15e70;
+	int				mLastLandSoundTick; // +0x15e54 the update at which a landing gem last sounded
+	int				mGameOverDelay;     // +0x15e58 updates until the board blows up at the end of the game
+	int				mBiggestCascade;    // +0x15e6c saved: the longest cascade of the game
+	int				mBiggestCombo;      // +0x15e70 saved: the best score of one move
 	int				mChainCount;        // +0x15e74 the flame and bomb gems that exploded in this chain (reset by CheckMatches)
 	bool			mExplodeHappened;   // +0x15e78 a gem exploded in this update: Update plays the sound once
-	int				m15e7c, m15e80, m15e84, m15e88;
+	int				mPowerGemsMade;     // +0x15e7c saved
+	int				mPowerGemsCredited; // +0x15e80 what the profile's statistics already hold
+	int				mHyperCubesMade;    // +0x15e84 saved
+	int				mHyperCubesCredited; // +0x15e88 what the profile's statistics already hold
 	int				mLastExplodeSoundTick; // +0x15e8c the update at which a hyper cube in a blast last sounded
-	int				m15e90, m15e94, m15e98;
-	double			m15ea0;
-	bool			m15ea8, m15ea9;
-	int				m15eac, m15eb0, m15eb4, m15eb8;
-	bool			m15ebc;
-	Font*			m15ed8;
-	Font*			m15edc;
-	bool			m15ee0;
-	int				m15ee4, m15ee8, m15eec, m15ef0;
-	double			m15ef8, m15f00, m15f08, m15f10;
-	bool			m15f18;
-	int				m15f1c, m15f20;
-	bool			m15f24;
-	int				m15f30, m15f34;
-	bool			m15f38;
-	Widget*			m15f40;
-	bool			m15f50;
-	MemoryImage*	m15f60;             // the static half of the screen (a DDImage that DrawNormal2d makes)
-	MemoryImage*	m15f64;             // a picture that DrawBoard draws the gems of the 2D game into
-	bool			m15f68, m15f69, m15f6a;
-	int				m15f6c, m15f70;
-	int				m15f7c, m15f80;
-	float			m15f84;             // the frame of the black hole (0 to 5) that the whirlpool turns through
-	int				m15f88;
-	double			m15f90, m15f98, m15fa0;
-	bool			m15fa8;
-	float			m15fac;
+	int				mMoveScore;         // +0x15e94 the points of the move so far
+	int				mBigMoveTimer;      // +0x15e98 updates left of the glow of a big move (300 to 1200)
+	double			mBigMoveGlow;       // +0x15ea0 its brightness (nothing draws it; the update keeps the screen dirty meanwhile)
+	bool			mMovedSinceHint;    // +0x15ea8 the player has moved since the last hint
+	bool			mHintAccepted;      // +0x15ea9 the puzzle's hints are accepted: the player has taken the hinted moves
+	int				mHintFromCol;       // +0x15eac the move that the puzzle's hint showed: -1 when none
+	int				mHintFromRow;       // +0x15eb0
+	int				mHintToCol;         // +0x15eb4
+	int				mHintToRow;         // +0x15eb8
+	Font*			mScoreFont;         // +0x15edc
+	bool			mSkipBestRecords;   // +0x15ee0 saved: the cascade and combo records are not kept (the original never sets it)
+	int				mNeverSetScoreMark; // +0x15ee4 saved: the original saves it before the level's start score and never sets or reads it
+	int				mLevelStartScore;   // +0x15ee8 saved: the score at the start of the level
+	int				mLevelGoalScore;    // +0x15eec saved: the score that finishes the level
+	int				mLevelGoalPoints;   // +0x15ef0 saved: the points the level needs
+	double			mDrain;             // +0x15ef8 saved: how far the timer bar has drained (timed games)
+	double			mDrainSpeed;        // +0x15f00 saved: its speed (TimedPV)
+	double			mDrainAccel;        // +0x15f08 saved: its acceleration (TimedPA)
+	double			mDrainJerk;         // +0x15f10 saved: its jerk (TimedPJ)
+	bool			mBarBlink;          // +0x15f18 the bar blinks (it is low)
+	int				mTimerFrame;        // +0x15f1c saved: the frame of the timer (0 to 24)
+	int				mLastWarningTick;   // +0x15f20 the update at which the timer last beeped
+	bool			mBoardInOverlay;    // +0x15f24 the effect overlay draws the board (the game over)
+	int				mMouseDownX;        // +0x15f30 where the mouse button went down
+	int				mMouseDownY;        // +0x15f34
+	bool			mMouseHeld;         // +0x15f38 the mouse button is down
+	MemoryImage*	mStaticImage;       // +0x15f60 the static half of the screen (a DDImage that DrawNormal2d makes)
+	MemoryImage*	mGemImage;          // +0x15f64 a picture that DrawBoard draws the gems of the 2D game into
+	bool			mCountBombs;        // +0x15f68 saved: a move was made, so the bomb gems count down once the board is quiet
+	bool			mRedrawBackground;  // +0x15f69 the picture of the static half of the screen must be drawn again
+	int				mPlanetNum;         // +0x15f6c the planet the puzzle is on
+	int				mSweepY;            // +0x15f7c saved: how far the sweep of the level change has come down
+	float			mBlackHoleFrame;    // +0x15f84 the frame of the black hole (0 to 5) that the whirlpool turns through
+	int				mDrainGrace;        // +0x15f88 updates that the timer does not drain after a move
+	double			mWarpFade;          // +0x15f90 0 to 1: how far the warp's picture and sound are in
+	double			mBlackHoleAngle;    // +0x15f98 the angle of the black hole's picture
+	double			mBlackHoleSpin;     // +0x15fa0 how fast it turns
+	bool			mSavedNeverSet;     // +0x15fa8 saved: the original writes it into the save and never sets it
+	float			mPuzzleFade;        // +0x15fac 0 to 1: the puzzle's buttons and board fade while a pod is picked
 	float			mFadeIn;            // +0x15fb0 how far the board's lights are in, 0 to 1 (down during the whirlpool, up after it)
-	float			m15fb4;
-	bool			m15fb8;
+	float			mPauseFade;         // +0x15fb4 1 while the game runs, 0 while only the interface is paused
+	bool			mPauseTextOn;       // +0x15fb8 the PAUSED text shows while the interface is paused
 	double			mStarRot;           // +0x15fc0 the turn of the first star on the selected gem
 	double			mStarDrift;         // +0x15fc8 the turn of the second star, the other way
 	double			mStarPhase;         // +0x15fd0 0 to 1: the flicker between the two stars and of the flames
-	double			m15fd8;
-	bool			m16020;
-	int				m16024, m16028, m1602c, m16030;
+	int				mCheerGiven;        // +0x16024 the cheer that this move has had (0 to 3)
+	int				mCheerTier;         // +0x16028 the cheer that the move's score has earned: 1 GOOD, 2 EXCELLENT, 3 INCREDIBLE
+	int				mCheerDelay;        // +0x1602c updates until the next cheer
+	int				mLastGoodTick;      // +0x16030 the update at which GOOD last sounded
 
 public:
 	// port: the board's memory is zeroed first. The original's constructor leaves about sixty members unset (counters that

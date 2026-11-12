@@ -366,18 +366,18 @@ void WinDMApp::DoNewGame()
 	mBoard->SetVisible(false);
 	mBoard->mEffectOverlay->DoPortal();
 	ClearUpdateBacklog(false);
-	mBoard->mEffectOverlay->mFlagC8 = true;
+	mBoard->mEffectOverlay->mClearBacklogAfterPortal = true;
 	PlaySample(SOUND_MAIN_GAME_START);
 done:
 	if (mGameMode == 2)
 		mPuzzleFlag = false;
 }
 
-// 0x5dcd44: a board that a cheat changed the pictures of (m165ae) is deleted at once and the pictures are loaded again; any
+// 0x5dcd44: a board that a cheat changed the pictures of (mImagesChanged) is deleted at once and the pictures are loaded again; any
 // other stays behind the menu (it slides out and is saved, so that its game can be resumed)
 void WinDMApp::DoMainMenu()
 {
-	if (mBoard != nullptr && mBoard->m165ae) {
+	if (mBoard != nullptr && mBoard->mImagesChanged) {
 		mReloadPending = true;
 		KillBoard();
 	}
@@ -622,7 +622,7 @@ void WinDMApp::DoneReloading()
 		if (!mBoard->LoadGame())
 			mBoard->mDropDelay = 20;
 		mBoard->InitialBackdropProcessing();
-		mBoard->m1764 = 0;
+		mBoard->mStartCountdown = 0;
 		mBoard->mUpdateCnt = 60000;
 	}
 	// port: the original shows the "no more plays" dialog here when the trial has run out

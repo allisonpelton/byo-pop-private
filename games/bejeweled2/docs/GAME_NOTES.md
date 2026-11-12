@@ -27,7 +27,7 @@ Each of these has no visible effect on play unless the entry says so.
 - **Loading is done in line.** The original loads backgrounds, resources and the galaxy map on worker threads
   (`WorkerThread`) while the screen keeps drawing; the port runs those tasks in one go on the main thread (the framework runs
   a SexyAppFramework game's loading thread in one go in the same way). `backdrops.lst` is not rewritten, and the reload
-  thread of the original runs in line. Board's image preparation (`m15f60` and the like) is in line too.
+  thread of the original runs in line. Board's image preparation (`mStaticImage` and the like) is in line too.
 - **No Vista migration** of the old save folders; saved games use "/" as the path separator.
 - **No game-state recorder** (GameStateEngine's recording), no write-only app byte (+0xf24), no `OutputDebugString` in
   UpdateBonusPenalty.
@@ -54,7 +54,7 @@ Each of these has no visible effect on play unless the entry says so.
 - **The four colour tables are one block** (`gColorBlock` in BoardEffects.cpp): the lightning, gem, score and original gem
   colours (0x6797d0 to 0x6799cf) are one run of memory in the original, and the gem types past 7 (rock, bomb, hyper cube) index
   past the end of a table into the next, so the port keeps them in the same order and the lookups give the same colours.
-- **`m1728` is never set** (the original's code never does either; kept only for the offsets).
+- **`mFadingSound` is never set** (the original's code never does either; kept only for the offsets).
 - **EffectOverlay.** The destructor frees the text picture (`mTextImage`), which the original leaks. The constructor zeroes
   what the original leaves uninitialised (the text's alpha, scale, stretch, age and hold, the portal and face timers, the wild
   gem's place, the fade) and sets `mHasAlpha`, which the first stub missed. The portal's wait for the backdrop's task
@@ -88,6 +88,11 @@ Each of these has no visible effect on play unless the entry says so.
   inner size (`window.innerWidth`: the frame the game is shown in, which is 640 by 480 as the site's Desktop 95 window
   starts), and the page scales the game's canvas to the room it has, so the web build takes the display's own size
   (`screen.width` and `height`, SDL's desktop mode) and never less than 1280 by 1024: none of the three ever applies there.
+- **Four differences from the coverage check, kept** (no effect on play). `BackdropsParser::Parse` has other error and end-of-file
+  paths than the original (only a malformed `backdrops.xml` shows it, and the game ships one that parses). `~TitleScreen` leaves
+  out the register link (registration code). The `Profile` and `Planet` constructors zero fields the original leaves unset (the
+  port's runs are the same on every start). `Board::~Board` deletes the score texts from the front where the original deletes
+  them from the back (the order of two `delete`s of independent objects).
 
 ## Test commands
 
@@ -160,7 +165,7 @@ menu's fields as its second base sees them, and the update checkbox that is not 
 `mExplodeHappened` (+0x15e78: `ExplodeAt` sets it, the end of the update plays `SOUND_BOMB_EXPLODE` once),
 `mLastExplodeSoundTick` (+0x15e8c), `mCascadeCount` (+0x15e50: `DoneClearing` counts the clears that follow a move, and the count picks the combo sound, which therefore never rose, and the best cascade of the player's statistics), `mFadeIn` (+0x15fb0), `mStarRot`, `mStarDrift` and `mStarPhase` (+0x15fc0, +0x15fc8,
 +0x15fd0), `mSecretPuzzleCount`, `mSecretSolved` and `mSecretRun` (+0x17a4 to +0x17ac), `mSolutionFirstNode` (+0x18f0),
-`mSolutionMove` (+0x18fc), `m191c` (the port's `mHintTutorialShown` was never set) and `mIsPlanetIntro` (+0x191d, which the
+`mSolutionMove` (+0x18fc), `mFinale` (the port's `mHintTutorialShown` was never set) and `mIsPlanetIntro` (+0x191d, which the
 constructor does clear).
 
 ## Oddities (skipped, not chased)
@@ -333,7 +338,7 @@ three: exception-handling funclets, `Catch_All` blocks, registration and outboun
 
 **What it found and fixed.** One Sonnet agent sorted list one in three parts (its detail lines in `build/coverage/bejeweled2/list1_res_*.tsv`);
 the gaps were checked against the export by hand:
-- `Board::MouseUp` (0x59596f, vtable slot 56) was not translated: the board's "button is down" flag (`m15f38`) stayed set after the first press
+- `Board::MouseUp` (0x59596f, vtable slot 56) was not translated: the board's "button is down" flag (`mMouseHeld`) stayed set after the first press
   of a game, so `UpdateFalling` called `Board::MouseMove` at every idle update (the cursor back to the pointer). It clears the flag now.
 - `WinDMApp::KillDialog` (0x5dceb6, slot 76): when the last dialog is gone the board has the keyboard focus (the port left it to
   `WidgetManager::RemoveBaseModal`'s restore). Translated.
@@ -366,7 +371,7 @@ after the list), and the others stay.
   when `puzzles/` holds more than one pack folder; the shipped game has one (Galaxy One). Kept.
 - **Error paths** (3: `BackdropsParser::Fail` 0x593732, `GalaxyParser::Fail` 0x5be56d and 0x5be07b): only a malformed or missing `backdrops.xml` or `galaxy.xml`.
 - **The galaxy's finale** (6: `InitFace` 0x5b9071, the shape interpolation 0x5b592c and 0x5b5960, `powf` 0x5b5229, `GetPuzzleNum` 0x5d0ee6, `~EffectOverlay`
-  0x5b8cee): the last planet of the puzzle galaxy; `DoHyperspace` sets `m191c` when the planet index is the last, and a profile with the whole galaxy
+  0x5b8cee): the last planet of the puzzle galaxy; `DoHyperspace` sets `mFinale` when the planet index is the last, and a profile with the whole galaxy
   open and a warp to it would reach them (a puzzle driver with the test commands; not done). `~EffectOverlay` never runs in the original.
 - **`GalaxyMap` slot 47** (0x5ba705, a bare return: the map is never the focus widget).
 - **Rare states and inputs** (9): `UpdateBoardDropping` 0x59814e (Action, no move left), `ShowNow` 0x59828a (a new game with no main menu around),
@@ -595,3 +600,51 @@ show is whether the 2009 build's code reads the six constants as the Steam image
 Collection copy of the game was installed here, so where it keeps its players is not known: `platform/saveimport.json`'s entry for
 Bejeweled 2 covers the Steam copy's folder and its registry key `Steam\Bejeweled2` only, and the Collection's key is `PopCap\Bejeweled2`),
 and the Collection's drawing in 3D (the game under dgVoodoo2 was never run from the Collection's exe).
+
+## The readability pass (2026-11-11; `docs/CODE_STANDARDS.md`)
+
+**Result.** `tools/namecheck.py games/bejeweled2` reports no finding in 75 files (1,119 before): no member, local, parameter or global is
+called by an offset or by a decompiler name, every function says which original function it is or that it is the port's (a `// port:` line),
+and the numbers that stood for a state, a dialog or a face are named. The pass, in order (commits `e6dcb13d` and `9df11278`, then the one
+that names the numbers):
+
+1. *Helpers.* 29 functions that exist only in the port got a `// port:` line saying why.
+2. *Dead members.* After the unneeded-code pass, every member that nothing reads was found by a script (a use that is not the left side of a
+   plain one-line assignment counts as a read; `x++` and `--x` count as stores) and read against the export to see that the original does not
+   read it either. 26 members went with their stores: the Board's `m165b4`, `m176c`, `m1750` (and the empty `if` of `Draw` that tested it),
+   `m15e90`, `m15ed8`, `m15f50`, `m15f6a`, `m15f70`, `m15fd8`, `m16020`, `m15f40` (a widget pointer nothing sets, with its `delete`), `m15f80`
+   (its `Rand() % 0x80` draw stays as `Rand();`: the order of the draws is the original's), `m1914`, `m195c`, the `m1960` group (six numbers
+   and the unreachable blocks that read them), `m15ebc` (only the removed `NewGame` set it, so the end of the game always shows the high
+   scores) and `m1724` (the debug overlay of `Board::Draw` and its early branch in `UpdateWhirlpool`); the small classes' `mUnused` members of
+   `TitleScreen`, `MainMenu`, `HighScoreWidget`, `PodDialog` and `EffectOverlay::mB4`. In the end screen the state 7 block (a second fade that
+   nothing in the class sets) went too. A removal moves every offset after it, so objsnap cannot prove it: the proof is `tools/check.sh
+   bejeweled2` (the bot's games in the nine modes, state compared with the frozen baseline), run after each batch, identical every time.
+3. *The names.* 136 members got names for what they hold, in `Board`, `Piece`, `EffectOverlay` and `Profile`, each declared on a line of its own
+   with its original offset (`// +0x17c ...`) and a comment; the old hex names in these notes were renamed with them. One-letter and `aTemp`
+   locals of nine functions were renamed inside their blocks, and `ShrinksAt640` became `ShrinksInSmallWindow`. Proof: every object of the
+   build compiles to the same code before and after (`tools/objsnap.py cmp`: 48 objects, 889 functions, 0 differ), the string and character
+   literals of the 39 changed files are the same (a lexer over `git show HEAD:` against the working copy), the native and the web build pass.
+   Only `mB4` was a hex name that two classes shared, and the member of `EffectOverlay` was dead, so no rename needed the compiler's help.
+4. *Numbers with a meaning* (rule 7). 82 numbers compared with or assigned to the board's `mState` and `mScreenState` became the names of
+   the `Board` enums that `mState` and `mScreenState` already had (`STATE_GAME_OVER`, `STATE_LEVEL_COMPLETE_SCORE` and the rest of the 24
+   states; the screen's `SCREEN_SLIDING_IN` to `SCREEN_HIDDEN`; `STATE_7` and `STATE_9` of the enum are `STATE_GAME_OVER` and `STATE_LEVEL_COMPLETE_SCORE` now); 25 dialog ids became the names
+   of `WinDMApp`'s `DialogId` (the galaxy map's "Planet is Locked", id 13, is `DIALOG_PLANET_LOCKED`; the original's instructions and colour
+   depth messages shared that id and are gone), and the 20 numbers of the end
+   screen's `mFaceState` became `EffectOverlay::FaceState` (`FACE_BARS` to `FACE_END`; 7 is the state the original never sets). The
+   object code of these two batches is the same (objsnap 0 differ) except `EffectOverlay`'s `DoUpdate`, `Draw` and `InitFace`, which lost the
+   state 7 block (and so a constant or two) and compare `!= FACE_OFF` where they compared `> 0`; the baseline run proves that.
+
+**Kept although the original never sets them.** `mFreeMode` (+0x1723: a swap that makes no match is not swapped back), `mSkipBestRecords`
+(+0x15ee0: the cascade and combo records are not kept) and `mFadingSound` (+0x1728: the sound that fades with the level change) are read
+by the game's code and never set to anything but their start value, by the original and by the port; the branches they guard are the
+original's and stay. `mNeverSetScoreMark` (+0x15ee4) and `mSavedNeverSet` (+0x15fa8) are only written into the saved game and read back
+from it; the save's layout is the original's, so they stay as the save's fields, named for what the save does with them. `WhirlPoint::mRHW` is the reciprocal homogeneous w of a vertex
+of the mesh the whirlpool turns (a raw vertex of 0x24 bytes); `PuzzleStateOverlay::mPodOver` is stored by the original's own setter
+(0x5d1995, `SetPodOver`) and read by nothing. `tools/splitfields.py bejeweled2` lists exactly these (and `mStartCountdown`, which the update
+decrements and tests).
+
+**Names that say what the code does and are worth a second look when a screen is read against the original again:** `mHyperRole`,
+`mHyperDelay` and `mHyperFade` (the three numbers of a gem that a hyper cube takes: read in `UpdateHyperCube`), `mTutorialMoveFade` and
+`mTutorialNextFade`, `mPodArrowShown` and `mPodArrowPhase`, `mHintButtonArrowPhase`, `mFlameFromCross`, `mBigMoveTimer` and `mBigMoveGlow`,
+`mBoardInOverlay`, `mWarpFade`, `mDrainGrace`, `mLastGoodTick`, `mCheerGiven`, `mCheerTier` and `mCheerDelay`, and `mTextSizeFactor` of the
+overlay.

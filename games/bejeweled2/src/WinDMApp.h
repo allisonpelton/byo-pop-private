@@ -48,13 +48,13 @@ enum DialogId
 	// 10: the original's box for the name of a new high score; no code of the game opens it
 	// 11: the original's URL dialog
 	// 0x12: its update check; 0x13, 0x14: its announcements; 0x10: the registration again
-	DIALOG_FULL_INSTRUCTIONS = 13, // the galaxy map's "Planet is Locked" message (the original's instructions and colour depth messages had the id too)
+	DIALOG_PLANET_LOCKED = 13, // the galaxy map's "Planet is Locked" message (the original's instructions and colour depth messages had the id too)
 	DIALOG_LOAD_GAME = 17,         // "Load Game?"
 	DIALOG_UNDO = 22,
-	DIALOG_HINT = 23,
+	DIALOG_HINT_WARNING = 23,
 	DIALOG_NEXT_PUZZLE_MOVE = 24,
-	DIALOG_HINT_FIRST = 25,        // 25, 26, 38 and 39: the one-time hint explanations
-	DIALOG_HINT_SECOND = 26,
+	DIALOG_MORE_HINTS = 25,        // 26, 38 and 39: the one-time tips
+	DIALOG_TIMER_TIP = 26,
 	DIALOG_CREATE_USER = 27,
 	DIALOG_RENAME_USER = 29,
 	DIALOG_DELETE_USER = 30,
@@ -65,8 +65,8 @@ enum DialogId
 	// 35: the original's puzzle rating box; no code of the game opens it
 	DIALOG_WELCOME = 36,           // the message that follows a new user's first visit to the menu
 	DIALOG_MESSAGE = 37,           // the one-button messages (the options', name conflict, profile error)
-	DIALOG_HINT_THIRD = 38,
-	DIALOG_HINT_FOURTH = 39,
+	DIALOG_POWER_GEM_TIP = 38,
+	DIALOG_HYPER_CUBE_TIP = 39,
 	DIALOG_HELP = 40,
 	DIALOG_ENTER_NAME = 41
 };

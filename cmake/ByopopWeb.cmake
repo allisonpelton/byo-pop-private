@@ -67,7 +67,7 @@ set(BYOPOP_WEB_INDEX_JS localsoon.js players.js saves.js saveimport.js modpanel.
 # list with no web page is a configure error.
 set(BYOPOP_WEB_FINISHED bejeweled bigmoney bookworm noahsark sevenseas atomica mummymaze tiptop bookwormadv ningpo
   pixelus alchemy wordharmony cosmicbugs waterbugs rocketmania dynomite bookwormadv2 mahjongjapan mahjongchina
-  bonnies bejeweledtwist)
+  bonnies bejeweledtwist bejeweled2)
 # The games still to come, <target>|<title>, each shown on the listing page as a "Coming soon" tile among the finished ones
 # (the user, 2026-11-02: "Add tiles for the upcoming games to the site and have them display disabled and say coming soon"):
 # the badge, the title and the year, sorted with the rest, not a link, and where to buy the game, so that a visitor can get
@@ -80,7 +80,7 @@ set(BYOPOP_WEB_FINISHED bejeweled bigmoney bookworm noahsark sevenseas atomica m
 # Zombies are left out: nobody ports them (the user, 2026-10-26).
 set(BYOPOP_WEB_UPCOMING
   "venice|Venice"
-  "heavyweapon|Heavy Weapon" "hammerheads|Hammer Heads" "bejeweled2|Bejeweled 2"
+  "heavyweapon|Heavy Weapon" "hammerheads|Hammer Heads"
   "astropop|AstroPop" "typershark|Typer Shark!" "pizzafrenzy|Pizza Frenzy" "igglepop|Iggle Pop"
   "feedingfrenzy|Feeding Frenzy" "chuzzle|Chuzzle" "feedingfrenzy2|Feeding Frenzy 2"
   "peggle|Peggle" "pegglenights|Peggle Nights" "bejeweled3|Bejeweled 3" "bananabugs|Banana Bugs"
