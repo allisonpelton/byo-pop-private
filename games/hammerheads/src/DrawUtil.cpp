@@ -5,6 +5,7 @@
 #include "Color.h"
 #include "Graphics.h"
 #include "Image.h"
+#include "MemoryImage.h"
 
 using namespace Sexy;
 
@@ -51,4 +52,24 @@ void Sexy::DrawFillBar(Graphics* g, Image* theEmptyImage, Image* theFullImage, i
 		}
 		g->SetColorizeImages(false);
 	}
+}
+
+// 0x4051b0
+bool Sexy::MaskHitsImage(const double* theImagePos, const int* theXY, const std::vector<Point>& theMask, Image* theImage,
+	int theCelRow, int theCelCol)
+{
+	int aCelWidth = theImage->GetCelWidth();
+	int aCelHeight = theImage->GetCelHeight();
+	for (size_t i = 0; i < theMask.size(); i++)
+	{
+		int aX = (theMask[i].mX - ToInt(theImagePos[0])) + theXY[0];
+		int aY = (theMask[i].mY - ToInt(theImagePos[1])) + theXY[1];
+		if (aX > -1 && aX < aCelWidth && aY > -1 && aY < aCelHeight)
+		{
+			const uint32_t* aBits = static_cast<MemoryImage*>(theImage)->GetBits();
+			if ((aBits[theImage->mWidth * (theCelRow * aCelHeight + aY) + theCelCol * aCelWidth + aX] & 0xff000000) != 0)
+				return true;
+		}
+	}
+	return false;
 }

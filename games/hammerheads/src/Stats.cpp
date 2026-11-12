@@ -22,7 +22,7 @@ void Stats::Reset()
 
 	mValues[STAT_HEALTH] = 5.0;
 	mValues[STAT_HEALTH_CAPACITY] = 5.0;
-	mValues[20] = 16.0;
+	mValues[STAT_CHALLENGE_GOAL] = 16.0;
 	if (gApp->GetCheatFlag(8))
 	{
 		mValues[STAT_COINS_COLLECTED] = 500.0;

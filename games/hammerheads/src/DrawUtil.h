@@ -3,6 +3,10 @@
 
 // Drawing helpers of the game's own that the framework (1.2) has no counterpart of.
 
+#include <vector>
+
+#include "Point.h"
+
 namespace Sexy
 {
 
@@ -25,6 +29,12 @@ void DrawImageCelF(Graphics* g, Image* theImageStrip, double theX, double theY, 
 // 0x4052a0: a bar of an empty picture with a full one drawn over it as far as theFill (0 to 1) reaches
 void DrawFillBar(Graphics* g, Image* theEmptyImage, Image* theFullImage, int theX, int theY, double theFill, int theMargin,
 	int theFadeWidth);
+
+// 0x4051b0: whether a point of the hammer's mask lands on a solid pixel of a cel of a picture. theImagePos is where the picture's
+// top left is (the exe passes it as doubles and truncates them), theXY the point the mask is laid at, theCelRow and
+// theCelCol which cel of the strip is looked at. A pixel is solid when its alpha is not zero.
+bool MaskHitsImage(const double* theImagePos, const int* theXY, const std::vector<Point>& theMask, Image* theImage,
+	int theCelRow, int theCelCol);
 
 }
 

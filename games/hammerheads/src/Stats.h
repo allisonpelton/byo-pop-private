@@ -28,6 +28,8 @@ enum StatIndex
 	STAT_SUPPLIES_BOUGHT = 16,
 	STAT_HEARTS_MISSED = 17,
 	STAT_HAMMER_LEVEL = 18,
+	STAT_CHALLENGE_COUNT = 19,			// gnomes dealt with in the challenge (the meter's full cells; ChallengeMeter::AddCount stops it at the goal)
+	STAT_CHALLENGE_GOAL = 20,			// the challenge's goal (the meter's cells in all; 16 at the start)
 	STAT_CHALLENGE_MISSES = 21,			// clicks that hit nothing in a challenge (provisional name; written by the Avatar)
 	STAT_COMBO = 22,					// the score multiplier, 1.0 to 2.0
 	STAT_QUICK_STREAK = 23,
