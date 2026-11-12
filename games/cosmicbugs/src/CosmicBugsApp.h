@@ -12,6 +12,7 @@
 #include "Widget.h"
 
 #include <cstdint>
+#include <string>
 #include <vector>
 
 namespace Sexy
@@ -73,6 +74,9 @@ public:
 	// -script's "state": logs the score, the lives, the board in its set and the board's filled cells, as the headless
 	// runner (test/gamerun.cpp) prints them
 	bool HandleScriptCommand(const ScriptCommand& theCommand) override;
+
+	// -livesplitlog=<file> (tests): one line for each write of the autosplit block that changes what a splitter reads
+	void HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue) override;
 
 	// One pass of the original's main loop
 	void RunFrame();

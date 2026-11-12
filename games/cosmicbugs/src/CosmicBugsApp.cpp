@@ -5,6 +5,7 @@
 #include "CBLevel.h"
 #include "CBFixes.h"
 #include "CBTestCommands.h"
+#include "LiveSplitObserver.h"
 #include "R64.h"
 #include "R64Sys.h"
 #include "DDInterface.h"
@@ -330,6 +331,7 @@ CosmicBugsApp::CosmicBugsApp()
 
 CosmicBugsApp::~CosmicBugsApp()
 {
+	LiveSplitObserver::AppDestroyed(this);   // port: the autosplit block's last write (LiveSplitObserver.h)
 	if (mWidget != nullptr)
 	{
 		mWidgetManager->RemoveWidget(mWidget);
@@ -410,6 +412,14 @@ void CosmicBugsApp::Shutdown()
 	SexyAppBase::Shutdown();
 }
 
+void CosmicBugsApp::HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue)
+{
+	if (theParamName == "-livesplitlog")
+		LiveSplitObserver::SetLogFile(theParamValue);   // port: one line for each change the autosplit block shows (tests)
+	else
+		SexyAppBase::HandleCmdLineParam(theParamName, theParamValue);
+}
+
 void CosmicBugsApp::RunFrame()
 {
 	if (!mGameStarted || mGameEnded)
@@ -421,6 +431,8 @@ void CosmicBugsApp::RunFrame()
 		r64::Sound_Shutdown();
 		Shutdown();
 	}
+	else
+		LiveSplitObserver::AfterUpdate(this);   // port: the autosplit block, after the update (LiveSplitObserver.h)
 }
 
 void CosmicBugsApp::Present()
