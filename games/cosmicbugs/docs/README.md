@@ -191,6 +191,8 @@ after it, which is what a fix to play is. `shieldFlash`: a beam touching an enem
 enemy's x for its y (`Enemy_Shield`, "sic" in the code) and the next update puts it right, so a frame drawn between
 shows it in the wrong place. The fix starts it on the enemy. It changes no draw of the game's random numbers.
 
+There is no lite mod: the game's logic is 4 to 7% of the process and its one lite candidate, the star list, about 1% of it (`LITE_MOD.md`).
+
 ### Fix candidates
 
 What was checked for the mod: the waits that only cost the player time, and the bugs of the original that do not break
