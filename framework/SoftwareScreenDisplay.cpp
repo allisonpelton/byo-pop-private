@@ -48,12 +48,10 @@ SoftwareScreenDisplay::SoftwareScreenDisplay(SexyAppBase* theApp) :
 		const char* anEnv = SDL_getenv("SOFTSCREEN_STATS");
 		mStats = (anEnv != NULL) && (anEnv[0] == '1');
 	}
-	// a stretch onto the screen as a software screen draws one, stretched into an image of the destination's size and
-	// then blitted (MemoryImage's own fast stretch steps a column before it samples), its fast stretch sampling pixel
-	// centres as the GPU path did
-	mSoftwareStretch = true;
-	mFastStretchCentre = true;
-	No3D();
+	mNoGpuRenderer = false;
+	mChangingMode = false;
+	mGpuPresents = 0;
+	SoftwareScreen();
 }
 
 SoftwareScreenDisplay::~SoftwareScreenDisplay()
@@ -62,16 +60,84 @@ SoftwareScreenDisplay::~SoftwareScreenDisplay()
 	Cleanup();
 }
 
+void SoftwareScreenDisplay::SoftwareScreen()
+{
+	mGpuScreen = false;
+	// a stretch onto the screen as a software screen draws one, stretched into an image of the destination's size and
+	// then blitted (MemoryImage's own fast stretch steps a column before it samples), its fast stretch sampling pixel
+	// centres as the GPU path did
+	mSoftwareStretch = true;
+	mFastStretchCentre = true;
+	No3D();
+}
+
 void SoftwareScreenDisplay::No3D()
 {
 	mIs3D = false;
 	mCan3D = false;
 }
 
+int SoftwareScreenDisplay::WantedSurfaceScale()
+{
+	const int aScale = SurfaceDisplay::WantedSurfaceScale();
+	// above 1x the screen is drawn on the GPU where the window's renderer is accelerated, so SurfaceDisplay makes the
+	// renderer to find out (NoteRenderer); with no accelerated renderer the surface shows the software screen at 2x to 4x
+	if ((aScale > 1) && (!mNoGpuRenderer))
+		return 0;
+	return aScale;
+}
+
+void SoftwareScreenDisplay::NoteRenderer()
+{
+	if ((mGpuScreen) || (mSurfaceMode) || (mRenderer == NULL))
+		return;
+	SDL_RendererInfo anInfo;
+	if (SDL_GetRendererInfo(mRenderer, &anInfo) != 0)
+		return;
+	if (((anInfo.flags & SDL_RENDERER_ACCELERATED) != 0) && ((anInfo.flags & SDL_RENDERER_SOFTWARE) == 0))
+	{
+		DrawOnGpu(anInfo.name);
+		return;
+	}
+	if (mNoGpuRenderer)
+		return;
+	mNoGpuRenderer = true;
+	SDL_Log("SoftwareScreenDisplay: the %s renderer is not accelerated, so the screen is drawn in software at every size",
+		anInfo.name);
+	// at 2x to 4x the window's surface shows it, without the renderer
+	mChangingMode = true;
+	SurfaceDisplay::UpdateDisplaySize();
+	mChangingMode = false;
+}
+
+void SoftwareScreenDisplay::DrawOnGpu(const char* theRendererName)
+{
+	mGpuScreen = true;
+	// DDInterface's own path from here: its stretches, and the 3D flags of its accelerated renderer (DDInterface::Init's)
+	mSoftwareStretch = false;
+	mFastStretchCentre = false;
+	mIs3D = true;
+	mCan3D = true;
+	// the screen texture starts from the last frame drawn in software (none at the start), so that a screen kept from
+	// one frame to the next (mKeepScreen) loses nothing; every frame from here draws all the widgets onto it
+	mPendingAll = true;
+	DrawFrameToScreenTexture();
+	ReleaseFrameTexture();
+	mDrawnBlocks.clear();
+	mBlocksWide = 0;
+	mBlocksHigh = 0;
+	mAnyDrawn = false;
+	SDL_Log("SoftwareScreenDisplay: the %s renderer is accelerated, so the screen is drawn on the GPU from here on", theRendererName);
+}
+
 int SoftwareScreenDisplay::Init(SDL_Window* theWindow, bool vsync)
 {
+	mChangingMode = true;
 	int aResult = SurfaceDisplay::Init(theWindow, vsync);
-	No3D();
+	mChangingMode = false;
+	NoteRenderer();
+	if (!mGpuScreen)
+		No3D();
 	mShowWhole = true;
 	return aResult;
 }
@@ -98,20 +164,40 @@ void SoftwareScreenDisplay::Cleanup()
 	mBlocksHigh = 0;
 	mAnyDrawn = false;
 	mShowWhole = true;
+	if (mGpuPresents > 0)
+		SDL_Log("SoftwareScreenDisplay: %d frames drawn on the GPU", mGpuPresents);
+	mGpuPresents = 0;
+	mNoGpuRenderer = false;
 	SurfaceDisplay::Cleanup();
+	SoftwareScreen();
 }
 
 void SoftwareScreenDisplay::UpdateDisplaySize()
 {
-	// a change of mode sets the 3D flags from the renderer (DDInterface::Init) or as a GPU display's (SurfaceDisplay)
+	if (mGpuScreen)
+	{
+		DDInterface::UpdateDisplaySize();
+		return;
+	}
+	// asked again by the DDInterface::Init of a change of mode: the mode is SurfaceDisplay's to finish first
+	if (mChangingMode)
+	{
+		SurfaceDisplay::UpdateDisplaySize();
+		return;
+	}
+	mChangingMode = true;
 	SurfaceDisplay::UpdateDisplaySize();
-	No3D();
+	mChangingMode = false;
+	NoteRenderer();
+	// a change of mode sets the 3D flags from the renderer (DDInterface::Init) or as a GPU display's (SurfaceDisplay)
+	if (!mGpuScreen)
+		No3D();
 }
 
 bool SoftwareScreenDisplay::CheckDestination(DDImage* theImage)
 {
-	// the screen too is drawn by the software blitters, into its own bits
-	return false;
+	// in software the screen too is drawn by the software blitters, into its own bits
+	return (mGpuScreen) && (DDInterface::CheckDestination(theImage));
 }
 
 const uint32_t* SoftwareScreenDisplay::ScreenPixels()
@@ -134,12 +220,21 @@ const uint32_t* SoftwareScreenDisplay::ScreenPixels()
 
 void SoftwareScreenDisplay::BeginFrame()
 {
-	SurfaceDisplay::BeginFrame();
-	No3D();
-	// the buffer SurfaceDisplay reads the screen from (ReadScreen between presents too), nothing marked changed yet
-	const uint32_t* aPixels = ScreenPixels();
-	if (aPixels != NULL)
-		SetFrame(aPixels, mWidth * 4, NULL, 0);
+	if (!mGpuScreen)
+	{
+		// the mode follows the window (UpdateDisplaySize), which may hand the screen to the GPU
+		SurfaceDisplay::BeginFrame();
+		if (!mGpuScreen)
+		{
+			No3D();
+			// the buffer SurfaceDisplay reads the screen from (ReadScreen between presents too), nothing marked changed yet
+			const uint32_t* aPixels = ScreenPixels();
+			if (aPixels != NULL)
+				SetFrame(aPixels, mWidth * 4, NULL, 0);
+			return;
+		}
+	}
+	DDInterface::BeginFrame();
 }
 
 void SoftwareScreenDisplay::ScreenDrawn(const Rect& theRect)
@@ -170,6 +265,12 @@ void SoftwareScreenDisplay::ScreenDrawn(const Rect& theRect)
 
 void SoftwareScreenDisplay::Present()
 {
+	if (mGpuScreen)
+	{
+		DDInterface::Present();
+		mGpuPresents++;
+		return;
+	}
 	const uint32_t* aPixels = ScreenPixels();
 	if (aPixels != NULL)
 		HandOverDrawn(aPixels);
@@ -277,6 +378,8 @@ void SoftwareScreenDisplay::HandOverDrawn(const uint32_t* thePixels)
 
 bool SoftwareScreenDisplay::ReadScreen(ulong* theBits)
 {
+	if (mGpuScreen)
+		return DDInterface::ReadScreen(theBits);
 	const uint32_t* aPixels = ScreenPixels();
 	if ((aPixels == NULL) || (theBits == NULL))
 		return false;
@@ -288,6 +391,8 @@ bool SoftwareScreenDisplay::ReadScreen(ulong* theBits)
 
 bool SoftwareScreenDisplay::ReadScreenFull(std::vector<uint32_t>& theBits, int& theWidth, int& theHeight)
 {
+	if (mGpuScreen)
+		return DDInterface::ReadScreenFull(theBits, theWidth, theHeight);
 	// at the scale the window shows the screen at: the surface's, or the renderer's screen texture, which holds the
 	// screen's pixels repeated (the nearest filter, mPixelPerfect); with a smoothed scale the renderer's own is read back
 	const int aScale = std::max(1, mSurfaceMode ? mSurfaceScale : mRenderScale);
