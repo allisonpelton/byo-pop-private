@@ -227,6 +227,15 @@ bool HostSoundSystem::load(const char* theName, const char* theFile)
 	return true;
 }
 
+// port (the "memreport" test command): the sounds held and the bytes of their decoded samples
+int HostSoundSystem::getSoundMemory(size_t* theBytes) const
+{
+	*theBytes = 0;
+	for (std::map<std::string, std::shared_ptr<Platform::SoundData>>::const_iterator it = mData.begin(); it != mData.end(); ++it)
+		*theBytes += it->second->Bytes();
+	return (int)mData.size();
+}
+
 // Slot 0xc (0x443120)
 void HostSoundSystem::unloadUnused()
 {

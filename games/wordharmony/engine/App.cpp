@@ -163,6 +163,15 @@ Image* App::findImage(const char* theName)
 	return nullptr;
 }
 
+// port (the "memreport" test command): the pictures of the image table and their pixels, 4 bytes each
+int App::getImageMemory(size_t* theBytes) const
+{
+	*theBytes = 0;
+	for (std::map<std::string, Ref<Image>>::const_iterator anIt = mImages.begin(); anIt != mImages.end(); ++anIt)
+		*theBytes += (size_t)anIt->second->getWidth() * anIt->second->getHeight() * 4;
+	return (int)mImages.size();
+}
+
 void App::log(const char* theText)
 {
 	getHost()->log(theText);

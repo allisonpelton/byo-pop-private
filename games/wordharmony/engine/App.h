@@ -111,6 +111,10 @@ public:
 
 	const AppConfig& getConfig() const { return mConfig; }
 
+	// port (the "memreport" test command, docs/TEST_COMMANDS.md): how many pictures the image table holds and the bytes of
+	// their 32-bit pixels (the fonts' pictures are in it)
+	int getImageMemory(size_t* theBytes) const;
+
 protected:
 	std::map<std::string, Ref<Image>> mImages;  // +0x4c
 	std::map<std::string, Ref<Font>> mFonts;    // +0x58
