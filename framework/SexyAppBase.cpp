@@ -5708,14 +5708,16 @@ bool SexyAppBase::Is3DAccelerated()
 	return (mDDInterface != NULL) && (mDDInterface->mIs3D);
 }
 
+// port: what the original's 3D tester says about the card (supported, recommended) does not change when the game switches 3D off, so the
+// Options dialog's "Hardware Acceleration" box can be ticked again; here it is what mCan3D says, that the renderer is hardware accelerated
 bool SexyAppBase::Is3DAccelerationSupported()
 {
-	return Is3DAccelerated();
+	return (mDDInterface != NULL) && mDDInterface->mCan3D;
 }
 
 bool SexyAppBase::Is3DAccelerationRecommended()
 {
-	return Is3DAccelerated();
+	return (mDDInterface != NULL) && mDDInterface->mCan3D;
 }
 
 void SexyAppBase::Set3DAcclerated(bool is3D, bool reinit)

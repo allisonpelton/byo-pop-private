@@ -301,11 +301,13 @@
         "identical-play",
         "registration-out",
         "site-features",
-        "coverage"
+        "coverage",
+        "identical-look",
+        "fixes-mod"
       ],
       "na": [],
-      "now": "identical-look",
-      "note": "3D screens still to compare (tonight); no fix candidate so far"
+      "now": "performance",
+      "note": "3D screens compared with the original on the desktop, no fix candidate (fixes mod: none needed); performance: port 1.65-1.9 M cycles an update against the original's 4.0-4.4 M in a first trial"
     },
     "dynomite": {
       "title": "Dynomite Deluxe",

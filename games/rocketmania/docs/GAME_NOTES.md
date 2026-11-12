@@ -415,7 +415,10 @@ Found while lining the port's screens up with the original's (`IDENTICAL_PLAY.md
   GPU) the original is therefore a 2D (software) run, and its Options dialog's "Hardware Acceleration" box is unchecked. The port
   starts in 3D (GPU) by default. The screen comparisons use `RM_REG="Is3D=0,ScreenMode=0"` (`port.sh`, `best.sh`, `lag.sh` and
   `play.py --reg` take it): 2D, and windowed, since without a `ScreenMode` value the port's Options dialog shows its Fullscreen
-  box checked. Comparing 3D needs `orig.sh ... --sandbox-vgpu`, which `CLAUDE.md` allows from 22:00 to 08:00 only.
+  box checked. The 3D game was compared on the host's desktop on the night of 2026-11-12 (`tools/shots/run3d.sh`, `visrun3d.py`, `lag3d.sh <tour>`,
+  `IDENTICAL_PLAY.md`, "3D screens"): the original there reads `Is3D` 1 from its registry key at update 2708, and the port runs with
+  `RM_REG="Is3D=1,ScreenMode=0"`. The Options dialog's Hardware Acceleration box answers from the framework's `mCan3D` (`Is3DAccelerationSupported`),
+  so it can be ticked again after it was unticked, as in the original; before 1821bccf it could not.
 - **2D draws rotations in software.** With 3D off the original rotates tiles with `DDImage::BltRotated` (0x441127) and keeps the
   screen between frames; the port's `RocketApp::UpdateFrames` turns `mSoftwareTransforms` and `mKeepScreen` on in that case. The
   original's software stretch (0x44abeb, the talking head in its hole) is not ported: the framework's `StretchCopy` (0x433ca0)
