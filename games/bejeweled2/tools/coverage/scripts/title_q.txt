@@ -1,0 +1,4 @@
+# coverage script: the window closed at the title
+at 566 move 320 401
+at 620 shot title
+quit

@@ -529,7 +529,7 @@ void HighScoresScreen::draw()
 		aY = (float)(aY + (double)(aRow == -1 ? 0.063333333f : 0.055f));
 		aRow++;
 	} while (aRow < 5);
-	if (gGame != nullptr && 0 < gGame->mRecord.mField0C)
+	if (gGame != nullptr && 0 < gGame->mRecord.mWords)
 	{
 		// The player's record
 		Str aHeading = lit(0x457426);
@@ -554,18 +554,18 @@ void HighScoresScreen::draw()
 			{
 				aLabel += getText(0x4b1);
 				int aCount = 1;
-				if (1 <= gGame->mRecord.mField0C)
-					aCount = gGame->mRecord.mField0C;
-				appendFloat(aValue, (float)((double)gGame->mRecord.mField10 / aCount));
+				if (1 <= gGame->mRecord.mWords)
+					aCount = gGame->mRecord.mWords;
+				appendFloat(aValue, (float)((double)gGame->mRecord.mLetters / aCount));
 				break;
 			}
 			case 2:
 				aLabel += getText(0x4b2);
-				aValue += gGame->mRecord.mStr14;
+				aValue += gGame->mRecord.mLongestWord;
 				break;
 			case 3:
 				aLabel += getText(0x4b3);
-				aValue += intToStr(gGame->mRecord.mField1C);
+				aValue += intToStr(gGame->mRecord.mBestStreak);
 				break;
 			}
 			mFont3->drawText(aLabel, 0.12499997f, aY, 0.4625f, 0.05f, 0xffffff00, 0xaf00004f, 0xa1, 1.0f, 0.0f);
@@ -723,7 +723,7 @@ void LogoScreen::init()
 	mShown = 0;
 	mDone = 0;
 	mFadeEnd = 0;
-	mField12C = 0;
+	mLogoSpare = 0;
 	mShowPopCap = 0;
 	mShowDistributor = 0;
 	mShowWhite = 0;
@@ -1422,8 +1422,8 @@ void OptionsMenu::init()
 	mHeight = 0.74666667f;
 	mColor = 0xff153661;
 	mDraggable = 1;
-	mField4C = 0;
-	mField50 = 0;
+	mQuitDialogUp = 0;
+	mQuitInterstitialUp = 0;
 	load();
 }
 
@@ -1441,28 +1441,28 @@ void OptionsMenu::update()
 	Widget* aFull = findWidget(0x271);
 	if (aFull != nullptr)
 		static_cast<CheckBox*>(aFull)->mChecked = isFullScreen();
-	if (mField4C != 0)
+	if (mQuitDialogUp != 0)
 	{
 		Screen* aTop = gApp->mDepth == 0 ? nullptr : gApp->mModal[gApp->mDepth];
 		if (aTop == this)
 		{
-			mField4C = 0;
+			mQuitDialogUp = 0;
 			if (gApp->mLastResult != 1)
 				return;
 			showInterstitial(0, 0);
-			mField50 = 1;
+			mQuitInterstitialUp = 1;
 		}
 	}
-	if (mField50 != 0)
+	if (mQuitInterstitialUp != 0)
 	{
 		Screen* aTop = gApp->mDepth == 0 ? nullptr : gApp->mModal[gApp->mDepth];
 		if (aTop == this)
 		{
-			mField50 = 0;
+			mQuitInterstitialUp = 0;
 			if (gGameScreen != nullptr && gGame != nullptr)
 			{
-				gGameScreen->mField58 = 0x11;
-				gGame->mFieldC44 = 1;
+				gGameScreen->mSequenceState = 0x11;
+				gGame->mGameOver = 1;
 				gApp->endModal(0, 0);
 			}
 		}
@@ -1855,7 +1855,7 @@ void MenuScreen::refresh()
 		Str aName = lit(0x457426);
 		aName += toUpperStr(gOptions->mName);
 		aName += lit(0x458894);
-		aLines = mFont78->countLines(aName, 0, 0.225f, nullptr, 1.0f);
+		aLines = mPlayerFont->countLines(aName, 0, 0.225f, nullptr, 1.0f);
 		if (1 < aLines)
 			gNameTwoLines = 1;
 	}
@@ -1878,12 +1878,12 @@ void MenuScreen::shutdown()
 	gResources->release(mLeaf);
 	gResources->release(mWave);
 	gResources->release(mSign);
-	if (mFont70 != nullptr)
-		gResources->release(mFont70);
-	if (mFont74 != nullptr)
-		gResources->release(mFont74);
-	if (mFont78 != nullptr)
-		gResources->release(mFont78);
+	if (mVersionFont != nullptr)
+		gResources->release(mVersionFont);
+	if (mGreetingFont != nullptr)
+		gResources->release(mGreetingFont);
+	if (mPlayerFont != nullptr)
+		gResources->release(mPlayerFont);
 	Image** aBook = mBooks;
 	int i = 5;
 	do
@@ -2039,7 +2039,7 @@ blinked:
 	drawFrame(&mSign->mFrames[aStep], 0.19374999f, 0.0f, 1.0f, 0);
 	Str aVersion = getText(0x4d8);
 	aVersion += floatToStr(1.01f, 2);
-	mFont70->drawText(aVersion, 0.005f, 0.91500002f, 0.25f, 0.083333336f, 0xffafafaf, 0x4f000000, 0x114, 1.0f, 0.0f);
+	mVersionFont->drawText(aVersion, 0.005f, 0.91500002f, 0.25f, 0.083333336f, 0xffafafaf, 0x4f000000, 0x114, 1.0f, 0.0f);
 	Str aGreeting = getText(0x4d9);
 	float aY;
 	if (gOptions->mName.empty())
@@ -2051,14 +2051,14 @@ blinked:
 		aY = -0.005f;
 	if (gNameTwoLines != 0)
 		aY = (float)(aY - (double)0.021666666f);
-	mFont74->drawText(aGreeting, 0.72500002f, (float)(aY + (double)0.055f), 0.25f, 0.16666667f, 0xffffffcf, 0x9f000000,
+	mGreetingFont->drawText(aGreeting, 0.72500002f, (float)(aY + (double)0.055f), 0.25f, 0.16666667f, 0xffffffcf, 0x9f000000,
 		0x8c, 1.0f, 0.0f);
 	if (!gOptions->mName.empty())
 	{
 		Str aName = lit(0x457426);
 		aName += toUpperStr(gOptions->mName);
 		aName += lit(0x458894);
-		mFont78->drawText(aName, 0.73750001f, (float)(aY + (double)0.22f), 0.225f, 0.30000001f, 0xffffffcf,
+		mPlayerFont->drawText(aName, 0.73750001f, (float)(aY + (double)0.22f), 0.225f, 0.30000001f, 0xffffffcf,
 			0x9f000000, 0x8a, 1.0f, 0.0f);
 	}
 	Screen::draw();
@@ -2138,7 +2138,7 @@ int MenuScreen::handleEvent(Event* theEvent)
 		}
 		else
 			gGame->load(gOptions->mName, mStory);
-		if (gGame->mScore != 0 && gGame->mFieldC44 == 0)
+		if (gGame->mScore != 0 && gGame->mGameOver == 0)
 		{
 			// A game to go on with
 			aText = lit(0x457426);
@@ -2166,10 +2166,10 @@ int MenuScreen::handleEvent(Event* theEvent)
 			{
 				if (aButton == 1)
 				{
-					if (gGame->mFieldC5C != mStory)
+					if (gGame->mClassic != mStory)
 					{
 						if (mStory == 0)
-							gGame->mFieldC94 = 0.05f <= gGame->mFieldC94 ? gGame->mFieldC94 : 0.05f;
+							gGame->mClock = 0.05f <= gGame->mClock ? gGame->mClock : 0.05f;
 						else
 						{
 							int aGoal = gGame->mGoal;
@@ -2178,7 +2178,7 @@ int MenuScreen::handleEvent(Event* theEvent)
 							gGame->mGoal = aGoal;
 						}
 					}
-					gGame->mFieldC5C = mStory;
+					gGame->mClassic = mStory;
 					gBonnies->setState(3, 1, 0);
 				}
 				refresh();
@@ -2192,9 +2192,9 @@ int MenuScreen::handleEvent(Event* theEvent)
 			gChoosingLevel = 1;
 			gLevelMax = gGame->mRecord.mBestLevel + 1;
 			if (0x31 < gLevelMax)
-				gLevelMax = 0x32;
+				gLevelMax = LEVEL_COUNT;
 			gLevelChosen = gGame->mRecord.mLastLevel + 1;
-			if (gLevelChosen < 1 || 0x32 < gLevelChosen)
+			if (gLevelChosen < 1 || LEVEL_COUNT < gLevelChosen)
 				gLevelChosen = 1;
 			int aButton = messageDialog(1, Str(lit(0x457426)), Str(getText(0x4e8)), Str(getText(0x4eb)),
 				Str(lit(0x457426)), Str(lit(0x457426)), 0xd, 0x1b, 0, 0, 0);
@@ -2247,7 +2247,7 @@ void MenuScreen::init()
 	Screen::init();
 	mStory = 1;
 	mStartLevel = 1;
-	mField7C = 0;
+	mAskDifficulty = 0;
 	mWaiting = 0;
 	gApp->mStatusFlags = 0x8c;
 	gBonnies->setStatusFont(exeFont(0x47a890));
@@ -2257,9 +2257,9 @@ void MenuScreen::init()
 	mLeaf = gResources->getImage(Str(lit(0x4588fc)));
 	mWave = gResources->getImage(Str(lit(0x4588f0)));
 	mSign = gResources->getImage(Str(lit(0x4588e4)));
-	mFont74 = gResources->getFont(exeFont(0x47a890));
-	mFont70 = gResources->getFont(exeFont(0x47a86c));
-	mFont78 = gResources->getFont(exeFont(0x47a8b4));
+	mGreetingFont = gResources->getFont(exeFont(0x47a890));
+	mVersionFont = gResources->getFont(exeFont(0x47a86c));
+	mPlayerFont = gResources->getFont(exeFont(0x47a8b4));
 	int i = 0;
 	Image** aBook = mBooks;
 	do
@@ -2386,9 +2386,9 @@ void MenuScreen::update()
 	if (gMenuShown == 0 && gQuit == 0)
 		gMenuShown = 1;
 	Screen::update();
-	if (mField7C != 0 && gBonnies->inModal() == 0)
+	if (mAskDifficulty != 0 && gBonnies->inModal() == 0)
 	{
-		mField7C = 0;
+		mAskDifficulty = 0;
 		chooseDifficulty();
 	}
 	if (mWaiting != 0 && gBonnies->inModal() == 0)
@@ -2402,7 +2402,7 @@ void MenuScreen::update()
 		}
 		gApp->showStatus(Str(lit(0x457426)));
 		gGame->prepareSave(0);
-		gGame->mFieldC5C = mStory;
+		gGame->mClassic = mStory;
 		gGame->setDifficulty(gBonnies->mLastResult - 1);
 		gGame->mLevel = mStartLevel;
 		gGame->newBoard();
@@ -2421,7 +2421,7 @@ void MenuScreen::update()
 // The game's dialog (the vtable 0x458994): a text and up to four buttons on Bonnie's notepad, with the level chooser
 // of a new game
 
-static int gLevelCount = 0x32;    // 0x473e5c: the levels the chooser has
+static int gLevelCount = LEVEL_COUNT;    // 0x473e5c: the levels the chooser has
 
 // 0x41b6f0: the chosen level's book and chapter, and the first button only for a level the player has reached
 void GameDialog::showLevel()
@@ -2471,7 +2471,7 @@ void GameDialog::draw()
 		drawFrame(mBonnie->mFrames, (float)(mX - (double)0.155f), (float)(mY - (double)0.1f), 1.0f, 0);
 	if (gChoosingLevel != 0)
 	{
-		drawFrame(&mThumbs->mFrames[(gLevelChosen - 1) % 0x32], (float)(mX + (double)0.08625f),
+		drawFrame(&mThumbs->mFrames[(gLevelChosen - 1) % LEVEL_COUNT], (float)(mX + (double)0.08625f),
 			(float)(mY + (double)0.13166666f), 1.0f, 1);
 		drawFrame(mThumbsFrame->mFrames, (float)(mX + (double)0.08625f), (float)(mY + (double)0.13166666f), 1.0f, 0);
 		if (gLevelMax < gLevelChosen)
@@ -2971,19 +2971,19 @@ int BookEndScreen::handleEvent(Event* theEvent)
 	default:
 		return Screen::handleEvent(theEvent);
 	}
-	if (gGame->mLevel != 0x33)
+	if (gGame->mLevel != LEVEL_COUNT + 1)
 	{
 		gGameScreen->reset();
-		gGameScreen->mField58 = 9;
+		gGameScreen->mSequenceState = 9;
 		if (mEnd == 0)
 			mEnd = ticks();
 		return 0;
 	}
 	// The last book: the game is over, into the high scores, and the last story
-	gGame->mFieldC44 = 1;
+	gGame->mGameOver = 1;
 	gGame->save(gOptions->mName);
-	gHighScoreTable = gGame->mFieldC5C == 0;
-	gHighScoreRank = gHighScores.add(gGame->mFieldC5C == 0, gOptions->mName, gGame->mStrCD0, gGame->mScore);
+	gHighScoreTable = gGame->mClassic == 0;
+	gHighScoreRank = gHighScores.add(gGame->mClassic == 0, gOptions->mName, gGame->mBestWord, gGame->mScore);
 	gStoryEnd = 1;
 	gBonnies->setState(5, 1, 0);
 	gApp->endModal(0, 0);
@@ -3038,7 +3038,7 @@ void OverlayScreen::draw()
 		return;
 	}
 	if (gBonnies->mFonts[1] != nullptr && gGameScreen != nullptr &&
-		(gBonnies->mPaused != 0 || (isInactive() != 0 && gGame != nullptr && gGame->mFieldC5C == 0)))
+		(gBonnies->mPaused != 0 || (isInactive() != 0 && gGame != nullptr && gGame->mClassic == 0)))
 	{
 		// Paused (or the timed game's window inactive)
 		drawVignette(0.6f);
@@ -3058,7 +3058,7 @@ void InterstitialScreen::init()
 {
 	gInterstitial = this;
 	Screen::init();
-	mField4C = 0;
+	mInterstitialSpare = 0;
 	Str aName = lit(0x457426);
 	if (gInterstitialKind == 3)
 		aName += lit(0x458ac8);

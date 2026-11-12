@@ -1,3 +1,5 @@
+// port(mod): mod "replays", replays of games (Replay.h). Not part of the original game.
+
 #include "Replay.h"
 #include "Board.h"
 #include "BookWormApp.h"
@@ -245,24 +247,24 @@ bool Replay::File::Read(const std::vector<uint8_t>& theData, std::string* theErr
 			*theError = "the file is cut short";
 			return false;
 		}
-		Reader r(aLen ? &theData[aPos] : NULL, aLen);
+		Reader aReader(aLen ? &theData[aPos] : NULL, aLen);
 		if (aTag == Tag("META"))
 			mMeta.assign((const char*) (aLen ? &theData[aPos] : NULL), aLen);
 		else if (aTag == Tag("GAME"))
 		{
-			mMode = (int) r.U8();
-			mAppFlags = r.U8();
-			mCrtSeed = r.U32();
-			mDailyDate = r.U32();
-			mLastLetterIdx = (int32_t) r.U32();
-			mLastRefillLevel = (int32_t) r.U32();
-			mNextBonusWord = r.String();
-			r.Rand(&mGameRand);
-			r.Rand(&mBoardRand);
-			r.Rand(&mEffectRand);
-			mScoreKey = r.String();
+			mMode = (int) aReader.U8();
+			mAppFlags = aReader.U8();
+			mCrtSeed = aReader.U32();
+			mDailyDate = aReader.U32();
+			mLastLetterIdx = (int32_t) aReader.U32();
+			mLastRefillLevel = (int32_t) aReader.U32();
+			mNextBonusWord = aReader.String();
+			aReader.Rand(&mGameRand);
+			aReader.Rand(&mBoardRand);
+			aReader.Rand(&mEffectRand);
+			mScoreKey = aReader.String();
 			MTRand aCheck;
-			if ((!r.mOk) || (mMode < GAMEMODE_CLASSIC) || (mMode > GAMEMODE_ACTION) || (!mGameRand.Set(&aCheck)) ||
+			if ((!aReader.mOk) || (mMode < GAMEMODE_CLASSIC) || (mMode > GAMEMODE_ACTION) || (!mGameRand.Set(&aCheck)) ||
 				(!mBoardRand.Set(&aCheck)) || (!mEffectRand.Set(&aCheck)))
 			{
 				*theError = "the game record is damaged";
@@ -272,7 +274,7 @@ bool Replay::File::Read(const std::vector<uint8_t>& theData, std::string* theErr
 		}
 		else if (aTag == Tag("EVTS"))
 		{
-			uint32_t aCount = r.U32();
+			uint32_t aCount = aReader.U32();
 			if (aCount > MAX_ITEMS)
 			{
 				*theError = "too many events";
@@ -280,23 +282,23 @@ bool Replay::File::Read(const std::vector<uint8_t>& theData, std::string* theErr
 			}
 			mEvents.reserve(aCount);
 			uint32_t aTime = 0;
-			for (uint32_t i = 0; (i < aCount) && (r.mOk); i++)
+			for (uint32_t i = 0; (i < aCount) && (aReader.mOk); i++)
 			{
 				Event anEvent;
-				aTime += r.Varint();
+				aTime += aReader.Varint();
 				anEvent.mTime = aTime;
-				anEvent.mOp = (int) r.U8();
-				uint32_t anArgs = r.Varint();
+				anEvent.mOp = (int) aReader.U8();
+				uint32_t anArgs = aReader.Varint();
 				if ((anEvent.mOp < 1) || (anEvent.mOp >= NUM_OPS) || (anArgs > MAX_ARGS))
 				{
 					*theError = "unknown event " + std::to_string(anEvent.mOp);
 					return false;
 				}
-				for (uint32_t j = 0; (j < anArgs) && (r.mOk); j++)
-					anEvent.mArgs.push_back(r.Zigzag());
+				for (uint32_t j = 0; (j < anArgs) && (aReader.mOk); j++)
+					anEvent.mArgs.push_back(aReader.Zigzag());
 				mEvents.push_back(anEvent);
 			}
-			if (!r.mOk)
+			if (!aReader.mOk)
 			{
 				*theError = "the events are damaged";
 				return false;
@@ -304,11 +306,11 @@ bool Replay::File::Read(const std::vector<uint8_t>& theData, std::string* theErr
 		}
 		else if (aTag == Tag("END "))
 		{
-			mEndTick = r.U32();
-			mScore = (int32_t) r.U32();
-			mLevel = (int32_t) r.U32();
-			mWords = (int32_t) r.U32();
-			if (!r.mOk)
+			mEndTick = aReader.U32();
+			mScore = (int32_t) aReader.U32();
+			mLevel = (int32_t) aReader.U32();
+			mWords = (int32_t) aReader.U32();
+			if (!aReader.mOk)
 			{
 				*theError = "the end record is damaged";
 				return false;
@@ -476,21 +478,21 @@ void ReplayRecorder::AddOp(int theOp, const std::vector<int32_t>& theArgs)
 static std::string JsonString(const std::string& theText)
 {
 	std::string anOut = "\"";
-	for (unsigned char c : theText)
+	for (unsigned char aChar : theText)
 	{
-		if ((c == '"') || (c == '\\'))
+		if ((aChar == '"') || (aChar == '\\'))
 		{
 			anOut += '\\';
-			anOut += (char) c;
+			anOut += (char) aChar;
 		}
-		else if (c < 0x20)
+		else if (aChar < 0x20)
 		{
 			char aBuffer[8];
-			snprintf(aBuffer, sizeof(aBuffer), "\\u%04x", c);
+			snprintf(aBuffer, sizeof(aBuffer), "\\u%04x", aChar);
 			anOut += aBuffer;
 		}
 		else
-			anOut += (char) c;
+			anOut += (char) aChar;
 	}
 	return anOut + "\"";
 }
@@ -618,7 +620,7 @@ void ReplayPlayer::Apply(bool isInTick)
 				if (aPath.empty())
 				{
 					std::for_each(mBoard->mSelection.begin(), mBoard->mSelection.end(), Piece::Deselect);
-					mBoard->ClearWord();
+					mBoard->ClearSelection();
 				}
 				else
 					mBoard->SelectTiles(aPath);

@@ -5,7 +5,7 @@
   "author": "byo-pop",
   "description": "Mends bugs of the original Typer Shark and leaves the game as it was: its rules, scores, sounds and pace. Each fix is a toggle; turn the whole mod off to play the original exactly as it was.",
   "settings": [
-    { "id": "schools", "label": "Schools of background fish", "type": "bool", "default": true,
+    { "id": "schools", "label": "Schools of background fish", "type": "bool", "default": false,
       "help": "Fish swim behind the diver in schools of up to four. The original puts the followers of a school far off the right edge, so only the first fish of each school ever shows. Only the first fish of a school counts toward the limit that decides when the next school comes, as in the original, so a game's words and waves stay the same." },
     { "id": "tutorKeyboard", "label": "Typing tutor: the keyboard picture", "type": "bool", "default": true,
       "help": "The 8 and * keys light their own key, and { } and _ light the shift key, with the right little finger and its ring for _. The original lights the 9 key at the 8 key's place and shows no shift for these." }

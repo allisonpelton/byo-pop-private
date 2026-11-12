@@ -33,7 +33,7 @@ public:
 	virtual void		Update() override;
 	virtual void		GetPowerUpCenter(int* x, int* y) override;	// 0x40d050: by Kroney
 	// 0x40cce0: from the colours in the lowest row once the eggs are low enough (two times in three), else any
-	// colour; a baby that left the board (mField108 20) makes a power-up egg
+	// colour; a baby that left the board (mNextEggKind 20) makes a power-up egg
 	virtual Egg*		NextEgg() override;
 	// 0x40d420: the colours by skill, six rows, Kroney's minute, the ceiling's speed
 	virtual void		Init(FossilizedApp* theApp, int theDifficulty) override;

@@ -21,7 +21,7 @@
 #include <algorithm>
 #include <random>
 
-using namespace mahjongjapan;
+using namespace mahjong;
 
 namespace
 {

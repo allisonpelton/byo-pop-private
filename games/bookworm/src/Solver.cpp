@@ -1,3 +1,5 @@
+// port(mod): mod "solver", the word solver (Solver.h). Not part of the original game.
+
 #include "Solver.h"
 #include "Board.h"
 #include "BookWormApp.h"
@@ -215,7 +217,7 @@ static void RatePath(SolverWord* theWord, const std::vector<Piece*>& theFires, b
 {
 	const std::vector<Piece*>& thePath = theWord->mPath;
 	theList->assign(thePath.begin(), thePath.end());
-	theScore->Build(theList);
+	theScore->CalcTileStats(theList);
 	theWord->mScore = theScore->mScore;
 	theWord->mFireTiles = 0;
 	theWord->mFireRow = -1;

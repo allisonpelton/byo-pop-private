@@ -230,6 +230,7 @@ void BinFile::Seek(long thePos)
 	mPos = (size_t) thePos;
 }
 
+// port: a file kept in memory instead of on disk (Stomped's copy of its pack, STOMPED.TMP)
 void BinFile::SetMemoryFile(const char* theName, const std::vector<uint8_t>& theData)
 {
 	sMemoryFiles[theName] = theData;

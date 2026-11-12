@@ -174,28 +174,10 @@ void DrawText(TextInput* theInput, uint8_t* theDst, int theDPitch, const PixelFo
 	Font_ResetStyle(theInput->mFont);
 	Font_SetEscapes(theInput->mFont, 0);
 	Font_SetOutline(theInput->mFont, theInput->mOutline);
-	Font_SetClipped(theInput->mFont, 1);
 	Font_SetClip(theInput->mFont, theInput->mInner[0], theInput->mInner[1], theInput->mInner[2], theInput->mInner[3]);
 	Font_UseColour(theInput->mFont, theInput->mColourCode);
 	int aRect[4];
 	Font_DrawOutlined(theInput->mFont, aRect, aLeft - aScroll, aBottom - aHeight, theInput->mText);
-}
-
-// 0x42c5f0 (cosmicbugs), 0x42cad0 (waterbugs): onto its own surface, over the background (or black)
-void DrawOwn(TextInput* theInput)
-{
-	if ((theInput->mActive != 0 || theInput->mWasActive != 0) && theInput->mSurface != nullptr)
-	{
-		Image* aSurface = theInput->mSurface;
-		if (theInput->mBackground == nullptr)
-			Draw_Fill(aSurface->mBits, aSurface->mPitch, &aSurface->mFmt, theInput->mBox[0], theInput->mBox[1],
-				theInput->mBox[2], theInput->mBox[3], 0, 0, 0);
-		else
-			Image_Blit(theInput->mBackground, aSurface->mBits, aSurface->mPitch, &aSurface->mFmt, theInput->mBox, 0,
-				0);
-		aSurface = theInput->mSurface;
-		DrawText(theInput, aSurface->mBits, aSurface->mPitch, &aSurface->mFmt);
-	}
 }
 
 // 0x42c890 (cosmicbugs), 0x42cd70 (waterbugs): scrolls the text so the caret shows
@@ -234,8 +216,6 @@ TextInput::~TextInput()
 
 void TextInput_Clear(TextInput* theInput)
 {
-	theInput->mSurface = nullptr;
-	theInput->mBackground = nullptr;
 	theInput->mFont = nullptr;
 	theInput->mX = 0;
 	theInput->mY = 0;
@@ -246,7 +226,6 @@ void TextInput_Clear(TextInput* theInput)
 	theInput->mBox[2] = 0;
 	theInput->mBox[3] = 0;
 	theInput->mActive = 0;
-	theInput->mWasActive = 0;
 	theInput->mFrame[0] = 0;
 	theInput->mFrame[1] = 0;
 	theInput->mFrame[2] = 0;
@@ -264,7 +243,6 @@ void TextInput_Clear(TextInput* theInput)
 	SetColour(theInput->mFrameColour, 0, 0, 0, 0);
 	SetColour(theInput->mFillColour, 0, 0, 0, 0);
 	theInput->mColourCode = 0;
-	theInput->mRedraw = 0;
 	theInput->mFocused = 0;
 	SetColour(theInput->mCaretColour, 0, 0, 0, 0);
 	theInput->mBlinkTime = 0;
@@ -292,7 +270,7 @@ void TextInput_Clear(TextInput* theInput)
 }
 
 // 0x42bed0 (cosmicbugs), 0x42c3b0 (waterbugs)
-void TextInput_Init(TextInput* theInput, Image* theSurface, Image* theBackground, Font* theFont, int theMaxLength,
+void TextInput_Init(TextInput* theInput, Font* theFont, int theMaxLength,
 	char theColourCode, int theLeft, int theTop, int theRight, int theBottom)
 {
 	if (theInput->mText != nullptr)
@@ -301,11 +279,9 @@ void TextInput_Init(TextInput* theInput, Image* theSurface, Image* theBackground
 		theInput->mText = nullptr;
 	}
 	TextInput_Clear(theInput);
-	theInput->mSurface = theSurface;
 	theInput->mFont = theFont;
 	theInput->mColourCode = theColourCode;
 	theInput->mW = (theRight - theLeft) + 1;
-	theInput->mBackground = theBackground;
 	theInput->mBox[0] = theLeft;
 	theInput->mBox[2] = theRight;
 	theInput->mX = theLeft;
@@ -315,7 +291,6 @@ void TextInput_Init(TextInput* theInput, Image* theSurface, Image* theBackground
 	theInput->mFrame[0] = theInput->mBox[0];
 	theInput->mFrame[1] = theInput->mBox[1];
 	theInput->mActive = 1;
-	theInput->mWasActive = 1;
 	theInput->mFrame[2] = theInput->mBox[2];
 	theInput->mFrame[3] = theBottom;
 	theInput->mInner[0] = theInput->mFrame[0] + 1;
@@ -331,7 +306,6 @@ void TextInput_Init(TextInput* theInput, Image* theSurface, Image* theBackground
 	theInput->mTextRect[3] = theInput->mFrame[3] - 4;
 	SetColour(theInput->mFrameColour, 0xff, 0xff, 0xff, 0xff);
 	SetColour(theInput->mFillColour, 0, 0, 0, 0xff);
-	theInput->mRedraw = 1;
 	theInput->mFocused = 1;
 	SetColour(theInput->mCaretColour, 0xff, 0xff, 0, 200);
 	theInput->mBlinkTime = 0.4;
@@ -370,7 +344,6 @@ void TextInput_SetFillColour(TextInput* theInput, uint8_t r, uint8_t g, uint8_t 
 	theInput->mFillColour[1] = g;
 	theInput->mFillColour[2] = b;
 	theInput->mFillColour[3] = a;
-	theInput->mRedraw = 1;
 }
 
 void TextInput_SetOutline(TextInput* theInput, char theCode)
@@ -403,28 +376,9 @@ void TextInput_SetCaseMode(TextInput* theInput, int theMode)
 void TextInput_Draw(TextInput* theInput, uint8_t* theDst, int theDPitch, const PixelFormat* theFmt, Dirty* theDirty)
 {
 	if (theInput->mActive == 0)
-	{
-		if (theInput->mSurface != nullptr && theInput->mWasActive != 0)
-		{
-			DrawOwn(theInput);
-			Dirty_AddClippedShown(theDirty, theInput->mX, theInput->mY, theInput->mW, theInput->mH,
-				theDirty->mSrcRect);
-			theInput->mWasActive = theInput->mActive;
-		}
 		return;
-	}
-	if (theInput->mSurface == nullptr)
-	{
-		DrawText(theInput, theDst, theDPitch, theFmt);
-		Dirty_AddClippedShown(theDirty, theInput->mX, theInput->mY, theInput->mW, theInput->mH, theDirty->mSrcRect);
-	}
-	if (theInput->mSurface != nullptr && (theInput->mRedraw == 1 || theInput->mActive != theInput->mWasActive))
-	{
-		DrawOwn(theInput);
-		theInput->mWasActive = theInput->mActive;
-		theInput->mRedraw = 0;
-		Dirty_AddClippedShown(theDirty, theInput->mX, theInput->mY, theInput->mW, theInput->mH, theDirty->mSrcRect);
-	}
+	DrawText(theInput, theDst, theDPitch, theFmt);
+	Dirty_AddClippedShown(theDirty, theInput->mX, theInput->mY, theInput->mW, theInput->mH, theDirty->mSrcRect);
 	if (theInput->mFocused == 1 && theInput->mCaretOn == 1)
 	{
 		int aWidth = CaretWidth(theInput);
@@ -445,7 +399,6 @@ void TextInput_SetText(TextInput* theInput, const char* theText)
 	memset(theInput->mText, 0, theInput->mMaxLength + 1);
 	theInput->mLength = 0;
 	theInput->mCaret = 0;
-	theInput->mRedraw = 1;
 	strcpy(theInput->mText, theText);
 	int aLength = (int)strlen(theInput->mText);
 	theInput->mLength = aLength;
@@ -605,7 +558,6 @@ void TextInput_Update(TextInput* theInput, double theSeconds)
 		else if (aCode == 0x27 && theInput->mCaret < theInput->mLength)
 			theInput->mCaret = theInput->mCaret + 1;
 		KeepCaretInView(theInput);
-		theInput->mRedraw = 1;
 	}
 blink:
 	theInput->mBlinkClock = theInput->mBlinkClock + theSeconds;

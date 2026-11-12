@@ -214,7 +214,7 @@ Museum::Museum(FossilizedApp* theApp, DynomiteFossil* theBoard)
 	mFragmentAlpha = 0;
 	mGlowAlpha = 0;
 	mWait = 0;
-	if ((theBoard->mField131 == false) && (theApp->mInTutorial == false))
+	if ((theBoard->mGameOver == false) && (theApp->mInTutorial == false))
 	{
 		theApp->mMusicInterface->FadeOut(theBoard->mSong, false, 0.004);
 		mApp->mMusicInterface->FadeIn(4, -1, 0.002, false);
@@ -248,7 +248,7 @@ Museum::Museum(FossilizedApp* theApp, DynomiteFossil* theBoard)
 	mApp->mWidgetManager->AddWidget(mRightButton);
 	anArrow = mApp->mPicScrollbuttons_c0;
 	mRightButton->Resize(mApp->mPicLargedbutton->mWidth / 2 + 400, 0x1a1, anArrow->mWidth, anArrow->mHeight);
-	if (mBoard->mField132 == true)
+	if (mBoard->mGameOverShown == true)
 		mApp->mWidgetManager->BringToBack(mBoard->mReplayButton);
 	mRex = NULL;
 }
@@ -256,7 +256,7 @@ Museum::Museum(FossilizedApp* theApp, DynomiteFossil* theBoard)
 // 0x42c520
 Museum::~Museum()
 {
-	if (mBoard->mField132 == true)
+	if (mBoard->mGameOverShown == true)
 		mApp->mWidgetManager->BringToFront(mBoard->mReplayButton);
 	if (mCloseButton != NULL)
 	{
@@ -276,7 +276,7 @@ Museum::~Museum()
 		mApp->SafeDeleteWidget(mRightButton);
 		mRightButton = NULL;
 	}
-	if ((mBoard->mField131 == false) && (mApp->mInTutorial == false))
+	if ((mBoard->mGameOver == false) && (mApp->mInTutorial == false))
 	{
 		if (mKeepMusic == false)
 			mApp->mMusicInterface->FadeIn(mBoard->mSong, -1, 0.002, false);

@@ -16,8 +16,9 @@ static double lengthMs(const Platform::SoundData* theData)
 	return theData->mRate > 0 ? theData->mFrames * 1000.0 / theData->mRate : 0.0;
 }
 
+// 0x443fc0
 HostSound::HostSound(HostSoundSystem* theSystem, const std::shared_ptr<Platform::SoundData>& theData)
-	: mSystem(theSystem), mData(theData), mVoice(0), mPlaying(false), mLoop(false), mVolume(1), mPan(0), mPitch(1),
+	: mSystem(theSystem), mData(theData), mVoice(0), mPlaying(false), mLoop(false), mVolume(1), mPitch(1),
 	  mFadeIn(0), mFadeOut(0), mCategory(0), mFadeState(1), mFadeLeft(0), mFadeVolume(1), mPosition(0), mStartTime(0)
 {
 }
@@ -29,7 +30,7 @@ HostSound::~HostSound()
 		mSystem->removeSound(this);
 }
 
-// Slot 0: from where it is (the start, in the port), with a fade-in when it has one; nothing when it plays
+// Slot 0 (0x443d50; 0x444810 for a short sound): from where it is (the start, in the port), with a fade-in when it has one; nothing when it plays
 void HostSound::play()
 {
 	if (isPlaying())
@@ -56,7 +57,7 @@ void HostSound::play()
 		std::fprintf(sLog, "%d play %.0f %s vol=%.3f\n", sLogFrame, lengthMs(mData.get()), mLoop ? "looping" : "once", mVolume);
 }
 
-// Slot 4 (0x443dd0)
+// 0x443dd0
 void HostSound::halt()
 {
 	if (mVoice != 0 && sLog != nullptr)
@@ -80,18 +81,19 @@ void HostSound::stop()
 	rewind();
 }
 
-// Slot 0xc
+// Slot 0xc (0x443e40)
 void HostSound::rewind()
 {
 	mPosition = 0;
 }
 
-// Slot 0x10
+// Slot 0x10 (0x4447b0)
 void HostSound::close()
 {
 	halt();
 }
 
+// Slot 0x14 (0x443ea0)
 void HostSound::setPitch(float thePitch)
 {
 	mPitch = thePitch;
@@ -99,18 +101,14 @@ void HostSound::setPitch(float thePitch)
 		Platform::Mixer::Get().SetVoicePitch(mVoice, thePitch);
 }
 
-void HostSound::setPan(float thePan)
-{
-	mPan = thePan;
-	applyGain();
-}
-
+// Slot 0x24 (0x443f70)
 void HostSound::setVolume(float theVolume)
 {
 	mVolume = theVolume;
 	applyGain();
 }
 
+// Slot 0x34 (0x4444d0).
 // The original plays a sound of up to 2 s from one buffer, which ends after its length; a longer one streams through a
 // 2 s buffer refilled a second at a time (0x444270), and it stops only when the cursor leaves the half that took the
 // last of it: at the whole seconds of its length plus one (as 0x4440f0 reads the end with the last data).
@@ -189,11 +187,10 @@ void HostSound::applyGain()
 	if (mVoice == 0)
 		return;
 	float aGain = mSystem->getCategoryVolume(mCategory) * mSystem->getVolume() * mVolume * mFadeVolume;
-	float aLeft = aGain * (mPan <= 0 ? 1 : 1 - mPan);
-	float aRight = aGain * (mPan >= 0 ? 1 : 1 + mPan);
-	Platform::Mixer::Get().SetVoiceGain(mVoice, aLeft, aRight);
+	Platform::Mixer::Get().SetVoiceGain(mVoice, aGain, aGain);
 }
 
+// 0x443980
 HostSoundSystem::HostSoundSystem()
 	: mVolume(1)
 {
@@ -221,25 +218,13 @@ bool HostSoundSystem::load(const char* theName, const char* theFile)
 	return true;
 }
 
-// Slot 0xc (0x443120)
-void HostSoundSystem::unloadUnused()
+// port (the "memreport" test command): the sounds held and the bytes of their decoded samples
+int HostSoundSystem::getSoundMemory(size_t* theBytes) const
 {
-	for (std::map<std::string, std::shared_ptr<Platform::SoundData>>::iterator it = mData.begin(); it != mData.end();)
-	{
-		bool aUsed = false;
-		for (HostSound* aSound : mSounds)
-			aUsed = aUsed || aSound->getData() == it->second;
-		if (aUsed)
-			++it;
-		else
-			it = mData.erase(it);
-	}
-}
-
-// Slot 0x10 (0x443190)
-void HostSoundSystem::unload(const char* theName)
-{
-	mData.erase(theName);
+	*theBytes = 0;
+	for (std::map<std::string, std::shared_ptr<Platform::SoundData>>::const_iterator it = mData.begin(); it != mData.end(); ++it)
+		*theBytes += it->second->Bytes();
+	return (int)mData.size();
 }
 
 // Slot 0x14 (0x4435e0)

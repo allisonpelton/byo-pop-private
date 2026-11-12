@@ -5,6 +5,7 @@
 // (a cell is column * 9 + row, row 8 at the bottom; odd columns sit half a cell lower, so a cell has six
 // neighbours), the word being spelled, the score and the player's saved game.
 
+#include "Board.h"
 #include "Str.h"
 
 #include <cstring>
@@ -30,15 +31,15 @@ struct Record
 	int mGames;               // +0x00 (+0xb8c)
 	int mBestLevel;           // +0x04 (+0xb90)
 	int mLastLevel;           // +0x08 (+0xb94)
-	int mField0C;             // +0x0c
-	int mField10;             // +0x10
-	Str mStr14;               // +0x14 (+0xba0)
-	int mField1C;             // +0x1c
-	int mField20;             // +0x20
-	int mField24;             // +0x24
+	int mWords;               // +0x0c: the words spelled
+	int mLetters;             // +0x10: and their letters (the statistics page divides one by the other)
+	Str mLongestWord;         // +0x14 (+0xba0): the longest word spelled
+	int mBestStreak;          // +0x1c: the most words of five letters or more in a row
+	int mStreak;              // +0x20: the words of five letters or more in a row now
+	int mSpare;               // +0x24: saved and loaded; nothing else reads or writes it
 	int mSeen[33];            // +0x28 (+0xbb4): the hints shown
-	int mFieldAC;             // +0xac
-	int mFieldB0;             // +0xb0
+	int mFixedTileTaps;       // +0xac: the taps on a fixed tile (the first two show its hint)
+	int mStarTileTaps;        // +0xb0: the taps on a '*' tile (the first two show its hint)
 };
 
 class Game
@@ -130,63 +131,63 @@ public:
 	Str mSpelling;            // +0x00c: as the dictionary spells it
 	int mIsWord;              // +0x014
 	int mDifficulty;          // +0x018
-	char mLetters[81];        // +0x01c: the tiles (0 none)
-	int mKinds[81];           // +0x070: 1 '#' (a stone), 2 '(' (a copycat), 4, 8: falling
-	uint32_t mTileFlags[81];  // +0x1b4: 2 fixed, 4, 0x20, 0x40 marked, 0x80 falling, 0x100
-	int mField2F8[81];        // +0x2f8
-	char mField43C[81];       // +0x43c
-	float mFallOffsets[81];   // +0x490: how far above its cell a falling tile is
-	float mFallSpeeds[81];    // +0x5d4
-	int mBounces[81];         // +0x718
-	int mFrom[81][2];         // +0x85c: the cell a tile came from in the last shuffle
-	int mPathColumns[20];     // +0xae4
-	int mPathRows[20];        // +0xb34
+	char mLetters[BOARD_CELLS];        // +0x01c: the tiles (0 none)
+	int mKinds[BOARD_CELLS];           // +0x070: 1 '#' (a stone), 2 '(' (a copycat), 4, 8: falling
+	uint32_t mTileFlags[BOARD_CELLS];  // +0x1b4: 2 fixed, 4, 0x20, 0x40 marked, 0x80 falling, 0x100
+	int mChangeTimes[BOARD_CELLS];     // +0x2f8: when a tile last changed (a stone counted up, a copycat copied, a fixed tile freed)
+	char mOldLetters[BOARD_CELLS];     // +0x43c: the letter it had before, drawn as it changes ('^': a freed tile)
+	float mFallOffsets[BOARD_CELLS];   // +0x490: how far above its cell a falling tile is
+	float mFallSpeeds[BOARD_CELLS];    // +0x5d4
+	int mBounces[BOARD_CELLS];         // +0x718
+	int mFrom[BOARD_CELLS][2];         // +0x85c: the cell a tile came from in the last shuffle
+	int mPathColumns[PATH_LETTERS];     // +0xae4
+	int mPathRows[PATH_LETTERS];        // +0xb34
 	char mCopyLetter;         // +0xb84: the letter a copycat tile shows
-	int mFieldB88;            // +0xb88
+	int mBonusGiven;          // +0xb88: the bonus given on this level (it stops at 20 in a classic game, 40 in an action game)
 	Record mRecord;           // +0xb8c
 	int mInProgress;          // +0xc40: a game is in progress
-	int mFieldC44;            // +0xc44
-	int mFieldC48;            // +0xc48
-	Str mStrC4C;              // +0xc4c
+	int mGameOver;            // +0xc44: the game is over: its save is not continued
+	int mNoMoves;             // +0xc48: the game ended for lack of a move (the shuffle button's dialog)
+	Str mLastWord;            // +0xc4c: the last word spelled (the tutorial's steps wait for one)
 	int mWordChecked;         // +0xc54
-	int mFieldC58;            // +0xc58
-	int mFieldC5C;            // +0xc5c
-	int mFieldC60;            // +0xc60
-	int mFieldC64;            // +0xc64
+	int mChapterTextShown;    // +0xc58: the chapter's own text has been shown as a hint
+	int mClassic;             // +0xc5c: 1 a classic game (no clock: a count of moves), 0 an action game (the clock runs)
+	int mGameOverTime;        // +0xc60: when the game ends (0 not set)
+	int mLevelStartScore;     // +0xc64: the score the level began with
 	int mScore;               // +0xc68
 	int mShownScore;          // +0xc6c
-	int mFieldC70;            // +0xc70
-	int mFieldC74;            // +0xc74
+	int mScoreTime;           // +0xc70: when the score last changed (the shown score counts up to it)
+	int mWildFell;            // +0xc74: a '?' tile came from the super wild odds and its hint is still to be shown
 	uint32_t mShuffleTime;    // +0xc78
-	int mFieldC7C;            // +0xc7c
-	int mFieldC80;            // +0xc80
-	int mFieldC84;            // +0xc84
-	int mFieldC88;            // +0xc88
-	float mFieldC8C;          // +0xc8c
+	int mCopyTime;            // +0xc7c: when a copycat tile last copied a letter
+	int mFallFrame;           // +0xc80: the frame a tile last fell
+	int mCountTime;           // +0xc84: when the clock or the moves' count last ticked
+	int mMovesLag;            // +0xc88: moves given and not yet shown in the count (0 or below)
+	float mClockLag;          // +0xc8c: the clock time given and not yet shown (0 or below: the shown clock is mClock + mClockLag)
 	int mLevel;               // +0xc90: 1 to 50
-	float mFieldC94;          // +0xc94
+	float mClock;             // +0xc94: the clock's time left, 1 to 0 (an action game's)
 	int mGoal;                // +0xc98
-	int mFieldC9C;            // +0xc9c
-	int mFieldCA0;            // +0xca0
-	int mFieldCA4;            // +0xca4
-	int mFieldCA8;            // +0xca8: shuffles
-	int mFieldCAC;            // +0xcac
+	int mClockBonus;          // +0xc9c: the level's time bonus, counted into the score at its end
+	int mWordsPlayed;         // +0xca0: the words spelled on this level
+	int mGameWords;           // +0xca4: the words spelled in this game
+	int mShuffles;            // +0xca8: the shuffles on this level
+	int mMovesAtHint;         // +0xcac: the words and shuffles when the hint was shown
 	float mWildOdds;          // +0xcb4: '?' tiles due
 	float mSuperWildOdds;     // +0xcb8: '!' tiles due
 	float mStarOdds;          // +0xcbc: '*' tiles due
 	float mStoneOdds;         // +0xcc0: '#' tiles due
 	float mCopyOdds;          // +0xcc4: '(' tiles due
-	Str mStrCC8;              // +0xcc8
-	Str mStrCD0;              // +0xcd0
-	int mFieldCD8;            // +0xcd8
-	int mFieldCDC;            // +0xcdc
+	Str mLevelBestWord;       // +0xcc8: the longest word of this level (the summary's)
+	Str mBestWord;            // +0xcd0: the longest word of the game (the high score table's)
+	int mWordFrame;           // +0xcd8: the frame a word was last spelled (nothing reads it)
+	int mPathClearTime;       // +0xcdc: when the path was last cleared or spelled (nothing reads it)
 	int mPathLength;          // +0xce0
 	int mHintFound;           // +0xce4
 	int mHintLength;          // +0xce8
-	int mHintColumns[20];     // +0xcec
-	int mHintRows[20];        // +0xd3c
-	uint32_t mFieldD8C;       // +0xd8c
-	int mFieldD90;            // +0xd90
+	int mHintColumns[PATH_LETTERS];     // +0xcec
+	int mHintRows[PATH_LETTERS];        // +0xd3c
+	uint32_t mLastMoveTime;   // +0xd8c: when the player last moved (the idle hint's)
+	int mShuffleWords;        // +0xd90: the words spelled at the last shuffle (-99 none)
 };
 
 // 0x405d60: sparkles from the tile at theColumn, theRow (theSmall: small ones), theCount of them (theExact) or
@@ -197,7 +198,7 @@ void sparkleBoard();
 // 0x406330: theStr with theValue added
 Str& appendInt(Str& theStr, int theValue);
 // 0x406360, 0x4063e0: plays a sound
-int playSound(const Str& theName, float theVolume, int theUnused, int theDelay);
+int playSound(const Str& theName, float theVolume, int thePassedOn, int theDelay);
 int playSound(const Str& theName);
 // 0x401070
 int playSound(const Str& theName, float theVolume);

@@ -14,6 +14,7 @@ none 00401410 an empty function (returns at once), called from the level's draw 
 none 0040c2e0 ParticleSystem's destructor (run through 0x4112d0): unlinks its pooled particles, then the Obj destructor; the port's ParticleSystems are entries of the static pool gSystems that Level_UnlinkAll unlinks and nothing deletes
 none 0040c2c0 constructs one ParticleSystem of the static pool (the Obj base and its particle list; no caller in the export: the start-up table runs it, with the base's constructor on each of the pooled particles); the port's pools are zero-initialised statics, and ParticleSystem_New and ParticleSystem_Add set every field a system and a particle use (nothing else reads the base's defaults of either)
 none 004104b0 the trial's "Free Trial Remaining" clock text (drawn only while unregistered); the port is the registered game, with no trial code
+none 00422330 Font_SetClipped: sets a font's clip flag, which the original's code sets on every font it draws (each font loader, the text input, the title text); the port's fonts always draw clipped (the unclipped drawing went out in the unneeded-code pass, 'shared: Retro64'), so it has neither the function nor the calls
 none 004254b0 a one-call wrapper of the Image constructor 0x423980; the port makes an Image with Image() (new Image, Image_Free's reset) directly
 none 00425dd0 returns this+4, the address of the bank's image list for Font_LoadFromBank; the port reads Bank::images (a std::vector) directly
 none 00425ee0 std::list::clear instance (frees the palette list's nodes, not the palettes); the port's Bank_BuildPalettes calls std::vector::clear on Bank::palettes
@@ -29,6 +30,7 @@ none 00428c90 constructor of a global that holds a list of nodes and an array po
 none 00428cc0 destructor of that same list-and-array global (empties the list, frees the array); the port has no such object
 none 00428d10 WinMain zeroes the input globals (mouse latches, key queue, keys held) before GameMain; the port's gInput and gMouse* in R64Sys.cpp are zero-initialised statics and the game starts once per process
 none 00429120 FixPath: turns the / or : of a path into \ in a global buffer for fopen; the port reads through Sys_ReadFile and SysHost::ReadFile (the VFS takes either separator) and Sys_SavePath for cp.cfg
+none 004293a0 SetScreenLostCallback: stores the function the original's GameMain registers to run after the screen is opened again in a new pixel format; the port never loses the screen's format and runs none, so it has neither the function nor the call (SetScreenChangeCallback, the one that redraws, stays)
 none 004294d0 clears the flag WndProc reads to show the system arrow, so that the window shows the game's cursor; the port draws its own pointer and hides the framework's (WaterBugsApp::Init, SetCursor(CURSOR_NONE))
 none 004295f0 wrapper that passes Image_Blit's 8-bit copy on to the 8-bit blitter 0x42fe50; the port's Image_Blit calls Copy8 (R64Blit.cpp) directly
 none 00429680 wrapper that picks the 16-, 24- or 32-bit copy blitter by the destination's format; the port is 16-bit only, so Image_Blit tests Is16(fmt) and calls Copy16

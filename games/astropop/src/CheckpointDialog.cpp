@@ -17,7 +17,6 @@ CheckpointDialog::CheckpointDialog(int theColourSet, AstroPopApp* theApp) :
 	Text2004<Dialog>(IMAGE_DIALOG, IMAGE_DIALOG_BTN, 0x78, true, GT(0x00564b3c), std::string(), std::string(), 0)
 {
 	mApp = theApp;
-	m114 = 0;
 	mLevel = -1;
 
 	Color anInsetColor;
@@ -49,6 +48,7 @@ CheckpointDialog::~CheckpointDialog()
 }
 
 // Is a mouse y in the row of the two gates
+// port: the test that the box's mouse handlers and Draw share
 bool CheckpointDialog::OverGateRow(int y)
 {
 	return (mHeight - IMAGE_SLOW_WARP_GATE->mHeight) - 0x28 <= y && y <= mHeight - 0x28;

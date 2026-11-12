@@ -26,7 +26,7 @@ const int kKinds[][2] = {
 
 }  // namespace
 
-UserProfile::UserProfile() : mLoaded(false), mValid(true), mUnknown62(true)
+UserProfile::UserProfile() : mLoaded(false), mValid(true)
 {
 	for (size_t i = 0; i < sizeof(kKinds) / sizeof(kKinds[0]); i++)
 		mKinds[kKinds[i][0]] = kKinds[i][1];
@@ -120,6 +120,7 @@ bool UserProfile::GetRecord(unsigned int theList, unsigned int theIndex, Profile
 }
 
 // (the original has this step inline in GetPilotLevel below)
+// port: a step that the original has inline in UserProfile::GetPilotLevel (0x40e930)
 static int CountLess1(int theCount)
 {
 	return (theCount - 1 < 0) ? 0 : theCount - 1;

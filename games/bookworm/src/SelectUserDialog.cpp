@@ -87,7 +87,7 @@ void SelectUserDialog::ButtonDepress(int theId)
 		if (aUser != NULL)
 		{
 			mApp2->mUserManager->SetCurrentUser(aUser->mName);
-			mApp2->LoadUserSettings();
+			mApp2->LoadUserConfig();
 		}
 	}
 }
@@ -96,7 +96,7 @@ void SelectUserDialog::ButtonDepress(int theId)
 // (GT_USER_LIST_CREATE) then the names; exactly 5: the names then the delete line (GT_USER_LIST_DELETE); 6
 // or more (registry editing only): the first 5 and no special line; none: an empty list. The current user
 // is selected (exact compare); if it is not found the old selection index stays.
-void SelectUserDialog::UpdateList()
+void SelectUserDialog::ResetUserListWidget()
 {
 	if (mUserList == NULL)
 		return;
@@ -141,7 +141,7 @@ void SelectUserDialog::UpdateList()
 int SelectUserDialog::GetPreferredHeight(int theWidth)
 {
 	int aHeight = Dialog2004::GetPreferredHeight(theWidth);
-	UpdateList();
+	ResetUserListWidget();
 	if (mUserList != NULL)
 		return aHeight + 16 + mUserList->GetOptimalHeight();
 	return aHeight;
@@ -151,7 +151,7 @@ int SelectUserDialog::GetPreferredHeight(int theWidth)
 void SelectUserDialog::Resize(int theX, int theY, int theWidth, int theHeight)
 {
 	Dialog2004::Resize(theX, theY, theWidth, theHeight);
-	UpdateList();
+	ResetUserListWidget();
 
 	// The list 16 px above the buttons as Dialog::Resize placed them, 40 px in from each side
 	if (mUserList != NULL)
@@ -180,7 +180,7 @@ void SelectUserDialog::Resize(int theX, int theY, int theWidth, int theHeight)
 	}
 }
 
-// 0x432c90. The creator (BookWormApp::ShowSelectUserDialog) sets colour 0 (white) and sizes it to
+// 0x432c90. The creator (BookWormApp::DoSelectUserDialog) sets colour 0 (white) and sizes it to
 // (0, 17, 400, GetPreferredHeight(400)).
 SelectUserDialog::SelectUserDialog(BookWormApp* theApp) :
 	MoneyDialog(theApp, theApp->mImages[IMAGE_DIALOG], theApp->mImages[IMAGE_DIALOGBUTTON], DIALOG_SELECT_USER, true,
@@ -198,7 +198,7 @@ SelectUserDialog::SelectUserDialog(BookWormApp* theApp) :
 	mUserList->SetColors(gSelectUserListColors, 5);
 	mUserList->mDrawOutline = true;
 	mUserList->mJustify = ListWidget::JUSTIFY_CENTER;
-	UpdateList();
+	ResetUserListWidget();
 
 	if (mApp2->mGameSelector != NULL)
 		mApp2->mGameSelector->SetDisabled(true);
@@ -220,7 +220,7 @@ void SelectUserDialog::ListClicked(int theId, int theIdx, int theClickCount)
 	if (aName == GameText(GT_USER_LIST_CREATE))
 	{
 		// Any click count; this dialog stays open under the new-user dialog
-		mApp2->ShowNewUserDialog(GameText(GT_SELECT_USER_ENTER_NAME));
+		mApp2->DoNewUserDialog(GameText(GT_SELECT_USER_ENTER_NAME));
 	}
 	else if (aName == GameText(GT_USER_LIST_DELETE))
 	{
@@ -228,11 +228,11 @@ void SelectUserDialog::ListClicked(int theId, int theIdx, int theClickCount)
 		std::vector<SexyString> aNames;
 		for (int i = 0; i < MAX_LISTED_USERS; i++)
 			aNames.push_back(mUserList->mLines[i]);
-		mApp2->ShowDeleteUserDialog(aNames);
+		mApp2->DoDeleteUserDialog(aNames);
 	}
 	else if (theClickCount == 2)
 	{
-		// A double click switches the user and closes, without LoadUserSettings (OK does call it; the
+		// A double click switches the user and closes, without LoadUserConfig (OK does call it; the
 		// settings are reloaded at the next game start anyway, NAMES D44)
 		User* aUser = mApp2->mUserManager->FindUser(aName);
 		if (aUser != NULL)

@@ -51,13 +51,10 @@ WordBallSystem::WordBallSystem(int theMode)
 	mWaveTime = 0;
 	m1F0 = false;
 	mHintIndex = 0;
-	mEditor = false;
 	m1FC = 0;
-	mLevelBackup = nullptr;
 	setName("WordBallSystem");
 	mBounds = new Bounds(this, 441.0f);
 	mRope = nullptr;
-	mFollow = nullptr;
 	makeBalls();
 	addOwnFlags(2);
 	addOwnFlags(4);
@@ -371,57 +368,19 @@ void WordBallSystem::levelDone()
 	mNoPicking = true;
 }
 
-// 0x412080
-Obstacle* WordBallSystem::findObstacle(const Point& thePoint)
-{
-	std::vector<Obstacle*>::iterator anIt = mObstacles->begin();
-	Obstacle* aBest = nullptr;
-	float aBestDistance = 529.0f;
-	if (anIt == mObstacles->end())
-		return nullptr;
-	do
-	{
-		Obstacle* anObstacle = *anIt;
-		Point p = *anObstacle->getPosition();
-		float aDistance = (thePoint.y - p.y) * (thePoint.y - p.y) + (thePoint.x - p.x) * (thePoint.x - p.x);
-		if (aDistance < aBestDistance)
-		{
-			aBestDistance = aDistance;
-			aBest = anObstacle;
-		}
-		anIt++;
-	} while (anIt != mObstacles->end());
-	return aBest;
-}
-
-// 0x412120: a free ball near the mouse gets the rope (or in the editor the drag), and lights up
+// 0x412120: a free ball near the mouse gets the rope, and lights up
 void WordBallSystem::onMouseDown(Point& p)
 {
 	if (mNoPicking)
 		return;
 	unsigned int anIndex = findBall(mMouse);
 	if (anIndex == (unsigned int)-1)
-	{
-		Obstacle* anObstacle;
-		if (mEditor && (anObstacle = findObstacle(mMouse)) != nullptr && mFollow == nullptr)
-		{
-			mFollow = new Follow(anObstacle, 21.99f, 0.3f, 0.8f, 44.0f);
-			mFollow->mSnap = Game::instance()->mGridSnap;
-			mFollow->mTarget = mMouse;
-		}
 		return;
-	}
 	Ball* aBall = getBall(anIndex);
-	if (!aBall->mFixed || mEditor)
+	if (!aBall->mFixed)
 	{
-		if (mRope == nullptr && !mEditor)
+		if (mRope == nullptr)
 			grab(aBall);
-		else if (mFollow == nullptr && mEditor)
-		{
-			mFollow = new Follow(aBall, 21.99f, 0.3f, 0.8f, 44.0f);
-			mFollow->mSnap = Game::instance()->mGridSnap;
-			mFollow->mTarget = mMouse;
-		}
 		aBall->setOn(true);
 	}
 }
@@ -431,11 +390,6 @@ void WordBallSystem::onMouseUp(Point& p)
 {
 	if (mRope != nullptr)
 		letGo();
-	if (mFollow != nullptr)
-	{
-		delete mFollow;
-		mFollow = nullptr;
-	}
 }
 
 // 0x411260 (the ball under the mouse is looked up and not used)
@@ -445,8 +399,6 @@ void WordBallSystem::mouseMove(Point& p)
 	toLocal(mMouse);
 	if (mRope != nullptr)
 		mRope->mTarget = mMouse;
-	if (mFollow != nullptr)
-		mFollow->mTarget = mMouse;
 	unsigned int anIndex = findBall(mMouse);
 	if (anIndex != (unsigned int)-1)
 		getBall(anIndex);
@@ -602,16 +554,20 @@ void WordBallSystem::removeBall(unsigned int theIndex)
 	aBall->removeAllChildren();
 }
 
-// 0x412ca0
+// 0x412ca0: every free ball picked, each 0.1 s after the one before it
 void WordBallSystem::pickAll()
 {
 	unsigned int i = 0;
+	float aDelay = 0.0f;
 	if (mCount != 0)
 	{
 		do
 		{
 			if (getBall(i)->mState == BALL_FREE)
-				pickBall(i, 0.0f);
+			{
+				pickBall(i, aDelay);
+				aDelay += 0.1f;
+			}
 			i++;
 		} while (i < mCount);
 	}
@@ -676,13 +632,7 @@ int WordBallSystem::spawn(float x, float y, char theLetter, unsigned int theFlag
 	aBall->setPosition(x, y);
 	aBall->mOld = Point(x, y);
 	aBall->mAcceleration = Point(0, 0);
-	if (theLetter == '\0')
-	{
-		std::string aLetters = Game::instance()->randomLetters(1);
-		aBall->mLetter = (char)toupper(aLetters.at(0));
-	}
-	else
-		aBall->mLetter = (char)toupper(theLetter);
+	aBall->mLetter = (char)toupper(theLetter);
 	aBall->mGravity = new Point(-200.0f, 100.0f);
 	aBall->mFixed = false;
 	aBall->mSpecial = theFlags;
@@ -785,7 +735,7 @@ void WordBallSystem::makeHuds()
 	mFreematchHud->load("config\\HUD-freematch.xml");
 }
 
-// 0x414b90: the bounds, the rope and the drag, the chains, the obstacles and the balls against each other; a
+// 0x414b90: the bounds, the rope, the chains, the obstacles and the balls against each other; a
 // breakable ball is a block of its radius to the others (an invisible box made for the moment)
 void WordBallSystem::step()
 {
@@ -793,8 +743,6 @@ void WordBallSystem::step()
 	unsigned int i = 0;
 	if (mRope != nullptr)
 		mRope->apply();
-	if (mFollow != nullptr)
-		mFollow->apply();
 	for (unsigned int j = 0; j < mChains.size(); j++)
 		mChains[j]->apply();
 	if (mObstacles != nullptr)
@@ -897,7 +845,7 @@ void WordBallSystem::clear()
 	mLayer->removeAllChildren();
 	reset();
 	Level* aLevel;
-	if (mMode == MODE_FREEMATCH && (aLevel = Game::instance()->mCurrentLevel) != nullptr && !mEditor)
+	if (mMode == MODE_FREEMATCH && (aLevel = Game::instance()->mCurrentLevel) != nullptr)
 		delete aLevel;
 }
 
@@ -1068,178 +1016,11 @@ Chain* WordBallSystem::addChain(int theIndex)
 	return aChain;
 }
 
-// 0x416400: in the editor, keys change the dragged ball (or delete it or the dragged obstacle); else Escape and F
-// toggle the full screen, H asks the controller for help and P pauses
+// 0x416400: Escape and F toggle the full screen, H asks the controller for help and P pauses
 bool WordBallSystem::keyDown(int theKey)
 {
 	Game* aGame = Game::instance();
 	int aKey = toupper(theKey);
-	if (mEditor && mFollow != nullptr)
-	{
-		Node* aNode = mFollow->mNode;
-		Ball* aBall = static_cast<Ball*>(aNode);
-		std::string aName = aNode->getName();
-		if (aKey > '@' && aKey < '[')
-		{
-			if (aName == "node")
-			{
-				aBall->setLetter((char)aKey);
-				if ((aBall->mSpecial & BALL_BREAKABLE) == 0)
-					aBall->mSpecial = (int)(char)aBall->mSpecial & BALL_HEAVY;
-				else
-					aBall->mSpecial = BALL_BREAKABLE;
-				setupBall(aBall);
-			}
-			return true;
-		}
-		if (aKey == ' ')
-		{
-			if (aName == "node")
-			{
-				Ball* aTarget = aBall;
-				if (aBall->mChain == nullptr)
-				{
-					if (aBall->mLetter == ' ')
-					{
-						unsigned int i = 0;
-						if (mCount != 0)
-						{
-							do
-							{
-								if (aBall == getBall(i))
-									break;
-								i++;
-							} while (i < mCount);
-						}
-						if (i < mCount)
-						{
-							Chain* aChain = addChain(i);
-							aChain->mWord = " ";
-							aBall->mChain = aChain;
-						}
-					}
-					else
-						aBall->setLetter(' ');
-				}
-				else
-				{
-					unsigned int i = 0;
-					if (mCount != 0)
-					{
-						do
-						{
-							aTarget = getBall(i);
-							if (aTarget->mChain == nullptr)
-								break;
-							i++;
-						} while (i < mCount);
-					}
-					if (i < mCount)
-					{
-						aBall->mChain->mIndices.push_back(i);
-						aTarget->mChain = aBall->mChain;
-					}
-				}
-				setupBall(aTarget);
-				return true;
-			}
-		}
-		else if (aKey == '7')
-		{
-			if (aName == "node")
-			{
-				aBall->mSpecial = BALL_WILDCARD;
-				aBall->setLetter(' ');
-				setupBall(aBall);
-				return true;
-			}
-		}
-		else if (aKey == '8')
-		{
-			if (aName == "node")
-			{
-				aBall->mSpecial = 0;
-				setupBall(aBall);
-				return true;
-			}
-		}
-		else if (aKey == '9')
-		{
-			if (aName == "node")
-			{
-				aBall->mSpecial = BALL_HEAVY;
-				setupBall(aBall);
-				aBall->setLetter(' ');
-				return true;
-			}
-		}
-		else if (aKey == '0')
-		{
-			if (aName == "node")
-			{
-				aBall->mSpecial = BALL_BREAKABLE;
-				setupBall(aBall);
-				return true;
-			}
-		}
-		else
-		{
-			if (aKey > '1' && aKey < '5')
-			{
-				if (aName == "node")
-				{
-					unsigned int aFlags;
-					if (aKey == '2')
-						aFlags = aBall->mSpecial | BALL_X2;
-					else if (aKey == '3')
-						aFlags = aBall->mSpecial | BALL_X3;
-					else
-					{
-						if (aKey != '4')
-							return true;
-						aFlags = aBall->mSpecial | BALL_X4;
-					}
-					aBall->mSpecial = aFlags;
-					aBall->setLetter(' ');
-					setupBall(aBall);
-				}
-				return true;
-			}
-			if (aKey == '.')
-			{
-				if (aName == "node")
-				{
-					if (aBall->mChain == nullptr)
-					{
-						aBall->mState = BALL_GONE;
-						aBall->mSpecial = 0;
-					}
-					else
-						removeChain(aBall->mChain);
-				}
-				else if (aName == "obstacle")
-				{
-					mLayer->removeChild(aNode);
-					std::vector<Obstacle*>::iterator anIt = mObstacles->begin();
-					if (anIt != mObstacles->end())
-					{
-						do
-						{
-							if (*anIt == aNode)
-							{
-								mObstacles->erase(anIt);
-								break;
-							}
-							anIt++;
-						} while (anIt != mObstacles->end());
-					}
-				}
-				delete mFollow;
-				mFollow = nullptr;
-				return true;
-			}
-		}
-	}
 	switch (aKey)
 	{
 	case 0x1b:
@@ -1351,11 +1132,7 @@ void WordBallSystem::startLevel()
 	std::string aLetters;
 	std::vector<std::string> aPieces;
 	mLongestPiece = aLevel->mLongestPiece;
-	unsigned int aBalls;
-	if (!mEditor)
-		aBalls = aLevel->mBalls;
-	else
-		aBalls = 0;
+	unsigned int aBalls = aLevel->mBalls;
 	mCount = 0;
 	unsigned int i = 0;
 	do
@@ -1578,11 +1355,6 @@ void WordBallSystem::startLevel()
 		mRope = nullptr;
 		mTarget->setVisible(false);
 		mHud->setControlsEnabled(true, false, false);
-	}
-	if (mFollow != nullptr)
-	{
-		delete mFollow;
-		mFollow = nullptr;
 	}
 	mStarted = true;
 	aGame->playSound("LEVEL_BEGIN");
@@ -2319,8 +2091,6 @@ void WordBallSystem::update(UpdateInfo& theInfo)
 
 	if (mMode == MODE_FREEMATCH && aGame->mState == 5)
 	{
-		if (mEditor)
-			goto aHints;
 		Level* aLevel = aGame->mCurrentLevel;
 		// the x87 sums in double: each is stored as a float, and compared as it was before the store
 		double aFill = 1.0 / ((double)aLevel->mMaxBalls * aLevel->mSpawnDelay) * theInfo.mSeconds + mFill;
@@ -2345,7 +2115,7 @@ void WordBallSystem::update(UpdateInfo& theInfo)
 		if (1.0f <= mWaterLevel)
 			aGame->gameOver(false, false);
 	}
-	if (mEditor || aGame->mState != 5)
+	if (aGame->mState != 5)
 		goto aHints;
 
 	{

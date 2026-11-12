@@ -19,6 +19,7 @@ using namespace Sexy;
 // leaves the title's music playing; the screen's destructor clears it
 bool Sexy::gIntroReturning = true;
 
+// port: split out of the constructor 0x424e90, which makes each of its buttons this way
 static CellButton* NewMenuButton(int theId, ButtonListener* theListener, bool noDraw)
 {
 	CellButton* aButton = new CellButton(theId, theListener);
@@ -33,7 +34,6 @@ static CellButton* NewMenuButton(int theId, ButtonListener* theListener, bool no
 IntroScreen::IntroScreen(FossilizedApp* theApp)
 {
 	mApp = theApp;
-	mField238 = -1;
 	if ((gIntroReturning != true) && !theApp->mInTutorial)
 	{
 		theApp->mMusicInterface->FadeOut(0, true, 0.004);
@@ -73,12 +73,12 @@ IntroScreen::IntroScreen(FossilizedApp* theApp)
 	mModeButtons[3] = NewMenuButton(6, this, true);
 	mOkButton = NewMenuButton(7, this, false);
 	mBackButton = NewMenuButton(9, this, false);
-	mOkButton->mButtonCell = mApp->mPicWizardgraphics_r12bc;
-	mOkButton->mOverCell = mApp->mPicWizardgraphics_r12c0;
-	mOkButton->mDownCell = mApp->mPicWizardgraphics_r12c0;
-	mBackButton->mButtonCell = mApp->mPicWizardgraphics_r12c4;
-	mBackButton->mOverCell = mApp->mPicWizardgraphics_r12c8;
-	mBackButton->mDownCell = mApp->mPicWizardgraphics_r12c8;
+	mOkButton->mButtonCell = mApp->mPicNextButton;
+	mOkButton->mOverCell = mApp->mPicNextButtonOver;
+	mOkButton->mDownCell = mApp->mPicNextButtonOver;
+	mBackButton->mButtonCell = mApp->mPicBackButton;
+	mBackButton->mOverCell = mApp->mPicBackButtonOver;
+	mBackButton->mDownCell = mApp->mPicBackButtonOver;
 	mScrollbar = NULL;
 	mPuzzleList = NULL;
 	mPuzzleList = new PuzzleListWidget(mApp);
@@ -88,14 +88,14 @@ IntroScreen::IntroScreen(FossilizedApp* theApp)
 		mScrollbar = new ScrollbarWidget(1, mPuzzleList);
 	mScrollbar->mInvisIfNoScroll = true;
 	mPuzzleList->mScrollbar = mScrollbar;
-	mField280 = false;
+	mKeepMusic = false;
 }
 
 // 0x425570
 IntroScreen::~IntroScreen()
 {
 	FreeSlots();
-	if (!mField280)
+	if (!mKeepMusic)
 		mApp->mMusicInterface->FadeOut(2, true, 0.004);
 	if (mStartButtons[0] != NULL)
 	{
@@ -264,9 +264,9 @@ void IntroScreen::Resize(int theX, int theY, int theWidth, int theHeight)
 		mStartButtons[0]->Resize(mX + 0xda, mY + 0xb4, 0xec, 0x43);
 		mStartButtons[1]->Resize(mX + 0xdb, mY + 0xfd, 0xec, 0x43);
 		mStartButtons[2]->Resize(mX + 0xdb, mY + 0x146, 0xec, 0x43);
-		mOkButton->mButtonCell = mApp->mPicWizardgraphics_r12bc;
-		mOkButton->mOverCell = mApp->mPicWizardgraphics_r12c0;
-		mOkButton->mDownCell = mApp->mPicWizardgraphics_r12c0;
+		mOkButton->mButtonCell = mApp->mPicNextButton;
+		mOkButton->mOverCell = mApp->mPicNextButtonOver;
+		mOkButton->mDownCell = mApp->mPicNextButtonOver;
 	}
 	if (mPage == 1)
 	{
@@ -274,9 +274,9 @@ void IntroScreen::Resize(int theX, int theY, int theWidth, int theHeight)
 		mModeButtons[1]->Resize(mX + 0xaf, mY + 0x80, 0x118, 0x44);
 		mModeButtons[2]->Resize(mX + 0xaf, mY + 0x108, 0x11f, 0x44);
 		mModeButtons[3]->Resize(mX + 0xaf, mY + 0x14c, 0x11f, 0x44);
-		mOkButton->mButtonCell = mApp->mPicWizardgraphics_r12bc;
-		mOkButton->mOverCell = mApp->mPicWizardgraphics_r12c0;
-		mOkButton->mDownCell = mApp->mPicWizardgraphics_r12c0;
+		mOkButton->mButtonCell = mApp->mPicNextButton;
+		mOkButton->mOverCell = mApp->mPicNextButtonOver;
+		mOkButton->mDownCell = mApp->mPicNextButtonOver;
 	}
 	if (mPage == 2)
 	{
@@ -290,17 +290,17 @@ void IntroScreen::Resize(int theX, int theY, int theWidth, int theHeight)
 			mSkillButtons[1]->SetDisabled(false);
 		if ((mApp->mPuzzleSkills & 4) != 0)
 			mSkillButtons[2]->SetDisabled(false);
-		mOkButton->mButtonCell = mApp->mPicWizardgraphics_r12cc;
-		mOkButton->mOverCell = mApp->mPicWizardgraphics_r12d0;
-		mOkButton->mDownCell = mApp->mPicWizardgraphics_r12d0;
+		mOkButton->mButtonCell = mApp->mPicPlayButton;
+		mOkButton->mOverCell = mApp->mPicPlayButtonOver;
+		mOkButton->mDownCell = mApp->mPicPlayButtonOver;
 	}
 	if (mPage == 6)
 	{
 		mSkillButtons[0]->Resize(mX + 0xa0, mY + 0xba, 0x113, 0x43);
 		mSkillButtons[1]->Resize(mX + 0xa0, mY + 0xfd, 0x113, 0x43);
-		mOkButton->mButtonCell = mApp->mPicWizardgraphics_r12cc;
-		mOkButton->mOverCell = mApp->mPicWizardgraphics_r12d0;
-		mOkButton->mDownCell = mApp->mPicWizardgraphics_r12d0;
+		mOkButton->mButtonCell = mApp->mPicPlayButton;
+		mOkButton->mOverCell = mApp->mPicPlayButtonOver;
+		mOkButton->mDownCell = mApp->mPicPlayButtonOver;
 		mSkillButtons[0]->SetDisabled(false);
 		mSkillButtons[1]->SetDisabled(false);
 	}
@@ -312,9 +312,9 @@ void IntroScreen::Resize(int theX, int theY, int theWidth, int theHeight)
 			mScrollbar->ResizeScrollbar(mX + 0x1ae, mY + 0x82, 0x14, 0x10e);
 		if (mPuzzleList->mNothingToPlay == true)
 			mOkButton->Resize(mX - 1000, mY - 1000, 0x69, 0x23);
-		mOkButton->mButtonCell = mApp->mPicWizardgraphics_r12bc;
-		mOkButton->mOverCell = mApp->mPicWizardgraphics_r12c0;
-		mOkButton->mDownCell = mApp->mPicWizardgraphics_r12c0;
+		mOkButton->mButtonCell = mApp->mPicNextButton;
+		mOkButton->mOverCell = mApp->mPicNextButtonOver;
+		mOkButton->mDownCell = mApp->mPicNextButtonOver;
 	}
 	if (mPage != 0)
 		mBackButton->Resize(mX + 0xb3, mY + 0x1a1, 0x69, 0x23);
@@ -359,9 +359,9 @@ void IntroScreen::Resize(int theX, int theY, int theWidth, int theHeight)
 				i++;
 			} while (i < mSlotCount);
 		}
-		mOkButton->mButtonCell = mApp->mPicWizardgraphics_r12cc;
-		mOkButton->mOverCell = mApp->mPicWizardgraphics_r12d0;
-		mOkButton->mDownCell = mApp->mPicWizardgraphics_r12d0;
+		mOkButton->mButtonCell = mApp->mPicPlayButton;
+		mOkButton->mOverCell = mApp->mPicPlayButtonOver;
+		mOkButton->mDownCell = mApp->mPicPlayButtonOver;
 	}
 }
 
@@ -416,7 +416,7 @@ void IntroScreen::Draw(Graphics* g)
 		mApp->mWizardFont->Draw(mApp->GetString("CONTINUE_GAME").c_str(), mStartButtons[1]->mX - 0x4c, mStartButtons[1]->mY + 4);
 		mApp->mWizardFont->Draw(mApp->GetString("TUTORIAL").c_str(), mStartButtons[2]->mX - 0x4c, mStartButtons[2]->mY + 4);
 		g->SetColorizeImages(false);
-		mApp->mPicWizardgraphics_r1290->Draw(mStartButtons[0]->mX - 0x94, mStartButtons[0]->mY + 2);
+		mApp->mPicNewGameIcon->Draw(mStartButtons[0]->mX - 0x94, mStartButtons[0]->mY + 2);
 		mApp->mWizardFont->Draw(mApp->GetString("INTROSCREEN_NEW_GAME").c_str(), mStartButtons[0]->mX - 0x4e, mStartButtons[0]->mY + 2);
 		mApp->mTinyFont->Draw(mApp->GetString("NEW_GAME_BUTTON1").c_str(), mStartButtons[0]->mX - 0x4e, mStartButtons[0]->mY + 0x1c);
 		mApp->mPicWizardgraphics_c8->Draw(mStartButtons[1]->mX - 0x94, mStartButtons[1]->mY + 2);
@@ -583,7 +583,7 @@ void IntroScreen::Draw(Graphics* g)
 	{
 			g->SetColor(Color(0, 0, 0, 0x80));
 			g->FillRect(0xb9, 0x82, 0x10e, 0x10e);
-			mApp->mPicWizardgraphics_r12cc->Draw(mX + 0x8b, mY + 0x1a1);
+			mApp->mPicPlayButton->Draw(mX + 0x8b, mY + 0x1a1);
 			g->FillRect(mX + 0x8f, mY + 0x1a5, 0x5e, 0x18);
 			if (mSlotCount == 0)
 			{
@@ -638,7 +638,7 @@ void IntroScreen::Draw(Graphics* g)
 		break;
 	case 5:
 		g->SetColor(Color(0, 0, 0, 0x80));
-		mApp->mPicWizardgraphics_r12bc->Draw(mX + 0x8b, mY + 0x1a1);
+		mApp->mPicNextButton->Draw(mX + 0x8b, mY + 0x1a1);
 		g->FillRect(mX + 0x8f, mY + 0x1a5, 0x5e, 0x18);
 		g->SetColor(Color(0, 0, 0, 0xff));
 		g->DrawString(mApp->GetString("MULT_STOMPED_PUZZLE_DIALOG1"), 0x2f, 0xca);
@@ -707,7 +707,7 @@ void IntroScreen::Draw(Graphics* g)
 			g->SetColorizeImages(true);
 			g->SetColor(Color(100, 100, 100, 0xff));
 		}
-		mApp->mPicWizardgraphics_r12b8->Draw(mSkillButtons[1]->mX - 0x94, mSkillButtons[1]->mY + 2);
+		mApp->mPicPanicIcon->Draw(mSkillButtons[1]->mX - 0x94, mSkillButtons[1]->mY + 2);
 		mApp->mWizardFont->Draw(mApp->GetString("PANIC").c_str(), mSkillButtons[1]->mX - 0x4e, mSkillButtons[1]->mY + 2);
 		mApp->mTinyFont->Draw(mApp->GetString("PANIC_MODE_DESC1").c_str(), mSkillButtons[1]->mX - 0x4e, mSkillButtons[1]->mY + 0x1c);
 		mApp->mTinyFont->Draw(mApp->GetString("PANIC_MODE_DESC2").c_str(), mSkillButtons[1]->mX - 0x4e, mSkillButtons[1]->mY + 0x25);
@@ -717,9 +717,9 @@ void IntroScreen::Draw(Graphics* g)
 	}
 	Cell* aWelcome;
 	if (gIntroReturning == true)
-		aWelcome = mApp->mPicWelcomescreen_r12f8;
+		aWelcome = mApp->mPicWelcomeSign;
 	else
-		aWelcome = mApp->mPicWelcomescreen_r1304;
+		aWelcome = mApp->mPicStartNewGameSign;
 	aWelcome->Draw(0xb4, 0x23);
 	mTalker->Draw();
 }
@@ -831,9 +831,9 @@ void IntroScreen::ButtonPress(int theId)
 		ButtonDepress(7);
 		return;
 	}
-	mOkButton->mButtonCell = mApp->mPicWizardgraphics_r12bc;
-	mOkButton->mOverCell = mApp->mPicWizardgraphics_r12c0;
-	mOkButton->mDownCell = mApp->mPicWizardgraphics_r12c0;
+	mOkButton->mButtonCell = mApp->mPicNextButton;
+	mOkButton->mOverCell = mApp->mPicNextButtonOver;
+	mOkButton->mDownCell = mApp->mPicNextButtonOver;
 	mOkButton->MarkDirty();
 	mApp->mSndClick->Play();
 }
@@ -856,7 +856,7 @@ void IntroScreen::ButtonDepress(int theId)
 				mApp->mInTutorial = true;
 				mApp->mSndEgglands->Play();
 				mApp->StartTutorial();
-				mField280 = true;
+				mKeepMusic = true;
 				goto back;
 			}
 			mPage = 3;
@@ -884,7 +884,7 @@ void IntroScreen::ButtonDepress(int theId)
 			mApp->mSndEgglands->Play();
 			mApp->StartGame();
 			mApp->mMusicInterface->PlayMusic(2, 0x29, false);
-			mField280 = true;
+			mKeepMusic = true;
 			mApp->WarpToBoard();
 			goto back;
 		case 3:
@@ -983,11 +983,11 @@ void IntroScreen::ReadSlots()
 	FreeSlots();
 	mChosenSlot = -1;
 	unsigned int* aBits = (unsigned int*) malloc(0x3840);
-	int n = 0;
+	int aSlot = 0;
 	do
 	{
 		char aName[20];
-		sprintf(aName, "SLOT%d.SAV", n);
+		sprintf(aName, "SLOT%d.SAV", aSlot);
 		// port: the saved games are in the user folder (the original's are beside the exe)
 		std::string aPath = Platform::VFS::Get().GetUserDir() + "/" + aName;
 		FILE* aFile = fopen(aPath.c_str(), "rb");
@@ -1007,11 +1007,11 @@ void IntroScreen::ReadSlots()
 			mSlotButtons[mSlotCount]->mButtonCell = mSlotCells[mSlotCount];
 			mSlotButtons[mSlotCount]->mOverCell = mSlotCells[mSlotCount];
 			mSlotButtons[mSlotCount]->mDownCell = mSlotCells[mSlotCount];
-			mSlotNumbers[mSlotCount] = n;
+			mSlotNumbers[mSlotCount] = aSlot;
 			mSlotCount++;
 		}
-		n++;
-	} while (n < 8);
+		aSlot++;
+	} while (aSlot < 8);
 	free(aBits);
 	int i = 0;
 	if (0 < mSlotCount)

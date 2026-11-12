@@ -1,3 +1,5 @@
+// port(mod): mods "missed-words" and "par", each word against the board's best (WordReview.h). Not part of the original game.
+
 #include "WordReview.h"
 #include "Board.h"
 #include "BookWormApp.h"

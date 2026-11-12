@@ -92,7 +92,7 @@ button[disabled] { opacity: 0.5; cursor: default; }
 .stage-wrap { flex: 1 1 0; min-width: 0; min-height: 0; display: grid; place-items: center; padding: 12px; }
 .stage {
   position: relative; background: var(--stage); aspect-ratio: var(--aspect, 4 / 3); max-width: 100%;
-  width: min(100%, calc((100vh - 90px) * var(--aspect-w, 1.3333))); box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35); border-radius: 4px; overflow: hidden;
+  width: min(100%, calc((calc(100vh / var(--d95-z, 1)) - 90px) * var(--aspect-w, 1.3333))); box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35); border-radius: 4px; overflow: hidden;
 }
 /* Pixel-perfect (the site's setting, sizeStage below): the stage takes the width it works out, the game's own size */
 .pixel-perfect .stage:not(:fullscreen) { width: var(--pp-w); }
@@ -116,7 +116,7 @@ html.touch-side .stage-wrap > .bc-touch { grid-column: 2; grid-row: 1 / span 9; 
 html.fs-frame.touch-keys .bc-touch { position: fixed; z-index: 2147483647; right: 0; bottom: 0; background: #000; }
 html.fs-frame.touch-keys.touch-side .bc-touch { top: 0; }
 html.fs-frame.touch-keys:not(.touch-side) .bc-touch { left: 0; }
-html.fs-frame.touch-keys .stage:not(#\#) { width: calc(100vw - var(--touch-w, 0px)) !important; height: calc(100vh - var(--touch-h, 0px)) !important; right: auto !important; bottom: auto !important; }
+html.fs-frame.touch-keys .stage:not(#\#) { width: calc(calc(100vw / var(--d95-z, 1)) - var(--touch-w, 0px)) !important; height: calc(calc(100vh / var(--d95-z, 1)) - var(--touch-h, 0px)) !important; right: auto !important; bottom: auto !important; }
 /* The chat next to the game (the site's "Chat position"): the stage's box is as wide as the stage, and the two are centred
    together; chat.js's layout gives the stage's width (--stage-px). Only while the chat is shown: it starts with the game, and
    "Show chat" may be off */
@@ -253,10 +253,13 @@ html.game-loading:not(.d95-desk) .stage { visibility: hidden; }
 html.game-loading, html.game-loading * { cursor: progress !important; }
 html.player-only .stage-wrap { place-items: start; padding: 0; }
 html.player-only .stage { box-shadow: none !important; border-radius: 0; }
+/* the screen saver's page (?saver=1, web/saver.js): the game in the middle of a black screen */
+html.saver, html.saver body { background: #000000 !important; overflow: hidden; }
+html.saver .stage-wrap { place-items: center; min-height: 100vh; }
 /* byopop:game-css */
 </style>
 <!-- the site's look, Desktop 95 (web/skins.js sets <html data-skin="d95">; docs/WEB_PLAYER.md, "Desktop 95") -->
-<link rel="stylesheet" href="skins.css"><script src="skins.js"></script><script src="schemes.js"></script>
+<link rel="stylesheet" href="skins.css"><script src="skins.js"></script><script src="schemes.js"></script><script src="themedata.js"></script><script src="themes.js"></script>
 </head>
 <body>
 <a class="skip" id="skip-game" href="#canvas">{{game.skip}}</a>
@@ -391,10 +394,12 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
 
 <!-- byopop:footer -->
 
+<script src="saver.js"></script>
 <script src="settingsicons.js"></script>
 <script src="settings.js"></script>
 <script src="profiles.js"></script>
 <script src="exeicon.js"></script>
+<script src="exeprobes.js"></script>
 <script src="gameimport.js"></script>
 <script src="other-games.js"></script>
 <script src="chat-games.js"></script>
@@ -451,6 +456,11 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
   // staged assets and keeps everything in a test profile of its own (PERSIST and the Web Lock end in "-test"), apart from the
   // player's; without it, the page's own files and saves, as on the full page. Plays are not counted and the chat never starts.
   var PLAYER_ONLY = new URLSearchParams(location.search).get("player") === "1" && ByopopTerms.devHost(location);
+  // the screen saver's frame (web/saver.js): the player's own files of the game, and nothing written back, neither the game's
+  // saves (IDBFS, below) nor anything in this browser's storage, so its games leave no trace
+  var SAVER = PLAYER_ONLY && new URLSearchParams(location.search).get("saver") === "1";
+  if (SAVER) document.documentElement.classList.add("saver");
+  if (SAVER) try { var SP = Storage.prototype; SP.setItem = SP.removeItem = SP.clear = function () {}; } catch (e) {}
   // the page in a game's window on Desktop 95's one page (web/deskapps.js, ?embed=1): the game and its own windows, the
   // desktop's window frame around them
   var EMBED = !!(window.ByopopSkin && ByopopSkin.EMBED);
@@ -643,21 +653,26 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
     // restored to take it, as a Windows program's View sizes did; "Fit window" (0) leaves the window as it is
     if (EMBED && n > 0) {
       var P = desktopApps(), s = $("stage");
-      if (P && s) try { P.fit(window, s.offsetWidth + sideWidth(), s.offsetHeight + statusBarHeight(), true, true); } catch (e) {}
+      if (P && s) try { P.fit(window, s.offsetWidth + sideWidth(), withSide(s.offsetHeight + statusBarHeight()), true, true); } catch (e) {}
     }
     // SDL sizes the canvas's pixels only on the window's resize event (as onGameScreen): without one the game stayed 640 x 480
     // pixels stretched to the new size until the page was reloaded
     Promise.resolve().then(function () { window.dispatchEvent(new Event("resize")); });
   }
+  // the desktop's zoom (web/skins.js): the screen's pixels to one of the page's, and the window's size in the page's pixels
+  function deskZoom() { try { return ByopopSkin.zoom(); } catch (e) { return 1; } }
+  function pxRatio() { return (window.devicePixelRatio || 1) * deskZoom(); }
+  function viewW() { return (document.documentElement.clientWidth || window.innerWidth) / deskZoom(); }
+  function viewH() { return window.innerHeight / deskZoom(); }
   // the multiples that fit: the game window's frame, title bar and status bar around the stage, on the desktop above the task bar
   function deskScales() {
-    var dpr = window.devicePixelRatio || 1, out = [];
+    var dpr = pxRatio(), out = [];
     var win = $("main"), st = $("stage");
     var chromeW = 12, chromeH = 50;
     if (win && st && st.offsetWidth) { chromeW = win.offsetWidth - st.offsetWidth; chromeH = win.offsetHeight - st.offsetHeight; }
     var bar = document.querySelector(".d95-taskbar");
-    var roomW = (document.documentElement.clientWidth || window.innerWidth) - chromeW;
-    var roomH = window.innerHeight - (bar ? bar.offsetHeight : 28) - chromeH;
+    var roomW = viewW() - chromeW;
+    var roomH = viewH() - (bar ? bar.offsetHeight : 28) - chromeH;
     for (var n = 1; n <= 16; n++) {
       var cw = gameScreen.w * n / dpr, ch = gameScreen.h * n / dpr;
       if (n > 1 && (cw > roomW || ch > roomH)) break;
@@ -678,8 +693,8 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
     if (PLAYER_ONLY) w = gameScreen.w / (window.devicePixelRatio || 1);
     else if (desktop && EMBED) w = embedWidth();
     else if (setting("pixelPerfect") === "on" || desktop) {
-      var dpr = window.devicePixelRatio || 1, n = Math.max(1, Math.round(dpr));
-      var roomW = (document.documentElement.clientWidth || window.innerWidth) - 24, roomH = window.innerHeight - 90;
+      var dpr = pxRatio(), n = Math.max(1, Math.round(dpr));
+      var roomW = viewW() - 24, roomH = viewH() - 90;
       // Desktop 95's game window (web/skins.js): the icons at the left, the controls above it, its own title bar
       if (desktop) { roomW -= 120; roomH -= 60; }
       // a multiple chosen for this game, while its window still fits
@@ -724,6 +739,16 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
     try { if (window.matchMedia("(max-width: 600px)").matches) return 0; } catch (e) {}
     return p.offsetWidth;
   }
+  // and how tall it is: the window is at least that tall, so that its readings are never cut off (a play-test, 2026-11-11, had to
+  // scroll them in a 640 by 480 game's window)
+  function sideHeight() {
+    if (!sideWidth()) return 0;
+    var p = $("perf-panel"), last = p.lastElementChild;
+    if (!last) return 0;
+    var pad = parseFloat(getComputedStyle(p).paddingBottom) || 0;
+    return Math.ceil(last.getBoundingClientRect().bottom - p.getBoundingClientRect().top + p.scrollTop + pad);
+  }
+  function withSide(h) { return Math.max(h, sideHeight()); }
   window.addEventListener("byopop-side", function () { embedFitted = ""; sizeStage(); });
   function embedWidth() {
     var dpr = window.devicePixelRatio || 1, pick = chosenScale();
@@ -740,12 +765,12 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
     if (embedFitted !== key) {
       embedFitted = key;
       var P = desktopApps();
-      if (P) try { P.fit(window, Math.ceil(w) + sideWidth(), Math.ceil(h) + statusBarHeight(), true); } catch (e) {}
+      if (P) try { P.fit(window, Math.ceil(w) + sideWidth(), withSide(Math.ceil(h) + statusBarHeight()), true); } catch (e) {}
     }
     // the scale in the status bar, as a value
     if (statusBar) {
       var sc = statusBar.querySelector(".d95-scale");
-      if (!sc) { sc = document.createElement("span"); sc.className = "d95-scale"; statusBar.appendChild(sc); }
+      if (!sc) { sc = document.createElement("span"); sc.className = "d95-scale"; sc.title = ByopopStrings.t("skin.apps.scale_tip"); statusBar.appendChild(sc); }
       sc.textContent = ByopopStrings.t("skin.apps.scale", { n: currentScale() });
     }
   }
@@ -990,6 +1015,8 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
     return new Promise(function (resolve, reject) {
       fs.syncfs(true, function (err) { err ? reject(err) : resolve(); });
     }).then(function () {
+      // the screen saver writes nothing back: a sync to the database does nothing (SAVER, above)
+      if (SAVER) { var load = fs.syncfs; fs.syncfs = function (pop, cb) { if (typeof pop === "function") { cb = pop; pop = false; } if (pop) return load.call(fs, pop, cb); if (cb) cb(null); }; }
       [GAME, USER, MODS].concat(PAGE.replays ? [REPLAYS] : []).forEach(function (d) { try { fs.mkdirTree(d); } catch (e) {} });
       // Files written as the page was closed may only have reached the game's localStorage backup: bring them
       // back before this page reads the user dir (main() restores it again, which then changes nothing)
@@ -1075,7 +1102,7 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
           document.head.appendChild(link);
         });
         var icon = $("brand-icon");
-        icon.src = scaleIcon(img, Math.round(HEADER_ICON_PX * (window.devicePixelRatio || 1))) || url;
+        icon.src = scaleIcon(img, Math.round(HEADER_ICON_PX * pxRatio())) || url;
         icon.hidden = false;
         document.querySelector(".brand .mark").hidden = true;
       } catch (e) {}
@@ -1148,6 +1175,13 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
   function copyGame(entries, root) {
     var W = web(), msg = $("import-msg");
     var wanted = ByopopImport.pick(PAGE, entries, root, W.fs.safeRel);
+    // an exe the port can't read its texts from is refused before anything is copied (web/gameimport.js, exeUnreadable)
+    return ByopopImport.exeUnreadable(PAGE.id, wanted).then(function (bad) {
+      if (bad) { importMessage(ByopopStrings.t("game.import.exe", {exe: bad}), true); return false; }
+      return copyChecked(W, msg, wanted, entries, root);
+    });
+  }
+  function copyChecked(W, msg, wanted, entries, root) {
     var done = 0;
     importProgress(0, wanted.length);
     msg.textContent = ByopopStrings.t("game.import.copying", {count: wanted.length});
@@ -1300,7 +1334,8 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
     setGameState("running");
     gameWindowLoading(true);
     Module.callMain(run.args.concat(noMods ? ["-nomods"] : []).concat(pagePlaceholders() ? ["-placeholders"] : []));
-    startChat();
+    // on Desktop 95's desktop the chat is a window that starts closed and starts when the player opens it (below)
+    if (!document.documentElement.classList.contains("d95-desk")) startChat();
     cursorTimer = setInterval(pollCursor, 100);
     applySiteOptions(true, true);
     applyTutorials();
@@ -1876,7 +1911,7 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
     var s = $("stage");
     document.documentElement.classList.toggle("fs-frame", frameFull());
     if (!deskOn() || !stageFull()) { s.style.removeProperty("--fs-w"); s.style.removeProperty("--fs-h"); return; }
-    var dpr = window.devicePixelRatio || 1, aw = window.innerWidth, ah = window.innerHeight, w = 0, h = 0;
+    var dpr = pxRatio(), aw = window.innerWidth / deskZoom(), ah = viewH(), w = 0, h = 0;
     // the touch keys keep their room in full screen: a column at the side or a row under the game (web/controls.js, touch-side)
     var bar = document.querySelector(".bc-touch"), root = document.documentElement, tw = 0, th = 0;
     if (bar && frameFull()) { if (root.classList.contains("touch-side")) tw = bar.offsetWidth; else th = bar.offsetHeight; }
@@ -2325,7 +2360,11 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
         maximize: goFullscreen, onClose: closeProgram, sizes: deskSizes, at: function (left) { return [left, 12]; } });
       // the chat's collapser minimizes it to the task bar on the desktop (web/skins.js, minimize); in a game's window on the one
       // page there is none (startChat)
+      // It starts closed, and the chat starts when the player first brings its window up, never by itself (the user, 2026-11-11:
+      // "Stop chat from opening on its own")
+      if (!EMBED) window.addEventListener("byopop-desk-active", function (ev) { if (ev.detail && ev.detail.id === "chat") startChat(); });
       if (!EMBED) d.add($("chat"), { id: "chat", title: $("chat-title").textContent, handle: $("chat-title"), minimize: ".chat-chevron", scroll: ".bpc-log",
+        closable: true, closed: true,
         at: function (left, vw) { var g = d.find("game"); return g ? [Math.min(g.x + g.el.offsetWidth + 12, vw - 312), g.y] : [left, 12]; } });
       PANELS.forEach(function (id) {
         var p = $(id), wid = id;
@@ -2358,7 +2397,7 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
   // status bar, in CSS pixels (web/deskapps.js keeps the window's resizing to it)
   function embedLeast() {
     var dpr = window.devicePixelRatio || 1, n = chosenScale() || 1;
-    return { w: gameScreen.w * n / dpr + sideWidth(), h: gameScreen.h * n / dpr + statusBarHeight() };
+    return { w: gameScreen.w * n / dpr + sideWidth(), h: withSide(gameScreen.h * n / dpr + statusBarHeight()) };
   }
   if (EMBED) window.ByopopEmbed = { close: closeProgram, menus: embedMenus, about: embedAbout, least: embedLeast };
   // what web/testkit.js reads and calls on the player-only page; nothing on any other page

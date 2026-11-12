@@ -5,6 +5,7 @@
 // data holds 50): the board's shape, its first tiles and what may fall where. loadBooks copies them from the exe,
 // with the board stored by rows as the exe has it; init (from loadResources) turns it to columns.
 
+#include "Board.h"
 #include "Str.h"
 
 namespace bonnies
@@ -55,18 +56,18 @@ struct Book
 	int mNoConsonants;        // +0x2c
 	int mNoWilds;             // +0x30: '?' and '!' never fall
 	int mNoStars;             // +0x34: '*' never falls
-	int mField38;             // +0x38
-	int mField3C;             // +0x3c
+	int mTwoFills;            // +0x38: a tile takes two words to mark (the flags 0x10, then 0x20)
+	int mFastOdds;            // +0x3c: a long word adds more to the special tiles' odds
 	int mStones;              // +0x40: '#' tiles
 	int mPairs;               // +0x44: two-letter tiles may fall
 	float mOffsetX;           // +0x48: the board's position
 	float mOffsetY;           // +0x4c
 	const char* mBanned;      // +0x50
 	const char* mBannedIn[9]; // +0x54
-	BookCell mCells[81];      // +0x78
+	BookCell mCells[BOARD_CELLS];      // +0x78
 };
 
-extern Book gBooks[50];  // 0x466728
+extern Book gBooks[LEVEL_COUNT];  // 0x466728
 
 // Copies the books from the exe (after runStaticInitializers)
 void loadBooks();

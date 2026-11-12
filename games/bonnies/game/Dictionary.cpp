@@ -93,6 +93,26 @@ Dictionary::Dictionary()
 {
 }
 
+// port
+size_t Dictionary::memoryBytes() const
+{
+	size_t aBytes = (size_t)mCount * sizeof(uint8_t);
+	for (int aTable = 0; aTable < 2; aTable++)
+	{
+		const Str* aStrings = aTable == 0 ? mWords : mSpellings;
+		for (int i = 0; aStrings != nullptr && i < mCount; i++)
+		{
+			const Str& aString = aStrings[i];
+			aBytes += sizeof(Str);
+			// (a string too long for its own bytes keeps the rest on the heap)
+			const char* aData = aString.data();
+			if (aData < (const char*)&aString || aData >= (const char*)(&aString + 1))
+				aBytes += aString.capacity() + 1;
+		}
+	}
+	return aBytes;
+}
+
 // 0x404570
 Str expandWord(Str theWord, int theWild)
 {
@@ -170,7 +190,7 @@ int Dictionary::isWord(Str theWord, int theExpand)
 	int aLength = (int)theWord.size();
 	if (aLength <= 2)
 		return 0;
-	if (gBonnies->mDebug1EC != 0)
+	if (gBonnies->mAnyWord != 0)
 		return 1;
 	mMatch = "";
 	mMatchRarity = 0;
@@ -395,10 +415,10 @@ void updateLetterOdds()
 				}
 			}
 			aRow++;
-		} while (aRow < 9);
-		aCell += 9;
+		} while (aRow < BOARD_ROWS);
+		aCell += BOARD_ROWS;
 		aColumn++;
-	} while (aCell < 0x51);
+	} while (aCell < BOARD_CELLS);
 	if (aTotal < 0xc)
 	{
 		resetLetterOdds();
@@ -596,11 +616,11 @@ void Dictionary::init()
 					if (anIndex == 0)
 					{
 						char aFlag = (char)at(aText, aStart);
-						char aFlag2 = (char)at(aText, aNext);
+						char aSecondFlag = (char)at(aText, aNext);
 						if (aFlag == '2')
 						{
 							aRarities = 1;
-							if (aFlag2 == '0')
+							if (aSecondFlag == '0')
 								aPrefixes = 1;
 							goto rarity;
 						}

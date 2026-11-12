@@ -20,7 +20,7 @@ Brick::Brick(Board* theBoard, EventBus* theBus, int theColumn) :
 	mRainbowIndex = -1;
 	mRainbowTimer = 0x19;
 	mGone = false;
-	mFlag194 = false;
+	mGlowTranslucent = false;
 	mGlowAlpha = 0xff;
 	mTrail = false;
 	mNumParticles = 10;
@@ -31,35 +31,32 @@ Brick::Brick(Board* theBoard, EventBus* theBus, int theColumn) :
 	mTargetY = 0;
 	mHidden = false;
 	mFloorY = 0;
-	mFlag187 = false;
+	mBlastsOnPop = false;
 	mTick = 0;
 	mBouncing = false;
 	mRainbow = false;
 	mBounceFire = true;
 	mBounceY = 0;
-	mFlag18B = false;
-	mNum1D8 = 0;
-	mFlag17C = false;
+	mMutationHeld = false;
+	mRetargeted = false;
 	mBounceDelay = 0;
 	mSpecial = false;
-	mFlag17F = false;
-	mFlag180 = false;
+	mLightRising = false;
+	mLightChanging = false;
 	mShake = false;
-	mFlag18A = false;
+	mGoesOffOnArrival = false;
 	mShakeX = 0;
 	mShakeY = 0;
-	mFlag18C = true;
-	mFlag17B = false;
+	mLanded = true;
 	mWobble = false;
 	mBounceState = 0;
 	mColor2 = Color(0, 0, 0);
-	mFlag188 = false;
-	mNum1B4 = 0;
+	mSupported = false;
+	mFallLightStep = 0;
 	mOffsetY = 0;
 	mWobbleSpeed = 0;
-	mFlag183 = false;
-	mFlag184 = true;
-	mFlag185 = false;
+	mFadeRising = true;
+	mFading = false;
 	mFade = 0;
 	mMutateTimer = 0;
 	mMutated = 500000000;
@@ -70,22 +67,15 @@ Brick::Brick(Board* theBoard, EventBus* theBus, int theColumn) :
 	mSprocketAlpha = 0;
 	mSprocketLight = 0;
 	mSprocketCel = 0;
-	mFlag190 = false;
+	mSprocketFading = false;
 	mLightValue = 0;
-	mFlag193 = false;
+	mTurbotFading = false;
 	mTurbotOn = false;
 	mTurbotAlpha = 0;
 	mTurbotLight = 0;
 	mTurbotCel = 0;
-	mNum1A0 = 0;
 	mType = 9999;
-	mFlag181 = false;
-	mNum1C0 = -1;
-	mFlag16C = mFlag16D = mFlag16E = mFlag16F = false;
-	mFlag172 = false;
-	mFlag175 = false;
-	mFlag176 = false;
-	mNum1B0 = 5;
+	mHighlightState = -1;
 
 	mDeathAnim.mHoldLast = true;
 	mDeathAnim.SetNumFrames(IMAGE_BRICK_DEATH_RED->mNumCols);
@@ -165,7 +155,7 @@ void Brick::OnEvent(int theEvent, EventListener* theSource, int theArg)
 	case EVENT_DIE:			OnDie(); break;
 	case EVENT_STOP:		OnStop(); break;
 	case EVENT_BEGIN_FALL:	OnBeginFall(); break;
-	case EVENT_1E:			OnEvent1E(); break;
+	case EVENT_1E:			OnTurbotReset(); break;
 	case EVENT_14:			OnEvent14(); break;
 	// the listener's vtable (0x55d500) has them in slots 25 to 28, which the event bus (0x40d820) calls for the events 0x16 to 0x19:
 	// the sprocket's light off, the turbot's off, the sprocket's on, the turbot's on
@@ -178,9 +168,9 @@ void Brick::OnEvent(int theEvent, EventListener* theSource, int theArg)
 	case EVENT_22:			mSprocketCel = theArg; break;				// 0x402660
 	case EVENT_23:			mTurbotLight = theArg; break;				// 0x402730
 	case EVENT_24:			mTurbotCel = theArg; break;					// 0x402740
-	case EVENT_25:			mFlag194 = theArg < 0xff; mGlowAlpha = theArg; break;		// 0x401b90
-	case EVENT_28:			mFlag18B = theArg == 1; break;				// 0x401d40
-	case EVENT_2A:			OnEvent2A(theArg); break;
+	case EVENT_25:			mGlowTranslucent = theArg < 0xff; mGlowAlpha = theArg; break;		// 0x401b90
+	case EVENT_28:			mMutationHeld = theArg == 1; break;				// 0x401d40
+	case EVENT_2A:			OnBoosterPause(theArg); break;
 	default:				break;
 	}
 }
@@ -209,10 +199,10 @@ void Brick::OnSpawn()
 	mSpeedX = 0;
 	mSpeedY = 0;
 	mShake = false;
-	mFlag190 = false;
+	mSprocketFading = false;
 	mSprocketOn = false;
 	mTurbotOn = false;
-	mFlag193 = false;
+	mTurbotFading = false;
 	mLightValue = 0;
 	FireLanded();
 }
@@ -261,7 +251,7 @@ void Brick::OnSettle()
 		if (!IsListening(0x25))
 			Listen(0x25);
 	}
-	mFlag18C = false;
+	mLanded = false;
 	mBouncing = false;
 	mBounceY = 0;
 	mBounceFire = false;
@@ -293,14 +283,12 @@ void Brick::OnDie()
 	{
 		if (mMutated != 1)
 		{
-			mFlag17B = true;
 			SetState(3);
 			return;
 		}
 	}
 	else if (mMutated != 1)
 	{
-		mFlag17B = false;
 		if (mType >= 0 && mType < 6 && (!mSpecial || mMutated == 1))
 		{
 			int aType = 0xc;
@@ -332,17 +320,17 @@ void Brick::OnStop()
 void Brick::OnBeginFall()
 {
 	mLight = 0;
-	mNum1B4 = 6;
+	mFallLightStep = 6;
 	SetState(8);
 	mShake = false;
 	StopListeningToAll();
 }
 
 // 0x4026d0 (listener) event 0x1e
-void Brick::OnEvent1E()
+void Brick::OnTurbotReset()
 {
 	mTurbotOn = false;
-	mFlag193 = false;
+	mTurbotFading = false;
 	StopListening(0x1e);
 	StopListening(0x24);
 	StopListening(0x23);
@@ -360,7 +348,7 @@ void Brick::OnEvent14()
 void Brick::OnSprocketOn()
 {
 	mSprocketOn = true;
-	mFlag190 = false;
+	mSprocketFading = false;
 	mSprocketAlpha = 0;
 	mLightValue = 0;
 	StopListening(0x18);
@@ -374,7 +362,7 @@ void Brick::OnSprocketOn()
 void Brick::OnTurbotOn()
 {
 	mTurbotOn = true;
-	mFlag193 = false;
+	mTurbotFading = false;
 	mTurbotAlpha = 0;
 	mLightValue = 0;
 	StopListening(0x19);
@@ -389,7 +377,7 @@ void Brick::OnTurbotOn()
 void Brick::OnSprocketOff()
 {
 	mSprocketOn = false;
-	mFlag190 = true;
+	mSprocketFading = true;
 	mLightValue = 0xff;
 }
 
@@ -397,7 +385,7 @@ void Brick::OnSprocketOff()
 void Brick::OnTurbotOff()
 {
 	mTurbotOn = false;
-	mFlag193 = true;
+	mTurbotFading = true;
 	mLightValue = 0xff;
 }
 
@@ -406,10 +394,10 @@ void Brick::OnEvent20(int theArg)
 {
 	if ((theArg == -mType && theArg != 0) || (theArg == -500000000 && mType == 0))
 	{
-		mNum1C0 = -1;
+		mHighlightState = -1;
 		mGlowAnim.Reset();
 		mGlowAnim.SetStopped(true);
-		mFlag194 = false;
+		mGlowTranslucent = false;
 		if (IsListening(0x25))
 			StopListening(0x25);
 	}
@@ -420,13 +408,12 @@ void Brick::OnEvent20(int theArg)
 			aType = mType;
 		if (theArg == aType && (!mSpecial || mMutated == 1) &&
 			(mMutated == 1 || (mType != 6 && (mMutated == 1 || mType != 7))) &&
-			GetEffectiveType() != 9 && GetEffectiveType() != 0xb && mNum1C0 == -1)
+			GetEffectiveType() != 9 && GetEffectiveType() != 0xb && mHighlightState == -1)
 		{
 			if (!IsListening(0x25))
 				Listen(0x25);
-			mFlag194 = false;
-			mNum1C0 = 0;
-			mFlag181 = true;
+			mGlowTranslucent = false;
+			mHighlightState = 0;
 			mGlowAnim.SetStopped(false);
 		}
 	}
@@ -534,7 +521,7 @@ void Brick::UpdateState0()
 
 	if (!mSprocketOn)
 	{
-		if (mFlag190 && mLightValue > 0)
+		if (mSprocketFading && mLightValue > 0)
 		{
 			mLightValue -= 4;
 			if (mLightValue < 1)
@@ -550,7 +537,7 @@ void Brick::UpdateState0()
 
 	if (!mTurbotOn)
 	{
-		if (mFlag193 && mLightValue > 0)
+		if (mTurbotFading && mLightValue > 0)
 		{
 			mLightValue -= 4;
 			if (mLightValue < 1)
@@ -574,7 +561,7 @@ void Brick::UpdateState2()
 		mY = mSpeedY + mY;
 		if (mY >= mFloorY)
 		{
-			mFlag18C = true;
+			mLanded = true;
 			mY = mFloorY;
 			SetVisible(false);
 			Fire(7);
@@ -585,12 +572,12 @@ void Brick::UpdateState2()
 // 0x4015d0 slot 4: rising to its place
 void Brick::UpdateState1()
 {
-	if (!(mY < mTargetY) || mFlag17C)
+	if (!(mY < mTargetY) || mRetargeted)
 	{
 		mY = mY - mSpeedY;
 		if (!mVisible && mY <= 423.0f)
 			SetVisible(true);
-		if (mFlag188 && mSupport != NULL)
+		if (mSupported && mSupport != NULL)
 		{
 			float aMin = mSupport->mY + 25.0f;
 			if (mY < aMin)
@@ -598,10 +585,10 @@ void Brick::UpdateState1()
 		}
 		if (mY <= mTargetY)
 		{
-			if (mSupport == NULL || !mFlag188)
+			if (mSupport == NULL || !mSupported)
 				mY = mTargetY;
-			if (mFlag17C)
-				mFlag17C = false;
+			if (mRetargeted)
+				mRetargeted = false;
 			if (IsListening(2))
 				StopListening(2);
 			if (IsListening(3))
@@ -642,7 +629,7 @@ bool Brick::UpdateState6()
 // 0x4017f0 slot 7
 void Brick::UpdateState8()
 {
-	mLight = mNum1B4 + mLight;
+	mLight = mFallLightStep + mLight;
 	if (mLight > 0xff)
 		mLight = 0xff;
 }
@@ -686,15 +673,15 @@ bool Brick::CheckParticlesDone()
 // 0x401820 slot 10: the fade of the dimming
 void Brick::UpdateFade()
 {
-	if (mFlag185)
+	if (mFading)
 	{
-		if (!mFlag184)
+		if (!mFadeRising)
 		{
 			mFade -= 4;
 			if (mFade < 1)
 			{
 				mFade = 0;
-				mFlag184 = true;
+				mFadeRising = true;
 			}
 		}
 		else
@@ -703,7 +690,7 @@ void Brick::UpdateFade()
 			if (mFade > 0xfe)
 			{
 				mFade = 0xff;
-				mFlag184 = false;
+				mFadeRising = false;
 			}
 		}
 	}
@@ -756,7 +743,7 @@ void Brick::SetVisible(bool theVisible)
 // 0x401900 slot 19
 void Brick::Finish()
 {
-	mFlag18C = true;
+	mLanded = true;
 	Fire(7);
 	OnLand();
 }
@@ -764,27 +751,15 @@ void Brick::Finish()
 // 0x401c60 slot 18
 void Brick::StartFlash()
 {
-	mFlag180 = true;
+	mLightChanging = true;
 	mLight = 0;
-	mFlag17F = true;
+	mLightRising = true;
 }
 
 // 0x406270 slot 20
 bool Brick::IsIdle()
 {
 	return mVisible && (mState == 0 || mState == 1 || mState == 5);
-}
-
-// 0x4062a0 slot 23
-void Brick::SetSpeedX(float theSpeed)
-{
-	mSpeedX = theSpeed;
-}
-
-// 0x4062b0 slot 24
-void Brick::SetSpeedY(float theSpeed)
-{
-	mSpeedY = theSpeed;
 }
 
 // 0x404180 slot 21
@@ -831,7 +806,6 @@ bool Brick::IsJammed()
 // 0x401130
 void Brick::Retire()
 {
-	mFlag183 = true;
 	StopListeningToAll();
 }
 
@@ -840,9 +814,9 @@ void Brick::SetTargetY(int theY)
 {
 	if (mTargetY == (float) theY)
 	{
-		if (!mFlag188)
+		if (!mSupported)
 			Fire(0x10);
-		mFlag188 = true;
+		mSupported = true;
 	}
 	mTargetY = (float) theY;
 	StopListeningToAll();
@@ -855,15 +829,15 @@ void Brick::SetTargetY(int theY)
 	Listen(2);
 	if (mY <= mTargetY)
 		Listen(0);
-	mFlag17C = true;
+	mRetargeted = true;
 }
 
 // 0x4025a0
 void Brick::FireLanded()
 {
-	if (mFlag188)
+	if (mSupported)
 		Fire(0x11);
-	mFlag188 = false;
+	mSupported = false;
 	mSupport = NULL;
 }
 
@@ -910,22 +884,22 @@ void Brick::UpdateWobble()
 // 0x401c80
 void Brick::StopFlash()
 {
-	mFlag180 = true;
-	mFlag17F = false;
+	mLightChanging = true;
+	mLightRising = false;
 }
 
 // 0x401c90
 void Brick::UpdateLight()
 {
-	if (mFlag180)
+	if (mLightChanging)
 	{
-		if (!mFlag17F)
+		if (!mLightRising)
 		{
 			mLight -= 8;
 			if (mLight < 0)
 			{
 				mLight = 0;
-				mFlag180 = false;
+				mLightChanging = false;
 			}
 		}
 		else
@@ -939,7 +913,7 @@ void Brick::UpdateLight()
 			if (aLimit < mLight)
 			{
 				mLight = aLimit;
-				mFlag180 = false;
+				mLightChanging = false;
 			}
 		}
 	}
@@ -964,7 +938,7 @@ void Brick::StopShake()
 // 0x401d30
 void Brick::StopFade()
 {
-	mFlag185 = false;
+	mFading = false;
 }
 
 // 0x401d60: a brick that stays long enough mutates (the green glow, drops by itself later)
@@ -972,13 +946,13 @@ void Brick::UpdateMutation()
 {
 	bool aMoved = mState != 0;
 	bool aHigh = mY <= 9.0f;
-	if (mMutated != 1 || aHigh || aMoved || mFlag18B)
+	if (mMutated != 1 || aHigh || aMoved || mMutationHeld)
 	{
-		if (mMutated == 0 && !aHigh && !aMoved && !mFlag18B && (++mMutateTimer > 299))
+		if (mMutated == 0 && !aHigh && !aMoved && !mMutationHeld && (++mMutateTimer > 299))
 		{
 			mMutateTimer = 0;
 			mMutated = 1;
-			mNum1C0 = -1;
+			mHighlightState = -1;
 			mGlowAnim.Reset();
 			mGlowAnim.SetStopped(true);
 			if (!IsListening(0x28))
@@ -1001,9 +975,9 @@ void Brick::UpdateMutation()
 		}
 	}
 
-	if (!mFlag18B && (mMutated == 0 || mMutated == 1))
+	if (!mMutationHeld && (mMutated == 0 || mMutated == 1))
 	{
-		bool aUp = mFlag186;
+		bool aUp = mPulseRising;
 		if (!aUp)
 			mPulse = mPulse - 3;
 		else
@@ -1011,13 +985,13 @@ void Brick::UpdateMutation()
 		if (mPulse > 0xfe)
 		{
 			mPulse = 0xff;
-			mFlag186 = !aUp;
+			mPulseRising = !aUp;
 			return;
 		}
 		if (mPulse < 0)
 		{
 			mPulse = 0;
-			mFlag186 = !aUp;
+			mPulseRising = !aUp;
 		}
 	}
 }

@@ -39,7 +39,6 @@ public:
 	bool mBlackHole;          // +0xd0: pulled towards the stream's black hole
 	float mLife;              // +0xd4 (seconds)
 	float mLifeLeft;          // +0xd8: the stream removes the particle when it goes below 0
-	Node* mAnchor;            // +0xdc: the stream's anchor (not counted)
 	int mGroupRelative;       // +0xe0: placed like any node, in its stream's coordinates
 };
 
@@ -50,10 +49,6 @@ class JitterListener : public Object, public NodeListener
 public:
 	JitterListener(float theRateX, float theRateY, float theAmountX, float theAmountY);  // 0x431930
 
-	// 0x00: 0x431a90
-	virtual void setX(float theRate, float theAmount);
-	// 0x04: 0x431ab0
-	virtual void setY(float theRate, float theAmount);
 	// 0x431a00
 	void update(UpdateInfo& theInfo, Node* theNode) override;
 
@@ -79,8 +74,6 @@ public:
 	void stopEmitting() { mEmitting = false; }
 	// 0x432900: not emitting or waiting to, and no particle left
 	bool isDone();
-	// 0x432ad0: the node the particles are placed against, by its name
-	void setAnchor(std::string theName);
 	// 0x432e10: sends a free particle off from thePosition (the stream's position on the screen)
 	void emit(Point thePosition);
 	// 0x4335b0: makes the pool from the stream's images
@@ -120,7 +113,6 @@ public:
 	float mAutoStopLeft;              // +0x198
 	float mStartDelay;                // +0x19c: seconds before emitting (-1 none)
 	float mStartDelayLeft;            // +0x1a0
-	Node* mAnchor;                    // +0x1a4 (not counted)
 };
 
 class ParticleSystem : public Container
@@ -128,25 +120,16 @@ class ParticleSystem : public Container
 public:
 	ParticleSystem();  // 0x42b920
 
-	void update(UpdateInfo& theInfo) override;  // 0x70: 0x42b8c0
-	void layout() override;                     // 0x74: 0x4328e0 (the stream's)
+	void layout() override;  // 0x74: 0x4328e0 (the stream's)
 
-	// 0x42b6a0: the seconds the streams emit for (-1 until they are stopped)
-	void setDuration(float theDuration) { mDuration = theDuration; }
 	// 0x42b6b0: runs the streams for theSeconds at once (as one frame)
 	void warmup(float theSeconds);
 	// 0x42b6e0
 	void startEmitting();
-	// 0x42b730
-	void stopEmitting();
 	// 0x42b760: every stream is done
 	bool isDone();
 	// 0x42b7a0: reads the streams from a particle file of the archive
 	bool load(std::string theFile);
-
-	bool mRunning;     // +0xa8
-	float mDuration;   // +0xac
-	float mTimeLeft;   // +0xb0
 };
 
 // A pool of particle systems of one file (0xc8 bytes, constructor 0x42bb20, vtable 0x483c68), its children
@@ -177,7 +160,6 @@ public:
 
 private:
 	void startStream(const XmlAttributes& theAttributes);  // 0x20: 0x433980
-	void startSystem(const XmlAttributes& theAttributes);  // 0x24: 0x433e10
 
 	ParticleStream* mStream;  // +0x14: the stream being read
 	ParticleSystem* mSystem;  // +0x18

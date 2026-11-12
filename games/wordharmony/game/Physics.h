@@ -51,8 +51,6 @@ public:
 
 	// 0x40efa0: shows the lit image or the plain one
 	void setOn(bool theOn);
-	// 0x4111b0: in upper case
-	void setLetter(char theLetter);
 
 	engine::Node* mSelector;  // +0xa8: a Selector (its plain and lit images)
 	unsigned int mSpecial;    // +0xac
@@ -112,29 +110,12 @@ public:
 	bool mActive;  // +0x04
 };
 
-// 0x40e100 (0x2c bytes, vtable 0x481b28): moves a node (a ball, or in the editor an obstacle) part of the way to a
-// target each step; with the grid on, straight onto the grid (the editor's drag)
-class Follow : public Constraint
-{
-public:
-	Follow(engine::Node* theNode, float theC, float theRate, float theBlend, float theGrid);
-	void apply() override;  // 0x40e170
-
-	engine::Node* mNode;    // +0x08
-	float mC;               // +0x0c
-	float mRate;            // +0x10
-	float mBlend;           // +0x14
-	float mLength;          // +0x18
-	engine::Point mTarget;  // +0x1c
-	float mGrid;            // +0x24
-	bool mSnap;             // +0x28
-};
-
 // 0x40e220 (0x2c bytes, vtable 0x481b40): the mouse's rope; beyond its length it pulls the ball by the excess (at
 // most theMaxStep a step) times theRate, and keeps theBlend of the ball's last position
 class Rope : public Constraint
 {
 public:
+	// 0x40e220
 	Rope(Ball* theBall, const engine::Point& theOffset, float theMaxStep, float theRate, float theBlend);
 	void apply() override;  // 0x40e2a0
 
@@ -176,6 +157,7 @@ public:
 class Stick : public Constraint
 {
 public:
+	// 0x40ea90
 	Stick(Ball* theFirst, Ball* theSecond, float theMin2, float theMax2, int theMode);
 	void apply() override;  // 0x40ead0
 
@@ -206,6 +188,7 @@ public:
 class Collisions : public Constraint
 {
 public:
+	// 0x40e6c0
 	Collisions(BallArray* theBalls) : mBalls(theBalls) {}
 	void apply() override;  // 0x40e6e0
 

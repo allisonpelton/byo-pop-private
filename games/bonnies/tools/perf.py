@@ -2,7 +2,7 @@
 
 From the worktree root:
 
-    build/native/rundesk.exe <python.exe> games/bonnies/tools/perf.py port <out dir> [runs]
+    build/native/rundesk.exe <python.exe> games/bonnies/tools/perf.py port <out dir> [runs]   (BB_EXE=<exe>: another build)
     <python.exe> games/bonnies/tools/perf.py orig <out dir> <placed copy folder> [runs]     (not under rundesk: origrun
                                                                                            puts the game there itself)
 
@@ -17,9 +17,11 @@ its memory (the application at 0x4752a0, its state at +0x200, 2 for the menu), r
 The scripted minute is the 60 s from the first board (the tutorial's first level, its words played by the tour), state 3
 in both. The original's tour clicks by the clock, so its script waits 15 s before its first click, past the slowest menu
 seen (12 s), and its minute is anchored at the board rather than at a time. Each run samples the game's process every 0.1 s (working set,
-private bytes, kernel plus user time) and prints one JSON line: the load time, the memory at the menu, the peaks and the
-processor time over the minute, the machine's busy fraction and the game processes of other sessions at the start and end.
-The run is stopped after the minute.
+private bytes, kernel plus user time, and the cycles its threads ran) and prints one JSON line: the load time, the memory at
+the menu, the peaks, the processor time and its cycles over the minute (`minute_processor_s`, `minute_kernel_s`,
+`minute_gcycles`), the machine's busy fraction and the game processes of other sessions at the start and end. The cycles are
+the figure to compare on a busy machine: it stretches a process's seconds (a shared core, a slower clock), not the cycles it
+runs. The run is stopped after the minute.
 """
 import ctypes
 import ctypes.wintypes as W
@@ -39,6 +41,7 @@ k32.CreateToolhelp32Snapshot.restype = W.HANDLE
 k32.CreateToolhelp32Snapshot.argtypes = [W.DWORD, W.DWORD]
 k32.QueryFullProcessImageNameW.argtypes = [W.HANDLE, W.DWORD, W.LPWSTR, ctypes.POINTER(W.DWORD)]
 k32.TerminateProcess.argtypes = [W.HANDLE, W.UINT]
+k32.QueryProcessCycleTime.argtypes = [W.HANDLE, ctypes.POINTER(ctypes.c_uint64)]
 k32.ReadProcessMemory.argtypes = [W.HANDLE, ctypes.c_void_p, ctypes.c_void_p, ctypes.c_size_t,
                                   ctypes.POINTER(ctypes.c_size_t)]
 psapi.GetProcessMemoryInfo.argtypes = [W.HANDLE, ctypes.c_void_p, W.DWORD]
@@ -68,7 +71,7 @@ def seconds(t):
 
 
 def sample(h):
-    """(working set, private bytes, processor seconds) of the process, or None."""
+    """(working set, private bytes, processor seconds, kernel seconds, processor cycles) of the process, or None."""
     m = PMC()
     m.cb = ctypes.sizeof(PMC)
     if not psapi.GetProcessMemoryInfo(h, ctypes.byref(m), m.cb):
@@ -76,7 +79,9 @@ def sample(h):
     c, e, k, u = W.FILETIME(), W.FILETIME(), W.FILETIME(), W.FILETIME()
     if not k32.GetProcessTimes(h, ctypes.byref(c), ctypes.byref(e), ctypes.byref(k), ctypes.byref(u)):
         return None
-    return m.WorkingSetSize, m.PrivateUsage, seconds(k) + seconds(u)
+    cycles = ctypes.c_uint64()   # (the cycles the process's threads ran: a busy machine stretches its seconds, not these)
+    k32.QueryProcessCycleTime(h, ctypes.byref(cycles))
+    return m.WorkingSetSize, m.PrivateUsage, seconds(k) + seconds(u), seconds(k), cycles.value
 
 
 def created(h):
@@ -162,7 +167,9 @@ def measure(h, t0, at_menu, out):
         return {'minute': None}
     return {'board_working_set_mb': mb(m[0][1]), 'board_private_mb': mb(m[0][2]),
             'minute_peak_working_set_mb': mb(max(x[1] for x in m)), 'minute_peak_private_mb': mb(max(x[2] for x in m)),
-            'minute_processor_s': round(m[-1][3] - m[0][3], 2), 'minute_wall_s': round(m[-1][0] - m[0][0], 1)}
+            'minute_processor_s': round(m[-1][3] - m[0][3], 2), 'minute_kernel_s': round(m[-1][4] - m[0][4], 2),
+            'minute_gcycles': round((m[-1][5] - m[0][5]) / 1e9, 2),
+            'minute_wall_s': round(m[-1][0] - m[0][0], 1)}
 
 
 def strip(src, dst, drop, replace=()):
@@ -177,7 +184,7 @@ def strip(src, dst, drop, replace=()):
 
 def port(out, runs):
     root = os.getcwd()
-    exe = os.path.join(root, 'build', 'native', 'bonnies.exe')
+    exe = os.environ.get('BB_EXE') or os.path.join(root, 'build', 'native', 'bonnies.exe')   # BB_EXE: a variant to compare
     for i in range(runs):
         d = os.path.join(out, 'port%d' % i)
         shutil.rmtree(d, ignore_errors=True)

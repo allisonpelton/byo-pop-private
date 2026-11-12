@@ -361,7 +361,7 @@ Board::Board(WinDMApp* theApp)
 	m165c0 = false;
 }
 
-// 0x5a5abe
+// 0x5a5abe, 0x59b55a (the loop that deletes the score texts of mPoints, inlined; the original deletes them from the back)
 Board::~Board()
 {
 	// (the original waits here for its worker thread; the port runs the worker's tasks in line)
@@ -407,6 +407,8 @@ Board::~Board()
 	// (the trial's counter of games played, at the application's +0x734, is not ported)
 	delete mHyperspace;
 	ClearLightning();
+	// the effect overlay (the original never deletes it: its text picture and its tables leaked with every board)
+	delete mEffectOverlay;
 	// (the lists, vectors and strings of the board go with the object)
 }
 

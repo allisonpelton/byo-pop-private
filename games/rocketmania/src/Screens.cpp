@@ -98,7 +98,8 @@ void LoadingScreen::Draw(Graphics* g)
 		g->DrawImage(anImages[IMAGE_LOADINGBAR], aBarX, 0x186);
 	else if (mProgress > 0.0)
 	{
-		int aFilled = (int) (mProgress * aBarWidth);
+		// the bar's picture starts with 20 filled pixels and the other 332 follow the progress
+		int aFilled = (int) (mProgress * 332.0 + 20.0);
 		g->DrawImage(anImages[IMAGE_LOADINGBAR], aBarX, 0x186, Rect(0, 0, aFilled, 0x34));
 		// the bar's leading edge: 16 columns that fade out, added on top
 		for (int i = 0; i < 16; i++)

@@ -34,31 +34,31 @@ Board::Board(AstroPopApp* theApp, EventBus* theBus, int theGameType, unsigned in
 			 bool theNewGame, bool theDemo)
 	: EventListener(theBus)
 {
-	m7c8 = 0xffff0000;
-	m7b8 = 0xffff0000;
-	m7c4 = 0xffff0000;
-	m7c0 = 0xffff0000;
-	m7bc = 0xffff0000;
-	m800 = 0x10000;
-	m7fc = 0x10000;
-	m7f8 = 0x10000;
-	m7f4 = 0x10000;
-	m7f0 = 0x10000;
-	m7ec = 0x10000;
-	m7e8 = 0x10000;
-	m7e4 = 0x10000;
-	m7e0 = 0x10000;
-	m7dc = 0x10000;
-	m804 = true;
-	m808.mA = -1;
-	m808.mB = -1;
-	m808.mDeltaA = -1;
-	m808.mDeltaB = -1;
-	m808.mWait = -1;
-	m808.mWaitReset = -1;
+	mFieldsCleared = 0xffff0000;
+	mBonusRoundPoints = 0xffff0000;
+	mBestChain = 0xffff0000;
+	mBricksGoneCount = 0xffff0000;
+	mPlayPoints = 0xffff0000;
+	mLevelUpCursorInterval = 0x10000;
+	mLevelUpScanInterval = 0x10000;
+	mLevelUpScanMaxHeight = 0x10000;
+	mLevelUpScanHeight = 0x10000;
+	mLevelUpScanY = 0x10000;
+	mLevelUpPanelHeight = 0x10000;
+	mLevelUpPanelY = 0x10000;
+	mLevelUpLetterIndex = 0x10000;
+	mLevelUpLineIndex = 0x10000;
+	mLevelUpTypeInterval = 0x10000;
+	mLevelUpCursorShown = true;
+	mWeaponHintPulse.mA = -1;
+	mWeaponHintPulse.mB = -1;
+	mWeaponHintPulse.mDeltaA = -1;
+	mWeaponHintPulse.mDeltaB = -1;
+	mWeaponHintPulse.mWait = -1;
+	mWeaponHintPulse.mWaitReset = -1;
 
 	mApp = theApp;
-	m1a60 = theGameType;
+	mGameType = theGameType;
 	if (theGameType == 1)
 		mMode = theApp->mClassicPilot;
 	else
@@ -85,174 +85,167 @@ Board::Board(AstroPopApp* theApp, EventBus* theBus, int theGameType, unsigned in
 	Listen(0x29);
 	Listen(0x27);
 	// the hook at +0x60 is OnFiring
-	m8e0 = false;
+	mWelcomePlayed = false;
 
 	// the hint boxes: the SUPA weapon, the meter, a third that the pause fills
-	m2b0.resize(3, (HintBox*) NULL);
-	m2b0[0] = new HintBox();
-	m2b0[0]->AddLine(GT(0x00569b80));
-	m2b0[0]->AddLine(GT(0x00569b60));
-	m2b0[0]->AddLine(GT(0x00569b40));
-	m978 = 0;
-	m2e0 = NULL;
-	m8da = false;
-	m968 = 0xa6;
-	m96c = 4;
-	m2b0[1] = new HintBox();
+	mHintBoxes.resize(3, (HintBox*) NULL);
+	mHintBoxes[0] = new HintBox();
+	mHintBoxes[0]->AddLine(GT(0x00569b80));
+	mHintBoxes[0]->AddLine(GT(0x00569b60));
+	mHintBoxes[0]->AddLine(GT(0x00569b40));
+	mWhiteFadeAlpha = 0;
+	mDemoStartLink = NULL;
+	mBonusFieldLoaded = false;
+	mFieldPointerX = 0xa6;
+	mFieldPointerY = 4;
+	mHintBoxes[1] = new HintBox();
 	std::string aMeterLine;
-	if (m1a60 == 1)
+	if (mGameType == 1)
 	{
-		m2b0[1]->AddLine(GT(0x00569b20));
+		mHintBoxes[1]->AddLine(GT(0x00569b20));
 		aMeterLine = GT(0x00569b0c);
 	}
 	else
 	{
-		m2b0[1]->AddLine(GT(0x00569af4));
+		mHintBoxes[1]->AddLine(GT(0x00569af4));
 		aMeterLine = GT(0x00569adc);
 	}
-	m2b0[1]->AddLine(aMeterLine);
-	m2b0[2] = new HintBox();
-	m8d9 = false;
-	m778 = NULL;
-	m8db = false;
-	m8dd = false;
-	m8dc = false;
-	m95c = 0;
-	m958 = 0;
-	m948 = 0;
-	m949 = 0;
-	m94c = 1;
-	m950 = 1;
-	m8e1 = mApp->mFlag6fb;
-	for (size_t i = 0; i < m2b0.size(); i++)
+	mHintBoxes[1]->AddLine(aMeterLine);
+	mHintBoxes[2] = new HintBox();
+	mFadingFromWhite = false;
+	mLevelUpText = NULL;
+	mRecordingDemo = false;
+	mDemoInputActive = false;
+	mDemoPlaying = false;
+	mDemoWaitLeft = 0;
+	mDemoAddedRowIndex = 0;
+	mDemoRecordAction = 0;
+	mDemoRecordLastAction = 0;
+	mDemoRecordArg = 1;
+	mDemoRecordLastArg = 1;
+	mFirstHelpPending = mApp->mShowHelpAtStart;
+	for (size_t i = 0; i < mHintBoxes.size(); i++)
 	{
-		m2b0[i]->SetShown(false);
-		m2b0[i]->SetFont(GetFontById(0xb0));
-		m2b0[i]->mShowTime = 100;
-		m2b0[i]->mHideTime = 800;
+		mHintBoxes[i]->SetShown(false);
+		mHintBoxes[i]->SetFont(GetFontById(0xb0));
+		mHintBoxes[i]->mShowTime = 100;
+		mHintBoxes[i]->mHideTime = 800;
 	}
-	m2b0[2]->mShowTime = 100;
-	m922 = theFlag;
-	m960 = 0;
-	m8df = false;
-	m1b6c = 0;
-	if (m1a60 == 1)
-		m1bbc = 5;
+	mHintBoxes[2]->mShowTime = 100;
+	mStartedFromCheckpoint = theFlag;
+	mClearBonusWorth = 0;
+	mStartWeaponAfterPause = false;
+	mCheckpointLevel = 0;
+	if (mGameType == 1)
+		mHardStage = 5;
 	else
-		m1bbc = (m1a60 != 0) ? 500000000 : 3;
-	m1968 = (int) (theFlags & 0xff);
-	m1940 = theLevel;
-	mField193C = 1;
-	m1c09 = false;
-	m1b48 = -IMAGE_SUPA_BUTTON_ALERT->mWidth;
-	m2e4 = NULL;
-	m2e8 = NULL;
-	m1be4 = 0;
-	m913 = false;
-	m1b30 = -1;
-	m1bb8 = 0;
-	m911 = false;
-	m910 = false;
-	m90f = false;
-	m1b1c = 0;
-	m1b0c = 0;
-	m1b08 = 0;
-	m1af4 = 0;
-	m1b14 = 0;
+		mHardStage = (mGameType != 0) ? 500000000 : 3;
+	mLevelNumber = theLevel;
+	mStageNumber = 1;
+	mKeepLoopSoundsMuted = false;
+	mSupaButtonX = -IMAGE_SUPA_BUTTON_ALERT->mWidth;
+	mContinueButton = NULL;
+	mMenuButton = NULL;
+	mWeaponChargeStep = 0;
+	mBonusRoundStarted = false;
+	mNewRecordRow = -1;
+	mTallySoundCounter = 0;
+	mStartBannerDoneInBonus = false;
+	mBonusRoundOn = false;
+	mClicksBlocked = false;
+	mLevelsCompleted = 0;
+	mExtraRowInterval = 0;
+	mExtraRowTimer = 0;
+	mResumeUpdate = 0;
+	mWarpOverlayCel = 0;
 	if (theLevel == 1 && theNewGame)
 	{
-		m923 = false;
+		mStageTextEnabled = false;
 		mApp->mUser->SetInt(0x71, 0);
 	}
 	else
 	{
-		m923 = true;
-		m1b1c = theLevel - 1;
+		mStageTextEnabled = true;
+		mLevelsCompleted = theLevel - 1;
 	}
-	m754 = 0;
-	m894 = IMAGE_UPGRADE_HEAD;
-	m890 = IMAGE_UPGRADE_ARM;
-	m838 = mApp->CopyImage(IMAGE_UPGRADE_HEAD);
-	mApp->MirrorImage(m838);
-	m834 = mApp->CopyImage(IMAGE_UPGRADE_ARM);
-	mApp->MirrorImage(m834);
+	mStoryScreen = 0;
+	mRightHeadImage = IMAGE_UPGRADE_HEAD;
+	mRightArmImage = IMAGE_UPGRADE_ARM;
+	mLeftHeadImage = mApp->CopyImage(IMAGE_UPGRADE_HEAD);
+	mApp->MirrorImage(mLeftHeadImage);
+	mLeftArmImage = mApp->CopyImage(IMAGE_UPGRADE_ARM);
+	mApp->MirrorImage(mLeftArmImage);
 	SetupUpgradeAnims();
-	m1b28 = 0;
-	m1b2c = 0;
-	m8e2 = false;
-	m308 = NULL;
-	m304 = NULL;
-	m928 = 0.0f;
-	m92c = 0.0f;
-	m912 = false;
-	m748 = 0;
-	m1abc = 0;
-	m970 = 0;
-	m90c = false;
-	m1ab8 = 4;
-	m1ac0 = PickSpawnDelay();
-	m914 = false;
-	m915 = false;
-	m1b74 = 0;
-	m1b7c = 0;
-	m1b40 = 0;
-	m1b50 = 0;
-	m919 = false;
+	mNextLevelScreenKind = 0;
+	mLevelEndScreenKind = 0;
+	mBannerWaveImage = NULL;
+	mBannerTextImage = NULL;
+	mBrickometerFill = 0.0f;
+	mBrickometerDrain = 0.0f;
+	mBricksRevealing = false;
+	mBonusRoundFile = 0;
+	mFlurryTimer = 0;
+	mHighestStack = 0;
+	mPhase = 4;
+	mPhaseDelay = PickSpawnDelay();
+	mBonusFadingOut = false;
+	mBonusFadeAlpha = 0;
+	mBannerTimeLeft = 0;
+	mSurvivalBonusTimer = 0;
+	mTurbotOverlayCel = 0;
+	mWeaponHintShown = false;
 	int aHalfBoost = 1;
 	mApp->mUser->GetInt(mMode + 0x2a, &aHalfBoost);
-	m1c08 = (aHalfBoost == 1);
-	m1b88 = 0;
-	m1b8c = 0;
-	m1b94 = 0;
-	m1b98 = 0;
-	m1b9c = 0;
-	m1ba0 = 0;
-	m1ba4 = 0;
-	m1ba8 = 0;
-	m1bb0 = 0;
-	m1bac = 0;
-	m1c00 = 0.0f;
-	m1bc0 = 0;
-	m1bc4 = 0;
-	m1bc8 = 0;
-	m1bd0 = 0;
-	m1bcc = 0;
-	m918 = false;
+	mWeaponDialogDue = (aHalfBoost == 1);
+	mTallyBarWidth = 0;
+	mTallyTitleAlpha = 0;
+	mTallyBricksLeft = 0;
+	mTallyBricksCounted = 0;
+	mTallyPenalty = 0;
+	mTallyPenaltyShown = 0;
+	mTallyCleanBonus = 0;
+	mTallyCleanBonusShown = 0;
+	mTallyState = 0;
+	mTallyPaid = 0;
+	mBonusWarpSlowdown = 0.0f;
+	mBonusWarpPhase = 0;
+	mBonusWarpHold = 0;
+	mBonusWarpWhiteAlpha = 0;
+	mBonusRevealDone = false;
 
 	// the theme checkbox and button of the warp screen (their pictures are made when the stage's colour is known)
-	m750 = new Checkbox(NULL, NULL, 0xfa3, NULL);
-	m750->mUncheckedRect = Rect(0, 0, IMAGE_TH_CHECKBOX->mWidth / 2, IMAGE_TH_CHECKBOX->mHeight);
-	m750->mCheckedRect = Rect(IMAGE_TH_CHECKBOX->mWidth / 2, 0, IMAGE_TH_CHECKBOX->mWidth / 2, IMAGE_TH_CHECKBOX->mHeight);
+	mHintOffCheckbox = new Checkbox(NULL, NULL, 0xfa3, NULL);
+	mHintOffCheckbox->mUncheckedRect = Rect(0, 0, IMAGE_TH_CHECKBOX->mWidth / 2, IMAGE_TH_CHECKBOX->mHeight);
+	mHintOffCheckbox->mCheckedRect = Rect(IMAGE_TH_CHECKBOX->mWidth / 2, 0, IMAGE_TH_CHECKBOX->mWidth / 2, IMAGE_TH_CHECKBOX->mHeight);
 	int aThemeY = (IMAGE_TH_STRIP->mHeight - IMAGE_TH_CHECKBOX->mHeight) + 0xae;
-	m750->Resize(0xa3, aThemeY, IMAGE_TH_CHECKBOX->mWidth / 2, IMAGE_TH_CHECKBOX->mHeight);
-	m74c = new AstroButton(0xfa2, mApp);
-	m74c->mOverImage = NULL;
-	m74c->mDownImage = NULL;
-	m74c->mButtonImage = NULL;
-	m74c->mLabel = GT(0x00562024);
-	m74c->SetFont(GetFontById(0xb1));
-	m74c->SetColor(0, Color(0xff, 0xff, 0xff));
-	m74c->SetColor(1, Color(0xff, 0xff, 0xff));
-	m74c->Resize(0x208, aThemeY - 5, IMAGE_TH_BTN_OVER->mWidth, IMAGE_TH_BTN_OVER->mHeight);
-	m1b58 = 0xf;
-	m1b4c = 0;
-	m1b34 = 0;
-	m1b20 = 0;
-	m91d = false;
-	m1b84 = 0;
-	m1b80 = 0;
-	m944 = 0.0f;
-	m916 = false;
-	m1b70 = -1;
-	m1b0c = 500000000;
-	m1afc = 0;
-	m1af8 = 0;
-	m250.resize(14, (Image*) NULL);
-	m1ac4 = 6;
+	mHintOffCheckbox->Resize(0xa3, aThemeY, IMAGE_TH_CHECKBOX->mWidth / 2, IMAGE_TH_CHECKBOX->mHeight);
+	mHintOkButton = new AstroButton(0xfa2, mApp);
+	mHintOkButton->mOverImage = NULL;
+	mHintOkButton->mDownImage = NULL;
+	mHintOkButton->mButtonImage = NULL;
+	mHintOkButton->mLabel = GT(0x00562024);
+	mHintOkButton->SetFont(GetFontById(0xb1));
+	mHintOkButton->SetColor(0, Color(0xff, 0xff, 0xff));
+	mHintOkButton->SetColor(1, Color(0xff, 0xff, 0xff));
+	mHintOkButton->Resize(0x208, aThemeY - 5, IMAGE_TH_BTN_OVER->mWidth, IMAGE_TH_BTN_OVER->mHeight);
+	mTurbotBeamInterval = 0xf;
+	mTurbotPhase = 0;
+	mGameOverCounter = 0;
+	mBoosterFlameY = 0;
+	mEndPageShown = false;
+	mBannerTimeShown = 0;
+	mBannerDuration = 0;
+	mBannerWavePhase = 0.0f;
+	mClearCountRunning = false;
+	mBonusTimeLeft = -1;
+	mExtraRowInterval = 500000000;
+	mComboTimeLeft = 0;
+	mComboColor = 0;
+	mPhasePictures.resize(14, (Image*) NULL);
+	mMaxMutators = 6;
 	mDropTicks = 1000;
-	m1af0 = 0;
-	m1af4 = 0;
-	m710 = GT(0x00569a90);
+	mPauseStartUpdate = 0;
+	mResumeUpdate = 0;
 	int aModeImage = 0x196;
 	if (mMode == 1)
 		aModeImage = 0x1a4;
@@ -260,109 +253,105 @@ Board::Board(AstroPopApp* theApp, EventBus* theBus, int theGameType, unsigned in
 		aModeImage = 0x1b2;
 	else if (mMode == 3)
 		aModeImage = 0x1c0;
-	for (size_t i = 0; i < m250.size(); i++)
-		m250[i] = LoadImageById(mApp->mResourceManager, aModeImage + (int) i);
-	m90b = false;
-	m1aa0 = 0;
-	m160.resize(5);
-	m170.resize(100);
-	m180.resize(1);
-	m190.resize(3);
-	m1c0.assign(1, (Widget*) NULL);
-	m1b00 = 0;
-	m19b8 = 0;
-	m1b78 = 0;
-	m1ab0 = 0;
-	m906 = false;
-	m908 = false;
-	m1a24 = 0;
-	m90a = false;
+	for (size_t i = 0; i < mPhasePictures.size(); i++)
+		mPhasePictures[i] = LoadImageById(mApp->mResourceManager, aModeImage + (int) i);
+	mClickRepeating = false;
+	mTurbotPowerupAlpha = 0;
+	mPlanets.resize(5);
+	mStreaks.resize(100);
+	mSpawnRules.resize(1);
+	mBackdropStars.resize(3);
+	mFieldButtons.assign(1, (Widget*) NULL);
+	mComboChain = 0;
+	mPlayTime = 0;
+	mMeterPaused = false;
+	mLongestChain = 0;
+	mTutorialStageForced = false;
 
-	mAnim3e0.SetNumFrames(0x3f);
-	mAnim3e0.SetDelay(1);
-	mAnim3e0.SetStopped(true);
-	mAnim3e0.mPingPong = true;
-	m7ec = 0xce;
-	m7e8 = -206;
-	mAnim4e0.SetNumFrames(0x3f);
-	mAnim4e0.SetDelay(1);
-	mAnim4e0.mMaxLoops = 10;
-	mAnim4e0.mLoopCount = 0;
-	mAnim4e0.mPingPong = true;
-	mAnim4e0.SetStopped(true);
-	m1acc = 0;
-	m1adc = 0;
-	m1ad8 = 0;
-	m1ae8 = 0;
-	m1ae4 = 0;
-	m1ae0 = 0;
-	m1ad4 = 0;
-	m1ad0 = 0;
-	m1aec = 0;
-	mApp->mUser->GetInt(mMode + 0x33, &m1a8c);
-	mApp->mUser->GetInt(mMode + 0x3b, &m1a94);
+	mMeterFullAnim.SetNumFrames(0x3f);
+	mMeterFullAnim.SetDelay(1);
+	mMeterFullAnim.SetStopped(true);
+	mMeterFullAnim.mPingPong = true;
+	mLevelUpPanelHeight = 0xce;
+	mLevelUpPanelY = -206;
+	mStageMeterAnim.SetNumFrames(0x3f);
+	mStageMeterAnim.SetDelay(1);
+	mStageMeterAnim.mMaxLoops = 10;
+	mStageMeterAnim.mLoopCount = 0;
+	mStageMeterAnim.mPingPong = true;
+	mStageMeterAnim.SetStopped(true);
+	mSupaTitleStep = 0;
+	mSupaBracketSpread = 0;
+	mSupaBannerY = 0;
+	mSupaBannerTimer = 0;
+	mSupaNameAlpha = 0;
+	mSupaBracketFlash = 0;
+	mSupaBannerStep = 0;
+	mBonusBannerHue = 0;
+	mScreenShakeUpdates = 0;
+	mApp->mUser->GetInt(mMode + 0x33, &mWeaponPower);
+	mApp->mUser->GetInt(mMode + 0x3b, &mWeaponChargeLevel);
 	if (mMode == 0)
-		mApp->mUser->GetInt(0x37, &m1a90);
+		mApp->mUser->GetInt(0x37, &mWeaponDurationLevel);
 	else if (mMode == 3)
-		mApp->mUser->GetInt(0x3a, &m1a90);
+		mApp->mUser->GetInt(0x3a, &mWeaponDurationLevel);
 	else
-		m1a90 = -1;
-	m974 = 0;
+		mWeaponDurationLevel = -1;
+	mButtonsHeld = 0;
 	mOverlay.Resize(0, 0, 0x280, 0x1e0);
 	mOverlay.mBoard = this;
 	mOverlay.mHasTransparencies = true;
 	mOverlay.mHasAlpha = true;
-	m19d4 = 8;
-	m314.resize(20);
-	for (size_t i = 0; i < m314.size(); i++)
-		m314[i].resize(10, (Brick*) NULL);
-	m1a54 = 4;
-	m6e4 = NULL;
-	m900 = false;
-	mAnim460.SetNumFrames(1);
-	mAnim460.SetDelay(0xc);
-	mAnim460.mHoldLast = false;
-	mAnim460.mPingPong = false;
+	mRowReductionPeriod = 8;
+	mFieldBricks.resize(20);
+	for (size_t i = 0; i < mFieldBricks.size(); i++)
+		mFieldBricks[i].resize(10, (Brick*) NULL);
+	mSetSize = 4;
+	mPauseMutedSound = NULL;
+	mLevelCompleteBlocked = false;
+	mWarpGateAnim.SetNumFrames(1);
+	mWarpGateAnim.SetDelay(0xc);
+	mWarpGateAnim.mHoldLast = false;
+	mWarpGateAnim.mPingPong = false;
 	if (mMode == 2)
 	{
-		mAnim520.SetNumFrames(IMAGE_TURBOT_POWERUP->mNumCols);
-		mAnim520.SetDelay(6);
-		mAnim520.mPingPong = false;
-		mAnim520.SetStopped(true);
-		mAnim520.mHoldLast = false;
+		mTurbotPowerupAnim.SetNumFrames(IMAGE_TURBOT_POWERUP->mNumCols);
+		mTurbotPowerupAnim.SetDelay(6);
+		mTurbotPowerupAnim.mPingPong = false;
+		mTurbotPowerupAnim.SetStopped(true);
+		mTurbotPowerupAnim.mHoldLast = false;
 	}
 	else
-		mAnim520.SetStopped(true);
-	m1a28 = 0;
-	m197c = 10000;
-	m1970 = 0;
+		mTurbotPowerupAnim.SetStopped(true);
+	mExtraColors = 0;
+	mScoreShown = 0;
 	mScore = 0;
-	m8ff = false;
-	m1bd8 = gTestChargeAtReset < 0.0f ? 0.0f : gTestChargeAtReset;   // (a test's charge, BoardState.cpp)
+	mSlowMotion = false;
+	mWeaponCharge = gTestChargeAtReset < 0.0f ? 0.0f : gTestChargeAtReset;   // (a test's charge, BoardState.cpp)
 	ResetGame();
-	if (m1a60 == 1)
+	if (mGameType == 1)
 		SetupLevel1Rules();
-	else if (m1a60 != 0)
+	else if (mGameType != 0)
 		SetupClassicRules();
-	m354 = NULL;
-	m198c = 0xa6;
-	m70.clear();
+	mHandKindBrick = NULL;
+	mShipX = 0xa6;
+	mHeldBricks.clear();
 
 	// the script rows are cleared and so are the first rows of the field
 	for (int aRow = 0; aRow < 100; aRow++)
 	{
 		for (int aCol = 0; aCol < 10; aCol++)
 		{
-			m984.mCode[aRow][aCol] = 0;
+			mScriptRows.mCode[aRow][aCol] = 0;
 			if (aRow < 20)
-				m314[aRow][aCol] = NULL;
+				mFieldBricks[aRow][aCol] = NULL;
 		}
 	}
 
 	// the 100 streaks of the backdrop: a kind, a speed, a place (the random numbers in this order)
 	for (size_t i = 0; i < 100; i++)
 	{
-		StreakRec& aStreak = m170[i];
+		StreakRec& aStreak = mStreaks[i];
 		int aKind = ((int) AstroRand() % 500000000) % 3;
 		if (aKind == 0)
 		{
@@ -396,15 +385,15 @@ Board::Board(AstroPopApp* theApp, EventBus* theBus, int theGameType, unsigned in
 		aStreak.mY = (float) (((int) AstroRand() % 500000000) % (mApp->mHeight - 4) + 4);
 	}
 
-	m920 = false;
-	m1930 = 0;
+	mSupaButtonLit = false;
+	mScriptRowIndex = 0;
 	SetupHints();
 	if (1 < theLevel * 2 - 2)
 	{
 		int aCount = theLevel * 2 - 3;
 		do
 		{
-			mField193C = mField193C + 1;
+			mStageNumber = mStageNumber + 1;
 			AdvanceLevel(false);
 			aCount--;
 		} while (aCount != 0);
@@ -412,55 +401,54 @@ Board::Board(AstroPopApp* theApp, EventBus* theBus, int theGameType, unsigned in
 	MarkHintsSeen(theLevel);
 	if ((theFlags & 0xff) != 0 && !theDemo)
 		LoadLevel(true);
-	m1954 = 2;
-	m8ea = false;
+	mShipFrame = 2;
+	mStreaksFadingOut = false;
 
 	// the scenery layer; the pictures of the three ids around it are released (the layer's own stays)
-	m77c.mImage = LoadImageById(mApp->mResourceManager, 0x18c);
+	mSceneryLayer.mImage = LoadImageById(mApp->mResourceManager, 0x18c);
 	for (int anId = 0x18b; anId < 0x18e; anId++)
 	{
 		if (anId != 0x18c)
 			mApp->mResourceManager->DeleteImage(GetStringIdById(anId));
 	}
-	m77c.mI30 = 0x18c;
-	m77c.mF24 = 0.0f;
-	m77c.mF28 = -1.0f;
-	m77c.mCur[0] = 0.0f;
-	m77c.mCur[1] = (float) (m77c.mImage->mHeight - 0x1e0);
-	m77c.mCur[2] = 640.0f;
-	m77c.mCur[3] = 480.0f;
-	m77c.mNext[0] = 0.0f;
-	m77c.mNext[1] = 0.0f;
-	m77c.mNext[2] = 640.0f;
-	m77c.mNext[3] = 0.0f;
-	m77c.mPeriod = 1;
-	m77c.mSpeed = 0.02f;
-	m938 = 500000000.0f;
-	m93c = 500000000.0f;
-	m1948 = 0;
-	m19b0 = 500000000;
-	m19ac = 500000000;
-	m19a8 = 500000000;
-	m19a4 = 500000000;
-	m19a0 = 500000000;
-	m199c = 500000000;
-	m19ec = 500000000;
-	m19e8 = 500000000;
-	m19e4 = 500000000;
-	m19e0 = 500000000;
-	m19f8 = 500000000;
-	m19f4 = 500000000;
-	m19f0 = 500000000;
-	m8f7 = true;
-	m1c0[0] = NULL;
-	m2ec = NULL;
-	m1a58 = 0;
-	m1a5c = 0;
-	m1a34 = 0;
-	m1bdc = 18000.0f;
+	mSceneryLayer.mPictureId = 0x18c;
+	mSceneryLayer.mCurY = 0.0f;
+	mSceneryLayer.mNextY = -1.0f;
+	mSceneryLayer.mCur[0] = 0.0f;
+	mSceneryLayer.mCur[1] = (float) (mSceneryLayer.mImage->mHeight - 0x1e0);
+	mSceneryLayer.mCur[2] = 640.0f;
+	mSceneryLayer.mCur[3] = 480.0f;
+	mSceneryLayer.mNext[0] = 0.0f;
+	mSceneryLayer.mNext[1] = 0.0f;
+	mSceneryLayer.mNext[2] = 640.0f;
+	mSceneryLayer.mNext[3] = 0.0f;
+	mSceneryLayer.mPeriod = 1;
+	mSceneryLayer.mSpeed = 0.02f;
+	mWarpShipY = 500000000.0f;
+	mEndFlashAlpha = 0;
+	mEffectsUpdateCount = 500000000;
+	mWarpGlowStep = 500000000;
+	mWarpGlowAlpha = 500000000;
+	mWarpChargeAlpha = 500000000;
+	mWarpPictureLift = 500000000;
+	mWarpShakeX = 500000000;
+	mFastGateGlow = 500000000;
+	mSlowGateGlow = 500000000;
+	mEasyGateGlow = 500000000;
+	mWarpGateAlpha = 500000000;
+	mWarpLightningY = 500000000;
+	mWarpLightningPeriod = 500000000;
+	mWarpLightningAlpha = 500000000;
+	mPauseTextWanted = true;
+	mFieldButtons[0] = NULL;
+	mHelpButton = NULL;
+	mTutorialPickTimer = 0;
+	mTutorialPickCount = 0;
+	mPowerupActive = 0;
+	mWeaponChargeMax = 18000.0f;
 	ApplyWeaponLevels();
-	m1bd4 = 0;
-	m30c = mApp->MakeRankImage(0, 0x50);
+	mRankNumber = 0;
+	mRankImage = mApp->MakeRankImage(0, 0x50);
 
 	// the text that scrolls along the top while the bonus of state 1 runs, repeated to fill the width
 	std::string aBannerText;
@@ -482,38 +470,37 @@ Board::Board(AstroPopApp* theApp, EventBus* theBus, int theGameType, unsigned in
 		aText.mY = 0x1cc;
 		aText.mText = aBannerText;
 		aText.mFont = aBannerFont;
-		m260.push_back(aText);
+		mBonusBannerTexts.push_back(aText);
 		aBannerX = aBannerX + 0x1e + aBannerFont->StringWidth(aBannerText);
 	} while (!aBannerDone);
-	m1b04 = 0;
-	m1a00 = mField193C + 1;
-	m1a04 = mField193C + 2;
-	int aHalf = m1a04 / 2;
+	mSpecialBannerHue = 0;
+	mSlowGateStage = mStageNumber + 2;
+	int aHalf = mSlowGateStage / 2;
 	int aRemainder = (aHalf + 1) % 4;
 	if (aRemainder == 0)
-		m1a08 = -1;
+		mFastGateStage = -1;
 	else
-		m1a08 = (aHalf - aRemainder) * 2 + 8;
-	m1a0c = -1;
-	mApp->mUser->GetInt(mMode + 8, &m1a0c);
-	if (m1a0c * 2 - 2 < m1a08)
-		m1a08 = -1;
-	if (m1a08 < 1)
+		mFastGateStage = (aHalf - aRemainder) * 2 + 8;
+	mBestLevelReached = -1;
+	mApp->mUser->GetInt(mMode + 8, &mBestLevelReached);
+	if (mBestLevelReached * 2 - 2 < mFastGateStage)
+		mFastGateStage = -1;
+	if (mFastGateStage < 1)
 	{
-		m1a70 = 0x17d - IMAGE_SLOW_WARP_GATE->GetCelWidth() / 2;
-		m1a74 = -1;
+		mSlowGateX = 0x17d - IMAGE_SLOW_WARP_GATE->GetCelWidth() / 2;
+		mFastGateX = -1;
 	}
 	else
 	{
-		m1a70 = 0xb6;
-		m1a74 = 0x192;
+		mSlowGateX = 0xb6;
+		mFastGateX = 0x192;
 	}
 
 	// the 40 blinking pictures of the backdrop
 	for (int i = 0; i < 0x28; i++)
 	{
 		BlinkRec aBlink;
-		aBlink.m00 = ((int) AstroRand() % 500000000) %
+		aBlink.mX = ((int) AstroRand() % 500000000) %
 			(IMAGE_BEAM_RADIAL->mWidth - IMAGE_PARTICLE_RADIAL->mWidth / IMAGE_PARTICLE_RADIAL->mNumCols);
 		aBlink.mCounter = ((int) AstroRand() % 500000000) % 400;
 		aBlink.mAnim.SetNumFrames(IMAGE_PARTICLE_RADIAL->mNumCols);
@@ -522,57 +509,53 @@ Board::Board(AstroPopApp* theApp, EventBus* theBus, int theGameType, unsigned in
 		aBlink.mAnim.mHoldLast = false;
 		aBlink.mAnim.mPingPong = false;
 		aBlink.mAnim.SetStopped(false);
-		md8.push_back(aBlink);
+		mBeamSparks.push_back(aBlink);
 	}
 	mApp->PlaySong(9);
-	m903 = false;
-	m902 = false;
-	m901 = false;
-	m980 = -1;
+	mScreenWiping = false;
+	mScreenWipeKind = -1;
 
 	// the picture of the field that the wipe at the end of a game takes away, and the wipe
 	DDImage* aFieldImage = new DDImage(mApp->mDDInterface);
-	m2f4 = aFieldImage;
+	mScreenImage = aFieldImage;
 	aFieldImage->Create(0x280, 0x1e0);
 	aFieldImage->SetVolatile(true);
-	m2f0 = new Graphics(m2f4);
-	m310 = new ScreenWipe();
-	m980 = ((int) AstroRand() % 500000000) % 4;
-	if (m980 == 0)
-		m1a84 = 2000;
+	mScreenGraphics = new Graphics(mScreenImage);
+	mScreenWipe = new ScreenWipe();
+	mScreenWipeKind = ((int) AstroRand() % 500000000) % 4;
+	if (mScreenWipeKind == 0)
+		mScreenWipeSteps = 2000;
 	else
-		m1a84 = (m980 != 3) * 2 + 4;
-	m310->SetImage(m2f4, false);
-	m310->SetKind(m980);
-	m1a78 = 0;
-	m904 = true;
-	m1a7c = -1;
+		mScreenWipeSteps = (mScreenWipeKind != 3) * 2 + 4;
+	mScreenWipe->SetImage(mScreenImage, false);
+	mScreenWipe->SetKind(mScreenWipeKind);
+	mSirenOffDelay = -1;
 	mSirenAnim.SetNumFrames(IMAGE_SIREN->mNumCols);
 	mSirenAnim.SetDelay(8);
 	mSirenAnim.mHoldLast = false;
 
 	// the siren's two pictures, flipped copies that are drawn into memory images
-	m2fc = new MemoryImage(mApp);
-	m300 = new MemoryImage(mApp);
-	m2fc->Create(IMAGE_SIREN->mWidth, IMAGE_SIREN->mHeight);
-	m300->Create(IMAGE_SIREN_FX->mWidth, IMAGE_SIREN_FX->mHeight);
-	Graphics aSirenGraphics(m2fc);
+	mSirenImage = new MemoryImage(mApp);
+	mSirenFxImage = new MemoryImage(mApp);
+	mSirenImage->Create(IMAGE_SIREN->mWidth, IMAGE_SIREN->mHeight);
+	mSirenFxImage->Create(IMAGE_SIREN_FX->mWidth, IMAGE_SIREN_FX->mHeight);
+	Graphics aSirenGraphics(mSirenImage);
 	aSirenGraphics.DrawImage(IMAGE_SIREN, 0, 0);
-	Graphics aSirenFxGraphics(m300);
+	Graphics aSirenFxGraphics(mSirenFxImage);
 	aSirenFxGraphics.DrawImage(IMAGE_SIREN_FX, 0, 0);
-	m2fc->Palletize();
-	m300->Palletize();
-	mApp->MirrorImage(m2fc);
-	mApp->MirrorImage(m300);
-	m2fc->mNumCols = IMAGE_SIREN->mNumCols;
-	m300->mNumCols = IMAGE_SIREN_FX->mNumCols;
+	mSirenImage->Palletize();
+	mSirenFxImage->Palletize();
+	mApp->MirrorImage(mSirenImage);
+	mApp->MirrorImage(mSirenFxImage);
+	mSirenImage->mNumCols = IMAGE_SIREN->mNumCols;
+	mSirenFxImage->mNumCols = IMAGE_SIREN_FX->mNumCols;
 	for (int i = 0; i < 3; i++)
 	{
 		FadeRec aFade;
 		aFade.mValue = 0;
 		aFade.mStep = 8;
 		aFade.mRising = true;
-		m1e0.push_back(aFade);
+		mEndBlastFades.push_back(aFade);
 	}
 
 	// the 40 sparks of the sun, spread by whole steps of nine degrees
@@ -588,13 +571,13 @@ Board::Board(AstroPopApp* theApp, EventBus* theBus, int theGameType, unsigned in
 		aSpark->mAnim.SetStopped(true);
 		aSpark->mVX = gCosTable[anAngle] * 4.0f;
 		aSpark->mVY = gSinTable[anAngle] * -4.0f;
-		me8.push_back(aSpark);
+		mSunSparks.push_back(aSpark);
 		anAngle = (int) ((double) anAngle + 9.0);
 	}
-	m8d8 = false;
+	mDemoEnding = false;
 	if (theDemo)
 	{
-		m8dc = true;
+		mDemoPlaying = true;
 		LoadDemo();
 		BuildField();
 	}
@@ -606,12 +589,12 @@ Board::Board(AstroPopApp* theApp, EventBus* theBus, int theGameType, unsigned in
 // buttons of the end of a game.
 Board::~Board()
 {
-	if (m6e4 != NULL)
-		m6e4->Release();
+	if (mPauseMutedSound != NULL)
+		mPauseMutedSound->Release();
 
-	for (size_t i = 0; i < m2a0.size(); i++)
-		delete m2a0[i];
-	m2a0.clear();
+	for (size_t i = 0; i < mEnergySparks.size(); i++)
+		delete mEnergySparks[i];
+	mEnergySparks.clear();
 
 	if (mApp->mLoopSounds.size() > 7)
 	{
@@ -620,110 +603,110 @@ Board::~Board()
 			aKlaxon->Stop();
 	}
 
-	for (size_t i = 0; i < m2c0.size(); i++)
+	for (size_t i = 0; i < mPilotStories.size(); i++)
 	{
-		delete m2c0[i]->mPageA;
-		delete m2c0[i]->mPageB;
-		delete m2c0[i];
+		delete mPilotStories[i]->mPageA;
+		delete mPilotStories[i]->mPageB;
+		delete mPilotStories[i];
 	}
-	m2c0.clear();
+	mPilotStories.clear();
 
-	if (m778 != NULL)
+	if (mLevelUpText != NULL)
 	{
-		if (m1a60 == 2)
+		if (mGameType == 2)
 		{
-			delete m778->mImage;
-			m778->mImage = NULL;
+			delete mLevelUpText->mImage;
+			mLevelUpText->mImage = NULL;
 		}
-		delete m778;
+		delete mLevelUpText;
 	}
-	delete m2e0;
-	delete m748;
-	delete m308;
-	delete m304;
+	delete mDemoStartLink;
+	delete mBonusRoundFile;
+	delete mBannerWaveImage;
+	delete mBannerTextImage;
 
-	if (m74c != NULL)
+	if (mHintOkButton != NULL)
 	{
-		delete m74c->mOverImage;
-		delete m74c->mDownImage;
-		delete m74c->mButtonImage;
+		delete mHintOkButton->mOverImage;
+		delete mHintOkButton->mDownImage;
+		delete mHintOkButton->mButtonImage;
 	}
-	if (m750 != NULL)
-		delete m750->mUncheckedImage;
-	delete m74c;
-	delete m750;
+	if (mHintOffCheckbox != NULL)
+		delete mHintOffCheckbox->mUncheckedImage;
+	delete mHintOkButton;
+	delete mHintOffCheckbox;
 
-	for (size_t i = 0; i < m230.size(); i++)
-		delete m230[i];
-	for (size_t i = 0; i < m2b0.size(); i++)
-		delete m2b0[i];
+	for (size_t i = 0; i < mHintSpots.size(); i++)
+		delete mHintSpots[i];
+	for (size_t i = 0; i < mHintBoxes.size(); i++)
+		delete mHintBoxes[i];
 
 	// the two buttons of the end of a game keep their pictures
-	if (m2e8 != NULL)
+	if (mMenuButton != NULL)
 	{
-		ButtonWidget* aButton = static_cast<ButtonWidget*>(m2e8);
+		ButtonWidget* aButton = static_cast<ButtonWidget*>(mMenuButton);
 		delete aButton->mButtonImage;
 		delete aButton->mOverImage;
 		delete aButton->mDownImage;
 	}
-	if (m2e4 != NULL)
+	if (mContinueButton != NULL)
 	{
-		ButtonWidget* aButton = static_cast<ButtonWidget*>(m2e4);
+		ButtonWidget* aButton = static_cast<ButtonWidget*>(mContinueButton);
 		delete aButton->mButtonImage;
 		delete aButton->mOverImage;
 		delete aButton->mDownImage;
 	}
-	delete m754;
-	delete m2e8;
-	delete m2e4;
+	delete mStoryScreen;
+	delete mMenuButton;
+	delete mContinueButton;
 
 	// the panels of the hints; the first one's chain of two more is deleted with it
-	for (size_t i = 0; i < m210.size(); i++)
+	for (size_t i = 0; i < mHintPanels.size(); i++)
 	{
-		if (i == 0 && m210[0]->mNext != NULL)
+		if (i == 0 && mHintPanels[0]->mNext != NULL)
 		{
-			delete m210[0]->mNext->mNext;
-			delete m210[0]->mNext;
+			delete mHintPanels[0]->mNext->mNext;
+			delete mHintPanels[0]->mNext;
 		}
-		delete m210[i];
+		delete mHintPanels[i];
 	}
 
 	ClearField();
 
-	if (!m1c0.empty() && m1c0[0] != NULL)
+	if (!mFieldButtons.empty() && mFieldButtons[0] != NULL)
 	{
-		AstroButton* aMainButton = static_cast<AstroButton*>(m1c0[0]);
+		AstroButton* aMainButton = static_cast<AstroButton*>(mFieldButtons[0]);
 		delete aMainButton->mButtonImage;
 		delete aMainButton;
 	}
-	delete m2ec;
+	delete mHelpButton;
 
-	for (size_t i = 0; i < m140.size(); i++)
-		delete m140[i];
-	for (size_t i = 0; i < m150.size(); i++)
-		delete m150[i];
+	for (size_t i = 0; i < mFloatTexts.size(); i++)
+		delete mFloatTexts[i];
+	for (size_t i = 0; i < mWarpStars.size(); i++)
+		delete mWarpStars[i];
 
 	StopListeningToAll();
 
-	delete m310;
-	delete m2f4;
-	delete m2f0;
+	delete mScreenWipe;
+	delete mScreenImage;
+	delete mScreenGraphics;
 
-	for (size_t i = 0; i < me8.size(); i++)
-		delete me8[i];
-	delete m2fc;
-	delete m300;
-	delete m354;
+	for (size_t i = 0; i < mSunSparks.size(); i++)
+		delete mSunSparks[i];
+	delete mSirenImage;
+	delete mSirenFxImage;
+	delete mHandKindBrick;
 
-	if (m88c)
+	if (mRightArmImagesOwned)
 	{
-		delete m890;
-		delete m894;
+		delete mRightArmImage;
+		delete mRightHeadImage;
 	}
-	if (m830)
+	if (mLeftArmImagesOwned)
 	{
-		delete m834;
-		delete m838;
+		delete mLeftArmImage;
+		delete mLeftHeadImage;
 	}
 }
 
@@ -749,7 +732,7 @@ void Board::OnFiring(int theEvent)
 	case 0x26:
 	case 0x27:
 	case 0x29:
-		gFlag5A5100 = false;
+		gStateSaved = false;
 		break;
 	}
 }

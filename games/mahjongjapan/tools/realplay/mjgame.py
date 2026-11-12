@@ -16,8 +16,8 @@ class Failed(Exception):
 
 def wait_for_slot(limit=None, timeout=3 * 3600):
     """tools/gamecount.py counts every session's game processes: start one only when there is room (CLAUDE.md). The limit is
-    3, or 8 on the nights the user allows it (GAME_LIMIT=8)"""
-    limit = limit or int(os.environ.get('GAME_LIMIT', '3'))
+    6 (GAME_LIMIT sets another)"""
+    limit = limit or int(os.environ.get('GAME_LIMIT', '6'))
     root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', '..'))
     end = time.time() + timeout
     while subprocess.call(['python', os.path.join(root, 'tools', 'gamecount.py'), '--limit', str(limit)],
@@ -45,9 +45,10 @@ class Game:
         threading.Thread(target=self.reader, daemon=True).start()
         self.shots = 0
         self.asked = 0
+        self.updates = 0  # the update the last state came from, for the log's lines
 
     def say(self, text):
-        print('%8.2f %s' % (time.time() - T0, text), file=self.log, flush=True)
+        print('%8.2f u%-7d %s' % (time.time() - T0, self.updates, text), file=self.log, flush=True)
 
     def reader(self):
         for line in self.proc.stdout:
@@ -81,7 +82,9 @@ class Game:
                     if ln is None:
                         raise Failed('the game exited at "%s"' % line)
                     if line == 'state' and ln.startswith('STATE '):
-                        return json.loads(ln[6:])
+                        st = json.loads(ln[6:])
+                        self.updates = st['updates']
+                        return st
                     if line == 'move' and ln.startswith('MOVE '):
                         v = ln[5:]
                         return None if v == 'null' else json.loads(v)

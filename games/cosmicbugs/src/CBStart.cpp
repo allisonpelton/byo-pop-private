@@ -42,7 +42,7 @@ void GameExit()
 // 0x41e7d0: after the screen was opened again
 void ScreenChanged()
 {
-	Dirty_AddClipped(&gDirty, 0, 0, 800, 600, kScreenClip);
+	Dirty_AddClipped(&gDirty, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_CLIP);
 }
 
 // 0x41e7f0
@@ -73,10 +73,10 @@ void FontEntry_Append(List<FontEntry>* theList)
 // A translation of local.xml (0x208 bytes)
 struct LocalString
 {
-	LocalString* next;         // +0x000
-	LocalString* prev;         // +0x004
-	char index[0x100];         // +0x008
-	char value[0x100];         // +0x108
+	LocalString* mNext;         // +0x000
+	LocalString* mPrev;         // +0x004
+	char mIndex[0x100];         // +0x008
+	char mValue[0x100];         // +0x108
 };
 
 List<LocalString> gLocalStrings = {nullptr, nullptr, nullptr}; // 0x6e652c
@@ -141,10 +141,10 @@ void DrawLoadingScreen()
 	Image* anImage = Bank_ImageAt(&gArt8Bank, Bank_IndexOf(&gArt8Bank, "loading"));
 	if (Screen_Lock() != 0)
 	{
-		std::memset(gScreenBits, 0, gScreenPitch * 600);
+		std::memset(gScreenBits, 0, gScreenPitch * SCREEN_HEIGHT);
 		Draw_FillBlend(gScreenBits, gScreenPitch, &gBackBuffer.mFmt, 0, 0, 0x31f, 0x257, 0, 0, 0, 0xb4);
-		Image_BlitSubRect(anImage, gScreenBits, gScreenPitch, Sys_ScreenFormat(), 400 - anImage->mW / 2,
-			300 - anImage->mH / 2, 0, 0, anImage->mW, anImage->mH);
+		Image_BlitSubRect(anImage, gScreenBits, gScreenPitch, Sys_ScreenFormat(), SCREEN_CENTRE_X - anImage->mW / 2,
+			SCREEN_CENTRE_Y - anImage->mH / 2, 0, 0, anImage->mW, anImage->mH);
 		UnlockScreen();
 	}
 	Present(0);
@@ -161,13 +161,13 @@ void LoadGameFile()
 	if (anEco != nullptr)
 		std::memcpy(anEco, ".xml", 4);
 	const char* aData = (const char*)ReadWholeFile(gGameFile, &aSize);
-	const char* p = Xml_NextTag(aData, &aTag);
+	const char* aCursor = Xml_NextTag(aData, &aTag);
 	while (std::strcmp(aTag.mName, "/game") != 0)
 	{
 		if (std::strcmp(aTag.mName, "animation") == 0)
 		{
 			Animation_Append(&gAnims);
-			if (Animation_FromXml(gAnims.current, &aTag) == 0)
+			if (Animation_FromXml(gAnims.mCurrent, &aTag) == 0)
 				List_RemoveCurrent(&gAnims);
 		}
 		if (std::strcmp(aTag.mName, "sound") == 0)
@@ -183,8 +183,8 @@ void LoadGameFile()
 				{
 					Level_Append(&gLevels);
 					aNumber = aNumber + 1;
-					gLevels.current->number = aNumber;
-					Level_Load(gLevels.current, nullptr, &aTag);
+					gLevels.mCurrent->mNumber = aNumber;
+					Level_Load(gLevels.mCurrent, nullptr, &aTag);
 					aCount = aCount + -1;
 				} while (aCount != 0);
 			}
@@ -195,22 +195,22 @@ void LoadGameFile()
 			if (Xml_GetInt(&aTag, "skip") == 0)
 				aNumber = aNumber + 1;
 			else
-				gLevels.current->musicPending = 1;
-			gLevels.current->number = aNumber;
-			Level_Load(gLevels.current, p, &aTag);
+				gLevels.mCurrent->mMusicPending = 1;
+			gLevels.mCurrent->mNumber = aNumber;
+			Level_Load(gLevels.mCurrent, aCursor, &aTag);
 		}
 		else if (std::strcmp(aTag.mName, "enemy") == 0)
 		{
 			Enemy_Append(&gEnemyDefs);
-			Enemy_FromXml(gEnemyDefs.current, p, &aTag);
+			Enemy_FromXml(gEnemyDefs.mCurrent, aCursor, &aTag);
 		}
 		else if (std::strcmp(aTag.mName, "emitter") == 0)
 		{
-			Emitter_Append(&gEnemyDefs.current->emitters);
-			Emitter_FromXml((Emitter*)gEnemyDefs.current->emitters.current, &aTag);
+			Emitter_Append(&gEnemyDefs.mCurrent->mEmitters);
+			Emitter_FromXml((Emitter*)gEnemyDefs.mCurrent->mEmitters.mCurrent, &aTag);
 		}
 		else if (std::strcmp(aTag.mName, "font") == 0)
-			Font_LoadXml(p, &aTag);
+			Font_LoadXml(aCursor, &aTag);
 		else if (std::strcmp(aTag.mName, "song") == 0)
 		{
 			Music_Load(Xml_GetString(&aTag, "name"));
@@ -227,14 +227,14 @@ void LoadGameFile()
 		else if (std::strcmp(aTag.mName, "level_set") == 0)
 		{
 			LevelSet_Append(&gLevelSets);
-			gLevelSets.current->start = Xml_GetInt(&aTag, "start_range");
-			gLevelSets.current->end = Xml_GetInt(&aTag, "end_range");
-			std::strcpy(gLevelSets.current->song, Xml_GetString(&aTag, "song"));
+			gLevelSets.mCurrent->mStart = Xml_GetInt(&aTag, "start_range");
+			gLevelSets.mCurrent->mEnd = Xml_GetInt(&aTag, "end_range");
+			std::strcpy(gLevelSets.mCurrent->mSong, Xml_GetString(&aTag, "song"));
 		}
-		p = Xml_NextTag(p, &aTag);
+		aCursor = Xml_NextTag(aCursor, &aTag);
 	}
-	if (gLevels.current != nullptr)
-		gLevels.current = gLevels.head;
+	if (gLevels.mCurrent != nullptr)
+		gLevels.mCurrent = gLevels.mHead;
 }
 
 void GameStart()
@@ -246,10 +246,10 @@ void GameStart()
 	InitSinCos();
 	SeedCrtRand();
 	SetScreenChangeCallback(ScreenChanged);
-	Image_Create(&gBackBuffer, 800, 600, Sys_ScreenFormat());
+	Image_Create(&gBackBuffer, SCREEN_WIDTH, SCREEN_HEIGHT, Sys_ScreenFormat());
 	Dirty_Init(&gDirty, 0x28, 0x28, 1, 1);
 	Dirty_SetSource(&gDirty, &gBackBuffer);
-	Dirty_AddClipped(&gDirty, 0, 0, 800, 600, kScreenClip);
+	Dirty_AddClipped(&gDirty, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_CLIP);
 	LoadArt8();
 	DrawLoadingScreen();
 	LoadArtAndFonts();
@@ -259,7 +259,7 @@ void GameStart()
 	gLastTime = (int)TimeMs();
 }
 
-// The time passed (at most 512 ms: else the last pass's; the demo's always 202) is stepped through, then the screen
+// The time passed (at most 512 ms: else the last pass's) is stepped through, then the screen
 // drawn and shown. (The original also times each part for nothing, and calls an empty function after the drawing.)
 int GameFrame()
 {
@@ -274,8 +274,6 @@ int GameFrame()
 		gElapsedMs = gLastElapsed;
 	int aNow = (int)TimeMs();
 	gLastElapsed = gElapsedMs;
-	if (gDemo != 0)
-		gElapsedMs = 0xca;
 	gLastTime = aNow;
 	int aMode = Screen_Fullscreen();
 	if (gLastMode != aMode)
@@ -317,44 +315,43 @@ int Font_LoadXml(const char*, const XmlTag* theTag)
 	if (Xml_GetInt(theTag, "8bit") == 0)
 	{
 		if (Xml_GetString(theTag, "strip") == nullptr)
-			Font_LoadFromBank(&gFonts.current->font, &gArtBank, Xml_GetString(theTag, "face"));
+			Font_LoadFromBank(&gFonts.mCurrent->mFont, &gArtBank, Xml_GetString(theTag, "face"));
 		else
 		{
-			Font_StripCut(&gFonts.current->font, &gArtBank, Xml_GetString(theTag, "face"),
+			Font_StripCut(&gFonts.mCurrent->mFont, &gArtBank, Xml_GetString(theTag, "face"),
 				Xml_GetString(theTag, "strip"));
-			std::strcpy(gFonts.current->chars, Xml_GetString(theTag, "strip"));
+			std::strcpy(gFonts.mCurrent->mChars, Xml_GetString(theTag, "strip"));
 		}
 	}
 	else
 	{
 		if (Xml_GetString(theTag, "strip") == nullptr)
-			Font_LoadFromBank(&gFonts.current->font, &gArt8Bank, Xml_GetString(theTag, "face"));
+			Font_LoadFromBank(&gFonts.mCurrent->mFont, &gArt8Bank, Xml_GetString(theTag, "face"));
 		else
 		{
-			Font_StripCut(&gFonts.current->font, &gArt8Bank, Xml_GetString(theTag, "face"),
+			Font_StripCut(&gFonts.mCurrent->mFont, &gArt8Bank, Xml_GetString(theTag, "face"),
 				Xml_GetString(theTag, "strip"));
-			std::strcpy(gFonts.current->chars, Xml_GetString(theTag, "strip"));
+			std::strcpy(gFonts.mCurrent->mChars, Xml_GetString(theTag, "strip"));
 		}
 		char aCode = 0;
 		for (Palette* aPalette = gColourCodes; aPalette < gColourCodes + 10; aPalette++)
 		{
-			Font_SetColour(&gFonts.current->font, aCode + '0', aPalette);
+			Font_SetColour(&gFonts.mCurrent->mFont, aCode + '0', aPalette);
 			aCode = aCode + 1;
 		}
-		Font_SetEscapes(&gFonts.current->font, 1);
+		Font_SetEscapes(&gFonts.mCurrent->mFont, 1);
 	}
 	char aCode = 0;
 	for (Palette* aPalette = gColourCodes; aPalette < gColourCodes + 10; aPalette++)
 	{
-		Font_SetColour(&gFonts.current->font, aCode + '0', aPalette);
+		Font_SetColour(&gFonts.mCurrent->mFont, aCode + '0', aPalette);
 		aCode = aCode + 1;
 	}
-	Font_SetAlign(&gFonts.current->font, 0);
-	Font_SetSpacing(&gFonts.current->font, Xml_GetInt(theTag, "spacing"));
-	Font_SetClipped(&gFonts.current->font, 1);
-	Font_SetEscapes(&gFonts.current->font, 1);
-	std::strcpy(gFonts.current->name, Xml_GetString(theTag, "name"));
-	std::strcpy(gFonts.current->strip, Xml_GetString(theTag, "face"));
+	Font_SetAlign(&gFonts.mCurrent->mFont, 0);
+	Font_SetSpacing(&gFonts.mCurrent->mFont, Xml_GetInt(theTag, "spacing"));
+	Font_SetEscapes(&gFonts.mCurrent->mFont, 1);
+	std::strcpy(gFonts.mCurrent->mName, Xml_GetString(theTag, "name"));
+	std::strcpy(gFonts.mCurrent->mStrip, Xml_GetString(theTag, "face"));
 	return 1;
 }
 
@@ -362,7 +359,7 @@ int Font_LoadXml(const char*, const XmlTag* theTag)
 // itself when there is none
 const char* Localize(const char* theText)
 {
-	if (gLocalStrings.current == nullptr)
+	if (gLocalStrings.mCurrent == nullptr)
 	{
 		XmlTag aTag;
 		size_t aSize;
@@ -373,16 +370,16 @@ const char* Localize(const char* theText)
 			if (std::strcmp(aTag.mName, "string") == 0)
 			{
 				List_Append(&gLocalStrings, new LocalString());
-				std::strcpy(gLocalStrings.current->index, Xml_GetString(&aTag, "index"));
-				std::strcpy(gLocalStrings.current->value, Xml_GetString(&aTag, "value"));
+				std::strcpy(gLocalStrings.mCurrent->mIndex, Xml_GetString(&aTag, "index"));
+				std::strcpy(gLocalStrings.mCurrent->mValue, Xml_GetString(&aTag, "value"));
 			}
 			p = Xml_NextTag(p, &aTag);
 		}
 	}
-	for (LocalString* aString = gLocalStrings.head; aString != nullptr; aString = aString->next)
+	for (LocalString* aString = gLocalStrings.mHead; aString != nullptr; aString = aString->mNext)
 	{
-		if (std::strcmp(aString->index, theText) == 0)
-			return aString->value;
+		if (std::strcmp(aString->mIndex, theText) == 0)
+			return aString->mValue;
 	}
 	return theText;
 }

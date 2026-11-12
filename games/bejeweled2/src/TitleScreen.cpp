@@ -38,6 +38,7 @@ TitleScreen::TitleScreen(WinDMApp* theApp)
 	Update();
 }
 
+// 0x5d9828 (the destructor proper; the original also deletes the register link at +0x2fc, which the port leaves out)
 TitleScreen::~TitleScreen()
 {
 	delete mPlayLink;
@@ -120,7 +121,7 @@ void TitleScreen::ButtonDepress(int theId)
 		mApp->LoadingCompleted();
 }
 
-// 0x5d9b7b
+// 0x5d9b7b, 0x5af12c (CurvedVal::GetInVal, a one-line getter that the port writes inline as mInVal)
 void TitleScreen::Draw(Graphics* g)
 {
 	mApp->mFancyBackdrop->DrawBottom(g);
@@ -231,7 +232,7 @@ void TitleScreen::Draw(Graphics* g)
 	g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
 }
 
-// 0x5da77e
+// 0x5da77e, 0x5af12c (CurvedVal::GetInVal, written inline as mInVal)
 void TitleScreen::Update()
 {
 	Widget::Update();

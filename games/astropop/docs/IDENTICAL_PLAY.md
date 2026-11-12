@@ -138,16 +138,16 @@ Every difference was found as the first update where the original and the port d
 | difference | cause in the original | the port now |
 |---|---|---|
 | two draws came from different generators | the game draws from a generator of its own, seeded at the end of `Init` from the first generator, and the particles draw from it | `gGameRand` seeded the same way, drawn by the particles (the pass's first commit, a9124b4f) |
-| a row came one update early after a brick was retargeted | the handlers of the events 0x10 and 0x11 count the fired bricks that sit at their place in the board's `m1a68`; the first translation counted in `m1a04` | the two handlers count in `m1a68` (`BoardEvents.cpp`) |
+| a row came one update early after a brick was retargeted | the handlers of the events 0x10 and 0x11 count the fired bricks that sit at their place in the board's `mSupportedBrickCount`; the first translation counted in `mSlowGateStage` | the two handlers count in `mSupportedBrickCount` (`BoardEvents.cpp`) |
 | a brick did not hear the event of arrival when it stood exactly on its target | five float compares of `Brick` (the arrival and the 423 test of `UpdateState1`, the `Listen(0)` test of `SetTargetY`, the -5 clamp of the wobble, the 9.0 test of the mutation timer) are `<=`, read as `<` | the five tests are `<=` (`Brick.cpp`) |
 | a dying brick left its state one update too early or late | `UpdateState3` steps the death animation and the effect animation, then `SetState(4)` and fires event 6 | translated as that |
 | the mutator hold was set when it should not be (survival, seed 1, update 8496) | `Brick::OnDie` fires the event 0x1a ("popped") only for a mutated brick; a plain colour fires 0x27, a stone, steel or bomb its own events | no 0x1a for the other bricks |
 | the pace after a spurt was always 8 | the byte at +0x4c8 of the board is the siren animation's `mStopped` (the animation sits at +0x4a0): with the siren stopped the pace is 4 and a spawn delay is drawn | the pace reads `mSirenAnim.mStopped`; the siren drawing and two sites of `BoardMode` read it too (classic, seed 2, update 7495) |
 | a rainbow brick drew a colour without removing the one it had shown | `UpdateRainbow` first erases the shown colour from the list (0x405f70) and ends the effect when none is left | the same |
-| a row came one update late (classic, seed 7, update 8186) | the original's x87 runs at 24 bits of precision (DirectDraw's setup never preserves the FPU): `m19cc + m930 * 20.0f` is 1046 there and 1045 in double | the expressions that the game truncates, compares or chains are computed in `float` (the wait for the next row, the danger display, the spawn thresholds, the ramp interpolation, the stage bonuses, the speeds of streaks and particles, the warp's speed); GAME_NOTES section 4 |
+| a row came one update late (classic, seed 7, update 8186) | the original's x87 runs at 24 bits of precision (DirectDraw's setup never preserves the FPU): `mRowInterval + mStackDanger * 20.0f` is 1046 there and 1045 in double | the expressions that the game truncates, compares or chains are computed in `float` (the wait for the next row, the danger display, the spawn thresholds, the ramp interpolation, the stage bonuses, the speeds of streaks and particles, the warp's speed); GAME_NOTES section 4 |
 | a bonus round was only its wall of stones (classic, seed 11, update 16047) | a relative path of `XcfFile` may start with the name of the cursor's own section; the bonus file is read with `LEVEL\ROWn\Brickn` right after `Parse` | `XcfFile::FindValueSection` accepts it |
 | Sprocket's weapon removed a brick too many (classic, seed 7, update 6369: 19 draws against 18) | the count of the buried bricks a weapon takes away is `(int) ((1.0f - share) * count)` in the x87 at 24 bits: 18 there, 19 in double | `BeginPlay` computes it in `float` (94adb53e) |
-| (no run had shown it) the brick-o-meter's ratio and positions, the speed of a warp star | read after the difference above, for the same kind of expression: the meter's fill ratio `m1a14 / m1a18` is rounded to a float before it is compared with a third, two thirds and 1, and the positions that a milestone truncates to whole pixels are float arithmetic | the ratio and those positions are computed in `float` (`BoardFill`, `BoardGone`, `BoardEvents`, `BoardWarp`; 94adb53e) |
+| (no run had shown it) the brick-o-meter's ratio and positions, the speed of a warp star | read after the difference above, for the same kind of expression: the meter's fill ratio `mStageBricksCleared / mBricksToPass` is rounded to a float before it is compared with a third, two thirds and 1, and the positions that a milestone truncates to whole pixels are float arithmetic | the ratio and those positions are computed in `float` (`BoardFill`, `BoardGone`, `BoardEvents`, `BoardWarp`; 94adb53e) |
 
 GAME_NOTES section 4 holds the x87 reading of these rows. Once they were in, the four weapons, the box that explains one, the
 upgrade boxes and levels up to 33 played out the same in the original and the port in all the games above.
@@ -292,8 +292,20 @@ the last calls set them), the samples named by their size and rate. The recorded
 button, a game from the level-29 checkpoint through to update 9,746, from update 3,100 on): **889 plays in each, the same sample, the
 same volume, pan and loop for every one, and the same update to within the constant 3 updates by which the two logs' counters
 differ** (478 of the plays at exactly 3, the others within 2): no difference. The comparison cannot tell apart samples of the same
-size and rate (the mouse-over samples, two zaps), and it does not cover the music (a module stream, `music\music.mo3`): the music's
-start, stop and loss of the focus were **not** compared with the original in this pass.
+size and rate (the mouse-over samples, two zaps), and it does not cover the music (a module stream, `music\music.mo3`), which came after:
+
+**Music** (`musictour.sh`, `musiccmp.py`; GAME_NOTES section 14). The original plays one module, `music\music.mo3`, through BASS: two copies of it
+in two slots, and `PlaySong` starts a song by its order position and cross-fades from the one that plays (the title 0; the menus, the pilot screen and the story screens 5; a game 9; the danger song 0x23 and the level-up 0x29, which give way to
+the game's song again at its position 9 or 10; the game over 0x27). origrun's sandbox has no sound device, so BASS never plays there, and
+what can be compared is what the game decides: four watches on the application read the position it chose, the slot, and the two ends of the list
+of slots that a focus loss paused. The port's side is its sound log, a `music fadein <slot> offset=<position>` line for each song the game starts.
+Each start is compared by position, slot and update (the original's counter is the port's plus 2, one more is allowed). The same in all of them:
+the tours `pause1`, `classic1`, `ingame1`, `loss1`, `emerg1` and `survend` (3, 4, 4, 3, 6 and 3 starts, between them the positions 0, 5, 9, 0x23
+and 0x27) and a recorded classic game of 700 moves from the fifth level (`gamerun.sh`, 13 starts: 0, 5, 9 and then 0x29 at each of the four
+level-ups, each followed by 10, and a story screen's 5 and the return to 9 at the end), every position, slot and update equal. **What is not compared:** the
+pause and the resume that a loss and a regain of the focus do to the slot that plays (the port logs them at the update of the focus change; the
+original's paused-slots list never changes in the sandbox, because its BASS stream never plays there), and the sound itself (the port's decoder
+against BASS). The first run of this comparison found that the port played **no music at all**: see the changes below.
 
 **Focus**: the tour `pause1` (space, the focus lost and regained, space, Escape) matches the original in 7 shots and faintly in 2, with
 no differing shot, natively, and by at most 7 levels in the web build; the real-input runs below lose and regain the focus five moves
@@ -350,6 +362,7 @@ pass, 0 fail and 1 information.
 | the weapon's box was 400 high and its OK button silent | vftable 0x56b8b8 slot 0xc8 is 0x483b90: twice the picture's height plus 0x96 (370); the button plays the sample at +0x118, which is 0 and, in the original's alphabetical numbering, the one-second timer's tick | 370; the tick, asked for by name (the port numbers by manifest order); a fix candidate for the mod | 65795b0b |
 | the atomic explosion's ring was stretched pixel by pixel (up to 91 levels at its edges) | the 2004 `WidgetManager` leaves the fast stretch off; only the level-up text asks for it | the option `gWidgetsDrawWithoutFastStretch` is on (shared commit) | c2219d33 |
 | every spark of a low brick flew from another place (emerg1 and ck29: tens of shots) | `Brick::UpdateSparks` 0x406e20 hands the particle's constructor its second draw first and its first draw second; the other seven call sites do not | the same order (all eight call sites read against the asm; the draws, and so the games, were always the same) | 65795b0b |
+| the port played **no music**, natively and in the browser (no error, no log line; found by the music comparison above) | the original plays `music\music.mo3` through BASS; the port loads it through the framework's `Mixer::LoadSong`, whose MO3 decoder (libopenmpt) must be registered once, and the port's `main` never did it, so `LoadSong` returned 0 without a word | `main` calls `Platform::RegisterOpenMPTModules()`, as every other game with an MO3 tune does; the sound log has the song starts, and the page's music view reports song 2 with its 43 positions | 9be38396 |
 
 The tools changed too: `gamerun.sh` plays a recorded game and takes its shots, `freeze.sh` copies the exe for a long tour,
 `webshots.sh` runs a tour on the web build, `soundtour.sh` the sound, `gametour.py --charge` and `record.py --charge` send
@@ -369,7 +382,6 @@ halo, up to 91 levels at the edge of the explosion ring) nothing in a screen, a 
 classic game of 120 moves with real input, compares its state with the baseline's, and passes; `tools/check.sh build` passes.
 **Registration code** was out before this phase (GAME_NOTES section 5); the More Games panel went with this one.
 **Waiting for shared code:** the 2004 `DDImage` blit arithmetic (NormalBlt, AdditiveBlt) and its stretch (StretchBlt,
-SlowStretchBlt), the two differences above; both specs are with the coordinator. **Not done in this pass:** the music's state against
-the original's, the performance numbers, the readability pass and taking out the code the game does not need
-(GAME_NOTES section 9). The coverage check came after this pass and found six more differences, all in screens and boxes that no
+SlowStretchBlt), the two differences above; both specs are with the coordinator. **Not done in this pass:** the performance numbers, the readability pass and taking out the code the game does not need
+(GAME_NOTES section 9; done since, GAME_NOTES sections 10 to 12; the music's state came after, section 14, with the missing music above). The coverage check came after this pass and found six more differences, all in screens and boxes that no
 comparison had visited (GAME_NOTES section 10).

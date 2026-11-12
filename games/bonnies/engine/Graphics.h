@@ -54,9 +54,9 @@ public:
 	// zero or a row starting with '0'
 	void setCursor(const char* const* theArt);
 
-	int mField00;          // +0x00
+	int mFloatTextFrame;    // +0x00: the frame a floating text was last drawn
 	uint32_t mModeTime;    // +0x04: when the mode was set
-	int mModeFrame;        // +0x08: the frame then
+	int mModeFrame;        // +0x08: the frame then (nothing reads it)
 	int mFocusFrame;       // +0x0c: the last frame shown with the input focus
 };
 

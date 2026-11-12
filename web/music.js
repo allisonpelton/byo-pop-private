@@ -11,6 +11,8 @@
 // The player is one state at a time (state below): idle (nothing chosen), loading (a tune's file being read), playing, paused.
 var ByopopMusic = (function () {
   "use strict";
+  // the desktop's zoom (web/skins.js): a pointer's movement is the screen's CSS pixels, the window's sizes the page's
+  function zoomOf() { try { return ByopopSkin.zoom(); } catch (e) { return 1; } }
   var DB_STORE = "FILE_DATA";
   var MIN_TUNE = 2;          // seconds: a shorter subsong is a silence or a sting between tunes, not a tune
   var CHUNK = 4096;          // frames a message to the worklet carries
@@ -62,7 +64,9 @@ var ByopopMusic = (function () {
     });
     return found;
   }
-  // A stored file's bytes, or null. A key "<file>|pe:<type>:<id>" is that resource of that Windows module, and "<file>|zip:<name>" that entry of that zip archive: tunes a game keeps inside its own files
+  // A stored file's bytes, or null. A key "<file>|pe:<type>:<id>" is that resource of that Windows module, "<file>|zip:<name>"
+  // that entry of that zip archive, and "<file>|tiptop:<name>" that entry of Tip Top's archive: tunes and sounds a game keeps
+  // inside its own files (the Sounds window reads them so too, web/sounds.js)
   function readFile(db, key) {
     var bar = key.indexOf("|");
     if (bar >= 0) {
@@ -74,6 +78,7 @@ var ByopopMusic = (function () {
           return r ? r.bytes : null;
         }
         if (pick.indexOf("zip:") === 0) return zipEntry(bytes, pick.slice(4));
+        if (pick.indexOf("tiptop:") === 0) return tipTopEntry(bytes, pick.slice(7));
         return null;
       });
     }
@@ -126,6 +131,39 @@ var ByopopMusic = (function () {
       walk(0, []);
     } catch (e) {}
     return out;
+  }
+  // An entry of Tip Top's archive (TipTop.dat; games/tiptop/tools/tiptopdat.py) by name, ignoring case, "\" or "/" between
+  // folders, or null. Every byte of the file is stored with its bits permuted, the same way: bit i of a stored byte holds bit
+  // SRC[i] of the real one. Decoded, it is a u32 table size, the table (a NUL-terminated name, u32 offset from the file's
+  // start and u32 size, until an empty name) and the files
+  var TIPTOP_SRC = [2, 6, 0, 7, 5, 4, 1, 3], tipTopDecode = null;
+  function tipTopEntry(bytes, name) {
+    if (!tipTopDecode) {
+      tipTopDecode = new Uint8Array(256);
+      for (var c = 0; c < 256; c++) {
+        var enc = 0;
+        for (var b = 0; b < 8; b++) enc |= ((c >> TIPTOP_SRC[b]) & 1) << b;
+        tipTopDecode[enc] = c;
+      }
+    }
+    var d = tipTopDecode, want = name.replace(/\//g, "\\").toLowerCase();
+    function u32(o) { return (d[bytes[o]] | (d[bytes[o + 1]] << 8) | (d[bytes[o + 2]] << 16) | (d[bytes[o + 3]] << 24)) >>> 0; }
+    if (bytes.length < 4) return null;
+    var tableEnd = 4 + u32(0), p = 4;
+    while (p < tableEnd && p < bytes.length) {
+      var e = p, n = "";
+      while (e < bytes.length && d[bytes[e]] !== 0) n += String.fromCharCode(d[bytes[e++]]);
+      if (!n) break;
+      var off = u32(e + 1), size = u32(e + 5);
+      if (n.toLowerCase() === want) {
+        if (off + size > bytes.length) return null;
+        var out = new Uint8Array(size);
+        for (var k = 0; k < size; k++) out[k] = d[bytes[off + k]];
+        return out;
+      }
+      p = e + 9;
+    }
+    return null;
   }
   // A zip archive's entry by name (stored or deflated), or null
   function zipEntry(bytes, name) {
@@ -684,7 +722,7 @@ var ByopopMusic = (function () {
     });
     split.addEventListener("pointermove", function (ev) {
       if (!splitDrag || ev.pointerId !== splitDrag.id) return;
-      setRows(splitDrag.rows + Math.round((ev.clientY - splitDrag.y) / ROW_PX), false, true);
+      setRows(splitDrag.rows + Math.round((ev.clientY - splitDrag.y) / zoomOf() / ROW_PX), false, true);
     });
     function endSplit(ev) {
       if (!splitDrag || ev.pointerId !== splitDrag.id) return;
@@ -1696,7 +1734,7 @@ var ByopopMusic = (function () {
         var range = !follow && source && source.range ? source.range() : null;
         if (range) { roll.lo = range[0]; roll.hi = range[1]; roll.exact = true; }
       }
-      var w = piano.clientWidth, hgt = piano.clientHeight, dpr = window.devicePixelRatio || 1;
+      var w = piano.clientWidth, hgt = piano.clientHeight, dpr = (window.ByopopSkin && ByopopSkin.ratio ? ByopopSkin.ratio() : window.devicePixelRatio || 1);
       var style = getComputedStyle(piano), g = piano.getContext("2d");
       g.font = "10px " + style.fontFamily;
       // the pitch names in a margin at the left; in the rest a row as wide as lets about a pattern (ROLL_ROWS rows) fill it (the
@@ -2251,7 +2289,7 @@ var ByopopMusic = (function () {
       // the followed game's own output where it is tapped, else the player's own analyser
       var tap = follow && follow.tap, an = tap ? tap.an : analyser, live = tap ? true : state === "playing", rate = tap ? tap.rate : ctx && ctx.sampleRate;
       if (spectrum.hidden || !an) return;
-      var w = spectrum.clientWidth, hgt = spectrum.clientHeight, dpr = window.devicePixelRatio || 1;
+      var w = spectrum.clientWidth, hgt = spectrum.clientHeight, dpr = (window.ByopopSkin && ByopopSkin.ratio ? ByopopSkin.ratio() : window.devicePixelRatio || 1);
       if (!w || !hgt) return;
       if (spectrum.width !== Math.round(w * dpr) || spectrum.height !== Math.round(hgt * dpr)) { spectrum.width = Math.round(w * dpr); spectrum.height = Math.round(hgt * dpr); }
       if (!bins || bins.length !== an.frequencyBinCount) bins = new Uint8Array(an.frequencyBinCount);
@@ -2662,7 +2700,7 @@ var ByopopMusic = (function () {
       ev.preventDefault(); ev.stopPropagation();
       var startX = ev.clientX, startFirst = firstChannel, room = hbTrack.clientWidth - hbThumb.offsetWidth;
       try { hbThumb.setPointerCapture(ev.pointerId); } catch (e) {}
-      function move(e) { if (room > 0) scrollTo(startFirst + Math.round((e.clientX - startX) / room * (totalChannels - shownChannels))); }
+      function move(e) { if (room > 0) scrollTo(startFirst + Math.round((e.clientX - startX) / zoomOf() / room * (totalChannels - shownChannels))); }
       function up() { hbThumb.removeEventListener("pointermove", move); hbThumb.removeEventListener("pointerup", up); hbThumb.removeEventListener("pointercancel", up); }
       hbThumb.addEventListener("pointermove", move); hbThumb.addEventListener("pointerup", up); hbThumb.addEventListener("pointercancel", up);
     });

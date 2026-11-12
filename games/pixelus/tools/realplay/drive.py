@@ -122,7 +122,7 @@ def targets():
 
 
 def click(x, y):
-    send('click game %d %d' % (x, y), 'OK click', 10)
+    send('click game %d %d' % (x, y), 'OK click', 60)
 
 
 def wait_updates(n=12):
@@ -133,7 +133,7 @@ def wait_updates(n=12):
 
 def shot(name):
     os.makedirs(os.path.join(OUT, 'shots'), exist_ok=True)
-    send('screenshot ' + os.path.join(OUT, 'shots', name + '.png'), 'screenshot', 10)
+    send('screenshot ' + os.path.join(OUT, 'shots', name + '.png'), 'screenshot', 60)
 
 
 def wait_screen(names, seconds=30):

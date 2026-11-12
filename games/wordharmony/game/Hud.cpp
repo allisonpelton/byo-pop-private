@@ -184,49 +184,54 @@ void Hud::setMode(int theMode)
 	}
 }
 
-// 0x422850: the menu's and the playing buttons' actions; the editor's (never set in this build) are the ball count
-// buttons, and its recycle buttons take the level's word away instead
+// 0x422850: the menu's and the playing buttons' actions (the editor's, never reached in this build, are the ball count
+// buttons and recycle buttons that take the level's word away: left out)
 void Hud::buttonPress(std::string theName)
 {
 	Game* aGame = Game::instance();
-	bool anEditor = aGame->mBallSystem->mEditor;
-	if ((theName == "retry") && !anEditor)
+	if (theName == "retry")
 	{
 		aGame->retry();
 	}
-	else if ((theName == "quit") && !anEditor)
+	else if (theName == "quit")
 	{
 		aGame->quit();
 	}
-	else if ((theName == "pause") && !anEditor)
+	else if (theName == "pause")
 	{
 		if (aGame->isPaused())
 			aGame->resume();
 		else
 			aGame->pause(true);
 	}
-	else if ((theName == "help") && !anEditor)
+	else if (theName == "help")
 	{
 		aGame->helpKey(1, mMode);
 	}
-	else if ((theName == "submit") && !anEditor)
+	else if (theName == "submit")
 	{
 		aGame->mBallSystem->submit();
 	}
-	else if ((theName == "nextLevel") && !anEditor)
+	else if (theName == "nextLevel")
 	{
 		aGame->mBallSystem->levelDone();
 	}
-	else if ((theName == "wildcard") && !anEditor)
+	else if (theName == "wildcard")
 	{
-		aGame->mBallSystem->addWildcard();
-		aGame->mWildcards--;
+		// port: a press of the faded-out, disabled button still arrives here, and the original then made a wildcard from
+		// none and left the count at -1, which the next level's start turned into a loop of 2^32 letters (std::bad_alloc
+		// in the port, "Exception Code Honeysuckle" in the original): no wildcard held, no press
+		if (aGame->mWildcards > 0)
+		{
+			aGame->mBallSystem->addWildcard();
+			aGame->mWildcards--;
+		}
 	}
-	else if ((theName == "hint") && !anEditor)
+	else if (theName == "hint")
 	{
 		aGame->mBallSystem->showHint();
 	}
-	else if ((theName == "spawnBall") && !anEditor)
+	else if (theName == "spawnBall")
 	{
 		aGame->mBallSystem->spawnNext();
 		if (mSpawnBallText != nullptr)
@@ -243,30 +248,13 @@ void Hud::buttonPress(std::string theName)
 		int anIndex;
 		std::sscanf(theName.c_str(), "submit%d", &anIndex);
 		anIndex--;
-		if (!aGame->mBallSystem->mEditor)
-		{
-			FoundWord* aWord = mWords[anIndex];
-			aGame->mBallSystem->queueLetters(aWord->mLetters, aWord->mChainWords);
-			Game::instance()->addScore(-aWord->mPoints);
-			aGame->mLettersUsed -= (int)aWord->mLetters.size();
-			aGame->mLettersLeft = aGame->mCurrentLevel->mBallCriteria - aGame->mLettersUsed;
-		}
-		else
-		{
-			aGame->mCurrentLevel->mWords[anIndex].clear();  // 0x412c50
-		}
+		FoundWord* aWord = mWords[anIndex];
+		aGame->mBallSystem->queueLetters(aWord->mLetters, aWord->mChainWords);
+		Game::instance()->addScore(-aWord->mPoints);
+		aGame->mLettersUsed -= (int)aWord->mLetters.size();
+		aGame->mLettersLeft = aGame->mCurrentLevel->mBallCriteria - aGame->mLettersUsed;
 		mWords.erase(mWords.begin() + anIndex);
 		showWords();
-	}
-	else if ((theName == "increaseBalls") && anEditor)
-	{
-		aGame->mCurrentLevel->mBallCriteria++;
-		aGame->mLettersLeft = aGame->mLettersLeft + 1;
-	}
-	else if ((theName == "decreaseBalls") && anEditor)
-	{
-		aGame->mCurrentLevel->mBallCriteria--;
-		aGame->mLettersLeft = aGame->mLettersLeft - 1;
 	}
 }
 

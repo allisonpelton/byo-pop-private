@@ -28,6 +28,7 @@ enum
 class Image : public Object
 {
 public:
+	// 0x45e670
 	Image() : mAlphaMode(ALPHA_NONE), mAlphaThreshold(0) {}
 	virtual int getWidth() = 0;   // slot 0x00: 0x4572a0
 	virtual int getHeight() = 0;  // slot 0x04: 0x4572b0
@@ -90,17 +91,12 @@ public:
 
 	// Slot 0: the image's theSrc part at (x, y), with the state's transform, opacity and colours
 	virtual void drawImage(Image* theImage, const IntRect& theSrc, float x, float y) = 0;
-	// Slot 1 (0x45ddf0): the whole image at (x, y)
-	virtual void drawImage(Image* theImage, float x, float y);
 	// Slot 2 (0x45dd70): the whole image at (0, 0)
 	virtual void drawImage(Image* theImage);
 	// Slot 3 (0x43cba0): a string with the state's font, glyph by glyph
 	virtual void drawString(const char* theString);
 	// Slot 4 (0x43c310): one character
 	virtual void drawChar(char theChar);
-	// Slots 5 and 6: a rectangle filled with the state's colour and opacity
-	virtual void fillRect(const Rect& theRect) = 0;
-	virtual void fillRectAdditive(const Rect& theRect) = 0;
 	// Slot 7: a line in the state's colour
 	virtual void drawLine(const Point& theFrom, const Point& theTo) = 0;
 
@@ -126,7 +122,6 @@ public:
 	void multiplyOpacity(float theOpacity); // 0x43c7d0
 	float getOpacity();                     // 0x43c800
 	void setColor(float r, float g, float b);        // 0x43c830
-	const Color& getColor();                         // 0x43c860
 	const Color& getColorOffset();                   // 0x43c890
 	void addColorOffset(float r, float g, float b);  // 0x43c8c0
 	void setFont(Font* theFont);                     // 0x43c980

@@ -204,6 +204,14 @@ void Board::MouseDown(int theX, int theY, int theClickCount)
 	MarkDirtyFull();
 }
 
+// 0x59596f (slot 56 of the board's table, the 3-argument MouseUp that the widget manager calls): the button is up. Only the flag that
+// MouseDown set (m15f38) goes; the board's other MouseUp slots are the base's empty ones. Without it the flag stayed set for the rest of
+// the game and UpdateFalling made the board's MouseMove call (the cursor back to the pointer) at every idle update.
+void Board::MouseUp(int theX, int theY, int theLastDownButtonId)
+{
+	m15f38 = false;
+}
+
 // 0x5aaac3: dragging the mouse far enough from where it went down moves the gem under it that way
 void Board::MouseDrag(int theX, int theY)
 {

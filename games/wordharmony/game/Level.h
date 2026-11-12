@@ -31,16 +31,13 @@ struct Bubble
 	std::string mLetters;   // +0x0c
 };
 
-// 0x3e8 bytes. The assignment (0x415460, the editor's backup) copies the obstacle and bubble pointers, not what they
-// point to, as the default assignment does.
+// 0x3e8 bytes. (The assignment, 0x415460, was the editor's backup: left out.)
 class Level
 {
 public:
 	Level(Level* thePrevious);      // 0x41c760: the rules carry on from the previous level
 	Level(const Level& theLevel);   // 0x41c910: the obstacles cloned and the bubbles copied
 	~Level();                       // 0x41c2f0
-
-	Level& operator=(const Level& theLevel) = default;
 
 	// 0x41cc50: kept with a reference
 	void addObstacle(Obstacle* theObstacle);
@@ -68,6 +65,7 @@ public:
 class LevelHandler : public engine::XmlHandler
 {
 public:
+	// 0x41ccd0
 	LevelHandler() : mLevels(nullptr), mLevel(nullptr) {}
 
 	// 0x41ce30: the levels of theFile added to theLevels

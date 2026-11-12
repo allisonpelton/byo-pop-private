@@ -1,3 +1,5 @@
+// port(mod): mod "undo", undo (Undo.h). Not part of the original game.
+
 #include "Undo.h"
 #include "Replay.h"
 #include "Board.h"
@@ -161,10 +163,10 @@ void UndoStack::Restore()
 	// the record was made in Submit, with the word selected; Lex is a new one, so nothing would count down
 	// the undone word's definition balloon (and the mouse resting on it would hold it up): it fades now
 	std::for_each(mBoard->mSelection.begin(), mBoard->mSelection.end(), Piece::Deselect);
-	mBoard->ClearWord();
+	mBoard->ClearSelection();
 	if ((mBoard->mOverlay != NULL) && (mBoard->mOverlay->mBalloon != NULL))
 		mBoard->mOverlay->mBalloon->Show(0);
-	mBoard->ClearPopups();  // the undone word's "+points"
+	mBoard->RemovePoints();  // the undone word's "+points"
 	if (mBoard->mSolver != NULL)
 		mBoard->mSolver->Reset();
 	if (mBoard->mTypedWord != NULL)

@@ -14,8 +14,8 @@
     markerText: "water_art.bbk, water_art8.bbk and WaterBugs.exe",
     // The developer's tools left in the install
     skip: [/^wanims\/[^\/]*\.(exe|bat)$/i],
-    importHtml: 'Choose the game\'s install folder (for the retail version: <span class="mono">Program Files/PopCap ' +
-      'Games/Water Bugs</span>) or a .zip of it. The art banks, <span class="mono">wanims</span>, ' +
+    importHtml: 'Choose the game\'s install folder (for the PopCap Game Collection: <span class="mono">Program Files/Popcap ' +
+      'Game Collection/Water Bugs</span>) or a .zip of it. The art banks, <span class="mono">wanims</span>, ' +
       '<span class="mono">audio</span> and <span class="mono">WaterBugs.exe</span> (the game\'s texts are read ' +
       'from it; it is never run) are copied.',
     modsIntro: "Water Bugs keeps its pictures in its art banks, so a mod cannot replace them yet; its mods are a mod.json of settings. " +

@@ -23,11 +23,11 @@ public:
 	int					mScore;				// +0x68
 	InchySmall*			mInchy;				// +0x6c
 	CellButton*			mMenuButton;		// +0x70 id 0
-	CellButton*			mButton1;			// +0x74 id 1
-	CellButton*			mButton2;			// +0x78 id 2
+	CellButton*			mOptionsButton;		// +0x74 id 1
+	CellButton*			mExitButton;		// +0x78 id 2
 	CellButton*			mPauseButton;		// +0x7c id 3
 	CellButton*			mSaveButton;		// +0x80 id 4
-	CellButton*			mButton5;			// +0x84 id 5 (only in the game type 2)
+	CellButton*			mMuseumButton;		// +0x84 id 5, the museum (only in the game type 2)
 	bool				mShowTime;			// +0x88 the score is a time (minutes:seconds)
 
 	SideBar(FossilizedApp* theApp);			// 0x435420

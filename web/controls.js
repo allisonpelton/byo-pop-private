@@ -19,7 +19,7 @@ var ByopopControls = (function () {
   var pageGame = null, canvas = null, stage = null, ours = typeof WeakSet === "function" ? new WeakSet() : null;
 
   function setting(name) { try { return ByopopSettings.get(name, pageGame || undefined); } catch (e) { return null; } }
-  function T(key) { try { return ByopopStrings.t(key); } catch (e) { return key; } }
+  function T(key, o) { try { return ByopopStrings.t(key, o); } catch (e) { return key; } }
   function table() { try { return (window.ByopopControlData && ByopopControlData[pageGame]) || []; } catch (e) { return []; } }
   function keyEntries() { return table().filter(function (c) { return c.keys && c.keys.length; }); }
 
@@ -161,8 +161,24 @@ var ByopopControls = (function () {
     try {
       M._byopop_set_speed(want);
       // 0 until the game's application exists: tried again on the next frame
-      if (M._byopop_speed() > 0) speedSet = want;
+      if (M._byopop_speed() > 0) { speedSet = want; speedCell(); }
     } catch (e) {}
+  }
+  // the speed in the game window's status bar, beside the window's scale, while it is not normal (a play-test, 2026-11-11, read
+  // the scale's "1x" as the speed at 1.5)
+  var FRACTIONS = { "0.25": "¼", "0.5": "½", "0.75": "¾" };
+  function speedText(v) {
+    var whole = Math.floor(v), part = String(Math.round((v - whole) * 100) / 100);
+    if (part !== "0" && FRACTIONS[part]) return (whole ? whole : "") + FRACTIONS[part] + "×";
+    return String(Math.round(v * 100) / 100) + "×";
+  }
+  function speedCell() {
+    var bar = document.querySelector(".d95-statusbar");
+    if (!bar) return;
+    var c = bar.querySelector(".d95-speed");
+    if (speedSet === 1) { if (c) c.remove(); return; }
+    if (!c) { c = document.createElement("span"); c.className = "d95-speed"; bar.insertBefore(c, bar.querySelector(".d95-scale")); }
+    c.textContent = T("skin.apps.speed", { n: speedText(speedSet) });
   }
 
   // ---------- the frame hook (the gamepad's poll and the speed, which the framework calls each frame) ----------
