@@ -382,3 +382,24 @@ void DrawTextOnObject(SceneObject* theObject, const char* theString, const char*
 	aText->Update();
 	aText->Draw();
 }
+
+int CutTextLine(char* theText, int theStart, int theWidth, char* theLine)
+{
+	int aTextLength = (int)strlen(theText);
+	int aLimit = theStart + theWidth < aTextLength ? theStart + theWidth : aTextLength;
+	int aLineEnd = aLimit;
+	for (int aLetter = theStart; aLetter < aLimit; aLetter++) {
+		if (theText[aLetter] == '^') {
+			theText[aLetter] = ' ';
+			aLineEnd = aLetter;
+			break;
+		}
+	}
+	if (aLineEnd < aTextLength) {
+		while (theStart < aLineEnd && theText[aLineEnd] != ' ')
+			aLineEnd--;
+	}
+	strncpy(theLine, theText + theStart, aLineEnd - theStart);
+	theLine[aLineEnd - theStart] = '\0';
+	return aLineEnd + 1;
+}

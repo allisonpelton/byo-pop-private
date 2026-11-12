@@ -10,7 +10,10 @@
 #include "Firework.h"
 #include "InputBox.h"
 #include "Layer.h"
+#include "LevelLocker.h"
+#include "LevelSelect.h"
 #include "Obstacle.h"
+#include "Panel.h"
 #include "Pigeon.h"
 #include "PlateTypes.h"
 #include "Powerup.h"
@@ -19,6 +22,7 @@
 #include "ShooterObjects.h"
 #include "Slot.h"
 #include "TextObject.h"
+#include "Tooltip.h"
 #include "Turret.h"
 #include "Warp.h"
 
@@ -74,6 +78,13 @@ namespace
 		{"powerup", Create<Powerup>},
 		{"bonus_basket", Create<BonusBasket>},
 		{"endless_bonus", Create<EndlessBonus>},
+		{"panel", Create<Panel>},
+		{"endless_panel", Create<EndlessPanel>},
+		{"progress_bar", Create<ProgressBar>},
+		{"level_select", Create<LevelSelect>},
+		{"level_scroller", Create<LevelScroller>},
+		{"level_locker", Create<LevelLocker>},
+		{"tooltip", Create<Tooltip>},
 	};
 }
 

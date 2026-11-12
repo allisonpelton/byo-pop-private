@@ -310,7 +310,7 @@ void Powerup::Catch()
 void Powerup::ShowCatchScore()
 {
 	TextObject* aText = new TextObject();
-	aText->SetText(FormatScore(500), "gfx\\font1_small.png", -4.0f, 0, JustifyCenter);
+	aText->SetText(FormatScore(500), "gfx\\font1_small.png", -1.0f, 0, JustifyCenter);
 	float aX = mWorld[AttributeX] - gActiveLevel->mWorld[AttributeX];
 	float aY = mWorld[AttributeY] - gActiveLevel->mWorld[AttributeY];
 	aText->AddStage(200.0f, 0, 0, 1, nullptr);

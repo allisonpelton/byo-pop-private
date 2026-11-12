@@ -81,13 +81,18 @@ def string_at(address):
 
 
 def float_note(match):
-    """Marks a hex literal that reads as a plausible float, e.g. 0x44968000 /*1200f*/."""
-    value = int(match.group(0), 16)
+    """Marks a hex literal that reads as a plausible float, e.g. 0x44968000 /*1200f*/. The export prints a number with the sign bit
+    set as a negative integer (-0x40800000 is the float -1.0, 0xbf800000), so a leading minus is read as the integer's sign."""
+    value = int(match.group(2), 16)
+    if match.group(1):
+        value = (-value) & 0xFFFFFFFF
     exponent = (value >> 23) & 0xFF
     if not 100 <= exponent <= 150:
         return match.group(0)
     number = struct.unpack("<f", struct.pack("<I", value))[0]
-    return "%s/*%gf*/" % (match.group(0), number)
+    if match.group(1):
+        return "0x%08x/*%gf*/" % (value, number)
+    return "%s/*%gf*/" % (match.group(2), number)
 
 
 def string_note(match):
@@ -120,7 +125,7 @@ def compact(text, names):
 
     text = re.sub(r"\b(FUN_|DAT_|PTR_FUN_)([0-9a-f]{8})\b", replace, text)
     text = re.sub(r"&(?:PTR_)?DAT_([0-9a-f]{8})\b", string_note, text)
-    text = re.sub(r"\b0x[0-9a-f]{8}\b", float_note, text)
+    text = re.sub(r"(?<![\w)\]])(-?)(0x[0-9a-f]{8})\b", float_note, text)
     text = re.sub(r"\b0x(5[0-9a-f]{5})\b", string_note, text)  # a name passed as a bare address
     return text
 

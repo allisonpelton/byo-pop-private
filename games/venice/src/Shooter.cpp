@@ -366,7 +366,7 @@ void Shooter::AimSparkles()
 				aGhost->SetAttribute(AttributeAlpha, 0.75f, 0);
 				aGhost->AddFilter(FilterVelocity, AttributeX, (float)RandomFloat(-0.5f, 0.5f), 0, 0);
 				aGhost->AddFilter(FilterVelocity, AttributeY, (float)RandomFloat(-2.0f, -0.5f), 0.006f, 1.0f);
-				aGhost->mLocal[AttributeY] = -0.140625f;
+				aGhost->mLocal[AttributeY] = -30.0f;
 				gSparkleLayer->AdoptNewestChild(this, true);
 			}
 		}

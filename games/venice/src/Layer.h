@@ -11,6 +11,7 @@ class Layer : public SceneObject
 {
 public:
 	float mContentHeight = 0; // 0x148: how far the children's pictures reach, from the lowest edge to the highest
+	float mThumbnailsWidth = 0; // 0x14c: the width of the level select screen's thumbnails, which that screen adds up (0 anywhere else)
 	float mLowestEdge = 0; // 0x150: the greatest bottom edge of a child's picture
 	float mHighestEdge = 0; // 0x154: the least top edge
 	int mMerged = 0; // 0x160: the children are to be drawn into a few big pictures (see MergeChildren)

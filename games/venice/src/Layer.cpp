@@ -68,7 +68,7 @@ const float MinuteMarkerZOrder = 9.0f;
 const float MinuteMarkerFirstY = -260.0f;
 const float MinuteMarkerSpacing = 8.0f;
 const float MinuteTextX = 360.0f;
-const float MinuteTextSpacing = -4.0f;
+const float MinuteTextSpacing = -1.0f;
 
 // the wall decorations' pictures and counters, shared by every layer
 bool gWallDecorLoaded = false; // 0x5ba294

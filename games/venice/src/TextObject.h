@@ -74,6 +74,11 @@ public:
 	void GetBounds(float* theWidth, float* theHeight, float* theCenterX, float* theCenterY); // 0x425220
 };
 
+// 0x437c70 and 0x418cc0 cut a text into lines. The line that starts at theStart in theText goes into theLine (which must hold the
+// whole text), and the start of the next one is returned. A line is at most theWidth letters; it ends at a '^' (which becomes a
+// space) or else at the last space in the width. A text with no space in the width gives an empty line and skips a letter.
+int CutTextLine(char* theText, int theStart, int theWidth, char* theLine);
+
 // 0x426fb0: draws a string at once, as a text object (one that is kept for the purpose) that is a child of theObject, put at
 // (theX, theY) from it, at one scale and alpha
 void DrawTextOnObject(SceneObject* theObject, const char* theString, const char* theFontName, float theX, float theY,

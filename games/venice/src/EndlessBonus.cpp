@@ -36,7 +36,7 @@ void EndlessBonus::OnObjectClosed()
 		TextObject* aNumber = new TextObject();
 		char aNumberText[16];
 		sprintf(aNumberText, "%d", aMinute * 1000);
-		aNumber->SetText(aNumberText, "gfx\\font1.png", -1.0f, 0, JustifyCenter);
+		aNumber->SetText(aNumberText, "gfx\\font1.png", -4.0f, 0, JustifyCenter);
 		float aShowDelay = (float)aMinute * 200.0f + 3900.0f;
 		aNumber->AddStage(aShowDelay, 0, 0, 0, nullptr);
 		aNumber->SetAttribute(AttributeXScale, 1.2f, 1.2f);

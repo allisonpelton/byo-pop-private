@@ -31,7 +31,7 @@ namespace
 void AddPopupText(SceneObject* theSlot, const char* theText, float theOffset)
 {
 	TextObject* aText = new TextObject();
-	aText->SetText(theText, "gfx\\font1_small.png", -4.0f, 0, JustifyCenter);
+	aText->SetText(theText, "gfx\\font1_small.png", -1.0f, 0, JustifyCenter);
 	float aX = theSlot->mWorld[AttributeX] - gActiveLevel->mWorld[AttributeX];
 	float aY = theSlot->mWorld[AttributeY] - gActiveLevel->mWorld[AttributeY];
 	aText->AddStage(200.0f, 0, 0, 1, nullptr);
@@ -60,7 +60,7 @@ void AddPopupText(SceneObject* theSlot, const char* theText, float theOffset)
 void AddSuperTumbleText(SceneObject* theSlot, const char* theText, float theOffset, float theStartScale, bool theDelayed)
 {
 	TextObject* aText = new TextObject();
-	aText->SetText(theText, "gfx\\font1.png", -4.0f, 0, JustifyCenter);
+	aText->SetText(theText, "gfx\\font1.png", -1.0f, 0, JustifyCenter);
 	float aX = theSlot->mWorld[AttributeX] - gActiveLevel->mWorld[AttributeX];
 	float aY = theSlot->mWorld[AttributeY] - gActiveLevel->mWorld[AttributeY];
 	if (theDelayed)
