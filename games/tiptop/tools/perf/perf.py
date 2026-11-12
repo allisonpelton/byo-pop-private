@@ -320,14 +320,14 @@ def summarize(s, label, window):
         return round(b[-1][3] - a[-1][3], 3)
 
     def threads_between(lo, hi):
-        """The cycles each thread used from lo to hi, in millions, largest first (the main thread is the lowest id)."""
+        """The cycles each thread used from lo to hi, in millions, largest first (the game's thread is the largest: the lowest id is a start-up thread)."""
         a = [x for x in s.thread_samples if x[0] <= lo]
         b = [x for x in s.thread_samples if x[0] <= hi]
         if not a or not b:
             return None
         first, last = a[-1][1], b[-1][1]
         rows = sorted(((last[tid] - first.get(tid, 0)) / 1e6, tid) for tid in last)
-        main = min(last) if last else None
+        main = rows[-1][1] if rows else None
         return {"main_thread_id": main, "mcycles": [(round(c), tid) for c, tid in reversed(rows[-6:])],
                 "total_mcycles": round(sum(c for c, _ in rows))}
 

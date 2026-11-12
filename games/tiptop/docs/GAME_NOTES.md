@@ -353,6 +353,31 @@ the main menu, so only large differences are read and the table gives ranges.
 | Main menu left alone, 20 s | 1.20 s (2.43 G cycles) | 1.6 to 3.4 s (3.5 to 6 G) | the same: the menu animates every pass |
 | Options screen left alone, 20 s | 1.39 and 1.31 s (2.8 and 3.2 G) | 2.25, 2.89, 3.11 s (5.9 to 6.2 G) | **1.17, 1.09, 1.30 s (2.6 to 3.3 G)** |
 
+**The window state of the numbers, and the measurement again (2026-11-12, after the Mahjong session found its own runs 20 to 30
+percent off).** Every number above was taken on rundesk's hidden desktop (3840x2160), where the framework starts a window at 2x the
+game's size when it fits: the port ran windowed (a fresh user dir has no `ScreenMode`, and the game's own default is windowed) in
+a window of 1280x960 (`screenshotfull` of a run gives 1280x960; with Mahjong's test option `-windowscale=1`, 640x480), its renderer
+Direct3D 11 (the visible desktop would give Direct3D 9, and the surface presenter no renderer at all), while the original ran
+windowed at its own 640x480 through origrun's DirectDraw stand-in. `presentbench` (a 640x480 window) was therefore at 1x while
+the port was at 2x. The comparison was taken again with the three side by side in rounds (the original paced at 16 ms, the port
+at 1x and at the default 2x, music left out of both, no `-commands` file; three rounds of the three states; the machine had 3 to 6
+other game processes; the commit with the changed-block copy, with Mahjong's `-windowscale` hunk applied locally for the run and
+reverted after, since the option is not on the trunk yet). Processor time in seconds, then the three rounds' range of thread
+cycles in millions in brackets:
+
+| Window | Paced original (640x480) | Port at 1x (640x480) | Port at 2x (default, 1280x960) |
+|---|---|---|---|
+| Strategy minute, 30 s | 1.58, 1.77, 1.88 (3.7 to 3.9 G) | 2.55, 2.88, 2.92 (5.0 to 6.8 G) | 2.80, 3.03, 3.11 (5.8 to 6.5 G) |
+| Main menu left alone, 20 s | 0.95, 1.05, 1.05 (2.2 to 2.5 G) | 2.28, 2.33, 2.33 (4.6 to 5.1 G) | 2.00, 2.28, 2.56 (4.6 to 4.7 G) |
+| Options screen left alone, 20 s | 0.91, 0.97, 0.98 (1.9 to 2.1 G) | 0.55, 0.77, 0.81 (1.6 to 1.7 G) | 0.48, 0.81, 0.88 (1.55 to 1.7 G) |
+
+The window size makes no difference the noise does not hide (strategy about 7% lower at 1x, the menu and the options screen the
+same), so the earlier numbers stand and the earlier table's original column (1.9, 1.2, 1.3 to 1.4 s) was only a busier moment of the
+same original. The port is at 1.6 to 1.7 times the original in the strategy minute, 2.2 times at the main menu, and under it
+(0.75 times) on the options screen, where nothing is drawn. In the strategy minute the port's largest thread, the game's (4.5 to 5.6 G in the first six runs, which
+printed the threads), is more than the whole original (3.7 to 3.9 G), so the gap is not only the Direct3D driver's thread, the
+second (1.4 to 1.8 G).
+
 **What is left is the framework's present.** The port's cycles split into the main thread and the Direct3D driver's thread (2.0
 to 2.7 G of 4 to 6 G a 30 s window in the strategy minute, and 1.4 to 2.2 G in 20 s at the menu), against the original's single
 thread. `tools/perf/presentbench.cpp` presents a 640x480 picture with no game in it: SDL's path costs 2.0 to 2.9 M cycles a frame
