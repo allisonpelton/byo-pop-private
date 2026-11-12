@@ -1153,6 +1153,23 @@ function(byopop_web_index)
   file(READ ${saveimport_json} saveimport_text)
   byopop_write_if_changed(${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/saveimport-table.js "var ByopopSaveTable = ${saveimport_text};
 ")
+  # each script and stylesheet the page loads from beside it carries its contents' hash (name.js?v=...), so that a page
+  # reloaded after a rebuild never runs the scripts it had before (a page loaded before a rebuild kept the old sounds.js
+  # through a reload, 2026-11-12; Python's http.server sends no Cache-Control, so a browser may reuse what it has)
+  string(REGEX MATCHALL "(src|href)=\"[A-Za-z0-9_./-]+\\.(js|css)\"" stamp_refs "${page}")
+  if(stamp_refs)
+    list(REMOVE_DUPLICATES stamp_refs)
+  endif()
+  foreach(ref IN LISTS stamp_refs)
+    string(REGEX REPLACE "^(src|href)=\"([^\"]+)\"$" "\\1" stamp_attr "${ref}")
+    string(REGEX REPLACE "^(src|href)=\"([^\"]+)\"$" "\\2" stamp_name "${ref}")
+    set(stamp_file "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${stamp_name}")
+    if(EXISTS "${stamp_file}")
+      file(MD5 "${stamp_file}" stamp_hash)
+      string(SUBSTRING "${stamp_hash}" 0 10 stamp_hash)
+      string(REPLACE "${ref}" "${stamp_attr}=\"${stamp_name}?v=${stamp_hash}\"" page "${page}")
+    endif()
+  endforeach()
   byopop_write_if_changed(${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/index.html "${page}")
   # the chat's table of games (web/chat.js, docs/CHAT_DESIGN.md), loaded by every game page before chat.js
   byopop_write_if_changed(${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/chat-games.js "var ByopopGames = [\n${chat_games}\n];\n")

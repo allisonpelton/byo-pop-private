@@ -54,6 +54,9 @@ var ByopopSounds = (function () {
   // openmpt.wasm (interleaved stereo at the context's rate)
   function decode(ctx, rel, bytes) {
     if (/\.au$/i.test(rel)) return new Promise(function (resolve) { resolve(decodeAu(ctx, bytes)); });
+    // an MP3 in a WAV (Word Harmony's instruments): its frames, as an MP3, since Firefox reads no WAV but PCM
+    var mp3 = /\.wav$/i.test(rel) ? ByopopMusic.wavMp3(bytes) : null;
+    if (mp3) return ctx.decodeAudioData(mp3.slice().buffer);
     return ctx.decodeAudioData(bytes.slice().buffer).catch(function (e) {
       var w = /\.wav$/i.test(rel) ? ByopopMusic.msAdpcm(bytes) : null;   // an MS ADPCM WAV, which the browsers do not read
       if (w) {
@@ -159,7 +162,23 @@ var ByopopSounds = (function () {
     vol.type = "range"; vol.id = "sounds-volume";
     vol.min = "0"; vol.max = "100"; vol.step = "1"; vol.value = String(volume);
     vol.setAttribute("aria-label", T("sounds.volume")); vol.title = T("sounds.volume");
-    [pick, stopBtn, make("span", "sb-gap"), muteBtn, vol].forEach(function (e) { bar.appendChild(e); });
+    // the search across every game's sounds (their labels, the words of a voice clip among them, and when they play), and the
+    // filters to voice clips and to sounds the game never plays (the user, 2026-11-12: "Add a feature to search through all
+    // games' sound effects, and add a filter to only show voice clips"; "add a filter to the sfx player to only show unused
+    // sounds")
+    var search = make("input", "sb-search");
+    search.type = "search"; search.id = "sounds-search"; search.autocomplete = "off"; search.spellcheck = false;
+    search.setAttribute("aria-label", T("sounds.search")); search.title = T("sounds.search"); search.placeholder = T("sounds.search");
+    function check(id, label) {
+      var lab = make("label", "sb-check"), box = make("input");
+      box.type = "checkbox"; box.id = id;
+      lab.appendChild(box); lab.appendChild(document.createTextNode(label));
+      box.addEventListener("change", function () { render(shown); });
+      return { lab: lab, box: box };
+    }
+    var voiceOnly = check("sounds-voice", T("sounds.voice")), unusedOnly = check("sounds-unused", T("sounds.unused"));
+    search.addEventListener("input", function () { render(shown); });
+    [pick, search, voiceOnly.lab, unusedOnly.lab, stopBtn, make("span", "sb-gap"), muteBtn, vol].forEach(function (e) { bar.appendChild(e); });
     // the buttons, in their group boxes: the part that scrolls
     var grid = make("div", "sb-grid");
     // the status bar: a value (the count, or what the window is doing), its sentence in the tooltip
@@ -243,7 +262,10 @@ var ByopopSounds = (function () {
       if (!audio()) return;
       if (ctx.state === "suspended") { try { ctx.resume(); } catch (e) {} }
       var at = ctx;
-      Promise.all(pr.steps.map(function (s) { return bufferOf(board, s.rel); })).then(function (bufs) {
+      var bad = null;   // the first step whose file could not be played, named in the button's tooltip
+      Promise.all(pr.steps.map(function (s) {
+        return bufferOf(board, s.rel).catch(function (e) { if (!bad) bad = s.rel; stats.failed[s.rel] = true; throw e; });
+      })).then(function (bufs) {
         if (ctx !== at) return;
         (btn.sbSources || []).forEach(function (s) { try { s.stop(); } catch (e) {} });
         var t0 = ctx.currentTime + 0.05, mine = [];
@@ -276,7 +298,7 @@ var ByopopSounds = (function () {
         stats.started++;
         stats.presets = (stats.presets || 0) + 1;
       }, function () {
-        btn.title = pr.name + "\n" + T("sounds.bad_file");
+        btn.title = pr.name + "\n" + (bad ? T("sounds.bad_step", { file: bad.split("|").pop().split("/").pop() }) : T("sounds.bad_file"));
       });
     }
     stopBtn.addEventListener("click", stopAll);
@@ -296,11 +318,39 @@ var ByopopSounds = (function () {
 
     // ---- the grid ----
     var boards = [], shown = null, buttons = [], current = null;
+    // a voice clip's label is its words in quotes; a sound the game never plays says so at the end of its label
+    function isVoice(s) { return /^["“]/.test(s.name); }
+    function isUnused(s) { return /\(unused\)$/i.test(s.name); }
     function render(board) {
       shown = board;
       grid.textContent = "";
       buttons = []; current = null;
       if (!board) return;
+      var words = search.value.toLowerCase().split(/\s+/).filter(function (w) { return w; });
+      var voice = voiceOnly.box.checked, unused = unusedOnly.box.checked;
+      if (words.length || voice || unused) {
+        // a search looks through every game, the filters alone through the game chosen; the matches in their groups, each
+        // group named with its game when a search found it
+        var n = 0;
+        var keep = function (s) {
+          var text = (s.name + " " + s.when).toLowerCase();
+          return (!voice || isVoice(s)) && (!unused || isUnused(s)) && words.every(function (w) { return text.indexOf(w) >= 0; });
+        };
+        (words.length ? boards : [board]).forEach(function (bd) {
+          bd.groups.forEach(function (g) {
+            var items = g.sounds.filter(keep);
+            if (!items.length) return;
+            n += items.length;
+            grid.appendChild(groupBox(words.length ? bd.game.title + ": " + g.name : g.name, items, function (s, b) {
+              b.setAttribute("data-file", s.rel);
+              b.addEventListener("click", function () { play(bd, s, b); });
+            }));
+          });
+        });
+        setCurrent(buttons[0] || null);
+        say(T("sounds.count", { n: n }));
+        return;
+      }
       // the presets first, in a group box of their own: sequences the game plays, as it plays them
       if (board.presets.length) grid.appendChild(groupBox(T("sounds.presets"), board.presets, function (pr, b) {
         b.setAttribute("data-preset", pr.name);

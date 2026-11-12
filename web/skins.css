@@ -771,6 +771,8 @@ html.d95-desk .sb-tool:not(#\#) { display: inline-flex; align-items: center; jus
   min-width: 0; min-height: 0; padding: 0; color: #000; }
 html.d95-desk .sb-mute[aria-pressed="true"]:not(#\#) { background: var(--sk-mid); }
 html.d95-desk .sb-vol:not(#\#) { flex: 0 1 90px; width: 90px; min-width: 40px; }
+html.d95-desk .sb-search:not(#\#) { flex: 0 1 120px; width: 120px; min-width: 50px; }
+html.d95-desk .sb-check { display: inline-flex; align-items: center; flex: none; gap: 2px; white-space: nowrap; }
 html.d95-desk .sb-grid { padding: 0 6px 8px; }
 html.d95-desk .sb-group:not(#\#) { margin: 4px 0 0; padding: 3px 6px 7px; min-width: 0; border: 1px solid; border-color: var(--sk-lo) var(--sk-hi) var(--sk-hi) var(--sk-lo);
   box-shadow: inset 1px 1px var(--sk-hi), inset -1px -1px var(--sk-lo); }

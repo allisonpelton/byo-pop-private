@@ -248,7 +248,8 @@ var ByopopMusic = (function () {
   // An Ogg Vorbis or WAV file as interleaved stereo at the context's rate: the browser's decoder, else an MS ADPCM WAV's (msAdpcm),
   // else stb_vorbis in openmpt.wasm
   function decodeOgg(M, ctx, bytes) {
-    return ctx.decodeAudioData(bytes.slice().buffer).then(function (buf) {
+    var mp3 = wavMp3(bytes);   // an MP3 in a WAV: its frames, which every browser reads as an MP3
+    return ctx.decodeAudioData((mp3 || bytes).slice().buffer).then(function (buf) {
       var n = buf.length, l = buf.getChannelData(0), r = buf.numberOfChannels > 1 ? buf.getChannelData(1) : l, out = new Float32Array(n * 2);
       for (var i = 0; i < n; i++) { out[i * 2] = l[i]; out[i * 2 + 1] = r[i]; }
       return out;
@@ -267,6 +268,27 @@ var ByopopMusic = (function () {
   // {rate, channels: [Float32Array]}; null for any other file. Each block starts with each channel's predictor, step and two
   // samples, then four-bit codes (a stereo byte's high half the left's), each predicted from the two before, the division
   // rounding toward zero as Windows' own decoder's does
+  // An MP3 inside a WAV (format 0x55, as Word Harmony's instruments and menu music are): the data chunk's MPEG frames, which
+  // every browser's decoder reads as an MP3, where Firefox's reads no WAV but PCM; null for any other file
+  function wavMp3(bytes) {
+    var w = wavChunks(bytes);
+    return w && w.tag === 0x55 ? bytes.subarray(w.data, w.data + w.size) : null;
+  }
+  // A RIFF WAVE's format tag and where its data chunk lies ({tag, data, size}), or null
+  function wavChunks(bytes) {
+    try {
+      var dv = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+      if (bytes.length < 12 || dv.getUint32(0) !== 0x52494646 || dv.getUint32(8) !== 0x57415645) return null;
+      var at = 12, tag = -1, data = -1, size = 0;
+      while (at + 8 <= bytes.length) {
+        var id = dv.getUint32(at), len = dv.getUint32(at + 4, true);
+        if (id === 0x666d7420) tag = dv.getUint16(at + 8, true);
+        else if (id === 0x64617461) { data = at + 8; size = Math.min(len, bytes.length - data); }
+        at += 8 + len + (len & 1);
+      }
+      return tag >= 0 && data >= 0 ? { tag: tag, data: data, size: size } : null;
+    } catch (e) { return null; }
+  }
   var ADAPT = [230, 230, 230, 230, 307, 409, 512, 614, 768, 614, 512, 409, 307, 230, 230, 230];
   function msAdpcm(bytes) {
     try {
@@ -2976,6 +2998,6 @@ var ByopopMusic = (function () {
 
   // (the Sounds window, web/sounds.js, reads the games' files with the same read-only reader, draws its Stop and speaker with the
   // same pictures, and falls back on the same stb_vorbis decoder)
-  return { init: init, patternRe: patternRe, glyph: glyph, decoder: decoder, stbOgg: stbOgg, msAdpcm: msAdpcm, numbered: numbered,
+  return { init: init, patternRe: patternRe, glyph: glyph, decoder: decoder, stbOgg: stbOgg, msAdpcm: msAdpcm, wavMp3: wavMp3, numbered: numbered,
     files: { open: openExisting, list: gameFiles, read: readFile } };
 })();
