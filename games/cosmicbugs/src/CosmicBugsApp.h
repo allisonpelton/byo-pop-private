@@ -7,6 +7,7 @@
 // which draws into the engine's 800x600 16-bit screen, and the widget presents that screen.
 
 #include "R64.h"
+#include "CBScreenDiff.h"
 #include "SexyAppBase.h"
 #include "Widget.h"
 
@@ -21,25 +22,20 @@ class MemoryImage;
 class CosmicBugsWidget : public Widget
 {
 public:
+	// What shows the engine's screen. The desktop builds' window display (SurfaceDisplay, made by CreateDDInterface below)
+	// keeps the screen itself: the widget widens what changed into mPixels, the 32-bit copy the display shows, and hands it the
+	// rectangles. The web build, and a desktop run with SURFACE_DISPLAY=off, keep the framework's display, and the widget draws
+	// its picture of the screen (mScreenImage) instead.
 	MemoryImage* mScreenImage;
-
-	// The screen as the image was last widened from it, and what differs now: blocks (CHANGE_BLOCK pixels square) and
-	// the rectangles that join them
-	static constexpr int CHANGE_BLOCK = 16;
-	static constexpr int CHANGE_GAP = 2;
-	static constexpr int CHANGE_COLUMNS = (r64::SCREEN_WIDTH + CHANGE_BLOCK - 1) / CHANGE_BLOCK;
-	static constexpr int CHANGE_ROWS = (r64::SCREEN_HEIGHT + CHANGE_BLOCK - 1) / CHANGE_BLOCK;
-	std::vector<uint16_t> mCopiedScreen;
-	uint8_t mChangedBlocks[CHANGE_ROWS][CHANGE_COLUMNS];
-	std::vector<Rect> mChangedRects;
+	cb::ScreenDiff mScreenDiff;
+	std::vector<uint32_t> mPixels;
+	std::vector<Rect> mFrameRects;
 
 	CosmicBugsWidget();
 	virtual ~CosmicBugsWidget();
 
 	void Update() override;
 	void Draw(Graphics* g) override;
-	void FindChangedBlocks();
-	void CollectChangedRects();
 	void KeyDown(KeyCode theKey) override;
 	void KeyUp(KeyCode theKey) override;
 	void MouseMove(int x, int y) override;
@@ -67,6 +63,11 @@ public:
 	void Init() override;
 	void Shutdown() override;
 	void CloseRequestAsync() override;
+#ifndef __EMSCRIPTEN__
+	// the window's own surface shows the screen (framework/SurfaceDisplay.h); SURFACE_DISPLAY=off in the environment keeps the
+	// framework's display, for a test that compares the two
+	DDInterface* CreateDDInterface() override;
+#endif
 	void SwitchScreenMode(bool theWantWindowed, bool theIs3d, bool theForce = false) override;
 	using SexyAppBase::SwitchScreenMode;
 	// -script's "state": logs the score, the lives, the board in its set and the board's filled cells, as the headless

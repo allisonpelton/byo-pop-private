@@ -443,7 +443,7 @@
       ],
       "na": [],
       "now": "performance",
-      "note": "board 264 against the original's 119 M cycles a second: waits on the surface presenter"
+      "note": "under its original through SurfaceDisplay: 86 against 110 M cycles a second on the board at the original's 800x600 (92 with sound, 102 in the default 2x window); the screen comparison, real-input play and window checks with the new display are next"
     },
     "waterbugs": {
       "title": "Water Bugs",
