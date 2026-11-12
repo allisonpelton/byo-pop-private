@@ -134,10 +134,9 @@ async function load(category) {
 var splitByProgress = false;
 async function clearLevel() {
   var before = snap().boardLevelClears, p0 = snap().progress;
-  // (AstroPop takes a `win` in any state, and one under its help or during the warp flight counts a clear that never goes
-  // on to the next level: with unpauseFirst the bot plays until the board is in play, state 0, before it)
-  for (var u = 0; unpauseFirst && u < 2000 && (snap().state !== 0 || (snap().flags & 0x80)); u++) await botStep();
-  await until("win");
+  // (AstroPop answers ERROR to a `win` until the level is in play and a brick has been taken, so the bot plays through its
+  // help, the bonus round and the warp flight first: a longer wait with unpauseFirst)
+  await until("win", unpauseFirst ? 3000 : 400);
   for (var k = 0; k < 400 && snap().boardLevelClears === before; k++) await botStep();
   for (var j = 0; splitByProgress && j < 400 && snap().progress === p0; j++) await botStep();
   await settle();
