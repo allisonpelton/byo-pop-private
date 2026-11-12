@@ -388,11 +388,12 @@
         "identical-play",
         "registration-out",
         "identical-look",
-        "fixes-mod"
+        "fixes-mod",
+        "coverage"
       ],
       "na": [],
-      "now": "coverage",
-      "note": "No soundboard or tunes yet"
+      "now": "performance",
+      "note": ""
     },
     "wordharmony": {
       "title": "Word Harmony",

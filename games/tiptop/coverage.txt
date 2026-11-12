@@ -1,0 +1,70 @@
+# tools/coverage.py's settings for TipTop Deluxe (docs/COVERAGE.md).
+export re/tiptop/gh/functions.jsonl
+src games/tiptop/src
+src games/tiptop/engine
+# The game's own code (docs/README.md, "The binary"): the board, the application, the GUI, the configuration reader and the
+# MIDI sequencer (0x401000 to the last handler procedure, 0x42cfae), LOWOS, the engine under it (0x42d020 to the end of its
+# table builders, 0x4382b0), and the resource manager (0x438390-0x439d70). The rest of the exe is the C runtime and the
+# libraries the game links (zlib, the JPEG and Vorbis decoders), and the MSVC library's std::string and its helpers, which the linker put
+# between the configuration reader and the application (0x418f68-0x4197b5, 42 small functions the export leaves unnamed).
+game 00401000-00418b51
+game 004197c6-0042cfae
+game 0042d020-004382b0
+game 00438390-00439d70
+# Game code the port leaves out on purpose, from the coverage check of 2026-11-11 (GAME_NOTES.md, "Coverage check"). LOWOS's
+# DirectDraw, DirectInput, DirectSound, window and COM plumbing is replaced by the platform layer and the host; the
+# registration's conditional wrappers are folded into their registered paths (GAME_NOTES.md, "Registration out").
+none 00412b2e SetCurrentDirectory to the exe's folder: the host chooses the folders (GameMain.cpp's note)
+none 0042614c AreYouSureRegDialog: the quit question's unregistered flavour; with the registered flag set it calls the plain AreYouSureDialog (0x425d56), which the port calls directly (registration out)
+none 00427149 std::string::size: the MSVC library's template, which the linker put among the game's own functions
+none 0042d240 thread start (_beginthread): the port starts no threads; the music is mixed in the audio callback
+none 0042d2c0 LOWOS's start: COM, its heap and its zeroed tables; the port's globals are C++ objects and it needs no COM
+none 0042d400 CompleteScreenMode: DirectDraw's display mode, replaced by the host's window
+none 0042d4f0 DirectDraw surface description from a pixel format: the platform layer owns the surfaces
+none 0042d5a0 FixScreenOffset: the window's position on the screen, which the host owns
+none 0042d810 pixel format comparison for DirectDraw (equal in the 8-bit case): the platform layer owns the surfaces
+none 0042d8a0 pixel format comparison for DirectDraw (equal in the 8-bit case): the platform layer owns the surfaces
+none 0042d920 FindVSF: looks for a DirectDraw video surface format, replaced by the platform layer
+none 0042dd40 AdjustASFSize: sizes the window for the screen format, which the host owns
+none 0042de10 debug check of the surface list: stops in the debugger on a corrupt entry
+none 0042de50 DispatchMessages: the window's message pump, the host's event loop
+none 0042def0 UninitializeScreen: DirectDraw teardown, the host's
+none 0042df60 DirectDraw surface check: the platform layer owns the surfaces
+none 0042dfa0 CompleteScreen: DirectDraw's surface setup, the platform layer's
+none 0042e170 DirectDraw palette and surface restore: the platform layer's
+none 0042e480 WindowedScreen: DirectDraw's windowed setup, the host's
+none 0042e920 DirectDrawCreate: the platform layer's
+none 0042eb80 cursor lock: ShowCursor and the clip rectangle, the host's
+none 00430400 UpdateScreen: DirectDraw's blit to the window, the host's
+none 00431030 frees a resource image (its heap block, or FreeResource): the port's images are vectors
+none 00431060 DirectInputCreate: the host posts the input
+none 004310a0 DirectInput object release: the host posts the input
+none 004312b0 the input poll of LOWOS's pump: the host posts the events the port's queues take
+none 00431820 DirectInput keyboard device: the host posts the input
+none 00431900 DirectInput device release: the host posts the input
+none 00431940 DirectInput mouse device: the host posts the input
+none 00431a40 DirectInput device release: the host posts the input
+none 00431ad0 DirectInput device slot release: the host posts the input
+none 004320d0 DirectInput mouse data read: the host posts the events the port's mouse queue takes
+none 00432440 DirectSound teardown: the platform mixer plays the sounds
+none 00432480 DirectSound buffer creation: the platform mixer plays the sounds
+none 00432680 DirectSound buffer fill: the platform mixer plays the sounds
+none 00432c80 DirectSound primary buffer and format: the platform mixer plays the sounds
+none 00432d60 DirectSound teardown: the platform mixer plays the sounds
+none 00432de0 DirectSound housekeeping of LOWOS's pump: the platform mixer plays the sounds
+none 00433f60 network cleanup (WSACleanup): LOWOS's Winsock start the game never uses; the port has none
+none 004345c0 closes LOWOS's socket and its list: the port has none
+none 00434640 an empty function the blitter's routines call
+none 0043466c three calls of an empty function
+none 00438166 LOWOS's heap teardown: the port's images and data are C++ memory
+none 004381b0 LOWOS's own static initializer (its heap, its two locks): the port's globals are C++ objects
+none 00438390 releases the resource manager's work block in LOWOS's own heap: the port's resources are vectors
+none 004387f0 frees a resource by its type through LOWOS's heap: the port's resources are vectors
+none 00438a20 frees a resource's image by its type through LOWOS's heap: the port's resources are vectors
+none 0042dd90 a stopwatch around DirectDraw's blits into its video surfaces: it adds to a total (0x48b830) that nothing reads
+none 0042ddb0 a stopwatch around DirectDraw's blits into its video surfaces: it adds to a total (0x48b830) that nothing reads
+none 0042e6d0 UpdateSurfaces: copies the registered surfaces into DirectDraw video surfaces; the port blits from the registered bits (Lowos.cpp, BlitRegistered)
+none 00411d0a the trial's run count file: CountPlay's write of the plays into a file in the Windows folder (registration out; reached with DisableUnregistered read as set, where it returns at once)
+none 00411f7a the trial's run count in the registry: CountPlay's RunCount value (registration out; the copy's patch list skips it)
+none 004262fa SaveGameRegDialog: the save question's unregistered flavour; with the registered flag set it calls the plain SaveGameDialog, which the port calls directly (registration out)
+none 00426fc7 App::TrialCheck: the "no more plays" check and its dialog (registration out; with the registered flag set it returns at once)

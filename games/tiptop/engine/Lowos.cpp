@@ -578,9 +578,15 @@ static bool SameFormat(const PixelFormat* a, const PixelFormat* b)
 	return memcmp(a, b, sizeof(PixelFormat)) == 0;
 }
 
-// The software blitter (0x437e3c and its 48 specialised routines from 0x4346f0): copies, skipping the color key
-// (SURF_COLORKEY) and blending with a level (SURF_TRANSLUCENT, or each pixel's own with SURF_ALPHABYTE): each
-// channel becomes s + (d - s) * (255 - level) / 255, truncated toward zero (the table built by 0x438067).
+// The software blitter: 0x437e3c and its 44 specialised routines, the pixel loops of every format, mode and level, at
+// 0x4346f0 to 0x437b73 (each is a counterpart, as this one function does them all):
+// 0x4346f0, 0x434837, 0x4348c3, 0x434b06, 0x434c57, 0x434e90, 0x4350ec, 0x43532f, 0x4355ca, 0x4358a8, 0x435a75,
+// 0x435c4c, 0x435e3b, 0x436012, 0x4360e5, 0x436380, 0x43665e, 0x43677a, 0x43689b, 0x4369d3, 0x436af0, 0x436b76,
+// 0x436c4c, 0x436d59, 0x436e0c, 0x436ec3, 0x436f97, 0x437054, 0x4370a5, 0x437129, 0x4371d5, 0x43729d, 0x437366,
+// 0x43744b, 0x43751e, 0x437573, 0x437628, 0x43771c, 0x4377e4, 0x4378ad, 0x437992, 0x437a65, 0x437abc, 0x437b73
+// They copy, skipping the color key (SURF_COLORKEY) and blending with a level (SURF_TRANSLUCENT, or each pixel's own
+// with SURF_ALPHABYTE): each channel becomes s + (d - s) * (255 - level) / 255, truncated toward zero (the table built
+// by 0x438067).
 void BlitPixels(const PixelFormat* theSrcFormat, const PixelFormat* theDestFormat, uint8_t* theDest,
 	const uint8_t* theSrc, int theHeight, int theWidth, uint32_t theDestPitch, uint32_t theSrcPitch,
 	uint8_t theFlags, uint8_t theSrcBpp, uint8_t theDestBpp, uint32_t theColorKey, uint8_t theLevel)
