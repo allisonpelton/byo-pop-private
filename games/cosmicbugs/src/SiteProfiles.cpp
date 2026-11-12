@@ -50,7 +50,7 @@ static const char* Empty()
 
 static bool Used(int theSlot)
 {
-	return strcmp(gProfiles[theSlot].name, Empty()) != 0;
+	return strcmp(gProfiles[theSlot].mName, Empty()) != 0;
 }
 
 class Players : public Byopop::SiteProfiles
@@ -61,16 +61,16 @@ public:
 		std::vector<std::string> aNames;
 		for (int i = 0; i < 10; i++)
 			if (Used(i))
-				aNames.push_back(gProfiles[i].name);
+				aNames.push_back(gProfiles[i].mName);
 		return aNames;
 	}
 
-	virtual std::string Current() { return ((gProfile >= 0) && (gProfile < 10) && Used(gProfile)) ? gProfiles[gProfile].name : ""; }
+	virtual std::string Current() { return ((gProfile >= 0) && (gProfile < 10) && Used(gProfile)) ? gProfiles[gProfile].mName : ""; }
 
 	virtual std::string Find(const std::string& theName)
 	{
 		int aSlot = SlotOf(theName);
-		return (aSlot >= 0) ? std::string(gProfiles[aSlot].name) : std::string();
+		return (aSlot >= 0) ? std::string(gProfiles[aSlot].mName) : std::string();
 	}
 
 	virtual std::string Fit(const std::string& theName) { return Typed(theName, 0xc, 0, Font_Find("bonus_font")); }
@@ -83,8 +83,8 @@ public:
 			if (!Used(i))
 			{
 				gProfile = i;
-				strcpy(gProfiles[i].name, theName.c_str());
-				gAutoFire = gProfiles[i].autoFire;
+				strcpy(gProfiles[i].mName, theName.c_str());
+				gAutoFire = gProfiles[i].mAutoFire;
 				SaveProfiles();
 				return true;
 			}
@@ -100,7 +100,7 @@ public:
 		if (aSlot < 0)
 			return false;
 		gProfile = aSlot;
-		gAutoFire = gProfiles[gProfile].autoFire;
+		gAutoFire = gProfiles[gProfile].mAutoFire;
 		SaveProfiles();
 		return true;
 	}
@@ -114,7 +114,7 @@ public:
 		int aSlot = SlotOf(theFrom);
 		if (aSlot < 0)
 			return false;
-		strcpy(gProfiles[aSlot].name, theTo.c_str());
+		strcpy(gProfiles[aSlot].mName, theTo.c_str());
 		SaveProfiles();
 		return true;
 	}
@@ -133,9 +133,9 @@ public:
 			*theWhy = "The game does not delete its only player.";
 			return false;
 		}
-		gProfiles[aSlot].autoFire = 1;
-		gProfiles[aSlot].levelReached = 0;
-		strcpy(gProfiles[aSlot].name, Empty());
+		gProfiles[aSlot].mAutoFire = 1;
+		gProfiles[aSlot].mLevelReached = 0;
+		strcpy(gProfiles[aSlot].mName, Empty());
 		if (aSlot == gProfile)
 		{
 			for (int i = 0; i < 10; i++)
@@ -143,7 +143,7 @@ public:
 				if (Used(i))
 				{
 					gProfile = i;
-					gAutoFire = gProfiles[i].autoFire;
+					gAutoFire = gProfiles[i].mAutoFire;
 					break;
 				}
 			}
@@ -166,7 +166,7 @@ private:
 	int SlotOf(const std::string& theName)
 	{
 		for (int i = 0; i < 10; i++)
-			if (Used(i) && (strcasecmp(gProfiles[i].name, theName.c_str()) == 0))
+			if (Used(i) && (strcasecmp(gProfiles[i].mName, theName.c_str()) == 0))
 				return i;
 		return -1;
 	}

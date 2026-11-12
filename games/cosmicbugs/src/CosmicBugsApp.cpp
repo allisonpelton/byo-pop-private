@@ -1,4 +1,4 @@
-// The port's host for Cosmic Bugs (see CosmicBugsApp.h).
+// port: the host for Cosmic Bugs (see CosmicBugsApp.h).
 
 #include "CosmicBugsApp.h"
 #include "CBGlobals.h"
@@ -31,7 +31,7 @@ namespace
 {
 
 // BASS_SetVolume(60) at the start (0x42ad70): the original plays everything at 60%
-const double kOutputVolume = 0.6;
+const double OUTPUT_VOLUME = 0.6;
 
 r64::PixelFormat gScreenFormat565;
 
@@ -123,10 +123,10 @@ public:
 
 	bool LoadMusic(const char* thePath) override
 	{
-		bool ok = gApp->mMusicInterface != nullptr && gApp->mMusicInterface->LoadMusic(0, thePath);
-		if (!ok)
+		bool anOk = gApp->mMusicInterface != nullptr && gApp->mMusicInterface->LoadMusic(0, thePath);
+		if (!anOk)
 			SDL_Log("cannot load the music %s", thePath);
-		return ok;
+		return anOk;
 	}
 
 	void FreeMusic() override
@@ -154,7 +154,7 @@ public:
 	void SetMusicVolume(int theVolume) override
 	{
 		if (gApp->mMusicInterface != nullptr)
-			gApp->mMusicInterface->SetVolume(kOutputVolume * theVolume / 100.0);
+			gApp->mMusicInterface->SetVolume(OUTPUT_VOLUME * theVolume / 100.0);
 	}
 
 	const char* SavePath(const char* theName) override
@@ -244,20 +244,20 @@ void CosmicBugsWidget::Draw(Graphics* g)
 	CosmicBugsApp* anApp = gApp;
 	if (anApp->mPresented)
 	{
-		int l = 0, t = 0, r = 800, b = 600;
+		int aLeft = 0, aTop = 0, aRight = 800, aBottom = 600;
 		if (!anApp->mWholeScreen && anApp->mDirtyRight > anApp->mDirtyLeft)
 		{
-			l = anApp->mDirtyLeft;
-			t = anApp->mDirtyTop;
-			r = anApp->mDirtyRight;
-			b = anApp->mDirtyBottom;
+			aLeft = anApp->mDirtyLeft;
+			aTop = anApp->mDirtyTop;
+			aRight = anApp->mDirtyRight;
+			aBottom = anApp->mDirtyBottom;
 		}
 		ulong* aBits = mScreenImage->GetBits();
-		for (int y = t; y < b; y++)
+		for (int y = aTop; y < aBottom; y++)
 		{
 			const uint16_t* aSrc = &anApp->mScreen[y * 800];
 			ulong* aDst = &aBits[y * 800];
-			for (int x = l; x < r; x++)
+			for (int x = aLeft; x < aRight; x++)
 			{
 				aDst[x] = gPixelsFromScreen16[aSrc[x]];
 			}
@@ -350,12 +350,12 @@ static void LoadFixes()
 			continue;
 		Platform::JsonValue aTurns = Platform::ModManager::Get().GetLiveValue(aMod->mId, "walkerTurnMemory");
 		Platform::JsonValue aShield = Platform::ModManager::Get().GetLiveValue(aMod->mId, "shieldFlash");
-		cb::gFixes.walkerTurnMemory = aTurns.IsBool() && aTurns.AsBool(false);
-		cb::gFixes.shieldFlash = aShield.IsBool() && aShield.AsBool(false);
+		cb::gFixes.mWalkerTurnMemory = aTurns.IsBool() && aTurns.AsBool(false);
+		cb::gFixes.mShieldFlash = aShield.IsBool() && aShield.AsBool(false);
 		break;
 	}
-	SDL_Log("fixes: walkerTurnMemory %s, shieldFlash %s", cb::gFixes.walkerTurnMemory ? "on" : "off",
-		cb::gFixes.shieldFlash ? "on" : "off");
+	SDL_Log("fixes: walkerTurnMemory %s, shieldFlash %s", cb::gFixes.mWalkerTurnMemory ? "on" : "off",
+		cb::gFixes.mShieldFlash ? "on" : "off");
 }
 
 // 0x42ae60 (WinMain: cp.cfg, the window and the screen, the sound, the game; what follows GameMain is Shutdown)
@@ -369,7 +369,7 @@ void CosmicBugsApp::Init()
 	r64::Sys_SetScreenFormat(&gScreenFormat565);
 	r64::Sys_SetHost(&gHost);
 	if (mSoundManager != nullptr)
-		mSoundManager->SetVolume(kOutputVolume);
+		mSoundManager->SetVolume(OUTPUT_VOLUME);
 	// the game draws its own pointer
 	SetCursor(CURSOR_NONE);
 
@@ -495,15 +495,15 @@ void CosmicBugsApp::CloseRequestAsync()
 
 // Alt+Enter goes to the game like its F7 (0x42a7a0); it then asks for the mode through SetScreenMode. (The web
 // page's Fullscreen button works on the page and never reaches the game.)
-void CosmicBugsApp::SwitchScreenMode(bool wantWindowed, bool is3d, bool force)
+void CosmicBugsApp::SwitchScreenMode(bool theWantWindowed, bool theIs3d, bool theForce)
 {
-	if (mApplyingGameMode || !mGameStarted || mGameEnded || force)
+	if (mApplyingGameMode || !mGameStarted || mGameEnded || theForce)
 	{
-		SexyAppBase::SwitchScreenMode(wantWindowed, is3d, force);
+		SexyAppBase::SwitchScreenMode(theWantWindowed, theIs3d, theForce);
 		return;
 	}
-	if (wantWindowed != mIsWindowed)
-		r64::Screen_SetFullscreen(wantWindowed ? 0 : 1);
+	if (theWantWindowed != mIsWindowed)
+		r64::Screen_SetFullscreen(theWantWindowed ? 0 : 1);
 }
 
 // The script's "rdown"/"rup" [<x> <y>]: the right button pressed or let go (there, else where the pointer is, which the
@@ -526,9 +526,9 @@ bool CosmicBugsApp::HandleScriptCommand(const ScriptCommand& theCommand)
 	}
 	if (theCommand.mCommand == "state")
 	{
-		cb::Level* aLevel = cb::gLevels.current;
+		cb::Level* aLevel = cb::gLevels.mCurrent;
 		SDL_Log("state: score %d, lives %d, board %d, filled %d of %d%%", cb::gScore, cb::gLives, cb::gLevelInSet,
-			aLevel != nullptr ? aLevel->filledCells : -1, aLevel != nullptr ? aLevel->fillQuota : -1);
+			aLevel != nullptr ? aLevel->mFilledCells : -1, aLevel != nullptr ? aLevel->mFillQuota : -1);
 	}
 	std::vector<std::string> aReplies;
 	if (!cb::TestCommand(theCommand.mCommand, theCommand.mArgs, aReplies))

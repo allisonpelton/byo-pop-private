@@ -61,15 +61,15 @@ const char* ShooterName()
 
 Shooter* Ship()
 {
-	Level* aLevel = gLevels.current;
-	return aLevel != nullptr && aLevel->kind == 0 ? aLevel->shooters.head : nullptr;
+	Level* aLevel = gLevels.mCurrent;
+	return aLevel != nullptr && aLevel->mKind == 0 ? aLevel->mShooters.mHead : nullptr;
 }
 
 int WeaponsOrbiting()
 {
 	int aCount = 0;
-	List_Each(&gLevels.current->weapons, [&](Weapon* aWeapon) {
-		if (aWeapon->state == 3)
+	List_Each(&gLevels.mCurrent->mWeapons, [&](Weapon* theWeapon) {
+		if (theWeapon->mState == 3)
 			aCount = aCount + 1;
 	});
 	return aCount;
@@ -79,9 +79,9 @@ int WeaponsOrbiting()
 int EnemiesOnShip(Shooter* theShip)
 {
 	int aCount = 0;
-	List_Each(&gLevels.current->enemies, [&](Enemy* anEnemy) {
-		if (CircleOverlap(theShip->x, theShip->y, (float)(theShip->image->mH / 3), anEnemy->x, anEnemy->y,
-				(float)(anEnemy->image->mH / 3)) != 0.0)
+	List_Each(&gLevels.mCurrent->mEnemies, [&](Enemy* theEnemy) {
+		if (CircleOverlap(theShip->mX, theShip->mY, (float)(theShip->mImage->mH / 3), theEnemy->mX, theEnemy->mY,
+				(float)(theEnemy->mImage->mH / 3)) != 0.0)
 			aCount = aCount + 1;
 	});
 	return aCount;
@@ -91,31 +91,31 @@ int EnemiesOnShip(Shooter* theShip)
 // menus (the resume question is on the last one, not the current one)
 bool HasRequester(Level* theLevel)
 {
-	for (Menu* aMenu = theLevel->menus.head; aMenu != nullptr; aMenu = Node_Next(aMenu))
-		if (aMenu->requesters.current != nullptr)
+	for (Menu* aMenu = theLevel->mMenus.mHead; aMenu != nullptr; aMenu = Node_Next(aMenu))
+		if (aMenu->mRequesters.mCurrent != nullptr)
 			return true;
 	return false;
 }
 
 int Fill(Level* theLevel)
 {
-	return theLevel->totalCells != 0 ? (theLevel->filledCells * 100) / theLevel->totalCells : 0;
+	return theLevel->mTotalCells != 0 ? (theLevel->mFilledCells * 100) / theLevel->mTotalCells : 0;
 }
 
 // Whether the board cannot take a move now: the ship is not under the player's control (coming in, firing, hit), the
 // board is paused or won, or cells are still being filled
 bool Busy(Level* theLevel, Shooter* theShip)
 {
-	return theShip == nullptr || theShip->state != 3 || theLevel->state != 1 || theLevel->gameOver != 0 ||
-		theLevel->fills.current != nullptr || theLevel->totalCells == 0;
+	return theShip == nullptr || theShip->mState != 3 || theLevel->mState != 1 || theLevel->mGameOver != 0 ||
+		theLevel->mFills.mCurrent != nullptr || theLevel->mTotalCells == 0;
 }
 
 // ----- state -----
 
 std::string StateJson()
 {
-	Level* aLevel = gLevels.current;
-	int aKind = aLevel != nullptr ? aLevel->kind : -1;
+	Level* aLevel = gLevels.mCurrent;
+	int aKind = aLevel != nullptr ? aLevel->mKind : -1;
 	std::string s = Fmt("{\"screen\":\"%s\",\"kind\":%d,\"mode\":\"%s-%s\",\"difficulty\":\"%s\",\"shooter\":\"%s\","
 		"\"score\":%d,\"lives\":%d", aLevel != nullptr ? ScreenName(aKind) : "none", aKind, DifficultyName(),
 		ShooterName(), DifficultyName(), ShooterName(), gScore, gLives);
@@ -129,19 +129,19 @@ std::string StateJson()
 	}
 	Shooter* aShip = Ship();
 	bool aBusy = Busy(aLevel, aShip);
-	s += Fmt(",\"level\":%d,\"fill\":%d,\"quota\":%d,\"shots\":%d,\"cells\":%d,\"filled\":%d", aLevel->number, Fill(aLevel),
-		aLevel->fillQuota, aLevel->shots, aLevel->totalCells, aLevel->filledCells);
+	s += Fmt(",\"level\":%d,\"fill\":%d,\"quota\":%d,\"shots\":%d,\"cells\":%d,\"filled\":%d", aLevel->mNumber, Fill(aLevel),
+		aLevel->mFillQuota, aLevel->mShots, aLevel->mTotalCells, aLevel->mFilledCells);
 	s += Fmt(",\"playing\":%s,\"busy\":%s,\"paused\":%s,\"won\":%s,\"over\":%s", !aBusy ? "true" : "false",
-		aBusy ? "true" : "false", aLevel->state == 2 ? "true" : "false", aLevel->state == 3 ? "true" : "false",
-		aLevel->gameOver != 0 ? "true" : "false");
+		aBusy ? "true" : "false", aLevel->mState == 2 ? "true" : "false", aLevel->mState == 3 ? "true" : "false",
+		aLevel->mGameOver != 0 ? "true" : "false");
 	if (aShip != nullptr)
-		s += Fmt(",\"ship\":{\"x\":%d,\"y\":%d,\"state\":%d,\"across\":%s,\"weapons\":%d}", (int)aShip->x, (int)aShip->y,
-			aShip->state, aShip->beamAcross != 0 ? "true" : "false", WeaponsOrbiting());
+		s += Fmt(",\"ship\":{\"x\":%d,\"y\":%d,\"state\":%d,\"across\":%s,\"weapons\":%d}", (int)aShip->mX, (int)aShip->mY,
+			aShip->mState, aShip->mBeamAcross != 0 ? "true" : "false", WeaponsOrbiting());
 	s += ",\"enemies\":[";
 	int aCount = 0;
-	List_Each(&aLevel->enemies, [&](Enemy* anEnemy) {
+	List_Each(&aLevel->mEnemies, [&](Enemy* theEnemy) {
 		if (aCount < 30)
-			s += Fmt("%s[%d,%d,%d,%d]", aCount > 0 ? "," : "", (int)anEnemy->x, (int)anEnemy->y, anEnemy->kind, anEnemy->state);
+			s += Fmt("%s[%d,%d,%d,%d]", aCount > 0 ? "," : "", (int)theEnemy->mX, (int)theEnemy->mY, theEnemy->mKind, theEnemy->mState);
 		aCount++;
 	});
 	s += Fmt("],\"enemyCount\":%d}", aCount);
@@ -156,41 +156,41 @@ std::string StateJson()
 // line that fills the most cells and that no enemy is expected to reach while the beams run, by a straight-line guess
 // of each enemy's path. It reads the board and the enemies and changes nothing, and it uses no random numbers.
 
-const int kMaxCols = 50;
-const int kMaxRows = 38;
+const int MAX_COLS = 50;
+const int MAX_ROWS = 38;
 
 struct Grid
 {
-	int cols;
-	int rows;
-	unsigned char open[kMaxCols][kMaxRows];     // the cell is open (kind 0)
-	unsigned char fireable[kMaxCols][kMaxRows]; // open and not yet reached by a flood (Shooter_Fire's test)
+	int mCols;
+	int mRows;
+	unsigned char mOpen[MAX_COLS][MAX_ROWS];     // the cell is open (kind 0)
+	unsigned char mFireable[MAX_COLS][MAX_ROWS]; // open and not yet reached by a flood (Shooter_Fire's test)
 };
 
 struct Plan
 {
-	Level* level = nullptr;
-	bool valid = false;
-	int col = 0;
-	int row = 0;
-	bool across = false;
-	int gain = 0;
-	int failures = 0;  // calls in a row that found no safe line on this board
-	bool risky = false; // the plan was taken without the safety test (after 30 failures)
+	Level* mLevel = nullptr;
+	bool mValid = false;
+	int mCol = 0;
+	int mRow = 0;
+	bool mAcross = false;
+	int mGain = 0;
+	int mFailures = 0;  // calls in a row that found no safe line on this board
+	bool mRisky = false; // the plan was taken without the safety test (after 30 failures)
 };
 Plan gPlan;
 
 void ReadGrid(Level* theLevel, Grid& theGrid)
 {
-	theGrid.cols = std::min(theLevel->cols, kMaxCols);
-	theGrid.rows = std::min(theLevel->rows, kMaxRows);
-	for (int c = 0; c < theGrid.cols; c++)
+	theGrid.mCols = std::min(theLevel->mCols, MAX_COLS);
+	theGrid.mRows = std::min(theLevel->mRows, MAX_ROWS);
+	for (int c = 0; c < theGrid.mCols; c++)
 	{
-		for (int r = 0; r < theGrid.rows; r++)
+		for (int r = 0; r < theGrid.mRows; r++)
 		{
-			Cell* aCell = &theLevel->columns[c][r];
-			theGrid.open[c][r] = aCell->kind == 0;
-			theGrid.fireable[c][r] = aCell->kind == 0 && aCell->unmarked != 0;
+			Cell* aCell = &theLevel->mColumns[c][r];
+			theGrid.mOpen[c][r] = aCell->mKind == 0;
+			theGrid.mFireable[c][r] = aCell->mKind == 0 && aCell->mUnmarked != 0;
 		}
 	}
 }
@@ -198,35 +198,35 @@ void ReadGrid(Level* theLevel, Grid& theGrid)
 // A candidate line through (theCol, theRow): its ends, the cells it fills and the time its beams take
 struct Line
 {
-	int from;       // first and last open cell along the line (columns when across, rows when not)
-	int to;
-	int gain;       // cells that fill, -1 when the line cuts nothing off
-	int ticks;      // updates until both beams have stopped
+	int mFrom;       // first and last open cell along the line (columns when across, rows when not)
+	int mTo;
+	int mGain;       // cells that fill, -1 when the line cuts nothing off
+	int mTicks;      // updates until both beams have stopped
 };
 
-void Flood(const Grid& theGrid, unsigned char (&theMark)[kMaxCols][kMaxRows], int theCol, int theRow, int theLabel,
+void Flood(const Grid& theGrid, unsigned char (&theMark)[MAX_COLS][MAX_ROWS], int theCol, int theRow, int theLabel,
 	int& theCells)
 {
-	static std::vector<std::pair<int, int>> aStack;
-	aStack.clear();
-	if (!theGrid.open[theCol][theRow] || theMark[theCol][theRow] != 0)
+	static std::vector<std::pair<int, int>> sAStack;
+	sAStack.clear();
+	if (!theGrid.mOpen[theCol][theRow] || theMark[theCol][theRow] != 0)
 		return;
 	theMark[theCol][theRow] = (unsigned char)theLabel;
-	aStack.push_back({theCol, theRow});
-	while (!aStack.empty())
+	sAStack.push_back({theCol, theRow});
+	while (!sAStack.empty())
 	{
-		std::pair<int, int> aCell = aStack.back();
-		aStack.pop_back();
+		std::pair<int, int> aCell = sAStack.back();
+		sAStack.pop_back();
 		theCells++;
-		static const int kStep[4][2] = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
-		for (const auto& d : kStep)
+		static const int STEP[4][2] = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
+		for (const auto& d : STEP)
 		{
 			int c = aCell.first + d[0];
 			int r = aCell.second + d[1];
-			if (c < 0 || r < 0 || c >= theGrid.cols || r >= theGrid.rows || !theGrid.open[c][r] || theMark[c][r] != 0)
+			if (c < 0 || r < 0 || c >= theGrid.mCols || r >= theGrid.mRows || !theGrid.mOpen[c][r] || theMark[c][r] != 0)
 				continue;
 			theMark[c][r] = (unsigned char)theLabel;
-			aStack.push_back({c, r});
+			sAStack.push_back({c, r});
 		}
 	}
 }
@@ -235,30 +235,30 @@ Line Evaluate(const Grid& theGrid, int theCol, int theRow, bool theAcross, int t
 	const std::vector<std::pair<int, int>>& theEnemyCells)
 {
 	Line aLine;
-	aLine.gain = -1;
+	aLine.mGain = -1;
 	// the open run through the cell
 	int aFrom = theAcross ? theCol : theRow;
 	int aTo = aFrom;
-	int aLimit = theAcross ? theGrid.cols : theGrid.rows;
-	while (aFrom - 1 >= 0 && (theAcross ? theGrid.open[aFrom - 1][theRow] : theGrid.open[theCol][aFrom - 1]))
+	int aLimit = theAcross ? theGrid.mCols : theGrid.mRows;
+	while (aFrom - 1 >= 0 && (theAcross ? theGrid.mOpen[aFrom - 1][theRow] : theGrid.mOpen[theCol][aFrom - 1]))
 		aFrom--;
-	while (aTo + 1 < aLimit && (theAcross ? theGrid.open[aTo + 1][theRow] : theGrid.open[theCol][aTo + 1]))
+	while (aTo + 1 < aLimit && (theAcross ? theGrid.mOpen[aTo + 1][theRow] : theGrid.mOpen[theCol][aTo + 1]))
 		aTo++;
-	aLine.from = aFrom;
-	aLine.to = aTo;
+	aLine.mFrom = aFrom;
+	aLine.mTo = aTo;
 	int aMid = theAcross ? theCol : theRow;
 	float aReach = (float)std::max(aMid - aFrom, aTo - aMid) * 16.0f + 8.0f;
-	aLine.ticks = theSpeed > 0.0f ? (int)(aReach / theSpeed) : 1000000;
+	aLine.mTicks = theSpeed > 0.0f ? (int)(aReach / theSpeed) : 1000000;
 
 	// the line's cells are blocked (2); the cells touching it on one side are flooded as 1, on the other as 4
-	static unsigned char aMark[kMaxCols][kMaxRows];
-	std::memset(aMark, 0, sizeof(aMark));
+	static unsigned char sAMark[MAX_COLS][MAX_ROWS];
+	std::memset(sAMark, 0, sizeof(sAMark));
 	for (int i = aFrom; i <= aTo; i++)
 	{
 		if (theAcross)
-			aMark[i][theRow] = 2;
+			sAMark[i][theRow] = 2;
 		else
-			aMark[theCol][i] = 2;
+			sAMark[theCol][i] = 2;
 	}
 	int aCells[2] = {0, 0};
 	for (int aSide = 0; aSide < 2; aSide++)
@@ -268,12 +268,12 @@ Line Evaluate(const Grid& theGrid, int theCol, int theRow, bool theAcross, int t
 		{
 			int c = theAcross ? i : theCol + aOffset;
 			int r = theAcross ? theRow + aOffset : i;
-			if (c < 0 || r < 0 || c >= theGrid.cols || r >= theGrid.rows || !theGrid.open[c][r])
+			if (c < 0 || r < 0 || c >= theGrid.mCols || r >= theGrid.mRows || !theGrid.mOpen[c][r])
 				continue;
 			// side two meeting side one's region: the line cuts nothing off
-			if (aSide == 1 && aMark[c][r] == 1)
+			if (aSide == 1 && sAMark[c][r] == 1)
 				return aLine;
-			Flood(theGrid, aMark, c, r, aSide == 0 ? 1 : 4, aCells[aSide]);
+			Flood(theGrid, sAMark, c, r, aSide == 0 ? 1 : 4, aCells[aSide]);
 		}
 	}
 	if (aCells[0] == 0 || aCells[1] == 0)
@@ -281,23 +281,23 @@ Line Evaluate(const Grid& theGrid, int theCol, int theRow, bool theAcross, int t
 	int anEnemies[2] = {0, 0};
 	for (const auto& e : theEnemyCells)
 	{
-		if (e.first < 0 || e.second < 0 || e.first >= theGrid.cols || e.second >= theGrid.rows)
+		if (e.first < 0 || e.second < 0 || e.first >= theGrid.mCols || e.second >= theGrid.mRows)
 			continue;
-		if (aMark[e.first][e.second] == 1)
+		if (sAMark[e.first][e.second] == 1)
 			anEnemies[0]++;
-		else if (aMark[e.first][e.second] == 4)
+		else if (sAMark[e.first][e.second] == 4)
 			anEnemies[1]++;
 	}
 	if (theNumber > 2 && anEnemies[0] == 0 && anEnemies[1] == 0)
-		aLine.gain = aCells[0] + aCells[1];
+		aLine.mGain = aCells[0] + aCells[1];
 	else
-		aLine.gain = std::min(aCells[0], aCells[1]);
+		aLine.mGain = std::min(aCells[0], aCells[1]);
 	return aLine;
 }
 
 bool Rolls(const Enemy* theEnemy)
 {
-	switch (theEnemy->kind)
+	switch (theEnemy->mKind)
 	{
 	case 0: case 1: case 2: case 3: case 4: case 0x10: case 0x11:
 	case 6: case 0xc: case 0xd:
@@ -314,29 +314,29 @@ bool Safe(Level* theLevel, const Grid& theGrid, int theCol, int theRow, bool the
 	float aSx = (float)(theCol * 16 + 8);
 	float aSy = (float)(theRow * 16 + 8);
 	// the two ends of the line (the beams stop at the walls)
-	float aLo = (float)(theLine.from * 16);
-	float aHi = (float)(theLine.to * 16 + 15);
+	float aLo = (float)(theLine.mFrom * 16);
+	float aHi = (float)(theLine.mTo * 16 + 15);
 	bool aSafe = true;
-	List_Each(&theLevel->enemies, [&](Enemy* anEnemy) {
-		if (!aSafe || anEnemy->image == nullptr || anEnemy->ice != nullptr)
+	List_Each(&theLevel->mEnemies, [&](Enemy* theEnemy) {
+		if (!aSafe || theEnemy->mImage == nullptr || theEnemy->mIce != nullptr)
 			return;
-		float aRadius = std::min((float)anEnemy->image->mW * 0.5f, 22.0f);
+		float aRadius = std::min((float)theEnemy->mImage->mW * 0.5f, 22.0f);
 		float aLx = theAcross ? aLo : aSx;
 		float aLy = theAcross ? aSy : aLo;
 		float aHx = theAcross ? aHi : aSx;
 		float aHy = theAcross ? aSy : aHi;
-		if (!Rolls(anEnemy))
+		if (!Rolls(theEnemy))
 		{
-			if (SegmentDist(anEnemy->x, anEnemy->y, aLx, aLy, aHx, aHy) < aRadius + 40.0f)
+			if (SegmentDist(theEnemy->mX, theEnemy->mY, aLx, aLy, aHx, aHy) < aRadius + 40.0f)
 				aSafe = false;
 			return;
 		}
-		float aX = anEnemy->x;
-		float aY = anEnemy->y;
-		float aVx = anEnemy->vx;
-		float aVy = anEnemy->vy;
-		const int kStep = 25;
-		for (int t = 0; t <= theLine.ticks + kStep; t += kStep)
+		float aX = theEnemy->mX;
+		float aY = theEnemy->mY;
+		float aVx = theEnemy->mVx;
+		float aVy = theEnemy->mVy;
+		const int STEP = 25;
+		for (int t = 0; t <= theLine.mTicks + STEP; t += STEP)
 		{
 			float aReach = theSpeed * (float)t + 8.0f;
 			float aBx0 = theAcross ? std::max(aLo, aSx - aReach) : aSx;
@@ -348,18 +348,18 @@ bool Safe(Level* theLevel, const Grid& theGrid, int theCol, int theRow, bool the
 				aSafe = false;
 				return;
 			}
-			float aNx = aX + aVx * (float)kStep;
-			float aNy = aY + aVy * (float)kStep;
+			float aNx = aX + aVx * (float)STEP;
+			float aNy = aY + aVy * (float)STEP;
 			int c = (int)aNx / 16;
 			int r = (int)aY / 16;
-			if (aNx < 0.0f || c >= theGrid.cols || r >= theGrid.rows || !theGrid.open[c][r])
+			if (aNx < 0.0f || c >= theGrid.mCols || r >= theGrid.mRows || !theGrid.mOpen[c][r])
 			{
 				aVx = -aVx;
 				aNx = aX;
 			}
 			c = (int)aNx / 16;
 			r = (int)aNy / 16;
-			if (aNy < 0.0f || c >= theGrid.cols || r >= theGrid.rows || !theGrid.open[c][r])
+			if (aNy < 0.0f || c >= theGrid.mCols || r >= theGrid.mRows || !theGrid.mOpen[c][r])
 			{
 				aVy = -aVy;
 				aNy = aY;
@@ -375,62 +375,62 @@ bool Safe(Level* theLevel, const Grid& theGrid, int theCol, int theRow, bool the
 // while (a player does not wait for ever either)
 bool ChoosePlan(Level* theLevel, Shooter* theShip, bool theRisky)
 {
-	if (gPlan.level != theLevel)
-		gPlan.failures = 0;
+	if (gPlan.mLevel != theLevel)
+		gPlan.mFailures = 0;
 	Grid aGrid;
 	ReadGrid(theLevel, aGrid);
 	std::vector<std::pair<int, int>> anEnemyCells;
-	List_Each(&theLevel->enemies, [&](Enemy* anEnemy) { anEnemyCells.push_back({(int)anEnemy->x / 16, (int)anEnemy->y / 16}); });
-	float aSpeed = theShip->beamSpeed > 0.0f ? theShip->beamSpeed : 0.14f;
-	int aPanelRows = theLevel->rows;
-	if (theLevel->panels.head != nullptr)
-		aPanelRows = std::min(aPanelRows, (int)(theLevel->panels.head->y - 8.0f) / 16);
+	List_Each(&theLevel->mEnemies, [&](Enemy* theEnemy) { anEnemyCells.push_back({(int)theEnemy->mX / 16, (int)theEnemy->mY / 16}); });
+	float aSpeed = theShip->mBeamSpeed > 0.0f ? theShip->mBeamSpeed : 0.14f;
+	int aPanelRows = theLevel->mRows;
+	if (theLevel->mPanels.mHead != nullptr)
+		aPanelRows = std::min(aPanelRows, (int)(theLevel->mPanels.mHead->mY - 8.0f) / 16);
 	struct Candidate
 	{
-		int col, row;
-		bool across;
-		Line line;
+		int mCol, mRow;
+		bool mAcross;
+		Line mLine;
 	};
 	std::vector<Candidate> aList;
-	for (int c = 1; c < aGrid.cols - 1; c++)
+	for (int c = 1; c < aGrid.mCols - 1; c++)
 	{
-		for (int r = 1; r < aGrid.rows - 1 && r < aPanelRows; r++)
+		for (int r = 1; r < aGrid.mRows - 1 && r < aPanelRows; r++)
 		{
-			if (!aGrid.fireable[c][r])
+			if (!aGrid.mFireable[c][r])
 				continue;
 			for (int aAcross = 0; aAcross < 2; aAcross++)
 			{
-				Line aLine = Evaluate(aGrid, c, r, aAcross != 0, theLevel->number, aSpeed, anEnemyCells);
-				if (aLine.gain > 0)
+				Line aLine = Evaluate(aGrid, c, r, aAcross != 0, theLevel->mNumber, aSpeed, anEnemyCells);
+				if (aLine.mGain > 0)
 					aList.push_back({c, r, aAcross != 0, aLine});
 			}
 		}
 	}
 	// most cells first; of equal gain, the quicker line
 	std::sort(aList.begin(), aList.end(), [](const Candidate& a, const Candidate& b) {
-		if (a.line.gain != b.line.gain)
-			return a.line.gain > b.line.gain;
-		return a.line.ticks < b.line.ticks;
+		if (a.mLine.mGain != b.mLine.mGain)
+			return a.mLine.mGain > b.mLine.mGain;
+		return a.mLine.mTicks < b.mLine.mTicks;
 	});
-	gPlan.level = theLevel;
-	gPlan.valid = false;
+	gPlan.mLevel = theLevel;
+	gPlan.mValid = false;
 	if (!theRisky)
-		gPlan.failures = gPlan.failures + 1;
+		gPlan.mFailures = gPlan.mFailures + 1;
 	int aTried = 0;
 	for (const Candidate& aCandidate : aList)
 	{
 		if (aTried++ > 4000)
 			break;
-		if (theRisky || Safe(theLevel, aGrid, aCandidate.col, aCandidate.row, aCandidate.across, aCandidate.line, aSpeed))
+		if (theRisky || Safe(theLevel, aGrid, aCandidate.mCol, aCandidate.mRow, aCandidate.mAcross, aCandidate.mLine, aSpeed))
 		{
-			gPlan.valid = true;
-			gPlan.risky = theRisky;
+			gPlan.mValid = true;
+			gPlan.mRisky = theRisky;
 			if (!theRisky)
-				gPlan.failures = 0;
-			gPlan.col = aCandidate.col;
-			gPlan.row = aCandidate.row;
-			gPlan.across = aCandidate.across;
-			gPlan.gain = aCandidate.line.gain;
+				gPlan.mFailures = 0;
+			gPlan.mCol = aCandidate.mCol;
+			gPlan.mRow = aCandidate.mRow;
+			gPlan.mAcross = aCandidate.mAcross;
+			gPlan.mGain = aCandidate.mLine.mGain;
 			return true;
 		}
 	}
@@ -439,53 +439,53 @@ bool ChoosePlan(Level* theLevel, Shooter* theShip, bool theRisky)
 
 std::string Move()
 {
-	Level* aLevel = gLevels.current;
+	Level* aLevel = gLevels.mCurrent;
 	Shooter* aShip = Ship();
 	// a won board shows its bonus texts, each clicked away in turn; the click after the last one goes on to the next board
-	if (aLevel != nullptr && aLevel->kind == 0 && aLevel->state == 3 && aLevel->gameOver == 0 && aLevel->texts.head != nullptr)
+	if (aLevel != nullptr && aLevel->mKind == 0 && aLevel->mState == 3 && aLevel->mGameOver == 0 && aLevel->mTexts.mHead != nullptr)
 		return "MOVE {\"kind\":\"continue\",\"input\":[{\"click\":[400,300]},{\"wait\":20}]}";
 	// the board waits while the pointer is over its panel (Level_IsPlaying): a click that started the board, on the
 	// instructions page's Play button, leaves it there, and a player moves it up into the board
-	if (aLevel != nullptr && aLevel->kind == 0 && aLevel->state == 1 && aLevel->gameOver == 0 && aLevel->totalCells != 0 &&
-		Level_IsPlaying(aLevel) == 0 && (aLevel->menus.current == nullptr || aLevel->menus.current->requesters.current == nullptr))
+	if (aLevel != nullptr && aLevel->mKind == 0 && aLevel->mState == 1 && aLevel->mGameOver == 0 && aLevel->mTotalCells != 0 &&
+		Level_IsPlaying(aLevel) == 0 && (aLevel->mMenus.mCurrent == nullptr || aLevel->mMenus.mCurrent->mRequesters.mCurrent == nullptr))
 	{
 		int aY = 300;
-		if (aLevel->panels.current != nullptr && (float)aY >= aLevel->panels.current->y)
-			aY = (int)aLevel->panels.current->y - 40;
+		if (aLevel->mPanels.mCurrent != nullptr && (float)aY >= aLevel->mPanels.mCurrent->mY)
+			aY = (int)aLevel->mPanels.mCurrent->mY - 40;
 		return Fmt("MOVE {\"kind\":\"hover\",\"input\":[{\"move\":[400,%d]},{\"wait\":4}]}", aY);
 	}
-	if (aLevel == nullptr || aShip == nullptr || Busy(aLevel, aShip) || Fill(aLevel) >= aLevel->fillQuota)
+	if (aLevel == nullptr || aShip == nullptr || Busy(aLevel, aShip) || Fill(aLevel) >= aLevel->mFillQuota)
 		return "MOVE null";
-	int aSx = (int)aShip->x;
-	int aSy = (int)aShip->y;
+	int aSx = (int)aShip->mX;
+	int aSy = (int)aShip->mY;
 	// a power-up weapon orbiting the ship: a click launches it, straight out the way it is from the ship
 	if (WeaponsOrbiting() != 0)
 	{
 		bool aTooClose = false;
-		List_Each(&aLevel->weapons, [&](Weapon* aWeapon) {
-			if (aWeapon->state == 3 && aWeapon->tooClose != 0)
+		List_Each(&aLevel->mWeapons, [&](Weapon* theWeapon) {
+			if (theWeapon->mState == 3 && theWeapon->mTooClose != 0)
 				aTooClose = true;
 		});
 		if (aTooClose)
 			return "MOVE {\"kind\":\"wait\",\"input\":[{\"wait\":10}]}";
 		return Fmt("MOVE {\"kind\":\"launch\",\"input\":[{\"click\":[%d,%d]},{\"wait\":4}]}", aSx, aSy);
 	}
-	bool aPlanOk = gPlan.valid && gPlan.level == aLevel;
+	bool aPlanOk = gPlan.mValid && gPlan.mLevel == aLevel;
 	if (aPlanOk)
 	{
-		Cell* aCell = &aLevel->columns[gPlan.col][gPlan.row];
-		aPlanOk = aCell->kind == 0 && aCell->unmarked != 0;
+		Cell* aCell = &aLevel->mColumns[gPlan.mCol][gPlan.mRow];
+		aPlanOk = aCell->mKind == 0 && aCell->mUnmarked != 0;
 	}
-	if (!aPlanOk && !ChoosePlan(aLevel, aShip, gPlan.level == aLevel && gPlan.failures >= 30))
+	if (!aPlanOk && !ChoosePlan(aLevel, aShip, gPlan.mLevel == aLevel && gPlan.mFailures >= 30))
 		return "MOVE {\"kind\":\"wait\",\"input\":[{\"wait\":10}]}";
-	int aX = gPlan.col * 16 + 8;
-	int aY = gPlan.row * 16 + 8;
+	int aX = gPlan.mCol * 16 + 8;
+	int aY = gPlan.mRow * 16 + 8;
 	int aCol = aSx / 16;
 	int aRow = aSy / 16;
-	if (aCol != gPlan.col || aRow != gPlan.row)
+	if (aCol != gPlan.mCol || aRow != gPlan.mRow)
 		return Fmt("MOVE {\"kind\":\"aim\",\"col\":%d,\"row\":%d,\"across\":%s,\"input\":[{\"move\":[%d,%d]},{\"wait\":8}]}",
-			gPlan.col, gPlan.row, gPlan.across ? "true" : "false", aX, aY);
-	if ((aShip->beamAcross != 0) != gPlan.across)
+			gPlan.mCol, gPlan.mRow, gPlan.mAcross ? "true" : "false", aX, aY);
+	if ((aShip->mBeamAcross != 0) != gPlan.mAcross)
 		return Fmt("MOVE {\"kind\":\"turn\",\"input\":[{\"click\":[%d,%d],\"button\":\"right\"},{\"wait\":3}]}", aX, aY);
 	// the ship is in its cell, turned the right way: fire, unless an enemy sits on it (the game only buzzes)
 	if (EnemiesOnShip(aShip) != 0)
@@ -493,35 +493,35 @@ std::string Move()
 	Grid aGrid;
 	ReadGrid(aLevel, aGrid);
 	std::vector<std::pair<int, int>> anEnemyCells;
-	List_Each(&aLevel->enemies, [&](Enemy* anEnemy) { anEnemyCells.push_back({(int)anEnemy->x / 16, (int)anEnemy->y / 16}); });
-	float aSpeed = aShip->beamSpeed > 0.0f ? aShip->beamSpeed : 0.14f;
-	Line aLine = Evaluate(aGrid, gPlan.col, gPlan.row, gPlan.across, aLevel->number, aSpeed, anEnemyCells);
-	if (aLine.gain <= 0 || (!gPlan.risky && !Safe(aLevel, aGrid, gPlan.col, gPlan.row, gPlan.across, aLine, aSpeed)))
+	List_Each(&aLevel->mEnemies, [&](Enemy* theEnemy) { anEnemyCells.push_back({(int)theEnemy->mX / 16, (int)theEnemy->mY / 16}); });
+	float aSpeed = aShip->mBeamSpeed > 0.0f ? aShip->mBeamSpeed : 0.14f;
+	Line aLine = Evaluate(aGrid, gPlan.mCol, gPlan.mRow, gPlan.mAcross, aLevel->mNumber, aSpeed, anEnemyCells);
+	if (aLine.mGain <= 0 || (!gPlan.mRisky && !Safe(aLevel, aGrid, gPlan.mCol, gPlan.mRow, gPlan.mAcross, aLine, aSpeed)))
 	{
 		// the board moved on: look again
-		gPlan.valid = false;
+		gPlan.mValid = false;
 		return "MOVE {\"kind\":\"wait\",\"input\":[{\"wait\":10}]}";
 	}
-	gPlan.valid = false;
-	gPlan.failures = 0;
+	gPlan.mValid = false;
+	gPlan.mFailures = 0;
 	return Fmt("MOVE {\"kind\":\"shot\",\"col\":%d,\"row\":%d,\"across\":%s,\"gain\":%d,\"input\":[{\"click\":[%d,%d]},{\"wait\":3}]}",
-		aX / 16, aY / 16, gPlan.across ? "true" : "false", aLine.gain, aX, aY);
+		aX / 16, aY / 16, gPlan.mAcross ? "true" : "false", aLine.mGain, aX, aY);
 }
 
 // ----- the other commands -----
 
 LevelSet* SetHolding(int theLevelIndex)
 {
-	for (LevelSet* aSet = gLevelSets.head; aSet != nullptr; aSet = Node_Next(aSet))
-		if (aSet->start <= theLevelIndex && theLevelIndex <= aSet->end)
+	for (LevelSet* aSet = gLevelSets.mHead; aSet != nullptr; aSet = Node_Next(aSet))
+		if (aSet->mStart <= theLevelIndex && theLevelIndex <= aSet->mEnd)
 			return aSet;
 	return nullptr;
 }
 
 bool HasScreen(int theKind)
 {
-	for (Level* aLevel = gLevels.head; aLevel != nullptr; aLevel = Node_Next(aLevel))
-		if (aLevel->kind == theKind)
+	for (Level* aLevel = gLevels.mHead; aLevel != nullptr; aLevel = Node_Next(aLevel))
+		if (aLevel->mKind == theKind)
 			return true;
 	return false;
 }
@@ -532,9 +532,9 @@ bool HasScreen(int theKind)
 // from the menus. A new game's lives and score are set when the current screen is not a board.
 std::string StartBoard(int theNumber, bool theNewGame)
 {
-	if (gLevels.current == nullptr)
+	if (gLevels.mCurrent == nullptr)
 		return "no screen is current";
-	bool aFromBoard = gLevels.current->kind == 0;
+	bool aFromBoard = gLevels.mCurrent->mKind == 0;
 	if (theNewGame || !aFromBoard || gLives <= 0)
 	{
 		gLives = 6;
@@ -545,7 +545,7 @@ std::string StartBoard(int theNumber, bool theNewGame)
 	if (aFromBoard)
 	{
 		gGoTo = 1;
-		if (!ChangeScreen() || gLevels.current->kind == 0)
+		if (!ChangeScreen() || gLevels.mCurrent->mKind == 0)
 			return "the title did not come";
 	}
 	gLives = aLives;
@@ -555,7 +555,7 @@ std::string StartBoard(int theNumber, bool theNewGame)
 	if (aSet == nullptr)
 		return "no such level";
 	gLevelInSet = theNumber - 1;
-	gLevelSets.current = aSet;
+	gLevelSets.mCurrent = aSet;
 	gGoTo = 0;
 	ChangeScreen();
 	return "";
@@ -583,7 +583,7 @@ bool SetShooter(const std::string& theValue)
 		gAutoFire = 1;
 	else
 		return false;
-	gProfiles[gProfile].autoFire = gAutoFire;
+	gProfiles[gProfile].mAutoFire = gAutoFire;
 	SaveProfiles();
 	return true;
 }
@@ -603,7 +603,7 @@ void Error(std::vector<std::string>& theReplies, const std::string& theCommand, 
 
 bool TestCommand(const std::string& theCommand, const std::string& theArgs, std::vector<std::string>& theReplies)
 {
-	Level* aLevel = gLevels.current;
+	Level* aLevel = gLevels.mCurrent;
 	if (theCommand == "state")
 	{
 		theReplies.push_back("STATE " + StateJson());
@@ -640,8 +640,8 @@ bool TestCommand(const std::string& theCommand, const std::string& theArgs, std:
 			Error(theReplies, theCommand, theArgs, "unlock needs \"all\"");
 			return true;
 		}
-		LevelSet* aLast = gLevelSets.tail;
-		gProfiles[gProfile].levelReached = aLast != nullptr ? aLast->end : 577;
+		LevelSet* aLast = gLevelSets.mTail;
+		gProfiles[gProfile].mLevelReached = aLast != nullptr ? aLast->mEnd : 577;
 		SaveProfiles();
 		Ok(theReplies, theCommand, theArgs);
 		return true;
@@ -658,7 +658,7 @@ bool TestCommand(const std::string& theCommand, const std::string& theArgs, std:
 			gLives = std::atoi(aV.c_str());
 		else if (aN == "reached" && !aV.empty())
 		{
-			gProfiles[gProfile].levelReached = std::atoi(aV.c_str());
+			gProfiles[gProfile].mLevelReached = std::atoi(aV.c_str());
 			SaveProfiles();
 		}
 		else if ((aN == "difficulty" || aN == "mode") && SetDifficulty(aV))
@@ -676,7 +676,7 @@ bool TestCommand(const std::string& theCommand, const std::string& theArgs, std:
 	if (theCommand == "win" || theCommand == "lose")
 	{
 		Shooter* aShip = Ship();
-		if (aLevel->kind != 0 || aShip == nullptr || aLevel->state != 1 || aLevel->totalCells == 0 || aLevel->gameOver != 0)
+		if (aLevel->mKind != 0 || aShip == nullptr || aLevel->mState != 1 || aLevel->mTotalCells == 0 || aLevel->mGameOver != 0)
 		{
 			Error(theReplies, theCommand, theArgs, "no board is being played");
 			return true;
@@ -684,9 +684,9 @@ bool TestCommand(const std::string& theCommand, const std::string& theArgs, std:
 		if (theCommand == "win")
 		{
 			// the board's own ending runs once the fill has reached the quota and nothing is filling
-			int aNeed = (aLevel->fillQuota * aLevel->totalCells + 99) / 100;
-			if (aLevel->filledCells < aNeed)
-				aLevel->filledCells = aNeed;
+			int aNeed = (aLevel->mFillQuota * aLevel->mTotalCells + 99) / 100;
+			if (aLevel->mFilledCells < aNeed)
+				aLevel->mFilledCells = aNeed;
 		}
 		else
 		{
@@ -749,7 +749,7 @@ bool TestCommand(const std::string& theCommand, const std::string& theArgs, std:
 		return true;
 	}
 	// a board's list holds the board file's screens only: from a board only the title is reached, as Esc does
-	if ((aLevel->kind == 0 && aKind != 1) || (aLevel->kind != 0 && !HasScreen(aKind)))
+	if ((aLevel->mKind == 0 && aKind != 1) || (aLevel->mKind != 0 && !HasScreen(aKind)))
 	{
 		Error(theReplies, theCommand, theArgs, "that screen cannot be reached from here (from a board, go to the title first)");
 		return true;

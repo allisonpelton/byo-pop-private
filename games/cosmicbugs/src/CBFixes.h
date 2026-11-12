@@ -11,8 +11,8 @@ namespace cb
 
 struct Fixes
 {
-	bool walkerTurnMemory = false; // a walker that turns off a vertical way waits out its 5 seconds before the next turn, as off a horizontal way
-	bool shieldFlash = false;      // an enemy's shield flash starts at the enemy's own y, not its x (which showed for a frame at times)
+	bool mWalkerTurnMemory = false; // a walker that turns off a vertical way waits out its 5 seconds before the next turn, as off a horizontal way
+	bool mShieldFlash = false;      // an enemy's shield flash starts at the enemy's own y, not its x (which showed for a frame at times)
 };
 
 extern Fixes gFixes;

@@ -41,9 +41,9 @@ public:
 		long n = std::ftell(f);
 		std::fseek(f, 0, SEEK_SET);
 		theData.resize((size_t)n);
-		bool ok = n == 0 || std::fread(theData.data(), (size_t)n, 1, f) == 1;
+		bool anOk = n == 0 || std::fread(theData.data(), (size_t)n, 1, f) == 1;
 		std::fclose(f);
-		return ok;
+		return anOk;
 	}
 
 	// (nothing here draws to the screen, keeps time or saves)
@@ -176,24 +176,24 @@ bool DrawAnims(Bank* theArt, const PixelFormat* theFmt, const char* theOutDir)
 			continue;
 		cb::Animation* anAnim = cb::List_Append(&cb::gAnims, new cb::Animation());
 		cb::Animation_FromXml(anAnim, &aTag);
-		std::printf("anim %s file %s frames %d time %d\n", anAnim->name, anAnim->file, anAnim->count, anAnim->frameTime);
-		if (anAnim->count < 1 || anAnim->frames[0] == nullptr)
+		std::printf("anim %s file %s frames %d time %d\n", anAnim->mName, anAnim->mFile, anAnim->mCount, anAnim->mFrameTime);
+		if (anAnim->mCount < 1 || anAnim->mFrames[0] == nullptr)
 		{
-			if ((std::strstr(anAnim->file, ".eco") != nullptr || std::strstr(anAnim->file, ".tga") != nullptr) &&
-				!AnimFileExists(anAnim->file))
+			if ((std::strstr(anAnim->mFile, ".eco") != nullptr || std::strstr(anAnim->mFile, ".tga") != nullptr) &&
+				!AnimFileExists(anAnim->mFile))
 			{
-				std::printf("anim %s missing (%s is not in the game)\n", anAnim->name, anAnim->file);
+				std::printf("anim %s missing (%s is not in the game)\n", anAnim->mName, anAnim->mFile);
 				aMissing++;
 			}
 			else
 			{
-				std::printf("anim %s FAILED\n", anAnim->name);
+				std::printf("anim %s FAILED\n", anAnim->mName);
 				aFailed++;
 			}
 			continue;
 		}
 		n++;
-		Image* aFrame = anAnim->frames[0];
+		Image* aFrame = anAnim->mFrames[0];
 		if (x + aFrame->mW > W)
 		{
 			x = 0;
@@ -260,17 +260,17 @@ int main(int argc, char** argv)
 	if (std::strcmp(aWhich, "anims") == 0)
 	{
 		Sys_SetScreenFormat(&aScreenFmt);
-		bool ok = DrawAnims(aBank, &aScreenFmt, argv[2]);
+		bool anOk = DrawAnims(aBank, &aScreenFmt, argv[2]);
 		delete aBank;
 		delete aBank8;
-		return ok ? 0 : 1;
+		return anOk ? 0 : 1;
 	}
 	if (std::strcmp(aWhich, "fonts") == 0)
 	{
-		bool ok = DrawFonts(aBank, aBank8, &aScreenFmt, argv[2]);
+		bool anOk = DrawFonts(aBank, aBank8, &aScreenFmt, argv[2]);
 		delete aBank;
 		delete aBank8;
-		return ok ? 0 : 1;
+		return anOk ? 0 : 1;
 	}
 	Bank* aShow = std::strcmp(aWhich, "art8") == 0 ? aBank8 : aBank;
 	const int W = 800, H = 600;

@@ -19,44 +19,44 @@ struct Emitter : Obj
 	// kind +0x08: 0 angular (turns with the parent's animation), 1 scattered, 2 trailing (the game file makes 0
 	// and 2); oldX/oldY +0x1c: the offset from the parent's position; vx/vy: the particles' speed (per update);
 	// anim, frameCount, frameTime: the particles' animation
-	int frequency;             // +0xb0  updates between particles
-	int rotation;              // +0xb4  angular: degrees over the parent's whole animation
-	Obj* parent;               // +0xb8
-	int startAlpha;            // +0xbc
-	int endAlpha;              // +0xc0
-	int time;                  // +0xc4  the particles' lifetime
-	int startR;                // +0xc8
-	int startG;                // +0xcc
-	int startB;                // +0xd0
-	int endR;                  // +0xd4
-	int endG;                  // +0xd8
-	int endB;                  // +0xdc
-	int variance;              // +0xe0  each colour moves by up to this much
+	int mFrequency;             // +0xb0  updates between particles
+	int mRotation;              // +0xb4  angular: degrees over the parent's whole animation
+	Obj* mParent;               // +0xb8
+	int mStartAlpha;            // +0xbc
+	int mEndAlpha;              // +0xc0
+	int mTime;                  // +0xc4  the particles' lifetime
+	int mStartR;                // +0xc8
+	int mStartG;                // +0xcc
+	int mStartB;                // +0xd0
+	int mEndR;                  // +0xd4
+	int mEndG;                  // +0xd8
+	int mEndB;                  // +0xdc
+	int mVariance;              // +0xe0  each colour moves by up to this much
 };
 static_assert(sizeof(Emitter) == 0xe4, "Emitter");
 
 // 0xe0 bytes, from the pool at 0x478620
 struct Particle : Obj
 {
-	float drag;                // +0xb0  the speed is multiplied by it each update
-	float gravity;             // +0xb4
-	int firstImage;            // +0xb8  art.bbk's index of the first frame, when there is no animation
-	int startAlpha;            // +0xbc  colour and alpha go from start to end over the lifetime
-	int endAlpha;              // +0xc0
-	int startR;                // +0xc4
-	int endR;                  // +0xc8
-	int startG;                // +0xcc
-	int endG;                  // +0xd0
-	int startB;                // +0xd4
-	int endB;                  // +0xd8
-	ParticleSystem* owner;     // +0xdc
+	float mDrag;                // +0xb0  the speed is multiplied by it each update
+	float mGravity;             // +0xb4
+	int mFirstImage;            // +0xb8  art.bbk's index of the first frame, when there is no animation
+	int mStartAlpha;            // +0xbc  colour and alpha go from start to end over the lifetime
+	int mEndAlpha;              // +0xc0
+	int mStartR;                // +0xc4
+	int mEndR;                  // +0xc8
+	int mStartG;                // +0xcc
+	int mEndG;                  // +0xd0
+	int mStartB;                // +0xd4
+	int mEndB;                  // +0xd8
+	ParticleSystem* mOwner;     // +0xdc
 };
 static_assert(sizeof(Particle) == 0xe0, "Particle");
 
 // 0xbc bytes, from the pool at 0x62de20; its position and speed follow its first particle
 struct ParticleSystem : Obj
 {
-	List<Particle> particles;  // +0xb0
+	List<Particle> mParticles;  // +0xb0
 };
 static_assert(sizeof(ParticleSystem) == 0xbc, "ParticleSystem");
 
