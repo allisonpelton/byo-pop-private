@@ -424,11 +424,15 @@ port's present and the driver's thread come to 1.29 M an update, where the origi
 default window costs about the same (1.87 M an update in all), since the driver's cost is a present's, not a pixel's.
 The port's other threads and loop are cheaper than the original's and take back about a third of the difference.
 
-This is the shared cost already listed in `docs/COORDINATION.md`: SDL_RenderPresent and the driver's work per
-presented frame. The fix being built there is a software-surface presenter that the app opts into and hands the
-frame's dirty rectangle. Dynomite's board, 490 by 480 of the 640 by 480 screen (77%), is marked dirty on every update
-in play, and the sidebar now and then. Under the target's rule the port waits for that presenter instead of being let
-off, then takes it and is measured again with this set's method.
+This is the shared cost listed in `docs/COORDINATION.md` under "Presenting in step with the display": the present and
+the Direct3D 11 driver's thread, 2.2 M cycles a drawn frame here, as 1.7 to 2.7 M in Typer Shark and 1.9 to 2.4 M in
+AstroPop. The software-surface presenter that came to the trunk for it (`framework/SurfaceDisplay.h`, a299640e) cannot
+serve Dynomite. It shows a screen that the app draws in software into a buffer of its own. Dynomite's screen is the
+framework's screen DDImage, and every draw into it (`DDImage::Blt`, `FillRect` and the rest, through `Check3D`) goes to
+the display as an SDL call on the GPU, so no CPU picture of the screen exists to hand over, as in Alchemy. So the 19%
+stays with that shared cost. A way out would be shared too: a SexyAppFramework screen drawn by the framework's own
+blitters into its bits, as the original's DirectDraw path draws, and shown by the surface presenter. Dynomite's board,
+490 by 480 of the 640 by 480 screen (77%), is marked dirty on every update in play, and the sidebar now and then.
 
 ## 7. The PopCap Game Collection version (2026-11-11)
 
