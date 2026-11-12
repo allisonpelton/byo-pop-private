@@ -12,11 +12,11 @@
 namespace bonnies
 {
 
-Book gBooks[50];
+Book gBooks[LEVEL_COUNT];
 
 void loadBooks()
 {
-	for (int i = 0; i < 50; i++)
+	for (int i = 0; i < LEVEL_COUNT; i++)
 	{
 		uint32_t anAddress = 0x466728 + i * 0x444;
 		Book& aBook = gBooks[i];
@@ -34,8 +34,8 @@ void loadBooks()
 		aBook.mNoConsonants = exeI32(anAddress + 0x2c);
 		aBook.mNoWilds = exeI32(anAddress + 0x30);
 		aBook.mNoStars = exeI32(anAddress + 0x34);
-		aBook.mField38 = exeI32(anAddress + 0x38);
-		aBook.mField3C = exeI32(anAddress + 0x3c);
+		aBook.mTwoFills = exeI32(anAddress + 0x38);
+		aBook.mFastOdds = exeI32(anAddress + 0x3c);
 		aBook.mStones = exeI32(anAddress + 0x40);
 		aBook.mPairs = exeI32(anAddress + 0x44);
 		aBook.mOffsetX = exeFloat(anAddress + 0x48);
@@ -43,7 +43,7 @@ void loadBooks()
 		aBook.mBanned = exeString(exeU32(anAddress + 0x50));
 		for (int j = 0; j < 9; j++)
 			aBook.mBannedIn[j] = exeString(exeU32(anAddress + 0x54 + j * 4));
-		for (int j = 0; j < 81; j++)
+		for (int j = 0; j < BOARD_CELLS; j++)
 		{
 			uint32_t aCell = anAddress + 0x78 + j * 0xc;
 			aBook.mCells[j].mFlags = exeU32(aCell);
@@ -74,7 +74,7 @@ Str Book::bannedIn(int theColumn)
 // 0x40d1b0
 int Book::isCell(int theColumn, int theRow)
 {
-	return mCells[theColumn * 9 + theRow].mFlags & 1;
+	return mCells[theColumn * BOARD_ROWS + theRow].mFlags & 1;
 }
 
 // 0x40d1d0
@@ -110,12 +110,12 @@ int Book::allows(char theChar, int theColumn)
 			int aRow = 0;
 			do
 			{
-				if ((mCells[theColumn * 9 + aRow].mFlags & 1) != 0 &&
-					(gGame->mLetters[theColumn * 9 + aRow] == '!' ||
-						(gGame->mTileFlags[theColumn * 9 + aRow] & 4) != 0))
+				if ((mCells[theColumn * BOARD_ROWS + aRow].mFlags & 1) != 0 &&
+					(gGame->mLetters[theColumn * BOARD_ROWS + aRow] == '!' ||
+						(gGame->mTileFlags[theColumn * BOARD_ROWS + aRow] & 4) != 0))
 					return 0;
 				aRow++;
-			} while (aRow < 9);
+			} while (aRow < BOARD_ROWS);
 		}
 		if (mNoStars != 0)
 			return 0;
@@ -195,8 +195,8 @@ void Book::init(int theBook, int theChapter, int theLast)
 			int k = 0;
 			do
 			{
-				BookCell& aCell1 = mCells[k * 9 + i];
-				BookCell& aCell2 = mCells[i * 9 + k];
+				BookCell& aCell1 = mCells[k * BOARD_ROWS + i];
+				BookCell& aCell2 = mCells[i * BOARD_ROWS + k];
 				char aTile = aCell1.mTile;
 				aCell1.mTile = aCell2.mTile;
 				aCell2.mTile = aTile;
@@ -211,7 +211,7 @@ void Book::init(int theBook, int theChapter, int theLast)
 			} while (j != 0);
 		}
 		i++;
-	} while (i < 9);
+	} while (i < BOARD_ROWS);
 	int aFirstColumn = 99;
 	int aStars = 0;
 	int aRow = 0;
@@ -220,7 +220,7 @@ void Book::init(int theBook, int theChapter, int theLast)
 		int aColumn = 0;
 		do
 		{
-			BookCell& aCell = mCells[aColumn * 9 + aRow];
+			BookCell& aCell = mCells[aColumn * BOARD_ROWS + aRow];
 			if ((aCell.mFlags & 1) != 0)
 			{
 				if (aColumn <= aFirstColumn)
@@ -234,9 +234,9 @@ void Book::init(int theBook, int theChapter, int theLast)
 					aStars++;
 			}
 			aColumn++;
-		} while (aColumn < 9);
+		} while (aColumn < BOARD_COLUMNS);
 		aRow++;
-	} while (aRow < 9);
+	} while (aRow < BOARD_ROWS);
 	mMaxStars = 6;
 	double aMaxStars = mFillCount * (double)0.3f;
 	if (!(6.0f <= aMaxStars))

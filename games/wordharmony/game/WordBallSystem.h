@@ -5,8 +5,9 @@
 // freematch, the mouse's rope and the HUD (0x220 bytes, constructor 0x416fd0, named "WordBallSystem"; the
 // controller's +0x700). The original's parts: the ball array at +0, a Container at +0x20 (its base, vtable 0x4821c8,
 // adds only the pure slot 0xd8), a KeyHandler at +0xc8 and a ScreenListener at +0xd0 for the level editor's HUD,
-// which this build never loads, so the port leaves that listener out (games/wordharmony/docs/WORKING_NOTES.md, "The
-// game code as read"). Offsets below are the object's; the Container part's methods see them 0x20 lower.
+// which this build never loads, so the port leaves that listener and the editor's fields out (+0xe4, +0x1f8 and +0x200;
+// games/wordharmony/docs/WORKING_NOTES.md, "The game code as read"; README, "The unneeded code"). Offsets below are the
+// object's; the Container part's methods see them 0x20 lower.
 
 #include "Node.h"
 #include "Physics.h"
@@ -23,8 +24,11 @@ class ParticlePool;
 }
 
 class Hud;
-class Level;
 class Obstacle;
+
+// Where a new ball (or word) appears: above the field, where the spawn button's blossom opens
+const float SPAWN_X = 470.0f;
+const float SPAWN_Y = -26.0f;
 
 // The game's modes (+0xd4)
 enum
@@ -63,7 +67,7 @@ public:
 	bool keyDown(int theKey) override;  // 0x416400
 	bool keyUp(int theKey) override { return false; }  // 0x411ab0
 
-	// 0x4135c0: the 105 balls, all gone
+	// 0x4135c0: the balls (BALL_CAPACITY of them), all gone
 	void makeBalls();
 	// 0x4113f0: a ball's images from its flags
 	void setupBall(Ball* theBall);
@@ -85,8 +89,6 @@ public:
 	void saveState(SavedGame* theGame);
 	// 0x4199d0: the same taken from a saved game, after startLevel
 	void loadState(SavedGame* theGame);
-	// 0x412080: the nearest obstacle within 23 pixels, or null
-	Obstacle* findObstacle(const engine::Point& thePoint);
 	// 0x412920: the chain's balls freed from it, and the chain deleted
 	void removeChain(Chain* theChain);
 	// 0x412b30: a ball picked into the word (theB: its +0xb0)
@@ -97,7 +99,7 @@ public:
 	void pickAll();
 	// 0x4137b0
 	void addHud();
-	// 0x413860: a ball at (x, y), or -1 when all 105 are in play
+	// 0x413860: a ball at (x, y), or -1 when all of them are in play
 	int spawn(float x, float y, char theLetter, unsigned int theFlags, bool theQuiet);
 	// 0x4140d0: a ball at the top
 	int spawnLetter(char theLetter, bool theQuiet);
@@ -152,7 +154,6 @@ public:
 	                                            // unset until the first; the port starts it at 0)
 	Bounds* mBounds;                            // +0xdc
 	Rope* mRope;                                // +0xe0: the mouse's rope on the grabbed ball
-	Follow* mFollow;                            // +0xe4: the editor's drag
 	std::vector<Chain*> mChains;                // +0xe8
 	std::vector<Obstacle*>* mObstacles;         // +0xf8: the level's
 	float mStepTime;                            // +0xfc: time not yet stepped
@@ -172,7 +173,7 @@ public:
 	std::vector<BallGroup*> mRows;              // +0x164
 	std::vector<BallGroup*> mColumns;           // +0x174
 	std::vector<BallGroup*> mFreeGroups;        // +0x184
-	bool m194;                                  // +0x194: set while words are scored (a submit, the puzzles);
+	bool mScoring;                              // +0x194: set while words are scored (a submit, the puzzles);
 	                                            // otherwise a word found only lights its balls
 	Hud* mHud;                                  // +0x198: the mode's
 	Hud* mSolitaireHud;                         // +0x19c
@@ -188,13 +189,10 @@ public:
 	engine::Image* mWater[4];                   // +0x1c8
 	float mWaveTime;                            // +0x1d8
 	std::vector<std::string> mHints;            // +0x1e0
-	bool m1F0;                                  // +0x1f0: set by a submit, so the hints are looked for again
+	bool mHintsStale;                           // +0x1f0: set by a submit, so the hints are looked for again
 	                                            // once the balls are done
 	unsigned int mHintIndex;                    // +0x1f4
-	bool mEditor;                               // +0x1f8: never set in this build
-	int m1FC;                                   // +0x1fc
-	Level* mLevelBackup;                        // +0x200: the editor's
-	std::vector<std::string> m204;              // +0x204
+	std::vector<std::string> mLongWordsRewarded;  // +0x204: the long words that earned a wildcard
 
 protected:
 	void onMouseDown(engine::Point& p) override;  // 0x80: 0x412120

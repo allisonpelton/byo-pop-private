@@ -17,7 +17,7 @@ python $T/toorig.py $P/port.txt -1 > $P/orig.txt
 # the first shot: the first move after the title's click and the menu's five (Let's Play the last)
 START=$(awk '$2 == "click" {n++} n == 6 && $2 == "move" {print $1; exit}' $P/port.txt)
 SEED=10
-room() { until python tools/gamecount.py --limit 6 > /dev/null; do sleep 20; done; }
+room() { until python -I tools/gamecount.py --limit 6 > /dev/null; do sleep 20; done; }
 log() { echo "$(date +%H:%M:%S) $*" >> $P/perf_all.log; }
 rm -f $P/perf_all.done $P/perf_all.log
 log "minute from update $START"

@@ -1,8 +1,8 @@
 #ifndef __BONNIES_HIGHSCORES_H__
 #define __BONNIES_HIGHSCORES_H__
 
-// The high scores (0x40cd90-0x40d160, 0xf4 bytes, the object 0x476ad0): two tables of five, the timed game's and the
-// other's, in Data/HighScores.dat.
+// The high scores (0x40cd90-0x40d160, 0xf4 bytes, the object 0x476ad0): two tables of five, table 0 Classic's (the
+// untimed game) and table 1 Action's (the timed one), in Data/HighScores.dat. Every value is a score in points.
 
 #include "Str.h"
 

@@ -7,7 +7,7 @@
 //                         timer (Action's fire timer), fire (Classic's fire meter), bonus, over, busy and the board
 //                         (its state, the letters and tile types by row, the selection)
 //   goto <screen>         menu (the game selector), options, help, highscores (the Hall of Fame), credits, classic or
-//                         action (that mode through the selector's own SelectGameMode: the continue question when a
+//                         action (that mode through the selector's own TryConfirmLoad: the continue question when a
 //                         game is saved). title is an error once it is gone
 //   level <n>             level n of the game being played, from level n - 1's threshold through the game's own NextLevel
 //   unlock all            ERROR: nothing in the game is locked
@@ -140,8 +140,6 @@ const char* DialogName(int theId)
 	{
 	case DIALOG_OPTIONS: return "options";
 	case DIALOG_CONTINUE: return "continue";
-	case DIALOG_OPENING_BROWSER: return "browser";
-	case DIALOG_URL_FAILED: return "url";
 	case DIALOG_QUIT: return "quit";
 	case DIALOG_HINT: return "hint";
 	case DIALOG_CREDITS: return "credits";
@@ -195,7 +193,7 @@ bool IsOver(BookWormApp* theApp)
 		(theApp->mFameWidget == NULL);
 }
 
-std::string BoardJson(BookWormApp* theApp, Board* b)
+std::string BoardJson(BookWormApp* theApp, Board* theBoard)
 {
 	std::string aLetters, aTypes;
 	for (int aRow = 0; aRow < BOARD_ROWS; aRow++)
@@ -203,7 +201,7 @@ std::string BoardJson(BookWormApp* theApp, Board* b)
 		std::string aLetterRow, aTypeRow;
 		for (int aCol = 0; aCol < BOARD_COLS; aCol++)
 		{
-			Piece* p = b->mBoard[aRow][aCol];
+			Piece* p = theBoard->mBoard[aRow][aCol];
 			aLetterRow += ((p != NULL) && (p->mLetter >= 'A') && (p->mLetter <= 'Z')) ? (char)p->mLetter : '.';
 			aTypeRow += (p == NULL) ? '.' : (char)('0' + p->mType);
 		}
@@ -211,42 +209,42 @@ std::string BoardJson(BookWormApp* theApp, Board* b)
 		aTypes += std::string(aRow ? "," : "") + Quote(aTypeRow);
 	}
 	std::string aSelection;
-	for (PieceList::iterator anItr = b->mSelection.begin(); anItr != b->mSelection.end(); ++anItr)
+	for (PieceList::iterator anItr = theBoard->mSelection.begin(); anItr != theBoard->mSelection.end(); ++anItr)
 		aSelection += (char)(*anItr)->mLetter;
-	return std::string("{\"state\":") + Quote(BoardStateName(b->mState)) + ",\"busy\":" +
-		Bool(!BoardTakesInput(theApp, b)) + ",\"letters\":[" + aLetters + "],\"types\":[" + aTypes + "],\"selection\":" +
+	return std::string("{\"state\":") + Quote(BoardStateName(theBoard->mState)) + ",\"busy\":" +
+		Bool(!BoardTakesInput(theApp, theBoard)) + ",\"letters\":[" + aLetters + "],\"types\":[" + aTypes + "],\"selection\":" +
 		Quote(aSelection) + "}";
 }
 
 std::string StateJson(BookWormApp* theApp)
 {
-	Board* b = theApp->mBoard;
+	Board* aBoard = theApp->mBoard;
 	std::string s = std::string("{\"screen\":") + Quote(ScreenName(theApp));
 	s += ",\"dialog\":" + (theApp->mDialogMap.empty() ? std::string("null") :
 		Quote(DialogName(theApp->mDialogMap.begin()->first)));
 	s += ",\"mode\":" + Quote((theApp->mGameMode == GAMEMODE_ACTION) ? "action" : "classic");
 	s += ",\"player\":" + Quote(theApp->mUserManager != NULL ? theApp->mUserManager->GetCurrentUserName() : "");
-	if (b != NULL)
+	if (aBoard != NULL)
 	{
-		s += ",\"level\":" + Num(b->mLevel + 1) + ",\"score\":" + Num(b->mGameStats->mScore) + ",\"timer\":" +
-			Num(b->mActionFireTimer);
+		s += ",\"level\":" + Num(aBoard->mLevel + 1) + ",\"score\":" + Num(aBoard->mGameStats->mScore) + ",\"timer\":" +
+			Num(aBoard->mActionFireTimer);
 		char aFire[32];
-		sprintf(aFire, "%.3f", b->mFireMeter);
-		s += std::string(",\"fire\":") + aFire + ",\"bonus\":" + Quote(b->mBonusWord) + ",\"board\":" + BoardJson(theApp, b);
+		sprintf(aFire, "%.3f", aBoard->mFireMeter);
+		s += std::string(",\"fire\":") + aFire + ",\"bonus\":" + Quote(aBoard->mBonusWord) + ",\"board\":" + BoardJson(theApp, aBoard);
 	}
 	s += ",\"over\":" + Bool(IsOver(theApp));
-	s += ",\"busy\":" + Bool((b != NULL) && (theApp->mGameSelector == NULL) && (theApp->mDialogMap.empty()) &&
-		(theApp->mHelpWidget == NULL) && (theApp->mFameWidget == NULL) && (!BoardTakesInput(theApp, b)));
+	s += ",\"busy\":" + Bool((aBoard != NULL) && (theApp->mGameSelector == NULL) && (theApp->mDialogMap.empty()) &&
+		(theApp->mHelpWidget == NULL) && (theApp->mFameWidget == NULL) && (!BoardTakesInput(theApp, aBoard)));
 	return s + "}";
 }
 
 // The game lost as the game loses it: a bottom-row tile turned to fire (and in Action the fire countdown run out),
 // then the game's own fire scan, which starts the shake, the burn-down, the jingle and the summary
-void LoseGame(BookWormApp* theApp, Board* b)
+void LoseGame(BookWormApp* theApp, Board* theBoard)
 {
 	for (int aCol = 0; aCol < BOARD_COLS; aCol++)
 	{
-		Piece* aPiece = b->mBoard[7][aCol];
+		Piece* aPiece = theBoard->mBoard[7][aCol];
 		if ((aPiece != NULL) && (!aPiece->mSelected))
 		{
 			aPiece->mType = TILE_FIRE;
@@ -254,8 +252,8 @@ void LoseGame(BookWormApp* theApp, Board* b)
 		}
 	}
 	if (theApp->mGameMode == GAMEMODE_ACTION)
-		b->mActionCountdown = -1;
-	b->BurnTiles(false);
+		theBoard->mActionCountdown = -1;
+	theBoard->BurnTiles(false);
 }
 
 std::string MoveJson(const std::string& theWhat, const std::string& theInput, int theUpdates, const std::string& theExtra = "")
@@ -331,21 +329,21 @@ std::string NextMove(BookWormApp* theApp)
 		return "";
 	}
 
-	Board* b = theApp->mBoard;
-	if (b == NULL)
+	Board* aBoard = theApp->mBoard;
+	if (aBoard == NULL)
 		return "";
 
-	LevelUpWidget* aSummary = b->mLevelUpWidget;
-	if ((b->mSummaryShown) && (aSummary != NULL))
+	LevelUpWidget* aSummary = aBoard->mLevelUpWidget;
+	if ((aBoard->mSummaryShown) && (aSummary != NULL))
 	{
 		if ((aSummary->mFalling) || (aSummary->mSlide != 1.0))
 			return "";
 		if (Reachable(theApp, aSummary->mContinueButton, &x, &y))
-			return MoveJson((b->mState == BOARD_GAMEOVER) ? "gameover" : "summary", ClickStep(x, y), 30);
+			return MoveJson((aBoard->mState == BOARD_GAMEOVER) ? "gameover" : "summary", ClickStep(x, y), 30);
 		return "";
 	}
 
-	if (!BoardTakesInput(theApp, b))
+	if (!BoardTakesInput(theApp, aBoard))
 		return "";
 
 	// a selection left over: cleared first by a right click is not a click the driver sends; the solver's hint
@@ -353,31 +351,31 @@ std::string NextMove(BookWormApp* theApp)
 	if ((gLoseAfterWords > 0) && (gWordsMoved >= gLoseAfterWords))
 	{
 		gLoseAfterWords = 0;
-		LoseGame(theApp, b);
+		LoseGame(theApp, aBoard);
 		return MoveJson("lose", "{\"wait\":1}", 1);
 	}
 
 	SolverWord aHint;
-	if (Solver::FirstHint(b, &aHint))
+	if (Solver::FirstHint(aBoard, &aHint))
 	{
 		gWordsMoved++;
-		Point aBoardPos = b->GetAbsPos();
+		Point aBoardPos = aBoard->GetAbsPos();
 		std::string anInput;
 		for (size_t i = 0; i < aHint.mPath.size(); i++)
 		{
 			Piece* p = aHint.mPath[i];
-			int aTileX = aBoardPos.mX + b->ColX(p->mCol) + 28;
-			int aTileY = aBoardPos.mY + b->RowY(p->mCol, p->mRow) + 28;
+			int aTileX = aBoardPos.mX + aBoard->ColX(p->mCol) + 28;
+			int aTileY = aBoardPos.mY + aBoard->RowY(p->mCol, p->mRow) + 28;
 			anInput += std::string(i ? "," : "") + ClickStep(aTileX, aTileY);
 		}
 		// submitted with the Submit button, or when something covers it (a definition balloon) by a second click
 		// on the word's last tile, which submits too
-		if (Reachable(theApp, b->mSubmitButton, &x, &y))
+		if (Reachable(theApp, aBoard->mSubmitButton, &x, &y))
 			anInput += "," + ClickStep(x, y);
 		else
 		{
 			Piece* aLast = aHint.mPath.back();
-			anInput += "," + ClickStep(aBoardPos.mX + b->ColX(aLast->mCol) + 28, aBoardPos.mY + b->RowY(aLast->mCol, aLast->mRow) + 28);
+			anInput += "," + ClickStep(aBoardPos.mX + aBoard->ColX(aLast->mCol) + 28, aBoardPos.mY + aBoard->RowY(aLast->mCol, aLast->mRow) + 28);
 		}
 		static const char* const KINDS[] = { "fire", "bonus", "best", "longest", "cashin" };
 		std::string anExtra = ",\"word\":" + Quote(aHint.mWord) + ",\"score\":" + Num(aHint.mScore) + ",\"kind\":" +
@@ -386,7 +384,7 @@ std::string NextMove(BookWormApp* theApp)
 	}
 
 	// no word on the board: Lex scrambles it
-	if ((b->mLex != NULL) && (!b->mLex->IsMoving()) && (Reachable(theApp, b->mLex, &x, &y)))
+	if ((aBoard->mLex != NULL) && (!aBoard->mLex->IsMoving()) && (Reachable(theApp, aBoard->mLex, &x, &y)))
 		return MoveJson("scramble", ClickStep(x, y), 30);
 	return "";
 }
@@ -456,20 +454,20 @@ bool BookWormApp::HandleScriptCommand(const ScriptCommand& theCommand)
 			return true;
 		}
 		if (anArg == "menu")
-			ShowGameSelector();
+			DoGameSelector();
 		else if (anArg == "options")
-			ShowOptions();
+			DoOptions();
 		else if (anArg == "help")
-			ShowHelp();
+			DoHelp();
 		else if (anArg == "highscores")
-			ShowHallOfFame();
+			DoFameWidget();
 		else if (anArg == "credits")
-			ShowCredits();
+			DoCredits();
 		else if ((anArg == "classic") || (anArg == "action"))
 		{
 			if (mGameSelector == NULL)
-				ShowGameSelector();
-			SelectGameMode((anArg == "action") ? GAMEMODE_ACTION : GAMEMODE_CLASSIC);
+				DoGameSelector();
+			TryConfirmLoad((anArg == "action") ? GAMEMODE_ACTION : GAMEMODE_CLASSIC);
 		}
 		else
 		{
@@ -509,7 +507,7 @@ bool BookWormApp::HandleScriptCommand(const ScriptCommand& theCommand)
 	if (aName == "set")
 	{
 		int anInt = 0;
-		Board* b = mBoard;
+		Board* aBoard = mBoard;
 		if (anArg == "mode")
 		{
 			if ((aValue != "classic") && (aValue != "action"))
@@ -528,46 +526,46 @@ bool BookWormApp::HandleScriptCommand(const ScriptCommand& theCommand)
 			Error(aLine, "set <name> <number>");
 			return true;
 		}
-		if ((b = PlayingBoard(this, aLine)) == NULL)
+		if ((aBoard = PlayingBoard(this, aLine)) == NULL)
 			return true;
 		if (anArg == "score")
 		{
 			// the level's score follows, so the level bar and the level's end see it as a word's points
-			int aPrevThreshold = (b->mLevel != 0) ? Board::LevelThreshold((unsigned int)b->mLevel - 1) : 0;
-			b->mGameStats->mScore = anInt;
-			b->mLevelStats->mScore = anInt - aPrevThreshold;
+			int aPrevThreshold = (aBoard->mLevel != 0) ? Board::GetPointsAtLevel((unsigned int)aBoard->mLevel - 1) : 0;
+			aBoard->mGameStats->mScore = anInt;
+			aBoard->mLevelStats->mScore = anInt - aPrevThreshold;
 		}
 		else if (anArg == "timer")
-			b->mActionFireTimer = anInt;
+			aBoard->mActionFireTimer = anInt;
 		else if (anArg == "fire")
-			b->mFireMeter = (double) anInt;
+			aBoard->mFireMeter = (double) anInt;
 		else
 		{
 			Error(aLine, "no value " + anArg + " (score, timer, fire, mode)");
 			return true;
 		}
-		b->MarkDirty();
+		aBoard->MarkDirty();
 		Ok(aLine);
 		return true;
 	}
 
 	if (aName == "win")
 	{
-		Board* b = PlayingBoard(this, aLine);
-		if (b == NULL)
+		Board* aBoard = PlayingBoard(this, aLine);
+		if (aBoard == NULL)
 			return true;
 		// the level's threshold reached, as Submit does when a word reaches it
-		int aPrevThreshold = (b->mLevel != 0) ? Board::LevelThreshold((unsigned int)b->mLevel - 1) : 0;
-		int aThreshold = Board::LevelThreshold((unsigned int)b->mLevel);
-		if (b->mGameStats->mScore < aThreshold)
+		int aPrevThreshold = (aBoard->mLevel != 0) ? Board::GetPointsAtLevel((unsigned int)aBoard->mLevel - 1) : 0;
+		int aThreshold = Board::GetPointsAtLevel((unsigned int)aBoard->mLevel);
+		if (aBoard->mGameStats->mScore < aThreshold)
 		{
-			b->mGameStats->mScore = aThreshold;
-			b->mLevelStats->mScore = aThreshold - aPrevThreshold;
+			aBoard->mGameStats->mScore = aThreshold;
+			aBoard->mLevelStats->mScore = aThreshold - aPrevThreshold;
 		}
-		b->mLevelProgress = (double)b->mLevelStats->mScore / (double)(aThreshold - aPrevThreshold);
-		b->mOverlay->mBalloon->Show(0);
-		b->mState = BOARD_LEVEL_COMPLETE;
-		b->mLevelUpPending = true;
+		aBoard->mLevelProgress = (double)aBoard->mLevelStats->mScore / (double)(aThreshold - aPrevThreshold);
+		aBoard->mOverlay->mBalloon->Show(0);
+		aBoard->mState = BOARD_LEVEL_COMPLETE;
+		aBoard->mLevelUpPending = true;
 		Ok(aLine);
 		return true;
 	}
@@ -603,21 +601,21 @@ bool BookWormApp::HandleScriptCommand(const ScriptCommand& theCommand)
 			Error(aLine, "level <1..42>");
 			return true;
 		}
-		Board* b = PlayingBoard(this, aLine);
-		if (b == NULL)
+		Board* aBoard = PlayingBoard(this, aLine);
+		if (aBoard == NULL)
 			return true;
-		if (aLevel <= b->mLevel + 1)
+		if (aLevel <= aBoard->mLevel + 1)
 		{
-			if (aLevel == b->mLevel + 1)
+			if (aLevel == aBoard->mLevel + 1)
 				Ok(aLine);
 			else
 				Error(aLine, "the game is past level " + anArg);
 			return true;
 		}
 		// level aLevel - 1 just completed: its threshold scored, then the game's own NextLevel (LevelUp)
-		b->mLevel = aLevel - 2;
-		b->mGameStats->mScore = Board::LevelThreshold((unsigned int)b->mLevel);
-		b->NextLevel();
+		aBoard->mLevel = aLevel - 2;
+		aBoard->mGameStats->mScore = Board::GetPointsAtLevel((unsigned int)aBoard->mLevel);
+		aBoard->NextLevel();
 		Ok(aLine);
 		return true;
 	}

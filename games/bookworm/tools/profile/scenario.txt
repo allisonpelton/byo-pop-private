@@ -1,0 +1,280 @@
+# update 1: -autoplay=1 -seed=1 -autoplaymode=classic -autoplaycap=8000: the bot's input as a -script file
+# update 23: click the title's play link
+624 click 386 384
+# update 58: new-user dialog: typing the name "Autoplay Bot"
+659 char A
+659 char u
+659 char t
+659 char o
+659 char p
+659 char l
+659 char a
+659 char y
+659 char SPACE
+659 char B
+659 char o
+659 char t
+659 key RETURN
+# update 129: click the classic button
+730 click 485 89
+# update 130: new board: classic
+# update 130: board: ? -> playing, level 1, score 0, 0 fire tiles
+# update 210: click the help screen's continue
+811 click 314 444
+# update 302: plan 1: WAS (short of 311 words, 0 fire tiles in it) by drag
+931 down 611 192
+933 move 577 196
+936 move 536 211
+939 move 541 187
+944 move 544 165
+948 up 558 159
+# update 348: word 1: WAS scored 270 (the word 270), total 270, level 1, 0 fire tiles
+# update 391: plan 2: random path LNU (drag)
+1030 down 249 121
+1033 move 288 144
+1035 move 316 152
+1038 move 322 132
+1043 move 324 90
+1047 up 321 97
+# update 447: LNU not taken (the selection stays)
+1100 rclick 264 133
+# update 500: plan 3: RED (short of 336 words, 0 fire tiles in it) by drag
+1136 down 421 26
+1137 move 448 44
+1140 move 500 65
+1141 move 526 46
+1144 move 545 35
+1147 up 551 46
+# update 547: word 2: RED scored 210 (the word 210), total 480, level 1, 0 fire tiles
+# update 586: plan 4: FLUNKING (long of 317 words, 0 fire tiles in it) by drag
+1204 down 260 68
+1209 move 254 121
+1212 move 297 104
+1217 move 323 106
+1220 move 322 135
+1225 move 304 157
+1231 move 332 219
+1236 move 384 230
+1239 move 401 238
+1244 move 444 274
+1245 move 459 277
+1249 move 494 301
+1253 up 496 303
+# update 653: word 3: FLUNKING scored 2000 (the word 2000), total 2480, level 1, 0 fire tiles
+# update 705: plan 5: ZOO (short of 270 words, 0 fire tiles in it) by drag
+1333 down 615 304
+1334 move 611 269
+1336 move 600 225
+1338 move 581 224
+1341 move 550 209
+1343 up 552 198
+# update 743: word 4: ZOO scored 390 (the word 390), total 2870, level 1, 0 fire tiles
+# update 790: plan 6: TODIES (long of 279 words, 0 fire tiles in it) by submit button
+1441 click 534 379
+1453 click 610 362
+1467 click 541 311
+1472 click 498 300
+1478 click 428 274
+1493 click 374 238
+# update 911: click the Submit button
+1512 click 69 112
+# update 912: word 5: TODIES scored 600 (the word 600), total 3470, level 1, 0 fire tiles
+# update 912: board: playing -> level complete, level 1, score 3470, 0 fire tiles
+# update 1280: level 1 complete (classic): score 3470, 5 words
+# update 1343: click the level summary's continue
+1944 click 359 424
+# update 1344: board: level complete -> playing, level 2, score 3470, 0 fire tiles
+# update 1344: level up: now level 2
+# update 1344: plan 7: PIG (short of 262 words, 0 fire tiles in it) by submit button
+1997 click 446 164
+2003 click 375 131
+2016 click 318 139
+# update 1424: click the Submit button
+2025 click 82 111
+# update 1425: word 6: PIG scored 300 (the word 300), total 3770, level 2, 0 fire tiles
+# update 1458: plan 8: BIOSCOPE (long of 269 words, 0 fire tiles in it) by submit button
+2094 click 325 278
+2100 click 363 246
+2111 click 317 208
+2126 click 379 191
+2141 click 374 131
+2145 click 305 148
+2150 click 311 105
+2161 click 253 54
+# update 1575: click the Submit button
+2176 click 93 121
+# update 1576: word 7: BIOSCOPE scored 1520 (the word 1520), total 5290, level 2, 0 fire tiles
+# update 1637: plan 9: FARINAS (long of 228 words, 0 fire tiles in it) by submit button
+2270 click 500 308
+2284 click 536 266
+2288 click 559 336
+2299 click 608 354
+2312 click 554 383
+2320 click 605 404
+2334 click 548 425
+# update 1749: click the Submit button
+2350 click 158 120
+# update 1750: word 8: FARINAS scored 2100 (the word 2100), total 7390, level 2, 0 fire tiles
+# update 1750: board: playing -> level complete, level 2, score 7390, 0 fire tiles
+# update 2117: level 2 complete (classic): score 7390, 8 words
+# update 2165: click the level summary's continue
+2766 click 385 426
+# update 2166: board: level complete -> playing, level 3, score 7390, 0 fire tiles
+# update 2166: level up: now level 3
+# update 2166: plan 10: LOATH (long of 208 words, 0 fire tiles in it) by click the last tile again
+2810 click 608 228
+2825 click 546 224
+2829 click 555 149
+2842 click 476 182
+# update 2273: click the OK of dialog 15 (BONUS TILE!)
+2874 click 395 253
+2875 click 433 161
+2888 click 436 140
+# update 2288: word 9: LOATH scored 980 (the word 980), total 8370, level 3, 0 fire tiles
+# update 2329: plan 11: ALB (short of 174 words, 0 fire tiles in it) by click the last tile again
+2982 click 256 352
+2990 click 306 320
+3002 click 378 307
+3011 click 383 293
+# update 2411: word 10: ALB scored 300 (the word 300), total 8670, level 3, 0 fire tiles
+# update 2449: plan 12: OHO (short of 174 words, 0 fire tiles in it) by click the last tile again
+3108 click 386 78
+3119 click 369 139
+3126 click 438 163
+3145 click 440 167
+# update 2545: word 11: OHO scored 300 (the word 300), total 8970, level 3, 0 fire tiles
+# update 2591: plan 13: TIMELIEST (long of 204 words, 0 fire tiles in it) by click the last tile again
+3237 click 383 226
+3247 click 444 206
+3258 click 380 176
+3264 click 443 148
+3278 click 388 126
+3291 click 322 152
+3299 click 324 84
+3307 click 326 50
+3319 click 375 73
+3338 click 368 57
+# update 2738: word 12: TIMELIEST scored 1620 (the word 1620), total 10590, level 3, 0 fire tiles
+# update 2807: plan 14: DISTIL (long of 176 words, 0 fire tiles in it) by submit button
+3459 click 426 30
+3474 click 486 62
+3487 click 443 94
+3498 click 487 135
+3506 click 549 151
+3521 click 555 86
+# update 2934: click the Submit button
+3535 click 112 113
+# update 2935: word 13: DISTIL scored 1040 (the word 1040), total 11630, level 3, 0 fire tiles
+# update 2983: plan 15: PASTED (long of 155 words, 0 fire tiles in it) by drag
+3633 down 312 277
+3636 move 271 299
+3638 move 330 332
+3640 move 328 354
+3646 move 324 378
+3650 move 258 340
+3655 move 264 406
+3657 up 269 420
+# update 3057: word 14: PASTED scored 1500 (the word 1500), total 13130, level 3, 0 fire tiles
+# update 3057: board: playing -> level complete, level 3, score 13130, 0 fire tiles
+# update 3419: level 3 complete (classic): score 13130, 14 words
+# update 3450: click the level summary's continue
+4051 click 444 411
+# update 3451: board: level complete -> playing, level 4, score 13130, 0 fire tiles
+# update 3451: level up: now level 4
+# update 3451: plan 16: SEE (short of 211 words, 0 fire tiles in it) by click the last tile again
+4102 click 548 144
+4116 click 501 127
+4124 click 476 182
+4141 click 492 180
+# update 3541: word 15: SEE scored 490 (the word 490), total 13620, level 4, 0 fire tiles
+# update 3585: plan 17: VIE (short of 221 words, 0 fire tiles in it) by click the last tile again
+4232 click 607 127
+4239 click 551 148
+4249 click 559 217
+4258 click 550 213
+# update 3658: word 16: VIE scored 330 (the word 330), total 13950, level 4, 0 fire tiles
+# update 3707: plan 18: scramble (238 words on the board, 0 fire tiles)
+# update 3763: click Lex (scramble)
+4364 click 118 320
+# update 3764: scramble: the letters flip, 1 fire tiles, 1 scrambles this game
+# update 3764: board: playing -> scrambling, level 4, score 13950, 1 fire tiles
+# update 3863: board: scrambling -> playing, level 4, score 13950, 1 fire tiles
+# update 3863: plan 19: DOT (the bonus word of 358 words, 0 fire tiles in it) by click the last tile again
+4527 click 559 379
+4532 click 532 338
+4538 click 592 358
+4553 click 594 359
+# update 3953: word 17: DOT scored 1300 (the word 300), total 15250, level 4, 1 fire tiles
+# update 4002: click the OK of dialog 15 (WARNING!)
+4603 click 500 265
+# update 4103: plan 20: KAE (short of 302 words, 0 fire tiles in it) by drag
+4766 down 270 423
+4767 move 260 391
+4771 move 275 347
+4774 move 295 323
+4779 move 325 337
+4780 up 319 324
+# update 4180: word 18: KAE scored 390 (the word 390), total 15640, level 4, 1 fire tiles
+# update 4252: click the OK of dialog 15 (WATCH OUT!)
+4853 click 411 322
+# update 4350: plan 21: DON (short of 271 words, 0 fire tiles in it) by drag
+4986 down 544 26
+4991 move 499 74
+4993 move 428 101
+4994 up 438 102
+# update 4394: word 19: DON scored 300 (the word 300), total 15940, level 4, 1 fire tiles
+# update 4502: plan 22: DAL (short of 249 words, 0 fire tiles in it) by submit button
+5167 click 476 118
+5181 click 419 163
+5195 click 446 204
+# update 4618: click the Submit button
+5219 click 140 123
+# update 4619: word 20: DAL scored 300 (the word 300), total 16240, level 4, 1 fire tiles
+# update 4728: plan 23: GOA (short of 221 words, 0 fire tiles in it) by drag
+5384 down 488 125
+5387 move 471 134
+5391 move 424 167
+5397 move 436 223
+5399 up 426 205
+# update 4799: word 21: GOA scored 270 (the word 270), total 16510, level 4, 1 fire tiles
+# update 4911: plan 24: random path OHE (click the last tile again)
+5546 click 427 158
+5558 click 374 174
+5570 click 322 167
+5577 click 319 145
+# update 4977: OHE not taken (the selection stays)
+5629 rclick 431 144
+# update 5029: plan 25: RHO (the bonus word of 282 words, 0 fire tiles in it) by drag
+5661 down 419 206
+5665 move 386 186
+5670 move 429 147
+5672 up 434 152
+# update 5072: word 22: RHO scored 2360 (the word 360), total 18870, level 4, 1 fire tiles
+# update 5072: board: playing -> level complete, level 4, score 18870, 1 fire tiles
+# update 5420: level 4 complete (classic): score 18870, 22 words
+# update 5454: click the level summary's continue
+6055 click 337 415
+# update 5455: board: level complete -> playing, level 5, score 18870, 1 fire tiles
+# update 5455: level up: now level 5
+# update 5455: plan 26: RAP (short of 312 words, 0 fire tiles in it) by click the last tile again
+# update 5542: click the OK of dialog 15 (FIRE ALERT!)
+6143 click 423 293
+6144 click 377 57
+6157 click 421 97
+6165 click 442 157
+6184 click 431 146
+# update 5584: word 23: RAP scored 360 (the word 360), total 19230, level 5, 1 fire tiles
+# update 5584: board: playing -> game over pending, level 5, score 19230, 1 fire tiles
+# update 5584: game over: a fire tile burned through the bottom
+# update 5688: board: game over pending -> game over, level 5, score 19230, 1 fire tiles
+# update 5870: board: game over -> game over music, level 5, score 19230, 1 fire tiles
+# update 5871: board: game over music -> game over, level 5, score 19230, 1 fire tiles
+# update 6051: game over summary (classic): score 19230, level 5, 23 words, 100 letters, best word FARINAS (2100), longest TIMELIEST, 6 tiles burned, 1 scrambles, 2 bonus words
+# update 6105: click the game-over summary's continue
+6706 click 419 418
+# update 6256: hall of fame, classic table: 1. Autoplay Bot 19230 (new); 2. WordPig 5000; 3. senhen 4500; 4. OrCuS 4000; 5. GravyTrain 3500; 6. Tuco 3000; 7. BrennXOr 2500; 8. Ally 2000; 9. Zelda 1500; 10. greenman 1000;
+# update 6309: click the Hall of Fame's continue
+6910 click 271 447
+# update 6310: board: game over -> inactive, level 5, score 19230, 1 fire tiles
+# update 6360: back on the game selector after 1 game(s): quitting in 100 updates
+7060 quit

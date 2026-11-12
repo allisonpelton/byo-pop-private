@@ -67,9 +67,8 @@ FossilizedApp::FossilizedApp()
 	// bytes after the strings in a saved game are the same from run to run
 	memset(mSaveMode, 0, sizeof(mSaveMode));
 	memset(mSaveName, 0, sizeof(mSaveName));
-	mField1090 = 0;
+	mChosenPack = 0;
 	mLockCursor = false;
-	mField4d8 = 0;
 	mPackFile[0] = 0;
 	mPuzzleSkills = 0;
 	mBoard = NULL;
@@ -120,6 +119,11 @@ DDImage* FossilizedApp::GetGameImage(const std::string& thePath)
 void FossilizedApp::Init()
 {
 	SexyApp::Init();
+	// port: the original's screen is one DirectDraw surface that keeps what the last frame drew, and while the museum
+	// comes up the fossil board draws only the museum (0x408bf0), so the board's last picture ("Cleared!" and its bonus)
+	// stays above it until the museum covers it. The framework's screen starts every frame from black unless kept.
+	if (mDDInterface != NULL)
+		mDDInterface->mKeepScreen = true;
 	// port: SexyApp::Init seeds the C library generator with the tick count, and the constructor seeds the app's
 	// own two with it; -seed=N makes a test run repeatable
 	CrtSRand(mHasSeedParam ? (unsigned int) mRandSeed : (unsigned int) GetTickCount());
@@ -147,7 +151,6 @@ void FossilizedApp::Init()
 	mSndEgglands = new GameSound(this, "sounds\\egglands");
 	mPicDialog = new Pic(this, "images\\dialog", false);
 	mPicDbutton = new Pic(this, "images\\dbutton", false);
-	mPicWaitbar = new Pic(this, "images\\waitbar", false);
 	mTinyFont = NULL;
 	mTitleScreen = new TitleScreen(this);
 	mTitleScreen->Resize(0, 0, mWidth, mHeight);
@@ -186,7 +189,8 @@ void FossilizedApp::TitleScreenDone()
 	ShowMainMenu();
 }
 
-// the window's rectangle has its frame, so in a window its middle lies above the game's by half the title bar
+// port: split out of the main menu's 0x42af50 and 0x424d10, which do it inline. The window's rectangle has its
+// frame, so in a window its middle lies above the game's by half the title bar
 void FossilizedApp::WarpToBoard()
 {
 	int aTop = 0;
@@ -253,7 +257,7 @@ void FossilizedApp::MenuButton()
 	}
 	if (mBoard != NULL)
 	{
-		if (mBoard->mField131 == true)
+		if (mBoard->mGameOver == true)
 		{
 			ShowMainMenu();
 			return;
@@ -433,7 +437,7 @@ void FossilizedApp::ReadFromRegistry()
 	if (RegistryReadInteger("GameType", &aValue))
 		mGameMode = aValue;
 	if (RegistryReadInteger("StompedLevel", &aValue))
-		mField1090 = aValue;
+		mChosenPack = aValue;
 	std::string aName;
 	if (RegistryReadString("LastScoreName", &aName))
 		mLastScoreName = aName;
@@ -447,8 +451,8 @@ void FossilizedApp::WriteToRegistry()
 	RegistryWriteInteger("FossilGameType", mFossilKind);
 	RegistryWriteInteger("SkillLevel", mSkill);
 	RegistryWriteInteger("GameType", mGameMode);
-	RegistryWriteInteger("StompedLevel", mField1090);
-	RegistryWriteInteger("StompedLevel", mField1090);
+	RegistryWriteInteger("StompedLevel", mChosenPack);
+	RegistryWriteInteger("StompedLevel", mChosenPack);
 	if (mLastScoreName.length() != 0)
 		RegistryWriteString("LastScoreName", mLastScoreName);
 }
@@ -604,14 +608,14 @@ void FossilizedApp::ButtonDepress(int theId)
 	}
 }
 
-// 0x419040
+// 0x419040: the tutorial in place of the main menu (the board, if any, is taken down but its pointer kept)
 void FossilizedApp::StartTutorial()
 {
-	if (mTutor != NULL)
+	if (mIntroScreen != NULL)
 	{
-		mWidgetManager->RemoveWidget(mTutor);
-		SafeDeleteWidget(mTutor);
-		mTutor = NULL;
+		mWidgetManager->RemoveWidget(mIntroScreen);
+		SafeDeleteWidget(mIntroScreen);
+		mIntroScreen = NULL;
 	}
 	if (mBoard != NULL)
 	{
@@ -635,17 +639,6 @@ void FossilizedApp::LoadSavedGame(const char* theFile)
 		mBoard->SkipSaveHeader();
 		mBoard->Load();
 		mBoard->CloseSaveFile();
-	}
-}
-
-// port: the loading runs in the main thread, so the loader draws the title screen now and then
-void FossilizedApp::PumpLoading()
-{
-	if (mTitleScreen != NULL)
-	{
-		mTitleScreen->mProgress = GetLoadingThreadProgress();
-		mTitleScreen->MarkDirty();
-		DrawDirtyStuff();
 	}
 }
 

@@ -132,6 +132,7 @@ int MatchTexts(const std::vector<uint8_t>& theData, const PEImage& theImage,
 
 }
 
+// port: the texts the original has in its exe, read from the user's Dynomite.exe by address
 bool Sexy::LoadGameTexts()
 {
 	std::map<unsigned int, SexyString>& aTexts = Texts();
@@ -186,6 +187,7 @@ bool Sexy::LoadGameTexts()
 	return aMatched > 0;
 }
 
+// port: one of those texts by its address in the exe
 const SexyString& Sexy::GameText(unsigned int theVA)
 {
 	static const SexyString sEmpty;

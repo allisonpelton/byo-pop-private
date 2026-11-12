@@ -55,6 +55,10 @@ bool UiBotParams::Parse(const std::string& theName, const std::string& theValue)
 		mStart = atoi(theValue.c_str());
 	else if (theName == "-uistop")
 		mStop = atoi(theValue.c_str());
+	else if (theName == "-uihold")
+		mHold = atoi(theValue.c_str());
+	else if (theName == "-uipassive")
+		mPassive = atoi(theValue.c_str());
 	else if (theName == "-uicontinue")
 		mContinue = atoi(theValue.c_str());
 	else if (theName == "-uiname")

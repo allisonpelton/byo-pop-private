@@ -405,9 +405,11 @@
   // The built-in driver ?driver=move (docs/TEST_COMMANDS.md, "The bot behind move"): plays the game by the port's own bot. Each
   // step asks for the state and the move and sends the move as real input. It stops when the state says "over", on MOVE null twice
   // running while the state is not busy (a busy game, state.busy, is waited for), an ERROR, or after ?steps= moves (2000 by default). Returns { moves, stop, state, updates, errors }.
+  // ?begin=mode (the screen saver, web/saver.js): a game still on its title or menus, which has no move there, is started once in
+  // the mode its state names (goto <mode>, docs/TEST_COMMANDS.md), as the native loop's --first does
   test.playByMove = function (opts) {
     var limit = (opts && opts.steps) || Number(params.get("steps")) || 2000;
-    var moves = 0, nulls = 0, busy = 0, st = null;
+    var moves = 0, nulls = 0, busy = 0, st = null, begun = params.get("begin") !== "mode";
     function step() {
       return test.state().then(function (s) {
         st = s;
@@ -417,7 +419,11 @@
           if (m === null) {
             // a game that is busy (a board clearing, a piece falling: state.busy) has no move until it is done
             if (s && (s.busy || (s.board && s.board.busy))) { if (++busy > 20000) return "busy"; return test.wait(5).then(step); }
-            if (++nulls >= 2) return "no move";
+            if (++nulls >= 2) {
+              if (begun || !s || !s.mode) return "no move";
+              begun = true; nulls = 0;
+              return test.command("goto " + s.mode).then(function () { return test.wait(30); }).then(step);
+            }
             return test.wait(30).then(step);
           }
           nulls = 0;

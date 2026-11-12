@@ -68,6 +68,13 @@ describes each of them; this section says what differs here.
   the Dynasty Adventure to the ending by real SDL events (16.0 minutes of real time), two classic games, the focus lost and
   regained, Quit; and again in full screen. The web driver (`mahjongjapan/tools/web/realplay.js`, taken by the China page
   too) plays the same through the DOM's events.
+  The sound effects also go, in the framework's sound log form (`framework/SDLSoundManager.h`: a line a `load`, `play`,
+  `stop` or `volume` with the update it happened in, 5 ms an update here), to the file named by `BYOPOP_SOUNDLOG`, for the
+  site's soundboard presets (`tools/soundpreset.py --ms 5`): a sample is named `Resource <id>`, its WAVE resource in
+  Resource.dll, and plays at 0 dB with no pan and no pitch, as BASS plays it. The tour run under it
+  (`BYOPOP_SOUNDLOG=<file> build/native/rundesk.exe python games/mahjongjapan/tools/realplay/drive.py <out> --game
+  china`) stamps each line of its `drive.log` with the update, so a stretch of the sound log is found by the step that
+  made it.
 
 ## Performance (2026-11-09)
 

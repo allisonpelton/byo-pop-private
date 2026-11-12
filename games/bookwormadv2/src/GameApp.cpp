@@ -225,8 +225,6 @@ void GameApp::UpdateFrames()
 	// (the original's music interface did this in its Update, the end of SexyAppBase::UpdateFrames)
 	if (mSongPlayer != nullptr)
 		mSongPlayer->Update();
-	// port: every 100 updates the original checked the trial's limits of its marketing modes (an hour's play,
-	// or the Hydra); the port is the full game
 	if (mCountsTime) {
 		mAppTime++;
 		mUserUpdates++;
@@ -250,8 +248,6 @@ void GameApp::Shutdown()
 		SafeDeleteWidget(mBoard);
 		mBoard = nullptr;
 	}
-	// port: the original, in the trial's marketing modes, also asked its trial window whether to show the "buy"
-	// screen here
 	LuaApp::Shutdown();
 }
 
@@ -279,8 +275,6 @@ void GameApp::GotFocus()
 		if (aBook->mMediaPlayer && aBook->mFlash != nullptr)
 			aBook->mFlash->Unpause();
 	}
-	// port: the original also went on with the trial's "buy" screen (the app's +0x8a4) here, and in two of the
-	// trial's marketing modes asked its trial window whether to leave the game; the port is the full game
 	if (mCreditsCount == 0) {
 		if (mBoard != nullptr)
 			StopUpdating(mBoard, false);
@@ -310,7 +304,6 @@ void GameApp::LostFocus()
 		if (aBook->mMediaPlayer && aBook->mFlash != nullptr)
 			aBook->mFlash->Pause();
 	}
-	// port: the original also stopped the trial's "buy" screen (the app's +0x8a4) here
 	if (mCreditsCount == 0) {
 		if (mBoard != nullptr)
 			StopUpdating(mBoard, true);
@@ -479,10 +472,6 @@ void GameApp::ButtonDepress(int theId)
 		case DIALOG_NO_WINDOWED:  // the options' message
 			KillDialog(DIALOG_NO_WINDOWED);
 			break;
-		case DIALOG_NEW_PROFILE:  // the trial's "new profile?": the players' dialog
-			KillDialog(DIALOG_NEW_PROFILE);
-			mMainMenu->ShowUserDialog();
-			break;
 		case DIALOG_CONTINUE_GAME:  // the arena's saved run
 			mMainMenu->ContinueArena(true);
 			KillDialog(DIALOG_CONTINUE_GAME);
@@ -498,11 +487,6 @@ void GameApp::ButtonDepress(int theId)
 				ResumeSavedReplayGame();
 			else
 				StartNewGameTransition();
-			break;
-		case DIALOG_TRIAL_COMPLETE:  // "buy now"
-			// port: the original asked the trial's window (V1:0x44fdb0) and went on to its buy screen (V1:0x451c20); the
-			// port has no trial, so this dialog is never made
-			KillDialog(DIALOG_TRIAL_COMPLETE);
 			break;
 		default:
 			SDL_Log("GameApp: the answer %d to dialog %d is not ported yet", theId, aDialogId);
@@ -528,10 +512,6 @@ void GameApp::ButtonDepress(int theId)
 			// a new run (the original killed the dialog here and again below)
 			mProfile->ResetTimedMode();
 			StartNewGameTransition();
-		} else if (aDialogId == DIALOG_TRIAL_COMPLETE) {
-			// port: the original went back to the main menu unless the trial's window (V1:0x44fdb0) said the game was
-			// bought; the port has none
-			StartToMenuTransition();
 		} else if (aDialogId == DIALOG_CONTINUE_ADVENTURE) {
 			// a new replay: the BookSelectScreen (the original killed the dialog first, and again below)
 			KillDialog(DIALOG_CONTINUE_ADVENTURE);
@@ -553,13 +533,13 @@ void GameApp::ButtonDepress(int theId)
 	} else {
 		switch (theId) {
 		case BookManager::BUTTON_BACK:
-			if (mBookManager != nullptr && !mQueuedHydraLockout && mBookManager->mState == BookManager::STATE_NORMAL)
+			if (mBookManager != nullptr && mBookManager->mState == BookManager::STATE_NORMAL)
 				StartToMenuTransition();
 			else if (mBookSelectScreen != nullptr)  // the replay's book list: back to the main menu
 				StartToMenuTransition();
 			break;
 		case BookManager::BUTTON_CONTINUE:  // (the BookSelectScreen's options button has this id too)
-			if (mBookManager != nullptr && !mQueuedHydraLockout && mBookManager->mState == BookManager::STATE_NORMAL &&
+			if (mBookManager != nullptr && mBookManager->mState == BookManager::STATE_NORMAL &&
 			    mBookManager->IsContinueEnabled() && mBookManager->CallLinkedMethod("CanClickContinue", 0).Bool()) {
 				// the tutorial's arrows hear a click at the corner (the whole-screen hot spot) and go
 				if (mArrowHintManager != nullptr) {
@@ -568,20 +548,17 @@ void GameApp::ButtonDepress(int theId)
 				}
 				mBookManager->CallLinkedMethod("ContinueButtonPressed", 0);
 				mBookManager->DisableContinueButton();
-			} else if (mBookSelectScreen != nullptr && !mQueuedHydraLockout)
+			} else if (mBookSelectScreen != nullptr)
 				ShowGameMenu(false);
 			break;
 		case BookManager::BUTTON_OPTIONS:  // (the BookSelectScreen's begin button has this id too)
 		case TreasureScreen::BUTTON_OPTIONS:
 			if (mBookManager != nullptr || theId == TreasureScreen::BUTTON_OPTIONS) {
-				if (!mQueuedHydraLockout)
-					ShowGameMenu(theId == TreasureScreen::BUTTON_OPTIONS);
+				ShowGameMenu(theId == TreasureScreen::BUTTON_OPTIONS);
 			} else if (mBookSelectScreen != nullptr)
 				StartReplayOfSelectedBook();
 			break;
 		case TreasureScreen::BUTTON_BACK:
-			if (mQueuedHydraLockout)
-				break;
 			if (mTimedMode)
 				StartToMenuTransition();
 			else

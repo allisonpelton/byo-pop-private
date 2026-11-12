@@ -20,22 +20,7 @@
 
 using namespace Sexy;
 
-// The records are the original's raw struct bytes (little-endian ints and doubles, bools as one byte).
-// A bool is read through a byte so that any non-zero byte is true, as the original's tests treat it.
-static void ReadBool(FILE* theFile, bool* theValue)
-{
-	unsigned char aByte = 0;
-	if (fread(&aByte, 1, 1, theFile) == 1)
-		*theValue = (aByte != 0);
-}
-
-static void WriteBool(FILE* theFile, bool theValue)
-{
-	unsigned char aByte = theValue ? 1 : 0;
-	fwrite(&aByte, 1, 1, theFile);
-}
-
-// The 2004 MTRand::SRand(const std::string&): the 624 state words when the string has exactly that size
+// port: The 2004 MTRand::SRand(const std::string&): the 624 state words when the string has exactly that size
 // (the generator's index is kept, as the port's SRand does), else SRand(4357), whose 1.2 seeding the
 // port's SRand(4357) would not reproduce.
 static void RestoreMTRand2004(MTRand* theRand, const std::string& theState)
@@ -79,23 +64,6 @@ void Effect::Update()
 	mUpdateCnt++;
 }
 
-// 0x41e8d0 slot 5
-// The type word, then the base fields. EffectMgr::Load reads the type to create the object.
-void Effect::Save(FILE* theFile)
-{
-	int aType = GetType();
-	fwrite(&aType, 1, 4, theFile);
-	fwrite(&mUpdateCnt, 1, 4, theFile);
-	WriteBool(theFile, mDead);
-}
-
-// 0x41e920 slot 6
-void Effect::Load(FILE* theFile)
-{
-	fread(&mUpdateCnt, 1, 4, theFile);
-	ReadBool(theFile, &mDead);
-}
-
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Sparkle
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -110,7 +78,6 @@ Sparkle::Sparkle(EffectMgr* theEffectMgr) :
 	mVY = 0.0;
 	mGravity = 0.0;
 	mDelay = 0;
-	mUnknown3c = false;
 	mFrame = 0;
 	mImage = IMAGE_SPARKLE_LARGE;
 }
@@ -167,36 +134,6 @@ void Sparkle::Draw(Graphics* g)
 	aSparkleG.SetDrawMode(Graphics::DRAWMODE_NORMAL);
 }
 
-// 0x41eb00 slot 5
-void Sparkle::Save(FILE* theFile)
-{
-	Effect::Save(theFile);
-	fwrite(&mX, 1, 8, theFile);
-	fwrite(&mY, 1, 8, theFile);
-	fwrite(&mVX, 1, 8, theFile);
-	fwrite(&mVY, 1, 8, theFile);
-	fwrite(&mGravity, 1, 8, theFile);
-	fwrite(&mDelay, 1, 4, theFile);
-	WriteBool(theFile, mUnknown3c);
-	fwrite(&mImage, 1, 4, theFile);
-	fwrite(&mFrame, 1, 4, theFile);
-}
-
-// 0x41eba0 slot 6
-void Sparkle::Load(FILE* theFile)
-{
-	Effect::Load(theFile);
-	fread(&mX, 1, 8, theFile);
-	fread(&mY, 1, 8, theFile);
-	fread(&mVX, 1, 8, theFile);
-	fread(&mVY, 1, 8, theFile);
-	fread(&mGravity, 1, 8, theFile);
-	fread(&mDelay, 1, 4, theFile);
-	ReadBool(theFile, &mUnknown3c);
-	fread(&mImage, 1, 4, theFile);
-	fread(&mFrame, 1, 4, theFile);
-}
-
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
 // FlyingPieceList
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -244,7 +181,7 @@ void FlyingPieceList::Update()
 	if (mPieces.size() == 0)
 	{
 		mDead = true;
-		aLex->PlayAnim(LEXANIM_EAT_END, false);
+		aLex->PlayAnimSeq(LEXANIM_EAT_END, false);
 		return;
 	}
 
@@ -252,7 +189,7 @@ void FlyingPieceList::Update()
 
 	Piece* aFirstPiece = mPieces.front();
 	if ((aFirstPiece != NULL) && (aFirstPiece->mX < 233.0) && (!aLex->IsBusy() || (aLex->mAnim == LEXANIM_SWEAT)))
-		aLex->PlayAnim(LEXANIM_EAT, false);
+		aLex->PlayAnimSeq(LEXANIM_EAT, false);
 
 	Piece* aPrevPiece = NULL;
 	std::list<Piece*>::iterator anItr = mPieces.begin();
@@ -351,7 +288,7 @@ void FlyingPieceList::Update()
 				Sparkle* aSparkle = new Sparkle(mEffectMgr);
 				aSparkle->mX = ((double)(mEffectMgr->mRand->Next() % 57) + aPiece->mX) - 28.0;
 				aSparkle->mY = ((double)(mEffectMgr->mRand->Next() % 57) + aPiece->mY) - 28.0;
-				mEffectMgr->AddEffect(aSparkle);
+				mEffectMgr->Add(aSparkle);
 			}
 			++anItr;
 		}
@@ -416,45 +353,6 @@ void FlyingPieceList::Draw(Graphics* g)
 	}
 }
 
-// 0x41fee0 slot 5
-// Effect fields, the piece count, per piece a presence byte and the 191-byte Piece record, mLastChompCnt.
-void FlyingPieceList::Save(FILE* theFile)
-{
-	Effect::Save(theFile);
-
-	int aCount = (int)mPieces.size();
-	fwrite(&aCount, 1, 4, theFile);
-	for (std::list<Piece*>::iterator anItr = mPieces.begin(); anItr != mPieces.end(); ++anItr)
-	{
-		Piece* aPiece = *anItr;
-		WriteBool(theFile, aPiece != NULL);
-		if (aPiece != NULL)
-			aPiece->Save(theFile);
-	}
-	fwrite(&mLastChompCnt, 1, 4, theFile);
-}
-
-// 0x4209f0 slot 6
-void FlyingPieceList::Load(FILE* theFile)
-{
-	Effect::Load(theFile);
-
-	int aCount = 0;
-	fread(&aCount, 1, 4, theFile);
-	for (int i = 0; i < aCount; i++)
-	{
-		bool isPresent = false;
-		ReadBool(theFile, &isPresent);
-		if (isPresent)
-		{
-			Piece* aPiece = new Piece();
-			aPiece->Load(theFile);
-			mPieces.push_back(aPiece);
-		}
-	}
-	fread(&mLastChompCnt, 1, 4, theFile);
-}
-
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
 // EffectMgr
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -476,11 +374,11 @@ EffectMgr::~EffectMgr()
 {
 	if (mRand != NULL)
 		delete mRand;
-	Clear();
+	EraseAll();
 }
 
 // 0x41f930
-void EffectMgr::Clear()
+void EffectMgr::EraseAll()
 {
 	std::list<Effect*>::iterator anItr = mEffects.begin();
 	while (anItr != mEffects.end())
@@ -524,13 +422,13 @@ void EffectMgr::Draw(Graphics* g)
 }
 
 // 0x4207f0
-void EffectMgr::AddEffect(Effect* theEffect)
+void EffectMgr::Add(Effect* theEffect)
 {
 	mEffects.push_back(theEffect);
 }
 
 // 0x41fa50
-bool EffectMgr::HasEffectOfType(int theType)
+bool EffectMgr::CheckByType(int theType)
 {
 	if (mEffects.size() != 0)
 	{
@@ -562,8 +460,9 @@ std::list<Effect*>* EffectMgr::GetEffectsOfType(int theType)
 }
 
 // 0x41faa0
-// The RNG state (MTRand::Serialize: length, then the 624 words without the index), the effect count, per
-// effect a presence byte and, for Sparkle and FlyingPieceList, the effect's record (type word first).
+// The RNG state (MTRand::Serialize: length, then the 624 words without the index), then the effect count.
+// The original writes a presence byte and a record for each effect after the count; Board::SaveGame has
+// cleared every effect by then, so the count is 0 and no record follows (port: the effects have no save code).
 void EffectMgr::Save(FILE* theFile)
 {
 	std::string aState = mRand->Serialize();
@@ -571,24 +470,14 @@ void EffectMgr::Save(FILE* theFile)
 	fwrite(&aLength, 1, 4, theFile);
 	fwrite(aState.data(), 1, aLength, theFile);
 
-	unsigned int aCount = (unsigned int)mEffects.size();
+	unsigned int aCount = 0;
 	fwrite(&aCount, 1, 4, theFile);
-	for (std::list<Effect*>::iterator anItr = mEffects.begin(); anItr != mEffects.end(); ++anItr)
-	{
-		Effect* anEffect = *anItr;
-		WriteBool(theFile, anEffect != NULL);
-		if (anEffect != NULL)
-		{
-			int aType = anEffect->GetType();
-			if ((aType >= 0) && (aType < 2))
-				anEffect->Save(theFile);
-		}
-	}
 }
 
 // 0x420b70
-// Restores the RNG words (the generator's index is kept) and appends the saved effects; a record of
-// another type is skipped without reading its data (cannot happen). Callers Clear() first.
+// Restores the RNG words (the generator's index is kept) and reads the effect count. A file the game wrote has
+// 0 there and no records (see Save); the original reads a record for each effect, the port has no code to
+// read one. Callers EraseAll() first.
 void EffectMgr::Load(FILE* theFile)
 {
 	unsigned int aLength = 0;
@@ -600,30 +489,6 @@ void EffectMgr::Load(FILE* theFile)
 
 	unsigned int aCount = 0;
 	fread(&aCount, 1, 4, theFile);
-	for (int i = 0; i < (int)aCount; i++)
-	{
-		bool isPresent = false;
-		ReadBool(theFile, &isPresent);
-		if (isPresent)
-		{
-			int aType = 0;
-			fread(&aType, 1, 4, theFile);
-			if (aType == EFFECT_SPARKLE)
-			{
-				Sparkle* aSparkle = new Sparkle(this);
-				aSparkle->Load(theFile);
-				aSparkle->mEffectMgr = this;
-				mEffects.push_back(aSparkle);
-			}
-			else if (aType == EFFECT_FLYING_PIECES)
-			{
-				FlyingPieceList* aFlyingPieces = new FlyingPieceList(this, NULL);
-				aFlyingPieces->Load(theFile);
-				aFlyingPieces->mEffectMgr = this;
-				mEffects.push_back(aFlyingPieces);
-			}
-		}
-	}
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -851,52 +716,6 @@ void Ember::Draw(Graphics* g)
 	}
 }
 
-// 0x41f0a0
-// 78 bytes (the EmberListMgr record adds a presence byte): mNumFrames is written before mFrame.
-void Ember::Save(FILE* theFile)
-{
-	fwrite(&mUpdateCnt, 1, 4, theFile);
-	WriteBool(theFile, mDead);
-	fwrite(&mX, 1, 8, theFile);
-	fwrite(&mY, 1, 8, theFile);
-	fwrite(&mVX, 1, 8, theFile);
-	fwrite(&mVY, 1, 8, theFile);
-	fwrite(&mGravity, 1, 8, theFile);
-	fwrite(&mAlpha, 1, 8, theFile);
-	fwrite(&mAlphaDecay, 1, 8, theFile);
-	fwrite(&mDelay, 1, 4, theFile);
-	WriteBool(theFile, mLoop);
-	fwrite(&mNumFrames, 1, 4, theFile);
-	fwrite(&mFrame, 1, 4, theFile);
-	fwrite(&mType, 1, 4, theFile);
-}
-
-// 0x41f180
-// Original bug: the first two fields (mUpdateCnt, mDead: 5 bytes) are passed to fwrite instead of fread.
-// On the "rb" stream the MSVC 7 CRT's fwrite copies over the unread part of the 4096-byte read buffer, so
-// normally the 5 bytes are skipped and the two fields keep their Reset values (0, false). port: the 5
-// bytes are read and dropped. Not reproduced: when fewer than 5 unread bytes remain in the CRT buffer
-// (the record starts within 5 bytes of a 4096-byte boundary of the file), the original skips only those
-// and the rest of the game file is read out of step (board_draw.md open question 2).
-void Ember::Load(FILE* theFile)
-{
-	unsigned char aSkipped[5];
-	fread(aSkipped, 1, 5, theFile);
-
-	fread(&mX, 1, 8, theFile);
-	fread(&mY, 1, 8, theFile);
-	fread(&mVX, 1, 8, theFile);
-	fread(&mVY, 1, 8, theFile);
-	fread(&mGravity, 1, 8, theFile);
-	fread(&mAlpha, 1, 8, theFile);
-	fread(&mAlphaDecay, 1, 8, theFile);
-	fread(&mDelay, 1, 4, theFile);
-	ReadBool(theFile, &mLoop);
-	fread(&mNumFrames, 1, 4, theFile);
-	fread(&mFrame, 1, 4, theFile);
-	fread(&mType, 1, 4, theFile);
-}
-
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
 // EmberListMgr
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -917,7 +736,7 @@ EmberListMgr::EmberListMgr(BookWormApp* theApp, int thePoolSize)
 // 0x4203a0 (body), 0x420520 (scalar deleting destructor, slot 0)
 EmberListMgr::~EmberListMgr()
 {
-	Clear();
+	DestroyAll();
 	if (mRand != NULL)
 		delete mRand;
 	mApp = NULL;
@@ -926,7 +745,7 @@ EmberListMgr::~EmberListMgr()
 // 0x4202d0
 // Deletes the active embers, then the pool (front to back); both vectors end up empty, so new embers
 // are allocated afterwards until dead ones refill the pool.
-void EmberListMgr::Clear()
+void EmberListMgr::DestroyAll()
 {
 	while (mEmbers.size() != 0)
 	{
@@ -1016,8 +835,9 @@ void EmberListMgr::Draw(Graphics* g)
 }
 
 // 0x41ff80
-// The RNG state as in EffectMgr::Save, the active count, per ember a presence byte and its record.
-// The pool is not saved.
+// The RNG state as in EffectMgr::Save, then the count of active embers. The original writes a presence byte and
+// a record for each ember after the count; Board::SaveGame has cleared the embers by then, so the count is 0 and
+// no record follows (port: the embers have no save code). The pool is not saved.
 void EmberListMgr::Save(FILE* theFile)
 {
 	std::string aState = mRand->Serialize();
@@ -1025,20 +845,14 @@ void EmberListMgr::Save(FILE* theFile)
 	fwrite(&aLength, 1, 4, theFile);
 	fwrite(aState.data(), 1, aLength, theFile);
 
-	int aCount = (int)mEmbers.size();
+	int aCount = 0;
 	fwrite(&aCount, 1, 4, theFile);
-	for (std::vector<Ember*>::iterator anItr = mEmbers.begin(); anItr != mEmbers.end(); ++anItr)
-	{
-		Ember* anEmber = *anItr;
-		WriteBool(theFile, anEmber != NULL);
-		if (anEmber != NULL)
-			anEmber->Save(theFile);
-	}
 }
 
 // 0x420e70
-// Callers Clear() first: the original frees the active vector's buffer here without deleting the embers
-// in it (port: the same, the vector is emptied).
+// Restores the RNG words and reads the ember count, as EffectMgr::Load does (a file the game wrote has 0
+// there). Callers DestroyAll() first: the original frees the active vector's buffer here without deleting the
+// embers in it (port: the same, the vector is emptied).
 void EmberListMgr::Load(FILE* theFile)
 {
 	unsigned int aLength = 0;
@@ -1052,17 +866,6 @@ void EmberListMgr::Load(FILE* theFile)
 
 	int aCount = 0;
 	fread(&aCount, 1, 4, theFile);
-	for (int i = 0; i < aCount; i++)
-	{
-		bool isPresent = false;
-		ReadBool(theFile, &isPresent);
-		if (isPresent)
-		{
-			Ember* anEmber = new Ember(this);
-			anEmber->Load(theFile);
-			mEmbers.push_back(anEmber);
-		}
-	}
 }
 
 // 0x4216e0 MapTableIndex not ported: only FameWidget's internet high-score code calls it (NAMES.md 1.3).

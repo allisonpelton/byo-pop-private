@@ -243,7 +243,7 @@ html.d95-desk.game-loading, html.d95-desk.game-loading * { cursor: url("data:ima
 /* the desktop never scrolls; its windows scroll their own contents (the user, 2026-11-08: "The whole window shouldn't be
    scrollable, either") */
 html.d95-desk, html.d95-desk body { overflow: hidden; overscroll-behavior: none; }
-html.d95-desk body { display: block; position: relative; height: 100vh; height: 100dvh; min-height: 0; margin: 0; padding: 0; box-sizing: border-box; }
+html.d95-desk body { display: block; position: relative; height: calc(100vh / var(--d95-z, 1)); height: calc(100dvh / var(--d95-z, 1)); min-height: 0; margin: 0; padding: 0; box-sizing: border-box; }
 html.d95-desk .d95-win { overflow: auto; }
 html.d95-desk .d95-win.d95-has-body { display: flex; flex-direction: column; overflow: hidden; }
 html.d95-desk .d95-has-body > .d95-tb { flex: none; }
@@ -387,18 +387,18 @@ html.d95-desk .d95-x::before, html.d95-desk .d95-x::after { content: ""; positio
   background: currentColor; transform: rotate(45deg); }
 html.d95-desk .d95-x::after { transform: rotate(-45deg); }
 /* the controls: the page's bar, its buttons wrapping in a window no wider than the screen */
-html.d95-desk .bar.d95-win { width: min(760px, calc(100vw - 150px)); gap: 8px; }
+html.d95-desk .bar.d95-win { width: min(760px, calc(calc(100vw / var(--d95-z, 1)) - 150px)); gap: 8px; }
 html.d95-desk .bar.d95-win:not(#\#) { padding: 2px 8px 8px; }
 html.d95-desk .bar.d95-win:not(#\#) > .d95-tb { flex: 1 0 100%; margin: 0 -6px 0; }
 /* the game: its stage exactly the size sizeStage gives it, no margin, no shadow */
 html.d95-desk .stage-wrap.d95-win { display: block; place-items: normal; width: max-content; }
 html.d95-desk .stage-wrap .stage { box-shadow: none; max-width: none; }
 /* the chat: a fixed size, whatever room the page has beside the game (chat.js's chat-below has no part here) */
-html.d95-desk .chat.d95-win { width: 300px; height: 480px; max-height: calc(100vh - 60px); }
+html.d95-desk .chat.d95-win { width: 300px; height: 480px; max-height: calc(calc(100vh / var(--d95-z, 1)) - 60px); }
 html.d95-desk .chat.d95-win.chat-collapsed { height: auto; }
 html.d95-desk .chat.d95-win h2 button { margin: 0; }
 /* the panels: windows at the right, as high as their contents */
-html.d95-desk .panel.d95-win { width: min(440px, calc(100vw - 32px)); bottom: auto; right: auto; max-height: calc(100vh - 80px); overflow: hidden; }
+html.d95-desk .panel.d95-win { width: min(440px, calc(calc(100vw / var(--d95-z, 1)) - 32px)); bottom: auto; right: auto; max-height: calc(calc(100vh / var(--d95-z, 1)) - 80px); overflow: hidden; }
 html.d95-desk .panel.d95-win:not(#\#) > header { padding: 0 2px 0 4px; }
 /* a panel's Close on its title bar is the same X close box as every window's (its word stays its accessible name) */
 html.d95-desk .panel.d95-win:not(#\#) > header > [data-close] { width: 16px; height: 14px; min-height: 0; padding: 0; flex: none; position: relative;
@@ -410,7 +410,7 @@ html.d95-desk .panel.d95-win:not(#\#) > header > [data-close]:active::before, ht
 html.d95-desk .panel.d95-win > .body { min-height: 0; }
 /* the listing: the games in one window and the page's notes in another, the logo on the desktop clear of the icons */
 html.d95-desk .site-header { margin-left: max(100px, calc((100% - 960px) / 2)); }
-html.d95-desk main.d95-win { width: min(960px, calc(100vw - 140px)); margin: 0; }
+html.d95-desk main.d95-win { width: min(960px, calc(calc(100vw / var(--d95-z, 1)) - 140px)); margin: 0; }
 html.d95-desk main.d95-win .d95-body { padding: 10px 13px 16px; }
 /* only the tiles scroll (the user, 2026-11-09: "The sort options in the all games window should always be visible. Only the tiles
    should scroll"): the toolbar, the panels it opens and the Jungle Juice link stay put, and the list scrolls in their midst with
@@ -419,16 +419,16 @@ html.d95-desk main.d95-win .d95-body.d95-body { display: flex; flex-direction: c
 html.d95-desk main.d95-win .d95-body.d95-body + .d95-vbar { display: none; }
 html.d95-desk main.d95-win .d95-body > :not(.d95-client) { flex: none; }
 html.d95-desk main.d95-win .d95-body > .d95-client { flex: 1 1 auto; min-height: 80px; margin-bottom: 8px; }
-html.d95-desk body > footer.d95-win { width: min(640px, calc(100vw - 140px)); color: var(--fg); }
+html.d95-desk body > footer.d95-win { width: min(640px, calc(calc(100vw / var(--d95-z, 1)) - 140px)); color: var(--fg); }
 html.d95-desk body > footer.d95-win .d95-body { padding: 4px 9px 6px; }
 /* the listing's tabs as windows of their own: no tab strip, every tab's window drawn however the tabs stood */
 html.d95-desk .tabs { display: none; }
-html.d95-desk .tabpanel.d95-win { width: min(600px, calc(100vw - 140px)); }
+html.d95-desk .tabpanel.d95-win { width: min(600px, calc(calc(100vw / var(--d95-z, 1)) - 140px)); }
 html.d95-desk .tabpanel.d95-win[hidden]:not(.d95-closed) { display: flex; }
 html.d95-desk .tabpanel.d95-win .d95-body { padding: 8px 12px 12px; }
 html.d95-desk .tabpanel.d95-win:focus-visible { outline: 1px dotted var(--sk-dk); outline-offset: -1px; }
 /* a game page's footer (the copyright line, "Full terms") in its About window on the desktop */
-html.d95-desk .d95-about { display: flex; width: min(520px, calc(100vw - 140px)); color: var(--fg); }
+html.d95-desk .d95-about { display: flex; width: min(520px, calc(calc(100vw / var(--d95-z, 1)) - 140px)); color: var(--fg); }
 html.d95-desk .d95-about .byopop-footer { display: block; border: 0; background: transparent; color: var(--fg); padding: 8px 10px; font-size: 13px; }
 html.d95-desk .d95-about .byopop-footer p { margin: 0 0 8px; }
 /* The task bar along the desktop's bottom edge (web/skins.js, makeTaskbar): the Pop button, a button for each open window,
@@ -462,7 +462,7 @@ html.d95-desk .d95-band { flex: none; width: 24px; background: var(--sk-band); c
   display: flex; align-items: flex-end; justify-content: center; padding: 6px 0; }
 html.d95-desk .d95-band > span { writing-mode: vertical-rl; transform: rotate(180deg); font-weight: bold; font-size: 17px; letter-spacing: .04em; }
 html.d95-desk .d95-items { display: flex; flex-direction: column; min-width: 170px; padding: 1px 0; }
-html.d95-desk .d95-sub { flex-direction: column; min-width: 190px; bottom: auto; max-height: calc(100vh - 40px); overflow: auto; }
+html.d95-desk .d95-sub { flex-direction: column; min-width: 190px; bottom: auto; max-height: calc(calc(100vh / var(--d95-z, 1)) - 40px); overflow: auto; }
 html.d95-desk .d95-item { display: flex; align-items: center; min-height: 26px; padding: 2px 22px 2px 10px; box-sizing: border-box; border: 0;
   background: transparent; box-shadow: none; color: var(--fg); text-decoration: none; text-align: left; font: inherit; white-space: nowrap; position: relative; }
 html.d95-desk .d95-taskbar .d95-item { height: auto; min-height: 24px; padding: 2px 22px 2px 10px; gap: 0; }
@@ -477,7 +477,7 @@ html.d95-desk .d95-rule { height: 0; margin: 3px 2px; border-top: 1px solid var(
 /* the desktop icons: a picture drawn here (a little window, its title bar the window's own colour) and a name under it */
 /* in columns down the left, a new column when one is full (the favourites' icons follow the windows') */
 html.d95-desk .d95-icons { display: grid; grid-auto-flow: column; grid-template-rows: repeat(auto-fill, 64px); grid-auto-columns: 84px; gap: 0 4px;
-  position: absolute; left: 8px; top: 12px; height: calc(100vh - 56px); height: calc(100dvh - 56px); z-index: 1; }
+  position: absolute; left: 8px; top: 12px; height: calc(calc(100vh / var(--d95-z, 1)) - 56px); height: calc(calc(100dvh / var(--d95-z, 1)) - 56px); z-index: 1; }
 html.d95-desk .d95-icon { align-content: start; }
 html.d95-desk .d95-icon { display: grid; justify-items: center; gap: 4px; padding: 4px 2px; background: transparent; box-shadow: none;
   color: var(--sk-desk-fg); font-size: 12px; text-align: center; }
@@ -599,7 +599,7 @@ html.d95-desk .bps-icon-pic, html.d95-desk .bps-icon-pic svg { display: block; w
 html.d95-desk .bps-icon-name { padding: 0 2px; line-height: 1.25; }
 html.d95-desk .bps-icon:focus { outline: 0; }
 html.d95-desk .bps-icon:focus .bps-icon-name { background: var(--accent); color: var(--accent-fg); outline: 1px dotted #ffff00; }
-html.d95-desk .bps-sec.d95-win { width: min(440px, calc(100vw - 140px)); }
+html.d95-desk .bps-sec.d95-win { width: min(440px, calc(calc(100vw / var(--d95-z, 1)) - 140px)); }
 html.d95-desk .bps-sec.d95-win[hidden]:not(.d95-closed) { display: flex; }
 html.d95-desk .bps-sec.d95-win .d95-body { padding: 8px 12px 12px; display: grid; gap: 8px; align-content: start; }
 html.d95-desk .bps-sec.d95-win .bps-group { display: none; }
@@ -612,6 +612,8 @@ html.d95-desk header.bar { display: none; }
 html.d95-desk .stage-wrap.d95-win .d95-statusbar { display: flex; gap: 2px; margin-top: 2px; font-size: 12px; }
 html.d95-desk .d95-statusbar > * { flex: 1 1 auto; min-width: 0; padding: 1px 4px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
   box-shadow: inset 1px 1px var(--sk-lo), inset -1px -1px var(--sk-hi); color: var(--fg); }
+/* the speed (while not normal) and the window's scale: panes as wide as their values (web/controls.js, speedCell) */
+html.d95-desk .d95-statusbar > :is(.d95-speed, .d95-scale) { flex: none; }
 /* the maximize button: a window drawn in the small button */
 html.d95-desk .d95-mx { width: 16px; height: 14px; padding: 0; flex: none; position: relative; margin-right: -4px; }
 html.d95-desk .d95-mx::after { content: ""; position: absolute; left: 3px; top: 2px; width: 7px; height: 6px; border: 1px solid var(--sk-dk); border-top-width: 2px; }
@@ -630,7 +632,7 @@ html.d95-desk .stage:fullscreen > canvas#canvas { flex: none; width: var(--fs-w,
 /* the same in a game's window on the one page, whose frame is in full screen (web/shell.html, frameFull): the stage alone over
    the window's menu and status bars */
 html.fs-frame.d95-desk .stage { position: fixed !important; inset: 0 !important; z-index: 2147483647; margin: 0 !important; border: 0 !important;
-  width: 100vw !important; height: 100vh !important; aspect-ratio: auto !important; max-width: none !important; max-height: none !important;
+  width: calc(100vw / var(--d95-z, 1)) !important; height: calc(100vh / var(--d95-z, 1)) !important; aspect-ratio: auto !important; max-width: none !important; max-height: none !important;
   background: #000000 !important; display: flex !important; align-items: center;
   justify-content: center; }
 html.fs-frame.d95-desk .stage > canvas#canvas:focus-visible { outline: none; }
@@ -668,7 +670,7 @@ img { -webkit-user-drag: none; }
    terms, the settings' explanations */
 :root[data-skin="d95"] body { -webkit-user-select: none; user-select: none; }
 :root[data-skin="d95"] :is(input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=button]):not([type=submit]), textarea,
-  [contenteditable], .bpc-log, .terms, .byopop-footer, body > footer, .bps-hint, .bps-pop, .bps-about, .bps-msg, .card p, .wiz-card p,
+  [contenteditable], .bpc-log, .terms, .byopop-footer, body > footer, .bps-hint, .bps-pop, .bps-msg, .card p, .wiz-card p,
   .page-notes, .notes, .game-notes, article) { -webkit-user-select: text; user-select: text; }
 :root[data-skin="d95"] :is(.d95-tb, .d95-icon, .bps-icon, button, label) { -webkit-user-select: none; user-select: none; }
 
@@ -712,13 +714,13 @@ html.d95-desk .d95-menubar-item:not(#\#)[aria-expanded=true], html.d95-desk .d95
 html.d95-desk .d95-menubar-item:not(#\#):hover { background: var(--accent); color: #ffffff; }
 html.d95-desk .d95-menubar-item u { text-decoration-thickness: 1px; text-underline-offset: 2px; }
 /* a game's window maximized (web/deskapps.js maximize): the desktop above the task bar */
-html.d95-desk .d95-app.d95-maxed:not(.d95-closed):not(.d95-min) { left: 0 !important; top: 0 !important; width: 100vw !important;
-  height: calc(100dvh - 28px) !important; max-width: none !important; max-height: none !important; }
+html.d95-desk .d95-app.d95-maxed:not(.d95-closed):not(.d95-min) { left: 0 !important; top: 0 !important; width: calc(100vw / var(--d95-z, 1)) !important;
+  height: calc(calc(100dvh / var(--d95-z, 1)) - 28px) !important; max-width: none !important; max-height: none !important; }
 /* an About box: no warning sign, its lines left as they are */
 .d95-msgbox.d95-msgbox-about .d95-msgbox-body { padding-left: 16px; }
 html.d95-desk .d95-menubar-item:not(#\#):focus-visible { outline: 1px dotted #000000; outline-offset: -2px; }
 /* a message box: a small window in the middle, its icon, its text and OK */
-.d95-msgbox { padding: 3px; border: 0; background: var(--panel); color: #000000; min-width: 260px; max-width: min(420px, calc(100vw - 32px));
+.d95-msgbox { padding: 3px; border: 0; background: var(--panel); color: #000000; min-width: 260px; max-width: min(420px, calc(calc(100vw / var(--d95-z, 1)) - 32px));
   box-shadow: inset -1px -1px #000000, inset 1px 1px var(--sk-mid), inset -2px -2px var(--sk-lo), inset 2px 2px #ffffff; font: 13px "MS Sans Serif", Tahoma, sans-serif; }
 .d95-msgbox::backdrop { background: transparent; }
 .d95-msgbox-tb { display: flex; align-items: center; padding: 2px 4px; background: var(--sk-title); color: #ffffff; font-weight: bold; }
@@ -747,7 +749,7 @@ html.d95-embed.d95-desk .stage-wrap.d95-win > .stage-area > .stage { margin: 0; 
 html.d95-embed.d95-desk .stage-wrap.d95-win > .d95-statusbar { grid-row: 2; margin: 0; padding: 2px; background: var(--panel); }
 html.d95-embed .byopop-footer, html.d95-embed body > header, html.d95-embed main > .back { display: none !important; }
 /* a narrow screen (under 760 px): one window at a time fills the screen above the task bar, maximized, the task bar switching */
-html.d95-narrow.d95-desk .d95-win:not(.d95-closed):not(.d95-min) { left: 0 !important; top: 0 !important; width: 100vw !important; height: calc(100dvh - 28px) !important;
+html.d95-narrow.d95-desk .d95-win:not(.d95-closed):not(.d95-min) { left: 0 !important; top: 0 !important; width: calc(100vw / var(--d95-z, 1)) !important; height: calc(calc(100dvh / var(--d95-z, 1)) - 28px) !important;
   max-width: none !important; max-height: none !important; }
 html.d95-narrow.d95-desk .d95-win .d95-rz { display: none; }
 /* a document window's icon: a small white page with a folded corner and lines */
@@ -761,7 +763,7 @@ html.d95-desk .d95-sys-doc::after { content: ""; position: absolute; left: 3px; 
    sounds as raised push buttons in etched group boxes, in the thin sunken edge of the part that scrolls, and a status bar. */
 #sounds { display: none; }   /* off the desktop (a screen under 760 pixels wide) it has no place */
 html.d95-desk #sounds.sb-win:not(.d95-closed):not(.d95-min) { display: flex; }
-html.d95-desk .sb-win { flex-direction: column; width: min(560px, calc(100vw - 140px)); height: 440px; overflow: hidden; }
+html.d95-desk .sb-win { flex-direction: column; width: min(560px, calc(calc(100vw / var(--d95-z, 1)) - 140px)); height: 440px; overflow: hidden; }
 html.d95-desk .sb-bar { flex: none; display: flex; align-items: center; gap: 4px; padding: 1px 2px 4px; }
 html.d95-desk .sb-gap { flex: 1 1 auto; }
 html.d95-desk .sb-game:not(#\#) { flex: 0 1 200px; min-width: 60px; }
@@ -769,6 +771,8 @@ html.d95-desk .sb-tool:not(#\#) { display: inline-flex; align-items: center; jus
   min-width: 0; min-height: 0; padding: 0; color: #000; }
 html.d95-desk .sb-mute[aria-pressed="true"]:not(#\#) { background: var(--sk-mid); }
 html.d95-desk .sb-vol:not(#\#) { flex: 0 1 90px; width: 90px; min-width: 40px; }
+html.d95-desk .sb-search:not(#\#) { flex: 0 1 120px; width: 120px; min-width: 50px; }
+html.d95-desk .sb-check { display: inline-flex; align-items: center; flex: none; gap: 2px; white-space: nowrap; }
 html.d95-desk .sb-grid { padding: 0 6px 8px; }
 html.d95-desk .sb-group:not(#\#) { margin: 4px 0 0; padding: 3px 6px 7px; min-width: 0; border: 1px solid; border-color: var(--sk-lo) var(--sk-hi) var(--sk-hi) var(--sk-lo);
   box-shadow: inset 1px 1px var(--sk-hi), inset -1px -1px var(--sk-lo); }
@@ -810,7 +814,7 @@ html.d95-desk .spl-stat { display: flex; justify-content: space-between; }
 .spl-ask .spl-dlg-body, .spl-dlg .spl-dlg-body:has(.d95-msgbox-body) { padding: 0; }
 :root[data-skin="d95"] select.spl-pick:not(#\#) { display: block; width: 300px; height: 132px; padding: 1px; line-height: normal; background: #ffffff; overflow-y: auto; }
 :root[data-skin="d95"] select.spl-pick:not(#\#) option { padding: 1px 3px; }
-.spl-edit { max-width: min(560px, calc(100vw - 32px)); }
+.spl-edit { max-width: min(560px, calc(calc(100vw / var(--d95-z, 1)) - 32px)); }
 .spl-edit-top { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 10px; margin-bottom: 8px; }
 .spl-field { display: flex; flex-direction: column; gap: 2px; }
 .spl-field input { min-width: 0; }
@@ -829,7 +833,7 @@ html.d95-desk .spl-stat { display: flex; justify-content: space-between; }
    the fields it needs), and Back, Next and Cancel under an etched line, as the save import's wizard draws them. */
 #setup { display: none; }   /* a window of the listing's desktop only */
 html.d95-desk #setup.su-win:not(.d95-closed):not(.d95-min) { display: flex; }
-html.d95-desk .su-win { flex-direction: column; width: min(560px, calc(100vw - 140px)); height: 400px; overflow: hidden; padding: 8px; box-sizing: border-box; }
+html.d95-desk .su-win { flex-direction: column; width: min(560px, calc(calc(100vw / var(--d95-z, 1)) - 140px)); height: 400px; overflow: hidden; padding: 8px; box-sizing: border-box; }
 html.d95-desk .su-wiz { flex: 1 1 auto; min-height: 0; display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: 14px; }
 html.d95-desk .su-art { position: relative; background: linear-gradient(#008080, #004040); box-shadow: inset 1px 1px var(--sk-lo), inset -1px -1px var(--sk-hi); }
 html.d95-desk .su-art-mark { position: absolute; left: 32px; top: 28px; width: 48px; height: 48px; image-rendering: pixelated; }
@@ -921,6 +925,26 @@ html.d95-desk .lib-win button:focus-visible, html.d95-desk .lib-win input:focus-
 .lib-props-list { display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px; margin: 10px 14px; }
 .lib-props-list dt { color: #404040; }
 .lib-props-list dd { margin: 0; }
+/* the trophy cabinet (web/trophies.js) */
+html.d95-desk .tc-win { flex-direction: column; width: min(560px, calc(100vw / var(--d95-z, 1) - 140px)); height: 420px; overflow: hidden; }
+#trophies { display: none; }   /* off the desktop it has no place */
+html.d95-desk #trophies.tc-win:not(.d95-closed):not(.d95-min) { display: flex; }
+.tc-bar { display: flex; gap: 8px; align-items: center; padding: 6px 8px; flex: none; }
+.tc-bar label { display: flex; gap: 6px; align-items: center; }
+.tc-body { flex: 1 1 auto; min-height: 0; overflow: auto; padding: 0 8px 8px; }
+.tc-game { margin: 0 0 8px; padding: 4px 8px 8px; border: 1px solid #808080; box-shadow: 1px 1px 0 #ffffff inset, 1px 1px 0 #ffffff; }
+.tc-table { width: 100%; border-collapse: collapse; background: #ffffff; border: 1px solid #808080; }
+.tc-table th, .tc-table td { padding: 1px 6px; text-align: left; font-weight: normal; white-space: nowrap; }
+.tc-table th { background: var(--panel); border: 1px solid; border-color: #ffffff #808080 #808080 #ffffff; }
+.tc-table tr.tc-first td { border-top: 1px solid #c0c0c0; }
+.tc-table .tc-num { text-align: right; }
+.tc-status { flex: none; }
+/* the screen saver (web/saver.js): the desktop dark, the game's frame filling it, every input the desktop's */
+.saver-shade { position: fixed; inset: 0; z-index: 2147483600; background: #000000; cursor: none; }
+.saver-frame { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; pointer-events: none; }
+.lib-props-time { margin: 0 14px 10px; border-collapse: collapse; background: #ffffff; border: 1px solid #808080; }
+.lib-props-time th, .lib-props-time td { padding: 1px 8px; text-align: left; font-weight: normal; white-space: nowrap; }
+.lib-props-time tr:first-child th { background: var(--panel); border: 1px solid; border-color: #ffffff #808080 #808080 #ffffff; }
 .lib-props-row { display: flex; justify-content: flex-end; padding: 0 12px 10px; }
 .lib-props-row button { min-width: 72px; }
 /* narrow: the window maximized, as every window there; Last played and Year give way */

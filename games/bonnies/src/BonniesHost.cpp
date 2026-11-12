@@ -1,4 +1,4 @@
-// The port's host for Bonnie's Bookstore (see BonniesHost.h): bonnies::Host over the framework and the platform layer.
+// port: the host for Bonnie's Bookstore (see BonniesHost.h): bonnies::Host over the framework and the platform layer.
 
 #include "BonniesHost.h"
 #include "ModFeatures.h"
@@ -10,12 +10,15 @@
 #include "WebSettings.h"
 #include "platform/Audio.h"
 #include "platform/ImageLoader.h"
+#include "platform/MemReport.h"
 #include "platform/MusicLevels.h"
 #include "platform/VFS.h"
+#include "SDLSoundManager.h"
 
 #include <SDL.h>
 #include <stb_image.h>
 #include <algorithm>
+#include <cmath>
 #include <cstdio>
 #include <cstring>
 #include <deque>
@@ -153,12 +156,15 @@ struct Channel
 	bool mPaused = false;
 	float mGain = 1.0f;
 	int mFrequency = 0;
+	int mSfxID = 0;   // port: the sample's number in the sound log (BYOPOP_SOUNDLOG), as the framework's sounds have
+	int mLogNum = 0;  // port: this play's number in the log
 };
 
 // FMOD 3's sample: the decoded sound
 struct SampleHandle
 {
 	std::shared_ptr<Platform::SoundData> mData;
+	int mSfxID = 0;   // port: the number the sound log gives the sample
 };
 
 // The framework's side of bonnies::Host
@@ -240,7 +246,9 @@ public:
 		bool aSteady = gHostApp->mFastMode || gSteadyClock;
 		if ((!aSteady && (int)(gHostApp->GetClockTime() - gHostApp->mLastFrameworkRun) >= 100) ||
 			(aSteady && (gHostApp->mScriptNoFocus || (!gHostApp->mRealInputFileName.empty() && !gHostApp->mHasFocus))))
+		{
 			gHostApp->RunFramework(0);
+		}
 		else if (gSteadyClock && ++gSpin >= kSpin)
 		{
 			// (at most half a second of real time, for a framework that does not update, paused or minimized)
@@ -532,56 +540,6 @@ public:
 #endif
 	}
 
-	// the framework opens nothing in a test run (it logs "OpenURL in a test run")
-	void openURL(const std::string& theURL) override
-	{
-		gHostApp->SexyAppBase::OpenURL(theURL);
-	}
-
-	// MessageBoxA's buttons (MB_OK 0, MB_OKCANCEL 1, MB_YESNOCANCEL 3, MB_YESNO 4) and results (IDOK 1, IDCANCEL 2,
-	// IDYES 6, IDNO 7); a test run never blocks on one and takes the first button
-	int messageBox(const std::string& theText, const std::string& theCaption, unsigned int theFlags) override
-	{
-		SDL_Log("%s: %s", theCaption.c_str(), theText.c_str());
-		int aKind = theFlags & 0xf;
-		SDL_MessageBoxButtonData aButtons[3];
-		int aCount = 0;
-		auto add = [&](int theId, const char* theText, uint32_t theButtonFlags)
-		{
-			aButtons[aCount].flags = theButtonFlags;
-			aButtons[aCount].buttonid = theId;
-			aButtons[aCount].text = theText;
-			aCount++;
-		};
-		if (aKind == 4 || aKind == 3)
-		{
-			add(6, "Yes", SDL_MESSAGEBOX_BUTTON_RETURNKEY_DEFAULT);
-			add(7, "No", aKind == 4 ? SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT : 0);
-			if (aKind == 3)
-				add(2, "Cancel", SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT);
-		}
-		else
-		{
-			add(1, "OK", SDL_MESSAGEBOX_BUTTON_RETURNKEY_DEFAULT | (aKind == 0 ? SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT : 0));
-			if (aKind == 1)
-				add(2, "Cancel", SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT);
-		}
-		if (gHostApp->mFastMode || gHostApp->IsTestRun())
-			return aButtons[0].buttonid;
-		SDL_MessageBoxData aBox = {};
-		aBox.flags = (theFlags & 0x10) != 0 ? SDL_MESSAGEBOX_ERROR : (theFlags & 0x30) == 0x30 ?
-			SDL_MESSAGEBOX_WARNING : SDL_MESSAGEBOX_INFORMATION;
-		aBox.window = gHostApp->mHWnd;
-		aBox.title = theCaption.c_str();
-		aBox.message = theText.c_str();
-		aBox.numbuttons = aCount;
-		aBox.buttons = aButtons;
-		int aResult = aButtons[0].buttonid;
-		if (SDL_ShowMessageBox(&aBox, &aResult) != 0 || aResult < 0)
-			aResult = aKind == 0 ? 1 : 2;
-		return aResult;
-	}
-
 	std::string getClipboard() override
 	{
 		return SexyStringToStringFast(gHostApp->GetClipboard());
@@ -601,6 +559,25 @@ public:
 
 	// FMOD 3 on the platform's mixer
 
+	// port: BYOPOP_SOUNDLOG, the sound log the framework's sounds write (Sexy::SoundLog, framework/SDLSoundManager.h),
+	// in the same lines: "load <id> <file> frames= rate= ch=" for a sample, "instance <id> #<n>" when a channel takes it,
+	// "play <id> #<n> vol= pan= pitch= loop=" when FSOUND_SetPaused starts it, "volume", "pitch" and "stop" lines for the
+	// channel after that. FMOD 3's volume (0-255) is a straight gain, logged as DirectSound's hundredths of a decibel,
+	// which the framework's volume is; it has no pan (always 0) and the game plays no loop. A sample's number is never
+	// reused, so a file's name in the log stays unambiguous.
+	int mNextSfxID = 0;
+	int mNextLogNum = 0;
+	// port (the memory report): the samples alive and their decoded bytes
+	int mSampleCount = 0;
+	size_t mSampleBytes = 0;
+
+	static int LogVolume(float theGain)
+	{
+		if (!(theGain > 0.0f))
+			return -10000;
+		return std::max(-10000, (int)std::lround(2000.0 * std::log10((double)theGain)));
+	}
+
 	void* loadSample(const std::string& thePath) override
 	{
 		std::shared_ptr<Platform::SoundData> aData = Platform::Mixer::Get().LoadSound(thePath);
@@ -608,6 +585,11 @@ public:
 			return nullptr;
 		SampleHandle* aSample = new SampleHandle();
 		aSample->mData = aData;
+		aSample->mSfxID = mNextSfxID++;
+		mSampleCount++;
+		mSampleBytes += aData->Bytes();
+		SoundLog("load %d %s frames=%d rate=%d ch=%d", aSample->mSfxID, thePath.c_str(), (int)aData->mFrames, aData->mRate,
+			aData->mChannels);
 		return aSample;
 	}
 
@@ -621,11 +603,21 @@ public:
 			if (aChannel.mData == aSample->mData)
 			{
 				if (aChannel.mVoice >= 0)
-					Platform::Mixer::Get().StopVoice(aChannel.mVoice);
+					stopVoice(aChannel);
 				aChannel = Channel();
 			}
 		}
+		mSampleCount--;
+		mSampleBytes -= aSample->mData->Bytes();
 		delete aSample;
+	}
+
+	// the voice of a channel stopped (the sound log's "stop": the framework logs one whenever a started sound is stopped,
+	// also when it had ended by itself)
+	void stopVoice(const Channel& theChannel)
+	{
+		SoundLog("stop %d #%d", theChannel.mSfxID, theChannel.mLogNum);
+		Platform::Mixer::Get().StopVoice(theChannel.mVoice);
 	}
 
 	bool channelBusy(const Channel& theChannel)
@@ -652,6 +644,9 @@ public:
 				aChannel.mData = aSample->mData;
 				aChannel.mPaused = true;
 				aChannel.mFrequency = aSample->mData->mRate;
+				aChannel.mSfxID = aSample->mSfxID;
+				aChannel.mLogNum = ++mNextLogNum;
+				SoundLog("instance %d #%d", aChannel.mSfxID, aChannel.mLogNum);
 				return i;
 			}
 		}
@@ -682,6 +677,7 @@ public:
 		if (aChannel == nullptr)
 			return;
 		aChannel->mFrequency = theFrequency;
+		SoundLog("pitch %d #%d %.4f", aChannel->mSfxID, aChannel->mLogNum, pitch(*aChannel));
 		if (aChannel->mVoice >= 0)
 			Platform::Mixer::Get().SetVoicePitch(aChannel->mVoice, pitch(*aChannel));
 	}
@@ -692,6 +688,8 @@ public:
 		if (aChannel == nullptr)
 			return;
 		aChannel->mGain = std::max(0, std::min(255, theVolume)) / 255.0f;
+		if (SoundLogOn())
+			SoundLog("volume %d #%d %d", aChannel->mSfxID, aChannel->mLogNum, LogVolume(aChannel->mGain));
 		if (aChannel->mVoice >= 0)
 			Platform::Mixer::Get().SetVoiceGain(aChannel->mVoice, aChannel->mGain, aChannel->mGain);
 	}
@@ -702,6 +700,9 @@ public:
 		if (aChannel == nullptr || thePaused || !aChannel->mPaused)
 			return;
 		aChannel->mPaused = false;
+		if (SoundLogOn())
+			SoundLog("play %d #%d vol=%d pan=0 pitch=%.4f loop=0", aChannel->mSfxID, aChannel->mLogNum,
+				LogVolume(aChannel->mGain), pitch(*aChannel));
 		aChannel->mVoice = Platform::Mixer::Get().StartVoice(aChannel->mData, aChannel->mGain, aChannel->mGain,
 			pitch(*aChannel), false);
 	}
@@ -712,7 +713,7 @@ public:
 		if (aChannel == nullptr)
 			return;
 		if (aChannel->mVoice >= 0)
-			Platform::Mixer::Get().StopVoice(aChannel->mVoice);
+			stopVoice(*aChannel);
 		*aChannel = Channel();
 	}
 
@@ -885,6 +886,12 @@ BonniesWidget::BonniesWidget()
 {
 	mScreenImage = new MemoryImage(gHostApp);
 	mScreenImage->Create(kScreenWidth, kScreenHeight);
+	// every pixel is drawn opaque (Draw below): the image is said to be opaque, so that the framework need not look through
+	// its 480,000 pixels for alpha after each change, and with every alpha byte 0xff the framework's premultiplying would
+	// change nothing, so that it uploads the image as it is, in one piece, instead of converting it in strips (the Mahjong
+	// ports' screen)
+	mScreenImage->SetImageMode(false, false);
+	mScreenImage->mUploadAsIs = true;
 	mScreenChanged = true;
 	mWantsFocus = true;
 }
@@ -918,11 +925,37 @@ extern "C" EMSCRIPTEN_KEEPALIVE const char* bonnies_test_command(const char* the
 }
 #endif
 
+// The game presents its screen about 30 times a second whether or not anything moved (a board waiting for the player is
+// presented as often as one in motion; two in three presents of the tutorial's board matched the one before), and the same
+// screen need not be copied, uploaded and shown again: the framework shows the picture it last drew until it is told
+// otherwise. The comparison is on the pixels, so what is on screen never differs from what the game drew. Compared in
+// blocks, so that the loop can use the processor's vector instructions.
+bool BonniesWidget::ScreenDiffers() const
+{
+	const int kBlock = 256;
+	static_assert(kScreenWidth * kScreenHeight % kBlock == 0, "the screen is a whole number of blocks");
+	const ulong* aBits = mScreenImage->GetBits();
+	const uint32_t* aScreen = gHost.mScreen.data();
+	for (int aStart = 0; aStart < kScreenWidth * kScreenHeight; aStart += kBlock)
+	{
+		uint32_t aDifference = 0;
+		for (int i = aStart; i < aStart + kBlock; i++)
+			aDifference |= (uint32_t)aBits[i] ^ (0xff000000 | (aScreen[i] & 0xffffff));
+		if (aDifference != 0)
+			return true;
+	}
+	return false;
+}
+
 void BonniesWidget::Update()
 {
 	Widget::Update();
 	if (mScreenChanged)
-		MarkDirty();
+	{
+		mScreenChanged = false;
+		if (ScreenDiffers())
+			MarkDirty();
+	}
 #ifndef __EMSCRIPTEN__
 	// port (test runs): the game's state for tools/realplay.py, which plays from it with real input (Start.h), written
 	// whole to a second file and renamed, so that a reader never sees half of it (it may miss the file for a moment)
@@ -932,14 +965,14 @@ void BonniesWidget::Update()
 	if (!sStateFile.empty() && gHostApp->IsTestRun() && SDL_GetTicks() - sStateTime >= 100)
 	{
 		sStateTime = SDL_GetTicks();
-		std::string aTemp = sStateFile + ".new";
-		if (FILE* aFile = fopen(aTemp.c_str(), "wb"))
+		std::string aNewFile = sStateFile + ".new";
+		if (FILE* aFile = fopen(aNewFile.c_str(), "wb"))
 		{
 			std::string aState = bonnies::testState();
 			fwrite(aState.data(), 1, aState.size(), aFile);
 			fclose(aFile);
 			std::remove(sStateFile.c_str());
-			std::rename(aTemp.c_str(), sStateFile.c_str());
+			std::rename(aNewFile.c_str(), sStateFile.c_str());
 		}
 	}
 #endif
@@ -1227,6 +1260,19 @@ bool BonniesHostApp::HandleScriptCommand(const ScriptCommand& theCommand)
 	else
 		GotFocus();
 	return true;
+}
+
+// docs/TEST_COMMANDS.md, "memreport": what the game holds beside the framework's own pictures: its cache's images, which
+// the game draws with itself and never hands to the framework, the decoded samples FSOUND's stand-in keeps, the
+// dictionary and the 800x600 screen buffer the game draws into (the framework's copy of it is one of its pictures)
+void BonniesHostApp::AddMemReportHolders(Platform::MemReport* theReport)
+{
+	std::vector<std::pair<std::string, size_t>> aRows;
+	bonnies::memoryHolders(&aRows);
+	for (const std::pair<std::string, size_t>& aRow : aRows)
+		theReport->mOthers.push_back(aRow);
+	theReport->mOthers.push_back({"samples (" + std::to_string(gHost.mSampleCount) + ", decoded to 16 bits)", gHost.mSampleBytes});
+	theReport->mOthers.push_back({"screen buffer (32 bits)", gHost.mScreen.capacity() * sizeof(uint32_t)});
 }
 
 // Alt+Enter (and the web page's full screen button) change the mode as the game's own option does

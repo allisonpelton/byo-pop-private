@@ -67,7 +67,11 @@ holds the rules every session follows; this file does not repeat them.
   hard to test; phase one, plays identical; phase two, looks identical, with registration and every button that leads
   out of the game removed; its fixes mod; the coverage check; the performance pass; the other code it does not need
   taken out; the readability pass; for a game ported only from its Steam copy, the check against its PopCap Game
-  Collection version (the user's ISO in their Downloads folder), its build working with that version's files too; and
+  Collection version (the user's ISO in their Downloads folder), its build working with that version's files too (also
+  for a game ported from another copy when the Collection's is another build: BookWorm's and Word Harmony's Collection
+  exes differ from their retail ones, so players with the Collection need the check, 2026-11-11; where every file
+  matches, as Ning Po's and Water Bugs' exes do by size, the check is that comparison and one port run; the ISO's
+  file groups are `<Title>Component`, listed with `E:/retools/unshield-build/unshield.exe g data1.cab`); and
   its features on the site. The registered original is the reference for every comparison; each removal is listed in
   the game's notes and proved by its frozen baseline, and how a protection was taken apart stays in private blocks.
 - **What a phase two needs to merge (2026-11-03):** sound compared against the original (origrun's `--sound wav` log
@@ -89,6 +93,23 @@ holds the rules every session follows; this file does not repeat them.
   two-by-two causes issues. If not, continue with two". A game that builds on another's engine waits for that game; a
   slot the next game cannot use yet goes to the cheapest remaining one. Within a step, the lowest-effort games go first
   ("Start with lowest effort", 2026-11-03).
+- **A new port writes to the standards from its first draft (the user, 2026-11-12: "Yes, add it").** Of what the
+  eleven smaller games spent after their first playable merge (about $2,200 at Opus prices), about half went on the
+  checks against the original (identical play, screens and sound, coverage, the Collection), a fifth on performance and
+  a sixth on passes that rework the first write (readability, unneeded code, registration out); Noah's Ark had the
+  cheapest port and the dearest finish of them. So a new port, from its first draft:
+  - takes the Mac build's names before translating (`docs/MACMATCH.md`, as before) and names everything else to
+    `docs/CODE_STANDARDS.md` as it goes, so `tools/namecheck.py` passes at its first merge;
+  - leaves out the registration paths and every button that leads out of the game (CLAUDE.md, "Order of the work");
+  - does not translate a function the export shows nothing can reach (no caller, no vtable slot, no table or callback
+    holding it), and lists each one by its address in the notes, so the coverage check confirms it;
+  - uses the framework's fast paths and avoids the shared costs listed under "A performance pass" below (pictures
+    decoded at their first use, sounds at their first play, loading in one go);
+  - translates rigorously: loops in their original shape, every random draw in its order, the original's arithmetic.
+  The steps keep their order, since speed-ups and removals are proved against the frozen baseline of a port that
+  already plays identically, but each is shorter: the readability step is namecheck's run and a read of what it flags,
+  the unneeded-code step is what the coverage check finds, and the performance pass is the measurement and the game's
+  own hot spots. One session takes the game through every step; each brief for a new port says so.
 - **The readability pass (the user, 2026-11-08, 2026-11-10):** "NO unknown/unnamed variables." Bejeweled set the
   standards, Twist tested them, and the user approved them ("new standards approved"): `docs/CODE_STANDARDS.md`, with
   `tools/namecheck.py` to prove "no unknowns" by a run. A readable port changes nothing it does and keeps each
@@ -111,12 +132,23 @@ holds the rules every session follows; this file does not repeat them.
 - **Shared costs waiting for a fix:**
   - Loading GIFs: decoded to 32 bits (`_stbi__out_gif_code`) and quantized back to 8 (`Sexy::Quantize8Bit`, a binary
     search a pixel; a cache of the last colour gives the identical table), about a quarter of a load's processor time,
-    0.15 to 0.2 s of a load in any game with GIFs (Typer Shark, AstroPop, GAME_NOTES section 11).
-  - imagehlp.dll, 5 to 7.6% of a run's cycles, from a call site not yet found (Typer Shark, AstroPop).
+    0.15 to 0.2 s of a load in any game with GIFs (Typer Shark, AstroPop, GAME_NOTES section 11). With the JPEG and
+    Vorbis decoders and Platform::DecodeImage, the load's decoding is about 12% of Bejeweled 2's 3D run without waiting.
+  - imagehlp.dll, 2.4 to 7.6% of a run's cycles, from a call site not yet found (Typer Shark, AstroPop, Bejeweled 2).
+  - The 2D path on SDL's software renderer (`DDInterface.cpp`, `mIs3D` false, about lines 784 to 833): every sprite an
+    SDL_RenderCopyEx or SDL_RenderGeometry blended in software, 15 to 25 ms a drawn frame in Bejeweled 2's 2D mode (81%
+    of a core where the original takes 18%, 83.6% of the cycles in SDL2.dll, 31 s for a `-drawevery` test run). It
+    reaches a player without an accelerated renderer and every 2D test run. Drawing the dirty widgets into one CPU
+    surface with the framework's own blitters and uploading it once a frame, as SexyAppFramework's DirectDraw path does,
+    would cut it; test with `games/bejeweled2/tools/profile/pairs.sh` and `tools/check.sh --changed` (2026-11-12).
+  - A relative `-userdir` (`./u3/`) is not found where the same folder by its absolute path is (Bejeweled 2): harmless
+    for players, a trap for scripts.
   - Memory: the Direct3D 11 device (20 to 25 MB and about 0.2 s of start); every image's pixels kept after upload (19
     MB of Bejeweled's 55, 20.6 of Typer Shark's 85); about 54 MB in every process before it reads a game file;
     libopenmpt decoding a module whole (51 MB of Ancient Japan's 146), and an OGG tune the same (Ning Po's 5.6 MB),
-    where a streaming render would hold one buffer; Mahjong Escape's engine keeping each image's decoded bits beside its 32-bit copy.
+    where a streaming render would hold one buffer; Mahjong Escape's engine keeping each image's decoded bits beside its 32-bit copy;
+    in 2D, a picture loaded as 8-bit pixels and a palette kept as 32-bit pixels and a texture once drawn (Bejeweled 2's
+    private bytes go from 59 to 101 MB at a game's start, the original's from 40 to 43; memreport with PERF_MEM=1).
   - A memory jump beneath the heap: Twist's 2D level-up raises private memory by about 165 MB for ten seconds (the
     original flat), AstroPop's game start by about 60 MB for a few seconds, so it is likely the display layer. Count
     texture creations there in the first second of an AstroPop game, or hook malloc with a `--wrap` link.
@@ -128,7 +160,19 @@ holds the rules every session follows; this file does not repeat them.
     it, a visible change, so a mod. The whole-screen SDL_UpdateTexture of a software-drawn game (7% of Alchemy's main
     thread): uploading only a MemoryImage's changed rectangle would cut it. SexyApp::Init's window and device, 250 to
     310 ms of Noah's Ark's 0.6 s start (no threads, so no fix found). SDL's software renderer, the fallback without a
-    GPU, 10 to 13 ms a frame at 640x480 against 0.26 ms with Direct3D 11.
+    GPU, 10 to 13 ms a frame at 640x480 against 0.26 ms with Direct3D 11. A partial upload helps a game whose dirty
+    rectangle is most of the screen little (87% on Cosmic Bugs' board); a streaming or 16-bit texture would cut the bytes.
+    In Word Harmony the frame's present is about 35% of what is left after its pass (the whole 1.9 MB screen picture
+    to a static texture, then the copy to the target and the window); SDL's other drivers cost the same or more. A
+    rectangle upload fed by a list of changed rectangles the game gives the screen image would help it; test with its
+    `tools/profile/pair.sh` against the original (2026-11-11).
+  - `SexyAppBase::PollLiveCommands` stats the `-commands` file every 10 ms update, about 0.34 M cycles a call: an eighth
+    of the main thread in a run that uses the channel (`-commands`, `-realinput`), and every update under `-fast`. Poll
+    every tenth update or on a change notification; any suite that uses the channel must give the same results (Cosmic
+    Bugs, 2026-11-11).
+  - A cycle-weighted EIP sampler charges a thread's bursts to the wait it stands in (54% of Cosmic Bugs' cycles on
+    `ZwWaitForSingleObject`); timers around the calls with `QueryThreadCycleTime` find the real split. Cosmic Bugs'
+    `tools/perf/cpuprof.py` has `CALLERS=1` (the exe function and the DLL on the stack).
   - For profiles, `tools/profile/callprof.py` puts 86% of samples in ntdll whatever the thread does; per-thread cycle
     counters are the way.
 - **Memory broken down, and a software path to test (the user, 2026-11-11):** "I'd want the more granular performance
@@ -146,6 +190,14 @@ holds the rules every session follows; this file does not repeat them.
 - **Building the web port in the browser (the user, 2026-11-04):** "Let's try it on the simplest possible game and
   see how long it takes to build in the browser and how much work it adds for each game", saving to localStorage or a
   connected Google Drive, to avoid any infringement. Not started; it belongs with the work before the website is ready.
+  Drive (read on 2026-11-11, developers.google.com): the `drive.appdata` scope gives a hidden folder that only the site
+  can read, which cannot be shared, and which Google deletes when the player removes the site from their Drive;
+  `drive.file` reaches only the files the site made or the player picked. Both are non-sensitive scopes: no security
+  assessment, no user cap, no fee. The page talks to Drive itself, so nothing passes through the site's servers. Showing
+  the site's name and logo on Google's consent screen takes brand verification (free, two or three business days): the
+  domain proved in Search Console, a homepage anyone can open, a privacy policy on that domain saying how Google data is
+  used. The broad `drive` and `drive.readonly` scopes are restricted and need a paid security assessment; never ask for
+  them. The files count against the player's own quota (15 GB free).
 <!-- /private -->
 
 ## The site

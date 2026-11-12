@@ -56,6 +56,11 @@ var ByopopSettings = (function () {
     pattern: { values: (typeof ByopopSchemes !== "undefined" ? ByopopSchemes.patternIds : ["none"]), def: "none" },
     wallpaper: { values: (typeof ByopopSchemes !== "undefined" ? ByopopSchemes.wallpaperIds : ["none"]), def: "none" },
     wallpaperFit: { values: ["centre", "tile", "stretch"], def: "centre" },
+    // a desktop theme: one game's background, cursor and sounds (web/themes.js), site-wide
+    theme: { values: (typeof ByopopThemes !== "undefined" ? ByopopThemes.ids : ["none"]), def: "none" },
+    // the screen saver (web/saver.js), site-wide: a game with a bot, or none; the wait in minutes
+    saver: { values: (typeof ByopopSaver !== "undefined" ? ByopopSaver.ids : ["none"]), def: "none" },
+    saverWait: { values: (typeof ByopopSaver !== "undefined" ? ByopopSaver.waits : ["5"]), def: "5" },
     gameSize: { values: ["one", "fit"], def: "one" },  // Desktop 95: a game window's size with none chosen in its View menu (web/shell.html)       // on: Desktop 95 lists only the games whose original ran on Windows 95 (web/skins.js)
     // the view settings (web/view.js): drawn over the game's picture or done to it, never to the game
     scanlines: { values: ["off", "light", "strong"], def: "off" },
@@ -258,6 +263,12 @@ var ByopopSettings = (function () {
       options: (typeof ByopopSchemes !== "undefined" ? ByopopSchemes.wallpaperIds : ["none"]).map(function (id) { return [id, T("settings.wallpaper." + id)]; }) },
     { name: "wallpaperFit", label: T("settings.wallpaperfit.label"), hint: T("settings.wallpaperfit.hint"),
       options: [["centre", T("settings.wallpaperfit.centre")], ["tile", T("settings.wallpaperfit.tile")], ["stretch", T("settings.wallpaperfit.stretch")]] },
+    // the themes of the games whose files are here, by the games' titles, read again whenever the list is shown or pressed (live)
+    { name: "theme", label: T("settings.theme.label"), live: true,
+      get options() {
+        var T2 = typeof ByopopThemes !== "undefined" ? ByopopThemes : null;
+        return [["none", T("settings.theme.none")]].concat(T2 ? T2.offered().map(function (id) { return [id, T2.title(id)]; }) : []);
+      } },
     { name: "win95Only", label: T("settings.win95only.label"), hint: T("settings.win95only.hint") },
     { name: "gamesOpen", label: T("settings.gamesopen.label"), options: [["games", T("skin.desk.games")], ["library", T("library.title")]],
       hint: T("settings.gamesopen.hint") },
@@ -268,6 +279,17 @@ var ByopopSettings = (function () {
     { name: "colorFilter", label: T("settings.colorfilter.label"), options: [["none", T("settings.colorfilter.none")], ["grey", T("settings.colorfilter.grey")],
       ["sepia", T("settings.colorfilter.sepia")], ["warm", T("settings.colorfilter.warm")], ["contrast", T("settings.colorfilter.contrast")], ["vivid", T("settings.colorfilter.vivid")], ["pal256", T("settings.colorfilter.pal256")], ["pal256d", T("settings.colorfilter.pal256d")]],
       hint: T("settings.colorfilter.hint") },
+    { section: "saver" },
+    // the games with a bot whose files are here (none on the live site yet), by the games' titles, read again as the theme's are
+    { name: "saver", label: T("settings.saver.label"), live: true,
+      get options() {
+        var S2 = typeof ByopopSaver !== "undefined" ? ByopopSaver : null, games = window.ByopopGames || [];
+        return [["none", T("settings.saver.none")]].concat(S2 ? S2.offered().map(function (id) {
+          var g = games.filter(function (x) { return x.id === id; })[0]; return [id, g ? g.title : id];
+        }) : []);
+      } },
+    { name: "saverWait", label: T("settings.saverwait.label"),
+      options: (typeof ByopopSaver !== "undefined" ? ByopopSaver.waits : ["5"]).map(function (m) { return [m, T("settings.saverwait.minutes", { n: m })]; }) },
     { section: "overlays" },
     { name: "perf", label: T("settings.perf.label"), hint: T("settings.perf.hint") },
     { name: "inputDisplay", label: T("settings.inputdisplay.label"), hint: T("settings.inputdisplay.hint") },
@@ -311,7 +333,7 @@ var ByopopSettings = (function () {
   var STYLE =
     ".bps { display: grid; gap: 4px; }\n" +
     ".bps p { margin: 0; }\n" +
-    ".bps-about, .bps-hint, .bps-msg { color: var(--muted); font-size: 13px; }\n" +
+    ".bps-hint, .bps-msg { color: var(--muted); font-size: 13px; }\n" +
     ".bps-group { margin: 12px 0 0; font-size: 12.5px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }\n" +
     // the sections' tabs: a row of small icons with their names, the shown one filled in; one section at a time
     ".bps-tabs { display: flex; flex-wrap: wrap; gap: 4px; padding: 0 0 8px; border-bottom: 1px solid var(--line); }\n" +
@@ -341,6 +363,7 @@ var ByopopSettings = (function () {
     "  background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 5px 8px; min-width: 0; max-width: 100%; }\n" +
     ".bps-ctl select { max-width: min(14em, 100%); }\n" +
     ".bps-ctl .bps-number { width: 4.5em; font: inherit; color: var(--fg); }" +
+    ".bps-ctl .bps-swatch { flex: none; width: 48px; height: 32px; margin-left: 6px; border: 2px inset var(--line, #808080); image-rendering: pixelated; }" +
     ".bps-ctl input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--accent); margin: 0; }\n" +
     ".bps-ctl select:focus-visible, .bps-ctl input:focus-visible, .bps-scope input:focus-visible, .bps-level input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }\n" +
     ".bps-row [disabled] { opacity: 0.5; }\n" +
@@ -446,9 +469,11 @@ var ByopopSettings = (function () {
     tipShown = pop;
     pop.hidden = false;
     pop.classList.add("bps-tip");
-    var w = pop.offsetWidth, h = pop.offsetHeight;
-    pop.style.left = Math.max(4, Math.min(x, window.innerWidth - w - 4)) + "px";
-    pop.style.top = Math.max(4, Math.min(y, window.innerHeight - h - 4)) + "px";
+    // x and y are the screen's (a pointer's, a getBoundingClientRect's): in the page's pixels under the desktop's zoom (web/skins.js)
+    var w = pop.offsetWidth, h = pop.offsetHeight, z = (window.ByopopSkin && ByopopSkin.zoom ? ByopopSkin.zoom() : 1);
+    x /= z; y /= z;
+    pop.style.left = Math.max(4, Math.min(x, window.innerWidth / z - w - 4)) + "px";
+    pop.style.top = Math.max(4, Math.min(y, window.innerHeight / z - h - 4)) + "px";
     setTimeout(function () { ["pointerdown", "keydown", "scroll", "resize"].forEach(function (n) { window.addEventListener(n, hideTip, true); }); }, 0);
   }
   function wireTips(container) {
@@ -492,7 +517,6 @@ var ByopopSettings = (function () {
     }
     container.textContent = "";
     container.classList.add("bps");
-    container.appendChild(make("p", "bps-about", T(opts.live ? "settings.about_live" : "settings.about", { default: GAME_DEFAULT })));
     var controls = {};
     var msg = make("p", "bps-msg");
     msg.setAttribute("role", "status");
@@ -610,9 +634,19 @@ var ByopopSettings = (function () {
     }
 
     // The effective value of a setting under the scope being edited, and what each control shows
+    // A live list (f.live: the games whose files are here) is filled again from f.options, so a game added after the window was
+    // drawn is in it; only when the list changed, so an open list is left alone
+    function refill(c) {
+      var f = c.field, now = f.options, sig = JSON.stringify(now);
+      if (!f.live || c.sig === sig) return;
+      c.sig = sig;
+      while (c.select.options.length > 1) c.select.removeChild(c.select.options[1]);
+      now.forEach(function (o) { var op = make("option", "", o[1]); op.value = o[0]; c.select.appendChild(op); });
+    }
     function show(name) {
       var c = controls[name], f = c.field;
       if (c.kind === "volume") { showVolume(c); return; }
+      if (f.live) refill(c);
       var own = gameId ? override(name, gameId) : null, inherited = globalValue(name);
       if (scope === "game") {
         c.select.hidden = false;
@@ -642,6 +676,7 @@ var ByopopSettings = (function () {
         if (!listed && !(scope === "game" && own === null)) c.select.value = now;
         if (document.activeElement !== c.number) c.number.value = now;
       }
+      if (c.preview) c.preview();
       // in the all-games view, say that this game has a value of its own
       if (c.own) c.own.textContent = (scope === "all" && own !== null) ? T("settings.own", { value: words(f, own) }) : "";
     }
@@ -799,13 +834,41 @@ var ByopopSettings = (function () {
       c.select.id = id;
       var inherit = make("option"); inherit.value = "inherit";
       c.select.appendChild(inherit);
-      if (f.options) {
+      if (f.live) {
+        refill(c);
+        var again = function () { show(f.name); };
+        c.select.addEventListener("focus", again);
+        c.select.addEventListener("pointerdown", again);
+      } else if (f.options) {
         f.options.forEach(function (o) { var op = make("option", "", o[1]); op.value = o[0]; c.select.appendChild(op); });
       } else {
         [["on", T("settings.on")], ["off", T("settings.off")]].forEach(function (o) { var op = make("option", "", o[1]); op.value = o[0]; c.select.appendChild(op); });
       }
       c.select.setAttribute("data-setting", f.name);
       ctl.appendChild(c.select);
+      // the screen saver: Preview beside the list, as the 1995 Screen Saver page had (web/saver.js)
+      if (f.name === "saver" && typeof ByopopSaver !== "undefined") {
+        var pv = make("button", "bps-preview", T("settings.saver.preview"));
+        pv.type = "button";
+        pv.addEventListener("click", function () {
+          var v = c.select.value === "inherit" ? globalValue(f.name) : c.select.value;
+          if (v !== "none") ByopopSaver.preview(v);
+        });
+        ctl.appendChild(pv);
+      }
+      // the pattern: a swatch beside the list that shows the chosen one over the desktop's colour, as a 1995 Pattern dialog did
+      if (f.name === "pattern" && typeof ByopopSchemes !== "undefined" && ByopopSchemes.patternPreview) {
+        c.swatch = make("span", "bps-swatch");
+        c.swatch.setAttribute("aria-hidden", "true");
+        ctl.appendChild(c.swatch);
+        c.preview = function () {
+          var v = c.select.value === "inherit" ? globalValue(f.name) : c.select.value, pv = ByopopSchemes.patternPreview(v);
+          c.swatch.style.backgroundColor = getComputedStyle(document.body).backgroundColor;
+          c.swatch.style.backgroundImage = pv ? pv.image : "none";
+          c.swatch.style.backgroundSize = pv ? pv.size : "";
+        };
+        c.select.addEventListener("input", c.preview);
+      }
       var num = DEFS[f.name] && DEFS[f.name].number;
       if (num && f.options) {
         c.custom = make("option"); c.custom.hidden = c.custom.disabled = true;
@@ -933,7 +996,9 @@ var ByopopSettings = (function () {
   function setFavourite(game, on) {
     if (!game || !favId(game.id)) return false;
     var o = readAll(), list = favourites().filter(function (g) { return g.id !== game.id; });
-    if (on) list.push({ id: game.id, title: String(game.title || game.id), tag: game.tag || "", colour: game.colour || "", page: game.page || "" });
+    // the page's file name alone: a listing opened with a query (?silent=1) carries it on its links
+    var page = String(game.page || "").replace(/[?#].*$/, "").replace(/^.*\//, "");
+    if (on) list.push({ id: game.id, title: String(game.title || game.id), tag: game.tag || "", colour: game.colour || "", page: page });
     if (list.length) o.favourites = list; else delete o.favourites;
     var ok = write(o);
     try { window.dispatchEvent(new CustomEvent("byopop-favourites", { detail: { id: game.id, on: !!on } })); } catch (e) {}
@@ -1047,11 +1112,13 @@ var ByopopGameFiles = (function () {
 })();
 
 // How much each game was played in this browser (docs/WEB_PLAYER.md, "The listing page"): one localStorage item for the whole
-// site, "byopop-play", a JSON object from a game's id to {plays, seconds, last}. plays: how many times the game was started (a
-// restart of the game's own mod menu goes on with the same play). seconds: the time the game ran with its page shown and in the
-// focus, not paused, hidden or behind another window. last: the last day it was played, the player's own date as YYYY-MM-DD. A game
-// page writes it, the listing page shows it on the game's card, and the save backup keeps it (web/saves.js). Every read and write
-// is guarded: with storage blocked, nothing is counted.
+// site, "byopop-play", a JSON object from a game's id to {plays, seconds, first, last, by}. plays: how many times the game was
+// started (a restart of the game's own mod menu goes on with the same play). seconds: the time the game ran with its page shown
+// and in the focus, not paused, hidden or behind another window. first and last: the first and the last day it was played, the
+// player's own date as YYYY-MM-DD (first is blank for play counted before 2026-11-11). by: the same four for each site player
+// (web/profiles.js, by the player's id; "" for play with no player chosen), as the Library's Properties show them (the user,
+// 2026-11-11: playtime per profile). A game page writes it, the listing page shows it on the game's card and in the Library,
+// and the save backup keeps it (web/saves.js). Every read and write is guarded: with storage blocked, nothing is counted.
 var ByopopPlay = (function () {
   "use strict";
   var KEY = "byopop-play";
@@ -1061,32 +1128,40 @@ var ByopopPlay = (function () {
     return d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2);
   }
   function count(n) { return (typeof n === "number" && isFinite(n) && n > 0) ? Math.floor(n) : 0; }
-  // id -> {plays, seconds, last}; {} when there is none or storage is blocked
+  function day(d) { return (typeof d === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d)) ? d : ""; }
+  function plainObj(r) { return !!r && typeof r === "object" && !Array.isArray(r); }
+  function record(r) { return { plays: count(r.plays), seconds: count(r.seconds), first: day(r.first), last: day(r.last) }; }
+  // id -> {plays, seconds, first, last, by: {player id: {plays, seconds, first, last}}}; {} when there is none or storage is blocked
   function all() {
     var out = {};
     try {
       var s = store();
       var o = s ? JSON.parse(s.getItem(KEY) || "{}") : {};
-      if (o && typeof o === "object" && !Array.isArray(o)) {
+      if (plainObj(o)) {
         Object.keys(o).forEach(function (id) {
           var r = o[id];
-          if (!r || typeof r !== "object" || Array.isArray(r)) return;
-          out[id] = { plays: count(r.plays), seconds: count(r.seconds),
-            last: (typeof r.last === "string" && /^\d{4}-\d{2}-\d{2}$/.test(r.last)) ? r.last : "" };
+          if (!plainObj(r)) return;
+          out[id] = record(r);
+          out[id].by = {};
+          if (plainObj(r.by)) Object.keys(r.by).forEach(function (pid) {
+            if (/^[A-Za-z0-9_-]{0,40}$/.test(pid) && plainObj(r.by[pid])) out[id].by[pid] = record(r.by[pid]);
+          });
         });
       }
     } catch (e) {}
     return out;
   }
+  // the site player playing now: its id, "" with none (web/profiles.js)
+  function player() { try { var p = ByopopProfiles.current(); return p ? p.id : ""; } catch (e) { return ""; } }
   function change(id, fn) {
     if (!/^[a-z0-9_-]{1,40}$/.test(id)) return false;
     try {
       var s = store();
       if (!s) return false;
-      var o = all();
-      o[id] = o[id] || { plays: 0, seconds: 0, last: "" };
-      fn(o[id]);
-      o[id].last = today();
+      var o = all(), pid = player(), t = today();
+      o[id] = o[id] || { plays: 0, seconds: 0, first: "", last: "", by: {} };
+      var mine = o[id].by[pid] = o[id].by[pid] || { plays: 0, seconds: 0, first: "", last: "" };
+      [o[id], mine].forEach(function (r) { fn(r); if (!r.first) r.first = t; r.last = t; });
       s.setItem(KEY, JSON.stringify(o));
       return true;
     } catch (e) { return false; }

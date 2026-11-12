@@ -383,7 +383,6 @@ int Sexy::SOUND_MM_DONTLEAVE = 0;
 int Sexy::SOUND_MM_ILLBEBACK = 0;
 int Sexy::SOUND_MM_BEDTIME = 0;
 int Sexy::SOUND_MM_CNG = 0;
-int Sexy::SOUND_MM_BUY_NOW = 0;
 int Sexy::SOUND_TEXT_BLIP = 0;
 int Sexy::SOUND_TEXT_BLIP1 = 0;
 int Sexy::SOUND_TEXT_BLIP2 = 0;
@@ -527,12 +526,6 @@ Image* Sexy::IMAGE_MINIMENU_BTN_MAINMENU = nullptr;
 Image* Sexy::IMAGE_MINIMENU_LOCKED = nullptr;
 Image* Sexy::IMAGE_MINIMENU_NEW = nullptr;
 Image* Sexy::IMAGE_MINIMENU_TIP_BG = nullptr;
-Image* Sexy::IMAGE_UT_BUY_BUTTON = nullptr;
-Image* Sexy::IMAGE_UT_NO_BUTTON = nullptr;
-Image* Sexy::IMAGE_UT_BUY_NOW = nullptr;
-Image* Sexy::IMAGE_UT_TRIAL_EXPIRED = nullptr;
-int Sexy::SOUND_UT_CHOMP = 0;
-int Sexy::SOUND_UT_BUY_NOW = 0;
 Image* Sexy::IMAGE_SB_TOTAL_TIME = nullptr;
 Image* Sexy::IMAGE_SB_BGX = nullptr;
 Image* Sexy::IMAGE_SB_ENEMY = nullptr;
@@ -983,7 +976,6 @@ bool Sexy::ExtractCommonGameResources(ResourceManager* theManager)
 		SOUND_MM_ILLBEBACK = aMgr.GetSoundThrow("SOUND_MM_ILLBEBACK");
 		SOUND_MM_BEDTIME = aMgr.GetSoundThrow("SOUND_MM_BEDTIME");
 		SOUND_MM_CNG = aMgr.GetSoundThrow("SOUND_MM_CNG");
-		SOUND_MM_BUY_NOW = aMgr.GetSoundThrow("SOUND_MM_BUY_NOW");
 		SOUND_TEXT_BLIP = aMgr.GetSoundThrow("SOUND_TEXT_BLIP");
 		SOUND_TEXT_BLIP1 = aMgr.GetSoundThrow("SOUND_TEXT_BLIP1");
 		SOUND_TEXT_BLIP2 = aMgr.GetSoundThrow("SOUND_TEXT_BLIP2");
@@ -1155,23 +1147,6 @@ bool Sexy::ExtractMiniGameMenuResources(ResourceManager* theManager)
 	return true;
 }
 
-bool Sexy::ExtractUpsellTrailerResources(ResourceManager* theManager)
-{
-	gNeedRecalcVariableToIdMap = true;
-	ResourceManager& aMgr = *theManager;
-	try {
-		IMAGE_UT_BUY_BUTTON = aMgr.GetImageThrow("IMAGE_UT_BUY_BUTTON");
-		IMAGE_UT_NO_BUTTON = aMgr.GetImageThrow("IMAGE_UT_NO_BUTTON");
-		IMAGE_UT_BUY_NOW = aMgr.GetImageThrow("IMAGE_UT_BUY_NOW");
-		IMAGE_UT_TRIAL_EXPIRED = aMgr.GetImageThrow("IMAGE_UT_TRIAL_EXPIRED");
-		SOUND_UT_CHOMP = aMgr.GetSoundThrow("SOUND_UT_CHOMP");
-		SOUND_UT_BUY_NOW = aMgr.GetSoundThrow("SOUND_UT_BUY_NOW");
-	} catch (ResourceManagerException&) {
-		return false;
-	}
-	return true;
-}
-
 bool Sexy::ExtractStatsBookResources(ResourceManager* theManager)
 {
 	gNeedRecalcVariableToIdMap = true;
@@ -1227,8 +1202,6 @@ bool Sexy::ExtractResourcesByName(ResourceManager* theManager, const char* theNa
 		return ExtractMiniGameCommonResources(theManager);
 	if (strcmp(theName, "MiniGameMenu") == 0)
 		return ExtractMiniGameMenuResources(theManager);
-	if (strcmp(theName, "UpsellTrailer") == 0)
-		return ExtractUpsellTrailerResources(theManager);
 	if (strcmp(theName, "StatsBook") == 0)
 		return ExtractStatsBookResources(theManager);
 	return false;

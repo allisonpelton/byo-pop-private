@@ -1,0 +1,2 @@
+folder engine -- New Crayon's engine beside src/ is part of the game
+folder game -- the game's own code beside src/

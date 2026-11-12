@@ -57,7 +57,7 @@ BuyRocketsWidget::BuyRocketsWidget(RocketApp* theApp, bool theGameOver) :
 				anItem->mStartY = 0x18d;
 				anItem->mEndX = anEndX + 10;
 				anItem->mEndY = anEndY - 10;
-				anItem->mImage = (int) aGen->Fuse(aLauncher) + 0x36;
+				anItem->mImage = IMAGE_ROCKET01 + (int) aGen->Fuse(aLauncher);
 				if (aCoin == 5)
 					anItem->mLauncher = aLauncher;
 				else

@@ -96,14 +96,12 @@ LevelUpWidget::LevelUpWidget(BookWormApp* theApp)
 	mRightY = -174.0;
 	mRightVel = 0.0;
 	mPanelY = -150.0;
-	mUnusedA8 = 189.0;
-	mFrozenB0 = false;
+	mFrozen = false;
 	mSlide = 0.0;
 	mSlidePhase = 0.0;
 	mHeaderY = 0;
 	mFooterY = 0;
 	mLexArrived = false;
-	mUnused78 = 0.03;
 	mModsBalloon = NULL;
 	mJournalButton = NULL;
 	mJournal = NULL;
@@ -112,7 +110,7 @@ LevelUpWidget::LevelUpWidget(BookWormApp* theApp)
 // 0x42be40 (scalar deleting dtor 0x42beb0)
 LevelUpWidget::~LevelUpWidget()
 {
-	DeletePanel();
+	FreeImageData();
 
 	if (mContinueButton != NULL)
 	{
@@ -128,7 +126,7 @@ LevelUpWidget::~LevelUpWidget()
 }
 
 // 0x42b980
-void LevelUpWidget::DeletePanel()
+void LevelUpWidget::FreeImageData()
 {
 	if (mPanelGraphics != NULL)
 	{
@@ -143,10 +141,10 @@ void LevelUpWidget::DeletePanel()
 	}
 }
 
-// 0x42b9c0. A transparent off-screen image the size of dialog_levelup; DrawPanel paints it at the next Draw.
-void LevelUpWidget::CreatePanel()
+// 0x42b9c0. A transparent off-screen image the size of dialog_levelup; DrawToImage paints it at the next Draw.
+void LevelUpWidget::CreateImageData()
 {
-	DeletePanel();
+	FreeImageData();
 
 	Image* aPanelBackground = mApp->mImages[IMAGE_DIALOG_LEVELUP];
 	mPanelImage = new MemoryImage(mApp);
@@ -160,7 +158,7 @@ void LevelUpWidget::CreatePanel()
 void LevelUpWidget::Resize(int theX, int theY, int theWidth, int theHeight)
 {
 	Widget::Resize(theX, theY, theWidth, theHeight);
-	CreatePanel();
+	CreateImageData();
 }
 
 // 0x42bad0. No NULL check: the app calls it only after the widget was added (AddedToManager made the button).
@@ -278,7 +276,7 @@ void LevelUpWidget::ButtonDepress(int theId)
 	if (aBoard->mState == BOARD_GAMEOVER)
 	{
 		aBoard->DeleteSavedGame(mApp->mGameMode);
-		mApp->ShowHallOfFame();
+		mApp->DoFameWidget();
 		return;
 	}
 
@@ -314,10 +312,10 @@ bool LevelUpWidget::KeyContinue(KeyCode theKey)
 }
 
 // 0x42bee0 (100 updates a second). Nothing happens while disabled (the help screen is up).
-// Phase 1: the panel's two top corners fall under gravity and bounce on y 75 independently, the panel
+// The fall: the panel's two top corners fall under gravity and bounce on y 75 independently, the panel
 // tilting by their difference; from the constructor's values the left corner bounces at updates 55, 99
 // and 116, the right one at 58, 104, 122 and 129, so the fall ends at update 129 with mPanelY = 75.
-// Phase 2 (from the same update): the header and footer slide in along a quarter sine (53 updates), the
+// The slide (from the same update): the header and footer slide in along a quarter sine (53 updates), the
 // Continue button riding on the footer; then Lex's word balloon is hidden.
 void LevelUpWidget::Update()
 {
@@ -326,7 +324,7 @@ void LevelUpWidget::Update()
 	if (mDisabled)
 		return;
 
-	// port: a test script's "quit" runs Shutdown in the middle of an update; ShutdownWidgets has then removed
+	// port: a test script's "quit" runs Shutdown in the middle of an update; CleanupWidgets has then removed
 	// the board (deleted later, which removes this widget) but WidgetManager::UpdateFrame still updates this
 	// widget in the same update. The original never updates after Shutdown.
 	if (mApp->mBoard == NULL)
@@ -372,7 +370,7 @@ void LevelUpWidget::Update()
 		MarkDirty();
 	}
 
-	if ((!mFalling) && (!mFrozenB0))
+	if ((!mFalling) && (!mFrozen))
 	{
 		// Board bookkeeping: once Lex has stopped in BOARD_LEVEL_COMPLETE, the board's "new high score" flag
 		// is cleared as soon as Lex is idle (nothing else reads it)
@@ -572,7 +570,7 @@ void LevelUpWidget::UpdateJournal()
 void LevelUpWidget::Draw(Graphics* g)
 {
 	if ((mPanelImage != NULL) && (mPanelGraphics != NULL) && (mPanelDirty))
-		DrawPanel(mPanelGraphics);
+		DrawToImage(mPanelGraphics);
 
 	int aPanelX = mWidth - mPanelImage->GetWidth() - 5;
 
@@ -580,7 +578,7 @@ void LevelUpWidget::Draw(Graphics* g)
 	{
 		g->DrawImageRotated(mPanelImage, aPanelX, (int)mPanelY, mPanelAngle);
 	}
-	else if (!mFrozenB0)
+	else if (!mFrozen)
 	{
 		int aCenterX = aPanelX + mPanelImage->GetWidth() / 2;
 
@@ -631,7 +629,7 @@ static void FitLongWord(Graphics* g, BookWormApp* theApp, const SexyString& theW
 // centre their text in [x, x + w]). Left column: the best and the longest word of the level (of the game
 // at game over), the level time and the total time; right column: the rank name, its picture in a frame
 // and the score of the next rank. Heights at the original fonts: Scripps 13/15/18 = 20/23/28.
-void LevelUpWidget::DrawPanel(Graphics* g)
+void LevelUpWidget::DrawToImage(Graphics* g)
 {
 	g->DrawImage(mApp->mImages[IMAGE_DIALOG_LEVELUP], 0, 0);
 	Widget::Draw(g);
@@ -706,7 +704,7 @@ void LevelUpWidget::DrawPanel(Graphics* g)
 
 	// The rank: the level reached (the next level after a level, the current one at game over)
 	unsigned int aRank = isLevelSummary ? aBoard->mLevel + 1 : aBoard->mLevel;
-	int aNextRankScore = Board::LevelThreshold(aRank);
+	int aNextRankScore = Board::GetPointsAtLevel(aRank);
 	SexyString aRankLabel = GameText(GT_SUMMARY_YOUR_RANK);
 	SexyString aNextLabel = GameText(GT_SUMMARY_NEXT_RANK);
 	SexyString aNextScore = StrFormat(GameTextC(GT_SUMMARY_NEXT_RANK_FORMAT), aNextRankScore);

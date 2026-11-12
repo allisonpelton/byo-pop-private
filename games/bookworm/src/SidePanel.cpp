@@ -1,3 +1,5 @@
+// port(mod): mod "widescreen", the side panel (SidePanel.h). Not part of the original game.
+
 #include "SidePanel.h"
 #include "Board.h"
 #include "BookWormApp.h"

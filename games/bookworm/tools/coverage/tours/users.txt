@@ -1,0 +1,59 @@
+# Player management: five players made through the select-player dialog, then the delete-player dialog (listed with exactly
+# five players) and a player deleted; coverage of SelectUserDialog::ListClicked, DeleteUserDialog and UserManager.
+400 screenshot title
+420 click 386 384
+470 text A
+485 key RETURN
+560 screenshot selector
+600 click 110 212
+640 screenshot users_B
+650 click 200 101
+700 screenshot newuser_B
+710 text B
+730 key RETURN
+800 screenshot selector_B
+850 click 110 212
+890 screenshot users_C
+900 click 200 101
+950 screenshot newuser_C
+960 text C
+980 key RETURN
+1050 screenshot selector_C
+1100 click 110 212
+1140 screenshot users_D
+1150 click 200 101
+1200 screenshot newuser_D
+1210 text D
+1230 key RETURN
+1300 screenshot selector_D
+1350 click 110 212
+1390 screenshot users_E
+1400 click 200 101
+1450 screenshot newuser_E
+1460 text E
+1480 key RETURN
+1550 screenshot selector_E
+1600 click 110 212
+1660 screenshot users5
+1700 click 200 183
+1760 screenshot delete1
+# the delete dialog: a name selected, OK, the confirmation answered NO, CANCEL (the roster refreshed), then again a name,
+# OK and YES (the player deleted); then a double click on a name in the select dialog switches to it (the port's script has
+# no double click: its tour takes a click)
+1770 click 200 198
+1790 screenshot sel_B
+1800 click 115 289
+1860 screenshot confirm
+1870 click 451 211
+1920 click 285 289
+1980 screenshot back_to_select
+2000 click 200 183
+2060 click 200 214
+2080 click 115 289
+2120 screenshot confirm2
+2130 click 310 211
+2200 screenshot afterdelete
+2220 @orig dclick 200 119
+2220 @port click 200 119
+2300 screenshot switched
+2320 quit

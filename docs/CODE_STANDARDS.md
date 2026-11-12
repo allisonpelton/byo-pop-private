@@ -1,7 +1,9 @@
 # Code standards
 
 The readability pass makes a finished port's code easy to read without changing what it does. Ordinary good practice
-applies; these are the rules particular to a decompiled port, and the tools that enforce them.
+applies; these are the rules particular to a decompiled port, and the tools that enforce them. A new port follows them
+from its first draft (the user, 2026-11-12), so for it the pass is `tools/namecheck.py`'s run and a read of what it
+flags, not a renaming (`docs/COORDINATION.md`, "A new port writes to the standards from its first draft").
 
 Two things hold above every rule:
 

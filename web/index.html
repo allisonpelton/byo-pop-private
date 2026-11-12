@@ -116,7 +116,7 @@ h1 { margin: 0; font-size: 20px; font-weight: 600; }
 .ag-folder { font-weight: 600; }
 /* The terms of a game being added (web/addgames.js), as the game's own terms card shows them (web/shell.html) */
 .terms-dialog {
-  box-sizing: border-box; width: min(600px, calc(100vw - 32px)); max-height: calc(100vh - 32px); padding: 24px;
+  box-sizing: border-box; width: min(600px, calc(calc(100vw / var(--d95-z, 1)) - 32px)); max-height: calc(calc(100vh / var(--d95-z, 1)) - 32px); padding: 24px;
   background: var(--panel); color: var(--fg); border: 1px solid var(--line); border-radius: var(--radius);
 }
 .terms-dialog[open] { display: grid; gap: 14px; }
@@ -164,6 +164,15 @@ h1 { margin: 0; font-size: 20px; font-weight: 600; }
 .show-unsold input { width: 18px; height: 18px; margin: 0; accent-color: var(--accent); }
 /* a game no store sells any more, unless its files are here (data-files, set by the files check) */
 .games.hide-unsold > li[data-unsold]:not([data-files=yes]) { display: none; }
+/* Find, in Desktop 95 only (the user, 2026-11-11: "the all games list should have search with typo tolerance"): a box with a
+   magnifier in the toolbar; the games it does not match are left out of the list while it holds anything */
+.find-games { display: none; }
+html.d95-desk .find-games { display: inline-flex; align-items: center; gap: 4px; margin: 0 8px 0 0; }
+html.d95-desk .find-games svg { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 2; }
+html.d95-desk .find-games input { width: 11em; min-width: 0; }
+html.d95-desk .games > li.find-miss { display: none; }
+/* a game's phase (development hosts only, web/phase.js): a line of the card, its steps in the tooltip */
+.games > li > .phase { margin: 2px 0 0; font-size: 12px; color: var(--muted); cursor: help; }
 .sortby legend { float: left; margin: 0 14px 0 0; padding: 0; font-weight: 600; line-height: 32px; }
 .sortby-opts { display: flex; flex-wrap: wrap; align-items: center; gap: 0 12px; min-height: 32px; }
 .sortby label { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 0 4px; cursor: pointer; }
@@ -198,7 +207,7 @@ a.tile + .ownrow:not(:has(.why)) { min-height: 0; }
 .why:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .why[aria-expanded="true"] { background: var(--accent); border-color: var(--accent); color: var(--panel); }
 .why-pop {
-  position: absolute; top: calc(100% + 6px); left: 0; z-index: 5; box-sizing: border-box; width: min(340px, calc(100vw - 32px));
+  position: absolute; top: calc(100% + 6px); left: 0; z-index: 5; box-sizing: border-box; width: min(340px, calc(calc(100vw / var(--d95-z, 1)) - 32px));
   padding: 14px 16px; background: var(--panel); color: var(--fg); border: 1px solid var(--accent); border-radius: var(--radius);
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25); text-align: left; font-size: 13px;
 }
@@ -384,8 +393,12 @@ html:not(.d95-desk) #chat { display: none !important; }
 #music .mu-where { flex: 0 1 auto; max-width: 40%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; color: var(--muted); }
 #music .mu-where.mu-unused { text-decoration: line-through; }
 .mu-format { flex: none; width: 3em; font-size: 10px; color: var(--muted); text-align: center; }
+#music .mu-composer { flex: 0 1 auto; width: 9em; max-width: 25%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; color: var(--muted); }
+#music .mu-fold { display: flex; align-items: baseline; gap: 4px; width: 100%; min-height: 0; margin: 0; padding: 0 2px; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: default; }
+#music .mu-fold-mark { flex: none; width: 9px; height: 9px; line-height: 7px; border: 1px solid #808080; background: #fff; color: #000; font-size: 9px; text-align: center; align-self: center; }
+#music .mu-game-sum { font-weight: normal; }
 #music .mu-tune[aria-current] .mu-num, #music .mu-tune[aria-current] .mu-time, #music .mu-tune[aria-current] .mu-where,
-#music .mu-tune[aria-current] .mu-format { color: inherit; }
+#music .mu-tune[aria-current] .mu-format, #music .mu-tune[aria-current] .mu-composer { color: inherit; }
 /* The import from an installed game (web/saveimport.js) */
 #saves-body select { font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 5px 8px; max-width: 100%; }
 /* the import's wizard (web/saveimport.js): its picture (drawn only by Desktop 95, web/skins.css), one page at a time, and
@@ -441,7 +454,7 @@ footer p { margin: 0 0 8px; }
 footer a { color: var(--accent); }
 </style>
 <!-- the site's look, Desktop 95 (web/skins.js sets <html data-skin="d95">; docs/WEB_PLAYER.md, "Desktop 95") -->
-<link rel="stylesheet" href="skins.css"><script src="skins.js"></script><script src="schemes.js"></script>
+<link rel="stylesheet" href="skins.css"><script src="skins.js"></script><script src="schemes.js"></script><script src="themedata.js"></script><script src="themes.js"></script>
 </head>
 <body>
 <header class="site-header">
@@ -466,6 +479,8 @@ footer a { color: var(--accent); }
     <!-- Games no store sells any more (data-unsold) are hidden unless this is ticked or their files are here (the script below) -->
     <!-- Desktop 95's "Windows 95 games only": how many games it hides (web/skins.js) -->
     <p class="win95-count" id="win95-count" role="status" hidden></p>
+    <!-- Find (Desktop 95 only): the script after the sorting's -->
+    <label class="find-games"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="10" cy="10" r="6"/><path d="M14.5 14.5 20 20"/></svg><input type="search" id="find-games" aria-label="{{index.find.label}}" placeholder="{{index.find.label}}" autocomplete="off" spellcheck="false"></label>
     <label class="show-unsold" id="show-unsold-label" hidden><input type="checkbox" id="show-unsold" aria-label="{{index.unsold}}"> {{index.unsold}}</label>
     <div class="toolbar-actions">
       <button type="button" class="add-games" id="add-games" hidden>{{index.add.button}}</button>
@@ -552,6 +567,7 @@ footer a { color: var(--accent); }
   <p>{{index.footer.tracker}}</p>
   <p>{{index.footer.credit_html}}</p>
 </footer>
+<script src="saver.js"></script>
 <script src="settingsicons.js"></script>
 <script src="settings.js"></script>
 <script src="playcount.js"></script>
@@ -565,6 +581,8 @@ footer a { color: var(--accent); }
 <!-- the soundboard: Desktop 95's Sounds window (web/sounds.js) and its table of the games' sounds (web/soundboards.js) -->
 <script src="soundboards.js"></script>
 <script src="sounds.js"></script>
+<script src="trophies.js"></script>
+<script src="gamepics.js"></script>
 <!-- the splits timer: Desktop 95's Splits window, a stand-in for LiveSplit (web/splits.js) -->
 <script src="splits.js"></script>
 <!-- Adding games (web/addgames.js): web/modpanel.js's zip and pak readers, without a game (it fills Module.byopop), the icon reader, the
@@ -572,6 +590,7 @@ footer a { color: var(--accent); }
 <script>var Module = {};</script>
 <script src="modpanel.js"></script>
 <script src="exeicon.js"></script>
+<script src="exeprobes.js"></script>
 <script src="gameimport.js"></script>
 <script src="import-games.js"></script>
 <script src="other-games.js"></script>
@@ -579,6 +598,7 @@ footer a { color: var(--accent); }
 <script src="addgames.js"></script>
 <!-- the Setup window: Desktop 95's wizard for adding many games at once, a new face on addgames.js's import -->
 <script src="setup.js"></script>
+<script src="phase.js"></script>
 <script src="library.js"></script>
 <script src="chat-games.js"></script>
 <script src="chat.js"></script>
@@ -794,6 +814,40 @@ try {
 })();
 </script>
 <script>
+// Find in the All games list (Desktop 95 only; the box and the hiding are drawn only there, index.html's style). Each word typed
+// is looked for in each game's title, letters and digits only, with a few typing slips allowed ("mumy maz", "bejewled"): the
+// fewest edits that turn the word into some stretch of the title, at most one for a word of four to six letters, two up to
+// nine, three beyond, none for a shorter one (whose slip would find too many). A game matches when every word does, in any order.
+(function () {
+  var box = document.getElementById("find-games"), list = document.querySelector("ul.games");
+  if (!box || !list) return;
+  function plain(s) { return String(s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, ""); }
+  // the fewest edits that turn q into a stretch of t (an approximate substring search: a stretch may start anywhere for free)
+  function edits(q, t) {
+    var prev = [], cur, i, j;
+    for (j = 0; j <= t.length; j++) prev.push(0);
+    for (i = 1; i <= q.length; i++) {
+      cur = [i];
+      for (j = 1; j <= t.length; j++)
+        cur.push(Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (q.charAt(i - 1) === t.charAt(j - 1) ? 0 : 1)));
+      prev = cur;
+    }
+    return Math.min.apply(null, prev);
+  }
+  function slips(n) { return n < 4 ? 0 : n < 7 ? 1 : n < 10 ? 2 : 3; }
+  function run() {
+    var words = box.value.split(/\s+/).map(plain).filter(Boolean);
+    Array.prototype.forEach.call(list.children, function (li) {
+      if (li.tagName !== "LI") return;
+      var title = plain(li.getAttribute("data-title") || li.textContent);
+      var hit = words.every(function (w) { return edits(w, title) <= slips(w.length); });
+      li.classList.toggle("find-miss", !hit);
+    });
+  }
+  box.addEventListener("input", run);
+})();
+</script>
+<script>
 // Which games have their files loaded, as a sign that the player owns them (docs/WEB_PLAYER.md, "The listing page"). A
 // game page keeps a record in localStorage (web/settings.js, ByopopGameFiles): when it last found the game's files, and
 // when the player forgot them or the page found them gone. For a game without a record, because its files were imported
@@ -957,7 +1011,7 @@ try {
     return x1 < 0 ? null : { im: im, x: x0, y: y0, w: x1 - x0 + 1, h: y1 - y0 + 1 };
   }
   function fitIcon(img, url, small) {
-    var dpr = window.devicePixelRatio || 1, box = FACE;
+    var dpr = (window.ByopopSkin && ByopopSkin.ratio ? ByopopSkin.ratio() : window.devicePixelRatio || 1), box = FACE;
     var key = url + "|" + small + "|" + box + "|" + dpr;
     img.setAttribute("data-fit", key);
     function put(f) {
@@ -994,7 +1048,9 @@ try {
     });
   }
   var lastDpr = window.devicePixelRatio || 1;
-  window.addEventListener("resize", function () { var d = window.devicePixelRatio || 1; if (d !== lastDpr) { lastDpr = d; refit(); } });
+  function nowRatio() { return (window.ByopopSkin && ByopopSkin.ratio ? ByopopSkin.ratio() : window.devicePixelRatio || 1); }
+  window.addEventListener("resize", function () { var d = nowRatio(); if (d !== lastDpr) { lastDpr = d; refit(); } });
+  window.addEventListener("byopop-zoom", function () { lastDpr = nowRatio(); refit(); });
   function showPlayed(card, play) {
     var line = card.querySelector(".played");
     if (!play || !(play.plays > 0 || play.seconds > 0)) { if (line) line.hidden = true; return; }
@@ -1286,6 +1342,8 @@ try {
     // the soundboard (web/sounds.js): the games' sound effects, Desktop 95 only, closed at first, its icon after Music's
     if (window.ByopopSounds) ByopopSounds.attach(d, function (left, vw) { return [Math.max(left, vw - 600) - 140, top() + 52]; });
     // the splits timer (web/splits.js): Desktop 95 only, closed at first, its icon after the Sounds window's
+    // the trophy cabinet (web/trophies.js): the games' own records, Desktop 95 only, closed at first, its icon after the Sounds window's
+    if (window.ByopopTrophies) ByopopTrophies.attach(d, function (left, vw) { return [Math.max(left, vw - 620) - 100, top() + 40]; });
     if (window.ByopopSplits) ByopopSplits.attach(d, function (left, vw) { return [Math.max(left, vw - 330), top() + 24]; });
     // the Setup window (web/setup.js): closed at first, no icon; Add Games in the Pop menu and the Add games button open it
     if (window.ByopopSetup) ByopopSetup.attach(d, function (left, vw) { return [Math.max(left, Math.round((vw - 560) / 2)), top() + 40]; });
@@ -1297,10 +1355,9 @@ try {
     // The chat: one window for every game (the user, 2026-11-09: "Let's just have a single chat window instead of waiting for
     // it to load with each game"), built when it first opens and kept running while games open and close. It sits at the
     // desktop's right edge, 300 pixels wide, so a game's window at the left and the chat are side by side from 1280 pixels
-    // wide; it comes up with the first game the page opens (unless "Show chat" is off) behind that game's window, and in
-    // front only when the player brings it there. What the player sends is tagged with the game in front (ByopopApps.frontGame),
-    // or with none while no game is open.
-    var chatEl = document.getElementById("chat"), chat = null, chatShown = false;
+    // wide; it opens only when the player opens it (its icon, the Pop menu or a game's View menu). What the player sends is
+    // tagged with the game in front (ByopopApps.frontGame), or with none while no game is open.
+    var chatEl = document.getElementById("chat"), chat = null;
     function startChat() {
       if (chat || !window.ByopopChat) return;
       try {
@@ -1321,15 +1378,10 @@ try {
       chatPic.innerHTML = '<path d="M4 5h16v11H9l-4 4v-4H4z"/>';
       d.add(chatEl, { id: "chat", title: ByopopStrings.t("game.chat.title"), closable: true, closed: true, lift: true, pic: chatPic,
         scroll: ".bpc-log", at: function (left, vw) { return [Math.max(left, vw - 312), top()]; } });
+      // it starts when the player first brings its window up, and only then: it never opens by itself (the user, 2026-11-11:
+      // "Stop chat from opening on its own")
       window.addEventListener("byopop-desk-active", function (ev) {
-        var id = ev.detail && ev.detail.id;
-        if (id === "chat") { startChat(); return; }
-        // a game's window: the chat comes up behind it, the first time
-        if (chatShown || !id || !/^app-/.test(id) || !window.ByopopApps || !ByopopApps.frontGame()) return;
-        chatShown = true;
-        var showChat = "on"; try { showChat = ByopopSettings.get("showChat"); } catch (e) {}
-        if (showChat === "off" || !d.find("chat").closed) return;
-        setTimeout(function () { d.openWin("chat"); d.openWin(id); }, 0);
+        if (ev.detail && ev.detail.id === "chat") startChat();
       });
     }
     d.add(document.querySelector("body > footer"), { id: "about", title: ByopopStrings.t("skin.desk.about"), closable: true, body: true,

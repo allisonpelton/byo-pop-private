@@ -20,8 +20,6 @@ public:
 	void layout() override;                     // 0x74: 0x426b70
 	// 0xd8: 0x426b00
 	virtual void select(int theIndex, float theDuration, bool theFadeIn);
-	// 0xdc: 0x427000
-	virtual int getSelectedIndex() { return mCurrent; }
 	// 0xe0: 0x426d90
 	virtual Node* getSelected();
 	// 0xe4: 0x426c00

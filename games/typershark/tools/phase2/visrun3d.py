@@ -2,7 +2,12 @@
 Windows Sandbox cannot give: the original's 3D mode (docs/ORIGRUN.md, "Hardware acceleration"; the user's "Yes, both routes", 2026-11-11).
 A visrun for Typer Shark, made from Bookworm Adventures' tools/pilot/visrun.py on the same terms:
 
-    python visrun3d.py <name> [--3d on|off] [--game <dir>] [--shape sandbox|client]
+    python visrun3d.py <name> [--3d on|off] [--game <dir>] [--shape sandbox|client] [--users <dir>] [--reg <file.reg>] [--patch "va:0x.. <expected> <replacement>"]
+
+--users puts that folder's files over the clean users folder (origrun's STAGE), --reg imports a registry preset of the original's (an
+HKLM\\SOFTWARE\\PopCap export, as phase 2's profiles/<x>/orig.reg: read here as HKCU\\Software\\PopCap, where the registry map puts it) after
+Is3D and ScreenMode are set, and --patch changes bytes of the copy's exe (checked against the expected bytes first; a copy that has the
+replacement already is left as it is), for the medal tours (GAME_NOTES section 18).
 
 The game is a copy under build/ts-3d/game (made by prepare()), with origrun's silent stand-in as its dsound.dll; it runs on the real clock
 and starts with SW_SHOWNOACTIVATE, so it never takes the focus. Only the game's own window is touched: input is posted to it (never the
@@ -316,12 +321,51 @@ def shot(g, out, name, landed, log, shape):
     return c
 
 
-def prepare(threed):
-    """A fresh copy of the staged original under build/ts-3d/game: no dgVoodoo files, the clean users folder, origrun's stand-in."""
+def prepare(threed, users=None, patch=None):
+    """A fresh copy of the staged original under build/ts-3d/game: no dgVoodoo files, the clean users folder (with the files of `users`
+    over it), origrun's stand-in, and the exe's bytes changed by `patch` ("va:0x.. <expected> <replacement>")."""
     if os.path.isdir(GAME):
         shutil.rmtree(GAME)
     shutil.copytree(SOURCE, GAME, ignore=shutil.ignore_patterns("users", "logs", "crash.txt", "*.log", *WRAPPER_FILES))
     shutil.copytree(USERS_CLEAN, os.path.join(GAME, "users"))
+    if users:
+        shutil.copytree(users, os.path.join(GAME, "users"), dirs_exist_ok=True)
+    if patch:
+        apply_patch(os.path.join(GAME, "TyperSharkGame.exe"), patch)
+
+
+def apply_patch(exe, spec):
+    """One patch of origrun's list, `va:0x<address> <expected hex> <replacement hex>`, by the PE's section table."""
+    where, expected, replacement = spec.split()
+    va = int(where.split(":", 1)[1], 16)
+    expected, replacement = bytes.fromhex(expected), bytes.fromhex(replacement)
+    data = bytearray(open(exe, "rb").read())
+    pe = struct.unpack_from("<I", data, 0x3c)[0]
+    count, opt = struct.unpack_from("<H", data, pe + 6)[0], struct.unpack_from("<H", data, pe + 20)[0]
+    base = struct.unpack_from("<I", data, pe + 24 + 28)[0]
+    for i in range(count):
+        _, size, rva, raw_size, raw = struct.unpack_from("<8sIIII", data, pe + 24 + opt + 40 * i)
+        if rva <= va - base < rva + max(size, raw_size):
+            off = raw + va - base - rva
+            break
+    else:
+        raise SystemExit("visrun3d: %s is in no section" % where)
+    have = bytes(data[off:off + len(expected)])
+    if have == replacement:
+        return
+    if have != expected:
+        raise SystemExit("visrun3d: %s has %s, expected %s" % (where, have.hex(), expected.hex()))
+    data[off:off + len(replacement)] = replacement
+    open(exe, "wb").write(data)
+
+
+def import_registry(backup, reg):
+    """The original's registry preset (UTF-16, HKLM\\SOFTWARE\\PopCap) imported as HKCU\\Software\\PopCap, where the registry map puts it."""
+    text = open(reg, "rb").read().decode("utf-16")
+    text = text.replace("HKEY_LOCAL_MACHINE\\SOFTWARE\\PopCap", "HKEY_CURRENT_USER\\Software\\PopCap")
+    conv = os.path.join(backup, "preset.reg")
+    open(conv, "wb").write(b"\xff\xfe" + text.encode("utf-16-le"))
+    subprocess.run(["reg", "import", conv], check=True, capture_output=True)
 
 
 def stage_registry(backup, threed):
@@ -346,11 +390,18 @@ def restore_registry(backup):
 def main():
     a = sys.argv[1:]
     threed, shape = True, "sandbox"
-    for opt in ("--3d", "--shape"):
+    users = reg = patch = None
+    for opt in ("--3d", "--shape", "--users", "--reg", "--patch"):
         if opt in a:
             i = a.index(opt)
             if opt == "--3d":
                 threed = a[i + 1] == "on"
+            elif opt == "--users":
+                users = os.path.abspath(a[i + 1])
+            elif opt == "--reg":
+                reg = os.path.abspath(a[i + 1])
+            elif opt == "--patch":
+                patch = a[i + 1]
             else:
                 shape = a[i + 1]
             del a[i:i + 2]
@@ -366,8 +417,10 @@ def main():
     landed = open(os.path.join(out, "landed.tsv"), "w")
     steps = open(base + ".steps.tsv", "w")
     backup = os.path.join(ROOT, "build", "ts-3d", "registry-backup")
-    prepare(threed)
+    prepare(threed, users, patch)
     stage_registry(backup, threed)
+    if reg:
+        import_registry(backup, reg)
     run_id = uuid.uuid4().hex[:12]
     cur = Cursor(run_id)
     env = dict(os.environ)

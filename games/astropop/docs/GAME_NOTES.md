@@ -285,13 +285,13 @@ The handler of event 3 (0x403fd0, `Brick::OnDie`) fires the "popped" event 0x1a 
    identical, sound, focus, the web build, real-input driver play) are done; what still differs is listed in section 8 and in the
    report. The stretch of the ring is mended by a shared option (section 8). What remains is the blit arithmetic of the 2004
    `DDImage` (`NormalBlt`, `AdditiveBlt`): at most 11 levels, in shared code, not done (section 8).
-   The music (a module stream) was not compared with the original's in phase two: its start, stop and focus handling remain to be
-   checked, if origrun can see them.
+   The music (a module stream) was compared with the original's after phase two (section 14): its song starts are the same; its pause and
+   resume at a focus change cannot be seen in origrun's sandbox.
 3. The frozen baseline `build/baseline-astropop` is made (`tools/check.sh astropop`). The fixes mod: one candidate (section 7); the mod
    waits for `docs/MOD_ROADMAP.md`'s turn. Done since: the coverage check and the removal of code the game does not need (section 10), the
    performance pass (section 11), the readability pass (section 12) and the check against the PopCap Game Collection's copy (section 13: its exe is
-   another build; the port plays equal on its files). Still to do for the game to be done: the music's state against the original's, and a night
-   run of the original in 3D for the screen wipe (section 10).
+   another build; the port plays equal on its files) and the music's state against the original's (section 14: the port had no music; fixed).
+   Still to do for the game to be done: a night run of the original in 3D for the screen wipe (section 10).
 4. (Done: the gap of the removed More Games button is closed, section 6.) The app's destructor does not delete its screens (as the original's).
 5. (Done in phase two, the sites it lists and the other drawing and screen functions read against the asm; the float rounding of the drawing
    code follows section 4.) Phase two of the pass: the x87 compares of the drawing and screen code that were not checked in phase one against the asm for the `<` / `<=` idiom of section 4 (0x40c8a0, 0x433500, 0x433920, 0x439c20, 0x444520, 0x461010, 0x461e50, 0x467af0, 0x487f00, 0x48a110 and the other `TEST AH` sites listed by `grep -l 'TEST AH' re/astropop/asm/*.asm`); the gameplay ones (every Brick method, the group and fall code, CheckStackHeight, OnBrickGone) were read in phase one.
@@ -556,3 +556,37 @@ decided against it (2026-11-11): the definition of done asks that the port work 
 readability pass has named the classes. The Collection's Direct3D 8 drawing in 3D mode was not seen either (section 10, the screen wipe). The port's executable
 is called `astropop.exe`, the name of the Collection's game: the installer that puts a native port beside the original
 (`docs/STEAM_LAUNCH.md`) must not write it into a Collection folder under that name.
+
+## 14. The music (2026-11-11)
+
+**A bug found: the port played no music.** The original plays `music\music.mo3` (one module of 43 orders) through BASS; the port plays it
+through the framework's `SDLMusicInterface` and `Mixer::LoadSong`, which decodes an MO3 with libopenmpt once
+`Platform::RegisterOpenMPTModules()` has registered it. `main` never called it (the other games with an MO3 tune call it in `main`), so
+`LoadSong` returned 0 with no log line and no error, and every run of the port, native and web, was silent apart from the effects. No
+earlier comparison could show it (they compare pictures and the sound effects; the page's silent mode hides it too). Fixed in 9be38396: the call
+follows the "game: ... | user: ... | mods: ..." log line in `main.cpp`. Checked after the fix natively (the sound log has the song starts) and in the
+web build (`Module._byopop_music_song()` is 2 and the music view lists the 43 positions).
+
+**The comparison** (`tools/tour/musictour.sh`, `tools/tour/musiccmp.py`). `PlaySong(order)` (0x408b90) puts a position of the module on the
+copy that does not play (slot 0 or 1) and fades the other out; its choices are what the game decides. origrun's sandbox has no sound
+device, so BASS never starts a stream there: the app's fields are read instead, by four watches (`ORIG_WATCHES` of `tour.sh`): the position
+`mMusicOrder` (`[0x5dc220]+0x6dc`), the slot `mMusicSlot` (`+0x6d8`) and the two ends of the vector of paused slots (`+0x634`, `+0x638`).
+The port's side is `BYOPOP_SOUNDLOG`: a `music fadein <slot> offset=<position>` line for each song it starts, and `music pause` and `music
+resume` lines for the slots that a focus change stops and restarts. `musiccmp.py <orig.log> <port_sound.log>` compares the starts one by one
+(position, slot, and the update: the original's counter is the port's plus 2, a difference of 1 more is allowed; the first start, at update
+0, is exempt) and exits 1 on a difference.
+
+**Result: the same everywhere.** The positions the game uses: 0 (the title, once the loading has run), 5 (the main menu, the pilot
+screen, the story screens), 9 (a game; 9 and 10 are one song, and in the runs 10 followed each 0x29), 0x23 (the danger song of the Emergency
+siren), 0x29 (the end of a level: the level-up text, or the warp into a bonus round) and 0x27 (the game over). Tours `pause1`, `classic1`, `ingame1`, `loss1`, `emerg1` and
+`survend`: 3, 3, 4, 4, 3 and 6 starts, positions 0, 5, 9, 0x23 and 0x27, every one equal in position, slot and update. A recorded classic game of
+700 moves from the fifth level (`gamerun.sh`; the profile and the recording by `origcmp/record.py`, 2,234 inputs, 26,917 updates, score
+967,930 at the end, level 9): 13 starts (0, 5, 9, then 0x29 and 10 at each of four level-ups, then a story screen's 5 and 9), equal. The tour
+`resume1` needs a saved game that the loop did not give it, so it reached only the menu (2 starts, equal; not a gameplay result).
+
+**Not compared.** The pause and resume at a loss and a regain of the focus: the port pauses the slot that plays and resumes it at the update
+of the focus change (`pause1` logged pauses at 3519 and 3639 and resumes at 3559 and 3679), the original's BASS stream never plays in the sandbox,
+so `IsPlaying` is false for both slots when the focus is lost, the paused-slots list (`mPausedSongs`, the watches at `+0x634` and `+0x638`) stays
+empty and nothing of its behaviour can be read. The code is the same translated function: `AstroPopApp::PauseMusicForFocus` (0x4252b0) pauses
+each slot that plays and keeps its number in the list, and the regain resumes the listed slots and clears it. A run of the original on the real
+desktop with sound, in the night window, could show it. The sound itself (the port's decoder against BASS) is not compared either.

@@ -144,7 +144,7 @@ class ReplayRecorder
 public:
 	explicit ReplayRecorder(Board* theBoard);
 
-	void		Start();                    // the constructor, just before NewBoard: the start, rand() seeded
+	void		Start();                    // the constructor, just before SetupBoard: the start, rand() seeded
 	// Board::Update: before its tick (the selection, rand() where Lex skipped), in it (after Widget::Update: moves
 	// from here are the tick's) and at its end (the selection; moves from here come after the tick)
 	void		BeforeTick();
@@ -174,7 +174,7 @@ class ReplayPlayer
 public:
 	ReplayPlayer(Board* theBoard, const Replay::File& theFile);
 
-	void		Start();                    // the constructor, just before NewBoard: the recording's start
+	void		Start();                    // the constructor, just before SetupBoard: the recording's start
 	// The moves recorded up to now, made as the player made them: Board::Update before its tick (the moves after the
 	// last tick) and in it (isInTick, after Widget::Update: the tick's own)
 	void		Apply(bool isInTick);

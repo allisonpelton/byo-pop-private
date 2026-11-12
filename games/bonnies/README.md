@@ -36,7 +36,7 @@ under `build/origrun/<run>/game`. `tools/origrun/tour.txt` plays the port's tour
 options, `tools/origrun/action.txt` the action game with its focus loss (from the saves the tour leaves) and
 `tools/origrun/resume.txt` loads a saved game. `tools/origrun/patches.txt`, with `--patches` and `--seed 1`, seeds the
 original's `rand` as `-seed=1` does the port's. `tools/shotdiff` then pairs the shots with the port's tour
-(`games/bonnies/shotdiff.json` masks the animations that run on the game's clock, each with its reason). The board's
+(`games/bonnies/shotdiff.json` masks the animations that run on the game's clock, each with its reason). `tools/realplay.py` plays the port with real input: posted window messages for the menus and the window, and with `--live` the framework's live channel for the board, a whole classic game by the port's own bot (`realplay_classic.txt`; `docs/GAME_NOTES.md`). The board's
 random letters cannot match in a run by the clock: the sparkles draw from `rand` every frame, so the board depends on
 how many frames ran before it. The board is therefore compared on a game the original saved and both sides load
 (`resume.txt`), where it matches exactly. `tools/origcmp.py` compares a single capture. `tools/origrun/actend.txt` plays the action game's end from a game saved with little time

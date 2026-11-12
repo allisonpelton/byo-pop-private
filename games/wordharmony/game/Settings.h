@@ -4,9 +4,8 @@
 // The player's settings (constructor 0x40a000, the options in the registry 0x409d50-0x40aec0), kept under
 // Software\GameHouse\WordHarmony: sound, music and full screen (with the options screen's check boxes), the highest
 // level reached in each mode, whether each mode's help shows at its start, the default high score name, the link
-// settings and the screensaver flag, and a saved game per mode. The saved games (the registry strings
-// PuzzleSavedGame, SolitaireSavedGame and ActionSavedGame, the saved game's XML) come with the save code: load and
-// save leave them out for now.
+// settings and the screensaver flag, and a saved game per mode (the registry strings PuzzleSavedGame, SolitaireSavedGame
+// and ActionSavedGame hold the saved game's XML, SavedGame.h).
 
 #include <string>
 
