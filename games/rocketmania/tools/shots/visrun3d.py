@@ -25,6 +25,7 @@ last draw, app+0x3d8, is 0), holds it and has the window draw itself.
 import ctypes
 import ctypes.wintypes as wt
 import mmap
+import glob
 import os
 import shutil
 import struct
@@ -152,6 +153,41 @@ class Game:
             # topmost, not activated: nothing of the user's can come over it while it is captured
             u32.SetWindowPos(self.hwnd, wt.HWND(-1), 0, 0, 0, 0, 0x0001 | 0x0002 | 0x0010)
         return self.hwnd
+
+
+def other_game_windows():
+    """Visible windows of other games on the user's desktop (an original SexyApp game's window class is MainWindow, a port's SDL_app): another session's desktop run, which
+    this one must not share the screen with (its window overlaps, its load disturbs a measurement of its own)."""
+    found = []
+
+    @ctypes.WINFUNCTYPE(wt.BOOL, wt.HWND, wt.LPARAM)
+    def cb(hw, lp):
+        if u32.IsWindowVisible(hw):
+            buf = ctypes.create_unicode_buffer(64)
+            u32.GetClassNameW(hw, buf, 64)
+            if buf.value in ("MainWindow", "SDL_app"):
+                found.append(hw)
+        return True
+    u32.EnumWindows(cb, 0)
+    return found
+
+
+def wait_for_desktop(log, quiet_s=180):
+    """Waits until no other game's window has been on the desktop for quiet_s seconds (a loop of runs leaves gaps of a minute or so between
+    its games); gives up (SystemExit 4) after 07:30, so that the run never reaches 08:00."""
+    t0, said, clear_since = time.time(), 0, None
+    while clear_since is None or time.time() - clear_since < quiet_s:
+        now = time.localtime()
+        if 7.5 <= now.tm_hour + now.tm_min / 60.0 < 22:
+            raise SystemExit("visrun3d: the desktop stayed taken by another game's window until %02d:%02d" % (now.tm_hour, now.tm_min))
+        if other_game_windows():
+            clear_since = None
+            if time.time() - t0 >= said * 300:
+                print("waiting for the desktop: another game's window is up (%d min)" % ((time.time() - t0) / 60), file=log, flush=True)
+                said += 1
+        elif clear_since is None:
+            clear_since = time.time()
+        time.sleep(5)
 
 
 def client_rect(hw):
@@ -353,10 +389,8 @@ def prepare(seed):
     unpatched = os.path.join(GAME, EXE + ".origrun-unpatched")
     if os.path.exists(unpatched):
         shutil.copyfile(unpatched, os.path.join(GAME, EXE))
-    for f in ("hiscores.dat", "save0.dat", "save1.dat", "save2.dat", "save3.dat", "save4.dat"):
-        p = os.path.join(GAME, "Players", f)
-        if os.path.exists(p):
-            os.remove(p)
+    for p in glob.glob(os.path.join(GAME, "Players", "save?.dat")) + glob.glob(os.path.join(GAME, "Players", "hiscores.dat")):
+        os.remove(p)   # the saved games (savec.dat, ...: a copy of the stage carries the ones its last run left) and the score file
     seed_hex = struct.pack("<I", seed).hex()
     for p in PATCHES:
         apply_patch(os.path.join(GAME, EXE), p.replace("%s", seed_hex) if "%s" in p else p)
@@ -373,6 +407,8 @@ def stage_registry(threed):
         winreg.SetValueEx(k, "Is3D", 0, winreg.REG_DWORD, 1 if threed else 0)
         winreg.SetValueEx(k, "ScreenMode", 0, winreg.REG_DWORD, 0)
         winreg.SetValueEx(k, "HintsDisabled", 0, winreg.REG_DWORD, 0)
+        for kv in filter(None, os.environ.get("RM_EXTRA", "").split(",")):   # more values, "Name=value,...": the hint flags of the tour hf1
+            winreg.SetValueEx(k, kv.split("=")[0], 0, winreg.REG_DWORD, int(kv.split("=")[1]))
 
 
 def restore_registry():
@@ -424,6 +460,7 @@ def main():
     log = open(prefix + ".log", "w")
     landed = open(os.path.join(out, "landed.tsv"), "w")
     steps = open(prefix + ".steps.tsv", "w")
+    wait_for_desktop(log)
     os.makedirs(os.path.dirname(BACKUP), exist_ok=True)
     prepare(seed)
     stage_registry(threed)
@@ -437,7 +474,7 @@ def main():
     try:
         g = Game(os.path.join(GAME, EXE), env)
         flags = set()
-        last_input = -1
+        last_input, refused = -1, 0
         t0 = time.time()
         while not g.window() and time.time() - t0 < 90 and g.p.poll() is None:
             time.sleep(0.05)
@@ -469,7 +506,13 @@ def main():
             if cmd == "shot":
                 c = shot(g, out, args[0], landed, log, shape)
                 if c is not None:
+                    refused = 0
                     steps.write("%d\t%d\tshot\t%s\t%.3f\n" % (n, c, args[0], time.time() - t_window))
+                else:
+                    refused += 1
+                    if refused >= 3:   # the desktop is taken (another game's window, or the user's): the run is lost, end it at once
+                        print("end: three shots in a row refused", file=log, flush=True)
+                        raise SystemExit(4)
             else:
                 g.hold()
                 c = g.counter()
