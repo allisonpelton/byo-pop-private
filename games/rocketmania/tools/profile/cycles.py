@@ -312,20 +312,24 @@ def port_run(out, scenario):
     os.makedirs(os.path.join(out, 'user'))
     exe = os.path.join(ROOT, 'build', 'native', os.environ.get('PERF_EXE', 'rocketmania.exe'))
     ms = marks()
+    split = os.environ.get('PERF_SPLIT') == '1'     # the framework's -cyclesplit: the loop thread's cycles in update, draw and present (tools/cyclesplit.py reads split.jsonl)
     script = os.path.join(out, 'script.txt')
     shutil.copy(scenario, script)
     with open(script, 'a', newline='\n') as f:      # a log line at each marker update: the only test line the player's run lacks
         f.write('\n')
         for m in ms:
             f.write('%d pointer\n' % m)
+            if split:
+                f.write('%d cyclesplit m%d\n' % (m, m))
     write_registry_ini(os.path.join(out, 'user', 'registry.ini'), os.environ.get('PERF_PORT_REG', 'ScreenMode=0,Is3D=1'))
     hz = tsc_hz()
     dbg = DebugOutput()
     others0 = others()
     s0 = system_times()
     log = open(os.path.join(out, 'game.log'), 'wb')
-    p = subprocess.Popen([exe, '-userdir=' + os.path.join(out, 'user'), '-seed=' + os.environ.get('PERF_SEED', '1'), '-script=' + script,
-                          ] + (['-windowscale=' + os.environ.get('PERF_PORT_SCALE', '1')] if os.environ.get('PERF_PORT_SCALE', '1') != 'default' else []) +
+    p = subprocess.Popen([exe, '-userdir=' + os.path.join(out, 'user'), '-seed=' + os.environ.get('PERF_SEED', '1'), '-script=' + script]
+                         + (['-cyclesplit=' + os.path.join(out, 'split.jsonl')] if split else [])
+                         + (['-windowscale=' + os.environ.get('PERF_PORT_SCALE', '1')] if os.environ.get('PERF_PORT_SCALE', '1') != 'default' else []) +
                          os.environ.get('PERF_PORT_ARGS', '').split(), cwd=ROOT, stdout=log, stderr=subprocess.STDOUT)
     hp = k32.OpenProcess(QUERY | VM_READ | QUERY_LIMITED, False, p.pid)
     watch = Watch(hp)
@@ -436,6 +440,11 @@ def orig_run(out, scenario):
     print(json.dumps(res), flush=True)
 
 
+def played(r):
+    """Whether an original's run played the scenario's three games: a board at every marker, in the modes 0, 0, 1, 1, 2, 2."""
+    return all(b for m, b in r['states']) and [m for m, b in r['states']] == [0, 0, 1, 1, 2, 2][:len(r['states'])] and len(r['states']) == 6
+
+
 def summary(out):
     names = sorted({os.path.basename(f).split('-', 1)[1][:-5] for f in glob.glob(os.path.join(out, 'p*-*.json'))})
     order = [n for n in names if n != 'orig'] + (['orig'] if 'orig' in names else [])
@@ -446,7 +455,7 @@ def summary(out):
             for line in open(name):
                 if line.startswith('{'):
                     r = json.loads(line)
-                    if 'segments' in r and (side != 'orig' or all(m and b for m, b in r['states'])):
+                    if 'segments' in r and (side != 'orig' or played(r)):
                         rows.append(r)
         sides[side] = rows
     print('pairs: ' + ', '.join('%s %d' % (k, len(v)) for k, v in sides.items()) + ' (an original whose games did not all start is left out)')
