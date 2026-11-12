@@ -11,15 +11,14 @@ using namespace engine;
 Ball::Ball()
 {
 	mSpecial = 0;
-	mB0 = 0;
-	mRadius = 22.0f;
+	mStateSeconds = 0;
+	mRadius = BALL_RADIUS;
 	mInverseMass = 1.0f;
 	mDamping = 1.0f;
 	mFixed = false;
 	mState = BALL_FREE;
 	mGravity = nullptr;
 	mChain = nullptr;
-	mE4 = false;
 	mRow = -1;
 	mColumn = -1;
 	mSelector = nullptr;
@@ -56,12 +55,6 @@ void Ball::setOn(bool theOn)
 	if (mSelector == nullptr)
 		return;
 	static_cast<Selector*>(mSelector)->select(theOn ? 1 : 0, 0.0f, true);
-}
-
-// 0x4111b0
-void Ball::setLetter(char theLetter)
-{
-	mLetter = (char)toupper(theLetter);
 }
 
 // 0x40ec20
@@ -203,34 +196,6 @@ float BallArray::getGap(int theFirst, int theSecond)
 	if (dy < dx)
 		dy = dx;
 	return dy;
-}
-
-Follow::Follow(Node* theNode, float theC, float theRate, float theBlend, float theGrid)
-{
-	mNode = theNode;
-	mC = theC;
-	mRate = theRate;
-	mBlend = theBlend;
-	mLength = 0;
-	mGrid = theGrid;
-	mSnap = false;
-}
-
-// 0x40e170: the grid snap rounds towards zero (the x87 conversion) and adds 22, half a cell
-void Follow::apply()
-{
-	if (!mActive)
-		return;
-	Point p = *mNode->getPosition();
-	p.x = (float)(((double)mTarget.x - p.x) * mRate + p.x);
-	p.y = (float)(((double)mTarget.y - p.y) * mRate + p.y);
-	if (mSnap)
-	{
-		double k = 1.0 / mGrid;
-		p.x = (float)((double)(int)(k * mTarget.x) * mGrid + 22.0);
-		p.y = (float)((double)(int)(k * mTarget.y) * mGrid + 22.0);
-	}
-	mNode->setPosition(p);
 }
 
 Rope::Rope(Ball* theBall, const Point& theOffset, float theMaxStep, float theRate, float theBlend)
@@ -415,7 +380,7 @@ void Collisions::apply()
 		do
 		{
 			Ball* a = mBalls->getBall(i);
-			if (a->mState != BALL_GONE && !a->mFixed && a->mState != BALL_STATE_4)
+			if (a->mState != BALL_GONE && !a->mFixed && a->mState != BALL_SPAWNING)
 			{
 				unsigned int j = i + 1;
 				if (j < mBalls->mCount)
@@ -423,7 +388,7 @@ void Collisions::apply()
 					do
 					{
 						Ball* b = mBalls->getBall(j);
-						if (b->mState != BALL_GONE && !b->mFixed && b->mState != BALL_STATE_4)
+						if (b->mState != BALL_GONE && !b->mFixed && b->mState != BALL_SPAWNING)
 						{
 							Point pb = *b->getPosition();
 							Point pa = *a->getPosition();
@@ -491,7 +456,7 @@ void Bounds::applyTo(unsigned int theIndex)
 	Ball* aBall = mBalls->getBall(theIndex);
 	if (aBall->mState == BALL_GONE)
 		return;
-	if (aBall->mState == BALL_STATE_4)
+	if (aBall->mState == BALL_SPAWNING)
 		return;
 	Point p = *aBall->getPosition();
 	float r = aBall->mRadius;

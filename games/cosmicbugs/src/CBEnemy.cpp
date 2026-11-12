@@ -15,17 +15,17 @@ namespace cb
 Enemy* Enemy_Init(Enemy* theEnemy)
 {
 	Obj_Init(theEnemy);
-	theEnemy->lastShot = 0.0f;
-	theEnemy->shield = nullptr;
-	theEnemy->ice = nullptr;
-	theEnemy->phase = 0;
+	theEnemy->mLastShot = 0.0f;
+	theEnemy->mShield = nullptr;
+	theEnemy->mIce = nullptr;
+	theEnemy->mPhase = 0;
 	int aTime = RandRange(2000, 3000);
-	theEnemy->lastTurn = 0;
-	theEnemy->countdown = 0;
-	theEnemy->shotDelay = aTime;
-	// (the original leaves lastZap +0xd0 as the heap had it, so whether an enemy's first touch of a beam zaps is
+	theEnemy->mLastTurn = 0;
+	theEnemy->mCountdown = 0;
+	theEnemy->mShotDelay = aTime;
+	// (the original leaves mLastZap +0xd0 as the heap had it, so whether an enemy's first touch of a beam zaps is
 	// chance; 0, what a fresh block holds, is what the original had in every run compared)
-	theEnemy->lastZap = 0;
+	theEnemy->mLastZap = 0;
 	return theEnemy;
 }
 
@@ -37,125 +37,125 @@ static bool IsType(const XmlTag* theTag, const char* theType)
 void Enemy_FromXml(Enemy* theEnemy, const char* p, const XmlTag* theTag)
 {
 	Obj_FromXml(theEnemy, p, theTag);
-	theEnemy->acceleration = (float)Xml_GetFloat(theTag, "acceleration");
-	theEnemy->decay = (float)Xml_GetFloat(theTag, "decay");
-	theEnemy->turnSpeed = (float)Xml_GetFloat(theTag, "turn_speed");
+	theEnemy->mAcceleration = (float)Xml_GetFloat(theTag, "acceleration");
+	theEnemy->mDecay = (float)Xml_GetFloat(theTag, "decay");
+	theEnemy->mTurnSpeed = (float)Xml_GetFloat(theTag, "turn_speed");
 	if (IsType(theTag, "roller"))
-		theEnemy->kind = 0;
+		theEnemy->mKind = ENEMY_ROLLER;
 	else if (IsType(theTag, "burst_roller"))
-		theEnemy->kind = 1;
+		theEnemy->mKind = ENEMY_BURST_ROLLER;
 	else if (IsType(theTag, "jellyfish_roller"))
 	{
-		theEnemy->kind = 0x11;
-		theEnemy->firstParticle = Bank_IndexOf(&gArtBank, "bubble01");
-		theEnemy->lastParticle = Bank_IndexOf(&gArtBank, "bubble02");
+		theEnemy->mKind = ENEMY_JELLYFISH_ROLLER;
+		theEnemy->mFirstParticle = Bank_IndexOf(&gArtBank, "bubble01");
+		theEnemy->mLastParticle = Bank_IndexOf(&gArtBank, "bubble02");
 	}
 	else if (IsType(theTag, "teleporter_roller"))
 	{
-		theEnemy->kind = 0x10;
-		theEnemy->firstParticle = Bank_IndexOf(&gArtBank, "bubble01");
-		theEnemy->lastParticle = Bank_IndexOf(&gArtBank, "bubble02");
+		theEnemy->mKind = ENEMY_TELEPORTER_ROLLER;
+		theEnemy->mFirstParticle = Bank_IndexOf(&gArtBank, "bubble01");
+		theEnemy->mLastParticle = Bank_IndexOf(&gArtBank, "bubble02");
 	}
 	else if (IsType(theTag, "spin_roller"))
 	{
-		theEnemy->kind = 2;
-		theEnemy->firstParticle = Bank_IndexOf(&gArtBank, "particle_0");
-		theEnemy->lastParticle = Bank_IndexOf(&gArtBank, "particle_0");
+		theEnemy->mKind = ENEMY_SPIN_ROLLER;
+		theEnemy->mFirstParticle = Bank_IndexOf(&gArtBank, "particle_0");
+		theEnemy->mLastParticle = Bank_IndexOf(&gArtBank, "particle_0");
 	}
 	else if (IsType(theTag, "turn_roller"))
-		theEnemy->kind = 3;
+		theEnemy->mKind = ENEMY_TURN_ROLLER;
 	else if (IsType(theTag, "bump_roller"))
 	{
-		theEnemy->kind = 4;
-		theEnemy->firstParticle = Bank_IndexOf(&gArtBank, "particle_0");
-		theEnemy->lastParticle = Bank_IndexOf(&gArtBank, "particle_0");
+		theEnemy->mKind = ENEMY_BUMP_ROLLER;
+		theEnemy->mFirstParticle = Bank_IndexOf(&gArtBank, "particle_0");
+		theEnemy->mLastParticle = Bank_IndexOf(&gArtBank, "particle_0");
 	}
 	else if (IsType(theTag, "snake_shooter"))
 	{
-		theEnemy->firstParticle = Bank_IndexOf(&gArtBank, "exp_0");
-		theEnemy->lastParticle = Bank_IndexOf(&gArtBank, "exp_4");
-		theEnemy->kind = 5;
+		theEnemy->mFirstParticle = Bank_IndexOf(&gArtBank, "exp_0");
+		theEnemy->mLastParticle = Bank_IndexOf(&gArtBank, "exp_4");
+		theEnemy->mKind = ENEMY_SNAKE_SHOOTER;
 	}
 	else if (IsType(theTag, "line_walker"))
 	{
-		theEnemy->kind = 7;
-		theEnemy->shadow = 1;
+		theEnemy->mKind = ENEMY_LINE_WALKER;
+		theEnemy->mShadow = 1;
 	}
 	else if (IsType(theTag, "scurry_walker"))
 	{
-		theEnemy->kind = 8;
-		theEnemy->shadow = 1;
+		theEnemy->mKind = ENEMY_SCURRY_WALKER;
+		theEnemy->mShadow = 1;
 	}
 	else if (IsType(theTag, "smart_walker"))
 	{
-		theEnemy->kind = 9;
-		theEnemy->shadow = 1;
+		theEnemy->mKind = ENEMY_SMART_WALKER;
+		theEnemy->mShadow = 1;
 	}
 	else if (IsType(theTag, "cannon_walker"))
 	{
-		theEnemy->firstParticle = Bank_IndexOf(&gArtBank, "smoke_0001");
-		theEnemy->lastParticle = Bank_IndexOf(&gArtBank, "smoke_0009");
-		theEnemy->kind = 10;
-		theEnemy->shadow = 1;
+		theEnemy->mFirstParticle = Bank_IndexOf(&gArtBank, "smoke_0001");
+		theEnemy->mLastParticle = Bank_IndexOf(&gArtBank, "smoke_0009");
+		theEnemy->mKind = ENEMY_CANNON_WALKER;
+		theEnemy->mShadow = 1;
 	}
 	else if (IsType(theTag, "laser_walker"))
 	{
-		theEnemy->kind = 0xb;
-		theEnemy->shadow = 1;
-		theEnemy->firstParticle = Bank_IndexOf(&gArtBank, "particle_4");
-		theEnemy->lastParticle = Bank_IndexOf(&gArtBank, "particle_4");
+		theEnemy->mKind = ENEMY_LASER_WALKER;
+		theEnemy->mShadow = 1;
+		theEnemy->mFirstParticle = Bank_IndexOf(&gArtBank, "particle_4");
+		theEnemy->mLastParticle = Bank_IndexOf(&gArtBank, "particle_4");
 	}
 	else if (IsType(theTag, "crab_walker"))
 	{
-		theEnemy->kind = 0x13;
-		theEnemy->shadow = 1;
-		theEnemy->firstParticle = Bank_IndexOf(&gArtBank, "particle_4");
-		theEnemy->lastParticle = Bank_IndexOf(&gArtBank, "particle_4");
+		theEnemy->mKind = ENEMY_CRAB_WALKER;
+		theEnemy->mShadow = 1;
+		theEnemy->mFirstParticle = Bank_IndexOf(&gArtBank, "particle_4");
+		theEnemy->mLastParticle = Bank_IndexOf(&gArtBank, "particle_4");
 	}
 	else if (IsType(theTag, "lobster_walker"))
 	{
-		theEnemy->kind = 0x15;
-		theEnemy->shadow = 1;
-		theEnemy->firstParticle = Bank_IndexOf(&gArtBank, "particle_4");
-		theEnemy->lastParticle = Bank_IndexOf(&gArtBank, "particle_4");
+		theEnemy->mKind = ENEMY_LOBSTER_WALKER;
+		theEnemy->mShadow = 1;
+		theEnemy->mFirstParticle = Bank_IndexOf(&gArtBank, "particle_4");
+		theEnemy->mLastParticle = Bank_IndexOf(&gArtBank, "particle_4");
 	}
 	else if (IsType(theTag, "turtle_walker"))
 	{
-		theEnemy->kind = 0x14;
-		theEnemy->shadow = 1;
-		theEnemy->firstParticle = Bank_IndexOf(&gArtBank, "exp_2");
-		theEnemy->lastParticle = Bank_IndexOf(&gArtBank, "exp_4");
+		theEnemy->mKind = ENEMY_TURTLE_WALKER;
+		theEnemy->mShadow = 1;
+		theEnemy->mFirstParticle = Bank_IndexOf(&gArtBank, "exp_2");
+		theEnemy->mLastParticle = Bank_IndexOf(&gArtBank, "exp_4");
 	}
 	else if (IsType(theTag, "frog"))
-		theEnemy->kind = 0xf;
+		theEnemy->mKind = ENEMY_FROG;
 	if (Xml_GetString(theTag, "left_animation") != nullptr)
 	{
-		theEnemy->leftAnim = Animation_Find(Xml_GetString(theTag, "left_animation"), &theEnemy->frameCount,
-			&theEnemy->frameTime);
-		theEnemy->anim = theEnemy->leftAnim;
+		theEnemy->mLeftAnim = Animation_Find(Xml_GetString(theTag, "left_animation"), &theEnemy->mFrameCount,
+			&theEnemy->mFrameTime);
+		theEnemy->mAnim = theEnemy->mLeftAnim;
 	}
 	if (Xml_GetString(theTag, "right_animation") != nullptr)
-		theEnemy->rightAnim = Animation_Find(Xml_GetString(theTag, "right_animation"), &theEnemy->frameCount,
-			&theEnemy->frameTime);
+		theEnemy->mRightAnim = Animation_Find(Xml_GetString(theTag, "right_animation"), &theEnemy->mFrameCount,
+			&theEnemy->mFrameTime);
 	if (Xml_GetString(theTag, "up_animation") != nullptr)
-		theEnemy->upAnim = Animation_Find(Xml_GetString(theTag, "up_animation"), &theEnemy->frameCount,
-			&theEnemy->frameTime);
+		theEnemy->mUpAnim = Animation_Find(Xml_GetString(theTag, "up_animation"), &theEnemy->mFrameCount,
+			&theEnemy->mFrameTime);
 	if (Xml_GetString(theTag, "down_animation") != nullptr)
-		theEnemy->downAnim = Animation_Find(Xml_GetString(theTag, "down_animation"), &theEnemy->frameCount,
-			&theEnemy->frameTime);
-	theEnemy->baseSpeed = theEnemy->speed;
-	theEnemy->state = 0;
-	theEnemy->depth = 3;
-	theEnemy->baseFrameTime = (float)theEnemy->frameTime;
-	theEnemy->baseAcceleration = theEnemy->acceleration;
+		theEnemy->mDownAnim = Animation_Find(Xml_GetString(theTag, "down_animation"), &theEnemy->mFrameCount,
+			&theEnemy->mFrameTime);
+	theEnemy->mBaseSpeed = theEnemy->mSpeed;
+	theEnemy->mState = ENEMY_APPEARING;
+	theEnemy->mDepth = 3;
+	theEnemy->mBaseFrameTime = (float)theEnemy->mFrameTime;
+	theEnemy->mBaseAcceleration = theEnemy->mAcceleration;
 }
 
 void Enemy_Draw(Enemy* theEnemy)
 {
-	if (theEnemy->shield != nullptr)
-		Obj_Draw(theEnemy->shield);
-	if (theEnemy->ice != nullptr)
-		Obj_Draw(theEnemy->ice);
+	if (theEnemy->mShield != nullptr)
+		Obj_Draw(theEnemy->mShield);
+	if (theEnemy->mIce != nullptr)
+		Obj_Draw(theEnemy->mIce);
 	Obj_Draw(theEnemy);
 }
 
@@ -172,30 +172,30 @@ static int Sign(float theValue)
 // back on that axis; inside one it turns back on both
 int Enemy_Bounce(Enemy* theEnemy)
 {
-	int aCol = (int)theEnemy->x / 16;
-	int aRow = (int)theEnemy->y / 16;
-	if (gLevels.current->columns[aCol][aRow].kind == 0)
+	int aCol = (int)theEnemy->mX / CELL_SIZE;
+	int aRow = (int)theEnemy->mY / CELL_SIZE;
+	if (gLevels.mCurrent->mColumns[aCol][aRow].mKind == CELL_OPEN)
 	{
-		Image* anImage = theEnemy->image;
-		int anAhead = (int)((double)((anImage->mW * Sign(theEnemy->vx)) / 3) + (double)theEnemy->x);
-		Cell* aCell = &gLevels.current->columns[anAhead / 16][aRow];
-		if (aCell->kind != 0)
+		Image* anImage = theEnemy->mImage;
+		int anAhead = (int)((double)((anImage->mW * Sign(theEnemy->mVx)) / 3) + (double)theEnemy->mX);
+		Cell* aCell = &gLevels.mCurrent->mColumns[anAhead / CELL_SIZE][aRow];
+		if (aCell->mKind != CELL_OPEN)
 		{
-			theEnemy->hitCell = aCell;
-			theEnemy->vx = -theEnemy->vx;
+			theEnemy->mHitCell = aCell;
+			theEnemy->mVx = -theEnemy->mVx;
 		}
-		anAhead = (int)((double)((anImage->mH * Sign(theEnemy->vy)) / 3) + (double)theEnemy->y);
-		aCell = &gLevels.current->columns[aCol][anAhead / 16];
-		if (aCell->kind != 0)
+		anAhead = (int)((double)((anImage->mH * Sign(theEnemy->mVy)) / 3) + (double)theEnemy->mY);
+		aCell = &gLevels.mCurrent->mColumns[aCol][anAhead / CELL_SIZE];
+		if (aCell->mKind != CELL_OPEN)
 		{
-			theEnemy->hitCell = aCell;
-			theEnemy->vy = -theEnemy->vy;
+			theEnemy->mHitCell = aCell;
+			theEnemy->mVy = -theEnemy->mVy;
 		}
 	}
-	if (gLevels.current->columns[aCol][aRow].kind != 0)
+	if (gLevels.mCurrent->mColumns[aCol][aRow].mKind != CELL_OPEN)
 	{
-		theEnemy->vx = -theEnemy->vx;
-		theEnemy->vy = -theEnemy->vy;
+		theEnemy->mVx = -theEnemy->mVx;
+		theEnemy->mVy = -theEnemy->mVy;
 	}
 	return 0;
 }
@@ -203,58 +203,58 @@ int Enemy_Bounce(Enemy* theEnemy)
 // Speeds up over frames 6 to 10 of its animation, the decay slowing it the rest of the time
 int BurstRoller_Move(Enemy* theEnemy)
 {
-	if (theEnemy->ice != nullptr)
+	if (theEnemy->mIce != nullptr)
 		return 0;
-	theEnemy->acceleration = (theEnemy->frame < 6 || 10 < theEnemy->frame) ? 1.0002f : 1.0141f;
-	float aDecayed = theEnemy->decay * theEnemy->vx;
-	theEnemy->vx = aDecayed * theEnemy->acceleration;
-	aDecayed = theEnemy->decay * theEnemy->vy;
-	theEnemy->vy = aDecayed * theEnemy->acceleration;
+	theEnemy->mAcceleration = (theEnemy->mFrame < 6 || 10 < theEnemy->mFrame) ? 1.0002f : 1.0141f;
+	float aDecayed = theEnemy->mDecay * theEnemy->mVx;
+	theEnemy->mVx = aDecayed * theEnemy->mAcceleration;
+	aDecayed = theEnemy->mDecay * theEnemy->mVy;
+	theEnemy->mVy = aDecayed * theEnemy->mAcceleration;
 	return Enemy_Bounce(theEnemy);
 }
 
 // Sinks, and over frames 40 to 65 rises, now and then letting a bubble go
 int Jellyfish_Move(Enemy* theEnemy)
 {
-	if (theEnemy->ice != nullptr)
+	if (theEnemy->mIce != nullptr)
 		return 0;
-	if (theEnemy->frame < 0x28 || 0x41 < theEnemy->frame)
-		theEnemy->acceleration = 0.00058f;
+	if (theEnemy->mFrame < 0x28 || 0x41 < theEnemy->mFrame)
+		theEnemy->mAcceleration = 0.00058f;
 	else
 	{
-		theEnemy->acceleration = -0.001f;
+		theEnemy->mAcceleration = -0.001f;
 		if (RandRange(0, 0x13) == 0)
 		{
 			ParticleSystem_New();
-			int aSign = Sign(theEnemy->vx);
-			int aFirst = theEnemy->firstParticle;
+			int aSign = Sign(theEnemy->mVx);
+			int aFirst = theEnemy->mFirstParticle;
 			int aLifetime = RandRange(600, 800);
 			float aVy = (float)((double)RandRange(-30, 30) / 200.0);
 			float aVx = (float)((double)RandRange(-10, 10) / 200.0);
-			float aY = (float)RandRange(-20, 0) + theEnemy->y;
-			float aX = (float)((double)RandRange(-10, 10) + (double)theEnemy->x + (double)(aSign * 3));
-			ParticleSystem_Add(gLevels.current->systems.current, aX, aY, aVx, aVy, aFirst, aFirst, 0, 0xff, 0xff, 0xff,
-				0xff, 0xff, 0xff, 0x104, 10, aLifetime, 0.998f, -0.0003f, 5);
+			float aY = (float)RandRange(-20, 0) + theEnemy->mY;
+			float aX = (float)((double)RandRange(-10, 10) + (double)theEnemy->mX + (double)(aSign * 3));
+			ParticleSystem_Add(gLevels.mCurrent->mSystems.mCurrent, aX, aY, aVx, aVy, aFirst, aFirst, 0, 0xff, 0xff,
+				0xff, 0xff, 0xff, 0xff, 0x104, 10, aLifetime, 0.998f, -0.0003f, 5);
 		}
 	}
-	float aDecayed = theEnemy->decay * theEnemy->vy;
-	theEnemy->vy = aDecayed + theEnemy->acceleration;
+	float aDecayed = theEnemy->mDecay * theEnemy->mVy;
+	theEnemy->mVy = aDecayed + theEnemy->mAcceleration;
 	return Enemy_Bounce(theEnemy);
 }
 
-// 0x405970 has this twice: a bounce in x off a beam's line (kind 2) pushes the line's column one cell on into the
+// 0x405970 has this twice: a bounce in x off a beam's line (CELL_LINE) pushes the line's column one cell on into the
 // filled cells behind it, a bounce in y its row. The line has to have open cells on the roller's side and two filled
 // ones behind it all along, and end on four cells of one kind at both ends.
 static void BumpRoller_Push(Cell* theHit, int theD, bool theInX)
 {
-	int aLine = theInX ? theHit->col : theHit->row;
-	int aStart = theInX ? theHit->row : theHit->col;
-	auto C = [&](int theAlong, int theOff) -> Cell* {
+	int aLine = theInX ? theHit->mCol : theHit->mRow;
+	int aStart = theInX ? theHit->mRow : theHit->mCol;
+	auto aCellAt = [&](int theAlong, int theOff) -> Cell* {
 		if (theInX)
-			return &gLevels.current->columns[aLine + theOff][theAlong];
-		return &gLevels.current->columns[theAlong][aLine + theOff];
+			return &gLevels.mCurrent->mColumns[aLine + theOff][theAlong];
+		return &gLevels.mCurrent->mColumns[theAlong][aLine + theOff];
 	};
-	if (C(aStart, theD)->kind != 4)
+	if (aCellAt(aStart, theD)->mKind != CELL_FILLED)
 		return;
 	bool anOk = true;
 	int aMin = 999;
@@ -265,12 +265,12 @@ static void BumpRoller_Push(Cell* theHit, int theD, bool theInX)
 		int aBefore, anOn, aBehind, aBehind2;
 		while (true)
 		{
-			if (C(anAlong, 0)->state == 5)
+			if (aCellAt(anAlong, 0)->mState == CELL_CAPTURING)
 				anOk = false;
-			aBefore = C(anAlong, -theD)->kind;
-			anOn = C(anAlong, 0)->kind;
-			aBehind = C(anAlong, theD)->kind;
-			aBehind2 = C(anAlong, theD * 2)->kind;
+			aBefore = aCellAt(anAlong, -theD)->mKind;
+			anOn = aCellAt(anAlong, 0)->mKind;
+			aBehind = aCellAt(anAlong, theD)->mKind;
+			aBehind2 = aCellAt(anAlong, theD * 2)->mKind;
 			if (aBefore != 0 || anOn != 2 || aBehind != 4 || aBehind2 != 4)
 				break;
 			anAlong = anAlong + aDir;
@@ -288,16 +288,17 @@ static void BumpRoller_Push(Cell* theHit, int theD, bool theInX)
 	Sound_Play(Sound_Find("audio\\bump.wav"));
 	for (int anAlong = aMin + 1; anAlong <= aMax + -1; anAlong++)
 	{
-		gLevels.current->filledCells = gLevels.current->filledCells + -1;
-		C(anAlong, 0)->kind = 0;
-		C(anAlong, 0)->image = gLevels.current->empty;
-		Cell* aCell = C(anAlong, 0);
-		int aY = (int)aCell->y;
-		int aX = (int)aCell->x;
-		Image* aBack = gLevels.current->background;
-		Copy16(gBackBuffer.mBits, gBackBuffer.mPitch, aX, aY, aBack->mBits, aBack->mPitch, aX, aY, 0x10, 0x10);
-		Cell_Redraw(C(anAlong, 0));
-		C(anAlong, theD)->kind = 2;
+		gLevels.mCurrent->mFilledCells = gLevels.mCurrent->mFilledCells + -1;
+		aCellAt(anAlong, 0)->mKind = CELL_OPEN;
+		aCellAt(anAlong, 0)->mImage = gLevels.mCurrent->mEmpty;
+		Cell* aCell = aCellAt(anAlong, 0);
+		int aY = (int)aCell->mY;
+		int aX = (int)aCell->mX;
+		Image* aBack = gLevels.mCurrent->mBackground;
+		Copy16(gBackBuffer.mBits, gBackBuffer.mPitch, aX, aY, aBack->mBits, aBack->mPitch, aX, aY, CELL_SIZE,
+			CELL_SIZE);
+		Cell_Redraw(aCellAt(anAlong, 0));
+		aCellAt(anAlong, theD)->mKind = CELL_LINE;
 		ParticleSystem_New();
 		int aLifetime = RandRange(700, 0x44c);
 		int aLast = Bank_IndexOf(&gArtBank, "exp_4");
@@ -305,24 +306,24 @@ static void BumpRoller_Push(Cell* theHit, int theD, bool theInX)
 		aFirst = aFirst + RandRange(0, 3);
 		float aVy = (float)((double)RandRange(-100, 100) / 1000.0);
 		float aVx = (float)((double)RandRange(-100, 100) / 1000.0);
-		float aPy = (float)RandRange(-10, 10) + C(anAlong, 0)->y;
-		float aPx = (float)RandRange(-10, 10) + C(anAlong, 0)->x;
-		ParticleSystem_Add(gLevels.current->systems.current, aPx, aPy, aVx, aVy, aFirst, aLast, 0, 0xff, 0xff, 0xff,
+		float aPy = (float)RandRange(-10, 10) + aCellAt(anAlong, 0)->mY;
+		float aPx = (float)RandRange(-10, 10) + aCellAt(anAlong, 0)->mX;
+		ParticleSystem_Add(gLevels.mCurrent->mSystems.mCurrent, aPx, aPy, aVx, aVy, aFirst, aLast, 0, 0xff, 0xff, 0xff,
 			0xe7, 0xa6, 0x39, 0x21c, 10, aLifetime, 1.0f, 0.0f, 5);
 	}
 	for (int anAlong = aMin; anAlong <= aMax; anAlong++)
 	{
-		Cell_PickImage(C(anAlong, theD));
-		Cell_Redraw(C(anAlong, theD));
-		Cell* aCell = C(anAlong, theD);
-		Dirty_AddClippedShown(&gDirty, (int)aCell->x, (int)aCell->y, 0x10, 0x10, kScreenClip);
+		Cell_PickImage(aCellAt(anAlong, theD));
+		Cell_Redraw(aCellAt(anAlong, theD));
+		Cell* aCell = aCellAt(anAlong, theD);
+		Dirty_AddClippedShown(&gDirty, (int)aCell->mX, (int)aCell->mY, CELL_SIZE, CELL_SIZE, SCREEN_CLIP);
 		if (anAlong == aMin || anAlong == aMax)
 		{
-			Cell_PickImage(C(anAlong, 0));
-			Cell_Redraw(C(anAlong, 0));
+			Cell_PickImage(aCellAt(anAlong, 0));
+			Cell_Redraw(aCellAt(anAlong, 0));
 		}
-		aCell = C(anAlong, 0);
-		Dirty_AddClippedShown(&gDirty, (int)aCell->x, (int)aCell->y, 0x10, 0x10, kScreenClip);
+		aCell = aCellAt(anAlong, 0);
+		Dirty_AddClippedShown(&gDirty, (int)aCell->mX, (int)aCell->mY, CELL_SIZE, CELL_SIZE, SCREEN_CLIP);
 	}
 }
 
@@ -330,70 +331,70 @@ static void BumpRoller_Push(Cell* theHit, int theD, bool theInX)
 int BumpRoller_Move(Enemy* theEnemy)
 {
 	int aResult = Enemy_Bounce(theEnemy);
-	Cell* aHit = theEnemy->hitCell;
+	Cell* aHit = theEnemy->mHitCell;
 	if (aHit != nullptr)
 	{
-		if (1.0f < theEnemy->age && Sign(theEnemy->vx) != Sign(theEnemy->prevVx))
+		if (1.0f < theEnemy->mAge && Sign(theEnemy->mVx) != Sign(theEnemy->mPrevVx))
 		{
-			if (aHit->kind == 2)
-				BumpRoller_Push(aHit, Sign(theEnemy->prevVx), true);
+			if (aHit->mKind == CELL_LINE)
+				BumpRoller_Push(aHit, Sign(theEnemy->mPrevVx), true);
 		}
-		else if (1.0f < theEnemy->age && Sign(theEnemy->vy) != Sign(theEnemy->prevVy))
+		else if (1.0f < theEnemy->mAge && Sign(theEnemy->mVy) != Sign(theEnemy->mPrevVy))
 		{
-			if (aHit->kind == 2)
-				BumpRoller_Push(aHit, Sign(theEnemy->prevVy), false);
+			if (aHit->mKind == CELL_LINE)
+				BumpRoller_Push(aHit, Sign(theEnemy->mPrevVy), false);
 		}
 	}
-	theEnemy->prevVx = theEnemy->vx;
-	theEnemy->prevVy = theEnemy->vy;
+	theEnemy->mPrevVx = theEnemy->mVx;
+	theEnemy->mPrevVy = theEnemy->mVy;
 	return aResult;
 }
 
 // Winds up (its frame time falls to 3), rolls with sparks until it is fast, then winds down again
 void SpinRoller_Move(Enemy* theEnemy)
 {
-	int aPhase = theEnemy->phase;
+	int aPhase = theEnemy->mPhase;
 	if (aPhase == 0)
 	{
-		theEnemy->acceleration = 1.0f;
-		if ((int)theEnemy->age % 100 == 0)
-			theEnemy->frameTime = theEnemy->frameTime + -1;
-		if (theEnemy->frameTime < 4)
-			theEnemy->phase = 1;
+		theEnemy->mAcceleration = 1.0f;
+		if ((int)theEnemy->mAge % 100 == 0)
+			theEnemy->mFrameTime = theEnemy->mFrameTime + -1;
+		if (theEnemy->mFrameTime < 4)
+			theEnemy->mPhase = 1;
 	}
 	else if (aPhase == 1)
 	{
-		theEnemy->acceleration = theEnemy->baseAcceleration;
-		if (theEnemy->ice == nullptr && RandRange(1, 10) == 1)
+		theEnemy->mAcceleration = theEnemy->mBaseAcceleration;
+		if (theEnemy->mIce == nullptr && RandRange(1, 10) == 1)
 		{
 			ParticleSystem_New();
 			int aLifetime = RandRange(400, 500);
-			int aLast = theEnemy->lastParticle;
-			int aFirst = theEnemy->firstParticle;
+			int aLast = theEnemy->mLastParticle;
+			int aFirst = theEnemy->mFirstParticle;
 			float aVy = (float)((double)RandRange(-50, 50) / 200.0);
 			float aVx = (float)((double)RandRange(-50, 50) / 200.0);
-			float aY = (float)RandRange(-5, 5) + theEnemy->y;
-			float aX = (float)RandRange(-5, 5) + theEnemy->x;
-			ParticleSystem_Add(gLevels.current->systems.current, aX, aY, aVx, aVy, aFirst, aLast, 0, 0xff, 0xff, 0xff,
-				0xff, 0xff, 0, 400, 10, aLifetime, 0.999f, 0.0003f, 5);
+			float aY = (float)RandRange(-5, 5) + theEnemy->mY;
+			float aX = (float)RandRange(-5, 5) + theEnemy->mX;
+			ParticleSystem_Add(gLevels.mCurrent->mSystems.mCurrent, aX, aY, aVx, aVy, aFirst, aLast, 0, 0xff, 0xff,
+				0xff, 0xff, 0xff, 0, 400, 10, aLifetime, 0.999f, 0.0003f, 5);
 		}
-		double aVx2 = (double)theEnemy->vx * (double)theEnemy->vx;
-		double aVy2 = (double)theEnemy->vy * (double)theEnemy->vy;
+		double aVx2 = (double)theEnemy->mVx * (double)theEnemy->mVx;
+		double aVy2 = (double)theEnemy->mVy * (double)theEnemy->mVy;
 		if (0.6 < aVx2 + aVy2)
-			theEnemy->phase = 2;
+			theEnemy->mPhase = 2;
 	}
 	else if (aPhase == 2)
 	{
-		theEnemy->acceleration = 1.0f;
-		if ((int)theEnemy->age % 0x50 == 0)
-			theEnemy->frameTime = theEnemy->frameTime + 1;
-		if (theEnemy->baseFrameTime <= (float)theEnemy->frameTime)
-			theEnemy->phase = 0;
+		theEnemy->mAcceleration = 1.0f;
+		if ((int)theEnemy->mAge % 0x50 == 0)
+			theEnemy->mFrameTime = theEnemy->mFrameTime + 1;
+		if (theEnemy->mBaseFrameTime <= (float)theEnemy->mFrameTime)
+			theEnemy->mPhase = 0;
 	}
-	float aDecayed = theEnemy->decay * theEnemy->vx;
-	theEnemy->vx = aDecayed * theEnemy->acceleration;
-	aDecayed = theEnemy->decay * theEnemy->vy;
-	theEnemy->vy = aDecayed * theEnemy->acceleration;
+	float aDecayed = theEnemy->mDecay * theEnemy->mVx;
+	theEnemy->mVx = aDecayed * theEnemy->mAcceleration;
+	aDecayed = theEnemy->mDecay * theEnemy->mVy;
+	theEnemy->mVy = aDecayed * theEnemy->mAcceleration;
 	Enemy_Bounce(theEnemy);
 }
 
@@ -401,65 +402,65 @@ void SpinRoller_Move(Enemy* theEnemy)
 // turned round, sits for 1000 updates and jumps again
 int Frog_Move(Enemy* theEnemy)
 {
-	int aPhase = theEnemy->phase;
+	int aPhase = theEnemy->mPhase;
 	if (aPhase != 0)
 	{
 		if (aPhase == 1)
 		{
-			theEnemy->frame = 0;
-			theEnemy->frameTimer = 0;
-			if (theEnemy->age <= 1000.0f)
+			theEnemy->mFrame = 0;
+			theEnemy->mFrameTimer = 0;
+			if (theEnemy->mAge <= 1000.0f)
 				return 1;
-			theEnemy->phase = 2;
+			theEnemy->mPhase = 2;
 			Sound_Play(Sound_Find("audio\\frog_jump.wav"));
 			return 1;
 		}
-		if (aPhase == 2 && 8 <= theEnemy->frame)
-			theEnemy->phase = 0;
+		if (aPhase == 2 && 8 <= theEnemy->mFrame)
+			theEnemy->mPhase = 0;
 		return 1;
 	}
-	if (theEnemy->frame < 2 ||
-		(theEnemy->frame == theEnemy->frameCount + -1 && theEnemy->frameTimer == theEnemy->frameTime + -1))
+	if (theEnemy->mFrame < 2 ||
+		(theEnemy->mFrame == theEnemy->mFrameCount + -1 && theEnemy->mFrameTimer == theEnemy->mFrameTime + -1))
 	{
-		theEnemy->frame = 0x13;
-		theEnemy->frameTimer = 0;
+		theEnemy->mFrame = 0x13;
+		theEnemy->mFrameTimer = 0;
 	}
-	if (theEnemy->anim == theEnemy->leftAnim)
-		theEnemy->vx = -theEnemy->speed;
-	else if (theEnemy->anim == theEnemy->rightAnim)
-		theEnemy->vx = theEnemy->speed;
-	int aSx = Sign(theEnemy->vx);
-	int aSy = Sign(theEnemy->vy);
-	int aRow = (int)theEnemy->y / 16;
-	int aCol = (int)theEnemy->x / 16;
-	if (gLevels.current->columns[aCol + aSx * 2][aRow + aSy * 2].kind == 0)
+	if (theEnemy->mAnim == theEnemy->mLeftAnim)
+		theEnemy->mVx = -theEnemy->mSpeed;
+	else if (theEnemy->mAnim == theEnemy->mRightAnim)
+		theEnemy->mVx = theEnemy->mSpeed;
+	int aSx = Sign(theEnemy->mVx);
+	int aSy = Sign(theEnemy->mVy);
+	int aRow = (int)theEnemy->mY / CELL_SIZE;
+	int aCol = (int)theEnemy->mX / CELL_SIZE;
+	if (gLevels.mCurrent->mColumns[aCol + aSx * 2][aRow + aSy * 2].mKind == CELL_OPEN)
 		return 1;
-	if (theEnemy->vx < 0.0f)
+	if (theEnemy->mVx < 0.0f)
 	{
-		theEnemy->x = theEnemy->x - 8.0f;
-		theEnemy->anim = theEnemy->rightAnim;
+		theEnemy->mX = theEnemy->mX - 8.0f;
+		theEnemy->mAnim = theEnemy->mRightAnim;
 	}
-	else if (0.0f < theEnemy->vx)
+	else if (0.0f < theEnemy->mVx)
 	{
-		theEnemy->anim = theEnemy->leftAnim;
-		theEnemy->x = theEnemy->x + 8.0f;
+		theEnemy->mAnim = theEnemy->mLeftAnim;
+		theEnemy->mX = theEnemy->mX + 8.0f;
 	}
-	theEnemy->vx = 0.0f;
-	theEnemy->frameTimer = 0;
-	theEnemy->vy = 0.0f;
-	theEnemy->frame = 0;
-	theEnemy->phase = 1;
-	theEnemy->age = 1.0f;
+	theEnemy->mVx = 0.0f;
+	theEnemy->mFrameTimer = 0;
+	theEnemy->mVy = 0.0f;
+	theEnemy->mFrame = 0;
+	theEnemy->mPhase = 1;
+	theEnemy->mAge = 1.0f;
 	Sound_Play(Sound_Find("audio\\frog_land.wav"));
 	return 1;
 }
 
-// Kind 0xd, a laser walker's shot: bursts in a ring inside a cell that is not open (0: done)
+// ENEMY_LASER_SHOT, a laser walker's shot: bursts in a ring inside a cell that is not open (0: done)
 int LaserShot_Move(Enemy* theEnemy)
 {
-	int aCol = (int)theEnemy->x / 16;
-	int aRow = (int)theEnemy->y / 16;
-	if (gLevels.current->columns[aCol][aRow].kind != 0)
+	int aCol = (int)theEnemy->mX / CELL_SIZE;
+	int aRow = (int)theEnemy->mY / CELL_SIZE;
+	if (gLevels.mCurrent->mColumns[aCol][aRow].mKind != CELL_OPEN)
 	{
 		for (int n = 0x12; n != 0; n--)
 		{
@@ -467,8 +468,8 @@ int LaserShot_Move(Enemy* theEnemy)
 			float aVx = (float)((double)CosDeg(anAngle) * 0.11999999731779099);
 			float aVy = (float)((double)SinDeg(anAngle) * 0.11999999731779099);
 			ParticleSystem_New();
-			ParticleSystem_Add(gLevels.current->systems.current, theEnemy->x, theEnemy->y, aVx, aVy,
-				theEnemy->firstParticle, theEnemy->lastParticle, 0, 0xff, 0x80, 0x80, 0xff, 0x80, 0x80, 0xf0, 10, 600,
+			ParticleSystem_Add(gLevels.mCurrent->mSystems.mCurrent, theEnemy->mX, theEnemy->mY, aVx, aVy,
+				theEnemy->mFirstParticle, theEnemy->mLastParticle, 0, 0xff, 0x80, 0x80, 0xff, 0x80, 0x80, 0xf0, 10, 600,
 				0.999f, 0.0005f, 5);
 		}
 		return 0;
@@ -479,13 +480,14 @@ int LaserShot_Move(Enemy* theEnemy)
 // A cell around it is being captured
 int Enemy_NearCapture(Enemy* theEnemy)
 {
-	int aCol = (int)theEnemy->x / 16;
-	int aRow = (int)theEnemy->y / 16;
+	int aCol = (int)theEnemy->mX / CELL_SIZE;
+	int aRow = (int)theEnemy->mY / CELL_SIZE;
 	for (int r = aRow - 1; r <= aRow + 1; r++)
 	{
 		for (int k = aCol - 1; k <= aCol + 1; k++)
 		{
-			if ((uint32_t)k < 0x32 && (uint32_t)r < 0x25 && gLevels.current->columns[k][r].state == 5)
+			if ((uint32_t)k < GRID_COLUMNS && (uint32_t)r < GRID_ROWS &&
+				gLevels.mCurrent->mColumns[k][r].mState == CELL_CAPTURING)
 				return 1;
 		}
 	}
@@ -495,36 +497,36 @@ int Enemy_NearCapture(Enemy* theEnemy)
 // Its animation by the way it goes
 void Enemy_Face(Enemy* theEnemy)
 {
-	if (theEnemy->vx < 0.0f)
+	if (theEnemy->mVx < 0.0f)
 	{
-		theEnemy->anim = theEnemy->leftAnim;
+		theEnemy->mAnim = theEnemy->mLeftAnim;
 		return;
 	}
-	if (0.0f < theEnemy->vx)
+	if (0.0f < theEnemy->mVx)
 	{
-		theEnemy->anim = theEnemy->rightAnim;
+		theEnemy->mAnim = theEnemy->mRightAnim;
 		return;
 	}
-	if (theEnemy->vy < 0.0f)
+	if (theEnemy->mVy < 0.0f)
 	{
-		theEnemy->anim = theEnemy->downAnim;
+		theEnemy->mAnim = theEnemy->mDownAnim;
 		return;
 	}
-	if (0.0f < theEnemy->vy)
-		theEnemy->anim = theEnemy->upAnim;
+	if (0.0f < theEnemy->mVy)
+		theEnemy->mAnim = theEnemy->mUpAnim;
 }
 
 void Enemy_UpdateShield(Enemy* theEnemy)
 {
-	if (theEnemy->shield != nullptr)
+	if (theEnemy->mShield != nullptr)
 	{
-		theEnemy->shield->x = theEnemy->x;
-		theEnemy->shield->y = theEnemy->y;
-		if (Obj_Update(theEnemy->shield) == 0)
+		theEnemy->mShield->mX = theEnemy->mX;
+		theEnemy->mShield->mY = theEnemy->mY;
+		if (Obj_Update(theEnemy->mShield) == 0)
 		{
-			if (theEnemy->shield != nullptr)
-				Obj_Delete(theEnemy->shield);
-			theEnemy->shield = nullptr;
+			if (theEnemy->mShield != nullptr)
+				Obj_Delete(theEnemy->mShield);
+			theEnemy->mShield = nullptr;
 		}
 	}
 }
@@ -532,83 +534,84 @@ void Enemy_UpdateShield(Enemy* theEnemy)
 // A shield flash where a beam touched it (again from the start if it is showing)
 void Enemy_Shield(Enemy* theEnemy)
 {
-	if (theEnemy->shield == nullptr)
+	if (theEnemy->mShield == nullptr)
 	{
 		Obj* aShield = (Obj*)::operator new(sizeof(Obj));
 		Obj_Init(aShield);
-		theEnemy->shield = aShield;
-		aShield->x = theEnemy->x;
+		theEnemy->mShield = aShield;
+		aShield->mX = theEnemy->mX;
 		// (sic: the original's y is the enemy's x, until the next Enemy_UpdateShield; the fixes mod's shieldFlash)
-		theEnemy->shield->y = gFixes.shieldFlash ? theEnemy->y : theEnemy->x;
-		theEnemy->shield->vx = 0.0f;
-		theEnemy->shield->vy = 0.0f;
-		theEnemy->shield->anim = Animation_Find("enemy_shield", &theEnemy->shield->frameCount,
-			&theEnemy->shield->frameTime);
-		theEnemy->shield->midHandle = 1;
-		theEnemy->shield->drawKind = 2;
-		theEnemy->shield->dirty = 1;
-		theEnemy->shield->oneShot = 1;
+		theEnemy->mShield->mY = gFixes.mShieldFlash ? theEnemy->mY : theEnemy->mX;
+		theEnemy->mShield->mVx = 0.0f;
+		theEnemy->mShield->mVy = 0.0f;
+		theEnemy->mShield->mAnim = Animation_Find("enemy_shield", &theEnemy->mShield->mFrameCount,
+			&theEnemy->mShield->mFrameTime);
+		theEnemy->mShield->mMidHandle = 1;
+		theEnemy->mShield->mDrawKind = 2;
+		theEnemy->mShield->mDirty = 1;
+		theEnemy->mShield->mOneShot = 1;
 		return;
 	}
-	theEnemy->shield->frame = 0;
+	theEnemy->mShield->mFrame = 0;
 }
 
 void Enemy_Freeze(Enemy* theEnemy)
 {
-	if (theEnemy->ice == nullptr)
+	if (theEnemy->mIce == nullptr)
 	{
 		Sound_Play(Sound_Find("audio\\ice.wav"));
 		Obj* anIce = (Obj*)::operator new(sizeof(Obj));
 		Obj_Init(anIce);
-		theEnemy->ice = anIce;
-		anIce->x = theEnemy->x;
-		theEnemy->ice->y = theEnemy->y;
-		theEnemy->ice->vx = 0.0f;
-		theEnemy->ice->vy = 0.0f;
-		theEnemy->ice->anim = Animation_Find("ice_capsule", &theEnemy->ice->frameCount, &theEnemy->ice->frameTime);
-		theEnemy->ice->midHandle = 1;
-		theEnemy->ice->drawKind = 1;
-		theEnemy->ice->dirty = 1;
-		theEnemy->ice->depth = 4;
-		theEnemy->ice->oneShot = 1;
+		theEnemy->mIce = anIce;
+		anIce->mX = theEnemy->mX;
+		theEnemy->mIce->mY = theEnemy->mY;
+		theEnemy->mIce->mVx = 0.0f;
+		theEnemy->mIce->mVy = 0.0f;
+		theEnemy->mIce->mAnim = Animation_Find("ice_capsule", &theEnemy->mIce->mFrameCount,
+			&theEnemy->mIce->mFrameTime);
+		theEnemy->mIce->mMidHandle = 1;
+		theEnemy->mIce->mDrawKind = 1;
+		theEnemy->mIce->mDirty = 1;
+		theEnemy->mIce->mDepth = 4;
+		theEnemy->mIce->mOneShot = 1;
 	}
 }
 
 // The capsule forms (a one-shot animation), holds on its last frame (frame time 10000) and plays backwards to melt
 void Enemy_UpdateIce(Enemy* theEnemy)
 {
-	Obj* anIce = theEnemy->ice;
+	Obj* anIce = theEnemy->mIce;
 	if (anIce == nullptr)
 		return;
-	theEnemy->frameTimer = 0;
-	theEnemy->x = anIce->x;
-	theEnemy->y = anIce->y;
+	theEnemy->mFrameTimer = 0;
+	theEnemy->mX = anIce->mX;
+	theEnemy->mY = anIce->mY;
 	if (Obj_Update(anIce) != 0)
 		return;
-	anIce = theEnemy->ice;
-	if (anIce->frameTime != 10000)
+	anIce = theEnemy->mIce;
+	if (anIce->mFrameTime != 10000)
 	{
-		if (anIce->frameStep == 1)
+		if (anIce->mFrameStep == 1)
 		{
 			// (sic: the original sets the frame timer twice)
-			anIce->frameTimer = anIce->anim->count + -1;
-			theEnemy->ice->frameTimer = 0;
-			theEnemy->ice->frameTime = 10000;
+			anIce->mFrameTimer = anIce->mAnim->mCount + -1;
+			theEnemy->mIce->mFrameTimer = 0;
+			theEnemy->mIce->mFrameTime = 10000;
 			return;
 		}
-		if (anIce->frameTime != 10000)
+		if (anIce->mFrameTime != 10000)
 		{
 			if (anIce != nullptr)
 				Obj_Delete(anIce);
-			theEnemy->ice = nullptr;
+			theEnemy->mIce = nullptr;
 			return;
 		}
 	}
-	anIce->frameTime = anIce->anim->frameTime;
-	theEnemy->ice->frameStep = -1;
-	theEnemy->ice->frameTimer = 0;
-	theEnemy->ice->frame = theEnemy->ice->anim->count + -1;
-	if (theEnemy->alpha == 0xff)
+	anIce->mFrameTime = anIce->mAnim->mFrameTime;
+	theEnemy->mIce->mFrameStep = -1;
+	theEnemy->mIce->mFrameTimer = 0;
+	theEnemy->mIce->mFrame = theEnemy->mIce->mAnim->mCount + -1;
+	if (theEnemy->mAlpha == 0xff)
 		Sound_Play(Sound_Find("audio\\ice.wav"));
 }
 
@@ -616,13 +619,13 @@ void Enemy_UpdateIce(Enemy* theEnemy)
 int Enemy_ClearOfRollers(Enemy* theEnemy)
 {
 	int aResult = 1;
-	for (Enemy* anEnemy = gLevels.current->enemies.head; anEnemy != nullptr; anEnemy = Node_Next(anEnemy))
+	for (Enemy* anEnemy = gLevels.mCurrent->mEnemies.mHead; anEnemy != nullptr; anEnemy = Node_Next(anEnemy))
 	{
-		if (anEnemy != theEnemy && -1 < anEnemy->kind && anEnemy->kind < 6)
+		if (anEnemy != theEnemy && -1 < anEnemy->mKind && anEnemy->mKind < ENEMY_SNAKE)
 		{
-			double dy = (double)theEnemy->y - (double)anEnemy->y;
-			double dx = (double)theEnemy->x - (double)anEnemy->x;
-			if ((int)(dx * dx + dy * dy) < 0x3840)
+			double aDy = (double)theEnemy->mY - (double)anEnemy->mY;
+			double aDx = (double)theEnemy->mX - (double)anEnemy->mX;
+			if ((int)(aDx * aDx + aDy * aDy) < 0x3840)
 				aResult = 0;
 		}
 	}
@@ -633,13 +636,13 @@ int Enemy_ClearOfRollers(Enemy* theEnemy)
 int Enemy_ClearOfWalkers(Enemy* theEnemy)
 {
 	int aResult = 1;
-	for (Enemy* anEnemy = gLevels.current->enemies.head; anEnemy != nullptr; anEnemy = Node_Next(anEnemy))
+	for (Enemy* anEnemy = gLevels.mCurrent->mEnemies.mHead; anEnemy != nullptr; anEnemy = Node_Next(anEnemy))
 	{
-		if (anEnemy != theEnemy && 6 < anEnemy->kind && anEnemy->kind < 0xc)
+		if (anEnemy != theEnemy && ENEMY_SNAKE < anEnemy->mKind && anEnemy->mKind < ENEMY_CANNON_BALL)
 		{
-			double dy = (double)theEnemy->y - (double)anEnemy->y;
-			double dx = (double)theEnemy->x - (double)anEnemy->x;
-			if ((int)(dx * dx + dy * dy) < 10000)
+			double aDy = (double)theEnemy->mY - (double)anEnemy->mY;
+			double aDx = (double)theEnemy->mX - (double)anEnemy->mX;
+			if ((int)(aDx * aDx + aDy * aDy) < 10000)
 				aResult = 0;
 		}
 	}
@@ -679,21 +682,22 @@ int Enemy_Place(Enemy* theEnemy)
 			{
 				for (int c = aCol - 3; c < aCol + 3; c++)
 				{
-					if (gLevels.current->columns[c][r].kind != 0)
+					if (gLevels.mCurrent->mColumns[c][r].mKind != CELL_OPEN)
 						aBlocked = true;
 				}
 			}
 			if (!aBlocked)
 			{
-				theEnemy->x = (float)(aCol * 0x10 + 8);
-				theEnemy->y = (float)(aRow * 0x10 + 8);
+				theEnemy->mX = (float)(aCol * CELL_SIZE + CELL_HALF);
+				theEnemy->mY = (float)(aRow * CELL_SIZE + CELL_HALF);
 				if (Enemy_ClearOfRollers(theEnemy) != 0)
 				{
 					int anAngle = RandRange(0, 0x167);
-					float aSquare = (float)((double)theEnemy->vx * theEnemy->vx + (double)theEnemy->vy * theEnemy->vy);
+					float aSquare = (float)((double)theEnemy->mVx * theEnemy->mVx +
+						(double)theEnemy->mVy * theEnemy->mVy);
 					float aSpeed = (float)std::sqrt((double)aSquare);
-					theEnemy->vx = CosDeg(anAngle) * aSpeed;
-					theEnemy->vy = SinDeg(anAngle) * aSpeed;
+					theEnemy->mVx = CosDeg(anAngle) * aSpeed;
+					theEnemy->mVy = SinDeg(anAngle) * aSpeed;
 					return 1;
 				}
 			}
@@ -719,10 +723,10 @@ void Powerup_Insert(List<Powerup>* theList)
 
 void Enemy_Destroy(Enemy* theEnemy)
 {
-	if (theEnemy->shield != nullptr)
-		Obj_Delete(theEnemy->shield);
-	if (theEnemy->ice != nullptr)
-		Obj_Delete(theEnemy->ice);
+	if (theEnemy->mShield != nullptr)
+		Obj_Delete(theEnemy->mShield);
+	if (theEnemy->mIce != nullptr)
+		Obj_Delete(theEnemy->mIce);
 	Obj_Destroy(theEnemy);
 }
 
@@ -735,98 +739,98 @@ void List_DeleteNode(Enemy* theEnemy)
 // Steers towards the ship (turn_speed keeps it on its way) and away from the other turn rollers, at its speed
 void TurnRoller_Move(Enemy* theEnemy)
 {
-	Shooter* aShip = gLevels.current->shooters.current;
+	Shooter* aShip = gLevels.mCurrent->mShooters.mCurrent;
 	if (aShip != nullptr)
 	{
-		float aSquare = (float)((double)theEnemy->vx * theEnemy->vx + (double)theEnemy->vy * theEnemy->vy);
+		float aSquare = (float)((double)theEnemy->mVx * theEnemy->mVx + (double)theEnemy->mVy * theEnemy->mVy);
 		float aSpeed = (float)std::sqrt((double)aSquare);
-		float aX = (float)(((double)aShip->x - theEnemy->x) / 12000.0 + (double)theEnemy->turnSpeed * theEnemy->vx);
-		float aY = (float)(((double)aShip->y - theEnemy->y) / 12000.0 + (double)theEnemy->turnSpeed * theEnemy->vy);
-		List_Each(&gLevels.current->enemies, [&](Enemy* anOther) {
-			if (anOther != theEnemy && anOther->kind == 3)
+		float aX = (float)(((double)aShip->mX - theEnemy->mX) / 12000.0 + (double)theEnemy->mTurnSpeed * theEnemy->mVx);
+		float aY = (float)(((double)aShip->mY - theEnemy->mY) / 12000.0 + (double)theEnemy->mTurnSpeed * theEnemy->mVy);
+		List_Each(&gLevels.mCurrent->mEnemies, [&](Enemy* theOther) {
+			if (theOther != theEnemy && theOther->mKind == ENEMY_TURN_ROLLER)
 			{
-				float dx = anOther->x - theEnemy->x;
-				float dy = anOther->y - theEnemy->y;
-				float aSum = (float)((double)dx * dx + (double)dy * dy);
+				float aDx = theOther->mX - theEnemy->mX;
+				float aDy = theOther->mY - theEnemy->mY;
+				float aSum = (float)((double)aDx * aDx + (double)aDy * aDy);
 				float aDist = std::fabs(aSum) * 70.0f;
 				if (aDist != 0.0f)
 				{
-					float aT = (float)((double)aX - (double)dx / aDist);
-					aX = (float)((double)aT - (double)dy / aDist);
+					float aT = (float)((double)aX - (double)aDx / aDist);
+					aX = (float)((double)aT - (double)aDy / aDist);
 				}
 			}
 		});
-		gLevels.current->enemies.current = theEnemy;
+		gLevels.mCurrent->mEnemies.mCurrent = theEnemy;
 		float anAngle = (float)std::atan2((double)aY, (double)aX);
 		float aCos = (float)std::cos((double)anAngle);
-		theEnemy->vx = aCos * aSpeed;
+		theEnemy->mVx = aCos * aSpeed;
 		float aSin = (float)std::sin((double)anAngle);
-		theEnemy->vy = aSin * aSpeed;
+		theEnemy->mVy = aSin * aSpeed;
 	}
 	Enemy_Bounce(theEnemy);
 }
 
 // 0x478608: the order Walker_Turn goes round the ways in (0 right, 1 left, 2 down, 3 up); 0x460a0c: not set up yet
-static int sWays[4];
-static int sWaysUnset = 1;
+static int gSWays[4];
+static int gSWaysUnset = 1;
 
 // Stops, then tries up to four ways round from a random one for the first along an edge or a beam's line
 void Walker_Turn(Enemy* theEnemy)
 {
-	if (sWaysUnset != 0)
+	if (gSWaysUnset != 0)
 	{
-		sWays[0] = 0;
-		sWays[1] = 2;
-		sWays[2] = 1;
-		sWays[3] = 3;
-		sWaysUnset = 0;
+		gSWays[0] = 0;
+		gSWays[1] = 2;
+		gSWays[2] = 1;
+		gSWays[3] = 3;
+		gSWaysUnset = 0;
 	}
-	theEnemy->vx = 0.0f;
-	theEnemy->vy = 0.0f;
-	int aCol = (int)theEnemy->x / 16;
-	int aRow = (int)theEnemy->y / 16;
+	theEnemy->mVx = 0.0f;
+	theEnemy->mVy = 0.0f;
+	int aCol = (int)theEnemy->mX / CELL_SIZE;
+	int aRow = (int)theEnemy->mY / CELL_SIZE;
 	int aWay = RandRange(0, 0x27) / 10;
 	int aTry = 0;
 	do
 	{
-		if (theEnemy->vx != 0.0f || theEnemy->vy != 0.0f)
+		if (theEnemy->mVx != 0.0f || theEnemy->mVy != 0.0f)
 			return;
 		aWay = aWay + 1;
 		if (3 < aWay)
 			aWay = 0;
 		int aKind;
-		switch (sWays[aWay])
+		switch (gSWays[aWay])
 		{
 		case 0:
 			if (aCol < 0x31)
 			{
-				aKind = gLevels.current->columns[aCol + 1][aRow].kind;
-				if (aKind == 3 || aKind == 2)
-					theEnemy->vx = theEnemy->speed;
+				aKind = gLevels.mCurrent->mColumns[aCol + 1][aRow].mKind;
+				if (aKind == CELL_EDGE || aKind == CELL_LINE)
+					theEnemy->mVx = theEnemy->mSpeed;
 			}
 			break;
 		case 1:
 			if (0 < aCol)
 			{
-				aKind = gLevels.current->columns[aCol - 1][aRow].kind;
-				if (aKind == 3 || aKind == 2)
-					theEnemy->vx = -theEnemy->speed;
+				aKind = gLevels.mCurrent->mColumns[aCol - 1][aRow].mKind;
+				if (aKind == CELL_EDGE || aKind == CELL_LINE)
+					theEnemy->mVx = -theEnemy->mSpeed;
 			}
 			break;
 		case 2:
 			if (aRow < 0x24)
 			{
-				aKind = gLevels.current->columns[aCol][aRow + 1].kind;
-				if (aKind == 3 || aKind == 2)
-					theEnemy->vy = theEnemy->speed;
+				aKind = gLevels.mCurrent->mColumns[aCol][aRow + 1].mKind;
+				if (aKind == CELL_EDGE || aKind == CELL_LINE)
+					theEnemy->mVy = theEnemy->mSpeed;
 			}
 			break;
 		case 3:
 			if (0 < aRow)
 			{
-				aKind = gLevels.current->columns[aCol][aRow - 1].kind;
-				if (aKind == 3 || aKind == 2)
-					theEnemy->vy = -theEnemy->speed;
+				aKind = gLevels.mCurrent->mColumns[aCol][aRow - 1].mKind;
+				if (aKind == CELL_EDGE || aKind == CELL_LINE)
+					theEnemy->mVy = -theEnemy->mSpeed;
 			}
 			break;
 		}
@@ -835,35 +839,36 @@ void Walker_Turn(Enemy* theEnemy)
 	} while (aTry <= 3);
 }
 
-// Kind 0xd (a laser walker's shot) on a beam: the ship's beams all burst into sparks along their length, and it
+// ENEMY_LASER_SHOT (a laser walker's shot) on a beam: the ship's beams all burst into sparks along their length, and it
 // loses them
 int LaserShot_HitBeams(Enemy* theEnemy)
 {
 	(void)theEnemy;
 	// (the original works out a pan from x for a play call that takes none)
 	Sound_Play(Sound_Find("audio\\beam_hit.wav"));
-	List_Each(&gLevels.current->shooters.current->beams, [&](Beam* aBeam) {
-		int aLength = (int)(std::fabs((double)aBeam->startX - aBeam->x) + std::fabs((double)aBeam->startY - aBeam->y));
+	List_Each(&gLevels.mCurrent->mShooters.mCurrent->mBeams, [&](Beam* theBeam) {
+		int aLength = (int)(std::fabs((double)theBeam->mStartX - theBeam->mX) +
+			std::fabs((double)theBeam->mStartY - theBeam->mY));
 		for (int i = 0; i < aLength; i++)
 		{
 			int anAngle = RandRange(0, 0x167);
 			float aCos = CosDeg(anAngle);
 			float aSin = SinDeg(anAngle);
-			int aSx = Sign(aBeam->vx);
-			int aSy = Sign(aBeam->vy);
+			int aSx = Sign(theBeam->mVx);
+			int aSy = Sign(theBeam->mVy);
 			ParticleSystem_New();
-			Cell* aCell = gLevels.current->columns[0];
-			ParticleSystem_Add(gLevels.current->systems.current, (float)(aSx * i) + aBeam->startX,
-				(float)(aSy * i) + aBeam->startY, (float)((double)aCos * 0.11999999731779099),
-				(float)((double)aSin * 0.11999999731779099), aCell->firstParticle, aCell->lastParticle, 0, 0xff, 0xff,
+			Cell* aCell = gLevels.mCurrent->mColumns[0];
+			ParticleSystem_Add(gLevels.mCurrent->mSystems.mCurrent, (float)(aSx * i) + theBeam->mStartX,
+				(float)(aSy * i) + theBeam->mStartY, (float)((double)aCos * 0.11999999731779099),
+				(float)((double)aSin * 0.11999999731779099), aCell->mFirstParticle, aCell->mLastParticle, 0, 0xff, 0xff,
 				0xff, 0xff, 0xff, 0xff, 0x21c, 10, 700, 0.999f, 0.0001f, 5);
 		}
 	});
-	Shooter_DropBeams(gLevels.current->shooters.current);
+	Shooter_DropBeams(gLevels.mCurrent->mShooters.mCurrent);
 	return 0;
 }
 
-// A walker somewhere on an edge cell (kind 3) with no other walker near: up to 10 random cells, each walked towards
+// A walker somewhere on an edge cell (CELL_EDGE) with no other walker near: up to 10 random cells, each walked towards
 // the middle in x or in y (0: no room)
 int Enemy_PlaceFirst(Enemy* theEnemy)
 {
@@ -882,10 +887,10 @@ int Enemy_PlaceFirst(Enemy* theEnemy)
 		{
 			if (0x31 < aCol || 0x23 < (uint32_t)(aRow - 1))
 				break;
-			if (gLevels.current->columns[aCol][aRow].kind == 3)
+			if (gLevels.mCurrent->mColumns[aCol][aRow].mKind == CELL_EDGE)
 			{
-				theEnemy->x = (float)(aCol * 0x10 + 8);
-				theEnemy->y = (float)(aRow * 0x10 + 8);
+				theEnemy->mX = (float)(aCol * CELL_SIZE + CELL_HALF);
+				theEnemy->mY = (float)(aRow * CELL_SIZE + CELL_HALF);
 				if (Enemy_ClearOfWalkers(theEnemy) != 0)
 					return 1;
 			}
@@ -914,82 +919,83 @@ static void Teleporter_Sparkles(Enemy* theEnemy)
 		float aVy = SinDeg(anAngle) * aScale;
 		ParticleSystem_New();
 		int aLifetime = RandRange(400, 900);
-		ParticleSystem_Add(gLevels.current->systems.current, theEnemy->x, theEnemy->y, aVx, aVy, 0, 0, 0, 0xff, 0xff,
-			0xff, 0xff, 0xff, 0xff, 0xff, 0, aLifetime, 1.0f, 0.0f, 4);
-		Particle* aParticle = gLevels.current->systems.current->particles.current;
+		ParticleSystem_Add(gLevels.mCurrent->mSystems.mCurrent, theEnemy->mX, theEnemy->mY, aVx, aVy, 0, 0, 0, 0xff,
+			0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0, aLifetime, 1.0f, 0.0f, 4);
+		Particle* aParticle = gLevels.mCurrent->mSystems.mCurrent->mParticles.mCurrent;
 		int aFrameTime;
-		aParticle->anim = Animation_Find("sparkles3", &aParticle->frameCount, &aFrameTime);
-		aParticle->tint = RandRange(0, 7);
+		aParticle->mAnim = Animation_Find("sparkles3", &aParticle->mFrameCount, &aFrameTime);
+		aParticle->mTint = RandRange(0, 7);
 	}
 }
 
-// Kind 0x10: loops the first 32 frames of its animation for 5000 updates, its children circling it for the first
-// 2000; then plays on, and past frame 48 vanishes in sparkles to come back somewhere else, a trail of them between
+// ENEMY_TELEPORTER_ROLLER: loops the first 32 frames of its animation for 5000 updates, its children circling it for
+// the first 2000; then plays on, and past frame 48 vanishes in sparkles to come back somewhere else, a trail of them
+// between
 int Teleporter_Move(Enemy* theEnemy)
 {
-	if (theEnemy->ice != nullptr)
+	if (theEnemy->mIce != nullptr)
 		return 0;
-	if (theEnemy->phase == 0)
+	if (theEnemy->mPhase == 0)
 	{
-		if (theEnemy->age <= 5000.0f)
+		if (theEnemy->mAge <= 5000.0f)
 		{
-			if (0x1f < theEnemy->frame)
+			if (0x1f < theEnemy->mFrame)
 			{
-				theEnemy->frame = 0;
-				theEnemy->frameTimer = 0;
+				theEnemy->mFrame = 0;
+				theEnemy->mFrameTimer = 0;
 			}
 		}
-		else if (0x1f < theEnemy->frame)
-			theEnemy->phase = 1;
-		if (2000.0f <= theEnemy->age || gLevels.current->age <= theEnemy->age)
+		else if (0x1f < theEnemy->mFrame)
+			theEnemy->mPhase = 1;
+		if (2000.0f <= theEnemy->mAge || gLevels.mCurrent->mAge <= theEnemy->mAge)
 		{
 			bool aMore;
 			do
-				aMore = List_RemoveCurrent(&theEnemy->children);
+				aMore = List_RemoveCurrent(&theEnemy->mChildren);
 			while (aMore);
 			return Enemy_Bounce(theEnemy);
 		}
-		double anAlpha = (double)theEnemy->age * 0.25;
+		double anAlpha = (double)theEnemy->mAge * 0.25;
 		if (255.0 < anAlpha)
 			anAlpha = 255.0;
-		theEnemy->alpha = (int)anAlpha;
+		theEnemy->mAlpha = (int)anAlpha;
 		int anOffset = 0;
-		List_Each(&theEnemy->children, [&](Obj* aChild) {
-			int anAngle = ((int)((double)theEnemy->age * 0.25) % 0x168 + anOffset) % 0x168;
-			aChild->x = (float)((double)CosDeg(anAngle) * 40.0 + (double)theEnemy->x);
+		List_Each(&theEnemy->mChildren, [&](Obj* theChild) {
+			int anAngle = ((int)((double)theEnemy->mAge * 0.25) % 0x168 + anOffset) % 0x168;
+			theChild->mX = (float)((double)CosDeg(anAngle) * 40.0 + (double)theEnemy->mX);
 			anOffset = anOffset + 0x1e;
-			aChild->y = (float)((double)SinDeg(anAngle) * 40.0 + (double)theEnemy->y);
-			theEnemy->drawKind = 4;
+			theChild->mY = (float)((double)SinDeg(anAngle) * 40.0 + (double)theEnemy->mY);
+			theEnemy->mDrawKind = 4;
 		});
 	}
-	else if (0x30 < theEnemy->frame)
+	else if (0x30 < theEnemy->mFrame)
 	{
 		Teleporter_Sparkles(theEnemy);
-		float anOldX = theEnemy->x;
-		float anOldY = theEnemy->y;
+		float anOldX = theEnemy->mX;
+		float anOldY = theEnemy->mY;
 		Enemy_Place(theEnemy);
-		theEnemy->phase = 0;
-		theEnemy->age = 1.0f;
-		theEnemy->frame = 0;
-		theEnemy->frameTimer = 0;
+		theEnemy->mPhase = 0;
+		theEnemy->mAge = 1.0f;
+		theEnemy->mFrame = 0;
+		theEnemy->mFrameTimer = 0;
 		Teleporter_Sparkles(theEnemy);
-		double dy = (double)anOldY - theEnemy->y;
-		double dx = (double)anOldX - theEnemy->x;
-		float aSquare = (float)(dx * dx + dy * dy);
+		double aDy = (double)anOldY - theEnemy->mY;
+		double aDx = (double)anOldX - theEnemy->mX;
+		float aSquare = (float)(aDx * aDx + aDy * aDy);
 		float aDist = (float)std::sqrt((double)aSquare);
 		float aSteps = (float)((double)aDist / 15.0);
 		for (float t = 0.0f; t < aSteps; t = t + 1.0f)
 		{
 			float f = t / aSteps;
-			float aX = (float)(((double)theEnemy->x - anOldX) * f + anOldX);
-			float aY = (float)(((double)theEnemy->y - anOldY) * f + anOldY);
+			float aX = (float)(((double)theEnemy->mX - anOldX) * f + anOldX);
+			float aY = (float)(((double)theEnemy->mY - anOldY) * f + anOldY);
 			ParticleSystem_New();
 			int aLifetime = RandRange(400, 900);
-			ParticleSystem_Add(gLevels.current->systems.current, aX, aY, 0.0f, 0.0f, 0, 0, 0, 0xff, 0xff, 0xff, 0xff,
+			ParticleSystem_Add(gLevels.mCurrent->mSystems.mCurrent, aX, aY, 0.0f, 0.0f, 0, 0, 0, 0xff, 0xff, 0xff, 0xff,
 				0xff, 0xff, 0xff, 0, aLifetime, 1.0f, 0.0f, 4);
-			Particle* aParticle = gLevels.current->systems.current->particles.current;
+			Particle* aParticle = gLevels.mCurrent->mSystems.mCurrent->mParticles.mCurrent;
 			int aFrameTime;
-			aParticle->anim = Animation_Find("sparkles3", &aParticle->frameCount, &aFrameTime);
+			aParticle->mAnim = Animation_Find("sparkles3", &aParticle->mFrameCount, &aFrameTime);
 		}
 	}
 	return Enemy_Bounce(theEnemy);
@@ -999,52 +1005,54 @@ int Teleporter_Move(Enemy* theEnemy)
 // line of theKind), turns that way half the time
 void Walker_TurnAtJunction(Enemy* theEnemy, int theKind)
 {
-	if ((float)(theEnemy->lastTurn + 5000) <= theEnemy->age)
+	if ((float)(theEnemy->mLastTurn + 5000) <= theEnemy->mAge)
 	{
-		int aCol = (int)theEnemy->x / 16;
-		float aMidX = (float)(aCol * 0x10 + 8);
-		int aRow = (int)theEnemy->y / 16;
-		float aMidY = (float)(aRow * 0x10 + 8);
-		if (theEnemy->vx == 0.0f)
+		int aCol = (int)theEnemy->mX / CELL_SIZE;
+		float aMidX = (float)(aCol * CELL_SIZE + CELL_HALF);
+		int aRow = (int)theEnemy->mY / CELL_SIZE;
+		float aMidY = (float)(aRow * CELL_SIZE + CELL_HALF);
+		if (theEnemy->mVx == 0.0f)
 		{
-			if (((aMidY < theEnemy->y && theEnemy->oldY < aMidY) || (theEnemy->y < aMidY && aMidY < theEnemy->oldY)) &&
+			if (((aMidY < theEnemy->mY && theEnemy->mOldY < aMidY) ||
+					(theEnemy->mY < aMidY && aMidY < theEnemy->mOldY)) &&
 				RandRange(0, 1) != 0 && (uint32_t)(aCol - 1) < 0x30)
 			{
-				int aRight = gLevels.current->columns[aCol + 1][aRow].kind;
-				int aLeft = gLevels.current->columns[aCol - 1][aRow].kind;
-				if (aRight == 3 || aRight == theKind || aLeft == 3 || aLeft == theKind)
+				int aRight = gLevels.mCurrent->mColumns[aCol + 1][aRow].mKind;
+				int aLeft = gLevels.mCurrent->mColumns[aCol - 1][aRow].mKind;
+				if (aRight == CELL_EDGE || aRight == theKind || aLeft == CELL_EDGE || aLeft == theKind)
 				{
-					theEnemy->x = (float)(((int)theEnemy->x / 16) * 0x10 + 8);
-					theEnemy->y = (float)(((int)theEnemy->y / 16) * 0x10 + 8);
-					while (theEnemy->vx == 0.0f)
+					theEnemy->mX = (float)(((int)theEnemy->mX / CELL_SIZE) * CELL_SIZE + CELL_HALF);
+					theEnemy->mY = (float)(((int)theEnemy->mY / CELL_SIZE) * CELL_SIZE + CELL_HALF);
+					while (theEnemy->mVx == 0.0f)
 					{
-						theEnemy->vx = 0.0f;
-						theEnemy->vy = 0.0f;
+						theEnemy->mVx = 0.0f;
+						theEnemy->mVy = 0.0f;
 						Walker_Turn(theEnemy);
 					}
 					// (the original keeps the last turn's age only for turns off a horizontal way; the fixes mod's
 					// walkerTurnMemory keeps it for these too)
-					if (gFixes.walkerTurnMemory)
-						theEnemy->lastTurn = (int)theEnemy->age;
+					if (gFixes.mWalkerTurnMemory)
+						theEnemy->mLastTurn = (int)theEnemy->mAge;
 				}
 			}
 		}
-		else if (((aMidX < theEnemy->x && theEnemy->oldX < aMidX) || (theEnemy->x < aMidX && aMidX < theEnemy->oldX)) &&
+		else if (((aMidX < theEnemy->mX && theEnemy->mOldX < aMidX) ||
+					 (theEnemy->mX < aMidX && aMidX < theEnemy->mOldX)) &&
 			RandRange(0, 1) != 0 && (uint32_t)(aRow - 1) < 0x23)
 		{
-			int aBelow = gLevels.current->columns[aCol][aRow + 1].kind;
-			int anAbove = gLevels.current->columns[aCol][aRow - 1].kind;
-			if (aBelow == 3 || aBelow == theKind || anAbove == 3 || anAbove == theKind)
+			int aBelow = gLevels.mCurrent->mColumns[aCol][aRow + 1].mKind;
+			int anAbove = gLevels.mCurrent->mColumns[aCol][aRow - 1].mKind;
+			if (aBelow == CELL_EDGE || aBelow == theKind || anAbove == CELL_EDGE || anAbove == theKind)
 			{
-				theEnemy->x = (float)(((int)theEnemy->x / 16) * 0x10 + 8);
-				theEnemy->y = (float)(((int)theEnemy->y / 16) * 0x10 + 8);
-				while (theEnemy->vy == 0.0f)
+				theEnemy->mX = (float)(((int)theEnemy->mX / CELL_SIZE) * CELL_SIZE + CELL_HALF);
+				theEnemy->mY = (float)(((int)theEnemy->mY / CELL_SIZE) * CELL_SIZE + CELL_HALF);
+				while (theEnemy->mVy == 0.0f)
 				{
-					theEnemy->vx = 0.0f;
-					theEnemy->vy = 0.0f;
+					theEnemy->mVx = 0.0f;
+					theEnemy->mVy = 0.0f;
 					Walker_Turn(theEnemy);
 				}
-				theEnemy->lastTurn = (int)theEnemy->age;
+				theEnemy->mLastTurn = (int)theEnemy->mAge;
 			}
 		}
 	}
@@ -1054,26 +1062,26 @@ void Walker_TurnAtJunction(Enemy* theEnemy, int theKind)
 // its cell and turns, trying up to 21 times for a way across the one it had
 void Walker_Follow(Enemy* theEnemy, int theKind)
 {
-	if (theEnemy->vx == 0.0f)
+	if (theEnemy->mVx == 0.0f)
 	{
-		int aCol = (int)theEnemy->x / 16;
-		int aSy = Sign(theEnemy->vy);
-		int aRow = (int)((double)theEnemy->vy + (double)theEnemy->y + (double)((aSy * 0x10) / 2)) / 16;
+		int aCol = (int)theEnemy->mX / CELL_SIZE;
+		int aSy = Sign(theEnemy->mVy);
+		int aRow = (int)((double)theEnemy->mVy + (double)theEnemy->mY + (double)((aSy * 0x10) / 2)) / CELL_SIZE;
 		bool aBlocked = 0x22 < (uint32_t)(aRow - 1);
 		if (!aBlocked)
 		{
-			int aKind = gLevels.current->columns[aCol][aRow].kind;
-			aBlocked = aKind != 3 && aKind != theKind;
+			int aKind = gLevels.mCurrent->mColumns[aCol][aRow].mKind;
+			aBlocked = aKind != CELL_EDGE && aKind != theKind;
 		}
 		if (aBlocked)
 		{
-			theEnemy->x = (float)(aCol * 0x10 + 8);
-			theEnemy->y = (float)(((int)theEnemy->y / 16) * 0x10 + 8);
+			theEnemy->mX = (float)(aCol * CELL_SIZE + CELL_HALF);
+			theEnemy->mY = (float)(((int)theEnemy->mY / CELL_SIZE) * CELL_SIZE + CELL_HALF);
 			Walker_Turn(theEnemy);
 			int aTry = 0;
 			do
 			{
-				if (theEnemy->vx != 0.0f)
+				if (theEnemy->mVx != 0.0f)
 					return;
 				Walker_Turn(theEnemy);
 				aTry = aTry + 1;
@@ -1082,22 +1090,22 @@ void Walker_Follow(Enemy* theEnemy, int theKind)
 	}
 	else
 	{
-		int aSx = Sign(theEnemy->vx);
-		int aCol = (int)((double)theEnemy->x + (double)theEnemy->vx + (double)((aSx * 0x10) / 2)) / 16;
-		int aRow = (int)theEnemy->y / 16;
+		int aSx = Sign(theEnemy->mVx);
+		int aCol = (int)((double)theEnemy->mX + (double)theEnemy->mVx + (double)((aSx * 0x10) / 2)) / CELL_SIZE;
+		int aRow = (int)theEnemy->mY / CELL_SIZE;
 		bool aBlocked = 0x2f < (uint32_t)(aCol - 1);
 		if (!aBlocked)
 		{
-			int aKind = gLevels.current->columns[aCol][aRow].kind;
-			aBlocked = aKind != 3 && aKind != theKind;
+			int aKind = gLevels.mCurrent->mColumns[aCol][aRow].mKind;
+			aBlocked = aKind != CELL_EDGE && aKind != theKind;
 		}
 		if (aBlocked)
 		{
-			theEnemy->x = (float)(((int)theEnemy->x / 16) * 0x10 + 8);
-			theEnemy->y = (float)(aRow * 0x10 + 8);
+			theEnemy->mX = (float)(((int)theEnemy->mX / CELL_SIZE) * CELL_SIZE + CELL_HALF);
+			theEnemy->mY = (float)(aRow * CELL_SIZE + CELL_HALF);
 			Walker_Turn(theEnemy);
 			int aTry = 0;
-			while (theEnemy->vy == 0.0f)
+			while (theEnemy->mVy == 0.0f)
 			{
 				Walker_Turn(theEnemy);
 				aTry = aTry + 1;
@@ -1113,24 +1121,24 @@ void Walker_Follow(Enemy* theEnemy, int theKind)
 void Enemy_CopyDef(Enemy* theEnemy, Enemy* theDef)
 {
 	Obj_Copy(theEnemy, theDef);
-	theEnemy->leftAnim = theDef->leftAnim;
-	theEnemy->rightAnim = theDef->rightAnim;
-	theEnemy->upAnim = theDef->upAnim;
-	theEnemy->downAnim = theDef->downAnim;
-	theEnemy->phase = theDef->phase;
-	theEnemy->firstParticle = theDef->firstParticle;
-	theEnemy->lastParticle = theDef->lastParticle;
-	theEnemy->baseSpeed = theDef->baseSpeed;
-	theEnemy->baseAcceleration = theDef->baseAcceleration;
-	theEnemy->baseFrameTime = theDef->baseFrameTime;
-	theEnemy->acceleration = theDef->acceleration;
-	theEnemy->decay = theDef->decay;
-	theEnemy->turnSpeed = theDef->turnSpeed;
-	theEnemy->lastShot = theDef->lastShot;
-	List_Each(&theDef->emitters, [&](Obj* anEmitter) {
-		Emitter_Append(&theEnemy->emitters);
-		Emitter_Copy(static_cast<Emitter*>(theEnemy->emitters.current), static_cast<Emitter*>(anEmitter));
-		static_cast<Emitter*>(theEnemy->emitters.current)->parent = theEnemy;
+	theEnemy->mLeftAnim = theDef->mLeftAnim;
+	theEnemy->mRightAnim = theDef->mRightAnim;
+	theEnemy->mUpAnim = theDef->mUpAnim;
+	theEnemy->mDownAnim = theDef->mDownAnim;
+	theEnemy->mPhase = theDef->mPhase;
+	theEnemy->mFirstParticle = theDef->mFirstParticle;
+	theEnemy->mLastParticle = theDef->mLastParticle;
+	theEnemy->mBaseSpeed = theDef->mBaseSpeed;
+	theEnemy->mBaseAcceleration = theDef->mBaseAcceleration;
+	theEnemy->mBaseFrameTime = theDef->mBaseFrameTime;
+	theEnemy->mAcceleration = theDef->mAcceleration;
+	theEnemy->mDecay = theDef->mDecay;
+	theEnemy->mTurnSpeed = theDef->mTurnSpeed;
+	theEnemy->mLastShot = theDef->mLastShot;
+	List_Each(&theDef->mEmitters, [&](Obj* theEmitter) {
+		Emitter_Append(&theEnemy->mEmitters);
+		Emitter_Copy(static_cast<Emitter*>(theEnemy->mEmitters.mCurrent), static_cast<Emitter*>(theEmitter));
+		static_cast<Emitter*>(theEnemy->mEmitters.mCurrent)->mParent = theEnemy;
 	});
 }
 
@@ -1139,15 +1147,15 @@ void Enemy_CopyDef(Enemy* theEnemy, Enemy* theDef)
 // board is short of its quota.
 void Enemy_Kill(Enemy* theEnemy, int thePoints)
 {
-	gProfiles[gProfile].kills = gProfiles[gProfile].kills + 1;
-	if (theEnemy->ice != nullptr)
-		Obj_Delete(theEnemy->ice);
-	theEnemy->ice = nullptr;
+	gProfiles[gProfile].mKills = gProfiles[gProfile].mKills + 1;
+	if (theEnemy->mIce != nullptr)
+		Obj_Delete(theEnemy->mIce);
+	theEnemy->mIce = nullptr;
 	Obj_Explode(theEnemy, 0.0f, 0.0f);
-	int aKind = theEnemy->kind;
-	if (aKind != 6 && aKind != 0xc && aKind != 0xd)
+	int aKind = theEnemy->mKind;
+	if (aKind != ENEMY_SNAKE && aKind != ENEMY_CANNON_BALL && aKind != ENEMY_LASER_SHOT)
 	{
-		int aPoints = gLevels.current->chain * 100;
+		int aPoints = gLevels.mCurrent->mChain * 100;
 		if (thePoints != 0)
 			aPoints = thePoints;
 		char aSound[64];
@@ -1157,120 +1165,120 @@ void Enemy_Kill(Enemy* theEnemy, int thePoints)
 			aPoints = 900;
 		char aText[64];
 		std::sprintf(aText, "%d", aPoints);
-		Shooter* aShip = gLevels.current->shooters.current;
-		if (aShip == nullptr || aShip->cellPoints < 2)
+		Shooter* aShip = gLevels.mCurrent->mShooters.mCurrent;
+		if (aShip == nullptr || aShip->mCellPoints < 2)
 			gScore = gScore + aPoints;
 		else
 		{
-			gScore = gScore + aShip->cellPoints * aPoints;
+			gScore = gScore + aShip->mCellPoints * aPoints;
 			char aTimes[16];
-			std::sprintf(aTimes, "^5X%d", gLevels.current->shooters.current->cellPoints);
-			Text_Append(&gLevels.current->texts);
-			Text_Make(gLevels.current->texts.current, aTimes, Font_Find("bonus_font"),
-				(int)((double)theEnemy->x + 44.0), (int)theEnemy->y, 0, 0x28, 2000, 300, 0, 0);
-			gLevels.current->texts.current->vy = -0.02f;
+			std::sprintf(aTimes, "^5X%d", gLevels.mCurrent->mShooters.mCurrent->mCellPoints);
+			Text_Append(&gLevels.mCurrent->mTexts);
+			Text_Make(gLevels.mCurrent->mTexts.mCurrent, aTimes, Font_Find("bonus_font"),
+				(int)((double)theEnemy->mX + 44.0), (int)theEnemy->mY, 0, 0x28, 2000, 300, 0, 0);
+			gLevels.mCurrent->mTexts.mCurrent->mVy = -0.02f;
 		}
-		Text_Append(&gLevels.current->texts);
-		Text_Make(gLevels.current->texts.current, aText, Font_Find("bonus_font"), (int)theEnemy->x, (int)theEnemy->y,
-			0, 0x28, 2000, 300, 0, 0);
-		gLevels.current->texts.current->vy = -0.02f;
-		gLevels.current->chain = gLevels.current->chain + 1;
+		Text_Append(&gLevels.mCurrent->mTexts);
+		Text_Make(gLevels.mCurrent->mTexts.mCurrent, aText, Font_Find("bonus_font"), (int)theEnemy->mX,
+			(int)theEnemy->mY, 0, 0x28, 2000, 300, 0, 0);
+		gLevels.mCurrent->mTexts.mCurrent->mVy = -0.02f;
+		gLevels.mCurrent->mChain = gLevels.mCurrent->mChain + 1;
 		if (6 < RandRange(1, 10) &&
-			((gLevels.current->unk3c0 + gLevels.current->filledCells) * 100) / gLevels.current->totalCells <
-				gLevels.current->fillQuota)
-			Powerup_Insert(&gLevels.current->powerups);
+			((gLevels.mCurrent->mFloodedCells + gLevels.mCurrent->mFilledCells) * 100) / gLevels.mCurrent->mTotalCells <
+				gLevels.mCurrent->mFillQuota)
+			Powerup_Insert(&gLevels.mCurrent->mPowerups);
 	}
 }
 
-// Kind 5: shotDelay updates after its last shot fires a snake (kind 6) from 50 pixels out, at an angle its
-// animation's frame and a random quarter turn give, when the cell there is open
+// ENEMY_SNAKE_SHOOTER: mShotDelay updates after its last shot fires a snake (ENEMY_SNAKE) from 50 pixels out, at an
+// angle its animation's frame and a random quarter turn give, when the cell there is open
 int SnakeShooter_Move(Enemy* theEnemy)
 {
 	int aResult = Enemy_Bounce(theEnemy);
-	if ((double)theEnemy->shotDelay + (double)theEnemy->lastShot < (double)theEnemy->age)
+	if ((double)theEnemy->mShotDelay + (double)theEnemy->mLastShot < (double)theEnemy->mAge)
 	{
-		int aCount = theEnemy->frameCount;
-		int anAngle = RandRange(0, 3) * 0x5a + (theEnemy->frame * 0x5a) / aCount + 0x168 / aCount;
+		int aCount = theEnemy->mFrameCount;
+		int anAngle = RandRange(0, 3) * 0x5a + (theEnemy->mFrame * 0x5a) / aCount + 0x168 / aCount;
 		if (0x167 < anAngle)
 			anAngle = anAngle + -0x168;
-		int aX = (int)((double)CosDeg(anAngle) * 50.0 + (double)theEnemy->x);
-		int aY = (int)((double)SinDeg(anAngle) * 50.0 + (double)theEnemy->y);
-		if (gLevels.current->columns[aX / 16][aY / 16].kind == 0)
+		int aX = (int)((double)CosDeg(anAngle) * 50.0 + (double)theEnemy->mX);
+		int aY = (int)((double)SinDeg(anAngle) * 50.0 + (double)theEnemy->mY);
+		if (gLevels.mCurrent->mColumns[aX / CELL_SIZE][aY / CELL_SIZE].mKind == CELL_OPEN)
 		{
 			Sound_Play(Sound_Find("audio\\canon.wav"));
-			theEnemy->lastShot = theEnemy->age;
-			Enemy_Append(&gLevels.current->enemies);
-			Enemy* aShot = gLevels.current->enemies.current;
+			theEnemy->mLastShot = theEnemy->mAge;
+			Enemy_Append(&gLevels.mCurrent->mEnemies);
+			Enemy* aShot = gLevels.mCurrent->mEnemies.mCurrent;
 			Enemy_CopyDef(aShot, theEnemy);
-			aShot->age = 0.0f;
-			aShot->lifetime = 0.0f;
-			aShot->kind = 6;
-			aShot->state = 3;
-			aShot->anim = Animation_Find("snake", &aShot->frameCount, &aShot->frameTime);
-			aShot->dieAnim = Animation_Find("small_explo", &aShot->dieFrameCount, &aShot->dieFrameTime);
-			aShot->depth = theEnemy->depth + 1;
-			aShot->midHandle = 1;
-			aShot->vx = (float)((double)CosDeg(anAngle) * 0.3499999940395355);
-			aShot->vy = (float)((double)SinDeg(anAngle) * 0.3499999940395355);
-			aShot->x = (float)((double)CosDeg(anAngle) * 50.0 + (double)theEnemy->x);
-			aShot->y = (float)((double)SinDeg(anAngle) * 50.0 + (double)theEnemy->y);
-			Emitter_Append(&aShot->emitters);
-			Emitter_Setup(static_cast<Emitter*>(aShot->emitters.current), aShot, 0, 0, 0.0f, 0.0f, 0x28, 0, "spark", 2,
-				255.0f, 0.0f, 2000.0f);
+			aShot->mAge = 0.0f;
+			aShot->mLifetime = 0.0f;
+			aShot->mKind = ENEMY_SNAKE;
+			aShot->mState = ENEMY_ALIVE;
+			aShot->mAnim = Animation_Find("snake", &aShot->mFrameCount, &aShot->mFrameTime);
+			aShot->mDieAnim = Animation_Find("small_explo", &aShot->mDieFrameCount, &aShot->mDieFrameTime);
+			aShot->mDepth = theEnemy->mDepth + 1;
+			aShot->mMidHandle = 1;
+			aShot->mVx = (float)((double)CosDeg(anAngle) * 0.3499999940395355);
+			aShot->mVy = (float)((double)SinDeg(anAngle) * 0.3499999940395355);
+			aShot->mX = (float)((double)CosDeg(anAngle) * 50.0 + (double)theEnemy->mX);
+			aShot->mY = (float)((double)SinDeg(anAngle) * 50.0 + (double)theEnemy->mY);
+			Emitter_Append(&aShot->mEmitters);
+			Emitter_Setup(static_cast<Emitter*>(aShot->mEmitters.mCurrent), aShot, 0, 0, 0.0f, 0.0f, 0x28, 0, "spark",
+				2, 255.0f, 0.0f, 2000.0f);
 			for (int n = 0x28; n != 0; n--)
 			{
 				ParticleSystem_New();
 				float aDrag = (float)((double)RandRange(-100, 0) / 1000.0 + 1.0);
 				int aLifetime = RandRange(400, 0x514);
-				int aLast = theEnemy->lastParticle;
-				int aFirst = theEnemy->firstParticle;
-				float aVy = (float)((double)RandRange(-50, 50) / 1200.0 + (double)aShot->vy);
-				float aVx = (float)((double)RandRange(-50, 50) / 1200.0 + (double)aShot->vx);
-				float aPy = (float)RandRange(-5, 5) + aShot->y;
-				float aPx = (float)RandRange(-5, 5) + aShot->x;
-				ParticleSystem_Add(gLevels.current->systems.current, aPx, aPy, aVx, aVy, aFirst, aLast, 0, 0xff, 0xff,
-					0xe6, 100, 0x32, 0, 0xff, 10, aLifetime, aDrag, 0.0f, 5);
+				int aLast = theEnemy->mLastParticle;
+				int aFirst = theEnemy->mFirstParticle;
+				float aVy = (float)((double)RandRange(-50, 50) / 1200.0 + (double)aShot->mVy);
+				float aVx = (float)((double)RandRange(-50, 50) / 1200.0 + (double)aShot->mVx);
+				float aPy = (float)RandRange(-5, 5) + aShot->mY;
+				float aPx = (float)RandRange(-5, 5) + aShot->mX;
+				ParticleSystem_Add(gLevels.mCurrent->mSystems.mCurrent, aPx, aPy, aVx, aVy, aFirst, aLast, 0, 0xff,
+					0xff, 0xe6, 100, 0x32, 0, 0xff, 10, aLifetime, aDrag, 0.0f, 5);
 			}
-			gLevels.current->enemies.current = theEnemy;
-			for (int i = 0; i < aShot->anim->count; i++)
-				Image_SetMidHandle(aShot->anim->frames[i]);
+			gLevels.mCurrent->mEnemies.mCurrent = theEnemy;
+			for (int i = 0; i < aShot->mAnim->mCount; i++)
+				Image_SetMidHandle(aShot->mAnim->mFrames[i]);
 		}
 	}
 	return aResult;
 }
 
-// Kind 6, a snake shooter's snake: bursts on hitting anything not open, holing the board 3 cells round
+// ENEMY_SNAKE, a snake shooter's snake: bursts on hitting anything not open, holing the board 3 cells round
 int Snake_Move(Enemy* theEnemy)
 {
-	theEnemy->hitCell = nullptr;
+	theEnemy->mHitCell = nullptr;
 	Enemy_Bounce(theEnemy);
-	if (theEnemy->hitCell != nullptr)
+	if (theEnemy->mHitCell != nullptr)
 	{
 		Enemy_Kill(theEnemy, 0);
-		Level_Blast((int)theEnemy->x / 16, (int)theEnemy->y / 16, 3);
+		Level_Blast((int)theEnemy->mX / CELL_SIZE, (int)theEnemy->mY / CELL_SIZE, 3);
 	}
-	if (gLevels.current->columns[(int)theEnemy->x / 16][(int)theEnemy->y / 16].kind != 0)
+	if (gLevels.mCurrent->mColumns[(int)theEnemy->mX / CELL_SIZE][(int)theEnemy->mY / CELL_SIZE].mKind != CELL_OPEN)
 		Enemy_Kill(theEnemy, 0);
 	return 1;
 }
 
-// Kind 0xc, a cannon walker's ball: rises and falls through its animation over its lifetime, then bursts, holing
-// the board 3 cells round (0: done)
+// ENEMY_CANNON_BALL, a cannon walker's ball: rises and falls through its animation over its lifetime, then bursts,
+// holing the board 3 cells round (0: done)
 int CannonBall_Move(Enemy* theEnemy)
 {
-	if (theEnemy->age < theEnemy->lifetime)
+	if (theEnemy->mAge < theEnemy->mLifetime)
 	{
-		float aSin = SinDeg((int)((double)theEnemy->age * 180.0 / (double)theEnemy->lifetime));
-		Animation* anAnim = theEnemy->anim;
-		int aCount = anAnim->count;
+		float aSin = SinDeg((int)((double)theEnemy->mAge * 180.0 / (double)theEnemy->mLifetime));
+		Animation* anAnim = theEnemy->mAnim;
+		int aCount = anAnim->mCount;
 		int aFrame = (int)((double)aCount * (double)aSin);
 		if (aCount <= aFrame)
 			aFrame = aCount + -1;
-		theEnemy->image = Animation_Frame(anAnim, aFrame);
+		theEnemy->mImage = Animation_Frame(anAnim, aFrame);
 		return 1;
 	}
 	Enemy_Kill(theEnemy, 0);
-	Level_Blast((int)theEnemy->x / 16, (int)theEnemy->y / 16, 3);
+	Level_Blast((int)theEnemy->mX / CELL_SIZE, (int)theEnemy->mY / CELL_SIZE, 3);
 	return 0;
 }
 
@@ -1278,113 +1286,115 @@ int CannonBall_Move(Enemy* theEnemy)
 // it stands still, now and then at junctions, and where its way ends
 int Walker_Move(Enemy* theEnemy, int theKind)
 {
-	if (2000.0f < theEnemy->age &&
-		gLevels.current->columns[(int)theEnemy->x / 16][(int)theEnemy->y / 16].kind == 0)
+	if (2000.0f < theEnemy->mAge &&
+		gLevels.mCurrent->mColumns[(int)theEnemy->mX / CELL_SIZE][(int)theEnemy->mY / CELL_SIZE].mKind == CELL_OPEN)
 	{
 		Enemy_Kill(theEnemy, 0);
 		return 1;
 	}
-	if (theEnemy->vx == 0.0f && theEnemy->vy == 0.0f)
+	if (theEnemy->mVx == 0.0f && theEnemy->mVy == 0.0f)
 		Walker_Turn(theEnemy);
 	Walker_TurnAtJunction(theEnemy, theKind);
 	Walker_Follow(theEnemy, theKind);
 	return 0;
 }
 
-// Kind 8: speeds up (to three times its speed) while the ship has beams out, and slows back down without
+// ENEMY_SCURRY_WALKER: speeds up (to three times its speed) while the ship has beams out, and slows back down without
 void ScurryWalker_Move(Enemy* theEnemy)
 {
-	Shooter* aShip = gLevels.current->shooters.current;
+	Shooter* aShip = gLevels.mCurrent->mShooters.mCurrent;
 	float aSpeed;
-	if (aShip == nullptr || aShip->beams.current == nullptr)
+	if (aShip == nullptr || aShip->mBeams.mCurrent == nullptr)
 	{
-		aSpeed = theEnemy->decay * theEnemy->speed;
-		if (aSpeed < theEnemy->baseSpeed)
-			aSpeed = theEnemy->baseSpeed;
+		aSpeed = theEnemy->mDecay * theEnemy->mSpeed;
+		if (aSpeed < theEnemy->mBaseSpeed)
+			aSpeed = theEnemy->mBaseSpeed;
 	}
 	else
 	{
-		float aMax = theEnemy->baseSpeed * 3.0f;
-		aSpeed = theEnemy->acceleration * theEnemy->speed;
+		float aMax = theEnemy->mBaseSpeed * 3.0f;
+		aSpeed = theEnemy->mAcceleration * theEnemy->mSpeed;
 		if (aMax < aSpeed)
 			aSpeed = aMax;
 	}
-	theEnemy->speed = aSpeed;
-	theEnemy->frameTime = (int)((double)theEnemy->baseFrameTime * theEnemy->baseSpeed / theEnemy->speed);
-	theEnemy->vx = (float)Sign(theEnemy->vx) * theEnemy->speed;
-	theEnemy->vy = (float)Sign(theEnemy->vy) * theEnemy->speed;
-	Walker_Move(theEnemy, 2);
+	theEnemy->mSpeed = aSpeed;
+	theEnemy->mFrameTime = (int)((double)theEnemy->mBaseFrameTime * theEnemy->mBaseSpeed / theEnemy->mSpeed);
+	theEnemy->mVx = (float)Sign(theEnemy->mVx) * theEnemy->mSpeed;
+	theEnemy->mVy = (float)Sign(theEnemy->mVy) * theEnemy->mSpeed;
+	Walker_Move(theEnemy, CELL_LINE);
 }
 
-// Kind 9: 1000 updates after it last did, turns towards the ship when that is within 150 pixels; slows (to a third
-// of its speed) while a beam across its way is that near, and speeds back up without
+// ENEMY_SMART_WALKER: 1000 updates after it last did, turns towards the ship when that is within 150 pixels; slows (to
+// a third of its speed) while a beam across its way is that near, and speeds back up without
 void SmartWalker_Move(Enemy* theEnemy)
 {
-	Shooter* aShip = gLevels.current->shooters.current;
-	if ((double)theEnemy->lastShot + 1000.0 < (double)theEnemy->age && aShip != nullptr)
+	Shooter* aShip = gLevels.mCurrent->mShooters.mCurrent;
+	if ((double)theEnemy->mLastShot + 1000.0 < (double)theEnemy->mAge && aShip != nullptr)
 	{
-		double dy = (double)aShip->y - theEnemy->y;
-		double dx = (double)aShip->x - theEnemy->x;
-		if (dx * dx + dy * dy < 22500.0)
+		double aDy = (double)aShip->mY - theEnemy->mY;
+		double aDx = (double)aShip->mX - theEnemy->mX;
+		if (aDx * aDx + aDy * aDy < 22500.0)
 		{
-			theEnemy->lastShot = theEnemy->age;
-			theEnemy->vx = std::fabs(theEnemy->vx) * (float)Sign(gLevels.current->shooters.current->x - theEnemy->x);
-			theEnemy->vy = std::fabs(theEnemy->vy) * (float)Sign(gLevels.current->shooters.current->y - theEnemy->y);
+			theEnemy->mLastShot = theEnemy->mAge;
+			theEnemy->mVx = std::fabs(theEnemy->mVx) *
+				(float)Sign(gLevels.mCurrent->mShooters.mCurrent->mX - theEnemy->mX);
+			theEnemy->mVy = std::fabs(theEnemy->mVy) *
+				(float)Sign(gLevels.mCurrent->mShooters.mCurrent->mY - theEnemy->mY);
 			Enemy_Face(theEnemy);
 		}
 	}
 	bool aNear = false;
-	aShip = gLevels.current->shooters.current;
-	if (aShip != nullptr && aShip->beams.current != nullptr)
+	aShip = gLevels.mCurrent->mShooters.mCurrent;
+	if (aShip != nullptr && aShip->mBeams.mCurrent != nullptr)
 	{
-		List_Each(&aShip->beams, [&](Beam* aBeam) {
-			double dy = (double)theEnemy->y - aBeam->y;
-			double dx = (double)theEnemy->x - aBeam->x;
-			if (dx * dx + dy * dy < 22500.0 &&
-				((aBeam->vx != 0.0f && theEnemy->vy != 0.0f) || (aBeam->vy != 0.0f && theEnemy->vx != 0.0f)))
+		List_Each(&aShip->mBeams, [&](Beam* theBeam) {
+			double aDy = (double)theEnemy->mY - theBeam->mY;
+			double aDx = (double)theEnemy->mX - theBeam->mX;
+			if (aDx * aDx + aDy * aDy < 22500.0 &&
+				((theBeam->mVx != 0.0f && theEnemy->mVy != 0.0f) || (theBeam->mVy != 0.0f && theEnemy->mVx != 0.0f)))
 				aNear = true;
 		});
 	}
 	float aSpeed;
 	if (aNear)
 	{
-		float aMin = (float)((double)theEnemy->baseSpeed / 3.0);
-		aSpeed = theEnemy->decay * theEnemy->speed;
+		float aMin = (float)((double)theEnemy->mBaseSpeed / 3.0);
+		aSpeed = theEnemy->mDecay * theEnemy->mSpeed;
 		if (aSpeed < aMin)
 			aSpeed = aMin;
 	}
 	else
 	{
-		aSpeed = theEnemy->acceleration * theEnemy->speed;
-		if (theEnemy->baseSpeed < aSpeed)
-			aSpeed = theEnemy->baseSpeed;
+		aSpeed = theEnemy->mAcceleration * theEnemy->mSpeed;
+		if (theEnemy->mBaseSpeed < aSpeed)
+			aSpeed = theEnemy->mBaseSpeed;
 	}
-	theEnemy->speed = aSpeed;
-	theEnemy->frameTime = (int)((double)theEnemy->baseFrameTime * theEnemy->baseSpeed / theEnemy->speed);
-	theEnemy->vx = (float)Sign(theEnemy->vx) * theEnemy->speed;
-	theEnemy->vy = (float)Sign(theEnemy->vy) * theEnemy->speed;
-	Walker_Move(theEnemy, 2);
+	theEnemy->mSpeed = aSpeed;
+	theEnemy->mFrameTime = (int)((double)theEnemy->mBaseFrameTime * theEnemy->mBaseSpeed / theEnemy->mSpeed);
+	theEnemy->mVx = (float)Sign(theEnemy->mVx) * theEnemy->mSpeed;
+	theEnemy->mVy = (float)Sign(theEnemy->mVy) * theEnemy->mSpeed;
+	Walker_Move(theEnemy, CELL_LINE);
 }
 
-// Kind 10: 4000 updates after its last shot, when the 9 by 9 cells 16 cells ahead of it hold 29 filled ones or
-// lines, fires a cannon ball (kind 0xc) that way in a puff of smoke
+// ENEMY_CANNON_WALKER: 4000 updates after its last shot, when the 9 by 9 cells 16 cells ahead of it hold 29 filled ones
+// or lines, fires a cannon ball (ENEMY_CANNON_BALL) that way in a puff of smoke
 void CannonWalker_Move(Enemy* theEnemy)
 {
-	if ((double)theEnemy->lastShot + 4000.0 < (double)theEnemy->age)
+	if ((double)theEnemy->mLastShot + 4000.0 < (double)theEnemy->mAge)
 	{
 		int aCount = 1;
-		int aCol = (int)theEnemy->x / 16 + Sign(theEnemy->vx) * 0x10;
-		int aRow = (int)theEnemy->y / 16 + Sign(theEnemy->vy) * 0x10;
-		Level* aLevel = gLevels.current;
+		int aCol = (int)theEnemy->mX / CELL_SIZE + Sign(theEnemy->mVx) * 0x10;
+		int aRow = (int)theEnemy->mY / CELL_SIZE + Sign(theEnemy->mVy) * 0x10;
+		Level* aLevel = gLevels.mCurrent;
 		for (int r = aRow - 4; r <= aRow + 4; r++)
 		{
 			for (int c = aCol - 4; c <= aCol + 4; c++)
 			{
-				if (aCount != 0 && -1 < c && c < aLevel->cols && -1 < r && r < aLevel->rows &&
-					(aLevel->columns[c][r].kind == 4 || aLevel->columns[c][r].kind == 2))
+				if (aCount != 0 && -1 < c && c < aLevel->mCols && -1 < r && r < aLevel->mRows &&
+					(aLevel->mColumns[c][r].mKind == CELL_FILLED || aLevel->mColumns[c][r].mKind == CELL_LINE))
 					aCount = aCount + 1;
 				// (sic: the original's reset can never happen)
-				else if (c < 0 && aLevel->cols <= c && r < 0 && aLevel->rows <= r)
+				else if (c < 0 && aLevel->mCols <= c && r < 0 && aLevel->mRows <= r)
 					aCount = 0;
 			}
 		}
@@ -1395,177 +1405,177 @@ void CannonWalker_Move(Enemy* theEnemy)
 			for (int n = 0x14; n != 0; n--)
 			{
 				ParticleSystem_New();
-				int aSy = Sign(theEnemy->vy);
-				int aSx = Sign(theEnemy->vx);
+				int aSy = Sign(theEnemy->mVy);
+				int aSx = Sign(theEnemy->mVx);
 				int aLifetime = RandRange(200, 300);
-				int aLast = theEnemy->lastParticle;
-				int aFirst = theEnemy->firstParticle;
-				float aVy = (float)((double)theEnemy->vy + theEnemy->vy + (double)RandRange(-50, 50) / 1200.0);
-				float aVx = (float)((double)theEnemy->vx + theEnemy->vx + (double)RandRange(-50, 50) / 1200.0);
-				float aY = (float)((double)RandRange(-5, 5) + theEnemy->y + (double)aSy * 15.0);
-				float aX = (float)((double)RandRange(-5, 5) + theEnemy->x + (double)aSx * 15.0);
-				ParticleSystem_Add(gLevels.current->systems.current, aX, aY, aVx, aVy, aFirst, aLast, 0, 0xff, 0xff,
+				int aLast = theEnemy->mLastParticle;
+				int aFirst = theEnemy->mFirstParticle;
+				float aVy = (float)((double)theEnemy->mVy + theEnemy->mVy + (double)RandRange(-50, 50) / 1200.0);
+				float aVx = (float)((double)theEnemy->mVx + theEnemy->mVx + (double)RandRange(-50, 50) / 1200.0);
+				float aY = (float)((double)RandRange(-5, 5) + theEnemy->mY + (double)aSy * 15.0);
+				float aX = (float)((double)RandRange(-5, 5) + theEnemy->mX + (double)aSx * 15.0);
+				ParticleSystem_Add(gLevels.mCurrent->mSystems.mCurrent, aX, aY, aVx, aVy, aFirst, aLast, 0, 0xff, 0xff,
 					0xe6, 100, 0x32, 0, 0xff, 10, aLifetime, 0.999f, 0.0f, 5);
 			}
-			theEnemy->lastShot = theEnemy->age;
-			Enemy_Append(&gLevels.current->enemies);
-			Enemy* aBall = gLevels.current->enemies.current;
+			theEnemy->mLastShot = theEnemy->mAge;
+			Enemy_Append(&gLevels.mCurrent->mEnemies);
+			Enemy* aBall = gLevels.mCurrent->mEnemies.mCurrent;
 			Enemy_CopyDef(aBall, theEnemy);
-			aBall->kind = 0xc;
-			aBall->state = 3;
-			aBall->x = (float)((double)Sign(theEnemy->vx) * 16.0 + (double)theEnemy->x);
-			aBall->y = (float)((double)Sign(theEnemy->vy) * 16.0 + (double)theEnemy->y);
-			aBall->age = 0.0f;
-			aBall->lifetime = 1500.0f;
-			aBall->vx = (float)((double)Sign(theEnemy->vx) * 240.0 / 1500.0);
-			aBall->vy = (float)((double)Sign(theEnemy->vy) * 240.0 / 1500.0);
-			aBall->anim = Animation_Find("cannon_ball", &aBall->frameCount, &aBall->frameTime);
-			aBall->depth = theEnemy->depth + 1;
-			aBall->midHandle = 1;
-			aBall->dieAnim = Animation_Find("small_explo", &aBall->dieFrameCount, &aBall->dieFrameTime);
-			gLevels.current->enemies.current = theEnemy;
-			for (int i = 0; i < aBall->anim->count; i++)
-				Image_SetMidHandle(aBall->anim->frames[i]);
+			aBall->mKind = ENEMY_CANNON_BALL;
+			aBall->mState = ENEMY_ALIVE;
+			aBall->mX = (float)((double)Sign(theEnemy->mVx) * 16.0 + (double)theEnemy->mX);
+			aBall->mY = (float)((double)Sign(theEnemy->mVy) * 16.0 + (double)theEnemy->mY);
+			aBall->mAge = 0.0f;
+			aBall->mLifetime = 1500.0f;
+			aBall->mVx = (float)((double)Sign(theEnemy->mVx) * 240.0 / 1500.0);
+			aBall->mVy = (float)((double)Sign(theEnemy->mVy) * 240.0 / 1500.0);
+			aBall->mAnim = Animation_Find("cannon_ball", &aBall->mFrameCount, &aBall->mFrameTime);
+			aBall->mDepth = theEnemy->mDepth + 1;
+			aBall->mMidHandle = 1;
+			aBall->mDieAnim = Animation_Find("small_explo", &aBall->mDieFrameCount, &aBall->mDieFrameTime);
+			gLevels.mCurrent->mEnemies.mCurrent = theEnemy;
+			for (int i = 0; i < aBall->mAnim->mCount; i++)
+				Image_SetMidHandle(aBall->mAnim->mFrames[i]);
 		}
 	}
-	Walker_Move(theEnemy, 2);
+	Walker_Move(theEnemy, CELL_LINE);
 }
 
-// Kind 0xb: faces the ship across its way; 4000 updates after its last shot, while it is within the length of a
-// beam going its way, shoots a laser (kind 0xd) at it
+// ENEMY_LASER_WALKER: faces the ship across its way; 4000 updates after its last shot, while it is within the length of
+// a beam going its way, shoots a laser (ENEMY_LASER_SHOT) at it
 void LaserWalker_Move(Enemy* theEnemy)
 {
-	Animation* anAnim = theEnemy->downAnim;
-	theEnemy->anim = anAnim;
-	Shooter* aShip = gLevels.current->shooters.current;
+	Animation* anAnim = theEnemy->mDownAnim;
+	theEnemy->mAnim = anAnim;
+	Shooter* aShip = gLevels.mCurrent->mShooters.mCurrent;
 	float aDx;
 	float aDy;
-	if (theEnemy->vx == 0.0f)
+	if (theEnemy->mVx == 0.0f)
 	{
-		if (aShip == nullptr || aShip->x <= theEnemy->x)
+		if (aShip == nullptr || aShip->mX <= theEnemy->mX)
 			aDx = -1.0f;
 		else
 		{
-			anAnim = theEnemy->upAnim;
+			anAnim = theEnemy->mUpAnim;
 			aDx = 1.0f;
 		}
 		aDy = 0.0f;
-		theEnemy->anim = anAnim;
+		theEnemy->mAnim = anAnim;
 	}
-	else if (aShip != nullptr && aShip->y < theEnemy->y)
+	else if (aShip != nullptr && aShip->mY < theEnemy->mY)
 	{
 		aDx = 0.0f;
 		aDy = -1.0f;
-		theEnemy->anim = theEnemy->leftAnim;
+		theEnemy->mAnim = theEnemy->mLeftAnim;
 	}
 	else
 	{
 		aDx = 0.0f;
-		theEnemy->anim = theEnemy->rightAnim;
+		theEnemy->mAnim = theEnemy->mRightAnim;
 		aDy = 1.0f;
 	}
-	if ((double)theEnemy->age <= (double)theEnemy->lastShot + 4000.0)
+	if ((double)theEnemy->mAge <= (double)theEnemy->mLastShot + 4000.0)
 	{
-		Walker_Move(theEnemy, 2);
+		Walker_Move(theEnemy, CELL_LINE);
 		return;
 	}
 	bool aLinedUp = false;
-	aShip = gLevels.current->shooters.current;
-	if (aShip != nullptr && aShip->beams.current != nullptr)
+	aShip = gLevels.mCurrent->mShooters.mCurrent;
+	if (aShip != nullptr && aShip->mBeams.mCurrent != nullptr)
 	{
-		List_Each(&aShip->beams, [&](Beam* aBeam) {
-			if (aBeam->vx == 0.0f || theEnemy->vx == 0.0f)
+		List_Each(&aShip->mBeams, [&](Beam* theBeam) {
+			if (theBeam->mVx == 0.0f || theEnemy->mVx == 0.0f)
 			{
-				if (aBeam->vy != 0.0f && theEnemy->vy != 0.0f &&
-					((aBeam->startY < theEnemy->y && theEnemy->y < aBeam->y) ||
-						(theEnemy->y < aBeam->startY && aBeam->y < theEnemy->y)))
+				if (theBeam->mVy != 0.0f && theEnemy->mVy != 0.0f &&
+					((theBeam->mStartY < theEnemy->mY && theEnemy->mY < theBeam->mY) ||
+						(theEnemy->mY < theBeam->mStartY && theBeam->mY < theEnemy->mY)))
 					aLinedUp = true;
 			}
-			else if ((aBeam->startX < theEnemy->x && theEnemy->x < aBeam->x) ||
-				(theEnemy->x < aBeam->startX && aBeam->x < theEnemy->x))
+			else if ((theBeam->mStartX < theEnemy->mX && theEnemy->mX < theBeam->mX) ||
+				(theEnemy->mX < theBeam->mStartX && theBeam->mX < theEnemy->mX))
 				aLinedUp = true;
 		});
 		if (aLinedUp)
 		{
 			// (the original works out a pan from x for a play call that takes none)
 			Sound_Play(Sound_Find("audio\\laser.wav"));
-			theEnemy->lastShot = theEnemy->age;
-			Enemy_Append(&gLevels.current->enemies);
-			Enemy* aShot = gLevels.current->enemies.current;
+			theEnemy->mLastShot = theEnemy->mAge;
+			Enemy_Append(&gLevels.mCurrent->mEnemies);
+			Enemy* aShot = gLevels.mCurrent->mEnemies.mCurrent;
 			Enemy_CopyDef(aShot, theEnemy);
-			aShot->age = 0.0f;
-			aShot->state = 3;
-			aShot->lifetime = 0.0f;
-			aShot->kind = 0xd;
-			aShot->midHandle = 1;
-			aShot->depth = theEnemy->depth + 1;
-			aShot->x = (float)((double)aDx * (double)theEnemy->image->mW * 0.5 + (double)theEnemy->x);
-			aShot->y = (float)((double)aDy * (double)theEnemy->image->mH * 0.5 + (double)theEnemy->y);
-			aShot->vx = (float)((double)aDx * 0.2);
-			aShot->vy = (float)((double)aDy * 0.2);
+			aShot->mAge = 0.0f;
+			aShot->mState = ENEMY_ALIVE;
+			aShot->mLifetime = 0.0f;
+			aShot->mKind = ENEMY_LASER_SHOT;
+			aShot->mMidHandle = 1;
+			aShot->mDepth = theEnemy->mDepth + 1;
+			aShot->mX = (float)((double)aDx * (double)theEnemy->mImage->mW * 0.5 + (double)theEnemy->mX);
+			aShot->mY = (float)((double)aDy * (double)theEnemy->mImage->mH * 0.5 + (double)theEnemy->mY);
+			aShot->mVx = (float)((double)aDx * 0.2);
+			aShot->mVy = (float)((double)aDy * 0.2);
 			const char* aName;
-			if (0.0f < aShot->vy)
+			if (0.0f < aShot->mVy)
 				aName = "laser_shot_up";
-			else if (aShot->vy < 0.0f)
+			else if (aShot->mVy < 0.0f)
 				aName = "laser_shot_down";
-			else if (0.0f <= aShot->vx)
+			else if (0.0f <= aShot->mVx)
 				aName = "laser_shot_right";
 			else
 				aName = "laser_shot_left";
-			aShot->anim = Animation_Find(aName, &aShot->frameCount, &aShot->frameTime);
-			aShot->frame = 0;
-			gLevels.current->enemies.current = theEnemy;
-			for (int i = 0; i < aShot->anim->count; i++)
-				Image_SetMidHandle(aShot->anim->frames[i]);
+			aShot->mAnim = Animation_Find(aName, &aShot->mFrameCount, &aShot->mFrameTime);
+			aShot->mFrame = 0;
+			gLevels.mCurrent->mEnemies.mCurrent = theEnemy;
+			for (int i = 0; i < aShot->mAnim->mCount; i++)
+				Image_SetMidHandle(aShot->mAnim->mFrames[i]);
 		}
 	}
-	Walker_Move(theEnemy, 2);
+	Walker_Move(theEnemy, CELL_LINE);
 }
 
-// Kind 0x13: walks the edges alone (kind 3), facing the ship across its way; at frame 12 of its animation it nips
-// the cell two ahead of where it faces, holing the board 2 cells round when that is filled or a line
+// ENEMY_CRAB_WALKER: walks the edges alone (CELL_EDGE), facing the ship across its way; at frame 12 of its animation it
+// nips the cell two ahead of where it faces, holing the board 2 cells round when that is filled or a line
 int CrabWalker_Move(Enemy* theEnemy)
 {
-	Animation* anAnim = theEnemy->downAnim;
-	theEnemy->anim = anAnim;
-	Shooter* aShip = gLevels.current->shooters.current;
+	Animation* anAnim = theEnemy->mDownAnim;
+	theEnemy->mAnim = anAnim;
+	Shooter* aShip = gLevels.mCurrent->mShooters.mCurrent;
 	int aDx;
 	int aDy;
-	if (theEnemy->vx == 0.0f)
+	if (theEnemy->mVx == 0.0f)
 	{
 		aDy = 0;
-		if (aShip == nullptr || aShip->x <= theEnemy->x)
+		if (aShip == nullptr || aShip->mX <= theEnemy->mX)
 			aDx = -1;
 		else
 		{
-			anAnim = theEnemy->upAnim;
+			anAnim = theEnemy->mUpAnim;
 			aDx = 1;
 		}
-		theEnemy->anim = anAnim;
+		theEnemy->mAnim = anAnim;
 	}
 	else
 	{
 		aDx = 0;
-		if (aShip == nullptr || theEnemy->y <= aShip->y)
+		if (aShip == nullptr || theEnemy->mY <= aShip->mY)
 		{
-			theEnemy->anim = theEnemy->rightAnim;
+			theEnemy->mAnim = theEnemy->mRightAnim;
 			aDy = 1;
 		}
 		else
 		{
-			theEnemy->anim = theEnemy->leftAnim;
+			theEnemy->mAnim = theEnemy->mLeftAnim;
 			aDy = -1;
 		}
 	}
-	int aResult = Walker_Move(theEnemy, 3);
-	if (theEnemy->frameTimer == 0 && theEnemy->frame == 0xc)
+	int aResult = Walker_Move(theEnemy, CELL_EDGE);
+	if (theEnemy->mFrameTimer == 0 && theEnemy->mFrame == 0xc)
 	{
-		int aCol = (int)theEnemy->x / 16 + aDx * 2;
-		int aRow = (int)theEnemy->y / 16 + aDy * 2;
+		int aCol = (int)theEnemy->mX / CELL_SIZE + aDx * 2;
+		int aRow = (int)theEnemy->mY / CELL_SIZE + aDy * 2;
 		if (0x2d < (uint32_t)(aCol - 2) || 0x20 < (uint32_t)(aRow - 2))
 			return aResult;
-		int aKind = gLevels.current->columns[aCol][aRow].kind;
-		if (aKind == 2 || aKind == 4)
+		int aKind = gLevels.mCurrent->mColumns[aCol][aRow].mKind;
+		if (aKind == CELL_LINE || aKind == CELL_FILLED)
 		{
 			// (the original works out a pan from x for a play call that takes none)
 			Sound_Play(Sound_Find("audio\\crab.wav"));
@@ -1579,10 +1589,10 @@ int CrabWalker_Move(Enemy* theEnemy)
 				aFirst = aFirst + RandRange(0, 2);
 				float aVy = (float)((double)RandRange(-100, 100) / 1000.0);
 				float aVx = (float)((double)RandRange(-100, 100) / 1000.0);
-				Cell* aCell = &gLevels.current->columns[aCol][aRow];
-				float aY = (float)RandRange(-0x19, 0x19) + aCell->y;
-				float aX = (float)RandRange(-0x19, 0x19) + gLevels.current->columns[aCol][aRow].x;
-				ParticleSystem_Add(gLevels.current->systems.current, aX, aY, aVx, aVy, aFirst, aLast, 0, 0xff, 0xff,
+				Cell* aCell = &gLevels.mCurrent->mColumns[aCol][aRow];
+				float aY = (float)RandRange(-0x19, 0x19) + aCell->mY;
+				float aX = (float)RandRange(-0x19, 0x19) + gLevels.mCurrent->mColumns[aCol][aRow].mX;
+				ParticleSystem_Add(gLevels.mCurrent->mSystems.mCurrent, aX, aY, aVx, aVy, aFirst, aLast, 0, 0xff, 0xff,
 					0xff, 0xe7, 0xa6, 0x39, 0x21c, 10, aLifetime, 1.0f, 0.0f, 4);
 			}
 		}
@@ -1590,16 +1600,16 @@ int CrabWalker_Move(Enemy* theEnemy)
 	return aResult;
 }
 
-// Kind 0x15: its speed swings with the sine of an eighth of its age, its animation keeping step
+// ENEMY_LOBSTER_WALKER: its speed swings with the sine of an eighth of its age, its animation keeping step
 int LobsterWalker_Move(Enemy* theEnemy)
 {
-	int aResult = Walker_Move(theEnemy, 2);
-	float aSin = SinDeg((int)((double)theEnemy->age * 0.125) % 0x168);
-	float aSpeed = (float)(((double)aSin + aSin + 1.0) / 20.0 + (double)theEnemy->baseSpeed);
-	theEnemy->speed = aSpeed;
-	theEnemy->vx = (float)Sign(theEnemy->vx) * aSpeed;
-	theEnemy->vy = (float)Sign(theEnemy->vy) * aSpeed;
-	theEnemy->frameTime = (int)(((double)theEnemy->baseSpeed * 3.0 - (double)aSpeed / 1.3) * 200.0);
+	int aResult = Walker_Move(theEnemy, CELL_LINE);
+	float aSin = SinDeg((int)((double)theEnemy->mAge * 0.125) % 0x168);
+	float aSpeed = (float)(((double)aSin + aSin + 1.0) / 20.0 + (double)theEnemy->mBaseSpeed);
+	theEnemy->mSpeed = aSpeed;
+	theEnemy->mVx = (float)Sign(theEnemy->mVx) * aSpeed;
+	theEnemy->mVy = (float)Sign(theEnemy->mVy) * aSpeed;
+	theEnemy->mFrameTime = (int)(((double)theEnemy->mBaseSpeed * 3.0 - (double)aSpeed / 1.3) * 200.0);
 	return aResult;
 }
 
@@ -1607,199 +1617,202 @@ int LobsterWalker_Move(Enemy* theEnemy)
 static void Turtle_Puff(Enemy* theEnemy, int theEndR, int theEndG, int theEndB)
 {
 	ParticleSystem_New();
-	int aSy = Sign(theEnemy->vy);
-	int aSx = Sign(theEnemy->vx);
-	double aY = theEnemy->y;
-	double aX = theEnemy->x;
+	int aSy = Sign(theEnemy->mVy);
+	int aSx = Sign(theEnemy->mVx);
+	double aY = theEnemy->mY;
+	double aX = theEnemy->mX;
 	int aLifetime = RandRange(100, 0xfa);
-	int aLast = theEnemy->lastParticle;
-	int aFirst = theEnemy->firstParticle;
-	float aVy = (float)((double)RandRange(-100, 100) / 20000.0 + (double)theEnemy->vy * 0.25);
-	float aVx = (float)((double)RandRange(-100, 100) / 10000.0 + (double)theEnemy->vx * 0.25);
-	float aPy = (float)(aY - (double)RandRange(-0x1e, 0x1e) / 20.0 - (double)((theEnemy->image->mH * aSy) / 3));
-	float aPx = (float)(aX - (double)RandRange(-0x1e, 0x1e) / 20.0 - (double)((theEnemy->image->mW * aSx) / 3));
-	ParticleSystem_Add(gLevels.current->systems.current, aPx, aPy, aVx, aVy, aFirst, aLast, 0, 0xff, 0xff, 0xff,
+	int aLast = theEnemy->mLastParticle;
+	int aFirst = theEnemy->mFirstParticle;
+	float aVy = (float)((double)RandRange(-100, 100) / 20000.0 + (double)theEnemy->mVy * 0.25);
+	float aVx = (float)((double)RandRange(-100, 100) / 10000.0 + (double)theEnemy->mVx * 0.25);
+	float aPy = (float)(aY - (double)RandRange(-0x1e, 0x1e) / 20.0 - (double)((theEnemy->mImage->mH * aSy) / 3));
+	float aPx = (float)(aX - (double)RandRange(-0x1e, 0x1e) / 20.0 - (double)((theEnemy->mImage->mW * aSx) / 3));
+	ParticleSystem_Add(gLevels.mCurrent->mSystems.mCurrent, aPx, aPy, aVx, aVy, aFirst, aLast, 0, 0xff, 0xff, 0xff,
 		theEndR, theEndG, theEndB, 0x154, 10, aLifetime, 1.0f, 0.0f, 5);
 }
 
-// Kind 0x14: on turning round stops for 2000 updates (its age set to 2000), playing frames 0..28 at half rate;
-// walking it plays frames 29 on and puffs smoke behind it
+// ENEMY_TURTLE_WALKER: on turning round stops for 2000 updates (its age set to 2000), playing frames 0..28 at half
+// rate; walking it plays frames 29 on and puffs smoke behind it
 int TurtleWalker_Move(Enemy* theEnemy)
 {
-	int aResult = Walker_Move(theEnemy, 2);
-	if (Sign(theEnemy->prevVx) != Sign(theEnemy->vx))
-		theEnemy->age = 2000.0f;
-	theEnemy->prevVx = theEnemy->vx;
-	if (theEnemy->age < 2000.0f || 4000.0f < theEnemy->age)
+	int aResult = Walker_Move(theEnemy, CELL_LINE);
+	if (Sign(theEnemy->mPrevVx) != Sign(theEnemy->mVx))
+		theEnemy->mAge = 2000.0f;
+	theEnemy->mPrevVx = theEnemy->mVx;
+	if (theEnemy->mAge < 2000.0f || 4000.0f < theEnemy->mAge)
 	{
 		if (RandRange(0, 3) == 0)
 			Turtle_Puff(theEnemy, 0xe7, 0xa6, 0x39);
 		if (RandRange(0, 10) == 0)
 			Turtle_Puff(theEnemy, 100, 100, 100);
-		theEnemy->frameTime = 0xf;
-		if (theEnemy->frame < 0x1d)
-			theEnemy->frame = 0x1d;
+		theEnemy->mFrameTime = 0xf;
+		if (theEnemy->mFrame < 0x1d)
+			theEnemy->mFrame = 0x1d;
 	}
 	else
 	{
-		theEnemy->frameTime = 0x1e;
-		theEnemy->x = theEnemy->x - theEnemy->vx;
-		theEnemy->y = theEnemy->y - theEnemy->vy;
-		if (0x1c < theEnemy->frame)
-			theEnemy->frame = 0;
+		theEnemy->mFrameTime = 0x1e;
+		theEnemy->mX = theEnemy->mX - theEnemy->mVx;
+		theEnemy->mY = theEnemy->mY - theEnemy->mVy;
+		if (0x1c < theEnemy->mFrame)
+			theEnemy->mFrame = 0;
 	}
 	return aResult;
 }
 
-// The update of an enemy about (state 3, and while it appears): three passes while the ship has time slowed (flags
-// 2); while it has time frozen (flags 1) all but every fourth update only age it. A beam it touches gets a
+// The update of an enemy about (ENEMY_ALIVE, and while ENEMY_APPEARING): three passes while the ship has time slowed
+// (flags 2); while it has time frozen (flags 1) all but every fourth update only age it. A beam it touches gets a
 // beamrider running back to the ship (and its shield flashes); it dies on a filled cell (a roller on a line too),
 // and a walker beside a capture.
 int Enemy_Step(Enemy* theEnemy)
 {
 	int aResult = 0;
 	int aPasses = 1;
-	if (theEnemy->image != nullptr &&
-		(theEnemy->x <= 0.0f || 800.0f <= theEnemy->x || theEnemy->y <= 0.0f || 592.0f <= theEnemy->y))
+	if (theEnemy->mImage != nullptr &&
+		(theEnemy->mX <= 0.0f || (float)BOARD_WIDTH <= theEnemy->mX || theEnemy->mY <= 0.0f ||
+			(float)BOARD_HEIGHT <= theEnemy->mY))
 		return 0;
-	if (theEnemy->countdown != 0)
+	if (theEnemy->mCountdown != 0)
 	{
-		theEnemy->countdown = theEnemy->countdown + -1;
-		if (theEnemy->countdown == 1)
+		theEnemy->mCountdown = theEnemy->mCountdown + -1;
+		if (theEnemy->mCountdown == 1)
 		{
 			Enemy_Kill(theEnemy, 0);
 			return 1;
 		}
 	}
-	if (gLevels.current->shooters.current != nullptr && (gLevels.current->shooters.current->flags & 2) != 0)
+	if (gLevels.mCurrent->mShooters.mCurrent != nullptr && (gLevels.mCurrent->mShooters.mCurrent->mFlags & 2) != 0)
 		aPasses = 3;
 	for (int aPass = 0; aPass < aPasses; aPass++)
 	{
-		Shooter* aShip = gLevels.current->shooters.current;
-		if (aShip != nullptr && (int)theEnemy->age % 4 != 1 && (aShip->flags & 1) != 0)
+		Shooter* aShip = gLevels.mCurrent->mShooters.mCurrent;
+		if (aShip != nullptr && (int)theEnemy->mAge % 4 != 1 && (aShip->mFlags & 1) != 0)
 		{
-			theEnemy->age = theEnemy->age + 1.0f;
-			theEnemy->oldX = theEnemy->x;
-			theEnemy->oldY = theEnemy->y;
+			theEnemy->mAge = theEnemy->mAge + 1.0f;
+			theEnemy->mOldX = theEnemy->mX;
+			theEnemy->mOldY = theEnemy->mY;
 			return 1;
 		}
 		aResult = aResult | Obj_Update(theEnemy);
-		if (theEnemy->ice == nullptr)
+		if (theEnemy->mIce == nullptr)
 		{
-			switch (theEnemy->kind)
+			switch (theEnemy->mKind)
 			{
-			case 0:
+			case ENEMY_ROLLER:
 				Enemy_Bounce(theEnemy);
 				break;
-			case 1:
+			case ENEMY_BURST_ROLLER:
 				BurstRoller_Move(theEnemy);
 				break;
-			case 2:
+			case ENEMY_SPIN_ROLLER:
 				SpinRoller_Move(theEnemy);
 				break;
-			case 3:
+			case ENEMY_TURN_ROLLER:
 				TurnRoller_Move(theEnemy);
 				break;
-			case 4:
+			case ENEMY_BUMP_ROLLER:
 				BumpRoller_Move(theEnemy);
 				break;
-			case 5:
+			case ENEMY_SNAKE_SHOOTER:
 				SnakeShooter_Move(theEnemy);
 				break;
-			case 6:
+			case ENEMY_SNAKE:
 				Snake_Move(theEnemy);
 				break;
-			case 7:
-				Walker_Move(theEnemy, 2);
+			case ENEMY_LINE_WALKER:
+				Walker_Move(theEnemy, CELL_LINE);
 				break;
-			case 8:
+			case ENEMY_SCURRY_WALKER:
 				ScurryWalker_Move(theEnemy);
 				break;
-			case 9:
+			case ENEMY_SMART_WALKER:
 				SmartWalker_Move(theEnemy);
 				break;
-			case 10:
+			case ENEMY_CANNON_WALKER:
 				CannonWalker_Move(theEnemy);
 				break;
-			case 0xb:
+			case ENEMY_LASER_WALKER:
 				LaserWalker_Move(theEnemy);
 				break;
-			case 0xc:
+			case ENEMY_CANNON_BALL:
 				CannonBall_Move(theEnemy);
 				break;
-			case 0xd:
+			case ENEMY_LASER_SHOT:
 				aResult = aResult & LaserShot_Move(theEnemy);
 				break;
-			case 0xf:
+			case ENEMY_FROG:
 				Frog_Move(theEnemy);
 				break;
-			case 0x10:
+			case ENEMY_TELEPORTER_ROLLER:
 				Teleporter_Move(theEnemy);
 				break;
-			case 0x11:
+			case ENEMY_JELLYFISH_ROLLER:
 				Jellyfish_Move(theEnemy);
 				break;
-			case 0x13:
+			case ENEMY_CRAB_WALKER:
 				CrabWalker_Move(theEnemy);
 				break;
-			case 0x14:
+			case ENEMY_TURTLE_WALKER:
 				TurtleWalker_Move(theEnemy);
 				break;
-			case 0x15:
+			case ENEMY_LOBSTER_WALKER:
 				LobsterWalker_Move(theEnemy);
 				break;
 			}
 			Obj_UpdateEmitters(theEnemy);
 		}
-		Beam* aBeam = Obj_TouchedBeam(theEnemy, theEnemy->kind == 0xf ? 2 : 3, theEnemy->kind == 0xf ? 5 : 3);
-		if (aBeam == theEnemy->lastBeam || theEnemy->ice != nullptr || theEnemy->kind == 6 || theEnemy->kind == 0xc ||
-			theEnemy->kind == 0xd)
+		Beam* aBeam = Obj_TouchedBeam(theEnemy, theEnemy->mKind == ENEMY_FROG ? 2 : 3,
+			theEnemy->mKind == ENEMY_FROG ? 5 : 3);
+		if (aBeam == theEnemy->mLastBeam || theEnemy->mIce != nullptr || theEnemy->mKind == ENEMY_SNAKE ||
+			theEnemy->mKind == ENEMY_CANNON_BALL || theEnemy->mKind == ENEMY_LASER_SHOT)
 		{
 			if (aBeam != nullptr)
 			{
-				if (theEnemy->kind == 0xd)
+				if (theEnemy->mKind == ENEMY_LASER_SHOT)
 					aResult = aResult & LaserShot_HitBeams(theEnemy);
-				theEnemy->lastBeam = aBeam;
+				theEnemy->mLastBeam = aBeam;
 			}
 		}
 		else if (aBeam != nullptr)
 		{
 			bool aRiding = false;
-			List_Each(&aBeam->riders, [&](Rider* aRider) {
-				if (aRider->enemy == theEnemy)
+			List_Each(&aBeam->mRiders, [&](Rider* theRider) {
+				if (theRider->mEnemy == theEnemy)
 					aRiding = true;
 			});
 			if (!aRiding)
 			{
-				Rider_Append(&aBeam->riders);
-				Rider_Setup(aBeam->riders.current, aBeam, theEnemy->x, theEnemy->y, theEnemy);
-				if ((float)(theEnemy->lastZap + 1000) < theEnemy->age && gLevels.current->shooters.current->state == 5)
+				Rider_Append(&aBeam->mRiders);
+				Rider_Setup(aBeam->mRiders.mCurrent, aBeam, theEnemy->mX, theEnemy->mY, theEnemy);
+				if ((float)(theEnemy->mLastZap + 1000) < theEnemy->mAge &&
+					gLevels.mCurrent->mShooters.mCurrent->mState == SHIP_FIRING)
 				{
 					// (the original works out a pan from x for a play call that takes none)
 					Sound_Play(Sound_Find("audio\\electricity.wav"));
-					theEnemy->lastZap = (int)theEnemy->age;
+					theEnemy->mLastZap = (int)theEnemy->mAge;
 				}
 			}
 			Enemy_Shield(theEnemy);
-			theEnemy->lastBeam = aBeam;
+			theEnemy->mLastBeam = aBeam;
 		}
-		int aKind = theEnemy->kind;
+		int aKind = theEnemy->mKind;
 		bool aDies = false;
-		if (aKind != 0xc)
+		if (aKind != ENEMY_CANNON_BALL)
 		{
-			int aCell = gLevels.current->columns[(int)theEnemy->x / 16][(int)theEnemy->y / 16].kind;
-			aDies = aCell == 4 || (-1 < aKind && aKind < 6 && aCell == 2);
+			int aCell = gLevels.mCurrent->mColumns[(int)theEnemy->mX / CELL_SIZE][(int)theEnemy->mY / CELL_SIZE].mKind;
+			aDies = aCell == CELL_FILLED || (-1 < aKind && aKind < ENEMY_SNAKE && aCell == CELL_LINE);
 		}
 		if (!aDies)
-			aDies = 6 < aKind && aKind < 0xc && Enemy_NearCapture(theEnemy) != 0;
+			aDies = ENEMY_SNAKE < aKind && aKind < ENEMY_CANNON_BALL && Enemy_NearCapture(theEnemy) != 0;
 		if (aDies)
 		{
-			if (theEnemy->shield != nullptr)
-				Obj_Delete(theEnemy->shield);
-			if (theEnemy->ice != nullptr)
-				Obj_Delete(theEnemy->ice);
-			theEnemy->ice = nullptr;
-			theEnemy->shield = nullptr;
+			if (theEnemy->mShield != nullptr)
+				Obj_Delete(theEnemy->mShield);
+			if (theEnemy->mIce != nullptr)
+				Obj_Delete(theEnemy->mIce);
+			theEnemy->mIce = nullptr;
+			theEnemy->mShield = nullptr;
 			Enemy_Kill(theEnemy, 0);
 		}
 	}
@@ -1811,16 +1824,16 @@ int Enemy_Step(Enemy* theEnemy)
 int Enemy_UpdateAppearing(Enemy* theEnemy)
 {
 	Enemy_Step(theEnemy);
-	theEnemy->age = theEnemy->age + 1.0f;
-	if (theEnemy->drawKind != 0)
+	theEnemy->mAge = theEnemy->mAge + 1.0f;
+	if (theEnemy->mDrawKind != 0)
 	{
-		theEnemy->drawKind = 4;
-		int anAlpha = gLevels.current->columns[(int)theEnemy->x / 16][(int)theEnemy->y / 16].alpha;
-		theEnemy->alpha = anAlpha;
+		theEnemy->mDrawKind = 4;
+		int anAlpha = gLevels.mCurrent->mColumns[(int)theEnemy->mX / CELL_SIZE][(int)theEnemy->mY / CELL_SIZE].mAlpha;
+		theEnemy->mAlpha = anAlpha;
 		if (0xfe < anAlpha && Enemy_NearCapture(theEnemy) == 0)
 		{
-			theEnemy->state = 3;
-			theEnemy->drawKind = 1;
+			theEnemy->mState = ENEMY_ALIVE;
+			theEnemy->mDrawKind = 1;
 		}
 	}
 	return 1;
@@ -1829,20 +1842,20 @@ int Enemy_UpdateAppearing(Enemy* theEnemy)
 int Enemy_Update(Enemy* theEnemy)
 {
 	int aResult = 0;
-	switch (theEnemy->state)
+	switch (theEnemy->mState)
 	{
-	case 0:
+	case ENEMY_APPEARING:
 		aResult = Enemy_UpdateAppearing(theEnemy);
 		break;
-	case 1:
-		theEnemy->anim = theEnemy->dieAnim;
-		theEnemy->vx = (float)((double)theEnemy->vx * 0.96);
-		theEnemy->vy = (float)((double)theEnemy->vy * 0.96);
+	case ENEMY_DYING:
+		theEnemy->mAnim = theEnemy->mDieAnim;
+		theEnemy->mVx = (float)((double)theEnemy->mVx * 0.96);
+		theEnemy->mVy = (float)((double)theEnemy->mVy * 0.96);
 		[[fallthrough]];
-	case 2:
+	case ENEMY_FADING:
 		aResult = Obj_Update(theEnemy);
 		break;
-	case 3:
+	case ENEMY_ALIVE:
 		aResult = Enemy_Step(theEnemy);
 		break;
 	}

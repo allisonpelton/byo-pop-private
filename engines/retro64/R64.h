@@ -134,8 +134,6 @@ void Image_SetMidHandle(Image* theImg);
 int Image_DrawX(const Image* theImg);
 // 0x4235a0 (cosmicbugs), 0x423a80 (waterbugs)
 int Image_DrawY(const Image* theImg);
-// 0x4235b0 (cosmicbugs), 0x423a90 (waterbugs)
-void Image_SetMask(Image* theImg, Image* theMask, int theMaskX, int theMaskY);
 // 0x423620 (cosmicbugs), 0x423b00 (waterbugs)
 void Image_SetPalette(Image* theImg, Palette* thePal);
 // 0x423640 (cosmicbugs), 0x423b20 (waterbugs)
@@ -152,8 +150,6 @@ int Image_MaskColumnSet(const Image* theImg, int x);
 // 0x423740 (cosmicbugs), 0x423c20 (waterbugs)
 void Image_Blit(Image* theImg, uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, const int* theClip, int x,
 	int y);
-// 0x4238a0 (cosmicbugs), 0x423d80 (waterbugs)
-void Image_BlitUnclipped(Image* theImg, uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, int x, int y);
 // 0x423a70 (cosmicbugs), 0x423f50 (waterbugs)
 void Image_BlitMasked(Image* theImg, uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, const int* theClip,
 	int x, int y);
@@ -171,19 +167,11 @@ void Image_BlitBlend(Image* theImg, uint8_t* theDst, int theDstPitch, const Pixe
 // 0x424220 (cosmicbugs), 0x424700 (waterbugs)
 void Image_BlitAlpha(Image* theImg, uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, const int* theClip,
 	int x, int y);
-// 0x424430 (cosmicbugs), 0x424910 (waterbugs)
-void Image_BlitAlphaFadeUnclipped(Image* theImg, uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, int x,
-	int y, uint32_t theAlpha);
 // 0x4245b0 (cosmicbugs), 0x424a90 (waterbugs)
 void Image_BlitAlphaFade(Image* theImg, uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, const int* theClip,
 	int x, int y, uint32_t theAlpha);
 // 0x4247e0 (cosmicbugs), 0x424cc0 (waterbugs)
 void Image_BlitAdd(Image* theImg, uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, const int* theClip,
-	int x, int y);
-// 0x4249f0 (cosmicbugs), 0x424ed0 (waterbugs)
-void Image_AddMaskUnclipped(Image* theImg, uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, int x, int y);
-// 0x424a50 (cosmicbugs), 0x424f30 (waterbugs)
-void Image_AddMask(Image* theImg, uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, const int* theClip,
 	int x, int y);
 // 0x424b30 (cosmicbugs), 0x425010 (waterbugs)
 void Image_BlitRect(Image* theImg, uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, int theDstX,
@@ -193,9 +181,6 @@ void Image_BlitRect(Image* theImg, uint8_t* theDst, int theDstPitch, const Pixel
 void Image_BlitSubRect(Image* theImg, uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, int theDstX,
 	int theDstY, int theSrcX, int theSrcY,
 	int theWidth, int theHeight);
-// 0x424d90 (cosmicbugs), 0x425270 (waterbugs)
-void Image_FillAlphaRect(Image* theImg, uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, int theDstX,
-	int theDstY, int theSrcX, int theSrcY, int theWidth, int theHeight, uint32_t theColour, uint32_t theAlpha);
 // 0x424e10 (cosmicbugs), 0x4252f0 (waterbugs)
 void Image_BlitRotated(Image* theImg, uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, int x, int y,
 	int theAngle,
@@ -205,12 +190,6 @@ void Image_BlitRotated(Image* theImg, uint8_t* theDst, int theDstPitch, const Pi
 // theClipB} (inclusive); 1 when some of it is left
 int ClipBlit(int theClipL, int theClipT, int theClipR, int theClipB, int x, int y, int theWidth, int theHeight,
 	int* theOutX, int* theOutY, int* theOutSx, int* theOutSy, int* theOutW, int* theOutH);
-// 0x42b8d0 (cosmicbugs), 0x42bdb0 (waterbugs) and 0x42bbc0 (cosmicbugs), 0x42c0a0 (waterbugs): rectangles {l, t, r, b},
-// inclusive
-int Rect_Overlap(int theLeft1, int theTop1, int theRight1, int theBottom1, int theLeft2, int theTop2, int theRight2,
-	int theBottom2);
-void Rect_Intersect(int* theOut, int theLeft1, int theTop1, int theRight1, int theBottom1, int theLeft2, int theTop2,
-	int theRight2, int theBottom2);
 // 0x42bc10 (cosmicbugs), 0x42c0f0 (waterbugs): a palette's colours theFrom to theTo (either way, both included) shade
 // from one colour to the other
 void Palette_Gradient(Palette* thePalette, int theFrom, int theTo, uint8_t theR0, uint8_t theG0, uint8_t theB0,
@@ -224,9 +203,6 @@ int ConvertPixels(const PixelFormat* theDstFmt, uint8_t* theDst, int theDstPitch
 	int theSrcY, int theWidth, int theHeight);
 // 0x42db40 (cosmicbugs), 0x42e020 (waterbugs): the alpha bytes of w x h 32-bit pixels as an 8-bit mask
 void ExtractAlpha(uint8_t* theDst, int theDstPitch, int theDstX, int theDstY, const uint8_t* theSrc, int theSrcPitch,
-	int theSrcX, int theSrcY, int theWidth, int theHeight);
-// 0x42dd60 (cosmicbugs), 0x42e240 (waterbugs): adds an 8-bit mask onto another, clamped at 0xff
-void AddMask8(uint8_t* theDst, int theDstPitch, int theDstX, int theDstY, const uint8_t* theSrc, int theSrcPitch,
 	int theSrcX, int theSrcY, int theWidth, int theHeight);
 // 0x42d060 (cosmicbugs), 0x42d540 (waterbugs): fills {l, t, r, b} (inclusive) of an 8-bit buffer
 void Fill8(uint8_t* theDst, int theDstPitch, int l, int t, int r, int b, int theValue);

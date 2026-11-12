@@ -18,18 +18,25 @@ ROOT = os.path.normpath(os.path.join(HERE, '..', '..', '..'))
 KINDS = {'Image': ('Image*', 'GetImageThrow', 'nullptr'), 'Font': ('Font*', 'GetFontThrow', 'nullptr'),
          'Sound': ('int', 'GetSoundThrow', '0')}
 
+# The trial's resources are left out: its "buy now" upsell group and the voice that went with it (registration code is
+# removed from the ports, not disabled).
+OMITTED_GROUPS = {'UpsellTrailer'}
+OMITTED_IDS = {'SOUND_MM_BUY_NOW'}
+
 
 def main():
     path = sys.argv[1] if len(sys.argv) > 1 else os.path.join(ROOT, 'assets', 'bookwormadv2', 'properties', 'resources.xml')
     text = open(path, encoding='utf-8-sig').read()
     groups = []  # (name, [(kind, global id)])
     for res in ET.fromstring(text).iter('Resources'):
+        if res.get('id') in OMITTED_GROUPS:
+            continue
         prefix = ''
         items = []
         for e in res:
             if e.tag == 'SetDefaults':
                 prefix = e.get('idprefix', prefix)
-            elif e.tag in KINDS:
+            elif e.tag in KINDS and prefix + e.get('id') not in OMITTED_IDS:
                 items.append((e.tag, prefix + e.get('id')))
         groups.append((res.get('id'), items))
     seen = {}

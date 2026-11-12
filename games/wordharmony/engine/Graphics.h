@@ -57,7 +57,7 @@ private:
 	int mPivotY = 0;
 };
 
-// A render state (0x40 bytes; 0x43c470 makes the first)
+// A render state (0x40 bytes in the original, whose last two words nothing reads; 0x43c470 makes the first)
 struct RenderState
 {
 	Point mTranslation;      // +0x00, added to
@@ -68,10 +68,8 @@ struct RenderState
 	Color mColorOffset;      // +0x24, added to
 	Ref<Font> mFont;         // +0x30
 	unsigned int mFlags;     // +0x34: the alignment bits below
-	int mUnused38;
-	int mUnused3c;
 
-	RenderState() : mScale(1, 1), mRotation(0), mOpacity(1), mFlags(0), mUnused38(0), mUnused3c(0) {}
+	RenderState() : mScale(1, 1), mRotation(0), mOpacity(1), mFlags(0) {}
 };
 
 // The bit fields of RenderState::mFlags (masks and shifts at 0x497200..0x49721c)
@@ -91,17 +89,12 @@ public:
 
 	// Slot 0: the image's theSrc part at (x, y), with the state's transform, opacity and colours
 	virtual void drawImage(Image* theImage, const IntRect& theSrc, float x, float y) = 0;
-	// Slot 1 (0x45ddf0): the whole image at (x, y)
-	virtual void drawImage(Image* theImage, float x, float y);
 	// Slot 2 (0x45dd70): the whole image at (0, 0)
 	virtual void drawImage(Image* theImage);
 	// Slot 3 (0x43cba0): a string with the state's font, glyph by glyph
 	virtual void drawString(const char* theString);
 	// Slot 4 (0x43c310): one character
 	virtual void drawChar(char theChar);
-	// Slots 5 and 6: a rectangle filled with the state's colour and opacity
-	virtual void fillRect(const Rect& theRect) = 0;
-	virtual void fillRectAdditive(const Rect& theRect) = 0;
 	// Slot 7: a line in the state's colour
 	virtual void drawLine(const Point& theFrom, const Point& theTo) = 0;
 
@@ -127,7 +120,6 @@ public:
 	void multiplyOpacity(float theOpacity); // 0x43c7d0
 	float getOpacity();                     // 0x43c800
 	void setColor(float r, float g, float b);        // 0x43c830
-	const Color& getColor();                         // 0x43c860
 	const Color& getColorOffset();                   // 0x43c890
 	void addColorOffset(float r, float g, float b);  // 0x43c8c0
 	void setFont(Font* theFont);                     // 0x43c980

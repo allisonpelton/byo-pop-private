@@ -524,6 +524,13 @@ var ByopopSkin = (function () {
             mx.type = "button"; mx.className = "d95-mx"; mx.setAttribute("aria-label", TW("skin.desk.maximize", o.title));
             mx.addEventListener("click", function () { o.maximize(); });
             handle.appendChild(mx);
+            // a double-click on the title bar maximizes and restores, as in Windows 95 (the user, 2026-11-11, by the coordinator);
+            // one on a button of the title bar is that button's
+            handle.addEventListener("dblclick", function (ev) {
+              if (ev.target.closest("input, select, textarea, a") || (ev.target.closest("button") && ev.target.closest("button") !== handle)) return;
+              ev.preventDefault();
+              o.maximize();
+            });
             if (window.MutationObserver) new MutationObserver(function () { showMaxed(w); }).observe(el, { attributes: true, attributeFilter: ["class"] });
           }
           var x = document.createElement("button");

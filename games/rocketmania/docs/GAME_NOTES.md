@@ -348,6 +348,10 @@ None. Checked for the fixes mod (`docs/MOD_ROADMAP.md`, "The fixes mod"):
   the C library's (`CrtRand`), which the drawing alone reads (the board's shake, the lanterns' jitter, the sparks' frames). A
   fix that seeded it from the update count was tried and left out: 99 shots of a whole tour (a game of each mode) were the same with
   and without it, played with `-fast -drawevery` and in real time, so there is no difference for it to mend that the tools can show.
+- **Phase two and the coverage check (2026-11-11).** Neither added a candidate: every difference the screen comparison found was the port's
+  (the table of changes in `IDENTICAL_PLAY.md`) and is fixed there, the oddities it listed (the shake and the jitter, the particles) are
+  random in both programs, and the coverage check found no code of the original with a fault the port should keep. There is no fixes
+  mod for this game: no toggle to serve.
 
 ## Loading
 
@@ -397,3 +401,135 @@ unregistered or trial copy reaches is in it:
 Looked at and kept: "buy rockets" is the game's own rocket shop (coins), not a purchase; no "registered to <name>" stamp or status
 line exists in the game's texts (the strings were searched for register, trial, thank, license, order, www, http). Visible change:
 none in the registered game; the Options dialog is shorter by the "More Games" row.
+
+## What the screen comparison showed (phase two, 2026-11-11)
+
+Found while lining the port's screens up with the original's (`IDENTICAL_PLAY.md`, "Phase two"); each is a trap for later work.
+
+- **Image numbers after the removed "register" picture.** The port dropped the picture at the original's index 19, so every port
+  index after it is one lower. A literal number copied from the original's code is a bug; use the `IMAGE_*` names. Four were
+  found that way (the sidebar's launch icon, the gems of the board's draw, the multiplier and clock pictures, the buy-rockets
+  rocket).
+- **2D or 3D.** The original reads the registry value `Is3D` (the string at 0x4ecae0). The game's app constructor sets
+  `mTest3D`, so the first start runs the framework's 3D tester and turns 3D on when the card passes. Inside Windows Sandbox (no
+  GPU) the original is therefore a 2D (software) run, and its Options dialog's "Hardware Acceleration" box is unchecked. The port
+  starts in 3D (GPU) by default. The screen comparisons use `RM_REG="Is3D=0,ScreenMode=0"` (`port.sh`, `best.sh`, `lag.sh` and
+  `play.py --reg` take it): 2D, and windowed, since without a `ScreenMode` value the port's Options dialog shows its Fullscreen
+  box checked. Comparing 3D needs `orig.sh ... --sandbox-vgpu`, which `CLAUDE.md` allows from 22:00 to 08:00 only.
+- **2D draws rotations in software.** With 3D off the original rotates tiles with `DDImage::BltRotated` (0x441127) and keeps the
+  screen between frames; the port's `RocketApp::UpdateFrames` turns `mSoftwareTransforms` and `mKeepScreen` on in that case. The
+  original's software stretch (0x44abeb, the talking head in its hole) is not ported: the framework's `StretchCopy` (0x433ca0)
+  is sharper than it, and SDL's bilinear stretch lands within a few levels of the original (about 800 pixels of the head differ,
+  none by more than 40 levels), so `mSoftwareStretch` stays off.
+- **Dialogs that do not drag.** The difficulty, continue and hint dialogs do not move when dragged, and the high-score and
+  level-up dialogs ignore a press and a drag too (the original overrides `Move` (slot 14) and `MouseDown` (slot 26) and, for the
+  last two, `MouseDrag` (slot 29) with empty functions: 0x415c30, 0x403880, 0x410470). Options, credits and the record-score
+  dialog drag as the framework's `Dialog` does, clamped to 8 pixels.
+- **Board fields the original leaves as the heap had them.** The constructor (0x41ae80) sets `+0x444` (the arcade mode's drop
+  delay) only for the arcade mode, so in the other modes it holds whatever the heap held (a 2 in the runs that were looked at),
+  and nothing reads it there. The port's board starts as zeros. The constructor does set `+0x460`, the game-over kind, to 3,
+  which the port now does too (nothing reads it before it is set, but the save file holds it).
+- **The save files.** After the same play the two high-score files (`Players/hiscores.dat`) are the same 604 bytes. The strategy
+  mode's `savec.dat` has the same size and differs in raw heap addresses (each piece's own number, and its special and host: the
+  original writes the pointers, `Board::ReadPiece` turns them into numbers again), in the seconds-played fields (`+0x360`
+  to `+0x368`: real clock) and in `+0x444`, above.
+- **A leak of the port, fixed.** `RocketApp::ShowGameSelector` removed the board from the widget manager and set `mBoard` to
+  NULL; the original (0x42e9f0) also deletes it. The board, its effect pool (80 KB), generator, tip and pieces stayed: about
+  100 KB a game. Found by listing the live blocks after 10 and 40 game cycles by their call sites (a throw-away
+  `operator new` that recorded the caller's return address, resolved against the linker's map file), then
+  `driver/leakcheck.py` over games, the options, high-score and credits screens and a lost game (140 cycles): private bytes stay
+  flat from the 80th cycle on (154.57 MB; the three modes alone drift by about 6 KB a cycle). The tracker is not in the tree; to repeat it, replace the global `operator new` and `delete` in a
+  scratch build linked with `-static` (the shared libc++ has its own).
+- **The shift search of `shotdiff` hides a whole-screen shift of up to 8 pixels.** A dialog that moved 8 pixels (the drag above)
+  came out as "shifted" and its only box as a line of text. Read a pair's `shift` in `summary.json` (and `lagscan.py`'s line)
+  before judging a box. `lagscan.py` also takes the alignment from the label's own frame now; it took it from the first frame of
+  the window, which could be a different screen.
+- **The original's loading takes more than 10000 updates in the sandbox** (a loading thread on the wall clock, updates on the
+  virtual one), so a tour's first click belongs at update 40000 or later; the tours `t3` to `t7` were moved there. A first
+  shot of the original that shows the loading screen means the click came too early.
+
+## Coverage check (2026-11-11)
+
+The whole check of `docs/COVERAGE.md`. origrun's `--coverage` recorded which of the original's functions ran, in 26 runs on the host
+(`tools/coverage/run.sh`; the hits are in `build/coverage/rocketmania/hits/`, git-ignored). All ran on the virtual clock with no sound
+device, with the host's registry set to `HintsDisabled=0,ScreenMode=0,Is3D=0` (2D, windowed, the hint dialogs on):
+
+- the phase-two screen tours (`tools/shots/`) as host scripts: u2 (the whole flow), t1 and t3 to t7 (games of the three modes with all
+  their dialogs), f1, h3 (three games in a row), o1 (the Options dialog), o2o (the credits), dd2 (the dialogs dragged) and hf1 (all eight
+  hint flags set), each about 1300 to 1650 functions;
+- eight bot games (bot1 to bot8), made by the port's bot as the identical-play cases are (`-uibot`, with `-uihold` so that the level-up
+  and game-over screen is left to turn through all its pages): games of the three modes, played until they end by themselves or reach the
+  bot's cap (bot6 was stopped after ten minutes: the original's counter ran behind the script's, so its inputs came out of step; the
+  strategy games bot7 and bot8 never ended, see the last list);
+- `tools/coverage/cov1.txt` to `cov4.txt` and `music1.txt`, written for what these missed: the high scores, the Options dialog's two
+  sliders and boxes, Reset Hints and the credits (cov1); pause and resume, the space bar, the head's tips by hovering, the quit dialog
+  answered no and then yes and the continue dialog in each mode (cov2); the menu's Quit button (cov3); clicks in the strip left of the
+  board where no button sits (which hides the speech bubble) and the window losing and regaining the focus in a game (cov4); and a copy
+  with its two `cached_*.wav` music files removed, so that the original joins the Ogg pieces itself (music1).
+
+Every run but bot6 ended with the game exiting by itself. No run had the real clock and the silent sound stand-in (which the check asks
+for once, for the sound code): the game's functions that start or stop a sound were reached on the virtual clock all the same, and none
+of the unreached ones is one of them.
+
+`games/rocketmania/coverage.txt` sets the game's own code as 0x401000 to 0x42f7e0: the game's classes and its statics, which the port
+translates (the framework of 2003 from 0x42f880 on, the C runtime and the libraries are the platform's). It holds 480 functions, and the
+runs reached 437 of them.
+
+**Reached in the original with no counterpart in the port: 87 at first, 0 at the end.** The 87 split into 32 placed, 55 left out on purpose, and the one logic fix inside the placed ones.
+
+- **Placed: 32 (comment edits only, play unchanged).** The destructors that the port writes without the original's address (the
+  dialogs', the menu's, the head's, the speech bubble's, the board's, the app's, the loading screen's), the `RemovedFromManager` of
+  two dialogs, the small helpers the port holds inline (the two counts at the left of the board, 0x41ef20 and 0x41f0b0; the vector
+  normalising 0x416f50; the board buttons' 0x42d090; the end-of-game widget removals 0x42e9f0, 0x42e190, 0x42d660 and 0x4220a0; the
+  loading screen's play link 0x410ae0; a mode button's 0x4061f0; the continue dialog's file read 0x403570; the pool destructor
+  0x41ad00; the three of the music's joining 0x429880, 0x4299e0 and 0x429b30, which only music1 reached) and the two real constructors
+  whose address was wrong or missing (the board's 0x41ae80, the app's destructor 0x42b3f0).
+- **Left out on purpose: 74 `none` lines for 93 functions (55 of them reached), each with its reason.** The compiler's deleting
+  destructors and the destructors that only call the base class's (20), overrides, thunks and the framework's empty defaults that only
+  call the base class (11), the C++ library's `std::string`, `std::list` and `std::vector` as the compiler instantiated them (24),
+  registration (26: the dialogs, their texts, the "already registered" and "invalid code" boxes, the high-score box that asks to
+  register, and the registered flag's setter), and 12 others: one-line helpers (0x4172e0, 0x42d4d0 a log call that is a bare return,
+  0x42f6f0 "the mode is 1", 0x00401000), the C runtime's start-up and `WinMain` (0x4293c0 to 0x4293f0), a compiler's exception
+  handler, the update check (0x42e770) and the speech bubble's drawing (0x415ec0, 0x416040, 0x429260). 0x42d190, "is the game
+  registered", is a registration check too and is always true in the port.
+- **One piece of missing logic.** The menu's `OrderInManagerChanged` (0x405e40): when the menu is moved in the order of the widgets
+  (`BringToBack` when it is shown), the original puts its six buttons directly in front of it, one after the other. The port had no
+  such override, and had given 0x405e40 to its `RemovedFromManager` (the original's is 0x405de0, vf02; vf03 is the order hook). The
+  buttons then stayed in front of the talking head and the speech bubble, which were added earlier; the original has them behind. The
+  u2 tour's screens did not change, so no shot shows the difference, but the order of the widgets (what draws and what takes a click
+  first) is the original's now. `tools/check.sh build rocketmania` passes with the baseline identical, and the u2 tour gives 47 match,
+  45 faint and 7 differ (46, 46 and 7 before: the pairs with the column's jitter and the board's shake that phase two judged).
+
+**A deviation the music's run showed.** With its cache removed the original joins the Ogg pieces of the menu and in-game songs and
+writes `cached_*.wav`; both files came out byte for byte the ones the game ships with. The port joins them in memory
+(`AppMusic.cpp`) and serves the result as that file; compared with a temporary dump (not kept), the two files have the same size and
+header, and every sample is the same or one level off (the port's is one higher in half of the samples: the original's `ov_read`
+truncates where the platform's decoder rounds, and the difference is below 0.02% of the songs' level). Not audible, and the platform's
+decoder is shared by every game, so it is listed here and not chased.
+
+**Defined in the port, never reached in the runs: 12 at first.**
+
+- **Reached by the extra runs:** the first-click hide of the speech bubble (`HideBubble`, `FadeOut`: cov4; the bubble never has a
+  message in the shipped game, so it does nothing), and the level-up pages the bots held open.
+- **Read again against the export:** `Points::SetBack` (0x42a230) is reached only by five or more rockets launched together; it
+  matches the export (the image, then a colour of three values, then the place is set again).
+- **Candidates for taking out unneeded code, none removed now** (no play of the original reaches them):
+  - the board's states 6 and 7 of its draw and update that nothing sets: state 7 (a new board dealt row by row, `F428ef0` 0x428ef0 and
+    `EdgeOpen` 0x428e80) is never entered, the original has no store of 7 to the state;
+  - `Board::ButtonDepress` (0x428600): no button has the board as its listener;
+  - the speech bubble's whole class and the head's `ShowBubble`/`HideBubble`: the one function that sets a message (0x415d30) is an
+    empty stub in the shipped game, so the bubble's message stays at "none", it is never visible and never drawn (its `Update`
+    keeps it hidden).
+- **Level-up page 8, the matches (`LevelUpDialog::DrawMatchesPage`, 0x40ee40, strategy mode only): no run reached it, read against the
+  export.** The page shows only in the strategy mode, and the strategy bots never reached a level-up screen (no page's drawing ran): bot7 (easy,
+  cap 80000) and bot8 (hard, cap 300000) played to the bot's cap. The port's state log of the same bot with a cap of 60000 shows the game in
+  state 0 and the level 0 all the way, at 3.5 million points, so no level ended and the matches never ran out: a strategy game's own end is the matches at 0 with nothing burning for 250 updates
+  (`Board::Update`, `F421de0` 0x421de0 kind 2), and the bot's paths earn matches back (the match tiles) as fast as they spend them. A bot that plays
+  badly on purpose would be new test code for one 1079-byte page, so the page was read again against the export instead: the same
+  font and the title colour (25, 48, 79), "Matches" centred at x 97 at y 220 and "Collected" at y 245 (centred the same way), the light
+  colour (191, 241, 241), then "1 match" or "%d matches" (0x4e505c, 0x4e5050) at y 275, the value the level's (board +0xdc) when the
+  dialog is a level's and the game's (+0xf8) when it is a game's, the text lengths 7, 7 and 10 of the three strings as the game's text
+  table has them. It is the same pattern as the coins page (0x40f280), which the runs did reach.
+
+**Cost.** The runs took about an hour of machine time in all, one process at a time on the stage (the bots' long games 5 to 10 minutes,
+the others under two); the whole check took the session about two hours, most of it classifying the first list and waiting for runs.

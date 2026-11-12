@@ -13,7 +13,7 @@ namespace r64
 #if UINTPTR_MAX == 0xffffffff
 static_assert(offsetof(Font, mColours) == 0x420, "Font layout");
 static_assert(offsetof(Font, mBuf) == 0x824, "Font layout");
-static_assert(offsetof(Font, mTexture) == 0xd50, "Font layout");
+static_assert(offsetof(Font, mTextureUnused) == 0xd50, "Font layout");
 static_assert(sizeof(Font) == 0xd6c, "Font layout");
 #endif
 
@@ -147,7 +147,6 @@ Font::Font()
 	std::memset(mGlyphs, 0, sizeof(mGlyphs));
 	mSpaceWidth = 4;
 	mSpacing = 1;
-	mClipped = 0;
 	mClip[0] = mClip[1] = mClip[2] = mClip[3] = 0;
 	mHeight = 0;
 	std::memset(mColours, 0, sizeof(mColours));
@@ -164,21 +163,12 @@ Font::Font()
 	mDstW = 0;
 	mDstH = 0;
 	std::memset(mOwnedPadding, 0, sizeof(mOwnedPadding));
-	mTexture = nullptr;
-	mTextureX = 0;
-	mTextureY = 0;
-	mMaskTarget = nullptr;
 	mAlpha = 0xff;
 }
 
 void Font_SetSpacing(Font* theFont, int theSpacing)
 {
 	theFont->mSpacing = theSpacing;
-}
-
-void Font_SetClipped(Font* theFont, int theClipped)
-{
-	theFont->mClipped = theClipped;
 }
 
 void Font_SetClip(Font* theFont, int l, int t, int r, int b)
@@ -236,14 +226,9 @@ void Font_SetEscapes(Font* theFont, int theEscapes)
 
 void Font_ResetStyle(Font* theFont)
 {
-	theFont->mClipped = 0;
 	theFont->mPalette = nullptr;
 	theFont->mAlign = 0;
 	theFont->mOutline = nullptr;
-	theFont->mTexture = nullptr;
-	theFont->mTextureX = 0;
-	theFont->mTextureY = 0;
-	theFont->mMaskTarget = nullptr;
 }
 
 int Font_CharWidth(const Font* theFont, char c)
@@ -339,31 +324,7 @@ int Font_Draw(Font* theFont, const char* theText, int x, int y, int theAlign)
 	else if (theAlign == 2)
 		x = x - aWidth / 2;
 	uint8_t aChar = *aText;
-	if (theFont->mClipped == 0)
-	{
-		if (aChar != 0)
-		{
-			do
-			{
-				if (theFont->mGlyphs[aChar] == nullptr)
-				{
-					if (aChar == ' ')
-						x = x + theFont->mSpacing + theFont->mSpaceWidth;
-				}
-				else
-				{
-					Image_SetPalette(theFont->mGlyphs[aChar], theFont->mPalette);
-					Image_BlitUnclipped(theFont->mGlyphs[*aText], theFont->mDst, theFont->mDstPitch, theFont->mFmt, x,
-						y);
-					x = x + theFont->mGlyphs[*aText]->mOrigW + theFont->mSpacing;
-				}
-				aChar = aText[1];
-				aText = aText + 1;
-			} while (aChar != 0);
-			return aWidth;
-		}
-	}
-	else if (aChar != 0)
+	if (aChar != 0)
 	{
 		do
 		{
@@ -402,29 +363,7 @@ int Font_DrawFill(Font* theFont, const char* theText, int x, int y, int theAlign
 	x = x - aShift;
 aligned:
 	uint8_t aChar = *aText;
-	if (theFont->mClipped == 0)
-	{
-		while (aChar != 0)
-		{
-			if (theFont->mGlyphs[aChar] == nullptr)
-			{
-				if (aChar == ' ')
-					x = x + theFont->mSpacing + theFont->mSpaceWidth;
-			}
-			else
-			{
-				Image_SetPalette(theFont->mGlyphs[aChar], theFont->mPalette);
-				const PixelFormat* aFmt = theFont->mFmt;
-				Image* aGlyph = theFont->mGlyphs[*aText];
-				Image_FillAlphaRect(aGlyph, theFont->mDst, theFont->mDstPitch, aFmt, x, y, 0, 0, aGlyph->mW,
-					aGlyph->mH, PackColour(aFmt, theRed, theGreen, theBlue), theAlpha);
-				x = x + theFont->mGlyphs[*aText]->mOrigW + theFont->mSpacing;
-			}
-			aText = aText + 1;
-			aChar = *aText;
-		}
-	}
-	else if (aChar != 0)
+	if (aChar != 0)
 	{
 		do
 		{
@@ -464,82 +403,6 @@ int* Font_DrawBounded(Font* theFont, int* theRect, int x, int y, const char* the
 		x = x - aWidth;
 	else if (theFont->mAlign == 2)
 		x = x - aWidth / 2;
-	if (theFont->mClipped == 0)
-	{
-		uint8_t aChar = *aText;
-		do
-		{
-			if (aChar == 0)
-				return theRect;
-			if (theFont->mEscapes == 1 && *aText == '^')
-			{
-				aChar = aText[1];
-				aText = aText + 1;
-				if (aChar == 0)
-					return theRect;
-				if (theFont->mOutlining == 0)
-				{
-					theFont->mColourCode = (int)aChar;
-					theFont->mPalette = ColourOf(theFont, (char)aChar);
-				}
-			}
-			else
-			{
-				aChar = *aText;
-				Image* aGlyph = theFont->mGlyphs[aChar];
-				if (aGlyph == nullptr)
-				{
-					if (aChar == ' ')
-						x = x + theFont->mSpacing + theFont->mSpaceWidth;
-				}
-				else
-				{
-					GrowRect(theRect, aFirst, aGlyph, x, y);
-					Image_SetPalette(aGlyph, theFont->mPalette);
-					if (aGlyph->mHasMask == 1 && 8 < theFont->mFmt->mBpp)
-					{
-						if (theOutlinePass == 0)
-						{
-							if (theFont->mTexture == nullptr)
-								Image_BlitAlphaFadeUnclipped(aGlyph, theFont->mDst, theFont->mDstPitch, theFont->mFmt,
-									x, y, (uint32_t)theFont->mAlpha);
-							else
-							{
-								int aGlyphRect[4];
-								aGlyphRect[0] = Image_DrawX(aGlyph) + x;
-								aGlyphRect[1] = Image_DrawY(aGlyph) + y;
-								aGlyphRect[2] = aGlyph->mW + -1 + aGlyphRect[0];
-								aGlyphRect[3] = aGlyph->mH + -1 + aGlyphRect[1];
-								Image_SetMask(theFont->mTexture, aGlyph->mMask, -theFont->mTextureX,
-									-theFont->mTextureY);
-								Image_SetPalette(theFont->mTexture, theFont->mPalette);
-								int aTextureY = Image_DrawY(aGlyph) + (y - theFont->mTextureY);
-								int aTextureX = Image_DrawX(aGlyph);
-								Image_BlitAlphaFade(theFont->mTexture, theFont->mDst, theFont->mDstPitch,
-									theFont->mFmt, aGlyphRect, aTextureX + (x - theFont->mTextureX), aTextureY,
-									(uint32_t)theFont->mAlpha);
-							}
-						}
-						else
-						{
-							Image_SetPalette(aGlyph->mMask, theFont->mPalette);
-							Image_BlitAlphaFadeUnclipped(aGlyph->mMask, theFont->mDst, theFont->mDstPitch,
-								theFont->mFmt, x, y, (uint32_t)theFont->mAlpha);
-						}
-						Image* aTarget = theFont->mMaskTarget;
-						if (aTarget != nullptr)
-							Image_AddMaskUnclipped(theFont->mGlyphs[*aText], aTarget->mBits, aTarget->mPitch,
-								&aTarget->mFmt, x, y);
-					}
-					else
-						Image_BlitUnclipped(aGlyph, theFont->mDst, theFont->mDstPitch, theFont->mFmt, x, y);
-					x = x + theFont->mGlyphs[*aText]->mOrigW + theFont->mSpacing;
-				}
-			}
-			aText = aText + 1;
-			aChar = *aText;
-		} while (true);
-	}
 	uint8_t aChar = *aText;
 	while (aChar != 0)
 	{
@@ -571,44 +434,14 @@ int* Font_DrawBounded(Font* theFont, int* theRect, int x, int y, const char* the
 				if (aGlyph->mHasMask == 1 && 8 < theFont->mFmt->mBpp)
 				{
 					if (theOutlinePass == 0)
-					{
-						if (theFont->mTexture == nullptr)
-							Image_BlitAlphaFade(aGlyph, theFont->mDst, theFont->mDstPitch, theFont->mFmt,
-								theFont->mClip, x, y, (uint32_t)theFont->mAlpha);
-						else
-						{
-							int aGlyphRect[4];
-							aGlyphRect[0] = Image_DrawX(aGlyph) + x;
-							aGlyphRect[1] = Image_DrawY(aGlyph) + y;
-							aGlyphRect[2] = aGlyphRect[0] + -1 + aGlyph->mW;
-							aGlyphRect[3] = aGlyph->mH + -1 + aGlyphRect[1];
-							if (Rect_Overlap(aGlyphRect[0], aGlyphRect[1], aGlyphRect[2], aGlyphRect[3],
-									theFont->mClip[0], theFont->mClip[1], theFont->mClip[2], theFont->mClip[3]) != 0)
-							{
-								int aBoth[4];
-								Rect_Intersect(aBoth, aGlyphRect[0], aGlyphRect[1], aGlyphRect[2], aGlyphRect[3],
-									theFont->mClip[0], theFont->mClip[1], theFont->mClip[2], theFont->mClip[3]);
-								Image_SetMask(theFont->mTexture, aGlyph->mMask, -theFont->mTextureX,
-									-theFont->mTextureY);
-								Image_SetPalette(theFont->mTexture, theFont->mPalette);
-								int aTextureY = Image_DrawY(aGlyph) + (y - theFont->mTextureY);
-								int aTextureX = Image_DrawX(aGlyph);
-								Image_BlitAlphaFade(theFont->mTexture, theFont->mDst, theFont->mDstPitch,
-									theFont->mFmt, aBoth, aTextureX + (x - theFont->mTextureX), aTextureY,
-									(uint32_t)theFont->mAlpha);
-							}
-						}
-					}
+						Image_BlitAlphaFade(aGlyph, theFont->mDst, theFont->mDstPitch, theFont->mFmt,
+							theFont->mClip, x, y, (uint32_t)theFont->mAlpha);
 					else
 					{
 						Image_SetPalette(aGlyph->mMask, theFont->mPalette);
 						Image_BlitAlphaFade(aGlyph->mMask, theFont->mDst, theFont->mDstPitch, theFont->mFmt,
 							theFont->mClip, x, y, (uint32_t)theFont->mAlpha);
 					}
-					Image* aTarget = theFont->mMaskTarget;
-					if (aTarget != nullptr)
-						Image_AddMask(theFont->mGlyphs[*aText], aTarget->mBits, aTarget->mPitch, &aTarget->mFmt,
-							theFont->mClip, x, y);
 				}
 				else
 					Image_BlitMasked(aGlyph, theFont->mDst, theFont->mDstPitch, theFont->mFmt, theFont->mClip, x, y);
@@ -784,7 +617,6 @@ void Font_Clear(Font* theFont)
 	std::memset(theFont->mGlyphs, 0, sizeof(theFont->mGlyphs));
 	theFont->mSpaceWidth = 0;
 	theFont->mSpacing = 0;
-	theFont->mClipped = 0;
 	theFont->mClip[0] = 0;
 	theFont->mClip[1] = 0;
 	theFont->mClip[2] = 0;

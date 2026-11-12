@@ -12,6 +12,9 @@
 
 class Obstacle;
 
+// The words a level lists with their definitions and bonuses, and the lines the HUD shows them on
+const int LEVEL_WORDS = 14;
+
 // A starting ball (0x28 bytes); with more than one letter, a chained word of balls. (0x41e3a0, a bubble of one
 // letter, is only the editor's.)
 struct Bubble
@@ -31,8 +34,7 @@ struct Bubble
 	std::string mLetters;   // +0x0c
 };
 
-// 0x3e8 bytes. The assignment (0x415460, the editor's backup) copies the obstacle and bubble pointers, not what they
-// point to, as the default assignment does.
+// 0x3e8 bytes. (The assignment, 0x415460, was the editor's backup: left out.)
 class Level
 {
 public:
@@ -40,15 +42,13 @@ public:
 	Level(const Level& theLevel);   // 0x41c910: the obstacles cloned and the bubbles copied
 	~Level();                       // 0x41c2f0
 
-	Level& operator=(const Level& theLevel) = default;
-
 	// 0x41cc50: kept with a reference
 	void addObstacle(Obstacle* theObstacle);
 
 	std::string mIntro[3];         // +0x000
-	std::string mWords[14];        // +0x054
-	std::string mDefinitions[14];  // +0x1dc
-	int mBonuses[14];              // +0x364
+	std::string mWords[LEVEL_WORDS];        // +0x054
+	std::string mDefinitions[LEVEL_WORDS];  // +0x1dc
+	int mBonuses[LEVEL_WORDS];              // +0x364
 	int mBalls;                    // +0x39c
 	int mTime;                     // +0x3a0: 60
 	int mShortestWord;             // +0x3a4: 3

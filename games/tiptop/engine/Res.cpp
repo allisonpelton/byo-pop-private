@@ -158,11 +158,6 @@ static lowos::Image* NewImage(uint32_t theBytes)
 	return anImage;
 }
 
-void FreeImage(lowos::Image* theImage)
-{
-	free(theImage);
-}
-
 static uint16_t ReadU16(const uint8_t* p)
 {
 	return (uint16_t)(p[0] | p[1] << 8);
@@ -592,6 +587,22 @@ int32_t SizeOf(int theGroup, int theId)
 		if (e->mId == (uint32_t)theId && e->mGroup == (uint32_t)theGroup)
 			return e->mSize;
 	return 0;
+}
+
+const char* StoredName(int theGroup, int theId)
+{
+	if (gArchiveTable == nullptr)
+		return nullptr;
+	for (Entry* e = gTable; (e->mFlags & 0x3f) != 0; e++)
+	{
+		if (e->mId != (uint32_t)theId || e->mGroup != (uint32_t)theGroup)
+			continue;
+		for (const uint8_t* p = gArchiveTable; *p != 0; p += strlen((const char*)p) + 1 + 8)
+			if (SameName((const char*)p, e->mName))
+				return (const char*)p;
+		return nullptr;
+	}
+	return nullptr;
 }
 
 } // namespace res

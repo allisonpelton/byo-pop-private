@@ -90,7 +90,9 @@ the same machine. A plain run opens a window, raises it over whatever the user i
   any of the games on my desktop or sandbox with sound to test play". Between 22:00 and 08:00 local time a session may
   run any game, port or original, on the visible desktop or in Windows Sandbox (`--sandbox-vgpu` and
   `--sandbox-connect` included), with real sound, scripted and driven runs too; a run started in that window ends by
-  08:00. Everything else above still holds: at most 6 game processes, no link, "Buy" or "More Games" click, the
+  08:00. Benchmarks and other test programs that open a window (a presenter or vsync bench) may run there on the same
+  terms (the user, 2026-11-12, asked whether rundesk's desktop, which may never signal a vertical blank, makes a
+  present cost more than on a player's screen: "Yes"). Everything else above still holds: at most 6 game processes, no link, "Buy" or "More Games" click, the
   user's cursor and keyboard never touched (input posted to the game's own window), the window, registry and saves
   put back as `docs/ORIGRUN.md` says, nothing left running. Outside those hours the rules above apply unchanged.
 
@@ -110,14 +112,10 @@ Every call re-reads the whole context, so what costs is context times calls, and
   or one Bash command with the reads separated by `echo ---`.
 - Test with `tools/check.sh <suite>...` (`--help` lists them): one line per suite, logs in files.
 - Give an agent the files and sections it needs, so it need not read the design docs to find them.
-- **Cleared between steps (2026-11-11; the user: "If you find ways to work more efficiently, take them").** Re-reading
-  its own conversation is about two thirds of what a session spends: about 230k tokens a call across sessions that
-  day, against about 70k for a fresh one. A session is cleared at each pause between steps. That pause is either a
-  merge request sent, or nothing of its own running in the background with its work safe in the tree. At that pause it
-  writes `build/handoff.md` in its worktree (git-ignored), under about 150 lines of facts: the step and what done looks
-  like, what is committed, what is half done with the exact next actions, the commands and flags it runs, what it waits
-  for, open questions, and what its notes do not say yet. It then tells the coordinator, who clears it and has it
-  continue from the note. Monitors notify when a run ends, not on progress lines.
+- **No clearing between steps (the user, 2026-11-12: "Keep it at 400k. I determined this was ideal").** Sessions keep
+  their conversation and compact on their own at the full window; nobody clears them or writes handoff notes for it. A
+  day of clearing (2026-11-11) left contexts at 170k to 255k a call, since a step regrows them, and cost the
+  coordinator its own calls. Monitors notify when a run ends, not on progress lines.
 
 ## Sessions, ownership and git
 
@@ -169,8 +167,8 @@ Every call re-reads the whole context, so what costs is context times calls, and
 ## Making a port
 
 - **Port first, unmodified (the user, 2026-10-26):** a port is the original game, unmodified and working like its exe;
-  it adds nothing for later mods, not even hooks (the site's own hooks for player names and settings are the
-  exception). No new mods unless the user requests one ("no new mods for anything unless someone requests it",
+  it adds nothing for later mods, not even hooks (the site's own hooks for player names and settings, and the inert
+  state an autosplitter reads, are the exceptions). No new mods unless the user requests one ("no new mods for anything unless someone requests it",
   2026-10-30); fixes and suggestions for the mods that exist wait in `docs/MOD_ROADMAP.md` until every
   decompilation is finished. Code that makes a game moddable makes things configurable and never overwrites the
   original (`docs/MOD_ROADMAP.md`, "Kinds of mod"). The site will serve each game with its fixes mod on, one toggle a
@@ -259,18 +257,26 @@ Every call re-reads the whole context, so what costs is context times calls, and
   the user had put every one of them in sequence, so that wasteful token use would show sooner, and dropped it the
   same day: "We'll nix the one-at-a-time rule then. The idea behind it was it'd allow inefficient token usage to be
   spotted sooner, overall saving time, but now we have a much better idea of procedure"; of the harder ones: "When
-  we get to it, see if running two-by-two causes issues. If not, continue with two".
+  we get to it, see if running two-by-two causes issues. If not, continue with two". **A new port writes to those
+  standards from its first draft (the user, 2026-11-12: "Yes, add it"):** names, code left untranslated where the export
+  shows nothing can reach it, the known shared costs avoided, so its readability, unneeded-code and performance steps
+  shrink to checks; the steps keep their order (`docs/COORDINATION.md`, "Which games, in what order").
   **Done means every phase but modding (the user, 2026-11-08):** "I've decided I want to
   go through every phase except modding before a game can be considered done and ready for the live site, and just
   publish whatever games are ready by the end of December. I'm in no hurry to get games out in a less-than-stellar
   state." A game is done, and may go on the live site, only once it has been through all of them: the user's faults,
   both phases of identical play, registration and outbound buttons out, its fixes mod (the site serves every game with
-  it on), the readability pass, the coverage check, the performance pass (the user, 2026-11-03), taking out the other
+  it on), the readability pass, the coverage check, the performance pass (the user, 2026-11-03), which brings the port's processor time to its
+  original's or below, measured like for like (the user, 2026-11-11: "that should be an enforced target";
+  `docs/COORDINATION.md`, "The target"), taking out the other
   code it does not need, for a game ported from its Steam copy the check against its PopCap Game Collection
   version, and its features on the site (the user, 2026-11-11: "All these accessory features should be added to our
   definition of done"): Music's entries for its tunes placed, grouped and split as the game plays them, with no place
-  its code can settle left blank, and its soundboard's presets of the sequences the game plays. The site builds them,
-  and the game's session answers the site's questions about its code. So the coverage check and the performance pass come game by game, not after every game is done
+  its code can settle left blank, its soundboard's presets of the sequences the game plays, and, where speedrun.com
+  has a leaderboard for the game, its autosplitter in the site's Splits window, timed by that board's rules (the user,
+  2026-11-12: "let's build in autosplitters to every port of a game with a leaderboard on speedrun.com"). The site
+  builds them, and the game's session answers the site's questions about its code and adds the few inert lines of
+  state an autosplitter reads. So the coverage check and the performance pass come game by game, not after every game is done
   (`docs/COORDINATION.md`). Modding, which waits, is the mods' own work: new mods and the changes waiting in
   `docs/MOD_ROADMAP.md`. Whatever games are done by 2026-12-31 go on the live site then; the rest follow when done,
   never hurried. A session may speed up its own port before its performance pass, at any time, so its `-fast` test runs go

@@ -53,7 +53,6 @@ void* Allocate(size_t theSize)
 // The app's handler procedures (0x4213f3-0x425d28)
 uint32_t ScoreMessageProc(uint32_t theMsg, uintptr_t theA, uintptr_t theB, Handler* theHandler);      // 0x4219c6
 uint32_t ZoomImageProc(uint32_t theMsg, uintptr_t theA, uintptr_t theB, Handler* theHandler);         // 0x421d20
-uint32_t SlideImageProc(uint32_t theMsg, uintptr_t theA, uintptr_t theB, Handler* theHandler);        // 0x421f9f
 uint32_t LevelStartProc(uint32_t theMsg, uintptr_t theA, uintptr_t theB, Handler* theHandler);        // 0x42217f
 uint32_t MenuHighScoresProc(uint32_t theMsg, uintptr_t theA, uintptr_t theB, Handler* theHandler);    // 0x42233b
 uint32_t HighScoresProc(uint32_t theMsg, uintptr_t theA, uintptr_t theB, Handler* theHandler);        // 0x4225a4
@@ -485,63 +484,6 @@ int App::Init()
 void App::SetConfig(Config* theConfig)
 {
 	mBoard->SetConfig(theConfig);
-}
-
-// 0x41b771
-void App::FreeImages()
-{
-	if (mBackground != nullptr)
-		FreeSurface(mBackground);
-	if (mBarFlash != nullptr)
-		FreeSurface(mBarFlash);
-	if (mBarLow != nullptr)
-		FreeSurface(mBarLow);
-	if (mBarHigh != nullptr)
-		FreeSurface(mBarHigh);
-	if (mBarFrame != nullptr)
-		FreeSurface(mBarFrame);
-	if (mSkin != nullptr)
-		FreeSurface(mSkin);
-	if (mImage68 != nullptr)
-		FreeSurface(mImage68);
-	if (mBarBits != nullptr)
-		free(mBarBits);
-	for (uint32_t i = 0; i < gConfig.mParticleCount; i = i + 1)
-	{
-		if ((gParticleState != nullptr) && (mParticleImages[i] != nullptr))
-			free(mParticleImages[i]);
-	}
-	if (gParticleState != nullptr)
-		free(gParticleState);
-	for (int i = 0; i < 4; i++)
-	{
-		if (mTexts[i].mSurface != nullptr)
-			lowos::UnregisterSurface(mTexts[i].mSurface);
-	}
-	for (int i = 0; i < 4; i++)
-	{
-		if (mTexts[i].mBits != nullptr)
-			free(mTexts[i].mBits);
-	}
-	if (mTextFont != nullptr)
-		FreeFont(mTextFont);
-	if (gTextFont != nullptr)
-		FreeFont(gTextFont);
-}
-
-// 0x41b98a
-void App::Shutdown()
-{
-	SetScreen(SCREEN_NONE);
-	StopMusic();
-	if (mBoard != nullptr)
-		delete mBoard;
-	FreeImages();
-	GuiShutdown();
-	lowos::UninitKeyboard();
-	lowos::UninitMouse();
-	lowos::UninitSound();
-	lowos::UninitScreen();
 }
 
 // 0x41b9fe: a frame of the current screen
@@ -1693,26 +1635,6 @@ void DeleteGameDialog(uint32_t theCommand)
 	}
 }
 
-// 0x4264a8: "play again?" (yes sends theYes, no theNo; Enter presses no)
-void PlayAgainDialog(uint32_t theNo, uint32_t theYes)
-{
-	GuiRect aRect = {0, 0, 0x280, 0x1e0};
-	Layer* aLayer = NewLayer(0x280, 0x1e0, &aRect);
-	aRect.x = (int16_t)gConfig.mPlayagainX;
-	aRect.y = (int16_t)gConfig.mPlayagainY;
-	Handler* aHandler = NewHandler(ImageProc, aLayer, &aRect, 0x3e, 0);
-	aHandler->mPass = 2;
-	aRect.x = (int16_t)gConfig.mPlayagainX + (int16_t)gConfig.mPlayagainYesx;
-	aRect.y = (int16_t)gConfig.mPlayagainY + (int16_t)gConfig.mPlayagainYesy;
-	aHandler = NewHandler(ButtonProc, aLayer, &aRect, 0x40, theYes);
-	aHandler->mPass = 3;
-	aRect.x = (int16_t)gConfig.mPlayagainX + (int16_t)gConfig.mPlayagainNox;
-	aRect.y = (int16_t)gConfig.mPlayagainY + (int16_t)gConfig.mPlayagainNoy;
-	aHandler = NewHandler(ButtonProc, aLayer, &aRect, 0x22, theNo | 0x80000000);
-	aHandler->mPass = 3;
-	PushModal(aLayer);
-}
-
 } // namespace
 
 // 0x426dd5: shows the pause image over the game while it is paused (and its own game buttons over it), or takes
@@ -1877,14 +1799,6 @@ uint32_t Command(Handler* theSource, uint32_t theCommand)
 		NewHandler(GameOverDelayProc, theSource->mLayer, nullptr, 0, 0);
 		FreeHandler(gApp.mCounted[2]);
 		break;
-	case 0x1c:
-	{
-		// the original left the size unset
-		GuiRect aRect = {0x140, 0xf0, 0, 0};
-		Handler* aHandler = NewHandler(SlideImageProc, theSource->mLayer, &aRect, 0x1a, 0x1c);
-		aHandler->mPass = 2;
-		break;
-	}
 	case 0x1d:
 		FreeLayer(theSource->mLayer);
 		break;
@@ -1955,16 +1869,12 @@ uint32_t Command(Handler* theSource, uint32_t theCommand)
 		gApp.SetScreen(SCREEN_MAINMENU);
 		break;
 	case 0x2a:
-		if (gApp.mPrevScreen == SCREEN_MAINMENU)
-			gApp.SetScreen(SCREEN_MAINMENU);
-		else if (gModal == 0)
-			PlayAgainDialog(0x2c, 0x2d);
+		// the high scores screen's way back (the original asked "play again?" when it was not entered from the main menu,
+		// and only the main menu's button enters it)
+		gApp.SetScreen(SCREEN_MAINMENU);
 		break;
 	case 0x2b:
 		gApp.SetScreen(SCREEN_HIGHSCORES);
-		break;
-	case 0x2c:
-		gApp.SetScreen(SCREEN_MAINMENU);
 		break;
 	case 0x2d:
 		// play again, in the same mode
@@ -2527,61 +2437,6 @@ uint32_t ZoomImageProc(uint32_t theMsg, uintptr_t theA, uintptr_t theB, Handler*
 				uint16_t aSrcHeight = lowos::SurfaceHeight(anImage);
 				lowos::BlitRegistered(aSrcWidth, aSrcHeight, theHandler->mRect.x - aSrcWidth / 2,
 					theHandler->mRect.y - aSrcHeight / 2, 0, 0, anImage);
-			}
-		}
-	}
-	return 0;
-}
-
-// 0x421f9f: an image that slides in from the right, stays and slides out to the left (2.4 s), then sends its
-// command. Create: a = the image, b = the command.
-uint32_t SlideImageProc(uint32_t theMsg, uintptr_t theA, uintptr_t theB, Handler* theHandler)
-{
-	uintptr_t* aSlots = theHandler->u.mSlots;
-	uint8_t aMsg = (uint8_t)theMsg;
-	if (aMsg == MSG_CREATE)
-	{
-		if (LoadSurface((int)theA, 9, (lowos::Surface**)&aSlots[0]) != 0)
-			NoMemory();
-		aSlots[1] = GameTime();
-		aSlots[2] = theB;
-		aSlots[3] = theA;
-	}
-	else if (aMsg == MSG_DESTROY)
-	{
-		FreeSurface((lowos::Surface*)aSlots[0]);
-	}
-	else if (aMsg == MSG_DRAW)
-	{
-		uint32_t aNow = GameTime();
-		if (aNow < aSlots[1])
-		{
-			FreeHandler(theHandler);
-			Command(theHandler, (uint32_t)aSlots[2]);
-		}
-		else
-		{
-			uint32_t aTime = aNow - (uint32_t)aSlots[1];
-			lowos::Surface* anImage = (lowos::Surface*)aSlots[0];
-			uint32_t aWidth = lowos::SurfaceWidth(anImage);
-			uint16_t aHeight = lowos::SurfaceHeight(anImage);
-			int16_t x = (int16_t)(theHandler->mRect.x - (uint16_t)aWidth / 2);
-			int32_t aDistance = 0x280 - x;
-			if (aDistance < (int32_t)((int32_t)x + (aWidth & 0xffff)))
-				aDistance = (int32_t)x + (aWidth & 0xffff);
-			if (aTime < 600)
-				x = x + (int16_t)((int32_t)((600 - aTime) * aDistance) / 600);
-			if (0x708 < aTime)
-				x = x - (int16_t)((int32_t)((aTime - 0x708) * aDistance) / 600);
-			if (aTime < 0x960)
-			{
-				lowos::BlitRegistered(aWidth & 0xffff, aHeight, x, (int16_t)(theHandler->mRect.y - aHeight / 2), 0, 0,
-					anImage);
-			}
-			else
-			{
-				FreeHandler(theHandler);
-				Command(theHandler, (uint32_t)aSlots[2]);
 			}
 		}
 	}

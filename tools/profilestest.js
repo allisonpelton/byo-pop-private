@@ -36,6 +36,18 @@ function check(name, ok, detail) {
 }
 function same(name, a, b) { check(name, JSON.stringify(a) === JSON.stringify(b), { got: a, want: b }); }
 
+// ---------- favourites ----------
+{
+  const { S } = load();
+  // a listing opened with ?silent=1 puts the query on its tiles' links (web/index.html)
+  check("favourite: starred", S.setFavourite({ id: "bejeweled", title: "Bejeweled", page: "bejeweled.html?silent=1" }, true) && S.isFavourite("bejeweled"));
+  same("favourite: the page without its query", S.favourites().map((g) => g.page), ["bejeweled.html"]);
+  S.setFavourite({ id: "alchemy", title: "Alchemy", page: "https://site.example/games/alchemy.html#x" }, true);
+  S.setFavourite({ id: "soon-pegs", title: "Pegs" }, true);
+  same("favourite: a full address's file name; none for a game with no page", S.favourites().map((g) => g.page), ["bejeweled.html", "alchemy.html", ""]);
+  check("favourite: unstarred", S.setFavourite({ id: "bejeweled" }, false) && !S.isFavourite("bejeweled") && S.favourites().length === 2);
+}
+
 // ---------- settings: site-wide ----------
 {
   const { S, data } = load();

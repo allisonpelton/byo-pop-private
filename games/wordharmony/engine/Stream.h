@@ -50,8 +50,6 @@ public:
 	long tell() override { return (long)mPos; }
 	long getSize() override { return (long)mSize; }
 
-	const uint8_t* getData() const { return mData->data() + mStart; }
-
 private:
 	SharedData mData;
 	size_t mStart;

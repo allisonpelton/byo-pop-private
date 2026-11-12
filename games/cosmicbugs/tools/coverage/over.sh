@@ -4,7 +4,7 @@
 # Without a world it is a fresh profile: Start Game, the instructions page's Play, the board of level 1; with a world (0..8) it starts
 # from the save with every board unlocked (the port's runner: `unlock all`) as worlds.sh does, through that world's button, a click
 # on the slider page and "click here when done". Then 30 s of the random play of gen.py and the original's own play on until the last
-# life is lost (origrun's waitfor on the lives, 0x460040), the game over's click, the high-score entry (two letters of its keyboard,
+# life is lost (origrun's waitfor on the lives, 0x460040), the game over's click, the high-score entry (two letters of its keyboard, clicked at y+10 as a font item's box needs,
 # "click here when done"), the Hall of Fame and the title. Each menu click has the mouse hover over its button 300 updates earlier
 # (hover.py); a click on a font item lands on its box (the item's y plus 9 or 10). The runs are run.sh's.
 cd "$(dirname "$0")/../../../.."
@@ -33,10 +33,10 @@ cat >> $S.t <<EOT
 waitfor 0x460040 == 0 900000
 mark
 at +3000 click 400 300 30
-at +4000 move 100 300
-at +5000 click 100 300 30
-at +5500 move 150 300
-at +6000 click 150 300 30
+at +4000 move 100 310
+at +5000 click 100 310 30
+at +5500 move 150 310
+at +6000 click 150 310 30
 at +6500 move 400 520
 at +7000 click 400 520 30
 at +8500 move 400 545

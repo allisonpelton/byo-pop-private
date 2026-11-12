@@ -245,13 +245,9 @@ that hold logic against the export.
   factors and `framesPerSecond`'s average. The disassembly would settle them; `playStream` and `framesPerSecond` were
   never reached (the music player streams only a track that is not a module, and the frame counter draws only while
   `mShowFPS` is set), and `sparkleTile`'s branch only for a super-wild tile.
-- **Code only an error reaches, which stays.** `systemMessageBox` and the application's `messageBox`.
-- **Candidates for taking out unneeded code: 17.** No play of the original reaches these, and they were not removed
-  now: the platform base class's defaults that the application overrides, as the only platform object
-  (`getWindowPos`, the four `messageBox` layouts, `Platform::messageBox`, `isRunning`, `getSoundVolume`, `windowMoved`,
-  `menuCommand`); `App::isModal`, a slot nothing calls; `BonniesApp::menuCommand`, the window menu's commands (SDL's
-  window has no menu); `openURL`, whose only callers were the registration panel's links; `Widget::setImage`, a slot
-  nothing calls; and the `Picture` widget's destructor, `init` and `draw`, a widget the game never makes.
+- **Code only an error reaches, which stays.** The application's `messageBox`, the slot the original's error paths
+  reach (the port has no caller of it).
+- **The candidates for taking out unneeded code: 17, taken out on 2026-11-11** (see "Unneeded code taken out" below).
 
 **Never reached and not defined in the port: 12, besides those left out.** The application's four message box layouts
 (overridden slots), the registration panel's code, the stream-music branch of the music player and the original's wait
@@ -259,3 +255,123 @@ loop, which the host replaces.
 
 **What it cost.** The nine runs took about 25 minutes of machine time, one game process at a time, and the port's three
 saves and its probe screenshots a few more. The agent took 3.4 minutes and 135,000 tokens.
+
+## Unneeded code taken out (2026-11-11)
+
+The 17 candidates of the coverage check, none of which any play of the original reaches, are out, and the frozen baseline
+is identical (`tools/check.sh bonnies`). The platform base class's defaults that the application overrides, the game's
+app being the only platform object, are now pure virtuals with no body: `messageBox` (0x42a580), `isRunning`
+(0x4217d0), `getSoundVolume` and `getMusicVolume` (0x4217e0), `windowMoved` (0x4217f0), `getWindowPos` and
+`getWindowPos2` (0x401050) and `menuCommand` (0x421800); each declaration's comment says what the default was. With
+`Platform::messageBox`, the only caller of `systemMessageBox` (0x41f9d0) went, and with that `Host::messageBox` and its
+host side (an SDL message box, answered with the first button in a test run). `isModal` is gone from `Platform` and
+`App` (0x421240, a slot nothing calls); `BonniesApp::menuCommand` (0x401e00, the debug menu's commands, which SDL's
+window has no menu to give) went with the event type that carried it, which the host never sends; `openURL` is gone from
+the engine and the host (its only callers were the registration panel's links); and so are `Widget::setImage` (0x42c410,
+a slot nothing calls) and the `Picture` widget (type 2, 0x42f530 to 0x42f560, which the game never makes). The
+application's own `messageBox`, which only an error path of the original reaches, stays.
+
+## The readability pass (2026-11-11)
+
+`python tools/namecheck.py games/bonnies` finds nothing now (it found 852 before, once `namecheck.txt` added the game's
+`engine/` and `game/` folders beside `src/`; the file holds those two `folder` lines and no exception). The object code
+of all 31 units is what it was (`tools/objsnap.py`: 840 functions, 0 objects differ), no string literal of the sources
+changed, and the frozen baseline is identical (`tools/check.sh bonnies`).
+
+**Names.** Bonnie's has no Mac build, so every name comes from how the code uses the thing, read against the original's
+function. The 98 members that were named by their offsets (`mFieldC5C`, `mStrCC8`, `mDebug1E8`) are words now, each with
+a comment saying what it holds, in `Game.h` (the player's record and the game), `GameScreen.h` and the smaller classes.
+The ones worth knowing when reading the game:
+
+| Name | What it is |
+|---|---|
+| `Game::mClassic` | 1 in the classic game (no clock: `mGoal` counts the moves left), 0 in the action game (the clock runs, `mClock` falls from 1 to 0) |
+| `Game::mClock`, `mClockLag` | the action game's time left, and the time a long word gave that the shown clock has not caught up with yet (the shown clock is their sum) |
+| `Game::mMovesLag`, `mCountTime` | the classic game's moves given and not yet counted into the display, and when the count last ticked |
+| `Game::mLevelBestWord`, `mBestWord` | the longest word of the level (the summary shows it) and of the game (the high score table's "best word") |
+| `Game::mWordsPlayed`, `mGameWords`, `mShuffles` | counters the tutorial's hints test: words on this level, in this game, shuffles on this level |
+| `Game::mChangeTimes`, `mOldLetters` | when a tile last changed and the letter it had (a stone counted up, a copycat copied, a fixed tile freed, `'^'`), for the animations |
+| `GameScreen::mSequenceState` | the screen's state: 1 in play, 2 the level won, 3 to 16 the steps of the summary after it, 0x11 to 0x13 the end |
+| `GameScreen::mBoardFade`, `mSummaryFade`, `mLeaveFade`, `mBookOpen`, `mSummaryDark` | the fades the sequence's steps run, 0 to 1 |
+| `Record::mWords`, `mLetters`, `mLongestWord`, `mBestStreak`, `mStreak` | the player's statistics page: the average word is `mLetters / mWords` |
+
+Names that are judgements from the code's use and not from anything the original says are `Game::mWildFell` (a `?` tile
+came from the super wild odds and its hint is due), `Game::mMovesAtHint`, `Book::mTwoFills` (a tile takes two words to
+mark, the flags 0x10 then 0x20), `Book::mFastOdds` (a long word adds more to the special tiles' odds), `GameScreen::mClicks`
+and `Platform::mShimmerWaits`. The three debug menu flags (`BonniesApp::mFreeMoves`, `mAnyWord`, `mNoHints`) keep the
+menu item they belonged to in their comments; nothing in the port sets them.
+
+**Fields nothing reads (rule 3).** These stay, named for what they hold or sit beside, with a comment saying that nothing
+reads them: `Record::mSpare` (saved with the record), `Options::mWindowSpare` (saved with the options), `Game::mWordFrame`,
+`Game::mPathClearTime`, `Graphics::mModeFrame`, `BonniesApp::mPrevState`, `BonniesApp::mRedrawCount`, `Music::mAlive`,
+`MusicTrack::mSecondName`, `Pak::mInUse`, `GameScreen::mSummaryStart`, the `Platform`, `Input`, `ListItem`, `Sample`,
+`SoundSystem` and screen spares, and the startup scratch object (`gStartupScratch`, made and freed and never used).
+`tools/splitfields.py` finds no member declared twice at one offset and none that is never written; its export check
+lists six members (`GameScreen::update`'s picture and chapter, and `Game`'s path rows, path length and level), which the
+original's functions touch directly and the port's reach through the accessors it translated separately (`pathRow`,
+`pathLetter`, `currentBook`) or through the helper that holds the code.
+
+**One-letter names (rule 5).** Fifty-nine locals of the drawing code (`Draw.cpp`, `Graphics.cpp`), `Str.cpp`'s `addColor`
+and a few parsers were one letter over many lines; they are words (`aPixelPtr`, `anAlpha`, `aSrcPixel`, `aCornerRadius`,
+`aRamp`, `aCornersX`) and the colour components beside them follow (`aRed`, `aGreen`, `aBlue`). The unused parameters
+that were `theUnused` are `thePassedOn` (the sound call's flag, which the original passes through and never reads) and
+`theIgnored`; the rest of the stand-ins are `aNewFile`, `aNotUnderstood`, `aSecondFlag`, `aSkipped` and, for the intro's
+two animation clocks at 0x478538 and 0x47853c, `gHandsTime` and `gHandsFrameTime` (beside the mouth's and the head's
+`...Time` and `...FrameTime`). `BonniesHost.cpp` and `ModFeatures.cpp` carry the port marker in their first comment
+(rule 6).
+
+**Numbers named (rule 7).** `game/Board.h`: `BOARD_COLUMNS` and `BOARD_ROWS` (9 each: a cell is
+`column * BOARD_ROWS + row`), `BOARD_CELLS` (81), `PATH_LETTERS` (20, the most tiles on the path and in a hint's word)
+and `LEVEL_COUNT` (50), about 190 uses in the game's sources. Left as numbers: `Book::mBannedIn[9]` (what the nine are
+is not settled), the spawn store's `2 * (0x13 + 9)` in `refill`, and every other 0x14 and 0x32 (a flag, a colour step, a
+50 ms step, a window position).
+
+**How it was done.** Compiler-driven, as `docs/CODE_STANDARDS.md` says: the declarations were renamed class by class,
+every translation unit was compiled with `-fsyntax-only -ferror-limit=0`, and the old name was replaced exactly where the
+compiler reported it missing (the class named in the message keeps two classes' `mFieldAC` apart; an unqualified use
+takes its class from the function around it). The one-letter locals were renamed over the block that holds them by a
+second script that reads code only, not comments or strings, and refuses a new name that the function already has. The
+five sites in a constructor that the first script could not place (`Input::Input`, `Music::Music`,
+`ListItem::ListItem`) were fixed by hand. Neither script is in the repository; the shared notes folder holds them.
+
+## The PopCap Game Collection version (2026-11-11)
+
+The port was made from the staged copy's files (`tools/stage_bonnies_assets.py`), so it is checked against the game's
+version on the PopCap Game Collection disc (`docs/COORDINATION.md`), whose exe is another build of the file. `unshield` read
+the group `BonniesBookstoreDeluxeComponent` out of the disc image's cabinet (mounted read-only, dismounted afterwards): 237
+files, 11.9 MB, in `build/bonnies-coll` (git-ignored, deleted once this was written). The folder has `BonniesBookstore.exe`
+(657,112 bytes against the staged copy's 2,268,632), `data/` (lower case), `Graphics/`, `Sound/`, `SavedGames/`,
+`properties/` (a 311-byte `partner.xml` and its signature), the six DLLs (SDL, SDL_image, FMOD, jpeg, libpng13, zlib), a
+licence and a readme.
+
+**The exe is the same build.** Its link time stamp is the same (2006-11-10 20:35:35 UTC) and `.text`, `.rdata` and `.data`
+are equal byte for byte, so every text and table the port reads from the exe is at the same address. Only the resource
+section differs (167,000 bytes against 167,312); the port maps every section but reads nothing from the resources (no
+address from 0x484000 up appears in its sources), and mapped by `loadExe`, the two images differ only there, in
+0x48431c-0x4acd8e. No change to the port was needed: `LoadGameExe` (`src/main.cpp`) looks for the wrapper's marker and, with
+none in the file, takes the whole file from its start.
+<!-- private -->
+How the copies differ: the Collection's exe is the game itself, not wrapped. The staged copy's holds the game after a
+`!popcapdrmprotect!` marker (at 1,605,632, the `MZ` at 1,606,050, 662,582 bytes to the end of the file); against the
+Collection's exe those bytes differ in the PE header (the checksum, 0xa2cb1 against 0xa5e69, and a few more bytes at file
+offsets 0x160, 0x194 and 0x280), in the resource section (1,077 runs of changed bytes) and in the 5,470 bytes that the
+staged copy's file holds after the point where the Collection's ends (the Collection's 5,448-byte security directory at
+0x9f190 ends at the end of its file; the security directory's position and size are the same in both headers).
+<!-- /private -->
+
+**The files.** Of the 227 files the staging script copies (the pak, the dictionary, the texts, `Portal.cfg`, every picture
+and sound, the preferences file), 226 are the Collection's byte for byte (sha256, paths compared without case); the exe is
+the 227th. Ten files exist only in the Collection (the six DLLs, the licence, the readme and the two `properties/` files),
+none read by the port (the staging script's header says which files it needs). The site's importer takes the folder as it
+is: its markers (`web/gameimport.js` through `games/bonnies/web/page.js`) are `BonniesBookstore.exe` and `Data/Bonnie.pak`
+and match without case, so the lower-case `data/` folder is found.
+
+**The port on the Collection's files** (`games/bonnies/tools/collection_run.sh`, under rundesk). The suite's tour
+(`tools/check.sh bonnies`: `tools/tour_test.txt`, 25 screenshots from the logos to the main menu's Quit, `-fast -seed=1`) run
+once on the staged files and once on the Collection's, with the same exe: every one of the 25 screens is byte for byte the
+same, the saved files (the new player's record) are the same, and the three frozen screens (played, highscores, timeup) are
+the frozen ones on both. No text is reported missing and no static initializer is "not understood". The web build under Node
+(`wasmrun.js`, the same tour on the Collection's files) was started but cut off at 400 seconds, at the tour's update 20450
+(the paused action game), with no error in its log; its screens were not collected, so only the native run is the check.
+Nothing about the Collection's files is specific to the web build: it loads them through the same `LoadGameExe`, and the
+importer's markers are the ones above.

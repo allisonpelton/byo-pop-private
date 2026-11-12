@@ -53,7 +53,6 @@ public:
 	PodButton*		mQuitButton;        // +0xe8 id 13 (the "more games" button, id 12 at +0xe4, is not ported)
 	HyperlinkWidget* mUserLink;         // +0xec id 0x14 "click to change user"
 	int				mSlideDelay;        // +0xf0 updates before the menu slides
-	CurvedVal		mUnusedSlide;       // +0xf8 slides along with the other one, never read
 	CurvedVal		mSlide;             // +0x128 the vertical offset of the whole menu: 700 (above) to 0
 	int				mSelectedMode;      // +0x158 0 to 3, 4 to 7 with the secret button, 8 the hidden mode
 	int				mState;             // +0x15c State

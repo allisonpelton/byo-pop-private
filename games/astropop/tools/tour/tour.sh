@@ -8,6 +8,7 @@
 # Env: PORT_ARGS (more port arguments), SKIP_ORIG=1 / SKIP_PORT=1 (reuse the other side's shots), PROFILE (a profile file the
 # original starts with, as run_original.sh), PORT_USER (a user folder to copy instead of the empty one), SEED (default 1), PORT_EXE
 # (a copy of astropop.exe beside SDL2.dll, so that the build can go on while the tour runs: tools/tour/freeze.sh).
+# ORIG_WATCHES (the original's watch expressions, as run_original.sh's WATCHES; default: the update counter alone).
 set -uo pipefail
 cd "$(dirname "$0")/../../../.."
 N="$1"; TOUR="$2"; shift 2
@@ -28,7 +29,7 @@ fi
 if [ -z "${SKIP_ORIG:-}" ]; then
   rm -rf "$D/orig"; mkdir -p "$D/orig"
   rm -f build/origrun/apc/shots/*.png build/origrun/apc/shots/landed.tsv
-  NEED=none WATCHES='[0x5dc220]+0x4a0' bash games/astropop/tools/origcmp/run_original.sh "$D/orig.txt" "$D/orig.log" $SEED 900 > "$D/orig.out" 2>&1
+  NEED=none WATCHES="${ORIG_WATCHES:-[0x5dc220]+0x4a0}" bash games/astropop/tools/origcmp/run_original.sh "$D/orig.txt" "$D/orig.log" $SEED 900 > "$D/orig.out" 2>&1
   echo "original: exit $?, $(ls build/origrun/apc/shots/*.png 2>/dev/null | wc -l) shots"
   cp build/origrun/apc/shots/*.png "$D/orig"/ 2>/dev/null
   cp build/origrun/apc/shots/landed.tsv "$D/orig.landed.tsv" 2>/dev/null

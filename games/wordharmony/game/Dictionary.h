@@ -6,9 +6,11 @@
 // config\matchList.txt (3 letters or more) goes into the word tree (+0x14), which checks a word and finds the words a
 // pattern with '?' matches. Both trees are trees of letters: a node's sibling holds another letter at its place, its
 // child the next letter, and a '\0' node ends a word. The original takes the nodes from pools of 1024 (0x41fed0,
-// 0x420d70) and never frees them; the port allocates them one by one.
+// 0x420d70) and never frees them; so does the port (NodePool, below).
 
 #include "Object.h"
+#include <cstddef>
+#include <new>
 #include <string>
 #include <vector>
 
@@ -16,6 +18,30 @@ namespace engine
 {
 class InputStream;
 }
+
+// The nodes' memory, the original's pools of 1024 nodes that are never freed (0x41fed0, 0x420d70; port, for speed: the
+// two lists are some 440,000 nodes, which as one allocation each cost a header and padding apiece, 7 MB, and the time of the
+// calls). A node's class takes its memory from the pool of its own size with its operator new; delete frees nothing.
+template <class Node>
+struct NodePool
+{
+	static void* allocate(size_t theSize)
+	{
+		if (sLeft == 0)
+		{
+			sNext = static_cast<char*>(::operator new(theSize * 1024));
+			sLeft = 1024;
+		}
+		void* aNode = sNext;
+		sNext += theSize;
+		sLeft--;
+		return aNode;
+	}
+	static char* sNext;
+	static size_t sLeft;
+};
+template <class Node> char* NodePool<Node>::sNext = nullptr;
+template <class Node> size_t NodePool<Node>::sLeft = 0;
 
 // The letters to make words of (0x41fcd0, made on the stack): the count of each letter, the wildcards, the total and
 // the chained pieces, each of which must be used whole
@@ -42,6 +68,8 @@ class AnagramNode
 public:
 	AnagramNode(char theLetter);
 	virtual ~AnagramNode();  // 0x41fdd0: its sibling and child deleted
+	static void* operator new(size_t theSize) { return NodePool<AnagramNode>::allocate(theSize); }
+	static void operator delete(void*) {}
 
 	// 0x41ffb0: theWord added under the letters of theKey; returns the node's mDepth
 	int add(const char* theKey, const char* theWord);
@@ -84,6 +112,8 @@ class WordNode
 public:
 	WordNode(char theLetter) : mLetter(theLetter), mSibling(nullptr), mChild(nullptr) {}
 	virtual ~WordNode();  // 0x420d40
+	static void* operator new(size_t theSize) { return NodePool<WordNode>::allocate(theSize); }
+	static void operator delete(void*) {}
 
 	// 0x420dd0
 	void add(const char* theWord);

@@ -1,4 +1,4 @@
-// The port's host for Cosmic Bugs (see CosmicBugsApp.h).
+// port: the host for Cosmic Bugs (see CosmicBugsApp.h).
 
 #include "CosmicBugsApp.h"
 #include "CBGlobals.h"
@@ -31,7 +31,7 @@ namespace
 {
 
 // BASS_SetVolume(60) at the start (0x42ad70): the original plays everything at 60%
-const double kOutputVolume = 0.6;
+const double OUTPUT_VOLUME = 0.6;
 
 r64::PixelFormat gScreenFormat565;
 
@@ -63,7 +63,7 @@ public:
 	bool LockScreen(uint8_t** theBits, int* thePitch) override
 	{
 		*theBits = (uint8_t*)gApp->mScreen.data();
-		*thePitch = 800 * 2;
+		*thePitch = r64::SCREEN_WIDTH * 2;
 		return true;
 	}
 
@@ -91,8 +91,8 @@ public:
 		return gApp->mActive || (gApp->IsTestRun() && gApp->mRealInputFileName.empty());
 	}
 
-	// The site's "Always skip start-up logos" (framework/WebSettings.h: the page sets it before the game starts, the exe takes
-	// -skiplogos), which the logo screens read (GameStep)
+	// The site's "Always skip start-up logos" (framework/WebSettings.h: the page sets it before the game starts, the
+	// exe takes -skiplogos), which the logo screens read (GameStep)
 	bool SkipLogos() override
 	{
 		return Byopop::SiteSkipLogos();
@@ -123,10 +123,10 @@ public:
 
 	bool LoadMusic(const char* thePath) override
 	{
-		bool ok = gApp->mMusicInterface != nullptr && gApp->mMusicInterface->LoadMusic(0, thePath);
-		if (!ok)
+		bool anOk = gApp->mMusicInterface != nullptr && gApp->mMusicInterface->LoadMusic(0, thePath);
+		if (!anOk)
 			SDL_Log("cannot load the music %s", thePath);
-		return ok;
+		return anOk;
 	}
 
 	void FreeMusic() override
@@ -154,7 +154,7 @@ public:
 	void SetMusicVolume(int theVolume) override
 	{
 		if (gApp->mMusicInterface != nullptr)
-			gApp->mMusicInterface->SetVolume(kOutputVolume * theVolume / 100.0);
+			gApp->mMusicInterface->SetVolume(OUTPUT_VOLUME * theVolume / 100.0);
 	}
 
 	const char* SavePath(const char* theName) override
@@ -197,10 +197,33 @@ CosmicBugsHost gHost;
 
 } // namespace
 
+// The 16-bit screen's pixels as the framework's 32 bits (565 widened as Draw did with shifts: each channel's high bits
+// repeated into the low ones), made once; an alpha of 0xff on every one
+static uint32_t gPixelsFromScreen16[65536];
+
+static void BuildPixelsFromScreen16()
+{
+	for (uint32_t p = 0; p < 65536; p++)
+	{
+		uint32_t aRed = (p >> 11) & 0x1f;
+		uint32_t aGreen = (p >> 5) & 0x3f;
+		uint32_t aBlue = p & 0x1f;
+		gPixelsFromScreen16[p] = 0xff000000 | (((aRed << 3) | (aRed >> 2)) << 16) |
+			(((aGreen << 2) | (aGreen >> 4)) << 8) | ((aBlue << 3) | (aBlue >> 2));
+	}
+}
+
 CosmicBugsWidget::CosmicBugsWidget()
 {
 	mScreenImage = new MemoryImage(gApp);
-	mScreenImage->Create(800, 600);
+	mScreenImage->Create(r64::SCREEN_WIDTH, r64::SCREEN_HEIGHT);
+	// opaque, so that the framework need not look through the 480000 pixels for alpha after each change, and with every
+	// alpha byte 0xff (Draw), so that it need not copy and premultiply them pixel by pixel in strips to upload them
+	// (where premultiplying changes nothing): the same pixels reach the screen, in one upload (Water Bugs' and the
+	// Mahjong ports' screen)
+	mScreenImage->SetImageMode(false, false);
+	mScreenImage->mUploadAsIs = true;
+	BuildPixelsFromScreen16();
 	mWantsFocus = true;
 }
 
@@ -222,33 +245,28 @@ void CosmicBugsWidget::Draw(Graphics* g)
 	CosmicBugsApp* anApp = gApp;
 	if (anApp->mPresented)
 	{
-		int l = 0, t = 0, r = 800, b = 600;
+		int aLeft = 0, aTop = 0, aRight = r64::SCREEN_WIDTH, aBottom = r64::SCREEN_HEIGHT;
 		if (!anApp->mWholeScreen && anApp->mDirtyRight > anApp->mDirtyLeft)
 		{
-			l = anApp->mDirtyLeft;
-			t = anApp->mDirtyTop;
-			r = anApp->mDirtyRight;
-			b = anApp->mDirtyBottom;
+			aLeft = anApp->mDirtyLeft;
+			aTop = anApp->mDirtyTop;
+			aRight = anApp->mDirtyRight;
+			aBottom = anApp->mDirtyBottom;
 		}
 		ulong* aBits = mScreenImage->GetBits();
-		for (int y = t; y < b; y++)
+		for (int y = aTop; y < aBottom; y++)
 		{
-			const uint16_t* aSrc = &anApp->mScreen[y * 800];
-			ulong* aDst = &aBits[y * 800];
-			for (int x = l; x < r; x++)
+			const uint16_t* aSrc = &anApp->mScreen[y * r64::SCREEN_WIDTH];
+			ulong* aDst = &aBits[y * r64::SCREEN_WIDTH];
+			for (int x = aLeft; x < aRight; x++)
 			{
-				uint32_t p = aSrc[x];
-				uint32_t aRed = (p >> 11) & 0x1f;
-				uint32_t aGreen = (p >> 5) & 0x3f;
-				uint32_t aBlue = p & 0x1f;
-				aDst[x] = 0xff000000 | (((aRed << 3) | (aRed >> 2)) << 16) | (((aGreen << 2) | (aGreen >> 4)) << 8) |
-					((aBlue << 3) | (aBlue >> 2));
+				aDst[x] = gPixelsFromScreen16[aSrc[x]];
 			}
 		}
 		mScreenImage->BitsChanged();
 		anApp->mPresented = false;
 		anApp->mWholeScreen = false;
-		anApp->mDirtyLeft = anApp->mDirtyTop = 800;
+		anApp->mDirtyLeft = anApp->mDirtyTop = r64::SCREEN_WIDTH;
 		anApp->mDirtyRight = anApp->mDirtyBottom = 0;
 	}
 	g->DrawImage(mScreenImage, 0, 0);
@@ -298,19 +316,19 @@ CosmicBugsApp::CosmicBugsApp()
 	mProdName = "CosmicBugs";
 	mTitle = "Cosmic Bugs";
 	mRegKey = "PopCap\\CosmicBugs";
-	mWidth = 800;
-	mHeight = 600;
+	mWidth = r64::SCREEN_WIDTH;
+	mHeight = r64::SCREEN_HEIGHT;
 	mWidget = nullptr;
 	mGameStarted = false;
 	mGameEnded = false;
 	mApplyingGameMode = false;
-	mScreen.assign(800 * 600, 0);
+	mScreen.assign(r64::SCREEN_WIDTH * r64::SCREEN_HEIGHT, 0);
 	mPresented = false;
 	mWholeScreen = false;
-	mDirtyLeft = mDirtyTop = 800;
+	mDirtyLeft = mDirtyTop = r64::SCREEN_WIDTH;
 	mDirtyRight = mDirtyBottom = 0;
-	mMouseX = 400;
-	mMouseY = 300;
+	mMouseX = r64::SCREEN_CENTRE_X;
+	mMouseY = r64::SCREEN_CENTRE_Y;
 }
 
 CosmicBugsApp::~CosmicBugsApp()
@@ -333,12 +351,12 @@ static void LoadFixes()
 			continue;
 		Platform::JsonValue aTurns = Platform::ModManager::Get().GetLiveValue(aMod->mId, "walkerTurnMemory");
 		Platform::JsonValue aShield = Platform::ModManager::Get().GetLiveValue(aMod->mId, "shieldFlash");
-		cb::gFixes.walkerTurnMemory = aTurns.IsBool() && aTurns.AsBool(false);
-		cb::gFixes.shieldFlash = aShield.IsBool() && aShield.AsBool(false);
+		cb::gFixes.mWalkerTurnMemory = aTurns.IsBool() && aTurns.AsBool(false);
+		cb::gFixes.mShieldFlash = aShield.IsBool() && aShield.AsBool(false);
 		break;
 	}
-	SDL_Log("fixes: walkerTurnMemory %s, shieldFlash %s", cb::gFixes.walkerTurnMemory ? "on" : "off",
-		cb::gFixes.shieldFlash ? "on" : "off");
+	SDL_Log("fixes: walkerTurnMemory %s, shieldFlash %s", cb::gFixes.mWalkerTurnMemory ? "on" : "off",
+		cb::gFixes.mShieldFlash ? "on" : "off");
 }
 
 // 0x42ae60 (WinMain: cp.cfg, the window and the screen, the sound, the game; what follows GameMain is Shutdown)
@@ -352,7 +370,7 @@ void CosmicBugsApp::Init()
 	r64::Sys_SetScreenFormat(&gScreenFormat565);
 	r64::Sys_SetHost(&gHost);
 	if (mSoundManager != nullptr)
-		mSoundManager->SetVolume(kOutputVolume);
+		mSoundManager->SetVolume(OUTPUT_VOLUME);
 	// the game draws its own pointer
 	SetCursor(CURSOR_NONE);
 
@@ -370,7 +388,8 @@ void CosmicBugsApp::Init()
 	// WinMain: cp.cfg, the screen in its mode, the sound, then the game
 	r64::LoadConfig();
 #ifdef __EMSCRIPTEN__
-	// the site's "Full screen at start: Windowed" (framework/WebSettings.h): the game's own option, set as its menu sets it
+	// the site's "Full screen at start: Windowed" (framework/WebSettings.h): the game's own option, set as its menu
+	// sets it
 	if (Byopop::SiteWindowed())
 		r64::Screen_SetFullscreen(0);
 #endif
@@ -411,9 +430,9 @@ void CosmicBugsApp::AddUpdateRect(int x, int y, int w, int h)
 	if (y < mDirtyTop)
 		mDirtyTop = y < 0 ? 0 : y;
 	if (x + w > mDirtyRight)
-		mDirtyRight = x + w > 800 ? 800 : x + w;
+		mDirtyRight = x + w > r64::SCREEN_WIDTH ? r64::SCREEN_WIDTH : x + w;
 	if (y + h > mDirtyBottom)
-		mDirtyBottom = y + h > 600 ? 600 : y + h;
+		mDirtyBottom = y + h > r64::SCREEN_HEIGHT ? r64::SCREEN_HEIGHT : y + h;
 }
 
 void CosmicBugsApp::Present()
@@ -478,15 +497,15 @@ void CosmicBugsApp::CloseRequestAsync()
 
 // Alt+Enter goes to the game like its F7 (0x42a7a0); it then asks for the mode through SetScreenMode. (The web
 // page's Fullscreen button works on the page and never reaches the game.)
-void CosmicBugsApp::SwitchScreenMode(bool wantWindowed, bool is3d, bool force)
+void CosmicBugsApp::SwitchScreenMode(bool theWantWindowed, bool theIs3d, bool theForce)
 {
-	if (mApplyingGameMode || !mGameStarted || mGameEnded || force)
+	if (mApplyingGameMode || !mGameStarted || mGameEnded || theForce)
 	{
-		SexyAppBase::SwitchScreenMode(wantWindowed, is3d, force);
+		SexyAppBase::SwitchScreenMode(theWantWindowed, theIs3d, theForce);
 		return;
 	}
-	if (wantWindowed != mIsWindowed)
-		r64::Screen_SetFullscreen(wantWindowed ? 0 : 1);
+	if (theWantWindowed != mIsWindowed)
+		r64::Screen_SetFullscreen(theWantWindowed ? 0 : 1);
 }
 
 // The script's "rdown"/"rup" [<x> <y>]: the right button pressed or let go (there, else where the pointer is, which the
@@ -509,9 +528,9 @@ bool CosmicBugsApp::HandleScriptCommand(const ScriptCommand& theCommand)
 	}
 	if (theCommand.mCommand == "state")
 	{
-		cb::Level* aLevel = cb::gLevels.current;
+		cb::Level* aLevel = cb::gLevels.mCurrent;
 		SDL_Log("state: score %d, lives %d, board %d, filled %d of %d%%", cb::gScore, cb::gLives, cb::gLevelInSet,
-			aLevel != nullptr ? aLevel->filledCells : -1, aLevel != nullptr ? aLevel->fillQuota : -1);
+			aLevel != nullptr ? aLevel->mFilledCells : -1, aLevel != nullptr ? aLevel->mFillQuota : -1);
 	}
 	std::vector<std::string> aReplies;
 	if (!cb::TestCommand(theCommand.mCommand, theCommand.mArgs, aReplies))

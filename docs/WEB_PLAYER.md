@@ -297,6 +297,13 @@ read, prepares the chosen theme into `byopop-theme-wallpaper` (a JPEG data URL) 
 each at most 96 KB) for every page; None, or the game's files forgotten, removes both. The sounds play at the Sounds
 window's volume and mute and never at `?silent=1`.
 
+A wallpaper the browser cannot decode as it is goes through `web/gamepics.js`: an image of a Retro64 bank (Cosmic Bugs,
+Water Bugs; the table's `"<bank>.dat|bbk:<name>"`), raw pixels that the `.bbk` index beside it places and gives a palette;
+and a JPEG 2000 picture (Bejeweled Twist's `.jp2`), by the framework's own decoder (`platform/openjpeg/JP2Decoder.cpp`) built
+on its own as `jp2.js` and `jp2.wasm` (`web/jp2/jp2_web.cpp`, about 250 KB), loaded only when such a theme is prepared.
+Both are tested by `tools/gamepicstest.js` (unit-web) on pictures made for it. The wallpaper becomes a JPEG, so a
+picture's alpha mask is not read: each wallpaper chosen has none.
+
 ### The screen saver
 
 Settings > Screen Saver (`web/saver.js`; the user, 2026-11-11) has the game, None by default, then each game with a bot
@@ -314,6 +321,51 @@ made in its modding phase) answers the same question in a live build through `by
 argument and returning the same text `move` prints after `MOVE ` (the move as JSON with its `input` steps in game
 coordinates, or `null`), changing nothing in the game. The saver lists a game on the live site once its build exports it,
 and plays each answer's `input` as real events, as the driver does.
+
+### The trophy cabinet
+
+The Trophy Cabinet (`web/trophies.js`; the user, 2026-11-11) is a Desktop 95 window on the listing's desktop that gathers each
+game's own records from its saves in this browser and shows them, a table for each of the game's lists, under the names the
+games give their modes. Its Player drop-down picks a site player (`web/profiles.js`), and then only the rows under that
+player's name are shown, compared as the games compare names, without regard to case. It reads the files as the Sounds window
+does (`ByopopMusic.files`), each time the window opens, and writes nothing.
+
+Every reader follows the port's own save code, which its entry in `RECORDS` names, and is tested under Node by
+`tools/trophiestest.js` (unit-web) on files made for it. A file that is missing, of the wrong size or version, or cut short
+gives what it holds or nothing. The rows are shown as the game keeps them, its built-in rows too, in its order. A day's best
+appears as the Today place only on the day it was set, by the game's own day count. Times are shown as m:ss, or as h:mm:ss
+where they can run past an hour (the Mahjong Escapes, BookWorm Adventures' arena).
+
+| Game | Read from (in the game's user folder) | Tables |
+|---|---|---|
+| Bejeweled, Big Money, Alchemy, Seven Seas, Noah's Ark, Mummy Maze, Rocket Mania, Bejeweled 2 | `hiscores.dat` (Rocket Mania `Players/`, Bejeweled 2 `users/`): PopCap's checked high-score records | one table a mode, with Today where the game keeps it |
+| Atomica | `HS.CFG` | Strategy, Action, with Today |
+| Dynomite | `STOMPED.HS`, `ENDLESS.HS`, `FOSSIL.HS`, `TIMETRIAL.HS` | one table a file; Time Trial as m:ss |
+| Bejeweled Twist | `users/scores.dat` | Classic, Blitz |
+| AstroPop | `users/datahs.usr` | Classic by points, Survival by its time (m:ss) |
+| Cosmic Bugs, Water Bugs | `cb.dat` | the eight high scores |
+| Typer Shark | `users/user.idx` | the score table and the abyss's |
+| Bonnie's Bookstore | `Data/HighScores.dat` | Classic, Action, with the longest word |
+| Tip Top | `Preferences.dat`, its first 560 bytes | Regular, Speed, Strategy (the Timed table, which no button reaches, left out); empty places not shown |
+| BookWorm | `registry.ini`, the key `Scores` | Classic, Action, Best Word, Longest Word |
+| Ning Po | `registry.ini`, the values `HS:<layout>x<rank>` | the played places of each layout, as m:ss |
+| Word Harmony | `registry.ini`, the keys `scores\<mode>` | Puzzle, Solitaire, Action |
+| Mahjong Escape: Ancient China, Ancient Japan | every player's `<id>.usr` | each layout and escape level someone has won, the players by score with their best times |
+| BookWorm Adventures and its Volume 2 | every player's `users/<name>.bwa` | Top Words, Arena (by stage, with its time) |
+
+The registry's games are read from the port's registry file (`userdata/registry.ini`, `framework/SexyAppBase.cpp`), whose
+values a small parser decodes (`parseIni`). Where a game builds its list across players (the Mahjong Escapes, BookWorm
+Adventures), the cabinet builds it as the game's code does, from every player's file. A Word column appears where a game keeps
+a word beside the name (BookWorm, Bonnie's Bookstore, BookWorm Adventures' top words), and a Time column where it keeps a best
+time beside the score (the Mahjong Escapes).
+
+Names are read at run time from the player's own files and never written into the site: a Mahjong layout's name is the name
+of its `LAYOUTS` resource in the player's own `Resource.dll`. Where a game names something only in a picture, the table gets a
+number (Ning Po's layouts, "Layout n"; the Mahjong Escapes' escape levels).
+
+Left out on purpose: BookWorm Adventures' mini-game tables, which the game's scripts name and format; Bejeweled Twist's
+challenge progress and per-player bests in `profile.dat`, and AstroPop's per-player bests, which are a player's record rather
+than a high-score list; Pixelus, which keeps no score list.
 
 ### The fixes mod on the site
 
@@ -468,7 +520,9 @@ notes:
 
 While a game window is in front and plays music, Music's views show that music live (the user, 2026-11-09: "make the
 tracker/spectral analyzer sync with what's playing in the active game"), tagged with the game: the game window last
-made active, while open and not minimized (`frontFrame` in `web/deskapps.js`).
+made active, while open and not minimized (`frontFrame` in `web/deskapps.js`). While Music plays or loads a tune of its
+own, the views and the seek bar are that tune's, and no game is followed (the user, 2026-11-12: "jumping around in the
+song does not actually skip the audio").
 
 **Focus and sound (the user, 2026-11-10).** A site window is a desktop window: a game whose window is not the active one
 does what its original does without the focus (the framework's own focus handling, nothing added for the web). Only one
@@ -506,8 +560,27 @@ The Splits window (`web/splits.js`) stands in for LiveSplit (the user: "a LiveSp
 really could do speedruns on it"), its splits kept in IndexedDB (`byopop-splits`) and imported and exported as
 LiveSplit `.lss` files. Game Time is the update count of the game window in front when the run starts
 (`byopop_update_count`) times the game's update step (10 ms; 5 ms in the Mahjong games); a game without the count has
-none. There is no autosplitting: no web build has the desktop builds' LiveSplit block (Bejeweled's
-`features.livesplit`).
+none.
+
+**Auto splitting** (the user, 2026-11-11: "Add Bejeweled autosplitter to the site. Also, let's build in autosplitters to
+every port of a game with a leaderboard on speedrun.com"). `web/autosplit.js` holds each game's auto splitter: the block
+the port publishes, how to read it and the decisions. With Options, Auto Splitter on (the default), the window polls a game
+every 10 ms, as LiveSplit does. That is the game window in front while the timer is idle, and the run's own window while it
+runs. It does so only when the game has an auto splitter and the splits' game name is the game's speedrun.com name. Its
+decisions go through the timer's own Start, Split and Reset, so an automatic reset asks about new bests as the player's does;
+a split undone by hand is split again on the next poll, and the run's window closing is the script's exit. File, New from
+Template offers each game's templates, named after its speedrun.com categories, and opens the stored splits of the same
+name when they exist. Game pages export `HEAPU8`, which the page reads the block from.
+
+Bejeweled publishes the desktop's LiveSplit block (`games/bejeweled/src/LiveSplitBlock.h`, layout 1, filled by
+`LiveSplitObserver.cpp` after every update). In the web build the page turns it on by asking for its address
+(`byopop_livesplit_block`), as `features.livesplit` does natively; the observer only reads the game. Its decisions are
+`games/bejeweled/tools/livesplit/lsdecide.py`'s, line for line: start at GO in the category's mode, split at each wormhole
+or when the score on screen reaches a segment's number, and reset when the run's board ends, with each reset kind a setting.
+`tools/autosplittest.js` (in `check.sh unit-web`) replays lsdecide.py's 27 scenarios, 53 replays on the game and probe logs,
+from `tools/autosplit/bejeweled-scenarios.json.gz`. `tools/autosplit/bejeweled_fixture.py` writes that file from
+`run_tests.sh`'s runs, with the events lsdecide.py decides, and every event, its poll and its board must agree. The design
+for every other game is Milestone 2's, still to come.
 
 ### Music levels
 
@@ -581,6 +654,18 @@ development host served by `tools/webtest/serve.py` (`index.html?silent=1&driver
 pixels wide). For each window it checks that structure and runs the checker on the live page. The result is in
 `window.byopopDeskCheck.result`, and the page's title ends with "deskcheck: PASS" or "FAIL". The chat's window is checked
 closed, because opening it starts the chat.
+
+Three more checks run the same way, each named in `driver=` and each reporting through the same result and title.
+`tools/web/closecheck.js` closes game windows whose page never answers the close: a page that is not there, a frame that
+could not load, and a page that takes the close but never hands the window back. The window must go at once, or, for the
+silent page, after its four-second wait, and at once on a second Close (`web/deskapps.js`, `closeApp`).
+`tools/web/splitscheck.js` resets the speedrun timer with No, with Escape, after an abandoned run and after an Undo, and
+compares the stored splits with what they were before the attempt. It then answers Yes and checks that the run's times were
+kept (`web/splits.js`, `reset`); it removes its own test splits at the end. `tools/web/musicmutecheck.js` mutes a channel from
+Music's tracker, turns the view off and on, switches tunes and comes back, and compares the tracker's header with what the
+player itself has muted (`bm_mute_status`). It then sends the keyboard's media keys with Music open and closed and checks
+the player's state and its sound context, not its buttons (`web/music.js`, `syncMutes` and the media keys). It needs games
+added that have two module tunes.
 
 ## The site's text
 

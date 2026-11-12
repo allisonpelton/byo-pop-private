@@ -116,9 +116,32 @@ var ByopopThemes = (function () {
     for (var i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
     return btoa(s);
   }
+  // the wallpaper's picture: a file the browser decodes, or one web/gamepics.js decodes: "<bank>.dat|bbk:<name>", an image of a
+  // Retro64 bank with its .bbk index beside it, or a .jp2
+  function readWallpaper(game, rel) {
+    var bbk = rel.indexOf("|bbk:"), G = typeof ByopopGamePics !== "undefined" ? ByopopGamePics : null;
+    var picture;
+    if (bbk >= 0) {
+      var dat = rel.slice(0, bbk);
+      picture = Promise.all([readFile(game, dat.replace(/\.dat$/i, ".bbk")), readFile(game, dat)]).then(function (r) {
+        return G ? G.bbk(r[0], r[1], rel.slice(bbk + 5)) : null;
+      });
+    } else if (/\.jp2$/i.test(rel)) {
+      picture = readFile(game, rel).then(function (b) { return G ? G.jp2(b) : null; });
+    } else {
+      return readFile(game, rel).then(function (b) { return drawWallpaper(b, rel); });
+    }
+    return picture.then(function (pic) {
+      if (!pic) throw new Error("no picture");
+      var c = document.createElement("canvas");
+      c.width = pic.width; c.height = pic.height;
+      c.getContext("2d").putImageData(new ImageData(new Uint8ClampedArray(pic.rgba.buffer, pic.rgba.byteOffset, pic.rgba.length), pic.width, pic.height), 0, 0);
+      return drawWallpaper(c);
+    });
+  }
   function drawWallpaper(bytes, rel) {
     var type = /\.png$/i.test(rel) ? "image/png" : /\.gif$/i.test(rel) ? "image/gif" : "image/jpeg";
-    return createImageBitmap(new Blob([bytes], { type: type })).then(function (bmp) {
+    return (bytes instanceof HTMLCanvasElement ? Promise.resolve(bytes) : createImageBitmap(new Blob([bytes], { type: type }))).then(function (bmp) {
       var k = Math.min(1, WALL_MAX / bmp.width), c = document.createElement("canvas");
       c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k);
       c.getContext("2d").drawImage(bmp, 0, 0, c.width, c.height);
@@ -140,7 +163,7 @@ var ByopopThemes = (function () {
     var game = gameOf(id), t = THEMES[id];
     if (!game) return Promise.resolve(false);
     preparing = id;
-    var wall = t.wallpaper ? readFile(game, t.wallpaper).then(function (b) { return drawWallpaper(b, t.wallpaper); }).catch(function () { return ""; }) : Promise.resolve("");
+    var wall = t.wallpaper ? readWallpaper(game, t.wallpaper).catch(function () { return ""; }) : Promise.resolve("");
     var sounds = {};
     var reads = Object.keys(t.sounds || {}).filter(function (e) { return EVENTS.indexOf(e) >= 0; }).map(function (e) {
       return readFile(game, t.sounds[e]).then(function (b) { if (b.length <= SOUND_MAX) sounds[e] = { rel: t.sounds[e], data: toBase64(b) }; }, function () {});

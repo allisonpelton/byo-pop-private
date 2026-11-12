@@ -15,9 +15,7 @@ namespace r64
 // 0x4e8 bytes in both exes, whose offsets these are
 struct TextInput
 {
-	int mSurfacePadding[2];     // +0x00, +0x04  nothing reads them
-	Image* mSurface;            // +0x08  drawn on instead of the screen (none: the game passes null)
-	Image* mBackground;         // +0x0c  under the text on the surface (null: black)
+	uint8_t mSurfaceUnused[0x10]; // +0x00  the original's own drawing surface and its background, which both games leave null
 	Font* mFont;                // +0x10
 	int mX;                     // +0x14
 	int mY;                     // +0x18
@@ -25,7 +23,7 @@ struct TextInput
 	int mH;                     // +0x20
 	int mBox[4];                // +0x24  l, t, r, b (inclusive): clicks inside focus it
 	int mActive;                // +0x34  0: not drawn and not updated
-	int mWasActive;             // +0x38
+	int mWasActiveUnused;       // +0x38  the original's, for its own surface
 	int mFrame[4];              // +0x3c
 	int mInner[4];              // +0x4c  the frame less a pixel: the text and the caret are clipped to it
 	int mPadX;                  // +0x5c
@@ -34,7 +32,7 @@ struct TextInput
 	uint8_t mFrameColour[4];    // +0x74  r, g, b, a (a 0: no frame)
 	uint8_t mFillColour[4];     // +0x78  (a 0: no fill)
 	char mColourCode;           // +0x7c  the font's "^c" the text is drawn in
-	int mRedraw;                // +0x80
+	int mRedrawUnused;          // +0x80  the original's, for its own surface
 	int mFocused;               // +0x84  1: takes keys and shows the caret
 	uint8_t mCaretColour[4];    // +0x88
 	int mCaretOn;               // +0x8c  the caret's blink
@@ -69,9 +67,10 @@ struct TextInput
 
 // 0x42bda0 (cosmicbugs), 0x42c280 (waterbugs)
 void TextInput_Clear(TextInput* theInput);
-// 0x42bed0 (cosmicbugs), 0x42c3b0 (waterbugs): theSurface null draws on the screen; theBackground null is black
-void TextInput_Init(TextInput* theInput, Image* theSurface, Image* theBackground, Font* theFont, int theMaxLength,
-	char theColourCode, int l, int t, int r, int b);
+// 0x42bed0 (cosmicbugs), 0x42c3b0 (waterbugs): draws on the screen (the original's own surface and background, both
+// null in both games, are not here)
+void TextInput_Init(TextInput* theInput, Font* theFont, int theMaxLength, char theColourCode, int l, int t, int r,
+	int b);
 // 0x42c100 (cosmicbugs), 0x42c5e0 (waterbugs)
 void TextInput_SetFillColour(TextInput* theInput, uint8_t r, uint8_t g, uint8_t b, uint8_t a);
 // 0x42c130 (cosmicbugs), 0x42c610 (waterbugs)

@@ -1,0 +1,39 @@
+at 562 shot title
+at 566 move 320 401
+at 568 click 320 401
+at 808 shot menu
+at 811 move 320 62
+at 813 click 320 62
+at 900 shot u1
+at 910 move 320 123
+at 912 click 320 123
+at 940 shot u2
+at 950 move 253 262
+at 952 click 253 262
+at 1050 shot u3
+at 1060 text Bob
+at 1100 shot u4
+at 1110 key 13
+at 1200 shot u5
+at 1210 move 320 62
+at 1212 click 320 62
+at 1300 shot u6
+at 1310 move 320 151
+at 1312 click 320 151
+at 1340 shot u7
+at 1350 move 253 222
+at 1352 click 253 222
+at 1440 shot u8
+at 1450 text Z
+at 1490 shot u9
+at 1500 key 13
+at 1600 shot u10
+at 1610 move 320 62
+at 1612 click 320 62
+at 1700 shot u11
+at 1710 move 320 151
+at 1712 click 320 151
+at 1740 move 386 222
+at 1742 click 386 222
+at 1840 shot u12
+quit

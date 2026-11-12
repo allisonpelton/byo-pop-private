@@ -93,6 +93,23 @@ holds the rules every session follows; this file does not repeat them.
   two-by-two causes issues. If not, continue with two". A game that builds on another's engine waits for that game; a
   slot the next game cannot use yet goes to the cheapest remaining one. Within a step, the lowest-effort games go first
   ("Start with lowest effort", 2026-11-03).
+- **A new port writes to the standards from its first draft (the user, 2026-11-12: "Yes, add it").** Of what the
+  eleven smaller games spent after their first playable merge (about $2,200 at Opus prices), about half went on the
+  checks against the original (identical play, screens and sound, coverage, the Collection), a fifth on performance and
+  a sixth on passes that rework the first write (readability, unneeded code, registration out); Noah's Ark had the
+  cheapest port and the dearest finish of them. So a new port, from its first draft:
+  - takes the Mac build's names before translating (`docs/MACMATCH.md`, as before) and names everything else to
+    `docs/CODE_STANDARDS.md` as it goes, so `tools/namecheck.py` passes at its first merge;
+  - leaves out the registration paths and every button that leads out of the game (CLAUDE.md, "Order of the work");
+  - does not translate a function the export shows nothing can reach (no caller, no vtable slot, no table or callback
+    holding it), and lists each one by its address in the notes, so the coverage check confirms it;
+  - uses the framework's fast paths and avoids the shared costs listed under "A performance pass" below (pictures
+    decoded at their first use, sounds at their first play, loading in one go);
+  - translates rigorously: loops in their original shape, every random draw in its order, the original's arithmetic.
+  The steps keep their order, since speed-ups and removals are proved against the frozen baseline of a port that
+  already plays identically, but each is shorter: the readability step is namecheck's run and a read of what it flags,
+  the unneeded-code step is what the coverage check finds, and the performance pass is the measurement and the game's
+  own hot spots. One session takes the game through every step; each brief for a new port says so.
 - **The readability pass (the user, 2026-11-08, 2026-11-10):** "NO unknown/unnamed variables." Bejeweled set the
   standards, Twist tested them, and the user approved them ("new standards approved"): `docs/CODE_STANDARDS.md`, with
   `tools/namecheck.py` to prove "no unknowns" by a run. A readable port changes nothing it does and keeps each
@@ -111,16 +128,66 @@ holds the rules every session follows; this file does not repeat them.
   fixes mod when it keeps the original's look and only stops wasting time, otherwise a mod of its own that starts off
   (like Bejeweled's `lean`). No threads. A session may speed up its own port at any time under these rules ("Sessions
   should be allowed to improve performance early on so they can test with -fast and run even faster", 2026-11-08).
+  **The target (the user, 2026-11-11):** "I understand why our framework increases RAM usage on every game. Is there
+  an equivalent justification for some games being worse on CPU? If not, that should be an enforced target." There is
+  none: the framework adds a fixed amount of memory to every process, but a port's extra processor time has always
+  come from code that does more work than it needs to. So a port's processor time is at most its original's before the
+  pass is done, measured like for like:
+  - the same stretch of play;
+  - the original paced as on a player's 60 Hz screen, since one that waits for a vertical blank spins on the hidden
+    desktop;
+  - sound counted the same way on both sides. origrun's stand-in takes the original's DirectSound, and its MIDI device
+    calls may be skipped, so the original's number may hold no mixing or synthesis. Measure the port the same way, or
+    count its mixer and synthesizer apart.
+  - **Cycle counts, not GetProcessTimes or GetThreadTimes.** Count processor time as the threads' cycle counts
+    (QueryThreadCycleTime, summed over the process's threads; `games/tiptop/tools/perf/cpuprof2.py` at seconds 0
+    reads them without disturbing the run). Windows charges process and thread times by sampling at the 15.6 ms clock
+    tick: a frame loop doing exactly 0.60 s of work was charged 0.59 to 0.72 s in five runs, while its cycle count
+    stayed within 4% (2026-11-11).
+  - **The player's exe, with no test machinery running.** There is no separate player build: the shipped exe is the
+    Release build, and its test code costs a few comparisons an update while no flag turns it on. During the measured
+    stretch, nothing of it may run:
+    - input comes from a `-script` read at start, or from posted real input;
+    - no `-commands` channel, which is polled every update;
+    - no per-update state log;
+    - no in-process bot, unless the original runs the same bot code. Otherwise subtract the bot's cycles.
+    The load figures may use the channel and say so.
+  - **Alternating runs.** Alternate the two sides' runs and take the medians of at least five pairs.
+    `python -I tools/pincore.py -- <command>` runs each on a performance core of its own: no efficiency core, and no
+    hyperthread shared with another pinned run.
+  Where the excess is a shared cost, the session sends the spec, and the game waits for the framework's fix instead of
+  being let off.
   Shared costs are found once and fixed in the framework for every game; the list below holds them.
 - **Shared costs waiting for a fix:**
   - Loading GIFs: decoded to 32 bits (`_stbi__out_gif_code`) and quantized back to 8 (`Sexy::Quantize8Bit`, a binary
     search a pixel; a cache of the last colour gives the identical table), about a quarter of a load's processor time,
-    0.15 to 0.2 s of a load in any game with GIFs (Typer Shark, AstroPop, GAME_NOTES section 11).
-  - imagehlp.dll, 5 to 7.6% of a run's cycles, from a call site not yet found (Typer Shark, AstroPop).
+    0.15 to 0.2 s of a load in any game with GIFs (Typer Shark, AstroPop, GAME_NOTES section 11). With the JPEG and
+    Vorbis decoders and Platform::DecodeImage, the load's decoding is about 12% of Bejeweled 2's 3D run without waiting.
+  - imagehlp.dll, 2.4 to 7.6% of a run's cycles, from a call site not yet found (Typer Shark, AstroPop, Bejeweled 2).
+  - The 2D path on SDL's software renderer (`DDInterface.cpp`, `mIs3D` false, about lines 784 to 833): every sprite an
+    SDL_RenderCopyEx or SDL_RenderGeometry blended in software, 15 to 25 ms a drawn frame in Bejeweled 2's 2D mode (81%
+    of a core where the original takes 18%, 83.6% of the cycles in SDL2.dll, 31 s for a `-drawevery` test run). It
+    reaches a player without an accelerated renderer and every 2D test run. Drawing the dirty widgets into one CPU
+    surface with the framework's own blitters and uploading it once a frame, as SexyAppFramework's DirectDraw path does,
+    would cut it; test with `games/bejeweled2/tools/profile/pairs.sh` and `tools/check.sh --changed` (2026-11-12).
+    Bejeweled 2 counted the draw calls on its idle board (2026-11-11, cycle counts, five pinned pairs): 93.7% of a core
+    against the original's 12.7%, 98% of it inside SDL's draw calls, a 14.5 ms frame of about 65 opaque sprites at 183
+    us each. Two causes. A window of 1,280 by 960 gives a render scale of 2, so every sprite goes through SDL's
+    software stretch; and an image with no transparency is still blended. Three changes, prototyped in a scratch build:
+    an image with neither alpha nor transparent pixels, drawn at full alpha in normal mode, as a copy
+    (`SDL_BLENDMODE_NONE`; frame 13.2 to 7.8 ms, the shot identical); drawing at the logical size on the software
+    renderer and presenting with a nearest-neighbour stretch at an integer ratio (frame 2.6 ms, the board 23.8%; pixel
+    doubling instead of smoothing, so a change of look the user decides); and drawing at most at the display's rate,
+    skipping a frame with nothing dirty, as the surface presenter below does. The first goes in as a `shared:`
+    commit from Bejeweled 2, the third into the presenter; the second waits until those are measured.
+  - A relative `-userdir` (`./u3/`) is not found where the same folder by its absolute path is (Bejeweled 2): harmless
+    for players, a trap for scripts.
   - Memory: the Direct3D 11 device (20 to 25 MB and about 0.2 s of start); every image's pixels kept after upload (19
     MB of Bejeweled's 55, 20.6 of Typer Shark's 85); about 54 MB in every process before it reads a game file;
     libopenmpt decoding a module whole (51 MB of Ancient Japan's 146), and an OGG tune the same (Ning Po's 5.6 MB),
-    where a streaming render would hold one buffer; Mahjong Escape's engine keeping each image's decoded bits beside its 32-bit copy.
+    where a streaming render would hold one buffer; Mahjong Escape's engine keeping each image's decoded bits beside its 32-bit copy;
+    in 2D, a picture loaded as 8-bit pixels and a palette kept as 32-bit pixels and a texture once drawn (Bejeweled 2's
+    private bytes go from 59 to 101 MB at a game's start, the original's from 40 to 43; memreport with PERF_MEM=1).
   - A memory jump beneath the heap: Twist's 2D level-up raises private memory by about 165 MB for ten seconds (the
     original flat), AstroPop's game start by about 60 MB for a few seconds, so it is likely the display layer. Count
     texture creations there in the first second of an AstroPop game, or hook malloc with a `--wrap` link.
@@ -132,7 +199,37 @@ holds the rules every session follows; this file does not repeat them.
     it, a visible change, so a mod. The whole-screen SDL_UpdateTexture of a software-drawn game (7% of Alchemy's main
     thread): uploading only a MemoryImage's changed rectangle would cut it. SexyApp::Init's window and device, 250 to
     310 ms of Noah's Ark's 0.6 s start (no threads, so no fix found). SDL's software renderer, the fallback without a
-    GPU, 10 to 13 ms a frame at 640x480 against 0.26 ms with Direct3D 11.
+    GPU, 10 to 13 ms a frame at 640x480 against 0.26 ms with Direct3D 11. A partial upload helps a game whose dirty
+    rectangle is most of the screen little (87% on Cosmic Bugs' board); a streaming or 16-bit texture would cut the bytes.
+    In Word Harmony the frame's present is about 35% of what is left after its pass (the whole 1.9 MB screen picture
+    to a static texture, then the copy to the target and the window); SDL's other drivers cost the same or more. A
+    rectangle upload fed by a list of changed rectangles the game gives the screen image would help it; test with its
+    `tools/profile/pair.sh` against the original (2026-11-11). TipTop measured the other side: its screen uploaded as
+    tiles (128x96, 320x240 or 64x48, about 6 of 25 changed a frame) gained nothing, since an upload call costs 0.3 to
+    0.45 ms whatever its size, so a rectangle upload pays only where it stays one call a frame (2026-11-11).
+    Mahjong measured the way out (2026-11-11, `build/presenttest` in its worktree). It sent 800x600 software frames at
+    40 a second and counted cycles over 15 s, with these results:
+
+    | Presenter | Cycles in 15 s |
+    |---|---|
+    | The framework's renderer path | 1.6 to 2.3 G |
+    | No vsync | 1.7 to 2.1 G |
+    | SDL's software renderer | 1.2 G |
+    | The window surface (SDL_UpdateWindowSurface), whole frame | 0.68 to 0.80 G |
+    | The window surface with a dirty rectangle of 15% | 0.26 to 0.28 G |
+    | The window surface with a dirty rectangle of 3% | 0.12 to 0.16 G |
+
+    A partial texture upload does not help, since the driver's cost is per present. So a software-surface presenter,
+    opt-in by the app and given the frame's dirty rectangle, is the fix for every software-drawn port. The Mahjong
+    session builds it as shared commits, design note first; Cosmic Bugs keeps its own partial-upload work off the
+    trunk.
+  - `SexyAppBase::PollLiveCommands` stats the `-commands` file every 10 ms update, about 0.34 M cycles a call: an eighth
+    of the main thread in a run that uses the channel (`-commands`, `-realinput`), and every update under `-fast`. Poll
+    every tenth update or on a change notification; any suite that uses the channel must give the same results (Cosmic
+    Bugs, 2026-11-11).
+  - A cycle-weighted EIP sampler charges a thread's bursts to the wait it stands in (54% of Cosmic Bugs' cycles on
+    `ZwWaitForSingleObject`); timers around the calls with `QueryThreadCycleTime` find the real split. Cosmic Bugs'
+    `tools/perf/cpuprof.py` has `CALLERS=1` (the exe function and the DLL on the stack).
   - For profiles, `tools/profile/callprof.py` puts 86% of samples in ntdll whatever the thread does; per-thread cycle
     counters are the way.
 - **Memory broken down, and a software path to test (the user, 2026-11-11):** "I'd want the more granular performance

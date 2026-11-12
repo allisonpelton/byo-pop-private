@@ -4,7 +4,7 @@ A port of PopCap and Nuclide's Rocket Mania Deluxe (2003) that plays natively (W
 (WebAssembly). It is a translation of the original's game classes into code on the shared framework; it ships none of the
 game's pictures, sounds, music or texts, which come from your own copy of the game.
 
-## Status (2026-10-26)
+## Status (2026-11-11)
 
 The game is translated: the loading screen, the menu, every dialog the registered game shows (difficulty, continue, quit,
 options, credits, high scores, record score, hints, level up, the buy-rockets screen), the Board with its three modes
@@ -13,8 +13,9 @@ tips (`TalkingHead.cpp`) and the classic mode's lanterns. It runs unmodified, wi
 the standard mods. Left out on purpose: the shareware pieces (the trial clock 0x42f770 and the register dialogs 0x414790,
 0x415020, 0x4153b0), because the Steam copy is registered, and the partner and update links of the options dialog.
 
-Still to do: a pass that compares each screen and rule with the original running (the fidelity pass), the web page's
-checks in a browser, and the stores line `BYOPOP_BUY_rocketmania` in `cmake/ByopopStores.cmake`, which the coordinator
+Both phases of the identical-play pass are done (`IDENTICAL_PLAY.md`: plays identical, then looks identical, with a leak of the port fixed). Still to do, in the order of CLAUDE.md: the fixes mod (no
+candidates so far), the coverage check, the performance pass, code the game does not need, the readability pass, the check against
+the PopCap Game Collection version, and the stores line `BYOPOP_BUY_rocketmania` in `cmake/ByopopStores.cmake`, which the coordinator
 supplies.
 
 ## The binary

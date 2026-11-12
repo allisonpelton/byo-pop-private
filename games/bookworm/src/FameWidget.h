@@ -3,7 +3,7 @@
 
 // FameWidget.cpp (0x421860-0x428f50): the Hall of Fame. A full-screen page with the app's four high-score
 // tables (Classic and Action top 10, the 3 best and the 3 longest words), the entries of the game just
-// played pulsing with a shadow, and one continue button. BookWormApp::ShowHallOfFame creates it (from
+// played pulsing with a shadow, and one continue button. BookWormApp::DoFameWidget creates it (from
 // the game selector, or after game over from the LevelUpWidget); it pauses the board and plays the
 // hall-of-fame music while it is up.
 // The original is also the internet high-score page (mode 1: download/submit over HTTP, tab buttons and
@@ -11,7 +11,7 @@
 // registered build (partner.xml NoInternetScores): none of it is ported. The tab buttons and checkboxes
 // are created hidden by the local page too and stay hidden; they are kept as in the original.
 // Original: class Sexy::FameWidget : public Widget, public ButtonListener (+0x58), public CheckboxListener
-// (+0x5c), sizeof 0x2a0, vftable 0x4fc8dc (53 slots: 47 DrawLocalScores, 48 DrawInternetScores, 49
+// (+0x5c), sizeof 0x2a0, vftable 0x4fc8dc (53 slots: 47 DrawLocalFame, 48 DrawInternetScores, 49
 // ShowInternetControls, 50 SetTab, 51 SetPeriod, 52 SetTabAndPeriod), ButtonListener 0x4fc8c0,
 // CheckboxListener 0x4fc8b8. Offsets are absolute (the 2004 Widget is 0x58 bytes).
 // Behaviour spec: re/bookworm/analysis/fame.md section 1.
@@ -90,7 +90,7 @@ public:
 	virtual void	Draw(Graphics* g) override;                             // 0x421f00 slot 16
 	virtual void	Update() override;                                      // 0x427f30 slot 17
 
-	virtual void	DrawLocalScores(Graphics* g);                           // 0x424c30 slot 47
+	virtual void	DrawLocalFame(Graphics* g);                           // 0x424c30 slot 47
 	// slot 48 DrawInternetScores (0x425880): internet, not ported
 	virtual void	ShowInternetControls(bool show);                        // 0x4219e0 slot 49
 	virtual void	SetTab(int theTab);                                     // 0x421860 slot 50

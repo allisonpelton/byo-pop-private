@@ -21,9 +21,9 @@ Steggy::Steggy(FossilizedApp* theApp, Dynomite* theBoard)
 	mBobAngle = 0;
 	mNext = NULL;
 	mToss = NULL;
-	mField2c = 2000;
+	mTossDelay = 2000;
 	mAlerting = false;
-	mField28 = true;
+	mInRound = true;
 	mWantEgg = true;
 	mDropEgg = false;
 	mBlinkCount = 0;
@@ -51,12 +51,12 @@ void Steggy::Toss()
 		mTossVX = 4.0f;
 		mTossVY = -8.0f;
 		mNext = NULL;
-		mField2c = 1000;
+		mTossDelay = 1000;
 		mAlerting = false;
 	}
 }
 
-// 0x437ea0: lowered with the slingshot once the ceiling comes past 372
+// 0x437ea0: lowered with the slingshot once the ceiling comes past 372; the alert drawn at a float y is 0x437e60, inline
 // port: the x87 code keeps the sums unrounded, so they work in double
 void Steggy::Draw()
 {
@@ -71,21 +71,21 @@ void Steggy::Draw()
 	if (mToss != NULL)
 		mToss->Draw();
 	Dynomite* aBoard = mBoard;
-	if ((0 < aBoard->mGrid->mPastLineFrames) && (aBoard->mField149 == true))
-		mApp->mPicSteggyterror->Draw((aBoard->mField158 + aBoard->mField70) - 0xb0,
+	if ((0 < aBoard->mGrid->mPastLineFrames) && (aBoard->mPastLineLoses == true))
+		mApp->mPicSteggyterror->Draw((aBoard->mLauncherOffsetX + aBoard->mPlayMiddleX) - 0xb0,
 			(int) ((double) mDrop + (double) mBob + 372.0));
 	else
-		mApp->mPicSteggy->Draw((aBoard->mField158 + aBoard->mField70) - 0xb0,
+		mApp->mPicSteggy->Draw((aBoard->mLauncherOffsetX + aBoard->mPlayMiddleX) - 0xb0,
 			(int) ((double) mDrop + (double) mBob + 372.0));
 	anOffset.mY = -anOffset.mY;
 	AddDrawOffset(anOffset);
 	aBoard = mBoard;
-	if ((0 < aBoard->mGrid->mPastLineFrames) && (mBlink == true) && (aBoard->mField149 == true) &&
-		(aBoard->mField130 == false))
+	if ((0 < aBoard->mGrid->mPastLineFrames) && (mBlink == true) && (aBoard->mPastLineLoses == true) &&
+		(aBoard->mLosing == false))
 	{
 		// 0x437e60 draws a Pic at a float y
 		float aY = (float) ((double) mDrop + (double) mBob + 372.0 - 12.0);
-		mApp->mPicAlert->Draw((aBoard->mField158 + aBoard->mField70) - 99, (int) aY);
+		mApp->mPicAlert->Draw((aBoard->mLauncherOffsetX + aBoard->mPlayMiddleX) - 99, (int) aY);
 	}
 }
 
@@ -93,7 +93,7 @@ void Steggy::Draw()
 // tossed egg falls 0.75 a frame faster until it reaches the slingshot's middle plus 16
 void Steggy::Update()
 {
-	if (mBoard->mField131 != true)
+	if (mBoard->mGameOver != true)
 	{
 		if (mWantEgg == true)
 		{
@@ -130,7 +130,7 @@ void Steggy::Update()
 		mBob = mApp->mAngles->mDY[anAngle] * 5.0f;
 		if (mNext != NULL)
 		{
-			mNext->mX = (float) ((mBoard->mField158 + mBoard->mField70) - 0x61);
+			mNext->mX = (float) ((mBoard->mLauncherOffsetX + mBoard->mPlayMiddleX) - 0x61);
 			mNext->mY = (float) ((double) mBob + (double) mDrop + 424.0);
 		}
 		if (mToss != NULL)
@@ -138,15 +138,15 @@ void Steggy::Update()
 			mToss->mX = mTossVX + mToss->mX;
 			mToss->mY = mToss->mY + mTossVY;
 			mTossVY = mTossVY + 0.75f;
-			if ((float) (mBoard->mField158 + 0x10 + mBoard->mField70) <= mToss->mX)
+			if ((float) (mBoard->mLauncherOffsetX + 0x10 + mBoard->mPlayMiddleX) <= mToss->mX)
 			{
 				mBoard->mLauncher->SetLoaded(mToss);
 				mToss = NULL;
 			}
 		}
-		if ((mDrop <= 0.0f) && (mBoard->mFieldB0 == true))
+		if ((mDrop <= 0.0f) && (mBoard->mPlaying == true))
 		{
-			mField2c = 1000;
+			mTossDelay = 1000;
 			if (mAlerting == true)
 			{
 				mBlinkCount--;
@@ -176,8 +176,8 @@ void Steggy::SaveState(BinFile* theFile)
 	theFile->WriteInt(mBobAngle);
 	theFile->WriteFloat(mTossVX);
 	theFile->WriteFloat(mTossVY);
-	theFile->WriteBool(mField28);
-	theFile->WriteInt(mField2c);
+	theFile->WriteBool(mInRound);
+	theFile->WriteInt(mTossDelay);
 	theFile->WriteBool(mAlerting);
 	theFile->WriteInt(mBlinkCount);
 	theFile->WriteBool(mBlink);
@@ -215,8 +215,8 @@ void Steggy::LoadState(BinFile* theFile)
 	mBobAngle = theFile->ReadInt();
 	mTossVX = theFile->ReadFloat();
 	mTossVY = theFile->ReadFloat();
-	mField28 = theFile->ReadBool();
-	mField2c = theFile->ReadInt();
+	mInRound = theFile->ReadBool();
+	mTossDelay = theFile->ReadInt();
 	mAlerting = theFile->ReadBool();
 	mBlinkCount = theFile->ReadInt();
 	mBlink = theFile->ReadBool();

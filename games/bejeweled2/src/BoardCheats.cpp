@@ -35,7 +35,7 @@ static void PixelsRotate(ulong* thePixels, int theCount)
 	}
 }
 
-// the brightness of a pixel (the weights of green, red and blue are 0x99, 0x4c and 0x1a of 0xff)
+// port: the brightness of a pixel (the weights of green, red and blue are 0x99, 0x4c and 0x1a of 0xff)
 static unsigned int PixelBrightness(unsigned int thePixel)
 {
 	return ((thePixel >> 8 & 0xff) * 0x99) / 0xff + ((thePixel >> 16 & 0xff) * 0x4c) / 0xff + ((thePixel & 0xff) * 0x1a) / 0xff;
@@ -86,7 +86,7 @@ static void TransformImage(Image* theImage, void (*theFunction)(ulong*, int))
 // and the backdrop that is on the board
 void Board::TransformAllImages(void (*theFunction)(ulong*, int))
 {
-	m165ae = true;
+	mImagesChanged = true;
 	std::vector<MemoryImage*> anImages(mApp->mMemoryImageSet.begin(), mApp->mMemoryImageSet.end());
 	for (size_t i = 0; i < anImages.size(); i++)
 	{
@@ -100,21 +100,21 @@ void Board::TransformAllImages(void (*theFunction)(ulong*, int))
 	}
 }
 
-// the star field or the dots: theNetwork is the second kind. The same word again takes it away; the other word changes it.
+// port: the star field or the dots: theNetwork is the second kind. The same word again takes it away; the other word changes it.
 void Board::ToggleStarField(bool theNetwork)
 {
-	if (m165bc != NULL)
+	if (mCheatStars != NULL)
 	{
-		if (m165bc->mNetwork == theNetwork)
+		if (mCheatStars->mNetwork == theNetwork)
 		{
-			delete m165bc;
-			m165bc = NULL;
+			delete mCheatStars;
+			mCheatStars = NULL;
 			return;
 		}
-		delete m165bc;
+		delete mCheatStars;
 	}
-	m165bc = new StarField();
-	m165bc->Init(theNetwork ? 100 : 1000, theNetwork);
+	mCheatStars = new StarField();
+	mCheatStars->Init(theNetwork ? 100 : 1000, theNetwork);
 }
 
 // 0x59d5df
@@ -128,7 +128,7 @@ void Board::KeyChar(SexyChar theChar)
 	bool aMatched = true;
 	if (mCheatBuffer.find("OLDSKOOL") != NONE)
 	{
-		m165ac = !m165ac;
+		mOldSkool = !mOldSkool;
 		MarkDirtyFull();
 	}
 	else if (mCheatBuffer.find("COLORSWAP") != NONE)
@@ -147,12 +147,12 @@ void Board::KeyChar(SexyChar theChar)
 		TransformImage(IMAGE_OLD_GEMS, PixelsRotate);
 		if (mApp->mBombifiedStillStrip != NULL)
 			TransformImage(mApp->mBombifiedStillStrip, PixelsRotate);
-		m165ae = true;
+		mImagesChanged = true;
 	}
 	else if (mCheatBuffer.find("XMAS") != NONE)
 	{
-		m165ad = !m165ad;
-		if (m165ad)
+		mXmas = !mXmas;
+		if (mXmas)
 		{
 			delete mBackdropImage;    // (the original leaves it behind)
 			CustomResourceManager* aResourceManager = (CustomResourceManager*)mApp->mResourceManager;
@@ -165,7 +165,7 @@ void Board::KeyChar(SexyChar theChar)
 	{
 		if (mIsAction)
 			mCheated = true;
-		m165af = !m165af;
+		mSlowMotion = !mSlowMotion;
 	}
 	else if (mCheatBuffer.find("BLACKANDWHITE") != NONE)
 		TransformAllImages(PixelsGray);
@@ -174,28 +174,28 @@ void Board::KeyChar(SexyChar theChar)
 	else if (mCheatBuffer.find("GREENSCREEN") != NONE)
 		TransformAllImages(PixelsGreen);
 	else if (mCheatBuffer.find("NAUSEA") != NONE)
-		m165b8 = !m165b8;
+		mNausea = !mNausea;
 	else if (mCheatBuffer.find("STARFIELD") != NONE)
 		ToggleStarField(false);
 	else if (mCheatBuffer.find("NETWORK") != NONE)
 		ToggleStarField(true);
 	else if (mCheatBuffer.find("NOFRAME") != NONE)
 	{
-		m15f69 = true;
-		m165c0 = !m165c0;
+		mRedrawBackground = true;
+		mNoFrame = !mNoFrame;
 		MarkDirtyFull();
 	}
 	else if (mCheatBuffer.find("NORMAL") != NONE)
 	{
-		if (!m165ae)
+		if (!mImagesChanged)
 		{
-			m165ac = false;
-			m165ad = false;
-			m165af = false;
-			m165b8 = false;
-			m165c0 = false;
-			delete m165bc;
-			m165bc = NULL;
+			mOldSkool = false;
+			mXmas = false;
+			mSlowMotion = false;
+			mNausea = false;
+			mNoFrame = false;
+			delete mCheatStars;
+			mCheatStars = NULL;
 		}
 		else
 		{

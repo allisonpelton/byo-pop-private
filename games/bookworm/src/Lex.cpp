@@ -150,7 +150,7 @@ void Lex::Load(FILE* theFile)
 
 // 0x42d320
 // Restarts the row even when it is already playing.
-void Lex::PlayAnim(int theAnim, bool theLoop)
+void Lex::PlayAnimSeq(int theAnim, bool theLoop)
 {
 	mAnim = theAnim;
 	mAnimStep = 0;
@@ -627,8 +627,8 @@ void Lex::Update()
 	// second hits and Lex is free on an unburnt board.
 	gLexCrtUpdates++;   // port(mod): replays (Replay.h)
 	if ((CrtRand() % 500 == 0) && (!IsBusy()))
-		PlayAnim(((mApp->mBoard != NULL) && mApp->mBoard->mBurnedDown) ? LEXANIM_BURNT_BLINK : LEXANIM_BLINK, false);
+		PlayAnimSeq(((mApp->mBoard != NULL) && mApp->mBoard->mBurnedDown) ? LEXANIM_BURNT_BLINK : LEXANIM_BLINK, false);
 
 	if ((CrtRand() % 4000 == 0) && (!IsBusy()) && ((mApp->mBoard == NULL) || (!mApp->mBoard->mBurnedDown)))
-		PlayAnim(LEXANIM_IDLE + CrtRand() % 2, false);
+		PlayAnimSeq(LEXANIM_IDLE + CrtRand() % 2, false);
 }

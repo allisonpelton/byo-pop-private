@@ -11,6 +11,7 @@ bool HostSound::sGameClock = false;
 FILE* HostSound::sLog = nullptr;
 int HostSound::sLogFrame = 0;
 
+// port: a sound's length in milliseconds
 static double lengthMs(const Platform::SoundData* theData)
 {
 	return theData->mRate > 0 ? theData->mFrames * 1000.0 / theData->mRate : 0.0;
@@ -18,11 +19,12 @@ static double lengthMs(const Platform::SoundData* theData)
 
 // 0x443fc0
 HostSound::HostSound(HostSoundSystem* theSystem, const std::shared_ptr<Platform::SoundData>& theData)
-	: mSystem(theSystem), mData(theData), mVoice(0), mPlaying(false), mLoop(false), mVolume(1), mPan(0), mPitch(1),
+	: mSystem(theSystem), mData(theData), mVoice(0), mPlaying(false), mLoop(false), mVolume(1), mPitch(1),
 	  mFadeIn(0), mFadeOut(0), mCategory(0), mFadeState(1), mFadeLeft(0), mFadeVolume(1), mPosition(0), mStartTime(0)
 {
 }
 
+// port: stops the voice and leaves the system's list
 HostSound::~HostSound()
 {
 	halt();
@@ -57,7 +59,7 @@ void HostSound::play()
 		std::fprintf(sLog, "%d play %.0f %s vol=%.3f\n", sLogFrame, lengthMs(mData.get()), mLoop ? "looping" : "once", mVolume);
 }
 
-// Slot 4 (0x443dd0)
+// 0x443dd0
 void HostSound::halt()
 {
 	if (mVoice != 0 && sLog != nullptr)
@@ -101,13 +103,6 @@ void HostSound::setPitch(float thePitch)
 		Platform::Mixer::Get().SetVoicePitch(mVoice, thePitch);
 }
 
-// Slot 0x1c (0x443f10)
-void HostSound::setPan(float thePan)
-{
-	mPan = thePan;
-	applyGain();
-}
-
 // Slot 0x24 (0x443f70)
 void HostSound::setVolume(float theVolume)
 {
@@ -115,7 +110,7 @@ void HostSound::setVolume(float theVolume)
 	applyGain();
 }
 
-// Slot 0x34 (0x4444d0).
+// port: when a sound ends, as the original reads it (0x4444d0).
 // The original plays a sound of up to 2 s from one buffer, which ends after its length; a longer one streams through a
 // 2 s buffer refilled a second at a time (0x444270), and it stops only when the cursor leaves the half that took the
 // last of it: at the whole seconds of its length plus one (as 0x4440f0 reads the end with the last data).
@@ -127,6 +122,8 @@ static double endMs(const Platform::SoundData* theData)
 	return aMs;
 }
 
+// Slot 0x34 (0x4444d0): on the game's clock (a run that does not wait) a sound plays until endMs of it has passed, else
+// until the mixer's voice ends
 bool HostSound::isPlaying()
 {
 	if (sGameClock && mPlaying && !mLoop && mData->mRate > 0 &&
@@ -194,9 +191,7 @@ void HostSound::applyGain()
 	if (mVoice == 0)
 		return;
 	float aGain = mSystem->getCategoryVolume(mCategory) * mSystem->getVolume() * mVolume * mFadeVolume;
-	float aLeft = aGain * (mPan <= 0 ? 1 : 1 - mPan);
-	float aRight = aGain * (mPan >= 0 ? 1 : 1 + mPan);
-	Platform::Mixer::Get().SetVoiceGain(mVoice, aLeft, aRight);
+	Platform::Mixer::Get().SetVoiceGain(mVoice, aGain, aGain);
 }
 
 // 0x443980
@@ -207,6 +202,7 @@ HostSoundSystem::HostSoundSystem()
 		v = 1;
 }
 
+// port: stops every voice
 HostSoundSystem::~HostSoundSystem()
 {
 	for (HostSound* aSound : mSounds)
@@ -227,38 +223,28 @@ bool HostSoundSystem::load(const char* theName, const char* theFile)
 	return true;
 }
 
-// Slot 0xc (0x443120)
-void HostSoundSystem::unloadUnused()
+// port (the "memreport" test command): the sounds held and the bytes of their decoded samples
+int HostSoundSystem::getSoundMemory(size_t* theBytes) const
 {
-	for (std::map<std::string, std::shared_ptr<Platform::SoundData>>::iterator it = mData.begin(); it != mData.end();)
-	{
-		bool aUsed = false;
-		for (HostSound* aSound : mSounds)
-			aUsed = aUsed || aSound->getData() == it->second;
-		if (aUsed)
-			++it;
-		else
-			it = mData.erase(it);
-	}
-}
-
-// Slot 0x10 (0x443190)
-void HostSoundSystem::unload(const char* theName)
-{
-	mData.erase(theName);
+	*theBytes = 0;
+	for (std::map<std::string, std::shared_ptr<Platform::SoundData>>::const_iterator it = mData.begin(); it != mData.end(); ++it)
+		*theBytes += it->second->Bytes();
+	return (int)mData.size();
 }
 
 // Slot 0x14 (0x4435e0)
-engine::Sound* HostSoundSystem::createSound(const char* theName, int, int)
+engine::Sound* HostSoundSystem::createSound(const char* theName, bool, int theCategory)
 {
 	std::map<std::string, std::shared_ptr<Platform::SoundData>>::iterator it = mData.find(theName);
 	if (it == mData.end())
 		return nullptr;
 	HostSound* aSound = new HostSound(this, it->second);
+	aSound->setCategory(theCategory);
 	mSounds.push_back(aSound);
 	return aSound;
 }
 
+// 0x4425a0
 void HostSoundSystem::setVolume(float theVolume)
 {
 	mVolume = theVolume;
@@ -291,6 +277,7 @@ void HostSoundSystem::update(int theMs)
 		mSounds[i]->update(theMs);
 }
 
+// port: a voice that is gone leaves the list
 void HostSoundSystem::removeSound(HostSound* theSound)
 {
 	mSounds.erase(std::remove(mSounds.begin(), mSounds.end(), theSound), mSounds.end());

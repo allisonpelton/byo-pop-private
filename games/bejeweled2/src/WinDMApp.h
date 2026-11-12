@@ -40,21 +40,21 @@ class WorkerThread;
 // ButtonDepress, the no and cancel button 3000+n.
 enum DialogId
 {
-	DIALOG_NEW_GAME = 0,           // "NEWGAMEDIALOG1/2": yes starts a new game
+	// 0: the original's "New Game?" question (its yes button started a new game); no code of the game asks it
 	DIALOG_QUIT = 1,
 	DIALOG_OPTIONS = 2,
 	DIALOG_OPTION_VERIFY = 3,      // "keep this display mode?" after a change of the display
 	// 4 to 9: the original's registration dialogs (6 the registration, 8 and 9 the nag)
-	DIALOG_HIGH_SCORE_NAME = 10,   // the name of a new high score
+	// 10: the original's box for the name of a new high score; no code of the game opens it
 	// 11: the original's URL dialog
 	// 0x12: its update check; 0x13, 0x14: its announcements; 0x10: the registration again
-	DIALOG_FULL_INSTRUCTIONS = 13, // also the colour depth message
+	DIALOG_PLANET_LOCKED = 13, // the galaxy map's "Planet is Locked" message (the original's instructions and colour depth messages had the id too)
 	DIALOG_LOAD_GAME = 17,         // "Load Game?"
 	DIALOG_UNDO = 22,
-	DIALOG_HINT = 23,
+	DIALOG_HINT_WARNING = 23,
 	DIALOG_NEXT_PUZZLE_MOVE = 24,
-	DIALOG_HINT_FIRST = 25,        // 25, 26, 38 and 39: the one-time hint explanations
-	DIALOG_HINT_SECOND = 26,
+	DIALOG_MORE_HINTS = 25,        // 26, 38 and 39: the one-time tips
+	DIALOG_TIMER_TIP = 26,
 	DIALOG_CREATE_USER = 27,
 	DIALOG_RENAME_USER = 29,
 	DIALOG_DELETE_USER = 30,
@@ -62,11 +62,11 @@ enum DialogId
 	DIALOG_USER_LIST = 32,
 	DIALOG_RESET_HIGH_SCORES = 33,
 	DIALOG_PUZZLE_PACKS = 34,
-	DIALOG_PUZZLE_RATING = 35,
+	// 35: the original's puzzle rating box; no code of the game opens it
 	DIALOG_WELCOME = 36,           // the message that follows a new user's first visit to the menu
-	DIALOG_MESSAGE = 37,           // the one-button messages (instructions, name conflict, profile error)
-	DIALOG_HINT_THIRD = 38,
-	DIALOG_HINT_FOURTH = 39,
+	DIALOG_MESSAGE = 37,           // the one-button messages (the options', name conflict, profile error)
+	DIALOG_POWER_GEM_TIP = 38,
+	DIALOG_HYPER_CUBE_TIP = 39,
 	DIALOG_HELP = 40,
 	DIALOG_ENTER_NAME = 41
 };
@@ -173,6 +173,7 @@ public:
 	virtual void	GotFocus() override;                            // 0x5dc086
 	virtual void	LostFocus() override;                           // 0x5dc0a3
 	virtual void	AddDialog(int theDialogId, Dialog* theDialog) override; // 0x5dc03b
+	virtual bool	KillDialog(int theDialogId) override;                   // 0x5dceb6
 	virtual void	SwitchScreenMode(bool wantWindowed) override;   // 0x5e0b03
 	virtual DDImage* GetImage(const std::string& theFileName, bool commitBits = true) override;   // port: see mShrinkLoads
 	virtual void	Done3dTesting() override;                       // 0x5dbe1f
@@ -188,6 +189,7 @@ public:
 	bool			mTestUnlock;            // "unlock all" was given before there was a profile
 	using SexyApp::SwitchScreenMode;
 	using SexyApp::AddDialog;
+	using SexyApp::KillDialog;
 	using SexyApp::PlaySample;
 
 	// the functions the original added to the vtable
@@ -202,7 +204,6 @@ public:
 	void			KillBoard();                                    // 0x5dbdba
 	void			DoOptions();                                    // 0x5dc173
 	void			DoPuzzlePackSelector();                         // 0x5dc1f6
-	void			DoPuzzleRating();                               // 0x5dc25b
 	void			DoUserDialog();                                 // 0x5dc2ed
 	void			DoCreateUserDialog();                           // 0x5dc352
 	void			DoRenameUserDialog(const std::string& theOldName); // 0x5dc3c9
@@ -223,12 +224,8 @@ public:
 	void			ValidatePuzzlePack();                           // 0x5dd641
 	void			NewGame();                                      // 0x5e0aa4
 	void			TryConfirmLoad();                               // 0x5df168
-	void			ConfirmNewGame();                               // 0x5e119e
 	void			ConfirmResetHighScores();                       // 0x5df216
 	void			ConfirmQuit();                                  // 0x5df2d0
-	void			ShowInstructionsDialog();                       // 0x5df3d7
-	void			ShowFullInstructionsDialog();                   // 0x5df4d9
-	void			ShowColorDepthDialog();                         // 0x5df614
 	void			FinishUserDialog(bool theOk);                   // 0x5df7bc
 	void			FinishCreateUserDialog(bool theOk);             // 0x5df8cb
 	void			DoConfirmDeleteUserDialog(const std::string& theName); // 0x5dfae8
@@ -236,7 +233,6 @@ public:
 	void			FinishRenameUserDialog(bool theOk);             // 0x5dfb97
 	void			FinishOptionsDialog(bool theOk);                // 0x5e1287
 	void			FinishPuzzlePackSelector(bool theOk);           // 0x5e15ea
-	void			FinishPuzzleRatingDialog(bool theOk);           // 0x5e1a45
 
 	// the lists of the backdrop images (0x5e2531) and of the puzzle packs (0x5e2832), made by Init
 	void			BuildBackdropList();

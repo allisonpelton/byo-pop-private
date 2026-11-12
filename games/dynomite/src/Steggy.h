@@ -25,8 +25,8 @@ public:
 	float				mTossVY;			// +0x1c 0.75 a frame down
 	Egg*				mNext;				// +0x20 the egg he holds
 	Egg*				mToss;				// +0x24 the egg on its way to the slingshot
-	bool				mField28;			// +0x28 (true; saved)
-	int					mField2c;			// +0x2c (2000; 1000 once he is up)
+	bool				mInRound;			// +0x28 true while a Stomped round is played (false once it is cleared, and in Time Trial): saved and loaded, nothing reads it
+	int					mTossDelay;			// +0x2c 2000, then 1000 once he has tossed or is up again: saved and loaded, nothing reads it
 	bool				mAlerting;			// +0x30 the alert blinks every 35 frames with its sound
 	int					mBlinkCount;		// +0x34
 	bool				mBlink;				// +0x38 the alert shows

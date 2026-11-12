@@ -28,7 +28,8 @@ set(BYOPOP_WEB_EXPORTED_FUNCTIONS _main _byopop_userdata_restore _byopop_mods_op
   _byopop_audio_mute _byopop_audio_muted _byopop_site_apply _byopop_site_tutorials _byopop_site_skiplogos _byopop_site_windowed _byopop_site_accel3d _byopop_mixer_gain
   _byopop_update_count _byopop_hold_updates_at _byopop_set_frame_budget _byopop_set_speed _byopop_speed _byopop_perf_json
   _byopop_music_song _byopop_music_view _byopop_music_row _byopop_music_used _byopop_music_names _byopop_music_mute _byopop_music_meter _byopop_music_seek)
-set(BYOPOP_WEB_RUNTIME_METHODS FS callMain ccall)
+# HEAPU8: the speedrun timer reads a game's auto splitter block from its memory (web/autosplit.js)
+set(BYOPOP_WEB_RUNTIME_METHODS FS callMain ccall HEAPU8)
 # the player-only test page's live command (framework/SexyAppBase.cpp, docs/TEST_COMMANDS.md "Sending them")
 list(APPEND BYOPOP_WEB_EXPORTED_FUNCTIONS _byopop_test_command)
 get_filename_component(BYOPOP_WEB_SHELL "${CMAKE_CURRENT_LIST_DIR}/../web/shell.html" ABSOLUTE)
@@ -58,7 +59,7 @@ set(BYOPOP_WEB_SHARED_JS logo.js cursors.js saver.js settingsicons.js settings.j
 # adding of games' files (web/addgames.js, with web/modpanel.js for its zip and pak readers, and import-games.js, each listed
 # game's page.js, which byopop_web_index() writes), and Desktop 95's soundboard (web/sounds.js, with its table web/soundboards.js),
 # copied next to index.html only
-set(BYOPOP_WEB_INDEX_JS localsoon.js players.js saves.js saveimport.js modpanel.js addgames.js setup.js music.js soundtracks.js sounds.js soundboards.js trophies.js splits.js deskapps.js phase.js library.js)
+set(BYOPOP_WEB_INDEX_JS localsoon.js players.js saves.js saveimport.js modpanel.js addgames.js setup.js music.js soundtracks.js sounds.js soundboards.js trophies.js gamepics.js autosplit.js splits.js deskapps.js phase.js library.js)
 # The listing page, build/web/index.html (made from web/index.html by byopop_web_index() at the end of this file): one
 # tile for each game in BYOPOP_WEB_FINISHED, in alphabetical order of TITLE (not this list's order; the page can sort by
 # release date instead), with a badge and the year of its release. The list is the coordinator's: the coordinator adds a
@@ -67,7 +68,7 @@ set(BYOPOP_WEB_INDEX_JS localsoon.js players.js saves.js saveimport.js modpanel.
 # list with no web page is a configure error.
 set(BYOPOP_WEB_FINISHED bejeweled bigmoney bookworm noahsark sevenseas atomica mummymaze tiptop bookwormadv ningpo
   pixelus alchemy wordharmony cosmicbugs waterbugs rocketmania dynomite bookwormadv2 mahjongjapan mahjongchina
-  bonnies bejeweledtwist)
+  bonnies bejeweledtwist bejeweled2)
 # The games still to come, <target>|<title>, each shown on the listing page as a "Coming soon" tile among the finished ones
 # (the user, 2026-11-02: "Add tiles for the upcoming games to the site and have them display disabled and say coming soon"):
 # the badge, the title and the year, sorted with the rest, not a link, and where to buy the game, so that a visitor can get
@@ -80,7 +81,7 @@ set(BYOPOP_WEB_FINISHED bejeweled bigmoney bookworm noahsark sevenseas atomica m
 # Zombies are left out: nobody ports them (the user, 2026-10-26).
 set(BYOPOP_WEB_UPCOMING
   "venice|Venice"
-  "heavyweapon|Heavy Weapon" "hammerheads|Hammer Heads" "bejeweled2|Bejeweled 2"
+  "heavyweapon|Heavy Weapon" "hammerheads|Hammer Heads"
   "astropop|AstroPop" "typershark|Typer Shark!" "pizzafrenzy|Pizza Frenzy" "igglepop|Iggle Pop"
   "feedingfrenzy|Feeding Frenzy" "chuzzle|Chuzzle" "feedingfrenzy2|Feeding Frenzy 2"
   "peggle|Peggle" "pegglenights|Peggle Nights" "bejeweled3|Bejeweled 3" "bananabugs|Banana Bugs"
@@ -1132,6 +1133,8 @@ function(byopop_web_index)
   # the music player's licence (web/music.js links it): libopenmpt's, as openmpt.wasm is built from it
   configure_file(${BYOPOP_WEB_BRAND_DIR}/../licenses/libopenmpt.txt ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/licenses/libopenmpt.txt COPYONLY)
   configure_file(${BYOPOP_WEB_BRAND_DIR}/../licenses/libxmp-lite.txt ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/licenses/libxmp-lite.txt COPYONLY)
+  # the desktop themes' JPEG 2000 decoder's (web/gamepics.js loads jp2.wasm, built from OpenJPEG)
+  configure_file(${BYOPOP_WEB_BRAND_DIR}/../licenses/openjpeg.txt ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/licenses/openjpeg.txt COPYONLY)
   # Desktop 95's text (web/skins.css): Byopop Sans, made from W95FA by Alina Sava (SIL OFL 1.1) by tools/web/pixelfont.py,
   # served beside the pages with its licence
   configure_file(${BYOPOP_WEB_BRAND_DIR}/../fonts/byopop-sans.woff ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/fonts/byopop-sans.woff COPYONLY)
@@ -1151,6 +1154,23 @@ function(byopop_web_index)
   file(READ ${saveimport_json} saveimport_text)
   byopop_write_if_changed(${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/saveimport-table.js "var ByopopSaveTable = ${saveimport_text};
 ")
+  # each script and stylesheet the page loads from beside it carries its contents' hash (name.js?v=...), so that a page
+  # reloaded after a rebuild never runs the scripts it had before (a page loaded before a rebuild kept the old sounds.js
+  # through a reload, 2026-11-12; Python's http.server sends no Cache-Control, so a browser may reuse what it has)
+  string(REGEX MATCHALL "(src|href)=\"[A-Za-z0-9_./-]+\\.(js|css)\"" stamp_refs "${page}")
+  if(stamp_refs)
+    list(REMOVE_DUPLICATES stamp_refs)
+  endif()
+  foreach(ref IN LISTS stamp_refs)
+    string(REGEX REPLACE "^(src|href)=\"([^\"]+)\"$" "\\1" stamp_attr "${ref}")
+    string(REGEX REPLACE "^(src|href)=\"([^\"]+)\"$" "\\2" stamp_name "${ref}")
+    set(stamp_file "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${stamp_name}")
+    if(EXISTS "${stamp_file}")
+      file(MD5 "${stamp_file}" stamp_hash)
+      string(SUBSTRING "${stamp_hash}" 0 10 stamp_hash)
+      string(REPLACE "${ref}" "${stamp_attr}=\"${stamp_name}?v=${stamp_hash}\"" page "${page}")
+    endif()
+  endforeach()
   byopop_write_if_changed(${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/index.html "${page}")
   # the chat's table of games (web/chat.js, docs/CHAT_DESIGN.md), loaded by every game page before chat.js
   byopop_write_if_changed(${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/chat-games.js "var ByopopGames = [\n${chat_games}\n];\n")
@@ -1238,6 +1258,17 @@ if(EMSCRIPTEN)
   target_link_options(byopop_openmpt PRIVATE -O2 "-sMODULARIZE=1" "-sEXPORT_NAME=ByopopOpenMPT" "-sALLOW_MEMORY_GROWTH=1"
     "-sENVIRONMENT=web,node" "--no-entry" "-sEXPORTED_FUNCTIONS=_malloc,_free"
     "-sEXPORTED_RUNTIME_METHODS=HEAPU8,HEAPF32,HEAP16,HEAP32,UTF8ToString")
+  # The desktop themes' JPEG 2000 decoder (web/jp2/jp2_web.cpp, web/gamepics.js; docs/WEB_PLAYER.md, "Desktop themes"): the
+  # framework's own (platform/openjpeg/JP2Decoder.cpp) on OpenJPEG alone, as jp2.js and jp2.wasm beside the pages, which the
+  # listing page loads only when a theme's wallpaper is a .jp2. SDL's headers only (JP2Decoder.cpp includes SDL.h): nothing of
+  # SDL is linked
+  add_executable(byopop_jp2 ${CMAKE_CURRENT_LIST_DIR}/../web/jp2/jp2_web.cpp)
+  target_include_directories(byopop_jp2 PRIVATE ${CMAKE_CURRENT_LIST_DIR}/..)
+  target_link_libraries(byopop_jp2 PRIVATE openjp2)
+  set_target_properties(byopop_jp2 PROPERTIES OUTPUT_NAME jp2 SUFFIX ".js")
+  target_compile_options(byopop_jp2 PRIVATE -O2 "-sUSE_SDL=2")
+  target_link_options(byopop_jp2 PRIVATE -O2 "-sMODULARIZE=1" "-sEXPORT_NAME=ByopopJP2" "-sALLOW_MEMORY_GROWTH=1"
+    "-sENVIRONMENT=web,node" "--no-entry" "-sEXPORTED_FUNCTIONS=_malloc,_free" "-sEXPORTED_RUNTIME_METHODS=HEAPU8,HEAPU32")
   # (a deferred call runs at the end of this directory, the top level, after every game's byopop_web_game())
   get_filename_component(BYOPOP_WEB_BRAND_DIR "${CMAKE_CURRENT_LIST_DIR}/../web/brand" ABSOLUTE)
   cmake_language(DEFER CALL byopop_web_index)

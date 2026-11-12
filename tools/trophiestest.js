@@ -100,5 +100,65 @@ const b2 = Buffer.concat([magic, ...Array.from({ length: 90 }, (_, i) => rec("B"
 same("bejeweled2: nine tables of ten after the magic", R.parse(R.RECORDS.bejeweled2, new Uint8Array(b2)).map((x) => x.rows.length), [10, 10, 10, 10, 10, 10, 10, 10, 10]);
 same("bejeweled2: another file is none", R.parse(R.RECORDS.bejeweled2, new Uint8Array(b2.subarray(4))), []);
 same("a short file gives what it holds", R.parse(R.RECORDS.mummymaze, new Uint8Array(Buffer.concat(five(500).slice(0, 2))))[0].rows.length, 2);
+// Cosmic Bugs' and Water Bugs' cb.dat: exactly 49052 bytes, eight 36-byte high scores first
+const cb = Buffer.alloc(0xbf9c);
+for (let i = 0; i < 8; i++) { cb.write("Bug" + i, i * 36, "latin1"); cb.writeInt32LE(8000 - i * 1000, i * 36 + 32); }
+same("cosmicbugs: the eight high scores", R.parse(R.RECORDS.cosmicbugs, new Uint8Array(cb))[0].rows.map((r) => r.name + r.score).slice(0, 2), ["Bug08000", "Bug17000"]);
+same("waterbugs: a file of another size is none", R.parse(R.RECORDS.waterbugs, new Uint8Array(cb.subarray(1))), []);
+// Typer Shark's users/user.idx: framework strings, the numbers as text
+const fs16 = (t) => { const n = Buffer.from(t, "latin1"), b = Buffer.alloc(2 + n.length); b.writeUInt16LE(n.length, 0); n.copy(b, 2); return b; };
+const tsEntry = (score, name) => [fs16(String(score)), fs16("1"), fs16(name), fs16("3")];
+const ts = (v) => Buffer.concat([fs16(v), fs16("100"), ...Array.from({ length: 20 }, (_, i) => tsEntry(20000 - i * 100, "T" + i)).flat()]);
+const tst = R.parse(R.RECORDS.typershark, new Uint8Array(ts("1.0")));
+same("typershark: the score and abyss tables", tst.map((t) => [t.name, t.rows.length, t.rows[0].name, t.rows[0].score]), [["High Scores", 10, "T0", 20000], ["Abyss", 10, "T10", 19000]]);
+same("typershark: a file before 0.48 is the defaults, so none", R.parse(R.RECORDS.typershark, new Uint8Array(ts("0.40"))), []);
+// The registry file
+const hex = (b) => Buffer.from(b).toString("hex");
+const multi = (list) => Buffer.from(list.join("\0") + "\0\0", "latin1");
+const ini = (lines) => new Uint8Array(Buffer.from(lines.join("\r\n") + "\r\n", "latin1"));
+same("registry: sz escapes, dword, hex", (() => { const m = R.parseIni(ini(["; Settings", "", "[SOFTWARE\\A]", "S=sz:a\\\\b\\nc", "D=dword:-5", "H=hex:00ff"])); return [m["software\\a\\s"], m["software\\a\\d"], Array.from(m["software\\a\\h"])]; })(), ["a\\b\nc", -5, [0, 255]]);
+const bw = R.parse(R.RECORDS.bookworm, ini(["[SOFTWARE\\PopCap\\BookWorm\\Scores]", "Action=hex:" + hex(multi(["Lex", "500", "Ann", "900"])),
+  "Best=hex:" + hex(multi(["Ann", "QUIZ", "220"])), "Longest=hex:" + hex(multi(["Bo", "BOOKWORMS", "Ann", "ZEBRAS"]))]));
+same("bookworm: tables by score, words in their column, Longest by the word's length, no empty table",
+  bw.map((t) => [t.name, t.rows.map((r) => [r.place, r.name, r.word, r.score])]),
+  [["Action", [["1", "Ann", undefined, 900], ["2", "Lex", undefined, 500]]], ["Best Word", [["1", "Ann", "QUIZ", 220]]], ["Longest Word", [["1", "Bo", "BOOKWORMS", 9], ["2", "Ann", "ZEBRAS", 6]]]]);
+const np = (name, time, tiles) => { const b = Buffer.alloc(0x30); b.writeInt32LE(0x300, 0); b.write(name, 4, "latin1"); b.writeInt32LE(time, 0x24); b.writeInt32LE(time, 0x28); b.writeInt32LE(tiles, 0x2c); return hex(b); };
+const npt = R.parse(R.RECORDS.ningpo, ini(["[SOFTWARE\\Pyrogon\\NingPo]", "HS:0x0=hex:" + np("nobody", 5999, 144), "HS:2x0=hex:" + np("Ann", 125, 0), "HS:2x1=hex:" + np("nobody", 5999, 144)]));
+same("ningpo: only played places, by layout, the time as m:ss", npt.map((t) => [t.name, t.rows.map((r) => [r.place, r.name, r.text])]), [["trophies.layout", [["1", "Ann", "2:05"]]]]);
+const wh = R.parse(R.RECORDS.wordharmony, ini(["[SOFTWARE\\GameHouse\\WordHarmony\\scores\\action]", "scoreName0=sz:Ann", "scoreValue0=dword:700", "scoreName1=sz:Bo", "scoreValue1=dword:0"]));
+same("wordharmony: a table's rows, a score of 0 skipped", wh.map((t) => [t.name, t.rows.map((r) => [r.place, r.name, r.score])]), [["Action", [["1", "Ann", 700]]]]);
+// Bonnie's Data/HighScores.dat: ten entries (used, name and word as an i32 length and bytes, score), Classic then Action
+const s32 = (t) => { const n = Buffer.from(t, "latin1"), b = Buffer.alloc(4 + n.length); b.writeInt32LE(n.length, 0); n.copy(b, 4); return b; };
+const i32 = (v) => { const b = Buffer.alloc(4); b.writeInt32LE(v, 0); return b; };
+const bon = Buffer.concat(Array.from({ length: 10 }, (_, i) => Buffer.concat([i32(i === 4 ? 0 : 1), s32("N" + i), s32("WORD" + i), i32(1000 - i)])));
+same("bonnies: Classic then Action, the longest word, an unused entry skipped",
+  R.parse(R.RECORDS.bonnies, new Uint8Array(bon)).map((t) => [t.name, t.rows.length, t.rows[0].name, t.rows[0].word, t.rows[0].score]),
+  [["Classic", 4, "N0", "WORD0", 1000], ["Action", 5, "N5", "WORD5", 995]]);
+// BookWorm Adventures' users/<name>.bwa: key and typed value records; tables of {another follows, string key, key, value}
+const u16s = (t) => { const n = Buffer.from(t, "latin1"), b = Buffer.alloc(2 + n.length); b.writeUInt16LE(n.length, 0); n.copy(b, 2); return b; };
+const u32 = (v) => { const b = Buffer.alloc(4); b.writeUInt32LE(v, 0); return b; };
+const vInt = (v) => Buffer.concat([u32(0), i32(v)]);
+const vTable = (entries) => Buffer.concat([u32(4), ...entries.map(([k, v], i) => Buffer.concat([Buffer.from([i < entries.length - 1 ? 1 : 0, typeof k === "string" ? 1 : 0]), typeof k === "string" ? u16s(k) : i32(k), v]))]);
+const fields = (o) => vTable(Object.keys(o).map((k) => [k, typeof o[k] === "string" ? Buffer.concat([u32(3), u16s(o[k])]) : vInt(o[k])]));
+const bwa = Buffer.concat([u16s("XPLevel"), vInt(12), u16s("XPPercent"), u32(1), u16s("37.500000"), u16s("AdventureComplete"), u32(2), Buffer.from([1]),
+  u16s("TopWordsEverSpelled"), vTable([[0, fields({ mWord: "QUIXOTIC", mValue: 90 })], [1, fields({ mWord: "ZAP", mValue: 40 })], [2, fields({ mWord: "ZAP", mValue: 40 })]]),
+  u16s("TM_Top10Times"), vTable([[0, fields({ mTime: 372500, mStage: 7 })]]), u16s("Empty"), vTable([[0, u32(5)]])]);
+const bp = R.parseBwa(new Uint8Array(bwa));
+same("bwa: ints, floats, bools and tables", [bp.XPLevel, bp.XPPercent, bp.AdventureComplete, bp.TopWordsEverSpelled.length, bp.Empty], [12, 37.5, true, 3, [{ key: 0, value: null }]]);
+same("bwa: a cut file is none", R.parseBwa(new Uint8Array(bwa.subarray(0, bwa.length - 3))), null);
+const bwt = R.bwaTables(R.RECORDS.bookwormadv2, [{ name: "Ann", data: bp }, { name: "Bo", data: { TM_Top10Times: [{ key: 0, value: [{ key: "mTime", value: 100 }, { key: "mStage", value: 9 }] }] } }]);
+same("bwa: top words once a player, best first; arena runs by stage with their times",
+  bwt.map((t) => [t.name, t.rows.map((r) => [r.place, r.name, r.word, r.score, r.time])]),
+  [["Top Words", [["1", "Ann", "QUIXOTIC", 90, undefined], ["2", "Ann", "ZAP", 40, undefined]]], ["Arena", [["1", "Bo", undefined, 9, "0:00:01"], ["2", "Ann", undefined, 7, "1:02:05"]]]]);
+// Tip Top's Preferences.dat: four tables of five 28-byte entries, then the settings
+const tt = Buffer.alloc(0x230 + 8);
+for (let t = 0; t < 4; t++) for (let i = 0; i < 5; i++) {
+  const at = (t * 5 + i) * 0x1c;
+  tt.write(i < 2 ? "T" + t + i : "----", at, "latin1"); tt.writeInt32LE(i < 2 ? 900 - i * 100 + t : 0, at + 0x14); tt.writeInt32LE(1, at + 0x18);
+}
+same("tiptop: Regular, Speed and Strategy without Timed, empty places left out",
+  R.parse(R.RECORDS.tiptop, new Uint8Array(tt)).map((t) => [t.name, t.rows.map((r) => [r.place, r.name, r.score])]),
+  [["Regular", [["1", "T00", 900], ["2", "T01", 800]]], ["Speed", [["1", "T20", 902], ["2", "T21", 802]]], ["Strategy", [["1", "T30", 903], ["2", "T31", 803]]]]);
+same("tiptop: a file shorter than the tables is none", R.parse(R.RECORDS.tiptop, new Uint8Array(tt.subarray(0, 0x22f))), []);
 console.log("trophiestest: " + checks + " checks, " + failed + " failed");
 process.exit(failed ? 1 : 0);

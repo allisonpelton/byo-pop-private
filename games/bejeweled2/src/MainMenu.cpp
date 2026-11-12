@@ -114,9 +114,6 @@ MainMenu::MainMenu(WinDMApp* theApp)
 	mHoverCircleCount = 0;
 	mSlideDelay = 0;
 	mStarting = false;
-	mUnusedSlide.SetMode(0);
-	mUnusedSlide.SetRamp(2);
-	mUnusedSlide.SetOutRange(0, 700.0);
 	mSlide.SetMode(0);
 	mSlide.SetRamp(2);
 	mSlide.SetOutRange(0, 700.0);
@@ -609,7 +606,6 @@ void MainMenu::Update()
 		if (mSlideDelay < 1)
 		{
 			bool aSlideDone = !mSlide.IncInVal(0.01);
-			mUnusedSlide.IncInVal(0.01);
 			if (aSlideDone)
 			{
 				if (mState == STATE_SLIDING_IN)
@@ -696,7 +692,7 @@ void MainMenu::Update()
 void MainMenu::Draw(Graphics* g)
 {
 	bool is3d = mApp->Is3DAccelerated();
-	if (mApp->mBoard != NULL && mApp->mBoard->mEffectOverlay->mFlagC9 && !is3d)
+	if (mApp->mBoard != NULL && mApp->mBoard->mEffectOverlay->mPortalOpen && !is3d)
 		return;
 
 	int anOffset = (int)mApp->ScaleNum(mSlide.GetOutVal(), 0.0);

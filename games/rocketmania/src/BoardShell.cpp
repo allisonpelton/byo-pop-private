@@ -28,7 +28,7 @@ static int Ftol(double theValue)
 	return (int) theValue;
 }
 
-// 0x41ad90's initialisation of a new board (the pieces are made through Piece(int))
+// 0x41ae80: a new board (its pieces are made through Piece(int), 0x41ad90)
 Board::Board(RocketApp* theApp, bool theContinuing)
 {
 	mApp = theApp;
@@ -63,6 +63,8 @@ Board::Board(RocketApp* theApp, bool theContinuing)
 	// (the original also stores -1 in the two fields that are not zero)
 	m348 = -1;
 	m2f0 = -1;
+	// the game-over kind starts at 3 (none of the kinds 0 to 2; nothing reads it before F421de0 sets it, but the save file holds it)
+	m460 = 3;
 	if (mApp->mMode == 0)
 		m444 = mGen->Rows20();
 	else if (mApp->mMode == 1 || mApp->mMode == 2)
@@ -81,6 +83,7 @@ Board::Board(RocketApp* theApp, bool theContinuing)
 	mApp->mMusicInterface->FadeIn(SONG_GAME, -1, 0.666, false);
 }
 
+// 0x41b2a0
 Board::~Board()
 {
 	ClearBoard(false);

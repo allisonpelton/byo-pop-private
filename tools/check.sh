@@ -32,7 +32,7 @@
 #   unit-web     rulestest, modsettingstest and jpegtest (the JPEG decoder's error paths, through Emscripten's longjmp) under Node (needs build-web); paktest (the page's pak reader), with
 #                Bookworm Adventures' main.pak against assets/bookwormadv when both are there; profilestest (the page's
 #                settings and players code, web/settings.js and web/profiles.js, on a fake localStorage), savestest (the
-#                save backup's zip, paths and merge, web/saves.js), trophiestest (the trophy cabinet's reader, web/trophies.js), saveimporttest (the import of saves from an installed game:
+#                save backup's zip, paths and merge, web/saves.js), trophiestest (the trophy cabinet's reader, web/trophies.js), gamepicstest (the themes' picture decoders, web/gamepics.js), saveimporttest (the import of saves from an installed game:
 #                platform/saveimport.json, the .reg reader and the conversion, web/saveimport.js), chattest (the chat's username,
 #                text and rate rules, its stored history and local source, and that a message goes on the page as text only,
 #                web/chat.js), gameimporttest (the import rules for a game's files and the sorting of dropped folders into games,
@@ -45,7 +45,11 @@
 #                the site's cursor, which of a game's cursors it keeps, its rules for each context, busy() and animated
 #                cursors) and linkstest (tools/linkstest.js: every link to the site's own licence, terms and copyright pages
 #                opens in a new tab) and musictest (tools/musictest.js: the music player's decoder, its tracker view's rows and
-#                its seek, on a module the test makes and a staged MO3 when there is one) and setuptest (tools/setuptest.js:
+#                its seek, on a module the test makes and a staged MO3 when there is one) and soundfilestest
+#                (tools/soundfilestest.js: every sound the Sounds boards name is staged and in a format every browser plays, by
+#                its own header: Ogg Vorbis, MP3, PCM WAV, or one the site decodes itself) and autosplittest
+#                (tools/autosplittest.js: the speedrun timer's auto splitters decide as their references, Bejeweled's lsdecide.py
+#                scenarios, web/autosplit.js) and setuptest (tools/setuptest.js:
 #                the Setup window's pages for the games found and Finish's summary, web/setup.js) and localsoontest
 #                (tools/localsoontest.js: the coming-soon tiles of built ports open on a development host only, web/localsoon.js)
 #                and schemetest (tools/schemetest.js: Desktop 95's colour schemes whole, named and readable, web/schemes.js).
@@ -749,6 +753,9 @@ suite_unit-web() {
 	# the trophy cabinet's reader of the games' high-score files (web/trophies.js)
 	"$NODE" tools/trophiestest.js > "$1.tr" 2>&1 || st=1
 	tr="$(lastof "$1.tr" 'trophiestest:')"
+	# the desktop themes' picture decoders (web/gamepics.js)
+	"$NODE" tools/gamepicstest.js "$web/jp2.js" > "$1.gp" 2>&1 || st=1
+	gp="$(lastof "$1.gp" 'gamepicstest:')"
 	# the import of saves from an installed game (web/saveimport.js, and the table platform/saveimport.json it shares with the native games)
 	"$NODE" tools/saveimporttest.js > "$1.si" 2>&1 || st=1
 	g="$(lastof "$1.si" 'saveimporttest:')"
@@ -784,6 +791,14 @@ suite_unit-web() {
 	local r
 	"$NODE" tools/musictest.js "$web/openmpt.js" assets > "$1.mu" 2>&1 || st=1
 	r="$(lastof "$1.mu" 'musictest:')"
+	# every sound the Sounds boards name is staged and in a format every browser plays, by its own header (tools/soundfilestest.js)
+	local sf
+	"$NODE" tools/soundfilestest.js assets > "$1.sf" 2>&1 || st=1
+	sf="$(lastof "$1.sf" 'soundfilestest:')"
+	# the speedrun timer's auto splitters against their references: Bejeweled's lsdecide.py scenarios (tools/autosplittest.js)
+	local as
+	"$NODE" tools/autosplittest.js > "$1.as" 2>&1 || st=1
+	as="$(lastof "$1.as" 'autosplittest:')"
 	# the Setup window's logic: its pages and Finish's summary (tools/setuptest.js)
 	local u
 	"$NODE" tools/setuptest.js > "$1.su" 2>&1 || st=1
@@ -799,9 +814,9 @@ suite_unit-web() {
 	# the JPEG decoder under wasm: the same checks as native, with the error paths through Emscripten's setjmp/longjmp
 	(cd "$web" && "$NODE" jpegtest.js) > "$1.jpg" 2>&1 || st=1
 	o="$(lastof "$1.jpg" 'jpeg: [0-9]+ checks, [0-9]+ failed')"
-	cat "$1.mst" "$1.pak" "$1.pt" "$1.sv" "$1.si" "$1.ch" "$1.gi" "$1.a11y" "$1.str" "$1.pc" "$1.pcp" "$1.tt" "$1.cur" "$1.lk" "$1.mu" "$1.su" "$1.ls" "$1.sc" "$1.jpg" >> "$1"
-	rm -f "$1.mst" "$1.pak" "$1.pt" "$1.sv" "$1.si" "$1.ch" "$1.gi" "$1.a11y" "$1.str" "$1.pc" "$1.pcp" "$1.tt" "$1.cur" "$1.lk" "$1.mu" "$1.su" "$1.ls" "$1.sc" "$1.jpg"
-	SUMMARY="$a; $b; $c; $d; $e; $tr; $g; $h; $i; $f; $j; $k; $l; $m; $n; $q; $r; $u; $v; $w; $o"
+	cat "$1.mst" "$1.pak" "$1.pt" "$1.sv" "$1.si" "$1.ch" "$1.gi" "$1.a11y" "$1.str" "$1.pc" "$1.pcp" "$1.tt" "$1.cur" "$1.lk" "$1.mu" "$1.sf" "$1.as" "$1.su" "$1.ls" "$1.sc" "$1.jpg" >> "$1"
+	rm -f "$1.mst" "$1.pak" "$1.pt" "$1.sv" "$1.si" "$1.ch" "$1.gi" "$1.a11y" "$1.str" "$1.pc" "$1.pcp" "$1.tt" "$1.cur" "$1.lk" "$1.mu" "$1.sf" "$1.as" "$1.su" "$1.ls" "$1.sc" "$1.jpg"
+	SUMMARY="$a; $b; $c; $d; $e; $tr; $gp; $g; $h; $i; $f; $j; $k; $l; $m; $n; $q; $r; $sf; $as; $u; $v; $w; $o"
 	return $st
 }
 
@@ -1591,7 +1606,10 @@ wordharmony_game() {  # <name> <think|tsunami> [exe]: a scripted game (-fast, se
 		"3170 click 360 325" "3400 screenshot $d/shots/menu.png" "3420 quit" >> "$d/script.txt"
 	# -splashhold: the original's two seconds of splash (the port shows the menu once it has loaded), so that the script's
 	# updates line up with the original's and the baseline's
-	timeout 300 "${3:-$W/build/native/wordharmony.exe}" -gamedir=assets/wordharmony -userdir="$d/user" -fast -seed=1 \
+	# WH_GAMEDIR: the port's runs take another game folder (the Collection's files, games/wordharmony/tools/collection);
+	# a given exe (the frozen baseline) keeps assets/wordharmony
+	local gd=assets/wordharmony; [ -n "${3:-}" ] || gd="${WH_GAMEDIR:-$gd}"
+	timeout 300 "${3:-$W/build/native/wordharmony.exe}" -gamedir="$gd" -userdir="$d/user" -fast -seed=1 \
 		-splashhold -statelog="$d/state.txt" -script="$d/script.txt" > "$d/stdout.txt" 2> "$d/stderr.txt"
 	rc=$?
 	[ $rc -eq 0 ] || { echo "exit status $rc"; return; }

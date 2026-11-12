@@ -13,6 +13,7 @@
 #include "Graphics.h"
 #include "ImageFont.h"
 #include "DDImage.h"
+#include "DDInterface.h"
 #include "MemoryImage.h"
 #include "MusicInterface.h"
 #include "SoundManager.h"
@@ -63,6 +64,13 @@ RocketApp::RocketApp()
 	mProductVersion = "1.01";      // the exe's version resource says ProductVersion 1.01
 	mTitle = "Rocket Mania Deluxe " + mProductVersion;
 	mRegKey = "PopCap\\RocketMania";
+	// the original's DrawImageBox (0x443772) is the 2003 framework's: the tiled middle of a box is cut as wide as the
+	// corners, not as the remainder, so a dialog or a menu button tiles from the same pixels as the original's
+	Graphics::mDrawImageBox2003 = true;
+	// the music starts at 0.595 and the sounds at 0.85 until the registry says otherwise (the exe stores them as the
+	// two halves of each double, 0x3fe30a3d70a3d70a and 0x3feb333333333333)
+	mMusicVolume = 0.595;
+	mSfxVolume = 0.85;
 	mWidth = GAME_WIDTH;
 	mHeight = GAME_HEIGHT;
 
@@ -103,6 +111,7 @@ RocketApp::RocketApp()
 		mHintFlags[i] = false;
 }
 
+// 0x42b3f0
 RocketApp::~RocketApp()
 {
 	delete mStateLog;
@@ -323,6 +332,18 @@ void RocketApp::HandleCmdLineParam(const std::string& theParamName, const std::s
 
 void RocketApp::UpdateFrames()
 {
+	// port: the original's game without 3D (MakeWindow reads "Is3D", and its D3DTester turns 3D on only where the card
+	// passes) draws into a software screen, where a rotation is its DDImage::BltRotated (0x441127), a bilinear
+	// blit with jagged edges, and the screen is one surface that keeps the last frame; the framework's software
+	// transforms do the same where the GPU would smooth the edges. The 3D game keeps the GPU's, as the original's
+	// Direct3D does. The stretches stay with SDL in both: the original's software screen averages them (0x44abeb, an
+	// older routine than the framework's 0x433ca0 StretchCopy, which the software stretch would use and which
+	// comes out sharper on the head in its hole), and SDL's bilinear filter lands within a few levels of that.
+	if (mDDInterface != NULL)
+	{
+		mDDInterface->mSoftwareTransforms = !Is3DAccelerated();
+		mDDInterface->mKeepScreen = !Is3DAccelerated();
+	}
 	SexyApp::UpdateFrames();
 
 	if (!mUiParams.mStateFile.empty())
@@ -590,20 +611,24 @@ void RocketApp::CreateHead()
 	mBubble->SetVisible(false);
 }
 
-// 0x42e010: the menu replaces whatever was on screen (the game in progress is closed first)
+// 0x42e010, with 0x4220a0 (the head climbs back, the board's state is 3; the removal of the board's text widgets, 0x41d3a0, is done
+// by Board::RemovedFromManager), 0x41b420 and 0x42e9f0 inline: the menu replaces whatever was on screen (the game in progress is
+// closed first)
 void RocketApp::ShowGameSelector()
 {
 	KillDialog(3);
 	RemoveBoardButtons();
 	if (mBoard != NULL)
 	{
-		// a game in progress is saved (0x41b420: unless it is finished) before the board goes
+		// a game in progress is saved (unless it is finished) before the board goes
 		if (mBoard->mState != 2)
 			mBoard->Save();
 		mHead->SetSlide(false);
 		mHead->Move(250, -300);
 		mBoard->mState = 3;
+		// the board leaves the widget manager and is deleted (the port left it behind: 100 KB a game)
 		mWidgetManager->RemoveWidget((Widget*) mBoard);
+		SafeDeleteWidget(mBoard);
 		mBoard = NULL;
 	}
 	if (mGameSelector != NULL)
@@ -704,7 +729,7 @@ bool RocketApp::ShowModeHint(int theHint, bool theContinuing)
 	return true;
 }
 
-// 0x42ea30: a game begins (or is continued): the board replaces the one in progress.
+// 0x42ea30, with 0x42e190 and 0x42d660 (KillDialog(1)) inline: a game begins (or is continued): the board replaces the one in progress.
 void RocketApp::StartBoard(bool theContinuing)
 {
 	KillDialog(3);
@@ -716,7 +741,7 @@ void RocketApp::StartBoard(bool theContinuing)
 		SafeDeleteWidget(mBoard);
 		mBoard = NULL;
 	}
-	// 0x42e190: the menu is taken away (and deleted) when a game begins
+	// the menu is taken away (and deleted) when a game begins
 	if (mGameSelector != NULL)
 	{
 		mWidgetManager->RemoveWidget(mGameSelector);
@@ -737,7 +762,8 @@ void RocketApp::StartBoard(bool theContinuing)
 	}
 }
 
-// 0x42d1a0: the three buttons on the left of the screen. Each shows a picture over the column's own while the pointer is on
+// 0x42d1a0, with the one button of 0x42d090 inline in its loop (the original's pause button is there only when 0x42d190 says the
+// game is registered, which it always is here): the three buttons on the left of the screen. Each shows a picture over the column's own while the pointer is on
 // it (the first image) and while it is pressed (the second); the label is part of the column's picture.
 void RocketApp::AddBoardButtons()
 {
@@ -767,6 +793,7 @@ void RocketApp::DisableBoardButtons(bool theDisabled)
 		(*anItr)->SetDisabled(theDisabled);
 }
 
+// 0x42d2b0 (the first of its two lists, which the game never fills, is not here)
 void RocketApp::RemoveBoardButtons()
 {
 	for (std::list<ButtonWidget*>::iterator anItr = mBoardButtons.begin(); anItr != mBoardButtons.end(); ++anItr)

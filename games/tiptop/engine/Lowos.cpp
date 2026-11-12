@@ -2,9 +2,12 @@
 // what DirectX did (surfaces, flips, input devices, sound buffers) is done on the port's buffers instead.
 
 #include "Lowos.h"
+#include "framework/SDLSoundManager.h"
+#include "framework/SexyAppBase.h"
 #include "platform/Audio.h"
 
 #include <algorithm>
+#include <cmath>
 #include <cstdio>
 #include <cstring>
 #include <memory>
@@ -384,17 +387,6 @@ char InitScreen(uint8_t theMode, ActivateCallback theActivate, CloseCallback the
 	return gWindowed ? 2 : 1;
 }
 
-// 0x42f750
-void UninitScreen()
-{
-	if (gScreenInited)
-	{
-		gScreenInited = false;
-		while (gSurfaces != nullptr)
-			UnregisterSurface(gSurfaces);
-	}
-}
-
 // 0x42f850: the display mode's format, size and bytes per pixel
 uint8_t GetDisplayFormat(PixelFormat* theFormat, uint16_t* theWidth, uint16_t* theHeight)
 {
@@ -578,9 +570,15 @@ static bool SameFormat(const PixelFormat* a, const PixelFormat* b)
 	return memcmp(a, b, sizeof(PixelFormat)) == 0;
 }
 
-// The software blitter (0x437e3c and its 48 specialised routines from 0x4346f0): copies, skipping the color key
-// (SURF_COLORKEY) and blending with a level (SURF_TRANSLUCENT, or each pixel's own with SURF_ALPHABYTE): each
-// channel becomes s + (d - s) * (255 - level) / 255, truncated toward zero (the table built by 0x438067).
+// The software blitter: 0x437e3c and its 44 specialised routines, the pixel loops of every format, mode and level, at
+// 0x4346f0 to 0x437b73 (each is a counterpart, as this one function does them all):
+// 0x4346f0, 0x434837, 0x4348c3, 0x434b06, 0x434c57, 0x434e90, 0x4350ec, 0x43532f, 0x4355ca, 0x4358a8, 0x435a75,
+// 0x435c4c, 0x435e3b, 0x436012, 0x4360e5, 0x436380, 0x43665e, 0x43677a, 0x43689b, 0x4369d3, 0x436af0, 0x436b76,
+// 0x436c4c, 0x436d59, 0x436e0c, 0x436ec3, 0x436f97, 0x437054, 0x4370a5, 0x437129, 0x4371d5, 0x43729d, 0x437366,
+// 0x43744b, 0x43751e, 0x437573, 0x437628, 0x43771c, 0x4377e4, 0x4378ad, 0x437992, 0x437a65, 0x437abc, 0x437b73
+// They copy, skipping the color key (SURF_COLORKEY) and blending with a level (SURF_TRANSLUCENT, or each pixel's own
+// with SURF_ALPHABYTE): each channel becomes s + (d - s) * (255 - level) / 255, truncated toward zero (the table built
+// by 0x438067).
 void BlitPixels(const PixelFormat* theSrcFormat, const PixelFormat* theDestFormat, uint8_t* theDest,
 	const uint8_t* theSrc, int theHeight, int theWidth, uint32_t theDestPitch, uint32_t theSrcPitch,
 	uint8_t theFlags, uint8_t theSrcBpp, uint8_t theDestBpp, uint32_t theColorKey, uint8_t theLevel)
@@ -593,6 +591,36 @@ void BlitPixels(const PixelFormat* theSrcFormat, const PixelFormat* theDestForma
 	bool aKey = (theFlags & SURF_COLORKEY) != 0;
 	bool anAlphaByte = (theFlags & SURF_ALPHABYTE) != 0;
 	bool aConvert = !SameFormat(theSrcFormat, theDestFormat);
+	// Nearly every call is an opaque copy or a color-keyed one between 32-bit pixels of one format (the background and the
+	// sprites): the loop below does them a byte and a branch at a time, so these two make the same copy a pixel at a time.
+	// (A source that overlaps the destination keeps the loop, whose order of reads and writes the result may depend on.)
+	if (theSrcBpp == 4 && theDestBpp == 4 && !aConvert && !anAlphaByte && !aBlend && (theFlags & SURF_ADDITIVE) == 0)
+	{
+		uintptr_t aSrcStart = (uintptr_t)theSrc, aSrcEnd = aSrcStart + (uintptr_t)theHeight * theSrcPitch;
+		uintptr_t aDestStart = (uintptr_t)theDest, aDestEnd = aDestStart + (uintptr_t)theHeight * theDestPitch;
+		if (aSrcEnd <= aDestStart || aDestEnd <= aSrcStart)
+		{
+			for (int y = 0; y < theHeight; y++)
+			{
+				const uint8_t* s = theSrc + y * theSrcPitch;
+				uint8_t* d = theDest + y * theDestPitch;
+				if (!aKey)
+				{
+					memcpy(d, s, (size_t)theWidth * 4);
+					continue;
+				}
+				for (int x = 0; x < theWidth; x++)
+				{
+					uint32_t v, aDest;
+					memcpy(&v, s + x * 4, 4);
+					memcpy(&aDest, d + x * 4, 4);
+					v = v == theColorKey ? aDest : v;
+					memcpy(d + x * 4, &v, 4);
+				}
+			}
+			return;
+		}
+	}
 	for (int y = 0; y < theHeight; y++)
 	{
 		const uint8_t* s = theSrc + y * theSrcPitch;
@@ -931,6 +959,11 @@ struct SoundSlot
 {
 	std::shared_ptr<Platform::SoundData> mData;
 	int mVoice = 0;
+	// BYOPOP_SOUNDLOG: the number of the play the log has running (0 = none) and the update it ends on by the sound's
+	// length, so that a run on the virtual clock (-fast) logs the plays the real clock would
+	int mLogNum = 0;
+	int mLogEnd = 0;
+	int mLogVolume = 0;
 };
 
 static bool gSoundInited = false;     // 0x48a294
@@ -942,15 +975,6 @@ char InitSound()
 {
 	gSoundInited = true;
 	return 0;
-}
-
-// 0x432e70
-void UninitSound()
-{
-	gSoundInited = false;
-	while (gSounds != nullptr)
-		FreeSound(gSounds);
-	gSlots.clear();
 }
 
 static FILE* gSoundLog = nullptr;
@@ -1004,6 +1028,41 @@ void FreeSound(Sound* theSound)
 	delete theSound;
 }
 
+// BYOPOP_SOUNDLOG (tools/soundpreset.py): a call of PlaySound as the framework's sound log words it. Whether a sound is
+// still playing is taken from its length in updates, not from the mixer, which a run on the virtual clock (-fast) keeps
+// on the machine's clock: the log is the one a run at the game's own speed gives.
+static void LogSoundCall(const Sound* theSound, SoundSlot& theSlot, uint32_t theVolume, char theMode)
+{
+	int aNow = Sexy::gSexyAppBase->mUpdateCount;
+	bool isPlaying = theSlot.mLogNum != 0 && theSlot.mLogEnd > aNow;
+	// the volume in hundredths of a decibel, as DirectSound had it (0 = full)
+	int aCentiDb = theVolume == 0 ? -10000 : (int)(2000.0 * log10((double)theVolume / 4294967295.0));
+	if (aCentiDb > 0)
+		aCentiDb = 0;
+	if ((theMode == 0 || theMode == 1) && theSlot.mLogNum != 0)
+	{
+		Sexy::SoundLog("stop %d #%d", theSound->mHandle, theSlot.mLogNum);
+		theSlot.mLogNum = 0;
+	}
+	if (theMode == 0)
+		return;
+	if (theMode == 2 && isPlaying)
+	{
+		if (aCentiDb != theSlot.mLogVolume)
+			Sexy::SoundLog("volume %d #%d %d", theSound->mHandle, theSlot.mLogNum, aCentiDb);
+		theSlot.mLogVolume = aCentiDb;
+		return;
+	}
+	if (theVolume == 0 || !theSlot.mData)
+		return;
+	static int sLogNum = 0;
+	theSlot.mLogNum = ++sLogNum;
+	theSlot.mLogVolume = aCentiDb;
+	theSlot.mLogEnd = aNow + (int)std::ceil((double)theSlot.mData->mFrames * 1000.0 / theSlot.mData->mRate /
+		Sexy::gSexyAppBase->mFrameTime);
+	Sexy::SoundLog("play %d #%d vol=%d pan=0 pitch=1.0000 loop=0", theSound->mHandle, theSlot.mLogNum, aCentiDb);
+}
+
 // 0x432f80: theMode 0 stops the sound, 1 (re)starts it, 2 starts it unless it is playing. theVolume is a linear
 // amplitude, 0xffffffff = full (the original made it DirectSound decibels: 2000 * log10(volume / 2^32)).
 void PlaySound(Sound* theSound, uint32_t theVolume, char theMode)
@@ -1024,6 +1083,8 @@ void PlaySound(Sound* theSound, uint32_t theVolume, char theMode)
 		fprintf(gSoundLog, "%d stop %d\n", *gSoundLogUpdate, theSound->mHandle);
 	if (!gActive)
 		return;
+	if (Sexy::SoundLogOn())
+		LogSoundCall(theSound, aSlot, theVolume, theMode);
 	float aGain = (float)((double)(theVolume >> 14) * (1.0 / 262144.0));
 	if (theMode != 0 && aSlot.mVoice != 0 && isPlaying)
 		aMixer.SetVoiceGain(aSlot.mVoice, aGain, aGain);
