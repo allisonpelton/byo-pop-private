@@ -46,6 +46,19 @@ scripted tour of them (`games/venice/tools/tour_test.txt`) and compares it with 
 differs, the test commands and the oddities are in `GAME_NOTES.md`. Open: a bot for the `move` command, a smoke run of every level,
 the comparison with the original (origrun has no row for Venice yet).
 
+## Retro64 comparison (2026-11-12, the coordinator's check)
+
+`tools/funcmatch.py` of Venice against Cosmic Bugs and Water Bugs (`--fuzzy`, `build/logs/fm`) matches 103 functions of 6019 in each, and
+every one is C runtime code (`_memmove`, `__alldiv`, `_strlen`, `__setmbcp` and so on, at Venice's 0x56xxxx-0x57xxxx); none is in Venice's
+own code or the engine span 0x424000-0x43a000. The two engines share ideas and a data vocabulary (the XML attributes `velocity`, `decay`,
+`num_frames`, an emitter, a tag-at-a-time reader with `GetInt` and `GetFloat` through atol and atof) but not code: Retro64 has intrusive
+lists of 0xb0-byte `Obj`s, its own software blitters on its own surface and bitmap fonts drawn into a target buffer, with no stages,
+filters or triggers anywhere (`git grep` of them in `games/cosmicbugs` and `engines/retro64` finds none); Venice's is a pool of 0x148-byte
+scene objects with stages, filters and events, drawn through the framework's pictures. The tag readers (`ReadTag` 0x4359d0, `Xml_NextTag`
+0x42d3c0) parse well-formed input the same way, and differ in what they hold (Venice: 0x180-byte strings in the original, `std::string` in
+the port; Retro64: 0x100-byte buffers, name cut at 255, a malloc'd attribute array) and in the whitespace loops, so sharing would move
+~60 lines at the price of touching two frozen baselines. Outcome: no real code matches, nothing goes under `engines/retro64`.
+
 ## Engine facts read so far (the Object, 0x148 bytes; pool at 0x6856a8, in-use flags at 0x6857d8 + i * 0x148)
 
 Reading tips: Ghidra drops trailing call arguments (check the disassembly, `ghidra/DumpListing.java` or `ExportRange`), and
