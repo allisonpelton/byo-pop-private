@@ -424,6 +424,21 @@ present instead, tried first, runs the original one frame ahead of the runner: i
 every update of the 200, 400 and 300 seconds (the original's seed series has one more change than the runner's at the end of g1, past the
 last compared update).
 
+**The original in Windows Sandbox, the same day (2026-11-12).** With that patch file the original's menus tour (`test/tours/menus.txt`, 47
+shots, `tools/play/tour.py`, `or.sh` with `--sandbox --surface-screen 708ee0,708edc,800,600,15 --surface-gate 707880`, plain sandbox runs
+with no window and no sound) was shot beside the runner's (`CB_555=1`) and compared by `tools/shotdiff`: 42 pairs identical and 5 only
+faintly different (the title after Esc from a board, and the Change User screens: the one-step soft edges IDENTICAL_PLAY.md lists). The
+player's name is the one visible difference, and a harness condition: a new profile takes the Windows user name, which is SYSTEM for the
+sandbox's run and GUEST for the runner's host, so `games/cosmicbugs/shotdiff.json` ignores the name's rectangles on the pairs that show it
+(the "Hello, <name>" line on the title, the Change User list). The 400 s g2 play with a shot every 4 s (99 shots, the first at the very
+millisecond of the instructions page's Play click) gave 84 identical, 4 faint and 11 differing. Three of those (s001, s049, s086) are the
+original's shot landing two or three frames late (`landed.tsv`: 20, 10 and 30 updates after the one asked for); the port's shots at
+the updates they landed on equal them, 3 of 3. The other eight (s059, s060, s071, s072, s074, s075, s080, s091) each differ in a box around
+one enemy sprite, the draw-order oddity of IDENTICAL_PLAY.md (same-depth sprites are ordered by their address, which differs between the
+original and the port, and between the port's builds: that pass found 2 such shots in 100, this build 8 in 99): with the draw list's tie
+rule flipped in a scratch runner build, which was not kept, those eight shots no longer differ visibly (like every other shot of that
+build they differ faintly on the stars, which the same rule orders), so the order is their cause.
+
 **Real input through the window.** `tools/play/drive.py` (posted SDL events through `-realinput`, the bot's moves through `move`, under rundesk,
 in real time) now also starts a game in a window (`manual-win1x`: 800x600, `auto-win2x`: the framework's 1600x1200), where the window's own
 surface shows the screen, and ends it with Alt+Enter to full screen and back. Six games, each from the title through Options, Start Game, the
