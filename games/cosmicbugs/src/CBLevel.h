@@ -509,8 +509,8 @@ struct Level : Obj
 	int mTotalCells;                  // +0x3b4  the open cells at the start
 	int mFilledCells;                 // +0x3b8
 	int mFillQuota;                   // +0x3bc  percent
-	int mFloodedCells;              // +0x3c0  cells the capture's flood has reached since the chain began (0 when it
-                                    // ends): the chance of a power-up counts them as filled
+	int mFloodedCells;                // +0x3c0  cells the capture's flood has reached since the chain began (0 when it
+                                      // ends): the chance of a power-up counts them as filled
 	int mFillSound;                   // +0x3c4
 	int mFillEndSound;                // +0x3c8
 	int mSymmetry;                    // +0x3cc  a random board's

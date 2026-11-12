@@ -107,6 +107,7 @@ extern Image gBackBuffer;
 
 // The game's texts, read from the player's exe by address (CBGameText.cpp): false when none could be
 const char* GT(uint32_t theVA);
+constexpr uint32_t TEXT_EMPTY_PROFILE = 0x458a84;                // the name of a profile slot nobody has used
 #define GTA(theVA) (theVA)
 bool LoadGameTexts();
 const char* Localize(const char* theText);                       // 0x420e10

@@ -47,7 +47,7 @@ static std::string Typed(const std::string& theName, int theMax, int theWidth, F
 
 static const char* Empty()
 {
-	return Localize(GT(0x458a84));
+	return Localize(GT(TEXT_EMPTY_PROFILE));
 }
 
 static bool Used(int theSlot)

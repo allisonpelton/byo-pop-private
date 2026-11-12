@@ -667,7 +667,7 @@ int MenuItem_Update(MenuItem* theItem)
 				// a player's slot: an empty one asks for a name, the current one goes back, another is chosen
 				strcpy(gSavedName, gProfiles[gProfile].mName);
 				gSavedProfile = aProfile;
-				if (strcmp(gProfiles[atol(theItem->mName)].mName, Localize(GT(0x458a84))) == 0)
+				if (strcmp(gProfiles[atol(theItem->mName)].mName, Localize(GT(TEXT_EMPTY_PROFILE))) == 0)
 				{
 					theItem->mHot = 0;
 					gProfile = atol(theItem->mName);
@@ -712,7 +712,7 @@ int MenuItem_Update(MenuItem* theItem)
 				int aPlayers = 0;
 				for (Profile* aSlot = gProfiles; aSlot < gProfiles + 10; aSlot++)
 				{
-					if (strcmp(aSlot->mName, Localize(GT(0x458a84))) != 0)
+					if (strcmp(aSlot->mName, Localize(GT(TEXT_EMPTY_PROFILE))) != 0)
 						aPlayers = aPlayers + 1;
 				}
 				theItem->mHot = 0;
@@ -736,10 +736,10 @@ int MenuItem_Update(MenuItem* theItem)
 				// the delete's okay: the slot is emptied and the first player left is chosen
 				gProfiles[gProfile].mAutoFire = 1;
 				gProfiles[gProfile].mLevelReached = 0;
-				strcpy(gProfiles[gProfile].mName, Localize(GT(0x458a84)));
+				strcpy(gProfiles[gProfile].mName, Localize(GT(TEXT_EMPTY_PROFILE)));
 				for (int i = 0; i < 10; i++)
 				{
-					if (strcmp(gProfiles[i].mName, Localize(GT(0x458a84))) != 0)
+					if (strcmp(gProfiles[i].mName, Localize(GT(TEXT_EMPTY_PROFILE))) != 0)
 					{
 						gProfile = i;
 						i = 10;
@@ -1177,7 +1177,7 @@ int Menu_Update(Menu* theMenu)
 	{
 		// a requester asking for a name stays up until it has one
 		const char* aName = gProfiles[gProfile].mName;
-		if (strcmp(aName, Localize(GT(0x458a84))) == 0)
+		if (strcmp(aName, Localize(GT(TEXT_EMPTY_PROFILE))) == 0)
 			return 1;
 		if (aName[0] == 0)
 			return 1;

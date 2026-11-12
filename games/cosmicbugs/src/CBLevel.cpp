@@ -1387,7 +1387,7 @@ void Level_UpdateProgressStars()
 
 void Level_SetUserName(const char* theName)
 {
-	if (std::strlen(theName) != 0 && std::strcmp(theName, Localize(GT(0x458a84))) != 0)
+	if (std::strlen(theName) != 0 && std::strcmp(theName, Localize(GT(TEXT_EMPTY_PROFILE))) != 0)
 	{
 		std::strcpy(gProfiles[gProfile].mName, theName);
 		gAutoFire = gProfiles[gProfile].mAutoFire;

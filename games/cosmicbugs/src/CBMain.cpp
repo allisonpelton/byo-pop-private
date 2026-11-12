@@ -243,7 +243,7 @@ void ResetProfiles()
 	gProfiles[0].mPowerupsCaught = 0;
 	for (Profile* aProfile = gProfiles + 1; aProfile < gProfiles + 10; aProfile++)
 	{
-		std::strcpy(aProfile->mName, Localize(GT(0x458a84)));
+		std::strcpy(aProfile->mName, Localize(GT(TEXT_EMPTY_PROFILE)));
 		aProfile->mLevelReached = 0;
 		aProfile->mAutoFire = gAutoFire;
 		aProfile->mSavedLevel = 0;
