@@ -367,8 +367,6 @@ public:
 	//                   update on any machine; the game runs slower than real time if drawing is slow
 	//   -renderscale=N  render at N times the logical size (1..4) whatever the window size, e.g. to
 	//                   check HD art with screenshotfull
-	//   -windowscale=N  the window starts at N times the logical size in points (1..4), where it otherwise starts at 2x when
-	//                   that fits the desktop, so that a run's window is the original's 800x600, say, whatever the desktop
 	//   -realinput=<file>  real input: timed SDL events pushed into SDL's own queue (SDL_PushEvent), so they take
 	//                   the path a hand's events take (SDL_PollEvent, HandleEvent, the window-to-game mapping, the
 	//                   widget manager, F2 and Alt+Enter); the system's own mouse, keyboard, text and focus events
@@ -437,7 +435,6 @@ public:
 	bool mTraceMode;
 	bool mDrawEvery;  // -drawevery
 	int mForcedRenderScale;  // -renderscale=N
-	int mForcedWindowScale;  // -windowscale=N
 	bool mDrawingLogicalShot;  // SaveScreenshot at the logical size is drawing
 	DWORD mFastClock;          // -fast: virtual milliseconds, advanced instead of sleeping
 	int mLastFastDrawUpdate;   // -fast: mUpdateCount at the last draw

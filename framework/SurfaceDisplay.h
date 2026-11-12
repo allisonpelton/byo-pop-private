@@ -26,10 +26,22 @@
 // runs at every size change and at the start of every frame) destroys the one and makes the other. The window, its
 // focus and its position are untouched; the buffer is the app's and nothing in it is lost, so the first frame after a
 // change is shown whole.
+//
+// Other apps that draw their screen into a CPU buffer take it the same way: override CreateDDInterface (under
+// #ifndef __EMSCRIPTEN__) to return a SurfaceDisplay, keep the screen as one 32-bit buffer the app owns, and call SetFrame
+// before the widgets draw, with the buffer, its pitch and the rects it redrew (or everything, or nothing).
+//   - TipTop: the buffer is its own std::vector<uint32_t>, the rects its list of changed rects (usually under 30, up to
+//     about 150); no widget image is kept.
+//   - Word Harmony: the pixels of the MemoryImage its ScreenGraphics draws into, and the rects of the tiles it redrew.
+//   - Cosmic Bugs and Water Bugs (the Retro64 engine): the 16-bit screen is converted into an app-owned 32-bit buffer for the
+//     bounding rect it marked dirty, which is the one rect handed over (everything when it marks the whole screen).
+//   - Alchemy cannot: its screen is drawn by the GPU path (no CPU image of it exists), so it keeps DDInterface.
+// The display shows the buffer and nothing else, so an app that draws widgets over it must have them in the buffer first.
+// A drawn cursor image (mCursorImage) keeps the display in renderer mode.
 
 #include "DDInterface.h"
 
-struct SDL_Surface;
+#include <SDL.h>
 
 namespace Sexy
 {
@@ -43,7 +55,8 @@ public:
 	// The app's frame, once for every frame it draws (before the framework draws the widgets). thePixels: the screen,
 	// mWidth x mHeight 32-bit pixels 0x??RRGGBB, thePitch bytes a row (the top byte is not read; the screen is opaque),
 	// valid until the next call and until the display is gone. theRects: what changed since the last call (theCount 0:
-	// nothing; theCount < 0: everything). The rects accumulate until the next Present.
+	// nothing; theCount < 0: everything). The rects accumulate until the next Present: one inside another is dropped and,
+	// past 128 of them, the two whose union adds the least area are made one.
 	void SetFrame(const uint32_t* thePixels, int thePitch, const Rect* theRects, int theCount);
 
 	// true while the frame goes to the window's surface
@@ -84,6 +97,8 @@ protected:
 	int mPitch;
 	// the rects of the frame not shown yet; mPendingAll: all of it
 	std::vector<Rect> mPending;
+	size_t mMaxPending;  // the most kept; more are merged (AddPending)
+	std::vector<SDL_Rect> mSdlRects;
 	bool mPendingAll;
 	// surface mode: the window's SDL surface is shown instead of a renderer's frame
 	bool mSurfaceMode;
@@ -92,6 +107,7 @@ protected:
 	bool mSurfaceDisabled;     // SURFACE_DISPLAY=0 in the environment: the renderer for good
 	bool mVerifySurface;       // SURFACE_VERIFY=1 in the environment: every present is checked (VerifySurface)
 	int mVerifiedFrames;
+	Uint32 mLastWholeTick;     // SDL_GetTicks() at the last present of the whole screen (surface mode)
 	SDL_Texture* mFrameTexture;
 	bool mFrameTextureWhole;  // mFrameTexture holds the whole of the buffer as of the last upload
 };

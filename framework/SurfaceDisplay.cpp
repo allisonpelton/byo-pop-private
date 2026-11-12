@@ -13,8 +13,15 @@
 namespace Sexy
 {
 
-// more rects than this pile up between two presents and they become their bounding rect
-static const size_t kMaxPendingRects = 6;
+// the most rects kept between two presents (SURFACE_MAXRECTS in the environment sets another number, so that a test can
+// make the rects merge often); past it the two rects whose union adds the least area become that union
+static const size_t kDefaultMaxPendingRects = 128;
+
+static bool RectContains(const Rect& theOuter, const Rect& theInner)
+{
+	return (theInner.mX >= theOuter.mX) && (theInner.mY >= theOuter.mY) && (theInner.mX + theInner.mWidth <= theOuter.mX + theOuter.mWidth) &&
+		(theInner.mY + theInner.mHeight <= theOuter.mY + theOuter.mHeight);
+}
 
 // the window's surface goes up to this many times the screen's size
 static const int kMaxSurfaceScale = 4;
@@ -79,13 +86,24 @@ SurfaceDisplay::SurfaceDisplay(SexyAppBase* theApp) :
 	mSurfaceMode = false;
 	mSurfaceScale = 1;
 	mVerifiedFrames = 0;
+	mLastWholeTick = 0;
 	mSurfaceUnavailable = false;
-	const char* anEnv = SDL_getenv("SURFACE_DISPLAY");
-	mSurfaceDisabled = (anEnv != NULL) && (anEnv[0] == '0');
-	anEnv = SDL_getenv("SURFACE_VERIFY");
-	mVerifySurface = (anEnv != NULL) && (anEnv[0] == '1');
+	mSurfaceDisabled = false;
+	mVerifySurface = false;
 	mFrameTexture = NULL;
 	mFrameTextureWhole = false;
+	mMaxPending = kDefaultMaxPendingRects;
+	// test hooks: only a test run (SexyAppBase::IsTestRun) reads them, so a player's exe never meets them
+	if ((theApp != NULL) && (theApp->IsTestRun()))
+	{
+		const char* anEnv = SDL_getenv("SURFACE_DISPLAY");
+		mSurfaceDisabled = (anEnv != NULL) && (anEnv[0] == '0');
+		anEnv = SDL_getenv("SURFACE_VERIFY");
+		mVerifySurface = (anEnv != NULL) && (anEnv[0] == '1');
+		anEnv = SDL_getenv("SURFACE_MAXRECTS");
+		if ((anEnv != NULL) && (atoi(anEnv) > 0))
+			mMaxPending = (size_t) atoi(anEnv);
+	}
 }
 
 SurfaceDisplay::~SurfaceDisplay()
@@ -119,6 +137,8 @@ bool SurfaceDisplay::EnterSurfaceMode(int theScale)
 {
 	// SDL does not give a window a surface while it has a renderer
 	ReleaseRenderer();
+	// the surface is the CPU's, shown by GDI: never one that SDL makes of a texture behind our backs
+	SDL_SetHint(SDL_HINT_FRAMEBUFFER_ACCELERATION, "0");
 	SDL_Surface* aSurface = SDL_GetWindowSurface(mWindow);
 	if ((aSurface == NULL) || (aSurface->format->BytesPerPixel != 4) || (aSurface->format->Rmask != 0xff0000) ||
 		(aSurface->format->Gmask != 0xff00) || (aSurface->format->Bmask != 0xff) || (aSurface->w != mWidth * theScale) ||
@@ -295,14 +315,44 @@ void SurfaceDisplay::AddPending(const Rect& theRect)
 	Rect aRect = theRect.Intersection(Rect(0, 0, mWidth, mHeight));
 	if ((aRect.mWidth <= 0) || (aRect.mHeight <= 0))
 		return;
-	mPending.push_back(aRect);
-	if (mPending.size() > kMaxPendingRects)
+	// a rect that is inside a pending one adds nothing; pending ones inside this one go
+	for (size_t i = 0; i < mPending.size(); i++)
+		if (RectContains(mPending[i], aRect))
+			return;
+	for (size_t i = 0; i < mPending.size();)
 	{
-		Rect aBounds = mPending[0];
-		for (size_t i = 1; i < mPending.size(); i++)
-			aBounds = aBounds.Union(mPending[i]);
-		mPending.clear();
-		mPending.push_back(aBounds);
+		if (RectContains(aRect, mPending[i]))
+		{
+			mPending[i] = mPending.back();
+			mPending.pop_back();
+		}
+		else
+			i++;
+	}
+	mPending.push_back(aRect);
+	while (mPending.size() > mMaxPending)
+	{
+		// the pair whose union is least larger than the two rects themselves
+		size_t aBestA = 0, aBestB = 1;
+		long long aBestCost = -1;
+		for (size_t a = 0; a < mPending.size(); a++)
+		{
+			const long long aAreaA = (long long) mPending[a].mWidth * mPending[a].mHeight;
+			for (size_t b = a + 1; b < mPending.size(); b++)
+			{
+				Rect aUnion = mPending[a].Union(mPending[b]);
+				long long aCost = (long long) aUnion.mWidth * aUnion.mHeight - aAreaA - (long long) mPending[b].mWidth * mPending[b].mHeight;
+				if ((aBestCost < 0) || (aCost < aBestCost))
+				{
+					aBestCost = aCost;
+					aBestA = a;
+					aBestB = b;
+				}
+			}
+		}
+		mPending[aBestA] = mPending[aBestA].Union(mPending[aBestB]);
+		mPending[aBestB] = mPending.back();
+		mPending.pop_back();
 	}
 }
 
@@ -356,10 +406,21 @@ void SurfaceDisplay::PresentToSurface()
 		return;
 	}
 
-	// a present with no rect pending is a draw the framework asked for (an expose, a restore, the idle second): the
-	// whole window is made again from the buffer
+	// nothing pending: the app has nothing new (it may mark its widget dirty at every update all the same), and the window
+	// shows the last frame. The window's contents can be lost without a word (expose, restore and size changes are told
+	// by ScreenInvalidated, which asks for the whole), so a draw the framework asks for with nothing pending, once a
+	// second at most, is a whole present as a safety net
+	if ((!mPendingAll) && (mPending.empty()))
+	{
+		const Uint32 aNow = SDL_GetTicks();
+		if ((Uint32) (aNow - mLastWholeTick) < 1000)
+			return;
+	}
 	bool aWhole = (mPendingAll) || (mPending.empty());
-	SDL_Rect aRects[kMaxPendingRects];  // in the buffer's pixels
+	if (aWhole)
+		mLastWholeTick = SDL_GetTicks();
+	mSdlRects.resize(aWhole ? 1 : mPending.size());  // in the buffer's pixels
+	SDL_Rect* aRects = &mSdlRects[0];
 	int aCount = 0;
 	if (aWhole)
 	{
@@ -371,7 +432,7 @@ void SurfaceDisplay::PresentToSurface()
 	}
 	else
 	{
-		for (size_t i = 0; (i < mPending.size()) && (i < kMaxPendingRects); i++)
+		for (size_t i = 0; i < mPending.size(); i++)
 		{
 			aRects[aCount].x = mPending[i].mX;
 			aRects[aCount].y = mPending[i].mY;

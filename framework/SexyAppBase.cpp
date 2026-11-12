@@ -710,7 +710,6 @@ SexyAppBase::SexyAppBase()
 	mHasSeedParam = false;
 	mFastMode = false;
 	mForcedRenderScale = 0;
-	mForcedWindowScale = 0;
 	mDrawingLogicalShot = false;
 	mTraceMode = false;
 	mDrawEvery = false;
@@ -2480,9 +2479,6 @@ void SexyAppBase::MakeWindow()
 			// Scale the window up to 2x when that still fits, leaving room for the window frame
 			if ((mWidth * 2 <= aDesktopRect.w - 32) && (mHeight * 2 <= aDesktopRect.h - 64))
 				aScale = 2;
-			// -windowscale=N: a test run's window is the size the run asks for (the original's own, at 1)
-			if (mForcedWindowScale > 0)
-				aScale = mForcedWindowScale;
 
 			if (hasPreferredPos)
 			{
@@ -3541,8 +3537,6 @@ void SexyAppBase::HandleCmdLineParam(const std::string& theParamName, const std:
 		mDrawEvery = true;
 	else if (theParamName == "-renderscale")
 		mForcedRenderScale = atoi(theParamValue.c_str());
-	else if (theParamName == "-windowscale")
-		mForcedWindowScale = std::max(0, std::min(4, atoi(theParamValue.c_str())));
 	// port: stand-ins for missing game files (platform/Placeholders.h)
 	else if (theParamName == "-placeholders")
 		Platform::SetPlaceholders(true);
