@@ -29,8 +29,14 @@ portrun "$D/cal" -seed=$SEED -reseedengine=$SEED -startloadupdates=820 -chapterl
 ( cat "$D/inputs.txt"; awk '$2=="quit"' "$PORTSCRIPT" ) | sort -n -s -k1,1 > "$D/replay.txt"
 python "$TOOLS/toorig.py" "$D/inputs.txt" -1 > "$D/orig.txt"
 END=$(awk '$2=="quit"{print $1}' "$PORTSCRIPT" | tail -1)
+# the original's log is made fresh by this run only: a log left by an earlier case (a sandbox run that never started, because another
+# session's sandbox held the lock or the sandbox failed) would be compared as if it were this case's (2026-11-11: the chapter batch
+# compared one stale log against every profile)
+rm -f build/origrun/bwa2s/logs/origrun-sandbox.log "$D/orig.log"
 bash "$TOOLS/sbox.sh" "$D/orig.txt" $SEED $(( ${END:-30000} / 100 + 60 )) 0x7c0000 '[0x7870a4]+0x30' > "$D/sbox.log" 2>&1
-cp build/origrun/bwa2s/logs/origrun-sandbox.log "$D/orig.log"
+if ! cp build/origrun/bwa2s/logs/origrun-sandbox.log "$D/orig.log" 2>/dev/null || ! grep -q 'watch 1:' "$D/orig.log"; then
+	echo "ORIGINAL RUN FAILED: no log with the watched values (see $D/sbox.log)"; exit 2
+fi
 OPTS=$(python "$TOOLS/calib.py" "$D/orig.log" "$D/cal/state.txt")
 echo "load lengths of the original: $OPTS"
 portrun "$D/rep" -seed=$SEED -reseedengine=$SEED $OPTS -script="$D/replay.txt" -statelog="$D/state.txt" > /dev/null
