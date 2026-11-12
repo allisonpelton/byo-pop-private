@@ -369,15 +369,28 @@ than a high-score list; Pixelus, which keeps no score list.
 
 ### The fixes mod on the site
 
-Every game is served with its fixes mod on (`docs/MOD_ROADMAP.md`, "The fixes mod"): one mod, `fixes`, each of whose
-settings toggles one fix, in `games/<game>/mods/fixes`. The web build copies it beside the page as `<game>-fixes/` and
-writes its `version` and file list into the page (`FIXES` in `web/shell.html`); a game in `BYOPOP_WEB_NO_MODS`, or
-without the folder, gets none. Before the game can start, the page puts the mod into `/persist/mods/fixes`, on, its
-fixes at their defaults, and notes it in the game's user dir, `site-fixes.json` (`{"installed": "<version>"}` or
-`{"removed": true}`). A newer shipped version replaces the mod's files and leaves `mods.json` and `mod-settings.json`
-alone, so the player's choices hold. A player who removes the mod never gets it back: a start that finds the note
-saying "installed" and no folder notes it as removed. `-DBYOPOP_WEB_TEST_FIXES=<game>` (set back to empty afterwards)
-gives a game with no fixes mod `tools/webtest/fixes`, a stand-in with one toggle that changes nothing.
+Every game is served improved (`docs/MOD_ROADMAP.md`, "What a player gets", the user, 2026-11-12): its fixes mod on and
+its lite mod on once it has one. The fixes mod
+(`docs/MOD_ROADMAP.md`, "The fixes mod") is one mod, `fixes`, each of whose settings toggles one fix, in
+`games/<game>/mods/fixes`. The web build copies it beside the page as `<game>-fixes/` and writes its `version` and file
+list into the page (`FIXES` in `web/shell.html`); a game in `BYOPOP_WEB_NO_MODS`, or without the folder, gets none.
+Before the game can start, the page puts the mod into `/persist/mods/fixes`, on, its fixes at their defaults, and notes
+it in the game's user dir, `site-fixes.json` (`{"installed": "<version>"}` or `{"removed": true}`). A newer shipped
+version replaces the mod's files and leaves `mods.json` and `mod-settings.json` alone, so the player's choices hold. A
+player who removes the mod never gets it back: a start that finds the note saying "installed" and no folder notes it as
+removed. `-DBYOPOP_WEB_TEST_FIXES=<game>` (set back to empty afterwards) gives a game with no fixes mod
+`tools/webtest/fixes`, a stand-in with one toggle that changes nothing.
+
+**The Original switch** is a check box, Original, in the game's Mods panel (`web/modpanel.js`). It is shown whenever
+the game has a `fixes` or `lite` mod. Turning it on turns both mods off through the game's own model, as the mod menu
+would, and keeps each one's earlier on/off state in the note as `"original": {"fixes": true, "lite": false}`. Turning it
+off puts back exactly those states. The mods' own settings, every fix's toggle in `mod-settings.json`, are never touched,
+so they hold through both. The record stays in the note through a new shipped version. While the switch is on, a fixes
+or lite mod that arrives later (its first install) is turned off and remembered as on, as it would have started. If the
+player turns one of the two back on in the mod menu, they have left the original: the switch goes off and their mods
+stay as they are. A removed fixes mod stays removed whatever the switch says, because the switch only turns on what is
+there. Like the note, the switch belongs to one game's user dir and never changes another game. A change while a game
+runs waits for its restart, like any change in the mod menu.
 
 ### Site settings
 
@@ -567,8 +580,9 @@ every port of a game with a leaderboard on speedrun.com"). `web/autosplit.js` ho
 the port publishes, how to read it and the decisions. With Options, Auto Splitter on (the default), the window polls a game
 every 10 ms, as LiveSplit does. That is the game window in front while the timer is idle, and the run's own window while it
 runs. It does so only when the game has an auto splitter and the splits' game name is the game's speedrun.com name. Its
-decisions go through the timer's own Start, Split and Reset, so an automatic reset asks about new bests as the player's does;
-a split undone by hand is split again on the next poll, and the run's window closing is the script's exit. File, New from
+decisions go through the timer's own Start, Split and Reset, so an automatic reset asks about new bests as the player's does.
+The timer is idle again before that question is asked, and the answer applies to the attempt that was reset: a reset for a
+new game comes with that game's start, which a timer waiting on the answer would miss. A split undone by hand is split again on the next poll, and the run's window closing is the script's exit. File, New from
 Template offers each game's templates, named after its speedrun.com categories, and opens the stored splits of the same
 name when they exist. Game pages export `HEAPU8`, which the page reads the block from.
 
@@ -579,8 +593,108 @@ Bejeweled publishes the desktop's LiveSplit block (`games/bejeweled/src/LiveSpli
 or when the score on screen reaches a segment's number, and reset when the run's board ends, with each reset kind a setting.
 `tools/autosplittest.js` (in `check.sh unit-web`) replays lsdecide.py's 27 scenarios, 53 replays on the game and probe logs,
 from `tools/autosplit/bejeweled-scenarios.json.gz`. `tools/autosplit/bejeweled_fixture.py` writes that file from
-`run_tests.sh`'s runs, with the events lsdecide.py decides, and every event, its poll and its board must agree. The design
-for every other game is Milestone 2's, still to come.
+`run_tests.sh`'s runs, with the events lsdecide.py decides, and every event, its poll and its board must agree.
+
+#### One design for every port
+
+Every other port publishes the same block and is read by one decider, driven by a table of the game's rules. Bejeweled
+keeps its own decider, which is lsdecide.py's, but its block is already the shared one.
+
+**The block** is the one Bejeweled, Big Money and BookWorm already write, kept as it is: the magic `BYOPOP-LIVESPLIT`
+F0 F1 F2 F3, a four-letter game id, the version and size, the `seq` protocol (odd while the game writes), and the
+append-only rule. In all three, bytes 0x00 to 0x7F already mean the same thing: `active`, the `updates` heartbeat,
+`flags` (RESUMED, VANILLA, CHOSEN_SEED, REPLAY, GAME_OVER, PAUSED), the board serial, the GO, level-clear and game-over
+counters with the serial of the board each happened on, four death kinds that add up to the game overs, and `tick`,
+`state`, `level`, `displayLevel`, `displayScore`, `score`, `boardLevelClears`, `goTick` and the board's highest score.
+Bytes 0x80 to 0x9F are the game's own (Bejeweled's rules id; Big Money's and BookWorm's mode, skill and score key), and
+0xA0 holds the clock. Layout 2 moves nothing and appends 0x20 bytes at 0xB0, for a size of 0xD0:
+
+| Offset | Field | Meaning |
+|---|---|---|
+| 0xB0 | u32 `wins`, `winSerial` | the game was won (its last level, an escape, the final chapter), and on which board |
+| 0xB8 | i32 `mode` | the mode being played, as the game's table numbers it; -1 off a board |
+| 0xBC | i32 `skill` | the difficulty, as the table numbers it; 0 for a game without one |
+| 0xC0 | u32 `inGame` | 1 from the board's GO until its game over or win, 0 otherwise (a pause keeps it 1) |
+| 0xC4 | i32 `progress` | a figure of the game's own that a category ends on, where level and score can't say it; -1 when unused |
+| 0xC8 | u8 `reserved[8]` | zero |
+
+These are the six things a speedrun.com category needs. The mode and skill are at 0xB8 and 0xBC in every game, so the
+decider needs no per-game offsets. The level is `displayLevel`, with `levelClears` as its events. The score is
+`displayScore`, with the board's highest score frozen at its game over. In-game is `inGame`. Won is `wins`, and lost is
+`gameOvers` with its death kinds. A game whose code has no GO moment of its own takes the first update on which a fresh
+board accepts input. The death kinds keep each game's own names: the table says what they mean.
+
+**The writer** is a shared header, `platform/AutosplitBlock.h`, with the struct, its `static_assert`s, the log line
+`-livesplitlog` writes, and a small writer class, `AutosplitWriter`. A port calls `Activate` when the block is first
+asked for, `NewBoard(serial)` when its board changes, `Go`, `LevelClear`, `GameOver(kind)` and `Win` at those moments,
+`SetDisplayScore` (or `RaiseScoreMax`, where the game's highest score follows another score than the one on screen), sets
+the rest of the update's fields in `Next()`, and calls `Publish` after every update. The class keeps the counters,
+serials and latched flags and does the `seq` writes. Big Money's and BookWorm's headers become views of its first 0xB0
+bytes, tied to it by `static_assert`s, so their scripts, logs and tools read the same bytes as before; Bejeweled's
+follows. Big Money writes it from Milestone 2, on the web too.
+
+**Inert.** The block is written only once something asks for it: on the web, the page asking for its address
+(`byopop_livesplit_block`, which every port exports under the same name); natively, `features.livesplit`. Until then the
+only cost is one test of a flag after each update. The writer only reads the game: no random draw, no game state, no
+save, no drawing, no timing. Each converted game proves it with its frozen baseline, run unchanged both with the block
+off and with it on.
+
+**The rules table** is in `web/autosplit.js`, one entry for each game:
+
+- `name`: the game's name on speedrun.com, which the splits' game name must match;
+- `id`: the block's game id;
+- `modes` and `skills`: the names behind the block's numbers;
+- `deaths`: what each of the four death kinds is (each one a reset setting, as in Bejeweled);
+- `templates`: one per speedrun.com category and subcategory, each with `mode` and `skill` (none for any, or a
+  list of the allowed ones), its segments, and `end`, how the run finishes:
+  - `levels N` (the Nth level clear);
+  - `score N` (the score on screen reaches N);
+  - `won` (`wins` rises);
+  - `lost` (a game over; for a death% category), or `lost N` (a game over while the game's progress is at most N; any
+    other game over resets the run as usual);
+  - `progress N` (the game's own figure reaches N);
+
+  and, where a category's splits are not its levels, `by: "progress"`: each segment but the last splits when the game's
+  progress reaches its number (Mummy Maze's treasures).
+
+One decider reads every entry. It starts at a GO in the template's mode and skill, but never on a resumed save or a
+replay. It splits at each level clear, or when the score reaches a segment's number (Bejeweled's naming rules: "Level 3",
+"25,000", "25K"), and makes the last split on the template's `end`. It resets when the run's board is lost (unless `end`
+is `lost`), replaced, or quit, or when its window closes, with each kind a setting. It reports the timer's Game Time
+as now: the game's updates times its update step. A category's timing rules, real time or game time and where they say
+it starts, are noted in the template, and the template follows them.
+
+**Rows written so far.** BookWorm (speedrun.com: Bookworm Deluxe): its progress is the rank the summary shows, the levels
+cleared up to 31 (BookWorm's session: Board's level counts up only when the next level starts, so the summary of a level shows
+it plus one). Bookworm Supreme (Any%) is `progress 31`, reached on the update the 31st level is complete; Bookburner
+(Death%) is `lost 0`, a game over before the first level is cleared. Seven Seas (speedrun.com: Seven Seas Deluxe) has
+Level 30 on Easy, Average and Hard (skill 1, 2, 3): its level clear is the update its level counter goes up, after the level's
+panel, and the map after levels 10, 20 and 30 is made in that same update, so `progress 30` (levels completed) ends the run
+where the board's rules do; its one game over is running out of lives, and New Game takes the board away (a quit). Mummy
+Maze (speedrun.com: Mummy Maze Deluxe): a board is a whole game, menu to menu, and a level clear is each chamber's
+level-complete page. Its progress is the treasures collected, which in Classic rises when the next pyramid has begun: 1st
+Pyramid (Classic) is 15 chamber splits and the end at `progress 1`, the spawn in the next pyramid. 100% Run (Adventure)
+splits at each treasure, a template with `by: "progress"` (each segment's split is the progress reaching its number, not
+a level clear), and ends `won`, at the last pyramid's chest. Being caught is no game over; Abandon Hope is the only one. Rocket
+Mania (speedrun.com: Rocket Mania!): Level 10, 20 and 30 on each difficulty, from "Get Ready!" (the first update of a new
+game) to the last level's "Level Up!"; a split at each Level Up. The board doesn't say which mode it means: Arcade and
+Classic both have levels and Strategy never ends one, so the templates' `mode` is the list [Arcade, Classic]. Its losses
+(the night running out, the top line filling, no matches left) count at the game-over screen, since a launch still burning
+can clear the level in Classic. It has no win. Alchemy (speedrun.com: Alchemy Deluxe): 1 Board and 7 Boards in
+Strategic or Time Trial, from the click on Start New Game to the board's result screen (the statistics panel), with any
+skill, and Tutorial%, which ends `won` at the tutorial's last step appearing: that is the code's one moment for done, and
+the button under it only leaves. Its deaths are the forge overflowing (one kind in each mode), the Time Trial forge
+staying full, and leaving a game mid-board. Big Money has no board, so its row is its native
+script's rules, with mode and skill in the category's name and levels or scores as segments. Both replay their native
+scripts' scenarios in `tools/autosplittest.js`. Every other game with a board gets its row in Milestone 3, from the
+speedrun.com categories and its session's answer on where in its code GO, a level clear, a game over and a win happen.
+
+**Native** keeps a LiveSplit `.asl` per game, as Bejeweled's, Big Money's and BookWorm's. Because the block and the
+decider are now one, the next step is one script that reads the table (exported from the same entries) instead of a
+script per game. That is a tools change for the coordinator, not part of this milestone.
+
+**Tests.** `tools/autosplittest.js` gets a replay set per converted game, as Bejeweled's: block logs from the game's
+bot and scripted runs, the events the decider must see, and each template's start, splits and end.
 
 ### Music levels
 
@@ -655,13 +769,19 @@ pixels wide). For each window it checks that structure and runs the checker on t
 `window.byopopDeskCheck.result`, and the page's title ends with "deskcheck: PASS" or "FAIL". The chat's window is checked
 closed, because opening it starts the chat.
 
-Three more checks run the same way, each named in `driver=` and each reporting through the same result and title.
+Four more checks run the same way, each named in `driver=` and each reporting through the same result and title.
 `tools/web/closecheck.js` closes game windows whose page never answers the close: a page that is not there, a frame that
 could not load, and a page that takes the close but never hands the window back. The window must go at once, or, for the
 silent page, after its four-second wait, and at once on a second Close (`web/deskapps.js`, `closeApp`).
 `tools/web/splitscheck.js` resets the speedrun timer with No, with Escape, after an abandoned run and after an Undo, and
 compares the stored splits with what they were before the attempt. It then answers Yes and checks that the run's times were
-kept (`web/splits.js`, `reset`); it removes its own test splits at the end. `tools/web/musicmutecheck.js` mutes a channel from
+kept (`web/splits.js`, `reset`); it removes its own test splits at the end. `tools/web/autosplitcheck.js` opens a game with
+an auto splitter (named in localStorage, `byopop-autosplitcheck`, since the page rewrites its address; BookWorm when unset)
+in a desktop window with the test kit in its frame (`player=1&assets=1&fast=1` added to the window's own address), plays
+runs of its speedrun.com categories by its bot and the `goto`, `win` and `lose` commands, and checks that the Splits window,
+as a player has it, reads the block, starts each run at a new game, splits on every level cleared and ends the run at the
+category's end, resets on a new game (and starts the next run at once) and on a game over. Each game's plan adds its own:
+BookWorm's Bookburner ends at a game over at rank 0 and resets at rank 1; Seven Seas' Easy run never starts on a Hard game. It answers every question No and removes the splits it stored. `tools/web/musicmutecheck.js` mutes a channel from
 Music's tracker, turns the view off and on, switches tunes and comes back, and compares the tracker's header with what the
 player itself has muted (`bm_mute_status`). It then sends the keyboard's media keys with Music open and closed and checks
 the player's state and its sound context, not its buttons (`web/music.js`, `syncMutes` and the media keys). It needs games

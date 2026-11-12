@@ -26,6 +26,7 @@
 #include "../platform/VFS.h"
 #include "../platform/ImageLoader.h"
 #include "../platform/ModManager.h"
+#include "../platform/GameOptions.h"
 #include "../platform/WebPersist.h"
 #include "../platform/UserFiles.h"
 #include "../platform/Relaunch.h"
@@ -33,6 +34,7 @@
 #include "../platform/Json.h"
 #include "../platform/Audio.h"
 #include "../platform/MemReport.h"
+#include "../platform/CycleSplit.h"
 
 #include <SDL.h>
 #include <stb_image_write.h>
@@ -710,6 +712,7 @@ SexyAppBase::SexyAppBase()
 	mHasSeedParam = false;
 	mFastMode = false;
 	mForcedRenderScale = 0;
+	mForcedWindowScale = 0;
 	mDrawingLogicalShot = false;
 	mTraceMode = false;
 	mDrawEvery = false;
@@ -1678,6 +1681,8 @@ void SexyAppBase::DoUpdateFramesF(float theFrac)
 
 bool SexyAppBase::DoUpdateFrames()
 {
+	Platform::CycleScope aCycleScope(Platform::CYCLE_UPDATE);      // the "update" part of -cyclesplit
+
 	if ((mLoadingThreadCompleted) && (!mLoaded))
 	{
 		mLoaded = true;
@@ -1702,6 +1707,8 @@ bool SexyAppBase::DoUpdateFrames()
 
 void SexyAppBase::Redraw(Rect* theClipRect)
 {
+	Platform::CycleScope aCycleScope(Platform::CYCLE_PRESENT);     // the "present" part of -cyclesplit
+
 	// Do mIsDrawing check because we could enter here at a bad time if any windows messages
 	//  are processed during WidgetManager->Draw
 	if ((mIsDrawing) || (mShutdown))
@@ -1714,6 +1721,8 @@ void SexyAppBase::Redraw(Rect* theClipRect)
 
 bool SexyAppBase::DrawDirtyStuff()
 {
+	Platform::CycleScope aCycleScope(Platform::CYCLE_DRAW);        // the "draw" part of -cyclesplit, less the present inside it
+
 	MTAutoDisallowRand aDisallowRand;
 
 	DWORD aStartTime = timeGetTime();
@@ -2164,6 +2173,8 @@ void SexyAppBase::HandleEvent(const SDL_Event& theEvent)
 							Unmute(true);
 
 						mWidgetManager->MarkAllDirty();
+						if (mDDInterface != NULL)
+							mDDInterface->ScreenInvalidated();
 					}
 				}
 
@@ -2182,11 +2193,16 @@ void SexyAppBase::HandleEvent(const SDL_Event& theEvent)
 				mIsWindowed = false;
 #endif
 			mIsPhysWindowed = mIsWindowed;
+			LogDisplay("size changed");
 			mWidgetManager->MarkAllDirty();
+			if (mDDInterface != NULL)
+				mDDInterface->ScreenInvalidated();
 			break;
 
 		case SDL_WINDOWEVENT_EXPOSED:
 			mWidgetManager->MarkAllDirty();
+			if (mDDInterface != NULL)
+				mDDInterface->ScreenInvalidated();
 			break;
 
 		case SDL_WINDOWEVENT_MOVED:
@@ -2465,6 +2481,10 @@ void SexyAppBase::MakeWindow()
 			// Scale the window up to 2x when that still fits, leaving room for the window frame
 			if ((mWidth * 2 <= aDesktopRect.w - 32) && (mHeight * 2 <= aDesktopRect.h - 64))
 				aScale = 2;
+			// port: -windowscale=N, the window at a size of the test's choosing (1 is the game's own, the original's); a test
+			// option, so only a test run (IsTestRun) honours it and a player's run ignores it
+			if ((mForcedWindowScale > 0) && (IsTestRun()))
+				aScale = mForcedWindowScale;
 
 			if (hasPreferredPos)
 			{
@@ -2531,11 +2551,31 @@ void SexyAppBase::MakeWindow()
 		Popup(GetString("FAILED_INIT_DIRECTDRAW", _S("Failed to initialize the display: ")) + StringToSexyString(SDL_GetError()));
 		DoExit(1);
 	}
+	LogDisplay("display made");
 
 	ReInitImages();
 
 	mWidgetManager->mImage = mDDInterface->mScreenImage;
 	mWidgetManager->MarkAllDirty();
+}
+
+// port: one SDL_Log line a test run's log gives for the window it measured in: the client area's size in pixels (the drawable's,
+// not the window's in points), the logical size, the render scale, windowed or full screen, and the renderer's name (SDL's:
+// direct3d11, direct3d, opengl, software; a GPUDisplay's own description). Logged when the display is made and on every size
+// or mode change; a line that repeats the last one is not logged again. docs/TEST_COMMANDS.md, "The window line".
+void SexyAppBase::LogDisplay(const char* theWhy)
+{
+	if (mDDInterface == NULL)
+		return;
+	char aLine[512];
+	snprintf(aLine, sizeof(aLine), "display: client %dx%d px, logical %dx%d, render scale %d, %s, renderer %s",
+		mDDInterface->mDisplayWidth, mDDInterface->mDisplayHeight, mWidth, mHeight, mDDInterface->mRenderScale,
+		mIsWindowed ? "windowed" : "full screen", mDDInterface->RendererName().c_str());
+	static std::string aLast;
+	if (aLast == aLine)
+		return;
+	aLast = aLine;
+	SDL_Log("%s (%s)", aLine, theWhy);
 }
 
 void SexyAppBase::DeleteNativeImageData()
@@ -2655,6 +2695,7 @@ void SexyAppBase::SwitchScreenMode(bool wantWindowed, bool is3d, bool force)
 
 		if (mDDInterface != NULL)
 			mDDInterface->UpdateDisplaySize();
+		LogDisplay("mode switch");
 		mWidgetManager->MarkAllDirty();
 	}
 
@@ -2753,6 +2794,16 @@ void SexyAppBase::UpdateFTimeAcc()
 	mLastTimeCheck = aCurTime;
 }
 
+// port: a renderer that no vertical blank holds (SDL's software renderer) draws as often as the loop has time, every update and more
+// than any display shows. Its frames are held to the display's refresh rate (DDInterface::FrameHeldByPace); the updates keep their
+// own. Not with -fast, -drawevery or -hold, whose drawing is the test's own, and not before the game has loaded.
+static bool DrawHeldByPace(SexyAppBase* theApp)
+{
+	if ((!theApp->mLoaded) || (theApp->mDDInterface == NULL) || (theApp->mFastMode) || (theApp->mDrawEvery) || (theApp->mCommandsHold))
+		return false;
+	return theApp->mDDInterface->FrameHeldByPace((unsigned int) timeGetTime());
+}
+
 // One step of 1.3's update state machine: an update when one is due (every mFrameTime ms of game
 // time), otherwise a draw when one is pending, otherwise a sleep until the next update. At most ~10
 // updates run back to back before a draw is forced (the game slows down instead of skipping frames).
@@ -2846,7 +2897,8 @@ bool SexyAppBase::Process(bool allowSleep)
 			mNonDrawCount = 0;
 
 			// port: with -fast only every FAST_DRAW_INTERVAL-th update is drawn (and the first frame)
-			if ((mHasPendingDraw) && ((!mFastMode) || (mDrawEvery) || (mDrawCount == 0) || (mUpdateCount - mLastFastDrawUpdate >= FAST_DRAW_INTERVAL)))
+			if ((mHasPendingDraw) && ((!mFastMode) || (mDrawEvery) || (mDrawCount == 0) || (mUpdateCount - mLastFastDrawUpdate >= FAST_DRAW_INTERVAL)) &&
+				(!DrawHeldByPace(this)))
 			{
 				DrawDirtyStuff();
 				mLastFastDrawUpdate = mUpdateCount;
@@ -3135,6 +3187,9 @@ void SexyAppBase::MainLoopFinished()
 
 	SDL_Log("Seconds = %g, Sleep Count = %d, Update Count = %d, Draw Count = %d",
 		(timeGetTime() - mTimeLoaded) / 1000.0, mSleepCount, mUpdateCount, mDrawCount);
+
+	Platform::CycleSplitFinish(mUpdateCount);
+	DDInterface::WritePresentLog();
 
 	PreTerminate();
 
@@ -3514,6 +3569,13 @@ void SexyAppBase::HandleCmdLineParam(const std::string& theParamName, const std:
 		mCommandsHold = true;
 	else if (theParamName == "-fast")
 		mFastMode = true;
+	// port: where the processor time goes, by part and thread, at the boundaries origrun --count uses in the original
+	// (platform/CycleSplit.h)
+	else if (theParamName == "-cyclesplit")
+		Platform::CycleSplitStart(theParamValue);
+	// port: the time of every present, for reading the intervals between them (DDInterface::StartPresentLog)
+	else if (theParamName == "-presentlog")
+		DDInterface::StartPresentLog(theParamValue);
 	// port: the site's "Always skip start-up logos" natively, for testing a game's wiring (framework/WebSettings.h)
 	else if (theParamName == "-skiplogos")
 		Byopop::SetSiteSkipLogos(true);
@@ -3523,6 +3585,11 @@ void SexyAppBase::HandleCmdLineParam(const std::string& theParamName, const std:
 		mDrawEvery = true;
 	else if (theParamName == "-renderscale")
 		mForcedRenderScale = atoi(theParamValue.c_str());
+	else if (theParamName == "-windowscale")
+		mForcedWindowScale = std::max(0, std::min(4, atoi(theParamValue.c_str())));
+	// port: -original, -fix=<id>[=off] and -lite=<id>[=off], the game's improvements (platform/GameOptions.h)
+	else if ((theParamName == "-original") || (theParamName == "-fix") || (theParamName == "-lite"))
+		Platform::HandleOptionParam(theParamName, theParamValue);
 	// port: stand-ins for missing game files (platform/Placeholders.h)
 	else if (theParamName == "-placeholders")
 		Platform::SetPlaceholders(true);
@@ -3715,6 +3782,29 @@ int SexyAppBase::RunScriptCommand(const ScriptCommand& theCommand, std::string* 
 			SDL_Log("ERROR memreport %s: cannot write the file", aCommand.mArgs.c_str());
 		return SCRIPT_GAME;
 	}
+	else if (aName == "cyclesplit")
+	{
+		// a snapshot of -cyclesplit's counters, labelled by the argument (platform/CycleSplit.h): a stretch is the difference
+		// between two of them
+		// "cyclesplit pause" and "cyclesplit resume" stop and start the counting itself
+		if ((aCommand.mArgs == "pause") || (aCommand.mArgs == "resume"))
+		{
+			if (!Platform::CycleSplitPause(aCommand.mArgs == "pause"))
+			{
+				*theError = "cyclesplit needs -cyclesplit=<file>";
+				return SCRIPT_FAILED;
+			}
+		}
+		else
+		{
+			if (!Platform::gCycleSplitOn)
+			{
+				*theError = "cyclesplit needs -cyclesplit=<file>";
+				return SCRIPT_FAILED;
+			}
+			Platform::CycleSplitMark(aCommand.mArgs.empty() ? std::string("mark") : aCommand.mArgs, mUpdateCount);
+		}
+	}
 	else if ((aName == "pointer") && (mWidgetManager != NULL))
 	{
 		// the mouse as the widgets last saw it, in game pixels, answered on the log: a test reads where its input landed
@@ -3819,8 +3909,8 @@ bool SexyAppBase::QueueLiveCommand(const std::string& theLine, int theLineNum)
 // its start.
 void SexyAppBase::PollLiveCommands()
 {
-	struct stat aStat;
-	if (stat(mCommandsFileName.c_str(), &aStat) != 0)
+	long long aSize;
+	if (!mCommandsFileWatch.Query(mCommandsFileName, &aSize))
 	{
 		if (!mCommandsWaitLogged)
 		{
@@ -3831,7 +3921,6 @@ void SexyAppBase::PollLiveCommands()
 		mCommandsWaitLogged = true;
 		return;
 	}
-	long long aSize = (long long) aStat.st_size;
 	if (aSize < mCommandsFilePos)
 	{
 		SDL_Log("commands: %s got shorter; reading it from its start", mCommandsFileName.c_str());
@@ -4449,6 +4538,29 @@ int SexyAppBase::RunRealInputCommand(const ScriptCommand& theCommand, std::strin
 		if (!DoMemReport(aCommand.mArgs))
 			SDL_Log("ERROR memreport %s: cannot write the file", aCommand.mArgs.c_str());
 		return SCRIPT_GAME;
+	}
+	else if (aName == "cyclesplit")
+	{
+		// a snapshot of -cyclesplit's counters, labelled by the argument (platform/CycleSplit.h): a stretch is the difference
+		// between two of them
+		// "cyclesplit pause" and "cyclesplit resume" stop and start the counting itself
+		if ((aCommand.mArgs == "pause") || (aCommand.mArgs == "resume"))
+		{
+			if (!Platform::CycleSplitPause(aCommand.mArgs == "pause"))
+			{
+				*theError = "cyclesplit needs -cyclesplit=<file>";
+				return SCRIPT_FAILED;
+			}
+		}
+		else
+		{
+			if (!Platform::gCycleSplitOn)
+			{
+				*theError = "cyclesplit needs -cyclesplit=<file>";
+				return SCRIPT_FAILED;
+			}
+			Platform::CycleSplitMark(aCommand.mArgs.empty() ? std::string("mark") : aCommand.mArgs, mUpdateCount);
+		}
 	}
 	else if ((aName == "pointer") && (mWidgetManager != NULL))
 	{
@@ -5618,14 +5730,16 @@ bool SexyAppBase::Is3DAccelerated()
 	return (mDDInterface != NULL) && (mDDInterface->mIs3D);
 }
 
+// port: what the original's 3D tester says about the card (supported, recommended) does not change when the game switches 3D off, so the
+// Options dialog's "Hardware Acceleration" box can be ticked again; here it is what mCan3D says, that the renderer is hardware accelerated
 bool SexyAppBase::Is3DAccelerationSupported()
 {
-	return Is3DAccelerated();
+	return (mDDInterface != NULL) && mDDInterface->mCan3D;
 }
 
 bool SexyAppBase::Is3DAccelerationRecommended()
 {
-	return Is3DAccelerated();
+	return (mDDInterface != NULL) && mDDInterface->mCan3D;
 }
 
 void SexyAppBase::Set3DAcclerated(bool is3D, bool reinit)

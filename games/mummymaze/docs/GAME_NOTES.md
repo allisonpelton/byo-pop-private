@@ -167,7 +167,9 @@ Abandon Hope, from where the explorer stands): the plan is made once and followe
 it does not (a new search at every step walked in circles, because the depth first search that keeps the shortest way it found does
 not always give the same first step). When there is no way out it presses RESET MAZE. It has no dice, unlike the autoplay bot of
 `Autoplay.cpp` (which takes random walks and undoes on purpose): it always wins the chamber, so a whole game ends at the victory
-screen. `over` is true on the victory screen and on the high score table after a lost game once the name is asked, and, with
+screen. A dialog is answered before the screen under it, except a tip that is behind the level-complete page (`win` while a tip is up
+leaves the page above the tip, and the page takes the clicks): there `screen` says `complete` and `move` clicks the page's link, and the
+tip, if it is still up afterwards, is answered like any dialog. `over` is true on the victory screen and on the high score table after a lost game once the name is asked, and, with
 `botmode tutorial`, once the tutorial has handed over to the classic game.
 
 A key is held for one update to take one step (`Board::UpdateExplorer` reads the key table at the next update); in a `-fast` run a
@@ -304,6 +306,10 @@ for both. In memory the port is the larger of the two: 7 MB more working set and
 into. In processor time the port used 0.64 to 0.88 ms an update against the original's 0.95 ms, and its two runs differ by a third,
 which is the busy machine: the processor time of a run follows what the other sessions do to the caches and the other half of its core.
 
+**Superseded (2026-11-12): the processor-time rows and the "74 and 81 updates a second" above.** The processor times were read from
+GetProcessTimes (charged at the 15.6 ms tick), and the 74 and 81 were the original's sleep counter (app+0x328), which origrun timed
+its input by, not its updates: the original keeps 100 updates a second. "Processor time like for like" below measures again.
+
 **Not measured: the web build's load.** The only page that can be timed is the player-only test page, and it fetches the staged game files
 from the loopback server and imports them into its test profile on every load, while the player on the site reads a folder it has
 already imported; the Browser pane is often hidden here, and a hidden pane paces its frames itself instead of the game. A figure from that page
@@ -355,6 +361,106 @@ coordinator. The stb GIF decoder is shared too; a faster GIF decode would speed 
 own code was not profiled further: a scripted minute uses about 2 s of processor time for 60 s of play. The web build's load was
 not measured (see above); it builds (`tools/check.sh build-web:mummymaze` passes) but was not run, so the lazy decode was not
 timed there.
+
+### Processor time like for like (2026-11-12)
+
+The target of `docs/COORDINATION.md` ("The target", the user, 2026-11-11): a port's processor time at most its original's, over the
+same stretch of play, the original paced as on a player's screen, sound counted the same way on both sides, as cycle counts. The
+figures above (the original's 5.7 and 5.8 s a minute against the port's 2.2) were not that, so these replace them.
+
+**How the original paces itself.** Its main loop (`SexyApp::vf03`, 0x438310) times its 100 updates a second with `timeGetTime` and
+`Sleep`: it makes an update when 5 ms or more of the 10 ms frame have passed (up to ten in a row without a draw), and otherwise
+draws (`vf05`, 0x4375a0: only when a widget is dirty, or a second has passed since the last draw) and sleeps out the rest of the
+frame. It waits for no vertical blank in the windowed mode its registry holds (`ScreenMode` 0, the flag at app+0x230 reads 1), so
+the unpatched copy on rundesk's desktop is paced as it would be on a player's windowed screen, and no patch was needed. (`Sleep(1)`
+averages 1.76 ms there as on the ordinary desktop, so the hidden desktop does not coarsen its timer.) The counters at app+0x328,
++0x32c and +0x330 are its sleeps, draws and updates; origrun's counter for this game is the first. The original keeps 100 updates
+a second (100.0 in nine of ten runs, 98.8 in one) and sleeps once an update only when it is never late: a wake 5 ms late makes
+the update up in the same pass without a sleep, so its sleeps were 1 to 11 % fewer than its updates (5351 to 5921 in the 6000).
+The earlier "74 and 81 updates a second" were that sleep count on a machine too busy for the game, not its pace.
+
+**The same play, timed by updates.** Both sides play phase two's scenario `c6` from the classic game's start click, seed 21 (the
+port's updates 1020 to 7020, the original's 3321 to 9321: 6000 updates, 60 s). Timing the original's keys by its sleep counter
+(origrun's default) would land them late in game time (up to 6 s by the end), and a key meant to last one update spans two in a
+pass that makes one up. So `tools/profile/cycles.py` times the original's input to its update counter (`mark` at the start
+click, then `at +N`), and the pollers (that script, origrun) run at idle priority, below the game's, so that they do not keep it from
+its core. The board's state read from the original's memory at the stretch's two ends shows the same game: explorer, chamber and
+score are the same in 7 of the 10 runs at the end (explorer at cell (1,2), chamber index 0), in two the board was between
+chambers at that instant, and in one the chamber had ended a few updates earlier (score 150): the stretch ends where a chamber
+does, so a few updates' difference decides which. The port plays its script exactly by update, as in the identical-play pass; its
+state was not read.
+
+**What is counted.** Processor time is the cycles of every thread of the game process between the two ends (`QueryProcessCycleTime`
+and each thread's `QueryThreadCycleTime`, read from outside every 5 ms, so that the ends are the counters' values), never
+`GetProcessTimes`. The port is the player's exe as built (`build/native/mummymaze.exe`) under rundesk with only `-script` (and
+`-windowscale=1`, below): no `-commands`, no per-update log, no screenshots. The original runs under origrun on the real clock with its patch list (registration
+check, seed). Sound: the original's FMOD runs two threads of its own (their start address is in fmod.dll, from a probe; the second
+and third of its cycles) that mix into origrun's stand-in DirectSound without playing, and the port's SDL audio thread
+(`SDLAudioP2`) mixes into rundesk's silent driver, so both totals hold the mixing; the table gives the totals and the figures
+without sound. `tools/profile/pairs.sh` runs the pairs (the original first, a pair after a pair, each run started when the machine
+had room for a game process, the whole loop under `python -I tools/pincore.py --`); the machine was shared with 2 to 6 other
+sessions' game processes throughout.
+
+**First measurement: the port in the wrong window.** These ten pairs ran the port with the framework's default window, 1280x960
+at render scale 2, beside an original in its own 640x480 window (the Mahjong session pointed out that a window of another size is not
+like for like, `docs/COORDINATION.md`, "The same window on both sides"); the second measurement below repeats them in the same window.
+
+| Pairs | Original, G cycles in the stretch | Port (2x window), G cycles in the stretch | Medians |
+|---|---|---|---|
+| First five | 7.263, 7.115, 9.701, 9.733, 9.609 | 6.729, 5.927, 6.135, 5.734, 5.868 | 9.609 against 5.927 (0.62) |
+| Second five | 7.159, 6.555, 7.066, 10.39, 9.847 | 8.583, 8.24, 6.784, 7.142, 5.598 | 7.159 against 7.142 (1.00) |
+| All ten | | | 8.436 against 6.432 (0.76) |
+
+Over the ten pairs the port is under its original in 8, and over in two (8.583 against 7.159, 8.24 against 6.555). Without sound
+(the original less its two FMOD threads, the port less its audio thread) the medians are 7.56 and 5.76 G (0.76), and the sound alone
+is 0.88 G for the original and 0.63 for the port. The port ran at 99.7 to 100.2 updates a second in eight of the ten runs and at 96.3 and
+87.0 in two (the machine loaded); the original's runs fall into two groups, 6.6 to 7.3 and 9.6 to 10.4 G, the port's spread 5.6 to
+8.6. Six further port-only runs beside these (three alternating with visible-desktop runs, three before the second set) read 6.2,
+7.5, 8.0, 7.2, 9.1 and 10.3 G: with them the port's median over its 16 rundesk runs is 6.96 G, still under the original's 8.44.
+
+**Second measurement: the same window, and the renderer.** Five rounds, each the original, the port in a window of the game's own
+size (`-windowscale=1`) and the port in its default window, the two port runs in the other order every other round
+(`pairs.sh`; the machine had 5 to 8 other game processes at the starts). The port's display line says what each got: `client
+640x480 px, logical 640x480, render scale 1, windowed, renderer direct3d11` for the first and `client 1280x960 px, logical 640x480,
+render scale 2, windowed, renderer direct3d11` for the second, on rundesk's private desktop, where SDL gets Direct3D 11. The
+original runs on the same desktop, windowed (its flag at app+0x230 reads 1) at its own 640x480 (the 2002 framework has no scaling),
+drawing through DirectDraw: `ddraw.dll` and `dxgi.dll` were loaded in all five runs, and in three also `d3d11.dll` and
+`d3d10warp.dll` (Windows' software rasterizer; the module list is in each run's `video` field). The three runs with it cost 10.7, 9.3 and 8.1 G, the two without 7.9 and 8.7: too few
+to say whether it explains the two groups the first ten runs fell into. The visible desktop (Direct3D 9) was measured only for the
+port, three runs of the first measurement's 2x window.
+
+| Round | Original | Port, 640x480 | Port, 1280x960 |
+|---|---|---|---|
+| 1 | 10.711 | 7.961 | 7.185 |
+| 2 | 7.907 | 7.144 | 7.424 |
+| 3 | 8.744 | 7.740 | 7.087 |
+| 4 | 9.323 | 6.319 | 6.602 |
+| 5 | 8.101 | 7.896 | 7.624 |
+| Median | 8.744 | 7.740 (0.89) | 7.185 (0.82) |
+
+G cycles in the 6000-update stretch. The port is under the original in every round, in either window; the two windows are within each
+other's spread (6.3 to 8.0 and 6.6 to 7.6 G), so the window's size does not move this game's cost. Against the 15 original runs of
+both measurements (median 8.744) the figures are the same. All runs kept 99.6 to 100 updates a second. The port draws about 2,280
+frames in the stretch against the original's 3,150 (2,256 in the first run, the one that cost most). Its threads: the main
+thread 3.2 to 4.9 G, the unnamed driver thread 2.4 to 2.8 G, the audio thread 0.45 to 0.63 G; the original's main thread 7.2 to
+9.6 G, its FMOD mixer thread 0.66 to 0.94 G.
+
+**Where the port's cycles go (first measurement, 2x window).** In a run of 6.4 G, its main thread is about 3.0 G, one unnamed thread (its samples include the
+NVIDIA driver, `nvwgf2um.dll`) about 2.6 G, the audio thread 0.63 G, and everything else under 0.15 G; the game's own code (the exe) is
+about 1 % of a profile's samples, and the rest is waits, wake-ups and the driver. The main thread swings from 2.6 to 6.6 G between
+runs and the driver thread from 1.5 to 3.0 G, with what the machine's other game processes do to the GPU: the swing is shared cost
+(the framework's present path), not the game's code. A sampling profile (`games/tiptop/tools/perf/cpuprof2.py`) charges 79 % of its
+cycles to waits, as its header warns, so it says nothing finer. The port draws 2,235 frames in the 6000 updates (37 a second:
+each present waits for the vertical blank, so two updates run between two draws) against the original's 3,200 (53 a second); on
+the user's own desktop it draws 2,391 to 2,415 in the stretch and costs 5.7 to 6.4 G (three runs, `ORACLE_VISIBLE`, alternating
+with rundesk runs of 6.2 to 8.0 G), so rundesk's private desktop does not make the port look cheaper.
+
+**Verdict.** In the same window the port is under its original in every one of five rounds: the medians are 7.74 G against 8.74
+(0.89) at the game's own 640x480 and 7.19 (0.82) in the default window. The first measurement's ten pairs, with the port in its 2x
+window, gave 6.43 against 8.44 (0.76) and are consistent with it. The port's spread is the shared present path's, so the README
+row gives the same-window medians. No cost of the game's own code was found, so there is nothing to
+change in it and no spec for the coordinator beyond the draw rate above (37 to 40 frames a second against the original's 53 on a 60 Hz
+screen, which the screen-by-screen comparison does not see).
 
 ## Coverage check (2026-11-08)
 
@@ -674,3 +780,49 @@ nothing they read changes what is drawn or played.
 `mTotalTime` and `mDeaths` stay in the tool's list for `0x4201e0`: its case 0x7db (a new adventure, writing the zeros) is
 `MMApp::CreateAdventure` and its case 0x7d3 is `AdventureLeave`, which are the port's own functions with their own
 comments. The finding is the tool's limit (it reads one translation per address); both are read and compared.
+
+## The autosplit block (2026-11-12)
+
+The site's Splits window times a game on its speedrun.com board's rules (`docs/WEB_PLAYER.md`, "One design for every port"); the
+port writes the shared block it reads (`platform/AutosplitBlock.h`, layout 2, game id `MMDX`) from `src/LiveSplitObserver.cpp`.
+The board (Mummy Maze Deluxe) has two categories that both start when the player takes control of the explorer: 1st Pyramid
+(Classic) ends when the first pyramid's treasure is collected and the next pyramid begins, and 100% Run (Adventure) when the last
+treasure is collected.
+
+**Inert.** Nothing is written until something asks: the web page (`byopop_livesplit_block`, exported in CMakeLists.txt) or, natively,
+an enabled mod with the feature `livesplit` (`mods/livesplit`, looked for once every 101 updates until then). Before that the
+observer costs a test of a counter an update. It reads the app's and the board's fields and writes none: five hooks in the game's
+code, none of which changes anything it does (the call after `SexyApp::UpdateFrames` and the one in `~MMApp`, the `-livesplitlog`
+option, and `SavedGameLoaded()` in `LoadGame` and in the saved-adventure slot's button, which only set a flag the observer reads).
+`tools/livesplit/run_tests.sh` runs the check suite's three bot games (classic, tips, tutorial) with the block off, with it on and
+with the frozen baseline: their logs and screenshots are identical in all three, and there is no block log with the block off.
+
+**A board of the block is a game**, from the menu's Classic or Adventure link until the main menu is back; the game's own `Board` is
+one chamber (or a pyramid's ending scene), so it spans many boards and the map, level-complete and high-score screens between
+them. The tutorial is no game (mode -1). `mode` is 0 Classic and 1 Adventure, `skill` 0 (the game has none). `level` is the
+chamber's number 0 to 224 (pyramid x 15 + chamber, in the adventure by the pyramid's own number, whichever order the player
+takes them in) and `displayLevel` is `level + 1`. `tick` is the app's update count (100 a second, from the start of the process),
+`goTick` the tick of the GO, `score` and `displayScore` the classic game's score (0 in the adventure), `state` the board's state
+(10, STATE_DONE, on the level-complete screen, which has no board; -1 on the map). `flags`: VANILLA while none of the fixes mod's
+three fixes is on, RESUMED for a saved game continued, PAUSED while a dialog is up.
+
+**Events** (in `LiveSplitObserver.cpp`'s header comment, with where each is in the code):
+- GO: the first update of a fresh game's first chamber on which the board is STATE_READY with the maze risen and no dialog up,
+  which is what `Board::UpdateExplorer` and `Board::MouseDown` wait for (259 updates, 2.6 s, after the first board is made in the bot's
+  classic games). Once a game.
+- Level clear: the level-complete screen comes up (`Board::Update`, `MMApp::DoNextLevel`), once for each of a pyramid's fifteen
+  chambers, in both modes. Its constructor takes the board away, so the observer sees the screen, not a board in STATE_DONE.
+- Treasure: the ending scene's chest opens (`Board::Update`, STATE_READY to STATE_ENDING_FADE in MODE_CLASSIC_DONE or
+  MODE_ADVENTURE_DONE; SOUND_OPENTREASURE), 284 updates (2.8 s, the fade's length in `Board::Update`) before the scene's Continue
+  link shows. Win: the treasure of pyramid 14 (the dark tomb), in either mode.
+- `progress`, the treasures collected: the adventure's counts a chest as it opens (15 for the 100% run; the adventure's counter starts
+  at 0 for a saved game too, which never starts a run). The classic game's is the pyramid number, so that it rises when the next
+  pyramid has begun (the Continue link on the ending scene makes the next pyramid's board in the same call, so its first update shows
+  the new number), 1 in pyramid 2, and the last pyramid's treasure counts as 15 when its chest opens, since no pyramid follows.
+- Game over: Abandon Hope in the classic game once its solution has played (the high scores then come up), kind 0, the only one.
+  Being caught is not one: the panel offers Undo, Try again and the others, the timer goes on, and in the adventure it only counts
+  a catch. The sidebar's retry and Save and Quit, and leaving to the menu, end the game as the menu coming back does.
+
+**Logs.** `-livesplitlog=<file>` writes one line for each event with the block's fields after it; `run_tests.sh` makes one of each
+kind (a classic game across a pyramid to Abandon Hope, one to the last treasure, an adventure's first pyramid, a saved adventure
+played to the last treasure by `craft_adventure.py`, a resumed classic game).

@@ -310,7 +310,7 @@ play 32 to 40 pieces each, since what they add over the whole games is the windo
 
 ## The fixes mod (2026-11-07)
 
-`mods/fixes/mod.json` holds two toggles, on by default, read through `FixEnabled` (`src/Fixes.cpp`): with the mod absent or off
+`mods/fixes/mod.json` holds two toggles, on by default, read through `Platform::FixOn`: with the mod absent or off
 the port is the original, as the frozen baseline shows (`tools/check.sh alchemy`, run with the mod's code in the build and no
 mod: rerun identical, baseline identical). The notes had no "Fix candidates", so the candidates came from reading the game's
 code against the decompilation; `GAME_NOTES.md` section 7 lists each toggle with what the original does, and what was looked at

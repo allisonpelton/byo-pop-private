@@ -1,7 +1,6 @@
 // The application object (TipTop.exe 0x4197c6-0x426fc7). See App.h.
 
 #include "App.h"
-#include "ModFeatures.h"
 #include "Board.h"
 #include "Config.h"
 #include "Game.h"
@@ -86,7 +85,7 @@ int App::LoadImages()
 	CheckLoaded(LoadSurface(0x34, 1, &mBarHigh));
 	CheckLoaded(LoadSurface(0x33, 1, &mBarFrame));
 	CheckLoaded(LoadSurface(0x44, 1, &mSkin));
-	CheckLoaded(LoadSurface(0x68, 9, &mImage68));
+	CheckLoaded(LoadSurface(0x68, 9, &mSummaryButtonImage));
 	mTextFont = LoadFont(0x67, GTC(0x0046ed08), 8, 0, 0);
 	gTextFont = LoadFont(0x50, GTC(0x0046eca8), 4, 0, 0x40);
 	BuildImages();
@@ -105,7 +104,7 @@ void App::BuildImages()
 		if (mParticleImages[i] != nullptr)
 			free(mParticleImages[i]);
 		const Particle& aParticle = gConfig.mParticles[i];
-		mParticleImages[i] = (uint8_t*)malloc(aParticle.mValue0 * aParticle.mValue0 * (aBpp + (uint8_t)aParticle.mValue7));
+		mParticleImages[i] = (uint8_t*)malloc(aParticle.mSize * aParticle.mSize * (aBpp + (uint8_t)aParticle.mBlendType));
 		if (mParticleImages[i] == nullptr)
 			NoMemory();
 	}
@@ -134,7 +133,7 @@ void App::BuildImages()
 	{
 		const Particle& aParticle = gConfig.mParticles[p];
 		uint8_t* aDest = mParticleImages[p];
-		uint32_t aSize = (uint32_t)aParticle.mValue0;
+		uint32_t aSize = (uint32_t)aParticle.mSize;
 		for (uint32_t y = 0; y < aSize; y = y + 1)
 		{
 			for (uint32_t x = 0; x < aSize; x = x + 1)
@@ -147,9 +146,9 @@ void App::BuildImages()
 					anIntensity = 1.0 - anIntensity;
 				else
 					anIntensity = 0.0;
-				anIntensity = ((double)(uint8_t)aParticle.mValue8 * anIntensity) / 255.0;
-				anIntensity = pow(anIntensity, (double)aParticle.mValue1);
-				if (aParticle.mValue7 == 1)
+				anIntensity = ((double)(uint8_t)aParticle.mOpacityScale * anIntensity) / 255.0;
+				anIntensity = pow(anIntensity, (double)aParticle.mOpacityExponent);
+				if (aParticle.mBlendType == 1)
 				{
 					double anAlpha = (anIntensity * 256.0 < 0.0) ? 0.0 : anIntensity * 256.0;
 					if (!(anAlpha < 255.0))
@@ -157,28 +156,28 @@ void App::BuildImages()
 					*aDest = (uint8_t)(int64_t)anAlpha;
 					aDest = aDest + 1;
 				}
-				// the color: mColor2 to mColor1 towards the highlight at (mValue5, mValue6)
-				dx = (double)(int)(aParticle.mValue5 - x);
-				dy = (double)(int)(aParticle.mValue6 - y);
+				// the color: mLowColor to mHighColor towards the color center at (mColorCenterX, mColorCenterY)
+				dx = (double)(int)(aParticle.mColorCenterX - x);
+				dy = (double)(int)(aParticle.mColorCenterY - y);
 				double aDistance = (dx * dx + dy * dy) / (double)((aSize >> 1) * (aSize >> 1));
 				double aMix = (0.0 <= 1.0 - aDistance) ? 1.0 - aDistance : 0.0;
 				if (1.0 <= aMix)
 					aMix = 1.0;
 				else
 					aMix = (0.0 <= 1.0 - aDistance) ? 1.0 - aDistance : 0.0;
-				aMix = pow(aMix, (double)aParticle.mValue2);
+				aMix = pow(aMix, (double)aParticle.mColorExponent);
 				uint32_t aColor = 0;
 				for (int aShift = 0; aShift < 0x18; aShift += 8)
 				{
-					uint32_t aFrom = (aParticle.mColor2 >> aShift) & 0xff;
-					uint32_t aTo = (aParticle.mColor1 >> aShift) & 0xff;
-					// the difference is unsigned: a darker mColor1 wraps around and saturates
+					uint32_t aFrom = (aParticle.mLowColor >> aShift) & 0xff;
+					uint32_t aTo = (aParticle.mHighColor >> aShift) & 0xff;
+					// the difference is unsigned: a darker mHighColor wraps around and saturates
 					uint32_t aChannel = (uint32_t)(int64_t)((double)aFrom + (double)(uint32_t)(aTo - aFrom) * aMix);
 					if (!(aChannel < 0xff))
 						aChannel = 0xff;
 					aColor = aColor | aChannel << aShift;
 				}
-				if (aParticle.mValue7 == 0)
+				if (aParticle.mBlendType == 0)
 				{
 					uint32_t aLit = 0;
 					for (int aShift = 0; aShift < 0x18; aShift += 8)
@@ -350,7 +349,7 @@ static void OnClose()
 	if (gApp.mScreen == SCREEN_NONE)
 		gQuit = 1;
 	else
-		Command(nullptr, 0x18);
+		Command(nullptr, CMD_MENU_QUIT);
 }
 
 // 0x41b2da: the window deactivated (isInactive 1: pauses the game and the music, flag 2) or activated (0)
@@ -568,11 +567,11 @@ void App::NewGame()
 	mBoard->Start();
 	mBarLevel = 0;
 	mBarTime = GameTime();
-	m13d = 0;
+	mBonusTipShown = 0;
 	mSummaryEvents = 0;
-	m144 = 0;
+	mBonusStartAnimations = 0;
 	mCrossed = 0;
-	m13f = 0;
+	mBonusBlocksRanOut = 0;
 }
 
 // 0x41bca1
@@ -580,9 +579,9 @@ void App::NextLevel()
 {
 	mBoard->NextLevel();
 	mSummaryEvents = 0;
-	m144 = 0;
+	mBonusStartAnimations = 0;
 	mCrossed = 0;
-	m13f = 0;
+	mBonusBlocksRanOut = 0;
 }
 
 // 0x41bce0: the score and the level number in the game's digits
@@ -618,12 +617,12 @@ static int32_t* BoardRect(Board* theBoard)
 // score, the level and the progress bar
 void App::DrawGame()
 {
-	lowos::BlitRegistered(0x280, BoardRect(mBoard)[1], 0, 0, 0, 0, mBackground);
+	lowos::BlitRegistered(GAME_WIDTH, BoardRect(mBoard)[1], 0, 0, 0, 0, mBackground);
 	lowos::BlitRegistered(BoardRect(mBoard)[0], BoardRect(mBoard)[3] - BoardRect(mBoard)[1], 0, BoardRect(mBoard)[1], 0,
 		BoardRect(mBoard)[1], mBackground);
-	lowos::BlitRegistered(0x280 - BoardRect(mBoard)[2], BoardRect(mBoard)[3] - BoardRect(mBoard)[1],
+	lowos::BlitRegistered(GAME_WIDTH - BoardRect(mBoard)[2], BoardRect(mBoard)[3] - BoardRect(mBoard)[1],
 		BoardRect(mBoard)[2], BoardRect(mBoard)[1], BoardRect(mBoard)[2], BoardRect(mBoard)[1], mBackground);
-	lowos::BlitRegistered(0x280, 0x1e0 - BoardRect(mBoard)[3], 0, BoardRect(mBoard)[3], 0, BoardRect(mBoard)[3],
+	lowos::BlitRegistered(GAME_WIDTH, GAME_HEIGHT - BoardRect(mBoard)[3], 0, BoardRect(mBoard)[3], 0, BoardRect(mBoard)[3],
 		mBackground);
 	if ((mScreen == SCREEN_GAME) && (gBusy == 0))
 	{
@@ -637,13 +636,13 @@ void App::DrawGame()
 				if (mCrossed == 0)
 				{
 					GuiRect aRect = At((int16_t)mPosX, (int16_t)mPosY);
-					Handler* aHandler = NewHandler(ZoomImageProc, mLayer, &aRect, 1, 0x1b);
+					Handler* aHandler = NewHandler(ZoomImageProc, mLayer, &aRect, 1, CMD_GAME_OVER_SHOWN);
 					aHandler->mPass = 2;
 				}
 				else
 				{
 					GuiRect aRect = At(gConfig.mBlockgridCenterX, gConfig.mBlockgridCenterY);
-					Handler* aHandler = NewHandler(PopImageProc, mLayer, &aRect, 0x61, 0x8000001b);
+					Handler* aHandler = NewHandler(PopImageProc, mLayer, &aRect, 0x61, CMD_GAME_OVER_SHOWN | POP_LONGER);
 					aHandler->mPass = 2;
 				}
 				NewHandler(CounterProc, mLayer, nullptr, (uintptr_t)&gBusy, (uintptr_t)&mCounted[2]);
@@ -664,23 +663,23 @@ void App::DrawGame()
 				StopLevelSounds();
 				if (mCrossed == 0)
 				{
-					if (m13f == 0)
+					if (mBonusBlocksRanOut == 0)
 					{
 						GuiRect aRect = At((int16_t)mPosX, (int16_t)mPosY);
-						Handler* aHandler = NewHandler(ZoomImageProc, mLayer, &aRect, 1, 0x3a);
+						Handler* aHandler = NewHandler(ZoomImageProc, mLayer, &aRect, 1, CMD_LEVEL_COMPLETE_SHOWN);
 						aHandler->mPass = 2;
 					}
 					else
 					{
 						GuiRect aRect = At(gConfig.mBlockgridCenterX, gConfig.mBlockgridCenterY);
-						Handler* aHandler = NewHandler(PopImageProc, mLayer, &aRect, 0x62, 0x8000003a);
+						Handler* aHandler = NewHandler(PopImageProc, mLayer, &aRect, 0x62, CMD_LEVEL_COMPLETE_SHOWN | POP_LONGER);
 						aHandler->mPass = 2;
 					}
 				}
 				else
 				{
 					GuiRect aRect = At(gConfig.mBlockgridCenterX, gConfig.mBlockgridCenterY);
-					Handler* aHandler = NewHandler(PopImageProc, mLayer, &aRect, 0x61, 0x8000003a);
+					Handler* aHandler = NewHandler(PopImageProc, mLayer, &aRect, 0x61, CMD_LEVEL_COMPLETE_SHOWN | POP_LONGER);
 					aHandler->mPass = 2;
 				}
 				NewHandler(CounterProc, mLayer, nullptr, (uintptr_t)&gBusy, (uintptr_t)&mCounted[2]);
@@ -695,7 +694,7 @@ void App::DrawGame()
 			}
 		}
 	}
-	if (((mScreen == SCREEN_GAME) && (gBusy == 0)) && (Send(mEC, MSG_GETVALUE, 0, 0) != 0))
+	if (((mScreen == SCREEN_GAME) && (gBusy == 0)) && (Send(mColumnCursor, MSG_CURSOR_TAPPED, 0, 0) != 0))
 		mBoard->Tap(0xffffffff);
 	mBoard->Draw(mBackground);
 	if ((mScreen == SCREEN_GAME) || (mScreen == SCREEN_LEVELSUMMARY))
@@ -720,10 +719,10 @@ void App::DrawGame()
 		else
 		{
 			uint32_t aLeft;
-			if ((uint32_t)(gConfig.mBonusTime * 1000) < m138 || gConfig.mBonusTime * 1000 - m138 == 0)
+			if ((uint32_t)(gConfig.mBonusTime * 1000) < mBonusElapsed || gConfig.mBonusTime * 1000 - mBonusElapsed == 0)
 				aLeft = 0;
 			else
-				aLeft = gConfig.mBonusTime * 1000 - m138;
+				aLeft = gConfig.mBonusTime * 1000 - mBonusElapsed;
 			DrawBar(aLeft, gConfig.mBonusTime * 1000);
 		}
 	}
@@ -790,13 +789,13 @@ void App::AddSummaryItems()
 void App::AddGameButtons(Layer* theLayer)
 {
 	GuiRect aRect = At(gConfig.mIngameInstructionsx, gConfig.mIngameInstructionsy);
-	mGameButtons[0] = NewHandler(ShapedButtonProc, theLayer, &aRect, 0x45, 0x16);
+	mGameButtons[0] = NewHandler(ShapedButtonProc, theLayer, &aRect, 0x45, CMD_INSTRUCTIONS);
 	aRect = At(gConfig.mIngameOptionsx, gConfig.mIngameOptionsy);
-	mGameButtons[1] = NewHandler(ShapedButtonProc, theLayer, &aRect, 10, 1);
+	mGameButtons[1] = NewHandler(ShapedButtonProc, theLayer, &aRect, 10, CMD_GAME_OPTIONS);
 	aRect = At(gConfig.mIngameEndgamex, gConfig.mIngameEndgamey);
-	mGameButtons[2] = NewHandler(ShapedButtonProc, theLayer, &aRect, 0xb, 0x40000002);
+	mGameButtons[2] = NewHandler(ShapedButtonProc, theLayer, &aRect, 0xb, CMD_GAME_END | BUTTON_ESCAPE);
 	aRect = At(gConfig.mIngamePausex, gConfig.mIngamePausey);
-	mGameButtons[3] = NewHandler(CheckBoxProc, theLayer, &aRect, 0x80, 0x3e);
+	mGameButtons[3] = NewHandler(CheckBoxProc, theLayer, &aRect, 0x80, CMD_PAUSE);
 }
 
 Font* gScreenFont = nullptr;  // 0x489b50 the text font of the instructions, credits, game and game over screens
@@ -911,7 +910,7 @@ void App::SetScreen(int theScreen)
 			FreeSurface(mLevelComplete[1]);
 			FreeSurface(mLevelComplete[0]);
 		}
-		mEC = nullptr;
+		mColumnCursor = nullptr;
 		break;
 	case SCREEN_LEVELSUMMARY:
 		FreeAllLayers();
@@ -949,7 +948,7 @@ void App::SetScreen(int theScreen)
 		mLayer = NewScreenLayer(&aRect);
 		aHandler = NewHandler(ImageProc, mLayer, &aRect, 0x30, 0);
 		MoveRect(&aRect, gConfig.mSplashLoadbarx, gConfig.mSplashLoadbary);
-		aHandler = NewHandler(LoadBarProc, mLayer, &aRect, 0x4c, 0x2e0000);
+		aHandler = NewHandler(LoadBarProc, mLayer, &aRect, 0x4c, CMD_LOAD_DONE << 16);
 		aHandler->mPass = 1;
 		// the word "Deluxe" of the title's logo: the original drew it for a registered copy, and "Trial Version" and
 		// "Unregistered" in its place for the trial
@@ -964,17 +963,17 @@ void App::SetScreen(int theScreen)
 		MoveRect(&aRect, gConfig.mGamewindowX, gConfig.mGamewindowY);
 		aHandler = NewHandler(ImageProc, mLayer, &aRect, 2, 0);
 		MoveRect(&aRect, gConfig.mMainmenuHighscorex, gConfig.mMainmenuHighscorey);
-		aHandler = NewHandler(ShapedButtonProc, mLayer, &aRect, 3, 0x2b);
+		aHandler = NewHandler(ShapedButtonProc, mLayer, &aRect, 3, CMD_MENU_HIGHSCORES);
 		MoveRect(&aRect, gConfig.mMainmenuNewgamex, gConfig.mMainmenuNewgamey);
-		aHandler = NewHandler(ShapedButtonProc, mLayer, &aRect, 4, 0x14);
+		aHandler = NewHandler(ShapedButtonProc, mLayer, &aRect, 4, CMD_MENU_NEW_GAME);
 		MoveRect(&aRect, gConfig.mMainmenuOptionsx, gConfig.mMainmenuOptionsy);
-		aHandler = NewHandler(ShapedButtonProc, mLayer, &aRect, 6, 0x15);
+		aHandler = NewHandler(ShapedButtonProc, mLayer, &aRect, 6, CMD_MENU_OPTIONS);
 		MoveRect(&aRect, gConfig.mMainmenuInstructionsx, gConfig.mMainmenuInstructionsy);
-		aHandler = NewHandler(ShapedButtonProc, mLayer, &aRect, 7, 0x16);
+		aHandler = NewHandler(ShapedButtonProc, mLayer, &aRect, 7, CMD_INSTRUCTIONS);
 		MoveRect(&aRect, gConfig.mMainmenuCreditsx, gConfig.mMainmenuCreditsy);
-		aHandler = NewHandler(ShapedButtonProc, mLayer, &aRect, 8, 0x17);
+		aHandler = NewHandler(ShapedButtonProc, mLayer, &aRect, 8, CMD_MENU_CREDITS);
 		MoveRect(&aRect, gConfig.mMainmenuQuitx, gConfig.mMainmenuQuity);
-		aHandler = NewHandler(ShapedButtonProc, mLayer, &aRect, 9, 0x40000018);
+		aHandler = NewHandler(ShapedButtonProc, mLayer, &aRect, 9, CMD_MENU_QUIT | BUTTON_ESCAPE);
 		aHandler = NewHandler(MenuHighScoresProc, mLayer, &aRect, 0, 0);
 		aHandler->mPass = 1;
 		AddMenuAnimations(mLayer, &aRect, gConfig.mMainmenuanimations, gConfig.mMainmenuanimationsCount);
@@ -990,24 +989,24 @@ void App::SetScreen(int theScreen)
 		MoveRect(&aRect, gConfig.mGamewindowX, gConfig.mGamewindowY);
 		aHandler = NewHandler(ImageProc, mLayer, &aRect, 0xc, 0);
 		MoveRect(&aRect, gConfig.mOptionsContinuex, gConfig.mOptionsContinuey);
-		aHandler = NewHandler(ButtonProc, mLayer, &aRect, 0xd, 0x40000004);
+		aHandler = NewHandler(ButtonProc, mLayer, &aRect, 0xd, CMD_OPTIONS_DONE | BUTTON_ESCAPE);
 		aHandler->mPass = 1;
 		MoveRect(&aRect, gConfig.mOptionsTipsx, gConfig.mOptionsTipsy);
-		aHandler = NewHandler(CheckBoxProc, mLayer, &aRect, 0x4b, 5);
+		aHandler = NewHandler(CheckBoxProc, mLayer, &aRect, 0x4b, CMD_OPTIONS_TIPS);
 		aHandler->mPass = 1;
 		Send(aHandler, MSG_SETVALUE, (uint8_t)gPrefByte, 0);
 		MoveRect(&aRect, gConfig.mOptionsFullscreenx, gConfig.mOptionsFullscreeny);
-		mFullScreenBox = NewHandler(CheckBoxProc, mLayer, &aRect, 0x11, 6);
+		mFullScreenBox = NewHandler(CheckBoxProc, mLayer, &aRect, 0x11, CMD_OPTIONS_FULLSCREEN);
 		aHandler->mPass = 1;
 		Send(mFullScreenBox, MSG_SETVALUE, (uint8_t)gFullScreen, 0);
 		MoveRect(&aRect, gConfig.mOptionsVolumex, gConfig.mOptionsSoundy);
 		aRect.w = (int16_t)gConfig.mOptionsVolumewidth;
-		aHandler = NewHandler(SliderProc, mLayer, &aRect, 0, 7);
+		aHandler = NewHandler(SliderProc, mLayer, &aRect, 0, CMD_OPTIONS_SOUND_VOLUME);
 		aHandler->mPass = 1;
 		Send(aHandler, MSG_SETVALUE, gSoundVolume, 0);
 		MoveRect(&aRect, gConfig.mOptionsVolumex, gConfig.mOptionsMusicy);
 		aRect.w = (int16_t)gConfig.mOptionsVolumewidth;
-		aHandler = NewHandler(SliderProc, mLayer, &aRect, 0, 8);
+		aHandler = NewHandler(SliderProc, mLayer, &aRect, 0, CMD_OPTIONS_MUSIC_VOLUME);
 		aHandler->mPass = 1;
 		Send(aHandler, MSG_SETVALUE, MusicVolume() << 8, 0);
 		AddMenuAnimations(mLayer, &aRect, gConfig.mOptionsmenuanimations, gConfig.mOptionsmenuanimationsCount);
@@ -1022,13 +1021,13 @@ void App::SetScreen(int theScreen)
 		aHandler = NewHandler(PagerProc, mLayer, &aRect, (uintptr_t)mLayer, 0);
 		aHandler->mPass = 2;
 		MoveRect(&aRect, gConfig.mInstructionsNextx, gConfig.mInstructionsNexty);
-		aHandler = NewHandler(ButtonProc, mLayer, &aRect, 0x15, 0xe);
+		aHandler = NewHandler(ButtonProc, mLayer, &aRect, 0x15, CMD_INSTRUCTIONS_NEXT);
 		aHandler->mPass = 2;
 		MoveRect(&aRect, gConfig.mInstructionsPrevx, gConfig.mInstructionsPrevy);
-		mInstrPrev = NewHandler(ButtonProc, mLayer, &aRect, 0x16, 0xf);
+		mInstrPrev = NewHandler(ButtonProc, mLayer, &aRect, 0x16, CMD_INSTRUCTIONS_PREVIOUS);
 		mInstrPrev->mPass = 2;
 		MoveRect(&aRect, gConfig.mInstructionsOkx, gConfig.mInstructionsOky);
-		aHandler = NewHandler(ButtonProc, mLayer, &aRect, 0x17, 0xc0000010);
+		aHandler = NewHandler(ButtonProc, mLayer, &aRect, 0x17, CMD_INSTRUCTIONS_DONE | BUTTON_ENTER | BUTTON_ESCAPE);
 		aHandler->mPass = 2;
 		AddMenuAnimations(mLayer, &aRect, gConfig.mInstructionsmenuanimations, gConfig.mInstructionsmenuanimationsCount);
 		break;
@@ -1042,7 +1041,7 @@ void App::SetScreen(int theScreen)
 		aHandler = NewHandler(PagerProc, mLayer, &aRect, (uintptr_t)mLayer, 1);
 		aHandler->mPass = 2;
 		MoveRect(&aRect, gConfig.mCreditsOkx, gConfig.mCreditsOky);
-		aHandler = NewHandler(ButtonProc, mLayer, &aRect, 0x47, 0xc0000011);
+		aHandler = NewHandler(ButtonProc, mLayer, &aRect, 0x47, CMD_CREDITS_DONE | BUTTON_ENTER | BUTTON_ESCAPE);
 		aHandler->mPass = 2;
 		AddMenuAnimations(mLayer, &aRect, gConfig.mCreditsmenuanimations, gConfig.mCreditsmenuanimationsCount);
 		break;
@@ -1055,21 +1054,21 @@ void App::SetScreen(int theScreen)
 			NewHandler(CounterProc, mLayer, nullptr, (uintptr_t)&gBusy, (uintptr_t)&mCounted[0]);
 		if (mBoard->mField->HasFlags(0x80) == 0)
 		{
-			if ((m144 == 1) && (gBonusRound != 0))
+			if ((mBonusStartAnimations == 1) && (gBonusRound != 0))
 			{
 				MoveRect(&aRect, (int16_t)gConfig.mBlockgridX + (int16_t)((uint32_t)(gConfig.mBlockWidth * gConfig.mNumColumns) >> 1),
 					(int16_t)gConfig.mBlockgridY + (int16_t)((uint32_t)(gConfig.mBlockHeight * gConfig.mNumRows) >> 1));
-				aHandler = NewHandler(PopImageProc, mLayer, &aRect, 0x60, 0x39);
+				aHandler = NewHandler(PopImageProc, mLayer, &aRect, 0x60, CMD_LEVEL_START_SHOWN);
 			}
 		}
 		else
 		{
 			NewHandler(CounterProc, mLayer, nullptr, (uintptr_t)&gBusy, (uintptr_t)&mCounted[1]);
-			if ((m144 == 0) && (gBonusRound != 0))
+			if ((mBonusStartAnimations == 0) && (gBonusRound != 0))
 			{
 				MoveRect(&aRect, (int16_t)gConfig.mBlockgridX + (int16_t)((uint32_t)(gConfig.mBlockWidth * gConfig.mNumColumns) >> 1),
 					(int16_t)gConfig.mBlockgridY + (int16_t)((uint32_t)(gConfig.mBlockHeight * gConfig.mNumRows) >> 1));
-				aHandler = NewHandler(PopImageProc, mLayer, &aRect, 0x60, 0x39);
+				aHandler = NewHandler(PopImageProc, mLayer, &aRect, 0x60, CMD_LEVEL_START_SHOWN);
 			}
 		}
 		if ((gConfig.mLevelcompleteDisable == 0) &&
@@ -1087,7 +1086,7 @@ void App::SetScreen(int theScreen)
 			gPauseFlags = aFlags;
 		}
 		UpdatePause();
-		mEC = NewHandler(ColumnCursorProc, mLayer, nullptr, 0, 0);
+		mColumnCursor = NewHandler(ColumnCursorProc, mLayer, nullptr, 0, 0);
 		mDigitFont = LoadFont(0x2a, GTC(0x0046eed8), 5, 0, 0x40);
 		for (int i = 0; i < 8; i = i + 1)
 		{
@@ -1209,21 +1208,21 @@ void App::SetScreen(int theScreen)
 		aHandler = NewHandler(ImageProc, mLayer, &aRect, 0x3a, 0);
 		bool aWarn = !((aSaved == 0) || (gConfig.mDeletegamewarningDisable != 0));
 		MoveRect(&aRect, gConfig.mNewgameNormalx, gConfig.mNewgameNormaly);
-		aHandler = NewHandler(ShapedButtonProc, mLayer, &aRect, 0x36, aWarn ? 0x25 : 0x20);
+		aHandler = NewHandler(ShapedButtonProc, mLayer, &aRect, 0x36, aWarn ? CMD_ASK_NEW_REGULAR : CMD_NEW_REGULAR);
 		MoveRect(&aRect, gConfig.mNewgameSpeedx, gConfig.mNewgameSpeedy);
-		aHandler = NewHandler(ShapedButtonProc, mLayer, &aRect, 0x37, aWarn ? 0x26 : 0x21);
+		aHandler = NewHandler(ShapedButtonProc, mLayer, &aRect, 0x37, aWarn ? CMD_ASK_NEW_SPEED : CMD_NEW_SPEED);
 		MoveRect(&aRect, gConfig.mNewgameTimedx, gConfig.mNewgameTimedy);
-		aHandler = NewHandler(ShapedButtonProc, mLayer, &aRect, 0x38, aWarn ? 0x27 : 0x22);
+		aHandler = NewHandler(ShapedButtonProc, mLayer, &aRect, 0x38, aWarn ? CMD_ASK_NEW_TIMED : CMD_NEW_TIMED);
 		MoveRect(&aRect, gConfig.mNewgameStrategyx, gConfig.mNewgameStrategyy);
-		aHandler = NewHandler(ShapedButtonProc, mLayer, &aRect, 0x7f, aWarn ? 0x28 : 0x23);
+		aHandler = NewHandler(ShapedButtonProc, mLayer, &aRect, 0x7f, aWarn ? CMD_ASK_NEW_STRATEGY : CMD_NEW_STRATEGY);
 		MoveRect(&aRect, gConfig.mNewgameMainx, gConfig.mNewgameMainy);
-		aHandler = NewHandler(ShapedButtonProc, mLayer, &aRect, 0x39, 0x40000029);
+		aHandler = NewHandler(ShapedButtonProc, mLayer, &aRect, 0x39, CMD_MAIN_MENU | BUTTON_ESCAPE);
 		aHandler->mPass = 1;
 		AddMenuAnimations(mLayer, &aRect, gConfig.mNewgamemenuanimations, gConfig.mNewgamemenuanimationsCount);
 		if (aSaved != 0)
 		{
 			MoveRect(&aRect, gConfig.mNewgameContinuex, gConfig.mNewgameContinuey);
-			aHandler = NewHandler(ShapedButtonProc, mLayer, &aRect, 0x71, 0x24);
+			aHandler = NewHandler(ShapedButtonProc, mLayer, &aRect, 0x71, CMD_CONTINUE_SAVED);
 			aHandler->mPass = 1;
 			MoveRect(&aRect, gConfig.mNewgameSummaryboxx, gConfig.mNewgameSummaryboxy);
 			aHandler = NewHandler(ImageProc, mLayer, &aRect, 0x78, 0);
@@ -1252,9 +1251,9 @@ void App::SetScreen(int theScreen)
 		aHandler = NewHandler(ImageProc, mLayer, &aRect, 0x3d, 0);
 		aHandler = NewHandler(HighScoresProc, mLayer, &aRect, 0, 0);
 		MoveRect(&aRect, gConfig.mHighscoresmenuClearhighscoresx, gConfig.mHighscoresmenuClearhighscoresy);
-		aHandler = NewHandler(ShapedButtonProc, mLayer, &aRect, 0x3b, 0x12);
+		aHandler = NewHandler(ShapedButtonProc, mLayer, &aRect, 0x3b, CMD_HIGHSCORES_CLEAR);
 		MoveRect(&aRect, gConfig.mHighscoresmenuMainx, gConfig.mHighscoresmenuMainy);
-		aHandler = NewHandler(ShapedButtonProc, mLayer, &aRect, 0x3c, 0xc000002a);
+		aHandler = NewHandler(ShapedButtonProc, mLayer, &aRect, 0x3c, CMD_HIGHSCORES_BACK | BUTTON_ENTER | BUTTON_ESCAPE);
 		AddMenuAnimations(mLayer, &aRect, gConfig.mHighscoresmenuanimations, gConfig.mHighscoresmenuanimationsCount);
 		break;
 	case SCREEN_GAMEOVER:
@@ -1268,15 +1267,15 @@ void App::SetScreen(int theScreen)
 		aHandler = NewHandler(ImageProc, mLayer, &aRect, 0x5c, 0);
 		aHandler->mPass = 1;
 		MoveRect(&aRect, gConfig.mIngameInstructionsx, gConfig.mIngameInstructionsy);
-		aHandler = NewHandler(ShapedButtonProc, mLayer, &aRect, 0x45, 0x16);
+		aHandler = NewHandler(ShapedButtonProc, mLayer, &aRect, 0x45, CMD_INSTRUCTIONS);
 		aHandler->mPass = 2;
 		MoveRect(&aRect, gConfig.mIngameOptionsx, gConfig.mIngameOptionsy);
-		aHandler = NewHandler(ShapedButtonProc, mLayer, &aRect, 10, 1);
+		aHandler = NewHandler(ShapedButtonProc, mLayer, &aRect, 10, CMD_GAME_OPTIONS);
 		aHandler->mPass = 2;
 		MoveRect(&aRect, gConfig.mIngameEndgamex, gConfig.mIngameEndgamey);
-		aHandler = NewHandler(ShapedButtonProc, mLayer, &aRect, 0xb, 0x40000002);
+		aHandler = NewHandler(ShapedButtonProc, mLayer, &aRect, 0xb, CMD_GAME_END | BUTTON_ESCAPE);
 		aHandler->mPass = 2;
-		aHandler = NewHandler(SummaryStatsProc, mLayer, &aRect, 0x38, 0);
+		aHandler = NewHandler(SummaryStatsProc, mLayer, &aRect, CMD_GAME_OVER_SCREEN, 0);
 		aHandler->mPass = 2;
 		aHandler = NewHandler(SummaryHighScoresProc, mLayer, &aRect, 0, 0);
 		aHandler->mPass = 2;
@@ -1374,7 +1373,7 @@ void App::Effects(const GuiRect* theWhere, int theDelay, const EffectList* theLi
 	for (uint32_t i = 0; i < theList->mCount; i = i + 1)
 	{
 		uint32_t j = 0;
-		while ((j < (uint32_t)theEffects[i].mValue2 && (gParticleCount < 0xc9)))
+		while ((j < (uint32_t)theEffects[i].mCount && (gParticleCount < 0xc9)))
 		{
 			Handler* aHandler = NewHandler(ParticleProc, mLayer, theWhere, theDelay, (uintptr_t)&theEffects[i]);
 			aHandler->mPass = 1;
@@ -1441,13 +1440,13 @@ char App::SaveGame()
 			WriteField('D', 4, &mPosX, aFile, aNow) == 0 &&
 			WriteField('D', 4, &mPosY, aFile, aNow) == 0 &&
 			WriteField('D', 4, &mBarLevel, aFile, aNow) == 0 &&
-			WriteField('D', 4, &m138, aFile, aNow) == 0 &&
-			WriteField('D', 1, &m13c, aFile, aNow) == 0 &&
-			WriteField('D', 1, &m13d, aFile, aNow) == 0 &&
+			WriteField('D', 4, &mBonusElapsed, aFile, aNow) == 0 &&
+			WriteField('D', 1, &mBonusClockStopped, aFile, aNow) == 0 &&
+			WriteField('D', 1, &mBonusTipShown, aFile, aNow) == 0 &&
 			WriteField('D', 1, &mCrossed, aFile, aNow) == 0 &&
-			WriteField('D', 1, &m13f, aFile, aNow) == 0 &&
+			WriteField('D', 1, &mBonusBlocksRanOut, aFile, aNow) == 0 &&
 			WriteField('D', 4, &mSummaryEvents, aFile, aNow) == 0 &&
-			WriteField('D', 4, &m144, aFile, aNow) == 0)
+			WriteField('D', 4, &mBonusStartAnimations, aFile, aNow) == 0)
 		{
 			// the screen the game comes back to: the level or its summary, not the options or instructions over them
 			int32_t* aScreen;
@@ -1509,13 +1508,13 @@ uint32_t App::LoadGame()
 				ReadField('D', 4, &mPosX, aFile, aNow) == 0 &&
 				ReadField('D', 4, &mPosY, aFile, aNow) == 0 &&
 				ReadField('D', 4, &mBarLevel, aFile, aNow) == 0 &&
-				ReadField('D', 4, &m138, aFile, aNow) == 0 &&
-				ReadField('D', 1, &m13c, aFile, aNow) == 0 &&
-				ReadField('D', 1, &m13d, aFile, aNow) == 0 &&
+				ReadField('D', 4, &mBonusElapsed, aFile, aNow) == 0 &&
+				ReadField('D', 1, &mBonusClockStopped, aFile, aNow) == 0 &&
+				ReadField('D', 1, &mBonusTipShown, aFile, aNow) == 0 &&
 				ReadField('D', 1, &mCrossed, aFile, aNow) == 0 &&
-				ReadField('D', 1, &m13f, aFile, aNow) == 0 &&
+				ReadField('D', 1, &mBonusBlocksRanOut, aFile, aNow) == 0 &&
 				ReadField('D', 4, &mSummaryEvents, aFile, aNow) == 0 &&
-				ReadField('D', 4, &m144, aFile, aNow) == 0 &&
+				ReadField('D', 4, &mBonusStartAnimations, aFile, aNow) == 0 &&
 				ReadField('D', 4, &aScreen, aFile, aNow) == 0)
 			{
 				// the levels of the saved game's mode
@@ -1570,8 +1569,8 @@ char gPauseShown = 0;           // 0x489efc set while it is up (a CounterProc co
 Layer* NewConfirmDialog(GuiRect* theRect, int x, int y, int theImage, int theOk, int theOkX, int theOkY,
 	uint32_t theCommand, int theCancel, int theCancelX, int theCancelY)
 {
-	*theRect = {0, 0, 0x280, 0x1e0};
-	Layer* aLayer = NewLayer(0x280, 0x1e0, theRect);
+	*theRect = {0, 0, GAME_WIDTH, GAME_HEIGHT};
+	Layer* aLayer = NewLayer(GAME_WIDTH, GAME_HEIGHT, theRect);
 	theRect->x = (int16_t)x;
 	theRect->y = (int16_t)y;
 	Handler* aHandler = NewHandler(ImageProc, aLayer, theRect, theImage, 0);
@@ -1582,7 +1581,7 @@ Layer* NewConfirmDialog(GuiRect* theRect, int x, int y, int theImage, int theOk,
 	aHandler->mPass = 5;
 	theRect->x = (int16_t)theCancelX + (int16_t)x;
 	theRect->y = (int16_t)theCancelY + (int16_t)y;
-	aHandler = NewHandler(ButtonProc, aLayer, theRect, theCancel, 0xc000001d);
+	aHandler = NewHandler(ButtonProc, aLayer, theRect, theCancel, CMD_CANCEL_DIALOG | BUTTON_ENTER | BUTTON_ESCAPE);
 	aHandler->mPass = 5;
 	return aLayer;
 }
@@ -1647,11 +1646,11 @@ void App::UpdatePause()
 		{
 			if (InTopModal(gApp.mGameButtons[0]->mLayer) == 0)
 				return;
-			GuiRect aRect = {0, 0, 0x280, 0x1e0};
-			gPauseLayer = NewLayer(0x280, 0x1e0, &aRect);
+			GuiRect aRect = {0, 0, GAME_WIDTH, GAME_HEIGHT};
+			gPauseLayer = NewLayer(GAME_WIDTH, GAME_HEIGHT, &aRect);
 			aRect.x = (int16_t)gConfig.mBlockgridCenterX;
 			aRect.y = (int16_t)gConfig.mBlockgridCenterY;
-			Handler* aHandler = NewHandler(PopImageProc, gPauseLayer, &aRect, 0x69, 0x4000003c);
+			Handler* aHandler = NewHandler(PopImageProc, gPauseLayer, &aRect, 0x69, CMD_PAUSE_IMAGE | POP_UNTIL_CLICK);
 			aHandler->mPass = 2;
 			NewHandler(CounterProc, gPauseLayer, nullptr, (uintptr_t)&gBusy, 0);
 			NewHandler(PauseHolderProc, gPauseLayer, nullptr, 1, 0);
@@ -1680,49 +1679,49 @@ uint32_t Command(Handler* theSource, uint32_t theCommand)
 {
 	switch (theCommand)
 	{
-	case 1:
+	case CMD_GAME_OPTIONS:
 		gApp.SetScreen(SCREEN_OPTIONS);
 		break;
-	case 2:
+	case CMD_GAME_END:
 		// end the game: save it first?
 		if (gApp.CanSave() == 0)
-			AreYouSureDialog(3);
+			AreYouSureDialog(CMD_GAME_END_OK);
 		else
-			SaveGameDialog(3);
+			SaveGameDialog(CMD_GAME_END_OK);
 		break;
-	case 3:
+	case CMD_GAME_END_OK:
 		FreeLayer(theSource->mLayer);
 		gApp.SaveGame();
 		gApp.SetScreen(SCREEN_MAINMENU);
 		break;
-	case 4:
+	case CMD_OPTIONS_DONE:
 		gApp.SetScreen(gApp.mPrevScreen);
 		break;
-	case 5:
+	case CMD_OPTIONS_TIPS:
 		gPrefByte = Send(theSource, MSG_GETVALUE, 0, 0) != 0;
 		break;
-	case 6:
+	case CMD_OPTIONS_FULLSCREEN:
 		if (Send(theSource, MSG_GETVALUE, 0, 0) == 0)
 			App::ToggleFullScreen(2);
 		else
 			App::ToggleFullScreen(1);
 		break;
-	case 7:
+	case CMD_OPTIONS_SOUND_VOLUME:
 		gSoundVolume = (uint16_t)Send(theSource, MSG_GETVALUE, 0, 0);
 		Play(gSounds[0x2d], 2);
 		Play(gSounds[0x2d], 3);
 		break;
-	case 8:
+	case CMD_OPTIONS_MUSIC_VOLUME:
 		BuildMusicVolumes(Send(theSource, MSG_GETVALUE, 0, 0) >> 8);
 		break;
-	case 9:
+	case CMD_TIPS_DONE:
 		FreeLayer(theSource->mLayer);
 		gApp.mBoard->ResumeQueue();
 		break;
-	case 0xc:
+	case CMD_TIPS_SHOW:
 		gPrefByte = Send(theSource, MSG_GETVALUE, 0, 0) != 0;
 		break;
-	case 0xd:
+	case CMD_HIGHSCORE_NAME_OK:
 		// the high score's name was entered: the score goes into the mode's table
 		gHighScoreEntered = 1;
 		for (int i = 0; i < 5; i = i + 1)
@@ -1744,99 +1743,93 @@ uint32_t Command(Handler* theSource, uint32_t theCommand)
 #endif
 		FreeLayer(theSource->mLayer);
 		break;
-	case 0xe:
+	case CMD_INSTRUCTIONS_NEXT:
 		gPage = gPage + 1;
 		break;
-	case 0xf:
+	case CMD_INSTRUCTIONS_PREVIOUS:
 		if (gPage != 0)
 			gPage = gPage - 1;
 		break;
-	case 0x10:
+	case CMD_INSTRUCTIONS_DONE:
 		gApp.SetScreen(gApp.mPrevScreen);
 		gPage = 1;
 		break;
-	case 0x11:
+	case CMD_CREDITS_DONE:
 		gApp.SetScreen(gApp.mPrevScreen);
 		break;
-	case 0x12:
-		AreYouSureDialog(0x13);
+	case CMD_HIGHSCORES_CLEAR:
+		AreYouSureDialog(CMD_HIGHSCORES_CLEAR_OK);
 		break;
-	case 0x13:
+	case CMD_HIGHSCORES_CLEAR_OK:
 		FreeLayer(theSource->mLayer);
 		ResetHighScores();
 #ifdef __EMSCRIPTEN__
 		SiteScoresChanged();	// the web page's players (SiteProfiles.h): the tables are empty
 #endif
 		break;
-	case 0x14:
+	case CMD_MENU_NEW_GAME:
 		gApp.SetScreen(SCREEN_NEWGAME);
 		break;
-	case 0x15:
+	case CMD_MENU_OPTIONS:
 		gApp.SetScreen(SCREEN_OPTIONS);
 		break;
-	case 0x16:
+	case CMD_INSTRUCTIONS:
 		gApp.SetScreen(SCREEN_INSTRUCTIONS);
 		break;
-	case 0x17:
+	case CMD_MENU_CREDITS:
 		gApp.SetScreen(SCREEN_CREDITS);
 		break;
-	case 0x18:
+	case CMD_MENU_QUIT:
 		// quit: save the game first?
 		if (gApp.CanSave() == 0)
-			AreYouSureDialog(0x19);
+			AreYouSureDialog(CMD_QUIT_OK);
 		else
-			SaveGameDialog(0x19);
+			SaveGameDialog(CMD_QUIT_OK);
 		break;
-	case 0x19:
+	case CMD_QUIT_OK:
 		gApp.SaveGame();
 		gQuit = 1;
 		break;
-	case 0x1a:
+	case CMD_END_GAME_NOW:
 		gApp.GetBoard()->EndGame();
 		FreeHandler(gApp.mCounted[3]);
 		break;
-	case 0x1b:
+	case CMD_GAME_OVER_SHOWN:
 		NewHandler(GameOverDelayProc, theSource->mLayer, nullptr, 0, 0);
 		FreeHandler(gApp.mCounted[2]);
 		break;
-	case 0x1d:
+	case CMD_CANCEL_DIALOG:
 		FreeLayer(theSource->mLayer);
 		break;
-	case 0x1e:
-		gQuit = 1;
-		break;
-	case 0x1f:
-		gApp.SetScreen(gApp.mPrevScreen);
-		break;
-	case 0x20:
+	case CMD_NEW_REGULAR:
 		gLevelList = gLevels[0];
 		gLevelListCount = gLevelCount[0];
 		gGameMode = 0;
 		gApp.NewGame();
 		gApp.SetScreen(SCREEN_GAME);
 		break;
-	case 0x21:
+	case CMD_NEW_SPEED:
 		gLevelList = gLevels[1];
 		gLevelListCount = gLevelCount[1];
 		gGameMode = 2;
 		gApp.NewGame();
 		gApp.SetScreen(SCREEN_GAME);
 		break;
-	case 0x22:
+	case CMD_NEW_TIMED:
 		gLevelList = gLevels[2];
 		gLevelListCount = gLevelCount[2];
 		gGameMode = 1;
 		gApp.NewGame();
 		gApp.SetScreen(SCREEN_GAME);
 		break;
-	case 0x23:
+	case CMD_NEW_STRATEGY:
 		gLevelList = gLevels[3];
 		gLevelListCount = gLevelCount[3];
 		gGameMode = 3;
 		gApp.NewGame();
 		gApp.SetScreen(SCREEN_GAME);
 		break;
-	case 0x24:
+	case CMD_CONTINUE_SAVED:
 	{
 		// continue the saved game (then it is deleted)
 		uint32_t aScreen = gApp.LoadGame();
@@ -1853,53 +1846,47 @@ uint32_t Command(Handler* theSource, uint32_t theCommand)
 		UserRemove(GTC(0x0046ec28));
 		break;
 	}
-	case 0x25:
-		DeleteGameDialog(0x20);
+	case CMD_ASK_NEW_REGULAR:
+		DeleteGameDialog(CMD_NEW_REGULAR);
 		break;
-	case 0x26:
-		DeleteGameDialog(0x21);
+	case CMD_ASK_NEW_SPEED:
+		DeleteGameDialog(CMD_NEW_SPEED);
 		break;
-	case 0x27:
-		DeleteGameDialog(0x22);
+	case CMD_ASK_NEW_TIMED:
+		DeleteGameDialog(CMD_NEW_TIMED);
 		break;
-	case 0x28:
-		DeleteGameDialog(0x23);
+	case CMD_ASK_NEW_STRATEGY:
+		DeleteGameDialog(CMD_NEW_STRATEGY);
 		break;
-	case 0x29:
+	case CMD_MAIN_MENU:
 		gApp.SetScreen(SCREEN_MAINMENU);
 		break;
-	case 0x2a:
+	case CMD_HIGHSCORES_BACK:
 		// the high scores screen's way back (the original asked "play again?" when it was not entered from the main menu,
 		// and only the main menu's button enters it)
 		gApp.SetScreen(SCREEN_MAINMENU);
 		break;
-	case 0x2b:
+	case CMD_MENU_HIGHSCORES:
 		gApp.SetScreen(SCREEN_HIGHSCORES);
 		break;
-	case 0x2d:
+	case CMD_PLAY_AGAIN:
 		// play again, in the same mode
 		gApp.NewGame();
 		gApp.SetScreen(SCREEN_GAME);
 		break;
-	case 0x2e:
+	case CMD_LOAD_DONE:
 	{
 		// the load bar is full: the splash screen's play button
 		GuiRect aRect = At(gConfig.mSplashPlayx, gConfig.mSplashPlayy);
-		Handler* aHandler = NewHandler(ButtonProc, theSource->mLayer, &aRect, 0x4e, 0x80000029);
+		Handler* aHandler = NewHandler(ButtonProc, theSource->mLayer, &aRect, 0x4e, CMD_MAIN_MENU | BUTTON_ENTER);
 		aHandler->mPass = 1;
 		break;
 	}
-	case 0x34:
-		FreeLayer(theSource->mLayer);
-		break;
-	case 0x35:
-		FreeLayer(theSource->mLayer);
-		break;
-	case 0x38:
+	case CMD_GAME_OVER_SCREEN:
 	{
 		// the game over screen's play again button, and the name of a new high score
 		GuiRect aRect = At(gConfig.mSummaryPlayagainx, gConfig.mSummaryPlayagainy);
-		Handler* aHandler = NewHandler(ButtonProc, gApp.mLayer, &aRect, 0x5d, 0x8000002d);
+		Handler* aHandler = NewHandler(ButtonProc, gApp.mLayer, &aRect, 0x5d, CMD_PLAY_AGAIN | BUTTON_ENTER);
 		aHandler->mPass = 2;
 		uint32_t i = 0;
 		do
@@ -1916,13 +1903,13 @@ uint32_t Command(Handler* theSource, uint32_t theCommand)
 				aRect = At(gConfig.mHighscoresTextx, gConfig.mHighscoresTexty - 0x3c);
 				aRect.w = 600;
 				aRect.h = 0x78;
-				gApp.mNameInput = NewHandler(TextInputProc, aLayer, &aRect, (uintptr_t)gScreenFont, 0xa000d);
+				gApp.mNameInput = NewHandler(TextInputProc, aLayer, &aRect, (uintptr_t)gScreenFont, CMD_HIGHSCORE_NAME_OK | 10 << 16);
 				gApp.mNameInput->mPass = 3;
 #ifdef __EMSCRIPTEN__
 				SiteFillScoreName(gApp.mNameInput);	// the web page's player (framework/WebProfiles.h), under "fill" and "create"
 #endif
 				aRect = At(gConfig.mHighscoresOkx, gConfig.mHighscoresOky);
-				aHandler = NewHandler(ButtonProc, aLayer, &aRect, 0x13, 0xc000000d);
+				aHandler = NewHandler(ButtonProc, aLayer, &aRect, 0x13, CMD_HIGHSCORE_NAME_OK | BUTTON_ENTER | BUTTON_ESCAPE);
 				aHandler->mPass = 3;
 				PushModal(aLayer);
 				return 0;
@@ -1931,9 +1918,9 @@ uint32_t Command(Handler* theSource, uint32_t theCommand)
 		} while (i != 5);
 		break;
 	}
-	case 0x39:
+	case CMD_LEVEL_START_SHOWN:
 		// the level's start animation is over (a bonus round has two)
-		if ((gBonusRound == 0) || (gApp.m144 = gApp.m144 + 1, 1 < gApp.m144))
+		if ((gBonusRound == 0) || (gApp.mBonusStartAnimations = gApp.mBonusStartAnimations + 1, 1 < gApp.mBonusStartAnimations))
 		{
 			FreeHandler(gApp.mCounted[1]);
 			if (gPrefByte == 0)
@@ -1946,15 +1933,15 @@ uint32_t Command(Handler* theSource, uint32_t theCommand)
 			}
 		}
 		break;
-	case 0x3a:
+	case CMD_LEVEL_COMPLETE_SHOWN:
 		FreeHandler(gApp.mCounted[2]);
 		if (gApp.mBoard->mField->BlowAway() != 0)
 			gApp.mSummaryEvents = gApp.mSummaryEvents + 1;
 		break;
-	case 0x3b:
+	case CMD_SUMMARY_NEXT:
 		gApp.NextSummaryEvent();
 		break;
-	case 0x3c:
+	case CMD_PAUSE_IMAGE:
 		// the pause image was clicked
 		if (gPauseFlags == 0)
 			return 0;
@@ -1963,10 +1950,7 @@ uint32_t Command(Handler* theSource, uint32_t theCommand)
 			return 0;
 		App::UpdatePause();
 		return 1;
-	case 0x3d:
-		Dispatch(MSG_PASTE, 0, 0);
-		break;
-	case 0x3e:
+	case CMD_PAUSE:
 		gPauseFlags = gPauseFlags ^ 1;
 		App::UpdatePause();
 	}
@@ -2027,8 +2011,8 @@ const char* ReadTextItem(const char** thePos, GuiRect* theRect, int theX, int th
 uint32_t TipsDialog()
 {
 	const uint8_t kModes[4] = {'N', 'T', 'S', 'R'};
-	GuiRect aRect = {0, 0, 0x280, 0x1e0};
-	Layer* aLayer = NewLayer(0x280, 0x1e0, &aRect);
+	GuiRect aRect = {0, 0, GAME_WIDTH, GAME_HEIGHT};
+	Layer* aLayer = NewLayer(GAME_WIDTH, GAME_HEIGHT, &aRect);
 	NewHandler(ResourceProc, aLayer, nullptr, 3, 0x12);
 	const char* aPos = (const char*)res::Get(res::GROUP_TEXTS, 0x12);
 	if (aPos == nullptr)
@@ -2069,9 +2053,9 @@ uint32_t TipsDialog()
 			if ((aMode == gGameMode) && (aLevel == (int32_t)gApp.mBoard->mState.mLevel))
 				goto found;
 		}
-	} while ((gBonusRound == 0) || ((aKind != 'B' || (gApp.m13d != 0))));
+	} while ((gBonusRound == 0) || ((aKind != 'B' || (gApp.mBonusTipShown != 0))));
 	// the bonus round's tip is shown once
-	gApp.m13d = 1;
+	gApp.mBonusTipShown = 1;
 found:
 	while (SkipToToken(&aPos, 0) == 0)
 	{
@@ -2116,11 +2100,11 @@ found:
 	aHandler->mPass = 1;
 	aRect.x = (int16_t)gConfig.mTipsOkx + (int16_t)gConfig.mTipsBackgroundx;
 	aRect.y = (int16_t)gConfig.mTipsOky + (int16_t)gConfig.mTipsBackgroundy;
-	aHandler = NewHandler(ButtonProc, aLayer, &aRect, 0x1c, 0xc0000009);
+	aHandler = NewHandler(ButtonProc, aLayer, &aRect, 0x1c, CMD_TIPS_DONE | BUTTON_ENTER | BUTTON_ESCAPE);
 	aHandler->mPass = 2;
 	aRect.x = (int16_t)gConfig.mTipsTogglex + (int16_t)gConfig.mTipsBackgroundx;
 	aRect.y = (int16_t)gConfig.mTipsToggley + (int16_t)gConfig.mTipsBackgroundy;
-	aHandler = NewHandler(CheckBoxProc, aLayer, &aRect, 0x1f, 0xc);
+	aHandler = NewHandler(CheckBoxProc, aLayer, &aRect, 0x1f, CMD_TIPS_SHOW);
 	Send(aHandler, MSG_SETVALUE, 1, 0);
 	aHandler->mPass = 2;
 	NewHandler(CounterProc, aLayer, nullptr, (uintptr_t)&gBusy, 0);
@@ -2223,7 +2207,7 @@ uint32_t PagerProc(uint32_t theMsg, uintptr_t theA, uintptr_t theB, Handler* the
 				{
 					// the original left the size unset (the button takes its image's)
 					GuiRect aRect = At(gConfig.mInstructionsPrevx, gConfig.mInstructionsPrevy);
-					gApp.mInstrPrev = NewHandler(ButtonProc, gApp.mLayer, &aRect, 0x16, 0xf);
+					gApp.mInstrPrev = NewHandler(ButtonProc, gApp.mLayer, &aRect, 0x16, CMD_INSTRUCTIONS_PREVIOUS);
 					gApp.mInstrPrev->mPass = 2;
 				}
 			}
@@ -3071,7 +3055,7 @@ uint32_t BonusTimerProc(uint32_t theMsg, uintptr_t theA, uintptr_t theB, Handler
 		gBonusCriticalTime1 = (uint32_t)gConfig.mBonustimerCriticaltime1;
 		gBonusCriticalTime2 = (uint32_t)gConfig.mBonustimerCriticaltime2;
 		gBonusMagnification = (uint32_t)gConfig.mBonustimerInitialmagnification;
-		gApp.m134 = GameTime();
+		gApp.mBonusClock = GameTime();
 		gBonusFont = LoadFont(0x5f, GTC(0x0046eed8), 4, 0, 0x40);
 	}
 	else if (aMsg == MSG_DESTROY)
@@ -3082,30 +3066,30 @@ uint32_t BonusTimerProc(uint32_t theMsg, uintptr_t theA, uintptr_t theB, Handler
 	{
 		uint32_t aNow = GameTime();
 		uint32_t aLast = aNow;
-		if (gApp.m134 <= aNow)
-			aLast = gApp.m134;
-		if ((gApp.m13c == 0) && (gBusy == 0))
-			gApp.m138 = gApp.m138 + (aNow - aLast);
-		gApp.m134 = aNow;
-		if (gApp.m138 != 0)
+		if (gApp.mBonusClock <= aNow)
+			aLast = gApp.mBonusClock;
+		if ((gApp.mBonusClockStopped == 0) && (gBusy == 0))
+			gApp.mBonusElapsed = gApp.mBonusElapsed + (aNow - aLast);
+		gApp.mBonusClock = aNow;
+		if (gApp.mBonusElapsed != 0)
 		{
 			uint32_t aSeconds = 0;
-			if (gApp.m138 / 1000 < (uint32_t)gConfig.mBonusTime)
-				aSeconds = (uint32_t)gConfig.mBonusTime - gApp.m138 / 1000;
+			if (gApp.mBonusElapsed / 1000 < (uint32_t)gConfig.mBonusTime)
+				aSeconds = (uint32_t)gConfig.mBonusTime - gApp.mBonusElapsed / 1000;
 			uint8_t aTens = (uint8_t)((char)(aSeconds / 10) + '0');
 			uint8_t anOnes = (uint8_t)((char)(aSeconds % 10) + '0');
 			uint32_t aMagnification;
 			int16_t x;
 			int16_t y;
-			if (gApp.m138 < gBonusCriticalTime1)
+			if (gApp.mBonusElapsed < gBonusCriticalTime1)
 			{
 				aMagnification = gBonusMagnification;
 				x = (int16_t)gConfig.mBonusLargetimecountx;
 				y = (int16_t)gConfig.mBonusLargetimecounty;
 			}
-			else if (gApp.m138 < gBonusCriticalTime2)
+			else if (gApp.mBonusElapsed < gBonusCriticalTime2)
 			{
-				double aFraction = pow((double)(int64_t)(gApp.m138 - gBonusCriticalTime1) /
+				double aFraction = pow((double)(int64_t)(gApp.mBonusElapsed - gBonusCriticalTime1) /
 					(double)(int64_t)(gBonusCriticalTime2 - gBonusCriticalTime1),
 					(double)gConfig.mBonustimerMotionexponent);
 				y = (int16_t)gConfig.mBonusLargetimecounty;
@@ -3141,7 +3125,7 @@ uint32_t BonusTimerProc(uint32_t theMsg, uintptr_t theA, uintptr_t theB, Handler
 }
 
 // 0x423fc7: an image that pops up at its center, wobbling, and then shrinks flat; it holds the game while it shows,
-// and then sends its command. Create: a = the image, b = the command | 0x80000000 to stay 0.75 s longer | 0x40000000
+// and then sends its command. Create: a = the image, b = the command | POP_LONGER to stay 0.75 s longer | POP_UNTIL_CLICK
 // to stay until a click on the board or a key, then only shrink. Its rect's x and y are its center.
 uint32_t PopImageProc(uint32_t theMsg, uintptr_t theA, uintptr_t theB, Handler* theHandler)
 {
@@ -3180,11 +3164,11 @@ uint32_t PopImageProc(uint32_t theMsg, uintptr_t theA, uintptr_t theB, Handler* 
 	}
 	else if (aMsg == MSG_DRAW)
 	{
-		uint32_t aLonger = ((aSlots[1] & 0x80000000) != 0) ? 0x2ee : 0;
+		uint32_t aLonger = ((aSlots[1] & POP_LONGER) != 0) ? 0x2ee : 0;
 		uint32_t aPeriod = 1000;
 		uint32_t aShrinkStart;
 		uint32_t anEnd;
-		if ((aSlots[1] & 0x40000000) == 0)
+		if ((aSlots[1] & POP_UNTIL_CLICK) == 0)
 		{
 			aShrinkStart = 0x5dc + aLonger;
 			anEnd = 0x708 + aLonger;
@@ -3202,7 +3186,7 @@ uint32_t PopImageProc(uint32_t theMsg, uintptr_t theA, uintptr_t theB, Handler* 
 		uint32_t aTime = aNow - (uint32_t)aSlots[0];
 		uint32_t aWidthScale;
 		uint32_t aHeightScale;
-		if ((aTime < aShrinkStart) || ((aSlots[3] == 0) && ((aSlots[1] & 0x40000000) != 0)))
+		if ((aTime < aShrinkStart) || ((aSlots[3] == 0) && ((aSlots[1] & POP_UNTIL_CLICK) != 0)))
 		{
 			// a wobble around 128/256 that settles at full size after its first peak
 			double aSeconds = (double)(int64_t)aTime / (double)(int64_t)aPeriod;
@@ -3224,7 +3208,7 @@ uint32_t PopImageProc(uint32_t theMsg, uintptr_t theA, uintptr_t theB, Handler* 
 			{
 				if (gModal != 0)
 					return 0;
-				if (Command(theHandler, (uint32_t)aSlots[1] & 0x3fffffff) != 0)
+				if (Command(theHandler, (uint32_t)aSlots[1] & COMMAND_MASK) != 0)
 					return 0;
 				FreeHandler(theHandler);
 				return 0;
@@ -3253,7 +3237,7 @@ uint32_t PopImageProc(uint32_t theMsg, uintptr_t theA, uintptr_t theB, Handler* 
 		return 0;
 	}
 	// a click on the board or a key lets a waiting image shrink
-	if (((aSlots[1] & 0x40000000) != 0) && (aSlots[3] == 0))
+	if (((aSlots[1] & POP_UNTIL_CLICK) != 0) && (aSlots[3] == 0))
 	{
 		aSlots[3] = 1;
 		aSlots[0] = RealTime();
@@ -3262,7 +3246,7 @@ uint32_t PopImageProc(uint32_t theMsg, uintptr_t theA, uintptr_t theB, Handler* 
 }
 
 // 0x424421: the end of a bonus round: its image pops up while combo stars burst over the board (2.5 s), then a big
-// star and the bonus's points at the image; at 5 s it sends command 0x3a. The image is 0x63, "Bonus Complete!".
+// star and the bonus's points at the image; at 5 s it sends CMD_LEVEL_COMPLETE_SHOWN. The image is 0x63, "Bonus Complete!".
 uint32_t BonusEndProc(uint32_t theMsg, uintptr_t theA, uintptr_t theB, Handler* theHandler)
 {
 	(void)theA;
@@ -3275,7 +3259,7 @@ uint32_t BonusEndProc(uint32_t theMsg, uintptr_t theA, uintptr_t theB, Handler* 
 		aSlots[1] = 0;
 		aSlots[2] = 0;
 		gBusy = gBusy + 1;
-		Handler* anImage = NewHandler(PopImageProc, theHandler->mLayer, &theHandler->mRect, 0x63, 0x80000000);
+		Handler* anImage = NewHandler(PopImageProc, theHandler->mLayer, &theHandler->mRect, 0x63, POP_LONGER);
 		anImage->mPass = 2;
 	}
 	else if (aMsg == MSG_DESTROY)
@@ -3331,7 +3315,7 @@ uint32_t BonusEndProc(uint32_t theMsg, uintptr_t theA, uintptr_t theB, Handler* 
 			}
 			else
 			{
-				Command(theHandler, 0x3a);
+				Command(theHandler, CMD_LEVEL_COMPLETE_SHOWN);
 				FreeHandler(theHandler);
 			}
 		}
@@ -3340,7 +3324,7 @@ uint32_t BonusEndProc(uint32_t theMsg, uintptr_t theA, uintptr_t theB, Handler* 
 }
 
 // 0x4246b1: a completed level: after a delay, its image over the board with 24 sparkles around it (or, where the
-// configuration turns it off, command 0x1a at once). It holds the game until the animations end. Create: a = the
+// configuration turns it off, CMD_END_GAME_NOW at once). It holds the game until the animations end. Create: a = the
 // image, b = the sparkle's image.
 uint32_t LevelCompleteProc(uint32_t theMsg, uintptr_t theA, uintptr_t theB, Handler* theHandler)
 {
@@ -3381,7 +3365,7 @@ uint32_t LevelCompleteProc(uint32_t theMsg, uintptr_t theA, uintptr_t theB, Hand
 				aParams.mRise = 0x50;
 				aParams.mFade = 0x640;
 				aParams.mHold = 800;
-				Handler* anAnimation = NewHandler(AnimationProc, gApp.mLayer, &aRect, (uintptr_t)&aParams, 0x1001a);
+				Handler* anAnimation = NewHandler(AnimationProc, gApp.mLayer, &aRect, (uintptr_t)&aParams, CMD_END_GAME_NOW | 1 << 16);
 				anAnimation->mPass = 2;
 				lowos::Surface* anImage = (lowos::Surface*)aSlots[1];
 				for (int anIndex = 0; anIndex < 0x18; anIndex = anIndex + 1)
@@ -3399,7 +3383,7 @@ uint32_t LevelCompleteProc(uint32_t theMsg, uintptr_t theA, uintptr_t theB, Hand
 					aParams.mRise = 0x3c;
 					aParams.mFade = 400;
 					aParams.mHold = 0;
-					anAnimation = NewHandler(AnimationProc, gApp.mLayer, &aRect, (uintptr_t)&aParams, 0x80010000);
+					anAnimation = NewHandler(AnimationProc, gApp.mLayer, &aRect, (uintptr_t)&aParams, ANIMATION_ADDITIVE | 1 << 16);
 					anAnimation->mPass = 3;
 				}
 				NewHandler(CounterProc, gApp.mLayer, nullptr, (uintptr_t)&gBusy, (uintptr_t)&gApp.mCounted[3]);
@@ -3409,7 +3393,7 @@ uint32_t LevelCompleteProc(uint32_t theMsg, uintptr_t theA, uintptr_t theB, Hand
 			{
 				NewHandler(CounterProc, gApp.mLayer, nullptr, (uintptr_t)&gBusy, (uintptr_t)&gApp.mCounted[3]);
 				FreeHandler(theHandler);
-				Command(theHandler, 0x1a);
+				Command(theHandler, CMD_END_GAME_NOW);
 			}
 		}
 	}
@@ -3437,17 +3421,17 @@ uint32_t ParticleProc(uint32_t theMsg, uintptr_t theA, uintptr_t theB, Handler* 
 		aSlots[1] = theA;
 		aSlots[2] = (uint32_t)(Rand() % 0x8000);
 		aSlots[3] = theB;
-		int16_t aSize = (int16_t)gConfig.mParticles[anEffect->mValue0].mValue0;
+		int16_t aSize = (int16_t)gConfig.mParticles[anEffect->mParticle].mSize;
 		theHandler->mRect.w = aSize;
 		theHandler->mRect.h = aSize;
 		theHandler->mRect.x = (int16_t)(theHandler->mRect.x - aSize / 2);
 		theHandler->mRect.y = (int16_t)(theHandler->mRect.y - aSize / 2);
-		aSlots[2] = (uint32_t)aSlots[2] / (uint32_t)anEffect->mValue2;
+		aSlots[2] = (uint32_t)aSlots[2] / (uint32_t)anEffect->mCount;
 		aSlots[2] = (uint32_t)aSlots[2] + gParticleAngle;
 		aSlots[2] = (uint32_t)aSlots[2] % 0x8000;
 		aSlots[2] = (uint32_t)aSlots[2] + 0x8000;
-		aSlots[2] = (uint32_t)aSlots[2] - 0x8000 / (uint32_t)(anEffect->mValue2 << 1);
-		aSlots[2] = 0x8000 / (uint32_t)anEffect->mValue2 + (uint32_t)aSlots[2];
+		aSlots[2] = (uint32_t)aSlots[2] - 0x8000 / (uint32_t)(anEffect->mCount << 1);
+		aSlots[2] = 0x8000 / (uint32_t)anEffect->mCount + (uint32_t)aSlots[2];
 		aSlots[2] = (uint32_t)aSlots[2] % 0x8000;
 		gParticleAngle = (uint32_t)aSlots[2];
 		gParticleCount = gParticleCount + 1;
@@ -3461,56 +3445,56 @@ uint32_t ParticleProc(uint32_t theMsg, uintptr_t theA, uintptr_t theB, Handler* 
 	else if (aMsg == MSG_DRAW)
 	{
 		const Effect* anEffect = (const Effect*)aSlots[3];
-		const Particle* aParticle = &gConfig.mParticles[anEffect->mValue0];
+		const Particle* aParticle = &gConfig.mParticles[anEffect->mParticle];
 		uint32_t aNow = GameTime();
 		uint32_t aStart = aNow;
 		if ((uint32_t)aSlots[0] <= aNow)
 			aStart = (uint32_t)aSlots[0];
 		aSlots[0] = aStart;
-		if ((uint32_t)(aSlots[1] + anEffect->mValue1) < aNow - (uint32_t)aSlots[0])
+		if ((uint32_t)(aSlots[1] + anEffect->mDelay) < aNow - (uint32_t)aSlots[0])
 		{
-			uint32_t aTime = (aNow - (uint32_t)aSlots[0]) - (uint32_t)(aSlots[1] + anEffect->mValue1);
+			uint32_t aTime = (aNow - (uint32_t)aSlots[0]) - (uint32_t)(aSlots[1] + anEffect->mDelay);
 			double anAngle = (double)(int64_t)(uint32_t)aSlots[2] * 6.2831853 / 32767.0;
-			double aDistance = (double)(int64_t)(uint32_t)(aTime * (uint32_t)anEffect->mValue3) / 1000.0;
+			double aDistance = (double)(int64_t)(uint32_t)(aTime * (uint32_t)anEffect->mSpeed) / 1000.0;
 			double x = cos(anAngle) * aDistance;
 			double y = sin(anAngle) * aDistance;
 			y = y - 0.05 * aDistance;
 			uint32_t aLevel;
-			if (aTime < (uint32_t)anEffect->mValue7)
+			if (aTime < (uint32_t)anEffect->mFadeOnTime)
 			{
-				aLevel = (aTime * 0x100) / (uint32_t)anEffect->mValue7;
+				aLevel = (aTime * 0x100) / (uint32_t)anEffect->mFadeOnTime;
 			}
-			else if (aTime < (uint32_t)(anEffect->mValue7 + anEffect->mValue8))
+			else if (aTime < (uint32_t)(anEffect->mFadeOnTime + anEffect->mHoldTime))
 			{
 				aLevel = 0xff;
 			}
 			else
 			{
-				if ((uint32_t)(anEffect->mValue7 + anEffect->mValue8 + anEffect->mValue9) <= aTime)
+				if ((uint32_t)(anEffect->mFadeOnTime + anEffect->mHoldTime + anEffect->mFadeOffTime) <= aTime)
 				{
 					FreeHandler(theHandler);
 					return 0;
 				}
-				aLevel = (((uint32_t)(anEffect->mValue7 + anEffect->mValue8 + anEffect->mValue9) - aTime) * 0x100) /
-					(uint32_t)anEffect->mValue9;
+				aLevel = (((uint32_t)(anEffect->mFadeOnTime + anEffect->mHoldTime + anEffect->mFadeOffTime) - aTime) * 0x100) /
+					(uint32_t)anEffect->mFadeOffTime;
 			}
 			uint32_t aPulse;
-			if (anEffect->mValue6 == 0)
+			if (anEffect->mOscillationTime == 0)
 			{
-				aPulse = (uint32_t)(uint8_t)anEffect->mValue4;
+				aPulse = (uint32_t)(uint8_t)anEffect->mOpacityHigh;
 			}
 			else
 			{
 				// a triangle between the two levels
-				uint32_t aPhase = aTime % (uint32_t)anEffect->mValue6;
-				if ((uint32_t)anEffect->mValue6 >> 1 < aPhase)
-					aPhase = (uint32_t)anEffect->mValue6 - aPhase;
-				aPulse = (aPhase * ((uint32_t)(uint8_t)anEffect->mValue4 - (uint32_t)(uint8_t)anEffect->mValue5)) /
-					((uint32_t)anEffect->mValue6 >> 1) + (uint32_t)(uint8_t)anEffect->mValue5;
+				uint32_t aPhase = aTime % (uint32_t)anEffect->mOscillationTime;
+				if ((uint32_t)anEffect->mOscillationTime >> 1 < aPhase)
+					aPhase = (uint32_t)anEffect->mOscillationTime - aPhase;
+				aPulse = (aPhase * ((uint32_t)(uint8_t)anEffect->mOpacityHigh - (uint32_t)(uint8_t)anEffect->mOpacityLow)) /
+					((uint32_t)anEffect->mOscillationTime >> 1) + (uint32_t)(uint8_t)anEffect->mOpacityLow;
 			}
 			aLevel = (aLevel * aPulse) / 0xff;
-			int32_t aSize = aParticle->mValue0;
-			if (aParticle->mValue7 == 1)
+			int32_t aSize = aParticle->mSize;
+			if (aParticle->mBlendType == 1)
 			{
 				// with its own alpha channel
 				uint8_t aBlitLevel;
@@ -3518,7 +3502,7 @@ uint32_t ParticleProc(uint32_t theMsg, uintptr_t theA, uintptr_t theB, Handler* 
 					aBlitLevel = (uint8_t)aLevel;
 				else
 					aBlitLevel = 0xff;
-				const uint8_t* aBits = gParticleState[anEffect->mValue0];
+				const uint8_t* aBits = gParticleState[anEffect->mParticle];
 				uint8_t aFormat = lowos::GetDisplayFormat(nullptr, nullptr, nullptr);
 				lowos::Blit(aSize, aSize, (int)theHandler->mRect.x - (int)(int16_t)(int64_t)x,
 					(int)theHandler->mRect.y - (int)(int16_t)(int64_t)y, 0, 0, (uint32_t)(aSize * (aFormat + 1)), aBits, 7,
@@ -3528,7 +3512,7 @@ uint32_t ParticleProc(uint32_t theMsg, uintptr_t theA, uintptr_t theB, Handler* 
 			{
 				if (0xfe < aLevel)
 					aLevel = 0xff;
-				const uint8_t* aBits = gParticleState[anEffect->mValue0];
+				const uint8_t* aBits = gParticleState[anEffect->mParticle];
 				uint8_t aFormat = lowos::GetDisplayFormat(nullptr, nullptr, nullptr);
 				lowos::Blit(aSize, aSize, (int)theHandler->mRect.x - (int)(int16_t)(int64_t)x,
 					(int)theHandler->mRect.y - (int)(int16_t)(int64_t)y, 0, 0, (uint32_t)(aSize * aFormat), aBits, 0x15,
@@ -3550,7 +3534,7 @@ uint8_t gButtonDrawn = 1;                  // 0x47e294 (the button's image needs
 
 // 0x424e66: an item of the level summary (0 the level's score, 1 its time, 2 its best combo, 3 its best match, 4
 // the button to go on) sliding in from the right and bouncing against its place, squashed. The button waits for the
-// summary's other events, lights under the mouse, and when pressed (or Enter) sends command 0x3b; then all items
+// summary's other events, lights under the mouse, and when pressed (or Enter) sends CMD_SUMMARY_NEXT; then all items
 // fade out and the last one gone starts the next summary event. The texts are letters of the text font: a label
 // glyph, then the value. Create: a = the item, b = its delay (ms).
 uint32_t SummaryItemProc(uint32_t theMsg, uintptr_t theA, uintptr_t theB, Handler* theHandler)
@@ -3649,8 +3633,8 @@ uint32_t SummaryItemProc(uint32_t theMsg, uintptr_t theA, uintptr_t theB, Handle
 	}
 	else if (anItem == 4)
 	{
-		aSurface = gApp.mImage68;
-		aBits = lowos::SurfaceBits(gApp.mImage68);
+		aSurface = gApp.mSummaryButtonImage;
+		aBits = lowos::SurfaceBits(gApp.mSummaryButtonImage);
 		aPitch = lowos::SurfaceWidth(aSurface) & 0xffff;
 		aPitch = aPitch * lowos::GetDisplayFormat(nullptr, nullptr, nullptr);
 		aDrawn = &gButtonDrawn;
@@ -3693,7 +3677,7 @@ uint32_t SummaryItemProc(uint32_t theMsg, uintptr_t theA, uintptr_t theB, Handle
 		if ((aHit != 0) && (aSlots[0] == 4) && (gSummaryContinued == 0) && ((aSlots[3] & 4) != 0))
 		{
 			Play(gSounds[0x3], 1);
-			Command(theHandler, 0x3b);
+			Command(theHandler, CMD_SUMMARY_NEXT);
 			gSummaryContinued = 1;
 		}
 	}
@@ -3733,7 +3717,7 @@ uint32_t SummaryItemProc(uint32_t theMsg, uintptr_t theA, uintptr_t theB, Handle
 				GuiRect aRect = theHandler->mRect;
 				if (aTime < (uint32_t)gConfig.mLevelsummaryEntertime)
 				{
-					aRect.x = (int16_t)(0x280 - (int16_t)((uint32_t)((0x280 - (int32_t)theHandler->mRect.x) * aTime) /
+					aRect.x = (int16_t)(GAME_WIDTH - (int16_t)((uint32_t)((GAME_WIDTH - (int32_t)theHandler->mRect.x) * aTime) /
 						(uint32_t)gConfig.mLevelsummaryEntertime));
 				}
 				else
@@ -3741,7 +3725,7 @@ uint32_t SummaryItemProc(uint32_t theMsg, uintptr_t theA, uintptr_t theB, Handle
 					// it hits its place at the entering speed and bounces against it like a spring, squashed (but
 					// at most by the configured part of its width), and settles
 					aTime = aTime - (uint32_t)gConfig.mLevelsummaryEntertime;
-					double aSpeed = (double)(int32_t)((0x280 - (int32_t)theHandler->mRect.x) * 1000) /
+					double aSpeed = (double)(int32_t)((GAME_WIDTH - (int32_t)theHandler->mRect.x) * 1000) /
 						(double)(int64_t)(uint32_t)gConfig.mLevelsummaryEntertime;
 					double anOmega = 6283.1853 / (double)(int64_t)(uint32_t)gConfig.mLevelsummaryBouncetime;
 					double anAmplitude = aSpeed / anOmega;
@@ -3827,7 +3811,7 @@ uint32_t SummaryItemProc(uint32_t theMsg, uintptr_t theA, uintptr_t theB, Handle
 		((aSlots[3] & 4) != 0))
 	{
 		Play(gSounds[0x3], 1);
-		Command(theHandler, 0x3b);
+		Command(theHandler, CMD_SUMMARY_NEXT);
 		gSummaryContinued = 1;
 	}
 	return 0;
@@ -3866,8 +3850,8 @@ uint32_t ColumnAt(uint16_t x)
 } // namespace
 
 // 0x4259b7: the column the player drops into: the one under the mouse, or moved with the arrow keys until the mouse
-// moves more than 5 pixels; a click or the space bar taps. The board asks it with message 0x10 (the column) and
-// 0x11 (1 once after a tap).
+// moves more than 5 pixels; a click or the space bar taps. The board asks it with MSG_CURSOR_COLUMN (the column) and
+// MSG_CURSOR_TAPPED (1 once after a tap).
 uint32_t ColumnCursorProc(uint32_t theMsg, uintptr_t theA, uintptr_t theB, Handler* theHandler)
 {
 	(void)theB;
@@ -3919,7 +3903,7 @@ uint32_t ColumnCursorProc(uint32_t theMsg, uintptr_t theA, uintptr_t theB, Handl
 	{
 		aSlots[1] = 0;
 	}
-	else if (aMsg == MSG_SETVALUE)
+	else if (aMsg == MSG_CURSOR_COLUMN)
 	{
 		lowos::GetMousePos(&x, &y);
 		uint32_t aKeyMouse = (uint32_t)aSlots[2];
@@ -3931,7 +3915,7 @@ uint32_t ColumnCursorProc(uint32_t theMsg, uintptr_t theA, uintptr_t theB, Handl
 		aSlots[0] = aColumn;
 		return aColumn;
 	}
-	else if (aMsg == MSG_GETVALUE)
+	else if (aMsg == MSG_CURSOR_TAPPED)
 	{
 		if (aSlots[1] != 0)
 		{

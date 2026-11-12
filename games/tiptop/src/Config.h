@@ -8,8 +8,9 @@
 //
 // The fields are named after their keys (read from the exe by GameText, like the other strings) and keep the
 // original's offsets in comments, which is how the game code refers to them (DAT_<0x4888a8 + offset>). The layout is
-// the original's (sizeof 0x12a4, checked below): the mUnknown arrays fill the offsets that no key sets, which hold a
-// level's values in the board's copy (Board.h) and the bonus round's in gConfig.
+// the original's (sizeof 0x12a4, checked below): the arrays named mLevel...Copy fill the offsets that no key sets, which
+// hold a level's values in the board's copy (Board.h, whose Cfg... functions reach them), and the two named mUnused...
+// the offsets that nothing reads.
 
 #include <cstdint>
 
@@ -23,59 +24,60 @@ struct Motion
 	int32_t mTime;          // +0x0c ms a step
 };
 
-// A PARTICLES record (0x20 bytes, 0x417dd2)
+// A PARTICLES record (0x20 bytes, 0x417dd2): the values in the order the configuration file gives them
 struct Particle
 {
-	int32_t mValue0;        // +0x00
-	float mValue1;          // +0x04
-	float mValue2;          // +0x08
-	uint32_t mColor1;       // +0x0c r << 16 | g << 8 | b
-	uint32_t mColor2;       // +0x10
-	int32_t mValue5;        // +0x14
-	int32_t mValue6;        // +0x18
-	char mValue7;           // +0x1c
-	char mValue8;           // +0x1d
+	int32_t mSize;              // +0x00 width and height in pixels
+	float mOpacityExponent;     // +0x04 the shape of the opacity's drop from the center to the edge
+	float mColorExponent;       // +0x08 the same for the transition from the high color to the low color
+	uint32_t mHighColor;        // +0x0c r << 16 | g << 8 | b
+	uint32_t mLowColor;         // +0x10
+	int32_t mColorCenterX;      // +0x14 where in the image the high color is strongest
+	int32_t mColorCenterY;      // +0x18
+	char mBlendType;            // +0x1c 0 addition (lights), 1 modulation (smoke: the image has its own alpha)
+	char mOpacityScale;         // +0x1d 0 to 255
 };
 
-// A COLUMNNUKE_EFFECTS / COLORBOMB_EFFECTS record (0x24 bytes, 0x418091)
+// A COLUMNNUKE_EFFECTS / COLORBOMB_EFFECTS record (0x24 bytes, 0x418091): one use of a particle when a block is removed
 struct Effect
 {
-	int32_t mValue0;        // +0x00
-	int32_t mValue1;        // +0x04
-	int32_t mValue2;        // +0x08
-	int32_t mValue3;        // +0x0c
-	char mValue4;           // +0x10
-	char mValue5;           // +0x11
-	int32_t mValue6;        // +0x14
-	int32_t mValue7;        // +0x18
-	int32_t mValue8;        // +0x1c
-	int32_t mValue9;        // +0x20
+	int32_t mParticle;          // +0x00 the index in the PARTICLES table
+	int32_t mDelay;             // +0x04 ms before the particles are made
+	int32_t mCount;             // +0x08 how many particles
+	int32_t mSpeed;             // +0x0c pixels a second
+	char mOpacityHigh;          // +0x10 the highest opacity as it oscillates (0 to 255)
+	char mOpacityLow;           // +0x11 the lowest
+	int32_t mOscillationTime;   // +0x14 ms a cycle, 0 for no oscillation (the highest opacity then holds)
+	int32_t mFadeOnTime;        // +0x18 ms to fade on
+	int32_t mHoldTime;          // +0x1c ms between fading on and fading off
+	int32_t mFadeOffTime;       // +0x20 ms to fade off
 };
 
+// The effects of one kind of block: the two numbers that precede the records, then the records
 struct EffectList
 {
-	char mFlag;             // +0x00
-	int32_t mValue;         // +0x04
-	uint32_t mCount;        // +0x08
-	Effect* mEffects;       // +0x0c
+	char mFlashCount;           // +0x00 how often the block flashes before it is removed (250 ms each)
+	int32_t mDelayStep;         // +0x04 ms added to the delay of each block removed after the first
+	uint32_t mCount;            // +0x08
+	Effect* mEffects;           // +0x0c
 };
 
 // A level of one kind of game (0x70 bytes, 0x412ca6). '#' in the list repeats the value of the level before.
 struct Level
 {
-	int32_t m00;            // +0x00
-	int32_t m04;            // +0x04
-	int32_t m08;            // +0x08
-	int32_t m0c;            // +0x0c
-	float m10;              // +0x10
-	float m14;              // +0x14
-	int32_t m18[16];        // +0x18
-	int32_t m58;            // +0x58
-	int32_t m5c;            // +0x5c
-	int32_t m60;            // +0x60
-	int32_t m64;            // +0x64 the third list only
-	float m68;              // +0x68 the third list only
-	int32_t m6c;            // +0x6c the third list only
+	int32_t mStartRows;         // +0x00 rows of blocks at the start
+	int32_t mStartRowsAdd;      // +0x04
+	int32_t mStopRow;           // +0x08 the row the next block stops at (Board.h, CfgStopRow)
+	int32_t mStopRowAdd;        // +0x0c
+	float mFloatsPerRemoval;    // +0x10 the floater credit of a removed block
+	float mFloatsPerTap;        // +0x14
+	int32_t mRange[16];         // +0x18 min and max of the interval between two blocks of each special (8 pairs)
+	int32_t mGoal;              // +0x58 blocks to clear
+	int32_t mNumColors;         // +0x5c
+	int32_t mSpawnThreshold;    // +0x60
+	int32_t mMeterStart;        // +0x64 the third list (the timed game) only: the time bar's start
+	float mMeterLoss;           // +0x68 the third list only: what the bar loses a second
+	int32_t mMeterDoublingTime; // +0x6c the third list only: seconds of play over which the loss doubles
 };
 
 // A high score (0x1c bytes); four tables of five at 0x4884b0
@@ -90,7 +92,7 @@ struct Config
 {
 	char mPrimaryStopCenter;                    // +0x0
 	char mSecondaryStopCenter;                  // +0x1
-	uint8_t mUnknown2[0xa];                    // +0x2
+	uint8_t mLevelStopRowCopy[0xa];             // +0x2 2 bytes, then the board's copy of a level's mStopRow (+0x4) and mStopRowAdd (+0x8)
 	char mLockFloaters;                         // +0xc
 	char mLockFallers;                          // +0xd
 	int32_t mMaxMatchOrdinal;                   // +0x10
@@ -124,14 +126,14 @@ struct Config
 	int32_t mSecondaryfallAdddelay;             // +0x104
 	int32_t mSecondaryfallRowdelay;             // +0x108
 	int32_t mRemoveDelay;                       // +0x10c
-	uint8_t mUnknown110[0x8];                  // +0x110 (a level's values in the board's copy: Board.h)
+	uint8_t mLevelStartRowsCopy[0x8];           // +0x110 the board's copy of a level's mStartRows and mStartRowsAdd (Board.h)
 	int32_t mBonusTime;                        // +0x118 the bonus round's seconds (a level's goal in the board's copy)
 	int32_t mGroupSize;                         // +0x11c
-	uint8_t mUnknown120[0x4];                  // +0x120
+	uint8_t mLevelSpawnThresholdCopy[0x4];      // +0x120 mSpawnThreshold
 	int32_t mDequeueFloatDelay;                 // +0x124
 	char mWinningPrecedence;                    // +0x128
 	int32_t mStartLevel;                        // +0x12c
-	uint8_t mUnknown130[0x48];                 // +0x130
+	uint8_t mLevelFloatsRangeCopy[0x48];        // +0x130 mFloatsPerRemoval, mFloatsPerTap and mRange
 	int32_t mExploderRadius;                    // +0x178
 	char mRandomBlocks;                         // +0x17c
 	char mFloatersMatch;                        // +0x17d
@@ -147,7 +149,7 @@ struct Config
 	char mExploderPoints;                       // +0x187
 	char mColumnnukePoints;                     // +0x188
 	char mColorbombPoints;                      // +0x189
-	uint8_t mUnknown18a[0x6];                  // +0x18a
+	uint8_t mLevelNumColorsCopy[0x6];           // +0x18a 2 bytes, then mNumColors (+0x18c)
 	int32_t mGamewindowX;                       // +0x190
 	int32_t mGamewindowY;                       // +0x194
 	int32_t mBlockWidth;                        // +0x198
@@ -164,7 +166,7 @@ struct Config
 	int32_t mIngameNextblocksy;                 // +0x1c4
 	int32_t mOptionsContinuex;                  // +0x1c8
 	int32_t mOptionsContinuey;                  // +0x1cc
-	uint8_t mUnknown1d0[0x10];                 // +0x1d0
+	uint8_t mPaddingBeforeOptionsTips[0x10];    // +0x1d0 no key sets these and nothing reads them
 	int32_t mOptionsTipsx;                      // +0x1e0
 	int32_t mOptionsTipsy;                      // +0x1e4
 	int32_t mOptionsFullscreenx;                // +0x1e8
@@ -176,7 +178,7 @@ struct Config
 	// The members named mRegistrationUnused are the settings of the original's registration and trial and of its links out of
 	// the game, which the port took out (GAME_NOTES.md, "Registration out"). They stay as padding of the same size: Board
 	// reaches Config by offset.
-	char mRegistrationUnused200[16];  // +0x200 16 bytes: mOptionsRegisterx..mOptionsVisitpopcapy
+	char mRegistrationUnusedOptions[16];  // +0x200 16 bytes: mOptionsRegisterx..mOptionsVisitpopcapy
 	int32_t mBkghix;                            // +0x210
 	int32_t mBkghiy;                            // +0x214
 	int32_t mBkgcolyoffset;                     // +0x218
@@ -247,7 +249,7 @@ struct Config
 	int32_t mAreyousureOky;                     // +0x31c
 	int32_t mAreyousureCancelx;                 // +0x320
 	int32_t mAreyousureCancely;                 // +0x324
-	char mRegistrationUnused328[64];  // +0x328 64 bytes: mAreyousureregX..mAreyousureregsaveRegistery
+	char mRegistrationUnusedAreyousure[64];  // +0x328 64 bytes: mAreyousureregX..mAreyousureregsaveRegistery
 	int32_t mSavegameX;                         // +0x368
 	int32_t mSavegameY;                         // +0x36c
 	int32_t mSavegameOkx;                       // +0x370
@@ -267,7 +269,7 @@ struct Config
 	int32_t mScoreEmptyrowsInitial;             // +0x3a0
 	int32_t mScoreEmptyrowsCoefficient;         // +0x3a4
 	int32_t mScoreRemovedbyspecial;             // +0x3a8
-	uint8_t mUnknown3ac[0x8];                  // +0x3ac
+	uint8_t mPaddingBeforeProgressbar[0x8];      // +0x3ac no key sets these and nothing reads them
 	int32_t mProgressbarX;                      // +0x3b4
 	int32_t mProgressbarY;                      // +0x3b8
 	int32_t mProgressbarTopclip;                // +0x3bc
@@ -307,8 +309,8 @@ struct Config
 	int32_t mHighscoresmenuNamex;               // +0x444
 	int32_t mHighscoresmenuScorex;              // +0x448
 	int32_t mHighscoresmenuLevelx;              // +0x44c
-	char mPlayagainUnused450[24];  // +0x450 24 bytes: mPlayagainX..mPlayagainNoy, the settings of the "play again?" question that nothing asks
-	uint8_t mUnknown468[0xc];                  // +0x468
+	char mPlayagainUnusedSettings[24];  // +0x450 24 bytes: mPlayagainX..mPlayagainNoy, the settings of the "play again?" question that nothing asks
+	uint8_t mLevelMeterCopy[0xc];               // +0x468 the board's copy of a level's mMeterStart, mMeterLoss and mMeterDoublingTime (x 1000)
 	float mNormalRocketRamp;                    // +0x474
 	float mNormalExfaRamp;                      // +0x478
 	float mNormalExflRamp;                      // +0x47c
@@ -388,13 +390,13 @@ struct Config
 	int32_t mScoremessageDistance;              // +0x5f8
 	int32_t mSplashLoadbarx;                    // +0x5fc
 	int32_t mSplashLoadbary;                    // +0x600
-	char mRegistrationUnused604[8];  // +0x604 8 bytes: mSplashRegisterx..mSplashRegistery
+	char mRegistrationUnusedSplashRegister[8];  // +0x604 8 bytes: mSplashRegisterx..mSplashRegistery
 	int32_t mSplashPlayx;                       // +0x60c
 	int32_t mSplashPlayy;                       // +0x610
-	char mRegistrationUnused614[24];  // +0x614 24 bytes: mSplashTimesplayedx..mSplashUnregistered2y
+	char mRegistrationUnusedSplashTimesplayed[24];  // +0x614 24 bytes: mSplashTimesplayedx..mSplashUnregistered2y
 	int32_t mSplashRegisteredx;                 // +0x62c
 	int32_t mSplashRegisteredy;                 // +0x630
-	char mRegistrationUnused634[72];  // +0x634 72 bytes: mSplashExecutionsleftx..mRegisterPastey
+	char mRegistrationUnusedSplashExecutions[72];  // +0x634 72 bytes: mSplashExecutionsleftx..mRegisterPastey
 	int32_t mValidcodeBgx;                      // +0x67c
 	int32_t mValidcodeBgy;                      // +0x680
 	int32_t mValidcodeOkx;                      // +0x684
@@ -417,13 +419,13 @@ struct Config
 	int32_t mSummaryBestcomboy;                 // +0x6c8
 	int32_t mSummaryScorey;                     // +0x6cc
 	int32_t mSummaryBestmatchy;                 // +0x6d0
-	char mRegistrationUnused6d4[28];  // +0x6d4 28 bytes: mInitialWait..mRisHiddenfilename
+	char mRegistrationUnusedSummaryWait[28];  // +0x6d4 28 bytes: mInitialWait..mRisHiddenfilename
 	int32_t mSummaryHsnamex;                    // +0x6f0
 	int32_t mSummaryHsscorex;                   // +0x6f4
 	int32_t mSummaryHslevelx;                   // +0x6f8
 	int32_t mSummaryHsy;                        // +0x6fc
 	int32_t mSummaryHsskipy;                    // +0x700
-	char mRegistrationUnused704[24];  // +0x704 24 bytes: mSplashNomoreexecutionsx..mSplashNmeregistery
+	char mRegistrationUnusedSplashNomore[24];  // +0x704 24 bytes: mSplashNomoreexecutionsx..mSplashNmeregistery
 	int32_t mScoretable[100];                   // +0x71c
 	int32_t mBlreducetable[100];                // +0x8ac
 	int32_t mFlashDivisor;                      // +0xa3c
@@ -480,7 +482,7 @@ struct Config
 	int32_t mFloaterdeterminationTimed;         // +0x120c
 	int32_t mFloaterdeterminationSpeed;         // +0x1210
 	int32_t mFloaterdeterminationStrategy;      // +0x1214
-	char mRegistrationUnused1218[6];  // +0x1218 6 bytes: mExecutionlimit..mExecutionlimitAllowcontinue
+	char mRegistrationUnusedExecutionLimit[6];  // +0x1218 6 bytes: mExecutionlimit..mExecutionlimitAllowcontinue
 	int32_t mLevelsummaryStartevent;            // +0x1220
 	int32_t mLevelsummaryEndevent;              // +0x1224
 	int32_t mLevelsummaryEntertime;             // +0x1228
@@ -497,7 +499,7 @@ struct Config
 	int32_t mBkgcolCycletime;                   // +0x1294
 	int32_t mBkgcolResolutiontime;              // +0x1298
 	int32_t mBkgcolAddbrightness;               // +0x129c
-	char mRegistrationUnused12a0[1];  // +0x12a0 1 bytes: mDisableUnregistered
+	char mRegistrationUnusedDisable[1];  // +0x12a0 1 bytes: mDisableUnregistered
 };
 
 static_assert(sizeof(Config) == 0x12a4, "Config has the original's layout");

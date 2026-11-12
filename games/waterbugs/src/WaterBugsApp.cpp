@@ -1,7 +1,7 @@
 // port: the host for Water Bugs (see WaterBugsApp.h).
 
 #include "WaterBugsApp.h"
-#include "ModFeatures.h"
+#include "platform/GameOptions.h"
 #include "WBGlobals.h"
 #include "WBLevel.h"
 #include "testhooks/TestCommands.h"
@@ -16,8 +16,12 @@
 #include "WidgetManager.h"
 #include "platform/VFS.h"
 #include "WebSettings.h"
+#ifndef __EMSCRIPTEN__
+#include "SurfaceDisplay.h"
+#endif
 
 #include <SDL.h>
+#include <cstdint>
 #include <cstring>
 #include <string>
 
@@ -44,11 +48,6 @@ public:
 	bool ReadFile(const char* thePath, std::vector<uint8_t>& theData) override
 	{
 		return Platform::VFS::Get().ReadAll(thePath, theData);
-	}
-
-	void AddUpdateRect(int x, int y, int theWidth, int theHeight) override
-	{
-		gApp->AddUpdateRect(x, y, theWidth, theHeight);
 	}
 
 	void SetMousePos(int x, int y) override
@@ -88,7 +87,7 @@ public:
 
 	bool FixOn(const char* theFix) override
 	{
-		return Sexy::FixOn(theFix);
+		return Platform::FixOn(theFix);
 	}
 
 	// the site's "Always skip start-up logos", or -skiplogos (framework/WebSettings.h)
@@ -232,13 +231,26 @@ void BuildPixelsFromScreen16()
 
 WaterBugsWidget::WaterBugsWidget()
 {
-	mScreenImage = new MemoryImage(gApp);
-	mScreenImage->Create(r64::SCREEN_WIDTH, r64::SCREEN_HEIGHT);
-	// opaque, so that the framework need not look through the 480000 pixels for alpha after each change, and with every
-	// alpha byte 0xff (Draw), so that it need not premultiply them pixel by pixel to upload them (the Mahjong ports'
-	// screen)
-	mScreenImage->SetImageMode(false, false);
-	mScreenImage->mUploadAsIs = true;
+	mSurfaceDisplay = nullptr;
+	mScreenImage = nullptr;
+#ifndef __EMSCRIPTEN__
+	mSurfaceDisplay = dynamic_cast<SurfaceDisplay*>(gApp->mDDInterface);
+#endif
+	if (mSurfaceDisplay != nullptr)
+	{
+		// the window's display shows this buffer (every alpha byte 0xff as the table gives it, though it reads none)
+		mScreen32.assign(r64::SCREEN_WIDTH * r64::SCREEN_HEIGHT, 0xff000000);
+	}
+	else
+	{
+		mScreenImage = new MemoryImage(gApp);
+		mScreenImage->Create(r64::SCREEN_WIDTH, r64::SCREEN_HEIGHT);
+		// opaque, so that the framework need not look through the 480000 pixels for alpha after each change, and with every
+		// alpha byte 0xff (Draw), so that it need not premultiply them pixel by pixel to upload them (the Mahjong ports'
+		// screen)
+		mScreenImage->SetImageMode(false, false);
+		mScreenImage->mUploadAsIs = true;
+	}
 	BuildPixelsFromScreen16();
 	mWantsFocus = true;
 }
@@ -255,35 +267,155 @@ void WaterBugsWidget::Update()
 	MarkDirty();
 }
 
-// What the original presented since the last copy (all of it when nothing said which part) goes to the image
+static_assert(r64::SCREEN_WIDTH % WaterBugsWidget::CHANGE_BLOCK == 0, "a row has whole blocks");
+static_assert(WaterBugsWidget::CHANGE_BLOCK % 8 == 0, "a block is whole 16-byte vectors");
+
+// Sixteen bytes (eight pixels) at a time, in the compiler's vector type (one SSE2 or WebAssembly SIMD register, else
+// plain words), loaded from any address
+typedef uint32_t PixelVector __attribute__((vector_size(16), aligned(4), may_alias));
+
+// Whether two runs of the screen's pixels (a multiple of eight of them) are the same
+static bool SamePixels(const uint16_t* theFirst, const uint16_t* theSecond, int theCount)
+{
+	const PixelVector* aFirst = reinterpret_cast<const PixelVector*>(theFirst);
+	const PixelVector* aSecond = reinterpret_cast<const PixelVector*>(theSecond);
+	PixelVector aDifference = {0, 0, 0, 0};
+	for (int i = 0; i < theCount / 8; i++)
+		aDifference |= aFirst[i] ^ aSecond[i];
+	return (aDifference[0] | aDifference[1] | aDifference[2] | aDifference[3]) == 0;
+}
+
+// The blocks of the screen that differ from the copy the image was last widened from. The engine's dirty rectangles
+// say what it copies from its back buffer, not everything it drew (it draws sprites, beams, text and fades straight
+// into the screen, some outside them), so the screen itself is compared: a row at a time, and the rows that differ a
+// block at a time
+void WaterBugsWidget::FindChangedBlocks()
+{
+	std::memset(mChangedBlocks, 0, sizeof(mChangedBlocks));
+	const uint16_t* aScreen = gApp->mScreen.data();
+	for (int y = 0; y < r64::SCREEN_HEIGHT; y++)
+	{
+		const uint16_t* aNow = aScreen + y * r64::SCREEN_WIDTH;
+		const uint16_t* aBefore = mCopiedScreen.data() + y * r64::SCREEN_WIDTH;
+		if (SamePixels(aNow, aBefore, r64::SCREEN_WIDTH))
+			continue;
+		for (int aColumn = 0; aColumn < CHANGE_COLUMNS; aColumn++)
+		{
+			int aLeft = aColumn * CHANGE_BLOCK;
+			if (!SamePixels(aNow + aLeft, aBefore + aLeft, CHANGE_BLOCK))
+				mChangedBlocks[y / CHANGE_BLOCK][aColumn] = 1;
+		}
+	}
+}
+
+// The rectangles to copy to the image: each row of changed blocks gives its runs (runs a gap of at most CHANGE_GAP
+// blocks apart are one), and a run of the same extent under another joins it, so that a frame is a few dozen uploads
+void WaterBugsWidget::CollectChangedRects()
+{
+	static std::vector<int> anOpen;      // the rectangles that end at the row above
+	static std::vector<int> aNowOpen;    // the rectangles that end at this row
+	mChangedRects.clear();
+	anOpen.clear();
+	for (int aRow = 0; aRow < CHANGE_ROWS; aRow++)
+	{
+		aNowOpen.clear();
+		int aTop = aRow * CHANGE_BLOCK;
+		int aBottom = aTop + CHANGE_BLOCK < r64::SCREEN_HEIGHT ? aTop + CHANGE_BLOCK : r64::SCREEN_HEIGHT;
+		int aColumn = 0;
+		while (aColumn < CHANGE_COLUMNS)
+		{
+			if (mChangedBlocks[aRow][aColumn] == 0)
+			{
+				aColumn++;
+				continue;
+			}
+			int aRunFirst = aColumn;
+			int aRunLast = aColumn;
+			for (int aNext = aColumn + 1; aNext < CHANGE_COLUMNS && aNext <= aRunLast + 1 + CHANGE_GAP; aNext++)
+			{
+				if (mChangedBlocks[aRow][aNext] != 0)
+					aRunLast = aNext;
+			}
+			aColumn = aRunLast + 1;
+			int aLeft = aRunFirst * CHANGE_BLOCK;
+			int aRight = (aRunLast + 1) * CHANGE_BLOCK;
+			int aRect = -1;
+			for (int i : anOpen)
+			{
+				const Rect& aAbove = mChangedRects[i];
+				if (aAbove.mX == aLeft && aAbove.mX + aAbove.mWidth == aRight)
+				{
+					aRect = i;
+					mChangedRects[i].mHeight = aBottom - aAbove.mY;
+					break;
+				}
+			}
+			if (aRect < 0)
+			{
+				aRect = (int)mChangedRects.size();
+				mChangedRects.push_back(Rect(aLeft, aTop, aRight - aLeft, aBottom - aTop));
+			}
+			aNowOpen.push_back(aRect);
+		}
+		anOpen.swap(aNowOpen);
+	}
+}
+
+// The rectangles of the screen widened into a 32-bit picture (the image's pixels, or the display's buffer) and into the copy
+// the next comparison is made against
+template <typename Pixel>
+static void WidenRects(Pixel* thePixels, const uint16_t* theScreen, uint16_t* theCopiedScreen, const std::vector<Rect>& theRects)
+{
+	for (const Rect& aRect : theRects)
+	{
+		for (int y = aRect.mY; y < aRect.mY + aRect.mHeight; y++)
+		{
+			const uint16_t* aSource = theScreen + y * r64::SCREEN_WIDTH;
+			Pixel* aDestination = thePixels + y * r64::SCREEN_WIDTH;
+			for (int x = aRect.mX; x < aRect.mX + aRect.mWidth; x++)
+				aDestination[x] = gPixelsFromScreen16[aSource[x]];
+			std::memcpy(theCopiedScreen + y * r64::SCREEN_WIDTH + aRect.mX, aSource + aRect.mX, aRect.mWidth * 2);
+		}
+	}
+}
+
+// What the original presented since the last copy goes to the picture: just the rectangles that changed are widened (and
+// stay in mChangedRects until the next Draw), and the window's display (or, without it, the framework) shows them
 void WaterBugsWidget::Draw(Graphics* g)
 {
 	WaterBugsApp* anApp = gApp;
 	if (anApp->mPresented)
 	{
-		int aLeft = 0, t = 0, r = r64::SCREEN_WIDTH, b = r64::SCREEN_HEIGHT;
-		if (!anApp->mWholeScreen && anApp->mDirtyRight > anApp->mDirtyLeft)
-		{
-			aLeft = anApp->mDirtyLeft;
-			t = anApp->mDirtyTop;
-			r = anApp->mDirtyRight;
-			b = anApp->mDirtyBottom;
-		}
-		ulong* aBits = mScreenImage->GetBits();
-		for (int y = t; y < b; y++)
-		{
-			const uint16_t* aSrc = &anApp->mScreen[y * r64::SCREEN_WIDTH];
-			ulong* aDst = &aBits[y * r64::SCREEN_WIDTH];
-			for (int x = aLeft; x < r; x++)
-				aDst[x] = gPixelsFromScreen16[aSrc[x]];
-		}
-		mScreenImage->BitsChanged();
 		anApp->mPresented = false;
-		anApp->mWholeScreen = false;
-		anApp->mDirtyLeft = anApp->mDirtyTop = r64::SCREEN_WIDTH;
-		anApp->mDirtyRight = anApp->mDirtyBottom = 0;
+		bool aFirstPicture = mCopiedScreen.empty();
+		if (aFirstPicture)
+		{
+			// the first picture is the whole screen
+			mCopiedScreen.assign(r64::SCREEN_WIDTH * r64::SCREEN_HEIGHT, 0);
+			mChangedRects.assign(1, Rect(0, 0, r64::SCREEN_WIDTH, r64::SCREEN_HEIGHT));
+		}
+		else
+		{
+			FindChangedBlocks();
+			CollectChangedRects();
+		}
+#ifndef __EMSCRIPTEN__
+		if (mSurfaceDisplay != nullptr)
+		{
+			WidenRects(mScreen32.data(), anApp->mScreen.data(), mCopiedScreen.data(), mChangedRects);
+			if (aFirstPicture)
+				mSurfaceDisplay->SetFrame(mScreen32.data(), r64::SCREEN_WIDTH * 4, nullptr, -1);
+			else if (!mChangedRects.empty())
+				mSurfaceDisplay->SetFrame(mScreen32.data(), r64::SCREEN_WIDTH * 4, mChangedRects.data(), (int)mChangedRects.size());
+			return;
+		}
+#endif
+		WidenRects(mScreenImage->GetBits(), anApp->mScreen.data(), mCopiedScreen.data(), mChangedRects);
+		if (!mChangedRects.empty())
+			mScreenImage->BitsChanged();
 	}
-	g->DrawImage(mScreenImage, 0, 0);
+	if (mScreenImage != nullptr)
+		g->DrawImage(mScreenImage, 0, 0);
 }
 
 // The framework's key codes are Windows' virtual keys, which the original's window procedure got
@@ -338,15 +470,17 @@ WaterBugsApp::WaterBugsApp()
 	mApplyingGameMode = false;
 	mScreen.assign(r64::SCREEN_WIDTH * r64::SCREEN_HEIGHT, 0);
 	mPresented = false;
-	mWholeScreen = false;
-	mDirtyLeft = mDirtyTop = r64::SCREEN_WIDTH;
-	mDirtyRight = mDirtyBottom = 0;
 	mMouseX = r64::SCREEN_CENTRE_X;
 	mMouseY = r64::SCREEN_CENTRE_Y;
 }
 
 WaterBugsApp::~WaterBugsApp()
 {
+#ifndef __EMSCRIPTEN__
+	// the display must not keep the widget's buffer past the widget
+	if (SurfaceDisplay* aDisplay = dynamic_cast<SurfaceDisplay*>(mDDInterface))
+		aDisplay->SetFrame(nullptr, 0, nullptr, -1);
+#endif
 	if (mWidget != nullptr)
 	{
 		mWidgetManager->RemoveWidget(mWidget);
@@ -354,13 +488,29 @@ WaterBugsApp::~WaterBugsApp()
 	}
 }
 
+#ifndef __EMSCRIPTEN__
+DDInterface* WaterBugsApp::CreateDDInterface()
+{
+	// test only (a test run reads it): SURFACE_DISPLAY=off keeps the framework's own display and the widget's image (the path
+	// before the SurfaceDisplay), to measure the two against each other. IsTestRun reads the environment too, and SDL_getenv
+	// answers from one shared buffer on Windows, so it is asked first and the value used before the next SDL_getenv
+	if (IsTestRun())
+	{
+		const char* aMode = SDL_getenv("SURFACE_DISPLAY");
+		if ((aMode != nullptr) && (strcmp(aMode, "off") == 0))
+			return SexyAppBase::CreateDDInterface();
+	}
+	return new SurfaceDisplay(this);
+}
+#endif
+
 // 0x42b340 (WinMain: cp.cfg, the window and the screen, the sound, the game; what follows GameMain is Shutdown)
 void WaterBugsApp::Init()
 {
 	SexyAppBase::Init();
 	if (mShutdown)
 		return;
-	gSteadyClock = !mFastMode && Sexy::FixOn("steadyClock");	// a -fast run is steady already
+	gSteadyClock = !mFastMode && Platform::FixOn("steadyClock");	// a -fast run is steady already
 	r64::PixelFormat_Init(&gScreenFormat565, 16, 0xf800, 0x7e0, 0x1f);
 	r64::Sys_SetScreenFormat(&gScreenFormat565);
 	r64::Sys_SetHost(&gHost);
@@ -418,22 +568,8 @@ void WaterBugsApp::RunFrame()
 	}
 }
 
-void WaterBugsApp::AddUpdateRect(int x, int y, int theWidth, int theHeight)
-{
-	if (x < mDirtyLeft)
-		mDirtyLeft = x < 0 ? 0 : x;
-	if (y < mDirtyTop)
-		mDirtyTop = y < 0 ? 0 : y;
-	if (x + theWidth > mDirtyRight)
-		mDirtyRight = x + theWidth > r64::SCREEN_WIDTH ? r64::SCREEN_WIDTH : x + theWidth;
-	if (y + theHeight > mDirtyBottom)
-		mDirtyBottom = y + theHeight > r64::SCREEN_HEIGHT ? r64::SCREEN_HEIGHT : y + theHeight;
-}
-
 void WaterBugsApp::Present()
 {
-	if (mDirtyRight <= mDirtyLeft)
-		mWholeScreen = true;
 	mPresented = true;
 }
 

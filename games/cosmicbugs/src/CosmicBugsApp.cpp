@@ -8,17 +8,21 @@
 #include "R64.h"
 #include "R64Sys.h"
 #include "DDInterface.h"
+#ifndef __EMSCRIPTEN__
+#include "SurfaceDisplay.h"
+#endif
 #include "Graphics.h"
 #include "MemoryImage.h"
 #include "MusicInterface.h"
 #include "SoundInstance.h"
 #include "SoundManager.h"
 #include "WidgetManager.h"
-#include "platform/ModManager.h"
+#include "platform/GameOptions.h"
 #include "platform/VFS.h"
 #include "WebSettings.h"
 
 #include <SDL.h>
+#include <cstdint>
 #include <cstdio>
 #include <cstring>
 #include <string>
@@ -42,11 +46,6 @@ public:
 	bool ReadFile(const char* thePath, std::vector<uint8_t>& theData) override
 	{
 		return Platform::VFS::Get().ReadAll(thePath, theData);
-	}
-
-	void AddUpdateRect(int x, int y, int w, int h) override
-	{
-		gApp->AddUpdateRect(x, y, w, h);
 	}
 
 	void SetMousePos(int x, int y) override
@@ -197,38 +196,35 @@ CosmicBugsHost gHost;
 
 } // namespace
 
-// The 16-bit screen's pixels as the framework's 32 bits (565 widened as Draw did with shifts: each channel's high bits
-// repeated into the low ones), made once; an alpha of 0xff on every one
-static uint32_t gPixelsFromScreen16[65536];
-
-static void BuildPixelsFromScreen16()
-{
-	for (uint32_t p = 0; p < 65536; p++)
-	{
-		uint32_t aRed = (p >> 11) & 0x1f;
-		uint32_t aGreen = (p >> 5) & 0x3f;
-		uint32_t aBlue = p & 0x1f;
-		gPixelsFromScreen16[p] = 0xff000000 | (((aRed << 3) | (aRed >> 2)) << 16) |
-			(((aGreen << 2) | (aGreen >> 4)) << 8) | ((aBlue << 3) | (aBlue >> 2));
-	}
-}
-
 CosmicBugsWidget::CosmicBugsWidget()
 {
+	mScreenImage = nullptr;
+	mWantsFocus = true;
+#ifndef __EMSCRIPTEN__
+	// the window's display keeps the screen itself (CreateDDInterface), so the widget has no picture of it
+	if (dynamic_cast<SurfaceDisplay*>(gApp->mDDInterface) != nullptr)
+	{
+		mPixels.assign(r64::SCREEN_WIDTH * r64::SCREEN_HEIGHT, 0xff000000);
+		return;
+	}
+#endif
 	mScreenImage = new MemoryImage(gApp);
 	mScreenImage->Create(r64::SCREEN_WIDTH, r64::SCREEN_HEIGHT);
 	// opaque, so that the framework need not look through the 480000 pixels for alpha after each change, and with every
-	// alpha byte 0xff (Draw), so that it need not copy and premultiply them pixel by pixel in strips to upload them
+	// alpha byte 0xff (ScreenDiff), so that it need not copy and premultiply them pixel by pixel in strips to upload them
 	// (where premultiplying changes nothing): the same pixels reach the screen, in one upload (Water Bugs' and the
 	// Mahjong ports' screen)
 	mScreenImage->SetImageMode(false, false);
 	mScreenImage->mUploadAsIs = true;
-	BuildPixelsFromScreen16();
-	mWantsFocus = true;
 }
 
 CosmicBugsWidget::~CosmicBugsWidget()
 {
+#ifndef __EMSCRIPTEN__
+	// the screen's pixels go with the widget
+	if (SurfaceDisplay* aDisplay = dynamic_cast<SurfaceDisplay*>(gApp->mDDInterface))
+		aDisplay->SetFrame(nullptr, 0, nullptr, -1);
+#endif
 	delete mScreenImage;
 }
 
@@ -239,35 +235,39 @@ void CosmicBugsWidget::Update()
 	MarkDirty();
 }
 
-// What the original presented since the last copy (all of it when nothing said which part) goes to the image
+// What the original presented since the last frame goes to the screen's pixels (ScreenDiff widens just what changed). A
+// SurfaceDisplay is handed the pixels and the rectangles that changed (the first frame, the whole screen) and shows them
+// itself; otherwise the widget's picture is drawn, and the framework uploads it if there were any changes
 void CosmicBugsWidget::Draw(Graphics* g)
 {
 	CosmicBugsApp* anApp = gApp;
+#ifndef __EMSCRIPTEN__
+	if (SurfaceDisplay* aDisplay = dynamic_cast<SurfaceDisplay*>(anApp->mDDInterface))
+	{
+		if (anApp->mPresented)
+		{
+			mScreenDiff.Update(anApp->mScreen.data(), mPixels.data());
+			if (mScreenDiff.Whole())
+				aDisplay->SetFrame(mPixels.data(), r64::SCREEN_WIDTH * 4, nullptr, -1);
+			else
+			{
+				mFrameRects.clear();
+				for (const cb::ChangedRect& aRect : mScreenDiff.Rects())
+					mFrameRects.push_back(Rect(aRect.mX, aRect.mY, aRect.mWidth, aRect.mHeight));
+				aDisplay->SetFrame(mPixels.data(), r64::SCREEN_WIDTH * 4, mFrameRects.data(), (int)mFrameRects.size());
+			}
+			anApp->mPresented = false;
+		}
+		return;
+	}
+#endif
 	if (anApp->mPresented)
 	{
-		int aLeft = 0, aTop = 0, aRight = r64::SCREEN_WIDTH, aBottom = r64::SCREEN_HEIGHT;
-		if (!anApp->mWholeScreen && anApp->mDirtyRight > anApp->mDirtyLeft)
-		{
-			aLeft = anApp->mDirtyLeft;
-			aTop = anApp->mDirtyTop;
-			aRight = anApp->mDirtyRight;
-			aBottom = anApp->mDirtyBottom;
-		}
-		ulong* aBits = mScreenImage->GetBits();
-		for (int y = aTop; y < aBottom; y++)
-		{
-			const uint16_t* aSrc = &anApp->mScreen[y * r64::SCREEN_WIDTH];
-			ulong* aDst = &aBits[y * r64::SCREEN_WIDTH];
-			for (int x = aLeft; x < aRight; x++)
-			{
-				aDst[x] = gPixelsFromScreen16[aSrc[x]];
-			}
-		}
-		mScreenImage->BitsChanged();
+		static_assert(sizeof(ulong) == sizeof(uint32_t), "the image's pixels are 32 bits");
+		mScreenDiff.Update(anApp->mScreen.data(), reinterpret_cast<uint32_t*>(mScreenImage->GetBits()));
+		if (mScreenDiff.Whole() || !mScreenDiff.Rects().empty())
+			mScreenImage->BitsChanged();
 		anApp->mPresented = false;
-		anApp->mWholeScreen = false;
-		anApp->mDirtyLeft = anApp->mDirtyTop = r64::SCREEN_WIDTH;
-		anApp->mDirtyRight = anApp->mDirtyBottom = 0;
 	}
 	g->DrawImage(mScreenImage, 0, 0);
 }
@@ -324,9 +324,6 @@ CosmicBugsApp::CosmicBugsApp()
 	mApplyingGameMode = false;
 	mScreen.assign(r64::SCREEN_WIDTH * r64::SCREEN_HEIGHT, 0);
 	mPresented = false;
-	mWholeScreen = false;
-	mDirtyLeft = mDirtyTop = r64::SCREEN_WIDTH;
-	mDirtyRight = mDirtyBottom = 0;
 	mMouseX = r64::SCREEN_CENTRE_X;
 	mMouseY = r64::SCREEN_CENTRE_Y;
 }
@@ -340,21 +337,24 @@ CosmicBugsApp::~CosmicBugsApp()
 	}
 }
 
-// The fixes mod's toggles (games/cosmicbugs/mods/fixes), from the highest-priority enabled mod that has the feature
-// "fixes"; without one every fix stays off and the game plays as the original does
+#ifndef __EMSCRIPTEN__
+DDInterface* CosmicBugsApp::CreateDDInterface()
+{
+	// test only: SURFACE_DISPLAY=off keeps the framework's own display and the widget's picture (the path before the
+	// SurfaceDisplay), to measure and compare the two
+	const char* aMode = SDL_getenv("SURFACE_DISPLAY");
+	if ((aMode != nullptr) && (std::strcmp(aMode, "off") == 0))
+		return SexyAppBase::CreateDDInterface();
+	return new SurfaceDisplay(this);
+}
+#endif
+
+// The fixes mod's toggles (games/cosmicbugs/mods/fixes), read once through Platform::FixOn; without them every fix stays off
 static void LoadFixes()
 {
 	cb::gFixes = cb::Fixes();
-	for (const Platform::ModInfo* aMod : Platform::ModManager::Get().GetEnabledMods())
-	{
-		if (!aMod->mFeaturesJson.IsObject() || !aMod->mFeaturesJson.Has("fixes"))
-			continue;
-		Platform::JsonValue aTurns = Platform::ModManager::Get().GetLiveValue(aMod->mId, "walkerTurnMemory");
-		Platform::JsonValue aShield = Platform::ModManager::Get().GetLiveValue(aMod->mId, "shieldFlash");
-		cb::gFixes.mWalkerTurnMemory = aTurns.IsBool() && aTurns.AsBool(false);
-		cb::gFixes.mShieldFlash = aShield.IsBool() && aShield.AsBool(false);
-		break;
-	}
+	cb::gFixes.mWalkerTurnMemory = Platform::FixOn("walkerTurnMemory");
+	cb::gFixes.mShieldFlash = Platform::FixOn("shieldFlash");
 	SDL_Log("fixes: walkerTurnMemory %s, shieldFlash %s", cb::gFixes.mWalkerTurnMemory ? "on" : "off",
 		cb::gFixes.mShieldFlash ? "on" : "off");
 }
@@ -423,22 +423,8 @@ void CosmicBugsApp::RunFrame()
 	}
 }
 
-void CosmicBugsApp::AddUpdateRect(int x, int y, int w, int h)
-{
-	if (x < mDirtyLeft)
-		mDirtyLeft = x < 0 ? 0 : x;
-	if (y < mDirtyTop)
-		mDirtyTop = y < 0 ? 0 : y;
-	if (x + w > mDirtyRight)
-		mDirtyRight = x + w > r64::SCREEN_WIDTH ? r64::SCREEN_WIDTH : x + w;
-	if (y + h > mDirtyBottom)
-		mDirtyBottom = y + h > r64::SCREEN_HEIGHT ? r64::SCREEN_HEIGHT : y + h;
-}
-
 void CosmicBugsApp::Present()
 {
-	if (mDirtyRight <= mDirtyLeft)
-		mWholeScreen = true;
 	mPresented = true;
 }
 

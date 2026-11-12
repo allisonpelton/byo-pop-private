@@ -6,6 +6,8 @@
 // updates runs one pass of the original's main loop (GameFrame: the game steps once for each millisecond passed),
 // which draws into the engine's 800x600 16-bit screen, and the widget presents that screen.
 
+#include "R64.h"
+#include "CBScreenDiff.h"
 #include "SexyAppBase.h"
 #include "Widget.h"
 
@@ -20,7 +22,14 @@ class MemoryImage;
 class CosmicBugsWidget : public Widget
 {
 public:
+	// What shows the engine's screen. The desktop builds' window display (SurfaceDisplay, made by CreateDDInterface below)
+	// keeps the screen itself: the widget widens what changed into mPixels, the 32-bit copy the display shows, and hands it the
+	// rectangles. The web build, and a desktop run with SURFACE_DISPLAY=off, keep the framework's display, and the widget draws
+	// its picture of the screen (mScreenImage) instead.
 	MemoryImage* mScreenImage;
+	cb::ScreenDiff mScreenDiff;
+	std::vector<uint32_t> mPixels;
+	std::vector<Rect> mFrameRects;
 
 	CosmicBugsWidget();
 	virtual ~CosmicBugsWidget();
@@ -43,11 +52,9 @@ public:
 	bool mGameEnded;
 	bool mApplyingGameMode;  // SwitchScreenMode is the game's own request (r64 SetScreenMode)
 
-	// The engine's screen: 800x600 RGB565, and the part of it presented since the widget last copied it
+	// The engine's screen: 800x600 RGB565, and whether it was presented since the widget last copied it
 	std::vector<uint16_t> mScreen;
 	bool mPresented;
-	bool mWholeScreen;
-	int mDirtyLeft, mDirtyTop, mDirtyRight, mDirtyBottom;
 	int mMouseX, mMouseY;
 
 	CosmicBugsApp();
@@ -56,6 +63,11 @@ public:
 	void Init() override;
 	void Shutdown() override;
 	void CloseRequestAsync() override;
+#ifndef __EMSCRIPTEN__
+	// the window's own surface shows the screen (framework/SurfaceDisplay.h); SURFACE_DISPLAY=off in the environment keeps the
+	// framework's display, for a test that compares the two
+	DDInterface* CreateDDInterface() override;
+#endif
 	void SwitchScreenMode(bool theWantWindowed, bool theIs3d, bool theForce = false) override;
 	using SexyAppBase::SwitchScreenMode;
 	// -script's "state": logs the score, the lives, the board in its set and the board's filled cells, as the headless
@@ -65,7 +77,6 @@ public:
 	// One pass of the original's main loop
 	void RunFrame();
 	// The engine's requests (CosmicBugsApp.cpp's SysHost)
-	void AddUpdateRect(int x, int y, int w, int h);
 	void Present();
 	void SetGameScreenMode(bool theFullscreen);
 	void WarpMouse(int x, int y);

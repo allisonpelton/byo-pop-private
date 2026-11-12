@@ -97,7 +97,7 @@ logo is.
 ## The fixes mod (`mods/fixes`)
 
 `mod.json` with the feature `fixes` and one bool setting for each fix, `steadyClock` and `easyLabel`, both on by default and
-applied at a restart (the game reads them once, at startup). `Sexy::FixOn(name)` in the host and `Sys_FixOn` in the game's code
+applied at a restart (the game reads them once, at startup). `Platform::FixOn(name)` in the host and `Sys_FixOn` in the game's code
 read them; without the mod every fix is off and the game is the original. The mod changes neither the rules, the scores nor the
 saved games. Natively the mod is a folder in `mods-waterbugs` (or in a `-modsdir`); the page ships it beside the game and starts
 it with the fixes on (Water Bugs is out of `BYOPOP_WEB_NO_MODS` in `cmake/ByopopWeb.cmake`, shared commit `29f77e35`, and the
@@ -603,3 +603,132 @@ the site's import takes the Collection's folder as it is (checked ad hoc under N
 because the game is not yet in the finished list). The page's hint named `Program Files/PopCap Games/Water Bugs`, which is not where the
 Collection installs the game; it now names `Popcap Game Collection/Water Bugs`. Not run: the web build under Node on these files, since
 its input would be the same bytes.
+
+## Processor time, like for like (2026-11-12)
+
+The target of `docs/COORDINATION.md` ("The target"): the port's processor time at most the original's over the same stretch of
+play, the original paced as on a player's 60 Hz screen, cycles per thread (QueryThreadCycleTime), the port driven by a
+`-script` (no `-commands` channel), alternating runs and medians under `tools/pincore.py`. The README's 58 s a minute for the
+original was the original spinning (its main loop waits for a vertical blank that the hidden desktop never gives); paced, it
+takes about 4 to 5 s a minute.
+
+**The tools** (`tools/perf/`, from Cosmic Bugs'). `perf.py` runs one side over the scripted play and writes `result.json`: the
+clicks at game updates 2600, 3600 and 5000 (Start Game, the first world, the story's button; the port's at the same counts, its
+framework update U being game update 10 U + 6), then the first board with the ship at rest, the window the game updates 16000 to
+76000 (the scripted minute); memory, processor seconds and the cycles of every thread, sampled every 20 ms, with the busiest
+thread apart. `orig --paced 16` patches the original's main loop (VA 0x41f562, a timer read whose result nothing uses, 11 bytes
+→ `push 0; push 16; call [SleepEx]; nop`, the import at 0x458160) so that a pass lasts 16 ms, and holds each click 40 updates
+(a paced pass is 16 updates, so a click held 5 goes down and up inside one pass and is lost). Its `board_reached` checks that every
+click came through and that the level was entered after the map's click. `--nosound` runs the port with its sound and music off,
+which is how origrun's original (a stand-in that mixes nothing) is counted; with sound on, the audio thread is a row of its own.
+`alt.sh N label=kind[:exe]...` alternates the runs (every run of a round, then the next round) and prints the medians; it is run as
+`python -I tools/pincore.py -- bash games/waterbugs/tools/perf/alt.sh 5 orig=orig before=port:<exe> after=port:<exe>`. `shots.py A B`
+compares two exes' screenshots over one `-fast -drawevery` play (`--long SEED`: 90 s of random clicks, a picture every 300 ms).
+
+**What the port's main thread spends** (a scratch build with QueryThreadCycleTime timers around the calls; 60 presented frames
+and 100 updates a second, steady over 60 s; Mcycles a second). Total 198: the game's steps and its drawing into the 16-bit screen
+37; the host's scan for what changed 38 (before the vector compare below); widening the changed blocks about 12; the framework's
+upload of the whole 800x600 picture inside `DrawImage` 77; the present and the rest 34. Besides, the graphics driver's worker
+thread (`nvwgf2um.dll`) takes about 80 to 96 and the audio thread 7 to 11. So about 111 of the main thread's 198 and all of the
+driver thread's are the shared renderer path (docs/COORDINATION.md, "Shared costs waiting for a fix"), which only a presenter that
+needs no texture can remove.
+
+**What changed in the host.** The same change Cosmic Bugs made (its README): the engine's update rectangles say what it copies
+from its back buffer, not everything it draws (sprites, beams, text and fades go straight into the screen), so the host no longer
+widens them. It compares each presented screen with the copy its image was last widened from, sixteen bytes (eight pixels) at a
+time, a row first and then 16-pixel blocks, widens only the blocks that differ, copies them into the last copy, and keeps them as
+rectangles (`mChangedRects`, runs two blocks apart joined, equal runs of consecutive rows joined) for a presenter that takes a
+dirty rectangle; the framework still uploads the whole image. The engine's `AddUpdateRect` is no longer used by the host.
+
+**Proof that the pictures are unchanged.** A scratch build compared the image with a full widening of the engine's screen after
+every presented frame: 0 frames differed in about 14,000 (the 5100-update play of `shots.py` and 90 s of random play from two
+seeds). Screenshots of two builds are a weaker proof here, because a frozen exe differs from itself between two runs in a few pixels
+(three to eight pixels in a box near x 758 to 788, y 484 to 500, and a few at x 42 to 57 on the left edge; the bubbles and the
+fade of a loss are drawn from an unseeded generator, as `tools/check.sh` notes for the loss screen): of 16 and 250 pictures the old
+and new exes differed in 1 and 15 pictures, by up to 8 pixels, and the same exe against itself in 1 and 2 to 6.
+`tools/check.sh waterbugs build build-web:waterbugs` passes, the frozen screens and states unchanged.
+
+**The window each side ran in (2026-11-12, after Mahjong's note).** The first two sets below (the 262.1/235.4 and 221.6/105.8
+medians) were not like for like: the port's window started at 1600x1200 (render scale 2, the framework's default of twice the
+game's size where the desktop has room) while the original runs windowed at its own 800x600 (the staged `cp.cfg` has
+`fullscreen="0"`; the engine sizes its client area to 800x600, 0x42ea10; origrun's log prints no window size, so this is
+from the code and the settings, not a measured size). Every run now logs the framework's display line, and `perf.py port` takes
+`--scale N` (default 1, passed as `-windowscale=1`; 0 leaves the default) and stores the line in `result.json`: `display: client
+800x600 px, logical 800x600, render scale 1, windowed, renderer direct3d11` for the 1x runs and `client 1600x1200 px, logical
+800x600, render scale 2, windowed, renderer direct3d11` for the default window. Every port run here ran on rundesk's private
+desktop, so every one got Direct3D 11; the original has no renderer of the framework's (DirectDraw).
+
+**Numbers** (medians of five rounds under pincore, each round one run of each variant, the board's scripted minute, Mcycles a
+second, the trunk of 2026-11-12 (cc8a7c35); the port with sound on unless it says muted):
+
+| | All threads | Main thread |
+|---|---|---|
+| Original, paced, windowed 800x600 | 102.8 | 102.8 |
+| Port, the host before the change, 800x600 | 205.7 | 120.6 |
+| Port, the host change, 800x600 | 200.8 | 114.0 |
+| Port, the host change, 800x600, sound off | 187.3 | 111.3 |
+| Port, the host change, default window (1600x1200) | 195.5 | 110.7 |
+
+The window's size does not move the total (the framework's render target is the logical size either way; the 2x window only
+changes what the GPU stretches), and the host change takes about 5% off the main thread. The threads of one round (the third):
+the original's one thread 102.8; the port's main thread 110 to 111, the graphics driver's worker (`nvwgf2um.dll`) 73 to 76 at
+the original's window size and 53 at 2x in the one round read, the audio thread 6.5 with sound on, and a second driver thread
+and the text-services monitor about 1 each. So the main thread is within 8% of the original's and the gap, about 85 to 100 of
+the 200, is the driver thread that the SDL renderer path brings, plus the sound's 6.5 that the original's number does not hold
+(origrun's stand-in mixes none; the muted row counts the port the same way). The spread was narrower than before (the port 171
+to 217, the original 94 to 114), the machine being quieter. What stands between the port and the target is the renderer path:
+the presenter that draws into the window surface and takes the host's changed rectangles (`SurfaceDisplay`, not on the trunk
+yet at that time; the next entry is the port with it).
+
+**The first set, at the framework's default window instead of the original's size** (medians of five pairs under pincore, the board's scripted minute, Mcycles a second):
+
+| | Original, paced | Port before | Port after the host change |
+|---|---|---|---|
+| All threads | 128.8 | 262.1 | 235.4 |
+| Busiest (main) thread | 128.8 | 160.5 | 140.1 |
+
+(The runs spread widely with the other sessions' games: the port before 208 to 332, after 225 to 289, the original 110 to 154.)
+A second set on the trunk of 2026-11-12 (the framework asking SDL for Direct3D 11 first) gave the port 221.6 over 6 runs against
+the original's 105.8 over 3: the driver thread's 80 and the main thread's 120 to 130 did not move. So the port is about twice
+the paced original, and what stands between it and the target is the renderer path: the presenter that draws into the window
+surface and takes the host's changed rectangles. Opting in to it, and the numbers with it, are the next entry here.
+
+**The surface presenter (2026-11-12): the target met at the original's window size.** The native build opts in to the framework's
+`SurfaceDisplay` (`framework/SurfaceDisplay.h`), as Bonnie's does: `WaterBugsApp::CreateDDInterface` returns one (a test run's
+`SURFACE_DISPLAY=off`, asked after `IsTestRun` as Mahjong's is, keeps the framework's own display and the widget's picture, the
+path before this), and the widget keeps no `MemoryImage` then: `Draw` widens the changed rectangles (the 16-pixel blocks of the
+comparison above) into its own 32-bit buffer `mScreen32`, and hands the display that buffer and `mChangedRects` with `SetFrame`
+(everything for the first picture), before the framework draws the widgets; the display copies just those rects into the window's
+SDL surface and has the window update them, with no SDL renderer, texture, Direct3D device or driver thread. `~WaterBugsApp`
+takes the buffer back from the display first. The web build is as it was (`#ifndef __EMSCRIPTEN__`). The rectangles are exact by
+construction (every pixel that differs from the last copy is inside one), so the pictures cannot differ from the old path's.
+
+**Proof.** `tools/check.sh waterbugs build build-web:waterbugs` passes, the screens as frozen. `SURFACE_VERIFY=1` (every present
+compared with the engine's screen) over the measured play: 4,503 frames at the original's window size and 4,498 at the default 2x
+window, none differing, no frame through a renderer. A scripted F7 (the game's full-screen key, 0x76) with the check on: the
+window starts in surface mode, F7 moves it to the 3840x2160 full screen in the presenter's renderer mode (render scale 4; the
+menu's screenshot is whole) and F7 again to the window, which stays in renderer mode by the presenter's rule (a Direct3D 11 swap
+chain keeps its last frame on the window); 486 frames through the surface, 800 through the renderer, none differing. The same
+exe's `shots.py` play with `SURFACE_DISPLAY=off` against the default: 14 of 16 pictures byte-identical, and the other two
+differ in 8 and 1 pixels (up to 8 and 4 in a channel, in the menu's bubbles: the unseeded generator that a frozen exe's own two
+runs differ in, above).
+
+**Numbers** (ten rounds under pincore, five in the first set and five in the second, each round one run of each side, the board's
+scripted minute, Mcycles a second, the trunk of 2026-11-12 with the presenter (1faa4ed3); the port's window 800x600 unless said
+(`display: client 800x600 px, logical 800x600, render scale 1, windowed, renderer none`; the default window `client 1600x1200
+px, render scale 2`, also surface mode); the original paced, windowed at its own size):
+
+| | All threads, median (range) | Main thread, median | Per round against the original: rounds at or below, median ratio |
+|---|---|---|---|
+| Original | 135.8 (109.5 to 152.3) | 135.5 | |
+| Port, sound on | 117.8 (97.9 to 138.3) | 108.5 | 10 of 10, 0.86 |
+| Port, sound off (as origrun's original, which mixes none, is counted) | 107.8 (82.1 to 126.0) | 106.3 | 9 of 10, 0.78 |
+| Port, sound on, the default 2x window | 128.0 (104.6 to 153.9) | 118.9 | 6 of 10, 0.92 |
+
+The machine was busier than for the first measurement above (the original 109 to 152 where it had been 94 to 114), so the
+rounds' ratios are the comparison, not the absolute figures. In the first five rounds the port on the framework's own display
+(the exe before this change, on the same trunk) ran 1.46 to 1.74 times the original in each round (median 1.69). Threads of
+one round with the surface: the main thread 115 and the audio thread 9.8 with sound on, 109 and 1.5 muted: the graphics driver's
+worker thread (67 to 76 before) is gone. Memory: working set 113 MB, private 104 MB (the original 110 and 97; the old display
+134 and 136). The 2x default window repeats each pixel into a 2x2 block in the blit and costs about 10% more than 1x, so at the
+default window the port is at about the original's cost, not below it.

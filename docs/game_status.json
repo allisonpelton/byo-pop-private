@@ -30,6 +30,10 @@
       "label": "Performance"
     },
     {
+      "id": "lite-mod",
+      "label": "Lite mod"
+    },
+    {
       "id": "unneeded-code",
       "label": "Unneeded code"
     },
@@ -143,8 +147,8 @@
       "na": [
         "collection"
       ],
-      "now": null,
-      "note": ""
+      "now": "lite-mod",
+      "note": "processor time like for like 0.89 of the original's at its 640x480 window (7.7 G cycles a minute against 8.7), 0.82 in the default 2x window; the lite survey next"
     },
     "sevenseas": {
       "title": "Seven Seas Deluxe",
@@ -162,8 +166,8 @@
         "site-features"
       ],
       "na": [],
-      "now": null,
-      "note": ""
+      "now": "lite-mod",
+      "note": "processor time like for like 6.7 G cycles a minute at the original's 640x480 (5.9 in the default window) against the original's 10.5; the lite survey next"
     },
     "mahjongjapan": {
       "title": "Mahjong Escape: Ancient Japan",
@@ -233,11 +237,12 @@
         "unneeded-code",
         "readability",
         "collection",
-        "site-features"
+        "site-features",
+        "identical-look"
       ],
       "na": [],
-      "now": "identical-look",
-      "note": "Medal screens equal in 2D and the web build; 3D tonight; then a CPU round (over its original)"
+      "now": "performance",
+      "note": "0.80 of its original in 2D on the hidden desktop (4.5 against 5.6 G cycles in 20 s) after origrun's rescan fix; the 3D rounds on the visible desktop run after 22:00 for the README row"
     },
     "astropop": {
       "title": "AstroPop Deluxe",
@@ -247,15 +252,16 @@
         "registration-out",
         "fixes-mod",
         "coverage",
-        "performance",
         "unneeded-code",
         "readability",
         "collection",
-        "site-features"
+        "site-features",
+        "identical-look",
+        "lite-mod"
       ],
       "na": [],
-      "now": "identical-look",
-      "note": "Music equal; the 3D screen wipe tonight"
+      "now": "performance",
+      "note": "3D at 1x 105 to 121% of the original (the pace cap no clear gain over vsync); the excess is a shared cost per present (the driver thread's ~120 draw calls a frame) and the mixer thread; 2D 69%"
     },
     "ningpo": {
       "title": "Ning Po Mahjong Deluxe",
@@ -295,11 +301,18 @@
         "identical-play",
         "registration-out",
         "site-features",
-        "coverage"
+        "coverage",
+        "identical-look",
+        "fixes-mod",
+        "performance",
+        "lite-mod",
+        "unneeded-code",
+        "readability",
+        "collection"
       ],
       "na": [],
-      "now": "identical-look",
-      "note": "3D screens still to compare (tonight); no fix candidate so far"
+      "now": null,
+      "note": "done: every step but modding; the Collection's exe is the same 2003 game image, its files play and draw the same; not for sale as of 2026-11-02"
     },
     "dynomite": {
       "title": "Dynomite Deluxe",
@@ -310,15 +323,14 @@
         "fixes-mod",
         "identical-look",
         "coverage",
-        "performance",
         "unneeded-code",
         "readability",
         "collection",
         "site-features"
       ],
       "na": [],
-      "now": null,
-      "note": ""
+      "now": "performance",
+      "note": "19% over its original at 640x480 (12.7 G cycles a minute against 10.6), 4% over in the default window; the game's code costs the same, the excess is the present and the D3D11 driver thread; its screen is drawn on the GPU, so the surface presenter cannot take it"
     },
     "bookwormadv2": {
       "title": "Bookworm Adventures Volume 2",
@@ -361,8 +373,8 @@
         "collection"
       ],
       "na": [],
-      "now": null,
-      "note": ""
+      "now": "lite-mod",
+      "note": "the cycle split measured: 0.53 of the original's processor time at 640x480, 0.44 at 1280x960; the lite survey next"
     },
     "bigmoney": {
       "title": "Big Money Deluxe",
@@ -388,11 +400,13 @@
         "identical-look",
         "fixes-mod",
         "coverage",
-        "unneeded-code"
+        "unneeded-code",
+        "readability",
+        "collection"
       ],
       "na": [],
       "now": "performance",
-      "note": "processor time halved (d1321ef0), still 3 to 4 times the original's; a second round; unneeded code out (ea92f894)"
+      "note": "animated screens over the original's processor time: waits on the surface presenter"
     },
     "wordharmony": {
       "title": "Word Harmony",
@@ -429,7 +443,7 @@
       ],
       "na": [],
       "now": "performance",
-      "note": "processor time over the original's: second performance round (the user's target, 2026-11-11)"
+      "note": "under its original through SurfaceDisplay: 86 against 110 M cycles a second on the board at the original's 800x600 (92 with sound, 102 in the default 2x window); the screen comparison, real-input play and window checks with the new display are next"
     },
     "waterbugs": {
       "title": "Water Bugs",
@@ -440,15 +454,14 @@
         "identical-look",
         "fixes-mod",
         "coverage",
-        "performance",
         "unneeded-code",
         "readability",
         "site-features",
         "collection"
       ],
       "na": [],
-      "now": null,
-      "note": ""
+      "now": "performance",
+      "note": "under its original through SurfaceDisplay: 117.8 against 135.8 M cycles a second at the original's 800x600 (0.86, 10 of 10 rounds; 0.92 in the default 2x window); the real-input window runs with the new display are next"
     },
     "bonnies": {
       "title": "Bonnie's Bookstore Deluxe",
@@ -462,11 +475,12 @@
         "unneeded-code",
         "readability",
         "collection",
-        "site-features"
+        "site-features",
+        "performance"
       ],
       "na": [],
-      "now": "performance",
-      "note": "processor time over the original's: second performance round (the user's target, 2026-11-11)"
+      "now": "lite-mod",
+      "note": "processor time 0.85 of the original's at 800x600 and 0.83 in the default window, through SurfaceDisplay (full screen keeps the renderer, about 1.1); the lite survey next"
     },
     "bejeweled2": {
       "title": "Bejeweled 2 Deluxe",
@@ -484,14 +498,17 @@
       ],
       "na": [],
       "now": "performance",
-      "note": "2D on SDL's software renderer: waits on the framework"
+      "note": "idle board under the original at its own 640x480 in 2D software (6.6% of a core against 9.4%), 2D GPU (7.5%) and 3D (8.8%); the software renderer at the default 2x window (48.5%) waits for the user's window-size choice"
     },
     "venice": {
       "title": "Venice Deluxe",
-      "done": [],
+      "done": [
+        "port",
+        "identical-play"
+      ],
       "na": [],
-      "now": "port",
-      "note": "Started 2026-11-12, the first port written to the standards from its first draft"
+      "now": "identical-look",
+      "note": "plays identical in every mode against the original, its 3D for 16,143 frames (then a 3D rounding oddity); phase two next"
     },
     "heavyweapon": {
       "title": "Heavy Weapon Deluxe",

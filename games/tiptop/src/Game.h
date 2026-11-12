@@ -16,6 +16,10 @@ namespace tiptop
 
 struct Handler;
 
+// The size of the screen the game draws on
+constexpr int GAME_WIDTH = 0x280;
+constexpr int GAME_HEIGHT = 0x1e0;
+
 // --- shared state ---
 extern lowos::Sound* gSounds[0x2e];     // 0x488364.. the sounds of group 2, by id (scattered in the original)
 extern uint16_t gSoundVolume;           // 0x488708

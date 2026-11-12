@@ -65,7 +65,8 @@ holds the rules every session follows; this file does not repeat them.
 - **Order of the work on the merged games (the user, 2026-11-01, 2026-11-07, 2026-11-08):** each game is taken
   through CLAUDE.md's steps ("Order of the work", "Done means identical"): the user's faults and anything that makes it
   hard to test; phase one, plays identical; phase two, looks identical, with registration and every button that leads
-  out of the game removed; its fixes mod; the coverage check; the performance pass; the other code it does not need
+  out of the game removed; its fixes mod; the coverage check; the performance pass; its lite mod; the other code it
+  does not need
   taken out; the readability pass; for a game ported only from its Steam copy, the check against its PopCap Game
   Collection version (the user's ISO in their Downloads folder), its build working with that version's files too (also
   for a game ported from another copy when the Collection's is another build: BookWorm's and Word Harmony's Collection
@@ -126,7 +127,9 @@ holds the rules every session follows; this file does not repeat them.
   processes run. Then the session speeds up what the profile shows, natively and on the web: how the port works
   changes, never what it does, proved by the frozen baseline. One that changes what the player sees is a toggle in the
   fixes mod when it keeps the original's look and only stops wasting time, otherwise a mod of its own that starts off
-  (like Bejeweled's `lean`). No threads. A session may speed up its own port at any time under these rules ("Sessions
+  (like Bejeweled's `lean`). One that computes faster but may play differently is listed under "Lite candidates" for
+  the lite mod (`docs/MOD_ROADMAP.md`, "The lite mod"). No threads. A session may speed up its own port at any time
+  under these rules ("Sessions
   should be allowed to improve performance early on so they can test with -fast and run even faster", 2026-11-08).
   **The target (the user, 2026-11-11):** "I understand why our framework increases RAM usage on every game. Is there
   an equivalent justification for some games being worse on CPU? If not, that should be an enforced target." There is
@@ -155,6 +158,29 @@ holds the rules every session follows; this file does not repeat them.
   - **Alternating runs.** Alternate the two sides' runs and take the medians of at least five pairs.
     `python -I tools/pincore.py -- <command>` runs each on a performance core of its own: no efficiency core, and no
     hyperthread shared with another pinned run.
+  - **The same window on both sides.** origrun runs an original windowed at its own size (`--reg FullScreen=0`). A port
+    started with a fresh userdir takes its original's defaults, often full screen, and under rundesk that is the
+    whole 3840x2160 desktop at render scale 4 (Mahjong, 2026-11-12); a port's window also starts at twice the game's
+    size where it fits. So the port is measured windowed (FullScreen=0 in its settings) at the game's own size in
+    pixels (`-windowscale=1`), and its log's display line is checked ("display: client WxH px, logical WxH, render
+    scale N, windowed|full screen, renderer <name>", logged when the window is made and at each size or mode change;
+    docs/TEST_COMMANDS.md, "The window line"). The default window's cost is measured as well, beside it, since that
+    is what a player gets. Where a session needs to know which part of a frame costs what, `-cyclesplit` in the port
+    and `origrun --count` in the original split update, draw and present on both sides (docs/TEST_COMMANDS.md,
+    "Picking the functions"); per-update figures compare, per-call ones do not, since a port presents in step with
+    the display and an original's Blt does not wait (BookWorm, 2026-11-12).
+  - **The renderer a player gets.** On the visible desktop SDL picks Direct3D 9; on rundesk's private desktop it
+    gets Direct3D 11 (TipTop and AstroPop, 2026-11-12). TipTop's bench put a frame's present at 2.5 to 2.9 M cycles
+    on the visible desktop (D3D9) against 2.0 to 2.6 M on rundesk's (D3D11), and a window-surface present at 0.9 to
+    1.2 M on both. So name the renderer each run used, and compare a port and its original on one desktop.
+  - **origrun's own cost.** Until 223d9bdf the stand-in listed the copy's modules up to once each 15 ms from any hooked
+    call, which in an original that asks for the cursor every 10 ms added about 1 G cycles in 20 s (Typer Shark: its
+    earlier "0.76 of the original" was this). Now it looks only after the loader maps a DLL. A count of an original made
+    before that merge is high by up to that much when the original polls the cursor often, so such a game measures again.
+  - **The update counter.** Mummy Maze's original keeps three counters side by side, sleeps at app+0x328, draws at
+    +0x32c and updates at +0x330, and its origrun counter had been the sleeps, which run 1 to 11% behind the updates
+    (2026-11-12). Other originals of that framework's age may keep the same three, so a session checks that the counter
+    it times input and per-update figures by is the updates.
   Where the excess is a shared cost, the session sends the spec, and the game waits for the framework's fix instead of
   being let off.
   Shared costs are found once and fixed in the framework for every game; the list below holds them.
@@ -178,8 +204,11 @@ holds the rules every session follows; this file does not repeat them.
     (`SDL_BLENDMODE_NONE`; frame 13.2 to 7.8 ms, the shot identical); drawing at the logical size on the software
     renderer and presenting with a nearest-neighbour stretch at an integer ratio (frame 2.6 ms, the board 23.8%; pixel
     doubling instead of smoothing, so a change of look the user decides); and drawing at most at the display's rate,
-    skipping a frame with nothing dirty, as the surface presenter below does. The first goes in as a `shared:`
-    commit from Bejeweled 2, the third into the presenter; the second waits until those are measured.
+    skipping a frame with nothing dirty, as the surface presenter below does. The first is on the trunk (e19af272, with
+    fec8a8a5 keeping images in forced mode blended); the third goes into the presenter, and the second waits until those
+    are measured. The `-commands` poll, a stat of the file every update (0.34 M cycles a call, an eighth of the main
+    thread in a run that uses the channel), is now Platform::FileSizeWatch, an open handle and a directory watch, about
+    49 k cycles a call (fa73221e).
   - A relative `-userdir` (`./u3/`) is not found where the same folder by its absolute path is (Bejeweled 2): harmless
     for players, a trap for scripts.
   - Memory: the Direct3D 11 device (20 to 25 MB and about 0.2 s of start); every image's pixels kept after upload (19
@@ -220,13 +249,48 @@ holds the rules every session follows; this file does not repeat them.
     | The window surface with a dirty rectangle of 3% | 0.12 to 0.16 G |
 
     A partial texture upload does not help, since the driver's cost is per present. So a software-surface presenter,
-    opt-in by the app and given the frame's dirty rectangle, is the fix for every software-drawn port. The Mahjong
-    session builds it as shared commits, design note first; Cosmic Bugs keeps its own partial-upload work off the
-    trunk.
-  - `SexyAppBase::PollLiveCommands` stats the `-commands` file every 10 ms update, about 0.34 M cycles a call: an eighth
-    of the main thread in a run that uses the channel (`-commands`, `-realinput`), and every update under `-fast`. Poll
-    every tenth update or on a change notification; any suite that uses the channel must give the same results (Cosmic
-    Bugs, 2026-11-11).
+    opt-in by the app and given the frame's dirty rectangle, is the fix for every software-drawn port. It is on the
+    trunk as SurfaceDisplay (a299640e, built by the Mahjong session; framework/SurfaceDisplay.h says how an app takes
+    it): Bonnie's uses it, the Mahjongs' engine with its own merge; TipTop, Word Harmony, Dynomite and the Retro64 engine (Cosmic Bugs builds
+    it for both Retro64 games) take it in their performance passes. Cosmic Bugs keeps its own partial-upload work off
+    the trunk.
+  - Not a cost but a shared look (Typer Shark, 2026-11-12): the 2004 framework's Direct3D 9 blends straight alpha, and
+    DDInterface uploads premultiplied textures whenever the renderer has custom blend modes (`SetupBlendModes`), which
+    moves the edges of pictures with transparent texels by up to 44 levels in 3D. Typer Shark switches to the
+    framework's straight fallback modes at BeginFrame while 3D is on (`TyperSharkDisplay`, WinWSApp.cpp); its 2D needs the
+    premultiplied ones. A DDInterface flag for straight alpha in 3D, like `gWidgetsDrawWithoutFastStretch`, would serve
+    the other 2004-framework games once one of them shows the same edges.
+  - Presenting in step with the display. The framework asks for vsync whenever `-fast` is off (`InitDDInterface`),
+    and the driver spends cycles in the wait: in AstroPop's 3D, SDL_RenderPresent took 1.35 M cycles a frame with vsync
+    against 0.52 M without, 46% of the main thread, and the driver's second thread about 1.4 M more; about 70% of the
+    port's 3D stretch was the present path and under 15% the game's code (2026-11-12, instrumented scratch build). The
+    original does not wait for the display in a window. A window's frames are composed by the desktop, so presenting
+    without vsync should not tear; a candidate is no vsync with presents capped at the display's rate by the frame
+    loop's own timing (Bejeweled 2's pace code), measured against vsync and checked for even pacing. Typer Shark
+    measured the same path (2026-11-12, 2,000 updates of its adventure recording, five pinned pairs on the visible
+    desktop). The Direct3D 11 driver thread is about 60% of the port's cycles, 1.7 to 2.7 M a presented frame whatever
+    is drawn. It falls when the machine is busy (3.2 to 3.6 G in 20 s on a quiet machine, 1.8 to 2.5 G on a busy one)
+    while the original's cycles rise, so a player's quiet machine is the port's worst case. Vsync off costs more, SDL's
+    Direct3D 9 costs 8.3 G and OpenGL 4.3 G, and drawing straight into the back buffer at render scale 1 (no screen
+    texture pass) saved nothing. Mummy Maze's port draws 37 frames a second against the original's 53, since each
+    present waits for the display and two updates run between draws. AstroPop measured the cap against vsync in 3D
+    at 1x (GAME_NOTES 11d, 2026-11-12, `-presentlog` for the intervals): no clear gain (105% of the original with the
+    cap, 114% with vsync, about +-30% a run), and the cap's presents are lumpy, quantised to the loop's 10 ms updates,
+    so keep vsync on the GPU path. Per present its present call plus driver thread cost 1.9 to 2.4 M cycles against the
+    original's 1.2 M; the driver thread runs the frame's ~120 draw calls (one per texture change), so only fewer,
+    larger submissions cut it (the next item). The port's mixer thread, about 0.13 M an update, has no counterpart in
+    the original's process. Dynomite (GAME_NOTES 6, 2026-11-12) draws its screen on the GPU with no CPU image, so
+    SurfaceDisplay cannot take it: present plus driver thread cost 1.29 M cycles an update (2.2 M a drawn frame)
+    against the original's Blt at 0.40 M, 19% over at 640x480. The way out it names is shared: an opt-in software
+    screen for 2D SexyApp ports, drawn by the framework's MemoryImage blitters into the screen's bits as the original's
+    DirectDraw path draws, shown through SurfaceDisplay with the dirty rects (the original's software draw is 0.75 M an
+    update; Dynomite's board, 77% of the screen, is dirty every update in play). It would serve Dynomite, Alchemy and
+    the other 2D SexyApp ports over their originals. The user said yes ("Yes, build it", 2026-11-12): the Dynomite
+    session builds it as shared commits, design note first, proved on Dynomite, every other port unchanged.
+  - Draw calls (Typer Shark, 2026-11-12). `DDInterface::DrawTexturedQuad` makes one SDL call a quad: 593 a frame for
+    about 20 texture changes, DrawScreen 466 M cycles in 20 s. Joining consecutive quads of one texture into one
+    SDL_RenderGeometry call would take about half of that, some 6% of the port. The draw order stays, and every port's
+    frozen baseline must hold.
   - A cycle-weighted EIP sampler charges a thread's bursts to the wait it stands in (54% of Cosmic Bugs' cycles on
     `ZwWaitForSingleObject`); timers around the calls with `QueryThreadCycleTime` find the real split. Cosmic Bugs'
     `tools/perf/cpuprof.py` has `CALLERS=1` (the exe function and the DLL on the stack).

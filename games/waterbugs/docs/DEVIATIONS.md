@@ -110,7 +110,7 @@ None of these shows in play with the mods off; `GAME_NOTES.md` has the detail.
   branches on it, the "buy now" and website buttons with the shortcut reader and the URL opened at the window's closing, the
   host's `OpenURL`. The save file keeps the trial clock's four bytes (3600000, as the registered game leaves them) so a file of
   the original and a file of the port stay interchangeable. The nag screens (levels 8 to 10) are parsed and never visited.
-- **The mods are loaded.** The host reads a mods folder (`FixOn`, `Sys_FixOn`) for the fixes mod: `steadyClock` (the game steps
+- **The mods are loaded.** The host reads a mods folder (`Platform::FixOn`, `Sys_FixOn`) for the fixes mod: `steadyClock` (the game steps
   10 ms for each update of the framework instead of the machine's clock) and `easyLabel` (the name of the easiest difficulty).
   With no mod the game is the original and the baseline is unchanged.
 - **The focus pauses the game in a real-input run and on the page.** `IsActive()` followed the test run, which kept the game

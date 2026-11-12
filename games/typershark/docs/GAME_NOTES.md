@@ -594,7 +594,7 @@ known bug (`"default": false` in mod.json; the player turns it on in the mod men
 the wrong picture is a plain error. The site serves the game with the mod on (`typershark-fixes/` beside the page); a native build
 finds it when the folder is copied into the mods folder (`-modsdir=<dir>` with `fixes/mod.json` inside). The tools that need every
 fix on (`tools/fixshots.py` and the phase-1 comparison's `TSMODSDIR`, `tools/phase1/cmp.py`) write a `mod-settings.json` into the
-run's user folder that turns every toggle of the mod on. The port without the mod is the original: `FixEnabled` (`src/Fixes.cpp`) is false for every
+run's user folder that turns every toggle of the mod on. The port without the mod is the original: `Platform::FixOn` is false for every
 toggle unless the mod is enabled, and each toggle is read where its fix matters, as a live value. With the mod on the game
 plays as it does without it: `tools/regress.py` with `TSMODSDIR=<dir>` (tools/phase1/cmp.py gives it as `-modsdir`) hashes the
 same state logs as without it, so no fix changes what a game draws from the generator. `tools/fixshots.py schools|tutor` takes
@@ -641,6 +641,8 @@ Node and in the Browser pane. **No change was made to the port**: the profile fi
 does find is in shared code and in the graphics driver; those went to the coordinator as a spec (section "Shared costs"). The machine was
 never quiet: one to three games of other sessions ran during every measurement and 24 to 66% of it was in use (`machine_busy`), so the
 figures are for comparing the two side by side, run by run; each cell lists the three pairs.
+
+**Superseded for processor time (2026-11-12):** the second pass at the end of this section measures the two again by cycle counts, thread by thread and like for like; its figures replace the seconds of the tables below, which `GetProcessTimes` rounded to the clock tick.
 
 **How.** `tools/profile/perf.py` starts a game and samples its process (every 0.1 s in real time, every 0.02 s without waiting): working
 set, private bytes, processor time; `tools/profile/pairs.sh` runs everything turn about, one game process at a time, and
@@ -761,6 +763,88 @@ software-renderer run without waiting takes 5 minutes; `WORK_END` and `WORK_STRE
 `typershark.html?player=1&assets=1&silent=1&driver=games/typershark/tools/profile/webperf.js`). The original needs the copy under
 `build/origrun/typershark/game`, origrun's `typershark.cfg` and `patches/typershark.txt` (section 8) and phase 2's `build/ts-p2/patches.txt`.
 The raw samples were deleted once these figures were written.
+
+### Second pass: like for like, by cycle counts (2026-11-12)
+
+The user's target (2026-11-11, `docs/COORDINATION.md`, "The target") is a processor time at most the original's, measured like for like. The table of
+seconds above does not meet that rule and its processor times are **superseded by this pass**: Windows charges `GetProcessTimes` at the 15.6 ms clock tick (the port's
+1.28 to 3.33 s in 20 s was a scheduler's rounding of 3 to 4 G cycles), the original ran in 2D and the port in 3D, and the port ran on rundesk's hidden desktop, which
+never signals a vertical blank. So the two were measured again, by cycle counts and thread by thread. **No change was made to the port**: its own code is under 2% of what it
+spends, and the rest is the display driver's and SDL's (below). The tools are new (`tools/profile/cyc.py`, `cyc3d.py`, `pairs2.sh`).
+
+**How.** `cyc.py` reads `QueryThreadCycleTime` of every thread of the game process and `QueryProcessCycleTime` every 0.2 s, and the game's update counter out of
+the game's memory (the original's `[0x565380]+0x4b8`, the port's `SexyAppBase::mUpdateCount` through the exe's symbol `gSexyAppBase`), and takes the
+cycles of the stretch (the last 2,000 updates, 20 s, of the scenario `build/ts-p2/rec/rt2.in.txt`) between the two counter values, interpolated. Nothing runs
+inside the game for it: the port's `-script` holds the inputs and a quit (no `-commands` channel, no state log, no screenshot, no bot), the original's input comes from origrun's
+script or from posted messages. Each run is on a performance core of its own (`tools/pincore.py`), the runs alternate port and original, and
+`pairs2.sh` waits for a free slot among the six. The port runs without `-fast`, at the game's own size (`-renderscale=1`, since a window of 640 by 480 on
+rundesk's desktop gets render scale 2 and a player's windowed one gets 1), the original on origrun's real clock (hidden desktop) or on its own (visible desktop). Both play
+at 100 updates a second. The original's second thread is `SexyApp::CursorThreadProc` (`GetCursorPos` and `ScreenToClient` every 10 ms; the port has no such thread). Sound is
+counted apart: the original's is origrun's silent stand-in, which mixes nothing, the port's is SDL's dummy audio driver (the desktop runs) or rundesk's silent one, which does mix
+in the port's own mixer thread (0.2 to 0.3 G of a 20 s stretch), so the port's totals can be read with and without it.
+
+**A cost of the measuring tool, found late.** origrun's stand-in hooks `GetCursorPos`, and each call of the hook rescans the game's modules for new imports to hook
+(`hooks_rescan` in `tools/origrun/vclock.c`, at most once in 15 ms). The original's cursor thread calls it every 10 ms and its main thread calls it too, so under the stock stand-in the
+original's cursor thread costs 0.5 to 0.8 G of a 20 s stretch (37 to 61 M with the rescan interval raised to 2 s in a scratch copy of the stand-in, all its other hooks unchanged) and its main
+thread 0.3 to 0.4 G more. **Every figure below marked "stock" has that inflation in the original's column**; the figures marked "throttled" do not. Every game's like-for-like numbers under
+origrun were affected. **Fixed on the trunk by `223d9bdf` (2026-11-12, merged here as part of 38a0512b):** the rescan now runs only after the loader's DLL notice, and the original's
+cursor thread costs 33 to 51 M in 20 s with it (the hidden-desktop pairs below); the "throttled" figures were taken with a scratch copy of the stand-in that raised the interval to 2 s, which is the same
+thing for this game.
+
+**On the visible desktop, both in 3D** (the player's own setup: windowed 640 by 480, a display that signals its vertical blank; only 22:00 to 08:00, CLAUDE.md
+"Overnight"; the port is Direct3D 11 through SDL, the original DirectDraw 7 and Direct3D 7 with its 3D flag read as 1 from its memory; the board's state at the stretch's start
+and end is the same in the original's runs but for a field of the sharks' list that depends on the update an input landed on). Cycles in 20 s, in millions:
+
+| | Original | Port |
+| --- | --- | --- |
+| Throttled stand-in, median of five pairs (02:04 to 02:38) | **3,908** (2,713 to 4,332) | **3,720** (3,368 to 4,343) |
+| Of it: main thread; the port's driver thread and mixer | 3,720; cursor thread 54; other 131 | 1,122; driver 2,212; mixer 304 |
+| The three pairs on a busy machine (0.85 to 1.00 of the processors in use) | 4,332, 3,908, 4,025 | 3,682, 3,720, 3,368 |
+| The two pairs on a quiet machine (0.44 to 0.58 in use) | 2,713, 3,691 | 4,222, 4,343 |
+| Stock stand-in, median of ten pairs (01:12 to 02:14) | 4,713 (3,651 to 5,270), cursor thread 735 | 3,565 (3,021 to 4,456) |
+
+The port is lower in the busy pairs and **higher in the quiet ones**, so at its best the port is level with the original and the target is not met on a quiet machine. A run's
+cycles depend on how busy the machine is, but not alike on the two sides: the original's rise with it (its main thread 2.6 G at 0.46 in use against 4.1 G at 1.0: an SMT
+sibling and a shared cache), the port's driver thread *falls* (3.2 to 3.6 G at 0.39 to 0.47 in use, 1.8 to 2.5 G at 0.58 and above, in every pair of the fifteen), so a player's mostly quiet machine
+is where the port's thread is dearest. The pairs alternate and the medians are of five for that reason, but nothing makes the machine quiet while other sessions run games; the quiet pairs are three in all.
+
+**On rundesk's hidden desktop** (the harness of every test run; the original there is 2D, DirectDraw, since a hidden desktop gives it no Direct3D, section 16; stock stand-in; five pairs, 01:33
+to 01:48, one original run did not get into play and is left out): the port (Direct3D 11) 4,915 M (3,688 to 7,160), the original 6,398 M (5,387 to 7,414; its cursor thread 655 M of it). The port's
+main thread is 2.0 to 5.0 G here because `SDL_RenderPresent` spins on a desktop with no vertical blank (2,196 M of one run's 3,030 M on the main thread, against 265 M of 1,065 M on
+the visible desktop), the original's 2D drawing 4.7 to 6.5 G on its main thread. The user's question whether this desktop makes a present cost more than on a player's screen
+(2026-11-12) has its answer: yes, two to eight times on the main thread.
+
+**With the fixed stand-in, on the hidden desktop** (trunk 38a0512b, origrun rebuilt and its stand-in placed in the copy; five pairs, 10:35 to 10:50, the machine 0.54 to 0.74 in use and quieter than at night, the port 640 by 480 at render scale 1, the original 2D): the port
+**4,485 M** (4,274 to 5,472: main 2,123, driver thread 2,173, mixer 218) against the original **5,616 M** (4,753 to 6,684: main 5,462, cursor thread 45, other 109), the port lower in all five pairs (4,679 / 5,416, 4,485 / 5,616, 4,438 / 4,753,
+5,472 / 6,220, 4,274 / 6,684), 0.80 of it. The stand-in's fix took the original's cursor thread from 655 M to 45 M and its median from 6,398 M to 5,616 M. The original here draws in 2D (DirectDraw, software), which the player's 3D mode
+does not, so the figures of the visible desktop above stay the ones for a player's machine.
+
+**Where the port's main thread goes** (a temporary probe of the cycles around each call, removed again; one run on the visible desktop, 2,000 updates, 1,204 presented frames,
+that is 60 a second with vsync): the main thread 1,065 M = `ProcessEvents` 26, `UpdateFrames` 66 (the game's own update), `BeginFrame` 32, `DrawScreen` 466 (the game's draw, with
+the framework's glue and SDL's queueing: 387 k cycles a frame), `DDInterface::Present` 438 (of which `SDL_RenderPresent` 265), no time in `SDL_Delay`. A count of the draw calls (a second
+probe, 1,191 frames): **593 SDL draw calls a frame and 20.3 changes of texture**; SDL merges the calls of one texture, so the driver sees about 20 draws and about 650 cycles
+a call are spent queueing them. The game's own user code is under 2% of the process: the sampler (`cpuprof.py`, which suspends threads and charges a system call's cycles to
+the wait it returns from, so only its shares of user code are used) puts `Board::Draw`, `Board::Update`, `ImageFont::DrawStringEx` and `DDInterface::DrawTexturedQuad` at about 0.1% of the cycles each,
+and the exe's 4.4% in all is mostly the load (`_stbi__out_gif_code`, `Quantize8Bit`, the audio decoders).
+
+**What the display costs** (environment overrides on the visible desktop, three runs each, no default changed; the machine's busy fraction differed from run to run, 0.53 to 1.0, so these
+are for orders of magnitude): with `SDL_RENDER_VSYNC=0` (100 presents a second) 5,357 M (5,134 to 6,595), the driver thread 3.0 to 4.7 G, so the cost grows with the presented frames and a present costs the driver's
+thread about 1.8 M cycles whatever it draws; `SDL_RENDER_DRIVER=direct3d` (SDL's Direct3D 9) 8,272 M (8,199 to 8,333, at 0.98 to 1.0 busy); `opengl` 4,297 M (3,268 to 5,091), one thread and no driver thread.
+Direct3D 11 with vsync stays the best of them. One idea was tried and **did not help**: a scratch build that draws straight into the back buffer at render scale 1, with no `mScreenTexture` target
+pass and no clear and copy in `Present` (four pairs on the hidden desktop, 02:46 to 02:56, the machine 0.97 to 1.0 in use): process 3,034 M (2,591 to 3,618) with the pass, 3,118 M (2,542 to 6,071; one run's main thread
+4.3 G) without it, and the driver thread 1,452 M against 1,442 M. The extra pass is not what the driver's thread spends; it is a per-present cost.
+
+**What is left, and whose it is.** Nothing in the game's own code (about 2% of the cycles), so the port stays as it is. The shared costs, for the coordinator (`docs/COORDINATION.md`, shared costs):
+(1) the present: the Direct3D 11 driver's worker thread (60% of the port's cycles on the desktop, about 1.7 to 2.7 M cycles a presented frame, more on a quiet machine) and `SDL_RenderPresent` itself on the main thread (0.2 M a frame on a display
+with a blank, ten times that on rundesk's) are the same finding as AstroPop's; every API that SDL offered cost as much or more and skipping the render-target pass did not help, so what would is fewer presents (a frame that nothing changed in need not be presented, though Typer Shark redraws its whole scene every frame). The window-surface presenter that the Mahjong session built (`cf1dea5f`, no renderer and no driver thread) is for a frame that is one finished software-drawn picture;
+Typer Shark's is about 600 alpha-blended quads a frame through the renderer, and drawing them in software would cost what the original's own 2D mode does here (4.7 to 6.5 G on its main thread, hidden desktop), so it does not apply;
+(2) the draw glue: 593 SDL calls a frame for 20 runs of one texture, so a queue in `DDInterface` that joins the quads of consecutive
+same-texture draws into one `SDL_RenderGeometry` call would take about half of the 466 M of `DrawScreen` (an estimate: 0.2 G, 6% of the process, with a frozen-baseline check since the draw order must stay); (3) the stand-in's rescan above, which the coordinator fixed (`223d9bdf`).
+
+**To repeat.** From the worktree root, overnight for the desktop kinds: `KINDS="port3d orig3d" bash games/typershark/tools/profile/pairs2.sh <out dir> 5`
+(`KINDS="port orig"` for the hidden desktop; `SDL_RENDER_VSYNC=0` or `SDL_RENDER_DRIVER=<name>` in front for a variant), then
+`python -I games/typershark/tools/profile/cyc.py summary <out dir>/runs.txt` for the medians by side and by kind of thread. The desktop runs of the original take a `STANDIN` variable (the path of a stand-in `dsound.dll` to copy over the copy's). The original needs the copy under `build/origrun/typershark/game`,
+`build/origrun/typershark-p2/game` (the desktop runs, `visrun3d.py`'s source) and `build/ts-p2/patches.txt`. The raw runs were deleted once these figures were written.
 
 ## 12. Coverage check (2026-11-11)
 
@@ -997,12 +1081,36 @@ lines. With 3D on, a horizontal or vertical line was one pixel longer in the por
 vertical one on Y; a line of one pixel and a slanted line are left as the framework draws them (none of the game's lines is slanted).
 Without 3D nothing changes: `tools/check.sh typershark` is unchanged.
 
-**Open, and listed as oddities in `IDENTICAL_PLAY.md`.** (1) The sea's leftmost pixel column (x = 0, about 320 rows, one pixel wide) is up
-to 55 levels darker in blue in the port than the original, in every 3D shot with a sea; a candidate cause is the texture's addressing at
-u close to 0 in the shared `DDInterface::DrawTrianglesTex` (the vertices get +0.5; the original's device may pad where the framework wraps),
-which would be shared work. (2) Flat areas differ by at most 7 to 9 levels of 255 in 3D (the original's 3D picture is 2 to 3 levels
-brighter than its own 2D picture; the capture of its 2D picture is about 2 levels darker than the port's; the cause is not proven, 16-bit
-textures are the candidate). Both stay under shotdiff's tolerance of 8, except the column. (3) The real clock's differences, below.
+**Two things found with the medal screens (2026-11-12), and what they did to the list below.** The first 3D tours ran the port at the render
+scale its window gave it, 2 (`DisplayGeometry::UpdateDisplaySize` renders at the next whole multiple of the 640 by 480 screen, and `ReadScreen`
+box-downsamples a shot back), where a player's windowed 640 by 480 game renders at 1. A 3D picture drawn at 2 and averaged down is not the 3D
+picture at 1: it is a little blurred, and the sea's leftmost column differed by up to 55 levels. Every 3D run of the port now passes
+`-renderscale=1` (`vis3d.sh` does). The second is the blend. The original's Direct3D 9 draws with straight alpha: it filters a texture's
+red, green, blue and alpha apart, so a texel under zero alpha still colours the edge of a stretched picture. The framework's accelerated
+display uploads premultiplied textures whenever the renderer allows a custom blend mode (`DDInterface::SetupBlendModes`), so the same edge
+came out different: up to 44 levels on the medal and the ten pictures of the end-of-adventure dialog. Measured: the original's 3D capture of
+the medal equals a straight bilinear sample of its picture and alpha file (`medal_silver.gif` and `_medal_silver.gif`, 97 by 133, into the
+66 by 90 rectangle, sampled at the pixel centres) to 0.16 levels on average; the premultiplied sample is 0.9 off. `TyperSharkDisplay`
+(`WinWSApp.cpp`) now sets the framework's own fallback modes (straight `SDL_BLENDMODE_BLEND` and `_ADD`, textures uploaded as they are) at
+the start of each frame while 3D is on (`mIs3D`), and puts the premultiplied modes back, with the textures released and uploaded again, while it
+is off: the 2D mode's pictures equal the original's with the premultiplied modes, and with the straight ones 5810 pixels of the 2D dialog tour
+moved by a level. The check of that: the 2D dialog tour (48 shots) with the exe that has the straight modes in 3D only against the exe
+without the change: 0 shots differ.
+
+**Open, and listed as oddities in `IDENTICAL_PLAY.md`.** (1) The sea's leftmost pixel column was the render scale's, and is gone: at scale 1
+the paused board's column 0 differs by at most 3 levels (it was up to 55). (2) Flat areas of the sea still differ in 3D (the original's 3D
+picture is a little brighter than its own 2D picture; the cause is not proven, 16-bit textures are the candidate): at scale 1 by at most 3
+levels, 1 on average, in the paused board's sea, and up to 7 in the map screen's sea; under shotdiff's tolerance of 8. (3) The original's
+texture pieces, below. (4) The real clock's differences, below.
+
+**The original's texture pieces.** The original's 3D stretch (`DDImage::StretchBlt` 0x4a2fb0 hands it to `FUN_0049f480`, a scaled copy through
+`FUN_00498ce0`) draws one quad for each piece of the picture's texture (`FUN_004947f0` takes the piece of a pixel from a uniform grid, each
+piece with its own texture and so its own clamped addressing), and the pieces of a tall picture are cut at a power of two. The one row of the
+medal (97 by 133) that differs is where source row 128 lands: 150 + 128 * 90 / 133 = 236.6 in the dialog (row 236), and the same row of
+the statistics screen's copy (row 402). The original does not blend across that seam, and the port, with one texture, does. It is 10
+pixels of the dialog's medal (two runs of five) and 12 of the statistics screen's, up to 53 levels, and nothing else of the two screens
+differs. The piece size itself (128 rows and the 5 left) is read from that position, not from the export. To make it equal the port would cut each stretch at the
+pieces' edges and draw each piece from a copy of its own: code for about ten pixels, so it is an oddity (`IDENTICAL_PLAY.md`).
 
 **What the real clock does.** The runs show differences that the same tours in 2D on the desktop show too, so they are not the 3D
 drawing's: the hover fade (a shot 3 updates after a move catches it half-faded), the dialog-open animation, the sharks', diver's and
@@ -1093,8 +1201,23 @@ each), KEEP GOING (40) and the statistics screens of the players with `NGC` 1 an
 by nothing stronger, over the whole picture: the two builds' picture decoding, as in every web tour (`IDENTICAL_PLAY.md`, "The web build"). The
 medal's edge, which the missing software stretch had moved by up to 39 levels, is the native port's in the web build too. Not run in a browser.
 
-**Not compared.** The medal and the ten pictures with 3D on (the original's textured quads against the port's SDL renderer: needs the desktop route
-of section 16); the board of site 35 itself (its boss and treasure are not played in the original: a saved game starts it and the space bar leaves it).
+**In 3D** (2026-11-12, the desktop route of section 16 in the overnight window; `tools/phase2/medal3d.sh <dialog|dialogkeep|stats> <N>` does a whole
+tour, and refuses between 08:00 and 22:00). The original runs through `visrun3d.py` with three options made for this: `--users <dir>` puts the
+profile's two files over the clean users folder, `--reg <file.reg>` imports the profile's registry preset (the `HKLM` values of `mkprofile.py`)
+as `HKCU\Software\PopCap` after `Is3D` and `ScreenMode` are set, `--patch "va:0x454e9b 83f807 83f801"` patches the copy's exe (the byte of the
+dialog route above); the port runs with the `-3d` fixtures (`mkprofile.py <ngc> [saved] 3d`: `medal-sv<N>-3d`, `medal-ngc<N>-3d`) at `-renderscale=1`.
+Seven tours, each about two minutes of real time: the statistics screen for `NGC` 1, 5 and 12 (14 shots each), the dialog for bronze, silver and
+gold (47, 48, 48), KEEP GOING (40). Result (section 16 has the two changes it led to, the straight blend and the render scale): the dialog box
+(130 to 479, 156 to 334) of every shot from the one where the dialog is open on equals the original's except 10 or 11 pixels of one row
+of the medal's bottom (the original's texture pieces, section 16); the statistics screens have no visible box and 12 pixels of that row; the
+other boxes are the real clock's (the map's final scroll, a shot before the dialog opens; KEEP GOING's board at updates 300 and 600; the menu's
+hover fade 4 updates after the statistics screen closes), the first two with the same boxes in the tour run with the original in 2D on the desktop
+(`vis3d.sh m3d_dialog_2 2d`, `m3d_dialogkeep_2 2d`). How the model was found: the medal's source picture and its alpha file (`medal_silver.gif`,
+`_medal_silver.gif`) bilinear-sampled at the destination's pixel centres, over the dialog's grey, is the original's capture to 0.16 levels on average
+(`premultiplied`: 0.9; the port before the two changes: 2.2). The port's own 2D dialog tour is unchanged by the straight blend: 48 shots, 0 differ
+between the exe with it and the exe without it, so the 2D result above stands.
+
+**Not compared.** The board of site 35 itself (its boss and treasure are not played in the original: a saved game starts it and the space bar leaves it).
 
 Tools (`tools/phase2`): `mksaved.sh` makes the saved adventure, `mkprofile.py` the profiles, `tour_medal.py` the tours (`stats`, `dialog`, `dialogkeep`,
 and `win`, the first try: the whole-adventure route up to the dialog, which the original could not finish in the sandbox), `medal.sh <ngc: 0, 2 or 4>

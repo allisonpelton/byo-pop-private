@@ -3,6 +3,7 @@
 
 #include "SevenSeasApp.h"
 #include "Board.h"
+#include "LiveSplitObserver.h"
 #include "Screens.h"
 #include "Demo.h"
 #include "Dialogs.h"
@@ -94,6 +95,7 @@ SevenSeasApp::SevenSeasApp()
 // 0x41bfc0: the widgets the app holds come off the widget manager before they go
 SevenSeasApp::~SevenSeasApp()
 {
+	LiveSplitObserver::AppDestroyed(this);   // port(mod): the autosplit block's last write
 	Widget* aWidgets[] = {mBoard, mTitleScreen, mIntroWidget, mHighScoreWidget, mMapWidget, mDemoWidget, mTalkWidget, mSidePanel};
 	for (size_t i = 0; i < sizeof(aWidgets) / sizeof(aWidgets[0]); i++)
 	{
@@ -507,6 +509,7 @@ void SevenSeasApp::ButtonPress(int theId)
 void SevenSeasApp::UpdateFrames()
 {
 	SexyApp::UpdateFrames();
+	LiveSplitObserver::AfterUpdate(this);   // port(mod): the autosplit block, after the update
 	if (mAutoplay)
 		AutoplayUpdate();
 }
