@@ -19,6 +19,8 @@ namespace cb
 // The data section's (0x460000..)
 int gAutoFire = 1;                    // 0x460028
 int gGoTo = 1;                         // 0x460034
+int gGameSerial = 0;                   // port: see CBGlobals.h
+bool gGameFromInstructions = false;    // port: see CBGlobals.h
 float gBeamSpeed = 0.14f;              // 0x460038
 int gFirstWeapon = 1;                  // 0x46003c
 int gLives = 5;                        // 0x460040
@@ -484,6 +486,7 @@ void GoToScreen()
 // current afterwards (the tests' commands call this as well, CBTestCommands.cpp).
 bool ChangeScreen()
 {
+	int aLeftKind = gLevels.mCurrent->mKind;
 	if (gLevels.mCurrent->mKind == LEVEL_BOARD || gLevels.mCurrent->mKind == LEVEL_LOGO)
 		List_RemoveCurrent(&gLevels);
 	else
@@ -491,6 +494,12 @@ bool ChangeScreen()
 	GoToScreen();
 	if (gLevels.mCurrent->mKind == LEVEL_BOARD)
 	{
+		// (port: a board entered from another screen starts a game, for the autosplit observer)
+		if (aLeftKind != LEVEL_BOARD)
+		{
+			gGameSerial = gGameSerial + 1;
+			gGameFromInstructions = aLeftKind == LEVEL_HELP2;
+		}
 		for (; gLevelInSet != 0; gLevelInSet = gLevelInSet + -1)
 		{
 			if (gLevels.mCurrent != nullptr)

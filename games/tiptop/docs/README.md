@@ -72,7 +72,9 @@ Native options: `-gamedir=<dir>` (else `assets/tiptop` next to the exe or up to 
 `musicwav <file> <seconds>`), `-canvas=<width>x<height>` (a test run's larger screen, see Testing),
 `-screenhash=<file>` (a hash of the screen after every pass) with `-scramble` (noise on the whole screen before every pass;
 GAME_NOTES.md, "Performance, second round") and `-soundfont=<file>` (the music's bank, else `tiptop.sf2` beside the exe,
-where the build copies it).
+where the build copies it). A native window shows the screen through its own surface (the framework's `SurfaceDisplay`);
+in a test run `SURFACE_DISPLAY=off` in the environment keeps the framework's renderer display instead, to compare the two
+(GAME_NOTES.md, "The surface display").
 
 ## Testing
 

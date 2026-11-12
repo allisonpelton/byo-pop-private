@@ -65,6 +65,15 @@ void EnsureUser(AstroPopApp* theApp)
 	theApp->ValidateUser();
 }
 
+// A game that a test command starts while the full-screen help of the one before is still up (the original's player cannot: the help is
+// modal): the help goes first, with its own Continue. Left up, it stays under the new Board, which is added over it, so that it is not
+// drawn, takes no click (the Board turns the pointer away while mHelpScreen is set) and holds the game paused for good
+void CloseHelpBeforeGame(AstroPopApp* theApp)
+{
+	if (theApp->mHelpScreen != NULL)
+		theApp->CloseFullScreenHelp();
+}
+
 // The title screen and the selector both go before a game starts: the title's button is pressed (the descriptor and the
 // profile load), and a folder with no player gets the one the new-player dialog would make
 void LeaveMenus(AstroPopApp* theApp)
@@ -73,6 +82,7 @@ void LeaveMenus(AstroPopApp* theApp)
 		theApp->OnClickToPlay();
 	EnsureUser(theApp);
 	theApp->CloseMainMenu();
+	CloseHelpBeforeGame(theApp);
 }
 
 // The words of a command's arguments as numbers (missing ones stay as they are)
@@ -216,6 +226,7 @@ bool AstroPopApp::HandleScriptCommand(const ScriptCommand& theCommand)
 		else
 		{
 			EnsureUser(this);
+			CloseHelpBeforeGame(this);
 			StartClassicGame(aLevel, false, true);
 			ReplyOK(theCommand);
 		}

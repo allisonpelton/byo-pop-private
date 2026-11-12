@@ -291,6 +291,9 @@ def strip_script(src, dst, drop):
 # The scripted minute: 1800 updates (60 s at the game's 30 updates a second) of tour 2's TSUNAMI game, from its update
 # 2000 to 3800 (the port's numbering; the original's script runs one update earlier, "at K-1")
 MINUTE_FROM, MINUTE_TO = 2000, 3800
+# WH_PERF_WINDOWED=1 runs both sides windowed: the game's "Full screen" setting off (it is on by default), in the port's registry.ini
+# and in the original's registry key (which every run clears first anyway).
+# WH_PERF_PORTARGS="-windowscale=1" gives the port's run more arguments (a test option: the original's window size).
 # WH_PERF_FRAMES=<from>:<to> measures a shorter stretch of the same game (the port's script then ends at <to> + 60, for the
 # experiments that compare builds; the original's run always ends at the minute's end)
 if os.environ.get('WH_PERF_FRAMES'):
@@ -361,6 +364,10 @@ def port_minute(out, script):
     exe, gamedir = port_exe()
     shutil.rmtree(out, ignore_errors=True)
     os.makedirs(os.path.join(out, 'user'))
+    if os.environ.get('WH_PERF_WINDOWED'):
+        # the game's own "Full screen" setting off (it starts full screen by default): the port's window, as the original's
+        with open(os.path.join(out, 'user', 'registry.ini'), 'w', newline='\n') as f:
+            f.write('[SOFTWARE\\GameHouse\\WordHarmony]\nFullScreen=dword:0\n')
     # tour 2's script counts the game's frames (the port's -fast runs a frame an update); in real time the framework
     # updates every 10 ms and a 33 ms frame runs on every third or fourth (WordHarmonyWidget::Update), so frame k falls
     # on update ceil(3.3 k)
@@ -382,7 +389,8 @@ def port_minute(out, script):
     s0 = system_times()
     log = open(os.path.join(out, 'game.log'), 'wb')
     p = subprocess.Popen([exe, '-gamedir=' + gamedir, '-userdir=' + os.path.join(out, 'user'), '-nomods', '-splashhold',
-                          '-seed=1', '-script=' + script], cwd=out, stdout=log, stderr=subprocess.STDOUT)
+                          '-seed=1', '-script=' + script] + os.environ.get('WH_PERF_PORTARGS', '').split(),
+                         cwd=out, stdout=log, stderr=subprocess.STDOUT)
     h = k32.OpenProcess(QUERY | VM_READ | QUERY_LIMITED, False, p.pid)
     created = creation_time(h)
     samples = []
@@ -425,6 +433,10 @@ def orig_run(out, script, runs, load_only=False):
         shutil.rmtree(os.path.dirname(copy), ignore_errors=True)
         shutil.copytree(staged, copy)
         subprocess.run(['reg', 'delete', 'HKCU\\Software\\GameHouse\\WordHarmony', '/f'], capture_output=True)
+        if os.environ.get('WH_PERF_WINDOWED'):
+            # the game's own "Full screen" setting off (it starts full screen by default): a window of 800x600
+            subprocess.run(['reg', 'add', 'HKCU\\Software\\GameHouse\\WordHarmony', '/v', 'FullScreen',
+                            '/t', 'REG_DWORD', '/d', '0', '/f'], capture_output=True)
         others0 = game_processes(mine_prefixes())
         s0 = system_times()
         log = open(os.path.join(d, 'origrun.log'), 'wb')

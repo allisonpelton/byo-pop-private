@@ -143,6 +143,10 @@ public:
 	Wizard*		mWizard;               // +0xe6c the wizard with the messages
 	bool			mWizardShown;             // +0xe70
 
+	// port: what the autosplit observer reads (LiveSplitObserver.h); nothing in the game reads them
+	unsigned int	mBoardSerial;           // 1, 2, ... for each board the app makes
+	bool			mResumed;               // LoadGame restored a saved game into this board
+
 public:
 	Board(WinAlchApp* theApp);              // 0x407ebe
 	virtual ~Board();                       // 0x4026fa

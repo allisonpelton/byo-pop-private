@@ -402,11 +402,12 @@
         "coverage",
         "unneeded-code",
         "readability",
-        "collection"
+        "collection",
+        "performance"
       ],
       "na": [],
-      "now": "performance",
-      "note": "animated screens over the original's processor time: waits on the surface presenter"
+      "now": "lite-mod",
+      "note": "performance done: 0.82 of its original in the strategy minute and 0.90 on the main menu, through SurfaceDisplay and real-time passes at 16 ms like the original's"
     },
     "wordharmony": {
       "title": "Word Harmony",
@@ -425,7 +426,7 @@
       ],
       "na": [],
       "now": null,
-      "note": ""
+      "note": "performance through SurfaceDisplay: 0.28 of the original's processor time windowed at 800x600, 0.87 in full screen (its default; the framework's renderer thread is the rest)"
     },
     "cosmicbugs": {
       "title": "Cosmic Bugs",
@@ -439,11 +440,12 @@
         "coverage",
         "unneeded-code",
         "readability",
-        "collection"
+        "collection",
+        "performance"
       ],
       "na": [],
-      "now": "performance",
-      "note": "under its original through SurfaceDisplay: 86 against 110 M cycles a second on the board at the original's 800x600 (92 with sound, 102 in the default 2x window); the screen comparison, real-input play and window checks with the new display are next"
+      "now": "lite-mod",
+      "note": "performance done: 86 against 110 M cycles a second at 800x600 through SurfaceDisplay; real-input play, window changes and the screens pass with it; the autosplit block, then the lite mod"
     },
     "waterbugs": {
       "title": "Water Bugs",

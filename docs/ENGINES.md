@@ -54,6 +54,12 @@ Where a function does something different for a game, a switch the game's own co
 `SysHost` has one more virtual than Cosmic Bugs' copy did (`FixOn`, for the fixes mod), which moves the vtable of that
 game's host.
 
+`R64ScreenDiff.h` and `R64ScreenDiff.cpp` are not the original's code. They are the hosts' helper for the shared
+SurfaceDisplay (`framework/SurfaceDisplay.h`). `r64::ScreenDiff::Update(screen, dest32)` widens what changed in the
+engine's 16-bit screen since the last call into the 32-bit frame; the first call widens all of it, and `Whole()` says
+so. `Rects()` then gives the changed blocks as `r64::ChangedRect` for `SetFrame`. Cosmic Bugs' host uses it (merged
+2026-11-12). Water Bugs' widget still has its own copy, `CollectChangedRects`, until it moves onto this one.
+
 ### What only Cosmic Bugs' copy had, taken out by its unneeded-code pass (2026-11-11)
 
 The union had kept every function either port translated; Cosmic Bugs' pass (the commit `shared: Retro64: the engine code

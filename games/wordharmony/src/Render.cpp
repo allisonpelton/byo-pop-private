@@ -563,8 +563,15 @@ struct ScreenGraphics::Retained
 	std::vector<std::vector<uint32_t>> mTiles;  // each tile's calls: indices into mFrame, in order
 	std::vector<std::vector<uint32_t>> mPrevTiles;
 	bool mHasPrev;
+	std::vector<ScreenGraphics::Rectangle> mRedrawn;  // what the last finish drew
 	Retained() : mHasPrev(false) {}
 };
+
+// port (for speed): the rectangles the last finish drew
+const std::vector<ScreenGraphics::Rectangle>& ScreenGraphics::redrawn() const
+{
+	return mRetained->mRedrawn;
+}
 
 // port (for speed): the number the next image has
 uint32_t ScreenImage::nextSerial()
@@ -600,6 +607,8 @@ bool ScreenGraphics::finish()
 	Retained& aRetained = *mRetained;
 	const Frame& aNowFrame = aRetained.mFrame;
 	const Frame& aBeforeFrame = aRetained.mPrev;
+	std::vector<Rectangle>& aRedrawn = aRetained.mRedrawn;
+	aRedrawn.clear();
 	if (aRetained.mHasPrev && aNowFrame.mBlits.size() == aBeforeFrame.mBlits.size())
 	{
 		bool aSame = true;
@@ -626,6 +635,7 @@ bool ScreenGraphics::finish()
 	bool aChanged = false;
 	for (int aTY = 0; aTY < aTilesY; aTY++)
 	{
+		size_t aRowStart = aRedrawn.size();  // this row's rectangles; the ones before are from the rows above
 		for (int aTX = 0; aTX < aTilesX; aTX++)
 		{
 			const std::vector<uint32_t>& aNow = aRetained.mTiles[aTY * aTilesX + aTX];
@@ -640,6 +650,10 @@ bool ScreenGraphics::finish()
 			int aTop = aTY * TILE;
 			int aRight = std::min(aLeft + TILE, mWidth);
 			int aBottom = std::min(aTop + TILE, mHeight);
+			if (aRedrawn.size() > aRowStart && aRedrawn.back().mX + aRedrawn.back().mWidth == aLeft)
+				aRedrawn.back().mWidth += aRight - aLeft;
+			else
+				aRedrawn.push_back({aLeft, aTop, aRight - aLeft, aBottom - aTop});
 			for (int y = aTop; y < aBottom; y++)
 				std::fill(mBits + y * mWidth + aLeft, mBits + y * mWidth + aRight, 0xff000000);
 			for (uint32_t anIndex : aNow)
@@ -651,6 +665,25 @@ bool ScreenGraphics::finish()
 					renderBlit(mBits, mWidth, aBlit, aNowFrame.mMaps[anIndex], aNowFrame.mMapData.data(), aNowFrame.mImages[anIndex],
 						aLeft, aTop, aRight, aBottom);
 			}
+		}
+		// a run with the span of a rectangle that ends where this row begins is joined to it
+		for (size_t i = aRowStart; i < aRedrawn.size();)
+		{
+			bool aJoined = false;
+			for (size_t j = 0; j < aRowStart && !aJoined; j++)
+			{
+				Rectangle& anAbove = aRedrawn[j];
+				if (anAbove.mX == aRedrawn[i].mX && anAbove.mWidth == aRedrawn[i].mWidth &&
+					anAbove.mY + anAbove.mHeight == aRedrawn[i].mY)
+				{
+					anAbove.mHeight += aRedrawn[i].mHeight;
+					aJoined = true;
+				}
+			}
+			if (aJoined)
+				aRedrawn.erase(aRedrawn.begin() + i);
+			else
+				i++;
 		}
 	}
 	std::swap(aRetained.mFrame, aRetained.mPrev);
