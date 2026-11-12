@@ -8,18 +8,20 @@ using namespace Sexy;
 // StatKeeper.cpp (in the original part of Board.cpp): the statistics of a game or of a level.
 // Spec: re/bookworm/analysis/board_logic.md 2.4 (behaviour) and 6.3 (record).
 
-// Record helpers: little-endian raw fields as the original's fwrite/fread. A field the file does not hold
+// port: Record helpers: little-endian raw fields as the original's fwrite/fread. A field the file does not hold
 // (a truncated file) keeps its value, as with the original's fread.
 static void WriteInt(FILE* theFile, int theValue)
 {
 	fwrite(&theValue, 1, 4, theFile);
 }
 
+// port: a saved-game record field (the original's fread of the field)
 static void ReadInt(FILE* theFile, int* theValue)
 {
 	fread(theValue, 1, 4, theFile);
 }
 
+// port: a saved-game record string
 static void WriteString(FILE* theFile, const SexyString& theString)
 {
 	uint32_t aLength = (uint32_t)theString.size();
@@ -27,6 +29,7 @@ static void WriteString(FILE* theFile, const SexyString& theString)
 	fwrite(theString.data(), 1, aLength, theFile);
 }
 
+// port: a saved-game record string
 static void ReadString(FILE* theFile, SexyString* theString)
 {
 	uint32_t aLength = 0;

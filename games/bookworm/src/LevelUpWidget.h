@@ -51,14 +51,14 @@ public:
 	double			mPanelY;                // +0x68 -150.0; top of the panel = (mLeftY + mRightY) * 0.5
 	double			mPanelAngle;            // +0x70 0.0; atan2(mRightY - mLeftY, panel width) while falling
 	double			mUnused78;              // +0x78 0.03, never read
-	bool			mFalling;               // +0x80 true: phase 1, the corners fall and bounce
+	bool			mFalling;               // +0x80 true: the fall, the corners fall and bounce
 	// +0x81..+0x87 padding
 	double			mLeftY;                 // +0x88 -150.0 left corner y
 	double			mLeftVel;               // +0x90 0.0; += 0.15 per update, bounce at 75 with * -0.4, rests above -0.5
 	double			mRightY;                // +0x98 -174.0 right corner y
 	double			mRightVel;              // +0xa0 0.0
 	double			mUnusedA8;              // +0xa8 189.0, never read
-	bool			mFrozenB0;              // +0xb0 false and never set; true would stop Update after the fall and Draw would draw nothing
+	bool			mFrozen;              // +0xb0 false and never set; true would stop Update after the fall and Draw would draw nothing
 	// +0xb1..+0xb7 padding
 	double			mSlide;                 // +0xb8 header/footer slide 0..1 = sin(mSlidePhase), 1.0 once the phase reaches 1.570795
 	double			mSlidePhase;            // +0xc0 += 0.03 per update

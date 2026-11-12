@@ -1,3 +1,5 @@
+// port(mod): mod "word-journal", the journal's page (JournalWidget.h). Not part of the original game.
+
 #include "JournalWidget.h"
 #include "Board.h"
 #include "BookWormApp.h"

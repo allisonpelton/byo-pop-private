@@ -11,7 +11,7 @@ using namespace Sexy;
 // Widget::SetColors table (r, g, b, a): 0 balloon tint, 1 header, 2 text, 3 footer
 static int gWordBalloonColors[4][4] = {{255,255,255,255}, {0,0,0,255}, {0,0,0,255}, {0,0,0,255}};  // 0x52f8f0
 
-// The balloon's fade applied to one of its colours: alpha (int)(colour alpha * clamp(mAlpha, 0, 1)).
+// port: The balloon's fade applied to one of its colours: alpha (int)(colour alpha * clamp(mAlpha, 0, 1)).
 static Color FadedColor(const Color& theColor, double theAlpha)
 {
 	if (theAlpha < 0.0)

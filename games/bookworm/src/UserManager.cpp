@@ -12,6 +12,7 @@ using namespace Sexy;
 // The registry key of the profiles (HKEY_LOCAL_MACHINE\SOFTWARE\<mRegKey>\Users in the original)
 static const char* const gUsersKey = "Users";
 
+// port: the registry value name of a user's value under the Users key
 static SexyString UserValueName(const SexyString& theUserName, const SexyString& theValueName)
 {
 	return SexyString(gUsersKey) + "\\" + theUserName + "\\" + theValueName;

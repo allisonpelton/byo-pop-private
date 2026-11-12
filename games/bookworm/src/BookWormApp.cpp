@@ -1300,6 +1300,7 @@ bool BookWormApp::StartWatch(const std::string& thePath)
 	return true;
 }
 
+// port(mod): ends a replay watch, putting back what the game had (Replay.h)
 void BookWormApp::EndWatch()
 {
 	if (mWatchFile == NULL)
@@ -1317,7 +1318,7 @@ void BookWormApp::EndWatch()
 	Board::SetGlobalState(mWatchSavedLetterIdx, mWatchSavedRefillLevel);
 }
 
-// The watch is over (its game-over page's Continue, MENU or Escape): the main menu slides in over the watched
+// port: The watch is over (its game-over page's Continue, MENU or Escape): the main menu slides in over the watched
 // board, which the next game removes
 void BookWormApp::StopWatch()
 {
@@ -1325,6 +1326,7 @@ void BookWormApp::StopWatch()
 	ShowGameSelector();
 }
 
+// port(mod): watches the replay of the game just played (Replay.h)
 void BookWormApp::WatchLastReplay()
 {
 	if ((mBoard != NULL) && (mBoard->mState == BOARD_GAMEOVER) && (mBoard->mPlayer == NULL))
@@ -1596,17 +1598,17 @@ bool BookWormApp::LoadWordList(const SexyString& theFileName, std::set<SexyStrin
 			return false;
 		}
 
-		char c = (char) aChar;
-		if ((c >= '0') && (c <= '9'))
+		char aByte = (char) aChar;
+		if ((aByte >= '0') && (aByte <= '9'))
 		{
 			if (!inNumber)
 			{
 				aPrefixLength = 0;
 				inNumber = true;
 			}
-			aPrefixLength = aPrefixLength * 10 + (c - '0');
+			aPrefixLength = aPrefixLength * 10 + (aByte - '0');
 		}
-		else if ((c == '\r') || (c == '\n'))
+		else if ((aByte == '\r') || (aByte == '\n'))
 		{
 			if (aLength > 0)
 			{
@@ -1634,7 +1636,7 @@ bool BookWormApp::LoadWordList(const SexyString& theFileName, std::set<SexyStrin
 				aLength = aCopyLength;
 			}
 			if (aLength < BUFFER_SIZE)
-				aWord[aLength++] = c;
+				aWord[aLength++] = aByte;
 		}
 	}
 
@@ -1759,6 +1761,8 @@ static std::string ScoresValueName(const char* theTable)
 	return "Scores" + ScoreKeySuffix() + "\\" + theTable;
 }
 
+// port: a list of strings as one value, each string ending in a 0 and the list in one more (a REG_MULTI_SZ's bytes,
+// stored with RegistryWriteData; see ReadMultiString); an empty list writes nothing
 static void WriteMultiString(SexyAppBase* theApp, const std::string& theValueName, const std::vector<SexyString>& theStrings)
 {
 	std::string aData;

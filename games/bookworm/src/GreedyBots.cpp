@@ -1,3 +1,5 @@
+// port(mod): mod "greedy-bots", the greedy bots (GreedyBots.h). Not part of the original game.
+
 #include "GreedyBots.h"
 #include "BookWormApp.h"
 #include "ModWords.h"
@@ -788,19 +790,19 @@ static bool FireFirst(const SolverWord& a, const SolverWord& b)
 // lowest fire tile taken first; then the fewest new fire tiles, the fire meter's drain counted (mFireCost); then the
 // solver's fire hint order or the points. The fewest new fire alone leaves the fire on the board to burn down: on
 // Classic seed 1 that bot burned at level 19, where the fire-first bot reached level 44.
-static bool LeastFireFirst(const SolverWord& a, const SolverWord& b)
+static bool LeastFireFirst(const SolverWord& theFirst, const SolverWord& theSecond)
 {
-	if (a.mSafety != b.mSafety)
-		return a.mSafety < b.mSafety;
-	bool aFire = a.mFireTiles > 0;
-	bool bFire = b.mFireTiles > 0;
+	if (theFirst.mSafety != theSecond.mSafety)
+		return theFirst.mSafety < theSecond.mSafety;
+	bool aFire = theFirst.mFireTiles > 0;
+	bool bFire = theSecond.mFireTiles > 0;
 	if (aFire != bFire)
 		return aFire;
-	if ((aFire) && (a.mFireRow != b.mFireRow))
-		return a.mFireRow > b.mFireRow;
-	if (a.mFireCost != b.mFireCost)
-		return a.mFireCost < b.mFireCost;
-	return aFire ? SolverBetterForFire(a, b) : SolverBetterByScore(a, b);
+	if ((aFire) && (theFirst.mFireRow != theSecond.mFireRow))
+		return theFirst.mFireRow > theSecond.mFireRow;
+	if (theFirst.mFireCost != theSecond.mFireCost)
+		return theFirst.mFireCost < theSecond.mFireCost;
+	return aFire ? SolverBetterForFire(theFirst, theSecond) : SolverBetterByScore(theFirst, theSecond);
 }
 
 bool GreedyBots::PlayMove(BotGame* theGame, int theKind)

@@ -97,7 +97,7 @@ LevelUpWidget::LevelUpWidget(BookWormApp* theApp)
 	mRightVel = 0.0;
 	mPanelY = -150.0;
 	mUnusedA8 = 189.0;
-	mFrozenB0 = false;
+	mFrozen = false;
 	mSlide = 0.0;
 	mSlidePhase = 0.0;
 	mHeaderY = 0;
@@ -314,10 +314,10 @@ bool LevelUpWidget::KeyContinue(KeyCode theKey)
 }
 
 // 0x42bee0 (100 updates a second). Nothing happens while disabled (the help screen is up).
-// Phase 1: the panel's two top corners fall under gravity and bounce on y 75 independently, the panel
+// The fall: the panel's two top corners fall under gravity and bounce on y 75 independently, the panel
 // tilting by their difference; from the constructor's values the left corner bounces at updates 55, 99
 // and 116, the right one at 58, 104, 122 and 129, so the fall ends at update 129 with mPanelY = 75.
-// Phase 2 (from the same update): the header and footer slide in along a quarter sine (53 updates), the
+// The slide (from the same update): the header and footer slide in along a quarter sine (53 updates), the
 // Continue button riding on the footer; then Lex's word balloon is hidden.
 void LevelUpWidget::Update()
 {
@@ -372,7 +372,7 @@ void LevelUpWidget::Update()
 		MarkDirty();
 	}
 
-	if ((!mFalling) && (!mFrozenB0))
+	if ((!mFalling) && (!mFrozen))
 	{
 		// Board bookkeeping: once Lex has stopped in BOARD_LEVEL_COMPLETE, the board's "new high score" flag
 		// is cleared as soon as Lex is idle (nothing else reads it)
@@ -580,7 +580,7 @@ void LevelUpWidget::Draw(Graphics* g)
 	{
 		g->DrawImageRotated(mPanelImage, aPanelX, (int)mPanelY, mPanelAngle);
 	}
-	else if (!mFrozenB0)
+	else if (!mFrozen)
 	{
 		int aCenterX = aPanelX + mPanelImage->GetWidth() / 2;
 

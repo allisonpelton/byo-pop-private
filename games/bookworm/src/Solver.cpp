@@ -1,3 +1,5 @@
+// port(mod): mod "solver", the word solver (Solver.h). Not part of the original game.
+
 #include "Solver.h"
 #include "Board.h"
 #include "BookWormApp.h"

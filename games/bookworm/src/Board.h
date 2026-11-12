@@ -141,7 +141,7 @@ public:
 	double				mFireMeter;             // +0x1a8 classic "fire debt": a fire tile is due at <= 0 (ctor 5.25)
 	bool				mSkipRandomFire;        // +0x1b0 the next chance fire tile is skipped (ctor true)
 	bool				mBurnedDown;            // +0x1b1 the board burned at game over
-	unsigned char		mUnused1b2;             // +0x1b2 bool never initialised in the original (port: 0), saved only:
+	unsigned char		mSavedUninitialisedByte; // +0x1b2 bool never initialised in the original (port: 0), saved only:
 	                                            // a byte, so an original save's garbage value round-trips
 	bool				mPiecesFlying;          // +0x1b3 cleared per Update, set by FlyingPieceList::Update
 	bool				mFlameSoundPlayed;      // +0x1b4 flametile played once per refill burst
@@ -160,10 +160,10 @@ public:
 	SexyString			mBonusWord;             // +0x28c word on the banner, "" when none
 	StatKeeper*			mGameStats;             // +0x2a8 whole game
 	StatKeeper*			mLevelStats;            // +0x2ac current level
-	SexyString			mUnusedStr2b0;          // +0x2b0 saved only
-	int					mUnused2cc;             // +0x2cc saved only
-	SexyString			mUnusedStr2d0;          // +0x2d0 saved only
-	int					mUnused2ec;             // +0x2ec saved only
+	SexyString			mSavedEmptyStringA;     // +0x2b0 "" from the ctor; nothing reads it (saved and loaded)
+	int					mSavedZeroAfterStringA; // +0x2cc 0 from the ctor; nothing reads it (saved and loaded)
+	SexyString			mSavedEmptyStringB;     // +0x2d0 "" from the ctor; nothing reads it (saved and loaded)
+	int					mSavedZeroAfterStringB; // +0x2ec 0 from the ctor; nothing reads it (saved and loaded)
 	int					mUpSoundIdx;            // +0x2f0 rising "up" notes played so far
 	int					mUpSoundCount;          // +0x2f4 notes to play (word length)
 	int					mUpSoundDelay;          // +0x2f8 ticks to the next note
@@ -225,13 +225,13 @@ public:
 	int					mPauseCount;            // +0x3c8 > 0 paused
 	// +0x3cc padding
 	double				mPauseFade;             // +0x3d0 0..1
-	int					mUnused3d8;             // +0x3d8 saved only
+	int					mSavedZeroAfterPauseFade; // +0x3d8 0 from the ctor; nothing reads it (saved and loaded)
 	bool				mPauseNoDialogs;        // +0x3dc while paused: no dialog and no help widget
 	// +0x3dd..+0x3df padding
 	int					mBestWordThisLevel;     // +0x3e0 highest popup value of the level
 	int					mBestWordThisGame;      // +0x3e4
-	int					mUnused3e8;             // +0x3e8 zeroed by LevelUp, saved only
-	int					mUnused3ec;             // +0x3ec saved only
+	int					mSavedZeroResetByLevelUp; // +0x3e8 0 from the ctor, zeroed by LevelUp; nothing reads it (saved and loaded)
+	int					mSavedZeroLast;         // +0x3ec 0 from the ctor; nothing reads it (saved and loaded)
 
 	// port(mod): the word solver (mod "solver"); NULL while no enabled mod turns it on. Then SUBMIT takes the
 	// left part of its plank and HINT the right part.

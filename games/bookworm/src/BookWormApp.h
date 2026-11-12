@@ -118,7 +118,7 @@ public:
 	std::vector<SexyString>	mBonusWords;        // +0x126c bonus_word_dictionary.txt in file order, upper case
 	// +0x127c mUsedBonusWords (the bonus words completed, never read), +0x1288 and +0x12a4 two unused strings: not ported
 	SexyString				mBonusWord;         // +0x12c0 next bonus word (Board::PickBonusWord)
-	int						mGameOption;        // +0x12dc ctor 1; only copied to / from the selector; meaning unknown
+	int						mGameOption;        // +0x12dc ctor 1; only copied to / from the selector; nothing reads it
 	int						mUserTimesPlayed;   // +0x12e0 per-user "TimesPlayed"
 	// +0x12e4 mScrambled: set by every Board::Scramble, never read: not ported
 	bool					mWelcomePlayed;     // +0x12e5 the selector played lex_welcome (once per run)

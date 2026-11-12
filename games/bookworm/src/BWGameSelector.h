@@ -53,7 +53,7 @@ public:
 	HyperlinkWidget* mNotYouLink;           // +0x74 id 0 change-player link (GT_SELECTOR_NOT_YOU) in the bubble
 	int				mBubbleX;               // +0x78 14
 	int				mBubbleY;               // +0x7c 114
-	int				mGameOption;            // +0x80 copied from/to app->mGameOption (meaning unknown)
+	int				mGameOption;            // +0x80 copied from/to app->mGameOption (nothing reads it)
 	int				mGameMode;              // +0x84 GameMode, copied from/to app->mGameMode
 	int				mBackdropY;             // +0x88 backdrop y, 0
 	int				mUnused8C;              // +0x8c never used

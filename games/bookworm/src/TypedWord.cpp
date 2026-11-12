@@ -1,3 +1,5 @@
+// port(mod): mod "type-word", typing a word (TypedWord.h). Not part of the original game.
+
 #include "TypedWord.h"
 #include "Board.h"
 #include "BookWormApp.h"
@@ -120,21 +122,21 @@ static void FindTextPaths(const std::vector<Piece*>& theTiles, const SexyString&
 
 // True: a is the better path for the typed letters. A path that ends the game comes last; then the most fire
 // tiles taken, the fewest dropped, none landing on the bottom row, the most points.
-bool TypedWord::Better(const SolverWord& a, const SolverWord& b)
+bool TypedWord::Better(const SolverWord& theFirst, const SolverWord& theSecond)
 {
-	bool aFatal = a.mSafety == SOLVER_FATAL;
-	bool bFatal = b.mSafety == SOLVER_FATAL;
+	bool aFatal = theFirst.mSafety == SOLVER_FATAL;
+	bool bFatal = theSecond.mSafety == SOLVER_FATAL;
 	if (aFatal != bFatal)
 		return bFatal;
-	if (a.mFireTiles != b.mFireTiles)
-		return a.mFireTiles > b.mFireTiles;
-	if (a.mFireDrops != b.mFireDrops)
-		return a.mFireDrops < b.mFireDrops;
-	bool aDanger = a.mSafety == SOLVER_DANGER;
-	bool bDanger = b.mSafety == SOLVER_DANGER;
+	if (theFirst.mFireTiles != theSecond.mFireTiles)
+		return theFirst.mFireTiles > theSecond.mFireTiles;
+	if (theFirst.mFireDrops != theSecond.mFireDrops)
+		return theFirst.mFireDrops < theSecond.mFireDrops;
+	bool aDanger = theFirst.mSafety == SOLVER_DANGER;
+	bool bDanger = theSecond.mSafety == SOLVER_DANGER;
 	if (aDanger != bDanger)
 		return bDanger;
-	return a.mScore > b.mScore;
+	return theFirst.mScore > theSecond.mScore;
 }
 
 bool TypedWord::FindPath(const SexyString& theText, SolverWord* theBest) const

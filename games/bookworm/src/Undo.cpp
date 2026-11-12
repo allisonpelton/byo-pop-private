@@ -1,3 +1,5 @@
+// port(mod): mod "undo", undo (Undo.h). Not part of the original game.
+
 #include "Undo.h"
 #include "Replay.h"
 #include "Board.h"

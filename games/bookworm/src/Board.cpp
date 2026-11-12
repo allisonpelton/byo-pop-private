@@ -131,7 +131,7 @@ static const GameTextId gHintFireAlertClassic = GT_HINT_FIRE_ALERT_CLASSIC;
 // --------------------------------------------------------------------------------------------------------
 // Helpers
 
-// The top row of a column: even columns hold rows 1..7, odd columns rows 0..7
+// port: The top row of a column: even columns hold rows 1..7, odd columns rows 0..7
 static inline int TopRow(int theCol)
 {
 	return (theCol % 2 == 0) ? 1 : 0;
@@ -147,13 +147,13 @@ static inline int LetterWeight(char theLetter)
 	return gLetterWeights[anIndex];
 }
 
-// Lex::IsBusy inlined: "Lex idle" = no animation and at his target
+// port: Lex::IsBusy inlined: "Lex idle" = no animation and at his target
 static inline bool LexIdle(Lex* theLex)
 {
 	return !theLex->IsBusy();
 }
 
-// "Lex calm": idle, or sweating in danger
+// port: "Lex calm": idle, or sweating in danger
 static inline bool LexCalm(Lex* theLex)
 {
 	return (!theLex->IsBusy()) || (theLex->mAnim == LEXANIM_SWEAT);
@@ -180,34 +180,39 @@ static Ember* AddEmberGet(EmberListMgr* theMgr, int theType, double theX, double
 	return anEmber;
 }
 
-// Saved-game record helpers: raw little-endian fields as the original's fwrite/fread (board_logic.md 6).
+// port: Saved-game record helpers: raw little-endian fields as the original's fwrite/fread (board_logic.md 6).
 // A field the file does not hold (a truncated file) keeps its value, as with the original's fread.
 static void FileWriteBytes(FILE* theFile, const void* theData, int theLength)
 {
 	fwrite(theData, 1, theLength, theFile);
 }
 
+// port: a saved-game record field (the original's fwrite of the field)
 static void FileWriteInt(FILE* theFile, int theValue)
 {
 	fwrite(&theValue, 1, 4, theFile);
 }
 
+// port: a saved-game record field (the original's fwrite of the field)
 static void FileWriteDouble(FILE* theFile, double theValue)
 {
 	fwrite(&theValue, 1, 8, theFile);
 }
 
+// port: a saved-game record field (the original's fwrite of the field)
 static void FileWriteBool(FILE* theFile, bool theValue)
 {
 	unsigned char aByte = theValue ? 1 : 0;
 	fwrite(&aByte, 1, 1, theFile);
 }
 
+// port: a saved-game record field (the original's fwrite of the field)
 static void FileWriteChar(FILE* theFile, char theValue)
 {
 	fwrite(&theValue, 1, 1, theFile);
 }
 
+// port: a saved-game record string (the original's fwrite of its length and bytes)
 static void FileWriteString(FILE* theFile, const SexyString& theString)
 {
 	uint32_t aLength = (uint32_t)theString.size();
@@ -215,16 +220,19 @@ static void FileWriteString(FILE* theFile, const SexyString& theString)
 	fwrite(theString.data(), 1, aLength, theFile);
 }
 
+// port: a saved-game record field (the original's fread of the field)
 static void FileReadInt(FILE* theFile, int* theValue)
 {
 	fread(theValue, 1, 4, theFile);
 }
 
+// port: a saved-game record field (the original's fread of the field)
 static void FileReadDouble(FILE* theFile, double* theValue)
 {
 	fread(theValue, 1, 8, theFile);
 }
 
+// port: a saved-game record field (the original's fread of the field)
 static void FileReadBool(FILE* theFile, bool* theValue)
 {
 	unsigned char aByte = *theValue ? 1 : 0;
@@ -232,6 +240,7 @@ static void FileReadBool(FILE* theFile, bool* theValue)
 	*theValue = aByte != 0;
 }
 
+// port: a saved-game record field (the original's fread of the field)
 static void FileReadChar(FILE* theFile, char* theValue)
 {
 	fread(theValue, 1, 1, theFile);
@@ -247,7 +256,7 @@ static void FileReadString(FILE* theFile, SexyString* theString)
 		fread(&(*theString)[0], 1, aLength, theFile);
 }
 
-// The players' saved games: the app's path ("players/<name>/classic.dat"), which the framework's VFS puts
+// port: The players' saved games: the app's path ("players/<name>/classic.dat"), which the framework's VFS puts
 // in the user dir. Writes of a relative path land there; reads need the "userdata/" prefix (NAMES.md L4).
 static SexyString UserDataPath(const SexyString& thePath)
 {
@@ -267,36 +276,36 @@ Piece::Piece()
 	mY = 0.0;
 	mFlySpeed = 0.0;
 	mVY = 0.0;
-	mUnk28 = 0;
-	mUnk2c = 0;
+	mSavedZeroIntA = 0;
+	mSavedZeroIntB = 0;
 	mCol = 0;
 	mRow = 0;
-	mUnk38 = false;
-	mUnk3c = 1;
-	mUnk40 = false;
-	mUnk41 = false;
-	mUnk48 = 0.0;
-	mUnk50 = 0.0;
-	mUnk58 = 0;
-	mUnk5c = 0;
-	mUnk60 = false;
-	mUnk61 = false;
-	mUnk64 = 0;
-	mUnk70 = false;
-	mUnk78 = 0.0;
-	mUnk80 = 0.0;
-	mUnk88 = 0;
-	mUnk8c = 0;
-	mUnk90 = 0;
-	mUnk94 = 0;
-	mUnk98 = false;
-	mUnk68 = 0;
-	mUnk6c = 0;
-	mUnk9c = 0;
-	mUnka0 = 0;
+	mSavedFalseBoolA = false;
+	mSavedOneInt = 1;
+	mSavedFalseBoolB = false;
+	mSavedFalseBoolC = false;
+	mSavedZeroDoubleA = 0.0;
+	mSavedZeroDoubleB = 0.0;
+	mSavedZeroIntC = 0;
+	mSavedZeroIntD = 0;
+	mSavedFalseBoolD = false;
+	mSavedFalseBoolE = false;
+	mSavedZeroIntE = 0;
+	mSavedFalseBoolF = false;
+	mSavedZeroDoubleC = 0.0;
+	mSavedZeroDoubleD = 0.0;
+	mSavedZeroIntH = 0;
+	mSavedZeroIntI = 0;
+	mSavedZeroIntJ = 0;
+	mSavedZeroIntK = 0;
+	mSavedFalseBoolG = false;
+	mSavedZeroIntF = 0;
+	mSavedZeroIntG = 0;
+	mSavedZeroIntL = 0;
+	mSavedZeroIntM = 0;
 	mNextLetter = (char)0xff;
 	mLetter = (char)0xff;
-	mUnkc0 = 0;
+	mSavedZeroIntN = 0;
 	mScale = 1.0;
 	mSelected = false;
 	mBurning = false;
@@ -369,13 +378,13 @@ void Piece::Save(FILE* theFile)
 	FileWriteDouble(theFile, mY);
 	FileWriteDouble(theFile, mFlySpeed);
 	FileWriteDouble(theFile, mVY);
-	FileWriteInt(theFile, mUnk28);
-	FileWriteInt(theFile, mUnk2c);
+	FileWriteInt(theFile, mSavedZeroIntA);
+	FileWriteInt(theFile, mSavedZeroIntB);
 	FileWriteInt(theFile, mCol);
 	FileWriteInt(theFile, mRow);
-	FileWriteBool(theFile, mUnk38);
+	FileWriteBool(theFile, mSavedFalseBoolA);
 	FileWriteDouble(theFile, mScale);
-	FileWriteInt(theFile, mUnkc0);
+	FileWriteInt(theFile, mSavedZeroIntN);
 	FileWriteChar(theFile, mLetter);
 	FileWriteChar(theFile, mNextLetter);
 	FileWriteBool(theFile, mSelected);
@@ -390,28 +399,28 @@ void Piece::Save(FILE* theFile)
 	FileWriteDouble(theFile, mShakeAmount);
 	FileWriteBool(theFile, mFlipping);
 	FileWriteDouble(theFile, mFlipProgress);
-	FileWriteInt(theFile, mUnk3c);
-	FileWriteBool(theFile, mUnk40);
-	FileWriteBool(theFile, mUnk41);
-	FileWriteDouble(theFile, mUnk48);
-	FileWriteDouble(theFile, mUnk50);
-	FileWriteInt(theFile, mUnk58);
-	FileWriteInt(theFile, mUnk5c);
-	FileWriteBool(theFile, mUnk60);
-	FileWriteBool(theFile, mUnk61);
-	FileWriteInt(theFile, mUnk64);
-	FileWriteInt(theFile, mUnk68);
-	FileWriteInt(theFile, mUnk6c);
-	FileWriteBool(theFile, mUnk70);
-	FileWriteDouble(theFile, mUnk78);
-	FileWriteDouble(theFile, mUnk80);
-	FileWriteInt(theFile, mUnk88);
-	FileWriteInt(theFile, mUnk8c);
-	FileWriteInt(theFile, mUnk90);
-	FileWriteInt(theFile, mUnk94);
-	FileWriteBool(theFile, mUnk98);
-	FileWriteInt(theFile, mUnk9c);
-	FileWriteInt(theFile, mUnka0);
+	FileWriteInt(theFile, mSavedOneInt);
+	FileWriteBool(theFile, mSavedFalseBoolB);
+	FileWriteBool(theFile, mSavedFalseBoolC);
+	FileWriteDouble(theFile, mSavedZeroDoubleA);
+	FileWriteDouble(theFile, mSavedZeroDoubleB);
+	FileWriteInt(theFile, mSavedZeroIntC);
+	FileWriteInt(theFile, mSavedZeroIntD);
+	FileWriteBool(theFile, mSavedFalseBoolD);
+	FileWriteBool(theFile, mSavedFalseBoolE);
+	FileWriteInt(theFile, mSavedZeroIntE);
+	FileWriteInt(theFile, mSavedZeroIntF);
+	FileWriteInt(theFile, mSavedZeroIntG);
+	FileWriteBool(theFile, mSavedFalseBoolF);
+	FileWriteDouble(theFile, mSavedZeroDoubleC);
+	FileWriteDouble(theFile, mSavedZeroDoubleD);
+	FileWriteInt(theFile, mSavedZeroIntH);
+	FileWriteInt(theFile, mSavedZeroIntI);
+	FileWriteInt(theFile, mSavedZeroIntJ);
+	FileWriteInt(theFile, mSavedZeroIntK);
+	FileWriteBool(theFile, mSavedFalseBoolG);
+	FileWriteInt(theFile, mSavedZeroIntL);
+	FileWriteInt(theFile, mSavedZeroIntM);
 }
 
 // 0x403370
@@ -422,13 +431,13 @@ void Piece::Load(FILE* theFile)
 	FileReadDouble(theFile, &mY);
 	FileReadDouble(theFile, &mFlySpeed);
 	FileReadDouble(theFile, &mVY);
-	FileReadInt(theFile, &mUnk28);
-	FileReadInt(theFile, &mUnk2c);
+	FileReadInt(theFile, &mSavedZeroIntA);
+	FileReadInt(theFile, &mSavedZeroIntB);
 	FileReadInt(theFile, &mCol);
 	FileReadInt(theFile, &mRow);
-	FileReadBool(theFile, &mUnk38);
+	FileReadBool(theFile, &mSavedFalseBoolA);
 	FileReadDouble(theFile, &mScale);
-	FileReadInt(theFile, &mUnkc0);
+	FileReadInt(theFile, &mSavedZeroIntN);
 	FileReadChar(theFile, &mLetter);
 	FileReadChar(theFile, &mNextLetter);
 	FileReadBool(theFile, &mSelected);
@@ -443,28 +452,28 @@ void Piece::Load(FILE* theFile)
 	FileReadDouble(theFile, &mShakeAmount);
 	FileReadBool(theFile, &mFlipping);
 	FileReadDouble(theFile, &mFlipProgress);
-	FileReadInt(theFile, &mUnk3c);
-	FileReadBool(theFile, &mUnk40);
-	FileReadBool(theFile, &mUnk41);
-	FileReadDouble(theFile, &mUnk48);
-	FileReadDouble(theFile, &mUnk50);
-	FileReadInt(theFile, &mUnk58);
-	FileReadInt(theFile, &mUnk5c);
-	FileReadBool(theFile, &mUnk60);
-	FileReadBool(theFile, &mUnk61);
-	FileReadInt(theFile, &mUnk64);
-	FileReadInt(theFile, &mUnk68);
-	FileReadInt(theFile, &mUnk6c);
-	FileReadBool(theFile, &mUnk70);
-	FileReadDouble(theFile, &mUnk78);
-	FileReadDouble(theFile, &mUnk80);
-	FileReadInt(theFile, &mUnk88);
-	FileReadInt(theFile, &mUnk8c);
-	FileReadInt(theFile, &mUnk90);
-	FileReadInt(theFile, &mUnk94);
-	FileReadBool(theFile, &mUnk98);
-	FileReadInt(theFile, &mUnk9c);
-	FileReadInt(theFile, &mUnka0);
+	FileReadInt(theFile, &mSavedOneInt);
+	FileReadBool(theFile, &mSavedFalseBoolB);
+	FileReadBool(theFile, &mSavedFalseBoolC);
+	FileReadDouble(theFile, &mSavedZeroDoubleA);
+	FileReadDouble(theFile, &mSavedZeroDoubleB);
+	FileReadInt(theFile, &mSavedZeroIntC);
+	FileReadInt(theFile, &mSavedZeroIntD);
+	FileReadBool(theFile, &mSavedFalseBoolD);
+	FileReadBool(theFile, &mSavedFalseBoolE);
+	FileReadInt(theFile, &mSavedZeroIntE);
+	FileReadInt(theFile, &mSavedZeroIntF);
+	FileReadInt(theFile, &mSavedZeroIntG);
+	FileReadBool(theFile, &mSavedFalseBoolF);
+	FileReadDouble(theFile, &mSavedZeroDoubleC);
+	FileReadDouble(theFile, &mSavedZeroDoubleD);
+	FileReadInt(theFile, &mSavedZeroIntH);
+	FileReadInt(theFile, &mSavedZeroIntI);
+	FileReadInt(theFile, &mSavedZeroIntJ);
+	FileReadInt(theFile, &mSavedZeroIntK);
+	FileReadBool(theFile, &mSavedFalseBoolG);
+	FileReadInt(theFile, &mSavedZeroIntL);
+	FileReadInt(theFile, &mSavedZeroIntM);
 }
 
 // --------------------------------------------------------------------------------------------------------
@@ -564,8 +573,8 @@ Board::Board(BookWormApp* theApp)
 	mFlameSoundPlayed = false;
 	mFireMeter = 0.0;
 	mSkipRandomFire = true;
-	mUnused2cc = 0;
-	mUnused2ec = 0;
+	mSavedZeroAfterStringA = 0;
+	mSavedZeroAfterStringB = 0;
 	mUpSoundIdx = 0;
 	mUpSoundCount = 0;
 	mUpSoundDelay = 0;
@@ -586,10 +595,10 @@ Board::Board(BookWormApp* theApp)
 	mHintDelay = 0;
 	mHintId = 0;
 	mSubmitBlinkWords = 3;
-	// port: never initialised by the original (heap contents; mUnused1b2 is only saved). The praise flag is read every
+	// port: never initialised by the original (heap contents; mSavedUninitialisedByte is only saved). The praise flag is read every
 	// update once Lex rests, so a nonzero leftover costs one draw of the board's generator, with no praise, the first
 	// time he does (games/bookworm/docs/IDENTICAL_PLAY.md, "Oddities"); the port starts it false.
-	mUnused1b2 = 0;
+	mSavedUninitialisedByte = 0;
 	mLexPraisePending = false;
 	mLexPraiseType = 0;
 
@@ -685,8 +694,8 @@ Board::Board(BookWormApp* theApp)
 	mPauseNoDialogs = false;
 	mBestWordThisLevel = 0;
 	mBestWordThisGame = 0;
-	mUnused3e8 = 0;
-	mUnused3ec = 0;
+	mSavedZeroResetByLevelUp = 0;
+	mSavedZeroLast = 0;
 
 	// the game log header (board_logic.md 7): version 3, mode, seed, time, level 0
 	mGameLog.WriteByte(3);
@@ -713,7 +722,7 @@ Board::Board(BookWormApp* theApp)
 	}
 
 	NewBoard();
-	mUnused3d8 = 0;
+	mSavedZeroAfterPauseFade = 0;
 	if (mApp->mGameMode == GAMEMODE_ACTION)
 		SetActionSpeed((double)gActionSpeed[(mLevel > 8) ? 9 : mLevel]);
 }
@@ -1068,6 +1077,7 @@ bool Board::IsWatched() const
 	return (mPlayer != NULL) && (!mPlayer->mApplying);
 }
 
+// port(mod): the keys of a replay watch and of its offer on the game-over page (Replay.h)
 bool Board::ReplayKeyChar(SexyChar theChar)
 {
 	if (mPlayer != NULL)
@@ -1084,6 +1094,7 @@ bool Board::ReplayKeyChar(SexyChar theChar)
 	return true;
 }
 
+// port(mod): Escape ends a replay watch (Replay.h)
 bool Board::ReplayKeyDown(KeyCode theKey)
 {
 	if ((mPlayer == NULL) || (theKey != KEYCODE_ESCAPE))
@@ -2544,7 +2555,7 @@ void Board::LevelUp()
 	int aThreshold = LevelThreshold((unsigned int)mLevel);
 	mShownProgress = 0.0;
 	mBestWordThisLevel = 0;
-	mUnused3e8 = 0;
+	mSavedZeroResetByLevelUp = 0;
 	mLevelProgress = (double)mLevelStats->mScore / (double)(aThreshold - aPrevThreshold);
 }
 
@@ -3818,7 +3829,7 @@ void Board::WriteSavedGame(FILE* theFile, int theMode, bool isHelpOpen)
 	FileWriteDouble(theFile, mFireMeter);
 	FileWriteBool(theFile, mSkipRandomFire);
 	FileWriteBool(theFile, mBurnedDown);
-	FileWriteBytes(theFile, &mUnused1b2, 1);
+	FileWriteBytes(theFile, &mSavedUninitialisedByte, 1);
 	FileWriteBool(theFile, mPiecesFlying);
 	FileWriteBool(theFile, mFlameSoundPlayed);
 	FileWriteInt(theFile, mRewardStreak);
@@ -3841,10 +3852,10 @@ void Board::WriteSavedGame(FILE* theFile, int theMode, bool isHelpOpen)
 	// 19-21
 	mGameStats->Save(theFile);
 	mLevelStats->Save(theFile);
-	FileWriteString(theFile, mUnusedStr2b0);
-	FileWriteInt(theFile, mUnused2cc);
-	FileWriteString(theFile, mUnusedStr2d0);
-	FileWriteInt(theFile, mUnused2ec);
+	FileWriteString(theFile, mSavedEmptyStringA);
+	FileWriteInt(theFile, mSavedZeroAfterStringA);
+	FileWriteString(theFile, mSavedEmptyStringB);
+	FileWriteInt(theFile, mSavedZeroAfterStringB);
 	FileWriteInt(theFile, mUpSoundIdx);
 	FileWriteInt(theFile, mUpSoundCount);
 	FileWriteInt(theFile, mUpSoundDelay);
@@ -3907,12 +3918,12 @@ void Board::WriteSavedGame(FILE* theFile, int theMode, bool isHelpOpen)
 	FileWriteInt(theFile, mLevel);
 	FileWriteInt(theFile, mPauseCount);
 	FileWriteDouble(theFile, mPauseFade);
-	FileWriteInt(theFile, mUnused3d8);
+	FileWriteInt(theFile, mSavedZeroAfterPauseFade);
 	FileWriteBool(theFile, mPauseNoDialogs);
 	FileWriteInt(theFile, mBestWordThisLevel);
 	FileWriteInt(theFile, mBestWordThisGame);
-	FileWriteInt(theFile, mUnused3e8);
-	FileWriteInt(theFile, mUnused3ec);
+	FileWriteInt(theFile, mSavedZeroResetByLevelUp);
+	FileWriteInt(theFile, mSavedZeroLast);
 
 	// 30-31
 	FileWriteString(theFile, mGameLog.ToWebString());
@@ -4070,7 +4081,7 @@ bool Board::ReadSavedGame(FILE* theFile, bool* isHelpOpen)
 	FileReadDouble(theFile, &mFireMeter);
 	FileReadBool(theFile, &mSkipRandomFire);
 	FileReadBool(theFile, &mBurnedDown);
-	fread(&mUnused1b2, 1, 1, theFile);
+	fread(&mSavedUninitialisedByte, 1, 1, theFile);
 	FileReadBool(theFile, &mPiecesFlying);
 	FileReadBool(theFile, &mFlameSoundPlayed);
 	FileReadInt(theFile, &mRewardStreak);
@@ -4091,10 +4102,10 @@ bool Board::ReadSavedGame(FILE* theFile, bool* isHelpOpen)
 
 	mGameStats->Load(theFile);
 	mLevelStats->Load(theFile);
-	FileReadString(theFile, &mUnusedStr2b0);
-	FileReadInt(theFile, &mUnused2cc);
-	FileReadString(theFile, &mUnusedStr2d0);
-	FileReadInt(theFile, &mUnused2ec);
+	FileReadString(theFile, &mSavedEmptyStringA);
+	FileReadInt(theFile, &mSavedZeroAfterStringA);
+	FileReadString(theFile, &mSavedEmptyStringB);
+	FileReadInt(theFile, &mSavedZeroAfterStringB);
 	FileReadInt(theFile, &mUpSoundIdx);
 	FileReadInt(theFile, &mUpSoundCount);
 	FileReadInt(theFile, &mUpSoundDelay);
@@ -4185,12 +4196,12 @@ bool Board::ReadSavedGame(FILE* theFile, bool* isHelpOpen)
 	FileReadInt(theFile, &mLevel);
 	FileReadInt(theFile, &mPauseCount);
 	FileReadDouble(theFile, &mPauseFade);
-	FileReadInt(theFile, &mUnused3d8);
+	FileReadInt(theFile, &mSavedZeroAfterPauseFade);
 	FileReadBool(theFile, &mPauseNoDialogs);
 	FileReadInt(theFile, &mBestWordThisLevel);
 	FileReadInt(theFile, &mBestWordThisGame);
-	FileReadInt(theFile, &mUnused3e8);
-	FileReadInt(theFile, &mUnused3ec);
+	FileReadInt(theFile, &mSavedZeroResetByLevelUp);
+	FileReadInt(theFile, &mSavedZeroLast);
 
 	// the game log, as a web string
 	uint32_t aLogLength = 0;
@@ -4293,6 +4304,7 @@ void Board::GetGlobalState(int* theLastLetterIdx, int* theLastRefillLevel)
 	*theLastRefillLevel = gLastRefillLevel;
 }
 
+// port(mod): puts back the letter generator's program-wide memory (the undo and replay mods)
 void Board::SetGlobalState(int theLastLetterIdx, int theLastRefillLevel)
 {
 	gLastLetterIdx = theLastLetterIdx;

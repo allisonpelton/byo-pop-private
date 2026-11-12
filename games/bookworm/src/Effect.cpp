@@ -20,7 +20,7 @@
 
 using namespace Sexy;
 
-// The 2004 MTRand::SRand(const std::string&): the 624 state words when the string has exactly that size
+// port: The 2004 MTRand::SRand(const std::string&): the 624 state words when the string has exactly that size
 // (the generator's index is kept, as the port's SRand does), else SRand(4357), whose 1.2 seeding the
 // port's SRand(4357) would not reproduce.
 static void RestoreMTRand2004(MTRand* theRand, const std::string& theState)
