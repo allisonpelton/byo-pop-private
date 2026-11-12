@@ -504,11 +504,12 @@
       "title": "Venice Deluxe",
       "done": [
         "port",
-        "identical-play"
+        "identical-play",
+        "identical-look"
       ],
       "na": [],
-      "now": "identical-look",
-      "note": "plays identical in every mode against the original, its 3D for 16,143 frames (then a 3D rounding oddity); phase two next"
+      "now": "coverage",
+      "note": "phase two done: 207 screenshots of nine tours with no flagged difference, sounds and focus identical (one sound oddity); the 3D-mode comparison runs tonight in the vGPU sandbox; the coverage check next"
     },
     "heavyweapon": {
       "title": "Heavy Weapon Deluxe",

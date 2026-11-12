@@ -31,13 +31,50 @@ Reachable only from a test (`-script`, `-commands`, the web page's test call; `d
 The commands wait for a player: the name screen is up until a name is typed (`key T` ... then `keydown RETURN` and `keyup RETURN`
 a few updates apart, since a button's alt key needs both). The bot reads the game's state and draws no random number. The shooter always points straight up and follows the pointer's x, so a shot is an x: the bot aims at the lowest unfilled slot on the screen that the ready jewel fills (any for a wild one), moves the pointer there, waits for the shooter to catch up (it closes 1/1.3 of the distance an update), presses, waits two updates and releases; it also clicks away the cupid's messages and the click that starts the tutorial or explains a Flood level. When the ready jewel fits no slot but the one waiting behind it does, it swaps them with a right click (the burst of one is seen: the game keeps the right button as a key state). In Trick Shot, where one shot goes by way of bumpers, each attempt aims at another x. It leaves a slot alone while a jewel it threw is on the way, but does not allow for plates that move or turn, nor for bumpers, and it never uses a power-up, so it fills about two thirds of what it shoots at on the first levels and loses the later ones. The press is held two updates because the game reads the button's state once an update: a press and release that both come between two updates (the burst a posted click is) is not seen, as in the original.
 
+## Comparing screens, sound and focus with the original
+
+`games/venice/tools/idplay/idplay.py` runs a scenario of `scenarios/` on both sides. `shots <scenario>` runs the original in
+Windows Sandbox under origrun (the only place it takes shots) and the port natively under rundesk (`-fast -drawevery
+-renderscale=1`, the original's ticks for each frame), then `tools/shotdiff` compares each pair; `sound <scenario>` compares the
+original's BASS calls (`tools/bassproxy`, a logging BASS beside the exe) with the port's `BYOPOP_SOUNDLOG` by `soundcmp.py`, and
+`webshots.py <scenario>` takes the same shots from the web build under Node (`wasmrun.js`) and compares them with the native
+ones. The tours: `shots_name`, `shots_tutorial`, `shots_menus`, `shots_ingame`, `shots_flood`, `shots_survival`,
+`shots_trickshot`, `shots_journey` and `shots_focus` (the window losing the focus and getting it back; its original run needs
+the sandbox, and a shot in the lost state is a `waitshot`). `shots_menus3d` is the 3D original's menus (see "Left in phase two"
+in `IDENTICAL_PLAY.md`). A scenario's `SHOT_MARGIN` (1000 frames) keeps the run going past its last shot.
+
 ## Deviations (each without a visible effect)
 
 - Loading is done in slices of a few files a frame with the window drawing meanwhile, pictures at first use and sounds at
   their first play (decoded then); the original reads and decodes everything on a thread while the loading bar draws.
-- The layer merge (0x40de30) keeps the original's structure: positions reset from the stage start values, the content
-  height measured, the filler pictures of the mirrored backdrop added on a display that is not accelerated. It does not bake
-  the pictures into 800 x 1024 textures (the same pixels are drawn from the pictures that stay alive).
+- The layer merge (0x40de30) is the original's, with its bands: positions reset from the stage start values, the content
+  height measured, the filler pictures of the mirrored backdrop added on a display that is not accelerated, and the pictures
+  drawn into 800 x 1024 pictures (the original's textures, here framework images) that take their place. The draw into a band
+  is the original's second copy of the picture draw (0x442490, `DrawImageRecordOnTarget`), the render target being the
+  wrapper's field at 0x5ba42c + 4 (`gRenderTarget`). A band on a display that is not accelerated starts opaque black (the
+  original's surface has no alpha; where no picture covers it the screen is black, not see-through), and the framework's
+  software triangle drawers are registered when the app is made (`SWTri_AddAllDrawTriFuncs`, as the 1.3 games do), since the
+  band's flipped pictures are drawn by them. Those drawers clip a transformed draw to the clip rectangle's own far edges
+  (x + width, y + height: 0x504860 passes them so), where the released source clips one pixel inside; the app sets
+  `SWTri_SetClipToFarEdges(true)`, or the last column of a flipped picture that reaches the clip (the Journey sky's right
+  column, in every band) stays black.
+- A transformed picture on a display that is not accelerated is blended normally whatever the scene's draw mode says (the
+  original's software surface does; only the accelerated target adds), so `DrawImageRecord` draws it in the normal mode and
+  gives the mode back. Found with the loading screen's sparkles, blit style 1 and scaled.
+- `VeniceWidget::Draw` sets `mDDInterface->mSoftwareTransforms` whenever the display is not accelerated, as Bejeweled 2 and
+  Rocket Mania do: the original's software screen draws a transformed picture (text, sprites, jewels, flipped pictures) with its
+  own triangle code straight on the surface, and the framework's hardware-style transform path samples at other places, an
+  edge a fraction of a pixel off. It costs time in the 2D port (a `-fast` Survival tour of 20 shots takes about 486 s native
+  with it); the performance pass starts there.
+- `Powerup`'s wings text calls `SceneObject::AddFilter` and `SetAttribute` directly (0x417b90, 0x428610, 0x428700), as the
+  original does; the virtual `Layer` versions had put the filter on the wrong object.
+- The sine and cosine are `VeniceMath.cpp`'s, not the C library's: the original's x87 `fsin` and `fcos` give the correctly
+  rounded double, and the libraries of the two back ends (UCRT natively, musl in the web build) each differ from it in the last
+  bit for about 3 % of the angles, enough to move a plate or a sprite by a subpixel and show in the picture. The port computes
+  the sine and cosine of the float in double-double arithmetic (a quarter-turn reduction with 33-bit pieces of pi/2, Taylor terms
+  to the 17th; the terms from the tenth on in plain double), the same bits natively and in the web build (300,000 angles
+  compared) and the correctly rounded double in every one of 1,980 angles compared with a 70-digit reference. An angle of 10^6
+  or more, which the game never makes, goes to the library.
 - No pool of 4000 objects (the original's limit); objects are heap objects.
 - `Emitter` guards a division by zero.
 - The name box does not write the typed text back into the translator's static buffer.
@@ -71,6 +108,16 @@ None found yet.
 - The layer parallax is unstable in the original too, when the parent layer is taller than the tiles layer and the tiles are at
   rest (the content heights measured at the merge decide it).
 - A scripted key press needs its release some updates apart.
+- The destructor of the old `Level` (0x40ea20) sets the volume of the music's channel to 0 for one update when the next level
+  has started the same music: BASS gives the new replay the old, stopped replay's channel handle, so the call reaches the music
+  that is playing, and the next update's fade sets the volume back. The port's old level finds its own voice stopped and does
+  nothing. It is the 4 ms of an update (15 times in the Trick Shot tour, 3 times in the Flood tour); to make it the same the
+  port's sounds would have to share one voice handle for each file.
+- The screenshots of the port and the original differ by single pixels and thin edges, never beyond the tolerance of
+  `tools/shotdiff` (the largest, 696 pixels of 480,000 in one pair, at most 24 levels off in a colour): the antialiased edge of
+  a transformed picture, a sparkle's blend, a glyph drawn through a transform. The cause was not looked for further: it
+  has no effect on play, and the likely place is the rounding of the triangle code's subpixel positions (the original's x87
+  against the port's compiler code).
 - The original's 3D mode (Direct3D 7, here over dgVoodoo2) plays a little differently from its software mode and the port,
   and the two part after about 16000 updates. In the `journey3d` script (the first Journey levels played by the bot) the
   plate that turns and wobbles after a hit (plate 8 of the level in play) is 0.014 degrees off in the 3D original before any

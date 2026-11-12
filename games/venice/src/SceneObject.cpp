@@ -435,7 +435,7 @@ void SceneObject::DrawSelf()
 {
 	if (mImage == nullptr)
 		return;
-	if (mNoCulling == 0) {
+	if (mNoCulling == 0 && gRenderTarget == nullptr) {
 		int aTilesDown = mTilesDown < 1 ? 1 : mTilesDown;
 		int aTilesRight = mTilesRight < 1 ? 1 : mTilesRight;
 		if (!RectsOverlap(mWorld[AttributeX], mWorld[AttributeY],

@@ -3,6 +3,7 @@
 
 #include "VeniceApp.h"
 
+#include "DDInterface.h"
 #include "Graphics.h"
 #include "ImageRecord.h"
 #include "KeyCodes.h"
@@ -10,6 +11,8 @@
 #include "Profiles.h"
 #include "SceneLoader.h"
 #include "SceneTag.h"
+#include "SWTri.h"
+#include "VeniceDraw.h"
 #include "VeniceGlobals.h"
 #include "VeniceInput.h"
 #include "VeniceMath.h"
@@ -70,6 +73,10 @@ void ResetTickBase()
 // 0x43fa60: the partner's file gives the product's name, its registry key and whether the game starts in a window
 VeniceApp::VeniceApp()
 {
+	// the software triangle drawers: the framework's SWTri draws only once the game has registered them, and the layer's
+	// bands are drawn with matrix draws (every flipped picture) into memory images
+	Sexy::SWTri_AddAllDrawTriFuncs();
+	Sexy::SWTri_SetClipToFarEdges(true);
 	mProductVersion = "1.0";
 	std::string aProductName = DefaultProductName;
 	std::string aRegistryKey = DefaultRegistryKey;
@@ -325,6 +332,12 @@ static void MakeLogoScenes()
 void VeniceWidget::Draw(Graphics* g)
 {
 	gGraphics = g;
+
+	// port: the original's software display (its default on a desktop without hardware 3D, and the Is3D 0 of the options) draws
+	// a rotated or scaled picture with its own software triangles straight onto the screen's surface; the framework's software
+	// transforms do the same (as in Bejeweled 2's 2D game), where the GPU's would sample at other places and show an edge
+	// a fraction of a pixel off
+	gApp->mDDInterface->mSoftwareTransforms = !IsAccelerated();
 
 	// 0x440b30: once the logos are all done the loading screen takes over
 	if (gLoadState == LoadStateLogosShowing && gScenes.mCursor == nullptr)
