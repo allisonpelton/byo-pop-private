@@ -31,6 +31,10 @@ How the original paces itself: its main loop (SexyApp vf03, 0x438310) does an up
 passed (up to ten in a row without a draw), else draws (vf05, 0x4375a0: only when a widget is dirty, or a second has
 passed) and sleeps out the rest of the 10 ms frame. So it keeps 100 updates a second with one sleep an update when the
 machine has the time, and when it wakes 5 ms late it makes the update up in the same pass.
+The window: the port runs with -windowscale=1, the game's own 640x480 as the original's windowed window (CYC_WINDOWSCALE=0 leaves
+its default, 2x where the desktop has room, and pairs.sh labels those runs "port-default"); each port run's JSON holds the
+framework's display lines (client size, render scale, windowed or full screen, renderer) and the original's holds its windowed
+flag and the video modules it loaded (ddraw, dxgi, d3d11, d3d10warp), since a comparison names the window and renderer of each side.
 CYC_VISIBLE=1 runs the port on the user's own desktop instead of under rundesk (ORACLE_VISIBLE, SDL's dummy audio
 driver, normal priority); only between 22:00 and 08:00 (CLAUDE.md, "Overnight").
 """
@@ -220,6 +224,24 @@ def module_base(pid, name):
     return base
 
 
+def video_modules(pid):
+    """The names of the process's loaded modules that draw: DirectDraw, Direct3D, DXGI, OpenGL (which renderer a run got)."""
+    snap = k32.CreateToolhelp32Snapshot(0x18, pid)
+    if snap in (None, -1, 0xFFFFFFFFFFFFFFFF):
+        return []
+    m = ME32()
+    m.dwSize = ctypes.sizeof(m)
+    names = []
+    ok = k32.Module32First(snap, ctypes.byref(m))
+    while ok:
+        n = m.szModule.decode('mbcs', 'replace').lower()
+        if n.startswith(('ddraw', 'd3d', 'dxgi', 'opengl', 'gdi32')) or 'opengl' in n:
+            names.append(n)
+        ok = k32.Module32Next(snap, ctypes.byref(m))
+    k32.CloseHandle(snap)
+    return sorted(set(names))
+
+
 def symbol_rva(exe, name):
     """A global's offset from the exe's image base, by llvm-nm (LLVM_NM, else llvm-mingw's) and the PE header."""
     nm = os.environ.get('LLVM_NM', 'E:/retools/llvm-mingw-20261006-ucrt-x86_64/bin/llvm-nm.exe')
@@ -283,8 +305,13 @@ def port(out, script, seed):
     # normal priority, which the idle priority of this process would otherwise pass on
     visible = os.environ.get('CYC_VISIBLE') == '1'
     env = dict(os.environ, SDL_AUDIODRIVER='dummy', ORACLE_VISIBLE='1') if visible else None
-    p = subprocess.Popen([exe, '-gamedir=' + gamedir, '-userdir=' + os.path.join(out, 'user'), '-seed=' + seed, '-script=' + sc],
-                         cwd=out, stdout=log, stderr=subprocess.STDOUT, env=env, creationflags=0x20 if visible else 0)
+    # the window: -windowscale=1 (CYC_WINDOWSCALE, the default) is the game's own 640x480, as the original's; 0 is the port's
+    # default window (2x where the desktop has room, which is what a player gets). The display line says what it got.
+    scale = os.environ.get('CYC_WINDOWSCALE', '1')
+    args = [exe, '-gamedir=' + gamedir, '-userdir=' + os.path.join(out, 'user'), '-seed=' + seed, '-script=' + sc]
+    if scale != '0':
+        args.append('-windowscale=' + scale)
+    p = subprocess.Popen(args, cwd=out, stdout=log, stderr=subprocess.STDOUT, env=env, creationflags=0x20 if visible else 0)
     h = k32.OpenProcess(QUERY_LIMITED | VM_READ | SYNCHRONIZE | TERMINATE, False, p.pid)
     threads = Threads(p.pid)
     app_rva = symbol_rva(exe, '__ZN4Sexy12gSexyAppBaseE')
@@ -307,7 +334,10 @@ def port(out, script, seed):
     except subprocess.TimeoutExpired:
         k32.TerminateProcess(h, 0)
     log.close()
-    res = {'side': 'port-visible' if visible else 'port', 'exit': p.returncode, 'others_start': n0, 'others_end': others()}
+    res = {'side': ('port-visible' if visible else 'port') + ('' if scale == '1' else '-default'), 'exit': p.returncode,
+           'others_start': n0, 'others_end': others()}
+    res['display'] = [l.split('display:', 1)[1].strip() for l in open(os.path.join(out, 'game.log'), errors='replace')
+                      if 'display:' in l]
     if len(marks) == 2:
         res.update(stretch(marks[0], marks[1], threads.name))
         res['updates'] = counts[1][2] - counts[0][2]
@@ -385,7 +415,7 @@ def orig(out, script, seed):
                           '--clock', 'real', '--cursor', 'scripted', '--counter', hex(UPDATES), '--seed', seed, '--timeout', '400'],
                          stdout=log, stderr=subprocess.STDOUT, creationflags=0x40)   # idle priority, below the game's
     h = threads = None
-    marks, counts, windowed, plays = [], [], None, []
+    marks, counts, windowed, plays, vmods = [], [], None, [], []
     deadline = time.time() + 420
     while p.poll() is None and time.time() < deadline:
         time.sleep(0.005)
@@ -404,6 +434,7 @@ def orig(out, script, seed):
             plays.append(play_state(h))
             if windowed is None:
                 windowed = (read32(h, WINDOWED) or 0) & 0xff
+                vmods = video_modules(pid)
         if u >= last + 30:   # past the stretch's end: the original keeps running after the script's quit, so stop it here
             break
     if h:
@@ -413,7 +444,7 @@ def orig(out, script, seed):
     except subprocess.TimeoutExpired:
         p.terminate()
     log.close()
-    res = {'side': 'orig', 'exit': p.returncode, 'others_start': n0, 'others_end': others(), 'windowed': windowed, 'play': plays}
+    res = {'side': 'orig', 'exit': p.returncode, 'others_start': n0, 'others_end': others(), 'windowed': windowed, 'video': vmods, 'play': plays}
     if len(marks) == 2:
         res.update(stretch(marks[0], marks[1], threads.name))
         if None not in counts[0] + counts[1]:
@@ -430,7 +461,7 @@ def orig(out, script, seed):
 
 def summary(path):
     """The medians of runs.txt's pairs: each side's stretch cycles, updates a second, draws and the busiest threads."""
-    rows = {'orig': [], 'port': []}
+    rows = {'orig': [], 'port': [], 'port-default': []}
     for line in open(path):
         side, _, js = line.partition(' ')
         if side in rows and js.startswith('{'):
@@ -443,10 +474,11 @@ def summary(path):
         print('%s: %d runs, G cycles %s, median %.3f; updates/s %s; draws %s; sleeps %s' % (
             side, len(rs), g, statistics.median(g), [r.get('updates_per_s') for r in rs], [r.get('draws') for r in rs],
             [r.get('sleeps') for r in rs]))
-    if rows['orig'] and rows['port']:
-        mo = statistics.median(r['gcycles'] for r in rows['orig'] if 'gcycles' in r)
-        mp = statistics.median(r['gcycles'] for r in rows['port'] if 'gcycles' in r)
-        print('port / original = %.2f (medians %.3f and %.3f G cycles)' % (mp / mo, mp, mo))
+    for side in ('port', 'port-default'):
+        if rows['orig'] and rows[side]:
+            mo = statistics.median(r['gcycles'] for r in rows['orig'] if 'gcycles' in r)
+            mp = statistics.median(r['gcycles'] for r in rows[side] if 'gcycles' in r)
+            print('%s / original = %.2f (medians %.3f and %.3f G cycles)' % (side, mp / mo, mp, mo))
 
 
 if __name__ == '__main__':
