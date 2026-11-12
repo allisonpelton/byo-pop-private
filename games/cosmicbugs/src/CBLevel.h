@@ -221,17 +221,17 @@ static_assert(sizeof(Text) == 0x6c8, "Text");
 
 // A power-up (0xd8 bytes; 0x418900 makes one of a random kind, 0x4186c0 destroys it; CBPowerup.cpp). It falls
 // from where an enemy died until the ship (under the player's control) touches it. kind +0x08 the effect (1
-// slow motion .. 0x11 a magnet, else a faster beam); state +0x0c 4 while it falls
+// slow motion .. 0xd an invincibubble, else a faster beam); state +0x0c 4 while it falls
 struct Powerup : Obj
 {
 	float gravity;             // +0xb0  added to vy each update
 	char text[0x20];           // +0xb4  shown when it is collected: a colour code and the effect's name
-	Obj* attached;             // +0xd4  follows it (nothing here sets one)
+	Obj* attached;             // +0xd4  the original's follower of the power-up; nothing sets one, kept for the layout
 };
 
 // A weapon a power-up gives (0xd8 bytes, in the level's list at +0x46c; CBPowerup.cpp). It orbits the ship
 // (state 3) until a click launches it (state 4) straight out the way it is from the ship. kind +0x08: 0 a mine,
-// 1 a missile, 3 an ice shot, 4 a time bomb, 5 a magnet, 6 an anchor
+// 1 a missile, 3 an ice shot, 4 a time bomb
 struct Weapon : Obj
 {
 	int unkb0;                 // +0xb0
@@ -393,6 +393,8 @@ void Panel_Draw(Panel* thePanel, int theAll);                    // 0x418080
 void Panel_Update(Panel* thePanel);                              // 0x418010
 void Shooter_Insert(List<Shooter>* theList);                     // 0x4107e0
 Shooter* Shooter_Init(Shooter* theShooter);                      // 0x41d540
+void Shooter_Destroy(Shooter* theShooter);                       // 0x411d70
+void List_DeleteNode(Shooter* theShooter);                       // 0x411f50's delete
 void Shooter_Setup(Shooter* theShooter);                         // 0x41b0f0
 void Shooter_FromXml(Shooter* theShooter, const char* p, const XmlTag* theTag); // 0x41aec0
 int Shooter_Update(Shooter* theShooter);                         // 0x41e200

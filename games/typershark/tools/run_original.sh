@@ -12,7 +12,7 @@ set -uo pipefail
 ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
 SCRIPT="$1"; LOG="$2"; SEED="${3:-1}"; LIMIT="${4:-300}"; shift 4 2>/dev/null || shift $#
 n=0
-until python "$ROOT/tools/gamecount.py" --limit 3 > /dev/null; do
+until python "$ROOT/tools/gamecount.py" --limit 6 > /dev/null; do
 	n=$((n+1)); [ $n -gt 90 ] && { echo "run_original: no room for a game process after 30 minutes" > "$LOG"; exit 3; }
 	sleep 20
 done

@@ -197,10 +197,32 @@ CosmicBugsHost gHost;
 
 } // namespace
 
+// The 16-bit screen's pixels as the framework's 32 bits (565 widened as Draw did with shifts: each channel's high bits
+// repeated into the low ones), made once; an alpha of 0xff on every one
+static uint32_t gPixelsFromScreen16[65536];
+
+static void BuildPixelsFromScreen16()
+{
+	for (uint32_t p = 0; p < 65536; p++)
+	{
+		uint32_t aRed = (p >> 11) & 0x1f;
+		uint32_t aGreen = (p >> 5) & 0x3f;
+		uint32_t aBlue = p & 0x1f;
+		gPixelsFromScreen16[p] = 0xff000000 | (((aRed << 3) | (aRed >> 2)) << 16) | (((aGreen << 2) | (aGreen >> 4)) << 8) |
+			((aBlue << 3) | (aBlue >> 2));
+	}
+}
+
 CosmicBugsWidget::CosmicBugsWidget()
 {
 	mScreenImage = new MemoryImage(gApp);
 	mScreenImage->Create(800, 600);
+	// opaque, so that the framework need not look through the 480000 pixels for alpha after each change, and with every
+	// alpha byte 0xff (Draw), so that it need not copy and premultiply them pixel by pixel in strips to upload them (where
+	// premultiplying changes nothing): the same pixels reach the screen, in one upload (Water Bugs' and the Mahjong ports' screen)
+	mScreenImage->SetImageMode(false, false);
+	mScreenImage->mUploadAsIs = true;
+	BuildPixelsFromScreen16();
 	mWantsFocus = true;
 }
 
@@ -237,12 +259,7 @@ void CosmicBugsWidget::Draw(Graphics* g)
 			ulong* aDst = &aBits[y * 800];
 			for (int x = l; x < r; x++)
 			{
-				uint32_t p = aSrc[x];
-				uint32_t aRed = (p >> 11) & 0x1f;
-				uint32_t aGreen = (p >> 5) & 0x3f;
-				uint32_t aBlue = p & 0x1f;
-				aDst[x] = 0xff000000 | (((aRed << 3) | (aRed >> 2)) << 16) | (((aGreen << 2) | (aGreen >> 4)) << 8) |
-					((aBlue << 3) | (aBlue >> 2));
+				aDst[x] = gPixelsFromScreen16[aSrc[x]];
 			}
 		}
 		mScreenImage->BitsChanged();
@@ -341,6 +358,7 @@ static void LoadFixes()
 		cb::gFixes.shieldFlash ? "on" : "off");
 }
 
+// 0x42ae60 (WinMain: cp.cfg, the window and the screen, the sound, the game; what follows GameMain is Shutdown)
 void CosmicBugsApp::Init()
 {
 	SexyAppBase::Init();
@@ -366,7 +384,7 @@ void CosmicBugsApp::Init()
 		Shutdown();
 		return;
 	}
-	// WinMain (0x42ae60): cp.cfg, the screen in its mode, the sound, then the game
+	// WinMain: cp.cfg, the screen in its mode, the sound, then the game
 	r64::LoadConfig();
 #ifdef __EMSCRIPTEN__
 	// the site's "Full screen at start: Windowed" (framework/WebSettings.h): the game's own option, set as its menu sets it

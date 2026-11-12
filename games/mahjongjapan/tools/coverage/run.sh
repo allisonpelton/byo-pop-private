@@ -17,7 +17,7 @@ esac
 NAME="$1"; S="$2"; T="${3:-120}"; shift 3 2> /dev/null || shift $#
 H="build/coverage/$GAME/hits"; mkdir -p "$H"
 ST="${GAME}cov"; SD="C:/byo-og/$ST"
-until python -I tools/gamecount.py --limit 3 > /dev/null; do sleep 15; done
+until python -I tools/gamecount.py --limit 6 > /dev/null; do sleep 15; done
 if [ ! -f "$SD/game/$EXE" ]; then
 	build/origrun-bin/origrun.exe --game "$GAME" --run "$ST" --stage-root 'C:\byo-og' --copy-only > "$H/stage.log" 2>&1
 fi

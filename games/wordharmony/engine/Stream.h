@@ -40,9 +40,13 @@ public:
 	MemoryStream(const SharedData& theData, size_t theStart, size_t theSize);
 	explicit MemoryStream(std::vector<uint8_t>&& theData);
 
+	// 0x43f0c0 (the file stream), 0x4416e0 (the archive's)
 	int read(void* theBuffer, int theOffset, int theSize) override;
+	// 0x43f4c0 (the buffered stream's byte)
 	int read() override;
+	// 0x43f0f0, 0x43f4f0 (the buffered stream's)
 	void seek(long theOffset, int theOrigin) override;
+	// 0x43f150
 	long tell() override { return (long)mPos; }
 	long getSize() override { return (long)mSize; }
 

@@ -326,9 +326,9 @@ void PieceGenerator::ShowBonus()
 		break;
 	case 5: case 6: case 7: case 8: case 9:
 		{
-			// the title text is the string at 0x4e6a54; it is drawn on the image 0x168/4 of the app in a colour
+			// the title text is the string at 0x4e6a54; it is drawn on the "multi" picture in a colour
 			Points* aPoints = aBoard->AddText("", Board::CellX(3), 0x1e);
-			aPoints->SetBack(mApp->mImages[0x168 / 4], 0xff, sGreen[aTotal], 0xff);
+			aPoints->SetBack(mApp->mImages[IMAGE_MULTI], 0xff, sGreen[aTotal], 0xff);
 			aBoard->AddText(GT(sMessages[aTotal]), 0x181 + (aTotal == 5 ? 0 : 1), 0x23);
 			static const int sBonusPoints[5] = { 1000, 2500, 10000, 25000, 100000 };
 			aBoard->AddScore(sBonusPoints[aTotal - 5]);
@@ -671,22 +671,31 @@ void Board::Burst(int theKind, int theX, int theY)
 	case 5: anEffect = mEffects->Add(10, true); anEffect->mLife = 100; break;
 	case 6: anEffect = mEffects->Add(0x11, true); anEffect->mLife = 100; break;
 	case 7:
+		// four sparklers of the same kind: the first stays where the kind puts it, the others are moved and set going
+		// (the original stores these as doubles that Ghidra shows as their halves: m78 and m80 are -5.0 or 5.0, mY 0.0)
 		anEffect = mEffects->Add(0x12, true);
 		anEffect->m90 = true; anEffect->mLife = 0x3c; anEffect->mc0 = theX; anEffect->m40 = theY;
 		anEffect = mEffects->Add(0x12, true);
-		anEffect->mLife = 0x3c; anEffect->m90 = true; anEffect->mc0 = theX; anEffect->m40 = theY;
-		anEffect->mY = (double) (0x17c - GlobalRand() % 0x79);
+		anEffect->mLife = 0x3c;
+		anEffect->m78 = -5.0;
+		anEffect->m90 = true; anEffect->mc0 = theX; anEffect->m40 = theY;
+		anEffect->mX = (double) (0x17c - GlobalRand() % 0x79);
 		anEffect = mEffects->Add(0x12, true);
-		anEffect->mLife = 0x3c; anEffect->m90 = true; anEffect->mc0 = theX; anEffect->m40 = theY;
+		anEffect->m78 = 5.0; anEffect->m80 = 5.0;
+		anEffect->mLife = 0x3c;
+		anEffect->mY = 0.0;
+		anEffect->m90 = true; anEffect->mc0 = theX; anEffect->m40 = theY;
 		anEffect = mEffects->Add(0x12, true);
 		anEffect->mLife = 0x3c;
-		anEffect->mY = (double) (0x17c - GlobalRand() % 0x79);
+		anEffect->mY = 0.0;
+		anEffect->m78 = -5.0; anEffect->m80 = 5.0;
+		anEffect->mX = (double) (0x17c - GlobalRand() % 0x79);
 		break;
 	case 8:
 		anEffect = mEffects->Add(8, true);
 		anEffect->m90 = true; anEffect->mLife = 100; anEffect->mc0 = theX; anEffect->m40 = theY;
 		anEffect = mEffects->Add(8, true);
-		anEffect->mLife = 100; anEffect->mX = 0; anEffect->mY = 500.0;
+		anEffect->mLife = 100; anEffect->mX = 490.0;
 		break;
 	}
 	if (anEffect != NULL)
@@ -899,7 +908,7 @@ void Board::DestroySpecial(Piece* thePiece, bool theFlag)
 			thePiece->m40 = Ftol(thePiece->mX);
 			thePiece->m44 = Ftol(thePiece->mY);
 			thePiece->m4c = 0x28;
-			thePiece->m48 = CellX(3) - mApp->mImages[0x170 / 4]->GetWidth() / 2;
+			thePiece->m48 = CellX(3) - mApp->mImages[IMAGE_CLOCK]->GetWidth() / 2;
 			thePiece->m30 = 0;
 			thePiece->m38 = 0.02;
 			thePiece->mMoving = true;
@@ -1201,23 +1210,22 @@ void Board::EndLevelB()
 	mState = 5;
 }
 
-// 0x425a00, 0x425a30: the two flames of the bar (a marker piece of kind 8 at the left of the bar)
+// 0x425a00, 0x425a30: the two flames of the bar (a marker piece of kind 8 that fades out). The original stores the places as
+// doubles, which the decompiler shows as halves: 0x403d0000 and 0x4064c000 are 29.0 and 166.0, 0x40460000 is 44.0
 void Board::MakeFlame0()
 {
 	Piece* aPiece = MakeSpecial(8, NULL);
-	aPiece->mX = 0;
-	aPiece->mY = 0;
-	aPiece->mX = 0.0;
-	aPiece->mY = 0.0;
-	aPiece->mIndex = 0x6e;
+	aPiece->mX = 29.0;
+	aPiece->mY = 166.0;
+	aPiece->mIndex = IMAGE_ROCKET_GLOW;     // (the original's 0x6e, its table's entry of "rocket-glow")
 }
 
 void Board::MakeFlame1()
 {
 	Piece* aPiece = MakeSpecial(8, NULL);
-	aPiece->mX = 0;
-	aPiece->mY = 0;
-	aPiece->mIndex = 0x6f;
+	aPiece->mX = 44.0;
+	aPiece->mY = 166.0;
+	aPiece->mIndex = IMAGE_MATCH_GLOW;      // (the original's 0x6f)
 }
 
 // 0x425a60

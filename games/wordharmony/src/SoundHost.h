@@ -36,10 +36,13 @@ public:
 	float getPan() override { return mPan; }
 	void setVolume(float theVolume) override;
 	float getVolume() override { return mVolume; }
+	// 0x443fb0
 	void setLoop(bool theLoop) override { mLoop = theLoop; }
 	bool isLoop() override { return mLoop; }
 	bool isPlaying() override;
+	// 0x4444f0
 	void setFadeIn(float theSeconds) override { mFadeIn = theSeconds; }
+	// 0x444520
 	void setFadeOut(float theSeconds) override { mFadeOut = theSeconds; }
 	void setCategory(int theCategory) override { mCategory = theCategory; }
 	int getCategory() override { return mCategory; }
@@ -84,17 +87,21 @@ public:
 	~HostSoundSystem() override;
 
 	bool load(const char* theName, const char* theFile) override;
+	// 0x443b60
 	bool loadStream(const char* theName, const char* theFile) override { return load(theName, theFile); }
 	void unloadUnused() override;
 	void unload(const char* theName) override;
 	engine::Sound* createSound(const char* theName, int theArg1, int theArg2) override;
 	void setVolume(float theVolume) override;
+	// 0x443a20
 	float getVolume() override { return mVolume; }
 	void setCategoryVolume(int theCategory, float theVolume) override;
 	float getCategoryVolume(int theCategory) override;
 	void update(int theMs) override;
 
 	void removeSound(HostSound* theSound);
+	// port (the "memreport" test command): the sounds held and the bytes of their decoded samples
+	int getSoundMemory(size_t* theBytes) const;
 
 private:
 	std::map<std::string, std::shared_ptr<Platform::SoundData>> mData;  // +0x124

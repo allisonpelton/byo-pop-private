@@ -371,6 +371,7 @@ public:
 	virtual void	Update() override;                              // 0x5ad294
 	virtual void	Draw(Graphics* g) override;                     // 0x5a2d15
 	virtual void	MouseDown(int theX, int theY, int theClickCount) override;  // 0x5aa4e8
+	virtual void	MouseUp(int theX, int theY, int theLastDownButtonId) override;  // 0x59596f
 	virtual void	MouseDrag(int theX, int theY) override;        // 0x5aaac3
 	virtual void	MouseMove(int x, int y) override;               // 0x5956c9
 	virtual void	MouseLeave() override;                          // 0x59578c

@@ -94,6 +94,7 @@ Board::Board(MMApp* theApp) :
 	for (int i = 0; i < 2; i++)
 		mTrapX[i] = mTrapY[i] = 99;
 	mTrapDeathTimer = mStungTimer = -1;
+	mTapKeys = mTapKeysNow = 0;
 	mGateX = mGateY = mKeyX = mKeyY = 99;
 	mMaze = 1;
 	mFile = 0;

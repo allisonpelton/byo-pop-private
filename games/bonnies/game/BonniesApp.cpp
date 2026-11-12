@@ -108,7 +108,7 @@ void BonniesApp::draw()
 	if (gGameScreen != nullptr)
 		aScore = gGameScreen->findWidget(0xc9);
 	if (mSpecialMode != 0 || inModal() || gGameScreen == nullptr || gGameScreen->isBusy() ||
-		(gBonnies != nullptr && gBonnies->mPaused != 0) || gGameScreen->mField58 != 1 ||
+		(gBonnies != nullptr && gBonnies->mPaused != 0) || gGameScreen->mSequenceState != 1 ||
 		gLastFullScreen != isFullScreen() || !hasInputFocus() || !gBonnies->mStatus.empty() ||
 		gGameScreen->mFlashTime != 0 || 3999 < (int)(ticks() - gFullDrawTime) ||
 		(aScore != nullptr && (aScore->mFlags & 6) != 0) || mFullRedraw != 0 || (int)ticks() < mRedrawUntil)
@@ -126,7 +126,7 @@ void BonniesApp::draw()
 		float aX1;
 		float aY1;
 		gGameScreen->getRect(&aX0, &aY0, &aX1, &aY1, 1);
-		if (gGame == nullptr || gGame->mFieldC5C == 0)
+		if (gGame == nullptr || gGame->mClassic == 0)
 		{
 			if (aY1 <= 0.98f)
 				aY1 = 0.98f;
@@ -140,7 +140,7 @@ void BonniesApp::draw()
 			if (aY1 <= 0.97333336f)
 				aY1 = 0.97333336f;
 		}
-		if (gGame != nullptr && frameCount() <= gGame->mFieldC80 + 1)
+		if (gGame != nullptr && frameCount() <= gGame->mFallFrame + 1)
 		{
 			aY0 = 0.0f;
 			aY1 = 1.0f;
@@ -261,9 +261,9 @@ void BonniesApp::updateMenu()
 	checkMenuItem(0x2717, mDebugScreens);
 	checkMenuItem(0x2716, mFlashRects);
 	checkMenuItem(0x2718, mFullRedraw);
-	checkMenuItem(0x2afa, mDebug1EC);
-	checkMenuItem(0x2af9, mDebug1E8);
-	checkMenuItem(0x2afd, mDebug1FC);
+	checkMenuItem(0x2afa, mAnyWord);
+	checkMenuItem(0x2af9, mFreeMoves);
+	checkMenuItem(0x2afd, mNoHints);
 	checkMenuItem(0x2afc, mPauseInactive);
 	unsigned int anId = 0x277e;
 	int aLeft = 7;
@@ -273,149 +273,6 @@ void BonniesApp::updateMenu()
 		anId++;
 		aLeft--;
 	} while (aLeft != 0);
-}
-
-// 0x401e00
-void BonniesApp::menuCommand(int theCommand)
-{
-	if (0x2bc0 < theCommand && theCommand < 0x2bf3 && gGameScreen != nullptr)
-	{
-		gGame->mLevel = theCommand - 0x2bc1;
-		gGameScreen->refresh();
-	}
-	if (0x2c24 < theCommand && theCommand < 0x2c2b)
-	{
-		static const int aLimits[6] = {0, 30, 15, 10, 5, 2};
-		mFrameLimit = aLimits[theCommand - 0x2c25];
-		int i = 0;
-		do
-		{
-			// As the original has it: the command, not its index, is compared, so no item is checked
-			checkMenuItem(i + 0x2c25, theCommand == i);
-			i++;
-		} while (i < 7);
-	}
-	if (0x2b0a < theCommand && theCommand < 0x2b25)
-		mSpecialMode = theCommand - 0x2aca;
-	if (theCommand < 0x2afd)
-	{
-		if (theCommand == 0x2afc)
-		{
-			mPauseInactive = mPauseInactive == 0;
-			updateMenu();
-			return;
-		}
-		if (theCommand < 0x2776)
-		{
-			bool anAll = theCommand == 0x2774;
-			if (0x2773 < theCommand)
-			{
-				for (int i = 0; i < 7; i++)
-					mDebugRects[i] = anAll;
-				updateMenu();
-				return;
-			}
-			switch (theCommand)
-			{
-			case 0x2711:
-				mShowFPS = mShowFPS == 0;
-				updateMenu();
-				return;
-			case 0x2715:
-				mDebugTexts = mDebugTexts == 0;
-				updateMenu();
-				return;
-			case 0x2716:
-				mFlashRects = mFlashRects == 0;
-				updateMenu();
-				return;
-			case 0x2717:
-				mDebugScreens = mDebugScreens == 0;
-				updateMenu();
-				return;
-			case 0x2718:
-				mFullRedraw = mFullRedraw == 0;
-				updateMenu();
-				return;
-			}
-		}
-		else if (theCommand < 0x2afb)
-		{
-			if (theCommand == 0x2afa)
-			{
-				mDebug1EC = mDebug1EC == 0;
-				updateMenu();
-				return;
-			}
-			if (0x277d < theCommand)
-			{
-				if (theCommand < 0x2785)
-				{
-					mDebugRects[theCommand - 0x277e] = mDebugRects[theCommand - 0x277e] == '\0';
-					updateMenu();
-					return;
-				}
-				if (theCommand == 0x2af9)
-				{
-					mDebug1E8 = mDebug1E8 == 0;
-					updateMenu();
-					return;
-				}
-			}
-		}
-		else if (theCommand == 0x2afb && gGameScreen != nullptr)
-		{
-			gGameScreen->refresh();
-			updateMenu();
-			return;
-		}
-	}
-	else
-	{
-		switch (theCommand)
-		{
-		case 0x2afd:
-			mDebug1FC = mDebug1FC == 0;
-			updateMenu();
-			return;
-		case 0x2b02:
-			mSpecialMode = 0;
-			updateMenu();
-			return;
-		case 0x2b03:
-			mSpecialMode = '*';
-			updateMenu();
-			return;
-		case 0x2b04:
-			mSpecialMode = '?';
-			updateMenu();
-			return;
-		case 0x2b05:
-			mSpecialMode = '!';
-			updateMenu();
-			return;
-		case 0x2b06:
-			mSpecialMode = '(';
-			updateMenu();
-			return;
-		case 0x2b07:
-			mSpecialMode = '#';
-			updateMenu();
-			return;
-		case 0x2b08:
-			mSpecialMode = '^';
-			updateMenu();
-			return;
-		case 0x2b09:
-			mSpecialMode = ')';
-			updateMenu();
-			return;
-		case 0x2b0a:
-			mSpecialMode = '&';
-			break;
-		}
-	}
-	updateMenu();
 }
 
 // 0x402230
@@ -692,7 +549,7 @@ void BonniesApp::loadResources()
 			aBook++;
 		}
 		anEntry++;
-	} while (anEntry < gBooks + 50);
+	} while (anEntry < gBooks + LEVEL_COUNT);
 }
 
 // 0x402ee0
@@ -827,7 +684,7 @@ void BonniesApp::setState(int theState, int theLater, int theForce)
 void BonniesApp::init(int theWidth, int theHeight, int theFullScreen)
 {
 	mInited = 0;
-	mField218 = 0;
+	mRedrawCount = 0;
 	for (int i = 0; i < 8; i++)
 		mLoadImages[i] = 0;
 	gCaption = getText(0x49b);
@@ -850,12 +707,12 @@ void BonniesApp::init(int theWidth, int theHeight, int theFullScreen)
 	mLastGameState = 2;
 	mState = 0;
 	mDebugText = Str();
-	mDebug1E8 = 0;
-	mDebug1EC = 0;
+	mFreeMoves = 0;
+	mAnyWord = 0;
 	mPaused = 0;
 	mAutoPaused = 0;
 	mSpecialMode = 0;
-	mDebug1FC = 0;
+	mNoHints = 0;
 	for (int i = 0; i < 12; i++)
 		mFonts[i] = nullptr;
 	mScreen = nullptr;
@@ -1024,9 +881,6 @@ int BonniesApp::handleEvent(Event* theEvent)
 		}
 		break;
 	}
-	case 10:
-		menuCommand(theEvent->mA);
-		return 0;
 	case 0xb:
 		gQuit = 1;
 		break;

@@ -35,58 +35,58 @@ public:
 	FossilizedApp*		mApp;				// +0x58
 	Launcher*			mLauncher;			// +0x5c (0x401050)
 	FirePrompt*			mFirePrompt;		// +0x60 (0x431fc0)
-	int					mField64;			// +0x64 only saved and loaded (port: 0, where the original leaves it unset)
-	int					mField68;			// +0x68 306
-	int					mField6c;			// +0x6c 153
-	int					mField70;			// +0x70 250, the launcher's middle
-	int					mField74;			// +0x74 (352)
+	int					mSavedZero;			// +0x64 0 throughout (the original leaves it unset): saved and loaded, nothing reads it
+	int					mPlayWidth;			// +0x68 the play field's width between the walls (306)
+	int					mPlayHalfWidth;		// +0x6c half of it (153)
+	int					mPlayMiddleX;		// +0x70 the play field's middle x (250), the launcher's
+	int					mLineY;				// +0x74 the line the eggs must stay above (352)
 	int					mDifficulty;		// +0x78 1-3 (the side bar's skill picture)
 	int					mGameType;			// +0x7c (the side bar's mode picture; 2 shows its sixth button)
-	bool				mField80;			// +0x80
+	bool				mFireBlocked;		// +0x80 no shot can be fired (a round setting up, a cleared board, the tutorial's pauses)
 	Steggy*				mSteggy;			// +0x84 (0x437aa0)
 	Tank*				mTank;				// +0x88 (0x438400)
 	EggGrid*			mGrid;				// +0x8c (0x415770)
 	int					mClipRect[4];		// +0x90 where SetActive keeps the cursor (left, top, right, bottom)
-	int					mFieldA0;			// +0xa0 the window's left on the screen
-	int					mFieldA4;			// +0xa4 and its top
-	int					mFieldA8;			// +0xa8 the clip's middle
-	int					mFieldAc;			// +0xac the window's top + 400
-	bool				mFieldB0;			// +0xb0
+	int					mWindowLeft;		// +0xa0 the window's left on the screen (nothing reads it)
+	int					mWindowTop;			// +0xa4 and its top (nothing reads it)
+	int					mClipPointX;		// +0xa8 the clip's middle x (nothing reads it)
+	int					mClipPointY;		// +0xac the board's top + 400 (nothing reads it)
+	bool				mPlaying;			// +0xb0 a round is in play: the clock runs and Steggy tosses
 	bool				mInitialized;		// +0xb1 what the destructor frees
-	int					mFieldB4;			// +0xb4
+	int					mShotCount;			// +0xb4 the shots fired (the tutorial waits for the fourth)
 	PtrList<FlyingEgg>	mFlyingEggs;		// +0xb8
 	PtrList<Effect>		mEffects;			// +0xd0
 	PtrList<Effect>		mPopups;			// +0xe8 the points rising (0x4346a0)
-	bool				mField100;			// +0x100
-	int					mField104;			// +0x104
-	int					mField108;			// +0x108 (a leaving baby sets it to 20)
+	bool				mCeilingAtGoal;		// +0x100 the ceiling has eased down to mCeilingGoal
+	int					mCeilingGoal;		// +0x104 where the ceiling eases to, 5% of the way an update
+	int					mNextEggKind;		// +0x108 the kind the next egg gets (0 none; a leaving baby sets it to 20)
 	PtrList<PowerUp>	mPowerUps;			// +0x10c
 	int					mPowerUpAngle;		// +0x124 where on its circle the next power-up starts
-	int					mField128;			// +0x128
+	int					mPowerUpSpin;		// +0x128 the power-ups' turn, 0 to 359 degrees
 	int					mBonusBits;			// +0x12c 2, 4 and 8 double, triple and quadruple the points
-	bool				mField130;			// +0x130
-	bool				mField131;			// +0x131
-	bool				mField132;			// +0x132 (Draw calls slot 54 when it is set)
-	int					mField134;			// +0x134 (350)
-	int					mField138;			// +0x138
-	int					mField13c;			// +0x13c
-	int					mField140;			// +0x140 the alpha of a mode's "game over" (Panic)
+	bool				mLosing;			// +0x130 the eggs stayed past the line too long: Inchy sinks and the grid is pushed down
+	bool				mGameOver;			// +0x131 the eggs ran off the bottom: the game's end has begun
+	bool				mGameOverShown;		// +0x132 the end panel and its button are up (Draw calls slot 54)
+	int					mGameOverDelay;		// +0x134 the updates from mGameOver to the end panel (350)
+	int					mShakeX;			// +0x138 the board's shake in x, halved each update (only the constructor sets it, to 0)
+	int					mShakeY;			// +0x13c the board's shake in y, halved each update (60 at the game's end, -50 from a blast)
+	int					mGameOverAlpha;			// +0x140 the alpha of a mode's "game over" (Panic)
 	MenuTalker*			mTalker;			// +0x144 the large Inchy (Stomped's end)
-	bool				mField148;			// +0x148 (true)
-	bool				mField149;			// +0x149 (true)
+	bool				mCountsChains;		// +0x148 Chain counts the chains (true; false in Time Trial)
+	bool				mPastLineLoses;		// +0x149 eggs past the line can lose the game (true; false in Time Trial)
 	int					mChain;				// +0x14c (-1)
 	int					mPauseCount;		// +0x150
 	Thunderbolt*		mThunderbolt;		// +0x154 (slot 51)
-	int					mField158;			// +0x158 (the launcher's x from the middle)
-	int					mField15c;			// +0x15c (-1; the colour fired last)
-	int					mField160;			// +0x160 (-1)
+	int					mLauncherOffsetX;	// +0x158 the launcher's x from the middle (Stomped's puzzles move it): the egg piles follow it
+	int					mAvoidColor;		// +0x15c the colour fired last, which the next egg's pick avoids (-1: none)
+	int					mLastFiredColor;	// +0x160 the colour fired last (-1 before the first shot)
 	BinFile				mBinFile;			// +0x164
-	bool				mField16c;			// +0x16c
+	bool				mFiredThisRound;	// +0x16c a shot has been fired this round (the fire prompt shows until then)
 	int					mScoreRanks[20];	// +0x170 the scores past which mRank goes up
 	int					mRank;				// +0x1c0
 	bool				mRankChanged;		// +0x1c4
-	int					mField1c8;			// +0x1c8 (-480)
-	int					mField1cc;			// +0x1cc
+	int					mPanelTop;			// +0x1c8 the end panel's top, easing from -480 to 0
+	int					mPlayTicks;			// +0x1cc the hundredths of a second played
 	int					mLongestChain;		// +0x1d0
 	int					mBabies;			// +0x1d4 the babies hatched
 	HighScores*			mHighScores;		// +0x1d8 the mode's (made by its constructor)
@@ -94,9 +94,9 @@ public:
 	ButtonWidget*		mReplayButton;		// +0x204 the game's end's button (id 5)
 	char				mReplayText[0x30];	// +0x208 PLAY_THIS_PUZZLE_AGAIN
 	int					mSong;				// +0x238 the music the destructor fades out
-	int					mField23c;			// +0x23c
+	int					mSongOffset;		// +0x23c where mSong starts (FadeIn's offset; Panic 0x47, Time Trial 0x2b)
 	unsigned int		mStartTicks;		// +0x240 GetTickCount at construction
-	bool				mField244;			// +0x244
+	bool				mInputLocked;		// +0x244 the tutorial holds the aim, the shot and the fire prompt
 
 	Dynomite();								// 0x404030
 	virtual ~Dynomite();					// 0x4041e0
@@ -120,7 +120,7 @@ public:
 	void				AddPowerUp(int theKind);		// 0x4060c0
 	virtual void		GetPowerUpCenter(int* x, int* y);	// 0x404f30 (slot 43; empty)
 	// 0x404a70 (slot 45): an egg of a colour in the bottom ten rows, not the one fired last (else the board's
-	// +0x160, else any colour up to the highest placed)
+	// mLastFiredColor, else any colour up to the highest placed)
 	virtual Egg*		NextEgg();
 	// 0x407ac0 (slot 46): the launcher, the grid, the fire prompt, Steggy and Tank; the small Inchy rises
 	virtual void		Init(FossilizedApp* theApp, int theDifficulty);

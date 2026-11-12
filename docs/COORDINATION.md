@@ -1,307 +1,192 @@
 # Coordination: the coordinator's rules
 
-The user's rules for planning and running the work across sessions, which only the coordinator session acts on.
-CLAUDE.md keeps the rules every session follows and points here (the user, 2026-11-01: CLAUDE.md was "larger than I
-typically like").
+The user's rules for planning and running the work across sessions, which only the coordinator acts on. CLAUDE.md
+holds the rules every session follows; this file does not repeat them.
 
 ## Usage
 
-- **Weekly cap, a hard limit (the user, 2026-10-26; 2026-11-03; 2026-11-10):** when the account's weekly usage reaches
-  97% (all models, or the window of the model the sessions run on), work stops there: "I only need 3% usage in reserve
-  for the week" (2026-11-03). The coordinator starts no session, sends no "Begin" and sends no session on to a further
-  phase or step; it tells every session at work to commit what it has and end its turn, stops the turn of any that goes
-  on, and merges nothing that needs a suite run. The README refresh the user asked for at 97% is the one thing it still
-  does. It checks `mcp__ccd_session_mgmt__get_usage` hourly while sessions work (a cron job), warns the sessions at
-  95% to reach a commit, and checks again before every message that sends a session on. Merging and sending idle
-  sessions on after that refresh used the reserve once: "You ran up the usage all the way to 100% despite my 97% limit"
-  (the user, 2026-11-10).
-- **Effort (the user, 2026-10-27, a trial):** game sessions run at medium effort to save usage; the coordinator sets
-  it on every session it starts.
+- **Weekly cap, a hard limit (the user, 2026-10-26, 2026-11-03, 2026-11-10):** at 97% of the account's weekly usage
+  (all models, or the window of the model the sessions run on) work stops: "I only need 3% usage in reserve for the
+  week". The coordinator then starts no session and sends none on, tells every session at work to commit and end its
+  turn, and merges nothing that needs a suite run; the README refresh is the one thing it still does. It checks
+  `mcp__ccd_session_mgmt__get_usage` hourly while sessions work, warns them at 95%, and checks again before every
+  message that sends a session on ("You ran up the usage all the way to 100% despite my 97% limit", 2026-11-10).
+- **Flat out to the cap (the user, 2026-11-07):** the work runs at full pace up to that limit.
+- **Effort (the user, 2026-10-27, a trial):** game sessions run at medium effort to save usage.
 
 ## Sessions
 
-- **Directing sessions (the user, 2026-10-24):** the user tells the game sessions about game-specific changes;
-  the coordinator does not direct or check on them. A game session messages the coordinator when it needs it:
-  a shared change, a milestone ready to merge, or its mods finished. The coordinator
-  looks at a session's work only when the user asks, or when it breaks something for other sessions (shared
-  code, the trunk, the machine's test rules). It does message the sessions when the way they are instructed
-  changes (a new rule like this one), since a running session reads CLAUDE.md again only at its next start
-  or compaction.
-- **Model selection (the user's rule, decided after the Sonnet trial on 2026-10-25):** a game whose port can
-  largely copy another game's (the same framework generation and engine: Noah's Ark's for Seven Seas and Atomica,
-  BookWorm's for Pixelus and Typer Shark, Big Money's for Hammer Heads, Bejeweled's for Bejeweled 2, a sequel after
-  its first game) runs on Sonnet. A game that needs an engine or framework layer no port has yet (Bookworm
-  Adventures' PopLua and PopAnim, the Sprout engines, the non-SAF engines, Chuzzle, Twist, Bejeweled 3, Zuma's
-  Revenge) runs on Opus. Opus checks Sonnet where it showed deficits: before merging a Sonnet port, the coordinator
-  compares about ten translated functions with the decompilation, weighted to the largest and the most
-  loop-heavy, and sends the fixes back. A Sonnet session translates loops in their original shape (a
-  test-then-increment loop does not become a for loop), checks what a comment claims about the original before
-  writing it, and builds with AddressSanitizer at the first sign of a crash or memory corruption. If a Sonnet
-  game's review finds many faults, or its port runs far over its estimate, games of its kind move to Opus.
-- **The Fable experiment (the user, 2026-11-10 to 2026-11-11), ended:** every session ran on Fable 5.2 for an evening
-  ("ONLY use the new Fable 5.2. Use it for everything"). Its weekly window went from 0 to 92% in about two and a half
-  hours of eleven sessions, for 27 merges and $528 of work at API prices; the Opus and Sonnet week before took one whole
-  window over seven days for 142 merges and about $3,200. A phase cost about what it does on Sonnet in dollars, for
-  roughly a quarter of the tokens, and the passes found faults earlier ones had not; but a dollar of Fable work took
-  about three times the share of the all-models window. The user then switched the sessions back ("Yes, switch
-  back", 2026-11-11), so the model selection above is in force again. Fable is worth its window for judgement-heavy
-  work in short stretches, not for eleven sessions at once.
-- **Finished games' sessions are archived (the user, 2026-11-04):** to free the boot drive, the session of a game that
-  is done and identical is archived and its worktree removed. Every branch stays, and what only the worktree held goes
-  into the main checkout first: the game's Ghidra exports and analysis in `re/<game>/` (scratch folders left out) and
-  its baselines in `build/`. A later pass on such a game starts a fresh session from `main`, which copies its
-  `re/<game>/` in from the main checkout.
+- **What the coordinator does (the user, 2026-10-24, and since):** it relays the user's notes on a game to that game's
+  session in the user's words, sends sessions on through the phases below, merges their milestones, and messages them
+  when a rule changes (a running session reads CLAUDE.md again only at its next start or compaction). It looks into a
+  session's code only when the user asks or when the work breaks something for others.
+- **Model selection (the user, 2026-10-25):** a game whose port can largely copy another's (the same framework
+  generation and engine, or a sequel after its first game) runs on Sonnet; a game that needs an engine or framework
+  layer no port has yet (PopLua and PopAnim, the Sprout engines, the non-SAF engines, Chuzzle, Twist, Bejeweled 3,
+  Zuma's Revenge) runs on Opus. Before merging a Sonnet port the coordinator compares about ten translated functions
+  with the decompilation, weighted to the largest and most loop-heavy, and sends the fixes back; if a Sonnet game's
+  review finds many faults or its port runs far over estimate, games of its kind move to Opus. Fable 5.2 ran every
+  session for one evening (2026-11-10): a phase cost about what it does on Sonnet but took about three times the share
+  of the all-models window, so the sessions went back ("Yes, switch back", 2026-11-11). Fable suits short stretches of
+  judgement-heavy work, not many sessions at once.
+- **How many at once (the user, 2026-11-11):** "Too many sessions, some crashed. Set a comfortable limit". At most 8
+  sessions in a turn besides the coordinator ("Based on CPU and RAM usage it might be ok to run an extra session or
+  two"); a session idle while its own background run goes on does not count ("Only count active sessions"). Before
+  waking one the coordinator also checks the machine: under 6 GB free or over 80% of the commit limit means waiting.
+  The limit of 6 game processes (CLAUDE.md) holds for all of them, so more sessions mean longer waits for a game slot.
+  A session past the limit waits idle on a background wait for its own file (`until [ -f <main
+  checkout>/build/slots/<name>.go ]; do sleep 60; done; cat` the file), which the coordinator writes with any news
+  when a slot frees; that wake costs no message. A crashed session comes back only into a free slot.
+- **Finished games' sessions are archived (the user, 2026-11-04):** to free the boot drive, a done game's session is
+  archived and its worktree removed, after what only the worktree held (its `re/<game>/` exports and analysis, its
+  baselines in `build/`) is copied into the main checkout. A later pass reuses the archived session (unarchived, it
+  stays linked) or starts fresh from `main`.
 
 ## Publishing
 
-- **The SAF Extractor/Packer (the user, 2026-11-04):** "The Talismania decomp session should publish a working version
-  of the SAF Extractor/Packer. I forked the repo: https://github.com/allisonpelton/Popcap_.SAF_Extractor-Packer". So
-  when Talismania's turn comes, its session clones that fork (the user's OK for that download), makes the tool read and
-  write `.saf` archives correctly (the format is in `docs/POPCAP_GAMES_SURVEY.md`, "Talismania Deluxe"), keeps its
-  author's credit and license, and pushes the working version to the fork. That fork is the one place outside the
-  coordinator's snapshots that a session pushes to; byo-pop itself is never pushed by a game session.
+- **The SAF Extractor/Packer (the user, 2026-11-04):** when Talismania's turn comes, its session clones the user's
+  fork https://github.com/allisonpelton/Popcap_.SAF_Extractor-Packer (the user's OK for that download), makes it read
+  and write `.saf` archives correctly (`docs/POPCAP_GAMES_SURVEY.md`, "Talismania Deluxe"), keeps its author's credit
+  and licence, and pushes the working version to that fork: the one place a session pushes to.
 - **origrun and the framework as projects of their own (the user, 2026-11-08):** "Note publishing origrun and the
-  framework on SDL2 + wasm as a task to tackle at any point after the decomps are complete." Each becomes a repository
-  of its own with its own README. origrun (`tools/origrun`, with rundesk) needs its SexyApp-era assumptions said
-  plainly, its fixed paths to the repo and rundesk made options, and its protection handling left out, as
-  `.publishignore` does now. The framework (`framework/` and `platform/`) is published under PopCap's framework licence
-  (`framework/LICENSE.txt`) with nothing taken from a game. Not before every decomp is complete; any time after that.
+  framework on SDL2 + wasm as a task to tackle at any point after the decomps are complete." Each gets its own
+  repository and README: origrun with its SexyApp-era assumptions said plainly, its fixed paths made options and its
+  protection handling left out (as `.publishignore` does now); the framework (`framework/`, `platform/`) under PopCap's
+  framework licence with nothing taken from a game.
+- **Which games are published (the user, 2026-10-26):** every game may be decompiled except Plants vs. Zombies,
+  Insaniquarium and Zuma Deluxe, whose fan communities we leave to their work. A game with another PC decompilation in
+  progress or an active modding community is built but unpublished (its folder in `.publishignore`, off the website);
+  "web only" (Zuma's Revenge) keeps the folder in `.publishignore` but puts the game on the website. The "Published"
+  column of `docs/POPCAP_GAMES_SURVEY.md` section 2 says which.
 - Before each publish the coordinator checks the trunk for game files and game text.
 
 ## Which games, in what order
 
-- **New ports wait (the user, 2026-11-01):** "If we have to triage, Twist before identical gameplay on existing
-  decomps. No new decomps until all existing ones play identically, except ~trivial ones (the other Mahjong game is the
-  only one, I'm guessing)." The existing decompilations are every game ported so far. Twist's port and Ancient China's
-  are made; the bar for the rest has since risen to every current game's readability pass ("The readability pass
-  first").
-- **The ports still to make (the user, 2026-11-01):** "anything easier than Chuzzle can run in parallel, and anything
-  harder has to be done in sequence AFTER all easier games have been finished." By the survey's estimates
-  (`docs/POPCAP_GAMES_SURVEY.md` section 2, "The plan for the remaining games"), the easier ones still to start are
-  Venice, Heavy Weapon, Hammer Heads, and Pizza Frenzy with Iggle Pop and Feeding Frenzy after it (4x to 8x). Chuzzle
-  (~8-12x) starts the harder ones, then in the survey's order Feeding Frenzy 2 (~10x), Peggle Deluxe (~12x) and Peggle
-  Nights after it, Bejeweled 3 (~30x), Banana Bugs, Gyromancer, Zuma's Revenge (~35x) and Talismania (~12-16x after
-  Feeding Frenzy 2). They start after every current game's readability pass, the easier group side by side and the
-  harder ones two at a time after it (a game that builds on another's engine still after that game), each taken all the
-  way through (translation, both phases of identical play, the finishing items and its readability pass). Side by side
-  stands because the user dropped a one-at-a-time rule the day it was made (2026-11-08): "We'll nix the one-at-a-time
-  rule then. The idea behind it was it'd allow inefficient token usage to be spotted sooner, overall saving time, but
-  now we have a much better idea of procedure". Of the harder ones: "When we get to it, see if running two-by-two
-  causes issues. If not, continue with two". So the first pair is watched for trouble (two sessions' builds and runs on
-  the machine at once, the usage they take), and pairs go on unless it shows. A slot that the next game in the order
-  cannot use yet, because it waits on another game's engine, goes to the cheapest remaining game.
-- **Passes from the lowest effort up (the user, 2026-11-03):** "get going on identical play for more games. Start with
-  lowest effort." A pass runs in the game's own session where one fits, from the lowest survey estimate up, and a
-  session that finishes its phase frees its slot for the next game.
-- **What a phase two needs to merge (2026-11-03):** sound compared against the original, and the web build's pictures
-  compared, not just its log. Sound effects: origrun's `--sound wav` log on the host against the port's
-  BYOPOP_SOUNDLOG, as Alchemy did. Music a library mixes into one stream: that library's calls, logged by a stand-in
-  (games/bigmoney/tools/bassproxy for BASS, games/mummymaze/tools/fmodproxy for FMOD 3). Pictures: shots from the web
-  build under Node, shotdiffed against native. Each brief says so.
-- **Twelve at work, flat out, and three early ports (the user, 2026-11-07):** "No limit on concurrent sessions while
-  getting all current games to their finished state", run flat out to the 97% cap ("Flat out to the cap"). After 21
-  sessions at work filled the machine and two crashed: "Too many sessions, some crashed. Set a comfortable limit to
-  avoid this happening again." The limit is 8 sessions at work besides the coordinator (the user, 2026-11-11, after
-  12 had been set: "Resuming so many will probably cause more crashes. ... I'll tentatively say six"; later that day:
-  "Based on CPU and RAM usage it might be ok to run an extra session or two"), where at work means in a turn
-  or waiting on a run of its own. Each session's own process holds about 0.6 GB even while idle, and its builds,
-  decompiles, games and sandboxes come on top in bursts. Before waking one, the coordinator also checks the machine:
-  under 6 GB free, or over 80% of the commit limit, means waiting even below 6. A session past the limit waits idle
-  with nothing running, on a background wait for its own file (`until [ -f <main checkout>/build/slots/<name>.go ]; do
-  sleep 60; done; cat` the file). When a slot frees, the coordinator writes that file with any news for the session.
-  Such a wake costs no message (the app's limit of 10 since the user last typed). A crashed session comes back only
-  into a free slot. And "some of the remaining decomps are simple enough to run concurrently": Typer Shark, AstroPop
-  and Bejeweled 2 started beside the finishing work, an exception to "no new port until all are done". The rest of the
-  easier group waits as before.
-- **After every game is done: gamepads (the user, 2026-11-10):** "Once all games are done, I want to add native gamepad
-  support to every game. I also want to support the Wii Remote in particular." Not before; it is shared framework work
-  with a layout per game.
-- **The README's performance table (the user, 2026-11-10):** "Include in the readme a performance comparison table
-  including load time, CPU, and memory usage for every game", port against original, from each game's performance
-  numbers in its notes.
-- **Shared costs found by Typer Shark's performance pass (2026-11-11; its GAME_NOTES section 11, "Shared costs"):**
-  about a quarter of a load's processor time goes to GIFs, decoded to 32 bits (`_stbi__out_gif_code`, 13%) and
-  quantized back to 8 (`Sexy::Quantize8Bit`, 12%, a binary search for each pixel; a cache of the last colour gives the
-  identical table), 0.15 to 0.2 s of a 0.75 s load in any game with GIFs; SDL's software renderer, which
-  `DDInterface::Init` falls back to without a GPU, costs 10 to 13 ms a frame at 640x480 against 0.26 ms with
-  Direct3D 11; the Direct3D 11 device costs a process 20 to 25 MB and about 0.2 s of start; the framework keeps an
-  image's pixels after their upload (20.6 of this game's 85 MB); imagehlp.dll takes 7.6% of the load's cycles from a
-  call site not yet found. None is fixed yet.
-- **A shared cost found by Atomica's performance pass (2026-11-11):** `DDInterface::FillScanLines` hands every row to
-  SDL as its own rectangle. Atomica's tunnel sends about 21,000 a frame, which costs about 58 MB of private bytes in
-  the driver (under every renderer) and over a quarter of the game's processor time. Joining rows that touch could
-  halve them but may round a right edge differently at some window scales, so no fix is chosen yet; to test one,
-  `games/atomica/tools/profile/pairs.sh` for the figures and a screenshot every 40 updates of its scenarios s2, a1 and
-  g5 before and after for the pixels.
-- **A shared cost found by Twist's performance pass (2026-11-11):** in 2D each level-up's jump raises the port's
-  private memory by about 165 MB for about ten seconds (240 MB to 405 MB, the original flat at 185 MB). It is not the
-  game's heap (22 MB in blocks of 64 KB and more) and belongs to no module, so it is allocated beneath the game while
-  the jump's software-drawn frames are uploaded. To find it: hook malloc with a --wrap link, or count texture
-  creations in the display layer during a jump; `bejeweledtwist.exe -nod3d9 -fast -autoplay=classic -seed=1234` under
-  its perfmin.py reaches the jump at about update 4000 to 5700.
+- **Order of the work on the merged games (the user, 2026-11-01, 2026-11-07, 2026-11-08):** each game is taken
+  through CLAUDE.md's steps ("Order of the work", "Done means identical"): the user's faults and anything that makes it
+  hard to test; phase one, plays identical; phase two, looks identical, with registration and every button that leads
+  out of the game removed; its fixes mod; the coverage check; the performance pass; the other code it does not need
+  taken out; the readability pass; for a game ported only from its Steam copy, the check against its PopCap Game
+  Collection version (the user's ISO in their Downloads folder), its build working with that version's files too (also
+  for a game ported from another copy when the Collection's is another build: BookWorm's and Word Harmony's Collection
+  exes differ from their retail ones, so players with the Collection need the check, 2026-11-11; where every file
+  matches, as Ning Po's and Water Bugs' exes do by size, the check is that comparison and one port run; the ISO's
+  file groups are `<Title>Component`, listed with `E:/retools/unshield-build/unshield.exe g data1.cab`); and
+  its features on the site. The registered original is the reference for every comparison; each removal is listed in
+  the game's notes and proved by its frozen baseline, and how a protection was taken apart stays in private blocks.
+- **What a phase two needs to merge (2026-11-03):** sound compared against the original (origrun's `--sound wav` log
+  against the port's BYOPOP_SOUNDLOG; music a library mixes, through that library's stand-in: games/bigmoney/tools/
+  bassproxy for BASS, games/mummymaze/tools/fmodproxy for FMOD 3), and the web build's pictures, shotdiffed against
+  native, not just its log. Each brief says so.
+- **Done means every phase but modding (the user, 2026-11-08, 2026-11-11):** a game is done, and may go on the live
+  site, only after every step above, its features on the site included: its tunes placed, grouped and split in Music,
+  and its soundboard's presets ("All these accessory features should be added to our definition of done"). The site
+  session builds those and the game's session answers its questions. The games done on 2026-12-31 go live then (the
+  site going public is still the user's word); the rest follow when done. Modding waits: new mods and the changes in
+  `docs/MOD_ROADMAP.md`.
+- **The ports still to make (the user, 2026-11-01, 2026-11-08):** none starts until every current game has had its
+  readability pass ("Move up readability passes to come before additional decomps"). Then the easier ones side by side
+  (by `docs/POPCAP_GAMES_SURVEY.md` section 2: Venice, Heavy Weapon, Hammer Heads, then Pizza Frenzy with Iggle Pop and
+  Feeding Frenzy after it), and the harder ones from Chuzzle two at a time, in the survey's order (Feeding Frenzy 2,
+  Peggle Deluxe and Peggle Nights, Bejeweled 3, Banana Bugs, Gyromancer, Zuma's Revenge, Talismania after Feeding
+  Frenzy 2), each taken all the way through. The first pair is watched for trouble: "When we get to it, see if running
+  two-by-two causes issues. If not, continue with two". A game that builds on another's engine waits for that game; a
+  slot the next game cannot use yet goes to the cheapest remaining one. Within a step, the lowest-effort games go first
+  ("Start with lowest effort", 2026-11-03).
+- **The readability pass (the user, 2026-11-08, 2026-11-10):** "NO unknown/unnamed variables." Bejeweled set the
+  standards, Twist tested them, and the user approved them ("new standards approved"): `docs/CODE_STANDARDS.md`, with
+  `tools/namecheck.py` to prove "no unknowns" by a run. A readable port changes nothing it does and keeps each
+  function's address for the coverage check.
+- **A coverage check after the identical-play passes (the user, 2026-11-02: "Queue it"):** which of the original's
+  functions the comparison runs reach, and whether the port has each export function's counterpart, named by its
+  address; a function no run reaches is read against the export or given a run that reaches it (`docs/COVERAGE.md`).
+  reccmp, which the user asked about, does not fit: it scores code rebuilt with the original compiler.
+- **A performance pass before the readability pass (the user, 2026-11-03):** "There's got to be a few things to speed
+  up in most games." Each original and its native port are measured over the same scripted play (the original through
+  origrun under rundesk; the port as `games/bejeweled/docs/PROFILE.md` and `tools/profile` do it: working set, private
+  bytes, processor time and where it goes), and the web build's memory and frame time; on a busy machine, per-thread
+  cycle counters (QueryThreadCycleTime) and alternating runs, and the coordinator gives a measuring slot when few game
+  processes run. Then the session speeds up what the profile shows, natively and on the web: how the port works
+  changes, never what it does, proved by the frozen baseline. One that changes what the player sees is a toggle in the
+  fixes mod when it keeps the original's look and only stops wasting time, otherwise a mod of its own that starts off
+  (like Bejeweled's `lean`). No threads. A session may speed up its own port at any time under these rules ("Sessions
+  should be allowed to improve performance early on so they can test with -fast and run even faster", 2026-11-08).
+  Shared costs are found once and fixed in the framework for every game; the list below holds them.
+- **Shared costs waiting for a fix:**
+  - Loading GIFs: decoded to 32 bits (`_stbi__out_gif_code`) and quantized back to 8 (`Sexy::Quantize8Bit`, a binary
+    search a pixel; a cache of the last colour gives the identical table), about a quarter of a load's processor time,
+    0.15 to 0.2 s of a load in any game with GIFs (Typer Shark, AstroPop, GAME_NOTES section 11).
+  - imagehlp.dll, 5 to 7.6% of a run's cycles, from a call site not yet found (Typer Shark, AstroPop).
+  - Memory: the Direct3D 11 device (20 to 25 MB and about 0.2 s of start); every image's pixels kept after upload (19
+    MB of Bejeweled's 55, 20.6 of Typer Shark's 85); about 54 MB in every process before it reads a game file;
+    libopenmpt decoding a module whole (51 MB of Ancient Japan's 146), and an OGG tune the same (Ning Po's 5.6 MB),
+    where a streaming render would hold one buffer; Mahjong Escape's engine keeping each image's decoded bits beside its 32-bit copy.
+  - A memory jump beneath the heap: Twist's 2D level-up raises private memory by about 165 MB for ten seconds (the
+    original flat), AstroPop's game start by about 60 MB for a few seconds, so it is likely the display layer. Count
+    texture creations there in the first second of an AstroPop game, or hook malloc with a `--wrap` link.
+  - `DDInterface::FillScanLines` sends every row to SDL as its own rectangle: about 21,000 a frame in Atomica's tunnel,
+    about 58 MB in the driver and over a quarter of the game's processor time. Joining rows that touch may round a
+    right edge differently at some scales; test with `games/atomica/tools/profile/pairs.sh` and a shot every 40
+    updates of its scenarios s2, a1 and g5.
+  - SDL_RenderPresent, a driver cost per presented frame (69% of Alchemy's main thread); only a frame cap would cut
+    it, a visible change, so a mod. The whole-screen SDL_UpdateTexture of a software-drawn game (7% of Alchemy's main
+    thread): uploading only a MemoryImage's changed rectangle would cut it. SexyApp::Init's window and device, 250 to
+    310 ms of Noah's Ark's 0.6 s start (no threads, so no fix found). SDL's software renderer, the fallback without a
+    GPU, 10 to 13 ms a frame at 640x480 against 0.26 ms with Direct3D 11. A partial upload helps a game whose dirty
+    rectangle is most of the screen little (87% on Cosmic Bugs' board); a streaming or 16-bit texture would cut the bytes.
+    In Word Harmony the frame's present is about 35% of what is left after its pass (the whole 1.9 MB screen picture
+    to a static texture, then the copy to the target and the window); SDL's other drivers cost the same or more. A
+    rectangle upload fed by a list of changed rectangles the game gives the screen image would help it; test with its
+    `tools/profile/pair.sh` against the original (2026-11-11).
+  - `SexyAppBase::PollLiveCommands` stats the `-commands` file every 10 ms update, about 0.34 M cycles a call: an eighth
+    of the main thread in a run that uses the channel (`-commands`, `-realinput`), and every update under `-fast`. Poll
+    every tenth update or on a change notification; any suite that uses the channel must give the same results (Cosmic
+    Bugs, 2026-11-11).
+  - A cycle-weighted EIP sampler charges a thread's bursts to the wait it stands in (54% of Cosmic Bugs' cycles on
+    `ZwWaitForSingleObject`); timers around the calls with `QueryThreadCycleTime` find the real split. Cosmic Bugs'
+    `tools/perf/cpuprof.py` has `CALLERS=1` (the exe function and the DLL on the stack).
+  - For profiles, `tools/profile/callprof.py` puts 86% of samples in ntdll whatever the thread does; per-thread cycle
+    counters are the way.
 - **Memory broken down, and a software path to test (the user, 2026-11-11):** "I'd want the more granular performance
-  reports then": every game's memory split into libraries, sound, graphics and game state, for the port and where it can
-  be read for the original, in the README's performance table. The framework answers a standard `memreport` test command
-  (pictures, sounds and music by their bytes, the process's totals, and what it held before reading a game file), and a
-  tool walks a process's memory regions (libraries, heap, mapped files), which works on an original too. "Software path
-  sounds interesting for a test, at least": measure a port drawing through SDL's software renderer with no Direct3D
-  device against the default (memory before any file, at the title and in play; processor time; frame time at the
-  game's size and full screen at 4K; the same pictures). A test only: no default changes without the user.
-- **Reports from the user's test notes:** each goes to its game's session with its next brief, in the user's words,
-  and the session writes in its notes whatever it cannot fix. From the notes cleared on 2026-11-04: Bookworm
-  Adventures, "Sound effects seem to come about a second after they should" (its pass found every sound at the
-  original's update natively, so check the web build, where the user plays), and its smashed tile "looks wrong"
-  (`testnotes/images/bookwormadv-smashed-tile.png`; never compared with that screenshot); every game, "In fullscreen
-  the original freezes while it does not have the focus; the port keeps running" (`docs/FRAMEWORK_2004.md` on the
-  focus; each phase two's focus check covers it, natively in full screen); Cosmic Bugs' yellow flicker and offset
-  digits at a second launch were not reproduced (its IDENTICAL_PLAY.md says how it was looked for). From the notes of
-  2026-11-07: Bejeweled Twist, the resolution cannot be changed, quitting from the pause menu makes the menu vanish
-  instead of shrinking, the board reappears on quit, natively Classic shows a black screen (full screen), Zen's
-  background is missing, and the patch on the user's Steam original misaligns the cursor and pillarboxes the window;
-  Bookworm Adventures and Volume 2, every minigame ends in a Lua error ("Expected boolean in LuaClassRet")
-  with no restart, and the sound stops after a focus loss just after a chapter boss; Volume 2 also lags while the
-  curtains move, lacks Word Up's submit button natively, and its rainbow tiles never form a word; Bonnie's Bookstore,
-  the site's player name is not filled in, and the music is missing or far too quiet; shared, late sound in every web
-  build; the site, Twist's cursors listed apart from the others, Ning Po's volume slider dragging the window, chat with
-  game icons that can sit right of the game, keep its collapser's size and fill the space below the game, a true footer
-  with a one-sentence copyright notice, a pixel-perfect option, explicit state machines, and, last, ideas for original
-  selectable skins in the spirit of PopCap and the web around 2010.
-- **Plays identical first, for every game (the user, 2026-11-01):** identical play is two phases, "plays identical"
-  and "looks identical" (CLAUDE.md). "Current games can still do both, but for remaining ones to review get all of them
-  playing identical first." Every game not yet reviewed gets the first phase, and second phases start only once every
-  game plays identical. "If a series of games play out the same in the original and port then the first phase should be
-  considered done."
-- **Order of the work on the merged games (the user, 2026-11-01):** "once all issues I mentioned are fixed, move on
-  down through the game list. Once all games are done, then we can do code quality/readability, and finally figure out
-  what code does not need to be present in the decomps (mostly registration, but other things are likely to turn up as
-  well)." So first every fault the user reported, in every game, and anything that makes a game hard to test; then the
-  identical-play pass above, game by game; then a readability pass to the project's code standards
-  (`docs/CODE_STANDARDS.md`), which comes before any further decomp (below, "The readability pass first"); then, game
-  by game (below, "Done means every phase but modding"), the coverage check and a performance pass (both below); last,
-  taking out the other code the ports do not need. Registration code (trial, nag and unlock paths: "It is misleading
-  and adds unnecessary bloat") moved up (the user, 2026-11-07: "Move up the removal of all registration-related code to
-  be part of the current phase before beginning other decomps"). Each game takes it out before its final merge, as part
-  of being finished, and no further decomp begins until every current game has; a port not yet translated leaves it out
-  as it translates. The port plays as the registered original does, which stays the reference for every comparison.
-  What goes is the code only an unregistered or trial copy reaches: the trial's clocks and counters, nags, the
-  register, unlock and buy dialogs and their code checks, expiry, and the strings, images and registry values only
-  those use. A button or menu item that exists only for them goes too, its neighbours closing the gap as below. Each
-  removal is listed in the game's notes, with a word on any visible change, and the frozen baseline proves play
-  unchanged (how a protection's own checks were taken apart stays in private blocks). Every button that leads out of a
-  game comes out in the same phase (the user, 2026-11-07, asked whether it should come out now too: "Yes, now too"),
-  "More Games" first (asked earlier that day whether it might open the site's listing: "Remove the button entirely, as
-  requested in the past. Other buttons can be resized to avoid the appearance of a gap"), with the buttons beside it
-  widened or moved to close the gap, and the code and images only it used go with it. The game's regression check
-  proves each step leaves play unchanged. All of it comes before the website is ready. So does one more step (the user,
-  2026-11-01; since 2026-11-08 part of each game's own finishing): each game ported only from its Steam copy is
-  compared with its version on the PopCap Game Collection disc (the user's ISO in their Downloads folder), and its
-  build must work with that version's files too. Planned alongside the website (the user, 2026-11-01): an installer
-  that puts a native port beside its Steam original, started by a launch option, SMAPI-style (`docs/STEAM_LAUNCH.md`).
+  reports then": every game's memory split into libraries, sound, graphics and game state, for the port and where
+  possible the original, in the README's performance table (port against original: load time, processor time and
+  memory, 2026-11-10). The framework answers a standard `memreport` test command, and a tool walks a process's memory
+  regions, which works on an original too. "Software path sounds interesting for a test, at least": a port drawing
+  through SDL's software renderer with no Direct3D device, measured against the default; no default changes without
+  the user.
+- **After every game is done: gamepads (the user, 2026-11-10):** "Once all games are done, I want to add native gamepad
+  support to every game. I also want to support the Wii Remote in particular." Shared framework work with a layout per
+  game. Also then: an installer that puts a native port beside its Steam original, started by a launch option
+  (`docs/STEAM_LAUNCH.md`).
 <!-- private -->
-- **Building the web port in the browser (the user's test notes, moved here 2026-11-04):** "I'm starting to feel more
-  open to trying to build the WASM version in the browser (either saving it to localStorage or to a connected Google
-  Drive) to completely avoid infringement. Let's try it on the simplest possible game and see how long it takes to
-  build in the browser and how much work it adds for each game." Not started; it belongs with the work before the
-  website is ready.
+- **Building the web port in the browser (the user, 2026-11-04):** "Let's try it on the simplest possible game and
+  see how long it takes to build in the browser and how much work it adds for each game", saving to localStorage or a
+  connected Google Drive, to avoid any infringement. Not started; it belongs with the work before the website is ready.
+  Drive (read on 2026-11-11, developers.google.com): the `drive.appdata` scope gives a hidden folder that only the site
+  can read, which cannot be shared, and which Google deletes when the player removes the site from their Drive;
+  `drive.file` reaches only the files the site made or the player picked. Both are non-sensitive scopes: no security
+  assessment, no user cap, no fee. The page talks to Drive itself, so nothing passes through the site's servers. Showing
+  the site's name and logo on Google's consent screen takes brand verification (free, two or three business days): the
+  domain proved in Search Console, a homepage anyone can open, a privacy policy on that domain saying how Google data is
+  used. The broad `drive` and `drive.readonly` scopes are restricted and need a paid security assessment; never ask for
+  them. The files count against the player's own quota (15 GB free).
 <!-- /private -->
-- **The readability pass first (the user, 2026-11-08):** "Move up readability passes to come before additional
-  decomps. In-progress decomps can continue, but for the remaining games, I want to tackle them in full
-  one-at-a-time. Part of the readability pass: NO unknown/unnamed variables. Use one game to set the full standards
-  for what constitutes readable and see that they actually make sense." (The one-at-a-time part was dropped the same
-  day: "Which games, in what order".) Bejeweled Deluxe set the standards (`docs/CODE_STANDARDS.md`, with a checker in
-  `tools/` that finds unnamed identifiers, so a pass proves "no unknowns" by a run instead of by eye), Bejeweled Twist,
-  the largest port, tested them on a more complex game, and the user approved them on 2026-11-10 ("new standards
-  approved"). Each finished game takes its pass in its own session, a readable port changing nothing it does (its
-  frozen baseline, and the oracle for Bejeweled), and keeping each function's address so the coverage check can still
-  pair it with the export.
-- **A coverage check after the identical-play passes (the user, 2026-11-02: "Queue it").** What our comparisons miss
-  is a slip in code no comparison run reaches: options, rare branches, error paths. So each game gets a coverage check
-  once it plays identical: which of the original's functions its comparison runs reach, and for each function in our
-  Ghidra export, whether the port has its counterpart, named by its address. A function the runs never reach is read
-  against the export or given a run that reaches it. `docs/COVERAGE.md` has the tool (origrun's `--coverage` and
-  `tools/coverage.py`) and the steps ("A game's whole check"). reccmp, the matching-decompilation tool the user asked
-  about, does not fit: it scores how closely code rebuilt with the original compiler reproduces the exe's
-  instructions, and our ports are built by clang and Emscripten on a portable framework.
-- **A performance pass before the readability pass (the user, 2026-11-03):** "Slot in performance passes for the games
-  before readability passes. There's got to be a few things to speed up in most games." It comes after the coverage
-  check. First each original and its native port are measured over the same scripted play, on a quiet machine (no
-  passes running): the original through origrun under rundesk, the port as Bejeweled's was
-  (`games/bejeweled/docs/PROFILE.md`, `tools/profile`: working set, private bytes, processor time and where the time
-  goes), and the web build's memory and frame time in a browser. Then each game's session speeds up what the profile
-  shows, natively and on the web. A speed-up changes how the port works, never what it does: the same draws, the same
-  random numbers, the same screens, proved by the game's frozen baseline. One that changes what the player sees is a
-  mod: a toggle in the game's fixes mod, on by default on the site, when it keeps the original's look and only stops
-  wasting time, and otherwise a mod of its own that starts off, like Bejeweled's `lean` with its fewer frames
-  (`docs/MOD_ROADMAP.md`, "The fixes mod"). No game's code is made multithreaded (CLAUDE.md, "Uncapped, one core
-  each"). Shared costs (the framework's drawing, the mixer, image loading) are found once and fixed in the framework
-  for every game. Each game's notes record its numbers before and after. A session need not wait for the pass to speed
-  up its own port (the user, 2026-11-08: "Sessions should be allowed to improve performance early on so they can test
-  with -fast and run even faster"): a speed-up that makes its `-fast` runs quicker may come at any time, under these
-  rules, and is listed in its notes with the numbers.
-  Shared costs found so far, waiting to be fixed once for every game: SDL_RenderPresent, a driver cost per presented
-  frame under every renderer (69% of Alchemy's main thread, 85-90% of a `-fast` Bejeweled game's cycles with making the
-  device; it swings 0.4-2.2 G cycles a minute between plays of one build, so only alternating runs compare). Frames
-  almost never repeat, so only a frame cap would cut it, and that is a visible change, a mod. The whole-screen
-  SDL_UpdateTexture of a software-drawn game (7% of Alchemy's main thread, about 1 G cycles a minute in Mahjong
-  Escape): uploading only a redrawn MemoryImage's changed rectangle, or a streaming texture, would cut it
-  (games/alchemy/docs/GAME_NOTES.md section 8). SexyApp::Init's window and graphics device take 250-310 ms of Noah's
-  Ark's 0.6 s start; creating the device on another thread is ruled out (no threads), and showing the window before
-  the device is made only moves the wait. The framework keeps every image's pixels after upload, 19 MB of Bejeweled's
-  55 MB (the original: 36 MB), and Mahjong Escape's engine keeps each image's decoded bits beside its 32-bit copy.
-  Every game's process holds about 54 MB before it reads a game file. libopenmpt decodes a module whole (51 MB of
-  Ancient Japan's 146 MB private), where a streaming render would hold one buffer. For profiles,
-  tools/profile/callprof.py puts 86% of samples in ntdll whatever the thread does; per-thread cycle counters
-  (QueryThreadCycleTime) are the way (games/mahjongjapan GAME_NOTES, "Performance").
-- **Done means every phase but modding (the user, 2026-11-08):** "I've decided I want to go through every phase
-  except modding before a game can be considered done and ready for the live site, and just publish whatever games are
-  ready by the end of December. I'm in no hurry to get games out in a less-than-stellar state." A game is done only once
-  it has had every step: the user's faults fixed; both phases of identical play, with the real-input play of CLAUDE.md
-  ("Done means identical"); registration and the buttons that lead out of the game removed; its fixes mod; the
-  readability pass; the coverage check; the performance pass; the other code it does not need taken out; and, for a
-  game ported from its Steam copy, the check against its PopCap Game Collection version; and its features on the site:
-  its tunes placed, grouped and split in Music, and its soundboard's presets (the user, 2026-11-11: "All these
-  accessory features should be added to our definition of done"). The coverage check and the
-  performance pass are steps of each game's own finishing, in the order above where a game has not begun its
-  readability pass (coverage, then performance, then readability, as the user ordered on 2026-11-03), and after it for
-  the pilots. A performance measurement needs a quiet machine, so the coordinator gives each game a measuring slot when
-  few game processes run. Modding is what waits: new mods and the changes listed in `docs/MOD_ROADMAP.md`; the fixes
-  mod is not modding here, since the site serves every game with it on. On the last day of December 2026 the games that
-  are done go on the live site (the site going public is still the user's word), and the rest follow when each is done.
-- **The site (the user, 2026-11-02 to 2026-11-09):** what the user asks for while testing is done when asked. The chat
-  is built as a test with made-up messages; its real version waits for funding. Desktop 95 is the site's only look
-  ("I've basically completely lost interest in the skins that aren't Windows 95", and later that day: "drop the alt
-  skins, including the plain one", 2026-11-09): new site work is built and checked in Desktop 95 alone. Its pixelated
-  text waits for a pixel font drawn for the project (the user, 2026-11-08: "Draw our own later"): browsers draw only
-  TrueType and OpenType, so the skin's "MS Sans Serif" comes out as the smooth Microsoft Sans Serif, and Microsoft's
-  font itself is never shipped. An XP look, and perhaps Vista's, waits until the site works as the user wants it (the
-  user, 2026-11-09: "it would be once all the site functionality is exactly as I want it"): each a second style of the
-  same desktop, as XP's own Display settings offered the XP style or the Classic one for the same windows. The
-  desktop's behaviour is first parted from the 95 look (the code tests for "d95" where it means the desktop), then each
-  style is its own paint, controls and icons of our own drawing; Vista's glass is measured against the frame time of
-  games in other windows. The coordinator's guess on 2026-11-09: $30-60 for the parting, $100-150 for XP, $150-200 for
-  Vista.
-- **Which games, and where they are published (the user, 2026-10-26):** every game may be decompiled except Plants vs.
-  Zombies, Insaniquarium and Zuma Deluxe, whose fan communities we leave to their work. A game with another PC decompilation in
-  progress or an active modding community is built but unpublished: its folder goes into `.publishignore` and it stays
-  off the website. The "Published" column of `docs/POPCAP_GAMES_SURVEY.md` section 2 ("The plan for the remaining
-  games") says which; "web only" (Zuma's Revenge, the user 2026-10-26) keeps the folder in `.publishignore` but puts
-  the game on the website.
+
+## The site
+
+- What the user asks for while testing is done when asked; each note is tracked until a merge ships it. Desktop 95 is
+  the only look ("drop the alt skins, including the plain one", 2026-11-09), and new site work is built and checked in
+  it alone. Its pixel text waits for a font drawn for the project ("Draw our own later", 2026-11-08); Microsoft's font
+  is never shipped. XP and perhaps Vista styles of the same desktop wait until "all the site functionality is exactly as
+  I want it" (2026-11-09). The chat is a test with made-up messages; its real version waits for funding.
 
 ## Mods
 
-- **A goal for Twist when modding resumes (the user, 2026-11-03):** "a goal for Twist: produce a TAS that scores >5.1
-  million in Blitz mode and save a replay of it that can be recorded and uploaded. This is likely to require a lot of
-  strategizing." It waits, like every mod, until the decompilations are finished.
-
-- **No new mods unless requested (the user, 2026-10-30):** "no new mods for anything unless someone requests it."
-  There is no mod phase that goes through a list: the 29 standard mods in `docs/MOD_ROADMAP.md` and each game's listed
-  ideas become the first entries of a feedback page the website will have for each game, where players suggest mods
-  and vote on them, and the user decides which to make ("Implementation of the mod could even be automated based on a
-  comment getting enough upvotes (and my approval, of course)."). Fixes and suggestions for the mods that already
-  exist are noted in `docs/MOD_ROADMAP.md` ("The user's notes on the mods that exist") and wait until every
-  decompilation is finished.
-- **The fixes mod (the user, 2026-11-04):** the site will serve each game with one mod of fixes on by default, each
-  fix a toggle in it, and the player can turn single fixes or the whole mod off for the original as it was
-  (`docs/MOD_ROADMAP.md`, "The fixes mod"). With it on, a game plays the same on every run (no 15-update jumps as in
-  Twist's original); memory leaks stay fixed in the port itself. A game is done only once its fixes mod is made; until
-  then a session that finds a fix lists it in its game's notes under "Fix candidates".
+- **No new mods unless requested (the user, 2026-10-30):** "no new mods for anything unless someone requests it." The
+  standard mods and each game's ideas in `docs/MOD_ROADMAP.md` become the first entries of each game's feedback page on
+  the website, where players suggest and vote and the user decides ("Implementation of the mod could even be automated
+  based on a comment getting enough upvotes (and my approval, of course)."). Fixes for the mods that exist wait in
+  `docs/MOD_ROADMAP.md` until every decompilation is finished. The fixes mod is not modding: `docs/MOD_ROADMAP.md`,
+  "The fixes mod".
+- **A goal for Twist when modding resumes (the user, 2026-11-03):** "produce a TAS that scores >5.1 million in Blitz
+  mode and save a replay of it that can be recorded and uploaded."

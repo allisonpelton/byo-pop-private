@@ -36,7 +36,7 @@ public:
 	Cell*        mPicScrollbuttons_c1;                    // +0x1280
 	Pic*         mPicIntroscreen;                         // +0x1284
 	Pic*         mPicWizardgraphics;                      // +0x128c
-	Cell*        mPicWizardgraphics_r1290;                // +0x1290
+	Cell*        mPicNewGameIcon;                // +0x1290
 	Cell*        mPicWizardgraphics_c8;                   // +0x1294
 	Cell*        mPicWizardgraphics_c7;                   // +0x1298
 	Cell*        mPicWizardgraphics_c0;                   // +0x129c
@@ -46,22 +46,20 @@ public:
 	Cell*        mPicWizardgraphics_c4;                   // +0x12ac
 	Cell*        mPicWizardgraphics_c5;                   // +0x12b0
 	Cell*        mPicWizardgraphics_c6;                   // +0x12b4
-	Cell*        mPicWizardgraphics_r12b8;                // +0x12b8
-	Cell*        mPicWizardgraphics_r12bc;                // +0x12bc
-	Cell*        mPicWizardgraphics_r12c0;                // +0x12c0
-	Cell*        mPicWizardgraphics_r12c4;                // +0x12c4
-	Cell*        mPicWizardgraphics_r12c8;                // +0x12c8
-	Cell*        mPicWizardgraphics_r12cc;                // +0x12cc
-	Cell*        mPicWizardgraphics_r12d0;                // +0x12d0
+	Cell*        mPicPanicIcon;                // +0x12b8
+	Cell*        mPicNextButton;                // +0x12bc
+	Cell*        mPicNextButtonOver;                // +0x12c0
+	Cell*        mPicBackButton;                // +0x12c4
+	Cell*        mPicBackButtonOver;                // +0x12c8
+	Cell*        mPicPlayButton;                // +0x12cc
+	Cell*        mPicPlayButtonOver;                // +0x12d0
 	Pic*         mPicInchylarge;                          // +0x12d4
 	Cell*        mInchyLargeCells[2];                        // +0x12d8 inchylarge_c0..c1
 	Pic*         mPicInchylargemouth;                     // +0x12e0
 	Cell*        mInchyLargeMouthCells[4];                   // +0x12e4 inchylargemouth_c0..c3
 	Pic*         mPicWelcomescreen;                       // +0x12f4
-	Cell*        mPicWelcomescreen_r12f8;                 // +0x12f8
-	Cell*        mPicWelcomescreen_r12fc;                 // +0x12fc
-	Cell*        mPicWelcomescreen_r1300;                 // +0x1300
-	Cell*        mPicWelcomescreen_r1304;                 // +0x1304
+	Cell*        mPicWelcomeSign;                 // +0x12f8
+	Cell*        mPicStartNewGameSign;                 // +0x1304
 	Pic*         mPicCheckboxunchecked;                   // +0x1308
 	Pic*         mPicCheckboxchecked;                     // +0x130c
 	Pic*         mPicSlider;                              // +0x1310
@@ -72,18 +70,18 @@ public:
 	Pic*         mPicInchysmallmouthsheet;                // +0x132c
 	Cell*        mInchyMouthCells[4];                        // +0x1330 inchysmallmouthsheet_c0..c3
 	Pic*         mPicSidebarbuttons;                      // +0x1340
-	Cell*        mPicSidebarbuttons_r1344;                // +0x1344
-	Cell*        mPicSidebarbuttons_r1348;                // +0x1348
-	Cell*        mPicSidebarbuttons_r134c;                // +0x134c
-	Cell*        mPicSidebarbuttons_r1350;                // +0x1350
-	Cell*        mPicSidebarbuttons_r1354;                // +0x1354
-	Cell*        mPicSidebarbuttons_r1358;                // +0x1358
+	Cell*        mPicMenuButton;                // +0x1344
+	Cell*        mPicMenuButtonOver;                // +0x1348
+	Cell*        mPicOptionsButton;                // +0x134c
+	Cell*        mPicOptionsButtonOver;                // +0x1350
+	Cell*        mPicExitButton;                // +0x1354
+	Cell*        mPicExitButtonOver;                // +0x1358
 	Pic*         mPicSkillsheet;                          // +0x135c
 	Cell*        mSkillCells[7];                             // +0x1360 skillsheet_c0..c6
 	Pic*         mPicPausebuttons;                        // +0x137c
 	Cell*        mPauseCells[6];                             // +0x1380 pausebuttons_c0..c5
-	Cell*        mPicPausebuttons_r1398;                  // +0x1398
-	Cell*        mPicPausebuttons_r139c;                  // +0x139c
+	Cell*        mPicMuseumButton;                  // +0x1398
+	Cell*        mPicMuseumButtonOver;                  // +0x139c
 	Pic*         mPicLeftwall;                            // +0x13a0
 	Pic*         mPicRightwall;                           // +0x13a4
 	Pic*         mPicMenuoverlap;                         // +0x13a8
@@ -238,9 +236,8 @@ public:
 	int          mSkill;                                  // +0x1084 1 normal, 2 hard, 3 expert
 	int          mFossilKind;                             // +0x1088 the fossil challenge: 0 strategic, 1 panic
 	int          mGameMode;                               // +0x108c 1 stomped, 2 endless, 3 fossil, 4 time trial
-	int          mField1090;                              // +0x1090 the puzzle list's chosen pack
+	int          mChosenPack;                              // +0x1090 the puzzle list's chosen pack
 	bool         mInTutorial;                             // +0x1094 (the menu button goes straight to the main menu)
-	int          mField4d8;                               // +0x4d8 the framework's: games that lasted a minute (the trial's screens compare it)
 	bool         mLockCursor;                             // +0x1095 registry LockCursor: the board keeps the cursor in a window
 	std::string  mLastScoreName;                          // +0x1098 registry LastScoreName: the name last given a high score
 	Tutorial*    mTutor;                                  // +0x10bc the tutorial (StartTutorial), taken down by the main menu
@@ -262,7 +259,6 @@ public:
 	Pic*         mPicTyper;                               // +0x10e4
 	Pic*         mPicDialog;                              // +0x121c
 	Pic*         mPicDbutton;                             // +0x1220
-	Pic*         mPicWaitbar;                             // +0x1224
 	GameSound*   mSndEgglands;                            // +0x19f8
 	GameSound*   mSndClick;                               // +0x1a40
 
@@ -304,7 +300,6 @@ public:
 	// or a saved game loads (GetWindowRect and SetCursorPos; WarpMouse does nothing in a test run)
 	void			WarpToBoard();
 	void			TitleScreenDone();							// 0x419250: the play link
-	void			PumpLoading();								// port: the loading runs in the main thread
 	virtual bool	HandleScriptCommand(const ScriptCommand& theCommand) override;	// port: TestHooks.cpp
 
 	// port: test hooks (TestHooks.cpp). -statelog=<file> writes "<update> <name> <value>" for each value that decides

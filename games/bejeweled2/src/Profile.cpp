@@ -33,6 +33,8 @@ static bool EqualNoCase(const std::string& a, const std::string& b)
 	return Lower(a) == Lower(b);
 }
 
+// 0x5d0716 (the original's constructor only makes the roster, the name, the progress map and the pack name; the port also
+// zeroes the counters that the original leaves unset)
 Profile::Profile()
 {
 	mIsNew = false;

@@ -1,0 +1,43 @@
+# coverage script (2D, the profile player): a Classic board with the hint, every cheat word, losing and regaining the focus, the in-game
+# options (back to the game, then closed with Escape), and the window closed in the middle of the game. The cheat words that reload every image
+# (NORMAL after COLORSWAP, or after the colour screens) come last, with room to finish: the reload takes keys from no one while it runs
+at 562 shot title
+at 566 move 320 401
+at 568 click 320 401
+at 811 move 164 105
+at 813 click 164 105
+at 1081 move 464 433
+at 1083 click 464 433
+at 1400 move 88 384
+at 1402 click 88 384
+at 1470 focus lose
+at 1510 focus regain
+at 1570 move 88 294
+at 1572 click 88 294
+at 1630 move 469 342
+at 1632 click 469 342
+at 1710 move 88 294
+at 1712 click 88 294
+at 1770 key 27
+at 1850 text STARFIELD
+at 1880 text NETWORK
+at 1910 text NETWORK
+at 1940 text STARFIELD
+at 1970 text STARFIELD
+at 2000 text NAUSEA
+at 2030 text NAUSEA
+at 2060 text NOFRAME
+at 2090 text SLOMO
+at 2120 text SLOMO
+at 2150 text OLDSKOOL
+at 2180 text OLDSKOOL
+at 2210 text XMAS
+at 2240 text XMAS
+at 2270 text BLACKANDWHITE
+at 2300 text AMBERSCREEN
+at 2330 text GREENSCREEN
+at 2360 text NORMAL
+at 3200 text COLORSWAP
+at 3240 text NORMAL
+at 4300 shot board_end
+quit

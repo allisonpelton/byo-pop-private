@@ -55,25 +55,41 @@ Where a function does something different for a game, a switch the game's own co
 `SysHost` has one more virtual than Cosmic Bugs' copy did (`FixOn`, for the fixes mod), which moves the vtable of that
 game's host.
 
-### What only Cosmic Bugs' copy had, for its removal pass
+### What only Cosmic Bugs' copy had, taken out by its unneeded-code pass (2026-11-11)
 
-The union keeps every function either port had translated, so Cosmic Bugs' later unneeded-code pass finds here what it
-may take out. Checked against both games' `src`, `test` and `mods` (2026-11-11):
+The union had kept every function either port translated; Cosmic Bugs' pass (the commit `shared: Retro64: the engine code
+no game reaches is out`) took out what neither game's code, tests or mods call, and `tools/check.sh --changed main` ran both
+games' frozen baselines on it, unchanged. Out: the fonts' unclipped drawing, `Font_SetClipped` and a font's texture and mask
+target (both games set the clip flag on every font they draw; nothing sets the texture), with what only those branches
+called (`Image_BlitUnclipped`, `Image_BlitAlphaFadeUnclipped`, `Image_AddMaskUnclipped`, `Image_AddMask`, `Image_SetMask`,
+`Image_FillAlphaRect`, `AddMask8`, `Rect_Overlap`, `Rect_Intersect`); the text input's own surface and background
+(`DrawOwn`; `TextInput_Init` lost its two parameters, which both games passed as `nullptr`); and `Bank_Reconvert`,
+`Xml_Reset`, `SetScreenLostCallback`, `Sys_Host` and `DrawList_Count`. The fields that went keep their place in the
+layout as named padding (`mClippedUnused`, `mTextureUnused`, `mSurfaceUnused`, `mWasActiveUnused`, `mRedrawUnused`), so
+the layout asserts and the games' `Text` and `FontEntry` sizes hold. Each game's `coverage.txt` names the two reached
+functions that have no counterpart now (`Font_SetClipped`, `SetScreenLostCallback`).
 
-- Called by Cosmic Bugs' game code and by no Water Bugs code: `Sys_Sleep` (`CBStart.cpp`) and `gPumpMessages` (set in its
-  demo code, `CBPowerup.cpp`). These stay for as long as that code does. `Sys_FixOn` is the other way round: only Water
-  Bugs' host calls it.
-- Called by no game's code in either port, so the shared copy holds them only because Cosmic Bugs' translation did:
-  - the fonts' unclipped drawing, the branches taken when a font's `mClipped` is 0 (both games set 1 on every font they
-    draw), and a font's texture and mask target (`mTexture`, `mTextureX`, `mTextureY`, `mMaskTarget`, which nothing sets),
-    with what only those branches call: `Image_BlitUnclipped`, `Image_BlitAlphaFadeUnclipped`, `Image_AddMaskUnclipped`,
-    `Image_AddMask`, `Image_SetMask`, `Image_FillAlphaRect`, `AddMask8`, `Rect_Overlap` and `Rect_Intersect`;
-  - the text input's own surface and background (`DrawOwn`, `mSurface`, `mBackground`, the two parameters of
-    `TextInput_Init`): both games pass `nullptr` for both;
-  - `Bank_Reconvert`, `Xml_Reset`, `SetScreenLostCallback`, and the port's `Sys_Host` and `DrawList_Count`.
+Stay, as the coordinator decided: `Sys_Sleep` (called by Cosmic Bugs' start code), `gPumpMessages` (Cosmic Bugs' demo code,
+now gone, was its only setter) and `Key_Push` (the name entry's on-screen keys, in both games). `Sys_FixOn` is the other way
+round: only Water Bugs' host calls it. The pixel-format blitters and other functions the runs did not reach stay until
+Water Bugs' coverage check agrees.
 
-Cosmic Bugs' pass takes one of these out only after checking that none of its tests or its mods call it, and a function
-that no game reaches comes out of the shared copy for both games at once (a shared change, `tools/check.sh --changed`).
+## The Mahjong Escapes (`engines/jollybear` and `engines/mahjongescape`, Ancient Japan and Ancient China)
+
+The two exes are one game on JollyBear's engine, so both the engine and the game's code are shared. `engines/jollybear`
+is the engine, one library as Retro64 is. `engines/mahjongescape/src` is the game's code (the boards and layouts, the
+tiles' rules, the bot, the dialogs, the map, the play layer, the host app), in namespace `mahjong`, and
+`engines/mahjongescape/mahjongescape.cmake` builds it once for each game: each game's `CMakeLists.txt` calls
+`mahjongescape_game(<game> ...)`, with the game's own `src/` first on the include path. Each game's `src/` holds only
+what is its own: `Edition.h` (names as macros; counts, places, sizes and tables as constants; and switches for what only
+one edition has, such as `EDITION_DRAGON_CORNERS` or `EDITION_RESTART_BOX`), `Res.h`, `GameTextTable.inc`, and the
+functions the two exes do differently (`LevelDone`, the panel's `Draw`). So here the game sets which version runs at
+build time, through its `Edition.h`, not with a flag at start. Each game's folder keeps its data, docs, tools, web page,
+mods and settings files.
+
+The address tags pair the two exes by China's function match (`re/mahjongchina/compare/addrmap.tsv`, in the main
+checkout). A function only Ancient Japan's exe has (the restart box, inlined helpers, vtables) gives Japan's address
+alone.
 
 ## Adding another
 

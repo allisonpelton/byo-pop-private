@@ -753,7 +753,6 @@ void MainMenu::ClickAdventure(bool& theDisableAll)
 {
 	if (mApp->mProfile == nullptr)
 		return;
-	// port: the trial's end (0x447b50, its dialog) is left out
 	theDisableAll = true;
 	mFromTitle = false;
 	const bool aComplete = ProfileBool(mApp, "AdventureComplete");

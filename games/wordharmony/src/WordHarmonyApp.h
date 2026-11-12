@@ -35,6 +35,7 @@ public:
 	DWORD mLastLoop;       // the run loop's last tick count
 	int mAccumulated;      // the milliseconds not yet run as frames (0x4552b0's carry)
 	DWORD mLastSoundTick;
+	bool mKeyIsDown[256];  // the keys that went down and not up yet: a repeat of one is dropped (WM_KEYDOWN's bit 30)
 
 	WordHarmonyWidget();
 	~WordHarmonyWidget() override;
@@ -47,6 +48,8 @@ public:
 	void MouseDrag(int x, int y) override;
 	void MouseDown(int x, int y, int theBtnNum, int theClickCount) override;
 	void MouseUp(int x, int y, int theBtnNum, int theClickCount) override;
+	// the focus is gone: a key let go elsewhere is up (the system's state, which the window procedure's bit 30 reads)
+	void ClearKeys();
 };
 
 class WordHarmonyApp : public SexyAppBase
@@ -60,6 +63,7 @@ public:
 	uint32_t mEngineClock;     // port: -fast: the engine's milliseconds, one frame period a frame
 	bool mSteadyClock;         // port(mod): the fixes mod's steadyClock: the engine's clock as with -fast, in real time
 	FILE* mStateLog;           // port: -statelog=<file>, the values that decide play (LogState)
+	FILE* mInputLog = nullptr; // port: -inputlog=<file>, the bot's input as the lines of a -script (BotTick)
 	std::vector<std::pair<std::string, std::string>> mLoggedState;
 
 	WordHarmonyApp();
@@ -81,6 +85,8 @@ public:
 	void LogState();
 	// port: the standard test commands (docs/TEST_COMMANDS.md, src/TestCommands.cpp)
 	bool HandleScriptCommand(const ScriptCommand& theCommand) override;
+	// port: the memreport test command: what the engine holds beside the framework's own pictures and sounds
+	void AddMemReportHolders(Platform::MemReport* theReport) override;
 	// port: the state command's JSON
 	std::string TestState();
 	// port: the botplay test command: the bot's moves fed to the widget's mouse handlers before each frame, up to frame

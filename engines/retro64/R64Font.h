@@ -3,8 +3,8 @@
 
 // Retro64's bitmap fonts (0x421e40..0x423440 (cosmicbugs), 0x422320..0x423920 (waterbugs)): a glyph image per
 // character, taken from a bank by name (Font_LoadFromBank) or cut from one strip image at its empty columns
-// (Font_StripCut), drawn onto a target buffer with a palette, an optional outline, a texture through the glyphs' masks
-// and '^' colour codes.
+// (Font_StripCut), drawn onto a target buffer with a palette, an optional outline and '^' colour codes. A font always
+// draws clipped: both games set the original's clip flag on every font they draw, so the port has no unclipped drawing.
 
 #include "R64.h"
 
@@ -33,7 +33,7 @@ struct Font
 	Image* mGlyphs[256];        // +0x000  by character code
 	int mSpaceWidth;            // +0x400  what a space without a glyph advances, with the spacing
 	int mSpacing;               // +0x404  between characters
-	int mClipped;               // +0x408  0: draws unclipped (a game sets it for the fonts it draws clipped)
+	int mClippedUnused;         // +0x408  the original's clip flag, kept for the layout
 	int mClip[4];               // +0x40c  l, t, r, b
 	int mHeight;                // +0x41c  the tallest glyph
 	Palette* mColours[255];     // +0x420  the palettes "^c" picks, by c
@@ -51,10 +51,7 @@ struct Font
 	Palette* mPalette;          // +0xc44  the glyphs' palette (null: each glyph's own)
 	const PixelFormat* mFmt;    // +0xc48  the target's
 	uint8_t mOwnedPadding[0x104]; // +0xc4c  the bytes before the texture: nothing reads them
-	Image* mTexture;            // +0xd50  drawn through each glyph's mask instead of the glyph
-	int mTextureX;              // +0xd54
-	int mTextureY;              // +0xd58
-	Image* mMaskTarget;         // +0xd5c  each glyph's mask is also added to this image
+	uint8_t mTextureUnused[0x10]; // +0xd50  the original's texture and mask target, which no game sets; kept for the layout
 	ImageList mOwned;           // +0xd60  the glyphs Font_StripCut made
 
 	Font();  // 0x423340 (cosmicbugs), 0x423820 (waterbugs)
@@ -64,8 +61,6 @@ struct Font
 
 // 0x421e40 (cosmicbugs), 0x422320 (waterbugs)
 void Font_SetSpacing(Font* theFont, int theSpacing);
-// 0x421e50 (cosmicbugs), 0x422330 (waterbugs)
-void Font_SetClipped(Font* theFont, int theClipped);
 // 0x421e60 (cosmicbugs), 0x422340 (waterbugs)
 void Font_SetClip(Font* theFont, int l, int t, int theRight, int theBottom);
 // 0x421e90 (cosmicbugs), 0x422370 (waterbugs): the clip becomes {0, 0, w, h}
@@ -83,8 +78,7 @@ void Font_UseColour(Font* theFont, char theCode);
 void Font_SetAlign(Font* theFont, int theAlign);
 // 0x421f60 (cosmicbugs), 0x422440 (waterbugs)
 void Font_SetEscapes(Font* theFont, int theEscapes);
-// 0x421f70 (cosmicbugs), 0x422450 (waterbugs): unclipped, the glyphs' own palettes, left aligned, no outline, texture
-// or mask target
+// 0x421f70 (cosmicbugs), 0x422450 (waterbugs): the glyphs' own palettes, left aligned, no outline
 void Font_ResetStyle(Font* theFont);
 // 0x421fb0 (cosmicbugs), 0x422490 (waterbugs)
 int Font_CharWidth(const Font* theFont, char c);

@@ -3,15 +3,17 @@
 # mod"). Two tours in 3D are recorded once (origcmp/record_port.sh tour:<mode>, into build/fixes/tour_<mode>) and replayed with the
 # same seed and inputs under four settings each, taking the tour's shots and the board's -trace lines:
 #   off      -nomods: the original
-#   on       the mod with every toggle on (the site's setting)
+#   default  the mod as the site serves it: every toggle at its default (tunnelEdge on, podFade off: mod.json)
+#   on       the mod with every toggle on (mod-settings.json in the player's folder)
 #   none     the mod with every toggle off (mod-settings.json in the player's folder)
 #   no<fix>  the mod with every toggle on but one: tunnelEdge in the Hyper tour (whose level change runs through the hyperspace
 #            tunnel: the board's state 10, from the whirlpool's end to the new board's), podFade in the Puzzle tour (whose solved
 #            puzzle lights its pod, which takes 250 updates)
 # Shots are added to each recording where the toggle's picture is on the screen: along the tunnel, and after the puzzle.
-# Expected: the trace lines are the same in all four (a fix mends a picture and never changes play), the shots of "none" are the
-# shots of "off" (a toggle that is off is the original), "on" has shots that "off" has not, and the toggle left out of "no<fix>"
-# is what changes shots between "on" and it.
+# Expected: the trace lines are the same in all five (a fix mends a picture and never changes play), the shots of "none" are the
+# shots of "off" (a toggle that is off is the original), "on" has shots that "off" has not, the toggle left out of "no<fix>"
+# is what changes shots between "on" and it, and "default" has the shots of "on" where the tour's toggle is on by default and the
+# shots of "none" where it is off.
 # Prints a line for each run and each finding, and "fixes: ok" or "fixes: FAILED". Logs and shots: build/fixes/<tour>-<run>/.
 # Needs a free game slot for each run.
 set -u
@@ -21,7 +23,7 @@ OUT=build/fixes
 PROFILE=build/logs/bej2/profile
 MODS="-modsdir=$W/games/bejeweled2/mods"
 mkdir -p "$OUT"
-wait_slot() { until python tools/gamecount.py --limit "${GAMELIMIT:-3}" > /dev/null 2>&1; do sleep 15; done; }
+wait_slot() { until python tools/gamecount.py --limit "${GAMELIMIT:-6}" > /dev/null 2>&1; do sleep 15; done; }
 
 # the player with every mode unlocked (make_profile.py, 2D)
 if [ ! -d "$PROFILE/users" ]; then
@@ -73,7 +75,7 @@ differing() {  # <dir a> <dir b>: the names of the shots that differ
 }
 
 fail=0
-check_tour() {  # <mode> <fix id> <tunnel | after>
+check_tour() {  # <mode> <fix id> <tunnel | after> <the fix's default: on | off>
 	local t=$1 fix=$2
 	if [ ! -f "$OUT/tour_$t/events.json" ]; then
 		PROFILE=$PROFILE DRAWEVERY=1 bash games/bejeweled2/tools/origcmp/record_port.sh "tour:$t" 12 "$OUT/tour_$t" 909 > /dev/null || exit 2
@@ -81,10 +83,11 @@ check_tour() {  # <mode> <fix id> <tunnel | after>
 	add_shots "$OUT/tour_$t" "$3" || exit 2
 	python games/bejeweled2/tools/origcmp/to_commands.py "$OUT/tour_$t/events_x.json" "$OUT/$t.cmd" --shots shots > /dev/null || exit 2
 	run "$t" off -nomods ""
-	run "$t" on "$MODS" ""
+	run "$t" default "$MODS" ""
+	run "$t" on "$MODS" '{"v":1,"mods":{"fixes":{"tunnelEdge":true,"podFade":true}}}'
 	run "$t" none "$MODS" '{"v":1,"mods":{"fixes":{"tunnelEdge":false,"podFade":false}}}'
-	run "$t" "no$fix" "$MODS" "{\"v\":1,\"mods\":{\"fixes\":{\"$fix\":false}}}"
-	for r in on none "no$fix"; do
+	run "$t" "no$fix" "$MODS" "$(python -c "import json,sys;print(json.dumps({'v':1,'mods':{'fixes':{k:k!=sys.argv[1] for k in ('tunnelEdge','podFade')}}}))" "$fix")"
+	for r in default on none "no$fix"; do
 		if cmp -s "$OUT/$t-off/trace.txt" "$OUT/$t-$r/trace.txt" && [ -s "$OUT/$t-off/trace.txt" ]; then
 			echo "$t-$r: the board's trace is the original's"
 		else
@@ -96,10 +99,14 @@ check_tour() {  # <mode> <fix id> <tunnel | after>
 	if [ -z "$d" ]; then echo "$t-none: every shot is the original's"; else echo "$t-none: shots differ from the original's:$d"; fail=1; fi
 	d=$(differing "$t-off" "$t-on")
 	if [ -n "$d" ]; then echo "$t-on: shots that differ from the original's:$d"; else echo "$t-on: no shot differs from the original's"; fail=1; fi
+	local want=none
+	[ "$4" = on ] && want=on
+	d=$(differing "$t-$want" "$t-default")
+	if [ -z "$d" ]; then echo "$t-default: every shot is that of the $want setting ($fix is $4 by default)"; else echo "$t-default: shots differ from the $want setting's:$d"; fail=1; fi
 	d=$(differing "$t-on" "$t-no$fix")
 	if [ -n "$d" ]; then echo "$fix: the shots it changes:$d"; else echo "$fix: changes no shot of the $t tour"; fail=1; fi
 }
-check_tour hyper tunnelEdge tunnel
-check_tour puzzle podFade after
+check_tour hyper tunnelEdge tunnel on
+check_tour puzzle podFade after off
 [ $fail = 0 ] && echo "fixes: ok" || echo "fixes: FAILED"
 exit $fail

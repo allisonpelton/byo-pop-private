@@ -68,7 +68,7 @@ bool Kroney::Update()
 		if (!(aFrame < 8.0))
 			mFrame = (float) (aFrame - 8.0);
 		Dynomite* aBoard = mBoard;
-		if (aBoard->mField130 == true)
+		if (aBoard->mLosing == true)
 		{
 			double aY = (double) mY - 20.0;
 			mY = (float) aY;
@@ -77,7 +77,7 @@ bool Kroney::Update()
 		}
 		if (mY < 120.0f)
 			mY = (float) ((double) mY + 1.0);
-		if (aBoard->mFieldB0 != false)
+		if (aBoard->mPlaying != false)
 		{
 			float aWas = mTimeLeft;
 			float aNow = (float) ((double) mTimeLeft - (double) 0.01f);
@@ -142,10 +142,10 @@ void Kroney::Draw()
 	if (mState == 0)
 	{
 		Cell* aCell = mApp->mKroneyCells[(int) mFrame];
-		aCell->Draw((aBoard->mField70 - (aCell->mWidth >> 1)) + 0xb + aBoard->mField6c,
+		aCell->Draw((aBoard->mPlayMiddleX - (aCell->mWidth >> 1)) + 0xb + aBoard->mPlayHalfWidth,
 			(int) ((double) mY - 4.0) - (aCell->mHeight >> 1));
 		aCell = mApp->mKroneyHourglassCells[(int) mFrame];
-		aCell->Draw((aBoard->mField70 - (aCell->mWidth >> 1)) + 0xb + aBoard->mField6c,
+		aCell->Draw((aBoard->mPlayMiddleX - (aCell->mWidth >> 1)) + 0xb + aBoard->mPlayHalfWidth,
 			(int) ((double) mY + 14.0) - (aCell->mHeight >> 1));
 
 		int aFrame = (int) mFrame;
@@ -154,42 +154,42 @@ void Kroney::Draw()
 		int aTopCut = (int) ((double) aTopHeight * (double) mSandFraction);
 		int aBottomCut = (int) ((double) mApp->mKroneySandBottomCells[aFrame]->mHeight * (1.0 - (double) mSandFraction));
 		int aTopWidth = aTop->mWidth;
-		mApp->mKroneySandTopCells[(int) mFrame]->DrawPart(aBoard->mField70 - 10 + aBoard->mField6c,
+		mApp->mKroneySandTopCells[(int) mFrame]->DrawPart(aBoard->mPlayMiddleX - 10 + aBoard->mPlayHalfWidth,
 			(int) (((double) mY - 19.0) + (double) aTopCut), 0, aTopCut, aTopWidth, aTopHeight - aTopCut);
 		Cell* aBottom = mApp->mKroneySandBottomCells[(int) mFrame];
 		int aBottomHeight = aBottom->mHeight;
 		int aBottomWidth = aBottom->mWidth;
-		mApp->mKroneySandBottomCells[(int) mFrame]->DrawPart(aBoard->mField70 - 10 + aBoard->mField6c,
+		mApp->mKroneySandBottomCells[(int) mFrame]->DrawPart(aBoard->mPlayMiddleX - 10 + aBoard->mPlayHalfWidth,
 			(int) (((double) mY + 11.0) + (double) aBottomCut), 0, aBottomCut, aBottomWidth, aBottomHeight - aBottomCut);
 
 		if (mTimeLeft <= 5.0f)
 			aCell = mApp->mKroneyFaceCells[(int) mFrame];
 		else
 			aCell = mApp->mKroneyFaceCells[(int) mFrame + 8];
-		aCell->Draw((aBoard->mField70 - (aCell->mWidth >> 1)) - 0x1c + aBoard->mField6c,
+		aCell->Draw((aBoard->mPlayMiddleX - (aCell->mWidth >> 1)) - 0x1c + aBoard->mPlayHalfWidth,
 			(int) ((double) mY - 15.0) - (aCell->mHeight >> 1));
 
 		if ((2.25f < mTimeLeft) && (mTimeLeft < 3.0f))
-			DrawPicCentered(mApp->mPicWhirleyalarm, mBoard->mField70 - 0x3b + mBoard->mField6c,
+			DrawPicCentered(mApp->mPicWhirleyalarm, mBoard->mPlayMiddleX - 0x3b + mBoard->mPlayHalfWidth,
 				(float) (((double) mY - 4.0) - 50.0));
 		if (mTalking == true)
 		{
 			aCell = mApp->mPicTextballoons_c0;
 			aBoard = mBoard;
-			aCell->Draw((aBoard->mField70 - (aCell->mWidth >> 1)) - 0x3b + aBoard->mField6c,
+			aCell->Draw((aBoard->mPlayMiddleX - (aCell->mWidth >> 1)) - 0x3b + aBoard->mPlayHalfWidth,
 				(int) (((double) mY - 4.0) - 50.0) - (aCell->mHeight >> 1));
 			float aWordY = (float) ((((double) mY - 4.0) - 50.0) - 6.0);
 			aBoard = mBoard;
 			if (mHurry == false)
-				DrawCellCentered(mApp->mPicTextwords_c0, aBoard->mField70 - 0x3c + aBoard->mField6c, aWordY);
+				DrawCellCentered(mApp->mPicTextwords_c0, aBoard->mPlayMiddleX - 0x3c + aBoard->mPlayHalfWidth, aWordY);
 			else
-				DrawCellCentered(mApp->mPicTextwords_c5, aBoard->mField70 - 0x3c + aBoard->mField6c, aWordY);
+				DrawCellCentered(mApp->mPicTextwords_c5, aBoard->mPlayMiddleX - 0x3c + aBoard->mPlayHalfWidth, aWordY);
 		}
 	}
 	else if (mState == 1)
 	{
 		Cell* aCell = mApp->mKroneyFlipCells[(int) mFrame];
-		aCell->Draw((aBoard->mField70 - (aCell->mWidth >> 1)) + 2 + aBoard->mField6c,
+		aCell->Draw((aBoard->mPlayMiddleX - (aCell->mWidth >> 1)) + 2 + aBoard->mPlayHalfWidth,
 			(int) ((double) mY + 12.0) - (aCell->mHeight >> 1));
 	}
 }

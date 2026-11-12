@@ -1,10 +1,10 @@
-#ifndef __MAHJONGCHINA_RES_H__
-#define __MAHJONGCHINA_RES_H__
+#ifndef __MAHJONG_RES_H__
+#define __MAHJONG_RES_H__
 
 // port: names for the ids of the game's resources that the code uses. The original passes the numbers; the names
-// say what each resource is or where it is used. The engine's own few are in engine/EngineRes.h.
+// say what each resource is or where it is used. The engine's own few are in engines/jollybear/EngineRes.h.
 
-namespace mahjongchina
+namespace mahjong
 {
 
 // pictures of Resource.dll (bitmap, JPG and PNG resources)
@@ -371,6 +371,6 @@ enum
 	STRING_LAYOUT_COMPLETED = 0xb8,
 };
 
-} // namespace mahjongchina
+} // namespace mahjong
 
 #endif

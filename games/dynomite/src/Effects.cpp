@@ -38,11 +38,11 @@ BabyEffect::BabyEffect()
 	mType = 7;
 }
 
-// 0x403560: the reward sound as it leaves, and the board's +0x108 to 20
+// 0x403560: the reward sound as it leaves, and the board's mNextEggKind to 20
 BabyEffect::~BabyEffect()
 {
 	mApp->mSndReward->Play();
-	mApp->mBoard->mField108 = 0x14;
+	mApp->mBoard->mNextEggKind = 0x14;
 }
 
 // 0x4035d0

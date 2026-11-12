@@ -1,0 +1,43 @@
+# The player list of the original (origrun script, the game's update counter 0x460a1c as the clock; ms = updates): Change User
+# from the title, delete with one player (a message), a name typed into an empty slot, a second player, the name box
+# cancelled, delete with two players (okay), rename, choose another player, the current one again (back to the title).
+at 2681 move 175 590
+at 2981 click 175 590 30
+at 4181 move 400 444
+at 4481 click 400 444 30
+at 5681 move 400 330
+at 5981 click 400 330 30
+at 7181 move 400 185
+at 7481 click 400 185 30
+at 8981 key 65 30
+at 9281 key 66 30
+at 9581 key 13 30
+at 10781 move 400 210
+at 11081 click 400 210 30
+at 12581 key 68 30
+at 12881 key 69 30
+at 13181 key 13 30
+at 14381 move 400 235
+at 14681 click 400 235 30
+at 15881 move 460 330
+at 16181 click 460 330 30
+at 17381 move 400 444
+at 17681 click 400 444 30
+at 18881 move 340 330
+at 19181 click 340 330 30
+at 20381 move 330 444
+at 20681 click 330 444 30
+at 22181 key 71 30
+at 22481 key 8 30
+at 22781 key 72 30
+at 23081 key 13 30
+at 24281 move 400 160
+at 24581 click 400 160 30
+at 25781 move 400 185
+at 26081 click 400 185 30
+at 27281 move 400 210
+at 27581 click 400 210 30
+at 28781 move 400 210
+at 29081 click 400 210 30
+at 31000 move 0 0
+quit

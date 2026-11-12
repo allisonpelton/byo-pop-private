@@ -39,7 +39,6 @@ void DrawList_Add(Image* theImage, uint32_t theSeq, int x, int y, int theDepth, 
 void DrawList_Flush();
 // 0x4214a0 (cosmicbugs), 0x421980 (waterbugs)
 void DrawList_Clear();
-int DrawList_Count();                                                         // port: how many items the list holds
 
 // 0x34 bytes (gDirty at 0x472a7c (cosmicbugs), 0x472a7c (waterbugs)): the 800x600 screen in cells, each with its
 // changed rectangles (mode 1: one bounding rectangle per cell; else up to mMaxRects, merged where that does not grow

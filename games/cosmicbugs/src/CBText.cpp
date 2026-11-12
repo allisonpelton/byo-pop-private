@@ -50,6 +50,7 @@ void List_DeleteNode(Text* theText)
 	::operator delete(theText);
 }
 
+// 0x41f0e0
 void Text_Make(Text* theText, const char* theString, Font* theFont, int theX, int theY, int theDormant, int theFadeIn,
 	int theIdle, int theFadeOut, int theLoopTime, int theBlink)
 {
@@ -307,7 +308,7 @@ int Text_FromXml(Text* theText, const char* p, const XmlTag* theTag)
 			int aWidth = Xml_GetInt(theTag, "width");
 			int aY = (Xml_GetInt(theTag, "y") * 600) / 600;
 			TextInput* anInput = &theText->input;
-			TextInput_Init(anInput, nullptr, nullptr, theText->font, 0x10, 4, (aX * 800) / 800 - aWidth / 2, aY,
+			TextInput_Init(anInput, theText->font, 0x10, 4, (aX * 800) / 800 - aWidth / 2, aY,
 				aWidth / 2 + (aX * 800) / 800, aY + 0x1e);
 			TextInput_SetFocus(anInput, 1);
 			TextInput_SetCaseMode(anInput, 1);

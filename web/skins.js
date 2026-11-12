@@ -16,6 +16,36 @@ var ByopopSkin = (function () {
   var EMBED = Q.get("embed") === "1" && window.parent !== window;
   if (EMBED) root.classList.add("d95-embed");
   var SITE = (function () { try { return new URL(".", document.currentScript.src).href; } catch (e) { return null; } })();
+  // ---------- the desktop's zoom ----------
+  // Desktop 95 is drawn in whole pixels (Byopop Sans, the patterns, the frames), so at a fractional scale (125%, 150%) its
+  // pixels cannot all land on the screen's. Its pages zoom so that one CSS pixel is devicePixelRatio rounded of the screen's
+  // (the user, 2026-11-11: "Zoom desktop to a whole-number scale"): at 125% the desktop is drawn as at 100%, at 150% as at
+  // 200%. A page inside one (a program's window, web/deskapps.js) finds the rounded ratio as its own and zooms by 1. Under the
+  // zoom a pointer's position, getBoundingClientRect and the window's size (clientWidth, innerWidth) are the screen's CSS
+  // pixels and a style's are the page's: unzoom() turns the one into the other, ratio() is the screen's pixels to the page's,
+  // and the style sheets' viewport units are divided by --d95-z. ?deskzoom=<z> sets the zoom for a test at any scale.
+  var FORCED_ZOOM = parseFloat(Q.get("deskzoom")) || 0;
+  function zoomFor() {
+    if (EMBED) return 1;
+    if (FORCED_ZOOM > 0) return FORCED_ZOOM;
+    var d = window.devicePixelRatio || 1, z = Math.max(1, Math.round(d)) / d;
+    return Math.abs(z - 1) < 0.001 ? 1 : z;
+  }
+  var zoomNow = 1;
+  function applyZoom() {
+    var z = root.classList.contains("d95-desk") ? zoomFor() : 1;
+    if (z === zoomNow) return;
+    zoomNow = z;
+    if (z === 1) { root.style.removeProperty("zoom"); root.style.removeProperty("--d95-z"); }
+    else { root.style.zoom = String(z); root.style.setProperty("--d95-z", String(z)); }
+    try { window.dispatchEvent(new CustomEvent("byopop-zoom", { detail: { zoom: z } })); } catch (e) {}
+  }
+  function zoom() { return zoomNow; }
+  function unzoom(v) { return v / zoomNow; }
+  function ratio() { return (window.devicePixelRatio || 1) * zoomNow; }
+  // the browser's window in the page's CSS pixels
+  function viewW() { return (root.clientWidth || window.innerWidth) / zoomNow; }
+  function viewH() { return (root.clientHeight || window.innerHeight) / zoomNow; }
   function parentApps() { try { return EMBED && window.parent.ByopopApps ? window.parent.ByopopApps : null; } catch (e) { return null; } }
 
   function readItem() {
@@ -165,30 +195,41 @@ var ByopopSkin = (function () {
     // the room for windows: the browser's window less the task bar along the bottom
     function room() {
       var b = taskbar ? taskbar.el.offsetHeight : 0;
-      return { w: document.documentElement.clientWidth || window.innerWidth, h: (document.documentElement.clientHeight || window.innerHeight) - b };
+      return { w: viewW(), h: viewH() - b };
     }
-    // keeps a title bar on the screen, and the game's picture on whole device pixels; fit (on opening, on a resize): the whole
-    // window on the screen, where it is small enough
+    // Draws a window at its own place (w.x, w.y), pulled in only as far as the room needs: its title bar kept on the screen, the
+    // game's picture on whole device pixels, and with fit (on opening, on a resize) the whole window on the screen where it is
+    // small enough. Where it is drawn (w.dx, w.dy) is never written back into its own place, so a window pulled in by a narrower
+    // browser window goes back to where the person left it when the room grows again (the user, 2026-11-11, of snapping the
+    // browser to one side: "it shoves my windows to the left"), as Windows does when a display goes and comes back. Its own
+    // place changes only by the person (a drag, Alt and the arrows, an edge's resize: commit) or at its first layout.
     function place(w, fit) {
-      var r = room();
+      var r = room(), x = w.x, y = w.y;
       w.el.style.maxWidth = Math.max(200, r.w - 8) + "px";
       w.el.style.maxHeight = Math.max(120, r.h - 8) + "px";
       if (fit && shown(w)) {
-        w.x = Math.max(4, Math.min(w.x, r.w - w.el.offsetWidth - 4));
-        w.y = Math.max(4, Math.min(w.y, r.h - w.el.offsetHeight - 4));
+        x = Math.max(4, Math.min(x, r.w - w.el.offsetWidth - 4));
+        y = Math.max(4, Math.min(y, r.h - w.el.offsetHeight - 4));
       }
-      w.x = Math.max(-(w.el.offsetWidth - 80), Math.min(r.w - 80, Math.round(w.x)));
-      w.y = Math.max(0, Math.min(r.h - 24, Math.round(w.y)));
-      w.el.style.left = w.x + "px";
-      w.el.style.top = w.y + "px";
+      x = Math.max(-(w.el.offsetWidth - 80), Math.min(r.w - 80, Math.round(x)));
+      y = Math.max(0, Math.min(r.h - 24, Math.round(y)));
+      w.dx = x; w.dy = y;
+      w.el.style.left = x + "px";
+      w.el.style.top = y + "px";
       if (w.snap && shown(w)) {
-        var r = w.snap.getBoundingClientRect(), d = dpr();
-        var dx = (Math.round(r.left * d) - r.left * d) / d, dy = (Math.round(r.top * d) - r.top * d) / d;
-        if (dx || dy) { w.el.style.left = (w.x + dx) + "px"; w.el.style.top = (w.y + dy) + "px"; }
+        var sr = w.snap.getBoundingClientRect(), d = dpr();
+        var sx = unzoom((Math.round(sr.left * d) - sr.left * d) / d), sy = unzoom((Math.round(sr.top * d) - sr.top * d) / d);
+        if (sx || sy) { w.el.style.left = (x + sx) + "px"; w.el.style.top = (y + sy) + "px"; }
       }
     }
+    // where a window is drawn, as its own place: a move or resize by the person ends with what they see
+    function drawn(w) { return { x: w.dx !== undefined ? w.dx : w.x, y: w.dy !== undefined ? w.dy : w.y }; }
+    function commit(w) { var p = drawn(w); w.x = p.x; w.y = p.y; }
     function raise(w) { w.el.style.zIndex = String(++top); tasks(); }
+    // a window event, for a desktop theme's sounds (web/themes.js): open, close, minimize, restore, maximize, menu, ding
+    function deskEvent(what) { try { window.dispatchEvent(new CustomEvent("byopop-desk-event", { detail: { what: what } })); } catch (e) {} }
     function setClosed(w, c) {
+      if (!!c !== !!w.closed) deskEvent(c ? "close" : "open");
       w.closed = !!c;
       if (w.closed) w.min = false;
       w.el.classList.toggle("d95-closed", w.closed);
@@ -268,12 +309,51 @@ var ByopopSkin = (function () {
       mx.classList.toggle("d95-rs", m);
       mx.setAttribute("aria-label", TW(m ? "skin.desk.restore" : "skin.desk.maximize", w.el.getAttribute("data-d95-title") || ""));
     }
+    // What a screen reader makes of a window while the desktop is on: a region named by its title bar's heading. A panel the
+    // page shows as a tab elsewhere (Music, Settings and Settings' sections: role tabpanel, named by a tab the desktop hides)
+    // loses that role; a landmark of its own (main, footer, aside) keeps its role and takes the title as its name. A heading of
+    // the window's own that says the title again goes quiet: one only for screen readers (.pl-sr) is hidden, and a visible one
+    // (the chat's collapser) stops being a heading. Off the desktop every attribute is put back as it was.
+    var LANDMARKS = { MAIN: 1, FOOTER: 1, ASIDE: 1, NAV: 1, HEADER: 1, FORM: 1 };
+    function titleHeading(w) {
+      var hd = w.el.querySelector(":scope > .d95-tb > .d95-tb-text");
+      if (hd) return hd;
+      var hn = w.el.querySelector(":scope > .d95-handle");
+      if (hn && /^H[1-6]$/.test(hn.tagName)) return hn;
+      return hn ? hn.querySelector("h1, h2, h3, h4, h5, h6") : null;
+    }
+    function named(w, want) {
+      var el = w.el, hd = titleHeading(w);
+      if (want && hd) {
+        if (!w.aria) {
+          w.aria = { role: el.getAttribute("role"), by: el.getAttribute("aria-labelledby"), quiet: [] };
+          var text = (el.getAttribute("data-d95-title") || "").trim().toLowerCase();
+          Array.prototype.forEach.call(el.querySelectorAll("h1, h2, h3, h4, h5, h6"), function (h) {
+            if (h === hd || hd.contains(h) || h.contains(hd) || h.textContent.trim().toLowerCase().indexOf(text) !== 0 || !text) return;
+            w.aria.quiet.push({ h: h, hidden: h.hidden, role: h.getAttribute("role") });
+            if (h.classList.contains("pl-sr")) h.hidden = true; else h.setAttribute("role", "presentation");
+          });
+          if (w.aria.role === "tabpanel" || (!w.aria.role && !LANDMARKS[el.tagName])) el.setAttribute("role", "region");
+        }
+        if (!hd.id) hd.id = "d95-title-" + String(w.id).replace(/[^A-Za-z0-9_-]/g, "_");
+        el.setAttribute("aria-labelledby", hd.id);
+      } else if (!want && w.aria) {
+        var a = w.aria; w.aria = null;
+        if (a.role === null) el.removeAttribute("role"); else el.setAttribute("role", a.role);
+        if (a.by === null) el.removeAttribute("aria-labelledby"); else el.setAttribute("aria-labelledby", a.by);
+        a.quiet.forEach(function (q) {
+          q.h.hidden = q.hidden;
+          if (q.role === null) q.h.removeAttribute("role"); else q.h.setAttribute("role", q.role);
+        });
+      }
+    }
     // a window's title (the game's: its name and its mods), on its title bar and task bar button and in its buttons' names
     function setTitle(w, title) {
       if (w.el.getAttribute("data-d95-title") === title) return;
       w.el.setAttribute("data-d95-title", title);
-      var h = w.el.querySelector(".d95-tb > span.d95-tb-text");
+      var h = w.el.querySelector(".d95-tb > .d95-tb-text");
       if (h) h.textContent = title;
+      if (on) named(w, true);
       [["d95-mn", "skin.desk.minimize"], ["d95-mx", maxed(w) ? "skin.desk.restore" : "skin.desk.maximize"], ["d95-x", "skin.desk.close"], ["d95-sys", "skin.desk.menu"]].forEach(function (b) {
         var e = w.el.querySelector(".d95-tb > ." + b[0]);
         if (e) e.setAttribute("aria-label", TW(b[1], title));
@@ -283,6 +363,7 @@ var ByopopSkin = (function () {
     // minimized: out of sight, its button on the task bar, which brings it back where it was
     function setMin(w, m) {
       if (m) closeAllMenus();
+      if (!!m !== !!w.min) deskEvent(m ? "minimize" : "restore");
       w.min = !!m;
       w.el.classList.toggle("d95-min", w.min);
       if (!w.min) { raise(w); place(w, true); }
@@ -309,13 +390,14 @@ var ByopopSkin = (function () {
           if (!on || ev.button !== 0) return;
           ev.preventDefault(); ev.stopPropagation();
           raise(w);
-          st = { px: ev.clientX, py: ev.clientY, x: w.x, y: w.y, w: w.el.offsetWidth, h: w.el.offsetHeight, id: ev.pointerId };
+          var at = drawn(w);
+          st = { px: ev.clientX, py: ev.clientY, x: at.x, y: at.y, w: w.el.offsetWidth, h: w.el.offsetHeight, id: ev.pointerId };
           try { h.setPointerCapture(ev.pointerId); } catch (err) {}
           document.documentElement.classList.add("d95-dragging");
         });
         h.addEventListener("pointermove", function (ev) {
           if (!st || ev.pointerId !== st.id) return;
-          var dx = ev.clientX - st.px, dy = ev.clientY - st.py, r = room(), nw = st.w, nh = st.h;
+          var dx = unzoom(ev.clientX - st.px), dy = unzoom(ev.clientY - st.py), r = room(), nw = st.w, nh = st.h;
           if (edge.indexOf("e") >= 0) nw = st.w + dx;
           if (edge.indexOf("w") >= 0) nw = st.w - dx;
           if (edge.indexOf("s") >= 0) nh = st.h + dy;
@@ -343,6 +425,7 @@ var ByopopSkin = (function () {
           if (!st || ev.pointerId !== st.id) return;
           st = null;
           document.documentElement.classList.remove("d95-dragging");
+          commit(w);
           w.placed = true;
           save();
         };
@@ -357,12 +440,13 @@ var ByopopSkin = (function () {
         raise(w);
         // a press on a control in the title bar (a close button) is that control's own
         if (ev.target.closest("input, select, textarea, a") || (ev.target.closest("button") && ev.target.closest("button") !== handle)) return;
-        start = { px: ev.clientX, py: ev.clientY, x: w.x, y: w.y, id: ev.pointerId };
+        var at = drawn(w);
+        start = { px: ev.clientX, py: ev.clientY, x: at.x, y: at.y, id: ev.pointerId };
         moved = false;
       });
       window.addEventListener("pointermove", function (ev) {
         if (!start || ev.pointerId !== start.id) return;
-        var dx = ev.clientX - start.px, dy = ev.clientY - start.py;
+        var dx = unzoom(ev.clientX - start.px), dy = unzoom(ev.clientY - start.py);
         if (!moved && Math.abs(dx) + Math.abs(dy) < 4) return;
         if (!moved) { moved = true; try { handle.setPointerCapture(ev.pointerId); } catch (e) {} document.documentElement.classList.add("d95-dragging"); }
         w.x = start.x + dx; w.y = start.y + dy;
@@ -372,7 +456,7 @@ var ByopopSkin = (function () {
         if (!start || ev.pointerId !== start.id) return;
         start = null;
         document.documentElement.classList.remove("d95-dragging");
-        if (moved) { w.placed = true; save(); }
+        if (moved) { commit(w); w.placed = true; save(); }
       }
       window.addEventListener("pointerup", end);
       window.addEventListener("pointercancel", end);
@@ -384,8 +468,9 @@ var ByopopSkin = (function () {
         var k = { ArrowLeft: [-8, 0], ArrowRight: [8, 0], ArrowUp: [0, -8], ArrowDown: [0, 8] }[ev.key];
         if (!k) return;
         ev.preventDefault();
+        commit(w);
         w.x += k[0]; w.y += k[1]; w.placed = true;
-        place(w); save();
+        place(w); commit(w); save();
       });
     }
     // el: the window; o: { id, title, handle (its title bar; else one is added), snap (the element on whole device pixels),
@@ -411,8 +496,11 @@ var ByopopSkin = (function () {
         handle.className = "d95-tb";
         // a window's small icon at the title's left (o.icon, SVG markup: a Settings section's)
         if (o.icon) { var ti = document.createElement("i"); ti.className = "d95-tb-icon"; ti.setAttribute("aria-hidden", "true"); ti.innerHTML = o.icon; handle.appendChild(ti); }
-        var t = document.createElement("span");
+        // the title is the window's heading, under the page's one h1, so that a screen reader's heading keys go from window to
+        // window, and its name (named(), below)
+        var t = document.createElement("h2");
         t.className = "d95-tb-text";
+        t.id = "d95-title-" + String(o.id).replace(/[^A-Za-z0-9_-]/g, "_");
         t.textContent = o.title;
         handle.appendChild(t);
         // What's This? (o.whatsThis: a Settings section's window): Windows 95's "?" beside the window's other buttons. A press
@@ -436,6 +524,13 @@ var ByopopSkin = (function () {
             mx.type = "button"; mx.className = "d95-mx"; mx.setAttribute("aria-label", TW("skin.desk.maximize", o.title));
             mx.addEventListener("click", function () { o.maximize(); });
             handle.appendChild(mx);
+            // a double-click on the title bar maximizes and restores, as in Windows 95 (the user, 2026-11-11, by the coordinator);
+            // one on a button of the title bar is that button's
+            handle.addEventListener("dblclick", function (ev) {
+              if (ev.target.closest("input, select, textarea, a") || (ev.target.closest("button") && ev.target.closest("button") !== handle)) return;
+              ev.preventDefault();
+              o.maximize();
+            });
             if (window.MutationObserver) new MutationObserver(function () { showMaxed(w); }).observe(el, { attributes: true, attributeFilter: ["class"] });
           }
           var x = document.createElement("button");
@@ -504,7 +599,7 @@ var ByopopSkin = (function () {
           var sz = o.sizes();
           if (!sz || !sz.list.length) return;
           // the size whose width (or height, whichever the drag moved more) is nearest the corner's
-          var dx = ev.clientX - gs.px, dy = ev.clientY - gs.py;
+          var dx = unzoom(ev.clientX - gs.px), dy = unzoom(ev.clientY - gs.py);
           var byW = Math.abs(dx) >= Math.abs(dy);
           var want = byW ? gs.w + dx : gs.h + dy, best = null, bd = Infinity;
           sz.list.forEach(function (s) { var d = Math.abs((byW ? s.w : s.h) - want); if (d < bd) { bd = d; best = s; } });
@@ -530,7 +625,7 @@ var ByopopSkin = (function () {
       wins.push(w);
       // (a window opened only from another, as a Settings section from the Settings folder, has no icon on the desktop)
       if (!o.noIcon) addIcon(w, o.title);
-      if (on) { lift(w, true); layout(); }
+      if (on) { named(w, true); lift(w, true); layout(); }
       return w;
     }
     // ---- a window's scroll bar (the user, 2026-11-08: "It's not visible whether a window is scrollable") ----
@@ -606,7 +701,7 @@ var ByopopSkin = (function () {
         try { thumb.setPointerCapture(ev.pointerId); } catch (e) {}
         var y0 = ev.clientY, s0 = area.scrollTop;
         thumb.classList.add("d95-down");
-        function move(e) { if (geo.room > 0) { area.scrollTop = s0 + (e.clientY - y0) * geo.max / geo.room; update(); } }
+        function move(e) { if (geo.room > 0) { area.scrollTop = s0 + unzoom(e.clientY - y0) * geo.max / geo.room; update(); } }
         function end() { thumb.classList.remove("d95-down"); thumb.removeEventListener("pointermove", move); thumb.removeEventListener("pointerup", end); thumb.removeEventListener("pointercancel", end); }
         thumb.addEventListener("pointermove", move); thumb.addEventListener("pointerup", end); thumb.addEventListener("pointercancel", end);
       });
@@ -826,12 +921,12 @@ var ByopopSkin = (function () {
         sub.hidden = false;
         from.setAttribute("aria-expanded", "true");
         var r = from.getBoundingClientRect(), wr = wrap.getBoundingClientRect();
-        sub.style.left = (r.right - wr.left - 3) + "px";
+        sub.style.left = (unzoom(r.right - wr.left) - 3) + "px";
         sub.style.bottom = "auto";
         sub.style.top = "0px";
-        var h = sub.offsetHeight, topAt = r.top - wr.top - 3;
+        var h = sub.offsetHeight, topAt = unzoom(r.top - wr.top) - 3;
         // kept above the task bar: its bottom no lower than the item's
-        sub.style.top = Math.min(topAt, r.bottom - wr.top - h + 3) + "px";
+        sub.style.top = Math.min(topAt, unzoom(r.bottom - wr.top) - h + 3) + "px";
         if (focus) focusIn(sub, 0);
       }
       function closeSub(focusBack) {
@@ -1011,6 +1106,7 @@ var ByopopSkin = (function () {
     // left and right arrows open the menu beside it, side(-1 or 1)), done (called when it closes)
     function popMenu(from, entries, x, y, label, opts) {
       closeFavMenu(false);
+      deskEvent("menu");
       var m = document.createElement("div");
       m.className = "d95-menu d95-ctx"; m.setAttribute("role", "menu"); m.setAttribute("aria-label", label || "");
       entries.forEach(function (en) {
@@ -1031,7 +1127,9 @@ var ByopopSkin = (function () {
         m.appendChild(b);
       });
       document.body.appendChild(m);
-      var vw = document.documentElement.clientWidth, vh = room().h;
+      // x and y are the screen's (a pointer's, a getBoundingClientRect's)
+      var vw = viewW(), vh = room().h;
+      x = unzoom(x); y = unzoom(y);
       m.style.left = Math.max(0, Math.min(x, vw - m.offsetWidth - 2)) + "px";
       m.style.top = Math.max(0, Math.min(y, vh - m.offsetHeight - 2)) + "px";
       favMenu = { el: m, from: from, opts: opts || null };
@@ -1215,9 +1313,11 @@ var ByopopSkin = (function () {
       activate(w || null);
     }, true);
     function setOn(want) {
-      if (want === on) { if (on) { layout(); if (!active) activate(frontmost()); } return; }
+      if (want === on) { applyZoom(); if (on) { layout(); if (!active) activate(frontmost()); } return; }
       on = want;
       root.classList.toggle("d95-desk", on);
+      applyZoom();
+      wins.forEach(function (w) { named(w, on); });
       if (on && !taskbar && !EMBED) taskbar = makeTaskbar();
       if (taskbar) taskbar.turn(on);
       if (on) wins.forEach(function (w) { if (w.unfold) w.unfold(); });
@@ -1274,6 +1374,7 @@ var ByopopSkin = (function () {
              // a window closed as its Close button closes it (its onClose, or closed and its afterClose)
              close: function (id) { var w = find(id); if (w && !w.closed) closeWin(w); },
              list: function () { return wins.map(function (w) { return { id: w.id, title: w.el.getAttribute("data-d95-title") || w.id, closed: !!w.closed }; }); },
+             event: deskEvent,
              menu: function (from, entries, x, y, label, opts) { popMenu(from, entries, x, y, label, opts); },
              closeMenus: closeAllMenus,
              raise: function (id) { var w = find(id); if (w && on) raise(w); },
@@ -1286,7 +1387,7 @@ var ByopopSkin = (function () {
              grow: function (id, dh) {
                var w = typeof id === "string" ? find(id) : wins.filter(function (x) { return x.el === id; })[0];
                if (!w || !on || w.closed || w.min || !(dh > 0)) return 0;
-               var h = w.el.offsetHeight, most = room().h - w.y - h;
+               var h = w.el.offsetHeight, most = room().h - drawn(w).y - h;
                var by = Math.max(0, Math.min(Math.ceil(dh), most));
                if (!by) return 0;
                sizeTo(w, w.el.offsetWidth, h + by);
@@ -1300,11 +1401,12 @@ var ByopopSkin = (function () {
   function deskWanted() {
     var listing = !!document.getElementById("games-title");
     return root.getAttribute("data-skin") === "d95" && !!(document.getElementById("workspace") || listing) &&
-      (EMBED || listing || (document.documentElement.clientWidth || window.innerWidth) >= DESK_MIN);
+      (EMBED || listing || (document.documentElement.clientWidth || window.innerWidth) / zoomFor() >= DESK_MIN);
   }
   function deskSync() {
-    root.classList.toggle("d95-narrow", !EMBED && (document.documentElement.clientWidth || window.innerWidth) < DESK_MIN);
+    root.classList.toggle("d95-narrow", !EMBED && (document.documentElement.clientWidth || window.innerWidth) / zoomFor() < DESK_MIN);
     if (document.body) desk.setOn(deskWanted());
+    applyZoom();
   }
 
   // ---------- Windows 95 games only ----------
@@ -1373,5 +1475,5 @@ var ByopopSkin = (function () {
     });
   }
   document.addEventListener("selectstart", function (ev) { var t = ev.target; if (t && t.nodeType !== 1) t = t.parentNode; if (t && t.closest && t.closest(".stage") && !t.closest(".overlay")) ev.preventDefault(); }, true);
-  return { gamesWindow: gamesWindow, EMBED: EMBED, SITE: SITE, testQuery: testQuery, current: current, setGame: setGame, apply: apply, wizard: wizard, desk: desk, deskSync: deskSync };
+  return { zoom: zoom, unzoom: unzoom, ratio: ratio, viewW: viewW, viewH: viewH, gamesWindow: gamesWindow, EMBED: EMBED, SITE: SITE, testQuery: testQuery, current: current, setGame: setGame, apply: apply, wizard: wizard, desk: desk, deskSync: deskSync };
 })();

@@ -34,30 +34,30 @@ public:
 	Egg*				mLoaded;			// +0xc a LoadedEgg, or the board's next egg (slot 45) that Steggy tossed
 	FlyingEgg*			mFlying;			// +0x10 the last fired
 	int					mAngle;				// +0x14 degrees, 0 up
-	int					mField18;			// +0x18 (the hand's cell is 8 - this / 8)
-	int					mField1c;			// +0x1c
-	int					mField20[2];		// +0x20 the hand's middle (saved)
+	int					mHandPose;			// +0x18 the hand's pose from the aim, 0 to 71 (its cell is 8 - this / 8)
+	int					mSavedZero;			// +0x1c 0 throughout: saved and loaded, nothing reads it
+	int					mHandPos[2];		// +0x20 the hand's middle (saved)
 	float				mRecoilX;			// +0x28
 	float				mRecoilY;			// +0x2c
-	int					mField30[2];		// +0x30 the egg's place mirrored to 0.4 of its distance (saved)
-	int					mField38[20];		// +0x38 (0x50 bytes; saved; the first two the band's pull from the egg)
+	int					mBandBackPoint[2];	// +0x30 the egg's place mirrored to 0.4 of its distance (saved; nothing reads it)
+	int					mBandPull[20];		// +0x38 saved: the band's pull from the egg, then 18 nothing touches
 	MTRand				mRand;				// +0x88 seeded with the tick count
-	int					mAimX;				// +0xa4c the point aimed at (the board's +0x158 + +0x70)
+	int					mAimX;				// +0xa4c the point aimed at (the board's mLauncherOffsetX + mPlayMiddleX)
 	int					mAimY;				// +0xa50 (382)
 	int					mSlingX;			// +0xa54 the slingshot's middle (as the aim)
 	int					mSlingY;			// +0xa58 (432)
-	int					mFieldA5c;			// +0xa5c (50; counts down from 24 again and again)
-	int					mFieldA60;			// +0xa60 eases a pixel a frame toward +0xa64, never below +0xa68 unless
-										// the board's bonus bit 1 is on
-	int					mFieldA64;			// +0xa64 (-600 while the board's bonus bit 1 is on, else 0)
-	int					mFieldA68;			// +0xa68 how far below the aim the last path ended
-	int					mFieldA6c;			// +0xa6c (255) the arrow's red
-	int					mFieldA70;			// +0xa70 the arrow's green and blue
+	int					mArrowCountdown;	// +0xa5c 50, then down from 24 again and again (saved; nothing reads it)
+	int					mPathDepth;			// +0xa60 how far below the aim the path may run: a pixel an update toward mPathDepthGoal,
+											// never below mPathDepthFloor unless the board's bonus bit 1 is on
+	int					mPathDepthGoal;		// +0xa64 -600 while the board's bonus bit 1 is on, else 0
+	int					mPathDepthFloor;	// +0xa68 how far below the aim the last path ended
+	int					mArrowRed;			// +0xa6c the arrow's red (255)
+	int					mArrowGreenBlue;	// +0xa70 the arrow's green and blue
 	PtrList<Point>		mPathRight;			// +0xa74 the aim path's right side, first to last
 	PtrList<Point>		mPathLeft;			// +0xa8c its left side, last to first
 	bool				mFrozen;			// +0xaa4 Fire does nothing while it is set
 	Egg*				mHeld;				// +0xaa8 an egg held while frozen, loaded 56 frames on (saved like the loaded one)
-	int					mFieldAac;			// +0xaac
+	int					mReloadSlide;		// +0xaac how far the loaded egg sits below its place while the launcher is frozen (up to 55)
 
 	Launcher(FossilizedApp* theApp, Dynomite* theBoard);	// 0x401050
 	virtual ~Launcher();									// 0x401160

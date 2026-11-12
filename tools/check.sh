@@ -32,7 +32,7 @@
 #   unit-web     rulestest, modsettingstest and jpegtest (the JPEG decoder's error paths, through Emscripten's longjmp) under Node (needs build-web); paktest (the page's pak reader), with
 #                Bookworm Adventures' main.pak against assets/bookwormadv when both are there; profilestest (the page's
 #                settings and players code, web/settings.js and web/profiles.js, on a fake localStorage), savestest (the
-#                save backup's zip, paths and merge, web/saves.js), saveimporttest (the import of saves from an installed game:
+#                save backup's zip, paths and merge, web/saves.js), trophiestest (the trophy cabinet's reader, web/trophies.js), gamepicstest (the themes' picture decoders, web/gamepics.js), saveimporttest (the import of saves from an installed game:
 #                platform/saveimport.json, the .reg reader and the conversion, web/saveimport.js), chattest (the chat's username,
 #                text and rate rules, its stored history and local source, and that a message goes on the page as text only,
 #                web/chat.js), gameimporttest (the import rules for a game's files and the sorting of dropped folders into games,
@@ -56,7 +56,8 @@
 #                lighting, game shaders, buffers, precompiled programs, the null device), exact pixels (seconds)
 #   origrun      tools/origrun/build.sh into build/logs/check/origrun-bin (not into build/origrun-bin, whose origrun.exe
 #                may be running): that the host and its sound stand-in still compile, and --coverage on covtest.exe
-#                (tools/origrun/covtest.sh; seconds); not in `all`
+#                (tools/origrun/covtest.sh; seconds), and the network block and launch guard on nettest.exe (tools/origrun/nettest.sh; seconds);
+#                not in `all`
 #   verify      Bejeweled's headless verifier tests (games/bejeweled/tools/verify/run_tests.sh)
 #   modmenu      the mod menu's scripted runs, all games (tools/modmenutest/run_tests.sh all)
 #   livesplit    Bejeweled's, Big Money's and BookWorm's LiveSplit tests
@@ -553,7 +554,7 @@ done
 case "$JOBS" in
 	1|2|3) ;;
 	""|0|*[!0-9]*) echo "check.sh: --jobs takes 1, 2 or 3" >&2; exit 2 ;;
-	*) echo "check.sh: --jobs $JOBS is more than the 3 game processes at a time CLAUDE.md allows; using 3" >&2; JOBS=3 ;;
+	*) echo "check.sh: --jobs $JOBS is more than the 3 game processes one check may take (CLAUDE.md); using 3" >&2; JOBS=3 ;;
 esac
 
 if [ -n "$CHANGED" ]; then
@@ -745,6 +746,12 @@ suite_unit-web() {
 	# the save backup's zip, paths and merge (web/saves.js)
 	"$NODE" tools/savestest.js > "$1.sv" 2>&1 || st=1
 	e="$(lastof "$1.sv" 'savestest:')"
+	# the trophy cabinet's reader of the games' high-score files (web/trophies.js)
+	"$NODE" tools/trophiestest.js > "$1.tr" 2>&1 || st=1
+	tr="$(lastof "$1.tr" 'trophiestest:')"
+	# the desktop themes' picture decoders (web/gamepics.js)
+	"$NODE" tools/gamepicstest.js "$web/jp2.js" > "$1.gp" 2>&1 || st=1
+	gp="$(lastof "$1.gp" 'gamepicstest:')"
 	# the import of saves from an installed game (web/saveimport.js, and the table platform/saveimport.json it shares with the native games)
 	"$NODE" tools/saveimporttest.js > "$1.si" 2>&1 || st=1
 	g="$(lastof "$1.si" 'saveimporttest:')"
@@ -797,7 +804,7 @@ suite_unit-web() {
 	o="$(lastof "$1.jpg" 'jpeg: [0-9]+ checks, [0-9]+ failed')"
 	cat "$1.mst" "$1.pak" "$1.pt" "$1.sv" "$1.si" "$1.ch" "$1.gi" "$1.a11y" "$1.str" "$1.pc" "$1.pcp" "$1.tt" "$1.cur" "$1.lk" "$1.mu" "$1.su" "$1.ls" "$1.sc" "$1.jpg" >> "$1"
 	rm -f "$1.mst" "$1.pak" "$1.pt" "$1.sv" "$1.si" "$1.ch" "$1.gi" "$1.a11y" "$1.str" "$1.pc" "$1.pcp" "$1.tt" "$1.cur" "$1.lk" "$1.mu" "$1.su" "$1.ls" "$1.sc" "$1.jpg"
-	SUMMARY="$a; $b; $c; $d; $e; $g; $h; $i; $f; $j; $k; $l; $m; $n; $q; $r; $u; $v; $w; $o"
+	SUMMARY="$a; $b; $c; $d; $e; $tr; $gp; $g; $h; $i; $f; $j; $k; $l; $m; $n; $q; $r; $u; $v; $w; $o"
 	return $st
 }
 
@@ -810,13 +817,16 @@ suite_gpu() {
 
 suite_origrun() {  # the host and its sound stand-in compile (into a folder of this run: origrun.exe may be running)
 	ORIGRUN_OUT="$W/$OUT/origrun-bin" tools/origrun/build.sh > "$1" 2>&1
-	local st=$? cov="the coverage test needs build/native/rundesk.exe"
+	local st=$? cov="the coverage test needs build/native/rundesk.exe" net=""
 	# --coverage from end to end on covtest.exe, a program with no window and no sound (not a game)
 	if [ $st -eq 0 ] && [ -x build/native/rundesk.exe ]; then
 		tools/origrun/covtest.sh "$W/$OUT/origrun-bin" "$W/$OUT/covtest" >> "$1" 2>&1 || st=1
 		cov="$(lastof "$1" 'coverage:')"
+		# the network block from end to end on nettest.exe (tools/origrun/nettest.sh): every hooked call fails at once and is logged
+		tools/origrun/nettest.sh "$W/$OUT/origrun-bin" "$W/$OUT/nettest" >> "$1" 2>&1 || st=1
+		net="; $(lastof "$1" 'network block and launch guard:')"
 	fi
-	if [ $st -eq 0 ]; then SUMMARY="origrun.exe and dsound.dll compile; $cov"; else SUMMARY="$(grep -m 1 -E 'error|not found|FAIL' "$1" | cut -c1-160)"; fi
+	if [ $st -eq 0 ]; then SUMMARY="origrun.exe and dsound.dll compile; $cov$net"; else SUMMARY="$(grep -m 1 -E 'error|not found|FAIL' "$1" | cut -c1-160)"; fi
 	return $st
 }
 
@@ -2183,7 +2193,8 @@ suite_typershark() {
 	[ "${CHECK_QUICK:-0}" = 1 ] && q="--quick"
 	python games/typershark/tools/regress.py $q > "$1" 2>&1
 	st=$?
-	SUMMARY="$(tail -n 1 "$1" | tr -d '')"
+	SUMMARY="$(tail -n 1 "$1" | tr -d '
+')"
 	[ -n "$q" ] && SUMMARY="$SUMMARY (quick form: the 5 shortest games)"
 	return $st
 }

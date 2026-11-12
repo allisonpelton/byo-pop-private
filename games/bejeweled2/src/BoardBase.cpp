@@ -451,7 +451,7 @@ Piece* Board::GetOrMakePieceAt(int theX, int theY)
 				aPiece->mRow = aRow;
 				aPiece->mY = (float)aY;
 				mBoard[aRow][aCol] = aPiece;
-				MarkDirtyFull();
+				MarkDirty();
 				return aPiece;
 			}
 		}

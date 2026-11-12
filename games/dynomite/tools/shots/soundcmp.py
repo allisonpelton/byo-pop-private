@@ -10,6 +10,7 @@
 # fadein) with its order, a stop, a pause and a resume, and every volume change. A fade is a run of volume changes in both,
 # so the volumes are compared as the list of values each song passes through (repeats dropped), not by update.
 import re
+from collections import Counter
 import sys
 
 D = 'build/ph2/%s/' % sys.argv[1]
@@ -65,6 +66,24 @@ for l in open(D + 'orig_sound.log'):
 shift = (port_plays[0][0] - orig_plays[0][0]) if port_plays and orig_plays else 0
 op = [(int(round(t + shift)), n) for t, n in orig_plays]
 print('samples: port %d plays, original %d (the original\'s times moved by %+d updates)' % (len(port_plays), len(op), shift))
+# a buffer the original streams (the footfall) is named by its length only: it takes the name of the port's play in the
+# same update that the original's named plays there leave over
+port_at, orig_at = {}, {}
+for t, n in port_plays:
+    port_at.setdefault(t, Counter())[n] += 1
+for t, n in op:
+    orig_at.setdefault(t, Counter())[n] += 1
+unnamed = 0
+for i, (t, n) in enumerate(op):
+    left = port_at.get(t, Counter()) - orig_at[t]
+    if n.startswith('?') and left:
+        n = sorted(left)[0]
+        orig_at[t][n] += 1
+        op[i] = (t, n)
+        unnamed += 1
+# plays started in one update are compared in name order: the two programs may start them in another order
+port_plays.sort()
+op.sort()
 bad = 0
 for i in range(max(len(port_plays), len(op))):
     a = port_plays[i] if i < len(port_plays) else None
@@ -73,7 +92,8 @@ for i in range(max(len(port_plays), len(op))):
         bad += 1
         if bad <= 15:
             print('  #%d port %s original %s' % (i, a, b))
-print('  sample differences: %d' % bad)
+print('  sample differences: %d (and %d of the original\'s streamed buffers, named by their length only, at the same update)'
+      % (bad, unnamed))
 
 # --- music
 try:
@@ -96,6 +116,9 @@ for l in lines:
         continue
     if f[2] == 'BASS_MusicPlayEx' and f[3] in handles:
         music_orig.append((int(f[0]), 'play', handles[f[3]], int(f[4], 16)))
+    elif f[2] == 'BASS_MusicPlay' and f[3] in handles:
+        # a fade-in with offset -1 plays the song on from where it is (the port logs "fadein <song> offset=-1")
+        music_orig.append((int(f[0]), 'play', handles[f[3]], -1))
     elif f[2] == 'BASS_ChannelSetAttributes' and f[3] in handles and f[5] != 'ffffffff':
         music_orig.append((int(f[0]), 'volume', handles[f[3]], int(f[5], 16)))
     elif f[2] in ('BASS_ChannelStop', 'BASS_ChannelPause', 'BASS_ChannelResume') and f[3] in handles:

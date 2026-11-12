@@ -135,6 +135,7 @@ public:
 class Rope : public Constraint
 {
 public:
+	// 0x40e220
 	Rope(Ball* theBall, const engine::Point& theOffset, float theMaxStep, float theRate, float theBlend);
 	void apply() override;  // 0x40e2a0
 
@@ -176,6 +177,7 @@ public:
 class Stick : public Constraint
 {
 public:
+	// 0x40ea90
 	Stick(Ball* theFirst, Ball* theSecond, float theMin2, float theMax2, int theMode);
 	void apply() override;  // 0x40ead0
 
@@ -206,6 +208,7 @@ public:
 class Collisions : public Constraint
 {
 public:
+	// 0x40e6c0
 	Collisions(BallArray* theBalls) : mBalls(theBalls) {}
 	void apply() override;  // 0x40e6e0
 

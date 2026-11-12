@@ -34,13 +34,15 @@ the same machine. A plain run opens a window, raises it over whatever the user i
   may hook a copy's time reads and timed waits to run it faster than real time ("Yes, hook them", 2026-11-02; "Yes,
   waits too", 2026-11-03), its GetCursorPos so that it returns origrun's scripted mouse position ("Yes, hook it",
   2026-11-03), its GetKeyState so that scripted Shift and Ctrl presses register and its GetLastInputInfo so that it
-  keeps drawing while the machine is idle (both "Yes, hook it", 2026-11-09), its registry calls so that what a copy writes under HKLM\SOFTWARE\PopCap lands under HKCU and a restarted copy finds it ("Yes hook registry calls", 2026-11-10), its network calls so that a connection or download fails at once without leaving the machine, after a coverage run's random clicks reached Seven Seas' "Submit to Internet High Score List" ("Yes, block them", 2026-11-11), and its MessageBox and MessageBeep calls
+  keeps drawing while the machine is idle (both "Yes, hook it", 2026-11-09), its registry calls so that what a copy writes under HKLM\SOFTWARE\PopCap lands under HKCU and a restarted copy finds it ("Yes hook registry calls", 2026-11-10), its network calls so that a connection or download fails at once without leaving the machine, after a coverage run's random clicks reached Seven Seas' "Submit to Internet High Score List" ("Yes, block them", 2026-11-11), its launches of programs, files and links (ShellExecute, ShellExecuteEx, WinExec, CreateProcess) so that they fail at once, after that button turned out to open the user's browser ("allow blocking programs, files and links", 2026-11-11), and its MessageBox and MessageBeep calls
   so that a message box is answered without showing or sounding ("Yes, hook them", 2026-11-03); any other hook of a Windows function inside a copy needs the user's OK first
   (`docs/ORIGRUN.md`). Patch a copy as needed (many are not activated): how a protection is taken apart goes only in
   private blocks, and the patching tools in `.publishignore`. origrun answers a copy's message boxes with no window
   and its MessageBeep calls with no sound, unless `--msgbox show` (a box then rings, as do boxes called through
-  GetProcAddress, `--sound real` runs and games that never load the stand-in; `docs/ORIGRUN.md`). It has no guard
-  against URL or program launches, so a script never clicks a link, "Buy" or "More Games" button. When a run really
+  GetProcAddress, `--sound real` runs and games that never load the stand-in; `docs/ORIGRUN.md`). Its network block
+  and launch guard fail a copy's connections and its ShellExecute, WinExec and CreateProcess launches, but not a COM
+  launch or a game that never loads the stand-in, so a script still never clicks a link, "Buy" or "More Games"
+  button. When a run really
   needs real sound, the user turns the speakers off for a short stretch or overnight. An original counts as a game
   process.
 - Open web builds in the Browser pane only with `?silent=1`, e.g. `http://127.0.0.1:18766/bejeweled.html?silent=1`
@@ -60,11 +62,11 @@ the same machine. A plain run opens a window, raises it over whatever the user i
   needs it: LiveSplit's real-time runs, sound and focus checks, the Browser pane. Before relying on `-fast`, check that
   it leaves the run's results unchanged (a game that draws random numbers while drawing would not). Speed comes from
   not waiting, never from threads: no game's code is made multithreaded to run faster (the user, 2026-11-02).
-- Run at most 3 game processes at a time, and never add artificial CPU load. While the user sleeps the machine may run
-  up to 8, counted across every session (the user, 2026-11-07: "Up to 8 while I sleep"; that night until 09:00 local
-  time on 2026-11-08): count the game processes already running on the machine before starting more
-  (`python tools/gamecount.py --limit 8` lists them and exits 1 when there is no room). The oracle runs 3 at a time by default
-  (`--jobs`, at most 3): start no other game tests while it runs.
+- Run at most 6 game processes on the machine at a time, counted across every session (the user, 2026-11-11: "Yes, 6",
+  raised from 3), and never add artificial CPU load: count the game processes already running before starting more
+  (`python tools/gamecount.py --limit 6` lists them and exits 1 when there is no room; a wait loop waits on it). One
+  check, oracle or script takes at most 3 of them (check.sh's and the oracle's `--jobs`, at most 3), so that others
+  still get slots.
 - Only one oracle runs on the machine at a time. To wait for another, look for processes that run the oracle script
   (a command line like `bash .../compare.sh ...`) and exclude your own process tree. Never put the wait loop in the
   same shell command that later starts compare.sh: that shell's own command line contains "compare.sh", so it waits
@@ -88,7 +90,7 @@ the same machine. A plain run opens a window, raises it over whatever the user i
   any of the games on my desktop or sandbox with sound to test play". Between 22:00 and 08:00 local time a session may
   run any game, port or original, on the visible desktop or in Windows Sandbox (`--sandbox-vgpu` and
   `--sandbox-connect` included), with real sound, scripted and driven runs too; a run started in that window ends by
-  08:00. Everything else above still holds: at most 3 game processes, no link, "Buy" or "More Games" click, the
+  08:00. Everything else above still holds: at most 6 game processes, no link, "Buy" or "More Games" click, the
   user's cursor and keyboard never touched (input posted to the game's own window), the window, registry and saves
   put back as `docs/ORIGRUN.md` says, nothing left running. Outside those hours the rules above apply unchanged.
 
@@ -108,6 +110,10 @@ Every call re-reads the whole context, so what costs is context times calls, and
   or one Bash command with the reads separated by `echo ---`.
 - Test with `tools/check.sh <suite>...` (`--help` lists them): one line per suite, logs in files.
 - Give an agent the files and sections it needs, so it need not read the design docs to find them.
+- **No clearing between steps (the user, 2026-11-12: "Keep it at 400k. I determined this was ideal").** Sessions keep
+  their conversation and compact on their own at the full window; nobody clears them or writes handoff notes for it. A
+  day of clearing (2026-11-11) left contexts at 170k to 255k a call, since a step regrows them, and cost the
+  coordinator its own calls. Monitors notify when a run ends, not on progress lines.
 
 ## Sessions, ownership and git
 

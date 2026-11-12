@@ -39,11 +39,11 @@ public:
 	WordBalloon*	mBalloon;               // +0x60 Lex's balloon (Say/Think), created in AddedToManager
 	bool			mShowBalloon;           // +0x64 request: open the bonus-word balloon on the next update
 	bool			mBalloonUp;             // +0x65 the balloon shows the bonus-word text
-	int				mBannerTargetY;         // +0x68 banner target y: 406 shown, the board's height hidden (Board::ShowOverlay)
-	int				mBannerY;               // +0x6c banner y, 0 = never placed (Board::ShowOverlay sets the board height first)
+	int				mBannerTargetY;         // +0x68 banner target y: 406 shown, the board's height hidden (Board::ShowBonusWord)
+	int				mBannerY;               // +0x6c banner y, 0 = never placed (Board::ShowBonusWord sets the board height first)
 	bool			mBannerActive;          // +0x70 banner drawn and hoverable (set by Board; cleared when a slide down overshoots)
 	// +0x71..+0x77 pad
-	double			mArrowFade;             // +0x78 arrow alpha (>1 = opaque); Board::ShowOverlay sets 10.0, -0.025 per update
+	double			mArrowFade;             // +0x78 arrow alpha (>1 = opaque); Board::ShowBonusWord sets 10.0, -0.025 per update
 	Rect			mBannerRect;            // +0x80 hover area (10, mBannerY, banner width, banner height)
 
 public:
@@ -55,7 +55,7 @@ public:
 	virtual void	Draw(Graphics* g) override;                     // 0x431080 slot 16
 	virtual void	Update() override;                              // 0x430e20 slot 17
 
-	bool			IsBannerMoving();                               // 0x430a00
+	bool			IsBonusWordMoving();                               // 0x430a00
 	void			AddEffect(Effect* theEffect);                   // 0x430a20
 	std::list<Effect*>* GetEffects(int theType);                    // 0x430a70 (new list, the caller deletes it; NULL when none)
 	bool			HasEffects(int theType);                        // 0x430a90

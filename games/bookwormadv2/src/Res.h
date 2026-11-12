@@ -397,7 +397,6 @@ extern int SOUND_MM_DONTLEAVE;
 extern int SOUND_MM_ILLBEBACK;
 extern int SOUND_MM_BEDTIME;
 extern int SOUND_MM_CNG;
-extern int SOUND_MM_BUY_NOW;
 extern int SOUND_TEXT_BLIP;
 extern int SOUND_TEXT_BLIP1;
 extern int SOUND_TEXT_BLIP2;
@@ -547,15 +546,6 @@ extern Image* IMAGE_MINIMENU_BTN_MAINMENU;
 extern Image* IMAGE_MINIMENU_LOCKED;
 extern Image* IMAGE_MINIMENU_NEW;
 extern Image* IMAGE_MINIMENU_TIP_BG;
-
-// UpsellTrailer
-bool ExtractUpsellTrailerResources(ResourceManager* theManager);
-extern Image* IMAGE_UT_BUY_BUTTON;
-extern Image* IMAGE_UT_NO_BUTTON;
-extern Image* IMAGE_UT_BUY_NOW;
-extern Image* IMAGE_UT_TRIAL_EXPIRED;
-extern int SOUND_UT_CHOMP;
-extern int SOUND_UT_BUY_NOW;
 
 // StatsBook
 bool ExtractStatsBookResources(ResourceManager* theManager);

@@ -139,7 +139,7 @@ DynomiteFossil::DynomiteFossil()
 	mFossilsAssembled = 0;
 	mScoreRanks[0] = 0;
 	mSong = 0;
-	mField23c = 0;
+	mSongOffset = 0;
 	mPanicKind = false;
 	mRoundCount = 1;
 	mScoreRanks[1] = 1500;
@@ -165,7 +165,7 @@ DynomiteFossil::DynomiteFossil()
 	mFossil = NULL;
 	mFirstLevel = 1;
 	mPushes = 0;
-	mField264 = 0;
+	mFirstShotFade = 0;
 	mFossilFell = false;
 	mFallAlpha = 0;
 	mFallTimer = 0;
@@ -218,11 +218,11 @@ void DynomiteFossil::DrawPiece(int theColor, int x, int y)
 // 0x407fd0: the walls stop, Kroney's sand is set to a thousand seconds and the chain ends
 void DynomiteFossil::PieceFell(int theColor)
 {
-	if ((theColor == 0x32) && (mField130 == false))
+	if ((theColor == 0x32) && (mLosing == false))
 	{
 		mFossilFell = true;
 		mFallAlpha = 0;
-		mField80 = true;
+		mFireBlocked = true;
 		mKroney->Start(1000.0f);
 		mChain = -1;
 	}
@@ -334,27 +334,27 @@ void DynomiteFossil::AddPoints(int x, int y, int thePoints, int theMultiplier, b
 Egg* DynomiteFossil::NextEgg()
 {
 	Egg* anEgg = Dynomite::NextEgg();
-	if ((mField108 != 0) && (anEgg->mColor < 0xf))
+	if ((mNextEggKind != 0) && (anEgg->mColor < 0xf))
 	{
-		if (mField108 == 0x14)
+		if (mNextEggKind == 0x14)
 		{
 			if ((0x118 < mGrid->mBottom) && (mApp->mPicker.Random(3, false) == 0))
-				mField108 = 5;
-			if (mField108 == 0x14)
+				mNextEggKind = 5;
+			if (mNextEggKind == 0x14)
 			{
 				if (0x154 < mGrid->mBottom)
-					mField108 = 5;
-				if (mField108 == 0x14)
+					mNextEggKind = 5;
+				if (mNextEggKind == 0x14)
 				{
 					if (mApp->mPicker.Random(6, false) == 2)
-						mField108 = 1;
-					if (mField108 == 0x14)
-						mField108 = mApp->mPicker.Random(3, false) + 8;
+						mNextEggKind = 1;
+					if (mNextEggKind == 0x14)
+						mNextEggKind = mApp->mPicker.Random(3, false) + 8;
 				}
 			}
 		}
-		anEgg->mKind = mField108;
-		mField108 = 0;
+		anEgg->mKind = mNextEggKind;
+		mNextEggKind = 0;
 	}
 	return anEgg;
 }
@@ -362,25 +362,25 @@ Egg* DynomiteFossil::NextEgg()
 // 0x4085a0
 void DynomiteFossil::GetPowerUpCenter(int* x, int* y)
 {
-	*x = mField70 - 0xc + mField6c;
+	*x = mPlayMiddleX - 0xc + mPlayHalfWidth;
 	*y = (int) ((double) mKroney->mY - 4.0);
 }
 
 // 0x4085d0: any button; unlike the board's it fires while paused
 void DynomiteFossil::MouseDown(int x, int y, int theClickCount)
 {
-	if ((mThunderbolt == NULL) && (mField80 != true) && (mField130 == false) && (mField131 == false))
+	if ((mThunderbolt == NULL) && (mFireBlocked != true) && (mLosing == false) && (mGameOver == false))
 	{
 		mLauncher->Fire();
 		if (gBoardGlobal5304a0 == 0)
 		{
-			mApp->mMusicInterface->FadeIn(mSong, mField23c, 0.002, false);
+			mApp->mMusicInterface->FadeIn(mSong, mSongOffset, 0.002, false);
 			mApp->mMusicInterface->PlayMusic(4, 0x54, false);
 			mApp->mMusicInterface->SetSongVolume(4, 0.0);
 			gBoardGlobal5304a0 = 1;
 		}
-		mField16c = true;
-		mFieldB0 = true;
+		mFiredThisRound = true;
+		mPlaying = true;
 	}
 }
 
@@ -399,9 +399,9 @@ void DynomiteFossil::Draw(Graphics* g)
 	}
 	if (((mBonusBits & 0x70) == 0) && (mApp->mGrindInstance->IsPlaying() != true))
 	{
-		SetDrawOffset(Point(mField138, mField13c));
-		mField138 = mField138 / 2;
-		mField13c = mField13c / 2;
+		SetDrawOffset(Point(mShakeX, mShakeY));
+		mShakeX = mShakeX / 2;
+		mShakeY = mShakeY / 2;
 	}
 	else
 	{
@@ -410,16 +410,16 @@ void DynomiteFossil::Draw(Graphics* g)
 		SetDrawOffset(Point(aShakeX, aShakeY));
 	}
 	Dynomite::Draw(g);
-	if ((mField131 == true) && (mField132 == false))
+	if ((mGameOver == true) && (mGameOverShown == false))
 	{
 		Graphics* aGraphics = GetDrawGraphics();
 		aGraphics->SetColorizeImages(true);
-		aGraphics->SetColor(Color(0, 0, 0, mField140));
+		aGraphics->SetColor(Color(0, 0, 0, mGameOverAlpha));
 		Pic* aPic = mApp->mPicGameover;
-		aPic->Draw((mField70 - (aPic->mWidth >> 1)) + 3, 0xf3 - (aPic->mHeight >> 1));
-		aGraphics->SetColor(Color(0xff, 0xff, 0xff, mField140));
+		aPic->Draw((mPlayMiddleX - (aPic->mWidth >> 1)) + 3, 0xf3 - (aPic->mHeight >> 1));
+		aGraphics->SetColor(Color(0xff, 0xff, 0xff, mGameOverAlpha));
 		aPic = mApp->mPicGameover;
-		aPic->Draw(mField70 - (aPic->mWidth >> 1), 0xf0 - (aPic->mHeight >> 1));
+		aPic->Draw(mPlayMiddleX - (aPic->mWidth >> 1), 0xf0 - (aPic->mHeight >> 1));
 		aGraphics->SetColorizeImages(false);
 	}
 	SetDrawOffset(Point(0, 0));
@@ -444,7 +444,7 @@ void DynomiteFossil::SetupRound(int theLevel, int theRound)
 	else if (theRound == 3)
 		strncpy(mFragmentText, mApp->GetString("FRAGMENT_NUM_3").c_str(), sizeof(mFragmentText) - 1);
 	mFragmentText[sizeof(mFragmentText) - 1] = '\0';
-	mField16c = false;
+	mFiredThisRound = false;
 	mTextAlpha = 0;
 	mTextTimer = 500;
 }
@@ -508,10 +508,10 @@ void DynomiteFossil::Pipe(int theColors, int theWidth, int theRows)
 	int aRow = 0;
 	mGrid->mCeiling = 0.0f;
 	GridPoint aPoint;
-	mGrid->ScreenToGrid(mField70 + 0x10, 100, &aPoint);
+	mGrid->ScreenToGrid(mPlayMiddleX + 0x10, 100, &aPoint);
 	GridPoint aCell;
 	EggGrid::PixelToCell(aPoint.mX, aPoint.mY, &aCell);
-	int aWidth = mField68;
+	int aWidth = mPlayWidth;
 	if (0 < theRows)
 	{
 		do
@@ -543,10 +543,10 @@ void DynomiteFossil::Triangle(int theColors, int theWidth, int theRows)
 {
 	mGrid->mMaxColor = theColors;
 	GridPoint aPoint;
-	mGrid->ScreenToGrid(mField70, 0, &aPoint);
+	mGrid->ScreenToGrid(mPlayMiddleX, 0, &aPoint);
 	GridPoint aCell;
 	EggGrid::PixelToCell(aPoint.mX, aPoint.mY, &aCell);
-	int aWidth = mField68;
+	int aWidth = mPlayWidth;
 	int aStart = aCell.mX - theWidth / 2;
 	int aRow = 0;
 	if (0 < theRows)
@@ -582,10 +582,10 @@ void DynomiteFossil::ITriangle(int theColors, int theWidth, int theRows)
 {
 	mGrid->mMaxColor = theColors;
 	GridPoint aPoint;
-	mGrid->ScreenToGrid(mField70, 100, &aPoint);
+	mGrid->ScreenToGrid(mPlayMiddleX, 100, &aPoint);
 	GridPoint aCell;
 	EggGrid::PixelToCell(aPoint.mX, aPoint.mY, &aCell);
-	int aWidth = mField68;
+	int aWidth = mPlayWidth;
 	int aStart = aCell.mX - theWidth / 2;
 	int aCount = theWidth;
 	while (--theRows >= 0)
@@ -618,20 +618,20 @@ void DynomiteFossil::StartRound(int theLevel, int theRound)
 {
 	mFossilFell = false;
 	mFallAlpha = 0;
-	mField80 = false;
+	mFireBlocked = false;
 	// the fragments found so far show on the museum's picture of the last fossil
 	if (mShownFossil != -1)
 		mApp->mFossils[mShownFossil - 1]->AlphaFromColour((unsigned char) mShownChannels);
-	mField264 = 0;
-	mFieldB0 = false;
+	mFirstShotFade = 0;
+	mPlaying = false;
 	mBonusText = "";
 	mResizing = false;
 	SetFossil(theLevel, theRound);
 	mGrid->mCeiling = 0.0f;
-	mField68 = mWidth;
-	mField6c = mWidth / 2;
-	mField104 = 0;
-	mField100 = false;
+	mPlayWidth = mWidth;
+	mPlayHalfWidth = mWidth / 2;
+	mCeilingGoal = 0;
+	mCeilingAtGoal = false;
 	mFirePrompt->mAlpha = 1;
 	mGrid->Clear();
 	mFallSpeed = 0.02f;
@@ -687,14 +687,14 @@ void DynomiteFossil::StartRound(int theLevel, int theRound)
 		mFallSpeed = (float) aFallSpeed;
 		mFallSpeedUp = (float) aFallSpeedUp;
 	}
-	mField108 = aBonus;
-	mGrid->mField46d0 = false;
+	mNextEggKind = aBonus;
+	mGrid->mCeilingDrawn = false;
 	mGrid->ResetCeiling();
 	EggGrid* aGrid = mGrid;
 	int aFactor = 8 - aGrid->mMaxColor;
 	if (aFactor < 1)
 		aFactor = 1;
-	aGrid->mBabyEggChance = aGrid->mField46b4 * aFactor;
+	aGrid->mBabyEggChance = aGrid->mBaseBabyEggChance * aFactor;
 }
 
 // 0x40c5f0
@@ -716,8 +716,8 @@ void DynomiteFossil::Init(FossilizedApp* theApp, int theDifficulty)
 		i++;
 	} while (i < 20);
 	mFirstLevel = 1;
-	mField68 = 0x17f;
-	mField6c = 0xbf;
+	mPlayWidth = 0x17f;
+	mPlayHalfWidth = 0xbf;
 	mFossil = new Fossil(mApp);
 	mKroney = new Kroney();
 	mKroney->mHurry = true;
@@ -726,12 +726,12 @@ void DynomiteFossil::Init(FossilizedApp* theApp, int theDifficulty)
 	mKroney->Start(60.0f);
 	SetupRound(mLevel, mRound);
 	StartRound(mLevel, mRound);
-	int aBonus = mField108;
+	int aBonus = mNextEggKind;
 	Egg* anEgg = NextEgg();
 	mLauncher->Load(anEgg->mColor);
 	delete anEgg;
 	mPushes = 0;
-	mField108 = aBonus;
+	mNextEggKind = aBonus;
 }
 
 // 0x409df0: the fragment where the grid drew its cell, in the scenery's offset; the rest at (0, 0)
@@ -748,19 +748,19 @@ void DynomiteFossil::DrawScenery()
 	}
 	mFossilX = -1;
 	Point anOffset = GetDrawOffset();
-	mApp->mPicLeftwall->Draw((mField70 - mField6c) - 0x38, 0);
-	mApp->mPicRightwall->Draw(mField6c - 0x1e + mField70, 0);
+	mApp->mPicLeftwall->Draw((mPlayMiddleX - mPlayHalfWidth) - 0x38, 0);
+	mApp->mPicRightwall->Draw(mPlayHalfWidth - 0x1e + mPlayMiddleX, 0);
 	mSteggy->Draw();
 	mTank->Draw();
-	mApp->mPicEggpilesheet_c1->Draw(mField158 - 0x110 + mField70, 0x185);
-	mApp->mPicEggpilesheet_c1->Draw(mField158 - 0x1a6 + mField70, 0x185);
-	mApp->mPicEggpilesheet_c0->Draw(mField158 + 0x50 + mField70, 400);
-	mApp->mPicEggpilesheet_c0->Draw(mField158 + 0xe6 + mField70, 400);
+	mApp->mPicEggpilesheet_c1->Draw(mLauncherOffsetX - 0x110 + mPlayMiddleX, 0x185);
+	mApp->mPicEggpilesheet_c1->Draw(mLauncherOffsetX - 0x1a6 + mPlayMiddleX, 0x185);
+	mApp->mPicEggpilesheet_c0->Draw(mLauncherOffsetX + 0x50 + mPlayMiddleX, 400);
+	mApp->mPicEggpilesheet_c0->Draw(mLauncherOffsetX + 0xe6 + mPlayMiddleX, 400);
 	mPowerUps.ResetIter();
 	PowerUp* aPowerUp = mPowerUps.Next();
 	while (aPowerUp != NULL)
 	{
-		aPowerUp->Draw(mField128);
+		aPowerUp->Draw(mPowerUpSpin);
 		aPowerUp = mPowerUps.Next();
 	}
 	if (mThunderbolt != NULL)
@@ -773,10 +773,10 @@ void DynomiteFossil::DrawScenery()
 		g->SetColorizeImages(true);
 		g->SetColor(Color(0, 0, 0, mFallAlpha));
 		Pic* aPic = mApp->mPicCleared;
-		aPic->Draw((mField70 + 3) - (aPic->mWidth >> 1), 0xb2 - (aPic->mHeight >> 1));
+		aPic->Draw((mPlayMiddleX + 3) - (aPic->mWidth >> 1), 0xb2 - (aPic->mHeight >> 1));
 		g->SetColor(Color(0xff, 0xff, 0xff, mFallAlpha));
 		aPic = mApp->mPicCleared;
-		aPic->Draw(mField70 - (aPic->mWidth >> 1), 0xaf - (aPic->mHeight >> 1));
+		aPic->Draw(mPlayMiddleX - (aPic->mWidth >> 1), 0xaf - (aPic->mHeight >> 1));
 		g->SetColorizeImages(false);
 		if (mBonusText.compare("") != 0)
 		{
@@ -784,9 +784,9 @@ void DynomiteFossil::DrawScenery()
 			int aWidth = mApp->mAnnounceFont1928->Width(mApp->GetString("FALLEN_FOSSIL_BONUS").c_str());
 			g->SetColorizeImages(true);
 			g->SetColor(Color(0, 0, 0, 0xff));
-			mApp->mAnnounceFont1928->Draw(mBonusText.c_str(), (mField70 - aWidth / 2) + 4, 0xdb);
+			mApp->mAnnounceFont1928->Draw(mBonusText.c_str(), (mPlayMiddleX - aWidth / 2) + 4, 0xdb);
 			g->SetColor(Color(0xff, 0xff, 0, 0xff));
-			mApp->mAnnounceFont1928->Draw(mBonusText.c_str(), (mField70 - aWidth / 2) + 4, 0xd7);
+			mApp->mAnnounceFont1928->Draw(mBonusText.c_str(), (mPlayMiddleX - aWidth / 2) + 4, 0xd7);
 			g->SetColorizeImages(false);
 		}
 	}
@@ -796,11 +796,11 @@ void DynomiteFossil::DrawScenery()
 		int aNameWidth = mApp->mAnnounceFont1928->Width(mRoundName.c_str());
 		int aFragmentWidth = mApp->mAnnounceFont1928->Width(mFragmentText);
 		g->SetColor(Color(0, 0, 0, mTextAlpha));
-		mApp->mAnnounceFont1928->Draw(mRoundName.c_str(), (mField70 - (aNameWidth >> 1)) + 3, 0x71);
-		mApp->mAnnounceFont1928->Draw(mFragmentText, (mField70 - (aFragmentWidth >> 1)) + 3, 0x8a);
+		mApp->mAnnounceFont1928->Draw(mRoundName.c_str(), (mPlayMiddleX - (aNameWidth >> 1)) + 3, 0x71);
+		mApp->mAnnounceFont1928->Draw(mFragmentText, (mPlayMiddleX - (aFragmentWidth >> 1)) + 3, 0x8a);
 		g->SetColor(Color(0xff, 0xff, 0xff, mTextAlpha));
-		mApp->mAnnounceFont1928->Draw(mRoundName.c_str(), mField70 - (aNameWidth >> 1), 0x6e);
-		mApp->mAnnounceFont1928->Draw(mFragmentText, mField70 - (aFragmentWidth >> 1), 0x87);
+		mApp->mAnnounceFont1928->Draw(mRoundName.c_str(), mPlayMiddleX - (aNameWidth >> 1), 0x6e);
+		mApp->mAnnounceFont1928->Draw(mFragmentText, mPlayMiddleX - (aFragmentWidth >> 1), 0x87);
 		g->SetColorizeImages(false);
 	}
 	mApp->mPicMenuoverlap->Draw(0, 0);
@@ -811,7 +811,7 @@ void DynomiteFossil::DrawScenery()
 void DynomiteFossil::UpdateRound()
 {
 	mBonusText = "";
-	if ((mPanicKind == true) && (mField16c == true) && (mField100 == true) && (mGrid->mPastLineFrames == 0) &&
+	if ((mPanicKind == true) && (mFiredThisRound == true) && (mCeilingAtGoal == true) && (mGrid->mPastLineFrames == 0) &&
 		((mBonusBits & 0x10) == 0))
 	{
 		mGrid->mCeiling = (float) ((double) mFallSpeed + mGrid->mCeiling);
@@ -821,9 +821,9 @@ void DynomiteFossil::UpdateRound()
 			mGrid->mCeiling = (float) ((double) mGrid->mCeiling - 66.0f);
 		}
 	}
-	if (mGrid->mField4691 == true)
+	if (mGrid->mAlarmDue == true)
 	{
-		mGrid->mField4691 = false;
+		mGrid->mAlarmDue = false;
 		mApp->mSndAooga->Play();
 	}
 	if (mKick != 0.0f)
@@ -848,17 +848,17 @@ void DynomiteFossil::UpdateRound()
 		}
 		mPushes--;
 	}
-	if (mField16c == false)
+	if (mFiredThisRound == false)
 	{
-		mField264 = mField264 + 3;
-		if (0xff < mField264)
-			mField264 = 0xff;
+		mFirstShotFade = mFirstShotFade + 3;
+		if (0xff < mFirstShotFade)
+			mFirstShotFade = 0xff;
 	}
-	else if (0 < mField264)
+	else if (0 < mFirstShotFade)
 	{
-		mField264 = mField264 - 3;
-		if (mField264 < 0)
-			mField264 = 0;
+		mFirstShotFade = mFirstShotFade - 3;
+		if (mFirstShotFade < 0)
+			mFirstShotFade = 0;
 	}
 }
 
@@ -903,7 +903,7 @@ void DynomiteFossil::FossilFell()
 			mApp->mSndInchypop->Play();
 		if (mFallTimer == 200)
 		{
-			AddPoints(mField70, 0x10e, (mRound == 3) ? 200 : 100, 0, true);
+			AddPoints(mPlayMiddleX, 0x10e, (mRound == 3) ? 200 : 100, 0, true);
 			mApp->mSndInchypop->Play();
 		}
 	}
@@ -937,17 +937,17 @@ void DynomiteFossil::Resizing()
 		if (mFallAlpha < 0)
 			mFallAlpha = 0;
 	}
-	int aWidth = mField68;
+	int aWidth = mPlayWidth;
 	int aTarget = mWidth;
 	if (aWidth != aTarget)
 	{
 		if (aTarget < aWidth)
-			mField68 = aWidth - 1;
-		if (mField68 < aTarget)
-			mField68 = mField68 + 1;
+			mPlayWidth = aWidth - 1;
+		if (mPlayWidth < aTarget)
+			mPlayWidth = mPlayWidth + 1;
 		if (mApp->mGrindInstance->IsPlaying() == false)
 			mApp->mGrindInstance->Play(true, false);
-		mField6c = mField68 / 2;
+		mPlayHalfWidth = mPlayWidth / 2;
 		return;
 	}
 	if (mFallAlpha == 0)
@@ -967,12 +967,12 @@ void DynomiteFossil::NextRound()
 	{
 		if ((mLevel == 0xf) && (mRound == 3))
 		{
-			mField131 = true;
-			mField134 = 1;
+			mGameOver = true;
+			mGameOverDelay = 1;
 			mApp->mMusicInterface->StopMusic(mSong);
 			mApp->mMusicInterface->SetSongVolume(4, 1.0);
 			mApp->mMusicInterface->PlayMusic(4, 0x40, false);
-			mField140 = 0;
+			mGameOverAlpha = 0;
 			mTalker = new MenuTalker(mApp, this, 2);
 		}
 		else
@@ -1042,7 +1042,7 @@ void DynomiteFossil::Update()
 		return;
 	if (mMuseum != NULL)
 		mMuseum->Update();
-	if (mField132 == true)
+	if (mGameOverShown == true)
 	{
 		UpdateGameOver();
 		return;
@@ -1051,7 +1051,7 @@ void DynomiteFossil::Update()
 		return;
 	if (mMuseum != NULL)
 		return;
-	if (((mBonusBits & 0x70) == 0) && (mField68 == mWidth))
+	if (((mBonusBits & 0x70) == 0) && (mPlayWidth == mWidth))
 	{
 		if (mApp->mGrindInstance->IsPlaying() == true)
 			mApp->mGrindInstance->Stop();
@@ -1083,7 +1083,7 @@ void DynomiteFossil::Update()
 	if (mGlowAlpha < 0x81)
 		mGlowStep = 2;
 	// the round's name shows for 500 frames before the first shot
-	if (mField16c == false)
+	if (mFiredThisRound == false)
 	{
 		mTextTimer--;
 		if (0 < mTextTimer)
@@ -1109,7 +1109,7 @@ void DynomiteFossil::Update()
 		if (mTextAlpha < 0)
 			mTextAlpha = 0;
 	}
-	if (mField134 == 0)
+	if (mGameOverDelay == 0)
 	{
 		SetPaused(true);
 		if (mHighScores->IsHighScore(mApp->mSideBar->mScore, (int) mStartTicks) == true)
@@ -1131,31 +1131,31 @@ void DynomiteFossil::Update()
 		}
 		aSound->Play();
 	}
-	if (mField130 != false)
+	if (mLosing != false)
 	{
-		if (mField131 == false)
+		if (mGameOver == false)
 		{
 			// the eggs run down off the board, then "game over"
 			mGrid->mCeiling = (float) ((double) mGrid->mCeiling + 32.0f);
 			if (mGrid->mCeiling > 496.0f)
 			{
 				mGrid->mCeiling = 496.0f;
-				mField131 = true;
-				mField13c = 0x3c;
+				mGameOver = true;
+				mShakeY = 0x3c;
 				mApp->mSndFootlands->Play();
 				mApp->mMusicInterface->StopMusic(mSong);
 				mApp->mMusicInterface->SetSongVolume(4, 1.0);
 				mApp->mMusicInterface->PlayMusic(4, 0x23, false);
-				mField140 = 0;
+				mGameOverAlpha = 0;
 				mTalker = new MenuTalker(mApp, this, 2);
 				return;
 			}
 		}
 		else
 		{
-			mField140 = mField140 + 2;
-			if (0xff < mField140)
-				mField140 = 0xff;
+			mGameOverAlpha = mGameOverAlpha + 2;
+			if (0xff < mGameOverAlpha)
+				mGameOverAlpha = 0xff;
 		}
 		return;
 	}
@@ -1191,24 +1191,24 @@ void DynomiteFossil::DrawGameOver(Graphics* g)
 	sprintf(aBabies, "%d", mBabies);
 	int aBabiesWidth = g->GetFont()->StringWidth(aBabies);
 	g->SetColor(Color(0, 0, 0));
-	g->DrawString(mApp->GetString("BEST_COMBO"), 0xe3, mField1c8 + 0x57);
-	g->DrawString(mApp->GetString("BABIES_HATCHED"), 0xe3, mField1c8 + 0x6b);
-	g->DrawString(mApp->GetString("FOSSILS_ASSEMBLED"), 0xe3, mField1c8 + 0x7f);
-	g->DrawString(mApp->GetString("FINAL_SCORE"), 0xe3, mField1c8 + 0x93);
-	g->DrawString(aCombo, 0x1b7 - aComboWidth, mField1c8 + 0x57);
-	g->DrawString(aFossils, 0x1b7 - aFossilsWidth, mField1c8 + 0x7f);
-	g->DrawString(aScore, 0x1b7 - aScoreWidth, mField1c8 + 0x93);
-	g->DrawString(aBabies, 0x1b7 - aBabiesWidth, mField1c8 + 0x6b);
+	g->DrawString(mApp->GetString("BEST_COMBO"), 0xe3, mPanelTop + 0x57);
+	g->DrawString(mApp->GetString("BABIES_HATCHED"), 0xe3, mPanelTop + 0x6b);
+	g->DrawString(mApp->GetString("FOSSILS_ASSEMBLED"), 0xe3, mPanelTop + 0x7f);
+	g->DrawString(mApp->GetString("FINAL_SCORE"), 0xe3, mPanelTop + 0x93);
+	g->DrawString(aCombo, 0x1b7 - aComboWidth, mPanelTop + 0x57);
+	g->DrawString(aFossils, 0x1b7 - aFossilsWidth, mPanelTop + 0x7f);
+	g->DrawString(aScore, 0x1b7 - aScoreWidth, mPanelTop + 0x93);
+	g->DrawString(aBabies, 0x1b7 - aBabiesWidth, mPanelTop + 0x6b);
 	g->SetColor(Color(0xe6, 0xe6, 0xff));
-	g->DrawString(mApp->GetString("BEST_COMBO"), 0xe1, mField1c8 + 0x55);
-	g->DrawString(aCombo, 0x1b5 - aComboWidth, mField1c8 + 0x55);
-	g->DrawString(mApp->GetString("BABIES_HATCHED"), 0xe1, mField1c8 + 0x69);
-	g->DrawString(mApp->GetString("FOSSILS_ASSEMBLED"), 0xe1, mField1c8 + 0x7d);
-	g->DrawString(aFossils, 0x1b5 - aFossilsWidth, mField1c8 + 0x7d);
-	g->DrawString(aBabies, 0x1b5 - aBabiesWidth, mField1c8 + 0x69);
+	g->DrawString(mApp->GetString("BEST_COMBO"), 0xe1, mPanelTop + 0x55);
+	g->DrawString(aCombo, 0x1b5 - aComboWidth, mPanelTop + 0x55);
+	g->DrawString(mApp->GetString("BABIES_HATCHED"), 0xe1, mPanelTop + 0x69);
+	g->DrawString(mApp->GetString("FOSSILS_ASSEMBLED"), 0xe1, mPanelTop + 0x7d);
+	g->DrawString(aFossils, 0x1b5 - aFossilsWidth, mPanelTop + 0x7d);
+	g->DrawString(aBabies, 0x1b5 - aBabiesWidth, mPanelTop + 0x69);
 	g->SetColor(Color(0xff, 0xff, 0xff));
-	g->DrawString(mApp->GetString("FINAL_SCORE"), 0xe1, mField1c8 + 0x91);
-	g->DrawString(aScore, 0x1b5 - aScoreWidth, mField1c8 + 0x91);
+	g->DrawString(mApp->GetString("FINAL_SCORE"), 0xe1, mPanelTop + 0x91);
+	g->DrawString(aScore, 0x1b5 - aScoreWidth, mPanelTop + 0x91);
 }
 
 // 0x408330: the ceiling's pushes and the rounds played are written twice, as the original does
@@ -1223,7 +1223,7 @@ void DynomiteFossil::Save()
 	mBinFile.WriteInt(mShownFossil);
 	mBinFile.WriteInt(mShownChannels);
 	mKroney->SaveState(&mBinFile);
-	mBinFile.WriteInt(mField264);
+	mBinFile.WriteInt(mFirstShotFade);
 	mBinFile.WriteInt(mPushes);
 	mBinFile.WriteInt(mRoundCount);
 	mBinFile.WriteInt(mPushes);
@@ -1265,7 +1265,7 @@ void DynomiteFossil::Load()
 	mShownFossil = mBinFile.ReadInt();
 	mShownChannels = mBinFile.ReadInt();
 	mKroney->LoadState(&mBinFile);
-	mField264 = mBinFile.ReadInt();
+	mFirstShotFade = mBinFile.ReadInt();
 	mPushes = mBinFile.ReadInt();
 	mRoundCount = mBinFile.ReadInt();
 	mPushes = mBinFile.ReadInt();

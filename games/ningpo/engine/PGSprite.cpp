@@ -22,14 +22,6 @@ PGSprite::~PGSprite()
 	mSurface = nullptr;
 }
 
-PGSprite* PGSprite::clone()
-{
-	PGSprite* aSprite = new PGSprite();
-	aSprite->mDisplay = mDisplay;
-	aSprite->mSurface = mDisplay->copySurface(mSurface);
-	return aSprite;
-}
-
 void PGSprite::drawAt(const PGPoint* theAt)
 {
 	if (mSurface != nullptr)
