@@ -401,6 +401,7 @@ above. The other 21, sorted:
     (0x429fd5) with its helper 0x429e79 and `InflateDirty` (0x428d6d, called only by it) belong to a layer whose
     content is bigger than its window, which none of the game's screens is (every text and picture comes from
     `TipTop.dat`).
+    (Dealt with in "Unneeded code taken out" below: the dead ones are out; the ones a game-file value reaches stay.)
 - *Stay, since some input reaches them:* the Tab keys of the name field (`NextHandler`, `PrevHandler`) and the full
   screen key (`lowos::KeyIsDown`), which origrun cannot post (the original reads its keys through DirectInput); the error
   exits (`lowos_MessageBox_`, `lowos_ScreenScope`: "Not enough memory..."); `Board::Ramp` (0x40b3ad), the levels past the
@@ -422,3 +423,54 @@ a function of the Winsock code as the sound code's end), `games/tiptop/coverage.
 `tools/check.sh tiptop` still matches the frozen baseline. The runs took about an hour and a half of wall time, most of
 it waiting for a free game slot (4 to 7 game processes ran on the machine the whole time); the runs themselves held a
 slot for about 40 minutes in all.
+
+## Unneeded code taken out (2026-11-11)
+
+The coverage check's candidates (above) and a link-time sweep are dealt with: 235 lines out of 13 files, 15 in (a comment, the
+padding and the `none` lines of `coverage.txt`). What counts as unneeded is the rule of `docs/COVERAGE.md` and Water Bugs' pass:
+code that no input reaches, nothing in the shipped files and nothing the player or a test command can do. Code that only some
+input reaches (a value of the game file's own language that the shipped files do not use) stays.
+
+**How it was found.** The coverage check's list of functions that no play of the original reaches, and a second look from the
+port's side: a build of the port with `-O0 -ffunction-sections -fdata-sections` linked with `--gc-sections --verbose`, whose
+"Discarded" lines name every function and variable that nothing references (at `-O0`, so that an inlined function does not look
+dead), repeated after each cut until it named none of the game's own. The test commands, the bot and the site's hooks count as
+callers.
+
+**Taken out.**
+
+- *The original's exit teardown, which the port's host does not run:* `App::Shutdown` (0x41b98a: screen none, music stop, the
+  board, the images, the GUI and LOWOS's devices) with `App::FreeImages` (0x41b771), `GuiShutdown` (0x428fa3),
+  `lowos::UninitScreen` (0x42f750) and `lowos::UninitSound` (0x432e70). The host stops the music and ends the process; what
+  the port does at the exit is `GameShutdown` (the preferences, the configuration's tables), which stays.
+- *The configuration's string readers,* `StringLength` (0x417cfd) and `ReadString` (0x417d63): only the registration's and the
+  links' strings (`REGISTER_URL`, `PUBLISHER_URL`, `RIS_*`) were read through them, and the registration pass took those out.
+- *`SlideImageProc`* (0x421f9f), the image that slides across the screen, and command 0x1c that makes it: nothing sends the
+  command (every button and handler sends a literal, and the configuration holds positions, not commands).
+- *`PlayAgainDialog`* (0x4264a8) with command 0x2c, its "No", and the other branch of command 0x2a. The high scores screen is
+  entered by command 0x2b alone, which only the main menu's button sends, so the previous screen is the main menu whenever 0x2a
+  arrives and the question was never asked; 0x2a now goes to the main menu at once. The six values of the dialog's place in the
+  configuration (`mPlayagainX` to `mPlayagainNoy`) are padding of the same size, as the registration's are (Board reaches the
+  configuration by offset), and their reads are gone.
+- *`res::FreeImage`* (a helper nothing called) and *`gModal2`* (0x4886f8, a global nothing read or wrote).
+
+**Kept, because some input reaches it.**
+
+- The hidden timed mode, its button and rows: the configuration's positions (1000, 1000) are values of the game's own file, and
+  `docs/MOD_IDEAS.md` has a mod that moves them on screen; the driver's `goto timed` also plays it.
+- `DeleteGameDialog` (0x425ffa) with commands 0x25 to 0x28 (reached when the configuration's `DELETEGAMEWARNING_DISABLE` is
+  FALSE) and `AnimationProc` (0x42cbe4), the level complete animation (`LEVELCOMPLETE_DISABLE` FALSE).
+- `ScrollBarProc` (0x429fd5) with its step function (0x429e79) and `InflateDirty` (0x428d6d): the text area sets its layer's
+  content to the height of its text and a longer text than the window (an instruction or credit page of `TipTop.dat` another
+  copy might hold) makes the scroll bar. The coverage list had these as candidates; they are not.
+- The ones the coverage section already keeps: the name field's Tab keys, the full screen key, the error exits, `Board::Ramp`,
+  `SetInputState`, `ToggleFullScreen`, `OnRestore` and `ReloadSurfaces`.
+
+`coverage.txt` gains nine `none` lines for the functions taken out (the original runs all of them; `res::FreeImage` and `gModal2`
+had no counterpart in the export).
+
+**Proof.** `tools/check.sh build build-web:tiptop tiptop` passes with the rerun and the frozen baseline identical. The shots of
+the six phase-two tours (172) and of two games in each mode with `-autoplayshots` (21) are byte for byte the same from an exe built
+from the commit before this step and from the one after, and so are their state logs but for the lines the original's uninitialised
+memory decides (the meter's start value and the level and blocks left at update 1). None of those plays reaches the code taken
+out except the high scores screen's way back (command 0x2a), which tour 1 clicks (the main menu's options button works right after it).

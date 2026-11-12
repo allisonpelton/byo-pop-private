@@ -158,11 +158,6 @@ static lowos::Image* NewImage(uint32_t theBytes)
 	return anImage;
 }
 
-void FreeImage(lowos::Image* theImage)
-{
-	free(theImage);
-}
-
 static uint16_t ReadU16(const uint8_t* p)
 {
 	return (uint16_t)(p[0] | p[1] << 8);
