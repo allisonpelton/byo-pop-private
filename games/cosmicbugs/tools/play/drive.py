@@ -4,7 +4,10 @@ every shot (the `move` test command, docs/TEST_COMMANDS.md); this script sends t
 channel (-commands) and checks what the game's `state` says next.
 
     build/native/rundesk.exe python games/cosmicbugs/tools/play/drive.py <out dir> [--games manual-full,manual-window,
-        auto-full,auto-window] [--maxtime S] [--exe E] [--fast]
+        auto-full,auto-window,manual-win1x,auto-win2x] [--maxtime S] [--exe E] [--fast]
+
+(win1x and win2x start in a window, 800x600 or the framework's default 1600x1200, where the window's own surface shows the
+screen, and at the end go to full screen and back with Alt+Enter.)
 
 The player's modes are the shooter's, manual and auto: the game file has no difficulty item (the code of its setting is
 in the exe and the setting stays "normal"). A game of each, in the full screen the game starts in and in a window
@@ -39,16 +42,25 @@ class Failed(Exception):
 
 
 class Game:
-    def __init__(self, out, exe, fast):
+    def __init__(self, out, exe, fast, windowed_start=None):
         self.out = os.path.abspath(out)
         os.makedirs(self.out, exist_ok=True)
+        extra = []
+        if windowed_start:
+            # a window from the start (cp.cfg's fullscreen="0"), the window's own surface showing the screen: at 1x the game's size
+            # (-windowscale=1, the original's window) or at the 2x the framework starts at
+            os.makedirs(os.path.join(self.out, 'user'), exist_ok=True)
+            with open(os.path.join(self.out, 'user', 'cp.cfg'), 'w') as cfg:
+                cfg.write('<CP_CONFIG\n    fullscreen="0"\n    desktopResolution="0"\n    wave="1"\n    music="1"\n/>\n')
+            if windowed_start == 'win1x':
+                extra = ['-windowscale=1']
         self.log = open(os.path.join(self.out, 'drive.log'), 'a')
         self.cf = os.path.join(self.out, 'commands.txt')
         empty = os.path.join(self.out, 'realinput.txt')
         open(self.cf, 'w').close()
         open(empty, 'w').close()
         cmd = [exe, '-gamedir=' + os.path.abspath('assets/cosmicbugs'), '-userdir=' + os.path.join(self.out, 'user'),
-               '-commands=' + self.cf, '-realinput=' + empty] + (['-fast'] if fast else [])
+               '-commands=' + self.cf, '-realinput=' + empty] + extra + (['-fast'] if fast else [])
         self.proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1)
         self.lines, self.cond = [], threading.Condition()
         self.gamelog = open(os.path.join(self.out, 'game.log'), 'w')
@@ -211,10 +223,12 @@ def checks(g):
         raise Failed('the game did not run again after the focus came back (%d, %d)' % (b, c))
 
 
-def play_game(g, shooter, maxtime, windowed):
+def play_game(g, shooter, maxtime, windowed, windowed_start=False):
     g.until('the title', lambda s: s['screen'] == 'title', 90)
     g.wait(20)
     g.shot('title')
+    if windowed_start and g.state()['fullscreen']:
+        raise Failed('a windowed start came up in full screen')
     if windowed:
         toggle_fullscreen(g, False)
         g.shot('title-windowed')
@@ -290,14 +304,22 @@ def play_game(g, shooter, maxtime, windowed):
     g.shot('title-end')
     if windowed:
         toggle_fullscreen(g, True)
+    if windowed_start:
+        # full screen is the display's renderer mode (the desktop is no whole multiple of the game's size); back in a window the
+        # display keeps its renderer, as it keeps one it has had (framework/SurfaceDisplay.h)
+        toggle_fullscreen(g, True)
+        g.shot('title-full')
+        toggle_fullscreen(g, False)
+        g.shot('title-window-again')
 
 
 def run_game(out, name, exe, fast, maxtime):
     shooter, screen = name.split('-')
-    g = Game(os.path.join(out, name), exe, fast)
+    start = screen if screen in ('win1x', 'win2x') else None
+    g = Game(os.path.join(out, name), exe, fast, start)
     result = 'ok'
     try:
-        play_game(g, shooter, maxtime, screen == 'window')
+        play_game(g, shooter, maxtime, screen == 'window', start is not None)
     except Failed as e:
         result = 'FAILED: %s' % e
         try:
