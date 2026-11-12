@@ -20,6 +20,14 @@ namespace cb
 
 using namespace r64;
 
+// The board: 50 columns by 37 rows of 16-pixel cells, 800 by 592 pixels of the screen's 800 by 600
+constexpr int CELL_SIZE = 16;
+constexpr int CELL_HALF = 8;                                  // from a cell's corner to its middle
+constexpr int GRID_COLUMNS = 50;
+constexpr int GRID_ROWS = 37;
+constexpr int BOARD_WIDTH = GRID_COLUMNS * CELL_SIZE;         // 800
+constexpr int BOARD_HEIGHT = GRID_ROWS * CELL_SIZE;           // 592
+
 // The game's lists: {current, head, tail} of nodes that start with {next, prev}
 template <class T>
 struct List

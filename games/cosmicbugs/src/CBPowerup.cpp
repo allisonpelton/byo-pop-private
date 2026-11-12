@@ -145,7 +145,7 @@ int Powerup_Collect(Powerup* thePowerup)
 			List_RemoveCurrent(aTexts);
 	});
 	Text_Append(aTexts);
-	Text_Make(aTexts->mCurrent, thePowerup->mText, Font_Find("main_font"), 400, 0xe6, 0, 200, 2000, 200, 0, 0);
+	Text_Make(aTexts->mCurrent, thePowerup->mText, Font_Find("main_font"), SCREEN_CENTRE_X, 0xe6, 0, 200, 2000, 200, 0, 0);
 	const char* aSound;
 	switch (thePowerup->mKind)
 	{
@@ -224,7 +224,7 @@ int Powerup_Fall(Powerup* thePowerup)
 	float y = thePowerup->mY;
 	int h = thePowerup->mImage->mH;
 	Obj_UpdateEmitters(thePowerup);
-	return y <= (float)(h + 600);
+	return y <= (float)(h + SCREEN_HEIGHT);
 }
 
 // The weapons. 0x4199c0: a missile's animation by the way it points
@@ -787,7 +787,7 @@ Powerup* Powerup_Init(Powerup* thePowerup)
 	thePowerup->mDrawKind = 1;
 	thePowerup->mDirty = 1;
 	thePowerup->mMidHandle = 1;
-	int aSide = Sign(thePowerup->mX - 400.0f);
+	int aSide = Sign(thePowerup->mX - (float)SCREEN_CENTRE_X);
 	thePowerup->mShadow = 1;
 	thePowerup->mAlpha = 0xff;
 	thePowerup->mVx = (float)aSide * -0.1f;
@@ -884,11 +884,11 @@ int Weapon_Update(Weapon* theWeapon)
 	}
 	else if (theWeapon->mState == WEAPON_LAUNCHED)
 	{
-		int aCol = (int)theWeapon->mX / 16;
-		if (-1 < aCol && aCol < 0x32)
+		int aCol = (int)theWeapon->mX / CELL_SIZE;
+		if (-1 < aCol && aCol < GRID_COLUMNS)
 		{
-			int aRow = (int)theWeapon->mY / 16;
-			if (-1 < aRow && aRow < 0x25)
+			int aRow = (int)theWeapon->mY / CELL_SIZE;
+			if (-1 < aRow && aRow < GRID_ROWS)
 				return aResult & Weapon_Move(theWeapon);
 		}
 		return 0;

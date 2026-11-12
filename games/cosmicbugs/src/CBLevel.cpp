@@ -146,9 +146,9 @@ void Level_MakeRandom(Level* theLevel, int theSeed)
 			}
 		}
 	}
-	for (int y = 0; y < 0x25; y++)
+	for (int y = 0; y < GRID_ROWS; y++)
 	{
-		for (int x = 0; x < 50; x++)
+		for (int x = 0; x < GRID_COLUMNS; x++)
 		{
 			Cell* aCell = CellAt(x, y);
 			aCell->mCol = x;
@@ -161,9 +161,9 @@ void Level_MakeRandom(Level* theLevel, int theSeed)
 	do
 	{
 		aChanged = false;
-		for (int y = 0; y < 0x25; y++)
+		for (int y = 0; y < GRID_ROWS; y++)
 		{
-			for (int x = 0; x < 50; x++)
+			for (int x = 0; x < GRID_COLUMNS; x++)
 			{
 				Cell* aCell = &theLevel->mColumns[x][y];
 				if (aCell->mKind == CELL_EDGE)
@@ -171,11 +171,11 @@ void Level_MakeRandom(Level* theLevel, int theSeed)
 					unsigned int aSolid = 0;
 					if (0 < x && theLevel->mColumns[x - 1][y].mKind == CELL_SOLID)
 						aSolid = 1;
-					if (x + 1 < 50 && theLevel->mColumns[x + 1][y].mKind == CELL_SOLID)
+					if (x + 1 < GRID_COLUMNS && theLevel->mColumns[x + 1][y].mKind == CELL_SOLID)
 						aSolid = aSolid + 1;
 					if (0 < y && aCell[-1].mKind == CELL_SOLID)
 						aSolid = aSolid + 1;
-					if (y + 1 < 0x25 && aCell[1].mKind == CELL_SOLID)
+					if (y + 1 < GRID_ROWS && aCell[1].mKind == CELL_SOLID)
 						aSolid = aSolid + 1;
 					if (2 < aSolid)
 					{
@@ -188,9 +188,9 @@ void Level_MakeRandom(Level* theLevel, int theSeed)
 		}
 	} while (aChanged);
 	theLevel->mTotalCells = 0;
-	for (int y = 0; y < 0x25; y++)
+	for (int y = 0; y < GRID_ROWS; y++)
 	{
-		for (int x = 0; x < 50; x++)
+		for (int x = 0; x < GRID_COLUMNS; x++)
 		{
 			Cell* aCell = CellAt(x, y);
 			int aKind = aCell->mKind;
@@ -444,10 +444,10 @@ static Font* ScreenFont(const char* theName)
 static void DrawCentred(Font* theFont, int theY, const char* theText)
 {
 	int aRect[4];
-	Font_DrawOutlined(theFont, aRect, 400, theY, theText);
+	Font_DrawOutlined(theFont, aRect, SCREEN_CENTRE_X, theY, theText);
 	int aHeight = Font_StringHeight(theFont, theText) + 2;
 	int aWidth = Font_StringWidth(theFont, theText) + 2;
-	Dirty_AddClippedShown(&gDirty, 399 - Font_StringWidth(theFont, theText) / 2, theY - 1, aWidth, aHeight, SCREEN_CLIP);
+	Dirty_AddClippedShown(&gDirty, SCREEN_CENTRE_X - 1 - Font_StringWidth(theFont, theText) / 2, theY - 1, aWidth, aHeight, SCREEN_CLIP);
 }
 
 // The original copies the lines onto the stack (the last a dword at a time)
@@ -461,7 +461,7 @@ void DrawPaused()
 	std::strcpy(aText, GT(0x458e58));
 	DrawCentred(aFont, 0xfa, aText);
 	std::strcpy(aText, GT(0x458e44));
-	DrawCentred(aFont, 300, aText);
+	DrawCentred(aFont, SCREEN_CENTRE_Y, aText);
 }
 
 int Level_IsPlaying(Level* theLevel)
@@ -584,7 +584,7 @@ Level* Level_Init(Level* theLevel)
 	theLevel->mLines = 0;
 	gSongName[0] = 0;
 	theLevel->mChain = 1;
-	for (int i = 0; i < 50; i++)
+	for (int i = 0; i < GRID_COLUMNS; i++)
 		theLevel->mColumns[i] = nullptr;
 	theLevel->mBonus = 0;
 	theLevel->mMusicPending = 0;
@@ -599,7 +599,7 @@ void Level_Destroy(Level* theLevel)
 		Image_Destroy(theLevel->mBackground);
 		::operator delete(theLevel->mBackground);
 	}
-	for (int i = 0; i < 50; i++)
+	for (int i = 0; i < GRID_COLUMNS; i++)
 	{
 		if (theLevel->mColumns[i] != nullptr)
 			Cells_Delete(theLevel->mColumns[i]);
@@ -625,7 +625,7 @@ void Level_Load(Level* theLevel, const char* theCursor, XmlTag* theTag)
 	int aRow = 0;
 	if (theCursor != nullptr)
 	{
-		for (int i = 0; i < 50; i++)
+		for (int i = 0; i < GRID_COLUMNS; i++)
 			theLevel->mColumns[i] = Cells_New();
 	}
 	if (Xml_GetString(theTag, "back_image") != nullptr)
@@ -680,8 +680,8 @@ void Level_Load(Level* theLevel, const char* theCursor, XmlTag* theTag)
 		theLevel->mRows = 0x20;
 	}
 	else
-		theLevel->mRows = 0x25;
-	theLevel->mCols = 0x32;
+		theLevel->mRows = GRID_ROWS;
+	theLevel->mCols = GRID_COLUMNS;
 	theLevel->mFillQuota = Xml_GetInt(theTag, "fill_quota");
 	theLevel->mFillSound = Sound_Load("audio\\fill.wav");
 	theLevel->mFillEndSound = Sound_Load("audio\\fill_end.wav");
@@ -710,7 +710,7 @@ void Level_Load(Level* theLevel, const char* theCursor, XmlTag* theTag)
 			if (aRow == 0)
 				theLevel->mTotalCells = 0;
 			const char* aCells = Xml_GetString(theTag, "cells");
-			for (int x = 0; x < 50; x++)
+			for (int x = 0; x < GRID_COLUMNS; x++)
 				Cell_Set(&theLevel->mColumns[x][aRow], aCells[x], x, aRow);
 			aRow = aRow + 1;
 		}
@@ -769,8 +769,8 @@ void Level_Load(Level* theLevel, const char* theCursor, XmlTag* theTag)
 				{
 					Star_Append(&theLevel->mStars);
 					Obj_FromXml(theLevel->mStars.mCurrent, theCursor, theTag);
-					theLevel->mStars.mCurrent->mX = (float)RandRange(0, 800);
-					theLevel->mStars.mCurrent->mY = (float)RandRange(0, 0x250);
+					theLevel->mStars.mCurrent->mX = (float)RandRange(0, SCREEN_WIDTH);
+					theLevel->mStars.mCurrent->mY = (float)RandRange(0, BOARD_HEIGHT);
 					Obj* aStar = theLevel->mStars.mCurrent;
 					aStar->mVx = (float)((double)RandRange(0x14, 0x32) / 25.0 * (double)aStar->mVx);
 					aNumber = aNumber + -1;
@@ -866,14 +866,14 @@ static void Level_Won(Level* theLevel)
 	theLevel->mBonus = aBonus;
 	gScore = gScore + aBonus;
 	std::sprintf(aText, "^1%s", Localize(GT(0x45916c)));
-	AddText(theLevel, aText, 400, 100, 100, 300, 0x1863c, 500, 0, 0);
+	AddText(theLevel, aText, SCREEN_CENTRE_X, 100, 100, 300, 0x1863c, 500, 0, 0);
 	int aY;
 	if (Level_EnemiesLeft(theLevel) == 0)
 	{
 		theLevel->mBonus = 2000;
 		gScore = gScore + 2000;
 		std::sprintf(aText, "^4%s", Localize(GT(0x459130)));
-		AddText(theLevel, aText, 400, 0xb4, 100, 300, 0xf41dc, 500, 0, 0);
+		AddText(theLevel, aText, SCREEN_CENTRE_X, 0xb4, 100, 300, 0xf41dc, 500, 0, 0);
 		aY = 0xf0;
 	}
 	else
@@ -881,17 +881,17 @@ static void Level_Won(Level* theLevel)
 		int aCount = theLevel->mFilledCells;
 		int aTotal = theLevel->mTotalCells;
 		std::sprintf(aText, "^1%s", Localize(GT(0x459150)));
-		AddText(theLevel, aText, 400, 0xaa, 100, 300, 0xf41dc, 500, 0, 0);
+		AddText(theLevel, aText, SCREEN_CENTRE_X, 0xaa, 100, 300, 0xf41dc, 500, 0, 0);
 		std::sprintf(aText, "^4%d%s", (aCount * 100) / aTotal, "%");
-		AddText(theLevel, aText, 400, 200, 100, 300, 0xf41dc, 500, 0, 0);
+		AddText(theLevel, aText, SCREEN_CENTRE_X, 200, 100, 300, 0xf41dc, 500, 0, 0);
 		aY = 0xfa;
 	}
 	std::sprintf(aText, "^1%s", Localize(GT(0x459118)));
-	AddText(theLevel, aText, 400, aY, 100, 300, 0xf41dc, 500, 0, 0);
+	AddText(theLevel, aText, SCREEN_CENTRE_X, aY, 100, 300, 0xf41dc, 500, 0, 0);
 	std::sprintf(aText, "^4%d", theLevel->mBonus);
-	AddText(theLevel, aText, 400, aY + 0x1e, 100, 300, 0xf41dc, 500, 0, 0);
+	AddText(theLevel, aText, SCREEN_CENTRE_X, aY + 0x1e, 100, 300, 0xf41dc, 500, 0, 0);
 	std::sprintf(aText, "^1%s", Localize(GT(0x4590fc)));
-	AddText(theLevel, aText, 400, aY + 100, 100, 400, 200, 400, 200, 0);
+	AddText(theLevel, aText, SCREEN_CENTRE_X, aY + 100, 100, 400, 200, 400, 200, 0);
 	List_Each(&theLevel->mEnemies, [&](Enemy* theEnemy) {
 		theEnemy->mState = ENEMY_FADING;
 		if (theLevel->mEnemies.mCurrent->mIce != nullptr)
@@ -1148,8 +1148,8 @@ void Level_AddStars(Level* theLevel)
 	do
 	{
 		Star_Append(aList);
-		aList->mCurrent->mX = (float)RandRange(0, 800);
-		aList->mCurrent->mY = (float)RandRange(0, 0x250);
+		aList->mCurrent->mX = (float)RandRange(0, SCREEN_WIDTH);
+		aList->mCurrent->mY = (float)RandRange(0, BOARD_HEIGHT);
 		aList->mCurrent->mVx = (float)((double)RandRange(0x14, 0x32) / 25.0 * 0.035);
 		aList->mCurrent->mDrawKind = 2;
 		aList->mCurrent->mMidHandle = 1;
@@ -1200,7 +1200,7 @@ void Level_AddRandomEnemies(Level* theLevel, int theFirst, int theSecond)
 				if (aSymmetry == 0)
 				{
 					int r = RandRange(0, 99);
-					anEnemies->mCurrent->mX = 800.0f - Node_Prev(anEnemies->mCurrent)->mX;
+					anEnemies->mCurrent->mX = (float)SCREEN_WIDTH - Node_Prev(anEnemies->mCurrent)->mX;
 					if (r < 0x33)
 						anEnemies->mCurrent->mY = Node_Prev(anEnemies->mCurrent)->mY;
 					else
@@ -1208,12 +1208,12 @@ void Level_AddRandomEnemies(Level* theLevel, int theFirst, int theSecond)
 				}
 				else if (aSymmetry == 1)
 				{
-					anEnemies->mCurrent->mX = 800.0f - Node_Prev(anEnemies->mCurrent)->mX;
+					anEnemies->mCurrent->mX = (float)SCREEN_WIDTH - Node_Prev(anEnemies->mCurrent)->mX;
 					anEnemies->mCurrent->mY = Node_Prev(anEnemies->mCurrent)->mY;
 				}
 				else if (aSymmetry == 2)
 				{
-					anEnemies->mCurrent->mX = 800.0f - Node_Prev(anEnemies->mCurrent)->mX;
+					anEnemies->mCurrent->mX = (float)SCREEN_WIDTH - Node_Prev(anEnemies->mCurrent)->mX;
 					anEnemies->mCurrent->mY = 528.0f - Node_Prev(anEnemies->mCurrent)->mY;
 				}
 				anEnemies->mCurrent->mTint = Node_Prev(anEnemies->mCurrent)->mTint;
@@ -1264,11 +1264,11 @@ void Level_ShowStart(Level* theLevel)
 		List<Text>* aTexts = &theLevel->mTexts;
 		Text_Append(aTexts);
 		StrUpper(aText);
-		Text_Make(aTexts->mCurrent, aText, Font_Find("main_font"), 400, 200, 0, 200, 4000, 200, 0, 0);
+		Text_Make(aTexts->mCurrent, aText, Font_Find("main_font"), SCREEN_CENTRE_X, 200, 0, 200, 4000, 200, 0, 0);
 		std::sprintf(aText, GT(0x458ec8), theLevel->mFillQuota, "%");
 		Text_Append(aTexts);
 		StrUpper(aText);
-		Text_Make(aTexts->mCurrent, aText, Font_Find("main_font"), 400, 0x104, 0, 200, 4000, 200, 0, 0);
+		Text_Make(aTexts->mCurrent, aText, Font_Find("main_font"), SCREEN_CENTRE_X, 0x104, 0, 200, 4000, 200, 0, 0);
 	}
 }
 
@@ -1280,7 +1280,7 @@ void Beams_RemoveAll(List<Beam>* theList)
 
 void Level_StartRandom(Level* theLevel)
 {
-	for (int i = 0; i < 50; i++)
+	for (int i = 0; i < GRID_COLUMNS; i++)
 		theLevel->mColumns[i] = Cells_New();
 	Level_StartSong(theLevel, 1);
 	Image* aBack = Bank_FindImage2(&gArtBank, theLevel->mBackImage);
@@ -1291,7 +1291,7 @@ void Level_StartRandom(Level* theLevel)
 	Level_MakeEdges(theLevel);
 	Screen_Redraw();
 	Level_AddPointer(theLevel);
-	Dirty_AddClipped(&gDirty, 0, 0, 800, 600, SCREEN_CLIP);
+	Dirty_AddClipped(&gDirty, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_CLIP);
 	if (theLevel->mNext != nullptr && Node_Next(theLevel)->mKind == LEVEL_MISSION_COMPLETE)
 		gGoTo = LEVEL_MISSION_COMPLETE;
 	// inside the frame the cells start as state 6 (not yet reached by the fill); the fill starts in the corner
@@ -1327,10 +1327,10 @@ void Level_GameOver(Level* theLevel)
 	Text_Append(aTexts);
 	int aColour = RandRange(2, 9);
 	std::sprintf(aText, GT(0x458f08), aColour);
-	Text_Make(aTexts->mCurrent, aText, Font_Find("main_font"), 400, 0xeb, 0, 500, 999999, 200, 0, 0);
+	Text_Make(aTexts->mCurrent, aText, Font_Find("main_font"), SCREEN_CENTRE_X, 0xeb, 0, 500, 999999, 200, 0, 0);
 	Text_Append(aTexts);
 	std::sprintf(aText, GT(0x458ef0), aColour);
-	Text_Make(aTexts->mCurrent, aText, Font_Find("main_font"), 400, 0x109, 100, 500, 999999, 200, 0, 0);
+	Text_Make(aTexts->mCurrent, aText, Font_Find("main_font"), SCREEN_CENTRE_X, 0x109, 100, 500, 999999, 200, 0, 0);
 	SaveProfiles();
 }
 
@@ -1398,15 +1398,15 @@ int Pointer_Update(Obj* thePointer)
 		thePointer->mShadow = 1;
 		thePointer->mAlpha = 0xff;
 		int v;
-		if (gMouseX < 0x321)
+		if (gMouseX < SCREEN_WIDTH + 1)
 			v = gMouseX < 0 ? 0 : gMouseX;
 		else
-			v = 800;
+			v = SCREEN_WIDTH;
 		thePointer->mX = (float)v;
-		if (gMouseY < 0x259)
+		if (gMouseY < SCREEN_HEIGHT + 1)
 			v = gMouseY < 0 ? 0 : gMouseY;
 		else
-			v = 600;
+			v = SCREEN_HEIGHT;
 		thePointer->mY = (float)v;
 		Obj_Update(thePointer);
 	}

@@ -242,24 +242,24 @@ int Obj_FromXml(Obj* theObj, const char* p, const XmlTag* theTag)
 		if (strcmp(Xml_GetString(theTag, "x"), "left") == 0 && theObj->mImage != nullptr)
 			theObj->mX = 0.0f;
 		else if (strcmp(Xml_GetString(theTag, "x"), "right") == 0 && theObj->mImage != nullptr)
-			theObj->mX = (float)(800 - theObj->mImage->mW);
+			theObj->mX = (float)(SCREEN_WIDTH - theObj->mImage->mW);
 		else
-			theObj->mX = (float)(Xml_GetFloat(theTag, "x") * 800.0 / 800.0);
+			theObj->mX = (float)(Xml_GetFloat(theTag, "x") * SCREEN_WIDTH / SCREEN_WIDTH);
 	}
 	if (Xml_GetString(theTag, "y") != nullptr)
 	{
 		if (strcmp(Xml_GetString(theTag, "y"), "top") == 0 && theObj->mImage != nullptr)
 			theObj->mY = 0.0f;
 		else if (strcmp(Xml_GetString(theTag, "y"), "bottom") == 0 && theObj->mImage != nullptr)
-			theObj->mY = (float)(600 - theObj->mImage->mH);
+			theObj->mY = (float)(SCREEN_HEIGHT - theObj->mImage->mH);
 		else
-			theObj->mY = (float)(Xml_GetFloat(theTag, "y") * 600.0 / 600.0);
+			theObj->mY = (float)(Xml_GetFloat(theTag, "y") * SCREEN_HEIGHT / SCREEN_HEIGHT);
 	}
 	if (Xml_GetFloat(theTag, "z") != 0.0)
 		theObj->mDepth = (int)Xml_GetFloat(theTag, "z");
-	theObj->mVx = (float)(Xml_GetFloat(theTag, "x_speed") * 800.0 / 800.0);
-	theObj->mVy = (float)(Xml_GetFloat(theTag, "y_speed") * 800.0 / 800.0);
-	theObj->mSpeed = (float)(Xml_GetFloat(theTag, "velocity") * 800.0 / 800.0);
+	theObj->mVx = (float)(Xml_GetFloat(theTag, "x_speed") * SCREEN_WIDTH / SCREEN_WIDTH);
+	theObj->mVy = (float)(Xml_GetFloat(theTag, "y_speed") * SCREEN_WIDTH / SCREEN_WIDTH);
+	theObj->mSpeed = (float)(Xml_GetFloat(theTag, "velocity") * SCREEN_WIDTH / SCREEN_WIDTH);
 	theObj->mDirty = Xml_GetInt(theTag, "buffered");
 	if (Xml_GetString(theTag, "explo_sound") != nullptr)
 		theObj->mExploSound = Sound_Load(Xml_GetString(theTag, "explo_sound"));
@@ -270,8 +270,8 @@ int Obj_FromXml(Obj* theObj, const char* p, const XmlTag* theTag)
 		int aCol = 0;
 		int aRow = 0;
 		Level_FindKey(gLevels.mCurrent, *aKey, &aCol, &aRow);
-		aCol = aCol * 0x10 + 8;
-		aRow = aRow * 0x10 + 8;
+		aCol = aCol * CELL_SIZE + CELL_HALF;
+		aRow = aRow * CELL_SIZE + CELL_HALF;
 		theObj->mX = (float)aCol;
 		theObj->mY = (float)aRow;
 	}

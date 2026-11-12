@@ -278,13 +278,13 @@ int Text_FromXml(Text* theText, const char* theCursor, const XmlTag* theTag)
 			sprintf(aBuf, "^%d%d.", aRow + 2, aRow + 1);
 			Text_Append(&gLevels.mCurrent->mTexts);
 			Text_Make(gLevels.mCurrent->mTexts.mCurrent, aBuf, Font_Find(Xml_GetString(theTag, "font")), 0x1e,
-				(Xml_GetInt(theTag, "y") * 600) / 600, Xml_GetInt(theTag, "dormant_time"),
+				(Xml_GetInt(theTag, "y") * SCREEN_HEIGHT) / SCREEN_HEIGHT, Xml_GetInt(theTag, "dormant_time"),
 				Xml_GetInt(theTag, "fade_in_time"), Xml_GetInt(theTag, "idle_time"), Xml_GetInt(theTag, "fade_out_time"),
 				0, 0);
 			gLevels.mCurrent->mTexts.mCurrent->mAlign = 0;
 			gLevels.mCurrent->mTexts.mCurrent = theText;
 			sprintf(aBuf, "^%d%s", theText->mRow + 2, gHighScores[theText->mRow].mName);
-			Text_Make(theText, aBuf, Font_Find(Xml_GetString(theTag, "font")), 100, (Xml_GetInt(theTag, "y") * 600) / 600,
+			Text_Make(theText, aBuf, Font_Find(Xml_GetString(theTag, "font")), 100, (Xml_GetInt(theTag, "y") * SCREEN_HEIGHT) / SCREEN_HEIGHT,
 				Xml_GetInt(theTag, "dormant_time"), Xml_GetInt(theTag, "fade_in_time"), Xml_GetInt(theTag, "idle_time"),
 				Xml_GetInt(theTag, "fade_out_time"), 0, 0);
 			theText->mAlign = 0;
@@ -292,7 +292,7 @@ int Text_FromXml(Text* theText, const char* theCursor, const XmlTag* theTag)
 			sprintf(aBuf, "^%d%d", theText->mRow + 2, gHighScores[theText->mRow].mScore);
 			Text_Append(&gLevels.mCurrent->mTexts);
 			Text_Make(gLevels.mCurrent->mTexts.mCurrent, aBuf, Font_Find(Xml_GetString(theTag, "font")), 0x302,
-				(Xml_GetInt(theTag, "y") * 600) / 600, Xml_GetInt(theTag, "dormant_time"),
+				(Xml_GetInt(theTag, "y") * SCREEN_HEIGHT) / SCREEN_HEIGHT, Xml_GetInt(theTag, "dormant_time"),
 				Xml_GetInt(theTag, "fade_in_time"), Xml_GetInt(theTag, "idle_time"), Xml_GetInt(theTag, "fade_out_time"),
 				0, 0);
 			gLevels.mCurrent->mTexts.mCurrent->mKind = TEXT_HIGH_SCORE;
@@ -306,10 +306,10 @@ int Text_FromXml(Text* theText, const char* theCursor, const XmlTag* theTag)
 			theText->mFont = Font_Find(Xml_GetString(theTag, "font"));
 			int aX = Xml_GetInt(theTag, "x");
 			int aWidth = Xml_GetInt(theTag, "width");
-			int aY = (Xml_GetInt(theTag, "y") * 600) / 600;
+			int aY = (Xml_GetInt(theTag, "y") * SCREEN_HEIGHT) / SCREEN_HEIGHT;
 			TextInput* anInput = &theText->mInput;
-			TextInput_Init(anInput, theText->mFont, 0x10, 4, (aX * 800) / 800 - aWidth / 2, aY,
-				aWidth / 2 + (aX * 800) / 800, aY + 0x1e);
+			TextInput_Init(anInput, theText->mFont, 0x10, 4, (aX * SCREEN_WIDTH) / SCREEN_WIDTH - aWidth / 2, aY,
+				aWidth / 2 + (aX * SCREEN_WIDTH) / SCREEN_WIDTH, aY + 0x1e);
 			TextInput_SetFocus(anInput, 1);
 			TextInput_SetCaseMode(anInput, 1);
 #ifdef __EMSCRIPTEN__
@@ -334,7 +334,7 @@ int Text_FromXml(Text* theText, const char* theCursor, const XmlTag* theTag)
 		else
 			return 1;
 		Text_Make(theText, Xml_GetString(theTag, "text"), Font_Find(Xml_GetString(theTag, "font")),
-			(Xml_GetInt(theTag, "x") * 800) / 800, (Xml_GetInt(theTag, "y") * 600) / 600,
+			(Xml_GetInt(theTag, "x") * SCREEN_WIDTH) / SCREEN_WIDTH, (Xml_GetInt(theTag, "y") * SCREEN_HEIGHT) / SCREEN_HEIGHT,
 			Xml_GetInt(theTag, "dormant_time"), Xml_GetInt(theTag, "fade_in_time"), Xml_GetInt(theTag, "idle_time"),
 			Xml_GetInt(theTag, "fade_out_time"), 0, 0);
 		return 1;

@@ -63,7 +63,7 @@ public:
 	bool LockScreen(uint8_t** theBits, int* thePitch) override
 	{
 		*theBits = (uint8_t*)gApp->mScreen.data();
-		*thePitch = 800 * 2;
+		*thePitch = r64::SCREEN_WIDTH * 2;
 		return true;
 	}
 
@@ -216,7 +216,7 @@ static void BuildPixelsFromScreen16()
 CosmicBugsWidget::CosmicBugsWidget()
 {
 	mScreenImage = new MemoryImage(gApp);
-	mScreenImage->Create(800, 600);
+	mScreenImage->Create(r64::SCREEN_WIDTH, r64::SCREEN_HEIGHT);
 	// opaque, so that the framework need not look through the 480000 pixels for alpha after each change, and with every
 	// alpha byte 0xff (Draw), so that it need not copy and premultiply them pixel by pixel in strips to upload them (where
 	// premultiplying changes nothing): the same pixels reach the screen, in one upload (Water Bugs' and the Mahjong ports' screen)
@@ -244,7 +244,7 @@ void CosmicBugsWidget::Draw(Graphics* g)
 	CosmicBugsApp* anApp = gApp;
 	if (anApp->mPresented)
 	{
-		int aLeft = 0, aTop = 0, aRight = 800, aBottom = 600;
+		int aLeft = 0, aTop = 0, aRight = r64::SCREEN_WIDTH, aBottom = r64::SCREEN_HEIGHT;
 		if (!anApp->mWholeScreen && anApp->mDirtyRight > anApp->mDirtyLeft)
 		{
 			aLeft = anApp->mDirtyLeft;
@@ -255,8 +255,8 @@ void CosmicBugsWidget::Draw(Graphics* g)
 		ulong* aBits = mScreenImage->GetBits();
 		for (int y = aTop; y < aBottom; y++)
 		{
-			const uint16_t* aSrc = &anApp->mScreen[y * 800];
-			ulong* aDst = &aBits[y * 800];
+			const uint16_t* aSrc = &anApp->mScreen[y * r64::SCREEN_WIDTH];
+			ulong* aDst = &aBits[y * r64::SCREEN_WIDTH];
 			for (int x = aLeft; x < aRight; x++)
 			{
 				aDst[x] = gPixelsFromScreen16[aSrc[x]];
@@ -265,7 +265,7 @@ void CosmicBugsWidget::Draw(Graphics* g)
 		mScreenImage->BitsChanged();
 		anApp->mPresented = false;
 		anApp->mWholeScreen = false;
-		anApp->mDirtyLeft = anApp->mDirtyTop = 800;
+		anApp->mDirtyLeft = anApp->mDirtyTop = r64::SCREEN_WIDTH;
 		anApp->mDirtyRight = anApp->mDirtyBottom = 0;
 	}
 	g->DrawImage(mScreenImage, 0, 0);
@@ -315,19 +315,19 @@ CosmicBugsApp::CosmicBugsApp()
 	mProdName = "CosmicBugs";
 	mTitle = "Cosmic Bugs";
 	mRegKey = "PopCap\\CosmicBugs";
-	mWidth = 800;
-	mHeight = 600;
+	mWidth = r64::SCREEN_WIDTH;
+	mHeight = r64::SCREEN_HEIGHT;
 	mWidget = nullptr;
 	mGameStarted = false;
 	mGameEnded = false;
 	mApplyingGameMode = false;
-	mScreen.assign(800 * 600, 0);
+	mScreen.assign(r64::SCREEN_WIDTH * r64::SCREEN_HEIGHT, 0);
 	mPresented = false;
 	mWholeScreen = false;
-	mDirtyLeft = mDirtyTop = 800;
+	mDirtyLeft = mDirtyTop = r64::SCREEN_WIDTH;
 	mDirtyRight = mDirtyBottom = 0;
-	mMouseX = 400;
-	mMouseY = 300;
+	mMouseX = r64::SCREEN_CENTRE_X;
+	mMouseY = r64::SCREEN_CENTRE_Y;
 }
 
 CosmicBugsApp::~CosmicBugsApp()
@@ -428,9 +428,9 @@ void CosmicBugsApp::AddUpdateRect(int x, int y, int w, int h)
 	if (y < mDirtyTop)
 		mDirtyTop = y < 0 ? 0 : y;
 	if (x + w > mDirtyRight)
-		mDirtyRight = x + w > 800 ? 800 : x + w;
+		mDirtyRight = x + w > r64::SCREEN_WIDTH ? r64::SCREEN_WIDTH : x + w;
 	if (y + h > mDirtyBottom)
-		mDirtyBottom = y + h > 600 ? 600 : y + h;
+		mDirtyBottom = y + h > r64::SCREEN_HEIGHT ? r64::SCREEN_HEIGHT : y + h;
 }
 
 void CosmicBugsApp::Present()

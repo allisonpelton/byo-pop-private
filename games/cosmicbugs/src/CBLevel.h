@@ -475,7 +475,7 @@ enum LevelState
 struct Level : Obj
 {
 	// mKind +0x08 a LevelKind, mState +0x0c a LevelState
-	Cell* mColumns[50];               // +0x0b0
+	Cell* mColumns[GRID_COLUMNS];        // +0x0b0
 	char mTitle[0x40];                // +0x178
 	int mNumber;                      // +0x1b8
 	char mBackImage[0x40];            // +0x1bc
@@ -489,9 +489,9 @@ struct Level : Obj
 	int mVTileCount;                  // +0x218
 	Animation* mCornerTiles;          // +0x21c
 	int mCornerTileCount;             // +0x220
-	int mHPattern[50];                // +0x224
+	int mHPattern[GRID_COLUMNS];        // +0x224
 	int mHPatternCount;               // +0x2ec
-	int mVPattern[37];                // +0x2f0
+	int mVPattern[GRID_ROWS];        // +0x2f0
 	int mVPatternCount;               // +0x384
 	int mNumWalkers;                  // +0x388
 	int mNumRollers;                  // +0x38c

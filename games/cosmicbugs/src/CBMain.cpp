@@ -317,7 +317,7 @@ void GameInit()
 #ifdef __EMSCRIPTEN__
 	SiteStart();	// the web page's players (framework/WebProfiles.h): the slots are read; what the page queued for them is applied
 #endif
-	Dirty_AddClipped(&gDirty, 0, 0, 800, 600, SCREEN_CLIP);
+	Dirty_AddClipped(&gDirty, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_CLIP);
 }
 
 // The screen's dirty parts from the back buffer, then the level over them
@@ -366,19 +366,19 @@ void Screen_Redraw()
 		// bits per pixel, 0x460008)
 		Font_Draw(&gFontSmall, GT(0x458afc), 10, 0x244, 0);
 		char aText[256];
-		std::snprintf(aText, sizeof(aText), GT(0x458ae4), 800, 600, 16);
+		std::snprintf(aText, sizeof(aText), GT(0x458ae4), SCREEN_WIDTH, SCREEN_HEIGHT, 16);
 		Font_Draw(&gFontSmall, aText, 10, 0x24e, 0);
 		if (gLevels.mCurrent != nullptr)
 		{
 			List_Each(&gLevels.mCurrent->mMenus, Menu_DrawToBackground);
 			Image_BlitRect(gLevels.mCurrent->mBackground, gBackBuffer.mBits, gBackBuffer.mPitch, &gBackBuffer.mFmt, 0, 0,
-				0, 0, 800, 600);
+				0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
 			if (10.0f < gLevels.mCurrent->mAge)
 				Level_RedrawCells(gLevels.mCurrent);
 			if (gLevels.mCurrent->mPanels.mCurrent != nullptr)
 				Panel_Draw(gLevels.mCurrent->mPanels.mCurrent, 0);
 		}
-		Dirty_AddClippedShown(&gDirty, 0, 0, 800, 600, SCREEN_CLIP);
+		Dirty_AddClippedShown(&gDirty, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_CLIP);
 	}
 }
 
