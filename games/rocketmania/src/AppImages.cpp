@@ -12,11 +12,11 @@
 using namespace Sexy;
 
 // 0x416fd0: red, green and blue as 0 to 255 to hue (degrees, -1 for no hue), saturation and value (0 to 1)
-static void RGBToHSV(double r, double g, double b, double* h, double* s, double* v)
+static void RGBToHSV(double theRed, double theGreen, double theBlue, double* theHue, double* theSaturation, double* theValue)
 {
-	double aR = r * 0.00392156862745098;
-	double aG = g * 0.00392156862745098;
-	double aB = b * 0.00392156862745098;
+	double aR = theRed * 0.00392156862745098;
+	double aG = theGreen * 0.00392156862745098;
+	double aB = theBlue * 0.00392156862745098;
 
 	double aMax = aB;
 	if (aB < aG)
@@ -40,92 +40,92 @@ static void RGBToHSV(double r, double g, double b, double* h, double* s, double*
 	}
 	double aDelta = aTop - aBottom;
 
-	*v = aTop;
+	*theValue = aTop;
 	if (aTop != 0.0)
 	{
-		*s = aDelta / aTop;
+		*theSaturation = aDelta / aTop;
 		if (aDelta / aTop != 0.0)
 		{
-			// (when no channel equals the top one, which only a NaN does, the original scales what *h held)
+			// (when no channel equals the top one, which only a NaN does, the original scales what *theHue held)
 			if (aR == aTop)
-				*h = (aG - aB) / aDelta;
+				*theHue = (aG - aB) / aDelta;
 			else if (aG == aTop)
-				*h = (aB - aR) / aDelta + 2.0;
+				*theHue = (aB - aR) / aDelta + 2.0;
 			else if (aB == aTop)
-				*h = (aR - aG) / aDelta + 4.0;
+				*theHue = (aR - aG) / aDelta + 4.0;
 
-			*h = *h * 60.0;
-			if (*h >= 0.0)
+			*theHue = *theHue * 60.0;
+			if (*theHue >= 0.0)
 				return;
-			*h = *h + 360.0;
+			*theHue = *theHue + 360.0;
 			return;
 		}
 	}
 	else
-		*s = 0.0;
+		*theSaturation = 0.0;
 
-	*h = -1.0;
+	*theHue = -1.0;
 }
 
 // 0x417140: hue (degrees, -1 for none), saturation and value to red, green and blue as 0 to 255
-static void HSVToRGB(double h, double s, double v, double* r, double* g, double* b)
+static void HSVToRGB(double theHue, double theSaturation, double theValue, double* theRed, double* theGreen, double* theBlue)
 {
 	double aR, aG, aB;
-	if (s == 0.0)
+	if (theSaturation == 0.0)
 	{
-		if (h == -1.0)
-			aR = aG = aB = v;
+		if (theHue == -1.0)
+			aR = aG = aB = theValue;
 		else
 			aR = aG = aB = 0.0;
 	}
 	else
 	{
-		if (h == 360.0)
-			h = 0.0;
-		int aSector = (int) floor(h * 0.016666666666666666);
-		double aFraction = h * 0.016666666666666666 - (double) aSector;
-		double aP = (1.0 - s) * v;
-		double aQ = (1.0 - s * aFraction) * v;
-		double aT = (1.0 - (1.0 - aFraction) * s) * v;
+		if (theHue == 360.0)
+			theHue = 0.0;
+		int aSector = (int) floor(theHue * 0.016666666666666666);
+		double aFraction = theHue * 0.016666666666666666 - (double) aSector;
+		double aP = (1.0 - theSaturation) * theValue;
+		double aQ = (1.0 - theSaturation * aFraction) * theValue;
+		double aT = (1.0 - (1.0 - aFraction) * theSaturation) * theValue;
 		aR = aP;
 		aG = aP;
 		aB = aP;
 		switch (aSector)
 		{
 		case 0:
-			aR = v;
+			aR = theValue;
 			aG = aT;
 			break;
 		case 1:
 			aR = aQ;
-			aG = v;
+			aG = theValue;
 			break;
 		case 2:
-			aG = v;
+			aG = theValue;
 			aB = aT;
 			break;
 		case 3:
 			aG = aQ;
-			aB = v;
+			aB = theValue;
 			break;
 		case 4:
 			aR = aT;
-			aB = v;
+			aB = theValue;
 			break;
 		case 5:
-			aR = v;
+			aR = theValue;
 			aB = aQ;
 			break;
 		default:
-			aR = v;
-			aG = v;
-			aB = v;
+			aR = theValue;
+			aG = theValue;
+			aB = theValue;
 			break;
 		}
 	}
-	*r = aR * 255.0;
-	*g = aG * 255.0;
-	*b = aB * 255.0;
+	*theRed = aR * 255.0;
+	*theGreen = aG * 255.0;
+	*theBlue = aB * 255.0;
 }
 
 // 0x46dc69: mirror every row of the picture (the original casts to a memory image and swaps the pixels in place)

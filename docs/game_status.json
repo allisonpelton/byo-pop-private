@@ -304,11 +304,14 @@
         "coverage",
         "identical-look",
         "fixes-mod",
-        "performance"
+        "performance",
+        "lite-mod",
+        "unneeded-code",
+        "readability"
       ],
       "na": [],
-      "now": "lite-mod",
-      "note": "processor time 0.25 to 0.78 of the original's in every pair (port 1.4-2.5 M cycles an update, original about 4.2 M), 2D, 3D and the default window; the lite survey next"
+      "now": "collection",
+      "note": "lite mod: none taken (the whole update is 1.7% of the port's cycles); unneeded code out and the readability pass done, baseline identical; the Collection check next"
     },
     "dynomite": {
       "title": "Dynomite Deluxe",

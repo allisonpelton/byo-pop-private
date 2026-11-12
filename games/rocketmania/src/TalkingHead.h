@@ -1,5 +1,5 @@
 // The talking head of Rocket Mania Deluxe (class TalkingHead 0x4161a0, the announcer that sways beside the board and speaks
-// at the big moments), its speech bubble (SpeechBubble 0x415c70) and the hover tips of the board (0x413aa0). See
+// at the big moments) and the hover tips of the board (0x413aa0). See
 // docs/GAME_NOTES.md.
 
 #ifndef __ROCKETMANIA_TALKINGHEAD_H__
@@ -72,29 +72,6 @@ public:
 	void			GoToRest(bool theClimb);                            // 0x416520: out of the way (and, if asked, up from the hole)
 	void			Arrive();                                           // 0x416590: from the left of the board to its place
 	void			StepAside();                                        // 0x4165f0: out of the way of a dialog
-	void			ShowBubble();                                       // 0x416a30
-	void			HideBubble();                                       // 0x416a80
-};
-
-// 0x415c70, 0x80 bytes: the pop-up bubble that was meant to hold the head's words. The shipped game never gives it a text
-// (its message number stays at 5, "none", and nothing sets another one; the function that would, 0x415d30, is empty), so it
-// stays invisible and its draw (0x416040) and its eight-line text (0x415ec0, the table at 0x4e6000) can never show anything:
-// they are left out. The board brings it to the front and the head's click handler fades it, so the rest is kept.
-class SpeechBubble : public Widget
-{
-public:
-	double			m58;                // +0x58 a wait before it shows (counts down by 0.01)
-	double			m60;                // +0x60 how long it stays (counts down by 0.01)
-	double			m68;                // +0x68 the fade (counts down by 0.015)
-	int				mMessage;           // +0x70 the message (5 none)
-	int				mState;             // +0x74 0 nothing, 1 fading in, 2 shown, 3 fading out
-	RocketApp*		mApp;               // +0x78
-
-	SpeechBubble(RocketApp* theApp);
-	virtual ~SpeechBubble();
-
-	virtual void	Update() override;                                  // 0x415d90
-	void			FadeOut();                                          // 0x415d40
 };
 
 // 0x413aa0, 0x18 bytes: the pointer resting on one of seven places of the board for 81 updates makes a tip appear that

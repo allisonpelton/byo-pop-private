@@ -3,9 +3,8 @@
 
 // The game of Rocket Mania Deluxe: the Board (RocketManiaGame 0x41ae80-0x429ed0, 141 functions) and the objects it
 // keeps. The original's field offsets are given as comments (board+0x..., piece+0x...); the port's base classes have
-// other sizes, so code never depends on them. Fields keep their offset in the name (m5c) until the code that uses them
-// has been read; the ones that are understood have a name and a comment. The saved game (savea/b/c.dat) writes the
-// fields in the order of 0x41c830, which is the order of the lists below.
+// other sizes, so code never depends on them. The saved game (savea/b/c.dat) writes the fields in the order of 0x41c830,
+// which is the order of the lists below.
 //
 // The playing field is 6 columns wide (board+0x4e4) and 9 rows high (board+0x4e8) of 42 by 42 cells: the cell
 // (row, column) is at x = 250 + 42 column, y = 78 + 42 row (0x4220e0, 0x422100) and the grid is stored row by row,
@@ -17,7 +16,6 @@
 // docs/GAME_NOTES.md has the map of what is where.
 
 #include "Widget.h"
-#include "ButtonListener.h"
 #include "Common.h"
 #include "Effects.h"
 #include <list>
@@ -50,39 +48,39 @@ extern const PipeStep gPipeSteps[4];
 struct Piece
 {
 	int			mId;            // +0x00 the unique number (lists are searched by it, saves keep it)
-	bool		m04;            // +0x04 (set once the references of a loaded piece are resolved, 0x41b690)
+	bool		mReferencesResolved;            // +0x04 (set once the references of a loaded piece are resolved, 0x41b690)
 	double		mX;             // +0x08
 	double		mY;             // +0x10
-	double		m18;            // +0x18 starts as a random number from -5 to 5 (the horizontal speed of a tile that flies)
-	double		m20;            // +0x20 (the vertical speed of the same)
-	bool		mMoving;        // +0x28 the piece slides from (m40, m44) to (m48, m4c)
-	double		m30;            // +0x30 the progress of that slide
-	double		m38;            // +0x38 its step
-	int			m40, m44;       // +0x40 where it started (x, y)
-	int			m48, m4c;       // +0x48 where it goes (x, y)
+	double		mSpeedX;            // +0x18 starts as a random number from -5 to 5 (the horizontal speed of a tile that flies)
+	double		mSpeedY;            // +0x20 (the vertical speed of the same)
+	bool		mMoving;        // +0x28 the piece slides from (mSlideStartX, mSlideStartY) to (mSlideEndX, mSlideEndY)
+	double		mSlideProgress;            // +0x30 the progress of that slide
+	double		mSlideStep;            // +0x38 its step
+	int			mSlideStartX, mSlideStartY;       // +0x40 where it started (x, y)
+	int			mSlideEndX, mSlideEndY;       // +0x48 where it goes (x, y)
 	int			mRow;           // +0x50 (-1 on the top line)
 	int			mColumn;        // +0x54 (-1 on the left line, 6 on the right line)
 	int			mFromRow, mFromColumn;  // +0x58 the original reads these as the burn's start
-	bool		m60, m61;       // +0x60 (m60: the tile has been used in a launch)
+	bool		mUsed, mBlocked;       // +0x60 (mUsed: the tile has been used in a launch)
 	int			mType;          // +0x64 7 at the start; see above
 	int			mKind;          // +0x68 the picture's row: 0 to 4 (the generator 0x42a590 draws it), -1 none; for a special its kind
 	int			mRotation;      // +0x6c the picture's column: 0 to 3, -1 none
 	int			mBorn;          // +0x70 the update count at which it was made (saved as an age)
 	int			mPath;          // +0x74 the number of the connection path a tile belongs to (0 none)
 	int			mPathFrom;      // +0x78 -1 at the start
-	int			m7c;            // +0x7c
-	double		m80;            // +0x80 the tilt of a tile that was hit (decays to 0)
-	int			m88;            // +0x88 the board's update count at the creation (0x41ad90's argument)
+	int			mFrame;            // +0x7c
+	double		mTilt;            // +0x80 the tilt of a tile that was hit (decays to 0)
+	int			mTurnedAt;            // +0x88 the board's update count at the creation (0x41ad90's argument)
 	Piece*		mSpecial;       // +0x8c a special attached to this tile (in a save its id)
 	Piece*		mHost;          // +0x90 the tile a special is attached to
-	bool		m94;            // +0x94 the piece is in the board's list of moving pieces
-	int			m98;            // +0x98
+	bool		mInMoverList;            // +0x94 the piece is in the board's list of moving pieces
+	int			mAlwaysZero;            // +0x98
 	Effect*		mFlash;     // +0x9c an effect attached to it
 	int			mIndex;         // +0xa0 the launcher's number, or other counters
 	int			mIndex2;        // +0xa4
-	int			ma8;            // +0xa8 (3 at the start: the hits a bomb takes)
-	int			mac;            // +0xac (the shake of a tile that was moved, counts down by 2)
-	int			mb0, mb4;       // +0xb0 where a moved tile came from
+	int			mHitsLeft;            // +0xa8 (3 at the start: the hits a bomb takes)
+	int			mTrailLife;            // +0xac (the shake of a tile that was moved, counts down by 2)
+	int			mMovedFromRow, mMovedFromColumn;       // +0xb0 where a moved tile came from
 	int			mLoadedSpecial, mLoadedHost;    // (port) the numbers of mSpecial and mHost that a save holds, until 0x41b690 resolves them
 	Piece(int theBorn);
 };
@@ -96,12 +94,12 @@ public:
 	int			mLaunched[10];      // +0x00 the number of rockets launched with each launcher in this round
 	int			mCoins[4];          // +0x28
 	int			mTotal;             // +0x38 the launches of the round (0x42aa40 shows the bonus for them)
-	int			m3c;                // +0x3c
+	int			mCoinCount;                // +0x3c
 	int			mMeter[9];          // +0x40 per launcher, 0 to 9 (0x42add0 raises one, 0x42adf0 asks whether all are full)
 	RocketApp*	mApp;               // +0x64
 	Board*		mBoard;             // +0x68
 	MTRand*		mRand;              // +0x6c
-	int			m70;                // +0x70 a score the launches add up (set by 0x42aa40)
+	int			mLaunchBonus;                // +0x70 a score the launches add up (set by 0x42aa40)
 	// the tables 0x42a460 builds: the thresholds by which a kind of tile is drawn (0x4f6cfc, five of them), the table
 	// number it was built for (0x4f6cf8)
 	int			mThreshold[5];
@@ -157,7 +155,7 @@ public:
 	virtual void Draw(Graphics* g) override;                     // 0x42a2d0
 };
 
-class Board : public Widget, public ButtonListener
+class Board : public Widget
 {
 public:
 	RocketApp*		mApp;               // +0x4dc
@@ -170,67 +168,63 @@ public:
 
 	// ------------------------------------------------------------------ saved state, in the file's order
 	// (+0x4c is the base class's mUpdateCnt, which Widget::Update counts)
-	int				mState;             // +0x5c 0 playing, 1 game over, 2 finished (saved), 3, 4/5/6/7 end-of-level screens
+	int				mState;             // +0x5c 0 playing, 1 game over, 2 finished (saved), 3, 4/5/6 end-of-level screens (the original's code for a state 7, a new board dealt row by row, is never entered)
 	int				mScore;             // +0x60
-	double			m68;                // +0x68 the length of the night (classic mode)
+	double			mNightLength;                // +0x68 the length of the night (classic mode)
 	int				mLevel;             // +0x70 the level number counted from 0 (0x42a460 reads it)
-	int				m74, m78, m7c, m80; // +0x74 m74/m78 the launches the level needs; m7c/m80 the pieces on the left and right
-	bool			m84;                // +0x84
-	int				m88;                // +0x88
-	int				m8c[14];            // +0x8c
+	int				mLaunchesNeeded, mLaunchesNeededCopy, mLeftCount, mRightCount; // +0x74 mLaunchesNeeded/mLaunchesNeededCopy the launches the level needs; mLeftCount/mRightCount the pieces on the left and right
+	bool			mRightEdgeLoaded;                // +0x84
+	int				mRank;                // +0x88
+	int				mSpecialCounts[14];            // +0x8c
 	Piece*			mGrid[9][6];        // +0x114 row by row, six columns each
 	Piece*			mTop[6];            // +0x1ec the tiles that wait above the first row
 	Piece*			mSpare;             // +0x204 the next tile
 	Piece*			mLeft[9];           // +0x208 the fuses (column -1)
 	Piece*			mRight[9];          // +0x22c the rockets (column 6)
-	int				m250[9];            // +0x250
-	int				m280[9];            // +0x280
-	int				m2a4[9];            // +0x2a4
-	bool			m2c8[9];            // +0x2c8
-	bool			m2d1[9];            // +0x2d1
-	int				m2dc, m2e0, m2e4;   // +0x2dc m2dc the fall timer, m2e0 its smooth value, m2e4 the score shown
-	bool			m2e8;               // +0x2e8 a launch is burning
-	int				m2ec, m2f0, m2f4, m2f8;     // +0x2ec m2ec the burn countdown, m2f0 the path burning, m2f4 flames, m2f8 tiles dropped
-	double			m300, m308, m310, m318, m320;   // +0x300 m300 the fraction of the level done, m308 its smooth value; m310 the night left, m318 smooth, m320 its step
-	int				m328[6];            // +0x328 the countdowns of the six hints
-	bool			m340[6];            // +0x340
-	int				m348, m34c, m350;   // +0x348 m350: paused
-	double			m358;               // +0x358 the fade of the pause
-	int				m360, m364, m368, m36c, m370, m374;     // +0x360 m360 the seconds played, m364/m368 the tick count, m36c the end-of-level countdown
-	int				m108, m10c;         // +0x108
-	int				m380, m378, m37c;   // +0x380
-	int				m384[30];           // +0x384
-	bool			m3fc[30];           // +0x3fc
-	bool			m41a[30];           // +0x41a
-	bool			m438, m439;         // +0x438
-	int				m43c, m440, m444, m448, m44c, m450, m454, m458;     // +0x43c
-	bool			m45c;               // +0x45c
-	int				m460, m464;         // +0x460
-	int				m468[10];           // +0x468
-	int				m490, m494;         // +0x490
-	bool			m498, m499;         // +0x498
-	int				m49c, m4a0, m4a4;   // +0x49c
-	bool			m4a8, m4a9;         // +0x4a8
-	int				m4ac, m4b0, m4b4, m4b8, m4bc;   // +0x4ac
-	bool			m4c0;               // +0x4c0
-	int				m4c4;               // +0x4c4
-	bool			m4c8, m4c9;         // +0x4c8
-	double			m4d0;               // +0x4d0
-	bool			m4d8, m4d9, m4da;   // +0x4d8
-	int				mFc, m100, m104;    // +0xfc
-	int				mC4, mC8, mCc, mD0, mD4, mD8, mDc, mE0, mE4, mE8, mEc, mF0, mF4, mF8;   // +0xc4
+	int				mLaunchedRockets[9];            // +0x250
+	int				mLeftReach[9];            // +0x280
+	int				mRightReach[9];            // +0x2a4
+	bool			mLeftTouched[9];            // +0x2c8
+	bool			mRightTouched[9];            // +0x2d1
+	int				mFallTimer, mFallDisplay, mScoreShown;   // +0x2dc mFallTimer the fall timer, mFallDisplay its smooth value, mScoreShown the score shown
+	bool			mBurning;               // +0x2e8 a launch is burning
+	int				mBurnCountdown, mBurningPath, mFlameCount, mTilesDropped;     // +0x2ec mBurnCountdown the burn countdown, mBurningPath the path burning, mFlameCount flames, mTilesDropped tiles dropped
+	double			mLevelFraction, mLevelFractionShown, mNightLeft, mNightLeftShown, mNightStep;   // +0x300 mLevelFraction the fraction of the level done, mLevelFractionShown its smooth value; mNightLeft the night left, mNightLeftShown smooth, mNightStep its step
+	int				mHintCountdown[6];            // +0x328 the countdowns of the six hints
+	bool			mHintDone[6];            // +0x340
+	int				mDealStart, mDealRow, mPause;   // +0x348 mPause: paused; mDealStart and mDealRow are state 7's start and row, kept for the save file only
+	double			mPauseFade;               // +0x358 the fade of the pause
+	int				mSecondsPlayed, mPlayedMs, mStartTicks, mLevelEndCountdown, mTilesRemoved, mLaunchesDone;     // +0x360 mSecondsPlayed the seconds played, mPlayedMs/mStartTicks the tick count, mLevelEndCountdown the end-of-level countdown
+	int				mMatchesLeft, mMatchesWarning;         // +0x108
+	int				mEndCountdown, mLaunchesCounted, mQuickDrops;   // +0x380
+	int				mPathEdges[30];           // +0x384
+	bool			mPathLeftLive[30];           // +0x3fc
+	bool			mPathRightLive[30];           // +0x41a
+	bool			mStarted, mRightClicked;         // +0x438; mRightClicked (set by a right click) was only read to show the speech bubble: kept for the save file
+	int				mBannerTime, mGameOverDelay, mFallPeriod, mDropColumn, mOverflowTimer, mTimedFallPeriod, mTimedDropColumn, mSettledAt;     // +0x43c
+	bool			mSettleFlag;               // +0x45c
+	int				mGameOverKind, mLastLanternOut;         // +0x460
+	int				mLanternPuff[10];           // +0x468
+	int				mComboCount, mLaunchStep;         // +0x490
+	bool			mMoved, mNightWarned;         // +0x498
+	int				mLaunchFlames, mLaunchRow, mSpecialsDelay;   // +0x49c
+	bool			mRefilling, mJustRefilled;         // +0x4a8
+	int				mAlwaysZero, mChainBonusTime, mShakeTime, mShakeAmount, mFrozenTime;   // +0x4ac mAlwaysZero is set to 0 at each level and saved; nothing reads it
+	bool			mHintsQuiet;               // +0x4c0
+	int				mPingCooldown;               // +0x4c4
+	bool			mClockMade, mClockDue;         // +0x4c8
+	double			mClockNightLeft;               // +0x4d0
+	bool			mMatchAttached, mJustInTime, mChainBurn;   // +0x4d8
+	int				mCovered, mBuyRocketsState, mBuyRocketsPending;    // +0xfc
+	int				mLevelMostTiles, mLevelMostRockets, mLevelCoins, mLevelGems, mLevelBombs, mLevelClocks, mLevelMatches, mTotalMostTiles, mTotalMostRockets, mTotalCoins, mTotalGems, mTotalBombs, mTotalClocks, mTotalMatches;   // +0xc4
 
 	// ------------------------------------------------------------------ not saved
-	int				m4f4, m4f8;         // +0x4f4 the pointer's place
-	Effect*			m4fc;               // +0x4fc the sweep effect of state 7
-	int				m51c, m50c, m510;   // +0x51c; +0x50c the last click
-	Widget*			m4e0;               // +0x4e0 a widget the board owns (deleted in RemovedFromManager)
-	Widget*			m51cWidget;         // +0x51c
-	int				m520;               // +0x520
-	Piece*			m514;               // +0x514 the piece the pointer is on
-	bool			m518, m519;         // +0x518
+	int				mPointerX, mPointerY;         // +0x4f4 the pointer's place
+	Widget*			mBuyRocketsScreen;               // +0x4e0 a widget the board owns (deleted in RemovedFromManager)
+	Piece*			mPressedPiece;               // +0x514 the piece the pointer is on
+	bool			mMovedSinceDown;         // +0x518
 	std::list<Piece*>	mObjects;       // +0x278 (count at +0x27c) the pieces that move about
-	std::list<Piece*>	m504;           // +0x504 pieces read from a save, until their references are set
+	std::list<Piece*>	mLoadedPieces;           // +0x504 pieces read from a save, until their references are set
 	std::list<Points*>	mTexts;         // +0x528 the floating texts
 
 public:
@@ -242,7 +236,6 @@ public:
 	virtual void	Draw(Graphics* g) override;
 	virtual void	RemovedFromManager(WidgetManager* theWidgetManager) override;   // 0x424260
 	virtual void	OrderInManagerChanged() override;                               // 0x424340
-	virtual void	ButtonDepress(int theId) override;
 	virtual void	KeyChar(SexyChar theChar) override;                     // 0x427a90
 	virtual void	MouseLeave() override;                                  // 0x4285b0
 	virtual void	MouseMove(int x, int y) override;                       // 0x4285d0
@@ -275,7 +268,7 @@ public:
 	void			DrawOutlined(Graphics* g, const SexyString& theText, int theLeft, int theRight, int theSideY, int theAboveY, int theBelowY);
 
 	// ---- saved games (BoardSave.cpp)
-	Piece*			FindLoadedPiece(int theId);                             // 0x41b660: a piece of m504 by its number
+	Piece*			FindLoadedPiece(int theId);                             // 0x41b660: a piece of mLoadedPieces by its number
 	void			ResolveLoadedPieces();                                  // 0x41b690: the references of the pieces read from a save
 	void			WritePiece(Buffer* theBuffer, Piece* thePiece);         // 0x41c5a0
 	void			ReadPiece(const Buffer* theBuffer, Piece* thePiece);    // 0x41b430
@@ -347,26 +340,24 @@ public:
 	void			AddMover(Piece* thePiece);                              // 0x427f90
 	void			EraseMover(Piece* thePiece);                            // 0x427ff0
 	void			AddFlash(Piece* thePiece, int theKind);                 // 0x428100
-	void			F428780();
-	bool			F428ae0();
+	void			DealFirstBoard();                                       // 0x428780: the first board of the timed modes
+	bool			LeftReachesRight();                                     // 0x428ae0: finds the connections; whether the left edge reaches the right
 	void			RotatePiece(Piece* thePiece, bool theCounter);          // 0x428340
-	bool			EdgeOpen(int theRow, int theColumn);                    // 0x428e80
-	void			F4282a0(int thePath);
-	void			F428ef0();
-	void			F428d10();
+	void			CancelBurn(int thePath);                                // 0x4282a0
+	void			AttachLaunchBonuses();                                  // 0x428d10
 	void			ShowBuyRockets();                                      // 0x428620
-	void			F4286b0();                                             // 0x4286b0: after the level-up screen, the question of the next level
+	void			AfterLevelScreen();                                    // 0x4286b0: after the level-up screen, the question of the next level
 	SexyString		RankName(int* theRank, int* thePointsToNext);          // 0x428ca0: the rank of the score, how far the next one is
 	void			NextLevel();                                           // 0x428bc0: the level after the buy-rockets screen
 	void			ShowLevelUp(int theKind);                              // the level-up dialog (0x40c2c0) as the board opens it
-	void			F428de0(int theValue);
-	void			F421de0(int theKind);
-	void			F421f30(bool theFlag);
-	void			F41f280(int theIndex);
-	void			F429060(int theRow);
-	void			F429050();
-	void			F429080();
-	void			F428090();
+	void			ClearRowsAbove(int theValue);                           // 0x428de0
+	void			GameOver(int theKind);                                  // 0x421de0
+	void			SetPause(bool theFlag);                                 // 0x421f30
+	void			MeterFilledEffect(int theIndex);                        // 0x41f280
+	void			StartLaunchFlames(int theRow);                          // 0x429060
+	void			AddLaunchFlame();                                       // 0x429050
+	void			FinishLaunchFlames();                                   // 0x429080
+	void			RemoveSetOffSpecial();                                  // 0x428090
 };
 
 }
