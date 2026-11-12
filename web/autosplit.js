@@ -11,8 +11,8 @@
 // tools/autosplittest.js replays lsdecide.py's 27 scenarios through it (tools/autosplit/bejeweled-scenarios.json.gz).
 //
 // Every other port writes the shared block, layout 2 (platform/AutosplitBlock.h), which one decider reads, driven by the game's
-// row of the rules table below (docs/WEB_PLAYER.md, "One design for every port"). Big Money's row replays its native script's
-// scenarios (games/bigmoney/tools/livesplit/lsdecide.py; tools/autosplit/bigmoney-scenarios.json.gz).
+// row of the rules table below (docs/WEB_PLAYER.md, "One design for every port"). Big Money's and BookWorm's rows replay their
+// native scripts' scenarios (games/<game>/tools/livesplit/lsdecide.py; tools/autosplit/<game>-scenarios.json.gz).
 var ByopopAutosplit = (function () {
   "use strict";
 
@@ -206,10 +206,10 @@ var ByopopAutosplit = (function () {
 
   function templateName(t) { return t.sub ? t.category + " - " + t.sub : t.category; }
 
-  // A template's end ("levels N", "score N", "won", "lost", "progress N") as {kind, n}
+  // A template's end ("levels N", "score N", "won", "lost", "lost N", "progress N") as {kind, n, hasN}
   function parseEnd(text) {
     var w = String(text || "").trim().split(/\s+/);
-    return w[0] ? { kind: w[0], n: parseInt(w[1], 10) || 0 } : null;
+    return w[0] ? { kind: w[0], n: parseInt(w[1], 10) || 0, hasN: w.length > 1 } : null;
   }
 
   // The shared decider: Bejeweled's, with the game's rules in place of its own. rules: the game's row of GAMES. The run's
@@ -238,12 +238,18 @@ var ByopopAutosplit = (function () {
       var splits = [], runSerial = 0, pending = null, baseline = true, seenActive = false, warned = false, attachT = null;
       var current = {}, old = {};
       V2_FIELDS.forEach(function (k) { current[k] = 0; });
+      // a game over on the run's board that ends it, in its last segment ("lost"; "lost N": only while the game's progress is
+      // at most N); one in an earlier segment resets the run
+      function lostEnd() {
+        return !!end && end.kind === "lost" && timer.index() === splits.length - 1 && current.gameOvers !== old.gameOvers &&
+               current.gameOverSerial === runSerial && (!end.hasN || current.progress <= end.n);
+      }
       function reached() {
         var i = timer.index();
         if (runSerial === 0 || current.boardSerial !== runSerial || i < 0 || i >= splits.length) return false;
         if (end && i === splits.length - 1) {
           if (end.kind === "won") return current.wins !== old.wins && current.winSerial === runSerial;
-          if (end.kind === "lost") return current.gameOvers !== old.gameOvers && current.gameOverSerial === runSerial;
+          if (end.kind === "lost") return lostEnd();
           if (end.kind === "progress") return current.progress >= end.n;
         }
         var s = splits[i];
@@ -276,7 +282,7 @@ var ByopopAutosplit = (function () {
             if (setting("resets") && runSerial !== 0) {
               // a new game over or board change, else one held back in an earlier poll
               cause = pending; pending = null;
-              if (current.gameOvers !== old.gameOvers && current.gameOverSerial === runSerial && !(end && end.kind === "lost")) {
+              if (current.gameOvers !== old.gameOvers && current.gameOverSerial === runSerial && !lostEnd()) {
                 cause = "resets";
                 for (var d = 0; d < rules.deaths.length; d++)
                   if (current["death" + d] !== old["death" + d]) { cause = rules.deaths[d].setting || "resets"; break; }
@@ -322,6 +328,18 @@ var ByopopAutosplit = (function () {
     }, []).concat([{ category: "Action Easy", sub: "25K Points", segments: ["5K", "10K", "25K"], end: "score 25000" }])
   };
 
+  // BookWorm (speedrun.com: Bookworm Deluxe): its native script's rules, and the board's two categories. Its progress is the
+  // rank the summary shows, the levels cleared up to 31: Bookworm Supreme (Any%) ends at the 31st, Bookburner (Death%) at a
+  // game over before the first level is cleared (rank 0); a later game over resets that run.
+  var BW_RULES = {
+    name: "Bookworm Deluxe", id: "BWDX",
+    modes: { Classic: 0, Action: 1 }, skills: {},
+    deaths: [{ setting: "resetFire", what: "a fire tile burns through (Classic)" }, { setting: "resetCountdown", what: "the countdown ends (Action)" },
+             { setting: "resetLeft", what: "LEAVE GAME" }, { setting: null, what: "any other game over (the reset setting only)" }],
+    templates: [{ category: "Bookworm Supreme", sub: "Any%", segments: levels(31), end: "progress 31" },
+                { category: "Bookburner", sub: "Death%", segments: ["Bookburner"], end: "lost 0" }]
+  };
+
   // A row of GAMES from a row of the rules table
   function ruled(rules) {
     return { name: rules.name, block: "_byopop_livesplit_block", read: blockReader(rules.id), decider: makeDecider(rules),
@@ -332,7 +350,8 @@ var ByopopAutosplit = (function () {
   // templates
   var GAMES = {
     bejeweled: { name: "Bejeweled Deluxe", block: "_byopop_livesplit_block", read: readBlock, decider: bejeweled, templates: BJ_TEMPLATES },
-    bigmoney: ruled(BM_RULES)
+    bigmoney: ruled(BM_RULES),
+    bookworm: ruled(BW_RULES)
   };
 
   // The front game's block, read from its window: {game, snap} or null (no game with an auto splitter in front, or it has not

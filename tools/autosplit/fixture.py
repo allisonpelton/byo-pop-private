@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
-"""Writes tools/autosplit/bigmoney-scenarios.json.gz (gzipped JSON), the fixture tools/autosplittest.js replays through the page's
-shared decider (web/autosplit.js, Big Money's row): every scenario of games/bigmoney/tools/livesplit/lsdecide.py on the game and
-probe logs games/bigmoney/tools/livesplit/run_tests.sh made, with the events lsdecide.py decides for each.
+"""Writes tools/autosplit/<game>-scenarios.json.gz (gzipped JSON), the fixture tools/autosplittest.js replays through the page's
+shared decider (web/autosplit.js, the game's row): every scenario of games/<game>/tools/livesplit/lsdecide.py on the game and
+probe logs games/<game>/tools/livesplit/run_tests.sh made, with the events lsdecide.py decides for each. Big Money and BookWorm,
+whose native scripts the shared decider's rules are.
 
-The fields are named as the shared block's (death0 to death3 for Big Money's four kinds), and only those the decisions read are
+The fields are named as the shared block's (death0 to death3 for the game's four kinds), and only those the decisions read are
 kept; runs of polls with the same fields are written once with their count, so the poll numbers the events carry stay the same,
 and a poll whose block is inactive keeps its time, which the "ask for the mod" message box counts.
 
-  python tools/autosplit/bigmoney_fixture.py [<runs dir>]     (default: build/logs/check/livesplit-bigmoney)
+  python tools/autosplit/fixture.py <game> [<runs dir>]     (default: build/logs/check/livesplit-<game>)
 """
 import gzip
 import json
@@ -16,14 +17,17 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))
-sys.path.insert(0, os.path.join(ROOT, "games", "bigmoney", "tools", "livesplit"))
+GAME = sys.argv[1] if len(sys.argv) > 1 else ""
+if GAME not in ("bigmoney", "bookworm"):
+    sys.exit("usage: fixture.py bigmoney|bookworm [<runs dir>]")
+sys.path.insert(0, os.path.join(ROOT, "games", GAME, "tools", "livesplit"))
 import lsdecide as ls  # noqa: E402
 
-# (the shared block's name, lsdecide.py's)
+# (the shared block's name, lsdecide.py's): the death kinds are the game's own, in its block's order, and BookWorm calls the
+# high-water mark at 0x7C scoreMax
 KEEP = (("active", "active"), ("flags", "flags"), ("boardSerial", "boardSerial"), ("goCount", "goCount"), ("goSerial", "goSerial"),
-        ("gameOvers", "gameOvers"), ("gameOverSerial", "gameOverSerial"), ("death0", "deathsOverflow"), ("death1", "deathsNoMoves"),
-        ("death2", "deathsNewGame"), ("death3", "deathsOther"), ("boardLevelClears", "boardLevelClears"),
-        ("displayScoreMax", "displayScoreMax"), ("mode", "mode"), ("skill", "skill"))
+        ("gameOvers", "gameOvers"), ("gameOverSerial", "gameOverSerial")) + tuple(zip(("death0", "death1", "death2", "death3"), ls.DEATHS)) +        (("boardLevelClears", "boardLevelClears"), ("displayScoreMax", "scoreMax" if GAME == "bookworm" else "displayScoreMax"),
+        ("mode", "mode"), ("skill", "skill"))
 
 
 def pack(polls):
@@ -43,7 +47,7 @@ def pack(polls):
 
 
 def main():
-    runs = sys.argv[1] if len(sys.argv) > 1 else os.path.join(ROOT, "build", "logs", "check", "livesplit-bigmoney")
+    runs = sys.argv[2] if len(sys.argv) > 2 else os.path.join(ROOT, "build", "logs", "check", "livesplit-" + GAME)
     logs, cases = {}, []
     for name, run, category, segments, settings, attach, expected in ls.SCENARIOS:
         run, _, kind = run.partition(":")
@@ -59,7 +63,7 @@ def main():
             logs[key] = pack(polls)
         cases.append({"name": name, "log": key, "category": category, "segments": segments, "settings": settings,
                       "attach": attach, "manual": None, "events": events})
-    out = os.path.join(HERE, "bigmoney-scenarios.json.gz")
+    out = os.path.join(HERE, GAME + "-scenarios.json.gz")
     text = json.dumps({"fields": [k for k, _ in KEEP], "cases": cases, "logs": logs}, separators=(",", ":")) + "\n"
     with gzip.GzipFile(out, "wb", 9, mtime=0) as f:
         f.write(text.encode("utf-8"))

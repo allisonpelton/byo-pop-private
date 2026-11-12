@@ -649,7 +649,8 @@ off and with it on.
   - `levels N` (the Nth level clear);
   - `score N` (the score on screen reaches N);
   - `won` (`wins` rises);
-  - `lost` (a game over; for a death% category);
+  - `lost` (a game over; for a death% category), or `lost N` (a game over while the game's progress is at most N; any
+    other game over resets the run as usual);
   - `progress N` (the game's own figure reaches N).
 
 One decider reads every entry. It starts at a GO in the template's mode and skill, but never on a resumed save or a
@@ -659,11 +660,13 @@ is `lost`), replaced, or quit, or when its window closes, with each kind a setti
 as now: the game's updates times its update step. A category's timing rules, real time or game time and where they say
 it starts, are noted in the template, and the template follows them.
 
-**Rows written so far.** BookWorm (speedrun.com: Bookworm Deluxe): Bookworm Supreme is `levels 31`, since the rank the
-summary shows is the level reached, up to 31; Bookburner is `lost`, a game over on the first level being rank 0. Big
-Money has no board, so its templates are the native script's suggestions: mode and skill in the name, levels or scores
-as segments. Every other game with a board gets its row in Milestone 3, from the speedrun.com categories and its
-session's answer on where in its code GO, a level clear, a game over and a win happen.
+**Rows written so far.** BookWorm (speedrun.com: Bookworm Deluxe): its progress is the rank the summary shows, the levels
+cleared up to 31 (BookWorm's session: Board's level counts up only when the next level starts, so the summary of a level shows
+it plus one). Bookworm Supreme (Any%) is `progress 31`, reached on the update the 31st level is complete; Bookburner
+(Death%) is `lost 0`, a game over before the first level is cleared. Big Money has no board, so its row is its native
+script's rules, with mode and skill in the category's name and levels or scores as segments. Both replay their native
+scripts' scenarios in `tools/autosplittest.js`. Every other game with a board gets its row in Milestone 3, from the
+speedrun.com categories and its session's answer on where in its code GO, a level clear, a game over and a win happen.
 
 **Native** keeps a LiveSplit `.asl` per game, as Bejeweled's, Big Money's and BookWorm's. Because the block and the
 decider are now one, the next step is one script that reads the table (exported from the same entries) instead of a

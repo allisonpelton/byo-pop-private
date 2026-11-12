@@ -73,6 +73,13 @@ Object.keys(bm.logs).forEach(function (k) { bmLogs[k] = expand(bm.logs[k]); });
 fx = fxSave;
 replay(bm, bmLogs, A.games.bigmoney.decider, "bigmoney");
 
+// BookWorm, on the same decider (its row): games/bookworm/tools/livesplit/lsdecide.py's scenarios
+var bw = load("bookworm-scenarios.json.gz"), bwLogs = {};
+fx = bw;
+Object.keys(bw.logs).forEach(function (k) { bwLogs[k] = expand(bw.logs[k]); });
+fx = fxSave;
+replay(bw, bwLogs, A.games.bookworm.decider, "bookworm");
+
 
 // the block reader: a block as the game lays it out, then one the game is writing, one of another game
 var heap = new Uint8Array(4096), at = 256, dv = new DataView(heap.buffer);
@@ -91,6 +98,8 @@ check(JSON.stringify(A.parseSplits(["Level 1", "10000", "25,000", "50K", "-{Act}
       JSON.stringify([{ score: false, target: 1 }, { score: true, target: 10000 }, { score: true, target: 25000 }, { score: true, target: 50000 },
                       { score: false, target: 2 }, { score: false, target: 3 }]), "parseSplits: lsdecide.py's reading of segment names");
 check(A.games.bejeweled.templates.length === 12, "Bejeweled's 12 split templates");
+check(A.games.bookworm.templates.map(function (t) { return t.category + " - " + t.sub + " " + t.end; }).join("|") ===
+      "Bookworm Supreme - Any% progress 31|Bookburner - Death% lost 0", "BookWorm's two speedrun.com categories");
 
 // the layout-2 reader: Big Money's block as platform/AutosplitBlock.h lays it out; a layout-1 block is not read
 var rd = A.games.bigmoney.read;
@@ -128,8 +137,13 @@ function endRun(end, polls, goFlags) {
 check(endRun("won", [{ boardLevelClears: 1 }, { boardLevelClears: 2 }, { wins: 1, winSerial: 1 }]) === "start; split; split", "end won: the last split at the win");
 check(endRun("lost", [{ boardLevelClears: 1 }, { gameOvers: 1, gameOverSerial: 1, death0: 1 }]) === "start; split; split", "end lost: the game over ends the run");
 check(endRun("levels 2", [{ boardLevelClears: 1 }, { gameOvers: 1, gameOverSerial: 1, death0: 1 }]) === "start; split; reset resetA", "a game over resets otherwise");
+check(endRun("lost 0", [{ boardLevelClears: 1, progress: 0 }, { gameOvers: 1, gameOverSerial: 1, death0: 1, progress: 0 }]) === "start; split; split",
+      "end lost 0: a game over at progress 0 ends the run");
+check(endRun("lost", [{ gameOvers: 1, gameOverSerial: 1, death0: 1 }]) === "start; reset resetA", "end lost: a game over before the last segment resets");
+check(endRun("lost 0", [{ boardLevelClears: 1, progress: 1 }, { gameOvers: 1, gameOverSerial: 1, death0: 1, progress: 1 }]) === "start; split; reset resetA",
+      "end lost 0: a later game over resets");
 check(endRun("progress 5", [{ boardLevelClears: 1 }, { progress: 4 }, { progress: 5 }]) === "start; split; split", "end progress: the figure reaches N");
 check(endRun("won", [{ boardLevelClears: 1 }], 0x02) === "", "no start on a resumed board");
 
-console.log("autosplittest: " + (fx.cases.length + bm.cases.length) + " scenario replays, " + checks + " checks, " + fails + " failed");
+console.log("autosplittest: " + (fx.cases.length + bm.cases.length + bw.cases.length) + " scenario replays, " + checks + " checks, " + fails + " failed");
 process.exit(fails ? 1 : 0);
