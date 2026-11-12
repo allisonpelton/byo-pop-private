@@ -25,7 +25,9 @@
 // An SDL window cannot have a renderer and a window surface at once, so a change of mode (UpdateDisplaySize, which
 // runs at every size change and at the start of every frame) destroys the one and makes the other. The window, its
 // focus and its position are untouched; the buffer is the app's and nothing in it is lost, so the first frame after a
-// change is shown whole.
+// change is shown whole. One change is not undone: a window that has had a hardware renderer (a full-screen start, a size that
+// is no whole scale) never uses the surface again, since Direct3D 11's swap chain leaves the window showing its last frame
+// whatever a GDI blit puts there afterwards (found on the visible desktop; NoteRendererOnWindow).
 //
 // Other apps that draw their screen into a CPU buffer take it the same way: override CreateDDInterface (under
 // #ifndef __EMSCRIPTEN__) to return a SurfaceDisplay, keep the screen as one 32-bit buffer the app owns, and call SetFrame
@@ -105,6 +107,10 @@ protected:
 	int mSurfaceScale;         // the window's size in the buffer's: each pixel of the buffer is shown this many times each way
 	bool mSurfaceUnavailable;  // the window has no surface the display can use: the renderer for good
 	bool mSurfaceDisabled;     // SURFACE_DISPLAY=0 in the environment: the renderer for good
+	// a hardware renderer (Direct3D 11) has been made on the window: its swap chain stays the window's picture for good, and
+	// the window never shows a GDI blit again, so the surface is not used any more (the renderer for good)
+	bool mWindowHadRenderer;
+	void NoteRendererOnWindow();
 	bool mVerifySurface;       // SURFACE_VERIFY=1 in the environment: every present is checked (VerifySurface)
 	int mVerifiedFrames;
 	Uint32 mLastWholeTick;     // SDL_GetTicks() at the last present of the whole screen (surface mode)

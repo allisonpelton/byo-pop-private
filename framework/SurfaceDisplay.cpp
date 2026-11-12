@@ -88,6 +88,7 @@ SurfaceDisplay::SurfaceDisplay(SexyAppBase* theApp) :
 	mVerifiedFrames = 0;
 	mLastWholeTick = 0;
 	mSurfaceUnavailable = false;
+	mWindowHadRenderer = false;
 	mSurfaceDisabled = false;
 	mVerifySurface = false;
 	mFrameTexture = NULL;
@@ -119,7 +120,7 @@ int SurfaceDisplay::WantedSurfaceScale()
 {
 	if (mWindow == NULL)
 		return 0;
-	if ((mSurfaceDisabled) || (mSurfaceUnavailable))
+	if ((mSurfaceDisabled) || (mSurfaceUnavailable) || (mWindowHadRenderer))
 		return 0;
 	// a drawn cursor image is the renderer's to draw
 	if (mCursorImage != NULL)
@@ -191,6 +192,7 @@ void SurfaceDisplay::RestoreRenderer()
 		SDL_Log("SurfaceDisplay: the renderer could not be made again (%d)", aResult);
 	else
 	{
+		NoteRendererOnWindow();
 		int aWidth = 0, aHeight = 0;
 		SDL_GetWindowSizeInPixels(mWindow, &aWidth, &aHeight);
 		SDL_Log("SurfaceDisplay: the renderer (the window is %dx%d, %s)", aWidth, aHeight,
@@ -204,6 +206,23 @@ void SurfaceDisplay::RestoreRenderer()
 void SurfaceDisplay::LeaveSurfaceMode()
 {
 	RestoreRenderer();
+}
+
+void SurfaceDisplay::NoteRendererOnWindow()
+{
+	// Found with a probe on the visible desktop (a window made, a Direct3D 11 renderer on it, the renderer destroyed, the
+	// window's surface filled and updated): the window goes on showing the renderer's last frame, whatever the surface holds,
+	// through hiding and showing, minimising, resizing and a full-screen round trip; Direct3D 9's does not do this. So a
+	// window that has had a hardware renderer (a full-screen start, or a resize to a size that is no whole scale) stays in
+	// renderer mode, and only a window that has never had one (the 1x and 2x windows that start in surface mode) uses the surface.
+	SDL_RendererInfo anInfo;
+	if ((mRenderer != NULL) && (SDL_GetRendererInfo(mRenderer, &anInfo) == 0) && ((anInfo.flags & SDL_RENDERER_SOFTWARE) == 0) &&
+		(!mWindowHadRenderer))
+	{
+		mWindowHadRenderer = true;
+		SDL_Log("SurfaceDisplay: the window has had the %s renderer, so it stays in renderer mode (its last frame would stay on the window)",
+			anInfo.name);
+	}
 }
 
 int SurfaceDisplay::Init(SDL_Window* theWindow, bool vsync)
@@ -229,6 +248,7 @@ int SurfaceDisplay::Init(SDL_Window* theWindow, bool vsync)
 	int aResult = DDInterface::Init(theWindow, vsync);
 	if (aResult == RESULT_OK)
 	{
+		NoteRendererOnWindow();
 		int aWidth = 0, aHeight = 0;
 		SDL_GetWindowSizeInPixels(mWindow, &aWidth, &aHeight);
 		int aPointsWidth = 0, aPointsHeight = 0, aOutWidth = 0, aOutHeight = 0;

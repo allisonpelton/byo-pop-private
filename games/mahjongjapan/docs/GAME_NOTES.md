@@ -373,6 +373,15 @@ is shown. The display shows it in one of two ways, by the size of the window:
   texture from a frame texture of the display's own of which only the changed rect is uploaded each frame. Its totals are the
   old path's (below), which it keeps: no gain, no loss.
 
+A window that has had a hardware renderer never uses the surface again (`SurfaceDisplay::NoteRendererOnWindow`). A probe on the visible
+desktop (`tools/display/present/modeprobe.c`: a window made, a Direct3D 11 renderer on it, the renderer destroyed, the window's
+surface filled red and updated) found that the window goes on showing the renderer's last frame, hidden and shown, minimised,
+resized and taken through full screen and back, and a screen read, `PrintWindow` and the captures of `tools/display/modeswitch.sh`
+show it too (the black windows of its stage 5 and 6, after Alt+Enter back from full screen); with Direct3D 9 the surface shows. The
+framework asks for Direct3D 11, so a window that started full screen (this engine's default) or was resized to a size that is no
+whole scale keeps the renderer for good, and only the 1x and 2x windows that start in surface mode use the surface. The presenter's
+own check, `SURFACE_VERIFY`, compares the surface's memory with the buffer and cannot see this: only a read of the screen can.
+
 An SDL window cannot have a renderer and a surface at once, so every size change (and the start of every frame) picks the mode
 again: it destroys the one and makes the other, and the window, its focus and its position are untouched. The buffer is the
 engine's and nothing in it is lost, so the first frame after a change, a restore from minimised or an expose is shown whole

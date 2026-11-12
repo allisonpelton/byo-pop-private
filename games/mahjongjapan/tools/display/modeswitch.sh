@@ -11,7 +11,10 @@ if [ "$GAME" = mahjongchina ]; then sed -i 's/Mahjong Escape Ancient Japan/Mahjo
 S="$R/$d"
 {
   u=3000; G=${GAP:-200}
-  shot() { echo "$u screenshot $S/$1.png"; echo "$u screenshotfull $S/$1-full.png"; u=$((u+40)); }
+  # SHOTGAP: updates between a stage's screenshot and the next change of the window (40; in real time 250, so that the window
+  # capture, 0.7 s after the screenshot, is taken before the next change)
+  SG=${SHOTGAP:-40}; if [ -n "${REAL:-}" ]; then SG=${SHOTGAP:-250}; fi
+  shot() { echo "$u screenshot $S/$1.png"; echo "$u screenshotfull $S/$1-full.png"; u=$((u+SG)); }
   shot s0_windowed_1to1
   echo "$u resize 1600 1200"; u=$((u+G)); shot s1_resized_2x
   echo "$u resize 800 600"; u=$((u+G)); shot s2_back_1to1

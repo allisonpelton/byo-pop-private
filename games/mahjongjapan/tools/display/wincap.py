@@ -11,7 +11,9 @@ for f, args, res in ((user32.GetDC, [P], P), (user32.ReleaseDC, [P, P], ctypes.c
                      (user32.GetWindowTextW, [P, P, ctypes.c_int], ctypes.c_int),
                      (gdi32.CreateCompatibleDC, [P], P), (gdi32.CreateCompatibleBitmap, [P, ctypes.c_int, ctypes.c_int], P),
                      (gdi32.SelectObject, [P, P], P), (gdi32.DeleteObject, [P], W.BOOL), (gdi32.DeleteDC, [P], W.BOOL),
-                     (gdi32.GetDIBits, [P, P, ctypes.c_uint, ctypes.c_uint, P, P, ctypes.c_uint], ctypes.c_int)):
+                     (gdi32.GetDIBits, [P, P, ctypes.c_uint, ctypes.c_uint, P, P, ctypes.c_uint], ctypes.c_int),
+                     (gdi32.BitBlt, [P, ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int, P, ctypes.c_int, ctypes.c_int, W.DWORD], W.BOOL),
+                     (user32.GetClassNameW, [P, P, ctypes.c_int], ctypes.c_int)):
     f.argtypes = args
     f.restype = res
 EnumProc = ctypes.WINFUNCTYPE(W.BOOL, P, P)
@@ -25,7 +27,10 @@ def find(part):
             if n:
                 b = ctypes.create_unicode_buffer(n + 1)
                 user32.GetWindowTextW(h, b, n + 1)
-                if part.lower() in b.value.lower():
+                c = ctypes.create_unicode_buffer(64)
+                user32.GetClassNameW(h, c, 64)
+                # the game's own window (SDL's class), not another window that has the name in its title
+                if part.lower() in b.value.lower() and c.value == 'SDL_app':
                     found.append(h)
         return True
     user32.EnumWindows(EnumProc(cb), 0)
@@ -92,6 +97,38 @@ def capture(hwnd):
     return ok, cw, chh, bytes(buf), ww, ox, oy
 
 
+def capture_screen(hwnd):
+    # the pixels of the client area as the desktop shows them (BitBlt from the screen's DC): PrintWindow cannot read a window
+    # that has had a Direct3D swap chain, and answers black
+    cr = W.RECT(); user32.GetClientRect(hwnd, ctypes.byref(cr))
+    pt = W.POINT(0, 0); user32.ClientToScreen(hwnd, ctypes.byref(pt))
+    cw, chh = cr.right - cr.left, cr.bottom - cr.top
+    hdc = user32.GetDC(None)
+    mdc = gdi32.CreateCompatibleDC(hdc)
+    bmp = gdi32.CreateCompatibleBitmap(hdc, cw, chh)
+    gdi32.SelectObject(mdc, bmp)
+    gdi32.BitBlt(mdc, 0, 0, cw, chh, hdc, pt.x, pt.y, 0x00CC0020 | 0x40000000)
+    bi = BIH(); bi.biSize = ctypes.sizeof(BIH); bi.biWidth = cw; bi.biHeight = -chh; bi.biPlanes = 1; bi.biBitCount = 32
+    buf = (ctypes.c_ubyte * (cw * chh * 4))()
+    gdi32.GetDIBits(mdc, bmp, 0, chh, buf, ctypes.byref(bi), 0)
+    gdi32.DeleteObject(bmp); gdi32.DeleteDC(mdc); user32.ReleaseDC(None, hdc)
+    return cw, chh, bytes(buf)
+
+
+def compare(buf, ww, ox, oy, cw, chh, w, h, ch, px):
+    diff, first = 0, None
+    n = cw // w if (cw % w == 0 and chh == (cw // w) * h and cw >= w) else 1  # a window n times the screenshot: each pixel repeated
+    for y in range(min(h * n, chh)):
+        for x in range(min(w * n, cw)):
+            o = ((y + oy) * ww + x + ox) * 4
+            s = ((y // n) * w + x // n) * ch
+            if (buf[o + 2], buf[o + 1], buf[o]) != (px[s], px[s + 1], px[s + 2]):
+                diff += 1
+                if first is None:
+                    first = (x, y, tuple(buf[o:o + 3][::-1]), tuple(px[s:s + 3]))
+    return diff, first
+
+
 def main():
     part, png = sys.argv[1], sys.argv[2]
     t0 = time.time()
@@ -104,19 +141,13 @@ def main():
     if not hwnd:
         sys.exit('no window')
     ok, cw, chh, buf, ww, ox, oy = capture(hwnd)
+    sw, sh, sbuf = capture_screen(hwnd)
     w, h, ch, px = read_png(png)
-    diff, first = 0, None
-    n = cw // w if (cw % w == 0 and chh == (cw // w) * h and cw >= w) else 1  # a window n times the screenshot: each pixel repeated
-    for y in range(min(h * n, chh)):
-        for x in range(min(w * n, cw)):
-            o = ((y + oy) * ww + x + ox) * 4
-            s = ((y // n) * w + x // n) * ch
-            if (buf[o + 2], buf[o + 1], buf[o]) != (px[s], px[s + 1], px[s + 2]):
-                diff += 1
-                if first is None:
-                    first = (x, y, tuple(buf[o:o + 3][::-1]), tuple(px[s:s + 3]))
-    line = 'client %dx%d, screenshot %dx%d, PrintWindow %s: %d pixels differ%s' % (cw, chh, w, h, 'ok' if ok else 'FAILED', diff,
-                                                                                 (', first at %s' % (first,)) if first else '')
+    diff, first = compare(buf, ww, ox, oy, cw, chh, w, h, ch, px)
+    sdiff, sfirst = compare(sbuf, sw, 0, 0, sw, sh, w, h, ch, px)
+    line = 'client %dx%d, screenshot %dx%d, PrintWindow %s: %d pixels differ%s; screen BitBlt: %d differ%s' % (
+        cw, chh, w, h, 'ok' if ok else 'FAILED', diff, (', first at %s' % (first,)) if first else '', sdiff,
+        (', first at %s' % (sfirst,)) if sfirst else '')
     print(line)
     if len(sys.argv) > 3:
         open(sys.argv[3], 'w').write(line + '\n')
