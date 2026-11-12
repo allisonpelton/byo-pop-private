@@ -1,0 +1,37 @@
+# Water Bugs started in full screen (cp.cfg's fullscreen="1", the original's default: --fullscreen), the display the renderer from
+# the start (the desktop is 3840x2160 on rundesk, no whole scale of the game's 800x600), then back to a window and through sizes
+wait 3
+shot menu
+clickp 400 303        # Start Game
+wait 1.5
+shot map
+clickp 76 263         # the first world
+wait 1.5
+shot story
+click 400 467         # the story's button
+wait 4
+shot board
+beams 6 watch
+wait 5                 # the beams' walls are built
+probe full_start
+altenter
+wait 2
+probe windowed
+resize 1000 700
+wait 1
+probe p1000x700
+min
+wait 1.5
+restore
+wait 1.5
+probe restored
+resize 1600 1200
+wait 1
+probe p1600x1200
+altenter
+wait 2
+probe full_again
+key 118
+wait 2
+probe f7_windowed
+end
