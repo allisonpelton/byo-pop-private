@@ -98,6 +98,40 @@ is then done with no mod. Few games are expected to have much: their boards are 
 their processor time goes to the picture. The candidates come from the performance pass, which lists under "Lite
 candidates" in the game's notes each speed-up it turned down because it changes what the game does.
 
+### Candidates found in the code (2026-11-13)
+
+A read of every port's game logic (not drawing) for searches, fills and solvers. None has a measured cost yet: each
+game's performance pass measures its own before anything changes. A faster method that gives the same answer goes into
+the port; one that can give another answer (a route, a hint, a deal) is a lite change.
+
+- Ning Po and the Mahjong Escapes' engine: whether a tile is free is a linear scan (Ning Po's tileAtCell walks all 144
+  tiles, up to 15 times a tile; the engine's Layout::IsFree walks a z-sorted list, so UpdateFree is quadratic), after
+  every move and in each move count and hint. A cell-to-tile grid gives the same answers. The Escapes' Deal::Solve, a
+  backtracking search for a winnable deal, runs under a wall-clock budget (2 s, 1 s on a redeal), so the original's
+  deals already depend on the machine's speed; a faster solver changes deals unless it searches in the same order.
+- Noah's Ark: HasMove, every 48 updates, runs a fresh breadth-first search for each candidate pair on the 9x9 grid
+  (about half a million steps when no move is left). One labelling of the connected empty regions gives the same yes
+  or no, so it belongs in the port's performance pass. SearchPath's route ties go by its direction order: a lite
+  change.
+- Atomica: PathFinder, a pruned depth-first search of up to 50 segments, on every mouse move while a placed atom is
+  selected; a breadth-first search over cell and direction may draw another route of the same cost: a lite change.
+- Dynomite: EggGrid::DropLoose copies the 1,500-cell grid and runs a recursive search capped at 399 steps for each egg
+  with room above it, after every match, blast and row push. One flood from the top row is faster, but an egg whose
+  search meets the cap counts as attached in the original: a lite change unless the cap is kept.
+- Mummy Maze: CheckSolvable, after every explorer move on mazes under 7x7, is a depth-first search over the
+  explorer's, mummies', scorpion's and gate's states that copies its path at each branch. A breadth-first search with
+  a hashed visited set gives the same yes or no (the performance pass); the solution Abandon Hope plays depends on the
+  search order.
+- Word Harmony: findHints walks the 61,691-node hint tree after every word; its notes measure the game's own logic at
+  a few percent per function, and the hints are shown in tree order. Bonnie's Bookstore: findHint's random walks run
+  up to 120 ms of wall clock when a hint is asked for, and a wildcard isWord scans a letter's whole bucket.
+- Rocket Mania: Board::Connections re-traces every fuse from both edges of the 6x9 grid on every update; a flag set
+  when a tile turns gives the same paths (the performance pass).
+
+Nothing beyond small board scans in Alchemy, AstroPop, Bejeweled, Bejeweled 2, Bejeweled Twist (FindMove simulates each
+twist, bounded), the Bookworm Adventures (a hash lookup), Cosmic and Water Bugs (one flood a closed beam), Pixelus, TipTop,
+Typer Shark and Venice. Big Money's and BookWorm's solvers are already mods.
+
 ## The user's notes on the mods that exist
 
 From the user's test notes, moved here in their own words when the notes were cleared (2026-11-04). Like every mod,
