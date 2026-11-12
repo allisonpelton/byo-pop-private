@@ -272,5 +272,20 @@ check(blockReplay("rocketmania", "Level 10 - Normal", rmLog("script_strategy_2")
 check(blockReplay("rocketmania", "Level 10 - Easy", rmLog("quit")) === "start; reset resetQuit", "Rocket Mania: leaving the game resets as a quit");
 check(blockReplay("rocketmania", "Level 10 - Normal", rmLog("resume2")) === "", "Rocket Mania: a continued save never starts a run");
 
+// Alchemy: its block logs (tools/autosplit/alchemy/, the port's scripted games; a line at each change)
+function alLog(name) { return fs.readFileSync(path.join(__dirname, "autosplit", "alchemy", name + ".block.log"), "utf8").split(/\r?\n/); }
+check(blockReplay("alchemy", "1 Board - Strategic", alLog("strategic1")) === "start; split", "Alchemy 1 Board: ends at the result screen, the loss after it ignored");
+check(blockReplay("alchemy", "7 Boards - Strategic", alLog("strategic7")) === "start; " + splits(7), "Alchemy 7 Boards: a split at each board cleared");
+check(blockReplay("alchemy", "7 Boards - Strategic", alLog("strategic1")) === "start; split; reset resetForgeDiscard", "Alchemy Strategic: the forge overflowing resets");
+check(blockReplay("alchemy", "1 Board - Strategic", alLog("timetrial_full")) === "", "Alchemy: a Time Trial game never starts a Strategic run");
+check(blockReplay("alchemy", "7 Boards - Time Trial", alLog("timetrial_full")) === "start; split; reset resetForgeFull", "Alchemy Time Trial: the forge staying full resets");
+check(blockReplay("alchemy", "7 Boards - Time Trial", alLog("timetrial_discard")) === "start; split; reset resetForgeDiscardTT", "Alchemy Time Trial: a discard overflowing resets");
+check(blockReplay("alchemy", "1 Board - Time Trial", alLog("timetrial_discard")) === "start; split", "Alchemy 1 Board in Time Trial");
+check(blockReplay("alchemy", "Tutorial%", alLog("tutorial")) === "start; split", "Alchemy Tutorial%: starts at its GO, ends at its win");
+check(blockReplay("alchemy", "1 Board - Strategic", alLog("tutorial")) === "", "Alchemy: the tutorial never starts a board run");
+check(blockReplay("alchemy", "Tutorial%", alLog("strategic1")) === "", "Alchemy: a game never starts Tutorial%");
+check(blockReplay("alchemy", "1 Board - Strategic", alLog("left")) === "start; reset resetLeft; start; reset resetForgeDiscard", "Alchemy: leaving a game resets, the next game starts again");
+check(blockReplay("alchemy", "1 Board - Strategic", alLog("resume")) === "", "Alchemy: a continued save never starts a run");
+
 console.log("autosplittest: " + (fx.cases.length + bm.cases.length + bw.cases.length) + " scenario replays, " + checks + " checks, " + fails + " failed");
 process.exit(fails ? 1 : 0);

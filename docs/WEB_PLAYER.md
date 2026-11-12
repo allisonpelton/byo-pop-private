@@ -680,7 +680,11 @@ Mania (speedrun.com: Rocket Mania!): Level 10, 20 and 30 on each difficulty, fro
 game) to the last level's "Level Up!"; a split at each Level Up. The board doesn't say which mode it means: Arcade and
 Classic both have levels and Strategy never ends one, so the templates' `mode` is the list [Arcade, Classic]. Its losses
 (the night running out, the top line filling, no matches left) count at the game-over screen, since a launch still burning
-can clear the level in Classic. It has no win. Big Money has no board, so its row is its native
+can clear the level in Classic. It has no win. Alchemy (speedrun.com: Alchemy Deluxe): 1 Board and 7 Boards in
+Strategic or Time Trial, from the click on Start New Game to the board's result screen (the statistics panel), with any
+skill, and Tutorial%, which ends `won` at the tutorial's last step appearing: that is the code's one moment for done, and
+the button under it only leaves. Its deaths are the forge overflowing (one kind in each mode), the Time Trial forge
+staying full, and leaving a game mid-board. Big Money has no board, so its row is its native
 script's rules, with mode and skill in the category's name and levels or scores as segments. Both replay their native
 scripts' scenarios in `tools/autosplittest.js`. Every other game with a board gets its row in Milestone 3, from the
 speedrun.com categories and its session's answer on where in its code GO, a level clear, a game over and a win happen.

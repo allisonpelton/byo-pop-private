@@ -108,10 +108,13 @@ async function newGame(line) {
   throw new Error("no new game");
 }
 function name(tp) { return tp.sub ? tp.category + " - " + tp.sub : tp.category; }
-function load(category) {
+async function load(category) {
   step = category;
   var tp = G.templates.filter(function (x) { return name(x) === category; })[0];
   timer.load({ game: G.name, category: category, offset: 0, attempts: 0, segments: tp.segments.map(function (n) { return { name: n, pb: { rt: null, gt: null }, best: { rt: null, gt: null } }; }) });
+  // (the auto splitter's first poll of the loaded run comes before the game starts: a start in that poll is taken as already
+  // seen)
+  await settle();
 }
 // clears the level in play, once the bot has reached one: the timer's index after the auto splitter saw it
 // (BookWorm's clear is the `win` itself; Seven Seas' comes when the level's panel is closed, so the bot plays on until the
@@ -144,7 +147,7 @@ async function common(category, levels, newLine, opts) {
   var s0 = snap();
   note("attach", !!s0 && s0.active === 1, s0 ? "active " + s0.active : "no block read");
 
-  load(category);
+  await load(category);
   var serial = await newGame(newLine);
   var a = att();
   note("start", a.phase === "running" && a.index === 0, category + ": phase " + a.phase + ", index " + a.index + ", board " + serial);
@@ -190,11 +193,28 @@ async function common(category, levels, newLine, opts) {
 var MM_QUIT = [{ click: [64, 462] }];
 
 var PLANS = {
+  alchemy: async function () {
+    // (the bot takes Alchemy's title to the selector but starts no game there, so the plan passes the title first and
+    // the `goto` starts each game)
+    for (var j = 0; j < 400 && (await t.state()).screen === "title"; j++) await botStep();
+    await common("7 Boards - Strategic", 7, "goto strategic 2");
+    // a Time Trial game never starts a Strategic run
+    await resetByHand();
+    await newGame("goto timetrial 1");
+    note("mode", att().phase === "idle", "a Time Trial game (mode " + snap().mode + "): " + att().phase);
+    // Tutorial%: the bot plays the tutorial, which ends the run at its last step
+    await load("Tutorial%");
+    await newGame("goto tutorial");
+    var a0 = att();
+    for (var k = 0; k < 2000 && att().phase === "running"; k++) await botStep();
+    await settle();
+    note("tutorial", a0.phase === "running" && att().phase === "ended", "started " + a0.phase + " (mode " + snap().mode + "); then " + att().phase + ", wins " + snap().wins);
+  },
   bookworm: async function () {
     await cmd("set mode classic");
     await common("Bookworm Supreme - Any%", 31, "goto classic");
     // Bookburner - Death%: a game over at rank 0 ends it, one at rank 1 resets it
-    load("Bookburner - Death%");
+    await load("Bookburner - Death%");
     await newGame("goto classic");
     var b0 = att();
     await lose();
@@ -215,7 +235,7 @@ var PLANS = {
     await common("1st Pyramid", 15, MM_QUIT, { finish: true, noGameOver: true });
     // 100% Run: a classic game never starts it; an adventure does, and its first treasure splits
     await resetByHand();
-    load("100% Run");
+    await load("100% Run");
     await newGame(MM_QUIT);
     note("mode", att().phase === "idle", "a Classic game (mode " + snap().mode + "): " + att().phase);
     await cmd("set botmode adventure");

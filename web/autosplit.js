@@ -390,6 +390,25 @@ var ByopopAutosplit = (function () {
     }, [])
   };
 
+  // Alchemy (speedrun.com: Alchemy Deluxe): 1 Board and 7 Boards in Strategic or Time Trial, from the click on Start New
+  // Game (its GO, the first update of the new board) to the board's result screen (its level clear, the update the
+  // statistics panel goes up); the panel's button goes on with the same game. Tutorial% ends at its win, the tutorial's
+  // last step appearing (the wizard's "Click here to start playing!"), the code's one moment for done; the button's own
+  // click only leaves. The skill is the player's choice, so any. Leaving a game mid-board is its own game over.
+  var AL_RULES = {
+    name: "Alchemy Deluxe", id: "ALDX",
+    modes: { Strategic: 0, "Time Trial": 1, Tutorial: 2 }, skills: {},
+    deaths: [{ setting: "resetForgeDiscard", what: "a discard overflowed the forge (Strategic)" },
+             { setting: "resetForgeFull", what: "the forge stayed full (Time Trial)" },
+             { setting: "resetLeft", what: "another game or the selector replaced the board" },
+             { setting: "resetForgeDiscardTT", what: "a discard overflowed the forge (Time Trial)" }],
+    templates: [1, 7].reduce(function (a, n) {
+      return a.concat(["Strategic", "Time Trial"].map(function (mode, i) {
+        return { category: n + (n === 1 ? " Board" : " Boards"), sub: mode, segments: levels(n), end: "levels " + n, mode: i };
+      }));
+    }, []).concat([{ category: "Tutorial%", segments: ["Tutorial"], end: "won", mode: 2 }])
+  };
+
   // A row of GAMES from a row of the rules table
   function ruled(rules) {
     return { name: rules.name, block: "_byopop_livesplit_block", read: blockReader(rules.id), decider: makeDecider(rules),
@@ -404,7 +423,8 @@ var ByopopAutosplit = (function () {
     bookworm: ruled(BW_RULES),
     sevenseas: ruled(SS_RULES),
     mummymaze: ruled(MM_RULES),
-    rocketmania: ruled(RM_RULES)
+    rocketmania: ruled(RM_RULES),
+    alchemy: ruled(AL_RULES)
   };
 
   // The front game's block, read from its window: {game, snap} or null (no game with an auto splitter in front, or it has not
