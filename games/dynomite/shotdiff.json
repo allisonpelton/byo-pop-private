@@ -7,18 +7,8 @@
         46,
         108
       ],
-      "pairs": "resumed.png",
-      "label": "a baby egg's cell and its stick of dynamite, shaken on every draw by rand() % 9 - 4 in x and y (EggGrid::Draw, 0x417760; the C runtime's generator has no other use in the game); across t2's pause and resume the original draws the board a different number of times than the port, which draws once an update, so the two shakes part (IDENTICAL_PLAY.md, \"Phase 2: what remains\"); play is unaffected"
-    },
-    {
-      "rect": [
-        372,
-        21,
-        46,
-        108
-      ],
       "pairs": "lost.png",
-      "label": "a baby egg's cell and its stick of dynamite, shaken on every draw by rand() % 9 - 4 in x and y (EggGrid::Draw, 0x417760; the C runtime's generator has no other use in the game); across t2's pause and resume the original draws the board a different number of times than the port, which draws once an update, so the two shakes part (IDENTICAL_PLAY.md, \"Phase 2: what remains\"); play is unaffected"
+      "label": "a baby egg's cell and its stick of dynamite, shaken on every draw by rand() % 9 - 4 in x and y (EggGrid::Draw, 0x417760; the C runtime's generator has no other use in the game); while t2's window is without the focus the original draws the board a different number of times than the port, which draws once an update, so the two shakes part from the focus's loss on (IDENTICAL_PLAY.md, \"Phase 2: what remains\"); play is unaffected"
     },
     {
       "rect": [
@@ -28,7 +18,7 @@
         108
       ],
       "pairs": "regained.png",
-      "label": "a baby egg's cell and its stick of dynamite, shaken on every draw by rand() % 9 - 4 in x and y (EggGrid::Draw, 0x417760; the C runtime's generator has no other use in the game); across t2's pause and resume the original draws the board a different number of times than the port, which draws once an update, so the two shakes part (IDENTICAL_PLAY.md, \"Phase 2: what remains\"); play is unaffected"
+      "label": "a baby egg's cell and its stick of dynamite, shaken on every draw by rand() % 9 - 4 in x and y (EggGrid::Draw, 0x417760; the C runtime's generator has no other use in the game); while t2's window is without the focus the original draws the board a different number of times than the port, which draws once an update, so the two shakes part from the focus's loss on (IDENTICAL_PLAY.md, \"Phase 2: what remains\"); play is unaffected"
     },
     {
       "rect": [
@@ -38,7 +28,7 @@
         108
       ],
       "pairs": "newq.png",
-      "label": "a baby egg's cell and its stick of dynamite, shaken on every draw by rand() % 9 - 4 in x and y (EggGrid::Draw, 0x417760; the C runtime's generator has no other use in the game); across t2's pause and resume the original draws the board a different number of times than the port, which draws once an update, so the two shakes part (IDENTICAL_PLAY.md, \"Phase 2: what remains\"); play is unaffected"
+      "label": "a baby egg's cell and its stick of dynamite, shaken on every draw by rand() % 9 - 4 in x and y (EggGrid::Draw, 0x417760; the C runtime's generator has no other use in the game); while t2's window is without the focus the original draws the board a different number of times than the port, which draws once an update, so the two shakes part from the focus's loss on (IDENTICAL_PLAY.md, \"Phase 2: what remains\"); play is unaffected"
     },
     {
       "rect": [
@@ -48,7 +38,7 @@
         108
       ],
       "pairs": "e2.png",
-      "label": "a baby egg's cell and its stick of dynamite, shaken on every draw by rand() % 9 - 4 in x and y (EggGrid::Draw, 0x417760; the C runtime's generator has no other use in the game); across t2's pause and resume the original draws the board a different number of times than the port, which draws once an update, so the two shakes part (IDENTICAL_PLAY.md, \"Phase 2: what remains\"); play is unaffected"
+      "label": "a baby egg's cell and its stick of dynamite, shaken on every draw by rand() % 9 - 4 in x and y (EggGrid::Draw, 0x417760; the C runtime's generator has no other use in the game); while t2's window is without the focus the original draws the board a different number of times than the port, which draws once an update, so the two shakes part from the focus's loss on (IDENTICAL_PLAY.md, \"Phase 2: what remains\"); play is unaffected"
     },
     {
       "rect": [
@@ -58,7 +48,7 @@
         108
       ],
       "pairs": "e3.png",
-      "label": "a baby egg's cell and its stick of dynamite, shaken on every draw by rand() % 9 - 4 in x and y (EggGrid::Draw, 0x417760; the C runtime's generator has no other use in the game); across t2's pause and resume the original draws the board a different number of times than the port, which draws once an update, so the two shakes part (IDENTICAL_PLAY.md, \"Phase 2: what remains\"); play is unaffected"
+      "label": "a baby egg's cell and its stick of dynamite, shaken on every draw by rand() % 9 - 4 in x and y (EggGrid::Draw, 0x417760; the C runtime's generator has no other use in the game); while t2's window is without the focus the original draws the board a different number of times than the port, which draws once an update, so the two shakes part from the focus's loss on (IDENTICAL_PLAY.md, \"Phase 2: what remains\"); play is unaffected"
     },
     {
       "rect": [
@@ -69,26 +59,6 @@
       ],
       "pairs": "over.png",
       "label": "the name box's caret, which blinks on the edit box's own count from when it got the focus (IDENTICAL_PLAY.md, \"Phase 2: what remains\")"
-    },
-    {
-      "rect": [
-        340,
-        370,
-        120,
-        40
-      ],
-      "pairs": "step027.png",
-      "label": "the slingshot's band seven updates after a shot: Launcher::DrawBand (0x401a10) draws the band round the flying egg and lets go of it in the same draw once the egg is above y 388, which it is in update 26598 in both programs (the original 387.3, the port 387.6); the port's screenshot draws the screen again after that frame, so it shows the band let go, where the original's shows the frame itself; in play both draw that frame with the band round the egg (IDENTICAL_PLAY.md, \"Phase 2: what remains\")"
-    },
-    {
-      "rect": [
-        396,
-        0,
-        34,
-        12
-      ],
-      "pairs": "step027.png",
-      "label": "the tutorial's bonus baby egg and its stick at the top, shaken on every draw by rand() % 9 - 4 (EggGrid::Draw, 0x417760), and the port's screenshot is a draw of its own (as t2's resumed shots)"
     }
   ]
 }

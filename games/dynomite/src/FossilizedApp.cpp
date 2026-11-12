@@ -119,6 +119,11 @@ DDImage* FossilizedApp::GetGameImage(const std::string& thePath)
 void FossilizedApp::Init()
 {
 	SexyApp::Init();
+	// port: the original's screen is one DirectDraw surface that keeps what the last frame drew, and while the museum
+	// comes up the fossil board draws only the museum (0x408bf0), so the board's last picture ("Cleared!" and its bonus)
+	// stays above it until the museum covers it. The framework's screen starts every frame from black unless kept.
+	if (mDDInterface != NULL)
+		mDDInterface->mKeepScreen = true;
 	// port: SexyApp::Init seeds the C library generator with the tick count, and the constructor seeds the app's
 	// own two with it; -seed=N makes a test run repeatable
 	CrtSRand(mHasSeedParam ? (unsigned int) mRandSeed : (unsigned int) GetTickCount());
