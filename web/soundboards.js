@@ -1682,28 +1682,28 @@ var ByopopSoundboards = {
     presets: [
       { name: "Rocket Launch", when: "A fuse reaches a rocket", steps: [["sounds/Fuse Burning 01d short", 0], ["sounds/Ba Ding 01b", 460], ["sounds/Rocket Launch Woosh 03b", 460], ["sounds/Rocket Launch Woosh 03b", 460], ["sounds/Rocket Launch Woosh 03b", 460], ["sounds/Fuse Burning 01d short", 1520], ["sounds/Firework Explosion 04", 1950]]},
       { name: "Level Up", when: "The last rocket a level needs", steps: [["sounds/Fuse Burning 01d short", 0], ["sounds/Firework Explosion 06", 480], ["sounds/Crowd Applause 04", 520], ["sounds/Ba Ding 03b", 520], ["sounds/Rocket Launch Woosh 03b", 520], ["sounds/Rocket Launch Woosh 03b", 520], ["sounds/Rocket Launch Woosh 03b", 520], ["sounds/Crowd Applause 01", 520], ["sounds/voice/Level Up 02", 910], ["sounds/Dragon Breathing Fire 05", 1510], ["sounds/Firework Explosion 01", 2010], ["sounds/Crowd Oohs 11", 2510], ["sounds/Firework Explosion 06", 2510], ["sounds/Crowd Applause 01", 3010], ["sounds/Firework Explosion 03", 3010], ["sounds/voice/Well Done 01", 4530, {"end": 4690}], ["sounds/Crowd Applause 02", 4530], ["sounds/voice/Get Ready 02", 4690]]},
-      { name: "Time Up", when: "The arcade timer runs out", steps: [["sounds/Timer Danger 06", 0], ["sounds/Timer Danger 06", 1000], ["sounds/Timer Danger 06", 2000], ["sounds/Tubetricks Sting Two v01", 2820], ["sounds/voice/Game Over 02", 2820], ["sounds/Fuse Burning 01d short", 3480], ["sounds/Ba Ding 01b", 3940], ["sounds/Rocket Launch Woosh 03b", 3940], ["sounds/Rocket Launch Woosh 03b", 3940], ["sounds/Rocket Launch Woosh 03b", 3940], ["sounds/Firework Explosion 03", 5430], ["sounds/voice/This Is Your Final Rank 07", 5820, {"end": 5900}], ["sounds/Crowd Applause 02", 5820], ["sounds/voice/These Are The Master Rocketeers 06", 5900]]}
+      { name: "Time Up", when: "Classic mode's night timer runs out", steps: [["sounds/Timer Danger 06", 0], ["sounds/Timer Danger 06", 1000], ["sounds/Timer Danger 06", 2000], ["sounds/Tubetricks Sting Two v01", 2820], ["sounds/voice/Game Over 02", 2820], ["sounds/Fuse Burning 01d short", 3480], ["sounds/Ba Ding 01b", 3940], ["sounds/Rocket Launch Woosh 03b", 3940], ["sounds/Rocket Launch Woosh 03b", 3940], ["sounds/Rocket Launch Woosh 03b", 3940], ["sounds/Firework Explosion 03", 5430], ["sounds/voice/This Is Your Final Rank 07", 5820, {"end": 5900}], ["sounds/Crowd Applause 02", 5820], ["sounds/voice/These Are The Master Rocketeers 06", 5900]]}
     ],
     groups: [
     { name: "Menus and voices", sounds: [
-      ["sounds/ui little beep 05b.ogg", "Button beep", "A button is pressed or let go; a dialog button is pressed; the sound volume slider is moved. Also in Hammer Heads Deluxe, as sounds/UI - Check.ogg."],
-      ["sounds/voice/welcome to rocket mania 03.ogg", "\"Welcome to Rocket Mania\"", "The main menu, a moment after it opens, the first time in a run"],
-      ["sounds/voice/let's launch some fireworks 01.ogg", "\"Let's launch some fireworks\"", "The main menu, a moment after it opens, on later visits"],
-      ["sounds/voice/these are the master rocketeers 06.ogg", "\"These are the master rocketeers\"", "The high scores are shown"],
-      ["sounds/voice/you have got a high score 04.ogg", "\"You have got a high score\"", "The game ends with a score that makes the table or the day's best"],
+      ["sounds/ui little beep 05b.ogg", "Button beep", "A button is pressed on a main screen, on the high score dialog or on a hint dialog; a button beside the board is let go. Also in Hammer Heads Deluxe, as sounds/UI - Check.ogg."],
+      ["sounds/voice/welcome to rocket mania 03.ogg", "\"Welcome to Rocket Mania\"", "The main menu, 100 updates (1 second) after it opens, the first time in a run; the talking head speaks with it"],
+      ["sounds/voice/let's launch some fireworks 01.ogg", "\"Let's launch some fireworks\"", "The main menu, 100 updates (1 second) after it opens, on every visit after the first in a run; the talking head speaks with it"],
+      ["sounds/voice/these are the master rocketeers 06.ogg", "\"These are the master rocketeers\"", "The high score screen opens, whether from the menu or after a game"],
+      ["sounds/voice/you have got a high score 04.ogg", "\"You have got a high score\"", "A game ends with a score that makes the all-time table, the day's best or both"],
       ["sounds/tubetricks sting one v01.ogg", "Record sting", "The dialog for entering a name for a high score opens"],
-      ["sounds/hint popup 01.ogg", "Hint pops up", "A hint dialog opens; the talking head's speech bubble finishes growing"]
+      ["sounds/hint popup 01.ogg", "Hint pops up", "A hint dialog opens, unless it is a game mode's hint; the talking head's speech bubble finishes growing"]
     ] },
     { name: "Starting a level", sounds: [
-      ["sounds/voice/get ready 02.ogg", "\"Get ready\"", "A level starts (the first level says nothing when hints are off)"],
-      ["sounds/voice/click on the tile to rotate it___ 01.ogg", "\"Click on the tile to rotate it\"", "The first level, when the player has not moved for a while"],
-      ["sounds/lantern 01.ogg", "Lantern", "A lantern lights on the board's top bar"],
-      ["sounds/dragon breathing fire 05.ogg", "Dragon fire", "The talking head flies in on a rocket at a level's end. Also in Hammer Heads Deluxe, as sounds/Gnome King - Droning.ogg."],
-      ["sounds/ot - new ice cubes 01b.ogg", "Ice cubes", "A wait before a timed stretch ends and the board resumes"]
+      ["sounds/voice/get ready 02.ogg", "\"Get ready\"", "A level starts; the first level says it only when hints are off"],
+      ["sounds/voice/click on the tile to rotate it___ 01.ogg", "\"Click on the tile to rotate it\"", "150 updates (1.5 seconds) into the first new game of a run, with hints on; not when a saved game is continued"],
+      ["sounds/lantern 01.ogg", "Lantern", "One of the meters on the board's top bar fills up"],
+      ["sounds/dragon breathing fire 05.ogg", "Dragon fire", "A level is cleared: 100 updates (1 second) after the clear, as the talking head flies in on a rocket. Also in Hammer Heads Deluxe, as sounds/Gnome King - Droning.ogg."],
+      ["sounds/ot - new ice cubes 01b.ogg", "Ice cubes", "Classic mode: the pause of the night timer that a clock item started, 1000 updates (10 seconds) for each clock picked up, runs out and the timer goes on"]
     ] },
     { name: "Tiles and fuses", sounds: [
       ["sounds/block rotating 03.ogg", "Tile turns", "A tile is turned"],
-      ["sounds/tubebump.ogg", "Tile lands", "A falling tile lands on the stack (not more than once a few ticks)"],
+      ["sounds/tubebump.ogg", "Tile lands", "A falling tile comes to rest on the stack (an arcade-mode top tile too); at most once every 15 updates (0.15 seconds)"],
       ["sounds/tube glow 01.ogg", "Fuse lit", "The tiles join from one end to the other and a fuse starts to burn"],
       ["sounds/fuse burning 01d short.ogg", "Fuse burns", "A burn finishes and the fuses are lit row by row"],
       ["sounds/fuse burning 01.ogg", "Special tile flashes", "A special tile, a lit one, starts to flash"],
@@ -1711,57 +1711,57 @@ var ByopopSoundboards = {
       ["sounds/explosion 01.ogg", "Bomb", "A bomb counts down or goes off; a tile at the top blows up. Also in Hammer Heads Deluxe, as sounds/Bomb Face - Explosion.ogg."]
     ] },
     { name: "Launching rockets", sounds: [
-      ["sounds/rocket launch woosh 03b.ogg", "Rocket launch", "A rocket is launched, three times over for each group of rockets"],
-      ["sounds/ba ding 01b.ogg", "Ding 1", "One group of rockets is launched"],
-      ["sounds/ba ding 02b.ogg", "Ding 2", "Two groups of rockets are launched"],
-      ["sounds/ba ding 03b.ogg", "Ding 3", "Three groups of rockets are launched"],
-      ["sounds/ba ding 04b.ogg", "Ding 4", "Four groups of rockets are launched"],
-      ["sounds/ba ding 05b.ogg", "Ding 5", "Five or more groups of rockets are launched"],
-      ["sounds/firework explosion 01.ogg", "Firework 1", "A rocket bursts; one of these six at random"],
-      ["sounds/firework explosion 03.ogg", "Firework 2", "A rocket bursts; one of these six at random. Also in Bejeweled 3, as sounds/firework_thump.ogg."],
-      ["sounds/firework explosion 04.ogg", "Firework 3", "A rocket bursts; one of these six at random"],
-      ["sounds/firework explosion 05.ogg", "Firework 4", "A rocket bursts; one of these six at random"],
-      ["sounds/firework explosion 06.ogg", "Firework 5", "A rocket bursts; one of these six at random"],
-      ["sounds/firework explosion 07.ogg", "Firework 6", "A rocket bursts; one of these six at random. Resembles Bejeweled 3's sounds/firework_crackle.ogg, the same sound, shorter."],
-      ["sounds/crowd applause 01.ogg", "Applause, small", "Two or three launches go off at once. Also in Hammer Heads Deluxe, as sounds/Crowd Applause 01.ogg."],
-      ["sounds/crowd applause 02.ogg", "Applause, medium", "Four or five launches at once; the level-end dialog opens. Also in Hammer Heads Deluxe, as sounds/Crowd Applause 02.ogg."],
-      ["sounds/crowd applause 04.ogg", "Applause, large", "Six or more launches at once; a launch that wins the full-board bonus. Also in Hammer Heads Deluxe, as sounds/Crowd Applause 04.ogg. Also in Chuzzle Deluxe, as sounds/TrophyJoy.ogg."]
+      ["sounds/rocket launch woosh 03b.ogg", "Rocket launch", "Rockets are launched: three times at once for one to three rockets, once per rocket for four or more"],
+      ["sounds/ba ding 01b.ogg", "Ding 1", "One rocket is launched"],
+      ["sounds/ba ding 02b.ogg", "Ding 2", "Two rockets are launched at once"],
+      ["sounds/ba ding 03b.ogg", "Ding 3", "Three rockets are launched at once"],
+      ["sounds/ba ding 04b.ogg", "Ding 4", "Four rockets are launched at once"],
+      ["sounds/ba ding 05b.ogg", "Ding 5", "Five or more rockets are launched at once"],
+      ["sounds/firework explosion 01.ogg", "Firework 1", "A launched rocket's burst goes off, 150 updates (1.5 seconds) after the launch plus 50 updates (0.5 seconds) for each rocket before it; one of the six at random"],
+      ["sounds/firework explosion 03.ogg", "Firework 2", "A launched rocket's burst goes off, 150 updates (1.5 seconds) after the launch plus 50 updates (0.5 seconds) for each rocket before it; one of the six at random. Also in Bejeweled 3, as sounds/firework_thump.ogg."],
+      ["sounds/firework explosion 04.ogg", "Firework 3", "A launched rocket's burst goes off, 150 updates (1.5 seconds) after the launch plus 50 updates (0.5 seconds) for each rocket before it; one of the six at random"],
+      ["sounds/firework explosion 05.ogg", "Firework 4", "A launched rocket's burst goes off, 150 updates (1.5 seconds) after the launch plus 50 updates (0.5 seconds) for each rocket before it; one of the six at random"],
+      ["sounds/firework explosion 06.ogg", "Firework 5", "A launched rocket's burst goes off, 150 updates (1.5 seconds) after the launch plus 50 updates (0.5 seconds) for each rocket before it; one of the six at random"],
+      ["sounds/firework explosion 07.ogg", "Firework 6", "A launched rocket's burst goes off, 150 updates (1.5 seconds) after the launch plus 50 updates (0.5 seconds) for each rocket before it; one of the six at random. Resembles Bejeweled 3's sounds/firework_crackle.ogg, the same sound, shorter."],
+      ["sounds/crowd applause 01.ogg", "Applause, small", "Two or three rockets are launched at once, as they go; again when the last of three bursts. Also in Hammer Heads Deluxe, as sounds/Crowd Applause 01.ogg."],
+      ["sounds/crowd applause 02.ogg", "Applause, medium", "Four or five rockets are launched at once, as they go and again when the last one bursts; the level-end dialog opens. Also in Hammer Heads Deluxe, as sounds/Crowd Applause 02.ogg."],
+      ["sounds/crowd applause 04.ogg", "Applause, large", "Six or more rockets are launched at once, as they go and again when the last one bursts; a launch wins the full-board bonus. Also in Hammer Heads Deluxe, as sounds/Crowd Applause 04.ogg. Also in Chuzzle Deluxe, as sounds/TrophyJoy.ogg."]
     ] },
     { name: "Scoring", sounds: [
       ["sounds/ting 02b.ogg", "Multiplier ting 1 (unused)", "Never played"],
-      ["sounds/ting 02b shift 2.ogg", "Multiplier ting 2", "A chain of tiles is counted: the first multiplier"],
-      ["sounds/ting 02b shift 4.ogg", "Multiplier ting 3", "A chain of tiles is counted: the next multiplier"],
-      ["sounds/ting 02b shift 6.ogg", "Multiplier ting 4", "A chain of tiles is counted: the next multiplier"],
-      ["sounds/ting 02b shift 8.ogg", "Multiplier ting 5", "A chain of tiles is counted: the fourth multiplier and up"],
-      ["sounds/ching 01.ogg", "Ching, 1", "A small coin reaches the counter"],
-      ["sounds/ching 02.ogg", "Ching, 2", "A medium coin reaches the counter; part of the biggest one"],
-      ["sounds/ching 05.ogg", "Ching, 5", "A large coin reaches the counter; part of the biggest one"],
-      ["sounds/gem picked up.ogg", "Gem 1", "A gem is picked up. Also in Hammer Heads Deluxe, as sounds/Flag Mole - Picked and Moving.ogg."],
-      ["sounds/gem picked up shift 1.ogg", "Gem 2", "A gem is picked up in a run: the second one"],
-      ["sounds/gem picked up shift 2.ogg", "Gem 3", "A gem is picked up in a run: the third one"],
-      ["sounds/gem picked up shift 3.ogg", "Gem 4", "A gem is picked up in a run: the fourth one"],
-      ["sounds/gem picked up shift 4.ogg", "Gem 5", "A gem is picked up in a run: the fifth one and up"],
-      ["sounds/ot - new ice cubes 02b.ogg", "Time bonus", "A time item reaches the clock"],
-      ["sounds/crowd oohs 04c.ogg", "Crowd ooh 1 (unused)", "Never played"],
-      ["sounds/crowd oohs 05.ogg", "Crowd ooh 2 (unused)", "Never played"],
-      ["sounds/crowd oohs 07b.ogg", "Crowd ooh 3 (unused)", "Never played"],
-      ["sounds/crowd oohs 08b.ogg", "Crowd ooh 4 (unused)", "Never played"],
-      ["sounds/crowd oohs 11.ogg", "Crowd ooh 5 (unused)", "Never played"]
+      ["sounds/ting 02b shift 2.ogg", "Multiplier ting 2", "A multiplier special is picked up as a burn reaches it, the first one of that burn"],
+      ["sounds/ting 02b shift 4.ogg", "Multiplier ting 3", "A multiplier special is picked up as a burn reaches it, the second one of that burn"],
+      ["sounds/ting 02b shift 6.ogg", "Multiplier ting 4", "A multiplier special is picked up as a burn reaches it, the third one of that burn"],
+      ["sounds/ting 02b shift 8.ogg", "Multiplier ting 5", "A multiplier special is picked up as a burn reaches it, the fourth one of that burn or a later one"],
+      ["sounds/ching 01.ogg", "Ching, 1", "The smallest coin reaches the coin counter"],
+      ["sounds/ching 02.ogg", "Ching, 2", "A medium coin reaches the coin counter; with Ching 5, the biggest coin"],
+      ["sounds/ching 05.ogg", "Ching, 5", "A large coin reaches the coin counter; with Ching 2, the biggest coin"],
+      ["sounds/gem picked up.ogg", "Gem 1", "A matches special or a clock is picked up before any gem of the same burn. Also in Hammer Heads Deluxe, as sounds/Flag Mole - Picked and Moving.ogg."],
+      ["sounds/gem picked up shift 1.ogg", "Gem 2", "A gem is picked up as the first gem of a burn; a matches special or a clock after one gem"],
+      ["sounds/gem picked up shift 2.ogg", "Gem 3", "A gem is picked up as the second gem of a burn; a matches special or a clock after two gems"],
+      ["sounds/gem picked up shift 3.ogg", "Gem 4", "A gem is picked up as the third gem of a burn; a matches special or a clock after three gems"],
+      ["sounds/gem picked up shift 4.ogg", "Gem 5", "A gem is picked up as the fourth gem of a burn or a later one; a matches special or a clock after four gems or more"],
+      ["sounds/ot - new ice cubes 02b.ogg", "Time bonus", "A clock item reaches the clock; the night timer then stops for 1000 updates (10 seconds)"],
+      ["sounds/crowd oohs 04c.ogg", "Crowd ooh 1", "The middle rocket of a launch of two or more bursts, 1 time in 4 (one of four sounds at random)"],
+      ["sounds/crowd oohs 05.ogg", "Crowd ooh 2", "The middle rocket of a launch of two or three bursts, 1 time in 4"],
+      ["sounds/crowd oohs 07b.ogg", "Crowd ooh 3", "The middle rocket of a launch of four or more bursts, 2 times in 4"],
+      ["sounds/crowd oohs 08b.ogg", "Crowd ooh 4", "The middle rocket of a launch of two or more bursts, 1 time in 4"],
+      ["sounds/crowd oohs 11.ogg", "Crowd ooh 5", "The middle rocket of a launch of two or three bursts, 1 time in 4"]
     ] },
     { name: "Time and endings", sounds: [
-      ["sounds/timer danger 06.ogg", "Time ticks", "The time is nearly out, or tiles reach the top row, every couple of seconds; the sound volume slider is moved"],
-      ["sounds/cockeral crowing 03.ogg", "Rooster", "The time left drops to its last stretch"],
-      ["sounds/voice/level up 02.ogg", "\"Level up\"", "A level is cleared, a few seconds into the finish"],
+      ["sounds/timer danger 06.ogg", "Time ticks", "Arcade mode: every 100 updates (1 second) while a tile rests in the top row of the stack; classic mode: every 100 updates once 90 percent or more of the night's time has gone; the sound volume slider is moved, at most once every 50 updates (0.5 seconds)"],
+      ["sounds/cockeral crowing 03.ogg", "Rooster", "Classic mode: once a level, when the night timer's value drops to 10 or below"],
+      ["sounds/voice/level up 02.ogg", "\"Level up\"", "A level is cleared, 40 updates (0.4 seconds) after the clear"],
       ["sounds/voice/well done 01.ogg", "\"Well done\"", "The level-end dialog opens after a cleared level"],
-      ["sounds/voice/this is your final rank 07.ogg", "\"This is your final rank\"", "The level-end dialog opens after the last game"],
-      ["sounds/voice/out of time 02.ogg", "\"Out of time\"", "The game ends because the time ran out"],
-      ["sounds/voice/game over 02.ogg", "\"Game over\"", "The game ends because the board filled"],
-      ["sounds/tubetricks sting two v01.ogg", "Game over sting", "The game ends"]
+      ["sounds/voice/this is your final rank 07.ogg", "\"This is your final rank\"", "The level-end dialog opens at the end of a game"],
+      ["sounds/voice/out of time 02.ogg", "\"Out of time\"", "Classic mode: the night timer runs out and the game ends"],
+      ["sounds/voice/game over 02.ogg", "\"Game over\"", "The game ends because the top line is full, or in strategy mode because it ran out of moves"],
+      ["sounds/tubetricks sting two v01.ogg", "Game over sting", "The game ends, whatever the cause"]
     ] },
     { name: "Buying rockets", sounds: [
-      ["sounds/coin leaving treasure chest 05.ogg", "Coin spent", "A coin leaves the chest in the shop"],
-      ["sounds/rocket being bought 02.ogg", "Rocket bought", "A bought rocket flies to its launcher"],
-      ["sounds/magic rocket upgraded 03.ogg", "Rocket upgraded", "A launcher's meter is raised in the shop"],
+      ["sounds/coin leaving treasure chest 05.ogg", "Coin spent", "A coin leaves the chest on the buy-rockets screen"],
+      ["sounds/rocket being bought 02.ogg", "Rocket bought", "55 updates (0.55 seconds) after a coin leaves the chest, as it reaches its item"],
+      ["sounds/magic rocket upgraded 03.ogg", "Rocket upgraded", "55 updates (0.55 seconds) after a coin leaves the chest, when that coin raises a launcher's meter; it plays with Rocket bought"],
       ["sounds/magic rocket upgraded 02.ogg", "Rocket upgraded 2 (unused)", "Never played"]
     ] },
   ] },
@@ -1881,28 +1881,28 @@ var ByopopSoundboards = {
       ["sounds/wave_bonus.ogg", "Wave bonus 1", "A bronze medal ends a wave (under 80 percent); also when the options dialog's sound effects slider is released"]
     ] },
     { name: "Typing", sounds: [
-      ["sounds/type.ogg", "Type 1", "A correct letter is typed (one of three type sounds, at random); also in the clam bonus level and the typing tutor"],
-      ["sounds/type2.ogg", "Type 2", "A correct letter is typed (one of three type sounds, at random); also in the typing tutor"],
-      ["sounds/type3.ogg", "Type 3", "A correct letter is typed (one of three type sounds, at random); also in the typing tutor"],
-      ["sounds/wrong.ogg", "Wrong key", "A letter is typed that matches nothing, in the game, the clam bonus level or the typing tutor"],
-      ["sounds/emp.ogg", "EMP", "The EMP is fired with its charge full"]
+      ["sounds/type.ogg", "Type 1", "A correct letter is typed in play, in the streak minigame or in the typing tutor (one of the three type sounds, 1 time in 3); always this one when a clam is opened in the clam bonus level"],
+      ["sounds/type2.ogg", "Type 2", "A correct letter is typed in play, in the streak minigame or in the typing tutor (one of the three type sounds, 1 time in 3)"],
+      ["sounds/type3.ogg", "Type 3", "A correct letter is typed in play, in the streak minigame or in the typing tutor (one of the three type sounds, 1 time in 3)"],
+      ["sounds/wrong.ogg", "Wrong key", "A wrong letter is typed in play (with or without a creature locked on), in the streak minigame or in the typing tutor; in the clam bonus level, a key that matches no closed clam or one pressed while a clam without treasure is open"],
+      ["sounds/emp.ogg", "EMP", "Enter is pressed with the EMP's charge full and the EMP not already running, while the diver is swimming"]
     ] },
     { name: "Enemies and weapons", sounds: [
-      ["sounds/sharkhurt.ogg", "Shark hurt", "The black shark's word is finished but it still has words left"],
-      ["sounds/sharkdies.ogg", "Shark dies", "A shark is killed, or the black shark's last word is finished"],
-      ["sounds/piranhadies1.ogg", "Piranha dies", "A piranha is killed"],
-      ["sounds/jellyfish.ogg", "Jellyfish", "A bonus creature (jellyfish) is shocked"],
-      ["sounds/playerdies.ogg", "Diver bitten", "A shark or a piranha reaches the diver"],
-      ["sounds/torpedolaunch.ogg", "Torpedo launch", "The torpedo boss fires a torpedo"],
-      ["sounds/explosion.ogg", "Explosion", "A cannon ball or a torpedo explodes; repeats while the torpedo boss blows up"],
-      ["sounds/sonarping1.ogg", "Sonar ping", "The sonar sweep starts when a wave ends; repeats every two seconds during the torpedo boss fight"]
+      ["sounds/sharkhurt.ogg", "Shark hurt", "The black shark is hit and still has words left; not when the EMP does it"],
+      ["sounds/sharkdies.ogg", "Shark dies", "A shark is killed, or the black shark's last word is finished; not when the EMP kills it"],
+      ["sounds/piranhadies1.ogg", "Piranha dies", "A piranha is killed; not when the EMP kills it"],
+      ["sounds/jellyfish.ogg", "Jellyfish", "A bonus creature (jellyfish) is shocked; not when the EMP does it"],
+      ["sounds/playerdies.ogg", "Diver bitten", "A shark or a piranha reaches the diver, once for each creature"],
+      ["sounds/torpedolaunch.ogg", "Torpedo launch", "The torpedo boss fires a volley of torpedoes: once for the first torpedo of the volley"],
+      ["sounds/explosion.ogg", "Explosion", "A cannon ball or a torpedo explodes; every 33 updates (0.33 seconds) while the torpedo boss blows up"],
+      ["sounds/sonarping1.ogg", "Sonar ping", "The sonar sweep starts when a wave ends (the diver in its sonar state); the torpedo boss, while it is alive, every 2 seconds"]
     ] },
     { name: "Waves and rewards", sounds: [
       ["sounds/wave_bonus2.ogg", "Wave bonus 2", "A silver medal ends a wave (80 to 94 percent)"],
-      ["sounds/wave_bonus3.ogg", "Wave bonus 3", "A gold medal ends a wave (95 percent or more); also the first pair of clams found in the clam bonus level"],
-      ["sounds/wingem.ogg", "Gem", "A level is won (the diver is back at the bottom with the treasure); a secret treasure is found; a pair of matching clams is found in the clam bonus level"],
-      ["sounds/treasure.ogg", "Treasure", "The diver's air gauge fills at the treasure and the streak minigame starts; a clam with treasure is opened in the clam bonus level"],
-      ["sounds/bad.ogg", "Bad clam", "A clam with no treasure is opened in the clam bonus level"],
+      ["sounds/wave_bonus3.ogg", "Wave bonus 3", "A gold medal ends a wave (95 percent or more); the first pair of clams is found in the clam bonus level"],
+      ["sounds/wingem.ogg", "Gem", "A level is won (the diver is back at the bottom with the treasure); the treasure is shown in the clam bonus level or the streak minigame ends; a second or later pair of clams is found"],
+      ["sounds/treasure.ogg", "Treasure", "The diver's air gauge fills at the treasure and the streak minigame starts; a clam with treasure is opened with no other clam open"],
+      ["sounds/bad.ogg", "Bad clam", "A clam with no treasure finishes opening in the clam bonus level"],
       ["sounds/tone1.ogg", "Tone 1", "The streak minigame's 1st or 2nd word (the tone rises every two words)"],
       ["sounds/tone2.ogg", "Tone 2", "The streak minigame's 3rd or 4th word; the 1st bonus creature of a wave shocked"],
       ["sounds/tone3.ogg", "Tone 3", "The streak minigame's 5th or 6th word; the 2nd bonus creature of a wave shocked"],
@@ -1918,11 +1918,11 @@ var ByopopSoundboards = {
       ["sounds/tone13.ogg", "Tone 13", "The streak minigame's 25th or later word; the 12th or later bonus creature of a wave shocked"]
     ] },
     { name: "Diver and sea", sounds: [
-      ["sounds/diverenters.ogg", "Diver enters", "A level's board first updates; the diver enters the water; shark and piranha events and a finished streak word burst into bubbles"],
+      ["sounds/diverenters.ogg", "Diver enters", "A level's board first updates; the diver enters the water; a stealth shark or stealth piranha surfaces (30 bubbles); a streak word is finished (50 bubbles)"],
       ["sounds/underwaterloop.ogg", "Underwater loop", "Loops while the game board is shown; its volume goes to zero while the game is paused"],
-      ["sounds/eerie1.au", "Eerie 1 (unused)", "Never played"],
-      ["sounds/eerie3.au", "Eerie 3 (unused)", "Never played"],
-      ["sounds/extralife.au", "Extra life (unused)", "Never played"]
+      ["sounds/eerie1.au", "Eerie 1 (unused)", "Never played: loaded and held as a sound instance, but no code plays it"],
+      ["sounds/eerie3.au", "Eerie 3 (unused)", "Never played: loaded and held as a sound instance, but no code plays it"],
+      ["sounds/extralife.au", "Extra life (unused)", "Never played: loaded, but no code asks for it"]
     ] },
   ] },
   waterbugs: {
@@ -1931,32 +1931,32 @@ var ByopopSoundboards = {
     ],
     groups: [
     { name: "Menus and summary", sounds: [
-      ["audio/click.wav", "Click", "A menu item is clicked or auto-clicked"],
-      ["audio/pop.wav", "Summary pop", "A figure of the end-of-board summary (fill percent, best fill, shots, fewest shots, bonus) appears"]
+      ["audio/click.wav", "Click", "A menu item is clicked while the pointer is on it (a locked level's does not click), or an item that clicks itself is reached"],
+      ["audio/pop.wav", "Summary pop", "Each of the five figures of the end-of-board summary (fill percent, best fill, shots, fewest shots, bonus) starts to appear"]
     ] },
     { name: "The ship and its beams", sounds: [
-      ["audio/drill_shoot.wav", "Beam shot", "The ship fires its beams (when fewer than three beams are out)"],
-      ["audio/drill.wav", "Beam drilling", "While the beams run, every 66 updates after the shot"],
+      ["audio/drill_shoot.wav", "Beam shot", "A click fires the ship's beams; the sound plays only if fewer than three beams are out"],
+      ["audio/drill.wav", "Beam drilling", "While the beams run, once for each beam every 66 steps (0.066 seconds; the game takes 1000 steps a second) of the time since the shot"],
       ["audio/clank.wav", "Beam clank", "A beam's head meets a cell that is not open and stops"],
       ["audio/buzzer.wav", "Buzzer", "A click with an enemy near the ship while the fill quota is not yet passed; no beams fire. Also in Banana Bugs, as sounds/buzzer.ogg."],
-      ["audio/fill.wav", "Fill", "A captured side fills in; repeats every 120 updates while fills run, and when a beam pair ends"],
-      ["audio/fill_end.wav", "Fill ends", "The last but one fill of a board finishes"],
+      ["audio/fill.wav", "Fill", "A fill runs on a board: every 180 steps (0.18 seconds) of the board's age while fills are going, and once when the beams have both stopped and the chosen side starts to fill"],
+      ["audio/fill_end.wav", "Fill ends", "A fill finishes with one other fill still going on the board"],
       ["audio/explosion2.wav", "Ship explodes", "The ship explodes"],
       ["audio/invincibubble.wav", "Bubble protects", "An enemy touches a beam that would hit the ship while the ship is in its invincibubble"]
     ] },
     { name: "Enemies", sounds: [
       ["audio/explosion1.wav", "Enemy explodes", "A defined enemy, shot or time bomb explodes"],
       ["audio/bump.wav", "Line bump", "A bump roller pushes a line of filled cells one cell on"],
-      ["audio/frog_jump.wav", "Frog jumps", "A frog finishes sitting (1000 updates) and hops"],
+      ["audio/frog_jump.wav", "Frog jumps", "A frog has been sitting for more than 1000 steps (1 second) and hops"],
       ["audio/frog_land.wav", "Frog lands", "A frog lands, turns round and sits"],
-      ["audio/crab.wav", "Crab nips", "A crab walker nips at frame 12 of its animation, with a line or filled cell two cells ahead"],
-      ["audio/canon.wav", "Cannon", "A snake shooter fires a snake, or a cannon walker fires a cannon ball"],
-      ["audio/laser.wav", "Laser", "A laser walker fires a laser shot"],
+      ["audio/crab.wav", "Crab nips", "A crab walker is at frame 12 of its animation with a line or filled cell two cells ahead of it; it blasts that cell"],
+      ["audio/canon.wav", "Cannon", "A snake shooter fires a snake, its shot delay after its last shot; a cannon walker fires a cannon ball, more than 4000 steps (4 seconds) after its last shot, when more than 29 cells of the 9-by-9 block ahead of it are filled or lines"],
+      ["audio/laser.wav", "Laser", "A laser walker fires a laser shot, more than 4000 steps (4 seconds) after its last shot, while a beam of the ship runs past it"],
       ["audio/beam_hit.wav", "Laser hits beams", "A laser shot touches a beam; the beams burst into sparks"],
       ["audio/electricity.wav", "Electricity", "An enemy touches a beam while the ship is firing (at most once a second per enemy)"]
     ] },
     { name: "Kill scores", sounds: [
-      ["audio/exp100.wav", "Kill 100", "An enemy dies as the first of its chain (100 points); chosen by 100 times the chain"],
+      ["audio/exp100.wav", "Kill 100", "An enemy dies as the first of its chain (100 points); the sound is chosen by the points: 100 times the chain, or the fixed points of the kill (500 for a time bomb's blast)"],
       ["audio/exp200.wav", "Kill 200", "An enemy dies as the second of its chain (200 points)"],
       ["audio/exp300.wav", "Kill 300", "An enemy dies as the third of its chain (300 points)"],
       ["audio/exp400.wav", "Kill 400", "An enemy dies as the fourth of its chain (400 points)"],
@@ -1967,12 +1967,16 @@ var ByopopSoundboards = {
       ["audio/exp900.wav", "Kill 900", "An enemy dies as the ninth of its chain (900 points)"]
     ] },
     { name: "Power-ups and weapons", sounds: [
-      ["audio/powerup.wav", "Power-up", "A power-up is caught, except flip flopper, slow shot and hyper motion (an extra life included)"],
-      ["audio/powerdn.wav", "Power-down", "A flip flopper, slow shot or hyper motion power-up is caught"],
+      ["audio/powerup.wav", "Power-up", "Any other power-up is caught (an extra life included)"],
+      ["audio/powerdn.wav", "Power-down", "A flip flopper or hyper motion power-up is caught"],
       ["audio/mine.wav", "Mine launched", "A magnet or a time bomb is launched by a click"],
       ["audio/anchor.wav", "Anchor launched", "An anchor is launched by a click"],
       ["audio/missile.wav", "Missile launched", "A missile is launched by a click"],
-      ["audio/fuse.wav", "Time bomb fuse", "A time bomb burns its fuse; repeats every 230 updates of its age"]
+      ["audio/fuse.wav", "Time bomb fuse", "A time bomb burns its fuse: every 230 steps (0.23 seconds) of its age while it has not yet gone off"]
+    ] },
+    { name: "Unused", sounds: [
+      ["audio/extralife.wav", "Extra life (unused)", "Never played: the level files load it, but no code asks for it"],
+      ["audio/rail.wav", "Rail (unused)", "Never played: no sound list or code names this file, so it is never even loaded"]
     ] }
   ] },
   wordharmony: {
@@ -1991,7 +1995,7 @@ var ByopopSoundboards = {
       ["res/sounds/level_begin.wav", "Level begins", "The level's play starts, or a saved game is loaded back in"]
     ] },
     { name: "Balls", sounds: [
-      ["res/sounds/ball_rustle.wav", "Next ball shown", "The HUD shows the next ball's letters and the new-ball blossom"],
+      ["res/sounds/ball_rustle.wav", "Next ball shown", "Freematch only: the HUD shows the next ball's letters and the new-ball blossom, each time the next piece is shown"],
       ["res/sounds/ball_rustle2.WAV", "Balls arrive", "A ball, a word's balls or a recycled word's balls are dropped in (not when set quiet)"],
       ["res/sounds/ball_pop.wav", "Ball pops", "Each picked ball of a found word pops, one after the other"],
       ["res/sounds/pop_wind.WAV", "Word found", "A word is accepted and scored"]
@@ -2006,8 +2010,11 @@ var ByopopSoundboards = {
       ["res/sounds/level_complete.wav", "Level complete", "A puzzle or solitaire level ends"],
       ["res/music/intense-levelend.wav", "Level up", "A freematch level ends (this file is in res/music, loaded as a sound)"],
       ["res/music/intenseEnd.wav", "Game over", "A game ends without quitting (this file is in res/music, loaded as a sound)"],
-      ["res/sounds/message_add.wav", "Result line", "A line of the level's results shows, up to three of them (not in puzzle mode)"],
-      ["res/sounds/stats_countup.wav", "Bonus counts up", "Each 100 points of the bonus is counted into the score on the results screen"]
+      ["res/sounds/message_add.wav", "Result line", "Solitaire and freematch results screen, once the balls have settled: a line of the level's results shows, the first at once, the second 0.5 seconds later and the third 1 second after the first (the results timer starts at 3 seconds); not in puzzle mode"],
+      ["res/sounds/stats_countup.wav", "Bonus counts up", "Solitaire and freematch results screen, once the results timer is under 1 second and a bonus is left: each 100 points counted into the score, the steps coming faster as the count goes on"]
     ] },
+    { name: "Unused", sounds: [
+      ["res/sounds/level_up.wav", "Level up chime (unused)", "Never played: not in the game's sound list (its LEVEL_UP is res/music/intense-levelend.wav), so nothing loads it"]
+    ] }
   ] }
 };
