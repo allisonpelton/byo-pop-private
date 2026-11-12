@@ -1,4 +1,4 @@
-// The port's host for TipTop (see TipTopApp.h).
+// port: the port's host for TipTop (see TipTopApp.h).
 
 #include "TipTopApp.h"
 #include "ModFeatures.h"

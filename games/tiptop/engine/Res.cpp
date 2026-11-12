@@ -124,22 +124,22 @@ static uint8_t* ReadSource(const char* theName, int32_t* theSize, uint8_t theSou
 		Unscramble(gArchiveTable, aTableSize);
 		fclose(aFile);
 	}
-	const uint8_t* p = gArchiveTable;
-	if (*p == 0)
+	const uint8_t* aPos = gArchiveTable;
+	if (*aPos == 0)
 	{
 		*theSize = 0;
 		return nullptr;
 	}
-	while (!SameName((const char*)p, theName))
+	while (!SameName((const char*)aPos, theName))
 	{
-		p += strlen((const char*)p) + 1 + 8;
-		if (*p == 0)
+		aPos += strlen((const char*)aPos) + 1 + 8;
+		if (*aPos == 0)
 		{
 			*theSize = 0;
 			return nullptr;
 		}
 	}
-	const uint8_t* anInfo = p + strlen((const char*)p) + 1;
+	const uint8_t* anInfo = aPos + strlen((const char*)aPos) + 1;
 	uint32_t anOffset, aSize;
 	memcpy(&anOffset, anInfo, 4);
 	memcpy(&aSize, anInfo + 4, 4);
@@ -205,29 +205,29 @@ static lowos::Image* DecodePcx(const uint8_t* theFile, uint32_t theSize)
 		return nullptr;
 	}
 	uint8_t* anOut = anImage->mBits;
-	const uint8_t* p = theFile + 0x80;
+	const uint8_t* aPos = theFile + 0x80;
 	const uint8_t* anEnd = theFile + theSize;
 	for (; aHeight != 0; aHeight--)
 	{
-		uint8_t* d = aLine;
+		uint8_t* aDest = aLine;
 		int aLeft = (int)aLineSize;
-		while (aLeft > 0 && p < anEnd)
+		while (aLeft > 0 && aPos < anEnd)
 		{
-			uint8_t b = *p;
-			if ((b & 0xc0) == 0xc0)
+			uint8_t aByte = *aPos;
+			if ((aByte & 0xc0) == 0xc0)
 			{
-				int aCount = b & 0x3f;
+				int aCount = aByte & 0x3f;
 				aLeft -= aCount;
 				// a run past the line's end (none in TipTop's files) would overrun the original's buffer
 				for (; aCount != 0; aCount--)
-					if (d < aLine + aLineSize)
-						*d++ = p + 1 < anEnd ? p[1] : 0;
-				p += 2;
+					if (aDest < aLine + aLineSize)
+						*aDest++ = aPos + 1 < anEnd ? aPos[1] : 0;
+				aPos += 2;
 			}
 			else
 			{
-				*d++ = b;
-				p++;
+				*aDest++ = aByte;
+				aPos++;
 				aLeft--;
 			}
 		}
@@ -244,13 +244,13 @@ static lowos::Image* DecodePcx(const uint8_t* theFile, uint32_t theSize)
 	free(aLine);
 	if (aPlanes == 1)
 	{
-		if (p >= anEnd || *p != 0xc)
+		if (aPos >= anEnd || *aPos != 0xc)
 		{
 			free(anImage);
 			return nullptr;
 		}
 		for (int i = 0; i < 0x300; i++)
-			*anOut++ = p + 1 + i < anEnd ? p[1 + i] : 0;
+			*anOut++ = aPos + 1 + i < anEnd ? aPos[1 + i] : 0;
 	}
 	return anImage;
 }
@@ -520,43 +520,43 @@ void Free(int theGroup, int theCount, ...)
 char KeepOnly(int theGroup, int theCount, ...)
 {
 	char aFailed = 0;
-	for (Entry* e = gTable; (e->mFlags & 0x3f) != 0; e++)
-		if (e->mGroup == (uint32_t)theGroup)
-			e->mFlags |= 0x80;
+	for (Entry* anEntry = gTable; (anEntry->mFlags & 0x3f) != 0; anEntry++)
+		if (anEntry->mGroup == (uint32_t)theGroup)
+			anEntry->mFlags |= 0x80;
 	va_list anArgs;
 	va_start(anArgs, theCount);
 	for (int i = theCount & 0xff; i != 0; i--)
 	{
 		uint32_t anId = va_arg(anArgs, uint32_t);
-		for (Entry* e = gTable; (e->mFlags & 0x3f) != 0; e++)
+		for (Entry* anEntry = gTable; (anEntry->mFlags & 0x3f) != 0; anEntry++)
 		{
-			if (e->mId == anId && e->mGroup == (uint32_t)theGroup)
+			if (anEntry->mId == anId && anEntry->mGroup == (uint32_t)theGroup)
 			{
-				e->mFlags &= 0x7f;
+				anEntry->mFlags &= 0x7f;
 				break;
 			}
 		}
 	}
 	va_end(anArgs);
-	for (Entry* e = gTable; (e->mFlags & 0x3f) != 0; e++)
+	for (Entry* anEntry = gTable; (anEntry->mFlags & 0x3f) != 0; anEntry++)
 	{
-		if (e->mGroup == (uint32_t)theGroup && (e->mFlags & 0x80) != 0)
+		if (anEntry->mGroup == (uint32_t)theGroup && (anEntry->mFlags & 0x80) != 0)
 		{
-			e->mRefCount = 1;
-			Release(e);
+			anEntry->mRefCount = 1;
+			Release(anEntry);
 		}
 	}
-	for (Entry* e = gTable; (e->mFlags & 0x3f) != 0; e++)
+	for (Entry* anEntry = gTable; (anEntry->mFlags & 0x3f) != 0; anEntry++)
 	{
-		if (e->mGroup == (uint32_t)theGroup)
+		if (anEntry->mGroup == (uint32_t)theGroup)
 		{
-			if ((e->mFlags & 0x80) == 0)
+			if ((anEntry->mFlags & 0x80) == 0)
 			{
-				e->mRefCount = 0;
-				aFailed |= AddRef(e);
+				anEntry->mRefCount = 0;
+				aFailed |= AddRef(anEntry);
 			}
 			else
-				e->mFlags &= 0x7f;
+				anEntry->mFlags &= 0x7f;
 		}
 	}
 	return aFailed;

@@ -1,4 +1,4 @@
-// Test hooks: a screen larger than the original's (-canvas=<width>x<height>), to see what the game draws beyond
+// port: test hooks: a screen larger than the original's (-canvas=<width>x<height>), to see what the game draws beyond
 // 640x480. The configuration places some things off the screen (the timed mode's button on the new game screen, its
 // high score rows on the main menu and the high scores screen, all at 1000); the game sizes its screen layers to the
 // display, so with a larger one it draws them. The window still shows the top left 640x480, where the clicks go.

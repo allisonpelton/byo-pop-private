@@ -60,33 +60,33 @@ void SynthMessage(uint32_t theMessage)
 {
 	int aStatus = theMessage & 0xff;
 	int aChannel = aStatus & 0xf;
-	int aData1 = (theMessage >> 8) & 0x7f;
-	int aData2 = (theMessage >> 16) & 0x7f;
+	int aFirstDataByte = (theMessage >> 8) & 0x7f;
+	int aSecondDataByte = (theMessage >> 16) & 0x7f;
 	switch (aStatus & 0xf0)
 	{
 	case 0x80:
-		tsf_channel_note_off(gSynth, aChannel, aData1);
+		tsf_channel_note_off(gSynth, aChannel, aFirstDataByte);
 		break;
 	case 0x90:
-		tsf_channel_note_on(gSynth, aChannel, aData1, aData2 / 127.0f);  // velocity 0 is a note off
+		tsf_channel_note_on(gSynth, aChannel, aFirstDataByte, aSecondDataByte / 127.0f);  // velocity 0 is a note off
 		break;
 	case 0xb0:
-		if (aData1 == 7)
-			gChannelVolume[aChannel] = (uint8_t)aData2;
-		else if (aData1 == 11)
-			gChannelExpression[aChannel] = (uint8_t)aData2;
+		if (aFirstDataByte == 7)
+			gChannelVolume[aChannel] = (uint8_t)aSecondDataByte;
+		else if (aFirstDataByte == 11)
+			gChannelExpression[aChannel] = (uint8_t)aSecondDataByte;
 		else
-			tsf_channel_midi_control(gSynth, aChannel, aData1, aData2);
-		if (aData1 == 121)
+			tsf_channel_midi_control(gSynth, aChannel, aFirstDataByte, aSecondDataByte);
+		if (aFirstDataByte == 121)
 			gChannelExpression[aChannel] = 127;  // reset all controllers: the expression, not the volume
-		if (aData1 == 7 || aData1 == 11 || aData1 == 121)
+		if (aFirstDataByte == 7 || aFirstDataByte == 11 || aFirstDataByte == 121)
 			SetChannelVolume(aChannel);
 		break;
 	case 0xc0:
-		tsf_channel_set_presetnumber(gSynth, aChannel, aData1, aChannel == 9);
+		tsf_channel_set_presetnumber(gSynth, aChannel, aFirstDataByte, aChannel == 9);
 		break;
 	case 0xe0:
-		tsf_channel_set_pitchwheel(gSynth, aChannel, aData2 << 7 | aData1);
+		tsf_channel_set_pitchwheel(gSynth, aChannel, aSecondDataByte << 7 | aFirstDataByte);
 		break;
 	case 0xf0:
 		if (aStatus == (int)MIDI_CLOSE)

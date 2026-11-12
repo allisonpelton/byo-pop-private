@@ -117,7 +117,7 @@ typedef void (*CloseCallback)();
 typedef void (*SwitchCallback)(char theMode);
 typedef uint32_t (*RestoreCallback)();
 char InitScreen(uint8_t theMode, ActivateCallback theActivate, CloseCallback theClose, SwitchCallback theOnSwitch,
-	RestoreCallback theRestore, const char* theTitle, char theWindowed, uint8_t theUnknown);  // 0x42f290
+	RestoreCallback theRestore, const char* theTitle, char theWindowed, uint8_t theDirectDrawOptions);  // 0x42f290
 uint8_t GetDisplayFormat(PixelFormat* theFormat, uint16_t* theWidth, uint16_t* theHeight);  // 0x42f850
 uint8_t GetLogicalFormat(PixelFormat* theFormat, uint16_t* theWidth, uint16_t* theHeight);  // 0x42f8c0
 char ScreenScope(char theMode);                                                  // 0x42fda0 LOWOS_ScreenScope

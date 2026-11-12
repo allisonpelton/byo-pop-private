@@ -469,6 +469,67 @@ callers.
 `coverage.txt` gains nine `none` lines for the functions taken out (the original runs all of them; `res::FreeImage` and `gModal2`
 had no counterpart in the export).
 
+## Readability pass (2026-11-11)
+
+`docs/CODE_STANDARDS.md`'s rules, with `python tools/namecheck.py games/tiptop` at no finding: it began at 312 in `src/` and
+`games/tiptop/namecheck.txt` (one line, `folder engine`) now adds the port's own LOWOS layer in `engine/`, which held twelve more
+(a parameter and the locals of `BlitPixels` in `Lowos`, the locals of the readers in `Res`); every one is fixed, and the file allows nothing. The
+object code is the proof that none of it changed the game: `tools/objsnap.py` before and after the renames reports 0 of 588
+functions different (the five switch cases taken out below are the one code change, and with them put back for the comparison it
+was 0 as well), the web build compiles, and the suite's rerun and frozen baseline are identical.
+
+**Names.**
+
+- *The configuration's records.* Every `Level`, `Particle` and `Effect` field was a letter and a number. They are named from the
+  original's own configuration file (`tiptap.cfg` in the game's data, which documents the particle and effect fields) and from
+  how the code uses them: `mStartRows`, `mStopRow`, `mFloatsPerRemoval`, `mRange`, `mGoal`, `mNumColors`, `mSpawnThreshold`, the
+  three meter fields and the particle's size, opacity and color curves, blend type and the effect's delay, count, speed, fade
+  times and oscillation. The configuration's padding (the bytes the board reaches by offset, which `static_assert`s the size
+  of) was `mUnknown*` and `mRegistrationUnused*`: the ones that copy a level's values are `mLevel*Copy`, the rest say which
+  setting they stood where (`...Options`, `...SplashRegister`, `...ExecutionLimit`), and the header's comment says that nothing
+  reads them (checked against the export for every one).
+- *The application and board.* The fields that were an offset (`m134` to `m144`, `m13x`, `m1618`) are `mBonusClock`,
+  `mBonusElapsed`, `mBonusClockStopped`, `mBonusTipShown`, `mBonusBlocksRanOut`, `mBonusStartAnimations` and
+  `mGlowBufferUnused`, the column cursor `mEC` is `mColumnCursor`, and the three meter fields the board reads are
+  `CfgMeterStart`, `CfgMeterLoss` and `CfgMeterDoublingTime`. The twenty `goto` labels of the translated board (the loops the
+  original wrote with jumps) say what they jump to: `AfterCollision`, `StopAtHighest`, `QueueMagnet`, `NextPiece`.
+- *One-letter and typed locals.* The functions of `Gui.cpp`, `Config.cpp`, `Res.cpp`, `Music.cpp`, `MusicSynth.cpp` and the test
+  hooks name each local for what it holds (`aGlyph`, `aHandler`, `aScroll`, `aFirstDataByte`, `aShortRadius`, `aGlowWidth`).
+  Where a name carried a guessed size (`aRadius16`, `aWidth32`, `aTime64`) the size left it.
+
+**Addresses.** Each file of the port holds the `// port:` marker in its first comment, so the function-by-function address
+comments stay where the translation put them and need no more (`TipTopApp.cpp`, `GameText.cpp`, `ModFeatures.cpp` and the five
+test hooks were the files without one).
+
+**Numbers.** What repeated and meant one thing is a constant: `GAME_WIDTH` and `GAME_HEIGHT` (the 640 by 480 screen, `Game.h`),
+`FIXED_SHIFT` and `FIXED_ONE` (positions on the field are fixed point with 8 bits of fraction; about 70 places in
+`Board.cpp`), `CHAIN_COUNT` and `NO_CHAIN` (the ring of 0x400 chain counters and the group number of a piece in none),
+`FLASH_TIME` (0xfa ms, a block's flash before a column nuke's or a color bomb's effect removes it), `MSG_CURSOR_COLUMN` and
+`MSG_CURSOR_TAPPED` (the two messages the column cursor answers, in the numbers of the generic ones) and `COMMAND_MASK` with
+`BUTTON_ENTER`, `BUTTON_ESCAPE`, `POP_LONGER`, `POP_UNTIL_CLICK` and `ANIMATION_ADDITIVE` (the flag bits in the top of a
+button's, pop image's and animation's command). The commands of `App::Command` and every place that sends one are the `CMD_*`
+enum of `App.h` (the original's numbers, 0x01 to 0x3e).
+
+**Code found on the way.** The pass over the commands found five cases of `App::Command` that the unneeded-code survey missed,
+because it looked at functions and not at the cases of a switch: 0x1e, 0x1f, 0x34, 0x35 and 0x3d. They were the registration
+dialogs' answers, and no sender of them was left once that pass took the dialogs out. They are gone, and the switch's jump table
+is five entries smaller (which is why the object code comparison above needed the cases put back).
+
+**Not done, and why.**
+
+- The 481 `GTC(0x...)` calls that read a text from the exe by its address stay as they are. Reading the game's texts from the
+  player's own `TipTop.exe` by address is how `GameText.cpp` works (`tools/make_gametext.py` makes it from the export), and a
+  name for each of 481 strings the code never says anything else about would only be a second table of the same numbers; the
+  comment beside a call says what the text is where it matters.
+- The sound ids of `Play(gSounds[0x..])` (58 uses) and the brightness values of 0x100 in the fades are the original's own
+  sound table indices and brightness scale; the sound log (above) names each sound as `TipTop.dat` stores it, and a constant for
+  each id would be a second copy of that.
+- `tools/splitfields.py` (`--export re/tiptop/gh/decomp --all`) reports the members the port writes and never reads
+  (`mRight` and `mBottom` of the board, `mContentWidth` and `mContentHeight` of a GUI layer, `mGlowBufferUnused`, the padding);
+  they stay, each with a comment saying that nothing reads them. It also flags `mPieces` and
+  `mColumnWeights` against the destructor at 0x40147e; that is the tool's pairing of the destructor's address with the function
+  after it, and the port's destructor frees both.
+
 **Proof.** `tools/check.sh build build-web:tiptop tiptop` passes with the rerun and the frozen baseline identical. The shots of
 the six phase-two tours (172) and of two games in each mode with `-autoplayshots` (21) are byte for byte the same from an exe built
 from the commit before this step and from the one after, and so are their state logs but for the lines the original's uninitialised
