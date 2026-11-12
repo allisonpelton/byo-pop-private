@@ -28,6 +28,20 @@ restyled to look like Sweet Tooth To Go, PopCap's candy match-three made for Pog
 not to port, though they may want this look instead. Images only; like the Steven Universe gems, its art would come
 from a local generator and stay git-ignored, since it would recreate another game's look. Not yet planned.
 
+## What a player gets
+
+The user, 2026-11-12: "I'm starting to think that maybe the exact reproduction approach isn't the best, and mods should
+bring back the original's behavior instead of being what supplies the fixes. Reproducing original code of course remains
+important for the preservation aspect." Asked whether the improved game should become the default with an Original
+switch: "Yes, flip defaults".
+
+So a player gets the improved game: the fixes mod and the lite mod both on, and one Original switch, on the site and in
+the native mod menu, that turns both off and plays the original as it was. The port's source stays the faithful
+reproduction, which is the decompilation's point, and "Done means identical" is checked with every mod off: the improved
+game can be trusted only because the original's behaviour is known exactly. A fix the fixes mod starts off because the
+original's behaviour looks intended stays off (the user, 2026-11-11), and a mod that trades the look for speed, like
+Bejeweled's `lean`, still starts off. A speedrun board that times the original exe compares with the Original switch on.
+
 ## The fixes mod
 
 The user, 2026-11-04: "I think we'll want the default way to serve games on the site be to include a bunch of mods
@@ -48,12 +62,12 @@ as it was: its look, rules, sounds and pace of play. Slow loading is not one of 
 first, unmodified"). A mod that trades the original's look or feel for speed or memory, like Bejeweled's `lean` with
 its lower frame rate, is not a fix: it stays a mod of its own and starts off as before.
 
-The site starts each game with its fixes mod on. A fix starts on, except where the original's behaviour looks
-intended and is not widely known as a bug: such a fix starts off (`"default": false`), so the game does not look
-changed to someone who knows it (the user, 2026-11-11, of Bejeweled 2's podFade: "Off by default for functionality
-that seems intended but where the bug is not well known to be a bug"). The player can turn single fixes on or off in
-the mod menu, or the whole mod off to play the original as it was. The port itself stays the unmodified original
-(CLAUDE.md, "Port first, unmodified", "Done means identical").
+The site starts each game with its fixes mod on. A fix starts on, except where the original's behaviour looks intended
+and is not widely known as a bug: such a fix starts off (`"default": false`), so the game does not look changed to
+someone who knows it (the user, 2026-11-11, of Bejeweled 2's podFade: "Off by default for functionality that seems
+intended but where the bug is not well known to be a bug"). The player can turn single fixes on or off in the mod menu,
+or the whole mod off, or turn the Original switch on to play the original as it was ("What a player gets"). The port
+itself stays the unmodified original (CLAUDE.md, "Port first, unmodified", "Done means identical").
 
 With the mod on, a game plays exactly the same way on every run: with the same seed and the same input, the same
 series of games, update for update. Nothing from outside the game's own updates (the machine's speed, load times, the
@@ -92,7 +106,7 @@ that trades those for speed, as Bejeweled's `lean` does with its frame rate, is 
 A change goes in only when it measurably cuts the processor time of a stretch of play where it runs (cycle counts and
 alternating pairs, `docs/COORDINATION.md`, "The target"). With the mod on, a game still plays the same on every run with
 the same seed and input, and with it off the port is unchanged, as its frozen baseline proves. The site starts the mod
-off: it changes play, so the player turns it on.
+on, as it does the fixes mod, and the Original switch turns it off ("What a player gets").
 
 Each game's `docs/LITE_MOD.md` explains every change for the user: the function (the original's address and the port's
 name), what the original does and what the mod does instead, where play or the picture can differ and the proof that it
