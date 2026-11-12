@@ -1,15 +1,15 @@
-// Sexy::SwfMovie: a small player for Flash (.swf) movies, written from the public SWF file format specification.
-// Bookworm Adventures plays its four story cutscenes through the Flash ActiveX control; the port cannot use that,
-// so this plays what those four files use (vector shapes with solid and gradient fills and strokes, morph shapes,
-// text from embedded fonts, sprites, clip layers, color transforms and the actions Play, Stop and GetURL) and
-// draws it into a 32-bit pixel buffer. Nothing here is specific to one game. What a file holds that this does not
-// play is counted, not played: GetUnsupported lists it.
+// Sexy::SwfMovie: a small player for Flash (.swf) movies, written from the public SWF file format specification, the one
+// copy every port shares (engines/swf, docs/ENGINES.md). The originals play their cutscenes through the Flash ActiveX
+// control, which a port cannot use, so this plays what those files use (vector shapes with solid, gradient and bitmap
+// fills and strokes, morph shapes, text from embedded fonts, sprites, clip layers, color transforms, frame labels and the
+// actions Play, Stop and GetURL) and draws it into a 32-bit pixel buffer. Nothing here is specific to one game. What a
+// file holds that this does not play is counted, not played: GetUnsupported lists it.
 //
-// A movie is played by calling NextFrame at its frame rate and Render whenever the picture is wanted. The movie
-// tells its host what it wants through GetURL actions whose URL starts with "FSCommand:" (the Flash control's
-// FSCommand event): the listener hears the command, and the host decides what to do. The game's four cutscenes
-// send "ready" in frame 0, where they also Play, so they need nothing from the host to start, and "done" in their
-// last frame, where they Stop.
+// A movie is played by calling NextFrame at its frame rate and Render whenever the picture is wanted. The movie tells its
+// host what it wants through GetURL actions whose URL starts with "FSCommand:" (the Flash control's FSCommand event):
+// the listener hears the command, and the host decides what to do. Bookworm Adventures' cutscenes, for one, send
+// "ready" in frame 0, where they also Play, so they need nothing from the host to start, and "done" in their last
+// frame, where they Stop.
 #pragma once
 
 #include <cstdint>

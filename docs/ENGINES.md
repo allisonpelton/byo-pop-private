@@ -92,6 +92,19 @@ The address tags pair the two exes by China's function match (`re/mahjongchina/c
 checkout). A function only Ancient Japan's exe has (the restart box, inlined helpers, vtables) gives Japan's address
 alone.
 
+## The SWF player (`engines/swf`, library `sexyswf`)
+
+The originals that show Flash movies play them through the Flash ActiveX control, which no port can use, so the ports
+share a player of their own, `Sexy::SwfMovie`, written from the public SWF file format specification and translated
+from no exe: it has no addresses, and neither `tools/namecheck.py` nor `tools/coverage.py` reads it. Bookworm
+Adventures wrote it, Volume 2 added bitmaps and frame labels to its copy, and that copy is the one here (2026-11-12).
+The ports whose originals show Flash movies link it (both Bookworm Adventures games; Heavy Weapon and Hammer Heads as
+they come). Each keeps its own widget over it, standing in for the original's, and its own `swftest` tool
+(`games/<game>/tools/swftest`), which plays every movie of that game through headless. What a movie holds that the
+player skips is counted (`SwfMovie::GetUnsupported`), so a game's `swftest` shows at once what more of the format its
+movies need; the player grows to cover it, and every other game's movies must play as before: their `swftest` runs
+unchanged and frames rendered before and after the change identical.
+
 ## Adding another
 
 Move the folder to `engines/<name>/` with `git mv`, make one library of it, give each function's comment every game's
