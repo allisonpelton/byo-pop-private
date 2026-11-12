@@ -176,13 +176,13 @@ var ByopopSoundboards = {
       ["sounds/electric3.ogg", "Electric 3", "Lightning bolt: one of the three at random for each bolt joining an atom to a same-type neighbour, and each drawn frame of a shaking made molecule; the infection bolt plays all three, then one every 10 updates (0.1 s)"],
       ["sounds/geiger1.ogg", "Geiger counter 1", "Loops while the combo is 2 or more, its volume rising 0.1 an update toward (combo - 1) / 12; fades out by 0.01 an update after the combo ends"],
       ["sounds/geiger2.ogg", "Geiger counter 2", "Loops while the combo is above 3, its volume rising 0.1 an update toward (combo - 3) / 8; fades out by 0.01 an update after the combo ends"],
-      ["sounds/voices/combo.ogg", "Combo voice", "A molecule takes the combo to 2: the voice comes 30 updates (0.3 s) later, or when he stops talking"],
+      ["sounds/voices/combo.ogg", "\"Combo!\"", "A molecule takes the combo to 2: the voice comes 30 updates (0.3 s) later, or when he stops talking"],
       ["sounds/voices/supercombo.ogg", "\"Super combo!\"", "A molecule takes the combo to 3: the voice comes 30 updates (0.3 s) later, or when he stops talking"],
-      ["sounds/voices/megacombo.ogg", "Mega combo voice", "A molecule takes the combo to 4: the voice comes 30 updates (0.3 s) later, or when he stops talking"],
-      ["sounds/voices/ultracombo.ogg", "Ultra combo voice", "A molecule takes the combo to 5: the voice comes 30 updates (0.3 s) later, or when he stops talking"],
+      ["sounds/voices/megacombo.ogg", "\"Mega combo!\"", "A molecule takes the combo to 4: the voice comes 30 updates (0.3 s) later, or when he stops talking"],
+      ["sounds/voices/ultracombo.ogg", "\"Ultra combo!\"", "A molecule takes the combo to 5: the voice comes 30 updates (0.3 s) later, or when he stops talking"],
       ["sounds/voices/hypercombo.ogg", "\"Hyper combo!\"", "A molecule takes the combo to 6: the voice comes 30 updates (0.3 s) later, or when he stops talking"],
       ["sounds/voices/gigacombo.ogg", "\"Giga combo!\"", "A molecule takes the combo to 7: the voice comes 30 updates (0.3 s) later, or when he stops talking"],
-      ["sounds/voices/maxcombo.ogg", "Max combo voice", "A molecule takes the combo to 8: the voice comes 30 updates (0.3 s) later, or when he stops talking; no voice above 8"]
+      ["sounds/voices/maxcombo.ogg", "\"Max combo!\"", "A molecule takes the combo to 8: the voice comes 30 updates (0.3 s) later, or when he stops talking; no voice above 8"]
     ] },
     { name: "Bombs and biohazards", sounds: [
       ["sounds/nukeblast.ogg", "Nuke blast", "An atom is destroyed: the atomic bomb bursts it, or an element's expanding ring pops it, or a biohazard atom's molecule shatters it; one sound per atom"],
@@ -195,11 +195,11 @@ var ByopopSoundboards = {
     { name: "Elements and bonus molecules", sounds: [
       ["sounds/freeze.ogg", "Freeze", "A freeze takes hold of the board: its progress reaches 128, one step an update, so 1.28 s after it begins"],
       ["sounds/voices/fire.ogg", "Fire voice", "A fire element atom is placed; the voice comes 25 updates (0.25 s) later"],
-      ["sounds/voices/ice.ogg", "Ice voice", "A water (ice) element atom is placed; the voice comes 25 updates (0.25 s) later"],
+      ["sounds/voices/ice.ogg", "\"Ice!\"", "A water (ice) element atom is placed; the voice comes 25 updates (0.25 s) later"],
       ["sounds/voices/lightning.ogg", "\"Lightning!\"", "An earth (lightning) element atom is placed; the voice comes 25 updates (0.25 s) later"],
       ["sounds/voices/wind.ogg", "\"Wind!\"", "An air (wind) element atom is placed; the voice comes 25 updates (0.25 s) later"],
       ["sounds/voices/ether.ogg", "\"Ether\"", "An ether element atom is placed; the voice comes 25 updates (0.25 s) later"],
-      ["sounds/voices/bonusmolecule.ogg", "Bonus molecule voice", "A bonus molecule is made; the voice comes 5 updates later"],
+      ["sounds/voices/bonusmolecule.ogg", "\"Bonus molecule!\"", "A bonus molecule is made; the voice comes 5 updates later"],
       ["sounds/voices/bonusmoleculeready.ogg", "\"Bonus molecule ready!\"", "The bonus molecule frame has slid into place with a new pattern; the voice comes 50 updates (0.5 s) later"],
       ["sounds/voices/bonusmoleculeupgraded.ogg", "\"Bonus molecule upgraded!\"", "A bonus molecule of a higher level is made (an upgrade); the voice comes 5 updates later"]
     ] },
@@ -212,7 +212,7 @@ var ByopopSoundboards = {
       ["sounds/voices/cool.ogg", "\"Cool!\"", "Okay is pressed on a high score name: one of six voices (this, excellent, great, nifty, terrific, wicked), 1 in 6 each"],
       ["sounds/voices/excellent.ogg", "\"Excellent!\"", "Okay is pressed on a high score name: one of six voices (cool, this, great, nifty, terrific, wicked), 1 in 6 each"],
       ["sounds/voices/great.ogg", "\"Great!\"", "Okay is pressed on a high score name: one of six voices (cool, excellent, this, nifty, terrific, wicked), 1 in 6 each"],
-      ["sounds/voices/nifty.ogg", "Nifty voice", "Okay is pressed on a high score name: one of six voices (cool, excellent, great, this, terrific, wicked), 1 in 6 each"],
+      ["sounds/voices/nifty.ogg", "\"Nifty!\"", "Okay is pressed on a high score name: one of six voices (cool, excellent, great, this, terrific, wicked), 1 in 6 each"],
       ["sounds/voices/terrific.ogg", "\"Terrific!\"", "Okay is pressed on a high score name: one of six voices (cool, excellent, great, nifty, this, wicked), 1 in 6 each"],
       ["sounds/voices/wicked.ogg", "\"Wicked\"", "Okay is pressed on a high score name: one of six voices (cool, excellent, great, nifty, terrific, this), 1 in 6 each"],
       ["sounds/voices/awesome.ogg", "\"Awesome!\" (unused)", "Never played: it is not loaded, and the high score voices choose among six others only"],
@@ -569,7 +569,7 @@ var ByopopSoundboards = {
       ["sounds/gotbag.ogg", "Bag collected", "A moneybag leaves the board because the coins under it were cleared"],
       ["sounds/bonus.ogg", "Bonus", "3 or more bags left on the board at a level's end; a bag collected within 5 s (500 updates) of the last; a tower toppled; and, if the click has no voice, 4 clicks in a row of one colour or 3 to 5 columns emptied"],
       ["sounds/superbonus.ogg", "\"Super bonus!\"", "When the click has no other voice: 6 clicks in a row of one colour, or 6 or more columns emptied by one click"],
-      ["sounds/speedbonus.ogg", "Speed bonus", "Action only: each click adds 0.16 to a gauge that falls 0.0025 per update; when it reaches 1 (about 7 quick clicks) this plays and 40 points are added"],
+      ["sounds/speedbonus.ogg", "\"Speed bonus!\"", "Action only: each click adds 0.16 to a gauge that falls 0.0025 per update; when it reaches 1 (about 7 quick clicks) this plays and 40 points are added"],
       ["sounds/megamoney.ogg", "\"Mega money!\" (unused)", "Never played: it is loaded, but no code plays it, in the port or in the original"]
     ] },
     { name: "Combo voices", sounds: [
@@ -1361,7 +1361,7 @@ var ByopopSoundboards = {
       ["sounds/click.ogg", "Click", "A button is pressed: the intro screen's pages, options, high scores, the side bar, the museum's button, a puzzle in the list"],
       ["sounds/egglands.wav", "Egg lands", "The OK or play button of a page or the title screen is pressed; the tutorial's buttons; also an egg lands on the grid"],
       ["sounds/xwelcometodynomite.ogg", "\"Welcome to Dynomite\"", "The intro screen opens for the first time in a run: the large Inchy pops up 1.25 s in and talks 0.5 s after that (later openings only pop him up, silent)"],
-      ["sounds/xgameover.ogg", "Game over voice", "A game ends: the eggs have run off the board (right after the foot-lands sound), or Time Trial's last egg is gone; Inchy pops up 1.25 s later and talks 0.5 s after that"],
+      ["sounds/xgameover.ogg", "\"Game over\"", "A game ends: the eggs have run off the board (right after the foot-lands sound), or Time Trial's last egg is gone; Inchy pops up 1.25 s later and talks 0.5 s after that"],
       ["sounds/inchypop.ogg", "Inchy pops up", "Inchy pops up when his talk countdown reaches 50 (0.5 s before he speaks); a cleared round at 50, 90 and 130 updates (0.5, 0.9, 1.3 s) and again at 200 (2 s, with the bonus points); every tutorial step"],
       ["sounds/whirleyhit.ogg", "Whirley hit", "A whirley is hit by an egg; also Save is pressed when it cannot save, or with no save slot chosen"]
     ] },
@@ -1373,15 +1373,15 @@ var ByopopSoundboards = {
       ["sounds/mama1.ogg", "Mama", "A broken egg releases a baby dinosaur (a 1 in 2 draw between the game's two loads of this same file, so it always sounds the same)"],
       ["sounds/reward.ogg", "Baby leaves", "A baby dinosaur effect ends as it leaves the screen"],
       ["sounds/scoremultiplier.ogg", "Score multiplier", "A group of eggs breaks while a double, triple or quadruple multiplier is active; a power-up reaches its place"],
-      ["sounds/blastit.ogg", "Blast it voice", "A shot breaks five or more eggs (unless the eggs are past the line and losing): a 1 in 4 draw among the tank's four voices; the 40-update flinch happens for any hit"],
+      ["sounds/blastit.ogg", "\"Blast it!\"", "A shot breaks five or more eggs (unless the eggs are past the line and losing): a 1 in 4 draw among the tank's four voices; the 40-update flinch happens for any hit"],
       ["sounds/charge.ogg", "Charge voice", "A shot breaks five or more eggs (unless the eggs are past the line and losing): a 1 in 4 draw among the tank's four voices"],
       ["sounds/kaboom.ogg", "Kaboom voice", "Always when a blast egg or dynamite goes off (unless the eggs are past the line and losing); also a 1 in 4 draw when a shot breaks five or more eggs"],
-      ["sounds/fireinthehole.ogg", "Fire in the hole voice", "A shot breaks five or more eggs (unless the eggs are past the line and losing): a 1 in 4 draw among the tank's four voices"]
+      ["sounds/fireinthehole.ogg", "\"Fire in the hole!\"", "A shot breaks five or more eggs (unless the eggs are past the line and losing): a 1 in 4 draw among the tank's four voices"]
     ] },
     { name: "Combos", sounds: [
-      ["sounds/xcombo.ogg", "Combo voice", "Inchy calls a chain of 1"],
+      ["sounds/xcombo.ogg", "\"Combo!\"", "Inchy calls a chain of 1"],
       ["sounds/xsupercombo.ogg", "\"Super combo!\"", "Inchy calls a chain of 2"],
-      ["sounds/xcambriancombo.ogg", "Cambrian combo voice", "Inchy calls a chain of 3"],
+      ["sounds/xcambriancombo.ogg", "\"Cambrian combo!\"", "Inchy calls a chain of 3"],
       ["sounds/xtriassiccombo.ogg", "\"Triassic combo\"", "Inchy calls a chain of 4"],
       ["sounds/xjurassiccombo.ogg", "\"Jurassic combo\"", "Inchy calls a chain of 5"],
       ["sounds/xcretaceouscombo.ogg", "\"Cretaceous combo\"", "Inchy calls a chain of 6"],
@@ -1796,7 +1796,7 @@ var ByopopSoundboards = {
     { name: "Scoring and level end", sounds: [
       ["sounds/bonusship.ogg", "Extra ship", "The score passes another thousand and a life is added, whether by a ship or wreck's points or by a level's kill bonus"],
       ["sounds/talkdavyjoneslocker.ogg", "\"Down to Davy Jones' locker\"", "At a level's end, once the pirate has finished appearing: one of the four voices, at random"],
-      ["sounds/talkarrmatey.ogg", "Arr matey voice", "At a level's end, once the pirate has finished appearing: one of the four voices, at random"],
+      ["sounds/talkarrmatey.ogg", "\"Arr, matey!\"", "At a level's end, once the pirate has finished appearing: one of the four voices, at random"],
       ["sounds/talkwalktheplank.ogg", "\"Walk the plank!\"", "At a level's end, once the pirate has finished appearing: one of the four voices, at random"],
       ["sounds/talklandlubber.ogg", "Landlubber voice", "At a level's end, once the pirate has finished appearing: one of the four voices, at random"]
     ] },
