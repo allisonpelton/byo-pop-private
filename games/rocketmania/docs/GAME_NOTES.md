@@ -681,3 +681,47 @@ classic), games driven by the standard commands (`goto`, `win`, `level <n>`, `lo
 loss, kind 2), a game left through the quit button, a saved game continued (RESUMED, no GO) and the inert proof: three games' state logs
 (the same games as `tools/check.sh rocketmania`) with the block on, with no mod and in the frozen baseline are byte-identical. The block
 logs of these runs (a level or two, then a loss, for each mode and difficulty) went to the site session.
+
+## The PopCap Game Collection version (2026-11-12)
+
+The port was made from the Steam copy (`RocketMania.exe`, PopCap's 2006 wrapper around the 2003 game), so it is checked against the
+game's copy on the PopCap Game Collection disc (`docs/COORDINATION.md`): the two versions compared, and the port run on the Collection's
+files. The procedure is Bejeweled's (its GAME_NOTES section 23), Typer Shark's, AstroPop's and Word Harmony's; `tools/collection/` holds
+the comparison tools (`cmpexe.py`, `cmpfiles.py`, `cmpimages.py`) and `run.sh`, which does the runs below.
+
+**Getting the files.** `unshield` (`E:\retools\unshield-build`; the user allowed it on 2026-11-10) read the disc image's cabinet, which was
+mounted read-only and dismounted afterwards. The group `RocketManiaDeluxeComponent` came out: 308 files, 5.5 MB, in the main checkout's
+`re/_installers/RocketManiaDeluxeCollection` (git-ignored). The copy has no launcher: `RocketMania.exe` is the game itself, beside
+`bass.dll`, `license.txt`, `readme.html`, `register.tpl`, `adlist.txt`, `version.txt` and the folders `data`, `images`, `music`,
+`Players`, `properties`, `sounds` and `win32ads`. `stage_rocketmania_assets.py` stages it unchanged (293 files, as from the Steam copy).
+
+**The exe is the same game.** It is 1,164,600 bytes (the Steam wrapper is 1,364,386, linked 2006-08-22; the game carved from it is
+1,019,904) and was linked 2003-09-08 20:30:56, like the carved image. Set beside it (`tools/collection/cmpexe.py`), `.text` and `.data`
+are the same byte for byte; `.rdata` differs in 7 bytes (a number in a build marker string that nothing reads); `.rsrc` is larger (22
+resources, icons and version, against 8; the port reads none of them); 5,432 bytes follow the last section (a signature). So every
+address of the port's text table (`GameTextTable.inc`) is the same, and `LoadGameTexts` reads the plain image as well as the wrapper.
+
+**The files** (`tools/collection/cmpfiles.py`). Of the Steam copy's 370 files and the Collection's 308, 273 are the same byte for byte.
+Only the Steam copy has the wrapper's `drm.*` and `flash.ocx`, the 67 `cached_*.wav` of music and sounds (the port never asks for them)
+and the player's `savea.dat`; only the Collection has `adlist.txt`, `register.tpl`, `win32ads/` (the Collection launcher's ads) and
+`Players/hiscores.dat`. Of the 20 pictures that differ (`cmpimages.py`), 17 only in encoding (the Collection's PNGs are 32-bit RGBA,
+Steam's are palette or grey; no pixel differs), `bigpinkstar.png` and `smallpinkstar.png` only under fully transparent pixels (599 and
+132 pixels, alpha 0 on both sides), and `loadinggraphic.jpg`, the loading and title picture, is another picture with PopCap's newer logo
+(the port draws what it loads). `properties/partner.xml` differs in what the removed code read (the Collection: `DontUpdate` false, a
+"Play More Great Games!" link to popcap.com and an `Offering` number; Steam: its links and ids), and `license.txt` and `readme.html` in
+their text. The shipped `Players/hiscores.dat` (604 bytes) is the list the port generates, record for record (names, scores, checks),
+and differs only in its first four bytes, the day number (May 2009 against the day of the run), which the port rewrites for the day it is
+played; so a first run shows the same lists on either set of files.
+
+**The port on the Collection's files** (`tools/collection/run.sh`; `identical/port.sh` and `shots/web.sh` take `RM_GAMEDIR=<folder>`).
+The three mouse-played games of `tools/check.sh rocketmania` (arcade, classic and strategy) give the same state log on the retail files,
+on the Collection's and in the frozen baseline (14,079, 13,396 and 13,378 lines, every value at every update). The screen tours of
+`tools/shots` (u2, t1 and t3 to t7: the whole flow, the hints, games of the three modes, level-up and game-over screens, the high
+scores) played once on each set of files at `-fast`, seed 1, in the 3D default: the state logs are the same (u2 20,003 lines, t1 10,115,
+t3 224,936, t4 16,281, t5 4,874, t6 8,852, t7 8,579) and so are all 377 pictures (`tools/shotdiff`: no difference, no faint one). The web
+build under Node on both sets (u2 and t1): 98 of 99 and 29 of 30 pictures the same; the one that differs in each is the first, the
+loading screen, which shows the Collection's own picture (looked at). No sound file differs, so sound is the same by construction.
+
+**Saves.** The Collection's saves are `Players/*.dat` and its settings are under `PopCap\RocketMania`, as in Steam's `partner.xml`, so
+the save import's entry for the game (`platform/saveimport.json`) covers them; no Collection copy's save was at hand to test one.
+Nothing in the port changed for the Collection's files; the Collection's own exe was not run (it is the same game image).
