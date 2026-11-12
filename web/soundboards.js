@@ -1521,39 +1521,39 @@ var ByopopSoundboards = {
     ],
     groups: [
     { name: "Menus", sounds: [
-      ["sounds/click.ogg", "Click", "A button is pressed: the menus, the options dialog, the map, the board's buttons and other dialogs"],
-      ["sounds/tombslide.ogg", "Tomb slide", "The title screen opens fresh; a level begins (75 updates in, not in the ending modes)"]
+      ["sounds/click.ogg", "Click", "Any button of the menus, options dialog, map, board or other dialogs is pressed (the board's buttons all share this sound)"],
+      ["sounds/tombslide.ogg", "Tomb slide", "The title screen opens fresh; also 75 updates (0.75 seconds) after a level begins, except in the two ending modes"]
     ] },
     { name: "Explorer", sounds: [
-      ["sounds/expwalk60a.ogg", "Explorer step 60 A", "The explorer takes a step at the slowest speed setting (one of the A and B pair at random, panned)"],
-      ["sounds/expwalk60b.ogg", "Explorer step 60 B", "The explorer takes a step at the slowest speed setting (one of the A and B pair at random, panned)"],
-      ["sounds/expwalk30a.ogg", "Explorer step 30 A", "The explorer takes a step at the middle speed setting (random of A and B)"],
-      ["sounds/expwalk30b.ogg", "Explorer step 30 B", "The explorer takes a step at the middle speed setting (random of A and B)"],
-      ["sounds/expwalk15a.ogg", "Explorer step 15 A", "The explorer takes a step at the fastest speed setting (random of A and B)"],
-      ["sounds/expwalk15b.ogg", "Explorer step 15 B", "The explorer takes a step at the fastest speed setting (random of A and B)"]
+      ["sounds/expwalk60a.ogg", "Explorer step 60 A", "The explorer starts a step (also when walking into a level) at the slowest speed setting; one of the A and B pair at random, panned to the column"],
+      ["sounds/expwalk60b.ogg", "Explorer step 60 B", "The explorer starts a step (also when walking into a level) at the slowest speed setting; one of the A and B pair at random, panned to the column"],
+      ["sounds/expwalk30a.ogg", "Explorer step 30 A", "The explorer starts a step at the middle speed setting; one of the A and B pair at random, panned"],
+      ["sounds/expwalk30b.ogg", "Explorer step 30 B", "The explorer starts a step at the middle speed setting; one of the A and B pair at random, panned"],
+      ["sounds/expwalk15a.ogg", "Explorer step 15 A", "The explorer starts a step at the fastest speed setting; one of the A and B pair at random, panned"],
+      ["sounds/expwalk15b.ogg", "Explorer step 15 B", "The explorer starts a step at the fastest speed setting; one of the A and B pair at random, panned"]
     ] },
     { name: "Mummies and scorpions", sounds: [
-      ["sounds/mumwalk60a.ogg", "Mummy step 60 A", "A mummy steps at the slowest speed setting, once a move (random of A and B, panned)"],
-      ["sounds/mumwalk60b.ogg", "Mummy step 60 B", "A mummy steps at the slowest speed setting, once a move (random of A and B, panned)"],
-      ["sounds/mumwalk30a.ogg", "Mummy step 30 A", "A mummy steps at the middle speed setting (random of A and B)"],
-      ["sounds/mumwalk30b.ogg", "Mummy step 30 B", "A mummy steps at the middle speed setting (random of A and B)"],
-      ["sounds/mumwalk15a.ogg", "Mummy step 15 A", "A mummy steps at the fastest speed setting (random of A and B)"],
-      ["sounds/mumwalk15b.ogg", "Mummy step 15 B", "A mummy steps at the fastest speed setting (random of A and B)"],
-      ["sounds/scorpwalk1.ogg", "Scorpion step 1", "A scorpion starts a move (one of two at random, panned)"],
-      ["sounds/scorpwalk2.ogg", "Scorpion step 2", "A scorpion starts a move (one of two at random, panned)"],
-      ["sounds/pummel.mp3", "Pummel", "A mummy or scorpion fights something or catches the explorer (panned)"]
+      ["sounds/mumwalk60a.ogg", "Mummy step 60 A", "A mummy starts its move at the slowest speed setting, once per turn however many steps it takes; one of the A and B pair at random, panned"],
+      ["sounds/mumwalk60b.ogg", "Mummy step 60 B", "A mummy starts its move at the slowest speed setting, once per turn however many steps it takes; one of the A and B pair at random, panned"],
+      ["sounds/mumwalk30a.ogg", "Mummy step 30 A", "A mummy starts its move at the middle speed setting, once per turn; one of the A and B pair at random, panned"],
+      ["sounds/mumwalk30b.ogg", "Mummy step 30 B", "A mummy starts its move at the middle speed setting, once per turn; one of the A and B pair at random, panned"],
+      ["sounds/mumwalk15a.ogg", "Mummy step 15 A", "A mummy starts its move at the fastest speed setting, once per turn; one of the A and B pair at random, panned"],
+      ["sounds/mumwalk15b.ogg", "Mummy step 15 B", "A mummy starts its move at the fastest speed setting, once per turn; one of the A and B pair at random, panned"],
+      ["sounds/scorpwalk1.ogg", "Scorpion step 1", "The scorpion starts a move to another cell; one of the two scorpion steps at random, panned"],
+      ["sounds/scorpwalk2.ogg", "Scorpion step 2", "The scorpion starts a move to another cell; one of the two scorpion steps at random, panned"],
+      ["sounds/pummel.mp3", "Pummel", "A mummy catches the explorer or fights a scorpion, or a scorpion catches the explorer or walks onto a living mummy; panned to the cell"]
     ] },
     { name: "The maze", sounds: [
-      ["sounds/gate.ogg", "Gate", "The key is stepped on and the gate opens or closes (panned by the gate)"],
-      ["sounds/block.ogg", "Block falls", "The explorer is killed by a trap of the block kind, a moment into its death"],
-      ["sounds/pit.ogg", "Pit", "The explorer is killed by a trap of the pit kind, a moment into its death"],
-      ["sounds/poison.ogg", "Poison", "A scorpion's last move ends and the explorer is stung"],
-      ["sounds/badankh.ogg", "Bad ankh", "The ankh check finds the maze cannot be solved, when the ankh is shown"]
+      ["sounds/gate.ogg", "Gate", "The explorer or a mummy steps onto the key cell and the gate flips open or closed; panned to the gate"],
+      ["sounds/block.ogg", "Block falls", "35 updates (0.35 seconds) after the explorer's death by a trap of the block kind begins; panned to the explorer"],
+      ["sounds/pit.ogg", "Pit", "3 updates (0.03 seconds) after the explorer's death by a trap of the pit kind begins; panned to the explorer"],
+      ["sounds/poison.ogg", "Poison", "The scorpion's last move of a turn ends without catching the explorer or a mummy; panned to the explorer"],
+      ["sounds/badankh.ogg", "Bad ankh", "After a turn in a maze smaller than 7, a solvable position turns unsolvable and the ankh option is on"]
     ] },
     { name: "Level end", sounds: [
-      ["sounds/finishedlevel.ogg", "Level finished", "The explorer reaches the exit and walks out (not while a solution is shown, not in the tutorial)"],
-      ["sounds/mummyhowl.ogg", "Mummy howl", "The explorer is lost; also about 165 updates after a level begins (not in the ending modes)"],
-      ["sounds/opentreasure.ogg", "Open treasure", "The ending of an adventure or classic game begins its fade"]
+      ["sounds/finishedlevel.ogg", "Level finished", "The explorer stands on the exit and starts to walk out; not while a solution is being shown and not in the tutorial or later modes"],
+      ["sounds/mummyhowl.ogg", "Mummy howl", "The explorer is lost; also 165 updates (1.65 seconds) after a level begins, except in the two ending modes"],
+      ["sounds/opentreasure.ogg", "Open treasure", "The ending of an adventure or classic game opens and its fade begins, with the board ready"]
     ] },
   ] },
   ningpo: {
@@ -1585,17 +1585,17 @@ var ByopopSoundboards = {
     ],
     groups: [
     { name: "Menus and dialogs", sounds: [
-      ["sounds/click.ogg", "Click", "A button is pressed anywhere in the game; also the tutorial dialog's demonstration clicks"],
-      ["sounds/levelupvoice.ogg", "Level up voice", "The next level screen opens"]
+      ["sounds/click.ogg", "Click", "A button is pressed anywhere in the game; also the tutorial dialog's two demonstration clicks"],
+      ["sounds/levelupvoice.ogg", "Level up voice", "The next-level screen opens"]
     ] },
     { name: "Picking animals", sounds: [
-      ["sounds/select.ogg", "Select", "An animal is picked, or a pair is linked or the link is extended"],
-      ["sounds/deselect.ogg", "Deselect", "The picked animal is put back (right click, or a click that cannot pick or join), a Puzzle swap is undone, or the undo mod is used"],
-      ["sounds/fallingclick.ogg", "Landing click", "Animals land after falling or refilling"]
+      ["sounds/select.ogg", "Select", "An animal is picked, an animal is joined to the picked one by a click or by the mouse dragging on, or a Puzzle animal is picked"],
+      ["sounds/deselect.ogg", "Deselect", "The picked animal is put back (a right click or other click that cannot pick or join, outside Stampede), a Puzzle swap is undone, or the undo mod is used"],
+      ["sounds/fallingclick.ogg", "Landing click", "Animals land after falling or refilling: a falling animal reaches the floor or one below it, or a refilling one lands 1 time in 1 to 6 at random; at most once per update"]
     ] },
     { name: "Pairs and combos", sounds: [
-      ["sounds/pop.ogg", "Pop", "A pair is joined, a Stampede group is taken out, or a run of three is cleared; plays together with the animal's voice or a combo sound"],
-      ["sounds/combo1.ogg", "Combo 1", "A pair is joined and its animal kind differs from the last pair's: combo count restarts (plays with the pop)"],
+      ["sounds/pop.ogg", "Pop", "A pair is joined, a Stampede group is taken, a run of three is cleared after a Puzzle swap or when the board settles; plays together with a combo sound or the animal's voice"],
+      ["sounds/combo1.ogg", "Combo 1", "A pair is joined whose animal kind differs from the last pair's, which restarts the combo count (plays with the pop)"],
       ["sounds/combo2.ogg", "Combo 2", "A pair is joined: the 2nd pair in a row of the same animal kind (plays with the pop)"],
       ["sounds/combo3.ogg", "Combo 3", "A pair is joined: the 3rd pair in a row of the same animal kind (plays with the pop)"],
       ["sounds/combo4.ogg", "Combo 4", "A pair is joined: the 4th pair in a row of the same animal kind (plays with the pop)"],
@@ -1605,30 +1605,30 @@ var ByopopSoundboards = {
       ["sounds/combo8.ogg", "Combo 8", "A pair is joined: the 8th or any later pair in a row of the same animal kind (plays with the pop)"]
     ] },
     { name: "Animal voices", sounds: [
-      ["sounds/winpig.ogg", "Pig voice", "This animal is saved (a pair, a Stampede group or a Puzzle run of three); now and then while more of it fall in"],
-      ["sounds/winlion.ogg", "Lion voice", "This animal is saved (a pair, a Stampede group or a Puzzle run of three); now and then while more of it fall in"],
-      ["sounds/winfrog.ogg", "Frog voice", "This animal is saved (a pair, a Stampede group or a Puzzle run of three); now and then while more of it fall in"],
-      ["sounds/winelephant.ogg", "Elephant voice", "This animal is saved (a pair, a Stampede group or a Puzzle run of three); now and then while more of it fall in; the tutorial's last step"],
-      ["sounds/wincow.ogg", "Cow voice", "This animal is saved (a pair, a Stampede group or a Puzzle run of three); now and then while more of it fall in"],
-      ["sounds/winhippo.ogg", "Hippo voice", "This animal is saved (a pair, a Stampede group or a Puzzle run of three); now and then while more of it fall in"],
-      ["sounds/winzebra.ogg", "Zebra voice", "This animal is saved (a pair, a Stampede group or a Puzzle run of three); now and then while more of it fall in"],
-      ["sounds/winmonkey.ogg", "Monkey voice", "This animal is saved (a pair, a Stampede group or a Puzzle run of three); now and then while more of it fall in"],
-      ["sounds/winmouse.ogg", "Mouse voice", "This animal is saved (a pair, a Stampede group or a Puzzle run of three); now and then while more of it fall in"],
-      ["sounds/winbeaver.ogg", "Beaver voice", "This animal is saved (a pair, a Stampede group or a Puzzle run of three); now and then while more of it fall in"],
-      ["sounds/wingator.ogg", "Gator voice", "This animal is saved (a pair, a Stampede group or a Puzzle run of three); now and then while more of it fall in"],
-      ["sounds/windog.ogg", "Dog voice", "This animal is saved (a pair, a Stampede group or a Puzzle run of three); now and then while more of it fall in"],
-      ["sounds/wincat.ogg", "Cat voice", "This animal is saved (a pair, a Stampede group or a Puzzle run of three); now and then while more of it fall in"]
+      ["sounds/winpig.ogg", "Pig voice", "This animal is saved: a pair meets (not while the leftover animals are being abandoned), a Stampede group is taken, or a Puzzle run of three is found; also 1 time in 1750 each update for each animal of this kind waiting above the board to drop in"],
+      ["sounds/winlion.ogg", "Lion voice", "This animal is saved: a pair meets (not while the leftover animals are being abandoned), a Stampede group is taken, or a Puzzle run of three is found; also 1 time in 1750 each update for each animal of this kind waiting above the board to drop in"],
+      ["sounds/winfrog.ogg", "Frog voice", "This animal is saved: a pair meets (not while the leftover animals are being abandoned), a Stampede group is taken, or a Puzzle run of three is found; also 1 time in 1750 each update for each animal of this kind waiting above the board to drop in"],
+      ["sounds/winelephant.ogg", "Elephant voice", "This animal is saved: a pair meets (not while the leftover animals are being abandoned), a Stampede group is taken, or a Puzzle run of three is found; also 1 time in 1750 each update for each animal of this kind waiting above the board to drop in; also the tutorial's last step"],
+      ["sounds/wincow.ogg", "Cow voice", "This animal is saved: a pair meets (not while the leftover animals are being abandoned), a Stampede group is taken, or a Puzzle run of three is found; also 1 time in 1750 each update for each animal of this kind waiting above the board to drop in"],
+      ["sounds/winhippo.ogg", "Hippo voice", "This animal is saved: a pair meets (not while the leftover animals are being abandoned), a Stampede group is taken, or a Puzzle run of three is found; also 1 time in 1750 each update for each animal of this kind waiting above the board to drop in"],
+      ["sounds/winzebra.ogg", "Zebra voice", "This animal is saved: a pair meets (not while the leftover animals are being abandoned), a Stampede group is taken, or a Puzzle run of three is found; also 1 time in 1750 each update for each animal of this kind waiting above the board to drop in"],
+      ["sounds/winmonkey.ogg", "Monkey voice", "This animal is saved: a pair meets (not while the leftover animals are being abandoned), a Stampede group is taken, or a Puzzle run of three is found; also 1 time in 1750 each update for each animal of this kind waiting above the board to drop in"],
+      ["sounds/winmouse.ogg", "Mouse voice", "This animal is saved: a pair meets (not while the leftover animals are being abandoned), a Stampede group is taken, or a Puzzle run of three is found; also 1 time in 1750 each update for each animal of this kind waiting above the board to drop in"],
+      ["sounds/winbeaver.ogg", "Beaver voice", "This animal is saved: a pair meets (not while the leftover animals are being abandoned), a Stampede group is taken, or a Puzzle run of three is found; also 1 time in 1750 each update for each animal of this kind waiting above the board to drop in"],
+      ["sounds/wingator.ogg", "Gator voice", "This animal is saved: a pair meets (not while the leftover animals are being abandoned), a Stampede group is taken, or a Puzzle run of three is found; also 1 time in 1750 each update for each animal of this kind waiting above the board to drop in"],
+      ["sounds/windog.ogg", "Dog voice", "This animal is saved: a pair meets (not while the leftover animals are being abandoned), a Stampede group is taken, or a Puzzle run of three is found; also 1 time in 1750 each update for each animal of this kind waiting above the board to drop in"],
+      ["sounds/wincat.ogg", "Cat voice", "This animal is saved: a pair meets (not while the leftover animals are being abandoned), a Stampede group is taken, or a Puzzle run of three is found; also 1 time in 1750 each update for each animal of this kind waiting above the board to drop in"]
     ] },
     { name: "Water and the ark", sounds: [
-      ["sounds/getready.ogg", "\"Get ready\"", "A level starts"],
-      ["sounds/thunder3.ogg", "Thunder 3", "Lightning strikes, at random while the water is high (one of two thunders, chosen at random)"],
-      ["sounds/thunder4.ogg", "Thunder 4", "Lightning strikes, at random while the water is high (one of two thunders, chosen at random)"],
-      ["sounds/warning.ogg", "Warning", "The water is close to the ark, repeated every 120 updates while it stays so; also when an animal is abandoned in the turn-based mode"],
-      ["sounds/abandon.ogg", "Abandon", "An animal pair is abandoned and points are taken off"]
+      ["sounds/getready.ogg", "\"Get ready\"", "A level starts (the board is set up)"],
+      ["sounds/thunder3.ogg", "Thunder 3", "Lightning starts: checked every 12 updates (0.12 seconds) while playing in any mode but Strategy, 1 to 20 times in 250 as the water nears the ark (none while it is low); one of the two thunders, at random"],
+      ["sounds/thunder4.ogg", "Thunder 4", "Lightning starts: checked every 12 updates (0.12 seconds) while playing in any mode but Strategy, 1 to 20 times in 250 as the water nears the ark (none while it is low); one of the two thunders, at random"],
+      ["sounds/warning.ogg", "Warning", "While playing, checked every 12 updates: every 120 updates (1.2 seconds) while the water is within 20 of the ark's level, every 60 (0.6 seconds) within 10; also for each animal abandoned in Strategy mode"],
+      ["sounds/abandon.ogg", "Abandon", "In Strategy or Action mode, when no move is left and animals remain: every 78 updates (0.78 seconds) a pair is abandoned and points are taken off"]
     ] },
     { name: "Round end", sounds: [
-      ["sounds/levelup.au", "Level up", "The board is cleared and the round ends (not in the turn-based mode), or a new row is pushed in while the top row is not empty and the round is lost"],
-      ["sounds/gameover.ogg", "\"Game over!\"", "The game is over and the high score box opens"]
+      ["sounds/levelup.au", "Level up", "A new row is pushed in while the top row is not empty, and the round is lost; or, outside Strategy and Puzzle, the board is cleared before the water reaches the ark"],
+      ["sounds/gameover.ogg", "\"Game over!\"", "The round ends with animals left behind (or in Strategy mode) and the ark has sailed off, outside a bonus round; the high score box opens"]
     ] },
   ] },
   pixelus: {
@@ -1641,40 +1641,40 @@ var ByopopSoundboards = {
     groups: [
     { name: "Menus", sounds: [
       ["sounds/ui menu mouseover 02.ogg", "Menu hover", "The mouse comes onto a main menu button"],
-      ["sounds/ui menu click 01c.ogg", "Menu click", "A main menu button is pressed"],
-      ["sounds/ui little beep 05b.ogg", "Little beep", "A dialog or screen button is pressed (Continue, OK and the like), or a dialog's Yes or No. Also in Hammer Heads Deluxe, as sounds/UI - Check.ogg."],
-      ["sounds/ui general click 02.ogg", "General click (unused)", "Never played"]
+      ["sounds/ui menu click 01c.ogg", "Menu click", "A main menu button is pressed (on the mouse going down)"],
+      ["sounds/ui little beep 05b.ogg", "Little beep", "A button of the game's own style without a sound of its own is pressed (Continue, OK and the like), or a dialog's Yes or No. Also in Hammer Heads Deluxe, as sounds/UI - Check.ogg."],
+      ["sounds/ui general click 02.ogg", "General click (unused)", "Never played: it is in the sound table, but no code asks for it"]
     ] },
     { name: "Island map", sounds: [
-      ["sounds/ui island mouseover 02.ogg", "Island hover", "The mouse rests on a temple on the island for 50 updates; its pitch follows which temple"],
+      ["sounds/ui island mouseover 02.ogg", "Island hover", "The mouse has rested on the same temple on the island for 50 updates (0.5 seconds); played once, with its pitch set by which temple it is"],
       ["sounds/ui island click 01.ogg", "Island click", "The mouse comes onto a temple's button on the island"],
-      ["sounds/pixelus temple screen v01.ogg", "Temple opens", "A new temple opens on the island map. Also in Hammer Heads Deluxe, as sounds/Sting - Gnome King.ogg."],
-      ["sounds/seagull 05.ogg", "Seagull 1", "At random intervals while the island map is open"],
-      ["sounds/seagull 04b.ogg", "Seagull 2", "At random intervals while the island map is open"],
-      ["sounds/island - ocean surf 04b.ogg", "Ocean surf", "The island's waves roll in, every second wave cycle"],
-      ["sounds/island - lightning 02c.ogg", "Lightning 1", "Lightning flashes on the island at random (one of two lightning sounds, chosen at random, at a random volume)"],
-      ["sounds/island - lightning 03d.ogg", "Lightning 2", "Lightning flashes on the island at random (one of two lightning sounds, chosen at random, at a random volume). Also in Hammer Heads Deluxe, as sounds/Gnome King - Flashing.ogg."]
+      ["sounds/pixelus temple screen v01.ogg", "Temple opens", "The first time one of the eight temples shows on the island map for the player, as its door opens. Also in Hammer Heads Deluxe, as sounds/Sting - Gnome King.ogg."],
+      ["sounds/seagull 05.ogg", "Seagull 1", "While the island map is open: 350 to 449 updates (3.5 to 4.5 seconds) after it opens, then every 600 to 5599 updates (6 to 56 seconds), at random"],
+      ["sounds/seagull 04b.ogg", "Seagull 2", "While the island map is open: 400 to 499 updates (4 to 5 seconds) after it opens, then every 600 to 3599 updates (6 to 36 seconds), at random"],
+      ["sounds/island - ocean surf 04b.ogg", "Ocean surf", "While the island map is open, every 800 updates (8 seconds): on every second wave cycle of the sea"],
+      ["sounds/island - lightning 02c.ogg", "Lightning 1", "A lightning flash on the island map: the first 0 to 5 seconds after it opens, then 10 updates plus 0 to 35 seconds after the last; one of the two lightning sounds at random, at a random volume"],
+      ["sounds/island - lightning 03d.ogg", "Lightning 2", "A lightning flash on the island map: the first 0 to 5 seconds after it opens, then 10 updates plus 0 to 35 seconds after the last; one of the two lightning sounds at random, at a random volume. Also in Hammer Heads Deluxe, as sounds/Gnome King - Flashing.ogg."]
     ] },
     { name: "Temples", sounds: [
       ["sounds/pixelus inside temple v01.ogg", "Inside the temple", "A temple's puzzle screen opens"],
-      ["sounds/temple mouseover 01.ogg", "Puzzle hover", "The mouse comes onto a puzzle's picture in a temple"],
-      ["sounds/chain breaking 01.ogg", "Chain breaks", "A temple's last puzzle becomes open (the chain on it breaks)"],
-      ["sounds/pixelus hint screen v01.ogg", "Hint screen (unused)", "Never played"],
-      ["sounds/hint popup 01.ogg", "Hint popup (unused)", "Never played. Also in Hammer Heads Deluxe, as sounds/Hint Popup 01.ogg. Also in Hammer Heads Deluxe, as sounds/UI - Target Over Gnome.ogg."]
+      ["sounds/temple mouseover 01.ogg", "Puzzle hover", "The mouse comes onto a different puzzle's picture in a temple"],
+      ["sounds/chain breaking 01.ogg", "Chain breaks", "A temple's puzzle screen opens with every puzzle but the last solved, the first time only; the chain on the last puzzle breaks"],
+      ["sounds/pixelus hint screen v01.ogg", "Hint screen (unused)", "Never played: it is in the sound table, but no code asks for it"],
+      ["sounds/hint popup 01.ogg", "Hint popup (unused)", "Never played: it is in the sound table, but no code asks for it. Also in Hammer Heads Deluxe, as sounds/Hint Popup 01.ogg. Also in Hammer Heads Deluxe, as sounds/UI - Target Over Gnome.ogg."]
     ] },
     { name: "Puzzles", sounds: [
-      ["sounds/pixelus start of puzzle v02.ogg", "Puzzle starts", "A puzzle appears, once the help screen is gone. Also in Hammer Heads Deluxe, as sounds/UI - Time Bonus.ogg."],
-      ["sounds/tile moving 02d.ogg", "Tile moves", "A tile is thrown in or pulled back, also in an undo and in the help screen's demonstration"],
-      ["sounds/tile target 02c.ogg", "Tile on target", "A tile comes to rest on a wanted cell or a start spot; also in the help screen's demonstration"],
-      ["sounds/tile non-target 02b.ogg", "Tile off target", "A tile comes to rest on a cell nobody wants"],
-      ["sounds/illegal blocked 03.ogg", "Blocked", "A click where the throw is blocked"],
-      ["sounds/illegal fixed 01c.ogg", "Fixed tile", "A click on a tile that is fixed and cannot be pulled"],
-      ["sounds/illegal nothing 01.ogg", "Nothing there", "A click that neither throws a tile nor pulls one"],
-      ["sounds/illegal none left 03b.ogg", "No tiles left", "A throw is tried with no tile left to throw"]
+      ["sounds/pixelus start of puzzle v02.ogg", "Puzzle starts", "The first update of a puzzle once the help screen is gone (it comes with the music of the puzzles, 150 updates later). Also in Hammer Heads Deluxe, as sounds/UI - Time Bonus.ogg."],
+      ["sounds/tile moving 02d.ogg", "Tile moves", "A tile is thrown in or pulled back, an undo or redo of either, and six times in each 950 updates of the help screen's demonstration (at 50, 150, 250, 500, 600 and 700)"],
+      ["sounds/tile target 02c.ogg", "Tile on target", "A tile comes to rest on a wanted cell (a start spot adds this sound to the other one); also 11 updates after each of the help demonstration's three throws"],
+      ["sounds/tile non-target 02b.ogg", "Tile off target", "A tile comes to rest on a cell that is not wanted"],
+      ["sounds/illegal blocked 03.ogg", "Blocked", "A click on an empty cell of the grid from which no tile can be thrown"],
+      ["sounds/illegal fixed 01c.ogg", "Fixed tile", "A click on a fixed tile, which cannot be pulled"],
+      ["sounds/illegal nothing 01.ogg", "Tile stuck", "A click on a loose tile that cannot be pulled back"],
+      ["sounds/illegal none left 03b.ogg", "No tiles left", "A throw is tried when none can be made: no tile left in the supply, or the way is blocked with no slide out"]
     ] },
     { name: "Completion", sounds: [
-      ["sounds/pixelus puzzle completed sting v01.ogg", "Puzzle done sting", "Every wanted cell holds a tile; the music fades out"],
-      ["sounds/pixelus temple completed sting v01.ogg", "Temple done sting", "The completion screen opens after a temple's last puzzle (completion modes other than 2 and 4)"],
+      ["sounds/pixelus puzzle completed sting v01.ogg", "Puzzle done sting", "Every wanted cell holds a tile, which completes the puzzle (once per puzzle); the music fades out"],
+      ["sounds/pixelus temple completed sting v01.ogg", "Temple done sting", "The completion screen opens after a temple's last puzzle (any completion mode but 2 and 4)"],
       ["sounds/pixelus game completed sting v01.ogg", "Game done sting", "The completion screen opens in completion mode 2 or 4"]
     ] },
   ] },
@@ -1767,43 +1767,43 @@ var ByopopSoundboards = {
   ] },
   sevenseas: {
     presets: [
-      { name: "Welcome Aboard", when: "Play is pressed on the intro screen", steps: [["sounds/talkallhands", 0], ["sounds/talkwelcometosevenseas", 580]]},
+      { name: "Welcome Aboard", when: "The intro screen opens, the first time after the game starts", steps: [["sounds/talkwelcometosevenseas", 0]]},
       { name: "Broadside", when: "A cannon shot hits a ship", steps: [["sounds/boom", 0, {"p": 33}], ["sounds/explode2", 450, {"p": 33}]]},
       { name: "Ship Lost", when: "A life is lost and the ship comes back", steps: [["sounds/explode2", 0], ["sounds/sink", 0], ["sounds/reappear", 1250, {"p": 166}]]}
     ],
     groups: [
     { name: "Menus and voices", sounds: [
-      ["sounds/click.ogg", "Click", "A button is pressed: the menus, the help screen and the demo screen"],
-      ["sounds/talkwelcometosevenseas.ogg", "\"Welcome to Seven Seas\"", "The intro screen, about a second after it opens, the first time the menu shows after the program starts"],
-      ["sounds/talkhoistsail.ogg", "\"Hoist the mainsail\"", "Play or Tutorial is pressed on the intro screen (one of three voices at random)"],
-      ["sounds/talkallhands.ogg", "\"All hands on deck\"", "Play or Tutorial is pressed on the intro screen (one of three voices at random)"],
-      ["sounds/talkayeaye.ogg", "\"Aye aye, Captain\"", "Play or Tutorial is pressed on the intro screen (one of three voices at random)"]
+      ["sounds/click.ogg", "Click", "A button is pressed: the menus, the options and other dialogs, the help screen and the demo screen (also the demo's own clicks)"],
+      ["sounds/talkwelcometosevenseas.ogg", "\"Welcome to Seven Seas\"", "On the intro screen, 60 updates (0.6 seconds) after it opens, until the first game of the run has begun; the pirate speaks with it"],
+      ["sounds/talkhoistsail.ogg", "\"Hoist the mainsail\"", "Play or Tutorial is pressed on the intro screen: one of the three voices, at random"],
+      ["sounds/talkallhands.ogg", "\"All hands on deck\"", "Play or Tutorial is pressed on the intro screen: one of the three voices, at random"],
+      ["sounds/talkayeaye.ogg", "\"Aye aye, Captain\"", "Play or Tutorial is pressed on the intro screen: one of the three voices, at random"]
     ] },
     { name: "Your ship", sounds: [
-      ["sounds/movegood.ogg", "Ship moves", "The player's ship is sent to a new cell (panned by its position)"],
-      ["sounds/whirlout.ogg", "Whirlpool out", "The ship sails into an active whirlpool and leaves the board"],
-      ["sounds/whirlin.ogg", "Whirlpool in", "The ship comes in from a whirlpool at a level's start"],
-      ["sounds/reappear.ogg", "Ship reappears", "The ship is placed again after a life is lost, and again each time its blinking goes off"],
-      ["sounds/boom.ogg", "Cannon shot", "Cannons are fired, by the player or by an enemy ship (panned)"]
+      ["sounds/movegood.ogg", "Ship moves", "The player's ship is ordered to a new cell, by click or key (panned to the ship); also each move of the ship in the help demo"],
+      ["sounds/whirlout.ogg", "Whirlpool out", "The player's ship sails onto an active whirlpool and spins out of the board; also in the help demo when the ship reaches the top row"],
+      ["sounds/whirlin.ogg", "Whirlpool in", "The ship has finished spinning out (30 animation steps) and is put on a random free cell, spiralling back in; also in the help demo"],
+      ["sounds/reappear.ogg", "Ship reappears", "After a life is lost, when the flash has run for 18 updates and the ship is placed again, and twice more as its blinking goes off, every 30 updates (0.3 seconds)"],
+      ["sounds/boom.ogg", "Cannon shot", "The player's ship or an enemy ship fires cannons, if at least one shot is made (panned to the ship); also in the help demo"]
     ] },
     { name: "Enemies", sounds: [
-      ["sounds/moveevil.ogg", "Enemies move", "The enemy ships start their move after any turning is finished"],
-      ["sounds/explode.ogg", "Small explosion", "A small explosion is spawned at a cell (panned). Resembles Dynomite's Explode (unused) (sounds/explode.ogg), the same sound, mixed differently."],
-      ["sounds/explode2.ogg", "Big explosion", "A big explosion is spawned at a cell (panned)"],
-      ["sounds/monster.ogg", "Sea monster", "A sea monster ship is shot, or sails into the player's cell or another ship (panned)"],
-      ["sounds/sink.ogg", "Ship sinks", "A life is lost"]
+      ["sounds/moveevil.ogg", "Enemies move", "The enemy ships start their move, once every ship has finished turning; also in the help demo"],
+      ["sounds/explode.ogg", "Small explosion", "A small explosion: an enemy ship that is not a sea monster runs into another ship, or into land or a wreck (panned to the cell). Resembles Dynomite's Explode (unused) (sounds/explode.ogg), the same sound, mixed differently."],
+      ["sounds/explode2.ogg", "Big explosion", "A big explosion: a cannon shot hits a ship or the player's ship, or an enemy ship sails into the player's cell (panned to the cell); also in the help demo"],
+      ["sounds/monster.ogg", "Sea monster", "A sea monster is hit by a shot, sails into the player's cell (and a life is lost) or into another ship, or sails onto a wreck (panned to the cell)"],
+      ["sounds/sink.ogg", "Ship sinks", "The player's ship is hit or caught and a life is lost"]
     ] },
     { name: "Scoring and level end", sounds: [
-      ["sounds/bonusship.ogg", "Extra ship", "The score passes another thousand and a life is added (also when a level's kill bonus does it)"],
-      ["sounds/talkdavyjoneslocker.ogg", "\"Down to Davy Jones' locker\"", "At a level's end, the pirate has finished appearing and one of four voices is picked at random"],
-      ["sounds/talkarrmatey.ogg", "Arr matey voice", "At a level's end, the pirate has finished appearing and one of four voices is picked at random"],
-      ["sounds/talkwalktheplank.ogg", "\"Walk the plank!\"", "At a level's end, the pirate has finished appearing and one of four voices is picked at random"],
-      ["sounds/talklandlubber.ogg", "Landlubber voice", "At a level's end, the pirate has finished appearing and one of four voices is picked at random"]
+      ["sounds/bonusship.ogg", "Extra ship", "The score passes another thousand and a life is added, whether by a ship or wreck's points or by a level's kill bonus"],
+      ["sounds/talkdavyjoneslocker.ogg", "\"Down to Davy Jones' locker\"", "At a level's end, once the pirate has finished appearing: one of the four voices, at random"],
+      ["sounds/talkarrmatey.ogg", "Arr matey voice", "At a level's end, once the pirate has finished appearing: one of the four voices, at random"],
+      ["sounds/talkwalktheplank.ogg", "\"Walk the plank!\"", "At a level's end, once the pirate has finished appearing: one of the four voices, at random"],
+      ["sounds/talklandlubber.ogg", "Landlubber voice", "At a level's end, once the pirate has finished appearing: one of the four voices, at random"]
     ] },
     { name: "Bonus dig", sounds: [
-      ["sounds/bonusdig.ogg", "Dig", "A square is dug on the bonus screen, with nothing special under it (panned by column)"],
-      ["sounds/bonusgraves.ogg", "Graves near", "A dug square has graves in the neighbouring squares"],
-      ["sounds/bonuslose.ogg", "Ghost", "A square holding a ghost is dug"]
+      ["sounds/bonusdig.ogg", "Dig", "A square is dug on the bonus screen and no ghost is under it (panned by column)"],
+      ["sounds/bonusgraves.ogg", "Graves near", "A square is dug with no ghost under it, and a ghost or grave lies in the 3-by-3 block of squares ending at it (up and to its left); plays with the dig sound"],
+      ["sounds/bonuslose.ogg", "Ghost", "A square with a ghost under it is dug on the bonus screen; the ghost appears"]
     ] },
   ] },
   tiptop: {
