@@ -340,6 +340,20 @@ var ByopopAutosplit = (function () {
                 { category: "Bookburner", sub: "Death%", segments: ["Bookburner"], end: "lost 0" }]
   };
 
+  // Seven Seas (speedrun.com: Seven Seas Deluxe): Level 30 on each difficulty, the first 30 levels. The game's level clear is
+  // the update its level counter goes up, after the level's panel; after levels 10, 20 and 30 the map is made in that same
+  // update, which is the board's end. Its progress is the levels completed. Undo can't take a level clear back. Its one game
+  // over is running out of lives; New Game saves the game and takes the board away, which resets as a quit.
+  var SS_RULES = {
+    name: "Seven Seas Deluxe", id: "SSDX",
+    modes: {}, skills: { Easy: 1, Average: 2, Hard: 3 },
+    deaths: [{ setting: "resetLives", what: "out of lives" }, { setting: null, what: "(none)" }, { setting: null, what: "(none)" },
+             { setting: null, what: "(none)" }],
+    templates: ["Easy", "Average", "Hard"].map(function (skill, i) {
+      return { category: "Level 30 (" + skill + ")", segments: levels(30), end: "progress 30", mode: 0, skill: i + 1 };
+    })
+  };
+
   // A row of GAMES from a row of the rules table
   function ruled(rules) {
     return { name: rules.name, block: "_byopop_livesplit_block", read: blockReader(rules.id), decider: makeDecider(rules),
@@ -351,7 +365,8 @@ var ByopopAutosplit = (function () {
   var GAMES = {
     bejeweled: { name: "Bejeweled Deluxe", block: "_byopop_livesplit_block", read: readBlock, decider: bejeweled, templates: BJ_TEMPLATES },
     bigmoney: ruled(BM_RULES),
-    bookworm: ruled(BW_RULES)
+    bookworm: ruled(BW_RULES),
+    sevenseas: ruled(SS_RULES)
   };
 
   // The front game's block, read from its window: {game, snap} or null (no game with an auto splitter in front, or it has not
