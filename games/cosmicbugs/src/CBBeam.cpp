@@ -65,7 +65,8 @@ int Rider_Update(Rider* theRider)
 {
 	int aResult = 1;
 	Obj_Update(theRider);
-	if (0.0f <= theRider->mX && theRider->mX < (float)BOARD_WIDTH && 0.0f <= theRider->mY && theRider->mY < (float)BOARD_HEIGHT)
+	if (0.0f <= theRider->mX && theRider->mX < (float)BOARD_WIDTH && 0.0f <= theRider->mY &&
+		theRider->mY < (float)BOARD_HEIGHT)
 	{
 		int aCol = (int)theRider->mX;
 		int aRow = (int)theRider->mY;
@@ -228,8 +229,8 @@ int Beam_Update(Beam* theBeam)
 			int aFirst = Bank_IndexOf(&gArtBank, "exp_1");
 			float aVy = (float)((double)RandRange(-50, 50) / 2000.0 + (double)theBeam->mVy);
 			float aVx = (float)((double)RandRange(-50, 50) / 2000.0 + (double)theBeam->mVx);
-			ParticleSystem_Add(gLevels.mCurrent->mSystems.mCurrent, theBeam->mX, theBeam->mY, aVx, aVy, aFirst, aLast, 0,
-				0xff, 0xff, 0xff, 0x3c, 100, 0xff, 0xff, 0, 0x2e4, 0.999f, 0.0f, 5);
+			ParticleSystem_Add(gLevels.mCurrent->mSystems.mCurrent, theBeam->mX, theBeam->mY, aVx, aVy, aFirst, aLast,
+				0, 0xff, 0xff, 0xff, 0x3c, 100, 0xff, 0xff, 0, 0x2e4, 0.999f, 0.0f, 5);
 		}
 	}
 	else
@@ -243,8 +244,9 @@ int Beam_Update(Beam* theBeam)
 				float aVy = (float)((double)SinDeg(anAngle) * 0.11999999731779099);
 				ParticleSystem_New();
 				Cell* aCell = gLevels.mCurrent->mColumns[0];
-				ParticleSystem_Add(gLevels.mCurrent->mSystems.mCurrent, theBeam->mX, theBeam->mY, aVx, aVy, aCell->mFirstParticle,
-					aCell->mLastParticle, 0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x21c, 10, 400, 0.999f, 0.0f, 5);
+				ParticleSystem_Add(gLevels.mCurrent->mSystems.mCurrent, theBeam->mX, theBeam->mY, aVx, aVy,
+					aCell->mFirstParticle, aCell->mLastParticle, 0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x21c, 10, 400,
+					0.999f, 0.0f, 5);
 			}
 		}
 		theBeam->mHit = 1;
@@ -262,8 +264,8 @@ int Beam_Update(Beam* theBeam)
 // difficulty)
 void Beam_Destroy(Beam* theBeam)
 {
-	// (the ship's own destructor deletes its last beam after the ship has left the level's list, when the original would
-	// write through the empty list's null current: the port leaves the ship alone then)
+	// (the ship's own destructor deletes its last beam after the ship has left the level's list, when the original
+	// would write through the empty list's null current: the port leaves the ship alone then)
 	Shooter* aShooter = gLevels.mCurrent != nullptr ? gLevels.mCurrent->mShooters.mCurrent : nullptr;
 	if (theBeam->mNext == nullptr && theBeam->mPrev == nullptr && aShooter != nullptr)
 	{

@@ -98,7 +98,8 @@ bool LoadGameTexts()
 	std::vector<uint8_t> aData;
 	if (!Sys_ReadFile("CosmicBugs.exe", aData) || aData.empty())
 	{
-		std::fprintf(stderr, "GameText: CosmicBugs.exe not found in the game folder; the game's texts are read from it\n");
+		std::fprintf(stderr,
+			"GameText: CosmicBugs.exe not found in the game folder; the game's texts are read from it\n");
 		return false;
 	}
 	int aMatched = 0;

@@ -70,12 +70,12 @@ void Shooter_Appear(Shooter* theShooter)
 				ParticleSystem_New();
 				int aLast = Bank_IndexOf(&gArtBank, "exp_0");
 				int aFirst = Bank_IndexOf(&gArtBank, "exp_4");
-				ParticleSystem_Add(gLevels.mCurrent->mSystems.mCurrent, aX, aY, 0.0f, 0.0f, aFirst, aLast, 0, 0xff, 0xff,
-					0xff, 0x39, 0xa6, 0xe7, 0, 200, 0x32, 1.0f, 0.0f, 5);
+				ParticleSystem_Add(gLevels.mCurrent->mSystems.mCurrent, aX, aY, 0.0f, 0.0f, aFirst, aLast, 0, 0xff,
+					0xff, 0xff, 0x39, 0xa6, 0xe7, 0, 200, 0x32, 1.0f, 0.0f, 5);
 				aLast = Bank_IndexOf(&gArtBank, "exp_4");
 				aFirst = Bank_IndexOf(&gArtBank, "exp_0");
-				ParticleSystem_Add(gLevels.mCurrent->mSystems.mCurrent, aX, aY, 0.0f, 0.0f, aFirst, aLast, 0, 0xff, 0xff,
-					0xff, 0x39, 0xa6, 0xe7, 200, 0, 0x32, 1.0f, 0.0f, 5);
+				ParticleSystem_Add(gLevels.mCurrent->mSystems.mCurrent, aX, aY, 0.0f, 0.0f, aFirst, aLast, 0, 0xff,
+					0xff, 0xff, 0x39, 0xa6, 0xe7, 200, 0, 0x32, 1.0f, 0.0f, 5);
 				i = (float)((double)i + 1.0);
 			} while (i < 5.0f);
 		}
@@ -95,8 +95,8 @@ void Shooter_Appear(Shooter* theShooter)
 			ParticleSystem_New();
 			int aLast = Bank_IndexOf(&gArtBank, "exp_4");
 			int aFirst = Bank_IndexOf(&gArtBank, "exp_0");
-			ParticleSystem_Add(gLevels.mCurrent->mSystems.mCurrent, theShooter->mX, theShooter->mY, aVx, aVy, aFirst, aLast,
-				0, 0xff, 0xff, 0xff, 0x39, 0xa6, 0xe7, 0xf0, 10, 0x44c, 1.0f, 0.0f, 5);
+			ParticleSystem_Add(gLevels.mCurrent->mSystems.mCurrent, theShooter->mX, theShooter->mY, aVx, aVy, aFirst,
+				aLast, 0, 0xff, 0xff, 0xff, 0x39, 0xa6, 0xe7, 0xf0, 10, 0x44c, 1.0f, 0.0f, 5);
 		}
 		theShooter->mAlpha = 0xff;
 		theShooter->mState = SHIP_CONTROLLED;
@@ -177,7 +177,8 @@ void Shooter_Extents(Shooter* theShooter, float* theLeft, float* theTop, float* 
 		float aBottom = theShooter->mY <= 599.0 ? theShooter->mY : 599.0f;
 		Cell** aColumns = gLevels.mCurrent->mColumns;
 		int aMoved = 0;
-		while ((int)aLeft / CELL_SIZE < GRID_COLUMNS && (int)aTop / CELL_SIZE < GRID_ROWS && aColumns[(int)aLeft / CELL_SIZE][(int)aTop / CELL_SIZE].mKind == CELL_OPEN)
+		while ((int)aLeft / CELL_SIZE < GRID_COLUMNS && (int)aTop / CELL_SIZE < GRID_ROWS &&
+			aColumns[(int)aLeft / CELL_SIZE][(int)aTop / CELL_SIZE].mKind == CELL_OPEN)
 		{
 			aLeft = aLeft - (float)CELL_SIZE;
 			aMoved = 1;
@@ -186,7 +187,8 @@ void Shooter_Extents(Shooter* theShooter, float* theLeft, float* theTop, float* 
 			aColumns[(int)aLeft / CELL_SIZE][(int)aTop / CELL_SIZE].mKind != CELL_OPEN)
 			aLeft = aLeft + 1.0f;
 		aMoved = 0;
-		while ((int)aLeft / CELL_SIZE < GRID_COLUMNS && (int)aTop / CELL_SIZE < GRID_ROWS && aColumns[(int)aRight / CELL_SIZE][(int)aTop / CELL_SIZE].mKind == CELL_OPEN)
+		while ((int)aLeft / CELL_SIZE < GRID_COLUMNS && (int)aTop / CELL_SIZE < GRID_ROWS &&
+			aColumns[(int)aRight / CELL_SIZE][(int)aTop / CELL_SIZE].mKind == CELL_OPEN)
 		{
 			aRight = aRight + (float)CELL_SIZE;
 			aMoved = 1;
@@ -231,8 +233,8 @@ int Shooter_EnemiesNear(Shooter* theShooter)
 {
 	int aCount = 0;
 	List_Each(&gLevels.mCurrent->mEnemies, [&](Enemy* theEnemy) {
-		if (CircleOverlap(theShooter->mX, theShooter->mY, (float)(theShooter->mImage->mH / 3), theEnemy->mX, theEnemy->mY,
-			(float)(theEnemy->mImage->mH / 3)) != 0.0)
+		if (CircleOverlap(theShooter->mX, theShooter->mY, (float)(theShooter->mImage->mH / 3), theEnemy->mX,
+				theEnemy->mY, (float)(theEnemy->mImage->mH / 3)) != 0.0)
 			aCount = aCount + 1;
 	});
 	return aCount;
@@ -258,7 +260,8 @@ int Region_Count(int theCol, int theRow, int* theCells, int* theEnemies, int* th
 		for (int r = theRow - 1; r <= theRow + 1; r++)
 		{
 			if ((c == theCol || r == theRow) && 0 <= c && c < gLevels.mCurrent->mCols && 0 <= r &&
-				r < gLevels.mCurrent->mRows && gLevels.mCurrent->mColumns[c][r].mKind == CELL_OPEN && gVisited[c][r] == 0)
+				r < gLevels.mCurrent->mRows && gLevels.mCurrent->mColumns[c][r].mKind == CELL_OPEN &&
+				gVisited[c][r] == 0)
 				Region_Count(c, r, theCells, theEnemies, theSumX);
 		}
 	}
@@ -493,13 +496,15 @@ void Shooter_Dying(Shooter* theShooter)
 	{
 		if (0 < gLives)
 		{
-			Animation* anAnim = Animation_Find(theShooter->mVertName, &theShooter->mFrameCount, &theShooter->mFrameTime);
+			Animation* anAnim = Animation_Find(theShooter->mVertName, &theShooter->mFrameCount,
+				&theShooter->mFrameTime);
 			theShooter->mVertAnim = anAnim;
 			theShooter->mAnim = anAnim;
 			theShooter->mWingsH.mAnim = Animation_Find("wings_horizontal", &theShooter->mWingsH.mFrameCount,
 				&theShooter->mWingsH.mFrameTime);
 			theShooter->mWingsH.mFrame = 0;
-			anAnim = Animation_Find("wings_vertical", &theShooter->mWingsV.mFrameCount, &theShooter->mWingsV.mFrameTime);
+			anAnim = Animation_Find("wings_vertical", &theShooter->mWingsV.mFrameCount,
+				&theShooter->mWingsV.mFrameTime);
 			theShooter->mAge = 0.0f;
 			theShooter->mWingsV.mFrame = 0;
 			theShooter->mFrame = 0;
@@ -553,7 +558,8 @@ void Shooter_Firing(Shooter* theShooter)
 		int aRow = (int)theShooter->mY / CELL_SIZE;
 		aSide1 = &aLevel->mColumns[aCol - 1][aRow];
 		aSide2 = &aLevel->mColumns[aCol + 1][aRow];
-		for (int i = (int)theShooter->mBeams.mTail->mY / CELL_SIZE - 1; i <= (int)theShooter->mBeams.mHead->mY / CELL_SIZE + 1; i++)
+		for (int i = (int)theShooter->mBeams.mTail->mY / CELL_SIZE - 1;
+			i <= (int)theShooter->mBeams.mHead->mY / CELL_SIZE + 1; i++)
 		{
 			Cell* aCell = &aLevel->mColumns[(int)theShooter->mX / CELL_SIZE][i];
 			if (aCell->mKind != CELL_EDGE)
@@ -562,14 +568,16 @@ void Shooter_Firing(Shooter* theShooter)
 				aCell->mUnmarked = 0;
 			}
 		}
-		Cell_StartCapture(&aLevel->mColumns[(int)theShooter->mX / CELL_SIZE][(int)theShooter->mY / CELL_SIZE], aLevel->mBeamV, CELL_BEAM, CELL_LINE);
+		Cell_StartCapture(&aLevel->mColumns[(int)theShooter->mX / CELL_SIZE][(int)theShooter->mY / CELL_SIZE],
+			aLevel->mBeamV, CELL_BEAM, CELL_LINE);
 	}
 	else
 	{
 		Cell* aCell = &aLevel->mColumns[(int)theShooter->mX / CELL_SIZE][(int)theShooter->mY / CELL_SIZE];
 		aSide1 = aCell - 1;
 		aSide2 = aCell + 1;
-		for (int i = (int)theShooter->mBeams.mTail->mX / CELL_SIZE - 1; i <= (int)theShooter->mBeams.mHead->mX / CELL_SIZE + 1; i++)
+		for (int i = (int)theShooter->mBeams.mTail->mX / CELL_SIZE - 1;
+			i <= (int)theShooter->mBeams.mHead->mX / CELL_SIZE + 1; i++)
 		{
 			Cell* aBeamCell = &aLevel->mColumns[i][(int)theShooter->mY / CELL_SIZE];
 			if (aBeamCell->mKind != CELL_EDGE)
@@ -578,7 +586,8 @@ void Shooter_Firing(Shooter* theShooter)
 				aBeamCell->mUnmarked = 0;
 			}
 		}
-		Cell_StartCapture(&aLevel->mColumns[(int)theShooter->mX / CELL_SIZE][(int)theShooter->mY / CELL_SIZE], aLevel->mBeamH, CELL_BEAM, CELL_LINE);
+		Cell_StartCapture(&aLevel->mColumns[(int)theShooter->mX / CELL_SIZE][(int)theShooter->mY / CELL_SIZE],
+			aLevel->mBeamH, CELL_BEAM, CELL_LINE);
 	}
 	int anEnemies1 = 0;
 	int anEnemies2 = 0;
@@ -654,12 +663,14 @@ void Shooter_Fire(Shooter* theShooter)
 				Image* anImage;
 				if (theShooter->mBeamAcross == 1)
 				{
-					Beam_Setup(aBeams->mCurrent, theShooter, theShooter->mX, theShooter->mY, -theShooter->mBeamSpeed, 0.0f);
+					Beam_Setup(aBeams->mCurrent, theShooter, theShooter->mX, theShooter->mY, -theShooter->mBeamSpeed,
+						0.0f);
 					anImage = gLevels.mCurrent->mBeamH;
 				}
 				else
 				{
-					Beam_Setup(aBeams->mCurrent, theShooter, theShooter->mX, theShooter->mY, 0.0f, -theShooter->mBeamSpeed);
+					Beam_Setup(aBeams->mCurrent, theShooter, theShooter->mX, theShooter->mY, 0.0f,
+						-theShooter->mBeamSpeed);
 					anImage = gLevels.mCurrent->mBeamV;
 				}
 				aBeams->mCurrent->mImage = anImage;
@@ -668,16 +679,18 @@ void Shooter_Fire(Shooter* theShooter)
 				aBeams->mCurrent->mY = theShooter->mY;
 				if (theShooter->mBeamAcross == 1)
 				{
-					Beam_Setup(aBeams->mCurrent, theShooter, theShooter->mX, theShooter->mY, theShooter->mBeamSpeed, 0.0f);
+					Beam_Setup(aBeams->mCurrent, theShooter, theShooter->mX, theShooter->mY, theShooter->mBeamSpeed,
+						0.0f);
 					aBeams->mCurrent->mImage = gLevels.mCurrent->mBeamH;
 					theShooter->mAnim = theShooter->mHorizShootAnim;
-					theShooter->mWingsH.mAnim = Animation_Find("wings_fire_horizontal", &theShooter->mWingsH.mFrameCount,
-						&theShooter->mWingsH.mFrameTime);
+					theShooter->mWingsH.mAnim = Animation_Find("wings_fire_horizontal",
+						&theShooter->mWingsH.mFrameCount, &theShooter->mWingsH.mFrameTime);
 					theShooter->mWingsH.mFrame = 0;
 				}
 				else
 				{
-					Beam_Setup(aBeams->mCurrent, theShooter, theShooter->mX, theShooter->mY, 0.0f, theShooter->mBeamSpeed);
+					Beam_Setup(aBeams->mCurrent, theShooter, theShooter->mX, theShooter->mY, 0.0f,
+						theShooter->mBeamSpeed);
 					aBeams->mCurrent->mImage = gLevels.mCurrent->mBeamV;
 					theShooter->mAnim = theShooter->mVertShootAnim;
 					theShooter->mWingsV.mAnim = Animation_Find("wings_fire_vertical", &theShooter->mWingsV.mFrameCount,
@@ -884,8 +897,8 @@ void Shooter_Draw(Shooter* theShooter)
 	}
 }
 
-// 0x411d70: the five Objs it holds are destroyed, the beams still in the air are deleted (the list steps from its head),
-// then the base
+// 0x411d70: the five Objs it holds are destroyed, the beams still in the air are deleted (the list steps from its
+// head), then the base
 void Shooter_Destroy(Shooter* theShooter)
 {
 	Obj_Destroy(&theShooter->mBubble);

@@ -160,7 +160,8 @@ struct Beam : Obj
 	Shooter* mOwner;            // +0xb8
 	int mHit;                   // +0xbc
 	List<Rider> mRiders;        // +0xc0
-	Obj mHarpoon;                 // +0xcc  Water Bugs draws a tip at the head with it; here it is built and destroyed and nothing else uses it
+	Obj mHarpoon;                 // +0xcc  Water Bugs draws a tip at the head with it; here it is built and destroyed
+                                  // and nothing else uses it
 };
 static_assert(sizeof(Beam) == 0x17c, "Beam");
 
@@ -351,7 +352,8 @@ struct Text : Obj
 	int mFadeOut;               // +0x1b8  ms (also how long it takes once clicked away)
 	int mIdle;                  // +0x1bc  ms shown
 	int mDormant;               // +0x1c0  ms before it fades in; nothing reads it (mLifetime starts from it)
-	int mLoopTime;              // +0x1c4  ms gone before it fades in again (0: it is removed; CBLevel: clicked away with its neighbours)
+	int mLoopTime;              // +0x1c4  ms gone before it fades in again (0: it is removed; CBLevel: clicked away
+                                // with its neighbours)
 	int mAlign;                 // +0x1c8  0 left, 1 right, 2 centred on x
 	int mRow;                   // +0x1cc  a high score's
 	int mBlink;                 // +0x1d0  ms; not 0: blinks while shown
@@ -362,9 +364,9 @@ struct Text : Obj
 };
 static_assert(sizeof(Text) == 0x6c8, "Text");
 
-// What a power-up does (Powerup::mKind; Powerup_Collect's switch): a weapon (the time bomb, the missile, the freeze, the
-// mine), a change to the ship or the shots, the sweepers or the extra life. Any other number is the fast shot (as is
-// kind 0). The test keys '0' to '9' and 'A' to 'D' make kinds 0 to 13.
+// What a power-up does (Powerup::mKind; Powerup_Collect's switch): a weapon (the time bomb, the missile, the freeze,
+// the mine), a change to the ship or the shots, the sweepers or the extra life. Any other number is the fast shot (as
+// is kind 0). The test keys '0' to '9' and 'A' to 'D' make kinds 0 to 13.
 enum PowerupKind
 {
 	POWERUP_FAST_SHOT = 0,
@@ -507,7 +509,8 @@ struct Level : Obj
 	int mTotalCells;                  // +0x3b4  the open cells at the start
 	int mFilledCells;                 // +0x3b8
 	int mFillQuota;                   // +0x3bc  percent
-	int mFloodedCells;              // +0x3c0  cells the capture's flood has reached since the chain began (0 when it ends): the chance of a power-up counts them as filled
+	int mFloodedCells;              // +0x3c0  cells the capture's flood has reached since the chain began (0 when it
+                                    // ends): the chance of a power-up counts them as filled
 	int mFillSound;                   // +0x3c4
 	int mFillEndSound;                // +0x3c8
 	int mSymmetry;                    // +0x3cc  a random board's
@@ -673,10 +676,12 @@ void List_DeleteNode(Menu* theMenu);                             // 0x411340's d
 void Menu_FromXml(Menu* theMenu, const char* theCursor, const XmlTag* theTag); // 0x415310
 void Menu_DrawToBackground(Menu* theMenu);                       // 0x413b30: its image and logo, about their middles
 int Menu_Update(Menu* theMenu);                                  // 0x417c10: 0 when its screen is done
-void Menu_ShowRequester(Menu* theMenu, int theKind, const char* theText, const char* theSecond); // 0x415900: 0 delete the player, 1 a message, 2 a name, 3 quit, 4 a board's end, 5 resume
+// 0x415900: 0 delete the player, 1 a message, 2 a name, 3 quit, 4 a board's end, 5 resume
+void Menu_ShowRequester(Menu* theMenu, int theKind, const char* theText, const char* theSecond);
 void Pointer_Append(List<Obj>* theList);                         // 0x4109d0
 void Pointer_Insert(List<Obj>* theList);                         // 0x410920
-int Obj_FromXml(Obj* theObj, const char* theCursor, const XmlTag* theTag);     // 0x40d860: any object's attributes; 0 if its animation is missing
+// 0x40d860: any object's attributes; 0 if its animation is missing
+int Obj_FromXml(Obj* theObj, const char* theCursor, const XmlTag* theTag);
 int Text_FromXml(Text* theText, const char* theCursor, const XmlTag* theTag); // 0x41f950
 void Text_Make(Text* theText, const char* theString, Font* theFont, int theX, int theY, int theDormant, int theFadeIn,
 	int theIdle, int theFadeOut, int theLoopTime, int theBlink);  // 0x41f0e0

@@ -326,7 +326,8 @@ int Animation_FromXml(Animation* theAnim, const XmlTag* theTag);
 // Utilities (0x420090..0x420850)
 // 0x420090: the whole file, malloc'd, with a 0 after it (the port's; not counted in theSize); null if missing
 uint8_t* ReadWholeFile(const char* thePath, size_t* theSize);
-void ParseHex4(const char* theText, int* theRed, int* theGreen, int* theBlue, int* theAlpha);       // 0x420110: "rrggbbaa"
+// 0x420110: "rrggbbaa"
+void ParseHex4(const char* theText, int* theRed, int* theGreen, int* theBlue, int* theAlpha);
 void ParseHex3(const char* theText, int* theRed, int* theGreen, int* theBlue);               // 0x4201f0: "rrggbb"
 void Rand();                                                               // 0x420290
 void SeedRand(int theSeed);                                                // 0x4202c0
@@ -343,7 +344,8 @@ void ColourShift(uint32_t* thePixel, const PixelFormat* theFmt, char theRed, cha
 	uint8_t theMulR, uint8_t theMulG, uint8_t theMulB, int theSetR, int theSetG, int theSetB, int theShare);
 void SwapColours(Image* theImage, const char* theSwap);                    // 0x420700
 double CircleOverlap(float theX1, float theY1, float theR1, float theX2, float theY2, float theR2); // 0x420780
-int BoxOverlap(float theX1, float theY1, float theW1, float theH1, float theX2, float theY2, float theW2, float theH2); // 0x4207d0
+// 0x4207d0
+int BoxOverlap(float theX1, float theY1, float theW1, float theH1, float theX2, float theY2, float theW2, float theH2);
 void RotateImage(Image* theImage, int theAngle);                           // 0x4208c0
 
 // Globals

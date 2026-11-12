@@ -176,7 +176,8 @@ bool DrawAnims(Bank* theArt, const PixelFormat* theFmt, const char* theOutDir)
 			continue;
 		cb::Animation* anAnim = cb::List_Append(&cb::gAnims, new cb::Animation());
 		cb::Animation_FromXml(anAnim, &aTag);
-		std::printf("anim %s file %s frames %d time %d\n", anAnim->mName, anAnim->mFile, anAnim->mCount, anAnim->mFrameTime);
+		std::printf("anim %s file %s frames %d time %d\n", anAnim->mName, anAnim->mFile, anAnim->mCount,
+			anAnim->mFrameTime);
 		if (anAnim->mCount < 1 || anAnim->mFrames[0] == nullptr)
 		{
 			if ((std::strstr(anAnim->mFile, ".eco") != nullptr || std::strstr(anAnim->mFile, ".tga") != nullptr) &&

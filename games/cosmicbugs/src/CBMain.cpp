@@ -170,9 +170,9 @@ long FileSize(const char* thePath)
 	return aSize;
 }
 
-// The current player's level, the file's third field (a placeholder: what the file held, written back as it was) and the players come last; the player's game in progress is
-// taken (or cleared, with no lives left) when on a board. The difficulty goes to the eleventh player's slot only
-// after the write, so the file has the one before.
+// The current player's level, the file's third field (a placeholder: what the file held, written back as it was) and
+// the players come last; the player's game in progress is taken (or cleared, with no lives left) when on a board. The
+// difficulty goes to the eleventh player's slot only after the write, so the file has the one before.
 void SaveProfiles()
 {
 	FILE* aFile = std::fopen(Sys_SavePath("cb.dat"), "wb");
@@ -229,7 +229,8 @@ void ResetProfiles()
 		if ('a' <= *c && *c <= 'z')
 			*c = (char)(*c - 0x20);
 #ifdef __EMSCRIPTEN__
-	SiteFirstPlayer(gProfiles[0].mName, 0x20);	// the web page's player (framework/WebProfiles.h): under "fill" and "create" it names the first player
+	// the web page's player (framework/WebProfiles.h): under "fill" and "create" it names the first player
+	SiteFirstPlayer(gProfiles[0].mName, 0x20);
 #endif
 	gProfiles[0].mLevelReached = 0;
 	gProfiles[0].mAutoFire = 1;
@@ -315,7 +316,8 @@ void GameInit()
 	Cursors_Init();
 	LoadProfiles();
 #ifdef __EMSCRIPTEN__
-	SiteStart();	// the web page's players (framework/WebProfiles.h): the slots are read; what the page queued for them is applied
+	// the web page's players (framework/WebProfiles.h): the slots are read; what the page queued for them is applied
+	SiteStart();
 #endif
 	Dirty_AddClipped(&gDirty, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_CLIP);
 }
@@ -371,8 +373,8 @@ void Screen_Redraw()
 		if (gLevels.mCurrent != nullptr)
 		{
 			List_Each(&gLevels.mCurrent->mMenus, Menu_DrawToBackground);
-			Image_BlitRect(gLevels.mCurrent->mBackground, gBackBuffer.mBits, gBackBuffer.mPitch, &gBackBuffer.mFmt, 0, 0,
-				0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+			Image_BlitRect(gLevels.mCurrent->mBackground, gBackBuffer.mBits, gBackBuffer.mPitch, &gBackBuffer.mFmt, 0,
+				0, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
 			if (10.0f < gLevels.mCurrent->mAge)
 				Level_RedrawCells(gLevels.mCurrent);
 			if (gLevels.mCurrent->mPanels.mCurrent != nullptr)
@@ -438,7 +440,8 @@ void GoToScreen()
 						theMenu->mImage = nullptr;
 						if (theMenu->mAnim != nullptr && gProfiles[gProfile].mLevelReached + 1 < theMenu->mLockedLevel)
 						{
-							theMenu->mAnim = Animation_Find(theMenu->mLockedAnim, &theMenu->mFrameCount, &theMenu->mFrameTime);
+							theMenu->mAnim = Animation_Find(theMenu->mLockedAnim, &theMenu->mFrameCount,
+								&theMenu->mFrameTime);
 							theMenu->mImage = Animation_Frame(theMenu->mAnim, 0);
 						}
 						Menu_DrawToBackground(theMenu);
@@ -521,10 +524,10 @@ void GameStep()
 		}
 	}
 escape:
-	// (port: the site's "Always skip start-up logos", which the player sets on the site or the exe takes as -skiplogos: on a
-	// logo screen (kind 0xe, the PopCap logo, again for each portal animation file) it goes on as Esc on it does, the original's
-	// own skip, to the main menu. The logos draw no random number (the seed's series is the same with Esc and without), so the
-	// game's draws afterwards are the same.)
+	// (port: the site's "Always skip start-up logos", which the player sets on the site or the exe takes as -skiplogos:
+	// on a logo screen (kind 0xe, the PopCap logo, again for each portal animation file) it goes on as Esc on it does,
+	// the original's own skip, to the main menu. The logos draw no random number (the seed's series is the same with
+	// Esc and without), so the game's draws afterwards are the same.)
 	bool aSkipLogo = gLevels.mCurrent != nullptr && gLevels.mCurrent->mKind == LEVEL_LOGO && Sys_SkipLogos();
 	if (Key_Pressed(0x1b) == 0 && !aSkipLogo)
 	{

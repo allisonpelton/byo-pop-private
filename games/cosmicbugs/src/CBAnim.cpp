@@ -369,7 +369,8 @@ int Animation_Load(Animation* theAnim)
 			PixelFormat_Init(&aFmt, aTga.mBpp, aTga.mRMask, aTga.mGMask, aTga.mBMask);
 			Image* aWork = new Image();
 			Image_Create(aWork, aTga.mWidth, aTga.mHeight, &aFmt);
-			Copy8(aWork->mBits, 0, 0, aWork->mPitch, 0, aTga.mBits, 0, 0, aTga.mPitch, 0, aTga.mWidth * 4, aTga.mHeight);
+			Copy8(aWork->mBits, 0, 0, aWork->mPitch, 0, aTga.mBits, 0, 0, aTga.mPitch, 0, aTga.mWidth * 4,
+				aTga.mHeight);
 			Image_ConvertTo(aWork, Sys_ScreenFormat(), nullptr);
 			theAnim->mFrames[0] = new Image();
 			Image_Copy(theAnim->mFrames[0], aWork);

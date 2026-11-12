@@ -174,11 +174,12 @@ int Text_Update(Text* theText)
 					int aHeight = Font_StringHeight(theText->mFont, aString);
 					int aBottom = (int)((double)aHeight + (double)theText->mY);
 					float y = (float)RandRange((int)theText->mY, aBottom);
-					int aRight = (int)((double)theText->mX + 1.0 + (double)(Font_StringWidth(theText->mFont, aString) / 2));
+					int aRight = (int)((double)theText->mX + 1.0 +
+						(double)(Font_StringWidth(theText->mFont, aString) / 2));
 					int aLeft = (int)(((double)aX - 1.0) - (double)(Font_StringWidth(theText->mFont, aString) / 2));
 					float x = (float)RandRange(aLeft, aRight);
-					ParticleSystem_Add(gLevels.mCurrent->mSystems.mCurrent, x, y, aVx, aVy, aFirst, aLast, 0, 0xff, 0xff,
-						0xff, 0xff, 0xff, 0xff, 0x154, 10, aLifetime, 1.0f, 0.0004f, 5);
+					ParticleSystem_Add(gLevels.mCurrent->mSystems.mCurrent, x, y, aVx, aVy, aFirst, aLast, 0, 0xff,
+						0xff, 0xff, 0xff, 0xff, 0xff, 0x154, 10, aLifetime, 1.0f, 0.0004f, 5);
 					aCount = aCount - 1;
 					gLevels.mCurrent->mSystems.mCurrent->mDepth = 500;
 					gLevels.mCurrent->mSystems.mCurrent->mParticles.mCurrent->mDepth = 500;
@@ -279,13 +280,14 @@ int Text_FromXml(Text* theText, const char* theCursor, const XmlTag* theTag)
 			Text_Append(&gLevels.mCurrent->mTexts);
 			Text_Make(gLevels.mCurrent->mTexts.mCurrent, aBuf, Font_Find(Xml_GetString(theTag, "font")), 0x1e,
 				(Xml_GetInt(theTag, "y") * SCREEN_HEIGHT) / SCREEN_HEIGHT, Xml_GetInt(theTag, "dormant_time"),
-				Xml_GetInt(theTag, "fade_in_time"), Xml_GetInt(theTag, "idle_time"), Xml_GetInt(theTag, "fade_out_time"),
-				0, 0);
+				Xml_GetInt(theTag, "fade_in_time"), Xml_GetInt(theTag, "idle_time"),
+				Xml_GetInt(theTag, "fade_out_time"), 0, 0);
 			gLevels.mCurrent->mTexts.mCurrent->mAlign = 0;
 			gLevels.mCurrent->mTexts.mCurrent = theText;
 			sprintf(aBuf, "^%d%s", theText->mRow + 2, gHighScores[theText->mRow].mName);
-			Text_Make(theText, aBuf, Font_Find(Xml_GetString(theTag, "font")), 100, (Xml_GetInt(theTag, "y") * SCREEN_HEIGHT) / SCREEN_HEIGHT,
-				Xml_GetInt(theTag, "dormant_time"), Xml_GetInt(theTag, "fade_in_time"), Xml_GetInt(theTag, "idle_time"),
+			Text_Make(theText, aBuf, Font_Find(Xml_GetString(theTag, "font")), 100,
+				(Xml_GetInt(theTag, "y") * SCREEN_HEIGHT) / SCREEN_HEIGHT, Xml_GetInt(theTag, "dormant_time"),
+				Xml_GetInt(theTag, "fade_in_time"), Xml_GetInt(theTag, "idle_time"),
 				Xml_GetInt(theTag, "fade_out_time"), 0, 0);
 			theText->mAlign = 0;
 			theText->mKind = TEXT_HIGH_SCORE_NAME;
@@ -293,8 +295,8 @@ int Text_FromXml(Text* theText, const char* theCursor, const XmlTag* theTag)
 			Text_Append(&gLevels.mCurrent->mTexts);
 			Text_Make(gLevels.mCurrent->mTexts.mCurrent, aBuf, Font_Find(Xml_GetString(theTag, "font")), 0x302,
 				(Xml_GetInt(theTag, "y") * SCREEN_HEIGHT) / SCREEN_HEIGHT, Xml_GetInt(theTag, "dormant_time"),
-				Xml_GetInt(theTag, "fade_in_time"), Xml_GetInt(theTag, "idle_time"), Xml_GetInt(theTag, "fade_out_time"),
-				0, 0);
+				Xml_GetInt(theTag, "fade_in_time"), Xml_GetInt(theTag, "idle_time"),
+				Xml_GetInt(theTag, "fade_out_time"), 0, 0);
 			gLevels.mCurrent->mTexts.mCurrent->mKind = TEXT_HIGH_SCORE;
 			gLevels.mCurrent->mTexts.mCurrent->mRow = theText->mRow;
 			gLevels.mCurrent->mTexts.mCurrent->mAlign = 1;
@@ -313,7 +315,8 @@ int Text_FromXml(Text* theText, const char* theCursor, const XmlTag* theTag)
 			TextInput_SetFocus(anInput, 1);
 			TextInput_SetCaseMode(anInput, 1);
 #ifdef __EMSCRIPTEN__
-			SiteFillHighScore(anInput, theText->mFont);	// the web page's player (framework/WebProfiles.h): under "fill" and "create" the box starts with it
+			// the web page's player (framework/WebProfiles.h): under "fill" and "create" the box starts with it
+			SiteFillHighScore(anInput, theText->mFont);
 #endif
 			TextInput_SetFillColour(anInput, 100, 100, 100, 100);
 			TextInput_SetOutline(anInput, 0);
@@ -334,9 +337,10 @@ int Text_FromXml(Text* theText, const char* theCursor, const XmlTag* theTag)
 		else
 			return 1;
 		Text_Make(theText, Xml_GetString(theTag, "text"), Font_Find(Xml_GetString(theTag, "font")),
-			(Xml_GetInt(theTag, "x") * SCREEN_WIDTH) / SCREEN_WIDTH, (Xml_GetInt(theTag, "y") * SCREEN_HEIGHT) / SCREEN_HEIGHT,
-			Xml_GetInt(theTag, "dormant_time"), Xml_GetInt(theTag, "fade_in_time"), Xml_GetInt(theTag, "idle_time"),
-			Xml_GetInt(theTag, "fade_out_time"), 0, 0);
+			(Xml_GetInt(theTag, "x") * SCREEN_WIDTH) / SCREEN_WIDTH,
+			(Xml_GetInt(theTag, "y") * SCREEN_HEIGHT) / SCREEN_HEIGHT, Xml_GetInt(theTag, "dormant_time"),
+			Xml_GetInt(theTag, "fade_in_time"), Xml_GetInt(theTag, "idle_time"), Xml_GetInt(theTag, "fade_out_time"), 0,
+			0);
 		return 1;
 	}
 	if (Obj_FromXml(theText, theCursor, theTag) == 0)

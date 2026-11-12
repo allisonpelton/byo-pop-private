@@ -87,8 +87,8 @@ int EnemiesOnShip(Shooter* theShip)
 	return aCount;
 }
 
-// Whether a dialog (a requester: the resume question, a name, a quit or delete confirmation) is up on any of the screen's
-// menus (the resume question is on the last one, not the current one)
+// Whether a dialog (a requester: the resume question, a name, a quit or delete confirmation) is up on any of the
+// screen's menus (the resume question is on the last one, not the current one)
 bool HasRequester(Level* theLevel)
 {
 	for (Menu* aMenu = theLevel->mMenus.mHead; aMenu != nullptr; aMenu = Node_Next(aMenu))
@@ -106,8 +106,8 @@ int Fill(Level* theLevel)
 // board is paused or won, or cells are still being filled
 bool Busy(Level* theLevel, Shooter* theShip)
 {
-	return theShip == nullptr || theShip->mState != SHIP_CONTROLLED || theLevel->mState != LEVEL_PLAYING || theLevel->mGameOver != 0 ||
-		theLevel->mFills.mCurrent != nullptr || theLevel->mTotalCells == 0;
+	return theShip == nullptr || theShip->mState != SHIP_CONTROLLED || theLevel->mState != LEVEL_PLAYING ||
+		theLevel->mGameOver != 0 || theLevel->mFills.mCurrent != nullptr || theLevel->mTotalCells == 0;
 }
 
 // ----- state -----
@@ -129,19 +129,20 @@ std::string StateJson()
 	}
 	Shooter* aShip = Ship();
 	bool aBusy = Busy(aLevel, aShip);
-	s += Fmt(",\"level\":%d,\"fill\":%d,\"quota\":%d,\"shots\":%d,\"cells\":%d,\"filled\":%d", aLevel->mNumber, Fill(aLevel),
-		aLevel->mFillQuota, aLevel->mShots, aLevel->mTotalCells, aLevel->mFilledCells);
+	s += Fmt(",\"level\":%d,\"fill\":%d,\"quota\":%d,\"shots\":%d,\"cells\":%d,\"filled\":%d", aLevel->mNumber,
+		Fill(aLevel), aLevel->mFillQuota, aLevel->mShots, aLevel->mTotalCells, aLevel->mFilledCells);
 	s += Fmt(",\"playing\":%s,\"busy\":%s,\"paused\":%s,\"won\":%s,\"over\":%s", !aBusy ? "true" : "false",
-		aBusy ? "true" : "false", aLevel->mState == LEVEL_PAUSED ? "true" : "false", aLevel->mState == LEVEL_WON ? "true" : "false",
-		aLevel->mGameOver != 0 ? "true" : "false");
+		aBusy ? "true" : "false", aLevel->mState == LEVEL_PAUSED ? "true" : "false",
+		aLevel->mState == LEVEL_WON ? "true" : "false", aLevel->mGameOver != 0 ? "true" : "false");
 	if (aShip != nullptr)
-		s += Fmt(",\"ship\":{\"x\":%d,\"y\":%d,\"state\":%d,\"across\":%s,\"weapons\":%d}", (int)aShip->mX, (int)aShip->mY,
-			aShip->mState, aShip->mBeamAcross != 0 ? "true" : "false", WeaponsOrbiting());
+		s += Fmt(",\"ship\":{\"x\":%d,\"y\":%d,\"state\":%d,\"across\":%s,\"weapons\":%d}", (int)aShip->mX,
+			(int)aShip->mY, aShip->mState, aShip->mBeamAcross != 0 ? "true" : "false", WeaponsOrbiting());
 	s += ",\"enemies\":[";
 	int aCount = 0;
 	List_Each(&aLevel->mEnemies, [&](Enemy* theEnemy) {
 		if (aCount < 30)
-			s += Fmt("%s[%d,%d,%d,%d]", aCount > 0 ? "," : "", (int)theEnemy->mX, (int)theEnemy->mY, theEnemy->mKind, theEnemy->mState);
+			s += Fmt("%s[%d,%d,%d,%d]", aCount > 0 ? "," : "", (int)theEnemy->mX, (int)theEnemy->mY, theEnemy->mKind,
+				theEnemy->mState);
 		aCount++;
 	});
 	s += Fmt("],\"enemyCount\":%d}", aCount);
@@ -223,7 +224,8 @@ void Flood(const Grid& theGrid, unsigned char (&theMark)[MAX_COLS][MAX_ROWS], in
 		{
 			int c = aCell.first + d[0];
 			int r = aCell.second + d[1];
-			if (c < 0 || r < 0 || c >= theGrid.mCols || r >= theGrid.mRows || !theGrid.mOpen[c][r] || theMark[c][r] != 0)
+			if (c < 0 || r < 0 || c >= theGrid.mCols || r >= theGrid.mRows || !theGrid.mOpen[c][r] ||
+				theMark[c][r] != 0)
 				continue;
 			theMark[c][r] = (unsigned char)theLabel;
 			sAStack.push_back({c, r});
@@ -310,7 +312,8 @@ bool Rolls(const Enemy* theEnemy)
 // Whether an enemy is expected to touch the beams of a line fired from (theCol, theRow) before they stop. Rollers and
 // shots go on in a straight line (turning back at cells that are not open); the walkers keep to the walls and may
 // come anywhere along the line's ends, so they only have to stay clear of it.
-bool Safe(Level* theLevel, const Grid& theGrid, int theCol, int theRow, bool theAcross, const Line& theLine, float theSpeed)
+bool Safe(Level* theLevel, const Grid& theGrid, int theCol, int theRow, bool theAcross, const Line& theLine,
+	float theSpeed)
 {
 	float aSx = (float)(theCol * 16 + 8);
 	float aSy = (float)(theRow * 16 + 8);
@@ -381,7 +384,9 @@ bool ChoosePlan(Level* theLevel, Shooter* theShip, bool theRisky)
 	Grid aGrid;
 	ReadGrid(theLevel, aGrid);
 	std::vector<std::pair<int, int>> anEnemyCells;
-	List_Each(&theLevel->mEnemies, [&](Enemy* theEnemy) { anEnemyCells.push_back({(int)theEnemy->mX / 16, (int)theEnemy->mY / 16}); });
+	List_Each(&theLevel->mEnemies, [&](Enemy* theEnemy) {
+		anEnemyCells.push_back({(int)theEnemy->mX / 16, (int)theEnemy->mY / 16});
+	});
 	float aSpeed = theShip->mBeamSpeed > 0.0f ? theShip->mBeamSpeed : 0.14f;
 	int aPanelRows = theLevel->mRows;
 	if (theLevel->mPanels.mHead != nullptr)
@@ -422,7 +427,8 @@ bool ChoosePlan(Level* theLevel, Shooter* theShip, bool theRisky)
 	{
 		if (aTried++ > 4000)
 			break;
-		if (theRisky || Safe(theLevel, aGrid, aCandidate.mCol, aCandidate.mRow, aCandidate.mAcross, aCandidate.mLine, aSpeed))
+		if (theRisky ||
+			Safe(theLevel, aGrid, aCandidate.mCol, aCandidate.mRow, aCandidate.mAcross, aCandidate.mLine, aSpeed))
 		{
 			gPlan.mValid = true;
 			gPlan.mRisky = theRisky;
@@ -442,13 +448,16 @@ std::string Move()
 {
 	Level* aLevel = gLevels.mCurrent;
 	Shooter* aShip = Ship();
-	// a won board shows its bonus texts, each clicked away in turn; the click after the last one goes on to the next board
-	if (aLevel != nullptr && aLevel->mKind == LEVEL_BOARD && aLevel->mState == LEVEL_WON && aLevel->mGameOver == 0 && aLevel->mTexts.mHead != nullptr)
+	// a won board shows its bonus texts, each clicked away in turn; the click after the last one goes on to the next
+	// board
+	if (aLevel != nullptr && aLevel->mKind == LEVEL_BOARD && aLevel->mState == LEVEL_WON && aLevel->mGameOver == 0 &&
+		aLevel->mTexts.mHead != nullptr)
 		return "MOVE {\"kind\":\"continue\",\"input\":[{\"click\":[400,300]},{\"wait\":20}]}";
 	// the board waits while the pointer is over its panel (Level_IsPlaying): a click that started the board, on the
 	// instructions page's Play button, leaves it there, and a player moves it up into the board
-	if (aLevel != nullptr && aLevel->mKind == LEVEL_BOARD && aLevel->mState == LEVEL_PLAYING && aLevel->mGameOver == 0 && aLevel->mTotalCells != 0 &&
-		Level_IsPlaying(aLevel) == 0 && (aLevel->mMenus.mCurrent == nullptr || aLevel->mMenus.mCurrent->mRequesters.mCurrent == nullptr))
+	if (aLevel != nullptr && aLevel->mKind == LEVEL_BOARD && aLevel->mState == LEVEL_PLAYING &&
+		aLevel->mGameOver == 0 && aLevel->mTotalCells != 0 && Level_IsPlaying(aLevel) == 0 &&
+		(aLevel->mMenus.mCurrent == nullptr || aLevel->mMenus.mCurrent->mRequesters.mCurrent == nullptr))
 	{
 		int aY = 300;
 		if (aLevel->mPanels.mCurrent != nullptr && (float)aY >= aLevel->mPanels.mCurrent->mY)
@@ -484,20 +493,25 @@ std::string Move()
 	int aCol = aSx / 16;
 	int aRow = aSy / 16;
 	if (aCol != gPlan.mCol || aRow != gPlan.mRow)
-		return Fmt("MOVE {\"kind\":\"aim\",\"col\":%d,\"row\":%d,\"across\":%s,\"input\":[{\"move\":[%d,%d]},{\"wait\":8}]}",
+		return Fmt("MOVE "
+				   "{\"kind\":\"aim\",\"col\":%d,\"row\":%d,\"across\":%s,\"input\":[{\"move\":[%d,%d]},{\"wait\":8}]}",
 			gPlan.mCol, gPlan.mRow, gPlan.mAcross ? "true" : "false", aX, aY);
 	if ((aShip->mBeamAcross != 0) != gPlan.mAcross)
-		return Fmt("MOVE {\"kind\":\"turn\",\"input\":[{\"click\":[%d,%d],\"button\":\"right\"},{\"wait\":3}]}", aX, aY);
+		return Fmt("MOVE {\"kind\":\"turn\",\"input\":[{\"click\":[%d,%d],\"button\":\"right\"},{\"wait\":3}]}", aX,
+			aY);
 	// the ship is in its cell, turned the right way: fire, unless an enemy sits on it (the game only buzzes)
 	if (EnemiesOnShip(aShip) != 0)
 		return "MOVE {\"kind\":\"wait\",\"input\":[{\"wait\":10}]}";
 	Grid aGrid;
 	ReadGrid(aLevel, aGrid);
 	std::vector<std::pair<int, int>> anEnemyCells;
-	List_Each(&aLevel->mEnemies, [&](Enemy* theEnemy) { anEnemyCells.push_back({(int)theEnemy->mX / 16, (int)theEnemy->mY / 16}); });
+	List_Each(&aLevel->mEnemies, [&](Enemy* theEnemy) {
+		anEnemyCells.push_back({(int)theEnemy->mX / 16, (int)theEnemy->mY / 16});
+	});
 	float aSpeed = aShip->mBeamSpeed > 0.0f ? aShip->mBeamSpeed : 0.14f;
 	Line aLine = Evaluate(aGrid, gPlan.mCol, gPlan.mRow, gPlan.mAcross, aLevel->mNumber, aSpeed, anEnemyCells);
-	if (aLine.mGain <= 0 || (!gPlan.mRisky && !Safe(aLevel, aGrid, gPlan.mCol, gPlan.mRow, gPlan.mAcross, aLine, aSpeed)))
+	if (aLine.mGain <= 0 ||
+		(!gPlan.mRisky && !Safe(aLevel, aGrid, gPlan.mCol, gPlan.mRow, gPlan.mAcross, aLine, aSpeed)))
 	{
 		// the board moved on: look again
 		gPlan.mValid = false;
@@ -505,7 +519,9 @@ std::string Move()
 	}
 	gPlan.mValid = false;
 	gPlan.mFailures = 0;
-	return Fmt("MOVE {\"kind\":\"shot\",\"col\":%d,\"row\":%d,\"across\":%s,\"gain\":%d,\"input\":[{\"click\":[%d,%d]},{\"wait\":3}]}",
+	return Fmt("MOVE "
+			   "{\"kind\":\"shot\",\"col\":%d,\"row\":%d,\"across\":%s,\"gain\":%d,\"input\":[{\"click\":[%d,%d]},{"
+			   "\"wait\":3}]}",
 		aX / 16, aY / 16, gPlan.mAcross ? "true" : "false", aLine.mGain, aX, aY);
 }
 
@@ -668,7 +684,8 @@ bool TestCommand(const std::string& theCommand, const std::string& theArgs, std:
 			;
 		else
 		{
-			Error(theReplies, theCommand, theArgs, "set takes score, lives, reached, difficulty (easy|normal|hard) or shooter (manual|auto) and a value");
+			Error(theReplies, theCommand, theArgs,
+				"set takes score, lives, reached, difficulty (easy|normal|hard) or shooter (manual|auto) and a value");
 			return true;
 		}
 		Ok(theReplies, theCommand, theArgs);
@@ -677,7 +694,8 @@ bool TestCommand(const std::string& theCommand, const std::string& theArgs, std:
 	if (theCommand == "win" || theCommand == "lose")
 	{
 		Shooter* aShip = Ship();
-		if (aLevel->mKind != LEVEL_BOARD || aShip == nullptr || aLevel->mState != LEVEL_PLAYING || aLevel->mTotalCells == 0 || aLevel->mGameOver != 0)
+		if (aLevel->mKind != LEVEL_BOARD || aShip == nullptr || aLevel->mState != LEVEL_PLAYING ||
+			aLevel->mTotalCells == 0 || aLevel->mGameOver != 0)
 		{
 			Error(theReplies, theCommand, theArgs, "no board is being played");
 			return true;
@@ -714,7 +732,8 @@ bool TestCommand(const std::string& theCommand, const std::string& theArgs, std:
 	}
 	// goto <screen>: a screen, or a mode's name to start a game in it
 	std::string aWhere = theArgs;
-	if (aWhere == "game" || aWhere == "easy" || aWhere == "normal" || aWhere == "hard" || aWhere == "manual" || aWhere == "auto")
+	if (aWhere == "game" || aWhere == "easy" || aWhere == "normal" || aWhere == "hard" || aWhere == "manual" ||
+		aWhere == "auto")
 	{
 		if (aWhere == "easy" || aWhere == "normal" || aWhere == "hard")
 			SetDifficulty(aWhere);
@@ -746,13 +765,17 @@ bool TestCommand(const std::string& theCommand, const std::string& theArgs, std:
 		aKind = LEVEL_CHANGE_USER;
 	if (aKind < 0)
 	{
-		Error(theReplies, theCommand, theArgs, "no such screen (title, options, help, instructions, highscores, credits, levelselect, changeuser, game, easy, normal, hard, manual, auto)");
+		Error(theReplies, theCommand, theArgs,
+			"no such screen (title, options, help, instructions, highscores, credits, levelselect, changeuser, game, "
+			"easy, normal, hard, manual, auto)");
 		return true;
 	}
 	// a board's list holds the board file's screens only: from a board only the title is reached, as Esc does
-	if ((aLevel->mKind == LEVEL_BOARD && aKind != LEVEL_MAIN_MENU) || (aLevel->mKind != LEVEL_BOARD && !HasScreen(aKind)))
+	if ((aLevel->mKind == LEVEL_BOARD && aKind != LEVEL_MAIN_MENU) ||
+		(aLevel->mKind != LEVEL_BOARD && !HasScreen(aKind)))
 	{
-		Error(theReplies, theCommand, theArgs, "that screen cannot be reached from here (from a board, go to the title first)");
+		Error(theReplies, theCommand, theArgs,
+			"that screen cannot be reached from here (from a board, go to the title first)");
 		return true;
 	}
 	gGoTo = aKind;

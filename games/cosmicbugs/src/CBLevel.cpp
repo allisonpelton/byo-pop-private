@@ -447,7 +447,8 @@ static void DrawCentred(Font* theFont, int theY, const char* theText)
 	Font_DrawOutlined(theFont, aRect, SCREEN_CENTRE_X, theY, theText);
 	int aHeight = Font_StringHeight(theFont, theText) + 2;
 	int aWidth = Font_StringWidth(theFont, theText) + 2;
-	Dirty_AddClippedShown(&gDirty, SCREEN_CENTRE_X - 1 - Font_StringWidth(theFont, theText) / 2, theY - 1, aWidth, aHeight, SCREEN_CLIP);
+	Dirty_AddClippedShown(&gDirty, SCREEN_CENTRE_X - 1 - Font_StringWidth(theFont, theText) / 2, theY - 1, aWidth,
+		aHeight, SCREEN_CLIP);
 }
 
 // The original copies the lines onto the stack (the last a dword at a time)
@@ -466,7 +467,8 @@ void DrawPaused()
 
 int Level_IsPlaying(Level* theLevel)
 {
-	if ((theLevel->mKind != LEVEL_BOARD || (theLevel->mMenus.mCurrent != nullptr && theLevel->mMenus.mCurrent->mRequesters.mCurrent != nullptr) ||
+	if ((theLevel->mKind != LEVEL_BOARD ||
+			(theLevel->mMenus.mCurrent != nullptr && theLevel->mMenus.mCurrent->mRequesters.mCurrent != nullptr) ||
 			(theLevel->mPanels.mCurrent != nullptr && theLevel->mPanels.mCurrent->mY <= (float)gMouseY)) &&
 		100.0f < theLevel->mAge)
 		return 0;
@@ -1006,9 +1008,11 @@ int Level_Update(Level* theLevel)
 			List<Cell>* aFills = &theLevel->mFills;
 			if (aFills->mCurrent == nullptr)
 			{
-				if (theLevel->mKind == LEVEL_BOARD && theLevel->mPowerups.mCurrent == nullptr && theLevel->mTotalCells != 0 &&
+				if (theLevel->mKind == LEVEL_BOARD && theLevel->mPowerups.mCurrent == nullptr &&
+					theLevel->mTotalCells != 0 &&
 					theLevel->mFillQuota <= (theLevel->mFilledCells * 100) / theLevel->mTotalCells &&
-					(theLevel->mMenus.mCurrent == nullptr || theLevel->mMenus.mCurrent->mRequesters.mCurrent == nullptr))
+					(theLevel->mMenus.mCurrent == nullptr ||
+						theLevel->mMenus.mCurrent->mRequesters.mCurrent == nullptr))
 					Level_Won(theLevel);
 				else
 				{
@@ -1018,8 +1022,8 @@ int Level_Update(Level* theLevel)
 			}
 			else
 			{
-				if ((int)theLevel->mAge % 0x78 == 0 && theLevel->mKind == LEVEL_BOARD && gLevels.mCurrent->mKind != LEVEL_LOGO &&
-					theLevel->mTotalCells != 0)
+				if ((int)theLevel->mAge % 0x78 == 0 && theLevel->mKind == LEVEL_BOARD &&
+					gLevels.mCurrent->mKind != LEVEL_LOGO && theLevel->mTotalCells != 0)
 					Sound_Play(theLevel->mFillSound);
 				List_Each(aFills, [&](Cell* theFill) {
 					if (theLevel->mTotalCells != 0 && Fill_Update(theFill) == 0)

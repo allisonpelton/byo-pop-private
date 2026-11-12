@@ -79,7 +79,9 @@ extern int gFirstWeapon;                   // 0x46003c  no orbiting weapon has b
 extern int gLevelInSet;                    // 0x46e5ec
 extern int gMouseX;                        // 0x46e5bc
 extern int gMouseY;                        // 0x46e5c0
-extern int gSaveFormatField;               // 0x460044  cb.dat's third field: only a placeholder for the file's format (nothing reads it; written back as read, so saves move between the port and the original)
+extern int gSaveFormatField;               // 0x460044  cb.dat's third field: only a placeholder for the file's format
+                                           // (nothing reads it; written back as read, so saves move between the port
+                                           // and the original)
 extern int gLives;                         // 0x460040
 extern float gBeamSpeed;                   // 0x460038  the ship's beams' speed at the start
 extern int gDifficulty;                    // 0x46e5e0  -1, 0 or 1 (the options' cycle)
@@ -128,7 +130,8 @@ int SortHighScores();                                            // 0x40ce10: an
 void GameInit();                                                 // 0x40ce40
 void FreeAll();                                                  // 0x40d3a0
 void GoToScreen();                                               // 0x40d3f0: the screen of kind gGoTo
-bool ChangeScreen();                                             // GameStep's leaving of a screen for gGoTo's; false when none is left
+// GameStep's leaving of a screen for gGoTo's; false when none is left
+bool ChangeScreen();
 void GameStep();                                                 // 0x40d6a0
 void GameDraw();                                                 // 0x40ce80
 // The start (CBStart.cpp)

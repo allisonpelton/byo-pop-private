@@ -91,8 +91,8 @@ public:
 		return gApp->mActive || (gApp->IsTestRun() && gApp->mRealInputFileName.empty());
 	}
 
-	// The site's "Always skip start-up logos" (framework/WebSettings.h: the page sets it before the game starts, the exe takes
-	// -skiplogos), which the logo screens read (GameStep)
+	// The site's "Always skip start-up logos" (framework/WebSettings.h: the page sets it before the game starts, the
+	// exe takes -skiplogos), which the logo screens read (GameStep)
 	bool SkipLogos() override
 	{
 		return Byopop::SiteSkipLogos();
@@ -208,8 +208,8 @@ static void BuildPixelsFromScreen16()
 		uint32_t aRed = (p >> 11) & 0x1f;
 		uint32_t aGreen = (p >> 5) & 0x3f;
 		uint32_t aBlue = p & 0x1f;
-		gPixelsFromScreen16[p] = 0xff000000 | (((aRed << 3) | (aRed >> 2)) << 16) | (((aGreen << 2) | (aGreen >> 4)) << 8) |
-			((aBlue << 3) | (aBlue >> 2));
+		gPixelsFromScreen16[p] = 0xff000000 | (((aRed << 3) | (aRed >> 2)) << 16) |
+			(((aGreen << 2) | (aGreen >> 4)) << 8) | ((aBlue << 3) | (aBlue >> 2));
 	}
 }
 
@@ -218,8 +218,9 @@ CosmicBugsWidget::CosmicBugsWidget()
 	mScreenImage = new MemoryImage(gApp);
 	mScreenImage->Create(r64::SCREEN_WIDTH, r64::SCREEN_HEIGHT);
 	// opaque, so that the framework need not look through the 480000 pixels for alpha after each change, and with every
-	// alpha byte 0xff (Draw), so that it need not copy and premultiply them pixel by pixel in strips to upload them (where
-	// premultiplying changes nothing): the same pixels reach the screen, in one upload (Water Bugs' and the Mahjong ports' screen)
+	// alpha byte 0xff (Draw), so that it need not copy and premultiply them pixel by pixel in strips to upload them
+	// (where premultiplying changes nothing): the same pixels reach the screen, in one upload (Water Bugs' and the
+	// Mahjong ports' screen)
 	mScreenImage->SetImageMode(false, false);
 	mScreenImage->mUploadAsIs = true;
 	BuildPixelsFromScreen16();
@@ -387,7 +388,8 @@ void CosmicBugsApp::Init()
 	// WinMain: cp.cfg, the screen in its mode, the sound, then the game
 	r64::LoadConfig();
 #ifdef __EMSCRIPTEN__
-	// the site's "Full screen at start: Windowed" (framework/WebSettings.h): the game's own option, set as its menu sets it
+	// the site's "Full screen at start: Windowed" (framework/WebSettings.h): the game's own option, set as its menu
+	// sets it
 	if (Byopop::SiteWindowed())
 		r64::Screen_SetFullscreen(0);
 #endif

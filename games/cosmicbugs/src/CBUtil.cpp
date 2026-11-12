@@ -69,7 +69,8 @@ void ParseHex3(const char* theText, int* theRed, int* theGreen, int* theBlue)
 void Rand()
 {
 	uint32_t aSeed = (uint32_t)gRandSeed;
-	gRandSeed = (int32_t)((aSeed % (uint32_t)RAND_Q) * (uint32_t)RAND_A - (aSeed / (uint32_t)RAND_Q) * (uint32_t)RAND_R);
+	gRandSeed = (int32_t)((aSeed % (uint32_t)RAND_Q) * (uint32_t)RAND_A -
+		(aSeed / (uint32_t)RAND_Q) * (uint32_t)RAND_R);
 }
 
 void SeedRand(int theSeed)
@@ -107,8 +108,10 @@ float Dist3(const float* theFrom, const float* theTo)
 float SegmentDist3(const float* thePoint, const float* theStart, const float* theEnd)
 {
 	float aLen = Dist3(theEnd, theStart);
-	float aPosition = (float)((((double)theEnd[2] - theStart[2]) * ((double)thePoint[2] - theStart[2]) + ((double)thePoint[0] - theStart[0]) * ((double)theEnd[0] - theStart[0]) +
-		((double)theEnd[1] - theStart[1]) * ((double)thePoint[1] - theStart[1])) / ((double)aLen * aLen));
+	float aPosition = (float)((((double)theEnd[2] - theStart[2]) * ((double)thePoint[2] - theStart[2]) +
+								  ((double)thePoint[0] - theStart[0]) * ((double)theEnd[0] - theStart[0]) +
+								  ((double)theEnd[1] - theStart[1]) * ((double)thePoint[1] - theStart[1])) /
+		((double)aLen * aLen));
 	if (0.0f <= aPosition && aPosition <= 1.0f)
 	{
 		float q[3];

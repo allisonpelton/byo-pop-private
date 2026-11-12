@@ -12,7 +12,8 @@
 //   <ms> focus lose|regain    the window loses or regains the focus (the host's IsActive)
 //   <ms> state                prints the score, the lives, the board in its set and the board's filled cells
 //   <ms> enemies              prints each enemy of the board: its place, tint and animation
-//   <ms> cmd <line>           a standard test command (docs/TEST_COMMANDS.md: state, goto, level, win, move ...), answers printed
+//   <ms> cmd <line>           a standard test command (docs/TEST_COMMANDS.md: state, goto, level, win, move ...),
+//                             answers printed
 //   <ms> bot <ms>             plays by the port's own bot (the move command) for that long, or until the game is over
 //   <ms> end                  stops (the game's end runs)
 // The player's files (cp.cfg, cb.dat) are in <outdir>; a missing cp.cfg is made windowed.
@@ -117,8 +118,8 @@ public:
 		return mTime;
 	}
 
-	// The sounds load as ids that play nothing. CB_SOUNDLOG=1 prints each call of the engine's sound and music, with the
-	// update, for comparing with the original's BASS calls (tools/play/soundcmp.py)
+	// The sounds load as ids that play nothing. CB_SOUNDLOG=1 prints each call of the engine's sound and music, with
+	// the update, for comparing with the original's BASS calls (tools/play/soundcmp.py)
 	bool mSoundLog = std::getenv("CB_SOUNDLOG") != nullptr;
 
 	void SoundLog(const char* theEvent, const char* theArg = "")
@@ -250,7 +251,9 @@ bool ReadScript(const char* thePath, std::vector<Event>& theEvents)
 			theEvents.push_back(e);
 	}
 	std::fclose(f);
-	std::stable_sort(theEvents.begin(), theEvents.end(), [](const Event& a, const Event& b) { return a.mTime < b.mTime; });
+	std::stable_sort(theEvents.begin(), theEvents.end(), [](const Event& a, const Event& b) {
+		return a.mTime < b.mTime;
+	});
 	return true;
 }
 
@@ -290,7 +293,8 @@ int main(int argc, char** argv)
 		return ComparePngs(argv[2], argv[3]);
 	if (argc < 4)
 	{
-		std::fprintf(stderr, "usage: cosmicbugs_run <gamedir> <outdir> <script>\n       cosmicbugs_run -same <png> <png>\n");
+		std::fprintf(stderr,
+			"usage: cosmicbugs_run <gamedir> <outdir> <script>\n       cosmicbugs_run -same <png> <png>\n");
 		return 2;
 	}
 	gHost.mDir = argv[1];
@@ -318,7 +322,8 @@ int main(int argc, char** argv)
 	{
 		f = std::fopen(aConfig.c_str(), "wb");
 		if (f != nullptr)
-			std::fprintf(f, "<CP_CONFIG\n    fullscreen=\"0\"\n    desktopResolution=\"0\"\n    wave=\"1\"\n    music=\"1\"\n/>\n");
+			std::fprintf(f,
+				"<CP_CONFIG\n    fullscreen=\"0\"\n    desktopResolution=\"0\"\n    wave=\"1\"\n    music=\"1\"\n/>\n");
 	}
 	if (f != nullptr)
 		std::fclose(f);
@@ -345,8 +350,8 @@ int main(int argc, char** argv)
 	size_t aNext = 0;
 	bool aRunning = true;
 	int aFrames = 0;
-	// CB_WATCH=1: origrun's --watch lines for the seed, the score, the lives and the filled cells, read after each frame
-	// (where origrun's virtual clock reads them, at the frame's wait), for comparing a run with the original's
+	// CB_WATCH=1: origrun's --watch lines for the seed, the score, the lives and the filled cells, read after each
+	// frame (where origrun's virtual clock reads them, at the frame's wait), for comparing a run with the original's
 	// (CB_WATCH=enemies: instead the tints of the board's first eight enemies, as origrun's [[0x473138]+0x41c]+0x40,
 	// [[[0x473138]+0x41c]]+0x40 and so on along the list)
 	bool aWatch = std::getenv("CB_WATCH") != nullptr;
@@ -380,13 +385,15 @@ int main(int argc, char** argv)
 			else if (e.mWhat == "state")
 			{
 				cb::Level* aLevel = cb::gLevels.mCurrent;
-				std::printf("%u ms: score %d, lives %d, board %d, filled %d of %d%%\n", gHost.mTime, cb::gScore, cb::gLives,
-					cb::gLevelInSet, aLevel != nullptr ? aLevel->mFilledCells : -1, aLevel != nullptr ? aLevel->mFillQuota : -1);
+				std::printf("%u ms: score %d, lives %d, board %d, filled %d of %d%%\n", gHost.mTime, cb::gScore,
+					cb::gLives, cb::gLevelInSet, aLevel != nullptr ? aLevel->mFilledCells : -1,
+					aLevel != nullptr ? aLevel->mFillQuota : -1);
 			}
 			else if (e.mWhat == "enemies")
 			{
 				std::printf("enemies at %u ms\n", gHost.mTime);
-				for (cb::Enemy* anEnemy = cb::gLevels.mCurrent->mEnemies.mHead; anEnemy != nullptr; anEnemy = cb::Node_Next(anEnemy))
+				for (cb::Enemy* anEnemy = cb::gLevels.mCurrent->mEnemies.mHead; anEnemy != nullptr;
+					anEnemy = cb::Node_Next(anEnemy))
 					std::printf("enemy at %.1f,%.1f tint %d anim %s\n", anEnemy->mX, anEnemy->mY, anEnemy->mTint,
 						anEnemy->mAnim != nullptr ? anEnemy->mAnim->mName : "-");
 			}
@@ -456,9 +463,11 @@ int main(int argc, char** argv)
 						anAt = aClose;
 						int x = 0, y = 0, n = 0;
 						size_t k;
-						if ((k = o.find("\"move\":[")) != std::string::npos && std::sscanf(o.c_str() + k + 8, "%d,%d", &x, &y) == 2)
+						if ((k = o.find("\"move\":[")) != std::string::npos &&
+							std::sscanf(o.c_str() + k + 8, "%d,%d", &x, &y) == 2)
 							anEvents.push_back({aTime, "move", x, y, ""});
-						else if ((k = o.find("\"click\":[")) != std::string::npos && std::sscanf(o.c_str() + k + 9, "%d,%d", &x, &y) == 2)
+						else if ((k = o.find("\"click\":[")) != std::string::npos &&
+							std::sscanf(o.c_str() + k + 9, "%d,%d", &x, &y) == 2)
 						{
 							int aButton = o.find("\"right\"") != std::string::npos ? 2 : 1;
 							anEvents.push_back({aTime, "move", x, y, ""});
@@ -466,7 +475,8 @@ int main(int argc, char** argv)
 							anEvents.push_back({aTime + 30, "up", aButton, 0, ""});
 							aTime += 40;
 						}
-						else if ((k = o.find("\"wait\":")) != std::string::npos && std::sscanf(o.c_str() + k + 7, "%d", &n) == 1)
+						else if ((k = o.find("\"wait\":")) != std::string::npos &&
+							std::sscanf(o.c_str() + k + 7, "%d", &n) == 1)
 							aTime += n;
 					}
 					std::stable_sort(anEvents.begin() + (long)aNext, anEvents.end(),

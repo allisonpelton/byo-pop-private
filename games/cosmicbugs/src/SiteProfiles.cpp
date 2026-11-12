@@ -1,9 +1,10 @@
 // port: Cosmic Bugs's part of the site's players on the web page (SiteProfiles.h; framework/WebProfiles.h). Web only.
 //
-// The game's players are the ten slots of gProfiles (cb.dat), each with a name (a free slot has the placeholder text Localize(GT(...))),
-// the level reached and the game in progress; the eleventh slot keeps the difficulty. The menu chooses (a slot item), renames and
-// deletes the current player, and a free slot asks for a name. This implements the page's view with the same fields and
-// SaveProfiles, as those menu items do (CBMenu.cpp, the cases 0x1b to 0x1f and Level_SetUserName).
+// The game's players are the ten slots of gProfiles (cb.dat), each with a name (a free slot has the placeholder text
+// Localize(GT(...))), the level reached and the game in progress; the eleventh slot keeps the difficulty. The menu
+// chooses (a slot item), renames and deletes the current player, and a free slot asks for a name. This implements the
+// page's view with the same fields and SaveProfiles, as those menu items do (CBMenu.cpp, the cases 0x1b to 0x1f and
+// Level_SetUserName).
 
 #ifdef __EMSCRIPTEN__
 #include "SiteProfiles.h"
@@ -17,8 +18,8 @@
 
 using namespace cb;
 
-// The text input of a name (TextInput_Init with 0xc characters, case mode 1) takes digits, letters (as capitals), the space and the
-// punctuation keys, unshifted and shifted, whose character the font has
+// The text input of a name (TextInput_Init with 0xc characters, case mode 1) takes digits, letters (as capitals), the
+// space and the punctuation keys, unshifted and shifted, whose character the font has
 static bool Typable(char c)
 {
 	if (((c >= '0') && (c <= '9')) || ((c >= 'A') && (c <= 'Z')) || (c == ' '))
@@ -38,7 +39,8 @@ static std::string Typed(const std::string& theName, int theMax, int theWidth, F
 		if (Typable(c) && ((theFont == NULL) || (Font_CharWidth(theFont, c) > 0)))
 			aResult += c;
 	}
-	while ((theWidth > 0) && (theFont != NULL) && !aResult.empty() && (Font_StringWidth(theFont, aResult.c_str()) > theWidth))
+	while ((theWidth > 0) && (theFont != NULL) && !aResult.empty() &&
+		(Font_StringWidth(theFont, aResult.c_str()) > theWidth))
 		aResult.erase(aResult.size() - 1);
 	return aResult;
 }
@@ -65,7 +67,10 @@ public:
 		return aNames;
 	}
 
-	virtual std::string Current() { return ((gProfile >= 0) && (gProfile < 10) && Used(gProfile)) ? gProfiles[gProfile].mName : ""; }
+	virtual std::string Current()
+	{
+		return ((gProfile >= 0) && (gProfile < 10) && Used(gProfile)) ? gProfiles[gProfile].mName : "";
+	}
 
 	virtual std::string Find(const std::string& theName)
 	{
@@ -75,7 +80,8 @@ public:
 
 	virtual std::string Fit(const std::string& theName) { return Typed(theName, 0xc, 0, Font_Find("bonus_font")); }
 
-	// A free slot's request for a name (case 0x1b) and its OK (Level_SetUserName): the slot is chosen and takes the name
+	// A free slot's request for a name (case 0x1b) and its OK (Level_SetUserName): the slot is chosen and takes the
+	// name
 	virtual bool Create(const std::string& theName, std::string* theWhy)
 	{
 		for (int i = 0; i < 10; i++)
@@ -107,8 +113,8 @@ public:
 
 	virtual bool CanRename() { return true; }
 
-	// The rename's OK (Level_SetUserName): the slot takes the name and keeps its progress. The records the player holds keep the
-	// name they were set under, as after the game's own rename.
+	// The rename's OK (Level_SetUserName): the slot takes the name and keeps its progress. The records the player holds
+	// keep the name they were set under, as after the game's own rename.
 	virtual bool Rename(const std::string& theFrom, const std::string& theTo, std::string* theWhy)
 	{
 		int aSlot = SlotOf(theFrom);
@@ -121,8 +127,8 @@ public:
 
 	virtual bool CanDelete() { return true; }
 
-	// Case 0x1f: the slot is emptied (name, level reached, shooter mode) and the first player left is chosen; the game does not
-	// delete the only player
+	// Case 0x1f: the slot is emptied (name, level reached, shooter mode) and the first player left is chosen; the game
+	// does not delete the only player
 	virtual bool Delete(const std::string& theName, std::string* theWhy)
 	{
 		int aSlot = SlotOf(theName);
@@ -154,10 +160,14 @@ public:
 
 	virtual const char* Rules()
 	{
-		return "Up to 12 characters, as capitals: letters, digits, spaces and punctuation the font has; ten players at most";
+		return "Up to 12 characters, as capitals: letters, digits, spaces and punctuation the font has; ten players at "
+			   "most";
 	}
 
-	virtual const char* DeleteNote() { return "the player's name and the level reached (as the game's delete does; a saved game and the records stay)"; }
+	virtual const char* DeleteNote()
+	{
+		return "the player's name and the level reached (as the game's delete does; a saved game and the records stay)";
+	}
 
 	virtual int MaxPlayers() { return 10; }
 

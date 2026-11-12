@@ -62,9 +62,12 @@ void Particle_Draw(Particle* theParticle)
 	if (255.0 < anAlpha)
 		anAlpha = 255.0;
 	theParticle->mAlpha = (int)anAlpha;
-	theParticle->mR = (int)((double)(theParticle->mEndR - theParticle->mStartR) * (double)aProgress + (double)theParticle->mStartR);
-	theParticle->mG = (int)((double)(theParticle->mEndG - theParticle->mStartG) * (double)aProgress + (double)theParticle->mStartG);
-	theParticle->mB = (int)((double)(theParticle->mEndB - theParticle->mStartB) * (double)aProgress + (double)theParticle->mStartB);
+	theParticle->mR = (int)((double)(theParticle->mEndR - theParticle->mStartR) * (double)aProgress +
+		(double)theParticle->mStartR);
+	theParticle->mG = (int)((double)(theParticle->mEndG - theParticle->mStartG) * (double)aProgress +
+		(double)theParticle->mStartG);
+	theParticle->mB = (int)((double)(theParticle->mEndB - theParticle->mStartB) * (double)aProgress +
+		(double)theParticle->mStartB);
 	if (theParticle->mFrameTime == 0)
 	{
 		Animation* anAnim = theParticle->mAnim;
@@ -395,7 +398,8 @@ void Emitter_Update(Obj* theObj)
 	}
 	ParticleSystem_New();
 	ParticleSystem_Add(gLevels.mCurrent->mSystems.mCurrent, (float)x, (float)y, aVx, aVy, 0, aLast, 0, aStartR, aStartG,
-		aStartB, anEndR, anEndG, anEndB, anEmitter->mStartAlpha, anEmitter->mEndAlpha, anEmitter->mTime, 0.999f, 0.0f, anEmitter->mDrawKind);
+		aStartB, anEndR, anEndG, anEndB, anEmitter->mStartAlpha, anEmitter->mEndAlpha, anEmitter->mTime, 0.999f, 0.0f,
+		anEmitter->mDrawKind);
 	gLevels.mCurrent->mSystems.mCurrent->mParticles.mCurrent->mAnim = anEmitter->mAnim;
 	ParticleSystem* aSystem = gLevels.mCurrent->mSystems.mCurrent;
 	aSystem->mParticles.mCurrent->mDepth = 0;

@@ -145,7 +145,8 @@ int Powerup_Collect(Powerup* thePowerup)
 			List_RemoveCurrent(aTexts);
 	});
 	Text_Append(aTexts);
-	Text_Make(aTexts->mCurrent, thePowerup->mText, Font_Find("main_font"), SCREEN_CENTRE_X, 0xe6, 0, 200, 2000, 200, 0, 0);
+	Text_Make(aTexts->mCurrent, thePowerup->mText, Font_Find("main_font"), SCREEN_CENTRE_X, 0xe6, 0, 200, 2000, 200, 0,
+		0);
 	const char* aSound;
 	switch (thePowerup->mKind)
 	{
@@ -322,8 +323,9 @@ int TimeBomb_Update(Weapon* theWeapon)
 			int aLifetime = RandRange(400, 500);
 			float aVy = (float)((double)RandRange(-0x32, 0x32) / 1200.0);
 			float aVx = (float)((double)RandRange(-0x32, 0x32) / 1200.0);
-			ParticleSystem_Add(gLevels.mCurrent->mSystems.mCurrent, (float)((double)theWeapon->mX - 0.0), (float)aTop, aVx,
-				aVy, aParticle, aParticle, 0, 0xff, 0xff, 0xff, 0xff, 0xff, 0, 400, 10, aLifetime, 0.999f, 0.0003f, 5);
+			ParticleSystem_Add(gLevels.mCurrent->mSystems.mCurrent, (float)((double)theWeapon->mX - 0.0), (float)aTop,
+				aVx, aVy, aParticle, aParticle, 0, 0xff, 0xff, 0xff, 0xff, 0xff, 0, 400, 10, aLifetime, 0.999f, 0.0003f,
+				5);
 		}
 		if ((int)theWeapon->mAge % 0xe6 == 0)
 		{
@@ -338,7 +340,8 @@ int TimeBomb_Update(Weapon* theWeapon)
 				CircleOverlap(theWeapon->mX, theWeapon->mY, 100.0f, theEnemy->mX, theEnemy->mY,
 					(float)(theEnemy->mImage->mW / 3)) != 0.0)
 			{
-				theEnemy->mDieAnim = Animation_Find("second_explo", &theEnemy->mDieFrameCount, &theEnemy->mDieFrameTime);
+				theEnemy->mDieAnim = Animation_Find("second_explo", &theEnemy->mDieFrameCount,
+					&theEnemy->mDieFrameTime);
 				Enemy_Kill(theEnemy, 500);
 			}
 		});
@@ -592,7 +595,8 @@ void Panel_Setup(Panel* thePanel)
 	thePanel->mAnim = Animation_Find("panel", &thePanel->mFrameCount, &thePanel->mFrameTime);
 	List<Obj>* anItems = &thePanel->mItems;
 	Panel_AppendItem(anItems);
-	anItems->mCurrent->mAnim = Animation_Find("logo_o", &anItems->mCurrent->mFrameCount, &anItems->mCurrent->mFrameTime);
+	anItems->mCurrent->mAnim = Animation_Find("logo_o", &anItems->mCurrent->mFrameCount,
+		&anItems->mCurrent->mFrameTime);
 	anItems->mCurrent->mX = 540.0f;
 	anItems->mCurrent->mY = 542.0f;
 	anItems->mCurrent->mMidHandle = 1;
