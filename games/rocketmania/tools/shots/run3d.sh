@@ -9,6 +9,9 @@ H=$(date +%H)
 if [ "$H" -ge 8 ] && [ "$H" -lt 22 ]; then echo "run3d: not between 22:00 and 08:00"; exit 2; fi
 SUF=3d; REG=1; [ "$ON" = off ] && { SUF=2d; REG=0; }
 D=build/ph2/$N
+# a copy of the build (build/native3d: the exe, the DLLs and mods-rocketmania, made by hand before the night) is the port of the run when it
+# exists, so that a rebuild during the night leaves the evidence alone
+[ -f build/native3d/rocketmania.exe ] && export PORT_EXE=build/native3d/rocketmania.exe
 mkdir -p "$D"
 until python tools/gamecount.py --limit 6 > /dev/null 2>&1; do sleep 20; done
 python games/rocketmania/tools/shots/visrun3d.py "$N" --3d "$ON" --seed ${GS:-1} || exit 1
