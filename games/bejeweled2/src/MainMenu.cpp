@@ -692,7 +692,7 @@ void MainMenu::Update()
 void MainMenu::Draw(Graphics* g)
 {
 	bool is3d = mApp->Is3DAccelerated();
-	if (mApp->mBoard != NULL && mApp->mBoard->mEffectOverlay->mFlagC9 && !is3d)
+	if (mApp->mBoard != NULL && mApp->mBoard->mEffectOverlay->mPortalOpen && !is3d)
 		return;
 
 	int anOffset = (int)mApp->ScaleNum(mSlide.GetOutVal(), 0.0);

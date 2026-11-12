@@ -20,7 +20,7 @@ static const int HINT_TIME = 290;
 // the step of a move for each direction (dx, dy)
 static const int gMoveStep[4][2] = {{-1, 0}, {0, -1}, {1, 0}, {0, 1}};
 
-// the move that makes the same swap seen from the other gem
+// port: the move that makes the same swap seen from the other gem
 static unsigned char OppositeMove(unsigned char theMove)
 {
 	int aDir = theMove >> 6;
@@ -95,8 +95,8 @@ void Board::SolutionCommitMove(unsigned char theMove)
 void Board::ShowNextPuzzleMove()
 {
 	ClearPieceHints();
-	m1918++;
-	m15ea9 = true;
+	mHintsUsed++;
+	mHintAccepted = true;
 	unsigned int aMoves[64];
 	int aMoveCount = FindPuzzleValidMoves(aMoves, 0x40);
 	if (aMoveCount == 0)
@@ -131,28 +131,28 @@ void Board::ShowNextPuzzleMove()
 	{
 		aFirst->mHintFrame = 0;
 		aFirst->mHintTime = HINT_TIME;
-		aFirst->mA4 = 1;
+		aFirst->mGemFrame = 1;
 	}
 	Piece* aSecond = mBoard[aRow2][aCol2];
 	if (aSecond == NULL)
 	{
-		aFirst->mB0 = aDX;
-		aFirst->mB4 = aDY;
+		aFirst->mHintMoveX = aDX;
+		aFirst->mHintMoveY = aDY;
 	}
 	else
 	{
-		aFirst->mB0 = 0;
-		aFirst->mB4 = 0;
+		aFirst->mHintMoveX = 0;
+		aFirst->mHintMoveY = 0;
 		aSecond->mHintTime = HINT_TIME;
 		aSecond->mHintFrame = 0;
-		aSecond->mA4 = 1;
-		aSecond->mB0 = 0;
-		aSecond->mB4 = 0;
+		aSecond->mGemFrame = 1;
+		aSecond->mHintMoveX = 0;
+		aSecond->mHintMoveY = 0;
 	}
-	m15eb0 = aRow;
-	m15eac = aCol;
-	m15eb4 = aCol2;
-	m15eb8 = aRow2;
+	mHintFromRow = aRow;
+	mHintFromCol = aCol;
+	mHintToCol = aCol2;
+	mHintToRow = aRow2;
 }
 
 // 0x5a5d6e: reads <puzzle>.sol: the hash of the board that it fits, the first node, and the nodes with their moves
@@ -205,7 +205,7 @@ bool Board::LoadSolution(const std::string& theFileName)
 	return true;
 }
 
-// the type of a gem in a puzzle file: version 1 swaps the numbers 7 and 8
+// port: the type of a gem in a puzzle file: version 1 swaps the numbers 7 and 8
 static int PuzzleFileType(int theVersion, int theType)
 {
 	if (theVersion == 1)
@@ -253,24 +253,24 @@ bool Board::LoadPuzzle(const std::string& theFileName)
 				aPiece->mX = (float)GetColX(aCol);
 				aPiece->mY = (float)GetRowY(aRow);
 				if (aType == 8)
-					aPiece->m58 = aBuffer.ReadByte();
+					aPiece->mCountdown = aBuffer.ReadByte();
 				if ((aFlags & 1) != 0)
-					aPiece->m70 = true;
+					aPiece->mFlame = true;
 				mBoard[aRow][aCol] = aPiece;
 			}
 		}
 	}
 	mSolutionNode = -1;
-	m1723 = false;
+	mFreeMode = false;
 	mIsPuzzle = true;
 	mIsAction = false;
-	m15ea9 = true;
+	mHintAccepted = true;
 	mState = STATE_IDLE;
-	m1850 = false;
+	mPodArrowShown = false;
 	mSolutionHash = 0;
 	mSolutionNodes.clear();
-	m1918 = 0;
-	m1774 = mScore;
+	mHintsUsed = 0;
+	mScoreSnapshot = mScore;
 	ClearUndoBuffers();
 	std::string aSolutionFile = GetFileDir(theFileName, false) + "\\" + GetFileName(theFileName, true) + ".sol";
 	LoadSolution(aSolutionFile);
@@ -320,12 +320,12 @@ bool Board::LoadPuzzleThumb(const std::string& theFileName, int (*theThumb)[8])
 // original also prints the percentage to the debugger every 100 updates
 void Board::UpdateBonusPenalty()
 {
-	double aValue = (double)m1994 / 500.0 + 0.65;
+	double aValue = (double)mBarShown / 500.0 + 0.65;
 	float aPercent = (float)aValue;
 	if (1.0 <= aValue)
 		aPercent = 1.0f;
 
-	m15ef8 = (double)aPercent * m15f00 / 100.0 + m15ef8;
-	m15f00 = (double)aPercent * m15f08 / 100.0 + m15f00;
-	m15f08 = (double)aPercent * m15f10 / 100.0 + m15f08;
+	mDrain = (double)aPercent * mDrainSpeed / 100.0 + mDrain;
+	mDrainSpeed = (double)aPercent * mDrainAccel / 100.0 + mDrainSpeed;
+	mDrainAccel = (double)aPercent * mDrainJerk / 100.0 + mDrainAccel;
 }

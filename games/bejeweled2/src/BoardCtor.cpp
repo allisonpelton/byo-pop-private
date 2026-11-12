@@ -30,8 +30,9 @@ extern Color* const gOrigGemColors;
 // constructor makes them once
 float gSinTable[4096];
 float gCosTable[4096];
-static bool gTablesMade = false;        // DAT_006797c8
+static bool gTablesMade = false;        // 0x6797c8
 
+// port: the board's memory is zeroed first (Board.h)
 void* Board::operator new(size_t theSize)
 {
 	void* aPointer = ::operator new(theSize);
@@ -39,6 +40,7 @@ void* Board::operator new(size_t theSize)
 	return aPointer;
 }
 
+// port: pairs with the operator new above
 void Board::operator delete(void* thePointer)
 {
 	::operator delete(thePointer);
@@ -59,19 +61,19 @@ Board::Board(WinDMApp* theApp)
 	mBombCountdown = mApp->GetInteger("BombCountdown");
 	mRockChance = mApp->GetDouble("RockChance");
 	mPowerGemChance = mApp->GetDouble("PowerGemChance");
-	m15e30 = (double)mApp->mTimedBonus;
-	m15e38 = mApp->mTimedBonusMult;
+	mTimedGoal = (double)mApp->mTimedBonus;
+	mTimedGoalStep = mApp->mTimedBonusMult;
 
 	// (the original also seeds its recorder, GameStateEngine, with this number; the port has no recorder)
 	int aSeed = Rand();
 	mRand.SRand(aSeed);
 
 	mBackdropNum = -1;
-	m184c = 0.0f;
+	mShootingStarPos = 0.0f;
 	mEndInfoProcessed = false;
 	mBackdropImage = NULL;
 	mNextBackdropImage = NULL;
-	m1848 = false;
+	mShootingStar = false;
 	for (int aRow = 0; aRow < 8; aRow++)
 		for (int aCol = 0; aCol < 8; aCol++)
 			mBoard[aRow][aCol] = NULL;
@@ -107,33 +109,33 @@ Board::Board(WinDMApp* theApp)
 			float aDX = (float)((double)aX - 42.0);
 			aPoint->mAngle = (float)((double)(float)atan2((double)aDY, (double)aDX) + 6.28318);
 			float aDist = (float)((double)(aDX * aDX) + aDY2);
-			aPoint->mRadius = (float)sqrt(aDist);   // (Ghidra calls the exe's sqrtf wrapper "logf")
+			aPoint->mRadius = (float)sqrt(aDist);
 			aPoint->mScale = 1.0f;
 		}
 	}
 
-	m15e04 = 0.0f;
-	m15d9c = 0.0f;
-	m15f18 = false;
+	mInterfaceRestore = 0.0f;
+	mWhirlStrength = 0.0f;
+	mBarBlink = false;
 	mHyperspace = NULL;
-	m15df0 = 0;
-	m15de8 = false;
-	m15db0.SetOutRange(0.0, 1.0);
-	m15db0.SetMode(0);
-	m15db0.SetRamp(1);
-	m1858 = 0.0;
-	m1860 = 0.0;
+	mHyperspaceDelay = 0;
+	mPlayWhirlSound = false;
+	mInterfaceFlyRamp.SetOutRange(0.0, 1.0);
+	mInterfaceFlyRamp.SetMode(0);
+	mInterfaceFlyRamp.SetRamp(1);
+	mPodArrowPhase = 0.0;
+	mHintButtonArrowPhase = 0.0;
 	mUndoIndex[0] = -1;
 	mUndoIndex[1] = -1;
 	mFadeIn = 1.0f;
 	mSolutionNode = -1;
 	mSolutionFirstNode = -1;
-	m15fac = 1.0f;
-	m15fb4 = 1.0f;
-	m1764 = 300;
-	m1768 = 0;
-	m1850 = false;
-	m15fb8 = false;
+	mPuzzleFade = 1.0f;
+	mPauseFade = 1.0f;
+	mStartCountdown = 300;
+	mLevelTextCountdown = 0;
+	mPodArrowShown = false;
+	mPauseTextOn = false;
 	mSolutionMove = 0;
 	mSolutionHash = 0;
 	mSolutionValid = false;
@@ -144,9 +146,9 @@ Board::Board(WinDMApp* theApp)
 	mTutorialButton2 = NULL;
 	mTutorialWidget = NULL;
 	mBackLink = NULL;
-	m194d = false;
-	m194c = false;
-	m194e = false;
+	mPowerGemTipShown = false;
+	mFlameFromCross = false;
+	mHyperCubeTipShown = false;
 	mHintPiece = 0;
 	mNoMoveYet = true;
 
@@ -170,63 +172,63 @@ Board::Board(WinDMApp* theApp)
 	}
 
 	mShakeSize = 0.0f;
-	m191c = false;
+	mFinale = false;
 	mShakeTime = 0.0f;
-	m1723 = false;
+	mFreeMode = false;
 	mInUndoPreview = false;
-	m190c = 0;
+	mShowPlanetCountAtStart = 0;
 	mSelectedPiece = NULL;
-	m15e54 = 0;
-	m15e58 = 0;
+	mLastLandSoundTick = 0;
+	mGameOverDelay = 0;
 	mShakeX = 0;
 	mShakeY = 0;
-	m15e14 = 0;
-	m15e18 = 0;
+	mGameSeconds = 0;
+	mSecondsCredited = 0;
 	mPlayedSeconds = 0;
-	m15e44 = 0;
-	m15e48 = 0;
-	m15e6c = 0;
-	m15e70 = 0;
-	m15e7c = 0;
-	m15e80 = 0;
-	m15e84 = 0;
-	m15e88 = 0;
+	mGemsCleared = 0;
+	mGemsCredited = 0;
+	mBiggestCascade = 0;
+	mBiggestCombo = 0;
+	mPowerGemsMade = 0;
+	mPowerGemsCredited = 0;
+	mHyperCubesMade = 0;
+	mHyperCubesCredited = 0;
 	mScore = 0;
-	m15e40 = 0;
-	m15f1c = 0x17;
-	m15f20 = 0;
-	m15e94 = 0;
+	mShownScore = 0;
+	mTimerFrame = 0x17;
+	mLastWarningTick = 0;
+	mMoveScore = 0;
 	mHoverPod = -1;
 	mPendingPod = -1;
 	mDropDelay = mIsPuzzle ? 0 : 0xb4;
-	m15e98 = 0;
-	m15ea0 = 0.0;
-	m15f24 = false;
-	m1910 = 0;
-	m15ea8 = true;
-	m15eac = -1;
-	m15eb0 = -1;
-	m15eb4 = -1;
-	m15eb8 = -1;
-	m15ea9 = false;
+	mBigMoveTimer = 0;
+	mBigMoveGlow = 0.0;
+	mBoardInOverlay = false;
+	mMoreHintsDelay = 0;
+	mMovedSinceHint = true;
+	mHintFromCol = -1;
+	mHintFromRow = -1;
+	mHintToCol = -1;
+	mHintToRow = -1;
+	mHintAccepted = false;
 	mUnpauseDelay = 0;
-	m15f38 = false;
+	mMouseHeld = false;
 	mPlayStartTick = 0;
 	mPauseCount = 0;
 	mInterfacePauseCount = 0;
-	m15ee0 = false;
-	m15ee8 = 0;
-	m15ee4 = 0;
-	m15ef8 = 0.0;
-	m15f00 = 0.0;
-	m1602c = 0;
-	m16024 = 0;
-	m16028 = 0;
-	m16030 = 0;
+	mSkipBestRecords = false;
+	mLevelStartScore = 0;
+	mNeverSetScoreMark = 0;
+	mDrain = 0.0;
+	mDrainSpeed = 0.0;
+	mCheerDelay = 0;
+	mCheerGiven = 0;
+	mCheerTier = 0;
+	mLastGoodTick = 0;
 	mSwapPiece[0] = NULL;
 	mSwapPiece[1] = NULL;
 	mSwapFade = 1.0f;
-	m15edc = FONT_SCORE;
+	mScoreFont = FONT_SCORE;
 	mNextLevel = 1;
 	// the picture that the level text is drawn into for the glow (+0x15f54)
 	// the picture of the level number that the endless mode keeps
@@ -235,15 +237,15 @@ Board::Board(WinDMApp* theApp)
 	mFontGlowImage->SetImageMode(true, true);
 
 	SetupLevelData();
-	m15eec = m15ef0;
-	m1998 = 0;
-	m1994 = 0;
-	m15f88 = 0xfa;
-	m15f90 = 0.0;
-	m15f98 = 0.0;
-	m15fa0 = 0.0;
-	m1728 = NULL;
-	m15e4c = 0;
+	mLevelGoalScore = mLevelGoalPoints;
+	mPlayUpdates = 0;
+	mBarShown = 0;
+	mDrainGrace = 0xfa;
+	mWarpFade = 0.0;
+	mBlackHoleAngle = 0.0;
+	mBlackHoleSpin = 0.0;
+	mFadingSound = NULL;
+	mSetsInMove = 0;
 	mCascadeCount = 0;
 	mStarRot = 0.0;
 	mStarDrift = 0.0;
@@ -257,7 +259,7 @@ Board::Board(WinDMApp* theApp)
 		NewBoard();
 	else if (mIsSecret)
 		LoadNextSecretPuzzle();
-	m1751 = false;
+	mClearBacklog = false;
 
 	// the overlays: the pods of the puzzle packs, the map of the galaxies, and the big texts
 	if (!mIsPuzzle || mIsSecret)
@@ -307,11 +309,11 @@ Board::Board(WinDMApp* theApp)
 
 	mCoversScreenFlag = false;
 	mScreenState = SCREEN_HIDDEN;
-	m15f60 = NULL;
-	m15f64 = NULL;
-	m15f69 = true;
-	m17d0 = false;
-	m17d4 = 0;
+	mStaticImage = NULL;
+	mGemImage = NULL;
+	mRedrawBackground = true;
+	mHyperGlow = false;
+	mHyperGlowDelay = 0;
 	mSweep0 = 0;
 	mSweep1 = 0;
 	mSweep2 = 0;
@@ -319,9 +321,9 @@ Board::Board(WinDMApp* theApp)
 	mSweepB = 0;
 	mSweepTimer = 0;
 	mHintCountdown = 0;
-	m15f68 = false;
+	mCountBombs = false;
 	mLastExplodeSoundTick = 0;
-	m1770 = true;
+	mStartGameMusic = true;
 	mSecretRun = 0;
 	mSecretSolved = 0;
 	if (mApp->mGameMode < 4)
@@ -330,14 +332,14 @@ Board::Board(WinDMApp* theApp)
 		mSecretModeUnlocked = false;
 	ResizeButtons();
 	CreateFontGlowImages();
-	m165ae = false;
-	m165ac = false;
-	m165ad = false;
+	mImagesChanged = false;
+	mOldSkool = false;
+	mXmas = false;
 	mCheated = false;
-	m165af = false;
-	m165b8 = false;
-	m165bc = NULL;
-	m165c0 = false;
+	mSlowMotion = false;
+	mNausea = false;
+	mCheatStars = NULL;
+	mNoFrame = false;
 }
 
 // 0x5a5abe, 0x59b55a (the loop that deletes the score texts of mPoints, inlined; the original deletes them from the back)
@@ -365,8 +367,8 @@ Board::~Board()
 	ProcessEndGameInfo();
 
 	delete mPuzzleOverlay;
-	delete m15f64;
-	delete m15f60;
+	delete mGemImage;
+	delete mStaticImage;
 	delete mFontGlowImage;
 	delete mBackdropImage;
 	delete mNextBackdropImage;
@@ -374,13 +376,13 @@ Board::~Board()
 	delete mMenuButton;
 	delete mHintButton;
 	delete mThirdButton;
-	delete m165bc;
+	delete mCheatStars;
 	for (size_t i = 0; i < mPoints.size(); i++)
 		delete mPoints[i];
 	mPoints.clear();
 	KillTutorialButtons();
-	if (m1728 != NULL)
-		m1728->Release();
+	if (mFadingSound != NULL)
+		mFadingSound->Release();
 	mApp->KillDialog(0x25);
 	// (the trial's counter of games played, at the application's +0x734, is not ported)
 	delete mHyperspace;
@@ -405,7 +407,7 @@ void Board::ButtonDepress(int theId)
 		mApp->DoOptions();
 		break;
 	case 1:
-		if (!mIsPuzzle || !mIsSecret || m1918 != 0)
+		if (!mIsPuzzle || !mIsSecret || mHintsUsed != 0)
 			TryShowHint();
 		else if (mState != 0x14)
 			mApp->DoDialog(0x17, true, "Warning!",
@@ -427,7 +429,7 @@ void Board::ButtonDepress(int theId)
 			// the secret puzzles' "Play Again"
 			KillTutorialButtons();
 			mApp->DoNewGame();
-			mApp->mBoard->m1764 = 0x32;
+			mApp->mBoard->mStartCountdown = 0x32;
 		}
 		else if (!mIsSecret)
 			SelectPuzzlePod(-1);
@@ -448,7 +450,7 @@ void Board::ButtonDepress(int theId)
 		else
 		{
 			DeferredSelectPuzzlePod(0);
-			m1764 = 0x4b;
+			mStartCountdown = 0x4b;
 		}
 		break;
 	case 500:

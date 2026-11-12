@@ -120,8 +120,8 @@ static void UnlockAll(Profile* theProfile)
 		theProfile->mModeLevel[0] = 17;
 	if (theProfile->mModeLevel[1] < 8)
 		theProfile->mModeLevel[1] = 8;
-	if (theProfile->mTotal7C < 80)
-		theProfile->mTotal7C = 80;
+	if (theProfile->mGalaxyOneSolved < 80)
+		theProfile->mGalaxyOneSolved = 80;
 	if (theProfile->mModeLevel[3] < 280)
 		theProfile->mModeLevel[3] = 280;
 }
@@ -151,7 +151,7 @@ void WinDMApp::TraceUpdate()
 		// +0x1714 and +0x1768
 		aValue[5] = mBoard->mDropDelay;
 		aValue[6] = mBoard->mScreenState;
-		aValue[7] = mBoard->m1768;
+		aValue[7] = mBoard->mLevelTextCountdown;
 	}
 	{
 		// watch 5: the global generator's index, which the original's [0x67cf50 + 0x9c0] is (the draws of Rand())
@@ -400,7 +400,7 @@ bool WinDMApp::HandleTestCommand(const ScriptCommand& theCommand)
 				for (int aCol = 0; aCol < 8; aCol++)
 				{
 					Piece* aPiece = aBoard->mBoard[aRow][aCol];
-					aFlames += (aPiece != NULL && aPiece->m70) ? 'f' : '.';
+					aFlames += (aPiece != NULL && aPiece->mFlame) ? 'f' : '.';
 				}
 				aFlames += "\"";
 			}
@@ -825,11 +825,11 @@ bool WinDMApp::HandleTestCommand(const ScriptCommand& theCommand)
 			aBoard->mLevel = aLevel - 2;
 			aBoard->mNextLevel = aLevel - 1;
 		}
-		int aGoal = aBoard->m15eec + (int)aBoard->m15ef8;  // the level's target score plus the drained time
+		int aGoal = aBoard->mLevelGoalScore + (int)aBoard->mDrain;  // the level's target score plus the drained time
 		if (aBoard->mScore < aGoal)
 			aBoard->mScore = aGoal;
-		if (aBoard->m15e40 < aGoal)
-			aBoard->m15e40 = aGoal;  // the shown score that the bar is made from
+		if (aBoard->mShownScore < aGoal)
+			aBoard->mShownScore = aGoal;  // the shown score that the bar is made from
 		ReplyOK(theCommand);
 		return true;
 	}

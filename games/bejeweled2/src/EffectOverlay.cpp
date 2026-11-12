@@ -152,8 +152,8 @@ EffectOverlay::EffectOverlay(WinDMApp* theApp)
 	mTextWidth = 0;
 	mMouseVisible = false;
 	mLineProgress = 0;
-	mFlagC8 = false;
-	mFlagC9 = false;
+	mClearBacklogAfterPortal = false;
+	mPortalOpen = false;
 	mTextOn = 0;
 	mFaceState = 0;
 	mMorphTimer = 0;
@@ -163,7 +163,7 @@ EffectOverlay::EffectOverlay(WinDMApp* theApp)
 	// The original leaves the rest of the members as the heap had them. Nothing reads them before DoStrechyText, DoPortal or
 	// InitFace has set them (Board reads mEndTimer and mFade only once the end screen runs), so the port zeroes them.
 	mTextAlpha = 0;
-	m9c = 0;
+	mTextSizeFactor = 0;
 	mTextScale = 0;
 	mTextScaleVel = 0;
 	mTextStretch = 0;
@@ -195,7 +195,7 @@ EffectOverlay::~EffectOverlay()
 // 0x5b524c
 void EffectOverlay::DoStrechyText(const std::string& theText, int theDelay)
 {
-	m9c = 0.73f;                    // 0x3f3ae148
+	mTextSizeFactor = 0.73f;                    // 0x3f3ae148
 	mTextOn = 1;
 	mTextAlpha = 0.0f;
 	mTextHold = 30;
@@ -231,7 +231,7 @@ void EffectOverlay::DoStrechyText(const std::string& theText, int theDelay)
 void EffectOverlay::DoPortal()
 {
 	mPortalProgress = 0;
-	mFlagC9 = true;
+	mPortalOpen = true;
 	mPortalDelay = 0x14;
 	if (!mApp->Is3DAccelerated())
 		mApp->KillMainMenu();
@@ -368,7 +368,7 @@ void EffectOverlay::DoUpdate()
 	}
 
 	// the portal: it opens when the delay is over, and the board is shown when it has opened
-	if (mFlagC9)
+	if (mPortalOpen)
 	{
 		if (mPortalDelay > 0)
 		{
@@ -383,7 +383,7 @@ void EffectOverlay::DoUpdate()
 			mPortalProgress = aProgress;
 			if (1.0f < aProgress)
 			{
-				mFlagC9 = false;
+				mPortalOpen = false;
 				mApp->DoBoardShow();
 			}
 		}
@@ -609,14 +609,14 @@ void EffectOverlay::Draw(Graphics* g)
 	{
 		if (aBoard->mScreenState == 1 && aBoard->mPauseCount == aBoard->mInterfacePauseCount && aBoard->mInterfacePauseCount > 0)
 			return;
-		if (aBoard->m15f24)
+		if (aBoard->mBoardInOverlay)
 			aBoard->DrawBoard(g, true, false);
 
 		// the arrow over the gem that a tip is about
 		aBoard = mApp->mBoard;
 		if (aBoard->mHintPiece != NULL)
 		{
-			float aCos = Cosf(aBoard->m1954);
+			float aCos = Cosf(aBoard->mHintArrowPhase);
 			float aPhase = (float)(1.0 - (double)aCos);
 			float aBob = (float)((double)aPhase * 0.5);
 			int aGemY = FTol((double)aBoard->mHintPiece->mY);
@@ -640,10 +640,10 @@ void EffectOverlay::Draw(Graphics* g)
 
 		// the arrow over the pod of the puzzle that is next
 		aBoard = mApp->mBoard;
-		if (aBoard->mScreenState == 1 && aBoard->mPuzzleOverlay != NULL && aBoard->m1850 && aBoard->mState == 0x11 && !aBoard->mIsPlanetIntro)
+		if (aBoard->mScreenState == 1 && aBoard->mPuzzleOverlay != NULL && aBoard->mPodArrowShown && aBoard->mState == 0x11 && !aBoard->mIsPlanetIntro)
 		{
 			Point aPos = aBoard->mPuzzleOverlay->mPods[mApp->mProfile->GetPuzzleNum() % 5].GetPos();
-			double aCos = cos(mApp->mBoard->m1858);
+			double aCos = cos(mApp->mBoard->mPodArrowPhase);
 			float aPhase = (float)(1.0 - aCos);
 			float aBob = (float)((double)aPhase * 0.5);
 			int aTop = aPos.mY - FTol((double)aBob * -6.0) - 0x20;
@@ -667,7 +667,7 @@ void EffectOverlay::Draw(Graphics* g)
 	// the big text
 	if (mTextOn != 0 && mApp->mBoard != NULL && mApp->mBoard->mScreenState == 1)
 	{
-		float aScale = (float)((double)mTextScale * (double)m9c);
+		float aScale = (float)((double)mTextScale * (double)mTextSizeFactor);
 		float aStretch = mTextStretch;
 		if (!a3D)
 		{
@@ -702,7 +702,7 @@ void EffectOverlay::Draw(Graphics* g)
 	}
 
 	// the portal of the warp
-	if (mFlagC9 && 0.0f < mPortalProgress)
+	if (mPortalOpen && 0.0f < mPortalProgress)
 	{
 		// (the original waits here for the task that loads the backdrop; the port loads in line)
 		double aProgress = (double)mPortalProgress;
@@ -934,10 +934,10 @@ void EffectOverlay::Draw(Graphics* g)
 		} while (aGemNum < (int)mGems.size());
 	}
 
-	if (mFlagC8)
+	if (mClearBacklogAfterPortal)
 	{
 		mApp->ClearUpdateBacklog(false);
-		mFlagC8 = false;
+		mClearBacklogAfterPortal = false;
 	}
 
 	if (0.0f < mFlash)

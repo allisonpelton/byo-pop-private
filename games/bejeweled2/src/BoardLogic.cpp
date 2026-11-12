@@ -17,7 +17,7 @@
 
 using namespace Sexy;
 
-// the dialog button of the board's puzzle screens (id 400 and 401), added to the widget manager (the same five steps
+// port: the dialog button of the board's puzzle screens (id 400 and 401), added to the widget manager (the same five steps
 // each time in the original)
 PodDialogButton* Board::AddBoardButton(int theId, const char* theLabel)
 {
@@ -33,8 +33,8 @@ PodDialogButton* Board::AddBoardButton(int theId, const char* theLabel)
 void Board::AdvanceTutorial()
 {
 	mTutorialStep++;
-	m1944 = 1.0f;
-	m1948 = 0.0f;
+	mTutorialMoveFade = 1.0f;
+	mTutorialNextFade = 0.0f;
 }
 
 // 0x5a92ed: the puzzle of a pod (0 to 4) or, with -1, the planet's intro puzzle
@@ -50,11 +50,11 @@ void Board::SelectPuzzlePod(int thePod)
 	if (thePod == -1)
 	{
 		mIsPlanetIntro = true;
-		m1764 = 0;
+		mStartCountdown = 0;
 		mTutorialText = aPlanet.mTutorialText;
 		mTutorialMoves = aPlanet.mTutorialMoves;
-		m1944 = 0;
-		m1948 = 0;
+		mTutorialMoveFade = 0;
+		mTutorialNextFade = 0;
 		mTutorialStep = 0;
 		LoadPuzzle(PuzzlePath(aPlanet.mTutorialFile, aDir));
 	}
@@ -81,12 +81,13 @@ void Board::DeferredSelectPuzzlePod(int thePod)
 	}
 }
 
-// the undo list and index of the current board kind (the original keeps two, selected by mInUndoPreview)
+// port: the undo list and index of the current board kind (the original keeps two, selected by mInUndoPreview)
 std::list<Buffer>& Board::GetUndoList()
 {
 	return mUndoList[mInUndoPreview ? 0 : 1];
 }
 
+// port: the index of the undo list of the current board kind
 int& Board::GetUndoIndex()
 {
 	return mUndoIndex[mInUndoPreview ? 0 : 1];
@@ -122,7 +123,7 @@ void Board::Undo()
 
 	KillTutorialButtons();
 	mState = STATE_IDLE;
-	m1850 = false;
+	mPodArrowShown = false;
 	mSelectedPiece = NULL;
 	mSwapPiece[0] = NULL;
 	mSwapPiece[1] = NULL;
@@ -145,7 +146,7 @@ void Board::Undo()
 	}
 }
 
-// 0x597525-ish test of FUN_0059806c: there is an older state to go back to
+// 0x59806c: there is an older state to go back to (the test of UndoUntilSolvable)
 bool Board::CanUndo()
 {
 	return GetUndoIndex() < (int)GetUndoList().size() - 1;
@@ -160,14 +161,14 @@ void Board::UndoUntilSolvable()
 			break;
 		Undo();
 	}
-	m15ea9 = true;
+	mHintAccepted = true;
 }
 
 // 0x5a9729: the next puzzle of the secret galaxy (Cognito): the puzzles of every planet are queued once, mixed a
 // little and taken one after the other
 void Board::LoadNextSecretPuzzle()
 {
-	m15fac = 0.0f;
+	mPuzzleFade = 0.0f;
 	if (mSecretPuzzles.empty())
 	{
 		mApp->LoadGalaxyData();
@@ -198,7 +199,7 @@ void Board::PuzzleCompleted()
 {
 	if (mIsSecret)
 	{
-		if (m1918 == 0)
+		if (mHintsUsed == 0)
 		{
 			mSecretSolved++;
 			mSecretRun++;
@@ -232,7 +233,7 @@ void Board::PuzzleCompleted()
 		{
 			mApp->PlaySample(SOUND_WARP_DRIVE_READY);
 			mEffectOverlay->DoStrechyText("WARP READY", 0x50);
-			mEffectOverlay->m9c = (float)(mEffectOverlay->m9c * 0.8);
+			mEffectOverlay->mTextSizeFactor = (float)(mEffectOverlay->mTextSizeFactor * 0.8);
 		}
 		else
 		{
@@ -253,8 +254,8 @@ void Board::PuzzleCompleted()
 			if (aProgress->mSolved[i] != 0)
 				aCount++;
 		}
-		if (mApp->mProfile->mTotal7C < aCount)
-			mApp->mProfile->mTotal7C = aCount;
+		if (mApp->mProfile->mGalaxyOneSolved < aCount)
+			mApp->mProfile->mGalaxyOneSolved = aCount;
 	}
 	if (mState == STATE_IDLE)
 		mState = 0x10;
@@ -307,9 +308,9 @@ void Board::UpdateFalling()
 	}
 	if (aLandCount > 0)
 	{
-		if (abs(m15e54 - mUpdateCnt) >= 10)
+		if (abs(mLastLandSoundTick - mUpdateCnt) >= 10)
 		{
-			m15e54 = mUpdateCnt;
+			mLastLandSoundTick = mUpdateCnt;
 			mApp->PlaySample(SOUND_GEM_HIT, GetPanPosition(aLandX / aLandCount));
 		}
 	}
@@ -320,12 +321,12 @@ void Board::UpdateFalling()
 			mState = 5;
 		else
 		{
-			if (!m15ee0)
+			if (!mSkipBestRecords)
 			{
-				if (m15e6c < mCascadeCount)
-					m15e6c = mCascadeCount;
-				if (m15e70 < m15e94)
-					m15e70 = m15e94;
+				if (mBiggestCascade < mCascadeCount)
+					mBiggestCascade = mCascadeCount;
+				if (mBiggestCombo < mMoveScore)
+					mBiggestCombo = mMoveScore;
 			}
 			bool aHasMove = FindMove(NULL, 0, true, true);
 			mState = STATE_IDLE;
@@ -348,14 +349,14 @@ void Board::UpdateFalling()
 			}
 			if (mIsAction)
 			{
-				double aGrace = (double)m15e94 / mLevelValue * mApp->mGraceSecondsMult + mApp->mGraceSeconds;
+				double aGrace = (double)mMoveScore / mLevelValue * mApp->mGraceSecondsMult + mApp->mGraceSeconds;
 				if (mApp->mGraceSecondsMax <= aGrace)
 					aGrace = mApp->mGraceSecondsMax;
-				m15f88 += (int)(aGrace * 100.0);
+				mDrainGrace += (int)(aGrace * 100.0);
 			}
 
 			bool aBombExploded = false;
-			if (m15f68)
+			if (mCountBombs)
 			{
 				for (int aRow = 0; aRow < 8; aRow++)
 				{
@@ -364,17 +365,17 @@ void Board::UpdateFalling()
 						Piece* aPiece = mBoard[aRow][aCol];
 						if (aPiece != NULL && aPiece->mType == 8)
 						{
-							if (aPiece->m58 == 0)
+							if (aPiece->mCountdown == 0)
 							{
 								ExplodeAt(aCol, aRow);
 								aBombExploded = true;
 							}
 							else
-								aPiece->m58--;
+								aPiece->mCountdown--;
 						}
 					}
 				}
-				m15f68 = false;
+				mCountBombs = false;
 				if (aBombExploded)
 				{
 					mState = 5;
@@ -384,10 +385,10 @@ void Board::UpdateFalling()
 
 			if (!aHasMove && !aBombExploded)
 			{
-				m1850 = true;
+				mPodArrowShown = true;
 				if (mIsPuzzle)
 				{
-					m1858 = 0.0;
+					mPodArrowPhase = 0.0;
 					if (mIsPlanetIntro)
 					{
 						mTutorialButton1 = AddBoardButton(400, "Show Again");
@@ -419,7 +420,7 @@ void Board::UpdateFalling()
 		}
 		CheckForHints();
 	}
-	if (mState == STATE_IDLE && m15f38)
+	if (mState == STATE_IDLE && mMouseHeld)
 		MouseMove(mWidgetManager->mLastMouseX, mWidgetManager->mLastMouseY);
 	MarkDirtyFull();
 }

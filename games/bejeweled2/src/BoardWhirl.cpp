@@ -30,14 +30,14 @@ void Board::UpdateClearing()
 		for (int aCol = 0; aCol < 8; aCol++)
 		{
 			Piece* aPiece = mBoard[aRow][aCol];
-			if (aPiece != NULL && aPiece->m9C)
+			if (aPiece != NULL && aPiece->mInSet)
 			{
 				if (mUpdateCnt % 3 == 0)
 				{
-					aPiece->mA0++;
-					if (aPiece->mA0 >= 6)
+					aPiece->mShrinkStep++;
+					if (aPiece->mShrinkStep >= 6)
 					{
-						m15e44++;
+						mGemsCleared++;
 						if (aPiece == mSelectedPiece)
 							mSelectedPiece = NULL;
 						delete aPiece;
@@ -59,7 +59,7 @@ void Board::EndWhirlpool()
 {
 	bool aIs3D = mApp->Is3DAccelerated();
 	mFadeIn = 1.0f;
-	m15f69 = true;
+	mRedrawBackground = true;
 	if (!mIsPuzzle)
 	{
 		mLevel++;
@@ -78,8 +78,8 @@ void Board::EndWhirlpool()
 		}
 		CreateFontGlowImages();
 		SetupLevelData();
-		m15eec = m15ef0 + mScore;
-		m15ee8 = mScore;
+		mLevelGoalScore = mLevelGoalPoints + mScore;
+		mLevelStartScore = mScore;
 
 		// the special gems of the old board are kept: they appear again on random squares of the new one
 		int aFlameCount = 0;
@@ -92,7 +92,7 @@ void Board::EndWhirlpool()
 				Piece* aPiece = mBoard[aRow][aCol];
 				if (aPiece != NULL)
 				{
-					if (!aPiece->m70)
+					if (!aPiece->mFlame)
 					{
 						if (aPiece->mType == 9)
 							aHyperCount++;
@@ -109,7 +109,7 @@ void Board::EndWhirlpool()
 			unsigned int aPick = (unsigned int)Rand() % (unsigned int)aCells.size();
 			Piece* aPiece = mBoard[aCells[aPick].second][aCells[aPick].first];
 			aCells.erase(aCells.begin() + aPick);
-			aPiece->m70 = true;
+			aPiece->mFlame = true;
 		}
 		for (int i = 0; i < aHyperCount; i++)
 		{
@@ -121,7 +121,7 @@ void Board::EndWhirlpool()
 	}
 	else if (!mIsSecret)
 	{
-		if (!m191c)
+		if (!mFinale)
 		{
 			SetupLevelData();
 			mPuzzleOverlay->Setup(1);
@@ -136,16 +136,16 @@ void Board::EndWhirlpool()
 		mLevelValue = mLevelValue + 0.5;
 		LoadNextSecretPuzzle();
 	}
-	m1751 = true;
-	if (!m191c && !mIsPuzzle && aIs3D)
+	mClearBacklog = true;
+	if (!mFinale && !mIsPuzzle && aIs3D)
 		mApp->PlaySample(SOUND_GET_READY);
 	if (mIsAction)
-		m15f88 = 200;
-	m15f90 = 0.0;
-	m15f98 = 0.0;
-	m15fa0 = 0.0;
-	m15e04 = 0.0f;
-	if (!m191c)
+		mDrainGrace = 200;
+	mWarpFade = 0.0;
+	mBlackHoleAngle = 0.0;
+	mBlackHoleSpin = 0.0;
+	mInterfaceRestore = 0.0f;
+	if (!mFinale)
 	{
 		mState = 0xd;
 		if (!aIs3D)
@@ -154,7 +154,7 @@ void Board::EndWhirlpool()
 			if (!mIsPuzzle)
 			{
 				mDropDelay = 0x96;
-				m1768 = 0x50;
+				mLevelTextCountdown = 0x50;
 			}
 			mFadeIn = 1.0f;
 			Show();
@@ -162,18 +162,18 @@ void Board::EndWhirlpool()
 	}
 	else
 	{
-		delete m165bc;
-		m165bc = NULL;
+		delete mCheatStars;
+		mCheatStars = NULL;
 		mEffectOverlay->InitFace();
 		mState = 0x12;
 		HideNow();
 	}
 }
 
-// the next backdrop after a warp: the next one of the list, or a random one when the profile asks for that
+// port: the next backdrop after a warp: the next one of the list, or a random one when the profile asks for that
 void Board::PickNextBackdrop()
 {
-	if (!mApp->mProfile->mFlag78)
+	if (!mApp->mProfile->mRandomBackdrops)
 		mBackdropNum = (mBackdropNum + 1U) % (unsigned int)mApp->mBackdrops.size();
 	else
 		mBackdropNum = (unsigned int)Rand() % (unsigned int)mApp->mBackdrops.size();
@@ -206,36 +206,36 @@ void Board::UpdateWhirlpool()
 			if (!mIsPuzzle)
 				PickNextBackdrop();
 			else if (!mIsSecret)
-				m15f6c++;
+				mPlanetNum++;
 			else
-				m15f6c = (m15f6c + 1) % 5;
+				mPlanetNum = (mPlanetNum + 1) % 5;
 			StartPrepareLevelImages();
 			return;
 		}
 	}
-	if (m15df0 > 0)
+	if (mHyperspaceDelay > 0)
 	{
-		m15df0--;
-		if (m15df0 == 0)
+		mHyperspaceDelay--;
+		if (mHyperspaceDelay == 0)
 			DoHyperspace();
 	}
-	m15f90 = m15f90 + 0.02;
-	if (1.0 < m15f90)
-		m15f90 = 1.0;
-	m15da8 = (float)((double)m15da8 + 0.0010000000474974513);
-	if (m15da0 < 1)
-		m15d9c = (float)((double)m15d9c + 0.009999999776482582);
+	mWarpFade = mWarpFade + 0.02;
+	if (1.0 < mWarpFade)
+		mWarpFade = 1.0;
+	mWhirlRadiusScale = (float)((double)mWhirlRadiusScale + 0.0010000000474974513);
+	if (mWhirlStrengthDelay < 1)
+		mWhirlStrength = (float)((double)mWhirlStrength + 0.009999999776482582);
 	else
-		m15da0--;
-	if (m15da4 < 1)
+		mWhirlStrengthDelay--;
+	if (mInterfaceFlyDelay < 1)
 	{
-		m15db0.IncInVal(0.05);
-		m15de0 = m15db0.GetOutVal() * 0.01 + m15de0;
-		if (1.0 < m15de0)
-			m15de0 = 1.0;
+		mInterfaceFlyRamp.IncInVal(0.05);
+		mInterfaceFly = mInterfaceFlyRamp.GetOutVal() * 0.01 + mInterfaceFly;
+		if (1.0 < mInterfaceFly)
+			mInterfaceFly = 1.0;
 	}
 	else
-		m15da4--;
+		mInterfaceFlyDelay--;
 
 	// the mesh: the 46 by 46 points inside the border of the 48 by 48 mesh; each turns around and drifts inward, the faster the
 	// farther it is from the edge of the mesh
@@ -246,14 +246,14 @@ void Board::UpdateWhirlpool()
 		for (int i = 1, j = 46; j > 0; i++, j--, aPoint++)
 		{
 			int aDist = std::min(std::min(i, j), std::min(r, s));
-			if (m15da0 == 0)
+			if (mWhirlStrengthDelay == 0)
 			{
-				float aStep = (float)((double)aDist * 0.35 * (double)m15d9c);
+				float aStep = (float)((double)aDist * 0.35 * (double)mWhirlStrength);
 				float aRadius = (float)((double)aPoint->mRadius - (double)aStep);
 				aPoint->mRadius = aRadius;
 				if (!(0.0f <= aRadius))
 					aPoint->mRadius = 0.0f;
-				float aTurn = (float)((double)aDist * 0.001 * (double)m15d9c);
+				float aTurn = (float)((double)aDist * 0.001 * (double)mWhirlStrength);
 				aPoint->mAngle = aPoint->mAngle + aTurn;
 			}
 			if (0.0f <= aPoint->mAngle)
@@ -267,9 +267,9 @@ void Board::UpdateWhirlpool()
 			anIndex &= 0x80000fff;
 			if (anIndex < 0)
 				anIndex = ((anIndex - 1) | 0xfffff000) + 1;
-			float aX = gCosTable[anIndex] * aPoint->mRadius * m15da8;
+			float aX = gCosTable[anIndex] * aPoint->mRadius * mWhirlRadiusScale;
 			aPoint->mX = (float)((double)aX + 512.0);
-			float aY = gSinTable[anIndex] * aPoint->mRadius * m15da8;
+			float aY = gSinTable[anIndex] * aPoint->mRadius * mWhirlRadiusScale;
 			aPoint->mY = (float)((double)aY + 384.0);
 		}
 	}
@@ -283,8 +283,8 @@ void Board::TryShowHint()
 {
 	if (mIsPlanetIntro || mState == 0x14)
 		return;
-	if (mIsPuzzle && mIsSecret && m1918 == 0)
-		mScore = m1774;
+	if (mIsPuzzle && mIsSecret && mHintsUsed == 0)
+		mScore = mScoreSnapshot;
 	if (mPauseCount != 0)
 		return;
 
@@ -299,7 +299,7 @@ void Board::TryShowHint()
 			if (!mIsPlanetIntro)
 			{
 				if (mApp->mProfile->WantsHint(4))
-					m1910 = 0x19;
+					mMoreHintsDelay = 0x19;
 			}
 		}
 	}

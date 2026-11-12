@@ -24,7 +24,7 @@
 
 using namespace Sexy;
 
-// the dialog of a tip says what a special gem is: it sits beside the gem, below it for a gem in the upper half of the board
+// port: the dialog of a tip says what a special gem is: it sits beside the gem, below it for a gem in the upper half of the board
 // and above it otherwise, and its buttons read "Don't Show Again" and "Continue"
 static void PlaceHintDialog(Board* theBoard, Dialog* theDialog, Piece* thePiece)
 {
@@ -44,7 +44,7 @@ static void PlaceHintDialog(Board* theBoard, Dialog* theDialog, Piece* thePiece)
 }
 
 // 0x59cb4b: the first power gem and the first hyper cube that the player makes come with a tip, once each for the profile
-// (the profile's hints 1 and 2) and once for the game (m194d, m194e); the power gem comes first
+// (the profile's hints 1 and 2) and once for the game (mPowerGemTipShown, mHyperCubeTipShown); the power gem comes first
 void Board::CheckForHints()
 {
 	if (mIsPuzzle)
@@ -61,21 +61,21 @@ void Board::CheckForHints()
 			{
 				if (aPiece->mType == 9)
 					aHyperCube = aPiece;
-				else if (aPiece->m70)
+				else if (aPiece->mFlame)
 					aPowerGem = aPiece;
 			}
 		}
 	}
 
 	bool aWide = mApp->mWidth == 640;
-	if (aPowerGem == NULL || m194d)
+	if (aPowerGem == NULL || mPowerGemTipShown)
 	{
-		if (aHyperCube != NULL && !m194e)
+		if (aHyperCube != NULL && !mHyperCubeTipShown)
 		{
 			if (mApp->mProfile->WantsHint(2))
 			{
 				ClearPoints();
-				m1954 = 0;
+				mHintArrowPhase = 0;
 				mHintPiece = aHyperCube;
 				Dialog* aDialog = mApp->DoDialog(0x27, true, "HYPER CUBE",
 					"You created a HYPER CUBE by merging 5 gems of the same color.  Swap it with a gem to clear all gems of that color onscreen!",
@@ -83,7 +83,7 @@ void Board::CheckForHints()
 				mApp->SetupDialog(aDialog, aWide ? 500 : 600);
 				PlaceHintDialog(this, aDialog, aHyperCube);
 			}
-			m194e = true;
+			mHyperCubeTipShown = true;
 		}
 	}
 	else
@@ -91,19 +91,19 @@ void Board::CheckForHints()
 		if (mApp->mProfile->WantsHint(1))
 		{
 			ClearPoints();
-			m1954 = 0;
+			mHintArrowPhase = 0;
 			mHintPiece = aPowerGem;
 			const char* aText;
 			if (aWide)
 			{
-				if (!m194c)
+				if (!mFlameFromCross)
 					aText = "You created a Power Gem by merging 4 gems of the same color.  This new gem will explode when matched, scoring extra points!";
 				else
 					aText = "Create Power Gems by merging 4 gems of the same color.  These new gems will explode when matched, scoring extra points!";
 			}
 			else
 			{
-				if (!m194c)
+				if (!mFlameFromCross)
 					aText = "You created a Power Gem by merging 4 gems of the same color.\nThis new gem will explode when matched, scoring extra points!";
 				else
 					aText = "Create Power Gems by merging 4 gems of the same color.\nThese new gems will explode when matched, scoring extra points!";
@@ -112,11 +112,11 @@ void Board::CheckForHints()
 			mApp->SetupDialog(aDialog, aWide ? 500 : 600);
 			PlaceHintDialog(this, aDialog, aPowerGem);
 		}
-		m194d = true;
+		mPowerGemTipShown = true;
 	}
 }
 
-// the score texts go (the original forgets them: they were never deleted)
+// port: the score texts go (the original forgets them: they were never deleted)
 void Board::ClearPoints()
 {
 	for (size_t i = 0; i < mPoints.size(); i++)
@@ -137,9 +137,9 @@ void Board::DoHyperspace()
 	if (mIsPuzzle && !mIsSecret)
 	{
 		WinDMApp* anApp = mApp;
-		if (m15f6c == mApp->mGalaxyParser->GetPlanetCount() - 1)
+		if (mPlanetNum == mApp->mGalaxyParser->GetPlanetCount() - 1)
 		{
-			m191c = true;
+			mFinale = true;
 			anApp->mMusicInterface->FadeOut(0, true, 0.003);
 			mApp->mPendingMusicOffset = mApp->GetInteger("MUSICOFFSET_(finale_name)");
 			mApp->mPendingMusicDelay = mApp->GetInteger("MUSIC_FINALE_DELAY");
@@ -171,8 +171,8 @@ void Board::DoWhirlpool()
 	if (mThirdButton != NULL)
 		mThirdButton->SetVisible(false);
 	mSelectedPiece = NULL;
-	if (m1728 != NULL)
-		m1728->Release();
+	if (mFadingSound != NULL)
+		mFadingSound->Release();
 
 	if (!a3D)
 	{
@@ -202,29 +202,29 @@ void Board::DoWhirlpool()
 				float aDX = aX - 512.0f;
 				aPoint->mAngle = (float)((double)(float)atan2((double)aDY, (double)aDX) + 6.28318);
 				float aDist2 = aDX * aDX + aDY2;
-				aPoint->mRadius = (float)sqrt((double)aDist2);    // (Ghidra calls the exe's sqrtf wrapper "logf")
+				aPoint->mRadius = (float)sqrt((double)aDist2);
 			}
 		}
-		m15da0 = 0x5a;
-		m15d9c = 0.0f;
-		m15da4 = 0x50;
-		m15df0 = 100;
+		mWhirlStrengthDelay = 0x5a;
+		mWhirlStrength = 0.0f;
+		mInterfaceFlyDelay = 0x50;
+		mHyperspaceDelay = 100;
 	}
-	m15de0 = 0.0;
-	m15db0.SetInVal(0.0);
-	m15da8 = 1.0f;
-	m15f90 = 0.0;
-	m15fa8 = false;
-	m15f84 = 0;
+	mInterfaceFly = 0.0;
+	mInterfaceFlyRamp.SetInVal(0.0);
+	mWhirlRadiusScale = 1.0f;
+	mWarpFade = 0.0;
+	mSavedNeverSet = false;
+	mBlackHoleFrame = 0;
 	mSelectedPiece = NULL;
-	m15f98 = 0.0;
-	m15fa0 = 0.0;
+	mBlackHoleAngle = 0.0;
+	mBlackHoleSpin = 0.0;
 	mState = STATE_WHIRLPOOL;
-	m15de8 = true;
+	mPlayWhirlSound = true;
 	mApp->ClearUpdateBacklog();
-	m16028 = 0;
-	m15e4c = 0;
-	m15e94 = 0;
+	mCheerTier = 0;
+	mSetsInMove = 0;
+	mMoveScore = 0;
 }
 
 // 0x59da14: the game that the player has just won a secret mode in says so, once
@@ -276,7 +276,7 @@ void Board::ShowPuzzleHint()
 	int aMoveCount = FindPuzzleValidMoves(aMoves, 0x40);
 	if (aMoveCount == 0)
 	{
-		m1918++;
+		mHintsUsed++;
 		if (!mSolutionValid)
 			mApp->DoDialog(0x25, true, "No Hints", "There are no hints available for this puzzle.", "", 3);
 		else
@@ -285,12 +285,12 @@ void Board::ShowPuzzleHint()
 	}
 	else
 	{
-		if (m15ea9)
+		if (mHintAccepted)
 		{
 			ShowNextPuzzleMove();
 			return;
 		}
-		m1918++;
+		mHintsUsed++;
 		mApp->DoDialog(0x18, true, "Still Solvable!",
 			"This puzzle is solvable from this point.\nDo you want a hint on a move to make?", "", 1);
 	}
@@ -305,7 +305,7 @@ void Board::ShowPlanetCount()
 		mEffectOverlay->DoStrechyText("FINAL PLANET!", 0x78);
 	else
 		mEffectOverlay->DoStrechyText(StrFormat("%d PLANETS LEFT", aLeft), 0x78);
-	mEffectOverlay->m9c = (float)((double)mEffectOverlay->m9c * 0.55);
+	mEffectOverlay->mTextSizeFactor = (float)((double)mEffectOverlay->mTextSizeFactor * 0.55);
 }
 
 // 0x5a0c93: the level text (the level number, the score) is drawn once into the glow image that the board then draws

@@ -70,7 +70,7 @@ bool WinDMApp::KillDialog(int theDialogId)
 	return true;
 }
 
-// a dialog with one button, its text "OK" (the profile errors, the name conflicts)
+// port: a dialog with one button, its text "OK" (the profile errors, the name conflicts)
 Dialog* WinDMApp::ShowMessage(int theDialogId, const std::string& theHeader, const std::string& theLines, int theButtonMode)
 {
 	return DoDialog(theDialogId, true, theHeader, theLines, "OK", theButtonMode);

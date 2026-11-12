@@ -62,7 +62,7 @@ public:
 	MemoryImage*	mTextImage;         // +0x90 the text, drawn once into a picture (leaked by the original)
 	int				mTextWidth;         // +0x94 the width of the text in the picture (at most 800)
 	float			mTextAlpha;         // +0x98 how opaque the text is: rises to 1, then falls
-	float			m9c;                // +0x9c the size of the text relative to its spring (DoStrechyText sets 0.73; Board changes it afterwards)
+	float			mTextSizeFactor;    // +0x9c the size of the text relative to its spring (DoStrechyText sets 0.73; Board changes it afterwards)
 	float			mTextScale;         // +0xa0 the spring that sizes the text: 1 at the start, settles round 1.2 and 1.75, then falls to 0
 	float			mTextScaleVel;      // +0xa4 its speed
 	float			mTextStretch;       // +0xa8 how much the text is stretched sideways (1, damped to 0)
@@ -72,8 +72,8 @@ public:
 	int				mTextFadeIn;        // +0xbc updates that the text fades in (the delay and 90)
 	int				mTextSettleA;       // +0xc0 updates until the spring stops aiming at 1.75 (the delay and 60)
 	int				mTextSettleB;       // +0xc4 updates until the spring stops aiming at 1.2 (60)
-	bool			mFlagC8;            // +0xc8 set by WinDMApp::DoNewGame once the portal is made; Draw clears the update backlog
-	bool			mFlagC9;            // +0xc9 the portal is open: the overlay covers the whole screen (MainMenu::Draw skips its backdrop)
+	bool			mClearBacklogAfterPortal; // set by WinDMApp::DoNewGame once the portal is made; Draw clears the update backlog
+	bool			mPortalOpen;        // the portal is open: the overlay covers the whole screen (MainMenu::Draw skips its backdrop)
 	float			mPortalProgress;    // +0xcc 0 to 1: the size of the portal; the board is shown when it is over
 	int				mPortalDelay;       // +0xd0 updates left before the portal opens (20)
 	int				mEndTimer;          // +0xd4 the updates since InitFace

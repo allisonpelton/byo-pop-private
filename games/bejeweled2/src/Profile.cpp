@@ -17,6 +17,7 @@
 
 using namespace Sexy;
 
+// port: the folder of a profile's files, from its name
 static std::string ProfileFolder(const std::string& theName)
 {
 	return GetAppDataFolder() + "users/" + theName;
@@ -27,7 +28,7 @@ std::string Profile::GetFolder() const
 	return ProfileFolder(mName);
 }
 
-// the original compares names with _stricmp
+// port: the original compares names with _stricmp
 static bool EqualNoCase(const std::string& a, const std::string& b)
 {
 	return Lower(a) == Lower(b);
@@ -38,8 +39,8 @@ static bool EqualNoCase(const std::string& a, const std::string& b)
 Profile::Profile()
 {
 	mIsNew = false;
-	mFlag78 = false;
-	mTotal7C = 0;
+	mRandomBackdrops = false;
+	mGalaxyOneSolved = 0;
 	mHints = 0;
 	for (int i = 0; i < NUM_STATS; i++)
 		mStat[i] = 0;
@@ -129,9 +130,9 @@ bool Profile::LoadProfileHelper(const std::string& theName)
 	mIsNew = false;
 	for (int i = 0; i < NUM_STATS; i++)
 		mStat[i] = aBuffer.ReadLong();
-	mFlag78 = aBuffer.ReadBoolean();
+	mRandomBackdrops = aBuffer.ReadBoolean();
 	mHints = aBuffer.ReadLong();
-	mTotal7C = aBuffer.ReadLong();
+	mGalaxyOneSolved = aBuffer.ReadLong();
 	for (int i = 0; i < NUM_MODE_LEVELS; i++)
 		mModeLevel[i] = aBuffer.ReadLong();
 
@@ -163,9 +164,9 @@ bool Profile::WriteProfile()
 	}
 	for (int i = 0; i < NUM_STATS; i++)
 		aBuffer.WriteLong(mStat[i]);
-	aBuffer.WriteBoolean(mFlag78);
+	aBuffer.WriteBoolean(mRandomBackdrops);
 	aBuffer.WriteLong((long) mHints);
-	aBuffer.WriteLong(mTotal7C);
+	aBuffer.WriteLong(mGalaxyOneSolved);
 	for (int i = 0; i < NUM_MODE_LEVELS; i++)
 		aBuffer.WriteLong(mModeLevel[i]);
 
@@ -186,10 +187,10 @@ bool Profile::CreateProfile(const std::string& theName)
 	mPuzzlePack = "Galaxy One";
 	for (int i = 0; i < NUM_STATS; i++)
 		mStat[i] = 0;
-	mFlag78 = false;
+	mRandomBackdrops = false;
 	for (int i = 0; i < NUM_MODE_LEVELS; i++)
 		mModeLevel[i] = 0;
-	mTotal7C = 0;
+	mGalaxyOneSolved = 0;
 	mHints = 0;
 	return true;
 }
@@ -265,7 +266,7 @@ bool Profile::IsModeUnlocked(int theMode) const
 	{
 	case 4: return mModeLevel[0] >= 17;
 	case 5: return mModeLevel[1] >= 8;
-	case 6: return mTotal7C >= 80;
+	case 6: return mGalaxyOneSolved >= 80;
 	case 7: return mModeLevel[3] >= 280;
 	}
 	return true;

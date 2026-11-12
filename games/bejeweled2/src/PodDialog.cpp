@@ -10,7 +10,7 @@
 
 using namespace Sexy;
 
-// The way the buttons' glow moves toward its target: down by 0.1 an update, up by 0.2, and never past the target.
+// port: The way the buttons' glow moves toward its target: down by 0.1 an update, up by 0.2, and never past the target.
 static float StepToward(float theCurrent, float theTarget, double theDown, double theUp)
 {
 	if (theTarget <= theCurrent) {

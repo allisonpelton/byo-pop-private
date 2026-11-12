@@ -30,35 +30,35 @@ void Board::ProcessEndGameInfo()
 		return;
 
 	int aTotalSeconds = (unsigned int)(mUpdateCnt - mPlayStartTick) / 100 + mPlayedSeconds;
-	m15e14 = aTotalSeconds;
-	mApp->mProfile->mStat[1] += aTotalSeconds - m15e18;
-	m15e18 = m15e14;
+	mGameSeconds = aTotalSeconds;
+	mApp->mProfile->mStat[1] += aTotalSeconds - mSecondsCredited;
+	mSecondsCredited = mGameSeconds;
 
 	if (!mIsPuzzle && !mCheated)
 	{
-		mApp->mProfile->mStat[6] += m15e7c - m15e80;
+		mApp->mProfile->mStat[6] += mPowerGemsMade - mPowerGemsCredited;
 		if (mApp->mProfile->mStat[6] > 9)
 			mApp->mProfile->DisableHint(1);
-		m15e80 = m15e7c;
+		mPowerGemsCredited = mPowerGemsMade;
 
-		mApp->mProfile->mStat[7] += m15e84 - m15e88;
+		mApp->mProfile->mStat[7] += mHyperCubesMade - mHyperCubesCredited;
 		if (mApp->mProfile->mStat[7] > 4)
 			mApp->mProfile->DisableHint(2);
-		m15e88 = m15e84;
+		mHyperCubesCredited = mHyperCubesMade;
 
-		mApp->mProfile->mStat[3] += m15e44 - m15e48;
-		m15e48 = m15e44;
+		mApp->mProfile->mStat[3] += mGemsCleared - mGemsCredited;
+		mGemsCredited = mGemsCleared;
 	}
 
 	if (!mCheated)
 	{
 		if (!mIsEndless)
 			mApp->mProfile->mStat[0] = std::max(mApp->mProfile->mStat[0], mScore);
-		mApp->mProfile->mStat[4] = std::max(mApp->mProfile->mStat[4], m15e6c);
-		mApp->mProfile->mStat[5] = std::max(mApp->mProfile->mStat[5], m15e70);
+		mApp->mProfile->mStat[4] = std::max(mApp->mProfile->mStat[4], mBiggestCascade);
+		mApp->mProfile->mStat[5] = std::max(mApp->mProfile->mStat[5], mBiggestCombo);
 	}
 
-	int aSeconds = m1998 / 100;
+	int aSeconds = mPlayUpdates / 100;
 	if (mIsAction)
 		mApp->mModeSeconds[1] += aSeconds;
 	else if (mIsPuzzle)
@@ -183,10 +183,10 @@ void Board::AdvanceSweep()
 	mSweepB = -1;
 	mSweepA = -1;
 	mSweep1++;
-	int v = mSweep1 + mSweep0;
+	int aDiagonal = mSweep1 + mSweep0;
 	mSweepTimer = 120;
 	bool aDone = false;
-	if (v > 7)
+	if (aDiagonal > 7)
 	{
 		mSweep1 = 0;
 		mSweep2++;
@@ -198,11 +198,11 @@ void Board::AdvanceSweep()
 		else
 		{
 			mSweep2 = 0;
-			v = ++mSweep0;
+			aDiagonal = ++mSweep0;
 		}
 	}
 	if (!aDone)
-		mSweepA = v - 1;
+		mSweepA = aDiagonal - 1;
 	if (mSweep0 > 6)
 	{
 		mSweep1 = 0;
@@ -233,8 +233,8 @@ unsigned int Board::GetBoardHash()
 			else
 			{
 				aBuffer.WriteByte((unsigned char)aPiece->mType);
-				aBuffer.WriteByte(aPiece->m70 ? 1 : 0);
-				aByte = (unsigned char)aPiece->m58;
+				aBuffer.WriteByte(aPiece->mFlame ? 1 : 0);
+				aByte = (unsigned char)aPiece->mCountdown;
 			}
 			aBuffer.WriteByte(aByte);
 		}
@@ -274,9 +274,9 @@ void Board::MakePuzzleCrazy()
 	{
 		int aIdx1 = Rand();
 		int aIdx2 = Rand();
-		int aTemp = aColors[aIdx1 % 7];
+		int aHeldColor = aColors[aIdx1 % 7];
 		aColors[aIdx1 % 7] = aColors[aIdx2 % 7];
-		aColors[aIdx2 % 7] = aTemp;
+		aColors[aIdx2 % 7] = aHeldColor;
 	}
 	for (int aRow = 0; aRow < 8; aRow++)
 	{
@@ -477,9 +477,9 @@ bool Board::FindMove(int* theMove, int theSkip, bool theRows, bool theCols)
 					while (aBottom <= 6 && mBoard[aBottom + 1][aCol] != NULL && mBoard[aBottom + 1][aCol]->mType == aType)
 						aBottom++;
 
-					Piece* aTemp = mBoard[aRow][aCol];
+					Piece* aHeldPiece = mBoard[aRow][aCol];
 					mBoard[aRow][aCol] = mBoard[aRow2][aCol2];
-					mBoard[aRow2][aCol2] = aTemp;
+					mBoard[aRow2][aCol2] = aHeldPiece;
 
 					if ((aRight - aLeft > 1 && theRows) || (aBottom - aTop > 1 && theCols))
 						aFound = true;
@@ -703,12 +703,12 @@ void Board::ClearPieceHints()
 // 0x59621c: the hint button (or the idle timer) lights a gem that can move
 void Board::ShowHint()
 {
-	if (m15ea8)
+	if (mMovedSinceHint)
 	{
 		mScore += (int)(mLevelValue * -50.0);
 		if (mScore < 0)
 			mScore = 0;
-		m15ea8 = false;
+		mMovedSinceHint = false;
 	}
 	int aMove[4];
 	if (FindMove(aMove, 0, true, true))
@@ -716,9 +716,9 @@ void Board::ShowHint()
 		Piece* aPiece = mBoard[aMove[3]][aMove[2]];
 		aPiece->mHintTime = HINT_TIME;
 		aPiece->mHintFrame = 0;
-		aPiece->mB0 = 0;
-		aPiece->mB4 = 0;
-		aPiece->mA4 = 1;
+		aPiece->mHintMoveX = 0;
+		aPiece->mHintMoveY = 0;
+		aPiece->mGemFrame = 1;
 	}
 	mHintCountdown = 0;
 }
@@ -849,7 +849,7 @@ void Board::ResizeButtons()
 			mApp->ScaleNumUp(0x6d, 0));
 	}
 
-	if (!m191c)
+	if (!mFinale)
 	{
 		if (mTutorialButton1 != NULL)
 		{
@@ -915,7 +915,7 @@ void Board::UpdateBoardDropping()
 	}
 	if (aAllGone)
 	{
-		m15f88 = 200;
+		mDrainGrace = 200;
 		NewBoard();
 	}
 }

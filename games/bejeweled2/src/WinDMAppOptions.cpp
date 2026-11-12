@@ -54,7 +54,7 @@ void WinDMApp::FinishOptionsDialog(bool theOk)
 		mHighRes = aHighRes;
 		DoReloading(aWindowed, a3D);
 	}
-	mProfile->mFlag78 = aDialog->mBackdropsCheckbox->IsChecked();
+	mProfile->mRandomBackdrops = aDialog->mBackdropsCheckbox->IsChecked();
 	// (the Automatic Update checkbox set mAlwaysUpdate here; it is not ported)
 	EnableCustomCursors(aDialog->mCursorsCheckbox->IsChecked());
 	ClearUpdateBacklog(false);

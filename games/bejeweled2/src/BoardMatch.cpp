@@ -17,9 +17,9 @@ extern Color* const gPointColors;
 // hyper cubes are made here); returns whether it found any
 bool Board::FindSets()
 {
-	if (m15e4c == 0)
+	if (mSetsInMove == 0)
 	{
-		m15e94 = 0;
+		mMoveScore = 0;
 	}
 	if (mInUndoPreview)
 		return false;
@@ -52,7 +52,7 @@ bool Board::FindSets()
 				else
 				{
 					// a hyper cube made this update still matches as the gem it was
-					aType = (aPiece->m60 == mUpdateCnt) ? aPiece->m64 : aPiece->mType;
+					aType = (aPiece->mHypercubeTick == mUpdateCnt) ? aPiece->mTypeBeforeHypercube : aPiece->mType;
 					if (aType != aRunType || aType > 6)
 						anEnd = true;
 					else
@@ -77,17 +77,17 @@ bool Board::FindSets()
 								{
 									for (int c = aStartCol; c <= aCol; c++)
 									{
-										Piece* P = mBoard[r][c];
-										if (P != NULL && P->mType == aRunType)
+										Piece* aSetPiece = mBoard[r][c];
+										if (aSetPiece != NULL && aSetPiece->mType == aRunType)
 										{
-											if (P->m70 && P->m74 != mUpdateCnt)
+											if (aSetPiece->mFlame && aSetPiece->mFlameTick != mUpdateCnt)
 											{
 												// a flame gem in the set explodes
 												aFlames++;
-												anExplodeList.push_back(std::pair<int, int>(P->mCol, P->mRow));
-												P->m70 = false;
+												anExplodeList.push_back(std::pair<int, int>(aSetPiece->mCol, aSetPiece->mRow));
+												aSetPiece->mFlame = false;
 											}
-											int aTick = P->m5C;
+											int aTick = aSetPiece->mMoveTick;
 											int aPrevBest = aBest;
 											if (aPrevBest < aTick)
 											{
@@ -98,29 +98,29 @@ bool Board::FindSets()
 											}
 											if (aPrevBest <= aTick)
 											{
-												aSumCol += P->mCol;
-												aSumRow += P->mRow;
+												aSumCol += aSetPiece->mCol;
+												aSumRow += aSetPiece->mRow;
 												aSumN++;
 											}
-											aSumX += (int)P->mX;
-											aSumY += (int)P->mY;
-											if (!P->m9C || (mIsClassic && mIsSecret))
+											aSumX += (int)aSetPiece->mX;
+											aSumY += (int)aSetPiece->mY;
+											if (!aSetPiece->mInSet || (mIsClassic && mIsSecret))
 											{
-												if (P->m74 != mUpdateCnt)
+												if (aSetPiece->mFlameTick != mUpdateCnt)
 												{
-													P->mA0 = 0;
-													P->m9C = true;
+													aSetPiece->mShrinkStep = 0;
+													aSetPiece->mInSet = true;
 												}
 											}
 											else
 											{
 												// the gem is in two sets: it becomes a flame gem
-												P->m9C = false;
-												P->m70 = true;
-												P->m74 = mUpdateCnt;
-												m15e7c++;
+												aSetPiece->mInSet = false;
+												aSetPiece->mFlame = true;
+												aSetPiece->mFlameTick = mUpdateCnt;
+												mPowerGemsMade++;
 												aMulti = true;
-												m194c = true;
+												mFlameFromCross = true;
 											}
 										}
 									}
@@ -138,12 +138,12 @@ bool Board::FindSets()
 							{
 								if (aRunLen > 3)
 								{
-									aTarget->m9C = false;
-									aTarget->m70 = true;
-									aTarget->m74 = mUpdateCnt;
-									m15e7c++;
+									aTarget->mInSet = false;
+									aTarget->mFlame = true;
+									aTarget->mFlameTick = mUpdateCnt;
+									mPowerGemsMade++;
 									aMulti = true;
-									m194c = false;
+									mFlameFromCross = false;
 								}
 							}
 							else
@@ -157,11 +157,11 @@ bool Board::FindSets()
 								}
 								if (!aNear)
 								{
-									aTarget->m9C = false;
-									aTarget->m64 = aTarget->mType;
+									aTarget->mInSet = false;
+									aTarget->mTypeBeforeHypercube = aTarget->mType;
 									aTarget->mType = 9;
-									aTarget->m60 = mUpdateCnt;
-									m15e84++;
+									aTarget->mHypercubeTick = mUpdateCnt;
+									mHyperCubesMade++;
 									aMadeHypercube = true;
 								}
 							}
@@ -170,14 +170,14 @@ bool Board::FindSets()
 						int aAvgX = aSumX / aRunLen;
 						aSumXAll += aAvgX;
 						int aAvgY = aSumY / aRunLen;
-						if (!mIsPuzzle || (mIsSecret && m1918 == 0))
+						if (!mIsPuzzle || (mIsSecret && mHintsUsed == 0))
 						{
-							m15e4c++;
+							mSetsInMove++;
 							int aBonus = mApp->GetInteger("PowerBonus", 25) * aFlames;
 							if (!mIsFinity)
 							{
 								aBonus += 10;
-								switch (m15e4c)
+								switch (mSetsInMove)
 								{
 								case 1: break;
 								case 2: aBonus += 10; break;
@@ -197,14 +197,14 @@ bool Board::FindSets()
 							int aPoints = (int)(aBonus * mLevelValue);
 							if (aPoints > 0)
 								DoPoints(aPoints, aAvgX + 42, aAvgY + 34, gPointColors[aRunType]);
-							if (m15e98 != -1)
+							if (mBigMoveTimer != -1)
 							{
-								double aValue = ((double)m15e94 / mLevelValue) * 3.0;
+								double aValue = ((double)mMoveScore / mLevelValue) * 3.0;
 								if (aValue < 300.0)
 									aValue = 300.0;
 								else if (aValue >= 1200.0)
 									aValue = 1200.0;
-								m15e98 = (int)aValue;
+								mBigMoveTimer = (int)aValue;
 							}
 							if (aMaxSet < aRunLen)
 								aMaxSet = aRunLen;
@@ -247,19 +247,19 @@ bool Board::FindSets()
 		mApp->PlaySample(aCombo + SOUND_COMBO_1, aPan);
 	}
 
-	m15e94 += mScore - anOldScore;
-	int aMoveScore = m15e94;
+	mMoveScore += mScore - anOldScore;
+	int aMoveScore = mMoveScore;
 	if (!mIsPuzzle)
 	{
 		int aThreshold2 = (int)(mLevelValue * 125.0);
 		int aThreshold3 = (int)(mLevelValue * 275.0);
 		int aThreshold1 = (int)(mLevelValue * 60.0);
-		if (aThreshold1 <= aMoveScore && m16028 < 1)
-			m16028 = 1;
-		if (aThreshold2 <= aMoveScore && m16028 < 2)
-			m16028 = 2;
-		if (aThreshold3 <= aMoveScore && m16028 < 3)
-			m16028 = 3;
+		if (aThreshold1 <= aMoveScore && mCheerTier < 1)
+			mCheerTier = 1;
+		if (aThreshold2 <= aMoveScore && mCheerTier < 2)
+			mCheerTier = 2;
+		if (aThreshold3 <= aMoveScore && mCheerTier < 3)
+			mCheerTier = 3;
 	}
 	return aNumSets > 0;
 }
@@ -273,9 +273,9 @@ bool Board::UpdateExplodeDelays()
 		for (int aCol = 0; aCol < 8; aCol++)
 		{
 			Piece* aPiece = mBoard[aRow][aCol];
-			if (aPiece != NULL && aPiece->m78 > 0)
+			if (aPiece != NULL && aPiece->mExplodeDelay > 0)
 			{
-				int aLeft = --aPiece->m78;
+				int aLeft = --aPiece->mExplodeDelay;
 				if (aLeft == 0)
 				{
 					ExplodeAt(aPiece->mCol, aPiece->mRow);
@@ -325,19 +325,19 @@ void Board::SwapPieces(Piece* theFirst, Piece* theSecond)
 			mApp->PlaySample(SOUND_ELECTRO_START);
 			DoneClearing();
 			SolutionCommitMove(mSolutionMove);
-			m15e08 = anOther->mType;
-			anOther->m30 = 0;
-			anOther->m2C = true;
-			aHyper->mC0 = 0;
-			aHyper->mB8 = 1;
-			aHyper->mBC = 0x23;
-			m17d4 = 0xf;
-			m17d8 = (int)anOther->mX;
-			m17dc = (int)anOther->mY;
-			m17e0 = 0;
-			anOther->mC0 = 0;
-			anOther->mB8 = 2;
-			anOther->mBC = 0xf;
+			mLightningColor = anOther->mType;
+			anOther->mLightningProgress = 0;
+			anOther->mLightningHit = true;
+			aHyper->mHyperFade = 0;
+			aHyper->mHyperRole = 1;
+			aHyper->mHyperDelay = 0x23;
+			mHyperGlowDelay = 0xf;
+			mHyperGlowX = (int)anOther->mX;
+			mHyperGlowY = (int)anOther->mY;
+			mHyperGlowPhase = 0;
+			anOther->mHyperFade = 0;
+			anOther->mHyperRole = 2;
+			anOther->mHyperDelay = 0xf;
 			mHyperSwap = true;
 		}
 	}
@@ -348,16 +348,16 @@ void Board::SwapPieces(Piece* theFirst, Piece* theSecond)
 	mSwapPiece[1] = theSecond;
 	mSwapCenterX = (int)((double)theSecond->mX + (double)theFirst->mX) / 2;
 	mSwapCenterY = (int)((double)theFirst->mY + (double)theSecond->mY) / 2;
-	theFirst->m7C = (int)theFirst->mX - mSwapCenterX;
-	theFirst->m80 = (int)theFirst->mY - mSwapCenterY;
+	theFirst->mSwapOffsetX = (int)theFirst->mX - mSwapCenterX;
+	theFirst->mSwapOffsetY = (int)theFirst->mY - mSwapCenterY;
 	theFirst->mSwapDX = theSecond->mCol - theFirst->mCol;
 	theFirst->mSwapDY = theSecond->mRow - theFirst->mRow;
-	theSecond->m7C = (int)theSecond->mX - mSwapCenterX;
-	theSecond->m80 = (int)theSecond->mY - mSwapCenterY;
+	theSecond->mSwapOffsetX = (int)theSecond->mX - mSwapCenterX;
+	theSecond->mSwapOffsetY = (int)theSecond->mY - mSwapCenterY;
 	theSecond->mSwapDX = theFirst->mCol - theSecond->mCol;
 	theSecond->mSwapDY = theFirst->mRow - theSecond->mRow;
-	theFirst->m5C = mUpdateCnt;
-	theSecond->m5C = mUpdateCnt;
+	theFirst->mMoveTick = mUpdateCnt;
+	theSecond->mMoveTick = mUpdateCnt;
 	mState = STATE_SWAPPING;
 	if (!mHyperSwap && !WillBeValidSwap())
 		mState = STATE_SWAP_BACK;
@@ -367,7 +367,7 @@ void Board::SwapPieces(Piece* theFirst, Piece* theSecond)
 void Board::UpdateSwapping()
 {
 	MarkDirtyFull();
-	m15f68 = true;
+	mCountBombs = true;
 	if (!mHyperSwap)
 		mSwapTime += 5;
 	else
@@ -404,25 +404,25 @@ void Board::UpdateSwapping()
 		if (!mIsHyper || mHintCountdown > 100)
 		{
 			mCascadeCount = 0;
-			m15e4c = 0;
+			mSetsInMove = 0;
 		}
 		if (!mHyperSwap)
 		{
 			if (!FindSets())
 			{
-				if (mState == STATE_SWAP_BACK && !m1723 && !mInUndoPreview)
+				if (mState == STATE_SWAP_BACK && !mFreeMode && !mInUndoPreview)
 				{
 					// no set: the gems slide back
 					Piece* aFirst = mSwapPiece[0];
-					aFirst->m7C = -aFirst->m7C;
-					aFirst->m80 = -aFirst->m80;
+					aFirst->mSwapOffsetX = -aFirst->mSwapOffsetX;
+					aFirst->mSwapOffsetY = -aFirst->mSwapOffsetY;
 					aFirst->mSwapDX = -aFirst->mSwapDX;
 					aFirst->mSwapDY = -aFirst->mSwapDY;
 					Piece* aSecond = mSwapPiece[1];
 					if (aSecond != NULL)
 					{
-						aSecond->m7C = -aSecond->m7C;
-						aSecond->m80 = -aSecond->m80;
+						aSecond->mSwapOffsetX = -aSecond->mSwapOffsetX;
+						aSecond->mSwapOffsetY = -aSecond->mSwapOffsetY;
 						aSecond->mSwapDX = -aSecond->mSwapDX;
 						aSecond->mSwapDY = -aSecond->mSwapDY;
 					}
@@ -463,13 +463,13 @@ void Board::UpdateSwapping()
 	{
 		double aFactor = cos((double)mSwapTime * 3.14159 / 180.0);
 		Piece* aFirst = mSwapPiece[0];
-		aFirst->mX = (float)(int)((double)aFirst->m7C * aFactor + (double)mSwapCenterX);
-		aFirst->mY = (float)(int)((double)aFirst->m80 * aFactor + (double)mSwapCenterY);
+		aFirst->mX = (float)(int)((double)aFirst->mSwapOffsetX * aFactor + (double)mSwapCenterX);
+		aFirst->mY = (float)(int)((double)aFirst->mSwapOffsetY * aFactor + (double)mSwapCenterY);
 		Piece* aSecond = mSwapPiece[1];
 		if (aSecond != NULL)
 		{
-			aSecond->mX = (float)(int)((double)aSecond->m7C * aFactor + (double)mSwapCenterX);
-			aSecond->mY = (float)(int)(aFactor * (double)aSecond->m80 + (double)mSwapCenterY);
+			aSecond->mX = (float)(int)((double)aSecond->mSwapOffsetX * aFactor + (double)mSwapCenterX);
+			aSecond->mY = (float)(int)(aFactor * (double)aSecond->mSwapOffsetY + (double)mSwapCenterY);
 		}
 	}
 }
@@ -495,19 +495,19 @@ void Board::UpdateLightning()
 			Piece* aPiece = mBoard[aRow][aCol];
 			if (aPiece == NULL)
 				continue;
-			if (aPiece->m78 > 0)
+			if (aPiece->mExplodeDelay > 0)
 				aClearing = true;
-			if (aPiece->mB8 == 1)
+			if (aPiece->mHyperRole == 1)
 				aHyperActive = true;
-			if (!aPiece->m2C)
+			if (!aPiece->mLightningHit)
 			{
-				if (aPiece->mType == m15e08)
+				if (aPiece->mType == mLightningColor)
 					anUnhit[anUnhitCount++] = aPiece;
 			}
 			else
 			{
-				float aProgress = (float)((double)aPiece->m30 + 0.015);
-				aPiece->m30 = aProgress;
+				float aProgress = (float)((double)aPiece->mLightningProgress + 0.015);
+				aPiece->mLightningProgress = aProgress;
 				if (aProgress <= 1.0f)
 				{
 					if (aProgress < 0.04f)
@@ -516,7 +516,7 @@ void Board::UpdateLightning()
 				}
 				else
 				{
-					if (!aPiece->m70)
+					if (!aPiece->mFlame)
 					{
 						int aBonus = (int)(mApp->GetInteger("ElectNormalBonus", 20) * mLevelValue);
 						DoPoints(aBonus, (int)(42.0 + aPiece->mX), (int)(aPiece->mY + 42.0 - 8.0),
@@ -567,7 +567,7 @@ void Board::UpdateLightning()
 			AddLightning((int)aTarget->mX + 42, (int)aTarget->mY + 42, (int)aFrom->mX + 42, (int)aFrom->mY + 42);
 			mApp->PlaySample(SOUND_ELECTRO_PATH);
 		}
-		aTarget->m2C = true;
+		aTarget->mLightningHit = true;
 	}
 
 	// the lightning's bolts flicker and fade

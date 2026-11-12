@@ -27,7 +27,7 @@ Each of these has no visible effect on play unless the entry says so.
 - **Loading is done in line.** The original loads backgrounds, resources and the galaxy map on worker threads
   (`WorkerThread`) while the screen keeps drawing; the port runs those tasks in one go on the main thread (the framework runs
   a SexyAppFramework game's loading thread in one go in the same way). `backdrops.lst` is not rewritten, and the reload
-  thread of the original runs in line. Board's image preparation (`m15f60` and the like) is in line too.
+  thread of the original runs in line. Board's image preparation (`mStaticImage` and the like) is in line too.
 - **No Vista migration** of the old save folders; saved games use "/" as the path separator.
 - **No game-state recorder** (GameStateEngine's recording), no write-only app byte (+0xf24), no `OutputDebugString` in
   UpdateBonusPenalty.
@@ -54,7 +54,7 @@ Each of these has no visible effect on play unless the entry says so.
 - **The four colour tables are one block** (`gColorBlock` in BoardEffects.cpp): the lightning, gem, score and original gem
   colours (0x6797d0 to 0x6799cf) are one run of memory in the original, and the gem types past 7 (rock, bomb, hyper cube) index
   past the end of a table into the next, so the port keeps them in the same order and the lookups give the same colours.
-- **`m1728` is never set** (the original's code never does either; kept only for the offsets).
+- **`mFadingSound` is never set** (the original's code never does either; kept only for the offsets).
 - **EffectOverlay.** The destructor frees the text picture (`mTextImage`), which the original leaks. The constructor zeroes
   what the original leaves uninitialised (the text's alpha, scale, stretch, age and hold, the portal and face timers, the wild
   gem's place, the fade) and sets `mHasAlpha`, which the first stub missed. The portal's wait for the backdrop's task
@@ -160,7 +160,7 @@ menu's fields as its second base sees them, and the update checkbox that is not 
 `mExplodeHappened` (+0x15e78: `ExplodeAt` sets it, the end of the update plays `SOUND_BOMB_EXPLODE` once),
 `mLastExplodeSoundTick` (+0x15e8c), `mCascadeCount` (+0x15e50: `DoneClearing` counts the clears that follow a move, and the count picks the combo sound, which therefore never rose, and the best cascade of the player's statistics), `mFadeIn` (+0x15fb0), `mStarRot`, `mStarDrift` and `mStarPhase` (+0x15fc0, +0x15fc8,
 +0x15fd0), `mSecretPuzzleCount`, `mSecretSolved` and `mSecretRun` (+0x17a4 to +0x17ac), `mSolutionFirstNode` (+0x18f0),
-`mSolutionMove` (+0x18fc), `m191c` (the port's `mHintTutorialShown` was never set) and `mIsPlanetIntro` (+0x191d, which the
+`mSolutionMove` (+0x18fc), `mFinale` (the port's `mHintTutorialShown` was never set) and `mIsPlanetIntro` (+0x191d, which the
 constructor does clear).
 
 ## Oddities (skipped, not chased)
@@ -333,7 +333,7 @@ three: exception-handling funclets, `Catch_All` blocks, registration and outboun
 
 **What it found and fixed.** One Sonnet agent sorted list one in three parts (its detail lines in `build/coverage/bejeweled2/list1_res_*.tsv`);
 the gaps were checked against the export by hand:
-- `Board::MouseUp` (0x59596f, vtable slot 56) was not translated: the board's "button is down" flag (`m15f38`) stayed set after the first press
+- `Board::MouseUp` (0x59596f, vtable slot 56) was not translated: the board's "button is down" flag (`mMouseHeld`) stayed set after the first press
   of a game, so `UpdateFalling` called `Board::MouseMove` at every idle update (the cursor back to the pointer). It clears the flag now.
 - `WinDMApp::KillDialog` (0x5dceb6, slot 76): when the last dialog is gone the board has the keyboard focus (the port left it to
   `WidgetManager::RemoveBaseModal`'s restore). Translated.
@@ -366,7 +366,7 @@ after the list), and the others stay.
   when `puzzles/` holds more than one pack folder; the shipped game has one (Galaxy One). Kept.
 - **Error paths** (3: `BackdropsParser::Fail` 0x593732, `GalaxyParser::Fail` 0x5be56d and 0x5be07b): only a malformed or missing `backdrops.xml` or `galaxy.xml`.
 - **The galaxy's finale** (6: `InitFace` 0x5b9071, the shape interpolation 0x5b592c and 0x5b5960, `powf` 0x5b5229, `GetPuzzleNum` 0x5d0ee6, `~EffectOverlay`
-  0x5b8cee): the last planet of the puzzle galaxy; `DoHyperspace` sets `m191c` when the planet index is the last, and a profile with the whole galaxy
+  0x5b8cee): the last planet of the puzzle galaxy; `DoHyperspace` sets `mFinale` when the planet index is the last, and a profile with the whole galaxy
   open and a warp to it would reach them (a puzzle driver with the test commands; not done). `~EffectOverlay` never runs in the original.
 - **`GalaxyMap` slot 47** (0x5ba705, a bare return: the map is never the focus widget).
 - **Rare states and inputs** (9): `UpdateBoardDropping` 0x59814e (Action, no move left), `ShowNow` 0x59828a (a new game with no main menu around),
