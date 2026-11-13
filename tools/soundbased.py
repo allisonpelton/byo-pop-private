@@ -30,7 +30,10 @@ and 0.44, which is what sets the line at 0.50. The derived sound must also give 
 in the base, above chance): a sound with few peaks, a pure tone above all, is held in almost any busy sound at one of the
 65 speeds and some pitch, while the busy sound gives nearly nothing back (0.00 to 0.09 in a sample of 250 clips, where
 those made nine pairs in ten of the first run's); the pairs the user judged give 0.24 back and up. A short sound buried
-in a much longer one is missed for it. Then the reasons, read from the two sounds lined up:
+in a much longer one is missed for it. Two more cuts, after the whole run: a sound in more than 10 pairs is a generic
+hit (a click, a bump, an impact) that every other short hit holds about as well (the first full run's three busiest,
+150 to 190 pairs each, at a median of 0.62), so its pairs stay only at 0.85 and up; and a pair that holds 0.95 both ways
+with nothing changed is the same recording, left to soundmatch. Then the reasons, read from the two sounds lined up:
 
   pitched    the pitch offset, as a percentage, from two quarter-tone steps (5.9%) up; one step is within the peaks' play
   sped       the speed, when it is not the pitch's own (a resampled sound's speed follows its pitch; a sped-up one's does not)
@@ -47,7 +50,7 @@ rejects each one; nothing goes on a board until then. --test scores the pairs th
   python tools/soundbased.py [--assets DIR] [--extra NAME=DIR ...] [--test] [--min 0.50] [--back 0.15]
   python tools/soundbased.py --refilter [--min 0.50] [--back 0.15]    (the last run's pairs again, at new lines)
 
-based-all.json keeps every pair at --min with no back line, which --refilter reads.
+based-all.json keeps every pair at --min with no back line or cuts, which --refilter reads.
 """
 import argparse
 import json
@@ -77,6 +80,8 @@ GAP = 64                          # frames of silence between clips on the strip
 GATE = 0.45                       # the gate's share above chance, for a pair to be checked (the user's pairs: 0.52 up)
 VOTED = 10                        # and each clip's this many others with the most hash votes for their size, for a change of pitch or speed
 TOP = 6                           # the places the hashes vote for most, each checked by presence
+HUB, HUB_STRONG = 10, 0.85        # a sound in more than HUB pairs keeps only those at HUB_STRONG and up
+SAME = 0.95                       # both ways, nothing changed: the same recording
 DECISIONS = os.path.join(vl.ROOT, "testnotes", "AH-decisions.json")
 
 
@@ -544,7 +549,7 @@ def main():
     a = ap.parse_args()
     if a.refilter:
         out = json.load(open(os.path.join(sm.OUT, "based-all.json"), encoding="utf-8"))
-        write([h for h in out if h["holds"] >= a.min and h["back"] >= a.back])
+        write(prune([h for h in out if h["holds"] >= a.min and h["back"] >= a.back]))
         return
     if a.assets:
         vl.ASSETS = os.path.abspath(a.assets)
@@ -577,11 +582,24 @@ def main():
         same = {frozenset([name_d(h["a"]), name_d(h["b"])]) for h in json.load(open(mf, encoding="utf-8"))}
         out = [h for h in out if frozenset([name_d(h["base"]), name_d(h["derived"])]) not in same]
     json.dump(out, open(os.path.join(sm.OUT, "based-all.json"), "w", encoding="utf-8"), indent=1, ensure_ascii=False)
-    write([h for h in out if h["back"] >= a.back])
+    write(prune([h for h in out if h["back"] >= a.back]))
+
+
+def prune(out):
+    """The generic hits' weaker pairs and the same recordings out (HUB, SAME)."""
+    count = {}
+    for h in out:
+        for d in (h["base"], h["derived"]):
+            count[name_d(d)] = count.get(name_d(d), 0) + 1
+    return [h for h in out
+            if (h["holds"] >= HUB_STRONG or (count[name_d(h["base"])] <= HUB and count[name_d(h["derived"])] <= HUB))
+            and not (h["holds"] >= SAME and h["back"] >= SAME and not h["why"])]
 
 
 def write(out):
-    out.sort(key=lambda h: -h["holds"])
+    # strongest first by both ways at once: a pair that holds much one way and gives little back is weaker than one that
+    # shares a good part of both (a click held whole in a longer notification sound comes after a reworked combo sound)
+    out.sort(key=lambda h: -(h["holds"] + h["back"]))
     json.dump(out, open(os.path.join(sm.OUT, "based.json"), "w", encoding="utf-8"), indent=1, ensure_ascii=False)
     with open(os.path.join(sm.OUT, "based.txt"), "w", encoding="utf-8") as f:
         for h in out:
