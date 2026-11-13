@@ -314,7 +314,10 @@ var ByopopAutosplit = (function () {
               if (current.gameOvers !== old.gameOvers && current.gameOverSerial === runSerial && !lostEnd()) {
                 cause = "resets";
                 for (var d = 0; d < rules.deaths.length; d++)
-                  if (current["death" + d] !== old["death" + d]) { cause = rules.deaths[d].setting || "resets"; break; }
+                  if (current["death" + d] !== old["death" + d]) {
+                    // (a death that goesOn is no end of the run: Venice's sunk Flood building is played again on the board)
+                    cause = rules.deaths[d].goesOn ? null : rules.deaths[d].setting || "resets"; break;
+                  }
               } else if (old.boardSerial === runSerial && current.boardSerial !== runSerial && !(old.flags & FLAG_GAME_OVER)) {
                 cause = current.boardSerial === 0 ? "resetQuit" : "resetReplaced";
               } else if (template && template.limit && current.boardSerial === runSerial &&
@@ -530,6 +533,25 @@ var ByopopAutosplit = (function () {
                   end: "won", mode: 5 }])
   };
 
+  // Venice Deluxe (the port's block, layout 2, games/venice/docs/GAME_NOTES.md "The autosplit block"): Journey and Flood
+  // from the click away from the world map before building 1 in a new game (its GO; the tutorial is not timed) through each
+  // building cleared (a level clear each) to the map's CONGRATULATIONS! after building 71, its win. Trick Shots from the click
+  // on the mode in a new game (its GO) to the win scene with every trick shot made, its win. A continued game starts nothing.
+  // A Journey game out of tries ends the run; a sunk Flood building is played again on the same board and the run goes on.
+  var VN_RULES = {
+    name: "Venice Deluxe", id: "VNDX",
+    modes: { Flood: 0, Journey: 1, Survival: 2, "Trick Shots": 3 }, skills: {},
+    deaths: [{ setting: "resetJourney", what: "the tries ran out (Journey)" },
+             { setting: null, goesOn: true, what: "a building sank (Flood: played again, the run goes on)" },
+             { setting: null, what: "a plate sank (Survival, no category)" },
+             { setting: null, what: "a trick shot level sank (never seen: a missed shot goes on to the next)" }],
+    templates: [
+      { category: "Journey", segments: levels(71).map(function (x) { return x.replace("Level", "Building"); }), end: "won", mode: 1 },
+      { category: "Flood", segments: levels(71).map(function (x) { return x.replace("Level", "Building"); }), end: "won", mode: 0 },
+      { category: "Trick Shots", segments: ["Trick Shots"], end: "won", mode: 3 }
+    ]
+  };
+
   // A row of GAMES from a row of the rules table
   function ruled(rules) {
     return { name: rules.name, block: "_byopop_livesplit_block", read: blockReader(rules.id), decider: makeDecider(rules),
@@ -549,7 +571,8 @@ var ByopopAutosplit = (function () {
     astropop: ruled(AP_RULES),
     typershark: ruled(TS_RULES),
     cosmicbugs: ruled(CB_RULES),
-    dynomite: ruled(DY_RULES)
+    dynomite: ruled(DY_RULES),
+    venice: ruled(VN_RULES)
   };
 
   // The front game's block, read from its window: {game, snap} or null (no game with an auto splitter in front, or it has not

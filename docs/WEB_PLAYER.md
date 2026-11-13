@@ -649,7 +649,8 @@ off and with it on.
   board of its own: Rocket Mania Deluxe);
 - `id`: the block's game id;
 - `modes` and `skills`: the names behind the block's numbers;
-- `deaths`: what each of the four death kinds is (each one a reset setting, as in Bejeweled);
+- `deaths`: what each of the four death kinds is (each one a reset setting, as in Bejeweled; one with `goesOn` is no end of the
+  run, as Venice's sunk Flood building, played again on the same board);
 - `templates`: one per speedrun.com category and subcategory (the site's own where there is no board), each with `mode` and `skill` (none for any, or a
   list of the allowed ones), its segments, and `end`, how the run finishes:
   - `levels N` (the Nth level clear);
@@ -719,7 +720,12 @@ fired (its GO, after the shot and not at the click) to the board cleared, its wi
 is the game's updates from that GO. Fossil Challenge, Strategic or Panic, splits at each fossil found (the third fragment
 off the bottom) and ends at the fifteenth, its win. Tutorial splits at each mode's part and ends at the main menu with
 every part done; that win comes in the update the tutorial closes. The board's Easy, Normal and Hard are the game's Normal,
-Hard and Expert. Leaving a game is a game over of its own kind. Big Money has no board, so its row is its native
+Hard and Expert. Leaving a game is a game over of its own kind. Venice Deluxe (speedrun.com: Venice): a board is one pass through a mode, from its click on the mode menu to the main menu.
+Journey and Flood run from the click away from the world map before building 1 in a new game (the tutorial is not timed),
+split at each building cleared and end at the map's CONGRATULATIONS! after building 71, its win; a Journey game out of
+tries resets, a sunk Flood building is played again and the run goes on. Trick Shots runs from the click on the mode to
+the win scene with every trick shot made. A continued game starts nothing. The board's per-level Journey and Flood
+categories have no template. Big Money has no board, so its row is its native
 script's rules, with mode and skill in the category's name and levels or scores as segments. Both replay their native
 scripts' scenarios in `tools/autosplittest.js`. Every other game with a board gets its row in Milestone 3, from the
 speedrun.com categories and its session's answer on where in its code GO, a level clear, a game over and a win happen.
