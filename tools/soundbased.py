@@ -366,7 +366,11 @@ def reasons(pr, base, derived, speed, dt0, df0):
     # the speed the hashes found is the base's time steps scaled to the derived's; a resampled sound's speed is its pitch's
     facts["speed"] = round(speed, 3)
     if abs(np.log2(speed / pitch_speed)) > np.log2(1.06):
-        out.append("%s %d%%" % ("slowed" if speed > 1 else "sped up", round(abs(speed - 1) * 100)))
+        # a pitch changed with the length kept (pitch shifting, not resampling) says so rather than "sped up 0%"
+        if round(abs(speed - 1) * 100) == 0:
+            out.append("the same length")
+        else:
+            out.append("%s %d%%" % ("slowed" if speed > 1 else "sped up", round(abs(speed - 1) * 100)))
     # the base's span in the derived's frames
     start, end = dt0, dt0 + int(round(len(sb) * speed))
     nd = len(sd)
