@@ -61,6 +61,7 @@ public:
 	virtual void	FixedUpdate() override;						// 0x436be0
 	virtual void	Update(float theFrac) override;				// 0x4367e0
 	virtual void	Draw(Graphics* g) override;					// 0x436310
+	virtual bool	MouseOver(int theX, int theY) override;		// 0x443290: the point is in the bounds
 	virtual bool	Hit(int theX, int theY, const std::vector<Point>& theMask, int theWidth, int theHeight) override;	// 0x4369f0
 	virtual void	Strike(double theX, double theY) override;	// 0x436cd0
 

@@ -15,6 +15,7 @@
 #include "Cubby.h"
 #include "Gameplay.h"
 #include "GameScreen.h"
+#include "GnomeHide.h"
 #include "Stats.h"
 #include "Timer.h"
 
@@ -134,6 +135,14 @@ void Application::TraceRecord(char theKind)
 			PutDouble(aLine, aName, aCreature != nullptr ? aCreature->mHeight : 0.0);
 			snprintf(aName, sizeof(aName), "cb%d_hvel", i);
 			PutDouble(aLine, aName, aCreature != nullptr ? aCreature->mHeightVelocity : 0.0);
+			snprintf(aName, sizeof(aName), "cb%d_health", i);
+			PutInt(aLine, aName, aCreature != nullptr ? aCreature->mHealth : 0);
+			// the bucket gnome's stage and frame (the original's +0xd0 and +0xc0; compared for that kind only)
+			GnomeHide* aHide = aCreature != nullptr && aCreature->mKind == KIND_HIDE ? static_cast<GnomeHide*>(aCreature) : nullptr;
+			snprintf(aName, sizeof(aName), "cb%d_hstage", i);
+			PutInt(aLine, aName, aHide != nullptr ? aHide->mStage : 0);
+			snprintf(aName, sizeof(aName), "cb%d_hframe", i);
+			PutDouble(aLine, aName, aHide != nullptr ? aHide->mFrame : 0.0);
 			snprintf(aName, sizeof(aName), "cb%d_x", i);
 			PutDouble(aLine, aName, aCreature != nullptr ? aCreature->mX : 0.0);
 			snprintf(aName, sizeof(aName), "cb%d_y", i);

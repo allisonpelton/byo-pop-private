@@ -165,6 +165,12 @@ void GnomeBouncing::Draw(Graphics* g)
 	}
 }
 
+// 0x443290 (the sticker's and the bouncing and flying gnomes' share one function)
+bool GnomeBouncing::MouseOver(int theX, int theY)
+{
+	return PointInBounds(theX, theY);
+}
+
 // 0x4369f0: a solid pixel of the cel that is being shown, under any point of the hammer's mask
 bool GnomeBouncing::Hit(int theX, int theY, const std::vector<Point>& theMask, int theWidth, int theHeight)
 {

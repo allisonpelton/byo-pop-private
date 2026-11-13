@@ -67,6 +67,12 @@ void Sticker::Draw(Graphics* g)
 	aG.DrawImage(anImage, ToInt(mCenterX - (double)anImage->mWidth * 0.5), ToInt(mCenterY - (double)anImage->mHeight * 0.5));
 }
 
+// 0x443290: the bounds only (no solid-pixel test, as a creature has): a click anywhere in the picture's rectangle strikes it
+bool Sticker::MouseOver(int theX, int theY)
+{
+	return PointInBounds(theX, theY);
+}
+
 // 0x4432e0: the mask is put down at the point (given as the mask's corner, so the picture's middle is added), and a solid
 // pixel of the picture under any point of it is a hit
 bool Sticker::Hit(int theX, int theY, const std::vector<Point>& theMask, int theWidth, int theHeight)

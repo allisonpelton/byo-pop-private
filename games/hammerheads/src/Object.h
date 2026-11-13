@@ -97,6 +97,9 @@ public:
 	virtual ~SimpleObject();								// 0x405c00
 
 	virtual void	Strike(double theX, double theY) = 0;	// the hammer lands at the point (Cubby 0x433a00, Sticker 0x443050)
+
+	// 0x443290: the point is in the bounds (the MouseOver of the sticker and of the flying and bouncing gnomes: no solid-pixel test)
+	bool			PointInBounds(int theX, int theY) const;
 };
 
 // 0x4042d0: owns the objects between Add and the pass that deletes them.

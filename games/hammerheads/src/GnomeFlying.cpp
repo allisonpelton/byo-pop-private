@@ -223,6 +223,12 @@ void GnomeFlying::Draw(Graphics* g)
 	}
 }
 
+// 0x443290 (the sticker's and the bouncing and flying gnomes' share one function)
+bool GnomeFlying::MouseOver(int theX, int theY)
+{
+	return PointInBounds(theX, theY);
+}
+
 // 0x439cf0: the mask of the hammer is put down at the point and a solid pixel of the plane's first cel under any point of it
 // is a hit
 bool GnomeFlying::Hit(int theX, int theY, const std::vector<Point>& theMask, int theWidth, int theHeight)

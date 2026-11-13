@@ -365,6 +365,12 @@ SimpleObject::~SimpleObject()
 {
 }
 
+// 0x443290
+bool SimpleObject::PointInBounds(int theX, int theY) const
+{
+	return mBounds.mX <= theX && theX < mBounds.mWidth + mBounds.mX && mBounds.mY <= theY && theY < mBounds.mHeight + mBounds.mY;
+}
+
 
 // ObjectManager
 

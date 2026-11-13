@@ -116,6 +116,9 @@ FIELDS = [
     ('cb%d_age' % i, ['[%s]+0x70' % creature(i)]),
     ('cb%d_height' % i, doubles(creature(i), 0x40)),
     ('cb%d_hvel' % i, doubles(creature(i), 0x48)),
+    ('cb%d_health' % i, ['[%s]+0x58' % creature(i)]),
+    ('cb%d_hstage' % i, ['[%s]+0xd0' % creature(i)]),
+    ('cb%d_hframe' % i, doubles(creature(i), 0xc0)),
     ('cb%d_x' % i, doubles(creature(i), 0x88)),
     ('cb%d_y' % i, doubles(creature(i), 0x90)))] + [
     ('swing', ['[%s]+0xc0' % AVATAR]),
@@ -125,7 +128,7 @@ FIELDS = [
 GAME_FIELDS = {'hasgp', 'level', 'mode', 'cycle', 'kindindex', 'leveltime', 'phase', 'phasetimer', 'nextpop', 'clover', 'strawberry',
                'doublehit', 'fivetimes', 'timerphase', 'timerleft', 'timerrate', 'ncubbies', 'swing', 'swingframe',
                'clickcount'} | {'cb%d_%s' % (i, name) for i in range(TRACE_CUBBIES) for name in
-                                ('state', 'rise', 'kind', 'cstate', 'age', 'height', 'hvel', 'x', 'y')}
+                                ('state', 'rise', 'kind', 'cstate', 'age', 'height', 'hvel', 'health', 'hstage', 'hframe', 'x', 'y')}
 # fields that are a pointer in the original and a flag in the port: whether the object exists is what is compared
 BOOLEAN_FIELDS = {'gs', 'hasstats', 'hasgp'}
 # the update state machine, read for the kind of record (not compared)
@@ -192,6 +195,21 @@ def original_script(scenario, end):
     return '\n'.join(lines) + '\n'
 
 
+def patches_file(run, scenario):
+    """the patch list of the run: the seed's, and for a scenario with JUMP_LEVEL the one that starts Classic Bash at that level. The
+    port is given the same through its `cheat` command. The GameScreen constructor (0x4527c0) tests the cheat words jumpto5 to
+    jumpto25 and, when none is on, compares the level it would jump to (edi, -1 for none) with -1 at 0x4529c4 (`cmp edi, -1;
+    je +0x17`); the patch loads edi with the level there, which is what the cheat's own path does with its constant."""
+    level = getattr(scenario, 'JUMP_LEVEL', None)
+    if level is None:
+        return PATCHES
+    path = os.path.join(run, 'patches.txt')
+    with open(path, 'w') as out:
+        out.write(open(PATCHES).read().rstrip('\n') + '\n')
+        out.write('jump HammerHeadsGame.exe va:0x4529c4 83ffff7417 bf%02x000000 the game starts at level %d (the cheat word jumpto%d)\n' % (level, level, level))
+    return path
+
+
 def run_original(name, scenario, end):
     run = os.path.join(RUN_DIR, name)
     os.makedirs(run, exist_ok=True)
@@ -202,11 +220,16 @@ def run_original(name, scenario, end):
     # every run starts with none, as the port's run does with its fresh user folder
     shutil.rmtree(os.path.join(os.path.dirname(ORIGINAL_EXE), 'users'), ignore_errors=True)
     command = [ORIGRUN, '--exe', ORIGINAL_EXE, '--run', 'hh2', '--stage-root', STAGE_ROOT, '--script', script, '--clock', 'virtual',
-               '--reg-map', 'popcap', '--counter', COUNTER, '--patches', PATCHES, '--seed', str(getattr(scenario, 'SEED', 1)),
-               '--timeout', str(max(120, end // 10))]
+               '--reg-map', 'popcap', '--counter', COUNTER, '--patches', patches_file(run, scenario), '--seed', str(getattr(scenario, 'SEED', 1)),
+               '--timeout', str(120 + end // 100)]
+    crash = os.path.join(os.path.dirname(ORIGINAL_EXE), 'crash.txt')
+    if os.path.exists(crash):
+        os.remove(crash)
     with open(log, 'w') as out:
         status = subprocess.call(command, stdout=out, stderr=subprocess.STDOUT, cwd=ROOT)
     print('original: origrun exited with', status, '->', log)
+    if os.path.exists(crash):
+        print('THE ORIGINAL CRASHED:', open(crash, errors='replace').readline().strip())
     return log
 
 
@@ -367,6 +390,8 @@ def compare(name, scenario, end):
             cubby_field = re.match(r'cb(\d+)_', field)
             if cubby_field and int(cubby_field.group(1)) >= board_cubbies:
                 continue
+            if cubby_field and field.endswith(('_hstage', '_hframe')) and ours['cb%s_kind' % cubby_field.group(1)][0] != 5:
+                continue                                   # the bucket gnome's own fields: other kinds hold something else there
             if field in BOOLEAN_FIELDS:
                 if (ours[field][0] != 0) != (theirs[field][0] != 0):
                     bad.append(field)
@@ -396,6 +421,7 @@ def main():
     parser.add_argument('command', choices=['run', 'compare', 'original', 'port', 'generate'])
     parser.add_argument('scenario')
     parser.add_argument('--end', type=int)
+    parser.add_argument('--keep', action='store_true', help='keep the logs of a run that matched')
     args = parser.parse_args()
     scenario = load_scenario(args.scenario)
     name = scenario_name(args.scenario)
@@ -409,7 +435,15 @@ def main():
     if args.command in ('run', 'port'):
         run_port(name, scenario, end)
     if args.command in ('run', 'compare'):
-        sys.exit(compare(name, scenario, end))
+        status = compare(name, scenario, end)
+        if status == 0 and not args.keep:
+            # the logs are big (half a gigabyte for 30000 updates) and a run that matched has nothing more to say
+            for leftover in ('original.log', 'original.txt', 'port.trace'):
+                try:
+                    os.remove(os.path.join(RUN_DIR, name, leftover))
+                except OSError:
+                    pass
+        sys.exit(status)
 
 
 if __name__ == '__main__':

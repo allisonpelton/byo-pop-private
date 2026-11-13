@@ -16,16 +16,23 @@
 #include "Application.h"
 #include "Avatar.h"
 
+#include "ChallengeScreen.h"
 #include "Compat2004.h"
 #include "Creature.h"
 #include "Cubby.h"
+#include "CubbyContainer.h"
 #include "DialogButton.h"
 #include "Gameplay.h"
 #include "GameScreen.h"
+#include "LevelIntroWidget.h"
 #include "LevelRules.h"
+#include "NcButton.h"
 #include "NcMovingDialog.h"
 #include "Object.h"
+#include "ResurrectButton.h"
+#include "ResurrectScreenWidget.h"
 #include "Screens.h"
+#include "ShopScreen.h"
 #include "Stats.h"
 #include "Timer.h"
 #include "UserManager.h"
@@ -142,24 +149,37 @@ std::string StateJson()
 	return aState;
 }
 
+// the hammer has no swing under way and no click waiting. A swing that is not over would be spent on a creature that has gone by
+// then, and a swing whose target goes (the shop closing within its first frames) makes the original strike a null pointer
+// (Avatar::FixedUpdate, 0x42eb80, crashes where the port tests it), so the bot waits for the hammer before it leaves the shop too
+bool BotHammerIdle()
+{
+	if (gApp->mGameScreen == nullptr || !gApp->mGameScreen->mAvatar.IsValid())
+		return false;
+	Avatar* anAvatar = static_cast<Avatar*>(gApp->mGameScreen->mAvatar.Get());
+	return anAvatar->mSwing == Avatar::SWING_NONE && anAvatar->mClicks.empty();
+}
+
 // the creature the bot hits: the first cubby, in the order of the board, whose creature stands fully up and is not a bomb (or is
 // one, when theWantBomb is set: phase one's scenarios hit one now and then), and the point where the hammer lands on it
 bool ChooseBotTarget(int* theCubbyIndex, int* theX, int* theY, bool theWantBomb = false)
 {
-	if (gApp->mGameScreen == nullptr || !gApp->mGameScreen->IsInPlay())
+	if (gApp->mGameScreen == nullptr || (!gApp->mGameScreen->IsInPlay() && !gApp->IsShopOpen() && !gApp->IsChallengeOpen()))
+		return false;
+	if (!BotHammerIdle())
 		return false;
 
-	// a swing that is not over, or a click waiting for it, would be spent on a creature that has gone by then
-	if (!gApp->mGameScreen->mAvatar.IsValid())
-		return false;
-	Avatar* anAvatar = static_cast<Avatar*>(gApp->mGameScreen->mAvatar.Get());
-	if (anAvatar->mSwing != Avatar::SWING_NONE || !anAvatar->mClicks.empty())
-		return false;
-
+	// the cubbies of the screen in use: the shop's, the bonus round's or the level's
 	Gameplay* aGameplay = GetGameplay();
-	for (size_t i = 0; i < aGameplay->mCubbies.size(); i++)
+	CubbyContainer* aContainer = nullptr;
+	if (gApp->IsShopOpen())
+		aContainer = gApp->mShopScreen;
+	else if (gApp->IsChallengeOpen())
+		aContainer = gApp->mChallengeScreen;
+	size_t aCubbyCount = aContainer != nullptr ? aContainer->mCubbies.size() : aGameplay->mCubbies.size();
+	for (size_t i = 0; i < aCubbyCount; i++)
 	{
-		Cubby* aCubby = aGameplay->GetCubby((int)i);
+		Cubby* aCubby = aContainer != nullptr ? aContainer->GetCubby((int)i) : aGameplay->GetCubby((int)i);
 		if (aCubby == nullptr || aCubby->mCreature == nullptr || aCubby->mState != Cubby::STATE_UP)
 			continue;
 		Creature* aCreature = aCubby->mCreature;
@@ -205,13 +225,34 @@ bool FindWaitingButton(int* theX, int* theY)
 {
 	if (gApp->mLevelIntro != nullptr)
 	{
-		*theX = 400;
-		*theY = 438;
+		*theX = gApp->mLevelIntro->mButton->mX + gApp->mLevelIntro->mButton->mWidth / 2;
+		*theY = gApp->mLevelIntro->mButton->mY + gApp->mLevelIntro->mButton->mHeight / 2;
 		return true;
 	}
-	if (NcMovingDialog* aDialog = static_cast<NcMovingDialog*>(gApp->GetDialog(DIALOG_READY_GO)))
+
+	// the page of the restart points (after a lost game): the highest point
+	if (gApp->mResurrectScreen != nullptr && !gApp->mResurrectScreen->mPointButtons.empty())
 	{
-		if (aDialog->mY != aDialog->mRestY || aDialog->mYesButton == nullptr)
+		ResurrectButton* aButton = gApp->mResurrectScreen->mPointButtons.back();
+		*theX = aButton->mX + aButton->mWidth / 2;
+		*theY = aButton->mY + aButton->mHeight / 2;
+		return true;
+	}
+
+	// the boxes with one button to press; a box that slides in is not pressed before it has stopped
+	static const int aBoxes[] = {DIALOG_READY_GO, DIALOG_BONUS_ROUND, DIALOG_CHALLENGE_FINISHED, DIALOG_GAME_OVER, DIALOG_GAME_WON,
+		DIALOG_TOUGH_UNLOCKED};
+	for (int anId : aBoxes)
+	{
+		Dialog* aDialog = gApp->GetDialog(anId);
+		if (aDialog == nullptr)
+			continue;
+		if (NcMovingDialog* aMoving = dynamic_cast<NcMovingDialog*>(aDialog))
+		{
+			if (aMoving->mY != aMoving->mRestY)
+				return false;
+		}
+		if (aDialog->mYesButton == nullptr)
 			return false;
 		*theX = aDialog->mYesButton->mX + aDialog->mYesButton->mWidth / 2;
 		*theY = aDialog->mYesButton->mY + aDialog->mYesButton->mHeight / 2;
@@ -418,6 +459,18 @@ bool Application::HandleScriptCommand(const ScriptCommand& theCommand)
 		return true;
 	}
 
+	// a cheat word typed (the letters go to the cheat table as the main menu passes them on; a word that is whole switches its cheat):
+	// phase one starts Classic Bash at a later level with `cheat jumpto10`, which the original gets as a patched start (idplay)
+	if (aName == "cheat")
+	{
+		if (anArg.empty())
+			return Error(aLine, "cheat <word>"), true;
+		for (char aChar : anArg)
+			KeyChar(aChar);
+		Ok(aLine);
+		return true;
+	}
+
 	if (aName == "seed")
 	{
 		if (anArg.empty())
@@ -434,13 +487,32 @@ bool Application::HandleScriptCommand(const ScriptCommand& theCommand)
 	{
 		int aCubbyIndex = 0, aX = 400, aY = 590;
 		bool aMiss = anArg == "miss";
-		if (gApp->mGameScreen != nullptr && !gApp->mGameScreen->IsInPlay())
-		{
-			if (!FindWaitingButton(&aX, &aY))
-				return true;
+		if (gApp->mGameScreen == nullptr)
+			return true;
+		bool aShop = gApp->IsShopOpen();
+		if (FindWaitingButton(&aX, &aY))
 			aMiss = true;		// the point is chosen: the click is made as the miss's is
+		else if (gApp->GetDialog(DIALOG_READY_GO) != nullptr || gApp->mLevelIntro != nullptr || gApp->mZooming)
+			return true;		// a box that has not stopped, or a wipe: nothing to press yet
+		else if (aShop)
+		{
+			// the shop: the first three clicks buy (the first gnome with an item standing up), then the arrow goes back to the game
+			static int aShopClicks = 0, aLastShopUpdate = -100000;
+			if (mUpdateCount - aLastShopUpdate > 2000)
+				aShopClicks = 0;
+			aLastShopUpdate = mUpdateCount;
+			if (aShopClicks < 3 && ChooseBotTarget(&aCubbyIndex, &aX, &aY))
+				aShopClicks++;
+			else if (aShopClicks >= 3 && gApp->mShopScreen->mBackButton != nullptr && BotHammerIdle())
+			{
+				aX = gApp->mShopScreen->mBackButton->mX + gApp->mShopScreen->mBackButton->mWidth / 2;
+				aY = gApp->mShopScreen->mBackButton->mY + gApp->mShopScreen->mBackButton->mHeight / 2;
+			}
+			else
+				return true;
+			aMiss = true;
 		}
-		else if (gApp->mGameScreen == nullptr)
+		else if (!gApp->mGameScreen->IsInPlay() && !gApp->IsChallengeOpen())
 			return true;
 		if (!aMiss && !ChooseBotTarget(&aCubbyIndex, &aX, &aY, anArg == "bomb"))
 			return true;

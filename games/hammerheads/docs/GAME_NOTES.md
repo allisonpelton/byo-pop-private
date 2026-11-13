@@ -51,6 +51,10 @@ a `click` and ten updates' wait, which is what a player's click does.
   it, and the full screen box that cannot be cleared then, cannot come either.
 - **Debugger lines.** The original writes lines to the debugger (`OutputDebugStringA`) where the options box pauses and un-pauses
   the game, where the leave box does, and in the credits' Flash listener; the port writes none.
+- **A swing whose target is gone.** `Avatar::FixedUpdate` (0x42eb80) strikes the swing's target at frame 3 without testing the
+  reference for null; the original crashes there (an access violation at 0x42ebb2, found by a scenario in which the bot clicked
+  the shop's arrow while a swing had begun, so the shop's gnome was deleted before the strike). The port tests it (a crash is
+  fixed in the port, as the rules say), so the swing ends with no strike.
 - **The trophy page buttons** (the announcement of a new trophy and the close-up) are one class here, `TrophyPageButton`; the
   original has two classes with the same code and fields. A trophy's shadow picture (the unearned ones) is deleted with its
   button; the original leaks it (a memory leak, fixed here as the rules say).

@@ -32,6 +32,7 @@ public:
 
 	virtual void	FixedUpdate() override;										// 0x442f70
 	virtual void	Draw(Graphics* g) override;									// 0x442fa0
+	virtual bool	MouseOver(int theX, int theY) override;						// 0x443290: the point is in the sticker's bounds
 	virtual bool	Hit(int theX, int theY, const std::vector<Point>& theMask, int theWidth, int theHeight) override;	// 0x4432e0
 	virtual void	Strike(double theX, double theY) override;					// 0x443050
 
