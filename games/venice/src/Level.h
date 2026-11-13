@@ -27,7 +27,7 @@ public:
 	LevelMusic mMainMusic; // 0x1d8
 	LevelMusic mWinMusic; // 0x220
 	float mIntroTicksLeft = 0; // 0x268: counts down from the intro's length (in 4 ms ticks); the main music fades in at its end
-	float mIntroTime = 0; // 0x26c: the intro's length in milliseconds
+	float mIntroTime = 0; // 0x26c: the intro's length in milliseconds (read from the level file; nothing reads it)
 	float mWinFadeTicks = 0; // 0x270: counts down while the main music fades into the win music
 	int mNumber = 0; // 0x278: the level's number in the scene file list it was pushed from
 	// the pointer and the left and right buttons as the screen sees them: only the top scene reads them, the others see zero

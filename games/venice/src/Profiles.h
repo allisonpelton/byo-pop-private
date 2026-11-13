@@ -39,7 +39,7 @@ struct Profile
 	char mPadBeforeTipCycle[0x1000];
 	int mTipCycle; // 0 to 2: which of the three tips the loading screens show next
 	char mPadBeforeStartTries[0x14];
-	int mStartTries[GameModeCount]; // reset to 3 with the progress
+	int mStartTries[GameModeCount]; // reset to 3 with the progress (kept for the save's layout; nothing reads it)
 	char mPadBeforeTriesLeft[4];
 	int mTriesLeft[GameModeCount]; // the tries left to finish the level, 3 at the start of each
 	char mPadBeforeLevelStartScore[4];
