@@ -398,15 +398,22 @@ def main():
     ap.add_argument("--missed", type=int, default=24, help="how many of the closest turned-down pairs to list")
     ap.add_argument("--match", help="tools/soundmatch.py's results (default: this checkout's build/soundmatch/)")
     ap.add_argument("--unsure", help="the unsure voice clips with Whisper's guesses (default: testnotes/voicelines-unsure.txt)")
+    ap.add_argument("--notes", help="the folder the decisions are read from and written to (default: this checkout's testnotes/; "
+                    "from a worktree, the main checkout's, so they land where the user keeps them)")
     ap.add_argument("--prepare-only", action="store_true")
     a = ap.parse_args()
+    if a.notes:
+        for k in DECISIONS:
+            DECISIONS[k] = os.path.join(os.path.abspath(a.notes), os.path.basename(DECISIONS[k]))
+        if not a.unsure:
+            global UNSURE
+            UNSURE = os.path.join(os.path.abspath(a.notes), os.path.basename(UNSURE))
     if a.assets:
         vl.ASSETS = os.path.abspath(a.assets)
     if a.match:
         global MATCH
         MATCH = os.path.abspath(a.match)
     if a.unsure:
-        global UNSURE
         UNSURE = os.path.abspath(a.unsure)
     items = prepare_all(a.missed)
     pairs = items["pairs"]
