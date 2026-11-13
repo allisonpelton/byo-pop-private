@@ -779,7 +779,7 @@ html.d95-desk .sb-group:not(#\#) { margin: 4px 0 0; padding: 3px 6px 7px; min-wi
 html.d95-desk .sb-legend { margin-left: 4px; padding: 0 3px; background: var(--panel); }
 html.d95-desk .sb-row { display: flex; flex-wrap: wrap; gap: 4px; }
 html.d95-desk .sb-btn:not(#\#) { flex: none; width: 116px; height: 23px; min-width: 0; min-height: 0; padding: 0 6px; color: #000; font: inherit; }
-html.d95-desk .sb-name { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 13px; }
+html.d95-desk .sb-name { display: block; max-width: 100%; margin: 0 auto; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 13px; }
 /* whole-pixel line heights: "normal" is 14.297px at 11px, which put every button below a legend, and every label, on a
    fraction of a pixel, and Firefox drew some of those labels blurred beside crisp ones (the user, 2026-11-12) */
 html.d95-desk .sb-legend, html.d95-desk .sb-status { line-height: 14px; }
