@@ -346,6 +346,7 @@ var ByopopSoundboards = {
       ["sounds/firecrackle.ogg", "Fire crackle (unused)", "Never played: it is loaded, but no code plays it, by id or by number. Also in Bejeweled as Crackle: the vortex has finished and the gems are gone."]
     ] }
   ] },
+  // Bejeweled Twist: sounds/combo_1.ogg (Match 1) is left out, never played and nearly silent (its loudest point -49 dB).
   bejeweledtwist: {
     presets: [
       { name: "Start Classic", when: "Classic is chosen", steps: [["sounds/doorlock2", 0, {"v": -650}], ["sounds/voice_classic", 0, {"v": -650}], ["sounds/trans_spacenoise", 0], ["sounds/buttonpress2", 0, {"v": -650}], ["sounds/trans_arrival", 3610, {"v": -650}]]},
@@ -395,7 +396,6 @@ var ByopopSoundboards = {
       ["sounds/purr.ogg", "Purr", "A tooltip for a coal gem opens, only when the coal-as-snack setting is on; other coal tooltips are silent"]
     ] },
     { name: "Matches and chains", sounds: [
-      ["sounds/combo_1.ogg", "Match 1 (unused)", "Never played: a twist's first match counts as chain step 1 and the code adds that to this sound's number, so the first match plays Match 2"],
       ["sounds/combo_2.ogg", "Match 2", "The 1st match of a twist (step 1 of its chain), when no match in it has six or more gems; also when the wheel's bomb is disarmed. Also in Bejeweled 3, as sounds/combo_2.ogg."],
       ["sounds/combo_3.ogg", "Match 3", "The 2nd match of a twist (chain step 2), when no match in it has six or more gems"],
       ["sounds/combo_4.ogg", "Match 4", "The 3rd match of a twist (chain step 3), when no match in it has six or more gems"],
@@ -413,12 +413,12 @@ var ByopopSoundboards = {
       ["sounds/multiplier_up2_3.ogg", "Level up 3", "The level bar's multiplier rises to level 2, while the board is not busy"],
       ["sounds/multiplier_up2_4.ogg", "Level up 4", "The multiplier rises to level 3 or higher, while the board is not busy"],
       ["sounds/multiplier_down.ogg", "Multiplier down", "The shown multiplier falls to a lower level, while the board is not busy"],
-      ["sounds/voice_good.ogg", "\"Good\"", "A twist's rating reaches 3 (once a twist; a later match can raise it to a higher praise). Rating, from the twist alone: (cascades - 1)^1.5, (gems cleared / 15)^1.5, 8 a gem past 5 in its longest match, fruit set off squared, locks broken, bombs defused and flame gems made, with 2 each less 1 for electro gems made, flame and electro gems destroyed and coal destroyed. Never in Challenge, a replay or Blitz's first 10 s"],
-      ["sounds/voice_excellent.ogg", "\"Excellent\"", "A twist's rating reaches 6 (once a twist; a later match can raise it to a higher praise). Rating, from the twist alone: (cascades - 1)^1.5, (gems cleared / 15)^1.5, 8 a gem past 5 in its longest match, fruit set off squared, locks broken, bombs defused and flame gems made, with 2 each less 1 for electro gems made, flame and electro gems destroyed and coal destroyed. Never in Challenge, a replay or Blitz's first 10 s"],
-      ["sounds/voice_awesome.ogg", "\"Awesome\"", "A twist's rating reaches 12 (once a twist; a later match can raise it to a higher praise). Rating, from the twist alone: (cascades - 1)^1.5, (gems cleared / 15)^1.5, 8 a gem past 5 in its longest match, fruit set off squared, locks broken, bombs defused and flame gems made, with 2 each less 1 for electro gems made, flame and electro gems destroyed and coal destroyed. Never in Challenge, a replay or Blitz's first 10 s"],
-      ["sounds/voice_incredible.ogg", "\"Incredible\"", "A twist's rating reaches 20 (once a twist; a later match can raise it to a higher praise). Rating, from the twist alone: (cascades - 1)^1.5, (gems cleared / 15)^1.5, 8 a gem past 5 in its longest match, fruit set off squared, locks broken, bombs defused and flame gems made, with 2 each less 1 for electro gems made, flame and electro gems destroyed and coal destroyed. Never in Challenge, a replay or Blitz's first 10 s"],
-      ["sounds/voice_spectacular.ogg", "\"Spectacular\"", "A twist's rating reaches 30 (once a twist; a later match can raise it to a higher praise). Rating, from the twist alone: (cascades - 1)^1.5, (gems cleared / 15)^1.5, 8 a gem past 5 in its longest match, fruit set off squared, locks broken, bombs defused and flame gems made, with 2 each less 1 for electro gems made, flame and electro gems destroyed and coal destroyed. Never in Challenge, a replay or Blitz's first 10 s"],
-      ["sounds/voice_unbelievable.ogg", "\"Unbelievable\"", "A twist's rating reaches 45 (once a twist; a later match can raise it to a higher praise). Rating, from the twist alone: (cascades - 1)^1.5, (gems cleared / 15)^1.5, 8 a gem past 5 in its longest match, fruit set off squared, locks broken, bombs defused and flame gems made, with 2 each less 1 for electro gems made, flame and electro gems destroyed and coal destroyed. Never in Challenge, a replay or Blitz's first 10 s"]
+      ["sounds/voice_good.ogg", "\"Good\"", "When a twist's rating reaches 3. Said once a twist, as its matches fall, for the highest praise its rating has reached; a later match in the same twist can step it up to a higher one. Never in Challenge, in a replay, in Blitz's first 10 seconds or when the twist ends the level. The rating adds up: the twist's cascades after the first, to the power 1.5; the gems the twist cleared, divided by 15, to the power 1.5; and, counted over the level so far: 8 for each gem past five in a match that set the game's longest; the fruit gems set off, squared; 1 for each lock broken, bomb defused and flame gem made; and 1 for the first and 2 for each more of the electro gems made, flame gems destroyed, electro gems destroyed and coal destroyed, each of the four counted on its own"],
+      ["sounds/voice_excellent.ogg", "\"Excellent\"", "When a twist's rating reaches 6. Said once a twist, as its matches fall, for the highest praise its rating has reached; a later match in the same twist can step it up to a higher one. Never in Challenge, in a replay, in Blitz's first 10 seconds or when the twist ends the level. The rating adds up: the twist's cascades after the first, to the power 1.5; the gems the twist cleared, divided by 15, to the power 1.5; and, counted over the level so far: 8 for each gem past five in a match that set the game's longest; the fruit gems set off, squared; 1 for each lock broken, bomb defused and flame gem made; and 1 for the first and 2 for each more of the electro gems made, flame gems destroyed, electro gems destroyed and coal destroyed, each of the four counted on its own"],
+      ["sounds/voice_awesome.ogg", "\"Awesome\"", "When a twist's rating reaches 12. Said once a twist, as its matches fall, for the highest praise its rating has reached; a later match in the same twist can step it up to a higher one. Never in Challenge, in a replay, in Blitz's first 10 seconds or when the twist ends the level. The rating adds up: the twist's cascades after the first, to the power 1.5; the gems the twist cleared, divided by 15, to the power 1.5; and, counted over the level so far: 8 for each gem past five in a match that set the game's longest; the fruit gems set off, squared; 1 for each lock broken, bomb defused and flame gem made; and 1 for the first and 2 for each more of the electro gems made, flame gems destroyed, electro gems destroyed and coal destroyed, each of the four counted on its own"],
+      ["sounds/voice_incredible.ogg", "\"Incredible\"", "When a twist's rating reaches 20. Said once a twist, as its matches fall, for the highest praise its rating has reached; a later match in the same twist can step it up to a higher one. Never in Challenge, in a replay, in Blitz's first 10 seconds or when the twist ends the level. The rating adds up: the twist's cascades after the first, to the power 1.5; the gems the twist cleared, divided by 15, to the power 1.5; and, counted over the level so far: 8 for each gem past five in a match that set the game's longest; the fruit gems set off, squared; 1 for each lock broken, bomb defused and flame gem made; and 1 for the first and 2 for each more of the electro gems made, flame gems destroyed, electro gems destroyed and coal destroyed, each of the four counted on its own"],
+      ["sounds/voice_spectacular.ogg", "\"Spectacular\"", "When a twist's rating reaches 30. Said once a twist, as its matches fall, for the highest praise its rating has reached; a later match in the same twist can step it up to a higher one. Never in Challenge, in a replay, in Blitz's first 10 seconds or when the twist ends the level. The rating adds up: the twist's cascades after the first, to the power 1.5; the gems the twist cleared, divided by 15, to the power 1.5; and, counted over the level so far: 8 for each gem past five in a match that set the game's longest; the fruit gems set off, squared; 1 for each lock broken, bomb defused and flame gem made; and 1 for the first and 2 for each more of the electro gems made, flame gems destroyed, electro gems destroyed and coal destroyed, each of the four counted on its own"],
+      ["sounds/voice_unbelievable.ogg", "\"Unbelievable\"", "When a twist's rating reaches 45. Said once a twist, as its matches fall, for the highest praise its rating has reached; a later match in the same twist can step it up to a higher one. Never in Challenge, in a replay, in Blitz's first 10 seconds or when the twist ends the level. The rating adds up: the twist's cascades after the first, to the power 1.5; the gems the twist cleared, divided by 15, to the power 1.5; and, counted over the level so far: 8 for each gem past five in a match that set the game's longest; the fruit gems set off, squared; 1 for each lock broken, bomb defused and flame gem made; and 1 for the first and 2 for each more of the electro gems made, flame gems destroyed, electro gems destroyed and coal destroyed, each of the four counted on its own"]
     ] },
     { name: "Special gems", sounds: [
       ["sounds/powergem_created.ogg", "Flame gem made", "A gem becomes a flame gem (a match of four); not while the board fills quietly, as when a game is loaded"],
@@ -600,8 +600,8 @@ var ByopopSoundboards = {
     ],
     groups: [
     { name: "Buttons and menus", sounds: [
-      ["Sound/Button_Press.ogg", "Button press", "A button without a sound of its own is pressed"],
-      ["Sound/Button_Release.ogg", "Button release", "A button without a sound of its own is released"],
+      ["Sound/Button_Press.ogg", "Button press", "A button without a sound of its own is pressed. The same recording as Tile placed 2."],
+      ["Sound/Button_Release.ogg", "Button release", "A button without a sound of its own is released. The same recording as Tile placed 3."],
       ["Sound/Button2_Press.ogg", "Round button press", "A button is pressed on the options menu, the player list and the new-player name box"],
       ["Sound/Button2_Release.ogg", "Round button release", "A button is released on the options menu, the player list and the new-player name box"],
       ["Sound/PaperButton_Press.ogg", "Paper button press", "A button is pressed on the dialogs, the help arrows, the high scores, the story and the interstitial screens"],
@@ -616,8 +616,8 @@ var ByopopSoundboards = {
     ] },
     { name: "Building words", sounds: [
       ["Sound/Place_01.ogg", "Tile placed 1", "A tile is clicked or dragged onto the word's path (a different tile from the last one): a 1 in 3 draw among the three place sounds"],
-      ["Sound/Place_02.ogg", "Tile placed 2", "A tile is clicked or dragged onto the word's path (a different tile from the last one): a 1 in 3 draw among the three place sounds"],
-      ["Sound/Place_03.ogg", "Tile placed 3", "A tile is clicked or dragged onto the word's path (a different tile from the last one): a 1 in 3 draw among the three place sounds"],
+      ["Sound/Place_02.ogg", "Tile placed 2", "A tile is clicked or dragged onto the word's path (a different tile from the last one): a 1 in 3 draw among the three place sounds. The same recording as Button press."],
+      ["Sound/Place_03.ogg", "Tile placed 3", "A tile is clicked or dragged onto the word's path (a different tile from the last one): a 1 in 3 draw among the three place sounds. The same recording as Button release."],
       ["Sound/Cancel.ogg", "Path dropped", "A right click in the game while the word's path holds at least one tile (not during the tutorial's first steps or a pause); the path is dropped at 75% volume"],
       ["Sound/Error.ogg", "Error", "A wrong tile is picked during the tutorial (at most once per 700 ms); a fixed or star tile is clicked once both hints have been shown, or while the tutorial's hint shows; a path that is not a word is submitted (85% volume); Alt+Enter is refused because the desktop is too small (full volume)"],
       ["Sound/Scramble.ogg", "Shuffle", "The shuffle button is pressed and the board still has a move to shuffle into (otherwise the game ends instead); plays at 75% volume"]
@@ -913,10 +913,10 @@ var ByopopSoundboards = {
       ["sounds/codex_nyah.ogg", "Codex nyah", "A Codex animation of the last chapter taunts. Also in Bookworm Adventures Volume 2 as Codex nyah (unused)."],
       ["sounds/lexbeam.ogg", "Lex beam", "Lex's beam animation in the fight with the Codex. Also in Bookworm Adventures Volume 2 as Lex beam (unused)."],
       ["sounds/nemesis_laugh.ogg", "Nemesis laugh", "The animation of Cassandra and the Nemesis laughs. Also in Bookworm Adventures Volume 2 as Nemesis laugh (unused)."],
-      ["sounds/v_autological.ogg", "\"Autological\"", "Lex says it in the animation of the Codex fight. Also in Bookworm Adventures Volume 2 as \"Autological\" (unused). Also in Bookworm Adventures Volume 2 as \"Autological\" (unused)."]
+      ["sounds/v_autological.ogg", "\"Autological\"", "Lex says it in the animation of the Codex fight. The game also has the same recording as sounds/lex_autological.ogg, never played. Also in Bookworm Adventures Volume 2 as \"Autological\" (two copies, neither played)."]
     ] },
     { name: "Unused", sounds: [
-      ["sounds/lex_autological.ogg", "\"Autological\" (unused)", "Never played: loaded as LEX_AUTOLOGICAL, but no code or script asks for it. Also in Bookworm Adventures Volume 2 as \"Autological\" (unused). Also in Bookworm Adventures Volume 2 as \"Autological\" (unused)."],
+      ["sounds/lex_autological.ogg", "\"Autological\" (unused)", "Never played: loaded as LEX_AUTOLOGICAL, but no code or script asks for it. The same recording as \"Autological\" (sounds/v_autological.ogg), which Lex says in the Codex fight; only this copy is never played. Also in Bookworm Adventures Volume 2 as \"Autological\" (two copies, neither played)."],
       ["sounds/lex_unbelievable.ogg", "\"Unbelievable\" (unused)", "Never played: the file is not in the game's resource list, so nothing loads it. Also in Bookworm Adventures Volume 2 as \"Unbelievable\" (unused)."],
       ["sounds/v_buynow.ogg", "\"Buy now\" (trial only)", "Trial only: the upsell trailer the trial showed said it once; the port, made from the full game, has no trial and leaves the trailer's resources out. Also in Bookworm Adventures Volume 2 as \"Buy now\" (trial only)."],
       ["sounds/vo_routed.ogg", "\"Routed\" (unused)", "Never played: loaded as OVERKILL_ROUTED, but the scripts' overkill table names only the seven other overkill voices. Also in Bookworm Adventures Volume 2 as \"Routed\" (unused)."]
@@ -1268,14 +1268,14 @@ var ByopopSoundboards = {
       ["sounds/kubwa_barh.ogg", "Kubwa barh (unused)", "Never played: the file is not in the game's resource list, so nothing loads it. Also in Bookworm Adventures as Kubwa barh: attack or hit of Thieves 12-14 (Arena too)."],
       ["sounds/kubwa_greeting.ogg", "Kubwa greeting (unused)", "Never played: the file is not in the game's resource list, so nothing loads it. Also in Bookworm Adventures as Kubwa greeting: used in the Arena fights."],
       ["sounds/kubwa_greeting2.ogg", "Kubwa greeting 2 (unused)", "Never played: the file is not in the game's resource list, so nothing loads it. Also in Bookworm Adventures as Kubwa greeting 2: opening sound of Thieves 12-14 (Arena too)."],
-      ["sounds/lex_autological.ogg", "\"Autological\" (unused)", "Never played: loaded as LEX_AUTOLOGICAL, but no code or script asks for it. Also in Bookworm Adventures as \"Autological\": Lex says it in the animation of the Codex fight. Also in Bookworm Adventures as \"Autological\" (unused)."],
+      ["sounds/lex_autological.ogg", "\"Autological\" (unused)", "Never played: loaded as LEX_AUTOLOGICAL, but no code or script asks for it. The same recording as sounds/v_autological.ogg here, also never played. Also in Bookworm Adventures as \"Autological\": Lex says it in the animation of the Codex fight (and an unused copy, sounds/lex_autological.ogg)."],
       ["sounds/lexbeam.ogg", "Lex beam (unused)", "Never played: the file is not in the game's resource list, so nothing loads it. Also in Bookworm Adventures as Lex beam: Lex's beam animation in the fight with the Codex."],
       ["sounds/moan_01.ogg", "Moan 1 (unused)", "Never played: the file is not in the game's resource list, so nothing loads it. Also in Bookworm Adventures as Moan 1: death sound of Bandit, Sword Swallower, Highwayman."],
       ["sounds/nemesis_laugh.ogg", "Nemesis laugh (unused)", "Never played: the file is not in the game's resource list, so nothing loads it. Also in Bookworm Adventures as Nemesis laugh: the animation of Cassandra and the Nemesis laughs."],
       ["sounds/pulsing_attack_01.ogg", "Pulsing attack 1 (unused)", "Never played: listed as PULSING_ATTACK in book5.xml, but no script asks for it. Also in Bookworm Adventures as Pulsing attack 1: attack or hit of Circe, Dryad, Helead and 3 more (Arena too)."],
       ["sounds/roar_01.ogg", "Roar 1 (unused)", "Never played: the file is not in the game's resource list, so nothing loads it. Also in Bookworm Adventures as Roar 1: opening sound of Charybdis, Enchanted Lion, Phantom and 2 more."],
       ["sounds/sloooowdown.ogg", "Sloooowdown (unused)", "Never played: loaded as SLOWDOWN, but no code or script asks for it. Also in AstroPop as Slow down: the atomic pilot's power. Also in Bookworm Adventures as Slow down: a hidden word is spelled outside the mini-games."],
-      ["sounds/v_autological.ogg", "\"Autological\" (unused)", "Never played: the file is not in the game's resource list, so nothing loads it. Also in Bookworm Adventures as \"Autological\": Lex says it in the animation of the Codex fight. Also in Bookworm Adventures as \"Autological\" (unused)."],
+      ["sounds/v_autological.ogg", "\"Autological\" (unused)", "Never played: the file is not in the game's resource list, so nothing loads it. The same recording as sounds/lex_autological.ogg here, also never played. Also in Bookworm Adventures as \"Autological\": Lex says it in the animation of the Codex fight (and an unused copy, sounds/lex_autological.ogg)."],
       ["sounds/v_clipsandgiggles.ogg", "\"Clips and giggles\" (unused)", "Never played: loaded with the main menu's voices as MM_CNG, but no menu item's reaction uses it. Also in Bookworm Adventures as \"Clips and Giggles\": Lex reacts when the pointer moves onto the film reel item of the main menu."]
     ] }
   ] },
@@ -1660,7 +1660,7 @@ var ByopopSoundboards = {
       ["sounds/temple mouseover 01.ogg", "Puzzle hover", "The mouse comes onto a different puzzle's picture in a temple"],
       ["sounds/chain breaking 01.ogg", "Chain breaks", "A temple's puzzle screen opens with every puzzle but the last solved, the first time only; the chain on the last puzzle breaks"],
       ["sounds/pixelus hint screen v01.ogg", "Hint screen (unused)", "Never played: it is in the sound table, but no code asks for it"],
-      ["sounds/hint popup 01.ogg", "Hint popup (unused)", "Never played: it is in the sound table, but no code asks for it. Also in Hammer Heads Deluxe, as sounds/Hint Popup 01.ogg. Also in Hammer Heads Deluxe, as sounds/UI - Target Over Gnome.ogg."]
+      ["sounds/hint popup 01.ogg", "Hint popup (unused)", "Never played: it is in the sound table, but no code asks for it. Also in Hammer Heads Deluxe, as sounds/Hint Popup 01.ogg and sounds/UI - Target Over Gnome.ogg."]
     ] },
     { name: "Puzzles", sounds: [
       ["sounds/pixelus start of puzzle v02.ogg", "Puzzle starts", "The first update of a puzzle once the help screen is gone (it comes with the music of the puzzles, 150 updates later). Also in Hammer Heads Deluxe, as sounds/UI - Time Bonus.ogg."],
@@ -1823,8 +1823,8 @@ var ByopopSoundboards = {
     { name: "Menus", sounds: [
       ["TipTop.dat|tiptop:sounds/splash.ogg", "\"Welcome to Tip Top\"", "The splash screen opens, as its loading bar starts"],
       ["TipTop.dat|tiptop:sounds/MouseOver.ogg", "Mouse over", "The pointer comes onto a button or check box; also onto the level summary's button"],
-      ["TipTop.dat|tiptop:sounds/MouseClick.ogg", "Mouse click", "A button is pressed, or Enter or Esc on a button that answers to that key; also a click or Enter on the level summary's button"],
-      ["TipTop.dat|tiptop:sounds/VolumeAdjust.ogg", "Volume test", "The sound volume slider is moved or its track is clicked, unless the sound is still playing; it plays at the new volume"]
+      ["TipTop.dat|tiptop:sounds/MouseClick.ogg", "Mouse click", "A button is pressed, or Enter or Esc on a button that answers to that key; also a click or Enter on the level summary's button. The same recording as Volume test."],
+      ["TipTop.dat|tiptop:sounds/VolumeAdjust.ogg", "Volume test", "The sound volume slider is moved or its track is clicked, unless the sound is still playing; it plays at the new volume. The same recording as Mouse click."]
     ] },
     { name: "Level start and end", sounds: [
       ["TipTop.dat|tiptop:sounds/GameStart.ogg", "Game start", "A game's first level begins (the level is the configured start level)"],
@@ -1999,9 +1999,9 @@ var ByopopSoundboards = {
       ["res/sounds/level_begin.wav", "Level begins", "The level's play starts, or a saved game is loaded back in"]
     ] },
     { name: "Balls", sounds: [
-      ["res/sounds/ball_rustle.wav", "Next ball shown", "Freematch only: the HUD shows the next ball's letters and the new-ball blossom, each time the next piece is shown"],
+      ["res/sounds/ball_rustle.wav", "Next ball shown", "Freematch only: the HUD shows the next ball's letters and the new-ball blossom, each time the next piece is shown. The same recording as Ball pops."],
       ["res/sounds/ball_rustle2.WAV", "Balls arrive", "A ball, a word's balls or a recycled word's balls are dropped in (not when set quiet)"],
-      ["res/sounds/ball_pop.wav", "Ball pops", "Each picked ball of a found word pops, one after the other"],
+      ["res/sounds/ball_pop.wav", "Ball pops", "Each picked ball of a found word pops, one after the other. The same recording as Next ball shown."],
       ["res/sounds/pop_wind.WAV", "Word found", "A word is accepted and scored"]
     ] },
     { name: "Bonuses", sounds: [
