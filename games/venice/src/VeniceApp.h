@@ -27,6 +27,7 @@ public:
 	void GotFocus() override; // 0x440450
 	void WriteToRegistry() override;
 	bool HandleScriptCommand(const Sexy::ScriptCommand& theCommand) override; // TestCommands.cpp: the standard test commands
+	void HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue) override; // port: -livesplitlog
 
 	// port (TestCommands.cpp): what a test can ask of the frames since the loading was done (frame 0 is the first update after it):
 	// commands that wait for a frame (after), a trace of each frame's end, and the ticks each frame runs
