@@ -43,3 +43,12 @@ else()
     COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:SDL2::SDL2> ${PORT_RUNTIME_DLLS} $<TARGET_FILE_DIR:hammerheads>
     VERBATIM)
 endif()
+
+# hammerheads_swftest plays the how-to-play movie through the shared SWF player, headless (tools/swftest/swftest.cpp)
+if(NOT EMSCRIPTEN)
+  add_executable(hammerheads_swftest tools/swftest/swftest.cpp)
+  target_link_libraries(hammerheads_swftest PRIVATE sexyswf)
+  add_custom_command(TARGET hammerheads_swftest POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:SDL2::SDL2> ${PORT_RUNTIME_DLLS} $<TARGET_FILE_DIR:hammerheads_swftest>
+    VERBATIM)
+endif()

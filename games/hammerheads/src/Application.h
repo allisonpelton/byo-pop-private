@@ -155,6 +155,10 @@ public:
 	virtual bool	HandleScriptCommand(const ScriptCommand& theCommand) override;
 	void			StartTestGame(int theMode, int theLevel);		// a new game of a mode at a level, over whatever is on screen
 	void			SeedGame(unsigned int theSeed);					// the seeding that Init gives the generators
+	bool			StartTrace(const std::string& theFile);			// Trace.cpp: the per-frame state log of phase one ("off" or empty ends it)
+	void			TraceRecord(char theKind);						// Trace.cpp: a line of the log, kind T (a tick of the frame's first step) or F (the end of a frame)
+	virtual bool	DoUpdateFrames() override;
+	virtual void	DoUpdateFramesF(float theFrac) override;
 
 	// The original's own virtuals (slots 97 and 98)
 	virtual void	LoadingScreenDone();								// 0x4220d0: the loading screen's wipe is over, the menu comes

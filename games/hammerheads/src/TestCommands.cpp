@@ -355,6 +355,16 @@ bool Application::HandleScriptCommand(const ScriptCommand& theCommand)
 		return true;
 	}
 
+	if (aName == "trace")
+	{
+		if (anArg.empty())
+			return Error(aLine, "trace <file>|off"), true;
+		if (!StartTrace(anArg))
+			return Error(aLine, "the file could not be made"), true;
+		Ok(aLine);
+		return true;
+	}
+
 	if (aName == "seed")
 	{
 		if (anArg.empty())
