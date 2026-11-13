@@ -445,8 +445,15 @@ the bot ends at its first level it cannot beat.
 
 Every run reached the end of its play with no error line in the game's log, and the last screen of each (`end.png`, taken by the game's own
 `screenshot`) was looked at for Flood 3D (building 8) and Survival (sunk, "Time: 10:23", score 347550). The Journey runs differ between the
-displays at building 1 (won in 2D, lost three times in 3D): the 3D display's own movement of the jewels, which the comparison with the
-original showed (`journey3d`, "Left in phase two"), is enough to turn a level the bot wins by one try. A run is 1 to 8 minutes under
+displays at building 1 (won in 2D, lost three times in 3D), so the game's logic is not the same in the two
+displays of the port everywhere. Checked on 2026-11-13 with the bot's play and `trace`: from Journey building 10 the two displays give
+the same seed, hits, shots, score, jewel kinds and ticks for all 13477 frames; from a new game (the tutorial and building 1) they part
+at frame 7246 of the run, where the 3D run has fired a shot and the 2D run has not, and the random seed differs from then on. A run of
+one display is the same every time (the windowed and full screen runs agree). Cause not found. The code reads the display in
+`Layer::MergeChildren` and `BakeChildren` (a picture merge that the scroll's measured content height follows, `IsAccelerated()`),
+which the original does as well; whether the scroll of the tutorial's layers is what differs has not been measured. (An earlier
+version of this paragraph blamed the float drift of the `journey3d` comparison, which is the original's own 3D mode against its
+software mode, not these two displays of the port.) A run is 1 to 8 minutes under
 `-fast`; the folder of each is `build/realinput/<mode>-<display>` and is deleted once its line is here.
 
 Found on the way and fixed in the test commands: `unlock all` before the loading ends (the level lists do not exist yet) crashed the game
