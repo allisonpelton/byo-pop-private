@@ -115,7 +115,11 @@ function pairRow(p, i, d) {
     '<td class=d><button class="ys' + (d === "similar" ? " on" : "") + '">Similar</button> <button class="ns' + (d === "not similar" ? " on" : "") + '">Not similar</button></td>';
 }
 function basedRow(p, i, d) {
-  function side(s) { return "<td>" + esc(s.game) + "</td><td>" + esc(s.label || "") + "</td><td class=p>" + esc(s.file) + "</td>"; }
+  // a sound that several games hold the same file of: one row, the others named under the game
+  function side(s) {
+    return "<td>" + esc(s.game) + (s.also ? '<div class=p>also ' + esc(s.also.join(", ")) + "</div>" : "") + "</td><td>" +
+      esc(s.label || "") + "</td><td class=p>" + esc(s.file) + "</td>";
+  }
   return "<td class=n>" + (i + 1) + "</td>" + side(p.base) +
     '<td><button class=pa title="Play the base"' + (p.base.snd ? "" : " disabled") + ">▶</button></td>" + side(p.derived) +
     '<td><button class=pb title="Play the sound made from it"' + (p.derived.snd ? "" : " disabled") + '>▶</button> <button class=pab title="Base, then the sound made from it">A→B</button></td>' +

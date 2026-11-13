@@ -24,6 +24,7 @@ them back on a reload.
   then open http://127.0.0.1:18791/
 """
 import argparse
+import hashlib
 import http.server
 import json
 import os
@@ -335,6 +336,47 @@ def prepare_based(n0=5000):
                       "snd": decode(side, n)}
         row["key"] = key(h["base"]) + "|" + key(h["derived"])
         out.append(row)
+    return copies_once(out)
+
+
+def pcm_id(name):
+    """what a decoded sound is, whatever file or game it came from: its samples' hash (a copy of the same file, or the same
+    sound saved again, decodes to the same samples)"""
+    if not name:
+        return None
+    b = open(os.path.join(SND, name), "rb").read()
+    at = b.find(b"data")
+    return hashlib.md5(b[at + 8:] if at >= 0 else b).hexdigest()
+
+
+def copies_once(rows):
+    """One row for a base and a derived sound however many games hold copies of either (the user, 2026-11-13: "There are
+    dupes where one sound gets compared to several identical files, most commonly BWA1 leftovers in BWA2 and the four
+    copies of many sounds across the Peggle games"): the first row of each, or the one already decided, naming the other
+    games each side is also in. A decision on it stands for every copy."""
+    try:
+        done = json.load(open(DECISIONS["based"], encoding="utf-8"))
+    except (OSError, ValueError):
+        done = {}
+    groups, order = {}, []
+    for r in rows:
+        g = tuple(pcm_id(r[s]["snd"]) or r[s]["id"] + ":" + r[s]["file"] for s in ("base", "derived"))
+        if g not in groups:
+            groups[g] = []
+            order.append(g)
+        groups[g].append(r)
+    out = []
+    for g in order:
+        rs = groups[g]
+        pick = next((r for r in rs if r["key"] in done), rs[0])
+        for s in ("base", "derived"):
+            also = []
+            for r in rs:
+                if r[s]["game"] != pick[s]["game"] and r[s]["game"] not in also:
+                    also.append(r[s]["game"])
+            if also:
+                pick[s]["also"] = also
+        out.append(pick)
     return out
 
 
