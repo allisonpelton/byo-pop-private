@@ -27,7 +27,7 @@ namespace
 	const double ARRIVAL_X = 20.0;				// it slows down within this
 	const double ARRIVAL_FACTOR = -0.05;		// to this much of its distance a tick
 	const double STOPPED_X = 0.5;				// and has arrived within this
-	const double START_PHASE = 1.570796;		// its two swings start a quarter turn on
+	const double START_PHASE = 1.570795;		// its two swings start just short of a quarter turn on
 	const double PHASE_SPEED_A = 0.005;			// radians a swing advances an update
 	const double PHASE_SPEED_B = 0.015;
 	const double PHASE_PERIOD = 6.28318;
