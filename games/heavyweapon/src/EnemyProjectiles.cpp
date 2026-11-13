@@ -25,6 +25,7 @@ namespace
 	const double HEADING_FRAME_CENTRE = 10.0;			// its frame 10 is straight on
 	const double HEADING_OFFSET = 1.5705;				// the heading's angle is measured from the vertical
 	const double FRAGMENT_GRAVITY = 0.05;				// a bullet thrown from a bomb falls this fast
+	const double SWAY_TURN_ACCEL = 0.075;				// a swaying fragment's sideways pull once it turns back
 
 	// port: the bomb's fall, shared by the dumb bomb, the iron bomb and the frag bomb: it moves, slows sideways and
 	// speeds up falling (to 2), and its frame advances (to 9)
@@ -826,10 +827,11 @@ void BombFragment::Update()
 	{
 		mX = mVelX + mX;
 		mVelX = mVelX + mSwayAccel;
+		// it starts at a tenth of its drift and turns back at 0.075
 		if (mVelX < -5.0)
-			mSwayAccel = 0.1;
+			mSwayAccel = SWAY_TURN_ACCEL;
 		if (5.0 < mVelX)
-			mSwayAccel = -0.1;
+			mSwayAccel = -SWAY_TURN_ACCEL;
 		mY = mY + 2.0;
 	}
 
