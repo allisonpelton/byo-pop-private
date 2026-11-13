@@ -1418,25 +1418,25 @@ var ByopopSoundboards = {
     ],
     groups: [
     { name: "Menus", sounds: [
-      ["sounds/click.ogg", "Click", "A button is pressed: the intro screen's pages, options, high scores, the side bar, the museum's button, a puzzle in the list"],
-      ["sounds/egglands.wav", "Egg lands", "The OK or play button of a page or the title screen is pressed; the tutorial's buttons; also an egg lands on the grid"],
       ["sounds/xwelcometodynomite.ogg", "\"Welcome to Dynomite\"", "The intro screen opens for the first time in a run: the large Inchy pops up 1.25 s in and talks 0.5 s after that (later openings only pop him up, silent)"],
-      ["sounds/xgameover.ogg", "\"Game over\"", "A game ends: the eggs have run off the board (right after the foot-lands sound), or Time Trial's last egg is gone; Inchy pops up 1.25 s later and talks 0.5 s after that"],
       ["sounds/inchypop.ogg", "Inchy pops up", "Inchy pops up when his talk countdown reaches 50 (0.5 s before he speaks); a cleared round at 50, 90 and 130 updates (0.5, 0.9, 1.3 s) and again at 200 (2 s, with the bonus points); every tutorial step"],
-      ["sounds/whirleyhit.ogg", "Whirley hit", "A whirley is hit by an egg; also Save is pressed when it cannot save, or with no save slot chosen"]
+      ["sounds/click.ogg", "Click", "A button is pressed: the intro screen's pages, options, high scores, the side bar, the museum's button, a puzzle in the list"],
+      ["sounds/egglands.wav", "Egg lands", "The OK or play button of a page or the title screen is pressed; the tutorial's buttons; also an egg lands on the grid"]
     ] },
-    { name: "Shooting and hitting", sounds: [
+    { name: "Shooting and breaking", sounds: [
       ["sounds/rubbershot.ogg", "Rubber shot", "The launcher fires an egg"],
       ["sounds/breakegg.wav", "Egg breaks", "Eggs break: a matching group, eggs past the line, loose eggs dropping, or a flying egg hits"],
       ["sounds/explosion.ogg", "Explosion", "A group of three or more breaks, or a dynamite or blast egg goes off"],
       ["sounds/popbonus.ogg", "Bonus pops out", "A broken egg releases a bonus item that flies to the power-up display"],
-      ["sounds/mama1.ogg", "Mama", "A broken egg releases a baby dinosaur (a 1 in 2 draw between the game's two loads of this same file, so it always sounds the same)"],
-      ["sounds/reward.ogg", "Baby leaves", "A baby dinosaur effect ends as it leaves the screen"],
       ["sounds/scoremultiplier.ogg", "Score multiplier", "A group of eggs breaks while a double, triple or quadruple multiplier is active; a power-up reaches its place"],
-      ["sounds/blastit.ogg", "\"Blast it!\"", "A shot breaks five or more eggs (unless the eggs are past the line and losing): a 1 in 4 draw among the tank's four voices; the 40-update flinch happens for any hit"],
-      ["sounds/charge.ogg", "Charge voice", "A shot breaks five or more eggs (unless the eggs are past the line and losing): a 1 in 4 draw among the tank's four voices"],
-      ["sounds/kaboom.ogg", "Kaboom voice", "Always when a blast egg or dynamite goes off (unless the eggs are past the line and losing); also a 1 in 4 draw when a shot breaks five or more eggs"],
-      ["sounds/fireinthehole.ogg", "\"Fire in the hole!\"", "A shot breaks five or more eggs (unless the eggs are past the line and losing): a 1 in 4 draw among the tank's four voices"]
+      ["sounds/mama1.ogg", "Mama", "A broken egg releases a baby dinosaur (a 1 in 2 draw between the game's two loads of this same file, so it always sounds the same)"],
+      ["sounds/reward.ogg", "Baby leaves", "A baby dinosaur effect ends as it leaves the screen"]
+    ] },
+    { name: "The tank's big-shot voices", sounds: [
+      ["sounds/blastit.ogg", "\"Blast it!\"", "A shot breaks five or more eggs (unless the eggs are past the line and losing): the tank calls out one of these four, at random; the 40-update flinch happens for any hit"],
+      ["sounds/charge.ogg", "Charge voice", "A shot breaks five or more eggs (unless the eggs are past the line and losing): the tank calls out one of these four, at random"],
+      ["sounds/fireinthehole.ogg", "\"Fire in the hole!\"", "A shot breaks five or more eggs (unless the eggs are past the line and losing): the tank calls out one of these four, at random"],
+      ["sounds/kaboom.ogg", "Kaboom voice", "Always when a blast egg or dynamite goes off (unless the eggs are past the line and losing); also a 1 in 4 draw when a shot breaks five or more eggs"]
     ] },
     { name: "Combos", sounds: [
       ["sounds/xcombo.ogg", "\"Combo!\"", "Inchy calls a chain of 1"],
@@ -1448,28 +1448,34 @@ var ByopopSoundboards = {
       ["sounds/xdynamitecombo.ogg", "\"Dynamite combo\"", "Inchy calls a chain of 7; the launcher then gets a stick of dynamite"],
       ["sounds/thunderbolt.ogg", "Thunderbolt", "A dynamite stick is made (also when a saved game that holds one is loaded)"]
     ] },
-    { name: "Ceiling and danger", sounds: [
+    { name: "The ceiling", sounds: [
       ["sounds/grind.ogg", "Grind", "Loops while the ceiling or the grid is moving"],
       ["sounds/footfall.ogg", "Footfall", "The ceiling steps down a row (Stomped, and the fossil mode's eggs coming down)"],
-      ["sounds/footfallrumble.ogg", "Footfall rumble", "Loops in a puzzle round while one shot is left before the ceiling drops"],
-      ["sounds/warning.ogg", "Warning", "In a puzzle round with 1 to 3 shots left before the ceiling drops, repeating every 125 updates"],
-      ["sounds/speedup.ogg", "Speed up", "The hourglass runs out in the endless kind: the ceiling speeds up"],
-      ["sounds/footlands.ogg", "Foot lands", "The ceiling reaches the bottom and the game ends"],
       ["sounds/aooga.ogg", "Aooga", "The grid sets its alarm flag (eggs close to the bottom)"],
       ["sounds/alert.ogg", "Alert", "Steggy's alert blinks (the code only sets that from a saved game); repeats every 35 updates"]
     ] },
-    { name: "Hourglass and whirleys", sounds: [
+    { name: "A puzzle round's last shots", sounds: [
+      ["sounds/warning.ogg", "Warning", "In a puzzle round with 1 to 3 shots left before the ceiling drops, repeating every 125 updates"],
+      ["sounds/footfallrumble.ogg", "Footfall rumble", "Loops in a puzzle round while one shot is left before the ceiling drops"]
+    ] },
+    { name: "The hourglass and whirleys", sounds: [
       ["sounds/ticktock.ogg", "Tick tock", "Loops while the endless mode's hourglass has between 5 and 3 seconds left"],
       ["sounds/whirleysiren.ogg", "Whirley siren", "The hourglass passes 3 seconds left"],
       ["sounds/xwhirleyscoming1.ogg", "\"Duhh... Whirley's coming\"", "Endless: 2 seconds before the hourglass runs out Kroney calls; this and the second call alternate, one per hourglass"],
       ["sounds/xwhirleyscoming2.ogg", "\"Doy... Whirley's coming\"", "Endless: 2 seconds before the hourglass runs out, on every second hourglass (the other calls alternate with the first)"],
-      ["sounds/xtimesrunningout.ogg", "\"Time's running out!\"", "Fossil Challenge (strategic and panic): 2 seconds before the hourglass runs out, once per hourglass"]
+      ["sounds/xtimesrunningout.ogg", "\"Time's running out!\"", "Fossil Challenge (strategic and panic): 2 seconds before the hourglass runs out, once per hourglass"],
+      ["sounds/speedup.ogg", "Speed up", "The hourglass runs out in the endless kind: the ceiling speeds up"],
+      ["sounds/whirleyhit.ogg", "Whirley hit", "A whirley is hit by an egg; also Save is pressed when it cannot save, or with no save slot chosen"]
     ] },
     { name: "Fossils and the museum", sounds: [
       ["sounds/chime.ogg", "Chime", "A fossil falls into place; a board is cleared; the museum's tyrannosaurus is out; a fossil is placed in the museum"],
       ["sounds/fossil.ogg", "Fossil", "The museum's fossil fragments start to fade in at a round's end"],
       ["sounds/footstep.ogg", "Footstep", "The museum's tyrannosaurus takes a step out of the wall, every 160 updates (1.6 s), each time his steps count down"],
       ["sounds/roar.ogg", "Roar", "The tyrannosaurus roars after his last step"]
+    ] },
+    { name: "Game over", sounds: [
+      ["sounds/footlands.ogg", "Foot lands", "The ceiling reaches the bottom and the game ends"],
+      ["sounds/xgameover.ogg", "\"Game over\"", "A game ends: the eggs have run off the board (right after the foot-lands sound), or Time Trial's last egg is gone; Inchy pops up 1.25 s later and talks 0.5 s after that"]
     ] },
     { name: "Unused", sounds: [
       ["sounds/explode.ogg", "Explode (unused)", "Never played: the game never loads this file, and the explosion uses the other explosion sound. Resembles Seven Seas' Small explosion (sounds/explode.ogg), the same sound, mixed differently."],
@@ -1952,8 +1958,11 @@ var ByopopSoundboards = {
     { name: "Menus and map", sounds: [
       ["sounds/buttonclick.ogg", "Button click", "A button is pressed anywhere in the game: the menus, dialogs, the options dialog, the hint dialog and the typing tutor"],
       ["sounds/shipmove.ogg", "Ship moves", "The ship moves one step along its route on the level map (every half second)"],
-      ["sounds/divebell1.ogg", "Dive bell", "The ship arrives at the end of its route on the map (up to three times)"],
-      ["sounds/wave_bonus.ogg", "Wave bonus 1", "A bronze medal ends a wave (under 80 percent); also when the options dialog's sound effects slider is released"]
+      ["sounds/divebell1.ogg", "Dive bell", "The ship arrives at the end of its route on the map (up to three times)"]
+    ] },
+    { name: "A level starts", sounds: [
+      ["sounds/diverenters.ogg", "Diver enters", "A level's board first updates; the diver enters the water; a stealth shark or stealth piranha surfaces (30 bubbles); a streak word is finished (50 bubbles)"],
+      ["sounds/underwaterloop.ogg", "Underwater loop", "Loops while the game board is shown; its volume goes to zero while the game is paused"]
     ] },
     { name: "Typing", sounds: [
       ["sounds/type.ogg", "Type 1", "A correct letter is typed in play, in the streak minigame or in the typing tutor (one of the three type sounds, 1 time in 3); always this one when a clam is opened in the clam bonus level"],
@@ -1962,22 +1971,25 @@ var ByopopSoundboards = {
       ["sounds/wrong.ogg", "Wrong key", "A wrong letter is typed in play (with or without a creature locked on), in the streak minigame or in the typing tutor; in the clam bonus level, a key that matches no closed clam or one pressed while a clam without treasure is open"],
       ["sounds/emp.ogg", "EMP", "Enter is pressed with the EMP's charge full and the EMP not already running, while the diver is swimming"]
     ] },
-    { name: "Enemies and weapons", sounds: [
+    { name: "Sharks and other creatures", sounds: [
+      ["sounds/piranhadies1.ogg", "Piranha dies", "A piranha is killed; not when the EMP kills it"],
       ["sounds/sharkhurt.ogg", "Shark hurt", "The black shark is hit and still has words left; not when the EMP does it"],
       ["sounds/sharkdies.ogg", "Shark dies", "A shark is killed, or the black shark's last word is finished; not when the EMP kills it"],
-      ["sounds/piranhadies1.ogg", "Piranha dies", "A piranha is killed; not when the EMP kills it"],
       ["sounds/jellyfish.ogg", "Jellyfish", "A bonus creature (jellyfish) is shocked; not when the EMP does it"],
-      ["sounds/playerdies.ogg", "Diver bitten", "A shark or a piranha reaches the diver, once for each creature"],
-      ["sounds/torpedolaunch.ogg", "Torpedo launch", "The torpedo boss fires a volley of torpedoes: once for the first torpedo of the volley"],
-      ["sounds/explosion.ogg", "Explosion", "A cannon ball or a torpedo explodes; every 33 updates (0.33 seconds) while the torpedo boss blows up"],
-      ["sounds/sonarping1.ogg", "Sonar ping", "The sonar sweep starts when a wave ends (the diver in its sonar state); the torpedo boss, while it is alive, every 2 seconds"]
+      ["sounds/playerdies.ogg", "Diver bitten", "A shark or a piranha reaches the diver, once for each creature"]
     ] },
-    { name: "Waves and rewards", sounds: [
+    { name: "Torpedoes and cannon balls", sounds: [
+      ["sounds/torpedolaunch.ogg", "Torpedo launch", "The torpedo boss fires a volley of torpedoes: once for the first torpedo of the volley"],
+      ["sounds/explosion.ogg", "Explosion", "A cannon ball or a torpedo explodes; every 33 updates (0.33 seconds) while the torpedo boss blows up"]
+    ] },
+    { name: "Wave medals", sounds: [
+      ["sounds/sonarping1.ogg", "Sonar ping", "The sonar sweep starts when a wave ends (the diver in its sonar state); the torpedo boss, while it is alive, every 2 seconds"],
+      ["sounds/wave_bonus.ogg", "Wave bonus 1", "A bronze medal ends a wave (under 80 percent); also when the options dialog's sound effects slider is released"],
       ["sounds/wave_bonus2.ogg", "Wave bonus 2", "A silver medal ends a wave (80 to 94 percent)"],
-      ["sounds/wave_bonus3.ogg", "Wave bonus 3", "A gold medal ends a wave (95 percent or more); the first pair of clams is found in the clam bonus level"],
-      ["sounds/wingem.ogg", "Gem", "A level is won (the diver is back at the bottom with the treasure); the treasure is shown in the clam bonus level or the streak minigame ends; a second or later pair of clams is found"],
+      ["sounds/wave_bonus3.ogg", "Wave bonus 3", "A gold medal ends a wave (95 percent or more); the first pair of clams is found in the clam bonus level"]
+    ] },
+    { name: "Treasure, the streak minigame and clams", sounds: [
       ["sounds/treasure.ogg", "Treasure", "The diver's air gauge fills at the treasure and the streak minigame starts; a clam with treasure is opened with no other clam open. Resembles Insaniquarium Deluxe's sounds/diamond.au, the same sound, mixed differently."],
-      ["sounds/bad.ogg", "Bad clam", "A clam with no treasure finishes opening in the clam bonus level"],
       ["sounds/tone1.ogg", "Tone 1", "The streak minigame's 1st or 2nd word (the tone rises every two words)"],
       ["sounds/tone2.ogg", "Tone 2", "The streak minigame's 3rd or 4th word; the 1st bonus creature of a wave shocked"],
       ["sounds/tone3.ogg", "Tone 3", "The streak minigame's 5th or 6th word; the 2nd bonus creature of a wave shocked"],
@@ -1990,11 +2002,11 @@ var ByopopSoundboards = {
       ["sounds/tone10.ogg", "Tone 10", "The streak minigame's 19th or 20th word; the 9th bonus creature of a wave shocked"],
       ["sounds/tone11.ogg", "Tone 11", "The streak minigame's 21st or 22nd word; the 10th bonus creature of a wave shocked"],
       ["sounds/tone12.ogg", "Tone 12", "The streak minigame's 23rd or 24th word; the 11th bonus creature of a wave shocked"],
-      ["sounds/tone13.ogg", "Tone 13", "The streak minigame's 25th or later word; the 12th or later bonus creature of a wave shocked"]
+      ["sounds/tone13.ogg", "Tone 13", "The streak minigame's 25th or later word; the 12th or later bonus creature of a wave shocked"],
+      ["sounds/wingem.ogg", "Gem", "A level is won (the diver is back at the bottom with the treasure); the treasure is shown in the clam bonus level or the streak minigame ends; a second or later pair of clams is found"],
+      ["sounds/bad.ogg", "Bad clam", "A clam with no treasure finishes opening in the clam bonus level"]
     ] },
-    { name: "Diver and sea", sounds: [
-      ["sounds/diverenters.ogg", "Diver enters", "A level's board first updates; the diver enters the water; a stealth shark or stealth piranha surfaces (30 bubbles); a streak word is finished (50 bubbles)"],
-      ["sounds/underwaterloop.ogg", "Underwater loop", "Loops while the game board is shown; its volume goes to zero while the game is paused"],
+    { name: "Unused", sounds: [
       ["sounds/eerie1.au", "Eerie 1 (unused)", "Never played: loaded and held as a sound instance, but no code plays it"],
       ["sounds/eerie3.au", "Eerie 3 (unused)", "Never played: loaded and held as a sound instance, but no code plays it"],
       ["sounds/extralife.au", "Extra life (unused)", "Never played: loaded, but no code asks for it"]
@@ -2016,11 +2028,11 @@ var ByopopSoundboards = {
       ["audio/drill_shoot.wav", "Beam shot", "A click fires the ship's beams; the sound plays only if fewer than three beams are out"],
       ["audio/drill.wav", "Beam drilling", "While the beams run, once for each beam every 66 steps (0.066 seconds; the game takes 1000 steps a second) of the time since the shot"],
       ["audio/clank.wav", "Beam clank", "A beam's head meets a cell that is not open and stops"],
-      ["audio/buzzer.wav", "Buzzer", "A click with an enemy near the ship while the fill quota is not yet passed; no beams fire. Also in Banana Bugs, as sounds/buzzer.ogg."],
       ["audio/fill.wav", "Fill", "A fill runs on a board: every 180 steps (0.18 seconds) of the board's age while fills are going, and once when the beams have both stopped and the chosen side starts to fill"],
       ["audio/fill_end.wav", "Fill ends", "A fill finishes with one other fill still going on the board"],
-      ["audio/explosion2.wav", "Ship explodes", "The ship explodes"],
-      ["audio/invincibubble.wav", "Bubble protects", "An enemy touches a beam that would hit the ship while the ship is in its invincibubble"]
+      ["audio/buzzer.wav", "Buzzer", "A click with an enemy near the ship while the fill quota is not yet passed; no beams fire. Also in Banana Bugs, as sounds/buzzer.ogg."],
+      ["audio/invincibubble.wav", "Bubble protects", "An enemy touches a beam that would hit the ship while the ship is in its invincibubble"],
+      ["audio/explosion2.wav", "Ship explodes", "The ship explodes"]
     ] },
     { name: "Enemies", sounds: [
       ["audio/explosion1.wav", "Enemy explodes", "A defined enemy, shot or time bomb explodes"],
@@ -2055,7 +2067,7 @@ var ByopopSoundboards = {
     { name: "Unused", sounds: [
       ["audio/extralife.wav", "Extra life (unused)", "Never played: the level files load it, but no code asks for it"],
       ["audio/rail.wav", "Rail (unused)", "Never played: no sound list or code names this file, so it is never even loaded"]
-    ] }
+    ] },
   ] },
   wordharmony: {
     presets: [
