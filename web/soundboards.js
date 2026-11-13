@@ -753,11 +753,10 @@ var ByopopSoundboards = {
       { name: "Battle Won", when: "The last foe falls and a treasure is won", steps: [["sounds/largeimpact_01", 0, {"v": -146}], ["sounds/GiantGruntDry1", 0, {"v": -146}], ["sounds/GiantGruntEcho2", 0, {"v": -146}], ["sounds/fire6", 0, {"v": -146}], ["sounds/purify2", 4080, {"v": -146}], ["sounds/XPGain4", 5380, {"v": -146, "loop": 1, "end": 7790, "ramp": [[7290, -165], [7450, -509], [7580, -913], [7680, -1392], [7720, -1673], [7750, -1950], [7760, -10000]]}], ["sounds/newtreasure", 8280, {"v": -146}], ["sounds/firework2", 8780, {"v": -146}], ["sounds/crowdcheer", 8780]]}
     ],
     groups: [
-    { name: "Menus", sounds: [
-      ["sounds/click1.ogg", "Click 1", "A button is pressed in a dialog, the options screen, the stats book or the treasure screen"],
-      ["sounds/click2.ogg", "Click 2", "A main menu, Hall of Fame, mini-game menu or options button is pressed, or a button on the board"],
+    { name: "Title and menus", sounds: [
       ["sounds/lex_chomp.ogg", "Lex chomps", "Lex chomps on the title screen while the game loads, and once more as he walks off"],
-      ["sounds/textreadblip.wav", "Text blip", "Every other letter is typed out while a conversation line is shown"]
+      ["sounds/click2.ogg", "Click 2", "A main menu, Hall of Fame, mini-game menu or options button is pressed, or a button on the board"],
+      ["sounds/click1.ogg", "Click 1", "A button is pressed in a dialog, the options screen, the stats book or the treasure screen"]
     ] },
     { name: "Main menu voices", sounds: [
       ["sounds/v_welcometobookwormadventures.ogg", "\"Welcome to Bookworm Adventures\"", "Lex greets the player when the title screen gives way to the main menu"],
@@ -771,16 +770,18 @@ var ByopopSoundboards = {
       ["sounds/v_quit.ogg", "\"Quit\"", "Lex reacts when the pointer moves onto the Quit item of the main menu"],
       ["sounds/v_dontleaveme.ogg", "\"Don't leave me\"", "The Quit item is pressed on the main menu, as the really-quit confirmation opens"]
     ] },
-    { name: "Word play", sounds: [
-      ["sounds/buzzer.ogg", "Word refused", "A word is refused in timed mode, submit is pressed with no valid word, or a potion is clicked while it cannot be used"],
-      ["sounds/gemspawn.ogg", "Gem appears", "A gem appears on a tile (the tutorial, the letter mini-games and some creatures do this)"],
-      ["sounds/sheepbleat.ogg", "Sheep bleat", "Each time the selected tiles spell TYSEN in a fight, in place of the praise voice; also a sheep, ewe, ram or goat creature bleats"],
-      ["sounds/sloooowdown.ogg", "Slow down", "The hidden word that sets off the AstroPop flash is spelled in a fight (not in a mini-game started from the menu) while no flash is showing. Also in Bookworm Adventures Volume 2 as Sloooowdown (unused)."],
+    { name: "The map, conversations and boss fights", sounds: [
+      ["sounds/warpout.ogg", "Warp out", "Lex warps out of the map as a chapter or mini-game starts; the main menu Lex plays it in several of his animations"],
+      ["sounds/textreadblip.wav", "Text blip", "Every other letter is typed out while a conversation line is shown"],
+      ["sounds/v_bossbattle.ogg", "\"Boss battle\"", "When a boss fight's intro flash peaks, together with Firework 2; it follows the boss's own opening sound when the boss has one"],
+      ["sounds/warpin.ogg", "Warp in", "Lex's warp-in animation on the map: back from the treasure screen or from a death conversation, as some book 1 conversations end, and with a newly unlocked mini-game; also the Mirage Goat's hit sound"]
+    ] },
+    { name: "Spelling a word", sounds: [
       ["sounds/tile_select.ogg", "Tile select", "A letter tile is picked on the board, or a potion is picked by its number key"],
-      ["sounds/v_cashmoney.ogg", "\"Cash money\"", "Each time the selected tiles spell JEFF or STEVE in a fight, in place of the praise voice"],
-      ["sounds/v_iloveyou.ogg", "\"I love you\"", "Each time the selected tiles spell JULIE or JASON in a fight, in place of the praise voice"],
+      ["sounds/word_power.ogg", "Word power", "Each time the selected tiles come to spell a valid word the foe is not immune to, in a fight; the pitch rises with the word's length plus its tiles' bonuses, capped at 14"],
+      ["sounds/buzzer.ogg", "Word refused", "A word is refused in timed mode, submit is pressed with no valid word, or a potion is clicked while it cannot be used"],
       ["sounds/v_scramble.ogg", "\"Scramble\"", "Lex's scramble starts in a fight, from the Scramble button on a full board or from Yes on the scramble hint; never in a mini-game"],
-      ["sounds/word_power.ogg", "Word power", "Each time the selected tiles come to spell a valid word the foe is not immune to, in a fight; the pitch rises with the word's length plus its tiles' bonuses, capped at 14"]
+      ["sounds/gemspawn.ogg", "Gem appears", "A gem appears on a tile (the tutorial, the letter mini-games and some creatures do this)"]
     ] },
     { name: "Lex's praise", sounds: [
       ["sounds/lex_good.ogg", "\"Good!\"", "A spelled word counting 6 (each tile 1, more with treasures and gem tiles; the count stops at 12); its bubble shows unless the game is timed"],
@@ -792,155 +793,156 @@ var ByopopSoundboards = {
       ["sounds/lex_fantastic.ogg", "\"Fantastic!\"", "A spelled word counting 12 or more (each tile 1, more with treasures and gem tiles; the count stops at 12); its bubble shows unless the game is timed"],
       ["sounds/lex_astonishing.ogg", "\"Astonishing!\"", "Never for a word in battle (the count stops at 12); Word Master: the top prize line solved"]
     ] },
-    { name: "Lex", sounds: [
+    { name: "Hidden words", sounds: [
       ["sounds/lex_burp.ogg", "Lex burps", "Each time the selected tiles spell SUKHBIR in a fight, in place of the praise voice; also Lex's burp animation, on the eighth click in a row on him while he idles on the player's turn"],
-      ["sounds/v_giggle1.ogg", "Giggle 1", "Lex's click giggle animation, on the first three and the fifth and sixth clicks in a row on him while he idles on the player's turn in a fight; each giggle picks this voice or Giggle 2 with equal chance"],
-      ["sounds/v_giggle2.ogg", "Giggle 2", "Lex's click giggle animation, on the first three and the fifth and sixth clicks in a row on him while he idles on the player's turn in a fight; each giggle picks this voice or Giggle 1 with equal chance; the main menu Lex plays this one in two of his animations"],
-      ["sounds/v_sneeze.ogg", "Sneeze", "Lex's click sneeze animation, on the fourth and seventh click in a row on him while he idles on the player's turn in a fight"]
+      ["sounds/sheepbleat.ogg", "Sheep bleat", "Each time the selected tiles spell TYSEN in a fight, in place of the praise voice; also a sheep, ewe, ram or goat creature bleats"],
+      ["sounds/v_cashmoney.ogg", "\"Cash money\"", "Each time the selected tiles spell JEFF or STEVE in a fight, in place of the praise voice"],
+      ["sounds/v_iloveyou.ogg", "\"I love you\"", "Each time the selected tiles spell JULIE or JASON in a fight, in place of the praise voice"],
+      ["sounds/sloooowdown.ogg", "Slow down", "The hidden word that sets off the AstroPop flash is spelled in a fight (not in a mini-game started from the menu) while no flash is showing. Also in Bookworm Adventures Volume 2 as Sloooowdown (unused)."]
     ] },
-    { name: "Lex attacks", sounds: [
-      ["sounds/bite_01.ogg", "Bite", "Lex bites in an attack; the Bayou Beast, Bog Serpent, Connystein, Wolfman and Codex fights use it too"],
+    { name: "Lex's attacks", sounds: [
       ["sounds/bluntimpact_dry.wav", "Blunt impact", "Lex's word attack lands (his default attack and many creatures' fights use it)"],
-      ["sounds/bluntimpact_withwoosh.ogg", "Blunt with woosh", "Lex's word attack lands (his default attack and many creatures' fights use it)"],
       ["sounds/fire3.ogg", "Fire attack 3", "Lex's word attack lands (his default attack and many creatures' fights use it)"],
       ["sounds/fire6.ogg", "Fire attack 6", "Lex's word attack lands (his default attack and many creatures' fights use it)"],
-      ["sounds/swordspearimpact_withwoosh.ogg", "Sword with woosh", "Lex's word attack lands (his default attack and many creatures' fights use it)"]
+      ["sounds/bluntimpact_withwoosh.ogg", "Blunt with woosh", "Lex's word attack lands (his default attack and many creatures' fights use it)"],
+      ["sounds/swordspearimpact_withwoosh.ogg", "Sword with woosh", "Lex's word attack lands (his default attack and many creatures' fights use it)"],
+      ["sounds/bite_01.ogg", "Bite", "Lex bites in an attack; the Bayou Beast, Bog Serpent, Connystein, Wolfman and Codex fights use it too"]
     ] },
-    { name: "Battle", sounds: [
-      ["sounds/low_health.wav", "Low health", "Lex's health is at a quarter of his maximum or less in a fight: one beep per pulse of his health bar, quieter from 500 updates on; in Letter Rip and Link 'n Spell, every 50 updates (0.5 s) of their last 1000 (10 s). Also in Zuma's Revenge, as sounds/challenge_countdown.ogg."],
-      ["sounds/v_bossbattle.ogg", "\"Boss battle\"", "When a boss fight's intro flash peaks, together with Firework 2; it follows the boss's own opening sound when the boss has one"],
-      ["sounds/warpin.ogg", "Warp in", "Lex's warp-in animation on the map: back from the treasure screen or from a death conversation, as some book 1 conversations end, and with a newly unlocked mini-game; also the Mirage Goat's hit sound"],
-      ["sounds/warpout.ogg", "Warp out", "Lex warps out of the map as a chapter or mini-game starts; the main menu Lex plays it in several of his animations"]
+    { name: "Lex in a fight", sounds: [
+      ["sounds/v_giggle1.ogg", "Giggle 1", "Lex's click giggle animation, on the first three and the fifth and sixth clicks in a row on him while he idles on the player's turn in a fight; each giggle picks this voice or Giggle 2 with equal chance"],
+      ["sounds/v_giggle2.ogg", "Giggle 2", "Lex's click giggle animation, on the first three and the fifth and sixth clicks in a row on him while he idles on the player's turn in a fight; each giggle picks this voice or Giggle 1 with equal chance; the main menu Lex plays this one in two of his animations"],
+      ["sounds/v_sneeze.ogg", "Sneeze", "Lex's click sneeze animation, on the fourth and seventh click in a row on him while he idles on the player's turn in a fight"],
+      ["sounds/low_health.wav", "Low health", "Lex's health is at a quarter of his maximum or less in a fight: one beep per pulse of his health bar, quieter from 500 updates on; in Letter Rip and Link 'n Spell, every 50 updates (0.5 s) of their last 1000 (10 s). Also in Zuma's Revenge, as sounds/challenge_countdown.ogg."]
     ] },
-    { name: "Rewards", sounds: [
-      ["sounds/chaching.ogg", "Cash register", "Coins are counted up in a mini-game; the Mirage Trojan fight uses it too"],
-      ["sounds/crowdcheer.ogg", "Crowd cheers", "The level-up effect starts its crowd; the checkpoint banner fades in; the altar's white flash peaks (with Firework 2); the book manager's end banner fades in; a mini-game's results screen opens"],
-      ["sounds/firework1.ogg", "Firework 1", "The level-up effect's XP timer runs out; the checkpoint banner fades in (with the crowd). Also in Bejeweled 3, as sounds/firework_thump.ogg."],
-      ["sounds/firework2.ogg", "Firework 2", "The level-up effect's white flash falls to 20 or less, just before Lex's level-up voice; a boss intro flash peaks; the altar's white flash peaks (with the crowd); the main menu Lex plays it in three animations"],
-      ["sounds/lex_levelup.ogg", "\"Level up\"", "When the level-up effect's white flash fades out, after a fight that levels Lex up"],
-      ["sounds/newtreasure.ogg", "\"New treasure!\"", "A treasure is won at the end of a fight, or shown on the treasure screen"],
-      ["sounds/vo_annihilated.ogg", "\"Annihilated\"", "A fight is won with overkill damage, announced with this word"],
-      ["sounds/vo_crushed.ogg", "\"Crushed\"", "A fight is won with overkill damage, announced with this word"],
-      ["sounds/vo_decimated.ogg", "\"Decimated\"", "A fight is won with overkill damage, announced with this word"],
-      ["sounds/vo_destroyed.ogg", "\"Destroyed\"", "A fight is won with overkill damage, announced with this word"],
-      ["sounds/vo_obliterated.ogg", "\"Obliterated\"", "A fight is won with overkill damage, announced with this word"],
-      ["sounds/vo_vanquished.ogg", "\"Vanquished\"", "A fight is won with overkill damage, announced with this word"],
-      ["sounds/vo_whomped.ogg", "\"Whomped\"", "A fight is won with overkill damage, announced with this word"],
-      ["sounds/xpgain4.ogg", "Experience counts", "The experience stream flows into Lex at a level-up, a fight end or a gravestone"]
-    ] },
-    { name: "Potions", sounds: [
-      ["sounds/heal2.ogg", "Health potion", "Lex uses a health potion while his health is below its maximum"],
-      ["sounds/healpotionused_02.ogg", "Creature heals", "Attack sound of a creature's heal-itself attack (mostly Regenerate): offered only at or below a set share of its health, then by a random roll against a set chance (Circe: 0.75 and 30 percent)"],
+    { name: "Potions and boosts", sounds: [
       ["sounds/potionpickup.ogg", "Potion pickup", "A potion dropped by a gravestone starts flying to Lex's potion row, once it is at x 165 or less and the gravestone's animation is done"],
-      ["sounds/powerdown_01.ogg", "Power down", "A creature weakens the attack of Lex, or a boosted attack ends"],
+      ["sounds/heal2.ogg", "Health potion", "Lex uses a health potion while his health is below its maximum"],
       ["sounds/powerup3.ogg", "Attack potion", "Lex uses an attack potion; also the attack sound of the power-up attacks of the Codex, Dracula and a few other book 2 and 3 creatures"],
-      ["sounds/poweruppotion_02.ogg", "Power up", "Attack sound of a creature's power-up attack, which boosts its next attack (Circe, Cerberus, Nemean Lion and others)"],
       ["sounds/purify2.ogg", "Purify", "Lex uses a purify potion; also Word Master plays it each time a puzzle line is solved, a few creatures (Mirage Nymph, Dracula, Fallen Warrior Hero) play it as they cure an ailment, and the main menu Lex plays it once"],
-      ["sounds/weaken3.ogg", "Weaken effect", "A curse that cuts the target's damage (a damage multiplier under 1 on its attacks) is applied; not when a saved fight is restored"]
+      ["sounds/poweruppotion_02.ogg", "Power up", "Attack sound of a creature's power-up attack, which boosts its next attack (Circe, Cerberus, Nemean Lion and others)"],
+      ["sounds/powerdown_01.ogg", "Power down", "A creature weakens the attack of Lex, or a boosted attack ends"],
+      ["sounds/weaken3.ogg", "Weaken effect", "A curse that cuts the target's damage (a damage multiplier under 1 on its attacks) is applied; not when a saved fight is restored"],
+      ["sounds/healpotionused_02.ogg", "Creature heals", "Attack sound of a creature's heal-itself attack (mostly Regenerate): offered only at or below a set share of its health, then by a random roll against a set chance (Circe: 0.75 and 30 percent)"]
     ] },
     { name: "Tile effects", sounds: [
-      ["sounds/boardfrozen_01.ogg", "Board frozen", "Attack sound of the freezing attacks of five creatures (Hydra, Naiad, Elementalist, Mirage Nymph, Mirage Skeleton)"],
-      ["sounds/boardstunned_01.ogg", "Board stunned", "Attack sound of the stun-and-damage attacks of nine creatures (Caledonian Boar, Centaur Warrior, Cernian Hind, Dryad, Satyr, Sea Serpent, Hydra and others)"],
       ["sounds/fire1.ogg", "Fire effect", "The burning ailment is applied to Lex or a foe, and again each time it burns at a turn's end; also the attack sound of the burn attacks of many creatures"],
+      ["sounds/poison1.ogg", "Poison effect", "The poison ailment is applied to Lex or a foe, and again each time it hurts at a turn's end; also an attack sound of the Embalmed Guardian, Swashbuckler, Dracula, Grave Robber and Unliving Archer"],
       ["sounds/ice1.ogg", "Frozen effect", "The frozen status is applied to Lex or a foe; also an attack sound of the Unliving Frostmancer"],
       ["sounds/ice4.ogg", "Petrify effect", "The petrified status is applied to Lex or a foe; also an attack sound of the Elementalist, Disturbed Skeleton, Fallen Wizard Hero and Unliving Frostmancer. Also in Zuma's Revenge, as sounds/freeze.ogg."],
-      ["sounds/lightning_attack_01.ogg", "Lightning", "A lightning attack lands (Circe, Hydra, Sea Elemental and wizards)"],
       ["sounds/lockit.ogg", "Tile locked", "Attack sound of the tile-locking attacks of about a dozen creatures (Locks tiles and damages Lex)"],
+      ["sounds/boardstunned_01.ogg", "Board stunned", "Attack sound of the stun-and-damage attacks of nine creatures (Caledonian Boar, Centaur Warrior, Cernian Hind, Dryad, Satyr, Sea Serpent, Hydra and others)"],
+      ["sounds/tiles_smashed_01.ogg", "Tiles smashed", "Attack sound of the tile-smashing attacks of many creatures (Smashes tiles and damages Lex)"],
+      ["sounds/boardfrozen_01.ogg", "Board frozen", "Attack sound of the freezing attacks of five creatures (Hydra, Naiad, Elementalist, Mirage Nymph, Mirage Skeleton)"],
       ["sounds/petrify_attack_01.ogg", "Tiles petrified", "A creature turns tiles to stone (Basilisk, Medusa and others)"],
-      ["sounds/poison1.ogg", "Poison effect", "The poison ailment is applied to Lex or a foe, and again each time it hurts at a turn's end; also an attack sound of the Embalmed Guardian, Swashbuckler, Dracula, Grave Robber and Unliving Archer"],
+      ["sounds/lightning_attack_01.ogg", "Lightning", "A lightning attack lands (Circe, Hydra, Sea Elemental and wizards)"],
       ["sounds/poison_attack_01.ogg", "Poison attack", "Attack sound of the poisoning attacks of many creatures (Poisons and damages Lex)"],
-      ["sounds/tiles_plagued_01.ogg", "Tiles plagued", "Attack sound of a tile-plague attack (Plagues tiles and damages Lex), as of Deino and Nessus"],
-      ["sounds/tiles_smashed_01.ogg", "Tiles smashed", "Attack sound of the tile-smashing attacks of many creatures (Smashes tiles and damages Lex)"]
+      ["sounds/tiles_plagued_01.ogg", "Tiles plagued", "Attack sound of a tile-plague attack (Plagues tiles and damages Lex), as of Deino and Nessus"]
+    ] },
+    { name: "Winning a fight", sounds: [
+      ["sounds/vo_whomped.ogg", "\"Whomped\"", "A fight is won with overkill damage, announced with this word"],
+      ["sounds/vo_crushed.ogg", "\"Crushed\"", "A fight is won with overkill damage, announced with this word"],
+      ["sounds/vo_vanquished.ogg", "\"Vanquished\"", "A fight is won with overkill damage, announced with this word"],
+      ["sounds/vo_destroyed.ogg", "\"Destroyed\"", "A fight is won with overkill damage, announced with this word"],
+      ["sounds/vo_decimated.ogg", "\"Decimated\"", "A fight is won with overkill damage, announced with this word"],
+      ["sounds/vo_obliterated.ogg", "\"Obliterated\"", "A fight is won with overkill damage, announced with this word"],
+      ["sounds/vo_annihilated.ogg", "\"Annihilated\"", "A fight is won with overkill damage, announced with this word"],
+      ["sounds/xpgain4.ogg", "Experience counts", "The experience stream flows into Lex at a level-up, a fight end or a gravestone"],
+      ["sounds/firework1.ogg", "Firework 1", "The level-up effect's XP timer runs out; the checkpoint banner fades in (with the crowd). Also in Bejeweled 3, as sounds/firework_thump.ogg."],
+      ["sounds/crowdcheer.ogg", "Crowd cheers", "The level-up effect starts its crowd; the checkpoint banner fades in; the altar's white flash peaks (with Firework 2); the book manager's end banner fades in; a mini-game's results screen opens"],
+      ["sounds/firework2.ogg", "Firework 2", "The level-up effect's white flash falls to 20 or less, just before Lex's level-up voice; a boss intro flash peaks; the altar's white flash peaks (with the crowd); the main menu Lex plays it in three animations"],
+      ["sounds/lex_levelup.ogg", "\"Level up\"", "When the level-up effect's white flash fades out, after a fight that levels Lex up"],
+      ["sounds/newtreasure.ogg", "\"New treasure!\"", "A treasure is won at the end of a fight, or shown on the treasure screen"]
     ] },
     { name: "Mini-games", sounds: [
+      ["sounds/v_newminigame.ogg", "\"New mini-game\"", "50 updates (0.5 s) after Lex's warp-in sound, as a conversation announces a newly unlocked mini-game"],
+      ["sounds/v_three.ogg", "\"Three\"", "Letter Rip and Link 'n Spell: the start countdown begins, one update after its timer starts; also when the tutorial's arrow hints end"],
+      ["sounds/v_two.ogg", "\"Two\"", "Letter Rip and Link 'n Spell: the start countdown reaches 2, 100 updates (1 s) after Three"],
+      ["sounds/v_one.ogg", "\"One\"", "Letter Rip and Link 'n Spell: the start countdown reaches 1, 200 updates (2 s) after Three"],
+      ["sounds/v_go.ogg", "\"Go\"", "Letter Rip and Link 'n Spell: the start countdown reaches 0, 300 updates (3 s) after Three"],
+      ["sounds/chaching.ogg", "Cash register", "Coins are counted up in a mini-game; the Mirage Trojan fight uses it too"],
       ["sounds/lex_incredible.ogg", "\"Incredible!\"", "Word Master only: the second prize line solved"],
       ["sounds/lex_watchout.ogg", "\"Watch out!\"", "Word Master: a miss brings the prize down to its last line; also Book 2's Mirage Lex's cry as the fight starts, pitched down"],
-      ["sounds/count.wav", "Counting tick", "The final score counts up in Letter Rip, Link 'n Spell and Word Master, a tick whenever the count's sound timer reads 0; also the Mirage Skeleton's hit sound"],
-      ["sounds/v_go.ogg", "\"Go\"", "Letter Rip and Link 'n Spell: the start countdown reaches 0, 300 updates (3 s) after Three"],
-      ["sounds/v_newminigame.ogg", "\"New mini-game\"", "50 updates (0.5 s) after Lex's warp-in sound, as a conversation announces a newly unlocked mini-game"],
-      ["sounds/v_one.ogg", "\"One\"", "Letter Rip and Link 'n Spell: the start countdown reaches 1, 200 updates (2 s) after Three"],
-      ["sounds/v_three.ogg", "\"Three\"", "Letter Rip and Link 'n Spell: the start countdown begins, one update after its timer starts; also when the tutorial's arrow hints end"],
-      ["sounds/v_two.ogg", "\"Two\"", "Letter Rip and Link 'n Spell: the start countdown reaches 2, 100 updates (1 s) after Three"]
+      ["sounds/count.wav", "Counting tick", "The final score counts up in Letter Rip, Link 'n Spell and Word Master, a tick whenever the count's sound timer reads 0; also the Mirage Skeleton's hit sound"]
     ] },
     { name: "Human voices", sounds: [
-      ["sounds/female seduce.ogg", "Female seduce", "Death sound of Mirage Trojan"],
+      ["sounds/humanmalegrunt2.ogg", "Human male grunt 2", "Death sound of Alexander, Polydamas, Trojan Captain, Centaur Archer, Centaur Warrior, Satyr, Trojan Spearman, Trojan Warrior, Cutthroat, Deck Swabber, Hypnotist, Thief 1, Thieves 9-11 and Malicious Magistrate; Attack or hit of Snake Charmer, Thieves 2-3, Frankenstein (Arena too)"],
+      ["sounds/male_anger.ogg", "Male anger", "Opening sound of Polydamas, Trojan Captain, Bandit, Cutthroat, Mirage Trojan, Summoner, Thief 1, Thieves 9-11 and Fallen Swashbuckler Hero; Attack or hit of Cannoneer, Angry Mob, Eternal Wanderer, Highwayman and Warrenstein (Arena too)"],
+      ["sounds/male_laugh.ogg", "Male laugh", "Opening sound of Alexander, Centaur Warrior, Satyr and Djinn; Attack or hit of Pharaoh of Old, Dread Pirate Al-Robarts (Arena too)"],
+      ["sounds/male_laugh2.ogg", "Male laugh 2", "Opening sound of Trojan Warrior, Centaur Archer, Sword Swallower, Afreet, Thieves 2-3 and Highwayman; Attack or hit of Pharaoh of Old, Crazy Murray (Arena too)"],
+      ["sounds/moan_01.ogg", "Moan 1", "Death sound of Bandit, Sword Swallower, Highwayman; Attack or hit of Alexander, Polydamas, Trojan Captain, Centaur Hunter, Centaur Grappler, Satyr, Trojan Spearman, Trojan Warrior, Elementalist and Swashbuckler (Arena too). Also in Bookworm Adventures Volume 2 as Moan 1 (unused)."],
       ["sounds/female_groan_01.ogg", "Female groan 1", "Opening sound of Hateful Housemaid; Death sound of Hateful Housemaid, Connystein, Quag Hag; Attack or hit of Scylla, Siren, Circe, Dryad, Harpy, Limniad, Medusa, Naiad, Mysterious Assassin, Codex (Final Boss), Fallen Huntress Hero and Vampire Mistress (Arena too)"],
       ["sounds/female_groan_02.ogg", "Female groan 2", "Death sound of Scylla, Sea Witch, Siren, Circe, Dryad, Harpy, Harpy Witch, Limniad, Naiad, Mysterious Assassin, Fallen Huntress Hero, Vampire Mistress and Wandering Hag; Attack or hit of Mysterious Assassin (Arena too)"],
       ["sounds/female_mmm.ogg", "Female mmm", "Opening sound of Siren, Circe, Dryad; Death sound of Mirage Skeleton; Attack or hit of Vampire Mistress (Arena too)"],
       ["sounds/female_ooh.ogg", "Female ooh", "Opening sound of Helead, Naiad, Vampire Mistress; Attack or hit of Siren"],
-      ["sounds/humanmalegrunt2.ogg", "Human male grunt 2", "Death sound of Alexander, Polydamas, Trojan Captain, Centaur Archer, Centaur Warrior, Satyr, Trojan Spearman, Trojan Warrior, Cutthroat, Deck Swabber, Hypnotist, Thief 1, Thieves 9-11 and Malicious Magistrate; Attack or hit of Snake Charmer, Thieves 2-3, Frankenstein (Arena too)"],
-      ["sounds/humanmalegrunt3.ogg", "Human male grunt 3", "Death sound of Snake Charmer, Thieves 2-3, Summoner and Arnoldstein; Attack or hit of Cutthroat, Thief 1 and Deck Swabber (Arena too)"],
-      ["sounds/male_anger.ogg", "Male anger", "Opening sound of Polydamas, Trojan Captain, Bandit, Cutthroat, Mirage Trojan, Summoner, Thief 1, Thieves 9-11 and Fallen Swashbuckler Hero; Attack or hit of Cannoneer, Angry Mob, Eternal Wanderer, Highwayman and Warrenstein (Arena too)"],
-      ["sounds/male_laugh.ogg", "Male laugh", "Opening sound of Alexander, Centaur Warrior, Satyr and Djinn; Attack or hit of Pharaoh of Old, Dread Pirate Al-Robarts (Arena too)"],
-      ["sounds/male_laugh2.ogg", "Male laugh 2", "Opening sound of Trojan Warrior, Centaur Archer, Sword Swallower, Afreet, Thieves 2-3 and Highwayman; Attack or hit of Pharaoh of Old, Crazy Murray (Arena too)"],
+      ["sounds/witchy_laugh_02.ogg", "Witchy laugh 2", "Opening sound of Scylla, Sea Witch, Harpy, Harpy Witch, Connystein and Wandering Hag; Death sound of Deino, Enyo, Pemphredo; Attack or hit of Mirage Skeleton, Haggard Heckler"],
       ["sounds/male_low_anger.ogg", "Male low anger", "Opening sound of Thieves 4-5; Death sound of Nessus, Embalmed Guardian, Cannoneer, Afreet and Djinn; Attack or hit of Firebreather, Pharaoh of Old, Twisted Vizier (Arena too)"],
       ["sounds/male_low_pain.ogg", "Male low pain", "Death sound of Firebreather; Attack or hit of Nessus, Thieves 4-5 and Shaitan (Arena too)"],
       ["sounds/male_low_warcry.ogg", "Male low warcry", "Opening sound of Nessus, Firebreather, Cannoneer, Deck Swabber, Swashbuckler, Arnoldstein, Malicious Magistrate and Warrenstein; Death sound of Thieves 4-5; Attack or hit of Shaitan (Arena too)"],
-      ["sounds/male_pain.ogg", "Male pain", "Death sound of Swashbuckler, Warrenstein, Fallen Swashbuckler Hero; Attack or hit of Bandit, Sword Swallower, Thieves 9-11, Mirage Nymph, Angry Mob! and Eternal Wanderer (Arena too)"],
-      ["sounds/moan_01.ogg", "Moan 1", "Death sound of Bandit, Sword Swallower, Highwayman; Attack or hit of Alexander, Polydamas, Trojan Captain, Centaur Hunter, Centaur Grappler, Satyr, Trojan Spearman, Trojan Warrior, Elementalist and Swashbuckler (Arena too). Also in Bookworm Adventures Volume 2 as Moan 1 (unused)."],
       ["sounds/witch_groan_01.ogg", "Witch groan 1", "Opening sound of Deino, Enyo, Pemphredo; Death sound of Haggard Heckler; Attack or hit of Wandering Hag, Connystein, Quag Hag"],
       ["sounds/witchy_laugh_01.ogg", "Witchy laugh 1", "Opening sound of Haggard Heckler, Quag Hag; Attack or hit of Deino, Enyo, Pemphredo and Disturbed Skeleton"],
-      ["sounds/witchy_laugh_02.ogg", "Witchy laugh 2", "Opening sound of Scylla, Sea Witch, Harpy, Harpy Witch, Connystein and Wandering Hag; Death sound of Deino, Enyo, Pemphredo; Attack or hit of Mirage Skeleton, Haggard Heckler"]
+      ["sounds/humanmalegrunt3.ogg", "Human male grunt 3", "Death sound of Snake Charmer, Thieves 2-3, Summoner and Arnoldstein; Attack or hit of Cutthroat, Thief 1 and Deck Swabber (Arena too)"],
+      ["sounds/male_pain.ogg", "Male pain", "Death sound of Swashbuckler, Warrenstein, Fallen Swashbuckler Hero; Attack or hit of Bandit, Sword Swallower, Thieves 9-11, Mirage Nymph, Angry Mob! and Eternal Wanderer (Arena too)"],
+      ["sounds/female seduce.ogg", "Female seduce", "Death sound of Mirage Trojan"]
     ] },
     { name: "Animals", sounds: [
-      ["sounds/bat_death_01.ogg", "Bat death 1", "Attack or hit of Mama Roc (Arena too). Also in Bookworm Adventures Volume 2 as Bat death 1 (unused)."],
-      ["sounds/dog_barking_01.ogg", "Dog barking 1", "Opening sound of Thieves 6-8, Wolf Pack; Attack or hit of Orthrus, Flying Wolf, Carrion Dog"],
       ["sounds/dog_barking_02.ogg", "Dog barking 2", "Opening sound of War Hound, Enchanted Hound, Flying Wolf; Attack or hit of Thieves 6-8, Undead Hound"],
       ["sounds/dog_whimper_01.ogg", "Dog whimper 1", "Death sound of War Hound, Enchanted Hound, Wolf Pack and Carrion Dog; Attack or hit of Thieves 6-8"],
+      ["sounds/generic_slosh_02.ogg", "Generic slosh 2", "Opening sound of Sea Elemental, Air Spirit; Attack or hit of Helead, Deck Swabber, Hateful Housemaid, Sea Elemental, Air Spirit, Bayou Beast and Mr. Blobs"],
+      ["sounds/snake_hiss_01.ogg", "Snake hiss 1", "Opening sound of Sea Serpent, Enchanted Scorpion, Enchanted Serpent, Enormous Serpent, Flying Snake, Mummified Servant, Snake Charmer, Bog Serpent and Mr Blobs; Death sound of Flying Snake"],
       ["sounds/eagle_cry_01.ogg", "Eagle cry 1", "Opening sound of Enchanted Eagle, Griffon, Bronze Stymphalian, Steel Stymphalian, Mama Roc, Roc Hatchling and Were-Hawk; Death sound of Bronze Stymphalian, Steel Stymphalian, Roc Hatchling; Attack or hit of Mama Roc (Arena too). Also in Bookworm Adventures Volume 2 as Eagle cry 1 (unused)."],
       ["sounds/feline_whimper_01.ogg", "Feline whimper 1", "Opening sound of Carrion Dog; Death sound of Bilge Dog, Flying Wolf; Attack or hit of Enchanted Lion, Nemean Lion, Wolfman (Arena too)"],
-      ["sounds/feline_whimper_02.ogg", "Feline whimper 2", "Opening sound of Orthrus, Undead Hound, Bilge Dog; Death sound of Nemean Lion; Attack or hit of Cerberus, Wolfman, Codex (Arena too)"],
-      ["sounds/generic_slosh_02.ogg", "Generic slosh 2", "Opening sound of Sea Elemental, Air Spirit; Attack or hit of Helead, Deck Swabber, Hateful Housemaid, Sea Elemental, Air Spirit, Bayou Beast and Mr. Blobs"],
-      ["sounds/pig_squeal_01.ogg", "Pig squeal 1", "Opening sound of Calydonian Boar, Erymanthian Boar; Death sound of Plagued Pork"],
       ["sounds/pig_squeal_02.ogg", "Pig squeal 2", "Opening sound of Flying Pig, Plagued Pork, Were-Pig; Death sound of Calydonian Boar, Erymanthian Boar, Flying Pig; Attack or hit of Enchanted Scorpion"],
-      ["sounds/snake_hiss_01.ogg", "Snake hiss 1", "Opening sound of Sea Serpent, Enchanted Scorpion, Enchanted Serpent, Enormous Serpent, Flying Snake, Mummified Servant, Snake Charmer, Bog Serpent and Mr Blobs; Death sound of Flying Snake"],
-      ["sounds/wolf_howl_01.ogg", "Wolf howl 1", "Death sound of Orthrus, Thieves 6-8, Undead Hound; Attack or hit of Flying Wolf, Wolf Pack"]
+      ["sounds/dog_barking_01.ogg", "Dog barking 1", "Opening sound of Thieves 6-8, Wolf Pack; Attack or hit of Orthrus, Flying Wolf, Carrion Dog"],
+      ["sounds/feline_whimper_02.ogg", "Feline whimper 2", "Opening sound of Orthrus, Undead Hound, Bilge Dog; Death sound of Nemean Lion; Attack or hit of Cerberus, Wolfman, Codex (Arena too)"],
+      ["sounds/wolf_howl_01.ogg", "Wolf howl 1", "Death sound of Orthrus, Thieves 6-8, Undead Hound; Attack or hit of Flying Wolf, Wolf Pack"],
+      ["sounds/pig_squeal_01.ogg", "Pig squeal 1", "Opening sound of Calydonian Boar, Erymanthian Boar; Death sound of Plagued Pork"],
+      ["sounds/bat_death_01.ogg", "Bat death 1", "Attack or hit of Mama Roc (Arena too). Also in Bookworm Adventures Volume 2 as Bat death 1 (unused)."]
     ] },
     { name: "Beasts and giants", sounds: [
-      ["sounds/dragon_bite.ogg", "Dragon bite", "Opening sound of Bayou Beast; Attack or hit of Hydra, Basilisk, Greater Basilisk and Monstrous Scorpion"],
-      ["sounds/dragon_death.ogg", "Dragon death", "Death sound of Hydra, Basilisk, Greater Basilisk, Monstrous Scorpion and Bayou Beast; Attack or hit of The Mummy (Arena too)"],
+      ["sounds/giantgruntdry1.ogg", "Giant grunt dry 1", "Opening sound of Cyclops Herder, Cyclops Warrior; Attack or hit of Polyphemus, Manticore, Minotaur, Cyclops Herder and Cyclops Warrior (Arena too)"],
+      ["sounds/giantgruntecho2.ogg", "Giant grunt echo 2", "Death sound of Cyclops Herder, Cyclops Warrior, Polyphemus and Manticore; Attack or hit of The Creature (Arena too)"],
       ["sounds/dragon_pain.ogg", "Dragon pain", "Attack or hit of Kraken, Basilisk, Greater Basilisk and Bilge Dog (Arena too)"],
       ["sounds/dragon_roar.ogg", "Dragon roar", "Opening sound of Kraken, Hydra, Basilisk, Greater Basilisk and Monstrous Scorpion; Attack or hit of Kraken, Bilge Dog. Also in Bookworm Adventures Volume 2 as Dragon roar (unused)."],
+      ["sounds/roar_01.ogg", "Roar 1", "Opening sound of Charybdis, Enchanted Lion, Phantom, Chimera and Manticore; Attack or hit of Griffon (Arena too). Also in Bookworm Adventures Volume 2 as Roar 1 (unused)."],
+      ["sounds/generic_animal_grumble_01.ogg", "Generic animal grumble 1", "Opening sound of Cerberus, Minotaur, Nemean Lion; Death sound of Chimera, Minotaur (Arena too)"],
+      ["sounds/dragon_bite.ogg", "Dragon bite", "Opening sound of Bayou Beast; Attack or hit of Hydra, Basilisk, Greater Basilisk and Monstrous Scorpion"],
+      ["sounds/dragon_death.ogg", "Dragon death", "Death sound of Hydra, Basilisk, Greater Basilisk, Monstrous Scorpion and Bayou Beast; Attack or hit of The Mummy (Arena too)"],
+      ["sounds/kubwa_barh.ogg", "Kubwa barh", "Attack or hit of Thieves 12-14 (Arena too). Also in Bookworm Adventures Volume 2 as Kubwa barh (unused)."],
+      ["sounds/kubwa_greeting2.ogg", "Kubwa greeting 2", "Opening sound of Thieves 12-14 (Arena too). Also in Bookworm Adventures Volume 2 as Kubwa greeting 2 (unused)."],
+      ["sounds/kubwa_roar.ogg", "Kubwa roar", "Death sound of Thieves 12-14 (Arena too)"],
       ["sounds/elephant_01.ogg", "Elephant 1", "Opening sound of Elephant, Mirage Skeleton. Also in Bookworm Adventures Volume 2 as Elephant 1 (unused)."],
       ["sounds/elephant_death_01.ogg", "Elephant death 1", "Opening sound of Bull Elephant. Also in Bookworm Adventures Volume 2 as Elephant death 1 (unused)."],
       ["sounds/elephant_death_02.ogg", "Elephant death 2", "Death sound of Elephant. Also in Bookworm Adventures Volume 2 as Elephant death 2 (unused)."],
       ["sounds/elephant_death_03.ogg", "Elephant death 3", "Death sound of Bull Elephant. Also in Bookworm Adventures Volume 2 as Elephant death 3 (unused)."],
-      ["sounds/generic_animal_grumble_01.ogg", "Generic animal grumble 1", "Opening sound of Cerberus, Minotaur, Nemean Lion; Death sound of Chimera, Minotaur (Arena too)"],
-      ["sounds/giantgruntdry1.ogg", "Giant grunt dry 1", "Opening sound of Cyclops Herder, Cyclops Warrior; Attack or hit of Polyphemus, Manticore, Minotaur, Cyclops Herder and Cyclops Warrior (Arena too)"],
-      ["sounds/giantgruntecho2.ogg", "Giant grunt echo 2", "Death sound of Cyclops Herder, Cyclops Warrior, Polyphemus and Manticore; Attack or hit of The Creature (Arena too)"],
-      ["sounds/kubwa_barh.ogg", "Kubwa barh", "Attack or hit of Thieves 12-14 (Arena too). Also in Bookworm Adventures Volume 2 as Kubwa barh (unused)."],
-      ["sounds/kubwa_greeting.ogg", "Kubwa greeting", "Used in the Arena fights. Also in Bookworm Adventures Volume 2 as Kubwa greeting (unused)."],
-      ["sounds/kubwa_greeting2.ogg", "Kubwa greeting 2", "Opening sound of Thieves 12-14 (Arena too). Also in Bookworm Adventures Volume 2 as Kubwa greeting 2 (unused)."],
-      ["sounds/kubwa_roar.ogg", "Kubwa roar", "Death sound of Thieves 12-14 (Arena too)"],
-      ["sounds/roar_01.ogg", "Roar 1", "Opening sound of Charybdis, Enchanted Lion, Phantom, Chimera and Manticore; Attack or hit of Griffon (Arena too). Also in Bookworm Adventures Volume 2 as Roar 1 (unused)."]
+      ["sounds/kubwa_greeting.ogg", "Kubwa greeting", "Used in the Arena fights. Also in Bookworm Adventures Volume 2 as Kubwa greeting (unused)."]
     ] },
     { name: "Spirits and magic", sounds: [
-      ["sounds/fading_ghostly_wail_01.ogg", "Fading ghostly wail 1", "Opening sound of Banshee, Manes, Tombstone Gargoyle and Gargoyle; Death sound of Medusa, Sphinx, Flying Armor; Attack or hit of Phantom, Grim (Arena too)"],
       ["sounds/fading_ghostly_wail_02.ogg", "Fading ghostly wail 2", "Opening sound of Medusa, Flying Armor, Necromancer; Death sound of Charybdis, Banshee, Manes, Phantom, Shade, Specter and Unliving Frostmancer; Attack or hit of Hypnotist (Arena too)"],
-      ["sounds/fading_ghostly_wail_03.ogg", "Fading ghostly wail 3", "Opening sound of Shade, Specter, Embalmed Guardian and Unliving Frostmancer; Death sound of Mummified Servant, Tombstone Gargoyle, Gargoyle; Attack or hit of Manes, Grim (Arena too)"],
       ["sounds/pulsing_attack_01.ogg", "Pulsing attack 1", "Attack or hit of Circe, Dryad, Helead, Medusa, Naiad, Nessus, Twisted Vizier and Codex (Final Boss) (Arena too). Also in Bookworm Adventures Volume 2 as Pulsing attack 1 (unused)."],
-      ["sounds/skeleton_warcry_01.ogg", "Skeleton warcry 1", "Opening sound of Limping Leper, Disturbed Skeleton, Ghoul Minion"],
+      ["sounds/fading_ghostly_wail_01.ogg", "Fading ghostly wail 1", "Opening sound of Banshee, Manes, Tombstone Gargoyle and Gargoyle; Death sound of Medusa, Sphinx, Flying Armor; Attack or hit of Phantom, Grim (Arena too)"],
+      ["sounds/fading_ghostly_wail_03.ogg", "Fading ghostly wail 3", "Opening sound of Shade, Specter, Embalmed Guardian and Unliving Frostmancer; Death sound of Mummified Servant, Tombstone Gargoyle, Gargoyle; Attack or hit of Manes, Grim (Arena too)"],
       ["sounds/sonic_attack_02.ogg", "Sonic attack 2", "Opening sound of Hypnotist; Death sound of Mirage Nymph; Attack or hit of Shade, Specter, Snake Charmer, Air Spirit, Hypnotist, Sphinx (Riddle 1 of 5), Dracula and Fallen Warrior Hero (Arena too)"],
       ["sounds/wail_03.ogg", "Wail 3", "Opening sound of Parkerstein; Death sound of Necromancer; Attack or hit of Phantom, Shade, Specter"],
-      ["sounds/wail_05.ogg", "Wail 5", "Death sound of Cerberus; Attack or hit of Codex (Arena too)"]
+      ["sounds/wail_05.ogg", "Wail 5", "Death sound of Cerberus; Attack or hit of Codex (Arena too)"],
+      ["sounds/skeleton_warcry_01.ogg", "Skeleton warcry 1", "Opening sound of Limping Leper, Disturbed Skeleton, Ghoul Minion"]
     ] },
     { name: "Attacks and impacts", sounds: [
       ["sounds/arrow_shot_01.ogg", "Arrow shot 1", "Attack or hit of Alexander, Polydamas, Centaur Archer, Dryad, Maladin, Toxophilite and Thieves 9-11 (Arena too)"],
-      ["sounds/bowfiring.ogg", "Bow firing", "Opening sound of Unliving Archer; Attack or hit of Fallen Huntress Hero. Also in Bookworm Adventures Volume 2 as Bow firing (unused)."],
-      ["sounds/largeimpact_01.ogg", "Large impact 1", "Death sound of Cernian Hind, Enchanted Eagle, Enchanted Lion, Enchanted Scorpion, Enchanted Serpent, Griffon, Kraken, Sea Elemental, Air Spirit, Crazy Murray, Elementalist, Disturbed Skeleton, Fallen Warrior Hero, Fearful Farmer, Ghoul Minion, Parkerstein and Were Ram; Attack or hit of Thieves 12-14, Calydonian Boar, Centaur Warrior, Charybdis, Chimera, Enchanted Eagle, Enyo, Erymanthian Boar, Minotaur, Polyphemus, Djinn, Fire Spirit, Flying Pig, Flying Wolf, Hypnotist, Shaitan, Twisted Vizier, Arnoldstein, Bayou Beast, Codex (Final Boss), Fallen Wizard Hero, Fearful Farmer, Frankenstein, Limping Leper, Parkerstein, The Creature, Tombstone Gargoyle, Unliving Brute, Warrenstein, Were-Pig and The Wolf-Man (Arena too)"],
       ["sounds/slicing_attack_01.ogg", "Slicing attack 1", "Opening sound of Mysterious Assassin, Fallen Warrior Hero, Vampire Cultist; Attack or hit of Trojan Captain, Trojan Warrior, Sea Witch, Banshee, Cerberus, Enchanted Hound, Enchanted Scorpion, Harpy, Harpy Witch, Manes, Manticore, Orthrus, Scylla, Bronze Stymphalian, Steel Stymphalian, Cutthroat, Flying Armor, Mysterious Assassin, Sword Swallower, Thief 1, Thieves 4-5, Thieves 9-11, Codex (Final Boss), Fallen Swashbuckler Hero, Gargoyle, Grave Robber, Plagued Pork, Tombstone Gargoyle, Vampire Mistress, Were-Hawk, The Wolf-Man and Wolf Pack (Arena too)"],
       ["sounds/slicing_attack_02.ogg", "Slicing attack 2", "Opening sound of Unliving Brute; Attack or hit of War Hound, Scylla, Enchanted Eagle, Enchanted Ram, Enchanted Serpent, Minotaur, Nemean Lion, Nessus, Bronze Stymphalian, Steel Stymphalian, Dread Pirate Al-Robarts, Flying Armor, Flying Wolf, Mama Roc, Roc Hatchling, Shaitan, Swashbuckler, Thief 1, Thieves 2-3, Thieves 4-5, Mummified Hound, Codex (Final Boss), Fallen Warrior Hero, Gargoyle, Grave Robber, Highwayman, Parkerstein and Quag Hag (Arena too)"],
-      ["sounds/slump_small_01.ogg", "Slump small 1", "Death sound of Mirage Goat, Limping Leper, Unliving Archer and Unliving Brute; Attack or hit of Firebreather, Mummified Servant, Mirage Skeleton, Arnoldstein, Bog Serpent, Disturbed Skeleton, Fallen Warrior Hero, Gargoyle, Ghoul Minion, Grim, The Creature, The Mummy, Vampire Cultist, Were-Ram and Wolf Pack (Arena too)"],
-      ["sounds/smallimpact_01.ogg", "Small impact 1", "Death sound of Enormous Serpent, Angry Ram, Enchanted Ram, Mountain Goat, Sea Serpent, Grave Robber and Vampire Cultist; Attack or hit of Bilge Dog, Dread Pirate Al-Robarts, Bull Elephant, Cernian Hind, Cyclops Herder, Cyclops Warrior, Enchanted Lion, Sea Elemental, Sea Serpent, Siren, Bronze Stymphalian, Steel Stymphalian, Afreet, Elephant, Roc Hatchling, Angry Mob!, Carrion Dog, Ghoul Minion, Highwayman, Plagued Pork, Tombstone Gargoyle, Unliving Brute, Unliving Frostmancer, Unliving Pyromancer and Warrenstein (Arena too)"],
       ["sounds/swordspearimpact.ogg", "Sword spear impact", "Opening sound of Fearful Farmer, Grave Robber; Attack or hit of Polydamas, Trojan Spearman, Flying Armor (Arena too)"],
-      ["sounds/swordspearimpact_dry.ogg", "Sword spear impact dry", "Death sound of Mr. Blobs; Attack or hit of Crazy Murray, Flying Pig, Flying Snake and Were Pig (Arena too)"]
+      ["sounds/largeimpact_01.ogg", "Large impact 1", "Death sound of Cernian Hind, Enchanted Eagle, Enchanted Lion, Enchanted Scorpion, Enchanted Serpent, Griffon, Kraken, Sea Elemental, Air Spirit, Crazy Murray, Elementalist, Disturbed Skeleton, Fallen Warrior Hero, Fearful Farmer, Ghoul Minion, Parkerstein and Were Ram; Attack or hit of Thieves 12-14, Calydonian Boar, Centaur Warrior, Charybdis, Chimera, Enchanted Eagle, Enyo, Erymanthian Boar, Minotaur, Polyphemus, Djinn, Fire Spirit, Flying Pig, Flying Wolf, Hypnotist, Shaitan, Twisted Vizier, Arnoldstein, Bayou Beast, Codex (Final Boss), Fallen Wizard Hero, Fearful Farmer, Frankenstein, Limping Leper, Parkerstein, The Creature, Tombstone Gargoyle, Unliving Brute, Warrenstein, Were-Pig and The Wolf-Man (Arena too)"],
+      ["sounds/smallimpact_01.ogg", "Small impact 1", "Death sound of Enormous Serpent, Angry Ram, Enchanted Ram, Mountain Goat, Sea Serpent, Grave Robber and Vampire Cultist; Attack or hit of Bilge Dog, Dread Pirate Al-Robarts, Bull Elephant, Cernian Hind, Cyclops Herder, Cyclops Warrior, Enchanted Lion, Sea Elemental, Sea Serpent, Siren, Bronze Stymphalian, Steel Stymphalian, Afreet, Elephant, Roc Hatchling, Angry Mob!, Carrion Dog, Ghoul Minion, Highwayman, Plagued Pork, Tombstone Gargoyle, Unliving Brute, Unliving Frostmancer, Unliving Pyromancer and Warrenstein (Arena too)"],
+      ["sounds/slump_small_01.ogg", "Slump small 1", "Death sound of Mirage Goat, Limping Leper, Unliving Archer and Unliving Brute; Attack or hit of Firebreather, Mummified Servant, Mirage Skeleton, Arnoldstein, Bog Serpent, Disturbed Skeleton, Fallen Warrior Hero, Gargoyle, Ghoul Minion, Grim, The Creature, The Mummy, Vampire Cultist, Were-Ram and Wolf Pack (Arena too)"],
+      ["sounds/swordspearimpact_dry.ogg", "Sword spear impact dry", "Death sound of Mr. Blobs; Attack or hit of Crazy Murray, Flying Pig, Flying Snake and Were Pig (Arena too)"],
+      ["sounds/bowfiring.ogg", "Bow firing", "Opening sound of Unliving Archer; Attack or hit of Fallen Huntress Hero. Also in Bookworm Adventures Volume 2 as Bow firing (unused)."]
     ] },
     { name: "Codex and Nemesis", sounds: [
-      ["sounds/codex_flinch.ogg", "Codex flinch", "Attack or hit of Codex. Also in Bookworm Adventures Volume 2 as Codex flinch (unused)."],
-      ["sounds/codex_laugh.ogg", "Codex laugh", "A Codex animation of the last chapter laughs. Also in Bookworm Adventures Volume 2 as Codex laugh (unused)."],
-      ["sounds/codex_nyah.ogg", "Codex nyah", "A Codex animation of the last chapter taunts. Also in Bookworm Adventures Volume 2 as Codex nyah (unused)."],
-      ["sounds/lexbeam.ogg", "Lex beam", "Lex's beam animation in the fight with the Codex. Also in Bookworm Adventures Volume 2 as Lex beam (unused)."],
       ["sounds/nemesis_laugh.ogg", "Nemesis laugh", "The animation of Cassandra and the Nemesis laughs. Also in Bookworm Adventures Volume 2 as Nemesis laugh (unused)."],
+      ["sounds/codex_flinch.ogg", "Codex flinch", "Attack or hit of Codex. Also in Bookworm Adventures Volume 2 as Codex flinch (unused)."],
+      ["sounds/codex_nyah.ogg", "Codex nyah", "A Codex animation of the last chapter taunts. Also in Bookworm Adventures Volume 2 as Codex nyah (unused)."],
+      ["sounds/codex_laugh.ogg", "Codex laugh", "A Codex animation of the last chapter laughs. Also in Bookworm Adventures Volume 2 as Codex laugh (unused)."],
+      ["sounds/lexbeam.ogg", "Lex beam", "Lex's beam animation in the fight with the Codex. Also in Bookworm Adventures Volume 2 as Lex beam (unused)."],
       ["sounds/v_autological.ogg", "\"Autological\"", "Lex says it in the animation of the Codex fight. The game also has the same recording as sounds/lex_autological.ogg, never played. Also in Bookworm Adventures Volume 2 as \"Autological\" (two copies, neither played)."]
     ] },
     { name: "Unused", sounds: [
@@ -948,7 +950,7 @@ var ByopopSoundboards = {
       ["sounds/lex_unbelievable.ogg", "\"Unbelievable\" (unused)", "Never played: the file is not in the game's resource list, so nothing loads it. Also in Bookworm Adventures Volume 2 as \"Unbelievable\" (unused)."],
       ["sounds/v_buynow.ogg", "\"Buy now\" (trial only)", "Trial only: the upsell trailer the trial showed said it once; the port, made from the full game, has no trial and leaves the trailer's resources out. Also in Bookworm Adventures Volume 2 as \"Buy now\" (trial only)."],
       ["sounds/vo_routed.ogg", "\"Routed\" (unused)", "Never played: loaded as OVERKILL_ROUTED, but the scripts' overkill table names only the seven other overkill voices. Also in Bookworm Adventures Volume 2 as \"Routed\" (unused)."]
-    ] }
+    ] },
   ] },
   bookwormadv2: {
     presets: [
