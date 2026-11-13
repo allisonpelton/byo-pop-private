@@ -152,3 +152,88 @@ Functions by address that nothing calls: 0x41f290, 0x414bd0, 0x410020, 0x410320,
 0x414be0, 0x414d90, 0x418bc0, 0x41bda0, 0x41ba70, the plate and slot editors' save functions, the level's editor slots, and the
 tutorial's 0x421130 and no-ops 0x421100, 0x421110, 0x421120. The library's own list and allocator helpers and the object pool
 functions are replaced by the standard library.
+
+## Coverage check (2026-11-12)
+
+The whole coverage check of the game (`docs/COVERAGE.md`): origrun's `--coverage` recorded which of the original's functions
+ran, in 50 runs on the host (`games/venice/tools/coverage/run.sh`: a copy of the patched game for each run, the virtual clock
+and no sound device; the hits are in `build/coverage/venice/hits/`, kept out of the repository). Each run took one to three
+minutes of machine time, and they ran one at a time, since the original allows one instance.
+
+- **The identical-play tours:** tutorial, Journey, Flood, Survival, Trick Shot, the menus and the name screen (each reached
+  about 1400 to 1580 of the 6019 functions that the export watches).
+- **Scenarios for what they miss** (`games/venice/tools/idplay/scenarios/cov_*.py`; each makes a profile with the test
+  commands `unlock all`, `set mode` and `set level`, clicks Play Now and Continue, and then the port's bot plays, its moves
+  given to the original as input): Journey from 21 levels that `tools/coverage/levelfeat.py` picked (it says which levels
+  hold which kind of object or action: levels 4, 8, 10, 11, 13, 14, 16, 22, 25, 29, 32, 38, 41, 46, 47, 52, 56, 58, 68, 71,
+  72), Flood and Survival to its end, Trick Shot from levels 26, 41, 53 and 87, the options' sliders, the name screen's
+  players (`cov_players`) and the window losing and getting back the focus (`cov_focus`).
+- **Runs on a patched copy of the original**, so that the play reaches what the bot seldom does (a coverage run reads only
+  the port's inputs, so the original may play on differently from the port): every power-up of one kind (rewind, combo
+  shot, score multiplier, cupid: a store in the Powerup constructor at 0x4166df made unconditional), every falling jewel
+  landing in a bonus basket that waits (the overlap test's jump at 0x4010fd) and every filled slot cascading as a combo
+  shot's does (the test at 0x41cb35). A copy takes static byte patches of the game's own code; they are `run.sh`'s
+  `POWERUP_KIND` and `EXTRA_PATCH`.
+
+A scripted `click` (press and release in the same update) fires nothing in the original, whose buttons read the press in one
+update and the release in a later one: the scenarios send `move`, `down` and `up` at least two frames apart.
+
+`games/venice/coverage.txt` sets the game's own code as two ranges: the game, the Retro64 scene engine under it and the app
+(0x401000-0x442f60), and the app's destructor and button-listener glue that the linker put after the framework's first
+functions (0x4434a0-0x4434d0). The rest of the exe is the SexyAppFramework, the C runtime and the libraries. The game's own
+code has 967 functions; the first report's runs reached 596 of them, and the 50 runs reach 696.
+
+**Reached in the original with no counterpart in the port: none left.** Each function of the first lists got one of two
+things, and none changed play (the port's own tests are unchanged):
+
+- **Placed:** functions the port translates inline or in another shape got their address in the comment above the function
+  that holds them (the quick constructors of the level locker and of the bumpers, the Survival scroll's tail, a picture's
+  release, the four message wrappers of the popup 0x41d600 and the table of the game's own classes at 0x4076b0).
+- **Left out on purpose, as `none` lines with a reason each:** the C++ library's stream, locale and string instantiations
+  (the port uses the standard library), the compiler's deleting destructors and one-line wrappers, the engine's list and
+  object pool functions (the port's objects are made with `new`), and the constructors of the bonus basket (0x409a30), the
+  endless bonus (0x409a50) and the level scroller (0x409a10), which only set a virtual table.
+
+No missing game logic was found.
+
+**Never reached and not defined in the port: 251 at the end, all left out on purpose.** `tools/coverage/deadcode.py` sorts
+them by who calls them in the export. Six have a caller that a run reached and were judged by hand: the engine list's
+remove, the level scroller's constructor, a wrapper, two empty callbacks, and the level editor's use of the name box (0x42d930;
+Return reaches it only with the editor up, so the port's `InputBox` leaves it out, as its header says). The rest are dead
+clusters, whose every caller is itself never reached: the level editor (about 140 functions: its classes, the writers that
+save an object, a stage, a filter or an event as a tag, and the destructors of its MFC frame window; nothing in play makes the
+editor, since no function calls its constructor), the C++ library's instantiations (70), and 36 functions that nothing calls
+and no virtual table the game's code calls through holds (a private random number generator, string scanners, the editor's
+win-message writer and the like). Each has a `none` line, and none is in the port.
+
+**Defined in the port, never reached: 104 at first, 20 at the end.** The runs reached the rest: the rewind, combo shot, score
+multiplier and cupid power-ups, the bonus basket's catch and dump, a bumper that breaks into particles, the cascade's lines,
+the tosser plate, and the Survival, options and name screens. Of the 20:
+
+- **Read again against the export, each matching it:** `ShowCatchScore` (0x417200: a power-up caught after the level is won),
+  the M plate's hit (0x416280, which the port shares with the A and step plates' `WobbleOnHit`; the plate is only in level 68
+  of Journey and Flood, where three runs never threw a jewel at it), `TextObject::GetBounds` (0x425220), `Plate::TossSlots`
+  (0x412ba0) and `VeniceWidget::MouseWheel` (0x441230: the wheel counts as a press of the up or down key; origrun has no
+  wheel input).
+- **For a night run (22:00 to 08:00), still open:** the options' two check boxes, hardware acceleration and full screen
+  (`Checkbox::Toggle` 0x4379f0, `SetAcceleratedDisplay` 0x4418a0 and `SetWindowedDisplay` 0x441930), which change the
+  display, and with the 3D mode on the glow of a text that the pointer comes onto (the only caller of `GetBounds`). The
+  tutorial's "don't show this again" check box (the same `Toggle`) only sets a flag, but two tries at its place reached
+  nothing (the screen's `buttons` list does not hold it); it waits for the night too.
+- **Kept, a virtual's empty base:** `SceneObject::OnCustomEvent` (0x429d20); the objects that get a custom event (the basket,
+  the slot) have their own.
+- **Candidates for taking out unneeded code: 12 functions.** No play of the original reaches these, and they are not removed
+  now:
+  - `LevelScroller` (0x411a30, 0x411a50, its factory entry and the `DrawHot` 0x427760 that only it calls): the object exists
+    only in the editor's palette (`objects/level_scroller.xml`); no level file creates one, and the level select scrolls
+    with its own stages.
+  - `ShooterPath::Update` (0x41bb70) and its factory entry: no level has a `shooter_path` object, and the scroll point that
+    derives from it has its own update.
+  - `SceneObject`'s `Rewind` (0x426000; only itself calls it), `Rotate` (0x4262a0), `GetLocalRotation` (0x427c60),
+    `SetImageFrom` (0x427fe0; its only caller, 0x41f290, has none), `CircleOverlapWith` (0x428e80), `CountStagesBefore`
+    (0x4295e0) and `AngleTo` (0x429810).
+  - `Plate::TossSlots` and the tuning `toss_on_filled_plate`: the shipped config sets it to 0, and the plate's `fade_out`
+    branch is its only caller.
+
+Left open: the night run above. The 50 runs took about two hours of machine time. The fixes mod was written alongside
+(`Fixes (the fixes mod)` above).
