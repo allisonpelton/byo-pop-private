@@ -8,6 +8,7 @@
 #include "ImageRecord.h"
 #include "KeyCodes.h"
 #include "Level.h"
+#include "LiveSplitObserver.h"
 #include "Profiles.h"
 #include "SceneLoader.h"
 #include "SceneTag.h"
@@ -130,6 +131,7 @@ VeniceApp::VeniceApp()
 // 0x440040
 VeniceApp::~VeniceApp()
 {
+	LiveSplitObserver::AppDestroyed(); // port: the autosplit block's last write
 	mWidgetManager->RemoveWidget(mWidget);
 	delete mWidget;
 	mWidget = nullptr;
@@ -163,6 +165,15 @@ void VeniceApp::ShutdownHook()
 	gScenes.Clear();
 	gImageRecords.Clear();
 	gSounds.Clear();
+}
+
+// port: -livesplitlog=<file>, one line for each change the autosplit block shows (tests); the rest is the framework's
+void VeniceApp::HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue)
+{
+	if (theParamName == "-livesplitlog")
+		LiveSplitObserver::SetLogFile(theParamValue);
+	else
+		SexyApp::HandleCmdLineParam(theParamName, theParamValue);
 }
 
 // the volumes are the only settings the game keeps in the registry (0x440040 writes them as the app ends)
@@ -254,8 +265,10 @@ static int RunDueUpdates(int theFrame)
 		return 0;
 	for (int anUpdate = 0; anUpdate < aUpdatesBehind; anUpdate++) {
 		// without the focus (once the logos are over), and while the focus counts down, time passes and nothing updates
-		if ((gHasFocus || aLoadState <= LoadStateLogosShowing) && gFocusFrames != 1)
+		if ((gHasFocus || aLoadState <= LoadStateLogosShowing) && gFocusFrames != 1) {
 			UpdateScenes();
+			LiveSplitObserver::AfterUpdate(); // port: the autosplit block, after the update (LiveSplitObserver.h)
+		}
 		sTickBase++;
 	}
 	sPreviousBatch = aUpdatesBehind;
@@ -328,7 +341,7 @@ static void MakeLogoScenes()
 	gLoadState = LoadStateLogosShowing;
 }
 
-// 0x440e60
+// 0x440e60, with its helpers 0x440b30, 0x440b90, 0x440c80, 0x440d10 and 0x440f30 translated inline
 void VeniceWidget::Draw(Graphics* g)
 {
 	gGraphics = g;

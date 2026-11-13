@@ -13,6 +13,8 @@ pitched, mixed). Only pairs with at least one side the board marks unused, or on
 at 0.8 or more) in turned.json, for tools/web/soundcompare.html.
 
   python tools/soundmatch.py [--assets DIR] [--extra NAME=DIR ...] [--all] [--pair A,B]
+  python tools/soundmatch.py --within     one game's two files of the same recording, every board (build/soundmatch/within.txt),
+                                          and each board sound's peak level, quietest first (build/soundmatch/levels.txt)
 """
 import argparse
 import json
@@ -54,6 +56,7 @@ class Clip:
         self.game, self.ref, self.label, self.when, self.extra = game, ref, label, when, extra
         self.src = None  # an unported game's file, read only
         x = samples(wav)
+        self.peak = float(np.abs(x).max()) if len(x) else 0.0   # its loudest sample (of the 16 kHz mono copy)
         # trim leading and trailing silence, so a padded copy still lines up
         loud = np.nonzero(np.abs(x) > 0.004)[0]
         x = x[loud[0]:loud[-1] + 1] if len(loud) else x[:0]
@@ -109,6 +112,7 @@ def main():
     ap.add_argument("--extra", action="append", default=[], help="NAME=DIR: an unported game's folder, read only")
     ap.add_argument("--all", action="store_true", help="list every cross-game pair, not only those touching an unused sound")
     ap.add_argument("--pair", help="compare just these two board sounds: game:file,game:file")
+    ap.add_argument("--within", action="store_true", help="same recordings inside one game, and every board sound's peak level")
     a = ap.parse_args()
     if a.assets:
         vl.ASSETS = os.path.abspath(a.assets)
@@ -159,6 +163,23 @@ def main():
         print(p.secs, q.secs, "env", xcorr_peak(p.env, q.env, 5), "wave", xcorr_peak(p.wave, q.wave, 400))
         return
     clips.sort(key=lambda c: c.secs)
+    if a.within:
+        with open(os.path.join(OUT, "levels.txt"), "w", encoding="utf-8") as f:
+            for c in sorted((c for c in clips if not c.extra), key=lambda c: c.peak):
+                f.write("%7.1f dB  %s %s [%s]\n" % (20 * np.log10(c.peak + 1e-9), c.game, c.ref, c.label))
+        same = []
+        for i, p in enumerate(clips):
+            j = i + 1
+            while j < len(clips) and clips[j].secs <= p.secs * 1.15 + 0.01:
+                q = clips[j]
+                j += 1
+                if p.game == q.game and not p.extra and not q.extra:
+                    r = compare(p, q)
+                    if r and r[0] == "same":
+                        same.append("%s  %s [%s]  =  %s [%s]  %.2f/%.2f" % (p.game, p.ref, p.label, q.ref, q.label, r[1], r[2]))
+        open(os.path.join(OUT, "within.txt"), "w", encoding="utf-8").write("".join(x + "\n" for x in sorted(same)))
+        print("within: %d pairs; build/soundmatch/within.txt and levels.txt" % len(same))
+        return
     hits, turned = [], []
     for i, p in enumerate(clips):
         j = i + 1

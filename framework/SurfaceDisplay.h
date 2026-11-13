@@ -81,8 +81,9 @@ public:
 
 protected:
 	// the scale (1 to 4) at which the window's drawable is exactly the logical size, or 0 when it is no such size or the
-	// renderer is wanted anyway (SURFACE_DISPLAY=0 in the environment, so that a test can compare the two modes in one window)
-	int WantedSurfaceScale();
+	// renderer is wanted anyway (SURFACE_DISPLAY=0 in the environment, so that a test can compare the two modes in one window);
+	// SoftwareScreenDisplay asks for the renderer at 2x to 4x too, to learn whether it can draw on the GPU
+	virtual int WantedSurfaceScale();
 	// the renderer made again after a failed change to surface mode
 	void RestoreRenderer();
 	bool EnterSurfaceMode(int theScale);

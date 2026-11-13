@@ -55,7 +55,6 @@ protected:
 
 private:
 	Slot* CreateSlot(int theIndex); // 0x414c60: a slot of a colour that does not repeat that of the one before it
-	void TossSlots(); // 0x412ba0
 	void WarnOfDanger(); // 0x414050
 	void CheckDanger(); // 0x413f90
 };

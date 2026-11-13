@@ -497,14 +497,18 @@ never with invented titles. A game's session sets these from its code:
 - `unused`: the tunes the game's code never plays.
 - `cuts` and `chains`: tracks split and grouped as the game plays them (the user, 2026-11-11: "Group and split").
   `cuts` splits a subsong where the game's code starts a different tune partway through it, the second piece being
-  `"<file>#<n>@<order>"`; `chains` makes one track of parts the game only ever plays as jumps inside one tune.
+  `"<file>#<n>@<order>"`; `chains` makes one track of parts the game only ever plays as jumps inside one tune. `starts`
+  is for an order the game also starts a subsong at while the tune before plays on through it in a long game (no seam:
+  Bejeweled 2's Action Mode starts at order 122, which Classic Mode reaches after about 18 minutes): the piece from there
+  is a track, and the subsong stays whole (the user's seam review, 2026-11-12: "I hear no seam").
 - `level`: "Music levels".
 
 **The decoder** is the games' own two module renderers, built for the web as `openmpt.js` and `openmpt.wasm` (target
 `byopop_openmpt`) and picked as `Platform::Mixer` picks them, so a tune sounds as it does in its game.
 
 **The player's rules**, from the user: long silent endings are skipped (the user's notes, 2026-11-10: "Some of the
-short tracks have a bunch of dead air at the end, where the tracker slows to a crawl"; `trimEnd`); only the playlist
+short tracks have a bunch of dead air at the end, where the tracker slows to a crawl"; `trimEnd`), the first piece of a cut subsong too (Twist's Game Over: a 3.5-second jingle,
+then the module's own 13 seconds of silence before the cut); only the playlist
 scrolls (2026-11-09); closing the window stops the music and frees what it held (2026-11-09;
 `ByopopMusicPanel.held()` tells a test what is still held).
 
@@ -641,21 +645,28 @@ off and with it on.
 
 **The rules table** is in `web/autosplit.js`, one entry for each game:
 
-- `name`: the game's name on speedrun.com, which the splits' game name must match;
+- `name`: the game's name on speedrun.com, which the splits' game name must match (the game's own title where it has no
+  board of its own: Rocket Mania Deluxe);
 - `id`: the block's game id;
 - `modes` and `skills`: the names behind the block's numbers;
-- `deaths`: what each of the four death kinds is (each one a reset setting, as in Bejeweled);
-- `templates`: one per speedrun.com category and subcategory, each with `mode` and `skill` (none for any, or a
+- `deaths`: what each of the four death kinds is (each one a reset setting, as in Bejeweled; one with `goesOn` is no end of the
+  run, as Venice's sunk Flood building, played again on the same board);
+- `templates`: one per speedrun.com category and subcategory (the site's own where there is no board), each with `mode` and `skill` (none for any, or a
   list of the allowed ones), its segments, and `end`, how the run finishes:
   - `levels N` (the Nth level clear);
   - `score N` (the score on screen reaches N);
-  - `won` (`wins` rises);
+  - `won` (`wins` rises on the run's board): the run's end whatever segment it is in, the segments left split with it, and
+    seen even when the board has gone in the same poll (Dynomite's tutorial wins as it closes);
   - `lost` (a game over; for a death% category), or `lost N` (a game over while the game's progress is at most N; any
     other game over resets the run as usual);
   - `progress N` (the game's own figure reaches N);
 
   and, where a category's splits are not its levels, `by: "progress"`: each segment but the last splits when the game's
   progress reaches its number (Mummy Maze's treasures).
+  `targets: [N, ...]` splits each segment but the last at that many level clears, for a game of many levels (Cosmic
+  Bugs' 577 boards in 13 segments). `limit: {field, max, setting}` resets the run when a block field passes `max` (AstroPop's SUPA Weapon count, in No SUPA
+  Weapon). `games: N` makes a run of N games, a segment each, each ending at the end's progress; between them the run
+  waits, and goes on with the next new game of a skill it hasn't had (AstroPop's 100%, one game a pilot).
 
 One decider reads every entry. It starts at a GO in the template's mode and skill, but never on a resumed save or a
 replay. It splits at each level clear, or when the score reaches a segment's number (Bejeweled's naming rules: "Level 3",
@@ -676,15 +687,45 @@ level-complete page. Its progress is the treasures collected, which in Classic r
 Pyramid (Classic) is 15 chamber splits and the end at `progress 1`, the spawn in the next pyramid. 100% Run (Adventure)
 splits at each treasure, a template with `by: "progress"` (each segment's split is the progress reaching its number, not
 a level clear), and ends `won`, at the last pyramid's chest. Being caught is no game over; Abandon Hope is the only one. Rocket
-Mania (speedrun.com: Rocket Mania!): Level 10, 20 and 30 on each difficulty, from "Get Ready!" (the first update of a new
-game) to the last level's "Level Up!"; a split at each Level Up. The board doesn't say which mode it means: Arcade and
-Classic both have levels and Strategy never ends one, so the templates' `mode` is the list [Arcade, Classic]. Its losses
+Mania Deluxe has no board of its own (the one named Rocket Mania! is for a Java edition), so its row is the site's own
+categories, named after the game: Level 10, 20 and 30 on each difficulty, from "Get Ready!" (the first update of a new
+game) to the last level's "Level Up!"; a split at each Level Up. Arcade and Classic both have levels and Strategy never ends
+one, so the templates' `mode` is the list [Arcade, Classic]. Its losses
 (the night running out, the top line filling, no matches left) count at the game-over screen, since a launch still burning
 can clear the level in Classic. It has no win. Alchemy (speedrun.com: Alchemy Deluxe): 1 Board and 7 Boards in
 Strategic or Time Trial, from the click on Start New Game to the board's result screen (the statistics panel), with any
 skill, and Tutorial%, which ends `won` at the tutorial's last step appearing: that is the code's one moment for done, and
 the button under it only leaves. Its deaths are the forge overflowing (one kind in each mode), the Time Trial forge
-staying full, and leaving a game mid-board. Big Money has no board, so its row is its native
+staying full, and leaving a game mid-board. AstroPop (speedrun.com: Astropop Deluxe): Any% and Any% (No SUPA Weapon)
+for each pilot (the skill), a new Classic game from level 1 to level 32's "Level Up". Its GO is the new game's first
+update: the board's start click comes before the pilot is chosen, which the block can't see. Its progress is the level
+just cleared, since a fast warp gate skips levels, so the splits are `by: "progress"`. No SUPA Weapon has a `limit`: the
+game's own first word (`own0`, block 0x80) counts the weapon's uses, and the first resets the run (`resetSupa`). 100% is
+the four pilots, each a new game, and a template with `games: 4`: a segment a game, each ending at that game's `progress
+32`. Between games the run waits: the finished game's END GAME resets nothing, and the next new game with a pilot the run
+hasn't had carries it on. Survival has no timer. Typer Shark (speedrun.com: Typer Shark Deluxe): a block board is a
+whole game, its GO the first update after the difficulty or the Abyss is chosen. Adventure Mode, for each difficulty,
+ends on returning to the map after level 11 is beaten. Its progress is the levels beaten and left, rising as the map
+comes back, so the splits are `by: "progress"`; a level's own clear comes earlier, before the player leaves it. Abyss
+Mode ends `lost`, at its game over (the screen's time is the game's, in its own first word, which the site doesn't use
+yet), and Death% at an adventure's first game over. "End this game" in the options is no game over: the game goes
+away, a quit. Cosmic Bugs (speedrun.com: Cosmic Bugs; its board's 2005 PC game is Retro64's, the one PopCap
+published in 2007): Any%, from Play on the instructions page, the screen a new player's Start Game shows, to the
+mission-complete screen, its win. A continued game or a chosen board skips that page and starts nothing. A mission is
+577 boards, so the template has `targets`: the level clears at which each segment splits, here the first board and the
+last of each of the 12 steps of 48 boards, and the end at the win. Dynomite (speedrun.com: Dynomite! Deluxe): a board is
+a whole game. Endless Puzzle, for each amount (1K to 50K) and difficulty, runs from the difficulty's click to the score on
+screen reaching the amount, its segments the amounts up to it. Time Trial, for each difficulty, runs from the first egg
+fired (its GO, after the shot and not at the click) to the board cleared, its win; the board times it in game time, which
+is the game's updates from that GO. Fossil Challenge, Strategic or Panic, splits at each fossil found (the third fragment
+off the bottom) and ends at the fifteenth, its win. Tutorial splits at each mode's part and ends at the main menu with
+every part done; that win comes in the update the tutorial closes. The board's Easy, Normal and Hard are the game's Normal,
+Hard and Expert. Leaving a game is a game over of its own kind. Venice Deluxe (speedrun.com: Venice): a board is one pass through a mode, from its click on the mode menu to the main menu.
+Journey and Flood run from the click away from the world map before building 1 in a new game (the tutorial is not timed),
+split at each building cleared and end at the map's CONGRATULATIONS! after building 71, its win; a Journey game out of
+tries resets, a sunk Flood building is played again and the run goes on. Trick Shots runs from the click on the mode to
+the win scene with every trick shot made. A continued game starts nothing. The board's per-level Journey and Flood
+categories have no template. Big Money has no board, so its row is its native
 script's rules, with mode and skill in the category's name and levels or scores as segments. Both replay their native
 scripts' scenarios in `tools/autosplittest.js`. Every other game with a board gets its row in Milestone 3, from the
 speedrun.com categories and its session's answer on where in its code GO, a level clear, a game over and a win happen.

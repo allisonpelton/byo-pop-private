@@ -26,6 +26,7 @@ Reachable only from a test (`-script`, `-commands`, the web page's test call; `d
 | `after <frame> <command> ...` | runs the command before the first update after the frame (frames are counted from the first update that runs with the game loaded), for a script that replays another run's input at its frames |
 | `trace <file>` / `trace off` | writes a `FRAME` line of the game's state for every frame (tick counter, load state, seed, scene tail, score and, while a level is in play, its plates, slots and hits) and an `INPUT` line for each input of the bot; the identical-play harness compares it with the original's |
 | `ticks <file>` | the number of game updates to run in each frame, one a line, so that a run takes the same ticks in the same frames as the original's (catch-up frames run more than one) |
+| `player [name]` | the name box's work for a test that does not type the name: the first free slot gets the name (Test by default) and is the current player; a player already chosen stays |
 | `bot <frames> [continue]` / `bot off` | plays for that many frames with the bot's moves, as real input (`move`, `down` and `up` at the pointer's place); with `continue` it also clicks the summaries and the level select away, so that it goes on from level to level |
 
 The commands wait for a player: the name screen is up until a name is typed (`key T` ... then `keydown RETURN` and `keyup RETURN`
@@ -93,9 +94,21 @@ in `IDENTICAL_PLAY.md`). A scenario's `SHOT_MARGIN` (1000 frames) keeps the run 
   (`SceneStage::CheckEvents` returns false) and gives the result the original's read of the stale progress gave. Found by the
   AddressSanitizer run of the win sequence (level 72).
 
-## Fix candidates (for the fixes mod)
+## Fixes (the fixes mod)
 
-None found yet.
+`mods/fixes/mod.json` holds the fixes mod, each fix a toggle read through the options layer (`Platform::FixOn`, `platform/GameOptions.h`;
+`-fix=<id>` on the command line, `-original` for none). Nothing set means every option off, the original, which is what every
+test and the frozen baseline run. `main.cpp` loads the mods folder (`-modsdir=`, `-nomods`; `mods-venice` next to the exe, or
+`/venicepersist/mods` on the web). `tools/fixes_check.sh` plays `tools/fixes_test.txt` four times (as the original, with the
+mod's defaults, with `-fix=typos`, with both fixes on) and checks the screens that must differ, the ones that must not and
+that no state line changes.
+
+| id | default | what the original does | what the fix does |
+| --- | --- | --- | --- |
+| `typos` | on | seven texts of the data files are misspelt: the name box's request on an invalid name ("PLESE TYPE IN A", `levels/invalid_profile_name.xml`), the titles "DONT LOOK AT ME" (trick shot 46) and "SWIRLD IN, SWIRL OUT" (the bonus level, trick shot 90) and four messages of trick shot levels ("SQUAKED IT THROUGH!", "YOU GOT THE RYTHM!", "GODE JUDGEMENT!", "GET THAN ANGLE!") | `CorrectedText` (`TextFixes.cpp`) spells them right where a level's title and messages and a text object's string are read |
+| `trickMessages` | off | the summary of a trick shot (`TRICKSHOT_RESULT` in the text translator, 0x405e10: the text of the red frame) copies the level's own message (`win_message` or `lose_message` of its file, offsets 0x320 and 0x360 of the level) into its text and the next statement writes "GREAT SHOT!" or "MAYBE NEXT TIME" over it, so none of the 104 levels' own messages shows | the summary shows the level's message (`GameText.cpp`); off by default, since the original's summary looks intended and the fault is not widely known |
+
+Candidates not made: none.
 
 ## Oddities (not chased)
 
@@ -140,3 +153,308 @@ Functions by address that nothing calls: 0x41f290, 0x414bd0, 0x410020, 0x410320,
 0x414be0, 0x414d90, 0x418bc0, 0x41bda0, 0x41ba70, the plate and slot editors' save functions, the level's editor slots, and the
 tutorial's 0x421130 and no-ops 0x421100, 0x421110, 0x421120. The library's own list and allocator helpers and the object pool
 functions are replaced by the standard library.
+
+## Coverage check (2026-11-12)
+
+The whole coverage check of the game (`docs/COVERAGE.md`): origrun's `--coverage` recorded which of the original's functions
+ran, in 50 runs on the host (`games/venice/tools/coverage/run.sh`: a copy of the patched game for each run, the virtual clock
+and no sound device; the hits are in `build/coverage/venice/hits/`, kept out of the repository). Each run took one to three
+minutes of machine time, and they ran one at a time, since the original allows one instance.
+
+- **The identical-play tours:** tutorial, Journey, Flood, Survival, Trick Shot, the menus and the name screen (each reached
+  about 1400 to 1580 of the 6019 functions that the export watches).
+- **Scenarios for what they miss** (`games/venice/tools/idplay/scenarios/cov_*.py`; each makes a profile with the test
+  commands `unlock all`, `set mode` and `set level`, clicks Play Now and Continue, and then the port's bot plays, its moves
+  given to the original as input): Journey from 21 levels that `tools/coverage/levelfeat.py` picked (it says which levels
+  hold which kind of object or action: levels 4, 8, 10, 11, 13, 14, 16, 22, 25, 29, 32, 38, 41, 46, 47, 52, 56, 58, 68, 71,
+  72), Flood and Survival to its end, Trick Shot from levels 26, 41, 53 and 87, the options' sliders, the name screen's
+  players (`cov_players`) and the window losing and getting back the focus (`cov_focus`).
+- **Runs on a patched copy of the original**, so that the play reaches what the bot seldom does (a coverage run reads only
+  the port's inputs, so the original may play on differently from the port): every power-up of one kind (rewind, combo
+  shot, score multiplier, cupid: a store in the Powerup constructor at 0x4166df made unconditional), every falling jewel
+  landing in a bonus basket that waits (the overlap test's jump at 0x4010fd) and every filled slot cascading as a combo
+  shot's does (the test at 0x41cb35). A copy takes static byte patches of the game's own code; they are `run.sh`'s
+  `POWERUP_KIND` and `EXTRA_PATCH`.
+
+A scripted `click` (press and release in the same update) fires nothing in the original, whose buttons read the press in one
+update and the release in a later one: the scenarios send `move`, `down` and `up` at least two frames apart.
+
+`games/venice/coverage.txt` sets the game's own code as two ranges: the game, the Retro64 scene engine under it and the app
+(0x401000-0x442f60), and the app's destructor and button-listener glue that the linker put after the framework's first
+functions (0x4434a0-0x4434d0). The rest of the exe is the SexyAppFramework, the C runtime and the libraries. The game's own
+code has 967 functions; the first report's runs reached 596 of them, and the 50 runs reach 696.
+
+**Reached in the original with no counterpart in the port: none left.** Each function of the first lists got one of two
+things, and none changed play (the port's own tests are unchanged):
+
+- **Placed:** functions the port translates inline or in another shape got their address in the comment above the function
+  that holds them (the quick constructors of the level locker and of the bumpers, the Survival scroll's tail, a picture's
+  release, the four message wrappers of the popup 0x41d600 and the table of the game's own classes at 0x4076b0).
+- **Left out on purpose, as `none` lines with a reason each:** the C++ library's stream, locale and string instantiations
+  (the port uses the standard library), the compiler's deleting destructors and one-line wrappers, the engine's list and
+  object pool functions (the port's objects are made with `new`), and the constructors of the bonus basket (0x409a30), the
+  endless bonus (0x409a50) and the level scroller (0x409a10), which only set a virtual table.
+
+No missing game logic was found.
+
+**Never reached and not defined in the port: 251 at the end, all left out on purpose.** `tools/coverage/deadcode.py` sorts
+them by who calls them in the export. Six have a caller that a run reached and were judged by hand: the engine list's
+remove, the level scroller's constructor, a wrapper, two empty callbacks, and the level editor's use of the name box (0x42d930;
+Return reaches it only with the editor up, so the port's `InputBox` leaves it out, as its header says). The rest are dead
+clusters, whose every caller is itself never reached: the level editor (about 140 functions: its classes, the writers that
+save an object, a stage, a filter or an event as a tag, and the destructors of its MFC frame window; nothing in play makes the
+editor, since no function calls its constructor), the C++ library's instantiations (70), and 36 functions that nothing calls
+and no virtual table the game's code calls through holds (a private random number generator, string scanners, the editor's
+win-message writer and the like). Each has a `none` line, and none is in the port.
+
+**Defined in the port, never reached: 104 at first, 20 at the end.** The runs reached the rest: the rewind, combo shot, score
+multiplier and cupid power-ups, the bonus basket's catch and dump, a bumper that breaks into particles, the cascade's lines,
+the tosser plate, and the Survival, options and name screens. Of the 20:
+
+- **Read again against the export, each matching it:** `ShowCatchScore` (0x417200: a power-up caught after the level is won),
+  the M plate's hit (0x416280, which the port shares with the A and step plates' `WobbleOnHit`; the plate is only in level 68
+  of Journey and Flood, where three runs never threw a jewel at it), `TextObject::GetBounds` (0x425220), `Plate::TossSlots`
+  (0x412ba0) and `VeniceWidget::MouseWheel` (0x441230: the wheel counts as a press of the up or down key; origrun has no
+  wheel input).
+- **For a night run (22:00 to 08:00), still open:** the options' two check boxes, hardware acceleration and full screen
+  (`Checkbox::Toggle` 0x4379f0, `SetAcceleratedDisplay` 0x4418a0 and `SetWindowedDisplay` 0x441930), which change the
+  display, and with the 3D mode on the glow of a text that the pointer comes onto (the only caller of `GetBounds`). The
+  tutorial's "don't show this again" check box (the same `Toggle`) only sets a flag, but two tries at its place reached
+  nothing (the screen's `buttons` list does not hold it); it waits for the night too.
+- **Kept, a virtual's empty base:** `SceneObject::OnCustomEvent` (0x429d20); the objects that get a custom event (the basket,
+  the slot) have their own.
+- **Candidates for taking out unneeded code: 12 functions.** No play of the original reaches these; they were taken out on
+  2026-11-12 ("Unneeded code taken out" below):
+  - `LevelScroller` (0x411a30, 0x411a50, its factory entry and the `DrawHot` 0x427760 that only it calls): the object exists
+    only in the editor's palette (`objects/level_scroller.xml`); no level file creates one, and the level select scrolls
+    with its own stages.
+  - `ShooterPath::Update` (0x41bb70) and its factory entry: no level has a `shooter_path` object, and the scroll point that
+    derives from it has its own update.
+  - `SceneObject`'s `Rewind` (0x426000; only itself calls it), `Rotate` (0x4262a0), `GetLocalRotation` (0x427c60),
+    `SetImageFrom` (0x427fe0; its only caller, 0x41f290, has none), `CircleOverlapWith` (0x428e80), `CountStagesBefore`
+    (0x4295e0) and `AngleTo` (0x429810).
+  - `Plate::TossSlots` and the tuning `toss_on_filled_plate`: the shipped config sets it to 0, and the plate's `fade_out`
+    branch is its only caller.
+
+Left open: the night run above. The 50 runs took about two hours of machine time. The fixes mod was written alongside
+(`Fixes (the fixes mod)` above).
+
+## The autosplit block (2026-11-12)
+
+Venice Deluxe has a speedrun.com board (Journey and Flood by building, and Trick Shots), so the port writes the shared autosplit block the
+site's Splits window reads (`platform/AutosplitBlock.h`, layout 2; `docs/WEB_PLAYER.md`, "One design for every port"). The observer is
+`src/LiveSplitObserver.cpp`, called after each update of the scenes from `RunDueUpdates` (the updates a game without the focus does not run
+are not counted) and from `~VeniceApp` for the last write. The block's game id is `VNDX`. It reads the scene stack, the level in play and the
+current profile, and writes nothing of the game's: until something asks for it, it only tests a flag (the mod list is looked at every 64
+updates). The page asks by calling `byopop_livesplit_block` (exported in the web build: `EXPORTS _byopop_livesplit_block` in
+`games/venice/CMakeLists.txt`); natively the `livesplit` feature of an enabled mod does (`mods/livesplit/mod.json`, a manifest only).
+`-livesplitlog=<file>` writes one line for each write that changes what a splitter acts on (board, events, state, level, mode, flags), and the
+events go to the log as `livesplit: board 1 GO at tick 8936 (mode 1)` and the like. The game itself gained nothing for it: no counter, no hook
+(its state is the scene stack and the profile that the game keeps anyway).
+
+**A block "board" is one pass through a mode.** It starts the update after a click on a mode of the mode menu (a scene is above
+`mode_select_menu`) and ends when the game is back at the main menu (the mode menu closed, a quit from the pause menu, `goto menu`). It holds
+the continue prompt, the tutorial, the maps, the levels, the summaries, the honor roll and the win scene of that mode, and a second click on
+a mode is a new board. A block asked for in the middle of a level takes that level's game as its board, with no GO.
+
+**Numbering.** `mode` as the profile numbers it (`GameMode`): 0 Flood, 1 Journey, 2 Survival, 3 Trick Shot; `skill` 0 (the game has none).
+Death kinds: 0 a Journey run out of tries, 1 a Flood level sunk, 2 Survival sunk, 3 a Trick Shot level sunk (a missed trick shot is no game
+over: the mode goes on to the next one). `state` is the screen on top of the stack: 0 a menu or a message (the main menu, the mode menu, the
+continue prompt, loading, the options), 1 the world map (`level_select`), 2 a level in play (the tutorial, Survival and the trick shots
+included), 3 the level won (its middle layer is in the victory stage), 4 the level lost (the defeat stage), 5 a summary (the level's, the
+trick shot's, Survival's), 6 the honor roll, 7 the win scene, 8 the pause menu or the in-game menu over a level. `level` is the profile's
+level index of the mode (0 on the first building: the profile moves on at the victory, so it changes with the level clear) and
+`displayLevel` is `level + 1`, the number the map shows (for a trick shot, the trick shot's own). `displayScore` and `score` are the profile's
+score. `tick` counts the updates of the scenes since the game started (4 ms each). `progress` is -1 (the ends of the categories are events).
+`gameOwn` holds two int32: the level in play's time in milliseconds (its update count times 4; 0 with none) and the tries left of the mode
+(Journey: 3 at the start of each level, -1 once the last is lost). The flags are RESUMED (a continued game: the continue prompt's "continue"
+with progress in the mode), VANILLA (no score key) and PAUSED (state 8).
+
+**Events** (for the current board; the rules of the board's time are the site session's):
+- *GO*. Journey and Flood: the click away from the world map in a new game, when the progress of the mode is 0 (the first update with the
+  `loading` scene above `level_select`: the click's stage lasts 10 ms). A new game's first map comes after the tutorial (the very first
+  start of a player's game) or straight after the mode menu, so the click is the same either way, and a continued game (the continue
+  prompt's "continue": progress above 0) has the RESUMED flag and no GO. "New game" of the prompt resets the progress and clears RESUMED
+  before the click. Trick Shot: the board's first update in a new game (progress 0 and no trick shot made), or the update "new game" of
+  the prompt resets it. Survival: the first update with a level in play.
+- *Level clear*. Journey, Flood and Survival: the update the middle layer of the level in play enters its victory stage (`ProgressBar::
+  CheckVictory`, the last plate gone; `win` of the test commands does the same). Trick Shot: the update the count of made trick shots rises
+  (a missed shot's level also goes to its victory stage, which is no clear).
+- *Game over*. The update the middle layer of the level in play enters its defeat stage (`Level::LoseTry`: a plate sank, or a Journey level
+  with no try left), once for a board; a Journey try lost with tries left has no defeat stage and no game over.
+- *Win*. Journey and Flood: the update the world map comes up with CONGRATULATIONS! on it, which is when the progress of the mode is the
+  last building's (level index + 1 of 72 or more); every mode: the win scene is on the stack. After the last building (71) the map shows
+  CONGRATULATIONS!, a click on it pushes the win scene, which resets the progress and opens the honor roll (a second click).
+
+A board's first update is a baseline for the level clear, the game over and the win, and a level scene's first update is a baseline for its
+own events (a level seen already won or lost). A game over is counted once for a board: the click that plays the level again runs the same
+board on. The Trick Shot board's end (all trick shots made: the win scene; else the honor roll) and the Journey board's end after a game over
+(the honor roll) are in `state` (7 and 6), for a splitter that wants them.
+
+**Tests.** `games/venice/tools/livesplit/run_tests.py <out dir>` (under rundesk with `-fast`, one game at a time): a new player for each run
+(made by the port with the standard test commands), the menus clicked at the places `buttons` gives, and the port's bot for the tutorial and
+the levels: a new Journey game (the tutorial, the map, the GO at the click, building 1 won by `win` and then the tries lost: one GO, one
+clear, one game over of kind 0, states 1 to 5 all seen), a new Flood game (the bot wins the first level itself, `lose` on the second: kind
+1), Survival (`lose`: kind 2; `goto menu` ends the board), Trick Shot (the GO at the board's first write, the bot makes some of its shots:
+clears only for the made ones), Journey from building 5 by "continue" (RESUMED, no GO) and by "new game" (RESUMED cleared before the GO, one
+GO) and from building 72 (the map's CONGRATULATIONS!: one win, the win scene 7 and the honor roll 6). The block logs of these runs went to
+the site session.
+
+**Proof that it is inert.** `run_tests.py` also runs `games/venice/tools/tour_test.txt` (the tour that `tools/check.sh venice` freezes) twice,
+with no mod and with a mods folder that holds only `livesplit` (the port's log says `livesplit: block at ...`), and plays the Journey, Flood,
+Survival and Trick Shot games above twice, with the block on and with no mod, under the `trace` command (a line for each update: the random
+seed and the values of the game's state). The tour's screens, state lines and player file, and each game's 3 MB trace (17,000 updates of the
+Journey game) and player file, are the same byte for byte in the two runs. The tour goes through `goto` and `level`, which no mode click
+precedes, so it never starts a board; the four games go through the menus, which is the observer's board logic. `tools/check.sh venice` runs
+with no mods as before, and its frozen hashes are unchanged.
+
+## Performance (2026-11-12)
+
+**Result: the port's processor time is about half the original's over the same stretch of play, in both window sizes.** Median of five
+alternating pairs (`games/venice/tools/profile/pairs.sh`, under `tools/pincore.py`), the process's cycles (every thread, the ones that
+ended too) over 4000 updates of Journey in play, in million cycles an update and as a share of one core (the cycle counter ran at 2092 MHz):
+
+| | runs | update | draw | present | driver threads | total | share of a core |
+|---|---|---|---|---|---|---|---|
+| original (origrun, real clock, software display, window 800x600) | 5 | 0.056 | 4.255 | 0.576 | 0 | **4.918** | 58.8 % |
+| port, window of the game's own size (`-windowscale=1`) | 5 | 0.036 | 0.884 | 0.077 | 1.567 | **2.606** | 31.1 % |
+| port, default window (2x, 1600x1200) | 5 | 0.035 | 0.800 | 0.075 | 1.424 | **2.370** | 28.3 % |
+
+The runs' totals were 4.83 4.72 5.01 4.92 5.32 (original), 4.07 4.23 2.53 2.61 2.34 (port 1x) and 2.11 2.37 2.22 4.40 2.39 (port 2x): every
+port run is below every original run, and the port's two runs near 4.1 and 4.4 are the driver thread's noise (below). The port's display line
+says `client 800x600 px, logical 800x600, render scale 1, windowed, renderer direct3d11` (2x: `1600x1200 ... render scale 2`); both
+sides ran in a window with the registry's `ScreenMode` 0 and the original's and the port's software display (`Is3D` 0, which is what the
+original runs in on rundesk's desktop). The port's 3D display (the registry's `Is3D` left at its default), three runs, window 1x:
+**0.749** M cycles an update, 9.0 % of a core (0.737 1.088 0.749); the original's 3D display is not measured, since origrun runs it
+through dgVoodoo2, whose own cycles are not the original's.
+
+**How it was measured** (`docs/COORDINATION.md`, "A performance pass"). The stretch is `scenario.py`: a player with every mode unlocked,
+Journey from building 10, Play Now, Journey and Continue clicked, then the shots and clicks of the port's bot, which ran once (`profile.py
+prep`) to make the input and is not in a measured run; both games are given the same lines, at the same frame of the game's own count
+(the updates since the loading ended: the port's `after <frame>`, the original's update counter at +0x484 of its app, counted from the
+first update its tick counter at 0xa2a1ac leaves 0). The stretch is updates 2500 to 6500 of that input, label a to label b. The player's
+exe carries only the script's lines: no `-commands`, no state log, no bot. Counting is the shared one: `-cyclesplit` in the port (SexyApp's
+three sites), origrun's `--count` in the original with `games/venice/tools/profile/count.txt` (DoUpdateFrames 0x482d70, DrawDirtyStuff
+0x48bd70 less its Redraw, Redraw 0x497360; their prologue lengths checked by `tools/origrun/prologue.py`; the update counter at +0x484
+equals the update function's calls). Each run ran under pincore's core 14, the original through origrun (its game under rundesk), the port
+under rundesk, the order of the port's two windows swapped every other round, each run started when `tools/gamecount.py --limit 6` had
+room. Counting costs: the port 11836 readings of 1635 cycles each (0.27 % of its total), the original 23476 readings of 3571 cycles each
+(0.37 %); neither changes a result of this size. Sound: the port's audio thread (SDL's, silent under rundesk) is 0.005 M cycles an
+update; origrun's stand-in DirectSound mixes nothing, and the original's one other busy thread (a thread of its exe, 0.08 % of a core) is
+counted in its total, so neither side's number holds a mixer's synthesis beyond that.
+
+**What the numbers say.** Both sides run 250 updates a second (4 ms). The original draws and presents on every update (3894 draws in the
+4000 updates: its registry here has `VSyncUpdates` 0 and `WaitForVSync` 1 with a 60 Hz refresh, so it neither waits for a vertical blank nor
+skips a draw), 4.26 M cycles a draw in its own software blits. The port draws once a display frame (958 draws, 59.9 a second, the
+framework's vsync present), 3.4 M cycles a draw in its software transforms, and its GPU driver's thread (nvwgf2um) spends another 1.4 to 1.6
+M an update (about 6 M a present) on uploading the picture and the wait for the blank, which is 55 to 60 % of the port's total: it is the
+framework's known shared cost ("Presenting in step with the display", `docs/COORDINATION.md`), not a cost of Venice's code, and no
+change in `games/venice/` moves it. The game's own update is 0.036 M against the original's 0.056 M. Caveats: the same input at the same
+frame can land a tick or two apart in two real-time runs (the 4 ms updates follow each run's clock), so the shots the bot aimed need not
+all hit again; the number of updates and draws is the same in every run, and the cost of a stretch of play of this kind does not depend
+on whether a shot hit. This is Journey only: Flood, Survival and Trick Shot draw the same scenes, and the menus are cheaper.
+
+**Changes made for performance:** none. Nothing in the port changed in this pass (the frozen baseline is as it was); the port is already
+below the original with the framework's fast paths, so the pass stands as a measurement. **Lite candidates:** none added (the port
+already draws only when the display does). **Shared cost sent on:** the driver thread's present cost above (known to the coordinator).
+To measure again: `python -I games/venice/tools/profile/profile.py prep build/perf`, then `python -I tools/pincore.py -- bash
+games/venice/tools/profile/pairs.sh build/perf 5` and `python -I games/venice/tools/profile/profile.py sum build/perf` (the run folders
+are deleted once this section holds their numbers).
+
+## Unneeded code taken out (2026-11-12)
+
+The twelve candidates of the coverage check above are out of the port, each a function that no play of the original reaches and
+that no live code of the port calls: `LevelScroller` (its class, `Draw`, `OnCustomEvent` and the factory's `level_scroller`) with
+`SceneObject::DrawHot` that only it called; `ShooterPath::Update` and the factory's `shooter_path` (the class stays as the base of
+`ScrollPoint`, whose own `Update` is the one that runs; no level file names either object, and the two object files are in the
+game's data only because the original's level editor lists them); `SceneObject`'s `Rewind`, `Rotate`, `GetLocalRotation`,
+`SetImageFrom`, `CircleOverlapWith`, `CountStagesBefore` and `AngleTo`; and `Plate::TossSlots`. The tuning `toss_on_filled_plate`
+stays: `Slot` reads it in two places that the runs do reach (it is 0 in the shipped tuning), so only the plate's `fade_out` branch
+that threw the slots' jewels away when it is set is gone, and `Plate::Update` now returns from a fading plate as the original does
+with the key at 0. 167 lines out of 9 files. The port's frozen baseline, its tour and the rest of `tools/check.sh venice` are as
+before (the check ran after the removal), and the port builds natively and for the web.
+
+## The PopCap Game Collection version (2026-11-12)
+
+The port was made from the retail install (`Venice.exe`, the DRM wrapper with the game inside; the game carved out of it is
+`re/venice/bin/VeniceGame.exe`), and Venice Deluxe is on the user's PopCap Game Collection disc (the group `VeniceDeluxeComponent`
+among the 49 of its cabinet), so it is checked against that version (`docs/COORDINATION.md`, "Done means"). `unshield` (the user
+allowed it on 2026-11-10) read the disc image's cabinet, which was mounted read-only and dismounted afterwards: 10 files, 36 MB, in the
+main checkout's `re/_installers/VeniceDeluxeCollection` (git-ignored): `Venice.exe` (1,983,792 bytes, the game itself with no wrapper),
+`main.pak`, `config.xml`, `bass.dll`, `developer_logo.png`, `license.txt`, `readme.html`, `properties/partner.xml` and its `.sig`, and a
+`userdata/profiles.dat`.
+
+**It is the same game.** `main.pak` (35,934,548 bytes), `config.xml`, `bass.dll` and `developer_logo.png` are byte for byte the retail
+copy's, and so is `partner.xml`. The exe, set beside the carved game image (`games/bookworm/tools/collection/cmpexe.py`), was linked at the
+same second (6 June 2007, 17:45:46): `.text` and `.data` are the same bytes, `.rdata` differs in four (a build stamp of eight digits in
+the string `CAPPACPOPPOPCAPXXXXXXXXX27390487`, which the Collection's has as `...47340415`; nothing in the port reads it), `.rsrc` in one
+resource of the sixteen (2,532 bytes in the retail game, 2,206 in the Collection's: a block of the wrapper's data, which the port never
+reads) and 5,424 bytes follow the last section of the Collection's (a signature). Unlike BookWorm's and Astropop's, no code differs, so
+no function needs a second look.
+
+**The port on the Collection's files.** `games/venice/tools/stage_venice_assets.py` staged the Collection's folder as it does the retail
+one: 863 files, the same 863 as the retail copy's staged set, `diff -r` finding nothing (so a run of the port on them is the run it has
+on the retail files: the frozen baseline, the tour and every scenario read the same bytes). The port reads nothing from the exe, and the
+web page's markers are `main.pak` and `config.xml` (`games/venice/web/page.js`), both in the Collection's folder, so a player who drops
+the Collection's folder on the site gets the game.
+
+**Saves.** The Collection's install carries a `userdata/profiles.dat` of its own (52,284 bytes, the size of this machine's profiles file:
+the format is a fixed record). The original (with `VistaCompliant` true in `partner.xml`, in both copies) keeps its players in
+`C:/ProgramData/PopCap Games/Venice/userdata/profiles.dat`, where this machine's retail copy keeps them, and the same exe code does so for
+the Collection's. The save-import table's row for Venice (`platform/saveimport.json`) names the file beside the exe; the folder under
+ProgramData (`"appdata": "Venice"`) is where a player who ran the game has it, so the row may need that field (sent to the coordinator,
+who owns the table).
+
+## The page check (2026-11-12)
+
+`games/venice/tools/web/pagecheck.js` is the game's table for the shared page check (`tools/web/pagecheck.js`; `docs/WEB_PLAYER.md`,
+"The page check"): a player made by the new test command `player`, every building unlocked and Journey's building 5 started, the game in
+play once its level scene is up. Opened as `venice.html?player=1&assets=1&hold=1&fast=1&silent=1&driver=games/venice/tools/web/pagecheck.js&run=pagecheck`
+on `tools/webtest/serve.py` in the Browser pane (hidden, with the requestAnimationFrame shim), it passed: **11 checks pass, none fails,
+1 is information.** The focus line matches the native build's answer (`tools/web/pagecheck_native.py`: only `timer` changes while the
+page is hidden and after it is back, in both); the keys the game takes (Space, Backspace, and the arrows and Tab the shared check
+adds) are kept from the browser and `'` and `/` open no quick find; the information line lists F5, F11, F12, F7, Ctrl+R, Ctrl+F and Ctrl+L as
+cancelled and Alt as left; the pointer lands at 400,300 in canvases drawn at 1.5, 0.75, 2 and 1 times the game's size; a second copy
+of the page waits for the first; and after a reload the two files the game keeps (`profiles.dat` and `registry.ini`) are back with the
+same bytes, backed up while the game was in progress, with no error on the page before or after.
+
+## Real input (2026-11-12)
+
+`games/venice/tools/realinput/play.sh <journey|flood|survival|trickshot> <2d|3d|full2d|full3d> [moves] [driver options]` plays one mode of the
+port through the page-less route of `docs/REAL_INPUT.md`: the shared loop of `tools/playbymove` (the port's bot answers `move`, and each move
+is played as SDL events through `-realinput`, one update apart, with `-hold`, so the same game plays the same way), started under
+`rundesk`. `drive.py` is Venice's use of that loop: the state's `over` is true on every summary and on every level won or lost, screens the
+bot goes on from (`bot 0 continue` makes its moves click through them), so the play ends only where the bot cannot go on. The menus before
+the loop are clicked at the places `buttons` gives (Play Now, then Journey, Flood, Trick Shot or Survival; Flood's continue prompt is
+"new game"), as a move, a press and a release three updates apart (a press and release inside one update are not seen), with `player Test`
+for the name box and `unlock all` for the three other modes (the new player of Journey has only Journey). Registry values in the run's own
+`registry.ini`: `Is3D=0` for 2d, none for 3d (the port's 3D display), `ScreenMode=1` for the full screen runs.
+
+The game ends where `drive.py` says (`REALINPUT end:` line in the run's `summary.txt`): the same level lost three times running (one for
+Survival, which has one board), a level in play in which nothing changes for 3000 states (the bot has no shot: no slot takes the ready
+jewel, and it never throws one away), nothing to go on from on an over screen for 120 states, or the move limit. The bot "loses the later
+ones" (`bot` row above) and Journey has no end but a won last building (a lost level offers "CLICK TO PLAY AGAIN"), so a Journey game by
+the bot ends at its first level it cannot beat.
+
+| run | moves | ended by | reached |
+|---|---|---|---|
+| Journey 2D | 1844 | building 2 lost 3 times | tutorial, building 1 won, summary, map, building 2 |
+| Journey 3D | 1387 | building 1 lost 3 times | tutorial and building 1 |
+| Flood 2D | 4122 | no change for 3000 states | tutorial and the explaining screen, level 1 won, summary, level 2 |
+| Flood 3D | 8038 | no change for 3000 states | levels 1 to 8, score 126920 |
+| Survival 2D and 3D | 7702 each | sunk | one board, 155908 updates, score 347550 (the two runs' last states are the same) |
+| Trick Shot 2D | 20000 | move limit | 13 levels and their summaries |
+| Trick Shot 3D | 6000 | move limit | 10 levels |
+
+Every run reached the end of its play with no error line in the game's log, and the last screen of each (`end.png`, taken by the game's own
+`screenshot`) was looked at for Flood 3D (building 8) and Survival (sunk, "Time: 10:23", score 347550). The Journey runs differ between the
+displays at building 1 (won in 2D, lost three times in 3D): the 3D display's own movement of the jewels, which the comparison with the
+original showed (`journey3d`, "Left in phase two"), is enough to turn a level the bot wins by one try. A run is 1 to 8 minutes under
+`-fast`; the folder of each is `build/realinput/<mode>-<display>` and is deleted once its line is here.
+
+Found on the way and fixed in the test commands: `unlock all` before the loading ends (the level lists do not exist yet) crashed the game
+and now answers an error; the bot's swap is a right button press and release (`"button":"right"`), which the shared loop plays, where it
+answered a step name the loop did not know. `tools/playbymove/playbymove.py` now splits its loop into `parse_args` and `play(args, is_over)`,
+so that a game whose `over` is also a screen the bot goes on from passes its own end of play (the loop's default is unchanged).
+
+Left for the night window (22:00 to 08:00, the full screen runs on the visible desktop): `play.sh <mode> full2d` and `full3d`.

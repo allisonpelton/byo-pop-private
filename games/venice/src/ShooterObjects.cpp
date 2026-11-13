@@ -12,14 +12,6 @@
 #include <cstdio>
 #include <cstring>
 
-bool ShooterPath::Update()
-{
-	bool aAlive = SceneObject::Update();
-	if (gScreenHeight - 20.0f <= mWorld[AttributeY] && 0.0f < mParent->mParent->GetYVelocity())
-		aAlive = false;
-	return aAlive;
-}
-
 // A scroll point that is the lowest one on the screen ends the level's scroll (the middle layer stops moving up and down)
 // when the plates have reached it: the scroll point is gone when it is more than 80 above the lowest plate's stage start, when
 // it is more than 400 from there, or when the lowest plate has gone above the top edge

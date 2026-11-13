@@ -25,6 +25,7 @@ protected:
 class RectBumper : public Obstacle
 {
 public:
+	RectBumper() {} // 0x4099b0
 	bool Update() override; // 0x401b70
 };
 
@@ -32,6 +33,7 @@ public:
 class RoundBumper : public Obstacle
 {
 public:
+	RoundBumper() {} // 0x4099d0
 	bool Update() override; // 0x401e60
 };
 
@@ -39,6 +41,7 @@ public:
 class TriBumper : public Obstacle
 {
 public:
+	TriBumper() {} // 0x4099f0
 	bool Update() override; // 0x402130
 };
 

@@ -69,9 +69,10 @@ PORT_EXE = os.path.join(ROOT, 'build', 'native', 'venice.exe')
 RUNDESK = os.path.join(ROOT, 'build', 'native', 'rundesk.exe')
 DGVOODOO = os.environ.get('ORIGRUN_DGVOODOO', 'E:/retools/dgVoodoo2_87_5')  # the folder of dgVoodoo2 (origrun's --dgvoodoo)
 ORIGRUN = os.path.join(ROOT, 'build', 'origrun-bin', 'origrun.exe')
-ORIGINAL_RUN_DIR = os.path.join(ROOT, 'build', 'origrun', 'venice')
+ORIGINAL_RUN_DIR = os.path.join(ROOT, 'build', 'origrun', os.environ.get('VENICE_RUN', 'venice'))  # a coverage run takes its own copy of the game (docs/COVERAGE.md)
+SEED = os.environ.get('VENICE_SEED', '1')  # the game's seed in both runs (a coverage run may try another to see other random draws)
 ORIGINAL_EXE = os.path.join(ORIGINAL_RUN_DIR, 'game', 'VeniceGame.exe')
-PATCHES = os.path.join(ROOT, 'tools', 'origrun', 'patches', 'venice.txt')
+PATCHES = os.environ.get('VENICE_PATCHES') or os.path.join(ROOT, 'tools', 'origrun', 'patches', 'venice.txt')  # a coverage run may add a patch (games/venice/tools/coverage/run.sh)
 GAMEDIR = os.path.join(ROOT, 'assets', 'venice')
 # where the original keeps its profiles (a copy of the game puts them under ProgramData, whatever folder it runs from)
 ORIGINAL_PROFILES = os.path.join(os.environ.get('ProgramData', r'C:\ProgramData'), 'PopCap Games', 'Venice', 'userdata', 'profiles.dat')
@@ -364,7 +365,7 @@ def make_profile(name, scenario):
     with open(script, 'w') as out:
         out.write('\n'.join(lines) + '\n')
     wait_for_slot()
-    command = [RUNDESK, PORT_EXE, '-gamedir=' + GAMEDIR, '-userdir=' + user_dir, '-fast', '-seed=1', '-script=' + script]
+    command = [RUNDESK, PORT_EXE, '-gamedir=' + GAMEDIR, '-userdir=' + user_dir, '-fast', '-seed=' + SEED, '-script=' + script]
     with open(os.path.join(run, 'profile.out'), 'w') as out:
         subprocess.call(command, stdout=out, stderr=subprocess.STDOUT, cwd=ROOT)
     shutil.copyfile(os.path.join(user_dir, 'profiles.dat'), start_profile(name, scenario))
@@ -393,7 +394,7 @@ def run_original(name, scenario, start, log, sandbox=False, exe=None, run_dir=No
     accelerated = getattr(scenario, 'ACCELERATED', False)
     timeout = min(3600, (600 + scenario.END // 10) if accelerated else (240 + scenario.END // 40))
     command = [ORIGRUN, '--exe', exe or ORIGINAL_EXE, '--script', script, '--clock', 'virtual', '--cursor', 'scripted', '--keys', 'scripted',
-               '--counter', FRAME_COUNTER, '--update-ms', '4', '--patches', PATCHES, '--seed', '1', '--timeout', str(timeout)]
+               '--counter', FRAME_COUNTER, '--update-ms', '4', '--patches', PATCHES, '--seed', SEED, '--timeout', str(timeout)]
     if sandbox:
         command += ['--sandbox', '--run', os.path.basename(run_dir)]
         if accelerated:
@@ -402,6 +403,10 @@ def run_original(name, scenario, start, log, sandbox=False, exe=None, run_dir=No
         # the original's 3D mode (Direct3D 7 over dgVoodoo2, docs/ORIGRUN.md, "Hardware acceleration"); it runs slower than software
         command += ['--3d', 'on', '--3d-key', r'Software\PopCap\Venice', '--3d-flag', '[[0xa2a178]+0x36c]+0x38',
                     '--dgvoodoo', DGVOODOO]
+    if os.environ.get('COVERAGE'):
+        command += ['--coverage', os.environ['COVERAGE']]  # the hits go to coverage.txt in the run's folder (docs/COVERAGE.md)
+    if os.environ.get('VENICE_RUN') and not sandbox:
+        command += ['--run', os.environ['VENICE_RUN']]  # its own run folder: a run holds run.lock there, and a sandbox run is not disturbed
     with open(log, 'w') as out:
         subprocess.call(command, stdout=out, stderr=subprocess.STDOUT, cwd=ROOT)
     if sandbox:
@@ -442,7 +447,7 @@ def run_port(name, scenario, start, first, holds, ticks, log, shots_dir=None, la
     if start_profile(name, scenario):
         shutil.copyfile(start_profile(name, scenario), os.path.join(user_dir, 'profiles.dat'))
     wait_for_slot()
-    command = [RUNDESK, PORT_EXE, '-gamedir=' + GAMEDIR, '-userdir=' + user_dir, '-fast', '-drawevery', '-seed=1', '-script=' + script]
+    command = [RUNDESK, PORT_EXE, '-gamedir=' + GAMEDIR, '-userdir=' + user_dir, '-fast', '-drawevery', '-seed=' + SEED, '-script=' + script]
     if shots_dir:
         command.append('-renderscale=1')  # docs/SHOTDIFF.md: the shots are the game's own pixels
     with open(log, 'w') as out:
@@ -474,7 +479,7 @@ def bot_inputs(name, scenario):
     if start_profile(name, scenario):
         shutil.copyfile(start_profile(name, scenario), os.path.join(user_dir, 'profiles.dat'))
     wait_for_slot()
-    command = [RUNDESK, PORT_EXE, '-gamedir=' + GAMEDIR, '-userdir=' + user_dir, '-fast', '-drawevery', '-seed=1', '-script=' + script]
+    command = [RUNDESK, PORT_EXE, '-gamedir=' + GAMEDIR, '-userdir=' + user_dir, '-fast', '-drawevery', '-seed=' + SEED, '-script=' + script]
     with open(os.path.join(run, 'bot.out'), 'w') as out:
         subprocess.call(command, stdout=out, stderr=subprocess.STDOUT, cwd=ROOT)
     inputs = []

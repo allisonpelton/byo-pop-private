@@ -407,7 +407,8 @@ void Slot::FillSlot(Jewel* theJewel, bool theCascaded)
 
 // The message that goes with the score of a jewel's fill: nothing but 10 points for the first fill of a jewel that has not
 // bounced, BANK SHOT for one that has, Tumble for each slot that a thrown-back jewel fills after the first (the third and up is
-// the super tumble), and LUCKY SHOT for a jewel that has bounced four times or more
+// the super tumble), and LUCKY SHOT for a jewel that has bounced four times or more. The four wrappers of the popup 0x41d600 that
+// say these (0x41de30 LUCKY SHOT, 0x41eaa0 Tumble, 0x41eae0 BANK SHOT, 0x41eb00 the empty one) are translated inline.
 void Slot::ShowTumblePopup(Jewel* theJewel)
 {
 	if (theJewel == nullptr)

@@ -437,7 +437,19 @@ void SWHelper::SWDrawShape(XYZStruct *theVerts, int theNumVerts, MemoryImage *th
 				pVerts[i].x = static_cast<int>(clipped[i]->mX * 65536.0f);
 				pVerts[i].y = static_cast<int>(clipped[i]->mY * 65536.0f);
 			}
-		
+			if (gClipFarEdgeInset == 0)
+			{
+				// with the clip on the rectangle's own far edges, a coordinate that the float rounds a hair past the edge
+				// would make the rasterizer's ceil() draw one more row or column, outside the target's memory
+				int	aMaxX = static_cast<int>(tclx1 * 65536.0f);
+				int	aMaxY = static_cast<int>(tcly1 * 65536.0f);
+				for (unsigned int i = 0; i < vCount; ++i)
+				{
+					if (pVerts[i].x > aMaxX) pVerts[i].x = aMaxX;
+					if (pVerts[i].y > aMaxY) pVerts[i].y = aMaxY;
+				}
+			}
+
 			if (textured)
 			{
 				for (unsigned int i = 0; i < vCount; ++i)

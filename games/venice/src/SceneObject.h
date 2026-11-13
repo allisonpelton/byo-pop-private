@@ -295,23 +295,19 @@ public:
 	virtual void OnObjectClosed() {} // 0x403510: the loader read this object's closing tag
 	virtual void AddToAttribute(int theAttribute, float theDelta); // 0x4260a0
 	virtual void Move(float theDeltaX, float theDeltaY); // 0x426110
-	virtual void Rotate(float theDegrees); // 0x4262a0
 	virtual void OnCustomEvent() {} // 0x429d20: what the Custom event action calls
 	virtual bool Update(); // 0x426dc0: false when the object is dead or has no stage left
 	virtual void UpdateChildren(); // 0x426f10
 	virtual void Draw(); // 0x426f60
 	virtual void DrawSelf(); // 0x4270f0
-	virtual void DrawHot(); // 0x427760
 	virtual void DrawChildren(); // 0x4277d0
 	virtual void OnFirstUpdate() {} // 0x425ff0
-	virtual void Rewind(); // 0x426000
 	virtual void Kill(); // 0x429d30
 
 	void Reset(); // 0x425ce0
 	void ResetAttributes(float* theAttributes); // 0x42aed0
 	void UpdateWorldValues(); // 0x427df0
 	void SetImage(const char* theName, int theFrameWidth, int theFrameHeight, int theFrameCount, int theFramesPerSecond);
-	void SetImageFrom(SceneObject* theObject); // 0x427fe0
 	void SetImageRecord(ImageRecord* theImage); // 0x428080
 	void InsertChildByZOrder(SceneObject* theChild); // 0x428160
 	void SetZOrder(float theZOrder); // 0x429720
@@ -326,9 +322,7 @@ public:
 	SceneStage* LoopBackStage(); // 0x428b60
 	bool HitTest(float theX, float theY, float theWidth, float theHeight, float theRotation); // 0x428bd0
 	void AdoptNewestChild(SceneObject* theSource, bool theByZOrder); // 0x429420: the newest child of theSource becomes a child here
-	int CountStagesBefore(); // 0x4295e0
 	double DistanceTo(SceneObject* theObject); // 0x429790: the distance, unrounded as the original returns it
-	int AngleTo(SceneObject* theObject); // 0x429810
 	void FlipHorizontally(); // 0x429c90
 	void SnapToGrid(); // 0x426370
 	float GetWorldX(float theX, float theY); // 0x427950: the parent's transform of a local point
@@ -339,10 +333,8 @@ public:
 	float GetWorldYScale(float theScale); // 0x427bd0
 	float GetLocalX(float theWorldX, float theWorldY); // 0x427c00
 	float GetLocalY(float theWorldX, float theWorldY); // 0x427c30
-	float GetLocalRotation(float theRotation); // 0x427c60
 	bool Overlaps(SceneObject* theObject); // 0x428d70: whether the other object's picture, as it is placed, overlaps this one
 	int CircleOverlapAt(float theX, float theY, float theRadius); // 0x428e00: the overlap of this object's circle with another
-	int CircleOverlapWith(SceneObject* theObject); // 0x428e80
 	float GetXVelocity(); // 0x427d50: the amplitude of the current stage's horizontal velocity filter
 	float GetYVelocity(); // 0x427da0
 };

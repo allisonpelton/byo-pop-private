@@ -7,11 +7,12 @@
 // which draws into the engine's 800x600 16-bit screen, and the widget presents that screen.
 
 #include "R64.h"
-#include "CBScreenDiff.h"
+#include "R64ScreenDiff.h"
 #include "SexyAppBase.h"
 #include "Widget.h"
 
 #include <cstdint>
+#include <string>
 #include <vector>
 
 namespace Sexy
@@ -27,7 +28,7 @@ public:
 	// rectangles. The web build, and a desktop run with SURFACE_DISPLAY=off, keep the framework's display, and the widget draws
 	// its picture of the screen (mScreenImage) instead.
 	MemoryImage* mScreenImage;
-	cb::ScreenDiff mScreenDiff;
+	r64::ScreenDiff mScreenDiff;
 	std::vector<uint32_t> mPixels;
 	std::vector<Rect> mFrameRects;
 
@@ -73,6 +74,9 @@ public:
 	// -script's "state": logs the score, the lives, the board in its set and the board's filled cells, as the headless
 	// runner (test/gamerun.cpp) prints them
 	bool HandleScriptCommand(const ScriptCommand& theCommand) override;
+
+	// -livesplitlog=<file> (tests): one line for each write of the autosplit block that changes what a splitter reads
+	void HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue) override;
 
 	// One pass of the original's main loop
 	void RunFrame();

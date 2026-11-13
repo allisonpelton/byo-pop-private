@@ -379,7 +379,7 @@ SDL update those rectangles: no renderer, no device, no driver thread.
 
 **What the host does now.** `CosmicBugsApp::CreateDDInterface` makes the `SurfaceDisplay` on the desktop builds (the web build keeps the
 framework's display; `SURFACE_DISPLAY=off` in the environment keeps it on the desktop too, for a test that compares the two). The widget
-then keeps no image of the screen: `cb::ScreenDiff` (`src/CBScreenDiff`) finds what changed, widens just that into the 32-bit buffer the
+then keeps no image of the screen: `r64::ScreenDiff` (`engines/retro64/R64ScreenDiff`, the engine's one copy) finds what changed, widens just that into the 32-bit buffer the
 display shows, and the widget hands the display the buffer and the rectangles with `SetFrame`, everything on the first frame.
 
 The rectangles are not the engine's. The engine's update rectangles (`Sys_AddUpdateRect`) are what its `Dirty_CopyTo` copies from the
@@ -402,9 +402,51 @@ six runs of seed 3: 0 pixels differ between three of them, off and on among them
 and the two groups differ in about 20 pictures, small regions where an enemy is in another animation frame. The game does that between
 runs of one exe, on either display (the oddity below), so the display adds no difference. `tools/check.sh --changed` (the build, the web
 build, the unit suites, and the Cosmic Bugs and Water Bugs suites; Cosmic Bugs "plays as the baseline", Water Bugs "screens as
-frozen") passes. Not yet done: the final comparison with the original screen by screen, the real-input play and the window checks
-(resize, minimise and restore, full screen, Alt+Enter) that a done game takes; the display switches to its renderer mode in a window that is
-not 1x to 4x the game's size, which those checks must cover.
+frozen") passes. The checks a done game takes on the new display follow (2026-11-12).
+
+**Screen by screen (the display's own part).** The menus tour (`test/tours/menus.txt`, 47 pictures: the title, Options, the hall of
+fame, the instructions, the first board and the ways back) was played by the headless runner, by the exe under rundesk (surface display, `-fast`)
+and by the web build under Node, at the original's window (`-windowscale=1`) and at the default 2x window, with `games/cosmicbugs/tools/play/webtour.sh`
+and `tools/shotdiff`. The exe's pictures equal the runner's in 47 of 47 at both sizes except one pair of the title ship's animation frame, which
+differs between any two runs of one exe on either display (the bimodal oddity below); the web build's equal the exe's 47 of 47 at 1x and 46
+of 47 at 2x, the one a faint difference in the same animation. The runner is the engine that phase two compared with the original screen by
+screen (and its frozen baseline keeps it so), and the new display only changes how that screen reaches the window, so the chain
+original, runner, exe, web holds. A fresh run of the original beside it, in Windows Sandbox, was not made: origrun's patch file for this game
+(`tools/origrun/patches/cosmicbugs.txt`: the seed and the frame wait) is git-ignored and was not in this worktree, the main checkout or the
+backup mirror, so the sandbox run could not start; recreating it is possible from the export but was not needed for the display's part.
+
+**Real input through the window.** `tools/play/drive.py` (posted SDL events through `-realinput`, the bot's moves through `move`, under rundesk,
+in real time) now also starts a game in a window (`manual-win1x`: 800x600, `auto-win2x`: the framework's 1600x1200), where the window's own
+surface shows the screen, and ends it with Alt+Enter to full screen and back. Six games, each from the title through Options, Start Game, the
+instructions, boards until every life was gone, the game over, the hall of fame and back to the title, with the surface display's
+`SURFACE_VERIFY=1` on (it compares the window's surface with the screen after every present and aborts at a difference):
+
+| Game | Boards | Last score | Real time | Frames through the surface / the renderer |
+|---|---|---|---|---|
+| Manual, window from the start, 800x600 | 11 | 31320 | 169 s | 7492 / 8 (compared: none differing) |
+| Auto, window from the start, 1600x1200 | 14 | 46969 | 219 s | 3845 / 2 (compared: none differing) |
+| Manual, full screen | 15 | 47473 | 230 s | 0 / 11565 |
+| Manual, window by Alt+Enter | 15 | 44166 | 218 s | 0 / 5998 |
+| Auto, full screen | 18 | 54612 | 268 s | 0 / 5473 |
+| Auto, window by Alt+Enter | 12 | 24513 | 202 s | 0 / 4764 |
+
+All six ended on the title with no error. A game that starts in full screen, as the player's does by default, shows its screen through the
+display's renderer from the first frame, and a window reached from full screen stays in the renderer mode (the display keeps a renderer once it
+has had one, since the renderer's last frame would stay on the window otherwise), so the two surface games are the ones that play through the
+window's own surface. The pause and focus checks inside `drive.py` (Esc and Enter on the first board, the focus taken and given back) passed in all six.
+
+**Window checks.** `tools/play/windowcheck.py` sends the window's changes as real events (`resize`, `minimize` and `restore` after `focus
+lost` and before `focus gained`, `maximize`, Alt+Enter as keys) with `SURFACE_VERIFY=1`, and after every step clicks the title's Options and Back
+at the game's points as the window maps them, takes a screenshot of the game's screen and checks that the updates run. Three runs, all passing:
+an 800x600 window taken through 2x, 3x, 1x (each a new surface, `the screen at Nx`), a minimise and restore at 1x, a resize to 1000x750 (no whole
+multiple: the renderer, 1000x750), a request for 700x500 (the window stays 800x600, the game's minimum), 800x600 again (the renderer stays),
+a minimise and restore in the renderer, a maximise (3840x2089, the renderer's render scale 4 with the picture centred) and its restore, and
+1600x1200; the 1600x1200 window taken to full screen (3840x2160, the renderer), minimised and restored there, Alt+Enter back to the window
+and to full screen and back again, then to 800x600 and a minimise and restore there; and a 1600x1200 window that only ever has the surface,
+minimised and restored at 2x and at 4x (3200x2400), then 1x. Every minimise left the game's updates standing still (the same count three times
+over a second) and they ran again after the restore. SURFACE_VERIFY compared 3288, 102 and 493 frames of the surface with the screen in the
+three runs and none differed. Not checked: the window's pixels as Windows shows them (the runs are on rundesk's hidden desktop, so nothing
+captures a window); what is checked is the window's surface (which the display hands to SDL) and the pointer's mapping to the game.
 
 **What is left, for margin.** The target is met by 22% on the median and not in every pair (one round in six is over), so the host's
 own cost matters. The comparison of the screen with its copy reads 1.9 MB a frame (34 Mc/s in the first measurement, memory-bound at
@@ -631,6 +673,51 @@ engine's `R64Sys.cpp` differs because `gPumpMessages` went (the shared change ab
 the way, the lambda parameter that shadowed an outer name. `tools/check.sh cosmicbugs` (the suite against the frozen
 baseline) passes, and so do `tools/check.sh build` (every target and tool), `build-web:cosmicbugs` (the native build
 compiles none of the `__EMSCRIPTEN__` blocks nor `SiteProfiles.cpp`) and `tools/check.sh --changed main`.
+
+## The autosplit block (2026-11-12)
+
+Cosmic Bugs has a speedrun.com board (Any%: the clock starts at the click on Play on the instructions screen and stops when the
+"Congratulations! Mission complete" screen comes up), so the port writes the shared autosplit block the site's Splits window reads
+(`platform/AutosplitBlock.h`, layout 2; `docs/WEB_PLAYER.md`, "One design for every port"). The block's game id is `CBDX`. The observer
+is `src/LiveSplitObserver.cpp`, in the exe's host only (the game library and the headless runner do not have it; Water Bugs has no
+board and uses none): `CosmicBugsApp::RunFrame` calls `LiveSplitObserver::AfterUpdate` after each pass of the game's loop and the app's
+destructor calls `AppDestroyed` for the last write. It reads the game and writes nothing of it: until something asks for the block it only
+tests a flag (the mod list is looked at every 64 updates). The page asks by calling `byopop_livesplit_block` (exported in the web build,
+`byopop_web_game(... EXPORTS _byopop_livesplit_block)`); natively the `livesplit` feature of an enabled mod does
+(`mods/livesplit/mod.json`, a manifest only). `-livesplitlog=<file>` writes one line for each write that changes what a splitter acts on,
+and the events themselves go to the log as `livesplit: board 1 GO at tick 321 (board 1, difficulty 0, shooter 1)` and the like.
+
+**What it reads.** Two globals the port added in `CBMain.cpp` (`gGameSerial`, `gGameFromInstructions`, set in `ChangeScreen`; nothing in
+the game reads them, as the inert state of the standing rule): a game is the run of boards entered from a non-board screen, and the
+mission-complete screen keeps the serial of the game it ends. `mode` is always 0 (the one game mode), `skill` is `gDifficulty` (-1 easy,
+0 normal, 1 hard; the game has no screen that changes it, the profile's value counts), `level` is the board's `mNumber - 1` and
+`displayLevel` the number on screen (`mNumber`, 1 to 577), `state` is `Level::mState`, `score` and `displayScore` are `gScore`, `tick` is
+`mUpdateCount`, and `progress` is -1 (the game has no measure between the clears). The shooter (`gAutoFire`: 0 manual, 1 auto) is in the
+block's own words. A paused board has `AUTOSPLIT_FLAG_PAUSED`; a game that starts from a screen other than the instructions page has
+`AUTOSPLIT_FLAG_RESUMED`, and `AUTOSPLIT_FLAG_VANILLA` is on while the score key is empty (no mod changes the score).
+
+**Events.**
+- *GO*: the update in which a board is entered from the instructions page (`LEVEL_HELP2`): the click on Play is consumed in that update,
+  `ChangeScreen` makes the board current in it, and the first frame of the board is drawn right after, so GO is the speedrun's start with
+  no update between. The instructions page reached from the title's Instructions button has the same Play button and raises GO too.
+  A board entered any other way (Continue saved game's Yes, a board chosen on the level selection, the `level` test command from any
+  screen) raises no GO and is flagged RESUMED (the log says "starts from another screen than the instructions page: GO not counted").
+- *Level clear*: the board's state becomes `LEVEL_WON` (state 3, `Level_Won`: the fill reaches its quota, the profile's best level is
+  saved). The board's own texts and fills follow and the player clicks through them before the next board starts, so a level clear
+  precedes the next board by the time the player takes (221 updates in the scripted mission test, which clicks every 0.6 s).
+- *Game over*: kind 0 (out of lives) when `Level::mGameOver` is set (`Level_GameOver`, from the shooter's last life): the board is in
+  state 4, "Game Over" is drawn. Kind 1 (left) when the game is left for another screen before it ends (Esc, Esc to the title); the
+  fields of the game's last update are published with it, then the block shows no board. Kinds 2 and 3 are not used.
+- *Win*: the mission-complete screen (`LEVEL_MISSION_COMPLETE`, state 5) becomes the current level, the update after the last board's
+  texts are clicked away. It is the screen the rule names (the frame it is first drawn in). A mission has 577 boards (one hand-made and
+  48 random boards for each of 12 steps; `level 577` reaches the last), so a won mission is one GO, 577 level clears and a win.
+- A board that is left for the title is not a game over of the player's: it is kind 1 and the block shows no board afterwards.
+
+**Proof.** `games/cosmicbugs/tools/livesplit/run_tests.sh <out dir>` (under rundesk, about 10 minutes): games played through real input
+at `-fast` (`games.py`: a new game with two boards won and the third lost, kind 0; board 577 won to the mission-complete screen; a game left with
+Esc and a second one lost, kinds 1 and 0; a saved game continued, RESUMED with no GO; a board chosen on the level selection, RESUMED with
+no GO) and the inert proof: one scripted game (seeded, clicks at fixed updates, a win and a loss) three times, with the block on and with
+no mod twice, whose state lines are byte-identical. The block logs of the `game` and `mission` runs went to the site session.
 
 ## The PopCap Game Collection version (2026-11-11)
 

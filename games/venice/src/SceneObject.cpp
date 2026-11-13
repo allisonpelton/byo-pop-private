@@ -21,7 +21,7 @@ SceneObject::SceneObject()
 	Reset();
 }
 
-// 0x425ee0
+// 0x425ee0, and 0x422bf0 (the release of the picture, translated inline)
 SceneObject::~SceneObject()
 {
 	mChildren.Clear();
@@ -313,20 +313,6 @@ void SceneObject::Move(float theDeltaX, float theDeltaY)
 	SnapToGrid();
 }
 
-// 0x4262a0
-void SceneObject::Rotate(float theDegrees)
-{
-	AddToAttribute(AttributeRotation, theDegrees);
-	mLocal[AttributeRotation] = mLocal[AttributeRotation] + theDegrees;
-	for (SceneStage* aStage = mStages.mHead; aStage != nullptr; aStage = aStage->mNext) {
-		if (aStage->mStart[AttributeRotation] != AttributeUnsetValue)
-			aStage->mStart[AttributeRotation] = aStage->mStart[AttributeRotation] + theDegrees;
-		if (aStage->mEnd[AttributeRotation] != AttributeUnsetValue)
-			aStage->mEnd[AttributeRotation] = aStage->mEnd[AttributeRotation] + theDegrees;
-		aStage->mAttributeMask |= 0x20;
-	}
-}
-
 // 0x426370: positions go to multiples of ten
 void SceneObject::SnapToGrid()
 {
@@ -418,18 +404,6 @@ void SceneObject::DrawChildren()
 	}
 }
 
-// 0x427760: the object drawn at half size in the additive mode
-void SceneObject::DrawHot()
-{
-	if (IsHot()) {
-		SetBlitStyleOnTarget(1);
-		mWorld[AttributeAlpha] = 0.5f;
-		DrawSelf();
-		SetBlitStyleOnTarget(0);
-		mWorld[AttributeAlpha] = 1.0f;
-	}
-}
-
 // 0x4270f0
 void SceneObject::DrawSelf()
 {
@@ -490,23 +464,6 @@ void SceneObject::DrawSelf()
 		SetBlitStyleOnTarget(0);
 	if (mClipBottom != 0)
 		SetDrawClip(0, 0, (int)gScreenWidth, (int)gScreenHeight);
-}
-
-// 0x426000
-void SceneObject::Rewind()
-{
-	mTickCount = 0;
-	bool aMore = mStages.Begin();
-	while (aMore) {
-		mStages.mCursor->mFrame = 0;
-		aMore = mStages.Next();
-	}
-	mStages.mCursor = mStages.mHead;
-	aMore = mChildren.Begin();
-	while (aMore) {
-		mChildren.mCursor->Rewind();
-		aMore = mChildren.Next();
-	}
 }
 
 // 0x429d30
@@ -601,16 +558,6 @@ float SceneObject::GetLocalY(float, float theWorldY)
 	return mParent == nullptr ? 0.0f : theWorldY - mParent->mWorld[AttributeY];
 }
 
-// 0x427c60
-float SceneObject::GetLocalRotation(float theRotation)
-{
-	if (mParent == nullptr)
-		return 0.0f;
-	if (mParent->mWorld[AttributeRotation] != 0.0f)
-		theRotation = theRotation - mParent->mWorld[AttributeRotation];
-	return theRotation;
-}
-
 // 0x427f50: the object's image, loaded or taken from the cache by name
 void SceneObject::SetImage(const char* theName, int theFrameWidth, int theFrameHeight, int theFrameCount,
 	int theFramesPerSecond)
@@ -620,17 +567,6 @@ void SceneObject::SetImage(const char* theName, int theFrameWidth, int theFrameH
 	mSourceRight = mImage->mWidth;
 	mSourceTop = 0;
 	mSourceBottom = mImage->mHeight;
-}
-
-// 0x427fe0
-void SceneObject::SetImageFrom(SceneObject* theObject)
-{
-	mImage = theObject->mImage;
-	mSourceLeft = 0;
-	mSourceRight = mImage->mWidth - 1.0f;
-	mSourceTop = 0;
-	mSourceBottom = mImage->mHeight - 1.0f;
-	mImage->mReferenceCount++;
 }
 
 // 0x428080
@@ -765,22 +701,6 @@ double SceneObject::DistanceTo(SceneObject* theObject)
 	return VeniceSqrt(aDeltaX * aDeltaX + aDeltaY * aDeltaY);
 }
 
-// 0x429810: the angle to the object in degrees, as an integer
-int SceneObject::AngleTo(SceneObject* theObject)
-{
-	return (int)(VeniceArcTangent(mWorld[AttributeY] - theObject->mWorld[AttributeY],
-		mWorld[AttributeX] - theObject->mWorld[AttributeX]) * RadiansToDegrees);
-}
-
-// 0x4295e0
-int SceneObject::CountStagesBefore()
-{
-	int aCount = 0;
-	for (SceneStage* aStage = mStages.mHead; aStage != nullptr && aStage != mStages.mCursor; aStage = aStage->mNext)
-		aCount++;
-	return aCount;
-}
-
 // 0x429360: whether the mouse is over the object. A scene that is not the top one has no hot objects.
 bool SceneObject::IsHot()
 {
@@ -831,12 +751,6 @@ int SceneObject::CircleOverlapAt(float theX, float theY, float theRadius)
 	float aWorldY = GetWorldY(mLocal[AttributeX], mLocal[AttributeY]);
 	float aWorldX = GetWorldX(mLocal[AttributeX], mLocal[AttributeY]);
 	return (int)CircleOverlap(aWorldX, aWorldY, aRadius, theX, theY, theRadius);
-}
-
-// 0x428e80
-int SceneObject::CircleOverlapWith(SceneObject* theObject)
-{
-	return CircleOverlapAt(theObject->mWorld[AttributeX], theObject->mWorld[AttributeY], theObject->mImage->mFrameWidth);
 }
 
 // 0x427d50 and 0x427da0

@@ -221,6 +221,11 @@ void Snapshot(const std::string& theLabel, int theUpdateCount)
 
 }   // namespace
 
+unsigned long long CurrentThreadCycles()
+{
+	return ThreadCycles();
+}
+
 bool CycleSplitStart(const std::string& theFileName)
 {
 	if (gCycleSplitStarted)

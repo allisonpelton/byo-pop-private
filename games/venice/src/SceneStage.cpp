@@ -136,7 +136,7 @@ SceneEvent* SceneStage::AddEvent(int theTrigger, int theAction, const char* theP
 	return anEvent;
 }
 
-// 0x42a120: the trigger and action are given by name
+// 0x42a120, and 0x422dd0 (its inner call): the trigger and action are given by name
 SceneEvent* SceneStage::AddEventFromNames(const char* theTrigger, const char* theAction, const char* theParm1,
 	const char* theParm2, const char* theParm3, const char* theParm4, const char* theAltKey)
 {
