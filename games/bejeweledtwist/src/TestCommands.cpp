@@ -558,12 +558,17 @@ bool WinTwistApp::HandleTestCommand(const ScriptCommand& theCommand)
 	}
 
 	if (aCommand == "gem") {
-		// gem <row> <col> flame: the gem there becomes a flame gem at once, as a match of four makes one (the piece's
-		// own MakePower, without the board's stats), so a driver can set one off with a real twist
-		int aRow = -1, aCol = -1;
+		// gem <row> <col> flame|counter <n>|lock|doom: the gem there becomes that special at once, through the
+		// game's own makers (MakePower as a match of four does, MakeCounter with its count then set to n, LockPiece,
+		// and LockPiece on a gem flagged doom, as BoardTwist's doom drop does), so a driver can reach a rare event
+		// with real twists. The user asked for board edits for this, 2026-11-13.
+		int aRow = -1, aCol = -1, aCount = 0;
 		char aKind[16] = {};
-		if (std::sscanf(anArgs.c_str(), "%d %d %15s", &aRow, &aCol, aKind) != 3 || std::string(aKind) != "flame") {
-			ReplyError(theCommand, "gem <row> <col> flame");
+		int aRead = std::sscanf(anArgs.c_str(), "%d %d %15s %d", &aRow, &aCol, aKind, &aCount);
+		std::string aWhat = aRead >= 3 ? aKind : "";
+		if (aRead < 3 || (aWhat != "flame" && aWhat != "counter" && aWhat != "lock" && aWhat != "doom") ||
+			(aWhat == "counter" && (aRead != 4 || aCount < 1 || aCount > 99))) {
+			ReplyError(theCommand, "gem <row> <col> flame|counter <1-99>|lock|doom");
 			return true;
 		}
 		Piece* aPiece = aRow >= 0 && aRow < aBoard->mRows && aCol >= 0 && aCol < aBoard->mCols ?
@@ -572,7 +577,17 @@ bool WinTwistApp::HandleTestCommand(const ScriptCommand& theCommand)
 			ReplyError(theCommand, "no gem there, or the board is busy");
 			return true;
 		}
-		aPiece->MakePower(0.0f);
+		if (aWhat == "flame") {
+			aPiece->MakePower(0.0f);
+		} else if (aWhat == "counter") {
+			aBoard->MakeCounter(aPiece);
+			aPiece->mBombCount = aCount;
+			aPiece->MakeCountImage();
+		} else {
+			if (aWhat == "doom")
+				aPiece->SetFlag(Piece::FLAG_DOOM, true);
+			aBoard->LockPiece(aPiece);
+		}
 		ReplyOK(theCommand);
 		return true;
 	}
