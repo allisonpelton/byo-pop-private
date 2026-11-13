@@ -14,6 +14,7 @@
 #include "SoundInstance.h"
 #include "SoundManager.h"
 #include "Sprite.h"
+#include "X87.h"
 #include <math.h>
 #include <stdlib.h>
 
@@ -27,7 +28,7 @@ namespace
 	const double ARRIVAL_X = 20.0;				// it slows down within this
 	const double ARRIVAL_FACTOR = -0.05;		// to this much of its distance a tick
 	const double STOPPED_X = 0.5;				// and has arrived within this
-	const double START_PHASE = 1.570796;		// its two swings start a quarter turn on
+	const double START_PHASE = 1.570795;		// its two swings start just short of a quarter turn on
 	const double PHASE_SPEED_A = 0.005;			// radians a swing advances an update
 	const double PHASE_SPEED_B = 0.015;
 	const double PHASE_PERIOD = 6.28318;
@@ -201,7 +202,7 @@ void WreckerBoss::Update()
 		mSwingA = mSwingA - PHASE_PERIOD;
 	if (PHASE_PERIOD <= mSwingB)
 		mSwingB = mSwingB - PHASE_PERIOD;
-	mX = (cos(mSwingA) + cos(mSwingB)) * SWING_RADIUS + mApproachX;
+	mX = (X87Cos(mSwingA) + X87Cos(mSwingB)) * SWING_RADIUS + mApproachX;
 
 	// the ball and its chain
 	double aBallX = mBallX + mBallVelX;

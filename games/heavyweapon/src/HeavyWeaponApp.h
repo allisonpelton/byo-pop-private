@@ -15,6 +15,7 @@
 #include "MTRand.h"
 #include "Res.h"
 
+#include <cstdio>
 #include <string>
 #include <vector>
 
@@ -238,6 +239,7 @@ public:
 	std::vector<std::vector<BackgroundAnimInfo> >	mAnims;				// +0x1478 each level's background animations
 	std::vector<UserRecord>				mUsers;				// +0x1488
 	MTRand			mRand;						// +0x1498 the game's own generator, seeded from Rand() after Init
+	FILE*			mTraceFile;					// port: the test command "trace" writes the state each update leaves here
 
 public:
 	HeavyWeaponApp();															// 0x40b750
@@ -256,6 +258,7 @@ public:
 	virtual void	LostFocus() override;										// 0x401020 slot 71
 	virtual MusicInterface* CreateMusicInterface() override;					// port: the original's is BASS
 	virtual bool	HandleScriptCommand(const ScriptCommand& theCommand) override; // port: the test commands (testhooks)
+	void			TraceFrame();												// port: a line of the test trace (testhooks)
 
 	using SexyApp::PlaySample;
 

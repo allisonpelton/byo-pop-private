@@ -64,7 +64,7 @@ HeadBoss::HeadBoss(Board* theBoard) : Enemy(theBoard)
 	mVelX = 0.0;
 	mVelY = 0.0;
 	mFrame = 0.0;
-	mTargetX = 0.0;
+	mTargetX = 0.0;			// uninitialised in the original, whose first update eases toward it
 	mIsCharging = false;
 	mChargeWait = CHARGE_PAUSE;
 }

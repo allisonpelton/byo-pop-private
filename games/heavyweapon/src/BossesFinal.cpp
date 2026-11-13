@@ -12,6 +12,7 @@
 #include "Graphics.h"
 #include "Res.h"
 #include "Sprite.h"
+#include "X87.h"
 
 #include <math.h>
 
@@ -274,7 +275,7 @@ void FinalBoss::Update()
 			if ((mAttackDelay < START_ATTACK_DELAY || (0.0 < mLaserCharge && mBoard->mTankDeadTime != 0)) &&
 				(mBoard->mNukeFlash == 0.0 || mLaserCharge != 0.0) && mLaserCharge < PI)
 			{
-				double aFrame = sin(mLaserCharge) * LASER_CYCLE + mTurretFrame;
+				double aFrame = X87Sin(mLaserCharge) * LASER_CYCLE + mTurretFrame;
 				mTurretFrame = aFrame;
 				if (LASER_FRAMES <= aFrame)
 					mTurretFrame = aFrame - LASER_FRAMES;
@@ -399,9 +400,10 @@ void FinalBoss::Update()
 					Bullet* aBullet = new Bullet();
 					mBoard->mBullets.Append(aBullet);
 					double anAngle = aFrame * TURRET_ANGLE_PER_FRAME + anOffset;
-					double aCos = cos(anAngle);
+					X87Value aCos = X87Cos(anAngle);
 					aBullet->mX = TURRET_RADIUS * aCos + mX;
-					double aSin = sin(anAngle);
+					// the sine as stored
+					double aSin = X87Sin(anAngle).Rounded();
 					aBullet->mGravity = TURRET_SHOT_GRAVITY;
 					aBullet->mIsEnemy = true;
 					aBullet->mY = (mY - TURRET_CENTRE_Y) - aSin * TURRET_RADIUS;

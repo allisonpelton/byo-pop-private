@@ -525,11 +525,12 @@
     "heavyweapon": {
       "title": "Heavy Weapon Deluxe",
       "done": [
-        "port"
+        "port",
+        "identical-play"
       ],
       "na": [],
-      "now": "identical-play",
-      "note": "playable natively and in the browser: campaign (19 levels and bosses), survival, the cutscenes through engines/swf, MO3 music; phase one has started"
+      "now": "registration-out",
+      "note": "phase one of identical play done: 28 games from the bot's records agree with the original under origrun in every compared frame (both generators, score, lives, the tank's X, bosses, shots, enemies), all nineteen bosses; the x87's sines in X87.cpp; registration out next"
     },
     "hammerheads": {
       "title": "Hammer Heads Deluxe",

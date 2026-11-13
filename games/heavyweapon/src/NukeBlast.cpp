@@ -4,6 +4,7 @@
 #include "Graphics.h"
 #include "Sprite.h"
 #include "DDImage.h"
+#include "X87.h"
 
 #include <math.h>
 
@@ -62,9 +63,9 @@ NukeBlast::NukeBlast(Board* theBoard)
 		do
 		{
 			NukeSmoke* aSmoke = new NukeSmoke;
-			double aCos = cos(anAngle);
+			double aCos = X87Cos(anAngle).Rounded();
 			aSmoke->mX = ((double)(Rand() % 16) + aCos * aRadius) - 8.0;
-			double aSin = sin(anAngle);
+			double aSin = X87Sin(anAngle).Rounded();
 			aSmoke->mY = (((double)(Rand() % 16) + aRadiusY * aSin) - 8.0) - 40.0;
 			aSmoke->mVelX = aCos * aRing * 0.3333333333333333;
 			aSmoke->mVelY = aSin * aRing * 0.25 - 1.0;
@@ -89,9 +90,9 @@ NukeBlast::NukeBlast(Board* theBoard)
 		do
 		{
 			NukeSmoke* aSmoke = new NukeSmoke;
-			double aCos = cos(anAngle);
+			double aCos = X87Cos(anAngle).Rounded();
 			aSmoke->mX = ((double)(Rand() % 16) + aCos * aRadius) - 8.0;
-			double aSin = sin(anAngle);
+			double aSin = X87Sin(anAngle).Rounded();
 			aSmoke->mY = ((double)(Rand() % 16) + aRadiusY * aSin) - 8.0;
 			aSmoke->mVelX = aCos * aRing * 0.25;
 			aSmoke->mVelY = aSin * aRing * 0.14285714285714285 - 0.3;
