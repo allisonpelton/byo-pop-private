@@ -509,11 +509,13 @@
       "done": [
         "port",
         "identical-play",
-        "identical-look"
+        "identical-look",
+        "fixes-mod",
+        "coverage"
       ],
       "na": [],
-      "now": "coverage",
-      "note": "phase two done: 207 screenshots of nine tours with no flagged difference, sounds and focus identical (one sound oddity); the 3D-mode comparison runs tonight in the vGPU sandbox; the coverage check next"
+      "now": "performance",
+      "note": "fixes mod (seven misspelt texts, a trick shot's own messages) and coverage done: 50 runs of the original reached 696 of 967 game functions, 20 ported functions never reached listed; the 3D and options runs are tonight's; performance next"
     },
     "heavyweapon": {
       "title": "Heavy Weapon Deluxe",

@@ -328,7 +328,7 @@ static void MakeLogoScenes()
 	gLoadState = LoadStateLogosShowing;
 }
 
-// 0x440e60
+// 0x440e60, with its helpers 0x440b30, 0x440b90, 0x440c80, 0x440d10 and 0x440f30 translated inline
 void VeniceWidget::Draw(Graphics* g)
 {
 	gGraphics = g;
