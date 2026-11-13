@@ -493,7 +493,6 @@
         "port",
         "identical-play",
         "registration-out",
-        "identical-look",
         "fixes-mod",
         "site-features",
         "coverage",
@@ -502,8 +501,8 @@
         "readability"
       ],
       "na": [],
-      "now": "performance",
-      "note": "idle board under the original at its own 640x480 in 2D software (6.6% of a core against 9.4%), 2D GPU (7.5%) and 3D (8.8%); the software renderer at the default 2x window (48.5%) waits for the user's window-size choice"
+      "now": "identical-look",
+      "note": "3D looks reopened (2026-11-13): the user found Puzzle's WARP wrong in the 3D web build, a screen the 3D comparison (menu and Classic only) never shot; after the reset. Performance waits on the user's window-size choice"
     },
     "venice": {
       "title": "Venice Deluxe",
