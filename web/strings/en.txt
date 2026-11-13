@@ -98,7 +98,7 @@ skin.desk.m.restore = Restore
 skin.desk.m.close = Close
 skin.desk.m.size = {n}x ({w} x {h})
 # Desktop 95's keys, said once in About
-skin.desk.keys = Keys: Tab moves within a window, F6 between the windows, the icons and the task bar.
+skin.desk.keys = Keys: Tab moves within a window, F6 between the windows, the icons and the task bar, and Alt+` switches windows, as Alt+Tab does.
 # Desktop 95's task bar (web/skins.js): its name for a screen reader, the Pop button, the band down the Pop menu's side, and its entries
 skin.taskbar = Task bar
 skin.pop = Pop
