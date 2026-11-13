@@ -161,3 +161,18 @@ the main menu's "buy now" voice (`tools/resgen.py` leaves them out of `Res.h`/`R
 `DIALOG_TRIAL_COMPLETE`, which were never made) with their answers, the `mQueuedHydraLockout` flag with the checks on it (always false), and the
 comments about what the original did in its trial. Two functions stay because the original's scripts call them: the scripts' `QueuedHydraLockout`
 and `ShouldDoHydraLockout` (constants, `false`), so a script that asks still gets an answer.
+
+## Chapter-by-chapter batch (2026-11-12/13, from the bot-saved profiles `after-4.1` .. `after-6.9`)
+
+`tools/identical/chapters.sh` runs the comparison case for each saved profile (Adventure, the map's Enter, a 50,000-update
+soak). Result of the 29 cases: only two are clean comparisons. `after-4.2` and `after-4.8` give identical engine states
+(the one battle each) and a draw difference that is the constant +30/+31 offset seen before every first battle (see above)
+and does not grow. `after-4.4`, `after-4.7` and `after-4.9` ran a battle on one side only or with the engine-state lines
+out of step (the original's run ended earlier than the port's or the reverse): not judged. `after-4.3`, `after-4.5` and
+`after-4.6`: the original made no battle engine change (its run did not reach a battle): not judged. All 20 profiles of books
+5 and 6 reach no battle on either side: the map of a new book stands with a conversation panel that is active, visible, in
+its text state, with one panel, and that a click does not dismiss, so the case's Enter click does nothing (state's
+`talkstate`, `talkpanel`, `talkvis`, `talkdis`, `talkpages` fields show it). Whether the original's panel there behaves the
+same (a profile artefact of the snapshot) or the port's panel is stuck is not yet known; it is the next thing to look at
+before books 5 and 6 can be compared. Until then chapter coverage in books 4 to 6 stands on `boss-chapter1`,
+`boss-chapter2`, `after-4.2` and `after-4.8`.

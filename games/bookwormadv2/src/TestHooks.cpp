@@ -65,6 +65,7 @@
 #include "WidgetManager.h"
 #include "FadeButton.h"
 #include "GameApp.h"
+#include "ConversationPanel.h"
 #include "MusicInterface.h"
 #include "GameDialog.h"
 #include "GameText.h"
@@ -667,6 +668,11 @@ bool GameApp::HandleDriverCommand(const ScriptCommand& theCommand)
 			                   mProfile->GetInt("CurrentBook"), mProfile->GetInt("CurrentChapter"));
 		aJson += StrFormat(",\"curtain\":%s,\"dialogs\":%d,\"talk\":%s", aCurtainBusy ? "true" : "false",
 		                   (int)mDialogMap.size(), ShowingConversationPanel() ? "true" : "false");
+		if (mConversationPanel != nullptr && mConversationPanel->Active())
+			aJson += StrFormat(",\"talkstate\":%d,\"talkpanel\":%u,\"talkvis\":%d,\"talkdis\":%d,\"talkpages\":%d,\"talkidx\":%d",
+			                   mConversationPanel->mState, mConversationPanel->mCurPanel, (int)mConversationPanel->mVisible,
+			                   (int)mConversationPanel->mDisabled, (int)mConversationPanel->mPanels.size(),
+			                   (int)mConversationPanel->mUpdateCnt);
 		if (mMusicInterface != nullptr) {
 			// the music: the last song the scripts asked for (PlaySong) and whether that or a module song (SongPlayer) plays
 			bool aPlaying = mMusicInterface->IsPlaying(mLastSongId);
