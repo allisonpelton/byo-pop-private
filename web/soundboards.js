@@ -1801,19 +1801,21 @@ var ByopopSoundboards = {
       { name: "Ship Lost", when: "A life is lost and the ship comes back", steps: [["sounds/explode2", 0], ["sounds/sink", 0], ["sounds/reappear", 1250, {"p": 166}]]}
     ],
     groups: [
-    { name: "Menus and voices", sounds: [
+    { name: "Menus", sounds: [
       ["sounds/click.ogg", "Click", "A button is pressed: the menus, the options and other dialogs, the help screen and the demo screen (also the demo's own clicks)"],
-      ["sounds/talkwelcometosevenseas.ogg", "\"Welcome to Seven Seas\"", "On the intro screen, 60 updates (0.6 seconds) after it opens, until the first game of the run has begun; the pirate speaks with it"],
-      ["sounds/talkhoistsail.ogg", "\"Hoist the mainsail\"", "Play or Tutorial is pressed on the intro screen: one of the three voices, at random"],
-      ["sounds/talkallhands.ogg", "\"All hands on deck\"", "Play or Tutorial is pressed on the intro screen: one of the three voices, at random"],
-      ["sounds/talkayeaye.ogg", "\"Aye aye, Captain\"", "Play or Tutorial is pressed on the intro screen: one of the three voices, at random"]
+      ["sounds/talkwelcometosevenseas.ogg", "\"Welcome to Seven Seas\"", "On the intro screen, 60 updates (0.6 seconds) after it opens, until the first game of the run has begun; the pirate speaks with it"]
+    ] },
+    { name: "Setting sail", sounds: [
+      ["sounds/talkhoistsail.ogg", "\"Hoist the mainsail\"", "Play or Tutorial is pressed on the intro screen: as the ship sets sail the pirate gives one of these three orders, at random"],
+      ["sounds/talkallhands.ogg", "\"All hands on deck\"", "Play or Tutorial is pressed on the intro screen: as the ship sets sail the pirate gives one of these three orders, at random"],
+      ["sounds/talkayeaye.ogg", "\"Aye aye, Captain\"", "Play or Tutorial is pressed on the intro screen: as the ship sets sail the pirate gives one of these three orders, at random"]
     ] },
     { name: "Your ship", sounds: [
       ["sounds/movegood.ogg", "Ship moves", "The player's ship is ordered to a new cell, by click or key (panned to the ship); also each move of the ship in the help demo"],
+      ["sounds/boom.ogg", "Cannon shot", "The player's ship or an enemy ship fires cannons, if at least one shot is made (panned to the ship); also in the help demo"],
       ["sounds/whirlout.ogg", "Whirlpool out", "The player's ship sails onto an active whirlpool and spins out of the board; also in the help demo when the ship reaches the top row"],
       ["sounds/whirlin.ogg", "Whirlpool in", "The ship has finished spinning out (30 animation steps) and is put on a random free cell, spiralling back in; also in the help demo"],
-      ["sounds/reappear.ogg", "Ship reappears", "After a life is lost, when the flash has run for 18 updates and the ship is placed again, and twice more as its blinking goes off, every 30 updates (0.3 seconds)"],
-      ["sounds/boom.ogg", "Cannon shot", "The player's ship or an enemy ship fires cannons, if at least one shot is made (panned to the ship); also in the help demo"]
+      ["sounds/reappear.ogg", "Ship reappears", "After a life is lost, when the flash has run for 18 updates and the ship is placed again, and twice more as its blinking goes off, every 30 updates (0.3 seconds)"]
     ] },
     { name: "Enemies", sounds: [
       ["sounds/moveevil.ogg", "Enemies move", "The enemy ships start their move, once every ship has finished turning; also in the help demo"],
@@ -1825,16 +1827,16 @@ var ByopopSoundboards = {
     { name: "Scoring", sounds: [
       ["sounds/bonusship.ogg", "Extra ship", "The score passes another thousand and a life is added, whether by a ship or wreck's points or by a level's kill bonus"]
     ] },
-    { name: "Game over", sounds: [
-      ["sounds/talkdavyjoneslocker.ogg", "\"Down to Davy Jones' locker\"", "The game is over, the last ship lost: once the pirate has finished appearing he says one of these four, at random"],
-      ["sounds/talkarrmatey.ogg", "\"Arr, matey!\"", "The game is over, the last ship lost: once the pirate has finished appearing he says one of these four, at random"],
-      ["sounds/talkwalktheplank.ogg", "\"Walk the plank!\"", "The game is over, the last ship lost: once the pirate has finished appearing he says one of these four, at random"],
-      ["sounds/talklandlubber.ogg", "\"Avast, ye landlubber\"", "The game is over, the last ship lost: once the pirate has finished appearing he says one of these four, at random"]
-    ] },
     { name: "Bonus dig", sounds: [
       ["sounds/bonusdig.ogg", "Dig", "A square is dug on the bonus screen and no ghost is under it (panned by column)"],
       ["sounds/bonusgraves.ogg", "Graves near", "A square is dug with no ghost under it, and a ghost or grave lies in the 3-by-3 block of squares ending at it (up and to its left); plays with the dig sound"],
       ["sounds/bonuslose.ogg", "Ghost", "A square with a ghost under it is dug on the bonus screen; the ghost appears"]
+    ] },
+    { name: "Game over", sounds: [
+      ["sounds/talkdavyjoneslocker.ogg", "\"Down to Davy Jones' locker\"", "The game is over, the last ship lost: once the pirate has finished appearing he taunts the player with one of these four, at random"],
+      ["sounds/talkarrmatey.ogg", "\"Arr, matey!\"", "The game is over, the last ship lost: once the pirate has finished appearing he taunts the player with one of these four, at random"],
+      ["sounds/talkwalktheplank.ogg", "\"Walk the plank!\"", "The game is over, the last ship lost: once the pirate has finished appearing he taunts the player with one of these four, at random"],
+      ["sounds/talklandlubber.ogg", "\"Avast, ye landlubber\"", "The game is over, the last ship lost: once the pirate has finished appearing he taunts the player with one of these four, at random"]
     ] },
   ] },
   tiptop: {
