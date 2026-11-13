@@ -108,7 +108,7 @@ pixel group beyond the tolerance, no visible difference after a blur), or the di
 | `shots_journey` | 60 | Journey for 60500 frames: levels, a lost level and its tries, the summaries, the cupid's messages |
 | `shots_focus` | 16 | the window losing the focus and getting it back on the main menu, at a level's explanation and in play, with a shot in the lost state (the paused sign) and after each regain |
 
-The result: every pair is a match or a faint pair, none is flagged: 99 matches and 108 faint pairs. The faint pairs are single
+The result: every pair is a match or a faint pair, none is flagged: 99 matches and 108 faint pairs. (The Survival tour was run again after the vertex clamp in the table below: 3 identical and 17 faint of 20, none flagged.) The faint pairs are single
 pixels and thin edges: the largest is 696 differing pixels of 480,000 (the vase jewel of `survival_12500`, at most 24 levels off
 in a colour), and in the 108 pairs together 1,051 pixels are more than 32 levels off, each alone. They are at the antialiased
 edge of a picture drawn through a transform, at a sparkle's blend and in the glyphs of text drawn through a transform.
@@ -124,9 +124,13 @@ regain, the music's volume calls on both sides of them, run with the original in
 `shots_trickshot` and `shots_flood` differ in one thing, an oddity below.
 
 The web build is compared with the native one, not with the original: each tour runs under Node (`webshots.py`, the same
-scenario, the same ticks, the web build of the port) and `tools/shotdiff` compares its shots with the native port's. Menus:
-30 of 31 pairs are identical, one is faint; name: 6 of 6 identical. The web runs of the other tours were still going when
-this was written; their results are added when they end.
+scenario, the same ticks, the web build of the port) and `tools/shotdiff` compares its shots with the native port's. Of the
+207 pairs 201 are identical and 6 are faint, none is flagged: menus 30 identical and 1 faint of 31, name 6 of 6 identical,
+tutorial 5 and 1, ingame 18 of 18, flood 30 of 30, survival 19 and 1, trick shot 20 of 20, journey 57 and 3, focus 16 of 16
+(its losses and regains included). The web Survival tour first ended in a crash of the web build (exit status 3), and the
+native Survival run's trace stopped short for the same cause; both are in the table below (the vertex clamp). The first web
+Trick Shot run differed in 19 pairs of 20 for a fault of the harness, not of the game: it started from the profile the native
+run had saved at its end instead of from the starting profile.
 
 ### Differences found and fixed (phase two)
 
@@ -142,6 +146,7 @@ this was written; their results are added when they end.
 | The wings text of the wings power-up was on the wrong object | 0x417b90 calls `SceneObject::AddFilter` and `SetAttribute` (0x428610, 0x428700) directly, not the layer's virtual versions | direct calls |
 | A sprite's frame was different in the web build, a hair under or over a whole number | the original's x87 sine and cosine give the correctly rounded value; the C libraries of the two builds differ from it in the last bit for about 3 % of the angles | `VeniceSin` and `VeniceCos` (`VeniceMath.cpp`), the same bits on every platform |
 | The bake drew the objects that the culling had skipped | the culling test is not made when drawing into a band | `mNoCulling == 0 && gRenderTarget == nullptr` |
+| A heap overflow in the framework's software triangle code that ended the Survival tour in the web build (a crash) and cut the native run's trace short | with the far-edge clip, a vertex of a transformed picture at the display's far edge lay outside the clip, and the code that copies the clipped triangle's vertices wrote past the end of its buffer (found with AddressSanitizer: `SWDrawShape`) | with that clip the vertices are clamped to the edge (`shared: SWDrawShape...`, f6417d47); only the far-edge mode changes, so the other games draw as before |
 
 Two things of the harness were wrong and are fixed, not of the game: a scenario's end could come before its last shot, so that
 the port ran frames the original had not (`SHOT_MARGIN`), and the ticks after a focus loss, which the original does not run
