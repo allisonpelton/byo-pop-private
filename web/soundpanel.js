@@ -99,7 +99,7 @@ var ByopopSoundPanel = (function () {
     if (panel.classList.contains("snd-side") && body.offsetHeight > was) try { window.dispatchEvent(new CustomEvent("byopop-side")); } catch (e) {}
   }
   var STYLE =
-    ".snd-panel { position: fixed; right: 12px; top: 60px; z-index: 9; width: 300px; max-height: calc(calc(100vh / var(--d95-z, 1)) - 80px); overflow: auto; box-sizing: border-box;\n" +
+    ".snd-panel { position: fixed; right: 12px; top: 60px; z-index: 9; width: 360px; max-height: calc(calc(100vh / var(--d95-z, 1)) - 80px); overflow: auto; box-sizing: border-box;\n" +
     "  background: var(--panel); color: var(--fg); border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 6px 24px rgba(0,0,0,.25); font-size: 12px; }\n" +
     ".snd-panel h2 { margin: 0; padding: 6px 10px; font-size: 13px; border-bottom: 1px solid var(--line); }\n" +
     ".snd-panel p { margin: 6px 10px 0; color: var(--muted); }\n" +
@@ -107,11 +107,12 @@ var ByopopSoundPanel = (function () {
     ".snd-panel table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }\n" +
     ".snd-panel th { text-align: left; font-weight: 700; padding: 0 4px 2px 0; }\n" +
     ".snd-panel td { padding: 0 4px 0 0; white-space: nowrap; font-family: ui-monospace, Consolas, monospace; }\n" +
-    ".snd-panel td:first-child { max-width: 110px; overflow: hidden; text-overflow: ellipsis; }\n" +
+    // the sound's name in full, on two lines if it must (the user, 2026-11-13: "The sound panel needs more room to display the name")
+    ".snd-panel td:first-child { white-space: normal; overflow-wrap: anywhere; min-width: 120px; }\n" +
     ".snd-panel tr.snd-ended td { color: var(--muted); }\n" +
     "html.player-only .snd-panel { display: none !important; }\n" +
     // beside the game, at the right of the performance panel when that is shown too (web/perf.js takes the column before)
-    ".snd-panel.snd-side { position: static; width: 270px; max-height: none; border-radius: 0; box-shadow: none; border-width: 0 0 0 1px;\n" +
+    ".snd-panel.snd-side { position: static; width: 340px; max-height: none; border-radius: 0; box-shadow: none; border-width: 0 0 0 1px;\n" +
     "  grid-column: 3; grid-row: 1 / 3; align-self: stretch; overflow: auto; }\n" +
     "html.snd-side .stage-wrap { grid-template-columns: minmax(0, 1fr) auto auto; }\n" +
     "html.d95-desk:not(.d95-embed).snd-side #main { display: grid; grid-template-columns: auto auto auto; grid-template-rows: auto auto 1fr auto; }\n" +

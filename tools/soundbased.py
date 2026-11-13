@@ -30,7 +30,10 @@ and 0.44, which is what sets the line at 0.50. The derived sound must also give 
 in the base, above chance): a sound with few peaks, a pure tone above all, is held in almost any busy sound at one of the
 65 speeds and some pitch, while the busy sound gives nearly nothing back (0.00 to 0.09 in a sample of 250 clips, where
 those made nine pairs in ten of the first run's); the pairs the user judged give 0.24 back and up. A short sound buried
-in a much longer one is missed for it. Two more cuts, after the whole run: a sound in more than 10 pairs is a generic
+in a much longer one is missed for it. The user's first review (2026-11-13, 135 pairs: "Pairs got much worse very
+quickly") moved that line to 0.50: the pairs turned down were mostly a short click or hit held whole in a longer sound
+with little else of it in common (0.15 to 0.45 back), and at 0.50 the list keeps 63 of the 64 accepted and 13 of the 71
+turned down. Two more cuts, after the whole run: a sound in more than 10 pairs is a generic
 hit (a click, a bump, an impact) that every other short hit holds about as well (the first full run's three busiest,
 150 to 190 pairs each, at a median of 0.62), so its pairs stay only at 0.85 and up; and a pair that holds 0.95 both ways
 with nothing changed is the same recording, left to soundmatch. Then the reasons, read from the two sounds lined up:
@@ -47,8 +50,8 @@ Results: build/soundmatch/based.json and based.txt, for tools/web/soundcompare.h
 rejects each one; nothing goes on a board until then. --test scores the pairs the user already judged
 (testnotes/AH-decisions.json) and says how many of the turned-down Bejeweled 3 pairs come out as "based on".
 
-  python tools/soundbased.py [--assets DIR] [--extra NAME=DIR ...] [--test] [--min 0.50] [--back 0.15]
-  python tools/soundbased.py --refilter [--min 0.50] [--back 0.15]    (the last run's pairs again, at new lines)
+  python tools/soundbased.py [--assets DIR] [--extra NAME=DIR ...] [--test] [--min 0.50] [--back 0.50]
+  python tools/soundbased.py --refilter [--min 0.50] [--back 0.50]    (the last run's pairs again, at new lines)
 
 based-all.json keeps every pair at --min with no back line or cuts, which --refilter reads.
 """
@@ -366,7 +369,11 @@ def reasons(pr, base, derived, speed, dt0, df0):
     # the speed the hashes found is the base's time steps scaled to the derived's; a resampled sound's speed is its pitch's
     facts["speed"] = round(speed, 3)
     if abs(np.log2(speed / pitch_speed)) > np.log2(1.06):
-        out.append("%s %d%%" % ("slowed" if speed > 1 else "sped up", round(abs(speed - 1) * 100)))
+        # a pitch changed with the length kept (pitch shifting, not resampling) says so rather than "sped up 0%"
+        if round(abs(speed - 1) * 100) == 0:
+            out.append("the same length")
+        else:
+            out.append("%s %d%%" % ("slowed" if speed > 1 else "sped up", round(abs(speed - 1) * 100)))
     # the base's span in the derived's frames
     start, end = dt0, dt0 + int(round(len(sb) * speed))
     nd = len(sd)
@@ -505,7 +512,7 @@ def name(c):
     return "%s:%s" % (c.game, c.ref)
 
 
-def test(pr, threshold, back_line=0.15):
+def test(pr, threshold, back_line=0.50):
     d = json.load(open(DECISIONS, encoding="utf-8"))
     at = {name(c): n for n, c in enumerate(pr.clips)}
     rows = []
@@ -544,7 +551,7 @@ def main():
     ap.add_argument("--extra", action="append", default=[])
     ap.add_argument("--test", action="store_true", help="score the pairs the user has judged")
     ap.add_argument("--min", type=float, default=0.50, help="the share of the base's peaks the derived must hold")
-    ap.add_argument("--back", type=float, default=0.15, help="the share of the derived's peaks the base must hold")
+    ap.add_argument("--back", type=float, default=0.50, help="the share of the derived's peaks the base must hold")
     ap.add_argument("--refilter", action="store_true", help="filter the last run's based.json at these lines")
     a = ap.parse_args()
     if a.refilter:
