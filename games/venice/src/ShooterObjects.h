@@ -7,13 +7,13 @@
 #include "Cursor.h"
 #include "SceneObject.h"
 
-// 0x148 bytes in the original. It is a marker of the level data: invisible, and gone once it has scrolled off the bottom of the
-// screen (when the level scrolls down).
+// 0x148 bytes in the original. It is a marker of the level data, invisible; no level has one of its own (the original updates it
+// with the rule that it is gone once it has scrolled off the bottom of the screen, 0x41bb70, which is not here), and the scroll point is
+// the one that is used.
 class ShooterPath : public SceneObject
 {
 public:
 	ShooterPath() { mType = ObjectTypeShooterPath; } // 0x409ca0
-	bool Update() override; // 0x41bb70
 	void Draw() override {} // 0x41bb20: the original draws it only in its level editor
 };
 

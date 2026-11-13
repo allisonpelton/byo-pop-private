@@ -222,8 +222,8 @@ the tosser plate, and the Survival, options and name screens. Of the 20:
   nothing (the screen's `buttons` list does not hold it); it waits for the night too.
 - **Kept, a virtual's empty base:** `SceneObject::OnCustomEvent` (0x429d20); the objects that get a custom event (the basket,
   the slot) have their own.
-- **Candidates for taking out unneeded code: 12 functions.** No play of the original reaches these, and they are not removed
-  now:
+- **Candidates for taking out unneeded code: 12 functions.** No play of the original reaches these; they were taken out on
+  2026-11-12 ("Unneeded code taken out" below):
   - `LevelScroller` (0x411a30, 0x411a50, its factory entry and the `DrawHot` 0x427760 that only it calls): the object exists
     only in the editor's palette (`objects/level_scroller.xml`); no level file creates one, and the level select scrolls
     with its own stages.
@@ -359,3 +359,16 @@ already draws only when the display does). **Shared cost sent on:** the driver t
 To measure again: `python -I games/venice/tools/profile/profile.py prep build/perf`, then `python -I tools/pincore.py -- bash
 games/venice/tools/profile/pairs.sh build/perf 5` and `python -I games/venice/tools/profile/profile.py sum build/perf` (the run folders
 are deleted once this section holds their numbers).
+
+## Unneeded code taken out (2026-11-12)
+
+The twelve candidates of the coverage check above are out of the port, each a function that no play of the original reaches and
+that no live code of the port calls: `LevelScroller` (its class, `Draw`, `OnCustomEvent` and the factory's `level_scroller`) with
+`SceneObject::DrawHot` that only it called; `ShooterPath::Update` and the factory's `shooter_path` (the class stays as the base of
+`ScrollPoint`, whose own `Update` is the one that runs; no level file names either object, and the two object files are in the
+game's data only because the original's level editor lists them); `SceneObject`'s `Rewind`, `Rotate`, `GetLocalRotation`,
+`SetImageFrom`, `CircleOverlapWith`, `CountStagesBefore` and `AngleTo`; and `Plate::TossSlots`. The tuning `toss_on_filled_plate`
+stays: `Slot` reads it in two places that the runs do reach (it is 0 in the shipped tuning), so only the plate's `fade_out` branch
+that threw the slots' jewels away when it is set is gone, and `Plate::Update` now returns from a fading plate as the original does
+with the key at 0. 167 lines out of 9 files. The port's frozen baseline, its tour and the rest of `tools/check.sh venice` are as
+before (the check ran after the removal), and the port builds natively and for the web.
