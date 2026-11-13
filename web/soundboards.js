@@ -236,7 +236,7 @@ var ByopopSoundboards = {
       ["sounds/menuclick.ogg", "Click", "Any button pressed in the menus and dialogs, and every button of the options dialog (its Done button clicks twice)"],
       ["sounds/click2.ogg", "Click 2 (unused)", "Never played: it is in the sound table, but no code plays it. Also in Bejeweled 2 as Click 2 (unused)."],
       ["sounds/sidebarclick2.ogg", "Side bar click (unused)", "Never played: it is not in the sound table, so it is never loaded"],
-      ["sounds/welcome1.ogg", "Welcome (unused)", "Never played: it is not in the sound table, so it is never loaded"],
+      ["sounds/welcome1.ogg", "\"Welcome to Bejeweled\" (unused)", "Never played: it is not in the sound table, so it is never loaded"],
       ["sounds/goodbye1.ogg", "\"Goodbye!\" (unused)", "Never played: it is not in the sound table, so it is never loaded"]
     ] },
     { name: "Matches", sounds: [
@@ -259,7 +259,7 @@ var ByopopSoundboards = {
     { name: "Levels", sounds: [
       ["sounds/go1.ogg", "\"Go!\"", "Update 150 of a new board (1.5 s after it starts), as the Go text bounces in"],
       ["sounds/whirlpool1.ogg", "Whirlpool", "A level is won: loops while the vortex pulls the gems to the middle, its volume rising with the vortex, until the next board or the next vortex"],
-      ["sounds/levelup1.ogg", "Level up", "In the level-won vortex, the farthest gem comes within 80 pixels of the middle (gems move in 1 pixel an update)"],
+      ["sounds/levelup1.ogg", "\"Level up!\"", "In the level-won vortex, the farthest gem comes within 80 pixels of the middle (gems move in 1 pixel an update)"],
       ["sounds/firecrackle.ogg", "Crackle", "The vortex has finished and the gems are gone: the next level's wipe starts; also a lightning gem's blast in a rules mod with special gems. Also in Bejeweled 2 as Fire crackle (unused)."],
       ["sounds/warning1.ogg", "Warning", "Timed mode: the bar is under 15% full; repeats every 240 updates (2.4 s) at 15%, down to every 80 updates (0.8 s) at 5% and below"]
     ] },
@@ -290,7 +290,7 @@ var ByopopSoundboards = {
       ["sounds/menuclick2.ogg", "Dialog click", "A button goes down in a dialog (Options, name, confirm) or on the puzzle dome; also when an option in Options is switched"],
       ["sounds/click2.ogg", "Click 2 (unused)", "Never played: the file is not in the game's resource list and no code plays it. Also in Bejeweled as Click 2 (unused)."],
       ["sounds/panelslide1.ogg", "Panel slide", "The high scores panel opens or starts closing; a galaxy map or puzzle dome button is released; Options is closed with OK"],
-      ["sounds/Welcome.ogg", "\"Welcome\"", "The main menu opens after the title screen with no player name and no saved player; the name dialog follows 1.25 s later"],
+      ["sounds/Welcome.ogg", "\"Welcome to Bejeweled 2\"", "The main menu opens after the title screen with no player name and no saved player; the name dialog follows 1.25 s later"],
       ["sounds/Welcome_Back.ogg", "\"Welcome back\"", "The main menu opens after the title screen when a player name is set or a saved player exists"],
       ["sounds/Goodbye.ogg", "\"Goodbye\"", "Quit is confirmed in the quit dialog; the menu then shuts the game down"]
     ] },
@@ -302,7 +302,7 @@ var ByopopSoundboards = {
       ["sounds/multishot.ogg", "Multi match", "A match makes a flame gem: four in a row, or one gem in two sets (an L, a T or a cross); plays instead of the Match sound"],
       ["sounds/gemongem2.ogg", "Gems land", "Falling gems land, at most once every 10 updates (0.1 s); also when the logo's face gems land on the title screen. Also in Bejeweled 3, as sounds/gem_hit.ogg. Also in Chuzzle Deluxe, as sounds/Bonus/JewelLand.ogg."],
       ["sounds/combo22.ogg", "Cascade 1", "Together with the match sound, when the move's chain is at its first match (a swap resets the chain)"],
-      ["sounds/combo32.ogg", "Cascade 2", "Together with the match sound, for the second match of a move: one fall of new gems after the first. Also in Bejeweled 3, as sounds/combo_2.ogg. Resembles Bejeweled 3's sounds/speedmatch3.ogg, sounds/speedmatch4.ogg, sounds/speedmatch5.ogg, sounds/speedmatch6.ogg, sounds/speedmatch7.ogg, sounds/speedmatch8.ogg and sounds/speedmatch9.ogg, the same sound, mixed differently."],
+      ["sounds/combo32.ogg", "Cascade 2", "Together with the match sound, for the second match of a move: one fall of new gems after the first. Also in Bejeweled 3, as sounds/combo_2.ogg."],
       ["sounds/combo42.ogg", "Cascade 3", "Together with the match sound, for the third match of a move"],
       ["sounds/combo52.ogg", "Cascade 4", "Together with the match sound, for the fourth match of a move"],
       ["sounds/combo62.ogg", "Cascade 5", "Together with the match sound, for the fifth match of a move"],
@@ -314,7 +314,7 @@ var ByopopSoundboards = {
       ["sounds/electro_start.ogg", "Lightning start", "A hypercube is swapped with a neighbouring gem and the lightning starts"],
       ["sounds/electro_path.ogg", "Lightning", "The lightning reaches one more gem: each update has a 1 in 25 chance with no gem lit yet, and a better one as more gems are lit"],
       ["sounds/electro_explode.ogg", "Lightning blast", "A gem the lightning lit explodes, 0.67 s (67 updates) after it was lit; one sound for each gem"],
-      ["sounds/bombexplode.ogg", "Gem explodes", "A flame gem explodes when matched, once per update however many go off; also when a bomb gem's count reaches zero"]
+      ["sounds/bombexplode.ogg", "Gem explodes", "A flame gem explodes when matched, once per update however many go off; also when a bomb gem's count reaches zero. Resembles Bejeweled 3's sounds/bomb_explode.ogg, the same sound, mixed differently."]
     ] },
     { name: "Praise", sounds: [
       ["sounds/Good.ogg", "\"Good\"", "A move's points reach 60 × the level's multiplier, at most once in 120 s (12,000 updates); never in Puzzle"],
@@ -346,6 +346,7 @@ var ByopopSoundboards = {
       ["sounds/firecrackle.ogg", "Fire crackle (unused)", "Never played: it is loaded, but no code plays it, by id or by number. Also in Bejeweled as Crackle: the vortex has finished and the gems are gone."]
     ] }
   ] },
+  // Bejeweled Twist: sounds/combo_1.ogg (Match 1) is left out, never played and nearly silent (its loudest point -49 dB).
   bejeweledtwist: {
     presets: [
       { name: "Start Classic", when: "Classic is chosen", steps: [["sounds/doorlock2", 0, {"v": -650}], ["sounds/voice_classic", 0, {"v": -650}], ["sounds/trans_spacenoise", 0], ["sounds/buttonpress2", 0, {"v": -650}], ["sounds/trans_arrival", 3610, {"v": -650}]]},
@@ -395,8 +396,7 @@ var ByopopSoundboards = {
       ["sounds/purr.ogg", "Purr", "A tooltip for a coal gem opens, only when the coal-as-snack setting is on; other coal tooltips are silent"]
     ] },
     { name: "Matches and chains", sounds: [
-      ["sounds/combo_1.ogg", "Match 1 (unused)", "Never played: a twist's first match counts as chain step 1 and the code adds that to this sound's number, so the first match plays Match 2"],
-      ["sounds/combo_2.ogg", "Match 2", "The 1st match of a twist (step 1 of its chain), when no match in it has six or more gems; also when the wheel's bomb is disarmed. Also in Bejeweled 3, as sounds/combo_2.ogg. Resembles Bejeweled 3's sounds/speedmatch3.ogg, sounds/speedmatch4.ogg, sounds/speedmatch5.ogg, sounds/speedmatch6.ogg, sounds/speedmatch7.ogg, sounds/speedmatch8.ogg and sounds/speedmatch9.ogg, the same sound, mixed differently."],
+      ["sounds/combo_2.ogg", "Match 2", "The 1st match of a twist (step 1 of its chain), when no match in it has six or more gems; also when the wheel's bomb is disarmed. Also in Bejeweled 3, as sounds/combo_2.ogg."],
       ["sounds/combo_3.ogg", "Match 3", "The 2nd match of a twist (chain step 2), when no match in it has six or more gems"],
       ["sounds/combo_4.ogg", "Match 4", "The 3rd match of a twist (chain step 3), when no match in it has six or more gems"],
       ["sounds/combo_5.ogg", "Match 5", "The 4th match of a twist (chain step 4), when no match in it has six or more gems"],
@@ -413,12 +413,12 @@ var ByopopSoundboards = {
       ["sounds/multiplier_up2_3.ogg", "Level up 3", "The level bar's multiplier rises to level 2, while the board is not busy"],
       ["sounds/multiplier_up2_4.ogg", "Level up 4", "The multiplier rises to level 3 or higher, while the board is not busy"],
       ["sounds/multiplier_down.ogg", "Multiplier down", "The shown multiplier falls to a lower level, while the board is not busy"],
-      ["sounds/voice_good.ogg", "\"Good\"", "A twist's rating reaches 3 (once a twist; a later match can raise it to a higher praise). Rating, from the twist alone: (cascades - 1)^1.5, (gems cleared / 15)^1.5, 8 a gem past 5 in its longest match, fruit set off squared, locks broken, bombs defused and flame gems made, with 2 each less 1 for electro gems made, flame and electro gems destroyed and coal destroyed. Never in Challenge, a replay or Blitz's first 10 s"],
-      ["sounds/voice_excellent.ogg", "\"Excellent\"", "A twist's rating reaches 6 (once a twist; a later match can raise it to a higher praise). Rating, from the twist alone: (cascades - 1)^1.5, (gems cleared / 15)^1.5, 8 a gem past 5 in its longest match, fruit set off squared, locks broken, bombs defused and flame gems made, with 2 each less 1 for electro gems made, flame and electro gems destroyed and coal destroyed. Never in Challenge, a replay or Blitz's first 10 s"],
-      ["sounds/voice_awesome.ogg", "\"Awesome\"", "A twist's rating reaches 12 (once a twist; a later match can raise it to a higher praise). Rating, from the twist alone: (cascades - 1)^1.5, (gems cleared / 15)^1.5, 8 a gem past 5 in its longest match, fruit set off squared, locks broken, bombs defused and flame gems made, with 2 each less 1 for electro gems made, flame and electro gems destroyed and coal destroyed. Never in Challenge, a replay or Blitz's first 10 s"],
-      ["sounds/voice_incredible.ogg", "\"Incredible\"", "A twist's rating reaches 20 (once a twist; a later match can raise it to a higher praise). Rating, from the twist alone: (cascades - 1)^1.5, (gems cleared / 15)^1.5, 8 a gem past 5 in its longest match, fruit set off squared, locks broken, bombs defused and flame gems made, with 2 each less 1 for electro gems made, flame and electro gems destroyed and coal destroyed. Never in Challenge, a replay or Blitz's first 10 s"],
-      ["sounds/voice_spectacular.ogg", "\"Spectacular\"", "A twist's rating reaches 30 (once a twist; a later match can raise it to a higher praise). Rating, from the twist alone: (cascades - 1)^1.5, (gems cleared / 15)^1.5, 8 a gem past 5 in its longest match, fruit set off squared, locks broken, bombs defused and flame gems made, with 2 each less 1 for electro gems made, flame and electro gems destroyed and coal destroyed. Never in Challenge, a replay or Blitz's first 10 s"],
-      ["sounds/voice_unbelievable.ogg", "\"Unbelievable\"", "A twist's rating reaches 45 (once a twist; a later match can raise it to a higher praise). Rating, from the twist alone: (cascades - 1)^1.5, (gems cleared / 15)^1.5, 8 a gem past 5 in its longest match, fruit set off squared, locks broken, bombs defused and flame gems made, with 2 each less 1 for electro gems made, flame and electro gems destroyed and coal destroyed. Never in Challenge, a replay or Blitz's first 10 s"]
+      ["sounds/voice_good.ogg", "\"Good\"", "When a twist's rating reaches 3. Said once a twist, as its matches fall, for the highest praise its rating has reached; a later match in the same twist can step it up to a higher one. Never in Challenge, in a replay, in Blitz's first 10 seconds or when the twist ends the level. The rating adds up, all from the twist alone: its cascades after the first, to the power 1.5; the gems it cleared, divided by 15, to the power 1.5; 8 for each gem past five in its longest match; the fruit gems it set off, squared; 1 for each lock broken, bomb defused and flame gem made; and 1 for the first and 2 for each more of the electro gems made, flame gems destroyed, electro gems destroyed and coal destroyed, each of the four counted on its own"],
+      ["sounds/voice_excellent.ogg", "\"Excellent\"", "When a twist's rating reaches 6. Said once a twist, as its matches fall, for the highest praise its rating has reached; a later match in the same twist can step it up to a higher one. Never in Challenge, in a replay, in Blitz's first 10 seconds or when the twist ends the level. The rating adds up, all from the twist alone: its cascades after the first, to the power 1.5; the gems it cleared, divided by 15, to the power 1.5; 8 for each gem past five in its longest match; the fruit gems it set off, squared; 1 for each lock broken, bomb defused and flame gem made; and 1 for the first and 2 for each more of the electro gems made, flame gems destroyed, electro gems destroyed and coal destroyed, each of the four counted on its own"],
+      ["sounds/voice_awesome.ogg", "\"Awesome\"", "When a twist's rating reaches 12. Said once a twist, as its matches fall, for the highest praise its rating has reached; a later match in the same twist can step it up to a higher one. Never in Challenge, in a replay, in Blitz's first 10 seconds or when the twist ends the level. The rating adds up, all from the twist alone: its cascades after the first, to the power 1.5; the gems it cleared, divided by 15, to the power 1.5; 8 for each gem past five in its longest match; the fruit gems it set off, squared; 1 for each lock broken, bomb defused and flame gem made; and 1 for the first and 2 for each more of the electro gems made, flame gems destroyed, electro gems destroyed and coal destroyed, each of the four counted on its own"],
+      ["sounds/voice_incredible.ogg", "\"Incredible\"", "When a twist's rating reaches 20. Said once a twist, as its matches fall, for the highest praise its rating has reached; a later match in the same twist can step it up to a higher one. Never in Challenge, in a replay, in Blitz's first 10 seconds or when the twist ends the level. The rating adds up, all from the twist alone: its cascades after the first, to the power 1.5; the gems it cleared, divided by 15, to the power 1.5; 8 for each gem past five in its longest match; the fruit gems it set off, squared; 1 for each lock broken, bomb defused and flame gem made; and 1 for the first and 2 for each more of the electro gems made, flame gems destroyed, electro gems destroyed and coal destroyed, each of the four counted on its own"],
+      ["sounds/voice_spectacular.ogg", "\"Spectacular\"", "When a twist's rating reaches 30. Said once a twist, as its matches fall, for the highest praise its rating has reached; a later match in the same twist can step it up to a higher one. Never in Challenge, in a replay, in Blitz's first 10 seconds or when the twist ends the level. The rating adds up, all from the twist alone: its cascades after the first, to the power 1.5; the gems it cleared, divided by 15, to the power 1.5; 8 for each gem past five in its longest match; the fruit gems it set off, squared; 1 for each lock broken, bomb defused and flame gem made; and 1 for the first and 2 for each more of the electro gems made, flame gems destroyed, electro gems destroyed and coal destroyed, each of the four counted on its own"],
+      ["sounds/voice_unbelievable.ogg", "\"Unbelievable\"", "When a twist's rating reaches 45. Said once a twist, as its matches fall, for the highest praise its rating has reached; a later match in the same twist can step it up to a higher one. Never in Challenge, in a replay, in Blitz's first 10 seconds or when the twist ends the level. The rating adds up, all from the twist alone: its cascades after the first, to the power 1.5; the gems it cleared, divided by 15, to the power 1.5; 8 for each gem past five in its longest match; the fruit gems it set off, squared; 1 for each lock broken, bomb defused and flame gem made; and 1 for the first and 2 for each more of the electro gems made, flame gems destroyed, electro gems destroyed and coal destroyed, each of the four counted on its own"]
     ] },
     { name: "Special gems", sounds: [
       ["sounds/powergem_created.ogg", "Flame gem made", "A gem becomes a flame gem (a match of four); not while the board fills quietly, as when a game is loaded"],
@@ -438,7 +438,7 @@ var ByopopSoundboards = {
       ["sounds/gem_lock_start.ogg", "Lock starts", "A marked gem is still unmatched when its two twists run out, and its lock starts closing"],
       ["sounds/gem_lock_end.ogg", "Lock closes", "A new lock finishes closing over its gem, 50 updates (0.5 s) after Lock starts; a doom lock becomes a doom gem with a count then"],
       ["sounds/gem_lock_break.ogg", "Lock breaks", "A match breaks the lock on a gem, shattering it into shards"],
-      ["sounds/coal_blasted.ogg", "Coal blasted", "A coal gem is broken by a match or blast next to it, shedding its pieces"],
+      ["sounds/coal_blasted.ogg", "Coal blasted", "A coal gem is broken by a match or blast next to it, shedding its pieces. Resembles Bejeweled 3's sounds/diamond_mine_bigstone_cracked.ogg, the same sound, mixed differently."],
       ["sounds/geode.ogg", "Geode", "A geode pops and shows its points, pitched up one step for each geode before it (at most 10); also each rank bonus light that fills, up to 6 steps up. Also in Bejeweled 3, as sounds/rank_countup.ogg."],
       ["sounds/soulify.ogg", "Gem becomes a soul", "A gem is turned into a soul, 80 updates (0.8 s) after the soul effect starts"],
       ["sounds/gemsoul-lands3.ogg", "Soul lands", "A soul lands on the board and gives its gem its special; at most one sound every 2 updates, and one more when the first soul lands"]
@@ -600,8 +600,8 @@ var ByopopSoundboards = {
     ],
     groups: [
     { name: "Buttons and menus", sounds: [
-      ["Sound/Button_Press.ogg", "Button press", "A button without a sound of its own is pressed"],
-      ["Sound/Button_Release.ogg", "Button release", "A button without a sound of its own is released"],
+      ["Sound/Button_Press.ogg", "Button press", "A button without a sound of its own is pressed. The same recording as Tile placed 2."],
+      ["Sound/Button_Release.ogg", "Button release", "A button without a sound of its own is released. The same recording as Tile placed 3."],
       ["Sound/Button2_Press.ogg", "Round button press", "A button is pressed on the options menu, the player list and the new-player name box"],
       ["Sound/Button2_Release.ogg", "Round button release", "A button is released on the options menu, the player list and the new-player name box"],
       ["Sound/PaperButton_Press.ogg", "Paper button press", "A button is pressed on the dialogs, the help arrows, the high scores, the story and the interstitial screens"],
@@ -616,8 +616,8 @@ var ByopopSoundboards = {
     ] },
     { name: "Building words", sounds: [
       ["Sound/Place_01.ogg", "Tile placed 1", "A tile is clicked or dragged onto the word's path (a different tile from the last one): a 1 in 3 draw among the three place sounds"],
-      ["Sound/Place_02.ogg", "Tile placed 2", "A tile is clicked or dragged onto the word's path (a different tile from the last one): a 1 in 3 draw among the three place sounds"],
-      ["Sound/Place_03.ogg", "Tile placed 3", "A tile is clicked or dragged onto the word's path (a different tile from the last one): a 1 in 3 draw among the three place sounds"],
+      ["Sound/Place_02.ogg", "Tile placed 2", "A tile is clicked or dragged onto the word's path (a different tile from the last one): a 1 in 3 draw among the three place sounds. The same recording as Button press."],
+      ["Sound/Place_03.ogg", "Tile placed 3", "A tile is clicked or dragged onto the word's path (a different tile from the last one): a 1 in 3 draw among the three place sounds. The same recording as Button release."],
       ["Sound/Cancel.ogg", "Path dropped", "A right click in the game while the word's path holds at least one tile (not during the tutorial's first steps or a pause); the path is dropped at 75% volume"],
       ["Sound/Error.ogg", "Error", "A wrong tile is picked during the tutorial (at most once per 700 ms); a fixed or star tile is clicked once both hints have been shown, or while the tutorial's hint shows; a path that is not a word is submitted (85% volume); Alt+Enter is refused because the desktop is too small (full volume)"],
       ["Sound/Scramble.ogg", "Shuffle", "The shuffle button is pressed and the board still has a move to shuffle into (otherwise the game ends instead); plays at 75% volume"]
@@ -732,16 +732,16 @@ var ByopopSoundboards = {
       ["sounds/textreadblip.wav", "Text blip", "Every other letter is typed out while a conversation line is shown"]
     ] },
     { name: "Main menu voices", sounds: [
+      ["sounds/v_welcometobookwormadventures.ogg", "\"Welcome to Bookworm Adventures\"", "Lex greets the player when the title screen gives way to the main menu"],
       ["sounds/v_adventure.ogg", "\"Adventure\"", "Lex reacts when the pointer moves onto the Adventure item of the main menu"],
       ["sounds/v_arena.ogg", "\"Arena\"", "Lex reacts when the pointer moves onto the Arena item of the main menu"],
-      ["sounds/v_clipsandgiggles.ogg", "\"Clips and Giggles\"", "Lex reacts when the pointer moves onto the film reel item of the main menu. Also in Bookworm Adventures Volume 2 as \"Clips and giggles\" (unused)."],
-      ["sounds/v_dontleaveme.ogg", "\"Don't leave me\"", "The Quit item is pressed on the main menu, as the really-quit confirmation opens"],
-      ["sounds/v_halloffame.ogg", "\"Hall of Fame\"", "Lex reacts when the pointer moves onto the Hall of Fame item of the main menu"],
       ["sounds/v_minigames.ogg", "\"Mini-games\"", "Lex reacts when the pointer moves onto the Mini-games item of the main menu"],
+      ["sounds/v_halloffame.ogg", "\"Hall of Fame\"", "Lex reacts when the pointer moves onto the Hall of Fame item of the main menu"],
+      ["sounds/v_tomeofknowledge.ogg", "\"Tome of Knowledge\"", "Lex reacts when the pointer moves onto the Tome of Knowledge item of the main menu"],
+      ["sounds/v_clipsandgiggles.ogg", "\"Clips and Giggles\"", "Lex reacts when the pointer moves onto the film reel item of the main menu. Also in Bookworm Adventures Volume 2 as \"Clips and giggles\" (unused)."],
       ["sounds/v_options.ogg", "\"Options\"", "Lex reacts when the pointer moves onto the Options item of the main menu"],
       ["sounds/v_quit.ogg", "\"Quit\"", "Lex reacts when the pointer moves onto the Quit item of the main menu"],
-      ["sounds/v_tomeofknowledge.ogg", "\"Tome of Knowledge\"", "Lex reacts when the pointer moves onto the Tome of Knowledge item of the main menu"],
-      ["sounds/v_welcometobookwormadventures.ogg", "\"Welcome to Bookworm Adventures\"", "Lex greets the player when the title screen gives way to the main menu"]
+      ["sounds/v_dontleaveme.ogg", "\"Don't leave me\"", "The Quit item is pressed on the main menu, as the really-quit confirmation opens"]
     ] },
     { name: "Word play", sounds: [
       ["sounds/buzzer.ogg", "Word refused", "A word is refused in timed mode, submit is pressed with no valid word, or a potion is clicked while it cannot be used"],
@@ -840,56 +840,56 @@ var ByopopSoundboards = {
       ["sounds/female_groan_02.ogg", "Female groan 2", "Death sound of Scylla, Sea Witch, Siren and 9 more; Attack or hit of Mysterious Assassin (Arena too)"],
       ["sounds/female_mmm.ogg", "Female mmm", "Opening sound of Siren, Circe, Dryad; Death sound of Mirage Skeleton; Attack or hit of Vampire Mistress (Arena too)"],
       ["sounds/female_ooh.ogg", "Female ooh", "Opening sound of Helead, Naiad, Vampire Mistress; Attack or hit of Siren"],
-      ["sounds/humanmalegrunt2.ogg", "Human male grunt 2", "Death sound of Alexander, Polydamas, Trojan Captain and 11 more; Attack or hit of Snake Charmer, Thieves 2-3, Frankenstein (Arena too)"],
-      ["sounds/humanmalegrunt3.ogg", "Human male grunt 3", "Death sound of Snake Charmer, Thieves 2-3, Summoner and 1 more; Attack or hit of Cutthroat, Thief 1, Deck Swabber and 1 more (Arena too)"],
-      ["sounds/male_anger.ogg", "Male anger", "Opening sound of Polydamas, Trojan Captain, Bandit and 6 more; Attack or hit of Cannoneer, Angry Mob, Eternal Wanderer and 2 more (Arena too)"],
-      ["sounds/male_laugh.ogg", "Male laugh", "Opening sound of Alexander, Centaur Warrior, Satyr and 1 more; Attack or hit of Pharaoh of Old, Dread Pirate Al-Robarts (Arena too)"],
-      ["sounds/male_laugh2.ogg", "Male laugh 2", "Opening sound of Trojan Warrior, Centaur Archer, Sword Swallower and 3 more; Attack or hit of Pharaoh of Old, Crazy Murray (Arena too)"],
-      ["sounds/male_low_anger.ogg", "Male low anger", "Opening sound of Thieves 4-5; Death sound of Nessus, Embalmed Guardian, Cannoneer and 2 more; Attack or hit of Firebreather, Pharaoh of Old, Twisted Vizier (Arena too)"],
+      ["sounds/humanmalegrunt2.ogg", "Human male grunt 2", "Death sound of Alexander, Polydamas, Trojan Captain, Centaur Archer, Centaur Warrior, Satyr, Trojan Spearman, Trojan Warrior, Cutthroat, Deck Swabber, Hypnotist, Thief 1, Thieves 9-11 and Malicious Magistrate; Attack or hit of Snake Charmer, Thieves 2-3, Frankenstein (Arena too)"],
+      ["sounds/humanmalegrunt3.ogg", "Human male grunt 3", "Death sound of Snake Charmer, Thieves 2-3, Summoner and Arnoldstein; Attack or hit of Cutthroat, Thief 1, Deck Swabber and 1 more (Arena too)"],
+      ["sounds/male_anger.ogg", "Male anger", "Opening sound of Polydamas, Trojan Captain, Bandit, Cutthroat, Mirage Trojan, Summoner, Thief 1, Thieves 9-11 and Fallen Swashbuckler Hero; Attack or hit of Cannoneer, Angry Mob, Eternal Wanderer and 2 more (Arena too)"],
+      ["sounds/male_laugh.ogg", "Male laugh", "Opening sound of Alexander, Centaur Warrior, Satyr and Djinn; Attack or hit of Pharaoh of Old, Dread Pirate Al-Robarts (Arena too)"],
+      ["sounds/male_laugh2.ogg", "Male laugh 2", "Opening sound of Trojan Warrior, Centaur Archer, Sword Swallower, Afreet, Thieves 2-3 and Highwayman; Attack or hit of Pharaoh of Old, Crazy Murray (Arena too)"],
+      ["sounds/male_low_anger.ogg", "Male low anger", "Opening sound of Thieves 4-5; Death sound of Nessus, Embalmed Guardian, Cannoneer, Afreet and Djinn; Attack or hit of Firebreather, Pharaoh of Old, Twisted Vizier (Arena too)"],
       ["sounds/male_low_pain.ogg", "Male low pain", "Death sound of Firebreather; Attack or hit of Nessus, Thieves 4-5, Shaitan and 1 more (Arena too)"],
-      ["sounds/male_low_warcry.ogg", "Male low warcry", "Opening sound of Nessus, Firebreather, Cannoneer and 5 more; Death sound of Thieves 4-5; Attack or hit of Shaitan (Arena too)"],
+      ["sounds/male_low_warcry.ogg", "Male low warcry", "Opening sound of Nessus, Firebreather, Cannoneer, Deck Swabber, Swashbuckler, Arnoldstein, Malicious Magistrate and Warrenstein; Death sound of Thieves 4-5; Attack or hit of Shaitan (Arena too)"],
       ["sounds/male_pain.ogg", "Male pain", "Death sound of Swashbuckler, Warrenstein, Fallen Swashbuckler Hero; Attack or hit of Bandit, Sword Swallower, Thieves 9-11 and 3 more (Arena too)"],
       ["sounds/moan_01.ogg", "Moan 1", "Death sound of Bandit, Sword Swallower, Highwayman; Attack or hit of Alexander, Polydamas, Trojan Captain and 8 more (Arena too). Also in Bookworm Adventures Volume 2 as Moan 1 (unused)."],
       ["sounds/witch_groan_01.ogg", "Witch groan 1", "Opening sound of Deino, Enyo, Pemphredo; Death sound of Haggard Heckler; Attack or hit of Wandering Hag, Connystein, Quag Hag"],
-      ["sounds/witchy_laugh_01.ogg", "Witchy laugh 1", "Opening sound of Haggard Heckler, Quag Hag; Attack or hit of Deino, Enyo, Pemphredo and 1 more"],
-      ["sounds/witchy_laugh_02.ogg", "Witchy laugh 2", "Opening sound of Scylla, Sea Witch, Harpy and 3 more; Death sound of Deino, Enyo, Pemphredo; Attack or hit of Mirage Skeleton, Haggard Heckler"]
+      ["sounds/witchy_laugh_01.ogg", "Witchy laugh 1", "Opening sound of Haggard Heckler, Quag Hag; Attack or hit of Deino, Enyo, Pemphredo and Disturbed Skeleton"],
+      ["sounds/witchy_laugh_02.ogg", "Witchy laugh 2", "Opening sound of Scylla, Sea Witch, Harpy, Harpy Witch, Connystein and Wandering Hag; Death sound of Deino, Enyo, Pemphredo; Attack or hit of Mirage Skeleton, Haggard Heckler"]
     ] },
     { name: "Animals", sounds: [
       ["sounds/bat_death_01.ogg", "Bat death 1", "Attack or hit of Mama Roc (Arena too). Also in Bookworm Adventures Volume 2 as Bat death 1 (unused)."],
       ["sounds/dog_barking_01.ogg", "Dog barking 1", "Opening sound of Thieves 6-8, Wolf Pack; Attack or hit of Orthrus, Flying Wolf, Carrion Dog"],
       ["sounds/dog_barking_02.ogg", "Dog barking 2", "Opening sound of War Hound, Enchanted Hound, Flying Wolf; Attack or hit of Thieves 6-8, Undead Hound"],
-      ["sounds/dog_whimper_01.ogg", "Dog whimper 1", "Death sound of War Hound, Enchanted Hound, Wolf Pack and 1 more; Attack or hit of Thieves 6-8"],
+      ["sounds/dog_whimper_01.ogg", "Dog whimper 1", "Death sound of War Hound, Enchanted Hound, Wolf Pack and Carrion Dog; Attack or hit of Thieves 6-8"],
       ["sounds/eagle_cry_01.ogg", "Eagle cry 1", "Opening sound of Enchanted Eagle, Griffon, Bronze Stymphalian and 3 more; Death sound of Bronze Stymphalian, Steel Stymphalian, Roc Hatchling; Attack or hit of Mama Roc (Arena too). Also in Bookworm Adventures Volume 2 as Eagle cry 1 (unused)."],
       ["sounds/feline_whimper_01.ogg", "Feline whimper 1", "Opening sound of Carrion Dog; Death sound of Bilge Dog, Flying Wolf; Attack or hit of Enchanted Lion, Nemean Lion, Wolfman (Arena too)"],
       ["sounds/feline_whimper_02.ogg", "Feline whimper 2", "Opening sound of Orthrus, Undead Hound, Bilge Dog; Death sound of Nemean Lion; Attack or hit of Cerberus, Wolfman, Codex (Arena too)"],
       ["sounds/generic_slosh_02.ogg", "Generic slosh 2", "Opening sound of Sea Elemental, Air Spirit; Attack or hit of Helead, Deck Swabber, Hateful Housemaid and 2 more"],
       ["sounds/pig_squeal_01.ogg", "Pig squeal 1", "Opening sound of Calydonian Boar, Erymanthian Boar; Death sound of Plagued Pork"],
       ["sounds/pig_squeal_02.ogg", "Pig squeal 2", "Opening sound of Flying Pig, Plagued Pork, Were-Pig; Death sound of Calydonian Boar, Erymanthian Boar, Flying Pig; Attack or hit of Enchanted Scorpion"],
-      ["sounds/snake_hiss_01.ogg", "Snake hiss 1", "Opening sound of Sea Serpent, Enchanted Scorpion, Enchanted Serpent and 6 more; Death sound of Flying Snake"],
+      ["sounds/snake_hiss_01.ogg", "Snake hiss 1", "Opening sound of Sea Serpent, Enchanted Scorpion, Enchanted Serpent, Enormous Serpent, Flying Snake, Mummified Servant, Snake Charmer, Bog Serpent and Mr Blobs; Death sound of Flying Snake"],
       ["sounds/wolf_howl_01.ogg", "Wolf howl 1", "Death sound of Orthrus, Thieves 6-8, Undead Hound; Attack or hit of Flying Wolf, Wolf Pack"]
     ] },
     { name: "Beasts and giants", sounds: [
-      ["sounds/dragon_bite.ogg", "Dragon bite", "Opening sound of Bayou Beast; Attack or hit of Hydra, Basilisk, Greater Basilisk and 1 more"],
-      ["sounds/dragon_death.ogg", "Dragon death", "Death sound of Hydra, Basilisk, Greater Basilisk and 2 more; Attack or hit of The Mummy (Arena too)"],
+      ["sounds/dragon_bite.ogg", "Dragon bite", "Opening sound of Bayou Beast; Attack or hit of Hydra, Basilisk, Greater Basilisk and Monstrous Scorpion"],
+      ["sounds/dragon_death.ogg", "Dragon death", "Death sound of Hydra, Basilisk, Greater Basilisk, Monstrous Scorpion and Bayou Beast; Attack or hit of The Mummy (Arena too)"],
       ["sounds/dragon_pain.ogg", "Dragon pain", "Attack or hit of Kraken, Basilisk, Greater Basilisk and 2 more (Arena too)"],
-      ["sounds/dragon_roar.ogg", "Dragon roar", "Opening sound of Kraken, Hydra, Basilisk and 2 more; Attack or hit of Kraken, Bilge Dog. Also in Bookworm Adventures Volume 2 as Dragon roar (unused)."],
+      ["sounds/dragon_roar.ogg", "Dragon roar", "Opening sound of Kraken, Hydra, Basilisk, Greater Basilisk and Monstrous Scorpion; Attack or hit of Kraken, Bilge Dog. Also in Bookworm Adventures Volume 2 as Dragon roar (unused)."],
       ["sounds/elephant_01.ogg", "Elephant 1", "Opening sound of Elephant, Mirage Skeleton. Also in Bookworm Adventures Volume 2 as Elephant 1 (unused)."],
       ["sounds/elephant_death_01.ogg", "Elephant death 1", "Opening sound of Bull Elephant. Also in Bookworm Adventures Volume 2 as Elephant death 1 (unused)."],
       ["sounds/elephant_death_02.ogg", "Elephant death 2", "Death sound of Elephant. Also in Bookworm Adventures Volume 2 as Elephant death 2 (unused)."],
       ["sounds/elephant_death_03.ogg", "Elephant death 3", "Death sound of Bull Elephant. Also in Bookworm Adventures Volume 2 as Elephant death 3 (unused)."],
       ["sounds/generic_animal_grumble_01.ogg", "Generic animal grumble 1", "Opening sound of Cerberus, Minotaur, Nemean Lion; Death sound of Chimera, Minotaur (Arena too)"],
       ["sounds/giantgruntdry1.ogg", "Giant grunt dry 1", "Opening sound of Cyclops Herder, Cyclops Warrior; Attack or hit of Polyphemus, Manticore, Minotaur and 1 more (Arena too)"],
-      ["sounds/giantgruntecho2.ogg", "Giant grunt echo 2", "Death sound of Cyclops Herder, Cyclops Warrior, Polyphemus and 1 more; Attack or hit of The Creature (Arena too)"],
+      ["sounds/giantgruntecho2.ogg", "Giant grunt echo 2", "Death sound of Cyclops Herder, Cyclops Warrior, Polyphemus and Manticore; Attack or hit of The Creature (Arena too)"],
       ["sounds/kubwa_barh.ogg", "Kubwa barh", "Attack or hit of Thieves 12-14 (Arena too). Also in Bookworm Adventures Volume 2 as Kubwa barh (unused)."],
       ["sounds/kubwa_greeting.ogg", "Kubwa greeting", "Used in the Arena fights. Also in Bookworm Adventures Volume 2 as Kubwa greeting (unused)."],
       ["sounds/kubwa_greeting2.ogg", "Kubwa greeting 2", "Opening sound of Thieves 12-14 (Arena too). Also in Bookworm Adventures Volume 2 as Kubwa greeting 2 (unused)."],
       ["sounds/kubwa_roar.ogg", "Kubwa roar", "Death sound of Thieves 12-14 (Arena too)"],
-      ["sounds/roar_01.ogg", "Roar 1", "Opening sound of Charybdis, Enchanted Lion, Phantom and 2 more; Attack or hit of Griffon (Arena too). Also in Bookworm Adventures Volume 2 as Roar 1 (unused)."]
+      ["sounds/roar_01.ogg", "Roar 1", "Opening sound of Charybdis, Enchanted Lion, Phantom, Chimera and Manticore; Attack or hit of Griffon (Arena too). Also in Bookworm Adventures Volume 2 as Roar 1 (unused)."]
     ] },
     { name: "Spirits and magic", sounds: [
-      ["sounds/fading_ghostly_wail_01.ogg", "Fading ghostly wail 1", "Opening sound of Banshee, Manes, Tombstone Gargoyle and 1 more; Death sound of Medusa, Sphinx, Flying Armor; Attack or hit of Phantom, Grim (Arena too)"],
-      ["sounds/fading_ghostly_wail_02.ogg", "Fading ghostly wail 2", "Opening sound of Medusa, Flying Armor, Necromancer; Death sound of Charybdis, Banshee, Manes and 4 more; Attack or hit of Hypnotist (Arena too)"],
-      ["sounds/fading_ghostly_wail_03.ogg", "Fading ghostly wail 3", "Opening sound of Shade, Specter, Embalmed Guardian and 1 more; Death sound of Mummified Servant, Tombstone Gargoyle, Gargoyle; Attack or hit of Manes, Grim (Arena too)"],
+      ["sounds/fading_ghostly_wail_01.ogg", "Fading ghostly wail 1", "Opening sound of Banshee, Manes, Tombstone Gargoyle and Gargoyle; Death sound of Medusa, Sphinx, Flying Armor; Attack or hit of Phantom, Grim (Arena too)"],
+      ["sounds/fading_ghostly_wail_02.ogg", "Fading ghostly wail 2", "Opening sound of Medusa, Flying Armor, Necromancer; Death sound of Charybdis, Banshee, Manes, Phantom, Shade, Specter and Unliving Frostmancer; Attack or hit of Hypnotist (Arena too)"],
+      ["sounds/fading_ghostly_wail_03.ogg", "Fading ghostly wail 3", "Opening sound of Shade, Specter, Embalmed Guardian and Unliving Frostmancer; Death sound of Mummified Servant, Tombstone Gargoyle, Gargoyle; Attack or hit of Manes, Grim (Arena too)"],
       ["sounds/pulsing_attack_01.ogg", "Pulsing attack 1", "Attack or hit of Circe, Dryad, Helead and 3 more (Arena too). Also in Bookworm Adventures Volume 2 as Pulsing attack 1 (unused)."],
       ["sounds/skeleton_warcry_01.ogg", "Skeleton warcry 1", "Opening sound of Limping Leper, Disturbed Skeleton, Ghoul Minion"],
       ["sounds/sonic_attack_02.ogg", "Sonic attack 2", "Opening sound of Hypnotist; Death sound of Mirage Nymph; Attack or hit of Shade, Specter, Snake Charmer and 5 more (Arena too)"],
@@ -899,13 +899,13 @@ var ByopopSoundboards = {
     { name: "Attacks and impacts", sounds: [
       ["sounds/arrow_shot_01.ogg", "Arrow shot 1", "Attack or hit of Alexander, Polydamas, Centaur Archer and 4 more (Arena too)"],
       ["sounds/bowfiring.ogg", "Bow firing", "Opening sound of Unliving Archer; Attack or hit of Fallen Huntress Hero. Also in Bookworm Adventures Volume 2 as Bow firing (unused)."],
-      ["sounds/largeimpact_01.ogg", "Large impact 1", "Death sound of Cernian Hind, Enchanted Eagle, Enchanted Lion and 14 more; Attack or hit of Thieves 12-14, Calydonian Boar, Centaur Warrior and 25 more (Arena too)"],
+      ["sounds/largeimpact_01.ogg", "Large impact 1", "Death sound of Cernian Hind, Enchanted Eagle, Enchanted Lion, Enchanted Scorpion, Enchanted Serpent, Griffon, Kraken, Sea Elemental, Air Spirit, Crazy Murray, Elementalist, Disturbed Skeleton, Fallen Warrior Hero, Fearful Farmer, Ghoul Minion, Parkerstein and Were Ram; Attack or hit of Thieves 12-14, Calydonian Boar, Centaur Warrior and 25 more (Arena too)"],
       ["sounds/slicing_attack_01.ogg", "Slicing attack 1", "Opening sound of Mysterious Assassin, Fallen Warrior Hero, Vampire Cultist; Attack or hit of Trojan Captain, Trojan Warrior, Sea Witch and 29 more (Arena too)"],
       ["sounds/slicing_attack_02.ogg", "Slicing attack 2", "Opening sound of Unliving Brute; Attack or hit of War Hound, Scylla, Enchanted Eagle and 25 more (Arena too)"],
-      ["sounds/slump_small_01.ogg", "Slump small 1", "Death sound of Mirage Goat, Limping Leper, Unliving Archer and 1 more; Attack or hit of Firebreather, Mummified Servant, Mirage Skeleton and 13 more (Arena too)"],
-      ["sounds/smallimpact_01.ogg", "Small impact 1", "Death sound of Enormous Serpent, Angry Ram, Enchanted Ram and 4 more; Attack or hit of Bilge Dog, Dread Pirate Al-Robarts, Bull Elephant and 21 more (Arena too)"],
+      ["sounds/slump_small_01.ogg", "Slump small 1", "Death sound of Mirage Goat, Limping Leper, Unliving Archer and Unliving Brute; Attack or hit of Firebreather, Mummified Servant, Mirage Skeleton and 13 more (Arena too)"],
+      ["sounds/smallimpact_01.ogg", "Small impact 1", "Death sound of Enormous Serpent, Angry Ram, Enchanted Ram, Mountain Goat, Sea Serpent, Grave Robber and Vampire Cultist; Attack or hit of Bilge Dog, Dread Pirate Al-Robarts, Bull Elephant and 21 more (Arena too)"],
       ["sounds/swordspearimpact.ogg", "Sword spear impact", "Opening sound of Fearful Farmer, Grave Robber; Attack or hit of Polydamas, Trojan Spearman, Flying Armor (Arena too)"],
-      ["sounds/swordspearimpact_dry.ogg", "Sword spear impact dry", "Death sound of Mr. Blobs; Attack or hit of Crazy Murray, Flying Pig, Flying Snake and 1 more (Arena too)"]
+      ["sounds/swordspearimpact_dry.ogg", "Sword spear impact dry", "Death sound of Mr. Blobs; Attack or hit of Crazy Murray, Flying Pig, Flying Snake and Were Pig (Arena too)"]
     ] },
     { name: "Codex and Nemesis", sounds: [
       ["sounds/codex_flinch.ogg", "Codex flinch", "Attack or hit of Codex. Also in Bookworm Adventures Volume 2 as Codex flinch (unused)."],
@@ -913,10 +913,10 @@ var ByopopSoundboards = {
       ["sounds/codex_nyah.ogg", "Codex nyah", "A Codex animation of the last chapter taunts. Also in Bookworm Adventures Volume 2 as Codex nyah (unused)."],
       ["sounds/lexbeam.ogg", "Lex beam", "Lex's beam animation in the fight with the Codex. Also in Bookworm Adventures Volume 2 as Lex beam (unused)."],
       ["sounds/nemesis_laugh.ogg", "Nemesis laugh", "The animation of Cassandra and the Nemesis laughs. Also in Bookworm Adventures Volume 2 as Nemesis laugh (unused)."],
-      ["sounds/v_autological.ogg", "\"Autological\"", "Lex says it in the animation of the Codex fight. Also in Bookworm Adventures Volume 2 as \"Autological\" (unused). Also in Bookworm Adventures Volume 2 as \"Autological\" (unused)."]
+      ["sounds/v_autological.ogg", "\"Autological\"", "Lex says it in the animation of the Codex fight. The game also has the same recording as sounds/lex_autological.ogg, never played. Also in Bookworm Adventures Volume 2 as \"Autological\" (two copies, neither played)."]
     ] },
     { name: "Unused", sounds: [
-      ["sounds/lex_autological.ogg", "\"Autological\" (unused)", "Never played: loaded as LEX_AUTOLOGICAL, but no code or script asks for it. Also in Bookworm Adventures Volume 2 as \"Autological\" (unused). Also in Bookworm Adventures Volume 2 as \"Autological\" (unused)."],
+      ["sounds/lex_autological.ogg", "\"Autological\" (unused)", "Never played: loaded as LEX_AUTOLOGICAL, but no code or script asks for it. The same recording as \"Autological\" (sounds/v_autological.ogg), which Lex says in the Codex fight; only this copy is never played. Also in Bookworm Adventures Volume 2 as \"Autological\" (two copies, neither played)."],
       ["sounds/lex_unbelievable.ogg", "\"Unbelievable\" (unused)", "Never played: the file is not in the game's resource list, so nothing loads it. Also in Bookworm Adventures Volume 2 as \"Unbelievable\" (unused)."],
       ["sounds/v_buynow.ogg", "\"Buy now\" (trial only)", "Trial only: the upsell trailer the trial showed said it once; the port, made from the full game, has no trial and leaves the trailer's resources out. Also in Bookworm Adventures Volume 2 as \"Buy now\" (trial only)."],
       ["sounds/vo_routed.ogg", "\"Routed\" (unused)", "Never played: loaded as OVERKILL_ROUTED, but the scripts' overkill table names only the seven other overkill voices. Also in Bookworm Adventures Volume 2 as \"Routed\" (unused)."]
@@ -940,15 +940,15 @@ var ByopopSoundboards = {
       ["sounds/textreadtype01.ogg", "Text blip", "Every other letter is typed out while a conversation line is shown"]
     ] },
     { name: "Main menu voices", sounds: [
+      ["sounds/v_welcometobookwormadventures.ogg", "\"Welcome to Bookworm Adventures\"", "Lex greets the player when the title screen gives way to the main menu"],
       ["sounds/v_adventure.ogg", "\"Adventure\"", "Lex reacts when the pointer moves onto the Adventure item of the main menu"],
       ["sounds/v_arena.ogg", "\"Arena\"", "Lex reacts when the pointer moves onto the Arena item of the main menu"],
-      ["sounds/v_dontleaveme.ogg", "\"Don't leave me\"", "The Quit item is pressed on the main menu, as the really-quit confirmation opens"],
-      ["sounds/v_halloffame.ogg", "\"Hall of Fame\"", "Lex reacts when the pointer moves onto the Hall of Fame item of the main menu"],
       ["sounds/v_minigames.ogg", "\"Mini-games\"", "Lex reacts when the pointer moves onto the Mini-games item of the main menu"],
+      ["sounds/v_halloffame.ogg", "\"Hall of Fame\"", "Lex reacts when the pointer moves onto the Hall of Fame item of the main menu"],
+      ["sounds/v_tomeofknowledge.ogg", "\"Tome of Knowledge\"", "Lex reacts when the pointer moves onto the Tome of Knowledge item of the main menu"],
       ["sounds/v_options.ogg", "\"Options\"", "Lex reacts when the pointer moves onto the Options item of the main menu"],
       ["sounds/v_quit.ogg", "\"Quit\"", "Lex reacts when the pointer moves onto the Quit item of the main menu"],
-      ["sounds/v_tomeofknowledge.ogg", "\"Tome of Knowledge\"", "Lex reacts when the pointer moves onto the Tome of Knowledge item of the main menu"],
-      ["sounds/v_welcometobookwormadventures.ogg", "\"Welcome to Bookworm Adventures\"", "Lex greets the player when the title screen gives way to the main menu"]
+      ["sounds/v_dontleaveme.ogg", "\"Don't leave me\"", "The Quit item is pressed on the main menu, as the really-quit confirmation opens"]
     ] },
     { name: "Word play", sounds: [
       ["sounds/buzzer.ogg", "Word refused", "A word is refused in timed mode, submit is pressed with no valid word, a potion is clicked while it cannot be used, or in the Muta Words mini-game"],
@@ -1017,7 +1017,7 @@ var ByopopSoundboards = {
       ["sounds/robot-e.ogg", "Robot E", "One command of Lex's dance animation in the book 6 dance battle plays it, after the L and before the X"],
       ["sounds/robot-l.ogg", "Robot L", "One command of Lex's dance animation in the book 6 dance battle plays it, the first of the four"],
       ["sounds/robot-lex.ogg", "Robot Lex", "One command of Lex's dance animation in the book 6 dance battle plays it, the last of the four"],
-      ["sounds/robot-x.ogg", "Robot X", "One command of Lex's dance animation in the book 6 dance battle plays it, after the E"],
+      ["sounds/robot-x.ogg", "\"X!\"", "One command of Lex's dance animation in the book 6 dance battle plays it, after the E"],
       ["sounds/v_dancebattle.ogg", "\"Dance battle\"", "When the intro flash peaks in the book 6 chapter 7 fight, together with Firework 2"]
     ] },
     { name: "Rewards", sounds: [
@@ -1069,7 +1069,7 @@ var ByopopSoundboards = {
       ["sounds/madhat_reverb.ogg", "Mad Hat effect", "The Mad Hat effect plays"],
       ["sounds/mkxform.ogg", "Monkey King transforms", "The Monkey King companion transforms"],
       ["sounds/skullupgrade.ogg", "Skull upgrade", "The skeleton skull companion is upgraded"],
-      ["sounds/timehelmet_reverb.ogg", "Time Helmet effect", "The Time Helmet effect plays"]
+      ["sounds/timehelmet_reverb.ogg", "Mad hat scramble", "The mad hat companion's sound when the letters are scrambled (its file is named for the Time Helmet); no words"]
     ] },
     { name: "Cutscenes", sounds: [
       ["sounds/cheshirecat.ogg", "Cheshire cat", "The book 4 chapter 7 cutscene of the Cheshire Cat plays, after the Hydra is beaten"],
@@ -1093,20 +1093,20 @@ var ByopopSoundboards = {
       ["sounds/v_two.ogg", "\"Two\"", "Letter Rip, Link 'n Spell, Muta Words and Word Up: the start countdown reaches 2, 100 updates (1 s) after Three"]
     ] },
     { name: "Human voices", sounds: [
-      ["sounds/dopeyattack1a.ogg", "Dopey attack 1a", "Opening sound of Tweedledee, Tweedledum, The Deuce and 5 more; Attack or hit of Angry Loyim"],
-      ["sounds/dopeyimpact2a.ogg", "Dopey impact 2a", "Death sound of Tweedledee, Tweedledum, Walrus and 7 more"],
+      ["sounds/dopeyattack1a.ogg", "Dopey attack 1a", "Opening sound of Tweedledee, Tweedledum, The Deuce, Gluttonous Monk, Slothful Monk, Mutant, Troglock and Troglock Cook; Attack or hit of Angry Loyim"],
+      ["sounds/dopeyimpact2a.ogg", "Dopey impact 2a", "Death sound of Tweedledee, Tweedledum, Walrus, The Deuce, Gluttonous Monk, Slothful Monk, Ice Hammer, Mutant, Troglock and Troglock Cook"],
       ["sounds/female seduce.ogg", "Female seduce", "Opening sound of Stepfield Wife, Summerspeak (Arena too)"],
       ["sounds/female_groan_01.ogg", "Female groan 1", "Opening sound of Anna Karenina; Attack or hit of Queen of Hearts, Stepfield Wife (Arena too)"],
       ["sounds/female_groan_02.ogg", "Female groan 2", "Opening sound of Mrs. Sprat, Gretel; Death sound of Gretel, Stepfield Wife, Anna Karenina; Attack or hit of Queen of Hearts, Summerspeak (Arena too)"],
       ["sounds/female_mmm.ogg", "Female mmm", "Opening sound of Witch"],
       ["sounds/female_ooh.ogg", "Female ooh", "Opening sound of Strangling Ghost; Attack or hit of Summerspeak"],
-      ["sounds/humanmalegrunt2.ogg", "Human male grunt 2", "Death sound of Imperial Sergeant, Rogue Hacker; Attack or hit of Swindler, Gluttonous Monk, Greedy Monk and 2 more"],
+      ["sounds/humanmalegrunt2.ogg", "Human male grunt 2", "Death sound of Imperial Sergeant, Rogue Hacker; Attack or hit of Swindler, Gluttonous Monk, Greedy Monk, Imperial Captain and Wrathful Monk"],
       ["sounds/humanmalegrunt3.ogg", "Human male grunt 3", "Death sound of Swindler, Imperial Captain; Attack or hit of Prideful Monk, Slothful Monk, Imperial Sergeant and 1 more (Arena too)"],
-      ["sounds/male_anger.ogg", "Male anger", "Opening sound of Swindler, Prideful Monk, Wrathful Monk and 4 more; Death sound of Odysseus; Attack or hit of Greedy Monk, Futurcom Tour Guide (Arena too)"],
+      ["sounds/male_anger.ogg", "Male anger", "Opening sound of Swindler, Prideful Monk, Wrathful Monk, Imperial Captain, Angry Loyim, Futurcom Hunter and Party Sciencer; Death sound of Odysseus; Attack or hit of Greedy Monk, Futurcom Tour Guide (Arena too)"],
       ["sounds/male_laugh.ogg", "Male laugh", "Opening sound of Old MacDonald, Hansel, King of Hearts and 7 more; Death sound of Mad Hatter; Attack or hit of Swindler, Caterpillar, March Hare and 4 more (Arena too)"],
-      ["sounds/male_laugh2.ogg", "Male laugh 2", "Opening sound of Gingerbread Man, Mad Hatter, March Hare and 5 more; Attack or hit of Swindler, Hansel, Caterpillar and 2 more (Arena too)"],
+      ["sounds/male_laugh2.ogg", "Male laugh 2", "Opening sound of Gingerbread Man, Mad Hatter, March Hare, Carpenter, Knave Hearts, Imperial Sergeant, Monkey King and Cyrano; Attack or hit of Swindler, Hansel, Caterpillar and 2 more (Arena too)"],
       ["sounds/male_low_anger.ogg", "Male low anger", "Opening sound of Revenant, Thought Cop; Attack or hit of South King, West King, Mutant (Arena too)"],
-      ["sounds/male_low_pain.ogg", "Male low pain", "Death sound of Old MacDonald, Wrathful Monk, Broken Brother and 3 more; Attack or hit of Gluttonous Monk, Stricken Ghost, East King and 4 more (Arena too)"],
+      ["sounds/male_low_pain.ogg", "Male low pain", "Death sound of Old MacDonald, Wrathful Monk, Broken Brother, Revenant, Book Burner and Thought Cop; Attack or hit of Gluttonous Monk, Stricken Ghost, East King and 4 more (Arena too)"],
       ["sounds/male_low_warcry.ogg", "Male low warcry", "Opening sound of Broken Brother, Book Burner; Attack or hit of Imperial Captain, Sifu Sekkeen (Arena too)"],
       ["sounds/male_pain.ogg", "Male pain", "Death sound of Gingerbread Man, Hansel, Carpenter and 12 more; Attack or hit of Old MacDonald (Arena too)"],
       ["sounds/witch_groan_01.ogg", "Witch groan 1", "Death sound of Witch; Attack or hit of Grandma (Arena too)"],
@@ -1131,11 +1131,11 @@ var ByopopSoundboards = {
     { name: "Wild animals", sounds: [
       ["sounds/bearattack1.ogg", "Bear attack 1", "Attack or hit of Baby Bear, Mama Bear, Papa Bear and 1 more (Arena too)"],
       ["sounds/bearimpact.ogg", "Bear impact", "Death sound of Baby Bear, Mama Bear; Attack or hit of Papa Bear, War Bear (Arena too)"],
-      ["sounds/bearroar.ogg", "Bear roar", "Opening sound of Baby Bear, Mama Bear, War Bear and 2 more; Attack or hit of Papa Bear (Arena too)"],
+      ["sounds/bearroar.ogg", "Bear roar", "Opening sound of Baby Bear, Mama Bear, War Bear, Shark Sergeant and Moby Dick; Attack or hit of Papa Bear (Arena too)"],
       ["sounds/dog_barking_01.ogg", "Dog barking 1", "Death sound of Year of the Dog; Attack or hit of Big Bad Wolf, Erlang Shen (Arena too)"],
       ["sounds/dog_barking_02.ogg", "Dog barking 2", "Opening sound of Year of the Dog, Mech Hound; Attack or hit of Big Bad Wolf (Arena too)"],
       ["sounds/dog_whimper_01.ogg", "Dog whimper 1", "Death sound of Big Bad Wolf (Arena too)"],
-      ["sounds/feline_whimper_01.ogg", "Feline whimper 1", "Opening sound of Cat, Earless Tiger, Elder Tiger Demon and 2 more; Death sound of Earless Tiger, Elder Tiger Demon, Tailless Tiger (Arena too)"],
+      ["sounds/feline_whimper_01.ogg", "Feline whimper 1", "Opening sound of Cat, Earless Tiger, Elder Tiger Demon, Tailless Tiger and Kxitty; Death sound of Earless Tiger, Elder Tiger Demon, Tailless Tiger (Arena too)"],
       ["sounds/feline_whimper_02.ogg", "Feline whimper 2", "Death sound of Cat, Kxitty; Attack or hit of Earless Tiger, Elder Tiger Demon, Tailless Tiger (Arena too)"],
       ["sounds/generic_slosh_02.ogg", "Generic slosh 2", "Death sound of Mrs. Sprat"],
       ["sounds/monkeyattack2.ogg", "Monkey attack 2", "Attack or hit of Monkey King, Monolisk, Mutant Ape (Arena too)"],
@@ -1146,8 +1146,8 @@ var ByopopSoundboards = {
     ] },
     { name: "Beasts and giants", sounds: [
       ["sounds/dragon_bite.ogg", "Dragon bite", "Attack or hit of Jabberwocky, Dragon Guard, Dragon King and 2 more (Arena too)"],
-      ["sounds/dragon_death.ogg", "Dragon death", "Death sound of Jabberwocky, Dragon Guard, Dragon King and 2 more (Arena too)"],
-      ["sounds/dragon_pain.ogg", "Dragon pain", "Opening sound of Jabberwocky, Dragon Guard, Dragon King and 2 more; Attack or hit of Jabberwocky, Dragon Guard, Dragon King and 3 more (Arena too)"],
+      ["sounds/dragon_death.ogg", "Dragon death", "Death sound of Jabberwocky, Dragon Guard, Dragon King, Baby Trex and Mama Trex (Arena too)"],
+      ["sounds/dragon_pain.ogg", "Dragon pain", "Opening sound of Jabberwocky, Dragon Guard, Dragon King, Baby Trex and Mama Trex; Attack or hit of Jabberwocky, Dragon Guard, Dragon King and 3 more (Arena too)"],
       ["sounds/giantgruntecho2.ogg", "Giant grunt echo 2", "Opening sound of Giant; Death sound of Giant (Arena too)"],
       ["sounds/kubwa_roar.ogg", "Kubwa roar", "Attack or hit of Giant (Arena too)"],
       ["sounds/monsterattack2.ogg", "Monster attack 2", "Attack or hit of Bull Demon King (Arena too)"],
@@ -1169,30 +1169,30 @@ var ByopopSoundboards = {
       ["sounds/smokeyattack1.ogg", "Smokey attack 1", "Opening sound of Caterpillar, Caterpillar (Arena), Marsling; Attack or hit of Stuffy, Stricken Ghost, Monkey King and 4 more (Arena too)"],
       ["sounds/smokeyattack2.ogg", "Smokey attack 2", "Death sound of Caterpillar (Arena); Attack or hit of Gingerbread Man, Gretel, Witch and 11 more (Arena too)"],
       ["sounds/smokeyimpact.ogg", "Smokey impact", "Death sound of Caterpillar, Marsling, Summerspeak; Attack or hit of Strangling Ghost, Data Node (Arena too)"],
-      ["sounds/sonic_attack_02.ogg", "Sonic attack 2", "Opening sound of East King, Erlang Shen, North King and 2 more; Death sound of East King, Erlang Shen, North King and 2 more; Attack or hit of Gluttonous Monk, Greedy Monk, Prideful Monk and 12 more (Arena too)"],
+      ["sounds/sonic_attack_02.ogg", "Sonic attack 2", "Opening sound of East King, Erlang Shen, North King, South King and West King; Death sound of East King, Erlang Shen, North King, South King and West King; Attack or hit of Gluttonous Monk, Greedy Monk, Prideful Monk and 12 more (Arena too)"],
       ["sounds/sparkleattack3.ogg", "Sparkle attack 3", "Opening sound of Moon, Door, Gold and 5 more; Death sound of Moon, Door, Gold and 4 more; Attack or hit of Monkey King, Data Node, Ice Hammer and 2 more (Arena too)"],
       ["sounds/wail_03.ogg", "Wail 3", "Attack or hit of Broken Brother"],
       ["sounds/wail_05.ogg", "Wail 5", "Opening sound of Stricken Ghost"]
     ] },
     { name: "Robots and sci-fi", sounds: [
       ["sounds/roboticattack1.ogg", "Robotic attack 1", "Attack or hit of Duplicant, R. Giskeel, Robert and 3 more (Arena too)"],
-      ["sounds/roboticchallenge2.ogg", "Robotic challenge 2", "Opening sound of Overliege, Duplicant, R. Giskeel and 2 more; Attack or hit of Bigger Brother (Arena too)"],
+      ["sounds/roboticchallenge2.ogg", "Robotic challenge 2", "Opening sound of Overliege, Duplicant, R. Giskeel, Robert and The Machine; Attack or hit of Bigger Brother (Arena too)"],
       ["sounds/roboticimpact2.ogg", "Robotic impact 2", "Death sound of Overliege; Attack or hit of Berzerkoid, Duplicant, R. Giskeel and 3 more (Arena too)"],
       ["sounds/scifilaser1.ogg", "Sci-filaser 1", "Attack or hit of Berzerkoid, Kxitty, Marsling and 9 more (Arena too)"],
       ["sounds/scifimech1.ogg", "Sci-fimech 1", "Opening sound of Berzerkoid, Computer Virus; Death sound of Computer Virus; Attack or hit of Overliege, Bigger Brother, The Machine (Arena too)"],
-      ["sounds/scifimech2.ogg", "Sci-fimech 2", "Opening sound of Data Node; Death sound of Berzerkoid, Duplicant, R. Giskeel and 3 more; Attack or hit of Overliege, Skeletrox (Arena too)"],
+      ["sounds/scifimech2.ogg", "Sci-fimech 2", "Opening sound of Data Node; Death sound of Berzerkoid, Duplicant, R. Giskeel, Data Node, Mech Hound and Robert; Attack or hit of Overliege, Skeletrox (Arena too)"],
       ["sounds/scifiteleport2.ogg", "Sci-fiteleport 2", "Death sound of Monolisk; Attack or hit of Berzerkoid, Computer Virus, Data Node and 3 more (Arena too)"]
     ] },
     { name: "Plates, strings and squeaks", sounds: [
       ["sounds/plateattack2.ogg", "Plate attack 2", "Opening sound of Dish and Spoon; Attack or hit of Mad Hatter, Stepfield Wife (Arena too)"],
       ["sounds/plateattack3.ogg", "Plate attack 3", "Death sound of Dish and Spoon (Arena too)"],
-      ["sounds/plateattack4.ogg", "Plate attack 4", "Opening sound of Cold Porridge, Hot Porridge, Teacups and 1 more (Arena too)"],
+      ["sounds/plateattack4.ogg", "Plate attack 4", "Opening sound of Cold Porridge, Hot Porridge, Teacups and Teapot (Arena too)"],
       ["sounds/plateimpact4.ogg", "Plate impact 4", "Death sound of Teapot; Attack or hit of Dish and Spoon (Arena too)"],
       ["sounds/plateimpact5.ogg", "Plate impact 5", "Death sound of Cold Porridge, Hot Porridge, Teacups; Attack or hit of Dish and Spoon (Arena too)"],
       ["sounds/plateimpact6.ogg", "Plate impact 6", "Attack or hit of Dish and Spoon (Arena too)"],
       ["sounds/squeakymamattack1.ogg", "Squeaky mam attack 1", "Opening sound of Low Demon; Attack or hit of Dormouse, March Hare (Arena too)"],
       ["sounds/squeakymamattack2.ogg", "Squeaky mam attack 2", "Opening sound of Dormouse, Flamingo Hedgehog"],
-      ["sounds/squeakymamdie1.ogg", "Squeaky mamdie 1", "Death sound of Dormouse, March Hare, Flamingo Hedgehog and 1 more; Attack or hit of Mad Hatter (Arena too)"],
+      ["sounds/squeakymamdie1.ogg", "Squeaky mamdie 1", "Death sound of Dormouse, March Hare, Flamingo Hedgehog and Low Demon; Attack or hit of Mad Hatter (Arena too)"],
       ["sounds/stringattackfiddlebow.ogg", "String attack fiddle bow", "Opening sound of Fiddle; Attack or hit of Qin Demon, East King (Arena too)"],
       ["sounds/stringattackzither.ogg", "String attackzither", "Attack or hit of Qin Demon, East King"],
       ["sounds/stringdeath.ogg", "String death", "Death sound of Fiddle, Qin Demon"],
@@ -1201,8 +1201,8 @@ var ByopopSoundboards = {
     { name: "Attacks and impacts", sounds: [
       ["sounds/arrow_shot_01.ogg", "Arrow shot 1", "Attack or hit of Erlang Shen, Odysseus (Arena too)"],
       ["sounds/explosion1.ogg", "Explosion 1", "Attack or hit of Chicken, The Hen, Gingerbread House and 5 more"],
-      ["sounds/explosion3.ogg", "Explosion 3", "Attack or hit of The Hen, Gingerbread House, Radioactive Mutant Ape and 1 more (Arena too)"],
-      ["sounds/largeimpact_01.ogg", "Large impact 1", "Death sound of Stick Pig, Straw Pig, War Bear and 3 more; Attack or hit of Stuffy, Carpenter, Cat and 49 more"],
+      ["sounds/explosion3.ogg", "Explosion 3", "Attack or hit of The Hen, Gingerbread House, Radioactive Mutant Ape and Baby Trex (Arena too)"],
+      ["sounds/largeimpact_01.ogg", "Large impact 1", "Death sound of Stick Pig, Straw Pig, War Bear, Year Horse, Year Rooster and Moby Dick; Attack or hit of Stuffy, Carpenter, Cat and 49 more"],
       ["sounds/miscimpact1.ogg", "Misc impact 1", "Death sound of Ape, Mutant Ape; Attack or hit of Grandma, Sifu Sekkeen, Year of the Dog and 4 more (Arena too)"],
       ["sounds/miscimpact2.ogg", "Misc impact 2", "Death sound of Brick Pig; Attack or hit of Giant, Mrs. Sprat, Sifu Sekkeen and 4 more (Arena too)"],
       ["sounds/multiexplosion1.ogg", "Multiexplosion 1", "Death sound of The Machine"],
@@ -1268,14 +1268,14 @@ var ByopopSoundboards = {
       ["sounds/kubwa_barh.ogg", "Kubwa barh (unused)", "Never played: the file is not in the game's resource list, so nothing loads it. Also in Bookworm Adventures as Kubwa barh: attack or hit of Thieves 12-14 (Arena too)."],
       ["sounds/kubwa_greeting.ogg", "Kubwa greeting (unused)", "Never played: the file is not in the game's resource list, so nothing loads it. Also in Bookworm Adventures as Kubwa greeting: used in the Arena fights."],
       ["sounds/kubwa_greeting2.ogg", "Kubwa greeting 2 (unused)", "Never played: the file is not in the game's resource list, so nothing loads it. Also in Bookworm Adventures as Kubwa greeting 2: opening sound of Thieves 12-14 (Arena too)."],
-      ["sounds/lex_autological.ogg", "\"Autological\" (unused)", "Never played: loaded as LEX_AUTOLOGICAL, but no code or script asks for it. Also in Bookworm Adventures as \"Autological\": Lex says it in the animation of the Codex fight. Also in Bookworm Adventures as \"Autological\" (unused)."],
+      ["sounds/lex_autological.ogg", "\"Autological\" (unused)", "Never played: loaded as LEX_AUTOLOGICAL, but no code or script asks for it. The same recording as sounds/v_autological.ogg here, also never played. Also in Bookworm Adventures as \"Autological\": Lex says it in the animation of the Codex fight (and an unused copy, sounds/lex_autological.ogg)."],
       ["sounds/lexbeam.ogg", "Lex beam (unused)", "Never played: the file is not in the game's resource list, so nothing loads it. Also in Bookworm Adventures as Lex beam: Lex's beam animation in the fight with the Codex."],
       ["sounds/moan_01.ogg", "Moan 1 (unused)", "Never played: the file is not in the game's resource list, so nothing loads it. Also in Bookworm Adventures as Moan 1: death sound of Bandit, Sword Swallower, Highwayman."],
       ["sounds/nemesis_laugh.ogg", "Nemesis laugh (unused)", "Never played: the file is not in the game's resource list, so nothing loads it. Also in Bookworm Adventures as Nemesis laugh: the animation of Cassandra and the Nemesis laughs."],
       ["sounds/pulsing_attack_01.ogg", "Pulsing attack 1 (unused)", "Never played: listed as PULSING_ATTACK in book5.xml, but no script asks for it. Also in Bookworm Adventures as Pulsing attack 1: attack or hit of Circe, Dryad, Helead and 3 more (Arena too)."],
       ["sounds/roar_01.ogg", "Roar 1 (unused)", "Never played: the file is not in the game's resource list, so nothing loads it. Also in Bookworm Adventures as Roar 1: opening sound of Charybdis, Enchanted Lion, Phantom and 2 more."],
       ["sounds/sloooowdown.ogg", "Sloooowdown (unused)", "Never played: loaded as SLOWDOWN, but no code or script asks for it. Also in AstroPop as Slow down: the atomic pilot's power. Also in Bookworm Adventures as Slow down: a hidden word is spelled outside the mini-games."],
-      ["sounds/v_autological.ogg", "\"Autological\" (unused)", "Never played: the file is not in the game's resource list, so nothing loads it. Also in Bookworm Adventures as \"Autological\": Lex says it in the animation of the Codex fight. Also in Bookworm Adventures as \"Autological\" (unused)."],
+      ["sounds/v_autological.ogg", "\"Autological\" (unused)", "Never played: the file is not in the game's resource list, so nothing loads it. The same recording as sounds/lex_autological.ogg here, also never played. Also in Bookworm Adventures as \"Autological\": Lex says it in the animation of the Codex fight (and an unused copy, sounds/lex_autological.ogg)."],
       ["sounds/v_clipsandgiggles.ogg", "\"Clips and giggles\" (unused)", "Never played: loaded with the main menu's voices as MM_CNG, but no menu item's reaction uses it. Also in Bookworm Adventures as \"Clips and Giggles\": Lex reacts when the pointer moves onto the film reel item of the main menu."]
     ] }
   ] },
@@ -1401,8 +1401,8 @@ var ByopopSoundboards = {
     { name: "Hourglass and whirleys", sounds: [
       ["sounds/ticktock.ogg", "Tick tock", "Loops while the endless mode's hourglass has between 5 and 3 seconds left"],
       ["sounds/whirleysiren.ogg", "Whirley siren", "The hourglass passes 3 seconds left"],
-      ["sounds/xwhirleyscoming1.ogg", "Whirleys coming voice", "Endless: 2 seconds before the hourglass runs out Kroney calls; this and the second call alternate, one per hourglass"],
-      ["sounds/xwhirleyscoming2.ogg", "Whirleys coming voice 2", "Endless: 2 seconds before the hourglass runs out, on every second hourglass (the other calls alternate with the first)"],
+      ["sounds/xwhirleyscoming1.ogg", "\"Duhh... Whirley's coming\"", "Endless: 2 seconds before the hourglass runs out Kroney calls; this and the second call alternate, one per hourglass"],
+      ["sounds/xwhirleyscoming2.ogg", "\"Doy... Whirley's coming\"", "Endless: 2 seconds before the hourglass runs out, on every second hourglass (the other calls alternate with the first)"],
       ["sounds/xtimesrunningout.ogg", "\"Time's running out!\"", "Fossil Challenge (strategic and panic): 2 seconds before the hourglass runs out, once per hourglass"]
     ] },
     { name: "Fossils and the museum", sounds: [
@@ -1586,7 +1586,7 @@ var ByopopSoundboards = {
     groups: [
     { name: "Menus and dialogs", sounds: [
       ["sounds/click.ogg", "Click", "A button is pressed anywhere in the game; also the tutorial dialog's two demonstration clicks"],
-      ["sounds/levelupvoice.ogg", "Level up voice", "The next-level screen opens"]
+      ["sounds/levelupvoice.ogg", "\"Level up!\"", "The next-level screen opens"]
     ] },
     { name: "Picking animals", sounds: [
       ["sounds/select.ogg", "Select", "An animal is picked, an animal is joined to the picked one by a click or by the mouse dragging on, or a Puzzle animal is picked"],
@@ -1610,7 +1610,7 @@ var ByopopSoundboards = {
       ["sounds/winfrog.ogg", "Frog voice", "This animal is saved: a pair meets (not while the leftover animals are being abandoned), a Stampede group is taken, or a Puzzle run of three is found; also 1 time in 1750 each update for each animal of this kind waiting above the board to drop in"],
       ["sounds/winelephant.ogg", "Elephant voice", "This animal is saved: a pair meets (not while the leftover animals are being abandoned), a Stampede group is taken, or a Puzzle run of three is found; also 1 time in 1750 each update for each animal of this kind waiting above the board to drop in; also the tutorial's last step"],
       ["sounds/wincow.ogg", "Cow voice", "This animal is saved: a pair meets (not while the leftover animals are being abandoned), a Stampede group is taken, or a Puzzle run of three is found; also 1 time in 1750 each update for each animal of this kind waiting above the board to drop in"],
-      ["sounds/winhippo.ogg", "Hippo voice", "This animal is saved: a pair meets (not while the leftover animals are being abandoned), a Stampede group is taken, or a Puzzle run of three is found; also 1 time in 1750 each update for each animal of this kind waiting above the board to drop in"],
+      ["sounds/winhippo.ogg", "Hippo sound", "This animal is saved: a pair meets (not while the leftover animals are being abandoned), a Stampede group is taken, or a Puzzle run of three is found; also 1 time in 1750 each update for each animal of this kind waiting above the board to drop in"],
       ["sounds/winzebra.ogg", "Zebra voice", "This animal is saved: a pair meets (not while the leftover animals are being abandoned), a Stampede group is taken, or a Puzzle run of three is found; also 1 time in 1750 each update for each animal of this kind waiting above the board to drop in"],
       ["sounds/winmonkey.ogg", "Monkey voice", "This animal is saved: a pair meets (not while the leftover animals are being abandoned), a Stampede group is taken, or a Puzzle run of three is found; also 1 time in 1750 each update for each animal of this kind waiting above the board to drop in"],
       ["sounds/winmouse.ogg", "Mouse voice", "This animal is saved: a pair meets (not while the leftover animals are being abandoned), a Stampede group is taken, or a Puzzle run of three is found; also 1 time in 1750 each update for each animal of this kind waiting above the board to drop in"],
@@ -1660,7 +1660,7 @@ var ByopopSoundboards = {
       ["sounds/temple mouseover 01.ogg", "Puzzle hover", "The mouse comes onto a different puzzle's picture in a temple"],
       ["sounds/chain breaking 01.ogg", "Chain breaks", "A temple's puzzle screen opens with every puzzle but the last solved, the first time only; the chain on the last puzzle breaks"],
       ["sounds/pixelus hint screen v01.ogg", "Hint screen (unused)", "Never played: it is in the sound table, but no code asks for it"],
-      ["sounds/hint popup 01.ogg", "Hint popup (unused)", "Never played: it is in the sound table, but no code asks for it. Also in Hammer Heads Deluxe, as sounds/Hint Popup 01.ogg. Also in Hammer Heads Deluxe, as sounds/UI - Target Over Gnome.ogg."]
+      ["sounds/hint popup 01.ogg", "Hint popup (unused)", "Never played: it is in the sound table, but no code asks for it. Also in Hammer Heads Deluxe, as sounds/Hint Popup 01.ogg and sounds/UI - Target Over Gnome.ogg."]
     ] },
     { name: "Puzzles", sounds: [
       ["sounds/pixelus start of puzzle v02.ogg", "Puzzle starts", "The first update of a puzzle once the help screen is gone (it comes with the music of the puzzles, 150 updates later). Also in Hammer Heads Deluxe, as sounds/UI - Time Bonus.ogg."],
@@ -1794,12 +1794,14 @@ var ByopopSoundboards = {
       ["sounds/monster.ogg", "Sea monster", "A sea monster is hit by a shot, sails into the player's cell (and a life is lost) or into another ship, or sails onto a wreck (panned to the cell)"],
       ["sounds/sink.ogg", "Ship sinks", "The player's ship is hit or caught and a life is lost"]
     ] },
-    { name: "Scoring and level end", sounds: [
-      ["sounds/bonusship.ogg", "Extra ship", "The score passes another thousand and a life is added, whether by a ship or wreck's points or by a level's kill bonus"],
-      ["sounds/talkdavyjoneslocker.ogg", "\"Down to Davy Jones' locker\"", "At a level's end, once the pirate has finished appearing: one of the four voices, at random"],
-      ["sounds/talkarrmatey.ogg", "\"Arr, matey!\"", "At a level's end, once the pirate has finished appearing: one of the four voices, at random"],
-      ["sounds/talkwalktheplank.ogg", "\"Walk the plank!\"", "At a level's end, once the pirate has finished appearing: one of the four voices, at random"],
-      ["sounds/talklandlubber.ogg", "Landlubber voice", "At a level's end, once the pirate has finished appearing: one of the four voices, at random"]
+    { name: "Scoring", sounds: [
+      ["sounds/bonusship.ogg", "Extra ship", "The score passes another thousand and a life is added, whether by a ship or wreck's points or by a level's kill bonus"]
+    ] },
+    { name: "Game over", sounds: [
+      ["sounds/talkdavyjoneslocker.ogg", "\"Down to Davy Jones' locker\"", "The game is over, the last ship lost: once the pirate has finished appearing he says one of these four, at random"],
+      ["sounds/talkarrmatey.ogg", "\"Arr, matey!\"", "The game is over, the last ship lost: once the pirate has finished appearing he says one of these four, at random"],
+      ["sounds/talkwalktheplank.ogg", "\"Walk the plank!\"", "The game is over, the last ship lost: once the pirate has finished appearing he says one of these four, at random"],
+      ["sounds/talklandlubber.ogg", "\"Avast, ye landlubber\"", "The game is over, the last ship lost: once the pirate has finished appearing he says one of these four, at random"]
     ] },
     { name: "Bonus dig", sounds: [
       ["sounds/bonusdig.ogg", "Dig", "A square is dug on the bonus screen and no ghost is under it (panned by column)"],
@@ -1823,8 +1825,8 @@ var ByopopSoundboards = {
     { name: "Menus", sounds: [
       ["TipTop.dat|tiptop:sounds/splash.ogg", "\"Welcome to Tip Top\"", "The splash screen opens, as its loading bar starts"],
       ["TipTop.dat|tiptop:sounds/MouseOver.ogg", "Mouse over", "The pointer comes onto a button or check box; also onto the level summary's button"],
-      ["TipTop.dat|tiptop:sounds/MouseClick.ogg", "Mouse click", "A button is pressed, or Enter or Esc on a button that answers to that key; also a click or Enter on the level summary's button"],
-      ["TipTop.dat|tiptop:sounds/VolumeAdjust.ogg", "Volume test", "The sound volume slider is moved or its track is clicked, unless the sound is still playing; it plays at the new volume"]
+      ["TipTop.dat|tiptop:sounds/MouseClick.ogg", "Mouse click", "A button is pressed, or Enter or Esc on a button that answers to that key; also a click or Enter on the level summary's button. The same recording as Volume test."],
+      ["TipTop.dat|tiptop:sounds/VolumeAdjust.ogg", "Volume test", "The sound volume slider is moved or its track is clicked, unless the sound is still playing; it plays at the new volume. The same recording as Mouse click."]
     ] },
     { name: "Level start and end", sounds: [
       ["TipTop.dat|tiptop:sounds/GameStart.ogg", "Game start", "A game's first level begins (the level is the configured start level)"],
@@ -1836,8 +1838,8 @@ var ByopopSoundboards = {
     { name: "Matches", sounds: [
       ["TipTop.dat|tiptop:sounds/ColorMatch.ogg", "Match of 3", "A match of exactly three blocks that is the first of its chain"],
       ["TipTop.dat|tiptop:sounds/ColorMatchGroup4.ogg", "Match of 4", "A match of four blocks that is the first of its chain"],
-      ["TipTop.dat|tiptop:sounds/ColorMatchGroup5.ogg", "Match of 5", "A match of five blocks that is the first of its chain"],
-      ["TipTop.dat|tiptop:sounds/ColorMatchGroup6.ogg", "Match of 6 or more", "A match of six or more blocks that is the first of its chain"],
+      ["TipTop.dat|tiptop:sounds/ColorMatchGroup5.ogg", "\"Mega\"", "A match of five blocks that is the first of its chain"],
+      ["TipTop.dat|tiptop:sounds/ColorMatchGroup6.ogg", "\"Super\"", "A match of six or more blocks that is the first of its chain"],
       ["TipTop.dat|tiptop:sounds/ColorMatchCascade1.ogg", "\"Double!\"", "The second match of a chain, whatever its size"],
       ["TipTop.dat|tiptop:sounds/ColorMatchCascade2.ogg", "\"Triple!\"", "The third match of a chain, whatever its size"],
       ["TipTop.dat|tiptop:sounds/ColorMatchCascade3.ogg", "\"Quad!\"", "The fourth match of a chain, whatever its size"],
@@ -1902,7 +1904,7 @@ var ByopopSoundboards = {
       ["sounds/wave_bonus2.ogg", "Wave bonus 2", "A silver medal ends a wave (80 to 94 percent)"],
       ["sounds/wave_bonus3.ogg", "Wave bonus 3", "A gold medal ends a wave (95 percent or more); the first pair of clams is found in the clam bonus level"],
       ["sounds/wingem.ogg", "Gem", "A level is won (the diver is back at the bottom with the treasure); the treasure is shown in the clam bonus level or the streak minigame ends; a second or later pair of clams is found"],
-      ["sounds/treasure.ogg", "Treasure", "The diver's air gauge fills at the treasure and the streak minigame starts; a clam with treasure is opened with no other clam open"],
+      ["sounds/treasure.ogg", "Treasure", "The diver's air gauge fills at the treasure and the streak minigame starts; a clam with treasure is opened with no other clam open. Resembles Insaniquarium Deluxe's sounds/diamond.au, the same sound, mixed differently."],
       ["sounds/bad.ogg", "Bad clam", "A clam with no treasure finishes opening in the clam bonus level"],
       ["sounds/tone1.ogg", "Tone 1", "The streak minigame's 1st or 2nd word (the tone rises every two words)"],
       ["sounds/tone2.ogg", "Tone 2", "The streak minigame's 3rd or 4th word; the 1st bonus creature of a wave shocked"],
@@ -1999,9 +2001,9 @@ var ByopopSoundboards = {
       ["res/sounds/level_begin.wav", "Level begins", "The level's play starts, or a saved game is loaded back in"]
     ] },
     { name: "Balls", sounds: [
-      ["res/sounds/ball_rustle.wav", "Next ball shown", "Freematch only: the HUD shows the next ball's letters and the new-ball blossom, each time the next piece is shown"],
+      ["res/sounds/ball_rustle.wav", "Next ball shown", "Freematch only: the HUD shows the next ball's letters and the new-ball blossom, each time the next piece is shown. The same recording as Ball pops."],
       ["res/sounds/ball_rustle2.WAV", "Balls arrive", "A ball, a word's balls or a recycled word's balls are dropped in (not when set quiet)"],
-      ["res/sounds/ball_pop.wav", "Ball pops", "Each picked ball of a found word pops, one after the other"],
+      ["res/sounds/ball_pop.wav", "Ball pops", "Each picked ball of a found word pops, one after the other. The same recording as Next ball shown."],
       ["res/sounds/pop_wind.WAV", "Word found", "A word is accepted and scored"]
     ] },
     { name: "Bonuses", sounds: [

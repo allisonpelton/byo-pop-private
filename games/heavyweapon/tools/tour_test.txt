@@ -1,0 +1,68 @@
+# The check suite's tour of Heavy Weapon Deluxe (tools/check.sh heavyweapon): the intro ended by a click, the title, the
+# main menu, the high scores, the credits, the help, a campaign from the map through the first game's help screen and play
+# tip to level 1 (fired on, the waves ended and the boss beaten with `win`), the results and the armory, then level 5 lost
+# to the game-over box, its QUIT, survival lost the same way, and the options. @DIR@ is the run's folder (check.sh
+# replaces it). Run with -fast -seed=1: the updates are the game's own, so every run gives the same screens.
+5 click 320 240
+10 click 320 240
+200 screenshot @DIR@/title.png
+201 state
+300 goto menu
+400 screenshot @DIR@/menu.png
+401 state
+500 goto highscores
+600 screenshot @DIR@/highscores.png
+601 state
+700 goto credits
+900 screenshot @DIR@/credits.png
+901 state
+1000 goto help
+1100 screenshot @DIR@/help.png
+1101 state
+1200 goto campaign
+1300 screenshot @DIR@/map.png
+1301 state
+1500 click 160 452
+1690 screenshot @DIR@/firsthelp.png
+1691 state
+1700 click 560 462
+1710 move 320 200
+1720 down 420 160
+2400 screenshot @DIR@/game.png
+2401 state
+3000 up 420 160
+3100 screenshot @DIR@/tip.png
+3101 state
+3110 click 320 335
+3120 move 320 200
+3130 win
+4300 screenshot @DIR@/boss.png
+4301 state
+4310 win
+5300 screenshot @DIR@/results.png
+5301 state
+5400 click 562 442
+5500 screenshot @DIR@/armory.png
+5501 state
+5600 level 5
+5800 screenshot @DIR@/level5.png
+5801 state
+6100 lose
+6600 screenshot @DIR@/gameover.png
+6601 state
+6700 click 395 310
+6800 screenshot @DIR@/afterquit.png
+6801 state
+6900 goto survival
+7100 screenshot @DIR@/survival.png
+7101 state
+7300 lose
+7800 screenshot @DIR@/survivalover.png
+7801 state
+7900 click 395 320
+8000 screenshot @DIR@/aftersurvival.png
+8001 state
+8100 goto options
+8200 screenshot @DIR@/options.png
+8201 state
+8300 quit

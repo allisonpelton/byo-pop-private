@@ -497,14 +497,18 @@ never with invented titles. A game's session sets these from its code:
 - `unused`: the tunes the game's code never plays.
 - `cuts` and `chains`: tracks split and grouped as the game plays them (the user, 2026-11-11: "Group and split").
   `cuts` splits a subsong where the game's code starts a different tune partway through it, the second piece being
-  `"<file>#<n>@<order>"`; `chains` makes one track of parts the game only ever plays as jumps inside one tune.
+  `"<file>#<n>@<order>"`; `chains` makes one track of parts the game only ever plays as jumps inside one tune. `starts`
+  is for an order the game also starts a subsong at while the tune before plays on through it in a long game (no seam:
+  Bejeweled 2's Action Mode starts at order 122, which Classic Mode reaches after about 18 minutes): the piece from there
+  is a track, and the subsong stays whole (the user's seam review, 2026-11-12: "I hear no seam").
 - `level`: "Music levels".
 
 **The decoder** is the games' own two module renderers, built for the web as `openmpt.js` and `openmpt.wasm` (target
 `byopop_openmpt`) and picked as `Platform::Mixer` picks them, so a tune sounds as it does in its game.
 
 **The player's rules**, from the user: long silent endings are skipped (the user's notes, 2026-11-10: "Some of the
-short tracks have a bunch of dead air at the end, where the tracker slows to a crawl"; `trimEnd`); only the playlist
+short tracks have a bunch of dead air at the end, where the tracker slows to a crawl"; `trimEnd`), the first piece of a cut subsong too (Twist's Game Over: a 3.5-second jingle,
+then the module's own 13 seconds of silence before the cut); only the playlist
 scrolls (2026-11-09); closing the window stops the music and frees what it held (2026-11-09;
 `ByopopMusicPanel.held()` tells a test what is still held).
 
@@ -645,7 +649,8 @@ off and with it on.
   board of its own: Rocket Mania Deluxe);
 - `id`: the block's game id;
 - `modes` and `skills`: the names behind the block's numbers;
-- `deaths`: what each of the four death kinds is (each one a reset setting, as in Bejeweled);
+- `deaths`: what each of the four death kinds is (each one a reset setting, as in Bejeweled; one with `goesOn` is no end of the
+  run, as Venice's sunk Flood building, played again on the same board);
 - `templates`: one per speedrun.com category and subcategory (the site's own where there is no board), each with `mode` and `skill` (none for any, or a
   list of the allowed ones), its segments, and `end`, how the run finishes:
   - `levels N` (the Nth level clear);
@@ -715,7 +720,12 @@ fired (its GO, after the shot and not at the click) to the board cleared, its wi
 is the game's updates from that GO. Fossil Challenge, Strategic or Panic, splits at each fossil found (the third fragment
 off the bottom) and ends at the fifteenth, its win. Tutorial splits at each mode's part and ends at the main menu with
 every part done; that win comes in the update the tutorial closes. The board's Easy, Normal and Hard are the game's Normal,
-Hard and Expert. Leaving a game is a game over of its own kind. Big Money has no board, so its row is its native
+Hard and Expert. Leaving a game is a game over of its own kind. Venice Deluxe (speedrun.com: Venice): a board is one pass through a mode, from its click on the mode menu to the main menu.
+Journey and Flood run from the click away from the world map before building 1 in a new game (the tutorial is not timed),
+split at each building cleared and end at the map's CONGRATULATIONS! after building 71, its win; a Journey game out of
+tries resets, a sunk Flood building is played again and the run goes on. Trick Shots runs from the click on the mode to
+the win scene with every trick shot made. A continued game starts nothing. The board's per-level Journey and Flood
+categories have no template. Big Money has no board, so its row is its native
 script's rules, with mode and skill in the category's name and levels or scores as segments. Both replay their native
 scripts' scenarios in `tools/autosplittest.js`. Every other game with a board gets its row in Milestone 3, from the
 speedrun.com categories and its session's answer on where in its code GO, a level clear, a game over and a win happen.

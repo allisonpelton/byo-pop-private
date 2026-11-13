@@ -519,10 +519,12 @@
     },
     "heavyweapon": {
       "title": "Heavy Weapon Deluxe",
-      "done": [],
+      "done": [
+        "port"
+      ],
       "na": [],
-      "now": "port",
-      "note": "started 2026-11-12 (Opus): the port and phase one (plays identical); the later steps wait for the user"
+      "now": "identical-play",
+      "note": "playable natively and in the browser: campaign (19 levels and bosses), survival, the cutscenes through engines/swf, MO3 music; phase one has started"
     },
     "hammerheads": {
       "title": "Hammer Heads Deluxe",

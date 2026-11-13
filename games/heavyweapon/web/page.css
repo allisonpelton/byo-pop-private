@@ -1,0 +1,5 @@
+/* Heavy Weapon Deluxe's look on the shared page (web/shell.html): the olive of its tank, a red star for the brand mark */
+:root { --accent: #4f6a2a; --star: #c8261d; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --accent: #a5c46f; } }
+:root[data-theme="dark"] { --accent: #a5c46f; }
+.brand .mark { width: 14px; height: 14px; background: var(--star); clip-path: polygon(50% 0, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%); }

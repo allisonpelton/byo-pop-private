@@ -1,0 +1,330 @@
+#ifndef __HEAVYWEAPON_RES_H__
+#define __HEAVYWEAPON_RES_H__
+
+// The game's resource tables, as the original keeps them in its .rdata:
+// - images (0x527820): 157 entries of {char file[0x28]; int columns; int rows; bool alphaMask}. The app loads image i
+//   into its Sprite at +0x688 + 4i (HeavyWeaponApp::mSprites): 0..10 in Init, the rest in LoadingThreadProc. 12..16 are
+//   the level's backgrounds, loaded again for every level (HeavyWeaponApp::LoadLevelBackgrounds). An entry with
+//   alphaMask set gets the byte mask the pixel collision tests read (Sprite::GetAlphaMask).
+// - sounds (0x529808): 92 entries of {char file[0x10]; double baseVolume}, sound id i; 0 is loaded in Init, the rest
+//   in LoadingThreadProc.
+// - fonts (0x5273d0): 8 entries of char[0x1e], loaded from Fonts\<name>.txt into HeavyWeaponApp::mFonts.
+// - music (0x5274c0): 6 entries of {char file[0x28]; int order}: the song id i plays the file from that order.
+
+namespace Sexy
+{
+
+enum ImageId
+{
+	IMAGE_TITLE,					// 0
+	IMAGE_ATOMICTANK,				// 1
+	IMAGE_LOADINGFRAME,			// 2
+	IMAGE_LOADINGINSIDE,			// 3
+	IMAGE_LOADINGSLIDER,			// 4
+	IMAGE_LOADINGBULLET,			// 5
+	IMAGE_LOADINGGLOW,				// 6
+	IMAGE_CURSOR_DRAGGING,			// 7
+	IMAGE_CURSOR_HAND,				// 8
+	IMAGE_CURSOR_POINTER,			// 9
+	IMAGE_CURSOR_TEXT,				// 10
+	IMAGE_STATUSBAR,				// 11
+	IMAGE_LEVEL_SKY,			// 12
+	IMAGE_LEVEL_BG,			// 13
+	IMAGE_LEVEL_BG2,			// 14
+	IMAGE_LEVEL_MAP,			// 15
+	IMAGE_LEVEL_GROUND,			// 16
+	IMAGE_TANK,					// 17
+	IMAGE_TANKSHADOW,				// 18
+	IMAGE_GUN,						// 19
+	IMAGE_BULLETS,					// 20
+	IMAGE_ROTORS,					// 21
+	IMAGE_SPARK,					// 22
+	IMAGE_DUMBBOMB,				// 23
+	IMAGE_LGB,						// 24
+	IMAGE_HELLFIRE,				// 25
+	IMAGE_CRATER,					// 26
+	IMAGE_ROCK,					// 27
+	IMAGE_TANKFLAME,				// 28
+	IMAGE_NUKEICON,				// 29
+	IMAGE_MUZZLEFLASH,				// 30
+	IMAGE_POWERUPS,				// 31
+	IMAGE_SHIELD,					// 32
+	IMAGE_SHIELDZAP,				// 33
+	IMAGE_SMOKE,					// 34
+	IMAGE_DIALOG,					// 35
+	IMAGE_FRAGBOMB,				// 36
+	IMAGE_BOMBFRAG,				// 37
+	IMAGE_MISSILE,					// 38
+	IMAGE_FLAKFLASH,				// 39
+	IMAGE_BUTTONBRACKET,			// 40
+	IMAGE_BUTTON,					// 41
+	IMAGE_BUTTONGLOW,				// 42
+	IMAGE_SLIDERTRACK,				// 43
+	IMAGE_SLIDERTHUMB,				// 44
+	IMAGE_CHECKED,					// 45
+	IMAGE_UNCHECKED,				// 46
+	IMAGE_TRACKS,					// 47
+	IMAGE_GASSTATION,				// 48
+	IMAGE_GASSIGN,					// 49
+	IMAGE_GASPUMP,					// 50
+	IMAGE_ARMORY,					// 51
+	IMAGE_UPGRADES,				// 52
+	IMAGE_LASERGLARE,				// 53
+	IMAGE_ROCKET,					// 54
+	IMAGE_UPGRADEGLOW,				// 55
+	IMAGE_IRONBOMB,				// 56
+	IMAGE_PUPCOPTER,				// 57
+	IMAGE_PUPROTOR,				// 58
+	IMAGE_CRATES,					// 59
+	IMAGE_CASING,					// 60
+	IMAGE_SATLASER,				// 61
+	IMAGE_DONTSHOOT,				// 62
+	IMAGE_BEAM,					// 63
+	IMAGE_BEAMFIRE,				// 64
+	IMAGE_BEAMFRINGE,				// 65
+	IMAGE_ENEMYGUN,				// 66
+	IMAGE_ENEMYTANKSHADOW,			// 67
+	IMAGE_UPGRADEBUBBLE,			// 68
+	IMAGE_ARMORYGLOW,				// 69
+	IMAGE_BOLT,					// 70
+	IMAGE_STATICSPARK,				// 71
+	IMAGE_STATICGLOW,				// 72
+	IMAGE_MEGAMETER,				// 73
+	IMAGE_MAINMENU,				// 74
+	IMAGE_MAINSMALLBTN,			// 75
+	IMAGE_MAINBIGBTN,				// 76
+	IMAGE_MAP,						// 77
+	IMAGE_MISSION1,				// 78
+	IMAGE_MISSION2,				// 79
+	IMAGE_MISSION3,				// 80
+	IMAGE_MISSION4,				// 81
+	IMAGE_MISSION5,				// 82
+	IMAGE_MISSION6,				// 83
+	IMAGE_MISSION7,				// 84
+	IMAGE_MISSION8,				// 85
+	IMAGE_MISSION9,				// 86
+	IMAGE_MISSION10,				// 87
+	IMAGE_UPGRADEBTNS,				// 88
+	IMAGE_MAINGLOW,				// 89
+	IMAGE_TANKICON,				// 90
+	IMAGE_MAPPOINTER,				// 91
+	IMAGE_MEGALASER,				// 92
+	IMAGE_MAPRECT,					// 93
+	IMAGE_REINFORCEMENT,			// 94
+	IMAGE_LARGEINSIGNIA,			// 95
+	IMAGE_SMALLINSIGNIA,			// 96
+	IMAGE_NUKEBG,					// 97
+	IMAGE_FIRE,					// 98
+	IMAGE_ORB,						// 99
+	IMAGE_RPG,						// 100
+	IMAGE_EXPLOSION,				// 101
+	IMAGE_BLIMPPROP,				// 102
+	IMAGE_HELP,					// 103
+	IMAGE_MOUSE,					// 104
+	IMAGE_MILEMARKER,				// 105
+	IMAGE_MILETEXT,				// 106
+	IMAGE_TANKFLASH,				// 107
+	IMAGE_HEADMISSILE,				// 108
+	IMAGE_SANDDUST,				// 109
+	IMAGE_BOULDER,					// 110
+	IMAGE_AIRMINE,					// 111
+	IMAGE_METEORITE,				// 112
+	IMAGE_BIGDEBRIS,				// 113
+	IMAGE_FATBOY,					// 114
+	IMAGE_FATBOYFLASH,				// 115
+	IMAGE_ROCKETPOD,				// 116
+	IMAGE_FLAKGUNS,				// 117
+	IMAGE_LASERS,					// 118
+	IMAGE_STATICSTRIKE,			// 119
+	IMAGE_HOMING,					// 120
+	IMAGE_UPGRADELVL,				// 121
+	IMAGE_LASERBURN,				// 122
+	IMAGE_STATUSCOVERS,			// 123
+	IMAGE_BURSTROCKET,				// 124
+	IMAGE_MOON,					// 125
+	IMAGE_MUSHFIRE,				// 126
+	IMAGE_MUSHSMOKE,				// 127
+	IMAGE_MEDROTOR,				// 128
+	IMAGE_DOZERSHADOW,				// 129
+	IMAGE_DEFLECTSHIELD,			// 130
+	IMAGE_CREDITS,					// 131
+	IMAGE_ATMENU,					// 132
+	IMAGE_DANGER,					// 133
+	IMAGE_ADVANCEBTN,				// 134
+	IMAGE_BULLETGLOW,				// 135
+	IMAGE_PROPFIGHTER,				// 136
+	IMAGE_SMALLJET,				// 137
+	IMAGE_BOMBER,					// 138
+	IMAGE_JETFIGHTER,				// 139
+	IMAGE_TRUCK,					// 140
+	IMAGE_BIGBOMBER,				// 141
+	IMAGE_SMALLCOPTER,				// 142
+	IMAGE_MEDCOPTER,				// 143
+	IMAGE_BIGCOPTER,				// 144
+	IMAGE_DELTABOMBER,				// 145
+	IMAGE_DELTAJET,				// 146
+	IMAGE_BIGMISSILE,				// 147
+	IMAGE_SUPERBOMBER,				// 148
+	IMAGE_FATBOMBER,				// 149
+	IMAGE_BLIMP,					// 150
+	IMAGE_SATELLITE,				// 151
+	IMAGE_STRAFER,					// 152
+	IMAGE_ENEMYTANK,				// 153
+	IMAGE_DOZER,					// 154
+	IMAGE_DEFLECTOR,				// 155
+	IMAGE_CRUISE,					// 156
+	NUM_IMAGES
+};
+
+// The images Init loads before the loading screen shows (the rest are the loading thread's)
+const int NUM_INIT_IMAGES = IMAGE_STATUSBAR;
+
+enum SoundId
+{
+	SOUND_GUNPOWERUP,			// 0
+	SOUND_TANKFIRE,			// 1
+	SOUND_TANKFIRE1,			// 2
+	SOUND_TANKFIRE2,			// 3
+	SOUND_TANKFIRE3,			// 4
+	SOUND_TANKFIRE4,			// 5
+	SOUND_BIGEXPLODE,			// 6
+	SOUND_SMALLEXPLODE,		// 7
+	SOUND_BOMBFALL,			// 8
+	SOUND_BULLETHIT,			// 9
+	SOUND_TANKEXPLODE,			// 10
+	SOUND_MISSILE,				// 11
+	SOUND_NUKEBLAST,			// 12
+	SOUND_POWERUP,				// 13
+	SOUND_SPARKING,			// 14
+	SOUND_LASER,				// 15
+	SOUND_BOSSBLAST,			// 16
+	SOUND_BUTTONDOWN,			// 17
+	SOUND_BUTTONUP,			// 18
+	SOUND_SMALLMISSILE,		// 19
+	SOUND_TANKLASER,			// 20
+	SOUND_DENIED,				// 21
+	SOUND_STATS,				// 22
+	SOUND_ALERT,				// 23
+	SOUND_PUPCOPTER,			// 24
+	SOUND_STAR,				// 25
+	SOUND_LASERPOWERUP,		// 26
+	SOUND_SATLASER,			// 27
+	SOUND_SAT1,				// 28
+	SOUND_SAT2,				// 29
+	SOUND_SAT3,				// 30
+	SOUND_SAT4,				// 31
+	SOUND_SAT5,				// 32
+	SOUND_SAT6,				// 33
+	SOUND_SAT7,				// 34
+	SOUND_SHORTKEY,			// 35
+	SOUND_LONGKEY,				// 36
+	SOUND_FRIENDLY1,			// 37
+	SOUND_FRIENDLY2,			// 38
+	SOUND_FRIENDLY3,			// 39
+	SOUND_FRIENDLYDIE,			// 40
+	SOUND_MEGALASER,			// 41
+	SOUND_ENEMYTANKGUN,		// 42
+	SOUND_SHORTING,			// 43
+	SOUND_STATICHIT,			// 44
+	SOUND_STATICSHOT,			// 45
+	SOUND_MEGALASER_OUT,		// 46
+	SOUND_MEGALASER_START,		// 47
+	SOUND_MEGALASER_STOP,		// 48
+	SOUND_MAPOVER,				// 49
+	SOUND_STARSMASH,			// 50
+	SOUND_ENERGYFIRE,			// 51
+	SOUND_STATBEEP,			// 52
+	SOUND_REINFORCEMENTS,		// 53
+	SOUND_ENEMYFIRE,			// 54
+	SOUND_V_ATOMICTANK,		// 55
+	SOUND_V_GAMEOVER,			// 56
+	SOUND_V_GETREADY,			// 57
+	SOUND_V_LEVELCOMPLETE,		// 58
+	SOUND_V_MEGALASER,			// 59
+	SOUND_V_PREPARE,			// 60
+	SOUND_V_DANGER,			// 61
+	SOUND_V_WAFFLE,			// 62
+	SOUND_MEGAUP1,				// 63
+	SOUND_MEGAUP2,				// 64
+	SOUND_MEGAUP3,				// 65
+	SOUND_MEGAUP4,				// 66
+	SOUND_ORBHIT,				// 67
+	SOUND_FLAK,				// 68
+	SOUND_AIRRAID,				// 69
+	SOUND_ROBOTSMASH,			// 70
+	SOUND_ROBOTLASER,			// 71
+	SOUND_EARTHQUAKE,			// 72
+	SOUND_AIRMINE,				// 73
+	SOUND_METEOR,				// 74
+	SOUND_TRACTORBEAM,			// 75
+	SOUND_DIESEL,				// 76
+	SOUND_AIRBRAKE,			// 77
+	SOUND_CHAIN,				// 78
+	SOUND_BIGTHUD,				// 79
+	SOUND_THUNDER,				// 80
+	SOUND_BOLTCHARGE,			// 81
+	SOUND_JETDIVE,				// 82
+	SOUND_DEFLECT,				// 83
+	SOUND_BOSSCOPTER,			// 84
+	SOUND_SWOOSH,				// 85
+	SOUND_BOSSLASER,			// 86
+	SOUND_BOSSLASERBLAST,		// 87
+	SOUND_SHIELDUP,			// 88
+	SOUND_SHIELDDOWN,			// 89
+	SOUND_UPGRADE,				// 90
+	SOUND_SPEEDUP,				// 91
+	NUM_SOUNDS
+};
+
+enum FontId
+{
+	FONT_RUBBERSTAMPLET42,		// 0
+	FONT_RUBBERSTAMPLET20,		// 1
+	FONT_NORMAL,		// 2
+	FONT_STATIONFONT,		// 3
+	FONT_OUTLINE,		// 4
+	FONT_COMPUTER,		// 5
+	FONT_KEYPUNCH16,		// 6
+	FONT_OUTLINED,		// 7
+	NUM_FONTS
+};
+
+enum SongId
+{
+	SONG_LOVE_THEME,		// LoveTheme.ogg
+	SONG_ATOMIC_TANK_0,		// AtomicTank.mo3 from order 0
+	SONG_ATOMIC_TANK_42,	// from order 0x2a
+	SONG_ATOMIC_TANK_59,	// from order 0x3b
+	SONG_ATOMIC_TANK_73,	// from order 0x49
+	SONG_ATOMIC_TANK_79,	// from order 0x4f
+	NUM_SONGS
+};
+
+struct ImageInfo
+{
+	const char*	mFile;
+	int			mColumns;
+	int			mRows;
+	bool		mAlphaMask;
+};
+
+struct SoundInfo
+{
+	const char*	mFile;
+	double		mBaseVolume;
+};
+
+struct SongInfo
+{
+	const char*	mFile;
+	int			mOrder;
+};
+
+extern const ImageInfo	gImageInfo[NUM_IMAGES];		// 0x527820
+extern const SoundInfo	gSoundInfo[NUM_SOUNDS];		// 0x529808
+extern const char* const gFontNames[NUM_FONTS];	// 0x5273d0
+extern const SongInfo	gSongInfo[NUM_SONGS];		// 0x5274c0
+
+}
+
+#endif

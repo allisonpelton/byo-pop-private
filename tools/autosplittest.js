@@ -391,6 +391,21 @@ var dyFossil = ["u=0 seq=1 active=1 flags=00 board=0 go=0/0 over=0/0 deaths=0,0,
 for (var dy = 0; dy <= 15; dy++) dyFossil.push("u=" + (dy + 1) + " seq=1 active=1 flags=04 board=1 go=1/1 over=0/0 deaths=0,0,0,0 mode=3 skill=2 ingame=1 progress=" + 3 * dy + " blc=" + dy + " wins=" + (dy === 15 ? "1/1" : "0/0"));
 check(blockReplay("dynomite", "Fossil Challenge - Panic", dyFossil) === "start; " + splits(15), "Dynomite Fossil Challenge: 15 fossils, 15 splits");
 check(blockReplay("dynomite", "Fossil Challenge - Panic", dyFossil.slice(0, 16)) === "start; " + splits(14), "Dynomite Fossil Challenge: the 14th fossil is not the end");
+// Venice: its block logs (tools/autosplit/venice/, the port's -livesplitlog games from its run_tests.py; a line at each change)
+function vnLog(name) { return fs.readFileSync(path.join(__dirname, "autosplit", "venice", name + ".block.log"), "utf8").split(/\r?\n/); }
+check(blockReplay("venice", "Journey", vnLog("journey")) === "start; split; reset resetJourney",
+      "Venice Journey: from the click away from the map, building 1 splits, the tries running out resets");
+check(blockReplay("venice", "Flood", vnLog("flood")) === "start; split" && blockReplay("venice", "Journey", vnLog("flood")) === "",
+      "Venice Flood: building 1 splits, a sunk building is played again and the run goes on; Journey's category ignores it");
+check(blockReplay("venice", "Trick Shots", vnLog("trickshot")) === "start; reset resetQuit", "Venice Trick Shots: from the click on the mode, the menu resets");
+check(blockReplay("venice", "Journey", vnLog("continue")) === "" && blockReplay("venice", "Journey", vnLog("congratulations")) === "" &&
+      blockReplay("venice", "Journey", vnLog("survival")) === "", "Venice: a continued game and Survival start nothing");
+check(blockReplay("venice", "Journey", vnLog("newgame")) === "start; reset resetQuit", "Venice: new game on the continue prompt starts a run");
+// (the CONGRATULATIONS! log as a new game's: its GO at the board's first write, no RESUMED)
+var vnWin = vnLog("congratulations").map(function (l) {
+  return / board=1 /.test(l) ? l.replace(/flags=(1?)06 /, "flags=$104 ").replace("go=0/0", "go=1/1") : l;
+});
+check(blockReplay("venice", "Journey", vnWin) === "start; " + splits(71), "Venice Journey: the map's CONGRATULATIONS! ends the run in any building");
 
 console.log("autosplittest: " + (fx.cases.length + bm.cases.length + bw.cases.length) + " scenario replays, " + checks + " checks, " + fails + " failed");
 process.exit(fails ? 1 : 0);
