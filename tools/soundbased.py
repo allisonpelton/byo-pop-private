@@ -26,7 +26,11 @@ both ways at the best place; the one held more is the base, and a pair is listed
 other. The user's turned-down Bejeweled 3 pairs (speedmatch1 to 9 against Bejeweled 2's combo32 and Twist's combo_2, the
 first tenth of a second shared and a tone that climbs a step a level laid on top) score 0.51 to 0.74, the pairs the user
 called similar 0.65 to 0.94, and two noisy controls that share nothing (firework against a car door, a stats chime) 0.43
-and 0.44, which is what sets the line at 0.50. Then the reasons, read from the two sounds lined up:
+and 0.44, which is what sets the line at 0.50. The derived sound must also give at least 0.15 back (its own peaks held
+in the base, above chance): a sound with few peaks, a pure tone above all, is held in almost any busy sound at one of the
+65 speeds and some pitch, while the busy sound gives nearly nothing back (0.00 to 0.09 in a sample of 250 clips, where
+those made nine pairs in ten of the first run's); the pairs the user judged give 0.24 back and up. A short sound buried
+in a much longer one is missed for it. Then the reasons, read from the two sounds lined up:
 
   pitched    the pitch offset, as a percentage, from two quarter-tone steps (5.9%) up; one step is within the peaks' play
   sped       the speed, when it is not the pitch's own (a resampled sound's speed follows its pitch; a sped-up one's does not)
@@ -40,7 +44,10 @@ Results: build/soundmatch/based.json and based.txt, for tools/web/soundcompare.h
 rejects each one; nothing goes on a board until then. --test scores the pairs the user already judged
 (testnotes/AH-decisions.json) and says how many of the turned-down Bejeweled 3 pairs come out as "based on".
 
-  python tools/soundbased.py [--assets DIR] [--extra NAME=DIR ...] [--test] [--min 0.50]
+  python tools/soundbased.py [--assets DIR] [--extra NAME=DIR ...] [--test] [--min 0.50] [--back 0.15]
+  python tools/soundbased.py --refilter [--min 0.50] [--back 0.15]    (the last run's pairs again, at new lines)
+
+based-all.json keeps every pair at --min with no back line, which --refilter reads.
 """
 import argparse
 import json
@@ -493,7 +500,7 @@ def name(c):
     return "%s:%s" % (c.game, c.ref)
 
 
-def test(pr, threshold):
+def test(pr, threshold, back_line=0.15):
     d = json.load(open(DECISIONS, encoding="utf-8"))
     at = {name(c): n for n, c in enumerate(pr.clips)}
     rows = []
@@ -512,7 +519,7 @@ def test(pr, threshold):
         base, der, holds, back, speed, dt0, df0 = r
         why, facts = reasons(pr, base, der, speed, dt0, df0)
         checked = (min(i, j), max(i, j)) in cand
-        rows.append((verdict, k, "%s %.2f/%.2f base %s; %s" % (("BASED" if checked else "UNCHECKED") if holds >= threshold else "-", holds, back,
+        rows.append((verdict, k, "%s %.2f/%.2f base %s; %s" % (("BASED" if checked else "UNCHECKED") if holds >= threshold and back >= back_line else "-", holds, back,
                                                                 name(pr.clips[base]), ", ".join(why) or "-") +
                      ("  %s" % facts if os.environ.get("FACTS") else "")))
     for r in rows:
@@ -531,8 +538,14 @@ def main():
     ap.add_argument("--assets")
     ap.add_argument("--extra", action="append", default=[])
     ap.add_argument("--test", action="store_true", help="score the pairs the user has judged")
-    ap.add_argument("--min", type=float, default=0.50, help="the share of the base's hashes the derived must hold")
+    ap.add_argument("--min", type=float, default=0.50, help="the share of the base's peaks the derived must hold")
+    ap.add_argument("--back", type=float, default=0.15, help="the share of the derived's peaks the base must hold")
+    ap.add_argument("--refilter", action="store_true", help="filter the last run's based.json at these lines")
     a = ap.parse_args()
+    if a.refilter:
+        out = json.load(open(os.path.join(sm.OUT, "based-all.json"), encoding="utf-8"))
+        write([h for h in out if h["holds"] >= a.min and h["back"] >= a.back])
+        return
     if a.assets:
         vl.ASSETS = os.path.abspath(a.assets)
     clips = sm.load_clips(a.extra)
@@ -542,7 +555,7 @@ def main():
     pr = Prints(clips)
     print("indexed %d clips, %d hashes" % (len(pr.clips), len(pr.key)), flush=True)
     if a.test:
-        test(pr, a.min)
+        test(pr, a.min, a.back)
         return
     out = []
     looks = {}
@@ -563,6 +576,11 @@ def main():
     if os.path.exists(mf):
         same = {frozenset([name_d(h["a"]), name_d(h["b"])]) for h in json.load(open(mf, encoding="utf-8"))}
         out = [h for h in out if frozenset([name_d(h["base"]), name_d(h["derived"])]) not in same]
+    json.dump(out, open(os.path.join(sm.OUT, "based-all.json"), "w", encoding="utf-8"), indent=1, ensure_ascii=False)
+    write([h for h in out if h["back"] >= a.back])
+
+
+def write(out):
     out.sort(key=lambda h: -h["holds"])
     json.dump(out, open(os.path.join(sm.OUT, "based.json"), "w", encoding="utf-8"), indent=1, ensure_ascii=False)
     with open(os.path.join(sm.OUT, "based.txt"), "w", encoding="utf-8") as f:
