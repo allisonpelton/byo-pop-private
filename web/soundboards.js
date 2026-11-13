@@ -653,20 +653,30 @@ var ByopopSoundboards = {
       { name: "Blocker Fallout", when: "A word takes a blocker off the shelf", steps: [["Sound/Word_04", 0], ["Sound/Blocker_Fallout", 810, {"v": -378}]]}
     ],
     groups: [
-    { name: "Buttons and menus", sounds: [
+    { name: "The logo and buttons", sounds: [
+      ["Sound/Logo.ogg", "Logo", "The logo screen's first update, 20 ms later (it plays once as the logo screen starts, before the title)"],
       ["Sound/Button_Press.ogg", "Button press", "A button without a sound of its own is pressed. The same recording as Tile placed 2."],
       ["Sound/Button_Release.ogg", "Button release", "A button without a sound of its own is released. The same recording as Tile placed 3."],
       ["Sound/Button2_Press.ogg", "Round button press", "A button is pressed on the options menu, the player list and the new-player name box"],
       ["Sound/Button2_Release.ogg", "Round button release", "A button is released on the options menu, the player list and the new-player name box"],
       ["Sound/PaperButton_Press.ogg", "Paper button press", "A button is pressed on the dialogs, the help arrows, the high scores, the story and the interstitial screens"],
       ["Sound/PaperButton_Release.ogg", "Paper button release", "A button is released on the dialogs, the help arrows, the high scores, the story and the interstitial screens"],
-      ["Sound/Checkbox_Press.ogg", "Check box press", "A check box is pressed, or the sound volume slider is let go (full volume)"],
-      ["Sound/Logo.ogg", "Logo", "The logo screen's first update, 20 ms later (it plays once as the logo screen starts, before the title)"],
+      ["Sound/Checkbox_Press.ogg", "Check box press", "A check box is pressed, or the sound volume slider is let go (full volume)"]
+    ] },
+    { name: "The main menu's picture", sounds: [
       ["Sound/Bell.ogg", "Shop bell", "The bell area of the main menu's picture is clicked, every click (full volume)"],
-      ["Sound/CashRegister.ogg", "Cash register", "The cash register area of the main menu's picture is clicked, every click (full volume)"],
+      ["Sound/CashRegister.ogg", "Cash register", "The cash register area of the main menu's picture is clicked, every click (full volume)"]
+    ] },
+    { name: "The typewriter and the story", sounds: [
       ["Sound/type_01.ogg", "Typewriter key 1", "The main menu's typewriter is clicked (85% volume), or a letter of the story is typed (45%): a 1 in 3 draw among the three keys"],
       ["Sound/type_02.ogg", "Typewriter key 2", "The main menu's typewriter is clicked (85% volume), or a letter of the story is typed (45%): a 1 in 3 draw among the three keys"],
-      ["Sound/type_03.ogg", "Typewriter key 3", "The main menu's typewriter is clicked (85% volume), or a letter of the story is typed (45%): a 1 in 3 draw among the three keys"]
+      ["Sound/type_03.ogg", "Typewriter key 3", "The main menu's typewriter is clicked (85% volume), or a letter of the story is typed (45%): a 1 in 3 draw among the three keys"],
+      ["Sound/type_space_01.ogg", "Typewriter space", "A space of the story is typed on the intro screen (45% volume; the next key waits 1.8 times the usual delay)"],
+      ["Sound/typewriter_carriagereturn_01.ogg", "Carriage return", "Each line of the story is finished on the intro screen, before its letters are typed (50% volume)"],
+      ["Sound/Screen_Transition_01.ogg", "Transition 1", "The story is all typed and the screen leaves; chosen by the level counter (from 0) modulo 4: this one for 0, 4, 8 and so on (the screen then fades over 0.4 s)"],
+      ["Sound/Screen_Transition_02.ogg", "Transition 2", "The story is all typed and the screen leaves; chosen by the level counter (from 0) modulo 4: this one for 1, 5, 9 and so on"],
+      ["Sound/Screen_Transition_03.ogg", "Transition 3", "The story is all typed and the screen leaves; chosen by the level counter (from 0) modulo 4: this one for 2, 6, 10 and so on"],
+      ["Sound/Screen_Transition_04.ogg", "Transition 4", "The story is all typed and the screen leaves; chosen by the level counter (from 0) modulo 4: this one for 3, 7, 11 and so on"]
     ] },
     { name: "Building words", sounds: [
       ["Sound/Place_01.ogg", "Tile placed 1", "A tile is clicked or dragged onto the word's path (a different tile from the last one): a 1 in 3 draw among the three place sounds"],
@@ -688,14 +698,6 @@ var ByopopSoundboards = {
       ["Sound/Level_Up.ogg", "Level summary", "The level's summary page starts after a win (80% volume, 10 ms after the page begins)"],
       ["Sound/AddPoint.ogg", "Score counts up", "Each step of the level's bonus counted into the score, every 34 to 100 ms; the pitch starts at 2x and rises 0.07 a step for 80 steps (40% volume)"],
       ["Sound/GameOver.ogg", "Game over", "The game ends (time is up, the goal is lost or no moves are left); starts 150 ms after the game-over state is set"]
-    ] },
-    { name: "Story typewriter", sounds: [
-      ["Sound/type_space_01.ogg", "Typewriter space", "A space of the story is typed on the intro screen (45% volume; the next key waits 1.8 times the usual delay)"],
-      ["Sound/typewriter_carriagereturn_01.ogg", "Carriage return", "Each line of the story is finished on the intro screen, before its letters are typed (50% volume)"],
-      ["Sound/Screen_Transition_01.ogg", "Transition 1", "The story is all typed and the screen leaves; chosen by the level counter (from 0) modulo 4: this one for 0, 4, 8 and so on (the screen then fades over 0.4 s)"],
-      ["Sound/Screen_Transition_02.ogg", "Transition 2", "The story is all typed and the screen leaves; chosen by the level counter (from 0) modulo 4: this one for 1, 5, 9 and so on"],
-      ["Sound/Screen_Transition_03.ogg", "Transition 3", "The story is all typed and the screen leaves; chosen by the level counter (from 0) modulo 4: this one for 2, 6, 10 and so on"],
-      ["Sound/Screen_Transition_04.ogg", "Transition 4", "The story is all typed and the screen leaves; chosen by the level counter (from 0) modulo 4: this one for 3, 7, 11 and so on"]
     ] },
   ] },
   bookworm: {
@@ -1650,9 +1652,11 @@ var ByopopSoundboards = {
       { name: "Flood", when: "The water rises to the top", steps: [["sounds/warning", 0], ["sounds/thunder4", 360], ["sounds/warning", 1200], ["sounds/warning", 2400], ["sounds/warning", 3000], ["sounds/warning", 3600], ["sounds/warning", 4200], ["sounds/warning", 4800], ["sounds/thunder4", 4920], ["sounds/warning", 5400], ["sounds/thunder3", 5640], ["sounds/gameover", 10060]]}
     ],
     groups: [
-    { name: "Menus and dialogs", sounds: [
-      ["sounds/click.ogg", "Click", "A button is pressed anywhere in the game; also the tutorial dialog's two demonstration clicks"],
-      ["sounds/levelupvoice.ogg", "\"Level up!\"", "The next-level screen opens"]
+    { name: "Menus", sounds: [
+      ["sounds/click.ogg", "Click", "A button is pressed anywhere in the game; also the tutorial dialog's two demonstration clicks"]
+    ] },
+    { name: "A level starts", sounds: [
+      ["sounds/getready.ogg", "\"Get ready\"", "A level starts (the board is set up)"]
     ] },
     { name: "Picking animals", sounds: [
       ["sounds/select.ogg", "Select", "An animal is picked, an animal is joined to the picked one by a click or by the mouse dragging on, or a Puzzle animal is picked"],
@@ -1686,7 +1690,6 @@ var ByopopSoundboards = {
       ["sounds/wincat.ogg", "Cat voice", "This animal is saved: a pair meets (not while the leftover animals are being abandoned), a Stampede group is taken, or a Puzzle run of three is found; also 1 time in 1750 each update for each animal of this kind waiting above the board to drop in"]
     ] },
     { name: "Water and the ark", sounds: [
-      ["sounds/getready.ogg", "\"Get ready\"", "A level starts (the board is set up)"],
       ["sounds/thunder3.ogg", "Thunder 3", "Lightning starts: checked every 12 updates (0.12 seconds) while playing in any mode but Strategy, 1 to 20 times in 250 as the water nears the ark (none while it is low); one of the two thunders, at random"],
       ["sounds/thunder4.ogg", "Thunder 4", "Lightning starts: checked every 12 updates (0.12 seconds) while playing in any mode but Strategy, 1 to 20 times in 250 as the water nears the ark (none while it is low); one of the two thunders, at random"],
       ["sounds/warning.ogg", "Warning", "While playing, checked every 12 updates: every 120 updates (1.2 seconds) while the water is within 20 of the ark's level, every 60 (0.6 seconds) within 10; also for each animal abandoned in Strategy mode"],
@@ -1694,6 +1697,7 @@ var ByopopSoundboards = {
     ] },
     { name: "Round end", sounds: [
       ["sounds/levelup.au", "Level up", "A new row is pushed in while the top row is not empty, and the round is lost; or, outside Strategy and Puzzle, the board is cleared before the water reaches the ark"],
+      ["sounds/levelupvoice.ogg", "\"Level up!\"", "The next-level screen opens"],
       ["sounds/gameover.ogg", "\"Game over!\"", "The round ends with animals left behind (or in Strategy mode) and the ark has sailed off, outside a bonus round; the high score box opens"]
     ] },
   ] },
@@ -1906,28 +1910,26 @@ var ByopopSoundboards = {
       ["TipTop.dat|tiptop:sounds/MouseClick.ogg", "Mouse click", "A button is pressed, or Enter or Esc on a button that answers to that key; also a click or Enter on the level summary's button. The same recording as Volume test."],
       ["TipTop.dat|tiptop:sounds/VolumeAdjust.ogg", "Volume test", "The sound volume slider is moved or its track is clicked, unless the sound is still playing; it plays at the new volume. The same recording as Mouse click."]
     ] },
-    { name: "Level start and end", sounds: [
+    { name: "A level starts", sounds: [
       ["TipTop.dat|tiptop:sounds/GameStart.ogg", "Game start", "A game's first level begins (the level is the configured start level)"],
-      ["TipTop.dat|tiptop:sounds/LevelStart.ogg", "Level start", "A later level begins; also when a bonus round begins"],
-      ["TipTop.dat|tiptop:sounds/LevelWin.ogg", "Level won", "A level is completed, as its completed picture and sparkles appear; also when a bonus round is completed"],
-      ["TipTop.dat|tiptop:sounds/GameLost.ogg", "Game lost", "The game is over, in the normal game or in a bonus round"],
-      ["TipTop.dat|tiptop:sounds/EmptyRowCount.ogg", "Empty row", "A cleared row scores the empty-row bonus"]
+      ["TipTop.dat|tiptop:sounds/LevelStart.ogg", "Level start", "A later level begins; also when a bonus round begins"]
+    ] },
+    { name: "Launching blocks", sounds: [
+      ["TipTop.dat|tiptop:sounds/LaunchBlockMoves.ogg", "Launcher moves", "The launcher's column changes while the preview block is drawn, but not when its first column is set"],
+      ["TipTop.dat|tiptop:sounds/BlockLaunch.ogg", "Block launched", "The player launches a plain block from the bottom of its column"],
+      ["TipTop.dat|tiptop:sounds/FloaterLaunched.ogg", "Floater launched", "A plain block enters from the top of the board (a block of the queue that is not the player's)"]
     ] },
     { name: "Matches", sounds: [
       ["TipTop.dat|tiptop:sounds/ColorMatch.ogg", "Match of 3", "A match of exactly three blocks that is the first of its chain"],
       ["TipTop.dat|tiptop:sounds/ColorMatchGroup4.ogg", "Match of 4", "A match of four blocks that is the first of its chain"],
       ["TipTop.dat|tiptop:sounds/ColorMatchGroup5.ogg", "\"Mega\"", "A match of five blocks that is the first of its chain"],
-      ["TipTop.dat|tiptop:sounds/ColorMatchGroup6.ogg", "\"Super\"", "A match of six or more blocks that is the first of its chain"],
+      ["TipTop.dat|tiptop:sounds/ColorMatchGroup6.ogg", "\"Super\"", "A match of six or more blocks that is the first of its chain"]
+    ] },
+    { name: "Chains", sounds: [
       ["TipTop.dat|tiptop:sounds/ColorMatchCascade1.ogg", "\"Double!\"", "The second match of a chain, whatever its size"],
       ["TipTop.dat|tiptop:sounds/ColorMatchCascade2.ogg", "\"Triple!\"", "The third match of a chain, whatever its size"],
       ["TipTop.dat|tiptop:sounds/ColorMatchCascade3.ogg", "\"Quad!\"", "The fourth match of a chain, whatever its size"],
       ["TipTop.dat|tiptop:sounds/ColorMatchCascade4.ogg", "\"Super combo!\"", "The fifth match of a chain or any later one, whatever its size"]
-    ] },
-    { name: "Blocks", sounds: [
-      ["TipTop.dat|tiptop:sounds/BlockLaunch.ogg", "Block launched", "The player launches a plain block from the bottom of its column"],
-      ["TipTop.dat|tiptop:sounds/FloaterLaunched.ogg", "Floater launched", "A plain block enters from the top of the board (a block of the queue that is not the player's)"],
-      ["TipTop.dat|tiptop:sounds/LaunchBlockMoves.ogg", "Launcher moves", "The launcher's column changes while the preview block is drawn, but not when its first column is set"],
-      ["TipTop.dat|tiptop:sounds/BlocksFall.ogg", "Blocks fall", "At the end of a level, when blocks are left on the board and start to fly off the screen, row after row"]
     ] },
     { name: "Power pieces", sounds: [
       ["TipTop.dat|tiptop:sounds/RocketLaunch.ogg", "Rocket launch", "A rocket piece starts to move: launched by the player, or entering from the top"],
@@ -1947,6 +1949,12 @@ var ByopopSoundboards = {
       ["TipTop.dat|tiptop:sounds/shake0.ogg", "Shake 0", "Loops, restarted every update, while play is on (not game over, level complete, a bonus round or a busy screen) and the stack's nearest distance to the edge is 1 row or less; every mode's table sets it"],
       ["TipTop.dat|tiptop:sounds/shake1.ogg", "Shake 1", "Loops, restarted every update, while play is on (not game over, level complete, a bonus round or a busy screen) and the stack's nearest distance to the edge is 2 rows or less; only the Timed and Speed tables set it"],
       ["TipTop.dat|tiptop:sounds/shake2.ogg", "Shake 2 (unused)", "Never played: no mode's shake table (Regular and Strategy 5,0,5,5,5; Timed and Speed 5,0,1,5,5) selects it"]
+    ] },
+    { name: "Level end and game over", sounds: [
+      ["TipTop.dat|tiptop:sounds/LevelWin.ogg", "Level won", "A level is completed, as its completed picture and sparkles appear; also when a bonus round is completed"],
+      ["TipTop.dat|tiptop:sounds/EmptyRowCount.ogg", "Empty row", "A cleared row scores the empty-row bonus"],
+      ["TipTop.dat|tiptop:sounds/BlocksFall.ogg", "Blocks fall", "At the end of a level, when blocks are left on the board and start to fly off the screen, row after row"],
+      ["TipTop.dat|tiptop:sounds/GameLost.ogg", "Game lost", "The game is over, in the normal game or in a bonus round"]
     ] },
   ] },
   typershark: {
