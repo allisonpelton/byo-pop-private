@@ -339,8 +339,8 @@ equals the update function's calls). Each run ran under pincore's core 14, the o
 under rundesk, the order of the port's two windows swapped every other round, each run started when `tools/gamecount.py --limit 6` had
 room. Counting costs: the port 11836 readings of 1635 cycles each (0.27 % of its total), the original 23476 readings of 3571 cycles each
 (0.37 %); neither changes a result of this size. Sound: the port's audio thread (SDL's, silent under rundesk) is 0.005 M cycles an
-update; origrun's stand-in DirectSound mixes nothing and the original has no thread of its own for sound (no BASS call of its own in this
-stretch counted apart), so neither side's number holds more than the sound's calls.
+update; origrun's stand-in DirectSound mixes nothing, and the original's one other busy thread (a thread of its exe, 0.08 % of a core) is
+counted in its total, so neither side's number holds a mixer's synthesis beyond that.
 
 **What the numbers say.** Both sides run 250 updates a second (4 ms). The original draws and presents on every update (3894 draws in the
 4000 updates: its registry here has `VSyncUpdates` 0 and `WaitForVSync` 1 with a 60 Hz refresh, so it neither waits for a vertical blank nor
