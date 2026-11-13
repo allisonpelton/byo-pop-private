@@ -1018,13 +1018,15 @@ var ByopopSoundboards = {
   ] },
   bookwormadv2: {
     presets: [
-      { name: "Battle Start", when: "A battle opens: the fireworks, the warm-up call and the cymbal", steps: [["sounds/firework2", 0], ["sounds/v_warmup", 0], ["sounds/cymbalcrash", 4310]]},
-      { name: "Fire Hit", when: "A fire word hits the foe: the blow, the flames and the cymbal", steps: [["sounds/largeimpact_01", 0], ["sounds/smallimpact_01", 0], ["sounds/fire6", 0], ["sounds/cymbalcrash", 2110]]},
+      { name: "Warm Up", when: "A tutorial fight (book 0) opens: the intro flash and the warm-up call", steps: [["sounds/firework2", 0], ["sounds/v_warmup", 0]]},
+      { name: "Fire Hit", when: "A fire word hits the foe: the blow and the flames", steps: [["sounds/largeimpact_01", 0], ["sounds/smallimpact_01", 0], ["sounds/fire6", 0]]},
       { name: "Low Health", when: "A foe's blow leaves Lex low, and the alarm starts", steps: [["sounds/largeimpact_01", 0], ["sounds/low_health", 210, {"end": 650}], ["sounds/low_health", 650, {"end": 1090}], ["sounds/low_health", 1090]]},
       { name: "Killing Blow", when: "The word that defeats a foe: the blows, the voice's call, a gem and the foe's own death cry (here a fiddler's)", steps: [["sounds/largeimpact_01", 0, {"v": -146}], ["sounds/smallimpact_01", 0, {"v": -146}], ["sounds/vo_crushed", 0, {"v": -146}], ["sounds/gemspawn", 0, {"v": -146}], ["sounds/stringdeath", 0, {"v": -146}], ["sounds/swordspearimpact_withwoosh", 0, {"v": -146}]]},
+      { name: "Walk On", when: "A foe falls: the word scroll unrolls, Lex walks on as his experience counts up, and a dropped potion flies to his row", steps: [["sounds/scroll", 0, {"v": -146}], ["sounds/LexWalkLoop", 10, {"v": -146, "loop": 1, "end": 650}], ["sounds/LexWalkLoop", 650, {"v": -146, "loop": 1, "end": 1280}], ["sounds/LexWalkLoop", 1280, {"v": -146, "loop": 1, "end": 1920}], ["sounds/XPGain4", 1300, {"v": -146, "loop": 1, "end": 3710}], ["sounds/LexWalkLoop", 1920, {"v": -146, "loop": 1, "end": 2550}], ["sounds/potionpickup", 2230, {"v": -146}], ["sounds/LexWalkLoop", 2550, {"v": -146, "loop": 1, "end": 3180}], ["sounds/LexWalkLoop", 3180, {"v": -146, "loop": 1, "end": 3210}]]},
       { name: "New Treasure", when: "A treasure is won after a battle: its chime, then the fireworks and the crowd", steps: [["sounds/newtreasure", 0, {"v": -146}], ["sounds/firework2", 500, {"v": -146}], ["sounds/crowdcheer", 500]]},
       { name: "Boss Battle", when: "A boss battle opens: the fireworks and the call", steps: [["sounds/firework2", 0, {"v": -146}], ["sounds/v_bossbattle", 0, {"v": -146}]]},
-      { name: "Level Up", when: "Lex goes up a level after a battle: the fireworks and his cheer", steps: [["sounds/firework1", 0, {"v": -146}], ["sounds/firework2", 590, {"v": -146}], ["sounds/lex_levelup", 640, {"v": -146}]]}
+      { name: "Level Up", when: "Lex goes up a level after a battle: the fireworks and his cheer", steps: [["sounds/firework1", 0, {"v": -146}], ["sounds/firework2", 590, {"v": -146}], ["sounds/lex_levelup", 640, {"v": -146}]]},
+      { name: "Mini-Game Countdown", when: "Letter Rip, Link 'n Spell, Muta Words or Word Up starts: the countdown", steps: [["sounds/v_three", 0], ["sounds/v_two", 1000], ["sounds/v_one", 2000], ["sounds/v_go", 3000]]}
     ],
     groups: [
     { name: "Title and menus", sounds: [
