@@ -519,7 +519,7 @@
       ],
       "na": [],
       "now": "site-features",
-      "note": "unneeded code out (12 functions, 167 lines), readability checked (namecheck 0), the Collection's copy identical to retail; site features next; the lite mod still to come"
+      "note": "unneeded code out (12 functions, 167 lines), readability checked (namecheck 0), the Collection's copy identical to retail, the page check passing (11 checks); site features and real-input drivers next; the lite mod still to come"
     },
     "heavyweapon": {
       "title": "Heavy Weapon Deluxe",

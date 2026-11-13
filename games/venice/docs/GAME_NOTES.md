@@ -26,6 +26,7 @@ Reachable only from a test (`-script`, `-commands`, the web page's test call; `d
 | `after <frame> <command> ...` | runs the command before the first update after the frame (frames are counted from the first update that runs with the game loaded), for a script that replays another run's input at its frames |
 | `trace <file>` / `trace off` | writes a `FRAME` line of the game's state for every frame (tick counter, load state, seed, scene tail, score and, while a level is in play, its plates, slots and hits) and an `INPUT` line for each input of the bot; the identical-play harness compares it with the original's |
 | `ticks <file>` | the number of game updates to run in each frame, one a line, so that a run takes the same ticks in the same frames as the original's (catch-up frames run more than one) |
+| `player [name]` | the name box's work for a test that does not type the name: the first free slot gets the name (Test by default) and is the current player; a player already chosen stays |
 | `bot <frames> [continue]` / `bot off` | plays for that many frames with the bot's moves, as real input (`move`, `down` and `up` at the pointer's place); with `continue` it also clicks the summaries and the level select away, so that it goes on from level to level |
 
 The commands wait for a player: the name screen is up until a name is typed (`key T` ... then `keydown RETURN` and `keyup RETURN`
@@ -403,3 +404,16 @@ the format is a fixed record). The original (with `VistaCompliant` true in `part
 the Collection's. The save-import table's row for Venice (`platform/saveimport.json`) names the file beside the exe; the folder under
 ProgramData (`"appdata": "Venice"`) is where a player who ran the game has it, so the row may need that field (sent to the coordinator,
 who owns the table).
+
+## The page check (2026-11-12)
+
+`games/venice/tools/web/pagecheck.js` is the game's table for the shared page check (`tools/web/pagecheck.js`; `docs/WEB_PLAYER.md`,
+"The page check"): a player made by the new test command `player`, every building unlocked and Journey's building 5 started, the game in
+play once its level scene is up. Opened as `venice.html?player=1&assets=1&hold=1&fast=1&silent=1&driver=games/venice/tools/web/pagecheck.js&run=pagecheck`
+on `tools/webtest/serve.py` in the Browser pane (hidden, with the requestAnimationFrame shim), it passed: **11 checks pass, none fails,
+1 is information.** The focus line matches the native build's answer (`tools/web/pagecheck_native.py`: only `timer` changes while the
+page is hidden and after it is back, in both); the keys the game takes (Space, Backspace, and the arrows and Tab the shared check
+adds) are kept from the browser and `'` and `/` open no quick find; the information line lists F5, F11, F12, F7, Ctrl+R, Ctrl+F and Ctrl+L as
+cancelled and Alt as left; the pointer lands at 400,300 in canvases drawn at 1.5, 0.75, 2 and 1 times the game's size; a second copy
+of the page waits for the first; and after a reload the two files the game keeps (`profiles.dat` and `registry.ini`) are back with the
+same bytes, backed up while the game was in progress, with no error on the page before or after.
