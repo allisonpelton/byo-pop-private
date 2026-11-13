@@ -22,6 +22,8 @@ is over, so an input's N is a multiple of 5, and the port runs it at the next up
     idplay.py compare <scenario>           the comparison of runs that were made
     idplay.py original <scenario>          only the original's run
     idplay.py port <scenario>              only the port's run
+    idplay.py coverage <scenario>          the port's run alone, and what it covered (also written to the run's coverage.txt; a
+                                           `run` that matched writes the same from the original's records)
     idplay.py generate <scenario>          the port plays the scenario's prefix and then its bot's clicks (`botclick`), which are
                                            written beside the scenario as <scenario>.clicks and replayed by the other commands
 
@@ -196,17 +198,22 @@ def original_script(scenario, end):
 
 
 def patches_file(run, scenario):
-    """the patch list of the run: the seed's, and for a scenario with JUMP_LEVEL the one that starts Classic Bash at that level. The
-    port is given the same through its `cheat` command. The GameScreen constructor (0x4527c0) tests the cheat words jumpto5 to
-    jumpto25 and, when none is on, compares the level it would jump to (edi, -1 for none) with -1 at 0x4529c4 (`cmp edi, -1;
-    je +0x17`); the patch loads edi with the level there, which is what the cheat's own path does with its constant."""
+    """the patch list of the run: the seed's, for a scenario with JUMP_LEVEL the one that starts the game at that level, and the
+    scenario's own PATCHES (address, old bytes, new bytes, what it does). The port is given the same through its test commands:
+    `cheat jumpto<n>` for the level, `unlock all|marathon` for the modes. The GameScreen constructor (0x4527c0) tests the cheat
+    words jumpto5 to jumpto25 and, when none is on, compares the level it would jump to (edi, -1 for none) with -1 at 0x4529c4
+    (`cmp edi, -1; je +0x17`); the patch loads edi with the level there, which is what the cheat's own path does with its constant."""
     level = getattr(scenario, 'JUMP_LEVEL', None)
-    if level is None:
+    extra = getattr(scenario, 'PATCHES', [])
+    if level is None and not extra:
         return PATCHES
     path = os.path.join(run, 'patches.txt')
     with open(path, 'w') as out:
         out.write(open(PATCHES).read().rstrip('\n') + '\n')
-        out.write('jump HammerHeadsGame.exe va:0x4529c4 83ffff7417 bf%02x000000 the game starts at level %d (the cheat word jumpto%d)\n' % (level, level, level))
+        if level is not None:
+            out.write('jump HammerHeadsGame.exe va:0x4529c4 83ffff7417 bf%02x000000 the game starts at level %d (the cheat word jumpto%d)\n' % (level, level, level))
+        for address, old, new, description in extra:
+            out.write('unlock HammerHeadsGame.exe va:0x%x %s %s %s\n' % (address, old, new, description))
     return path
 
 
@@ -364,6 +371,43 @@ def describe(name, values):
     return '%s=%d' % (name, values[0])
 
 
+KIND_NAMES = ['gnome', 'woman', 'strong', 'bomb', 'bubblehead', 'hide', 'forky', 'silver', 'multiplier', 'cupido', 'bouncing', 'flying',
+              'heart', 'coin', 'bigcoin', 'shop', 'challenge', 'chest', 'clover', 'icecream', 'duck', 'strawberry', 'rabbit', 'king',
+              'save', 'napoleon', 'powerup', 'switcher']
+
+
+def coverage(original, end):
+    """what a matched run covered, in a few lines: the levels and phases, the kinds of creature that stood up, and the stats at the end"""
+    records = [original[key] for key in sorted(original) if key[1] == 'T' and key[0] <= end and original[key]['gs'][0] != 0]
+    levels, kinds, phases, hits = {}, {}, {}, 0
+    last_swing = 0
+    for record in records:
+        levels[record['level'][0]] = levels.get(record['level'][0], 0) + 1
+        phases[record['phase'][0]] = phases.get(record['phase'][0], 0) + 1
+        for i in range(min(record['ncubbies'][0], TRACE_CUBBIES)):
+            if record['cb%d_state' % i][0] != 0:
+                kind = record['cb%d_kind' % i][0]
+                name = KIND_NAMES[kind] if 0 <= kind < len(KIND_NAMES) else 'kind%d' % kind
+                kinds[name] = kinds.get(name, 0) + 1
+        if record['swing'][0] == 1 and last_swing != 1:
+            hits += 1
+        last_swing = record['swing'][0]
+    final = records[-1] if records else {}
+
+    def stat(index):
+        values = final.get('s%d' % index)
+        return struct.unpack('<d', struct.pack('<ii', *values))[0] if values and len(values) == 2 else 0.0
+
+    modes = sorted(set(record['mode'][0] for record in records))
+    return ['updates with a game: %d, in mode %s (0 Classic Bash, 1 Tough Cookie, 2 Marathon)' % (len(records), ', '.join(str(m) for m in modes)),
+            'levels (updates): ' + ', '.join('%d (%d)' % item for item in sorted(levels.items())),
+            'phases (updates): ' + ', '.join('%d (%d)' % item for item in sorted(phases.items())),
+            'creatures up (updates): ' + ', '.join('%s (%d)' % item for item in sorted(kinds.items())),
+            'swings that struck something: %d' % hits,
+            'at the end: smashed %d, bombs %d, misses %d, hearts %d, coins %d, clovers %d, bottles %d, score %d' %
+            (stat(0), stat(1), stat(2), stat(5), stat(6), stat(7), stat(8), stat(12))]
+
+
 def compare(name, scenario, end):
     run = os.path.join(RUN_DIR, name)
     original = parse_original(os.path.join(run, 'original.log'))
@@ -411,6 +455,11 @@ def compare(name, scenario, end):
             return 1
     total = len([k for k in original if k[0] <= end and k[1] == 'T'])
     print('IDENTICAL: %d T records of the original up to update %d matched the port\'s' % (compared, end))
+    lines = coverage(original, end)
+    for line in lines:
+        print('    ' + line)
+    with open(os.path.join(run, 'coverage.txt'), 'w') as out:
+        out.write('\n'.join(lines) + '\n')
     if missing:
         print('    %d of the original\'s %d records have no counterpart in the port, for example %s' % (len(missing), total, missing[:5]))
     return 0
@@ -418,7 +467,7 @@ def compare(name, scenario, end):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument('command', choices=['run', 'compare', 'original', 'port', 'generate'])
+    parser.add_argument('command', choices=['run', 'compare', 'original', 'port', 'generate', 'coverage'])
     parser.add_argument('scenario')
     parser.add_argument('--end', type=int)
     parser.add_argument('--keep', action='store_true', help='keep the logs of a run that matched')
@@ -429,6 +478,17 @@ def main():
     os.makedirs(os.path.join(RUN_DIR, name), exist_ok=True)
     if args.command == 'generate':
         generate(name, scenario, end)
+        return
+    if args.command == 'coverage':
+        # for a scenario that matched before coverage was written: the port's own trace says what the run covered
+        trace = run_port(name, scenario, end)
+        lines = coverage(parse_port(trace), end)
+        for line in lines:
+            print('    ' + line)
+        with open(os.path.join(RUN_DIR, name, 'coverage.txt'), 'w') as out:
+            out.write('\n'.join(lines) + '\n')
+        if not args.keep:
+            os.remove(trace)
         return
     if args.command in ('run', 'original'):
         run_original(name, scenario, end)

@@ -105,7 +105,7 @@ level indicator 0x598000, marathon meter 0x598020, Score 0x598040 (0x59805c), Ob
 
 `python games/hammerheads/tools/idplay/idplay.py run <scenario> [--end N]` (`idplay.py`'s docstring is the reference): origrun plays
 the original on its virtual clock with the random seed pinned (`tools/origrun/patches.txt`), holds it at every update count and
-`peek`s about 600 values (the stats, the pop timer, the level timer, each cubby and its creature, the avatar); the port, run
+`peek`s 318 values (the stats, the pop timer, the level timer, each cubby and its creature, the avatar); the port, run
 under rundesk with `-fast`, writes the same values with the `trace` test command. Only the T records are compared (see the
 docstring). What the original needed:
 
@@ -125,3 +125,14 @@ docstring). What the original needed:
   away on every side (a falling coin must still be there when the click is processed in the next UpdateF), now and then a bomb or
   a miss. `generate` writes them to `scenarios/<name>.clicks` and the original replays them. The same command answers a level's
   introduction and the "Ready?" box.
+- **Starting elsewhere or unlocking** (a scenario's `JUMP_LEVEL` and `PATCHES`, `idplay.patches_file`): the original's patched copy
+  loads level N in the game screen's constructor (va 0x4529c4), answers `IsToughUnlocked` (0x41f2d0, `b001c3`) and
+  `HasFewRestartPoints` (0x41f290, `32c0c3`), and makes the cheat flag tests true at 0x44a2c5 (`nomissdamage`) and 0x44a39c
+  (`noawaydamage`) with `84c0` -> `0c01`; the port is given `cheat jumpto<n>`, `unlock all|marathon` and `cheat nomissdamage|
+  noawaydamage` after its main menu is made (the menu's constructor clears the cheats; `unlock` also tells a menu already up).
+  The main menu's buttons are at (42,221) Classic Bash (clicked at 140,320), (132,180) Tough Cookie (196,215, above Classic's
+  box), (533,221) Marathon (668,325).
+- **Level 25 is a boss fight**: a king with about 2900 health, so the level does not end in the length of a script
+  (`classic_nd25`); the game-won sequence is not covered yet.
+- **Disk.** An original's log is about 900 MB for 28000 updates; `idplay.py run` deletes the logs of a run that matched
+  (`--keep` keeps them), leaving `coverage.txt`. `idplay.py coverage <scenario>` rewrites it from the port alone.

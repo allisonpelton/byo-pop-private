@@ -7,7 +7,7 @@
 //                      the ids of the dialogs open, the number of creatures up and one entry for each cubby that holds one
 // goto <screen>        menu, highscores, trophies, shop, challenge, or a mode's name (classic, tough, marathon) to start it
 // level <n>            starts level n of the mode on screen (classic if there is none), as a new game of the mode starts
-// unlock all           Tough Cookie, in the current player
+// unlock all|marathon  Tough Cookie, or Marathon (the restart points it asks for), in the current player
 // set <name> <value>   score, level, health, coins
 // win, lose            ends the level in play now (its summary comes up), or the game (the health goes)
 // seed <n>             seeds the game's random numbers as the start of the game does
@@ -26,6 +26,7 @@
 #include "GameScreen.h"
 #include "LevelIntroWidget.h"
 #include "LevelRules.h"
+#include "MainMenu.h"
 #include "NcButton.h"
 #include "NcMovingDialog.h"
 #include "Object.h"
@@ -48,6 +49,9 @@ using namespace Sexy;
 namespace
 {
 const char* const kModeNames[NUM_GAME_MODES] = {"classic", "tough", "marathon"};
+
+// the bot's steps (ten updates each) a box has to rest before the bot presses its button
+const int BOX_RESTING_STEPS = 6;
 
 // the repeated "take a widget off the manager, delete it, forget it"
 template <class T>
@@ -242,6 +246,8 @@ bool FindWaitingButton(int* theX, int* theY)
 	// the boxes with one button to press; a box that slides in is not pressed before it has stopped
 	static const int aBoxes[] = {DIALOG_READY_GO, DIALOG_BONUS_ROUND, DIALOG_CHALLENGE_FINISHED, DIALOG_GAME_OVER, DIALOG_GAME_WON,
 		DIALOG_TOUGH_UNLOCKED};
+	static Dialog* sRestingBox = nullptr;
+	static int sRestingSteps = 0;
 	for (int anId : aBoxes)
 	{
 		Dialog* aDialog = gApp->GetDialog(anId);
@@ -252,6 +258,15 @@ bool FindWaitingButton(int* theX, int* theY)
 			if (aMoving->mY != aMoving->mRestY)
 				return false;
 		}
+		// the original's box has settled some updates after this one's (its slide runs in frames, and a click that comes while it
+		// slides is lost), so a box is pressed only after it has rested for a few steps of the bot
+		if (aDialog != sRestingBox)
+		{
+			sRestingBox = aDialog;
+			sRestingSteps = 0;
+		}
+		if (++sRestingSteps < BOX_RESTING_STEPS)
+			return false;
 		if (aDialog->mYesButton == nullptr)
 			return false;
 		*theX = aDialog->mYesButton->mX + aDialog->mYesButton->mWidth / 2;
@@ -405,9 +420,19 @@ bool Application::HandleScriptCommand(const ScriptCommand& theCommand)
 	if (aName == "unlock")
 	{
 		User* aUser = mUserManager != nullptr ? mUserManager->GetCurrentUser() : nullptr;
-		if (anArg != "all" || aUser == nullptr)
-			return Error(aLine, "unlock all, with a player"), true;
-		aUser->mToughUnlocked = true;
+		if ((anArg != "all" && anArg != "marathon") || aUser == nullptr)
+			return Error(aLine, "unlock all|marathon, with a player"), true;
+		if (anArg == "all")
+			aUser->mToughUnlocked = true;
+		else
+		{
+			// Marathon opens once the classic list holds three restart points (HasFewRestartPoints, 0x41f290)
+			while (aUser->GetRestartPointCount(GAME_MODE_CLASSIC) < 3)
+				aUser->mClassicRestartPoints.push_back(RestartPoint());
+		}
+		// the main menu reads the unlocks when it is made and when the player changes: tell one already up
+		if (mMainMenu != nullptr)
+			mMainMenu->UserChanged();
 		Ok(aLine);
 		return true;
 	}

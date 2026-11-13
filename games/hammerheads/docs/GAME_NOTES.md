@@ -14,13 +14,14 @@ Reachable only from a test (`-script`, `-commands`, the web page's test call; `d
 | `state` | `{screen, zoom, mode, level, score, health, coins, timer, phase, paused, inplay, dialogs, enemy, gnomes}`; `gnomes` lists each cubby with a gnome: `{cubby, kind, state, cubbyState, rise, health, x, y}` |
 | `goto <screen>` | `menu`, `highscores`, `trophies`, `shop`, `challenge`, or a mode: `classic`, `tough`, `marathon` |
 | `level <n>` | starts level n of the current mode over the board there |
-| `unlock all` | Tough Cookie is unlocked |
+| `unlock all\|marathon` | Tough Cookie is unlocked, or Marathon (the classic list gets restart points up to the three it asks for); a menu that is already up is told |
 | `set score\|health\|coins\|level <v>` | the score, health, coins or level of the game in play |
 | `win`, `lose` | the level in play goes to its end at once (the pause after the last cubby), or the health runs out |
 | `seed <n>` | seeds the game's random numbers the way a new game does |
 | `move` | `MOVE {"kind":"smash","cubby":i,"input":[...]}` for the bot's next swing (the first cubby with a gnome up that a hammer can hit and that is not a bomb), or `MOVE null` |
 | `memreport` | the framework's, `MEMREPORT {...}` |
 | `trace <file>` | writes a `TRACE T\|F ...` line after each update's first step (T) and each frame's `UpdateF` (F) to the file: the state phase one compares (the random generator, the stats, the pop timer, the level timer, each cubby and its creature, the avatar's swing and clicks) |
+| `cheat <word>` | types a cheat word into the application a letter at a time, as the main menu's key handler does (`jumpto5` to `jumpto25` start the next game at that level); the main menu clears the cheats when it is made, so it goes after the menu is up |
 | `botclick [bomb\|miss]` | the bot's click made as a `click` is (the first creature standing up that is not a bomb; a bomb; bare ground), or the button of the level's introduction or the "Ready?" box when one waits; logged as `BOTCLICK <update> <x> <y>` |
 
 The bot reads the game's state and draws no random number. Its swing is a `move` to the gnome's strike point, two updates' wait,
