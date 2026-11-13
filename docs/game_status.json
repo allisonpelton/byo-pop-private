@@ -520,7 +520,7 @@
       ],
       "na": [],
       "now": "site-features",
-      "note": "unneeded code out, readability checked (namecheck 0), the Collection's copy identical, the page check passing, no lite mod needed (LITE_MOD.md), real input windowed in 2D and 3D for every mode; full-screen real input and the night checks left, then the site features"
+      "note": "every phase but modding done but two: the 3D original's shots against the port's 3D mode (the sandbox never loads it; a visible-desktop driver after the reset) and the tutorial's don't-show-again box; real input windowed and full screen in every mode; site features with the site session"
     },
     "heavyweapon": {
       "title": "Heavy Weapon Deluxe",
