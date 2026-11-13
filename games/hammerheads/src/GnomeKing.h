@@ -34,7 +34,7 @@ public:
 	bool			mHasRisen;					// +0x100: his cubby has been up; saved
 
 public:
-	GnomeKing();								// 0x43b840
+	explicit GnomeKing(bool theForIntro = false);	// 0x43b840: theForIntro is the king an intro page shows (made without the arrival's count, timer and sound)
 	virtual ~GnomeKing();						// 0x43b930
 
 	virtual void	GetSheetCell(double theCell[2]) const override;		// 0x43b970

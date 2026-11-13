@@ -87,44 +87,44 @@ private:
 		for (int i = 0; i < 16; i++)
 			aWords[i] = (uint32_t)theBlock[i * 4] | ((uint32_t)theBlock[i * 4 + 1] << 8) | ((uint32_t)theBlock[i * 4 + 2] << 16) | ((uint32_t)theBlock[i * 4 + 3] << 24);
 
-		uint32_t a = mState[0];
-		uint32_t b = mState[1];
-		uint32_t c = mState[2];
-		uint32_t d = mState[3];
+		uint32_t aStateA = mState[0];
+		uint32_t aStateB = mState[1];
+		uint32_t aStateC = mState[2];
+		uint32_t aStateD = mState[3];
 		for (int i = 0; i < 64; i++)
 		{
 			uint32_t aMix;
 			int aWord;
 			if (i < 16)
 			{
-				aMix = (b & c) | (~b & d);
+				aMix = (aStateB & aStateC) | (~aStateB & aStateD);
 				aWord = i;
 			}
 			else if (i < 32)
 			{
-				aMix = (d & b) | (~d & c);
+				aMix = (aStateD & aStateB) | (~aStateD & aStateC);
 				aWord = (5 * i + 1) % 16;
 			}
 			else if (i < 48)
 			{
-				aMix = b ^ c ^ d;
+				aMix = aStateB ^ aStateC ^ aStateD;
 				aWord = (3 * i + 5) % 16;
 			}
 			else
 			{
-				aMix = c ^ (b | ~d);
+				aMix = aStateC ^ (aStateB | ~aStateD);
 				aWord = (7 * i) % 16;
 			}
-			uint32_t aNext = d;
-			d = c;
-			c = b;
-			b = b + RotateLeft(a + aMix + aConstants[i] + aWords[aWord], aShifts[i]);
-			a = aNext;
+			uint32_t aNext = aStateD;
+			aStateD = aStateC;
+			aStateC = aStateB;
+			aStateB = aStateB + RotateLeft(aStateA + aMix + aConstants[i] + aWords[aWord], aShifts[i]);
+			aStateA = aNext;
 		}
-		mState[0] += a;
-		mState[1] += b;
-		mState[2] += c;
-		mState[3] += d;
+		mState[0] += aStateA;
+		mState[1] += aStateB;
+		mState[2] += aStateC;
+		mState[3] += aStateD;
 	}
 };
 

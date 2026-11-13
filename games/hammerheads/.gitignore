@@ -1,0 +1,4 @@
+# The names the high score table starts with are the game's own text (tools/highscorenames.py writes the file)
+/src/HighScoreNames.inc
+# The texts of the trophies are the game's own text (tools/trophytext.py writes the file)
+/src/TrophyText.inc

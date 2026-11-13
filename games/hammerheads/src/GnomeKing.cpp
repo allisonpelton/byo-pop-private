@@ -17,8 +17,8 @@ using namespace Sexy;
 // 0x591b54: the kinds he may carry (-1: a bonus drawn when it is asked for)
 static const int KING_ITEMS[9] = { KIND_GNOME, KIND_WOMAN, KIND_HIDE, KIND_STRONG, -1, KIND_BUBBLEHEAD, KIND_SWITCHER, KIND_SILVER, KIND_NAPOLEON };
 
-// 0x43b840 (the original's argument was always 0; it says whether the arrival is quiet)
-GnomeKing::GnomeKing() :
+// 0x43b840: the arrival is quiet (not counted, no timer, no sting) for the king the intro pages show
+GnomeKing::GnomeKing(bool theForIntro) :
 	Creature(KIND_KING),
 	mFrame(0.0),
 	mFrameSpeed(0.0),
@@ -31,9 +31,12 @@ GnomeKing::GnomeKing() :
 	mFlash(0.0),
 	mHasRisen(false)
 {
-	GetStats()->AddInt(STAT_KINGS_RELEASED, 1);
-	GetTimer()->Setup(3);
-	gApp->PlaySample(SOUND_STING_GNOME_KING);
+	if (!theForIntro)
+	{
+		GetStats()->AddInt(STAT_KINGS_RELEASED, 1);
+		GetTimer()->Setup(3);
+		gApp->PlaySample(SOUND_STING_GNOME_KING);
+	}
 }
 
 // 0x43b930

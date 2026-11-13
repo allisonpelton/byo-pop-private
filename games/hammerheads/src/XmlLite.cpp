@@ -1,3 +1,4 @@
+// port: a small XML reader and writer that stands in for TinyXML (not available); all of this file is the port's own
 #include "XmlLite.h"
 
 #include <cstdio>

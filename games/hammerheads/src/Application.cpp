@@ -617,7 +617,7 @@ void Application::CreateUserDialogDone()
 void Application::ShowCreateAnotherUserDialog(const std::string& theText)
 {
 	KillDialog(DIALOG_CREATE_ANOTHER_USER);
-	SetCreateUserText(MakeCreateUserDialog(true), theText);
+	MakeCreateUserDialog(true)->SetName(theText);
 }
 
 // 0x41f0d0
@@ -636,7 +636,7 @@ void Application::UserDialogClosed(bool theSelect)
 
 	if (theSelect)
 	{
-		User* aUser = mUserManager->FindUser(GetUserDialogSelection(aListDialog));
+		User* aUser = mUserManager->FindUser(static_cast<UserDialog*>(aListDialog)->GetSelectedName());
 		if (aUser != nullptr)
 		{
 			mUserManager->SetCurrentUser(aUser->mId);
@@ -669,11 +669,11 @@ void Application::DeleteSelectedUser(bool theDelete)
 	if (aListDialog == nullptr)
 		return;
 
-	User* aUser = mUserManager->FindUser(GetUserDialogSelection(aListDialog));
+	User* aUser = mUserManager->FindUser(static_cast<UserDialog*>(aListDialog)->GetSelectedName());
 	mUserManager->DeleteUser(aUser->mId);
 
 	User* aCurrent = mUserManager->GetCurrentUser();
-	RefreshUserDialog(aListDialog, aCurrent != nullptr ? aCurrent->mName : std::string());
+	static_cast<UserDialog*>(aListDialog)->RemoveSelected(aCurrent != nullptr ? aCurrent->mName : std::string());
 	mUserManager->SaveRoster();
 
 	if (mUserManager->GetCurrentUser() == nullptr)
@@ -968,7 +968,7 @@ void Application::WipeNewGame()
 	if (gApp->mMainMenu != nullptr)
 		DropWidget(gApp->mMainMenu);
 	if (gApp->mGameMode == GAME_MODE_CLASSIC || gApp->mGameMode == GAME_MODE_TOUGH_COOKIE)
-		gApp->ResurrectOrPlay(false);
+		gApp->ResurrectOrPlay();
 	else
 		gApp->CreateGame(false);
 }
@@ -1082,7 +1082,7 @@ void Application::CreateMainMenu()
 	{
 		Dialog* aDialog = NewDialog(DIALOG_TOUGH_UNLOCKED, true, "A real challenge...",
 			"You have unlocked Tough Cookie,\na new extra difficult game mode!", "OK", Dialog::BUTTONS_FOOTER);
-		LayoutInfoDialog(aDialog, 400);
+		LayoutDialog(aDialog, 400);
 		int aDialogWidth = aDialog->mWidth;
 		int aDialogHeight = aDialog->GetPreferredHeight(aDialogWidth);
 		aDialog->Resize((mWidth - aDialogWidth) / 2, -aDialogHeight, aDialogWidth, aDialogHeight);
@@ -1190,13 +1190,18 @@ void Application::RemoveAllScreens()
 		DropWidget(mResurrectScreen);
 }
 
-// 0x41ec30, 0x41ec50: the how-to-play movie waits for the shared SWF player and is left out
-void Application::ShowHowToPlay(bool)
+// 0x41ec30
+void Application::ShowHowToPlay(bool theWithNewGame)
 {
+	mHowToPlay = MakeHowToPlay(theWithNewGame);
 }
 
+// 0x41ec50
 void Application::HideHowToPlay()
 {
+	mWidgetManager->RemoveWidget(mHowToPlay);
+	SafeDeleteWidget(mHowToPlay);
+	mHowToPlay = nullptr;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1218,6 +1223,17 @@ void Application::TrophyRoomToMainMenu()
 {
 	DropWidget(mTrophyRoom);
 	CreateMainMenu();
+}
+
+// 0x421200: the player leaves the trophy room for the game (the "Ready?" box comes, unless a bonus round is open)
+void Application::TrophyRoomToGame()
+{
+	DropWidget(mTrophyRoom);
+	mWidgetManager->SetFocus(mGameScreen);
+	PauseGame(false);
+	StartMusic(MUSIC_GAME, false);
+	if (mChallengeScreen == nullptr)
+		DoReadyGoDialog(true, "Ready?", "");
 }
 
 // 0x4213d0
@@ -1283,13 +1299,14 @@ void Application::NewGame(int theMode)
 		DoZoomWipe(WipeNewGame, WIPE_HAMMER);
 }
 
-// 0x422180: the choice of a restart point, or the game at once when there is no choice
-void Application::ResurrectOrPlay(bool theFlag)
+// 0x422180: the choice of a restart point, or the game at once when there is no choice (the original has a flag that its one
+// caller always passes as false)
+void Application::ResurrectOrPlay()
 {
 	User* aUser = mUserManager->GetCurrentUser();
 	if (aUser->GetRestartPointCount(mGameMode) > 1)
 	{
-		mResurrectScreen = new ResurrectScreenWidget(theFlag);
+		mResurrectScreen = new ResurrectScreenWidget();
 		mResurrectScreen->Resize(0, 0, mWidth, mHeight);
 		mWidgetManager->AddWidget(mResurrectScreen);
 		mWidgetManager->SetFocus(mResurrectScreen);
@@ -1303,15 +1320,6 @@ void Application::ResurrectDone()
 {
 	DropWidget(mResurrectScreen);
 	CreateGame(false);
-}
-
-// 0x4212f0: the player goes back to the game from the restart point choice
-void Application::ResurrectBackToGame()
-{
-	PauseGame(false);
-	DropWidget(mResurrectScreen);
-	mWidgetManager->SetFocus(mGameScreen);
-	DoReadyGoDialog(true, "Ready?", "");
 }
 
 // 0x422480

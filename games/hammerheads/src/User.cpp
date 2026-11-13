@@ -41,6 +41,7 @@ bool User::IsCurrentVersion() const
 	return mVersion == PROFILE_VERSION;
 }
 
+// port: a mode's saved game
 SavedGame& User::GetSavedGame(int theMode)
 {
 	if (theMode >= 0 && theMode < NUM_SAVED_GAMES)
@@ -48,6 +49,7 @@ SavedGame& User::GetSavedGame(int theMode)
 	return mSavedGames[0];
 }
 
+// port: a mode's saved game
 const SavedGame& User::GetSavedGame(int theMode) const
 {
 	if (theMode >= 0 && theMode < NUM_SAVED_GAMES)
@@ -55,6 +57,7 @@ const SavedGame& User::GetSavedGame(int theMode) const
 	return mSavedGames[0];
 }
 
+// port: a mode's restart points
 std::vector<RestartPoint>* User::GetRestartPoints(int theMode)
 {
 	if (theMode == GAME_MODE_CLASSIC)

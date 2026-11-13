@@ -23,7 +23,7 @@ void Stats::Reset()
 	mValues[STAT_HEALTH] = 5.0;
 	mValues[STAT_HEALTH_CAPACITY] = 5.0;
 	mValues[STAT_CHALLENGE_GOAL] = 16.0;
-	if (gApp->GetCheatFlag(8))
+	if (gApp->GetCheatFlag(Application::CHEAT_PEEKABOO))
 	{
 		mValues[STAT_COINS_COLLECTED] = 500.0;
 		mValues[STAT_COIN_BALANCE] = 500.0;

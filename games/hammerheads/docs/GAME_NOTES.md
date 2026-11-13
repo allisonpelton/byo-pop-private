@@ -31,8 +31,16 @@ a `click` and ten updates' wait, which is what a player's click does.
   takes the original's 60 Hz steps (the framework's own default is 100).
 - **XML.** The player roster, the saved games and the settings are read and written with `XmlLite`, a small reader and writer; the
   original uses TinyXML, which is not available. The files keep the original's element names and order.
-- **How to play.** The original shows its how-to-play pages through a Flash control (`Flash.ocx`, `drm.swf`'s sibling); the port
-  has no SWF player yet, and the widget does nothing until the shared one exists.
+- **How to play.** The original shows its how-to-play movie (`images\howtoplay.swf`, 800 by 500, 24 frames a second, looping)
+  through a Flash control in "Transparent" window mode; the port plays it through the shared SWF player (`engines/swf`), which
+  draws the movie's own background (a green), not what is behind it. The shot comparison must judge whether the page differs.
+- **Game text kept out of the repository.** The default high score names and the trophy names and descriptions are tables built by
+  the exe's static initialisers; `tools/highscorenames.py` and `tools/trophytext.py` read them from the exe and write the
+  git-ignored `src/HighScoreNames.inc` and `src/TrophyText.inc`, which the build includes.
+- **The loading screen** no longer moves on by itself, as the stand-in did; its co-branding Flash widget is not made.
+- **The trophy page buttons** (the announcement of a new trophy and the close-up) are one class here, `TrophyPageButton`; the
+  original has two classes with the same code and fields. A trophy's shadow picture (the unearned ones) is deleted with its
+  button; the original leaks it (a memory leak, fixed here as the rules say).
 
 ## Left out (nothing in play can reach it)
 
@@ -42,11 +50,37 @@ a `click` and ten updates' wait, which is what a player's click does.
   Application +0x77c (a login and update check, 0x41a000-0x41bac0) and its menu items.
 - **Registration**: the demo limit, the level-allowed check (0x41e520, always true), the upsell dialog, the buy and register
   buttons and every string that only they used. **More Games**, the Steam link and every other button that leaves the game.
+- **State that is written and never read.** The trophy room's fade (+0xb0, set to 3.0 and counted down), its hover alpha (+0xa8)
+  and trophy count, the trophy button's +0x150 flag, an unused "Click to continue" string; the game-won page's counter
+  (DAT_00598084, one more while a page exists); none of it is in the port.
+- **The resurrect page's flag.** `ResurrectScreenWidget` takes a flag whose only call (0x422a72) passes false; with it set the
+  page has a "Back to Game" button and two lines about a new savepoint. That page, its button, the pointer at
+  +0x84 (a button that nothing creates) and `Application::ResurrectBackToGame` are not in the port, and `ResurrectOrPlay` takes no
+  argument.
+- **The options box and the quit box** (0x45b2c0-0x45c7f0) are not translated yet: `ScreenStubs.cpp` has a stand-in that does
+  nothing for the options and quits without asking.
 
 ## Fix candidates
 
-(none listed yet)
+Behaviour of the original that looks like a mistake and is kept in the port until the fixes mod.
+
+- **The coin count on a restart point's card** is measured in the font of the line above it (Eurofurence 14) and drawn in the
+  other (Arial 10 bold), so the pair of the coin and the number sits a little off the middle.
+- **The announcement of a trophy** plays its sting when the trophy room opens from the main menu as well as when a game awards one
+  (the constructor, 0x45f5e0).
 
 ## Oddities (not chased)
 
-(none listed yet)
+- **The pictures of the restart point buttons** are taken from the exe's table of pictures from `IMAGE_PHOTO01` on, and only five
+  of its entries are photos; a sixth point (if a game can have one) is drawn on the high score background. The port keeps the
+  table.
+- **The game menu's buttons** are in the order Main Menu, then the options, then Continue at the bottom.
+- **The button sound of a moving dialog** (`NcMovingDialog::ButtonPress`) compares the id with the id plus 2000 and 3000, so it
+  never plays.
+- **The ready box** (`ReadyGoDialog::Closed`) un-pauses the game twice.
+- **High scores** that were changed in the file load as their value modulo 256.
+- **The game-over box's gnome** is not set when its file cannot be read (the original uses it uninitialised).
+- **The main menu's locked-mode box** has the id 0x14.
+- **The swollen trophy on the announcement page** is placed by half its width where its height was meant (0x45f6a0).
+- **The level introduction** takes the gnome's pointer before it tests it for null in its destructor, and its update and draw
+  assume it is set (a level file that names a gnome the factory does not know would crash).

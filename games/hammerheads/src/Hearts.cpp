@@ -148,7 +148,7 @@ void Hearts::Update(float theFrac)
 
 // 0x4497e0: the hearts of the row: an empty heart for each place (flashing while the health is gone), then the full ones, then
 // the part of the one the health ends in (flashing too when the health is less than one)
-static void DrawHeartRow(Graphics* g, int theCapacity, double theHealth, int theX, int theY, int theTick, Image* theHearts,
+void Sexy::DrawHeartRow(Graphics* g, int theCapacity, double theHealth, int theX, int theY, int theTick, Image* theHearts,
 	int theOverlap)
 {
 	for (int i = 0; i < theCapacity; i++)

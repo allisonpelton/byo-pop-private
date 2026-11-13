@@ -17,6 +17,7 @@
 #include "Image.h"
 #include "Insets.h"
 #include "NcButton.h"
+#include "NcMovingDialog.h"
 #include "Res.h"
 #include "Screens.h"
 #include "Stats.h"
@@ -69,29 +70,6 @@ bool IsNoDialogOpen()
 	if (gApp->GetDialog(DIALOG_CHALLENGE_FINISHED) != nullptr)
 		return false;
 	return true;
-}
-
-// 0x41d210: the look and size of a box that the application did not make through NewDialog: the fonts and colours of the other
-// boxes, the buttons' cels, and the width the text needs (at least theMinWidth). The original also puts the box at the top of
-// the screen, below another box that is up; the caller moves it at once, so that part is left out.
-void LayoutDialog(Dialog* theDialog, int theMinWidth)
-{
-	theDialog->SetHeaderFont(FONT_PTBANANASPLIT27);
-	theDialog->SetLinesFont(FONT_EUROFURENCE14);
-	theDialog->SetColor(Dialog::COLOR_HEADER, Color(255, 255, 255, 255));
-	theDialog->SetColor(Dialog::COLOR_LINES, Color(0, 0, 0, 255));
-
-	int aWidth = theMinWidth;
-	int aNeededWidth = FONT_ARIAL10B->StringWidth(theDialog->mDialogHeader) + theDialog->mContentInsets.mRight +
-		theDialog->mContentInsets.mLeft + theDialog->mBackgroundInsets.mRight + 0x14 + theDialog->mBackgroundInsets.mLeft;
-	if (aWidth < aNeededWidth)
-		aWidth = aNeededWidth;
-
-	theDialog->Resize(0, 0, aWidth, theDialog->GetPreferredHeight(aWidth));
-	if (theDialog->mYesButton != nullptr)
-		SetupButtonCels(theDialog->mYesButton, 3);
-	if (theDialog->mNoButton != nullptr)
-		SetupButtonCels(theDialog->mNoButton, 3);
 }
 
 // What the closing box reads of the round: the gnomes dealt with, the goal, and the clicks that missed

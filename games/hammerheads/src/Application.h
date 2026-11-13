@@ -7,8 +7,7 @@
 // (gApp = DAT_005cea54). The offsets in the comments are the original's.
 //
 // Left out as the port's rule: the registration code (the demo's limits, the upsell, the DRM checks), the "More Games" and
-// the other buttons that leave the game, the editor (ToolWidget) that the game screens derive from in the original, and the
-// how-to-play movie (the SWF player is shared work that is not here yet: ShowHowToPlay does nothing).
+// the other buttons that leave the game, and the editor (ToolWidget) that the game screens derive from in the original.
 
 #include <string>
 #include <vector>
@@ -93,7 +92,7 @@ public:
 		CHEAT_NO_AWAY_DAMAGE = 1,		// "noawaydamage"
 		CHEAT_SUPER_POWER = 2,			// "superpower"
 		CHEAT_JUMP_TO_5 = 3,			// 3 to 7: "jumpto5", "jumpto10", "jumpto15", "jumpto20", "jumpto25"
-		CHEAT_NEVER = 8					// the table's last word is empty: no typing can reach it
+		CHEAT_PEEKABOO = 8				// the table's last word is empty: no typing can reach it; the main menu's peekaboo gnome sets it (a head start)
 	};
 
 	typedef void (*WipeCallback)();
@@ -231,17 +230,17 @@ public:
 	void			ShopDone();											// 0x421ca0
 	void			ChallengeDone();									// 0x421d70
 	void			NextLevelStarts();									// 0x421e70
-	void			ResurrectBackToGame();								// 0x4212f0
 	void			ResurrectDone();									// 0x422140
-	void			ResurrectOrPlay(bool theFlag);						// 0x422180: the restart point choice, or the game at once
+	void			ResurrectOrPlay();									// 0x422180: the restart point choice, or the game at once
 	void			GameEndToMainMenu();								// 0x4213f0
 	void			HighScoresToMainMenu();								// 0x4213d0
 	void			TrophyRoomToMainMenu();								// 0x4211c0
+	void			TrophyRoomToGame();									// 0x421200
 	void			ShowTrophyRoomFromMenu();							// 0x41f700
 	void			GameWonToMainMenu();								// 0x421c30
 	void			LevelIntroDone();									// 0x41fbf0
-	void			ShowHowToPlay(bool theFlag);						// 0x41ec30 (skipped)
-	void			HideHowToPlay();									// 0x41ec50 (skipped)
+	void			ShowHowToPlay(bool theWithNewGame);					// 0x41ec30
+	void			HideHowToPlay();									// 0x41ec50
 
 	// The cheat words
 	void			KeyChar(char theChar);								// 0x421ec0: the typed letters of the cheat words (called by the main menu and the game screen)

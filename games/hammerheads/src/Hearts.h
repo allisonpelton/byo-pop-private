@@ -62,6 +62,9 @@ double GetHealthCapacity();							// 0x4499f0
 // 0x449bd0: where the row of hearts starts across (centred in the window; 100 in the shop)
 int GetHeartsX();
 
+// 0x4497e0: a row of theCapacity hearts from the point, theHealth of them full (the resurrect page draws the same row, small)
+void DrawHeartRow(Graphics* g, int theCapacity, double theHealth, int theX, int theY, int theTick, Image* theHearts, int theOverlap);
+
 }
 
 #endif
