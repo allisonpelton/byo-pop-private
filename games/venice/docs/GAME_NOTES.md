@@ -237,3 +237,72 @@ the tosser plate, and the Survival, options and name screens. Of the 20:
 
 Left open: the night run above. The 50 runs took about two hours of machine time. The fixes mod was written alongside
 (`Fixes (the fixes mod)` above).
+
+## The autosplit block (2026-11-12)
+
+Venice Deluxe has a speedrun.com board (Journey and Flood by building, and Trick Shots), so the port writes the shared autosplit block the
+site's Splits window reads (`platform/AutosplitBlock.h`, layout 2; `docs/WEB_PLAYER.md`, "One design for every port"). The observer is
+`src/LiveSplitObserver.cpp`, called after each update of the scenes from `RunDueUpdates` (the updates a game without the focus does not run
+are not counted) and from `~VeniceApp` for the last write. The block's game id is `VNDX`. It reads the scene stack, the level in play and the
+current profile, and writes nothing of the game's: until something asks for it, it only tests a flag (the mod list is looked at every 64
+updates). The page asks by calling `byopop_livesplit_block` (exported in the web build: `EXPORTS _byopop_livesplit_block` in
+`games/venice/CMakeLists.txt`); natively the `livesplit` feature of an enabled mod does (`mods/livesplit/mod.json`, a manifest only).
+`-livesplitlog=<file>` writes one line for each write that changes what a splitter acts on (board, events, state, level, mode, flags), and the
+events go to the log as `livesplit: board 1 GO at tick 8936 (mode 1)` and the like. The game itself gained nothing for it: no counter, no hook
+(its state is the scene stack and the profile that the game keeps anyway).
+
+**A block "board" is one pass through a mode.** It starts the update after a click on a mode of the mode menu (a scene is above
+`mode_select_menu`) and ends when the game is back at the main menu (the mode menu closed, a quit from the pause menu, `goto menu`). It holds
+the continue prompt, the tutorial, the maps, the levels, the summaries, the honor roll and the win scene of that mode, and a second click on
+a mode is a new board. A block asked for in the middle of a level takes that level's game as its board, with no GO.
+
+**Numbering.** `mode` as the profile numbers it (`GameMode`): 0 Flood, 1 Journey, 2 Survival, 3 Trick Shot; `skill` 0 (the game has none).
+Death kinds: 0 a Journey run out of tries, 1 a Flood level sunk, 2 Survival sunk, 3 a Trick Shot level sunk (a missed trick shot is no game
+over: the mode goes on to the next one). `state` is the screen on top of the stack: 0 a menu or a message (the main menu, the mode menu, the
+continue prompt, loading, the options), 1 the world map (`level_select`), 2 a level in play (the tutorial, Survival and the trick shots
+included), 3 the level won (its middle layer is in the victory stage), 4 the level lost (the defeat stage), 5 a summary (the level's, the
+trick shot's, Survival's), 6 the honor roll, 7 the win scene, 8 the pause menu or the in-game menu over a level. `level` is the profile's
+level index of the mode (0 on the first building: the profile moves on at the victory, so it changes with the level clear) and
+`displayLevel` is `level + 1`, the number the map shows (for a trick shot, the trick shot's own). `displayScore` and `score` are the profile's
+score. `tick` counts the updates of the scenes since the game started (4 ms each). `progress` is -1 (the ends of the categories are events).
+`gameOwn` holds two int32: the level in play's time in milliseconds (its update count times 4; 0 with none) and the tries left of the mode
+(Journey: 3 at the start of each level, -1 once the last is lost). The flags are RESUMED (a continued game: the continue prompt's "continue"
+with progress in the mode), VANILLA (no score key) and PAUSED (state 8).
+
+**Events** (for the current board; the rules of the board's time are the site session's):
+- *GO*. Journey and Flood: the click away from the world map in a new game, when the progress of the mode is 0 (the first update with the
+  `loading` scene above `level_select`: the click's stage lasts 10 ms). A new game's first map comes after the tutorial (the very first
+  start of a player's game) or straight after the mode menu, so the click is the same either way, and a continued game (the continue
+  prompt's "continue": progress above 0) has the RESUMED flag and no GO. "New game" of the prompt resets the progress and clears RESUMED
+  before the click. Trick Shot: the board's first update in a new game (progress 0 and no trick shot made), or the update "new game" of
+  the prompt resets it. Survival: the first update with a level in play.
+- *Level clear*. Journey, Flood and Survival: the update the middle layer of the level in play enters its victory stage (`ProgressBar::
+  CheckVictory`, the last plate gone; `win` of the test commands does the same). Trick Shot: the update the count of made trick shots rises
+  (a missed shot's level also goes to its victory stage, which is no clear).
+- *Game over*. The update the middle layer of the level in play enters its defeat stage (`Level::LoseTry`: a plate sank, or a Journey level
+  with no try left), once for a board; a Journey try lost with tries left has no defeat stage and no game over.
+- *Win*. Journey and Flood: the update the world map comes up with CONGRATULATIONS! on it, which is when the progress of the mode is the
+  last building's (level index + 1 of 72 or more); every mode: the win scene is on the stack. After the last building (71) the map shows
+  CONGRATULATIONS!, a click on it pushes the win scene, which resets the progress and opens the honor roll (a second click).
+
+A board's first update is a baseline for the level clear, the game over and the win, and a level scene's first update is a baseline for its
+own events (a level seen already won or lost). A game over is counted once for a board: the click that plays the level again runs the same
+board on. The Trick Shot board's end (all trick shots made: the win scene; else the honor roll) and the Journey board's end after a game over
+(the honor roll) are in `state` (7 and 6), for a splitter that wants them.
+
+**Tests.** `games/venice/tools/livesplit/run_tests.py <out dir>` (under rundesk with `-fast`, one game at a time): a new player for each run
+(made by the port with the standard test commands), the menus clicked at the places `buttons` gives, and the port's bot for the tutorial and
+the levels: a new Journey game (the tutorial, the map, the GO at the click, building 1 won by `win` and then the tries lost: one GO, one
+clear, one game over of kind 0, states 1 to 5 all seen), a new Flood game (the bot wins the first level itself, `lose` on the second: kind
+1), Survival (`lose`: kind 2; `goto menu` ends the board), Trick Shot (the GO at the board's first write, the bot makes some of its shots:
+clears only for the made ones), Journey from building 5 by "continue" (RESUMED, no GO) and by "new game" (RESUMED cleared before the GO, one
+GO) and from building 72 (the map's CONGRATULATIONS!: one win, the win scene 7 and the honor roll 6). The block logs of these runs went to
+the site session.
+
+**Proof that it is inert.** `run_tests.py` also runs `games/venice/tools/tour_test.txt` (the tour that `tools/check.sh venice` freezes) twice,
+with no mod and with a mods folder that holds only `livesplit` (the port's log says `livesplit: block at ...`), and plays the Journey, Flood,
+Survival and Trick Shot games above twice, with the block on and with no mod, under the `trace` command (a line for each update: the random
+seed and the values of the game's state). The tour's screens, state lines and player file, and each game's 3 MB trace (17,000 updates of the
+Journey game) and player file, are the same byte for byte in the two runs. The tour goes through `goto` and `level`, which no mode click
+precedes, so it never starts a board; the four games go through the menus, which is the observer's board logic. `tools/check.sh venice` runs
+with no mods as before, and its frozen hashes are unchanged.
