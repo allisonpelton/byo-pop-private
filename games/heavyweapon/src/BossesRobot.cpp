@@ -14,6 +14,7 @@
 #include "Graphics.h"
 #include "Res.h"
 #include "Sprite.h"
+#include "X87.h"
 #include <math.h>
 
 using namespace Sexy;
@@ -406,9 +407,9 @@ RobotLaser::RobotLaser(Board* theBoard, double x, double y) : Projectile(theBoar
 	mIsShootable = false;
 	mSprite = mBoard->mApp->mSprites[IMAGE_ROCK];
 	mHasLanded = false;
-	mAngle = atan2(x - mBoard->mTankX, (double)mBoard->mTankY - y) + LASER_BEARING_OFFSET;
-	mDirX = cos(mAngle) * LASER_SPEED;
-	mDirY = sin(mAngle) * LASER_SPEED;
+	mAngle = X87Atan2(x - mBoard->mTankX, (double)mBoard->mTankY - y) + LASER_BEARING_OFFSET;
+	mDirX = X87Cos(mAngle) * LASER_SPEED;
+	mDirY = X87Sin(mAngle) * LASER_SPEED;
 	mBoard->mApp->PlaySample(SOUND_ROBOTLASER, (int)(x * SHOT_PAN));
 }
 

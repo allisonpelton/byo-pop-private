@@ -171,5 +171,11 @@ As `GAME_NOTES.md` lists them.
 Every tour above compares the original's software mode (its 2D display) with the port's 2D display. The original's 3D mode
 (Direct3D 7, here over dgVoodoo2 inside the sandbox with its virtual GPU) against the port's 3D mode is `shots_menus3d`, which
 needs the host's GPU and a visible desktop, so it runs only between 22:00 and 08:00 (CLAUDE.md, "Overnight"); its result is
-added to this file by that run. The coverage check (the levels past the first few of each mode, the power-ups, wings and tries
+added to this file by that run. **Tried on the night of 2026-11-12 and not done:** `shots shots_menus3d` waited 24 minutes and
+stopped without a shot: in the sandbox with `--sandbox-vgpu` the original's Direct3D 7 over dgVoodoo2 never got past its loading (the
+update counter stayed at -1; the game's window came up with D3D11.DLL and DXGI.DLL loaded), which is what `docs/ORIGRUN.md` says of
+every original there ("the sandbox: no original has run in 3D"). The route that works is the user's visible desktop at night, as
+Bookworm Adventures' `tools/pilot/visrun.py` and Typer Shark's `visrun3d.py` do it (a short-path copy, the window on top, shots by
+`PrintWindow`, input posted to the window); Venice has no such driver yet, so the 3D original against the port's 3D mode stays open.
+`idplay.py` still sends an `ACCELERATED` scenario's shots to the sandbox, which cannot work. The coverage check (the levels past the first few of each mode, the power-ups, wings and tries
 the bot never reaches), the real-input driver with the page check, and the fixes mod come after this phase.

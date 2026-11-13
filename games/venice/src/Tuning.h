@@ -23,8 +23,8 @@ struct Tuning
 	int mBounceOffTop = 0; // 0x5ba0b0
 	int mCascadingCombos = 0; // 0x5ba0b4
 	int mNumberOfUniqueSlots = 0; // 0x5ba0b8
-	int mScrollWhileStillPieces = 0; // 0x5ba0bc
-	int mFireWhileStillPieces = 0; // 0x5ba0c0
+	int mScrollWhileStillPieces = 0; // 0x5ba0bc: from the tuning file; nothing reads it
+	int mFireWhileStillPieces = 0; // 0x5ba0c0: from the tuning file; nothing reads it
 	int mPlateMoveWhenFullSlotHit = 0; // 0x5ba0c4
 	int mTossOnFilledSlot = 0; // 0x5ba0c8
 	int mTossOnFilledPlate = 0; // 0x5ba0cc

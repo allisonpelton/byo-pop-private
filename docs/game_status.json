@@ -242,7 +242,7 @@
       ],
       "na": [],
       "now": "performance",
-      "note": "0.80 of its original in 2D on the hidden desktop (4.5 against 5.6 G cycles in 20 s) after origrun's rescan fix; the 3D rounds on the visible desktop run after 22:00 for the README row"
+      "note": "the performance target is not met in 3D on the visible desktop: the port takes 3.8 G cycles in 20 s against the original's 2.4 G (1.59), and the whole excess is the Direct3D 11 driver's thread (49% of the port), a shared cost; 0.80 of the original in 2D on the hidden desktop"
     },
     "astropop": {
       "title": "AstroPop Deluxe",
@@ -511,20 +511,26 @@
         "identical-play",
         "identical-look",
         "fixes-mod",
-        "coverage"
+        "coverage",
+        "performance",
+        "unneeded-code",
+        "readability",
+        "collection",
+        "lite-mod"
       ],
       "na": [],
-      "now": "performance",
-      "note": "fixes mod (seven misspelt texts, a trick shot's own messages) and coverage done: 50 runs of the original reached 696 of 967 game functions, 20 ported functions never reached listed; the 3D and options runs are tonight's; performance next"
+      "now": "site-features",
+      "note": "every phase but modding done but two: the 3D original's shots against the port's 3D mode (the sandbox never loads it; a visible-desktop driver after the reset) and the tutorial's don't-show-again box; real input windowed and full screen in every mode; site features with the site session"
     },
     "heavyweapon": {
       "title": "Heavy Weapon Deluxe",
       "done": [
-        "port"
+        "port",
+        "identical-play"
       ],
       "na": [],
-      "now": "identical-play",
-      "note": "playable natively and in the browser: campaign (19 levels and bosses), survival, the cutscenes through engines/swf, MO3 music; phase one has started"
+      "now": "registration-out",
+      "note": "phase one of identical play done: 28 games from the bot's records agree with the original under origrun in every compared frame (both generators, score, lives, the tank's X, bosses, shots, enemies), all nineteen bosses; the x87's sines in X87.cpp; registration out next"
     },
     "hammerheads": {
       "title": "Hammer Heads Deluxe",

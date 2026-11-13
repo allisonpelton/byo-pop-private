@@ -7,6 +7,7 @@
 #include "Particles.h"
 #include "Res.h"
 #include "Sprite.h"
+#include "X87.h"
 
 #include <math.h>
 #include <stdlib.h>
@@ -24,6 +25,7 @@ namespace
 	const double HEADING_FRAME_CENTRE = 10.0;			// its frame 10 is straight on
 	const double HEADING_OFFSET = 1.5705;				// the heading's angle is measured from the vertical
 	const double FRAGMENT_GRAVITY = 0.05;				// a bullet thrown from a bomb falls this fast
+	const double SWAY_TURN_ACCEL = 0.075;				// a swaying fragment's sideways pull once it turns back
 
 	// port: the bomb's fall, shared by the dumb bomb, the iron bomb and the frag bomb: it moves, slows sideways and
 	// speeds up falling (to 2), and its frame advances (to 9)
@@ -142,7 +144,7 @@ void AirMine::Update()
 	mY = mVelY + mY;
 	if (mVelY < 3.0)
 		mVelY = mVelY + 0.02;
-	double aSway = 0.1 - cos(mY * 0.0032710416666666665) * 0.1;
+	double aSway = 0.1 - X87Cos(mY * 0.0032710416666666665) * 0.1;
 	if (mBoard->mTankX <= mX)
 		mVelX = mVelX - aSway;
 	else
@@ -247,8 +249,8 @@ void BurstRocket::Burst()
 	double anAngle = 1.5708;
 	do
 	{
-		double aCos = cos(anAngle);
-		AddFragmentBullet(mBoard, mX, mY, aCos * 3.0, sin(anAngle) * -3.0);
+		X87Value aCos = X87Cos(anAngle);
+		AddFragmentBullet(mBoard, mX, mY, aCos * 3.0, X87Sin(anAngle) * -3.0);
 		anAngle = 6.282 / (double)mBulletCount + anAngle;
 	}
 	while (anAngle < 7.8539);
@@ -439,8 +441,8 @@ void FragBomb::ThrowFragments()
 	double anAngle = 0.79;
 	do
 	{
-		double aCos = cos(anAngle);
-		AddFragmentBullet(mBoard, mX, (double)GROUND_Y, aCos * 4.0, sin(anAngle) * -4.0);
+		X87Value aCos = X87Cos(anAngle);
+		AddFragmentBullet(mBoard, mX, (double)GROUND_Y, aCos * 4.0, X87Sin(anAngle) * -4.0);
 		anAngle = anAngle + 0.52;
 	}
 	while (anAngle < 2.37);
@@ -503,15 +505,16 @@ void HeadMissile::Update()
 {
 	double anAngle = (mFrame - HEADING_FRAME_CENTRE) * HEADING_DEGREES_PER_FRAME * DEGREES_TO_RADIANS;
 	double aHeading = anAngle + HEADING_OFFSET;
-	mVelX = cos(aHeading) * 3.0;
-	mVelY = sin(aHeading) * 3.0;
+	mVelX = X87Cos(aHeading) * 3.0;
+	mVelY = X87Sin(aHeading) * 3.0;
 	mX = mX - mVelX;
 	mY = mVelY + mY;
 	EmitTrail(this, mVelX * 5.0 + mX, mY - mVelY * 5.0, mVelX * 0.5, mVelY * -0.5);
 
 	if (!mIsLocked)
 	{
-		double aBearing = atan2(mBoard->mTankX - mX, (double)mBoard->mTankY - mY);
+		// the bearing kept on the x87 for the three comparisons
+		X87Value aBearing = X87Atan2(mBoard->mTankX - mX, (double)mBoard->mTankY - mY);
 		if (anAngle <= aBearing)
 		{
 			mFrame = mTurnSpeed + mFrame;
@@ -570,17 +573,16 @@ void Hellfire::Update()
 {
 	double anAngle = (mFrame - HEADING_FRAME_CENTRE) * HEADING_DEGREES_PER_FRAME * DEGREES_TO_RADIANS;
 	double aSpeed = mScale * 4.0;
-	double aCos = cos(anAngle + HEADING_OFFSET);
-	mVelX = aCos * aSpeed;
-	double aSin = sin(anAngle + HEADING_OFFSET);
-	mVelY = aSin * aSpeed;
+	mVelX = X87Cos(anAngle + HEADING_OFFSET) * aSpeed;
+	mVelY = X87Sin(anAngle + HEADING_OFFSET) * aSpeed;
 	mX = mX - mVelX;
 	mY = mVelY + mY;
 	EmitTrail(this, mVelX * 5.0 + mX, mY - mVelY * 5.0, mVelX * 0.5, mVelY * -0.5);
 
 	if (!mIsLocked)
 	{
-		double aBearing = atan2(mBoard->mTankX - mX, (double)mBoard->mTankY - mY);
+		// the bearing kept on the x87 for the three comparisons
+		X87Value aBearing = X87Atan2(mBoard->mTankX - mX, (double)mBoard->mTankY - mY);
 		if (anAngle <= aBearing)
 		{
 			mFrame = mTurnSpeed + mFrame;
@@ -684,8 +686,10 @@ void LGB::Update()
 		if (mBoard->mTankX + 20.0 < mX)
 			mAngle = mAngle - 2.0;
 		double aSteer = (mAngle - 90.0) * DEGREES_TO_RADIANS;
-		mX = cos(aSteer) + cos(aSteer) + mX;
-		mY = mY - sin(aSteer);
+		// the cosine doubled on the x87 rounds as the stored one doubled
+		double aCos = X87Cos(aSteer).Rounded();
+		mX = aCos + aCos + mX;
+		mY = mY - X87Sin(aSteer);
 	}
 	mFrame = (mAngle + 90.0) * (1.0 / 9.0);
 	FinishUpdate(this, BLAST_SIZE);
@@ -705,12 +709,13 @@ Meteor::Meteor(Board* theBoard) : Projectile(theBoard)
 	int aSpeedRand = Rand();
 	mIsShootable = false;
 	double aSpeed = (double)(aSpeedRand % 100) * 0.01 + 3.0;
-	double aCos = cos(anAngle);
+	X87Value aCos = X87Cos(anAngle);
 	mX = aDistance * aCos + (double)(aGroundRand % 640 - FIELD_EDGE_X);
-	double aSin = sin(anAngle);
+	X87Value aSin = X87Sin(anAngle);
 	mY = (double)GROUND_Y - aSin * aDistance;
 	mVelX = -(aCos * aSpeed);
-	mVelY = aSin * aSpeed;
+	// the sine as stored
+	mVelY = aSin.Rounded() * aSpeed;
 	mSprite = mBoard->mApp->mSprites[IMAGE_METEORITE];
 }
 
@@ -760,9 +765,8 @@ void Rpg::Update()
 	if (9.0 < mFrame)
 		mFrame = 9.0;
 	double anAngle = (30.0 - mFrame * 6.6) * DEGREES_TO_RADIANS;
-	double aCos = cos(anAngle);
-	mVelX = aCos * (mMirrored ? -3.0 : 3.0);
-	double aSin = sin(anAngle) * -3.0;
+	mVelX = X87Cos(anAngle) * (mMirrored ? -3.0 : 3.0);
+	double aSin = X87Sin(anAngle) * -3.0;
 	mVelY = aSin;
 	mX = mVelX + mX;
 	mY = aSin + mY;
@@ -823,10 +827,11 @@ void BombFragment::Update()
 	{
 		mX = mVelX + mX;
 		mVelX = mVelX + mSwayAccel;
+		// it starts at a tenth of its drift and turns back at 0.075
 		if (mVelX < -5.0)
-			mSwayAccel = 0.1;
+			mSwayAccel = SWAY_TURN_ACCEL;
 		if (5.0 < mVelX)
-			mSwayAccel = -0.1;
+			mSwayAccel = -SWAY_TURN_ACCEL;
 		mY = mY + 2.0;
 	}
 
@@ -840,7 +845,8 @@ void BombFragment::Update()
 		mBoard->mGroundFlashes.Append(aFlash);
 	}
 
-	if (mTrailY.empty() || mTrailY[0] < GROUND_Y + 1 + 12)
+	// it goes once the oldest point of its path is below the ground
+	if (mTrailY.empty() || mTrailY[0] <= GROUND_Y)
 	{
 		mTrailX.push_back((int)mX);
 		mTrailY.push_back((int)mY);

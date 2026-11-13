@@ -15,6 +15,10 @@ Enemy::Enemy(Board* theBoard)
 	mHitFlash = 0;
 	mMirrored = false;
 	mFrame = 0.0;
+	// port: the original leaves the place unset, and the robot reads its own before it sets it, to place its arms and
+	// launchers (RobotBoss::RobotBoss); the port starts it at 0
+	mX = 0.0;
+	mY = 0.0;
 	mVelX = 0.0;
 	mVelY = 0.0;
 	mBoard = theBoard;
