@@ -27,28 +27,30 @@ var ByopopSoundboards = {
     ],
     groups: [
     { name: "Menus", sounds: [
-      ["sounds/click.ogg", "Click", "Any button pressed (the game's updates run 100 a second): title, intro and high score screens, the options dialog's buttons, and the board's side buttons including the sound button"],
-      ["sounds/button.ogg", "Button (unused)", "Never played: it is not in the game's sound table, so nothing loads or plays it. Also in Peggle Deluxe, Peggle Extreme, Peggle Nights and Peggle World of Warcraft Edition, as sounds/button.ogg."],
-      ["sounds/slideback.ogg", "Slide back (unused)", "Never played: it is not in the game's sound table, so nothing loads or plays it"],
-      ["sounds/v4-welcome.ogg", "\"Welcome to Alchemy\"", "On the intro screen, 60 updates (0.6 seconds) after it opens, only while the player has not yet played a game; the wizard speaks with it"]
+      ["sounds/v4-welcome.ogg", "\"Welcome to Alchemy\"", "On the intro screen, 60 updates (0.6 seconds) after it opens, only while the player has not yet played a game; the wizard speaks with it"],
+      ["sounds/click.ogg", "Click", "Any button pressed (the game's updates run 100 a second): title, intro and high score screens, the options dialog's buttons, and the board's side buttons including the sound button"]
     ] },
     { name: "Placing tiles", sounds: [
-      ["sounds/bad.ogg", "Bad move", "A click on the grid with a tile held when the tile cannot go there, an off-grid click too; a help line may show as well. Also in BookWorm as Bad (unused). Also in Peggle Deluxe, Peggle Extreme, Peggle Nights and Peggle World of Warcraft Edition, as sounds/pegpop.ogg."],
       ["sounds/thunk.ogg", "Tile placed", "Every tile or bomb set on the board by a valid click, together with the forge-down sound where it applies"],
+      ["sounds/bad.ogg", "Bad move", "A click on the grid with a tile held when the tile cannot go there, an off-grid click too; a help line may show as well. Also in BookWorm as Bad (unused). Also in Peggle Deluxe, Peggle Extreme, Peggle Nights and Peggle World of Warcraft Edition, as sounds/pegpop.ogg."],
       ["sounds/skull.ogg", "Skull bomb", "A bomb tile is set down: it takes the tile in that cell with it. The tile-placed thunk plays as well"],
       ["sounds/melt.ogg", "Tile melts", "A tile is discarded (forge click or button) and the forge has not overflowed; the next tile comes 25 updates (0.25 seconds) later"]
     ] },
     { name: "The forge", sounds: [
       ["sounds/forgedown.ogg", "Forge down", "A tile is placed while the forge level is above 0, lowering it by 1; never in the timed game"],
-      ["sounds/warning.ogg", "Forge warning", "Untimed game only: while the forge level is above 2.3 of 3, once every 150 updates (1.5 seconds) until the game ends"],
-      ["sounds/gemchange.ogg", "Gems change", "The next board's tiles have finished fading in, about 67 updates (0.7 seconds) after the statistics button is pressed"]
+      ["sounds/warning.ogg", "Forge warning", "Untimed game only: while the forge level is above 2.3 of 3, once every 150 updates (1.5 seconds) until the game ends"]
     ] },
     { name: "Board end", sounds: [
       ["sounds/finalvanish.ogg", "Row clears", "A placed tile completes its row or column; also the click that starts the next board after one is cleared"],
       ["sounds/finalgong.ogg", "Final gong", "The placed tile lights the last unlit square, so the board is won"],
-      ["sounds/endofgame.ogg", "End of game", "The game ends: the forge overflows (a discard takes it past 3), or in the timed game it stays full for 150 updates (1.5 seconds)"],
       ["sounds/v4-levelcomplete.ogg", "\"Level complete\"", "After a board is won, once the wizard has fully faded in over the cleared board and its tiles have all gone"],
+      ["sounds/gemchange.ogg", "Gems change", "The next board's tiles have finished fading in, about 67 updates (0.7 seconds) after the statistics button is pressed"],
+      ["sounds/endofgame.ogg", "End of game", "The game ends: the forge overflows (a discard takes it past 3), or in the timed game it stays full for 150 updates (1.5 seconds)"],
       ["sounds/v4-gameover.ogg", "\"Game over\"", "The wizard has fully faded in after the game ends (forge overflow or the timed forge staying full)"]
+    ] },
+    { name: "Unused", sounds: [
+      ["sounds/button.ogg", "Button (unused)", "Never played: it is not in the game's sound table, so nothing loads or plays it. Also in Peggle Deluxe, Peggle Extreme, Peggle Nights and Peggle World of Warcraft Edition, as sounds/button.ogg."],
+      ["sounds/slideback.ogg", "Slide back (unused)", "Never played: it is not in the game's sound table, so nothing loads or plays it"]
     ] },
   ] },
   astropop: {
@@ -251,18 +253,15 @@ var ByopopSoundboards = {
     ],
     groups: [
     { name: "Menus", sounds: [
-      ["sounds/menuclick.ogg", "Click", "Any button pressed in the menus and dialogs, and every button of the options dialog (its Done button clicks twice)"],
-      ["sounds/click2.ogg", "Click 2 (unused)", "Never played: it is in the sound table, but no code plays it. Also in Bejeweled 2 as Click 2 (unused)."],
-      ["sounds/sidebarclick2.ogg", "Side bar click (unused)", "Never played: it is not in the sound table, so it is never loaded"],
-      ["sounds/welcome1.ogg", "\"Welcome to Bejeweled\" (unused)", "Never played: it is not in the sound table, so it is never loaded"],
-      ["sounds/goodbye1.ogg", "\"Goodbye!\" (unused)", "Never played: it is not in the sound table, so it is never loaded"]
+      ["sounds/menuclick.ogg", "Click", "Any button pressed in the menus and dialogs, and every button of the options dialog (its Done button clicks twice)"]
     ] },
     { name: "Matches", sounds: [
+      ["sounds/go1.ogg", "\"Go!\"", "Update 150 of a new board (1.5 s after it starts), as the Go text bounces in"],
       ["sounds/select.ogg", "Select", "A gem is selected by a click, panned by its column; also the first step of an arrow gem's move in the arrows mod"],
+      ["sounds/bad2.ogg", "Bad swap", "A swap that makes no match swings back, or two gems that are not neighbours are swapped; also a refused undo. Also in Bejeweled 3, as sounds/badmove.ogg."],
       ["sounds/gotset2.ogg", "Match", "A scoring pass whose longest run is exactly 3 gems, panned by the runs' average column; plays with that pass's cascade sound"],
       ["sounds/gotsetbig2.ogg", "Big match", "A scoring pass whose longest run is 4 or more gems; plays with that pass's cascade sound (the arrows mod uses it for an arrow shot)"],
       ["sounds/multishot.ogg", "Two matches", "A scoring pass finds two or more separate runs at once, on top of the match and cascade sounds"],
-      ["sounds/bad2.ogg", "Bad swap", "A swap that makes no match swings back, or two gems that are not neighbours are swapped; also a refused undo. Also in Bejeweled 3, as sounds/badmove.ogg."],
       ["sounds/gemongem2.ogg", "Gems land", "Gems land after falling; at most once every 10 updates (0.1 s; the game runs 100 updates a second), panned by where they land"],
       ["sounds/excellent1.ogg", "\"Excellent!\"", "A move's matches pass 120 points × the level's multiplier, once a move. A match: 10, 20, 30, 40, 60, 80, 110, 160, 210 for the move's 1st to 9th, +10 a gem past 3 and past 5"]
     ] },
@@ -274,17 +273,22 @@ var ByopopSoundboards = {
       ["sounds/combo62.ogg", "Cascade 5 (unused)", "Never played: the sound table loads cascade 4's file again for fifth and later passes; this file is never loaded"],
       ["sounds/combo72.ogg", "Cascade 6 (unused)", "Never played: the sound table has no entry for it; this file is never loaded"]
     ] },
-    { name: "Levels", sounds: [
-      ["sounds/go1.ogg", "\"Go!\"", "Update 150 of a new board (1.5 s after it starts), as the Go text bounces in"],
+    { name: "A level won", sounds: [
       ["sounds/whirlpool1.ogg", "Whirlpool", "A level is won: loops while the vortex pulls the gems to the middle, its volume rising with the vortex, until the next board or the next vortex"],
       ["sounds/levelup1.ogg", "\"Level up!\"", "In the level-won vortex, the farthest gem comes within 80 pixels of the middle (gems move in 1 pixel an update)"],
-      ["sounds/firecrackle.ogg", "Crackle", "The vortex has finished and the gems are gone: the next level's wipe starts; also a lightning gem's blast in a rules mod with special gems. Also in Bejeweled 2 as Fire crackle (unused)."],
-      ["sounds/warning1.ogg", "Warning", "Timed mode: the bar is under 15% full; repeats every 240 updates (2.4 s) at 15%, down to every 80 updates (0.8 s) at 5% and below"]
+      ["sounds/firecrackle.ogg", "Crackle", "The vortex has finished and the gems are gone: the next level's wipe starts; also a lightning gem's blast in a rules mod with special gems. Also in Bejeweled 2 as Fire crackle (unused)."]
     ] },
     { name: "Game over", sounds: [
+      ["sounds/warning1.ogg", "Warning", "Timed mode: the bar is under 15% full; repeats every 240 updates (2.4 s) at 15%, down to every 80 updates (0.8 s) at 5% and below"],
       ["sounds/explode2.ogg", "Explosion", "Game over: 200 updates (2 s) after the game ends the shake stops and the gems blow apart; 50 updates after New Game mid-game; a flame gem's blast in a rules mod"],
       ["sounds/gameover1.ogg", "\"Game over\"", "The last gem has fallen off the board after the game ended; not when a New Game ended it"]
-    ] }
+    ] },
+    { name: "Unused", sounds: [
+      ["sounds/click2.ogg", "Click 2 (unused)", "Never played: it is in the sound table, but no code plays it. Also in Bejeweled 2 as Click 2 (unused)."],
+      ["sounds/sidebarclick2.ogg", "Side bar click (unused)", "Never played: it is not in the sound table, so it is never loaded"],
+      ["sounds/welcome1.ogg", "\"Welcome to Bejeweled\" (unused)", "Never played: it is not in the sound table, so it is never loaded"],
+      ["sounds/goodbye1.ogg", "\"Goodbye!\" (unused)", "Never played: it is not in the sound table, so it is never loaded"]
+    ] },
   ] },
   bejeweled2: {
     presets: [
@@ -1504,31 +1508,31 @@ var ByopopSoundboards = {
       ["Resource.dll|pe:WAVE:105", "Click", "A button, slider or list row is pressed; also a level clicked on the map, a layout slot clicked, and a double-click on the background picture or the style choice"]
     ] },
     { name: "Tiles", sounds: [
+      ["Resource.dll|pe:WAVE:350", "Deal", "A game's board is dealt, when a level or layout game starts or is restarted; all other sounds are stopped first"],
       ["Resource.dll|pe:WAVE:175", "Tile selected", "A click on a free tile that can pair makes it the selected one, or deselects it when it was already selected"],
       ["Resource.dll|pe:WAVE:174", "Tile blocked", "A click that hits no tile that can be selected and paired (a covered tile or empty space), while no tiles are flying in or out"],
       ["Resource.dll|pe:WAVE:176", "Pair matched", "Two matching tiles are taken, including a key with its lock and a joker or magnet with its partner; not for a gold pair"],
-      ["Resource.dll|pe:WAVE:349", "Shuffle", "A shuffle starts, from the Shuffle button or the shuffle choice of the no-moves dialog"],
-      ["Resource.dll|pe:WAVE:350", "Deal", "A game's board is dealt, when a level or layout game starts or is restarted; all other sounds are stopped first"],
-      ["Resource.dll|pe:WAVE:351", "Undo", "A move is taken back, from the Undo button or the undo choice of the no-moves dialog; nothing plays when no move has been made"]
+      ["Resource.dll|pe:WAVE:351", "Undo", "A move is taken back, from the Undo button or the undo choice of the no-moves dialog; nothing plays when no move has been made"],
+      ["Resource.dll|pe:WAVE:349", "Shuffle", "A shuffle starts, from the Shuffle button or the shuffle choice of the no-moves dialog"]
     ] },
     { name: "Special tiles", sounds: [
+      ["Resource.dll|pe:WAVE:352", "Bonus", "A normal pair is taken that matches the tile shown in the tray and scores points, adding the 500-point bonus"],
       ["Resource.dll|pe:WAVE:347", "Joker loop", "A joker tile is selected; it loops until the tile is paired, deselected or the selection is cleared"],
       ["Resource.dll|pe:WAVE:348", "Magnet loop", "A magnet tile is selected; it loops until the tile is paired, deselected or the selection is cleared"],
       ["Resource.dll|pe:WAVE:378", "Key loop", "A key tile is selected; it loops until the tile is paired, deselected or the selection is cleared"],
       ["Resource.dll|pe:WAVE:379", "Key joins lock", "A key's flight onto its lock ends and the two join"],
       ["Resource.dll|pe:WAVE:377", "Gold match", "The two gold tiles are paired, which ends the level in the map game"],
-      ["Resource.dll|pe:WAVE:376", "Fly-off loop", "The gold pair's flight ends with more than 2 tiles left on the board; it loops as the rest fly off, until the level-complete dialog opens"],
-      ["Resource.dll|pe:WAVE:352", "Bonus", "A normal pair is taken that matches the tile shown in the tray and scores points, adding the 500-point bonus"]
+      ["Resource.dll|pe:WAVE:376", "Fly-off loop", "The gold pair's flight ends with more than 2 tiles left on the board; it loops as the rest fly off, until the level-complete dialog opens"]
+    ] },
+    { name: "Level end", sounds: [
+      ["Resource.dll|pe:WAVE:373", "Fanfare", "The level-complete dialog opens after a map level (its gold tiles in the tray); also the ending screen opens, 1 second after the map's final move or from the map's ending button"],
+      ["Resource.dll|pe:WAVE:375", "Layout result", "The result dialog opens at the end of a layout game, once the last tiles are gone"]
     ] },
     { name: "Map", sounds: [
       ["Resource.dll|pe:WAVE:340", "Map curtain", "The map screen comes back after a level or layout game, with its curtain closing; also when a level is started from the map, with the curtain opening"],
       ["Resource.dll|pe:WAVE:381", "Map move", "The map screen comes back after a level that unlocked the next one and the map marker moves on, unless that level ended its stage"],
       ["Resource.dll|pe:WAVE:380", "New stage", "The map screen comes back after the level that ended a stage, and the stage-completed text fades in"],
       ["Resource.dll|pe:WAVE:382", "Stage text gone", "The stage-completed text, held for 3000 milliseconds (3 seconds) once faded in, has faded out"]
-    ] },
-    { name: "Level end", sounds: [
-      ["Resource.dll|pe:WAVE:375", "Layout result", "The result dialog opens at the end of a layout game, once the last tiles are gone"],
-      ["Resource.dll|pe:WAVE:373", "Fanfare", "The level-complete dialog opens after a map level (its gold tiles in the tray); also the ending screen opens, 1 second after the map's final move or from the map's ending button"]
     ] },
     { name: "Unused", sounds: [
       ["Resource.dll|pe:WAVE:106", "MP3 resource 106 (unused)", "Never played: its code never refers to the resource"]
@@ -1554,31 +1558,31 @@ var ByopopSoundboards = {
       ["Resource.dll|pe:WAVE:105", "Click", "A button, slider or list row is pressed; also a level clicked on the map, a layout slot clicked, and a double-click on the background picture or the style choice"]
     ] },
     { name: "Tiles", sounds: [
+      ["Resource.dll|pe:WAVE:350", "Deal", "A game's board is dealt, when a level or layout game starts or is restarted; all other sounds are stopped first"],
       ["Resource.dll|pe:WAVE:175", "Tile selected", "A click on a free tile that can pair makes it the selected one, or deselects it when it was already selected"],
       ["Resource.dll|pe:WAVE:174", "Tile blocked", "A click that hits no tile that can be selected and paired (a covered tile or empty space), while no tiles are flying in or out"],
       ["Resource.dll|pe:WAVE:176", "Pair matched", "Two matching tiles are taken, including a key with its lock and a joker or magnet with its partner; not for a gold pair"],
-      ["Resource.dll|pe:WAVE:349", "Shuffle", "A shuffle starts, from the Shuffle button or the shuffle choice of the no-moves dialog"],
-      ["Resource.dll|pe:WAVE:350", "Deal", "A game's board is dealt, when a level or layout game starts or is restarted; all other sounds are stopped first"],
-      ["Resource.dll|pe:WAVE:351", "Undo", "A move is taken back, from the Undo button or the undo choice of the no-moves dialog; nothing plays when no move has been made"]
+      ["Resource.dll|pe:WAVE:351", "Undo", "A move is taken back, from the Undo button or the undo choice of the no-moves dialog; nothing plays when no move has been made"],
+      ["Resource.dll|pe:WAVE:349", "Shuffle", "A shuffle starts, from the Shuffle button or the shuffle choice of the no-moves dialog"]
     ] },
     { name: "Special tiles", sounds: [
+      ["Resource.dll|pe:WAVE:352", "Bonus", "A normal pair is taken that matches the tile shown in the tray and scores points, adding the 500-point bonus"],
       ["Resource.dll|pe:WAVE:347", "Joker loop", "A joker tile is selected; it loops until the tile is paired, deselected or the selection is cleared"],
       ["Resource.dll|pe:WAVE:348", "Magnet loop", "A magnet tile is selected; it loops until the tile is paired, deselected or the selection is cleared"],
       ["Resource.dll|pe:WAVE:378", "Key loop", "A key tile is selected; it loops until the tile is paired, deselected or the selection is cleared"],
       ["Resource.dll|pe:WAVE:379", "Key joins lock", "A key's flight onto its lock ends and the two join"],
       ["Resource.dll|pe:WAVE:377", "Gold match", "The two gold tiles are paired, which ends the level in the map game"],
-      ["Resource.dll|pe:WAVE:376", "Fly-off loop", "The gold pair's flight ends with more than 2 tiles left on the board; it loops as the rest fly off, until the level-complete dialog opens"],
-      ["Resource.dll|pe:WAVE:352", "Bonus", "A normal pair is taken that matches the tile shown in the tray and scores points, adding the 500-point bonus"]
+      ["Resource.dll|pe:WAVE:376", "Fly-off loop", "The gold pair's flight ends with more than 2 tiles left on the board; it loops as the rest fly off, until the level-complete dialog opens"]
+    ] },
+    { name: "Level end", sounds: [
+      ["Resource.dll|pe:WAVE:373", "Fanfare", "The level-complete dialog opens after a map level (its gold tiles in the tray); also the ending screen opens, 1 second after the map's final move or from the map's ending button"],
+      ["Resource.dll|pe:WAVE:375", "Layout result", "The result dialog opens at the end of a layout game, once the last tiles are gone"]
     ] },
     { name: "Map", sounds: [
       ["Resource.dll|pe:WAVE:340", "Map curtain", "The map screen comes back after a level or layout game, with its curtain closing; also when a level is started from the map, with the curtain opening"],
       ["Resource.dll|pe:WAVE:381", "Map move", "The map screen comes back after a level that unlocked the next one and the map marker moves on, unless that level ended its stage"],
       ["Resource.dll|pe:WAVE:380", "New stage", "The map screen comes back after the level that ended a stage, and the stage-completed text fades in"],
       ["Resource.dll|pe:WAVE:382", "Stage text gone", "The stage-completed text, held for 3000 milliseconds (3 seconds) once faded in, has faded out"]
-    ] },
-    { name: "Level end", sounds: [
-      ["Resource.dll|pe:WAVE:375", "Layout result", "The result dialog opens at the end of a layout game, once the last tiles are gone"],
-      ["Resource.dll|pe:WAVE:373", "Fanfare", "The level-complete dialog opens after a map level (its gold tiles in the tray); also the ending screen opens, 1 second after the map's final move or from the map's ending button"]
     ] },
   ] },
   mummymaze: {
