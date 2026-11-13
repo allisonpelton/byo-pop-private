@@ -169,7 +169,7 @@ var ByopopAutosplit = (function () {
   var V2 = {
     u32: { self: 0x1C, seq: 0x20, active: 0x24, updates: 0x28, flags: 0x2C, boardSerial: 0x30, goCount: 0x34, goSerial: 0x38,
            levelClears: 0x3C, levelClearSerial: 0x40, gameOvers: 0x44, gameOverSerial: 0x48, death0: 0x4C, death1: 0x50,
-           death2: 0x54, death3: 0x58, wins: 0xB0, winSerial: 0xB4, inGame: 0xC0 },
+           death2: 0x54, death3: 0x58, own0: 0x80, wins: 0xB0, winSerial: 0xB4, inGame: 0xC0 },
     i32: { tick: 0x5C, state: 0x60, level: 0x64, displayLevel: 0x68, displayScore: 0x6C, score: 0x70, boardLevelClears: 0x74,
            goTick: 0x78, displayScoreMax: 0x7C, mode: 0xB8, skill: 0xBC, progress: 0xC4 }
   };
@@ -222,6 +222,7 @@ var ByopopAutosplit = (function () {
     rules.deaths.forEach(function (d) { if (d.setting) settings[d.setting] = [true, "resets"]; });
     settings.resetReplaced = [true, "resets"];
     settings.resetQuit = [true, "resets"];
+    (rules.templates || []).forEach(function (t) { if (t.limit) settings[t.limit.setting] = [true, "resets"]; });
     var decider = function (timer, opts) {
       var values = {};
       Object.keys(settings).forEach(function (k) { values[k] = settings[k][0]; });
@@ -238,6 +239,9 @@ var ByopopAutosplit = (function () {
       function outside(want, v) { return Array.isArray(want) ? want.indexOf(v) < 0 : want >= 0 && want !== v; }
       var end = template ? parseEnd(template.end) : null;
       var splits = [], runSerial = 0, pending = null, baseline = true, seenActive = false, warned = false, attachT = null;
+      // (a run over several games, template.games: the skills its games have had, and whether the run's game has reached
+      // its end and the run waits for the next game's GO)
+      var skillsUsed = [], between = false;
       var current = {}, old = {};
       V2_FIELDS.forEach(function (k) { current[k] = 0; });
       // a game over on the run's board that ends it, in its last segment ("lost"; "lost N": only while the game's progress is
@@ -246,23 +250,44 @@ var ByopopAutosplit = (function () {
         return !!end && end.kind === "lost" && timer.index() === splits.length - 1 && current.gameOvers !== old.gameOvers &&
                current.gameOverSerial === runSerial && (!end.hasN || current.progress <= end.n);
       }
+      // a new game that may start a run: a GO on the board in play, not a replay or resumed game, of the category's mode and skill
+      function isGo() {
+        return current.goCount !== old.goCount && current.goSerial === current.boardSerial && !(current.flags & (FLAG_REPLAY | FLAG_RESUMED)) &&
+               !(setting("vanillaOnly") && !(current.flags & FLAG_VANILLA)) &&
+               !(setting("modeGuard") && (outside(catMode, current.mode) || outside(catSkill, current.skill)));
+      }
+      // the win of the run's board, where the category ends at it: the run's end whatever segment it is in, even with the
+      // board gone in the same update (Dynomite's tutorial wins as it closes to the main menu, its last part's clear just
+      // before, so a poll may see all three at once)
+      function wonNow() {
+        return !!end && end.kind === "won" && !(template && template.games) && current.wins !== old.wins && current.winSerial === runSerial;
+      }
       function reached() {
         var i = timer.index();
-        if (runSerial === 0 || current.boardSerial !== runSerial || i < 0 || i >= splits.length) return false;
+        if (runSerial === 0 || i < 0 || i >= splits.length) return false;
+        if (wonNow()) return true;
+        if (current.boardSerial !== runSerial) return false;
+        // (each segment of a run over several games is one game, which ends at the end's progress; between games, none)
+        if (template && template.games) return !between && end.kind === "progress" && current.progress >= end.n;
         if (end && i === splits.length - 1) {
           if (end.kind === "won") return current.wins !== old.wins && current.winSerial === runSerial;
           if (end.kind === "lost") return lostEnd();
           if (end.kind === "progress") return current.progress >= end.n;
         }
-        // (a template with by "progress" splits on the game's own figure instead: Mummy Maze's treasures)
+        // (a template with by "progress" splits on the game's own figure instead: Mummy Maze's treasures; one with targets
+        // at the level clears it lists, a segment for many levels: Cosmic Bugs' steps of 48 boards)
+        if (template && template.targets) return current.boardLevelClears >= template.targets[i];
         var s = splits[i];
         if (template && template.by === "progress") return current.progress >= s.target;
         return (s.score ? current.displayScoreMax : current.boardLevelClears) >= s.target;
       }
       return {
         // the timer started (by the decider or by hand): the run is the current board's
-        onStart: function () { splits = parseSplits((opts && opts.segments) || []); runSerial = current.boardSerial; pending = null; },
-        onReset: function () { runSerial = 0; pending = null; },
+        onStart: function () {
+          splits = parseSplits((opts && opts.segments) || []); runSerial = current.boardSerial; pending = null;
+          skillsUsed = [current.skill]; between = false;
+        },
+        onReset: function () { runSerial = 0; pending = null; between = false; },
         board: function () { return current.boardSerial; },
         poll: function (t, snap) {
           if (attachT === null) attachT = t;
@@ -283,7 +308,7 @@ var ByopopAutosplit = (function () {
           var ph = timer.phase();
           if (ph === "Running" || ph === "Paused") {
             var cause = null;
-            if (setting("resets") && runSerial !== 0) {
+            if (setting("resets") && runSerial !== 0 && !between) {
               // a new game over or board change, else one held back in an earlier poll
               cause = pending; pending = null;
               if (current.gameOvers !== old.gameOvers && current.gameOverSerial === runSerial && !lostEnd()) {
@@ -292,18 +317,28 @@ var ByopopAutosplit = (function () {
                   if (current["death" + d] !== old["death" + d]) { cause = rules.deaths[d].setting || "resets"; break; }
               } else if (old.boardSerial === runSerial && current.boardSerial !== runSerial && !(old.flags & FLAG_GAME_OVER)) {
                 cause = current.boardSerial === 0 ? "resetQuit" : "resetReplaced";
+              } else if (template && template.limit && current.boardSerial === runSerial &&
+                         current[template.limit.field] > template.limit.max && !(old[template.limit.field] > template.limit.max)) {
+                // a figure of the game's own over the category's limit (AstroPop's SUPA Weapon used in No SUPA Weapon)
+                cause = template.limit.setting;
               }
               if (cause !== null && !setting(cause)) cause = null;
               // the segment was reached by the game over (the same poll saw both): split first
               if (cause !== null && reached()) { pending = cause; cause = null; }
             }
             if (cause !== null) timer.reset(cause);
-            else if (reached()) timer.split();
+            else if (reached()) {
+              timer.split();
+              // (a win splits every segment left)
+              for (var w = 0; w < splits.length && wonNow() && timer.phase() === "Running"; w++) timer.split();
+              if (template && template.games && timer.phase() === "Running") between = true;
+            }
+            // the next game of a run over several games: a new game of the category's mode with a skill the run has not had
+            if (between && timer.phase() === "Running" && isGo() && skillsUsed.indexOf(current.skill) < 0) {
+              runSerial = current.boardSerial; skillsUsed.push(current.skill); between = false;
+            }
           }
-          if (timer.phase() === "NotRunning" && current.goCount !== old.goCount && current.goSerial === current.boardSerial &&
-              !(current.flags & (FLAG_REPLAY | FLAG_RESUMED)) && !(setting("vanillaOnly") && !(current.flags & FLAG_VANILLA)) &&
-              !(setting("modeGuard") && (outside(catMode, current.mode) || outside(catSkill, current.skill))))
-            timer.start();
+          if (timer.phase() === "NotRunning" && isGo()) timer.start();
           return ask;
         },
         // the game went away (its window closed, its page reloaded)
@@ -374,12 +409,13 @@ var ByopopAutosplit = (function () {
                   by: "progress" }]
   };
 
-  // Rocket Mania (speedrun.com: Rocket Mania!): Level 10, 20 and 30 on each difficulty, from "Get Ready!" (its GO, the first
-  // update of a new game) to the "Level Up!" of the last level (its level clear). The board doesn't say which mode; Arcade and
-  // Classic both have levels, Strategy never ends one, so either of the two starts a run. A loss counts when the game-over
-  // screen comes (a launch still burning at the night's end can still clear the level in Classic). No win: the levels go on.
+  // Rocket Mania Deluxe has no speedrun.com board of its own: the board named Rocket Mania! is for a Java edition. Its row is
+  // the site's own categories, Level 10, 20 and 30 on each difficulty, from "Get Ready!" (its GO, the first update of a new
+  // game) to the "Level Up!" of the last level (its level clear), in Arcade or Classic (Strategy never ends a level). A loss
+  // counts when the game-over screen comes (a launch still burning at the night's end can still clear the level in Classic).
+  // No win: the levels go on.
   var RM_RULES = {
-    name: "Rocket Mania!", id: "RMDX",
+    name: "Rocket Mania Deluxe", id: "RMDX",
     modes: { Arcade: 0, Classic: 1, Strategy: 2 }, skills: { Easy: 0, Normal: 1, Hard: 2 },
     deaths: [{ setting: "resetOutOfTime", what: "the night ran out (Classic)" }, { setting: "resetTopLine", what: "the top line filled (Arcade)" },
              { setting: "resetNoMatches", what: "no matches left (Strategy)" }, { setting: null, what: "(none)" }],
@@ -409,6 +445,91 @@ var ByopopAutosplit = (function () {
     }, []).concat([{ category: "Tutorial%", segments: ["Tutorial"], end: "won", mode: 2 }])
   };
 
+  // AstroPop (speedrun.com: Astropop Deluxe): Any% and Any% (No SUPA Weapon) for each pilot, a new Classic game from level 1
+  // to level 32's "Level Up" (its GO, the first update of the new game: the start click on the title comes before the pilot
+  // is chosen, so the block cannot see it; a game from a later level or a saved one is resumed and starts nothing). Its
+  // progress is the level just cleared: a fast warp gate skips levels, so the splits follow progress, not the clears. No SUPA
+  // Weapon resets on the first use, counted in the game's own first word. 100% is the four pilots, one new game each, a
+  // segment a game: the run waits after each pilot's level 32 for the next pilot's new game. Survival has no timer.
+  var AP_PILOTS = ["Vector", "Sprocket", "Turbot", "Vixx"];
+  var AP_RULES = {
+    name: "Astropop Deluxe", id: "APDX",
+    modes: { Classic: 1, Survival: 2 }, skills: { Vector: 0, Sprocket: 1, Turbot: 2, Vixx: 3 },
+    deaths: [{ setting: "resetRowPush", what: "a new row pushed bricks to the ship" }, { setting: "resetFieldFull", what: "the stack filled the field" },
+             { setting: "resetLeft", what: "END GAME" }, { setting: null, what: "any other game over (the reset setting only)" }],
+    templates: ["Any%", "Any% (No SUPA Weapon)"].reduce(function (a, category) {
+      return a.concat(AP_PILOTS.map(function (pilot, i) {
+        var t = { category: category, sub: pilot, segments: levels(32), end: "progress 32", mode: 1, skill: i, by: "progress" };
+        if (category !== "Any%") t.limit = { field: "own0", max: 0, setting: "resetSupa" };
+        return t;
+      }));
+    }, []).concat([{ category: "100%", segments: AP_PILOTS.map(function (x, i) { return "Pilot " + (i + 1); }), end: "progress 32", mode: 1,
+                     games: 4 }])
+  };
+
+  // Typer Shark (speedrun.com: Typer Shark Deluxe): a block board is a whole game, its GO the first update after the
+  // difficulty (or the Abyss) is chosen. Adventure Mode, for each difficulty, ends on returning to the map after level 11
+  // is beaten: its progress is the levels beaten and left, which rises as the map comes back, so each level splits there
+  // (a level's own clear comes earlier, before the player leaves it). Abyss Mode ends at its game over, whose time the
+  // game-over screen shows; Death% at the first game over of an adventure. Leaving through the options' "end this game"
+  // is no game over: the game goes away, a quit.
+  var TS_SKILLS = ["Easy", "Normal", "Hard", "Expert", "X-Treme!"];
+  var TS_RULES = {
+    name: "Typer Shark Deluxe", id: "TSDX",
+    modes: { Adventure: 0, Abyss: 1 }, skills: {},
+    deaths: [{ setting: "resetLives", what: "out of lives (Adventure)" }, { setting: null, what: "out of lives in the Abyss (Abyss Mode's end)" },
+             { setting: null, what: "(none)" }, { setting: null, what: "(none)" }],
+    templates: TS_SKILLS.map(function (skill, i) {
+      return { category: "Adventure Mode", sub: skill, segments: levels(11), end: "progress 11", mode: 0, skill: i, by: "progress" };
+    }).concat([{ category: "Abyss Mode", segments: ["Abyss"], end: "lost", mode: 1 },
+               { category: "Death%", segments: ["Death"], end: "lost", mode: 0 }])
+  };
+
+  // Cosmic Bugs (speedrun.com: Cosmic Bugs): Any%, from the click on Play on the instructions page (its GO, the update
+  // that click makes the first board in; a new player's Start Game shows that page, a continued or chosen board does not
+  // and starts nothing) to the "Congratulations! Mission complete" screen, its win. A mission is 577 boards, the first
+  // made by hand and then 12 steps of 48, so the splits are the first board and each step's last (`targets`, the level
+  // clears each needs); the last is the win, which follows the 577th board's clicked-through texts. One mode; the
+  // difficulty has no screen to change it, so any.
+  var CB_RULES = {
+    name: "Cosmic Bugs", id: "CBDX",
+    modes: {}, skills: {},
+    deaths: [{ setting: "resetLives", what: "out of lives" }, { setting: "resetLeft", what: "the game left for another screen (Esc)" },
+             { setting: null, what: "(none)" }, { setting: null, what: "(none)" }],
+    templates: [{ category: "Any%", segments: ["Board 1"].concat([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(function (k) { return "Step " + k; })),
+                  targets: [1, 49, 97, 145, 193, 241, 289, 337, 385, 433, 481, 529], end: "won", mode: 0 }]
+  };
+
+  // Dynomite (speedrun.com: Dynomite! Deluxe): a board is a whole game. Endless Puzzle, for each amount and difficulty, from
+  // the difficulty's click (its GO, the update after the click that makes the board) to the score on screen reaching the
+  // amount. Time Trial from the first egg fired (its GO, the update the first shot ends in) to the board cleared, its win;
+  // the board times it in game time, which is the game's updates from that GO. Fossil Challenge from Let's Play! (its GO)
+  // through each fossil found (its level clear, the third fragment off the bottom) to the fifteenth, its win. Tutorial from
+  // Next on the start page (its GO) through each mode's part (a level clear each) to the main menu with every part done, its
+  // win. The board's Easy, Normal and Hard are the game's Normal, Hard and Expert, skills 1 to 3; Strategic and Panic are 1
+  // and 2. A continued save starts nothing; leaving a game is its own game over.
+  var DY_AMOUNTS = ["1K", "5K", "10K", "25K", "50K"], DY_SKILLS = ["Easy", "Normal", "Hard"];
+  var DY_RULES = {
+    name: "Dynomite! Deluxe", id: "DYDX",
+    modes: { Stomped: 1, Endless: 2, Fossil: 3, "Time Trial": 4, Tutorial: 5 }, skills: {},
+    deaths: [{ setting: "resetEndless", what: "the eggs ran off the bottom (Endless Puzzle)" },
+             { setting: "resetFossil", what: "the eggs ran off the bottom (Fossil Challenge)" },
+             { setting: "resetLeft", what: "the game was left (another game, the menu, a save, the tutorial closed)" },
+             { setting: null, what: "the eggs ran off the bottom (Stomped Puzzle, no category)" }],
+    templates: DY_AMOUNTS.reduce(function (a, amount, k) {
+      return a.concat(DY_SKILLS.map(function (skill, i) {
+        return { category: "Endless Puzzle", sub: amount + " - " + skill, segments: DY_AMOUNTS.slice(0, k + 1),
+                 end: "score " + parseInt(amount, 10) * 1000, mode: 2, skill: i + 1 };
+      }));
+    }, []).concat(DY_SKILLS.map(function (skill, i) {
+      return { category: "Time Trial", sub: skill, segments: ["Cleared"], end: "won", mode: 4, skill: i + 1 };
+    })).concat(["Strategic", "Panic"].map(function (skill, i) {
+      return { category: "Fossil Challenge", sub: skill, segments: levels(15).map(function (x) { return x.replace("Level", "Fossil"); }),
+               end: "won", mode: 3, skill: i + 1 };
+    })).concat([{ category: "Tutorial", segments: ["Endless Puzzle", "Stomped Puzzle", "Fossil Challenge", "Time Trial", "Main Menu"],
+                  end: "won", mode: 5 }])
+  };
+
   // A row of GAMES from a row of the rules table
   function ruled(rules) {
     return { name: rules.name, block: "_byopop_livesplit_block", read: blockReader(rules.id), decider: makeDecider(rules),
@@ -424,7 +545,11 @@ var ByopopAutosplit = (function () {
     sevenseas: ruled(SS_RULES),
     mummymaze: ruled(MM_RULES),
     rocketmania: ruled(RM_RULES),
-    alchemy: ruled(AL_RULES)
+    alchemy: ruled(AL_RULES),
+    astropop: ruled(AP_RULES),
+    typershark: ruled(TS_RULES),
+    cosmicbugs: ruled(CB_RULES),
+    dynomite: ruled(DY_RULES)
   };
 
   // The front game's block, read from its window: {game, snap} or null (no game with an auto splitter in front, or it has not

@@ -51,6 +51,8 @@ void CycleSplitMark(const std::string& theLabel, int theUpdateCount);
 bool CycleSplitPause(bool thePause);
 // The last snapshot ("exit"), then the file. Once.
 void CycleSplitFinish(int theUpdateCount);
+// The cycles the calling thread has run (QueryThreadCycleTime), for a test's own count of one piece of work.
+unsigned long long CurrentThreadCycles();
 
 class CycleScope
 {
@@ -70,6 +72,7 @@ inline bool CycleSplitStart(const std::string&) { return false; }
 inline void CycleSplitMark(const std::string&, int) {}
 inline bool CycleSplitPause(bool) { return false; }
 inline void CycleSplitFinish(int) {}
+inline unsigned long long CurrentThreadCycles() { return 0; }
 
 class CycleScope
 {

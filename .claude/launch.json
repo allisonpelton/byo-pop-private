@@ -204,6 +204,12 @@
       "runtimeExecutable": "python",
       "runtimeArgs": ["tools/webtest/serve.py", "--port", "18809"],
       "port": 18809
+    },
+    {
+      "name": "soundcompare",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-I", "tools/web/soundcompare.py", "--port", "18791"],
+      "port": 18791
     }
   ]
 }

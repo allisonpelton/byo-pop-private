@@ -266,10 +266,12 @@ bool WinWSApp::HandleScriptCommand(const ScriptCommand& theCommand)
 		LeakCountReport(aFirst.empty() ? "x" : aFirst.c_str(), aRest == "sites");
 		return true;
 	}
+#endif
 
-	// the user flows of the leak scenarios, which have no screen coordinates to click: the same handlers a click reaches
+	// user flows that have no screen coordinates to click: the same handlers a click reaches (the leak scenarios, the autosplit tests)
 	//   press <id>                       the app's ButtonDepress
 	//   dyes <dialog id> | dno <id>      the dialog's yes / no button (the dialog's own ButtonDepress, which calls the app's)
+	// and, in the scratch leak-counting build only:
 	//   dlist <dialog id> <line> [n]     a click (n = 1, 2) on a line of the select-user or delete-user dialog's list
 	//   dname <text>                     the text of the new-user dialog's edit box
 	if (aCommand == "press")
@@ -293,6 +295,7 @@ bool WinWSApp::HandleScriptCommand(const ScriptCommand& theCommand)
 		Reply("OK " + aCommand + " " + anArgs);
 		return true;
 	}
+#ifdef TS_LEAKCOUNT
 	if (aCommand == "dlist")
 	{
 		int aDialogId = (int) strtol(aFirst.c_str(), NULL, 0);

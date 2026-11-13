@@ -21,6 +21,9 @@
 
 using namespace Sexy;
 
+// port(autosplit): the Boards made so far, which gives each its mBoardSerial (read only by LiveSplitObserver.cpp)
+static unsigned int sBoardSerials = 0;
+
 // 0x480020: the field, the scenery, the hint boxes and the buttons are made; the level the player starts at is set up
 // (the rules and the stages up to it are played through by AdvanceLevel) and loaded. theFlags holds the byte at +0x1968
 // (when it is not 0 and the game is not the demo, the level is loaded); theFlag is kept at +0x922; theNewGame is true
@@ -58,6 +61,7 @@ Board::Board(AstroPopApp* theApp, EventBus* theBus, int theGameType, unsigned in
 	mWeaponHintPulse.mWaitReset = -1;
 
 	mApp = theApp;
+	mBoardSerial = ++sBoardSerials;     // port(autosplit)
 	mGameType = theGameType;
 	if (theGameType == 1)
 		mMode = theApp->mClassicPilot;

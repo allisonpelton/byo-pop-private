@@ -1727,7 +1727,8 @@ bool SexyAppBase::DrawDirtyStuff()
 
 	DWORD aStartTime = timeGetTime();
 
-	// port: the GPU back buffer isn't persistent, so a frame is either skipped or redrawn completely.
+	// port: the GPU back buffer isn't persistent, so a frame is either skipped or redrawn completely (a software screen
+	// keeps its pixels and draws only the dirty widgets, below).
 	// Whether to draw follows 1.3: something is dirty, the custom cursor changed or a second passed
 	// (and the draw throttle used while loading allows it). The first frame is always drawn.
 	bool hasDirtyWidgets = false;
@@ -1759,7 +1760,9 @@ bool SexyAppBase::DrawDirtyStuff()
 
 	mIsDrawing = true;
 	mDDInterface->BeginFrame();
-	mWidgetManager->MarkAllDirty();
+	// a software screen (SoftwareScreenDisplay) keeps its pixels, so only the dirty widgets are drawn, as in 1.x
+	if (!mDDInterface->ScreenOnCPU())
+		mWidgetManager->MarkAllDirty();
 	mWidgetManager->DrawScreen();
 	mIsDrawing = false;
 

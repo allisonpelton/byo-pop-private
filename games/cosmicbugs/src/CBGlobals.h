@@ -69,6 +69,11 @@ struct LevelSet
 extern char gSongName[0x40];               // 0x6e5aa8  a song to start, "" for none
 extern int gLogoCount;                     // 0x6e5ae8
 extern int gGoTo;                          // 0x460034  the kind of screen to go to next
+// port: for the autosplit observer (LiveSplitObserver.cpp); nothing in the game reads them. A game is the boards played from
+// the one a screen other than a board goes to (ChangeScreen); gGameSerial counts the games started, and
+// gGameFromInstructions says whether the current one began on the instructions page's Play button
+extern int gGameSerial;
+extern bool gGameFromInstructions;
 extern int gEscape;                        // 0x46e5e4  Esc on a board: pauses it, or leaves it when paused
 extern List<LevelSet> gLevelSets;          // 0x4700d4
 extern int gProfile;                       // 0x46e24c

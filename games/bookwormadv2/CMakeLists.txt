@@ -77,7 +77,7 @@ endif()
 # new-player run needs the exe
 add_executable(bookwormadv2 ${BWA2_SOURCES})
 target_include_directories(bookwormadv2 PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
-target_link_libraries(bookwormadv2 PRIVATE bwa2_luaapp bwa2_popanim bwa2_swf bwa2_jefflib sexyframework sexyopenmpt sexyopenjpeg)
+target_link_libraries(bookwormadv2 PRIVATE bwa2_luaapp bwa2_popanim sexyswf bwa2_jefflib sexyframework sexyopenmpt sexyopenjpeg)
 if(NOT MSVC)
   target_compile_options(bookwormadv2 PRIVATE -Wall -Wno-overloaded-virtual)
 endif()
@@ -90,19 +90,11 @@ else()
     VERBATIM)
 endif()
 
-# bwa2_swf: Sexy::SwfMovie, a small player for the Flash (.swf) movies of the story cutscenes (swf/), kept free of
-# game code. bwa2_swftest plays every cutscene of the staged game files through and draws frames of any of them to
-# PNGs, headless (tools/swftest/swftest.cpp).
-file(GLOB SWF_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/swf/*.cpp)
-add_library(bwa2_swf STATIC ${SWF_SOURCES})
-target_include_directories(bwa2_swf PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/swf)
-target_link_libraries(bwa2_swf PUBLIC sexyframework)
-if(NOT MSVC)
-  target_compile_options(bwa2_swf PRIVATE -Wall)
-endif()
+# bwa2_swftest plays every cutscene of the staged game files through and draws frames of any of them to PNGs, headless
+# (tools/swftest/swftest.cpp), with the shared SWF player (engines/swf, sexyswf).
 if(NOT EMSCRIPTEN)
   add_executable(bwa2_swftest tools/swftest/swftest.cpp)
-  target_link_libraries(bwa2_swftest PRIVATE bwa2_swf)
+  target_link_libraries(bwa2_swftest PRIVATE sexyswf)
   add_custom_command(TARGET bwa2_swftest POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:SDL2::SDL2> ${PORT_RUNTIME_DLLS} $<TARGET_FILE_DIR:bwa2_swftest>
     VERBATIM)

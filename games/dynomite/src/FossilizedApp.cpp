@@ -21,9 +21,13 @@
 #include "IntroScreen.h"
 #include "TitleScreen.h"
 #include "Tutorial.h"
+#include "LiveSplitObserver.h"
 #include "compat2004/Compat2004.h"
 #include "DDImage.h"
 #include "DDInterface.h"
+#ifndef __EMSCRIPTEN__
+#include "SoftwareScreenDisplay.h"
+#endif
 #include "Dialog.h"
 #include "ImageFont.h"
 #include "MusicInterface.h"
@@ -84,6 +88,7 @@ FossilizedApp::FossilizedApp()
 // 0x419320
 FossilizedApp::~FossilizedApp()
 {
+	LiveSplitObserver::AppDestroyed(this);	// port(mod): the autosplit block's last write
 	if (mSavePic != NULL)
 	{
 		delete mSavePic;
@@ -114,6 +119,15 @@ DDImage* FossilizedApp::GetGameImage(const std::string& thePath)
 	anImage->Palletize();
 	return anImage;
 }
+
+#ifndef __EMSCRIPTEN__
+// port: the original draws its screen in software into a DirectDraw surface (it has no 3D), so the port does too, and the
+// window shows it through its own surface (framework/SoftwareScreenDisplay.h)
+DDInterface* FossilizedApp::CreateDDInterface()
+{
+	return SoftwareScreenDisplay::Create(this);
+}
+#endif
 
 // 0x41f820
 void FossilizedApp::Init()
@@ -639,6 +653,7 @@ void FossilizedApp::LoadSavedGame(const char* theFile)
 		mBoard->SkipSaveHeader();
 		mBoard->Load();
 		mBoard->CloseSaveFile();
+		mBoard->mResumed = true;	// port(livesplit): a continued game is never a run's start (LiveSplitObserver.h)
 	}
 }
 

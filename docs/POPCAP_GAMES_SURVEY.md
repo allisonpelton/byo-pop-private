@@ -194,7 +194,7 @@ the game that needed it first until a second game moves it to shared code.
 |---|---|---|
 | MO3 music with order-position jumps | libopenmpt (`third_party/libopenmpt`) through `platform/openmpt/OpenMPTPlayer.h` (the library `sexyopenmpt`). Only MO3 goes through it; S3M, IT and XM stay on libxmp-lite. | Heavy Weapon, Chuzzle, Feeding Frenzy 2, Peggle Deluxe and Nights, Bejeweled 3, Zuma's Revenge |
 | JPEG 2000 (`.jp2`) | OpenJPEG (`third_party/openjpeg`) through `platform/openjpeg/JP2Decoder.h` (`sexyopenjpeg`), decoding at run time. [BYO-POP.md](../third_party/openjpeg/BYO-POP.md) says what changed and asks the Peggles, Zuma's Revenge and Bejeweled 3 to check their own files first. | Peggle Deluxe (217 files) and Nights (273), Zuma's Revenge (2,633), Bejeweled 3 (4,557), Banana Bugs |
-| Flash SWF | A player of our own for the SWF 7 and 8 cutscenes of both Bookworm Adventures games, `games/bookwormadv/swf/` (copied in `games/bookwormadv2/swf/`). | Heavy Weapon (3 cutscenes), Hammer Heads (how-to-play) |
+| Flash SWF | A player of our own for the SWF 7 and 8 cutscenes of both Bookworm Adventures games, one copy in `engines/swf/` (`docs/ENGINES.md`). | Heavy Weapon (3 cutscenes), Hammer Heads (how-to-play) |
 | Pre-1.2 framework layers | Built up to April 2004 (3.5). | Heavy Weapon (its 2005 layout, not yet mapped) |
 | PopAnim (`.pam`) player | v1 in `games/bookwormadv/popanim/`, v1-3 in `games/bookwormadv2/popanim/`, and Volume 2's with Twist's two extra scales in `games/bejeweledtwist/popanim/`. | Bejeweled 3, Zuma's Revenge |
 | JeffLib | The parts Bookworm Adventures uses: `games/bookwormadv/jefflib/`. | Zuma's Revenge (13 classes) |

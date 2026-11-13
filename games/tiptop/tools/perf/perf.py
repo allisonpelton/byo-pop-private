@@ -8,7 +8,7 @@
 Both run in real time (the port without -fast, the original on the wall clock), invisibly and silently: the port under
 rundesk, the original through tools/origrun (which puts it under rundesk itself), with only the patches the original needs
 to play as the registered game and to leave out the MIDI music (build/tt/perf/tiptop-perf.txt, made by patches.sh from the
-identical-play setup's list); `orig --paced 16` also makes its main loop sleep 16 ms a pass, as the wait for a 60 Hz screen's
+identical-play setup's list); `orig --paced 13` also makes its main loop sleep 13 ms a pass (62 to 63 passes a second here: Sleep's granularity gives 52 for 16, 56 for 14, 73 for 12), as the wait for a 60 Hz screen's
 vertical blank would (the hidden desktop's DirectDraw does not wait, so the unpatched original spins).
 
 Load time: from the game process's creation to the moment the title screen's load bar is full (the bar's loaded count,
@@ -37,6 +37,7 @@ import threading
 import time
 from pathlib import Path
 
+UPS = 62.5  # the port's passes a second in real time (TipTopApp::Init: 16 ms a pass; a -fast run has 100)
 ROOT = Path(subprocess.check_output(["git", "rev-parse", "--show-toplevel"], text=True).strip()).resolve()
 sys.path.insert(0, str(ROOT / "games/tiptop/tools"))
 NM = "E:/retools/llvm-mingw-20261006-ucrt-x86_64/bin/llvm-nm.exe"
@@ -320,14 +321,14 @@ def summarize(s, label, window):
         return round(b[-1][3] - a[-1][3], 3)
 
     def threads_between(lo, hi):
-        """The cycles each thread used from lo to hi, in millions, largest first (the main thread is the lowest id)."""
+        """The cycles each thread used from lo to hi, in millions, largest first (the game's thread is the largest: the lowest id is a start-up thread)."""
         a = [x for x in s.thread_samples if x[0] <= lo]
         b = [x for x in s.thread_samples if x[0] <= hi]
         if not a or not b:
             return None
         first, last = a[-1][1], b[-1][1]
         rows = sorted(((last[tid] - first.get(tid, 0)) / 1e6, tid) for tid in last)
-        main = min(last) if last else None
+        main = rows[-1][1] if rows else None
         return {"main_thread_id": main, "mcycles": [(round(c), tid) for c, tid in reversed(rows[-6:])],
                 "total_mcycles": round(sum(c for c, _ in rows))}
 
@@ -407,7 +408,7 @@ def run_port(args):
 
 
 def run_port_script(args):
-    """The same scripted minute through -script (the clicks at fixed update numbers, 100 a second in real time), with no commands
+    """The same scripted minute through -script (the clicks at fixed update numbers, UPS a second in real time), with no commands
     file and no real-input file: the framework polls those every update (a stat() of the commands file, about 340,000 cycles),
     a cost a player's copy never pays. The window is a stretch of wall time from the process's creation (--from, --seconds),
     chosen inside the minute the script plays (the game screen is up from about 6 s)."""
@@ -421,14 +422,17 @@ def run_port_script(args):
     for (when, x, y) in schedule():
         # the steps' times are the driver's (the bar full at 0); the script's updates start at the process, the bar is full by about
         # update 100, so the first click is at update 102 as in tour 2
-        lines.append("%d click %d %d" % (102 + int(when * 100), x, y))
+        lines.append("%d click %d %d" % (102 + int(when * UPS), x, y))
     last = int(lines[-1].split()[0])
     if args.menu:
-        last = 102 + int((args.window_from + args.seconds + 2) * 100)
+        last = 102 + int((args.window_from + args.seconds + 2) * UPS)
     # the state where the window starts and ends, to see what the window held
-    lines.append("%d state" % (102 + int(args.window_from * 100) + 100))
-    lines.append("%d state" % (102 + int((args.window_from + args.seconds) * 100) - 100))
-    for u in range(500, last, 500):  # a look at the game every 5 seconds
+    lines.append("%d state" % (102 + int(args.window_from * UPS) + int(UPS)))
+    lines.append("%d state" % (102 + int((args.window_from + args.seconds) * UPS) - int(UPS)))
+    if args.split:
+        lines.append("%d cyclesplit a" % (102 + int(args.window_from * UPS)))
+        lines.append("%d cyclesplit b" % (102 + int((args.window_from + args.seconds) * UPS)))
+    for u in range(int(5 * UPS), last, int(5 * UPS)):  # a look at the game every 5 seconds
         lines.append("%d state" % u)
     lines.sort(key=lambda l: int(l.split()[0]))
     lines.append("%d state" % (last + 20))
@@ -439,6 +443,8 @@ def run_port_script(args):
            "-seed=1", "-script=" + str(script)]
     if args.modsdir:
         cmd.append("-modsdir=" + str(Path(args.modsdir).resolve()))
+    if args.split:
+        cmd.append("-cyclesplit=" + str(out / "split.jsonl"))  # written at exit, so the run lets the script's quit end it
     cmd += args.port_arg
     mine_before = other_game_processes(set())
     logf = open(out / "log.txt", "wb")
@@ -456,6 +462,11 @@ def run_port_script(args):
         res = summarize(s, args.label, (lo, hi))
         res["others_before"] = mine_before
         res["others_after"] = other_game_processes({pid, p.pid})
+        if args.split:
+            try:
+                p.wait(timeout=30)
+            except subprocess.TimeoutExpired:
+                pass
         res["script_updates"] = last
         states = []
         for l in (out / "log.txt").read_text(errors="replace").splitlines():
@@ -502,13 +513,18 @@ def run_orig(args):
         if w > 0:
             lines.append("wait %d" % w)
         lines += ["move %d %d" % (x, y), "click %d %d" % (x, y)]
-    lines += ["wait %d" % int((args.seconds + 5) * 1000), "quit"]
+    if args.split:
+        lines += ["wait 2000", "count a", "wait %d" % int(args.seconds * 1000), "count b", "wait 500", "quit"]
+    else:
+        lines += ["wait %d" % int((args.seconds + 5) * 1000), "quit"]
     if args.probe:
         lines = ["# probe: only wait for the load", "wait 25000", "quit"]
     script.write_text("\n".join(lines) + "\n")
     cmd = [str(ORIGRUN), "--game", "tiptop", "--run", STAGE_RUN, "--stage-root", STAGE_ROOT, "--patches", str(patches), "--seed", "1",
            "--clock", "real", "--cursor", "scripted", "--sound", "stub", "--timeout", str(int(args.orig_load + FIRST_COLUMN + 61 + args.seconds + 40)),
            "--script", str(script)]
+    if args.split:
+        cmd += ["--count", str(ROOT / "games/tiptop/tools/perf/count.txt")]
     mine_before = other_game_processes(set())
     logf = open(out / "origrun.log", "wb")
     p = subprocess.Popen(cmd, stdout=logf, stderr=subprocess.STDOUT, cwd=str(ROOT))
@@ -526,6 +542,11 @@ def run_orig(args):
             if args.probe and s.loaded_at is not None and time.time() - proc.created > s.loaded_at + 2:
                 break
             time.sleep(0.05)
+        if args.split:  # the counters' snapshot b is written by the script's `count b`, about 32 s into a menu run
+            counts = ROOT / "build/origrun" / STAGE_RUN / "counts.jsonl"
+            deadline = time.time() + 90
+            while time.time() < deadline and p.poll() is None and not (counts.exists() and '"b"' in counts.read_text(errors="replace")):
+                time.sleep(0.2)
         final = {"screen": proc.read32(0x4887ec)}
         s.stop_flag = True
         s.join()
@@ -571,6 +592,7 @@ def main():
     ap.add_argument("--port-arg", action="append", default=[], help="portscript: an extra argument of the port (-soundfont=<no such file> leaves the music out, as the original's is in these runs)")
     ap.add_argument("--menu", action="store_true", help="only the title's button: the window is the main menu left alone (orig and portscript; --window-from, --seconds from the process's creation)")
     ap.add_argument("--menu-click", default=None, help="with --menu: X,Y of one more click on the main menu (265,157 the options, 245,243 the instructions)")
+    ap.add_argument("--split", action="store_true", help="the cycle split (tools/cyclesplit.py): portscript writes -cyclesplit with the labels a and b at the window's ends; orig counts games/tiptop/tools/perf/count.txt with origrun --count, snapshots a and b 2 s and 22 s after the title's click (menu runs)")
     ap.add_argument("--probe", action="store_true", help="orig: only measure the load, play nothing")
     ap.add_argument("--orig-load", type=float, default=8.0, help="seconds the original's script waits before its first click")
     args = ap.parse_args()

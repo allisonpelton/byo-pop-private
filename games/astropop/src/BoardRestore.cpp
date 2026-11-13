@@ -19,6 +19,7 @@ using namespace Sexy;
 // 0x467af0
 void Board::RestoreGame(int theScore, int thePlayTime, int theLevelsCompleted, float theScoreMultiplier, float theWeaponCharge, int theSavedLevel)
 {
+	mRestoredGame = true;       // port(autosplit)
 	mWeaponChargeMax = 25600.0f;
 	mScoreMultiplier = theScoreMultiplier;
 	mStageTextEnabled = false;
