@@ -138,6 +138,16 @@ void GnomeForkyChap::Update(const double thePos[2])
 	}
 }
 
+// 0x43a460: the cels of the waiting row go round and round
+void GnomeForkyChap::UpdateWithoutCubby(const double thePos[2])
+{
+	Creature::Update(thePos);
+
+	mFrame = mFrameSpeed + mFrame;
+	if (mStage == STAGE_IDLE && 4.0 <= mFrame)
+		mFrame = mFrame - 4.0;
+}
+
 // the end of the recover and lower stages (the same code at 0x43a66e): idle again, one or two turns, with his call
 void GnomeForkyChap::BackToIdle()
 {

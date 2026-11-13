@@ -105,6 +105,26 @@ void GnomeChest::Update(const double thePos[2])
 	}
 }
 
+// 0x437820: a chest with a time on it opens when the time is out
+void GnomeChest::UpdateWithoutCubby(const double thePos[2])
+{
+	Creature::Update(thePos);
+
+	if (mTimer > 0.0)
+	{
+		double aTimer = mTimer - 0.01;
+		if (aTimer < 0.0)
+			aTimer = 0.0;
+		mTimer = aTimer;
+		if (aTimer == 0.0 && mStage == STAGE_CLOSED)
+		{
+			mStage = STAGE_THROWING;
+			mTimer = 3.0;
+			gApp->PlaySample(SOUND_TREASURE_CHEST_OPENING);
+		}
+	}
+}
+
 // 0x437b60: the first hit that breaks it opens it instead
 void GnomeChest::Remove()
 {

@@ -284,6 +284,9 @@ bool Application::HandleScriptCommand(const ScriptCommand& theCommand)
 		{
 			if (mGameScreen == nullptr)
 				return Error(aLine, "no game is on screen"), true;
+			// the two screens' cubbies have the same names, so a game never has both (the original's own flow leaves one first)
+			if (mShopScreen != nullptr || mChallengeScreen != nullptr)
+				return Error(aLine, "a shop or challenge screen is on: `level <n>` starts the game over first"), true;
 			if (anArg == "shop")
 				DoShopScreen();
 			else

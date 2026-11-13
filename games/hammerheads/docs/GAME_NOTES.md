@@ -105,6 +105,12 @@ Behaviour of the original that looks like a mistake and is kept in the port unti
 - **A check box that cannot be ticked** (hardware acceleration, or full screen when the window would not fit) is put back by a
   second answer to the listener, so the check sound plays twice.
 - **"Reset Help"** sets the flag of the current player without testing that there is one.
+- **The shop's and the challenge screen's cubbies** have the same names ("Cubby_9000N"), and the object manager removes by name, so
+  a game that had both screens up would delete a cubby twice when it cleared them. The original's own flow leaves one screen
+  before the other opens; the test commands `goto shop|challenge` refuse when the other is up.
+- **A creature outside a cubby** (the game-over box's gnome, the level introduction's) is advanced through the creature's
+  second update slot (+0xc, `UpdateWithoutCubby`, base 0x42f400: `mAge++`), never the one that reads the cubby; the shop's and
+  the challenge screen's gnomes' `Remove` (0x437620) sets the flags at 0x85 and 0x87, not the finished flag at 0x86.
 - **The quit and game-over boxes' button code** (0x44fe50) and the options box's press sound (0x44fe90) are functions the Ghidra
   export lacks (code the linker shared); they are found in the boxes' tables of the button listener (`tools/vtable.py` does not
   print them: read the table at the address in the class's constructor).

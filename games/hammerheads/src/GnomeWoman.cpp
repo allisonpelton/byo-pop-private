@@ -38,8 +38,18 @@ void GnomeWoman::GetSheetCell(double theCell[2]) const
 	theCell[1] = 0.0;
 }
 
-// 0x43f650
+// 0x43f650: the same as 0x43f720 (the exe repeats its code), and then the cubby's part
 void GnomeWoman::Update(const double thePos[2])
+{
+	GnomeWoman::UpdateWithoutCubby(thePos);
+
+	if (!mHasRisen && mCubby->mState == Cubby::STATE_UP)
+		mHasRisen = true;
+}
+
+// 0x43f720: Update without the part that reads the cubby; the smoke rises while she is angry and her face swings between
+// the fifth and the tenth cel
+void GnomeWoman::UpdateWithoutCubby(const double thePos[2])
 {
 	Creature::Update(thePos);
 
@@ -55,8 +65,6 @@ void GnomeWoman::Update(const double thePos[2])
 			mFrame = aSpeed + aSpeed + mFrame;
 		}
 	}
-	if (!mHasRisen && mCubby->mState == Cubby::STATE_UP)
-		mHasRisen = true;
 }
 
 // 0x43f7d0: the gnome, and the smoke over her ears while she is angry

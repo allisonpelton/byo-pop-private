@@ -32,6 +32,7 @@ public:
 
 	virtual void	GetSheetCell(double theCell[2]) const override;		// 0x4378d0
 	virtual void	Update(const double thePos[2]) override;			// 0x437a70
+	virtual void	UpdateWithoutCubby(const double thePos[2]) override;	// 0x437820
 	virtual void	Remove() override;									// 0x437b60: the chest opens
 	virtual std::string SaveExtra() override;							// 0x437bc0
 	virtual void	LoadExtra(const std::string& theData) override;		// 0x437cb0

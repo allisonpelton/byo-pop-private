@@ -223,8 +223,8 @@ void Creature::Update(const double thePos[2])
 		mFrozenTimer = 0;
 }
 
-// 0x42f400
-void Creature::Tick(int theAmount)
+// 0x42f400: what the level introduction and the game-over box call for their gnome, which is in no cubby; the base only ages it
+void Creature::UpdateWithoutCubby(const double thePos[2])
 {
 	mAge++;
 }

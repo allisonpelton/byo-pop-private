@@ -158,6 +158,12 @@ void GnomeKing::Update(const double thePos[2])
 		mHasRisen = true;
 }
 
+// 0x430030 (one function for both): the creature's own update, without the gnome's
+void GnomeKing::UpdateWithoutCubby(const double thePos[2])
+{
+	Creature::Update(thePos);
+}
+
 // 0x43bf90: a hit lights him up and sends sparks; the hit that brings him down breaks everything else up too and puts the glow out
 bool GnomeKing::Hit()
 {

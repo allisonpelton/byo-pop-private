@@ -22,6 +22,7 @@ public:
 	virtual ~GnomeSave();						// 0x43d040
 
 	virtual void	Update(const double thePos[2]) override;			// 0x43d050
+	virtual void	UpdateWithoutCubby(const double thePos[2]) override;	// 0x430030
 	virtual bool	Hit() override;										// 0x43d260
 	virtual void	Remove() override;									// 0x43d0c0
 	virtual std::string SaveExtra() override;							// 0x43d100

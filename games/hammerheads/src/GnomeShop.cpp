@@ -37,6 +37,19 @@ void GnomeShop::Update(const double thePos[2])
 		gApp->PlaySample(SOUND_MISC_NEON_BUZZ);
 }
 
+// 0x43b2b0 (one function for six gnomes): the same as Update
+void GnomeShop::UpdateWithoutCubby(const double thePos[2])
+{
+	Update(thePos);
+}
+
+// 0x437620 (one function for both): the gnome is gone, and spent rather than finished
+void GnomeShop::Remove()
+{
+	mUntouchable = true;
+	mSpent = true;
+}
+
 // 0x43d490
 bool GnomeShop::Hit()
 {

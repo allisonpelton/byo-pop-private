@@ -167,6 +167,16 @@ void GnomeStrong::Update(const double thePos[2])
 	mRepeats = aRandom % 11 + 5;
 }
 
+// 0x43e2e0: the cels of the fourth row go round and round, the other stages play as they stand
+void GnomeStrong::UpdateWithoutCubby(const double thePos[2])
+{
+	Creature::Update(thePos);
+
+	mFrame = mFrameSpeed + mFrame;
+	if (mStage == STAGE_FLEX_AGAIN && 15.0 <= mFrame)
+		mFrame = mFrame - 15.0;
+}
+
 // 0x43e8a0: it stands up to the hit and shows it (the hammer's damage comes off its health as for any gnome)
 bool GnomeStrong::Hit()
 {

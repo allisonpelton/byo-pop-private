@@ -31,6 +31,7 @@ public:
 
 	virtual void	GetSheetCell(double theCell[2]) const override;		// 0x437250
 	virtual void	Update(const double thePos[2]) override;			// 0x4370e0
+	virtual void	UpdateWithoutCubby(const double thePos[2]) override;	// 0x436f70
 	virtual bool	Hit() override;										// 0x437280
 	virtual int		GetHealth() override;								// 0x437330
 	virtual std::string SaveExtra() override;							// 0x437360

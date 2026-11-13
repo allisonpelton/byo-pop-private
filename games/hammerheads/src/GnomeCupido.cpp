@@ -61,6 +61,12 @@ void GnomeCupido::Update(const double thePos[2])
 	}
 }
 
+// 0x439050: only the wings flap (no creature update, so no ageing either)
+void GnomeCupido::UpdateWithoutCubby(const double thePos[2])
+{
+	mFrame = mFrameSpeed + mFrame;
+}
+
 // 0x439140: he is not taken away at once; unless he is frozen he flies off for a second first
 void GnomeCupido::Remove()
 {

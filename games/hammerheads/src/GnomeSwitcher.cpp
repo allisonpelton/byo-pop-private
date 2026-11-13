@@ -194,6 +194,12 @@ void GnomeSwitcher::Update(const double thePos[2])
 	mFlicker = Rand() % 4;
 }
 
+// 0x43b2b0 (one function for six gnomes): the same as Update
+void GnomeSwitcher::UpdateWithoutCubby(const double thePos[2])
+{
+	Update(thePos);
+}
+
 // 0x43f110: a coin leaves him for the counter; the later ones are delayed by a fraction of the flight's time
 void GnomeSwitcher::ThrowCoin(double theDelay)
 {

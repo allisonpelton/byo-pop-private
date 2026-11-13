@@ -38,6 +38,19 @@ void GnomeChallenge::Update(const double thePos[2])
 		gApp->PlaySample(SOUND_MISC_NEON_BUZZ);
 }
 
+// 0x43b2b0 (one function for six gnomes): the same as Update
+void GnomeChallenge::UpdateWithoutCubby(const double thePos[2])
+{
+	Update(thePos);
+}
+
+// 0x437620 (one function for both): the gnome is gone, and spent rather than finished
+void GnomeChallenge::Remove()
+{
+	mUntouchable = true;
+	mSpent = true;
+}
+
 // 0x4375e0
 bool GnomeChallenge::Hit()
 {

@@ -39,6 +39,12 @@ void GnomeSave::Update(const double thePos[2])
 	}
 }
 
+// 0x430030 (one function for both): the creature's own update, without the gnome's
+void GnomeSave::UpdateWithoutCubby(const double thePos[2])
+{
+	Creature::Update(thePos);
+}
+
 // 0x43d0c0
 void GnomeSave::Remove()
 {

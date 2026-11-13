@@ -107,6 +107,12 @@ void GnomeHide::Update(const double thePos[2])
 	}
 }
 
+// 0x43b2b0 (one function for six gnomes): the same as Update
+void GnomeHide::UpdateWithoutCubby(const double thePos[2])
+{
+	Update(thePos);
+}
+
 // 0x43b4b0
 bool GnomeHide::Hit()
 {

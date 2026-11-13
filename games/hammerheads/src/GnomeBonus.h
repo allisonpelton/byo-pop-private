@@ -20,6 +20,7 @@ public:
 	virtual ~GnomeBonus();						// 0x435f80
 
 	virtual void	Update(const double thePos[2]) override;			// 0x435f90
+	virtual void	UpdateWithoutCubby(const double thePos[2]) override;	// 0x435f90
 	virtual bool	Hit() override;										// 0x436040
 	virtual std::string SaveExtra() override;							// 0x436130
 	virtual void	LoadExtra(const std::string& theData) override;		// 0x4361d0

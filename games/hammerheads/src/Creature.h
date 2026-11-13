@@ -109,7 +109,7 @@ public:
 
 	virtual void	GetSheetCell(double theCell[2]) const;		// 0x42f730: row, column of the sheet's cell to draw
 	virtual void	Update(const double thePos[2]);				// 0x42f410
-	virtual void	Tick(int theAmount);						// 0x42f400: ages it
+	virtual void	UpdateWithoutCubby(const double thePos[2]);	// 0x42f400: Update for a creature that is in no cubby (the level introduction's and the game-over box's gnome); ages it
 	virtual void	Draw(Graphics* g, double theX, double theY, int theHover, double theFlashTime);	// 0x4316d0
 	virtual bool	PixelHit(const double thePos[2], int theX, int theY);	// 0x42f750
 	virtual bool	MaskHit(const double thePos[2], int theX, int theY, const std::vector<Point>& theMask, int theRectX, int theRectY, int theRectW, int theRectH);	// 0x4300a0

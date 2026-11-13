@@ -79,6 +79,12 @@ void GnomeMultiplier::Update(const double thePos[2])
 		mHasRisen = true;
 }
 
+// 0x43b2b0 (one function for six gnomes): the same as Update
+void GnomeMultiplier::UpdateWithoutCubby(const double thePos[2])
+{
+	Update(thePos);
+}
+
 // 0x43c310: he is not taken away at once; unless he is frozen he leaves with his second row of cels first
 void GnomeMultiplier::Remove()
 {

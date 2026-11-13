@@ -119,14 +119,14 @@ GameOverDialog::~GameOverDialog()
 	}
 }
 
-// 0x44fe10
+// 0x44fe10: the gnome is in no cubby, so it gets the update for that
 void GameOverDialog::Update()
 {
 	WidgetContainer::Update();
 	if (mCreature != nullptr)
 	{
 		double aPosition[2] = { 0.0, 0.0 };
-		mCreature->Update(aPosition);
+		mCreature->UpdateWithoutCubby(aPosition);
 	}
 }
 

@@ -106,14 +106,14 @@ void LevelIntroWidget::Resize(int theX, int theY, int theWidth, int theHeight)
 	mButton->Move((theWidth - IMAGE_INTROSCREEN_BUTTON->GetCelWidth()) / 2 + theX, theY + BUTTON_Y);
 }
 
-// 0x457950: the gnome moves, and the light turns, unless the how-to-play movie or the game-won box is up
+// 0x457950: the gnome (in no cubby) moves, and the light turns, unless the how-to-play movie or the game-won box is up
 void LevelIntroWidget::Update()
 {
 	Widget::Update();
 	if (!HowToPlayWidget::IsActive() && gApp->GetDialog(DIALOG_GAME_WON) == nullptr)
 	{
 		double aPosition[2] = { 0.0, 0.0 };
-		mCreature->Update(aPosition);
+		mCreature->UpdateWithoutCubby(aPosition);
 		mTime += TIME_STEP;
 	}
 }

@@ -31,6 +31,12 @@ void GnomeBonus::Update(const double thePos[2])
 	mDrawY = (thePos[1] - mAnchorY) - mHeight;
 }
 
+// 0x435f90 (the function of Update)
+void GnomeBonus::UpdateWithoutCubby(const double thePos[2])
+{
+	Update(thePos);
+}
+
 // 0x435fd0
 void Sexy::StartIceCreamPower(double theSeconds)
 {

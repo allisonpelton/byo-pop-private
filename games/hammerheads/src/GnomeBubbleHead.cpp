@@ -76,6 +76,56 @@ void GnomeBubbleHead::Update(const double thePos[2])
 	mWait = 0.5;
 }
 
+// 0x436f70: with no hammer to answer, the head swells and shrinks again and again: it waits, swells to its full size, waits,
+// shrinks away, waits, and so on
+void GnomeBubbleHead::UpdateWithoutCubby(const double thePos[2])
+{
+	if (mMode == (double)MODE_STILL)
+	{
+		double aWait = mWait - 0.01;
+		if (aWait < 0.0)
+			aWait = 0.0;
+		mWait = aWait;
+		if (aWait == 0.0)
+		{
+			if (mSize == 0.0)
+			{
+				mMode = (double)MODE_INFLATING;
+				gApp->PlaySample(SOUND_INFLATING_HEAD_INFLATE);
+			}
+			else
+			{
+				mMode = (double)MODE_DEFLATING;
+				gApp->PlaySample(SOUND_INFLATING_HEAD_DEFLATE);
+			}
+		}
+	}
+	else if (mMode == (double)MODE_INFLATING)
+	{
+		double aSize = mSize + 0.25;
+		if (aSize > 20.0)
+			aSize = 20.0;
+		mSize = aSize;
+		if (aSize == 20.0)
+		{
+			mMode = (double)MODE_STILL;
+			mWait = 1.0;
+		}
+	}
+	else if (mMode == (double)MODE_DEFLATING)
+	{
+		double aSize = mSize - 0.15;
+		if (aSize < 0.0)
+			aSize = 0.0;
+		mSize = aSize;
+		if (aSize == 0.0)
+		{
+			mMode = (double)MODE_STILL;
+			mWait = 1.0;
+		}
+	}
+}
+
 // 0x437280: the hit adds the hammer's damage to the stage, up to the head popping at 5
 bool GnomeBubbleHead::Hit()
 {

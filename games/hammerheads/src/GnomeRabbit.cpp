@@ -62,6 +62,14 @@ void GnomeRabbit::Update(const double thePos[2])
 		mHasRisen = true;
 }
 
+// 0x43cbd0
+void GnomeRabbit::UpdateWithoutCubby(const double thePos[2])
+{
+	Creature::Update(thePos);
+
+	mFrame = mFrameSpeed + mFrame;
+}
+
 // 0x43cda0: it is not taken away at once; unless it is frozen it leaves with its cels played backwards first
 void GnomeRabbit::Remove()
 {

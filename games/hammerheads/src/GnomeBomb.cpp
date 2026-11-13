@@ -52,6 +52,12 @@ void GnomeBomb::Update(const double thePos[2])
 	}
 }
 
+// 0x43b2b0 (one function for six gnomes): the same as Update
+void GnomeBomb::UpdateWithoutCubby(const double thePos[2])
+{
+	Update(thePos);
+}
+
 // 0x435cc0: a bomb that is hit costs the player health (mVariant of it) and breaks up; a frozen one is worth points
 // instead and costs nothing
 bool GnomeBomb::Hit()
