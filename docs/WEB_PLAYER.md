@@ -500,6 +500,9 @@ never with invented titles. A game's session sets these from its code:
   "Danger 2": Title Case, one place, at most 20 characters, several tunes of one place numbered in the order the game
   reaches them; the user, 2026-11-11: "Rip style please!").
 - `unused`: the tunes the game's code never plays.
+- `order`: the list's order, the tunes as a player hears them from launch through a game to its end, modes, levels and
+  books as the game reaches them, unused tunes last (the user, 2026-11-13: "more closely follow what you might hear instead
+  of having the parts in order, and put unused tracks at the end").
 - `cuts` and `chains`: tracks split and grouped as the game plays them (the user, 2026-11-11: "Group and split").
   `cuts` splits a subsong where the game's code starts a different tune partway through it, the second piece being
   `"<file>#<n>@<order>"`; `chains` makes one track of parts the game only ever plays as jumps inside one tune. `starts`

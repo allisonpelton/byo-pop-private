@@ -582,7 +582,7 @@ var ByopopMusic = (function () {
           });
         });
         return steps.reduce(function (p, step) { return p.then(step); }, Promise.resolve());
-      }).then(function () { db.close(); return numbered(tunes); }, function (e) { db.close(); throw e; });
+      }).then(function () { db.close(); return heard(numbered(tunes), entry); }, function (e) { db.close(); throw e; });
     });
   }
 
@@ -600,6 +600,19 @@ var ByopopMusic = (function () {
       at.forEach(function (i, j) { list[i] = sorted[j]; });
     });
     return list;
+  }
+
+  // A game's tunes in the order a player hears them (the table's order; the user, 2026-11-13: "more closely follow what you
+  // might hear instead of having the parts in order, and put unused tracks at the end"): those it lists first, in its order, then
+  // the others as they were, then the unused ones
+  function heard(list, entry) {
+    var order = (entry.order || []).map(function (id) { return id.toLowerCase(); });
+    function rank(k) {
+      var at = order.indexOf(k.id.toLowerCase());
+      return k.unused ? 2e6 : at >= 0 ? at : 1e6;
+    }
+    return list.map(function (k, i) { return { k: k, r: rank(k), i: i }; })
+      .sort(function (a, b) { return a.r - b.r || a.i - b.i; }).map(function (x) { return x.k; });
   }
 
   // ---------- playing ----------
