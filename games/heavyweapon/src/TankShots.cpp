@@ -202,8 +202,10 @@ void StaticStrike::Update()
 	double aLength = sqrt(mVelY * mVelY + mVelX * mVelX);
 	if (aLength > 20.0)
 	{
-		mVelX = mVelX / aLength * 20.0;
-		mVelY = mVelY / aLength * 20.0;
+		// one scale for both, as the original (fdivr, then two fmul): the hit below compares the head's place exactly
+		double aScale = 20.0 / aLength;
+		mVelX = aScale * mVelX;
+		mVelY = aScale * mVelY;
 	}
 	mTrailX[0] = mTrailX[0] + mVelX;
 	mTrailY[0] = mTrailY[0] + mVelY;
