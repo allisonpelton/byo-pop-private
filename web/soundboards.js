@@ -67,34 +67,29 @@ var ByopopSoundboards = {
     { name: "Menus", sounds: [
       ["sounds/mouseover.ogg", "Menu hover", "The pointer enters a main menu button (Classic, Survival, Hall of Fame, Options, Quit), each at its own pitch; also when the quit box opens and when the options window opens"],
       ["sounds/click2.ogg", "Button click", "Any button goes down: menus, dialogs, pilot choice, story screens, hall of fame, a click on a warp gate panel on the warp screen"],
-      ["sounds/warpbutton.ogg", "Warp gate click", "A click on the left or right gate of the checkpoint box, which choose the stage to go on from"],
+      ["sounds/timer1.ogg", "Tick", "The sound volume slider is changed without dragging (a click or key); also the weapon box's OK (a fix leaves that out)"],
       ["sounds/v_chooseyourpilot.ogg", "\"Choose your pilot\"", "The pilot choice screen opens; it cuts off any menu voice"],
-      ["sounds/timer1.ogg", "Tick", "The sound volume slider is changed without dragging (a click or key); also the weapon box's OK (a fix leaves that out)"]
+      ["sounds/warpbutton.ogg", "Warp gate click", "A click on the left or right gate of the checkpoint box, which choose the stage to go on from"]
     ] },
-    { name: "Ship", sounds: [
+    { name: "A stage starts", sounds: [
+      ["sounds/v_welcome.ogg", "\"Welcome to AstroPop!\"", "The first update of every game board that is not the attract-mode demo"],
       ["sounds/engineloop.ogg", "Engine loop", "Loops from the game's first update, and again after the warp ends or a story screen closes; off while the field is in the warp or the game is paused"],
-      ["sounds/hyperspaceloop1.ogg", "Hyperspace loop", "Loops while the field is in the warp, from the moment the warp begins until it ends; the engine loop is stopped meanwhile"],
+      ["sounds/v_getready.ogg", "\"Get ready\"", "A story screen closes, or the warp ends and the next level's bricks load"]
+    ] },
+    { name: "Picking up and firing", sounds: [
       ["sounds/magzap3.ogg", "Pick up", "A click picks up bricks from the field; not repeated while the button is held down"],
       ["sounds/magzap2.ogg", "Fire", "A right click fires the bricks held, unless the level summary is counting"],
       ["sounds/magzap1.ogg", "Can't do that", "A click that fails: six bricks already held, nothing to take, a locked brick, the pointer too low, a power not ready; not repeated while held. Also in Zuma's Revenge, as sounds/magzap1.ogg."],
-      ["sounds/laser.ogg", "Laser", "Laser pilot, power active: a click on a brick removes it from the bottom of its column, panned by column"],
-      ["sounds/psychic.ogg", "Psychic", "Psychic pilot, power active: a click takes out every lit cell at once, when nothing is moving"],
-      ["sounds/activated.ogg", "Tool picked up", "A tool brick is among the bricks picked up from a column, once for each tool brick"]
-    ] },
-    { name: "Bricks", sounds: [
+      ["sounds/activated.ogg", "Tool picked up", "A tool brick is among the bricks picked up from a column, once for each tool brick"],
       ["sounds/gemongem2.ogg", "Brick lands", "A held brick has landed on the ship with none still in flight, panned by the ship's column; also a fired brick lands in the field"],
-      ["sounds/blockhit.ogg", "Brick hit", "Fired bricks land and join fewer than 4 of a kind, so no set is made; played at a random fired brick's column"],
-      ["sounds/explode1.ogg", "Brick pops", "A brick is taken out because a neighbour is of the kind a kill-all brick kills; the atomic pilot's marked bricks blow up one by one (every 40 updates, then 20)"],
-      ["sounds/steelclang1.ogg", "Steel clang", "A whole steel brick takes its first hit (the second hit breaks it silently)"],
-      ["sounds/mutator1.ogg", "Mutation", "A brick turns into a mutant brick"],
-      ["sounds/mudestroy3.ogg", "Mutant dies", "A mutant brick is destroyed"],
-      ["sounds/hyperbrick_sound.ogg", "Booster pulse", "A galaxy brick in the field pulses: every 100 updates (1 s), speeding to every 12 updates over its last 200 of 1000 updates"],
-      ["sounds/freezeblock1.ogg", "Freeze", "A freeze brick goes off (not while a level is ending or the game is over)"]
+      ["sounds/blockhit.ogg", "Brick hit", "Fired bricks land and join fewer than 4 of a kind, so no set is made; played at a random fired brick's column"]
     ] },
-    { name: "Sets and combos", sounds: [
+    { name: "Sets", sounds: [
       ["sounds/gotset2.ogg", "Set", "Fired bricks make a set of 4 to 6 bricks of one kind, at a random set brick's column; the bubbly sound plays instead if a mark is set for that kind"],
       ["sounds/gotsetbig.ogg", "Big set", "A set of 7 or more bricks is made; the bubbly sound plays instead if a mark is set for that kind"],
-      ["sounds/bubbly.ogg", "Set with a mark", "A set is made while a supercharge mark for its brick kind is set; only a mark restored from a saved game's profile record, which a new game never makes"],
+      ["sounds/bubbly.ogg", "Set with a mark", "A set is made while a supercharge mark for its brick kind is set; only a mark restored from a saved game's profile record, which a new game never makes"]
+    ] },
+    { name: "Combos", sounds: [
       ["sounds/combo_tone.ogg", "Combo ping", "Each set that makes a chain 2 or longer, rising one step a set up to the 11th; at most once every 45 updates (0.45 s)"],
       ["sounds/v_combo1.ogg", "\"Combo!\"", "A chain of 2 ends, 100 updates (1 s) after its last set; not in a bonus round or once the stage's brick goal is reached"],
       ["sounds/v_combo2.ogg", "\"Super combo!\"", "A chain of 3 ends, 100 updates (1 s) after its last set; not in a bonus round or once the stage's brick goal is reached"],
@@ -105,46 +100,61 @@ var ByopopSoundboards = {
       ["sounds/v_combo65.ogg", "\"Galactic combo!\"", "A chain of 8 ends, 100 updates (1 s) after its last set; not in a bonus round or once the stage's brick goal is reached"],
       ["sounds/v_combo7.ogg", "\"Maximum combo!\"", "A chain of 9 or more ends, 100 updates (1 s) after its last set; not in a bonus round or once the stage's brick goal is reached"]
     ] },
-    { name: "Power-ups", sounds: [
+    { name: "Special bricks", sounds: [
+      ["sounds/steelclang1.ogg", "Steel clang", "A whole steel brick takes its first hit (the second hit breaks it silently)"],
+      ["sounds/explode1.ogg", "Brick pops", "A brick is taken out because a neighbour is of the kind a kill-all brick kills; the atomic pilot's marked bricks blow up one by one (every 40 updates, then 20)"],
+      ["sounds/mutator1.ogg", "Mutation", "A brick turns into a mutant brick"],
+      ["sounds/mudestroy3.ogg", "Mutant dies", "A mutant brick is destroyed"],
+      ["sounds/freezeblock1.ogg", "Freeze", "A freeze brick goes off (not while a level is ending or the game is over)"],
+      ["sounds/hyperbrick_sound.ogg", "Booster pulse", "A galaxy brick in the field pulses: every 100 updates (1 s), speeding to every 12 updates over its last 200 of 1000 updates"]
+    ] },
+    { name: "Power bricks", sounds: [
       ["sounds/killall_explode.ogg", "Kill-all blast", "A kill-all brick goes off (not while a level is ending or the game is over, and not as a mutant)"],
       ["sounds/star_explode.ogg", "Star blast", "A star brick goes off (not while a level is ending or the game is over)"],
       ["sounds/nukeexplosion1.ogg", "Row nuke", "A row nuke brick goes off (not while a level is ending or the game is over)"],
       ["sounds/ckiller4.ogg", "Column nuke", "A column nuke or galaxy brick goes off, or a column nuke is fired from the ship's hand; all of its column goes"],
       ["sounds/galaxy.ogg", "Galaxy", "A galaxy brick goes off, together with the column nuke sound; not while a level is ending or the game is over"],
-      ["sounds/star9.ogg", "Fuel cell", "A fuel cell brick is destroyed, unless it is a mutant"],
+      ["sounds/star9.ogg", "Fuel cell", "A fuel cell brick is destroyed, unless it is a mutant"]
+    ] },
+    { name: "Pilots' powers", sounds: [
       ["sounds/v_weaponready.ogg", "\"Weapon ready\"", "The power meter reaches 18000, filling by 1 an update at the base level (3 minutes), faster with upgrades; only while play runs and no power is active"],
       ["sounds/v_poweractivated.ogg", "\"Power activated\"", "The player starts the power from a full meter (laser, atomic, turbot or psychic pilot)"],
+      ["sounds/laser.ogg", "Laser", "Laser pilot, power active: a click on a brick removes it from the bottom of its column, panned by column"],
+      ["sounds/psychic.ogg", "Psychic", "Psychic pilot, power active: a click takes out every lit cell at once, when nothing is moving"],
       ["sounds/explosion.ogg", "Weapon blast", "The turbot pilot's power starts; the atomic pilot's blast, 150 updates (1.5 s) after its symbol appears"],
       ["sounds/sloooowdown.ogg", "Slow down", "The atomic pilot's power: the final, eighth blast, after seven; also the ships screen opening from the main menu's secret order, 50 updates (0.5 s) later. Also in Bookworm Adventures Volume 2 as Sloooowdown (unused)."],
       ["sounds/powerupwearsoff.ogg", "Power wears off", "The power meter has drained to 0 and the power ends (not the atomic pilot's)"],
       ["sounds/v_weaponupgrade.ogg", "\"Weapon upgraded\"", "The upgrade box has settled in, then 100 updates (1 s) later"]
     ] },
-    { name: "Levels and warp", sounds: [
-      ["sounds/v_welcome.ogg", "\"Welcome to AstroPop!\"", "The first update of every game board that is not the attract-mode demo"],
-      ["sounds/v_getready.ogg", "\"Get ready\"", "A story screen closes, or the warp ends and the next level's bricks load"],
-      ["sounds/warp3.ogg", "Warp", "The level-end warp's charge flash reaches its peak (150 of 255); also, every other update, as a bonus round's warp-in white flash passes 59"],
-      ["sounds/v_warpengaged.ogg", "\"Warp engaged\"", "The warp starts: the level-up screen's text has faded out and the ship flies off"],
-      ["sounds/comptext.ogg", "Computer text", "Each letter of the warp's text typed out, one every 5 updates (0.05 s)"],
-      ["sounds/hyperspacethunder1.ogg", "Thunder 1", "In the warp, a lightning flash comes every 100 to 299 updates (1 to 3 s); this or thunder 2, 1 in 2, at a random column's pan"],
-      ["sounds/hyperspacethunder2.ogg", "Thunder 2", "In the warp, a lightning flash comes every 100 to 299 updates (1 to 3 s); this or thunder 1, 1 in 2, at a random column's pan"],
+    { name: "A stage's progress", sounds: [
+      ["sounds/brickmilestone.ogg", "Milestone", "A quarter, half or three quarters of the stage's bricks are cleared; also a galaxy brick starts (it adds 15% of the stage)"],
+      ["sounds/wordswoosh.ogg", "Word swoosh", "A big word flies across: level complete, quarter, half and three-quarter marks, and survival's minute text every 6000 updates (1 minute)"],
       ["sounds/level_up1.ogg", "Hundred left", "100 or fewer bricks are left to pass the stage, once a stage; not in survival"],
       ["sounds/level_up2.ogg", "Fifty left", "50 or fewer bricks are left to pass the stage, once a stage; not in survival"],
-      ["sounds/brickmilestone.ogg", "Milestone", "A quarter, half or three quarters of the stage's bricks are cleared; also a galaxy brick starts (it adds 15% of the stage)"],
       ["sounds/v_levelcomplete.ogg", "\"Level complete\"", "The stage's brick goal is reached and the level-up begins, after any chain bonus is paid; not when it starts a bonus round"],
-      ["sounds/wordswoosh.ogg", "Word swoosh", "A big word flies across: level complete, quarter, half and three-quarter marks, and survival's minute text every 6000 updates (1 minute)"],
-      ["sounds/v_bonusround.ogg", "\"Bonus round\"", "A level ends and the classic game's next screen is a bonus round, which starts at once"],
       ["sounds/v_perfect.ogg", "\"Perfect!\"", "The field is cleared in a stage (the clear bonus is paid), or the level summary's bar fills with no bricks left"],
       ["sounds/count.ogg", "Score count", "The level summary counts its numbers up: every 2nd step of the penalty, every 4th of the clean bonus, every 8th of the pay-out"]
+    ] },
+    { name: "The warp", sounds: [
+      ["sounds/v_warpengaged.ogg", "\"Warp engaged\"", "The warp starts: the level-up screen's text has faded out and the ship flies off"],
+      ["sounds/warp3.ogg", "Warp", "The level-end warp's charge flash reaches its peak (150 of 255); also, every other update, as a bonus round's warp-in white flash passes 59"],
+      ["sounds/hyperspaceloop1.ogg", "Hyperspace loop", "Loops while the field is in the warp, from the moment the warp begins until it ends; the engine loop is stopped meanwhile"],
+      ["sounds/comptext.ogg", "Computer text", "Each letter of the warp's text typed out, one every 5 updates (0.05 s)"],
+      ["sounds/hyperspacethunder1.ogg", "Thunder 1", "In the warp, a lightning flash comes every 100 to 299 updates (1 to 3 s); this or thunder 2, 1 in 2, at a random column's pan"],
+      ["sounds/hyperspacethunder2.ogg", "Thunder 2", "In the warp, a lightning flash comes every 100 to 299 updates (1 to 3 s); this or thunder 1, 1 in 2, at a random column's pan"]
+    ] },
+    { name: "Bonus rounds", sounds: [
+      ["sounds/v_bonusround.ogg", "\"Bonus round\"", "A level ends and the classic game's next screen is a bonus round, which starts at once"],
+      ["sounds/v_nomoremoves.ogg", "\"No more moves\"", "Bonus rounds only: no move is left and nothing is moving, the banner shows for 400 updates (4 s) and the field is counted out"]
     ] },
     { name: "Danger and game over", sounds: [
       ["sounds/klaxon.ogg", "Klaxon", "Loops while the ship's column has no room for the next brick (the held bricks included); stops when there is room; not in a bonus round or warp"],
       ["sounds/v_caution.ogg", "\"Caution\"", "The tallest column reaches 14 rows high and the siren is idle, not during a bonus round or warp; the siren animation starts with it"],
-      ["sounds/v_danger.ogg", "\"Danger\" (unused)", "Never played: it is loaded, but no code plays it; only the caution voice sounds when the stack gets high"],
-      ["sounds/v_nomoremoves.ogg", "\"No more moves\"", "Bonus rounds only: no move is left and nothing is moving, the banner shows for 400 updates (4 s) and the field is counted out"],
       ["sounds/v_gameover.ogg", "\"Game over\"", "The game ends, with the mega explosion at the same moment"],
       ["sounds/megaexplosion.ogg", "Mega explosion", "The game ends, with the game over voice at the same moment"],
-      ["sounds/v_newhighscore.ogg", "\"A new high score!\"", "200 updates (2 s) after the game ends, if the score takes the top place of the high scores"]
-    ] }
+      ["sounds/v_newhighscore.ogg", "\"A new high score!\"", "200 updates (2 s) after the game ends, if the score takes the top place of the high scores"],
+      ["sounds/v_danger.ogg", "\"Danger\" (unused)", "Never played: it is loaded, but no code plays it; only the caution voice sounds when the stack gets high"]
+    ] },
   ] },
   atomica: {
     presets: [
@@ -1718,30 +1728,21 @@ var ByopopSoundboards = {
       { name: "Time Up", when: "Classic mode's night timer runs out", steps: [["sounds/Timer Danger 06", 0], ["sounds/Timer Danger 06", 1000], ["sounds/Timer Danger 06", 2000], ["sounds/Tubetricks Sting Two v01", 2820], ["sounds/voice/Game Over 02", 2820], ["sounds/Fuse Burning 01d short", 3480], ["sounds/Ba Ding 01b", 3940], ["sounds/Rocket Launch Woosh 03b", 3940], ["sounds/Rocket Launch Woosh 03b", 3940], ["sounds/Rocket Launch Woosh 03b", 3940], ["sounds/Firework Explosion 03", 5430], ["sounds/voice/This Is Your Final Rank 07", 5820, {"end": 5900}], ["sounds/Crowd Applause 02", 5820], ["sounds/voice/These Are The Master Rocketeers 06", 5900]]}
     ],
     groups: [
-    { name: "Menus and voices", sounds: [
+    { name: "Menus", sounds: [
       ["sounds/ui little beep 05b.ogg", "Button beep", "A button is pressed on a main screen, on the high score dialog or on a hint dialog; a button beside the board is let go. Also in Hammer Heads Deluxe, as sounds/UI - Check.ogg."],
       ["sounds/voice/welcome to rocket mania 03.ogg", "\"Welcome to Rocket Mania\"", "The main menu, 100 updates (1 second) after it opens, the first time in a run; the talking head speaks with it"],
       ["sounds/voice/let's launch some fireworks 01.ogg", "\"Let's launch some fireworks\"", "The main menu, 100 updates (1 second) after it opens, on every visit after the first in a run; the talking head speaks with it"],
-      ["sounds/voice/these are the master rocketeers 06.ogg", "\"These are the master rocketeers\"", "The high score screen opens, whether from the menu or after a game"],
-      ["sounds/voice/you have got a high score 04.ogg", "\"You have got a high score\"", "A game ends with a score that makes the all-time table, the day's best or both"],
-      ["sounds/tubetricks sting one v01.ogg", "Record sting", "The dialog for entering a name for a high score opens"],
       ["sounds/hint popup 01.ogg", "Hint pops up", "A hint dialog opens, unless it is a game mode's hint; the talking head's speech bubble finishes growing"]
     ] },
-    { name: "Starting a level", sounds: [
+    { name: "A level starts", sounds: [
       ["sounds/voice/get ready 02.ogg", "\"Get ready\"", "A level starts; the first level says it only when hints are off"],
-      ["sounds/voice/click on the tile to rotate it___ 01.ogg", "\"Click on the tile to rotate it\"", "150 updates (1.5 seconds) into the first new game of a run, with hints on; not when a saved game is continued"],
-      ["sounds/lantern 01.ogg", "Lantern", "One of the meters on the board's top bar fills up"],
-      ["sounds/dragon breathing fire 05.ogg", "Dragon fire", "A level is cleared: 100 updates (1 second) after the clear, as the talking head flies in on a rocket. Also in Hammer Heads Deluxe, as sounds/Gnome King - Droning.ogg."],
-      ["sounds/ot - new ice cubes 01b.ogg", "Ice cubes", "Classic mode: the pause of the night timer that a clock item started, 1000 updates (10 seconds) for each clock picked up, runs out and the timer goes on"]
+      ["sounds/voice/click on the tile to rotate it___ 01.ogg", "\"Click on the tile to rotate it\"", "150 updates (1.5 seconds) into the first new game of a run, with hints on; not when a saved game is continued"]
     ] },
     { name: "Tiles and fuses", sounds: [
       ["sounds/block rotating 03.ogg", "Tile turns", "A tile is turned"],
       ["sounds/tubebump.ogg", "Tile lands", "A falling tile comes to rest on the stack (an arcade-mode top tile too); at most once every 15 updates (0.15 seconds)"],
       ["sounds/tube glow 01.ogg", "Fuse lit", "The tiles join from one end to the other and a fuse starts to burn"],
-      ["sounds/fuse burning 01d short.ogg", "Fuse burns", "A burn finishes and the fuses are lit row by row"],
-      ["sounds/fuse burning 01.ogg", "Special tile flashes", "A special tile, a lit one, starts to flash"],
-      ["sounds/magic tinkeling sound with ping 01b.ogg", "Special appears", "A bomb or another special tile is put on a free tile"],
-      ["sounds/explosion 01.ogg", "Bomb", "A bomb counts down or goes off; a tile at the top blows up. Also in Hammer Heads Deluxe, as sounds/Bomb Face - Explosion.ogg."]
+      ["sounds/fuse burning 01d short.ogg", "Fuse burns", "A burn finishes and the fuses are lit row by row"]
     ] },
     { name: "Launching rockets", sounds: [
       ["sounds/rocket launch woosh 03b.ogg", "Rocket launch", "Rockets are launched: three times at once for one to three rockets, once per rocket for four or more"],
@@ -1755,47 +1756,66 @@ var ByopopSoundboards = {
       ["sounds/firework explosion 04.ogg", "Firework 3", "A launched rocket's burst goes off, 150 updates (1.5 seconds) after the launch plus 50 updates (0.5 seconds) for each rocket before it; one of the six at random"],
       ["sounds/firework explosion 05.ogg", "Firework 4", "A launched rocket's burst goes off, 150 updates (1.5 seconds) after the launch plus 50 updates (0.5 seconds) for each rocket before it; one of the six at random"],
       ["sounds/firework explosion 06.ogg", "Firework 5", "A launched rocket's burst goes off, 150 updates (1.5 seconds) after the launch plus 50 updates (0.5 seconds) for each rocket before it; one of the six at random"],
-      ["sounds/firework explosion 07.ogg", "Firework 6", "A launched rocket's burst goes off, 150 updates (1.5 seconds) after the launch plus 50 updates (0.5 seconds) for each rocket before it; one of the six at random. Resembles Bejeweled 3's sounds/firework_crackle.ogg, the same sound, shorter."],
+      ["sounds/firework explosion 07.ogg", "Firework 6", "A launched rocket's burst goes off, 150 updates (1.5 seconds) after the launch plus 50 updates (0.5 seconds) for each rocket before it; one of the six at random. Resembles Bejeweled 3's sounds/firework_crackle.ogg, the same sound, shorter."]
+    ] },
+    { name: "The crowd", sounds: [
+      ["sounds/crowd oohs 04c.ogg", "Crowd ooh 1", "The middle rocket of a launch of two or more bursts, 1 time in 4 (one of four sounds at random)"],
+      ["sounds/crowd oohs 05.ogg", "Crowd ooh 2", "The middle rocket of a launch of two or three bursts, 1 time in 4"],
+      ["sounds/crowd oohs 07b.ogg", "Crowd ooh 3", "The middle rocket of a launch of four or more bursts, 2 times in 4"],
+      ["sounds/crowd oohs 08b.ogg", "Crowd ooh 4", "The middle rocket of a launch of two or more bursts, 1 time in 4"],
+      ["sounds/crowd oohs 11.ogg", "Crowd ooh 5", "The middle rocket of a launch of two or three bursts, 1 time in 4"],
       ["sounds/crowd applause 01.ogg", "Applause, small", "Two or three rockets are launched at once, as they go; again when the last of three bursts. Also in Hammer Heads Deluxe, as sounds/Crowd Applause 01.ogg."],
       ["sounds/crowd applause 02.ogg", "Applause, medium", "Four or five rockets are launched at once, as they go and again when the last one bursts; the level-end dialog opens. Also in Hammer Heads Deluxe, as sounds/Crowd Applause 02.ogg."],
       ["sounds/crowd applause 04.ogg", "Applause, large", "Six or more rockets are launched at once, as they go and again when the last one bursts; a launch wins the full-board bonus. Also in Hammer Heads Deluxe, as sounds/Crowd Applause 04.ogg. Also in Chuzzle Deluxe, as sounds/TrophyJoy.ogg."]
     ] },
-    { name: "Scoring", sounds: [
-      ["sounds/ting 02b.ogg", "Multiplier ting 1 (unused)", "Never played"],
-      ["sounds/ting 02b shift 2.ogg", "Multiplier ting 2", "A multiplier special is picked up as a burn reaches it, the first one of that burn"],
-      ["sounds/ting 02b shift 4.ogg", "Multiplier ting 3", "A multiplier special is picked up as a burn reaches it, the second one of that burn"],
-      ["sounds/ting 02b shift 6.ogg", "Multiplier ting 4", "A multiplier special is picked up as a burn reaches it, the third one of that burn"],
-      ["sounds/ting 02b shift 8.ogg", "Multiplier ting 5", "A multiplier special is picked up as a burn reaches it, the fourth one of that burn or a later one"],
-      ["sounds/ching 01.ogg", "Ching, 1", "The smallest coin reaches the coin counter"],
-      ["sounds/ching 02.ogg", "Ching, 2", "A medium coin reaches the coin counter; with Ching 5, the biggest coin"],
-      ["sounds/ching 05.ogg", "Ching, 5", "A large coin reaches the coin counter; with Ching 2, the biggest coin"],
+    { name: "Gems and coins", sounds: [
       ["sounds/gem picked up.ogg", "Gem 1", "A matches special or a clock is picked up before any gem of the same burn. Also in Hammer Heads Deluxe, as sounds/Flag Mole - Picked and Moving.ogg."],
       ["sounds/gem picked up shift 1.ogg", "Gem 2", "A gem is picked up as the first gem of a burn; a matches special or a clock after one gem"],
       ["sounds/gem picked up shift 2.ogg", "Gem 3", "A gem is picked up as the second gem of a burn; a matches special or a clock after two gems"],
       ["sounds/gem picked up shift 3.ogg", "Gem 4", "A gem is picked up as the third gem of a burn; a matches special or a clock after three gems"],
       ["sounds/gem picked up shift 4.ogg", "Gem 5", "A gem is picked up as the fourth gem of a burn or a later one; a matches special or a clock after four gems or more"],
-      ["sounds/ot - new ice cubes 02b.ogg", "Time bonus", "A clock item reaches the clock; the night timer then stops for 1000 updates (10 seconds)"],
-      ["sounds/crowd oohs 04c.ogg", "Crowd ooh 1", "The middle rocket of a launch of two or more bursts, 1 time in 4 (one of four sounds at random)"],
-      ["sounds/crowd oohs 05.ogg", "Crowd ooh 2", "The middle rocket of a launch of two or three bursts, 1 time in 4"],
-      ["sounds/crowd oohs 07b.ogg", "Crowd ooh 3", "The middle rocket of a launch of four or more bursts, 2 times in 4"],
-      ["sounds/crowd oohs 08b.ogg", "Crowd ooh 4", "The middle rocket of a launch of two or more bursts, 1 time in 4"],
-      ["sounds/crowd oohs 11.ogg", "Crowd ooh 5", "The middle rocket of a launch of two or three bursts, 1 time in 4"]
+      ["sounds/ching 01.ogg", "Ching, 1", "The smallest coin reaches the coin counter"],
+      ["sounds/ching 02.ogg", "Ching, 2", "A medium coin reaches the coin counter; with Ching 5, the biggest coin"],
+      ["sounds/ching 05.ogg", "Ching, 5", "A large coin reaches the coin counter; with Ching 2, the biggest coin"],
+      ["sounds/lantern 01.ogg", "Lantern", "One of the meters on the board's top bar fills up"]
     ] },
-    { name: "Time and endings", sounds: [
-      ["sounds/timer danger 06.ogg", "Time ticks", "Arcade mode: every 100 updates (1 second) while a tile rests in the top row of the stack; classic mode: every 100 updates once 90 percent or more of the night's time has gone; the sound volume slider is moved, at most once every 50 updates (0.5 seconds)"],
+    { name: "Specials", sounds: [
+      ["sounds/magic tinkeling sound with ping 01b.ogg", "Special appears", "A bomb or another special tile is put on a free tile"],
+      ["sounds/fuse burning 01.ogg", "Special tile flashes", "A special tile, a lit one, starts to flash"],
+      ["sounds/explosion 01.ogg", "Bomb", "A bomb counts down or goes off; a tile at the top blows up. Also in Hammer Heads Deluxe, as sounds/Bomb Face - Explosion.ogg."],
+      ["sounds/ting 02b shift 2.ogg", "Multiplier ting 2", "A multiplier special is picked up as a burn reaches it, the first one of that burn"],
+      ["sounds/ting 02b shift 4.ogg", "Multiplier ting 3", "A multiplier special is picked up as a burn reaches it, the second one of that burn"],
+      ["sounds/ting 02b shift 6.ogg", "Multiplier ting 4", "A multiplier special is picked up as a burn reaches it, the third one of that burn"],
+      ["sounds/ting 02b shift 8.ogg", "Multiplier ting 5", "A multiplier special is picked up as a burn reaches it, the fourth one of that burn or a later one"],
+      ["sounds/ting 02b.ogg", "Multiplier ting 1 (unused)", "Never played"]
+    ] },
+    { name: "Classic's night timer", sounds: [
       ["sounds/cockeral crowing 03.ogg", "Rooster", "Classic mode: once a level, when the night timer's value drops to 10 or below"],
+      ["sounds/ot - new ice cubes 02b.ogg", "Time bonus", "A clock item reaches the clock; the night timer then stops for 1000 updates (10 seconds)"],
+      ["sounds/ot - new ice cubes 01b.ogg", "Ice cubes", "Classic mode: the pause of the night timer that a clock item started, 1000 updates (10 seconds) for each clock picked up, runs out and the timer goes on"],
+      ["sounds/voice/out of time 02.ogg", "\"Out of time\"", "Classic mode: the night timer runs out and the game ends"]
+    ] },
+    { name: "Arcade's top row", sounds: [
+      ["sounds/timer danger 06.ogg", "Time ticks", "Arcade mode: every 100 updates (1 second) while a tile rests in the top row of the stack; classic mode: every 100 updates once 90 percent or more of the night's time has gone; the sound volume slider is moved, at most once every 50 updates (0.5 seconds)"]
+    ] },
+    { name: "A level cleared", sounds: [
       ["sounds/voice/level up 02.ogg", "\"Level up\"", "A level is cleared, 40 updates (0.4 seconds) after the clear"],
-      ["sounds/voice/well done 01.ogg", "\"Well done\"", "The level-end dialog opens after a cleared level"],
-      ["sounds/voice/this is your final rank 07.ogg", "\"This is your final rank\"", "The level-end dialog opens at the end of a game"],
-      ["sounds/voice/out of time 02.ogg", "\"Out of time\"", "Classic mode: the night timer runs out and the game ends"],
-      ["sounds/voice/game over 02.ogg", "\"Game over\"", "The game ends because the top line is full, or in strategy mode because it ran out of moves"],
-      ["sounds/tubetricks sting two v01.ogg", "Game over sting", "The game ends, whatever the cause"]
+      ["sounds/dragon breathing fire 05.ogg", "Dragon fire", "A level is cleared: 100 updates (1 second) after the clear, as the talking head flies in on a rocket. Also in Hammer Heads Deluxe, as sounds/Gnome King - Droning.ogg."],
+      ["sounds/voice/well done 01.ogg", "\"Well done\"", "The level-end dialog opens after a cleared level"]
     ] },
     { name: "Buying rockets", sounds: [
       ["sounds/coin leaving treasure chest 05.ogg", "Coin spent", "A coin leaves the chest on the buy-rockets screen"],
       ["sounds/rocket being bought 02.ogg", "Rocket bought", "55 updates (0.55 seconds) after a coin leaves the chest, as it reaches its item"],
       ["sounds/magic rocket upgraded 03.ogg", "Rocket upgraded", "55 updates (0.55 seconds) after a coin leaves the chest, when that coin raises a launcher's meter; it plays with Rocket bought"],
       ["sounds/magic rocket upgraded 02.ogg", "Rocket upgraded 2 (unused)", "Never played"]
+    ] },
+    { name: "Game over", sounds: [
+      ["sounds/voice/game over 02.ogg", "\"Game over\"", "The game ends because the top line is full, or in strategy mode because it ran out of moves"],
+      ["sounds/tubetricks sting two v01.ogg", "Game over sting", "The game ends, whatever the cause"],
+      ["sounds/voice/this is your final rank 07.ogg", "\"This is your final rank\"", "The level-end dialog opens at the end of a game"],
+      ["sounds/voice/you have got a high score 04.ogg", "\"You have got a high score\"", "A game ends with a score that makes the all-time table, the day's best or both"],
+      ["sounds/tubetricks sting one v01.ogg", "Record sting", "The dialog for entering a name for a high score opens"],
+      ["sounds/voice/these are the master rocketeers 06.ogg", "\"These are the master rocketeers\"", "The high score screen opens, whether from the menu or after a game"]
     ] },
   ] },
   sevenseas: {
