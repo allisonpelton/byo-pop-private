@@ -684,6 +684,7 @@ SexyAppBase::SexyAppBase()
 
 	mSyncRefreshRate = 100;
 	mVSyncUpdates = false;
+	mUpdatesPerUpdateFExact = false;
 	mWaitForVSync = false;
 	mAutoEnable3D = false;
 	mTest3D = false;
@@ -2823,7 +2824,11 @@ bool SexyAppBase::Process(bool allowSleep)
 	if (mVSyncUpdates)
 	{
 		aFrameFTime = (1000.0 / mSyncRefreshRate) / mUpdateMultiplier;
-		anUpdatesPerUpdateF = (float) (1000.0 / (mFrameTime * mSyncRefreshRate));
+		// port: 1.3 rounds the ticks a frame owes to a float; an exe that keeps the double (Hammer Heads') takes its extra tick
+		// where the sum is exactly one, which the float's 1.6666666 never reaches (mUpdatesPerUpdateFExact)
+		anUpdatesPerUpdateF = 1000.0 / (mFrameTime * mSyncRefreshRate);
+		if (!mUpdatesPerUpdateFExact)
+			anUpdatesPerUpdateF = (float) anUpdatesPerUpdateF;
 	}
 	else
 	{

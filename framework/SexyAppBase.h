@@ -288,6 +288,7 @@ public:
 
 	int mSyncRefreshRate;
 	bool mVSyncUpdates;
+	bool mUpdatesPerUpdateFExact;	// port: the ticks a vsynched frame owes are kept as a double, not rounded to a float (see Process)
 	bool mWaitForVSync;
 	bool mUserChanged3DSetting;
 	bool mAutoEnable3D;
