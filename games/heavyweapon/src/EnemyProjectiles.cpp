@@ -840,7 +840,8 @@ void BombFragment::Update()
 		mBoard->mGroundFlashes.Append(aFlash);
 	}
 
-	if (mTrailY.empty() || mTrailY[0] < GROUND_Y + 1 + 12)
+	// it goes once the oldest point of its path is below the ground
+	if (mTrailY.empty() || mTrailY[0] <= GROUND_Y)
 	{
 		mTrailX.push_back((int)mX);
 		mTrailY.push_back((int)mY);
