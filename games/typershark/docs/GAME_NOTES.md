@@ -802,8 +802,12 @@ and end is the same in the original's runs but for a field of the sharks' list t
 | The three pairs on a busy machine (0.85 to 1.00 of the processors in use) | 4,332, 3,908, 4,025 | 3,682, 3,720, 3,368 |
 | The two pairs on a quiet machine (0.44 to 0.58 in use) | 2,713, 3,691 | 4,222, 4,343 |
 | Stock stand-in, median of ten pairs (01:12 to 02:14) | 4,713 (3,651 to 5,270), cursor thread 735 | 3,565 (3,021 to 4,456) |
+| **Fixed stand-in** (trunk 38a0512b, `223d9bdf`), median of five pairs (22:02 to 22:15, the machine 0.17 to 0.24 in use) | **2,396** (2,281 to 2,516): main thread 2,294, other 79, cursor thread 27 | **3,805** (3,511 to 4,004): main 1,774, driver 1,862, mixer 172 |
 
-The port is lower in the busy pairs and **higher in the quiet ones**, so at its best the port is level with the original and the target is not met on a quiet machine. A run's
+The port is lower in the busy pairs and **higher in the quiet ones**, so at its best the port is level with the original and the target is not met on a quiet machine. **With the fixed stand-in
+(the last row, the machine quiet at 0.17 to 0.24 in use) the port is 3,805 M against the original's 2,396 M: 1.59 of it, 1.4 G more in 20 s, higher in all five pairs (3,511 / 2,516, 3,863 / 2,396, 4,004 / 2,416, 3,805 / 2,316, 3,598 / 2,281).**
+The original's main thread, which holds its DirectDraw and Direct3D 7 calls, is 2,294 M; the port's own main thread (its game code and the framework's draw glue, SDL's queueing and `SDL_RenderPresent`) is 1,774 M and its mixer 172 M,
+so everything but the Direct3D 11 driver's worker thread is 0.81 of the original, and **the whole excess is that worker thread, 1,862 M (49% of the port)**, the shared present cost of "What is left" below. A run's
 cycles depend on how busy the machine is, but not alike on the two sides: the original's rise with it (its main thread 2.6 G at 0.46 in use against 4.1 G at 1.0: an SMT
 sibling and a shared cache), the port's driver thread *falls* (3.2 to 3.6 G at 0.39 to 0.47 in use, 1.8 to 2.5 G at 0.58 and above, in every pair of the fifteen), so a player's mostly quiet machine
 is where the port's thread is dearest. The pairs alternate and the medians are of five for that reason, but nothing makes the machine quiet while other sessions run games; the quiet pairs are three in all.
@@ -835,7 +839,7 @@ pass and no clear and copy in `Present` (four pairs on the hidden desktop, 02:46
 4.3 G) without it, and the driver thread 1,452 M against 1,442 M. The extra pass is not what the driver's thread spends; it is a per-present cost.
 
 **What is left, and whose it is.** Nothing in the game's own code (about 2% of the cycles), so the port stays as it is. The shared costs, for the coordinator (`docs/COORDINATION.md`, shared costs):
-(1) the present: the Direct3D 11 driver's worker thread (60% of the port's cycles on the desktop, about 1.7 to 2.7 M cycles a presented frame, more on a quiet machine) and `SDL_RenderPresent` itself on the main thread (0.2 M a frame on a display
+(1) the present: the Direct3D 11 driver's worker thread (49% of the port's cycles on the quiet machine with the fixed stand-in, 60% in the earlier pairs; about 1.5 to 2.7 M cycles a presented frame, more on a quiet machine) and `SDL_RenderPresent` itself on the main thread (0.2 M a frame on a display
 with a blank, ten times that on rundesk's) are the same finding as AstroPop's; every API that SDL offered cost as much or more and skipping the render-target pass did not help, so what would is fewer presents (a frame that nothing changed in need not be presented, though Typer Shark redraws its whole scene every frame). The window-surface presenter that the Mahjong session built (`cf1dea5f`, no renderer and no driver thread) is for a frame that is one finished software-drawn picture;
 Typer Shark's is about 600 alpha-blended quads a frame through the renderer, and drawing them in software would cost what the original's own 2D mode does here (4.7 to 6.5 G on its main thread, hidden desktop), so it does not apply;
 (2) the draw glue: 593 SDL calls a frame for 20 runs of one texture, so a queue in `DDInterface` that joins the quads of consecutive
