@@ -8,6 +8,9 @@
 //           or from files in order: [{id: "<name>", pieces: ["<path>", ...], loopFrom: <the piece its loop goes back to>}]
 //   cuts    {"<file name>#<n>": [order, ...]}: a subsong split where the game's code starts a different tune partway
 //           through; each later piece is "<file name>#<n>@<order>" (an order the subsong never reaches: from it to the end)
+//   starts  {"<file name>#<n>": [order, ...]}: orders the game also starts a subsong at, where the tune before plays on
+//           through them in the game (no seam: a long game's music runs into the next part); each is a piece
+//           "<file name>#<n>@<order>" from there to the end, and the subsong stays whole
 //   chains  {"<file name>#<n>": ["<file name>#<m>", ...]}: parts the game only plays as jumps inside one tune, one track
 //   skip    ["<file name>#<n>", ...]: tunes that are not tunes (n counts from 0 in the file's subsongs or parts)
 //   names   {"<file name>#<n>" or "<playlist name>": "<name>"}: plain names, never invented titles and never the game's own text
@@ -89,7 +92,7 @@ var ByopopSoundtracks = {
   bejeweled2: {
     composer: "Skaven",
     files: ["music/*.mo3"],
-    cuts: { "BeyondNetwork#1": [122] },
+    starts: { "BeyondNetwork#1": [122] },
     where: { "BeyondNetwork#1": "Classic Mode", "BeyondNetwork#1@122": "Action Mode", "BeyondNetwork#2": "Main Menu", "BeyondNetwork#5": "Title Screen",
       "BeyondNetwork#6": "Finale" },
     when: {

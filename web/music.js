@@ -539,9 +539,12 @@ var ByopopMusic = (function () {
                   M._bm_render(m, 48000, 1, one);   // libxmp-lite moves to the subsong's first order as it plays
                   var base = { kind: "module", keys: [prefix + rel], sub: i, entry: M._bm_order(m), seq: seq, id: id + "#" + i, seconds: secs, level: entry.level };
                   subEntries[i] = base.entry;
-                  var cuts = byId(entry.cuts, base.id);
+                  var cuts = byId(entry.cuts, base.id), starts = byId(entry.starts, base.id);
                   if (cuts) cutTune(m, base, cuts, fast).forEach(function (k) { list.push(k); });
                   else list.push(base);
+                  // (the table's "starts": orders the game also starts the subsong at, its first tune playing on through
+                  // them: each a piece from there to where the music ends, the subsong left whole)
+                  (starts || []).forEach(function (c) { list.push(piece(base, c, null, timeOrders(m, base.sub, c, [], fast).end)); });
                 }
                 M._free(one);
                 // every subsong's first order, for the orders each tune plays (tuneOrders)
@@ -1185,9 +1188,10 @@ var ByopopMusic = (function () {
     // are moduleSource's. Seeking renders unheard from the start (libopenmpt at 8000 Hz, which costs little; libxmp-lite at
     // the context's rate, as a rate change restarts it).
     function segSource(m, segs, gain, fast) {
-      var src = moduleSource(m, null, gain, 0), i = 0, done = 0, again = false;
+      var src = moduleSource(m, null, gain, 0), i = 0, done = 0, again = false, stopAt = 0, pass = 0;
       function begin(k) {
         i = k;
+        if (k === 0) pass = 0;
         var sg = segs[k];
         M._bm_select(m, sg.sub);
         M._bm_loop(m, 0);
@@ -1221,14 +1225,20 @@ var ByopopMusic = (function () {
       }
       begin(0);
       src.repeat = function (on) { again = on; };
-      src.stop = function () {};
+      // (a long silent ending cut, as moduleSource's: the pass ends stopAt seconds in)
+      src.stop = function (s) { stopAt = s; };
       src.next = function (frames, marks) {
+        if (stopAt && pass >= stopAt * ctx.sampleRate) {
+          if (!again) return null;
+          begin(0);
+        }
+        if (stopAt) frames = Math.max(1, Math.min(frames, Math.ceil(stopAt * ctx.sampleRate) - pass));
         if (!viewBuf) viewBuf = M._malloc(20);
         var out = M._malloc(frames * 8), got = render(ctx.sampleRate, frames, out, marks);
         var c = got > 0 ? M.HEAPF32.slice(out >> 2, (out >> 2) + got * 2) : null;
         M._free(out);
         if (c && gain !== 1) for (var j = 0; j < c.length; j++) c[j] *= gain;
-        if (c) done += got;
+        if (c) { done += got; pass += got; }
         return c;
       };
       src.position = function () { return done / ctx.sampleRate; };
@@ -1243,7 +1253,7 @@ var ByopopMusic = (function () {
         }
         M._free(buf);
         again = keep;
-        done = Math.round(sec * ctx.sampleRate);
+        done = pass = Math.round(sec * ctx.sampleRate);
       };
       return src;
     }
@@ -1283,7 +1293,7 @@ var ByopopMusic = (function () {
     // the new end in seconds into the tune, or 0 to keep its own.
     var TRIM_SCAN = 60, TRIM_RATE = 11025, TRIM_LEVEL = 0.001, TRIM_LONG = 3, TRIM_KEEP = 1, trims = {};
     function trimEnd(t, bytes) {
-      var key = t.keys[0] + "#" + (t.range ? t.range.join("-") : t.sub);
+      var key = t.keys[0] + "#" + (t.range ? t.range.join("-") : t.segs ? t.id : t.sub);
       if (!(key in trims)) trims[key] = scanEnd(t, bytes);
       var end = trims[key];
       if (end && t.seconds !== end) {
@@ -1298,11 +1308,12 @@ var ByopopMusic = (function () {
       if (!m) return 0;
       var out = M._malloc(4096 * 8), start = t.start || 0, last = -1, length = t.seconds;
       try {
-        if (!t.range) M._bm_select(m, t.sub);
+        var until = t.segs ? t.segs[0].until : null;
+        if (!t.range) M._bm_select(m, t.segs ? t.segs[0].sub : t.sub);
         var from = Math.max(0, length - TRIM_SCAN);
         M._bm_seek(m, TRIM_RATE, start + from);
         for (var guard = 0; guard < 400; guard++) {
-          if (t.range && M._bm_order(m) > t.range[1]) break;
+          if ((t.range && M._bm_order(m) > t.range[1]) || (until !== null && M._bm_order(m) === until)) break;
           var at = M._bm_position(m) - start;
           if (at >= length + 1) break;
           var got = M._bm_render(m, TRIM_RATE, 4096, out);
@@ -1319,7 +1330,13 @@ var ByopopMusic = (function () {
       if (t.kind === "module") {
         var m = files[0] ? loadModule(M, files[0]) : 0;
         if (!m) throw new Error("module");
-        if (t.segs) return Promise.resolve(segSource(m, t.segs, levelGain(M, t.level), /\.(mo3|oxm)$/i.test(t.keys[0]) || /\|pe:/.test(t.keys[0])));
+        if (t.segs) {
+          var seg = segSource(m, t.segs, levelGain(M, t.level), /\.(mo3|oxm)$/i.test(t.keys[0]) || /\|pe:/.test(t.keys[0]));
+          // (a piece from its subsong's start, cut where the game starts another tune: its silent ending trimmed too)
+          var cutEnd = t.segs.length === 1 && t.segs[0].from === null ? trimEnd(t, files[0]) : 0;
+          if (cutEnd) seg.stop(cutEnd);
+          return Promise.resolve(seg);
+        }
         if (!t.range) M._bm_select(m, t.sub);
         var src = moduleSource(m, t.range, levelGain(M, t.level), t.start || 0), end = trimEnd(t, files[0]);
         if (end) src.stop(end);
