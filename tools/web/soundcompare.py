@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""A local page for what only the user's ears can judge, development only: it is never part of the site's build. Three lists:
+"""A local page for what only the user's ears can judge, development only: it is never part of the site's build. Four lists:
 
   Pairs   pairs of similar sounds (the user, 2026-11-12: "Make a page where I can compare the similar sounds and press a
           button to decide if two sounds are similar")
@@ -8,12 +8,16 @@
           less accurate than just having me correct inferences from the file name")
   Seams   the seams of the tunes Music joins from pieces or cuts where the game starts another tune (TO_TEST 14i): a few
           seconds either side of each, rendered as the site plays them (tools/web/seamrender.js for modules)
+  Based   sounds made from another game's sound with effects added, tools/soundbased.py's candidates (the user, 2026-11-13:
+          "Some sounds are based on others"): nothing goes on a board until the user accepts it here
 
-The pairs come from tools/soundmatch.py's results in build/soundmatch/: its near matches first, then the closest pairs it
-turned down (turned.json, by the mean of its two scores) as a second list. Each sound is decoded once by ffmpeg to a PCM WAV
+The pairs come from tools/soundmatch.py's results in build/soundmatch/: first every pair that is new since the run before
+(when that run's matches.json was kept there as matches-before.json), same recordings too; then its near matches; then the
+closest pairs it turned down (turned.json, by the mean of its two scores) as a second list. Each sound is decoded once by ffmpeg to a PCM WAV
 at its own rate under build/soundcompare/snd/ (git-ignored): a board sound from the staged files (tools/voicelines.py's
 reader), an unported game's from the file soundmatch found in the user's install, which is only read. The decisions are
-written on every click to testnotes/AH-decisions.json, voicelines-decisions.json and seams-decisions.json, and the page reads
+written on every click to testnotes/AH-decisions.json, voicelines-decisions.json, seams-decisions.json and based-decisions.json,
+and the page reads
 them back on a reload.
 
   python tools/web/soundcompare.py [--assets DIR] [--match DIR] [--unsure FILE] [--port 18791] [--missed 24]
@@ -36,7 +40,8 @@ OUT = os.path.join(ROOT, "build", "soundcompare")
 SND = os.path.join(OUT, "snd")
 DECISIONS = {"pairs": os.path.join(ROOT, "testnotes", "AH-decisions.json"),
              "voices": os.path.join(ROOT, "testnotes", "voicelines-decisions.json"),
-             "seams": os.path.join(ROOT, "testnotes", "seams-decisions.json")}
+             "seams": os.path.join(ROOT, "testnotes", "seams-decisions.json"),
+             "based": os.path.join(ROOT, "testnotes", "based-decisions.json")}
 UNSURE = os.path.join(ROOT, "testnotes", "voicelines-unsure.txt")
 NODE = "E:/retools/emsdk/node/24.19.0_64bit/node.exe"
 OPENMPT = os.path.join(ROOT, "build", "web", "openmpt.js")
@@ -114,7 +119,12 @@ def decode(side, n):
 def prepare(missed):
     boards = vl.boards()
     labels = {(g, f): l for g, rows in boards.items() for f, l, w in rows}
-    near = [h for h in json.load(open(os.path.join(MATCH, "matches.json"), encoding="utf-8")) if h["kind"] == "near"]
+    every = json.load(open(os.path.join(MATCH, "matches.json"), encoding="utf-8"))
+    # pairs new since the run before (its matches.json kept as matches-before.json), same ones too, for the user to hear
+    before = os.path.join(MATCH, "matches-before.json")
+    old = {frozenset((key(h["a"]), key(h["b"]))) for h in json.load(open(before, encoding="utf-8"))} if os.path.exists(before) else None
+    new = [h for h in every if old is not None and frozenset((key(h["a"]), key(h["b"]))) not in old]
+    near = [h for h in every if h["kind"] == "near" and h not in new]
     listed = {frozenset((key(h["a"]), key(h["b"]))) for h in json.load(open(os.path.join(MATCH, "matches.json"), encoding="utf-8"))}
     # a pair whose scores equal an earlier one's is the same two recordings again (the four Peggles' button, two games'
     # identical click): only the first is listed
@@ -125,9 +135,9 @@ def prepare(missed):
         scores.add((h["env"], h["wave"]))
         turned.append(h)
     pairs, n = [], 0
-    for lst, hs in (("near", near), ("missed", turned)):
+    for lst, hs in (("new", new), ("near", near), ("missed", turned)):
         for h in hs:
-            row = {"list": lst, "env": h["env"], "wave": h["wave"]}
+            row = {"list": lst, "env": h["env"], "wave": h["wave"], "kind": h["kind"]}
             for s in ("a", "b"):
                 side = h[s]
                 n += 1
@@ -307,8 +317,30 @@ def prepare_seams(per_playlist=6):
     return rows
 
 
+def prepare_based(n0=5000):
+    """tools/soundbased.py's candidates: each a base and a sound made from it, with the reasons it gives"""
+    f = os.path.join(MATCH, "based.json")
+    if not os.path.exists(f):
+        return []
+    boards = vl.boards()
+    labels = {(g, f_): l for g, rows in boards.items() for f_, l, w in rows}
+    out, n = [], n0
+    for h in json.load(open(f, encoding="utf-8")):
+        row = {"holds": h["holds"], "back": h["back"], "why": h["why"]}
+        for s in ("base", "derived"):
+            side = h[s]
+            n += 1
+            row[s] = {"game": TITLES.get(side["game"], side["game"]), "id": side["game"], "file": side["file"],
+                      "label": labels.get((side["game"], side["file"]), "") if side["game"] in boards else "",
+                      "snd": decode(side, n)}
+        row["key"] = key(h["base"]) + "|" + key(h["derived"])
+        out.append(row)
+    return out
+
+
 def prepare_all(missed):
     items = {"pairs": prepare(missed)}
+    items["based"] = prepare_based()
     items["voices"] = prepare_voices(1000)
     items["seams"] = prepare_seams()
     json.dump(items, open(os.path.join(OUT, "items.json"), "w", encoding="utf-8"), indent=1, ensure_ascii=False)
@@ -379,9 +411,10 @@ def main():
     items = prepare_all(a.missed)
     pairs = items["pairs"]
     print("pairs %d (near %d, missed %d), %d sounds not decoded; voices %d (%d not decoded); seams %d (%d not rendered)" % (
-        len(pairs), sum(p["list"] == "near" for p in pairs), sum(p["list"] == "missed" for p in pairs),
+        len(pairs), sum(p["list"] in ("new", "near") for p in pairs), sum(p["list"] == "missed" for p in pairs),
         sum(not p[s]["snd"] for p in pairs for s in "ab"), len(items["voices"]), sum(not v["snd"] for v in items["voices"]),
         len(items["seams"]), sum(not v["snd"] for v in items["seams"])), flush=True)
+    print("based on %d" % len(items["based"]), flush=True)
     if a.prepare_only:
         return
     print("http://127.0.0.1:%d/" % a.port, flush=True)

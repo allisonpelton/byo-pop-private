@@ -789,7 +789,7 @@ var ByopopSoundboards = {
       ["sounds/lex_fantastic.ogg", "\"Fantastic!\"", "A sapphire tile is awarded: Lex says one of the two sapphire tile voices, at random"],
       ["sounds/lex_astonishing.ogg", "\"Astonishing!\"", "A sapphire tile is awarded: Lex says one of the two sapphire tile voices, at random"],
       ["sounds/lex_incredible.ogg", "\"Incredible!\"", "A diamond tile is awarded: Lex says one of the two diamond tile voices, at random"],
-      ["sounds/lex_unbelievable.ogg", "\"Unbelievable!\"", "A diamond tile is awarded: Lex says one of the two diamond tile voices, at random"]
+      ["sounds/lex_unbelievable.ogg", "\"Unbelievable!\"", "A diamond tile is awarded: Lex says one of the two diamond tile voices, at random. Also in Bookworm Adventures and Bookworm Adventures Volume 2 as \"Unbelievable\" (unused)."]
     ] },
     { name: "Lex's warnings", sounds: [
       ["sounds/lex_careful.ogg", "\"Careful!\"", "Lex starts to sweat (a fire tile on the bottom row) and is not moving: he warns the player with one of these four, at random"],
@@ -1011,7 +1011,7 @@ var ByopopSoundboards = {
     ] },
     { name: "Unused", sounds: [
       ["sounds/lex_autological.ogg", "\"Autological\" (unused)", "Never played: loaded as LEX_AUTOLOGICAL, but no code or script asks for it. The same recording as \"Autological\" (sounds/v_autological.ogg), which Lex says in the Codex fight; only this copy is never played. Also in Bookworm Adventures Volume 2 as \"Autological\" (two copies, neither played)."],
-      ["sounds/lex_unbelievable.ogg", "\"Unbelievable\" (unused)", "Never played: the file is not in the game's resource list, so nothing loads it. Also in Bookworm Adventures Volume 2 as \"Unbelievable\" (unused)."],
+      ["sounds/lex_unbelievable.ogg", "\"Unbelievable\" (unused)", "Never played: the file is not in the game's resource list, so nothing loads it. Also in Bookworm Adventures Volume 2 as \"Unbelievable\" (unused). Also in BookWorm as \"Unbelievable!\", in full there: this copy is cut off above 7 kHz."],
       ["sounds/v_buynow.ogg", "\"Buy now\" (trial only)", "Trial only: the upsell trailer the trial showed said it once; the port, made from the full game, has no trial and leaves the trailer's resources out. Also in Bookworm Adventures Volume 2 as \"Buy now\" (trial only)."],
       ["sounds/vo_routed.ogg", "\"Routed\" (unused)", "Never played: loaded as OVERKILL_ROUTED, but the scripts' overkill table names only the seven other overkill voices. Also in Bookworm Adventures Volume 2 as \"Routed\" (unused)."]
     ] },
@@ -1319,7 +1319,7 @@ var ByopopSoundboards = {
       ["sounds/curtainsopen.ogg", "Curtainsopen (unused)", "Never played: loaded as CURTAIN_OPEN, but the curtain transition plays no sound and nothing else asks for it"],
       ["sounds/curtainsopenclap.ogg", "Curtainsopenclap (unused)", "Never played: loaded as CURTAIN_OPEN_CLAP, but the curtain transition plays no sound and nothing else asks for it"],
       ["sounds/giantgruntdry1.ogg", "Giant grunt dry 1 (unused)", "Never played: the game never plays it"],
-      ["sounds/lex_unbelievable.ogg", "\"Unbelievable\" (unused)", "Never played: the game never plays it. Also in Bookworm Adventures as \"Unbelievable\" (unused)."],
+      ["sounds/lex_unbelievable.ogg", "\"Unbelievable\" (unused)", "Never played: the game never plays it. Also in Bookworm Adventures as \"Unbelievable\" (unused). Also in BookWorm as \"Unbelievable!\", in full there: this copy is cut off above 7 kHz."],
       ["sounds/lextravelloop.ogg", "Lextravel loop (unused)", "Never played: the game never plays it"],
       ["sounds/plateimpact3.ogg", "Plate impact 3 (unused)", "Never played: listed only in book4.xml, and no script asks for it (the scripts play plate impacts 4 to 6)"],
       ["sounds/textreadblip.ogg", "Textreadblip (unused)", "Never played: the game never plays it"],

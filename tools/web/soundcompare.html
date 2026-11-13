@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Listening</title>
-<!-- tools/web/soundcompare.py serves this page, development only: what only the user's ears can judge, in three lists -->
+<!-- tools/web/soundcompare.py serves this page, development only: what only the user's ears can judge, in four lists -->
 <style>
   :root { --bg: #c0c0c0; --fg: #000; --row: #fff; --sel: #000080; --yes: #c8f0c8; --no: #f0c8c8; --mid: #f0f0c0; --line: #808080; }
   body { margin: 0; background: var(--bg); color: var(--fg); font: 12px Tahoma, "MS Sans Serif", Arial, sans-serif; }
@@ -44,15 +44,18 @@
 </table>
 <script>
 "use strict";
-// Three lists (tools/web/soundcompare.py): pairs of similar sounds, voice clips whose words are open, and the seams of the
-// tunes Music joins or cuts. Each list's decisions are saved on every change to its own file and read back on a reload.
+// Four lists (tools/web/soundcompare.py): pairs of similar sounds, voice clips whose words are open, the seams of the tunes
+// Music joins or cuts, and sounds made from another with effects added (tools/soundbased.py). Each list's decisions are saved
+// on every change to its own file and read back on a reload.
 var LISTS = {
   pairs: { title: "Pairs", keys: "<span>A</span>A <span>B</span>B <span>Space</span>A→B <span>S</span>Similar <span>N</span>Not similar",
            head: "<tr><th>#</th><th>A</th><th></th><th>Path</th><th></th><th>B</th><th></th><th>Path</th><th></th><th>Env/Wave</th><th>Decision</th></tr>" },
   voices: { title: "Voices", keys: "<span>Space</span>Play <span>Y</span>Accept <span>N</span>Not a voice <span>T</span>Type the words, <span>Enter</span>",
             head: "<tr><th>#</th><th>Game</th><th>File</th><th>Board label</th><th>Proposed</th><th>Why</th><th>Whisper heard</th><th></th><th>Decision</th></tr>" },
   seams: { title: "Seams", keys: "<span>Space</span>Play <span>Y</span>Sounds right <span>N</span>Sounds wrong <span>T</span>Note, <span>Enter</span>",
-           head: "<tr><th>#</th><th>Game</th><th>Tune</th><th>Seam</th><th>At</th><th></th><th>Decision</th></tr>" }
+           head: "<tr><th>#</th><th>Game</th><th>Tune</th><th>Seam</th><th>At</th><th></th><th>Decision</th></tr>" },
+  based: { title: "Based on", keys: "<span>A</span>Base <span>B</span>Made from it <span>Space</span>A→B <span>Y</span>Based on it <span>N</span>Not",
+           head: "<tr><th>#</th><th>Base</th><th></th><th>Path</th><th></th><th>Made from it</th><th></th><th>Path</th><th></th><th>Holds</th><th>What changed</th><th>Decision</th></tr>" }
 };
 var items = {}, dec = {}, sel = {}, tab = "pairs", audio = new Audio(), chain = null;
 var rows = document.getElementById("rows");
@@ -77,25 +80,29 @@ function play(url, btn, then) {
 }
 function snd(name) { return name ? "snd/" + encodeURIComponent(name) : null; }
 function seam(name) { return name ? "seam/" + encodeURIComponent(name) : null; }
-function playA(i) { var r = rowOf(i); play(snd(items.pairs[i].a.snd), r && r.querySelector(".pa")); }
-function playB(i) { var r = rowOf(i); play(snd(items.pairs[i].b.snd), r && r.querySelector(".pb")); }
+// a pair's two sides: Pairs' a and b, Based on's base and the sound made from it
+function sides(i) { var p = list()[i]; return tab === "based" ? [p.base, p.derived] : [p.a, p.b]; }
+function twoSided() { return tab === "pairs" || tab === "based"; }
+function playA(i) { var r = rowOf(i); play(snd(sides(i)[0].snd), r && r.querySelector(".pa")); }
+function playB(i) { var r = rowOf(i); play(snd(sides(i)[1].snd), r && r.querySelector(".pb")); }
 function playAB(i) {
-  var r = rowOf(i);
-  play(snd(items.pairs[i].a.snd), r && r.querySelector(".pab"), function () { play(snd(items.pairs[i].b.snd), r && r.querySelector(".pab")); });
+  var r = rowOf(i), s = sides(i);
+  play(snd(s[0].snd), r && r.querySelector(".pab"), function () { play(snd(s[1].snd), r && r.querySelector(".pab")); });
 }
 function playRow(i) {
   var r = rowOf(i);
-  if (tab === "pairs") playAB(i);
+  if (twoSided()) playAB(i);
   else if (tab === "voices") play(snd(items.voices[i].snd), r && r.querySelector(".pl"));
   else play(seam(items.seams[i].snd), r && r.querySelector(".pl"));
 }
 
 // a row's decision: pairs "similar" / "not similar"; voices {verdict: "accept" | "not a voice" | "words", words};
-// seams {verdict: "right" | "wrong", note}
+// seams {verdict: "right" | "wrong", note}; based "based on" / "not based on"
 function verdict(d) { return d && typeof d === "object" ? d.verdict : d; }
 function decided(d) {
   var v = verdict(d);
   return v === "accept" || v === "not a voice" || v === "right" || v === "wrong" || v === "similar" || v === "not similar" ||
+    v === "based on" || v === "not based on" ||
     (v === "words" && d.words);
 }
 
@@ -104,8 +111,17 @@ function pairRow(p, i, d) {
   return "<td class=n>" + (i + 1) + "</td>" + side(p.a) +
     '<td><button class=pa title="Play A"' + (p.a.snd ? "" : " disabled") + ">▶</button></td>" + side(p.b) +
     '<td><button class=pb title="Play B"' + (p.b.snd ? "" : " disabled") + '>▶</button> <button class=pab title="A then B">A→B</button></td>' +
-    "<td class=n>" + p.env.toFixed(2) + " / " + p.wave.toFixed(2) + "</td>" +
+    "<td class=n>" + (p.kind === "same" ? "same " : "") + p.env.toFixed(2) + " / " + p.wave.toFixed(2) + "</td>" +
     '<td class=d><button class="ys' + (d === "similar" ? " on" : "") + '">Similar</button> <button class="ns' + (d === "not similar" ? " on" : "") + '">Not similar</button></td>';
+}
+function basedRow(p, i, d) {
+  function side(s) { return "<td>" + esc(s.game) + "</td><td>" + esc(s.label || "") + "</td><td class=p>" + esc(s.file) + "</td>"; }
+  return "<td class=n>" + (i + 1) + "</td>" + side(p.base) +
+    '<td><button class=pa title="Play the base"' + (p.base.snd ? "" : " disabled") + ">▶</button></td>" + side(p.derived) +
+    '<td><button class=pb title="Play the sound made from it"' + (p.derived.snd ? "" : " disabled") + '>▶</button> <button class=pab title="Base, then the sound made from it">A→B</button></td>' +
+    '<td class=n title="How much of the base is in the other, above chance; and the other way round">' + p.holds.toFixed(2) + " / " + p.back.toFixed(2) + "</td>" +
+    "<td>" + esc(p.why.join(", ") || "-") + "</td>" +
+    '<td class=d><button class="ys' + (d === "based on" ? " on" : "") + '">Based on it</button> <button class="ns' + (d === "not based on" ? " on" : "") + '">Not</button></td>';
 }
 function voiceRow(v, i, d) {
   var w = verdict(d);
@@ -136,16 +152,18 @@ function counts() {
 function draw() {
   var h = "", last = "", dk = dec[tab] || {};
   document.getElementById("head").innerHTML = LISTS[tab].head;
-  document.getElementById("keys").innerHTML = LISTS[tab].keys + " <span>↑</span><span>↓</span> <span>1</span><span>2</span><span>3</span>Lists";
+  document.getElementById("keys").innerHTML = LISTS[tab].keys + " <span>↑</span><span>↓</span> <span>1</span><span>2</span><span>3</span><span>4</span>Lists";
   list().forEach(function (r, i) {
     var d = dk[r.key], w = verdict(d);
     if (tab === "pairs" && r.list !== last) {
       last = r.list;
-      h += "<tr class=sep><td colspan=11>" + (r.list === "near" ? "Near matches" : "Turned down") + "</td></tr>";
+      h += "<tr class=sep><td colspan=11>" + (r.list === "new" ? "New since the last run" : r.list === "near" ? "Near matches" : "Turned down") + "</td></tr>";
     }
-    var cls = (w === "similar" || w === "accept" || w === "right") ? "yes" : (w === "not similar" || w === "not a voice" || w === "wrong") ? "no" :
+    var cls = (w === "similar" || w === "accept" || w === "right" || w === "based on") ? "yes" :
+      (w === "not similar" || w === "not a voice" || w === "wrong" || w === "not based on") ? "no" :
       (w === "words" && d.words) ? "mid" : "";
-    h += '<tr data-i="' + i + '" class="' + cls + '">' + (tab === "pairs" ? pairRow(r, i, d) : tab === "voices" ? voiceRow(r, i, d) : seamRow(r, i, d)) + "</tr>";
+    h += '<tr data-i="' + i + '" class="' + cls + '">' + (tab === "pairs" ? pairRow(r, i, d) : tab === "based" ? basedRow(r, i, d) :
+      tab === "voices" ? voiceRow(r, i, d) : seamRow(r, i, d)) + "</tr>";
   });
   rows.innerHTML = h;
   counts();
@@ -192,11 +210,13 @@ function typed(i, text) {
 }
 function yes(i) {
   if (tab === "pairs") decide(i, "similar");
+  else if (tab === "based") decide(i, "based on");
   else if (tab === "voices") decide(i, { verdict: "accept" });
   else decide(i, Object.assign({}, dec.seams && dec.seams[list()[i].key] || {}, { verdict: "right" }));
 }
 function no(i) {
   if (tab === "pairs") decide(i, "not similar");
+  else if (tab === "based") decide(i, "not based on");
   else if (tab === "voices") decide(i, { verdict: "not a voice" });
   else decide(i, Object.assign({}, dec.seams && dec.seams[list()[i].key] || {}, { verdict: "wrong" }));
 }
@@ -234,13 +254,13 @@ document.addEventListener("keydown", function (e) {
     return;
   }
   if (!list().length) return;
-  if (k === "1" || k === "2" || k === "3") switchTo(Object.keys(LISTS)[+k - 1]);
-  else if (tab === "pairs" && k === "a") playA(i);
-  else if (tab === "pairs" && k === "b") playB(i);
+  if (k === "1" || k === "2" || k === "3" || k === "4") switchTo(Object.keys(LISTS)[+k - 1]);
+  else if (twoSided() && k === "a") playA(i);
+  else if (twoSided() && k === "b") playB(i);
   else if (k === " ") playRow(i);
   else if ((tab === "pairs" && k === "s") || (tab !== "pairs" && k === "y")) { yes(i); select(i + 1, true); }
   else if (k === "n") { no(i); select(i + 1, true); }
-  else if (tab !== "pairs" && k === "t") { var r = rowOf(i), t = r && r.querySelector("input.t"); if (t) t.focus(); }
+  else if ((tab === "voices" || tab === "seams") && k === "t") { var r = rowOf(i), t = r && r.querySelector("input.t"); if (t) t.focus(); }
   else if (k === "arrowdown") select(i + 1, true);
   else if (k === "arrowup") select(i - 1, true);
   else return;
