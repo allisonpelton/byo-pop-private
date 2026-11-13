@@ -1525,11 +1525,12 @@ void Strafer::Update()
 	if ((double)(GetCelWidth() / 2 - CRAFT_EDGE_X) < mX && mX < (double)(CRAFT_EDGE_X - GetCelWidth() / 2) &&
 		mShotDelay == 0 && mBoard->mTankDeadTime == 0 && mFrame < 6.0)
 	{
+		// the shot starts 40 pixels ahead of it: to the right of one from the left, to the left of one from the right
 		double aShotSpeed = mSpeed + 1.5;
 		if (!mMirrored)
 			anAngle = 3.142 - anAngle;
 		int aShotY = (int)(aSin * 40.0 + mY);
-		int aShotX = (int)(mX - aCos * 40.0);
+		int aShotX = mMirrored ? (int)(mX - aCos * 40.0) : (int)(aCos * 40.0 + mX);
 		mBoard->AddEnemyBullet(aShotX, aShotY, anAngle, aShotSpeed);
 		mShotDelay = SHOT_DELAY;
 	}
