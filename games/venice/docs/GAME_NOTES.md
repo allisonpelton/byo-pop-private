@@ -93,9 +93,21 @@ in `IDENTICAL_PLAY.md`). A scenario's `SHOT_MARGIN` (1000 frames) keeps the run 
   (`SceneStage::CheckEvents` returns false) and gives the result the original's read of the stale progress gave. Found by the
   AddressSanitizer run of the win sequence (level 72).
 
-## Fix candidates (for the fixes mod)
+## Fixes (the fixes mod)
 
-None found yet.
+`mods/fixes/mod.json` holds the fixes mod, each fix a toggle read through the options layer (`Platform::FixOn`, `platform/GameOptions.h`;
+`-fix=<id>` on the command line, `-original` for none). Nothing set means every option off, the original, which is what every
+test and the frozen baseline run. `main.cpp` loads the mods folder (`-modsdir=`, `-nomods`; `mods-venice` next to the exe, or
+`/venicepersist/mods` on the web). `tools/fixes_check.sh` plays `tools/fixes_test.txt` four times (as the original, with the
+mod's defaults, with `-fix=typos`, with both fixes on) and checks the screens that must differ, the ones that must not and
+that no state line changes.
+
+| id | default | what the original does | what the fix does |
+| --- | --- | --- | --- |
+| `typos` | on | seven texts of the data files are misspelt: the name box's request on an invalid name ("PLESE TYPE IN A", `levels/invalid_profile_name.xml`), the titles "DONT LOOK AT ME" (trick shot 46) and "SWIRLD IN, SWIRL OUT" (the bonus level, trick shot 90) and four messages of trick shot levels ("SQUAKED IT THROUGH!", "YOU GOT THE RYTHM!", "GODE JUDGEMENT!", "GET THAN ANGLE!") | `CorrectedText` (`TextFixes.cpp`) spells them right where a level's title and messages and a text object's string are read |
+| `trickMessages` | off | the summary of a trick shot (`TRICKSHOT_RESULT` in the text translator, 0x405e10: the text of the red frame) copies the level's own message (`win_message` or `lose_message` of its file, offsets 0x320 and 0x360 of the level) into its text and the next statement writes "GREAT SHOT!" or "MAYBE NEXT TIME" over it, so none of the 104 levels' own messages shows | the summary shows the level's message (`GameText.cpp`); off by default, since the original's summary looks intended and the fault is not widely known |
+
+Candidates not made: none.
 
 ## Oddities (not chased)
 
