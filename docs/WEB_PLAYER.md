@@ -906,7 +906,10 @@ dither. Both are drawn by a WebGL canvas over the game canvas, filled in the fra
 The Controls panel (`web/controls.js`) lists the game's controls in our own short words, from `web/controldata.js`,
 keyed by game id, whose header gives an entry's form; only keys the game's own code handles are listed. The same table
 drives key remapping (`byopop-keys`), the gamepad (`gamepad`, read once a frame) and the on-screen keys (`touchKeys`);
-`inputDisplay` shows the keys and mouse buttons the game is sent.
+`inputDisplay` shows the keys and mouse buttons the game is sent. Where a game's entry starts with `{uses}`, which names the
+mouse buttons its own code handles and whether it takes typed letters or any key, the display shows only that input and
+its listed keys, so the framework's own keys and the buttons the game ignores drop out; a game without one shows
+everything.
 
 ### Phones
 
