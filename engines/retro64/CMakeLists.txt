@@ -6,7 +6,7 @@ file(GLOB RETRO64_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
 
 add_library(retro64 STATIC ${RETRO64_SOURCES})
 target_include_directories(retro64 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(retro64 PUBLIC stb)
+target_link_libraries(retro64 PUBLIC stb sexycrt)
 if(NOT MSVC)
   target_compile_options(retro64 PRIVATE -Wall)
 endif()
