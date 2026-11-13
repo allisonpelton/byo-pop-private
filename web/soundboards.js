@@ -581,16 +581,16 @@ var ByopopSoundboards = {
       { name: "Game Over", when: "The coins reach the top", steps: [["sounds/gameovertone", 0], ["sounds/gameover", 2800], ["sounds/anewhighscore", 5590]]}
     ],
     groups: [
-    { name: "Selector", sounds: [
-      ["sounds/buttonclick.ogg", "Button click", "A button goes down on the game selector, the board, the high scores, Help or Options, or in a dialog"],
+    { name: "Game selector", sounds: [
       ["sounds/welcome.ogg", "\"Welcome!\"", "1 s (100 updates) after the game selector opens, the first time it opens since the game started"],
       ["sounds/loveit.ogg", "\"Love it!\"", "1 s (100 updates) after the game selector opens, with a 1 in 10 chance, on every opening after the first"],
+      ["sounds/buttonclick.ogg", "Button click", "A button goes down on the game selector, the board, the high scores, Help or Options, or in a dialog"],
       ["sounds/action.ogg", "\"Action!\"", "The Action game button is clicked to select it (a second click starts the game), unless Mr. Money is still saying a greeting"],
       ["sounds/strategy.ogg", "\"Strategy!\"", "The Strategy game button is clicked to select it (a second click starts the game), unless Mr. Money is still saying a greeting"],
       ["sounds/puzzle.ogg", "\"Puzzle!\"", "The Puzzle game button is clicked to select it (a second click starts the game), unless Mr. Money is still saying a greeting"],
       ["sounds/wakeup.ogg", "\"Wake up!\"", "120 s (12,000 updates) pass with no mouse or key input; it plays once per idle stretch"]
     ] },
-    { name: "Start and rows", sounds: [
+    { name: "A game starts", sounds: [
       ["sounds/getready.ogg", "\"Get ready!\"", "At the first update of every game's board, as it starts"],
       ["sounds/go.ogg", "\"Go!\"", "1.4 s (140 updates) after a game's board starts, and 0.8 s (80 updates) after each later level begins"],
       ["sounds/moveup.ogg", "Row rises", "A minted row of coins pushes up from the bottom of the board, each time the pile has room and the mint delay is over"],
@@ -600,6 +600,10 @@ var ByopopSoundboards = {
       ["sounds/clearcoins.ogg", "Clear, small", "A click clears a group of 2 to 4 coins; also when a pickpocket clears a group"],
       ["sounds/clearcoins2.ogg", "Clear, medium", "A click clears a group of 5 to 9 coins"],
       ["sounds/clearcoins3.ogg", "Clear, big", "A click clears a group of 10 coins or more"],
+      ["sounds/cointube.ogg", "Coin in meter", "Each cleared coin that runs down the tube and reaches the meter"],
+      ["sounds/explode.au", "Coin blast", "A dollar bomb goes off and the coins of its colour explode one after another, each with this sound. Also in Peggle Deluxe, Peggle Extreme, Peggle Nights and Peggle World of Warcraft Edition, as sounds/explode.ogg. Also in Insaniquarium Deluxe, as sounds/explode.au."]
+    ] },
+    { name: "The meter's tones", sounds: [
       ["sounds/tone1.ogg", "Tone 1", "After a Strategy or Action clear, when the meter is less than 1/9 full; in the Puzzle end sweep, the first scoring row. Also in Insaniquarium Deluxe, as sounds/bonuscollect.ogg."],
       ["sounds/tone2.ogg", "Tone 2", "After a Strategy or Action clear, when the meter is 1/9 to under 2/9 full; in the Puzzle end sweep, the second scoring row"],
       ["sounds/tone3.ogg", "Tone 3", "After a Strategy or Action clear, when the meter is 2/9 to under 3/9 full; in the Puzzle end sweep, the third scoring row"],
@@ -609,9 +613,15 @@ var ByopopSoundboards = {
       ["sounds/tone7.ogg", "Tone 7", "After a Strategy or Action clear, when the meter is 6/9 to under 7/9 full; in the Puzzle end sweep, the seventh scoring row"],
       ["sounds/tone8.ogg", "Tone 8", "After a Strategy or Action clear, when the meter is 7/9 to under 8/9 full; in the Puzzle end sweep, the eighth scoring row"],
       ["sounds/tone9.ogg", "Tone 9", "After a Strategy or Action clear, when the meter is 8/9 full or more; in the Puzzle end sweep, the ninth scoring row and every one after"],
-      ["sounds/tonepuzzle.ogg", "Puzzle tone", "After every click's clear in the Puzzle game (it replaces the meter tones there)"],
-      ["sounds/cointube.ogg", "Coin in meter", "Each cleared coin that runs down the tube and reaches the meter"],
-      ["sounds/explode.au", "Coin blast", "A dollar bomb goes off and the coins of its colour explode one after another, each with this sound. Also in Peggle Deluxe, Peggle Extreme, Peggle Nights and Peggle World of Warcraft Edition, as sounds/explode.ogg. Also in Insaniquarium Deluxe, as sounds/explode.au."]
+      ["sounds/tonepuzzle.ogg", "Puzzle tone", "After every click's clear in the Puzzle game (it replaces the meter tones there)"]
+    ] },
+    { name: "Combo voices", sounds: [
+      ["sounds/excellent.ogg", "\"Excellent!\"", "A click of 10 to 14 coins, when no combo applies (+25)"],
+      ["sounds/goodjob.ogg", "\"Good job!\"", "This click and the one before: 7+ coins each (+75), when no bigger combo applies"],
+      ["sounds/bigmoney.ogg", "\"Big money!\"", "A click of 15 to 19 coins, the click before under 10 (+200)"],
+      ["sounds/incredible.ogg", "\"Incredible!\"", "This click and the one before: 10+ coins each (+250), not both 13+"],
+      ["sounds/unbelievable.ogg", "\"Unbelievable!\"", "Three clicks in a row of 10+ coins, or two of 13+ (+350)"],
+      ["sounds/awesome.ogg", "\"Awesome!\"", "A click of 20+ coins (+400); three clicks in a row of 13+ (+450); or of 7+ (+100)"]
     ] },
     { name: "Bags and bonuses", sounds: [
       ["sounds/bonusdrop.au", "Bag drops", "The meter becomes full while playing and a moneybag drops in; the meter empties"],
@@ -622,19 +632,13 @@ var ByopopSoundboards = {
       ["sounds/speedbonus.ogg", "\"Speed bonus!\"", "Action only: each click adds 0.16 to a gauge that falls 0.0025 per update; when it reaches 1 (about 7 quick clicks) this plays and 40 points are added"],
       ["sounds/megamoney.ogg", "\"Mega money!\" (unused)", "Never played: it is loaded, but no code plays it, in the port or in the original"]
     ] },
-    { name: "Combo voices", sounds: [
-      ["sounds/goodjob.ogg", "\"Good job!\"", "This click and the one before: 7+ coins each (+75), when no bigger combo applies"],
-      ["sounds/excellent.ogg", "\"Excellent!\"", "A click of 10 to 14 coins, when no combo applies (+25)"],
-      ["sounds/incredible.ogg", "\"Incredible!\"", "This click and the one before: 10+ coins each (+250), not both 13+"],
-      ["sounds/awesome.ogg", "\"Awesome!\"", "A click of 20+ coins (+400); three clicks in a row of 13+ (+450); or of 7+ (+100)"],
-      ["sounds/unbelievable.ogg", "\"Unbelievable!\"", "Three clicks in a row of 10+ coins, or two of 13+ (+350)"],
-      ["sounds/bigmoney.ogg", "\"Big money!\"", "A click of 15 to 19 coins, the click before under 10 (+200)"]
-    ] },
-    { name: "Warnings and endings", sounds: [
+    { name: "Countdowns and warnings", sounds: [
       ["sounds/three.ogg", "\"Three\"", "After a Strategy click or move that leaves exactly 3 moves, with no moneybag above the cleared group; in Action, the first second (0 to 0.99 s) of the 3 s overflow countdown at the top"],
       ["sounds/two.ogg", "\"Two\"", "After a Strategy click or move that leaves exactly 2 moves; in Action, 1 s into the 3 s overflow countdown"],
       ["sounds/one.ogg", "\"One\"", "After a Strategy click or move that leaves exactly 1 move; in Action, 2 s into the 3 s overflow countdown, before the game ends at 3 s"],
-      ["sounds/warning.ogg", "Warning", "Action: coins within 2 rows of the top, every 1.2 s falling to 0.4 s as they rise; Strategy and Puzzle: coins at the top row, every 1.5 s (150 updates)"],
+      ["sounds/warning.ogg", "Warning", "Action: coins within 2 rows of the top, every 1.2 s falling to 0.4 s as they rise; Strategy and Puzzle: coins at the top row, every 1.5 s (150 updates)"]
+    ] },
+    { name: "Level up and game over", sounds: [
       ["sounds/levelup.ogg", "\"Level up!\"", "The bags a level needs are banked and the level is complete, as the bills fall and the board falls away"],
       ["sounds/gameovertone.ogg", "Game over tone", "The game ends: coins overflow the top in Strategy or Puzzle, or the 3 s countdown ends in Action. Also in BookWorm as Game over tone (unused)."],
       ["sounds/gameover.ogg", "\"Game over\"", "After the game ends, once the board's last coins have been flung away and no loose pieces are left"],
@@ -712,36 +716,23 @@ var ByopopSoundboards = {
       ["sounds/buttonclick.ogg", "Click", "Any button is pressed: title, game selector, board, dialogs, options, help, journal, fame, level summary; also Lex is clicked"],
       ["sounds/goldtile.ogg", "Volume test", "The Options' sound effects slider is let go (silent while it is dragged), at the new volume"]
     ] },
-    { name: "Lex", sounds: [
+    { name: "Lex's voices", sounds: [
       ["sounds/lex_welcome.ogg", "\"Welcome to BookWorm!\"", "The game selector has been open for 100 updates (1 second); only the first time in a run, never again until the game is restarted"],
       ["sounds/lex_go.ogg", "\"Go!\"", "A Classic game starts and Lex is idle: a 50% draw between this and \"Let's go!\""],
       ["sounds/lex_letsgo.ogg", "\"Let's go!\"", "A Classic game starts and Lex is idle: the other 50% of the draw, against \"Go!\""],
       ["sounds/lex_getready.ogg", "\"Get ready!\"", "An Action game starts and Lex is idle (every Action game, never a draw)"],
       ["sounds/lex_scramble.ogg", "\"Scramble!\"", "Lex is clicked and the scramble goes ahead (it needs a normal top tile and 9 or fewer fire tiles); plays with the fire-tile sound"],
-      ["sounds/lex_careful.ogg", "\"Careful!\"", "Lex starts to sweat (a fire tile on the bottom row) and is not moving: one of four at random, a 1 in 4 chance each"],
-      ["sounds/lex_danger.ogg", "\"Danger!\"", "Lex starts to sweat (a fire tile on the bottom row) and is not moving: one of four at random, a 1 in 4 chance each"],
-      ["sounds/lex_lookout.ogg", "\"Look out!\"", "Lex starts to sweat (a fire tile on the bottom row) and is not moving: one of four at random, a 1 in 4 chance each"],
-      ["sounds/lex_watchout.ogg", "\"Watch out!\"", "Lex starts to sweat (a fire tile on the bottom row) and is not moving: one of four at random, a 1 in 4 chance each"],
-      ["sounds/lex_levelup.ogg", "\"Level up!\"", "The game score reaches the level's threshold; once Lex is idle, no tiles are flying and no dialog is open, before the summary"],
-      ["sounds/bonusword.ogg", "\"Bonus!\"", "A word equal to the current bonus word is submitted; the points depend on how many bonus words came before"],
-      ["sounds/lex_burp.ogg", "Burp", "A word with two or more fire tiles is scored; 50 updates (0.5 s) after the last fire tile reaches Lex's mouth, if he is idle and the board has not burned down"]
+      ["sounds/lex_levelup.ogg", "\"Level up!\"", "The game score reaches the level's threshold; once Lex is idle, no tiles are flying and no dialog is open, before the summary"]
     ] },
-    { name: "Lex's praise", sounds: [
-      ["sounds/lex_verygood.ogg", "\"Very good!\"", "A gold tile is awarded (one of three)"],
-      ["sounds/lex_excellent.ogg", "\"Excellent!\"", "A gold tile is awarded (one of three)"],
-      ["sounds/lex_awesome.ogg", "\"Awesome!\"", "A gold tile is awarded (one of three)"],
-      ["sounds/lex_fantastic.ogg", "\"Fantastic!\"", "A sapphire tile is awarded (one of two)"],
-      ["sounds/lex_astonishing.ogg", "\"Astonishing!\"", "A sapphire tile is awarded (one of two)"],
-      ["sounds/lex_incredible.ogg", "\"Incredible!\"", "A diamond tile is awarded (one of two)"],
-      ["sounds/lex_unbelievable.ogg", "\"Unbelievable!\"", "A diamond tile is awarded (one of two)"]
-    ] },
-    { name: "Words", sounds: [
+    { name: "Spelling words", sounds: [
       ["sounds/nextselect.ogg", "Letter picked", "A tile is clicked or typed onto the word and the word is not a valid word holding a special tile; also when a hint's or typed word's path is selected"],
       ["sounds/bonuscomplete.ogg", "Special word", "A tile is added that turns the word into a valid word holding a gold, sapphire or diamond tile (it was not valid before)"],
       ["sounds/buzzer.ogg", "Buzzer", "Submit on a non-word; a scramble refused (over 9 fire tiles, no normal top tile, or Classic with fire on the bottom row); Undo with nothing to undo; a hint or typed letter finds no word"],
       ["sounds/wordcomplete.ogg", "Word scored", "A word with no fire tile is scored; also an Action level's time bonus (the next level starts with the countdown under 10 while Lex sweats)"],
       ["sounds/redtilecleared.ogg", "Fire word scored", "A word containing at least one fire tile is scored (it replaces the usual word-scored sound)"],
       ["sounds/chomp.ogg", "Chomp", "A scored word's tile reaches Lex's mouth, at most once every 4 updates (0.04 s), so a long word chomps several times"],
+      ["sounds/bonusword.ogg", "\"Bonus!\"", "A word equal to the current bonus word is submitted; the points depend on how many bonus words came before"],
+      ["sounds/lex_burp.ogg", "Burp", "A word with two or more fire tiles is scored; 50 updates (0.5 s) after the last fire tile reaches Lex's mouth, if he is idle and the board has not burned down"],
       ["sounds/bad.ogg", "Bad (unused)", "Never played: it is loaded, but no code asks for it (a wrong word plays the buzzer). Also in Alchemy as Bad move: a click on the grid with a tile held when the tile cannot go there, an off-grid click too. Also in Big Money as Bad (trial only): played when an invalid registration code is typed in. Also in Peggle Deluxe, Peggle Extreme, Peggle Nights and Peggle World of Warcraft Edition, as sounds/pegpop.ogg."]
     ] },
     { name: "Word notes", sounds: [
@@ -762,11 +753,26 @@ var ByopopSoundboards = {
       ["sounds/flametile.ogg", "Fire tile", "The first fire tile made after each word or scramble (refill, Action's burning tile, or a scramble); the rest of that word's fire tiles are silent"],
       ["sounds/tileburn.ogg", "Tile burns", "A burning fire tile's delay ends and it starts burning into the tile below; at most once per update however many tiles burn"]
     ] },
+    { name: "Lex's praise for special tiles", sounds: [
+      ["sounds/lex_verygood.ogg", "\"Very good!\"", "A gold tile is awarded: Lex says one of the three gold tile voices, at random"],
+      ["sounds/lex_excellent.ogg", "\"Excellent!\"", "A gold tile is awarded: Lex says one of the three gold tile voices, at random"],
+      ["sounds/lex_awesome.ogg", "\"Awesome!\"", "A gold tile is awarded: Lex says one of the three gold tile voices, at random"],
+      ["sounds/lex_fantastic.ogg", "\"Fantastic!\"", "A sapphire tile is awarded: Lex says one of the two sapphire tile voices, at random"],
+      ["sounds/lex_astonishing.ogg", "\"Astonishing!\"", "A sapphire tile is awarded: Lex says one of the two sapphire tile voices, at random"],
+      ["sounds/lex_incredible.ogg", "\"Incredible!\"", "A diamond tile is awarded: Lex says one of the two diamond tile voices, at random"],
+      ["sounds/lex_unbelievable.ogg", "\"Unbelievable!\"", "A diamond tile is awarded: Lex says one of the two diamond tile voices, at random"]
+    ] },
+    { name: "Lex's warnings", sounds: [
+      ["sounds/lex_careful.ogg", "\"Careful!\"", "Lex starts to sweat (a fire tile on the bottom row) and is not moving: he warns the player with one of these four, at random"],
+      ["sounds/lex_danger.ogg", "\"Danger!\"", "Lex starts to sweat (a fire tile on the bottom row) and is not moving: he warns the player with one of these four, at random"],
+      ["sounds/lex_lookout.ogg", "\"Look out!\"", "Lex starts to sweat (a fire tile on the bottom row) and is not moving: he warns the player with one of these four, at random"],
+      ["sounds/lex_watchout.ogg", "\"Watch out!\"", "Lex starts to sweat (a fire tile on the bottom row) and is not moving: he warns the player with one of these four, at random"]
+    ] },
     { name: "Danger and game over", sounds: [
       ["sounds/warning.ogg", "Warning", "Classic: three beeps 64 updates (0.64 s) apart when a fire tile reaches the bottom row; one beep with the first fire-tile hint; Action: every 100 updates (1 s) while Lex sweats"],
       ["sounds/screenburngameover.ogg", "\"The end!\"", "A fire tile on the bottom row ends the game (Classic: not in the selection; Action: countdown below 0); when the fire line's delay runs out, once Lex is idle"],
       ["sounds/gameovertone.ogg", "Game over tone (unused)", "Never played: it is loaded, but no code asks for it (game over plays the screen-burn clip). Also in Big Money as Game over tone: the game ends."]
-    ] }
+    ] },
   ] },
   bookwormadv: {
     presets: [
