@@ -100,3 +100,28 @@ mVSyncUpdates +0x578 reads 1; window 800x600. The global ObjectRefs are a std::s
 Gameplay 0x597f40 (pointer at 0x597f5c: phase +0x94, timer +0x98), Coins 0x597fa0 (0x597fbc), Hearts 0x597fe0 (0x597ffc),
 level indicator 0x598000, marathon meter 0x598020, Score 0x598040 (0x59805c), ObjectManager 0x5975a4. The port runs at 60
 (`mSyncRefreshRate = 60` in Application's ctor) so that its UpdateF(theFrac) steps equal the original's at 60 Hz.
+
+## Phase one's runs: the original and the port on the same inputs (2026-11-12)
+
+`python games/hammerheads/tools/idplay/idplay.py run <scenario> [--end N]` (`idplay.py`'s docstring is the reference): origrun plays
+the original on its virtual clock with the random seed pinned (`tools/origrun/patches.txt`), holds it at every update count and
+`peek`s about 600 values (the stats, the pop timer, the level timer, each cubby and its creature, the avatar); the port, run
+under rundesk with `-fast`, writes the same values with the `trace` test command. Only the T records are compared (see the
+docstring). What the original needed:
+
+- **The how-to-play JPEGs.** `tools/origrun/fixpng.py` rewrites a PNG whose sRGB or gAMA chunk the original's old libpng rejects
+  (the staged copy under build/ only).
+- **The users folder.** The original keeps its players in `C:/byo-og/hh2/game/users/`; a player left by an earlier run skips the
+  name box and changes the flow, so `idplay.py` deletes the folder before each run.
+- **Timing.** The loading screen is up from about update 75; inputs start at count 1000 (a click at 1005, a name typed at 1500,
+  and so on: the scenario files). An input's count is a multiple of 5 (it lands where a frame is over), and the port runs it one
+  update later.
+- **peek limits.** origrun logs a peek line up to about 1000 characters, the values in it too, and reads 30 expressions at most; a
+  longer line silently loses tokens (cubby fields once read 0), so `idplay.py` splits its peeks by count and length.
+- **The frame phase.** The exe keeps the ticks a frame owes as a double (1000 / (10 * 60) = 1.6666666666666667), which gives the
+  1,2,2 cycle from the first frame; the framework's float made the speed timer drift one tick after about 6400 updates
+  (`mUpdatesPerUpdateFExact`, `shared:` commit 01654778).
+- **The bot's clicks** are the port's `botclick`: a hit on the first creature that stands up, at a point with solid pixels a few
+  away on every side (a falling coin must still be there when the click is processed in the next UpdateF), now and then a bomb or
+  a miss. `generate` writes them to `scenarios/<name>.clicks` and the original replays them. The same command answers a level's
+  introduction and the "Ready?" box.

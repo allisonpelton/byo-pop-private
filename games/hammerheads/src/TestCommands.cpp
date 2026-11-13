@@ -14,13 +14,16 @@
 // move                 prints MOVE {"kind":"smash","input":[...]} for the creature the bot would hit, or MOVE null
 
 #include "Application.h"
+#include "Avatar.h"
 
 #include "Compat2004.h"
 #include "Creature.h"
 #include "Cubby.h"
+#include "DialogButton.h"
 #include "Gameplay.h"
 #include "GameScreen.h"
 #include "LevelRules.h"
+#include "NcMovingDialog.h"
 #include "Object.h"
 #include "Screens.h"
 #include "Stats.h"
@@ -100,7 +103,7 @@ int ModeFromName(const std::string& theName)
 
 std::string StateJson()
 {
-	char aText[300];
+	char aText[400];
 	Gameplay* aGameplay = gApp->mGameScreen != nullptr ? GetGameplay() : nullptr;
 	std::string aDialogs;
 	for (int anId = 0; anId < 0x20; anId++)
@@ -129,20 +132,28 @@ std::string StateJson()
 
 	snprintf(aText, sizeof(aText),
 		"STATE {\"screen\":\"%s\",\"zoom\":%d,\"mode\":%d,\"level\":%d,\"score\":%d,\"health\":%.2f,\"coins\":%d,\"timer\":%.4f,"
-		"\"phase\":%d,\"paused\":%d,\"dialogs\":[",
+		"\"phase\":%d,\"paused\":%d,\"inplay\":%d,\"dialogs\":[",
 		GetScreenName(), gApp->mZooming ? 1 : 0, gApp->mGameMode, gApp->mGameScreen != nullptr ? gApp->mGameScreen->mLevel : 0,
 		GetStats()->GetInt(STAT_SCORE), GetStats()->Get(STAT_HEALTH), GetStats()->GetInt(STAT_COIN_BALANCE),
-		aGameplay != nullptr ? GetTimer()->GetProgress() : 0.0, aGameplay != nullptr ? aGameplay->mPhase : -1, gApp->mPauseCount);
+		aGameplay != nullptr ? GetTimer()->GetProgress() : 0.0, aGameplay != nullptr ? aGameplay->mPhase : -1, gApp->mPauseCount,
+		gApp->mGameScreen != nullptr && gApp->mGameScreen->IsInPlay() ? 1 : 0);
 	std::string aState = aText;
 	aState += aDialogs + "],\"enemy\":" + std::to_string(aCreaturesUp) + ",\"gnomes\":[" + aGnomes + "]}";
 	return aState;
 }
 
-// the creature the bot hits: the first cubby, in the order of the board, whose creature stands fully up and is not a bomb,
-// and the point where the hammer lands on it
-bool ChooseBotTarget(int* theCubbyIndex, int* theX, int* theY)
+// the creature the bot hits: the first cubby, in the order of the board, whose creature stands fully up and is not a bomb (or is
+// one, when theWantBomb is set: phase one's scenarios hit one now and then), and the point where the hammer lands on it
+bool ChooseBotTarget(int* theCubbyIndex, int* theX, int* theY, bool theWantBomb = false)
 {
 	if (gApp->mGameScreen == nullptr || !gApp->mGameScreen->IsInPlay())
+		return false;
+
+	// a swing that is not over, or a click waiting for it, would be spent on a creature that has gone by then
+	if (!gApp->mGameScreen->mAvatar.IsValid())
+		return false;
+	Avatar* anAvatar = static_cast<Avatar*>(gApp->mGameScreen->mAvatar.Get());
+	if (anAvatar->mSwing != Avatar::SWING_NONE || !anAvatar->mClicks.empty())
 		return false;
 
 	Gameplay* aGameplay = GetGameplay();
@@ -152,16 +163,58 @@ bool ChooseBotTarget(int* theCubbyIndex, int* theX, int* theY)
 		if (aCubby == nullptr || aCubby->mCreature == nullptr || aCubby->mState != Cubby::STATE_UP)
 			continue;
 		Creature* aCreature = aCubby->mCreature;
-		if (aCreature->mFinished || aCreature->mUntouchable || aCreature->mSpent || aCreature->mKind == KIND_BOMB)
+		if (aCreature->mFinished || aCreature->mUntouchable || aCreature->mSpent || (aCreature->mKind == KIND_BOMB) != theWantBomb)
 			continue;
 
+		// the strike point is above the head and may be a clear pixel: the point of the cubby's bounds nearest to it that has a
+		// solid pixel of the creature under it (the game's own test of a point on a creature), and solid pixels a few away on
+		// every side, so that a creature that moves before the click is taken (a coin falls a pixel or two a step) is still hit
+		const int aMargin = 5;
 		double aPoint[2];
 		aCubby->GetStrikePoint(aPoint);
-		if (!aCubby->MouseOver((int)aPoint[0], (int)aPoint[1]))
+		int aBestX = 0, aBestY = 0;
+		double aBestDistance = -1.0;
+		for (int aY = aCubby->mBounds.mY; aY < aCubby->mBounds.mY + aCubby->mBounds.mHeight; aY++)
+		{
+			for (int aX = aCubby->mBounds.mX; aX < aCubby->mBounds.mX + aCubby->mBounds.mWidth; aX++)
+			{
+				double aDistance = (aX - aPoint[0]) * (aX - aPoint[0]) + (aY - aPoint[1]) * (aY - aPoint[1]);
+				if ((aBestDistance < 0.0 || aDistance < aBestDistance) && aCubby->MouseOver(aX, aY) &&
+					aCubby->MouseOver(aX - aMargin, aY) && aCubby->MouseOver(aX + aMargin, aY) &&
+					aCubby->MouseOver(aX, aY - aMargin) && aCubby->MouseOver(aX, aY + aMargin))
+				{
+					aBestDistance = aDistance;
+					aBestX = aX;
+					aBestY = aY;
+				}
+			}
+		}
+		if (aBestDistance < 0.0)
 			continue;
 		*theCubbyIndex = (int)i;
-		*theX = (int)aPoint[0];
-		*theY = (int)aPoint[1];
+		*theX = aBestX;
+		*theY = aBestY;
+		return true;
+	}
+	return false;
+}
+
+// the page or the box that waits for its one button, and where that button is (phase one's scenarios let the bot answer the level's
+// introduction and the "Ready?" box; the box slides in first, so a click that comes too early is made again at the bot's next step)
+bool FindWaitingButton(int* theX, int* theY)
+{
+	if (gApp->mLevelIntro != nullptr)
+	{
+		*theX = 400;
+		*theY = 438;
+		return true;
+	}
+	if (NcMovingDialog* aDialog = static_cast<NcMovingDialog*>(gApp->GetDialog(DIALOG_READY_GO)))
+	{
+		if (aDialog->mY != aDialog->mRestY || aDialog->mYesButton == nullptr)
+			return false;
+		*theX = aDialog->mYesButton->mX + aDialog->mYesButton->mWidth / 2;
+		*theY = aDialog->mYesButton->mY + aDialog->mYesButton->mHeight / 2;
 		return true;
 	}
 	return false;
@@ -371,6 +424,32 @@ bool Application::HandleScriptCommand(const ScriptCommand& theCommand)
 			return Error(aLine, "seed <n>"), true;
 		SeedGame((unsigned int)strtoul(anArg.c_str(), nullptr, 10));
 		Ok(aLine);
+		return true;
+	}
+
+	// the bot's move played at once as the framework's `click` plays one, for phase one's scenarios (tools/idplay): the mode is
+	// empty for the bot's own hit, "bomb" for a bomb that stands up, "miss" for a click on bare ground. A click made is
+	// written to the log as `BOTCLICK <update count> <x> <y>`; the scenario then replays it as a plain click.
+	if (aName == "botclick")
+	{
+		int aCubbyIndex = 0, aX = 400, aY = 590;
+		bool aMiss = anArg == "miss";
+		if (gApp->mGameScreen != nullptr && !gApp->mGameScreen->IsInPlay())
+		{
+			if (!FindWaitingButton(&aX, &aY))
+				return true;
+			aMiss = true;		// the point is chosen: the click is made as the miss's is
+		}
+		else if (gApp->mGameScreen == nullptr)
+			return true;
+		if (!aMiss && !ChooseBotTarget(&aCubbyIndex, &aX, &aY, anArg == "bomb"))
+			return true;
+		ScriptCommand aClick = theCommand;
+		aClick.mCommand = "click";
+		aClick.mArgs = std::to_string(aX) + " " + std::to_string(aY);
+		std::string anError;
+		RunScriptCommand(aClick, &anError);
+		Reply("BOTCLICK " + std::to_string(mUpdateCount) + " " + std::to_string(aX) + " " + std::to_string(aY));
 		return true;
 	}
 

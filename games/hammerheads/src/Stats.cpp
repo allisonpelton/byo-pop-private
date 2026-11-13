@@ -128,6 +128,12 @@ void Stats::CopyFrom(const Stats& theStats)
 }
 
 // 0x42f1c0
+// port: the object when it has been made, else null (the state log of phase one looks without making it)
+Stats* Sexy::PeekStats()
+{
+	return gStats;
+}
+
 Stats* Sexy::GetStats()
 {
 	if (gStats == nullptr)

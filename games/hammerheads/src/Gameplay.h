@@ -87,6 +87,7 @@ public:
 	bool			AllReady() const;					// 0x435270
 };
 
+Gameplay* PeekGameplay();									// port: the object when it has been made, else null
 Gameplay* GetGameplay();									// 0x435650
 
 }

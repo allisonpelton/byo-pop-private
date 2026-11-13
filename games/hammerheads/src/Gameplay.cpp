@@ -52,6 +52,12 @@ static Gameplay* MakeGameplay()
 	return aGameplay;
 }
 
+// port: the object when it has been made, else null (the state log of phase one looks without making it)
+Gameplay* Sexy::PeekGameplay()
+{
+	return gGameplayRef.IsValid() ? static_cast<Gameplay*>(gGameplayRef.Get()) : nullptr;
+}
+
 // 0x435650
 Gameplay* Sexy::GetGameplay()
 {
@@ -361,7 +367,7 @@ void Gameplay::FixedUpdate()
 		}
 	}
 
-	if ((mTickCount % 20 == 0 && mNextPopTimer > 0.0) || mPopNow)
+	if ((mTickCount % 20 == 0 && mNextPopTimer <= 0.0) || mPopNow)
 	{
 		int aLimit = gApp->mGameScreen->GetMaxCreatures();
 		int aRoom = aLimit - CountLimited();

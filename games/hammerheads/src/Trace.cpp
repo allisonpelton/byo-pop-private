@@ -8,11 +8,15 @@
 // non-draw count 0). Doubles are printed as the two ints that hold them, the low one first, as origrun reads them.
 
 #include "Application.h"
+#include "Avatar.h"
 
 #include "Common.h"
+#include "Creature.h"
+#include "Cubby.h"
 #include "Gameplay.h"
 #include "GameScreen.h"
 #include "Stats.h"
+#include "Timer.h"
 
 #include <cstdint>
 #include <cstdio>
@@ -41,6 +45,9 @@ void PutInt(std::string& theLine, const char* theName, int theValue)
 	theLine += aText;
 }
 }
+
+// the cubbies a record lists (a board has fewer)
+static const int TRACE_CUBBIES = 10;
 
 // port: starts or ends the state log
 bool Application::StartTrace(const std::string& theFile)
@@ -73,30 +80,69 @@ void Application::TraceRecord(char theKind)
 	PutInt(aLine, "mt0", (int)aState[0]);
 	PutInt(aLine, "mt623", (int)aState[623]);
 
-	Stats* aStats = GetStats();
+	// the statistics and the gameplay are made when first asked for: the log looks without making them (an object that does not
+	// exist yet is logged as such, and its values as zeros)
+	Stats* aStats = PeekStats();
+	PutInt(aLine, "hasstats", aStats != nullptr ? 1 : 0);
 	for (int i = 0; i < Stats::NUM_STATS; i++)
 	{
 		char aName[16];
 		snprintf(aName, sizeof(aName), "s%d", i);
-		PutDouble(aLine, aName, aStats->Get(i));
+		PutDouble(aLine, aName, aStats != nullptr ? aStats->Get(i) : 0.0);
 	}
 
 	PutInt(aLine, "gs", mGameScreen != nullptr ? 1 : 0);
 	if (mGameScreen != nullptr)
 	{
-		Gameplay* aGameplay = GetGameplay();
+		Gameplay* aGameplay = PeekGameplay();
+		PutInt(aLine, "hasgp", aGameplay != nullptr ? 1 : 0);
 		PutInt(aLine, "level", mGameScreen->mLevel);
 		PutInt(aLine, "mode", mGameScreen->mMode);
 		PutInt(aLine, "cycle", mGameScreen->mCycle);
 		PutInt(aLine, "kindindex", mGameScreen->mKindIndex);
 		PutDouble(aLine, "leveltime", mGameScreen->mLevelTime);
-		PutInt(aLine, "phase", aGameplay->mPhase);
-		PutDouble(aLine, "phasetimer", aGameplay->mPhaseTimer);
-		PutDouble(aLine, "nextpop", aGameplay->mNextPopTimer);
-		PutDouble(aLine, "clover", aGameplay->mCloverTimer);
-		PutDouble(aLine, "strawberry", aGameplay->mStrawberryTimer);
-		PutDouble(aLine, "doublehit", aGameplay->mDoubleHitTimer);
-		PutDouble(aLine, "fivetimes", aGameplay->mFiveTimesTimer);
+		PutInt(aLine, "phase", aGameplay != nullptr ? aGameplay->mPhase : 0);
+		PutDouble(aLine, "phasetimer", aGameplay != nullptr ? aGameplay->mPhaseTimer : 0.0);
+		PutDouble(aLine, "nextpop", aGameplay != nullptr ? aGameplay->mNextPopTimer : 0.0);
+		PutDouble(aLine, "clover", aGameplay != nullptr ? aGameplay->mCloverTimer : 0.0);
+		PutDouble(aLine, "strawberry", aGameplay != nullptr ? aGameplay->mStrawberryTimer : 0.0);
+		PutDouble(aLine, "doublehit", aGameplay != nullptr ? aGameplay->mDoubleHitTimer : 0.0);
+		PutDouble(aLine, "fivetimes", aGameplay != nullptr ? aGameplay->mFiveTimesTimer : 0.0);
+		Timer* aTimer = GetTimer();
+		PutInt(aLine, "timerphase", aTimer != nullptr ? aTimer->mPhase : 0);
+		PutDouble(aLine, "timerleft", aTimer != nullptr ? aTimer->mLeft : 0.0);
+		PutDouble(aLine, "timerrate", aTimer != nullptr ? aTimer->mRate : 0.0);
+
+		// the board's cubbies and what stands in them, and the hammer
+		PutInt(aLine, "ncubbies", aGameplay != nullptr ? (int)aGameplay->mCubbies.size() : 0);
+		for (int i = 0; i < TRACE_CUBBIES; i++)
+		{
+			Cubby* aCubby = aGameplay != nullptr && i < (int)aGameplay->mCubbies.size() ? aGameplay->GetCubby(i) : nullptr;
+			Creature* aCreature = aCubby != nullptr ? aCubby->mCreature : nullptr;
+			char aName[24];
+			snprintf(aName, sizeof(aName), "cb%d_state", i);
+			PutInt(aLine, aName, aCubby != nullptr ? aCubby->mState : 0);
+			snprintf(aName, sizeof(aName), "cb%d_rise", i);
+			PutDouble(aLine, aName, aCubby != nullptr ? aCubby->mRise : 0.0);
+			snprintf(aName, sizeof(aName), "cb%d_kind", i);
+			PutInt(aLine, aName, aCreature != nullptr ? aCreature->mKind : 0);
+			snprintf(aName, sizeof(aName), "cb%d_cstate", i);
+			PutInt(aLine, aName, aCreature != nullptr ? aCreature->mState : 0);
+			snprintf(aName, sizeof(aName), "cb%d_age", i);
+			PutInt(aLine, aName, aCreature != nullptr ? aCreature->mAge : 0);
+			snprintf(aName, sizeof(aName), "cb%d_height", i);
+			PutDouble(aLine, aName, aCreature != nullptr ? aCreature->mHeight : 0.0);
+			snprintf(aName, sizeof(aName), "cb%d_hvel", i);
+			PutDouble(aLine, aName, aCreature != nullptr ? aCreature->mHeightVelocity : 0.0);
+			snprintf(aName, sizeof(aName), "cb%d_x", i);
+			PutDouble(aLine, aName, aCreature != nullptr ? aCreature->mX : 0.0);
+			snprintf(aName, sizeof(aName), "cb%d_y", i);
+			PutDouble(aLine, aName, aCreature != nullptr ? aCreature->mY : 0.0);
+		}
+		Avatar* anAvatar = mGameScreen->mAvatar.IsValid() ? static_cast<Avatar*>(mGameScreen->mAvatar.Get()) : nullptr;
+		PutInt(aLine, "swing", anAvatar != nullptr ? anAvatar->mSwing : 0);
+		PutDouble(aLine, "swingframe", anAvatar != nullptr ? anAvatar->mFrame : 0.0);
+		PutInt(aLine, "clickcount", anAvatar != nullptr ? anAvatar->mClickCount : 0);
 	}
 	aLine += "\n";
 	fputs(aLine.c_str(), sTraceFile);

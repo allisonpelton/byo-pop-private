@@ -89,6 +89,7 @@ public:
 	void			CopyFrom(const Stats& theStats);			// 0x42ef00
 };
 
+Stats* PeekStats();											// port: the object when it has been made, else null
 Stats* GetStats();												// 0x42f1c0: made on first use
 
 // 0x42d0a0: hands the player every trophy whose condition holds now, for the level the game is on plus theLevelOffset

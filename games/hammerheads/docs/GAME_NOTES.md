@@ -11,7 +11,7 @@ Reachable only from a test (`-script`, `-commands`, the web page's test call; `d
 
 | command | what it does |
 | --- | --- |
-| `state` | `{screen, zoom, mode, level, score, health, coins, timer, phase, paused, dialogs, enemy, gnomes}`; `gnomes` lists each cubby with a gnome: `{cubby, kind, state, cubbyState, rise, health, x, y}` |
+| `state` | `{screen, zoom, mode, level, score, health, coins, timer, phase, paused, inplay, dialogs, enemy, gnomes}`; `gnomes` lists each cubby with a gnome: `{cubby, kind, state, cubbyState, rise, health, x, y}` |
 | `goto <screen>` | `menu`, `highscores`, `trophies`, `shop`, `challenge`, or a mode: `classic`, `tough`, `marathon` |
 | `level <n>` | starts level n of the current mode over the board there |
 | `unlock all` | Tough Cookie is unlocked |
@@ -20,6 +20,8 @@ Reachable only from a test (`-script`, `-commands`, the web page's test call; `d
 | `seed <n>` | seeds the game's random numbers the way a new game does |
 | `move` | `MOVE {"kind":"smash","cubby":i,"input":[...]}` for the bot's next swing (the first cubby with a gnome up that a hammer can hit and that is not a bomb), or `MOVE null` |
 | `memreport` | the framework's, `MEMREPORT {...}` |
+| `trace <file>` | writes a `TRACE T\|F ...` line after each update's first step (T) and each frame's `UpdateF` (F) to the file: the state phase one compares (the random generator, the stats, the pop timer, the level timer, each cubby and its creature, the avatar's swing and clicks) |
+| `botclick [bomb\|miss]` | the bot's click made as a `click` is (the first creature standing up that is not a bomb; a bomb; bare ground), or the button of the level's introduction or the "Ready?" box when one waits; logged as `BOTCLICK <update> <x> <y>` |
 
 The bot reads the game's state and draws no random number. Its swing is a `move` to the gnome's strike point, two updates' wait,
 a `click` and ten updates' wait, which is what a player's click does.
@@ -34,6 +36,8 @@ a `click` and ten updates' wait, which is what a player's click does.
 - **How to play.** The original shows its how-to-play movie (`images\howtoplay.swf`, 800 by 500, 24 frames a second, looping)
   through a Flash control in "Transparent" window mode; the port plays it through the shared SWF player (`engines/swf`), which
   draws the movie's own background (a green), not what is behind it. The shot comparison must judge whether the page differs.
+  The movie's 25 JPEG bitmaps are written as two streams (the tables, then the image), which the player now joins before it decodes
+  them (`shared:` commit in `engines/swf`); `hammerheads_swftest` plays the movie headless and lists what the player skips (nothing).
 - **Game text kept out of the repository.** The default high score names and the trophy names and descriptions are tables built by
   the exe's static initialisers; `tools/highscorenames.py` and `tools/trophytext.py` read them from the exe and write the
   git-ignored `src/HighScoreNames.inc` and `src/TrophyText.inc`, which the build includes.

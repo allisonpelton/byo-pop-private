@@ -2294,7 +2294,7 @@ suite_venice() {
 }
 
 HH_SHOTS_ALL="loaded name menu highscores trophies game play won shop challenge toughintro tough marathonintro marathon lost"
-HH_FROZEN="fc5205b37ef5 3533c85f648f"  # the first 12 hex digits of the sha256 of the tour's screens' hashes and of its state lines (games/hammerheads/tools/tour_test.txt)
+HH_FROZEN="15655fdfb9c6 974f0929e354"  # the first 12 hex digits of the sha256 of the tour's screens' hashes and of its state lines (games/hammerheads/tools/tour_test.txt)
 
 hammerheads_run() {  # <name> [<exe>]: games/hammerheads/tools/tour_test.txt into $OUT/hammerheads/<name>; prints the exit status
 	local d="$OUT/hammerheads/$1" e=0
