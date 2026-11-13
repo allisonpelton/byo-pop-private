@@ -417,3 +417,44 @@ adds) are kept from the browser and `'` and `/` open no quick find; the informat
 cancelled and Alt as left; the pointer lands at 400,300 in canvases drawn at 1.5, 0.75, 2 and 1 times the game's size; a second copy
 of the page waits for the first; and after a reload the two files the game keeps (`profiles.dat` and `registry.ini`) are back with the
 same bytes, backed up while the game was in progress, with no error on the page before or after.
+
+## Real input (2026-11-12)
+
+`games/venice/tools/realinput/play.sh <journey|flood|survival|trickshot> <2d|3d|full2d|full3d> [moves] [driver options]` plays one mode of the
+port through the page-less route of `docs/REAL_INPUT.md`: the shared loop of `tools/playbymove` (the port's bot answers `move`, and each move
+is played as SDL events through `-realinput`, one update apart, with `-hold`, so the same game plays the same way), started under
+`rundesk`. `drive.py` is Venice's use of that loop: the state's `over` is true on every summary and on every level won or lost, screens the
+bot goes on from (`bot 0 continue` makes its moves click through them), so the play ends only where the bot cannot go on. The menus before
+the loop are clicked at the places `buttons` gives (Play Now, then Journey, Flood, Trick Shot or Survival; Flood's continue prompt is
+"new game"), as a move, a press and a release three updates apart (a press and release inside one update are not seen), with `player Test`
+for the name box and `unlock all` for the three other modes (the new player of Journey has only Journey). Registry values in the run's own
+`registry.ini`: `Is3D=0` for 2d, none for 3d (the port's 3D display), `ScreenMode=1` for the full screen runs.
+
+The game ends where `drive.py` says (`REALINPUT end:` line in the run's `summary.txt`): the same level lost three times running (one for
+Survival, which has one board), a level in play in which nothing changes for 3000 states (the bot has no shot: no slot takes the ready
+jewel, and it never throws one away), nothing to go on from on an over screen for 120 states, or the move limit. The bot "loses the later
+ones" (`bot` row above) and Journey has no end but a won last building (a lost level offers "CLICK TO PLAY AGAIN"), so a Journey game by
+the bot ends at its first level it cannot beat.
+
+| run | moves | ended by | reached |
+|---|---|---|---|
+| Journey 2D | 1844 | building 2 lost 3 times | tutorial, building 1 won, summary, map, building 2 |
+| Journey 3D | 1387 | building 1 lost 3 times | tutorial and building 1 |
+| Flood 2D | 4122 | no change for 3000 states | tutorial and the explaining screen, level 1 won, summary, level 2 |
+| Flood 3D | 8038 | no change for 3000 states | levels 1 to 8, score 126920 |
+| Survival 2D and 3D | 7702 each | sunk | one board, 155908 updates, score 347550 (the two runs' last states are the same) |
+| Trick Shot 2D | 20000 | move limit | 13 levels and their summaries |
+| Trick Shot 3D | 6000 | move limit | 10 levels |
+
+Every run reached the end of its play with no error line in the game's log, and the last screen of each (`end.png`, taken by the game's own
+`screenshot`) was looked at for Flood 3D (building 8) and Survival (sunk, "Time: 10:23", score 347550). The Journey runs differ between the
+displays at building 1 (won in 2D, lost three times in 3D): the 3D display's own movement of the jewels, which the comparison with the
+original showed (`journey3d`, "Left in phase two"), is enough to turn a level the bot wins by one try. A run is 1 to 8 minutes under
+`-fast`; the folder of each is `build/realinput/<mode>-<display>` and is deleted once its line is here.
+
+Found on the way and fixed in the test commands: `unlock all` before the loading ends (the level lists do not exist yet) crashed the game
+and now answers an error; the bot's swap is a right button press and release (`"button":"right"`), which the shared loop plays, where it
+answered a step name the loop did not know. `tools/playbymove/playbymove.py` now splits its loop into `parse_args` and `play(args, is_over)`,
+so that a game whose `over` is also a screen the bot goes on from passes its own end of play (the loop's default is unchanged).
+
+Left for the night window (22:00 to 08:00, the full screen runs on the visible desktop): `play.sh <mode> full2d` and `full3d`.

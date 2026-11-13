@@ -515,11 +515,12 @@
         "performance",
         "unneeded-code",
         "readability",
-        "collection"
+        "collection",
+        "lite-mod"
       ],
       "na": [],
       "now": "site-features",
-      "note": "unneeded code out (12 functions, 167 lines), readability checked (namecheck 0), the Collection's copy identical to retail, the page check passing (11 checks); site features and real-input drivers next; the lite mod still to come"
+      "note": "unneeded code out, readability checked (namecheck 0), the Collection's copy identical, the page check passing, no lite mod needed (LITE_MOD.md), real input windowed in 2D and 3D for every mode; full-screen real input and the night checks left, then the site features"
     },
     "heavyweapon": {
       "title": "Heavy Weapon Deluxe",

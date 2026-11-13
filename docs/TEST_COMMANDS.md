@@ -235,7 +235,9 @@ coordinates, waits its `updates`, and asks again, until the state says `"over": 
 `--first <line>` sends a command before the loop (`goto`, `level`, `seed`, `set`), and `--shot` takes a screenshot at
 the end. Its last line is the summary (`playbymove <game>: <n> moves, stop over; STATE {...}`), its run folder
 (`build/playbymove/<game>` by default) holds the game's log and `driver.txt`, every line sent and its answer. A session's
-native driver is a call to it, with the game's own arguments.
+native driver is a call to it, with the game's own arguments. A game whose `over` is also a screen the bot plays on from (Venice's level
+summaries) imports it and calls `play(parse_args(), is_over)` with its own end of play, as
+`games/venice/tools/realinput/drive.py` does.
 
 `-hold` is what makes it repeatable: once the game has loaded, an update runs only when the driver's lines let it (each
 new batch runs one, `wait <n>` runs n), so a game under `-fast` never runs on while the driver decides, the bot's move
