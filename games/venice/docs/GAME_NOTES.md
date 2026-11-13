@@ -222,8 +222,8 @@ the tosser plate, and the Survival, options and name screens. Of the 20:
   nothing (the screen's `buttons` list does not hold it); it waits for the night too.
 - **Kept, a virtual's empty base:** `SceneObject::OnCustomEvent` (0x429d20); the objects that get a custom event (the basket,
   the slot) have their own.
-- **Candidates for taking out unneeded code: 12 functions.** No play of the original reaches these, and they are not removed
-  now:
+- **Candidates for taking out unneeded code: 12 functions.** No play of the original reaches these; they were taken out on
+  2026-11-12 ("Unneeded code taken out" below):
   - `LevelScroller` (0x411a30, 0x411a50, its factory entry and the `DrawHot` 0x427760 that only it calls): the object exists
     only in the editor's palette (`objects/level_scroller.xml`); no level file creates one, and the level select scrolls
     with its own stages.
@@ -359,3 +359,47 @@ already draws only when the display does). **Shared cost sent on:** the driver t
 To measure again: `python -I games/venice/tools/profile/profile.py prep build/perf`, then `python -I tools/pincore.py -- bash
 games/venice/tools/profile/pairs.sh build/perf 5` and `python -I games/venice/tools/profile/profile.py sum build/perf` (the run folders
 are deleted once this section holds their numbers).
+
+## Unneeded code taken out (2026-11-12)
+
+The twelve candidates of the coverage check above are out of the port, each a function that no play of the original reaches and
+that no live code of the port calls: `LevelScroller` (its class, `Draw`, `OnCustomEvent` and the factory's `level_scroller`) with
+`SceneObject::DrawHot` that only it called; `ShooterPath::Update` and the factory's `shooter_path` (the class stays as the base of
+`ScrollPoint`, whose own `Update` is the one that runs; no level file names either object, and the two object files are in the
+game's data only because the original's level editor lists them); `SceneObject`'s `Rewind`, `Rotate`, `GetLocalRotation`,
+`SetImageFrom`, `CircleOverlapWith`, `CountStagesBefore` and `AngleTo`; and `Plate::TossSlots`. The tuning `toss_on_filled_plate`
+stays: `Slot` reads it in two places that the runs do reach (it is 0 in the shipped tuning), so only the plate's `fade_out` branch
+that threw the slots' jewels away when it is set is gone, and `Plate::Update` now returns from a fading plate as the original does
+with the key at 0. 167 lines out of 9 files. The port's frozen baseline, its tour and the rest of `tools/check.sh venice` are as
+before (the check ran after the removal), and the port builds natively and for the web.
+
+## The PopCap Game Collection version (2026-11-12)
+
+The port was made from the retail install (`Venice.exe`, the DRM wrapper with the game inside; the game carved out of it is
+`re/venice/bin/VeniceGame.exe`), and Venice Deluxe is on the user's PopCap Game Collection disc (the group `VeniceDeluxeComponent`
+among the 49 of its cabinet), so it is checked against that version (`docs/COORDINATION.md`, "Done means"). `unshield` (the user
+allowed it on 2026-11-10) read the disc image's cabinet, which was mounted read-only and dismounted afterwards: 10 files, 36 MB, in the
+main checkout's `re/_installers/VeniceDeluxeCollection` (git-ignored): `Venice.exe` (1,983,792 bytes, the game itself with no wrapper),
+`main.pak`, `config.xml`, `bass.dll`, `developer_logo.png`, `license.txt`, `readme.html`, `properties/partner.xml` and its `.sig`, and a
+`userdata/profiles.dat`.
+
+**It is the same game.** `main.pak` (35,934,548 bytes), `config.xml`, `bass.dll` and `developer_logo.png` are byte for byte the retail
+copy's, and so is `partner.xml`. The exe, set beside the carved game image (`games/bookworm/tools/collection/cmpexe.py`), was linked at the
+same second (6 June 2007, 17:45:46): `.text` and `.data` are the same bytes, `.rdata` differs in four (a build stamp of eight digits in
+the string `CAPPACPOPPOPCAPXXXXXXXXX27390487`, which the Collection's has as `...47340415`; nothing in the port reads it), `.rsrc` in one
+resource of the sixteen (2,532 bytes in the retail game, 2,206 in the Collection's: a block of the wrapper's data, which the port never
+reads) and 5,424 bytes follow the last section of the Collection's (a signature). Unlike BookWorm's and Astropop's, no code differs, so
+no function needs a second look.
+
+**The port on the Collection's files.** `games/venice/tools/stage_venice_assets.py` staged the Collection's folder as it does the retail
+one: 863 files, the same 863 as the retail copy's staged set, `diff -r` finding nothing (so a run of the port on them is the run it has
+on the retail files: the frozen baseline, the tour and every scenario read the same bytes). The port reads nothing from the exe, and the
+web page's markers are `main.pak` and `config.xml` (`games/venice/web/page.js`), both in the Collection's folder, so a player who drops
+the Collection's folder on the site gets the game.
+
+**Saves.** The Collection's install carries a `userdata/profiles.dat` of its own (52,284 bytes, the size of this machine's profiles file:
+the format is a fixed record). The original (with `VistaCompliant` true in `partner.xml`, in both copies) keeps its players in
+`C:/ProgramData/PopCap Games/Venice/userdata/profiles.dat`, where this machine's retail copy keeps them, and the same exe code does so for
+the Collection's. The save-import table's row for Venice (`platform/saveimport.json`) names the file beside the exe; the folder under
+ProgramData (`"appdata": "Venice"`) is where a player who ran the game has it, so the row may need that field (sent to the coordinator,
+who owns the table).

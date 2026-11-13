@@ -512,11 +512,14 @@
         "identical-look",
         "fixes-mod",
         "coverage",
-        "performance"
+        "performance",
+        "unneeded-code",
+        "readability",
+        "collection"
       ],
       "na": [],
-      "now": "unneeded-code",
-      "note": "performance done: about half its original's processor time (2.61 M cycles an update at 1x against 4.92), no port code changed; unneeded code next, then readability and the lite mod"
+      "now": "site-features",
+      "note": "unneeded code out (12 functions, 167 lines), readability checked (namecheck 0), the Collection's copy identical to retail; site features next; the lite mod still to come"
     },
     "heavyweapon": {
       "title": "Heavy Weapon Deluxe",
