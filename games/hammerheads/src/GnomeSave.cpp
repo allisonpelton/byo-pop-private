@@ -5,8 +5,8 @@
 #include "Floater.h"
 #include "GameScreen.h"
 #include "Res.h"
-#include "SavedGames.h"
 #include "Stats.h"
+#include "UserManager.h"
 #include "ValueList.h"
 
 using namespace Sexy;
@@ -67,7 +67,7 @@ bool GnomeSave::Hit()
 	if (aHit)
 	{
 		GetAvatar()->ClearHammerFade();
-		StoreGameSnapshot();
+		gApp->mUserManager->GetCurrentUser()->AddRestartPoint();
 		MakeFloaterPhoto(mCenterX - 10.0, mCenterY + 25.0, PhotoImage(gApp->mGameScreen->mLevel / 5));
 		MakeFloater(FLOATER_FLASH, mCenterX + 15.0, mCenterY - 30.0, nullptr, 0, "");
 		gApp->PlaySample(SOUND_MISC_CAMERA_FLASH);

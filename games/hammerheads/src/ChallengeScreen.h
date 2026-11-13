@@ -11,17 +11,17 @@
 #include <vector>
 
 #include "ButtonListener.h"
-#include "Object.h"
+#include "CubbyContainer.h"
 #include "Widget.h"
 
 namespace Sexy
 {
 
-class Cubby;
 class Dialog;
+class Image;
 class NcButton;
 
-class ChallengeScreen : public Widget, public ButtonListener
+class ChallengeScreen : public Widget, public ButtonListener, public CubbyContainer
 {
 public:
 	enum
@@ -30,7 +30,7 @@ public:
 		NUM_ROWS = 4
 	};
 
-	std::vector<ObjectRef> mCubbies;		// +0x88: the sixteen cubbies (the original's cubby container at +0x84)
+	// the sixteen cubbies are the container's list (the container's part starts at +0x84)
 	double			mFade;					// +0x98: how far the screen is dimmed (0 to 1; it is also what the application hands to the dialogs)
 	bool			mFinished;				// +0xa0: every cubby has had its gnome; the closing box has been made
 	bool			mReadySaid;				// +0xa1: the "Ready" voice has played
@@ -64,8 +64,7 @@ public:
 	using Widget::MouseDown;
 	virtual void	ButtonDepress(int theId) override;				// 0x44cd50 (the ButtonListener part)
 
-	Cubby*			GetCubby(int theIndex) const;					// 0x4347c0 (on the cubby container)
-	Cubby*			AddCubby(int theX, int theY, const std::string& theName);	// 0x434be0 (called through 0x434c70)
+	virtual Image*	GetBackdrop() override;							// 0x44cd30 (the container's slot 0): the round's own backdrop
 };
 
 // 0x44c9e0 (also what Application's 0x41f0f0 forwards to): the box that closes the round. It pays the coins into the

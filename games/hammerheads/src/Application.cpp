@@ -142,6 +142,10 @@ Application::Application()
 	mHeight = 600;
 	mAutoEnable3D = true;
 	mVSyncUpdates = true;
+	// port: the original reads the display's refresh rate (60 under its test runs, measured by origrun's peek of 0x574) and
+	// the game's logic runs in UpdateF(theFrac) once a refresh, with theFrac = 1000 / (10 * rate); the port fixes the rate at
+	// 60 so that every machine takes the same steps (the framework's own default of 100 would take a different step size)
+	mSyncRefreshRate = 60;
 
 	mParticleRand = new ParticleRand();
 }

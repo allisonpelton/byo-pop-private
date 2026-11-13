@@ -1,69 +1,20 @@
-// Plain stand-ins for the screens, dialogs and the player roster, so that the game links and its levels can be played while
-// the original's classes are translated (Screens.h, UserManager.h, ShopScreen.h, ChallengeScreen.h). Each block is deleted
-// when the real class arrives in its own file. Nothing here is a translation: the stand-ins do the least that lets the
-// rest of the game run (a menu that starts a game on a click, a roster of one player, wipes that end at once).
+// Plain stand-ins for the screens and dialogs, so that the game links and its levels can be played while the original's
+// classes are translated (Screens.h). Each block is deleted when the real class arrives in its own file. Nothing here is a
+// translation: the stand-ins do the least that lets the rest of the game run (a menu that starts a game on a click, wipes
+// that end at once).
 
 #include "Application.h"
 
-#include "ChallengeScreen.h"
 #include "Common.h"
 #include "Dialog.h"
 #include "GameScreen.h"
 #include "Graphics.h"
 #include "Res.h"
-#include "SavedGames.h"
 #include "Screens.h"
-#include "ShopScreen.h"
 #include "UserManager.h"
 #include "WidgetManager.h"
 
 using namespace Sexy;
-
-//////////////////////////////////////////////////////////////////////////
-// The player roster: one player, nothing saved
-
-namespace
-{
-User* gStubUser = nullptr;
-}
-
-bool User::HasTrophy(int) const { return false; }
-void User::AwardTrophy(int) {}
-bool User::HasSavedGame() const { return false; }
-void User::ClearSavedGame() {}
-int User::GetSavedGameLevel() const { return 0; }
-int User::GetSavedGameScore() const { return 0; }
-std::string User::GetSavedGameTime() const { return std::string(); }
-void User::LoadSavedGame() {}
-void User::StoreGameSnapshot() {}
-void User::SaveProfile() {}
-int User::GetRestartPointCount(int) const { return 0; }
-void User::AddRestartPoint() {}
-void User::ResumeFromRestartPoint(int) {}
-
-UserManager::UserManager()
-{
-	gStubUser = new User();
-	gStubUser->mName = "Player";
-	gStubUser->mId = 1;
-	gStubUser->mShowHowToPlay = false;
-	gStubUser->mToughUnlocked = false;
-	gStubUser->mToughAnnounced = false;
-}
-
-UserManager::~UserManager()
-{
-	delete gStubUser;
-	gStubUser = nullptr;
-}
-
-User* UserManager::GetCurrentUser() { return gStubUser; }
-User* UserManager::FindUser(const std::string&) { return gStubUser; }
-void UserManager::SetCurrentUser(int) {}
-void UserManager::DeleteUser(int) {}
-void UserManager::SaveRoster() {}
-
-void Sexy::StoreGameSnapshot() {}
 
 //////////////////////////////////////////////////////////////////////////
 // The loading screen and the main menu
@@ -216,7 +167,13 @@ void Sexy::MakeGameMenu()
 	gApp->DoDialog(DIALOG_GAME_MENU, true, "Paused", "", "Resume", Dialog::BUTTONS_FOOTER);
 }
 Dialog* Sexy::MakeUserDialog() { return nullptr; }
-Dialog* Sexy::MakeCreateUserDialog(bool) { return nullptr; }
+Dialog* Sexy::MakeCreateUserDialog(bool)
+{
+	// the stand-in has no box to type a name in: the first player is made at once
+	if (gApp->mUserManager->GetCurrentUser() == nullptr)
+		gApp->mUserManager->CreateUser("Player");
+	return nullptr;
+}
 void Sexy::SetCreateUserText(Dialog*, const std::string&) {}
 std::string Sexy::GetUserDialogSelection(Dialog*) { return "Player"; }
 void Sexy::RefreshUserDialog(Dialog*, const std::string&) {}
@@ -231,23 +188,3 @@ void Sexy::MakeReadyGoDialog(const std::string&, const std::string&)
 	// the real box waits for a click, and the game goes on when it is closed
 	gApp->PauseGame(false);
 }
-
-//////////////////////////////////////////////////////////////////////////
-// The shop and the bonus round
-
-ShopScreen::ShopScreen() {}
-ShopScreen::~ShopScreen() {}
-void ShopScreen::Opened() { gApp->LeaveShop(); }
-void ShopScreen::Closing() {}
-int ShopScreen::GetCreatureKind() { return 0; }
-void ShopScreen::ShowRefusal(int) {}
-void ShopScreen::ShowThanks(const std::string&) {}
-
-ChallengeScreen::ChallengeScreen() {}
-ChallengeScreen::~ChallengeScreen() {}
-void ChallengeScreen::Opened(int) { gApp->LeaveChallenge(); }
-void ChallengeScreen::Closing() {}
-void ChallengeScreen::StartChallenge() {}
-void ChallengeScreen::GotFocus() {}
-void ChallengeScreen::LostFocus() {}
-int ChallengeScreen::GetCreatureKind() { return 0; }

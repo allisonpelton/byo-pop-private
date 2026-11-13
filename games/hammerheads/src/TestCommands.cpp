@@ -185,6 +185,10 @@ void Application::SeedGame(unsigned int theSeed)
 // there are taken down first
 void Application::StartTestGame(int theMode, int theLevel)
 {
+	// a test has no login: the game always has a player (the roster is empty on the first run)
+	if (mUserManager->GetCurrentUser() == nullptr)
+		mUserManager->CreateUser("Player");
+
 	for (int anId = 0; anId < 0x20; anId++)
 		KillDialog(anId);
 	if (mMainMenu != nullptr)

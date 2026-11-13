@@ -70,4 +70,33 @@ They are staged into `assets/hammerheads/` by `tools/stage_hammerheads_assets.py
 
 ## State
 
-Translated: `Object.h/.cpp`. Nothing else yet.
+Translated and linking: Object, BoardFile, Cubby/CubbyContainer, Creature and the gnome kinds, Floater, Gameplay, GameScreen,
+Avatar, Score/Coins/Hearts, LevelRules, particles, the HUD, Application; the standard test commands are in
+`TestCommands.cpp`. Screens, dialogs, the player roster and saved games are being translated from `ScreenStubs.cpp`'s
+stand-ins to real classes (shop, challenge, profile first; then the menu, dialogs, wipes, trophies). The how-to-play SWF
+is played by the shared SWF player (engines/swf, library `sexyswf`, on the trunk since 8ffcdc9e: merge main, link it, add Hammer Heads to the
+root CMakeLists condition that adds engines/swf); TinyXML is not available (own small reader/writer: `XmlLite`, BoardFile's chunk reader).
+
+## The original under origrun (found 2026-11-12)
+
+`build/origrun-bin/origrun.exe --exe C:\byo-og\hh2\game\HammerHeadsGame.exe --run hh2 --stage-root C:\byo-og --clock virtual
+--reg-map popcap --counter "[0x5cea54]+0x44c"` (the copy is carved from the Steam install's wrapper; `HammerHeads.exe` is the
+DRM wrapper). The game ticks (401 updates in under a second of wall time) only with two things in place:
+
+- **Windowed.** The default is full screen (partner.xml `DefaultWindowed` is False), which fails under rundesk's desktop
+  (DDInterface::Init gives 4 or 5), and the fall-back to windowed calls the virtual at slot 90, `Application::SetCursorImages`
+  (0x41e5b0), from inside `SexyAppBase::MakeWindow` (0x4e5130) before the Init resources are loaded: `CopyImage(IMAGE_CUSTOM_POINTER)` reads a
+  null image and the crash handler (0x4d1b20, which writes `crash.txt` beside the exe and shows "Fatal Error!") takes the main
+  thread. So the registry value `ScreenMode` = 0 (DWORD) is set under **`HKCU\SOFTWARE\PopCap\HammerHeads`** (partner.xml's
+  `RegistryKey` is `PopCap\HammerHeads`; the ctor's own `PopCap\Hammer Heads` is overridden) and `--reg-map popcap` sends the
+  game's HKLM reads there. `InProgress` in that key is the crash flag: delete it after a crash.
+- The properties partner.xml sets Width 640/Height 480, but the game runs 800x600 (peek of 0x88/0x8c), so those two are not applied.
+- A `quit` ends the original with an access violation at 0x5021b7 (a library function during shutdown, after the run's last
+  update); the run's results are not affected.
+
+Read from the original's memory (`peek`/`waitfor` expressions; `[A]+off` reads the int at off past the pointer stored at A, so a
+global at A that holds a pointer is `[A]+off`): app 0x5cea54; update counter +0x44c; mSyncRefreshRate +0x574 reads **60** and
+mVSyncUpdates +0x578 reads 1; window 800x600. The global ObjectRefs are a std::string (0x1c bytes) then the Object*:
+Gameplay 0x597f40 (pointer at 0x597f5c: phase +0x94, timer +0x98), Coins 0x597fa0 (0x597fbc), Hearts 0x597fe0 (0x597ffc),
+level indicator 0x598000, marathon meter 0x598020, Score 0x598040 (0x59805c), ObjectManager 0x5975a4. The port runs at 60
+(`mSyncRefreshRate = 60` in Application's ctor) so that its UpdateF(theFrac) steps equal the original's at 60 Hz.
