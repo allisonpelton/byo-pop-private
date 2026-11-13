@@ -1,0 +1,14 @@
+{"addr":"0042f1c0","name":"GetStats","sig":"void * __cdecl GetStats(void)"}
+{"addr":"0042efc0","name":"Stats::GetInt","sig":"int __thiscall GetInt(int index)"}
+{"addr":"0042ec50","name":"Stats::Get","sig":"double __thiscall Get(int index)"}
+{"addr":"0042efa0","name":"Stats::SetInt","sig":"void __thiscall SetInt(int index, int value)"}
+{"addr":"0042ec10","name":"Stats::Set","sig":"void __thiscall Set(int index, double value)"}
+{"addr":"0042ef80","name":"Stats::AddInt","sig":"void __thiscall AddInt(int index, int amount)"}
+{"addr":"0042ec30","name":"Stats::AddIntQuiet","sig":"void __thiscall AddIntQuiet(int index, int amount)"}
+{"addr":"00435650","name":"GetGameplay","sig":"void * __cdecl GetGameplay(void)"}
+{"addr":"0042d7f0","name":"GetAvatar","sig":"void * __cdecl GetAvatar(void)"}
+{"addr":"00449990","name":"GetHearts","sig":"void * __cdecl GetHearts(void)"}
+{"addr":"004b2aa0","name":"Sexy::Rand","sig":"int __cdecl Rand(void)"}
+{"addr":"004494d0","name":"GetHammerDamage","sig":"int __cdecl GetHammerDamage(void)"}
+{"addr":"004499e0","name":"GetHealth","sig":"double __cdecl GetHealth(void)"}
+{"addr":"004499f0","name":"GetHealthCapacity","sig":"double __cdecl GetHealthCapacity(void)"}

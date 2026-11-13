@@ -1,0 +1,2 @@
+seed HammerHeadsGame.exe va:0x422cfa cccccccccccc b8{seed}c3 a six-byte stub in the padding after a function (0x422cfa): returns the run seed, standing in for GetTickCount
+seed HammerHeadsGame.exe va:0x4e4560 8b3d78115500 bffa2c420090 SexyAppBase::Init (0x4e43a0) loads GetTickCount into edi and calls it twice, for mRandSeed (and the generator) and for the C library generator: edi is the stub now, so both get the run seed, as the port's -seed=N does

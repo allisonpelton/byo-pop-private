@@ -534,10 +534,13 @@
     },
     "hammerheads": {
       "title": "Hammer Heads Deluxe",
-      "done": [],
+      "done": [
+        "port",
+        "identical-play"
+      ],
       "na": [],
-      "now": "port",
-      "note": "started 2026-11-12 (Sonnet): the port and phase one (plays identical); the later steps wait for the user"
+      "now": "registration-out",
+      "note": "playable natively and on the web; phase one of identical play done: 14 games of Classic Bash (from levels 1 to 25, with and without the damage cheats), Tough Cookie and Marathon match the original over 28000 updates in every compared value; the game-won sequence, the multiplier gnome and saved games left for later"
     },
     "pizzafrenzy": {
       "title": "Pizza Frenzy",

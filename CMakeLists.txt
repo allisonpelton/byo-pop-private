@@ -302,13 +302,19 @@ option(BUILD_VENICE "Build the Venice Deluxe port" ON)
 if(BUILD_VENICE AND EXISTS ${PROJECT_SOURCE_DIR}/games/venice/CMakeLists.txt)
   add_subdirectory(games/venice)
 endif()
+# Hammer Heads Deluxe: optional while it is new; the build skips it if its folder is missing
+option(BUILD_HAMMERHEADS "Build the Hammer Heads Deluxe port" ON)
+if(BUILD_HAMMERHEADS AND EXISTS ${PROJECT_SOURCE_DIR}/games/hammerheads/CMakeLists.txt)
+  add_subdirectory(games/hammerheads)
+endif()
 # The SWF player (engines/swf), one copy for the ports that play Flash cutscenes: built when any of them is
 option(BUILD_BOOKWORMADV "Build the Bookworm Adventures Deluxe port" ON)
 option(BUILD_BOOKWORMADV2 "Build the Bookworm Adventures Volume 2 port" ON)
 option(BUILD_HEAVYWEAPON "Build the Heavy Weapon Deluxe port" ON)
 if((BUILD_BOOKWORMADV AND EXISTS ${PROJECT_SOURCE_DIR}/games/bookwormadv/CMakeLists.txt) OR
    (BUILD_BOOKWORMADV2 AND EXISTS ${PROJECT_SOURCE_DIR}/games/bookwormadv2/CMakeLists.txt) OR
-   (BUILD_HEAVYWEAPON AND EXISTS ${PROJECT_SOURCE_DIR}/games/heavyweapon/CMakeLists.txt))
+   (BUILD_HEAVYWEAPON AND EXISTS ${PROJECT_SOURCE_DIR}/games/heavyweapon/CMakeLists.txt) OR
+   (BUILD_HAMMERHEADS AND EXISTS ${PROJECT_SOURCE_DIR}/games/hammerheads/CMakeLists.txt))
   add_subdirectory(engines/swf)
 endif()
 # Bookworm Adventures Deluxe: optional while it is new; the build skips it if its folder is missing
