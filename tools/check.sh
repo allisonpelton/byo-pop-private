@@ -161,11 +161,18 @@
 #                level lost, Survival, a Trick Shot level and the screens of the main menu; a rerun with the same screens,
 #                states and player file, which are the frozen baseline's (and build/baseline-venice/venice.exe's, when there is
 #                one) (under a minute)
+#   heavyweapon  Heavy Weapon Deluxe: a tour from a script (games/heavyweapon/tools/tour_test.txt: the title, the menu's
+#                screens, a campaign from the map through level 1 with the standard test commands to its boss, results
+#                and armory, level 5 and survival lost, the options) and its rerun, whose screens, states and player files
+#                must match and be the frozen baseline's; then the port's bot through tools/playbymove (real input, -hold):
+#                a campaign from the title through level 1 into level 2 (3400 moves), level 9 and survival to their game
+#                overs, a rerun of level 9 with the same transcript, and build/baseline-heavyweapon/heavyweapon.exe's tour
+#                and games when there is one (about two minutes; three game processes at a time)
 #   oracle       Bejeweled's oracle three ways (compare.sh --variants default,forcevariant,novariants); over
 #                ten minutes, so never in a subagent; refuses to start while another oracle runs. Not in `all`: it
 #                compares Bejeweled's game logic with the original's, which a change outside games/bejeweled leaves as
 #                Bejeweled's frozen baseline (verify) already proves; merge mode runs it when games/bejeweled changes
-# Sets: quick = build unit; games = bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs rocketmania dynomite mahjongjapan mahjongchina bonnies bejeweledtwist bejeweled2 astropop typershark venice; all = every suite but the oracle, builds first.
+# Sets: quick = build unit; games = bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs rocketmania dynomite mahjongjapan mahjongchina bonnies bejeweledtwist bejeweled2 astropop typershark venice heavyweapon; all = every suite but the oracle, builds first.
 #
 # Prints "PASS <suite> (<seconds>s): <summary>" or "FAIL <suite> (<seconds>s): <summary> -> <log>" for each,
 # then "check: N passed, M failed". Exits 0 only when all passed. Logs: build/logs/check/<suite>.txt (and
@@ -178,7 +185,8 @@
 # (see the suites above) and never changes the normal suite. The other suites have none and ignore the request.
 #
 # --jobs <n> (1 to 3; 1 by default, 3 in merge mode) runs the game suites of the `games` set, longest first, up to n game
-# processes at a time (bonnies and venice, which start two at once when their frozen baselines exist, count as two).
+# processes at a time (bonnies and venice, which start two at once when their frozen baselines exist, count as two, and
+# heavyweapon, which starts three at once, as three).
 # Each suite's line is printed whole when it ends, so the lines come in the order the suites end. The builds, unit,
 # unit-web, gpu, verify, modmenu, livesplit and the oracle always run alone.
 #
@@ -252,6 +260,11 @@ WB_SHOTS="2a54908cecb8 42df2d86a04f 983a569fb1b6"  # the first 12 hex digits of 
 MJ_DEAL="222 layouts, 0 failed"
 BB_SHOTS="99a302e2a141 fbf6b1061117 8b26c14dac8a"  # the first 12 hex digits of the sha256 of played.png, highscores.png and timeup.png (games/bonnies/tools/tour_test.txt): the frozen baseline
 VN_FROZEN="638acb1206cb 6de40abf8b88"  # the first 12 hex digits of the sha256 of the tour's 15 screens' hashes and of its state lines (games/venice/tools/tour_test.txt): the frozen baseline
+HW_FROZEN="08e07dd23f6a 61398f211445"  # the first 12 hex digits of the sha256 of the tour's 19 screens' hashes and of its state lines (games/heavyweapon/tools/tour_test.txt): the frozen baseline
+# Heavy Weapon Deluxe: the bot's summary lines (tools/playbymove's last line) for its campaign from the title, level 9 and survival: the frozen baseline
+HW_CAMPAIGN='playbymove heavyweapon: 3400 moves, stop limit; STATE {"screen":"game","dialog":-1,"mode":"campaign","level":2,"maxlevel":1,"score":49620,"lives":1,"nukes":1,"timer":3950,"length":15000,"boss":-1,"bosshealth":0,"bossup":0,"enemies":0,"tankx":-161.522,"tankdead":0,"fire":0,"paused":0,"suspended":0,"updates":4648,"over":false,"appupdates":17894}'
+HW_LATER='playbymove heavyweapon: 613 moves, stop over; STATE {"screen":"gameover","dialog":40,"mode":"campaign","level":9,"maxlevel":19,"score":1525,"lives":0,"nukes":0,"timer":1585,"length":30000,"boss":-1,"bosshealth":0,"bossup":0,"enemies":0,"tankx":-380,"tankdead":1,"fire":0,"paused":0,"suspended":1,"updates":3090,"over":true,"appupdates":3118}'
+HW_SURVIVAL='playbymove heavyweapon: 1267 moves, stop over; STATE {"screen":"gameover","dialog":40,"mode":"survival","level":1,"maxlevel":19,"score":0,"lives":0,"nukes":0,"timer":11348,"length":10000,"boss":-1,"bosshealth":0,"bossup":0,"enemies":0,"tankx":-380,"tankdead":1,"fire":0,"paused":0,"suspended":1,"updates":6374,"over":true,"appupdates":6402}'
 MJ_SHOTS="d3dc711a471a a9b14c961f99 98ff52c3eea2"  # the first 12 hex digits of the sha256 of board.png, won.png and map.png: the frozen baseline (refrozen with the libjpeg 6b loader: the old shots differ from these by at most 3 levels in a channel, in the JPEG backgrounds only)
 MJC_DEAL="178 layouts, 0 failed"
 MJC_SHOTS="f2b7b7dc8d4e bd92440741aa 93e5cc9037c3"  # the first 12 hex digits of the sha256 of board.png, won.png and map.png: the frozen baseline (refrozen with the libjpeg 6b loader: the old shots differ from these by at most 3 levels in a channel, in the JPEG backgrounds only)
@@ -285,15 +298,16 @@ OUT="build/logs/check"
 QUICK_ENV="${CHECK_QUICK:-0}"  # 1: every suite named runs its quick form
 
 # The suites in the order `all` runs them (origrun is not in `all`), and the game suites among them
-GAME_SUITES=(bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs rocketmania dynomite mahjongjapan mahjongchina bonnies bejeweledtwist bejeweled2 astropop typershark venice)
+GAME_SUITES=(bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs rocketmania dynomite mahjongjapan mahjongchina bonnies bejeweledtwist bejeweled2 astropop typershark venice heavyweapon)
 # the oracle is left out of `all` and of shared code's "every suite" (the user, 2026-11-11: "Seems like the Bejeweled oracle
 # is causing a lot of slowdown for no benefit"); it runs when games/bejeweled changes, or when named
 ALL_SUITES=(build build-web build-nov unit unit-web gpu verify modmenu livesplit "${GAME_SUITES[@]}")
 ORDER=(build build-web build-nov unit unit-web gpu origrun verify modmenu livesplit "${GAME_SUITES[@]}" oracle)
 known_suite() { case " ${ORDER[*]} " in *" $1 "*) return 0 ;; esac; return 1; }
 is_game_suite() { case " ${GAME_SUITES[*]} " in *" $1 "*) return 0 ;; esac; return 1; }
-# suite_weight <suite>: sets WEIGHT to the game processes the suite has at once (bonnies runs its rerun and the frozen baseline's together)
-suite_weight() { WEIGHT=1; [ "$1" = bonnies ] && [ -f build/baseline-bonnies/bonnies.exe ] && WEIGHT=2; [ "$1" = venice ] && [ -f build/baseline-venice/venice.exe ] && WEIGHT=2; return 0; }
+# suite_weight <suite>: sets WEIGHT to the game processes the suite has at once (bonnies runs its rerun and the frozen baseline's together;
+# heavyweapon three of its games)
+suite_weight() { WEIGHT=1; [ "$1" = bonnies ] && [ -f build/baseline-bonnies/bonnies.exe ] && WEIGHT=2; [ "$1" = venice ] && [ -f build/baseline-venice/venice.exe ] && WEIGHT=2; [ "$1" = heavyweapon ] && WEIGHT=3; return 0; }
 
 # ---- merge mode (--changed): the suites a change can affect ----
 
@@ -301,7 +315,7 @@ suite_weight() { WEIGHT=1; [ "$1" = bonnies ] && [ -f build/baseline-bonnies/bon
 declare -A EST=([build]=77 [build-web]=356 [build-nov]=72 [unit]=11 [unit-web]=8 [gpu]=1 [origrun]=5 [verify]=42 [modmenu]=50
 	[livesplit]=472 [bookworm]=8 [bigmoney]=7 [noahsark]=23 [atomica]=11 [alchemy]=12 [sevenseas]=7 [pixelus]=127
 	[bookwormadv]=129 [bookwormadv2]=55 [tiptop]=156 [mummymaze]=38 [ningpo]=21 [wordharmony]=17 [cosmicbugs]=5
-	[waterbugs]=8 [rocketmania]=11 [dynomite]=8 [mahjongjapan]=11 [mahjongchina]=8 [bonnies]=46 [bejeweledtwist]=60 [bejeweled2]=220 [astropop]=60 [typershark]=480 [venice]=40 [oracle]=1080)
+	[waterbugs]=8 [rocketmania]=11 [dynomite]=8 [mahjongjapan]=11 [mahjongchina]=8 [bonnies]=46 [bejeweledtwist]=60 [bejeweled2]=220 [astropop]=60 [typershark]=480 [venice]=40 [heavyweapon]=120 [oracle]=1080)
 declare -A EST_QUICK=([pixelus]=40 [bookwormadv]=57 [tiptop]=52 [typershark]=270)
 
 declare -A SEL=() WHY_N=() WHY_P=() AREAS=() WEB_SEEN=() SH_N=() SH_P=()
@@ -2272,6 +2286,91 @@ suite_venice() {
 	fi
 	SUMMARY="the tour (a new player's name, the tutorial, a Journey level shot at and won, a Flood level lost, Survival, a Trick Shot level, the screens of the main menu); rerun identical; screens and states as frozen$bl"
 	return 0
+}
+
+HW_SHOTS_ALL="title menu highscores credits help map firsthelp game tip boss results armory level5 gameover afterquit survival survivalover aftersurvival options"
+
+heavyweapon_tour() {  # <name> [<exe>]: games/heavyweapon/tools/tour_test.txt into $OUT/heavyweapon/<name>; prints the exit status
+	local d="$OUT/heavyweapon/$1" e=0
+	rm -rf "$d"; mkdir -p "$d/user"
+	sed "s|@DIR@|$d|" games/heavyweapon/tools/tour_test.txt > "$d/script.txt"
+	timeout 300 "${2:-$W/build/native/heavyweapon.exe}" -gamedir=assets/heavyweapon -userdir="$d/user" -fast -seed=1 \
+		-script="$d/script.txt" > "$d/stdout.txt" 2>&1 || e=$?
+	grep -E '^(OK|ERROR|STATE) ' "$d/stdout.txt" > "$d/states.txt"
+	echo "$e"
+}
+
+heavyweapon_same() {  # <a> <b>: whether two tours gave the same screens, the same state lines and the same player files
+	local f
+	for f in $HW_SHOTS_ALL; do cmp -s "$1/$f.png" "$2/$f.png" || return 1; done
+	cmp -s "$1/states.txt" "$2/states.txt" && cmp -s "$1/user/users.dat" "$2/user/users.dat" &&
+		cmp -s "$1/user/hiscores.dat" "$2/user/hiscores.dat"
+}
+
+heavyweapon_game() {  # <name> <steps> <command>...: the bot plays through tools/playbymove (real input, -hold, -fast) once
+	# the intro is clicked away; prints its summary line
+	local d="$OUT/heavyweapon/$1" exe="${HW_EXE:-$W/build/native/heavyweapon.exe}" n="$2" a=() c
+	shift 2
+	rm -rf "$d"; mkdir -p "$d"
+	for c in "click game 320 240" "wait 2" "click game 320 240" "wait 10" "$@"; do a+=(--first "$c"); done
+	timeout 600 python tools/playbymove/playbymove.py --dir "$d" --steps "$n" --nulls 60 --timeout 120 "${a[@]}" "$exe" \
+		-seed=1 -userdir="$d/user" > "$d/out.txt" 2>&1
+	tail -n 1 "$d/out.txt" | tr -d '\r'
+}
+
+suite_heavyweapon() {
+	local d="$OUT/heavyweapon" e f sh st=0 a b c r bl="" base="$W/build/baseline-heavyweapon/heavyweapon.exe" k
+	need_assets heavyweapon || return 1
+	python games/heavyweapon/tools/make_gametext.py --check > "$1" 2>&1 ||
+		{ SUMMARY="GameTextTable.inc is not the one the source asks for (run games/heavyweapon/tools/make_gametext.py)"; return 1; }
+	mkdir -p "$d"
+	# the tour, its rerun and the bot's rerun of level 9 at once
+	heavyweapon_tour game > "$d/game.status" &
+	heavyweapon_tour rerun > "$d/rerun.status" &
+	heavyweapon_game later2 1500 "unlock all" "level 9" > "$d/later2.line" &
+	wait
+	cat "$d/game/stdout.txt" >> "$1"
+	e="$(cat "$d/game.status")"
+	[ "$e" -eq 0 ] || { SUMMARY="the tour's exe exited with status $e"; return 1; }
+	for f in $HW_SHOTS_ALL; do
+		[ -s "$d/game/$f.png" ] || { SUMMARY="no screenshot $f.png"; return 1; }
+	done
+	grep -q '^ERROR' "$d/game/states.txt" && { SUMMARY="a test command failed: $(grep -m1 '^ERROR' "$d/game/states.txt")"; return 1; }
+	grep -q '^STATE {"screen":"results"' "$d/game/states.txt" || { SUMMARY="the tour's level 1 did not reach its results"; return 1; }
+	grep -q '^STATE {"screen":"armory"' "$d/game/states.txt" || { SUMMARY="the results did not lead to the armory"; return 1; }
+	[ "$(grep -c '"over":true' "$d/game/states.txt")" -eq 2 ] || { SUMMARY="lose did not bring both game-over boxes"; return 1; }
+	[ "$(cat "$d/rerun.status")" = 0 ] || { SUMMARY="the tour's rerun exited with status $(cat "$d/rerun.status")"; return 1; }
+	heavyweapon_same "$d/game" "$d/rerun" || { SUMMARY="the tour's rerun gave other screens, states or player files"; return 1; }
+	sh="$(for f in $HW_SHOTS_ALL; do sha256sum "$d/game/$f.png"; done | cut -c1-64 | sha256sum | cut -c1-12) $(sha256sum "$d/game/states.txt" | cut -c1-12)"
+	[ "$sh" = "$HW_FROZEN" ] || st=1
+	# the bot's games
+	heavyweapon_game campaign 3400 "goto campaign" > "$d/campaign.line" &
+	heavyweapon_game later 1500 "unlock all" "level 9" > "$d/later.line" &
+	heavyweapon_game survival 1500 "unlock all" "goto survival" > "$d/survival.line" &
+	wait
+	a="$(cat "$d/campaign.line")"; b="$(cat "$d/later.line")"; c="$(cat "$d/survival.line")"; r="$(cat "$d/later2.line")"
+	{ echo "campaign: $a"; echo "level 9: $b"; echo "survival: $c"; echo "level 9 rerun: $r"; } >> "$1"
+	[ "$a" = "$HW_CAMPAIGN" ] || st=1
+	[ "$b" = "$HW_LATER" ] || st=1
+	[ "$c" = "$HW_SURVIVAL" ] || st=1
+	if [ -n "$b" ] && [ "$b" = "$r" ] && cmp -s "$d/later/driver.txt" "$d/later2/driver.txt"; then r="rerun identical"; else r="RERUN DIFFERS"; st=1; fi
+	# the frozen baseline (build/baseline-heavyweapon/heavyweapon.exe, a copy of the port made when it was last checked
+	# against the original): the same tour and the same games, move for move
+	if [ -f "$base" ]; then
+		heavyweapon_tour base "$base" > "$d/base.status" &
+		HW_EXE="$base" heavyweapon_game base-campaign 3400 "goto campaign" > /dev/null &
+		HW_EXE="$base" heavyweapon_game base-later 1500 "unlock all" "level 9" > /dev/null &
+		wait
+		HW_EXE="$base" heavyweapon_game base-survival 1500 "unlock all" "goto survival" > /dev/null
+		bl="; baseline identical"
+		heavyweapon_same "$d/game" "$d/base" || { bl="; BASELINE DIFFERS (tour)"; st=1; }
+		for k in campaign later survival; do
+			cmp -s "$d/$k/driver.txt" "$d/base-$k/driver.txt" || { bl="; BASELINE DIFFERS ($k)"; st=1; }
+		done
+	fi
+	SUMMARY="the tour (the title, the menu's screens, level 1 to its results and the armory, level 5 and survival lost, the options; rerun identical, $sh); campaign ${a#playbymove heavyweapon: }; level 9 ${b#playbymove heavyweapon: }; survival ${c#playbymove heavyweapon: }; $r$bl"
+	[ $st -eq 0 ] || SUMMARY="$SUMMARY (expected tour $HW_FROZEN, campaign '$HW_CAMPAIGN', level 9 '$HW_LATER', survival '$HW_SURVIVAL')"
+	return $st
 }
 
 suite_oracle() {

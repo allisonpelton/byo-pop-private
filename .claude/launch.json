@@ -204,6 +204,12 @@
       "runtimeExecutable": "python",
       "runtimeArgs": ["tools/webtest/serve.py", "--port", "18809"],
       "port": 18809
+    },
+    {
+      "name": "heavyweapon-webtest",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["tools/webtest/serve.py", "--port", "18810"],
+      "port": 18810
     }
   ]
 }
