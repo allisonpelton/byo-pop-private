@@ -2910,6 +2910,10 @@ bool SexyAppBase::Process(bool allowSleep)
 			{
 				// Let us take into account the time it took to draw dirty stuff
 				int aTimeToNextFrame = (int) (aFrameFTime - mUpdateFTimeAcc);
+				// port: -fast's clock moves in whole milliseconds, so a frame time that is not one (16.67 ms at a 60 Hz
+				// refresh) would leave a fraction that rounds to no wait and the clock would never reach the next update
+				if (mFastMode && aTimeToNextFrame <= 0 && aFrameFTime > mUpdateFTimeAcc)
+					aTimeToNextFrame = 1;
 				if (aTimeToNextFrame > 0)
 				{
 					if (mFastMode)
