@@ -56,7 +56,7 @@ GnomeBouncing* Sexy::MakeGnomeBouncing(const std::string& theName)
 	return aBouncing;
 }
 
-// the rectangle of a cel at the jester's position (the same few lines end the constructor and the update)
+// port: the rectangle of a cel at the jester's position (the same few lines end the constructor and the update)
 void GnomeBouncing::UpdateBounds()
 {
 	Image* anImage = IMAGE_GNOME_BOUNCING;

@@ -143,13 +143,13 @@ void Score::AddPoints(int thePoints, int theX, int theY, int theType)
 	}
 }
 
-// One of the signs under the score: the picture at half size, at its place
+// port: one of the signs under the score: the picture at half size, at its place
 static void DrawSign(Graphics* g, Image* theImage, double theX, double theY)
 {
 	g->DrawImage(theImage, (int)theX, (int)theY, (int)((double)theImage->mWidth * 0.5), (int)((double)theImage->mHeight * 0.5));
 }
 
-// Whether the sign of a power that has theTimeLeft is hidden in this blink: in its last seconds it blinks, when the level
+// port: whether the sign of a power that has theTimeLeft is hidden in this blink: in its last seconds it blinks, when the level
 // allows that
 static bool IsBlinkedOut(double theTimeLeft, double theBlinkTime, double theBlinkRate, bool theBlinkAllowed)
 {

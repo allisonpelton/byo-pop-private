@@ -6,7 +6,7 @@
 
 using namespace Sexy;
 
-// The text of the chunks put together
+// port: The text of the chunks put together
 static bool ReadChunks(const std::string& theFileName, std::string* theText)
 {
 	std::vector<uint8_t> aData;
@@ -26,7 +26,7 @@ static bool ReadChunks(const std::string& theFileName, std::string* theText)
 	return true;
 }
 
-// The value of an attribute in the tag text between "<" and ">"; false when the tag has none of that name
+// port: The value of an attribute in the tag text between "<" and ">"; false when the tag has none of that name
 static bool GetAttribute(const std::string& theTag, const char* theName, std::string* theValue)
 {
 	std::string aKey = std::string(" ") + theName + "=\"";
@@ -41,6 +41,7 @@ static bool GetAttribute(const std::string& theTag, const char* theName, std::st
 	return true;
 }
 
+// port: reads a board file (a stream of length-prefixed text chunks) into the objects it lists; the original's reader is its TinyXML copy (0x463240-0x468490)
 bool Sexy::LoadBoardFile(const std::string& theFileName, std::vector<BoardObject>* theObjects)
 {
 	theObjects->clear();

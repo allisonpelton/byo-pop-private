@@ -49,7 +49,7 @@ static void NoteName(const char* theTypeName, const std::string& theName)
 		GetNameCounters()[theTypeName] = (int)(aNumber + 1);
 }
 
-// The C library's qsort of the original's Visual C++ 7.1: a quicksort that finishes pieces of 8 elements or fewer with
+// port: The C library's qsort of the original's Visual C++ 7.1: a quicksort that finishes pieces of 8 elements or fewer with
 // a selection sort. Its order for equal keys is part of how the cubbies are drawn, so the host's qsort is not used.
 static void CrtSwap(char* a, char* b, size_t theWidth)
 {
@@ -57,12 +57,13 @@ static void CrtSwap(char* a, char* b, size_t theWidth)
 		return;
 	for (size_t i = 0; i < theWidth; i++)
 	{
-		char aTemp = a[i];
+		char aSwapped = a[i];
 		a[i] = b[i];
-		b[i] = aTemp;
+		b[i] = aSwapped;
 	}
 }
 
+// port: the selection sort of the C library's qsort above
 static void CrtShortSort(char* lo, char* hi, size_t theWidth, int (*theCompare)(const void*, const void*))
 {
 	while (hi > lo)
@@ -76,6 +77,7 @@ static void CrtShortSort(char* lo, char* hi, size_t theWidth, int (*theCompare)(
 	}
 }
 
+// port: the C library's qsort of the original's Visual C++ 7.1 (see CrtSwap)
 static void CrtQSort(void* theBase, size_t theCount, size_t theWidth, int (*theCompare)(const void*, const void*))
 {
 	const size_t CUTOFF = 8;
@@ -233,6 +235,7 @@ ObjectRef& ObjectRef::operator=(const ObjectRef& theRef)
 	return *this;
 }
 
+// port: a name given through the reference; the object's SetName (0x402c90) does the work
 void ObjectRef::SetName(const std::string& theName)
 {
 	if (!mName.empty())
@@ -245,8 +248,8 @@ void ObjectRef::SetName(const std::string& theName)
 
 void ObjectRef::Set(const Object* theObject)
 {
-	ObjectRef aTemp(theObject);
-	*this = aTemp;
+	ObjectRef aSwapped(theObject);
+	*this = aSwapped;
 }
 
 // 0x402dc0
@@ -374,6 +377,7 @@ ObjectManager::ObjectManager() :
 	gObjectManager = this;
 }
 
+// port: the destructor (the original's is compiler made)
 ObjectManager::~ObjectManager()
 {
 	if (gObjectManager == this)
@@ -388,6 +392,7 @@ ObjectManager* ObjectManager::Get()
 	return gObjectManager;
 }
 
+// port: the manager if one was made, without making one
 ObjectManager* ObjectManager::Existing()
 {
 	return gObjectManager;

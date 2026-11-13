@@ -1,0 +1,8 @@
+# namecheck config (tools/namecheck.py; docs/CODE_STANDARDS.md): every exception says why
+allow standin mUnusedInt -- a field of the original that is saved and loaded but never set or read; the saved game's format keeps it
+allow standin mUnusedDouble -- a field of the original that is saved and loaded but never set or read; the saved game's format keeps it
+allow standin mUnusedD0 -- a field of the original that is saved and loaded but never read; the saved game's format keeps it
+allow standin mUnused140 -- a field of the original's button that is set to -1000 and never read
+allow standin aUnusedFrame -- the out parameter of the flyer update that nothing reads
+allow standin Unused20 -- the original's vtable slot 0x20 (0x408d10), a function that does nothing; kept so the slots keep their order
+allow stage stage.?5 -- the bubble head's own growth stages (the game's word), not a development stage

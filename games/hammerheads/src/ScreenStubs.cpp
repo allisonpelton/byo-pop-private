@@ -168,6 +168,17 @@ void NcMovingDialog::SetEscapeResult(int theResult)
 	mEscapeResult = theResult;
 }
 
+void NcMovingDialog::CloseWith(int theResult)
+{
+	mCloseResult = theResult;
+	Closed();
+}
+
+void NcMovingDialog::Closed()
+{
+	gApp->DialogClosed(mId, mCloseResult);
+}
+
 void NcMovingDialog::Update()
 {
 	Dialog::Update();

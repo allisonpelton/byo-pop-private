@@ -111,6 +111,9 @@ public:
 	int				mEscapeResult = 0;				// (stand-in)
 	bool			mSettled = false;				// (stand-in)
 	void			SetEscapeResult(int theResult);		// what the escape key answers (Application::DialogClosed gets it; 999 for the continue box)
+	int				mCloseResult = 0;				// +0x158 (stand-in)
+	void			CloseWith(int theResult);		// 0x468aa0: the dialog goes back up with this result; Closed runs once it has left
+	virtual void	Closed();						// vf60 (0xf0): the dialog has left the screen; the default tells the application (DialogClosed)
 };
 
 // 0x44e3a0: the width and lines of a dialog that only informs (the unlocked-Tough-Cookie box)

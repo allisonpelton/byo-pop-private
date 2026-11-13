@@ -29,7 +29,7 @@ static const double PI = 3.141592653589793;
 static const double PI_FLOAT = 3.1415927410125732;
 static const double TWO_PI_FLOAT = 6.2831854820251465;
 
-// What the exe's _ftol gives: the value cut toward zero, or the "indefinite" integer when it does not fit
+// port: What the exe's _ftol gives: the value cut toward zero, or the "indefinite" integer when it does not fit
 static std::string FormatInt(const char* theFormat, int theValue)
 {
 	char aBuffer[64];

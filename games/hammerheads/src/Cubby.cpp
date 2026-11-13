@@ -32,6 +32,7 @@ static const double SPEED_TIER_LIMITS[6] = { 1.75, 1.6, 1.45, 1.3, 1.15, 1.0 };
 // The sticker each speed tier shows when it is reached (the tier before it)
 static const int SPEED_STICKERS[6] = { -1, 0, 1, 2, 3, 4 };
 
+// port: the picture as a MemoryImage (the original's cast)
 static MemoryImage* AsMemoryImage(Image* theImage)
 {
 	return dynamic_cast<MemoryImage*>(theImage);

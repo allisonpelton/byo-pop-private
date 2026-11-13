@@ -1429,6 +1429,7 @@ void Application::GameToTrophyRoom(const std::vector<int>& theTrophies)
 	CreateTrophyRoom(1, theTrophies);
 }
 
+// port: the original's menu code writes mQuitting itself; the game is to end when the update is done
 void Application::Quit()
 {
 	mQuitting = true;

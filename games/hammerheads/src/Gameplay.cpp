@@ -391,7 +391,7 @@ void Gameplay::GameOver()
 	gApp->mGameScreen->UpdateHover();
 }
 
-// Takes a timer that has a delay in front of it a step down: the delay runs first, then the timer
+// port: Takes a timer that has a delay in front of it a step down: the delay runs first, then the timer
 static void StepTimer(double& theTimer, double& theDelay, double theStep)
 {
 	if (theDelay <= 0.0)

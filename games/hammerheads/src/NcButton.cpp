@@ -22,6 +22,7 @@ NcButton::NcButton(Image* theComponentImage, int theId, ButtonListener* theListe
 	mShown = true;
 }
 
+// port: the destructor (the original's is compiler made)
 NcButton::~NcButton()
 {
 }

@@ -32,7 +32,7 @@ public:
 	std::vector<int> mKindList;			// +0x1ec: the kinds of gnome that come, in order (0x452b10 makes it, 0x452ec0 shuffles it)
 	int				mKindIndex;			// +0x1fc: where in the list the next one is
 	int				mLevel;				// +0x200: the level being played, from 1
-	int				mLevelsStarted;		// +0x204: 0x450b70 adds one at every start of a level
+	int				mBonusRoundsDone;	// +0x204: the bonus rounds taken so far in this game (0x450b70 adds one when a round ends); the first one is explained
 	int				mShuffledBoards[NUM_SHUFFLED_BOARDS];	// +0x208: 0..10 in a random order (0x4527c0)
 	int				mMaxBoard;			// +0x234: the highest board number of the mode's files (0x4521a0)
 	int				mCycle;				// +0x238: how many times the list of kinds has been made for this level
@@ -66,7 +66,7 @@ public:
 	void			FindMaxBoard();											// 0x4521a0: the highest number among the files in boards/
 	void			NextLevel();											// 0x4519b0
 	void			SetLevel(int theLevel, int theCycle);					// 0x450b50
-	void			AddLevelStart();										// 0x450b70
+	void			AddBonusRoundDone();									// 0x450b70
 
 	bool			IsGameInProgress() const;								// 0x450bb0: some health, and not over
 	bool			IsInPlay() const;										// 0x450ca0: this is the focused widget, and no menu, no confirmation and no intro is up

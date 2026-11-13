@@ -41,7 +41,7 @@ GameScreen::GameScreen()
 	mKindIndex = 0;
 	mLevelTime = 0;
 	mLevel = 1;
-	mLevelsStarted = 0;
+	mBonusRoundsDone = 0;
 	mCycle = 0;
 	mMode = 0;
 	mMaxBoard = 0;
@@ -446,9 +446,9 @@ void GameScreen::SetLevel(int theLevel, int theCycle)
 }
 
 // 0x450b70
-void GameScreen::AddLevelStart()
+void GameScreen::AddBonusRoundDone()
 {
-	mLevelsStarted++;
+	mBonusRoundsDone++;
 }
 
 // 0x450e50: how many gnomes may be up at once, worked out between the sheet's start and end over the level's time

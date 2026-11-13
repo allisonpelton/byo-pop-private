@@ -108,6 +108,7 @@ void RulesSheet::Load(const std::string& theFileName)
 	}
 }
 
+// port: the number of rows of the sheet
 int RulesSheet::GetRowCount() const
 {
 	return (int)mRows.size();
@@ -173,16 +174,19 @@ RulesSheet* Sexy::GetRulesSheet(bool theReload)
 	return gRulesSheet.get();
 }
 
+// port: the sheet row of the level being played
 int Sexy::RuleRow()
 {
 	return gApp->mGameScreen->mLevel - 1;
 }
 
+// port: the sheet's number (as an int) in the level's row
 int Sexy::RuleInt(int theColumn)
 {
 	return GetRulesSheet()->GetInt(RuleRow(), theColumn);
 }
 
+// port: the sheet's number in the level's row
 double Sexy::RuleDouble(int theColumn)
 {
 	return GetRulesSheet()->GetDouble(RuleRow(), theColumn);

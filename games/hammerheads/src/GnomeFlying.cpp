@@ -79,7 +79,7 @@ GnomeFlying* Sexy::MakeGnomeFlying(const std::string& theName)
 	return aFlying;
 }
 
-// the rectangle of a cel at the plane's position (the same few lines end the constructor and the update)
+// port: the rectangle of a cel at the plane's position (the same few lines end the constructor and the update)
 void GnomeFlying::UpdateBounds()
 {
 	Image* anImage = IMAGE_GNOME_AVIATOR;

@@ -58,6 +58,7 @@ enum DialogId
 	DIALOG_READY_GO = 0xd,				// "Ready?" (0x45cde0)
 	DIALOG_HIGH_SCORE_TABLE = 0xe,		// the table of the best scores (0x456810)
 	DIALOG_GAME_OVER = 0xf,
+	DIALOG_CHALLENGE_FINISHED = 0x12,	// "Bonus Round Completed" (0x44c9e0)
 	DIALOG_HIGH_SCORES = 0x10,
 	DIALOG_BONUS_ROUND = 0x13,			// "Bonus Round!" (0x421ac0)
 	DIALOG_TOUGH_UNLOCKED = 0x16,

@@ -414,7 +414,7 @@ bool ShopItem::Hit()
 	return aCanBuy;
 }
 
-// where the picture of the item is when it flies off: its middle, the item's line above the platform
+// port: where the picture of the item is when it flies off: its middle, the item's line above the platform
 static double GetFlightY(const ShopItem* theItem, double theHalfHeight)
 {
 	return ((theItem->mPosY - theHalfHeight) - (theItem->mAnchorY - theItem->mHeadY) * 0.5) - (double)theItem->mOffsetY;

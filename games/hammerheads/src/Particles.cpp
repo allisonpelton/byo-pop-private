@@ -136,6 +136,7 @@ struct FragmentRow
 
 #include "ParticleDefs.inc"
 
+// port: a vector from three numbers
 static ParticleVector MakeVector(const double theValues[3])
 {
 	ParticleVector aVector;
