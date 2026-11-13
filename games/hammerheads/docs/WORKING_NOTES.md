@@ -72,8 +72,8 @@ They are staged into `assets/hammerheads/` by `tools/stage_hammerheads_assets.py
 
 Translated and linking: Object, BoardFile, Cubby/CubbyContainer, Creature and the gnome kinds, Floater, Gameplay, GameScreen,
 Avatar, Score/Coins/Hearts, LevelRules, particles, the HUD, Application; the standard test commands are in
-`TestCommands.cpp`. Screens, dialogs, the player roster and saved games are being translated from `ScreenStubs.cpp`'s
-stand-ins to real classes (shop, challenge, profile first; then the menu, dialogs, wipes, trophies). The how-to-play SWF
+`TestCommands.cpp`. The screens, the dialogs (the options, quit and credits boxes last), the player roster and the saved games are
+translated: `ScreenStubs.cpp` and its stand-ins are gone. The how-to-play SWF
 is played by the shared SWF player (engines/swf, library `sexyswf`, on the trunk since 8ffcdc9e: merge main, link it, add Hammer Heads to the
 root CMakeLists condition that adds engines/swf); TinyXML is not available (own small reader/writer: `XmlLite`, BoardFile's chunk reader).
 

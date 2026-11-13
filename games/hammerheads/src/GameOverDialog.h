@@ -25,6 +25,7 @@ public:
 	virtual void	Update() override;										// 0x44fe10
 	virtual void	Draw(Graphics* g) override;								// 0x4502e0
 	virtual int		GetPreferredHeight(int theWidth) override;				// 0x44ff10
+	virtual void	ButtonDepress(int theId) override;						// 0x44fe50: the code the quit box has too
 	virtual void	Closed() override;										// 0x44fee0: "Try Again" or "Main Menu" is answered
 
 private:

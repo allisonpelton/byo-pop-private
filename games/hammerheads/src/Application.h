@@ -47,6 +47,8 @@ enum GameMode
 enum DialogId
 {
 	DIALOG_GAME_MENU = 0,				// the menu of a game on screen (0x44fba0)
+	DIALOG_QUIT = 1,					// "Do you really want to quit?" (0x45c730)
+	DIALOG_OPTIONS = 2,					// the options box (0x45c2e0)
 	DIALOG_USER = 4,					// the player list (0x462c50)
 	DIALOG_CREATE_USER = 5,				// the box that makes the first player (0x44e750(false))
 	DIALOG_CREATE_ANOTHER_USER = 6,		// the box that makes another player (0x44e750(true))
@@ -59,7 +61,9 @@ enum DialogId
 	DIALOG_GAME_OVER = 0xf,
 	DIALOG_CHALLENGE_FINISHED = 0x12,	// "Bonus Round Completed" (0x44c9e0)
 	DIALOG_HIGH_SCORES = 0x10,
+	DIALOG_CREDITS = 0x11,				// the credits (0x44f5d0)
 	DIALOG_BONUS_ROUND = 0x13,			// "Bonus Round!" (0x421ac0)
+	DIALOG_NOTICE = 0x15,				// what the options box tells when a check box cannot be ticked or cleared
 	DIALOG_TOUGH_UNLOCKED = 0x16,
 	DIALOG_GAME_WON = 0x17
 };
@@ -182,7 +186,6 @@ public:
 	void			LevelFinished();									// 0x422860
 	void			GameToTrophyRoom(const std::vector<int>& theTrophies);	// 0x41f950
 	void			NewGame(int theMode);								// 0x422a80
-	void			Quit();												// the game is to end (mQuitting)
 
 	// The zoom wipe: the picture grows over the screen, the callback runs, the picture shrinks away
 	void			DoZoomWipe(WipeCallback theCallback, int theKind);	// 0x41eab0

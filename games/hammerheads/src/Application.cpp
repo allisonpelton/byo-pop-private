@@ -167,7 +167,10 @@ Application::~Application()
 // 0x4205f0 slot 45
 void Application::Init()
 {
-	// the desktop's size (the original asks for the full-screen size of the work area)
+	SexyApp::Init();
+
+	// the desktop's size (the original asks Windows for the full-screen size of the work area before the display is made; SDL
+	// knows the desktop only once it is up, and only the options box reads the size)
 	{
 		SDL_Rect aBounds;
 		if (SDL_GetDisplayUsableBounds(0, &aBounds) == 0)
@@ -182,7 +185,6 @@ void Application::Init()
 		}
 	}
 
-	SexyApp::Init();
 	LoadResourceManifest();		// 0x4e5780
 
 	// port: the 2004 SexyApp::Init seeds the C library generator and Rand()'s generator (see AstroPopApp::Init)
@@ -1439,12 +1441,6 @@ void Application::GameToTrophyRoom(const std::vector<int>& theTrophies)
 {
 	PauseGame(true);
 	CreateTrophyRoom(1, theTrophies);
-}
-
-// port: the original's menu code writes mQuitting itself; the game is to end when the update is done
-void Application::Quit()
-{
-	mQuitting = true;
 }
 
 //////////////////////////////////////////////////////////////////////////

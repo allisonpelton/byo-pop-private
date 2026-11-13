@@ -229,6 +229,16 @@ int GameOverDialog::GetPreferredHeight(int theWidth)
 	return ShowsCreature() ? HEIGHT_WITH_CREATURE : HEIGHT_WITHOUT_CREATURE;
 }
 
+// 0x44fe50: either button takes the box away, answering with its own id (the application is not told at the press, as the moving
+// dialog's own answer would)
+void GameOverDialog::ButtonDepress(int theId)
+{
+	if (theId == Dialog::ID_YES)
+		CloseWith(Dialog::ID_YES);
+	else if (theId == Dialog::ID_NO)
+		CloseWith(Dialog::ID_NO);
+}
+
 // 0x44fee0
 void GameOverDialog::Closed()
 {

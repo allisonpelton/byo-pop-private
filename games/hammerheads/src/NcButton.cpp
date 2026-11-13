@@ -27,7 +27,8 @@ NcButton::~NcButton()
 {
 }
 
-// 0x41cb00: DialogButton::Draw with the strip's three cels, the darkening and a label that sits a little higher
+// 0x41cb00: DialogButton::Draw with the strip's three cels (the one that applies is stretched over the button), the darkening and a
+// label that sits a little higher
 void NcButton::Draw(Graphics* g)
 {
 	Graphics aG(*g);
@@ -54,7 +55,7 @@ void NcButton::Draw(Graphics* g)
 			else
 			{
 				const Rect& aCel = IsButtonDown() ? mDownRect : (mIsOver ? mOverRect : mNormalRect);
-				aG.DrawImage(mComponentImage, 0, 0, aCel);
+				aG.DrawImageBox(aCel, Rect(0, 0, mWidth, mHeight), mComponentImage);
 				if (isDown)
 					aG.Translate(mTranslateX, mTranslateY);
 			}
