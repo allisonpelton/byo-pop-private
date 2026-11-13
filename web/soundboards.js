@@ -236,7 +236,7 @@ var ByopopSoundboards = {
       ["sounds/menuclick.ogg", "Click", "Any button pressed in the menus and dialogs, and every button of the options dialog (its Done button clicks twice)"],
       ["sounds/click2.ogg", "Click 2 (unused)", "Never played: it is in the sound table, but no code plays it. Also in Bejeweled 2 as Click 2 (unused)."],
       ["sounds/sidebarclick2.ogg", "Side bar click (unused)", "Never played: it is not in the sound table, so it is never loaded"],
-      ["sounds/welcome1.ogg", "Welcome (unused)", "Never played: it is not in the sound table, so it is never loaded"],
+      ["sounds/welcome1.ogg", "\"Welcome to Bejeweled\" (unused)", "Never played: it is not in the sound table, so it is never loaded"],
       ["sounds/goodbye1.ogg", "\"Goodbye!\" (unused)", "Never played: it is not in the sound table, so it is never loaded"]
     ] },
     { name: "Matches", sounds: [
@@ -259,7 +259,7 @@ var ByopopSoundboards = {
     { name: "Levels", sounds: [
       ["sounds/go1.ogg", "\"Go!\"", "Update 150 of a new board (1.5 s after it starts), as the Go text bounces in"],
       ["sounds/whirlpool1.ogg", "Whirlpool", "A level is won: loops while the vortex pulls the gems to the middle, its volume rising with the vortex, until the next board or the next vortex"],
-      ["sounds/levelup1.ogg", "Level up", "In the level-won vortex, the farthest gem comes within 80 pixels of the middle (gems move in 1 pixel an update)"],
+      ["sounds/levelup1.ogg", "\"Level up!\"", "In the level-won vortex, the farthest gem comes within 80 pixels of the middle (gems move in 1 pixel an update)"],
       ["sounds/firecrackle.ogg", "Crackle", "The vortex has finished and the gems are gone: the next level's wipe starts; also a lightning gem's blast in a rules mod with special gems. Also in Bejeweled 2 as Fire crackle (unused)."],
       ["sounds/warning1.ogg", "Warning", "Timed mode: the bar is under 15% full; repeats every 240 updates (2.4 s) at 15%, down to every 80 updates (0.8 s) at 5% and below"]
     ] },
@@ -290,7 +290,7 @@ var ByopopSoundboards = {
       ["sounds/menuclick2.ogg", "Dialog click", "A button goes down in a dialog (Options, name, confirm) or on the puzzle dome; also when an option in Options is switched"],
       ["sounds/click2.ogg", "Click 2 (unused)", "Never played: the file is not in the game's resource list and no code plays it. Also in Bejeweled as Click 2 (unused)."],
       ["sounds/panelslide1.ogg", "Panel slide", "The high scores panel opens or starts closing; a galaxy map or puzzle dome button is released; Options is closed with OK"],
-      ["sounds/Welcome.ogg", "\"Welcome\"", "The main menu opens after the title screen with no player name and no saved player; the name dialog follows 1.25 s later"],
+      ["sounds/Welcome.ogg", "\"Welcome to Bejeweled 2\"", "The main menu opens after the title screen with no player name and no saved player; the name dialog follows 1.25 s later"],
       ["sounds/Welcome_Back.ogg", "\"Welcome back\"", "The main menu opens after the title screen when a player name is set or a saved player exists"],
       ["sounds/Goodbye.ogg", "\"Goodbye\"", "Quit is confirmed in the quit dialog; the menu then shuts the game down"]
     ] },
@@ -302,7 +302,7 @@ var ByopopSoundboards = {
       ["sounds/multishot.ogg", "Multi match", "A match makes a flame gem: four in a row, or one gem in two sets (an L, a T or a cross); plays instead of the Match sound"],
       ["sounds/gemongem2.ogg", "Gems land", "Falling gems land, at most once every 10 updates (0.1 s); also when the logo's face gems land on the title screen. Also in Bejeweled 3, as sounds/gem_hit.ogg. Also in Chuzzle Deluxe, as sounds/Bonus/JewelLand.ogg."],
       ["sounds/combo22.ogg", "Cascade 1", "Together with the match sound, when the move's chain is at its first match (a swap resets the chain)"],
-      ["sounds/combo32.ogg", "Cascade 2", "Together with the match sound, for the second match of a move: one fall of new gems after the first. Also in Bejeweled 3, as sounds/combo_2.ogg. Resembles Bejeweled 3's sounds/speedmatch3.ogg, sounds/speedmatch4.ogg, sounds/speedmatch5.ogg, sounds/speedmatch6.ogg, sounds/speedmatch7.ogg, sounds/speedmatch8.ogg and sounds/speedmatch9.ogg, the same sound, mixed differently."],
+      ["sounds/combo32.ogg", "Cascade 2", "Together with the match sound, for the second match of a move: one fall of new gems after the first. Also in Bejeweled 3, as sounds/combo_2.ogg."],
       ["sounds/combo42.ogg", "Cascade 3", "Together with the match sound, for the third match of a move"],
       ["sounds/combo52.ogg", "Cascade 4", "Together with the match sound, for the fourth match of a move"],
       ["sounds/combo62.ogg", "Cascade 5", "Together with the match sound, for the fifth match of a move"],
@@ -314,7 +314,7 @@ var ByopopSoundboards = {
       ["sounds/electro_start.ogg", "Lightning start", "A hypercube is swapped with a neighbouring gem and the lightning starts"],
       ["sounds/electro_path.ogg", "Lightning", "The lightning reaches one more gem: each update has a 1 in 25 chance with no gem lit yet, and a better one as more gems are lit"],
       ["sounds/electro_explode.ogg", "Lightning blast", "A gem the lightning lit explodes, 0.67 s (67 updates) after it was lit; one sound for each gem"],
-      ["sounds/bombexplode.ogg", "Gem explodes", "A flame gem explodes when matched, once per update however many go off; also when a bomb gem's count reaches zero"]
+      ["sounds/bombexplode.ogg", "Gem explodes", "A flame gem explodes when matched, once per update however many go off; also when a bomb gem's count reaches zero. Resembles Bejeweled 3's sounds/bomb_explode.ogg, the same sound, mixed differently."]
     ] },
     { name: "Praise", sounds: [
       ["sounds/Good.ogg", "\"Good\"", "A move's points reach 60 × the level's multiplier, at most once in 120 s (12,000 updates); never in Puzzle"],
@@ -396,7 +396,7 @@ var ByopopSoundboards = {
     ] },
     { name: "Matches and chains", sounds: [
       ["sounds/combo_1.ogg", "Match 1 (unused)", "Never played: a twist's first match counts as chain step 1 and the code adds that to this sound's number, so the first match plays Match 2"],
-      ["sounds/combo_2.ogg", "Match 2", "The 1st match of a twist (step 1 of its chain), when no match in it has six or more gems; also when the wheel's bomb is disarmed. Also in Bejeweled 3, as sounds/combo_2.ogg. Resembles Bejeweled 3's sounds/speedmatch3.ogg, sounds/speedmatch4.ogg, sounds/speedmatch5.ogg, sounds/speedmatch6.ogg, sounds/speedmatch7.ogg, sounds/speedmatch8.ogg and sounds/speedmatch9.ogg, the same sound, mixed differently."],
+      ["sounds/combo_2.ogg", "Match 2", "The 1st match of a twist (step 1 of its chain), when no match in it has six or more gems; also when the wheel's bomb is disarmed. Also in Bejeweled 3, as sounds/combo_2.ogg."],
       ["sounds/combo_3.ogg", "Match 3", "The 2nd match of a twist (chain step 2), when no match in it has six or more gems"],
       ["sounds/combo_4.ogg", "Match 4", "The 3rd match of a twist (chain step 3), when no match in it has six or more gems"],
       ["sounds/combo_5.ogg", "Match 5", "The 4th match of a twist (chain step 4), when no match in it has six or more gems"],
@@ -438,7 +438,7 @@ var ByopopSoundboards = {
       ["sounds/gem_lock_start.ogg", "Lock starts", "A marked gem is still unmatched when its two twists run out, and its lock starts closing"],
       ["sounds/gem_lock_end.ogg", "Lock closes", "A new lock finishes closing over its gem, 50 updates (0.5 s) after Lock starts; a doom lock becomes a doom gem with a count then"],
       ["sounds/gem_lock_break.ogg", "Lock breaks", "A match breaks the lock on a gem, shattering it into shards"],
-      ["sounds/coal_blasted.ogg", "Coal blasted", "A coal gem is broken by a match or blast next to it, shedding its pieces"],
+      ["sounds/coal_blasted.ogg", "Coal blasted", "A coal gem is broken by a match or blast next to it, shedding its pieces. Resembles Bejeweled 3's sounds/diamond_mine_bigstone_cracked.ogg, the same sound, mixed differently."],
       ["sounds/geode.ogg", "Geode", "A geode pops and shows its points, pitched up one step for each geode before it (at most 10); also each rank bonus light that fills, up to 6 steps up. Also in Bejeweled 3, as sounds/rank_countup.ogg."],
       ["sounds/soulify.ogg", "Gem becomes a soul", "A gem is turned into a soul, 80 updates (0.8 s) after the soul effect starts"],
       ["sounds/gemsoul-lands3.ogg", "Soul lands", "A soul lands on the board and gives its gem its special; at most one sound every 2 updates, and one more when the first soul lands"]
@@ -1017,7 +1017,7 @@ var ByopopSoundboards = {
       ["sounds/robot-e.ogg", "Robot E", "One command of Lex's dance animation in the book 6 dance battle plays it, after the L and before the X"],
       ["sounds/robot-l.ogg", "Robot L", "One command of Lex's dance animation in the book 6 dance battle plays it, the first of the four"],
       ["sounds/robot-lex.ogg", "Robot Lex", "One command of Lex's dance animation in the book 6 dance battle plays it, the last of the four"],
-      ["sounds/robot-x.ogg", "Robot X", "One command of Lex's dance animation in the book 6 dance battle plays it, after the E"],
+      ["sounds/robot-x.ogg", "\"X!\"", "One command of Lex's dance animation in the book 6 dance battle plays it, after the E"],
       ["sounds/v_dancebattle.ogg", "\"Dance battle\"", "When the intro flash peaks in the book 6 chapter 7 fight, together with Firework 2"]
     ] },
     { name: "Rewards", sounds: [
@@ -1069,7 +1069,7 @@ var ByopopSoundboards = {
       ["sounds/madhat_reverb.ogg", "Mad Hat effect", "The Mad Hat effect plays"],
       ["sounds/mkxform.ogg", "Monkey King transforms", "The Monkey King companion transforms"],
       ["sounds/skullupgrade.ogg", "Skull upgrade", "The skeleton skull companion is upgraded"],
-      ["sounds/timehelmet_reverb.ogg", "Time Helmet effect", "The Time Helmet effect plays"]
+      ["sounds/timehelmet_reverb.ogg", "Mad hat scramble", "The mad hat companion's sound when the letters are scrambled (its file is named for the Time Helmet); no words"]
     ] },
     { name: "Cutscenes", sounds: [
       ["sounds/cheshirecat.ogg", "Cheshire cat", "The book 4 chapter 7 cutscene of the Cheshire Cat plays, after the Hydra is beaten"],
@@ -1401,8 +1401,8 @@ var ByopopSoundboards = {
     { name: "Hourglass and whirleys", sounds: [
       ["sounds/ticktock.ogg", "Tick tock", "Loops while the endless mode's hourglass has between 5 and 3 seconds left"],
       ["sounds/whirleysiren.ogg", "Whirley siren", "The hourglass passes 3 seconds left"],
-      ["sounds/xwhirleyscoming1.ogg", "Whirleys coming voice", "Endless: 2 seconds before the hourglass runs out Kroney calls; this and the second call alternate, one per hourglass"],
-      ["sounds/xwhirleyscoming2.ogg", "Whirleys coming voice 2", "Endless: 2 seconds before the hourglass runs out, on every second hourglass (the other calls alternate with the first)"],
+      ["sounds/xwhirleyscoming1.ogg", "\"Duhh... Whirley's coming\"", "Endless: 2 seconds before the hourglass runs out Kroney calls; this and the second call alternate, one per hourglass"],
+      ["sounds/xwhirleyscoming2.ogg", "\"Doy... Whirley's coming\"", "Endless: 2 seconds before the hourglass runs out, on every second hourglass (the other calls alternate with the first)"],
       ["sounds/xtimesrunningout.ogg", "\"Time's running out!\"", "Fossil Challenge (strategic and panic): 2 seconds before the hourglass runs out, once per hourglass"]
     ] },
     { name: "Fossils and the museum", sounds: [
@@ -1586,7 +1586,7 @@ var ByopopSoundboards = {
     groups: [
     { name: "Menus and dialogs", sounds: [
       ["sounds/click.ogg", "Click", "A button is pressed anywhere in the game; also the tutorial dialog's two demonstration clicks"],
-      ["sounds/levelupvoice.ogg", "Level up voice", "The next-level screen opens"]
+      ["sounds/levelupvoice.ogg", "\"Level up!\"", "The next-level screen opens"]
     ] },
     { name: "Picking animals", sounds: [
       ["sounds/select.ogg", "Select", "An animal is picked, an animal is joined to the picked one by a click or by the mouse dragging on, or a Puzzle animal is picked"],
@@ -1610,7 +1610,7 @@ var ByopopSoundboards = {
       ["sounds/winfrog.ogg", "Frog voice", "This animal is saved: a pair meets (not while the leftover animals are being abandoned), a Stampede group is taken, or a Puzzle run of three is found; also 1 time in 1750 each update for each animal of this kind waiting above the board to drop in"],
       ["sounds/winelephant.ogg", "Elephant voice", "This animal is saved: a pair meets (not while the leftover animals are being abandoned), a Stampede group is taken, or a Puzzle run of three is found; also 1 time in 1750 each update for each animal of this kind waiting above the board to drop in; also the tutorial's last step"],
       ["sounds/wincow.ogg", "Cow voice", "This animal is saved: a pair meets (not while the leftover animals are being abandoned), a Stampede group is taken, or a Puzzle run of three is found; also 1 time in 1750 each update for each animal of this kind waiting above the board to drop in"],
-      ["sounds/winhippo.ogg", "Hippo voice", "This animal is saved: a pair meets (not while the leftover animals are being abandoned), a Stampede group is taken, or a Puzzle run of three is found; also 1 time in 1750 each update for each animal of this kind waiting above the board to drop in"],
+      ["sounds/winhippo.ogg", "Hippo sound", "This animal is saved: a pair meets (not while the leftover animals are being abandoned), a Stampede group is taken, or a Puzzle run of three is found; also 1 time in 1750 each update for each animal of this kind waiting above the board to drop in"],
       ["sounds/winzebra.ogg", "Zebra voice", "This animal is saved: a pair meets (not while the leftover animals are being abandoned), a Stampede group is taken, or a Puzzle run of three is found; also 1 time in 1750 each update for each animal of this kind waiting above the board to drop in"],
       ["sounds/winmonkey.ogg", "Monkey voice", "This animal is saved: a pair meets (not while the leftover animals are being abandoned), a Stampede group is taken, or a Puzzle run of three is found; also 1 time in 1750 each update for each animal of this kind waiting above the board to drop in"],
       ["sounds/winmouse.ogg", "Mouse voice", "This animal is saved: a pair meets (not while the leftover animals are being abandoned), a Stampede group is taken, or a Puzzle run of three is found; also 1 time in 1750 each update for each animal of this kind waiting above the board to drop in"],
@@ -1799,7 +1799,7 @@ var ByopopSoundboards = {
       ["sounds/talkdavyjoneslocker.ogg", "\"Down to Davy Jones' locker\"", "At a level's end, once the pirate has finished appearing: one of the four voices, at random"],
       ["sounds/talkarrmatey.ogg", "\"Arr, matey!\"", "At a level's end, once the pirate has finished appearing: one of the four voices, at random"],
       ["sounds/talkwalktheplank.ogg", "\"Walk the plank!\"", "At a level's end, once the pirate has finished appearing: one of the four voices, at random"],
-      ["sounds/talklandlubber.ogg", "Landlubber voice", "At a level's end, once the pirate has finished appearing: one of the four voices, at random"]
+      ["sounds/talklandlubber.ogg", "\"Avast, ye landlubber\"", "At a level's end, once the pirate has finished appearing: one of the four voices, at random"]
     ] },
     { name: "Bonus dig", sounds: [
       ["sounds/bonusdig.ogg", "Dig", "A square is dug on the bonus screen and no ghost is under it (panned by column)"],
@@ -1836,8 +1836,8 @@ var ByopopSoundboards = {
     { name: "Matches", sounds: [
       ["TipTop.dat|tiptop:sounds/ColorMatch.ogg", "Match of 3", "A match of exactly three blocks that is the first of its chain"],
       ["TipTop.dat|tiptop:sounds/ColorMatchGroup4.ogg", "Match of 4", "A match of four blocks that is the first of its chain"],
-      ["TipTop.dat|tiptop:sounds/ColorMatchGroup5.ogg", "Match of 5", "A match of five blocks that is the first of its chain"],
-      ["TipTop.dat|tiptop:sounds/ColorMatchGroup6.ogg", "Match of 6 or more", "A match of six or more blocks that is the first of its chain"],
+      ["TipTop.dat|tiptop:sounds/ColorMatchGroup5.ogg", "\"Mega\"", "A match of five blocks that is the first of its chain"],
+      ["TipTop.dat|tiptop:sounds/ColorMatchGroup6.ogg", "\"Super\"", "A match of six or more blocks that is the first of its chain"],
       ["TipTop.dat|tiptop:sounds/ColorMatchCascade1.ogg", "\"Double!\"", "The second match of a chain, whatever its size"],
       ["TipTop.dat|tiptop:sounds/ColorMatchCascade2.ogg", "\"Triple!\"", "The third match of a chain, whatever its size"],
       ["TipTop.dat|tiptop:sounds/ColorMatchCascade3.ogg", "\"Quad!\"", "The fourth match of a chain, whatever its size"],
@@ -1902,7 +1902,7 @@ var ByopopSoundboards = {
       ["sounds/wave_bonus2.ogg", "Wave bonus 2", "A silver medal ends a wave (80 to 94 percent)"],
       ["sounds/wave_bonus3.ogg", "Wave bonus 3", "A gold medal ends a wave (95 percent or more); the first pair of clams is found in the clam bonus level"],
       ["sounds/wingem.ogg", "Gem", "A level is won (the diver is back at the bottom with the treasure); the treasure is shown in the clam bonus level or the streak minigame ends; a second or later pair of clams is found"],
-      ["sounds/treasure.ogg", "Treasure", "The diver's air gauge fills at the treasure and the streak minigame starts; a clam with treasure is opened with no other clam open"],
+      ["sounds/treasure.ogg", "Treasure", "The diver's air gauge fills at the treasure and the streak minigame starts; a clam with treasure is opened with no other clam open. Resembles Insaniquarium Deluxe's sounds/diamond.au, the same sound, mixed differently."],
       ["sounds/bad.ogg", "Bad clam", "A clam with no treasure finishes opening in the clam bonus level"],
       ["sounds/tone1.ogg", "Tone 1", "The streak minigame's 1st or 2nd word (the tone rises every two words)"],
       ["sounds/tone2.ogg", "Tone 2", "The streak minigame's 3rd or 4th word; the 1st bonus creature of a wave shocked"],
