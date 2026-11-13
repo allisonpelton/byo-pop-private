@@ -216,11 +216,8 @@ the tosser plate, and the Survival, options and name screens. Of the 20:
   of Journey and Flood, where three runs never threw a jewel at it), `TextObject::GetBounds` (0x425220), `Plate::TossSlots`
   (0x412ba0) and `VeniceWidget::MouseWheel` (0x441230: the wheel counts as a press of the up or down key; origrun has no
   wheel input).
-- **For a night run (22:00 to 08:00), still open:** the options' two check boxes, hardware acceleration and full screen
-  (`Checkbox::Toggle` 0x4379f0, `SetAcceleratedDisplay` 0x4418a0 and `SetWindowedDisplay` 0x441930), which change the
-  display, and with the 3D mode on the glow of a text that the pointer comes onto (the only caller of `GetBounds`). The
-  tutorial's "don't show this again" check box (the same `Toggle`) only sets a flag, but two tries at its place reached
-  nothing (the screen's `buttons` list does not hold it); it waits for the night too.
+- **Run at night (2026-11-12), reached:** the options' two check boxes, hardware acceleration and full screen (`Checkbox::Toggle` 0x4379f0, `SetAcceleratedDisplay` 0x4418a0 and `SetWindowedDisplay` 0x441930; `scenarios/cov_options_checks.py`, the boxes at 281,353 and 281,393, each on and off), and in the original's 3D mode the glow of a text that the pointer comes onto, the only caller of `TextObject::GetBounds` (0x425220; `scenarios/cov_text_glow.py`, with `ACCELERATED` on the host under dgVoodoo2). In the port the same boxes were clicked with real input: hardware acceleration takes its check mark (the port's 3D and 2D look is the registry's `Is3D`, not a display made again), full screen switches the display to full screen and back (the log's two `mode switch` lines) and the registry ends with `Is3D=0`, `ScreenMode=0`; no error line.
+- **Still open:** the tutorial's "don't show this again" check box (`check_type="instructions"` in `levels/tutorial.xml`, at 73,568; the same `Toggle`, a flag only): it is not on the screen at the instructions the bot's tutorial passes (the opening, "Shoot here!"), so the place and time it shows are not found; two tries by click reached nothing.
 - **Kept, a virtual's empty base:** `SceneObject::OnCustomEvent` (0x429d20); the objects that get a custom event (the basket,
   the slot) have their own.
 - **Candidates for taking out unneeded code: 12 functions.** No play of the original reaches these; they were taken out on
@@ -457,4 +454,4 @@ and now answers an error; the bot's swap is a right button press and release (`"
 answered a step name the loop did not know. `tools/playbymove/playbymove.py` now splits its loop into `parse_args` and `play(args, is_over)`,
 so that a game whose `over` is also a screen the bot goes on from passes its own end of play (the loop's default is unchanged).
 
-Left for the night window (22:00 to 08:00, the full screen runs on the visible desktop): `play.sh <mode> full2d` and `full3d`.
+**Full screen (night of 2026-11-12, 22:00 to 22:14).** `play.sh <mode> full2d` and `full3d` ran all four modes with the registry's `ScreenMode=1` (the game's log says `client 1600x1200 px, logical 800x600, render scale 2, full screen, renderer direct3d11`, no error or warning line): each run's moves, end and last state are the same as the windowed run of the same display (Journey 2D 1844 moves, Journey 3D 1387, Flood 2D 4122, Flood 3D 8038, Survival 7702 in both, Trick Shot 6000 in both), as they should be: the game's logic does not read the window mode. The folders were deleted with their lines here.
