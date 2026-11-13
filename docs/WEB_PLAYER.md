@@ -873,6 +873,19 @@ menu shows and hides it (the user, 2026-11-11: "it's difficult to show/hide the 
 game's share of the main thread is never labelled as the computer's CPU use, and the panel never asks for a WebGL
 context before the game has made its own, since that would take the canvas from the game.
 
+## The sound panel
+
+The setting `soundPanel` (`web/soundpanel.js`, off by default) shows the sounds the game plays, beside the game at the
+right of the performance panel, and the game window's View menu shows and hides it (the user, 2026-11-13: "Add a
+toggleable menu that appears beside the game like the perf panel that shows what sounds are being played in the game and
+at what volume and pitch"). Like the performance panel it only reads. With it off no timer runs and the mixer keeps no
+log; with it on, ten times a second it calls `byopop_sounds_view` (`Mixer::WebVoicesView` in `platform/Audio.cpp`, web
+builds only), which gives the voices playing and the ones started since the last call, so a sound shorter than a tenth
+of a second still gets its row. A row is one voice: the sound's file name, its volume and pan as the game set them
+(before the effects volume, which the header gives), and its pitch as a rate and in semitones; a looping sound is marked,
+and a row stays greyed for two seconds after its voice ends. A game built before the call existed says it needs a
+rebuild.
+
 ## View, controls and play settings
 
 These are site settings, each off or at the game's own behaviour by default. They act on the page around the game: what
