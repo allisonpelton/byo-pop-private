@@ -220,7 +220,12 @@ has no skin. Its controls are drawn as the 1995 desktop drew them (the user, 202
 un-95"), in our own SVG.
 
 **Windows.** A page is a desktop (`ByopopSkin.desk`) whose game, chat and panels are windows, added with
-`ByopopSkin.desk.add(element, {id, title, ...})`. The desktop never scrolls, and F6 moves between its panes. The game
+`ByopopSkin.desk.add(element, {id, title, ...})`. The desktop never scrolls, and F6 moves between its panes. Alt+\`
+switches windows as Windows' Alt+Tab did, since the browser keeps Alt+Tab (the user, 2026-11-13): held down, each \`
+steps through the open windows, the one used last first, in a box of their desktop icons with the chosen one's title
+(Shift+\` steps back, Escape lets go), and letting go of Alt brings that window to the front, restored if it was
+minimized; a quick Alt+\` goes back to the window before. From a window's page on the listing's desktop the keys go to
+that desktop (`ByopopApps.altTab`), so the game's canvas never sees them. The game
 window's menu bar spreads the game's commands over Game, View, Options and Help (the user, 2026-11-09: "don't hide
 everything under "Game""), and no menu shows Alt+F4 or Alt+Space, which the browser keeps. The game is always at a
 whole multiple of its size in device pixels (`sizeStage`); the window takes the status bar's height rounded up
@@ -790,7 +795,7 @@ never colour alone; every animation stops under `prefers-reduced-motion: reduce`
 
 **How the game gets keys, and how to leave it.** The shell sets `SDL_EMSCRIPTEN_KEYBOARD_ELEMENT=#canvas`, so the game
 gets keys only while its canvas has the focus, and then every key, Tab included, except F11; **F6** and Shift+F6 move
-the focus out, and the game never sees them. Moving the focus to a control on the page is not the game losing the
+the focus out, and the game never sees them, nor Alt+\` (the window switch). Moving the focus to a control on the page is not the game losing the
 focus: SDL and the framework (`EmscriptenFocusCallback`) take that from the window's `focus` and `blur` events.
 
 **The checker** is `tools/a11ycheck.js` (`unit-web`), which reads the built pages with no browser; markup that scripts
@@ -873,6 +878,19 @@ menu shows and hides it (the user, 2026-11-11: "it's difficult to show/hide the 
 game's share of the main thread is never labelled as the computer's CPU use, and the panel never asks for a WebGL
 context before the game has made its own, since that would take the canvas from the game.
 
+## The sound panel
+
+The setting `soundPanel` (`web/soundpanel.js`, off by default) shows the sounds the game plays, beside the game at the
+right of the performance panel, and the game window's View menu shows and hides it (the user, 2026-11-13: "Add a
+toggleable menu that appears beside the game like the perf panel that shows what sounds are being played in the game and
+at what volume and pitch"). Like the performance panel it only reads. With it off no timer runs and the mixer keeps no
+log; with it on, ten times a second it calls `byopop_sounds_view` (`Mixer::WebVoicesView` in `platform/Audio.cpp`, web
+builds only), which gives the voices playing and the ones started since the last call, so a sound shorter than a tenth
+of a second still gets its row. A row is one voice: the sound's file name, its volume and pan as the game set them
+(before the effects volume, which the header gives), and its pitch as a rate and in semitones; a looping sound is marked,
+and a row stays greyed for two seconds after its voice ends. A game built before the call existed says it needs a
+rebuild.
+
 ## View, controls and play settings
 
 These are site settings, each off or at the game's own behaviour by default. They act on the page around the game: what
@@ -893,7 +911,10 @@ dither. Both are drawn by a WebGL canvas over the game canvas, filled in the fra
 The Controls panel (`web/controls.js`) lists the game's controls in our own short words, from `web/controldata.js`,
 keyed by game id, whose header gives an entry's form; only keys the game's own code handles are listed. The same table
 drives key remapping (`byopop-keys`), the gamepad (`gamepad`, read once a frame) and the on-screen keys (`touchKeys`);
-`inputDisplay` shows the keys and mouse buttons the game is sent.
+`inputDisplay` shows the keys and mouse buttons the game is sent. Where a game's entry starts with `{uses}`, which names the
+mouse buttons its own code handles and whether it takes typed letters or any key, the display shows only that input and
+its listed keys, so the framework's own keys and the buttons the game ignores drop out; a game without one shows
+everything.
 
 ### Phones
 

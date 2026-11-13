@@ -98,7 +98,7 @@ skin.desk.m.restore = Restore
 skin.desk.m.close = Close
 skin.desk.m.size = {n}x ({w} x {h})
 # Desktop 95's keys, said once in About
-skin.desk.keys = Keys: Tab moves within a window, F6 between the windows, the icons and the task bar.
+skin.desk.keys = Keys: Tab moves within a window, F6 between the windows, the icons and the task bar, and Alt+` switches windows, as Alt+Tab does.
 # Desktop 95's task bar (web/skins.js): its name for a screen reader, the Pop button, the band down the Pop menu's side, and its entries
 skin.taskbar = Task bar
 skin.pop = Pop
@@ -185,6 +185,8 @@ skin.win95.hidden = {count} hidden
 skin.win95.hidden_title = Not made for Windows 95 (Settings, Look: Windows 95 games only)
 settings.perf.label = Performance panel
 settings.perf.hint = Frame times, memory, graphics and sound readings beside the game. It only reads: the game plays the same.
+settings.soundpanel.label = Sound panel
+settings.soundpanel.hint = The sounds the game plays, with their volume, pan and pitch, beside the game. It only reads: the game plays the same.
 settings.scanlines.label = Scanlines
 settings.scanlines.hint = Dark lines across the game's picture, one on every second row of its pixels, like an old monitor.
 settings.scanlines.light = Light
@@ -267,6 +269,20 @@ perf.audio = Sound
 perf.latency = Latency (base / output)
 perf.queued = Sound queued ahead
 perf.gaps = Times the queue ran dry
+
+# ---- The sound panel (web/soundpanel.js)
+
+sounds.panel.title = Sounds
+sounds.panel.effects = Effects volume {volume}. Each row is one sound playing (▶) or just ended.
+sounds.panel.waiting = Waiting for the game.
+sounds.panel.old = This game's build does not report its sounds yet.
+sounds.panel.none = No sound in the last two seconds.
+sounds.panel.unnamed = (made by the game)
+sounds.panel.sound = Sound
+sounds.panel.volume = Volume
+sounds.panel.pan = Pan
+sounds.panel.pitch = Pitch (semitones)
+sounds.panel.centre = centre
 
 
 # ---- Everywhere: new-tab notice and the game pages' footer link (web/footer.html)

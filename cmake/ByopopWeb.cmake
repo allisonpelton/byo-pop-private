@@ -27,7 +27,8 @@ set(BYOPOP_WEB_EXPORTED_FUNCTIONS _main _byopop_userdata_restore _byopop_mods_op
   _byopop_cursor_set_copy
   _byopop_audio_mute _byopop_audio_muted _byopop_site_apply _byopop_site_tutorials _byopop_site_skiplogos _byopop_site_windowed _byopop_site_accel3d _byopop_mixer_gain
   _byopop_update_count _byopop_hold_updates_at _byopop_set_frame_budget _byopop_set_speed _byopop_speed _byopop_perf_json
-  _byopop_music_song _byopop_music_view _byopop_music_row _byopop_music_used _byopop_music_names _byopop_music_mute _byopop_music_meter _byopop_music_seek)
+  _byopop_music_song _byopop_music_view _byopop_music_row _byopop_music_used _byopop_music_names _byopop_music_mute _byopop_music_meter _byopop_music_seek
+  _byopop_sounds_watch _byopop_sounds_view)
 # HEAPU8: the speedrun timer reads a game's auto splitter block from its memory (web/autosplit.js)
 set(BYOPOP_WEB_RUNTIME_METHODS FS callMain ccall HEAPU8)
 # the player-only test page's live command (framework/SexyAppBase.cpp, docs/TEST_COMMANDS.md "Sending them")
@@ -53,7 +54,7 @@ set(BYOPOP_WEB_BRAND favicon.svg favicon.ico apple-touch-icon.png logo.svg cap.s
 # games of its own. web/testkit.js is the player-only page's test tools, which a game page loads only at ?player=1 on a
 # development host (docs/WEB_PLAYER.md, "The player-only page"). web/skins.js and web/skins.css are the site's skins ("Skins").
 # web/settingsicons.js holds the Settings sections' icons, drawn by tools/settingsicons.py.
-set(BYOPOP_WEB_SHARED_JS logo.js cursors.js saver.js settingsicons.js settings.js profiles.js exeicon.js exeprobes.js gameimport.js chat.js testkit.js skins.js schemes.js themedata.js themes.js skins.css perf.js view.js controldata.js controls.js clips.js)
+set(BYOPOP_WEB_SHARED_JS logo.js cursors.js saver.js settingsicons.js settings.js profiles.js exeicon.js exeprobes.js gameimport.js chat.js testkit.js skins.js schemes.js themedata.js themes.js skins.css perf.js soundpanel.js view.js controldata.js controls.js clips.js)
 # the listing page's own scripts: the Players section (web/players.js), the save backup (web/saves.js) and the import of
 # saves from an installed game (web/saveimport.js, with the table platform/saveimport.json as saveimport-table.js), and the
 # adding of games' files (web/addgames.js, with web/modpanel.js for its zip and pak readers, and import-games.js, each listed

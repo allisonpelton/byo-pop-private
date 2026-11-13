@@ -2,6 +2,10 @@
 // keys, by the game's id (the id: of its games/<id>/web/page.js). An entry is one of:
 //   {does, how}    a mouse action, or anything that is not a single key
 //   {does, keys}   keys: KeyboardEvent.code values (e.g. "KeyP", "Space", "Escape") that do that one thing in the game
+//   {uses}         the input the game reads, first in the list, for the input display: {mouse, letters, anyKey}, where mouse
+//                  lists the buttons it handles ("left", "right", "middle"), letters is true when it takes typed letters (A to
+//                  Z), and anyKey true when every key counts (a game pausing on any key); with it, the display shows only those
+//                  and the keys of the entries, so the framework's own keys drop out. A game without one shows everything.
 // The words are our own. Only keys the game's own code handles are listed: not the framework's (Alt+Enter, the mod menu's F2),
 // no debug or cheat keys, no keys that only type into a name box, and no keys of a mod. The comment above each game names the
 // source it was read from (a path in games/<id>/).
@@ -9,6 +13,7 @@ var ByopopControlData = {
 
   // src/Board.cpp Board::KeyChar (any key pauses), Board::MouseDown (a right click, theClickCount < 0, uses the forge)
   alchemy: [
+    { uses: { mouse: ["left", "right"], anyKey: true } },
     { does: "Place the piece", how: "Move the mouse, then click a square" },
     { does: "Use the forge", how: "Right click" },
     { does: "Pause or resume", how: "Press any key" }
@@ -17,6 +22,7 @@ var ByopopControlData = {
   // src/BoardInput.cpp Board::KeyChar (Space, Z and X), Board::KeyDown (arrows, Return, Escape), Board::MouseDown (left, right and
   // middle buttons), Board::MouseMove (the ship follows the mouse)
   astropop: [
+    { uses: { mouse: ["left", "right", "middle"] } },
     { does: "Move the ship", how: "Move the mouse" },
     { does: "Take the bricks at the ship", how: "Left click" },
     { does: "Shoot a brick", how: "Right click" },
@@ -32,6 +38,7 @@ var ByopopControlData = {
 
   // src/Grid.cpp Grid::KeyDown (Space), Grid::MouseDown (left, double and right clicks)
   atomica: [
+    { uses: { mouse: ["left", "right"] } },
     { does: "Pick up an atom", how: "Click it" },
     { does: "Move the atom", how: "Click where it should go" },
     { does: "Set the atom down at once", how: "Double click" },
@@ -39,16 +46,20 @@ var ByopopControlData = {
     { does: "Pause or resume", keys: ["Space"] }
   ],
 
-  // src/BoardRules.cpp Board::KeyChar (any key pauses; the undo key there is a variant mod), Board::MouseDown / MouseDrag
+  // src/BoardRules.cpp Board::KeyChar (any key pauses; the undo key there is a variant mod), Board::MouseDown (a right click
+  // drops the gem picked) / MouseDrag
   bejeweled: [
+    { uses: { mouse: ["left", "right"], anyKey: true } },
     { does: "Swap two gems", how: "Click a gem, then one next to it" },
     { does: "Swap by dragging", how: "Drag a gem onto a neighbour" },
+    { does: "Let go of the gem you picked", how: "Right click" },
     { does: "Pause or resume", how: "Press any key" }
   ],
 
   // src/BoardInput.cpp Board::MouseDown (a click, a right click, a click while the game is paused), Board::MouseDrag; the board's
   // Board::KeyChar (src/BoardCheats.cpp) takes only typed cheat words
   bejeweled2: [
+    { uses: { mouse: ["left", "right"] } },
     { does: "Swap two gems", how: "Click a gem, then one next to it" },
     { does: "Swap by dragging", how: "Drag a gem onto a neighbour" },
     { does: "Let go of the gem you picked", how: "Right click" },
@@ -57,6 +68,7 @@ var ByopopControlData = {
 
   // src/BoardTwist.cpp Board::KeyDown (Pause/Escape, Return/Space, arrows), Board::MouseDown
   bejeweledtwist: [
+    { uses: { mouse: ["left"] } },
     { does: "Twist four gems", how: "Click between four gems" },
     { does: "Move the cursor up", keys: ["ArrowUp"] },
     { does: "Move the cursor down", keys: ["ArrowDown"] },
@@ -66,14 +78,17 @@ var ByopopControlData = {
     { does: "Pause or resume", keys: ["Escape", "Pause"] }
   ],
 
-  // src/Board.cpp Board::KeyChar (Space; the H, U, P, R and digit keys there are mods), Board::MouseDown
+  // src/Board.cpp Board::KeyChar (Space; the H, U, P, R and digit keys there are mods), Board::MouseDown (its right click
+  // is the Pickpockets mod's)
   bigmoney: [
+    { uses: { mouse: ["left"] } },
     { does: "Take a group of money", how: "Click a group of matching pieces" },
     { does: "Pause or resume", keys: ["Space"] }
   ],
 
   // game/GameScreen.cpp event type 8 (Space, Pause, Escape, F1), mouse play through Game::
   bonnies: [
+    { uses: { mouse: ["left"] } },
     { does: "Spell a word", how: "Click or drag across neighbouring letters" },
     { does: "Pause or resume", keys: ["Space", "Pause"] },
     { does: "Open the menu, or resume", keys: ["Escape"] },
@@ -82,15 +97,18 @@ var ByopopControlData = {
 
   // src/Board.cpp Board::KeyChar (Space; digits and Tab there are mods), Board::MouseDown / MouseDrag / MouseUp
   bookworm: [
+    { uses: { mouse: ["left", "right"] } },
     { does: "Spell a word", how: "Click or drag across neighbouring tiles" },
     { does: "Submit the word", how: "Click the last tile again, or drag and let go" },
     { does: "Clear the word", how: "Right click" },
     { does: "Pause or resume", keys: ["Space"] }
   ],
 
-  // src/Board.cpp Board::KeyChar (1 to 3, Return, 4, Space), Board::MouseDown
+  // src/Board.cpp Board::KeyChar (1 to 3, Return, 4, Space), Board::MouseDown (a right click clears the word)
   bookwormadv: [
+    { uses: { mouse: ["left", "right"] } },
     { does: "Spell a word", how: "Click or drag across neighbouring tiles" },
+    { does: "Clear the word", how: "Right click" },
     { does: "Attack with the word", keys: ["Enter", "Digit4"] },
     { does: "Use the first potion", keys: ["Digit1"] },
     { does: "Use the second potion", keys: ["Digit2"] },
@@ -100,7 +118,9 @@ var ByopopControlData = {
 
   // src/Board.cpp Board::KeyChar (same as the first Adventures)
   bookwormadv2: [
+    { uses: { mouse: ["left", "right"] } },
     { does: "Spell a word", how: "Click or drag across neighbouring tiles" },
+    { does: "Clear the word", how: "Right click" },
     { does: "Attack with the word", keys: ["Enter", "Digit4"] },
     { does: "Use the first potion", keys: ["Digit1"] },
     { does: "Use the second potion", keys: ["Digit2"] },
@@ -110,6 +130,7 @@ var ByopopControlData = {
 
   // src/CBLevel.cpp Level_Update (Mouse_Pressed 1 and 2, Key_Pressed 0x20, gEscape, 0xd), src/CBShooter.cpp Shooter_Control
   cosmicbugs: [
+    { uses: { mouse: ["left", "right"] } },
     { does: "Move the ship", how: "Move the mouse" },
     { does: "Fire", how: "Click or hold the left button" },
     { does: "Turn the ship around", how: "Right click, or press Space" },
@@ -119,27 +140,33 @@ var ByopopControlData = {
 
   // src/Dynomite.cpp Dynomite::KeyDown, src/DynomiteFossil.cpp DynomiteFossil::KeyDown, Dynomite::MouseDrag / MouseDown
   dynomite: [
+    { uses: { mouse: ["left"] } },
     { does: "Aim the launcher", how: "Move the mouse" },
     { does: "Fire an egg", how: "Click" },
     { does: "Pause", keys: ["Space", "Escape", "F1", "KeyP"] },
     { does: "Show or hide the museum", keys: ["KeyM", "NumpadSubtract"] }
   ],
 
-  // src/MahjongApp.cpp MahjongWidget::KeyChar / KeyDown / MouseDown, src/Board.cpp Board::OnChar (Return/Space skip the ending),
-  // Board::OnLButtonDown / OnRButtonDown
+  // engines/mahjongescape/src/MahjongApp.cpp MahjongWidget::KeyChar / KeyDown / MouseDown, src/Board.cpp Board::OnChar
+  // (Return/Space skip the ending), Board::OnLButtonDown / OnRButtonDown (a special tile's tip)
   mahjongchina: [
+    { uses: { mouse: ["left", "right"] } },
     { does: "Remove a pair", how: "Click two matching free tiles" },
+    { does: "Show what a special tile does", how: "Right click it" },
     { does: "Skip the ending", keys: ["Enter", "Space"] }
   ],
 
-  // same as mahjongchina: src/Board.cpp Board::OnChar, Board::OnLButtonDown
+  // same as mahjongchina (engines/mahjongescape): Board::OnChar, Board::OnLButtonDown / OnRButtonDown
   mahjongjapan: [
+    { uses: { mouse: ["left", "right"] } },
     { does: "Remove a pair", how: "Click two matching free tiles" },
+    { does: "Show what a special tile does", how: "Right click it" },
     { does: "Skip the ending", keys: ["Enter", "Space"] }
   ],
 
   // src/BoardLogic.cpp KEY_* macros (mKeyDown for Space and the arrows), src/BoardTurn.cpp Board::MouseDown
   mummymaze: [
+    { uses: { mouse: ["left"] } },
     { does: "Step up", keys: ["ArrowUp"] },
     { does: "Step down", keys: ["ArrowDown"] },
     { does: "Step left", keys: ["ArrowLeft"] },
@@ -150,6 +177,7 @@ var ByopopControlData = {
 
   // src/NingPo.cpp NingPo::handleKey (s, f, h, u, Space), onLeftClick / onRightClick (the Backspace, q cheat is left out)
   ningpo: [
+    { uses: { mouse: ["left", "right"] } },
     { does: "Remove a pair", how: "Click two matching free tiles" },
     { does: "Drop your selection", how: "Right click" },
     { does: "Hint", keys: ["KeyH", "KeyF"] },
@@ -160,18 +188,21 @@ var ByopopControlData = {
 
   // src/BoardInput.cpp Board::MouseDownImpl (a right click puts the animal back), Board::MouseDrag; keys there are mods only
   noahsark: [
+    { uses: { mouse: ["left", "right"] } },
     { does: "Link animals", how: "Drag from one animal to the next" },
     { does: "Put the animal back", how: "Right click" }
   ],
 
   // src/Board.cpp Board::KeyDown (Space), Board::MouseMove / MouseDown
   pixelus: [
+    { uses: { mouse: ["left"] } },
     { does: "Throw or pull a block", how: "Point at a square and click" },
     { does: "Pause or resume", keys: ["Space"] }
   ],
 
   // src/BoardInput.cpp Board::KeyChar (Space), Board::MouseDown / MouseUp / MouseDrag
   rocketmania: [
+    { uses: { mouse: ["left", "right"] } },
     { does: "Turn a tile", how: "Click it" },
     { does: "Turn a tile the other way", how: "Right click it" },
     { does: "Move a tile sideways (arcade)", how: "Drag it to the next column" },
@@ -180,6 +211,7 @@ var ByopopControlData = {
 
   // src/BoardUpdate.cpp Board::Update (GetKeys: arrows, numpad, Space), src/BoardInput.cpp Board::MouseDown
   sevenseas: [
+    { uses: { mouse: ["left"] } },
     { does: "Steer left", keys: ["ArrowLeft", "Numpad4"] },
     { does: "Steer right", keys: ["ArrowRight", "Numpad6"] },
     { does: "Steer up", keys: ["ArrowUp", "Numpad8"] },
@@ -191,6 +223,7 @@ var ByopopControlData = {
   // src/BoardKeys.cpp Board::KeyChar (letters, Return, Space), src/MapScreen.cpp MapScreen::KeyChar (letters, Space),
   // src/HintDialog.cpp HintDialog::KeyChar (Return, Space, Escape)
   typershark: [
+    { uses: { mouse: ["left"], letters: true } },
     { does: "Kill a creature", how: "Type the letters of its word" },
     { does: "Use the Shark Zapper when it is charged", keys: ["Enter"] },
     { does: "Pause or resume (when the player's space bar setting is on)", keys: ["Space"] },
@@ -202,6 +235,7 @@ var ByopopControlData = {
 
   // src/App.cpp ColumnCursorProc MSG_KEY (arrows, numpad 4 and 6, Space), MSG_MOUSEDOWN
   tiptop: [
+    { uses: { mouse: ["left"] } },
     { does: "Move along the columns", how: "Move the mouse" },
     { does: "Drop a block", how: "Click" },
     { does: "Move one column left", keys: ["ArrowLeft", "Numpad4"] },
@@ -211,6 +245,7 @@ var ByopopControlData = {
 
   // src/WBLevel.cpp Level_Update (Mouse_Pressed 1 and 2, Key_Pressed 0x20, gEscape asks to quit), src/WBShooter.cpp
   waterbugs: [
+    { uses: { mouse: ["left", "right"] } },
     { does: "Move the ship", how: "Move the mouse" },
     { does: "Fire", how: "Click or hold the left button" },
     { does: "Turn the ship around", how: "Right click, or press Space" },
@@ -219,6 +254,7 @@ var ByopopControlData = {
 
   // game/WordBallSystem.cpp WordBallSystem::keyDown (P, H, F, Escape; digits and letters there are the level editor)
   wordharmony: [
+    { uses: { mouse: ["left"] } },
     { does: "Move a letter ball", how: "Hold and drag it, then let go" },
     { does: "Pause or resume", keys: ["KeyP"] },
     { does: "Help", keys: ["KeyH"] },

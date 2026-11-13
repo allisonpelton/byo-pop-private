@@ -406,6 +406,7 @@ html.saver .stage-wrap { place-items: center; min-height: 100vh; }
 <script src="chat.js"></script>
 <script src="playcount.js"></script>
 <script src="perf.js"></script>
+<script src="soundpanel.js"></script>
 <script src="view.js"></script>
 <script src="controldata.js"></script>
 <script src="controls.js"></script>
@@ -493,6 +494,8 @@ html.saver .stage-wrap { place-items: center; min-height: 100vh; }
   try { ByopopSkin.setGame(PAGE.id); } catch (e) {}
   // the performance panel (web/perf.js), when the site setting is on; it waits for the page to be drawn
   try { document.addEventListener("DOMContentLoaded", function () { ByopopPerf.setGame(PAGE.id); }); } catch (e) {}
+  // the sound panel (web/soundpanel.js), likewise
+  try { document.addEventListener("DOMContentLoaded", function () { ByopopSoundPanel.setGame(PAGE.id); }); } catch (e) {}
   // the view settings (web/view.js): scanlines, a colour filter
   try { document.addEventListener("DOMContentLoaded", function () { ByopopView.setGame(PAGE.id); }); } catch (e) {}
   // the game's controls (web/controls.js): the Controls panel, remapped keys, the gamepad, touch keys, the input display
@@ -731,22 +734,27 @@ html.saver .stage-wrap { place-items: center; min-height: 100vh; }
     try { r = P && P.room(window); } catch (e) {}
     return r ? { w: r.w, h: r.h - statusBarHeight() } : null;
   }
-  // what stands at the right of the game inside its window (the performance panel, web/perf.js): the window is that much wider
-  // (on a narrow page it is under the game instead)
+  // what stands at the right of the game inside its window (the performance panel, web/perf.js, and the sound panel,
+  // web/soundpanel.js, side by side): the window is that much wider (on a narrow page they are under the game instead)
+  function sidePanels() {
+    return [["perf-panel", "perf-side"], ["snd-panel", "snd-side"]].map(function (s) { var p = $(s[0]); return p && !p.hidden && p.classList.contains(s[1]) ? p : null; })
+      .filter(function (p) { return p; });
+  }
   function sideWidth() {
-    var p = $("perf-panel");
-    if (!EMBED || !p || p.hidden || !p.classList.contains("perf-side")) return 0;
+    if (!EMBED) return 0;
     try { if (window.matchMedia("(max-width: 600px)").matches) return 0; } catch (e) {}
-    return p.offsetWidth;
+    return sidePanels().reduce(function (w, p) { return w + p.offsetWidth; }, 0);
   }
   // and how tall it is: the window is at least that tall, so that its readings are never cut off (a play-test, 2026-11-11, had to
   // scroll them in a 640 by 480 game's window)
   function sideHeight() {
     if (!sideWidth()) return 0;
-    var p = $("perf-panel"), last = p.lastElementChild;
-    if (!last) return 0;
-    var pad = parseFloat(getComputedStyle(p).paddingBottom) || 0;
-    return Math.ceil(last.getBoundingClientRect().bottom - p.getBoundingClientRect().top + p.scrollTop + pad);
+    return sidePanels().reduce(function (h, p) {
+      var last = p.lastElementChild;
+      if (!last) return h;
+      var pad = parseFloat(getComputedStyle(p).paddingBottom) || 0;
+      return Math.max(h, Math.ceil(last.getBoundingClientRect().bottom - p.getBoundingClientRect().top + p.scrollTop + pad));
+    }, 0);
   }
   function withSide(h) { return Math.max(h, sideHeight()); }
   window.addEventListener("byopop-side", function () { embedFitted = ""; sizeStage(); });
@@ -832,6 +840,10 @@ html.saver .stage-wrap { place-items: center; min-height: 100vh; }
     var perfOn = false;
     try { perfOn = ByopopPerf.isOn(); } catch (e) {}
     view.push({ label: T("settings.perf.label"), ticked: perfOn, fn: function () { setView("perf", perfOn ? "off" : "on"); } });
+    // the sound panel beside it (the user, 2026-11-13: "a toggleable menu that appears beside the game like the perf panel")
+    var soundsOn = false;
+    try { soundsOn = ByopopSoundPanel.isOn(); } catch (e) {}
+    view.push({ label: T("settings.soundpanel.label"), ticked: soundsOn, fn: function () { setView("soundPanel", soundsOn ? "off" : "on"); } });
     return { game: game, view: view, options: options };
   }
   // Help's About box: the game's name and the copyright and trademark lines of its readme (the page's footer)

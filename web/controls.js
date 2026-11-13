@@ -7,7 +7,8 @@
 //                  B right-clicks, and the other buttons press the game's keys (X, Y, LB, RB, Back, Start in the order of
 //                  the table, unless the player chose others); nothing runs until a gamepad is connected
 //   touch keys     (setting "touchKeys": auto shows them on a touch screen) a button under the game for each of its keys
-//   input display  (setting "inputDisplay") the keys and mouse buttons held, in the game's corner
+//   input display  (setting "inputDisplay") the keys and mouse buttons held that the game reads (the table's {uses} entry), in
+//                  the game window's status bar or under the game
 //   game speed     (setting "speed", 1 by default) the framework's own update multiplier (byopop_set_speed): the game runs
 //                  its updates that much faster or slower in real time; never on the player-only test page (?player=1),
 //                  whose runs keep the game's own speed
@@ -20,7 +21,10 @@ var ByopopControls = (function () {
 
   function setting(name) { try { return ByopopSettings.get(name, pageGame || undefined); } catch (e) { return null; } }
   function T(key, o) { try { return ByopopStrings.t(key, o); } catch (e) { return key; } }
-  function table() { try { return (window.ByopopControlData && ByopopControlData[pageGame]) || []; } catch (e) { return []; } }
+  function entries() { try { return (window.ByopopControlData && ByopopControlData[pageGame]) || []; } catch (e) { return []; } }
+  function table() { return entries().filter(function (c) { return !!c.does; }); }
+  // the input the game reads (its {uses} entry), or null when the table gives none
+  function uses() { var u = entries().filter(function (c) { return !!c.uses; })[0]; return u ? u.uses : null; }
   function keyEntries() { return table().filter(function (c) { return c.keys && c.keys.length; }); }
 
   // ---------- the player's map ----------
@@ -196,14 +200,24 @@ var ByopopControls = (function () {
   window.addEventListener("gamepadconnected", function () { padOn = true; hook(); });
 
   // ---------- the input display ----------
+  // Only the input the game itself reads is shown, where its table says what that is (the coordinator for the user,
+  // 2026-11-13): its keys, letters if it takes typed letters, every key if any key counts, and its mouse buttons. A remapped
+  // key is shown as the game's key it stands in for, so it is kept.
   var held = {}, display = null, shownText = "";
+  function keyShown(code) {
+    var u = uses();
+    if (!u || u.anyKey) return true;
+    if (u.letters && /^Key[A-Z]$/.test(code)) return true;
+    return keyEntries().some(function (c) { return c.keys.indexOf(code) >= 0; });
+  }
+  function buttonShown(name) { var u = uses(); return !u || (u.mouse || []).indexOf(name) >= 0; }
   function show() {
     if (!display) return;
     var parts = [];
-    for (var c in held) if (held[c]) parts.push(keyName(c));
-    if (mouseHeld & 1) parts.push(T("controls.display.left"));
-    if (mouseHeld & 2) parts.push(T("controls.display.right"));
-    if (mouseHeld & 4) parts.push(T("controls.display.middle"));
+    for (var c in held) if (held[c] && keyShown(c)) parts.push(keyName(c));
+    if ((mouseHeld & 1) && buttonShown("left")) parts.push(T("controls.display.left"));
+    if ((mouseHeld & 2) && buttonShown("right")) parts.push(T("controls.display.right"));
+    if ((mouseHeld & 4) && buttonShown("middle")) parts.push(T("controls.display.middle"));
     var text = parts.join(" ");
     if (text === shownText) return;
     shownText = text;

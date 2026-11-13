@@ -832,6 +832,7 @@ std::shared_ptr<SoundData> Mixer::LoadSound(const std::string& theGamePath)
 std::shared_ptr<SoundData> Mixer::LoadSoundData(const std::vector<uint8_t>& file, const std::string& theName)
 {
 	auto data = std::make_shared<SoundData>();
+	data->mName = theName;
 	// Detect Ogg by content: mods may remap a game path to a file with another name.
 	if (file.size() > 4 && !memcmp(file.data(), "OggS", 4))
 	{
@@ -965,6 +966,13 @@ int Mixer::StartVoice(const std::shared_ptr<SoundData>& theData, float theGainL,
 		v.mStartedAt = emscripten_get_now();
 		if (mDevice == kPageDevice && !mGameClocked)
 			PageLead(v);
+		if (mWatchVoices)
+		{
+			if (mWebStarts.size() >= 64)
+				mWebStarts.erase(mWebStarts.begin());
+			mWebStarts.push_back({++mWebStartN, handle, theData->mName, theGainL, theGainR, thePitch,
+				(double)theData->mFrames / theData->mRate, theLoop});
+		}
 #endif
 		if (mNextVoiceSerial > 0x7fffff)
 			mNextVoiceSerial = 1;
@@ -1657,6 +1665,64 @@ std::string Mixer::WebSongView(int theSong)
 	return aJson;
 }
 
+// a string as a JSON string's contents: quotes and backslashes escaped, control characters as spaces
+static void WebQuote(std::string& theOut, const std::string& theText)
+{
+	for (unsigned char c : theText)
+	{
+		if (c == '"' || c == '\\')
+		{
+			theOut += '\\';
+			theOut += (char)c;
+		}
+		else
+			theOut += c < 0x20 ? ' ' : (char)c;
+	}
+}
+
+void Mixer::WebWatchVoices(bool theWatch)
+{
+	mWatchVoices = theWatch;
+	if (!theWatch)
+		mWebStarts.clear();
+}
+
+std::string Mixer::WebVoicesView(int theSince)
+{
+	char aBuf[160];
+	snprintf(aBuf, sizeof(aBuf), "{\"n\":%d,\"sfx\":%.3f,\"voices\":[", mWebStartN, mSfxMaster);
+	std::string aJson = aBuf;
+	bool aFirst = true;
+	for (auto& aVoice : mVoices)
+	{
+		Voice& v = *aVoice;
+		if (!v.mActive || !v.mData || !v.mData->mRate)
+			continue;
+		double aPitch = v.mStep * mRate / v.mData->mRate;
+		snprintf(aBuf, sizeof(aBuf), "%s{\"id\":%d,\"l\":%.3f,\"r\":%.3f,\"pitch\":%.4f,\"loop\":%d,\"at\":%.3f,\"len\":%.3f,\"name\":\"",
+			aFirst ? "" : ",", v.mHandle, v.mGainL, v.mGainR, aPitch, v.mLoop ? 1 : 0, v.mPos / v.mData->mRate,
+			(double)v.mData->mFrames / v.mData->mRate);
+		aJson += aBuf;
+		WebQuote(aJson, v.mData->mName);
+		aJson += "\"}";
+		aFirst = false;
+	}
+	aJson += "],\"started\":[";
+	aFirst = true;
+	for (const WebStart& s : mWebStarts)
+	{
+		if (s.mN <= theSince)
+			continue;
+		snprintf(aBuf, sizeof(aBuf), "%s{\"n\":%d,\"id\":%d,\"l\":%.3f,\"r\":%.3f,\"pitch\":%.4f,\"loop\":%d,\"len\":%.3f,\"name\":\"",
+			aFirst ? "" : ",", s.mN, s.mId, s.mGainL, s.mGainR, s.mPitch, s.mLoop ? 1 : 0, s.mSeconds);
+		aJson += aBuf;
+		WebQuote(aJson, s.mName);
+		aJson += "\"}";
+		aFirst = false;
+	}
+	return aJson + "]}";
+}
+
 bool Mixer::WebSongSeek(int theSong, int theOrder, int theRow)
 {
 	bool aDone = false;
@@ -1814,6 +1880,16 @@ extern "C"
 EMSCRIPTEN_KEEPALIVE int byopop_music_song()
 {
 	return Platform::Mixer::Get().WebFollowedSong();
+}
+// The site's sound panel (web/soundpanel.js): watching the voices on or off, and what plays, as JSON (Mixer::WebVoicesView).
+EMSCRIPTEN_KEEPALIVE void byopop_sounds_watch(int theWatch)
+{
+	Platform::Mixer::Get().WebWatchVoices(theWatch != 0);
+}
+EMSCRIPTEN_KEEPALIVE const char* byopop_sounds_view(int theSince)
+{
+	gMusicResult = Platform::Mixer::Get().WebVoicesView(theSince);
+	return gMusicResult.c_str();
 }
 // Where that song is, as JSON ("" for a song not playing).
 EMSCRIPTEN_KEEPALIVE const char* byopop_music_view(int theSong)
