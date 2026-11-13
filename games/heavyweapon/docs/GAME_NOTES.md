@@ -18,7 +18,7 @@ Reachable only from a test (`-script`, `-commands`, the web page's test call; `d
 | --- | --- |
 | `state` | `{screen, dialog, mode, level, maxlevel, score, lives, nukes, over, appupdates}` and, while a board is up, `timer` (the level's time), `length`, `boss` (its place in the enemy list, -1 before it comes), `bosshealth`, `bossup` (1 while the boss can be hit), `enemies`, `tankx`, `tankdead` (updates until the next tank), `fire`, `paused`, `suspended` (the board stands still while the pointer is off it) and `updates`. `screen` is the widget on top (`title`, `menu`, `help`, `map`, `armory`, `game`, `results`, `gameover`, `highscores`, `credits`); `dialog` is the highest dialog id up; `lives` counts the tanks left after the one in play |
 | `goto <screen>` | `menu`, `options`, `help`, `highscores`, `credits`, `campaign` (a new campaign at its first map), `survival`, `armory`; the screens there go as their buttons take them away. While the intro or the loading runs it ends the intro and answers "still loading: send it again". A player named "Test" is made when there is none |
-| `level <n>` | campaign level n (1 to 18) now, with the player's upgrades, without the armory or the map |
+| `level <n>` | campaign level n (1 to 19, the last the final boss's) now, with the player's upgrades, without the armory or the map |
 | `unlock all` | the player has reached the campaign's end: survival and every level are open |
 | `set score\|lives\|nukes\|level\|timer <v>` | the app's score, tanks left, nukes, next level (1-based) or the level's time |
 | `win` | before the boss, the level's time jumps to the boss's warning, so the boss comes as at the end of the waves; with the boss up it is killed and dies as by the gun (an error while it is still coming in) |

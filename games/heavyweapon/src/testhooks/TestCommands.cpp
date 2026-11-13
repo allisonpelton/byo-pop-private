@@ -11,7 +11,7 @@
 //                          is up
 //   goto <screen>          title, menu, options, help, highscores, credits, campaign (a new campaign, its first map),
 //                          survival (a new survival game), armory (the armory before the next level)
-//   level <n>              campaign level n (1..18) now, with the player's upgrades, skipping the armory and the map
+//   level <n>              campaign level n (1..19, the last the final boss's) now, with the player's upgrades, skipping the armory and the map
 //   unlock all             the player has reached the campaign's end: survival and every level are open
 //   set <key> <value>      score, lives, nukes, timer (updates played), level (1-based, for the next start)
 //   win                    the level's time jumps to the boss's warning, so its boss comes; with the boss up, it is killed
@@ -59,7 +59,7 @@ namespace
 {
 
 const int FIRST_LEVEL = 1;
-const int LAST_LEVEL = 18;
+const int LAST_LEVEL = HeavyWeaponApp::FINAL_LEVEL + 1;	// the final boss's level, 1-based
 const int BOT_MOVE_UPDATES = 4;		// a bot's move holds for this many updates before the next is asked
 const int BOT_SCREEN_UPDATES = 20;	// and a click that goes on from a screen between fights
 
@@ -424,7 +424,7 @@ bool HeavyWeaponApp::HandleScriptCommand(const ScriptCommand& theCommand)
 		int aLevel;
 		if (!ReadInt(anArgs, &aLevel) || aLevel < FIRST_LEVEL || aLevel > LAST_LEVEL)
 		{
-			ReplyError(theCommand, "a level from 1 to 18 is needed");
+			ReplyError(theCommand, "a level from 1 to 19 is needed");
 			return true;
 		}
 		if (aBoard != NULL)
