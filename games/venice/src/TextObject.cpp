@@ -4,6 +4,7 @@
 
 #include "GameText.h"
 #include "Level.h"
+#include "TextFixes.h"
 #include "VeniceDraw.h"
 #include "VeniceGlobals.h"
 #include "VeniceMath.h"
@@ -137,7 +138,7 @@ void TextObject::Load(const char* theText, SceneTag* theTag)
 	}
 	int aStagger = theTag->GetInt("stagger_ms");
 	float aSpacing = (float)theTag->GetFloat("spacing");
-	SetText(theTag->GetString("string"), theTag->GetString("font"), aSpacing, aStagger, aJustification);
+	SetText(CorrectedText(theTag->GetString("string")), theTag->GetString("font"), aSpacing, aStagger, aJustification);
 }
 
 // 0x424960: a letter that follows the first starts a stagger later than the one before it, and is hidden until then

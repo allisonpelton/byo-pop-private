@@ -46,6 +46,8 @@ void ResetTickBase();
 class VeniceWidget : public Sexy::Widget
 {
 public:
+	VeniceWidget() {} // 0x4404f0
+	~VeniceWidget() override {} // 0x4405a0
 	SceneObject mLoadingScreen; // 0xa2a1b0: the picture behind the loading bar
 	SceneObject mLoadingBar; // 0xa2a308: the bar, drawn clipped to the part that is loaded
 	SceneObject mPausedOverlay; // 0xa2a5c0: the "game paused" sign shown while the window has no focus

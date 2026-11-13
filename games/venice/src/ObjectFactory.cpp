@@ -95,6 +95,7 @@ namespace
 	};
 }
 
+// 0x4076b0: the table of the game's own classes (kClasses) and its search by name
 SceneObject* NewObjectByTypeName(const char* theTypeName)
 {
 	for (const ClassEntry& anEntry : kClasses) {

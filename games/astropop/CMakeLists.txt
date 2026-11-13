@@ -16,7 +16,8 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/src/AstroPopApp.cpp)
     target_compile_options(astropop PRIVATE -Wall -Wno-unused-private-field)
   endif()
   if(EMSCRIPTEN)
-    byopop_web_game(astropop TITLE "AstroPop"
+    # _byopop_livesplit_block: the page's speedrun timer asks for the autosplit block's address (src/LiveSplitObserver.cpp)
+    byopop_web_game(astropop EXPORTS _byopop_livesplit_block TITLE "AstroPop"
       COPYRIGHT "AstroPop © 2004 PopCap Games, Inc. All rights reserved." LICENSES libopenmpt)
   else()
     add_custom_command(TARGET astropop POST_BUILD

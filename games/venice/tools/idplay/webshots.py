@@ -29,6 +29,10 @@ def main():
     shutil.rmtree(case, ignore_errors=True)
     os.makedirs(os.path.join(case, 'shots'))
     shutil.copytree(os.path.join(run, 'port.user'), os.path.join(case, 'port.user'))
+    # the player the native run started with, not the one it saved (a Trick Shot player is on the level it reached)
+    start_profile = os.path.join(run, 'start_profile.dat')
+    if os.path.isfile(start_profile):
+        shutil.copyfile(start_profile, os.path.join(case, 'port.user', 'profiles.dat'))
     shutil.copyfile(os.path.join(run, 'ticks.txt'), os.path.join(case, 'ticks.txt'))
     script = open(os.path.join(run, 'port.txt'), encoding='utf-8').read()
     script = re.sub(r'(screenshot) \S*/([^/\s]+\.png)', r'\1 shots/\2', script)

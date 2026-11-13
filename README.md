@@ -103,7 +103,7 @@ asked.
 | Cosmic Bugs | 0.6 to 0.9 s | 0.4 to 1.0 s | 18 to 19 % of one core | 4.7 and 5.6 % of one core | 130 MB | 88 and 89 MB |
 | Water Bugs | 2.76 s | 3.16 s | 10 s a minute | 58 s a minute | 160 MB | 97 and 101 MB |
 | Rocket Mania Deluxe | 1.8 to 2.0 s | 0.9 and 1.1 s | 1.4 to 2.5 M cycles an update (8 to 13 % of one core) | about 4.2 M cycles an update (20 % of one core) | 132 MB | 62 MB |
-| Dynomite Deluxe | 0.96 s | 2.2 s | 12.7 G cycles a minute at the game's own 640x480, 11.1 in its default 1280x960 window | 10.6 G cycles a minute at 60 Hz | 92 and 94 MB | 65 MB |
+| Dynomite Deluxe | 0.96 s | 2.2 s | 8.5 G cycles a minute at the game's own 640x480, 11 to 21 G in its default 1280x960 window | 9.6 G cycles a minute at 60 Hz | 58 MB at 640x480, 95 to 181 MB in the default window | 65 MB |
 | Bookworm Adventures Volume 2 | | | | | | |
 | Mahjong Escape: Ancient Japan | 1.31 s | | 6.0 % of one core | 3.1 % of one core | 146 MB | 40 MB |
 | Mahjong Escape: Ancient China | 1.29 s | | 7.3 % of one core | 1.7 % of one core | 104 MB | 31 MB |
@@ -126,8 +126,8 @@ shared the machine with other sessions' games, and each game has its own play an
 port with its own original, never one game with another; an empty cell means the notes give no number.
 Dynomite Deluxe's processor time is the cycles its threads ran in the same scripted minute of Time Trial, the
 medians of five pinned rounds run in turn, with its original windowed at 640x480 and drawing at most 60 times a second
-as in full screen. The port is over it by the shared cost of presenting through the graphics driver; its screen
-is drawn on the GPU. Rocket Mania's, Bejeweled 2's and AstroPop's ports ran in the original's own window
+as in full screen. At that size the port draws its screen in software, as the original does, and is under it; in a
+larger window it draws on the GPU, whose present cost and memory vary with the GPU's other load. Rocket Mania's, Bejeweled 2's and AstroPop's ports ran in the original's own window
 size too (Bejeweled 2's on an idle board); AstroPop's 3D is over its original by the same present cost.
 
 Two things differ in every native port on purpose, the user's choice for all of them, with no mod needed. Full screen is

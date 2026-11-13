@@ -197,7 +197,9 @@ def script_span(path):
 
 def port_exe():
     root = os.getcwd()
-    return (os.path.join(root, 'build', 'native', 'dynomite.exe'), os.path.join(root, 'assets', 'dynomite'))
+    # PERF_EXE: another build of the port (a frozen baseline, say), for a comparison
+    exe = os.environ.get('PERF_EXE') or os.path.join(root, 'build', 'native', 'dynomite.exe')
+    return (os.path.abspath(exe), os.path.join(root, 'assets', 'dynomite'))
 
 
 def new_user(d):
@@ -276,8 +278,10 @@ def port_minute(out, script, seed, start):
     others0 = game_processes(mine_prefixes())
     s0 = system_times()
     log = open(os.path.join(out, 'game.log'), 'wb')
-    p = subprocess.Popen([exe, '-gamedir=' + gamedir, '-userdir=' + user, '-seed=' + seed, '-script=' + script],
-                         cwd=out, stdout=log, stderr=subprocess.STDOUT)
+    args = [exe, '-gamedir=' + gamedir, '-userdir=' + user, '-seed=' + seed, '-script=' + script]
+    if os.environ.get('PERF_WINDOWSCALE'):        # the window's size, as cycles.py's CYC_WINDOWSCALE (default: the player's)
+        args.append('-windowscale=' + os.environ['PERF_WINDOWSCALE'])
+    p = subprocess.Popen(args, cwd=out, stdout=log, stderr=subprocess.STDOUT)
     h = k32.OpenProcess(QUERY | VM_READ | QUERY_LIMITED, False, p.pid)
     created = creation_time(h)
     samples = []

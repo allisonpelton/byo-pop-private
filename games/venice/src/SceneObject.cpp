@@ -21,7 +21,7 @@ SceneObject::SceneObject()
 	Reset();
 }
 
-// 0x425ee0
+// 0x425ee0, and 0x422bf0 (the release of the picture, translated inline)
 SceneObject::~SceneObject()
 {
 	mChildren.Clear();

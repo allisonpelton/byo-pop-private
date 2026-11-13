@@ -118,6 +118,11 @@ public:
 	// With mSoftwareStretch: a fast stretch steps its column before it samples (texel (srcX * 65536 + (i + 1) * step) >> 16),
 	// as 1.5's DDImage::StretchBlt does (AstroPop's 0x4c68c0; Bejeweled Twist's 0x41a3e0 samples first). Off by default.
 	bool mFastStretchPreAdd;
+	// With mSoftwareStretch: a fast stretch samples each pixel's centre exactly (texel srcX + (2i + 1) * srcWidth /
+	// (2 * destWidth), and the same for rows), as SDL's nearest filter samples it on the GPU path (16.16 steps from half a
+	// step in fall a column short at some widths). A software screen (SoftwareScreenDisplay) sets it, so that a port's stretches keep the columns the GPU path
+	// gave them; Dynomite's original samples so (its DDImage::StretchBlt, 0x473870). Off by default.
+	bool mFastStretchCentre;
 
 	// The software transforms (off by default; set with mSoftwareStretch by a game whose original drew its screen in
 	// software, as Bejeweled Twist does in 2D). The second piece of the software 2D path: DDImage's BltRotated,
@@ -236,6 +241,12 @@ public:
 	// DDImage::Check3D's answer for a destination: whether a draw onto theImage goes through this display (after
 	// binding it) rather than the software blitters. Here only the screen does.
 	virtual bool CheckDestination(DDImage* theImage);
+	// Whether the screen image's own bits are the screen, drawn by the software blitters (SoftwareScreenDisplay): its
+	// GetBits then gives them as they are instead of reading the display back. Not here: the screen is the renderer's.
+	virtual bool ScreenOnCPU() const { return false; }
+	// A draw by the software blitters onto the screen image covered (at most) theRect, in the screen's pixels and not yet
+	// clipped to it (DDImage's software branches): a software screen shows only what was drawn. Nothing here.
+	virtual void ScreenDrawn(const Rect& theRect) {}
 
 	// GPU drawing onto the screen (logical coordinates). theClipRect may be NULL.
 	virtual void FillRect(const Rect& theRect, const Color& theColor, int theDrawMode, const Rect* theClipRect);

@@ -193,7 +193,7 @@ def mods_settings(ud):
     (`schools`: the fixes mod's rule of 2026-11-11, off by default where the bug is not well known to be one) would otherwise be left
     out of the check that the fixes leave the state logs as they were."""
     d = os.environ.get('TSMODSDIR')
-    if not d:
+    if not d or not os.path.exists(os.path.join(d, 'fixes', 'mod.json')):      # a folder of other mods only (livesplit): nothing to turn on
         return
     manifest = json.load(open(os.path.join(d, 'fixes', 'mod.json')))
     values = {s['id']: True for s in manifest['settings'] if s['type'] == 'bool'}

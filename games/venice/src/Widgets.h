@@ -13,6 +13,7 @@ const int WidgetTextSize = 64;
 class UserDataDisplay : public SceneObject
 {
 public:
+	UserDataDisplay() {} // 0x4364d0
 	char mDisplayType[WidgetTextSize] = ""; // 0x148: what to show ("current_user_name")
 	char mFontName[WidgetTextSize] = ""; // 0x188
 
@@ -25,6 +26,7 @@ public:
 class UserListBox : public SceneObject
 {
 public:
+	UserListBox() {} // 0x43a720
 	char mFontName[WidgetTextSize] = ""; // 0x148
 	float mTextScale = 0.0f; // 0x188: the size of the names ("size" in the data)
 
@@ -51,6 +53,7 @@ enum SliderKind
 class Slider : public SceneObject
 {
 public:
+	Slider() {} // 0x436ff0
 	float mLeftValue = 0.0f; // 0x148: the x of the knob at 0 per cent
 	float mRightValue = 0.0f; // 0x14c: at 100 per cent
 	bool mIsSliding = false; // 0x154: the knob follows the pointer (it was pressed, and the button is still down)
@@ -78,6 +81,7 @@ enum CheckboxKind
 class Checkbox : public SceneObject
 {
 public:
+	Checkbox() {} // 0x4376a0
 	int mChecked = 0; // 0x148
 	CheckboxKind mKind = CheckboxKindNone; // 0x14c
 	float mRightArea = 0.0f; // 0x18c: how far to the right of the box the pointer is still on it
