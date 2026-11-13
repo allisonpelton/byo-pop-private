@@ -13,7 +13,9 @@
 //                          survival (a new survival game), armory (the armory before the next level)
 //   level <n>              campaign level n (1..19, the last the final boss's) now, with the player's upgrades, skipping the armory and the map
 //   unlock all             the player has reached the campaign's end: survival and every level are open
-//   set <key> <value>      score, lives, nukes, timer (updates played), level (1-based, for the next start)
+//   set <key> <value>      score, lives, nukes, timer (updates played), level (1-based, for the next start), progress
+//                          (1-based: the player's saved campaign stands before that level, as after passing the one
+//                          before it, and is saved: the main menu's campaign then offers to continue it)
 //   win                    the level's time jumps to the boss's warning, so its boss comes; with the boss up, it is killed
 //                          (an error while the boss is on its way)
 //   lose                   the tank is killed with no tank left (an error while no tank is on the field)
@@ -22,6 +24,16 @@
 //                          fights MOVE {"click","input","updates"}, the button that goes on (a message box's OK, a play
 //                          tip's OK, the help's PLAY, the results, the armory's plus buttons until every point is spent
 //                          and then its GO, the map's link); else MOVE null
+//
+// Two more for the identical-play comparison with the original (tools/idplay/idplay.py):
+//   trace <file>|off       from the next update on, a line a update in <file>: the state the update before left, the values
+//                          idplay reads from the original's memory (TraceFrame)
+//   botrecord <file> [<period> <residue>...]
+//                          the bot plays: its every move goes in as script input (move, click, down, up) at once, and each
+//                          input goes into <file> as "<update> <command> <x> <y>", so the same input can be given to the
+//                          original; it asks the bot again 4 updates after a move, 20 after a click and 10 when there is
+//                          none, and with a period only at an update whose number modulo it is one of the residues (the
+//                          next such update): the updates before which the original under origrun reads its input
 
 #include "HeavyWeaponApp.h"
 #include "Armory.h"
@@ -39,6 +51,7 @@
 #include "MTRand.h"
 #include "OptionsDialog.h"
 #include "PlayTipDialog.h"
+#include "Projectile.h"
 #include "ResultsScreen.h"
 #include "BracketButton.h"
 #include "DialogButton.h"
@@ -62,6 +75,16 @@ const int FIRST_LEVEL = 1;
 const int LAST_LEVEL = HeavyWeaponApp::FINAL_LEVEL + 1;	// the final boss's level, 1-based
 const int BOT_MOVE_UPDATES = 4;		// a bot's move holds for this many updates before the next is asked
 const int BOT_SCREEN_UPDATES = 20;	// and a click that goes on from a screen between fights
+const int BOT_IDLE_UPDATES = 10;	// botrecord: the wait when the bot has no move
+const int TRACE_FLUSH_UPDATES = 256;	// the trace is written out this often
+const int TRACED_ITEMS = 3;			// the trace gives the places of this many of each of the board's bullets, enemies and
+									// projectiles (idplay.py, TRACED_ITEMS)
+
+const int MAX_STEP_PERIOD = 32;		// botrecord's period: its residues are the bits of an unsigned int
+
+FILE* sRecordFile = NULL;			// botrecord's file: each input it sent, by update
+int sStepPeriod = 0;				// botrecord: with a period the bot is asked only at updates whose number modulo it is
+unsigned int sStepResidues = 0;		// one of these (bits): the updates before which the original reads its input
 
 void Reply(const std::string& theLine)
 {
@@ -305,6 +328,80 @@ void ReplyMove(HeavyWeaponApp* theApp)
 	Reply(aStream.str());
 }
 
+// botrecord: whether the bot may be asked at theUpdate, and the first update from theUpdate on at which it may
+bool IsBotStepUpdate(int theUpdate)
+{
+	return sStepPeriod == 0 || (sStepResidues & (1u << (theUpdate % sStepPeriod))) != 0;
+}
+
+int NextBotStepUpdate(int theUpdate)
+{
+	while (!IsBotStepUpdate(theUpdate))
+		theUpdate++;
+	return theUpdate;
+}
+
+// botrecord: one input now, through the script, and its line in the file
+void RecordInput(HeavyWeaponApp* theApp, const char* theCommand, int x, int y)
+{
+	std::ostringstream anArgs;
+	anArgs << x << " " << y;
+	theApp->AddScriptCommand(theApp->mUpdateCount, theCommand, anArgs.str());
+	fprintf(sRecordFile, "%d %s %s\n", theApp->mUpdateCount, theCommand, anArgs.str().c_str());
+	fflush(sRecordFile);
+}
+
+// botrecord's step: the bot's move goes in as input; returns the updates until the bot is asked again
+int RecordBotMove(HeavyWeaponApp* theApp)
+{
+	Board* aBoard = FindGameBoard(theApp);
+	Widget* aButton = OnwardButton(theApp, aBoard);
+	if (aButton != NULL)
+	{
+		int x = aButton->mX + aButton->mWidth / 2;
+		int y = aButton->mY + aButton->mHeight / 2;
+		RecordInput(theApp, "move", x, y);
+		RecordInput(theApp, "click", x, y);
+		return BOT_SCREEN_UPDATES;
+	}
+	BotMove aMove;
+	if (ScreenName(theApp) != "game" || !ChooseBotMove(aBoard, &aMove))
+		return BOT_IDLE_UPDATES;
+	RecordInput(theApp, "move", aMove.mX, aMove.mY);
+	if (aMove.mFire && !aBoard->mMouseDown)
+		RecordInput(theApp, "down", aMove.mX, aMove.mY);
+	else if (!aMove.mFire && aBoard->mMouseDown)
+		RecordInput(theApp, "up", aMove.mX, aMove.mY);
+	return BOT_MOVE_UPDATES;
+}
+
+// A double's two halves as the original's memory holds them: low word, then high word
+void DoubleWords(double theValue, int* theLow, int* theHigh)
+{
+	uint64_t aBits;
+	memcpy(&aBits, &theValue, sizeof(aBits));
+	*theLow = (int)(uint32_t)aBits;
+	*theHigh = (int)(uint32_t)(aBits >> 32);
+}
+
+// The trace's places of a board list's first TRACED_ITEMS items: " <prefix><n>x=<high word of mX> <prefix><n>y=...", 0 for
+// the items the list does not have
+template <class T> void WriteTracedItems(FILE* theFile, char thePrefix, ObjectList<T>& theList)
+{
+	typename ObjectList<T>::Node* aNode = theList.mHead->mNext;
+	for (int i = 1; i <= TRACED_ITEMS; i++)
+	{
+		int aLow = 0, anXHigh = 0, aYHigh = 0;
+		if (aNode != NULL)
+		{
+			DoubleWords(aNode->mItem->mX, &aLow, &anXHigh);
+			DoubleWords(aNode->mItem->mY, &aLow, &aYHigh);
+			aNode = aNode->mNext;
+		}
+		fprintf(theFile, " %c%dx=%d %c%dy=%d", thePrefix, i, anXHigh, thePrefix, i, aYHigh);
+	}
+}
+
 bool ReadInt(const std::string& theText, int* theValue)
 {
 	char* anEnd = NULL;
@@ -317,11 +414,143 @@ bool ReadInt(const std::string& theText, int* theValue)
 
 }
 
+// The trace's line for the update that just ended: what idplay.py reads from the original's memory after the same update,
+// each 32-bit value as a signed int (the generators' indexes and first words, the board's values, 0 where there is none)
+void HeavyWeaponApp::TraceFrame()
+{
+	uint32_t aState[MTRAND_N];
+	int aRandIndex;
+	GetRandMTState(aState, &aRandIndex);
+	int aRandFirstWord = (int) aState[0];
+	int aGameRandIndex;
+	mRand.GetState(aState, &aGameRandIndex);
+	int aGameRandFirstWord = (int) aState[0];
+	int aLevelTime = 0, aTankXLow = 0, aTankXHigh = 0, aTankDeadTime = 0, aDestroyed = 0, aSpawned = 0, anEnemyCount = 0;
+	int aBossHealthLow = 0, aBossHealthHigh = 0;
+	int aMouseX = 0, aMouseY = 0, aMouseDown = 0, aBullets = 0, anExplosions = 0, aProjectiles = 0, aCraters = 0;
+	int aTankShots = 0, aCasings = 0, aSparks = 0, aParticles = 0;
+	if (mBoard != NULL)
+	{
+		aLevelTime = mBoard->mLevelTime;
+		DoubleWords(mBoard->mTankX, &aTankXLow, &aTankXHigh);
+		aTankDeadTime = mBoard->mTankDeadTime;
+		aDestroyed = mBoard->mEnemiesDestroyed;
+		aSpawned = mBoard->mEnemiesSpawned;
+		anEnemyCount = mBoard->mEnemies.mCount;
+		if (mBoard->mBoss != NULL)
+			DoubleWords(mBoard->mBoss->mHealth, &aBossHealthLow, &aBossHealthHigh);
+		aMouseX = mBoard->mMouseX;
+		aMouseY = mBoard->mMouseY;
+		aMouseDown = mBoard->mMouseDown ? 1 : 0;
+		aBullets = mBoard->mBullets.mCount;
+		anExplosions = mBoard->mExplosions.mCount;
+		aProjectiles = mBoard->mProjectiles.mCount;
+		aCraters = mBoard->mCraters.mCount;
+		aTankShots = mBoard->mTankShots.mCount;
+		aCasings = mBoard->mShellCasings.mCount;
+		aSparks = mBoard->mSparks.mCount;
+		aParticles = mBoard->mParticles.mParticles.mCount;
+	}
+	fprintf(mTraceFile, "u=%d loaded=%d fidx=%d f0=%d gidx=%d g0=%d board=%d score=%d level=%d lives=%d nukes=%d ltime=%d "
+		"tankxl=%d tankxh=%d tankdead=%d killed=%d spawned=%d enemies=%d boss=%d bosshpl=%d bosshph=%d mousex=%d mousey=%d "
+		"mousedown=%d bullets=%d explosions=%d projectiles=%d craters=%d tankshots=%d casings=%d sparks=%d particles=%d",
+		mUpdateCount, mLoadingCompleteShown ? 1 : 0, aRandIndex, aRandFirstWord, aGameRandIndex, aGameRandFirstWord,
+		mBoard != NULL ? 1 : 0, mScore, mLevel, mLives, mPowerUps[POWERUP_NUKES], aLevelTime, aTankXLow, aTankXHigh,
+		aTankDeadTime, aDestroyed, aSpawned, anEnemyCount, (mBoard != NULL && mBoard->mBoss != NULL) ? 1 : 0, aBossHealthLow,
+		aBossHealthHigh, aMouseX, aMouseY, aMouseDown, aBullets, anExplosions, aProjectiles, aCraters, aTankShots, aCasings,
+		aSparks, aParticles);
+	// the first few of the board's bullets, enemies and projectiles, each by the high words of its mX and mY
+	if (mBoard != NULL)
+	{
+		WriteTracedItems(mTraceFile, 'b', mBoard->mBullets);
+		WriteTracedItems(mTraceFile, 'e', mBoard->mEnemies);
+		WriteTracedItems(mTraceFile, 'p', mBoard->mProjectiles);
+	}
+	else
+	{
+		for (char aPrefix : { 'b', 'e', 'p' })
+		{
+			for (int i = 1; i <= TRACED_ITEMS; i++)
+				fprintf(mTraceFile, " %c%dx=0 %c%dy=0", aPrefix, i, aPrefix, i);
+		}
+	}
+	fprintf(mTraceFile, "\n");
+	if (mUpdateCount % TRACE_FLUSH_UPDATES == 0)
+		fflush(mTraceFile);
+}
+
 bool HeavyWeaponApp::HandleScriptCommand(const ScriptCommand& theCommand)
 {
 	const std::string& aCommand = theCommand.mCommand;
 	std::string anArgs = theCommand.mArgs;
 	Board* aBoard = FindGameBoard(this);
+	if (aCommand == "trace")
+	{
+		if (mTraceFile != NULL)
+			fclose(mTraceFile);
+		mTraceFile = NULL;
+		if (anArgs != "off")
+		{
+			mTraceFile = fopen(anArgs.c_str(), "w");
+			if (mTraceFile == NULL)
+			{
+				ReplyError(theCommand, "cannot write " + anArgs);
+				return true;
+			}
+		}
+		ReplyOK(theCommand);
+		return true;
+	}
+	if (aCommand == "botrecord")
+	{
+		// with a file it starts; without, it is the bot's next step, which each step schedules
+		if (!anArgs.empty())
+		{
+			std::istringstream anArgStream(anArgs);
+			std::string aFile;
+			anArgStream >> aFile;
+			int aPeriod = 0;
+			unsigned int aResidues = 0;
+			if (anArgStream >> aPeriod)
+			{
+				int aResidue;
+				while (anArgStream >> aResidue)
+				{
+					if (aPeriod < 1 || aPeriod > MAX_STEP_PERIOD || aResidue < 0 || aResidue >= aPeriod)
+						break;
+					aResidues |= 1u << aResidue;
+				}
+				if (aResidues == 0 || !anArgStream.eof())
+				{
+					ReplyError(theCommand, "botrecord <file> [<period> <residue>...]");
+					return true;
+				}
+			}
+			if (sRecordFile != NULL)
+				fclose(sRecordFile);
+			sRecordFile = fopen(aFile.c_str(), "w");
+			if (sRecordFile == NULL)
+			{
+				ReplyError(theCommand, "cannot write " + aFile);
+				return true;
+			}
+			sStepPeriod = aPeriod;
+			sStepResidues = aResidues;
+			ReplyOK(theCommand);
+		}
+		else if (sRecordFile == NULL)
+		{
+			ReplyError(theCommand, "botrecord <file> starts it");
+			return true;
+		}
+		if (!IsBotStepUpdate(mUpdateCount))
+		{
+			AddScriptCommand(NextBotStepUpdate(mUpdateCount), "botrecord", "");
+			return true;
+		}
+		AddScriptCommand(NextBotStepUpdate(mUpdateCount + RecordBotMove(this)), "botrecord", "");
+		return true;
+	}
 
 	if (aCommand == "state")
 	{
@@ -487,6 +716,20 @@ bool HeavyWeaponApp::HandleScriptCommand(const ScriptCommand& theCommand)
 			mPowerUps[POWERUP_NUKES] = aValue;
 		else if (aKey == "level")
 			mLevel = aValue - 1;
+		else if (aKey == "progress")
+		{
+			if (aValue < FIRST_LEVEL || aValue > LAST_LEVEL)
+			{
+				ReplyError(theCommand, "a level from 1 to 19 is needed");
+				return true;
+			}
+			EnsureUser(this);
+			UserRecord& aUser = CurrentUser();
+			aUser.mLevel = (unsigned short)(aValue - 1);
+			if ((int)aUser.mMaxLevel < aValue - 1)
+				aUser.mMaxLevel = (unsigned short)(aValue - 1);
+			SaveUsers();
+		}
 		else if (aKey == "timer")
 		{
 			if (aBoard == NULL)

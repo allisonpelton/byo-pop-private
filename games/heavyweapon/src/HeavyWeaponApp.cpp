@@ -86,6 +86,7 @@ HeavyWeaponApp::HeavyWeaponApp()
 	mArmory = NULL;
 	mTitleScreen = NULL;
 	mLoadingCompleteShown = false;
+	mTraceFile = NULL;
 	mMainMenu = NULL;
 	mMusicVolume = 0.3;
 	mSfxVolume = 0.9;
@@ -123,6 +124,8 @@ HeavyWeaponApp::HeavyWeaponApp()
 // the port frees them
 HeavyWeaponApp::~HeavyWeaponApp()
 {
+	if (mTraceFile != NULL)
+		fclose(mTraceFile);
 	for (int i = 0; i < NUM_IMAGES; i++)
 		delete mSprites[i];
 	for (int i = 0; i < NUM_TARGET_IMAGES; i++)
@@ -542,6 +545,9 @@ void HeavyWeaponApp::FatalError(const std::string& theMessage)
 // (PlaySample)
 void HeavyWeaponApp::UpdateFrames()
 {
+	// port: a test's trace (testhooks) first writes the state the last update left, before this update's script input
+	if (mTraceFile != NULL)
+		TraceFrame();
 	SexyApp::UpdateFrames();
 	if (mLoadingThreadCompleted && !mLoadingCompleteShown)
 	{
