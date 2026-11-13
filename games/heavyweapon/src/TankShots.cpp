@@ -7,6 +7,7 @@
 #include "Particles.h"
 #include "Res.h"
 #include "Sprite.h"
+#include "X87.h"
 
 #include <math.h>
 #include <stdlib.h>
@@ -272,7 +273,7 @@ Enemy* HomingMissile::FindTarget()
 		Enemy* anEnemy = aList.Current();
 		double aDistance = sqrt(pow(anEnemy->mY - mY, 2.0) + pow(anEnemy->mX - mX, 2.0));
 		if (aDistance < aBest &&
-			(double)abs((int)(mFrame * HEADING_PER_FRAME - (atan2(mX - anEnemy->mX, mY - anEnemy->mY) + HEADING_OFFSET))) <
+			(double)abs((int)(mFrame * HEADING_PER_FRAME - (X87Atan2(mX - anEnemy->mX, mY - anEnemy->mY) + HEADING_OFFSET))) <
 				3.142 &&
 			!anEnemy->mIsFriendly && anEnemy->mY < mY + 1.0 && anEnemy->mIsAlive)
 		{
@@ -289,8 +290,8 @@ Enemy* HomingMissile::FindTarget()
 void HomingMissile::Update()
 {
 	double anAngle = mFrame * HEADING_PER_FRAME;
-	mVelX = cos(anAngle) * 4.0;
-	mVelY = sin(anAngle) * 4.0;
+	mVelX = X87Cos(anAngle) * 4.0;
+	mVelY = X87Sin(anAngle) * 4.0;
 	mX = mX + mVelX;
 	mY = mY - mVelY;
 	EmitTrail(mBoard, mX - mVelX * 5.0, mVelY * 5.0 + mY, mVelX * 0.5, mVelY * -0.5);
@@ -298,7 +299,7 @@ void HomingMissile::Update()
 	Enemy* aTarget = FindTarget();
 	if (aTarget != NULL)
 	{
-		double anAim = atan2(mX - aTarget->mX, mY - aTarget->mY) + HEADING_OFFSET;
+		double anAim = X87Atan2(mX - aTarget->mX, mY - aTarget->mY) + HEADING_OFFSET;
 		if (anAngle < anAim)
 			mFrame = mFrame + 0.1;
 		if (anAim < anAngle)
@@ -334,10 +335,13 @@ Rocket::Rocket(Board* theBoard, double x, double y, int theSideOffset) : Project
 	mIsDestructible = false;
 	mSprite = mBoard->mApp->mSprites[IMAGE_ROCKET];
 	double aHeading = (mFrame * 9.0 - 4.0) * 0.017453292520882225;
-	mX = (mBoard->mTankX - cos(aHeading) * 12.0) - cos(aHeading + 1.5707963268794) * (double)theSideOffset;
-	mY = ((double)(mBoard->mTankY - 12) - sin(aHeading) * 12.0) - sin(aHeading + 1.5707963268794) * (double)theSideOffset;
-	mVelX = cos(aHeading) * -4.0;
-	mVelY = sin(aHeading) * 4.0;
+	X87Value aCos = X87Cos(aHeading);
+	// the sine of the heading as stored, its side's kept on the x87
+	double aSin = X87Sin(aHeading).Rounded();
+	mX = (mBoard->mTankX - aCos * 12.0) - X87Cos(aHeading + 1.5707963268794) * (double)theSideOffset;
+	mY = ((double)(mBoard->mTankY - 12) - aSin * 12.0) - X87Sin(aHeading + 1.5707963268794) * (double)theSideOffset;
+	mVelX = aCos * -4.0;
+	mVelY = aSin * 4.0;
 	EmitLaunchSmoke(mBoard, mX, mY, mVelX * -0.5, mVelY * 0.5);
 }
 
@@ -448,7 +452,7 @@ void FlakBurst::Update()
 		}
 		double anAngle = (double)(Rand() % 6282) * 0.001;
 		Rand();
-		mBurstX = (int)(cos(anAngle) * (double)mBurstRadius + mX);
-		mBurstY = (int)(sin(anAngle) * (double)mBurstRadius + mY);
+		mBurstX = (int)(X87Cos(anAngle) * (double)mBurstRadius + mX);
+		mBurstY = (int)(X87Sin(anAngle) * (double)mBurstRadius + mY);
 	}
 }

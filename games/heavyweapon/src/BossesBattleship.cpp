@@ -11,6 +11,7 @@
 #include "Graphics.h"
 #include "Res.h"
 #include "Sprite.h"
+#include "X87.h"
 
 #include <math.h>
 
@@ -308,8 +309,8 @@ void BattleshipTurret::Update()
 			aBullet->mGravity = SHOT_GRAVITY;
 			aBullet->mIsEnemy = true;
 			double anAngle = mFrame / ((double)mSprite->mColumns * SHOT_ANGLE_PER_FRAME) + SHOT_ANGLE_BASE;
-			aBullet->mVelX = cos(anAngle) * SHOT_SPEED;
-			aBullet->mVelY = sin(anAngle) * SHOT_SPEED;
+			aBullet->mVelX = X87Cos(anAngle) * SHOT_SPEED;
+			aBullet->mVelY = X87Sin(anAngle) * SHOT_SPEED;
 			aBullet->mSprite = mApp->mSprites[IMAGE_BOMBFRAG];
 			aBullet->mColumn = 0;
 			aBullet->mRow = 0;

@@ -10,6 +10,7 @@
 #include "Graphics.h"
 #include "Res.h"
 #include "Sprite.h"
+#include "X87.h"
 
 #include <math.h>
 
@@ -394,14 +395,15 @@ void Blimp::Killed()
 		mBoard->mBullets.Append(aBullet);
 		double anAngle = (double)(Rand() % SHRAPNEL_ANGLE_RANGE) * 0.001;
 		double aSpeed = (double)(Rand() % 15) * 0.1 + 1.0;
-		double aCos = cos(anAngle);
+		X87Value aCos = X87Cos(anAngle);
 		aBullet->mX = 100.0 * aCos + mX;
-		double aSin = sin(anAngle);
+		X87Value aSin = X87Sin(anAngle);
 		aBullet->mGravity = 0.05;
 		aBullet->mIsEnemy = true;
 		aBullet->mY = mY - aSin * 30.0;
 		aBullet->mVelX = aCos * aSpeed;
-		aBullet->mVelY = -(aSin * aSpeed);
+		// the sine as stored
+		aBullet->mVelY = -(aSin.Rounded() * aSpeed);
 		aBullet->mSprite = mApp->mSprites[IMAGE_BOMBFRAG];
 		aBullet->mColumn = 0;
 		aBullet->mRow = 0;
@@ -650,11 +652,13 @@ void Deflector::Update()
 				double aDeltaX = aBullet->mX - mX;
 				if (sqrt(pow(aDeltaX, 2.0) + pow(aDeltaY, 2.0)) <= SHIELD_RADIUS)
 				{
-					double aBearing = atan2(aDeltaX, aDeltaY);
+					X87Value aBearing = X87Atan2(aDeltaX, aDeltaY);
 					aBullet->mIsEnemy = true;
-					// the bullet's velocity loses 1.5 times its part along the direction away from the shield
-					double aCos = cos(-aBearing - 1.57);
-					double aSin = sin(-aBearing - 1.57);
+					// the bullet's velocity loses 1.5 times its part along the direction away from the shield (the
+					// cosine kept on the x87, the sine stored)
+					double anAngle = -aBearing - 1.57;
+					X87Value aCos = X87Cos(anAngle);
+					double aSin = X87Sin(anAngle).Rounded();
 					double aAlong = aSin * aBullet->mVelY + aCos * aBullet->mVelX;
 					aBullet->mVelX = aBullet->mVelX - aAlong * aCos * 1.5;
 					aBullet->mVelY = aBullet->mVelY - aAlong * aSin * 1.5;
@@ -1449,7 +1453,7 @@ void SmallCopter::Update()
 	if (-CRAFT_FIRE_RANGE < mX && mX < CRAFT_FIRE_RANGE && Rand() % SHOT_ODDS == 0 && mReloadDelay == 0 &&
 		mApp->mHelpScreen == NULL)
 	{
-		double anAngle = atan2(mBoard->mTankX - mX, (double)mBoard->mTankY - mY) + 1.5705;
+		double anAngle = X87Atan2(mBoard->mTankX - mX, (double)mBoard->mTankY - mY) + 1.5705;
 		mBoard->AddEnemyBullet((int)mX, (int)((double)(GetCelHeight() / 2) + mY), anAngle, 0.0);
 		mReloadDelay = SHOT_DELAY;
 		mShotDelay = MUZZLE_FLASH_TIME;
@@ -1508,13 +1512,15 @@ void Strafer::Update()
 {
 	Enemy::Update();
 	double anAngle = 0.7854 - mFrame * 0.08726612678022899;
-	double aCos = cos(anAngle);
-	double aVelX = aCos * mSpeed;
+	X87Value aCosine = X87Cos(anAngle);
+	double aCos = aCosine.Rounded();
+	double aVelX = aCosine * mSpeed;
 	if (mMirrored)
 		aVelX = -aVelX;
 	mVelX = aVelX;
-	double aSin = sin(anAngle);
-	mVelY = aSin * mSpeed;
+	X87Value aSine = X87Sin(anAngle);
+	double aSin = aSine.Rounded();
+	mVelY = aSine * mSpeed;
 	if ((int)mY > 180)
 		mFrame = mFrame + 0.08;
 	if (mFrame > 9.0)

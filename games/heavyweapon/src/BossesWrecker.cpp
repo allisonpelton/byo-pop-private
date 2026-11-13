@@ -14,6 +14,7 @@
 #include "SoundInstance.h"
 #include "SoundManager.h"
 #include "Sprite.h"
+#include "X87.h"
 #include <math.h>
 #include <stdlib.h>
 
@@ -201,7 +202,7 @@ void WreckerBoss::Update()
 		mSwingA = mSwingA - PHASE_PERIOD;
 	if (PHASE_PERIOD <= mSwingB)
 		mSwingB = mSwingB - PHASE_PERIOD;
-	mX = (cos(mSwingA) + cos(mSwingB)) * SWING_RADIUS + mApproachX;
+	mX = (X87Cos(mSwingA) + X87Cos(mSwingB)) * SWING_RADIUS + mApproachX;
 
 	// the ball and its chain
 	double aBallX = mBallX + mBallVelX;
