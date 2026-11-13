@@ -73,11 +73,17 @@ bool Sexy::LoadBoardFile(const std::string& theFileName, std::vector<BoardObject
 		BoardObject anObject;
 		anObject.mX = 0;
 		anObject.mY = 0;
+		anObject.mWidth = 0;
+		anObject.mHeight = 0;
 		anObject.mChoice = 0;
 		if (GetAttribute(aTag, "X", &aValue))
-			anObject.mX = atof(aValue.c_str());
+			anObject.mX = atoi(aValue.c_str());
 		if (GetAttribute(aTag, "Y", &aValue))
-			anObject.mY = atof(aValue.c_str());
+			anObject.mY = atoi(aValue.c_str());
+		if (GetAttribute(aTag, "Width", &aValue))
+			anObject.mWidth = atoi(aValue.c_str());
+		if (GetAttribute(aTag, "Height", &aValue))
+			anObject.mHeight = atoi(aValue.c_str());
 
 		bool aKnown = true;
 		if (aClass == "class Sexy::Cubby")

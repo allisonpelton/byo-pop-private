@@ -160,9 +160,10 @@ void Avatar::Update(float theFrac)
 }
 
 // 0x42e120: theHover is true to find what the pointer is on, false to find what a click hits. The objects that are not
-// cubbies are asked first, in the order they were made, then the cubbies from the front; the first that answers is the
-// one. Hovering marks it; a click makes it the swing's target and puts the hammer on the point it is struck at.
-// (The original also asks every object Hit() with the hammer's mask and keeps the first yes, which it never uses.)
+// cubbies are asked first, in the order they were made, then the cubbies from the front. Each is asked Hit() (the hammer's
+// mask on the point) and MouseOver() (the point itself); the first object whose MouseOver says yes is the one, and when none
+// does, the first whose Hit said yes. Hovering marks it; a click makes it the swing's target and puts the hammer on the point
+// it is struck at.
 bool Avatar::Probe(int theX, int theY, bool theHover)
 {
 	ObjectManager* aManager = ObjectManager::Get();
@@ -174,14 +175,17 @@ bool Avatar::Probe(int theX, int theY, bool theHover)
 			aManager->mObjects[i]->mHover = false;
 	}
 
-	Object* aFound = nullptr;
+	Object* aOverFound = nullptr;
+	Object* aHitFound = nullptr;
 	for (int i = 0; i < aCount; i++)
 	{
 		Object* anObject = aManager->mObjects[i];
 		if (dynamic_cast<Cubby*>(anObject) == nullptr && anObject->mActive)
 		{
-			if (anObject->MouseOver(theX, theY) && aFound == nullptr)
-				aFound = anObject;
+			if (anObject->Hit(theX, theY, mMask, mMaskWidth, mMaskHeight) && aHitFound == nullptr)
+				aHitFound = anObject;
+			if (anObject->MouseOver(theX, theY) && aOverFound == nullptr)
+				aOverFound = anObject;
 		}
 	}
 
@@ -190,11 +194,14 @@ bool Avatar::Probe(int theX, int theY, bool theHover)
 		Cubby* aCubby = aManager->mCubbiesByDepth[i];
 		if (aCubby->mActive)
 		{
-			if (aCubby->MouseOver(theX, theY) && aFound == nullptr)
-				aFound = aCubby;
+			if (aCubby->Hit(theX, theY, mMask, mMaskWidth, mMaskHeight) && aHitFound == nullptr)
+				aHitFound = aCubby;
+			if (aCubby->MouseOver(theX, theY) && aOverFound == nullptr)
+				aOverFound = aCubby;
 		}
 	}
 
+	Object* aFound = aOverFound != nullptr ? aOverFound : aHitFound;
 	if (aFound == nullptr)
 		return false;
 

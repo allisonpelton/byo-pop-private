@@ -364,7 +364,8 @@ void GameScreen::Start(int theMode)
 		}
 		else
 		{
-			Sticker* aSticker = new Sticker(anObject.mX, anObject.mY, anObject.mChoice);
+			// the editor's tool makes a sticker at the middle of its box (0x408d60: the corner and half the size, which truncates)
+			Sticker* aSticker = new Sticker(anObject.mX + anObject.mWidth / 2, anObject.mY + anObject.mHeight / 2, anObject.mChoice);
 			aSticker->SetName("");
 		}
 	}

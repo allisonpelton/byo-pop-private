@@ -4,7 +4,7 @@
 // The board files of a level (boards/board001.xml and the others, 0x40d9e0, the editor widget's loader). A file is a stream
 // of chunks, each a little-endian 16 bit length and that many bytes of text; the text is XML with one <object> element for
 // each cubby and each sticker. The original reads it with its own TinyXML; the port reads only what the game uses: the
-// class, the position (the X and Y attributes) and a sticker's picture (the "index" of its <choice name="Image">).
+// class, the box (the X, Y, Width and Height attributes) and a sticker's picture (the "index" of its <choice name="Image">).
 
 #include <string>
 #include <vector>
@@ -21,8 +21,10 @@ enum BoardObjectKind
 struct BoardObject
 {
 	int				mKind;			// BoardObjectKind
-	double			mX;
-	double			mY;
+	int				mX;				// the box's corner
+	int				mY;
+	int				mWidth;
+	int				mHeight;
 	int				mChoice;		// a sticker's picture; 0 for a cubby
 };
 
