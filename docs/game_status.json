@@ -511,11 +511,12 @@
         "identical-play",
         "identical-look",
         "fixes-mod",
-        "coverage"
+        "coverage",
+        "performance"
       ],
       "na": [],
-      "now": "performance",
-      "note": "fixes mod (seven misspelt texts, a trick shot's own messages) and coverage done: 50 runs of the original reached 696 of 967 game functions, 20 ported functions never reached listed; the 3D and options runs are tonight's; performance next"
+      "now": "unneeded-code",
+      "note": "performance done: about half its original's processor time (2.61 M cycles an update at 1x against 4.92), no port code changed; unneeded code next, then readability and the lite mod"
     },
     "heavyweapon": {
       "title": "Heavy Weapon Deluxe",

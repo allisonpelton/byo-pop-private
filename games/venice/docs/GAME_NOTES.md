@@ -306,3 +306,56 @@ seed and the values of the game's state). The tour's screens, state lines and pl
 Journey game) and player file, are the same byte for byte in the two runs. The tour goes through `goto` and `level`, which no mode click
 precedes, so it never starts a board; the four games go through the menus, which is the observer's board logic. `tools/check.sh venice` runs
 with no mods as before, and its frozen hashes are unchanged.
+
+## Performance (2026-11-12)
+
+**Result: the port's processor time is about half the original's over the same stretch of play, in both window sizes.** Median of five
+alternating pairs (`games/venice/tools/profile/pairs.sh`, under `tools/pincore.py`), the process's cycles (every thread, the ones that
+ended too) over 4000 updates of Journey in play, in million cycles an update and as a share of one core (the cycle counter ran at 2092 MHz):
+
+| | runs | update | draw | present | driver threads | total | share of a core |
+|---|---|---|---|---|---|---|---|
+| original (origrun, real clock, software display, window 800x600) | 5 | 0.056 | 4.255 | 0.576 | 0 | **4.918** | 58.8 % |
+| port, window of the game's own size (`-windowscale=1`) | 5 | 0.036 | 0.884 | 0.077 | 1.567 | **2.606** | 31.1 % |
+| port, default window (2x, 1600x1200) | 5 | 0.035 | 0.800 | 0.075 | 1.424 | **2.370** | 28.3 % |
+
+The runs' totals were 4.83 4.72 5.01 4.92 5.32 (original), 4.07 4.23 2.53 2.61 2.34 (port 1x) and 2.11 2.37 2.22 4.40 2.39 (port 2x): every
+port run is below every original run, and the port's two runs near 4.1 and 4.4 are the driver thread's noise (below). The port's display line
+says `client 800x600 px, logical 800x600, render scale 1, windowed, renderer direct3d11` (2x: `1600x1200 ... render scale 2`); both
+sides ran in a window with the registry's `ScreenMode` 0 and the original's and the port's software display (`Is3D` 0, which is what the
+original runs in on rundesk's desktop). The port's 3D display (the registry's `Is3D` left at its default), three runs, window 1x:
+**0.749** M cycles an update, 9.0 % of a core (0.737 1.088 0.749); the original's 3D display is not measured, since origrun runs it
+through dgVoodoo2, whose own cycles are not the original's.
+
+**How it was measured** (`docs/COORDINATION.md`, "A performance pass"). The stretch is `scenario.py`: a player with every mode unlocked,
+Journey from building 10, Play Now, Journey and Continue clicked, then the shots and clicks of the port's bot, which ran once (`profile.py
+prep`) to make the input and is not in a measured run; both games are given the same lines, at the same frame of the game's own count
+(the updates since the loading ended: the port's `after <frame>`, the original's update counter at +0x484 of its app, counted from the
+first update its tick counter at 0xa2a1ac leaves 0). The stretch is updates 2500 to 6500 of that input, label a to label b. The player's
+exe carries only the script's lines: no `-commands`, no state log, no bot. Counting is the shared one: `-cyclesplit` in the port (SexyApp's
+three sites), origrun's `--count` in the original with `games/venice/tools/profile/count.txt` (DoUpdateFrames 0x482d70, DrawDirtyStuff
+0x48bd70 less its Redraw, Redraw 0x497360; their prologue lengths checked by `tools/origrun/prologue.py`; the update counter at +0x484
+equals the update function's calls). Each run ran under pincore's core 14, the original through origrun (its game under rundesk), the port
+under rundesk, the order of the port's two windows swapped every other round, each run started when `tools/gamecount.py --limit 6` had
+room. Counting costs: the port 11836 readings of 1635 cycles each (0.27 % of its total), the original 23476 readings of 3571 cycles each
+(0.37 %); neither changes a result of this size. Sound: the port's audio thread (SDL's, silent under rundesk) is 0.005 M cycles an
+update; origrun's stand-in DirectSound mixes nothing, and the original's one other busy thread (a thread of its exe, 0.08 % of a core) is
+counted in its total, so neither side's number holds a mixer's synthesis beyond that.
+
+**What the numbers say.** Both sides run 250 updates a second (4 ms). The original draws and presents on every update (3894 draws in the
+4000 updates: its registry here has `VSyncUpdates` 0 and `WaitForVSync` 1 with a 60 Hz refresh, so it neither waits for a vertical blank nor
+skips a draw), 4.26 M cycles a draw in its own software blits. The port draws once a display frame (958 draws, 59.9 a second, the
+framework's vsync present), 3.4 M cycles a draw in its software transforms, and its GPU driver's thread (nvwgf2um) spends another 1.4 to 1.6
+M an update (about 6 M a present) on uploading the picture and the wait for the blank, which is 55 to 60 % of the port's total: it is the
+framework's known shared cost ("Presenting in step with the display", `docs/COORDINATION.md`), not a cost of Venice's code, and no
+change in `games/venice/` moves it. The game's own update is 0.036 M against the original's 0.056 M. Caveats: the same input at the same
+frame can land a tick or two apart in two real-time runs (the 4 ms updates follow each run's clock), so the shots the bot aimed need not
+all hit again; the number of updates and draws is the same in every run, and the cost of a stretch of play of this kind does not depend
+on whether a shot hit. This is Journey only: Flood, Survival and Trick Shot draw the same scenes, and the menus are cheaper.
+
+**Changes made for performance:** none. Nothing in the port changed in this pass (the frozen baseline is as it was); the port is already
+below the original with the framework's fast paths, so the pass stands as a measurement. **Lite candidates:** none added (the port
+already draws only when the display does). **Shared cost sent on:** the driver thread's present cost above (known to the coordinator).
+To measure again: `python -I games/venice/tools/profile/profile.py prep build/perf`, then `python -I tools/pincore.py -- bash
+games/venice/tools/profile/pairs.sh build/perf 5` and `python -I games/venice/tools/profile/profile.py sum build/perf` (the run folders
+are deleted once this section holds their numbers).
