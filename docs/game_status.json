@@ -327,11 +327,12 @@
         "readability",
         "collection",
         "performance",
-        "lite-mod"
+        "lite-mod",
+        "site-features"
       ],
       "na": [],
-      "now": "site-features",
-      "note": "every other step done: performance 0.88 of its original at 640x480 through SoftwareScreenDisplay; no lite mod (the update is 3% of its cycles); the site's Music entries and soundboard presets are left"
+      "now": null,
+      "note": "every step done: performance 0.88 of its original at 640x480 through SoftwareScreenDisplay; no lite mod (the update is 3% of its cycles); the site's Music entries and 23 soundboard presets checked on the trunk (2026-11-13)"
     },
     "bookwormadv2": {
       "title": "Bookworm Adventures Volume 2",
