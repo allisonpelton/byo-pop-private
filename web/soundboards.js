@@ -354,65 +354,60 @@ var ByopopSoundboards = {
       { name: "Flame Gem", when: "A flame gem is made and set off", steps: [["sounds/powergem_created", 0, {"v": -1102, "p": -600}], ["sounds/doubleset", 0, {"v": -796, "p": 1}], ["sounds/preblast", 1090, {"v": -650}], ["sounds/gem_shatters", 1090, {"v": -968, "p": -600}], ["sounds/combo_3", 1090, {"v": -650}], ["sounds/voice_good", 1100, {"v": -650}]]}
     ],
     groups: [
-    { name: "Menus", sounds: [
+    { name: "Main menu", sounds: [
       ["sounds/voice_welcometobejeweledtwist.ogg", "\"Welcome to Bejeweled Twist\"", "The loading screen's countdown reaches 125 updates before its end, so 1.25 s before the main menu comes in"],
       ["sounds/mouseover1.ogg", "Hover 1", "The pointer enters a main menu button, or a dialog button (higher pitch for each button along the row); a silent dialog button plays nothing"],
-      ["sounds/mouseover2.ogg", "Hover 2", "The pointer enters a planet on the challenge screen, panned to its place and raised by half a step for each planet number"],
-      ["sounds/mouseover3.ogg", "Hover 3", "The pointer enters a mode button on the mode screen, panned to it and raised by two steps for each button along"],
-      ["sounds/click.ogg", "Click", "A button goes down on the mode screen, help, profile or high scores panels, the award screens, the end stats, the board's side buttons, or the app's full screen button"],
-      ["sounds/click_dialog.ogg", "Dialog click", "A button goes down in a dialog; a button is released in Help; any button or check box is used in Options"],
       ["sounds/menu_button_click.ogg", "Menu click", "A main menu button goes down (not the corner one); Quit or Replay goes down on the high scores; a new player's name is accepted"],
-      ["sounds/buttonpress1.ogg", "Replay button", "The replay pod's button is released, taking the last move back"],
-      ["sounds/buttonpress2.ogg", "Button press", "A button is released on the mode screen or the challenge screen; also a button beside the level bar, at a higher pitch, while the game is playing and not paused"],
-      ["sounds/menu_slide.ogg", "Menu slide", "The high scores panel is left through its Quit bar; also, once per player, the Zen jump tip slides in (Zen after 180,000 updates played, or a first Classic game on a roll below 3 of 5)"],
       ["sounds/doorlock2.ogg", "Door lock", "A main menu door button opens or closes a panel; the profile list opens; mode doors open on the mode screen for modes newly seen"],
       ["sounds/doorlock3.ogg", "Door lock, locked", "The profile button is pressed while the profile list is already open or the high scores are showing, and the menu returns to the main screen"],
+      ["sounds/bubblepop.ogg", "Dialog pop", "Any dialog pops up"],
+      ["sounds/click_dialog.ogg", "Dialog click", "A button goes down in a dialog; a button is released in Help; any button or check box is used in Options"],
+      ["sounds/typewriter1.ogg", "Typewriter", "A letter, digit or space is typed into a name box; other keys make no sound"],
+      ["sounds/transfer.ogg", "Volume check", "The Sound volume slider in Options is let go (not while it is being dragged). Also in Chuzzle Deluxe, as sounds/Bonus/GotJewel.ogg."],
+      ["sounds/screenprint.ogg", "Screen print", "A high scores category is picked by a click, so its page prints on (it does not play when the page is set at once)"],
+      ["sounds/voice_goodbye.ogg", "\"Goodbye\"", "Quit is confirmed in the quit dialog; the game closes once the voice has finished"]
+    ] },
+    { name: "Choosing a game", sounds: [
       ["sounds/steamlock1.ogg", "Steam lock", "The main menu enters its start state (Play is pressed) and the gates begin to open"],
       ["sounds/lock1.ogg", "Gate lock", "The gates have moved a third (33%) of the way open or shut"],
       ["sounds/innerlock1.ogg", "Inner lock, in", "The mode screen is added to the screen"],
-      ["sounds/innerlock2.ogg", "Inner lock, out", "Main Menu is pressed on the mode screen and its panels close"],
       ["sounds/voice_chooseyourgame.ogg", "\"Choose your game\"", "The mode screen opens, once each time it is built"],
+      ["sounds/mouseover3.ogg", "Hover 3", "The pointer enters a mode button on the mode screen, panned to it and raised by two steps for each button along"],
+      ["sounds/click.ogg", "Click", "A button goes down on the mode screen, help, profile or high scores panels, the award screens, the end stats, the board's side buttons, or the app's full screen button"],
+      ["sounds/buttonpress2.ogg", "Button press", "A button is released on the mode screen or the challenge screen; also a button beside the level bar, at a higher pitch, while the game is playing and not paused"],
       ["sounds/voice_classic.ogg", "\"Classic\"", "The Classic mode button is pressed on the mode screen, and Classic is unlocked"],
-      ["sounds/voice_challenge.ogg", "\"Challenge\"", "The Challenge mode button is pressed on the mode screen, and Challenge is unlocked"],
-      ["sounds/voice_blitz.ogg", "\"Blitz\"", "The Blitz mode button is pressed on the mode screen, and Blitz is unlocked"],
       ["sounds/voice_zen.ogg", "\"Zen\"", "The Zen mode button is pressed on the mode screen, and Zen is unlocked"],
-      ["sounds/zenstart.ogg", "Zen start", "A Zen game starts, new or continued; no other mode plays it"],
-      ["sounds/typewriter1.ogg", "Typewriter", "A letter, digit or space is typed into a name box; other keys make no sound"],
-      ["sounds/screenprint.ogg", "Screen print", "A high scores category is picked by a click, so its page prints on (it does not play when the page is set at once)"],
-      ["sounds/transfer.ogg", "Volume check", "The Sound volume slider in Options is let go (not while it is being dragged). Also in Chuzzle Deluxe, as sounds/Bonus/GotJewel.ogg."],
-      ["sounds/bubblepop.ogg", "Dialog pop", "Any dialog pops up"],
-      ["sounds/voice_goodbye.ogg", "\"Goodbye\"", "Quit is confirmed in the quit dialog; the game closes once the voice has finished"]
+      ["sounds/voice_blitz.ogg", "\"Blitz\"", "The Blitz mode button is pressed on the mode screen, and Blitz is unlocked"],
+      ["sounds/voice_challenge.ogg", "\"Challenge\"", "The Challenge mode button is pressed on the mode screen, and Challenge is unlocked"],
+      ["sounds/innerlock2.ogg", "Inner lock, out", "Main Menu is pressed on the mode screen and its panels close"],
+      ["sounds/gameunlocked.ogg", "Mode unlocked", "A game mode is unlocked for the profile for the first time, as its banner comes up"]
     ] },
-    { name: "Starting and the cursor", sounds: [
+    { name: "Twisting", sounds: [
       ["sounds/voice_go.ogg", "\"Go!\"", "The board has settled and its wait is over: at a game's start (not Blitz, not in the tutorial; a Zen jump tip can come first) and 1 s after each level's start"],
       ["sounds/select.ogg", "Cursor tick", "The cursor moves onto a different gem while it is shown and input is free (not in a solved puzzle); panned to the gem's column"],
       ["sounds/start_rotate.ogg", "Twist start", "A group of four gems starts to turn: normal pitch if the twist will make a match, 5 steps lower if it will not. Also in Bejeweled 3, as sounds/start_rotate.ogg."],
-      ["sounds/gem_prelock.ogg", "Gem about to lock", "A gem is marked for a lock, two twists from locking (matching it first saves it); also when a doom gem is placed"],
       ["sounds/badmove.ogg", "Bad move", "A twist is tried before the level starts or locked gems block it; also a twist ends with no match (not in Challenge), 2 steps lower. Also in Bejeweled 3, as sounds/badmove.ogg."],
-      ["sounds/tutorial_snap.ogg", "Tutorial snap", "The cursor is moved onto the gem a tutorial step points at"],
-      ["sounds/tutorial-match.ogg", "Tutorial match", "The gems of a twist land while the match flash is up: a twist about to make the first flame or electro gem, in Classic or Zen, before its tip has been shown"],
-      ["sounds/tutorialcomplete.ogg", "Tutorial done", "The tutorial's last step shows its graduation dialog"],
-      ["sounds/reshuffle1.ogg", "Reshuffle", "A challenge is restarted: the score and counts go back to zero and the board is dealt again"],
-      ["sounds/purr.ogg", "Purr", "A tooltip for a coal gem opens, only when the coal-as-snack setting is on; other coal tooltips are silent"]
+      ["sounds/gem_hit.ogg", "Gem lands", "Falling gems land (fruit gems do not count), at most once every 10 updates (0.1 s), panned to where they landed. Also in Bejeweled 3, as sounds/gem_hit.ogg. Also in Chuzzle Deluxe, as sounds/Bonus/JewelLand.ogg."]
     ] },
-    { name: "Matches and chains", sounds: [
+    { name: "Matches", sounds: [
       ["sounds/combo_2.ogg", "Match 2", "The 1st match of a twist (step 1 of its chain), when no match in it has six or more gems; also when the wheel's bomb is disarmed. Also in Bejeweled 3, as sounds/combo_2.ogg."],
       ["sounds/combo_3.ogg", "Match 3", "The 2nd match of a twist (chain step 2), when no match in it has six or more gems"],
       ["sounds/combo_4.ogg", "Match 4", "The 3rd match of a twist (chain step 3), when no match in it has six or more gems"],
       ["sounds/combo_5.ogg", "Match 5", "The 4th match of a twist (chain step 4), when no match in it has six or more gems"],
       ["sounds/combo_6.ogg", "Match 6", "The 5th match of a twist (chain step 5), when no match in it has six or more gems"],
       ["sounds/combo_7.ogg", "Match 7", "The 6th match of a twist and every one after it (chain step 6 and up), when no match in it has six or more gems"],
-      ["sounds/sixmatch.ogg", "Six-gem match", "A match of six or more gems is found, instead of the Match sound of that step; pitched one step higher for each gem beyond six. Resembles Bejeweled 3's sounds/quest_get.ogg, the same sound, mixed differently."],
       ["sounds/doubleset.ogg", "Double set", "Two or more sets are matched in the same step: normal pitch for two, one step higher for three or more"],
+      ["sounds/sixmatch.ogg", "Six-gem match", "A match of six or more gems is found, instead of the Match sound of that step; pitched one step higher for each gem beyond six. Resembles Bejeweled 3's sounds/quest_get.ogg, the same sound, mixed differently."]
+    ] },
+    { name: "Chains, speed and the multiplier", sounds: [
       ["sounds/chainx1.ogg", "Chain note", "A twist's first match joins the chain of matching twists: two notes an octave apart, climbing a step with each link and wrapping every 12"],
       ["sounds/chainparticle1.ogg", "Chain smoke", "A yellow puff of smoke released by the level bar itself reaches its light; the smoke that carries points there is silent"],
-      ["sounds/gem_hit.ogg", "Gem lands", "Falling gems land (fruit gems do not count), at most once every 10 updates (0.1 s), panned to where they landed. Also in Bejeweled 3, as sounds/gem_hit.ogg. Also in Chuzzle Deluxe, as sounds/Bonus/JewelLand.ogg."],
       ["sounds/speedbonus.ogg", "Speed bonus", "Every 6th quick twist in a row (each within 1 s of the last) gives a bonus: 500, 1000, then 2000 points; pitch rises with the bonus level"],
-      ["sounds/multiplier_up2_1.ogg", "Level up 1 (unused)", "Never played: the multiplier starts at 1, and a rise to level 2 plays Level up 3, so this one is never chosen"],
-      ["sounds/multiplier_up2_2.ogg", "Level up 2 (unused)", "Never played: the code picks the file by the new level plus one, starting from level 2, so this one is skipped"],
       ["sounds/multiplier_up2_3.ogg", "Level up 3", "The level bar's multiplier rises to level 2, while the board is not busy"],
       ["sounds/multiplier_up2_4.ogg", "Level up 4", "The multiplier rises to level 3 or higher, while the board is not busy"],
-      ["sounds/multiplier_down.ogg", "Multiplier down", "The shown multiplier falls to a lower level, while the board is not busy"],
+      ["sounds/multiplier_down.ogg", "Multiplier down", "The shown multiplier falls to a lower level, while the board is not busy"]
+    ] },
+    { name: "Praise", sounds: [
       ["sounds/voice_good.ogg", "\"Good\"", "When a twist's rating reaches 3. Said once a twist, as its matches fall, for the highest praise its rating has reached; a later match in the same twist can step it up to a higher one. Never in Challenge, in a replay, in Blitz's first 10 seconds or when the twist ends the level. The rating adds up, all from the twist alone: its cascades after the first, to the power 1.5; the gems it cleared, divided by 15, to the power 1.5; 8 for each gem past five in its longest match; the fruit gems it set off, squared; 1 for each lock broken, bomb defused and flame gem made; and 1 for the first and 2 for each more of the electro gems made, flame gems destroyed, electro gems destroyed and coal destroyed, each of the four counted on its own"],
       ["sounds/voice_excellent.ogg", "\"Excellent\"", "When a twist's rating reaches 6. Said once a twist, as its matches fall, for the highest praise its rating has reached; a later match in the same twist can step it up to a higher one. Never in Challenge, in a replay, in Blitz's first 10 seconds or when the twist ends the level. The rating adds up, all from the twist alone: its cascades after the first, to the power 1.5; the gems it cleared, divided by 15, to the power 1.5; 8 for each gem past five in its longest match; the fruit gems it set off, squared; 1 for each lock broken, bomb defused and flame gem made; and 1 for the first and 2 for each more of the electro gems made, flame gems destroyed, electro gems destroyed and coal destroyed, each of the four counted on its own"],
       ["sounds/voice_awesome.ogg", "\"Awesome\"", "When a twist's rating reaches 12. Said once a twist, as its matches fall, for the highest praise its rating has reached; a later match in the same twist can step it up to a higher one. Never in Challenge, in a replay, in Blitz's first 10 seconds or when the twist ends the level. The rating adds up, all from the twist alone: its cascades after the first, to the power 1.5; the gems it cleared, divided by 15, to the power 1.5; 8 for each gem past five in its longest match; the fruit gems it set off, squared; 1 for each lock broken, bomb defused and flame gem made; and 1 for the first and 2 for each more of the electro gems made, flame gems destroyed, electro gems destroyed and coal destroyed, each of the four counted on its own"],
@@ -420,70 +415,62 @@ var ByopopSoundboards = {
       ["sounds/voice_spectacular.ogg", "\"Spectacular\"", "When a twist's rating reaches 30. Said once a twist, as its matches fall, for the highest praise its rating has reached; a later match in the same twist can step it up to a higher one. Never in Challenge, in a replay, in Blitz's first 10 seconds or when the twist ends the level. The rating adds up, all from the twist alone: its cascades after the first, to the power 1.5; the gems it cleared, divided by 15, to the power 1.5; 8 for each gem past five in its longest match; the fruit gems it set off, squared; 1 for each lock broken, bomb defused and flame gem made; and 1 for the first and 2 for each more of the electro gems made, flame gems destroyed, electro gems destroyed and coal destroyed, each of the four counted on its own"],
       ["sounds/voice_unbelievable.ogg", "\"Unbelievable\"", "When a twist's rating reaches 45. Said once a twist, as its matches fall, for the highest praise its rating has reached; a later match in the same twist can step it up to a higher one. Never in Challenge, in a replay, in Blitz's first 10 seconds or when the twist ends the level. The rating adds up, all from the twist alone: its cascades after the first, to the power 1.5; the gems it cleared, divided by 15, to the power 1.5; 8 for each gem past five in its longest match; the fruit gems it set off, squared; 1 for each lock broken, bomb defused and flame gem made; and 1 for the first and 2 for each more of the electro gems made, flame gems destroyed, electro gems destroyed and coal destroyed, each of the four counted on its own"]
     ] },
-    { name: "Special gems", sounds: [
+    { name: "Tutorial and tips", sounds: [
+      ["sounds/tutorial_snap.ogg", "Tutorial snap", "The cursor is moved onto the gem a tutorial step points at"],
+      ["sounds/tutorial-match.ogg", "Tutorial match", "The gems of a twist land while the match flash is up: a twist about to make the first flame or electro gem, in Classic or Zen, before its tip has been shown"],
+      ["sounds/tutorialcomplete.ogg", "Tutorial done", "The tutorial's last step shows its graduation dialog"],
+      ["sounds/purr.ogg", "Purr", "A tooltip for a coal gem opens, only when the coal-as-snack setting is on; other coal tooltips are silent"],
+      ["sounds/menu_slide.ogg", "Menu slide", "The high scores panel is left through its Quit bar; also, once per player, the Zen jump tip slides in (Zen after 180,000 updates played, or a first Classic game on a roll below 3 of 5)"]
+    ] },
+    { name: "Flame and electro gems", sounds: [
       ["sounds/powergem_created.ogg", "Flame gem made", "A gem becomes a flame gem (a match of four); not while the board fills quietly, as when a game is loaded"],
       ["sounds/preblast.ogg", "Flame gem charging", "A flame gem goes off: it plays at the instant of the blast, together with Flame gem blast, and starts the first-flame tip once per player. Also in Bejeweled 3, as sounds/preblast.ogg."],
       ["sounds/gem_shatters.ogg", "Flame gem blast", "A flame gem goes off, blasting the gems one cell around it, at the same instant as Flame gem charging"],
       ["sounds/electrogem_created.ogg", "Electro gem made", "A gem becomes an electro gem (a match of five); not while the board fills quietly"],
       ["sounds/electro_start1.ogg", "Electro start", "A plain electro gem is matched and goes off; a flame electro gem plays Flame electro instead"],
-      ["sounds/electro_explode.ogg", "Electro strike", "The first step (step 0) of each electro gem's lightning strike, when its bolts hit"],
-      ["sounds/flamelightning.ogg", "Flame electro", "An electro gem that is also a flame gem goes off, in place of Electro start"],
-      ["sounds/supergem_create.ogg", "Super gem made (unused)", "Never played: it is loaded, but neither the port nor the original's code ever plays it, by id or by number"],
       ["sounds/wildcard_destroyed.ogg", "Electro gem goes off", "Every electro gem that goes off, at the same instant as Electro start or Flame electro, as its strike begins"],
-      ["sounds/bonuslaser.ogg", "Fruit laser", "A fruit gem's shockwave is created, as the fruit is blasted"],
+      ["sounds/electro_explode.ogg", "Electro strike", "The first step (step 0) of each electro gem's lightning strike, when its bolts hit"],
+      ["sounds/flamelightning.ogg", "Flame electro", "An electro gem that is also a flame gem goes off, in place of Electro start"]
+    ] },
+    { name: "Replays", sounds: [
+      ["sounds/replay_popup.ogg", "Replay pops up", "The replay pod rises, in Classic or Zen only, once the board has settled after the first flame gem or the first geode of a player. Resembles Bejeweled 3's sounds/replay_popup.ogg, the same sound, mixed differently."],
+      ["sounds/buttonpress1.ogg", "Replay button", "The replay pod's button is released, taking the last move back"],
+      ["sounds/rewind.ogg", "Rewind", "A move is run backwards in a replay; it loops until the replay moves on"]
+    ] },
+    { name: "Fruit gems and the fruit bonus", sounds: [
       ["sounds/fruit_appears.ogg", "Fruit gem appears", "A fruit gem is put on the board while it is not busy; not while the board fills quietly"],
       ["sounds/gem_fruit_destroyed.ogg", "Fruit gem matched", "A fruit gem is matched and its blast starts"],
+      ["sounds/bonuslaser.ogg", "Fruit laser", "A fruit gem's shockwave is created, as the fruit is blasted"],
       ["sounds/fruitbonuscount.ogg", "Fruit count", "A match of the fruit bonus's next colour while the bonus is running; the pitch rises with the number of colours already matched (0 to 3)"],
-      ["sounds/rowblow.ogg", "Row blows", "Once for each row that breaks up in the jump after a level (a row every 12 updates), and once for each gem of a fruit blast's sparks"],
-      ["sounds/gem_lock_start.ogg", "Lock starts", "A marked gem is still unmatched when its two twists run out, and its lock starts closing"],
-      ["sounds/gem_lock_end.ogg", "Lock closes", "A new lock finishes closing over its gem, 50 updates (0.5 s) after Lock starts; a doom lock becomes a doom gem with a count then"],
-      ["sounds/gem_lock_break.ogg", "Lock breaks", "A match breaks the lock on a gem, shattering it into shards"],
-      ["sounds/coal_blasted.ogg", "Coal blasted", "A coal gem is broken by a match or blast next to it, shedding its pieces. Resembles Bejeweled 3's sounds/diamond_mine_bigstone_cracked.ogg, the same sound, mixed differently."],
+      ["sounds/voice_challengecomplete.ogg", "\"Challenge complete\"", "Every colour of a fruit bonus has been matched in order, in Classic, Blitz or Zen (never in Challenge mode)"],
+      ["sounds/challengecompleted.ogg", "Challenge done", "At the same instant as the \"Challenge complete\" voice: a fruit bonus's last colour is matched"]
+    ] },
+    { name: "Geodes and souls", sounds: [
       ["sounds/geode.ogg", "Geode", "A geode pops and shows its points, pitched up one step for each geode before it (at most 10); also each rank bonus light that fills, up to 6 steps up. Also in Bejeweled 3, as sounds/rank_countup.ogg."],
       ["sounds/soulify.ogg", "Gem becomes a soul", "A gem is turned into a soul, 80 updates (0.8 s) after the soul effect starts"],
       ["sounds/gemsoul-lands3.ogg", "Soul lands", "A soul lands on the board and gives its gem its special; at most one sound every 2 updates, and one more when the first soul lands"]
     ] },
-    { name: "Bombs and counters", sounds: [
-      ["sounds/gem_countdown.ogg", "Counter gem falls", "A countdown gem lands for the first time (not in Puzzle)"],
-      ["sounds/counter_warning.ogg", "Counter warning", "After a move, the lowest countdown gem shows 5 or fewer: the pitch starts 3 steps below normal at 5 and rises one step for each number it falls"],
-      ["sounds/gem_countdown_destroyed.ogg", "Counter gem destroyed", "A countdown gem is matched and defused; also when a new row slides into the high scores list, 3 steps up. Resembles Bejeweled 3's sounds/gem_countdown_destroyed.ogg, the same sound, mixed differently."],
-      ["sounds/bomb_explode.ogg", "Bomb explodes", "A countdown gem reaches zero; also when a burst goes off (once per update), a nuke's blast grows past 1.6, and the end glass hits the floor"],
+    { name: "Locks and coal", sounds: [
+      ["sounds/gem_prelock.ogg", "Gem about to lock", "A gem is marked for a lock, two twists from locking (matching it first saves it); also when a doom gem is placed"],
+      ["sounds/gem_lock_start.ogg", "Lock starts", "A marked gem is still unmatched when its two twists run out, and its lock starts closing"],
+      ["sounds/gem_lock_end.ogg", "Lock closes", "A new lock finishes closing over its gem, 50 updates (0.5 s) after Lock starts; a doom lock becomes a doom gem with a count then"],
+      ["sounds/gem_lock_break.ogg", "Lock breaks", "A match breaks the lock on a gem, shattering it into shards"],
+      ["sounds/coal_blasted.ogg", "Coal blasted", "A coal gem is broken by a match or blast next to it, shedding its pieces. Resembles Bejeweled 3's sounds/diamond_mine_bigstone_cracked.ogg, the same sound, mixed differently."]
+    ] },
+    { name: "Doom gems", sounds: [
       ["sounds/doomgem_appears.ogg", "Doom gem appears", "A plain gem inside the board's border that no twist would match is turned into a doom gem"],
       ["sounds/doomgem_countdown.ogg", "Doom gem ticks", "A doom gem's count drops by one with each move, and when a doom lock closes into its doom gem with its count. Resembles Bejeweled 3's sounds/bomb_appears.ogg, the same sound, mixed differently."],
       ["sounds/doomgem_destroyed.ogg", "Doom gem destroyed", "A doom gem is matched or blasted"],
-      ["sounds/doomgemgameover.ogg", "Doom gem game over", "The game ends by a nuke caused by a doom gem going off"],
-      ["sounds/endfinal6b.ogg", "Board blows up", "The game ends by a nuke: a countdown gem is the one that ended it, or the wheel stopped on a bad slot. Resembles Bejeweled 3's sounds/timebombexplode.ogg, the same sound, mixed differently."]
+      ["sounds/doomgemgameover.ogg", "Doom gem game over", "The game ends by a nuke caused by a doom gem going off"]
     ] },
-    { name: "Time and levels", sounds: [
-      ["sounds/voice_thirtyseconds.ogg", "\"Thirty seconds\"", "The Blitz clock's seconds left reach 30"],
-      ["sounds/voice_oneminute.ogg", "\"One minute\"", "The Blitz clock's seconds left reach 60"],
-      ["sounds/voice_twominutes.ogg", "\"Two minutes\"", "The Blitz clock's seconds left reach 120"],
-      ["sounds/voice_threeminutes.ogg", "\"Three minutes\"", "The Blitz clock's seconds left reach 180"],
-      ["sounds/voice_fourminutes.ogg", "\"Four minutes\"", "The Blitz clock's seconds left reach 240"],
-      ["sounds/voice_nine.ogg", "\"Nine\"", "The Blitz clock's seconds left reach 9"],
-      ["sounds/voice_eight.ogg", "\"Eight\"", "The Blitz clock's seconds left reach 8"],
-      ["sounds/voice_seven.ogg", "\"Seven\"", "The Blitz clock's seconds left reach 7"],
-      ["sounds/voice_six.ogg", "\"Six\"", "The Blitz clock's seconds left reach 6"],
-      ["sounds/voice_five.ogg", "\"Five\"", "The Blitz clock's seconds left reach 5"],
-      ["sounds/voice_four.ogg", "\"Four\"", "The Blitz clock's seconds left reach 4"],
-      ["sounds/voice_three.ogg", "\"Three\"", "The Blitz clock's seconds left reach 3"],
-      ["sounds/voice_two.ogg", "\"Two\"", "The Blitz clock's seconds left reach 2"],
-      ["sounds/voice_one.ogg", "\"One\"", "The Blitz clock's seconds left reach 1"],
-      ["sounds/voice_levelcomplete.ogg", "\"Level complete\"", "The level bar fills and the level-up show begins (in Zen, when each new level starts)"],
-      ["sounds/whirlpool1.ogg", "Whirlpool", "The level-up show has run 3.5 s (350 updates), or 2 s (200) when a tip is showing, and the board starts to drain for the jump"],
-      ["sounds/trans_spacenoise.ogg", "Space noise", "The jump to the next level begins, as the space scene comes in; it also starts on the other warp scenes"],
-      ["sounds/trans_preignition.ogg", "Engine warms", "The jump's tunnel countdown has 125 updates (1.25 s) left, just before the engine ignites"],
-      ["sounds/trans_engineignition.ogg", "Engine starts", "The jump's engine ignites, when the tunnel countdown ends and the engine loop starts"],
-      ["sounds/trans_engineloop1.ogg", "Engine runs", "The engine loop starts with the ignition and runs through the jump (loops)"],
-      ["sounds/trans_arrival.ogg", "Arrival", "The jump has 140 updates (1.4 s) left, as the next level comes into view"],
-      ["sounds/zentransition1.ogg", "Zen change 1", "A new Zen level starts and the wheel picture's wheels grow in"],
-      ["sounds/zentransition2.ogg", "Zen change 2", "The Zen picture's first change finishes (after about 3 s, 300 updates)"],
-      ["sounds/zentransition3.ogg", "Zen change 3", "The Zen picture's second change passes 30% of its run, 1.5 s after the first one finishes"],
+    { name: "Counter gems", sounds: [
+      ["sounds/gem_countdown.ogg", "Counter gem falls", "A countdown gem lands for the first time (not in Puzzle)"],
+      ["sounds/counter_warning.ogg", "Counter warning", "After a move, the lowest countdown gem shows 5 or fewer: the pitch starts 3 steps below normal at 5 and rises one step for each number it falls"],
+      ["sounds/gem_countdown_destroyed.ogg", "Counter gem destroyed", "A countdown gem is matched and defused; also when a new row slides into the high scores list, 3 steps up. Resembles Bejeweled 3's sounds/gem_countdown_destroyed.ogg, the same sound, mixed differently."],
+      ["sounds/bomb_explode.ogg", "Bomb explodes", "A countdown gem reaches zero; also when a burst goes off (once per update), a nuke's blast grows past 1.6, and the end glass hits the floor"]
+    ] },
+    { name: "The skull wheel", sounds: [
       ["sounds/spinsequencer1.ogg", "Spin sequence", "A countdown gem reaches zero and the skull wheel starts to spin up"],
-      ["sounds/rewind.ogg", "Rewind", "A move is run backwards in a replay; it loops until the replay moves on"],
-      ["sounds/replay_popup.ogg", "Replay pops up", "The replay pod rises, in Classic or Zen only, once the board has settled after the first flame gem or the first geode of a player. Resembles Bejeweled 3's sounds/replay_popup.ogg, the same sound, mixed differently."]
-    ] },
-    { name: "The wheel", sounds: [
       ["sounds/x_spinnerappears1.ogg", "Wheel appears", "The skull wheel has opened fully and its slots come into view"],
       ["sounds/siren.ogg", "Siren", "The wheel's siren loops while the wheel is up; its volume changes when the wheel is won or lost"],
       ["sounds/temp_timpani.ogg", "Timpani", "A beat as each of the wheel's slots is lit in turn, alternating left (normal pitch) and right (4 steps lower)"],
@@ -492,28 +479,69 @@ var ByopopSoundboards = {
       ["sounds/skull-added.ogg", "Skull added", "A skull is added to the wheel, a quarter (25%) of the way through that step"],
       ["sounds/x_win.ogg", "Wheel win", "The wheel stops on a good slot and the bomb's count is set to 20"],
       ["sounds/x_win2.ogg", "Wheel win, sparkle", "After a win, the gap between the gems closes to its minimum, once"],
-      ["sounds/x_lose.ogg", "Wheel lose", "The wheel stops on a bad slot, and the two skulls' slots are crossed out"],
       ["sounds/voice_bombdisarmed.ogg", "\"Bomb disarmed\"", "A win is tallied and the bomb is disarmed, 0.01 s after the Match 2 chime, and the wobble ends"],
+      ["sounds/x_lose.ogg", "Wheel lose", "The wheel stops on a bad slot, and the two skulls' slots are crossed out"],
       ["sounds/spinner_unlock.ogg", "Wheel unlocks", "The wheel unfolds on the board: full volume if it was lost, a fifth of it if it was won"]
     ] },
-    { name: "Game end and awards", sounds: [
+    { name: "Level complete and the jump", sounds: [
+      ["sounds/voice_levelcomplete.ogg", "\"Level complete\"", "The level bar fills and the level-up show begins (in Zen, when each new level starts)"],
+      ["sounds/whirlpool1.ogg", "Whirlpool", "The level-up show has run 3.5 s (350 updates), or 2 s (200) when a tip is showing, and the board starts to drain for the jump"],
+      ["sounds/rowblow.ogg", "Row blows", "Once for each row that breaks up in the jump after a level (a row every 12 updates), and once for each gem of a fruit blast's sparks"],
+      ["sounds/trans_spacenoise.ogg", "Space noise", "The jump to the next level begins, as the space scene comes in; it also starts on the other warp scenes"],
+      ["sounds/trans_preignition.ogg", "Engine warms", "The jump's tunnel countdown has 125 updates (1.25 s) left, just before the engine ignites"],
+      ["sounds/trans_engineignition.ogg", "Engine starts", "The jump's engine ignites, when the tunnel countdown ends and the engine loop starts"],
+      ["sounds/trans_engineloop1.ogg", "Engine runs", "The engine loop starts with the ignition and runs through the jump (loops)"],
+      ["sounds/trans_arrival.ogg", "Arrival", "The jump has 140 updates (1.4 s) left, as the next level comes into view"]
+    ] },
+    { name: "Zen", sounds: [
+      ["sounds/zenstart.ogg", "Zen start", "A Zen game starts, new or continued; no other mode plays it"],
+      ["sounds/zentransition1.ogg", "Zen change 1", "A new Zen level starts and the wheel picture's wheels grow in"],
+      ["sounds/zentransition2.ogg", "Zen change 2", "The Zen picture's first change finishes (after about 3 s, 300 updates)"],
+      ["sounds/zentransition3.ogg", "Zen change 3", "The Zen picture's second change passes 30% of its run, 1.5 s after the first one finishes"]
+    ] },
+    { name: "Blitz's clock", sounds: [
+      ["sounds/voice_fourminutes.ogg", "\"Four minutes\"", "The Blitz clock's seconds left reach 240"],
+      ["sounds/voice_threeminutes.ogg", "\"Three minutes\"", "The Blitz clock's seconds left reach 180"],
+      ["sounds/voice_twominutes.ogg", "\"Two minutes\"", "The Blitz clock's seconds left reach 120"],
+      ["sounds/voice_oneminute.ogg", "\"One minute\"", "The Blitz clock's seconds left reach 60"],
+      ["sounds/voice_thirtyseconds.ogg", "\"Thirty seconds\"", "The Blitz clock's seconds left reach 30"],
+      ["sounds/voice_nine.ogg", "\"Nine\"", "The Blitz clock's seconds left reach 9"],
+      ["sounds/voice_eight.ogg", "\"Eight\"", "The Blitz clock's seconds left reach 8"],
+      ["sounds/voice_seven.ogg", "\"Seven\"", "The Blitz clock's seconds left reach 7"],
+      ["sounds/voice_six.ogg", "\"Six\"", "The Blitz clock's seconds left reach 6"],
+      ["sounds/voice_five.ogg", "\"Five\"", "The Blitz clock's seconds left reach 5"],
+      ["sounds/voice_four.ogg", "\"Four\"", "The Blitz clock's seconds left reach 4"],
+      ["sounds/voice_three.ogg", "\"Three\"", "The Blitz clock's seconds left reach 3"],
+      ["sounds/voice_two.ogg", "\"Two\"", "The Blitz clock's seconds left reach 2"],
+      ["sounds/voice_one.ogg", "\"One\"", "The Blitz clock's seconds left reach 1"]
+    ] },
+    { name: "Challenges", sounds: [
+      ["sounds/mouseover2.ogg", "Hover 2", "The pointer enters a planet on the challenge screen, panned to its place and raised by half a step for each planet number"],
+      ["sounds/reshuffle1.ogg", "Reshuffle", "A challenge is restarted: the score and counts go back to zero and the board is dealt again"],
+      ["sounds/challenge_unlock.ogg", "Challenge unlocks", "A planet on the challenge screen moves on one stage: its bar fills and the new number glows"],
+      ["sounds/voice_newchallengeunlocked.ogg", "\"New challenge unlocked\"", "The challenge screen's dimming passes 90% while a new challenge is announced"]
+    ] },
+    { name: "Game over", sounds: [
       ["sounds/voice_gameover.ogg", "\"Game over\"", "Any game ends (no moves, a nuke, Blitz time up or a lost wheel), as the board's end sequence begins"],
+      ["sounds/endfinal6b.ogg", "Board blows up", "The game ends by a nuke: a countdown gem is the one that ended it, or the wheel stopped on a bad slot. Resembles Bejeweled 3's sounds/timebombexplode.ogg, the same sound, mixed differently."],
       ["sounds/tally_zoomin.ogg", "Score zooms in", "Blitz's FINAL SCORE label comes in; also after a nuke's zoom ends, and when the Blitz clock's time tally reaches its full count"],
       ["sounds/blitz-countup.ogg", "Score counts up", "A tally step: the Blitz time count (pitch up to 5 steps), the end stats bars (every 3rd step, up to 12), a fruit blast, and the wheel's bomb count"],
-      ["sounds/voice_anewhighscore.ogg", "\"A new high score\"", "The high scores page opens on a new record, 1 s (100 updates) after the new record's row is set"],
-      ["sounds/voice_challengecomplete.ogg", "\"Challenge complete\"", "Every colour of a fruit bonus has been matched in order, in Classic, Blitz or Zen (never in Challenge mode)"],
-      ["sounds/challengecompleted.ogg", "Challenge done", "At the same instant as the \"Challenge complete\" voice: a fruit bonus's last colour is matched"],
-      ["sounds/challenge_unlock.ogg", "Challenge unlocks", "A planet on the challenge screen moves on one stage: its bar fills and the new number glows"],
-      ["sounds/voice_newchallengeunlocked.ogg", "\"New challenge unlocked\"", "The challenge screen's dimming passes 90% while a new challenge is announced"],
-      ["sounds/gameunlocked.ogg", "Mode unlocked", "A game mode is unlocked for the profile for the first time, as its banner comes up"],
+      ["sounds/voice_anewhighscore.ogg", "\"A new high score\"", "The high scores page opens on a new record, 1 s (100 updates) after the new record's row is set"]
+    ] },
+    { name: "Ranks and awards", sounds: [
       ["sounds/lightbar_blink.ogg", "Rank light", "The rank bonus bar fills a slot and lights up"],
       ["sounds/rank_completion.ogg", "Rank complete", "Continue is pressed on an award screen, or the rank bonus screen is clicked once it is filled. Resembles Bejeweled 3's sounds/multiplier_appears.ogg, the same sound, mixed differently."],
-      ["sounds/trophy_awarded.ogg", "Trophy", "A trophy or award is shown: the credits open, the fruit award screen starts, and an award screen's text fades in (about 40% in)"],
+      ["sounds/trophy_awarded.ogg", "Trophy", "A trophy or award is shown: the credits open, the fruit award screen starts, and an award screen's text fades in (about 40% in)"]
+    ] },
+    { name: "Never played, or the trial's only", sounds: [
+      ["sounds/multiplier_up2_1.ogg", "Level up 1 (unused)", "Never played: the multiplier starts at 1, and a rise to level 2 plays Level up 3, so this one is never chosen"],
+      ["sounds/multiplier_up2_2.ogg", "Level up 2 (unused)", "Never played: the code picks the file by the new level plus one, starting from level 2, so this one is skipped"],
+      ["sounds/supergem_create.ogg", "Super gem made (unused)", "Never played: it is loaded, but neither the port nor the original's code ever plays it, by id or by number"],
       ["sounds/eclipseintro1.ogg", "Eclipse intro (unused)", "Never played: it is loaded, but no code plays it, by id or by number, in the port or in the original"],
-      ["sounds/badloop.ogg", "Bad loop (trial only)", "Trial only: the unregistered game's trial limit dialog sets up this looping sound when it opens; the port removed the dialog"],
-      ["sounds/goodloop.ogg", "Good loop (trial only)", "Trial only: the unregistered game's trial limit dialog sets up this looping sound when it opens, beside Bad loop; the port removed the dialog"],
       ["sounds/trialclick.ogg", "Trial click (trial only)", "Trial only: an unregistered copy's click on a challenge beyond the free ones (past the third planet or stage); the port removed it"],
       ["sounds/triallimit.ogg", "Trial limit (trial only)", "Trial only: the unregistered game's limit dialog opens when its free levels run out (the jump after level 10 of Classic or 15 of Zen); the port removed it"],
+      ["sounds/badloop.ogg", "Bad loop (trial only)", "Trial only: the unregistered game's trial limit dialog sets up this looping sound when it opens; the port removed the dialog"],
+      ["sounds/goodloop.ogg", "Good loop (trial only)", "Trial only: the unregistered game's trial limit dialog sets up this looping sound when it opens, beside Bad loop; the port removed the dialog"],
       ["sounds/trialunlock.ogg", "Trial unlock (unused)", "Never played: it is loaded, but not even the original's trial code plays it"]
     ] },
   ] },
