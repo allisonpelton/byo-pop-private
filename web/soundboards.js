@@ -165,59 +165,68 @@ var ByopopSoundboards = {
     ],
     groups: [
     { name: "Menus", sounds: [
-      ["sounds/capclick.ogg", "Cap click", "Any menu, dialog or hint box button pressed (the main menu only once its door has slammed); the options dialog's buttons 6, 7, 8 and 10; the bomb button lighting up; the bonus molecule frame sliding in or out"],
       ["sounds/swoop.ogg", "Swoop", "A menu panel slides in or out of the main menu: once when it leaves, once when it lands; and when a game is started from the game-over panel"],
-      ["sounds/doorslam.ogg", "Door slam", "The main menu's door shuts as the board closes, once per slam"],
-      ["sounds/dooropen.ogg", "Door open", "The main menu's door opens, once its panel has slid fully away"]
+      ["sounds/dooropen.ogg", "Door open", "The main menu's door opens, once its panel has slid fully away"],
+      ["sounds/capclick.ogg", "Cap click", "Any menu, dialog or hint box button pressed (the main menu only once its door has slammed); the options dialog's buttons 6, 7, 8 and 10; the bomb button lighting up; the bonus molecule frame sliding in or out"],
+      ["sounds/doorslam.ogg", "Door slam", "The main menu's door shuts as the board closes, once per slam"]
     ] },
-    { name: "Atoms", sounds: [
+    { name: "A level starts", sounds: [
+      ["sounds/voices/getready.ogg", "\"Get ready!\"", "A level begins, 50 updates (0.5 s) after the board starts"],
       ["sounds/atomappear.ogg", "Atom appears", "A new atom's appearance reaches its last step (24); several in one update give one sound"],
+      ["sounds/voices/go.ogg", "\"Go!\"", "Every atom of the grid has finished appearing, once per level; the voice follows 1 update later"]
+    ] },
+    { name: "Moving atoms", sounds: [
       ["sounds/selectatom.ogg", "Select atom", "An atom is clicked to pick it up; also the options dialog's reset-hints button"],
       ["sounds/moveatom.ogg", "Move atom", "A second click sends the picked atom along a path to a new cell"],
       ["sounds/movebioatom.ogg", "Move biohazard", "A second click sends the picked biohazard atom along a path to a new cell"],
-      ["sounds/whoosh.ogg", "Whoosh", "Atoms fly away: a molecule made (once per update), the grid cleared, a swirl taking more than 6 atoms, an element atom, a bonus ring; also a new level's atoms arrive"],
-      ["sounds/lowwhoosh.ogg", "Low whoosh", "Each atom a swirl carries off disappears, one sound per atom"],
       ["sounds/magnet.ogg", "Magnet", "After a move, atoms slide toward each other and at least one moves; once per move"]
     ] },
-    { name: "Molecules and combos", sounds: [
+    { name: "Molecules", sounds: [
       ["sounds/createmolecule.ogg", "Molecule created", "A molecule is made: a 3 by 2, 2 by 3 or 2 by 2 block of one atom type; one sound for each block found in a check"],
       ["sounds/electric1.ogg", "Electric 1", "Lightning bolt: one of the three at random for each bolt joining an atom to a same-type neighbour, and each drawn frame of a shaking made molecule; the infection bolt plays all three, then one every 10 updates (0.1 s)"],
       ["sounds/electric2.ogg", "Electric 2", "Lightning bolt: one of the three at random for each bolt joining an atom to a same-type neighbour, and each drawn frame of a shaking made molecule; the infection bolt plays all three, then one every 10 updates (0.1 s)"],
       ["sounds/electric3.ogg", "Electric 3", "Lightning bolt: one of the three at random for each bolt joining an atom to a same-type neighbour, and each drawn frame of a shaking made molecule; the infection bolt plays all three, then one every 10 updates (0.1 s)"],
+      ["sounds/whoosh.ogg", "Whoosh", "Atoms fly away: a molecule made (once per update), the grid cleared, a swirl taking more than 6 atoms, an element atom, a bonus ring; also a new level's atoms arrive"],
+      ["sounds/lowwhoosh.ogg", "Low whoosh", "Each atom a swirl carries off disappears, one sound per atom"]
+    ] },
+    { name: "Combos", sounds: [
       ["sounds/geiger1.ogg", "Geiger counter 1", "Loops while the combo is 2 or more, its volume rising 0.1 an update toward (combo - 1) / 12; fades out by 0.01 an update after the combo ends"],
-      ["sounds/geiger2.ogg", "Geiger counter 2", "Loops while the combo is above 3, its volume rising 0.1 an update toward (combo - 3) / 8; fades out by 0.01 an update after the combo ends"],
       ["sounds/voices/combo.ogg", "\"Combo!\"", "A molecule takes the combo to 2: the voice comes 30 updates (0.3 s) later, or when he stops talking"],
       ["sounds/voices/supercombo.ogg", "\"Super combo!\"", "A molecule takes the combo to 3: the voice comes 30 updates (0.3 s) later, or when he stops talking"],
       ["sounds/voices/megacombo.ogg", "\"Mega combo!\"", "A molecule takes the combo to 4: the voice comes 30 updates (0.3 s) later, or when he stops talking"],
+      ["sounds/geiger2.ogg", "Geiger counter 2", "Loops while the combo is above 3, its volume rising 0.1 an update toward (combo - 3) / 8; fades out by 0.01 an update after the combo ends"],
       ["sounds/voices/ultracombo.ogg", "\"Ultra combo!\"", "A molecule takes the combo to 5: the voice comes 30 updates (0.3 s) later, or when he stops talking"],
       ["sounds/voices/hypercombo.ogg", "\"Hyper combo!\"", "A molecule takes the combo to 6: the voice comes 30 updates (0.3 s) later, or when he stops talking"],
       ["sounds/voices/gigacombo.ogg", "\"Giga combo!\"", "A molecule takes the combo to 7: the voice comes 30 updates (0.3 s) later, or when he stops talking"],
       ["sounds/voices/maxcombo.ogg", "\"Max combo!\"", "A molecule takes the combo to 8: the voice comes 30 updates (0.3 s) later, or when he stops talking; no voice above 8"]
     ] },
-    { name: "Bombs and biohazards", sounds: [
-      ["sounds/nukeblast.ogg", "Nuke blast", "An atom is destroyed: the atomic bomb bursts it, or an element's expanding ring pops it, or a biohazard atom's molecule shatters it; one sound per atom"],
-      ["sounds/heartbeat.ogg", "Heartbeat", "A biohazard atom's glow reaches full brightness, once per pulse of its glow"],
-      ["sounds/voices/atomicbombready.ogg", "\"Atomic bomb ready\"", "The atomic bomb button finishes lighting up (its frame reaches 15 of 24); 50 updates (0.5 s) later"],
-      ["sounds/voices/atomicbomb.ogg", "\"Atomic bomb!\"", "The bomb button is pressed with atoms on the grid and no level-up showing; the voice follows 1 update later"],
-      ["sounds/voices/biohazard.ogg", "\"Biohazard!\"", "The first biohazard atom of a grid finishes appearing; 10 updates (0.1 s) later (one of two random choices, both this voice)"],
-      ["sounds/voices/biohazardalert.ogg", "\"Biohazard alert!\" (unused)", "Never played: it is not loaded, and no code asks for it; only the biohazard voice sounds"]
-    ] },
-    { name: "Elements and bonus molecules", sounds: [
-      ["sounds/freeze.ogg", "Freeze", "A freeze takes hold of the board: its progress reaches 128, one step an update, so 1.28 s after it begins"],
+    { name: "Elements", sounds: [
       ["sounds/voices/fire.ogg", "Fire voice", "A fire element atom is placed; the voice comes 25 updates (0.25 s) later"],
       ["sounds/voices/ice.ogg", "\"Ice!\"", "A water (ice) element atom is placed; the voice comes 25 updates (0.25 s) later"],
       ["sounds/voices/lightning.ogg", "\"Lightning!\"", "An earth (lightning) element atom is placed; the voice comes 25 updates (0.25 s) later"],
       ["sounds/voices/wind.ogg", "\"Wind!\"", "An air (wind) element atom is placed; the voice comes 25 updates (0.25 s) later"],
       ["sounds/voices/ether.ogg", "\"Ether\"", "An ether element atom is placed; the voice comes 25 updates (0.25 s) later"],
-      ["sounds/voices/bonusmolecule.ogg", "\"Bonus molecule!\"", "A bonus molecule is made; the voice comes 5 updates later"],
+      ["sounds/freeze.ogg", "Freeze", "A freeze takes hold of the board: its progress reaches 128, one step an update, so 1.28 s after it begins"]
+    ] },
+    { name: "Bonus molecules", sounds: [
       ["sounds/voices/bonusmoleculeready.ogg", "\"Bonus molecule ready!\"", "The bonus molecule frame has slid into place with a new pattern; the voice comes 50 updates (0.5 s) later"],
+      ["sounds/voices/bonusmolecule.ogg", "\"Bonus molecule!\"", "A bonus molecule is made; the voice comes 5 updates later"],
       ["sounds/voices/bonusmoleculeupgraded.ogg", "\"Bonus molecule upgraded!\"", "A bonus molecule of a higher level is made (an upgrade); the voice comes 5 updates later"]
     ] },
-    { name: "Level start and end", sounds: [
-      ["sounds/voices/getready.ogg", "\"Get ready!\"", "A level begins, 50 updates (0.5 s) after the board starts"],
-      ["sounds/voices/go.ogg", "\"Go!\"", "Every atom of the grid has finished appearing, once per level; the voice follows 1 update later"],
+    { name: "Bombs and biohazards", sounds: [
+      ["sounds/voices/biohazard.ogg", "\"Biohazard!\"", "The first biohazard atom of a grid finishes appearing; 10 updates (0.1 s) later (one of two random choices, both this voice)"],
+      ["sounds/heartbeat.ogg", "Heartbeat", "A biohazard atom's glow reaches full brightness, once per pulse of its glow"],
+      ["sounds/voices/atomicbombready.ogg", "\"Atomic bomb ready\"", "The atomic bomb button finishes lighting up (its frame reaches 15 of 24); 50 updates (0.5 s) later"],
+      ["sounds/voices/atomicbomb.ogg", "\"Atomic bomb!\"", "The bomb button is pressed with atoms on the grid and no level-up showing; the voice follows 1 update later"],
+      ["sounds/nukeblast.ogg", "Nuke blast", "An atom is destroyed: the atomic bomb bursts it, or an element's expanding ring pops it, or a biohazard atom's molecule shatters it; one sound per atom"],
+      ["sounds/voices/biohazardalert.ogg", "\"Biohazard alert!\" (unused)", "Never played: it is not loaded, and no code asks for it; only the biohazard voice sounds"]
+    ] },
+    { name: "Level up and game over", sounds: [
       ["sounds/voices/levelup.ogg", "\"Level up!\"", "The meter fills and the level goes up (the action mode: its meter passes its maximum); in the strategy mode it clears other queued voices"],
       ["sounds/voices/gameover.ogg", "\"Game over!\"", "300 updates (3 s) into the game-over count of 600, when the atoms fly away; not while a saved game loads"],
+      ["sounds/voices/levelcomplete.ogg", "\"Level complete!\" (unused)", "Never played: it is not loaded, and the level-up voice is used when a level ends"]
+    ] },
+    { name: "High scores", sounds: [
       ["sounds/voices/anewhighscore.ogg", "\"A new high score!\"", "The name entry box opens for a score that earns a place on the table or the best of the day"],
       ["sounds/voices/cool.ogg", "\"Cool!\"", "Okay is pressed on a high score name: one of six voices (this, excellent, great, nifty, terrific, wicked), 1 in 6 each"],
       ["sounds/voices/excellent.ogg", "\"Excellent!\"", "Okay is pressed on a high score name: one of six voices (cool, this, great, nifty, terrific, wicked), 1 in 6 each"],
@@ -226,7 +235,6 @@ var ByopopSoundboards = {
       ["sounds/voices/terrific.ogg", "\"Terrific!\"", "Okay is pressed on a high score name: one of six voices (cool, excellent, great, nifty, this, wicked), 1 in 6 each"],
       ["sounds/voices/wicked.ogg", "\"Wicked\"", "Okay is pressed on a high score name: one of six voices (cool, excellent, great, nifty, terrific, this), 1 in 6 each"],
       ["sounds/voices/awesome.ogg", "\"Awesome!\" (unused)", "Never played: it is not loaded, and the high score voices choose among six others only"],
-      ["sounds/voices/levelcomplete.ogg", "\"Level complete!\" (unused)", "Never played: it is not loaded, and the level-up voice is used when a level ends"],
       ["sounds/voices/beautiful.ogg", "\"Beautiful!\" (unused)", "Never played: it is not loaded, and the high score voices choose among six others only"]
     ] },
   ] },
@@ -289,28 +297,30 @@ var ByopopSoundboards = {
       { name: "Game Over", when: "No moves are left", steps: [["sounds/No_More_Moves", 0], ["sounds/explode2", 2000]]}
     ],
     groups: [
-    { name: "Menus", sounds: [
+    { name: "Main menu", sounds: [
+      ["sounds/Welcome.ogg", "\"Welcome to Bejeweled 2\"", "The main menu opens after the title screen with no player name and no saved player; the name dialog follows 1.25 s later"],
+      ["sounds/Welcome_Back.ogg", "\"Welcome back\"", "The main menu opens after the title screen when a player name is set or a saved player exists"],
+      ["sounds/landinglights.ogg", "Landing lights", "Each time the main menu's three pairs of lights start a new run, while the menu is ready or starting a game"],
       ["sounds/mainmenu_mouseover.ogg", "Menu hover", "The pointer enters one of the four main menu game buttons (Classic, Action, Puzzle, Endless) while the game window has focus"],
       ["sounds/mainmenu_mouseoff.ogg", "Menu leave", "The pointer leaves one of the four main menu game buttons, again only while the window has focus"],
       ["sounds/mainmenu_mouseclick.ogg", "Menu click", "One of the four main menu game buttons goes down, once the menu is ready (the secret button has its own sounds)"],
-      ["sounds/landinglights.ogg", "Landing lights", "Each time the main menu's three pairs of lights start a new run, while the menu is ready or starting a game"],
       ["sounds/mystery.ogg", "Fairy dust", "The secret button on the main menu is switched on (nothing plays when it is switched off)"],
+      ["sounds/panelslide1.ogg", "Panel slide", "The high scores panel opens or starts closing; a galaxy map or puzzle dome button is released; Options is closed with OK"],
+      ["sounds/menuclick2.ogg", "Dialog click", "A button goes down in a dialog (Options, name, confirm) or on the puzzle dome; also when an option in Options is switched"],
       ["sounds/mainmenu_gamestart.ogg", "Game start", "A game starts from the main menu, as the board is set up and the portal opens"],
       ["sounds/menuclick.ogg", "Click", "A button goes down on the board (menu, hint), the galaxy map or the high scores (not while it closes), or on the main menu apart from the four game buttons and the secret one"],
-      ["sounds/menuclick2.ogg", "Dialog click", "A button goes down in a dialog (Options, name, confirm) or on the puzzle dome; also when an option in Options is switched"],
-      ["sounds/click2.ogg", "Click 2 (unused)", "Never played: the file is not in the game's resource list and no code plays it. Also in Bejeweled as Click 2 (unused)."],
-      ["sounds/panelslide1.ogg", "Panel slide", "The high scores panel opens or starts closing; a galaxy map or puzzle dome button is released; Options is closed with OK"],
-      ["sounds/Welcome.ogg", "\"Welcome to Bejeweled 2\"", "The main menu opens after the title screen with no player name and no saved player; the name dialog follows 1.25 s later"],
-      ["sounds/Welcome_Back.ogg", "\"Welcome back\"", "The main menu opens after the title screen when a player name is set or a saved player exists"],
-      ["sounds/Goodbye.ogg", "\"Goodbye\"", "Quit is confirmed in the quit dialog; the menu then shuts the game down"]
+      ["sounds/Goodbye.ogg", "\"Goodbye\"", "Quit is confirmed in the quit dialog; the menu then shuts the game down"],
+      ["sounds/click2.ogg", "Click 2 (unused)", "Never played: the file is not in the game's resource list and no code plays it. Also in Bejeweled as Click 2 (unused)."]
     ] },
     { name: "Swaps and matches", sounds: [
+      ["sounds/Go.ogg", "\"Go\"", "3 s (300 updates) after a board opens, 0.5 s after Play Again, 0.75 s after Continue on a planet; not while the board slides out"],
       ["sounds/select.ogg", "Select", "A gem is clicked and becomes the selected one, panned to its side of the board"],
       ["sounds/bad2.ogg", "Bad swap", "A swap that makes no match is undone, or two gems that are not neighbours are swapped; a locked planet is clicked on the galaxy map. Also in Bejeweled 3, as sounds/badmove.ogg."],
       ["sounds/gotset2.ogg", "Match", "An update finds exactly one set of three or more, with no flame gem made by a gem in two sets; also when the sound volume slider is let go. Also in Chuzzle Deluxe, as sounds/Bonus/GotJewel.ogg."],
       ["sounds/gotsetbig2.ogg", "Big match", "One update finds two or more sets at the same time (no gem shared between sets and no four in a row). Resembles Chuzzle Deluxe's sounds/Bonus/GotJewel.ogg, the same sound, longer."],
-      ["sounds/multishot.ogg", "Multi match", "A match makes a flame gem: four in a row, or one gem in two sets (an L, a T or a cross); plays instead of the Match sound"],
-      ["sounds/gemongem2.ogg", "Gems land", "Falling gems land, at most once every 10 updates (0.1 s); also when the logo's face gems land on the title screen. Also in Bejeweled 3, as sounds/gem_hit.ogg. Also in Chuzzle Deluxe, as sounds/Bonus/JewelLand.ogg."],
+      ["sounds/gemongem2.ogg", "Gems land", "Falling gems land, at most once every 10 updates (0.1 s); also when the logo's face gems land on the title screen. Also in Bejeweled 3, as sounds/gem_hit.ogg. Also in Chuzzle Deluxe, as sounds/Bonus/JewelLand.ogg."]
+    ] },
+    { name: "Cascades", sounds: [
       ["sounds/combo22.ogg", "Cascade 1", "Together with the match sound, when the move's chain is at its first match (a swap resets the chain)"],
       ["sounds/combo32.ogg", "Cascade 2", "Together with the match sound, for the second match of a move: one fall of new gems after the first. Also in Bejeweled 3, as sounds/combo_2.ogg."],
       ["sounds/combo42.ogg", "Cascade 3", "Together with the match sound, for the third match of a move"],
@@ -318,43 +328,45 @@ var ByopopSoundboards = {
       ["sounds/combo62.ogg", "Cascade 5", "Together with the match sound, for the fifth match of a move"],
       ["sounds/combo72.ogg", "Cascade 6", "Together with the match sound, for the sixth match of a move and every one after it"]
     ] },
-    { name: "Special gems", sounds: [
-      ["sounds/hypergem_creation.ogg", "Hypercube made", "A match of five in a row makes a hypercube (unless a flame gem blast is next to it); also when the title logo's gem finishes forming"],
-      ["sounds/hypergem_destroyed.ogg", "Hypercube used", "A hypercube is caught in a flame gem's 3 x 3 blast and bursts into sparks; at most one sound per update"],
-      ["sounds/electro_start.ogg", "Lightning start", "A hypercube is swapped with a neighbouring gem and the lightning starts"],
-      ["sounds/electro_path.ogg", "Lightning", "The lightning reaches one more gem: each update has a 1 in 25 chance with no gem lit yet, and a better one as more gems are lit"],
-      ["sounds/electro_explode.ogg", "Lightning blast", "A gem the lightning lit explodes, 0.67 s (67 updates) after it was lit; one sound for each gem"],
-      ["sounds/bombexplode.ogg", "Gem explodes", "A flame gem explodes when matched, once per update however many go off; also when a bomb gem's count reaches zero. Resembles Bejeweled 3's sounds/bomb_explode.ogg, the same sound, mixed differently."]
-    ] },
     { name: "Praise", sounds: [
       ["sounds/Good.ogg", "\"Good\"", "A move's points reach 60 × the level's multiplier, at most once in 120 s (12,000 updates); never in Puzzle"],
       ["sounds/excellent1.ogg", "\"Excellent\"", "A move's points reach 125 × the level's multiplier (the word too, but not in Action); never in Puzzle. Also: the logo's gem finishes forming"],
       ["sounds/Incredible.ogg", "\"Incredible\"", "A move's points reach 275 × the level's multiplier (the word too, but not in Action); never in Puzzle"]
     ] },
-    { name: "Levels", sounds: [
-      ["sounds/Get_ready.ogg", "\"Get ready\"", "A new level's warp finishes (never in Puzzle): in 3D when the board is rebuilt, and 4.5 s (450 updates) into the hyperspace warp"],
-      ["sounds/Go.ogg", "\"Go\"", "3 s (300 updates) after a board opens, 0.5 s after Play Again, 0.75 s after Continue on a planet; not while the board slides out"],
-      ["sounds/whirlpool1.ogg", "Whirlpool", "A whirlpool warp begins: a level is won and its score has counted up, another planet is chosen, the puzzle dome is clicked, or a secret puzzle run ends"],
-      ["sounds/Level_Complete.ogg", "\"Level complete\"", "The level bar is full (not in Puzzle), the board has settled and nothing is still clearing; the whirlpool follows when the score is counted"],
-      ["sounds/warning1.ogg", "Warning", "A timed (Action) game's bar is under 15% and has stopped moving: every 0.8 s to 2.4 s, faster as the bar empties; not once the game is over"]
+    { name: "Flame gems and hypercubes", sounds: [
+      ["sounds/multishot.ogg", "Multi match", "A match makes a flame gem: four in a row, or one gem in two sets (an L, a T or a cross); plays instead of the Match sound"],
+      ["sounds/bombexplode.ogg", "Gem explodes", "A flame gem explodes when matched, once per update however many go off; also when a bomb gem's count reaches zero. Resembles Bejeweled 3's sounds/bomb_explode.ogg, the same sound, mixed differently."],
+      ["sounds/hypergem_creation.ogg", "Hypercube made", "A match of five in a row makes a hypercube (unless a flame gem blast is next to it); also when the title logo's gem finishes forming"],
+      ["sounds/electro_start.ogg", "Lightning start", "A hypercube is swapped with a neighbouring gem and the lightning starts"],
+      ["sounds/electro_path.ogg", "Lightning", "The lightning reaches one more gem: each update has a 1 in 25 chance with no gem lit yet, and a better one as more gems are lit"],
+      ["sounds/electro_explode.ogg", "Lightning blast", "A gem the lightning lit explodes, 0.67 s (67 updates) after it was lit; one sound for each gem"],
+      ["sounds/hypergem_destroyed.ogg", "Hypercube used", "A hypercube is caught in a flame gem's 3 x 3 blast and bursts into sparks; at most one sound per update"]
     ] },
-    { name: "Puzzles", sounds: [
-      ["sounds/planetselect.ogg", "Planet select", "A puzzle is clicked on the galaxy map and its planet is open; a locked planet plays the Bad swap sound instead"],
+    { name: "Level complete and the warp", sounds: [
+      ["sounds/Level_Complete.ogg", "\"Level complete\"", "The level bar is full (not in Puzzle), the board has settled and nothing is still clearing; the whirlpool follows when the score is counted"],
+      ["sounds/whirlpool1.ogg", "Whirlpool", "A whirlpool warp begins: a level is won and its score has counted up, another planet is chosen, the puzzle dome is clicked, or a secret puzzle run ends"],
+      ["sounds/Get_ready.ogg", "\"Get ready\"", "A new level's warp finishes (never in Puzzle): in 3D when the board is rebuilt, and 4.5 s (450 updates) into the hyperspace warp"]
+    ] },
+    { name: "Action's timer", sounds: [
+      ["sounds/warning1.ogg", "Warning", "A timed (Action) game's bar is under 15% and has stopped moving: every 0.8 s to 2.4 s, faster as the bar empties; not once the game is over"],
+      ["sounds/Time_Up.ogg", "\"Time up\"", "A timed (Action) game's bar runs out while the board is idle; the explosion follows 2 s later"]
+    ] },
+    { name: "Puzzle", sounds: [
       ["sounds/galaxymapbutton.ogg", "Galaxy map", "The puzzle dome's button is released, as the galaxy map opens (with the panel slide)"],
+      ["sounds/planetselect.ogg", "Planet select", "A puzzle is clicked on the galaxy map and its planet is open; a locked planet plays the Bad swap sound instead"],
       ["sounds/Puzzle_Solved.ogg", "\"Puzzle solved\"", "The board is emptied and the planet's solved count rises to 1, 2 or 3; re-solving a puzzle already solved plays nothing"],
       ["sounds/Warp_Drive_Ready.ogg", "\"Warp drive ready\"", "A puzzle is newly solved and it makes the planet's fourth solved puzzle, which opens the next planet"],
       ["sounds/World_Complete.ogg", "\"World complete\"", "A puzzle is newly solved and it makes the planet's fifth solved puzzle"]
     ] },
     { name: "Game over", sounds: [
-      ["sounds/explode2.ogg", "Explosion", "The board blows up 2 s (200 updates) after the game ends, whether by no moves or by time up"],
       ["sounds/No_More_Moves.ogg", "\"No more moves\"", "No move is left on the board after the falls settle, in Classic and Endless (Action ends on time, Puzzle plays nothing)"],
-      ["sounds/Time_Up.ogg", "\"Time up\"", "A timed (Action) game's bar runs out while the board is idle; the explosion follows 2 s later"],
-      ["sounds/Game_Over.ogg", "\"Game over\" (unused)", "Never played: it is loaded, but the game ends with the No more moves or Time up voice instead"],
-      ["sounds/A_New_High_Score.ogg", "\"A new high score\"", "A game ends and its final score earns a place (rank 1 to the list's end) on the high scores"]
+      ["sounds/explode2.ogg", "Explosion", "The board blows up 2 s (200 updates) after the game ends, whether by no moves or by time up"],
+      ["sounds/A_New_High_Score.ogg", "\"A new high score\"", "A game ends and its final score earns a place (rank 1 to the list's end) on the high scores"],
+      ["sounds/Game_Over.ogg", "\"Game over\" (unused)", "Never played: it is loaded, but the game ends with the No more moves or Time up voice instead"]
     ] },
     { name: "Bejeweled leftovers", sounds: [
       ["sounds/firecrackle.ogg", "Fire crackle (unused)", "Never played: it is loaded, but no code plays it, by id or by number. Also in Bejeweled as Crackle: the vortex has finished and the gems are gone."]
-    ] }
+    ] },
   ] },
   // Bejeweled Twist: sounds/combo_1.ogg (Match 1) is left out, never played and nearly silent (its loudest point -49 dB).
   bejeweledtwist: {
