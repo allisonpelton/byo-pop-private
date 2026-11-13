@@ -14,6 +14,12 @@ static std::map<std::string, int>& GetNameCounters()
 	return aCounters;
 }
 
+// 0x401fd0 (on the table 0x4025c0 makes)
+void Sexy::ResetObjectNames()
+{
+	GetNameCounters().clear();
+}
+
 // 0x4026f0: the next name of a type, "<type>_00001", then _00002 and so on
 static std::string MakeName(const char* theTypeName)
 {

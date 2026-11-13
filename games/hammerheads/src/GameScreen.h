@@ -9,6 +9,7 @@
 #include <string>
 #include <vector>
 
+#include "BoardFile.h"
 #include "ButtonListener.h"
 #include "Object.h"
 #include "Widget.h"
@@ -16,7 +17,7 @@
 namespace Sexy
 {
 
-class ButtonWidget;
+class NcButton;
 
 class GameScreen : public Widget, public ButtonListener
 {
@@ -37,7 +38,8 @@ public:
 	int				mCycle;				// +0x238: how many times the list of kinds has been made for this level
 	int				mMode;				// +0x23c: the game mode
 	double			mLevelTime;			// +0x240: seconds the level has run
-	ButtonWidget*	mMenuButton;		// +0x248
+	NcButton*		mMenuButton;		// +0x248
+	std::vector<BoardObject> mBoardObjects;	// the objects of the board file that LoadBoard read, until Start makes them
 
 public:
 	GameScreen();										// 0x4527c0
@@ -51,7 +53,7 @@ public:
 	virtual void	Draw(Graphics* g) override;								// 0x451d90
 	virtual void	GotFocus() override;									// 0x450f80
 	virtual void	LostFocus() override;									// 0x450fc0
-	virtual void	MouseEnter() override;									// 0x450d10
+	virtual void	MouseDrag(int x, int y) override;						// 0x450d10: the hammer follows the pointer
 	virtual void	MouseMove(int x, int y) override;						// 0x451200
 	virtual void	MouseDown(int x, int y, int theClickCount) override;	// 0x451320
 	virtual void	KeyDown(KeyCode theKey) override;						// 0x451410
@@ -69,7 +71,7 @@ public:
 	bool			IsGameInProgress() const;								// 0x450bb0: some health, and not over
 	bool			IsInPlay() const;										// 0x450ca0: this is the focused widget, and no menu, no confirmation and no intro is up
 	bool			IsPaused() const;										// 0x451040: the app is paused and nothing else is showing
-	bool			IsLevelRunning() const;									// 0x450d80: the level's time runs
+	bool			IsLevelRunning() const;									// 0x450d80: the level's time runs (not in the free seconds of a wave or when the last king stands)
 	void			Pause();												// 0x450d60
 	void			UpdateHover();											// 0x450f30: the crosshair off
 	void			ShowCrosshair();										// 0x450ec0: the crosshair on

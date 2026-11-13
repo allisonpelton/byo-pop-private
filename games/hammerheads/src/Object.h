@@ -78,6 +78,9 @@ public:
 	virtual const char* TypeName() const = 0;				// the original's typeid(*this).name(), "class Sexy::Cubby"
 };
 
+// 0x4025c0 and 0x401fd0: the numbers that names are made up from start again at 1 (the start of a level)
+void ResetObjectNames();
+
 #define OBJECT_TYPE(theName) virtual const char* TypeName() const override { return "class Sexy::" #theName; }
 
 // An Object with a position and a size (0x405c20). The original's fields at +0x80 to +0x8f are a rect, 0x90 and 0x98 the

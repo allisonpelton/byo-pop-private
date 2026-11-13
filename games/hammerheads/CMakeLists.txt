@@ -4,7 +4,7 @@
 file(GLOB HAMMERHEADS_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp)
 add_executable(hammerheads ${HAMMERHEADS_SOURCES})
 target_include_directories(hammerheads PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
-target_link_libraries(hammerheads PRIVATE sexyframework)
+target_link_libraries(hammerheads PRIVATE sexyframework sexycompat2004)
 if(NOT MSVC)
   target_compile_options(hammerheads PRIVATE -Wall -Wno-overloaded-virtual -Wno-unused-private-field)
   # The original's int arithmetic wraps (x86 imul and add), and its scores and timers depend on it
