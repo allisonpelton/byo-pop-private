@@ -62,6 +62,9 @@ def port(out, run):
     shutil.rmtree(user, ignore_errors=True)
     os.makedirs(user)
     idplay.set_port_mode(user, sc, windowed=True)
+    if os.environ.get('CYC_3D') == '1':   # the port's 3D display (the registry's Is3D left at its default), for the record
+        with open(os.path.join(user, 'registry.ini'), 'w', newline='') as registry:
+            registry.write('[SOFTWARE\\PopCap\\Venice]\nScreenMode=dword:0\n')
     shutil.copyfile(os.path.join(out, 'profiles.dat'), os.path.join(user, 'profiles.dat'))
     lines = []
     for frame, _, command in load_inputs(out):
@@ -120,7 +123,8 @@ def summary(out):
     import statistics
     sides = {'original': glob.glob(os.path.join(out, 'o[0-9]*', 'orig.split.jsonl')),
              'port, window 1x': glob.glob(os.path.join(out, 'p[0-9]*1', 'port.split.jsonl')),
-             'port, default window (2x)': glob.glob(os.path.join(out, 'p[0-9]*0', 'port.split.jsonl'))}
+             'port, default window (2x)': glob.glob(os.path.join(out, 'p[0-9]*0', 'port.split.jsonl')),
+             'port, 3D display, window 1x': glob.glob(os.path.join(out, 'q[0-9]*', 'port.split.jsonl'))}
     first = next(path for files in sides.values() for path in files)
     hz = cycle_rate(first)
     print('cycle counter %.0f MHz; the stretch is labels a to b; M cycles an update, the share of one core' % (hz / 1e6))
