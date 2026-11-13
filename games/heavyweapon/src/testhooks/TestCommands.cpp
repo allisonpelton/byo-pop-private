@@ -53,6 +53,7 @@
 #include "PlayTipDialog.h"
 #include "Projectile.h"
 #include "ResultsScreen.h"
+#include "TankShots.h"
 #include "BracketButton.h"
 #include "DialogButton.h"
 #include "HyperlinkWidget.h"
@@ -384,21 +385,46 @@ void DoubleWords(double theValue, int* theLow, int* theHigh)
 	*theHigh = (int)(uint32_t)(aBits >> 32);
 }
 
+// Whether a traced item's place is never set: the tank's lightning (StaticStrike) keeps its path in its own arrays and
+// leaves mX and mY as the heap had them, in the original too, and nothing reads them
+bool IsUnplaced(Bullet*)
+{
+	return false;
+}
+
+bool IsUnplaced(Enemy*)
+{
+	return false;
+}
+
+bool IsUnplaced(Projectile* theProjectile)
+{
+	return dynamic_cast<StaticStrike*>(theProjectile) != NULL;
+}
+
 // The trace's places of a board list's first TRACED_ITEMS items: " <prefix><n>x=<high word of mX> <prefix><n>y=...", 0 for
-// the items the list does not have
-template <class T> void WriteTracedItems(FILE* theFile, char thePrefix, ObjectList<T>& theList)
+// the items the list does not have and for one whose place is never set; with theMarksUnplaced, " <prefix><n>s=1" after
+// such an item (idplay.py reads the original's from its vtable)
+template <class T> void WriteTracedItems(FILE* theFile, char thePrefix, ObjectList<T>& theList, bool theMarksUnplaced)
 {
 	typename ObjectList<T>::Node* aNode = theList.mHead->mNext;
 	for (int i = 1; i <= TRACED_ITEMS; i++)
 	{
 		int aLow = 0, anXHigh = 0, aYHigh = 0;
+		bool anUnplaced = false;
 		if (aNode != NULL)
 		{
-			DoubleWords(aNode->mItem->mX, &aLow, &anXHigh);
-			DoubleWords(aNode->mItem->mY, &aLow, &aYHigh);
+			anUnplaced = IsUnplaced(aNode->mItem);
+			if (!anUnplaced)
+			{
+				DoubleWords(aNode->mItem->mX, &aLow, &anXHigh);
+				DoubleWords(aNode->mItem->mY, &aLow, &aYHigh);
+			}
 			aNode = aNode->mNext;
 		}
 		fprintf(theFile, " %c%dx=%d %c%dy=%d", thePrefix, i, anXHigh, thePrefix, i, aYHigh);
+		if (theMarksUnplaced)
+			fprintf(theFile, " %c%ds=%d", thePrefix, i, anUnplaced ? 1 : 0);
 	}
 }
 
@@ -462,16 +488,20 @@ void HeavyWeaponApp::TraceFrame()
 	// the first few of the board's bullets, enemies and projectiles, each by the high words of its mX and mY
 	if (mBoard != NULL)
 	{
-		WriteTracedItems(mTraceFile, 'b', mBoard->mBullets);
-		WriteTracedItems(mTraceFile, 'e', mBoard->mEnemies);
-		WriteTracedItems(mTraceFile, 'p', mBoard->mProjectiles);
+		WriteTracedItems(mTraceFile, 'b', mBoard->mBullets, false);
+		WriteTracedItems(mTraceFile, 'e', mBoard->mEnemies, false);
+		WriteTracedItems(mTraceFile, 'p', mBoard->mProjectiles, true);
 	}
 	else
 	{
 		for (char aPrefix : { 'b', 'e', 'p' })
 		{
 			for (int i = 1; i <= TRACED_ITEMS; i++)
+			{
 				fprintf(mTraceFile, " %c%dx=0 %c%dy=0", aPrefix, i, aPrefix, i);
+				if (aPrefix == 'p')
+					fprintf(mTraceFile, " %c%ds=0", aPrefix, i);
+			}
 		}
 	}
 	fprintf(mTraceFile, "\n");
