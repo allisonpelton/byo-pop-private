@@ -558,6 +558,12 @@ void ShopItemGift::Remove()
 	mOpenCount = mOpenCount + 1;
 }
 
+// 0x4425e0
+bool ShopItemGift::IsRolling() const
+{
+	return mPrize != -1 && mRollProgress < 1.0;
+}
+
 // 0x442bb0
 void ShopItemGift::StartRoll(int thePrize)
 {

@@ -8,6 +8,7 @@
 #include "GnomeBouncing.h"
 #include "GnomeFlying.h"
 #include "Hearts.h"
+#include "LevelRules.h"
 #include "Res.h"
 #include "Stats.h"
 #include "Timer.h"
@@ -191,7 +192,7 @@ bool Gameplay::IsChallengeDue() const
 		return false;
 	if (gApp->mGameScreen->mLevel % CHALLENGE_LEVEL_INTERVAL == 0)
 	{
-		if (!GetChallengeList(0)->IsWon(gApp->mGameScreen->mLevel - 1))
+		if (!GetRulesSheet()->IsLastRow(gApp->mGameScreen->mLevel - 1))
 			return true;
 	}
 	return false;
@@ -459,7 +460,7 @@ void Gameplay::Update(float theFrac)
 			gApp->LevelFinished();
 		}
 	}
-	else if (mPhase == PHASE_PLAYING && !gApp->mGameScreen->IsPopPaused() && 0.0 < mNextPopTimer)
+	else if (mPhase == PHASE_PLAYING && !IsWaveTail() && 0.0 < mNextPopTimer)
 	{
 		mNextPopTimer = mNextPopTimer - (double)theFrac * 0.01;
 		if (mNextPopTimer <= 0.0)

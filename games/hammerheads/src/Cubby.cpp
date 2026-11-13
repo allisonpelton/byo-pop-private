@@ -3,6 +3,8 @@
 #include <cmath>
 
 #include "Application.h"
+#include "ShopScreen.h"
+#include "ChallengeScreen.h"
 #include "Avatar.h"
 #include "ChallengeMeter.h"
 #include "Creature.h"
@@ -670,7 +672,7 @@ void Cubby::Strike(double theX, double theY)
 		GetFloaterAnchor(anAnchor2);
 		int aY = (int)anAnchor2[1];
 		int aX = (int)anAnchor[0];
-		GetScoreDisplay()->AddPoints(aScore, aX, aY, 2);
+		GetScore()->AddPoints(aScore, aX, aY, 2);
 
 		GnomeBonus* aBonus = dynamic_cast<GnomeBonus*>(mCreature);
 		if (aBonus != nullptr)
@@ -776,7 +778,7 @@ bool Sexy::IsGiftReady()
 			if (aCreature != nullptr && !aCreature->mFinished && aCreature->mKind == KIND_SHOP_GIFT && aCubby->mActive)
 			{
 				ShopItemGift* aGift = dynamic_cast<ShopItemGift*>(aCreature);
-				if (aGift->IsReady())
+				if (aGift->IsRolling())
 					return true;
 			}
 		}

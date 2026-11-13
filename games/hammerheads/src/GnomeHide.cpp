@@ -1,6 +1,7 @@
 #include "GnomeHide.h"
 
 #include "Application.h"
+#include "HammerDisplay.h"
 #include "Hearts.h"
 #include "Res.h"
 #include "ValueList.h"

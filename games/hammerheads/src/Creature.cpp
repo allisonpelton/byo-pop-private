@@ -4,6 +4,8 @@
 #include <map>
 
 #include "Application.h"
+#include "LevelRules.h"
+#include "HammerDisplay.h"
 #include "Common.h"
 #include "Cubby.h"
 #include "DDImage.h"
@@ -655,7 +657,7 @@ int Creature::GetCarriedItem()
 		{
 			if (mCarriedItems[i] != ITEM_NONE)
 			{
-				if (mCarriedItem == ITEM_NONE && 0.0 < GetGameplay()->mExtraDropTimer)
+				if (mCarriedItem == ITEM_NONE && 0.0 < GetGameplay()->mCloverTimer)
 					mCarriedItem = PickBonusDrop();
 
 				if (gApp->mGameMode == GAME_MODE_CLASSIC || gApp->mGameMode == GAME_MODE_TOUGH_COOKIE)
@@ -675,9 +677,9 @@ int Creature::GetCarriedItem()
 		if (mKind == KIND_GNOME && mCubby != nullptr)
 		{
 			int aLevel = gApp->mGameScreen->mLevel;
-			if (aLevel == 1 && !GetGameplay()->mTutorialShown)
+			if (aLevel == 1 && !GetGameplay()->mFlagCC)
 			{
-				if (GetFirstLevelDropRule() == 0 && gApp->mGameMode == GAME_MODE_CLASSIC)
+				if (GetWaveIndex() == 0 && gApp->mGameMode == GAME_MODE_CLASSIC)
 				{
 					mCarriedItem = ITEM_NONE;
 				}

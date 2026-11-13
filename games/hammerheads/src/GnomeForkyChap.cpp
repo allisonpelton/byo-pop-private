@@ -1,6 +1,7 @@
 #include "GnomeForkyChap.h"
 
 #include "Application.h"
+#include "HammerDisplay.h"
 #include "Hearts.h"
 #include "Res.h"
 #include "Stats.h"

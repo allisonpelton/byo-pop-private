@@ -109,7 +109,7 @@ bool Sexy::MaskHitsImage(const double* theImagePos, const int* theXY, const std:
 		int aY = (theMask[i].mY - ToInt(theImagePos[1])) + theXY[1];
 		if (aX > -1 && aX < aCelWidth && aY > -1 && aY < aCelHeight)
 		{
-			const uint32_t* aBits = static_cast<MemoryImage*>(theImage)->GetBits();
+			const ulong* aBits = static_cast<MemoryImage*>(theImage)->GetBits();
 			if ((aBits[theImage->mWidth * (theCelRow * aCelHeight + aY) + theCelCol * aCelWidth + aX] & 0xff000000) != 0)
 				return true;
 		}

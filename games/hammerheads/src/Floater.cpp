@@ -5,6 +5,7 @@
 #include <cstdio>
 
 #include "Application.h"
+#include "MusicInterface.h"
 #include "Color.h"
 #include "DDImage.h"
 #include "DrawUtil.h"

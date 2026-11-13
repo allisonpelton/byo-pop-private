@@ -1,6 +1,7 @@
 #include "GnomeSwitcher.h"
 
 #include "Application.h"
+#include "HammerDisplay.h"
 #include "Coins.h"
 #include "Cubby.h"
 #include "Floater.h"

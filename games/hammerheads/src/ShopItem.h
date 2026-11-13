@@ -103,6 +103,7 @@ public:
 	virtual void	Remove() override;											// 0x442540
 
 	void			StartRoll(int thePrize);							// 0x442bb0: the roll begins; the prize is the one it stops on
+	bool			IsRolling() const;								// 0x4425e0: a roll has begun and is not at its end
 };
 
 }
