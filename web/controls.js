@@ -209,7 +209,7 @@ var ByopopControls = (function () {
     shownText = text;
     display.textContent = "";
     parts.forEach(function (p) { var s = document.createElement("span"); s.textContent = p; display.appendChild(s); });
-    display.hidden = !parts.length;
+    display.style.visibility = parts.length ? "" : "hidden";
   }
   function onSeen(e) {
     if (!display) return;
@@ -227,7 +227,7 @@ var ByopopControls = (function () {
       display = document.createElement("div");
       display.className = "bc-display";
       display.setAttribute("aria-hidden", "true");
-      display.hidden = true;
+      display.style.visibility = "hidden";
       // never over the game's picture (the user, 2026-11-10: "Never show anything but the game itself (and the mod menu) inside the
       // game"): in the game window's status bar where there is one, else under the game
       var bar = document.querySelector(".d95-statusbar"), main = document.getElementById("main");
@@ -479,8 +479,12 @@ var ByopopControls = (function () {
     drawPanel();
   }
 
-  var STYLE = ".bc-display.bc-in-bar, .bc-display.bc-under { position: static; flex: 0 1 auto; }" +
-    ".bc-display.bc-in-bar span, .bc-display.bc-under span { background: none; color: inherit; text-shadow: none; padding: 0 4px; border: 1px solid currentColor; border-radius: 0; font-size: 11px; }" +
+  // In the status bar or under the game the display keeps one line of a fixed height, shorter than the bar's text, whether
+  // keys are held or not (visibility, never hidden or a second row), so nothing around it moves (the user, 2026-11-13: "The
+  // input display is too tall and causes the window to move when any input gets displayed")
+  var STYLE = ".bc-display.bc-in-bar, .bc-display.bc-under { position: static; flex: 0 1 auto; flex-wrap: nowrap; overflow: hidden; align-items: center; }" +
+    ".bc-display.bc-under { height: 16px; padding: 2px 0; }" +
+    ".bc-display.bc-in-bar span, .bc-display.bc-under span { background: none; color: inherit; text-shadow: none; padding: 0 3px; border: 1px solid currentColor; border-radius: 0; font-size: 11px; line-height: 11px; flex: none; }" +
     ".bc-display { position: absolute; bottom: 6px; left: 6px; z-index: 2; pointer-events: none; display: flex; gap: 4px; flex-wrap: wrap; }" +
     ".bc-display span { padding: 2px 7px; border-radius: 4px; font: 600 13px/1.3 ui-monospace, Consolas, monospace; color: #fff;" +
     " background: rgba(0, 0, 0, 0.6); text-shadow: 0 1px 1px #000; }" +
