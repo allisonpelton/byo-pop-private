@@ -147,6 +147,11 @@ public:
 	virtual void	LostFocus() override;								// 0x41fb60
 	virtual void	DialogButtonDepress(int theDialogId, int theButtonId) override;	// 0x422ac0 (the DialogListener's slot 1)
 
+	// port: the standard test commands (TestCommands.cpp; docs/TEST_COMMANDS.md)
+	virtual bool	HandleScriptCommand(const ScriptCommand& theCommand) override;
+	void			StartTestGame(int theMode, int theLevel);		// a new game of a mode at a level, over whatever is on screen
+	void			SeedGame(unsigned int theSeed);					// the seeding that Init gives the generators
+
 	// The original's own virtuals (slots 97 and 98)
 	virtual void	LoadingScreenDone();								// 0x4220d0: the loading screen's wipe is over, the menu comes
 	virtual void	DialogClosed(int theDialogId, int theResult);		// 0x4222a0: a moving dialog was answered or left (the result is a button id, or 999 when it was left with the escape key)
@@ -198,7 +203,6 @@ public:
 	void			DeleteGameScreen();									// 0x41e960
 	void			DeleteChallengeScreen();							// 0x41e9a0
 	void			RemoveAllScreens();									// 0x41ec90: the game screen, the shop, the challenge, the resurrect screen
-	void			RemoveWidgetAndDelete(Widget*& theWidget);			// the repeated RemoveWidget, SafeDeleteWidget, null
 
 	// The dialogs
 	void			DoReadyGoDialog(bool thePlaySound, const std::string& theHeader, const std::string& theText);	// 0x41fec0

@@ -212,7 +212,7 @@ void Sexy::RefreshUserDialog(Dialog*, const std::string&) {}
 
 void Sexy::MakeGameOverDialog()
 {
-	gApp->GameOverDone();
+	// the real box has a button that leaves the game; the stand-in leaves the game over and paused for a test to go on from
 }
 
 void Sexy::MakeReadyGoDialog(const std::string&, const std::string&)
