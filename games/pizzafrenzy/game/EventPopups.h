@@ -13,10 +13,8 @@
 // and its first effects) and waits; when the wait is over it acts, which sets the next wait or ends the event. An event
 // ends by fading its bar out and letting the mode go of the popup.
 //
-// Left out, with one comment where each would be called: the splats the events make (the portrait that flies from the
-// customer's house to the bar, the money and the happiness that fly between the displays and the portrait): the splat
-// factory is not translated, so SplatFlight stands in for the splat's flight, where something waits for the splat to
-// arrive (the portrait's, and each of the Movie Star's tips), and the draws a splat makes are made.
+// The splats the events make are the splat factory's (the portrait that flies from the customer's house to the bar,
+// the money and the happiness that fly between the displays and the portrait).
 
 #include "FadeContainer.h"
 #include "GameMode.h"
@@ -25,7 +23,6 @@
 #include "TextTyper.h"
 #include "Tip.h"
 
-#include <functional>
 #include <string>
 #include <vector>
 
@@ -37,23 +34,6 @@ class SpecialEventPopup;
 // 0x44a490: the popup of the event's type ("Thief", "Gossip", "MovieStar", "CrankCaller", "Monk", "Clown",
 // "TreasureHunter" or "GraffitiArtist"); none for another type
 SpecialEventPopup* makeEventPopup(const std::string& theType);
-
-// What a splat is for the events that wait for one (port): the splat factory makes a splat from a definition of
-// res\manifests\splats.xml and the splat flies to its end over the distance divided by its speed, then tells the node
-// that connected to it and is let go. This node is that flight: after the seconds it tells the popup, a frame after
-// they are up (the factory looks at a splat's time before it moves it)
-class SplatFlight : public engine::Container
-{
-public:
-	SplatFlight(std::function<void()> theArrival, float theSeconds);
-
-	// slot 0x94: 0x473b90's loop over the splats (0x4812f0 is the splat's own frame)
-	void update(engine::UpdateInfo& theInfo) override;
-
-private:
-	std::function<void()> mArrival;
-	float mSecondsLeft;
-};
 
 // The popup waits for the seconds in its timer (0x1c bytes, constructor 0x44aa00, vtable 0x4ff8a4): when they are up it
 // acts, and acts again at each frame until the act makes another wait or ends the event
@@ -84,7 +64,7 @@ private:
 };
 
 // The base of the events' popups (0x194 bytes, constructor 0x44b100, vtable 0x4ff8e8)
-class SpecialEventPopup : public EventPopup
+class SpecialEventPopup : public EventPopup, public engine::HasSlots
 {
 public:
 	SpecialEventPopup();           // 0x44b100
@@ -117,21 +97,7 @@ public:
 	// the seconds before the state acts (the original's +0x16c, which the wait counts down)
 	float mWaitLeft;
 
-	// port: what the splat factory draws from the generator for each splat it makes (0x474a20), the only part of a
-	// splat that is made when the splat is not drawn
-	static void drawSplatRandoms();
-
 protected:
-	// 0x474a20, 0x481200: the seconds a splat of the definition takes to fly from the point to the other, at the
-	// definition's speed; the splat's picture is kept within the screen at its start, by the width of the
-	// definition's picture
-	static float getFlightSeconds(const char* theImage, float theSpeed, engine::Point theFrom,
-	                              const engine::Point& theTo);
-	// the splat of the definition is made, and the popup waits for its flight: drawSplatRandoms, and the node that
-	// calls back at the splat's end
-	void watchSplat(const char* theImage, float theSpeed, const engine::Point& theFrom, const engine::Point& theTo,
-	                std::function<void()> theArrival);
-
 	engine::StateMgr mStates;                      // +0x138
 	std::string mSound;                            // +0x150: the sound the event plays
 	engine::Ref<engine::FadeContainer> mBar;       // +0x170: the shaded bar, which holds the rest

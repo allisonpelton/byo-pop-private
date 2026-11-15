@@ -73,6 +73,15 @@ std::string pizzafrenzy::formatText(const std::string& theFormat, const std::str
 }
 
 // 0x46db00
+std::string pizzafrenzy::formatText(const std::string& theFormat, const std::string& theFirst,
+                                    const std::string& theSecond)
+{
+	char aBuffer[FORMAT_BUFFER_SIZE];
+	snprintf(aBuffer, sizeof(aBuffer), theFormat.c_str(), theFirst.c_str(), theSecond.c_str());
+	return aBuffer;
+}
+
+// 0x46db00
 std::string pizzafrenzy::formatText(const std::string& theFormat, int theNumber)
 {
 	char aBuffer[FORMAT_BUFFER_SIZE];

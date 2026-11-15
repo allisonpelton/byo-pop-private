@@ -21,6 +21,9 @@ const char* const SOUND_POLICE = "special_police";
 const char* const SOUND_POLICE_ARREST = "special_police_arrest";
 const char* const VEHICLE_CLASS = "vehicle";
 const char* const POLICE_CAR_TYPE = "PoliceCar";
+// a false arrest: the mode's action, and the splat that comes up where the car is
+const char* const ACTION_FALSE_ARREST = "falseArrest";
+const char* const FALSE_ARREST_SPLAT = "falseArrest";
 
 // a vehicle with a speed of at most this is a car, and sounds like one when it leaves
 const float CAR_SPEED = 200.0f;
@@ -538,7 +541,13 @@ void PoliceCar::finish()
 {
 	Order* anOrder = mTarget->getOrder();
 	if (anOrder == nullptr || anOrder->asksForPizza())
+	{
 		mTarget->hangUp();
+		PizzaFrenzy* aGame = PizzaFrenzy::instance();
+		aGame->mMode->action(ACTION_FALSE_ARREST);
+		engine::Point aPosition = *getPosition();
+		aGame->mSplatFactory->create(FALSE_ARREST_SPLAT, aPosition.x, aPosition.y);
+	}
 	else
 	{
 		mTarget->finish();

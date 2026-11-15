@@ -21,6 +21,8 @@ const char* const GROUP_NAME_AIR = "AirGroup";
 const char* const GROUP_NAME_SFX = "SfxGroup";
 const char* const GROUP_NAME_TIPS = "TipsGroup";
 const char* const GROUP_NAME_ORDER_CURSOR = "OrderCursor";
+const float MESSAGE_X = 400.0f;  // where the message banner stands
+const float MESSAGE_Y = 500.0f;
 const float FLASH_SECONDS = 0.3f;  // how long the order cursor's flash shows
 
 // 0x470a50 (pizzafrenzy): two rectangles that overlap; an empty rectangle overlaps nothing
@@ -153,8 +155,7 @@ GameScreen::GameScreen() : mFlashTime(0)
 {
 }
 
-// 0x436440: the speed bonus's banner (0x44fb70) and the message banner (0x42bb30), which the original makes here
-// and adds, are translated with the game (the placing of the message banner is (400, 500))
+// 0x436440
 void GameScreen::link(Hud* theHud, CityMap* theMap)
 {
 	mMap = theMap;
@@ -171,9 +172,15 @@ void GameScreen::link(Hud* theHud, CityMap* theMap)
 	addChild(mTipsGroup);
 	mSfxGroup = makeGroup(GROUP_NAME_SFX);
 	addChild(mSfxGroup);
+	mSpeedBonusBanner = new SpeedBonusBanner();
+	mSpeedBonusBanner->setup();
+	addChild(mSpeedBonusBanner);
 	mHud = theHud;
 	if (theHud != nullptr)
 		addChild(theHud);
+	mMessageBanner = new MessageBanner();
+	mMessageBanner->setPosition(MESSAGE_X, MESSAGE_Y);
+	addChild(mMessageBanner);
 	mOrderCursor = makeGroup(GROUP_NAME_ORDER_CURSOR);
 	addChild(mOrderCursor);
 	mGameLayout = new engine::ScreenLayout();
@@ -305,10 +312,18 @@ void GameScreen::drawCity()
 	delete aGraphics;
 }
 
+// 0x4352e0
+void GameScreen::showMessage(const std::string& theText, const engine::Point& thePosition)
+{
+	mMessageBanner->setText(theText);
+	mMessageBanner->setPosition(thePosition);
+	mMessageBanner->play();
+}
+
 // 0x435ba0
 void GameScreen::updateScreen(engine::UpdateInfo& theInfo)
 {
-	// the speed bonus's banner (+0x204, 0x44fcd0) takes its frame here: left out with the banner
+	mSpeedBonusBanner->updateBanner();
 	std::vector<engine::Ref<Van>>& aVehicles = mMap->mVehicles;
 	for (size_t i = 0; i < aVehicles.size(); i++)
 	{

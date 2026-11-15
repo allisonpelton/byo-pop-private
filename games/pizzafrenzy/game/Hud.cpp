@@ -24,6 +24,11 @@ const int STAR_STEP_INCREMENT = 2;
 const int STAR_HAPPINESS = 20;             // the happiness a star shows
 const float STAR_HAPPINESS_SHARE = 0.05f;  // the share of a star that one point of happiness fills
 const int FULL_HAPPINESS = 100;
+// the burst of a full happiness: its splat, and where it is: nine tenths up the stars; it is drawn smoothed
+const char* const BURST_SPLAT = "happinessBonus";
+const double TENTH = (double)0.1f;
+const double BURST_TENTHS = 9.0;
+const int SMOOTH_TYPE_BURST = 1;
 const int FULL_HAPPINESS_TIPS = 100;       // what a full happiness gives in tips
 
 const int ORDERS_PER_SLIP = 15;
@@ -396,14 +401,31 @@ void Hud::resetHud()
 	clearCoupons();
 }
 
-// 0x4397d0
+// 0x4397d0: the splat "happinessBonus" bursts at the stars' left and their ninth tenth, smoothed
 void Hud::updateHappiness()
 {
 	if (mStats->mHappiness < FULL_HAPPINESS)
 		return;
-	// the splat "happinessBonus" bursts at the stars' left and their ninth tenth (0x474a20): left out, see the class
+	double aStarsHeight = (double)mStarsRect.bottom - (double)mStarsRect.top;
+	float aBurstY = (float)((double)mStarsRect.bottom - aStarsHeight * TENTH * BURST_TENTHS);
+	engine::Splat* aBurst = PizzaFrenzy::instance()->mSplatFactory->create(BURST_SPLAT, mStarsRect.left, aBurstY);
 	PizzaFrenzy::instance()->mSounds->play(SOUND_HAPPINESS_FULL, 1.0f, 1.0f);
+	aBurst->setSmoothType(SMOOTH_TYPE_BURST);
 	PizzaFrenzy::instance()->mMode->getStats()->addTips(FULL_HAPPINESS_TIPS);
+}
+
+// 0x4384c0: the point at the left of the stars, at the height of the star the happiness is at now (the number the
+// stars are fading to, less the share that has not faded yet)
+engine::Point Hud::getHappinessPosition()
+{
+	int aHappiness = mStats->mHappiness;
+	int aFaded = (int)((double)(aHappiness - mPreviousHappiness) * (double)mHappinessFade);
+	double aStarsHeight = (double)mStarsRect.bottom - (double)mStarsRect.top;
+	double aStarHeight = aStarsHeight * TENTH;
+	double aStars = (double)(aHappiness - aFaded) * TENTH + 1.0;
+	float aBottom = (float)((double)mStarsRect.bottom - aStars * aStarHeight);
+	float y = (float)((double)mStars[0]->getImageHeight() * 0.5 + (double)aBottom);
+	return engine::Point(mStarsRect.left, y);
 }
 
 // 0x438610

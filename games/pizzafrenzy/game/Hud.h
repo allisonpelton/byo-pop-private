@@ -7,8 +7,7 @@
 // numbers (the stats') and changes as they change: the mode's frame calls updateHud.
 //
 // Left out: the two particle systems (the tip jar's coins at +0x284 and the stars' burst at +0x214), which the
-// signal build's particle documents (0x47bc40) make and are not translated, and the splat of the full happiness
-// (0x4397d0, the splat "happinessBonus").
+// signal build's particle documents (0x47bc40) make and are not translated.
 
 #include "CouponButton.h"
 #include "GameStats.h"
@@ -52,6 +51,8 @@ public:
 	void resetHud();
 	// 0x4397d0: the happiness shows (the stars' share is the update's); a full one gives 100 in tips with a sound
 	void updateHappiness();
+	// 0x4384c0: where the happiness stands on the stars, which the splats that take it fly from
+	engine::Point getHappinessPosition();
 	// 0x438610: the warning stars of the low happiness are shown (flashing) or hidden
 	void setWarning(bool theShown);
 	// 0x438270: the tip jar's roll sound stops with the game paused and goes on with it

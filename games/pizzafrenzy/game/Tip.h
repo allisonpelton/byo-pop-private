@@ -6,9 +6,8 @@
 // for the player's click, flashes in its last seconds and is lost. A click takes its money; the city map keeps the tips
 // that wait (CityMap.h) and the mode makes them (GameMode.h, orderFinished).
 //
-// Left out: the splats that fly to the tip jar when a tip is taken (the splat factory's "cashTipSplat" with the amount
-// and "tipSplat" with the picture): the money is added as the click ends, where the original adds it when the second
-// splat has arrived.
+// Taking a tip makes two splats (the splat factory's "cashTipSplat" with the amount and "tipSplat" with the picture,
+// which flies to the tip jar); the tip's money is added when the second has arrived.
 
 #include "Node.h"
 #include "Selector.h"
@@ -20,7 +19,7 @@ namespace pizzafrenzy
 
 class CityMap;
 
-class TipPopup : public engine::Container
+class TipPopup : public engine::Container, public engine::HasSlots
 {
 public:
 	TipPopup();            // 0x42f050
@@ -33,10 +32,13 @@ public:
 	virtual void makeBoard();
 	// slot 0x134: 0x42eac0: the tip comes up
 	virtual void start();
-	// slot 0x138: 0x42f160: the player takes the tip
+	// slot 0x138: 0x42f160: the player takes the tip: its money flies to the tip jar as a splat, which finishes the
+	// tip when it arrives
 	virtual void take();
 	// slot 0x13c: 0x42e4c0: the mode lets the tip go and adds its money to the tips
 	virtual void finish();
+	// the two splats of a tip that is taken (0x42f160, 0x42d830)
+	void flyToTipJar(const std::string& theAmountText, const std::string& thePicture);
 	// 0x42e510: the tip stands on the map at the point, which keeps it
 	void setMap(CityMap* theMap, const engine::Point& thePosition);
 	// 0x42e560: a frame of the tip: its states', and its node's

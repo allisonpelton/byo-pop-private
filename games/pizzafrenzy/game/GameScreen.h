@@ -6,11 +6,10 @@
 // layout of the screen over them. The city select draws the cities' postcards from it (CitySelectScreen.h).
 //
 // What the game's play does with it is translated with the game: the mouse (slot 0xa8, 0x435320, and the right
-// button's 0xc0, 0x435340), the key (slot 0x158, 0x434bd0) and its destructor (0x435360); the speed bonus's banner
-// (0x44fb70, kept at +0x204, made and added by the link) and the message banner (0x42bb30, +0x208, which sets its
-// text with 0x42bb00 and plays with 0x42bb10) with the slots 0x4352e0 and 0x44fcd0 that use them; and the vehicles
-// of the map (+0xc0), which the city's load puts in the groups.
+// button's 0xc0, 0x435340), the key (slot 0x158, 0x434bd0) and its destructor (0x435360); and the vehicles of the
+// map (+0xc0), which the city's load puts in the groups. The banners (Banners.h) are made and added by the link.
 
+#include "Banners.h"
 #include "CityMap.h"
 #include "GenericScreen.h"
 #include "Hud.h"
@@ -50,9 +49,10 @@ public:
 	void flashCursor();
 	// 0x4351c0: the container of the indicators that flash is the one the order cursor made last, and is hidden
 	void setFlashIndicators(engine::Node* theIndicators);
-	// 0x435ba0: a frame of the screen: the vehicles that moved are put in their place in the ground group, and the
-	// cursor follows the mouse over what it can click (the speed bonus banner's own update, 0x44fcd0, is left out
-	// with the banner)
+	// 0x4352e0: the message banner shows the text at the position and plays
+	void showMessage(const std::string& theText, const engine::Point& thePosition);
+	// 0x435ba0: a frame of the screen: the speed bonus banner's frame, the vehicles that moved are put in their place
+	// in the ground group, and the cursor follows the mouse over what it can click
 	void updateScreen(engine::UpdateInfo& theInfo);
 
 	engine::Ref<CityMap> mMap;                         // +0x1d4
@@ -69,6 +69,8 @@ public:
 	// and right buttons' presses
 	engine::Ref<engine::Node> mHover;
 	engine::Ref<engine::Image> mGroundImage;           // +0x200: the city's ground, made once
+	engine::Ref<SpeedBonusBanner> mSpeedBonusBanner;   // +0x204
+	engine::Ref<MessageBanner> mMessageBanner;         // +0x208: at (400, 500)
 	float mFlashTime;                                  // +0x214: the seconds the flash still shows
 	// +0x20c: the layout of the screen (res/screenLayouts/gameScreen.xml), which the city select hides while it draws
 	// the postcards

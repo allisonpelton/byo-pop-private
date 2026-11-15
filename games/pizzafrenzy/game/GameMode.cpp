@@ -1,5 +1,7 @@
 #include "GameMode.h"
 #include "EventPopups.h"
+#include "FrenzyName.h"
+#include "GameText.h"
 #include "Van.h"
 #include "App.h"
 #include "CustomerPopup.h"
@@ -64,6 +66,9 @@ const int FRENZY_BONUS = 300;
 const int STREAK_LENGTH = 10;
 const int STREAK_HAPPINESS = 10;
 const int SPEEDY_HAPPINESS = 10;
+const char* const SPEEDY_SPLAT = "speedyDelivery";
+const char* const BONUS_SPLAT = "toppingBonus";
+const char* const WRONG_PIZZA_SPLAT = "wrongPizza";
 // a tip is worth more the sooner the delivery follows the one before it
 const float TIP_FAST_SECONDS = 1.5f;
 const float TIP_MEDIUM_SECONDS = 3.0f;
@@ -173,7 +178,6 @@ void GameMode::setLevel(Level* theLevel)
 	mComboTopping = nullptr;
 	mStats->mComboLength = 0;
 	mMap->showCombo(nullptr, 0, 0);
-	// the speed bonus banner (0x44fb70, the game screen's +0x204) starts over here: left out, see GameScreen.h
 	beginWaves();
 	mStates.changeState(new ModeIntroState(this));
 }
@@ -428,7 +432,7 @@ bool GameMode::placeOrder(Order* theOrder)
 }
 
 // 0x459fc0: the wave's timer is held to a second and a half when the houses are idle, and to the level's gap (not
-// under a second and a half) when they are not; the speedy delivery banner is translated next
+// under a second and a half) when they are not
 void GameMode::waveDone()
 {
 	mSecondsSinceDelivery = 0;
@@ -443,10 +447,15 @@ void GameMode::waveDone()
 	}
 	if (0.0f < mSpeedBonusTime)
 	{
-		// the splat "speedyDelivery" flies to the happiness meter, which the bonus is added to when it arrives; the
-		// splats are left out, and the happiness is added now
+		// the splat "speedyDelivery" flies from the mouse to the happiness meter, which the bonus is added to when it
+		// arrives
+		engine::Point aMouse = engine::App::instance()->getMousePosition();
 		playSound(SOUND_SPEEDY);
-		addHappiness(SPEEDY_HAPPINESS);
+		engine::Splat* aSplat = PizzaFrenzy::instance()->mSplatFactory->create(SPEEDY_SPLAT, aMouse.x, aMouse.y);
+		engine::Point aHappiness = mHud->getHappinessPosition();
+		aSplat->setDestination(aHappiness.x, aHappiness.y);
+		aSplat->connectArrived(this, &GameMode::addHappiness);
+		aSplat->mArrivedValue = SPEEDY_HAPPINESS;
 	}
 }
 
@@ -787,7 +796,9 @@ void GameMode::click(BuildingTile* theTile)
 			releasePicks();
 			return;
 		}
-		// the splat "wrongPizza" comes up on the kitchen (left out), and the customers of the orders picked give up
+		// the splat "wrongPizza" comes up on the kitchen, and the customers of the orders picked give up
+		engine::Point aKitchen = *theTile->getPosition();
+		PizzaFrenzy::instance()->mSplatFactory->create(WRONG_PIZZA_SPLAT, aKitchen.x, aKitchen.y);
 		for (size_t i = 0; i < mPicks.size(); i++)
 		{
 			mPicks[i]->setImpatient(false);
@@ -1040,9 +1051,9 @@ void GameMode::arrest(BuildingTile* thePoliceTile, CustomerTile* theTile)
 }
 
 // 0x45a300: the pizza the kitchen made is given to the customer of the tile: the combo's length and best are counted,
-// and the money of the pizzas and of a frenzy is added; the splats that show the money (the combo's text, the frenzy's
-// and the pizzas' "toppingBonus") are left out. The kitchen's van goes to the house, which serves and then finishes
-// the order (the tip); the event that wants no pizza is sent away by the police instead
+// and the money of the pizzas and of a frenzy is added, the pizzas' as the splat "toppingBonus" and the frenzy's with
+// the message banner. The kitchen's van goes to the house, which serves and then finishes the order (the tip); the
+// event that wants no pizza is sent away by the police instead
 void GameMode::deliver(BuildingTile* theKitchen, CustomerTile* theTile, bool theSendVan)
 {
 	Order* anOrder = theTile->getOrder();
@@ -1087,6 +1098,12 @@ void GameMode::deliver(BuildingTile* theKitchen, CustomerTile* theTile, bool the
 			if (aLength % FRENZY_COMBO == 0 && aFives > 0)
 			{
 				playSound(formatText(SOUND_FRENZY, std::min(aFives - 1, FRENZY_MAX_SOUND)));
+				// the frenzy's name and its bonus (the bonus with commas between its thousands) are shown over
+				// the kitchen
+				engine::Ref<engine::TextItem> aBonusNumber = new engine::TextItem();
+				aBonusNumber->setNumber(FRENZY_BONUS * aFives, std::string());
+				mScreen->showMessage(formatText(GT(0x500e34), getFrenzyName(aLength), aBonusNumber->mText),
+				                     *theKitchen->getPosition());
 				mStats->addTips(FRENZY_BONUS * aFives);
 			}
 			playSound(SOUND_TOPPING_COMBO, 1.0f, aMultiplier);
@@ -1100,7 +1117,15 @@ void GameMode::deliver(BuildingTile* theKitchen, CustomerTile* theTile, bool the
 		Topping* aTopping = anOrder->mTopping;
 		int aPizzaCount = anOrder->mPizzaCount;
 		if (aPizzaCount > 0)
-			mStats->addTips(aTopping->getUpgradeValue(mStats->getUpgrade(aTopping)) * aPizzaCount);
+		{
+			// the money of the pizzas comes up over the kitchen as the splat "toppingBonus"
+			int aPizzaValue = aTopping->getUpgradeValue(mStats->getUpgrade(aTopping));
+			std::string aBonusText = formatText(GT(0x500e2c), aPizzaValue, aPizzaCount);
+			mStats->addTips(aPizzaValue * aPizzaCount);
+			engine::Point aKitchen = *theKitchen->getPosition();
+			engine::Splat* aBonus = PizzaFrenzy::instance()->mSplatFactory->create(BONUS_SPLAT, aKitchen.x, aKitchen.y);
+			aBonus->setText(aBonusText);
+		}
 		mStats->mPizzasDelivered += aPizzaCount;
 		if (theSendVan)
 			static_cast<KitchenTile*>(theKitchen)->sendVan(theTile);

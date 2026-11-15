@@ -2,6 +2,7 @@
 #include "App.h"
 #include "CityMap.h"
 #include "GameMode.h"
+#include "GameText.h"
 #include "ImageNode.h"
 #include "Modifiers.h"
 #include "PizzaFrenzy.h"
@@ -23,6 +24,10 @@ const char* const SOUND_CASH = "tip_cash";
 const char* const SOUND_AWARD = "tip_citizenAward";
 const char* const SOUND_LOST = "tip_lost";
 const char* const SOUND_MOUSE_OVER = "order_mouseover1";
+
+// the splats of a taken tip: the amount's text, which comes up, and the picture, which flies to the tip jar
+const char* const AMOUNT_SPLAT = "cashTipSplat";
+const char* const PICTURE_SPLAT = "tipSplat";
 
 // what a tip is worth: the upgrade's multiplier times five, or twenty-five for a topping without upgrades and ten for
 // no topping at all, times the tip's multiplier
@@ -139,16 +144,31 @@ void TipPopup::start()
 	mStates.changeState(new TipWaitState(this));
 }
 
-// 0x42f160: the sounds, and then the tip is taken: it stops waiting and is hidden, and its money is added (the original
-// adds it when the splat of the amount has flown to the tip jar: left out, see the file's comment)
+// 0x42f160: the sounds, and then the tip is taken: it stops waiting and is hidden, and the amount comes up as a splat
+// while the cash's picture flies to the tip jar, where the tip's money is added
 void TipPopup::take()
 {
 	playSound(SOUND_CLICK, 1.0f);
 	playSound(SOUND_CASH, 1.0f);
 	mWaiting = false;
+	flyToTipJar(GT(0x4fc698), formatText(TIP_IMAGE, (int)mMultiplier));
 	setVisible(false);
 	setEnabled(false);
-	finish();
+}
+
+// 0x42f160, 0x42d830: the two splats of a taken tip, both where the tip is: the text over the amount, and the picture
+// in place of the definition's, which flies to the tip jar and finishes the tip there
+void TipPopup::flyToTipJar(const std::string& theAmountText, const std::string& thePicture)
+{
+	PizzaFrenzy* aGame = PizzaFrenzy::instance();
+	engine::Point aPosition = *getPosition();
+	engine::Splat* anAmount = aGame->mSplatFactory->create(AMOUNT_SPLAT, aPosition.x, aPosition.y);
+	anAmount->setText(formatText(theAmountText, mAmount));
+	engine::Splat* aPicture = aGame->mSplatFactory->create(PICTURE_SPLAT, aPosition.x, aPosition.y);
+	aPicture->setChild(new engine::ImageNode(engine::App::instance()->createImage(thePicture.c_str(), false)));
+	const engine::Point& aTipJar = aGame->mHud->getTipJarCountPosition();
+	aPicture->setDestination(aTipJar.x, aTipJar.y);
+	aPicture->connectArrived(this, &TipPopup::finish);
 }
 
 // 0x42e4c0
@@ -222,16 +242,15 @@ void CitizenAward::setValue(float theMultiplier, Topping* theTopping)
 	mStates.changeState(new TipAppearState(this));
 }
 
-// 0x42d830: the splats of the award ("cashTipSplat" with the text "Citizen Award! $%d" and "tipSplat" with the award's
-// picture) are left out, see the file's comment
+// 0x42d830: as a tip's, with the award's text and picture
 void CitizenAward::take()
 {
 	playSound(SOUND_CLICK, 1.0f);
 	playSound(SOUND_AWARD, AWARD_SOUND_VOLUME);
 	mWaiting = false;
+	flyToTipJar(GT(0x4fc248), AWARD_IMAGE);
 	setVisible(false);
 	setEnabled(false);
-	finish();
 }
 
 // 0x42e590

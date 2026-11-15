@@ -97,6 +97,7 @@ Topping::Topping(const std::string& theName, const std::string& theDisplayName, 
 	// port: the toppings made so far number this one (ToppingOrder)
 	static int sToppingsMade = 0;
 	mMadeOrder = sToppingsMade++;
+	theCouponImage->setPivot(PIVOT_CENTRE);
 	setImage(theImage);
 }
 

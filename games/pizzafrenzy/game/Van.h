@@ -108,7 +108,7 @@ class PoliceCar : public Van
 public:
 	PoliceCar();  // 0x432d60
 	// slot 0x14c: 0x432e30: the arrest is true for a customer whose order is not for pizza, and false for any other:
-	// the customer hangs up (the splat "falseArrest" is left out)
+	// the customer hangs up, the mode takes the false arrest into account and the splat "falseArrest" comes up
 	void finish() override;
 	// slot 0x154: 0x433010: with the siren's sound
 	void goTo(CustomerTile* theTile) override;

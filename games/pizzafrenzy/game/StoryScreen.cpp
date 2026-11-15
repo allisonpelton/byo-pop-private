@@ -1,6 +1,7 @@
 #include "StoryScreen.h"
 #include "App.h"
 #include "FrenzyName.h"
+#include "GameText.h"
 #include "PizzaFrenzy.h"
 #include "Players.h"
 #include "Random.h"
@@ -110,6 +111,8 @@ const float COMBO_PITCH_STEP = 0.05f;
 const int COMBO_PER_FRENZY = 5;
 const int MAX_FRENZY_SOUND = 5;
 const int FRENZY_POINTS = 300;
+// the frenzy's points over its picture: the splat
+const char* const POINTS_SPLAT = "cashTipSplat";
 
 // The bonus round's report: what each of the toppings' counts is worth, and each second left
 const int PERFECT_VALUE = 100;
@@ -1010,7 +1013,10 @@ void StoryScreen::updateLevelEnd(engine::UpdateInfo& theInfo)
 				playSound(formatText(SOUND_FRENZY_FORMAT, aFrenzy).c_str());
 				mScoreShown = mScoreShown + aFrenzies * FRENZY_POINTS;
 				mTotalScore->setNumber(mScoreShown, MONEY_PREFIX);
-				// the splat "cashTipSplat" of the frenzy's points over the picture (0x474a20): left out
+				// the splat "cashTipSplat" of the frenzy's points comes up over the picture
+				engine::Point aIcon = *mComboIcons[mComboShown]->getAbsPosition();
+				engine::Splat* aPoints = PizzaFrenzy::instance()->mSplatFactory->create(POINTS_SPLAT, aIcon.x, aIcon.y);
+				aPoints->setText(formatText(GT(0x4fc698), aFrenzies * FRENZY_POINTS));
 			}
 			mTimer = COMBO_DELAY;
 			mLongestCombo->setNumber(mComboShown + 1, "");

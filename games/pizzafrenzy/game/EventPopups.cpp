@@ -2,7 +2,6 @@
 #include "App.h"
 #include "GameText.h"
 #include "PizzaFrenzy.h"
-#include "Random.h"
 #include "RectangleItem.h"
 #include "ScreenNodes.h"
 #include "CustomerPopup.h"
@@ -18,16 +17,11 @@ const char* const BAR_FONT = "res\\fonts\\dialogFontBig.xml";
 const char* const GRAFFITI_IMAGE = "res\\specialEvents\\graffitiArt.jpg";
 const char* const GRAFFITI_SOUND = "special_graffiti";
 
-// the splats' definitions the events use (res\manifests\splats.xml): the picture, and how fast the splat flies
-const char* const PORTRAIT_SPLAT_IMAGE = "res/specialEvents/gossipPortrait.jpg";
-const float PORTRAIT_SPLAT_SPEED = 1000.0f;
-const char* const CASH_SPLAT_IMAGE = "res/tips/cash-3.jpg";
-const float CASH_SPLAT_SPEED = 1200.0f;
-// what a splat draws from the generator when it is made: the acceleration, the velocity's two numbers and its angle,
-// the scale's two ends, the waves' two amplitudes (0x474a20), and the time
-const int SPLAT_DRAWS = 9;
-const int SCREEN_WIDTH = 800;
-const float HALF = 0.5f;
+// the splats the events make (the definitions of res\manifests\splats.xml): the portrait that flies from the customer's
+// house to the bar, the money that flies between the tip jar and the portrait, and the happiness that flies to it
+const char* const PORTRAIT_SPLAT = "portraitSplat";
+const char* const BILLS_SPLAT = "StealBills";
+const char* const SATISFACTION_SPLAT = "StealSatisfaction";
 
 // the bar at the bottom of the screen: its shade, and where the text and the portrait stand
 const float BAR_LEFT = 0.0f;
@@ -131,30 +125,6 @@ SpecialEventPopup* pizzafrenzy::makeEventPopup(const std::string& theType)
 	return nullptr;
 }
 
-// port: the flight of a splat, which a node of the popup waits for (the splat factory is left out)
-SplatFlight::SplatFlight(std::function<void()> theArrival, float theSeconds) :
-	mArrival(theArrival),
-	mSecondsLeft(theSeconds)
-{
-	setFlags(engine::NODE_LISTENERS);
-}
-
-// 0x473b90: a splat whose time is not up has its frame, which takes the frame's seconds from it; the factory finds
-// the time up at the next frame, tells what is connected to the splat, and lets it go
-void SplatFlight::update(engine::UpdateInfo& theInfo)
-{
-	if (mSecondsLeft >= 0.0f)
-	{
-		mSecondsLeft = mSecondsLeft - theInfo.mSeconds;
-		return;
-	}
-	std::function<void()> anArrival = mArrival;
-	mArrival = nullptr;
-	addOwnFlags(engine::NODE_REMOVE);
-	if (anArrival)
-		anArrival();
-}
-
 // 0x44a890
 void EventWaitState::update(engine::UpdateInfo& theInfo)
 {
@@ -216,9 +186,12 @@ void SpecialEventPopup::show()
 {
 	mBar->fade(true, BAR_FADE_IN_SECONDS, BAR_FADE_TARGET, false);
 	// the splat "portraitSplat" carries the portrait from the customer's house to the bar, and the popup goes on
-	// when it has arrived; the portrait itself is not drawn on the way
-	watchSplat(PORTRAIT_SPLAT_IMAGE, PORTRAIT_SPLAT_SPEED, *mTile->getPosition(),
-		engine::Point(PORTRAIT_X, PORTRAIT_Y), [this]() { onPortraitArrived(); });
+	// when it has arrived
+	engine::Point aHouse = *mTile->getPosition();
+	engine::Splat* aSplat = PizzaFrenzy::instance()->mSplatFactory->create(PORTRAIT_SPLAT, aHouse.x, aHouse.y);
+	aSplat->setChild(new engine::ImageNode(mPortrait));
+	aSplat->setDestination(PORTRAIT_X, PORTRAIT_Y);
+	aSplat->connectArrived(this, &SpecialEventPopup::onPortraitArrived);
 	PizzaFrenzy::instance()->mSounds->play(mSound, SOUND_VOLUME, SOUND_PITCH);
 	getMode()->deliver(mKitchen, mTile, true);
 }
@@ -256,35 +229,6 @@ void SpecialEventPopup::fadeBarOut()
 	mBar->fade(false, BAR_FADE_OUT_SECONDS, BAR_FADE_TARGET, false);
 }
 
-// 0x474a20: a splat's draws: nothing else of the splat is made
-void SpecialEventPopup::drawSplatRandoms()
-{
-	for (int i = 0; i < SPLAT_DRAWS; i++)
-		engine::crtRand();
-}
-
-// 0x474a20's placing of the splat at its start, 0x481200's time
-float SpecialEventPopup::getFlightSeconds(const char* theImage, float theSpeed, engine::Point theFrom,
-                                          const engine::Point& theTo)
-{
-	float aHalfWidth = (float)engine::App::instance()->getImage(theImage)->getWidth() * HALF;
-	if (theFrom.x - aHalfWidth < 0.0f)
-		theFrom.x = aHalfWidth;
-	else if ((float)SCREEN_WIDTH < aHalfWidth + theFrom.x)
-		theFrom.x = (float)SCREEN_WIDTH - aHalfWidth;
-	float aDeltaX = theTo.x - theFrom.x;
-	float aDeltaY = theTo.y - theFrom.y;
-	return std::sqrt(aDeltaX * aDeltaX + aDeltaY * aDeltaY) / theSpeed;
-}
-
-// port: the splat is made: its draws, and the node that waits for its flight
-void SpecialEventPopup::watchSplat(const char* theImage, float theSpeed, const engine::Point& theFrom,
-                                   const engine::Point& theTo, std::function<void()> theArrival)
-{
-	drawSplatRandoms();
-	addChild(new SplatFlight(theArrival, getFlightSeconds(theImage, theSpeed, theFrom, theTo)));
-}
-
 // 0x449a70
 void ThiefPopup::begin(BuildingTile* theKitchen, CustomerTile* theTile)
 {
@@ -301,15 +245,18 @@ void ThiefPopup::speak()
 }
 
 // 0x449b50: while the player has money and there are bills to take, a bill comes from the tip jar to the portrait (the
-// splat "StealBills", left out) and a hundred is taken
+// splat "StealBills") and a hundred is taken
 void ThiefPopup::act()
 {
 	if (mBillsLeft > 0 && PizzaFrenzy::instance()->mGameStats->mTipMoney > 0)
 	{
 		mBillsLeft--;
 		mWaitLeft = mBillsLeft < 1 ? LAST_BILL_SECONDS : THIEF_BILL_SECONDS;
-		drawSplatRandoms();
-		PizzaFrenzy::instance()->mGameStats->addTips(-THIEF_BILL_VALUE);
+		PizzaFrenzy* aGame = PizzaFrenzy::instance();
+		const engine::Point& aTipJar = aGame->mHud->getTipJarCountPosition();
+		engine::Splat* aBill = aGame->mSplatFactory->create(BILLS_SPLAT, aTipJar.x, aTipJar.y);
+		aBill->setDestination(mPortraitNode->getPosition()->x, mPortraitNode->getPosition()->y);
+		aGame->mGameStats->addTips(-THIEF_BILL_VALUE);
 		return;
 	}
 	finish();
@@ -399,8 +346,12 @@ void MovieStarPopup::act()
 	}
 	mTipsLeft--;
 	mWaitLeft = mTipsLeft < 1 ? LAST_BILL_SECONDS : THIEF_BILL_SECONDS;
-	watchSplat(CASH_SPLAT_IMAGE, CASH_SPLAT_SPEED, *mPortraitNode->getPosition(),
-		PizzaFrenzy::instance()->mHud->getTipJarCountPosition(), [this]() { addTip(); });
+	PizzaFrenzy* aGame = PizzaFrenzy::instance();
+	engine::Point aPortrait = *mPortraitNode->getPosition();
+	engine::Splat* aBill = aGame->mSplatFactory->create(BILLS_SPLAT, aPortrait.x, aPortrait.y);
+	const engine::Point& aTipJar = aGame->mHud->getTipJarCountPosition();
+	aBill->setDestination(aTipJar.x, aTipJar.y);
+	aBill->connectArrived(this, &MovieStarPopup::addTip);
 }
 
 // 0x449470
@@ -604,12 +555,17 @@ void GraffitiArtistPopup::act()
 		break;
 	}
 	case GRAFFITI_STEAL:
-		// the splat "StealSatisfaction" flies from the happiness to the portrait (left out)
-		drawSplatRandoms();
+	{
+		// the splat "StealSatisfaction" flies from the happiness to the portrait
+		PizzaFrenzy* aGame = PizzaFrenzy::instance();
+		engine::Point aHappiness = aGame->mHud->getHappinessPosition();
+		engine::Splat* aSatisfaction = aGame->mSplatFactory->create(SATISFACTION_SPLAT, aHappiness.x, aHappiness.y);
+		aSatisfaction->setDestination(mPortraitNode->getPosition()->x, mPortraitNode->getPosition()->y);
 		getMode()->addHappiness(GRAFFITI_HAPPINESS);
 		mStage = GRAFFITI_DONE;
 		mWaitLeft = GRAFFITI_LAST_SECONDS;
 		break;
+	}
 	case GRAFFITI_DONE:
 		mBar->removeChild(mPicture);
 		finish();
