@@ -1,8 +1,9 @@
 # Heavy Weapon Deluxe: the identical-play pass
 
-This is phase one of the pass that CLAUDE.md names, **plays identical**: with the same input, the original and the port
-play the same games. The test is the game's state, not pictures. Phase two (screens, sound, focus, the web build) has not
-started.
+This is the pass that CLAUDE.md names, **plays identical**, in its two phases. In phase one, with the same input, the
+original and the port play the same games; the test is the game's state, not pictures. In phase two ("Phase two: it looks
+the same", below) the same games are compared by what they show and play: the screens against the original's, the web
+build's against the native port's, the sound by state, the focus, and play with real mouse and key events.
 
 ## What was compared, and how
 
@@ -180,6 +181,161 @@ the port three updates later, and once that was fixed, two swaying ones drifted 
 The high-score lines' names, which the original leaves uncleared on its stack and the port clears (a deviation in
 `docs/GAME_NOTES.md`), were found while the comparison was being set up and were already in the merged port.
 
+## Phase two: it looks the same
+
+### Method
+
+A tour is a scenario of `idplay.py` (`games/heavyweapon/tools/idplay/scenarios/shots_*.py`) with shots: its input is
+recorded in the port as in phase one, and `idplay.py shots <tour>` plays it in both programs.
+
+- **The original** runs inside Windows Sandbox (the only place origrun takes shots), windowed and in 2D, without the
+  cursor the game draws itself (`CustomCursors` 0), on the virtual clock. Each shot is labelled with the update it
+  shows: origrun is given the app's count of updates not yet drawn (0x56b580, which 0x451307 raises and 0x45136d clears
+  before the draw at 0x45137d) as both the pending draw and the update state, so a shot is taken only once its update
+  has been drawn.
+- **The port** replays the same input under rundesk with `-fast -drawevery -renderscale=1`, in a window, in 2D and
+  without the drawn cursor, and takes each shot one update after the update the original's landed on: the port's
+  `screenshot` draws the state the update before it left. A shot comes before the input of its own update, as the
+  original's shot is drawn before it reads the input it takes before the next update.
+- **The states** are compared at every frame as in phase one, so a shot pair is only judged once both games agree.
+- **The pictures** go through `tools/shotdiff` (the 640x480 client cut from the original's capture); every flagged
+  box was looked at.
+
+`idplay.py web <tour>` then plays the same script in the web build under Node (`wasmrun.js`), compares its trace with
+the native port's line for line and shotdiffs its shots against the native port's.
+
+### Tours and results
+
+| Tour | What it shows | Frames compared | Shots | Equal | Faint only | Differ |
+| --- | --- | --- | --- | --- | --- | --- |
+| menus | the title and a first run's name box, the main menu with a button's description, the options box and its credits and help, the high scores (both lists), the help, the player list, the quit box | 1251 | 21 | 20 | 0 | 1 |
+| in-game | the map, the way into level 1, the status bar's MENU box, its options and back, the game resumed, the focus lost and regained, the MAIN MENU's warning answered NO | 1501 | 13 | 13 | 0 | 0 |
+| campaign | a first campaign by the bot: the help before the first game, the map, level 1 with its play tips, boss and results, the armory, level 2 to the game-over box | 12693 | 51 | 48 | 3 | 0 |
+| middle | levels 8 to 10 with short levels and weak bosses: two boss warnings and deaths, results and armories, the middle cutscene, the game-over box | 18874 | 200 | 189 | 9 | 2 |
+| final | levels 18 and 19 from a saved game: the final boss beaten, the final cutscene, the win's high score and the high scores after it | 18873 | 200 | 44 | 154 | 2 |
+| survival | a player with every mode unlocked: the help before a first survival, the bot's game to its last tank, the game-over box | 1973 | 11 | 11 | 0 | 0 |
+
+The one differing menus shot is the title 100 updates in: the loading glow and the title's frame stand a pixel lower in
+the original. The intro is ended by a click that the port takes in the update it is given and the original reads
+before the next, so the title's fade (two steps of alpha an update) runs one update ahead in the port; the port's
+picture after update 151 equals the original's after 152 exactly. It is the comparison's timing, not the game's.
+
+The two differing middle shots are frames of the middle cutscene. The original's Flash control plays on its own clock,
+which origrun's virtual clock does not move, so the original is earlier in the movie at the same update; the port
+plays one movie frame every 100 / frame-rate updates (GAME_NOTES, "The cutscenes"). To keep the two games together the
+bot clicks a movie away once it has played 300 updates, the same update in both; a movie left to end by itself ends at
+no update the port can know, and the middle tour's first run parted there (the armory's clicks met the movie in the
+original).
+
+The two differing final shots are frames of the final cutscene, for the same reason.
+
+Every faint box was looked at; none is visible at the game's size:
+
+- *The cutscenes' vector edges* (two shots, the first frame of each cutscene: at most 162 levels on 404 pixels of the
+  shapes' outlines): the shared SWF player and the Flash control rasterize the movie's shapes with different
+  anti-aliasing, and the port draws one faint hairline.
+- *Glow and spark edges* (fourteen shots, from 1 to about 800 pixels, at most 76 levels on a few edge pixels): the
+  orange hit sparks fading over a boss and the white of an explosion. Their places and counts agree (the trace has
+  them); the sparks' fading alpha is drawn by the original's software blit and by SDL's blend, which round apart. The
+  largest, the level 2 boss at frame 12500 of the campaign tour, is under "Oddities".
+- *The fire over the high scores* (149 shots of the final tour, the high scores after the win): the fire bubbles that
+  rise over the nuke's picture are drawn additively and coloured by their life, and the port's sums are up to 12
+  levels brighter, by the same rounding. The diff traces the bubbles' circles.
+- *A corner the shake uncovers* (one shot, three pixels): a nuke's flash shakes the board, and the screen kept from the
+  last frame shows at the right edge below the status bar. What it shows there is what an earlier frame of the shake
+  left, which depends on the frames each program drew, not on the game.
+
+### Changes
+
+| Difference | Cause in the original | The port now | Commit |
+| --- | --- | --- | --- |
+| The main menu's "If this isn't you" link was orange | its constructor files the colour under the widget's colour list (`Widget::SetColor`, slot 7), which the link never reads, so it is white | sets colour 0 of the list, as the original does (the map's invade link the same way) | 28a43dc8 |
+| The options box's title stood 4 pixels low | its constructor (0x42a540) sets the content insets to 20; the port kept the default 24 | sets them to 20 | 28a43dc8 |
+| The main menu's button descriptions were aligned left | the justification 0 is pushed before the font's `GetHeight` call, which Ghidra took for that call's argument | centres them | 28a43dc8 |
+| The mission banner's letters, the explosions and the zoomed map differed by a pixel along their edges | the 2D screen stretches in software (`DDImage::StretchBlt`, 0x48dc10): a fast stretch samples in 16.16 steps from the corner, any other averages into an image of the destination's size (0x4740b0, which divides the colour's weight by the alpha already there); the WidgetManager never turns the fast stretch on | `HeavyWeaponDisplay` turns on the framework's software stretch for every stretch in 2D; `gWidgetsDrawWithoutFastStretch` and `gSlowStretchRenormalizesAlpha` are set | a5575ee0 |
+| A shaking screen showed a black edge where the board had moved off (a boss's death, a nuke) | the 2D surface keeps what the last frame drew, so the uncovered edge keeps the last frame's pixels | the display keeps the screen in 2D (`DDInterface::mKeepScreen`) | 7d82ac6d |
+| Survival showed the points of every kill floating up | `Board::AddScore` (0x417230) makes the floating text only inside its test that the points are not 0 and the game is not survival | shows none in survival, nor for no points | e3e13b1d |
+| The main menu and the armory faded the music out and the next song in within an update or two (the sound step) | their constructors (0x425e20, 0x40f190) give the fades the speeds 0.004 and 0.002 as doubles, whose high halves the port had read as floats (0.939 and 0.8765) | fades at 0.004 and 0.002, as the title and the board do | e3e13b1d |
+| The status bar's MENU played no click as it went down | the bar's listener (0x52f9f8) has the board's ButtonPress (0x410670) in slot 4, which plays the button-down sound; the port's bar had none | the bar's `ButtonPress` plays it | e3e13b1d |
+| Moving onto an armory weapon's plus or minus, and off it, played the map's hover sound | the arrow button's MouseEnter and MouseLeave (0x430220, 0x430240) call Widget's (0x45f950, 0x45f970), not ButtonWidget's, so the weapon's tile never hears of it; the main menu's buttons (0x4259e0, 0x425a20) do the same | both call Widget's | e3e13b1d |
+| The armory faded the menu's song in (the sound step) | the armory (0x40f190) fades it in only when `IsPlaying` is false, and the original's BASS (2.0) answers `BASS_ChannelIsActive` yes for a song of the module that has played and been stopped since (its log: 0 before the song first plays, 1 after its `BASS_ChannelStop`), so after the first main menu the answer is always yes | `HeavyWeaponMusicInterface` gives BASS's answer for the module's songs, as Big Money's port does for its title song: the armory never fades its song in, nor does any main menu after the first | e3e13b1d |
+| The flak's burst sounded three times as far to the side as the original's (the sound step) | the burst (0x44a220) gives the sound its x as the pan, where the other shots scale theirs by 3 | gives its x | a1d1c996 |
+
+### Focus
+
+The in-game tour loses the focus in a game in play and regains it, in both programs, by origrun's and the port's
+`focus lose` and `focus regain`: the game pauses (`LostFocus`, 0x401020), stays paused when the focus comes back
+(`GotFocus`, 0x401040, only redraws and keeps the sound off), and goes on at a click on the pause screen. The shots of
+all three states are equal. The web page does the same (the page check's focus line and the web driver, below).
+
+### The web build
+
+`idplay.py web` played every tour's script in the web build under Node. Its trace was the native port's line for line
+in every tour, as far as the run went (to the end, or to one or two updates before it, where the web run's last line is
+cut). Its shots against the native port's:
+
+| Tour | Shots | Equal | Faint only | Differ |
+| --- | --- | --- | --- | --- |
+| menus | 21 | 21 | 0 | 0 |
+| in-game | 13 | 13 | 0 | 0 |
+| campaign | 51 | 31 | 20 | 0 |
+| middle | 200 | 178 | 22 | 0 |
+| final | 200 | 72 | 128 | 0 |
+| survival | 11 | 6 | 5 | 0 |
+
+The faint boxes are translucent smoke, glows, sparks and the fire over the high scores: mostly under 13 levels, at
+most 37 on a few edge pixels. The web build blends them in WebGL and the native port through SDL's Direct3D renderer,
+and the two round apart. The cutscenes' frames are equal, both builds playing them with the same SWF player.
+
+### Play with real mouse and key events
+
+The native port was played under rundesk by `tools/playbymove.py`, which posts mouse and key events to the game's
+window and takes its moves from the port's bot: a first campaign from launch (the intro clicked away, the title, a new
+player's name typed, the help before the first game, the map) to the game-over box, once in 2D and once in 3D, both in
+a window (2540 moves each, both games ending alike with 13130 points), and a survival in 2D full screen (913 moves, to
+the game-over box). The web build was played in the Browser pane by `games/heavyweapon/tools/web/onegame.js`, which
+sends the page's own mouse and key events: a first campaign in 2D from launch, with the focus lost and regained in play
+and the pause screen's CONTINUE clicked (753 moves to the game-over box), the same in 3D with the page at twice the
+game's size (801 moves), and a survival at one and a half times (84 moves). No run logged an error. The page check
+(`tools/web/pagecheck.js`, with the game's table in `games/heavyweapon/tools/web/pagecheck.js`) passed its 11 lines,
+none failing; its one line for information is the bot's moves after the focus check, none, as the game stays paused
+once the focus is back, as the original's does.
+
+### Sound
+
+`idplay.py sound <tour>` plays a tour's input in the original on the host (origrun, silenced, on the virtual clock),
+with a logging `bass.dll` beside the copy's exe (built from `games/bigmoney/tools/bassproxy`, which passes every call on
+and gives BASS_Init its "no sound" device) and origrun's DirectSound stand-in logging the sounds. The port replays the
+same input with its sound log (`BYOPOP_SOUNDLOG`), the states are compared as in phase one, and
+`games/heavyweapon/tools/idplay/soundcmp.py` compares the two logs: the sounds paired by load order with their length,
+rate and channels, every play of a sound in order with its volume, pan, pitch and looping, and the music's plays (with
+the order each starts at), its volumes as they change, its stops, pauses and resumes.
+
+| Tour | Sound plays | Music events | Result |
+| --- | --- | --- | --- |
+| menus | 50, the same | 204, one in another place | the same but for that event (below) |
+| in-game | 32, the same | 370, the same | the same |
+| campaign | 1318, the same | 978, the same | the same |
+| middle | 613, the same | 1725, the same | the same |
+| final | 481, the same | 1016, the same | the same |
+
+On the "no sound" device the original's love theme, the one song it loads as a stream (`BASS_StreamCreateFile`, its
+file in the copy), comes back 0, so the original plays nothing after the intro there; `soundcmp.py` keeps the song's
+place in the load order and sets the port's events for it apart (102 in every tour), and the love theme is not compared.
+The menus tour's one music event out of place is a step of the intro tune's fade-out, which the original takes in the
+update the main menu starts its song and the port one update before: the intro is ended by a click the port takes one
+update before the original (the title shot above), so every fade begun there runs one update ahead in the port.
+
+The sound step found five of the changes above: the main menu's and the armory's fade speeds, the status bar's click,
+the armory's hover sounds, the armory's song and the flak's pan. The armory's song rests on what BASS answered on the
+"no sound" device: a stopped song "active". Whether it answers so on a real sound device was not measured (with one,
+BASS_Init fails under origrun's DirectSound stand-in), but the same device answers 0 for a song not yet played, so the
+answer follows what the song has done, not the device; Big Money's port, on the same BASS, keeps it too.
+
+No tour plays 37 of the 92 sounds (the supply helicopter's calls, the mega laser, several bosses' weapons). Where the
+port plays one of them with a pan, the pan was checked against the original's code at the call: each scales its x by 3,
+as the port does.
+
 ## Oddities
 
 - **The robot's foot.** The robot's constructor (0x443210) never sets its foot's y, and its first update stamps if the
@@ -192,6 +348,15 @@ The high-score lines' names, which the original leaves uncleared on its stack an
   the head toward whatever the heap held there. The port starts it at 0; the seventh patch starts the original's at 0
   too, so that the head's fights (levels 7 and 16) start from the same place. Matching the original would again take its
   allocation history.
+- **Translucent pixels on the 2D screen.** Where the 2D screen blends a translucent or additive picture, the port's
+  pixels can differ from the original's by a few levels: the orange hit sparks fading over a boss (at most 76 levels on
+  a few edge pixels; the most pixels over the level 2 boss at frame 12500 of the campaign tour), an explosion's white
+  glow, and the fire bubbles over the high scores after a win (at most 12). Their places and counts agree; the
+  original's 2D surface blends them with the 2005 framework's software blitters, the port with SDL's renderer. To see
+  it: the review of `idplay.py shots shots_campaign`, shot 12500, or any shot of the final tour's high scores. To match
+  it, the 2D screen would be drawn by the framework's software blitters (`SoftwareScreenDisplay`, as Dynomite's is),
+  which cannot yet hand the screen back to the GPU for 3D (a shared change), and whose blitters would need checking
+  against this game's; the web build would keep SDL's.
 
 ## Deviations that remain
 

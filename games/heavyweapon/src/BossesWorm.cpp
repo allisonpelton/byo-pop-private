@@ -12,6 +12,7 @@
 #include "Graphics.h"
 #include "Res.h"
 #include "Sprite.h"
+#include "platform/GameOptions.h"
 #include <math.h>
 
 using namespace Sexy;
@@ -308,9 +309,17 @@ void WormBoss::Update()
 				(int)aBoard->mTankX, aBoard->mTankY, (int)aBoard->mTreadFrame, 0, false, true))
 				mBoard->KillTank();
 		}
-		// oddity: the original takes its head's place from one past its rib arrays, which is its head's y for the x
-		// and, for the y, the armour and fire delay of its turrets as a double (0 for any value they take)
-		if (mSprite->Collides((int)mSegY[0], 0, (int)mFrame, 0, false, mApp->mSprites[IMAGE_TANK],
+		// the original takes its head's place from one past its rib arrays, which is its head's y for the x and, for
+		// the y, the armour and fire delay of its turrets as a double (0 for any value they take); the fix wormHead
+		// takes the head's own place, where it is drawn
+		int aHeadX = (int)mSegY[0];
+		int aHeadY = 0;
+		if (Platform::FixOn("wormHead"))
+		{
+			aHeadX = (int)mX;
+			aHeadY = (int)mY;
+		}
+		if (mSprite->Collides(aHeadX, aHeadY, (int)mFrame, 0, false, mApp->mSprites[IMAGE_TANK],
 			(int)aBoard->mTankX, aBoard->mTankY, (int)aBoard->mTreadFrame, 0, false, true))
 			mBoard->KillTank();
 	}

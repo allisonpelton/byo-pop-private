@@ -529,11 +529,13 @@
       "title": "Heavy Weapon Deluxe",
       "done": [
         "port",
-        "identical-play"
+        "identical-play",
+        "identical-look",
+        "fixes-mod"
       ],
       "na": [],
-      "now": "registration-out",
-      "note": "phase one of identical play done: 28 games from the bot's records agree with the original under origrun in every compared frame (both generators, score, lives, the tank's X, bosses, shots, enemies), all nineteen bosses; the x87's sines in X87.cpp; registration out next"
+      "now": "readability",
+      "note": "phase two of identical play and the fixes mod merged (88a6a55e, ea2bde71): three fixes read through Platform::FixOn, savedBonuses and survivalBest on, wormHead off; the readability pass under way"
     },
     "hammerheads": {
       "title": "Hammer Heads Deluxe",
