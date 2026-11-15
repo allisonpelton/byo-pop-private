@@ -337,9 +337,9 @@ framework's and BASS's, outside the game's code.
 1050 functions the first 13 runs reached 730 and all 36 reach 801.
 
 Two runs (boss3 and the first `coverage_ui`) went wrong without failing: origrun began reading the game's counter about
-20 s late, the game ran on to update 278 or 774, and every input up to then was posted at once. idplay now runs the
-original again when its first input came late (`late_start`, up to three tries); the fix in origrun itself went to the
-coordinator.
+20 s late, the game ran on to update 278 or 774, and every input up to then was posted at once. idplay ran the
+original again when its first input came late until origrun's own fix reached the trunk (f2e7b161: the counter is read
+at once and the game held until its first read); the retry is gone since.
 
 **Reached in the original with no counterpart in the port: 198 after the first runs, 6 more from the later ones, none
 at the end.**
@@ -380,7 +380,7 @@ bosses, the craft and the dialogs above. Of the 57:
 - **Candidates for taking out unneeded code: 3.** The Resize overrides of the cutscene, the map and the results
   screens (0x41ede0, 0x423f40, 0x426bc0). The original's constructors call Widget's Resize and place the children
   themselves, and nothing resizes these screens later, so nothing calls the overrides; the port's map constructor
-  calls its own, which does the same. They stay until the pass that takes out unneeded code.
+  calls its own, which does the same. They are out ("Unneeded code taken out" below).
 
 The check took about an hour and a half of machine time, one game process at a time (the port recording the next
 scenario beside the original), and the two agents' 340,000 tokens. Every change to the sources but the NukeBlast
@@ -483,3 +483,15 @@ copies.
 tools/pincore.py -- bash games/heavyweapon/tools/profile/pairs.sh build/perf 5 3` and `python -I
 games/heavyweapon/tools/profile/profile.py sum build/perf`. `pairs.sh`'s third argument is the number of rounds that
 also run the 3D display. The run folders are deleted once this section holds their numbers.
+
+## Unneeded code taken out (2026-11-15)
+
+The three candidates of the coverage check are out of the port: the Resize overrides of the cutscene, the map and the
+results screens (0x41ede0, 0x423f40, 0x426bc0), with the `using Widget::Resize` lines that only kept Widget's other
+Resize visible beside them. No play of the original reaches any of them, and nothing in the port calls them. The
+cutscene's and the results screen's constructors already did what their overrides did. The map's constructor called its
+own override, so it now calls Widget's Resize and places the invade link and the briefing's button itself, as the
+original's constructor (0x425500) does. 31 lines out and 5 in, over 6 files. The other 54 functions that no run
+reached stay: 50 are the game's own rare paths, read again with no slip, and 4 are destructors C++ needs (the coverage
+check above). The port's frozen baseline, its tour and the rest of `tools/check.sh heavyweapon` are as before (the
+check ran after the removal), and the port builds natively and for the web.

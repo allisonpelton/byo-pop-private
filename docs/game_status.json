@@ -541,11 +541,13 @@
         "readability",
         "coverage",
         "registration-out",
-        "performance"
+        "performance",
+        "lite-mod",
+        "unneeded-code"
       ],
       "na": [],
       "now": null,
-      "note": "the performance pass merged (0ec9910f): in 2D on rundesk over level 4 the port takes 2.67 M cycles an update at 1x and 2.74 at 2x against the original's 3.13, about 85% with the mixer counted apart and 94% with it, no code change; next the lite mod"
+      "note": "the lite mod step done with no mod (1b87b2ec: the whole game update is 5.3% of the port's cycles) and unneeded code out (8d8a9cc9: the cutscene's, map's and results screen's Resize overrides, which no play reaches; the map places its children itself as the original does); next the Collection check, then the site features"
     },
     "hammerheads": {
       "title": "Hammer Heads Deluxe",
