@@ -13,7 +13,7 @@ namespace
 {
 const char* const BLIMP_TYPE = "PrizeBlimp";
 const char* const VEHICLE_CLASS = "vehicle";
-const char* const SHADOW_IMAGE = "res\vehicles\blimp_dropshadow.jpg";
+const char* const SHADOW_IMAGE = "res\\vehicles\\blimp_dropshadow.jpg";
 const char* const ENGINE_SOUND = "bonus_blimpEngine";
 const char* const DROP_SOUND = "bonus_blimpDropTip";
 

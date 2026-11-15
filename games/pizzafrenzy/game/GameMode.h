@@ -163,6 +163,12 @@ public:
 
 	// the number of orders picked
 	int getPickCount() { return (int)mPicks.size(); }
+	// port (the test commands' bot): the houses whose orders are picked, the first picked first
+	const std::vector<engine::Ref<CustomerTile>>& getPicks() const { return mPicks; }
+	// port (the test commands "win" and "lose"): the level ends through checkLevelEnd's own paths at the next update:
+	// a win has the waves done, no customer waiting, no pizza on its way and every pizza ordered delivered; a loss has
+	// no happiness left
+	void endLevelForTest(bool theWin);
 
 	// 0x456260: the happiness is changed by the number, between 0 and 100
 	void addHappiness(int theChange);

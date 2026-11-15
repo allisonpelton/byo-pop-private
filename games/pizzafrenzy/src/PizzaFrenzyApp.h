@@ -79,6 +79,14 @@ public:
 	void GotFocus() override;
 	void LostFocus() override;
 
+	// port: the standard test commands (docs/TEST_COMMANDS.md, src/TestCommands.cpp)
+	bool HandleScriptCommand(const ScriptCommand& theCommand) override;
+	// port: the memreport test command: what the engine holds beside the framework's own pictures and sounds
+	void AddMemReportHolders(Platform::MemReport* theReport) override;
+	// port: the state command's JSON, and the move command's line (the bot's next move, or "null")
+	std::string TestState();
+	std::string TestMove();
+
 	// A frame of the engine (0x4bd210); an exception the original would not survive ends the program
 	void RunFrame();
 	void EngineFailed(const char* theWhat);

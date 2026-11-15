@@ -572,6 +572,17 @@ Van* KitchenTile::getVehicle()
 	return aVan;
 }
 
+// port: the vans of the kitchen that have a path to drive are out
+bool KitchenTile::isVanOut() const
+{
+	for (size_t i = 0; i < mVehicles.size(); i++)
+	{
+		if (!static_cast<Van*>(mVehicles[i].get())->isIdle())
+			return true;
+	}
+	return false;
+}
+
 // 0x41cf50
 void KitchenTile::sendVan(CustomerTile* theTile)
 {

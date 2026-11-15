@@ -677,6 +677,29 @@ void GameMode::checkLevelEnd()
 		mStates.changeState(new PrizeBlimpState(this));
 }
 
+// port: the "win" and "lose" test commands. A win clears what stands in the way of checkLevelEnd's blimp path (the
+// wave's orders and the orders placed, the picks, the pizzas on their way, the tiles' popups and tips, as finishLevel
+// clears them) and counts every pizza ordered as delivered; a loss takes the happiness away, which the check ends the
+// game on. The check itself runs in the play state's next updates.
+void GameMode::endLevelForTest(bool theWin)
+{
+	if (!theWin)
+	{
+		addHappiness(-MAX_HAPPINESS);
+		return;
+	}
+	mWaveOrders.clear();
+	mActiveOrders.clear();
+	mDeliveries.clear();
+	mOrdersBegun = mLevel->mNumOrders;
+	mWavesDone = true;
+	mWaveCustomersLeft = 0;
+	mStats->mOrderCount = 0;
+	mStats->mPizzasDelivered = mStats->mPizzasOrdered;
+	clearPicks();
+	clearTiles();
+}
+
 // 0x456320
 void GameMode::finishLevel()
 {

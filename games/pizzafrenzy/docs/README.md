@@ -182,3 +182,45 @@ the original formats its own file's version (0x4bdb20: FileVersion and SpecialBu
 page 04B0, or "no version info"). The Steam copy's launcher has no version resource and only the wrapped game image has
 one, so what the Steam original shows depends on how the launcher runs the image; an origrun run settles it in the looks
 phase.
+
+## Test commands
+
+The standard commands of `docs/TEST_COMMANDS.md` (`-script`, `-commands`, the web test page), in
+`games/pizzafrenzy/src/TestCommands.cpp`. Each answers with one line, `STATE {...}`, `MOVE {...}` or `MOVE null`,
+`OK <command>` or `ERROR <command>: <reason>`. Only the speed mode is ported, so they play only that.
+
+- `state`: the state line, below.
+- `goto menu`, `goto highscores`, `goto options`, `goto toppings`: from the main menu (or a screen it opens), the menu
+  state's own actions `highScoreDone`, `showHighScores`, `options` and `viewToppingBook`.
+- `goto citySelect`: `PizzaFrenzy::showCitySelect` (0x4023d0) for the speed mode.
+- `goto speed`: `PizzaFrenzy::startGame` (0x40c700) at the first city; the game left in the mode is restored, as the
+  menu's restore does.
+- `level <day>`, `level <city> <level>`: from the main menu (numbers from 1; the day counts the levels of every city):
+  the speed mode's saved game is put at the level with no score and `startGame` runs from it, so the story, the new
+  toppings and the level start come as for any level. A bonus round is refused: it is not played yet.
+- `unlock all`: the last city is the player's furthest (`UserGameData::setMaxCity`), every topping the player lacks is
+  at level 0 and no longer new, and the data is saved. The stories still show, since the furthest day is not touched.
+- `set score|tips|money|happiness|ordersToGo <n>`: in a level: the stats' score, tip jar money, tips earned, the
+  happiness (through `GameMode::addHappiness`, so the low warning follows) and the orders left.
+- `win`, `lose`: in play. `win` has the waves done, the customers, the picks and the pizzas on their way cleared and
+  every pizza ordered counted as delivered, so `checkLevelEnd` (0x456ac0) takes the prize blimp's path at its next
+  update; `lose` takes the happiness away, which it ends the game on.
+- `seed <n>`: `engine::crtSrand`, as `-seed=N` seeds the game.
+- `move`: the bot's next move, below.
+- `memreport`: the framework's, with the engine's pictures and sounds added (`AddMemReportHolders`).
+
+`state` prints `screen` (splash, menu, citySelect, highScores, story, newTopping, levelStart, game, pause, summary, or
+the open dialog: options, toppings, players, newPlayer, deletePlayer, resetScores, restoreGame, quit, exitGame,
+unlockNotice, dialog; other for a state not listed), `mode`, `city` and `cityName`, `level` (in the city, from 1),
+`day`, `frame`, `over` (the level's end, the summary), then `score`, `tips` (the tip jar), `tipGoal`, `money` (the tips
+earned this level), `happiness`, `ordersToGo`, `timer` (the stats' seconds, which every mode keeps), `delivered`,
+`ordered` and `combo`; with a game on, `phase` (intro, play, blimp, end), `picks` and a `board` of `customers`
+(`cell`, `x`, `y` the point to click, `topping`, `picked`, `wait` seconds left, `clickable`, `event`, `chameleon`),
+`kitchens` (`cell`, `x`, `y`, `topping`, `clickable`, `vanOut`) and `tips` (`x`, `y`, `amount`, `waiting`).
+
+The bot reads the state and nothing else, and draws from no generator. In the introduction it clicks to skip it. In
+play, with no order picked it clicks a tip that waits, else picks the clickable customer with the least wait left (the
+first of two); with an order picked it picks more customers of the same topping while the pick limit allows
+(`GameStats::getPickLimit`, 0x41a670, read without its insertion), then clicks a kitchen that makes the topping. A
+customer of a special event is left alone, since the events' pizzas are not served yet. Every move is a `move` step
+and a `click` step and waits 2 updates; anything else (a screen, the blimp's flight, the level's end) is `MOVE null`.

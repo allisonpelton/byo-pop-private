@@ -230,6 +230,8 @@ public:
 	void showCombo(int theLength, int theFives);
 	// 0x41c9e0: a van of the kitchen that is not on its way, or a new one of the kitchen's type, put on the map
 	Van* getVehicle();
+	// port (the test commands' state): a van of the kitchen is on its way
+	bool isVanOut() const;
 	// slot 0x1ac: 0x41cf50: a van goes from the kitchen to the house, and the house and the kitchen's popup are served;
 	// translated next with the vehicles
 	void sendVan(CustomerTile* theTile);

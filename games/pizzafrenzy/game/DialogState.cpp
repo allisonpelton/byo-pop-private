@@ -93,6 +93,18 @@ void DialogState::show(engine::GenericScreen* theScreen)
 	mApp->mSounds->play(SOUND_DIALOG_IN, 1.0f, 1.0f);
 }
 
+// port: the test commands' state reads which dialog is open
+engine::GenericScreen* DialogState::getShownScreen() const
+{
+	if (sDialogScreens == nullptr)
+		return nullptr;
+	if (!sDialogScreens->mQueue.empty())
+		return sDialogScreens->mQueue.back();
+	if (sDialogScreens->mNext != nullptr)
+		return sDialogScreens->mNext;
+	return sDialogScreens->mCurrent;
+}
+
 // 0x406310
 void DialogState::close()
 {
