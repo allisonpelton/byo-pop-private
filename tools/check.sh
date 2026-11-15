@@ -37,7 +37,7 @@
 #                platform/saveimport.json, the .reg reader and the conversion, web/saveimport.js), chattest (the chat's username,
 #                text and rate rules, its stored history and local source, and that a message goes on the page as text only,
 #                web/chat.js), gameimporttest (the import rules for a game's files and the sorting of dropped folders into games,
-#                web/gameimport.js) and a11ycheck (tools/a11ycheck.js: the site's pages in the build, as index.html lists them; each page's
+#                web/gameimport.js), exetrimtest (tools/exetrimtest.js: the stored exe without its code, web/exetrim.js) and a11ycheck (tools/a11ycheck.js: the site's pages in the build, as index.html lists them; each page's
 #                landmarks, headings, names, references, live regions and contrast) and stringstest (tools/stringstest.js: the
 #                site's text, web/strings/en.txt, against the code that uses it, and web/i18n.js's rules), playcounttest (the play
 #                counter's Worker and Durable Object, web/counter/playcount.mjs, on stand-ins for Cloudflare's runtime) and
@@ -801,6 +801,9 @@ suite_unit-web() {
 	# the import rules for a game's files and the sorting of dropped folders into games (web/gameimport.js)
 	"$NODE" tools/gameimporttest.js > "$1.gi" 2>&1 || st=1
 	i="$(lastof "$1.gi" 'gameimporttest:')"
+	# the stored exe without its code (web/exetrim.js): every address of the ports' tables reads the same from the trimmed exe
+	"$NODE" tools/exetrimtest.js "$W/assets" > "$1.xt" 2>&1 || st=1
+	i="$i; $(lastof "$1.xt" 'exetrimtest:')"
 	# the chat's rules, stored history and local source, and its plain-text rendering (web/chat.js)
 	"$NODE" tools/chattest.js > "$1.ch" 2>&1 || st=1
 	h="$(lastof "$1.ch" 'chattest:')"

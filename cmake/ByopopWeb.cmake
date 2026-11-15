@@ -57,7 +57,7 @@ set(BYOPOP_WEB_BRAND favicon.svg favicon.ico apple-touch-icon.png logo.svg cap.s
 # games of its own. web/testkit.js is the player-only page's test tools, which a game page loads only at ?player=1 on a
 # development host (docs/WEB_PLAYER.md, "The player-only page"). web/skins.js and web/skins.css are the site's skins ("Skins").
 # web/settingsicons.js holds the Settings sections' icons, drawn by tools/settingsicons.py.
-set(BYOPOP_WEB_SHARED_JS logo.js cursors.js saver.js settingsicons.js settings.js profiles.js exeicon.js exeprobes.js gameimport.js chat.js testkit.js skins.js schemes.js themedata.js themes.js skins.css perf.js soundpanel.js view.js controldata.js controls.js clips.js)
+set(BYOPOP_WEB_SHARED_JS logo.js cursors.js saver.js settingsicons.js settings.js profiles.js exeicon.js exeprobes.js exetrim.js flicursor.js gameimport.js chat.js testkit.js skins.js schemes.js themedata.js themes.js skins.css perf.js soundpanel.js view.js controldata.js controls.js clips.js)
 # the listing page's own scripts: the Players section (web/players.js), the save backup (web/saves.js) and the import of
 # saves from an installed game (web/saveimport.js, with the table platform/saveimport.json as saveimport-table.js), and the
 # adding of games' files (web/addgames.js, with web/modpanel.js for its zip and pak readers, and import-games.js, each listed
@@ -1269,8 +1269,13 @@ endfunction()
 if(EMSCRIPTEN)
   # The music player's decoder (web/music/openmpt_web.c, web/music.js; docs/WEB_PLAYER.md, "The music player"): libopenmpt on its
   # own, as openmpt.js and openmpt.wasm beside the pages, which the listing page loads when its Music tab is first opened
-  add_executable(byopop_openmpt ${CMAKE_CURRENT_LIST_DIR}/../web/music/openmpt_web.c)
+  add_executable(byopop_openmpt ${CMAKE_CURRENT_LIST_DIR}/../web/music/openmpt_web.c ${CMAKE_CURRENT_LIST_DIR}/../web/music/openmpt_solo.cpp)
   target_link_libraries(byopop_openmpt PRIVATE openmpt xmp_lite stb)
+  # (openmpt_solo.cpp reaches libopenmpt's own classes: its include folders and its build's definition, as its sources have)
+  set(byopop_openmpt_dir ${CMAKE_CURRENT_LIST_DIR}/../third_party/libopenmpt)
+  set_source_files_properties(${CMAKE_CURRENT_LIST_DIR}/../web/music/openmpt_solo.cpp PROPERTIES
+    INCLUDE_DIRECTORIES "${byopop_openmpt_dir};${byopop_openmpt_dir}/src;${byopop_openmpt_dir}/common;${byopop_openmpt_dir}/include;${byopop_openmpt_dir}/libopenmpt"
+    COMPILE_DEFINITIONS LIBOPENMPT_BUILD COMPILE_OPTIONS "-w;-sDISABLE_EXCEPTION_CATCHING=0")
   set_target_properties(byopop_openmpt PROPERTIES OUTPUT_NAME openmpt SUFFIX ".js" LINKER_LANGUAGE CXX)
   target_compile_options(byopop_openmpt PRIVATE -O2)
   target_link_options(byopop_openmpt PRIVATE -O2 "-sMODULARIZE=1" "-sEXPORT_NAME=ByopopOpenMPT" "-sALLOW_MEMORY_GROWTH=1"

@@ -593,6 +593,7 @@ footer a { color: var(--accent); }
 <script src="modpanel.js"></script>
 <script src="exeicon.js"></script>
 <script src="exeprobes.js"></script>
+<script src="exetrim.js"></script>
 <script src="gameimport.js"></script>
 <script src="import-games.js"></script>
 <script src="other-games.js"></script>
@@ -623,7 +624,8 @@ try {
             if (siteSettingsView && siteSettingsView.refresh) siteSettingsView.refresh();
           });
         } catch (e) { return null; }
-      })(), input: document.getElementById("site-cursor"), players: document.getElementById("players-body"), saves: document.getElementById("saves-body") },
+      })(), sound: (function () { try { return ByopopThemes.ownChooser(function (k, v) { return ByopopStrings.t(k, v); }); } catch (e) { return null; } })(),
+      input: document.getElementById("site-cursor"), players: document.getElementById("players-body"), saves: document.getElementById("saves-body") },
     section: (/^#settings-([a-z]+)$/.exec(settingsHash(location.hash)) || [])[1],
     openSection: function (id) { if (window.ByopopSkin && ByopopSkin.desk.show("set-" + id)) return; siteSettingsView.select(id, true); }
   });
@@ -1396,6 +1398,7 @@ try {
     var want = null;
     try { want = sessionStorage.getItem("byopop-desk-open"); sessionStorage.removeItem("byopop-desk-open"); } catch (e) {}
     if (want === "games") d.show(ByopopSkin.gamesWindow ? ByopopSkin.gamesWindow() : "games");
+    if (want === "shutdown" && d.lastScreen) d.lastScreen(false);
     var sec = /^#settings-([a-z]+)$/.exec(settingsHash(location.hash));
     if (sec && d.find("set-" + sec[1])) { d.show("tab-settings"); d.show("set-" + sec[1]); }
   })();
