@@ -1,0 +1,41 @@
+# Venice Deluxe 1.0 for tools/visrun.py, adopted by the Venice session: visshots.py makes the run's copy of this file, with the
+# profile to seed in place of the @SAVE_SEED@ line. Addresses are from games/venice/tools/idplay/idplay.py (the app global 0xa2a178,
+# its update counter, the 3D flag) and the exe's DrawDirtyStuff (0x48bd70 clears the byte at app+0x45a, mHasPendingDraw).
+name = "venice"
+game = "venice"                       # tools/origrun/games.tsv row: Venice.exe in the PopCap Games install; origrun stages it
+exe = "VeniceGame.exe"                 # the real exe, carved out of the install's Venice.exe wrapper
+carve_exe = "re/venice/bin/VeniceGame.exe"
+patches = "tools/origrun/patches/venice.txt"   # the seed patch ({seed}); run with --seed 1 as idplay does
+title = "Venice"                      # a text the original's window title holds (the product name is "Venice Deluxe")
+client = [800, 600]
+clock = "virtual"                     # idplay ran Venice on the virtual clock; "real" is the fallback if the barrier never holds
+update_ms = 4
+counter = "[0xa2a178]+0x47c"          # idplay's FRAME_COUNTER (a 4 ms frame)
+drawn = ["[0xa2a178]+0x45a:1 == 0"]   # mHasPendingDraw clear; mUpdateAppState's offset is not known for Venice
+flag3d = "[[0xa2a178]+0x36c]+0x38:1"  # mDDInterface->mIs3D, as idplay's --3d-flag (app+0x36c is the DDInterface: 0x483060 reads it)
+reg_key = 'Software\PopCap\Venice'    # HKLM\SOFTWARE\PopCap\Venice, which the stand-in's registry map puts under HKCU
+reg_map = "popcap"
+reg_3d_value = "Is3D"
+reg_values = { ScreenMode = 0 }       # windowed
+save_dirs = ['C:\ProgramData\PopCap Games\Venice\userdata']   # profiles.dat: backed up, emptied for the run, put back
+@SAVE_SEED@
+
+[values]                              # read at every logged step (steps.tsv), for the port's side
+update_count = "[0xa2a178]+0x484"
+tick = "0xa2a1ac"
+
+[cues]                                # names for "waitcue" and "gate" in a step file; "<expr>[:size] <op> <value>"
+running = "[0xa2a178]+0x47c > 0"
+
+# The screens of the tours (the main menu, options, help, credits, high scores, the mode select, the exit confirmation, the player's
+# menu, and the levels) have no link, Buy or More Games button: the texts of their data files and the port's `buttons` list were read
+# (the main menu: PLAY NOW, HIGH SCORES, OPTIONS, HELP, CREDITS, EXIT, the player's name, and a 32x32 exit mark at the top right), and
+# the exe launches an address only from the framework's OpenURL (0x489260) and its registration and beta-check pages, which no screen
+# of the game calls. What is forbidden is what would end a tour: the exit mark and the exit confirmation's "yes".
+[[forbid]]
+name = "exit_mark"
+rect = [770, 0, 30, 30]
+
+[[forbid]]
+name = "exit_confirm_yes"
+rect = [270, 300, 110, 60]
