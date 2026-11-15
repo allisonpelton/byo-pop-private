@@ -12,16 +12,20 @@ let failed = 0, checks = 0;
 function fail(msg) { failed++; console.log("FAIL " + msg); }
 
 function addresses(game) {
-  const dir = path.join(repo, "games", game, "src"), out = [];
-  if (!fs.existsSync(dir)) return out;
+  const out = [];
+  for (const sub of ["src", "game"]) {
+  const dir = path.join(repo, "games", game, sub);
+  if (!fs.existsSync(dir)) continue;
   for (const f of fs.readdirSync(dir).filter((n) => /\.inc$/i.test(n))) {
-    const re = /^[A-Z_]+\(\s*(0x[0-9a-fA-F]{6,8})\s*(?:,\s*(\d+|0x[0-9a-fA-F]+))?/gm;
+    // (an entry's first argument may be its id: BookWorm's GAMETEXT(GT_..., address, ...))
+    const re = /^[A-Z_]+\(\s*(?:[A-Za-z_][A-Za-z0-9_]*\s*,\s*)?(0x[0-9a-fA-F]{6,8})\s*(?:,\s*(\d+|0x[0-9a-fA-F]+))?/gm;
     let m;
     const text = fs.readFileSync(path.join(dir, f), "utf8");
     while ((m = re.exec(text))) {
       const va = parseInt(m[1], 16), n = m[2] ? Number(m[2]) : 16;
       if (va >= 0x400000 && va < 0x2000000) out.push({ va, len: Math.max(1, Math.min(n + 1, 65536)), from: f });
     }
+  }
   }
   return out;
 }

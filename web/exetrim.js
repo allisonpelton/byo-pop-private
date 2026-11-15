@@ -10,7 +10,30 @@
 // port's text tables against the trimmed file). The exe the import checks (web/exeprobes.js) is the original, before the trim.
 var ByopopExeTrim = (function () {
   "use strict";
-  var TRIM = {};
+  // (checked 2026-11-14 against every reader of each exe: the ports' text, level and resource readers map addresses through
+  // the section table, and the wrapped games' readers find the image at offset 0 when no launcher marker is there. Left out:
+  // Bonnie's Bookstore runs its exe's start-up code; Mummy Maze's tutorial walls and one text each of Cosmic Bugs and Water
+  // Bugs are read from inside the code. Mahjong's Resource.dll is all resources and stays whole.)
+  var TRIM = {
+    atomica: { exe: "atomica.exe" },
+    bejeweledtwist: { exe: "bejeweledtwist.exe" },
+    bookwormadv: { exe: "bookwormadventures.exe" },
+    bookwormadv2: { exe: "bookwormadventuresvol2.exe" },
+    mahjongchina: { exe: "mahjongescapeac.exe" },
+    mahjongjapan: { exe: "mahjongescapeaj.exe" },
+    ningpo: { exe: "ningpo.exe" },
+    noahsark: { exe: "winnoah.exe" },
+    sevenseas: { exe: "winss.exe" },
+    tiptop: { exe: "tiptop.exe" },
+    astropop: { exe: "winap.exe", unwrap: true },
+    bookworm: { exe: "bookworm.exe", unwrap: true },
+    dynomite: { exe: "dynomite.exe", unwrap: true },
+    heavyweapon: { exe: "heavy weapon deluxe.exe", unwrap: true },
+    pixelus: { exe: "pixelus.exe", unwrap: true },
+    rocketmania: { exe: "rocketmania.exe", unwrap: true },
+    typershark: { exe: "wints.exe", unwrap: true },
+    wordharmony: { exe: "wordharmony.exe", unwrap: true }
+  };
   var CODE = [".text", "CODE", ".code"];
 
   function u16(b, o) { return b[o] | (b[o + 1] << 8); }

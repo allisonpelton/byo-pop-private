@@ -20,7 +20,10 @@ The page loads `<game>.js`, which compiles the wasm while `main()` waits (`INVOK
 IndexedDB at its persist folder and copies it into memory (`game/`, `userdata/`, `mods/`, `replays/`), first putting
 back saves that reached only the localStorage backup (`byopop_userdata_restore`). A Web Lock (`PAGE.lock`) lets one tab
 run a game. The fixes mod is put in place, the terms are asked, and without the game's files the import card copies
-only what `page.js` names, by the rules in `web/gameimport.js` (a pak named in `paks` is unpacked). Play calls `main()`
+only what `page.js` names, by the rules in `web/gameimport.js` (a pak named in `paks` is unpacked). The exe of a game
+that `web/exetrim.js` lists is stored without its code sections, and a launcher's inner image alone, as the port reads
+only texts and tables from it (about 32 MB down to 7 MB over the listed games; `tools/exetrimtest.js` checks every table
+address reads the same; a game stored before keeps its whole exe until it is imported again). Play calls `main()`
 with `-gamedir=/persist/game -userdir=... -modsdir=...`, plus `-gameseed=N` for `?seed=N`, `-placeholders` for
 `?placeholders=1` and `-nomods` for "Play without mods"; the game runs one frame per animation frame. Saves go to
 IndexedDB as they happen, with a small backup in localStorage, because a closing tab cannot wait for IndexedDB.
