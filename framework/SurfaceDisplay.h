@@ -25,13 +25,13 @@
 //
 //   No vertical blank holds a window without a renderer: the framework's own millisecond pace places the frames on the
 //   update loop's 10 ms steps, and a quarter to a half of a 60 Hz display's refreshes showed a frame twice or skipped one
-//   where a vsync present shows one new frame each. With SURFACE_PACE=dwm in a test run, on Windows, each present of
-//   surface and stretch mode waits for the desktop compositor's next composition instead (DwmFlush,
-//   GdiStretch::WaitForComposition), as a vsync present waits for the blank: every refresh then showed one new frame, for
-//   about 2% more of the game's processor time (Dynomite, six pairs turn about; docs/MEMORY.md, "The compositor wait, an
-//   option"), so it is not the default until the user chooses. The wait is skipped with -fast, -drawevery and -hold, as
-//   the pace is. A wait that fails, or that holds the frame for more than 250 ms (the compositor not composing), hands the
-//   frames back to the pace for good.
+//   where a vsync present shows one new frame each. So on Windows each present of surface and stretch mode waits for the
+//   desktop compositor's next composition instead (DwmFlush, GdiStretch::WaitForComposition), as a vsync present waits for
+//   the blank: every refresh then showed one new frame, for about 2% more of the game's processor time (Dynomite, six
+//   pairs turn about; docs/MEMORY.md, "The compositor wait"). The user chose it as the default on 2026-11-15;
+//   SURFACE_PACE=ms in a test run gives the pace back. The wait is skipped with -fast, -drawevery and -hold, as the pace
+//   is, and before the game has loaded. A wait that fails, or that holds the frame for more than 250 ms (the compositor
+//   not composing), hands the frames back to the pace for good.
 //
 //   Renderer mode, any other size (a full-screen window is the desktop's size): DDInterface's own path (the screen texture at the render scale,
 //   scaled into the window, vsync), with the frame put into the screen texture from a texture of its own of which
@@ -160,8 +160,8 @@ protected:
 	// Windows, unless SURFACE_PRESENT=copy in a test run: surface mode at 2x to 4x has GDI stretch the buffer into the window
 	// (mGdi) instead of copying it into a window surface of that size (above); false for good when the window has no handle
 	bool mGdiPresent;
-	// SURFACE_PACE=dwm in a test run, on Windows: each present without a renderer waits for DWM's next composition, in place
-	// of the framework's pace (above)
+	// Windows, unless SURFACE_PACE=ms in a test run: each present without a renderer waits for DWM's next composition, in
+	// place of the framework's pace (above); false for good once a wait fails or holds a frame over 250 ms (StopDwmPace)
 	bool mDwmPace;
 	void WaitForComposition();
 	void StopDwmPace();
