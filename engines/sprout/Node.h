@@ -11,7 +11,9 @@
 // propagates up the tree (0x439000 (wordharmony)). A parent holds a reference on each child (the child adds it in
 // setParent).
 
+#include "BltFx.h"
 #include "Build.h"
+#include "Color4.h"
 #include "Geometry.h"
 #include "Object.h"
 #include "Signal.h"
@@ -86,7 +88,8 @@ public:
 	virtual void setFont(Font* theFont);                             // 0x30: 0x439da0 (wordharmony)
 	virtual void setName(const std::string& theName);                // 0x34: 0x43a050 (wordharmony)
 	virtual std::string getName() { return mName; }                  // 0x38: 0x43a020 (wordharmony)
-	virtual void applyTransform(Graphics* g);                        // 0x3c: 0x439df0 (wordharmony)
+	// 0x3c: 0x439df0 (wordharmony); 0x64: 0x467fd0 (pizzafrenzy)
+	virtual void applyTransform(Graphics* g);
 	virtual bool contains(Point& p);                                 // 0x40: 0x439b10 (wordharmony)
 	virtual Node* hitTest(unsigned int theFlags, Point& p);          // 0x48: 0x439d60 (wordharmony)
 	virtual void toLocal(Point& p);                                  // 0x4c: 0x439b60 (wordharmony)
@@ -98,6 +101,20 @@ public:
 	virtual void setEnabled(bool theEnabled);
 	// 0x60: 0x439bc0 (wordharmony); 0x84: 0x467f20 (pizzafrenzy): the signal build's: the own mouse flag, not masked
 	virtual bool isEnabled();
+	// The signal build's (Pizza Frenzy's) render state of a node that applyTransform gives the draw context: a colour,
+	// how the colour is used (0 not at all, 1 added to the pixels', 2 multiplied with them), whether the node's draw is
+	// smoothed, and a blit effect
+	virtual void setColor(float theRed, float theGreen, float theBlue)  // 0x3c: 0x467bc0 (pizzafrenzy)
+	{
+		mColor.r = theRed;
+		mColor.g = theGreen;
+		mColor.b = theBlue;
+	}
+	virtual void setColor(const Color4& theColor) { mColor = theColor; }  // 0x40: 0x467b90 (pizzafrenzy)
+	virtual Color4* getColor() { return &mColor; }                         // 0x44: 0x467bb0 (pizzafrenzy)
+	virtual void setColorMode(int theMode) { mColorMode = theMode; }       // 0x48: 0x467bd0 (pizzafrenzy)
+	virtual void setSmoothType(int theSmoothType) { mSmoothType = theSmoothType; }  // 0x50: 0x467be0 (pizzafrenzy)
+	virtual void setBltFx(BltFx* theBltFx) { mBltFx = theBltFx; }          // 0x54: 0x467f90 (pizzafrenzy)
 	// The signal build's activation (Pizza Frenzy's): a node connects to the application's signals when its screen is
 	// shown, and drops them when it goes; a node of its own does nothing
 	virtual void connect() {}     // 0x88: 0x4d0470 (pizzafrenzy)
@@ -181,6 +198,10 @@ public:
 	float mOpacity;                        // +0x48
 	Font* mFont;                           // +0x4c (counted)
 	Color mColorOffset;                    // +0x50
+	Color4 mColor;                         // +0x50 (pizzafrenzy)
+	int mColorMode;                        // +0x60 (pizzafrenzy)
+	int mSmoothType;                       // +0x64 (pizzafrenzy)
+	Ref<BltFx> mBltFx;                     // +0x68 (pizzafrenzy)
 	unsigned int mFlags;                   // +0x5c
 	unsigned int mAllFlags;                // +0x60
 	bool mVisible;                         // +0x64

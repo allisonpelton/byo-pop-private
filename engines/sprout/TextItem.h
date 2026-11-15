@@ -5,7 +5,7 @@
 // 0x46fc70 (pizzafrenzy), vtable 0x502168 (pizzafrenzy)): lines in the node's font, aligned around the position,
 // underlined or struck through. A text breaks into lines at the two characters backslash and n. The signal build's
 // also breaks a line that is wider than its wrap width at its last space, has a colour of its own and can have a
-// shadow; its draw and layout are not translated yet (nothing draws a text of the signal build).
+// shadow, and its lines can be moved sideways (a first line's offset and one for the next lines).
 
 #include "Node.h"
 #include <string>
@@ -27,8 +27,8 @@ public:
 	TextItem();            // 0x427680 (wordharmony), 0x46fc70 (pizzafrenzy)
 	~TextItem() override;  // 0x4277d0 (wordharmony)
 
-	void draw(Graphics* g) override;  // 0x6c: 0x427260 (wordharmony)
-	void layout() override;           // 0x74: 0x4270b0 (wordharmony)
+	void draw(Graphics* g) override;  // 0x6c: 0x427260 (wordharmony); 0x90: 0x46f5b0 (pizzafrenzy)
+	void layout() override;           // 0x74: 0x4270b0 (wordharmony); 0x98: 0x46f670 (pizzafrenzy)
 
 	void setHAlign(int theAlign);  // 0x427070 (wordharmony), 0x46f520 (pizzafrenzy): 0 left, 1 centre, 2 right
 	void setVAlign(int theAlign);  // 0x427090 (wordharmony), 0x46f540 (pizzafrenzy): 0 top, 1 middle, 2 bottom
@@ -44,12 +44,12 @@ public:
 		mShadowOpacity = theOpacity;
 		mShadowOffset = theOffset;
 	}
-	// The signal build's node's slots 0x48 (0x467bd0 (pizzafrenzy), +0x60) and 0x40 (0x467b90 (pizzafrenzy), +0x50): a
-	// colour of the text and how the scene applies it to the render state (0x467fd0 (pizzafrenzy), 0x477ec0 (pizzafrenzy),
-	// 0x477f50 (pizzafrenzy); the layout reader gives mode 2). They belong to the node (Node.h); until that applies them,
-	// the text keeps the mode and its colour is the node's colour offset.
-	void setColorMode(int theMode) { mColorMode = theMode; }
-	void setColor(const Color& theColor) { mColorOffset = theColor; }
+	// 0x46f500 (pizzafrenzy): the offsets added to the first line's x and to the next lines'
+	void setLineOffsets(float theFirst, float theNext)
+	{
+		mLineOffset = theFirst;
+		mNextLineOffset = theNext;
+	}
 	// 0x4279f0 (wordharmony): a number with commas between the thousands
 	void setNumber(int theNumber);
 	// 0x427b60 (wordharmony): seconds as hours:minutes:seconds
@@ -63,7 +63,11 @@ public:
 	int mWordWrap;                    // +0x148 (pizzafrenzy): the width a line breaks at, 0 for no wrapping
 	float mShadowOpacity;             // +0x14c (pizzafrenzy)
 	Point mShadowOffset;              // +0x150 (pizzafrenzy)
-	int mColorMode;                   // +0x60 of the signal build's node
+	float mLineOffset;                // +0x140 (pizzafrenzy)
+	float mNextLineOffset;            // +0x144 (pizzafrenzy)
+
+private:
+	void drawLines(Graphics* g);  // 0x108: 0x46f830 (pizzafrenzy)
 };
 
 } // namespace engine

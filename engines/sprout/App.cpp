@@ -3,6 +3,7 @@
 #include "Font.h"
 #include "Graphics.h"
 #include "Host.h"
+#include "Sound.h"
 
 using namespace engine;
 
@@ -155,6 +156,40 @@ int App::getImageMemory(size_t* theBytes) const
 void App::log(const char* theText)
 {
 	getHost()->log(theText);
+}
+
+// 0x461a50 (pizzafrenzy): the signal build's slot 0x30 (0x461830 (pizzafrenzy)) opens the file, which is
+// openRawStream's (the archive, or a loose file when the files are used)
+bool App::loadSound(const std::string& theName, const std::string& theFile)
+{
+	SoundSystem* aSystem = getSoundSystem();
+	if (aSystem == nullptr)
+		return false;
+	if (aSystem->isLoaded(theName.c_str()))
+		return true;
+	Ref<InputStream> aStream = openRawStream(theFile.c_str());
+	return aSystem->load(theName.c_str(), aStream);
+}
+
+// 0x461b70 (pizzafrenzy)
+bool App::loadSoundStream(const std::string& theName, const std::string& theFile)
+{
+	SoundSystem* aSystem = getSoundSystem();
+	if (aSystem == nullptr)
+		return false;
+	if (aSystem->isLoaded(theName.c_str()))
+		return true;
+	Ref<InputStream> aStream = openRawStream(theFile.c_str());
+	return aSystem->loadStream(theName.c_str(), aStream);
+}
+
+// 0x461c90 (pizzafrenzy)
+Sound* App::createSound(const std::string& theName, bool theStatic, int theCategory)
+{
+	SoundSystem* aSystem = getSoundSystem();
+	if (aSystem == nullptr)
+		return nullptr;
+	return aSystem->createSound(theName.c_str(), theStatic, theCategory);
 }
 
 // 0x454180 (wordharmony)

@@ -8,8 +8,6 @@ using namespace engine;
 ImageNode::ImageNode(Image* theImage)
 {
 	mClipped = false;
-	mSmoothType = 0;
-	mColorMode = 0;
 	mImage = theImage;
 	addOwnFlags(NODE_DRAWABLE);
 	setFlags(NODE_LAYOUT);

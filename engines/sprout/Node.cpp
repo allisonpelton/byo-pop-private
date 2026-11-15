@@ -12,8 +12,8 @@ bool engine::gSignalBuild = false;
 
 // 0x43a3c0 (wordharmony)
 Node::Node()
-	: mParent(nullptr), mPosition(0, 0), mScale(1.0f, 1.0f), mRotation(0), mOpacity(1.0f), mFont(nullptr), mFlags(0),
-	  mAllFlags(0), mVisible(true), mEnabled(true), mMouseMasked(false)
+	: mParent(nullptr), mPosition(0, 0), mScale(1.0f, 1.0f), mRotation(0), mOpacity(1.0f), mFont(nullptr),
+	  mColorMode(0), mSmoothType(0), mFlags(0), mAllFlags(0), mVisible(true), mEnabled(true), mMouseMasked(false)
 {
 }
 
@@ -61,9 +61,31 @@ void Node::setFont(Font* theFont)
 // streams' anchors read, and no data has one)
 void Node::setName(const std::string& theName) { mName = theName; }
 
-// 0x439df0 (wordharmony)
+// 0x439df0 (wordharmony), 0x467fd0 (pizzafrenzy): the signal build's moves the origin by the position times the scale
+// so far, and has the colour only when it has a colour mode, instead of a colour offset
 void Node::applyTransform(Graphics* g)
 {
+	if (gSignalBuild)
+	{
+		float aScaleY = g->getScaleY() * mPosition.y;
+		float aScaleX = g->getScaleX() * mPosition.x;
+		g->translate(aScaleX, aScaleY);
+		g->scale(mScale.x, mScale.y);
+		g->rotate(mRotation);
+		g->multiplyOpacity(mOpacity);
+		if (mFont != nullptr)
+			g->setFont(mFont);
+		if (mColorMode != 0)
+		{
+			g->setColor(mColor.r, mColor.g, mColor.b);
+			g->setColorMode(mColorMode);
+		}
+		if (mSmoothType != 0)
+			g->setSmoothType(mSmoothType);
+		if (mBltFx != nullptr)
+			g->setBltFx(mBltFx);
+		return;
+	}
 	g->translate(mPosition.x, mPosition.y);
 	g->scale(mScale.x, mScale.y);
 	g->rotate(mRotation);

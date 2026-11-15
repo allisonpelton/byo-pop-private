@@ -456,7 +456,7 @@ bool ImageButton::setImages(Image* theUp, Image* theOver, Image* theDown)
 		{
 			aNode = new ImageNode(theUp);
 			aNode->setColorMode(1);
-			aNode->mColorOffset = Color(0.3f, 0.3f, 0.3f);
+			aNode->setColor(0.3f, 0.3f, 0.3f);
 		}
 		else
 		{
@@ -470,7 +470,7 @@ bool ImageButton::setImages(Image* theUp, Image* theOver, Image* theDown)
 			if (theOver == nullptr)
 			{
 				aNode->setColorMode(1);
-				aNode->mColorOffset = Color(0.4f, 0.4f, 0.4f);
+				aNode->setColor(0.4f, 0.4f, 0.4f);
 			}
 		}
 		else

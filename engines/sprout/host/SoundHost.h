@@ -86,6 +86,11 @@ public:
 	bool load(const char* theName, const char* theFile) override;
 	// 0x443b60 (wordharmony)
 	bool loadStream(const char* theName, const char* theFile) override { return load(theName, theFile); }
+	// The signal build's slots 0x00 (0x48e3a0 (pizzafrenzy)), 0x04 and 0x08 (0x48ee20 (pizzafrenzy)): the stream's
+	// bytes are decoded whole, as a file's are
+	bool isLoaded(const char* theName) override { return mData.find(theName) != mData.end(); }
+	bool load(const char* theName, engine::InputStream* theStream) override;
+	bool loadStream(const char* theName, engine::InputStream* theStream) override { return load(theName, theStream); }
 	engine::Sound* createSound(const char* theName, bool theStatic, int theCategory) override;
 	void setVolume(float theVolume) override;
 	// 0x443a20 (wordharmony)

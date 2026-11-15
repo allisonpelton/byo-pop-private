@@ -16,7 +16,8 @@ TextItem::TextItem()
 	mWordWrap = 0;
 	mShadowOpacity = 0.5f;
 	mShadowOffset = Point(2.0f, 2.0f);
-	mColorMode = 0;
+	mLineOffset = 0;
+	mNextLineOffset = 0;
 	if (!gSignalBuild)
 		setName("TextItem");
 	addOwnFlags(NODE_DRAWABLE);
@@ -33,6 +34,25 @@ TextItem::~TextItem()
 // The total height is taken as an unsigned number, as the original did.
 void TextItem::draw(Graphics* g)
 {
+	if (gSignalBuild)
+	{
+		// 0x46f5b0 (pizzafrenzy): the shadow is the lines again, moved by the shadow's offset, in black added to the
+		// glyphs (colour mode 1, colour -1) with the opacity times the shadow's
+		if (mText.compare("") == 0 || !isVisible())
+			return;
+		if ((mStyle & TEXT_SHADOW) != 0)
+		{
+			g->pushState();
+			g->translate(mShadowOffset.x, mShadowOffset.y);
+			g->setColor(-1.0f, -1.0f, -1.0f, 1.0f);
+			g->setColorMode(1);
+			g->setOpacity(g->getOpacity() * mShadowOpacity);
+			drawLines(g);
+			g->popState();
+		}
+		drawLines(g);
+		return;
+	}
 	if (mText.compare("") == 0)
 		return;
 	if (!mVisible)
@@ -89,8 +109,66 @@ void TextItem::draw(Graphics* g)
 	}
 }
 
+// 0x46f830 (pizzafrenzy): the lines as the block of lines of the original's draw above, the first line's x moved by
+// mLineOffset and the next ones' by mNextLineOffset; a strike-through and an underline can both be drawn
+void TextItem::drawLines(Graphics* g)
+{
+	g->setHAlign(mHAlign);
+	g->setVAlign(mVAlign);
+	int aCount = (int)mLines.size();
+	float aHeight = (float)(unsigned int)(mFont->getLineHeight() * aCount);
+	float y;
+	if (mVAlign == 1)
+		y = g->state().mTranslation.y - (aHeight - (float)mFont->getLineHeight()) * 0.5f;
+	else if (mVAlign == 2)
+		y = g->state().mTranslation.y - (aHeight - (float)mFont->getLineHeight());
+	else
+		y = g->state().mTranslation.y;
+	g->setTranslation(mLineOffset + g->state().mTranslation.x, y);
+	unsigned int i = 0;
+	while (i < mLines.size())
+	{
+		const char* aLine = mLines[i].c_str();
+		g->drawString(aLine);
+		if ((mStyle & TEXT_STRIKETHROUGH) != 0)
+		{
+			float aWidth = (float)mFont->getStringWidth(aLine);
+			float x = 0;
+			if (mHAlign == 1)
+				x = aWidth * -0.5f;
+			else if (mHAlign == 2)
+				x = -aWidth;
+			float aLineY = 0;
+			if (mVAlign == 2)
+				aLineY = (float)-(mFont->getLineHeight() / 2);
+			else if (mVAlign == 0)
+				aLineY = (float)(mFont->getLineHeight() / 2);
+			g->drawLine(Point(x, aLineY), Point(x + aWidth, aLineY));
+		}
+		if ((mStyle & TEXT_UNDERLINE) != 0)
+		{
+			int aWidth = mFont->getStringWidth(aLine);
+			float x = 0;
+			if (mHAlign == 1)
+				x = (float)-(aWidth / 2);
+			else if (mHAlign == 2)
+				x = -(float)aWidth;
+			float aLineY = 0;
+			if (mVAlign == 0)
+				aLineY = (float)mFont->getLineHeight();
+			else if (mVAlign == 1)
+				aLineY = (float)(mFont->getLineHeight() / 2);
+			g->drawLine(Point(x, aLineY), Point((float)aWidth + x, aLineY));
+		}
+		g->setTranslation(mNextLineOffset + g->state().mTranslation.x,
+			(float)mFont->getLineHeight() + g->state().mTranslation.y);
+		i++;
+	}
+}
+
 // 0x4270b0 (wordharmony): the widest line by the line count's height, placed by the alignment (the scale is not
-// applied)
+// applied). 0x46f670 (pizzafrenzy): each line's width has the line offset added (the first line's, or the next
+// lines'; a line with no text stays 0).
 void TextItem::layout()
 {
 	if (mFont != nullptr)
@@ -103,7 +181,11 @@ void TextItem::layout()
 			if (mLines[i].size() == 0)
 				aWidth = 0;
 			else
+			{
 				aWidth = (float)mFont->getStringWidth(mLines[i].c_str());
+				if (gSignalBuild)
+					aWidth = aWidth + (i == 0 ? mLineOffset : mNextLineOffset);
+			}
 			if (aMaxWidth < aWidth)
 				aMaxWidth = aWidth;
 			i++;

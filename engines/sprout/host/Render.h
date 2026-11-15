@@ -23,6 +23,14 @@ public:
 	int getWidth() override { return mWidth; }
 	// 0x4572b0 (wordharmony)
 	int getHeight() override { return mHeight; }
+	// The signal build's image operations (Image in Graphics.h): 0x4bea40 (pizzafrenzy), 0x4becb0 (pizzafrenzy),
+	// 0x4be780 (pizzafrenzy), 0x4beec0 (pizzafrenzy), 0x4be830 (pizzafrenzy). Word Harmony's createScaled gives the
+	// image itself back, as before.
+	engine::Image* clone() override;
+	void scale(float theScaleX, float theScaleY) override;
+	engine::Image* createScaled(float theScaleX, float theScaleY) override;
+	void fill(const engine::Color4& theColor) override;
+	void applyFilter(engine::PixelFx& theFilter) override;
 
 	int mWidth;
 	int mHeight;
@@ -31,6 +39,20 @@ public:
 
 private:
 	static uint32_t nextSerial();
+};
+
+// The signal build's graphics drawing into an image (App slot 0x7c, 0x4bcbd0 (pizzafrenzy), whose context draws into
+// the image's surface at once): each call is drawn over the pixels the image has
+class ImageGraphics : public engine::Graphics
+{
+public:
+	explicit ImageGraphics(ScreenImage* theTarget) : mTarget(theTarget) {}
+	void drawImage(engine::Image* theImage, const engine::IntRect& theSrc, float x, float y) override;
+	using engine::Graphics::drawImage;
+	void drawLine(const engine::Point& theFrom, const engine::Point& theTo) override;
+
+private:
+	ScreenImage* mTarget;
 };
 
 // 0x457510 (wordharmony): a PNG or JPEG decoded, with the alpha of the mask's bytes when theMask is given; the alpha

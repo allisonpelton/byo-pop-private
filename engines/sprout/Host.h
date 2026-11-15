@@ -11,6 +11,7 @@
 namespace engine
 {
 
+class Graphics;
 class Image;
 class SoundSystem;
 
@@ -43,9 +44,16 @@ public:
 	{
 		return false;
 	}
+	// The signal build's blank image and the graphics that draw into an image (the application's slots 0x78 and 0x7c
+	// (pizzafrenzy), 0x4bcb40 (pizzafrenzy) and 0x4bcbd0 (pizzafrenzy)): an image of the size with every pixel 0, and
+	// a new graphics whose calls are drawn at once over the image's pixels (the caller deletes it). Null when the host
+	// has none.
+	virtual Image* createBlankImage(int theWidth, int theHeight) { return nullptr; }
+	virtual Graphics* createImageGraphics(Image* theImage) { return nullptr; }
 	// port: the cells and the colours of an image the engine's image interface cannot copy. A copy of the part of an
-	// image (the original's new image drawn over by the part); and a copy with every colour's hue, saturation and
-	// value shifted by HsvShiftFilter (ImageFilter.h). Null when the host has no such copy.
+	// image (the original's new image drawn over by the part, 0x4229f0 (pizzafrenzy)); and a copy with every colour's
+	// hue, saturation and value shifted by HsvShiftFilter (ImageFilter.h; 0x423980 (pizzafrenzy)). Null when the host
+	// has no such copy.
 	virtual Image* cropImage(Image* theImage, int theLeft, int theTop, int theWidth, int theHeight) { return nullptr; }
 	virtual Image* shiftImageColors(Image* theImage, float theHue, float theSaturation, float theValue)
 	{

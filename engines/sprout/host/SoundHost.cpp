@@ -2,6 +2,7 @@
 
 #include <cmath>
 #include "sprout/Host.h"
+#include "sprout/Stream.h"
 
 #include <algorithm>
 
@@ -218,6 +219,22 @@ bool HostSoundSystem::load(const char* theName, const char* theFile)
 	std::string aPath = theFile;
 	std::replace(aPath.begin(), aPath.end(), '\\', '/');
 	std::shared_ptr<Platform::SoundData> aData = Platform::Mixer::Get().LoadSound(aPath);
+	if (aData == nullptr)
+		return false;
+	mData[theName] = aData;
+	return true;
+}
+
+// The signal build's slot 0x04 (0x48ece0 (pizzafrenzy)): the stream the application opened (the archive's file),
+// decoded whole under the name
+bool HostSoundSystem::load(const char* theName, engine::InputStream* theStream)
+{
+	if (mData.find(theName) != mData.end())
+		return true;
+	std::vector<uint8_t> aFile((size_t)theStream->getSize());
+	if (!aFile.empty() && theStream->read(aFile.data(), (int)aFile.size()) != (int)aFile.size())
+		return false;
+	std::shared_ptr<Platform::SoundData> aData = Platform::Mixer::Get().LoadSoundData(aFile, theName);
 	if (aData == nullptr)
 		return false;
 	mData[theName] = aData;

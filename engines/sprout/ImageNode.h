@@ -29,20 +29,10 @@ public:
 	// 0x470f80 (pizzafrenzy), 0x470fa0 (pizzafrenzy): the image's size, 0 for no image
 	int getImageWidth() { return mImage != nullptr ? mImage->getWidth() : 0; }
 	int getImageHeight() { return mImage != nullptr ? mImage->getHeight() : 0; }
-	// Slot 0x50 (0x467be0 (pizzafrenzy)) of the signal build's node, which keeps it at +0x64 and has the scene apply it
-	// to the render state when it draws (0x467fd0 (pizzafrenzy), 0x478190 (pizzafrenzy)): 1 smooths the image when it is
-	// scaled. It belongs to the node (Node.h); until that applies it, the image node keeps it.
-	void setSmoothType(int theSmoothType) { mSmoothType = theSmoothType; }
-	int getSmoothType() const { return mSmoothType; }
-	// Slot 0x48 (0x467bd0 (pizzafrenzy), +0x60) of the signal build's node, like the text's: 1 adds the colour offset to
-	// the image's colours (the lightened over and down images of a button), 2 sets the colour
-	void setColorMode(int theMode) { mColorMode = theMode; }
 
 	Ref<Image> mImage;  // +0x88; +0x11c (pizzafrenzy)
 	Rect mClipRect;     // +0x108 (pizzafrenzy)
 	bool mClipped;      // +0x118 (pizzafrenzy)
-	int mSmoothType;    // +0x64 of the signal build's node
-	int mColorMode;     // +0x60 of the signal build's node
 };
 
 } // namespace engine

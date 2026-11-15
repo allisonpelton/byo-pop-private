@@ -367,7 +367,7 @@ bool LayoutHandler::addSignalText(const XmlAttributes& theAttributes)
 	if (aColor.r != 255.0f || aColor.g != 255.0f || aColor.b != 255.0f)
 	{
 		aText->setColorMode(2);
-		aText->setColor(Color(aColor.r, aColor.g, aColor.b));
+		aText->setColor(aColor.r, aColor.g, aColor.b);
 	}
 	if (anXAlign.compare("center") == 0)
 		aText->setHAlign(1);

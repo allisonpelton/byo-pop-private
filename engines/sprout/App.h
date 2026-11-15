@@ -25,6 +25,7 @@ const int SCREEN_HEIGHT = 600;
 class Font;
 class Graphics;
 class Image;
+class Sound;
 class SoundSystem;
 
 // The configuration the controller fills in (the application's +0x88) The controller's settings for the window (filled
@@ -89,6 +90,13 @@ public:
 	Image* findImage(const char* theName);
 	// 0x58: the log (the release build's does nothing)
 	void log(const char* theText);
+	// The signal build's slot 0x58: 0x461a50 (pizzafrenzy): false without a sound system; true when the name is loaded
+	// already; else the file, opened through openFile (the archive or a loose file), is loaded under the name
+	bool loadSound(const std::string& theName, const std::string& theFile);
+	// The signal build's slot 0x5c: 0x461b70 (pizzafrenzy), the same for a sound played as it goes (the music)
+	bool loadSoundStream(const std::string& theName, const std::string& theFile);
+	// The signal build's slot 0x60: 0x461c90 (pizzafrenzy), a new voice of a loaded sound; null without a sound system
+	Sound* createSound(const std::string& theName, bool theStatic, int theCategory);
 	// 0x5c: 0x454180 (wordharmony), timeGetTime()
 	uint32_t getTime();
 	// 0x60: 0x454190 (wordharmony)

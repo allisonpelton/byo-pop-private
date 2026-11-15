@@ -142,17 +142,14 @@ bool SoundMgr::add(const std::string& theName, const std::string& theFile, int t
 {
 	if (mSounds.find(theName) != mSounds.end())
 		return true;
-	// the application's slot 0x58 (0x461a50 (pizzafrenzy)): false without a sound system; a sound already loaded under
-	// the name is true; otherwise the file is loaded under the name (the host's load does both)
-	SoundSystem* aSystem = App::getSoundSystem();
-	if (aSystem == nullptr || !aSystem->load(theName.c_str(), theFile.c_str()))
+	if (!App::instance()->loadSound(theName, theFile))
 	{
 		// the application's slot 0xa0 (0x4bd010 (pizzafrenzy)), a printf to the log
 		std::string aWarning = "Warning: sound file " + theName + "=" + theFile + " missing or invalid\n";
 		App::instance()->log(aWarning.c_str());
 		return false;
 	}
-	mSounds[theName] = new ManifestSound(aSystem, theName, theCount, theVolume, thePitch, theCategory);
+	mSounds[theName] = new ManifestSound(App::getSoundSystem(), theName, theCount, theVolume, thePitch, theCategory);
 	return true;
 }
 
