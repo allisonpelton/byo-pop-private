@@ -114,10 +114,31 @@ while shown) and of `Node` (connect and disconnect, the mouse mask, removing a l
 build never calls. The screen's slot 0x148 (0x465d60) would connect a button's signal, but nothing reaches it: the
 layout reader hears buttons through `listenTo`, so it is left out. The players (`Players`, the registry key's `users`
 subkey, a subkey a player and the key's default value the current one) and the local scoreboards are engine classes;
-the online scoreboard and its posting are outbound and left out.
+the online scoreboard and its posting are outbound and left out (see "Removed from the port").
 
 Exception texts (a manifest that does not parse, an entry registered twice) stay literal in the code, as the shared
 engine's already are: they are the original's messages to its developers, not texts a game shows.
+
+The sounds and the music are opened through the application's stream (0x461a50, 0x461b70, 0x461c90), which reads
+the loose file or, failing that, the archive's entry, as the exe does: every sound the game plays is in the archive.
+
+## Removed from the port
+
+Two buttons lead out of the game, and both are removed after their screen's layout loads, with every node only they
+use:
+
+- **The main menu's game link.** The Steam copy names its store page in `properties/partner.xml` and has the link's
+  button images in `splash/`, so the Steam original shows the button at the bottom, between the Sprout logo (bottom
+  left) and Quit (bottom right), nearer Quit. The port shows the exe's own look for a copy that names no link
+  (0x43b0c0's other branch, the empty `noGameLinkGrp`): the logo and Quit stay in their corners and nothing moves.
+  The menu state's `gameLink` action goes with it.
+- **The high scores' global toggle.** It sat at the left of a row of three under the table, with Done in the middle
+  and Clear Scores at the right; its labels and the global view's titles go with it, along with posting a score and the
+  global post screen. Done and Clear Scores move from 0 and 200 to -100 and 100, keeping the original's spacing with
+  the pair centred under the table.
+
+The Sprout logo on the main menu is a button too, but it only shows a line of text in the menu's text box, so it
+stays.
 
 ## Progress
 
@@ -128,8 +149,21 @@ application's configure and init, the tile manifest (every entry the file has), 
 music player, and the loading state's stages for the manifest, the pause menu, the confirmations, the restore dialog
 and the music. The signal build's drawing is in: the node's colour, colour mode, smooth type and blit effect, the
 blitters' colour modes and smoothing, scaled and copied images and drawing into an image, and the text's draw with its
-shadow. Next: the main menu, the options, the player select and entry, the high scores and the menu state, then the
-game itself.
+shadow. The signal build's font lays its glyphs out with the whole gap on each side (0x47ead0), where the listener
+build leaves half.
+
+The front end is in: the loading state's stages for the main menu, the options, the designer's unlock notice, the
+player select and the new player's entry, and the high scores with their reset confirmation; the dialog state (a
+screen shown in a second screen manager over the darkened screens beneath) and the menu state, whose actions reach
+the game's start, the city select, the topping book, the designer and the editor through empty functions marked
+"translated next". The engine has the edit box, list box and table with their models, the text typer, and the generic
+option, player select and high score screens. A copy with no player opens the new player's entry over the main menu;
+a name typed there makes the player, the menu greets them, and the high scores and the options open and close.
+Next: the city select, the levels and the game itself.
 
 Left for later: the particle effects' systems (0x47bc40). The smooth blit's sub-pixel and rotated loops
 (0x4c47c0, 0x4c9f50-0x4ca2d0) are read as a bilinear sampler and are not checked against the original's pixels yet.
+The options' version line (0x4669d0) shows the layout's own text: the original formats its own file's version
+(0x4bdb20: FileVersion and SpecialBuild under the user's language and code page 04B0, or "no version info"). The
+Steam copy's launcher has no version resource and only the wrapped game image has one, so what the Steam original
+shows depends on how the launcher runs the image; an origrun run settles it in the looks phase.

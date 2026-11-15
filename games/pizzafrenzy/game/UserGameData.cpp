@@ -100,6 +100,23 @@ bool UserGameData::load()
 	return true;
 }
 
+// 0x427910
+bool UserGameData::hasSavedGame(int theMode)
+{
+	return -1 < mModes[theMode].mLastDay && -1 < mModes[theMode].mLastScore;
+}
+
+// 0x428670
+void UserGameData::clearSavedGame(int theMode)
+{
+	ModeRecord& aMode = mModes[theMode];
+	aMode.mLastLevel = -1;
+	aMode.mLastCity = -1;
+	aMode.mLastDay = -1;
+	aMode.mLastScore = -1;
+	save();
+}
+
 // 0x427ff0
 bool UserGameData::save()
 {

@@ -43,10 +43,15 @@ class PizzaFrenzyHost : public engine::Host
 {
 public:
 	// port: with -fast the engine has a clock of its own, which moves one frame period a frame
-	uint32_t timeMs() override { return gApp->mFastMode ? (uint32_t)(gApp->mEngineClock / 1000) : gApp->GetClockTime(); }
+	uint32_t timeMs() override
+	{
+		return gApp->mFastMode ? (uint32_t)(gApp->mEngineClock / 1000) : gApp->GetClockTime();
+	}
 	uint64_t timeTicks() override
 	{
-		return gApp->mFastMode ? gApp->mEngineClock : (uint64_t)SDL_GetPerformanceCounter() * TICKS_PER_SECOND / SDL_GetPerformanceFrequency();
+		if (gApp->mFastMode)
+			return gApp->mEngineClock;
+		return (uint64_t)SDL_GetPerformanceCounter() * TICKS_PER_SECOND / SDL_GetPerformanceFrequency();
 	}
 	uint64_t ticksPerSecond() override { return TICKS_PER_SECOND; }
 
@@ -88,6 +93,24 @@ public:
 	bool registryGetSubKeys(const std::string& theKey, std::vector<std::string>& theNames) override
 	{
 		return gApp->RegistryGetSubKeys(theKey, &theNames);
+	}
+
+	// A key of the registry with its values deleted
+	bool registryDeleteKey(const std::string& theKey) override
+	{
+		return gApp->RegistryEraseKey(theKey);
+	}
+
+	// The clipboard's text
+	std::string clipboardText() override
+	{
+		return gApp->GetClipboard();
+	}
+
+	// The Ctrl key
+	bool controlDown() override
+	{
+		return gApp->mCtrlDown;
 	}
 
 	// The values in a key: the registry's names that start with the key's and have no key of their own after it
@@ -461,7 +484,8 @@ void PizzaFrenzyApp::RunFrame()
 				sRects.clear();
 				for (const engine::ScreenGraphics::Rectangle& aRectangle : mWidget->mGraphics->redrawn())
 					sRects.push_back(Rect(aRectangle.mX, aRectangle.mY, aRectangle.mWidth, aRectangle.mHeight));
-				mWidget->mSurfaceDisplay->SetFrame(mWidget->mPixels, engine::SCREEN_WIDTH * 4, sRects.data(), (int)sRects.size());
+				mWidget->mSurfaceDisplay->SetFrame(mWidget->mPixels, engine::SCREEN_WIDTH * 4, sRects.data(),
+					(int)sRects.size());
 			}
 			else
 #endif

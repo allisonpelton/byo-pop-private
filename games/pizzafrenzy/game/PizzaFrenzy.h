@@ -8,7 +8,11 @@
 #include "GenericApplication.h"
 #include "GameMusicPlayer.h"
 #include "GenericScreen.h"
+#include "GenericUserSelectScreen.h"
+#include "HighScoreScreen.h"
 #include "ImageNode.h"
+#include "MainMenu.h"
+#include "OptionScreen.h"
 #include "ScreenMgr.h"
 #include "Settings.h"
 #include "SoundMgr.h"
@@ -56,20 +60,52 @@ public:
 	engine::Ref<engine::SoundMgr> mSounds;             // +0x3c
 	engine::Ref<engine::ScreenMgr> mScreens;           // +0x40
 	engine::Ref<Settings> mSettings;                   // +0x44
+	int mGameMode;                                     // +0x58: 0 speed, 1 memory, 2 concentration
 	engine::Ref<engine::GenericScreen> mSplashScreen;  // +0x5c
 	engine::Ref<engine::ImageNode> mLoadBar;           // +0x60: the splash screen's load bar, shown as far as loaded
 	int mLoadBarWidth;                                 // +0x64
 	int mLoadBarHeight;                                // +0x68
+	engine::Ref<engine::GenericUserSelectScreen> mUserSelect;  // +0x6c
+	engine::Ref<engine::GenericScreen> mNewUserEntry;        // +0x70: the node "nameEntry" takes the name
 	engine::Ref<engine::GenericScreen> mDeleteUserConfirm;   // +0x74
 	engine::Ref<engine::TextItem> mDeleteUserText;           // +0x78: its question
 	std::string mDeleteUserTemplate;                         // +0x7c: the question as the layout has it
+	engine::Ref<MainMenu> mMainMenu;                         // +0x98
+	engine::Ref<OptionScreen> mOptions;                      // +0x9c
+	engine::Ref<HighScoreScreen> mHighScores;                // +0xa0
+	engine::Ref<engine::GenericScreen> mHighScoreResetConfirm;  // +0xa4
 	engine::Ref<engine::GenericScreen> mRestoreGameConfirm;  // +0xa8
 	engine::Ref<engine::GenericScreen> mAppQuitConfirm;      // +0xac
 	engine::Ref<engine::GenericScreen> mGameExitConfirm;     // +0xb0
+	engine::Ref<engine::GenericScreen> mUnlockNotice;        // +0xb4: the designer's, shown while it is locked
+	std::string mUnlockNoticeTemplate;                       // +0xb8: the node "notifyText"'s text as the layout has it
 	engine::Ref<engine::GenericScreen> mPauseMenu;           // +0xd4
 	engine::Ref<TileManifest> mTileManifest;                 // +0x124: the game's data
 	engine::Ref<UserGameData> mUserGameData;                 // +0x128: the current player's
 	engine::Ref<GameMusicPlayer> mMusicPlayer;               // +0x130
+	bool mShowHighScores;                                    // +0x134: the menu shows the high scores when it starts
+	bool mShowCitySelect;                                    // +0x135: the menu shows the city select when it starts
+
+	// The debug flag at 0x532908 (set to false whenever the menu starts with a player): the pizza designer is open
+	// without the toppings it needs
+	static bool sDesignerUnlockOverride;
+
+	// 0x401010 (slot 0x44): the game ends
+	void quitApplication();
+	// 0x402370 (slot 0x40): the game's session is saved; translated next with the game
+	void saveGame();
+	// 0x40c700: a game of the mode starts in the city, from the saved one when the mode has one; translated next
+	void startGame(int theMode, int theCity);
+	// 0x4023d0: the city select is shown, after its slot 0x180; translated next with the city select
+	void showCitySelect();
+	// 0x403bc0: the game goes on to the next level; translated next
+	void advanceLevel();
+	// 0x409f30: the level starts; translated next
+	void startLevel();
+	// 0x40dab0, and the state 0x402d70 after it; translated next
+	void startPizzaDesigner();
+	// The +0xfc object's slot 0xc, and the state 0x402e00 after it; translated next
+	void startPizzaEditor();
 
 private:
 	void onAppUpdate(engine::UpdateInfo& theInfo) { update(theInfo); }  // 0x401560

@@ -16,6 +16,7 @@
 using namespace pizzafrenzy;
 
 PizzaFrenzy* PizzaFrenzy::sInstance = nullptr;
+bool PizzaFrenzy::sDesignerUnlockOverride = false;  // 0x532908
 
 namespace
 {
@@ -37,7 +38,8 @@ const float SPLASH_FADE_SECONDS = 0.5f;
 
 // 0x40c170: the exe has the engine's signal build (engines/sprout/Build.h), which the engine is told before anything
 // of it is made
-PizzaFrenzy::PizzaFrenzy() : mLoadBarWidth(0), mLoadBarHeight(0), mActive(false)
+PizzaFrenzy::PizzaFrenzy() :
+	mGameMode(0), mLoadBarWidth(0), mLoadBarHeight(0), mShowHighScores(false), mShowCitySelect(false), mActive(false)
 {
 	engine::gSignalBuild = true;
 }
@@ -153,6 +155,11 @@ void PizzaFrenzy::screenAction(std::string theAction)
 // 0x4059d0
 void PizzaFrenzy::windowCommand()
 {
+	if (mSettings != nullptr && mOptions != nullptr)
+	{
+		mSettings->setFullScreen(engine::getHost()->isFullScreen());
+		mOptions->setupOptions(this, mSettings);
+	}
 	mStates.action("blur");
 }
 
@@ -183,4 +190,45 @@ void PizzaFrenzy::timerTick(int theMs)
 	engine::SoundSystem* aSounds = engine::App::getSoundSystem();
 	if (aSounds != nullptr)
 		aSounds->update(theMs);
+}
+
+// 0x401010
+void PizzaFrenzy::quitApplication()
+{
+	engine::App::instance()->quit(0);
+}
+
+// 0x402370: translated next
+void PizzaFrenzy::saveGame()
+{
+}
+
+// 0x40c700: translated next
+void PizzaFrenzy::startGame(int theMode, int theCity)
+{
+}
+
+// 0x4023d0: translated next
+void PizzaFrenzy::showCitySelect()
+{
+}
+
+// 0x403bc0: translated next
+void PizzaFrenzy::advanceLevel()
+{
+}
+
+// 0x409f30: translated next
+void PizzaFrenzy::startLevel()
+{
+}
+
+// 0x40dab0, 0x402d70: translated next
+void PizzaFrenzy::startPizzaDesigner()
+{
+}
+
+// 0x402e00: translated next
+void PizzaFrenzy::startPizzaEditor()
+{
 }

@@ -50,6 +50,10 @@ public:
 	bool save();
 	// 0x427e80
 	void reset();
+	// 0x427910: the mode has a game left in it (a day and a score)
+	bool hasSavedGame(int theMode);
+	// 0x428670: the mode has no game left in it, which is saved
+	void clearSavedGame(int theMode);
 
 	std::string mPlayerName;  // +0x1c
 	int mMaxCity;             // +0x38

@@ -44,6 +44,8 @@ private:
 	                 engine::Transition* theOut);
 	// The slide most of the dialogs come in and go out by: from above the screen, in 0.2 seconds
 	static engine::Transition* makeDialogSlide();
+	// The same slide, from the point
+	static engine::Transition* makeSlide(float theFromX, float theFromY);
 
 	PizzaFrenzy* mApp;  // +0x0c
 	float mDelay;       // +0x10: the splash screen's second
