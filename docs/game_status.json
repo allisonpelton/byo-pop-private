@@ -496,11 +496,12 @@
         "readability",
         "collection",
         "site-features",
-        "performance"
+        "performance",
+        "lite-mod"
       ],
       "na": [],
-      "now": "lite-mod",
-      "note": "processor time 0.85 of the original's at 800x600 and 0.83 in the default window, through SurfaceDisplay (full screen keeps the renderer, about 1.1); the lite survey next"
+      "now": "unneeded-code",
+      "note": "lite mod: none taken (LITE_MOD.md: findHint's walks take about 1 ms a call); the mod menu holds the game and its clock (402f4ffb, clickthrough passes); processor time 0.85 of the original's at 800x600 and 0.83 in the default window through SurfaceDisplay, measured before the batching merges; unneeded code next"
     },
     "bejeweled2": {
       "title": "Bejeweled 2 Deluxe",
