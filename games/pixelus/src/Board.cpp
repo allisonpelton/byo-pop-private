@@ -64,7 +64,7 @@ Board::Board(PixelusApp* theApp, const std::string& theLevelName, int thePuzzleI
 	mReplayIndex = mReplayDelay = mReplayPeriod = 0;
 	mHoverCol = mHoverRow = -1;
 	mHoverValid = false;
-	mAlpha = 0;
+	mAlpha = 255;
 	mIntro = 0;
 	mPauseFade = 0.0;
 	mPauseStarted = false;
@@ -349,7 +349,7 @@ void Board::RestartPuzzle()
 		mApp->mProgress->RemoveHistory(aUser->mId, mUuid);
 	mHintShown = false;
 	mIntro = 0;
-	mAlpha = 0;
+	mAlpha = 255;
 	LoadPuzzle();
 }
 
@@ -808,8 +808,6 @@ void Board::Update()
 		mPulse = std::min(1.0, mPulse + 0.003);
 
 	mIntro++;
-	if (mAlpha < 255)
-		mAlpha = std::min(255, mAlpha + 255 / 30 + 1);
 
 	// the pause screen comes in by 0.05 an update, and only for a pause that began while the board was there; it goes out
 	// by 0.075 (0x409bd0)

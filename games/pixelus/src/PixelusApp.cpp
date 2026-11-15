@@ -935,6 +935,9 @@ void PixelusApp::ShowHint(int theWidth, int theHeight, const SexyString& theHead
 	aDialog->mContentInsets.mLeft = 24;
 	aDialog->mContentInsets.mRight = 24;
 	StyleButton(this, aDialog->mYesButton, 3);
+	// 0x40ef30 then gives the button the lines' font and moves its label 3 down
+	aDialog->SetButtonFont(mFonts[FONT_GARAMOND14]);
+	aDialog->mYesButton->mTextOffsetY += 3;
 	Graphics aGraphics;
 	aGraphics.SetFont(mFonts[FONT_GARAMOND14]);
 	int aHeight = GetWordWrappedHeight2004(&aGraphics, theWidth - aDialog->mContentInsets.mRight - aDialog->mContentInsets.mLeft -
@@ -942,6 +945,7 @@ void PixelusApp::ShowHint(int theWidth, int theHeight, const SexyString& theHead
 		mFonts[FONT_GARAMOND14]->GetLineSpacing() + aDialog->mLineSpacingOffset) + 0x32;
 	if (theHeight > -1)
 		aHeight = theHeight;
+	aDialog->mContentInsets.mTop = 10;
 	aDialog->mContentInsets.mBottom = 10;
 	aDialog->Resize(theXOffset - theWidth / 2 + 0x196, theYOffset - aHeight / 2 + 0xf0, theWidth, aHeight);
 	// the button as the original's screen shows it: 24 pixels in from both sides, 25 high, 10 above the bottom

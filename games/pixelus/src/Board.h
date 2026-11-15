@@ -81,7 +81,7 @@ public:
 	int				mHoverCol;			// the cell under the mouse (the grid's +0xb088/+0xb08c)
 	int				mHoverRow;
 	bool			mHoverValid;		// +0xb098 a click there would do something
-	int				mAlpha;				// +0xb184 how much of the grid shows (the intro fades it in)
+	int				mAlpha;				// +0xb184 how much of the grid shows (the grid constructor, 0x425f7e, sets 255)
 	int				mIntro;				// updates since the puzzle appeared
 	double			mPauseFade;			// +0x170 how far the pause screen has come in
 	bool			mPauseStarted;		// +0x1a2 the game went from running to paused (0x403010); only then does the pause screen come in
