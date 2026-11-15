@@ -138,25 +138,3 @@ int LevelData::GetPuzzleCount(const std::string& theName) const
 	const Level* aLevel = GetLevel(theName);
 	return aLevel == NULL ? -1 : (int)aLevel->mPuzzles.size();
 }
-
-// 0x42a080 (it throws "invalid level" when the current temple is unknown)
-const LevelData::Puzzle* LevelData::GetCurrentPuzzle() const
-{
-	const Level* aLevel = GetLevel(mCurrentLevel);
-	if (aLevel == NULL || mCurrentPuzzle < 0 || mCurrentPuzzle >= (int)aLevel->mPuzzles.size())
-		return NULL;
-	return &aLevel->mPuzzles[mCurrentPuzzle];
-}
-
-const LevelData::Puzzle* LevelData::FindPuzzle(const std::string& theUuid) const
-{
-	std::string aKey = UuidKey(theUuid);
-	std::map<std::string, std::string>::const_iterator anItr = mFileByUuid.find(aKey);
-	if (anItr == mFileByUuid.end())
-		return NULL;
-	for (std::map<std::string, Level>::const_iterator aLevel = mLevels.begin(); aLevel != mLevels.end(); ++aLevel)
-		for (size_t i = 0; i < aLevel->second.mPuzzles.size(); i++)
-			if (aLevel->second.mPuzzles[i].mUuid == aKey)
-				return &aLevel->second.mPuzzles[i];
-	return NULL;
-}
