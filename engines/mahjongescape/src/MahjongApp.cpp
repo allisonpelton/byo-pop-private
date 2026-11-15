@@ -521,6 +521,12 @@ MahjongApp::~MahjongApp()
 }
 
 #ifndef __EMSCRIPTEN__
+// Whether a window of a size that is no whole scale (the full-screen window of the default start, a resized window) is shown by GDI's
+// nearest-neighbour stretch (SurfaceDisplay's stretch mode), which costs what the 800x600 window's surface does, or by the renderer, whose
+// texture filter blends the pixels and whose Direct3D device costs more processor time than the original's whole window
+// (games/mahjongjapan/docs/GAME_NOTES.md, "The window-surface presenter").
+static const bool kStretchOtherSizes = false;
+
 DDInterface* MahjongApp::CreateDDInterface()
 {
 	// test only (a test run reads it): SURFACE_DISPLAY=off keeps the framework's own display and the widget's image (the path before the
@@ -533,7 +539,9 @@ DDInterface* MahjongApp::CreateDDInterface()
 		if ((aMode != nullptr) && (strcmp(aMode, "off") == 0))
 			return SexyAppBase::CreateDDInterface();
 	}
-	return new SurfaceDisplay(this);
+	SurfaceDisplay* aDisplay = new SurfaceDisplay(this);
+	aDisplay->AllowStretch(kStretchOtherSizes);
+	return aDisplay;
 }
 #endif
 
