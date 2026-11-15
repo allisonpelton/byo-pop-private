@@ -523,7 +523,7 @@ void Board::DoPull()
 		anObject->mTrailLen = 0;
 	}
 	if (mTileMaster != NULL)
-		mTileMaster->Pull();
+		mTileMaster->Throw();
 	mApp->PlaySample(SOUND_TILE_MOVING_02D);
 	if (mDemo)
 		return;
@@ -808,6 +808,8 @@ void Board::Update()
 	if (mGrid->mDone && !mFinishSounded)
 	{
 		mFinishSounded = true;
+		if (mTileMaster != NULL)
+			mTileMaster->Freeze();	// 0x40a18e
 		mApp->PlaySample(SOUND_PIXELUS_PUZZLE_COMPLETED_STING_V01);
 		FadeOutAllMusic(mApp);
 	}
@@ -843,7 +845,7 @@ void Board::Update()
 	{
 		if (mDoneTimer == 0)
 		{
-			mTileMaster->Throw();
+			mTileMaster->Celebrate();
 			mDoneTimer = DONE_DELAY;
 		}
 		if (--mDoneTimer < 1)
@@ -946,7 +948,10 @@ void Board::MouseMove(int x, int y)
 	PixelToCell(x, y, &mHoverCol, &mHoverRow);
 	mHoverValid = false;
 	if (!mGrid->InGrid(mHoverRow, mHoverCol))
+	{
+		mHoverCol = mHoverRow = -1;	// 0x4223d0 puts a cell outside the grid at -1
 		return;
+	}
 
 	int aCursor = 0;
 	int aSide;
@@ -958,6 +963,14 @@ void Board::MouseMove(int x, int y)
 	{
 		Aim(aSide, aCursor);
 		mHoverValid = true;
+	}
+	else if (mTileMaster != NULL)
+	{
+		// neither a throw nor a pull is possible there: the Tile Master still goes to the row or column of the cell along
+		// the side he stands at (0x403370, the end of control mode 2); the cursor of the grid stays
+		int aStandSide = mTileMaster->GetSide();
+		bool aAlongColumns = aStandSide == Grid::SIDE_UP || aStandSide == Grid::SIDE_DOWN;
+		mTileMaster->SetTarget(aStandSide, aAlongColumns ? mHoverCol : mHoverRow, false);
 	}
 }
 
@@ -1001,6 +1014,7 @@ void Board::MouseDown(int x, int y, int theClickCount)
 		return;
 	}
 	const GridObject* anObject = mGrid->mCells[aRow][aCol].mObject;
+	mTileMaster->Shrug();	// 0x4088a6
 	mApp->PlaySample(anObject->mFixed ? SOUND_ILLEGAL_FIXED_01C : SOUND_ILLEGAL_NOTHING_01);
 }
 
@@ -1070,25 +1084,40 @@ void Board::ShowHint()
 //////////////////////////////////////////////////////////////////////////
 // Drawing
 
-// 0x421450: the tiles still to throw lie on the bench below the grid
+// 0x421450: the tiles still to throw lie on the bench below the grid, from its left end at (0xcc, 0x1d0) (0x421790), one
+// every cell; the one at the left shows the picture n % 5 of the n that lie there, the next (n - 1) % 5 and so on. The 17th
+// is the last that is drawn; the rest are in bags, each of 20, with their count beside them (the slots slide one pixel an
+// update toward their places, 0x4216c0, which do not change here: the list is made again each time the supply changes)
 void Board::DrawWorkbench(Graphics* g)
 {
+	const int aLeft = 0xcc;
+	const int aTop = 0x1d0;
 	int aSupply = mGrid->mSupply;
-	int aShown = std::min(aSupply, 16);
+	if (aSupply <= 0)
+		return;
 	g->SetColorizeImages(false);
-	for (int i = 0; i < aShown; i++)
+	int aDrawn = 0;
+	for (int k = 0; k < aSupply; k++)
 	{
-		Image* aTile = mApp->mImages[IMAGE_TILEBLUE01 + ((i + 1) % 5)];
-		g->DrawImage(aTile, GRID_X + i * Grid::CELL_SIZE - 1, 0x1c8 - 1);
+		if (k * Grid::CELL_SIZE > Grid::CELL_SIZE * 16)
+			break;
+		g->DrawImage(mApp->mImages[IMAGE_TILEBLUE01 + (aSupply - k) % 5], aLeft + k * Grid::CELL_SIZE - 1, aTop);
+		aDrawn++;
 	}
-	if (aSupply > 16)
+	int aRest = aSupply - aDrawn;
+	if (aRest > 0)
 	{
-		g->DrawImage(mApp->mImages[IMAGE_BAG], GRID_X + 16 * Grid::CELL_SIZE + 4, 0x1c8 - 8);
-		char aText[16];
-		sprintf(aText, "%d", aSupply - 16);
-		g->SetFont(mApp->mFonts[FONT_GARAMOND12BOLD]);
-		g->SetColor(Color(255, 255, 255));
-		g->DrawString(aText, GRID_X + 16 * Grid::CELL_SIZE + 4 + 28, 0x1c8 + 8);
+		Font* aFont = mApp->mFonts[FONT_GARAMOND12BOLD];
+		for (int i = aRest / 20; i >= 0; i--)
+		{
+			int aCount = i != 0 ? 20 : aRest % 20 + 1;
+			g->DrawImage(mApp->mImages[IMAGE_BAG], aLeft + i * 28 + 0x138, aTop - 16);
+			char aText[16];
+			sprintf(aText, "%d", aCount);
+			g->SetFont(aFont);
+			g->SetColor(Color(255, 255, 255));
+			g->DrawString(aText, aLeft + i * 28 + 0x15b, aTop + aFont->GetHeight() - 6);
+		}
 	}
 }
 

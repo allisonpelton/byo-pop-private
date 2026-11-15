@@ -144,6 +144,7 @@ void HelpScreen::UpdateLeft()
 	case 500:
 	case 600:
 	case 700: mLeft->DoPull(); mGlow = 1.0; break;
+	case 790: mLeft->mTileMaster->IdleSoon(); break;	// 0x40d507
 	case 525: MovePointer(4, 5); break;
 	case 625: MovePointer(5, 6); break;
 	case 949: mLeftMode = MODE_DONE; break;

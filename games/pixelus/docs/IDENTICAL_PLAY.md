@@ -170,9 +170,8 @@ rows are not where the port's are). The menu after Play and the story match (0.0
   under a dark layer that fades by 1.0 an update, replays the best solution of `levels/helpscreen.txt` through the grid's own
   replay (the first move after 25 updates, then every 100), holds the finished board 100 updates, fades the picture over it
   (2 alpha an update), loads the puzzle again, fades it out and hands back. The shots of both turns (case t19, original run
-  px9) differ by 1 to 2.3%: the Tile Master (the port's pose and standing place, not the original's walk and sprite-sheet
-  animations) and, in a few tiles, which of the five tile pictures shows (the shine's random change, see the tile's mFlash
-  note in `Grid.h`). Same random draws as before (2 for the left board, 24 for the right's file).
+  px9) differ by 0.1 to 1.5%: the thrown tile's trail, about 5 pixels off in the frames where a tile is in flight, and, in a
+  few tiles, which of the five tile pictures shows (the shine's random change, see the tile's mFlash note in `Grid.h`). Same random draws as before (2 for the left board, 24 for the right's file).
 - At u300 and u1800 the original's menu says "Welcome to Pixelus" with no player name (0x40a8b0 prints the name only while a
   player is current); the port's player was made at the same update by the same clicks, so this run's original lost the
   name or made it later. Not explained; the case t16 (u250) shows the name in both.
@@ -192,7 +191,10 @@ rows are not where the port's are). The menu after Play and the story match (0.0
   rule behind these places is not in our export (0x40f160 gives the same y for all, -1); the click on OK is what the
   comparison needs, and it hits in the original for all nine. A drag of the bubble (`Dialog::MouseDrag`) is not tested.
 - **Not ported, presentation only (phase two):** the helper widget's bubbles with arrows (0x40ece0, 0x406050, 0x406140),
-  the glowing lesson cells (0x422610), the teacher's figure in the tutorial's sidebar and its texts per step (the
+  the glowing lesson cells (0x422610 sets a record in the cell: state, a count that starts at minus the delay, the glow
+  picture, a repeat flag and a pause of 25 updates; 0x424b30 raises it by 7 to 255 and back, and 0x422ab0 draws the
+  glow picture additively at sin(count * 0.00616) of full strength, 5 pixels outside the cell; the tutorial's puzzle 1
+  starts two such cells, row 9 columns 8 and 9, the second 228 updates late), the teacher's figure in the tutorial's sidebar and its texts per step (the
   original shows the cyclops and a sentence for each puzzle; the port the tile icons), the sidebar's RESET, HINT and UNDO
   buttons with their labels.
 - The non-expert check of a click on the tile just placed (0x403930, 0x403fb0, called from 0x408400, 0x409160, 0x409bd0)
@@ -231,3 +233,32 @@ blur.
 `tools/identical/setup.sh` copies `re/pixelus/bin/PixelusGame.exe` (the game made by `tools/extract_game_exe.py` from the
 wrapped exe) into `C:/byo-og/pix` and writes `tools/origrun/patches/pixelus.txt` (git-ignored; the two seed patches).
 No script added here takes a wrapper apart, so nothing new belongs in `.publishignore`.
+
+## The Tile Master (0x42bd40, update 0x42c460, draw 0x42b6a0)
+The first port had him walk round the grid; he does not. The object holds two things. The **trail** is a glowing dot that runs
+round the outside of the grid to the place the player aims at (the "walker" at +0xc, update 0x42bf50, place 0x42b180, way
+0x42ad90): five steps of 0.3 a cell per update, each leaving a puff of light (PLAYERTRAILPARTICLE) that fades over 8 updates;
+at a corner it turns on a quarter circle of a cell's radius, the two corners that end the bottom and the left sides taking
+longer (phase 1 to 4); it starts on the top side at the third cell and runs back to the first at the start of a puzzle. The
+**Tile Master himself** stands still: one update after the aim changes (0x42aec0 sets a delay of 1) he is at the middle of the
+cell beside the grid (0x42b8b0: two cells below, two left, one above, one right of the grid) facing it, and plays the actions of
+the NcAnimation set "TileMaster" (built in code at 0x437b90, durations in updates): the stand (a row of the sheet per side, one
+frame), the throw (two frames of 10 updates, for a pull as well, 0x42bb20), scratching, the two juggling strips, the shrug
+(0x42b030, when a pull is refused), the celebration (0x42b010, when the puzzle is done) and, after 400 to 599 updates of
+standing (CRT rand, 0x42b7a0), one of scratching (5 in 10, 3 to 5 times), juggling (3 in 10, 2 or 3 times) or the second
+juggling (2 in 10, 2 to 4 times), which sends him back to facing the front. `GetSide` (0x42b090) gives the side of the last
+settling, so the Board's choice of a throwing side lags the aim by an update, as the original's. Same code: `TileMaster.cpp`.
+
+The mouse reaches him the way 0x403370 does in control mode 2, which is the only one: when the hovered cell has neither a throw
+nor a pull, he still goes to that cell's row or column along the side he stands at (`Board::MouseMove`, the last branch), and
+the grid's cursor stays. Without it the tutorial's first puzzle left him at the top left after the hint dialog closed, where the
+original's mouse (at the OK button, over the board) aimed him at the top of column 9. A cell outside the grid puts the hover
+cell at -1 (0x4223d0). The baseline of `tools/check.sh pixelus` was frozen again after this change: the aim values moved a few
+updates earlier than the earlier port's (the known aim oddity above), the games themselves are the same.
+
+Shots of the tutorial's first puzzle (`build/identical/t20`, 11 shots, 10000 updates apart) went from 5 to 20 percent differing
+to 1 to 7 percent (apart from the shot where a landing is a frame off). What is left: tile pictures that differ because a fresh
+tile's re-draw counter holds heap garbage in the original (see above); the cyclops's speech typing and blink; the glowing
+lesson cells; and, at update 1580, a tile that has landed in the port 5 to 10 updates before the original's shows it (the two
+clicks of the script, 5 updates apart; the original's second cursor shows on the first target cell); the cause is not found,
+under Oddities in the notes.
