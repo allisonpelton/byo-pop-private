@@ -4582,3 +4582,37 @@ and `ButtonDepress` were reached by the menus tour. The framework's sound code l
 nine waited for room for most of an hour. No agent was used: the 19 functions were identified from their decompilation by this session. A spec for the tool
 goes to the coordinator: the report lists a function the port defines under "Defined in the port, never reached" even when a `none`
 line leaves it out.
+
+## The PopCap Game Collection version (2026-11-15)
+
+The port was made from the Steam copy. There `WinBM.exe` holds the game inside Steam's wrapper (`BigMoney.exe` beside it
+is a launcher), and the game carved out of it is `re/bigmoney/bin/BigMoneyGame.exe`. Big Money Deluxe is on the user's
+PopCap Game Collection disc, in the group `BigMoneyDeluxeComponent`, so it is checked against that version
+(`docs/COORDINATION.md`, "Done means"). `unshield` read that group from the disc image's cabinet, mounted read-only and
+dismounted afterwards: 190 files, 3.8 MB, in the main checkout's `re/_installers/BigMoneyDeluxeCollection` (git-ignored).
+The copy has no wrapper: its `BigMoney.exe` is the game itself, beside `bass.dll`, `license.txt`, the two readmes and the
+folders `data`, `images`, `music`, `properties` and `sounds`.
+
+**It is the same game.**
+
+- **The exe.** BookWorm's `tools/collection/cmpexe.py` set it beside the carved game. Both were linked at the same second
+  (14 November 2005, 19:49:24). `.text` and `.data` are the same bytes. `.rdata` differs in eight bytes, the digits after
+  PopCap's build-info marker. The framework reads them only when it checks `properties/partner.xml` against its `.sig`,
+  so each copy's number matches its own signed file; the port checks no signature. `.rsrc` holds other icons and version
+  resources. The port reads nothing from the exe.
+- **The other files.** BookWorm's `cmpfiles.py` finds 180 of the Collection's 190 files byte for byte in the Steam copy:
+  all the data, sounds and music. The Collection has no `drm.*`, `Flash.ocx`, `cobrand` pictures or Steam's `cached`
+  sounds, and adds a `readme.txt`. Its `license.txt`, `readme.html` and `properties/partner.xml` differ. Its
+  partner.xml is NoReg too and sets no cobrand; it differs in DontUpdate (false: the update check is not ported) and in
+  its options link (popcap.com: the port has no outbound buttons), so nothing in it reaches the port.
+- **The pictures.** Four differ in their bytes. `images/editbox.png` (paletted on Steam, RGB on the disc) and
+  `images/sliderthumb.png` decode to the same pixels. The one that really differs is the loading screen's bar and logo,
+  `images/barandlogo.gif` with its alpha `_barandlogo.gif`. The Collection's has PopCap's newer round logo where the Steam
+  copy's reads "PopCap games" over the web address, and its bar is the same but for a re-made palette (at most 4 a
+  channel). The port shows whichever copy the player has.
+
+**The port runs on it.** The port played the suite's bot game (`-seed=1`, action, skill 3, `-fast`) from the staged
+Steam copy and from the Collection's folder. The two state logs (142,347 lines) and input logs are the same, game 1 over
+at 66646. It also played the menus tour (the port's script made from the original's log) from both. The states are the
+same, and of its 122 shots only the title screen's 27 differ, every difference inside the bar and logo's rectangle
+(100,331 to 640,480). No code needs a second look.
