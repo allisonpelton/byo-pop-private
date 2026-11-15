@@ -16,7 +16,7 @@
 # later, and an older worktree would keep the stale copy, so check.sh --changed fails on a game it never
 # touched). A game is owned when its folder games/<game> differs from the merge base with the local main branch
 # (committed or not). Baselines (build/baseline* -> the game's folder; build/baseline and baseline-stage0 are
-# Bejeweled's) are compared byte for byte; an assets folder, by file size and modification time (a file
+# Bejeweled's) and assets are compared by file size and modification time, from one listing per side (a file
 # differs when the sizes differ or main's is newer: a plain copy gets the time of the copying). A trailing
 # -web or other -suffix is dropped to find the game; an assets folder with no game folder is left alone. Files missing here are
 # copied too; nothing the worktree has and main lacks is ever deleted, and nothing is written to main.
@@ -65,29 +65,20 @@ if [ "$REFRESH" = 1 ]; then
 			*) if [ -d "games/$1" ]; then echo "$1"; elif [ "${1%-*}" != "$1" ] && [ -d "games/${1%-*}" ]; then echo "${1%-*}"; fi ;;
 		esac
 	}
-	# differing <kind> <relative folder>: the files (relative to the folder) main has that this worktree lacks or has different
-	differing() {
-		if [ "$1" = baseline ]; then
-			(cd "$MAIN/$2" && find . -type f | sed 's|^\./||') | while IFS= read -r f; do
-				cmp -s "$MAIN/$2/$f" "$2/$f" 2> /dev/null || printf '%s\n' "$f"
-			done
-		else
-			awk -F'\t' 'NR == FNR { size[$1] = $2; time[$1] = $3; next } !($1 in size) || size[$1] != $2 || time[$1] < $3 { print $1 }' \
-				<(cd "$2" 2> /dev/null && find . -type f -printf '%P\t%s\t%Ts\n' || true) \
-				<(cd "$MAIN/$2" && find . -type f -printf '%P\t%s\t%Ts\n')
-		fi
-	}
+	# One listing per side (path, size and time of every file under the baselines and assets), one awk: the files
+	# main has that this worktree lacks, has at another size, or has older. Each line is "<folder>\t<file>".
+	list_of() { (cd "$1" && find build/baseline build/baseline-* assets -mindepth 1 -type f -printf '%p\t%s\t%Ts\n' 2> /dev/null) || true; }
+	differing="$(awk -F'\t' 'NR == FNR { size[$1] = $2; time[$1] = $3; next }
+		!($1 in size) || size[$1] != $2 || time[$1] < $3 { split($1, c, "/"); i = length(c[1]) + length(c[2]) + 3; print c[1] "/" c[2] "\t" substr($1, i) }' \
+		<(list_of "$TARGET") <(list_of "$MAIN"))"
 	done_list=(); kept_list=()
-	for src in "$MAIN"/build/baseline "$MAIN"/build/baseline-*/ "$MAIN"/assets/*/; do
-		src="${src%/}"; [ -d "$src" ] || continue
-		rel="${src#"$MAIN"/}"; name="$(basename "$rel")"
-		g="$(game_of "$name")"
+	for rel in $(printf '%s\n' "$differing" | cut -f1 | sort -u); do
+		name="${rel#*/}"; g="$(game_of "$name")"
 		case "$rel" in
-			build/*) kind=baseline; label="$name" ;;
-			*) kind=assets; label="assets/$name"; [ -n "$g" ] || continue ;;
+			build/*) label="$name" ;;
+			*) label="assets/$name"; [ -n "$g" ] || continue ;;
 		esac
-		files="$(differing "$kind" "$rel")"
-		[ -n "$files" ] || continue
+		files="$(printf '%s\n' "$differing" | awk -F'\t' -v r="$rel" '$1 == r { print $2 }')"
 		if [ -n "$g" ] && ! git diff --quiet "$base" -- "games/$g"; then
 			case " ${kept_list[*]:-} " in *" $g "*) ;; *) kept_list+=("$g") ;; esac
 			continue

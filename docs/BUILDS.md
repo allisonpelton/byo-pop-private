@@ -20,7 +20,7 @@ test tools write their results next to them.
 | `build/baseline-stage0` | The same port with the oracle's test hooks (code-mods stage 0): the reference for hashes, snapshots and bot runs. Never rebuilt either. |
 | `build/oracle-cache` | The two baselines' oracle runs, keyed by exe, inputs and machine, so each oracle runs only the candidate. Safe to delete: it is rebuilt on the next run. |
 
-`tools/setup_worktree.sh` copies these, the staged game files and the generated mods into a new worktree. Copies already there are not touched, so when the coordinator refreezes a baseline or restages a file, an older worktree is brought up to date with `tools/setup_worktree.sh --refresh`, which `tools/check.sh` runs by itself at its start inside a worktree: it copies what differs from the main checkout (baselines by bytes, staged assets by size and time) for every game the branch does not own, keeps the games it changed, deletes nothing and prints one line.
+`tools/setup_worktree.sh` copies these, the staged game files and the generated mods into a new worktree. Copies already there are not touched, so when the coordinator refreezes a baseline or restages a file, an older worktree is brought up to date with `tools/setup_worktree.sh --refresh`, which `tools/check.sh --changed` runs by itself at its start inside a worktree: it copies what differs from the main checkout (by size and time: a file whose size differs, or that is newer in main, or is missing) for every game the branch does not own, keeps the games it changed, deletes nothing and prints one line.
 
 ## Test results (replaced by the next run)
 

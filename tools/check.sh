@@ -3,9 +3,10 @@
 # change is good. Every log goes to a file; open one only when its suite fails (docs/TOKEN_ECONOMY.md).
 #
 #   tools/check.sh [--out <dir>] [--jobs <n>] <suite or set>...
-# Inside a git worktree every form first runs tools/setup_worktree.sh --refresh (with --dry-run, only reports): the
-# frozen baselines and staged assets of games this branch does not own are brought up to date with the main checkout.
 #   tools/check.sh [--out <dir>] --changed <rev> [--inert] [--dry-run] [<suite or set>...]    (merge mode, below)
+# In merge mode (--changed) inside a git worktree, check.sh first runs tools/setup_worktree.sh --refresh (with
+# --dry-run, only reports): the frozen baselines and staged assets of games this branch does not own are brought up
+# to date with the main checkout. Plain suite runs skip it.
 #
 # Suites (rough times on this machine):
 #   build        tools/build.sh native, incremental (seconds to minutes)
@@ -603,9 +604,10 @@ case "$JOBS" in
 	*) echo "check.sh: --jobs $JOBS is more than the 3 game processes one check may take (CLAUDE.md); using 3" >&2; JOBS=3 ;;
 esac
 
-# In a worktree, bring the baselines and staged assets of the games this branch does not own up to date with the
+# In merge mode in a worktree (where stale copies make a merge check fail; plain suite runs skip the cost of
+# the listing), bring the baselines and staged assets of the games this branch does not own up to date with the
 # main checkout (tools/setup_worktree.sh --refresh), once: the run under rundesk below has BYOPOP_TEST_RUN set.
-if [ -z "${BYOPOP_TEST_RUN:-}" ] && [ "$(cd "$(git rev-parse --absolute-git-dir 2> /dev/null)" 2> /dev/null && pwd)" != "$(cd "$(git rev-parse --git-common-dir 2> /dev/null)" 2> /dev/null && pwd)" ]; then
+if [ -n "$CHANGED" ] && [ -z "${BYOPOP_TEST_RUN:-}" ] && [ "$(cd "$(git rev-parse --absolute-git-dir 2> /dev/null)" 2> /dev/null && pwd)" != "$(cd "$(git rev-parse --git-common-dir 2> /dev/null)" 2> /dev/null && pwd)" ]; then
 	tools/setup_worktree.sh --refresh $([ "$DRY" -eq 1 ] && echo --dry-run) || true
 fi
 
