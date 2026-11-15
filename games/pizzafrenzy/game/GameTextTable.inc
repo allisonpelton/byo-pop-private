@@ -2,6 +2,8 @@
 // address in the game image, length and FNV-1a hash. The texts themselves are read from the player's own
 // PizzaFrenzy.exe at start-up (GameText.h); none are in the repository.
 GAMETEXT(0x004f9ae8, 4, 0x57b21de3)
+GAMETEXT(0x004fd17c, 3, 0x7bcac794)
+GAMETEXT(0x004fd1d0, 101, 0x55cad31b)
 GAMETEXT(0x004fd400, 4, 0x8029232a)
 GAMETEXT(0x004fd7dc, 3, 0x41d92ee9)
 GAMETEXT(0x004fd7e0, 2, 0x36cc36ec)

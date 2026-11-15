@@ -17,6 +17,28 @@ namespace engine
 
 class DocHandlerStack;
 
+// A pair of whole numbers or of floats an attribute holds: a point, or a range from its first to its second
+struct IntPair
+{
+	int mFirst;
+	int mSecond;
+};
+
+struct FloatPair
+{
+	float mFirst;
+	float mSecond;
+};
+
+// The signal build's readers of the pairs a data file's attributes hold (each takes a copy of the attributes and
+// gives the default for a missing attribute; a number that is not there keeps the default's)
+// 0x4760a0 (pizzafrenzy): "x, y", spaces allowed
+IntPair getIntPointAttribute(XmlAttributes theAttributes, const std::string& theName, IntPair theDefault);
+// 0x475c50 (pizzafrenzy): "(a, b)", or one number for both
+IntPair getIntRangeAttribute(XmlAttributes theAttributes, const std::string& theName, IntPair theDefault);
+// 0x475b20 (pizzafrenzy): "(a, b)", or one number for both
+FloatPair getFloatRangeAttribute(XmlAttributes theAttributes, const std::string& theName, FloatPair theDefault);
+
 // A handler of a named element (0x478de0 (pizzafrenzy)), whose parent is the stack it was made for
 class BaseDocHandler : public Object, public XmlHandler
 {
