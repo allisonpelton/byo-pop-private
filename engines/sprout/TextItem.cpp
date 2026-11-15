@@ -7,13 +7,18 @@
 
 using namespace engine;
 
-// 0x427680 (wordharmony)
+// 0x427680 (wordharmony), 0x46fc70 (pizzafrenzy): the signal build's has no name of its own
 TextItem::TextItem()
 {
 	mHAlign = 0;
 	mVAlign = 0;
 	mStyle = 0;
-	setName("TextItem");
+	mWordWrap = 0;
+	mShadowOpacity = 0.5f;
+	mShadowOffset = Point(2.0f, 2.0f);
+	mColorMode = 0;
+	if (!gSignalBuild)
+		setName("TextItem");
 	addOwnFlags(NODE_DRAWABLE);
 	setFlags(NODE_LAYOUT);
 }
@@ -126,32 +131,103 @@ void TextItem::layout()
 	clearFlags(NODE_LAYOUT);
 }
 
-// 0x427070 (wordharmony)
+// 0x427070 (wordharmony), 0x46f520 (pizzafrenzy)
 void TextItem::setHAlign(int theAlign)
 {
 	mHAlign = theAlign;
 	setFlags(NODE_LAYOUT);
 }
 
-// 0x427090 (wordharmony)
+// 0x427090 (wordharmony), 0x46f540 (pizzafrenzy)
 void TextItem::setVAlign(int theAlign)
 {
 	mVAlign = theAlign;
 	setFlags(NODE_LAYOUT);
 }
 
-// 0x427600 (wordharmony)
+// 0x427600 (wordharmony), 0x46f560 (pizzafrenzy)
 void TextItem::setFont(std::string theName)
 {
 	setFont(App::instance()->getFont(theName.c_str()));
 	setFlags(NODE_LAYOUT);
 }
 
-// 0x4278c0 (wordharmony): the last piece is what follows the last break (empty when the text ends with one)
+// The width of one character in the font (0x47e6c0 (pizzafrenzy)): the glyph's three widths less the overlaps, a
+// space's width for a character with no glyph
+static int getCharWidth(Font* theFont, char theChar)
+{
+	char aString[2] = {theChar, '\0'};
+	return theFont->getStringWidth(aString);
+}
+
+// 0x4278c0 (wordharmony), 0x46fee0 (pizzafrenzy): the last piece is what follows the last break (empty when the text
+// ends with one). The signal build's, with a wrap width, adds up the characters' widths and, when the line reaches the
+// width, breaks it after the last space (or before the character that reached it when the line has none); the
+// character after a backslash is measured without the backslash, and the character that broke a line with no space is
+// dropped.
 void TextItem::setText(std::string theText)
 {
 	mText = theText;
 	mLines.clear();
+	if (gSignalBuild && 0 < mWordWrap)
+	{
+		int aStart = 0;
+		int aLastSpace = 0;
+		int aWidth = 0;
+		unsigned int i = 0;
+		if (theText.size() != 0)
+		{
+			do
+			{
+				int aCharWidth;
+				if (theText[i] == ' ')
+				{
+					aCharWidth = mFont->getSpaceWidth();
+					aLastSpace = (int)i;
+				}
+				else
+				{
+					if (theText[i] == '\\')
+					{
+						i++;
+						if (theText[i] == 'n')
+						{
+							mLines.push_back(theText.substr(aStart, (i - aStart) - 1));
+							aWidth = 0;
+							aStart = (int)i + 1;
+							i++;
+							continue;
+						}
+					}
+					aCharWidth = getCharWidth(mFont, theText[i]);
+				}
+				aWidth += aCharWidth;
+				if (mWordWrap <= aWidth)
+				{
+					if (aLastSpace <= aStart)
+					{
+						mLines.push_back(theText.substr(aStart, i - aStart));
+						aLastSpace = (int)i + 1;
+						aWidth = 0;
+						aStart = (int)i + 1;
+					}
+					else
+					{
+						mLines.push_back(theText.substr(aStart, aLastSpace - aStart));
+						aLastSpace++;
+						std::string aRest = theText.substr(aLastSpace, (i - aLastSpace) + 1);
+						aWidth = mFont->getStringWidth(aRest.c_str());
+						aStart = aLastSpace;
+					}
+				}
+				i++;
+			} while (i < theText.size());
+		}
+		mLines.push_back(theText.substr(aStart, i - aStart));
+		layout();
+		setFlags(NODE_LAYOUT);
+		return;
+	}
 	size_t aStart = 0;
 	size_t anEnd;
 	do

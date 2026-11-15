@@ -26,7 +26,7 @@ public:
 	~HostSound() override;
 
 	void play() override;
-	void halt();  // 0x443dd0 (wordharmony): stops where it is (the original's slot 4; only the sound's own functions call it)
+	void halt() override;  // 0x04: 0x443dd0 (wordharmony): stops where it is
 	void stop() override;
 	void rewind() override;
 	void close() override;

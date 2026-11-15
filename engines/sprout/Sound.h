@@ -18,6 +18,7 @@ class Sound
 public:
 	virtual ~Sound() {}
 	virtual void play() = 0;                       // 0x00: from where it is; nothing when it plays
+	virtual void halt() = 0;                       // 0x04: 0x443dd0 (wordharmony), stops where it is
 	virtual void stop() = 0;                       // 0x08: 0x443df0 (wordharmony), a fade-out, or halt and rewind
 	virtual void rewind() = 0;                     // 0x0c: 0x443e40 (wordharmony)
 	virtual void close() = 0;                      // 0x10: 0x4447b0 (wordharmony)

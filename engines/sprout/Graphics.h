@@ -6,6 +6,7 @@
 // (0x45dcb0 (wordharmony), vtable 0x48ac14 (wordharmony)) drew over DirectDraw with Sprout's blitters. The port's
 // subclass draws with the framework (Display.cpp).
 
+#include "Build.h"
 #include "Geometry.h"
 #include "Object.h"
 #include <cstdint>
@@ -34,13 +35,20 @@ public:
 	Image() : mAlphaMode(ALPHA_NONE), mAlphaThreshold(0) {}
 	virtual int getWidth() = 0;   // slot 0x00: 0x4572a0 (wordharmony)
 	virtual int getHeight() = 0;  // slot 0x04: 0x4572b0 (wordharmony)
-	// slot 0x0c: 0x45e5d0 (wordharmony), 1 puts the pivot at the centre (in whole pixels); other values leave it
+	// slot 0x0c: 0x45e5d0 (wordharmony), 0x4cf090 (pizzafrenzy), 1 puts the pivot at the centre (in whole pixels); other
+	// values leave it, except in the signal build, where they put it back at the corner
 	void setPivot(int theMode)
 	{
 		if (theMode == 1)
 			setPivot(getWidth() / 2, getHeight() / 2);
+		else if (gSignalBuild)
+			setPivot(0, 0);
 	}
-	void setPivot(int x, int y) { mPivotX = x; mPivotY = y; }  // slot 0x10: 0x45e5c0 (wordharmony)
+	// The signal build's slot 0x2c (0x4be780 (pizzafrenzy)): a copy of the image scaled by the factors (the copy is the
+	// image's clone, slot 0x34, scaled in place by slot 0x38). The host's image makes the copy; this one has none and
+	// gives itself back.
+	virtual Image* createScaled(float theScaleX, float theScaleY) { return this; }
+	void setPivot(int x, int y) { mPivotX = x; mPivotY = y; }  // slot 0x10: 0x45e5c0 (wordharmony), 0x4cf080 (pizzafrenzy)
 	int getPivotX() const { return mPivotX; }                  // slot 0x14: 0x45e600 (wordharmony)
 	int getPivotY() const { return mPivotY; }
 	// slot 0x18: 0x45e610 (wordharmony)

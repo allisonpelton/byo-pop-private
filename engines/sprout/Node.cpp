@@ -8,10 +8,12 @@
 
 using namespace engine;
 
+bool engine::gSignalBuild = false;
+
 // 0x43a3c0 (wordharmony)
 Node::Node()
 	: mParent(nullptr), mPosition(0, 0), mScale(1.0f, 1.0f), mRotation(0), mOpacity(1.0f), mFont(nullptr), mFlags(0),
-	  mAllFlags(0), mVisible(true), mEnabled(true)
+	  mAllFlags(0), mVisible(true), mEnabled(true), mMouseMasked(false)
 {
 }
 
@@ -172,7 +174,7 @@ void Node::removeOwnFlags(unsigned int theFlags)
 	clearFlags(theFlags);
 }
 
-// 0x43a510 (wordharmony)
+// 0x43a510 (wordharmony), 0x468df0 (pizzafrenzy)
 void Node::addListener(NodeListener* theListener)
 {
 	if (std::find(mListeners.begin(), mListeners.end(), theListener) == mListeners.end())
@@ -182,6 +184,46 @@ void Node::addListener(NodeListener* theListener)
 	}
 	mFlags = mFlags | NODE_LISTENERS;
 	setFlags(NODE_LISTENERS);
+}
+
+// 0x438fe0 (wordharmony); 0x467ef0 (pizzafrenzy)
+void Node::setEnabled(bool theEnabled)
+{
+	if (!gSignalBuild)
+	{
+		mEnabled = theEnabled;
+		return;
+	}
+	if (theEnabled)
+		addOwnFlags(NODE_MOUSE);
+	else
+		removeOwnFlags(NODE_MOUSE);
+}
+
+// 0x439bc0 (wordharmony); 0x467f20 (pizzafrenzy)
+bool Node::isEnabled()
+{
+	if (!gSignalBuild)
+		return mEnabled;
+	return !mMouseMasked && hasOwnFlag(NODE_MOUSE);
+}
+
+// 0x4670e0 (pizzafrenzy)
+void Node::refreshMouse()
+{
+	if (mParent != nullptr)
+		mParent->refreshMouse();
+}
+
+// 0x468280 (pizzafrenzy)
+void Node::removeListener(NodeListener* theListener)
+{
+	std::vector<NodeListener*>::iterator anIt = std::find(mListeners.begin(), mListeners.end(), theListener);
+	if (anIt != mListeners.end())
+	{
+		mListeners.erase(anIt);
+		theListener->release();
+	}
 }
 
 // 0x439fa0 (wordharmony)
@@ -355,6 +397,34 @@ void Container::addChild(Node* theChild)
 	theChild->setParent(this);
 }
 
+// 0x4671b0 (pizzafrenzy)
+void Container::connectChildren()
+{
+	std::vector<Node*>::iterator anIt = mChildren.begin();
+	if (anIt != mChildren.end())
+	{
+		do
+		{
+			(*anIt)->connect();
+			++anIt;
+		} while (anIt != mChildren.end());
+	}
+}
+
+// 0x4671e0 (pizzafrenzy)
+void Container::disconnectChildren()
+{
+	std::vector<Node*>::iterator anIt = mChildren.begin();
+	if (anIt != mChildren.end())
+	{
+		do
+		{
+			(*anIt)->disconnect();
+			++anIt;
+		} while (anIt != mChildren.end());
+	}
+}
+
 // 0x4393e0 (wordharmony)
 void Container::removeAllChildren()
 {
@@ -516,4 +586,55 @@ void Window::handleMouseMove(const Point& thePoint)
 	Node* aNode = mouseTarget(thePoint, aLocal);
 	if (aNode != nullptr)
 		aNode->mouseMove(aLocal);
+}
+
+// The signal build's mouse slots: the node's signal, then the handler
+
+// 0x4680c0 (pizzafrenzy)
+void Node::mouseDownEvent(MouseEvent& e)
+{
+	mMouseDownSignal.emit(e);
+	handleMouseDownEvent(e);
+}
+
+// 0x468100 (pizzafrenzy)
+void Node::mouseUpEvent(MouseEvent& e)
+{
+	mMouseUpSignal.emit(e);
+	handleMouseUpEvent(e);
+}
+
+// 0x468140 (pizzafrenzy)
+void Node::rightDownEvent(MouseEvent& e)
+{
+	mRightDownSignal.emit(e);
+	handleRightDownEvent(e);
+}
+
+// 0x468180 (pizzafrenzy)
+void Node::rightUpEvent(MouseEvent& e)
+{
+	mRightUpSignal.emit(e);
+	handleRightUpEvent(e);
+}
+
+// 0x4681c0 (pizzafrenzy)
+void Node::mouseMoveEvent(MouseEvent& e)
+{
+	mMouseMoveSignal.emit(e);
+	handleMouseMoveEvent(e);
+}
+
+// 0x468200 (pizzafrenzy)
+void Node::mouseEnterEvent(MouseEvent& e)
+{
+	mMouseEnterSignal.emit(e);
+	handleMouseEnterEvent(e);
+}
+
+// 0x468240 (pizzafrenzy)
+void Node::mouseExitEvent(MouseEvent& e)
+{
+	mMouseExitSignal.emit(e);
+	handleMouseExitEvent(e);
 }

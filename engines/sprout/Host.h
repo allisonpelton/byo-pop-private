@@ -20,6 +20,10 @@ public:
 	virtual ~Host() {}
 	// timeGetTime()
 	virtual uint32_t timeMs() = 0;
+	// The signal build's clock (QueryPerformanceCounter and QueryPerformanceFrequency, the application's slots 0xac and
+	// 0xb0 (pizzafrenzy)), which times its run loop's frames
+	virtual uint64_t timeTicks() { return timeMs(); }
+	virtual uint64_t ticksPerSecond() { return 1000; }
 	// A file of the game's folder (WHArchive.saf, res/...), by its relative name with '/'
 	virtual bool readGameFile(const std::string& theName, std::vector<uint8_t>& theData) = 0;
 	virtual bool gameFileExists(const std::string& theName) = 0;
@@ -31,6 +35,22 @@ public:
 	virtual bool registryWriteString(const std::string& theName, const std::string& theValue) = 0;
 	virtual bool registryReadInt(const std::string& theName, int& theValue) = 0;
 	virtual bool registryWriteInt(const std::string& theName, int theValue) = 0;
+	// The signal build's registry keys (PersistKey slots 0x0c and 0x14 (pizzafrenzy)): the names of the keys one level
+	// below a key, and of the values in it ("" for its default value). theKey is the name below the application's
+	// registry key, "" for that key itself. False when the key is not there.
+	virtual bool registryGetSubKeys(const std::string& theKey, std::vector<std::string>& theNames) { return false; }
+	virtual bool registryGetValueNames(const std::string& theKey, std::vector<std::string>& theNames)
+	{
+		return false;
+	}
+	// port: the cells and the colours of an image the engine's image interface cannot copy. A copy of the part of an
+	// image (the original's new image drawn over by the part); and a copy with every colour's hue, saturation and
+	// value shifted by HsvShiftFilter (ImageFilter.h). Null when the host has no such copy.
+	virtual Image* cropImage(Image* theImage, int theLeft, int theTop, int theWidth, int theHeight) { return nullptr; }
+	virtual Image* shiftImageColors(Image* theImage, float theHue, float theSaturation, float theValue)
+	{
+		return nullptr;
+	}
 	// The window's full screen mode (App slots 0x04 and 0x08: the window's 0x456fa0 (wordharmony) and
 	// 0x455b80 (wordharmony))
 	virtual void setFullScreen(bool theFullScreen) = 0;
@@ -43,6 +63,9 @@ public:
 	virtual void showMessage(const char* theCaption, const char* theText) = 0;
 	// The sound system of the window (DirectSound, 0x443ca0 (wordharmony)); null without sound
 	virtual SoundSystem* createSoundSystem() = 0;
+	// The signal build's LoadStringA of the exe's string table (the application's slot 0x8c (pizzafrenzy),
+	// 0x4bd790 (pizzafrenzy)): "" for an id it has no text for
+	virtual std::string loadString(int theId) { return ""; }
 	// GetCommandLineA(): the program's name and its arguments
 	virtual std::string commandLine() { return ""; }
 	// port: a seed given for the game's srand of the tick count (-seed=N), for the identical-play runs

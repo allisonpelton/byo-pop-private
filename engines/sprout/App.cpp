@@ -190,6 +190,41 @@ void App::start(Controller* theController)
 	mLastTime = getTime();
 }
 
+// 0x4bd790 (pizzafrenzy)
+std::string App::loadString(int theId)
+{
+	return getHost()->loadString(theId);
+}
+
+// 0x4bda70 (pizzafrenzy), and 0x4bdf20 (pizzafrenzy) up to its loop: the window and the display are the host's; the
+// configure checks the same two fields as the earlier build's
+void App::startSignalled(Controller* theController)
+{
+	mController = theController;
+	mController->configure(mConfig);
+	if (mConfig.mTitle == nullptr || mConfig.mFrameRate == 0)
+		throw Exception("Invalid configuration.");
+	mController->init();
+	mLastTicks = getHost()->timeTicks();
+}
+
+// 0x4bd210 (pizzafrenzy): the frame's update and its drawing (the frame times, +0x220 and +0x240, are kept for a
+// statistics display the game never shows); the host waits for the next frame's time (the start of this one and a
+// period, 0x4bc870 (pizzafrenzy))
+void App::frameSignalled(Graphics* g)
+{
+	UpdateInfo anInfo;
+	anInfo.mOrigin = Point(0, 0);
+	uint64_t aNow = getHost()->timeTicks();
+	anInfo.mSeconds = (float)(int64_t)(aNow - mLastTicks) / (float)(int64_t)getHost()->ticksPerSecond();
+	if (0.33f < anInfo.mSeconds)
+		anInfo.mSeconds = 0.33f;
+	mLastTicks = aNow;
+	mUpdateSignal.emit(anInfo);
+	if (g != nullptr)
+		mDrawSignal.emit(g);
+}
+
 // 0x4542e0 (wordharmony)
 void App::frame(Graphics* g)
 {
