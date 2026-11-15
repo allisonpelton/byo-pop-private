@@ -301,11 +301,12 @@
         "fixes-mod",
         "site-features",
         "identical-look",
-        "coverage"
+        "coverage",
+        "lite-mod"
       ],
       "na": [],
-      "now": "lite-mod",
-      "note": "coverage done (coverage.txt, GAME_NOTES section 11; three Oddities: the editor's thumbnail reorder, a grid pulse colour nothing reads, the pause's sound ducking 0x431a50); in since the last merge: the temple's and select-user's scroll bars, bubble tips, plaque and title, flash buttons, the island's gull flock, the particle engine (temple bursts, the mystery puzzle's chains and lock), the main menu link's shadow, the sound buttons' alpha hit test; baseline refrozen (the bursts draw the app generator: apprand-only lines, game state identical); next: lite mod, unneeded code, readability, performance"
+      "now": "unneeded-code",
+      "note": "the lite-mod step done with no mod (41fe5da4, games/pixelus/docs/LITE_MOD.md: grid walks and scans of at most 32x32 cells, the hint reads a stored solution; the two scans that cost anything have faster forms with the same answers, so not lite); next: unneeded code, then readability"
     },
     "rocketmania": {
       "title": "Rocket Mania Deluxe",
