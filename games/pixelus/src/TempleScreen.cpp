@@ -504,11 +504,6 @@ int TempleScreen::FindFirstUnsolved()
 	return -1;
 }
 
-int TempleScreen::GetRows() const
-{
-	return ((int) mThumbs.size() + COLUMNS - 1) / COLUMNS;
-}
-
 // 0x4102f0: the puzzle in the 96 pixel square under the point, among the nine in view
 int TempleScreen::HitTest(int x, int y) const
 {

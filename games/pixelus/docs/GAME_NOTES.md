@@ -219,3 +219,23 @@ Oddities (what it does, how to see it, what it would take):
   sets the volume of every playing sound to about 0.016 and restores it when the pause ends. The port pauses the music
   (PauseAllMusic) and leaves sounds that are already playing at their volume. Not compared by ear; to port, a list of the
   playing sound instances is needed from the framework's sound manager.
+
+**Lite candidates: none** (2026-11-15, `docs/LITE_MOD.md`). The logic is walks and scans over a grid of at most 32 by 32 cells and a hint that reads a stored solution; the faster forms of the two scans that cost anything give the same answers, so they are not lite changes.
+
+## 12. Unneeded code (2026-11-15)
+
+Two finds, from the linker (a Debug build of the pixelus target in its own folder with `-O0 -ffunction-sections -fdata-sections`
+and `-Wl,--gc-sections -Wl,--verbose`; its "Discarded" list, filtered to the game's classes) and from the coverage check's list of
+port functions the runs never reached.
+
+Removed, because nothing calls them and no test or tool does: `Board::GetMoves`, `LevelData::GetCurrentPuzzle` (0x42a080),
+`LevelData::FindPuzzle`, `TempleScreen::GetRows`. Kept, because the grid test uses them: `Grid::ReplayMove`, `Grid::LoadFromFile`.
+
+Two of the discarded functions were not dead code but behaviour the port had left out, and are now wired in:
+`Grid::StopGlowRepeats` (0x421ae0), which the original calls when the hint dialog's OK is pressed (0x7ef, through 0x403050), and
+`PingPongEffect` (0x437530), which the puzzle-completed screen uses for Medusa. That screen now has all of the original's characters
+(0x41b3c0, updated by 0x419a00 once the picture is in, drawn by 0x419e60): Medusa, the five fauns (the second only when a temple has
+opened), the centaur, the cyclops and the mermaid, each an effect of Effects.cpp.
+
+The 62 port functions the five coverage runs never reached are dialogs, the user list and editor paths that no run entered, not dead code;
+none is taken out.

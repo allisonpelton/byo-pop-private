@@ -358,11 +358,6 @@ void Board::RestartPuzzle()
 	LoadPuzzle();
 }
 
-int Board::GetMoves() const
-{
-	return mGrid->mMoveCount;
-}
-
 // 0x424590 and 0x42aec0
 void Board::Aim(int theSide, int theCursor)
 {

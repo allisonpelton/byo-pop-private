@@ -301,11 +301,13 @@
         "fixes-mod",
         "site-features",
         "identical-look",
-        "coverage"
+        "coverage",
+        "lite-mod",
+        "unneeded-code"
       ],
       "na": [],
-      "now": "lite-mod",
-      "note": "coverage done (coverage.txt, GAME_NOTES section 11; three Oddities: the editor's thumbnail reorder, a grid pulse colour nothing reads, the pause's sound ducking 0x431a50); in since the last merge: the temple's and select-user's scroll bars, bubble tips, plaque and title, flash buttons, the island's gull flock, the particle engine (temple bursts, the mystery puzzle's chains and lock), the main menu link's shadow, the sound buttons' alpha hit test; baseline refrozen (the bursts draw the app generator: apprand-only lines, game state identical); next: lite mod, unneeded code, readability, performance"
+      "now": "readability",
+      "note": "unneeded code out (8fb0a637: Board::GetMoves, LevelData::GetCurrentPuzzle and FindPuzzle, TempleScreen::GetRows, found by the linker's gc-sections list and the coverage report); two behaviours the port had left out added: the hint dialog's OK ends the glow repeats (0x403050), the puzzle-completed screen's animated characters (0x41b3c0, 0x419a00, 0x419e60), not yet compared with the original's shots; baseline identical; next: readability"
     },
     "rocketmania": {
       "title": "Rocket Mania Deluxe",
@@ -411,7 +413,7 @@
       ],
       "na": [],
       "now": null,
-      "note": "the Collection check done (46dd468f): the Collection's BigMoneyDeluxeComponent is the Steam game (the exe's .text and .data byte for byte, 8 .rdata bytes of the build-info id only partner.xml's .sig check reads; 180 of 190 files the same; only the loading screen's bar and logo differ); the port from both folders plays the same states (66646), only the title's logo rectangle differs; every phase but modding done. Open: a re-measure of processor time under the compositor wait (the default since 2026-11-15)"
+      "note": "every phase but modding done; processor time re-measured under the compositor wait (068bde60): five pairs of the seed-21 minute, each on its own P-core, port 2.98-5.80 s against the original's 5.50-11.19 s, about half like for like; peak private bytes 36.8-42.1 MB against 42.1-44.4; software 2x not taken"
     },
     "tiptop": {
       "title": "TipTop Deluxe",
@@ -579,7 +581,7 @@
       ],
       "na": [],
       "now": "identical-look",
-      "note": "phase two's sound and music by state done (5e45972f): all 14 phase-one scenarios and classic_focus1 identical in state, sound and music (BASS logged through a stand-in, DirectSound through origrun's); fixed mouse-over on every screen, the in-game menu on release, the ice cream's single gloop and the game-over box's click; next the looks (shots, web and native)"
+      "note": "phase two looks begun (77266590 looks.py: original shots in Windows Sandbox and port shots at the same updates, then shotdiff; 6 scenarios, ~340 pairs); port fixes: the cubby cover cut from the level's backdrop (13f4410f), the Health label at the box's width, the coin hint's floater at y 150 (09163b2a); frozen screens refrozen (a6852126, states unchanged); open: particle effects and one help popup differ in phase, the how-to-play Flash page does not render in the sandbox; next: those, the remaining dialogs, web against native, real input"
     },
     "pizzafrenzy": {
       "title": "Pizza Frenzy",
