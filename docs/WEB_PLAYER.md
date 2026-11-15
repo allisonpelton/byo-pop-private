@@ -225,7 +225,14 @@ switches windows as Windows' Alt+Tab did, since the browser keeps Alt+Tab (the u
 steps through the open windows, the one used last first, in a box of their desktop icons with the chosen one's title
 (Shift+\` steps back, Escape lets go), and letting go of Alt brings that window to the front, restored if it was
 minimized; a quick Alt+\` goes back to the window before. From a window's page on the listing's desktop the keys go to
-that desktop (`ByopopApps.altTab`), so the game's canvas never sees them. The game
+that desktop (`ByopopApps.altTab`), so the game's canvas never sees them. Alt+4 closes the window in front, standing in
+for the Alt+F4 the browser keeps (the user, 2026-11-14), and with no window open opens the Pop menu on Shut Down; it goes
+to the desktop the same way (`ByopopApps.closeFront`), and leaves AltGr+4 (Ctrl+Alt on Windows) and text fields alone,
+where it types a currency or cent sign. On Linux, Chrome and Firefox switch to the fourth tab on Alt+4; the page calls
+`preventDefault`, which has not been tried there, so the switch may still happen. **Shut Down** (the Pop menu's last
+entry) closes every window as its Close does, a game's with its saves, and covers the page with a wordless black last
+screen until a key or a click brings the desktop back with its windows closed; on a game's own page the game closes and the
+listing shows it (`byopop-desk-open` "shutdown"), and from a window's page the desktop around it shuts down. The game
 window's menu bar spreads the game's commands over Game, View, Options and Help (the user, 2026-11-09: "don't hide
 everything under "Game""), and no menu shows Alt+F4 or Alt+Space, which the browser keeps. The game is always at a
 whole multiple of its size in device pixels (`sizeStage`); the window takes the status bar's height rounded up

@@ -1827,7 +1827,7 @@ html.saver .stage-wrap { place-items: center; min-height: 100vh; }
     // in a window of the one page: the game's own close with its saves, then the window goes (web/deskapps.js)
     var P = desktopApps();
     if (P) { closeGameThen(function () { try { P.closed(window); } catch (e) {} }, true); return; }
-    try { sessionStorage.setItem("byopop-desk-open", "games"); } catch (e) {}
+    try { sessionStorage.setItem("byopop-desk-open", window.byopopShutDown ? "shutdown" : "games"); } catch (e) {}
     closeGameThen(function () { location.href = "./" + (pageSilent() ? "?silent=1" : ""); }, true);
   }
   function showMissingFiles() {

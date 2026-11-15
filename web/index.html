@@ -1396,6 +1396,7 @@ try {
     var want = null;
     try { want = sessionStorage.getItem("byopop-desk-open"); sessionStorage.removeItem("byopop-desk-open"); } catch (e) {}
     if (want === "games") d.show(ByopopSkin.gamesWindow ? ByopopSkin.gamesWindow() : "games");
+    if (want === "shutdown" && d.lastScreen) d.lastScreen(false);
     var sec = /^#settings-([a-z]+)$/.exec(settingsHash(location.hash));
     if (sec && d.find("set-" + sec[1])) { d.show("tab-settings"); d.show("set-" + sec[1]); }
   })();

@@ -956,6 +956,8 @@ html.d95-narrow .lib-c-last, html.d95-narrow .lib-c-year { display: none; }
 html.d95-desk .newtab { display: none; }
 /* Alt+` (web/skins.js): the window switcher, as Windows 95's Alt+Tab box: the open windows' icons in a row, the chosen one
    outlined, and its title in a sunken field under them */
+/* Shut Down's last screen: wordless, over everything */
+html.d95-desk .d95-off { position: fixed; inset: 0; z-index: 2147483600; background: #000; outline: none; }
 html.d95-desk .d95-switch { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 2147483000;
   max-width: calc(calc(100vw / var(--d95-z, 1)) - 32px); padding: 10px 12px 12px; box-sizing: border-box; background: var(--panel); color: var(--fg);
   box-shadow: inset -1px -1px var(--sk-dk), inset 1px 1px var(--sk-hi), inset -2px -2px var(--sk-lo), inset 2px 2px var(--sk-mid); }

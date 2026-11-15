@@ -329,6 +329,9 @@ var ByopopApps = (function () {
   function f6(win, back) { var a = byWin(win); if (a) desk.f6From(a.id, back); }
   // Alt+` from a window's page (web/skins.js): the switch between the desktop's windows
   function altTab(win, how) { if (desk.altTab) desk.altTab(how); }
+  // Alt+4 and Shut Down from a window's page (web/skins.js): the desktop's front window closes, or the desktop shuts down
+  function closeFront(win) { if (desk.closeFront) desk.closeFront(); }
+  function shutDown(win) { if (desk.shutDown) desk.shutDown(); }
   function closed(win) { var a = byWin(win); if (a) drop(a); }
   function title(win, text) { var a = byWin(win); if (a && text) { desk.setTitle(a.id, text); if (a.frame) a.frame.title = text; } }
   // the largest size a window's page can have on the desktop, above the task bar (the scales its View menu offers)
@@ -462,7 +465,7 @@ var ByopopApps = (function () {
   setInterval(function () { if (gameCount()) hush(); }, 1000);
   function hushed(win) { var a = byWin(win); return !!(a && a.hushedNode); }
 
-  return { hushed: hushed, heard: function () { var a = heardApp(); return a ? a.key : null; }, open: open, activated: activated, f6: f6, altTab: altTab, closed: closed, title: title, fit: fit, room: room, frontGame: frontGame, frontFrame: frontFrame,
+  return { hushed: hushed, heard: function () { var a = heardApp(); return a ? a.key : null; }, open: open, activated: activated, f6: f6, altTab: altTab, closeFront: closeFront, shutDown: shutDown, closed: closed, title: title, fit: fit, room: room, frontGame: frontGame, frontFrame: frontFrame,
     menuKey: menuKey, fullScreen: function (win) { var a = byWin(win); if (a) fullScreen(a); },
     count: function () { return apps.length; },
     // the address back to the root (a link to #settings and the like, web/index.html)

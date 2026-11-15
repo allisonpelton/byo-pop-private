@@ -911,6 +911,9 @@ var ByopopSkin = (function () {
           list.appendChild(rule());
           list.appendChild(item(T("skin.pop.listing"), null, { href: "./", cls: "d95-leave" }));
         }
+        // Shut Down, last (the user, 2026-11-14, by the coordinator's list): every window closes, then the last screen
+        list.appendChild(rule());
+        list.appendChild(item(T("skin.pop.shutdown"), closeThen(shutDown), { cls: "d95-shutdown" }));
       }
       function items(m) { return Array.prototype.filter.call(m.querySelectorAll(".d95-item"), function (b) { return b.getClientRects().length > 0; }); }
       function focusIn(m, i) { var a = items(m); if (!a.length) return; a[(i + a.length) % a.length].focus(); }
@@ -1036,7 +1039,9 @@ var ByopopSkin = (function () {
         }
         if (want) taskList();
       }
-      return { el: bar, turn: turn, tasks: taskList, close: function () { close(false); } };
+      // the menu open on Shut Down, for Alt+4 with no window open (Enter then shuts down, Escape leaves it)
+      function openShutDown() { if (menu.hidden) open(); var b = list.querySelector(".d95-shutdown"); if (b) b.focus(); }
+      return { el: bar, turn: turn, tasks: taskList, close: function () { close(false); }, openShutDown: openShutDown };
     }
     // ---- favourites' icons (the user, 2026-11-08: "on Windows 95, a desktop icon specifically for that game") ----
     // Each favourite game (ByopopSettings.favourites, web/settings.js) has an icon after the windows' in the column: its own icon
@@ -1377,6 +1382,72 @@ var ByopopSkin = (function () {
       sendSwitch("commit");
     }, true);
     window.addEventListener("blur", function () { if (sw) altTab("cancel"); forwarded = false; });
+    // ---- Alt+4 closes the window in front (the user, 2026-11-14, by the coordinator's list), standing in for the Alt+F4 the
+    // browser keeps; with no window open it opens the Pop menu on Shut Down. In a window's page on the listing's desktop it goes to
+    // that desktop (ByopopApps.closeFront), as Alt+` does, never to the game. AltGr+4 (Ctrl and Alt together on Windows, where it
+    // types a currency sign on some layouts) and a key typed into a text field (Option+4 types a cent sign on a Mac) are left
+    // alone.
+    function closeFront() {
+      if (!on) return;
+      closeAllMenus();
+      var w = active && present(active) && !active.min ? active : frontmost();
+      if (w) closeWin(w);
+      else if (taskbar) taskbar.openShutDown();
+    }
+    function typing(el) {
+      if (!el || !el.tagName) return false;
+      if (el.isContentEditable || el.tagName === "TEXTAREA") return true;
+      return el.tagName === "INPUT" && !/^(button|checkbox|radio|range|color|file|image|reset|submit)$/i.test(el.type || "");
+    }
+    document.addEventListener("keydown", function (ev) {
+      if (ev.code !== "Digit4" || !ev.altKey || ev.ctrlKey || ev.metaKey || ev.shiftKey || ev.repeat) return;
+      if ((ev.getModifierState && ev.getModifierState("AltGraph")) || typing(ev.target)) return;
+      var P = parentApps();
+      if (!on && !P) return;
+      ev.preventDefault(); ev.stopImmediatePropagation();
+      if (P && P.closeFront) { try { P.closeFront(window); } catch (e) {} return; }
+      closeFront();
+    }, true);
+    // ---- Shut Down: every window closes as its Close closes it (a game's with its saves), and the last screen covers the page,
+    // wordless and black, until a key or a click brings the desktop back with its windows closed. On a game's own page the game
+    // closes and the listing shows the last screen (web/shell.html, closeProgram); in a window's page the desktop around it
+    // shuts down.
+    function shutDown() {
+      var P = parentApps();
+      if (P && P.shutDown) { try { P.shutDown(window); } catch (e) {} return; }
+      closeAllMenus();
+      deskEvent("exit");
+      var game = find("game");
+      wins.slice().forEach(function (w) { if (w !== game && present(w)) closeWin(w); });
+      if (game && present(game) && game.onClose) { window.byopopShutDown = true; lastScreen(true); closeWin(game); return; }
+      lastScreen(false);
+    }
+    var offScreen = null;
+    function lastScreen(stay) {
+      if (offScreen) return;
+      var s = document.createElement("div");
+      s.className = "d95-off"; s.tabIndex = -1;
+      s.setAttribute("role", "dialog"); s.setAttribute("aria-modal", "true"); s.setAttribute("aria-label", T("skin.pop.shutdown.screen"));
+      document.body.appendChild(s);
+      offScreen = s;
+      try { s.focus(); } catch (e) {}
+      if (stay) return;   // the game's page goes on to the listing, which shows its own
+      var armed = false;
+      setTimeout(function () { armed = true; }, 800);
+      function back(ev) {
+        if (!armed || ev.key === "Alt" || ev.key === "Shift" || ev.key === "Control" || ev.key === "Meta") return;
+        ev.preventDefault(); ev.stopImmediatePropagation();
+        document.removeEventListener("keydown", back, true);
+        document.removeEventListener("pointerdown", back, true);
+        s.parentNode.removeChild(s);
+        offScreen = null;
+        deskEvent("start");
+        activate(frontmost());
+        if (taskbar && taskbar.el) { var p = taskbar.el.querySelector(".d95-pop"); if (p) p.focus(); }
+      }
+      document.addEventListener("keydown", back, true);
+      document.addEventListener("pointerdown", back, true);
+    }
     document.addEventListener("focusin", function (ev) {
       if (!on) return;
       var pane = paneOf(ev.target), w = pane && winOf(pane);
@@ -1438,7 +1509,7 @@ var ByopopSkin = (function () {
              // the focus into this page from the desktop it is in (F6): its first pane, or its last going back
              enter: function (back) { var p = panes(); if (p.length) focusPane(back ? p[p.length - 1] : p[0], back); },
              // F6 from a window's page, past its own panes: the desktop's pane after (or before) that window
-             altTab: altTab,
+             altTab: altTab, closeFront: closeFront, shutDown: shutDown, lastScreen: lastScreen,
              f6From: function (id, back) {
                var w = find(id), list = panes();
                if (!w || !list.length) return;
