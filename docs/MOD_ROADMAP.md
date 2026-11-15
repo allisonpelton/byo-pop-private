@@ -129,10 +129,10 @@ route, a hint, a deal). Each "lite" below says only where a difference could com
   backtracking search for a winnable deal, runs under a wall-clock budget (2 s, 1 s on a redeal), so the original's
   deals already depend on the machine's speed; a faster solver changes deals unless it searches in the same order (to
   be shown on the real layouts before it counts as lite).
-- Noah's Ark: HasMove, every 48 updates, runs a fresh breadth-first search for each candidate pair on the 9x9 grid
-  (about half a million steps when no move is left). One labelling of the connected empty regions gives the same yes
-  or no, so it belongs in the port's performance pass. SearchPath breaks ties between routes of the same cost by its
-  direction order: lite only if a level can hold two such routes.
+- Noah's Ark: HasMove, every 48 updates, runs a fresh breadth-first search for each candidate pair on the 9x9 grid; it
+  costs 1.7 M cycles a minute, and one labelling of the open regions gives the same answer (4,366 calls compared).
+  SearchPath can give another route of the same cost (43 of 1,774 when the directions are tried in the other order).
+  Neither is taken (`games/noahsark/docs/LITE_MOD.md`).
 - Atomica: PathFinder, a pruned depth-first search of up to 50 segments, on every mouse move while a placed atom is
   selected; a breadth-first search over cell and direction could draw another route of the same cost: lite only if the
   9x8 grid and its pieces allow two.

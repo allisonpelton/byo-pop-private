@@ -563,3 +563,21 @@ of range with `GT_EMPTY` instead of address 0, the only unit that differs in tha
 addresses of `NoahApp.cpp` and nothing else. At the end `tools/check.sh noahsark` passes with the frozen baseline identical,
 the screen tour of section 12 gives the same 26 screenshots byte for byte as before the pass, the web build plays the bot's
 action game to the same line under Node (level 4 done at update 17369, score 6074, the native build's line), and `tools/check.sh build` passes.
+
+## 14. The lite mod (2026-11-14)
+
+There is none: nothing in the game's logic is worth a toggle (`LITE_MOD.md`, which has the table, the two proofs and how each
+figure was taken). A scratch build with cycle counters around every search, never committed, played fifteen bot games. The four
+searches (the check for a move left, the route of a joined pair, the hint's pair, the level generator) cost under 8 M cycles a
+minute of play together, about 0.05% of the 14,100 to 14,900 M cycles that a minute of the action game costs in real time
+(`-cyclesplit`: the picture 93%, the mixer 3.5%, the game's whole update under 2%). The check for a move (`HasMove`) gives the same
+answer when the open regions are numbered once (4,366 calls compared, none different, 183 of them on boards with no pair left), so
+that is no lite change, and it would save a hundredth of a percent. The route search (`SearchPath`) can give another route of the
+same cost (43 of 1,774 routes; the first in the check's action game, level 1, the pair clicked at update 3406), which would change
+the trail a player sees for a gain that cannot be measured. The step is done with no mod, and nothing in the port changed for it.
+
+Two things the runs showed that the earlier sections did not have. The bot's hard strategy games reach boards with no pair left
+and animals still standing (`-seed=1 -autoplay=1 -autoplaymode=strategy -autoplaydiff=8` and the same with 2: 56 and 127 of the
+checks, up to 26 animals), which no run of the coverage check did (section 11). And the survey's figure for `HasMove` in
+`docs/MOD_ROADMAP.md`, about half a million steps when no move is left, is far above what a board reaches: the slowest such call
+took 24 microseconds.
