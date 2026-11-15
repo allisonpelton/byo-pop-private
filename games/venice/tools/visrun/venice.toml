@@ -8,6 +8,8 @@ carve_exe = "re/venice/bin/VeniceGame.exe"
 patches = "tools/origrun/patches/venice.txt"   # the seed patch ({seed}); run with --seed 1 as idplay does
 title = "Venice"                      # a text the original's window title holds (the product name is "Venice Deluxe")
 client = [800, 600]
+pos = [20, 20]                        # the window's top left (visrun moves it only when this is set): games that are not placed stay centered on the desktop, where another
+                                      # game's window would overlap this one and visrun refuses a shot behind another window
 clock = "virtual"                     # idplay ran Venice on the virtual clock; "real" is the fallback if the barrier never holds
 update_ms = 4
 counter = "[0xa2a178]+0x47c"          # idplay's FRAME_COUNTER (a 4 ms frame)
@@ -20,9 +22,17 @@ reg_values = { ScreenMode = 0 }       # windowed
 save_dirs = ['C:\ProgramData\PopCap Games\Venice\userdata']   # profiles.dat: backed up, emptied for the run, put back
 @SAVE_SEED@
 
-[values]                              # read at every logged step (steps.tsv), for the port's side
-update_count = "[0xa2a178]+0x484"
-tick = "0xa2a1ac"
+# Read at every logged step (steps.tsv), for the port's side, under the names idplay.py's EXPRESSIONS give them: visshots.py peeks at
+# every update and takes from them the first update after the loading (loadstate 101 and the tick count off 0) and the ticks each
+# update ran (the tick count's step; the batch is how many ticks the last batch ran); the seed and the last scene's tick count are what
+# `visshots.py compare` sets against the port's trace, to say at which update the two part.
+[values]
+counter = "0xa2a1ac"                  # the tick count the game has run up to (0 until the first update after a reset)
+batch = "0x5b51c8"
+loadstate = "0x5b51b8"                # 101 once the game runs
+seed = "0x5b5174"                      # the random generator
+tail = "0x5ba2c0"                     # the last scene (a pointer)
+scene = "[0x5ba2c0]+0x100"            # the last scene's tick count, as float bits
 
 [cues]                                # names for "waitcue" and "gate" in a step file; "<expr>[:size] <op> <value>"
 running = "[0xa2a178]+0x47c > 0"
