@@ -111,6 +111,24 @@ GetCursorPos, which then sees the user's own cursor. Not compared in 3D: the lev
 focus and the sound. A long 3D game cannot be lined up past update 10282 anyway, where the original's single-precision
 x87 parts from the port (see "Oddities" in NOTES.md).
 
+3D on the web (2026-11-14). The web build's seeded 3D games were shot through the page
+(tools/web/seeded3d.js, the player-only page held with `?hold=1` and given the native run's
+`-fast -3d -seed=1234 -autoplay=` arguments on a 1920 by 1200 screen, so the game is 1228 by 768 on both sides).
+They were compared with the native port's 3D shots at the same updates. Two sets were taken. Classic has 29 shots
+from update 3000 to 10000: two level-ups' hyperspace jumps 40 updates apart, the boards between them and the rank
+bar. Blitz has 12 shots of its play from update 2656 to 8156: bombs, cascades and the speed bonus's banner. The
+end of a Blitz game in 3D is not in this comparison. Every Classic shot is the same
+pixel for pixel but for a level or two of rounding. In Blitz, up to 54 pixels a shot differ, single pixels along
+one diagonal edge of a background polygon: the browser's WebGL rasterizes that edge a pixel differently from native
+GL. The first comparison differed everywhere, for three reasons, all in the test and none in the port:
+- The page's profile had seen the first game's tips, which a fresh native user folder has not, so the web game
+  played the same moves about 75 updates sooner. The driver now wipes the test profile first.
+- A held `-fast` page draws nothing new. `-fast` draws only every tenth update, so a shot could show a picture up to
+  nine updates old, depending on where the browser frame's update budget ended. The driver now adds `-drawevery`;
+  natively it leaves every shot unchanged.
+- A native `<n> screenshot` runs at the start of update n, before the game updates: it shows n - 1 updates. The
+  page is held at n - 1 for the shot named n.
+
 ### Changes the pass made
 
 | Difference | Cause in the original | The port now | Commit |
