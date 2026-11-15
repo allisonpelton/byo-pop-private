@@ -605,7 +605,7 @@ esac
 
 # In a worktree, bring the baselines and staged assets of the games this branch does not own up to date with the
 # main checkout (tools/setup_worktree.sh --refresh), once: the run under rundesk below has BYOPOP_TEST_RUN set.
-if [ -z "${BYOPOP_TEST_RUN:-}" ] && [ "$(git rev-parse --absolute-git-dir 2> /dev/null)" != "$(cd "$(git rev-parse --git-common-dir 2> /dev/null)" 2> /dev/null && pwd)" ]; then
+if [ -z "${BYOPOP_TEST_RUN:-}" ] && [ "$(cd "$(git rev-parse --absolute-git-dir 2> /dev/null)" 2> /dev/null && pwd)" != "$(cd "$(git rev-parse --git-common-dir 2> /dev/null)" 2> /dev/null && pwd)" ]; then
 	tools/setup_worktree.sh --refresh $([ "$DRY" -eq 1 ] && echo --dry-run) || true
 fi
 

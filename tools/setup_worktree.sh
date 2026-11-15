@@ -16,8 +16,9 @@
 # later, and an older worktree would keep the stale copy, so check.sh --changed fails on a game it never
 # touched). A game is owned when its folder games/<game> differs from the merge base with the local main branch
 # (committed or not). Baselines (build/baseline* -> the game's folder; build/baseline and baseline-stage0 are
-# Bejeweled's) are compared byte for byte; an assets folder, by file size and modification time (a trailing
-# -web or other -suffix is dropped to find the game; no game folder, no refresh). Files missing here are
+# Bejeweled's) are compared byte for byte; an assets folder, by file size and modification time (a file
+# differs when the sizes differ or main's is newer: a plain copy gets the time of the copying). A trailing
+# -web or other -suffix is dropped to find the game; an assets folder with no game folder is left alone. Files missing here are
 # copied too; nothing the worktree has and main lacks is ever deleted, and nothing is written to main.
 # Prints one line, and nothing when nothing differs; in the main checkout it only says it does nothing.
 # check.sh runs it at its start inside a worktree (with --dry-run it only reports).
@@ -39,7 +40,7 @@ while [ $# -gt 0 ]; do
 		*) TARGET="$1"; shift ;;
 	esac
 done
-TARGET="$(cd "${TARGET:-.}" && git rev-parse --show-toplevel)"
+TARGET="$(cd "$(cd "${TARGET:-.}" && git rev-parse --show-toplevel)" && pwd)"  # in the same spelling as MAIN below
 # The main checkout: the folder that holds the shared .git directory
 MAIN="$(cd "$TARGET" && cd "$(git rev-parse --git-common-dir)/.." && pwd)"
 if [ "$MAIN" = "$TARGET" ]; then
@@ -71,7 +72,7 @@ if [ "$REFRESH" = 1 ]; then
 				cmp -s "$MAIN/$2/$f" "$2/$f" 2> /dev/null || printf '%s\n' "$f"
 			done
 		else
-			awk -F'\t' 'NR == FNR { have[$1] = $2 "\t" $3; next } !(($1 in have) && have[$1] == $2 "\t" $3) { print $1 }' \
+			awk -F'\t' 'NR == FNR { size[$1] = $2; time[$1] = $3; next } !($1 in size) || size[$1] != $2 || time[$1] < $3 { print $1 }' \
 				<(cd "$2" 2> /dev/null && find . -type f -printf '%P\t%s\t%Ts\n' || true) \
 				<(cd "$MAIN/$2" && find . -type f -printf '%P\t%s\t%Ts\n')
 		fi
