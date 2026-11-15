@@ -557,5 +557,5 @@ play was never affected.
 
 The site's pane check found a second fault in the test hooks: `goto` left a cutscene up. After the final level's results,
 `goto campaign` showed the map under the final cutscene, and the bot's `move` kept clicking the cutscene, so the level
-never started. `goto` now removes a cutscene as it removes the other screens. The final cutscene's end (the high scores, or
+never started. `goto` now removes a cutscene as it removes the other screens, and the armory and the map too (left up, they stayed over the next campaign's map and the bot kept answering their buttons). The final cutscene's end (the high scores, or
 the menu with no rank) also ends the block's game now, as the high scores do elsewhere.
