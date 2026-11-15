@@ -37,6 +37,7 @@ struct LoadedImage
 	std::vector<uint32_t> mHDBits;  // ARGB at mHDWidth x mHDHeight
 
 	bool mHasAlpha = false;
+	bool mGenerated = false;  // made by the ImageGenerator (SetImageGenerator), not read from a file
 	std::string mSourcePath;  // real path of the colour (or mask) file
 	std::string mModId;       // empty for the base game
 };

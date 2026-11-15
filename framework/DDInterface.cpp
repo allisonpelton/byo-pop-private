@@ -723,6 +723,10 @@ SDL_Texture* DDInterface::PrepareTexture(MemoryImage* theImage, DDTextureData* t
 
 	if ((theData->mBitsChangedCount[aFilter] != theImage->mBitsChangedCount) || isScreen)
 	{
+		// port: pixels dropped after an earlier upload come back from the file for this one (a second filter, a lost
+		// device), and go again after it (MemoryImage.h, mBitsSource)
+		if (!isScreen)
+			theImage->RestoreBits();
 		int aWidth = theData->mWidth;
 		int aHeight = theData->mHeight;
 		const uint32_t* aPixels = NULL;
@@ -737,7 +741,7 @@ SDL_Texture* DDInterface::PrepareTexture(MemoryImage* theImage, DDTextureData* t
 			isPalletized = true; // expanded below without un-palletizing the image
 		else
 		{
-			aPixels = (const uint32_t*) theImage->GetBits();
+			aPixels = (const uint32_t*) theImage->ReadBits();
 			if (aPixels == NULL)
 				return NULL;
 		}
@@ -781,6 +785,8 @@ SDL_Texture* DDInterface::PrepareTexture(MemoryImage* theImage, DDTextureData* t
 		}
 		theData->mBitsChangedCount[aFilter] = theImage->mBitsChangedCount;
 		theData->mOpaque = aScanAlpha && ((anAlphaAnd >> 24) == 0xFF);
+		if (!isScreen)
+			theImage->DropBits();
 	}
 
 	int aBlendMode = (theDrawMode == Graphics::DRAWMODE_ADDITIVE) ? mBlendAdditive : mBlendNormal;
@@ -1072,7 +1078,7 @@ MemoryImage* DDInterface::GetStretchCopy(MemoryImage* theSource, const Rect& the
 		if (fast)
 		{
 			// 0x41a3e0's fast stretch: 16.16 steps from the source rectangle's corner
-			ulong* aSrcBits = theSource->GetBits();
+			ulong* aSrcBits = theSource->ReadBits();
 			ulong* aDestBits = anEntry->mCopy->GetBits();
 			int aStepX = (int) ((double) theSrcRect.mWidth * 65536.0 / theWidth);
 			int aStepY = (int) ((double) theSrcRect.mHeight * 65536.0 / theHeight);

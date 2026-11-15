@@ -8,13 +8,300 @@
 #include "Quantize.h"
 #include "PerfTimer.h"
 #include "SWTri.h"
+#include "../platform/ImageLoader.h"
 
+#include <SDL.h>
 #include <math.h>
+#include <stdlib.h>
+#include <map>
+#include <vector>
 
 using namespace Sexy;
 
 bool (*Sexy::gMemoryImageRecoverBits)(MemoryImage* theImage) = NULL;
 bool Sexy::gSlowStretchRenormalizesAlpha = false;
+
+///////////////////////////////////////////////////////////////////////////////
+// port: pixels dropped after upload (MemoryImage.h, mBitsSource)
+///////////////////////////////////////////////////////////////////////////////
+
+namespace
+{
+
+// BYOPOP_DROPCHECK: 0 off, 1 check every remade picture against its hash, 2 also remake each one as it is dropped
+int DropCheckLevel()
+{
+	static int aLevel = -1;
+	if (aLevel < 0)
+	{
+		const char* aValue = getenv("BYOPOP_DROPCHECK");
+		aLevel = (aValue != NULL) ? atoi(aValue) : 0;
+	}
+	return aLevel;
+}
+
+// the check's copy of each dropped picture's pixels as ARGB, so that a mismatch can say where the remade ones differ
+std::map<const MemoryImage*, std::vector<ulong> > gDroppedPixels;
+
+void PixelsAsARGB(const MemoryImage* theImage, std::vector<ulong>& theOut)
+{
+	size_t aSize = (size_t) theImage->mWidth * theImage->mHeight;
+	theOut.resize(aSize);
+	for (size_t i = 0; i < aSize; i++)
+		theOut[i] = (theImage->mBits != NULL) ? theImage->mBits[i] :
+			((theImage->mColorIndices != NULL) && (theImage->mColorTable != NULL)) ? theImage->mColorTable[theImage->mColorIndices[i]] : 0;
+}
+
+// set while level 2 remakes a picture as it drops it, so that only the remakes a draw or a read asked for are logged
+bool gRemakingAtDrop = false;
+
+unsigned int HashWords(unsigned int theHash, const void* theData, size_t theCount)
+{
+	const unsigned char* aByte = (const unsigned char*) theData;
+	for (size_t i = 0; i < theCount; i++)
+		theHash = (theHash ^ aByte[i]) * 16777619u;
+	return theHash;
+}
+
+// What a picture's file (and the resource's alpha steps) gives, as the load gave it
+bool MakeBits(const MemoryImage::BitsSource& theSource, Platform::LoadedImage& theOut)
+{
+	if ((!Platform::LoadGameImage(theSource.mPath, theOut, true)) || theOut.mBits.empty() || theOut.mGenerated)
+		return false;
+	if (!theSource.mAlphaPath.empty())
+	{
+		Platform::LoadedImage anAlpha;
+		if ((!Platform::LoadGameImage(theSource.mAlphaPath, anAlpha, true)) || (anAlpha.mWidth != theOut.mWidth) ||
+			(anAlpha.mHeight != theOut.mHeight))
+			return false;
+		MemoryImage::ApplyAlphaImage((ulong*) theOut.mBits.data(), theOut.mWidth * theOut.mHeight, anAlpha.mBits.data());
+	}
+	if (!theSource.mAlphaGridPath.empty())
+	{
+		Platform::LoadedImage anAlpha;
+		if ((!Platform::LoadGameImage(theSource.mAlphaGridPath, anAlpha, true)) ||
+			(!MemoryImage::ApplyAlphaGrid((ulong*) theOut.mBits.data(), theOut.mWidth, theOut.mHeight, theSource.mGridRows,
+				theSource.mGridCols, anAlpha.mBits.data(), anAlpha.mWidth, anAlpha.mHeight)))
+			return false;
+	}
+	return true;
+}
+
+}
+
+bool MemoryImage::DropsBits()
+{
+	static int aDrops = -1;
+	if (aDrops < 0)
+	{
+		const char* aValue = getenv("BYOPOP_KEEPBITS");
+		aDrops = ((aValue != NULL) && (atoi(aValue) != 0)) ? 0 : 1;
+	}
+	return aDrops != 0;
+}
+
+void MemoryImage::ApplyAlphaImage(ulong* theBits, int theCount, const uint32_t* theAlpha)
+{
+	for (int i = 0; i < theCount; i++)
+	{
+		*theBits = (*theBits & 0x00FFFFFF) | ((*theAlpha & 0xFF) << 24);
+		++theBits;
+		++theAlpha;
+	}
+}
+
+bool MemoryImage::ApplyAlphaGrid(ulong* theBits, int theWidth, int theHeight, int theRows, int theCols, const uint32_t* theAlpha,
+	int theAlphaWidth, int theAlphaHeight)
+{
+	int aCelWidth = theWidth/theCols;
+	int aCelHeight = theHeight/theRows;
+	if (theAlphaWidth!=aCelWidth || theAlphaHeight!=aCelHeight)
+		return false;
+
+	ulong *aMasterRowPtr = theBits;
+	for (int i=0; i < theRows; i++)
+	{
+		ulong *aMasterColPtr = aMasterRowPtr;
+		for (int j=0; j < theCols; j++)
+		{
+			ulong* aRowPtr = aMasterColPtr;
+			const uint32_t* anAlphaBits = theAlpha;
+			for (int y=0; y<aCelHeight; y++)
+			{
+				ulong *aDestPtr = aRowPtr;
+				for (int x=0; x<aCelWidth; x++)
+				{
+					*aDestPtr = (*aDestPtr & 0x00FFFFFF) | ((*anAlphaBits & 0xFF) << 24);
+					++anAlphaBits;
+					++aDestPtr;
+				}
+				aRowPtr += theWidth;
+			}
+
+			aMasterColPtr += aCelWidth;
+		}
+		aMasterRowPtr += aCelHeight*theWidth;
+	}
+	return true;
+}
+
+void MemoryImage::SetBitsSource(BitsSource* theSource)
+{
+	if (mBitsDropped)
+		RestoreBits();
+	delete mBitsSource;
+	mBitsSource = theSource;
+	mBitsSourceCount = mBitsChangedCount;
+	mBitsLent = false;
+}
+
+void MemoryImage::ForgetDroppedBits()
+{
+	mBitsDropped = false;
+	mDroppedPalette = false;
+	delete mBitsSource;
+	mBitsSource = NULL;
+}
+
+unsigned int MemoryImage::HashOfPixels() const
+{
+	unsigned int aHash = 2166136261u;
+	size_t aSize = (size_t) mWidth * mHeight;
+	if (mBits != NULL)
+		aHash = HashWords(aHash, mBits, aSize * sizeof(ulong));
+	else if ((mColorIndices != NULL) && (mColorTable != NULL))
+	{
+		// the colours the pixels show: Quantize8Bit fills only the entries it uses, and the rest of the table holds whatever the
+		// allocation held
+		for (size_t i = 0; i < aSize; i++)
+			aHash = HashWords(aHash, &mColorTable[mColorIndices[i]], sizeof(ulong));
+	}
+	return aHash;
+}
+
+bool MemoryImage::DropBits()
+{
+	if ((!DropsBits()) || mBitsDropped || mBitsLent || (!BitsSourceValid()) || mHDMirroring || (!mHDBits.empty()))
+		return false;
+	if ((mBits == NULL) && ((mColorIndices == NULL) || (mColorTable == NULL)))
+		return false;
+
+	int aCheck = DropCheckLevel();
+	if (aCheck > 0)
+	{
+		mDropHash = HashOfPixels();
+		PixelsAsARGB(this, gDroppedPixels[this]);
+	}
+	mDroppedPalette = (mBits == NULL);
+
+	delete [] mBits;
+	mBits = NULL;
+	delete [] mColorIndices;
+	mColorIndices = NULL;
+	delete [] mColorTable;
+	mColorTable = NULL;
+	delete [] mNativeAlphaData;
+	mNativeAlphaData = NULL;
+	delete [] mRLAlphaData;
+	mRLAlphaData = NULL;
+	delete [] mRLAdditiveData;
+	mRLAdditiveData = NULL;
+	mBitsDropped = true;
+
+	if (aCheck >= 2)
+	{
+		// remade at once, so that every drop is checked, and dropped again
+		bool aPalette = mDroppedPalette;
+		gRemakingAtDrop = true;
+		RestoreBits();
+		gRemakingAtDrop = false;
+		delete [] mBits;
+		mBits = NULL;
+		delete [] mColorIndices;
+		mColorIndices = NULL;
+		delete [] mColorTable;
+		mColorTable = NULL;
+		mDroppedPalette = aPalette;
+		mBitsDropped = true;
+	}
+	return true;
+}
+
+bool MemoryImage::RestoreBits()
+{
+	if (!mBitsDropped)
+		return false;
+	mBitsDropped = false;
+
+	int aSize = mWidth * mHeight;
+	Platform::LoadedImage aMade;
+	bool isMade = (mBitsSource != NULL) && MakeBits(*mBitsSource, aMade) && (aMade.mWidth == mWidth) && (aMade.mHeight == mHeight);
+	if (!isMade)
+	{
+		// not expected: the file gave something else than at the load. The picture keeps zero pixels from now on.
+		SDL_Log("DROPCHECK cannot remake the pixels of %s", mFilePath.c_str());
+		delete mBitsSource;
+		mBitsSource = NULL;
+		mDroppedPalette = false;
+		mBits = new ulong[aSize + 1];
+		memset(mBits, 0, aSize * sizeof(ulong));
+		mBits[aSize] = MEMORYCHECK_ID;
+		return false;
+	}
+
+	if (mDroppedPalette)
+	{
+		mColorIndices = new uchar[aSize];
+		mColorTable = new ulong[256];
+		if (!Quantize8Bit((const ulong*) aMade.mBits.data(), mWidth, mHeight, mColorIndices, mColorTable))
+		{
+			delete [] mColorIndices;
+			mColorIndices = NULL;
+			delete [] mColorTable;
+			mColorTable = NULL;
+		}
+	}
+	if (mColorTable == NULL)
+	{
+		mBits = new ulong[aSize + 1];
+		memcpy(mBits, aMade.mBits.data(), aSize * sizeof(ulong));
+		mBits[aSize] = MEMORYCHECK_ID;
+	}
+	mDroppedPalette = false;
+
+	if ((DropCheckLevel() > 0) && (HashOfPixels() != mDropHash))
+	{
+		std::vector<ulong> aRemade;
+		PixelsAsARGB(this, aRemade);
+		const std::vector<ulong>& aDropped = gDroppedPixels[this];
+		int aDiffering = 0, aFirst = -1;
+		for (size_t i = 0; (i < aRemade.size()) && (i < aDropped.size()); i++)
+		{
+			if (aRemade[i] != aDropped[i])
+			{
+				if (aFirst < 0)
+					aFirst = (int) i;
+				aDiffering++;
+			}
+		}
+		SDL_Log("DROPCHECK mismatch: %s (%dx%d): %d pixels differ, the first at %d,%d: %08lx dropped, %08lx remade", mFilePath.c_str(),
+			mWidth, mHeight, aDiffering, (aFirst < 0) ? 0 : aFirst % mWidth,
+			(aFirst < 0) ? 0 : aFirst / mWidth, (aFirst < 0) ? 0ul : (unsigned long) aDropped[aFirst], (aFirst < 0) ? 0ul : (unsigned long) aRemade[aFirst]);
+	}
+	if (DropCheckLevel() > 0)
+		gDroppedPixels.erase(this);
+	if ((DropCheckLevel() > 0) && (!gRemakingAtDrop))
+		SDL_Log("DROPCHECK remade %s (%dx%d)", mFilePath.c_str(), mWidth, mHeight);
+	return true;
+}
+
+ulong* MemoryImage::ReadBits()
+{
+	bool wasLent = mBitsLent;
+	ulong* aBits = GetBits();
+	mBitsLent = wasLent;
+	return aBits;
+}
 
 // port: helpers for drawing on HD pixels (see BeginHDMirror at the end of this file)
 namespace
@@ -94,6 +381,7 @@ public:
 		MemoryImage* aSource = dynamic_cast<MemoryImage*>(theImage);
 		if (aSource == NULL)
 			return;
+		aSource->RestoreBits();
 		if (aSource->HasMirrorableHDBits() && (aSource->mHDScale == theScale))
 		{
 			mView = new PixelView(aSource, &aSource->mHDBits[0], aSource->mHDWidth, aSource->mHDHeight, true);
@@ -111,7 +399,7 @@ public:
 		}
 		else
 		{
-			aFrom = (const uint32_t*) aSource->GetBits();
+			aFrom = (const uint32_t*) aSource->ReadBits();
 			aFromWidth = aSource->mWidth;
 			aFromScale = 1;
 		}
@@ -187,15 +475,22 @@ MemoryImage::MemoryImage(const MemoryImage& theMemoryImage) :
 	InitHD();
 	mRotateRowsByImageWidth = false;	// a copy is a plain image, as Init leaves one
 	mUploadAsIs = false;
+	mBitsSource = NULL;		// a copy's pixels are its own (the game's to change)
+	mBitsSourceCount = 0;
+	mBitsDropped = false;
+	mBitsLent = false;
+	mDroppedPalette = false;
+	mDropHash = 0;
 
 	bool deleteBits = false;
 
 	MemoryImage* aNonConstMemoryImage = (MemoryImage*) &theMemoryImage;
+	aNonConstMemoryImage->RestoreBits();
 
 	if ((theMemoryImage.mBits == NULL) && (theMemoryImage.mColorTable == NULL))
 	{
 		// Must be a DDImage with only a DDSurface
-		aNonConstMemoryImage->GetBits();
+		aNonConstMemoryImage->ReadBits();
 		deleteBits = true;
 	}
 
@@ -276,6 +571,7 @@ MemoryImage::~MemoryImage()
 	delete [] mRLAdditiveData;
 	delete [] mColorIndices;
 	delete [] mColorTable;
+	delete mBitsSource;
 	FreeHDCaches();
 }
 
@@ -316,12 +612,24 @@ void MemoryImage::Init()
 	mWantPal = false;
 	mRotateRowsByImageWidth = false;
 	mUploadAsIs = false;
+	mBitsSource = NULL;
+	mBitsSourceCount = 0;
+	mBitsDropped = false;
+	mBitsLent = false;
+	mDroppedPalette = false;
+	mDropHash = 0;
 
 	mApp->AddMemoryImage(this);
 }
 
 void MemoryImage::BitsChanged()
 {
+	// port: the pixels are not the file's any more (MemoryImage.h, mBitsSource): dropped ones come back first
+	if (mBitsDropped)
+		RestoreBits();
+	delete mBitsSource;
+	mBitsSource = NULL;
+
 	mBitsChanged = true;
 	mBitsChangedCount++;
 
@@ -1040,6 +1348,7 @@ void* MemoryImage::GetNativeAlphaData(NativeDisplay *theDisplay)
 	if (mNativeAlphaData != NULL)
 		return mNativeAlphaData;
 
+	RestoreBits();
 	CommitBits();
 
 	const int rRightShift = 16 + (8-theDisplay->mRedBits);
@@ -1056,7 +1365,7 @@ void* MemoryImage::GetNativeAlphaData(NativeDisplay *theDisplay)
 
 	if (mColorTable == NULL)
 	{
-		ulong* aSrcPtr = GetBits();
+		ulong* aSrcPtr = ReadBits();
 
 		ulong* anAlphaData = new ulong[mWidth*mHeight];	
 
@@ -1114,6 +1423,8 @@ void* MemoryImage::GetNativeAlphaData(NativeDisplay *theDisplay)
 
 uchar* MemoryImage::GetRLAlphaData()
 {
+	if (mRLAlphaData == NULL)
+		RestoreBits();
 	CommitBits();
 
 	if (mRLAlphaData == NULL)
@@ -1126,7 +1437,7 @@ uchar* MemoryImage::GetRLAlphaData()
 			if (mNativeAlphaData != NULL)
 				aSrcPtr = (ulong*) mNativeAlphaData;
 			else
-				aSrcPtr = GetBits();
+				aSrcPtr = ReadBits();
 
 			#define NEXT_SRC_COLOR (*(aSrcPtr++))
 
@@ -1154,6 +1465,7 @@ uchar* MemoryImage::GetRLAdditiveData(NativeDisplay *theNative)
 {
 	if (mRLAdditiveData == NULL)
 	{
+		RestoreBits();
 		if (mColorTable == NULL)
 		{
 			ulong* aBits = (ulong*) GetNativeAlphaData(theNative);
@@ -1302,8 +1614,8 @@ void MemoryImage::PurgeBits()
 
 void MemoryImage::DeleteSWBuffers()
 {
-	if ((mBits == NULL) && (mColorIndices == NULL))
-		GetBits();
+	if ((!mBitsDropped) && (mBits == NULL) && (mColorIndices == NULL))
+		ReadBits();
 	
 	delete [] mNativeAlphaData;
 	mNativeAlphaData = NULL;
@@ -1338,8 +1650,8 @@ void MemoryImage::ReInit()
 
 void MemoryImage::DeleteNativeData()
 {
-	if ((mBits == NULL) && (mColorIndices == NULL))
-		GetBits(); // We need to keep the bits around
+	if ((!mBitsDropped) && (mBits == NULL) && (mColorIndices == NULL))
+		ReadBits(); // We need to keep the bits around
 	
 	delete [] mNativeAlphaData;
 	mNativeAlphaData = NULL;
@@ -1350,6 +1662,8 @@ void MemoryImage::DeleteNativeData()
 
 void MemoryImage::SetBits(ulong* theBits, int theWidth, int theHeight, bool commitBits)
 {	
+	if (mBitsDropped && (theBits != NULL))
+		ForgetDroppedBits();	// port: replaced, so not made again
 	if (theBits != mBits)
 	{
 		delete [] mColorIndices;
@@ -1358,7 +1672,7 @@ void MemoryImage::SetBits(ulong* theBits, int theWidth, int theHeight, bool comm
 		delete [] mColorTable;
 		mColorTable = NULL;
 
-		if (theWidth != mWidth || theHeight != mHeight)
+		if (theWidth != mWidth || theHeight != mHeight || mBits == NULL)	// port: or no 32-bit pixels yet (a palette, dropped ones)
 		{
 			delete [] mBits;
 			mBits = new ulong[theWidth*theHeight + 1];
@@ -1377,6 +1691,7 @@ void MemoryImage::SetBits(ulong* theBits, int theWidth, int theHeight, bool comm
 void MemoryImage::Create(int theWidth, int theHeight)
 {
 	ClearHDBits();
+	ForgetDroppedBits();
 
 	delete [] mBits;
 	mBits = NULL;
@@ -1393,6 +1708,10 @@ void MemoryImage::Create(int theWidth, int theHeight)
 
 ulong* MemoryImage::GetBits()
 {
+	// port: dropped pixels come back, and pixels given out are never dropped again (MemoryImage.h, mBitsSource)
+	RestoreBits();
+	mBitsLent = true;
+
 	if (mBits == NULL)
 	{
 		int aSize = mWidth*mHeight;
@@ -1576,6 +1895,8 @@ void MemoryImage::AdditiveBlt(Image* theImage, int theX, int theY, const Rect& t
 	theImage->mDrawn = true;
 
 	MemoryImage* aSrcMemoryImage = dynamic_cast<MemoryImage*>(theImage);
+	if (aSrcMemoryImage != NULL)
+		aSrcMemoryImage->RestoreBits();	// port: dropped pixels (MemoryImage.h)
 
 	uchar* aMaxTable = mApp->mAdd8BitMaxTable;
 
@@ -1583,7 +1904,7 @@ void MemoryImage::AdditiveBlt(Image* theImage, int theX, int theY, const Rect& t
 	{
 		if (aSrcMemoryImage->mColorTable == NULL)
 		{			
-			ulong* aSrcBits = aSrcMemoryImage->GetBits();
+			ulong* aSrcBits = aSrcMemoryImage->ReadBits();
 
 			#define NEXT_SRC_COLOR		(*(aSrcPtr++))
 			#define SRC_TYPE			ulong			
@@ -1616,12 +1937,14 @@ void MemoryImage::NormalBlt(Image* theImage, int theX, int theY, const Rect& the
 	theImage->mDrawn = true;
 
 	MemoryImage* aSrcMemoryImage = dynamic_cast<MemoryImage*>(theImage);
+	if (aSrcMemoryImage != NULL)
+		aSrcMemoryImage->RestoreBits();	// port: dropped pixels (MemoryImage.h)
 
 	if (aSrcMemoryImage != NULL)
 	{
 		if (aSrcMemoryImage->mColorTable == NULL)
 		{			
-			ulong* aSrcPixelsRow = ((ulong*) aSrcMemoryImage->GetBits()) + (theSrcRect.mY * theImage->mWidth) + theSrcRect.mX;
+			ulong* aSrcPixelsRow = ((ulong*) aSrcMemoryImage->ReadBits()) + (theSrcRect.mY * theImage->mWidth) + theSrcRect.mX;
 
 			#define NEXT_SRC_COLOR		(*(aSrcPtr++))
 			#define READ_SRC_COLOR		(*(aSrcPtr))
@@ -1813,13 +2136,15 @@ void MemoryImage::BltRotated(Image* theImage, float theX, float theY, const Rect
 		return;
 
 	MemoryImage* aMemoryImage = dynamic_cast<MemoryImage*>(theImage);
+	if (aMemoryImage != NULL)
+		aMemoryImage->RestoreBits();	// port: dropped pixels (MemoryImage.h)
 	uchar* aMaxTable = mApp->mAdd8BitMaxTable;
 
 	if (aMemoryImage != NULL)
 	{	
 		if (aMemoryImage->mColorTable == NULL)
 		{			
-			ulong* aSrcBits = aMemoryImage->GetBits() + theSrcRect.mX + theSrcRect.mY*(mRotateRowsByImageWidth ? aMemoryImage->mWidth : theSrcRect.mWidth);			
+			ulong* aSrcBits = aMemoryImage->ReadBits() + theSrcRect.mX + theSrcRect.mY*(mRotateRowsByImageWidth ? aMemoryImage->mWidth : theSrcRect.mWidth);			
 
 			#define SRC_TYPE ulong
 			#define READ_COLOR(ptr) (*(ptr))
@@ -1871,12 +2196,14 @@ void MemoryImage::SlowStretchBlt(Image* theImage, const Rect& theDestRect, const
 	ulong* aDestEnd = GetBits() + (mWidth * mHeight);
 
 	MemoryImage* aSrcMemoryImage = dynamic_cast<MemoryImage*>(theImage);
+	if (aSrcMemoryImage != NULL)
+		aSrcMemoryImage->RestoreBits();	// port: dropped pixels (MemoryImage.h)
 
 	if (aSrcMemoryImage != NULL)
 	{
 		if (aSrcMemoryImage->mColorTable == NULL)
 		{			
-			ulong* aSrcBits = aSrcMemoryImage->GetBits();
+			ulong* aSrcBits = aSrcMemoryImage->ReadBits();
 
 			#define SRC_TYPE ulong
 			#define READ_COLOR(ptr) (*(ptr))
@@ -1926,12 +2253,14 @@ void MemoryImage::StretchCopy(Image* theImage, const Rect& theDestRect, const FR
 	ulong* aDestEnd = GetBits() + (mWidth * mHeight);
 
 	MemoryImage* aSrcMemoryImage = dynamic_cast<MemoryImage*>(theImage);
+	if (aSrcMemoryImage != NULL)
+		aSrcMemoryImage->RestoreBits();	// port: dropped pixels (MemoryImage.h)
 
 	if (aSrcMemoryImage != NULL)
 	{
 		if (aSrcMemoryImage->mColorTable == NULL)
 		{
-			ulong* aSrcBits = aSrcMemoryImage->GetBits();
+			ulong* aSrcBits = aSrcMemoryImage->ReadBits();
 
 			#define SRC_TYPE ulong
 			#define READ_COLOR(ptr) (*(ptr))
@@ -1968,11 +2297,13 @@ void MemoryImage::FastStretchBlt(Image* theImage, const Rect& theDestRect, const
 	theImage->mDrawn = true;
 
 	MemoryImage* aSrcMemoryImage = dynamic_cast<MemoryImage*>(theImage);
+	if (aSrcMemoryImage != NULL)
+		aSrcMemoryImage->RestoreBits();	// port: dropped pixels (MemoryImage.h)
 
 	if (aSrcMemoryImage != NULL)
 	{
 		ulong* aDestPixelsRow = ((ulong*) GetBits()) + (theDestRect.mY * mWidth) + theDestRect.mX;
-		ulong* aSrcPixelsRow = (ulong*) aSrcMemoryImage->GetBits();;
+		ulong* aSrcPixelsRow = (ulong*) aSrcMemoryImage->ReadBits();;
 		
 		double aSrcY = theSrcRect.mY;
 
@@ -2186,12 +2517,13 @@ void MemoryImage::BltTrianglesTex(Image *theTexture, const TriVertex theVertices
 
 bool MemoryImage::Palletize()
 {
+	RestoreBits();
 	CommitBits();
 	
 	if (mColorTable != NULL)
 		return true;
 
-	GetBits();
+	ReadBits();
 
 	if (mBits == NULL)
 		return false;
@@ -2286,6 +2618,8 @@ int MemoryImage::BeginHDMirror(Image* theSource)
 	MemoryImage* aSource = dynamic_cast<MemoryImage*>(theSource);
 	if (aSource == this)
 		return 0;
+	if (aSource != NULL)
+		aSource->RestoreBits();
 	bool destHD = HasMirrorableHDBits();
 	bool sourceHD = (aSource != NULL) && aSource->HasMirrorableHDBits();
 	if ((!destHD) && (!sourceHD))

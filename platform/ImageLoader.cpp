@@ -338,6 +338,7 @@ static bool LoadGameImageLayers(const std::string& theGamePath, LoadedImage& the
 				if (generated.mHDBits.empty())
 					generated.mHDScale = 1;
 				generated.mModId.clear();
+				generated.mGenerated = true;
 				theOut = std::move(generated);
 				return true;
 			}
