@@ -661,6 +661,16 @@ sequences that sound off in game"): a cascade of each depth, a level up, the gam
 log (`BYOPOP_SOUNDLOG`) of a game the port's own bot played (`tools/playbymove`), made into a preset by
 `tools/soundpreset.py <log> <first update> <last update>` and named rip style, as Music's places are.
 
+**Other games' sounds.** A when-line ends with what the user's reviews found of the sound in other games
+(`tools/web/soundcompare.py`, its decisions in `testnotes/`). "Also in *game* as *name*" is the same recording,
+noted where one side is unused or the other game is not ported (`tools/soundmatch.py`). "Resembles *game*'s *name*" is
+a near copy the user heard as similar, with how this one differs. "Made from the same sound as …" is a pair the user
+accepted from `tools/soundbased.py`'s list (2026-11-13), with what sets the two apart: pitched, sped up or slowed,
+layered with another sound, filtered, a tail cut or added. Its direction is the detector's, which of the two holds more
+of the other, not which game came first (in 23 pairs Bejeweled 3's sound is the one held in Bejeweled 2's), so the words are
+"made from the same sound", never "based on". A sound with three or more such partners names them in one sentence and
+says only what they differ in. A decision on a pair stands for every identical copy of either side.
+
 ### The splits timer
 
 The Splits window (`web/splits.js`) stands in for LiveSplit (the user: "a LiveSplit stand-in on the site so that people
