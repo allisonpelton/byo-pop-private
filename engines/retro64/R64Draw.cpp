@@ -1,6 +1,7 @@
 #include "R64Draw.h"
 #include "R64Blit.h"
 #include "R64Sys.h"
+#include "platform/crt/CrtQsort.h"
 
 #include <cstdlib>
 #include <cstring>
@@ -34,39 +35,6 @@ int CompareDepth(const void* a, const void* b)
 	return ((const DrawItem*)a)->mDepth > ((const DrawItem*)b)->mDepth ? 1 : -1;
 }
 
-void SwapBytes(uint8_t* theFirst, uint8_t* theSecond, size_t theWidth)
-{
-	if (theFirst != theSecond)
-	{
-		size_t n = theWidth;
-		do
-		{
-			uint8_t t = *theFirst;
-			*theFirst = *theSecond;
-			*theSecond = t;
-			theFirst++;
-			theSecond++;
-			n--;
-		} while (n != 0);
-	}
-}
-
-// 0x444bc0 (cosmicbugs), 0x445000 (waterbugs)
-void ShortSort(uint8_t* theLo, uint8_t* theHi, size_t theWidth, int (*theCompare)(const void*, const void*))
-{
-	for (; theLo < theHi; theHi -= theWidth)
-	{
-		uint8_t* aMax = theLo;
-		for (uint8_t* p = theLo + theWidth; p <= theHi; p += theWidth)
-		{
-			if (theCompare(p, aMax) > 0)
-				aMax = p;
-		}
-		if (aMax != theHi && theWidth != 0)
-			SwapBytes(aMax, theHi, theWidth);
-	}
-}
-
 inline uint32_t PackColour(const PixelFormat* f, int r, int g, int b)
 {
 	return (uint32_t)((uint8_t)b >> (f->mBLoss & 0x1f)) << (f->mBShift & 0x1f) |
@@ -75,110 +43,6 @@ inline uint32_t PackColour(const PixelFormat* f, int r, int g, int b)
 }
 
 } // namespace
-
-// 0x444c50 (cosmicbugs), 0x445090 (waterbugs)
-void CrtQsort(void* theBase, size_t theNum, size_t theWidth, int (*theCompare)(const void*, const void*))
-{
-	if (theBase == nullptr || theNum < 2 || theWidth == 0 || theCompare == nullptr)
-		return;
-	uint8_t* aLoStack[30];
-	uint8_t* aHiStack[30];
-	int aTop = 0;
-	uint8_t* aLo = (uint8_t*)theBase;
-	uint8_t* aHi = (uint8_t*)theBase + (theNum - 1) * theWidth;
-	while (true)
-	{
-		size_t aSize = (size_t)(aHi - aLo) / theWidth + 1;
-		if (aSize <= 8)
-			ShortSort(aLo, aHi, theWidth, theCompare);
-		else
-		{
-			uint8_t* aMid = aLo + (aSize / 2) * theWidth;
-			if (theCompare(aLo, aMid) > 0)
-				SwapBytes(aLo, aMid, theWidth);
-			if (theCompare(aLo, aHi) > 0)
-				SwapBytes(aLo, aHi, theWidth);
-			if (theCompare(aMid, aHi) > 0)
-				SwapBytes(aMid, aHi, theWidth);
-			uint8_t* aLoGuy = aLo;
-			uint8_t* aHiGuy = aHi;
-			while (true)
-			{
-				if (aMid > aLoGuy)
-				{
-					do
-					{
-						aLoGuy += theWidth;
-					} while (aLoGuy < aMid && theCompare(aLoGuy, aMid) <= 0);
-				}
-				if (aMid <= aLoGuy)
-				{
-					do
-					{
-						aLoGuy += theWidth;
-					} while (aLoGuy <= aHi && theCompare(aLoGuy, aMid) <= 0);
-				}
-				do
-				{
-					aHiGuy -= theWidth;
-				} while (aHiGuy > aMid && theCompare(aHiGuy, aMid) > 0);
-				if (aHiGuy < aLoGuy)
-					break;
-				SwapBytes(aLoGuy, aHiGuy, theWidth);
-				if (aMid == aHiGuy)
-					aMid = aLoGuy;
-			}
-			aHiGuy += theWidth;
-			if (aMid < aHiGuy)
-			{
-				do
-				{
-					aHiGuy -= theWidth;
-				} while (aHiGuy > aMid && theCompare(aHiGuy, aMid) == 0);
-			}
-			if (aMid >= aHiGuy)
-			{
-				do
-				{
-					aHiGuy -= theWidth;
-				} while (aHiGuy > aLo && theCompare(aHiGuy, aMid) == 0);
-			}
-			if (aHiGuy - aLo >= aHi - aLoGuy)
-			{
-				if (aLo < aHiGuy)
-				{
-					aLoStack[aTop] = aLo;
-					aHiStack[aTop] = aHiGuy;
-					aTop++;
-				}
-				if (aLoGuy < aHi)
-				{
-					aLo = aLoGuy;
-					continue;
-				}
-			}
-			else
-			{
-				if (aLoGuy < aHi)
-				{
-					aLoStack[aTop] = aLoGuy;
-					aHiStack[aTop] = aHi;
-					aTop++;
-				}
-				if (aLo < aHiGuy)
-				{
-					aHi = aHiGuy;
-					continue;
-				}
-			}
-		}
-		aTop--;
-		if (aTop < 0)
-			return;
-		aLo = aLoStack[aTop];
-		aHi = aHiStack[aTop];
-	}
-}
 
 // 0x421070 (cosmicbugs), 0x421550 (waterbugs)
 void DrawList_Add(Image* theImage, uint32_t theSeq, int x, int y, int theDepth, int theKind, uint8_t* theDst,
@@ -241,7 +105,7 @@ void DrawList_Flush()
 			} while (k != 0);
 		}
 	} while (aGap != 1 || aSwapped);
-	CrtQsort(gDrawItems, (size_t)aNum, sizeof(DrawItem), CompareDepth);
+	Platform::CrtQsort(gDrawItems, (size_t)aNum, sizeof(DrawItem), CompareDepth);
 	int i = 0;
 	if (gDrawCount < 1)
 	{

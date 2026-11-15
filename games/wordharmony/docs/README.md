@@ -328,16 +328,76 @@ Does the original draw as many frames a second as the port? Yes: one frame every
 original redraws the whole root window every frame, the port's frame is the same one), so the port's saving is not fewer
 frames.
 
-**What is left, for the coordinator** (the shared costs, not changed here). The main thread's `SDL_UpdateTexture` of the whole
-1.9 MB (about 0.58 Mcycles a frame) and `SDL_RenderPresent` with vsync (about 0.77, plus the driver's worker thread at about
-1.15) are on every frame that changes. The framework draws the screen texture into the window in a second pass. A
-dirty-rectangle upload (a `MemoryImage` rectangle that `PrepareTexture` consumes) would need a framework change and is
-unproven by TipTop's measure. Vsync off (`-fast`) looked cheaper in a noisy single run, but Alchemy's notes found it
-costlier; neither is a measure like for like.
+**What was left** after the retained drawing was the framework's presenting of each frame that changes: the main thread's
+`SDL_UpdateTexture` of the whole 1.9 MB (about 0.58 Mcycles a frame) and `SDL_RenderPresent` with vsync (about 0.77, plus the
+driver's worker thread at about 1.15). The surface display (next) took it out in a window.
 
-The new tools in `tools/profile`: `alt.sh` (the alternating runs), `altsum.py` (their summary), `hashcmp.sh` (the per-frame
-hash comparison), and in `perf.py` the thread sampler and the knobs `WH_PERF_PATCHES` (the original's patch file),
-`WH_PERF_FRAMES=<from>:<to>` (a shorter window) and `WH_PERF_EXE`.
+**The window these runs were in.** The game starts full screen (its own setting, `FullScreen`, is on when the registry has no
+value; the port's window is then the desktop's 3840x2160 here, and the original's was measured in the same default), so the
+figures above are the default full-screen mode on both sides, the port through the framework's own display. The runs below
+are windowed at the original's size, as the coordinator asked (the port's `registry.ini` and the original's registry key
+with `FullScreen` 0, `perf.py`'s `WH_PERF_WINDOWED=1`; the port at `-windowscale=1`, 800x600).
+
+## Performance, third step: the surface display (2026-11-12)
+
+The shared presenter `framework/SurfaceDisplay.h` (from the Mahjong ports; Bonnie's and TipTop's use it too) takes the screen
+as the game keeps it, a buffer of 800x600 32-bit pixels and the rectangles of it that changed since the last frame, and in a
+window whose size is the logical size or a whole multiple of it (the original's own window, and the framework's default 2x)
+copies those rectangles, row by row, into the window's own SDL surface and has them shown by a GDI blit, as the original's does.
+There is no SDL renderer then, so no Direct3D device, no driver worker thread and no upload. Word Harmony hands it its
+`ScreenGraphics` buffer and, from `finish()`, the rectangles of the tiles it redrew: `ScreenGraphics::redrawn()` is those
+tiles joined into runs along a row and runs of one width down a column (the display merges the closest of them past 128).
+`WordHarmonyApp::CreateDDInterface` makes the display (native builds only; `SURFACE_DISPLAY=off` in the environment keeps the
+framework's own, for the comparison), and with it the widget keeps the screen in a buffer of its own (`mSurfaceBits`; no
+`MemoryImage`, so no texture) and draws nothing; the web build is as it was. A window of any other size, and full screen,
+uses the display's renderer mode, which is the framework's own path again with only the changed rectangle uploaded.
+
+**Like for like, at the original's size** (`tools/profile/alt.sh`, run as `python -I tools/pincore.py -- bash alt.sh <out> 5`,
+`WH_PERF_WINDOWED=1 WH_PERF_PORTARGS=-windowscale=1`: the original, the port with the surface display and the port with
+`SURFACE_DISPLAY=off` in rotation, five rounds, one pinned core, the same scripted minute, thread cycles; both sides windowed
+at 800x600, the port without `-commands`, at 30.3 frames a second on all three):
+
+| The minute, billions of cycles | Original | Port, surface display | Port, framework's display |
+| --- | --- | --- | --- |
+| Median total | 11.81 | 3.26 | 9.18 |
+| Main thread | 11.81 | 3.16 | 6.29 |
+| Graphics driver's worker | | none | 2.86 |
+| SDL audio thread | | 0.10 | 0.13 |
+| Ratio to the original | | **0.28** (0.27 without the audio thread) | 0.78 |
+| The five runs | 12.0, 13.5, 11.8, 10.2, 10.9 | 4.8, 2.7, 3.3, 3.4, 3.2 | 11.2, 9.1, 9.2, 10.5, 8.0 |
+
+The port took the fewer cycles in all five rounds (original over port: 2.5, 5.0, 3.6, 3.0, 3.4). The idle main menu (600 frames from
+frame 300, five rounds, the same three sides, a script that only waits): original 3.38 G, port with the surface display 0.94 G,
+0.28 (0.27 without the audio thread); with the framework's display 2.81 G, 0.83. What is left of the port is the game's own
+logic and the retained drawing on one thread, and the audio thread's software mixer.
+
+**Full screen, the game's default**, which is the renderer mode of the display: five rounds of the original and the port (same
+method, no `WH_PERF_WINDOWED`): original 10.19 G (8.5 to 11.5), port 8.82 G (main 5.79, the driver's worker 3.56, audio 0.10; 8.1 to
+12.6), 0.87 (0.86 without the audio thread), the port lower in three of the five rounds (original over port: 1.4, 0.72, 1.16, 0.98,
+1.17). That is at the original's level, not under it with room to spare, and it is the framework's: the desktop's size is no whole
+multiple of 800x600, so the display uses its renderer, and the Direct3D 11 swap chain costs the driver's worker thread about 3.5
+G a minute whatever the screen texture's size (five rounds of the port with `-renderscale=1`, a screen texture of 800x600 against
+3200x2400, gave 10.74 G against 10.77 G, the same machine state in that batch). It is not fixable in the game. If full screen is to
+be cheaper it takes a path that shows the screen with no renderer in a window of the desktop's size (a letterboxed copy at a whole
+multiple, 3x here, which is not what a smoothly scaled picture looks like, so the user's decision), or a cheaper present in the
+framework. The 2x window, the framework's default for a player who clears the full screen box, was not measured here; Bonnie's
+notes measured the same display at 0.83 of its original at 2x.
+
+**Proof that the display shows the game's picture.** `SURFACE_VERIFY=1` compares the window's surface with the buffer at every
+pixel after every present (the process aborts at a difference). The game starts full screen, where the display is in renderer
+mode, so the verified runs are windowed (`PORTREG` with `FullScreen` 0): tours 1, 2, 3 and 5 at -fast, 1,618 presents each at 1x
+(`-windowscale=1`) and at 2x (the default), every one through the surface and none differing from the buffer. What the
+display shows is the buffer, and the buffer is the picture the game drew: the hash of the whole 800x600 picture after every
+frame of tours 1, 2, 3 and 5 (16,346 frames, `hashcmp.sh` with `SIDE_ENV_old=SURFACE_DISPLAY=off`) is identical with the framework's display
+and with the surface display, the state logs too, and the frozen baseline (`tools/check.sh wordharmony`: the two scripted games, their
+saves and screenshots, which are read from the buffer) is identical. The surface-mode figures above include `perf.py`'s two marking
+screenshots, also read from the buffer.
+
+The tools in `tools/profile`: `alt.sh` (the alternating runs; sides `orig`, `port`, `portold` for the framework's display and
+`portrs1`), `altsum.py` (their summary), `hashcmp.sh` (the per-frame hash comparison; `SIDE_ENV_old`/`SIDE_ENV_new` and
+`SIDE_ARGS_old`/`SIDE_ARGS_new` give each side's environment and arguments), and in `perf.py` the thread sampler and the knobs
+`WH_PERF_PATCHES` (the original's patch file), `WH_PERF_FRAMES=<from>:<to>` (a shorter window), `WH_PERF_EXE`, `WH_PERF_WINDOWED`
+and `WH_PERF_PORTARGS`.
 
 ## Coverage check (2026-11-11)
 

@@ -2,7 +2,8 @@
 # webtour.sh <name> <runner script> [save]: one script played by the headless runner, the exe (-fast, under rundesk)
 # and the web build under Node (wasmrun.js: no window, no sound, no URL), each from the same save (cb.dat; else a new
 # player), with their state lines and shots in build/cbw/<name>-run, -exe and -web. The exe's shots are compared with
-# the runner's and the web build's with the exe's by tools/shotdiff (runs <name>-exe and <name>-web).
+# the runner's and the web build's with the exe's by tools/shotdiff (runs <name>-exe and <name>-web). EXE_ARGS adds arguments
+# to the exe's command line (-windowscale=1 for the original's window; the exe's window starts at 2x the game's size otherwise).
 set -uo pipefail
 cd "$(dirname "$0")/../../../.."
 N=$1; S=$2; SAVE=${3:-}
@@ -19,7 +20,7 @@ mv build/cbw/$N-run/*.png build/cbw/$N-run/shots/ 2>/dev/null
 D=$(cygpath -ma build/cbw/$N-exe)
 python games/cosmicbugs/tools/play/fwscript.py "$S" "$D/shots" build/cbw/$N-exe/script.txt
 timeout 900 build/native/rundesk.exe "$(cygpath -wa build/native/cosmicbugs.exe)" -gamedir="$(cygpath -wa assets/cosmicbugs)" -userdir="$D/user" -fast \
-	-script="$D/script.txt" > build/cbw/$N-exe/out.txt 2>&1 || echo "webtour.sh: the exe exited with $?"
+	-script="$D/script.txt" ${EXE_ARGS:-} > build/cbw/$N-exe/out.txt 2>&1 || echo "webtour.sh: the exe exited with $?"
 python games/cosmicbugs/tools/play/fwscript.py "$S" shots build/cbw/$N-web/script.txt
 (cd build/cbw/$N-web && timeout 1800 "${NODE:-node}" ../../../games/bejeweled/tools/verify/wasmrun.js game ../../web/cosmicbugs.js \
 	-gamedir="$(cygpath -w ../../../assets/cosmicbugs)" -userdir=user -fast -script=script.txt > out.txt 2>&1) ||

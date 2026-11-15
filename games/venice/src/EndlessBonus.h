@@ -6,7 +6,7 @@
 
 #include "SceneObject.h"
 
-// 0x148 bytes in the original
+// 0x148 bytes in the original; its constructor, 0x409a50, only sets the virtual table over the scene object's
 class EndlessBonus : public SceneObject
 {
 public:

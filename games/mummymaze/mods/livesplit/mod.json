@@ -1,0 +1,10 @@
+{
+  "id": "livesplit",
+  "name": "LiveSplit",
+  "version": "1.0",
+  "author": "byo-pop",
+  "description": "Auto splitter support (Windows, and the site's Splits window): fills the block a speedrun timer reads, with the game's mode, chamber, treasures and the moments of its start, each chamber solved, the last treasure and Abandon Hope. Changes nothing in play or on screen.",
+  "features": {
+    "livesplit": true
+  }
+}

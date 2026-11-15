@@ -1,0 +1,5 @@
+# The player's own game files (staged by the game's tools/stage_*_assets.py) and build output
+/assets/
+/build*/
+*.pyc
+__pycache__/

@@ -19,6 +19,7 @@
 
 using namespace Sexy;
 
+// port: the original's float to int conversion (__ftol): truncation
 static int Ftol(double theValue)
 {
 	return (int) theValue;
@@ -30,14 +31,14 @@ static int Ftol(double theValue)
 // 0x427f90
 void Board::AddMover(Piece* thePiece)
 {
-	thePiece->m94 = true;
+	thePiece->mInMoverList = true;
 	mObjects.push_back(thePiece);
 }
 
 // 0x427ff0 and 0x428040: takes a piece out of the list (it stays alive)
 void Board::EraseMover(Piece* thePiece)
 {
-	thePiece->m94 = false;
+	thePiece->mInMoverList = false;
 	for (std::list<Piece*>::iterator anItr = mObjects.begin(); anItr != mObjects.end(); ++anItr)
 	{
 		if (*anItr == thePiece)
@@ -56,15 +57,15 @@ void Board::AddFlash(Piece* thePiece, int theKind)
 	aFlash->mY = thePiece->mY;
 	aFlash->mType = 3;
 	aFlash->mKind = theKind;
-	aFlash->m7c = 0;
+	aFlash->mFrame = 0;
 	AddMover(aFlash);
 }
 
 // 0x427d00: takes a piece off the board and deletes it. theFlag is passed to DestroySpecial for its special piece
 void Board::RemovePiece(Piece* thePiece, bool theFlag)
 {
-	if (m514 == thePiece)
-		m514 = NULL;
+	if (mPressedPiece == thePiece)
+		mPressedPiece = NULL;
 	switch (thePiece->mType)
 	{
 	case 0:
@@ -86,7 +87,7 @@ void Board::RemovePiece(Piece* thePiece, bool theFlag)
 		break;
 	case 6:
 		if (thePiece->mKind == 4)
-			m2f4--;
+			mFlameCount--;
 		if (thePiece->mFlash != NULL)
 			mEffects->Remove(thePiece->mFlash);
 		if ((mState == 4 || mState == 5) &&
@@ -94,22 +95,22 @@ void Board::RemovePiece(Piece* thePiece, bool theFlag)
 		{
 			Effect* anEffect = mEffects->Add(0xb, true);
 			anEffect->mLife = 1;
-			anEffect->mc0 = 0;
+			anEffect->mDelay = 0;
 			anEffect->mX = thePiece->mX;
 			anEffect->mY = thePiece->mY;
-			anEffect->mf8 = 5.5;
-			anEffect->m110 = 0x32;
-			anEffect->m118 = 0x46;
-			anEffect->m108 = 0.9;
+			anEffect->mSpeed = 5.5;
+			anEffect->mParticleLife = 0x32;
+			anEffect->mCount = 0x46;
+			anEffect->mDrag = 0.9;
 		}
 		if (thePiece->mKind == 0xd)
 		{
 			Effect* anEffect = mEffects->Add(5, true);
-			anEffect->ma8 = 0;
-			anEffect->md0 = 0;
-			anEffect->m108 = 0.93;
+			anEffect->mAccelY = 0;
+			anEffect->mDirY = 0;
+			anEffect->mDrag = 0.93;
 			anEffect->mLife = 1;
-			anEffect->mc0 = 0;
+			anEffect->mDelay = 0;
 			anEffect->mX = thePiece->mX;
 			anEffect->mY = thePiece->mY;
 		}
@@ -117,7 +118,7 @@ void Board::RemovePiece(Piece* thePiece, bool theFlag)
 	}
 	if (thePiece->mType != 3 && thePiece->mType != 6 && thePiece->mType != 5 && mState == 0)
 		AddFlash(thePiece, 2);
-	if (thePiece->m94)
+	if (thePiece->mInMoverList)
 		EraseMover(thePiece);
 	if (thePiece->mSpecial != NULL)
 	{
@@ -170,9 +171,9 @@ int Board::LowestEmpty(int theColumn)
 // 0x427ba0: a tile is put at another cell (the tile that was moved keeps shaking for a while)
 void Board::MovePiece(Piece* thePiece, int theRow, int theColumn)
 {
-	thePiece->mb0 = thePiece->mRow;
-	thePiece->mb4 = thePiece->mColumn;
-	thePiece->mac = 100;
+	thePiece->mMovedFromRow = thePiece->mRow;
+	thePiece->mMovedFromColumn = thePiece->mColumn;
+	thePiece->mTrailLife = 100;
 	mGrid[thePiece->mRow][thePiece->mColumn] = NULL;
 	mGrid[theRow][theColumn] = thePiece;
 	thePiece->mRow = theRow;
@@ -180,10 +181,9 @@ void Board::MovePiece(Piece* thePiece, int theRow, int theColumn)
 	thePiece->mX = (double) CellX(theColumn);
 	thePiece->mY = (double) CellY(theRow);
 	if (thePiece->mType == 4)
-		F4282a0(thePiece->mPath);
+		CancelBurn(thePiece->mPath);
 	MarkDirty();
-	m518 = true;
-	m519 = true;
+	mMovedSinceDown = true;
 }
 
 // 0x427c50: removes the tiles near a cell, up to a squared distance
@@ -237,12 +237,12 @@ void Board::DropPiece(Piece* thePiece)
 			int aOldRow = thePiece->mRow;
 			thePiece->mRow = aTarget;
 			thePiece->mMoving = true;
-			thePiece->m38 = 0.2 / (double) (aTarget - aOldRow);
-			thePiece->m40 = Ftol(thePiece->mX);
-			thePiece->m44 = Ftol(thePiece->mY);
-			thePiece->m48 = CellX(thePiece->mColumn);
-			thePiece->m4c = CellY(aTarget);
-			thePiece->m30 = 0;
+			thePiece->mSlideStep = 0.2 / (double) (aTarget - aOldRow);
+			thePiece->mSlideStartX = Ftol(thePiece->mX);
+			thePiece->mSlideStartY = Ftol(thePiece->mY);
+			thePiece->mSlideEndX = CellX(thePiece->mColumn);
+			thePiece->mSlideEndY = CellY(aTarget);
+			thePiece->mSlideProgress = 0;
 		}
 	}
 }
@@ -250,8 +250,8 @@ void Board::DropPiece(Piece* thePiece)
 // 0x422bc0: every tile with an empty cell under it falls
 void Board::SettleAll(bool theFlag)
 {
-	m45c = theFlag;
-	m458 = mUpdateCnt;
+	mSettleFlag = theFlag;
+	mSettledAt = mUpdateCnt;
 	for (int aColumn = 0; aColumn < mCols; aColumn++)
 	{
 		bool aFound = false;
@@ -293,26 +293,26 @@ void Board::Bounce(Piece* thePiece)
 		return;
 	double aLeft = (double) CellX(0);
 	double aRight = (double) CellX(5);
-	double aSpeed = thePiece->m20 + 0.13;
-	thePiece->m20 = aSpeed;
-	thePiece->mX = thePiece->m18 + thePiece->mX;
+	double aSpeed = thePiece->mSpeedY + 0.13;
+	thePiece->mSpeedY = aSpeed;
+	thePiece->mX = thePiece->mSpeedX + thePiece->mX;
 	double aY = aSpeed + thePiece->mY;
 	thePiece->mY = aY;
 	if (432.0 <= aY)
 	{
 		thePiece->mY = 432.0 - (aY - 432.0);
-		thePiece->m20 = aSpeed * -0.5;
-		thePiece->m18 = thePiece->m18 * 0.93;
+		thePiece->mSpeedY = aSpeed * -0.5;
+		thePiece->mSpeedX = thePiece->mSpeedX * 0.93;
 	}
 	if (thePiece->mX <= aLeft)
 	{
 		thePiece->mX = (aLeft - thePiece->mX) + aLeft;
-		thePiece->m18 = thePiece->m18 * -0.8;
+		thePiece->mSpeedX = thePiece->mSpeedX * -0.8;
 	}
 	if (aRight <= thePiece->mX)
 	{
 		thePiece->mX = aRight - (thePiece->mX - aRight);
-		thePiece->m18 = thePiece->m18 * -0.8;
+		thePiece->mSpeedX = thePiece->mSpeedX * -0.8;
 	}
 }
 
@@ -328,12 +328,12 @@ void Board::HitBombs()
 				aPiece->mSpecial->mType == 6 && aPiece->mSpecial->mKind == 10)
 			{
 				Piece* aBomb = aPiece->mSpecial;
-				aBomb->ma8--;
-				if (aBomb->ma8 == 0)
+				aBomb->mHitsLeft--;
+				if (aBomb->mHitsLeft == 0)
 				{
 					Effect* anEffect = mEffects->Add(0x15, true);
 					anEffect->mLife = 1;
-					anEffect->mc0 = 0;
+					anEffect->mDelay = 0;
 					anEffect->mX = aBomb->mX;
 					anEffect->mY = aBomb->mY;
 					mApp->PlaySample(0x32);
@@ -343,7 +343,7 @@ void Board::HitBombs()
 				{
 					Effect* anEffect = mEffects->Add(0x16, true);
 					anEffect->mLife = 1;
-					anEffect->mc0 = 0;
+					anEffect->mDelay = 0;
 					anEffect->mX = aBomb->mX;
 					anEffect->mY = aBomb->mY;
 					mApp->PlaySample(0x32);
@@ -392,8 +392,8 @@ void Board::ClearBoard(bool theForget)
 			mLeft[aRow] = NULL;
 			mRight[aRow] = NULL;
 		}
-		m2d1[aRow] = false;   // board+0x2d1.. and +0x2c8..: the flags that say an edge is connected
-		m2c8[aRow] = false;
+		mRightTouched[aRow] = false;   // board+0x2d1.. and +0x2c8..: the flags that say an edge is connected
+		mLeftTouched[aRow] = false;
 	}
 	if (!theForget)
 	{
@@ -417,7 +417,7 @@ void Board::ClearBoard(bool theForget)
 	for (std::list<Piece*>::iterator anItr = mObjects.begin(); anItr != mObjects.end(); )
 	{
 		Piece* aPiece = *anItr;
-		aPiece->m94 = false;
+		aPiece->mInMoverList = false;
 		anItr = mObjects.erase(anItr);
 		delete aPiece;
 	}
@@ -426,8 +426,8 @@ void Board::ClearBoard(bool theForget)
 // 0x422620: the first board of a game (not yet translated into a loaded game's pieces)
 void Board::SetupBoard(bool theKeep, bool theLoaded)
 {
-	m4a8 = false;
-	m4a9 = false;
+	mRefilling = false;
+	mJustRefilled = false;
 	if (!theKeep)
 	{
 		for (int aRow = 0; aRow < mRows; aRow++)
@@ -448,13 +448,13 @@ void Board::SetupBoard(bool theKeep, bool theLoaded)
 	ClearBoard(theKeep);
 	for (int i = 0; i < 30; i++)
 	{
-		m384[i] = 0;
-		m3fc[i] = false;
-		m41a[i] = false;
+		mPathEdges[i] = 0;
+		mPathLeftLive[i] = false;
+		mPathRightLive[i] = false;
 	}
 	if (theLoaded)
 		return;
-	for (int i = 0; i < m7c; i++)
+	for (int i = 0; i < mLeftCount; i++)
 	{
 		Piece* aPiece = new Piece(mUpdateCnt);
 		aPiece->mColumn = -1;
@@ -468,7 +468,7 @@ void Board::SetupBoard(bool theKeep, bool theLoaded)
 		aPiece->mType = 5;
 		mLeft[aRow] = aPiece;
 	}
-	for (int i = 0; i < m80; i++)
+	for (int i = 0; i < mRightCount; i++)
 	{
 		unsigned int aRow = (unsigned int) mRand->Next() % (unsigned int) mRows;
 		while (mRight[aRow] != NULL)
@@ -478,7 +478,7 @@ void Board::SetupBoard(bool theKeep, bool theLoaded)
 	int aMode = mApp->mMode;
 	if (aMode == 0)
 	{
-		m448 = 0;
+		mDropColumn = 0;
 		mSpare = NewTop(0);
 		for (int aColumn = 0; aColumn < mCols; aColumn++)
 		{
@@ -509,7 +509,7 @@ void Board::SetupBoard(bool theKeep, bool theLoaded)
 	}
 	else if (aMode == 1 || aMode == 2)
 	{
-		m454 = 0;
+		mTimedDropColumn = 0;
 		for (int aColumn = 0; aColumn < mCols; aColumn++)
 		{
 			Piece* aPiece = new Piece(mUpdateCnt);
@@ -520,7 +520,7 @@ void Board::SetupBoard(bool theKeep, bool theLoaded)
 			aPiece->mRotation = (int) (mRand->Next() & 3);
 			mTop[aColumn] = aPiece;
 		}
-		F428780();
+		DealFirstBoard();
 	}
 }
 
@@ -530,9 +530,9 @@ void Board::SetupBoard(bool theKeep, bool theLoaded)
 // 0x425410: a connection from the left edge to the right edge is found: its tiles start to burn
 void Board::StartBurn(int thePath)
 {
-	m2e8 = true;
-	m2f0 = thePath;
-	m2ec = 0x42;
+	mBurning = true;
+	mBurningPath = thePath;
+	mBurnCountdown = 0x42;
 	for (int aRow = mRows - 1; aRow >= 0; aRow--)
 	{
 		for (int aColumn = 0; aColumn < mCols; aColumn++)
@@ -549,11 +549,11 @@ bool Board::BothEnds()
 {
 	for (int i = 0; i < mRows; i++)
 	{
-		if (m2c8[i])
+		if (mLeftTouched[i])
 		{
 			for (int j = 0; j < mRows; j++)
 			{
-				if (m2d1[j])
+				if (mRightTouched[j])
 					return true;
 			}
 			return false;
@@ -563,7 +563,7 @@ bool Board::BothEnds()
 }
 
 // 0x426070: for each row, floods from the tile at the edge column that can connect to the edge (theMask) and
-// notes how many tiles it reached (m280 for the left edge, m2a4 for the right); both edges together start a burn
+// notes how many tiles it reached (mLeftReach for the left edge, mRightReach for the right); both edges together start a burn
 void Board::Trace(int theColumn, unsigned int theMask, int theEnd, int theOtherEnd, int* thePath, bool theStart)
 {
 	unsigned int aBoth = (unsigned int) theEnd | (unsigned int) theOtherEnd;
@@ -572,8 +572,8 @@ void Board::Trace(int theColumn, unsigned int theMask, int theEnd, int theOtherE
 		Piece* aPiece = mGrid[aRow][theColumn];
 		for (int j = 0; j < mRows; j++)
 		{
-			m2c8[j] = false;
-			m2d1[j] = false;
+			mLeftTouched[j] = false;
+			mRightTouched[j] = false;
 		}
 		if (aPiece != NULL && aPiece->mType == 1 && aPiece->mPath == 0 &&
 			(gPipeMask[aPiece->mRotation + aPiece->mKind * 4] & theMask) != 0)
@@ -583,18 +583,18 @@ void Board::Trace(int theColumn, unsigned int theMask, int theEnd, int theOtherE
 			Flood(theColumn, aRow, *thePath, &aCount, &aEnds, aRow);
 			if ((aEnds & aBoth) == aBoth)
 			{
-				if (theStart && BothEnds() && !m2e8)
+				if (theStart && BothEnds() && !mBurning)
 				{
 					StartBurn(*thePath);
 					mApp->PlaySample(2);
-					if (m4a9 || m4a8)
-						m4da = true;
+					if (mJustRefilled || mRefilling)
+						mChainBurn = true;
 				}
 			}
 			else if (theColumn == 0)
-				m280[aRow] = aCount;
+				mLeftReach[aRow] = aCount;
 			else
-				m2a4[aRow] = aCount;
+				mRightReach[aRow] = aCount;
 		}
 		(*thePath)++;
 	}
@@ -610,8 +610,8 @@ bool Board::TraceUp(int theColumn, unsigned int theMask, int theEnd, int theOthe
 		Piece* aPiece = mGrid[aRow][theColumn];
 		for (int j = 0; j < mRows; j++)
 		{
-			m2c8[j] = false;
-			m2d1[j] = false;
+			mLeftTouched[j] = false;
+			mRightTouched[j] = false;
 		}
 		if (aPiece != NULL && aPiece->mType == 1 && aPiece->mPath == 0 &&
 			(gPipeMask[aPiece->mRotation + aPiece->mKind * 4] & theMask) != 0)
@@ -621,19 +621,19 @@ bool Board::TraceUp(int theColumn, unsigned int theMask, int theEnd, int theOthe
 			Flood(theColumn, aRow, *thePath, &aCount, &aEnds, aRow);
 			if ((aEnds & aBoth) == aBoth)
 			{
-				if (theStart && BothEnds() && !m2e8)
+				if (theStart && BothEnds() && !mBurning)
 				{
 					StartBurn(*thePath);
 					mApp->PlaySample(2);
-					if (m4a9 || m4a8)
-						m4da = true;
+					if (mJustRefilled || mRefilling)
+						mChainBurn = true;
 				}
 				aFound = true;
 			}
 			else if (theColumn == 0)
-				m280[aRow] = aCount;
+				mLeftReach[aRow] = aCount;
 			else
-				m2a4[aRow] = aCount;
+				mRightReach[aRow] = aCount;
 		}
 		(*thePath)++;
 		if (aFound)
@@ -665,35 +665,35 @@ void Board::Connections()
 				aPiece->mPath = 0;
 				aPiece->mPathFrom = -1;
 			}
-			if (0 < aPiece->mac)
-				aPiece->mac = aPiece->mac - 2;
-			if (aPiece->m80 <= 0.0)
+			if (0 < aPiece->mTrailLife)
+				aPiece->mTrailLife = aPiece->mTrailLife - 2;
+			if (aPiece->mTilt <= 0.0)
 			{
-				if (aPiece->m80 < 0.0)
+				if (aPiece->mTilt < 0.0)
 				{
-					aPiece->m80 = ((double) (mUpdateCnt - aPiece->m88) + 1.0) * 0.025 + aPiece->m80;
-					if (0.0 < aPiece->m80 || aPiece->m80 < -1.57079632675)
-						aPiece->m80 = 0;
+					aPiece->mTilt = ((double) (mUpdateCnt - aPiece->mTurnedAt) + 1.0) * 0.025 + aPiece->mTilt;
+					if (0.0 < aPiece->mTilt || aPiece->mTilt < -1.57079632675)
+						aPiece->mTilt = 0;
 				}
 			}
 			else
 			{
-				aPiece->m80 = aPiece->m80 - ((double) (mUpdateCnt - aPiece->m88) + 1.0) * 0.025;
-				if (aPiece->m80 < 0.0 || 1.57079632675 < aPiece->m80)
-					aPiece->m80 = 0;
+				aPiece->mTilt = aPiece->mTilt - ((double) (mUpdateCnt - aPiece->mTurnedAt) + 1.0) * 0.025;
+				if (aPiece->mTilt < 0.0 || 1.57079632675 < aPiece->mTilt)
+					aPiece->mTilt = 0;
 			}
 		}
 	}
 	for (int i = 0; i < mRows; i++)
 	{
-		m280[i] = 0;
-		m2a4[i] = 0;
+		mLeftReach[i] = 0;
+		mRightReach[i] = 0;
 	}
 	for (int i = 0; i < 30; i++)
 	{
-		m384[i] = 0;
-		m3fc[i] = false;
-		m41a[i] = false;
+		mPathEdges[i] = 0;
+		mPathLeftLive[i] = false;
+		mPathRightLive[i] = false;
 	}
 	int aPath = 1;
 	Trace(0, 8, 1, 2, &aPath, true);
@@ -710,22 +710,22 @@ void Board::Ignite(int theRow, int theColumn, int theToRow, int theToColumn, boo
 	aFlame->mFromColumn = theColumn;
 	aFlame->mRow = theToRow;
 	aFlame->mColumn = theToColumn;
-	aFlame->m40 = Ftol(aFlame->mX);
-	aFlame->m44 = Ftol(aFlame->mY);
-	aFlame->m30 = 0;
+	aFlame->mSlideStartX = Ftol(aFlame->mX);
+	aFlame->mSlideStartY = Ftol(aFlame->mY);
+	aFlame->mSlideProgress = 0;
 	aFlame->mMoving = true;
 	if (!theBlocked)
 	{
-		aFlame->m48 = CellX(theToColumn);
-		aFlame->m4c = CellY(theToRow);
-		aFlame->m38 = 0.166666;      // (the original stores the decimal literals 0.166666 and 0.333332)
+		aFlame->mSlideEndX = CellX(theToColumn);
+		aFlame->mSlideEndY = CellY(theToRow);
+		aFlame->mSlideStep = 0.166666;      // (the original stores the decimal literals 0.166666 and 0.333332)
 		Piece* aTarget = NULL;
 		if (theToRow < mRows && -1 < theToRow && theToColumn < mCols && -1 < theToColumn)
 			aTarget = mGrid[theToRow][theToColumn];
 		if (aTarget != NULL)
 		{
-			aTarget->m60 = true;
-			F429050();
+			aTarget->mUsed = true;
+			AddLaunchFlame();
 			if (aTarget->mSpecial != NULL)
 			{
 				mGen->CountPiece(aTarget->mSpecial);
@@ -738,13 +738,13 @@ void Board::Ignite(int theRow, int theColumn, int theToRow, int theToColumn, boo
 	else
 	{
 		double aX = (double) CellX(theToColumn);
-		aFlame->m48 = Ftol((aX - aFlame->mX) * 0.5 + aFlame->mX);
+		aFlame->mSlideEndX = Ftol((aX - aFlame->mX) * 0.5 + aFlame->mX);
 		double aY = (double) CellY(theToRow);
-		aFlame->m4c = Ftol((aY - aFlame->mY) * 0.5 + aFlame->mY);
-		aFlame->m38 = 0.333332;
-		aFlame->m61 = true;
+		aFlame->mSlideEndY = Ftol((aY - aFlame->mY) * 0.5 + aFlame->mY);
+		aFlame->mSlideStep = 0.333332;
+		aFlame->mBlocked = true;
 	}
-	m2f4++;
+	mFlameCount++;
 }
 
 // 0x425e30: the burning connection reached the right edge at some rows: score, rocket and new right piece for each
@@ -752,7 +752,7 @@ int Board::ResolveLaunch(int thePath)
 {
 	int aCount = 0;
 	for (int i = 0; i < 9; i++)
-		m250[i] = -1;
+		mLaunchedRockets[i] = -1;
 	for (int aRow = 0; aRow < mRows; aRow++)
 	{
 		Piece* aPiece = mGrid[aRow][mCols - 1];
@@ -765,22 +765,22 @@ int Board::ResolveLaunch(int thePath)
 				aFactor = 1;
 			int aScore = AddScore(aFactor * 100);
 			AddScoreText(aScore, Ftol(aRocket->mX), Ftol(aRocket->mY));
-			m250[aCount] = aRocket->mIndex;
+			mLaunchedRockets[aCount] = aRocket->mIndex;
 			MakeRocket(aRow);
 			if (mApp->mMode != 2)
 				MakeFlame0();
 			aCount++;
 			mGen->CountPiece(aRocket);
 			RemovePiece(aRocket, false);
-			m374 = m374 + 1;
-			m378 = m378 + 1;
+			mLaunchesDone = mLaunchesDone + 1;
+			mLaunchesCounted = mLaunchesCounted + 1;
 			AddRight(aRow);
 		}
 	}
-	double aFraction = (double) m374 / (double) m74;
+	double aFraction = (double) mLaunchesDone / (double) mLaunchesNeeded;
 	if (1.0 < aFraction)
 		aFraction = 1.0;
-	m300 = aFraction;
+	mLevelFraction = aFraction;
 	if (0 < aCount)
 	{
 		int aSound = aCount + 0x1d;
@@ -802,34 +802,34 @@ int Board::ResolveLaunch(int thePath)
 // 0x425490: the burn is over: the connection's tiles go, the launches score and the effects fly
 void Board::Launch()
 {
-	if (!m4da)
+	if (!mChainBurn)
 	{
 		if (mApp->mMode == 2)
 			HitBombs();
 	}
 	else
 	{
-		m4da = false;
-		AddScore(0 < m4b0 ? 4000 : 2000);
-		m4b0 = 0xfa;
+		mChainBurn = false;
+		AddScore(0 < mChainBonusTime ? 4000 : 2000);
+		mChainBonusTime = 0xfa;
 		mApp->PlaySample(0x1d);
 		if (mApp->mMode == 2)
 			AttachSpecial10();
 	}
-	m498 = true;
-	m4a8 = true;
-	int aLaunches = ResolveLaunch(m2f0);
+	mMoved = true;
+	mRefilling = true;
+	int aLaunches = ResolveLaunch(mBurningPath);
 	switch (aLaunches)
 	{
-	case 3: m4b8 = 1; m4b4 = 0x14; break;
-	case 4: m4b8 = 1; m4b4 = 0x1e; break;
-	case 5: m4b8 = 2; m4b4 = 0x2d; break;
-	case 6: m4b8 = 3; m4b4 = 0x3c; break;
-	case 7: m4b8 = 4; m4b4 = 0x4b; break;
-	case 8: m4b8 = 4; m4b4 = 0x5a; break;
-	case 9: m4b8 = 5; m4b4 = 100; break;
+	case 3: mShakeAmount = 1; mShakeTime = 0x14; break;
+	case 4: mShakeAmount = 1; mShakeTime = 0x1e; break;
+	case 5: mShakeAmount = 2; mShakeTime = 0x2d; break;
+	case 6: mShakeAmount = 3; mShakeTime = 0x3c; break;
+	case 7: mShakeAmount = 4; mShakeTime = 0x4b; break;
+	case 8: mShakeAmount = 4; mShakeTime = 0x5a; break;
+	case 9: mShakeAmount = 5; mShakeTime = 100; break;
 	}
-	int aThisPath = m2f0;
+	int aThisPath = mBurningPath;
 	int aMinX = 99999, aMaxX = -1, aMinY = 99999, aMaxY = -1;
 	int aRemoved = 0;
 	for (int aRow = mRows - 1; aRow >= 0; aRow--)
@@ -853,10 +853,10 @@ void Board::Launch()
 			}
 		}
 	}
-	m370 = m370 + aRemoved;
+	mTilesRemoved = mTilesRemoved + aRemoved;
 	AddScore(aRemoved * 5);
-	if (mC4 < aRemoved)
-		mC4 = aRemoved;
+	if (mLevelMostTiles < aRemoved)
+		mLevelMostTiles = aRemoved;
 	mGen->ShowBonus();
 	if (0 < aLaunches)
 	{
@@ -883,7 +883,7 @@ void Board::Launch()
 				aKind = -1;
 			if (aLaunches == 1)
 				aKind = -1;
-			int aEffect = m250[i];
+			int aEffect = mLaunchedRockets[i];
 			if (mApp->mMode == 2)
 				aEffect = (int) (mRand->Next() % 9);
 			LevelEffect(1, aEffect, aX, aKind);
@@ -898,10 +898,10 @@ void Board::Launch()
 		mApp->PlaySample(aSound);
 	}
 	SettleAll(false);
-	m2f0 = -1;
-	m2e8 = false;
+	mBurningPath = -1;
+	mBurning = false;
 	int aMode = mApp->mMode;
-	if (aMode != 2 && 1.0 <= m300 && mState != 4 && mState != 5)
+	if (aMode != 2 && 1.0 <= mLevelFraction && mState != 4 && mState != 5)
 	{
 		bool aEnd = true;
 		if (mState == 1)
@@ -909,26 +909,26 @@ void Board::Launch()
 			if (aMode != 1)
 				aEnd = false;
 			else
-				m4d9 = true;
+				mJustInTime = true;
 		}
 		if (aEnd)
 			EndLevelA();
 	}
 	if (mApp->mMode == 0)
 	{
-		m37c = 5;
-		m2dc = m444 - 100;
+		mQuickDrops = 5;
+		mFallTimer = mFallPeriod - 100;
 	}
-	m490 = 0;
-	m494 = 0;
-	F429080();
+	mComboCount = 0;
+	mLaunchStep = 0;
+	FinishLaunchFlames();
 }
 
 // 0x425b50: the burn ends at the left edge (no tile at the right): fuses on the first column light
 void Board::FinishBurn()
 {
-	m490 = 0;
-	m494 = 0;
+	mComboCount = 0;
+	mLaunchStep = 0;
 	bool aLit[9];
 	int aLitCount = 0;
 	for (int aRow = 0; aRow < mRows; aRow++)
@@ -952,33 +952,33 @@ void Board::FinishBurn()
 	{
 		if (aLit[aRow] && (aCount = aCount + 1, aLitCount / 2 <= aCount))
 		{
-			F429060(aRow);
+			StartLaunchFlames(aRow);
 			break;
 		}
 	}
-	if (mApp->mMode == 2 && 0 < aLitCount && !m4a9 && !m4a8 && !m4da && 0 < m108)
+	if (mApp->mMode == 2 && 0 < aLitCount && !mJustRefilled && !mRefilling && !mChainBurn && 0 < mMatchesLeft)
 	{
 		MakeFlame1();
-		m108 = m108 - 1;
-		if (m108 == 2)
-			m10c = 600;
+		mMatchesLeft = mMatchesLeft - 1;
+		if (mMatchesLeft == 2)
+			mMatchesWarning = 600;
 	}
 }
 
 // 0x426580
 void Board::SmoothFraction()
 {
-	if (m300 < m308)
+	if (mLevelFraction < mLevelFractionShown)
 	{
-		m308 = m308 - 0.01;
-		if (m308 < m300)
-			m308 = m300;
+		mLevelFractionShown = mLevelFractionShown - 0.01;
+		if (mLevelFractionShown < mLevelFraction)
+			mLevelFractionShown = mLevelFraction;
 	}
-	if (m308 < m300)
+	if (mLevelFractionShown < mLevelFraction)
 	{
-		m308 = m308 + 0.0035;
-		if (m300 < m308)
-			m308 = m300;
+		mLevelFractionShown = mLevelFractionShown + 0.0035;
+		if (mLevelFraction < mLevelFractionShown)
+			mLevelFractionShown = mLevelFraction;
 	}
 }
 
@@ -989,46 +989,46 @@ void Board::NightTimer()
 		return;
 	if (mState != 0)
 		return;
-	if (m4bc < 1)
+	if (mFrozenTime < 1)
 	{
-		if (m498)
-			m310 = m310 - m320;
-		if (m310 <= 10.0 && !m499)
+		if (mMoved)
+			mNightLeft = mNightLeft - mNightStep;
+		if (mNightLeft <= 10.0 && !mNightWarned)
 		{
-			m499 = true;
+			mNightWarned = true;
 			mApp->PlaySample(6);
 		}
-		if (6 < mLevel && !m4c8 && !m4c9 && (m310 <= m4d0 || m310 <= 10.0))
-			m4c9 = true;
-		if (m310 <= 0.0 && 0.0 < m320)
+		if (6 < mLevel && !mClockMade && !mClockDue && (mNightLeft <= mClockNightLeft || mNightLeft <= 10.0))
+			mClockDue = true;
+		if (mNightLeft <= 0.0 && 0.0 < mNightStep)
 		{
-			m310 = 0;
-			F421de0(0);
+			mNightLeft = 0;
+			GameOver(0);
 		}
-		if (m310 < m318)
+		if (mNightLeft < mNightLeftShown)
 		{
-			m318 = m318 - 0.01;
-			if (m318 < m310)
-				m318 = m310;
+			mNightLeftShown = mNightLeftShown - 0.01;
+			if (mNightLeftShown < mNightLeft)
+				mNightLeftShown = mNightLeft;
 		}
-		if (m318 < m310)
+		if (mNightLeftShown < mNightLeft)
 		{
-			m318 = m318 + 0.0035;
-			if (m310 < m318)
-				m318 = m310;
+			mNightLeftShown = mNightLeftShown + 0.0035;
+			if (mNightLeft < mNightLeftShown)
+				mNightLeftShown = mNightLeft;
 		}
-		double aLeft = 1.0 - m310 / m68;
+		double aLeft = 1.0 - mNightLeft / mNightLength;
 		if (0.9 <= aLeft && aLeft < 1.0 && mUpdateCnt % 100 == 0)
 			mApp->PlaySample(5);
 	}
 	else
 	{
-		m4bc = m4bc - 1;
-		if (m4bc == 0)
+		mFrozenTime = mFrozenTime - 1;
+		if (mFrozenTime == 0)
 		{
 			Effect* anEffect = mEffects->Add(0x17, true);
 			anEffect->mLife = 5;
-			anEffect->mc0 = 0;
+			anEffect->mDelay = 0;
 			anEffect->mX = 365.0;
 			anEffect->mY = 50.0;
 			mApp->PlaySample(0x35);
@@ -1039,11 +1039,11 @@ void Board::NightTimer()
 // 0x426860: the timers of the three modes: the next tile falls, the hints appear
 void Board::Timers()
 {
-	if (0 < m4b4)
-		m4b4--;
+	if (0 < mShakeTime)
+		mShakeTime--;
 	if (mState != 0)
 	{
-		if (mState == 1 && 0 < m440 && --m440 == 0)
+		if (mState == 1 && 0 < mGameOverDelay && --mGameOverDelay == 0)
 		{
 			mState = 2;
 			ShowLevelUp(LevelUpDialog::KIND_GAME);
@@ -1053,83 +1053,77 @@ void Board::Timers()
 		}
 		return;
 	}
-	if (0 < m4b0)
-		m4b0--;
-	if (0 < m10c)
-		m10c--;
-	if (!m2e8)
+	if (0 < mChainBonusTime)
+		mChainBonusTime--;
+	if (0 < mMatchesWarning)
+		mMatchesWarning--;
+	if (!mBurning)
 	{
 		int aMode = mApp->mMode;
 		if (aMode == 0)
 		{
-			if (m44c < 500)
+			if (mOverflowTimer < 500)
 			{
-				if (mGrid[0][m448] == NULL)
-					m44c = 500;
-				else if (--m44c == 0)
-					F421de0(1);
+				if (mGrid[0][mDropColumn] == NULL)
+					mOverflowTimer = 500;
+				else if (--mOverflowTimer == 0)
+					GameOver(1);
 			}
-			if (m44c == 500)
+			if (mOverflowTimer == 500)
 			{
-				if (m498 || m2f8 < mGen->Rows() * mCols)
-					m2dc = m2dc + 1;
-				if (m444 <= m2dc)
+				if (mMoved || mTilesDropped < mGen->Rows() * mCols)
+					mFallTimer = mFallTimer + 1;
+				if (mFallPeriod <= mFallTimer)
 				{
-					m2dc = 0;
-					m2e0 = 0;
+					mFallTimer = 0;
+					mFallDisplay = 0;
 					DropTop();
 				}
 			}
 		}
-		else if ((aMode == 1 || aMode == 2) && (m2dc = m2dc + 1, m450 <= m2dc))
+		else if ((aMode == 1 || aMode == 2) && (mFallTimer = mFallTimer + 1, mTimedFallPeriod <= mFallTimer))
 		{
-			m2dc = 0;
-			m2e0 = 0;
+			mFallTimer = 0;
+			mFallDisplay = 0;
 			DropTopTimed();
 		}
-		if (m2e0 < m2dc && (m2e0 = m2e0 + 2, m2dc < m2e0))
-			m2e0 = m2dc;
+		if (mFallDisplay < mFallTimer && (mFallDisplay = mFallDisplay + 2, mFallTimer < mFallDisplay))
+			mFallDisplay = mFallTimer;
 	}
 	for (int i = 0; i < 6; i++)
 	{
-		if (m340[i] || m328[i] <= 0 || --m328[i] != 0 || m4c0)
+		if (mHintDone[i] || mHintCountdown[i] <= 0 || --mHintCountdown[i] != 0 || mHintsQuiet)
 			continue;
 		switch (i)
 		{
 		case 0:
 			if (mApp->mMode == 1)       // 0x42f6f0
 			{
-				mApp->mHead->ShowBubble();
-				m340[i] = true;
+				mHintDone[i] = true;
 			}
 			break;
 		case 1:
 			if (0 < mLevel)
 			{
-				mApp->mHead->ShowBubble();
-				m340[i] = true;
+				mHintDone[i] = true;
 			}
 			break;
 		case 2:
 			if (mApp->mMode == 0)
 			{
-				mApp->mHead->ShowBubble();
-				m340[i] = true;
+				mHintDone[i] = true;
 			}
 			break;
 		case 3:
 			if (2 < mLevel)
 			{
-				mApp->mHead->ShowBubble();
-				m340[i] = true;
+				mHintDone[i] = true;
 			}
 			break;
 		case 4:
 			if (3 < mLevel)
 			{
-				if (!m439)
-					mApp->mHead->ShowBubble();
-				m340[i] = true;
+				mHintDone[i] = true;
 			}
 			break;
 		case 5:
@@ -1140,14 +1134,14 @@ void Board::Timers()
 				aPoints->mStatic = true;
 				mTexts.push_back(aPoints);
 				mWidgetManager->AddWidget(aPoints);
-				m340[i] = true;
-				m4c0 = true;
+				mHintDone[i] = true;
+				mHintsQuiet = true;
 			}
 			break;
 		}
 	}
-	if (0 < m43c)
-		m43c--;
+	if (0 < mBannerTime)
+		mBannerTime--;
 	NightTimer();
 }
 
@@ -1166,13 +1160,13 @@ void Board::UpdatePieces()
 		bool aMoving = aPiece->mMoving;
 		if (aMoving)
 		{
-			int aX = aPiece->m48;
-			if (aPiece->m40 != aPiece->m48)
-				aX = Ftol((1.0 - aPiece->m30) * (double) aPiece->m40 + (double) aPiece->m48 * aPiece->m30);
+			int aX = aPiece->mSlideEndX;
+			if (aPiece->mSlideStartX != aPiece->mSlideEndX)
+				aX = Ftol((1.0 - aPiece->mSlideProgress) * (double) aPiece->mSlideStartX + (double) aPiece->mSlideEndX * aPiece->mSlideProgress);
 			aPiece->mX = (double) aX;
-			int aY = aPiece->m4c;
-			if (aPiece->m44 != aPiece->m4c)
-				aY = Ftol((1.0 - aPiece->m30) * (double) aPiece->m44 + (double) aPiece->m4c * aPiece->m30);
+			int aY = aPiece->mSlideEndY;
+			if (aPiece->mSlideStartY != aPiece->mSlideEndY)
+				aY = Ftol((1.0 - aPiece->mSlideProgress) * (double) aPiece->mSlideStartY + (double) aPiece->mSlideEndY * aPiece->mSlideProgress);
 			aPiece->mY = (double) aY;
 		}
 		bool aRemoveFromList = false;
@@ -1181,15 +1175,15 @@ void Board::UpdatePieces()
 		case 0:
 			if (aMoving)
 			{
-				aPiece->m30 = aPiece->m30 + aPiece->m38;
-				if (1.0 <= aPiece->m30)
+				aPiece->mSlideProgress = aPiece->mSlideProgress + aPiece->mSlideStep;
+				if (1.0 <= aPiece->mSlideProgress)
 				{
 					if (8 < aPiece->mRow + 1 || mGrid[aPiece->mRow + 1][aPiece->mColumn] != NULL)
 					{
 						aPiece->mType = 1;
 						aPiece->mMoving = false;
-						aPiece->mX = (double) aPiece->m48;
-						aPiece->mY = (double) aPiece->m4c;
+						aPiece->mX = (double) aPiece->mSlideEndX;
+						aPiece->mY = (double) aPiece->mSlideEndY;
 						Ping();
 						aRemoveFromList = true;
 						break;
@@ -1197,24 +1191,24 @@ void Board::UpdatePieces()
 					mGrid[aPiece->mRow][aPiece->mColumn] = NULL;
 					aPiece->mRow = aPiece->mRow + 1;
 					mGrid[aPiece->mRow][aPiece->mColumn] = aPiece;
-					aPiece->m40 = aPiece->m48;
-					aPiece->m44 = aPiece->m4c;
-					aPiece->m30 = aPiece->m30 - 1.0;
-					aPiece->m48 = CellX(aPiece->mColumn);
-					aPiece->m4c = CellY(aPiece->mRow);
+					aPiece->mSlideStartX = aPiece->mSlideEndX;
+					aPiece->mSlideStartY = aPiece->mSlideEndY;
+					aPiece->mSlideProgress = aPiece->mSlideProgress - 1.0;
+					aPiece->mSlideEndX = CellX(aPiece->mColumn);
+					aPiece->mSlideEndY = CellY(aPiece->mRow);
 				}
 			}
 			break;
 		case 2:
 			if (aMoving)
 			{
-				aPiece->m30 = aPiece->m30 + aPiece->m38;
-				if (1.0 <= aPiece->m30)
+				aPiece->mSlideProgress = aPiece->mSlideProgress + aPiece->mSlideStep;
+				if (1.0 <= aPiece->mSlideProgress)
 				{
 					aPiece->mType = 1;
 					aPiece->mMoving = false;
-					aPiece->mX = (double) aPiece->m48;
-					aPiece->mY = (double) aPiece->m4c;
+					aPiece->mX = (double) aPiece->mSlideEndX;
+					aPiece->mY = (double) aPiece->mSlideEndY;
 					if (mApp->mMode != 1 && mApp->mMode != 2)
 						Ping();
 					aRemoveFromList = true;
@@ -1224,13 +1218,13 @@ void Board::UpdatePieces()
 		case 3:
 			if (aPiece->mKind != 2)
 			{
-				if (mUpdateCnt % 7 == 0 && (aPiece->m7c = aPiece->m7c + 1, 13 < aPiece->m7c))
+				if (mUpdateCnt % 7 == 0 && (aPiece->mFrame = aPiece->mFrame + 1, 13 < aPiece->mFrame))
 				{
 					aDestroy = true;
 					aRemoveFromList = true;
 				}
 			}
-			else if (mUpdateCnt % 0xb == 0 && (aPiece->m7c = aPiece->m7c + 1, 3 <= aPiece->m7c))
+			else if (mUpdateCnt % 0xb == 0 && (aPiece->mFrame = aPiece->mFrame + 1, 3 <= aPiece->mFrame))
 			{
 				aDestroy = true;
 				aRemoveFromList = true;
@@ -1255,10 +1249,10 @@ void Board::UpdatePieces()
 				}
 				else
 				{
-					double aOld = aPiece->m30;
-					aPiece->m30 = aPiece->m38 + aOld;
+					double aOld = aPiece->mSlideProgress;
+					aPiece->mSlideProgress = aPiece->mSlideStep + aOld;
 					int aKind = aPiece->mKind;
-					if (aPiece->m38 + aOld < 1.0)
+					if (aPiece->mSlideStep + aOld < 1.0)
 					{
 						if (aKind == 5 && aPiece->mFlash != NULL)
 						{
@@ -1269,8 +1263,8 @@ void Board::UpdatePieces()
 					else if (aKind == 4)
 					{
 						if (mUpdateCnt % 7 == 0)
-							aPiece->m7c = (aPiece->m7c + 1) % 10;
-						if (!aPiece->m61)
+							aPiece->mFrame = (aPiece->mFrame + 1) % 10;
+						if (!aPiece->mBlocked)
 						{
 							Piece* aHere = mGrid[aPiece->mRow][aPiece->mColumn];
 							for (int i = 0; i < 4; i++)
@@ -1284,7 +1278,7 @@ void Board::UpdatePieces()
 										Piece* aNext = NULL;
 										if (!(aColumn < 0 || mCols <= aColumn || aRow < 0 || mRows <= aRow))
 											aNext = mGrid[aRow][aColumn];
-										if (aNext == NULL || aNext->m60 ||
+										if (aNext == NULL || aNext->mUsed ||
 											(gPipeSteps[i].mIn & gPipeMask[aNext->mRotation + aNext->mKind * 4]) == 0)
 											Ignite(aPiece->mRow, aPiece->mColumn, aRow, aColumn, true);
 										else
@@ -1304,14 +1298,14 @@ void Board::UpdatePieces()
 						aPiece->mMoving = false;
 						aLeaveList = true;
 						aDestroy = true;
-						aPiece->mX = (double) aPiece->m48;
-						aPiece->mY = (double) aPiece->m4c;
+						aPiece->mX = (double) aPiece->mSlideEndX;
+						aPiece->mY = (double) aPiece->mSlideEndY;
 					}
 					else
 					{
 						aPiece->mMoving = false;
-						aPiece->mX = (double) aPiece->m48;
-						aPiece->mY = (double) aPiece->m4c;
+						aPiece->mX = (double) aPiece->mSlideEndX;
+						aPiece->mY = (double) aPiece->mSlideEndY;
 						aArrived = true;
 						if (aKind == 7)
 						{
@@ -1319,27 +1313,27 @@ void Board::UpdatePieces()
 							if (anIndex == 0)
 							{
 								mApp->PlaySample(9);
-								m8c[aKind] = m8c[aKind] + 1;
+								mSpecialCounts[aKind] = mSpecialCounts[aKind] + 1;
 							}
 							else if (anIndex == 1)
 							{
 								mApp->PlaySample(10);
-								m8c[aKind] = m8c[aKind] + 2;
+								mSpecialCounts[aKind] = mSpecialCounts[aKind] + 2;
 							}
 							else if (anIndex == 2)
 							{
 								mApp->PlaySample(0xb);
-								m8c[aKind] = m8c[aKind] + 5;
+								mSpecialCounts[aKind] = mSpecialCounts[aKind] + 5;
 							}
 							else
 							{
 								mApp->PlaySample(10);
 								mApp->PlaySample(0xb);
-								m8c[aKind] = m8c[aKind] + 10;
+								mSpecialCounts[aKind] = mSpecialCounts[aKind] + 10;
 							}
 							aLeaveList = true;
 							aDestroy = true;
-							mCc = m8c[aKind];
+							mLevelCoins = mSpecialCounts[aKind];
 						}
 						else if (aKind == 5)
 						{
@@ -1353,17 +1347,17 @@ void Board::UpdatePieces()
 						}
 						else if (aKind == 3)
 						{
-							m8c[3] = m8c[3] + 1;
-							mD0 = m8c[aKind];
+							mSpecialCounts[3] = mSpecialCounts[3] + 1;
+							mLevelGems = mSpecialCounts[aKind];
 							AddScore(BonusFor(aPiece->mIndex));
 							aLeaveList = true;
 							aDestroy = true;
 						}
 						else if (aKind == 0xd)
 						{
-							m8c[13] = m8c[13] + 1;
-							mD8 = m8c[aKind];
-							if (400 < 1000 - m4bc)
+							mSpecialCounts[13] = mSpecialCounts[13] + 1;
+							mLevelClocks = mSpecialCounts[aKind];
+							if (400 < 1000 - mFrozenTime)
 							{
 								Points* aPoints = new Points(mApp, mApp->mFonts[FONT_DOMO22_BOLD], GT(0x004e66c0),
 									CellX(3) - 0x61 + mX, mY + 0x1e, 400, 0);
@@ -1371,7 +1365,7 @@ void Board::UpdatePieces()
 								mTexts.push_back(aPoints);
 								mWidgetManager->AddWidget(aPoints);
 							}
-							m4bc = m4bc + 1000;
+							mFrozenTime = mFrozenTime + 1000;
 							mApp->PlaySample(0x34);
 							aLeaveList = true;
 							aDestroy = true;
@@ -1380,13 +1374,13 @@ void Board::UpdatePieces()
 						{
 							if (aKind == 0xb)
 							{
-								m8c[11] = m8c[11] + 1;
-								mDc = m8c[aKind];
-								if (m108 < 0x14)
+								mSpecialCounts[11] = mSpecialCounts[11] + 1;
+								mLevelMatches = mSpecialCounts[aKind];
+								if (mMatchesLeft < 0x14)
 								{
-									m108 = m108 + 1;
-									if (2 < m108)
-										m10c = 0;      // the warning that the matches run out stops
+									mMatchesLeft = mMatchesLeft + 1;
+									if (2 < mMatchesLeft)
+										mMatchesWarning = 0;      // the warning that the matches run out stops
 								}
 								else
 									AddScore(500);
@@ -1409,17 +1403,17 @@ void Board::UpdatePieces()
 						{
 							Effect* anEffect = mEffects->Add(0x14, true);
 							anEffect->mLife = 2;
-							anEffect->mc0 = 0;
+							anEffect->mDelay = 0;
 							anEffect->mX = aPiece->mX;
 							anEffect->mY = aPiece->mY;
 							mApp->PlaySample(0x32);
 							mApp->PlaySample(0x32);
-							m4b8 = 2;
-							m4b4 = 0x19;
+							mShakeAmount = 2;
+							mShakeTime = 0x19;
 							AddFlash(aPiece, 1);
 							Shock(aPiece->mRow, aPiece->mColumn, 0xc);
 							SettleAll(false);
-							mD4 = mD4 + 1;
+							mLevelBombs = mLevelBombs + 1;
 						}
 						aDestroy = true;
 						aEnd = true;
@@ -1448,11 +1442,11 @@ void Board::UpdatePieces()
 					if (mState == 0)
 					{
 						Effect* anEffect = mEffects->Add(5, true);
-						anEffect->ma8 = 0;
-						anEffect->md0 = 0;
-						anEffect->m108 = 0.86;
+						anEffect->mAccelY = 0;
+						anEffect->mDirY = 0;
+						anEffect->mDrag = 0.86;
 						anEffect->mLife = 1;
-						anEffect->mc0 = 0;
+						anEffect->mDelay = 0;
 						anEffect->mX = aPiece->mX + 10.0;
 						anEffect->mY = aPiece->mY + 10.0;
 					}
@@ -1468,7 +1462,7 @@ void Board::UpdatePieces()
 		(void) aSkipToEnd;
 		if (aRemoveFromList)
 		{
-			aPiece->m94 = false;
+			aPiece->mInMoverList = false;
 			anItr = mObjects.erase(anItr);
 		}
 		else

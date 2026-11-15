@@ -43,8 +43,10 @@ image base 0x400000. Data: `main.pak` (862 files after staging: gfx, audio, leve
 
 Native and web builds play the whole game (names, tutorial, the four modes, high scores, options); `tools/check.sh venice` runs a
 scripted tour of them (`games/venice/tools/tour_test.txt`) and compares it with the frozen baseline. What the port leaves out and where it
-differs, the test commands and the oddities are in `GAME_NOTES.md`. Open: a bot for the `move` command, a smoke run of every level,
-the comparison with the original (origrun has no row for Venice yet).
+differs, the test commands and the oddities are in `GAME_NOTES.md`. Phase one of the identical-play pass (the harness
+`games/venice/tools/idplay/idplay.py`, the scenarios under it and what they showed) is in `IDENTICAL_PLAY.md`: the tutorial, Journey,
+Flood, Survival and Trick Shot play out the same in the original and the port, and the original's 3D mode does for the first 16143
+frames of its script. Open: more Journey levels, a focus loss and regain, a run with tries, wings and power-ups; then phase two.
 
 ## Retro64 comparison (2026-11-12, the coordinator's check)
 

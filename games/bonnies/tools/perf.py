@@ -2,7 +2,8 @@
 
 From the worktree root:
 
-    build/native/rundesk.exe <python.exe> games/bonnies/tools/perf.py port <out dir> [runs]   (BB_EXE=<exe>: another build)
+    build/native/rundesk.exe <python.exe> games/bonnies/tools/perf.py port <out dir> [runs]   (BB_EXE=<exe>: another build,
+                                                                                           BB_ARGS=<arguments>: more arguments, e.g. -windowscale=1)
     <python.exe> games/bonnies/tools/perf.py orig <out dir> <placed copy folder> [runs]     (not under rundesk: origrun
                                                                                            puts the game there itself)
 
@@ -11,8 +12,10 @@ clock (logos, the menu, a new player, the difficulty, the story, the tutorial's 
 in real time (the port without -fast, the original on origrun's real clock with its seed pinned as the port's -seed=1).
 "Load" is the time from the process's creation to the main menu, the first screen that takes input other than a click
 that skips a logo; nobody clicks the logos, so both wait out the same logo times (the game's own, from its data) and the
-difference between the two is the loading. The port's screen comes from the live channel's `state`, the original's from
-its memory (the application at 0x4752a0, its state at +0x200, 2 for the menu), read every few milliseconds.
+difference between the two is the loading. The port's screen comes from a `state` command the script gives every 10 updates
+(a `STATE ...` line on stdout; the port polls no -commands file, which would add a stat() to every update that a player's
+game does not have), the original's from its memory (the application at 0x4752a0, its state at +0x200, 2 for the menu),
+read every few milliseconds.
 
 The scripted minute is the 60 s from the first board (the tutorial's first level, its words played by the tour), state 3
 in both. The original's tour clicks by the clock, so its script waits 15 s before its first click, past the slowest menu
@@ -21,7 +24,10 @@ private bytes, kernel plus user time, and the cycles its threads ran) and prints
 the menu, the peaks, the processor time and its cycles over the minute (`minute_processor_s`, `minute_kernel_s`,
 `minute_gcycles`), the machine's busy fraction and the game processes of other sessions at the start and end. The cycles are
 the figure to compare on a busy machine: it stretches a process's seconds (a shared core, a slower clock), not the cycles it
-runs. The run is stopped after the minute.
+runs; even so the same exe's minutes differ by up to 30 % when the machine is busy, so compare rounds of runs by their
+median and minimum (a busy machine only adds cycles), never one run. `minute_threads` lists the cycles each thread ran in
+the minute, named by the module its start address is in (the game's own thread, the graphics driver's, SDL's audio, FMOD's),
+so that the sound is counted apart. The run is stopped after the minute.
 """
 import ctypes
 import ctypes.wintypes as W
@@ -82,6 +88,77 @@ def sample(h):
     cycles = ctypes.c_uint64()   # (the cycles the process's threads ran: a busy machine stretches its seconds, not these)
     k32.QueryProcessCycleTime(h, ctypes.byref(cycles))
     return m.WorkingSetSize, m.PrivateUsage, seconds(k) + seconds(u), seconds(k), cycles.value
+
+
+class TE32(ctypes.Structure):
+    _fields_ = [('dwSize', W.DWORD), ('cntUsage', W.DWORD), ('th32ThreadID', W.DWORD), ('th32OwnerProcessID', W.DWORD),
+                ('tpBasePri', ctypes.c_long), ('tpDeltaPri', ctypes.c_long), ('dwFlags', W.DWORD)]
+
+
+k32.OpenThread.restype = W.HANDLE
+k32.OpenThread.argtypes = [W.DWORD, W.BOOL, W.DWORD]
+k32.QueryThreadCycleTime.argtypes = [W.HANDLE, ctypes.POINTER(ctypes.c_uint64)]
+k32.Thread32First.argtypes = [W.HANDLE, ctypes.POINTER(TE32)]
+k32.Thread32Next.argtypes = [W.HANDLE, ctypes.POINTER(TE32)]
+ntdll = ctypes.WinDLL('ntdll')
+ntdll.NtQueryInformationThread.argtypes = [W.HANDLE, ctypes.c_int, ctypes.c_void_p, W.ULONG, ctypes.c_void_p]
+psapi.EnumProcessModulesEx.argtypes = [W.HANDLE, ctypes.c_void_p, W.DWORD, ctypes.POINTER(W.DWORD), W.DWORD]
+psapi.GetModuleInformation.argtypes = [W.HANDLE, ctypes.c_void_p, ctypes.c_void_p, W.DWORD]
+psapi.GetModuleBaseNameW.argtypes = [W.HANDLE, ctypes.c_void_p, W.LPWSTR, W.DWORD]
+THREAD_QUERY, THREAD_QUERY_LIMITED = 0x40, 0x800
+
+
+class MODINFO(ctypes.Structure):
+    _fields_ = [('base', ctypes.c_void_p), ('size', W.DWORD), ('entry', ctypes.c_void_p)]
+
+
+def threads(pid):
+    """{thread id: (cycles the thread has run, its Win32 start address)} of the process, by the toolhelp snapshot."""
+    snap = k32.CreateToolhelp32Snapshot(4, 0)
+    te = TE32()
+    te.dwSize = ctypes.sizeof(TE32)
+    out = {}
+    ok = k32.Thread32First(snap, ctypes.byref(te))
+    while ok:
+        if te.th32OwnerProcessID == pid:
+            ht = k32.OpenThread(THREAD_QUERY | THREAD_QUERY_LIMITED, False, te.th32ThreadID)
+            if ht:
+                cycles = ctypes.c_uint64()
+                k32.QueryThreadCycleTime(ht, ctypes.byref(cycles))
+                start = ctypes.c_uint64()
+                ntdll.NtQueryInformationThread(ht, 9, ctypes.byref(start), 8, None)   # ThreadQuerySetWin32StartAddress
+                out[te.th32ThreadID] = (cycles.value, start.value)
+                k32.CloseHandle(ht)
+        ok = k32.Thread32Next(snap, ctypes.byref(te))
+    k32.CloseHandle(snap)
+    return out
+
+
+def modules(h):
+    """[(base, size, name)] of the process's modules (a 32-bit process's, seen from this 64-bit python)."""
+    need = W.DWORD(0)
+    arr = (ctypes.c_void_p * 1024)()
+    if not psapi.EnumProcessModulesEx(h, arr, ctypes.sizeof(arr), ctypes.byref(need), 3):
+        return []
+    out = []
+    for i in range(min(1024, need.value // ctypes.sizeof(ctypes.c_void_p))):
+        info = MODINFO()
+        buf = ctypes.create_unicode_buffer(260)
+        if psapi.GetModuleInformation(h, arr[i], ctypes.byref(info), ctypes.sizeof(info)) and \
+                psapi.GetModuleBaseNameW(h, arr[i], buf, 260):
+            out.append((info.base or 0, info.size, buf.value))
+    return out
+
+
+def thread_report(h, first, last):
+    """The threads that ran between two snapshots, as (module of the start address, thread id, gigacycles), busiest first."""
+    mods = modules(h)
+    rows = []
+    for tid, (c1, start) in last.items():
+        c0 = first.get(tid, (0, 0))[0]
+        name = next((n for b, s, n in mods if b <= start < b + s), '?')
+        rows.append((name, tid, round((c1 - c0) / 1e9, 3), hex(start)))
+    return sorted(rows, key=lambda r: -r[2])
 
 
 def created(h):
@@ -152,20 +229,28 @@ def mb(x):
 def measure(h, t0, at_menu, out):
     """Samples the process from at_menu seconds after its creation t0 (the first board) through the minute after it."""
     samples = []
+    pid = k32.GetProcessId(h)
+    first = last = None
     while True:
         s = sample(h)
         if s is None:
             break
         t = time.time() - t0
         samples.append((round(t, 3),) + s)
+        if t >= at_menu and first is None:
+            first = threads(pid)    # the threads' cycles at the first board
         if t >= at_menu + MINUTE:
+            last = threads(pid)     # and at the end of the minute
             break
         time.sleep(0.1)
     json.dump(samples, open(os.path.join(out, 'samples.json'), 'w'))
     m = [x for x in samples if x[0] >= at_menu]
     if len(m) < 2:
         return {'minute': None}
-    return {'board_working_set_mb': mb(m[0][1]), 'board_private_mb': mb(m[0][2]),
+    by_thread = thread_report(h, first, last) if first and last else []
+    json.dump(by_thread, open(os.path.join(out, 'threads.json'), 'w'))
+    return {'minute_threads': [[n, c] for n, tid, c, a in by_thread if c >= 0.05],
+            'board_working_set_mb': mb(m[0][1]), 'board_private_mb': mb(m[0][2]),
             'minute_peak_working_set_mb': mb(max(x[1] for x in m)), 'minute_peak_private_mb': mb(max(x[2] for x in m)),
             'minute_processor_s': round(m[-1][3] - m[0][3], 2), 'minute_kernel_s': round(m[-1][4] - m[0][4], 2),
             'minute_gcycles': round((m[-1][5] - m[0][5]) / 1e9, 2),
@@ -182,6 +267,28 @@ def strip(src, dst, drop, replace=()):
     return dst
 
 
+def state_script(src, dst, shots_dir):
+    """The port's tour without its screenshots and with a `state` command every 10 updates up to the first board, whose line
+    on stdout tells perf.py when the menu and the board came. A player's game polls no file (-commands would stat one every
+    update), so the port is measured without it, as the original is (read from outside through its memory)."""
+    lines = []
+    for line in open(src):
+        words = line.split()
+        if not words or words[0].startswith('#'):
+            lines.append((-1, line.replace('@DIR@', shots_dir)))
+        elif 'screenshot' in words[:2]:
+            continue
+        else:
+            lines.append((int(words[0]), line.replace('@DIR@', shots_dir)))
+    for n in range(300, 4500, 10):
+        lines.append((n, '%d state\n' % n))
+    lines.sort(key=lambda x: x[0])      # stable: a script's own lines at the same update keep their order
+    with open(dst, 'w', newline='\n') as g:
+        for n, line in lines:
+            g.write(line)
+    return dst
+
+
 def port(out, runs):
     root = os.getcwd()
     exe = os.environ.get('BB_EXE') or os.path.join(root, 'build', 'native', 'bonnies.exe')   # BB_EXE: a variant to compare
@@ -189,23 +296,18 @@ def port(out, runs):
         d = os.path.join(out, 'port%d' % i)
         shutil.rmtree(d, ignore_errors=True)
         os.makedirs(os.path.join(d, 'user'))
-        script = strip(os.path.join(root, 'games', 'bonnies', 'tools', 'tour_test.txt'), os.path.join(d, 'script.txt'),
-                       ['screenshot'], [('@DIR@', d.replace('\\', '/'))])
-        commands = os.path.join(d, 'commands.txt')
-        open(commands, 'w').close()
+        script = state_script(os.path.join(root, 'games', 'bonnies', 'tools', 'tour_test.txt'), os.path.join(d, 'script.txt'),
+                              d.replace('\\', '/'))
         o0, s0 = others(), system_times()
         log = os.path.join(d, 'game.log')
         with open(log, 'wb') as lf:
             p = subprocess.Popen([exe, '-gamedir=assets/bonnies', '-userdir=' + os.path.join(d, 'user'), '-seed=1',
-                                  '-script=' + script, '-commands=' + commands], stdout=lf, stderr=subprocess.STDOUT)
+                                  '-script=' + script] + os.environ.get('BB_ARGS', '').split(), stdout=lf,
+                                 stderr=subprocess.STDOUT)
         h = k32.OpenProcess(QUERY | VM_READ | QUERY_LIMITED | TERMINATE, False, p.pid)
         t0 = created(h)
-        menu, seen, asked = None, 0, 0.0
+        menu, seen = None, 0
         while menu is None and p.poll() is None and time.time() - t0 < 120:
-            if time.time() - asked > 0.02:
-                with open(commands, 'a') as f:
-                    f.write('state\n')
-                asked = time.time()
             with open(log, encoding='latin-1') as f:
                 f.seek(seen)
                 text = f.read()
@@ -218,8 +320,6 @@ def port(out, runs):
             time.sleep(0.005)
         board = None
         while menu is not None and board is None and p.poll() is None and time.time() - t0 < 240:
-            with open(commands, 'a') as f:
-                f.write('state\n')
             with open(log, encoding='latin-1') as f:
                 f.seek(seen)
                 text = f.read()

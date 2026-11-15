@@ -51,6 +51,14 @@ public:
 	void clear();
 	bool finish();
 
+	// port (for speed): what the last finish redrew, as rectangles of the screen (a run of redrawn tiles in a row is one, and a
+	// run under one of the same width joins it), for a display that copies only what changed (SurfaceDisplay)
+	struct Rectangle
+	{
+		int mX, mY, mWidth, mHeight;
+	};
+	const std::vector<Rectangle>& redrawn() const;
+
 	void drawImage(engine::Image* theImage, const engine::IntRect& theSrc, float x, float y) override;
 	using engine::Graphics::drawImage;
 	void drawLine(const engine::Point& theFrom, const engine::Point& theTo) override;

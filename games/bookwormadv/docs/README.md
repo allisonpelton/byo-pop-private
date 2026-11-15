@@ -11,7 +11,7 @@ PopCap's own fork of Lua 5.0 (PopLua), and its creatures and effects are PopAnim
 are Flash movies. The port therefore has, beside the game's C++ classes in `src/`, a PopLua virtual machine and
 compiler (`poplua/`, `docs/POPLUA.md`), the layer that links C++ objects to Lua (`lualib/`, `luaapp/`), JeffLib, the
 library of helpers in the exe that the game's classes use (`jefflib/`), a PopAnim player (`popanim/`) and a
-Flash player for the cut scenes (`swf/`). `docs/ENGINE.md` maps the exe's regions to these folders and explains how
+Flash player for the cut scenes (the shared `engines/swf`). `docs/ENGINE.md` maps the exe's regions to these folders and explains how
 C++ objects appear in Lua.
 
 ## The binary

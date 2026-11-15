@@ -308,6 +308,62 @@ under rundesk), `loadtime.py` (the port's load time through the live channel).
 `requestAnimationFrame` does not run, and a load in a player's browser is dominated by the network and the wasm compile. The
 original's load to better than a second (no state command; origrun's clock is in whole seconds). The GPU's own load, and full screen.
 
+## 11b. Processor time like for like (2026-11-12)
+
+The coordinator's target (docs/COORDINATION.md, "The target"): the port's processor time at most the original's, over the same
+stretch, in real time, as cycle counts. The first measurement (section 11) was not like for like, and its spread (the original at 2.2
+to 8.7 % of a core) came from the runs not playing the same stretch: the original's start is not on its update counter (the title
+takes a click only after its loading bar is done, the menu's pirate talks before its Play takes one, the demo's button is clicked
+after some seconds), so a script timed by the counter left some runs on the title, the menu or the demo for the whole minute
+(draws a second 13 on the title, 100 in the demo, 67 on the board), and the port, which starts at update 0, was always on the board.
+
+**The scenario now.** Both sides play the same game: the title's link, the menu's Play (Easy), the demo's "Click Here to Start!" and
+then the same broadsides every 1.5 s, the stretch being the board's updates 600 to 6100 (55 s, 5500 updates at 100 a second). The
+original's script waits for each screen (origrun's `waitfor` on the app's title progress +0x424 -> +0x64, then its menu (+0x428), demo
+(+0x430) and the demo's end) with fixed delays after each (`tools/profile/cycles.py`, `orig_script`), clicking the title's link at
+a point the menu has no button under, and the harness starts counting when the demo is gone; the port's script is the same lines
+at its own updates (the board from update 2400, the stretch 3000 to 8500; `state` shows the Easy board, level 1, the score rising to
+40 by update 8000). The original's counter, the one origrun times input by, is its update counter, so the input lands on the same
+update (the Mummy Maze finding about a sleep counter does not apply here). Both counters are read from outside every 5 ms by a
+poller at idle priority; cycles are QueryProcessCycleTime and QueryThreadCycleTime at the two ends, never GetProcessTimes. No
+`-commands`, no state log, no screenshots in the stretch. The loop runs under `tools/pincore.py`, five rounds of: the original,
+the port in a 640x480 window (`-windowscale=1`, registry ScreenMode 0) and the port in the default window (1280x960, render scale
+2), the port's two alternating in order. `tools/profile/pairs.sh`, `cycles.py` (`summary` reads runs.txt).
+
+**Window and renderer.** Original: windowed 640x480 under origrun. Port: "client 640x480 px, logical 640x480, render scale 1, windowed,
+renderer direct3d11" and "client 1280x960 px, logical 640x480, render scale 2, windowed, renderer direct3d11" (hidden desktop under
+rundesk, the display line of each run in `runs.txt`). A fresh userdir starts the port full screen (render scale 4) and was not used.
+
+| | original (4 runs; the first of 5 did not finish) | port 640x480 (5 runs) | port 1280x960 (5 runs) |
+|---|---|---|---|
+| G cycles in the stretch | 8.24, 8.87, 10.31, 15.00; median 9.59 | 5.26, 5.98, 6.18, 6.70, 6.86; median 6.18 | 4.75, 5.24, 5.44, 5.68, 6.50; median 5.44 |
+| a minute | 10.5 G | 6.7 G | 5.9 G |
+| updates a second | 100.0 | 99.7 to 100.0 | 100.0 |
+| draws in the stretch | 3689 to 3727 | 2716 to 2750 | 2727 to 2749 |
+
+The port's own audio thread (SDLAudioP2 under rundesk's silent driver) is in its figures, 0.19 to 0.29 G in the stretch; origrun's
+stand-in mixes nothing for the original, so the port without it is lower still. The port is under the original in every pair,
+in either window; the original's runs spread (8.2 to 15.0 G) with the machine's state. The original draws about a quarter more
+than the port (3700 against 2740 over the same 5500 updates; 2766 in a probe run on the same board, so its draws vary with the
+state of the play); not chased. Oddity: in 3 of the first 5 runs of the first scenario the original sat on the title or the menu
+the whole stretch (700 draws, 2 to 3 G).
+
+## 11c. The autosplit block (2026-11-12)
+
+`src/LiveSplitObserver.cpp` writes the shared autosplit block (platform/AutosplitBlock.h, layout 2, game id "SSDX") after
+every update, for the site's Splits window and LiveSplit. It only reads the game. It writes while an enabled mod has the
+feature "livesplit" or, on the web, once the page has called `byopop_livesplit_block`; until then it tests two flags.
+`-livesplitlog <file>` writes one line per event. The game's own side is two inert fields on `Board`: `mBoardSerial` and
+`mResumed`. Numbering: mode 0 a game, 1 the tutorial, -1 off a board; skill 1 Easy, 2 Average, 3 Hard (the menu's
+difficulty), 0 off a board. GO is the board's first update of a new game (on Easy the demo's "Click Here To Start" makes
+the board; on Average and Hard the menu's Play does). A level clear is the update in which `Board::mLevel` goes up
+(NewLevel, after the level's panel is closed); after a treasure level the same call shows the map, so there the clear and
+the map are one update. Undo is cleared in NewLevel, so no clear is taken back. `progress` = levels completed
+(`mLevel - 1`, 30 when level 31 has begun). Game over kind 0: out of lives (Board::GameOver); kinds 1 to 3 unused.
+Leaving through New Game saves the game and removes the board, with no event. No win: the game goes on past level 30.
+Proof of inertness: the three bot games of `tools/check.sh sevenseas` give the same log and screenshots with the block
+off and with it on, and the suite's frozen baseline is unchanged.
+
 ## 12. Coverage check (2026-11-11)
 
 The whole check of `docs/COVERAGE.md`. origrun's `--coverage` recorded which of the original's functions ran in 16 runs on the

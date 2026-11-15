@@ -1,4 +1,4 @@
-// Test hooks for the identical-play runs; see UiBot.h.
+// port: test hooks for the identical-play runs; see UiBot.h.
 
 #include "UiBot.h"
 #include "RocketApp.h"
@@ -77,7 +77,8 @@ bool UiBotParams::Parse(const std::string& theName, const std::string& theValue)
 
 namespace
 {
-// the original's watches: name, expression ("B" is the board pointer 0x4f69f8, the app is at 0x4f6460)
+// the original's watches: name, expression ("B" is the board pointer 0x4f69f8, the app is at 0x4f6460). A name such as m74 is the
+// board's offset in the original: origrun's watches (tools/identical/values.txt) carry the same labels, so they keep their spelling
 const char* const kNames[] =
 {
 	"mode", "diff", "bupd", "state", "score", "level", "m74", "m78", "m7c", "m80", "coins", "fall", "burn", "burnt", "path",
@@ -130,24 +131,24 @@ void StateLog::Update()
 			case 3: aValue = aBoard->mState; break;
 			case 4: aValue = aBoard->mScore; break;
 			case 5: aValue = aBoard->mLevel; break;
-			case 6: aValue = aBoard->m74; break;
-			case 7: aValue = aBoard->m78; break;
-			case 8: aValue = aBoard->m7c; break;
-			case 9: aValue = aBoard->m80; break;
-			case 10: aValue = aBoard->m8c[7]; break;
-			case 11: aValue = aBoard->m2dc; break;
-			case 12: aValue = aBoard->m2e8 ? 1 : 0; break;
-			case 13: aValue = aBoard->m2ec; break;
-			case 14: aValue = aBoard->m2f0; break;
-			case 15: aValue = aBoard->m2f4; break;
-			case 16: aValue = aBoard->m2f8; break;
-			case 17: aValue = aBoard->m350; break;
-			case 18: aValue = aBoard->m36c; break;
-			case 19: aValue = aBoard->m37c; break;
+			case 6: aValue = aBoard->mLaunchesNeeded; break;
+			case 7: aValue = aBoard->mLaunchesNeededCopy; break;
+			case 8: aValue = aBoard->mLeftCount; break;
+			case 9: aValue = aBoard->mRightCount; break;
+			case 10: aValue = aBoard->mSpecialCounts[7]; break;
+			case 11: aValue = aBoard->mFallTimer; break;
+			case 12: aValue = aBoard->mBurning ? 1 : 0; break;
+			case 13: aValue = aBoard->mBurnCountdown; break;
+			case 14: aValue = aBoard->mBurningPath; break;
+			case 15: aValue = aBoard->mFlameCount; break;
+			case 16: aValue = aBoard->mTilesDropped; break;
+			case 17: aValue = aBoard->mPause; break;
+			case 18: aValue = aBoard->mLevelEndCountdown; break;
+			case 19: aValue = aBoard->mQuickDrops; break;
 			case 24: aValue = (long long) aBoard->mEffects->mEffects.size(); break;
-			case 25: aValue = aBoard->m370; break;
-			case 26: aValue = aBoard->m374; break;
-			case 27: aValue = aBoard->m378; break;
+			case 25: aValue = aBoard->mTilesRemoved; break;
+			case 26: aValue = aBoard->mLaunchesDone; break;
+			case 27: aValue = aBoard->mLaunchesCounted; break;
 
 			case 20:
 			case 21:
@@ -210,7 +211,7 @@ void StateLog::Update()
 		if (aBoard == NULL)
 			snprintf(aBuffer, sizeof(aBuffer), "-");
 		else
-			snprintf(aBuffer, sizeof(aBuffer), "%d", i == 0 ? aBoard->m108 : i == 1 ? aBoard->m380 : (int) aBoard->mObjects.size());
+			snprintf(aBuffer, sizeof(aBuffer), "%d", i == 0 ? aBoard->mMatchesLeft : i == 1 ? aBoard->mEndCountdown : (int) aBoard->mObjects.size());
 		if (!mStarted || mLast[144 + i] != aBuffer)
 		{
 			mLast[144 + i] = aBuffer;

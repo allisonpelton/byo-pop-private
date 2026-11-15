@@ -19,8 +19,8 @@ struct EffectKind
 	bool		mNotifyBoard, mSounds;      // +8, +9
 	double		mX, mY, mZ;                 // +0x48
 	double		mSpreadX, mSpreadY, mSpreadZ;   // +0x60
-	double		m78, m80, m88;              // +0x78
-	double		ma0, ma8, mb0;              // +0xa0
+	double		mMoveX, mMoveY, mMoveZ;              // +0x78
+	double		mAccelX, mAccelY, mAccelZ;              // +0xa0
 	double		mDirX, mDirY, mDirZ;        // +0xc8
 	double		mDirSpreadX, mDirSpreadY, mDirSpreadZ;  // +0xe0
 	double		mSpeed, mSpeedSpread, mDrag;    // +0xf8, +0x100, +0x108
@@ -42,7 +42,7 @@ static const EffectKind sEffectKinds[EFFECT_KINDS] =
 // 1 / 2^31: the generator of the original (0x45b9ae) gives 31 bits
 #define RAND_UNIT 4.656612875245797e-10
 
-// base plus or minus up to theSpread, evenly
+// port: base plus or minus up to theSpread, evenly
 static double SpreadRand(double theBase, double theSpread)
 {
 	return (((theSpread + theSpread) * (double) GlobalRand() * RAND_UNIT) - theSpread) + theBase;
@@ -82,11 +82,11 @@ void ParticlePool::Give(Particle* theParticle)
 
 // 0x4172f0 (0x416f50, the normalising of a vector, inline in it)
 Effect::Effect(RocketApp* theApp, EffectManager* theManager, int theKind, bool theFlag) :
-	mApp(theApp), mManager(theManager), mKind(theKind), mNotifyBoard(false), mSounds(false), mColorChoice(0), m40(-1),
-	mFlag(theFlag), mX(0), mY(0), mZ(0), mSpreadX(0), mSpreadY(0), mSpreadZ(0), m78(0), m80(0), m88(0), m90(false),
-	mParticles(NULL), mPool(theManager->mPool), ma0(0), ma8(0), mb0(0), mMaxParticles(MAX_PARTICLES), mParticleCount(0),
-	mc0(0), mLife(EFFECT_LIFE), mDirX(0), md0(0), mDirZ(0), mDirSpreadX(0), mDirSpreadY(0), mDirSpreadZ(0), mf8(0),
-	mSpeedSpread(0), m108(0), m110(0), m114(0), m118(0), m11c(0), m120(0)
+	mApp(theApp), mManager(theManager), mKind(theKind), mNotifyBoard(false), mSounds(false), mColorChoice(0), mSound(-1),
+	mFlag(theFlag), mX(0), mY(0), mZ(0), mSpreadX(0), mSpreadY(0), mSpreadZ(0), mMoveX(0), mMoveY(0), mMoveZ(0), mLayer(false),
+	mParticles(NULL), mPool(theManager->mPool), mAccelX(0), mAccelY(0), mAccelZ(0), mMaxParticles(MAX_PARTICLES), mParticleCount(0),
+	mDelay(0), mLife(EFFECT_LIFE), mDirX(0), mDirY(0), mDirZ(0), mDirSpreadX(0), mDirSpreadY(0), mDirSpreadZ(0), mSpeed(0),
+	mSpeedSpread(0), mDrag(0), mParticleLife(0), mParticleLifeSpread(0), mCount(0), mCountSpread(0), mInterval(0)
 {
 	mColorChoice = GlobalRand() % 3 + 3;
 
@@ -119,44 +119,44 @@ Effect::Effect(RocketApp* theApp, EffectManager* theManager, int theKind, bool t
 	mSpreadX = aKind.mSpreadX;
 	mSpreadY = aKind.mSpreadY;
 	mSpreadZ = aKind.mSpreadZ;
-	m78 = aKind.m78;
-	m80 = aKind.m80;
-	m88 = aKind.m88;
-	ma0 = aKind.ma0;
-	ma8 = aKind.ma8;
-	mb0 = aKind.mb0;
+	mMoveX = aKind.mMoveX;
+	mMoveY = aKind.mMoveY;
+	mMoveZ = aKind.mMoveZ;
+	mAccelX = aKind.mAccelX;
+	mAccelY = aKind.mAccelY;
+	mAccelZ = aKind.mAccelZ;
 	mDirX = aKind.mDirX;
-	md0 = aKind.mDirY;
+	mDirY = aKind.mDirY;
 	mDirZ = aKind.mDirZ;
 	if (aKind.mNormalize)
 	{
 		// 0x416f50: a vector without length points up
-		double aLengthSquared = mDirZ * mDirZ + md0 * md0 + mDirX * mDirX;
+		double aLengthSquared = mDirZ * mDirZ + mDirY * mDirY + mDirX * mDirX;
 		if (aLengthSquared > 1e-18)
 		{
 			double aScale = 1.0 / sqrt(aLengthSquared);
 			mDirX = aScale * mDirX;
-			md0 = aScale * md0;
+			mDirY = aScale * mDirY;
 			mDirZ = aScale * mDirZ;
 		}
 		else
 		{
 			mDirX = 0;
-			md0 = 1.0;
+			mDirY = 1.0;
 			mDirZ = 0;
 		}
 	}
 	mDirSpreadX = aKind.mDirSpreadX;
 	mDirSpreadY = aKind.mDirSpreadY;
 	mDirSpreadZ = aKind.mDirSpreadZ;
-	mf8 = aKind.mSpeed;
+	mSpeed = aKind.mSpeed;
 	mSpeedSpread = aKind.mSpeedSpread;
-	m108 = aKind.mDrag;
-	m110 = aKind.mParticleLife;
-	m114 = aKind.mParticleLifeSpread;
-	m118 = aKind.mCount;
-	m11c = aKind.mCountSpread;
-	m120 = aKind.mInterval;
+	mDrag = aKind.mDrag;
+	mParticleLife = aKind.mParticleLife;
+	mParticleLifeSpread = aKind.mParticleLifeSpread;
+	mCount = aKind.mCount;
+	mCountSpread = aKind.mCountSpread;
+	mInterval = aKind.mInterval;
 }
 
 // 0x418fc0
@@ -170,7 +170,7 @@ Effect::~Effect()
 		aParticle = aNext;
 	}
 	if (mNotifyBoard && !mManager->mClosing && mApp->mBoard != NULL)
-		mApp->mBoard->F428d10();
+		mApp->mBoard->AttachLaunchBonuses();
 }
 
 // 0x419020 (0x416f50 inline in it): new particles at the front of the list
@@ -199,7 +199,7 @@ void Effect::Spawn(int theCount)
 			aParticle->mY = SpreadRand(mY, mSpreadY);
 			aParticle->mZ = SpreadRand(mZ, mSpreadZ);
 			aParticle->mVX = SpreadRand(mDirX, mDirSpreadX);
-			aParticle->mVY = SpreadRand(md0, mDirSpreadY);
+			aParticle->mVY = SpreadRand(mDirY, mDirSpreadY);
 			aParticle->mVZ = SpreadRand(mDirZ, mDirSpreadZ);
 			if (aParticle->mVX != 0.0 || aParticle->mVY != 0.0 || aParticle->mVZ != 0.0)
 			{
@@ -220,12 +220,12 @@ void Effect::Spawn(int theCount)
 					aParticle->mVZ = 0;
 				}
 			}
-			double aSpeed = SpreadRand(mf8, mSpeedSpread);
+			double aSpeed = SpreadRand(mSpeed, mSpeedSpread);
 			aParticle->mVX = aSpeed * aParticle->mVX;
 			aParticle->mVY = aSpeed * aParticle->mVY;
 			aParticle->mVZ = aSpeed * aParticle->mVZ;
 
-			int aLife = (GlobalRand() % (m114 * 2 + 1) + m110) - m114;
+			int aLife = (GlobalRand() % (mParticleLifeSpread * 2 + 1) + mParticleLife) - mParticleLifeSpread;
 			aParticle->mAge = aLife;
 			aParticle->mLife = aLife;
 			if (mKind == 0xf || mKind == 5)
@@ -246,9 +246,9 @@ void Effect::UpdateParticle(Particle* theParticle)
 		theParticle->mX = theParticle->mX + theParticle->mVX;
 		theParticle->mY = theParticle->mY + theParticle->mVY;
 		theParticle->mZ = theParticle->mVZ + theParticle->mZ;
-		theParticle->mVX = m108 * theParticle->mVX + ma0;
-		theParticle->mVY = m108 * theParticle->mVY + ma8;
-		theParticle->mVZ = theParticle->mVZ * m108 + mb0;
+		theParticle->mVX = mDrag * theParticle->mVX + mAccelX;
+		theParticle->mVY = mDrag * theParticle->mVY + mAccelY;
+		theParticle->mVZ = theParticle->mVZ * mDrag + mAccelZ;
 		return;
 	}
 	RemoveParticle(theParticle);
@@ -271,11 +271,11 @@ void Effect::RemoveParticle(Particle* theParticle)
 // has no life and no particles left
 bool Effect::Update()
 {
-	if (mc0 < 1)
+	if (mDelay < 1)
 	{
-		mX = m78 + mX;
-		mY = m80 + mY;
-		mZ = m88 + mZ;
+		mX = mMoveX + mX;
+		mY = mMoveY + mY;
+		mZ = mMoveZ + mZ;
 		Particle* aParticle = mParticles;
 		while (aParticle != NULL)
 		{
@@ -288,9 +288,9 @@ bool Effect::Update()
 			if (mParticles == NULL)
 				return false;
 		}
-		else if ((m120 == 0) || (GlobalRand() % (m120 + 1) == 0))
+		else if ((mInterval == 0) || (GlobalRand() % (mInterval + 1) == 0))
 		{
-			int aNumber = (GlobalRand() % (m11c * 2 + 1) + m118) - m11c;
+			int aNumber = (GlobalRand() % (mCountSpread * 2 + 1) + mCount) - mCountSpread;
 			if (0 < aNumber)
 				Spawn(aNumber);
 		}
@@ -299,11 +299,11 @@ bool Effect::Update()
 	}
 	else
 	{
-		mc0--;
-		if ((mc0 == 0) && mSounds)
+		mDelay--;
+		if ((mDelay == 0) && mSounds)
 		{
-			if (m40 != -1)
-				mApp->PlaySample(m40);
+			if (mSound != -1)
+				mApp->PlaySample(mSound);
 			mApp->PlaySample(GlobalRand() % 6 + 0x12);
 		}
 	}
@@ -322,7 +322,7 @@ void Effect::SetBlendColor(Graphics* g, Particle* theParticle, double theFractio
 	g->SetColor(Color(aRed, aGreen, aBlue));
 }
 
-// The kinds that go through a strip of pictures with the particle's age: kinds 0 and 3 and the flames (0x14 to 0x16)
+// port: The kinds that go through a strip of pictures with the particle's age: kinds 0 and 3 and the flames (0x14 to 0x16)
 // take the whole strip without a colour; the rest blend the colours.
 void Effect::DrawFrames(Graphics* g, Image* theImage, int theFrames, bool theBlend)
 {
@@ -350,7 +350,7 @@ void Effect::DrawFrames(Graphics* g, Image* theImage, int theFrames, bool theBle
 // 0x4194d0: draws the particles of one kind and one layer
 void Effect::Draw(Graphics* g, bool theLayer)
 {
-	if (m90 != theLayer)
+	if (mLayer != theLayer)
 		return;
 
 	Image** anImages = mApp->mImages;

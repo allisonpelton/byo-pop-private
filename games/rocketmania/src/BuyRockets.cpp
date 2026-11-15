@@ -13,8 +13,8 @@
 
 using namespace Sexy;
 
-// the board keeps the coins that were collected at +0xa8
-#define BOARD_COINS(theBoard) ((theBoard)->m8c[7])
+// the board counts the coins that were collected in the special-piece counts: kind 7 is the coin (+0xa8)
+#define BOARD_COINS(theBoard) ((theBoard)->mSpecialCounts[7])
 
 // the coins fly for 0x37 updates, the lit rocket stays until 0x55
 #define COIN_FLIGHT 0x37
@@ -95,12 +95,12 @@ BuyRocketsWidget::BuyRocketsWidget(RocketApp* theApp, bool theGameOver) :
 		}
 	}
 
-	// m100: 1 while the screen waits for the coins (or for its help to be read), 2 at the end of a game
+	// mBuyRocketsState: 1 while the screen waits for the coins (or for its help to be read), 2 at the end of a game
 	if ((mUpgrades == 0) && !mAllFull)
 	{
 		if (!mGameOver)
 		{
-			aBoard->m100 = 1;
+			aBoard->mBuyRocketsState = 1;
 			// the help for the coins shows in the first levels when the hints are on; otherwise there is nothing to wait for
 			if ((aBoard->mLevel != 0) && !mApp->mNoHints && (aBoard->mLevel < 6))
 				return;
@@ -110,10 +110,10 @@ BuyRocketsWidget::BuyRocketsWidget(RocketApp* theApp, bool theGameOver) :
 	}
 	else if (!mGameOver)
 	{
-		aBoard->m100 = 1;
+		aBoard->mBuyRocketsState = 1;
 		return;
 	}
-	aBoard->m100 = 2;
+	aBoard->mBuyRocketsState = 2;
 }
 
 // 0x401400: when it goes away between two levels the level-up song gives way to the game's
@@ -158,7 +158,7 @@ void BuyRocketsWidget::Update()
 			mApp->PlaySample(SOUND_ROCKET_BEING_BOUGHT_02);
 			Effect* anEffect = aBoard->mEffects->Add(0xb, true);
 			anEffect->mLife = 1;
-			anEffect->mc0 = 0;
+			anEffect->mDelay = 0;
 			anEffect->mX = (double) anItem->mEndX;
 			anEffect->mY = (double) anItem->mEndY;
 			if (anItem->mLauncher != -1)
@@ -166,7 +166,7 @@ void BuyRocketsWidget::Update()
 				aBoard->mGen->RaiseMeter(anItem->mLauncher);
 				Effect* aSparkle = aBoard->mEffects->Add(0xc, true);
 				aSparkle->mLife = 3;
-				aSparkle->mc0 = 0;
+				aSparkle->mDelay = 0;
 				aSparkle->mX = (double) (anItem->mEndX + 0x14);
 				aSparkle->mY = (double) (anItem->mEndY - 10);
 				mApp->PlaySample(SOUND_MAGIC_ROCKET_UPGRADED_03);
@@ -189,13 +189,13 @@ void BuyRocketsWidget::Update()
 	{
 		if (((mUpdateCnt - mStartTick) < 0xfb) && !mSkipWait)
 			return;
-		aBoard->m100 = 0;
+		aBoard->mBuyRocketsState = 0;
 	}
 	else
 	{
 		if (!mItems.empty())
 			return;
-		aBoard->m100 = 0;
+		aBoard->mBuyRocketsState = 0;
 		if (mGameOver)
 		{
 			// the game's end: nothing follows (the board keeps no pointer to this screen)
@@ -207,7 +207,7 @@ void BuyRocketsWidget::Update()
 	aBoard->NextLevel();
 }
 
-// one line of the help, centred on the fourth column
+// port: one line of the help, centred on the fourth column
 void BuyRocketsWidget::DrawCentered(Graphics* g, const SexyString& theText, int theY)
 {
 	g->DrawString(theText, Board::CellX(3) - g->GetFont()->StringWidth(theText) / 2, theY);

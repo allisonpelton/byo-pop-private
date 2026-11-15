@@ -23,14 +23,20 @@
 
 using namespace Sexy;
 
+// port: the original's float to int conversion (__ftol): truncation
 static int Ftol(double theValue)
 {
 	return (int) theValue;
 }
 
+// port: the number the next board takes (Board::mBoardSerial, for the autosplit block)
+static unsigned int sBoardSerials = 0;
+
 // 0x41ae80: a new board (its pieces are made through Piece(int), 0x41ad90)
 Board::Board(RocketApp* theApp, bool theContinuing)
 {
+	mBoardSerial = ++sBoardSerials;
+	mResumed = theContinuing;
 	mApp = theApp;
 	mCols = 6;
 	mRows = 9;
@@ -39,7 +45,7 @@ Board::Board(RocketApp* theApp, bool theContinuing)
 	mGen = new PieceGenerator(theApp, this, mRand);
 	mEffects = new EffectManager(mApp);
 	mTip = new HoverTip(mApp);      // 0x413aa0
-	// every plain field of the original starts as zero; the lists and the widget stay as they are
+	// every plain field of the original starts as zero; the lists stay as they are
 	memset(&mState, 0, (char*) &mObjects - (char*) &mState);
 	for (int aRow = 0; aRow < 9; aRow++)
 		for (int aColumn = 0; aColumn < 6; aColumn++)
@@ -52,27 +58,27 @@ Board::Board(RocketApp* theApp, bool theContinuing)
 		mLeft[i] = NULL;
 		mRight[i] = NULL;
 	}
-	m514 = NULL;
-	m68 = 100.0;
+	mPressedPiece = NULL;
+	mNightLength = 100.0;
 	mLevel = 0;
-	m74 = 10;
-	m78 = 10;
-	m7c = 3;
-	m80 = 3;
+	mLaunchesNeeded = 10;
+	mLaunchesNeededCopy = 10;
+	mLeftCount = 3;
+	mRightCount = 3;
 	// 0x41b04e: the arcade mode's first fall delay, or the timed modes' two updates between dropped tiles
 	// (the original also stores -1 in the two fields that are not zero)
-	m348 = -1;
-	m2f0 = -1;
-	// the game-over kind starts at 3 (none of the kinds 0 to 2; nothing reads it before F421de0 sets it, but the save file holds it)
-	m460 = 3;
+	mDealStart = -1;
+	mBurningPath = -1;
+	// the game-over kind starts at 3 (none of the kinds 0 to 2; nothing reads it before GameOver sets it, but the save file holds it)
+	mGameOverKind = 3;
 	if (mApp->mMode == 0)
-		m444 = mGen->Rows20();
+		mFallPeriod = mGen->Rows20();
 	else if (mApp->mMode == 1 || mApp->mMode == 2)
-		m450 = 2;
+		mTimedFallPeriod = 2;
 	mState = 0;
 	ResetState(theContinuing);
 	SetupBoard(true, theContinuing);
-	m498 = mApp->mNoHints;
+	mMoved = mApp->mNoHints;
 	// the head says its first lines a moment into the first new game of the run (the countdown is in Update)
 	if (!mApp->mNoHints && !theContinuing && !mApp->mFirstGameHint)
 	{
@@ -100,8 +106,8 @@ Board::~Board()
 // creates, so there is nothing to blink.)
 void Board::Update()
 {
-	if (0 < m4c4)
-		m4c4--;
+	if (0 < mPingCooldown)
+		mPingCooldown--;
 	if (0 < mApp->mHeadCountdown)
 	{
 		mApp->mHeadCountdown--;
@@ -113,60 +119,60 @@ void Board::Update()
 	}
 	if (mState == 3)
 		return;
-	if (m350 < 1)
-		m358 = 0;
-	else if (m358 != 1.0)
+	if (mPause < 1)
+		mPauseFade = 0;
+	else if (mPauseFade != 1.0)
 	{
-		m358 = m358 + 0.002;
-		if (1.0 < m358)
-			m358 = 1.0;
+		mPauseFade = mPauseFade + 0.002;
+		if (1.0 < mPauseFade)
+			mPauseFade = 1.0;
 		MarkDirty();
 	}
-	if (1 <= m350)
+	if (1 <= mPause)
 		return;
 	Widget::Update();
-	m364 = (int) SDL_GetTicks() - m368;
-	if (!m438)
-		m438 = true;
-	mTip->Update(m4f4, m4f8);
+	mPlayedMs = (int) SDL_GetTicks() - mStartTicks;
+	if (!mStarted)
+		mStarted = true;
+	mTip->Update(mPointerX, mPointerY);
 	MarkDirty();
-	if (m2e8)
+	if (mBurning)
 	{
-		m2ec--;
-		if (m2ec < 1)
+		mBurnCountdown--;
+		if (mBurnCountdown < 1)
 		{
-			if (m2ec == 0)
+			if (mBurnCountdown == 0)
 				FinishBurn();
-			else if (m2f4 == 0)
+			else if (mFlameCount == 0)
 				Launch();
 		}
 	}
 	if (mApp->mMode == 2 && mState == 0)
 	{
-		if (m108 == 0)
+		if (mMatchesLeft == 0)
 		{
-			m380--;
-			if (m380 < 1 && CountBurning() == 0)
-				F421de0(2);
+			mEndCountdown--;
+			if (mEndCountdown < 1 && CountBurning() == 0)
+				GameOver(2);
 		}
 		else
-			m380 = 0xfa;
+			mEndCountdown = 0xfa;
 	}
 	SmoothFraction();
 	Timers();
 	UpdatePieces();
-	if (m4a8 && AllTiles())
+	if (mRefilling && AllTiles())
 	{
-		m4a8 = false;
-		m4a9 = true;
+		mRefilling = false;
+		mJustRefilled = true;
 	}
 	Connections();
-	m4a9 = false;
+	mJustRefilled = false;
 	for (int i = 0; i < 10; i++)
 	{
-		if (m468[i] == 1)
+		if (mLanternPuff[i] == 1)
 		{
-			F41f280(i);
+			MeterFilledEffect(i);
 			if (i == 7)
 			{
 				Points* aPoints = new Points(mApp, mApp->mFonts[FONT_DOMO22_BOLD], GT(0x004e66f0),
@@ -174,26 +180,26 @@ void Board::Update()
 				aPoints->mStatic = true;
 				mTexts.push_back(aPoints);
 				mWidgetManager->AddWidget(aPoints);
-				m4c0 = true;
+				mHintsQuiet = true;
 			}
-			m468[i] = 2;
+			mLanternPuff[i] = 2;
 		}
 	}
-	if (m2e4 != mScore)
+	if (mScoreShown != mScore)
 	{
 		MarkDirty();
-		int aDiff = mScore - m2e4;
-		if (m2e4 < mScore)
+		int aDiff = mScore - mScoreShown;
+		if (mScoreShown < mScore)
 		{
-			m2e4 = m2e4 + Ftol((double) aDiff * 0.02 + 2.0);
-			if (mScore < m2e4)
-				m2e4 = mScore;
+			mScoreShown = mScoreShown + Ftol((double) aDiff * 0.02 + 2.0);
+			if (mScore < mScoreShown)
+				mScoreShown = mScore;
 		}
-		else if (mScore < m2e4)
+		else if (mScore < mScoreShown)
 		{
-			m2e4 = m2e4 + Ftol((double) aDiff * 0.025 - 2.0);
-			if (m2e4 < mScore)
-				m2e4 = mScore;
+			mScoreShown = mScoreShown + Ftol((double) aDiff * 0.025 - 2.0);
+			if (mScoreShown < mScore)
+				mScoreShown = mScore;
 		}
 	}
 	for (std::list<Points*>::iterator anItr = mTexts.begin(); anItr != mTexts.end(); )
@@ -217,20 +223,18 @@ void Board::Update()
 	}
 	if (mState != 2)
 	{
-		if (mState == 7)
-			F428ef0();
-		else if (mState == 4)
+		if (mState == 4)
 		{
-			if (m36c < 300)
+			if (mLevelEndCountdown < 300)
 				mApp->mHead->Follow(mEffects);
-			if (m36c < 1)
+			if (mLevelEndCountdown < 1)
 				EndLevelB();
 			else
 			{
-				m36c--;
-				if (m36c == 0x168)
+				mLevelEndCountdown--;
+				if (mLevelEndCountdown == 0x168)
 					mApp->mHead->Say(SOUND_VOICE_LEVEL_UP_02);
-				else if (m36c == 300)
+				else if (mLevelEndCountdown == 300)
 					mApp->mHead->FlyIn(mEffects);
 			}
 		}
@@ -238,17 +242,17 @@ void Board::Update()
 		{
 			mState = 6;
 			ShowLevelUp(LevelUpDialog::KIND_LEVEL);
-			m360 = m360 + ((int) SDL_GetTicks() - m368) / 1000;
-			F428de0(1000);
+			mSecondsPlayed = mSecondsPlayed + ((int) SDL_GetTicks() - mStartTicks) / 1000;
+			ClearRowsAbove(1000);
 			mApp->mHead->FlyOut(mEffects);
 			mWidgetManager->BringToFront(mApp->mHead);
 		}
 	}
-	if (mState == 0 && 0x32 < mUpdateCnt - m458 && !m45c)
+	if (mState == 0 && 0x32 < mUpdateCnt - mSettledAt && !mSettleFlag)
 		SettleAll(true);
 	mEffects->Update();
-	if (m4a4 != 0 && --m4a4 == 0)
-		F428d10();
+	if (mSpecialsDelay != 0 && --mSpecialsDelay == 0)
+		AttachLaunchBonuses();
 	if (mState == 0 && mApp->mMode == 0 && mUpdateCnt % 100 == 0 && 0 < mCols)
 	{
 		for (int aColumn = 0; aColumn < mCols; aColumn++)
@@ -260,7 +264,7 @@ void Board::Update()
 			}
 		}
 	}
-	if (mState == 1 && m460 == 1)
+	if (mState == 1 && mGameOverKind == 1)
 	{
 		for (int aRow = 0; aRow < mRows; aRow++)
 			for (int aColumn = 0; aColumn < mCols; aColumn++)
@@ -271,21 +275,13 @@ void Board::Update()
 	}
 }
 
-// 0x428600: a released button makes the click sound (no button has the board as its listener: the app handles the three
-// beside the board)
-void Board::ButtonDepress(int theId)
-{
-	(void) theId;
-	mApp->PlaySample(0);
-}
-
 // ---------------------------------------------------------------------------------------------------------
 // the originals' small helpers (their addresses are their names; what is left out is said at each)
 
 // 0x4282a0: a burning tile is moved: the burn is cancelled and its tiles are plain again
-void Board::F4282a0(int thePath)
+void Board::CancelBurn(int thePath)
 {
-	m4da = false;
+	mChainBurn = false;
 	for (int aRow = mRows - 1; aRow >= 0; aRow--)
 	{
 		for (int aColumn = 0; aColumn < mCols; aColumn++)
@@ -299,12 +295,12 @@ void Board::F4282a0(int thePath)
 			}
 		}
 	}
-	m2e8 = false;
-	m2f0 = -1;
+	mBurning = false;
+	mBurningPath = -1;
 }
 
 // 0x428090: takes the first special of kind 9 (type 6) out of the moving pieces
-void Board::F428090()
+void Board::RemoveSetOffSpecial()
 {
 	for (std::list<Piece*>::iterator anItr = mObjects.begin(); anItr != mObjects.end(); ++anItr)
 	{
@@ -321,11 +317,11 @@ void Board::F428090()
 // 0x421de0: the game is over (theKind 0 the night ran out, 1 the top line is full, 2 strategy mode ran out of moves).
 // The talking head says "game over" (kinds 1 and 2) or "out of time" (the night). The buy-rockets screen goes up in its
 // game-over form: the coins turn into points.
-void Board::F421de0(int theKind)
+void Board::GameOver(int theKind)
 {
-	m460 = theKind;
+	mGameOverKind = theKind;
 	mState = 1;
-	m440 = 300;
+	mGameOverDelay = 300;
 	mApp->mMusicInterface->FadeOut(SONG_GAME, true, 0.02);
 	mApp->mMusicInterface->FadeIn(SONG_GAMEOVER, -1, 0.02, false);
 	mApp->PlaySample(0x24);
@@ -346,45 +342,45 @@ void Board::F421de0(int theKind)
 
 // 0x429050, 0x429060, 0x429080: the count of the flames that were lit for one launch; when the launch is done
 // MakeMarker puts that many on the board
-void Board::F429050()
+void Board::AddLaunchFlame()
 {
-	m49c++;
+	mLaunchFlames++;
 }
 
-void Board::F429060(int theRow)
+void Board::StartLaunchFlames(int theRow)
 {
-	m49c = 0;
-	m4a0 = theRow;
+	mLaunchFlames = 0;
+	mLaunchRow = theRow;
 }
 
-void Board::F429080()
+void Board::FinishLaunchFlames()
 {
-	MakeMarker(m4a0, m49c + 1);
-	m4a0 = -1;
+	MakeMarker(mLaunchRow, mLaunchFlames + 1);
+	mLaunchRow = -1;
 }
 
 // 0x41f280: the effect of the meter i filling up
-void Board::F41f280(int theIndex)
+void Board::MeterFilledEffect(int theIndex)
 {
 	Effect* anEffect = mEffects->Add(0xe, true);
 	anEffect->mLife = 1;
-	anEffect->mc0 = 0;
+	anEffect->mDelay = 0;
 	anEffect->mY = 44.0;
 	anEffect->mX = (double) (theIndex * 0x16 + 0x108);
 	mApp->PlaySample(4);
 }
 
-// 0x428620: the buy-rockets screen goes up over the board; the board keeps it (m4e0) and takes it away when the next level
+// 0x428620: the buy-rockets screen goes up over the board; the board keeps it (mBuyRocketsScreen) and takes it away when the next level
 // begins (NextLevel) or when it goes itself
 void Board::ShowBuyRockets()
 {
 	BuyRocketsWidget* aWidget = new BuyRocketsWidget(mApp, false);
-	m4e0 = aWidget;
-	m4e0->Resize(0, 0, mWidth, mHeight);
-	mWidgetManager->AddWidget(m4e0);
+	mBuyRocketsScreen = aWidget;
+	mBuyRocketsScreen->Resize(0, 0, mWidth, mHeight);
+	mWidgetManager->AddWidget(mBuyRocketsScreen);
 }
 
-// 0x428bc0: the next level. The rank is counted again (0x428cf0 keeps it in m88: the level-up screen says a new rank was
+// 0x428bc0: the next level. The rank is counted again (0x428cf0 keeps it in mRank: the level-up screen says a new rank was
 // made when it differs), the board is made ready and plays.
 void Board::NextLevel()
 {
@@ -392,35 +388,29 @@ void Board::NextLevel()
 	int aPointsToNext;
 	RankName(&aRank, &aPointsToNext);       // (0x428ca0 once more before the level number goes up: its results only go to a log call, 0x42d4d0, that is a bare return in the shipped game)
 	mLevel++;
-	RankName(&m88, &aPointsToNext);         // 0x428cf0
-	m368 = (int) SDL_GetTicks();
-	if (m4e0 != NULL)
+	RankName(&mRank, &aPointsToNext);         // 0x428cf0
+	mStartTicks = (int) SDL_GetTicks();
+	if (mBuyRocketsScreen != NULL)
 	{
-		mWidgetManager->RemoveWidget(m4e0);
-		mApp->SafeDeleteWidget(m4e0);
-		m4e0 = NULL;
+		mWidgetManager->RemoveWidget(mBuyRocketsScreen);
+		mApp->SafeDeleteWidget(mBuyRocketsScreen);
+		mBuyRocketsScreen = NULL;
 	}
 	ResetState(false);
 	SetupBoard(false, false);
 	mState = 0;
-	m4a4 = 200;
+	mSpecialsDelay = 200;
 }
 
 // 0x424260: the widgets that the board owns go with it (the original deletes the buy-rockets screen at once, not later)
 void Board::RemovedFromManager(WidgetManager* theWidgetManager)
 {
 	Widget::RemovedFromManager(theWidgetManager);
-	if (m51cWidget != NULL)
+	if (mBuyRocketsScreen != NULL)
 	{
-		theWidgetManager->RemoveWidget(m51cWidget);
-		mApp->SafeDeleteWidget(m51cWidget);
-		m51cWidget = NULL;
-	}
-	if (m4e0 != NULL)
-	{
-		theWidgetManager->RemoveWidget(m4e0);
-		delete m4e0;
-		m4e0 = NULL;
+		theWidgetManager->RemoveWidget(mBuyRocketsScreen);
+		delete mBuyRocketsScreen;
+		mBuyRocketsScreen = NULL;
 	}
 	for (std::list<Points*>::iterator anItr = mTexts.begin(); anItr != mTexts.end(); ++anItr)
 	{
@@ -430,28 +420,20 @@ void Board::RemovedFromManager(WidgetManager* theWidgetManager)
 	mTexts.clear();
 }
 
-// 0x424340: when the board is moved in the order of the widgets its screens follow it, in front
+// 0x424340: when the board is moved in the order of the widgets its buy-rockets screen follows it, in front
 void Board::OrderInManagerChanged()
 {
-	if (m4e0 != NULL)
-		mWidgetManager->PutInfront(m4e0, this);
-	if (m51cWidget != NULL)
-		mWidgetManager->PutInfront(m51cWidget, this);
+	if (mBuyRocketsScreen != NULL)
+		mWidgetManager->PutInfront(mBuyRocketsScreen, this);
 }
 
-// 0x4286b0: after a level's screen. The widget at +0x51c goes; the first levels bring the hint of an item (level 1 the coins,
+// 0x4286b0: after a level's screen. The first levels bring the hint of an item (level 1 the coins,
 // level 3 the gems, level 5 the bombs and, in the strategy mode, level 7 the clocks) and then the head climbs out of its
 // hole to watch (0x416520 with 1); otherwise, or when the hint is turned off, the buy-rockets screen follows. The next
 // level's launches are counted. (The original ends with 0x42f770, the clock of the trial game's minutes mode: the
 // registered game has none.)
-void Board::F4286b0()
+void Board::AfterLevelScreen()
 {
-	if (m51cWidget != NULL)
-	{
-		mWidgetManager->RemoveWidget(m51cWidget);
-		mApp->SafeDeleteWidget(m51cWidget);
-		m51cWidget = NULL;
-	}
 	int aHint = -1;
 	if (mLevel == 0)
 		aHint = HintDialog::HINT_COIN;
@@ -468,11 +450,11 @@ void Board::F4286b0()
 		ShowBuyRockets();
 	else
 		mApp->mHead->GoToRest(true);
-	m318 = 0.0;
-	m4bc = 0;
-	m74 = mGen->RocketsForLevel(mLevel + 2);
-	m78 = m74;
-	m374 = 0;
+	mNightLeftShown = 0.0;
+	mFrozenTime = 0;
+	mLaunchesNeeded = mGen->RocketsForLevel(mLevel + 2);
+	mLaunchesNeededCopy = mLaunchesNeeded;
+	mLaunchesDone = 0;
 }
 
 // 0x428ca0: the rank of the score (0 to 26) by the table at 0x4c7848, its name, and how many points the next rank is away
@@ -527,24 +509,24 @@ void Board::ShowLevelUp(int theKind)
 
 // 0x428d10: the specials that the launches have earned are put on the board
 // (the first matches special that is attached opens the matches hint)
-void Board::F428d10()
+void Board::AttachLaunchBonuses()
 {
 	if (mState != 0)
 		return;
 	if (mApp->mMode == 2)
 	{
-		while (0 < mGen->m70)
+		while (0 < mGen->mLaunchBonus)
 		{
-			bool aWasAttached = m4d8;
+			bool aWasAttached = mMatchAttached;
 			AttachSpecial10();
-			if (m4d8 != aWasAttached)
+			if (mMatchAttached != aWasAttached)
 				mApp->ShowModeHint(HintDialog::HINT_MATCHES, false);
-			mGen->m70--;
+			mGen->mLaunchBonus--;
 		}
 	}
 	else
 	{
-		int aLeft = mGen->m70;
+		int aLeft = mGen->mLaunchBonus;
 		while (0 < aLeft)
 		{
 			int aIndex;
@@ -571,15 +553,15 @@ void Board::F428d10()
 				aLeft -= 10;
 				aIndex = 3;
 			}
-			mGen->m70 = aLeft;
+			mGen->mLaunchBonus = aLeft;
 			AttachBomb(aIndex);
-			aLeft = mGen->m70;
+			aLeft = mGen->mLaunchBonus;
 		}
 	}
 }
 
 // 0x428de0: the rows above the height theValue (pixels, from the top of the board) flash and go
-void Board::F428de0(int theValue)
+void Board::ClearRowsAbove(int theValue)
 {
 	int aRows = (theValue - 30) / 42;
 	if (aRows < 0)

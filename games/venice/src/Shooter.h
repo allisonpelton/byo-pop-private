@@ -21,7 +21,7 @@ public:
 	int mWildShots = 0; // 0x158: the jewels that are to become wild ones as they are loaded
 	int mShotsFired = 0; // 0x15c
 	int mScoreMultiplier = 1; // 0x160
-	int mSinkCount = 0; // 0x164: the times the shooter has sunk
+	int mSinkCount = 0; // 0x164: the times the shooter has sunk (nothing reads it)
 	Slot* mTargetSlot = nullptr; // 0x168: the slot the jewel in flight is aimed at, which a jewel that fills it clears
 	float mMoveX = 0; // 0x16c: how far the shooter moved sideways on the latest update (the jewels in its row follow)
 	float mMoveY = 0; // 0x170
@@ -52,5 +52,8 @@ private:
 	void EmitPowerSparkle(); // the sparkle that rises from a shooter with power shots (a part of 0x4199e0)
 	void UpdateBeam(); // the beam of the power shot (a part of 0x4199e0)
 };
+
+// port: the slot counts the colour choice reads (0x5ba3f4, eleven of them, and the number of colours at 0x5ba420), for a test's trace
+void GetSlotKindCountsForTest(int* theCounts);
 
 #endif

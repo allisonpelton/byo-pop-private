@@ -54,6 +54,12 @@ Where a function does something different for a game, a switch the game's own co
 `SysHost` has one more virtual than Cosmic Bugs' copy did (`FixOn`, for the fixes mod), which moves the vtable of that
 game's host.
 
+`R64ScreenDiff.h` and `R64ScreenDiff.cpp` are not the original's code. They are the hosts' helper for the shared
+SurfaceDisplay (`framework/SurfaceDisplay.h`). `r64::ScreenDiff::Update(screen, dest32)` widens what changed in the
+engine's 16-bit screen since the last call into the 32-bit frame; the first call widens all of it, and `Whole()` says
+so. `Rects()` then gives the changed blocks as `r64::ChangedRect` for `SetFrame`. Cosmic Bugs' host uses it (merged
+2026-11-12). Water Bugs' widget still has its own copy, `CollectChangedRects`, until it moves onto this one.
+
 ### What only Cosmic Bugs' copy had, taken out by its unneeded-code pass (2026-11-11)
 
 The union had kept every function either port translated; Cosmic Bugs' pass (the commit `shared: Retro64: the engine code
@@ -91,6 +97,19 @@ mods and settings files.
 The address tags pair the two exes by China's function match (`re/mahjongchina/compare/addrmap.tsv`, in the main
 checkout). A function only Ancient Japan's exe has (the restart box, inlined helpers, vtables) gives Japan's address
 alone.
+
+## The SWF player (`engines/swf`, library `sexyswf`)
+
+The originals that show Flash movies play them through the Flash ActiveX control, which no port can use, so the ports
+share a player of their own, `Sexy::SwfMovie`, written from the public SWF file format specification and translated
+from no exe: it has no addresses, and neither `tools/namecheck.py` nor `tools/coverage.py` reads it. Bookworm
+Adventures wrote it, Volume 2 added bitmaps and frame labels to its copy, and that copy is the one here (2026-11-12).
+The ports whose originals show Flash movies link it (both Bookworm Adventures games; Heavy Weapon and Hammer Heads as
+they come). Each keeps its own widget over it, standing in for the original's, and its own `swftest` tool
+(`games/<game>/tools/swftest`), which plays every movie of that game through headless. What a movie holds that the
+player skips is counted (`SwfMovie::GetUnsupported`), so a game's `swftest` shows at once what more of the format its
+movies need; the player grows to cover it, and every other game's movies must play as before: their `swftest` runs
+unchanged and frames rendered before and after the change identical.
 
 ## Adding another
 

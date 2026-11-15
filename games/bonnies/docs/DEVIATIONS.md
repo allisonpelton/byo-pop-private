@@ -23,13 +23,19 @@ on the framework (`ENGINE.md`, "The port"). What follows from that:
 - **Players' file names on the web.** The game's text is Latin-1, as the original's ANSI file names are; the browser's
   file system takes UTF-8, so on the web a saved game's name is written and listed as UTF-8 (`FileName`, `GameText`).
   Natively the bytes go as they are.
-- **The cursor.** SDL 1.2's 32x32 black-and-white cursors become the framework's image cursor, drawn with the same
-  pixels and the same hot spot.
+- **The cursor.** SDL 1.2's 32x32 black-and-white cursors become an SDL 2 window cursor on the desktop
+  (`SDL_CreateCursor`, the same pixels and hot spot, as the original's SDL 1.2 makes a system cursor), and the framework's
+  image cursor, drawn with the same pixels and hot spot, on the web. An image cursor keeps the shared display out of its
+  surface mode, so the desktop does not use one.
 - **The screen.** The game draws into one 800x600 buffer and presents about 30 times a second, whether or not anything
-  moved. The host copies the buffer into a framework picture (opaque, uploaded as it is) when its pixels differ from the
-  last copy, and when they do not it draws nothing: the framework keeps showing the last picture, which is the same
-  one (`BonniesWidget::Update`). Two in three presents of the tutorial's board matched the one before. Nothing visible
-  changes (the frozen screens are unchanged), and the game's own drawing, its rects and its frame timing are untouched.
+  moved. On the desktop the host compares the buffer with the last frame it showed and hands the shared `SurfaceDisplay`
+  (`framework/SurfaceDisplay.h`) the rectangles that differ, none at all when nothing did: the display shows them in the
+  window's own surface when the window is the screen's size or a whole multiple of it, and through the renderer
+  otherwise (`BonniesWidget::SendScreenChanges`). On the web the host copies the buffer into a framework picture
+  (opaque, uploaded as it is) when its pixels differ from the last copy, and when they do not it draws nothing
+  (`BonniesWidget::Update`). Two in three presents of the tutorial's board matched the one before. Nothing visible
+  changes (the frozen screens are unchanged, and `SURFACE_VERIFY=1` compares the window's surface with the buffer after
+  every present), and the game's own drawing, its rects and its frame timing are untouched.
 - **Messages and the window menu.** The window never had a menu (its handle, 0x4809c4, is never set), and the window
   messages SDL passed on (0x420630) only served that menu, so the host sends none. Refreshing the window frame for the
   menu (0x41fb20) does nothing.
@@ -138,7 +144,8 @@ scores screen, and ends through the main menu's Quit. After the fix nothing the 
   the tour). The port releases the cache first, while both are still there.
 
 Two port-side objects are freed at the end too, though the original had no such leak: the font descriptions the port
-reads out of the exe (`exeFont`; the original's are static data) and the host's cursor image.
+reads out of the exe (`exeFont`; the original's are static data) and the host's cursor (the window's SDL cursor on the
+desktop, the image on the web).
 
 Where the original handled memory by hand and the translation uses a C++ string or vector (the engine's string, 0x41d6c0,
 is `std::string`), the tracker could not see a leak of the original's; such a leak would be gone in the port already.

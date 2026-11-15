@@ -1,0 +1,438 @@
+# tools/coverage.py's settings for Venice Deluxe (docs/COVERAGE.md).
+export re/venice/gh/functions.jsonl
+src games/venice/src
+# The game's own code (games/venice/docs/WORKING_NOTES.md, "Layout of the code"): the game objects and screens, the Retro64
+# engine under them, the app and its game widget, up to the last function before the SexyAppFramework (from 0x443000), and the
+# app's destructor and button-listener glue that the linker put after the framework's first functions.
+game 00401000-00442f60
+game 004434a0-004434d0
+none 00401720 deleting destructor: the compiler makes a deleting destructor for each class; the port deletes through the C++ destructor
+none 00401750 std::list: an instantiation of the debug std::list or std::map (clear, erase, node allocation) of the engine's containers; the port uses the standard containers
+none 00401e40 thunk: a one-line wrapper (a virtual override that only calls its base, a base destructor, a window or C runtime thunk, or a plain setter)
+none 004023d0 thunk: a one-line wrapper (a virtual override that only calls its base, a base destructor, a window or C runtime thunk, or a plain setter)
+none 00403420 math wrapper: a wrapper of a C runtime math routine (sine, cosine, absolute value, arc tangent, power); the port calls the C library, or VeniceMath.cpp for the sine and cosine
+none 00403460 math wrapper: a wrapper of a C runtime math routine (sine, cosine, absolute value, arc tangent, power); the port calls the C library, or VeniceMath.cpp for the sine and cosine
+none 004034a0 math wrapper: a wrapper of a C runtime math routine (sine, cosine, absolute value, arc tangent, power); the port calls the C library, or VeniceMath.cpp for the sine and cosine
+none 004034e0 math wrapper: a wrapper of a C runtime math routine (sine, cosine, absolute value, arc tangent, power); the port calls the C library, or VeniceMath.cpp for the sine and cosine
+none 00405500 std::list: an instantiation of the debug std::list or std::map (clear, erase, node allocation) of the engine's containers; the port uses the standard containers
+none 00405530 std::list: an instantiation of the debug std::list or std::map (clear, erase, node allocation) of the engine's containers; the port uses the standard containers
+none 00405660 std::list: an instantiation of the debug std::list or std::map (clear, erase, node allocation) of the engine's containers; the port uses the standard containers
+none 00409ac0 deleting destructor: the compiler makes a deleting destructor for each class; the port deletes through the C++ destructor
+none 00409af0 thunk: a one-line wrapper (a virtual override that only calls its base, a base destructor, a window or C runtime thunk, or a plain setter)
+none 00409b30 thunk: a one-line wrapper (a virtual override that only calls its base, a base destructor, a window or C runtime thunk, or a plain setter)
+none 00409d10 deleting destructor: the compiler makes a deleting destructor for each class; the port deletes through the C++ destructor
+none 00409e40 std library: a std::basic_string or other C++ library instantiation
+none 0040a840 thunk: a one-line wrapper (a virtual override that only calls its base, a base destructor, a window or C runtime thunk, or a plain setter)
+none 0040c0c0 math wrapper: a wrapper of a C runtime math routine (sine, cosine, absolute value, arc tangent, power); the port calls the C library, or VeniceMath.cpp for the sine and cosine
+none 0040e730 engine container: an operation of the engine's own lists and containers (insert, remove, iterate, empty and free); the port uses the standard containers
+none 0040e7d0 engine container: an operation of the engine's own lists and containers (insert, remove, iterate, empty and free); the port uses the standard containers
+none 00410550 thunk: a one-line wrapper (a virtual override that only calls its base, a base destructor, a window or C runtime thunk, or a plain setter)
+none 004107b0 deleting destructor: the compiler makes a deleting destructor for each class; the port deletes through the C++ destructor
+none 004107e0 std library: a std::basic_string or other C++ library instantiation
+none 00410970 thunk: a one-line wrapper (a virtual override that only calls its base, a base destructor, a window or C runtime thunk, or a plain setter)
+none 004109b0 std library: a std::basic_string or other C++ library instantiation
+none 004109d0 std library: a std::basic_string or other C++ library instantiation
+none 004109e0 std library: a std::basic_string or other C++ library instantiation
+none 00410c80 std library: a std::basic_string or other C++ library instantiation
+none 00410ca0 std library: a std::basic_string or other C++ library instantiation
+none 00411050 std::list: an instantiation of the debug std::list or std::map (clear, erase, node allocation) of the engine's containers; the port uses the standard containers
+none 00411780 empty function: a function that does nothing, put in a virtual table or a callback slot
+none 00411c70 engine container: an operation of the engine's own lists and containers (insert, remove, iterate, empty and free); the port uses the standard containers
+none 00411ca0 engine container: an operation of the engine's own lists and containers (insert, remove, iterate, empty and free); the port uses the standard containers
+none 004121c0 thunk: a one-line wrapper (a virtual override that only calls its base, a base destructor, a window or C runtime thunk, or a plain setter)
+none 00414fa0 thunk: a one-line wrapper (a virtual override that only calls its base, a base destructor, a window or C runtime thunk, or a plain setter)
+none 00415b50 thunk: a one-line wrapper (a virtual override that only calls its base, a base destructor, a window or C runtime thunk, or a plain setter)
+none 00419330 std::list: an instantiation of the debug std::list or std::map (clear, erase, node allocation) of the engine's containers; the port uses the standard containers
+none 00419420 std::list: an instantiation of the debug std::list or std::map (clear, erase, node allocation) of the engine's containers; the port uses the standard containers
+none 00419500 engine container: an operation of the engine's own lists and containers (insert, remove, iterate, empty and free); the port uses the standard containers
+none 00419530 engine container: an operation of the engine's own lists and containers (insert, remove, iterate, empty and free); the port uses the standard containers
+none 00419550 std::list: an instantiation of the debug std::list or std::map (clear, erase, node allocation) of the engine's containers; the port uses the standard containers
+none 00419580 std::list: an instantiation of the debug std::list or std::map (clear, erase, node allocation) of the engine's containers; the port uses the standard containers
+none 004196e0 deleting destructor: the compiler makes a deleting destructor for each class; the port deletes through the C++ destructor
+none 00419710 engine container: an operation of the engine's own lists and containers (insert, remove, iterate, empty and free); the port uses the standard containers
+none 00419760 std::list: an instantiation of the debug std::list or std::map (clear, erase, node allocation) of the engine's containers; the port uses the standard containers
+none 0041c010 deleting destructor: the compiler makes a deleting destructor for each class; the port deletes through the C++ destructor
+none 0041c440 empty function: a function that does nothing, put in a virtual table or a callback slot
+none 004202e0 deleting destructor: the compiler makes a deleting destructor for each class; the port deletes through the C++ destructor
+none 00420310 engine container: an operation of the engine's own lists and containers (insert, remove, iterate, empty and free); the port uses the standard containers
+none 00420d40 std library: a std::basic_string or other C++ library instantiation
+none 00421120 empty function: a function that does nothing, put in a virtual table or a callback slot
+none 00421950 deleting destructor: the compiler makes a deleting destructor for each class; the port deletes through the C++ destructor
+none 00421980 engine container: an operation of the engine's own lists and containers (insert, remove, iterate, empty and free); the port uses the standard containers
+none 004226d0 deleting destructor: the compiler makes a deleting destructor for each class; the port deletes through the C++ destructor
+none 00422700 engine container: an operation of the engine's own lists and containers (insert, remove, iterate, empty and free); the port uses the standard containers
+none 00422720 engine container: an operation of the engine's own lists and containers (insert, remove, iterate, empty and free); the port uses the standard containers
+none 004227a0 std::list: an instantiation of the debug std::list or std::map (clear, erase, node allocation) of the engine's containers; the port uses the standard containers
+none 004227d0 std::list: an instantiation of the debug std::list or std::map (clear, erase, node allocation) of the engine's containers; the port uses the standard containers
+none 00422930 deleting destructor: the compiler makes a deleting destructor for each class; the port deletes through the C++ destructor
+none 00422a80 object pool: the original's object pools (4000 objects, 8000 stages, 16000 filters and events) and the reset of a slot in them; the port's objects are made with new and their constructors (Deviations: no pool)
+none 00424260 object pool: the original's object pools (4000 objects, 8000 stages, 16000 filters and events) and the reset of a slot in them; the port's objects are made with new and their constructors (Deviations: no pool)
+none 004242e0 empty function: a function that does nothing, put in a virtual table or a callback slot
+none 004257b0 engine container: an operation of the engine's own lists and containers (insert, remove, iterate, empty and free); the port uses the standard containers
+none 004257f0 thunk: a one-line wrapper (a virtual override that only calls its base, a base destructor, a window or C runtime thunk, or a plain setter)
+none 00425810 std::list: an instantiation of the debug std::list or std::map (clear, erase, node allocation) of the engine's containers; the port uses the standard containers
+none 00425900 engine container: an operation of the engine's own lists and containers (insert, remove, iterate, empty and free); the port uses the standard containers
+none 00425920 std::list: an instantiation of the debug std::list or std::map (clear, erase, node allocation) of the engine's containers; the port uses the standard containers
+none 00425950 std::list: an instantiation of the debug std::list or std::map (clear, erase, node allocation) of the engine's containers; the port uses the standard containers
+none 00425ab0 deleting destructor: the compiler makes a deleting destructor for each class; the port deletes through the C++ destructor
+none 00425ae0 std library: a std::basic_string or other C++ library instantiation
+none 00425b10 object pool: the original's object pools (4000 objects, 8000 stages, 16000 filters and events) and the reset of a slot in them; the port's objects are made with new and their constructors (Deviations: no pool)
+none 00425be0 object pool: the original's object pools (4000 objects, 8000 stages, 16000 filters and events) and the reset of a slot in them; the port's objects are made with new and their constructors (Deviations: no pool)
+none 00425c60 object pool: the original's object pools (4000 objects, 8000 stages, 16000 filters and events) and the reset of a slot in them; the port's objects are made with new and their constructors (Deviations: no pool)
+none 00429d50 object pool: the original's object pools (4000 objects, 8000 stages, 16000 filters and events) and the reset of a slot in them; the port's objects are made with new and their constructors (Deviations: no pool)
+none 00429e20 object pool: the original's object pools (4000 objects, 8000 stages, 16000 filters and events) and the reset of a slot in them; the port's objects are made with new and their constructors (Deviations: no pool)
+none 00429e90 object pool: the original's object pools (4000 objects, 8000 stages, 16000 filters and events) and the reset of a slot in them; the port's objects are made with new and their constructors (Deviations: no pool)
+none 0042af90 deleting destructor: the compiler makes a deleting destructor for each class; the port deletes through the C++ destructor
+none 0042afc0 engine container: an operation of the engine's own lists and containers (insert, remove, iterate, empty and free); the port uses the standard containers
+none 0042afe0 engine container: an operation of the engine's own lists and containers (insert, remove, iterate, empty and free); the port uses the standard containers
+none 0042b000 engine container: an operation of the engine's own lists and containers (insert, remove, iterate, empty and free); the port uses the standard containers
+none 0042b020 object pool: the original's object pools (4000 objects, 8000 stages, 16000 filters and events) and the reset of a slot in them; the port's objects are made with new and their constructors (Deviations: no pool)
+none 0042b070 engine container: an operation of the engine's own lists and containers (insert, remove, iterate, empty and free); the port uses the standard containers
+none 0042b210 engine container: an operation of the engine's own lists and containers (insert, remove, iterate, empty and free); the port uses the standard containers
+none 0042b290 engine container: an operation of the engine's own lists and containers (insert, remove, iterate, empty and free); the port uses the standard containers
+none 0042b2c0 std::list: an instantiation of the debug std::list or std::map (clear, erase, node allocation) of the engine's containers; the port uses the standard containers
+none 0042b3b0 engine container: an operation of the engine's own lists and containers (insert, remove, iterate, empty and free); the port uses the standard containers
+none 0042b4b0 object pool: the original's object pools (4000 objects, 8000 stages, 16000 filters and events) and the reset of a slot in them; the port's objects are made with new and their constructors (Deviations: no pool)
+none 0042c410 object pool: the original's object pools (4000 objects, 8000 stages, 16000 filters and events) and the reset of a slot in them; the port's objects are made with new and their constructors (Deviations: no pool)
+none 0042cab0 thunk: a one-line wrapper (a virtual override that only calls its base, a base destructor, a window or C runtime thunk, or a plain setter)
+none 0042cac0 deleting destructor: the compiler makes a deleting destructor for each class; the port deletes through the C++ destructor
+none 0042caf0 deleting destructor: the compiler makes a deleting destructor for each class; the port deletes through the C++ destructor
+none 0042cb20 std::list: an instantiation of the debug std::list or std::map (clear, erase, node allocation) of the engine's containers; the port uses the standard containers
+none 0042cc10 std::list: an instantiation of the debug std::list or std::map (clear, erase, node allocation) of the engine's containers; the port uses the standard containers
+none 0042cd70 std::list: an instantiation of the debug std::list or std::map (clear, erase, node allocation) of the engine's containers; the port uses the standard containers
+none 00434dd0 std library: a std::basic_string or other C++ library instantiation
+none 00434eb0 std library: a std::basic_string or other C++ library instantiation
+none 004354a0 std::list: an instantiation of the debug std::list or std::map (clear, erase, node allocation) of the engine's containers; the port uses the standard containers
+none 00435e10 startup and main loop: the original's own startup, its millisecond timer and main loop, and small window helpers, which the platform layer and the framework replace
+none 00436c00 startup and main loop: the original's own startup, its millisecond timer and main loop, and small window helpers, which the platform layer and the framework replace
+none 00436c60 startup and main loop: the original's own startup, its millisecond timer and main loop, and small window helpers, which the platform layer and the framework replace
+none 00436cc0 startup and main loop: the original's own startup, its millisecond timer and main loop, and small window helpers, which the platform layer and the framework replace
+none 00436d70 startup and main loop: the original's own startup, its millisecond timer and main loop, and small window helpers, which the platform layer and the framework replace
+none 00436e80 startup and main loop: the original's own startup, its millisecond timer and main loop, and small window helpers, which the platform layer and the framework replace
+none 00436fc0 deleting destructor: the compiler makes a deleting destructor for each class; the port deletes through the C++ destructor
+none 00437ab0 startup and main loop: the original's own startup, its millisecond timer and main loop, and small window helpers, which the platform layer and the framework replace
+none 00437ac0 empty function: a function that does nothing, put in a virtual table or a callback slot
+none 00437ae0 startup and main loop: the original's own startup, its millisecond timer and main loop, and small window helpers, which the platform layer and the framework replace
+none 0043aa60 engine container: an operation of the engine's own lists and containers (insert, remove, iterate, empty and free); the port uses the standard containers
+none 0043d360 std::list: an instantiation of the debug std::list or std::map (clear, erase, node allocation) of the engine's containers; the port uses the standard containers
+none 0043d450 engine container: an operation of the engine's own lists and containers (insert, remove, iterate, empty and free); the port uses the standard containers
+none 0043d480 std::list: an instantiation of the debug std::list or std::map (clear, erase, node allocation) of the engine's containers; the port uses the standard containers
+none 0043f850 engine container: an operation of the engine's own lists and containers (insert, remove, iterate, empty and free); the port uses the standard containers
+none 0043f870 std::list: an instantiation of the debug std::list or std::map (clear, erase, node allocation) of the engine's containers; the port uses the standard containers
+none 0043f8a0 std::list: an instantiation of the debug std::list or std::map (clear, erase, node allocation) of the engine's containers; the port uses the standard containers
+none 0043fa00 engine container: an operation of the engine's own lists and containers (insert, remove, iterate, empty and free); the port uses the standard containers
+none 0043fa30 engine container: an operation of the engine's own lists and containers (insert, remove, iterate, empty and free); the port uses the standard containers
+none 00440290 mouse and window helpers: a framework or window call the port makes through SexyAppBase (the pointer warp is WarpMouse, the input state and the window redraw are the framework's), or an image-load message box (the port prints to stderr)
+none 004402c0 empty function: a function that does nothing, put in a virtual table or a callback slot
+none 00440630 mouse and window helpers: a framework or window call the port makes through SexyAppBase (the pointer warp is WarpMouse, the input state and the window redraw are the framework's), or an image-load message box (the port prints to stderr)
+none 00441150 thunk: a one-line wrapper (a virtual override that only calls its base, a base destructor, a window or C runtime thunk, or a plain setter)
+none 00441170 thunk: a one-line wrapper (a virtual override that only calls its base, a base destructor, a window or C runtime thunk, or a plain setter)
+none 004414c0 std::list: an instantiation of the debug std::list or std::map (clear, erase, node allocation) of the engine's containers; the port uses the standard containers
+none 00441590 empty function: a function that does nothing, put in a virtual table or a callback slot
+none 004415b0 startup and main loop: the original's own startup, its millisecond timer and main loop, and small window helpers, which the platform layer and the framework replace
+none 004415c0 empty function: a function that does nothing, put in a virtual table or a callback slot
+none 00441610 thunk: a one-line wrapper (a virtual override that only calls its base, a base destructor, a window or C runtime thunk, or a plain setter)
+none 00441630 thunk: a one-line wrapper (a virtual override that only calls its base, a base destructor, a window or C runtime thunk, or a plain setter)
+none 004416a0 startup and main loop: the original's own startup, its millisecond timer and main loop, and small window helpers, which the platform layer and the framework replace
+none 00441b10 mouse and window helpers: a framework or window call the port makes through SexyAppBase (the pointer warp is WarpMouse, the input state and the window redraw are the framework's), or an image-load message box (the port prints to stderr)
+none 00441e20 engine container: an operation of the engine's own lists and containers (insert, remove, iterate, empty and free); the port uses the standard containers
+none 00441e40 std::list: an instantiation of the debug std::list or std::map (clear, erase, node allocation) of the engine's containers; the port uses the standard containers
+none 00441ee0 engine container: an operation of the engine's own lists and containers (insert, remove, iterate, empty and free); the port uses the standard containers
+none 00441f30 mouse and window helpers: a framework or window call the port makes through SexyAppBase (the pointer warp is WarpMouse, the input state and the window redraw are the framework's), or an image-load message box (the port prints to stderr)
+none 00441fe0 mouse and window helpers: a framework or window call the port makes through SexyAppBase (the pointer warp is WarpMouse, the input state and the window redraw are the framework's), or an image-load message box (the port prints to stderr)
+none 00442000 mouse and window helpers: a framework or window call the port makes through SexyAppBase (the pointer warp is WarpMouse, the input state and the window redraw are the framework's), or an image-load message box (the port prints to stderr)
+none 00442020 mouse and window helpers: a framework or window call the port makes through SexyAppBase (the pointer warp is WarpMouse, the input state and the window redraw are the framework's), or an image-load message box (the port prints to stderr)
+none 004428b0 thunk: a one-line wrapper (a virtual override that only calls its base, a base destructor, a window or C runtime thunk, or a plain setter)
+none 004428c0 thunk: a one-line wrapper (a virtual override that only calls its base, a base destructor, a window or C runtime thunk, or a plain setter)
+none 004429e0 mouse and window helpers: a framework or window call the port makes through SexyAppBase (the pointer warp is WarpMouse, the input state and the window redraw are the framework's), or an image-load message box (the port prints to stderr)
+none 00442a10 thunk: a one-line wrapper (a virtual override that only calls its base, a base destructor, a window or C runtime thunk, or a plain setter)
+none 00442a30 thunk: a one-line wrapper (a virtual override that only calls its base, a base destructor, a window or C runtime thunk, or a plain setter)
+none 00442a40 thunk: a one-line wrapper (a virtual override that only calls its base, a base destructor, a window or C runtime thunk, or a plain setter)
+none 00410ce0 std::string: an instantiation of std::basic_string (assign, compare, append, copy, c_str) with the debug-heap allocator; the port uses std::string
+none 00410dd0 std::string: an instantiation of std::basic_string (assign, compare, append, copy, c_str) with the debug-heap allocator; the port uses std::string
+none 00410ed0 std::string: an instantiation of std::basic_string (assign, compare, append, copy, c_str) with the debug-heap allocator; the port uses std::string
+none 004164e0 std::string: an instantiation of std::basic_string (assign, compare, append, copy, c_str) with the debug-heap allocator; the port uses std::string
+none 00416500 std::string: an instantiation of std::basic_string (assign, compare, append, copy, c_str) with the debug-heap allocator; the port uses std::string
+none 00416520 std::string: an instantiation of std::basic_string (assign, compare, append, copy, c_str) with the debug-heap allocator; the port uses std::string
+none 00416560 std::string: an instantiation of std::basic_string (assign, compare, append, copy, c_str) with the debug-heap allocator; the port uses std::string
+none 00434e50 std::string: an instantiation of std::basic_string (assign, compare, append, copy, c_str) with the debug-heap allocator; the port uses std::string
+none 00434fe0 std::string: an instantiation of std::basic_string (assign, compare, append, copy, c_str) with the debug-heap allocator; the port uses std::string
+none 00435060 std::string: an instantiation of std::basic_string (assign, compare, append, copy, c_str) with the debug-heap allocator; the port uses std::string
+none 00435100 std::string: an instantiation of std::basic_string (assign, compare, append, copy, c_str) with the debug-heap allocator; the port uses std::string
+none 00435120 std::string: an instantiation of std::basic_string (assign, compare, append, copy, c_str) with the debug-heap allocator; the port uses std::string
+none 00435140 std::string: an instantiation of std::basic_string (assign, compare, append, copy, c_str) with the debug-heap allocator; the port uses std::string
+none 00412870 destructor: a destructor or its deleting version; the port uses the C++ destructor (virtual)
+none 004434a0 destructor: a destructor or its deleting version; the port uses the C++ destructor (virtual)
+none 004434d0 destructor: a destructor or its deleting version; the port uses the C++ destructor (virtual)
+none 00420da0 empty function: a function that does nothing, in a callback slot
+none 0042cda0 std::list: a clear of the engine's list of image records; the port's records are in one container
+none 0042c4e0 ImageRecord clear: clears the fields of an image record (the constructor 0x42c3f0's only work); the port's fields have their initial values
+none 0040dbc0 Layer::Draw: draws through the level editor's filter when the editor (a global that nothing makes in play) is up, else SceneObject::Draw: the port's layers inherit Draw
+none 0040f890 Level::DrawSelf: fills the screen black for a paused level that holds an object of type 10, which only the level editor makes; else SceneObject::DrawSelf, which the port's level inherits
+none 00409a90 deleting destructor: the compiler makes a deleting destructor for each class; the port deletes through the C++ destructor
+none 00409b10 thunk: a one-line wrapper (a virtual override that only calls its base, a base destructor, a window or C runtime thunk, or a plain setter)
+none 00409e70 deleting destructor: the compiler makes a deleting destructor for each class; the port deletes through the C++ destructor
+none 00409ea0 thunk: a one-line wrapper (a virtual override that only calls its base, a base destructor, a window or C runtime thunk, or a plain setter)
+none 00409ef0 engine container: an operation of the engine's own lists and containers (insert, remove, iterate, empty and free); the port uses the standard containers
+none 00415900 thunk: a one-line wrapper (a virtual override that only calls its base, a base destructor, a window or C runtime thunk, or a plain setter)
+none 00415e20 empty function: a function that does nothing, put in a virtual table or a callback slot
+none 00403220 engine container: an operation of the engine's own lists and containers (insert, remove, iterate, empty and free); the port uses the standard containers
+none 004032c0 engine container: an operation of the engine's own lists and containers (insert, remove, iterate, empty and free); the port uses the standard containers
+none 00409f10 engine container: an operation of the engine's own lists and containers (insert, remove, iterate, empty and free); the port uses the standard containers
+none 00404890 thunk: a one-line wrapper (a virtual override that only calls its base, a base destructor, a window or C runtime thunk, or a plain setter)
+none 004158f0 empty function: a function that does nothing, put in a virtual table or a callback slot
+none 00415c10 thunk: a one-line wrapper (a virtual override that only calls its base, a base destructor, a window or C runtime thunk, or a plain setter)
+none 00409a30 constructor: the bonus basket's only sets the virtual table over the scene object's; the port's class uses the scene object's constructor
+none 00409a50 constructor: the endless bonus's only sets the virtual table over the scene object's; the port's class uses the scene object's constructor
+none 00401530 level editor: writes an object, a stage, an attribute, a filter or an event as a tag, or edits a level; only the editor calls it
+none 00439ec0 level editor: writes an object, a stage, an attribute, a filter or an event as a tag, or edits a level; only the editor calls it
+none 00401e10 level editor: writes an object, a stage, an attribute, a filter or an event as a tag, or edits a level; only the editor calls it
+none 00402100 level editor: writes an object, a stage, an attribute, a filter or an event as a tag, or edits a level; only the editor calls it
+none 004023a0 level editor: writes an object, a stage, an attribute, a filter or an event as a tag, or edits a level; only the editor calls it
+none 004023f0 level editor: writes an object, a stage, an attribute, a filter or an event as a tag, or edits a level; only the editor calls it
+none 00402b00 level editor: writes an object, a stage, an attribute, a filter or an event as a tag, or edits a level; only the editor calls it
+none 00403500 one-line function (empty, a setter or a getter) that nothing in play calls
+none 00404530 level editor: writes an object, a stage, an attribute, a filter or an event as a tag, or edits a level; only the editor calls it
+none 00404b00 level editor: writes an object, a stage, an attribute, a filter or an event as a tag, or edits a level; only the editor calls it
+none 004051c0 level editor: writes an object, a stage, an attribute, a filter or an event as a tag, or edits a level; only the editor calls it
+none 0040c160 level editor: writes an object, a stage, an attribute, a filter or an event as a tag, or edits a level; only the editor calls it
+none 00439e80 level editor: writes an object, a stage, an attribute, a filter or an event as a tag, or edits a level; only the editor calls it
+none 0040c460 no caller in the export and no run reached it: a helper, a destructor or an editor function that nothing in play calls
+none 0040ca90 no caller in the export and no run reached it: a helper, a destructor or an editor function that nothing in play calls
+none 00410020 no caller in the export and no run reached it: a helper, a destructor or an editor function that nothing in play calls
+none 00410320 no caller in the export and no run reached it: a helper, a destructor or an editor function that nothing in play calls
+none 00410370 level editor: writes an object, a stage, an attribute, a filter or an event as a tag, or edits a level; only the editor calls it
+none 00410570 level editor: writes an object, a stage, an attribute, a filter or an event as a tag, or edits a level; only the editor calls it
+none 004316d0 level editor: writes an object, a stage, an attribute, a filter or an event as a tag, or edits a level; only the editor calls it
+none 00431930 level editor: writes an object, a stage, an attribute, a filter or an event as a tag, or edits a level; only the editor calls it
+none 00434cd0 level editor: writes an object, a stage, an attribute, a filter or an event as a tag, or edits a level; only the editor calls it
+none 00410630 no caller in the export and no run reached it: a helper, a destructor or an editor function that nothing in play calls
+none 0042ce10 no caller in the export and no run reached it: a helper, a destructor or an editor function that nothing in play calls
+none 00410d87 no caller in the export and no run reached it: a helper, a destructor or an editor function that nothing in play calls
+none 00410dae no caller in the export and no run reached it: a helper, a destructor or an editor function that nothing in play calls
+none 00411a00 level editor: writes an object, a stage, an attribute, a filter or an event as a tag, or edits a level; only the editor calls it
+none 00411c40 level editor: writes an object, a stage, an attribute, a filter or an event as a tag, or edits a level; only the editor calls it
+none 00412160 level editor: writes an object, a stage, an attribute, a filter or an event as a tag, or edits a level; only the editor calls it
+none 004127d0 level editor: writes an object, a stage, an attribute, a filter or an event as a tag, or edits a level; only the editor calls it
+none 004145c0 level editor: writes an object, a stage, an attribute, a filter or an event as a tag, or edits a level; only the editor calls it
+none 00414860 level editor: writes an object, a stage, an attribute, a filter or an event as a tag, or edits a level; only the editor calls it
+none 0042e4a0 level editor: writes an object, a stage, an attribute, a filter or an event as a tag, or edits a level; only the editor calls it
+none 00431b50 level editor: writes an object, a stage, an attribute, a filter or an event as a tag, or edits a level; only the editor calls it
+none 00414a40 level editor: writes an object, a stage, an attribute, a filter or an event as a tag, or edits a level; only the editor calls it
+none 00414b20 one-line function (empty, a setter or a getter) that nothing in play calls
+none 00414be0 no caller in the export and no run reached it: a helper, a destructor or an editor function that nothing in play calls
+none 00414d90 no caller in the export and no run reached it: a helper, a destructor or an editor function that nothing in play calls
+none 004164b0 no caller in the export and no run reached it: a helper, a destructor or an editor function that nothing in play calls
+none 00418bc0 level editor: writes an object, a stage, an attribute, a filter or an event as a tag, or edits a level; only the editor calls it
+none 0041ba70 no caller in the export and no run reached it: a helper, a destructor or an editor function that nothing in play calls
+none 0041baf0 level editor: writes an object, a stage, an attribute, a filter or an event as a tag, or edits a level; only the editor calls it
+none 0041bb40 level editor: writes an object, a stage, an attribute, a filter or an event as a tag, or edits a level; only the editor calls it
+none 0041bbd0 level editor: writes an object, a stage, an attribute, a filter or an event as a tag, or edits a level; only the editor calls it
+none 0041bda0 no caller in the export and no run reached it: a helper, a destructor or an editor function that nothing in play calls
+none 0041c300 level editor: writes an object, a stage, an attribute, a filter or an event as a tag, or edits a level; only the editor calls it
+none 0041f290 no caller in the export and no run reached it: a helper, a destructor or an editor function that nothing in play calls
+none 00414bd0 no caller in the export and no run reached it: a helper, a destructor or an editor function that nothing in play calls
+none 0041f7b0 level editor: writes an object, a stage, an attribute, a filter or an event as a tag, or edits a level; only the editor calls it
+none 0041fb00 level editor: writes an object, a stage, an attribute, a filter or an event as a tag, or edits a level; only the editor calls it
+none 00421100 one-line function (empty, a setter or a getter) that nothing in play calls
+none 00421110 one-line function (empty, a setter or a getter) that nothing in play calls
+none 00421130 no caller in the export and no run reached it: a helper, a destructor or an editor function that nothing in play calls
+none 00421c50 level editor: writes an object, a stage, an attribute, a filter or an event as a tag, or edits a level; only the editor calls it
+none 00421fa0 level editor: writes an object, a stage, an attribute, a filter or an event as a tag, or edits a level; only the editor calls it
+none 00425b90 no caller in the export and no run reached it: a helper, a destructor or an editor function that nothing in play calls
+none 00426890 level editor: writes an object, a stage, an attribute, a filter or an event as a tag, or edits a level; only the editor calls it
+none 00426db0 one-line function (empty, a setter or a getter) that nothing in play calls
+none 00427cc0 no caller in the export and no run reached it: a helper, a destructor or an editor function that nothing in play calls
+none 00427cf0 no caller in the export and no run reached it: a helper, a destructor or an editor function that nothing in play calls
+none 00427d20 no caller in the export and no run reached it: a helper, a destructor or an editor function that nothing in play calls
+none 0042a9d0 level editor: writes an object, a stage, an attribute, a filter or an event as a tag, or edits a level; only the editor calls it
+none 0042ab40 level editor: writes an object, a stage, an attribute, a filter or an event as a tag, or edits a level; only the editor calls it
+none 0042b640 level editor: writes an object, a stage, an attribute, a filter or an event as a tag, or edits a level; only the editor calls it
+none 0042ac50 level editor: writes an object, a stage, an attribute, a filter or an event as a tag, or edits a level; only the editor calls it
+none 0042b8e0 level editor: writes an object, a stage, an attribute, a filter or an event as a tag, or edits a level; only the editor calls it
+none 0042ad80 level editor: writes an object, a stage, an attribute, a filter or an event as a tag, or edits a level; only the editor calls it
+none 0042bb90 level editor: writes an object, a stage, an attribute, a filter or an event as a tag, or edits a level; only the editor calls it
+none 0042c0a0 level editor: writes an object, a stage, an attribute, a filter or an event as a tag, or edits a level; only the editor calls it
+none 0042dbf0 level editor: its classes and what only they use; nothing in play creates the editor (no caller of its constructor)
+none 0042dc60 level editor: its classes and what only they use; nothing in play creates the editor (no caller of its constructor)
+none 0042dd70 level editor: its classes and what only they use; nothing in play creates the editor (no caller of its constructor)
+none 00427810 level editor: its classes and what only they use; nothing in play creates the editor (no caller of its constructor)
+none 004278e0 level editor: its classes and what only they use; nothing in play creates the editor (no caller of its constructor)
+none 00429630 level editor: its classes and what only they use; nothing in play creates the editor (no caller of its constructor)
+none 0042b100 level editor: its classes and what only they use; nothing in play creates the editor (no caller of its constructor)
+none 0042b3d0 level editor: its classes and what only they use; nothing in play creates the editor (no caller of its constructor)
+none 0042df10 level editor: its classes and what only they use; nothing in play creates the editor (no caller of its constructor)
+none 0042df80 level editor: its classes and what only they use; nothing in play creates the editor (no caller of its constructor)
+none 0042e110 level editor: its classes and what only they use; nothing in play creates the editor (no caller of its constructor)
+none 0042e280 level editor: its classes and what only they use; nothing in play creates the editor (no caller of its constructor)
+none 0042e3b0 level editor: its classes and what only they use; nothing in play creates the editor (no caller of its constructor)
+none 0042e560 level editor: its classes and what only they use; nothing in play creates the editor (no caller of its constructor)
+none 0042f7b0 level editor: its classes and what only they use; nothing in play creates the editor (no caller of its constructor)
+none 0042f930 level editor: its classes and what only they use; nothing in play creates the editor (no caller of its constructor)
+none 0042fa60 level editor: its classes and what only they use; nothing in play creates the editor (no caller of its constructor)
+none 0042ff40 level editor: its classes and what only they use; nothing in play creates the editor (no caller of its constructor)
+none 00430200 level editor: its classes and what only they use; nothing in play creates the editor (no caller of its constructor)
+none 00430a30 level editor: its classes and what only they use; nothing in play creates the editor (no caller of its constructor)
+none 00430de0 level editor: its classes and what only they use; nothing in play creates the editor (no caller of its constructor)
+none 00430f70 level editor: its classes and what only they use; nothing in play creates the editor (no caller of its constructor)
+none 00431260 level editor: its classes and what only they use; nothing in play creates the editor (no caller of its constructor)
+none 004316b0 level editor: its classes and what only they use; nothing in play creates the editor (no caller of its constructor)
+none 00431bf0 level editor: its classes and what only they use; nothing in play creates the editor (no caller of its constructor)
+none 00431cc0 level editor: its classes and what only they use; nothing in play creates the editor (no caller of its constructor)
+none 00431db0 level editor: its classes and what only they use; nothing in play creates the editor (no caller of its constructor)
+none 00431e60 level editor: its classes and what only they use; nothing in play creates the editor (no caller of its constructor)
+none 00431ec0 level editor: its classes and what only they use; nothing in play creates the editor (no caller of its constructor)
+none 00431f20 level editor: its classes and what only they use; nothing in play creates the editor (no caller of its constructor)
+none 00432050 level editor: its classes and what only they use; nothing in play creates the editor (no caller of its constructor)
+none 00434bf0 level editor: its classes and what only they use; nothing in play creates the editor (no caller of its constructor)
+none 00434fb0 level editor: its classes and what only they use; nothing in play creates the editor (no caller of its constructor)
+none 004350e0 level editor: its classes and what only they use; nothing in play creates the editor (no caller of its constructor)
+none 00435200 level editor: its classes and what only they use; nothing in play creates the editor (no caller of its constructor)
+none 0043a580 level editor: its classes and what only they use; nothing in play creates the editor (no caller of its constructor)
+none 0043a860 level editor: its classes and what only they use; nothing in play creates the editor (no caller of its constructor)
+none 0043a890 level editor: its classes and what only they use; nothing in play creates the editor (no caller of its constructor)
+none 0043aa0b level editor: its classes and what only they use; nothing in play creates the editor (no caller of its constructor)
+none 0043ab60 level editor: its classes and what only they use; nothing in play creates the editor (no caller of its constructor)
+none 0043ab80 level editor: its classes and what only they use; nothing in play creates the editor (no caller of its constructor)
+none 0043aba0 level editor: its classes and what only they use; nothing in play creates the editor (no caller of its constructor)
+none 0043abe0 level editor: its classes and what only they use; nothing in play creates the editor (no caller of its constructor)
+none 0043ac90 level editor: its classes and what only they use; nothing in play creates the editor (no caller of its constructor)
+none 0043ad20 level editor: its classes and what only they use; nothing in play creates the editor (no caller of its constructor)
+none 0043bdd0 level editor: its classes and what only they use; nothing in play creates the editor (no caller of its constructor)
+none 0043c1c0 level editor: its classes and what only they use; nothing in play creates the editor (no caller of its constructor)
+none 0043c240 level editor: its classes and what only they use; nothing in play creates the editor (no caller of its constructor)
+none 0043c4b0 level editor: its classes and what only they use; nothing in play creates the editor (no caller of its constructor)
+none 0043c560 level editor: its classes and what only they use; nothing in play creates the editor (no caller of its constructor)
+none 0043c5d0 level editor: its classes and what only they use; nothing in play creates the editor (no caller of its constructor)
+none 0043c5f0 level editor: its classes and what only they use; nothing in play creates the editor (no caller of its constructor)
+none 0043c610 level editor: its classes and what only they use; nothing in play creates the editor (no caller of its constructor)
+none 0043c670 level editor: its classes and what only they use; nothing in play creates the editor (no caller of its constructor)
+none 0043c690 level editor: its classes and what only they use; nothing in play creates the editor (no caller of its constructor)
+none 0043c6f0 level editor: its classes and what only they use; nothing in play creates the editor (no caller of its constructor)
+none 0043c7e0 level editor: its classes and what only they use; nothing in play creates the editor (no caller of its constructor)
+none 0043c810 level editor: its classes and what only they use; nothing in play creates the editor (no caller of its constructor)
+none 0043c8e0 level editor: its classes and what only they use; nothing in play creates the editor (no caller of its constructor)
+none 0043c970 level editor: its classes and what only they use; nothing in play creates the editor (no caller of its constructor)
+none 0043ca50 level editor: its classes and what only they use; nothing in play creates the editor (no caller of its constructor)
+none 0043caa0 level editor: its classes and what only they use; nothing in play creates the editor (no caller of its constructor)
+none 0043caf0 level editor: its classes and what only they use; nothing in play creates the editor (no caller of its constructor)
+none 0043cb10 level editor: its classes and what only they use; nothing in play creates the editor (no caller of its constructor)
+none 0043cb50 level editor: its classes and what only they use; nothing in play creates the editor (no caller of its constructor)
+none 0043d570 level editor: its classes and what only they use; nothing in play creates the editor (no caller of its constructor)
+none 0043d650 level editor: its classes and what only they use; nothing in play creates the editor (no caller of its constructor)
+none 0043d6e0 level editor: its classes and what only they use; nothing in play creates the editor (no caller of its constructor)
+none 0043f5c0 level editor: its classes and what only they use; nothing in play creates the editor (no caller of its constructor)
+none 0043f5f0 level editor: its classes and what only they use; nothing in play creates the editor (no caller of its constructor)
+none 00441a40 level editor: its classes and what only they use; nothing in play creates the editor (no caller of its constructor)
+none 00441c20 level editor: its classes and what only they use; nothing in play creates the editor (no caller of its constructor)
+none 0042eb20 level editor: its classes and what only they use; nothing in play creates the editor (no caller of its constructor)
+none 00441800 level editor: its classes and what only they use; nothing in play creates the editor (no caller of its constructor)
+none 00431810 level editor: its classes and what only they use; nothing in play creates the editor (no caller of its constructor)
+none 00431870 level editor: its classes and what only they use; nothing in play creates the editor (no caller of its constructor)
+none 004319c0 level editor: its classes and what only they use; nothing in play creates the editor (no caller of its constructor)
+none 00432100 level editor: its classes and what only they use; nothing in play creates the editor (no caller of its constructor)
+none 00432200 level editor: its classes and what only they use; nothing in play creates the editor (no caller of its constructor)
+none 00432320 level editor: its classes and what only they use; nothing in play creates the editor (no caller of its constructor)
+none 00434ee0 level editor: its classes and what only they use; nothing in play creates the editor (no caller of its constructor)
+none 00434f10 level editor: its classes and what only they use; nothing in play creates the editor (no caller of its constructor)
+none 00431a90 level editor: its classes and what only they use; nothing in play creates the editor (no caller of its constructor)
+none 00434b70 level editor: the destructors of its MFC frame window class, which the linker kept
+none 00434ba0 level editor: the destructors of its MFC frame window class, which the linker kept
+none 00434e90 level editor: the destructors of its MFC frame window class, which the linker kept
+none 00434c50 level editor: the destructors of its MFC frame window class, which the linker kept
+none 00434c80 level editor: the destructors of its MFC frame window class, which the linker kept
+none 00434d40 level editor: the destructors of its MFC frame window class, which the linker kept
+none 00434d70 level editor: the destructors of its MFC frame window class, which the linker kept
+none 004355c0 no caller in the export and no run reached it: a helper, a destructor or an editor function that nothing in play calls
+none 00435790 no caller in the export and no run reached it: a helper, a destructor or an editor function that nothing in play calls
+none 00436610 level editor: writes an object, a stage, an attribute, a filter or an event as a tag, or edits a level; only the editor calls it
+none 00436ab0 level editor: writes an object, a stage, an attribute, a filter or an event as a tag, or edits a level; only the editor calls it
+none 00437400 level editor: writes an object, a stage, an attribute, a filter or an event as a tag, or edits a level; only the editor calls it
+none 00437960 level editor: writes an object, a stage, an attribute, a filter or an event as a tag, or edits a level; only the editor calls it
+none 00437ad0 one-line function (empty, a setter or a getter) that nothing in play calls
+none 00438100 level editor: writes an object, a stage, an attribute, a filter or an event as a tag, or edits a level; only the editor calls it
+none 00438eb0 no caller in the export and no run reached it: a helper, a destructor or an editor function that nothing in play calls
+none 004396b0 no caller in the export and no run reached it: a helper, a destructor or an editor function that nothing in play calls
+none 00439670 no caller in the export and no run reached it: a helper, a destructor or an editor function that nothing in play calls
+none 00439680 no caller in the export and no run reached it: a helper, a destructor or an editor function that nothing in play calls
+none 0043a830 no caller in the export and no run reached it: a helper, a destructor or an editor function that nothing in play calls
+none 0043a9ef C++ library: an instantiation of the stream, locale or string classes that no run reaches; the port uses the standard library
+none 0043aee0 C++ library: an instantiation of the stream, locale or string classes that no run reaches; the port uses the standard library
+none 0043af00 C++ library: an instantiation of the stream, locale or string classes that no run reaches; the port uses the standard library
+none 0043af10 C++ library: an instantiation of the stream, locale or string classes that no run reaches; the port uses the standard library
+none 0043b1c0 C++ library: an instantiation of the stream, locale or string classes that no run reaches; the port uses the standard library
+none 0043b1e0 C++ library: an instantiation of the stream, locale or string classes that no run reaches; the port uses the standard library
+none 0043b200 C++ library: an instantiation of the stream, locale or string classes that no run reaches; the port uses the standard library
+none 0043b210 C++ library: an instantiation of the stream, locale or string classes that no run reaches; the port uses the standard library
+none 0043b5e0 C++ library: an instantiation of the stream, locale or string classes that no run reaches; the port uses the standard library
+none 0043b6d0 C++ library: an instantiation of the stream, locale or string classes that no run reaches; the port uses the standard library
+none 0043b6f0 C++ library: an instantiation of the stream, locale or string classes that no run reaches; the port uses the standard library
+none 0043b7e0 C++ library: an instantiation of the stream, locale or string classes that no run reaches; the port uses the standard library
+none 0043bb70 C++ library: an instantiation of the stream, locale or string classes that no run reaches; the port uses the standard library
+none 0043bd00 C++ library: an instantiation of the stream, locale or string classes that no run reaches; the port uses the standard library
+none 0043bbb0 C++ library: an instantiation of the stream, locale or string classes that no run reaches; the port uses the standard library
+none 0043bbe0 C++ library: an instantiation of the stream, locale or string classes that no run reaches; the port uses the standard library
+none 0043bd30 C++ library: an instantiation of the stream, locale or string classes that no run reaches; the port uses the standard library
+none 0043bc20 C++ library: an instantiation of the stream, locale or string classes that no run reaches; the port uses the standard library
+none 0043ae80 C++ library: an instantiation of the stream, locale or string classes that no run reaches; the port uses the standard library
+none 0043bb40 C++ library: an instantiation of the stream, locale or string classes that no run reaches; the port uses the standard library
+none 0043bc50 C++ library: an instantiation of the stream, locale or string classes that no run reaches; the port uses the standard library
+none 0043bcd0 C++ library: an instantiation of the stream, locale or string classes that no run reaches; the port uses the standard library
+none 0043bd90 C++ library: an instantiation of the stream, locale or string classes that no run reaches; the port uses the standard library
+none 0043c3b0 C++ library: an instantiation of the stream, locale or string classes that no run reaches; the port uses the standard library
+none 0043ccf0 C++ library: an instantiation of the stream, locale or string classes that no run reaches; the port uses the standard library
+none 0043ce20 C++ library: an instantiation of the stream, locale or string classes that no run reaches; the port uses the standard library
+none 0043d170 C++ library: an instantiation of the stream, locale or string classes that no run reaches; the port uses the standard library
+none 0043d1a0 C++ library: an instantiation of the stream, locale or string classes that no run reaches; the port uses the standard library
+none 0043d1e0 C++ library: an instantiation of the stream, locale or string classes that no run reaches; the port uses the standard library
+none 0043d210 C++ library: an instantiation of the stream, locale or string classes that no run reaches; the port uses the standard library
+none 0043d250 C++ library: an instantiation of the stream, locale or string classes that no run reaches; the port uses the standard library
+none 0043d290 C++ library: an instantiation of the stream, locale or string classes that no run reaches; the port uses the standard library
+none 0043d2d0 C++ library: an instantiation of the stream, locale or string classes that no run reaches; the port uses the standard library
+none 0043d790 C++ library: an instantiation of the stream, locale or string classes that no run reaches; the port uses the standard library
+none 0043d9e0 C++ library: an instantiation of the stream, locale or string classes that no run reaches; the port uses the standard library
+none 0043ed10 C++ library: an instantiation of the stream, locale or string classes that no run reaches; the port uses the standard library
+none 0043ed50 C++ library: an instantiation of the stream, locale or string classes that no run reaches; the port uses the standard library
+none 0043f1b0 C++ library: an instantiation of the stream, locale or string classes that no run reaches; the port uses the standard library
+none 0043f2a0 C++ library: an instantiation of the stream, locale or string classes that no run reaches; the port uses the standard library
+none 0043f330 C++ library: an instantiation of the stream, locale or string classes that no run reaches; the port uses the standard library
+none 0043f620 C++ library: an instantiation of the stream, locale or string classes that no run reaches; the port uses the standard library
+none 0043f790 C++ library: an instantiation of the stream, locale or string classes that no run reaches; the port uses the standard library
+none 0043f7a0 C++ library: an instantiation of the stream, locale or string classes that no run reaches; the port uses the standard library
+none 0043f7b0 C++ library: an instantiation of the stream, locale or string classes that no run reaches; the port uses the standard library
+none 0043f7c0 C++ library: an instantiation of the stream, locale or string classes that no run reaches; the port uses the standard library
+none 0043da30 C++ library: an instantiation of the stream, locale or string classes that no run reaches; the port uses the standard library
+none 0043e870 C++ library: an instantiation of the stream, locale or string classes that no run reaches; the port uses the standard library
+none 0043e970 C++ library: an instantiation of the stream, locale or string classes that no run reaches; the port uses the standard library
+none 0043f150 C++ library: an instantiation of the stream, locale or string classes that no run reaches; the port uses the standard library
+none 0043f170 C++ library: an instantiation of the stream, locale or string classes that no run reaches; the port uses the standard library
+none 0043daa0 C++ library: an instantiation of the stream, locale or string classes that no run reaches; the port uses the standard library
+none 0043db10 C++ library: an instantiation of the stream, locale or string classes that no run reaches; the port uses the standard library
+none 0043db80 C++ library: an instantiation of the stream, locale or string classes that no run reaches; the port uses the standard library
+none 0043dbf0 C++ library: an instantiation of the stream, locale or string classes that no run reaches; the port uses the standard library
+none 0043e090 C++ library: an instantiation of the stream, locale or string classes that no run reaches; the port uses the standard library
+none 0043e160 C++ library: an instantiation of the stream, locale or string classes that no run reaches; the port uses the standard library
+none 0043f130 C++ library: an instantiation of the stream, locale or string classes that no run reaches; the port uses the standard library
+none 0043ddf0 C++ library: an instantiation of the stream, locale or string classes that no run reaches; the port uses the standard library
+none 0043dff0 C++ library: an instantiation of the stream, locale or string classes that no run reaches; the port uses the standard library
+none 0043e040 C++ library: an instantiation of the stream, locale or string classes that no run reaches; the port uses the standard library
+none 0043e070 C++ library: an instantiation of the stream, locale or string classes that no run reaches; the port uses the standard library
+none 0043f3e0 C++ library: an instantiation of the stream, locale or string classes that no run reaches; the port uses the standard library
+none 0043f400 C++ library: an instantiation of the stream, locale or string classes that no run reaches; the port uses the standard library
+none 0043f420 C++ library: an instantiation of the stream, locale or string classes that no run reaches; the port uses the standard library
+none 0043f460 C++ library: an instantiation of the stream, locale or string classes that no run reaches; the port uses the standard library
+none 0043f4a0 C++ library: an instantiation of the stream, locale or string classes that no run reaches; the port uses the standard library
+none 0043f4e0 C++ library: an instantiation of the stream, locale or string classes that no run reaches; the port uses the standard library
+none 0043f510 C++ library: an instantiation of the stream, locale or string classes that no run reaches; the port uses the standard library
+none 0043f570 C++ library: an instantiation of the stream, locale or string classes that no run reaches; the port uses the standard library
+none 0043f717 C++ library: an instantiation of the stream, locale or string classes that no run reaches; the port uses the standard library
+none 00442050 no caller in the export and no run reached it: a helper, a destructor or an editor function that nothing in play calls
+none 00442e30 no caller in the export and no run reached it: a helper, a destructor or an editor function that nothing in play calls
+none 00439f10 only functions that no run reaches call it
+none 004202c0 thunk: the cascade link's Draw only calls the scene object's
+none 00409a10 constructor: the level scroller's only sets the virtual table over the scene object's (the factory builds it, and no level asks for one); the port's class uses the scene object's constructor
+none 00422960 engine container: removes the current element of the engine's list (every other operation of it is left out too); the port uses the standard containers
+none 004415a0 empty function: a function that does nothing, put in a callback slot
+none 004415d0 constant: a function that returns zero, put in a callback slot
+none 00441910 thunk: a one-line wrapper that only calls a framework function
+none 0042d930 level editor: the editor's use of the name box (a value of the object it edits is set when Return is pressed); nothing in play makes the box that kind, so the port leaves it out

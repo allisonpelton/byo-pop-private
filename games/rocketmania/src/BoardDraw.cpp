@@ -22,6 +22,7 @@
 
 using namespace Sexy;
 
+// port: the original's float to int conversion (__ftol): truncation
 static int Ftol(double theValue)
 {
 	return (int) theValue;
@@ -31,12 +32,12 @@ static int Ftol(double theValue)
 // the level still needs)
 void Board::Draw(Graphics* g)
 {
-	if (mFc == 1)
+	if (mCovered == 1)
 		return;
-	// port: the original returns here once the dimming of a paused game is complete (m358 == 1.0) and leaves the last frame
+	// port: the original returns here once the dimming of a paused game is complete (mPauseFade == 1.0) and leaves the last frame
 	// in its back buffer; this port's screen does not keep it (the screenshot is black), so the frame is drawn once more
-	if (m350 == 0 && 0 < m4b4 && (mState == 0 || mState == 4 || mState == 5 || mState == 1))
-		Resize(CrtRand() % (m4b8 * 2 + 1) - m4b8, 0, 640, 480);
+	if (mPause == 0 && 0 < mShakeTime && (mState == 0 || mState == 4 || mState == 5 || mState == 1))
+		Resize(CrtRand() % (mShakeAmount * 2 + 1) - mShakeAmount, 0, 640, 480);
 	else
 		Resize(0, 0, 640, 480);
 
@@ -44,8 +45,8 @@ void Board::Draw(Graphics* g)
 	aClip.ClipRect(0xb0, 4, 0x1d0, 0x1d5);
 
 	Image** anImages = mApp->mImages;
-	double aDawn = 1.0 - m318 / m68;
-	if (aDawn <= 0.5 || m4e0 != NULL || mApp->GetDialog(0xb) != NULL)
+	double aDawn = 1.0 - mNightLeftShown / mNightLength;
+	if (aDawn <= 0.5 || mBuyRocketsScreen != NULL || mApp->GetDialog(0xb) != NULL)
 		g->DrawImage(anImages[IMAGE_NIGHTSKY], 0x3f, 0);
 	else
 	{
@@ -118,7 +119,7 @@ void Board::Draw(Graphics* g)
 
 	// the chest and the coins under it (not in strategy mode), then the specials
 	bool aBars = false;
-	if (mState == 0 || mState == 7 || m4e0 != NULL || mState == 4 || mState == 5 || mState == 1 || mState == 6)
+	if (mState == 0 || mBuyRocketsScreen != NULL || mState == 4 || mState == 5 || mState == 1 || mState == 6)
 	{
 		aBars = true;
 		if (mApp->mMode != 2)
@@ -139,12 +140,12 @@ void Board::Draw(Graphics* g)
 		int aRight;
 		if (mApp->mMode == 2)
 		{
-			aNumber = m108;
+			aNumber = mMatchesLeft;
 			aRight = 0x30;
 		}
 		else
 		{
-			aNumber = m74 - m374;
+			aNumber = mLaunchesNeeded - mLaunchesDone;
 			if (aNumber < 0)
 				aNumber = 0;
 			aRight = 0x23;
@@ -154,13 +155,13 @@ void Board::Draw(Graphics* g)
 	}
 
 	// the score, a digit at a time in cells 13 pixels wide
-	g->SetColor(Color(m2e4 == mScore ? 0xc0 : 0xde, 10, 10));
+	g->SetColor(Color(mScoreShown == mScore ? 0xc0 : 0xde, 10, 10));
 	if ((mState == 4 || mState == 5) && 0x32 < mUpdateCnt % 100)
 		g->SetColor(Color(0xff, 0x14, 0x14));
 	g->SetFont(mApp->mFonts[FONT_DOMO14_BOLD]);
 	{
 		char aBuf[32];
-		sprintf(aBuf, "%d", m2e4);
+		sprintf(aBuf, "%d", mScoreShown);
 		int aLength = (int) strlen(aBuf);
 		int aX = 0x65 - ((8 - aLength) * 0xd) / 2;
 		for (int anIndex = aLength; anIndex > 0; anIndex--)
@@ -174,7 +175,7 @@ void Board::Draw(Graphics* g)
 	if (mApp->mMode != 2)
 	{
 		char aBuf[32];
-		sprintf(aBuf, GTC(0x004e6654), mApp->mBoard->m100 ? mLevel + 2 : mLevel + 1);
+		sprintf(aBuf, GTC(0x004e6654), mApp->mBoard->mBuyRocketsState ? mLevel + 2 : mLevel + 1);
 		g->SetColor(Color(0xff, 0xff, 0x80, 200));
 		g->SetFont(mApp->mFonts[FONT_ARIAL8_BOLD]);
 		g->DrawString(aBuf, 0x40 - g->GetFont()->StringWidth(aBuf) / 2, 0x82);
@@ -197,10 +198,10 @@ void Board::Draw(Graphics* g)
 	}
 
 	// the highlight of the tile under the pointer
-	if (mState == 0 && CellX(0) <= m4f4 && m4f4 < CellX(mCols) && CellY(0) <= m4f8 && m4f8 < CellY(mRows))
+	if (mState == 0 && CellX(0) <= mPointerX && mPointerX < CellX(mCols) && CellY(0) <= mPointerY && mPointerY < CellY(mRows))
 	{
-		int aColumn = (m4f4 - CellX(0)) / 0x2a;
-		int aRow = (m4f8 - CellY(0)) / 0x2a;
+		int aColumn = (mPointerX - CellX(0)) / 0x2a;
+		int aRow = (mPointerY - CellY(0)) / 0x2a;
 		if (mGrid[aRow][aColumn] != NULL)
 		{
 			g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
@@ -214,7 +215,7 @@ void Board::Draw(Graphics* g)
 	mTip->Draw(g);      // 0x414000
 
 	// the hint that points at the first tile to turn
-	if (!m498 && !mApp->mNoHints)
+	if (!mMoved && !mApp->mNoHints)
 	{
 		int aRow = -1;
 		if (mApp->mMode == 0)
@@ -246,7 +247,7 @@ void Board::Draw(Graphics* g)
 	}
 
 	// the banners
-	if (0 < m43c && (mLevel != 0 || mApp->mNoHints))
+	if (0 < mBannerTime && (mLevel != 0 || mApp->mNoHints))
 	{
 		g->SetColor(Color(255, 255, 255));
 		g->SetFont(mApp->mFonts[FONT_DOMO36_BOLD]);
@@ -258,7 +259,7 @@ void Board::Draw(Graphics* g)
 	}
 	if (mState == 1)
 	{
-		SexyString anOver = GT(m460 == 1 ? 0x004e6634 : m460 == 2 ? 0x004e6624 : 0x004e6614);
+		SexyString anOver = GT(mGameOverKind == 1 ? 0x004e6634 : mGameOverKind == 2 ? 0x004e6624 : 0x004e6614);
 		g->SetFont(mApp->mFonts[FONT_DOMO36_BOLD]);
 		DrawWiggle(g, anOver, 0, 0, 0, 0, 5);
 		DrawWiggle(g, anOver, 5, 0x40, 0, 0, 5);
@@ -274,7 +275,7 @@ void Board::Draw(Graphics* g)
 		DrawWiggle(g, aUp, 5, 0x40, 0x34, 0, 0);
 		DrawWiggle(g, aUp, 10, 0x80, 0x69, 0, 0);
 		DrawWiggle(g, aUp, 15, 0xff, 0xff, 0xff, 0);
-		if (m4d9 && mUpdateCnt % 100 < 0x50)
+		if (mJustInTime && mUpdateCnt % 100 < 0x50)
 		{
 			g->SetFont(mApp->mFonts[FONT_DOMO22_BOLD]);
 			g->SetColor(Color(0, 0, 0));
@@ -284,20 +285,20 @@ void Board::Draw(Graphics* g)
 			g->DrawString(aText, CellX(3) - g->GetFont()->StringWidth(aText) / 2, 0x41);
 		}
 	}
-	if (mState == 0 && 0 < m4b0)
+	if (mState == 0 && 0 < mChainBonusTime)
 	{
 		g->SetFont(mApp->mFonts[FONT_DOMO36_BOLD]);
 		g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
 		DrawWiggle(g, GT(0x004e65f0), 0, 0xff, 0xff, 0xff, 10);
 		g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
 	}
-	// the dimmed screen and the pause window (m350 > 0)
-	if (0 < m350)
+	// the dimmed screen and the pause window (mPause > 0)
+	if (0 < mPause)
 	{
 		if (mApp->GetDialog(0xb) == NULL)
 		{
 			mApp->mHead->SkipDraw();
-			g->SetColor(Color(0, 0, 0, Ftol(m358 * 210.0)));
+			g->SetColor(Color(0, 0, 0, Ftol(mPauseFade * 210.0)));
 			g->SetColorizeImages(true);
 			g->FillRect(0, 0, 0x280, 0x1e0);
 			g->SetColorizeImages(false);
@@ -317,7 +318,7 @@ void Board::Draw(Graphics* g)
 			g->DrawString(aResume, 0x140 - g->GetFont()->StringWidth(aResume) / 2, 0x116);
 		}
 	}
-	if (mApp->mMode == 1 && mState == 0 && 0 < m4bc && m4bc < 500 && m4bc % 100 < 0x3c)
+	if (mApp->mMode == 1 && mState == 0 && 0 < mFrozenTime && mFrozenTime < 500 && mFrozenTime % 100 < 0x3c)
 	{
 		g->SetFont(mApp->mFonts[FONT_DOMO22_BOLD]);
 		g->SetColor(Color(0, 0, 0));
@@ -326,7 +327,7 @@ void Board::Draw(Graphics* g)
 		SexyString aText = GT(0x004e65e4);
 		g->DrawString(aText, CellX(3) - g->GetFont()->StringWidth(aText) / 2, 0x3e);
 	}
-	if (mApp->mMode == 2 && mState == 0 && 0 < m10c && m350 == 0 && m10c < 500 && m10c % 100 < 0x32)
+	if (mApp->mMode == 2 && mState == 0 && 0 < mMatchesWarning && mPause == 0 && mMatchesWarning < 500 && mMatchesWarning % 100 < 0x32)
 	{
 		g->SetColor(Color(0x80, 0x3c, 0x80));
 		SexyString aText = GT(0x004e65d4);
@@ -343,12 +344,12 @@ void Board::Draw(Graphics* g)
 // 0x41e770: a tile of the grid. The colour of its picture says how it is connected: no path the plain grey one (variant 6),
 // a path that reaches the left edge variant 1 (a fuse there) or 2, one that reaches only the right edge variant 3 (a rocket
 // there) or 4. A burning tile fades its lit picture (variant 0) in over the grey one and afterwards shows variant 0, or 5
-// once the flame has passed. A tile that was hit (|m80| > 0.005) is drawn turned (0x41e630), a tile of the top rows gets the
+// once the flame has passed. A tile that was hit (|mTilt| > 0.005) is drawn turned (0x41e630), a tile of the top rows gets the
 // warning overlay (0x41e690), and a tile that was moved leaves ghosts along the way it came.
 void Board::DrawTile(Graphics* g, Piece* thePiece, int theHint)
 {
 	int aJitter = 0;
-	if (m44c < 500 && theHint == 2 && m448 == thePiece->mColumn && mState != 1 && mState != 2 && m350 == 0)
+	if (mOverflowTimer < 500 && theHint == 2 && mDropColumn == thePiece->mColumn && mState != 1 && mState != 2 && mPause == 0)
 		aJitter = CrtRand() % 3 - 1;
 	if (thePiece->mType != 1 && thePiece->mType != 4)
 		return;
@@ -357,25 +358,25 @@ void Board::DrawTile(Graphics* g, Piece* thePiece, int theHint)
 	int aY = Ftol(thePiece->mY);
 	if (thePiece->mType == 4)
 	{
-		if (0.005 < fabs(thePiece->m80))
+		if (0.005 < fabs(thePiece->mTilt))
 		{
 			DrawTilted(g, thePiece);
 			return;
 		}
-		if (m2ec < 0)
-			g->DrawImage(aVariants[thePiece->m60 ? 5 : 0], aX, aY);
+		if (mBurnCountdown < 0)
+			g->DrawImage(aVariants[thePiece->mUsed ? 5 : 0], aX, aY);
 		else
 		{
 			g->DrawImage(aVariants[6], aX, aY);
 			g->SetColorizeImages(true);
-			g->SetColor(Color(255, 255, 255, Ftol(255.0 - (double) m2ec * 0.015151515151515152 * 255.0)));
+			g->SetColor(Color(255, 255, 255, Ftol(255.0 - (double) mBurnCountdown * 0.015151515151515152 * 255.0)));
 			g->DrawImage(aVariants[0], aX, aY);
 			g->SetColorizeImages(false);
 		}
 		DrawTileOverlay(g, thePiece, theHint);
 		return;
 	}
-	if (0.005 < fabs(thePiece->m80))
+	if (0.005 < fabs(thePiece->mTilt))
 		DrawTilted(g, thePiece);
 	else
 	{
@@ -383,33 +384,33 @@ void Board::DrawTile(Graphics* g, Piece* thePiece, int theHint)
 		int aPath = thePiece->mPath;
 		if (aPath != 0)
 		{
-			unsigned int aBits = (unsigned int) m384[aPath];
+			unsigned int aBits = (unsigned int) mPathEdges[aPath];
 			if ((aBits & 1) != 0)
-				aVariant = m3fc[aPath] ? 1 : 2;
+				aVariant = mPathLeftLive[aPath] ? 1 : 2;
 			else if ((aBits & 2) != 0)
-				aVariant = m41a[aPath] ? 3 : 4;
+				aVariant = mPathRightLive[aPath] ? 3 : 4;
 		}
 		g->DrawImage(aVariants[aVariant], aX, aY);
 		DrawTileOverlay(g, thePiece, theHint);
 	}
 
 	// the ghosts of a tile that was moved: one grey picture for each cell it passed, fading with the shake that is left
-	if (thePiece->mac != 0)
+	if (thePiece->mTrailLife != 0)
 	{
-		int aSteps = abs(thePiece->mRow - thePiece->mb0) + abs(thePiece->mColumn - thePiece->mb4);
+		int aSteps = abs(thePiece->mRow - thePiece->mMovedFromRow) + abs(thePiece->mColumn - thePiece->mMovedFromColumn);
 		g->SetColorizeImages(true);
 		int anAge = 0;
 		for (int aStep = 0; aStep < aSteps; aStep++)
 		{
-			int anAlpha = thePiece->mac - anAge;
+			int anAlpha = thePiece->mTrailLife - anAge;
 			if (10 < anAlpha)
 			{
 				g->SetColor(Color(255, 255, 255, anAlpha));
 				int aGhostY, aGhostX;
 				if (aStep == aSteps - 1)
 				{
-					aGhostY = CellY(thePiece->mb0);
-					aGhostX = CellX(thePiece->mb4);
+					aGhostY = CellY(thePiece->mMovedFromRow);
+					aGhostX = CellX(thePiece->mMovedFromColumn);
 				}
 				else
 				{
@@ -424,13 +425,13 @@ void Board::DrawTile(Graphics* g, Piece* thePiece, int theHint)
 	}
 }
 
-// 0x41e630: a tile that was hit and still swings (|m80| > 0.005) is drawn turned by that angle, in the plain grey picture
+// 0x41e630: a tile that was hit and still swings (|mTilt| > 0.005) is drawn turned by that angle, in the plain grey picture
 void Board::DrawTilted(Graphics* g, Piece* thePiece)
 {
 	MemoryImage** aVariants = mApp->mPieces[thePiece->mKind][thePiece->mRotation];
 	int aY = Ftol(thePiece->mY);
 	int aX = Ftol(thePiece->mX);
-	g->DrawImageRotated(aVariants[6], aX, aY, thePiece->m80, NULL);
+	g->DrawImageRotated(aVariants[6], aX, aY, thePiece->mTilt, NULL);
 }
 
 // 0x41e690: the warning over a tile of the top rows: the tile of the second row glows (hint 1 or 2), the one of the first row
@@ -467,9 +468,9 @@ void Board::DrawTop(Graphics* g, Piece* thePiece)
 {
 	g->SetColorizeImages(true);
 	int aOffset = 0;
-	if (m448 == thePiece->mColumn)
+	if (mDropColumn == thePiece->mColumn)
 	{
-		double aFraction = (double) m2e0 / (double) m444;
+		double aFraction = (double) mFallDisplay / (double) mFallPeriod;
 		int aFallen = Ftol(42.0 * aFraction);
 		if (mGrid[0][thePiece->mColumn] == NULL || aFallen < 0x21)
 		{
@@ -485,8 +486,8 @@ void Board::DrawTop(Graphics* g, Piece* thePiece)
 	}
 	else
 		g->SetColor(Color(100, 100, 100));
-	int aWarning = m44c % 100;
-	if (m44c < 500)
+	int aWarning = mOverflowTimer % 100;
+	if (mOverflowTimer < 500)
 		g->SetColor(Color(0xff - aWarning, 99 - aWarning, 99 - aWarning));
 	g->DrawImage(mApp->mPieces[thePiece->mKind][thePiece->mRotation][6], Ftol(thePiece->mX), Ftol(thePiece->mY + (double) aOffset));
 	g->SetColorizeImages(false);
@@ -498,11 +499,11 @@ void Board::DrawSpare(Graphics* g, Piece* thePiece)
 {
 	g->SetColorizeImages(true);
 	g->SetColor(Color(100, 100, 100));
-	int aFallen = Ftol((double) m2e0 / (double) m444 * 42.0);
+	int aFallen = Ftol((double) mFallDisplay / (double) mFallPeriod * 42.0);
 	if (mGrid[0][thePiece->mColumn] != NULL && 0x20 < aFallen)
 		aFallen = 0x20;
-	int aWarning = m44c % 100;
-	if (m44c < 500)
+	int aWarning = mOverflowTimer % 100;
+	if (mOverflowTimer < 500)
 		g->SetColor(Color(0xff - aWarning, 99 - aWarning, 99 - aWarning));
 	g->DrawImage(mApp->mPieces[thePiece->mKind][thePiece->mRotation][6], Ftol(thePiece->mX), Ftol((double) aFallen + thePiece->mY - 42.0));
 	g->SetColorizeImages(false);
@@ -573,7 +574,7 @@ void Board::DrawEdge(Graphics* g, Piece* thePiece, int theRow, int theColumn)
 // 0x41d420: the pieces that move about, first pass. A falling tile is drawn in its plain picture: the original sets the
 // colour 120, 100, 120 but never turns the colouring of images on, so the colour touches only what is drawn later without
 // one of its own; a flash is a picture strip's frame (kind 2 the 42-wide dust strip, the others the match-flame strip,
-// frame m7c).
+// frame mFrame).
 void Board::DrawMover(Graphics* g, Piece* thePiece)
 {
 	int aType = thePiece->mType;
@@ -588,7 +589,7 @@ void Board::DrawMover(Graphics* g, Piece* thePiece)
 		if (thePiece->mKind == 2)
 		{
 			Image* aStrip = mApp->mImages[IMAGE_DUST];
-			g->DrawImage(aStrip, Ftol(thePiece->mX), Ftol(thePiece->mY), Rect(thePiece->m7c * 0x2a, 0, 0x2a, 0x2a));
+			g->DrawImage(aStrip, Ftol(thePiece->mX), Ftol(thePiece->mY), Rect(thePiece->mFrame * 0x2a, 0, 0x2a, 0x2a));
 		}
 		else
 		{
@@ -601,7 +602,7 @@ void Board::DrawMover(Graphics* g, Piece* thePiece)
 			}
 			g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
 			g->DrawImage(aStrip, Ftol(thePiece->mX), Ftol(thePiece->mY),
-				Rect(thePiece->m7c * (aWidth / 0xf), 0, aWidth / 0xf, aStrip->GetHeight()));
+				Rect(thePiece->mFrame * (aWidth / 0xf), 0, aWidth / 0xf, aStrip->GetHeight()));
 			g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
 			if (thePiece->mKind == 1)
 				g->SetColorizeImages(false);
@@ -612,7 +613,7 @@ void Board::DrawMover(Graphics* g, Piece* thePiece)
 // 0x41f240: which of the chest's five pictures shows the coins collected
 int Board::ChestImage()
 {
-	int aCoins = m8c[7];
+	int aCoins = mSpecialCounts[7];
 	if (aCoins == 0)
 		return 0;
 	if (aCoins < 5)
@@ -628,7 +629,7 @@ void Board::DrawCoins(Graphics* g)
 	char aBuf[32];
 	g->SetColor(Color(0xed, 0xf8, 0xe8));
 	g->SetFont(mApp->mFonts[FONT_DOMO14_BOLD]);
-	sprintf(aBuf, "%d", m8c[7]);
+	sprintf(aBuf, "%d", mSpecialCounts[7]);
 	g->DrawString(aBuf, 0xa7 - g->GetFont()->StringWidth(aBuf) / 2, 0x1bf);
 	g->SetColor(Color(0xd9, 0xe4, 0xd4));
 	g->SetFont(mApp->mFonts[FONT_ARIAL8]);
@@ -647,7 +648,7 @@ void Board::DrawWiggle(Graphics* g, const SexyString& theText, int thePhase, int
 	g->DrawString(theText, aX, aY);
 }
 
-// the dark copies behind a text on the board: left and right at one height, above and below at others (the caller sets
+// port: the dark copies behind a text on the board: left and right at one height, above and below at others (the caller sets
 // the colour; the text itself is drawn by the caller on top)
 void Board::DrawOutlined(Graphics* g, const SexyString& theText, int theLeft, int theRight, int theSideY, int theAboveY, int theBelowY)
 {
@@ -687,16 +688,16 @@ int Board::SpecialDy(Piece* thePiece)
 		int aColumn = thePiece->mColumn;
 		if (thePiece->mHost == mTop[aColumn])
 		{
-			if (m448 == aColumn)
+			if (mDropColumn == aColumn)
 			{
-				aDy = Ftol((double) m2e0 / (double) m444 * 42.0);
+				aDy = Ftol((double) mFallDisplay / (double) mFallPeriod * 42.0);
 				if (mGrid[0][aColumn] != NULL && 0x20 < aDy)
 					aDy = 0x20;
 			}
 		}
 		else if (thePiece->mHost == mSpare)
 		{
-			aDy = Ftol((double) m2e0 / (double) m444 * 42.0 - 42.0);
+			aDy = Ftol((double) mFallDisplay / (double) mFallPeriod * 42.0 - 42.0);
 			if (mGrid[0][aColumn] != NULL && -10 < aDy)
 				aDy = -10;
 		}
@@ -857,9 +858,9 @@ void Board::DrawSpecial(Graphics* g, Piece* thePiece)
 		if (mUpdateCnt - thePiece->mBorn < 100)
 		{
 			int aRest = 100 - (mUpdateCnt - thePiece->mBorn);
-			aX = thePiece->m40;
+			aX = thePiece->mSlideStartX;
 			double anEase = 1.0 - (double) aRest * (double) aRest * 0.0001;
-			aY = Ftol((double) thePiece->m44 + anEase * (thePiece->mY - (double) thePiece->m44));
+			aY = Ftol((double) thePiece->mSlideStartY + anEase * (thePiece->mY - (double) thePiece->mSlideStartY));
 			if (thePiece->mFlash != NULL)
 			{
 				thePiece->mFlash->mX = (double) (aX + 7);
@@ -880,7 +881,7 @@ void Board::DrawSpecial(Graphics* g, Piece* thePiece)
 		int aWidth = aSheet->GetWidth() / 3;
 		int aHeight = aSheet->GetHeight() / 3;
 		int aColumn = ((mUpdateCnt % 0x2d) / 0xf + aY % 5 + aY % 3 + aX % 7) % 3;
-		g->DrawImage(aSheet, aX, aY, Rect(aColumn * aWidth, (3 - thePiece->ma8) * aHeight, aWidth, aHeight));
+		g->DrawImage(aSheet, aX, aY, Rect(aColumn * aWidth, (3 - thePiece->mHitsLeft) * aHeight, aWidth, aHeight));
 		break;
 	}
 	case 12:
@@ -907,21 +908,21 @@ void Board::DrawLantern(Graphics* g, int theImage, int theIndex)
 	g->DrawImage(mApp->mImages[theImage], theIndex * 0x16 + 0x108, sBob[theIndex] + 0x28);
 }
 
-// 0x41f360: the night of the classic mode as ten lanterns on a wire (m318 of the night's m68 is left). While time is frozen
-// (m4bc) all of them show the frozen picture. Otherwise the lanterns burn out from the left as the night goes (the lit
+// 0x41f360: the night of the classic mode as ten lanterns on a wire (mNightLeftShown of the night's mNightLength is left). While time is frozen
+// (mFrozenTime) all of them show the frozen picture. Otherwise the lanterns burn out from the left as the night goes (the lit
 // picture, then the dim one that fades out over the tenth of the night that the lantern lasts, then the unlit one); the
-// first one that goes out sets m468[i] (the board's update then makes the puff, 0x41f280). In the last tenth of the night the
+// first one that goes out sets mLanternPuff[i] (the board's update then makes the puff, 0x41f280). In the last tenth of the night the
 // lanterns still lit flicker.
 void Board::DrawNightBar(Graphics* g)
 {
 	g->DrawImage(mApp->mImages[IMAGE_WIRE], 0x102, 0x25);
-	if (0 < m4bc)
+	if (0 < mFrozenTime)
 	{
 		for (int i = 9; -1 < i; i--)
 			DrawLantern(g, IMAGE_LANTERNFROZEN, i);
 		return;
 	}
-	double aFraction = 1.0 - m318 / m68;
+	double aFraction = 1.0 - mNightLeftShown / mNightLength;
 	if (0.8999999761581421 < aFraction)
 	{
 		int aLeft = -0x5a - Ftol(aFraction * -100.0);
@@ -953,10 +954,10 @@ void Board::DrawNightBar(Graphics* g)
 			else
 			{
 				DrawLantern(g, IMAGE_LANTERNOFF, i);
-				if (m464 < i)
+				if (mLastLanternOut < i)
 				{
-					m464 = i;
-					m468[i] = 1;
+					mLastLanternOut = i;
+					mLanternPuff[i] = 1;
 				}
 			}
 		}
@@ -989,10 +990,10 @@ void Board::DrawLaunchNumber(Graphics* g, int theCount, int theRow, int theAlpha
 	}
 }
 
-// 0x429230: the launch in progress (m49c flames counted, in the row m4a0) shows its points
+// 0x429230: the launch in progress (mLaunchFlames flames counted, in the row mLaunchRow) shows its points
 void Board::DrawLaunchInProgress(Graphics* g)
 {
-	if (m4a0 != -1 && m49c != 0)
-		DrawLaunchNumber(g, m49c, m4a0, 0xff);
+	if (mLaunchRow != -1 && mLaunchFlames != 0)
+		DrawLaunchNumber(g, mLaunchFlames, mLaunchRow, 0xff);
 }
 

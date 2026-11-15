@@ -792,6 +792,7 @@ void drawVignette(float theAmount)
 	int aDiv = aRadius < 1 ? 1 : aRadius;
 	float aScale = (float)(aRest / ((double)aDiv * (double)(1.0f / 255.0f)));
 	int aDist = 0;
+	int v = 0;
 	int aRow = 0;
 	if (gHeight <= 0)
 		return;
@@ -809,8 +810,10 @@ void drawVignette(float theAmount)
 				{
 					aDist = intDistance(aColumn, aRow, aCx, aCy) + anInner;
 					aWait = 5;
+					// the brightness follows from the distance alone, which holds for these six pixels: worked out once
+					// for them
+					v = ftol((double)(anOuter - aDist) * aScale);
 				}
-				int v = ftol((double)(anOuter - aDist) * aScale);
 				if (v <= 0)
 					*aPixelPtr = 0;
 				else if (v < 0xff)

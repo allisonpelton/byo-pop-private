@@ -29,10 +29,19 @@ using namespace Sexy;
 int Sexy::gBoardGlobal5304a0 = 0;
 std::vector<std::string> Sexy::gScoreNames;
 
+// port(livesplit): the games' numbers, which the autosplit block tells apart (LiveSplitObserver.h)
+unsigned int Dynomite::NextSerial()
+{
+	static unsigned int sSerials = 0;
+	return ++sSerials;
+}
+
 // 0x404030
 Dynomite::Dynomite()
 {
 	gBoardGlobal5304a0 = 0;
+	mSerial = NextSerial();		// port(livesplit)
+	mResumed = false;			// port(livesplit)
 	mInitialized = false;
 	mPlaying = false;
 	mLineY = 0x160;

@@ -14,6 +14,9 @@
 #include "MemoryImage.h"
 #include "WidgetManager.h"
 #include "platform/VFS.h"
+#ifndef __EMSCRIPTEN__
+#include "SurfaceDisplay.h"
+#endif
 
 #include <SDL.h>
 #ifdef __EMSCRIPTEN__
@@ -154,14 +157,34 @@ WordHarmonyHost gHost;
 // 0x455a50: the window class made and registered (the widget is the framework's window's one widget)
 WordHarmonyWidget::WordHarmonyWidget()
 {
-	mScreenImage = new MemoryImage(gApp);
-	mScreenImage->Create(engine::SCREEN_WIDTH, engine::SCREEN_HEIGHT);
-	// port (for speed): opaque, so that the framework need not look through the 480000 pixels for alpha after each
-	// change, and with every alpha byte 0xff (RunFrame fills the screen with it and every blit writes it), so that it
-	// need not premultiply them pixel by pixel to upload them: the pixels uploaded are the same
-	mScreenImage->SetImageMode(false, false);
-	mScreenImage->mUploadAsIs = true;
-	mGraphics = new wordharmony::ScreenGraphics((uint32_t*)mScreenImage->GetBits(), engine::SCREEN_WIDTH, engine::SCREEN_HEIGHT);
+	mScreenImage = nullptr;
+	mSurfaceDisplay = nullptr;
+#ifndef __EMSCRIPTEN__
+	// port (for speed): the window's display keeps the screen itself (CreateDDInterface), so there is no picture of it to
+	// upload: the engine draws into a buffer of the widget's, and the display is handed the buffer and the rectangles that
+	// changed (RunFrame)
+	mSurfaceDisplay = dynamic_cast<SurfaceDisplay*>(gApp->mDDInterface);
+#endif
+	if (mSurfaceDisplay != nullptr)
+	{
+		mSurfaceBits.assign(engine::SCREEN_WIDTH * engine::SCREEN_HEIGHT, 0);
+		mPixels = mSurfaceBits.data();
+#ifndef __EMSCRIPTEN__
+		mSurfaceDisplay->SetFrame(mPixels, engine::SCREEN_WIDTH * 4, nullptr, -1);
+#endif
+	}
+	else
+	{
+		mScreenImage = new MemoryImage(gApp);
+		mScreenImage->Create(engine::SCREEN_WIDTH, engine::SCREEN_HEIGHT);
+		// port (for speed): opaque, so that the framework need not look through the 480000 pixels for alpha after each
+		// change, and with every alpha byte 0xff (RunFrame fills the screen with it and every blit writes it), so that it
+		// need not premultiply them pixel by pixel to upload them: the pixels uploaded are the same
+		mScreenImage->SetImageMode(false, false);
+		mScreenImage->mUploadAsIs = true;
+		mPixels = (const uint32_t*)mScreenImage->GetBits();
+	}
+	mGraphics = new wordharmony::ScreenGraphics(const_cast<uint32_t*>(mPixels), engine::SCREEN_WIDTH, engine::SCREEN_HEIGHT);
 	mLastLoop = gApp->GetClockTime();
 	mAccumulated = 0;
 	mLastSoundTick = gApp->mSteadyClock ? (DWORD)(gApp->mUpdateCount * gApp->mFrameTime) : mLastLoop;
@@ -218,7 +241,9 @@ void WordHarmonyWidget::Update()
 
 void WordHarmonyWidget::Draw(Graphics* g)
 {
-	g->DrawImage(mScreenImage, 0, 0);
+	// (with the surface display, the display shows the screen itself)
+	if (mScreenImage != nullptr)
+		g->DrawImage(mScreenImage, 0, 0);
 }
 
 void WordHarmonyWidget::ClearKeys()
@@ -328,12 +353,30 @@ WordHarmonyApp::WordHarmonyApp()
 
 WordHarmonyApp::~WordHarmonyApp()
 {
+#ifndef __EMSCRIPTEN__
+	// the screen's buffer goes with the widget: the display keeps no pointer to it
+	if (SurfaceDisplay* aDisplay = dynamic_cast<SurfaceDisplay*>(mDDInterface))
+		aDisplay->SetFrame(nullptr, 0, nullptr, -1);
+#endif
 	if (mWidget != nullptr)
 	{
 		mWidgetManager->RemoveWidget(mWidget);
 		delete mWidget;
 	}
 }
+
+#ifndef __EMSCRIPTEN__
+// port (for speed): the window's display is the shared surface display (framework/SurfaceDisplay.h): no Direct3D device, its
+// driver's thread or its memory, only the rows of the screen that changed copied into the window's own surface, as the original's
+// DirectDraw blit does. SURFACE_DISPLAY=off in the environment keeps the framework's own display (a test that compares the two).
+DDInterface* WordHarmonyApp::CreateDDInterface()
+{
+	const char* aMode = SDL_getenv("SURFACE_DISPLAY");
+	if ((aMode != nullptr) && (strcmp(aMode, "off") == 0))
+		return SexyAppBase::CreateDDInterface();
+	return new SurfaceDisplay(this);
+}
+#endif
 
 void WordHarmonyApp::SetGameCommandLine(int argc, char** argv)
 {
@@ -401,7 +444,19 @@ void WordHarmonyApp::RunFrame()
 		// uploaded nor drawn again (the framework draws the screen again every second, and when the window is exposed)
 		if (mWidget->mGraphics->finish())
 		{
-			mWidget->mScreenImage->BitsChanged();
+#ifndef __EMSCRIPTEN__
+			if (mWidget->mSurfaceDisplay != nullptr)
+			{
+				// the rectangles of the tiles redrawn: the display copies those into the window and shows them
+				static std::vector<Rect> sRects;
+				sRects.clear();
+				for (const wordharmony::ScreenGraphics::Rectangle& aRectangle : mWidget->mGraphics->redrawn())
+					sRects.push_back(Rect(aRectangle.mX, aRectangle.mY, aRectangle.mWidth, aRectangle.mHeight));
+				mWidget->mSurfaceDisplay->SetFrame(mWidget->mPixels, engine::SCREEN_WIDTH * 4, sRects.data(), (int)sRects.size());
+			}
+			else
+#endif
+				mWidget->mScreenImage->BitsChanged();
 			mWidget->MarkDirty();
 		}
 		if (mFrameHashLog != nullptr)
@@ -476,7 +531,7 @@ std::string floatText(float theValue)
 // (tools/profile/hashcmp.sh): the pixels folded into 64 bits, eight at a time
 void WordHarmonyApp::LogFrameHash()
 {
-	const uint64_t* aPixels = (const uint64_t*)mWidget->mScreenImage->GetBits();
+	const uint64_t* aPixels = (const uint64_t*)mWidget->mPixels;
 	uint64_t aHash = 1469598103934665603ull;
 	for (int i = 0; i < engine::SCREEN_WIDTH * engine::SCREEN_HEIGHT / 2; i++)
 	{

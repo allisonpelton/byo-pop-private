@@ -6,7 +6,7 @@
 
 #include "SceneObject.h"
 
-// 0x148 bytes in the original
+// 0x148 bytes in the original; its constructor, 0x409a30, only sets the virtual table over the scene object's
 class BonusBasket : public SceneObject
 {
 public:

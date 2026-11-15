@@ -50,6 +50,7 @@ void LoadingScreen::AddedToManager(WidgetManager* theWidgetManager)
 	theWidgetManager->AddWidget(mPlayLink);
 }
 
+// port: the play link leaves with the screen
 void LoadingScreen::RemovedFromManager(WidgetManager* theWidgetManager)
 {
 	Widget::RemovedFromManager(theWidgetManager);
@@ -140,6 +141,7 @@ static const unsigned int gHintTexts[7] =
 	0x004e45e0, 0x004e45b0, 0x004e4590, 0x004e4550, 0x004e4530, 0x004e4514, 0x004e44ec
 };
 
+// port: a menu button of the game's own picture and font
 static DialogButton* MakeMenuButton(RocketApp* theApp, int theId, ButtonListener* theListener, const SexyString& theLabel,
 	const Color& theColor, int theY)
 {

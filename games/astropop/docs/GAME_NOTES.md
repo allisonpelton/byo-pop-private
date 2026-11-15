@@ -82,7 +82,43 @@ The command wrote 0x57 until 2026-11-09, which worked in the run that set it and
 The bot (`move`) plays the weapons too: it clicks the button of the box that explains a weapon (dialog 0x7b), starts a
 charged weapon with Return, fires the laser (Vector) at the bottom brick of the tallest column, puts the pointer on that
 brick and clicks for the psychic (Vixx; two moves inside the cell, because a move lights its cell only when the pointer's
-last position was in the field already) and waits while Sprocket's and Turbot's weapons run by themselves.
+last position was in the field already) and waits while Sprocket's and Turbot's weapons run by themselves. It names the weapon's
+key as a DOM key does (`Enter`): the web page's test kit throws on SDL's `Return`, and the native driver maps `Enter` to it.
+
+A classic game cleared level by level with `win` and the bot (the Splits window's Any% check: 32 level clears in one game) needs the
+bot to answer everything the clears bring. After a `win` the level-up and the warp flight take about 700 to 1000 updates, during
+which the bot waits (`busy` 2, 3 and 5); then it clicks the gate (`gate`), and the boxes on the way (`upgrade`, the stories,
+the hints) with their own buttons. A bonus round (the end of levels 3, 7 ... 31) starts its minute only with a click (`mBonusRoundStarted`,
+`MouseDown`): the bot makes it (`bonus`), and with no group to shoot in the bonus field it waits instead of answering null, as the
+minute runs out by itself (a driver stops at a null). Without those two answers a game stopped in the bonus round of level 7 (native,
+null) or 19 (web) and one stayed in level 23's bonus round for good. `games/astropop/tools/livesplit/scripted.py levels` (native)
+and `games/astropop/tools/web/winlevels.js` (the page, real DOM input) play it: 32 clears and level 33 on the screen, in 4,785 moves
+and 85,200 updates natively and 1,835 moves and 89,500 updates in the page, with 24 upgrade boxes, 7 bonus starts and the
+gate 32 times.
+
+The test command `win` (LevelComplete, called straight) is answered with an ERROR unless the level is in play
+(`Board::WinBlockedReason`, BoardBot.cpp): not with the help, a pause, a story, a level-up, a warp, a bonus round, a count or a game
+over on, and not in a level in which no brick has been taken yet (`mPlayStarted`; `BoardReset` clears it for each level; the bricks the
+ship holds do not count: in a game's first stage (below stage 2) play starts only when the first shot arrives, `BoardArrive`). The original
+calls LevelComplete only from IsSettled in a level being played. A `win` before the first brick of a level was not harmless: the update
+skips `UpdateIntroAndTally` while `mPlayStarted` is false, so a bonus round won that way never ran its warp-in (state frozen at
+`mBonusWarpPhase` 1, the bot's shots going nowhere), and each `win` sent during a bonus round restarted it; under the help or in a warp
+it counted a level clear (`mLevelsCompleted`, the autosplit block's `lc`) that never moved the game on. A driver that retries `win`
+until it answers OK, as the Splits window's does, now plays on until the level is in play; `scripted.py levels`, `winlevels.js` and
+`gotohelp.js` ask again after the next shot.
+
+A game that a test command starts while the full-screen help or a box of the one before is up (`goto classic`, `goto survival`,
+`level`; the original's player cannot, they are modal) left it under the new Board: `StartClassicGame` deletes the old Board and adds the
+new one over the help widget and the dialogs, so they are not drawn and take no click. The help also stays in `mHelpScreen`, which
+holds the Board's updates and input; a box (the warp screen's upgrade box 0x76, the weapon's 0x7b, ...) stays in the dialog map, so
+that the bot goes on answering it, its click reaching the Board (which takes a brick with it: `hand` 1 or 2, the score 0, and `win` refused as
+"play has not started"). The bot then answered "help" or "upgrade" for good, also after `win`; a driver that restarts games over an
+open help or box (the Site session's page did, after its Any% game and with the upgrade box of the last warp still up) met it. The three
+commands close them first (`CloseOldGameScreens` in `testhooks/TestCommands.cpp`, test code only: the help with its own Continue, every
+dialog of ids 100 to 0x7c killed). `games/astropop/tools/web/gotohelp.js` repeats the help case (three restarts over it, then 90 bot
+moves with a `win`: one "help" answer, then shots, the gate and level 2; before: 20 of 20 answers "help") and `winlevels.js` with
+`againat=upgrade` (or `againat=power` with `charge=1`) the box case (before: one "help", then "upgrade" 39 times of 40 moves; after:
+one "help", then shots and a `win` that is answered OK).
 
 A player is two things, and a test that starts with one needs both: the file `users\data<n>.usr` and the registry key
 `Users\<name>` with `Users\LastUser` (the original keeps them under HKLM, the port in its `registry.ini`). `Init` deletes
@@ -296,8 +332,10 @@ The handler of event 3 (0x403fd0, `Brick::OnDie`) fires the "popped" event 0x1a 
    performance pass (section 11), the readability pass (section 12) and the check against the PopCap Game Collection's copy (section 13: its exe is
    another build; the port plays equal on its files) and the music's state against the original's (section 14: the port had no music; fixed).
    The original's 3D screen wipe was reached on the night of 2026-11-12 and compared frame by frame with the port's, all four kinds: the same
-   pictures (section 10). The performance step is open: in 3D the port is a few percent over its original (section 11, the shared
-   presentation path); 2D passes. The lite survey (section 11b) found no candidate worth a toggle: the game's logic is 0.6% of the process
+   pictures (section 10). The performance step is open: in 3D the port is over its original (134% at the original's window size,
+   section 11c; all of it the presentation and the Direct3D 11 driver's thread, the game's own update and drawing being at or under the
+   original's; 105 to 121% in the later set with the presents held by the frame loop's pace or by vsync, section 11d, the present and
+   driver costing the port 1.9 to 2.4 M cycles a present against the original's 1.2, a shared cost); 2D passes (69%). The lite survey (section 11b) found no candidate worth a toggle: the game's logic is 0.6% of the process
    and every faster method keeps the answer.
 4. (Done: the gap of the removed More Games button is closed, section 6.) The app's destructor does not delete its screens (as the original's).
 5. (Done in phase two, the sites it lists and the other drawing and screen functions read against the asm; the float rounding of the drawing
@@ -410,6 +448,14 @@ back afterwards, reads the 3D flag out of its app object and posts the scenario'
 go through `playbymove`, which does use `-commands`. The machine was never quiet: three to six other sessions' games ran during every
 run (0.5 to 0.9 of the machine busy), and the stretches of one build spread by plus or minus 30%, so a figure is the median of five or six
 pairs with its range. The memory is private bytes in MiB; the load is the time from the creation of the process to the title taking input.
+
+**Window state of these figures (found 2026-11-12, after the Mahjong session's report; they are to be measured again).** The port's runs had
+no `ScreenMode` in their `registry.ini`, and the port then starts full screen: a `screenshotfull` in a run under rundesk (a 3840x2160
+desktop), 2D and 3D, is 2560x1920, a render scale of 4 on the game's 640x480, where the original ran windowed at its own 640x480 (scale
+1). With `ScreenMode=0` the port's window is 1280x960 (scale 2, the framework's default window). So the tables below set a full-screen
+port against a window of the original's size: not like for like. Their renderers were Direct3D 11 in every rundesk run and, on the desktop,
+Direct3D 9 for the first 3D rows and Direct3D 11 with the hint (below). The 3D desktop runs very probably started full screen too (the
+visible desktop is also 3840x2160), which the display line of the next runs, with `-windowscale=1` and `ScreenMode=0`, will show.
 
 | 2D, five pairs, rundesk, 2026-11-11 | Original | Port |
 |---|---|---|
@@ -559,6 +605,158 @@ asked for them. (3) The 3D stretch's excess, the one place where the port is ove
 **To repeat.** The instrumented build was a throwaway: a `FNPROF("name")` line at the top of each function (an RAII `rdtsc` pair adding to a
 table, written to a file named by `PROF_OUT` at exit), built as a second executable, and run by the scenario's usual script
 (`profile/perf.py`'s `port_script`) under rundesk with `-fast`. Nothing of it was committed.
+
+### 11c. The cycle split, at the original's window size (2026-11-12)
+
+**Why again.** The tables above set a port that started full screen (render scale 4 on a 3840x2160 desktop, no `ScreenMode` in its
+registry file) against an original in a window of its own size, and their original side carried the sound stand-in's module rescan
+(`223d9bdf`: about 1 to 1.6 G cycles of a stretch, found by Typer Shark), so they are superseded by the figures here. Both were taken
+by `profile/windows.sh` (the original, the port at the game's own size and the port in the framework's default window, one process at a
+time, turn about, on one core under `pincore.py`, real time, the 2,030-update stretch of section 11; `PERF_WINDOW=1` is `ScreenMode=0` and
+`-windowscale=1`, `2` is `ScreenMode=0` alone) with a rebuilt `build/origrun-bin` (the rescan fix; the staged copy's `dsound.dll` is the
+rebuilt one, checked by hash). The window state and renderer of every run are in its result line (`display`: `client 640x480 px, logical
+640x480, render scale 1, windowed, renderer direct3d11` at 1x, `client 1280x960 px, logical 640x480, render scale 2, windowed,
+renderer direct3d11` at 2x; every port run, 2D under rundesk and 3D on the desktop, got Direct3D 11 through the hint). The original is
+windowed at 640x480 in every run (origrun's copy; `visrun3d.py`'s with `ScreenMode` 0). `profile/windows_report.py` prints the sets.
+
+**Totals, no counting, G cycles of the stretch** (medians of five or six turns, the range beside them; the machine was 0.35 to 0.5 busy):
+
+| | Original | Port at 1x | Port at 2x |
+|---|---|---|---|
+| 2D (rundesk, five turns) | 6.13 (5.74 to 8.14), 3.02 M an update | 4.25 (4.05 to 4.65), 2.09 M | 4.25 (3.92 to 4.75), 2.09 M |
+| 3D (the desktop, six turns) | 2.76 (2.44 to 3.44), 1.36 M an update | 3.70 (3.12 to 5.07), 1.82 M | 3.83 (3.01 to 4.69), 1.89 M |
+
+2D: the port is at 69% of the original at either window size. 3D: it is at 134% at 1x and 139% at 2x, of which the port's mixer thread,
+which the original under origrun's stand-in does not have (it mixes nothing), is 0.2 G: 126% without it. The window size makes no
+difference to the port's processor time within the noise (the GPU does the scaling). **The target is not met in 3D** (the earlier tables'
+"over by 5 to 25%" had an original 1.6 G and a port 1.2 G higher than here).
+
+**The split, M cycles an update** (`-cyclesplit` in the port, `--count` in the original under origrun in 2D, the same counters read from
+outside by `origcmp/countsnap.py` in 3D, the three functions of `profile/count.txt`: `DoUpdateFrames` 0x4d0450, `DrawDirtyStuff` 0x4d8760
+and `Redraw` 0x4da210, checked by the calls: one update call an update, 0.9 draws and 0.9 presents an update in the original, no misses;
+snapshots at the stretch's first update and 20 after the last input; medians of the runs the machine was at most 0.6 busy for):
+
+| 3D, a desktop window | Original (5 runs) | Port at 1x (4) | Port at 2x (5) |
+|---|---|---|---|
+| update | 0.064 | 0.039 | 0.036 |
+| draw (the game's own, up to the hand-off) | 0.326 | 0.319 | 0.302 |
+| present (the main thread's call) | 0.981 | 0.617 | 0.424 |
+| the driver's threads (`nvwgf2um.dll`) | 0 | 0.773 | 0.717 |
+| **picture: draw + present + driver** | **1.306** | **1.715** | **1.424** |
+| audio (the port's mixer) | 0 | 0.103 | 0.114 |
+| loop (events, sleeps, the readings) | 0.205 | 0.065 | 0.066 |
+| total | 1.596 | 1.928 | 1.650 |
+| draws and presents an update | 0.92 and 0.92 | 0.52 and 0.52 | 0.48 and 0.48 |
+
+| 2D (rundesk), three runs | Original | Port at 1x | Port at 2x |
+|---|---|---|---|
+| update | 0.069 | 0.048 | 0.049 |
+| draw | 2.073 (the original's own blitters) | 0.308 | 0.341 |
+| present | 0.634 | 0.556 | 0.559 |
+| the driver's threads | 0 | 0.923 | 0.854 |
+| picture | 2.703 | 1.787 | 1.711 |
+| audio (the port's mixer) | 0 | 0.115 | 0.119 |
+| loop | 0.160 | 0.067 | 0.062 |
+| total | 2.950 | 2.012 | 1.932 |
+
+**What it shows.** The game's own code is not the excess, in 3D or 2D: the port's update costs 30 to 45% less than the original's (0.036
+to 0.049 against 0.064 to 0.069), its own drawing is the same in 3D (0.30 to 0.32 against 0.33) and a seventh of the original's in 2D, and
+its loop costs a third to two fifths. What is over in 3D is all in the presentation: the picture (draw, present and the driver together, which cannot be split,
+the draw calls being batched until the present) is 1.42 to 1.72 against 1.31, 9 to 31% over, and the Direct3D 11 driver's own worker
+thread is 0.72 to 0.78 an update on average in each set of runs, against no driver thread at all in the original. A present
+and its driver work cost the port about 2.7 M cycles (the present 0.62 and the driver 0.77 over 0.52 presents an update) against the
+original's 1.07 for one (0.98 over 0.92). The port presents every second update or so where the original presents nearly every one, so
+per-call figures do not compare, per-update ones do. The mixer's 0.10 to 0.12 is the other thing the original does not pay in these runs.
+In 2D the port is under the original in every row but the mixer, because the original's own blitting (2.07) dwarfs the port's.
+
+**What this measurement cannot say.** The three counted parts are the same functions on both sides, but the picture is not split (the
+limit in `docs/TEST_COMMANDS.md`, "The cycle split"). The counting costs the original 1.4 to 3.3% of its total and the port 0.5 to 1.4% (the
+files' `counter` lines). The machine was not quiet: a stretch of the 3D runs (04:36 to 04:50) was taken with the whole machine busy and
+the original rose to 3.2 to 5.0 G of a stretch (a loading time of 6 to 24 s) while the port stayed at 3.5 to 3.9; those runs are left
+out of the table (`windows_report.py --busy-max 0.6`), and the runs that are in spread by plus or minus 30%. The 3D split has four to
+five quiet runs a column; the totals have six. The split is for the proportions: the target's figure is the totals.
+
+**To repeat.** From the worktree root, in the background: `MODE=3d SPLIT=1 bash games/astropop/tools/profile/windows.sh <dir> <rounds>`
+(`MODE=2d` for rundesk; `SPLIT=0` for the totals; 22:00 to 08:00 for 3D; `FIRST=4 APPEND=1` adds rounds), then `python -I
+games/astropop/tools/profile/windows_report.py --busy-max 0.6 <dir>`. A single split: `PERF_SPLIT=1 python -I profile/perf.py orig3d <dir> 1`
+and `PERF_SPLIT=1 PERF_3D=1 PERF_DESKTOP=1 PERF_CLOCK=real python -I profile/perf.py port-minute <dir>`, then `python -I
+tools/cyclesplit.py <port's split.jsonl> <original's counts.jsonl> --from a --to b`. The raw run folders (their samples and logs) were
+deleted once these figures were written.
+
+### 11d. Presents held by the frame loop's pace against the display's vsync, in 3D (2026-11-12)
+
+**The question** (the coordinator's): the framework asks the renderer for vsync by default, and a present then costs the port a driver
+thread and a wait for the blank; Bejeweled 2's `DDInterface::FrameHeldByPace` (`22aa5b7b`) holds a draw to the display's refresh interval
+when the renderer has no vsync. Does presenting that way, in a window, cost the 3D stretch less? **Setting:** the 3D scenario of section
+11, on the desktop (22:00 to 08:00), the window at the original's size (`PERF_WINDOW=1`, display line `client 640x480 px, logical 640x480,
+render scale 1, windowed, renderer direct3d11` in every run), real time, one process at a time turn about on one core under `pincore.py`,
+the original (`perf.py orig3d`) in every round (`profile/vsync.sh`, six rounds without counting, four with the cycle split). *vsync* is
+the default; *pace* is `SDL_RENDER_VSYNC=0`, which takes the renderer's vsync flag away so that the pace engages. Every port run wrote
+its present log (`-presentlog`, the shared commit `41636a8a`, `docs/TEST_COMMANDS.md`, "The present log"), whose header says which it had:
+`renderer direct3d11 vsync_asked 1 vsync_flag 1 pace_ms 0.000` (vsync: the blank holds the presents) or `vsync_asked 1 vsync_flag 0 pace_ms
+16.667` (pace). The display is 60 Hz (the vsync runs' median interval is 16.8 ms).
+
+| Six rounds, no counting | Original | Port, vsync | Port, pace |
+|---|---|---|---|
+| stretch, G cycles (median, range) | 3.18 (2.43 to 3.64) | 3.64 (3.19 to 4.09) | 3.34 (3.07 to 4.10) |
+| an update, M cycles | 1.57 | 1.79 | 1.65 |
+| against the original | | 114% | 105% |
+
+The pairs of one round differ by +0.23, +0.83, -0.01, -0.06, +0.18 and -0.21 G (vsync less pace): a median of 0.1 G, 3%, and the
+spread of one run is 30%, so the cap's gain is somewhere between none and the 8% of the medians; this set does not resolve it.
+
+| Four rounds, the cycle split, M cycles an update | Original | Port, vsync | Port, pace |
+|---|---|---|---|
+| update | 0.073 | 0.039 | 0.060 |
+| draw | 0.386 | 0.327 | 0.370 |
+| present (the main thread's call) | 1.150 | 0.429 | 0.294 |
+| the driver's threads | 0 | 0.759 | 0.812 |
+| **picture: draw + present + driver** | **1.536** | **1.542** | **1.488** |
+| audio (the port's mixer) | 0 | 0.133 | 0.133 |
+| loop | 0.233 | 0.070 | 0.118 |
+| total | 1.874 | 1.783 | 1.795 |
+| presents an update | 0.97 | 0.50 | 0.58 |
+| present + driver, per update | 1.15 | 1.19 | 1.11 |
+| **present + driver, per present** | **1.19** | **2.38** | **1.91** |
+
+**The cadence** (`profile/present_intervals.py`, the intervals between the starts of consecutive presents over the last 40 seconds of
+each run, medians of the six):
+
+| | Presents a second | Interval median | 5th to 95th percentile | Within a quarter of the median | Over one and a half intervals | The call |
+|---|---|---|---|---|---|---|
+| vsync | 50.5 | 16.8 ms | 10.8 to 40.6 ms | 75% | 15% | 18.9 ms on average (16.4 median: it waits for the blank) |
+| pace | 54.5 | 19.2 ms | 7.4 to 29.3 ms | 54% | 5% | 2.4 ms on average (0.3 to 0.65 median) |
+
+The pace's presents do not stay even: a draw is held to the next update that finds the interval over, and the updates come every 10 ms, so
+the intervals are 10, 20 and 30 ms (a median of 19 against the target 16.7) and only about half lie within a quarter of the median. The
+vsync's cadence is the display's 16.7 ms for three presents in four, with a missed beat (a gap of 25 ms or more) in one in seven.
+
+**What it shows.** (1) The cap moves the cost and does not remove it: the main thread's present falls by 0.14 M an update, the driver's
+worker thread rises by 0.05, the loop by 0.05 and the update part by 0.02 (the loop wakes more often with nothing to wait for in a
+present; counting costs 2.1% of the pace runs against 0.6% of the vsync's), so the total is the same in the split (1.78 and 1.80) and
+about 8% lower in the medians of the totals, which is inside the noise. (2) The picture costs the port what it costs the original **per
+update** (present + driver: 1.19 with vsync, 1.11 with the pace, 1.15 for the original), but the port presents about every second update
+and the original nearly every one, so **per present the port spends 2.38 M cycles with vsync and 1.91 M with the pace against the
+original's 1.19 M** (the main thread's present plus the driver's worker, over the presents). The cap lowers that by a fifth and does not
+close it. (3) The driver thread (`nvwgf2um.dll`, 0.76 to 0.83 M an update, 1.4 to 1.5 M a present) is the largest single cost of the port's 3D
+and does not depend on the window size (1x and 2x in 11c) or on the pace: it is the Direct3D 11 driver executing what a frame submits (80
+geometry and 41 fill calls a frame, one draw per change of texture: section 11), so what cuts it is fewer, larger submissions per frame,
+which is the framework's to do, not the game's. The mixer (0.13 M an update, 0.27 G a stretch, in the totals above) is the other cost the
+original's process does not have; the totals without it are 1.66 M an update with vsync and 1.52 with the pace against the original's
+1.57. (4) The cap is not recommended for the GPU path on these figures: it saves nothing the noise lets us see, and its cadence is
+lumpier than the display's own.
+
+**How far over, in this set, and why it varies.** The same-round pairs (the original's run of a round with the port's) put the port at
+121% (vsync) and 107% (pace) of the original as medians of the six rounds (the medians of the stretches, 114% and 105%); the four counted
+rounds' own stretches put both at 107%, with the split's window, which is not the stretch, giving 95% and 96%; 11c's set, 134%. The
+machine was busy (0.42 to 0.76 of it) and the original's cost went up with it in the six totals rounds: its three stretches at 0.42 to
+0.48 busy were 2.4 to 3.0 G (3.3 at 0.51) and its two at 0.61 to 0.66 were 3.6 G, while the port's (vsync) ran 3.2 to 4.1 G across the
+same loads with no such rise. So in the stretch totals the port is over by about 5 to 35% in 3D, depending on the load, in every set so far
+(the split's window alone has it under), and none of them is a quiet machine, which this measurement cannot make.
+
+**To repeat.** From the worktree root, 22:00 to 08:00, in the background: `SPLIT=0 bash games/astropop/tools/profile/vsync.sh <dir> 6` (`SPLIT=1`
+for the split; `FIRST=7 APPEND=1` adds rounds), then `python -I games/astropop/tools/profile/windows_report.py <dir>` and `python -I
+games/astropop/tools/profile/present_intervals.py <dir>`. The raw run folders were deleted once these figures were written.
 
 ## 12. The readability pass (2026-11-11; `docs/CODE_STANDARDS.md`)
 
@@ -727,3 +925,28 @@ so `IsPlaying` is false for both slots when the focus is lost, the paused-slots 
 empty and nothing of its behaviour can be read. The code is the same translated function: `AstroPopApp::PauseMusicForFocus` (0x4252b0) pauses
 each slot that plays and keeps its number in the list, and the regain resumes the listed slots and clears it. A run of the original on the real
 desktop with sound, in the night window, could show it. The sound itself (the port's decoder against BASS) is not compared either.
+
+## 15. The autosplit block (2026-11-12; `docs/WEB_PLAYER.md`, "One design for every port")
+
+AstroPop writes the shared autosplit block, layout 2, id `APDX`, from `src/LiveSplitObserver.cpp` (after each `AstroPopApp::UpdateFrames`). It
+is written once something asks: the web page (`byopop_livesplit_block`, exported in `CMakeLists.txt`), an enabled mod with the feature
+`livesplit` (none exists yet; the mods are looked at once in a hundred updates), or `-livesplitlog=<file>` (a test: one line when the block
+changes but for the clocks, scores and tick). Until then an update costs one test. Three inert values in the Board (`mBoardSerial`,
+`mRestoredGame`, `mGameOverCause`) are the only game code it needed.
+
+| Block field | AstroPop |
+|---|---|
+| mode | `Board::mGameType`: 1 classic, 2 survival; -1 off a game (the demonstration under the title and the menus is no game) |
+| skill | the pilot (`Board::mMode`): 0 Vector, 1 Sprocket, 2 Turbot, 3 Vixx |
+| GO | the first update of a fresh game (classic from level 1, or survival); not a saved game that goes on, not a classic game from a checkpoint or any level but 1 (both set `RESUMED`), not a game already on when the block was asked for |
+| level clear | `Board::LevelComplete`, seen as `mLevelsCompleted` rising: the update in which the goal is reached and the "Level Up" text starts (the levels before a multiple of four start their bonus round at once instead); `progress` = the level just cleared (`mLevelNumber` changes only at the warp gate), 0 before the first, -1 in survival |
+| game over | `Board::GameOver` (`mGameOver`): kind 0 a new row pushed a column to the ship, 1 the stack filled the field, 2 the player left (the menu came up over a game still on), 3 other (a test command's `lose`); no win: the classic game goes on after level 32 |
+| gameOwn | bytes 0 to 3: SUPA weapon starts in this game (`mPowerupActive` going to 1: `BeginPlay`), u32; bytes 4 to 7: the level the game began at, i32 |
+| state | 0 playing, 1 a level is complete (level-up screen, warp, gate), 2 a bonus round, 3 game over |
+| displayLevel | `mLevelNumber` in classic (the "Level N" on screen), `mStageNumber` in survival (a minute of play each) |
+
+Proof that it is inert: `games/astropop/tools/livesplit/inert.sh <dir>` plays check.sh's three bot games with the frozen baseline, the port with
+the block off and the port with it on, and the driver transcripts are identical (1470, 1758 and 2002 lines). `scripted.py` plays the short games
+of the replay logs (classic with two levels cleared, survival, a SUPA start; each ends in `lose`). Kinds 0 and 1 of the game over were not seen in
+a log: the bot does not lose by itself in the time a driver has, and the idle game that was tried stayed paused at a hint; they are read from the
+two places that call `GameOver` (`BoardRows.cpp`, `BoardFill.cpp`).

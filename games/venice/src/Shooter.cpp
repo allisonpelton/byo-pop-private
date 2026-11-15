@@ -49,6 +49,13 @@ int CountSlotKinds(int theLowestY)
 }
 }
 
+// port: the counts the colour choice reads, for a test's trace
+void GetSlotKindCountsForTest(int* theCounts)
+{
+	memcpy(theCounts, sSlotKindCounts, sizeof(sSlotKindCounts));
+	theCounts[SlotKindCount] = sColourCount;
+}
+
 Shooter::Shooter()
 {
 	mType = ObjectTypeShooter;
@@ -185,7 +192,7 @@ void Shooter::Sink()
 {
 	mScoreMultiplier = 1;
 	if (CurrentProfile().mTriesLeft[CurrentProfile().mMode] < 1) {
-		if (strcmp(mStages.mCursor->mName, "sink2") == 0) {
+		if (strcmp(mStages.mTail->mName, "sink2") == 0) { // the last stage, as the original reads it (0x419ee0)
 			mStages.mTail->mLoopEnd = 0;
 			mStages.mTail->mLoopStart = 0;
 			mStages.mTail->mEvents.Clear();

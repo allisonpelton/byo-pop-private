@@ -13,7 +13,7 @@ endif()
 if(EMSCRIPTEN)
   # A float or double out of the int range converts as on x86 (cvttsd2si: INT_MIN), not as wasm's saturating conversion
   target_compile_options(venice PRIVATE -mno-nontrapping-fptoint)
-  byopop_web_game(venice TITLE "Venice Deluxe"
+  byopop_web_game(venice EXPORTS _byopop_livesplit_block TITLE "Venice Deluxe"
     COPYRIGHT "Venice Deluxe © 2007 Retro64 and PopCap Games, Inc. All rights reserved.")
 else()
   add_custom_command(TARGET venice POST_BUILD

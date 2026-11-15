@@ -10,6 +10,7 @@
 #include "SceneFiles.h"
 #include "SceneObject.h"
 #include "SceneTag.h"
+#include "TextFixes.h"
 #include "TextObject.h"
 #include "Tuning.h"
 #include "VeniceApp.h"
@@ -207,7 +208,7 @@ static void ReadSceneFileNames(SceneFile* theFile)
 	const char* aName = aFirstTag.GetString("name");
 	strcpy(theFile->mName, aName == nullptr ? "" : aName);
 	if (aFirstTag.Has("title"))
-		strcpy(theFile->mTitle, aFirstTag.GetString("title"));
+		strcpy(theFile->mTitle, CorrectedText(aFirstTag.GetString("title")));
 	else
 		theFile->mTitle[0] = 0;
 }

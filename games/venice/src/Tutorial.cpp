@@ -262,7 +262,7 @@ void Tutorial::UpdateFirstLesson()
 	gShooter->mCanShoot = GetRoot()->mNext == nullptr;
 	mChildren.mHead->mStages.mCursor->mVisible = true;
 	mChildren.mTail->mStages.mCursor->mVisible = true;
-	SceneObject* aPlate = FindHighestOfType(ObjectTypePlate, nullptr);
+	SceneObject* aPlate = FindLowestOfType(ObjectTypePlate, nullptr);
 	if (PlateIsGone(aPlate)) {
 		StartNextLesson("tut_next1", 224.0f, "post_first_idle");
 		mChildren.mTail->mStages.mCursor->mVisible = false;
@@ -291,7 +291,7 @@ void Tutorial::UpdateSecondLesson()
 	if (strstr(mStages.mCursor->mName, "2nd_idle") == nullptr || strstr(gMiddleLayer->mStages.mCursor->mName, "scroll") == nullptr)
 		return;
 	gShooter->mCanShoot = GetRoot()->mNext == nullptr;
-	SceneObject* aPlate = FindHighestOfType(ObjectTypePlate, nullptr);
+	SceneObject* aPlate = FindLowestOfType(ObjectTypePlate, nullptr);
 	mChildren.mTail->mStages.mCursor->mVisible = true;
 	if (PlateIsGone(aPlate)) {
 		StartNextLesson("tut_next2", 410.0f, "post_second_idle");
@@ -305,7 +305,7 @@ void Tutorial::UpdateThirdLesson()
 	if (strstr(mStages.mCursor->mName, "3rd_idle") == nullptr || strstr(gMiddleLayer->mStages.mCursor->mName, "scroll") == nullptr)
 		return;
 	gShooter->mCanShoot = GetRoot()->mNext == nullptr;
-	if (PlateIsGone(FindHighestOfType(ObjectTypePlate, nullptr))) {
+	if (PlateIsGone(FindLowestOfType(ObjectTypePlate, nullptr))) {
 		StartNextLesson("tut_next3", 580.0f, "post_third_idle");
 		ShowTip();
 	}
@@ -316,7 +316,7 @@ void Tutorial::UpdateFourthLesson()
 	if (strstr(mStages.mCursor->mName, "4th_idle") == nullptr || strstr(gMiddleLayer->mStages.mCursor->mName, "scroll") == nullptr)
 		return;
 	gShooter->mCanShoot = GetRoot()->mNext == nullptr;
-	if (PlateIsGone(FindHighestOfType(ObjectTypePlate, nullptr))) {
+	if (PlateIsGone(FindLowestOfType(ObjectTypePlate, nullptr))) {
 		StartNextLesson("tut_next4", Unchanged, "5th_idle");
 		ShowTip();
 	}

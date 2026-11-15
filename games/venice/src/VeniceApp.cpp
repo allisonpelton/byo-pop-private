@@ -3,13 +3,17 @@
 
 #include "VeniceApp.h"
 
+#include "DDInterface.h"
 #include "Graphics.h"
 #include "ImageRecord.h"
 #include "KeyCodes.h"
 #include "Level.h"
+#include "LiveSplitObserver.h"
 #include "Profiles.h"
 #include "SceneLoader.h"
 #include "SceneTag.h"
+#include "SWTri.h"
+#include "VeniceDraw.h"
 #include "VeniceGlobals.h"
 #include "VeniceInput.h"
 #include "VeniceMath.h"
@@ -59,6 +63,7 @@ static const int LoadStateLoading = 2;
 
 static int sTickBase = 0; // 0xa2a1ac: the update count the game has run up to (0 until the first update sets it)
 static int sPreviousBatch = 1; // 0x5b51c8: how many updates the last batch ran
+static int sFramesDone = 0; // port: the updates of the widget since the loading was done, for a test
 
 // 0x4407c0
 void ResetTickBase()
@@ -69,6 +74,10 @@ void ResetTickBase()
 // 0x43fa60: the partner's file gives the product's name, its registry key and whether the game starts in a window
 VeniceApp::VeniceApp()
 {
+	// the software triangle drawers: the framework's SWTri draws only once the game has registered them, and the layer's
+	// bands are drawn with matrix draws (every flipped picture) into memory images
+	Sexy::SWTri_AddAllDrawTriFuncs();
+	Sexy::SWTri_SetClipToFarEdges(true);
 	mProductVersion = "1.0";
 	std::string aProductName = DefaultProductName;
 	std::string aRegistryKey = DefaultRegistryKey;
@@ -122,6 +131,7 @@ VeniceApp::VeniceApp()
 // 0x440040
 VeniceApp::~VeniceApp()
 {
+	LiveSplitObserver::AppDestroyed(); // port: the autosplit block's last write
 	mWidgetManager->RemoveWidget(mWidget);
 	delete mWidget;
 	mWidget = nullptr;
@@ -155,6 +165,15 @@ void VeniceApp::ShutdownHook()
 	gScenes.Clear();
 	gImageRecords.Clear();
 	gSounds.Clear();
+}
+
+// port: -livesplitlog=<file>, one line for each change the autosplit block shows (tests); the rest is the framework's
+void VeniceApp::HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue)
+{
+	if (theParamName == "-livesplitlog")
+		LiveSplitObserver::SetLogFile(theParamValue);
+	else
+		SexyApp::HandleCmdLineParam(theParamName, theParamValue);
 }
 
 // the volumes are the only settings the game keeps in the registry (0x440040 writes them as the app ends)
@@ -226,7 +245,37 @@ static void DrawScenes()
 	}
 }
 
-// 0x440650: the updates the clock is behind by, run one after the other (a long delay is not made up for)
+// 0x440650 (after the loading): the updates the clock is behind by, run one after the other (a long delay is not made up for)
+static int RunDueUpdates(int theFrame)
+{
+	int aLoadState = gLoadState;
+	int aTickCount = (int)(gApp->GetClockTime() / UpdateMilliseconds);
+	if (sTickBase == 0)
+		sTickBase = aTickCount;
+	int aUpdatesBehind = aTickCount - sTickBase;
+	if (aUpdatesBehind > GiveUpBehindUpdates) {
+		aUpdatesBehind = sPreviousBatch < MaxCatchUpUpdates + 1 ? sPreviousBatch : MaxCatchUpUpdates;
+		sTickBase = aTickCount - aUpdatesBehind;
+	}
+	// port: a test can give the ticks each frame runs (the original's, from a run of it), whatever the clock says
+	int aScheduledTicks = gApp->ScheduledTicks(theFrame);
+	if (aScheduledTicks >= 0)
+		aUpdatesBehind = aScheduledTicks;
+	if (aUpdatesBehind == 0)
+		return 0;
+	for (int anUpdate = 0; anUpdate < aUpdatesBehind; anUpdate++) {
+		// without the focus (once the logos are over), and while the focus counts down, time passes and nothing updates
+		if ((gHasFocus || aLoadState <= LoadStateLogosShowing) && gFocusFrames != 1) {
+			UpdateScenes();
+			LiveSplitObserver::AfterUpdate(); // port: the autosplit block, after the update (LiveSplitObserver.h)
+		}
+		sTickBase++;
+	}
+	sPreviousBatch = aUpdatesBehind;
+	return aUpdatesBehind;
+}
+
+// 0x440650
 void VeniceWidget::Update()
 {
 	MarkDirty();
@@ -238,23 +287,15 @@ void VeniceWidget::Update()
 		return;
 	}
 
-	int aTickCount = (int)(gApp->GetClockTime() / UpdateMilliseconds);
-	if (sTickBase == 0)
-		sTickBase = aTickCount;
-	int aUpdatesBehind = aTickCount - sTickBase;
-	if (aUpdatesBehind > GiveUpBehindUpdates) {
-		aUpdatesBehind = sPreviousBatch < MaxCatchUpUpdates + 1 ? sPreviousBatch : MaxCatchUpUpdates;
-		sTickBase = aTickCount - aUpdatesBehind;
-	}
-	if (aUpdatesBehind == 0)
+	// port: the frames a test counts are the ones after the loading (the logos before it run on the clock)
+	if (aLoadState < LoadStateLoadingScreen) {
+		RunDueUpdates(-1);
 		return;
-	for (int anUpdate = 0; anUpdate < aUpdatesBehind; anUpdate++) {
-		// without the focus (once the logos are over), and while the focus counts down, time passes and nothing updates
-		if ((gHasFocus || aLoadState <= LoadStateLogosShowing) && gFocusFrames != 1)
-			UpdateScenes();
-		sTickBase++;
 	}
-	sPreviousBatch = aUpdatesBehind;
+	gApp->RunFrameCommands(sFramesDone);
+	int aTicksRun = RunDueUpdates(sFramesDone);
+	gApp->TraceFrame(sFramesDone, aTicksRun);
+	sFramesDone++;
 }
 
 // 0x4407d0: a scene that shows a picture: it waits (nothing is drawn), fades the picture in over half a second at the middle of
@@ -300,10 +341,16 @@ static void MakeLogoScenes()
 	gLoadState = LoadStateLogosShowing;
 }
 
-// 0x440e60
+// 0x440e60, with its helpers 0x440b30, 0x440b90, 0x440c80, 0x440d10 and 0x440f30 translated inline
 void VeniceWidget::Draw(Graphics* g)
 {
 	gGraphics = g;
+
+	// port: the original's software display (its default on a desktop without hardware 3D, and the Is3D 0 of the options) draws
+	// a rotated or scaled picture with its own software triangles straight onto the screen's surface; the framework's software
+	// transforms do the same (as in Bejeweled 2's 2D game), where the GPU's would sample at other places and show an edge
+	// a fraction of a pixel off
+	gApp->mDDInterface->mSoftwareTransforms = !IsAccelerated();
 
 	// 0x440b30: once the logos are all done the loading screen takes over
 	if (gLoadState == LoadStateLogosShowing && gScenes.mCursor == nullptr)

@@ -22,7 +22,7 @@
 
 using namespace Sexy;
 
-// the game's dialog buttons: the Showcard font, the label of the given text
+// port: the game's dialog buttons: the Showcard font, the label of the given text
 static DialogButton* MakeDialogButton(RocketApp* theApp, int theId, ButtonListener* theListener, const SexyString& theLabel)
 {
 	DialogButton* aButton = new DialogButton(theApp->mImages[IMAGE_DIALOGBUTTON], theId, theListener);
@@ -1136,12 +1136,12 @@ HintDialog::HintDialog(RocketApp* theApp, int theHint, bool theContinuing) :
 	mLabelY(0),
 	mHelpWidth(theApp->mImages[IMAGE_HELP5]->GetWidth())
 {
-	// a bonus item's hint is up while the board waits: a game saved now comes back at the buy-rockets screen (Board::m104)
+	// a bonus item's hint is up while the board waits: a game saved now comes back at the buy-rockets screen (Board::mBuyRocketsPending)
 	if (!IsModeHint(mHint))
 	{
 		mApp->PlaySample(SOUND_HINT_POPUP_01);
 		if (mApp->mBoard != NULL)
-			mApp->mBoard->m104 = 2;
+			mApp->mBoard->mBuyRocketsPending = 2;
 	}
 
 	mContentInsets = Insets(-0x24, -0x24, -0x24, -0x14);
@@ -1250,7 +1250,7 @@ void HintDialog::ButtonDepress(int theId)
 			anApp->mBoard->ShowBuyRockets();
 	}
 	if (anApp->mBoard != NULL)
-		anApp->mBoard->m104 = 0;
+		anApp->mBoard->mBuyRocketsPending = 0;
 }
 
 // 0x4095c0 (a whole line) and 0x409720 (a line given in fractions, as the bonus items' second text is): the text centred
@@ -1780,7 +1780,7 @@ LevelUpDialog::LevelUpDialog(RocketApp* theApp, int theKind, MTRand* theRand) :
 {
 	Board* aBoard = mApp->mBoard;
 	mStartTick = mUpdateCnt;
-	aBoard->mFc = 1;
+	aBoard->mCovered = 1;
 
 	if (mGameOver)
 	{
@@ -1812,15 +1812,15 @@ LevelUpDialog::LevelUpDialog(RocketApp* theApp, int theKind, MTRand* theRand) :
 	mButton->Resize(0x132 - (aLabelWidth + 8) / 2, 0x1ba, aLabelWidth + 8, 0x1e);
 
 	// the figures of the level go into the sums of the game (the largest are kept, the others added)
-	if (aBoard->mE0 < aBoard->mC4)
-		aBoard->mE0 = aBoard->mC4;
-	if (aBoard->mE4 < aBoard->mC8)
-		aBoard->mE4 = aBoard->mC8;
-	aBoard->mE8 += aBoard->mCc;
-	aBoard->mEc += aBoard->mD0;
-	aBoard->mF0 += aBoard->mD4;
-	aBoard->mF4 += aBoard->mD8;
-	aBoard->mF8 += aBoard->mDc;
+	if (aBoard->mTotalMostTiles < aBoard->mLevelMostTiles)
+		aBoard->mTotalMostTiles = aBoard->mLevelMostTiles;
+	if (aBoard->mTotalMostRockets < aBoard->mLevelMostRockets)
+		aBoard->mTotalMostRockets = aBoard->mLevelMostRockets;
+	aBoard->mTotalCoins += aBoard->mLevelCoins;
+	aBoard->mTotalGems += aBoard->mLevelGems;
+	aBoard->mTotalBombs += aBoard->mLevelBombs;
+	aBoard->mTotalClocks += aBoard->mLevelClocks;
+	aBoard->mTotalMatches += aBoard->mLevelMatches;
 	mPauseAlpha = 0;
 }
 
@@ -1837,7 +1837,7 @@ void LevelUpDialog::AddedToManager(WidgetManager* theWidgetManager)
 	theWidgetManager->AddWidget(mButton);
 }
 
-// (the original has no override: its link stays in the manager until the link is deleted with the dialog)
+// port: (the original has no override: its link stays in the manager until the link is deleted with the dialog)
 void LevelUpDialog::RemovedFromManager(WidgetManager* theWidgetManager)
 {
 	Dialog2004::RemovedFromManager(theWidgetManager);
@@ -1947,10 +1947,10 @@ void LevelUpDialog::ButtonDepress(int theId)
 	int aKind = mKind;
 	anApp->KillDialog(DIALOG_LEVEL_UP);
 	if (aKind == KIND_LEVEL)
-		anApp->mBoard->F4286b0();
+		anApp->mBoard->AfterLevelScreen();
 	else if (aKind == KIND_GAME)
 		anApp->ShowHighScores(0);
-	anApp->mBoard->mFc = 0;
+	anApp->mBoard->mCovered = 0;
 }
 
 // 0x40f660
@@ -2028,7 +2028,7 @@ void LevelUpDialog::Draw(Graphics* g)
 
 	g->SetFont(mApp->mFonts[FONT_DOMO14_BOLD]);
 	g->SetColor(Color(0xff, 0xff, 0xff));
-	if (!mGameOver && aBoard->m88 != aRank)
+	if (!mGameOver && aBoard->mRank != aRank)
 	{
 		SexyString aText = GT(0x004e50c4);
 		g->DrawString(aText, (mWidth - g->GetFont()->StringWidth(aText)) / 2, 0x43);
@@ -2052,13 +2052,13 @@ void LevelUpDialog::Draw(Graphics* g)
 	}
 }
 
-// one line of a page: centred on x = 0x61 in the font that is set
+// port: one line of a page: centred on x = 0x61 in the font that is set
 void LevelUpDialog::DrawLine(Graphics* g, const SexyString& theText, int theY)
 {
 	g->DrawString(theText, 0x61 - g->GetFont()->StringWidth(theText) / 2, theY);
 }
 
-// a count with its word: "1 gem" but "%d gems"
+// port: a count with its word: "1 gem" but "%d gems"
 void LevelUpDialog::DrawCount(Graphics* g, int theCount, unsigned int theSingular, unsigned int thePlural, int theY)
 {
 	char aBuf[0x100];
@@ -2132,7 +2132,7 @@ void LevelUpDialog::DrawBombsPage(Graphics* g)
 	DrawLine(g, GT(0x004e5048), 0xdc);
 	DrawLine(g, GT(0x004e501c), 0xf5);
 	g->SetColor(sPageValueColor);
-	DrawCount(g, mGameOver ? aBoard->mF0 : aBoard->mD4, 0x004e5040, 0x004e5034, 0x113);
+	DrawCount(g, mGameOver ? aBoard->mTotalBombs : aBoard->mLevelBombs, 0x004e5040, 0x004e5034, 0x113);
 }
 
 // 0x40da40
@@ -2145,7 +2145,7 @@ void LevelUpDialog::DrawFusePage(Graphics* g)
 	DrawLine(g, GT(0x004e4fa0), 0xf5);
 	g->SetColor(sPageValueColor);
 	char aBuf[0x100];
-	snprintf(aBuf, sizeof(aBuf), GTC(0x004e4f94), mGameOver ? aBoard->mE0 : aBoard->mC4);
+	snprintf(aBuf, sizeof(aBuf), GTC(0x004e4f94), mGameOver ? aBoard->mTotalMostTiles : aBoard->mLevelMostTiles);
 	DrawLine(g, aBuf, 0x113);
 }
 
@@ -2157,7 +2157,7 @@ void LevelUpDialog::DrawCoinsPage(Graphics* g)
 	g->SetColor(sPageTitleColor);
 	DrawLine(g, GT(0x004e5080), 0xf0);
 	g->SetColor(sPageValueColor);
-	DrawCount(g, mGameOver ? aBoard->mE8 : aBoard->mCc, 0x004e5078, 0x004e506c, 0x10c);
+	DrawCount(g, mGameOver ? aBoard->mTotalCoins : aBoard->mLevelCoins, 0x004e5078, 0x004e506c, 0x10c);
 }
 
 // 0x40de60
@@ -2169,7 +2169,7 @@ void LevelUpDialog::DrawRocketsPage(Graphics* g)
 	DrawLine(g, GT(0x004e4fe0), 0xdc);
 	DrawLine(g, GT(0x004e4fd0), 0xf5);
 	g->SetColor(sPageValueColor);
-	DrawCount(g, mGameOver ? aBoard->mE4 : aBoard->mC8, 0x004e4fc4, 0x004e4fb8, 0x113);
+	DrawCount(g, mGameOver ? aBoard->mTotalMostRockets : aBoard->mLevelMostRockets, 0x004e4fc4, 0x004e4fb8, 0x113);
 }
 
 // 0x40e2a0
@@ -2180,7 +2180,7 @@ void LevelUpDialog::DrawGemsPage(Graphics* g)
 	g->SetColor(sPageTitleColor);
 	DrawLine(g, GT(0x004e4ff8), 0xf0);
 	g->SetColor(sPageValueColor);
-	DrawCount(g, mGameOver ? aBoard->mEc : aBoard->mD0, 0x004e4ff0, 0x004e4fe8, 0x10c);
+	DrawCount(g, mGameOver ? aBoard->mTotalGems : aBoard->mLevelGems, 0x004e4ff0, 0x004e4fe8, 0x10c);
 }
 
 // 0x40e5c0
@@ -2192,7 +2192,7 @@ void LevelUpDialog::DrawClocksPage(Graphics* g)
 	DrawLine(g, GT(0x004e5028), 0xdc);
 	DrawLine(g, GT(0x004e501c), 0xf5);
 	g->SetColor(sPageValueColor);
-	DrawCount(g, mGameOver ? aBoard->mF4 : aBoard->mD8, 0x004e5014, 0x004e5008, 0x113);
+	DrawCount(g, mGameOver ? aBoard->mTotalClocks : aBoard->mLevelClocks, 0x004e5014, 0x004e5008, 0x113);
 }
 
 // 0x40ee40
@@ -2204,5 +2204,5 @@ void LevelUpDialog::DrawMatchesPage(Graphics* g)
 	DrawLine(g, GT(0x004e5064), 0xdc);
 	DrawLine(g, GT(0x004e501c), 0xf5);
 	g->SetColor(sPageValueColor);
-	DrawCount(g, mGameOver ? aBoard->mF8 : aBoard->mDc, 0x004e505c, 0x004e5050, 0x113);
+	DrawCount(g, mGameOver ? aBoard->mTotalMatches : aBoard->mLevelMatches, 0x004e505c, 0x004e5050, 0x113);
 }

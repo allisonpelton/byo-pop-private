@@ -1,0 +1,13 @@
+{
+  "id": "fixes",
+  "name": "Fixes",
+  "version": "1.0",
+  "author": "byo-pop",
+  "description": "Mends faults of the original Venice Deluxe and leaves the game as it was: its rules, scores, look, sounds and pace. Each fix is a toggle; turn the whole mod off to play the original exactly as it was.",
+  "settings": [
+    { "id": "typos", "label": "Misspelt texts are corrected", "type": "bool", "default": true,
+      "help": "Seven texts of the original's data files are misspelt: the name box's request \"PLESE TYPE IN A\" (on a name the game cannot take), the titles \"DONT LOOK AT ME\" and \"SWIRLD IN, SWIRL OUT\" of two trick shot levels, and the messages \"SQUAKED IT THROUGH!\", \"YOU GOT THE RYTHM!\", \"GODE JUDGEMENT!\" and \"GET THAN ANGLE!\" of four more (which show only with the next fix on). On: they read as they were meant to. Nothing else changes." },
+    { "id": "trickMessages", "label": "Trick shots end with their own message", "type": "bool", "default": false,
+      "help": "Each of the 104 trick shot levels has a message for a made shot and one for a missed one in its data file (\"DEFLECTED OFF THE SURFACE!\"), but the summary screen copies it into its text and, in the next statement, writes \"GREAT SHOT!\" or \"MAYBE NEXT TIME\" over it, so no level's own message is ever shown. On: the summary shows the level's message. Off by default, since the summary then reads other than it did." }
+  ]
+}

@@ -1,0 +1,3 @@
+# tools/namecheck.py's exceptions for Heavy Weapon Deluxe (docs/CODE_STANDARDS.md). One rule a line, each with its reason.
+
+allow stage [Pp]hase.?[0-2] -- the final boss fights in three phases as its health falls (FinalBoss::mPhase 0, 1, 2): the game's own word, not a stage of the work

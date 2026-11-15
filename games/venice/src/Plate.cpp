@@ -57,10 +57,11 @@ void Plate::OnObjectClosed()
 
 bool Plate::Update()
 {
-	if (strcmp(mStages.mCursor->mName, "fade_out") == 0) {
-		if (gTuning.mTossOnFilledPlate != 0)
-			TossSlots();
-	} else if (!AllSlotsFilled())
+	// a plate that fades out is only updated (the original's 0x412ba0 throws its slots' jewels away there when the tuning's
+	// toss_on_filled_plate is set, which the shipped tuning does not do)
+	if (strcmp(mStages.mCursor->mName, "fade_out") == 0)
+		return SceneObject::Update();
+	if (!AllSlotsFilled())
 		CheckDanger();
 	else {
 		GoToStageByName("fade_out");
@@ -84,18 +85,6 @@ bool Plate::Update()
 		}
 	}
 	return SceneObject::Update();
-}
-
-// 0x412ba0: a plate that has shrunk to a sliver as it fades throws its slots' jewels away
-void Plate::TossSlots()
-{
-	if (mChildren.mCursor != nullptr && mWorld[AttributeXScale] <= 1.0f && mWorld[AttributeXScale] != 1.0f) {
-		for (SceneObject* aChild = mChildren.mHead; aChild != nullptr; aChild = aChild->mNext) {
-			if (aChild->mType == ObjectTypeSlot)
-				static_cast<Slot*>(aChild)->TossJewel(0, 0, (float)RandomFloat(-0.5f, 0.5f), false);
-		}
-		mChildren.Clear();
-	}
 }
 
 // 0x412c20: the baskets and bumpers near the plate (all of them when the key plate pops) are pulled into it

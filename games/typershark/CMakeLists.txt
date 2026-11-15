@@ -24,7 +24,8 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/src/WinWSApp.cpp)
     target_link_options(typershark PRIVATE -static -Wl,--wrap=malloc -Wl,--wrap=calloc -Wl,--wrap=realloc -Wl,--wrap=free)
   endif()
   if(EMSCRIPTEN)
-    byopop_web_game(typershark TITLE "Typer Shark"
+    # _byopop_livesplit_block: the page's speedrun timer asks for the autosplit block's address (src/LiveSplitObserver.cpp)
+    byopop_web_game(typershark EXPORTS _byopop_livesplit_block TITLE "Typer Shark"
       COPYRIGHT "Typer Shark! Deluxe © 2003, 2004 PopCap Games, Inc. All rights reserved." LICENSES libopenmpt)
   else()
     add_custom_command(TARGET typershark POST_BUILD

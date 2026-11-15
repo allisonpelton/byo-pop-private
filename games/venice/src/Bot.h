@@ -13,6 +13,7 @@ enum class BotAction
 	Wait, // the level is not ready for a shot
 	Shoot, // move the pointer to (mX, mY), wait mUpdatesToAim updates for the shooter to catch up, and click
 	Click, // a message over the level (the cupid's) is dismissed by a click at (mX, mY)
+	Swap, // the jewel that waits is brought forward by a right click at (mX, mY), the pointer's place
 };
 
 struct BotMove
@@ -22,6 +23,10 @@ struct BotMove
 	int mY = 0;
 	int mUpdatesToAim = 0;
 };
+
+// whether the bot goes on past a level's end: it clicks a summary screen away (a level that was won or lost goes on to its summary
+// by itself), and the next level begins; otherwise it has no move once the play is over
+extern bool gBotContinuesPastSummaries;
 
 // the move the bot would make now (a screen with no level in play has none)
 BotMove ChooseBotMove();

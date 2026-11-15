@@ -21,6 +21,7 @@
 #include "GemSoul.h"
 #include "Traveller.h"
 #include "TwistUtil.h"
+#include "platform/crt/CrtQsort.h"
 #include "GoodTube.h"
 #include "TwistD3D.h"
 #include "VizManager.h"
@@ -467,7 +468,7 @@ void Board::DrawPieces(Graphics* g, Graphics& theLightG, bool is3D)
 				aPieces[aCount++] = aPiece;
 		}
 	}
-	CrtQsort(aPieces, (size_t)aCount, sizeof(Piece*), ComparePieceDepth);
+	Platform::CrtQsort(aPieces, (size_t)aCount, sizeof(Piece*), ComparePieceDepth);
 	bool aDrawn = true;
 	if (IsTimed() && (mPauseShownCount != 0 || mApp->mOptionsDialog != nullptr || mApp->mDialogList.size() != 0)) {
 		// A timed game hides its gems while it is paused

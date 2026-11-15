@@ -3,20 +3,24 @@
 
 #include "Layer.h"
 
+#include "DDImage.h"
 #include "ImageRecord.h"
 #include "Level.h"
 #include "Profiles.h"
 #include "SceneLoader.h"
 #include "TextObject.h"
 #include "Tuning.h"
+#include "VeniceApp.h"
 #include "VeniceGlobals.h"
 #include "VeniceDraw.h"
 #include "VeniceMath.h"
 #include "VeniceSound.h"
 
+#include <algorithm>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <vector>
 
 namespace
 {
@@ -232,12 +236,11 @@ ImageRecord* FindBackdropPicture(SceneObject* theLayer)
 }
 }
 
-// 0x40de30: the original also draws the children into pictures 1022 pixels tall and puts those in the children's place, so that a
-// level draws a few big pictures instead of a few hundred small ones; the port draws the children themselves (the same pixels).
-// What else the merge does is kept, since it sets the layer's content height, which the scroll follows: on a display that is not
-// accelerated the backdrop of the level takes the place of the layer's own pictures (the Survival mode's background) or is
-// repeated down the tiles (mirrored every other time), and every picture takes its first stage's position before the height is
-// measured.
+// 0x40de30: the merge draws the children into tall pictures and puts those in the children's place, so that a level draws a few big
+// pictures instead of a few hundred small ones (BakeChildren). Before that, on a display that is not accelerated, the backdrop of
+// the level takes the place of the layer's own pictures (the Survival mode's background) or is repeated down the tiles (mirrored
+// every other time), and every picture takes its first stage's position; the content height measured then is what the scroll
+// follows.
 void Layer::MergeChildren()
 {
 	bool anAccelerated = IsAccelerated();
@@ -273,7 +276,7 @@ void Layer::MergeChildren()
 			aRepeat->mLocal[AttributeY] = (float)(int)aY;
 			if (aBackdrop != nullptr)
 				aRepeat->SetImageRecord(aBackdrop);
-			aRepeat->mFlipX = aMirrored != 0;
+			aRepeat->mFlipY = aMirrored != 0; // 0x13d, the vertical flip: the repeats mirror each other at the seam
 			aRepeat->SetZOrder(-1000.0f);
 			aMirrored = 1 - aMirrored;
 		}
@@ -289,7 +292,74 @@ void Layer::MergeChildren()
 		}
 	}
 	UpdateContentHeight();
+	BakeChildren();
 	mMerged = 0;
+}
+
+// 0x40de30 (the second half): the layer's pictures are drawn into tall pictures, one band after another from the lowest edge up,
+// and the bands take the pictures' place (the pictures are flagged dead and go with the next update). A picture is drawn at its
+// first stage's position, taken to the band, and the original draws every child that is a plain picture whether or not it is
+// flagged dead: the survival background's own pictures, which the merge flagged just before, are in the bands.
+void Layer::BakeChildren()
+{
+	const int aBandWidth = 800;
+	const int aBandHeight = 1022; // the band's picture is 2 rows taller
+	bool anAccelerated = IsAccelerated();
+	std::vector<SceneObject*> aBands;
+	for (int aBandBottom = (int)mLowestEdge; (int)mHighestEdge < aBandBottom; aBandBottom -= aBandHeight) {
+		SceneObject* aBand = new SceneObject();
+		aBand->AddStage(1000.0f, 1, 1, 1, nullptr);
+		float aBandY = (float)(aBandBottom - aBandHeight / 2);
+		aBand->SetAttribute(AttributeY, aBandY, aBandY);
+		aBands.push_back(aBand);
+		aBand->mBilinear = 0;
+		aBand->mSnap = 0;
+		ImageRecord* aRecord = new ImageRecord();
+		aRecord->mFrameWidth = (float)aBandWidth;
+		aRecord->mWidth = aRecord->mFrameWidth;
+		aRecord->mFrameHeight = (float)(aBandHeight + 2);
+		aRecord->mHeight = aRecord->mFrameHeight;
+		Sexy::DDImage* aPicture = new Sexy::DDImage(gApp->mDDInterface);
+		aPicture->Create(aBandWidth, aBandHeight + 2);
+		aPicture->Clear();
+		aRecord->mImage = aPicture;
+		aBand->mImage = aRecord;
+		aBand->mSourceLeft = 0.0f;
+		aBand->mSourceTop = 0.0f;
+		aBand->mSourceRight = (float)aBandWidth;
+		aBand->mSourceBottom = (float)aBandHeight;
+		// a display that is not accelerated gets an opaque picture (the original's surface has no alpha), so what no child covers
+		// is black, not see-through
+		if (!anAccelerated) {
+			aPicture->SetImageMode(false, false);
+			uint32_t* aBits = (uint32_t*)aPicture->GetBits();
+			std::fill(aBits, aBits + aPicture->mWidth * aPicture->mHeight, 0xff000000u);
+			aPicture->BitsChanged();
+		}
+		gRenderTarget = aPicture;
+		float aLevelX = gActiveLevel != nullptr ? gActiveLevel->mStages.mCursor->mStart[AttributeX] : 0.0f;
+		for (SceneObject* aChild = mChildren.mHead; aChild != nullptr; aChild = aChild->mNext) {
+			if (aChild->mType != ObjectTypeBase)
+				continue;
+			SceneStage* aStage = aChild->mStages.mCursor;
+			aChild->mWorld[AttributeX] = aStage->mStart[AttributeX] + aLevelX;
+			aChild->mWorld[AttributeY] = (aStage->mStart[AttributeY] - (float)aBandBottom) + (float)aBandHeight;
+			aChild->mBilinear = 0;
+			if (1.0 != VeniceAbs(aStage->mStart[AttributeXScale]) && 0.0 != VeniceAbs(aStage->mStart[AttributeXScale]))
+				aChild->mWorld[AttributeXScale] = aStage->mStart[AttributeXScale];
+			if (1.0 != VeniceAbs(aStage->mStart[AttributeYScale]) && 0.0 != VeniceAbs(aStage->mStart[AttributeYScale]))
+				aChild->mWorld[AttributeYScale] = aStage->mStart[AttributeYScale];
+			aChild->DrawSelf();
+		}
+		aPicture->CommitBits();
+		gRenderTarget = nullptr;
+	}
+	for (SceneObject* aChild = mChildren.mHead; aChild != nullptr; aChild = aChild->mNext) {
+		if (aChild->mType == ObjectTypeBase)
+			aChild->mIsDead = true;
+	}
+	for (SceneObject* aBand : aBands)
+		NewChild(aBand);
 }
 
 bool Layer::Update()

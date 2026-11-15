@@ -93,7 +93,12 @@ holds the rules every session follows; this file does not repeat them.
   Frenzy 2), each taken all the way through. The first pair is watched for trouble: "When we get to it, see if running
   two-by-two causes issues. If not, continue with two". A game that builds on another's engine waits for that game; a
   slot the next game cannot use yet goes to the cheapest remaining one. Within a step, the lowest-effort games go first
-  ("Start with lowest effort", 2026-11-03).
+  ("Start with lowest effort", 2026-11-03). The user has made exceptions to the first sentence. Venice started early,
+  on 2026-11-12, to test the rule below. Later that day, after Venice's port and both phases of identical play came in
+  under its estimate, the user asked "Would it be wasteful if I asked for the plays identical step for some of the
+  other decomps this week?" and then said "Start both". So Heavy Weapon (Opus) and Hammer Heads (Sonnet) started side
+  by side, each through the port and phase one only. Their later steps wait for the user's word. Heavy Weapon moves
+  Bookworm Adventures' SWF player under `engines/`, and Hammer Heads uses it from there.
 - **A new port writes to the standards from its first draft (the user, 2026-11-12: "Yes, add it").** Of what the
   eleven smaller games spent after their first playable merge (about $2,200 at Opus prices), about half went on the
   checks against the original (identical play, screens and sound, coverage, the Collection), a fifth on performance and
@@ -165,7 +170,15 @@ holds the rules every session follows; this file does not repeat them.
     pixels (`-windowscale=1`), and its log's display line is checked ("display: client WxH px, logical WxH, render
     scale N, windowed|full screen, renderer <name>", logged when the window is made and at each size or mode change;
     docs/TEST_COMMANDS.md, "The window line"). The default window's cost is measured as well, beside it, since that
-    is what a player gets. Where a session needs to know which part of a frame costs what, `-cyclesplit` in the port
+    is what a player gets. The default stays twice the game's size where it fits (the user, 2026-11-12: "I want the 2x
+    default"). Windows enlarges a window only when the desktop's scale is above 100% (the user's 4K desktop is at 100%),
+    so the port does the 2x itself: the surface presenter repeats each pixel in the copy it makes anyway, and a
+    GPU-drawn port's graphics card scales; neither costs much (Bejeweled 2 on the GPU: 8.5% of a core at 2x against the
+    original's 9.4%). The one costly case is SDL's software renderer, which SDL uses only on a machine with no GPU
+    renderer: there Bejeweled 2 stretches every sprite on the processor (48.5% at 2x). No game gets a 1x default for
+    it. That fallback should take the software screen (SoftwareScreenDisplay, on the trunk since f7f021ac), which stays
+    in software at every size when no accelerated renderer exists. It is a low priority, for Bejeweled 2 after the
+    weekly reset. Where a session needs to know which part of a frame costs what, `-cyclesplit` in the port
     and `origrun --count` in the original split update, draw and present on both sides (docs/TEST_COMMANDS.md,
     "Picking the functions"); per-update figures compare, per-call ones do not, since a port presents in step with
     the display and an original's Blt does not wait (BookWorm, 2026-11-12).
@@ -249,9 +262,11 @@ holds the rules every session follows; this file does not repeat them.
     | The window surface with a dirty rectangle of 3% | 0.12 to 0.16 G |
 
     A partial texture upload does not help, since the driver's cost is per present. So a software-surface presenter,
-    opt-in by the app and given the frame's dirty rectangle, is the fix for every software-drawn port. The Mahjong
-    session builds it as shared commits, design note first; Cosmic Bugs keeps its own partial-upload work off the
-    trunk.
+    opt-in by the app and given the frame's dirty rectangle, is the fix for every software-drawn port. It is on the
+    trunk as SurfaceDisplay (a299640e, built by the Mahjong session; framework/SurfaceDisplay.h says how an app takes
+    it): Bonnie's uses it, the Mahjongs' engine with its own merge; TipTop, Word Harmony, Dynomite and the Retro64 engine (Cosmic Bugs builds
+    it for both Retro64 games) take it in their performance passes. Cosmic Bugs keeps its own partial-upload work off
+    the trunk.
   - Not a cost but a shared look (Typer Shark, 2026-11-12): the 2004 framework's Direct3D 9 blends straight alpha, and
     DDInterface uploads premultiplied textures whenever the renderer has custom blend modes (`SetupBlendModes`), which
     moves the edges of pictures with transparent texels by up to 44 levels in 3D. Typer Shark switches to the
@@ -271,7 +286,25 @@ holds the rules every session follows; this file does not repeat them.
     while the original's cycles rise, so a player's quiet machine is the port's worst case. Vsync off costs more, SDL's
     Direct3D 9 costs 8.3 G and OpenGL 4.3 G, and drawing straight into the back buffer at render scale 1 (no screen
     texture pass) saved nothing. Mummy Maze's port draws 37 frames a second against the original's 53, since each
-    present waits for the display and two updates run between draws.
+    present waits for the display and two updates run between draws. AstroPop measured the cap against vsync in 3D
+    at 1x (GAME_NOTES 11d, 2026-11-12, `-presentlog` for the intervals): no clear gain (105% of the original with the
+    cap, 114% with vsync, about +-30% a run), and the cap's presents are lumpy, quantised to the loop's 10 ms updates,
+    so keep vsync on the GPU path. Per present its present call plus driver thread cost 1.9 to 2.4 M cycles against the
+    original's 1.2 M; the driver thread runs the frame's ~120 draw calls (one per texture change), so only fewer,
+    larger submissions cut it (the next item). The port's mixer thread, about 0.13 M an update, has no counterpart in
+    the original's process. Dynomite (GAME_NOTES 6, 2026-11-12) draws its screen on the GPU with no CPU image, so
+    SurfaceDisplay cannot take it: present plus driver thread cost 1.29 M cycles an update (2.2 M a drawn frame)
+    against the original's Blt at 0.40 M, 19% over at 640x480. The way out it names is shared: an opt-in software
+    screen for 2D SexyApp ports, drawn by the framework's MemoryImage blitters into the screen's bits as the original's
+    DirectDraw path draws, shown through SurfaceDisplay with the dirty rects (the original's software draw is 0.75 M an
+    update; Dynomite's board, 77% of the screen, is dirty every update in play). It would serve Dynomite, Alchemy and
+    the other 2D SexyApp ports over their originals. The user said yes ("Yes, build it", 2026-11-12): the Dynomite
+    session builds it as shared commits, design note first, proved on Dynomite, every other port unchanged. It has been
+    on the trunk since f7f021ac (2026-11-12) as `framework/SoftwareScreenDisplay`, a hybrid. At 1x the screen is drawn
+    in software. At any other size, where SDL's renderer is accelerated, it hands over to the GPU path for good, because
+    doubling a full-screen redraw in software and copying four times the pixels cost more than the GPU's scaling
+    (Dynomite's 2x window: 2.42 M cycles an update in software, 1.87 on the GPU). With no accelerated renderer it stays
+    in software at every size. Dynomite is at 8.46 against its original's 9.63 G cycles a minute at 640x480.
   - Draw calls (Typer Shark, 2026-11-12). `DDInterface::DrawTexturedQuad` makes one SDL call a quad: 593 a frame for
     about 20 texture changes, DrawScreen 466 M cycles in 20 s. Joining consecutive quads of one texture into one
     SDL_RenderGeometry call would take about half of that, some 6% of the port. The draw order stays, and every port's
