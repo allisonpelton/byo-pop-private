@@ -117,6 +117,14 @@ public:
 	// their texture or blend mode differ
 	void AddQuads(SDL_Texture* theTexture, const SDL_Vertex* theVertices, int theVertexCount, const int* theIndices, int theIndexCount);
 
+	// port: the bytes PrepareTexture has uploaded since it last sent the device's commands to the GPU (NoteUpload). Direct3D
+	// 11 holds each upload's staging copy until the GPU has run the copy, and the driver keeps that memory afterwards, so a
+	// burst of uploads (a screen's first draw) left as many private bytes as it uploaded, 13 MB for 12.5 MB of textures.
+	// Sent every 2 MB, the next uploads reuse that memory: Bejeweled 2's first board peaks 3 to 6 MB lower (docs/MEMORY.md).
+	// Nothing waits for the GPU.
+	size_t mUploadedBytes;
+	void NoteUpload(size_t theBytes);
+
 	// The software stretch (off by default; a game whose original drew its screen in software sets it, as Bejeweled
 	// Twist does in 2D). The first piece of the framework's software 2D path: it covers StretchBlt only. The original's
 	// software screen (Twist's DDImage::StretchBlt, 0x41a3e0) stretches a non-fast draw into a temporary image of the

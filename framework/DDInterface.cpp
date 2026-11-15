@@ -10,6 +10,8 @@
 #include "SexyMatrix.h"
 #include "TriVertex.h"
 
+#include "../platform/GPUFlush.h"
+
 #include <SDL.h>
 #include <algorithm>
 #include <math.h>
@@ -72,6 +74,9 @@ struct DDTextureData
 
 static std::vector<uint32_t> gPixelBuffer;
 static const int kPixelBufferSize = 65536; // pixels a texture upload converts at a time (256 KB)
+// the bytes of texture uploads after which NoteUpload sends the device's commands to the GPU: every 256 KB took 1.2 to 1.5 G
+// cycles more of Bejeweled Twist's start (its 121 MB of pictures) for little more memory saved (docs/MEMORY.md)
+static const size_t kUploadFlushBytes = 2 * 1024 * 1024;
 static std::vector<uint32_t> gReadBuffer;
 static std::vector<SDL_Vertex> gVertices;
 static std::vector<int> gIndices;
@@ -184,6 +189,7 @@ DDInterface::DDInterface(SexyAppBase* theApp)
 	mRenderScale = 1;
 	mForcedRenderScale = 0;
 	mQuadTexture = NULL;
+	mUploadedBytes = 0;
 	mQuadBlendMode = SDL_BLENDMODE_NONE;
 
 	mBlendNormal = SDL_BLENDMODE_BLEND;
@@ -765,16 +771,24 @@ SDL_Texture* DDInterface::PrepareTexture(MemoryImage* theImage, DDTextureData* t
 				return NULL;
 		}
 
+		// a strip of rows at a time: the conversion's buffer stays small instead of growing to the largest image, and the
+		// strips' staging copies are sent to the GPU every 2 MB (NoteUpload)
+		int aStripRows = std::max(1, kPixelBufferSize / aWidth);
 		if ((!isPalletized) && ((!mPremultiplied) || (theImage->mUploadAsIs)))
 		{
 			if (aScanAlpha)
 				anAlphaAnd = AndPixels(aPixels, aWidth * aHeight);
-			SDL_UpdateTexture(aTexture, NULL, aPixels, aWidth * 4);
+			for (int aY = 0; aY < aHeight; aY += aStripRows)
+			{
+				int aRows = std::min(aStripRows, aHeight - aY);
+				SDL_Rect aRect = {0, aY, aWidth, aRows};
+				SDL_UpdateTexture(aTexture, &aRect, aPixels + (size_t) aY * aWidth, aWidth * 4);
+				if (!isScreen)
+					NoteUpload((size_t) aRows * aWidth * 4);
+			}
 		}
 		else
 		{
-			// converted a strip of rows at a time, so the buffer stays small instead of growing to the largest image
-			int aStripRows = std::max(1, kPixelBufferSize / aWidth);
 			gPixelBuffer.resize((size_t) std::min(aStripRows, aHeight) * aWidth);
 			for (int aY = 0; aY < aHeight; aY += aStripRows)
 			{
@@ -800,6 +814,8 @@ SDL_Texture* DDInterface::PrepareTexture(MemoryImage* theImage, DDTextureData* t
 				}
 				SDL_Rect aRect = {0, aY, aWidth, aRows};
 				SDL_UpdateTexture(aTexture, &aRect, &gPixelBuffer[0], aWidth * 4);
+				if (!isScreen)
+					NoteUpload((size_t) aCount * 4);
 			}
 		}
 		theData->mBitsChangedCount[aFilter] = theImage->mBitsChangedCount;
@@ -1052,6 +1068,30 @@ void DDInterface::AddQuads(SDL_Texture* theTexture, const SDL_Vertex* theVertice
 		for (int i = 0; i < theVertexCount; i++)
 			mQuadIndices.push_back(aBase + i);
 	}
+}
+
+// BYOPOP_NOUPLOADFLUSH=1 leaves the uploads' commands to the next present, as before, to measure what sending them saves
+static bool FlushesUploads()
+{
+	static int aFlushes = -1;
+	if (aFlushes < 0)
+	{
+		const char* aValue = getenv("BYOPOP_NOUPLOADFLUSH");
+		aFlushes = ((aValue != NULL) && (atoi(aValue) != 0)) ? 0 : 1;
+	}
+	return aFlushes != 0;
+}
+
+void DDInterface::NoteUpload(size_t theBytes)
+{
+	mUploadedBytes += theBytes;
+	if (mUploadedBytes < kUploadFlushBytes)
+		return;
+	mUploadedBytes = 0;
+	// SDL's Direct3D 11 renderer copies each upload from a staging texture it releases at once; once the copy has gone to
+	// the GPU, the driver can give the staging memory to the next one
+	if (FlushesUploads())
+		Platform::FlushRendererCommands(mRenderer);
 }
 
 void DDInterface::FlushQuads()
