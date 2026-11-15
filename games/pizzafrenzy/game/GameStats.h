@@ -26,6 +26,9 @@ public:
 	// 0x41a900: reset, then the score and the time the mode's saved game had
 	void resume(UserGameData* theUserData, int theMode);
 
+	// 0x419d30: the mode's saved game takes the score and the time, and the player's toppings are the game's
+	void saveTo(UserGameData* theUserData, int theMode);
+
 	int mScore;                                  // +0x0c
 	float mElapsedTime;                          // +0x10
 	std::map<Topping*, int> mToppingLevels;      // +0x14: the level of each topping the player has

@@ -44,6 +44,9 @@ const float CITY_SELECT_FADE_SECONDS = 0.3f;
 const float GAME_SCREEN_FADE_SECONDS = 0.5f;
 const char* const SPLATS_FILE = "res\\manifests\\splats.xml";
 
+// The topping screens' fade
+const float TOPPING_SCREEN_FADE_SECONDS = 0.5f;
+
 // The load bar's share after each stage
 const float LOADED_TILE_MANIFEST = 0.05f;
 const float LOADED_MAIN_MENU = 0.1f;
@@ -57,6 +60,7 @@ const float LOADED_USER_SELECT = 0.65f;
 const float LOADED_NEW_USER_ENTRY = 0.7f;
 const float LOADED_HIGH_SCORES = 0.75f;
 const float LOADED_MUSIC_PLAYER = 0.9f;
+const float LOADED_TOPPING_SCREENS = 0.85f;
 const float LOADED_LEVEL_MANIFEST = 0.95f;
 const float LOADED_CITY_SELECT = 1.0f;
 }
@@ -221,6 +225,17 @@ void SplashState::update(engine::UpdateInfo& theInfo)
 		mApp->mHighScoreResetConfirm->mActionSignal.connect(mApp, &PizzaFrenzy::onScreenAction);
 		mApp->mHighScoreResetConfirm->setTransitions(aSlide, aSlide);
 		aLoaded = LOADED_HIGH_SCORES;
+	}
+	else if (mApp->mNewToppingScreen == nullptr)
+	{
+		// the topping screens: the original makes the topping book (+0xe0), the level start screen (+0xe4) and the
+		// new topping screen in this one stage; the new topping screen is the one translated so far
+		engine::Ref<engine::Transition> aFade = new engine::FadeTransition(TOPPING_SCREEN_FADE_SECONDS);
+		mApp->mNewToppingScreen = new NewToppingScreen();
+		mApp->mNewToppingScreen->loadLayout("res/screenLayouts/newToppingScreen.xml");
+		mApp->mNewToppingScreen->setTransitions(aFade, aFade);
+		mApp->mNewToppingScreen->setup();
+		aLoaded = LOADED_TOPPING_SCREENS;
 	}
 	else if (mApp->mMusicPlayer == nullptr)
 	{

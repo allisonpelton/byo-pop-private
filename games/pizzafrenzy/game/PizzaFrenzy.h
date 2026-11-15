@@ -18,6 +18,7 @@
 #include "ImageNode.h"
 #include "Level.h"
 #include "MainMenu.h"
+#include "NewToppingScreen.h"
 #include "OptionScreen.h"
 #include "Pizza.h"
 #include "ScreenMgr.h"
@@ -93,6 +94,7 @@ public:
 	engine::Ref<engine::GenericScreen> mUnlockNotice;        // +0xb4: the designer's, shown while it is locked
 	std::string mUnlockNoticeTemplate;                       // +0xb8: the node "notifyText"'s text as the layout has it
 	engine::Ref<engine::GenericScreen> mPauseMenu;           // +0xd4
+	engine::Ref<NewToppingScreen> mNewToppingScreen;         // +0xec: the toppings the player has not been shown
 	engine::Ref<CitySelectScreen> mCitySelect;               // +0xf0
 	engine::Ref<GameScreen> mGameScreen;                     // +0x114
 	engine::Ref<Hud> mHud;                                   // +0x118
@@ -119,7 +121,7 @@ public:
 
 	// 0x401010 (slot 0x44): the game ends
 	void quitApplication();
-	// 0x402370 (slot 0x40): the game's session is saved; translated next with the game
+	// 0x402370 (slot 0x40): the game is saved in the mode's saved game
 	void saveGame();
 	// 0x409eb0 (slot 0x38): the level manifest's cities are added in order
 	void addCity(City* theCity) { mCities.push_back(theCity); }
@@ -138,6 +140,13 @@ public:
 	// The +0xfc object's slot 0xc, and the state 0x402e00 after it; translated next
 	void startPizzaEditor();
 
+	// 0x408090: the toppings the level gives are the player's, which the player is shown when they are new
+	void giveToppings();
+	// 0x407fc0: the level's start is shown, and a bonus round goes on at once
+	void showLevelStart();
+	// 0x406dc0: the level is set up for play: the mode's game with the level's city, or the bonus round
+	void setUpLevel();
+
 	// 0x405270: the level's city file is loaded into the game screen's map and the screen draws it; the city select
 	// draws the postcards from it
 	void loadCityFile(const std::string& theFile, GameScreen* theScreen);
@@ -147,13 +156,6 @@ private:
 	void beginCity(int theCity);
 	// 0x404660: the checked subscript of the level lists, whose error is an out_of_range exception
 	Level* getCurrentLevel();
-	// 0x408090: the toppings the level gives are the player's, which the player is shown when they are new
-	void giveToppings();
-	// 0x407fc0: the level's start is shown, and a bonus round goes on at once
-	void showLevelStart();
-	// 0x406dc0: the level is set up for play: the mode's game with the level's city, or the bonus round
-	void setUpLevel();
-
 	// What the game itself does, translated next with it: each makes what the original's function makes and puts the
 	// game's state in place. Their callers here are startLevel (story), giveToppings (new topping), showLevelStart
 	// (level start) and setUpLevel (the others).

@@ -7,6 +7,7 @@
 #include "Scene.h"
 #include "Scoreboards.h"
 #include "GameText.h"
+#include "NewToppingState.h"
 #include "Sound.h"
 #include "SplashState.h"
 #include "Transition.h"
@@ -200,9 +201,15 @@ void PizzaFrenzy::quitApplication()
 	engine::App::instance()->quit(0);
 }
 
-// 0x402370: translated next
+// 0x402370: the mode's saved game gets the game's place (day, level, city), and the game's score, time and toppings
 void PizzaFrenzy::saveGame()
 {
+	ModeRecord& aMode = mUserGameData->mModes[mGameMode];
+	aMode.mLastCity = mCurrentCity;
+	aMode.mLastLevel = mCurrentLevel;
+	aMode.mLastDay = mDay;
+	mGameStats->saveTo(mUserGameData, mGameMode);
+	mUserGameData->save();
 }
 
 // 0x40c700
@@ -341,9 +348,11 @@ void PizzaFrenzy::enterStoryState(Level* theLevel, const std::string& theStory)
 {
 }
 
-// 0x402ce0: translated next with the game
+// 0x402ce0: the buttons of the new toppings are made (the screen's slot 0x184), and the state shows the screen
 void PizzaFrenzy::enterNewToppingState()
 {
+	mNewToppingScreen->fillButtons();
+	mStates.changeState(new NewToppingState(this));
 }
 
 // 0x402c40: translated next with the game

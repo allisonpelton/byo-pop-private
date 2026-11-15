@@ -66,6 +66,21 @@ void GameStats::resume(UserGameData* theUserData, int theMode)
 	mElapsedTime = theUserData->getElapsedTime(theMode);
 }
 
+// 0x419d30: the score and time are the mode's saved game's, and the player's toppings are the game's (a null topping
+// is left out)
+void GameStats::saveTo(UserGameData* theUserData, int theMode)
+{
+	ModeRecord& aMode = theUserData->mModes[theMode];
+	aMode.mLastScore = mScore;
+	aMode.mElapsedTime = mElapsedTime;
+	theUserData->mToppingLevels.clear();
+	for (std::map<Topping*, int>::iterator i = mToppingLevels.begin(); i != mToppingLevels.end(); ++i)
+	{
+		if (i->first != nullptr)
+			theUserData->mToppingLevels[i->first] = i->second;
+	}
+}
+
 // 0x41a6a0
 void GameStats::addDesignedPizzas()
 {
