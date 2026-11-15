@@ -267,7 +267,7 @@ WB_LOSS="30000 ms: score 0, lives 0, board 0, filled 0 of 90%"
 WB_SHOTS="2a54908cecb8 42df2d86a04f 983a569fb1b6"  # the first 12 hex digits of the sha256 of game/start.png, game/beam.png and loss/scores.png (pixels, with the bubble column masked, see wb_hash): the frozen baseline
 MJ_DEAL="222 layouts, 0 failed"
 BB_SHOTS="99a302e2a141 fbf6b1061117 8b26c14dac8a"  # the first 12 hex digits of the sha256 of played.png, highscores.png and timeup.png (games/bonnies/tools/tour_test.txt): the frozen baseline
-VN_FROZEN="638acb1206cb 6de40abf8b88"  # the first 12 hex digits of the sha256 of the tour's 15 screens' hashes and of its state lines (games/venice/tools/tour_test.txt): the frozen baseline
+VN_FROZEN="91fa05746617 6de40abf8b88"  # the first 12 hex digits of the sha256 of the tour's 15 screens' hashes and of its state lines (games/venice/tools/tour_test.txt): the frozen baseline (screens refrozen 2026-11-15: the 3D display puts a transformed picture half a pixel over, as the 3D original does, so the pictures are sharper; the states are the same)
 HW_FROZEN="0f9a91bb0a10 61398f211445"  # the first 12 hex digits of the sha256 of the tour's 19 screens' hashes and of its state lines (games/heavyweapon/tools/tour_test.txt): the frozen baseline
 # Heavy Weapon Deluxe: the bot's summary lines (tools/playbymove's last line) for its campaign from the title, level 9 and survival: the frozen baseline
 HW_CAMPAIGN='playbymove heavyweapon: 3400 moves, stop limit; STATE {"screen":"game","dialog":-1,"mode":"campaign","level":2,"maxlevel":1,"score":49620,"lives":1,"nukes":1,"timer":3950,"length":15000,"boss":-1,"bosshealth":0,"bossup":0,"enemies":0,"tankx":-161.522,"tankdead":0,"fire":0,"paused":0,"suspended":0,"updates":4648,"over":false,"appupdates":17894}'

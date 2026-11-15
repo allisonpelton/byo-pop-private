@@ -527,8 +527,8 @@
         "registration-out"
       ],
       "na": [],
-      "now": "site-features",
-      "note": "every phase but modding done but two: the 3D original's shots against the port's 3D mode (the sandbox never loads it; a visible-desktop driver after the reset) and the tutorial's don't-show-again box; registration and outbound buttons were left out from the first draft (no trial, buy or more-games path in the source); real input windowed and full screen in every mode; site features with the site session"
+      "now": null,
+      "note": "every phase but modding done but one: the 3D original's tour is done (8251 frames agree in seed and ticks, 31 shots faint-only; VeniceDisplay adds Direct3D 7's half pixel in 3D); left: the tutorial's don't-show-again box; site features with the site session"
     },
     "heavyweapon": {
       "title": "Heavy Weapon Deluxe",
