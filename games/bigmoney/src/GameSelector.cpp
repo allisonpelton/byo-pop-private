@@ -1,6 +1,5 @@
 #include "GameSelector.h"
 #include "StartButton.h"
-#include "LockableButton.h"
 #include "OverlayWidget.h"
 #include "MrMoney.h"
 #include "WinBMApp.h"
@@ -32,7 +31,7 @@ GameSelector::GameSelector(WinBMApp* theApp)
 		aSkillButton->mOverImage = mApp->mSkillButtonImages[i][1];
 		aSkillButton->mDownImage = mApp->mSkillButtonImages[i][2];
 
-		LockableButton* aTypeButton = new LockableButton(mApp, GAMETYPE_BUTTON_ID + i, this);
+		ButtonWidget* aTypeButton = new ButtonWidget(GAMETYPE_BUTTON_ID + i, this); // port: the original's LockableButton (0x414d80) adds only a lock flag nothing sets or reads
 		mTypeButtons[i] = aTypeButton;
 		aTypeButton->mDoFinger = true;
 		aTypeButton->mButtonImage = mApp->mGameTypeButtonImages[i][0];
@@ -69,8 +68,6 @@ GameSelector::GameSelector(WinBMApp* theApp)
 	SetGameType(mApp->mGameType);  // no voice: mUpdateCnt is still 0
 	SetSkill(mApp->mSkillLevel);
 
-	mUnused98[0] = 0;
-	mUnused98[1] = 0;
 	mPanelY = 0;
 	mSlidingOut = false;
 	mSlidingIn = false;
@@ -103,7 +100,7 @@ void GameSelector::SetGameType(int theType)
 	// The selected type shows its "down" image in every state.
 	for (int i = 0; i < 3; i++)
 	{
-		LockableButton* aButton = mTypeButtons[i];
+		ButtonWidget* aButton = mTypeButtons[i];
 		aButton->mButtonImage = (i == mGameType) ? mApp->mGameTypeButtonImages[i][2] : mApp->mGameTypeButtonImages[i][0];
 		aButton->mOverImage = (i == mGameType) ? mApp->mGameTypeButtonImages[i][2] : mApp->mGameTypeButtonImages[i][1];
 		aButton->mDownImage = mApp->mGameTypeButtonImages[i][2];

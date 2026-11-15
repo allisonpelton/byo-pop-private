@@ -21,7 +21,6 @@ class Graphics;
 class WidgetManager;
 class ButtonWidget;
 class DDImage;
-class LockableButton;
 class OverlayWidget;
 class StartButton;
 
@@ -47,7 +46,6 @@ public:
 	int				mSkill;                 // +0x088 1..3, -1 = none (StartGame copies it to app->mSkillLevel)
 	int				mGameType;              // +0x08c GameType, -1 = none (StartGame copies it to app->mGameType)
 	int				mPanelY;                // +0x090 y of the panel and its buttons; always 0
-	int				mUnused98[2];           // +0x098 zeroed, never read
 	bool			mSlidingIn;             // +0x0a0
 	bool			mSlidingOut;            // +0x0a1
 	DDImage*		mSnapshot;              // +0x0a4 screen capture drawn while sliding
@@ -57,7 +55,7 @@ public:
 	ButtonWidget*	mButton0;               // +0x0b8 id 0, never resized (inert leftover)
 	ButtonWidget*	mButton1;               // +0x0bc id 1, never resized (inert); StartGame disables it
 	ButtonWidget*	mButton2;               // +0x0c0 id 2, never resized (inert)
-	LockableButton*	mTypeButtons[3];        // +0x0c4 ids 20..22, Rect(178 + 154i, 58, 154, 266)
+	ButtonWidget*	mTypeButtons[3];        // +0x0c4 ids 20..22, Rect(178 + 154i, 58, 154, 266)
 	ButtonWidget*	mSkillButtons[3];       // +0x0d0 ids 11..13, Rect({29,186,339}[i] + 173, 359, 113, 52)
 	OverlayWidget*	mOverlay;               // +0x0dc full-screen left bar + floating logo; GameSelector drives its mAlpha
 
