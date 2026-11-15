@@ -218,6 +218,29 @@ bool LeaveScreens(HeavyWeaponApp* theApp)
 		theApp->mWidgetManager->RemoveWidget(aCredits);
 		theApp->SafeDeleteWidget(aCredits);
 	}
+	// the armory and the map go too, at once (the armory's destructor clears mArmory, which a later armory would have
+	// set): left up, they stayed over the next screen and the bot kept answering their buttons
+	Armory* anArmory = FindWidget<Armory>(theApp);
+	if (anArmory != NULL)
+	{
+		theApp->mWidgetManager->RemoveWidget(anArmory);
+		delete anArmory;
+	}
+	MapScreen* aMap = FindWidget<MapScreen>(theApp);
+	if (aMap != NULL)
+	{
+		theApp->mWidgetManager->RemoveWidget(aMap);
+		delete aMap;
+		theApp->mMapScreen = NULL;
+	}
+	// a cutscene goes too (the final one, after the last level's results, waits for a click): left up, the bot kept
+	// clicking it under the next screen
+	CutsceneScreen* aCutscene = FindWidget<CutsceneScreen>(theApp);
+	if (aCutscene != NULL)
+	{
+		theApp->mWidgetManager->RemoveWidget(aCutscene);
+		theApp->SafeDeleteWidget(aCutscene);
+	}
 	// the help screen goes as its OK takes it away
 	HelpScreen* aHelp = FindWidget<HelpScreen>(theApp);
 	if (aHelp != NULL)

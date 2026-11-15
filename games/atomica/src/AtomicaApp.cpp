@@ -23,6 +23,9 @@ AtomicaApp* Sexy::gApp = NULL;
 AtomicaApp::AtomicaApp()
 {
 	gApp = this;
+	// The original starts in 2D and has no 3D at all: Atomica.exe holds no "Is3D" text and imports only DirectDrawCreate (no
+	// Direct3D). So the display keeps the 2D flags on the GPU path too: 2x and the web (SexyAppBase::mDefault3D)
+	mDefault3D = false;
 	mProdName = "Atomica";
 	mProductVersion = "2.52";
 	mRegKey = "PopCap\\" + mProdName;
