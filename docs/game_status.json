@@ -302,11 +302,12 @@
         "site-features",
         "identical-look",
         "coverage",
-        "lite-mod"
+        "lite-mod",
+        "unneeded-code"
       ],
       "na": [],
-      "now": "unneeded-code",
-      "note": "the lite-mod step done with no mod (41fe5da4, games/pixelus/docs/LITE_MOD.md: grid walks and scans of at most 32x32 cells, the hint reads a stored solution; the two scans that cost anything have faster forms with the same answers, so not lite); next: unneeded code, then readability"
+      "now": "readability",
+      "note": "unneeded code out (8fb0a637: Board::GetMoves, LevelData::GetCurrentPuzzle and FindPuzzle, TempleScreen::GetRows, found by the linker's gc-sections list and the coverage report); two behaviours the port had left out added: the hint dialog's OK ends the glow repeats (0x403050), the puzzle-completed screen's animated characters (0x41b3c0, 0x419a00, 0x419e60), not yet compared with the original's shots; baseline identical; next: readability"
     },
     "rocketmania": {
       "title": "Rocket Mania Deluxe",
