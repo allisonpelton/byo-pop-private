@@ -187,7 +187,10 @@ protected:
 	// The stretched copies: at most kStretchCacheSize and kCopyCacheBytes of pixels (the transform copies have their own
 	// kCopyCacheBytes; each copy's texture takes as much again), the least recently drawn going first. An entry holds its source's
 	// mBitsChangedCount and is remade when that changes; RemoveImageData drops a source's entries, so a deleted image
-	// whose address is reused never finds an old copy.
+	// whose address is reused never finds an old copy. On a software screen (SoftwareScreenDisplay) a copy has no texture
+	// to keep, and the copies not drawn in the last two frames go after each present (DropStretchCopiesDrawnBy): a stretch
+	// to a new size in every frame (Big Money's selector rolling open, 25 heights of its panel) held a copy of each, 9 MB
+	// with their alpha caches, until the selector went.
 	struct StretchCopyEntry
 	{
 		MemoryImage* mSource;
@@ -210,6 +213,8 @@ protected:
 	std::vector<StretchCopyEntry> mStretchCopies;
 	unsigned int mStretchUse;
 	void ClearStretchCopies();
+	// drops the stretched copies last drawn at or before the use count theUse (mStretchUse then)
+	void DropStretchCopiesDrawnBy(unsigned int theUse);
 
 protected:
 	void ReleaseRenderer();
@@ -264,14 +269,32 @@ public:
 	// (docs/TEST_COMMANDS.md, "The present log"). Native only.
 	static void StartPresentLog(const std::string& theFileName);
 	static void WritePresentLog();
+	// a display that presents without SDL_RenderPresent (SurfaceDisplay's window surface and GDI stretch) records its presents
+	// here: whether the log is on, and one present that began at theStart (SDL's performance counter) and ends now; theHeader
+	// (what held the presents) is kept from the first
+	static bool PresentLogOn();
+	static void LogPresent(const char* theHeader, unsigned long long theStart);
 
 	// Converts window coordinates (as reported by SDL mouse events) to logical screen coordinates.
 	virtual void WindowToLogical(int theWindowX, int theWindowY, int* theX, int* theY);
 	// port: the inverse, a game point to window coordinates (SexyAppBase::WarpMouse)
 	virtual void LogicalToWindow(int theX, int theY, int* theWindowX, int* theWindowY);
 
+	// port: the app's 3D choice, at every display made (SexyAppBase::InitDDInterface) and when the player changes it
+	// (Set3DAcclerated), told before the app sets mIs3D from it and mCan3D. DDInterface needs nothing; a display that draws
+	// its screen in software while 3D is off (SoftwareScreenDisplay) hands the screen to the GPU here while 3D is on.
+	virtual void NoteWant3D(bool /*theWant3D*/) {}
+
 	// Texture management
 	SDL_Texture* GetTexture(MemoryImage* theImage, int* theTexWidth, int* theTexHeight);
+	// port: a picture the resource manager has just loaded from a file gets its texture at once and drops its pixels
+	// (MemoryImage::DropBits), so that the pictures loaded and not yet drawn hold none either: a texture costs no private
+	// bytes, and their first draw finds it up. Only in 3D, where pictures are drawn from this display's textures (a display
+	// that keeps textures of its own does nothing here), with the filter a plain draw takes; a draw with the other filter, a
+	// software draw or a read of the pixels makes them again from the file, as after any drop (docs/MEMORY.md). A picture
+	// whose pixels cannot be made again, or are lent or HD, keeps them and gets its texture at its first draw.
+	// BYOPOP_NOLOADUPLOAD=1 leaves every texture to the first draw, as before.
+	virtual void UploadLoadedImage(MemoryImage* theImage);
 	virtual void RemoveImageData(MemoryImage* theImage);
 	// DDImage::Check3D's answer for a destination: whether a draw onto theImage goes through this display (after
 	// binding it) rather than the software blitters. Here only the screen does.

@@ -4,6 +4,8 @@
 #include "DDImage.h"
 #include "SexyAppBase.h"
 
+#include "../platform/GdiStretch.h"
+
 #include <SDL.h>
 
 #include <algorithm>
@@ -91,6 +93,12 @@ SurfaceDisplay::SurfaceDisplay(SexyAppBase* theApp) :
 	mWindowHadRenderer = false;
 	mSurfaceDisabled = false;
 	mVerifySurface = false;
+#ifdef _WIN32
+	mGdiPresent = true;
+#else
+	mGdiPresent = false;
+#endif
+	mDwmPace = false;
 	mFrameTexture = NULL;
 	mFrameTextureWhole = false;
 	mMaxPending = kDefaultMaxPendingRects;
@@ -101,6 +109,15 @@ SurfaceDisplay::SurfaceDisplay(SexyAppBase* theApp) :
 		mSurfaceDisabled = (anEnv != NULL) && (anEnv[0] == '0');
 		anEnv = SDL_getenv("SURFACE_VERIFY");
 		mVerifySurface = (anEnv != NULL) && (anEnv[0] == '1');
+#ifdef _WIN32
+		// the repeated copy into the surface at 2x to 4x, as before 2026-11-15, to measure against
+		anEnv = SDL_getenv("SURFACE_PRESENT");
+		if ((anEnv != NULL) && (strcmp(anEnv, "copy") == 0))
+			mGdiPresent = false;
+		// each present waiting for DWM's next composition instead of the framework's pace (no default: the user's choice)
+		anEnv = SDL_getenv("SURFACE_PACE");
+		mDwmPace = (anEnv != NULL) && (strcmp(anEnv, "dwm") == 0);
+#endif
 		anEnv = SDL_getenv("SURFACE_MAXRECTS");
 		if ((anEnv != NULL) && (atoi(anEnv) > 0))
 			mMaxPending = (size_t) atoi(anEnv);
@@ -164,6 +181,12 @@ bool SurfaceDisplay::EnterSurfaceMode(int theScale)
 	mSurfaceMode = true;
 	mSurfaceScale = theScale;
 	SDL_Log("SurfaceDisplay: the window's surface (%dx%d, the screen at %dx)", mWidth * theScale, mHeight * theScale, theScale);
+	// GDI stretches the buffer into the window itself: the window keeps no surface of its size
+	if ((mGdiPresent) && (theScale > 1))
+	{
+		SDL_DestroyWindowSurface(mWindow);
+		SDL_Log("SurfaceDisplay: at %dx the frames go to the window by StretchDIBits", theScale);
+	}
 	// as GPUDisplay: no SDL renderer, so the screen image is read back through ReadScreen, and a window that is
 	// minimised draws nothing (DrawDirtyStuff)
 	mIs3D = true;
@@ -178,6 +201,12 @@ bool SurfaceDisplay::EnterSurfaceMode(int theScale)
 	int aRate = ((aDisplay >= 0) && (SDL_GetCurrentDisplayMode(aDisplay, &aMode) == 0)) ? aMode.refresh_rate : 0;
 	mPaceIntervalMs = 1000.0 / ((aRate > 0) ? aRate : 60);
 	mPaceStarted = false;
+	// on Windows the wait for DWM's composition after each present holds the frames instead, as a vertical blank does
+	if (mDwmPace)
+	{
+		mPaceIntervalMs = 0;
+		SDL_Log("SurfaceDisplay: each present waits for DWM's next composition");
+	}
 	return true;
 }
 
@@ -414,9 +443,10 @@ void SurfaceDisplay::PresentToSurface()
 	// nothing is shown while minimised; what is pending stays, and the restore marks everything dirty
 	if ((SDL_GetWindowFlags(mWindow) & SDL_WINDOW_MINIMIZED) != 0)
 		return;
-	SDL_Surface* aSurface = SDL_GetWindowSurface(mWindow);
 	const int aScale = mSurfaceScale;
-	if ((aSurface == NULL) || (aSurface->w != mWidth * aScale) || (aSurface->h != mHeight * aScale))
+	const bool aByGdi = (mGdiPresent) && (aScale > 1);
+	SDL_Surface* aSurface = aByGdi ? NULL : SDL_GetWindowSurface(mWindow);
+	if ((!aByGdi) && ((aSurface == NULL) || (aSurface->w != mWidth * aScale) || (aSurface->h != mHeight * aScale)))
 	{
 		// the window changed size under us: UpdateDisplaySize will see it at the next frame
 		mPendingAll = true;
@@ -433,6 +463,7 @@ void SurfaceDisplay::PresentToSurface()
 		if ((Uint32) (aNow - mLastWholeTick) < 1000)
 			return;
 	}
+	const Uint64 aLogStart = PresentLogOn() ? SDL_GetPerformanceCounter() : 0;
 	bool aWhole = (mPendingAll) || (mPending.empty());
 	if (aWhole)
 		mLastWholeTick = SDL_GetTicks();
@@ -459,6 +490,29 @@ void SurfaceDisplay::PresentToSurface()
 		}
 	}
 
+	if (aByGdi)
+	{
+		if (!PresentWithGdi(aRects, aCount, aScale))
+		{
+			// the next present makes the window's surface and copies into it
+			mGdiPresent = false;
+			mPendingAll = true;
+			SDL_Log("SurfaceDisplay: GDI could not stretch into the window, so the frames are copied into its surface from here on");
+			return;
+		}
+		else
+		{
+			mPending.clear();
+			mPendingAll = false;
+		}
+		mFrameCount++;
+		mSurfacePresents++;
+		if (aLogStart != 0)
+			LogSurfacePresent(mDwmPace ? "surface-gdi-dwm" : "surface-gdi", aLogStart);
+		WaitForComposition();
+		return;
+	}
+
 	if (SDL_MUSTLOCK(aSurface))
 		SDL_LockSurface(aSurface);
 	for (int i = 0; i < aCount; i++)
@@ -482,6 +536,55 @@ void SurfaceDisplay::PresentToSurface()
 	mPendingAll = false;
 	mFrameCount++;
 	mSurfacePresents++;
+	if (aLogStart != 0)
+		LogSurfacePresent(mDwmPace ? "surface-dwm" : "surface", aLogStart);
+	WaitForComposition();
+}
+
+// The wait for DWM's composition after a present, where the framework's pace would hold the frames (SexyAppBase's
+// DrawHeldByPace): not with -fast, -drawevery or -hold, whose drawing is the test's own, and not before the game has
+// loaded. A wait that fails, or that took more than 250 ms (the compositor is not composing: what a vertical blank would
+// not do either), gives the frames back to the pace for good.
+void SurfaceDisplay::WaitForComposition()
+{
+	if ((!mDwmPace) || (mApp == NULL) || (!mApp->mLoaded) || (mApp->mFastMode) || (mApp->mDrawEvery) || (mApp->mCommandsHold))
+		return;
+	const Uint32 aStart = SDL_GetTicks();
+	if ((!Platform::WaitForComposition()) || ((Uint32) (SDL_GetTicks() - aStart) > 250))
+		StopDwmPace();
+}
+
+// When DWM cannot be waited for: back to the framework's own pace
+void SurfaceDisplay::StopDwmPace()
+{
+	mDwmPace = false;
+	SDL_DisplayMode aMode;
+	int aDisplay = SDL_GetWindowDisplayIndex(mWindow);
+	int aRate = ((aDisplay >= 0) && (SDL_GetCurrentDisplayMode(aDisplay, &aMode) == 0)) ? aMode.refresh_rate : 0;
+	mPaceIntervalMs = 1000.0 / ((aRate > 0) ? aRate : 60);
+	mPaceStarted = false;
+	SDL_Log("SurfaceDisplay: DWM's composition could not be waited for, so the frames are paced by the clock from here on");
+}
+
+// -presentlog for the window surface: what held the presents (the frame loop's pace; a frame with nothing new is not presented)
+void SurfaceDisplay::LogSurfacePresent(const char* theWay, Uint64 theStart)
+{
+	char aHeader[160];
+	snprintf(aHeader, sizeof(aHeader), "renderer %s scale %d vsync_asked 0 vsync_flag 0 pace_ms %.3f", theWay, mSurfaceScale, mPaceIntervalMs);
+	LogPresent(aHeader, theStart);
+}
+
+bool SurfaceDisplay::PresentWithGdi(const SDL_Rect* theRects, int theCount, int theScale)
+{
+	int aDiffering = -1;
+	if (!Platform::StretchToWindow(mWindow, mPixels, mPitch, mWidth, mHeight, theRects, theCount, theScale,
+		mVerifySurface ? &aDiffering : NULL))
+		return false;
+	if (aDiffering > 0)
+		SDL_Log("SurfaceDisplay: SURFACE_VERIFY: %d of the window's pixels are not the buffer's after a GDI present", aDiffering);
+	else if (aDiffering == 0)
+		mVerifiedFrames++;
+	return true;
 }
 
 // SURFACE_VERIFY=1 in the environment: after every present the window's surface is the buffer's screen at every pixel, the

@@ -45,6 +45,8 @@ public:
 	void UpdateDisplaySize() override;
 	std::string RendererName() const override;
 	void ReleaseTextures() override;
+	// its pictures go to the GPU through GPU2D at their first draw, not through DDInterface's textures
+	void UploadLoadedImage(MemoryImage* /*theImage*/) override {}
 
 	// The GL context was lost and given back (the web's webglcontextlost and webglcontextrestored events; a native GL
 	// context is not reported lost). The device forgets its GL names at once and no GL call is made until the next

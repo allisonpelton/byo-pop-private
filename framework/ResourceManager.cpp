@@ -3,6 +3,7 @@
 #include "XMLParser.h"
 #include "SoundManager.h"
 #include "DDImage.h"
+#include "DDInterface.h"
 #include "ImageFont.h"
 #include "SexyAppBase.h"
 #include "../platform/ImageLoader.h"
@@ -804,6 +805,9 @@ bool ResourceManager::DoLoadImage(ImageRes *theRes)
 		aDDImage->PurgeBits();
 
 	ResourceLoadedHook(theRes);
+	// port: the picture's texture now, and its pixels gone until something needs them (DDInterface::UploadLoadedImage)
+	if ((isNew) && (aDDImage->mDDInterface != NULL))
+		aDDImage->mDDInterface->UploadLoadedImage(aDDImage);
 	return true;
 }
 

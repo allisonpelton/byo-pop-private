@@ -524,16 +524,31 @@ void DDInterface::WritePresentLog()
 		return;
 	}
 	// the header says what held the presents: vsync (the renderer waits for the blank), or the frame loop's pace (pace_ms > 0)
-	fprintf(aFile, "# %s\n# counter_hz %llu\n# columns: start_us length_us (from the first present)\n", gPresentLogHeader.c_str(), (unsigned long long) SDL_GetPerformanceFrequency());
+	fprintf(aFile, "# %s\n# counter_hz %llu\n# first_counter %llu\n# columns: start_us length_us (from the first present)\n", gPresentLogHeader.c_str(),
+		(unsigned long long) SDL_GetPerformanceFrequency(), (unsigned long long) (gPresentLog.empty() ? 0 : gPresentLog[0].first));
 	double aToUs = 1000000.0 / (double) SDL_GetPerformanceFrequency();
 	for (size_t i = 0; i < gPresentLog.size(); i++)
 		fprintf(aFile, "%.1f %.1f\n", (double) (gPresentLog[i].first - gPresentLog[0].first) * aToUs, (double) gPresentLog[i].second * aToUs);
 	fclose(aFile);
 	SDL_Log("presentlog: %d presents written to %s", (int) gPresentLog.size(), gPresentLogFile.c_str());
 }
+
+bool DDInterface::PresentLogOn()
+{
+	return !gPresentLogFile.empty();
+}
+
+void DDInterface::LogPresent(const char* theHeader, unsigned long long theStart)
+{
+	if (gPresentLog.empty())
+		gPresentLogHeader = theHeader;
+	gPresentLog.push_back(std::make_pair(theStart, SDL_GetPerformanceCounter() - theStart));
+}
 #else
 void DDInterface::StartPresentLog(const std::string&) {}
 void DDInterface::WritePresentLog() {}
+bool DDInterface::PresentLogOn() { return false; }
+void DDInterface::LogPresent(const char*, unsigned long long) {}
 #endif
 
 void DDInterface::Present()
@@ -841,6 +856,22 @@ SDL_Texture* DDInterface::GetTexture(MemoryImage* theImage, int* theTexWidth, in
 	if (theTexHeight != NULL)
 		*theTexHeight = aData->mHeight;
 	return aTexture;
+}
+
+void DDInterface::UploadLoadedImage(MemoryImage* theImage)
+{
+	static int anUploads = -1;
+	if (anUploads < 0)
+	{
+		const char* aValue = SDL_getenv("BYOPOP_NOLOADUPLOAD");
+		anUploads = ((aValue != NULL) && (atoi(aValue) != 0)) ? 0 : 1;
+	}
+	if ((anUploads == 0) || (!mIs3D) || (mRenderer == NULL) || (theImage == NULL) || (!MemoryImage::DropsBits()) ||
+		theImage->mBitsDropped || theImage->mBitsLent || (!theImage->BitsSourceValid()) || (!theImage->mHDBits.empty()))
+		return;
+	DDTextureData* aData = GetTextureData(theImage);
+	if (aData != NULL)
+		PrepareTexture(theImage, aData, Graphics::DRAWMODE_NORMAL, false);
 }
 
 bool DDInterface::CheckDestination(DDImage* theImage)
@@ -1319,6 +1350,24 @@ void DDInterface::ClearStretchCopies()
 	aCopies.swap(mTransformCopies);
 	for (TransformCopyEntry& e : aCopies)
 		delete e.mCopy;
+}
+
+void DDInterface::DropStretchCopiesDrawnBy(unsigned int theUse)
+{
+	// taken out of the list before they are deleted, as in RemoveImageData
+	std::vector<MemoryImage*> aCopies;
+	for (size_t i = 0; i < mStretchCopies.size(); )
+	{
+		if ((int) (mStretchCopies[i].mLastUse - theUse) <= 0)
+		{
+			aCopies.push_back(mStretchCopies[i].mCopy);
+			mStretchCopies.erase(mStretchCopies.begin() + i);
+		}
+		else
+			i++;
+	}
+	for (MemoryImage* aCopy : aCopies)
+		delete aCopy;
 }
 
 MemoryImage* DDInterface::GetTransformCopy(int theWidth, int theHeight)
