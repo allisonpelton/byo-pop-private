@@ -11,8 +11,10 @@
 #include "TriVertex.h"
 
 #include <SDL.h>
+#include <algorithm>
 #include <math.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string>
 #include <utility>
 #include <vector>
@@ -181,6 +183,8 @@ DDInterface::DDInterface(SexyAppBase* theApp)
 	mScreenTexture = NULL;
 	mRenderScale = 1;
 	mForcedRenderScale = 0;
+	mQuadTexture = NULL;
+	mQuadBlendMode = SDL_BLENDMODE_NONE;
 
 	mBlendNormal = SDL_BLENDMODE_BLEND;
 	mBlendAdditive = SDL_BLENDMODE_ADD;
@@ -353,6 +357,7 @@ void DDInterface::SetupBlendModes()
 ///////////////////////////////////////////////////////////////////////////////
 void DDInterface::ReleaseTextures()
 {
+	FlushQuads();
 	std::set<MemoryImage*>::iterator anItr;
 	for (anItr = mTextureImageSet.begin(); anItr != mTextureImageSet.end(); ++anItr)
 	{
@@ -408,6 +413,7 @@ void DDInterface::UpdateDisplaySize()
 	if (mRenderer == NULL)
 		return;
 
+	FlushQuads();
 	// SDL_GetRendererOutputSize reports the target's size while a render target is set
 	SDL_Texture* aTarget = SDL_GetRenderTarget(mRenderer);
 	if (aTarget != NULL)
@@ -438,6 +444,7 @@ std::string DDInterface::RendererName() const
 
 bool DDInterface::CreateScreenTexture(int theRenderScale)
 {
+	FlushQuads();
 	if (mScreenTexture != NULL)
 	{
 		SDL_DestroyTexture(mScreenTexture);
@@ -528,6 +535,7 @@ void DDInterface::Present()
 	if (mRenderer == NULL)
 		return;
 
+	FlushQuads();
 	SDL_SetRenderTarget(mRenderer, NULL);
 	mClipEnabled = false;
 	SDL_RenderSetClipRect(mRenderer, NULL);
@@ -628,6 +636,7 @@ bool DDInterface::PreDraw()
 
 	if (SDL_GetRenderTarget(mRenderer) != mScreenTexture)
 	{
+		FlushQuads();
 		SDL_SetRenderTarget(mRenderer, mScreenTexture);
 		mClipEnabled = false; // SDL resets the clip rect when the target changes
 	}
@@ -642,6 +651,7 @@ bool DDInterface::SetClip(const Rect* theClipRect)
 	{
 		if (mClipEnabled)
 		{
+			FlushQuads();
 			SDL_RenderSetClipRect(mRenderer, NULL);
 			mClipEnabled = false;
 		}
@@ -654,6 +664,7 @@ bool DDInterface::SetClip(const Rect* theClipRect)
 	if (mClipEnabled && (mCurClipRect == *theClipRect))
 		return true;
 
+	FlushQuads();
 	SDL_Rect aRect = { theClipRect->mX * mRenderScale, theClipRect->mY * mRenderScale,
 		theClipRect->mWidth * mRenderScale, theClipRect->mHeight * mRenderScale };
 	SDL_RenderSetClipRect(mRenderer, &aRect);
@@ -689,6 +700,11 @@ DDTextureData* DDInterface::GetTextureData(MemoryImage* theImage)
 	if ((aData->mScale != aScale) || (aData->mWidth != aTexWidth) || (aData->mHeight != aTexHeight) ||
 		(aData->mImageWidth != theImage->mWidth) || (aData->mImageHeight != theImage->mHeight))
 	{
+		for (int i = 0; i < DDTextureData::NUM_FILTERS; i++)
+		{
+			if ((aData->mTextures[i] != NULL) && (aData->mTextures[i] == mQuadTexture))
+				FlushQuads();
+		}
 		aData->ReleaseTextures();
 		aData->mScale = aScale;
 		aData->mWidth = aTexWidth;
@@ -723,6 +739,9 @@ SDL_Texture* DDInterface::PrepareTexture(MemoryImage* theImage, DDTextureData* t
 
 	if ((theData->mBitsChangedCount[aFilter] != theImage->mBitsChangedCount) || isScreen)
 	{
+		// the quads waiting to be drawn from this texture take its pixels as they are before the upload
+		if (aTexture == mQuadTexture)
+			FlushQuads();
 		// port: pixels dropped after an earlier upload come back from the file for this one (a second filter, a lost
 		// device), and go again after it (MemoryImage.h, mBitsSource)
 		if (!isScreen)
@@ -835,6 +854,11 @@ void DDInterface::RemoveImageData(MemoryImage* theImage)
 		return;
 
 	DDTextureData* aData = (DDTextureData*) theImage->mD3DData;
+	for (int i = 0; i < DDTextureData::NUM_FILTERS; i++)
+	{
+		if ((aData->mTextures[i] != NULL) && (aData->mTextures[i] == mQuadTexture))
+			FlushQuads();
+	}
 	aData->ReleaseTextures();
 	delete aData;
 
@@ -927,7 +951,10 @@ void DDInterface::DrawTexturedQuad(Image* theImage, const float theX[4], const f
 	// whose every alpha byte is 255 (PrepareTexture reads them at the upload: an exact test of the texels, which an image's flags are
 	// not, forced mode's least of all), drawn at full alpha in the normal mode, is a copy: the same pixels come out.
 	if ((!mIs3D) && (theDrawMode != Graphics::DRAWMODE_ADDITIVE) && (aColor.a == 255) && (aData->mScale == 1) && (aData->mOpaque))
+	{
+		FlushQuads();
 		SDL_SetTextureBlendMode(aTexture, SDL_BLENDMODE_NONE);
+	}
 
 	// port: SDL's software renderer turns an axis-aligned quad back into a copy whose source rect is
 	// truncated from the UVs ((int) (u * width)), which can land a texel short and shift sprite-sheet
@@ -937,6 +964,7 @@ void DDInterface::DrawTexturedQuad(Image* theImage, const float theX[4], const f
 	{
 		SDL_Rect aSrcRect = { theSrcRect.mX * aData->mScale, theSrcRect.mY * aData->mScale, theSrcRect.mWidth * aData->mScale, theSrcRect.mHeight * aData->mScale };
 		SDL_FRect aDestRect = { theX[0] * aScale, theY[0] * aScale, (theX[1] - theX[0]) * aScale, (theY[3] - theY[0]) * aScale };
+		FlushQuads();
 		SDL_SetTextureColorMod(aTexture, aColor.r, aColor.g, aColor.b);
 		SDL_SetTextureAlphaMod(aTexture, aColor.a);
 		SDL_RenderCopyExF(mRenderer, aTexture, &aSrcRect, &aDestRect, 0, NULL, mirror ? SDL_FLIP_HORIZONTAL : SDL_FLIP_NONE);
@@ -970,7 +998,7 @@ void DDInterface::DrawTexturedQuad(Image* theImage, const float theX[4], const f
 				for (int i = 0; i < 4; i++)
 					SetVertex(aPiece[i], aPieceX[i] * aScale, aPieceY[i] * aScale, aColor, aPieceU[i], aPieceV[i]);
 				static const int aPieceIndices[6] = { 0, 1, 2, 0, 2, 3 };
-				SDL_RenderGeometry(mRenderer, aTexture, aPiece, 4, aPieceIndices, 6);
+				AddQuads(aTexture, aPiece, 4, aPieceIndices, 6);
 			}
 		}
 		return;
@@ -981,7 +1009,68 @@ void DDInterface::DrawTexturedQuad(Image* theImage, const float theX[4], const f
 		SetVertex(aVertices[i], theX[i] * aScale, theY[i] * aScale, aColor, aU[i], aV[i]);
 
 	static const int anIndices[6] = { 0, 1, 2, 0, 2, 3 };
-	SDL_RenderGeometry(mRenderer, aTexture, aVertices, 4, anIndices, 6);
+	AddQuads(aTexture, aVertices, 4, anIndices, 6);
+}
+
+// BYOPOP_NOBATCH=1 sends every quad to SDL as its own call and every span as its own rectangle, as before the batch and the
+// joined spans, to measure what they save
+static bool BatchesQuads()
+{
+	static int aBatches = -1;
+	if (aBatches < 0)
+	{
+		const char* aValue = getenv("BYOPOP_NOBATCH");
+		aBatches = ((aValue != NULL) && (atoi(aValue) != 0)) ? 0 : 1;
+	}
+	return aBatches != 0;
+}
+
+void DDInterface::AddQuads(SDL_Texture* theTexture, const SDL_Vertex* theVertices, int theVertexCount, const int* theIndices, int theIndexCount)
+{
+	if ((!mIs3D) || (!BatchesQuads()))
+	{
+		SDL_RenderGeometry(mRenderer, theTexture, theVertices, theVertexCount, theIndices, theIndexCount);
+		return;
+	}
+
+	SDL_BlendMode aBlendMode = SDL_BLENDMODE_NONE;
+	SDL_GetTextureBlendMode(theTexture, &aBlendMode);
+	if ((!mQuadVertices.empty()) && ((theTexture != mQuadTexture) || ((int) aBlendMode != mQuadBlendMode)))
+		FlushQuads();
+	mQuadTexture = theTexture;
+	mQuadBlendMode = (int) aBlendMode;
+
+	int aBase = (int) mQuadVertices.size();
+	mQuadVertices.insert(mQuadVertices.end(), theVertices, theVertices + theVertexCount);
+	if (theIndices != NULL)
+	{
+		for (int i = 0; i < theIndexCount; i++)
+			mQuadIndices.push_back(aBase + theIndices[i]);
+	}
+	else
+	{
+		for (int i = 0; i < theVertexCount; i++)
+			mQuadIndices.push_back(aBase + i);
+	}
+}
+
+void DDInterface::FlushQuads()
+{
+	if (mQuadVertices.empty())
+		return;
+
+	// the blend mode the quads were drawn with: a texture's mode is set at each draw (PrepareTexture), and SDL takes it when
+	// the geometry is queued
+	SDL_BlendMode aBlendMode = SDL_BLENDMODE_NONE;
+	SDL_GetTextureBlendMode(mQuadTexture, &aBlendMode);
+	if ((int) aBlendMode != mQuadBlendMode)
+		SDL_SetTextureBlendMode(mQuadTexture, (SDL_BlendMode) mQuadBlendMode);
+	if (mRenderer != NULL)
+		SDL_RenderGeometry(mRenderer, mQuadTexture, &mQuadVertices[0], (int) mQuadVertices.size(), &mQuadIndices[0], (int) mQuadIndices.size());
+	if ((int) aBlendMode != mQuadBlendMode)
+		SDL_SetTextureBlendMode(mQuadTexture, aBlendMode);
+	mQuadVertices.clear();
+	mQuadIndices.clear();
 }
 
 void DDInterface::Blt(Image* theImage, float theX, float theY, const Rect& theSrcRect, const Color& theColor, int theDrawMode, const Rect* theClipRect, bool mirror)
@@ -1278,7 +1367,7 @@ void DDInterface::DrawTrianglesTex(Image* theTexture, const TriVertex theVertice
 		}
 	}
 
-	SDL_RenderGeometry(mRenderer, aTexture, &gVertices[0], theNumTriangles * 3, NULL, 0);
+	AddQuads(aTexture, &gVertices[0], theNumTriangles * 3, NULL, 0);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1297,6 +1386,7 @@ void DDInterface::FillRects(const Color& theColor, int theDrawMode)
 {
 	if (!gRects.empty())
 	{
+		FlushQuads();
 		SDL_Color aColor = MakeVertexColor(theColor, mPremultiplied);
 		SDL_SetRenderDrawBlendMode(mRenderer, (SDL_BlendMode) ((theDrawMode == Graphics::DRAWMODE_ADDITIVE) ? mBlendAdditive : mBlendNormal));
 		SDL_SetRenderDrawColor(mRenderer, aColor.r, aColor.g, aColor.b, aColor.a);
@@ -1327,6 +1417,7 @@ void DDInterface::FillPoly(const Point theVertices[], int theNumVertices, const 
 	if ((!PreDraw()) || (!SetClip(theClipRect)))
 		return;
 
+	FlushQuads();
 	SDL_SetRenderDrawBlendMode(mRenderer, (SDL_BlendMode) ((theDrawMode == Graphics::DRAWMODE_ADDITIVE) ? mBlendAdditive : mBlendNormal));
 
 	SDL_Color aColor = MakeVertexColor(theColor, mPremultiplied);
@@ -1483,6 +1574,78 @@ void DDInterface::DrawLine(double theStartX, double theStartY, double theEndX, d
 	FillRects(theColor, theDrawMode);
 }
 
+// port: spans in an opaque colour in the normal mode as fewer rectangles over the same pixels. Such a fill leaves each pixel
+// the colour whatever order the pixels are filled in and however often, so the spans of a row are joined where they touch or
+// overlap, and a run of rows with the same spans becomes one rectangle. Each rectangle is six vertices for the renderer, and
+// Atomica's tunnel gives about 21,000 spans a frame, a row of a triangle each, whose vertices the Direct3D 11 renderer keeps in
+// a ring of buffers as large as the largest frame's.
+static std::vector<Span> gSortedSpans;
+
+struct OpenRect
+{
+	int mX, mY, mWidth, mHeight;
+};
+
+static std::vector<OpenRect> gJoinedRects;
+static std::vector<int> gOpenRects, gNextOpenRects;  // the rectangles that the row above ends, as indices, by x
+
+static void AddJoinedSpans(const Span* theSpans, int theSpanCount, float theScale)
+{
+	gSortedSpans.clear();
+	for (int i = 0; i < theSpanCount; i++)
+	{
+		if (theSpans[i].mWidth > 0)
+			gSortedSpans.push_back(theSpans[i]);
+	}
+	std::sort(gSortedSpans.begin(), gSortedSpans.end(), [](const Span& theLeft, const Span& theRight)
+		{ return (theLeft.mY != theRight.mY) ? (theLeft.mY < theRight.mY) : (theLeft.mX < theRight.mX); });
+
+	gJoinedRects.clear();
+	gOpenRects.clear();
+	int anOpenRow = 0;  // the row that gOpenRects ends
+	size_t i = 0;
+	while (i < gSortedSpans.size())
+	{
+		int aRow = gSortedSpans[i].mY;
+		if (aRow != anOpenRow + 1)
+			gOpenRects.clear();
+		gNextOpenRects.clear();
+		size_t anOpen = 0;
+		while ((i < gSortedSpans.size()) && (gSortedSpans[i].mY == aRow))
+		{
+			// one run of the row: the spans that touch or overlap the first
+			int aStart = gSortedSpans[i].mX;
+			int anEnd = aStart + gSortedSpans[i].mWidth;
+			for (i++; (i < gSortedSpans.size()) && (gSortedSpans[i].mY == aRow) && (gSortedSpans[i].mX <= anEnd); i++)
+				anEnd = std::max(anEnd, gSortedSpans[i].mX + gSortedSpans[i].mWidth);
+
+			// the rectangle above it, if one ends there with the same edges
+			while ((anOpen < gOpenRects.size()) && (gJoinedRects[gOpenRects[anOpen]].mX < aStart))
+				anOpen++;
+			if ((anOpen < gOpenRects.size()) && (gJoinedRects[gOpenRects[anOpen]].mX == aStart) &&
+				(gJoinedRects[gOpenRects[anOpen]].mWidth == anEnd - aStart))
+			{
+				gJoinedRects[gOpenRects[anOpen]].mHeight++;
+				gNextOpenRects.push_back(gOpenRects[anOpen]);
+			}
+			else
+			{
+				OpenRect aRect = { aStart, aRow, anEnd - aStart, 1 };
+				gNextOpenRects.push_back((int) gJoinedRects.size());
+				gJoinedRects.push_back(aRect);
+			}
+		}
+		gOpenRects.swap(gNextOpenRects);
+		anOpenRow = aRow;
+	}
+
+	for (size_t j = 0; j < gJoinedRects.size(); j++)
+	{
+		const OpenRect& aRect = gJoinedRects[j];
+		AddRect((float) aRect.mX, (float) aRect.mY, (float) aRect.mWidth, (float) aRect.mHeight, theScale);
+	}
+}
+
 void DDInterface::FillScanLines(const Span* theSpans, int theSpanCount, const Color& theColor, int theDrawMode)
 {
 	if (theSpanCount <= 0)
@@ -1495,11 +1658,16 @@ void DDInterface::FillScanLines(const Span* theSpans, int theSpanCount, const Co
 
 	float aScale = (float) mRenderScale;
 	gRects.clear();
-	for (int i = 0; i < theSpanCount; i++)
+	if ((theColor.mAlpha == 255) && (theDrawMode == Graphics::DRAWMODE_NORMAL) && BatchesQuads())
+		AddJoinedSpans(theSpans, theSpanCount, aScale);
+	else
 	{
-		const Span& aSpan = theSpans[i];
-		if (aSpan.mWidth > 0)
-			AddRect((float) aSpan.mX, (float) aSpan.mY, (float) aSpan.mWidth, 1, aScale);
+		for (int i = 0; i < theSpanCount; i++)
+		{
+			const Span& aSpan = theSpans[i];
+			if (aSpan.mWidth > 0)
+				AddRect((float) aSpan.mX, (float) aSpan.mY, (float) aSpan.mWidth, 1, aScale);
+		}
 	}
 
 	FillRects(theColor, theDrawMode);
@@ -1515,6 +1683,7 @@ void DDInterface::ClearRect(const Rect& theRect)
 
 	// the screen has no alpha: clearing gives opaque black
 	SetClip(NULL);
+	FlushQuads();
 	SDL_SetRenderDrawBlendMode(mRenderer, SDL_BLENDMODE_NONE);
 	SDL_SetRenderDrawColor(mRenderer, 0, 0, 0, 255);
 	SDL_Rect aRect = { theRect.mX * mRenderScale, theRect.mY * mRenderScale, theRect.mWidth * mRenderScale, theRect.mHeight * mRenderScale };
@@ -1525,6 +1694,7 @@ void DDInterface::ClearRect(const Rect& theRect)
 ///////////////////////////////////////////////////////////////////////////////
 bool DDInterface::ReadScreenFull(std::vector<uint32_t>& theBits, int& theWidth, int& theHeight)
 {
+	FlushQuads();
 	if (!PreDraw())
 		return false;
 	theWidth = mWidth * mRenderScale;
@@ -1539,6 +1709,7 @@ bool DDInterface::ReadScreenFull(std::vector<uint32_t>& theBits, int& theWidth, 
 
 bool DDInterface::ReadScreen(ulong* theBits)
 {
+	FlushQuads();
 	if ((theBits == NULL) || (!PreDraw()))
 		return false;
 

@@ -26,6 +26,7 @@
 struct SDL_Window;
 struct SDL_Renderer;
 struct SDL_Texture;
+struct SDL_Vertex;
 
 namespace Sexy
 {
@@ -100,6 +101,21 @@ public:
 	// current clip rectangle on the screen texture (logical coordinates)
 	bool mClipEnabled;
 	Rect mCurClipRect;
+
+	// port: the textured quads and triangles drawn since the last other draw, with one texture, one blend mode and one clip,
+	// waiting to go to SDL as one SDL_RenderGeometry call (FlushQuads). SDL makes one draw call of each RenderGeometry and
+	// joins none, and on Direct3D 11 the driver's work for the draw calls takes about half of the processor time of some
+	// games; one call draws the same triangles in the same order, so the same pixels come out. Only an accelerated renderer
+	// (mIs3D) gathers them: SDL's software renderer turns each call's pairs of triangles back into copies. Every other
+	// call that draws, reads the target, sets the clip or the target, or changes or frees a texture flushes them first.
+	SDL_Texture* mQuadTexture;
+	int mQuadBlendMode;
+	std::vector<SDL_Vertex> mQuadVertices;
+	std::vector<int> mQuadIndices;
+	void FlushQuads();
+	// Adds triangles to the waiting ones (theIndices NULL: theVertexCount / 3 triangles in order), flushing those first when
+	// their texture or blend mode differ
+	void AddQuads(SDL_Texture* theTexture, const SDL_Vertex* theVertices, int theVertexCount, const int* theIndices, int theIndexCount);
 
 	// The software stretch (off by default; a game whose original drew its screen in software sets it, as Bejeweled
 	// Twist does in 2D). The first piece of the framework's software 2D path: it covers StretchBlt only. The original's
