@@ -454,15 +454,15 @@ var ByopopSoundtracks = {
     where: { title_music: "Main Menu", ingame_1_intro: "World Map", ingame_1_body: "Welcome to Venice",
       ingame_1_win: "Level Complete", ingame_3_body: "Lunar Lanes", ingame_4_body: "Cupid's Cove",
       ingame_5_body: "Venetian Villa", ingame_2_body: "San Marco Square", final_victory: "Final Victory" },
-    order: ["title_music", "ingame_1_intro", "ingame_1_body", "ingame_1_win", "ingame_3_body", "ingame_4_body",
+    order: ["title_music", "ingame_4_body", "ingame_1_intro", "ingame_1_body", "ingame_1_win", "ingame_3_body",
       "ingame_5_body", "ingame_2_body", "final_victory", "ingame_2_intro"],
     when: {
-      "title_music": "The main menu opens: after loading, and on every return to it; loops",
+      "title_music": "The main menu opens: after loading, and from its start on every return to it; loops",
       "ingame_1_intro": "The world map opens: a new Flood or Journey game's start (after the tutorial when it shows), then before levels 4, 7, 10 and on; loops",
       "ingame_1_body": "Flood and Journey levels 1 to 9 (Welcome to Venice) and 37 to 45 (Grotto Ghetto), Trick Shot's first and fifth regions, and Survival; loops",
       "ingame_1_win": "A level other than a trick shot is won: starts 2 updates after its last plate goes and rises over 80 (0.32 seconds) as the level's tune drops to a fifth and plays on under it; once",
       "ingame_3_body": "Flood and Journey levels 10 to 18 (Lunar Lanes) and 64 to 71 (Lavender Lair), Trick Shot's second and last regions; loops",
-      "ingame_4_body": "Flood and Journey levels 19 to 27 (Cupid's Cove), Trick Shot's third region; also both tutorials and the high scores; loops",
+      "ingame_4_body": "Flood and Journey levels 19 to 27 (Cupid's Cove), Trick Shot's third region; also the tutorial level, a new player's first game before the map, and the high scores; loops",
       "ingame_5_body": "Flood and Journey levels 28 to 36 (Venetian Villa), Trick Shot's fourth region; loops",
       "ingame_2_body": "Flood and Journey levels 46 to 63 (San Marco Square, then Vesta's Vista), Trick Shot's sixth and seventh regions; also the credits; loops",
       "final_victory": "The win scene: after Flood's or Journey's level 71, or once every trick shot is made; loops, until the high scores"
