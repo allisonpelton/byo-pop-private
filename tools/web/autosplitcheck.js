@@ -16,7 +16,10 @@
 // (Mummy Maze: its catch is no game over, so "caught" checks the run goes on) and the game's own: Mummy Maze's 100% Run never
 // starts on a Classic game ("mode") and splits at the first treasure, not at a chamber ("treasure"); BookWorm's Bookburner ends at a game over at rank 0 ("death") and resets at rank 1 ("rank1"); Seven
 // Seas' Easy run never starts on a Hard game ("skill"); Rocket Mania's Easy run never starts on a Hard game or a Strategy one
-// ("skill", "mode").
+// ("skill", "mode"). Heavy Weapon's (its own, instead of the common one, with no "replaced": a player starts no campaign
+// during a run): the final level's results end the run in any segment ("split"); out of tanks in the campaign, TRY AGAIN
+// plays the level again and the run goes on ("goeson"); QUIT to the high scores after it resets ("scores"); Survival and a
+// continued campaign start nothing ("survival", "resumed").
 // Every reset's question (keep the new bests?) is answered No; the stored splits of the categories it ran are removed at the
 // end, and the last run the window had open is put back.
 var results = [];
@@ -281,6 +284,97 @@ var PLANS = {
     s = snap();
     note("flood", a0.phase === "running" && resetCause === null && att().phase === "running",
          "started " + a0.phase + "; after the sink: reset " + resetCause + ", " + att().phase + "; deaths " + [s.death0, s.death1, s.death2, s.death3].join(","));
+  },
+  heavyweapon: async function () {
+    // (the bot takes the help, the play tips, the results' ADVANCE, the armory and the map; it leaves the game-over box alone,
+    // whose TRY AGAIN and QUIT are pressed here: the box is 360 by 220 in the campaign, 240 in Survival, centred on 640 by 480,
+    // TRY AGAIN at its foot's left and QUIT at its right, games/heavyweapon/src/GameOverDialog.cpp)
+    titleGoto = true;
+    async function press(x, y) { await t.move(x, y); await t.wait(3); await t.down(x, y); await t.wait(3); await t.up(x, y); await t.wait(3); }
+    async function state() { return JSON.parse(String(await cmd("state")).slice(6)); }
+    async function pressUntil(x, y, screen) {
+      for (var n = 0; n < 8; n++) {
+        await press(x, y);
+        await t.wait(50);
+        if ((await state()).screen !== screen) return true;
+      }
+      return false;
+    }
+    // a level cleared: `win` jumps the level's time to the boss's warning, then kills the boss once it can be hit, the bot
+    // playing between; the block counts the clear as the results come up
+    async function hwClear() {
+      var before = snap().boardLevelClears;
+      for (var k = 0; k < 1500 && snap().boardLevelClears === before; k++) { await cmd("win"); await botStep(); }
+      await settle();
+      return att();
+    }
+    // the next level in play, no dialog up (a game over needs the tank on the field)
+    async function inPlay() {
+      for (var k = 0; k < 600; k++) {
+        var st = await state();
+        if (st.screen === "game" && st.dialog === -1 && !st.paused && snap().state === 1) return;
+        await botStep();
+      }
+      throw new Error("no level in play");
+    }
+    snap();
+    await t.wait(5);
+    var s0 = snap();
+    note("attach", !!s0 && s0.active === 1, s0 ? "active " + s0.active : "no block read");
+    // Mission Mode (PC): the click on Campaign starts it (its GO), level 1's results split, the final level's results end it
+    await load("Mission Mode (PC)");
+    await newGame("goto campaign");
+    var a0 = att();
+    note("start", a0.phase === "running" && a0.index === 0, "phase " + a0.phase + ", index " + a0.index + ", board " + snap().boardSerial);
+    await cmd("set lives 5");
+    var a1 = await hwClear();
+    // (the next level made the last: ADVANCE adds one to the level, so it is set one short while the results are up)
+    var shown = (await state()).screen;
+    await cmd(shown === "results" ? "set level 18" : "set level 19");
+    await inPlay();
+    var lv = (await state()).level;
+    var a2 = await hwClear();
+    note("split", a1.phase === "running" && a1.index === 1 && a2.phase === "ended" && snap().wins > 0,
+         "after level 1: " + a1.phase + " at " + a1.index + "; after level " + lv + " (from the " + shown + "): " + a2.phase + ", wins " + snap().wins);
+    await resetByHand();
+    // (a new campaign starts only from the screens a `goto` takes away, the menus, the high scores, the credits and the help
+    // (LeaveScreens): one under the armory, the map or a cutscene leaves that screen up, and the bot works it for good. So the
+    // bot takes the results and the final cutscene to the main menu or the high scores first. There is no "replaced": a
+    // player starts no campaign during a run, as the level is left first, a quit)
+    for (var e = 0; e < 600 && /^(results|none)$/.test((await state()).screen); e++) await botStep();
+    // out of tanks: the game-over box's TRY AGAIN plays the level again on the same board, and the run goes on to its results
+    await newGame("goto campaign");
+    await cmd("set lives 5");
+    await hwClear();
+    await inPlay();
+    var resetCause = null;
+    var p = (async function () { resetCause = await sawReset(3000); })();
+    await lose();
+    await p;
+    var c0 = att(), boxed = (await state()).over, s = snap();
+    var tried = await pressUntil(235, 310, "gameover");
+    await inPlay();
+    await settle();
+    var c1 = att(), back = snap().inGame;
+    var c2 = await hwClear();
+    note("goeson", c0.phase === "running" && c0.index === 1 && resetCause === null && boxed && tried && c1.phase === "running" && back === 1 && c2.index === 2,
+         "after the game over: " + c0.phase + " at " + c0.index + ", reset " + resetCause + ", box " + boxed + ", deaths " + [s.death0, s.death1, s.death2, s.death3].join(",") +
+         "; after TRY AGAIN: " + (tried ? "" : "(the box stayed) ") + c1.phase + ", in game " + back + "; after the level's results: " + c2.index);
+    // out of tanks again, then QUIT to the high scores: the board ends, a quit
+    await inPlay();
+    await lose();
+    resetCause = null;
+    p = (async function () { resetCause = await sawReset(30000); })();
+    var quit = await pressUntil(385, 310, "gameover");
+    await p;
+    note("scores", quit && resetCause !== null && att().phase === "idle", "QUIT " + (quit ? "pressed" : "missed") + " (" + (await state()).screen + "); reset " + resetCause + ", then " + att().phase);
+    // Survival never starts the campaign's run; neither does a campaign continued at its level (resumed)
+    await newGame("goto survival");
+    note("survival", att().phase === "idle", "a Survival game (mode " + snap().mode + "): " + att().phase);
+    await lose();
+    await pressUntil(385, 320, "gameover");
+    await newGame("level 3");
+    note("resumed", att().phase === "idle" && (snap().flags & 0x02) !== 0, "a continued campaign at level 3 (flags " + snap().flags.toString(16) + "): " + att().phase);
   },
   dynomite: async function () {
     // a fossil found: its three fragments, each a round the `win` ends (the fossil falls), until the block counts it

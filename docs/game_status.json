@@ -554,11 +554,12 @@
         "performance",
         "lite-mod",
         "unneeded-code",
-        "collection"
+        "collection",
+        "site-features"
       ],
       "na": [],
-      "now": "site-features",
-      "note": "the autosplit block is in (e8740d69: layout 2, HWDX, inert until asked; mods/livesplit asks for it natively); left: the site's part of the site features (Music, soundboard presets, the Splits window), with the site's session"
+      "now": null,
+      "note": "every phase but modding done; on the site from this merge (Music's seven tracks, the Sounds board of 92 sounds with five presets, the autosplitter's HWDX block for speedrun.com's Mission Mode (PC)); not made: presets for the mega laser's parts and the supply copter (no test command reaches them)"
     },
     "hammerheads": {
       "title": "Hammer Heads Deluxe",
