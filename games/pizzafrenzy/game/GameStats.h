@@ -27,6 +27,9 @@ public:
 	// 0x41a900: reset, then the score and the time the mode's saved game had
 	void resume(UserGameData* theUserData, int theMode);
 
+	// 0x41a610: the upgrade of the topping the player has the level of (the last one for a level past the list)
+	Upgrade* getUpgrade(Topping* theTopping);
+
 	// 0x41a740: a level starts: the number of orders and the goal are the level's, the level's counters start over
 	// and each kitchen the level gives no topping is given one of the player's
 	void startLevel(Level* theLevel);

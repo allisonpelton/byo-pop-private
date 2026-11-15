@@ -19,6 +19,19 @@ class Order : public engine::Object
 {
 public:
 	Order() { clear(); }  // 0x4196e0
+	// 0x452180: the fields are copied
+	Order(const Order& theOrder) :
+		engine::Object(),
+		mTile(theOrder.mTile),
+		mCharacter(theOrder.mCharacter),
+		mTopping(theOrder.mTopping),
+		mEvent(theOrder.mEvent),
+		mPizzaCount(theOrder.mPizzaCount),
+		mWaitTime(theOrder.mWaitTime),
+		mSecondsSinceDelivery(theOrder.mSecondsSinceDelivery),
+		mIndex(theOrder.mIndex)
+	{
+	}
 	// 0x419690
 	void clear();
 	// whether the customer wants pizzas: an order of a special event that wants none (a thief) is not one to deliver

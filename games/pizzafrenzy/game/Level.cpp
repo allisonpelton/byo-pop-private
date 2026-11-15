@@ -1,6 +1,7 @@
 #include "Level.h"
 #include "BoatSpawner.h"
 #include "CityMap.h"
+#include "PizzaFrenzy.h"
 
 using namespace pizzafrenzy;
 
@@ -77,6 +78,7 @@ void Level::setUpKitchens(CityMap* theMap)
 		if (i == theMap->mKitchens.size())
 			return;
 		KitchenTile* aTile = static_cast<KitchenTile*>(theMap->mKitchens[i].get());
+		aTile->removeOccupant();
 		if (mKitchens[i].mTopping != nullptr)
 		{
 			aTile->setUpPopup(mKitchens[i].mTopping);
@@ -92,4 +94,12 @@ void Level::setUpBoats(CityMap* theMap)
 {
 	for (size_t i = 0; i < mBoats.size(); i++)
 		theMap->addBoatSpawner(new BoatSpawner(theMap, &mBoats[i]));
+}
+
+// 0x4165f0
+Character* Level::getDeliverOnlyCharacter()
+{
+	if (mDeliverOnly.empty())
+		return nullptr;
+	return PizzaFrenzy::instance()->mTileManifest->getCharacter(mDeliverOnly);
 }

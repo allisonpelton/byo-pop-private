@@ -452,7 +452,7 @@ bool GameMode::isPoliceBusy()
 	if (aTile != nullptr)
 	{
 		PizzaPopup* aPopup = aTile->getOccupant();
-		if (aPopup != nullptr && aPopup->getState() != 2)
+		if (aPopup != nullptr && aPopup->getKind() != 2)
 			return true;
 	}
 	return false;
@@ -465,7 +465,7 @@ void GameMode::dismissPolice()
 	if (aTile != nullptr)
 	{
 		PizzaPopup* aPopup = aTile->getOccupant();
-		if (aPopup != nullptr && aPopup->getState() == 2 && !hasPendingSpecialOrder())
+		if (aPopup != nullptr && aPopup->getKind() == 2 && !hasPendingSpecialOrder())
 			aTile->hangUp();
 	}
 }
@@ -480,7 +480,7 @@ bool GameMode::hasPendingSpecialOrder()
 		if (aTile->isClickable())
 		{
 			PizzaPopup* aPopup = aTile->getOccupant();
-			if (aPopup->getState() == 0)
+			if (aPopup->getKind() == 0)
 			{
 				Order* anOrder = aPopup->getOrder();
 				if (anOrder->mEvent != nullptr && !anOrder->mEvent->mDeliver)

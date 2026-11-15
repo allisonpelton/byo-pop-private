@@ -171,6 +171,16 @@ void GameStats::addDesignedPizzas()
 	}
 }
 
+// 0x41a610: the level the player has of the topping picks its upgrade; a level past the list takes the last
+Upgrade* GameStats::getUpgrade(Topping* theTopping)
+{
+	size_t aLevel = (size_t)mToppingLevels[theTopping];
+	std::vector<engine::Ref<Upgrade>>& anUpgrades = theTopping->mUpgrades;
+	if (aLevel >= anUpgrades.size())
+		aLevel = anUpgrades.size() - 1;
+	return anUpgrades[aLevel];
+}
+
 // 0x419b90
 void GameStats::addTips(int theTips)
 {

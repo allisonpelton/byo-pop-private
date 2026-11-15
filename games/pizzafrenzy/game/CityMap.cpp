@@ -290,7 +290,7 @@ bool CityMap::isIdle()
 	for (size_t i = 0; i < mCustomers.size(); i++)
 	{
 		CustomerTile* aTile = static_cast<CustomerTile*>(mCustomers[i].get());
-		if (!aTile->isEmpty() && !aTile->isOccupantFlagged() && aTile->getOccupant()->getState() != 2)
+		if (!aTile->isEmpty() && !aTile->isOccupantLeaving() && aTile->getOccupant()->getKind() != 2)
 			anIdle = false;
 	}
 	return anIdle;

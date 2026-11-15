@@ -69,6 +69,12 @@ public:
 	virtual void updateMap(engine::UpdateInfo& theInfo);
 	// 0x40: 0x456ac0: the level ends when the happiness is gone, or when the customers and the vehicles are done
 	virtual void checkLevelEnd();
+	// 0x44: the house or the kitchen of the tile is clicked; translated next (the click handler: the callers are
+	// BuildingTile::onMouseDownEvent 0x41bd20 and the popups' clicks 0x454cd0)
+	virtual void click(BuildingTile* theTile) {}
+	// 0x54: the order of the popup on the tile is finished, after the seconds it was shown; translated next with the
+	// delivery (the caller is CustomerPopup::finish 0x453210)
+	virtual void orderFinished(BuildingTile* theTile, Order* theOrder, float theSeconds) {}
 	// 0x48: 0x456130 (speed), 0x45b370 (concentration): the right button lets go of the coupon held, or of the
 	// orders picked
 	virtual void rightClick();
@@ -102,6 +108,9 @@ public:
 	virtual bool placeOrder(Order* theOrder);
 	// 0xb8: 0x459fc0: the last customer of the wave is gone: the wave's timer is held to what it can be
 	virtual void waveDone();
+
+	// the number of orders picked
+	int getPickCount() { return (int)mPicks.size(); }
 
 	// 0x456260: the happiness is changed by the number, between 0 and 100
 	void addHappiness(int theChange);

@@ -137,12 +137,17 @@ public:
 	virtual void clearOccupant();
 	// slot 0x17c: 0x41bf10: the popup takes a click
 	bool isClickable();
+	// slot 0x194: 0x41c120: the popup is taken off the tile at the next update
+	virtual void removeOccupant();
 	// slot 0x198: 0x41c140: the popup hangs up
 	void hangUp();
 	// slot 0x174: 0x41bf70: the popup's pick, if it is picked, is let go
 	void unpick();
 	// slot 0x19c: 0x41c160: the flag of the popup (PizzaPopup.h), false for a tile without one
-	bool isOccupantFlagged();
+	bool isOccupantLeaving();
+
+	// slot 0xa8: 0x41bd20: the click is the mode's
+	void onMouseDownEvent(engine::MouseEvent& theEvent) override;
 
 	// 0x41c3d0: the vans are let go
 	void clearVehicles();
@@ -169,10 +174,9 @@ public:
 	Order* getOrder();
 	// slot 0x1b8: 0x41b8f0: the same when the popup takes a click
 	Order* getActiveOrder();
-	// slot 0x1ac: 0x41b6a0: a customer's popup is made for the order and put on the tile; translated next with the
-	// customer's popup
+	// slot 0x1ac: 0x41b6a0: a customer's popup is made for the order and put on the tile
 	void setOrder(Order* theOrder, bool theFlag);
-	// slot 0x1b0: 0x41b730: the police's popup is put on the tile when the kind is the police's; translated next
+	// slot 0x1b0: 0x41b730: the police's popup is put on the tile when the kind is the police's
 	void callPolice(int theSpecial);
 
 	std::string mCharacterName;     // +0x1b8: the character that lives there

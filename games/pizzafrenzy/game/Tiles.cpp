@@ -1,6 +1,7 @@
 #include "Tiles.h"
 #include "App.h"
 #include "CityMap.h"
+#include "CustomerPopup.h"
 #include "PizzaFrenzy.h"
 #include "PizzaPopup.h"
 
@@ -343,6 +344,19 @@ void BuildingTile::setOccupant(PizzaPopup* thePopup)
 	mWaiting = thePopup;
 }
 
+// 0x41c120
+void BuildingTile::removeOccupant()
+{
+	if (mOccupant != nullptr)
+		mOccupant->leave();
+}
+
+// 0x41bd20: the click is the mode's
+void BuildingTile::onMouseDownEvent(engine::MouseEvent& theEvent)
+{
+	PizzaFrenzy::instance()->mMode->click(this);
+}
+
 // 0x41c0f0
 void BuildingTile::clearOccupant()
 {
@@ -370,9 +384,9 @@ void BuildingTile::unpick()
 }
 
 // 0x41c160
-bool BuildingTile::isOccupantFlagged()
+bool BuildingTile::isOccupantLeaving()
 {
-	return mOccupant != nullptr && mOccupant->isFlagged();
+	return mOccupant != nullptr && mOccupant->isLeaving();
 }
 
 // 0x41c3d0: each van is told to let go (0x13c, which does nothing), and they are released
@@ -390,7 +404,7 @@ Character* CustomerTile::getCharacter()
 // 0x41b940
 Order* CustomerTile::getOrder()
 {
-	if (mOccupant != nullptr && mOccupant->getState() == 0)
+	if (mOccupant != nullptr && mOccupant->getKind() == 0)
 		return mOccupant->getOrder();
 	return nullptr;
 }
@@ -398,17 +412,29 @@ Order* CustomerTile::getOrder()
 // 0x41b8f0
 Order* CustomerTile::getActiveOrder()
 {
-	if (mOccupant != nullptr && isClickable() && mOccupant->getState() == 0)
+	if (mOccupant != nullptr && isClickable() && mOccupant->getKind() == 0)
 		return mOccupant->getOrder();
 	return nullptr;
 }
 
+// 0x41b6a0
 void CustomerTile::setOrder(Order* theOrder, bool theFlag)
 {
+	CustomerPopup* aPopup = new CustomerPopup();
+	aPopup->setOwner(this);
+	aPopup->setOrder(theOrder, theFlag);
+	setOccupant(aPopup);
 }
 
+// 0x41b730
 void CustomerTile::callPolice(int theSpecial)
 {
+	if (theSpecial == Character::SPECIAL_POLICE)
+	{
+		PolicePopup* aPopup = new PolicePopup();
+		aPopup->setOwner(this);
+		setOccupant(aPopup);
+	}
 }
 
 // 0x41c6f0
@@ -423,6 +449,7 @@ Topping* KitchenTile::getTopping()
 void KitchenTile::setUpPopup(Topping* theTopping)
 {
 	setVisible(true);
+	removeOccupant();
 	PizzaKitchenPopup* aPopup = new PizzaKitchenPopup();
 	aPopup->setOwner(this);
 	aPopup->setTopping(theTopping);

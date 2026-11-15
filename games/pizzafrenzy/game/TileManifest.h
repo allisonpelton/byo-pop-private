@@ -45,6 +45,8 @@ public:
 	std::vector<engine::Ref<ScoreTitle>>& getTitles() { return mTitles; }
 	// 0x422df0: the special event of that name, null when there is none
 	SpecialEvent* getEvent(const std::string& theName);
+	// 0x422d60: the customer of that exact key (one is made, empty, for a key the manifest has not got)
+	Character* getCharacter(const std::string& theKey) { return mCharacters[theKey]; }
 	// 0x422f90: the customer "<name>_<theme>", the theme the one of the city that is played; null when there is none
 	Character* getCharacterByNameTheme(const std::string& theName);
 	// 0x422e10: the music clip of that name, null when there is none

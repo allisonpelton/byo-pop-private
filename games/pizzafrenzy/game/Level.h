@@ -58,6 +58,9 @@ public:
 	// The modes a story is kept for, by the game's mode number
 	static const int MODE_COUNT = 3;
 
+	// 0x4165f0: the customer the level takes pizzas for only, null when it has none
+	Character* getDeliverOnlyCharacter();
+
 	Level(const std::string& theCityFile, const std::string& theName, const std::string& theMusic, int theGoal,
 	      int theNumOrders, float theWaveGap);  // 0x417620
 
@@ -98,7 +101,7 @@ public:
 	std::vector<LevelBoat> mBoats;                   // +0xf4
 	std::vector<LevelEvent> mEvents;                 // +0x104
 	std::vector<LevelWave> mWaves;                   // +0x114
-	std::string mDeliverOnly;                        // +0x124: nothing translated reads it
+	std::string mDeliverOnly;                        // +0x124: the one customer whose pizzas the level takes (none when empty)
 };
 
 // A city (0x5c bytes, constructor 0x4160f0)
