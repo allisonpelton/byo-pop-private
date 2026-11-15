@@ -2989,3 +2989,9 @@ Collection's, byte for byte. The two sets hold the same pictures. 21 decode to t
 under fully transparent pixels. The port draws both the same: the oracle's playtest and its level-up script give the
 same trace and the same 32 screenshots on either staging. The worktree is restaged from the install as it is now
 (`python -I games/bejeweled/tools/stage_assets.py`), and the unit and verify suites pass on it.
+
+## 24. The lite mod (2026-11-14)
+
+None: `LITE_MOD.md` has what was looked at. The board's whole logic costs about 1 us an update (81 ms in a Timed game of
+84,425 updates, 14 minutes of play), its three scans (`FindMove`, `HasSet`, `NewBoard`) under 2 ms of that, so no change to
+them can be measured; two of the faster methods give the same result anyway, and the third would only move the hint.
