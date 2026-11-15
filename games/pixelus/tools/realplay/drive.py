@@ -208,6 +208,7 @@ def play_board():
 
 
 DONE = set()
+SCROLLED = [0]
 LAST = [0]
 
 
@@ -288,11 +289,22 @@ def main():
             if not p:
                 p = [q for q in targets()['puzzles'] if not q['solved']]
             if not p:
+                # a temple of more than nine puzzles shows the rest below: scroll with the arrow button (its label says so)
+                down = [b for b in targets()['buttons'] if b['label'] == 'Scroll Puzzles Down']
+                if down and SCROLLED[0] < 4:
+                    SCROLLED[0] += 1
+                    click(down[0]['x'], down[0]['y'])
+                    wait_updates(20)
+                    continue
+                SCROLLED[0] = 0
                 # every puzzle of this temple is solved: leave it and try the next one
                 DONE.add(LAST[0])
-                press_button(None, 0)
+                # leave by the button at the top left (a temple with a scroll button has a labelled one that press_button would take)
+                back = sorted([b for b in targets()['buttons'] if b['label'] == ''], key=lambda b: b['x'])
+                click(back[0]['x'], back[0]['y']) if back else press_button(None, 0)
                 wait_updates(20)
                 continue
+            SCROLLED[0] = 0
             click(p[0]['x'], p[0]['y'])
             wait_updates(20)
         elif scr == 'board':

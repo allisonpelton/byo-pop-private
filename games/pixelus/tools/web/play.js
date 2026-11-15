@@ -16,6 +16,7 @@ var EXPERT = params.has("expert");
 var result = { boards: 0, moves: 0, notes: [] };
 var done = {};
 var lastTemple = 0;
+var scrolled = 0;
 var started = Date.now();
 var TIMEOUT = (Number(params.get("timeout")) || 1500) * 1000;
 
@@ -152,11 +153,18 @@ try {
       var open = pz.filter(function (q) { return !q.solved && !q.mystery; });
       if (!open.length) open = pz.filter(function (q) { return !q.solved; });
       if (!open.length) {
+        // a temple of more than nine puzzles shows the rest below: scroll with the arrow button
+        var dn = (await targets()).buttons.filter(function (x) { return x.label === "Scroll Puzzles Down"; });
+        if (dn.length && scrolled < 4) { scrolled++; await t.click(dn[0].x, dn[0].y); await waitUpdates(20); continue; }
+        scrolled = 0;
         done[lastTemple] = true;
-        await pressButton(null, 0);
+        // leave by the button at the top left (a temple with a scroll button has a labelled one that pressButton would take)
+        var bk = (await targets()).buttons.filter(function (x) { return x.label === ""; }).sort(function (a, b) { return a.x - b.x; });
+        if (bk.length) await t.click(bk[0].x, bk[0].y); else await pressButton(null, 0);
         await waitUpdates(20);
         continue;
       }
+      scrolled = 0;
       await t.click(open[0].x, open[0].y);
       await waitUpdates(20);
     } else if (scr === "board") {
