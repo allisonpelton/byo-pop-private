@@ -688,6 +688,130 @@ A session comparing shots or processor time there runs its port with 3D off (Is3
 be like for like. Rocket Mania's notes call the constructor's flag mTest3D, but its store is to mAutoEnable3D, the byte
 before it.
 
+## A smooth stretch on the processor (2026-11-15)
+
+A SurfaceDisplay game (Bonnie's, Cosmic Bugs, Tip Top, Water Bugs, Word Harmony, Pizza Frenzy, the two Mahjong Escapes)
+or a game on the software screen (Dynomite, Big Money) shows a window of 1x to 4x its size without a renderer, but any
+other size, a full screen on a display whose size is no whole multiple of the game's above all, went to the renderer and
+brought the Direct3D 11 device back with it. Mahjong's stretch mode avoided that with GDI's nearest-neighbour stretch, a
+different picture. This part draws the renderer's own picture on the processor, so those sizes need no Direct3D either.
+
+### What the renderer shows
+
+The renderer puts the frame into its screen texture at the render scale R (the window's scale rounded up, at most 4),
+each pixel repeated R times each way with the nearest filter, and copies that texture into the presentation rect with the
+linear filter (`DDInterface::Present`). `tools/stretchcal` draws test pictures (gradients, one-pixel lines, checkers,
+noise, and pictures that change only from column to column or only from row to row) through those same SDL calls, reads
+the back buffer before the present, and compares it with models of the filter. The card's arithmetic, as fitted on this
+machine's NVIDIA card under Direct3D 11:
+
+- The texture coordinate of output pixel i is (i + 0.5) times a step that the triangle setup makes in 32-bit floats: the
+  reciprocal of the rect's area (width times height), times the rect's other side, the product rounded toward zero. The
+  coordinate is then truncated to 21 fractional bits.
+- The texel position, the coordinate times the texture's size less one half, is rounded half up to 8 fractional bits: its
+  whole part picks the first texel and its fraction is the second texel's weight, in 256ths. The edges clamp.
+- Where both axes blend, the product of the two weights is rounded half up to 8 bits and the other three weights follow
+  from it, so that the four sum to 256.
+- The weighted sum of each channel is brought to 12 bits (times 257/4096, rounding half up) and then to 8 bits rounding
+  half down.
+
+`framework/LinearStretch` does exactly that from the frame itself, with a table for the columns and one for the rows;
+the repeated texture is never made. Most output pixels fall between two texels of one frame pixel and are copies; only
+the seams between the frame's pixels blend, and a row whose taps equal the row above is copied whole.
+
+### How close it is
+
+At most sizes, to the byte. Of 40 window sizes tried with 640x480 and 800x600 frames and the six patterns (480 cases),
+35 sizes came out identical in every pattern, among them the four calibration sizes (3840x2160, 1920x1080, a 1000x750
+window and 500x375, a factor below 1) and the common full-screen sizes 1280x720 to 3440x1440. At the other five,
+presentation rects of 740x555, 666x499, 1357x1018, 601x451 and 1036x777, a few columns or rows of seams come out one
+weight step off, which moves those pixels by one level (two where both axes blend in the checkers and noise patterns).
+The cause is the card's reciprocal of the area: at those sizes it is one unit of the last place away from the correctly
+rounded value, up at some sizes and down at others, and no rounding rule of the reciprocal or of the product fits every
+size, so it is the hardware's own approximation. A different card (AMD, Intel) filters with its own arithmetic and would
+need its own fit; the renderer's picture is then not the same as this card's either.
+
+In a game: Bonnie's menu read back from the window at 1000x750, 1500x1000, 1920x1080 and 2560x1440 is identical to the
+renderer's window at those sizes; at 1111x777 (rect 1036x777) 933 pixels of 863,247 differ and at 1357x1018 1,025 of
+1,381,426, each by one level, on seam columns. Dynomite's software screen against its GPU path: identical at 1000x750,
+1500x1000 and 1920x1080, one level at 1,728 and 769 pixels at the other two.
+
+### How it is drawn
+
+Stretch mode (`SurfaceDisplay`, `AllowStretch`) now has two flavours: the app's nearest-neighbour one when it allows it
+(Mahjong's, off in its port), and otherwise the smooth one (`SurfaceDisplay::kLinearStretchByDefault`; `SURFACE_STRETCH=3`
+gives it and `0` neither in a test run). `GdiStretch::PresentLinear` paints only the window pixels that read a changed
+pixel of the frame: each changed rect is mapped through the tables (`LinearStretch::OutputColumns`, `OutputRows`) to the
+exact run of columns and rows whose two taps touch it, which covers the seams it blends into, and rects that then overlap
+are merged. Each part is drawn a band of rows at a time into a DIB section of under 1 MB (1,000 KB: 133 rows at 1920
+wide, 66 at 3840) and copied into the window with BitBlt; no image of the window's size is kept. The whole window,
+bars included, is painted at a change of size, at an expose, a restore and a regained focus (`ScreenInvalidated`), and
+once a second as before. `SURFACE_VERIFY=1` compares a shadow bitmap painted the same way with the whole picture drawn
+afresh after every present, and `=2` reads the window back too; Bonnie's at seven sizes, 72 frames, none differed.
+
+The software screen takes it at any size other than 1x to 4x, unless the renderer is wanted for something else: a drawn
+cursor, 3D, or a screen already on the GPU (`SoftwareScreenDisplay::WantsStretch`). At 2x to 4x the port's own choice
+between the surface and the GPU stands.
+
+The test command `screenshotwindow <file>` writes the window as shown (`DDInterface::ReadWindow`): the renderer's
+present made again into its back buffer, or GDI's window read back, after any pending present.
+
+### What it costs
+
+Bonnie's on rundesk's desktop, pinned to one core, three rounds with the smooth stretch and the renderer
+(`SURFACE_STRETCH=3` and `0`) turn about, both under the compositor wait: full screen at the desktop's 3840x2160 (the
+frame in a rect of 2880x2160 at render scale 4) and a window of 1920x1080 (1440x1080, render scale 2). The logos are
+whole-screen fades (360 updates), then the static menu (900 updates) and a scripted minute of the tour. Medians of the
+game's processor cycles (`-cyclesplit`), and its private bytes at the menu and at the end:
+
+| Window | Path | Logos | Static menu | Minute | Private bytes |
+|---|---|---|---|---|---|
+| 3840x2160, full screen | smooth, on the processor | 1.57 G | 1.21 G | 12.71 G | 53.0 / 55.8 MB |
+| 3840x2160, full screen | renderer (Direct3D 11) | 1.23 G | 1.21 G | 11.69 G | 84.1 / 86.4 MB |
+| 1920x1080 | smooth, on the processor | 1.18 G | 1.21 G | 12.53 G | 54.2 / 56.1 MB |
+| 1920x1080 | renderer (Direct3D 11) | 1.08 G | 1.14 G | 12.44 G | 85.3 / 87.6 MB |
+
+**Memory:** about 31 MB less private bytes at both sizes, the Direct3D device and its driver (5 to 7 threads in the
+game's process against 41 to 44) never being loaded; the stretch itself keeps its band of under 1 MB and two tables.
+
+**Processor, where it is worse than Direct3D:** a screen that changes whole. The static menu costs the same, and the
+minute within the run-to-run spread at 1080 and 9 % more at 4K (the third round of each path took about 14.2 G, a spread
+of that size). The logos' fades took 9 % more at 1080 and 28 % more at 4K, where the renderer's stretch is the card's
+work and this one is the processor's: drawing a whole 2880x2160 rect takes 9 to 10.5 ms from an 800x600 frame and 15
+to 19 ms from a 640x480 one (`stretchcal -bench`, more of the output blending at the larger factor), and the BitBlt of its
+25 MB comes on top. At 4K the logos ran 0.4 and 0.5 s long in two rounds of three (4.0 and 4.1 s for 3.6), the
+renderer's at most 0.2 s; in the minute the renderer's 1080 runs were the slow ones (63.9 and 64.1 s in two rounds),
+so the machine's load was part of both. The game's present lengths in the 4K logos were 2 to 4 ms in the median and 12
+to 34 ms at the 95th percentile, by the machine's load, with the compositor wait or the millisecond pace alike. A game
+that changed the whole screen every frame at 4K would spend most of a core on it.
+
+**dwm.exe and the System process** were measured on the visible desktop (a 1920x1080 window, not activated, three rounds
+each), but other sessions' builds kept the machine 94 to 100 % busy throughout, so the wall times there are the load's:
+the renderer's static menu took 19.3 s for 9 in one run, and the smooth minute 80 and 96 s in two, the second handing
+its frames to the pace after a held wait. dwm's cycles a second were the same within the spread for the static menu
+(0.28 to 0.36 G against the renderer's 0.30 to 0.35) and the minute (0.34 to 0.47 against 0.34 to 0.46), and about
+12 % higher with the smooth stretch in the logos (0.34 to 0.37 against 0.29 to 0.34). The System process's cycles were
+the other sessions' and say nothing here. What dwm and the kernel spend on each path still wants a quiet machine.
+
+### The mod menu
+
+Under SurfaceDisplay, F2's mod menu opened but nobody could see it: the display shows the app's frame, not what the
+widgets drew, and in renderer mode the frame was copied over the widgets at the present. Now, while the framework's own
+widget is open (`SexyAppBase::OverlayWidget`), renderer mode copies the frame into the screen texture at `BeginFrame`,
+under the widgets, and surface and stretch mode draw the menu in software over a copy of the frame (a `MemoryImage` of
+the screen's size, kept only while the menu is open) and show that copy whole; the app's buffer is not written. Nothing
+of the game updates while the menu is open, so the frame under it is still. The software screen already drew every widget
+into its screen and is unchanged.
+
+F2 was posted to nine games' windows under rundesk (Pizza Frenzy has no game files staged here), with window shots
+before, open and after: Bonnie's, Cosmic Bugs, Tip Top, Water Bugs, Word Harmony and the two Mahjong Escapes at 2x, at
+1111x777 smooth and on the renderer, and full screen at 3840x2160 (Tip Top stayed at 2x there); Dynomite and Big Money at
+1x, at 2x and 1111x777 on the GPU (their default with 3D on), full screen, and at 1111x777 and full screen smooth
+(`SOFTSCREEN_SCALED=1`, 3D off). The menu showed in every one and left nothing when closed; what differed afterwards
+was the game's own animation. `screenshotwindow` read the software screen on the GPU as black, since `SurfaceDisplay`'s
+readback copied the software buffer, not kept up to date there, over the screen texture first;
+`SoftwareScreenDisplay::ReadWindow` now reads the texture as it is.
+
 ## Looked at and left
 
 **Atlases.** Packing small pictures into shared textures saves what each texture costs beyond its texels, and that is

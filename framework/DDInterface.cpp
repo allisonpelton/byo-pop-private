@@ -1975,6 +1975,34 @@ void DDInterface::ClearRect(const Rect& theRect)
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
+bool DDInterface::ReadWindow(std::vector<uint32_t>& theBits, int& theWidth, int& theHeight)
+{
+	if ((mRenderer == NULL) || (mScreenTexture == NULL))
+		return false;
+	FlushQuads();
+	SDL_Texture* aTarget = SDL_GetRenderTarget(mRenderer);
+	SDL_SetRenderTarget(mRenderer, NULL);
+	SDL_RenderSetClipRect(mRenderer, NULL);
+	// as Present draws it
+	SDL_SetRenderDrawColor(mRenderer, 0, 0, 0, 255);
+	SDL_RenderClear(mRenderer);
+	SDL_Rect aDestRect = { mPresentationRect.mX, mPresentationRect.mY, mPresentationRect.mWidth, mPresentationRect.mHeight };
+	SDL_RenderCopy(mRenderer, mScreenTexture, NULL, &aDestRect);
+	theWidth = 0;
+	theHeight = 0;
+	SDL_GetRendererOutputSize(mRenderer, &theWidth, &theHeight);
+	bool aRead = (theWidth > 0) && (theHeight > 0);
+	if (aRead)
+	{
+		theBits.resize((size_t) theWidth * theHeight);
+		aRead = SDL_RenderReadPixels(mRenderer, NULL, SDL_PIXELFORMAT_ARGB8888, &theBits[0], theWidth * 4) == 0;
+	}
+	SDL_SetRenderTarget(mRenderer, aTarget);
+	for (size_t i = 0; aRead && (i < theBits.size()); i++)
+		theBits[i] &= 0xFFFFFF;
+	return aRead;
+}
+
 bool DDInterface::ReadScreenFull(std::vector<uint32_t>& theBits, int& theWidth, int& theHeight)
 {
 	FlushQuads();

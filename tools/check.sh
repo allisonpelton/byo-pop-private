@@ -23,7 +23,8 @@
 #                their own rate, voices against the old stereo-float pipeline); and shotdiff's selftest (tools/shotdiff:
 #                the screenshot comparison on synthetic pictures, its pages and its marks server); and geomtest
 #                (framework/DisplayGeometry: letterbox, render scale, window mapping and cursor, against a table); and wraptest
-#                (framework/TriangleWrap: DrawTrianglesTex's texture wrap, triangles cut at whole-number u and v); and
+#                (framework/TriangleWrap: DrawTrianglesTex's texture wrap, triangles cut at whole-number u and v); and stretchcal
+#                (framework/LinearStretch against the renderer's linear present on this machine's card, four sizes); and
 #                fwtest -realinput=tools/fwtest/realinput.txt with -fast and in real time, with no game files (real SDL
 #                events through HandleEvent and the widget manager, docs/REAL_INPUT.md); and fwtest -corner
 #                -realinput=tools/fwtest/flags.txt on DDInterface and on the software screen (the fast stretch's
@@ -214,7 +215,7 @@
 #                  build-web and unit-web (seconds when only the listing page changed, but a change to web/modpanel.js,
 #                  web/shell.html or a link option relinks every game's wasm: about 6 minutes)
 #   tools/<x>/**   shotdiff: unit. gputest: build gpu. modmenutest: modmenu. origrun: origrun. The web test scripts
-#                  (tools/*.js, paktest): unit-web. fwtest, geomtest, wraptest, jp2test, songpostest, soundtest, spectrumtest, build.sh,
+#                  (tools/*.js, paktest): unit-web. fwtest, geomtest, wraptest, stretchcal, jp2test, songpostest, soundtest, spectrumtest, build.sh,
 #                  check.sh, rundesk, modtextcheck.py: build unit. modsettingstest, jpegtest and fixtures: build unit, build-web:<test> and
 #                  unit-web. Anything else under tools/, and any file not named here: build
 #   framework/**, platform/**, third_party/**, CMakeLists.txt, the other cmake/**: without --inert, every suite, as `all`.
@@ -435,7 +436,7 @@ classify() {  # <path>: chooses the suites a changed file needs
 				jpegtest/*)  # also built for the web, where unit-web runs it under Node (the error paths are longjmp there)
 					pick build "$AREA" "$p"; pick unit "$AREA" "$p"; pick unit-web "$AREA" "$p"
 					note build-web "$AREA" "$p"; web_add jpegtest ;;
-				fwtest/*|geomtest/*|wraptest/*|jp2test/*|songpostest/*|soundtest/*|spectrumtest/*|rundesk/*|playbymove/*|build.sh|check.sh|modtextcheck.py)
+				fwtest/*|geomtest/*|wraptest/*|stretchcal/*|jp2test/*|songpostest/*|soundtest/*|spectrumtest/*|rundesk/*|playbymove/*|build.sh|check.sh|modtextcheck.py)
 					pick build "$AREA" "$p"; pick unit "$AREA" "$p" ;;
 				*/*) pick build "$AREA" "$p" ;;  # smoke, ghidra_scripts and the rest: nothing runs them, but a build shows a broken tree
 				*.js|*.mjs) pick unit-web "$AREA" "$p" ;;  # a11ycheck.js, chattest.js and the other web test scripts
@@ -725,6 +726,11 @@ suite_unit() {
 	local wr
 	(cd build/native && timeout 60 ./wraptest.exe) > "$1.wrp" 2>&1 || st=1
 	wr="$(lastof "$1.wrp" 'wraptest: [0-9]+ checks, [0-9]+ failed')"
+	# framework/LinearStretch (stretch mode's smooth flavour) against the renderer's own present of test pictures at the four
+	# calibration sizes, where this machine's card and the model agree to the byte (docs/MEMORY.md, "A smooth stretch on the processor")
+	local sc
+	(cd build/native && timeout 120 ./stretchcal.exe) > "$1.sc" 2>&1 || st=1
+	sc="$(lastof "$1.sc" 'stretchcal: [0-9]+ cases differing from LinearStretch')"
 	# -realinput (docs/REAL_INPUT.md): real SDL events pushed into SDL's queue reach fwtest's board through HandleEvent,
 	# the window mapping and the widget manager, with -fast and in real time; a line it could not play fails it too
 	local k r
@@ -735,10 +741,11 @@ suite_unit() {
 	done
 	k="realinput: -fast $(lastof "$1.rifast" 'realinput: [0-9]+ checks, [0-9]+ failed' | sed 's/^realinput: //'), real time $(lastof "$1.rireal" 'realinput: [0-9]+ checks, [0-9]+ failed' | sed 's/^realinput: //')"
 	# tools/fwtest/flags.txt: the fast stretch's sampling a game set (-corner) and the player's 3D choice hold through every
-	# change of size and mode, on DDInterface and on the software screen (whose full screen goes to the GPU)
+	# change of size and mode, on DDInterface and on the software screen (whose full screen goes to the GPU: SURFACE_STRETCH=0,
+	# since the smooth stretch would keep it in software there)
 	local fl
 	timeout 120 "build/native/fwtest.exe" -corner -realinput=tools/fwtest/flags.txt -fast -placeholders 		-gamedir="$OUT/no-game-files" > "$1.flplain" 2>&1 || st=1
-	SOFTWARE_SCREEN=on SOFTSCREEN_SCALED=1 timeout 120 "build/native/fwtest.exe" -corner -realinput=tools/fwtest/flags.txt -fast 		-placeholders -gamedir="$OUT/no-game-files" > "$1.flsoft" 2>&1 || st=1
+	SOFTWARE_SCREEN=on SOFTSCREEN_SCALED=1 SURFACE_STRETCH=0 timeout 120 "build/native/fwtest.exe" -corner -realinput=tools/fwtest/flags.txt -fast 		-placeholders -gamedir="$OUT/no-game-files" > "$1.flsoft" 2>&1 || st=1
 	grep -q -E 'realinput: line|SDL_PushEvent failed' "$1.flplain" "$1.flsoft" && st=1
 	fl="flags: DDInterface $(lastof "$1.flplain" 'realinput: [0-9]+ checks, [0-9]+ failed' | sed 's/^realinput: //'), software screen $(lastof "$1.flsoft" 'realinput: [0-9]+ checks, [0-9]+ failed' | sed 's/^realinput: //')"
 	# -commands (docs/TEST_COMMANDS.md, "Sending them"): lines appended to a file while fwtest runs, each answered on
@@ -772,7 +779,7 @@ suite_unit() {
 		"$1.cmscript.log" "$1.cmscript" "$1.cmrealinput.log" "$1.cmrealinput" "$1.pm1" "$1.pm2" "$1.jpg" "$1.mtc" >> "$1"
 	rm -f "$1.mst" "$1.fw" "$1.ph" "$1.jp2" "$1.sp" "$1.fft" "$1.snd" "$1.sdf" "$1.geo" "$1.wrp" "$1.rifast" "$1.rireal" \
 		"$1.cmscript.log" "$1.cmscript" "$1.cmrealinput.log" "$1.cmrealinput" "$1.pm1" "$1.pm2" "$1.jpg" "$1.mtc"
-	SUMMARY="$a; $b; $c; $d; $e; $f; $g; $h; $i; $j; $wr; $k; $fl; $l; $pm; $jp; $mt"
+	SUMMARY="$a; $b; $c; $d; $e; $f; $g; $h; $i; $j; $wr; $sc; $k; $fl; $l; $pm; $jp; $mt"
 	return $st
 }
 
@@ -2323,7 +2330,7 @@ suite_venice() {
 }
 
 HH_SHOTS_ALL="loaded name menu highscores trophies game play won shop challenge toughintro tough marathonintro marathon lost"
-HH_FROZEN="52835f1a2ef0 974f0929e354"  # the first 12 hex digits of the sha256 of the tour's screens' hashes and of its state lines (games/hammerheads/tools/tour_test.txt)
+HH_FROZEN="b0be3a484ad2 974f0929e354"  # the first 12 hex digits of the sha256 of the tour's screens' hashes and of its state lines (games/hammerheads/tools/tour_test.txt)
 
 hammerheads_run() {  # <name> [<exe>]: games/hammerheads/tools/tour_test.txt into $OUT/hammerheads/<name>; prints the exit status
 	local d="$OUT/hammerheads/$1" e=0
