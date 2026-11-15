@@ -213,15 +213,28 @@ void WinDMApp::TestAdvanceGoto()
 		mHighScoreWidget->ButtonDepress(HighScoreWidget::BUTTON_BACK);
 		return;
 	}
-	if (mBoard != NULL || mMainMenu == NULL)
+	if (mBoard != NULL && mMainMenu == NULL)
 	{
-		// from a game (or its end screen): back to the menu, as the game's own menu button does
+		// from a game (or its end screen): back to the menu as the options dialog's Main Menu button does (0x5cc563, as "goto menu"
+		// does): the board hides, the menu is made (DoMainMenu keeps the board) and slides in, and kills the board when it is down
+		mBoard->Hide();
+		DoMainMenu();
+		mMainMenu->Show();
+		mMainMenu->mBackdropClear = true;
+		return;
+	}
+	if (mBoard != NULL)
+		return;  // the menu is sliding in over the board
+	if (mMainMenu == NULL)
+	{
 		DoMainMenu();
 		return;
 	}
 	if (mMainMenu->mState != MainMenu::STATE_READY || mMainMenu->mWelcomeTimer > 0 || mMainMenu->mUserDialogTimer > 0 ||
 		mMainMenu->mStartTimer > 0)
 		return;
+	if (!mSafeDeleteList.empty())
+		return;  // the board that went away is deleted first: its destructor saves the game into the file of the mode still set
 	if (mProfile == NULL || mProfile->mName.empty())
 	{
 		DoCreateUserDialog();

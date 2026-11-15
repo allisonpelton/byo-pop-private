@@ -127,3 +127,21 @@ cutscenes in it. The port keeps the widget and its listener and plays the movie 
 
 The original's state (+0x58), id (+0x5c), listener (+0x60), pause count (+0x84) and the pause-while-inactive flags
 (+0x88, +0x94) are kept with the same meaning. The control, its sink and its window are left out.
+
+## Stretching on the 2D screen
+
+In 2D the original draws on a DirectDraw surface, and `DDImage::StretchBlt` (0x48dc10, slot 10 of vtable 0x533934)
+stretches in software. A fast stretch samples the source straight onto the screen in 16.16 steps from the source
+rectangle's corner, sampling before it steps; a stretch that is not fast is averaged into a new image of the
+destination's size by MemoryImage's slow stretch (0x4740b0) and blitted from there. That slow stretch divides the
+colour's weight by the alpha already in the destination, as AstroPop's does. The WidgetManager's draw loop (0x462810)
+never turns the fast stretch on, so a widget's stretches average unless the game asks for the fast one: the mission
+banner, the explosions, the zoomed map and the help screen do, in 2D only.
+
+The port's `HeavyWeaponDisplay` (`HeavyWeaponApp.cpp`) turns on the framework's software stretch for every stretch drawn
+in 2D, and `HeavyWeaponApp::Init` sets `gWidgetsDrawWithoutFastStretch` and `gSlowStretchRenormalizesAlpha`. A 3D run
+keeps SDL's filtering, as the original's 3D screen filters through Direct3D.
+
+The 2D surface is also kept from one frame to the next: what a frame does not draw over keeps the last frame's pixels.
+While the board shakes (`Board::UpdateShake`, 0x40fe00, moves it by up to 8 pixels each way) the edge it uncovers shows
+those pixels in the original, not black, so `HeavyWeaponDisplay` keeps the screen in 2D (`DDInterface::mKeepScreen`).

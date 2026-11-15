@@ -164,11 +164,12 @@
         "unneeded-code",
         "readability",
         "collection",
-        "site-features"
+        "site-features",
+        "lite-mod"
       ],
       "na": [],
-      "now": "lite-mod",
-      "note": "processor time like for like 6.7 G cycles a minute at the original's 640x480 (5.9 in the default window) against the original's 10.5; the lite survey next"
+      "now": null,
+      "note": "every phase but modding done: the lite mod takes nothing (LITE_MOD.md: Board::Flood and PlanEnemyMoves on the 11x11 grid cost under 0.1 ms in two bot games)"
     },
     "mahjongjapan": {
       "title": "Mahjong Escape: Ancient Japan",
@@ -529,11 +530,13 @@
       "title": "Heavy Weapon Deluxe",
       "done": [
         "port",
-        "identical-play"
+        "identical-play",
+        "identical-look",
+        "fixes-mod"
       ],
       "na": [],
-      "now": "registration-out",
-      "note": "phase one of identical play done: 28 games from the bot's records agree with the original under origrun in every compared frame (both generators, score, lives, the tank's X, bosses, shots, enemies), all nineteen bosses; the x87's sines in X87.cpp; registration out next"
+      "now": "readability",
+      "note": "phase two of identical play and the fixes mod merged (88a6a55e, ea2bde71): three fixes read through Platform::FixOn, savedBonuses and survivalBest on, wormHead off; the readability pass under way"
     },
     "hammerheads": {
       "title": "Hammer Heads Deluxe",

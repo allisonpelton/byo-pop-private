@@ -490,7 +490,10 @@ void Board::DoUpdate()
 	if (!mIsPuzzle && mLevelGoalScore - mLevelStartScore <= (mShownScore - (int)mDrain) - mLevelStartScore)
 	{
 		if (mState == STATE_IDLE)
+		{
 			mState = STATE_LEVEL_COMPLETE_WAIT;
+			mLevelClears++;
+		}
 		else if (mState == STATE_LEVEL_COMPLETE_WAIT && mCheerDelay == 0)
 		{
 			mApp->PlaySample(SOUND_LEVEL_COMPELTE);

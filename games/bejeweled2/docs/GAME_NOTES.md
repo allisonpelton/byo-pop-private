@@ -102,7 +102,9 @@ top one, menu state, mode, level, level index, score, phase, tick, busy, the boa
 gem), `goto <mode>` (a latch that `WinDMApp::UpdateFrames` steps once an update through whatever screen is in front, as a
 player's clicks would: the title's play link, the first user's name ("Tester"), the welcome and other messages, the menu's
 mode button, so it works from launch, from the menu and from a game; `goto menu` from the title clicks the play link, from a
-game it runs `DoMainMenu`), `unlock all` (the counters that open the secret modes; given before a user exists it waits for
+game it does what the options dialog's Main Menu button does: the board hides and the menu is made and slides in, and kills
+the board when it is down; `goto <mode>` from a game does the same and then goes on as from the menu, which an earlier version did
+not: it only made the menu over the live board and stayed), `unlock all` (the counters that open the secret modes; given before a user exists it waits for
 the goto that creates one), `seed`, `set score`, `lose` (the game's own ending), `win` and
 `level <n>` (the level's goal is met, so the board's own update starts the whirlpool; in the puzzle modes `win` is
 `PuzzleCompleted`), and `move` (the first of the moves `Board::FindMove` finds, picked by a hash of the board and the score;
@@ -723,3 +725,43 @@ decrements and tests).
 `mTutorialNextFade`, `mPodArrowShown` and `mPodArrowPhase`, `mHintButtonArrowPhase`, `mFlameFromCross`, `mBigMoveTimer` and `mBigMoveGlow`,
 `mBoardInOverlay`, `mWarpFade`, `mDrainGrace`, `mLastGoodTick`, `mCheerGiven`, `mCheerTier` and `mCheerDelay`, and `mTextSizeFactor` of the
 overlay.
+
+## The autosplit block (2026-11-14; `docs/WEB_PLAYER.md`, "Auto splitting"; `platform/AutosplitBlock.h`)
+
+`src/LiveSplitObserver.cpp` fills the shared autosplit block (layout 2, 208 bytes, game id `B2DX`) after every update, for the
+Splits window (`web/autosplit.js`) and for LiveSplit natively. It is written only once something asks: an enabled mod with the
+feature `livesplit` (a folder holding a manifest with `"features": {"livesplit": true}`, looked for once a second), or on the web the
+page, which calls `byopop_livesplit_block` (exported in `CMakeLists.txt`). Until then it is a test of one flag an update, and the
+block says `active=0`. It only reads the game; the game's own code only counts (`Board::mBoardSerial`, `mResumed`, `mLevelClears` and
+`mWins`, which nothing reads back). `-livesplitlog=<file>` writes a line whenever a field the rules read changes (the tests'
+evidence); the game's log has a `livesplit:` line for each event.
+
+**Numbers.** `mode` is `WinDMApp::mGameMode`: 0 Classic, 1 Action, 2 Puzzle, 3 Endless, 4 Twilight, 5 Hyper, 6 Cognito, 7 Finity,
+8 Hidden; `skill` is always 0 (the game has none). Death kinds: 0 no moves (Classic, Endless, Twilight, Hidden), 1 time up (Action,
+Hyper, Finity), 2 left (the board went away in the middle of a game: the main menu, a new game, a display change), 3 unused.
+`level` is the board's `mLevel` and `displayLevel` what the HUD says (the level after the ones cleared; in Puzzle the planet).
+
+**Moments.** A board is one game of one mode, from its portal to the next game or a quit (a puzzle board spans the whole galaxy).
+*GO*: the first update on which a fresh board is on the screen (`Board::Show` takes it out of `SCREEN_HIDDEN` when the portal is
+through and the How To Play screen, if the profile still wants it, is closed: the rules' "pressing Continue on the How to Play
+Screen"); the board's update count is 121 at the portal's end, and the click on the mode's button is that much earlier. A saved
+game that `LoadGame` filled (the `resumed` flag) and a board that was already there when the block was asked for have no GO. *Level
+clear*: `mLevelClears` went up: the bar of a level filled (`STATE_LEVEL_COMPLETE_WAIT`), in Puzzle a pod solved for the first time,
+in Cognito every solved puzzle. *Win*: the fifth puzzle of the galaxy's last planet, or the last puzzle of the secret galaxy.
+*Game over*: the board enters `STATE_GAME_OVER_FALL` (kind 0 or 1 by `mIsAction`), or the board goes away first (kind 2, written
+before the next board's GO). `progress` is the profile's Galaxy One solved count in Puzzle (a fresh player: 0, then 20 after four
+planets) and -1 in the other modes. `gameOwn` bytes 0 to 8: the levels cleared in each mode since the block was asked for; byte 16: 1
+once the board's first move has been made; bytes 24 to 31: the score key of the mods that change the scores (empty for none).
+
+**Tests.** `tools/livesplit/drive.py <scenario> <dir>` plays a short game of each category with the port's bot and the test commands
+(classic, action, hyper, endless, puzzle, puzzle20 for the 25% category, foursquare, switcharoo, left, cognito, hypercube);
+`tools/livesplit/run_tests.sh <dir> [scenario...]` runs them with the block on, then "inert": the bot's games in the nine modes with
+the block on must give the frozen transcripts and end screens of `tools/check.sh`'s bejeweled2 suite (they do: 9 of 9 identical, so
+the block changes nothing). 4 Square and Switcharoo leave a game with `goto <mode>` and answer the Load Game question (the driver
+clicks Yes, which continues the saved game: that board has the `resumed` flag and no GO).
+
+**A board with a hyper cube one move away** (the site found none in 35,000 bot updates): from the classic board, `gem <row> <col>
+<colour>` (rows and columns from 0, colours 0 to 6 as the board's own digits) for rows 2 to 4, columns 0 to 4:
+`row 2: 0 1 0 1 0`, `row 3: 3 3 2 3 3`, `row 4: 1 0 3 0 1`; none of that has three of a colour in a line. Recolour any other three in a
+line of the board (read `state`'s `board`; `drive.py`'s `hypercube_state` does it) so the board settles by itself, then swap row 3
+column 2 with row 4 column 2: row 3 is five 3s and the swapped gem becomes the hyper cube (`c` in `state`'s board).
