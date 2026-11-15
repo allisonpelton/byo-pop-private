@@ -14,8 +14,9 @@
 //   wordmax <n>    the words the soak and the word command spell are at most n letters (0: no limit), so the enemies hit harder than Lex's words
 //   fastkill <0|1>  1: the soak steps every 25 updates and spells a word as soon as the battle waits for one (no clicks
 //                   during an attack or while tiles fall), and the word command picks, among the longest words, the one the
-//                   scripts' TileEngine:GetFullWordValue scores highest, and Scramble when only words of 3 letters or fewer
-//                   are left; the comparison cases use it to get through a chapter in fewer updates
+//                   scripts' TileEngine:GetFullWordValue scores highest, and Scramble when the board has neither a word of
+//                   9 letters or more nor one that kills the enemy at once (Lex drinks a red potion first at half his health
+//                   or less, when he holds one); the comparison cases use it to get through a chapter in fewer updates
 //   chapterend [<margin>]  quits <margin> updates (default 300) after the map shows again once a battle has been seen;
 //                   logs "script: chapterend <update>"
 //   battle <book> [<stage>]  from the main menu (it waits for it) starts a new adventure of the book (4, 5 or 6: the profile's
@@ -1269,12 +1270,13 @@ bool GameApp::HandleScriptCommand(const ScriptCommand& theCommand)
 			aBestRubyOrder = anOrder;
 		}
 	}
-	if (!aBestRuby.empty()) {
+	// fastkill scores every word itself (a ruby's bonus is in the scripts' damage), so it takes no ruby word unasked
+	if (!aBestRuby.empty() && !(sFastKill && !mBoard->mIsMiniGame)) {
 		aBest = aBestRuby;
 		aBestOrder = aBestRubyOrder;
 	}
 	double aDamage = -1;
-	if (sFastKill && !mBoard->mIsMiniGame && aBestRuby.empty()) {
+	if (sFastKill && !mBoard->mIsMiniGame && !aWantRuby) {
 		// the word that does the most damage by the scripts' own reckoning, among the longest the tiles spell (a short word
 		// on gems or bonus letters can beat a longer plain one)
 		std::vector<std::pair<std::string, std::vector<Tile*>>> aCandidates;
@@ -1293,14 +1295,29 @@ bool GameApp::HandleScriptCommand(const ScriptCommand& theCommand)
 				aBestOrder = aCandidate.second;
 			}
 		}
-		// only short words: Scramble for a better board (it costs the turn, so not for anything longer)
+		// Scramble for a better board unless this one has a word of 9 letters or more or a word that kills the enemy at
+		// once; a scramble gives the enemy its turn, and no enemy kills Lex in one hit, so at half his health or less he
+		// drinks a red potion first when he holds one (the user's rules, 2026-11-15)
+		std::string aHealths;
+		double aLex = 0, aLexMax = 0, anEnemy = 0;
+		if (RunLua("local e = gBattleEngine local p, n = e.mPlayerPtr, e.mEnemyPtr "
+		           "return p.mHealth .. ',' .. p.mMaxHealth .. ',' .. (n and n.mHealth or 0)", aHealths))
+			sscanf(aHealths.c_str(), "%lf,%lf,%lf", &aLex, &aLexMax, &anEnemy);
+		bool aGoodBoard = aBest.size() >= 9 || (anEnemy > 0 && aDamage >= anEnemy);
+		if (aLexMax > 0 && aLex <= aLexMax / 2 && gBattleEngine->CallLinkedMethod("PlayerHasHP", 0).Bool()) {
+			SDL_Log("script: word: red potion (Lex %g of %g, update %d)", aLex, aLexMax, mUpdateCount);
+			AddInput(mUpdateCount + 1, "click", "68 330");  // the red potion (as the first battle's tutorial clicks it)
+			sWordBusyUntil = mUpdateCount + 60;
+			return true;
+		}
 		auto aScramble = mBoard->mButtons.find(Board::BUTTON_SCRAMBLE);
-		if (!aTiles.empty() && aBest.size() <= 3 && aScramble != mBoard->mButtons.end() && aScramble->second != nullptr &&
+		if (!aTiles.empty() && (aBest.size() <= 3 || !aGoodBoard) && aScramble != mBoard->mButtons.end() && aScramble->second != nullptr &&
 		    aScramble->second->mVisible && !aScramble->second->mDisabled) {
 			Widget* aButton = aScramble->second;
 			std::string aCentre = StrFormat("%d %d", mBoard->mX + aButton->mX + aButton->mWidth / 2,
 			                                mBoard->mY + aButton->mY + aButton->mHeight / 2);
-			SDL_Log("script: word: scramble (best %s, update %d)", aBest.c_str(), mUpdateCount);
+			SDL_Log("script: word: scramble (best %s, damage %g, enemy %g, Lex %g of %g, update %d)", aBest.c_str(), aDamage,
+			        anEnemy, aLex, aLexMax, mUpdateCount);
 			AddInput(mUpdateCount + 1, "move", aCentre);
 			AddInput(mUpdateCount + 21, "click", aCentre);
 			sWordBusyUntil = mUpdateCount + 60;
