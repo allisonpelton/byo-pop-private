@@ -107,6 +107,7 @@ Application::Application()
 	mParticleDefs = nullptr;
 	for (int i = 0; i < NUM_CHEATS; i++)
 		mCheatFlags[i] = false;
+	mTestStartLevel = -1;
 	mScreenWidth = -1;
 	mScreenHeight = -1;
 	mQuietSpawn = false;

@@ -104,6 +104,7 @@ public:
 	ParticleDefs*	mParticleDefs;			// +0x6d8: made when the loading is done
 	ParticleRand*	mParticleRand;			// +0x6dc
 	bool			mCheatFlags[NUM_CHEATS];	// +0x6e0
+	int				mTestStartLevel;			// the level a new game starts at, -1 for the first: the `startlevel` test command, for the scenarios of tools/idplay that start at a level the cheat words do not reach
 	std::string		mTyped;					// +0x6ec: the letters typed so far, for the cheat words
 	int				mScreenWidth;			// +0x70c: the desktop's size
 	int				mScreenHeight;			// +0x710
