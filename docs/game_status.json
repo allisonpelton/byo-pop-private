@@ -82,13 +82,14 @@
         "performance",
         "unneeded-code",
         "readability",
-        "site-features"
+        "site-features",
+        "lite-mod"
       ],
       "na": [
         "collection"
       ],
       "now": null,
-      "note": ""
+      "note": "every phase but modding done: the lite mod takes nothing (LITE_MOD.md: the discard's melt would be lite in kind but costs 0.4% to 1.9% of a minute, below what the medians resolve)"
     },
     "noahsark": {
       "title": "Noah's Ark Deluxe",
