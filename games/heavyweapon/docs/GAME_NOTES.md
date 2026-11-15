@@ -20,7 +20,7 @@ Reachable only from a test (`-script`, `-commands`, the web page's test call; `d
 | `goto <screen>` | `menu`, `options`, `help`, `highscores`, `credits`, `campaign` (a new campaign at its first map), `survival`, `armory`; the screens there go as their buttons take them away. While the intro or the loading runs it ends the intro and answers "still loading: send it again". A player named "Test" is made when there is none |
 | `level <n>` | campaign level n (1 to 19, the last the final boss's) now, with the player's upgrades, without the armory or the map |
 | `unlock all` | the player has reached the campaign's end: survival and every level are open |
-| `set score\|lives\|nukes\|level\|timer\|progress <v>` | the app's score, tanks left, nukes, next level (1-based) or the level's time; `progress` puts the player's saved campaign before level v (1-based), as after passing the one before it, and saves it, so the main menu's campaign offers to continue there |
+| `set score\|lives\|nukes\|level\|timer\|penalty\|progress <v>` | the app's score, tanks left, nukes, next level (1-based), the level's time or survival's time penalty (in updates, as shooting the supply helicopter adds); `progress` puts the player's saved campaign before level v (1-based), as after passing the one before it, and saves it, so the main menu's campaign offers to continue there |
 | `win` | before the boss, the level's time jumps to the boss's warning, so the boss comes as at the end of the waves; with the boss up it is killed and dies as by the gun (an error while it is still coming in) |
 | `lose` | no tank left after this one, and the tank is killed; the game-over box follows when the tank's wait runs out (an error while no tank is on the field) |
 | `seed <n>` | `Rand()` and the game's own generator seeded as at the start with `-seed=n` |
@@ -211,11 +211,32 @@ recorded (`docs/COORDINATION.md`).
   The port clears them, and the app frees the table at its end.
 - **The robot's eye glow.** The robot boss never deletes its eye's glow. The port deletes it with the boss.
 
-## Fix candidates (for the fixes mod)
+## Fixes (the fixes mod)
 
-- **A saved score counts the level bonuses twice.** When the progress is saved between levels, the score that is saved
-  already has the level's bonuses, and the bonuses are added to it again. A campaign that is continued from a save starts
-  with a higher score than it had.
+`mods/fixes/mod.json` holds the fixes mod, each fix a toggle read through the options layer (`Platform::FixOn`,
+`platform/GameOptions.h`; `-fix=<id>` on the command line, `-original` for none). Nothing set means every option off,
+the original, which is what every test and the frozen baseline run. `main.cpp` loads the mods folder (`-modsdir=`,
+`-nomods`; `mods-heavyweapon` next to the exe, or `/hwpersist/mods` on the web, where the page installs the mod).
+`tools/fixes_check.sh` plays `tools/fixes_test.txt` four times (as the original, with the mod's defaults, with
+`-fix=savedBonuses` and with `-fix=survivalBest`) and checks the saved score and best time in `users.dat`, the one
+screen that must differ, the ones that must not, and that no state line changes; then the bot fights level 8's worm as
+the original and with `-fix=wormHead`, and the two games must part (on the first run they did at both worms, levels 8
+and 17: the fix's game at 17 ended 600 updates sooner). On the web the page puts the mod into the game's mods folder
+before the start, and the game's log then names it (`mods: Fixes`; checked in the Browser pane on 2026-11-14).
+
+| id | default | what the original does | what the fix does |
+| --- | --- | --- | --- |
+| `savedBonuses` | on | the results screen (0x426e60) adds the level's bonuses to the score as it opens, then for the save adds them again, saves the campaign (`SaveUserProgress`) and takes them back, so a campaign continued from the save starts with the bonuses twice, and the high-score line it reaches holds them too | the bonuses are not added a second time for the save (`ResultsScreen.cpp`) |
+| `survivalBest` | on | at a survival game's end (`AddHighScore`, 0x407540) the player's best time is replaced when the clock beats it, and what is stored is the time less the penalties (30 seconds for each shot supply helicopter), so a game with a worse time can replace a better best | the time less the penalties is compared (`HeavyWeaponApp.cpp`) |
+| `wormHead` | off | the worm's update (0x4442b0) tests each rib against the tank where it is, but its head (120 pixels square, a rib 60) at the place one past its rib arrays gives: x the head's y, y 0, where it never meets the tank; so at the head only the rib beneath it destroys the tank | the head is tested at its own place, where it is drawn (`BossesWorm.cpp`); off by default, since the fight is harder than the one players know and the fault is not known as one |
+
+Candidates looked at and not made, from the oddities below: the enemies' bullets counted as the player's misses (no
+screen shows the count); the satellite's beam, which takes a shield and kills the tank in the same update (the shield
+would only last one update more, and the beam is plainly meant to beat it); FatBoy's second kill (`KillTank` does
+nothing to a tank already dead) and its blast through a shield (a nuke's, by design); the laser's burn mark (a beam
+ending above the field would draw it off the screen anyway); the battleship's halving test (what it was meant to test
+does not show); the wrecker's engine volume and its boulders on the second encounter, the robot's fire timer and the
+battleship's fixed points (each reads as the design); one projectile hit an update (the second is hit in the next).
 
 ## Oddities (not chased)
 
@@ -240,9 +261,10 @@ recorded (`docs/COORDINATION.md`).
 - **The far background.** In 2D the far background's second copy is drawn 960 pixels after the first, and in 3D 959.
 - **The best survival time.** A player's best survival time is replaced when the game's time before its penalties
   beats it, and what is stored is the time after them. So a game whose time after penalties is worse can still replace a
-  better best.
+  better best. The fixes mod's `survivalBest` mends it.
 - **The worm's head.** The worm boss takes its head's collision box from one entry past its rib arrays, so the box sits
-  at the first rib's y and x 0 instead of at the head. The head almost never kills the tank by touch; the ribs do.
+  at the first rib's y and x 0 instead of at the head. The head almost never kills the tank by touch; the ribs do. The
+  fixes mod's `wormHead` (off by default) mends it.
 - **The battleship.** Its points are overwritten with 25000, and its turrets' "all turrets present" halving test can
   never pass.
 - **The final boss.** It reads `mLaserFire` and never uses it.
@@ -256,6 +278,9 @@ recorded (`docs/COORDINATION.md`).
 - **The head.** Its constructor leaves its target x unset, and its first update eases the head toward it. The port
   starts it at 0. The comparison patches the original to start it at 0 too (its seventh patch), so that the head fights
   of levels 7 and 16 start from the same place in both.
+- **Translucent pixels on the 2D screen.** Sparks, glows and the fire over the high scores blend a few levels apart
+  from the original's (its software blitters against SDL's renderer); `docs/IDENTICAL_PLAY.md`, "Oddities", has what
+  it would take.
 - **The wrecker.** Its engine plays at full volume whenever it is within 320 pixels of the middle, and its ball's slam
   throws boulders and dust only on its second encounter (level 12).
 
@@ -266,4 +291,11 @@ recorded (`docs/COORDINATION.md`).
 - **0x430580**: the player list's Draw, which only calls `Dialog::Draw`. The port's class inherits it.
 - **The framework**: 0x44bc80 and everything after it, which the shared framework replaces.
 - **Registration and leaving the game**: the registration and update dialogs, the buy and "more games" pages, and the
-  update check.
+  update check. The trial's boxes at the end of the loading (0x4045d0, called from 0x406ad5, whose last step the port
+  keeps), the registration dialog's button handler (0x42d140, slot 9 of the vtable at 0x52f6d0), the update check
+  (0x405130, from `Init` at 0x40e0e5 and the update button at 0x40e671), and the Options box's REGISTER and UPDATE
+  buttons and its "Auto Updates" checkbox (`OptionsDialog.h`), whose box keeps the original's layout for a registered
+  copy. No text, picture or sound is loaded that only these used; the one text they share (0x52a320) is also the label
+  of the game-over box's quit button. The main menu has no "more games" button in this version (0x425c40 places the same
+  six buttons as the port), so no gap needed closing. The exe's links (the update check, the registration and beta
+  pages, DirectX's) are all in what is left out, and no code in the port opens a link.

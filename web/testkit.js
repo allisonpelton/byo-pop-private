@@ -515,7 +515,9 @@
 
   // the start: ?hold=1 waits for byopop.test.start(), so that a test may wipe or seed the profile first; otherwise the game
   // starts as soon as it is ready. ?fast=1 runs it on its virtual clock (-fast).
-  if (params.get("fast") === "1") shell.hooks.args = function () { return ["-fast"]; };
+  // ?drawevery=1 adds -drawevery: every update is drawn before the next runs, so that a shot is the frame of the update asked for (a fast
+  // run draws every few updates, which is a few updates stale for a game whose frames change with each one, as Bejeweled 2's 3D warp).
+  if (params.get("fast") === "1") shell.hooks.args = function () { return params.get("drawevery") === "1" ? ["-fast", "-drawevery"] : ["-fast"]; };
   // test.loaded resolves once the page could start the game (its files are in); with ?hold=1 a driver runs then, before the
   // game starts, and starts it with t.start() (which resolves with test.ready, the first drawn frame).
   var startNow = params.get("hold") !== "1", canStart = false, resolveLoaded;

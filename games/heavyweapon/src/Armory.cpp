@@ -23,6 +23,8 @@ namespace
 	const int GLOW_FADE = 2;
 	const int ARMORY_SONG = SONG_ATOMIC_TANK_59;	// the song the armory plays, from order 0x3b
 	const int ARMORY_SONG_ORDER = 0x3b;
+	const double MUSIC_FADE_OUT_SPEED = 0.004;
+	const double MUSIC_FADE_IN_SPEED = 0.002;
 	const int TANK_X = 0x140;				// the tank in the middle of the picture
 	const int TANK_Y = 400;
 	const double TANK_TURRET_FRAME = 10.0;
@@ -75,8 +77,8 @@ Armory::Armory(HeavyWeaponApp* theApp)
 
 	if (!mApp->mMusicInterface->IsPlaying(ARMORY_SONG))
 	{
-		mApp->mMusicInterface->FadeOutAll(true, 0.939);
-		mApp->mMusicInterface->FadeIn(ARMORY_SONG, ARMORY_SONG_ORDER, 0.8765, false);
+		mApp->mMusicInterface->FadeOutAll(true, MUSIC_FADE_OUT_SPEED);
+		mApp->mMusicInterface->FadeIn(ARMORY_SONG, ARMORY_SONG_ORDER, MUSIC_FADE_IN_SPEED, false);
 	}
 	mFlickerLight = new FlickerLight(mApp, mApp->mSprites[IMAGE_ARMORYGLOW]);
 	Resize(0, 0, 0x280, 0x1e0);

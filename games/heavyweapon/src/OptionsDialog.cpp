@@ -22,6 +22,7 @@ namespace
 	const int DIALOG_X = 0x8c;
 	const int DIALOG_WIDTH = 0x168;
 	const int DIALOG_HEIGHT = 0x19a;
+	const int CONTENT_INSET = 0x14;
 	const int SCREEN_CENTER_Y = 0xf0;
 	const int BUTTON_HEIGHT = 0x1e;
 	const int BUTTON_INSET = 0x28;
@@ -69,6 +70,7 @@ OptionsDialog::OptionsDialog(HeavyWeaponApp* theApp) :
 	SetColor(COLOR_HEADER, Color(0xff, 0xff, 0));
 	SetColor(COLOR_LINES, Color(0xc0, 0xc0, 0xc0));
 	SetColor(COLOR_BUTTON_TEXT, Color(0, 0, 0));
+	mContentInsets = Insets(CONTENT_INSET, CONTENT_INSET, CONTENT_INSET, CONTENT_INSET);
 	mDoneButton = new BracketButton(mApp, this, BUTTON_DONE);
 	mDoneButton->SetTint(Color(0x40, 0xc0, 0x40));
 	mDoneButton->mLabel = GT(0x52ea24);
