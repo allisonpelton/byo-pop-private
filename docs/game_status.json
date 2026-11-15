@@ -308,7 +308,7 @@
       ],
       "na": [],
       "now": "collection",
-      "note": "readability done (namecheck 140 findings to 0: the profile's flags named mShowHelp, mExpert, mTutorialDone, mStorySeen; one-letter names renamed; 76 functions marked port:); baseline identical; a load-dependent flake seen twice under other sessions' load (the full game stopped at 27 puzzles with the baseline differing once, a rerun differed once), not in 8 runs since, cause not found; next: the flake (an hour at most), the Collection check, real input, then performance in a measuring slot"
+      "note": "readability done (namecheck 140 findings to 0); baseline identical; the flake found (GAME_NOTES Oddities): both failing runs began on a profile an overlapping check run had left (no first new-player line), not the clock; check.sh now locks each suite and stops when a cleaned run folder is not gone (bb118777); next: the Collection check, real input, then performance"
     },
     "rocketmania": {
       "title": "Rocket Mania Deluxe",

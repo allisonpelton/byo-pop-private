@@ -4,6 +4,12 @@
 #
 #   tools/check.sh [--out <dir>] [--jobs <n>] <suite or set>...
 #   tools/check.sh [--out <dir>] --changed <rev> [--inert] [--dry-run] [<suite or set>...]    (merge mode, below)
+# In merge mode (--changed) inside a git worktree, check.sh first runs tools/setup_worktree.sh --refresh (with
+# --dry-run, only reports): the frozen baselines and staged assets of games this branch does not own are brought up
+# to date with the main checkout. Plain suite runs skip it.
+# Each suite holds a lock folder $OUT/<suite>.lock (pid inside) while it runs: a second run of the same suite in the same
+# output folder refuses to start (FAIL line, no waiting); a lock whose pid is gone is taken over with one line saying so.
+# A suite that empties a run or user folder (fresh_dir) stops with a FAIL line naming it when anything is left.
 #
 # Suites (rough times on this machine):
 #   build        tools/build.sh native, incremental (seconds to minutes)
@@ -601,6 +607,13 @@ case "$JOBS" in
 	*) echo "check.sh: --jobs $JOBS is more than the 3 game processes one check may take (CLAUDE.md); using 3" >&2; JOBS=3 ;;
 esac
 
+# In merge mode in a worktree (where stale copies make a merge check fail; plain suite runs skip the cost of
+# the listing), bring the baselines and staged assets of the games this branch does not own up to date with the
+# main checkout (tools/setup_worktree.sh --refresh), once: the run under rundesk below has BYOPOP_TEST_RUN set.
+if [ -n "$CHANGED" ] && [ -z "${BYOPOP_TEST_RUN:-}" ] && [ "$(cd "$(git rev-parse --absolute-git-dir 2> /dev/null)" 2> /dev/null && pwd)" != "$(cd "$(git rev-parse --git-common-dir 2> /dev/null)" 2> /dev/null && pwd)" ]; then
+	tools/setup_worktree.sh --refresh $([ "$DRY" -eq 1 ] && echo --dry-run) || true
+fi
+
 if [ -n "$CHANGED" ]; then
 	select_changed "$CHANGED"
 	[ "$DRY" -eq 0 ] || exit 0
@@ -631,6 +644,45 @@ if [ "$JOBS" -gt 1 ]; then  # --jobs needs `wait -n -p` (bash 5.1)
 	wait -n -p _pid 2>/dev/null
 	if [ $? -eq 2 ]; then echo "check.sh: this bash has no wait -n -p; running one suite at a time" >&2; JOBS=1; fi
 fi
+
+# fresh_dir <path>...: empties a run folder, user folder or file by removing it, and stops with a FAIL line when
+# anything is still there afterwards (Windows leaves a folder behind when a file in it is open: a game of an
+# earlier or overlapping run, a profile it wrote). Without this the next game starts on that profile.
+fresh_dir() {
+	local p
+	for p in "$@"; do
+		rm -rf "$p" 2> /dev/null
+		if [ -e "$p" ]; then sleep 1; rm -rf "$p" 2> /dev/null; fi
+		if [ -e "$p" ]; then
+			echo "FAIL: $p is not empty after cleaning it (something still holds a file in it: another run of the suite, or a game still open)" >&2
+			exit 1
+		fi
+	done
+}
+
+# A suite takes a lock folder in its output folder ($OUT/<suite>.lock, made with mkdir, holding the owner's pid):
+# a second run of the same suite in the same output folder refuses to start (it does not wait). A lock whose
+# owner is gone is stale and taken over, with one line saying so. Other suites and other checkouts have other folders.
+lock_suite() {  # <suite>
+	local l="$OUT/$1.lock" owner
+	mkdir -p "$OUT"
+	if ! mkdir "$l" 2> /dev/null; then
+		owner="$(cat "$l/pid" 2> /dev/null)"
+		[ -n "$owner" ] || { sleep 1; owner="$(cat "$l/pid" 2> /dev/null)"; }  # made, its pid not yet written
+		if [ -n "$owner" ] && kill -0 "$owner" 2> /dev/null; then
+			LOCK_OWNER="$owner"; return 1
+		fi
+		echo "check: $1: stale lock $l (pid ${owner:-unknown} is gone), taking it over"
+		rm -rf "$l"
+		mkdir "$l" 2> /dev/null || { LOCK_OWNER="another run"; return 1; }
+	fi
+	echo "$BASHPID" > "$l/pid"
+}
+unlock_suite() {  # <suite>: only a lock this process holds
+	local l="$OUT/$1.lock"
+	[ "$(cat "$l/pid" 2> /dev/null)" = "$BASHPID" ] && rm -rf "$l"
+	return 0
+}
 
 # the last line of a file that matches a pattern, or the file's last line
 lastof() { local l; l="$(grep -E "$2" "$1" 2>/dev/null | tail -n 1)"; [ -n "$l" ] || l="$(tail -n 1 "$1" 2>/dev/null)"; echo "${l#INFO: }"; }
@@ -925,7 +977,7 @@ suite_livesplit() {
 	need_assets bejeweled bigmoney || return 1
 	[ -f games/bookworm/tools/livesplit/run_tests.sh ] && { need_assets bookworm || return 1; }
 	# fresh folders: a game's user folder left by an earlier run (its play count, high scores) changes the games
-	rm -rf "$OUT/livesplit-bejeweled" "$OUT/livesplit-bigmoney" "$OUT/livesplit-bookworm"
+	fresh_dir "$OUT/livesplit-bejeweled" "$OUT/livesplit-bigmoney" "$OUT/livesplit-bookworm"
 	games/bejeweled/tools/livesplit/run_tests.sh --out "$OUT/livesplit-bejeweled" > "$1" 2>&1 || st=1
 	a="bejeweled: $(lastof "$1" 'PASSED|FAILED|failed')"
 	bash games/bigmoney/tools/livesplit/run_tests.sh "$OUT/livesplit-bigmoney" > "$1.bm" 2>&1
@@ -942,7 +994,7 @@ suite_livesplit() {
 
 bookworm_game() {  # <name> <mode>: a bot game; prints its last "game over" line
 	local d="$OUT/bookworm/$1"
-	rm -rf "$d"; mkdir -p "$d/shots"
+	fresh_dir "$d"; mkdir -p "$d/shots"
 	timeout 900 "$W/build/native/bookworm.exe" -userdir="$d/user" -fast -seed=1 -autoplay=1 -autoplaymode="$2" \
 		-autoplaylog="$d/log.txt" -autoplayshots="$d/shots/s" > "$d/stdout.txt" 2> "$d/stderr.txt"
 	grep -o -i -E 'game over[^;]*' "$d/log.txt" 2>/dev/null | tail -n 1
@@ -950,7 +1002,7 @@ bookworm_game() {  # <name> <mode>: a bot game; prints its last "game over" line
 
 bookworm_state_game() {  # <name> <exe> <user dir> <port arguments...>: a bot run with no mods; its state log is <name>/state.txt
 	local d="$OUT/bookworm/$1" e="$2" u="$3"; shift 3
-	rm -rf "$d"; mkdir -p "$d/mods"
+	fresh_dir "$d"; mkdir -p "$d/mods"
 	[ -d "$u" ] || mkdir -p "$u"
 	timeout 900 "$e" -userdir="$u" -modsdir="$d/mods" -fast -statelog="$d/state.txt" "$@" > "$d/stdout.txt" 2> "$d/stderr.txt"
 }
@@ -970,7 +1022,7 @@ suite_bookworm() {
 	if [ -f "$base" ]; then
 		for k in cur base; do
 			x="$W/build/native/bookworm.exe"; [ $k = base ] && x="$base"
-			rm -rf "$OUT/bookworm/$k-user"
+			fresh_dir "$OUT/bookworm/$k-user"
 			bookworm_state_game "$k-c2" "$x" "$OUT/bookworm/$k-user/c2" -seed=7 -autoplay=2 -autoplaymode=both -autoplaycap=60000
 			bookworm_state_game "$k-m1" "$x" "$OUT/bookworm/$k-user/m1" -seed=9 -autoplay=7 -autoplaymode=classic,action,classic
 			bookworm_state_game "$k-s1" "$x" "$OUT/bookworm/$k-user/s1" -seed=11 -autoplay=3 -autoplaymode=classic -autoplaycap=3000
@@ -990,7 +1042,7 @@ suite_bookworm() {
 suite_bigmoney() {
 	local d="$OUT/bigmoney" g
 	need_assets bigmoney || return 1
-	rm -rf "$d"; mkdir -p "$d"
+	fresh_dir "$d"; mkdir -p "$d"
 	timeout 600 "$W/build/native/bigmoney.exe" -userdir="$d/user" -fast -seed=1 -autoplay=1 -autoplaymode=0 \
 		-autoplayskill=3 -autoplaylog="$d/input.txt" > "$1" 2>&1
 	g="$(grep -o -E 'game 1 over, score [0-9]+' "$d/input.txt" 2>/dev/null | tail -n 1)"
@@ -1002,7 +1054,7 @@ suite_bigmoney() {
 
 noahsark_game() {  # <name> <mode> <cap> [exe]: a bot game; prints the last "level done" or "game over" line
 	local d="$OUT/noahsark/$1"
-	rm -rf "$d"; mkdir -p "$d/shots"
+	fresh_dir "$d"; mkdir -p "$d/shots"
 	timeout 600 "${4:-$W/build/native/noahsark.exe}" -userdir="$d/user" -fast -seed=1 -autoplay=1 -autoplaymode="$2" \
 		-autoplaycap="$3" -autoplaylog="$d/log.txt" -autoplayshots="$d/shots/s" > "$d/stdout.txt" 2> "$d/stderr.txt"
 	grep -E '^(level [0-9]+ done|game [0-9]+ over)' "$d/log.txt" 2>/dev/null | tail -n 1
@@ -1043,14 +1095,14 @@ suite_noahsark() {
 
 atomica_game() {  # <name> <mode> <cap>: a bot game; prints its last "game over" or progress line
 	local d="$OUT/atomica/$1"
-	rm -rf "$d"; mkdir -p "$d/shots"
+	fresh_dir "$d"; mkdir -p "$d/shots"
 	timeout 600 "$W/build/native/atomica.exe" -userdir="$d/user" -fast -seed=1 -autoplay=1 -autoplaymode="$2" 		-autoplaycap="$3" -autoplaylog="$d/log.txt" -autoplayshots="$d/shots/s" > "$d/stdout.txt" 2> "$d/stderr.txt"
 	grep -E '^(level [0-9]+ done|game [0-9]+ over|update [0-9]+:)' "$d/log.txt" 2>/dev/null | tail -n 1 | sed 's/ (f8c.*//'
 }
 
 atomica_replay() {  # <name> <exe> <scenario> <end>: the port plays a scenario of games/atomica/tools/identical; its state log is $OUT/atomica/<name>/trace.txt
 	local d="$OUT/atomica/$1"
-	rm -rf "$d"; mkdir -p "$d"
+	fresh_dir "$d"; mkdir -p "$d"
 	python "$W/games/atomica/tools/identical/portscript.py" "$W/games/atomica/tools/identical/$3" "$d/script.txt" --end "$4"
 	timeout 600 "$2" -userdir="$d/user" -fast -seed=1 -drawevery -script="$d/script.txt" -statetrace="$d/trace.txt" > "$d/stdout.txt" 2> "$d/stderr.txt"
 }
@@ -1080,14 +1132,14 @@ suite_atomica() {
 
 alchemy_game() {  # <name> <mode> <cap> [user dir to keep]: a bot game; prints its last "game over" or tutorial line
 	local d="$OUT/alchemy/$1" u
-	if [ -n "${4:-}" ]; then u="$OUT/alchemy/$4"; else rm -rf "$d"; u="$d/user"; fi
-	rm -rf "$d/shots" "$d/log.txt"; mkdir -p "$d/shots"
+	if [ -n "${4:-}" ]; then u="$OUT/alchemy/$4"; else fresh_dir "$d"; u="$d/user"; fi
+	fresh_dir "$d/shots" "$d/log.txt"; mkdir -p "$d/shots"
 	timeout 600 "$W/build/native/alchemy.exe" -userdir="$u" -fast -seed=1 -autoplay=1 -autoplaymode="$2" -autoplaycap="$3" 		-autoplaylog="$d/log.txt" -autoplayshots="$d/shots/s" > "$d/stdout.txt" 2> "$d/stderr.txt"
 	grep -E '^(game [0-9]+ over|tutorial button|cap reached)' "$d/log.txt" 2>/dev/null | tail -n 1
 }
 
 alchemy_state_game() {  # <name> <exe> <mode> <bot seed> <game seed> <skill>: a game played by mouse; its state log is <name>/state.txt
-	local d="$OUT/alchemy/$1"; rm -rf "$d"; mkdir -p "$d"
+	local d="$OUT/alchemy/$1"; fresh_dir "$d"; mkdir -p "$d"
 	timeout 600 "$2" -userdir="$d/user" -fast -seed="$5" -autoplayui -autoplaystart=450 -autoplay="$4" -autoplaymode="$3" -autoplayskill="$6" -autoplaycap=20000 		-statelog="$d/state.txt" > "$d/stdout.txt" 2> "$d/stderr.txt"
 }
 
@@ -1127,7 +1179,7 @@ suite_alchemy() {
 
 sevenseas_game() {  # <name> <seed> <difficulty> <start level> <games>: a bot game; prints the last "game N over" line
 	local d="$OUT/sevenseas/$1" exe="${SS_EXE:-$W/build/native/sevenseas.exe}"
-	rm -rf "$d"; mkdir -p "$d/shots"
+	fresh_dir "$d"; mkdir -p "$d/shots"
 	timeout 600 "$exe" -userdir="$d/user" -fast -seed="$2" -autoplay="$2" -autoplaydiff="$3" -autoplaylevel="$4" \
 		-autoplaygames="$5" -autoplaycap=60000 -autoplaylog="$d/log.txt" -autoplayshots="$d/shots/s" > "$d/stdout.txt" 2> "$d/stderr.txt"
 	grep -E '^game [0-9]+ over' "$d/log.txt" 2>/dev/null | tail -n 1
@@ -1162,13 +1214,13 @@ suite_sevenseas() {
 
 pixelus_game() {  # <name> <puzzles>: a bot game of that many puzzles (at most); prints its last line
 	local d="$OUT/pixelus/$1"
-	rm -rf "$d"; mkdir -p "$d/shots"
+	fresh_dir "$d"; mkdir -p "$d/shots"
 	timeout 600 "$W/build/native/pixelus.exe" -userdir="$W/$d/user" -fast -seed=1 -autoplay=1 -autoplaypuzzles="$2" -autoplaycap=1000000 		-autoplaylog="$W/$d/log.txt" -autoplayshots="$W/$d/shots/s" > "$d/stdout.txt" 2> "$d/stderr.txt"
 	grep -E '^(done|cap reached)' "$d/log.txt" 2>/dev/null | tail -n 1
 }
 
 pixelus_state_game() {  # <name> <exe> <bot seed> <game seed>: three puzzles played by mouse; its state log is <name>/state.txt
-	local d="$OUT/pixelus/$1"; rm -rf "$d"; mkdir -p "$d"
+	local d="$OUT/pixelus/$1"; fresh_dir "$d"; mkdir -p "$d"
 	timeout 600 "$2" -userdir="$W/$d/user" -fast -seed="$4" -autoplay="$3" -autoplayui -autoplayskip -autoplaypuzzles=3 -autoplaycap=200000 \n		-autoplaylog="$d/log.txt" -statelog="$d/state.txt" > "$d/stdout.txt" 2> "$d/stderr.txt"
 }
 
@@ -1177,7 +1229,7 @@ suite_pixelus() {
 	need_assets pixelus || return 1
 	g="$(build/native/pixelus_gridtest.exe "$W/assets/pixelus" 2>&1 | tail -n 1)"
 	# the options, credits and how-to-play screens: a scripted run in real time (the script counts updates)
-	rm -rf "$d/tour"; mkdir -p "$d/tour"
+	fresh_dir "$d/tour"; mkdir -p "$d/tour"
 	sed "s#@OUT@#$W/$d/tour#g" games/pixelus/tests/menu_tour.txt.in > "$d/tour/script.txt"
 	timeout 300 "$W/build/native/pixelus.exe" -userdir="$W/$d/tour/user" -script="$W/$d/tour/script.txt" -seed=1 > "$d/tour/stdout.txt" 2> "$d/tour/stderr.txt"
 	t=$?
@@ -1216,14 +1268,14 @@ suite_pixelus() {
 mummymaze_game() {  # <name> <bot arguments>...: a bot game; prints the last result line of its log
 	local n="$1" d
 	d="$OUT/mummymaze/$n"; shift
-	rm -rf "$d"; mkdir -p "$d/shots"
+	fresh_dir "$d"; mkdir -p "$d/shots"
 	timeout 600 "${MM_EXE:-$W/build/native/mummymaze.exe}" -userdir="$d/user" -fast "$@" -autoplaylog="$d/log.txt" -autoplayshots="$d/shots/s" 		> "$d/stdout.txt" 2> "$d/stderr.txt"
 	grep -E '^(game over|victory|tutorial done|stalled|cap reached)' "$d/log.txt" 2>/dev/null | tail -n 1
 }
 
 mummymaze_resume() {  # a game saved before its clock starts, then continued: the time of the level must be small (a negative saved time once came out near 2^32 / 100 s)
 	local d="$OUT/mummymaze/resume" t
-	rm -rf "$d"; mkdir -p "$d"
+	fresh_dir "$d"; mkdir -p "$d"
 	timeout 300 "$W/build/native/mummymaze.exe" -userdir="$d/user" -fast -seed=1 -autoplay=3 -autoplaygames=1 -autoplaysave=3 -autoplaycap=3000 -autoplaylog="$d/log1.txt" > "$d/stdout1.txt" 2> "$d/stderr1.txt"
 	timeout 300 "$W/build/native/mummymaze.exe" -userdir="$d/user" -fast -seed=1 -autoplay=3 -autoplaygames=1 -autoplaylevels=1 -autoplaycontinue -autoplaycap=60000 -autoplaylog="$d/log2.txt" > "$d/stdout2.txt" 2> "$d/stderr2.txt"
 	t="$(grep -m1 'level time' "$d/log2.txt" | awk '{print $3}')"
@@ -1349,7 +1401,7 @@ suite_bookwormadv2() {
 }
 
 bookwormadv2_state_game() {  # <name> <exe> <script> [user dir to copy]: a replayed input; its state log is <name>/state.txt
-	local d="$W/$OUT/bookwormadv2/$1"; rm -rf "$d"; mkdir -p "$d"
+	local d="$W/$OUT/bookwormadv2/$1"; fresh_dir "$d"; mkdir -p "$d"
 	if [ -n "${4:-}" ]; then cp -r "$4" "$d/user"; else mkdir -p "$d/user"; fi
 	timeout 300 "$2" -gamedir="$W/assets/bookwormadv2" -userdir="$d/user" -fast -popcaplogo -seed=1 -reseedengine=1 -startloadupdates=742 -chapterloadupdates=2990 		-script="$3" -statelog="$d/state.txt" > "$d/stdout.txt" 2> "$d/stderr.txt"
 }
@@ -1373,7 +1425,7 @@ bookwormadv2_baseline() {  # prints "; baseline identical" (or "; BASELINE DIFFE
 
 bookwormadv2_smoke() {  # <log>: a new player (an empty user folder) through the tutorial's first attack, then its profile to the main menu and the mini-games' menu
 	local d="$W/$OUT/bookwormadv2/smoke" b="$W/build/native/bookwormadv2.exe" a="$W/assets/bookwormadv2" k t n
-	rm -rf "$d"; mkdir -p "$d/user"
+	fresh_dir "$d"; mkdir -p "$d/user"
 	# Run 1: the title, the new player's name (the default) and the intro's pages, the first battle's tutorial:
 	# P, L, A, Y, then the attack button; the board's word lookup answers from the script (IsNoun, IsVerb, ...)
 	{ printf '%s\n' "800 click 400 435"
@@ -1441,7 +1493,7 @@ bookwormadv_all() {  # <"loaded N of M ...">: true when all of at least one load
 
 bookwormadv_menu() {  # <log> [exe] [folder name]: the test profile (tests/menu) from the title to the main menu, its quit asked, Play!, Quit
 	local d="$OUT/bookwormadv/${3:-menu}" u n
-	rm -rf "$d"; mkdir -p "$d"
+	fresh_dir "$d"; mkdir -p "$d"
 	cp -r games/bookwormadv/tests/menu/user "$d/user"
 	# the quit sign, its dialog's Play! (it stays), the quit sign again and the dialog's Quit (it quits)
 	printf '%s\n' "900 move 680 520" "920 click 680 520" "1000 screenshot $d/dialog.png" "1060 click 497 476" \
@@ -1457,7 +1509,7 @@ bookwormadv_menu() {  # <log> [exe] [folder name]: the test profile (tests/menu)
 
 bookwormadv_chapter() {  # <log> [exe] [folder name]: the test profile's first chapter, its battles won by the port's "word attack" (seed 1)
 	local d="$OUT/bookwormadv/${3:-chapter}" n k t u
-	rm -rf "$d"; mkdir -p "$d"
+	fresh_dir "$d"; mkdir -p "$d"
 	cp -r games/bookwormadv/tests/menu/user "$d/user"
 	# Adventure, the map's Enter, the conversations clicked through (400 150), then the longest word and the
 	# attack every 500 updates (the command waits for an idle board), with a click after each
@@ -1481,7 +1533,7 @@ bookwormadv_chapter() {  # <log> [exe] [folder name]: the test profile's first c
 
 bookwormadv_screens() {  # <log> [exe] [folder name]: the test profile through the screens off the main menu: the credits, the players, the mini-games, the arena
 	local d="$OUT/bookwormadv/${3:-screens}" u n k t
-	rm -rf "$d"; mkdir -p "$d"
+	fresh_dir "$d"; mkdir -p "$d"
 	cp -r games/bookwormadv/tests/menu/user "$d/user"
 	# the profile unlocks the mini-games and the arena (for a player past the first book); then the options'
 	# credits, skipped; the players dialog, cancelled; the mini-games' menu and its way back; the arena: its
@@ -1509,7 +1561,7 @@ bookwormadv_screens() {  # <log> [exe] [folder name]: the test profile through t
 
 bookwormadv_media() {  # <log> [exe] [folder name]: the test profile's media player: a song's spectrum both ways, the mouse over the book
 	local d="$OUT/bookwormadv/${3:-media}" u n a b
-	rm -rf "$d"; mkdir -p "$d"
+	fresh_dir "$d"; mkdir -p "$d"
 	cp -r games/bookwormadv/tests/menu/user "$d/user"
 	# the profile lists one song (the book's script wants the credits' theme among them); the book, opened from Lua,
 	# plays it; once its first 100 updates are past the bars are counted, then a click on the screen changes them to
@@ -1533,7 +1585,7 @@ bookwormadv_media() {  # <log> [exe] [folder name]: the test profile's media pla
 
 tiptop_game() {  # <name> <mode> <games>: bot games; prints the last "game N over" line
 	local d="$OUT/tiptop/$1"
-	rm -rf "$d"; mkdir -p "$d/shots"
+	fresh_dir "$d"; mkdir -p "$d/shots"
 	timeout 600 "$W/build/native/tiptop.exe" -gamedir=assets/tiptop -userdir="$d/user" -fast -seed=2 -autoplay=7 \
 		-autoplaymode="$2" -autoplaygames="$3" -autoplaycap=200000 -autoplaylog="$d/log.txt" -autoplayshots="$d/shots/s" \
 		> "$d/stdout.txt" 2> "$d/stderr.txt"
@@ -1542,7 +1594,7 @@ tiptop_game() {  # <name> <mode> <games>: bot games; prints the last "game N ove
 
 tiptop_state_game() {  # <name> <exe> <mode> <bot seed> <game seed> <games> [port arguments]: games played by mouse; the state log is <name>/state.txt
 	local d="$OUT/tiptop/$1" exe="$2" m="$3" bs="$4" gs="$5" n="$6"; shift 6
-	rm -rf "$d"; mkdir -p "$d"
+	fresh_dir "$d"; mkdir -p "$d"
 	timeout 600 "$exe" -gamedir=assets/tiptop -userdir="$d/user" -fast -seed="$gs" -autoplay="$bs" -autoplayui -autoplaymode="$m" \
 		-autoplaygames="$n" -autoplaycap=80000 -statelog="$d/state.txt" "$@" > "$d/stdout.txt" 2> "$d/stderr.txt"
 }
@@ -1586,7 +1638,7 @@ suite_tiptop() {
 
 ningpo_game() {  # <name>: a scripted game (-seed=7): the cheat's matches to the end, the name entry, the best times
 	local d="$OUT/ningpo/$1" u h n="" i
-	rm -rf "$d"; mkdir -p "$d/shots"
+	fresh_dir "$d"; mkdir -p "$d/shots"
 	# start, the cheat (Backspace q Backspace) and its match key until no pair is left, End Game in the no-moves
 	# dialog, continue, the name "Test", the best times' OK and the title's quit
 	{
@@ -1609,7 +1661,7 @@ ningpo_game() {  # <name>: a scripted game (-seed=7): the cheat's matches to the
 hexle() { echo $((16#${1:6:2}${1:4:2}${1:2:2}${1:0:2})); }  # <8 hex digits>: the little-endian 32-bit number
 
 ningpo_state_game() {  # <name> <exe> <case> <seed>: an identical-play case's script; its state log is <name>/state.txt
-	local d="$OUT/ningpo/$1"; rm -rf "$d"; mkdir -p "$d"
+	local d="$OUT/ningpo/$1"; fresh_dir "$d"; mkdir -p "$d"
 	OUT="$OUT/ningpo" "$W/games/ningpo/tools/identical/cases.sh" "$3" "$d/script.txt"
 	timeout 300 "$2" -gamedir=assets/ningpo -userdir="$d/user" -fast -seed="$4" -script="$d/script.txt" \
 		-statelog="$d/state.txt" > "$d/stdout.txt" 2> "$d/stderr.txt"
@@ -1641,7 +1693,7 @@ suite_ningpo() {
 wordharmony_game() {  # <name> <think|tsunami> [exe]: a scripted game (-fast, seed 1) that ends saved; prints the saved game;
 	# its state log (the values the identical-play pass compared with the original) is <name>/state.txt
 	local d="$OUT/wordharmony/$1" m g rc f s shots="" re=' level="([0-9]+)" score="([0-9]+)"'
-	rm -rf "$d"; mkdir -p "$d/shots" "$d/user"
+	fresh_dir "$d"; mkdir -p "$d/shots" "$d/user"
 	if [ "$2" = think ]; then
 		# a saved THINK game of the suite's own making: the chain ORD on the top ledge of level template 4, a W below
 		{
@@ -1721,7 +1773,7 @@ suite_wordharmony() {
 
 cosmicbugs_run() {  # <name>: the headless runner's scripted game; prints its state lines (and its exit status if not 0)
 	local d="$OUT/cosmicbugs/$1" e=0 l
-	rm -rf "$d"; mkdir -p "$d"
+	fresh_dir "$d"; mkdir -p "$d"
 	# Start Game, the instructions' Play, a line down the first board, the aim switched (the right button) and a line
 	# across (times in ms; a click holds the button 30 ms)
 	printf '%s\n' "3000 click 175 313" "4000 click 400 563" "7500 click 400 300" "17000 state" "17000 shot line1" \
@@ -1734,7 +1786,7 @@ cosmicbugs_run() {  # <name>: the headless runner's scripted game; prints its st
 
 cosmicbugs_window() {  # <name>: the windowed exe with the runner's left clicks; prints its state after the first line
 	local d="$OUT/cosmicbugs/$1" e=0 l u
-	rm -rf "$d"; mkdir -p "$d/user"
+	fresh_dir "$d"; mkdir -p "$d/user"
 	u="$(cygpath -ma "$d")"  # the exe's paths, also inside its script: absolute Windows ones, from any --out
 	printf '<CP_CONFIG\n    fullscreen="0"\n    desktopResolution="0"\n    wave="1"\n    music="1"\n/>\n' > "$d/user/cp.cfg"
 	# an update is 10 ms, a click holds the button 3 updates (pressed and let go in one update, it is lost, as it was
@@ -1749,14 +1801,14 @@ cosmicbugs_window() {  # <name>: the windowed exe with the runner's left clicks;
 }
 
 rocketmania_state_game() {  # <name> <exe> <mode> <difficulty> <bot seed> <game seed>: a game played by mouse (the bot of testhooks/UiBot.cpp); its state log is <name>/state.txt
-	local d="$OUT/rocketmania/$1"; rm -rf "$d"; mkdir -p "$d"
+	local d="$OUT/rocketmania/$1"; fresh_dir "$d"; mkdir -p "$d"
 	timeout 600 "$2" -userdir="$d/user" -fast -drawevery -seed="$6" -uibot="$5" -uistart=300000 -uimodes="$3" -uidiffs="$4" -uigames=1 -uicap=3000 		-statelog="$d/state.txt" -uiscript="$d/script.txt" > "$d/stdout.txt" 2> "$d/stderr.txt"
 }
 
 suite_rocketmania() {
 	local st=0 d="$OUT/rocketmania" e=0 f n=""
 	need_assets rocketmania || return 1
-	rm -rf "$d"; mkdir -p "$d/user"
+	fresh_dir "$d"; mkdir -p "$d/user"
 	sed "s|@DIR@|$d|" games/rocketmania/tools/menu_test.txt > "$d/script.txt"
 	timeout 300 "$W/build/native/rocketmania.exe" -userdir="$d/user" -fast -seed=1 -script="$d/script.txt" > "$d/stdout.txt" 2> "$d/stderr.txt" || e=$?
 	cat "$d/stdout.txt" "$d/stderr.txt" > "$1"
@@ -1805,7 +1857,7 @@ cosmicbugs_plays() {  # <exe> <tag>: the series of games checked against the ori
 	# played by the runner with origrun's watches; prints the checksum of all their watch lines, and EMPTY with the games
 	# that printed none (an exe that fails at start-up would otherwise give the checksum of nothing on both sides)
 	local exe="$1" d="$OUT/cosmicbugs/plays-$2" f n empty=""
-	rm -rf "$d"; mkdir -p "$d"
+	fresh_dir "$d"; mkdir -p "$d"
 	for f in games/cosmicbugs/test/plays/*.txt; do
 		n="$(basename "$f" .txt)"; case "$n" in *.orig) continue ;; esac
 		mkdir -p "$d/$n"
@@ -1849,7 +1901,7 @@ suite_cosmicbugs() {
 
 waterbugs_run() {  # <name>: the headless runner's scripted game; prints its state lines (and its exit status if not 0)
 	local d="$OUT/waterbugs/$1" e=0 l
-	rm -rf "$d"; mkdir -p "$d"
+	fresh_dir "$d"; mkdir -p "$d"
 	# Start Game, the world map's first area, the first board's start, a beam across the board (times in ms)
 	printf '%s\n' "3000 click 400 303" "8000 click 75 260" "14000 click 400 465" "20000 state" "20000 shot start" \
 		"24000 click 300 300" "32000 state" "32000 shot beam" "32010 end" > "$d/script.txt"
@@ -1865,7 +1917,7 @@ wb_hash() {  # <png>: the first 12 hex digits of the sha256 of the pixels; the l
 
 waterbugs_loss() {  # the last life lost, the click on the game over: the high scores (the game file is read again; it once crashed)
 	local d="$OUT/waterbugs/loss" e=0 l
-	rm -rf "$d"; mkdir -p "$d"
+	fresh_dir "$d"; mkdir -p "$d"
 	printf '%s\n' "3000 click 400 303" "8000 click 75 260" "14000 click 400 465" "20000 lives 1" "21000 die" "24000 click 400 300" \
 		"30000 state" "30000 shot scores" "30010 end" > "$d/script.txt"
 	timeout 300 build/native/waterbugs_run.exe assets/waterbugs "$d" "$d/script.txt" > "$d/stdout.txt" 2> "$d/stderr.txt" || e=$?
@@ -1877,7 +1929,7 @@ waterbugs_loss() {  # the last life lost, the click on the game over: the high s
 
 waterbugs_window() {  # <name>: the windowed exe with the runner's left clicks; prints its state after the beam
 	local d="$OUT/waterbugs/$1" e=0 l u
-	rm -rf "$d"; mkdir -p "$d/user"
+	fresh_dir "$d"; mkdir -p "$d/user"
 	u="$(cygpath -ma "$d")"  # the exe's paths, also inside its script: absolute Windows ones, from any --out
 	printf '<CP_CONFIG\n    fullscreen="0"\n    desktopResolution="0"\n    wave="1"\n    music="1"\n/>\n' > "$d/user/cp.cfg"
 	# an update is 10 ms, a click holds the button 3 updates (as in the Cosmic Bugs suite)
@@ -1939,7 +1991,7 @@ dynomite_exe() {  # <dir>: the game with <dir>/script.txt and <dir>/user; prints
 
 dynomite_run() {  # <name>: Stomped Puzzle, five shots, the board, then saved into the first slot; prints the board
 	local d="$OUT/dynomite/$1" u
-	rm -rf "$d"; dynomite_user "$d/user"
+	fresh_dir "$d"; dynomite_user "$d/user"
 	u="$(cygpath -ma "$d")"
 	# the title, New Game, Stomped Puzzle and OK, Easy and OK; the shots; the side bar's Save, the first slot, Save,
 	# and the name's Save (an update is 10 ms)
@@ -1953,7 +2005,7 @@ dynomite_run() {  # <name>: Stomped Puzzle, five shots, the board, then saved in
 
 dynomite_load() {  # <name> <run>: the run's saved game continued from the main menu; prints the board
 	local d="$OUT/dynomite/$1" u
-	rm -rf "$d"; mkdir -p "$d"; cp -r "$OUT/dynomite/$2/user" "$d/user"
+	fresh_dir "$d"; mkdir -p "$d"; cp -r "$OUT/dynomite/$2/user" "$d/user"
 	u="$(cygpath -ma "$d")"
 	# the title, Continue Game and Next, the first saved game and Let's Play
 	printf '%s\n' "600 click 320 450" "910 move 487 286" "920 click 487 286" "960 move 491 434" "970 click 491 434" \
@@ -1966,7 +2018,7 @@ dynomite_state() {  # <name> <exe> <seed> <mkscript rng seed> <parts...>: an ide
 	# played with -statelog, as the pass played it against the original; the log is <name>/state.txt
 	local d="$OUT/dynomite/$1" e="$2" seed="$3" r="$4" u
 	shift 4
-	rm -rf "$d"; dynomite_user "$d/user"
+	fresh_dir "$d"; dynomite_user "$d/user"
 	python games/dynomite/tools/identical/mkhs.py "$d/user"
 	python games/dynomite/tools/identical/mkscript.py "$d/script.txt" 25000 "$r" "$@"
 	u="$(cygpath -ma "$d")"
@@ -2006,7 +2058,7 @@ suite_dynomite() {
 
 bonnies_run() {  # <name> [<exe>]: games/bonnies/tools/tour_test.txt into $OUT/bonnies/<name>; prints the exit status
 	local d="$OUT/bonnies/$1" e=0
-	rm -rf "$d"; mkdir -p "$d/user"
+	fresh_dir "$d"; mkdir -p "$d/user"
 	sed "s|@DIR@|$d|" games/bonnies/tools/tour_test.txt > "$d/script.txt"
 	timeout 300 "${2:-$W/build/native/bonnies.exe}" -gamedir=assets/bonnies -userdir="$d/user" -fast -seed=1 \
 		-script="$d/script.txt" > "$d/stdout.txt" 2>&1 || e=$?
@@ -2057,7 +2109,7 @@ suite_bonnies() {
 
 mahjongjapan_run() {  # <name>: a new player, escape stage 1 won with the solver's clicks; prints the moves and the shots
 	local d="$OUT/mahjongjapan/$1" t=3400 x1 y1 x2 y2 n=0
-	rm -rf "$d"; mkdir -p "$d/shots" "$d/user"
+	fresh_dir "$d"; mkdir -p "$d/shots" "$d/user"
 	# Emperor's Adventure, the name "Test", the map's PLAY, the How To Play tip's OK; the solver's pairs; the Magic
 	# Gold Tiles tip's OK, the level's end and its OK, the map. No click reaches a link.
 	{
@@ -2093,7 +2145,7 @@ suite_mahjongjapan() {
 
 mahjongchina_run() {  # <name>: a new player, Dynasty Adventure stage 1 won with the solver's clicks; prints the moves and the shots
 	local d="$OUT/mahjongchina/$1" t=3400 x1 y1 x2 y2 n=0
-	rm -rf "$d"; mkdir -p "$d/shots" "$d/user"
+	fresh_dir "$d"; mkdir -p "$d/shots" "$d/user"
 	# Dynasty Adventure, the name "Test", the map's PLAY, the How To Play tip's OK; the solver's pairs; the Magic
 	# Gold Tiles tip's OK (its box is at the left), the level's end and its OK, the map. No click reaches a link.
 	{
@@ -2130,7 +2182,7 @@ suite_mahjongchina() {
 twist_game() {  # <name> <exe> <autoplay mode> <last update> <updates...>: a seeded 2D autoplay game (-nod3d9: 3D is the default; TWIST_MODE=-3d for 3D); prints its screens' hashes
 	local d="$OUT/bejeweledtwist/$1" exe="$2" mode="$3" last="$4" n
 	shift 4
-	rm -rf "$d"; mkdir -p "$d/shots" "$d/user"
+	fresh_dir "$d"; mkdir -p "$d/shots" "$d/user"
 	printf '[SOFTWARE\\Steam\\BejeweledTwist]\nScreenMode=dword:0\nArtRes=dword:768\n' > "$d/user/registry.ini"
 	{ for n in "$@"; do echo "$n screenshot $d/shots/$n.png"; done; echo "$last quit"; } > "$d/script.txt"
 	# autoplay clicks only the board and the mode select, never a link
@@ -2143,7 +2195,7 @@ twist_save() {  # <exe>: a seeded Classic game left at level 3, mid-twist (1777)
 	# (the test command shutdownsaves, GetShutdownSaves) must be what a quit writes, and the next start goes on with the game
 	# (-userdir absolute: Twist's own names begin with the app data folder, which a relative -userdir puts inside itself)
 	local d="$OUT/bejeweledtwist/save" exe="$1" n f r=""
-	rm -rf "$d"
+	fresh_dir "$d"
 	for n in 1777 2611; do
 		mkdir -p "$d/$n/user" "$d/$n/kept"
 		printf '[SOFTWARE\\Steam\\BejeweledTwist]\nScreenMode=dword:0\nArtRes=dword:768\n' > "$d/$n/user/registry.ini"
@@ -2195,7 +2247,7 @@ suite_bejeweledtwist() {
 
 bej2_play() {  # <name> <exe> <mode>: the port's bot plays a mode from a new player (tools/playbymove: -hold, -fast, seeded); prints "<transcript hash>:<end screen hash>"
 	local d="$OUT/bejeweled2/$1" exe="$2" mode="$3" t s
-	rm -rf "$d"; mkdir -p "$d/user"
+	fresh_dir "$d"; mkdir -p "$d/user"
 	python tools/playbymove/playbymove.py --dir "$W/$d" --steps "${BJ2_STEPS[$mode]}" --first "unlock all" --first "goto $mode" --timeout 120 		--shot "$W/$d/end.png" "$exe" "-gamedir=$W/assets/bejeweled2" "-userdir=$W/$d/user" -seed=1 > "$d/summary.txt" 2>&1
 	t="$(grep -v screenshot "$d/driver.txt" 2>/dev/null | sha256sum | cut -c1-12)"
 	s="$(sha256sum "$d/end.png" 2>/dev/null | cut -c1-12)"
@@ -2233,7 +2285,7 @@ suite_bejeweled2() {
 astropop_game() {  # <name> <steps> <command>...: the bot plays through tools/playbymove (real input, -hold, -fast); prints its summary line
 	local d="$OUT/astropop/$1" exe="${AP_EXE:-$W/build/native/astropop.exe}" n="$2" a=() c
 	shift 2
-	rm -rf "$d"; mkdir -p "$d"
+	fresh_dir "$d"; mkdir -p "$d"
 	for c in "$@"; do a+=(--first "$c"); done
 	timeout 600 python tools/playbymove/playbymove.py --dir "$d" --steps "$n" --timeout 120 "${a[@]}" "$exe" -seed=1 \
 		-userdir="$d/user" > "$d/out.txt" 2>&1
@@ -2282,7 +2334,7 @@ VN_SHOTS_ALL="name tutorial journey shot summary floodselect flood lost survival
 
 venice_run() {  # <name> [<exe>]: games/venice/tools/tour_test.txt into $OUT/venice/<name>; prints the exit status
 	local d="$OUT/venice/$1" e=0
-	rm -rf "$d"; mkdir -p "$d/user"
+	fresh_dir "$d"; mkdir -p "$d/user"
 	sed "s|@DIR@|$d|" games/venice/tools/tour_test.txt > "$d/script.txt"
 	timeout 300 "${2:-$W/build/native/venice.exe}" -gamedir=assets/venice -userdir="$d/user" -fast -seed=1 \
 		-script="$d/script.txt" > "$d/stdout.txt" 2>&1 || e=$?
@@ -2334,7 +2386,7 @@ HH_FROZEN="b0be3a484ad2 974f0929e354"  # the first 12 hex digits of the sha256 o
 
 hammerheads_run() {  # <name> [<exe>]: games/hammerheads/tools/tour_test.txt into $OUT/hammerheads/<name>; prints the exit status
 	local d="$OUT/hammerheads/$1" e=0
-	rm -rf "$d"; mkdir -p "$d/user"
+	fresh_dir "$d"; mkdir -p "$d/user"
 	sed "s|@DIR@|$d|" games/hammerheads/tools/tour_test.txt > "$d/script.txt"
 	timeout 300 "${2:-$W/build/native/hammerheads.exe}" -gamedir=assets/hammerheads -userdir="$d/user" -fast -seed=1 \
 		-script="$d/script.txt" > "$d/stdout.txt" 2>&1 || e=$?
@@ -2386,7 +2438,7 @@ HW_SHOTS_ALL="title menu highscores credits help map firsthelp game tip boss res
 
 heavyweapon_tour() {  # <name> [<exe>]: games/heavyweapon/tools/tour_test.txt into $OUT/heavyweapon/<name>; prints the exit status
 	local d="$OUT/heavyweapon/$1" e=0
-	rm -rf "$d"; mkdir -p "$d/user"
+	fresh_dir "$d"; mkdir -p "$d/user"
 	sed "s|@DIR@|$d|" games/heavyweapon/tools/tour_test.txt > "$d/script.txt"
 	timeout 300 "${2:-$W/build/native/heavyweapon.exe}" -gamedir=assets/heavyweapon -userdir="$d/user" -fast -seed=1 \
 		-script="$d/script.txt" > "$d/stdout.txt" 2>&1 || e=$?
@@ -2405,7 +2457,7 @@ heavyweapon_game() {  # <name> <steps> <command>...: the bot plays through tools
 	# the intro is clicked away; prints its summary line
 	local d="$OUT/heavyweapon/$1" exe="${HW_EXE:-$W/build/native/heavyweapon.exe}" n="$2" a=() c
 	shift 2
-	rm -rf "$d"; mkdir -p "$d"
+	fresh_dir "$d"; mkdir -p "$d"
 	for c in "click game 320 240" "wait 2" "click game 320 240" "wait 10" "$@"; do a+=(--first "$c"); done
 	timeout 600 python tools/playbymove/playbymove.py --dir "$d" --steps "$n" --nulls 60 --timeout 120 "${a[@]}" "$exe" \
 		-seed=1 -userdir="$d/user" > "$d/out.txt" 2>&1
@@ -2489,10 +2541,18 @@ run_suite() {  # <suite>[:<quick or targets>]: runs it and prints its summary li
 	log="$OUT/$name.txt"
 	start=$SECONDS
 	SUMMARY=""
+	if ! lock_suite "$name"; then
+		echo "FAIL $name (0s): another run of this suite holds $OUT/$name.lock (pid $LOCK_OWNER); not started"
+		return 1
+	fi
+	trap 'unlock_suite "$name"' EXIT
+	trap 'unlock_suite "$name"; exit 130' INT TERM
 	if "suite_$name" "$log" "$arg"; then
+		unlock_suite "$name"; trap - EXIT INT TERM
 		echo "PASS $name ($((SECONDS - start))s): $SUMMARY"
 		return 0
 	fi
+	unlock_suite "$name"; trap - EXIT INT TERM
 	echo "FAIL $name ($((SECONDS - start))s): $SUMMARY -> $log"
 	return 1
 }
