@@ -340,7 +340,8 @@ needed to say what dwm and the kernel spend on each path, and none could be had 
 measured again as cycle counts (`QueryProcessCycleTime`), three runs of each turn about. Big Money's whole scripted run
 (load, title, selector and the minute, about 91 s) on the software screen, and Dynomite's scripted minute. The first two
 batches ran while the compositor wait below was the default, so their software rows wait for DWM; the third batch ran
-with the framework's pace, the default now, and set the wait against it:
+with the framework's pace, the default then (the wait is the default again since the user chose it, below), and set the
+wait against it:
 
 | Batch | Game | Path | G cycles, median (range) | Peak private bytes |
 |---|---|---|---|---|
@@ -378,18 +379,17 @@ the port asks for software there with `SoftwareScreenDisplay::Create`'s third ar
 saves the device's 28 to 30 MB at the usual window for the processor time above. No port asks yet; the choice is each
 game's session's.
 
-### The compositor wait, an option
+### The compositor wait, the default
 
 The last column of the visible desktop's table is the frame pacing. A vsync present waits for the vertical blank, so
 each refresh shows one new frame; the window's surface has no vertical blank, and the framework's own pace (whole
 milliseconds, placing the frames on the update loop's 10 ms steps) showed a frame twice or skipped one on a quarter to a
 half of the refreshes. A scene that moves steadily, as the selector's roll or a falling piece, then moves unevenly.
 
-With `SURFACE_PACE=dwm` in a test run, each present without a renderer on Windows waits for the desktop compositor's
-next composition (`DwmFlush`, `GdiStretch::WaitForComposition`), as a vsync present waits for the blank. The wait is
-skipped with `-fast`, `-drawevery` and `-hold`, as the pace is, and before the game has loaded. A wait that fails, or
-that holds a frame for more than 250 ms (a compositor that is not composing), hands the frames back to the pace for
-good. The same minute again on the visible desktop, three runs of each, every present's time set against DWM's vertical
+Each present without a renderer on Windows can wait for the desktop compositor's next composition (`DwmFlush`,
+`GdiStretch::WaitForComposition`), as a vsync present waits for the blank. The wait is skipped with `-fast`, `-drawevery`
+and `-hold`, as the pace is, and before the game has loaded. A wait that fails, or that holds a frame for more than
+250 ms (a compositor that is not composing), hands the frames back to the pace for good. The same minute again on the visible desktop, three runs of each, every present's time set against DWM's vertical
 blanks (`DwmGetCompositionTimingInfo`; this display runs at 60.002 Hz):
 
 | Window | Path | Refreshes showing one new frame | Interval between presents, median (5th to 95th percentile) | Peak private bytes |
@@ -410,10 +410,14 @@ Dynomite's scripted minute (the table's last rows): the wait took more of the ga
 1 to 18 %, about 2 % in the median pair (1x 11.6 G against 9.8, 2x 11.3 against 10.6 in the medians), the cost of the
 call and of presents that now meet the compositor's work.
 
-**So the framework's own pace stays the default, and the frame pacing is not as even as the vsync GPU path's:** on the
-window's surface (the software screen at 1x, `SurfaceDisplay` at every size) a moving scene shows a frame twice or skips
-one on a quarter to a half of the refreshes, where the GPU path shows one new frame on nine refreshes in ten or more.
-Making the wait the default, for that evenness at about 2 % of the game's processor time, is the user's choice.
+**The user made the wait the default on 2026-11-15** ("Make it the default"), for that evenness at about 2 % of the
+game's processor time: every present to the window's surface on Windows (the software screen at 1x, `SurfaceDisplay` at
+every size) waits for the compositor, with the skips and the fallback above. It blocks the main loop for up to a
+refresh, as a vsync present does. `SURFACE_PACE=ms` in a test run gives the framework's millisecond pace back, to
+measure against; elsewhere than Windows the pace stays. Since `-fast`, `-drawevery` and `-hold` skip the wait, scripted
+runs and the frozen baselines are untouched by it (all unchanged after the switch). The fallback is for good: a session
+in which one wait fails or holds a frame over 250 ms (a compositor that stops composing) stays on the pace until the
+game is started again.
 
 ### The picture at each size
 
@@ -471,11 +475,11 @@ drawing of one scaled picture at the title.
 
 **What dwm and the kernel spend on each path is not known**, for the machine was never quiet (above).
 
-**The window's surface is paced less evenly than a vsync present** while the framework's pace is the default: a moving
-scene shows a frame twice or skips one on a quarter to a half of the refreshes, on the software screen at 1x (Big Money,
-Dynomite) as on `SurfaceDisplay` at every size, as before this part. The compositor wait would even it for about 2 % of
-the game's processor time, and would block the main loop for up to a refresh, as a vsync present does; it waits for the
-user's choice.
+**The window's surface was paced less evenly than a vsync present** while the framework's pace was the default: a moving
+scene showed a frame twice or skipped one on a quarter to a half of the refreshes, on the software screen at 1x (Big
+Money, Dynomite) as on `SurfaceDisplay` at every size. The compositor wait evens it for about 2 % of the game's processor
+time and blocks the main loop for up to a refresh, as a vsync present does; the user made it the default on 2026-11-15
+("The compositor wait, the default", above).
 
 **A stretched picture is made again** when it is drawn after two frames without it, as the original made every one each
 time it was drawn.
@@ -488,7 +492,7 @@ time it was drawn.
 | `SOFTWARE_SCREEN=3d` | the same, offering 3D: Is3DAccelerationSupported is 1 while an accelerated renderer can be had, and 3D on hands the screen to the GPU |
 | `SOFTSCREEN_SCALED=1` or `0` | a software screen stays in software at 2x to 4x (through GDI's stretch where it can), or takes the GPU there, whatever the port asked |
 | `SURFACE_PRESENT=copy` | at 2x to 4x, the repeated copy into the window's surface in place of GDI's stretch, as before |
-| `SURFACE_PACE=dwm` | each present to the window's surface waits for DWM's next composition in place of the framework's millisecond pace (Windows) |
+| `SURFACE_PACE=ms` | each present to the window's surface is held by the framework's millisecond pace, as before 2026-11-15, in place of the wait for DWM's next composition (Windows; the wait is the default) |
 | `BYOPOP_NOLOADUPLOAD=1` | turns off the upload at load (step 6) |
 
 The test command `3d on|off` ticks or clears the Options box through `Set3DAcclerated` and logs what the display made of
