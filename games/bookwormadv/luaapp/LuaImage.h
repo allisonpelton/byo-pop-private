@@ -25,6 +25,7 @@ public:
 	// +0x74: the filters this handle applied to the image (a game's, such as Bookworm Adventures' MakeSepia)
 	std::vector<void (*)(MemoryImage*)> mFilters;
 
+	// 0x667920 (constructor; the original also registered the LuaImage class the first time, which RegisterLua does here)
 	LuaImage() {}
 	explicit LuaImage(const SharedImageRef& theImage) : mImage(theImage) {}
 
@@ -50,6 +51,7 @@ public:
 	bool Palletize() { return Image()->Palletize(); }
 	void Clear() { Image()->Clear(); }
 	// 0x6684e0, 0x6685a0: theFilter applied to the (shared) image, unless this handle already did
+	// 0x670340 (the list's push_back, with its growing) is inline here
 	void ApplyFilter(void (*theFilter)(MemoryImage*))
 	{
 		if (std::find(mFilters.begin(), mFilters.end(), theFilter) != mFilters.end())
@@ -58,6 +60,7 @@ public:
 		theFilter(Image());
 	}
 	// A Graphics that draws into the image (Lua owns it)
+	// 0x667c90
 	LuaLib::LuaMultiRet GetGraphics();
 
 	static void RegisterLua();
@@ -70,14 +73,17 @@ public:
 	bool mBorrowed = false;   // +0x48: the font belongs to someone else (a resource's: 0x670080)
 	bool mIsSysFont = false;  // +0x49: made from "name,size[,bold,...]" rather than a resource
 
+	// 0x6687a0 (constructor; the original also registered the LuaFont class the first time, which RegisterLua does here)
 	LuaFont() {}
 	LuaFont(const std::string& theName, Font* theFont) : mFont(theFont), mName(theName), mBorrowed(true) {}
+	// 0x6688d0
 	~LuaFont()
 	{
 		if (!mBorrowed)
 			delete mFont;
 	}
 
+	// 0x669010
 	int StringWidth(const char* theString) { return mFont->StringWidth(theString); }
 	int GetAscent() { return mFont->mAscent; }
 	int GetHeight() { return mFont->mHeight; }

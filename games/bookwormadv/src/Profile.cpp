@@ -78,12 +78,14 @@ bool Profile::KeyExists(const std::string& theKey) const
 	return mValues.find(theKey) != mValues.end();
 }
 
+// 0x4897d0 and 0x48b640 (the by-value form: a copy of the 0x2004-byte value) are this function
 const Profile::Value* Profile::GetValue(const std::string& theKey) const
 {
 	auto it = mValues.find(theKey);
 	return it == mValues.end() ? nullptr : &it->second;
 }
 
+// 0x489460 (the int of the value at the key) and 0x48b720 (the type of the value) are inline here
 int Profile::GetInt(const std::string& theKey) const
 {
 	const Value* aValue = GetValue(theKey);
@@ -96,6 +98,7 @@ int Profile::GetInt(const std::string& theKey) const
 	return 0;
 }
 
+// 0x489460 (the float of the value at the key) and 0x48b720 (the type of the value) are inline here
 float Profile::GetFloat(const std::string& theKey) const
 {
 	const Value* aValue = GetValue(theKey);
@@ -108,18 +111,21 @@ float Profile::GetFloat(const std::string& theKey) const
 	return 0;
 }
 
+// 0x489610 (the bool of the value at the key) is inline here
 bool Profile::GetBool(const std::string& theKey) const
 {
 	const Value* aValue = GetValue(theKey);
 	return aValue != nullptr && aValue->mType == TYPE_BOOL && aValue->mBool;
 }
 
+// 0x4896e0 (the string copied from the entry found, or an empty one) is inline here
 std::string Profile::GetString(const std::string& theKey) const
 {
 	const Value* aValue = GetValue(theKey);
 	return aValue != nullptr && aValue->mType == TYPE_STRING ? aValue->mString : std::string();
 }
 
+// 0x48da40 (the map's insert of the key and the 0x2004-byte value) is inline here
 void Profile::Set(const std::string& theKey, const Value& theValue)
 {
 	mValues[theKey] = theValue;
@@ -253,6 +259,7 @@ void Profile::ResetTimedMode()
 
 static void WriteValue(Buffer& theBuffer, const Profile::Value& theValue);
 
+// 0x48a140 (a table's entries, each with its value by type, recursive)
 static void WriteTable(Buffer& theBuffer, const std::vector<Profile::Entry>& theTable)
 {
 	for (size_t i = 0; i < theTable.size(); i++) {
@@ -334,6 +341,8 @@ static void ReadValue(const Buffer& theBuffer, Profile::Value& theValue)
 	}
 }
 
+// 0x489d60 (the loop over the values: the key, then the value by its type) and 0x48a090 (it, then the write of the
+// file) are inline here
 bool Profile::Save()
 {
 	if (mNoSave)
@@ -349,6 +358,7 @@ bool Profile::Save()
 
 // The cheat console's hooks Load calls (0x48a6ee, 0x48af3e): the global function with the key (if any) and the
 // app's profile's name. They act on the app's profile through profile.*, whichever profile is being read.
+// 0x4915e0 (the Lua call of the hook with the function name and key) is inline here
 static void CallLoadHook(const char* theFunction, const std::string* theKey)
 {
 	lua_State* L = LuaLib::gLuaSupport->L;

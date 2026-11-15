@@ -34,6 +34,7 @@ static Node* hashnum(const Table* t, lua_Number n)
 }
 
 // returns the `main' position of an element in a table (that is, the index of its hash value)
+// 0x702830
 Node* luaH_mainposition(const Table* t, const TObject* key)
 {
 	switch (ttype(key)) {
@@ -68,6 +69,7 @@ static const TObject* getgeneric(Table* t, const TObject* key);
 
 // returns the index of a `key' for table traversals: first the array part (index = key), then the hash part
 // (index = sizearray + node number)
+// 0x702940
 static int luaH_index(lua_State* L, Table* t, StkId key)
 {
 	int i;
@@ -87,6 +89,7 @@ static int luaH_index(lua_State* L, Table* t, StkId key)
 
 #define nodeused(n) (!ttisnil(gval(n)) || ((n)->flags & NODE_DEFINED))
 
+// 0x7029a0
 int luaH_next(lua_State* L, Table* t, StkId key)
 {
 	int i = luaH_index(L, t, key);  // find original element
@@ -109,6 +112,7 @@ int luaH_next(lua_State* L, Table* t, StkId key)
 
 // ---- rehash ------------------------------------------------------------------------------------------
 
+// 0x702b30
 static int computesizes(int nums[], int* narray)
 {
 	int i;
@@ -143,6 +147,7 @@ static int countint(const TObject* key, int* nums)
 		return 0;
 }
 
+// 0x702bd0
 static int numusearray(const Table* t, int* nums)
 {
 	int lg;
@@ -168,6 +173,7 @@ static int numusearray(const Table* t, int* nums)
 	return ause;
 }
 
+// 0x702c40
 static int numusehash(const Table* t, int* nums, int* pnasize)
 {
 	int totaluse = 0;  // total number of elements
@@ -184,6 +190,7 @@ static int numusehash(const Table* t, int* nums, int* pnasize)
 	return totaluse;
 }
 
+// 0x702cf0
 static void setarrayvector(lua_State* L, Table* t, int size)
 {
 	int i;
@@ -193,6 +200,7 @@ static void setarrayvector(lua_State* L, Table* t, int size)
 	t->sizearray = size;
 }
 
+// 0x702d40
 static void setnodevector(lua_State* L, Table* t, int size)
 {
 	int lsize;
@@ -219,6 +227,7 @@ static void setnodevector(lua_State* L, Table* t, int size)
 	t->lastfree = gnode(t, size);  // all positions are free
 }
 
+// 0x702e60
 static void resize(lua_State* L, Table* t, int nasize, int nhsize)
 {
 	int i;
@@ -249,6 +258,7 @@ static void resize(lua_State* L, Table* t, int nasize, int nhsize)
 		luaM_freearray(L, nold, twoto(oldhsize), Node);  // free old array
 }
 
+// 0x703040
 static void rehash(lua_State* L, Table* t, const TObject* ek)
 {
 	int nasize, na;
@@ -271,6 +281,7 @@ static void rehash(lua_State* L, Table* t, const TObject* ek)
 
 // ---- creation and freeing ------------------------------------------------------------------------------
 
+// 0x703160
 Table* luaH_new(lua_State* L, int narray, int nhash)
 {
 	Table* t = luaM_new(L, Table);
@@ -290,6 +301,7 @@ Table* luaH_new(lua_State* L, int narray, int nhash)
 	return t;
 }
 
+// 0x7031f0
 void luaH_free(lua_State* L, Table* t)
 {
 	if (t->node != dummynode)
@@ -311,6 +323,7 @@ static Node* getfreepos(Table* t)
 // whether colliding node is in its main position or not: if it is not, move colliding node to an empty place
 // and put new key in its main position; otherwise (colliding node is in its main position), new key goes to
 // an empty position.
+// 0x703310
 static TObject* newkey(lua_State* L, Table* t, const TObject* key, int flags)
 {
 	Node* mp = luaH_mainposition(t, key);
@@ -485,6 +498,7 @@ TObject* luaH_set_f(lua_State* L, Table* t, const TObject* key, int flags)
 	}
 }
 
+// 0x703740
 TObject* luaH_set(lua_State* L, Table* t, const TObject* key)
 {
 	return luaH_set_f(L, t, key, 0);

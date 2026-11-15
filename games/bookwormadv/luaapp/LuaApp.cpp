@@ -15,6 +15,7 @@ using namespace LuaLib;
 
 LuaApp* Sexy::gLuaApp = nullptr;
 
+// 0x65ed00
 LuaApp::LuaApp()
 {
 	gLuaApp = this;
@@ -112,6 +113,7 @@ void LuaApp::WriteToRegistry()
 		RegistryWriteBoolean("Is3D", m3DMode);
 }
 
+// 0x661620
 void LuaApp::Shutdown()
 {
 	if (!mShutdown && mLua != nullptr)

@@ -4,6 +4,7 @@
 
 #define MEMERRMSG "not enough memory"
 
+// 0x708410
 static void stack_init(lua_State* L1, lua_State* L)
 {
 	L1->stack = luaM_newvector(L, BASIC_STACK_SIZE + EXTRA_STACK, TObject);
@@ -20,6 +21,7 @@ static void stack_init(lua_State* L1, lua_State* L)
 	L1->end_ci = L1->base_ci + L1->size_ci;
 }
 
+// 0x7084f0
 static void freestack(lua_State* L, lua_State* L1)
 {
 	luaM_freearray(L, L1->base_ci, L1->size_ci, CallInfo);
@@ -80,6 +82,7 @@ static void preinit_state(lua_State* L)
 	setnilvalue(gt(L));
 }
 
+// 0x708780
 static void close_state(lua_State* L)
 {
 	luaF_close(L, L->stack);  // close all upvalues for this thread
@@ -114,6 +117,7 @@ void luaE_freethread(lua_State* L, lua_State* L1)
 	luaM_freelem(L, L1);
 }
 
+// 0x7089d0
 lua_State* lua_open(void)
 {
 	lua_State* L = luaM_new(NULL, lua_State);
@@ -132,12 +136,14 @@ lua_State* lua_open(void)
 	return L;
 }
 
+// 0x708a30
 static void callallgcTM(lua_State* L, void* ud)
 {
 	(void)ud;
 	luaC_callGCTM(L);  // call GC metamethods for all udata
 }
 
+// 0x708a50
 void lua_close(lua_State* L)
 {
 	L = G(L)->mainthread;  // only the main thread can be closed

@@ -120,6 +120,7 @@ PopAnim::~PopAnim()
 
 // 0x52b000: the animation is gone, but for what the game set up (the id, the listener, the image folders and
 // whether to interpolate)
+// 0x5290a0 (the release of the shared definitions) is inline here: mData.reset()
 void PopAnim::Reset()
 {
 	mMirror = false;
@@ -146,6 +147,7 @@ void PopAnim::SetError(const std::string& theError)
 
 // 0x52b220, with 0x52b3f0 for the Widget part. What is copied is the state: the images are shared by reference,
 // the definitions in mData by pointer, and the root is the caller's to make.
+// 0x52b480 (the Widget part's fields) is inline here
 void PopAnim::CopyFrom(const PopAnim* theOther)
 {
 	mX = theOther->mX;
@@ -312,6 +314,7 @@ void PopAnim::ImageLoaded(SharedImageRef /*theImage*/)
 
 // 0x52c280: the path comes as the string the method is called on, the PopAnim on the stack. Fails, with mError,
 // for a file that is missing, damaged or of a version this does not know (0 to 3).
+// 0x52cc80 (PASpriteDef's constructor) is inline here: the definition starts empty
 bool PopAnim::LoadPam(const std::string& thePath)
 {
 	mPamFileName = thePath;
@@ -409,6 +412,7 @@ bool PopAnim::LoadPam(const std::string& thePath)
 
 // 0x52b5d0: one sprite. Each frame is the changes from the frame before: the flags say which of these follow.
 // The loader plays them on a table of the objects on screen, and keeps the table's contents as the frame.
+// 0x529030 (PAFrame's constructor) is inline here: the frame's members start empty
 bool PopAnim::LoadSprite(Buffer& theBuffer, PASpriteDef* theDef)
 {
 	std::map<int, PAObjectPos> anObjects;  // by object number, which is the drawing order

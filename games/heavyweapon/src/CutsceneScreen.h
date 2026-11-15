@@ -35,7 +35,6 @@ public:
 
 	virtual void	AddedToManager(WidgetManager* theWidgetManager) override;	// 0x41f1d0 slot 1
 	virtual void	RemovedFromManager(WidgetManager* theWidgetManager) override; // 0x41edb0 slot 2
-	virtual void	Resize(int theX, int theY, int theWidth, int theHeight) override; // 0x41ede0 slot 13
 	virtual void	Draw(Graphics* g) override;								// 0x41ef50 slot 16
 	virtual void	Update() override;										// 0x41efc0 slot 17
 	virtual void	MouseDown(int x, int y, int theClickCount) override;	// 0x41ef10 slot 28
@@ -43,7 +42,6 @@ public:
 
 	void			EndCutscene();											// 0x41ee20
 
-	using Widget::Resize;
 	using Widget::MouseDown;
 };
 

@@ -58,6 +58,8 @@ An AddressSanitizer build (2026-10-25): `cmake -S . -B build/native-asan -G Ninj
 ## Mods
 
 None yet (the user's rule: no mods before every PopCap game works in the browser). `MOD_IDEAS.md` lists the ones worth making.
+The lite mod step is done with no mod: `LITE_MOD.md` says what the route search costs, which of its faster methods gives another
+route and which gives the same one, and why none is taken.
 
 ## Status (2026-10-25)
 
