@@ -81,7 +81,7 @@ holds the rules every session follows; this file does not repeat them.
   native, not just its log. Each brief says so.
 - **Done means every phase but modding (the user, 2026-11-08, 2026-11-11):** a game is done, and may go on the live
   site, only after every step above, its features on the site included: its tunes placed, grouped and split in Music,
-  and its soundboard's presets ("All these accessory features should be added to our definition of done"). The site
+  its modules' unused patterns in Music's section for them (2026-11-15), and its soundboard's presets ("All these accessory features should be added to our definition of done"). The site
   session builds those and the game's session answers its questions. The games done on 2026-12-31 go live then (the
   site going public is still the user's word); the rest follow when done. Modding waits: new mods and the changes in
   `docs/MOD_ROADMAP.md`.

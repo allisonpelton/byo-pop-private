@@ -361,6 +361,9 @@ the board; on Average and Hard the menu's Play does). A level clear is the updat
 the map are one update. Undo is cleared in NewLevel, so no clear is taken back. `progress` = levels completed
 (`mLevel - 1`, 30 when level 31 has begun). Game over kind 0: out of lives (Board::GameOver); kinds 1 to 3 unused.
 Leaving through New Game saves the game and removes the board, with no event. No win: the game goes on past level 30.
+Open question from the site session's test: `goto easy` given while the map is up (after level 30) leaves the map on screen
+(dialog 5, its button never closes it); closing the map first is fine. ShowIntro removes the board but not the map widget,
+which the original's 0x41f8b0 may do too; not chased (a test command's path, listed as an oddity until a player is shown to reach it).
 Proof of inertness: the three bot games of `tools/check.sh sevenseas` give the same log and screenshots with the block
 off and with it on, and the suite's frozen baseline is unchanged.
 
