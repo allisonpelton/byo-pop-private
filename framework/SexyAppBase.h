@@ -357,8 +357,12 @@ public:
 	//                     modmenu <what> ...   the mod menu (framework/ModMenu.h; a mod id with spaces in
 	//                                          "..."): open, close, page <mod> | list, enable <mod> 0|1,
 	//                                          move <mod> -1|1, set <mod> <setting> <JSON value>, reset <mod>,
-	//                                          restart [confirm], dump <file> (the state JSON). F2 is real
-	//                                          input only: "key F2" goes to the focused widget.
+	//                                          restart [confirm], dump <file> (the state JSON), targets (answers
+	//                                          MODMENU {"page","screen","panel","targets":[{"kind","item",
+	//                                          "rect"}]}: where
+	//                                          a click lands now, or MODMENU null when closed; also with
+	//                                          -realinput). F2 is real input only: "key F2" goes to the focused
+	//                                          widget.
 	//                   Other commands go to the game's HandleScriptCommand (WinDMApp: save <file>).
 	//   -fast           updates run back to back on a virtual clock and the screen is drawn every
 	//                   FAST_DRAW_INTERVAL updates, so a script runs as fast as the machine allows
@@ -481,6 +485,8 @@ public:
 	bool mModMenuKeyDown;       // the F2 that toggled it is down: its key-up is not passed on
 	int mModMenuClosingKey;     // the key that closed it (Esc, Enter, Space) while it is held: its repeats and the
 	                            // text they type are not passed on, so they cannot reach the game (its release is)
+	bool mModMenuClosedByTest;  // a test's command closed it in this update: UpdateFrames goes on with the update's
+	                            // game part only (UpdateModMenuFrame counted it and ran the test channels)
 	int mKeyInHandling;         // the key whose real press (or the text it typed) the widgets are getting, else 0
 	int mLastKeyPressed;        // the last real key pressed: the key behind the text input that follows it
 	bool mRestartRequested;     // RequestRestart: the app shuts down to start again (main(): TakeRelaunch)
@@ -499,6 +505,8 @@ protected:
 	virtual void UpdateFrames();
 	virtual bool DoUpdateFrames();
 	virtual void DoUpdateFramesF(float theFrac);
+	void RunTestChannels();      // port: the tests' input and commands of one update, as UpdateFrames runs them
+	bool UpdateModMenuFrame();   // port: DoUpdateFrames while the mod menu is open: the menu alone, the game held
 	virtual void MakeWindow();
 	// port: the display MakeWindow makes (a DDInterface unless a game gives another, such as a GPUDisplay), and SDL
 	// window flags it adds to the window's own (0 unless a game's display needs one, such as SDL_WINDOW_OPENGL)
@@ -790,9 +798,11 @@ public:
 	bool QueueLiveCommand(const std::string& theLine, int theLineNum);
 
 	// --- port: the mod menu and restarts (docs/MOD_MENU_DESIGN.md 5, 6) ---
-	// The menu is a base modal widget above everything (not a dialog: it is not in mDialogMap). It pauses the
-	// game through ModalOpen()/ModalClose() exactly as a modal dialog does. F2 (no modifiers, no repeat) toggles
-	// it with real input, never in a -script run; scripts use "modmenu ..." (RunScript).
+	// The menu is a base modal widget above everything (not a dialog: it is not in mDialogMap). It calls the game's
+	// ModalOpen()/ModalClose() as a modal dialog does, takes every mouse and key event for itself
+	// (WidgetManager::SetInputCapture: what a game polls stays as it was) and holds the game: while it is open an
+	// update runs the menu alone (UpdateModMenuFrame). F2 (no modifiers, no repeat) toggles it with real input,
+	// never in a -script run; scripts use "modmenu ..." (RunScript).
 	void OpenModMenu();
 	void CloseModMenu();
 	bool IsModMenuOpen() const { return mModMenu != NULL; }
