@@ -717,7 +717,8 @@ machine's NVIDIA card under Direct3D 11:
 
 `framework/LinearStretch` does exactly that from the frame itself, with a table for the columns and one for the rows;
 the repeated texture is never made. Most output pixels fall between two texels of one frame pixel and are copies; only
-the seams between the frame's pixels blend, and a row whose taps equal the row above is copied whole.
+the seams between the frame's pixels blend (with SSE2, four at a time: "What it costs"), and a row whose taps equal the
+row above is copied whole.
 
 ### How close it is
 
@@ -758,40 +759,53 @@ present made again into its back buffer, or GDI's window read back, after any pe
 
 ### What it costs
 
-Bonnie's on rundesk's desktop, pinned to one core, three rounds with the smooth stretch and the renderer
-(`SURFACE_STRETCH=3` and `0`) turn about, both under the compositor wait: full screen at the desktop's 3840x2160 (the
-frame in a rect of 2880x2160 at render scale 4) and a window of 1920x1080 (1440x1080, render scale 2). The logos are
-whole-screen fades (360 updates), then the static menu (900 updates) and a scripted minute of the tour. Medians of the
-game's processor cycles (`-cyclesplit`), and its private bytes at the menu and at the end:
+Bonnie's on rundesk's desktop, pinned to one core, with the smooth stretch and the renderer (`SURFACE_STRETCH=3` and
+`0`) turn about, both under the compositor wait: full screen at the desktop's 3840x2160 (the frame in a rect of
+2880x2160 at render scale 4) and a window of 1920x1080 (1440x1080, render scale 2). The logos are whole-screen fades
+(360 updates), then the static menu (900 updates) and a scripted minute of the tour. Medians of the game's processor
+cycles (`-cyclesplit`) over five rounds, and its private bytes at the menu and at the end:
 
 | Window | Path | Logos | Static menu | Minute | Private bytes |
 |---|---|---|---|---|---|
-| 3840x2160, full screen | smooth, on the processor | 1.57 G | 1.21 G | 12.71 G | 53.0 / 55.8 MB |
-| 3840x2160, full screen | renderer (Direct3D 11) | 1.23 G | 1.21 G | 11.69 G | 84.1 / 86.4 MB |
-| 1920x1080 | smooth, on the processor | 1.18 G | 1.21 G | 12.53 G | 54.2 / 56.1 MB |
-| 1920x1080 | renderer (Direct3D 11) | 1.08 G | 1.14 G | 12.44 G | 85.3 / 87.6 MB |
+| 3840x2160, full screen | smooth, on the processor | 0.83 G | 0.70 G | 8.59 G | 53.6 / 55.7 MB |
+| 3840x2160, full screen | renderer (Direct3D 11) | 0.79 G | 0.83 G | 8.79 G | 86.5 / 88.6 MB |
+| 1920x1080 | smooth, on the processor | 0.58 G | 0.78 G | 9.04 G | 56.4 / 58.1 MB |
+| 1920x1080 | renderer (Direct3D 11) | 0.80 G | 0.88 G | 9.53 G | 86.0 / 88.5 MB |
 
-**Memory:** about 31 MB less private bytes at both sizes, the Direct3D device and its driver (5 to 7 threads in the
-game's process against 41 to 44) never being loaded; the stretch itself keeps its band of under 1 MB and two tables.
+**Memory:** about 30 MB less private bytes at both sizes, the Direct3D device and its driver (5 to 7 threads in the
+game's process against 41 to 44) never being loaded; the stretch itself keeps its band of under 1 MB and its tables.
 
-**Processor, where it is worse than Direct3D:** a screen that changes whole. The static menu costs the same, and the
-minute within the run-to-run spread at 1080 and 9 % more at 4K (the third round of each path took about 14.2 G, a spread
-of that size). The logos' fades took 9 % more at 1080 and 28 % more at 4K, where the renderer's stretch is the card's
-work and this one is the processor's: drawing a whole 2880x2160 rect takes 9 to 10.5 ms from an 800x600 frame and 15
-to 19 ms from a 640x480 one (`stretchcal -bench`, more of the output blending at the larger factor), and the BitBlt of its
-25 MB comes on top. At 4K the logos ran 0.4 and 0.5 s long in two rounds of three (4.0 and 4.1 s for 3.6), the
-renderer's at most 0.2 s; in the minute the renderer's 1080 runs were the slow ones (63.9 and 64.1 s in two rounds),
-so the machine's load was part of both. The game's present lengths in the 4K logos were 2 to 4 ms in the median and 12
-to 34 ms at the 95th percentile, by the machine's load, with the compositor wait or the millisecond pace alike. A game
-that changed the whole screen every frame at 4K would spend most of a core on it.
+**Processor:** at or below the renderer's in a window of 1920x1080 and in the 4K minute, and about the renderer's in the
+4K fades: 5 % more by the medians of the five rounds, and more in three pairs of five (2, 14, 18 and 24 % more, 5 %
+less), with the rounds themselves 2 to 1 apart from the machine's load (the 4K logos took 0.76 to 1.32 G with the
+smooth stretch and 0.69 to 1.07 G with the renderer). The logos kept their 3.5 s on both paths but once (3.8 s with the
+smooth stretch in the busiest round). What is left over the renderer at 4K is the copy into the window: in a timed run
+of the logos at 4K, `LinearStretch::Draw` took about 0.9 ns a pixel (the first SSE2 version, a quarter faster since) and GDI's BitBlt
+into the window 0.6 ns, which no drawing can save; the renderer copies only the frame's changed pixels and the card does the
+rest.
 
-**dwm.exe and the System process** were measured on the visible desktop (a 1920x1080 window, not activated, three rounds
-each), but other sessions' builds kept the machine 94 to 100 % busy throughout, so the wall times there are the load's:
-the renderer's static menu took 19.3 s for 9 in one run, and the smooth minute 80 and 96 s in two, the second handing
-its frames to the pace after a held wait. dwm's cycles a second were the same within the spread for the static menu
-(0.28 to 0.36 G against the renderer's 0.30 to 0.35) and the minute (0.34 to 0.47 against 0.34 to 0.46), and about
-12 % higher with the smooth stretch in the logos (0.34 to 0.37 against 0.29 to 0.34). The System process's cycles were
-the other sessions' and say nothing here. What dwm and the kernel spend on each path still wants a quiet machine.
+**The first draw was slower.** It worked a value out for each run of equal columns (a frame pixel's copies, or one seam)
+and filled the run, a branch and a short loop for every two or three pixels; a whole 2880x2160 rect took 9 to 10.5 ms
+from an 800x600 frame and 15 to 19 ms from a 640x480 one (`stretchcal -bench`), and the 4K fades cost 28 % more than the
+renderer's, the logos running 0.4 and 0.5 s long in two rounds of three. Now each row takes its copy columns from a
+table of the frame's pixels (from the frame's row, or, between two rows, from that row blended with the next for each
+of the frame's columns once, four at a time), and the seams, about one column in three, are blended over them four at a
+time with SSE2: each seam's two pixels read at once (the second is always the first's right neighbour), the weights
+kept spread over the 16-bit lanes, and the level worked out in those lanes (`(s + ((s + 128) >> 8)) >> 4` is the
+table's first step and `(q + ((2047 - q) >> 8)) >> 4` its second, both inside 16 bits for every sum). The same rect now
+takes 3.3 ms from 800x600 and 5.1 ms from 640x480 (1080: 2.7 and 1.5 ms). `stretchcal -selftest` (in `check.sh unit`)
+holds `Draw` to `DrawReference`, the arithmetic pixel by pixel: 6,300 cases, whole rects in bands and random parts of
+them, five frame sizes, thirty windows and the six patterns with top bytes set, none differing, and every one of the
+65,281 sums levelled as the table does; the card's comparison is still 0 differing.
+
+**dwm.exe and the System process** were measured on the visible desktop with the first draw (a 1920x1080 window, not
+activated, three rounds each), but other sessions' builds kept the machine 94 to 100 % busy throughout, so the wall times
+there are the load's: the renderer's static menu took 19.3 s for 9 in one run, and the smooth minute 80 and 96 s in two,
+the second handing its frames to the pace after a held wait. dwm's cycles a second were the same within the spread for
+the static menu (0.28 to 0.36 G against the renderer's 0.30 to 0.35) and the minute (0.34 to 0.47 against 0.34 to 0.46),
+and about 12 % higher with the smooth stretch in the logos (0.34 to 0.37 against 0.29 to 0.34). The System process's
+cycles were the other sessions' and say nothing here. What dwm and the kernel spend on each path still wants a quiet
+machine.
 
 ### The mod menu
 
