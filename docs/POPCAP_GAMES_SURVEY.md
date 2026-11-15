@@ -179,7 +179,7 @@ Bejeweled Twist (2008), Zuma's Revenge (2009) and Bejeweled 3 (2011) use later i
 public source. Twist's is ported: its D3D9 interface became the framework's GPU path (`framework/GPU2D.h`,
 `GPUInterface.h`, `GPUDisplay.h`), and its 3D drawing is in `games/bejeweledtwist/src/`.
 
-Of the engines that are not SAF, Sprout's first generation is ported in Word Harmony (`games/wordharmony/engine/`,
+Of the engines that are not SAF, Sprout's first generation is ported in Word Harmony (`engines/sprout/`,
 described in `games/wordharmony/docs/ENGINE.md`), and Pizza Frenzy, Iggle Pop and Feeding Frenzy start from it. Sprout's second
 generation (Feeding Frenzy 2, Talismania), Raptisoft's engine (Chuzzle) and Square Enix's (Gyromancer) have no
 port. The other engines ported so far (TipTop's, Ning Po's, Retro64's, Jolly Bear's, New Crayon's) serve no
@@ -200,7 +200,7 @@ the game that needed it first until a second game moves it to shared code.
 | JeffLib | The parts Bookworm Adventures uses: `games/bookwormadv/jefflib/`. | Zuma's Revenge (13 classes) |
 | 3D and shaders | For Twist: the framework's GPU path (`framework/GPU2D.h`, `GPUInterface.h`, `GPUInterfaceGL.cpp`, `GPUDisplay.h`), and Twist's `.p3d` meshes and 17 shaders as GLSL in `games/bejeweledtwist/src/` (`TwistD3D`, `TwistShaders.cpp`). | Bejeweled 3 (RenderDevice3D, `.d3dfx` effects), Zuma's Revenge (`.fx` effects) |
 | PIEffect, PIL, AELib, CurvedVal | CurvedVal is Twist's (`games/bejeweledtwist/src/CurvedVal.cpp`); the others are not built. FEAST and CfgCompiler only compile `compat.cfg` (GPU rules) and can be dropped. | Bejeweled 3, Zuma's Revenge |
-| Sprout engine, `.saf` archives (keyed MD5), `.theora` sprite animations | First generation: Word Harmony's port of an older build, `games/wordharmony/engine/`, kept free of game code so that it can move to shared code; its `ResourceManager` reads `.saf` archives. Second generation and `.theora`: not built (libtheora is not in `third_party/`). | Pizza Frenzy, Iggle Pop, Feeding Frenzy (first generation); Feeding Frenzy 2 and Talismania (second, with `.theora`) |
+| Sprout engine, `.saf` archives (keyed MD5), `.theora` sprite animations | First generation: Word Harmony's port of an older build, `engines/sprout/`, kept free of game code so that it can move to shared code; its `ResourceManager` reads `.saf` archives. Second generation and `.theora`: not built (libtheora is not in `third_party/`). | Pizza Frenzy, Iggle Pop, Feeding Frenzy (first generation); Feeding Frenzy 2 and Talismania (second, with `.theora`) |
 | Resource-ID tables | No shared tool: a port with a `resources.xml` generates its `Res` table with a script of its own (`games/bookwormadv/tools/resgen.py`, `games/bejeweledtwist/tools/resgen.py`); a port whose names are hard-coded writes the table from the exe. | Hammer Heads and the Peggles (`resources.xml`) |
 
 Built and needed by no remaining game: Sun `.au` sounds (`platform/Audio.cpp`), the PopLua VM with its LuaLib and
@@ -314,7 +314,7 @@ property system and object factory must be reproduced; `boards/*.csv`; `gnomedat
 wrapper is 1,268,224 bytes (v5.8.30.1, Sprout Games), linked 2006-02-21 with VS2003: Sprout's first-generation
 engine (~265 KB) and ~455 KB of game code, with no RTTI (about 322 unnamed vtables). Data: `PizzaFrenzy.saf`
 (6.0 MB, FFAS format, 1,081 entries) and loose `splash/`. It starts from Word Harmony's port of an older build of
-the engine, `games/wordharmony/engine/` (`games/wordharmony/docs/ENGINE.md`), whose `ResourceManager` already reads `.saf` archives:
+the engine, `engines/sprout/` (`games/wordharmony/docs/ENGINE.md`), whose `ResourceManager` already reads `.saf` archives:
 170 of the 198 strings its engine code refers to appear in Pizza Frenzy and Iggle Pop too, but only about a
 fifth of its bytes are identical, the functions having been rebuilt and changed. Moving that engine to shared
 code, once this second Sprout game is on it, is a shared change for the coordinator. There is no Mac build of
@@ -555,7 +555,7 @@ construction, a narrator and journal, the HUD, and about 40 `*ClassLoader` XML d
   - Keyed MD5 is standard MD5 with the IV shifted by the seed 0x53414646 times {11, 71, 37, 97}. Both the TOC and
     per-file digests verify, so archives can be repacked.
   - Data is uncompressed and unencrypted. Word Harmony's engine reads the same format
-    (`games/wordharmony/engine/ResourceManager.h`), without checking the digests, as its original does not.
+    (`engines/sprout/ResourceManager.h`), without checking the digests, as its original does not.
 - **Archive contents** (2,529 entries): 1,056 PNG and 935 JPG (914 with `_name.png` masks); 448 XML files with
   about 180 element types; 73 OGG; and 14 `.theora` sprite animations. Each animation is a sequence of serialized
   `ogg_packet` headers (`{i32 bytes, i32 b_o_s, i32 e_o_s, i64 granulepos, i64 packetno}` followed by the
