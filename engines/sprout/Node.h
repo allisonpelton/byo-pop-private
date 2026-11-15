@@ -82,6 +82,8 @@ public:
 	virtual void setPosition(const Point& thePosition);              // 0x14: 0x439aa0 (wordharmony)
 	virtual void setPosition(float x, float y);                      // 0x18: 0x439a70 (wordharmony)
 	virtual void setScale(float theScaleX, float theScaleY);         // 0x1c: 0x439ae0 (wordharmony)
+	// 0x20: 0x467b40 (pizzafrenzy): the signal build's one factor for both directions
+	virtual void setScale(float theScale) { setScale(theScale, theScale); }
 	virtual Rect* getBounds() { return &mBounds; }                   // 0x24: 0x439a60 (wordharmony)
 	virtual void setOpacity(float theOpacity) { mOpacity = theOpacity; }  // 0x28: 0x439ad0 (wordharmony)
 	virtual float getOpacity() { return mOpacity; }                 // 0x2c: 0x409d00 (wordharmony)
