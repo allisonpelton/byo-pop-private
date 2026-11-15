@@ -53,6 +53,7 @@ EM_JS(int, bjt_webgl2_support, (), {
 #include "SDLSoundManager.h"
 #include "SWTri.h"
 #include "MenuPanels.h"
+#include "LiveSplitObserver.h"
 #include "TwistCheckbox.h"
 #include "Profile.h"
 #include "Ranks.h"
@@ -160,6 +161,7 @@ WinTwistApp::WinTwistApp()
 
 WinTwistApp::~WinTwistApp()
 {
+	LiveSplitObserver::AppDestroyed(this);   // port(mod): the autosplit block's last write
 	delete mAudioCapture;   // port (tests): -audiocapture
 	if (mLoaderScreen != nullptr) {
 		mWidgetManager->RemoveWidget(mLoaderScreen);
@@ -1002,6 +1004,7 @@ void WinTwistApp::UpdateFrames()
 		mCredits = nullptr;
 	}
 	SexyApp::UpdateFrames();
+	LiveSplitObserver::AfterUpdate(this);   // port(mod): the autosplit block, after the update
 	// port: QuitAsGame's deferred shutdown
 	if (mQuitAfterGoodbye) {
 		mGoodbyeUpdates++;
@@ -1319,6 +1322,10 @@ void WinTwistApp::HandleCmdLineParam(const std::string& theParamName, const std:
 	if (theParamName == "-3d") {
 		mUse3D = true;
 		mUse3DSwitch = 1;
+		return;
+	}
+	if (theParamName == "-livesplitlog") {
+		LiveSplitObserver::SetLogFile(theParamValue);   // port(mod): a line for each autosplit event
 		return;
 	}
 	if (theParamName == "-audiocapture") {

@@ -404,6 +404,7 @@ def coverage(original, end):
             'phases (updates): ' + ', '.join('%d (%d)' % item for item in sorted(phases.items())),
             'creatures up (updates): ' + ', '.join('%s (%d)' % item for item in sorted(kinds.items())),
             'swings that struck something: %d' % hits,
+            'the x5 timer ran (updates): %d, the double hit (updates): %d' % (sum(1 for r in records if any(r['fivetimes'])), sum(1 for r in records if any(r['doublehit']))),
             'at the end: smashed %d, bombs %d, misses %d, hearts %d, coins %d, clovers %d, bottles %d, score %d' %
             (stat(0), stat(1), stat(2), stat(5), stat(6), stat(7), stat(8), stat(12))]
 

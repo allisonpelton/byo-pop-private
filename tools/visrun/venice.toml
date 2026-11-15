@@ -1,0 +1,31 @@
+# Venice Deluxe 1.0 for tools/visrun.py (copy to games/venice/tools/ when the Venice session adopts it). Addresses are from
+# games/venice/tools/idplay/idplay.py (the app global 0xa2a178, its update counter, the 3D flag) and the exe's DrawDirtyStuff
+# (0x48bd70 clears the byte at app+0x45a, mHasPendingDraw).
+name = "venice"
+game = "venice"                       # tools/origrun/games.tsv row: Venice.exe in the PopCap Games install; origrun stages it
+exe = "VeniceGame.exe"                 # the real exe, carved out of the install's Venice.exe wrapper
+carve_exe = "re/venice/bin/VeniceGame.exe"
+patches = "tools/origrun/patches/venice.txt"   # the seed patch ({seed}); run with --seed 1 as idplay does
+client = [800, 600]
+clock = "virtual"                     # idplay ran Venice on the virtual clock; "real" is the fallback if the barrier never holds
+update_ms = 4
+counter = "[0xa2a178]+0x47c"          # idplay's FRAME_COUNTER (a 4 ms frame)
+drawn = ["[0xa2a178]+0x45a:1 == 0"]   # mHasPendingDraw clear; mUpdateAppState's offset is not known for Venice
+flag3d = "[[0xa2a178]+0x36c]+0x38:1"  # mDDInterface->mIs3D, as idplay's --3d-flag (app+0x36c is the DDInterface: 0x483060 reads it)
+reg_key = 'Software\PopCap\Venice'    # HKLM\SOFTWARE\PopCap\Venice, which the stand-in's registry map puts under HKCU
+reg_map = "popcap"
+reg_3d_value = "Is3D"
+reg_values = { ScreenMode = 0 }       # windowed
+save_dirs = ['C:\ProgramData\PopCap Games\Venice\userdata']   # profiles.dat: backed up, emptied for the run, put back
+# save_seed = [["games/venice/tools/idplay/start-profile.dat", 'C:\ProgramData\PopCap Games\Venice\userdata\profiles.dat']]
+
+[values]                              # read at every logged step (steps.tsv), for the port's side
+update_count = "[0xa2a178]+0x484"
+tick = "0xa2a1ac"
+
+[cues]                                # names for "waitcue" and "gate" in a step file; "<expr>[:size] <op> <value>"
+running = "[0xa2a178]+0x47c > 0"
+
+# [[forbid]]                          # regions of the client area that no click may fall in (more here as the screens are known)
+# name = "more_games"
+# rect = [x, y, w, h]

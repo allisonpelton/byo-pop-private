@@ -58,11 +58,15 @@ cheat flag (0x44a2c5, 0x44a39c), keep the bot's game from being lost in the `cla
 | `marathon1` | 16791 | Marathon unlocked and started from the main menu, levels 1 to 4 of the marathon, a shop between them |
 | `classic_nd1` | 16791 | as `classic1` with the two damage cheats on: levels 1 to 3 |
 | `classic_nd5`, `_nd10`, `_nd15`, `_nd20`, `_nd25` | 16791, 16790, 16787, 16789, 16789 | Classic Bash started at level 5, 10, 15, 20 and 25 with the cheats on, so that the bot is not lost: levels 5 and 6, 10 and 11 (a challenge screen entered and left), 15 and 16 (a challenge), 20 and 21 (a shop), 25 (the last level's kings; it does not end in the time of the script) |
+| `classic_nd22` | 16652 (28000 updates) | the cheats on, started at level 22 (the test command `startlevel 22`; the original gets the same patched start), levels 22 and 23: the multiplier gnome (struck, so that its x5 timer ran 1246 updates), a challenge and a shop |
+| `classic_sp25` | 19704 (33000 updates) | the cheats on and `superpower` on (a hammer of level 3 on fire, 7 hearts, 50000 coins), started at level 25: the kings brought down, the level ended, the zoom wipe, the game-won page (its "Main Menu" button pressed by the bot), the main menu and the Tough Cookie notice (the original's screen pointers were read at the same updates: the game-won page stands at 30750, the main menu from 31000, in both) |
+| `classic_save1` | 9514 (16000 updates) | `classic1` left in the middle of level 1 (the in-game menu, "Main Menu", "Yes" of "Leave Game?", which saves the game) and resumed from the main menu ("Classic Bash", "Continue" of the box that offers the saved game, "Go!" of the "Ready?" box): the saved game's level, score, stats, gnomes and random generator come back, and levels 1 and 2 play on identically |
+| `classic_save22` | 13187 (22000 updates) | the same at level 22 with the cheats on (typed again in the port after the menu clears them): the multiplier gnome, silvers, strongs, switchers, napoleons, bubble heads, a shop and the clover stand in the saved game, and the resumed level plays on identically |
 
-Together the runs stood up every kind of creature in a cubby but the multiplier (the gnome, the woman, the strong, the bomb, the
+Together the runs stood up every kind of creature in a cubby (the gnome, the woman, the strong, the bomb, the
 bubble head, the hide, the forky chap, the silver, the cupido, the heart, the coin and the big coin, the chest, the clover, the
 ice cream and the duck of the bonus, the strawberry, the rabbit, the king, the save, the napoleon, the power-up, the switcher, the
-shop's and the challenge's gnomes), and the screens game, shop, challenge and the menu. Each run's own coverage (levels, phases,
+shop's and the challenge's gnomes, and the multiplier), and the screens game, shop, challenge, the game-won page and the menu. Each run's own coverage (levels, phases,
 creatures, swings that struck something, the stats at its end) is written by `idplay.py` to `coverage.txt` in its run folder.
 The state log lists the cubbies only: the flying and the bouncing gnomes, which are objects outside them, and the stickers show in
 it through the score, the stats and the random generator when the bot or a miss reaches them.
@@ -98,11 +102,10 @@ idle hammer before it leaves the shop.
 
 ### Left in phase one
 
-The game won sequence (the end of level 25: the Tough Cookie notice, the high scores, the game-won page) is not reached: level 25
-did not end in the 28000 updates of `classic_nd25` (why was not looked into), and a run started at it would need a cheat or a
-patch that ends the level. The multiplier gnome was not seen in any run. The runs do not record which boxes came up (a
-challenge's or a bonus round's finish, the high score entry after a lost game), only that the challenge screen was entered and
-left in `classic_nd10` and `classic_nd15`. The flying and the bouncing gnomes' own state is not in the log (only its effects). A
-save, a continue and a game left and resumed (the saved game's file) were not run. These belong to the coverage check before
-the final merge, with the focus loss and regain and the Tough Cookie and Marathon runs at later levels (`jumpto` works in both
-modes); the looks and the sound belong to phase two.
+The runs do not record which boxes came up (a challenge's or a bonus round's finish, the high score entry after a lost game), only
+that the challenge screen was entered and left in `classic_nd10` and `classic_nd15`. The flying and the bouncing gnomes' own state
+is not in the log (only its effects). A game left and resumed was run twice (`classic_save1`, `classic_save22`: the saved game,
+the continue box and the resumed level play on identically); a game that is lost with a saved game waiting, and the saved games of
+Tough Cookie and Marathon (the marathon's own clock), were not. These belong to the coverage check before the final merge, with
+the focus loss and regain and the Tough Cookie and Marathon runs at later levels (`jumpto` works in both modes); the looks and the
+sound belong to phase two.

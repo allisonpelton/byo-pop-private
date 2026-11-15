@@ -738,6 +738,7 @@ SexyAppBase::SexyAppBase()
 	mModMenu = NULL;
 	mModMenuKeyDown = false;
 	mModMenuClosingKey = KEYCODE_UNKNOWN;
+	mModMenuClosedByTest = false;
 	mKeyInHandling = KEYCODE_UNKNOWN;
 	mLastKeyPressed = KEYCODE_UNKNOWN;
 	mRestartRequested = false;
@@ -1632,8 +1633,29 @@ void SexyAppBase::DoExit(int theCode)
 
 void SexyAppBase::UpdateFrames()
 {
-	mUpdateCount++;
+	// (when a test's command closed the mod menu in this update, UpdateModMenuFrame has counted it and run its channels)
+	if (mModMenuClosedByTest)
+		mModMenuClosedByTest = false;
+	else
+	{
+		mUpdateCount++;
+		RunTestChannels();
+	}
 
+	if (!mMinimized)
+	{
+		if (mWidgetManager->UpdateFrame())
+			++mFPSDirtyCount;
+	}
+
+	mMusicInterface->Update();
+	CleanSharedImages();
+}
+
+// port: the tests' input and commands of one update (-script, -realinput, -commands, BYOPOP_SHOT_REQUEST), before the
+// widgets update
+void SexyAppBase::RunTestChannels()
+{
 	if (mScriptPos < mScript.size())
 		RunScript();
 	if (mRealInputPos < mRealInput.size())
@@ -1663,26 +1685,51 @@ void SexyAppBase::UpdateFrames()
 				SaveScreenshotMidUpdate(aPath);
 		}
 	}
+}
 
-	if (!mMinimized)
+// port: an update while the mod menu is open (docs/MOD_MENU_DESIGN.md 5.4): the tests' channels, the menu, the
+// music, and nothing of the game. No widget below the menu updates and the game's own UpdateFrames does not run, so
+// the game stands still until the menu closes, whether its ModalOpen pauses it or not (Venice's levels ran on under
+// the menu, the user, 2026-11-13). mUpdateCount still counts, so a test's waits and -fast's drawing go on. False when
+// a test's command closed the menu: the rest of the update is then the game's, as when a test closes a dialog
+// (DoUpdateFrames).
+bool SexyAppBase::UpdateModMenuFrame()
+{
+	mUpdateCount++;
+
+	RunTestChannels();
+
+	if (mModMenu == NULL)
 	{
-		if (mWidgetManager->UpdateFrame())
-			++mFPSDirtyCount;
+		mModMenuClosedByTest = true;
+		return false;
 	}
+	if (!mMinimized)
+		mModMenu->Update();
 
 	mMusicInterface->Update();
 	CleanSharedImages();
+	return true;
 }
 
 void SexyAppBase::DoUpdateFramesF(float theFrac)
 {
-	if ((mVSyncUpdates) && (!mMinimized))
+	// port: nothing of the game moves while the mod menu is open (UpdateModMenuFrame)
+	if ((mVSyncUpdates) && (!mMinimized) && (mModMenu == NULL))
 		mWidgetManager->UpdateFrameF(theFrac);
 }
 
 bool SexyAppBase::DoUpdateFrames()
 {
 	Platform::CycleScope aCycleScope(Platform::CYCLE_UPDATE);      // the "update" part of -cyclesplit
+
+	if ((mModMenu != NULL) && UpdateModMenuFrame())
+	{
+		// under -fast the sounds that play on go on with the clock, as below
+		if (mFastMode)
+			Platform::Mixer::Get().AdvanceVoices(mFrameTime / mUpdateMultiplier);
+		return true;
+	}
 
 	if ((mLoadingThreadCompleted) && (!mLoaded))
 	{
@@ -4582,6 +4629,10 @@ int SexyAppBase::RunRealInputCommand(const ScriptCommand& theCommand, std::strin
 			mWidgetManager->mMouseIn ? "true" : "false");
 		return SCRIPT_GAME;
 	}
+	// port: the mod menu's commands, as in -script (its "targets" tells a driver where to click: tools/modmenutest/
+	// clickthrough.py); F2 itself is a key line
+	else if (aName == "modmenu")
+		ModMenu::RunScriptCommand(this, aCommand);
 	else if (HandleScriptCommand(aCommand))
 		return SCRIPT_GAME;
 	else
@@ -4606,7 +4657,12 @@ void SexyAppBase::OpenModMenu()
 	mModMenu->mPriority = 0x7FFFFFF0;
 	mWidgetManager->AddWidget(mModMenu);
 	mWidgetManager->BringToFront(mModMenu);
-	// As AddDialog does for a modal dialog: the widgets below get no mouse or keys, and the game pauses
+	// Every mouse and key event goes to the menu alone, and what a game polls stays as it was (a game that reads the
+	// widget manager's buttons itself fired through the menu: Venice, the user, 2026-11-13); first the game's widgets
+	// let go of their buttons and keys, while they still have the focus
+	mWidgetManager->SetInputCapture(mModMenu);
+	// As AddDialog does for a modal dialog: the widgets below get no mouse or keys, and the game's own modal hook
+	// pauses it where it has one. Nothing of the game updates while the menu is open (UpdateModMenuFrame).
 	mWidgetManager->AddBaseModal(mModMenu);
 	mWidgetManager->SetFocus(mModMenu);
 	ModalOpen();
@@ -4624,11 +4680,16 @@ void SexyAppBase::CloseModMenu()
 	if ((mKeyInHandling != KEYCODE_UNKNOWN) && (mKeyInHandling != KEYCODE_F2))
 		mModMenuClosingKey = mKeyInHandling;
 	aMenu->Closing();
+	// The input back to the game's widgets: a key still held stays out of them until it is released
+	mWidgetManager->SetInputCapture(NULL);
 	// KillDialog's order: the widget, the game's modal hook, then the focus back to what had it
 	mWidgetManager->RemoveWidget(aMenu);
 	ModalClose();
 	mWidgetManager->RemoveBaseModal(aMenu);
 	SafeDeleteWidget(aMenu);
+	// the widget under the pointer learns where it is (a press still held from the menu stays the menu's: no button
+	// is down for the game)
+	mWidgetManager->RehupMouse();
 }
 
 bool SexyAppBase::CanRestartNow(SexyString* /*theReason*/)

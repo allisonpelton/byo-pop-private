@@ -3,7 +3,7 @@
 // and again), above that the median of three of the first, middle and last elements, then a partition around the middle
 // one, the smaller part next and the larger one on a stack of 30 entries.
 // qsort 0x5e8950 (Bejeweled 2), 0x783340 (Bejeweled Twist), 0x444c50 with its short sort 0x444bc0 (Cosmic Bugs),
-// 0x445090 with its short sort 0x445000 (Water Bugs)
+// 0x445090 with its short sort 0x445000 (Water Bugs), 0x528400 (Hammer Heads, Visual C++ 7.1)
 
 #include "platform/crt/CrtQsort.h"
 
