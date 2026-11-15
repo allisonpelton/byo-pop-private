@@ -1,6 +1,5 @@
 """cyc.py's measurement with the game's window on the user's visible desktop, for what a hidden desktop cannot give either game:
-the original's 3D mode, and a display that signals its vertical blank (GAME_NOTES.md section 11). Only in the hours that CLAUDE.md
-allows ("Overnight, desktop and sound allowed": 22:00 to 08:00 local time; a run started in that window ends by 08:00).
+the original's 3D mode, and a display that signals its vertical blank (GAME_NOTES.md section 11). At any hour (CLAUDE.md, "Desktop and Sandbox at any hour").
 
     python -I tools/pincore.py -- <python.exe> -I games/typershark/tools/profile/cyc3d.py port3d <out dir> [scenario] [port args]
     python -I tools/pincore.py -- <python.exe> -I games/typershark/tools/profile/cyc3d.py orig3d <out dir> [scenario]
@@ -231,8 +230,6 @@ if __name__ == '__main__':
     scn = sys.argv[3] if len(sys.argv) > 3 and not sys.argv[3].startswith('-') else perf.DEFAULT_SCENARIO
     if mode not in ('port3d', 'orig3d'):
         sys.exit(__doc__)
-    if not overnight():
-        sys.exit('cyc3d: the visible desktop only between 22:00 and 08:00 (CLAUDE.md)')
     if mode == 'port3d':
         port3d(sys.argv[2], scn, [a for a in sys.argv[3:] if a.startswith('-')])
     else:
