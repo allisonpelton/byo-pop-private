@@ -131,11 +131,12 @@ phase-one baseline only in their `apprand` lines; the game's own state and its d
   (0x458da0 draws with the application's own stretch mode). Not chased; the same stretch is used wherever the original scales an image.
 - The completed tablet's title was drawn with a four-way outline; 0x442370 centres it in the widget's width and draws a drop shadow
   one pixel right and down, then the text. Fixed (the title now matches pixel for pixel at u2700).
-- The completed tablet's picture (u2700, 7.5%) is blurrier in the port than in the original's shot. Cause found, not a bug:
-  0x41b13c sets the Graphics' fast stretch flag (nearest filter) when the application is not 3D accelerated, and the original in
-  the Windows Sandbox runs without 3D; the port's emulated 3D path filters the stretch, as the original does on a machine with
-  3D (the story portraits' stretch does not set the flag, and differs only at the head's edges, also a filter detail). The port
-  now sets the flag by the same test, so a port run without 3D draws like the sandboxed original.
+- The completed tablet's picture (u2700, 7.4%) is smoother in the port than in the original's shot (the original's 16 by 16
+  cells have crisp edges). What was looked at: 0x41b13c sets the Graphics' fast stretch flag when the application is not 3D
+  accelerated, and the original in the Windows Sandbox runs without 3D. The port sets the flag by the same test, and
+  forcing it on in a trial build (the flag reaches `DDInterface::StretchBlt` as `fastStretch`) changed the shot by 0.1%
+  only, so the smoothing is not the stretch's filter alone; with the port's default 3D path the test is false anyway. About an hour
+  went into it; not chased further. How to see it: `u2700` in the t16 case.
 - Shots in the middle of a move (u2300, u2450: the tile maker at another place on the board, tiles in flight or already yellow
   in the sweep) differ because the two programs are at different steps of the same move at the same update count; the
   boards agree at the move's end (the state logs). Not a draw difference; a shot at the end of a move would line them up.
