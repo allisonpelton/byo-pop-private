@@ -1,4 +1,5 @@
 #include "ReadyGoDialog.h"
+#include "LiveSplitObserver.h"
 
 #include "Application.h"
 #include "ChallengeScreen.h"
@@ -56,6 +57,7 @@ int ReadyGoDialog::GetPreferredHeight(int theWidth)
 void ReadyGoDialog::ButtonDepress(int theId)
 {
 	CloseWith(theId);
+	LiveSplitObserver::GoPressed();		// port(autosplit)
 
 	Widget* aScreen = gApp->mChallengeScreen != nullptr ? static_cast<Widget*>(gApp->mChallengeScreen) : static_cast<Widget*>(gApp->mGameScreen);
 	gApp->mWidgetManager->SetFocus(aScreen);
