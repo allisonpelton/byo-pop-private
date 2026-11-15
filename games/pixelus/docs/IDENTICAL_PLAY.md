@@ -162,9 +162,20 @@ rows are not where the port's are). The menu after Play and the story match (0.0
   (the dialog's own font index 6 at +0x124), the other lines in Garamond 12, from the content top 0x3c (the port had 0x24).
   The doubled top and bottom beams in the original's shot are the options dialog's larger frame under the credits; ours is
   smaller, so only the credits' own frame shows.
-- **The help screen's demos** (u400 to u700, 28%): the original's left demo shows the hero sliding a tile in with the pointer
-  and its right grid is dark with the picture's cells fading in; the port's demos are in other phases of their loops.
-  Their timing (0x4170d0's callers) has to be lined up with the update the help screen opens at.
+- **The help screen's demos** (u400 to u700, 28%, decoded, not ported). The port's screen is a stand-in: both windows run at
+  once and tiles slide in on their own. The original builds three objects in 0x40e1a0: the left demo (0xa0 bytes, 0x40ddd0,
+  update 0x40d320, draw 0x40d740), the right one (0x80 bytes, 0x40df90, update 0x40d8d0, draw 0x40e0b0) and the plain
+  backdrop (0x40da40). They take turns: the left runs its 950-update script (updates 1, 50, 75, 100, 175, 200, 250, 315,
+  500, 525, 550, 600, 625, 650, 700 and 790 place or pull a tile, aim the Tile Master and move the pointer between two
+  columns; at 0x3b5 it hands over) while the right stays under a dark layer (200 of alpha) that fades out by 1.0 an update
+  when it is the right's turn; the right then replays the shipped solution of `levels/helpscreen.txt` through the grid's own
+  replay (0x426560 with 100 updates between throws), holds the finished picture 100 updates, fades the picture in and out
+  (alpha 0 to 255 by 2) and hands back (0x40dd50 swaps the two states). Each window holds a real animated grid of the
+  game (the left a 12 by 12 one at offset (15, -30), the right a 16 by 16 one at (5, -43)) and the left a Tile Master
+  (0x42bd40, whose walk, in five sub-steps of 0.3 an update, and idle animations the port's TileMaster does not have). What it
+  would take: the board's tile animation and drawing (Board::UpdateTiles, DrawGrid, DrawTile, DrawTrail) lifted out of
+  Board into a piece that a window can own at its own origin, the grid's solution replay, and a Tile Master with the
+  original's walk and sprite-sheet animations. The tiles' rules and the shipped puzzle are already in the port.
 - At u300 and u1800 the original's menu says "Welcome to Pixelus" with no player name (0x40a8b0 prints the name only while a
   player is current); the port's player was made at the same update by the same clicks, so this run's original lost the
   name or made it later. Not explained; the case t16 (u250) shows the name in both.
