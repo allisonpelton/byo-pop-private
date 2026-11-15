@@ -1,4 +1,5 @@
 #include "ImageLoader.h"
+#include "GIFDecoder.h"
 #include "VFS.h"
 
 #include <stb_image.h>
@@ -38,8 +39,10 @@ static std::vector<std::string>& ImageExtensions()
 	return sExtensions;
 }
 
+#ifndef BYOPOP_DERIVED
 static std::map<std::string, int> gScaleOverrides;  // key: modId + '|' + normalized lower path
 static std::map<std::string, int> gModDefaultScales;
+#endif
 static ImageGenerator gImageGenerator;
 
 void SetImageGenerator(ImageGenerator theGenerator)
@@ -53,6 +56,7 @@ static std::string LowerStr(std::string s)
 	return s;
 }
 
+#ifndef BYOPOP_DERIVED
 void SetImageScaleOverride(const std::string& theModId, const std::string& theGamePath, int theScale)
 {
 	std::string p = LowerStr(VFS::Normalize(theGamePath));
@@ -73,6 +77,7 @@ void ClearImageScaleOverrides()
 	gScaleOverrides.clear();
 	gModDefaultScales.clear();
 }
+#endif
 
 // The game's editbox.png has a tEXt chunk before IHDR. PopCap's PNG reader accepted that, stb_image
 // requires IHDR first; this copies the file with IHDR moved to the front (false if nothing to do).
@@ -152,6 +157,12 @@ bool DecodeImage(const std::vector<uint8_t>& theData, int& theWidth, int& theHei
 			*theHasAlpha = false;
 		return true;
 	}
+
+	// port: GIFs through our own decoder, which gives stb_image's pixels in a fraction of its time (GIFDecoder.h); a file it
+	// leaves (one stb would refuse or decode some other way) goes on to stb
+	if ((theData.size() >= 4) && (memcmp(theData.data(), "GIF8", 4) == 0) &&
+		DecodeGIF(theData.data(), theData.size(), theWidth, theHeight, theBits, theHasAlpha))
+		return true;
 
 	std::vector<uint8_t> reordered;
 	const std::vector<uint8_t>& data = MoveIHDRFirst(theData, reordered) ? reordered : theData;
@@ -318,12 +329,19 @@ static bool LoadGameImageLayers(const std::string& theGamePath, LoadedImage& the
 
 	struct Layer
 	{
+#ifndef BYOPOP_DERIVED
 		std::string mRoot, mModId;
 	};
 	std::vector<Layer> layers;
 	for (const VFSRoot& r : VFS::Get().GetModRoots())
 		layers.push_back({r.mPath, r.mModId});
 	layers.push_back({VFS::Get().GetBaseDir(), ""});
+#else
+		std::string mRoot;
+	};
+	std::vector<Layer> layers;
+	layers.push_back({VFS::Get().GetBaseDir()});
+#endif
 
 	for (size_t li = 0; li < layers.size(); li++)
 	{
@@ -337,7 +355,10 @@ static bool LoadGameImageLayers(const std::string& theGamePath, LoadedImage& the
 			{
 				if (generated.mHDBits.empty())
 					generated.mHDScale = 1;
+#ifndef BYOPOP_DERIVED
 				generated.mModId.clear();
+#endif
+				generated.mGenerated = true;
 				theOut = std::move(generated);
 				return true;
 			}
@@ -350,6 +371,7 @@ static bool LoadGameImageLayers(const std::string& theGamePath, LoadedImage& the
 		if (hd.mPath.empty() && one.mPath.empty() && maskHD.mPath.empty() && maskOne.mPath.empty())
 			continue;
 
+#ifndef BYOPOP_DERIVED
 		// An explicit "scale" from the mod manifest marks a plain-named file as HD.
 		int explicitScale = 1;
 		auto ov = gScaleOverrides.find(layer.mModId + "|" + LowerStr(dir.empty() ? stem : dir + "/" + stem));
@@ -363,9 +385,12 @@ static bool LoadGameImageLayers(const std::string& theGamePath, LoadedImage& the
 			hd.mScale = explicitScale;
 			one = Candidate();
 		}
+#endif
 
 		theOut = LoadedImage();
+#ifndef BYOPOP_DERIVED
 		theOut.mModId = layer.mModId;
+#endif
 		bool colourHasAlpha = false;
 
 		// --- HD colour ---
@@ -504,10 +529,14 @@ static bool LoadGameImageLayers(const std::string& theGamePath, LoadedImage& the
 
 bool LoadGameImage(const std::string& theGamePath, LoadedImage& theOut, bool theLookForAlpha)
 {
+#ifndef BYOPOP_DERIVED
 	if (!LoadGameImageLayers(theGamePath, theOut, theLookForAlpha))
 		return false;
 	ApplyImagePatches(theGamePath, theOut);
 	return true;
+#else
+	return LoadGameImageLayers(theGamePath, theOut, theLookForAlpha);
+#endif
 }
 
 }

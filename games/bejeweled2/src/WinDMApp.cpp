@@ -13,6 +13,7 @@
 #include "FancyBackdrop.h"
 #include "GalaxyParser.h"
 #include "HighScoreWidget.h"
+#include "LiveSplitObserver.h"
 #include "MainMenu.h"
 #include "MemoryImage.h"
 #include "ReloadDisplay.h"
@@ -130,6 +131,7 @@ WinDMApp::WinDMApp()
 // 0x5e3476
 WinDMApp::~WinDMApp()
 {
+	LiveSplitObserver::AppDestroyed(this);  // port(mod): the autosplit block's last write
 	delete mGalaxyParser;
 	delete mProfile;
 	delete mBackdropsParser;
@@ -785,6 +787,7 @@ void WinDMApp::UpdateFrames()
 		mDDInterface->mSoftwareStretch = !Is3DAccelerated();
 		mDDInterface->mSoftwareTransforms = !Is3DAccelerated();
 		mDDInterface->mKeepScreen = !Is3DAccelerated();
+		mDDInterface->mOriginalSampling = Is3DAccelerated();   // the 3D game's whirlpool, as Direct3D 7 at 1x draws it (DDInterface.h); the 2D game keeps the old sampling
 	}
 	SexyApp::UpdateFrames();
 	if (mTraceMode)
@@ -811,6 +814,16 @@ void WinDMApp::UpdateFrames()
 		}
 	}
 	// port: the original shows the announcement of a new version here (DoAnnounceDialog)
+	LiveSplitObserver::AfterUpdate(this);   // port(mod): the autosplit block, after the update (LiveSplitObserver.h)
+}
+
+// port(mod): -livesplitlog=<file>, a test hook (LiveSplitObserver.h)
+void WinDMApp::HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue)
+{
+	if (theParamName == "-livesplitlog")
+		LiveSplitObserver::SetLogFile(theParamValue);
+	else
+		SexyApp::HandleCmdLineParam(theParamName, theParamValue);
 }
 
 // 0x5dbe86

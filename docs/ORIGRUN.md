@@ -65,7 +65,7 @@ placed yourself, such as a real exe carved out of a wrapper. Shots land in
 | `--timeout <sec>` | Wall-clock cap from the game's launch (default 120, at most 3600). |
 | `--fresh` | Only a note to re-copy: delete `build/origrun/<run>` first to force a clean copy. |
 | `--copy-only` | Stage the copy and print its folder and exe without launching, to prepare it by hand before `--exe`. |
-| `--stage-root <dir>` | Put the game copy under `<dir>\<run>\game`; shots and logs stay under `build/origrun/<run>`. For a game that fails under a worktree's long path (Bookworm Adventures), e.g. `--stage-root C:\byo-og`. Not with `--sandbox`, where the copy is at `C:\run\game`. |
+| `--stage-root <dir>` | Put the game copy under `<dir>\<run>\game`; shots and logs stay under `build/origrun/<run>`. For a game that fails under a worktree's long path (Bookworm Adventures), e.g. `--stage-root E:\byo-og`. Not with `--sandbox`, where the copy is at `C:\run\game`. |
 | `--sandbox` | Run inside a fresh Windows Sandbox instead of under rundesk ("Windows Sandbox"). `--sandbox-vgpu` gives it the host's GPU; `--sandbox-connect` opens its window (only for runs the user has allowed onto their desktop); `--sandbox-wait <sec>` is how long to queue behind another run's sandbox (default 600); `--sandbox-probe` starts a sandbox with no game and writes what origrun finds there to `build/origrun/sandbox-probe/probe.txt`. |
 | `--reg <file.reg>` | Registry presets for a `--sandbox` run ("Saves and the registry"). Refused on the host. |
 | `--counter <expr>`, `--flips <expr>`, `--update-ms <ms>` | The game's update counter, an optional per-frame counter and one update's length ("Timing to the game's updates"); with `flips` a held shot waits for the next present instead of the next update. Config keys `counter=`, `flips=`, `update_ms=`. |
@@ -248,9 +248,8 @@ origrun runs itself and the game again in that session.
   `VideoInput` are disabled and `ProtectedClient` is enabled, so a game reaches no network (no "More Games" page,
   no update check, no Steam). `vGPU` is disabled, so the sandbox renders in software, unless `--sandbox-vgpu`:
   the user allowed that for Bookworm Adventures' 3D comparison (2026-11-01), Bejeweled Twist's 3D mode
-  (2026-11-02), and Typer Shark's and Bejeweled 2's 3D comparisons (2026-11-11); between 22:00 and 08:00 local time
-  any game may use it (CLAUDE.md, "Overnight, desktop and sound allowed"), and at other hours another game's 3D runs
-  ask first. Exactly two folders are mapped, the run folder read-write
+  (2026-11-02), and Typer Shark's and Bejeweled 2's 3D comparisons (2026-11-11), and since 2026-11-15 any game may
+  use it at any hour (CLAUDE.md, "Desktop and Sandbox at any hour"). Exactly two folders are mapped, the run folder read-write
   as `C:\run` and `build/origrun-bin` read-only as `C:\origrun`; origrun resolves both to their final paths (a
   junction shows where it leads) and refuses the run unless the run folder sits directly under the repository's
   `build\origrun` and the binaries' folder ends in `\build\origrun-bin`, both on a local drive.
@@ -817,6 +816,9 @@ Where 3D runs:
 | rundesk's desktop, `--dgvoodoo` | Works (Bookworm Adventures' on and off are proven): Direct3D 11 does get a hardware device there. No shot, as on every host run. It also gets the full-screen DirectDraw games past "Screen Setup Failed". |
 | the sandbox | No original has run in 3D there. In session 0 the Direct3D test fails (DDERR_NOTFOUND), with `--sandbox-vgpu` too, and with `--dgvoodoo` the game crashes at start. With `--sandbox-connect` the game moves to the user session, whose "Microsoft Remote Display Adapter" fails Direct3D 7's CreateDevice. `ORIGRUN_DGVOODOO_CONF` names a dgVoodoo.conf to try in place of origrun's own. |
 | the user's visible desktop | Works with no wrapper, and needs the user's leave game by game: Bookworm Adventures' 3D comparison ("Yes, capture it", 2026-11-01) and Bejeweled Twist's ("Sandbox, then desktop", 2026-11-02: first `--sandbox --sandbox-vgpu --sandbox-connect`, and the desktop only if the original still falls back to 2D there), and Typer Shark's and Bejeweled 2's on the same terms ("Yes, both routes", 2026-11-11). Between 22:00 and 08:00 local time any game may run there, with sound (CLAUDE.md, "Overnight, desktop and sound allowed"). |
+
+The shared driver for it is `tools/visrun.py` (`docs/VISRUN.md`: a config and a step file per game; the game-local
+drivers named below are what it replaces).
 
 A run on the user's desktop goes as Bookworm Adventures' `tools/pilot/visrun.py` does it
 (`games/bookwormadv/docs/IDENTICAL_PLAY.md`, "3D mode"): a copy under `build/`, the window kept on top, a shot

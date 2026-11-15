@@ -32,7 +32,7 @@ Enemy::Enemy(Board* theBoard)
 	mApp = theBoard->mApp;
 }
 
-// 0x431600
+// 0x431600 (with 0x431250 inline: the base's own vtable reset, which the port's base class does)
 Enemy::~Enemy()
 {
 }

@@ -79,7 +79,7 @@ root CMakeLists condition that adds engines/swf); TinyXML is not available (own 
 
 ## The original under origrun (found 2026-11-12)
 
-`build/origrun-bin/origrun.exe --exe C:\byo-og\hh2\game\HammerHeadsGame.exe --run hh2 --stage-root C:\byo-og --clock virtual
+`build/origrun-bin/origrun.exe --exe E:\byo-og\hh2\game\HammerHeadsGame.exe --run hh2 --stage-root E:\byo-og --clock virtual
 --reg-map popcap --counter "[0x5cea54]+0x44c"` (the copy is carved from the Steam install's wrapper; `HammerHeads.exe` is the
 DRM wrapper). The game ticks (401 updates in under a second of wall time) only with two things in place:
 
@@ -111,7 +111,7 @@ docstring). What the original needed:
 
 - **The how-to-play JPEGs.** `tools/origrun/fixpng.py` rewrites a PNG whose sRGB or gAMA chunk the original's old libpng rejects
   (the staged copy under build/ only).
-- **The users folder.** The original keeps its players in `C:/byo-og/hh2/game/users/`; a player left by an earlier run skips the
+- **The users folder.** The original keeps its players in `E:/byo-og/hh2/game/users/`; a player left by an earlier run skips the
   name box and changes the flow, so `idplay.py` deletes the folder before each run.
 - **Timing.** The loading screen is up from about update 75; inputs start at count 1000 (a click at 1005, a name typed at 1500,
   and so on: the scenario files). An input's count is a multiple of 5 (it lands where a frame is over), and the port runs it one

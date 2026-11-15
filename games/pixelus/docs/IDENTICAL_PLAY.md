@@ -53,6 +53,11 @@ tutorial's bubbles and the sticky-spots bubble, which takes updates, and to 4647
 
 ## Oddities (not chased)
 
+- **Two scripted clicks in the tutorial's first puzzle (`t20`, updates 1566 and 1571).** At update 1580 the port shows
+  both thrown tiles landed; the original shows the second one only and the white cursor with its arrow on the first
+  target cell. By update 1620 both have them and the puzzle ends the same. What it would take: the original's click path
+  (0x408400 stores the click's place at +0x148 and +0x14c, and 0x403370 compares it with the next move: a move of more than
+  40 pixels clears +0x1cc and ends a pending pull; the port has neither) and a log of its tile flights.
 - **Cursor and side after the first throw.** The original's cursor/side values (`grid+0xb054`, `+0xb058`) at the first
   move are the ones the port shows after its second move (it skips one change), then both agree. The tiles' places, the
   moves and everything else are the same; the values are the aim, which the bot's hover/click pairs set in a different
@@ -76,7 +81,7 @@ tutorial's bubbles and the sticky-spots bubble, which takes updates, and to 4647
 - The speech bubbles' text and picture (temple, story, tutorial) are not drawn; their state (which draws numbers) is kept.
 - The story's portrait is a still head; the original renders the animated figure with its pose fades.
 - The board's sidebar gleam (the colour panel at +0x1d8) is not drawn; its timer is kept.
-- The help screen's demo grid (left of the slides) is not drawn; its draws are kept.
+- The help screen's two demo boards are real boards now (they make their own draws).
 
 ## Compared since the first report
 
@@ -131,16 +136,50 @@ phase-one baseline only in their `apprand` lines; the game's own state and its d
   (0x458da0 draws with the application's own stretch mode). Not chased; the same stretch is used wherever the original scales an image.
 - The completed tablet's title was drawn with a four-way outline; 0x442370 centres it in the widget's width and draws a drop shadow
   one pixel right and down, then the text. Fixed (the title now matches pixel for pixel at u2700).
-- The completed tablet's picture (u2700, 7.5%) is blurrier in the port than in the original's shot. Cause found, not a bug:
-  0x41b13c sets the Graphics' fast stretch flag (nearest filter) when the application is not 3D accelerated, and the original in
-  the Windows Sandbox runs without 3D; the port's emulated 3D path filters the stretch, as the original does on a machine with
-  3D (the story portraits' stretch does not set the flag, and differs only at the head's edges, also a filter detail). The port
-  now sets the flag by the same test, so a port run without 3D draws like the sandboxed original.
+- The completed tablet's picture (u2700, 7.4%) is smoother in the port than in the original's shot (the original's 16 by 16
+  cells have crisp edges). What was looked at: 0x41b13c sets the Graphics' fast stretch flag when the application is not 3D
+  accelerated, and the original in the Windows Sandbox runs without 3D. The port sets the flag by the same test, and
+  forcing it on in a trial build (the flag reaches `DDInterface::StretchBlt` as `fastStretch`) changed the shot by 0.1%
+  only, so the smoothing is not the stretch's filter alone; with the port's default 3D path the test is false anyway. About an hour
+  went into it; not chased further. How to see it: `u2700` in the t16 case.
 - Shots in the middle of a move (u2300, u2450: the tile maker at another place on the board, tiles in flight or already yellow
   in the sweep) differ because the two programs are at different steps of the same move at the same update count; the
   boards agree at the move's end (the state logs). Not a draw difference; a shot at the end of a move would line them up.
 - The Skip the Tutorial log differs by about a pixel at its left cap and edges (resampling of the strip's frame).
 - Tile icons and the sliding trail are drawn slightly differently; the tile maker's pose differs by a frame.
+
+## Screens shot on 2026-11-14 (options, help, credits; cases t17 for the port and t17o for the original, original run px6)
+
+The original and the port were given the same updates, with the clicks at each program's own buttons (the options dialog's
+rows are not where the port's are). The menu after Play and the story match (0.0%). What differs, not yet fixed:
+
+- **The options dialog** (u300, 45%, fixed in the rows). The original's dialog from the menu is a column of full-width rows:
+  How to play, Check for updates, Credits, then the footer's Done, with a Hardware Acceleration box under the other two
+  and no Reset Hints. Reading 0x4e8b80 and 0x4194d0 explains it: Reset Hints (the base class's button at +0x174) is made
+  only when byte +0x151 of the caller's block is set, and 0x4194d0 sets +0x150 and clears +0x151, so it never exists; the
+  base's button at +0x170 needs +0x150 and an unregistered game, and 0x4190b0 swaps the places of Credits and How to play
+  (How to play takes the top row, beside Main menu in a puzzle with Main menu on the left; Credits goes down next to
+  Done). The port had made Reset Hints and Credits a half-width pair; now it has How to play (and Main menu), Credits and
+  Done, with Reset Hints gone. The update row and the 3D box lead out or belong to the platform, so they stay out and the
+  rows close the gap; the dialog is `0x1ac - 0x24 - a box` high instead of the original's 0x1ac (0x4190a0, 0x4e7c80). The
+  rest of the 44% in the shot is that smaller frame, and the player's name beside "Welcome" below.
+- **The credits dialog** (u900 and later, 13% to 5.5%, fixed). "Developed by" and "Many thanks to" are drawn in Garamond 14
+  (the dialog's own font index 6 at +0x124), the other lines in Garamond 12, from the content top 0x3c (the port had 0x24).
+  The doubled top and bottom beams in the original's shot are the options dialog's larger frame under the credits; ours is
+  smaller, so only the credits' own frame shows.
+- **The help screen's demos** (u400 to u700 28%, now 1.4%; u1200 to u2750 1.0 to 2.3%, ported). The original builds a left
+  demo (0x40ddd0, update 0x40d320), a right one (0x40df90, update 0x40d8d0) and a plain backdrop that take turns. The port
+  now has both: each is a real `Board` made by the demo constructor (no buttons, no sidebar, its own grid origin: (100, -40)
+  in the left widget at (0, 150), (5, -43) in the right at (330, 150)). The left runs the 950-update script (hover moves,
+  three throws at 50, 150, 250, three pulls at 500, 600, 700, the pointer's walks of 0.015 an update, 949 hands over); the right,
+  under a dark layer that fades by 1.0 an update, replays the best solution of `levels/helpscreen.txt` through the grid's own
+  replay (the first move after 25 updates, then every 100), holds the finished board 100 updates, fades the picture over it
+  (2 alpha an update), loads the puzzle again, fades it out and hands back. The shots of both turns (case t19, original run
+  px9) differ by 0.1 to 1.5%: the thrown tile's trail, about 5 pixels off in the frames where a tile is in flight, and, in a
+  few tiles, which of the five tile pictures shows (the shine's random change, see the tile's mFlash note in `Grid.h`). Same random draws as before (2 for the left board, 24 for the right's file).
+- At u300 and u1800 the original's menu says "Welcome to Pixelus" with no player name (0x40a8b0 prints the name only while a
+  player is current); the port's player was made at the same update by the same clicks, so this run's original lost the
+  name or made it later. Not explained; the case t16 (u250) shows the name in both.
 
 ## Open (this phase is not complete)
 
@@ -157,7 +196,10 @@ phase-one baseline only in their `apprand` lines; the game's own state and its d
   rule behind these places is not in our export (0x40f160 gives the same y for all, -1); the click on OK is what the
   comparison needs, and it hits in the original for all nine. A drag of the bubble (`Dialog::MouseDrag`) is not tested.
 - **Not ported, presentation only (phase two):** the helper widget's bubbles with arrows (0x40ece0, 0x406050, 0x406140),
-  the glowing lesson cells (0x422610), the teacher's figure in the tutorial's sidebar and its texts per step (the
+  the glowing lesson cells (0x422610 sets a record in the cell: state, a count that starts at minus the delay, the glow
+  picture, a repeat flag and a pause of 25 updates; 0x424b30 raises it by 7 to 255 and back, and 0x422ab0 draws the
+  glow picture additively at sin(count * 0.00616) of full strength, 5 pixels outside the cell; the tutorial's puzzle 1
+  starts two such cells, row 9 columns 8 and 9, the second 228 updates late), the teacher's figure in the tutorial's sidebar and its texts per step (the
   original shows the cyclops and a sentence for each puzzle; the port the tile icons), the sidebar's RESET, HINT and UNDO
   buttons with their labels.
 - The non-expert check of a click on the tile just placed (0x403930, 0x403fb0, called from 0x408400, 0x409160, 0x409bd0)
@@ -194,5 +236,43 @@ blur.
 ## Notes for the repository
 
 `tools/identical/setup.sh` copies `re/pixelus/bin/PixelusGame.exe` (the game made by `tools/extract_game_exe.py` from the
-wrapped exe) into `C:/byo-og/pix` and writes `tools/origrun/patches/pixelus.txt` (git-ignored; the two seed patches).
+wrapped exe) into `E:/byo-og/pix` and writes `tools/origrun/patches/pixelus.txt` (git-ignored; the two seed patches).
 No script added here takes a wrapper apart, so nothing new belongs in `.publishignore`.
+
+## The Tile Master (0x42bd40, update 0x42c460, draw 0x42b6a0)
+The first port had him walk round the grid; he does not. The object holds two things. The **trail** is a glowing dot that runs
+round the outside of the grid to the place the player aims at (the "walker" at +0xc, update 0x42bf50, place 0x42b180, way
+0x42ad90): five steps of 0.3 a cell per update, each leaving a puff of light (PLAYERTRAILPARTICLE) that fades over 8 updates;
+at a corner it turns on a quarter circle of a cell's radius, the two corners that end the bottom and the left sides taking
+longer (phase 1 to 4); it starts on the top side at the third cell and runs back to the first at the start of a puzzle. The
+**Tile Master himself** stands still: one update after the aim changes (0x42aec0 sets a delay of 1) he is at the middle of the
+cell beside the grid (0x42b8b0: two cells below, two left, one above, one right of the grid) facing it, and plays the actions of
+the NcAnimation set "TileMaster" (built in code at 0x437b90, durations in updates): the stand (a row of the sheet per side, one
+frame), the throw (two frames of 10 updates, for a pull as well, 0x42bb20), scratching, the two juggling strips, the shrug
+(0x42b030, when a pull is refused), the celebration (0x42b010, when the puzzle is done) and, after 400 to 599 updates of
+standing (CRT rand, 0x42b7a0), one of scratching (5 in 10, 3 to 5 times), juggling (3 in 10, 2 or 3 times) or the second
+juggling (2 in 10, 2 to 4 times), which sends him back to facing the front. `GetSide` (0x42b090) gives the side of the last
+settling, so the Board's choice of a throwing side lags the aim by an update, as the original's. Same code: `TileMaster.cpp`.
+
+The mouse reaches him the way 0x403370 does in control mode 2, which is the only one: when the hovered cell has neither a throw
+nor a pull, he still goes to that cell's row or column along the side he stands at (`Board::MouseMove`, the last branch), and
+the grid's cursor stays. Without it the tutorial's first puzzle left him at the top left after the hint dialog closed, where the
+original's mouse (at the OK button, over the board) aimed him at the top of column 9. A cell outside the grid puts the hover
+cell at -1 (0x4223d0). The baseline of `tools/check.sh pixelus` was frozen again after this change: the aim values moved a few
+updates earlier than the earlier port's (the known aim oddity above), the games themselves are the same.
+
+Shots of the tutorial's first puzzle (`build/identical/t20`, 11 shots, 10000 updates apart) went from 5 to 20 percent differing
+to 1 to 7 percent (apart from the shot where a landing is a frame off). What is left: tile pictures that differ because a fresh
+tile's re-draw counter holds heap garbage in the original (see above); the cyclops's speech typing and blink; the glowing
+lesson cells; and, at update 1580, a tile that has landed in the port 5 to 10 updates before the original's shows it (the two
+clicks of the script, 5 updates apart; the original's second cursor shows on the first target cell); the cause is not found,
+under Oddities in the notes.
+
+## Real input after the Tile Master (2026-11-15)
+Native (`tools/realplay/drive.py`, under rundesk): 3 boards of the tutorial's temple played and solved, once plain and once
+with `--full --focus --expert`, no errors. Web (`tools/web/play.js`, `?fsat=1&focusat=1`, silent, in the Browser pane): 3
+solved, 9 moves, focus lost and regained, 0 errors. The page check (new table `tools/web/pagecheck.js`; the native answer to
+the focus line is `timer` hidden and after): 11 passed, 0 failed, 1 information line. The whole-game and every-mode passes
+were not repeated for this change; the Tile Master only moves a sprite, and the state log and the frozen baseline are
+unchanged.
+

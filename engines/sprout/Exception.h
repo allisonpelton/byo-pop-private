@@ -1,0 +1,25 @@
+#ifndef __SPROUT_EXCEPTION_H__
+#define __SPROUT_EXCEPTION_H__
+
+// The engine's exception (0x3c bytes, constructor 0x402700 (wordharmony)): an Object that is also a std::exception and
+// holds a message (+0x18). 0x43a860 (wordharmony) throws a new one by pointer; the port throws it by value.
+
+#include <exception>
+#include <string>
+
+namespace engine
+{
+
+class Exception : public std::exception
+{
+public:
+	Exception(const std::string& theMessage) : mMessage(theMessage) {}  // 0x402700 (wordharmony)
+	const char* what() const noexcept override { return mMessage.c_str(); }
+
+private:
+	std::string mMessage;
+};
+
+} // namespace engine
+
+#endif

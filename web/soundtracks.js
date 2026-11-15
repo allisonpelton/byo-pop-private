@@ -30,7 +30,7 @@
 //           place's tooltip
 //   composer  who wrote the music, by the game's own credits (its credits screen, text or exe; a company where they name no
 //           person); none for a game whose credits name nobody for it, shown as Unknown. composers {"<id>": "<name>"} where
-//           the credits split the music by tune (none does)
+//           the credits split the music by tune (Heavy Weapon's love theme)
 //   level   the level the game plays its modules at, where it is not the renderer's own (platform/MusicLevels.h):
 //           {bassAmplify: n} the BASS amplify it sets (0 to 100), {fmod3XM: true} FMOD 3's XM pre-amp. The renderer is the
 //           game's own (libopenmpt for MO3 and OXM, libxmp-lite for the rest: web/music/openmpt_web.c)
@@ -440,6 +440,58 @@ var ByopopSoundtracks = {
       "loading": "At launch (fade 0.002); again on the main menu; loops",
       "gameover": "The game-over high-score list opens (fade 0.002); loops"
     },
+  },
+  // Venice: each scene names its music (levels/*.xml: main_music, and win_music for a level won), which the scene starts
+  // silent and raises over 1000 updates (4 seconds at 250 a second) from intro_time / 4 - 1000 updates after it opens, and
+  // which starts again with every level (games/venice/src/Level.cpp: CrossFade). A background's levels share one tune, its
+  // place named by their title; Flood and Journey (config.xml: level_file_game, level_file_relaxed) both go through the
+  // backgrounds 1, 3, 4, 5, 6, 2, 7, 8, nine levels each (eight for the last), and Trick Shot (level_file_trick) through
+  // regions in that order. ingame_2_intro is only in config.xml's list of sounds to load; ingame_1_intro is the world map's,
+  // and an intro before a level's tune only in blank.xml, which nothing opens. victory.ogg is a sound (the Sounds window's)
+  venice: {
+    composer: "Guillaume Bastard & Staffan Melin",
+    files: ["audio/title_music.ogg", "audio/ingame_*.ogg", "audio/final_victory.ogg"],
+    where: { title_music: "Main Menu", ingame_1_intro: "World Map", ingame_1_body: "Welcome to Venice",
+      ingame_1_win: "Level Complete", ingame_3_body: "Lunar Lanes", ingame_4_body: "Cupid's Cove",
+      ingame_5_body: "Venetian Villa", ingame_2_body: "San Marco Square", final_victory: "Final Victory" },
+    order: ["title_music", "ingame_4_body", "ingame_1_intro", "ingame_1_body", "ingame_1_win", "ingame_3_body",
+      "ingame_5_body", "ingame_2_body", "final_victory", "ingame_2_intro"],
+    when: {
+      "title_music": "The main menu opens: after loading, and from its start on every return to it; loops",
+      "ingame_1_intro": "The world map opens: a new Flood or Journey game's start (after the tutorial when it shows), then before levels 4, 7, 10 and on; loops",
+      "ingame_1_body": "Flood and Journey levels 1 to 9 (Welcome to Venice) and 37 to 45 (Grotto Ghetto), Trick Shot's first and fifth regions, and Survival; loops",
+      "ingame_1_win": "A level other than a trick shot is won: starts 2 updates after its last plate goes and rises over 80 (0.32 seconds) as the level's tune drops to a fifth and plays on under it; once",
+      "ingame_3_body": "Flood and Journey levels 10 to 18 (Lunar Lanes) and 64 to 71 (Lavender Lair), Trick Shot's second and last regions; loops",
+      "ingame_4_body": "Flood and Journey levels 19 to 27 (Cupid's Cove), Trick Shot's third region; also the tutorial level, a new player's first game before the map, and the high scores; loops",
+      "ingame_5_body": "Flood and Journey levels 28 to 36 (Venetian Villa), Trick Shot's fourth region; loops",
+      "ingame_2_body": "Flood and Journey levels 46 to 63 (San Marco Square, then Vesta's Vista), Trick Shot's sixth and seventh regions; also the credits; loops",
+      "final_victory": "The win scene: after Flood's or Journey's level 71, or once every trick shot is made; loops, until the high scores"
+    },
+    unused: ["ingame_2_intro"]
+  },
+  // Heavy Weapon: one module, atomictank.mo3, which the game starts at an order of it for each screen (games/heavyweapon/src:
+  // its song ids are named by those orders), and one Ogg, lovetheme.ogg; 200 updates a second, fades 0.002 an update in
+  // (2.5 seconds) and 0.004 out. Its subsongs are its tunes: 0 from order 0, 2 from 0x2a, 4 from 0x3b, 6 from 0x49, 8 from
+  // 0x4f; 1 starts at order 41, which the game never starts (its orders 82 to 84 are reached from nowhere else), and 3, 5, 7
+  // and 9 are a stop pattern (0.2 seconds). The original's BASS calls a song of the module still playing once it has played
+  // (HeavyWeaponApp.cpp, IsPlaying), so only the first main menu fades its tune in and the armory never changes the music.
+  // The credits give the music to Yannis Brown of Groovy Audio and the love theme to MegaLazer (data/credits.xml)
+  heavyweapon: {
+    composer: "Yannis Brown",
+    composers: { lovetheme: "MegaLazer" },
+    files: ["music/*.mo3", "music/lovetheme.ogg"],
+    where: { "atomictank#8": "Intro", lovetheme: "Title Screen", "atomictank#4": "Main Menu", "atomictank#0": "In-Game",
+      "atomictank#2": "Boss Fight", "atomictank#6": "Level Complete" },
+    order: ["atomictank#8", "lovetheme", "atomictank#4", "atomictank#0", "atomictank#2", "atomictank#6", "atomictank#1"],
+    when: {
+      "atomictank#8": "Order 0x4f; at launch, once, under the PopCap and title pictures, fading out over 250 updates (1.25 seconds) as they end; faded in over 500 updates for the cutscene after level 9 and for the game over (no tank left), looping, on through the high scores and menus after it",
+      "lovetheme": "The intro's pictures end: once, as the game loads and the title waits for Play",
+      "atomictank#4": "Order 0x3b; the first main menu after launch, faded in over 500 updates (2.5 seconds), and the high scores and armory from it; also the game-over dialog's Continue, on into the armory; loops",
+      "atomictank#0": "Order 0; a level starts, Campaign or Survival: faded in over 500 updates (2.5 seconds) as the music before fades out over 250; in Campaign it fades out over 250 as the boss warning comes; loops",
+      "atomictank#2": "Order 0x2a; at once after the boss warning's fifth flash (127 updates each); fades out over 250 updates (1.25 seconds) as the beaten boss's last blast goes; loops",
+      "atomictank#6": "Order 0x49; at once as the results come up, 500 updates (2.5 seconds) after the boss's last blast; loops, on through the armory and the final cutscene"
+    },
+    unused: ["atomictank#1"]
   },
   // Bonnie's Bookstore plays its one module as tracks, each a range of orders (its track table, games/bonnies/game/Music.cpp:
   // the first for the menu, the rest in a game), and a logo tune

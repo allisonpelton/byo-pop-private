@@ -171,7 +171,7 @@ var ByopopAutosplit = (function () {
            levelClears: 0x3C, levelClearSerial: 0x40, gameOvers: 0x44, gameOverSerial: 0x48, death0: 0x4C, death1: 0x50,
            death2: 0x54, death3: 0x58, own0: 0x80, wins: 0xB0, winSerial: 0xB4, inGame: 0xC0 },
     i32: { tick: 0x5C, state: 0x60, level: 0x64, displayLevel: 0x68, displayScore: 0x6C, score: 0x70, boardLevelClears: 0x74,
-           goTick: 0x78, displayScoreMax: 0x7C, mode: 0xB8, skill: 0xBC, progress: 0xC4 }
+           goTick: 0x78, displayScoreMax: 0x7C, mode: 0xB8, skill: 0xBC, progress: 0xC4, own1: 0x84, own2: 0x88, own3: 0x8C }
   };
   var V2_FIELDS = Object.keys(V2.u32).concat(Object.keys(V2.i32));
   var FLAG_RESUMED = 0x02;
@@ -242,6 +242,9 @@ var ByopopAutosplit = (function () {
       // (a run over several games, template.games: the skills its games have had, and whether the run's game has reached
       // its end and the run waits for the next game's GO)
       var skillsUsed = [], between = false;
+      // (a death on the run's board that goes on: the game-over flag stays up after it, and the board going away later is
+      // still a quit, as Heavy Weapon's QUIT on its game-over box or Venice's main menu after a sunk Flood building)
+      var wentOn = false;
       var current = {}, old = {};
       V2_FIELDS.forEach(function (k) { current[k] = 0; });
       // a game over on the run's board that ends it, in its last segment ("lost"; "lost N": only while the game's progress is
@@ -260,12 +263,40 @@ var ByopopAutosplit = (function () {
       // board gone in the same update (Dynomite's tutorial wins as it closes to the main menu, its last part's clear just
       // before, so a poll may see all three at once)
       function wonNow() {
+        if (template && template.across) return !!template.endWin && current.wins !== old.wins && endWin();
         return !!end && end.kind === "won" && !(template && template.games) && current.wins !== old.wins && current.winSerial === runSerial;
+      }
+      // (a run over many boards, template.across: Bejeweled Twist's challenges, a board each. Its end is the win whose game's own
+      // words are template.endWin's ({own1: 11, own2: 1}: that category's challenge); every other win splits while segments are
+      // left; no board's end resets it, as a failed challenge is tried again)
+      function endWin() {
+        var w = template.endWin || {};
+        return Object.keys(w).every(function (k) { return current[k] === w[k]; });
+      }
+      // (a run counted by the levels cleared in each mode, template.ownLevels, over as many boards as it takes: Bejeweled 2's
+      // 4 Square and Switcharoo. The game's own words hold a count per mode, a byte each from own0 on, since the block was
+      // asked for; the run counts from its start. {modes, per: N}: the modes with N or more, a segment each; {modes, sum: true}:
+      // their levels together, a segment each)
+      function modeLevels() {
+        var b = [];
+        [current.own0, current.own1, current.own2].forEach(function (w) { for (var k = 0; k < 4; k++) b.push((w >>> (8 * k)) & 255); });
+        return b;
+      }
+      var levelsAtStart = [];
+      function ownCount() {
+        var o = template.ownLevels, now = modeLevels(), n = 0;
+        o.modes.forEach(function (m) {
+          var done = now[m] - (levelsAtStart[m] || 0);
+          n += o.sum ? Math.max(0, done) : done >= o.per ? 1 : 0;
+        });
+        return n;
       }
       function reached() {
         var i = timer.index();
         if (runSerial === 0 || i < 0 || i >= splits.length) return false;
+        if (template && template.ownLevels) return ownCount() >= i + 1;
         if (wonNow()) return true;
+        if (template && template.across) return current.wins !== old.wins && i < splits.length - 1;
         if (current.boardSerial !== runSerial) return false;
         // (each segment of a run over several games is one game, which ends at the end's progress; between games, none)
         if (template && template.games) return !between && end.kind === "progress" && current.progress >= end.n;
@@ -285,9 +316,10 @@ var ByopopAutosplit = (function () {
         // the timer started (by the decider or by hand): the run is the current board's
         onStart: function () {
           splits = parseSplits((opts && opts.segments) || []); runSerial = current.boardSerial; pending = null;
-          skillsUsed = [current.skill]; between = false;
+          levelsAtStart = modeLevels();
+          skillsUsed = [current.skill]; between = false; wentOn = false;
         },
-        onReset: function () { runSerial = 0; pending = null; between = false; },
+        onReset: function () { runSerial = 0; pending = null; between = false; wentOn = false; },
         board: function () { return current.boardSerial; },
         poll: function (t, snap) {
           if (attachT === null) attachT = t;
@@ -308,7 +340,7 @@ var ByopopAutosplit = (function () {
           var ph = timer.phase();
           if (ph === "Running" || ph === "Paused") {
             var cause = null;
-            if (setting("resets") && runSerial !== 0 && !between) {
+            if (setting("resets") && runSerial !== 0 && !between && !(template && template.across)) {
               // a new game over or board change, else one held back in an earlier poll
               cause = pending; pending = null;
               if (current.gameOvers !== old.gameOvers && current.gameOverSerial === runSerial && !lostEnd()) {
@@ -316,9 +348,11 @@ var ByopopAutosplit = (function () {
                 for (var d = 0; d < rules.deaths.length; d++)
                   if (current["death" + d] !== old["death" + d]) {
                     // (a death that goesOn is no end of the run: Venice's sunk Flood building is played again on the board)
-                    cause = rules.deaths[d].goesOn ? null : rules.deaths[d].setting || "resets"; break;
+                    cause = rules.deaths[d].goesOn ? null : rules.deaths[d].setting || "resets";
+                    if (rules.deaths[d].goesOn) wentOn = true;
+                    break;
                   }
-              } else if (old.boardSerial === runSerial && current.boardSerial !== runSerial && !(old.flags & FLAG_GAME_OVER)) {
+              } else if (old.boardSerial === runSerial && current.boardSerial !== runSerial && (!(old.flags & FLAG_GAME_OVER) || wentOn)) {
                 cause = current.boardSerial === 0 ? "resetQuit" : "resetReplaced";
               } else if (template && template.limit && current.boardSerial === runSerial &&
                          current[template.limit.field] > template.limit.max && !(old[template.limit.field] > template.limit.max)) {
@@ -347,7 +381,7 @@ var ByopopAutosplit = (function () {
         // the game went away (its window closed, its page reloaded)
         exit: function () {
           var ph = timer.phase();
-          if ((ph === "Running" || ph === "Paused") && runSerial !== 0 && setting("resets") && setting("resetQuit")) timer.reset("exit");
+          if ((ph === "Running" || ph === "Paused") && runSerial !== 0 && setting("resets") && setting("resetQuit") && !(template && template.across)) timer.reset("exit");
         }
       };
     };
@@ -552,6 +586,77 @@ var ByopopAutosplit = (function () {
     ]
   };
 
+  // Bejeweled Twist (speedrun.com: Bejeweled Twist; games/bejeweledtwist/docs/NOTES.md, "The autosplit block"): Level 10 in
+  // Classic and in Zen, from the start button's click (its GO: the board is made in that update; a resumed game starts
+  // nothing) to the "Level Complete" picture of level 10 (its level clear). Unlock% from a new Classic game to the mode last
+  // opened (progress, the modes open, at 4: on the port's Steam rules Challenge opens at rank 2). Enigma% and Challenge 100%
+  // are runs over many challenges, a board each, from the first challenge's click (its GO) to the win of the challenge that
+  // ends them: Voltage's first (category 11, which opens Enigma) and Enigma's seventh (category 12). The game's own words are
+  // the modes open, the board's challenge category (-1 off a challenge) and its number. A failed challenge, tried again,
+  // resets nothing; each win before the end splits while there are segments for it.
+  var TW_RULES = {
+    name: "Bejeweled Twist", id: "BJTW",
+    modes: { Classic: 1, Challenge: 2, Blitz: 3, Zen: 4 }, skills: {},
+    deaths: [{ setting: "resetBlewUp", what: "the board blew up (a counter ran out, a coal or doom gem reached the bottom)" },
+             { setting: "resetSkull", what: "the second chance's wheel landed on a skull" },
+             { setting: null, what: "Blitz's clock ran out (no category)" },
+             { setting: null, what: "any other end (a challenge failed)" }],
+    templates: [
+      { category: "Level 10", sub: "Classic", segments: levels(10), end: "levels 10", mode: 1 },
+      { category: "Level 10", sub: "Zen", segments: levels(10), end: "levels 10", mode: 4 },
+      { category: "Unlock%", segments: ["Every mode"], end: "progress 4", mode: 1 },
+      { category: "Enigma%", segments: ["Enigma"], end: "won", mode: 2, across: true, endWin: { own1: 11, own2: 1 } },
+      { category: "Challenge 100%", segments: ["Enigma 7"], end: "won", mode: 2, across: true, endWin: { own1: 12, own2: 7 } }
+    ]
+  };
+
+  // Bejeweled 2 Deluxe (speedrun.com: Bejeweled 2 and its Category Extension; the port's block, layout 2, from Bejeweled 2's
+  // session, 2026-11-15): Classic, Action and Hyper to a level or a score, Puzzle to its win (the fifth puzzle of the last
+  // planet) or to the puzzles solved on the run's board (each the first time: 20, four planets of five, is 25%; 80 is All
+  // Puzzles; not the profile's count, which a player with the galaxy opened starts at 80), each from the board's GO (the portal
+  // done and How to Play closed, as the boards say). 4 Square (four levels of each of the four first modes, in any order) and
+  // Switcharoo (eight levels each of Action and Endless, taking turns, saved games continued) run over many boards and count
+  // the levels the game keeps per mode. Left out: Endless's "N Gem", Hyper's Max Score and Full Loop (no end the block can
+  // tell) and 100% (a per-level board).
+  var B2_RULES = {
+    name: "Bejeweled 2 Deluxe", id: "B2DX",
+    modes: { Classic: 0, Action: 1, Puzzle: 2, Endless: 3, Twilight: 4, Hyper: 5, Cognito: 6, Finity: 7, Hidden: 8 }, skills: {},
+    deaths: [{ setting: "resetNoMoves", what: "no moves left (Classic, Endless, Twilight, Hidden)" },
+             { setting: "resetTimeUp", what: "the time ran out (Action, Hyper, Finity)" },
+             { setting: "resetLeft", what: "the board was left mid-game (the menu, a new game)" },
+             { setting: null, what: "unused" }],
+    templates: [5, 10, 17].map(function (n) { return { category: "Classic Mode", sub: "Level " + n, segments: levels(n), end: "levels " + n, mode: 0 }; })
+      .concat([8, 37].map(function (n) { return { category: "Action Mode", sub: "Level " + n, segments: levels(n), end: "levels " + n, mode: 1 }; }))
+      .concat([["1 Million Score", 1000000], ["10 Million Score", 10000000]].map(function (x) {
+        return { category: "Action Mode", sub: x[0], segments: [String(x[1])], end: "score " + x[1], mode: 1 };
+      }))
+      .concat([{ category: "Hyper Mode", sub: "Level 37", segments: levels(37), end: "levels 37", mode: 5 },
+               { category: "Hyper Mode", sub: "100 Million Score", segments: ["100000000"], end: "score 100000000", mode: 5 },
+               { category: "Puzzle Mode", sub: "Any%", segments: ["Galaxy"], end: "won", mode: 2 },
+               { category: "Puzzle Mode", sub: "Glitchless", segments: ["Galaxy"], end: "won", mode: 2 },
+               { category: "Puzzle Mode", sub: "All Puzzles", segments: ["All puzzles"], targets: [80], end: "levels 80", mode: 2 },
+               { category: "25%", segments: ["Planet 1", "Planet 2", "Planet 3", "Planet 4"], targets: [5, 10, 15, 20], end: "levels 20", mode: 2 },
+               { category: "4 Square", segments: ["1 mode", "2 modes", "3 modes", "4 modes"], end: "levels 4", mode: [0, 1, 2, 3],
+                 across: true, ownLevels: { modes: [0, 1, 2, 3], per: 4 } },
+               { category: "Switcharoo", segments: levels(16), end: "levels 16", mode: 1, across: true, ownLevels: { modes: [1, 3], sum: true } }])
+  };
+
+  // Heavy Weapon Deluxe (speedrun.com: Heavy Weapon; the port's block, layout 2, from Heavy Weapon's session, 2026-11-15):
+  // Mission Mode (PC) from the click on Campaign in a new game (its GO, in that update; a campaign continued from the menu
+  // starts nothing) through each level's results screen (a level clear each) to the final level's results, its win, in the
+  // same update as that level's clear. Out of tanks in the campaign brings up the game-over box: its TRY AGAIN plays the
+  // level again on the same board and the run goes on; QUIT (to the high scores) or the menu ends the board, a quit.
+  // Survival has no PC category.
+  var HW_RULES = {
+    name: "Heavy Weapon Deluxe", id: "HWDX",
+    modes: { Campaign: 0, Survival: 1 }, skills: {},
+    deaths: [{ setting: null, goesOn: true, what: "out of tanks (the campaign: TRY AGAIN plays the level again, the run goes on)" },
+             { setting: null, what: "out of tanks (Survival, no category)" },
+             { setting: null, what: "unused" },
+             { setting: null, what: "unused" }],
+    templates: [{ category: "Mission Mode (PC)", segments: levels(19), end: "won", mode: 0 }]
+  };
+
   // A row of GAMES from a row of the rules table
   function ruled(rules) {
     return { name: rules.name, block: "_byopop_livesplit_block", read: blockReader(rules.id), decider: makeDecider(rules),
@@ -572,7 +677,10 @@ var ByopopAutosplit = (function () {
     typershark: ruled(TS_RULES),
     cosmicbugs: ruled(CB_RULES),
     dynomite: ruled(DY_RULES),
-    venice: ruled(VN_RULES)
+    venice: ruled(VN_RULES),
+    bejeweledtwist: ruled(TW_RULES),
+    bejeweled2: ruled(B2_RULES),
+    heavyweapon: ruled(HW_RULES)
   };
 
   // The front game's block, read from its window: {game, snap} or null (no game with an auto splitter in front, or it has not

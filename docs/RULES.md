@@ -81,6 +81,11 @@ the same machine. A plain run opens a window, raises it over whatever the user i
   outputs (shots, logs, traces, staged copies of an original it no longer runs) once their result is judged and written
   into the game's notes, keeps its worktree's `build/` under about 3 GB, and checks its size before each merge request.
   What is worth keeping is the summary in the notes, never the raw files.
+- **Nothing in C:\'s root (the user, 2026-11-15: "I see new folders related to this project in the root of my C drive.
+  Move to the E drive please"):** the short path for originals that fail under a worktree's long path is `E:\byo-og`
+  (was `C:\byo-og`; every script and note now says E:), and a session's or agent's scratch goes in its worktree's
+  `build/` or its scratchpad, never a new folder at a drive's root on C:. The folders found there that day (`C:\byo-og`,
+  `C:\scr`, `C:\tmp_pf`, `C:\byo-saw`) were moved to E:.
 - Leave nothing running: loops started in the background end before you finish. Stopping a task can leave its loop's
   shells alive and still starting runs (Ning Po, 2026-11-03), so afterwards look for processes whose command line is
   inside your folder and stop them by id.
@@ -89,16 +94,21 @@ the same machine. A plain run opens a window, raises it over whatever the user i
   requestAnimationFrame unless it is shimmed, so it can stand still for good. A session that ended its turn on "waiting
   for the web tour" sat idle for a day (2026-11-03). Stop only processes you started, identified by a command line inside your own folder or worktree;
   several sessions share this machine, so never stop a game exe by its name alone.
-- Never run `-script`/`-autoplay` runs on the user's desktop. `ORACLE_VISIBLE=1` exists only for the user.
-- **Overnight, desktop and sound allowed (the user, 2026-11-11):** "from 10 PM to 8 AM you have my permission to run
-  any of the games on my desktop or sandbox with sound to test play". Between 22:00 and 08:00 local time a session may
-  run any game, port or original, on the visible desktop or in Windows Sandbox (`--sandbox-vgpu` and
-  `--sandbox-connect` included), with real sound, scripted and driven runs too; a run started in that window ends by
-  08:00. Benchmarks and other test programs that open a window (a presenter or vsync bench) may run there on the same
-  terms (the user, 2026-11-12, asked whether rundesk's desktop, which may never signal a vertical blank, makes a
-  present cost more than on a player's screen: "Yes"). Everything else above still holds: at most 6 game processes, no link, "Buy" or "More Games" click, the
-  user's cursor and keyboard never touched (input posted to the game's own window), the window, registry and saves
-  put back as `docs/ORIGRUN.md` says, nothing left running. Outside those hours the rules above apply unchanged.
+- `ORACLE_VISIBLE=1` exists only for the user. (Until 2026-11-15, `-script`/`-autoplay` runs never went on the
+  user's desktop; the item below replaced that.)
+- **Desktop and Sandbox at any hour (the user, 2026-11-15):** "Get rid of the time restrictions on concurrent sessions
+  and running on my visible desktop. Do what you want forever now". It replaced the overnight window of 2026-11-11
+  ("from 10 PM to 8 AM you have my permission to run any of the games on my desktop or sandbox with sound to test
+  play"). At any hour a session may run any game, port or original, on the visible desktop or in Windows Sandbox
+  (`--sandbox-vgpu` and `--sandbox-connect` included), with real sound, scripted and driven runs too. Benchmarks and
+  other test programs that open a window (a presenter or vsync bench) may run there on the same terms (the user,
+  2026-11-12, asked whether rundesk's desktop, which may never signal a vertical blank, makes a present cost more than
+  on a player's screen: "Yes"). Routine runs stay under rundesk, which keeps windows and sound off the user's work;
+  the desktop is for what needs it (3D, vsync, sound, real input). A game's own script that still refuses outside
+  22:00-08:00 is out of date and loses its guard at its next use. Everything else above still holds: at most 6 game
+  processes, no link, "Buy" or "More Games" click, a window shown without taking the focus, the user's cursor and
+  keyboard never touched (input posted to the game's own window), the window, registry and saves put back as
+  `docs/ORIGRUN.md` says, nothing left running.
 
 ## Token economy (the user's rules, 2026-10-24)
 
@@ -282,7 +292,11 @@ Every call re-reads the whole context, so what costs is context times calls, and
   code it does not need, for a game ported from its Steam copy the check against its PopCap Game Collection
   version, and its features on the site (the user, 2026-11-11: "All these accessory features should be added to our
   definition of done"): Music's entries for its tunes placed, grouped and split as the game plays them, with no place
-  its code can settle left blank, its soundboard's presets of the sequences the game plays, and, where speedrun.com
+  its code can settle left blank, its tracker modules' unused patterns (patterns no order of any subsong plays) in
+  Music's own section for them, away from the game's tunes, never reached by playing on down the list and played only
+  when chosen (the user, 2026-11-15: "Add unused tracker patterns to their own section in the music player (since
+  they're not compositions unto themselves, not listed alongside their game, and don't start playing them while going
+  down through the list, only when one is selected). That's now part of a game's definition of done"), its soundboard's presets of the sequences the game plays, and, where speedrun.com
   has a leaderboard for the game, its autosplitter in the site's Splits window, timed by that board's rules (the user,
   2026-11-12: "let's build in autosplitters to every port of a game with a leaderboard on speedrun.com"). The site
   builds them, and the game's session answers the site's questions about its code and adds the few inert lines of

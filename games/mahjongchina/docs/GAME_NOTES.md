@@ -100,6 +100,53 @@ batches (the window): 15.9 % before and 14.0 % after the blit and Present change
 second run (6.2 %, against 1.3 and 1.7 %) is an outlier of the same kind. Where the time goes is Japan's: the engine's drawing, the copy to the widget and the
 texture upload in the game's thread, and `SDL_RenderPresent`, the driver's.
 
+**Like for like, thread by thread (2026-11-12).** Measured as Japan's (`games/mahjongjapan/docs/GAME_NOTES.md`,
+"Like for like, thread by thread": cycles per thread over the window of 30 s, the port's mixer counted apart, port and original
+in turn) after the engine began to redraw only what changed from frame to frame (`engines/jollybear/ScreenLog.h`, shared with
+Japan; proved with every frame drawn in full as well and compared: the suite's 2095 frames and the screen tour's 1408, none
+differing, every picture as frozen). The first pair: original 3.63 G cycles, port 4.47 G (main thread 2.68, the video driver's
+worker thread 1.59, the port's mixer 0.17). In the second the port's window ran 42.6 s instead of 30 (the sampler came late on a
+busy machine), 4.20 G or 98.6 M cycles a second, against the original's 3.02 G in 30.1 s or 100 M a second, which the play
+does not allow to compare (the window reached past the stage). The original's own runs here differ by 20 % (3.63 and 3.02).
+So China's port is 1.2 times its original in the one pair that compares; the framework's present
+chain (the widget's upload, `SDL_RenderPresent` and the driver's thread: 2.6 G of the port's 3.8 to 4.5) is what is left,
+asked of the coordinator as Japan's notes say.
+
+**Like for like, corrected, and the window-surface presenter (2026-11-12).** The pairs above had the port in a full-screen
+window of 3840x2160 against the original's 800x600 window, which is not like for like; Japan's notes ("The window-surface
+presenter, and the measurement made like for like") give the correction, the presenter (`framework/SurfaceDisplay.h/.cpp`, shared
+with Japan through the engine) and the method. China's figures there, in billions of cycles in the window of 30 s (median of five
+runs, the port's mixer counted apart): original, window of 800x600, 3.60 (2.81 to 5.78); port with the presenter's surface mode,
+window of 800x600, 1.01 (0.46 to 1.12), and window of 1600x1200 (what a windowed player gets), 1.16 (1.15 to 1.19), which is 0.28 and 0.32 of
+the original's, under the target in a window (a fresh player starts full screen, where the renderer's figure below applies); port with the renderer (a resized window, full screen), 4.0 to 4.8, where the presenter changes
+nothing (1.1 to 1.3 times the original's windowed figure, the Direct3D device's driver thread 2 G of it). The device's cost that
+surface mode does not pay: private bytes 34 against 61 MB, working set 54 against 68 MB, the game's 400th update 0.5 s sooner.
+The cost of each way of showing a frame (software and GDI against Direct3D 9 and 11, a 15 % rect at 40 a second), the frame cap
+for a renderer without vsync and the test option `-windowscale=N` (reachable only from a test) are in Japan's notes.
+
+**Stretch mode, full screen under the original's figure (2026-11-14).** Japan's notes ("Stretch mode: full screen under the original's
+figure") give the mode (`SurfaceDisplay`'s third, no renderer at any window size: GDI's nearest-neighbour stretch of the buffer into the
+window, the changed rects as the clip region), how it was checked and the look it changes. China's figures, in billions of cycles in the
+window of 30 s (medians of five runs, full screen 3840x2160 on rundesk's desktop): the original in its window of 800x600 3.60 (2.81 to 5.78);
+the port with the renderer 4.79 (as above); the port in stretch mode 1.72 without its mixer thread and 1.89 with it (1.82 to 2.09), which is
+0.48 and 0.52 of the original's. The engine is shared, so `kStretchOtherSizes` in `engines/mahjongescape/src/MahjongApp.cpp` is one
+switch for both ports (`false` until the user has seen the look; a test run's `SURFACE_STRETCH=1` decides instead).
+
+**Where full screen stands (2026-11-15).** The coordinator's word, from the user: keep today's look on full screen, so the renderer's linear-filter picture stays the default and the nearest stretch stays an option (off). Until the framework session's CPU presenter (the same look made on the processor in strips, which also draws the mod menu under `SurfaceDisplay`) lands, full screen is still over the original's processor time here (4.77 against 3.78 for Japan, 4.79 against 3.60 for China). It is the one configuration of the two ports above the target; no third presenter is built in this game's folder.
+
+**The game under a modal dialog and the mod menu (2026-11-14).** The same two overrides (`MahjongApp::ModalOpen` and `ModalClose`, in the shared
+`engines/mahjongescape/src/MahjongApp.cpp`) pause the manager under a modal dialog or the mod menu, as Japan's notes ("The game under a modal
+dialog and the mod menu") give. Checked in China with the same script (`modal_test.sh mahjongchina`): the timer stands at 0 under the menu
+and after the close (the no-menu run reads 4 and 6 at the same two game times as Japan's), and with the frames' phase lined up the first
+picture after the close equals the control's of that game time pixel for pixel (`open` with K 2, and K 3 for the later one).
+
+**Why China's and Japan's percentages differed** (README: China's port 7.3 % of a core against its original's 1.7 %, Japan's 6.0 %
+against 3.1 %): five runs of each port and three of each original as percentages of one core on a busy machine, China's original
+running at 1.3, 1.7 and 6.2 % in its three, so that the median of three took a quiet one. In cycles the originals' medians are
+3.60 G (China) and 3.78 G (Japan), each varying from run to run by a factor of 1.7 to 2.1, and with the renderer the two ports
+are within 0.4 G of each other. The difference was the original's own spread, not the games'. (With the surface China's port is
+0.5 G below Japan's, the main thread's share of the drawing.)
+
 **Memory.** Before any game file is read the process holds 52.3 MB (the framework, SDL and the video driver: shared). At the
 end of the play it holds 102.5 MB private: the engine's images (9.4 MB of decoded bits and 12.1 MB of 32-bit copies, 82
 images), 5.1 MB of sounds (19) and, from the menu on, the two MO3 modules the menu loads (ids 335 and 339), the rest, about

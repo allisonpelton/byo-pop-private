@@ -27,6 +27,13 @@ is over, so an input's N is a multiple of 5, and the port runs it at the next up
     idplay.py generate <scenario>          the port plays the scenario's prefix and then its bot's clicks (`botclick`), which are
                                            written beside the scenario as <scenario>.clicks and replayed by the other commands
 
+Phase two's sound is compared by the same runs: the original's DirectSound stand-in logs every buffer it plays (origrun's
+logs/sound.log, copied to the run's original_sound.log), the port logs its samples (BYOPOP_SOUNDLOG, port_sound.log), and
+`soundcmp.py` compares what was played, in what order, at what volume, pan and pitch. The music goes through BASS: a copy of the
+original with tools/bassproxy's bass.dll beside it (the real one as bass_real.dll; HAMMERHEADS_ORIGINAL names it) has its calls
+logged to original_bass.log, which `musiccmp.py` compares with the music lines of the port's sound log. A run that matched in
+both removes the logs.
+
 A scenario is a python file under scenarios/ that defines INPUTS, a list of (update count, original command, port command)
 with each count a multiple of 5 (the commands are origrun's script commands and the framework's -script commands), and END, the
 last update count compared. It may define SEED (default 1). Instead of INPUTS it may define PREFIX (the same kind of list: the
@@ -53,8 +60,9 @@ COUNTER = '[%s]+0x44c' % APP
 ORIGRUN = os.path.join(ROOT, 'build', 'origrun-bin', 'origrun.exe')
 RUNDESK = os.path.join(ROOT, 'build', 'native', 'rundesk.exe')
 PORT_EXE = os.path.join(ROOT, 'build', 'native', 'hammerheads.exe')
-ORIGINAL_EXE = os.environ.get('HAMMERHEADS_ORIGINAL', r'C:\byo-og\hh2\game\HammerHeadsGame.exe')
-STAGE_ROOT = os.environ.get('HAMMERHEADS_STAGE_ROOT', r'C:\byo-og')
+ORIGINAL_EXE = os.environ.get('HAMMERHEADS_ORIGINAL', r'E:\byo-og\hh2\game\HammerHeadsGame.exe')
+STAGE_ROOT = os.environ.get('HAMMERHEADS_STAGE_ROOT', r'E:\byo-og')
+ORIGINAL_RUN = os.path.basename(os.path.dirname(os.path.dirname(ORIGINAL_EXE)))      # origrun's run name: the copy's folder (hh2)
 PATCHES = os.path.join(ROOT, 'games', 'hammerheads', 'tools', 'origrun', 'patches.txt')
 PEEK_LINE_LENGTH = 880                         # origrun logs a peek line up to about 1000 characters, the values in it too, and reads a
 PEEKS_PER_LINE = 30                            # peek of up to 30 expressions: a longer line loses its tail
@@ -226,15 +234,25 @@ def run_original(name, scenario, end):
     # the original keeps its players in users\ beside the exe; a player left by the last run changes the flow (no name box), so
     # every run starts with none, as the port's run does with its fresh user folder
     shutil.rmtree(os.path.join(os.path.dirname(ORIGINAL_EXE), 'users'), ignore_errors=True)
-    command = [ORIGRUN, '--exe', ORIGINAL_EXE, '--run', 'hh2', '--stage-root', STAGE_ROOT, '--script', script, '--clock', 'virtual',
-               '--reg-map', 'popcap', '--counter', COUNTER, '--patches', patches_file(run, scenario), '--seed', str(getattr(scenario, 'SEED', 1)),
-               '--timeout', str(120 + end // 100)]
+    command = [ORIGRUN, '--exe', ORIGINAL_EXE, '--run', ORIGINAL_RUN, '--stage-root', STAGE_ROOT, '--script', script, '--clock', 'virtual',
+               '--reg-map', 'popcap', '--cursor', 'scripted', '--counter', COUNTER, '--patches', patches_file(run, scenario), '--seed', str(getattr(scenario, 'SEED', 1)),
+               '--timeout', str(600 + end // 20)]
     crash = os.path.join(os.path.dirname(ORIGINAL_EXE), 'crash.txt')
     if os.path.exists(crash):
         os.remove(crash)
+    sound_log = os.path.join(ROOT, 'build', 'origrun', ORIGINAL_RUN, 'logs', 'sound.log')       # the stand-in's log of the copy's DirectSound calls
+    if os.path.exists(sound_log):
+        os.remove(sound_log)
+    bass_log = os.path.join(os.path.dirname(ORIGINAL_EXE), 'basslog.txt')       # the music: the BASS stand-in's log, when the copy has one (tools/bassproxy)
+    if os.path.exists(bass_log):
+        os.remove(bass_log)
     with open(log, 'w') as out:
         status = subprocess.call(command, stdout=out, stderr=subprocess.STDOUT, cwd=ROOT)
     print('original: origrun exited with', status, '->', log)
+    if os.path.exists(sound_log):
+        shutil.copyfile(sound_log, os.path.join(run, 'original_sound.log'))
+    if os.path.exists(bass_log):
+        shutil.copyfile(bass_log, os.path.join(run, 'original_bass.log'))
     if os.path.exists(crash):
         print('THE ORIGINAL CRASHED:', open(crash, errors='replace').readline().strip())
     return log
@@ -260,8 +278,11 @@ def run_port_script(name, script_text, scenario):
     os.makedirs(user_dir)
     log = os.path.join(run, 'port.log')
     command = [RUNDESK, PORT_EXE, '-fast', '-seed=%s' % getattr(scenario, 'SEED', 1), '-userdir=' + user_dir, '-script=' + script]
+    sound_log = os.path.join(run, 'port_sound.log')
+    if os.path.exists(sound_log):
+        os.remove(sound_log)
     with open(log, 'w') as out:
-        status = subprocess.call(command, stdout=out, stderr=subprocess.STDOUT, cwd=ROOT)
+        status = subprocess.call(command, stdout=out, stderr=subprocess.STDOUT, cwd=ROOT, env=dict(os.environ, BYOPOP_SOUNDLOG=sound_log))
     print('port: exited with', status, '->', log)
     return log
 
@@ -404,6 +425,7 @@ def coverage(original, end):
             'phases (updates): ' + ', '.join('%d (%d)' % item for item in sorted(phases.items())),
             'creatures up (updates): ' + ', '.join('%s (%d)' % item for item in sorted(kinds.items())),
             'swings that struck something: %d' % hits,
+            'the x5 timer ran (updates): %d, the double hit (updates): %d' % (sum(1 for r in records if any(r['fivetimes'])), sum(1 for r in records if any(r['doublehit']))),
             'at the end: smashed %d, bombs %d, misses %d, hearts %d, coins %d, clovers %d, bottles %d, score %d' %
             (stat(0), stat(1), stat(2), stat(5), stat(6), stat(7), stat(8), stat(12))]
 
@@ -415,6 +437,11 @@ def compare(name, scenario, end):
     if not original:
         print('the original left no records (did the run reach its updates?)')
         return 2
+    last = max([k[0] for k in original if k[1] == 'T'] or [0])
+    if last < end - 10:
+        # origrun ends a run at its time limit: a record that was never made is not a record that matched
+        print('THE ORIGINAL ENDED AT UPDATE %d, before the %d asked for (its time limit?): nothing past it was compared' % (last, end))
+        return 3
     compared = 0
     missing = []
     for key in sorted(original):
@@ -465,6 +492,33 @@ def compare(name, scenario, end):
     return 0
 
 
+def compare_sound(name, scenario, end):
+    """the sound of a run, by soundcmp.py: 0 when the plays are the same (or when a side has no sound log), 1 when they differ.
+    The port's side stops at the end of the run (the original ends there; the port's script runs ten updates more), and the cheat
+    words the port is typed (the original is patched to the same cheats and plays nothing) are left out: the voice they play."""
+    run = os.path.join(RUN_DIR, name)
+    original, port = os.path.join(run, 'original_sound.log'), os.path.join(run, 'port_sound.log')
+    if not (os.path.exists(original) and os.path.exists(port)):
+        return 0
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    import soundcmp
+    import musiccmp
+    saved = sys.argv
+    sys.argv = ['soundcmp.py', original, port, '--end', str(end)]
+    for count, original_command, port_command in scenario.INPUTS:
+        if port_command and port_command.startswith('cheat ') and not original_command:
+            sys.argv += ['--port-only', '%d-%d:Cheat - ' % (count + 1, count + 5)]
+    try:
+        status = soundcmp.main()
+        music = os.path.join(run, 'original_bass.log')
+        if os.path.exists(music):
+            sys.argv = ['musiccmp.py', music, port, '--last', str(end - 10)]
+            status = musiccmp.main() or status
+        return status
+    finally:
+        sys.argv = saved
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('command', choices=['run', 'compare', 'original', 'port', 'generate', 'coverage'])
@@ -496,14 +550,15 @@ def main():
         run_port(name, scenario, end)
     if args.command in ('run', 'compare'):
         status = compare(name, scenario, end)
-        if status == 0 and not args.keep:
+        sound_status = compare_sound(name, scenario, end) if status == 0 else 0
+        if status == 0 and sound_status == 0 and not args.keep:
             # the logs are big (half a gigabyte for 30000 updates) and a run that matched has nothing more to say
-            for leftover in ('original.log', 'original.txt', 'port.trace'):
+            for leftover in ('original.log', 'original.txt', 'port.trace', 'original_sound.log', 'original_bass.log', 'port_sound.log'):
                 try:
                     os.remove(os.path.join(RUN_DIR, name, leftover))
                 except OSError:
                     pass
-        sys.exit(status)
+        sys.exit(status or sound_status)
 
 
 if __name__ == '__main__':

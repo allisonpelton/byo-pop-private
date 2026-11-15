@@ -18,6 +18,7 @@ Reachable only from a test (`-script`, `-commands`, the web page's test call; `d
 | `set score\|mode\|level\|lives <v>` | the profile's score, mode, level or tries |
 | `save` | writes the profiles file (the game writes it when a player is made or a level ends, not at quit), so that a run can make a player for another run |
 | `win`, `lose` | the level in play goes to its victory stage, or is lost as a shot that fell is |
+| `cupid` | a cupid comes in next to the shooter, as the cupid power-up's does (`Powerup::GiveCupid`), in the level in play; it takes a shot jewel that passes it while it flies in (1.2 s), so a test reaches `cupid_flap` and `cupid_catch` without waiting 10 s in Flood or Survival |
 | `seed <n>` | seeds the game's random numbers |
 | `move` | `MOVE {"kind","input"}` for the bot's next shot (`Bot.cpp`), a `wait` while the level is not ready for one, or `MOVE null` |
 | `memreport` | the framework's, `MEMREPORT {...}` |
@@ -41,8 +42,39 @@ original's BASS calls (`tools/bassproxy`, a logging BASS beside the exe) with th
 `webshots.py <scenario>` takes the same shots from the web build under Node (`wasmrun.js`) and compares them with the native
 ones. The tours: `shots_name`, `shots_tutorial`, `shots_menus`, `shots_ingame`, `shots_flood`, `shots_survival`,
 `shots_trickshot`, `shots_journey` and `shots_focus` (the window losing the focus and getting it back; its original run needs
-the sandbox, and a shot in the lost state is a `waitshot`). `shots_menus3d` is the 3D original's menus (see "Left in phase two"
-in `IDENTICAL_PLAY.md`). A scenario's `SHOT_MARGIN` (1000 frames) keeps the run going past its last shot.
+the sandbox, and a shot in the lost state is a `waitshot`). `shots_menus3d` is the 3D original's menus, which cannot run in the sandbox
+and goes through `visshots.py` instead (the next section). A scenario's `SHOT_MARGIN` (1000 frames) keeps the run going past its last shot.
+
+## The 3D original on the desktop (visrun)
+
+The original's Direct3D 7 mode does not run in the sandbox, so its shots come from `tools/visrun.py` (`docs/VISRUN.md`) on the
+visible desktop, 22:00 to 08:00 or with `--user-window-until`. `games/venice/tools/idplay/visshots.py` does the whole of it for a
+scenario (`shots_menus3d`), and the port's side is idplay's, with the original's ticks and landed updates:
+
+```bash
+python -I games/venice/tools/idplay/visshots.py prep shots_menus3d       # the step file and the config, then visrun's --dry-run
+python -I games/venice/tools/idplay/visshots.py original shots_menus3d   # about 8 minutes; --user-window-until HH:MM outside the night
+python -I games/venice/tools/idplay/visshots.py port shots_menus3d       # the port's run, under rundesk
+python -I games/venice/tools/idplay/visshots.py compare shots_menus3d    # the seed, the last scene's ticks and the ticks, frame by frame
+python -I games/venice/tools/idplay/visshots.py diff shots_menus3d       # tools/shotdiff on the two folders
+```
+
+What `games/venice/tools/visrun/venice.toml` needed, for the next game that uses visrun: `pos` (a game not placed stays centred, and
+another game's window over it makes visrun refuse the shot, exit 4); `--timeout 600` (the default 120 s was too short for a wait on
+the loading); the values visrun prints are unsigned (`loadstate` -2 and -1 come as 4294967294, so `visshots` reads them signed); and a
+peek at every update, since the update the loading ends at differs from run to run (the original loads on a thread of real time).
+Only `gamecount` says whether there is room for another game process; a chained run waits in a loop for it.
+
+The peeks are read inside the game at its waits, and in the 3D original that can fall inside an update, so for a frame the
+counter's step (`0xa2a1ac`) is the ticks run between two peeks, 235 at most here, and `0x5b51c8` (the ticks of the last batch) is
+not the frame's; a step over 100 is more than one widget update (the widget gives up above 100, `GiveUpBehindUpdates`, which the
+decompilation of 0x440650 confirms). A reset of the tick base in the update's loop (a scene inserted by an action) leaves the counter
+at 1 for that frame: `visshots.schedule` takes the ticks of that frame and the next from the clock's move over both and the new
+scene's tick count in the next, which is how the credits' loading screen turned out to end on the same tick in 3D and 2D.
+
+The 3D picture is half a pixel from SDL's, because Direct3D 7 has the centre of a pixel at the whole-number coordinate: `VeniceDisplay`
+(`VeniceApp.cpp`) adds 0.5 to the position of a transformed picture in the 3D mode. Other games of the framework that were
+D3D7 originals and draw transformed pictures in 3D may be half a pixel off in the same way.
 
 ## Deviations (each without a visible effect)
 
@@ -93,6 +125,13 @@ in `IDENTICAL_PLAY.md`). A scenario's `SHOT_MARGIN` (1000 frames) keeps the run 
   the original goes on reading and writing that freed stage (0x42a980, 0x429f10), the port stops the stage's update there
   (`SceneStage::CheckEvents` returns false) and gives the result the original's read of the stale progress gave. Found by the
   AddressSanitizer run of the win sequence (level 72).
+- The mod menu (F2) holds the game while it is open and closes through `ModalClose`, as a modal dialog does. The original has no
+  such menu and no `ModalClose` of its own (it keeps the base class's empty one), so `VeniceApp::ModalClose` is the port's: it calls
+  `ResetTickBase` (0x4407c0), which the loads and `GotFocus` already do. Without it the 4 ms ticks counted on from the old tick
+  base while the menu was open, and a menu open for 0.1 s to 0.4 s ran every missed tick at once on closing. Checked on the real
+  clock with `modmenu open` and `modmenu close` 30 updates apart: without the call the frame of the close ran 27 ticks, with it
+  that frame runs none and the ones after run their usual 4 or 5 (the trace's `ticks=` of the frames around it). In `-fast` the
+  clock does not show it.
 
 ## Fixes (the fixes mod)
 
@@ -217,7 +256,8 @@ the tosser plate, and the Survival, options and name screens. Of the 20:
   (0x412ba0) and `VeniceWidget::MouseWheel` (0x441230: the wheel counts as a press of the up or down key; origrun has no
   wheel input).
 - **Run at night (2026-11-12), reached:** the options' two check boxes, hardware acceleration and full screen (`Checkbox::Toggle` 0x4379f0, `SetAcceleratedDisplay` 0x4418a0 and `SetWindowedDisplay` 0x441930; `scenarios/cov_options_checks.py`, the boxes at 281,353 and 281,393, each on and off), and in the original's 3D mode the glow of a text that the pointer comes onto, the only caller of `TextObject::GetBounds` (0x425220; `scenarios/cov_text_glow.py`, with `ACCELERATED` on the host under dgVoodoo2). In the port the same boxes were clicked with real input: hardware acceleration takes its check mark (the port's 3D and 2D look is the registry's `Is3D`, not a display made again), full screen switches the display to full screen and back (the log's two `mode switch` lines) and the registry ends with `Is3D=0`, `ScreenMode=0`; no error line.
-- **Still open:** the tutorial's "don't show this again" check box (`check_type="instructions"` in `levels/tutorial.xml`, at 73,568; the same `Toggle`, a flag only): it is not on the screen at the instructions the bot's tutorial passes (the opening, "Shoot here!"), so the place and time it shows are not found; two tries by click reached nothing.
+- **The tutorial's "don't show this again" check box (checked 2026-11-14).** It is in `levels/tutorial.xml` (the scene named `tutorial`, the "How to play" page with the NEXT text; `check_type="instructions"`, at 73,568), which is not the tutorial level the bot plays (`tutorial2`) and not the page of the main menu's HELP button (`instructions`, no box). Nothing loads the scene: no event of any data file names it (`config.xml` only lists the file), and the exe's two uses of the string are the class factory and the test for a
+  scene called `tutorial*` (`FUN_00405e10`, here `GameText.cpp`), which `tutorial2` satisfies. So the original does not show it, and that is why the two earlier tries at its place reached nothing. In the port `goto tutorial` opens it: a click with real input at 73,568 puts the tick in (the box draws what `mInstructionsHidden` says), `save` and a restart with the same user folder show the tick still there, and a second click takes it out (dark pixels around the box in the four shots: 138 before, 100 after the click, 98 after the restart, 140 after the second click). The flag is what skips the first level's instructions (`GameText.cpp`) and sets the scroll limit of the tile layer (`Layer::MergeChildren`).
 - **Kept, a virtual's empty base:** `SceneObject::OnCustomEvent` (0x429d20); the objects that get a custom event (the basket,
   the slot) have their own.
 - **Candidates for taking out unneeded code: 12 functions.** No play of the original reaches these; they were taken out on
@@ -445,8 +485,15 @@ the bot ends at its first level it cannot beat.
 
 Every run reached the end of its play with no error line in the game's log, and the last screen of each (`end.png`, taken by the game's own
 `screenshot`) was looked at for Flood 3D (building 8) and Survival (sunk, "Time: 10:23", score 347550). The Journey runs differ between the
-displays at building 1 (won in 2D, lost three times in 3D): the 3D display's own movement of the jewels, which the comparison with the
-original showed (`journey3d`, "Left in phase two"), is enough to turn a level the bot wins by one try. A run is 1 to 8 minutes under
+displays at building 1 (won in 2D, lost three times in 3D), so the game's logic is not the same in the two
+displays of the port everywhere. Checked on 2026-11-13 with the bot's play and `trace`: from Journey building 10 the two displays give
+the same seed, hits, shots, score, jewel kinds and ticks for all 13477 frames; from a new game (the tutorial and building 1) they part
+at frame 7246 of the run, where the 3D run has fired a shot and the 2D run has not, and the random seed differs from then on. A run of
+one display is the same every time (the windowed and full screen runs agree). Cause not found. The code reads the display in
+`Layer::MergeChildren` and `BakeChildren` (a picture merge that the scroll's measured content height follows, `IsAccelerated()`),
+which the original does as well; whether the scroll of the tutorial's layers is what differs has not been measured. (An earlier
+version of this paragraph blamed the float drift of the `journey3d` comparison, which is the original's own 3D mode against its
+software mode, not these two displays of the port.) A run is 1 to 8 minutes under
 `-fast`; the folder of each is `build/realinput/<mode>-<display>` and is deleted once its line is here.
 
 Found on the way and fixed in the test commands: `unlock all` before the loading ends (the level lists do not exist yet) crashed the game

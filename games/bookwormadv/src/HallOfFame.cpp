@@ -104,6 +104,9 @@ std::pair<It, It> SortPartition(It theFirst, It theLast, Pr thePred)
 	}
 }
 
+// 0x472360 (the insertion sort of the word entries) and 0x472620 (of the power entries) are instances of this template.
+// 0x476a20 and 0x476d20 (the rotate of one entry into its place, for the word and the power entries) are inline here:
+// the copy_backward and the shifting loop
 template <class It, class Pr>
 void SortInsertion(It theFirst, It theLast, Pr thePred)
 {
@@ -126,6 +129,7 @@ void SortInsertion(It theFirst, It theLast, Pr thePred)
 	}
 }
 
+// 0x46fd00 (std::sort's _Sort for the word entries) and 0x46fe00 (for the power entries) are instances of this template
 template <class It, class Pr>
 void SortRange(It theFirst, It theLast, long theIdeal, Pr thePred)
 {
@@ -150,6 +154,8 @@ void SortRange(It theFirst, It theLast, long theIdeal, Pr thePred)
 	}
 }
 
+// 0x46ead0, 0x46eb10, 0x46eb60 and 0x46ebf0 (the std::sort calls of the word, power, time and bonus lists, one each in
+// MakeWordList, MakePowerList, MakeTimeList and MakeBonusList) are this template
 template <class T, class Pr>
 void SortRows(std::vector<T>& theRows, Pr thePred)
 {

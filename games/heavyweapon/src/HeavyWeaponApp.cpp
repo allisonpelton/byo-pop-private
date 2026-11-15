@@ -1,4 +1,5 @@
 #include "HeavyWeaponApp.h"
+#include "LiveSplitObserver.h"
 #include "FlickerLight.h"
 #include "Armory.h"
 #include "Board.h"
@@ -17,6 +18,7 @@
 #include "Buffer.h"
 #include "Checkbox.h"
 #include "DDImage.h"
+#include "DDInterface.h"
 #include "Graphics.h"
 #include "ImageFont.h"
 #include "MusicInterface.h"
@@ -24,6 +26,7 @@
 #include "SoundManager.h"
 #include "WidgetManager.h"
 #include "XMLParser.h"
+#include "platform/GameOptions.h"
 
 #include <SDL.h>
 #include <cmath>
@@ -31,6 +34,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <climits>
+#include <set>
 
 using namespace Sexy;
 
@@ -87,6 +91,10 @@ HeavyWeaponApp::HeavyWeaponApp()
 	mTitleScreen = NULL;
 	mLoadingCompleteShown = false;
 	mTraceFile = NULL;
+	mGamesBegun = 0;
+	mGameSerial = 0;
+	mGameIsSurvival = false;
+	mGameResumed = false;
 	mMainMenu = NULL;
 	mMusicVolume = 0.3;
 	mSfxVolume = 0.9;
@@ -124,6 +132,7 @@ HeavyWeaponApp::HeavyWeaponApp()
 // the port frees them
 HeavyWeaponApp::~HeavyWeaponApp()
 {
+	LiveSplitObserver::AppDestroyed(this);		// port(autosplit): the autosplit block's last write
 	if (mTraceFile != NULL)
 		fclose(mTraceFile);
 	for (int i = 0; i < NUM_IMAGES; i++)
@@ -335,6 +344,7 @@ void HeavyWeaponApp::SwitchScreenMode(bool wantWindowed, bool is3d, bool force)
 // 0x401a80: the main menu; with no player yet, the dialog that asks for a name over it
 void HeavyWeaponApp::ShowMainMenu()
 {
+	EndGame();		// port(autosplit)
 	mMainMenu = new MainMenu(this);
 	mWidgetManager->AddWidget(mMainMenu);
 	mWidgetManager->SetFocus(mMainMenu);
@@ -561,6 +571,27 @@ void HeavyWeaponApp::UpdateFrames()
 		if (mSoundDelays[aSound] > 0)
 			mSoundDelays[aSound]--;
 	}
+	LiveSplitObserver::AfterUpdate(this);		// port(autosplit): the autosplit block, after the update
+}
+
+// port(autosplit): -livesplitlog=<file> asks for the autosplit block and logs it; everything else is the framework's
+void HeavyWeaponApp::HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue)
+{
+	if (theParamName == "-livesplitlog")
+		LiveSplitObserver::SetLogFile(theParamValue);
+	else
+		SexyApp::HandleCmdLineParam(theParamName, theParamValue);
+}
+
+// port(autosplit): a game begins, at the click that starts it: the main menu's campaign for a new player, the continue
+// dialog's NEW GAME or CONTINUE, survival (or the help's PLAY before it), and the game-over box's CONTINUE in survival,
+// which starts survival again. The game-over box's CONTINUE in a campaign goes on with the same game.
+void HeavyWeaponApp::BeginGame(bool isSurvival, bool isResumed)
+{
+	mGamesBegun++;
+	mGameSerial = mGamesBegun;
+	mGameIsSurvival = isSurvival;
+	mGameResumed = isResumed;
 }
 
 // 0x406b20 slot 38: the last player and the particle setting to the registry, the players and high scores to their files
@@ -639,9 +670,12 @@ int HeavyWeaponApp::AddHighScore(bool isSurvival, bool hasFinished)
 				mSurvivalScores.pop_back();
 		}
 		// The player's best: the original compares it with the clock and keeps the time less the penalties, so a game
-		// whose clock passed the best but whose time did not still replaces it, with a lower one
-		if (mUsers[mCurrentUser].mBestSurvivalTime < mBoard->mLevelTime)
-			mUsers[mCurrentUser].mBestSurvivalTime = mBoard->mLevelTime - mBoard->mTimePenalty;
+		// whose clock passed the best but whose time did not still replaces it, with a lower one. The fix survivalBest
+		// compares the time it keeps
+		int aSurvivedTime = mBoard->mLevelTime - mBoard->mTimePenalty;
+		int aComparedTime = Platform::FixOn("survivalBest") ? aSurvivedTime : mBoard->mLevelTime;
+		if (mUsers[mCurrentUser].mBestSurvivalTime < aComparedTime)
+			mUsers[mCurrentUser].mBestSurvivalTime = aSurvivedTime;
 	}
 	SaveHighScores();
 	return (int) aRank;
@@ -961,22 +995,97 @@ void HeavyWeaponApp::ButtonDepress(int theId)
 		mWidgetManager->RemoveWidget(mHelpScreen);
 		SafeDeleteWidget(mHelpScreen);
 		mHelpScreen = NULL;
+		BeginGame(true, false);		// port(autosplit)
 		NewGame(true);
 		break;
 	}
 }
+
+// port: the original's 2D screen is a DirectDraw surface its DDImage::StretchBlt (0x48dc10, slot 10) draws on in software:
+// a fast stretch samples the source straight onto the screen in 16.16 steps from the source rectangle's corner, sampling
+// before it steps (texel (srcX * 65536 + i * srcWidth * 65536 / destWidth) >> 16, and the same for rows); a stretch that is
+// not fast is averaged into a new image of the destination's size (MemoryImage's slow stretch, 0x4740b0) and blitted from
+// there. The framework's software stretch (DDInterface::mSoftwareStretch) does both, so the display turns it on for each
+// stretch drawn in 2D and leaves SDL's filtering to a 3D run, whose screen the original draws through Direct3D. The 2D
+// surface also keeps what the last frame drew: while the board shakes (Board::UpdateShake, 0x40fe00, moves it by up to 8
+// pixels each way) the edge it uncovers shows the last frame's pixels, not black, so in 2D each frame starts from the last
+// (DDInterface::mKeepScreen).
+class HeavyWeaponDisplay : public DDInterface
+{
+public:
+	HeavyWeaponDisplay(SexyAppBase* theApp) : DDInterface(theApp)
+	{
+	}
+
+	virtual void BeginFrame() override
+	{
+		mKeepScreen = !mIs3D;
+		DDInterface::BeginFrame();
+	}
+
+	virtual void StretchBlt(Image* theImage, const FRect& theDestRect, const Rect& theSrcRect, const Rect* theClipRect,
+		const Color& theColor, int theDrawMode, bool fastStretch, bool mirror = false) override
+	{
+		mSoftwareStretch = !mIs3D;
+		DDInterface::StretchBlt(theImage, theDestRect, theSrcRect, theClipRect, theColor, theDrawMode, fastStretch, mirror);
+	}
+};
+
+DDInterface* HeavyWeaponApp::CreateDDInterface()
+{
+	return new HeavyWeaponDisplay(this);
+}
+
+// port: the original's IsPlaying asks BASS_ChannelIsActive, and its BASS (2.0, Big Money's) answers yes for a song of the
+// module that has played and been stopped since: the original's log gives 0 for a song not yet played and 1 after the
+// song's BASS_ChannelStop. So the armory never fades its song in (the first main menu has always played it), and only
+// the first main menu fades the menu's song in. The love theme is a stream, which no log has shown, and keeps the
+// playing state.
+class HeavyWeaponMusicInterface : public SDLMusicInterface
+{
+public:
+	std::set<int> mSongsPlayed;		// the module's songs played since they were loaded
+
+	virtual void PlayMusic(int theSongId, int theOffset, bool noLoop) override
+	{
+		NotePlayed(theSongId);
+		SDLMusicInterface::PlayMusic(theSongId, theOffset, noLoop);
+	}
+	virtual void FadeIn(int theSongId, int theOffset, double theSpeed, bool noLoop) override
+	{
+		NotePlayed(theSongId);
+		SDLMusicInterface::FadeIn(theSongId, theOffset, theSpeed, noLoop);
+	}
+	virtual bool IsPlaying(int theSongId) override
+	{
+		return mSongsPlayed.count(theSongId) != 0 || SDLMusicInterface::IsPlaying(theSongId);
+	}
+
+private:
+	void NotePlayed(int theSongId)
+	{
+		if (theSongId != SONG_LOVE_THEME)
+			mSongsPlayed.insert(theSongId);
+	}
+};
 
 // port: the original's SexyApp makes a BASS music interface; the port's plays the MO3 module through libopenmpt
 MusicInterface* HeavyWeaponApp::CreateMusicInterface()
 {
 	if (mNoSoundNeeded)
 		return new MusicInterface;
-	return new SDLMusicInterface();
+	return new HeavyWeaponMusicInterface();
 }
 
 // 0x40d2c0 slot 18
 void HeavyWeaponApp::Init()
 {
+	// port: the early-2005 WidgetManager draws no widget with the fast stretch on (its draw loop, 0x462810, never calls
+	// SetFastStretch): only the banner, the explosions, the zoomed map and the help screen ask for it, in 2D
+	gWidgetsDrawWithoutFastStretch = true;
+	// port: this game's slow stretch (0x4740b0) divides the colour's weight by the alpha already there
+	gSlowStretchRenormalizesAlpha = true;
+
 	SexyApp::Init();
 
 	// port: the early-2005 SexyAppBase::Init (0x45c970) seeds Rand()'s generator with the 2004 MTRand seeding, which the

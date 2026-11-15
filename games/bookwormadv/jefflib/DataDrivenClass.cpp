@@ -39,6 +39,7 @@ DataDrivenClass::Node* DataDrivenClass::AddGroup(Node* theParent, const std::str
 }
 
 // 0x6b3420
+// 0x6b2920 (the element's record, made empty) is inline here
 void DataDrivenClass::AddElement(Node* theGroup, const std::string& theName, const ElementHandler& theHandler)
 {
 	if (theGroup == nullptr)
@@ -154,6 +155,7 @@ bool DataDrivenClass::Load(const std::string& theFileName)
 }
 
 // 0x6b3e50: for this object
+// 0x6b36f0 (the global table's lookup of the file an object was loaded from) is mFileName here
 bool DataDrivenClass::Reload()
 {
 	BeforeReload();

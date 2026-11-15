@@ -3,7 +3,9 @@
 # Japan, or GAME=mahjongchina for Ancient China. The play is the one tools/check.sh sends (perfscript.py turns its script into
 # the port's and the original's input); perfmin.py samples the game's process every 50 ms: working set, private bytes,
 # processor time and threads, with the numbers of the window 20 s to 50 s of its life (the play).
-#   build/native/rundesk.exe bash games/mahjongjapan/tools/profile/perfrun.sh port 3     the native port, real time (EXEDIR=<folder> for another build)
+#   build/native/rundesk.exe bash games/mahjongjapan/tools/profile/perfrun.sh port 3     the native port, real time (EXEDIR=<folder> for another build,
+#                                                                                         EXTRA="-fast" for more arguments, WINDOWED=1 for the window the
+#                                                                                         original has under origrun: windowed, 800x600 at 1:1)
 #   bash games/mahjongjapan/tools/profile/perfrun.sh orig 3                              the original, through origrun (which
 #                                                                                         puts it on rundesk's desktop itself:
 #                                                                                         never wrapped in rundesk)
@@ -17,6 +19,7 @@ case "$GAME" in
 	mahjongchina) EXE=MahjongEscapeAC.exe; SAVES='Mahjong Escape'; CHECK=build/logs/check/mahjongchina/game/script.txt ;;
 esac
 PROF=games/bejeweled/tools/profile
+TOOL="${TOOL:-$PROF/perfmin.py}"      # TOOL=games/mahjongjapan/tools/profile/threadprof.py: the same runs, each thread's cycles instead of the samples
 HERE=games/mahjongjapan/tools/profile
 WIN="${WIN:-20,50}"
 OFFSET="${OFFSET:-6}"      # the original's first click is this many seconds after the port's (perfscript.py); WIN moves with it for it
@@ -28,15 +31,20 @@ if [ "$KIND" = port ]; then
 	for i in $(seq 1 "$RUNS"); do
 		waitroom
 		d="$OUT/port$i"; rm -rf "$d"; mkdir -p "$d/user"
-		python -I "$PROF/perfmin.py" "$d/perf.json" "$WIN" -- "${EXEDIR:-$ROOT/build/native}/$GAME.exe" -gamedir="$ROOT/assets/$GAME" \
-			-userdir="$ROOT/$d/user" -logos -script="$ROOT/$OUT/port-script.txt" | tail -n 1 | cut -c1-400
+		if [ -n "${WINDOWED:-}" ]; then
+			# the original runs windowed under origrun (FullScreen=0, its --reg): the port's window is as that one, 800x600
+			# at 1:1; a fresh userdir starts it full screen, at the desktop's size (the private desktop's 3840x2160 here)
+			{ echo '; Settings (emulated Windows registry, HKEY_CURRENT_USER)'; echo; echo "[SOFTWARE\\JollyBear\\$SAVES]"; echo 'FullScreen=dword:0'; } > "$d/user/registry.ini"
+		fi
+		python -I "$TOOL" "$d/perf.json" "$WIN" -- "${EXEDIR:-$ROOT/build/native}/$GAME.exe" -gamedir="$ROOT/assets/$GAME" \
+			-userdir="$ROOT/$d/user" -logos -script="$ROOT/$OUT/port-script.txt" ${WINDOWED:+-windowscale=1} $EXTRA | tail -n 1 | cut -c1-400
 	done
 else
-	ST="${GAME}cov"; SD="C:/byo-og/$ST"; L="$LOCALAPPDATA/JollyBear/$SAVES"
+	ST="${GAME}cov"; SD="E:/byo-og/$ST"; L="$LOCALAPPDATA/JollyBear/$SAVES"
 	python -I "$HERE/perfscript.py" "$CHECK" orig "$OUT/orig-script.txt" "$OFFSET"
 	mkdir -p "$OUT/saves"; cp "$L"/* "$OUT/saves/" 2> /dev/null
 	if [ ! -f "$SD/game/$EXE" ]; then
-		build/origrun-bin/origrun.exe --game "$GAME" --run "$ST" --stage-root 'C:\byo-og' --copy-only > "$OUT/stage.log" 2>&1
+		build/origrun-bin/origrun.exe --game "$GAME" --run "$ST" --stage-root 'E:\byo-og' --copy-only > "$OUT/stage.log" 2>&1
 	fi
 	PART="$(echo "$SD/game/$EXE" | tr 'A-Z' 'a-z')"
 	for i in $(seq 1 "$RUNS"); do
@@ -44,7 +52,7 @@ else
 		d="$OUT/orig$i"; rm -rf "$d"; mkdir -p "$d"
 		rm -f "$L"/*.usr "$L"/*.sav
 		OW="$(python -I -c "a,b='$WIN'.split(','); print('%g,%g' % (float(a) + $OFFSET - 1.3, float(b) + $OFFSET - 1.3))")"
-		timeout 200 python -I "$PROF/perfmin.py" "$d/perf.json" "$OW" --attach "$PART" > "$d/perfmin.out" 2>&1 &
+		timeout 200 python -I "$TOOL" "$d/perf.json" "$OW" --attach "$PART" > "$d/perfmin.out" 2>&1 &
 		PM=$!
 		build/origrun-bin/origrun.exe --exe "$(cygpath -w "$SD/game/$EXE")" --run "$ST" --script "$(cygpath -w "$PWD/$OUT/orig-script.txt")" \
 			--timeout 150 > "$d/origrun.log" 2>&1

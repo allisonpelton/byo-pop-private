@@ -141,6 +141,7 @@ ArrowHint::~ArrowHint()
 }
 
 // The original registered the class in the constructor (0x402b90), every time
+// 0x405400 (the class registration) is inline here
 void ArrowHint::RegisterLua()
 {
 	static bool sRegistered = false;
@@ -293,6 +294,7 @@ bool ArrowHint::Update()
 	return false;
 }
 
+// 0x4099d0 (pushes the hint as the Lua object 'ArrowHint') is inline here
 void ArrowHint::CallCallback(int theReason, bool theLeft, int theSpot)
 {
 	lua_State* L = gLuaSupport->L;
@@ -741,6 +743,7 @@ ArrowHintManager::~ArrowHintManager()
 }
 
 // The original registered the class in the constructor (0x40b2c0), every time
+// 0x40d410 and 0x40dd10 (the registration of the class and its CreateClass instance) are inline here
 void ArrowHintManager::RegisterLua()
 {
 	static bool sRegistered = false;

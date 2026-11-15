@@ -354,6 +354,15 @@ def drawn_now(g):
 def shot(g, clk, out, name, landed, log):
     hw = g.window()
     o = overlapped(hw)
+    t0 = time.time()
+    while o and time.time() - t0 < 20:
+        # a window that came over the game (a notification's banner, a flyout of the shell: another topmost one, since the game
+        # is topmost): the game goes back on top of the topmost ones without being activated, and a window that stays is waited
+        # for, up to 20 s of real time (the game is held, so its clock does not move): a banner goes by itself. The run that lost
+        # all 32 shots of the puzzle tour's warp to one such window (2026-11-14) is why.
+        u32.SetWindowPos(hw, wt.HWND(-1), 0, 0, 0, 0, 0x0001 | 0x0002 | 0x0010)
+        time.sleep(0.25)
+        o = overlapped(hw)
     if o:
         print('shot %s refused: a window (%s) overlaps the game' % (name, o), file=log, flush=True)
         return
@@ -380,7 +389,7 @@ def reg(*a):
     return subprocess.run(['reg'] + list(a), capture_output=True, text=True)
 
 
-def stage(backup, hires):
+def stage(backup, hires, profile=None):
     if os.path.exists(backup):
         raise SystemExit('visrun: %s exists: an earlier run was not restored (visrun.py --restore %s)' % (backup, backup))
     os.makedirs(backup)
@@ -390,7 +399,9 @@ def stage(backup, hires):
     if os.path.isdir(USERS):
         shutil.copytree(USERS, os.path.join(backup, 'users'))
         shutil.rmtree(USERS)
-    # a start like run_original.sh's: no player, no cached Direct3D test, windowed, and the game's 1024 by 768 (3D) setting
+    if profile:   # run_original.sh's PROFILE: the player with the secret modes unlocked (make_profile.py) is there already
+        shutil.copytree(os.path.join(profile, 'users'), USERS)
+    # a start like run_original.sh's: no player (unless a profile), no cached Direct3D test, windowed, and the game's 1024 by 768 (3D) setting
     reg('delete', 'HKCU\\' + KEY, '/f')
     for name, val in (('ScreenMode', 0), ('HighResolution', 1 if hires else 0)):
         reg('add', 'HKCU\\' + KEY, '/v', name, '/t', 'REG_DWORD', '/d', str(val), '/f')
@@ -438,6 +449,11 @@ def main():
         i = a.index('--hires')
         hires = a[i + 1] == '1'
         del a[i:i + 2]
+    profile = None
+    if '--profile' in a:   # make_profile.py's folder: its users folder is the original's players while the run lasts
+        i = a.index('--profile')
+        profile = os.path.abspath(a[i + 1])
+        del a[i:i + 2]
     if '--timeout' in a:
         i = a.index('--timeout')
         timeout = int(a[i + 1])
@@ -457,7 +473,7 @@ def main():
     log = open(os.path.join(base, tag + '.visrun.log'), 'w')
     landed = open(os.path.join(out, 'landed.tsv'), 'w')
     try:
-        stage(backup, hires)
+        stage(backup, hires, profile)
     except BaseException:
         if os.path.exists(os.path.join(backup, 'had_key.txt')):
             restore(backup)
@@ -470,6 +486,8 @@ def main():
                    ORIGRUN_CLOCK_ID='visrun%d' % os.getpid(), ORIGRUN_CLOCK_HOST=str(os.getpid()), ORIGRUN_CLOCK_HOLDSTART='1',
                    ORIGRUN_CLOCK_COUNTER='[0x67ccd8]+0x484',
                    ORIGRUN_CLOCK_WATCH=';'.join(['%s+0x15e20' % B, '0x67d910' if w2 else '%s+0x15e4' % B, '%s+0x170c' % B, '%s+0x15e0' % B]))
+        if os.environ.get('VISRUN_WATCH'):   # other four values, B standing for the board's address: VISRUN_WATCH='[{B}+0x16014]+0x14;...'
+            env['ORIGRUN_CLOCK_WATCH'] = os.environ['VISRUN_WATCH'].replace('{B}', B)
         g = Game(exe, env)
         clk = Clock(env['ORIGRUN_CLOCK_ID'], g)
         wf = open(os.path.join(base, tag + '.watch.log'), 'w')

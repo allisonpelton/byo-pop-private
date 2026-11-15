@@ -322,8 +322,8 @@ def port(out, script, seed, first, count):
 # its draw counter +0x464, its windowed flag +0x2e2 (ScreenMode 0) and its vsync flag +0x559 (WaitForVSync)
 APP = 0x5304F8
 COUNTER, DRAWS = APP + 0x468, APP + 0x464
-STAGE = 'C:/byo-og/dyn/game'          # identical/setup.sh's staged original
-COPY = 'C:/byo-og/dyncyc/game'        # a fresh copy of it each run
+STAGE = 'E:/byo-og/dyn/game'          # identical/setup.sh's staged original
+COPY = 'E:/byo-og/dyncyc/game'        # a fresh copy of it each run
 
 
 def find_process(name, folder):

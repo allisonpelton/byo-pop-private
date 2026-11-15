@@ -72,9 +72,10 @@ check("missing: a pak in dropped files is a file to find", I.missingMarkers(spec
 check("missing: a pak game's exe, any case", I.missingMarkers(spec("bookwormadv"), files("B/MAIN.PAK", "B/other.exe")), "BookwormAdventures.exe");
 check("missing in a known root",I.missingIn(spec("tiptop"), ["TipTop.exe"]), "TipTop.dat");
 // the files picked
-const picked = I.pick(spec("bejeweled"), files("B/Images/gemsheet6.png", "B/images/x.sig", "B/Bejeweled.exe", "B/readme.txt", "B/Music/m.mo3"), "B/", safeRel)
+const picked = I.pick(spec("bejeweled"), files("B/Images/gemsheet6.png", "B/images/x.sig", "B/Bejeweled.exe", "B/ReadMe.html", "B/license.txt", "B/Music/m.mo3"), "B/", safeRel)
   .map((f) => f.rel);
-check("pick: folders in lower case, no .sig, nothing else", picked, ["images/gemsheet6.png", "music/m.mo3"]);
+// the game's own readme is kept, in lower case, for the desktop's Help menu (web/deskapps.js); other loose files are not
+check("pick: folders in lower case, no .sig, the readme, nothing else", picked, ["images/gemsheet6.png", "readme.html", "music/m.mo3"]);
 check("pick: top files", I.pick(spec("tiptop"), files("T/TipTop.dat", "T/TipTop.exe", "T/unins000.exe"), "T/", safeRel).map((f) => f.rel),
   ["TipTop.dat", "TipTop.exe"]);
 check("markers after the pick", I.hasMarkers(spec("bejeweled"), picked), true);
@@ -168,6 +169,18 @@ check("either: AstroPop's Steam exe", I.findRoot(spec("astropop"), ap("WinAP.exe
 check("either: AstroPop's Collection exe", I.findRoot(spec("astropop"), ap("AstroPop.exe"), false), "AP/");
 check("either: AstroPop with neither exe", I.findRoot(spec("astropop"), ap(null), false), null);
 check("either: AstroPop with neither exe, named", I.missingMarkers(spec("astropop"), ap(null)), "WinAP.exe or AstroPop.exe");
+
+// Files no port opens stay out (NEVER_OPENED): the original's decoded copies of its Ogg sounds in AstroPop and Dynomite, and only
+// those; Rocket Mania's port reads its music's, so they stay
+{
+  const rels = (t, root, ...p) => I.pick(spec(t), files(...p.map((x) => root + x)), root, safeRel).map((f) => f.rel);
+  check("never opened: AstroPop's cached sounds", rels("astropop", "AP/", "sounds/a.ogg", "sounds/cached_a.wav", "sounds/CACHED_B.WAV", "sounds/b.wav"),
+    ["sounds/a.ogg", "sounds/b.wav"]);
+  if (I.games.some((g) => g.target === "dynomite"))
+    check("never opened: Dynomite's cached sounds", rels("dynomite", "D/", "sounds/boom.ogg", "sounds/cached_boom.wav"), ["sounds/boom.ogg"]);
+  if (I.games.some((g) => g.target === "rocketmania"))
+    check("never opened: Rocket Mania keeps its cached music", rels("rocketmania", "R/", "music/cached_tubetricks.wav"), ["music/cached_tubetricks.wav"]);
+}
 
 // The exe check (exeUnreadable): a made-up image with one section at 0x401000 (raw data at 0x200) holding a text at 0x401010.
 // The probe holds in the plain image and in the same image behind PopCap's launcher marker, and fails once the section's

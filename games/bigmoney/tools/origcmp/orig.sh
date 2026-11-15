@@ -21,7 +21,7 @@ export MSYS_NO_PATHCONV=1
 if [ "${1:-}" = "--prepare" ]; then
 	rm -rf "$ROOT/build/origrun/bm-master"
 	"$OR" --game bigmoney --run bm-master --copy-only
-	python "$ROOT/tools/extract_game_exe.py" "$MASTER/WinBM.exe" -o "$MASTER/BigMoneyGame.exe"
+	python "$(cygpath -w "$ROOT")/tools/extract_game_exe.py" "$(cygpath -w "$MASTER")/WinBM.exe" -o "$(cygpath -w "$MASTER")/BigMoneyGame.exe"
 	exit 0
 fi
 RUN="$1"; SCRIPT="$2"; SEED="${3:-1}"; shift 2; [ $# -gt 0 ] && shift

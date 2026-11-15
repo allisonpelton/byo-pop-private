@@ -17,16 +17,16 @@ until python -I tools/gamecount.py --limit 6 > /dev/null; do sleep 20; done
 # the play count (the original shows its register nag from ten plays on; the copy is patched to be the registered game, but a
 # run starts from zero all the same)
 reg add "HKLM\Software\WOW6432Node\PopCap\MummyMaze" //v TimesPlayed //t REG_DWORD //d 0 //f > /dev/null
-rm -rf "C:/byo-og/$RUN" "build/origrun/$RUN"
+rm -rf "E:/byo-og/$RUN" "build/origrun/$RUN"
 if [ -n "$SAVE" ] || [ -n "$SAVES" ]; then
 	printf 'quit\n' > "$H/$NAME.stage.txt"
-	"$OG" --game mummymaze --run "$RUN" --stage-root C:/byo-og --script "$R/$H/$NAME.stage.txt" --clock virtual --seed "$SEED" --timeout 60 > "$H/$NAME.stage.log" 2>&1
-	mkdir -p "C:/byo-og/$RUN/game/data/saves"
-	[ -z "$SAVE" ] || cp "$SAVE" "C:/byo-og/$RUN/game/data/saves/classic.sav"
-	[ -z "$SAVES" ] || cp "$SAVES"/*.sav "C:/byo-og/$RUN/game/data/saves/"
-	EXE=(--exe "C:/byo-og/$RUN/game/WinMM.exe")
+	"$OG" --game mummymaze --run "$RUN" --stage-root E:/byo-og --script "$R/$H/$NAME.stage.txt" --clock virtual --seed "$SEED" --timeout 60 > "$H/$NAME.stage.log" 2>&1
+	mkdir -p "E:/byo-og/$RUN/game/data/saves"
+	[ -z "$SAVE" ] || cp "$SAVE" "E:/byo-og/$RUN/game/data/saves/classic.sav"
+	[ -z "$SAVES" ] || cp "$SAVES"/*.sav "E:/byo-og/$RUN/game/data/saves/"
+	EXE=(--exe "E:/byo-og/$RUN/game/WinMM.exe")
 fi
-"$OG" --game mummymaze --run "$RUN" --stage-root C:/byo-og "${EXE[@]}" --script "$S" --clock "${CLOCK:-virtual}" --cursor scripted \
+"$OG" --game mummymaze --run "$RUN" --stage-root E:/byo-og "${EXE[@]}" --script "$S" --clock "${CLOCK:-virtual}" --cursor scripted \
 	--seed "$SEED" --timeout "$T" --coverage "$COV" > "$H/$NAME.log" 2>&1
 cp "build/origrun/$RUN/coverage.txt" "$H/$NAME.txt" || { echo "$NAME: no hits file"; exit 1; }
 echo "$NAME: $(grep -vc '^#' "$H/$NAME.txt") functions; $(grep '^#' "$H/$NAME.txt" | tail -1)"

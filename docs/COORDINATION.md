@@ -12,7 +12,10 @@ holds the rules every session follows; this file does not repeat them.
   `mcp__ccd_session_mgmt__get_usage` hourly while sessions work, warns them at 95%, and checks again before every
   message that sends a session on ("You ran up the usage all the way to 100% despite my 97% limit", 2026-11-10).
 - **Flat out to the cap (the user, 2026-11-07):** the work runs at full pace up to that limit.
-- **Effort (the user, 2026-10-27, a trial):** game sessions run at medium effort to save usage.
+- **Effort (the user, 2026-10-27; settled 2026-11-15):** game sessions run at medium effort to save usage; only the
+  coordinator, the site's session and the framework's (fw-memory) run at extra (xhigh). "Only site/framework and
+  coordinator get Extra; Medium on everything else" (2026-11-15, after a run of game sessions was found on Extra).
+  Every `start_session` for a game passes `effort: "medium"`, since a new session otherwise takes the starter's.
 
 ## Sessions
 
@@ -29,10 +32,10 @@ holds the rules every session follows; this file does not repeat them.
   session for one evening (2026-11-10): a phase cost about what it does on Sonnet but took about three times the share
   of the all-models window, so the sessions went back ("Yes, switch back", 2026-11-11). Fable suits short stretches of
   judgement-heavy work, not many sessions at once.
-- **How many at once (the user, 2026-11-11):** "Too many sessions, some crashed. Set a comfortable limit". At most 8
-  sessions in a turn besides the coordinator ("Based on CPU and RAM usage it might be ok to run an extra session or
-  two"); a session idle while its own background run goes on does not count ("Only count active sessions"). Before
-  waking one the coordinator also checks the machine: under 6 GB free or over 80% of the commit limit means waiting.
+- **How many at once:** no fixed number since 2026-11-15 (the user: "Get rid of the time restrictions on concurrent
+  sessions ... Do what you want forever now"), replacing the limit of 8 set on 2026-11-11 after "Too many sessions,
+  some crashed. Set a comfortable limit". To keep sessions from crashing, the coordinator still checks the machine
+  before waking one: under 6 GB available or over 80% of the commit limit means waiting.
   The limit of 6 game processes (CLAUDE.md) holds for all of them, so more sessions mean longer waits for a game slot.
   A session past the limit waits idle on a background wait for its own file (`until [ -f <main
   checkout>/build/slots/<name>.go ]; do sleep 60; done; cat` the file), which the coordinator writes with any news
@@ -81,7 +84,7 @@ holds the rules every session follows; this file does not repeat them.
   native, not just its log. Each brief says so.
 - **Done means every phase but modding (the user, 2026-11-08, 2026-11-11):** a game is done, and may go on the live
   site, only after every step above, its features on the site included: its tunes placed, grouped and split in Music,
-  and its soundboard's presets ("All these accessory features should be added to our definition of done"). The site
+  its modules' unused patterns in Music's section for them (2026-11-15), and its soundboard's presets ("All these accessory features should be added to our definition of done"). The site
   session builds those and the game's session answers its questions. The games done on 2026-12-31 go live then (the
   site going public is still the user's word); the rest follow when done. Modding waits: new mods and the changes in
   `docs/MOD_ROADMAP.md`.
@@ -101,6 +104,10 @@ holds the rules every session follows; this file does not repeat them.
   other decomps this week?" and then said "Start both". So Heavy Weapon (Opus) and Hammer Heads (Sonnet) started side
   by side, each through the port and phase one only. Their later steps wait for the user's word. Heavy Weapon moves
   Bookworm Adventures' SWF player under `engines/`, and Hammer Heads uses it from there.
+  On 2026-11-15 the user asked for one new game this week, while the current ones finish: "I'd at least like one new
+  game brought up to playable this week, though." Pizza Frenzy, first in the order, started that evening, aiming at a
+  playable port (its first playable merge) within the week and then going on through every phase but modding. It
+  moves Word Harmony's engine to `engines/sprout/`. Iggle Pop and Feeding Frenzy still wait for the rule above.
 - **A new port writes to the standards from its first draft (the user, 2026-11-12: "Yes, add it").** Of what the
   eleven smaller games spent after their first playable merge (about $2,200 at Opus prices), about half went on the
   checks against the original (identical play, screens and sound, coverage, the Collection), a fifth on performance and
@@ -148,7 +155,15 @@ holds the rules every session follows; this file does not repeat them.
     desktop;
   - sound counted the same way on both sides. origrun's stand-in takes the original's DirectSound, and its MIDI device
     calls may be skipped, so the original's number may hold no mixing or synthesis. Measure the port the same way, or
-    count its mixer and synthesizer apart.
+    count its mixer and synthesizer apart. In the tests neither side reaches the system's audio process (audiodg):
+    rundesk gives a port SDL's dummy driver and origrun gives the original a stand-in DirectSound that opens no device.
+    The two still do not mix the same. The port's mixer thread mixes every sound at the device rate; under the stand-in
+    the original's sound effects (DirectSound secondary buffers, which Windows mixes inside the game's process) are never
+    mixed, while a BASS-based original's music thread keeps mixing against the stand-in's clock and is counted. So give
+    both figures, the port's with its mixer counted and without it, and for a SexyApp original with BASS music add the
+    port's music share of its mixer back to the second (fw-memory, 2026-11-15). Counting audiodg would matter only with
+    real devices on both sides (`origrun --sound real`, muted, against the port on a real device); measure one such pair
+    before it becomes a rule.
   - **Cycle counts, not GetProcessTimes or GetThreadTimes.** Count processor time as the threads' cycle counts
     (QueryThreadCycleTime, summed over the process's threads; `games/tiptop/tools/perf/cpuprof2.py` at seconds 0
     reads them without disturbing the run). Windows charges process and thread times by sampling at the 15.6 ms clock

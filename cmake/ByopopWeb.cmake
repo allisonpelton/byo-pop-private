@@ -15,7 +15,9 @@
 # sexyframework static library, where EMSCRIPTEN_KEEPALIVE alone would not link them: EXPORTED_FUNCTIONS names them,
 # which pulls them in. That list replaces Emscripten's default, so it names _main too.
 # web/modpanel.js (the Mods panel, the rescue and restart bookkeeping, the page's file helpers: Module.byopop) is
-# appended to the game's JS with --post-js, so every game's page has the same one without a file of its own.
+# put inline on every game's page, before the game's script, so every page has the same one without a file of its own.
+# The page is written apart from the link (cmake/ByopopWebPage.cmake): an edit to it, to the shell or to modpanel.js
+# rewrites the pages in seconds and relinks no game.
 # wasm-opt, which emcc runs when it links a game, uses every core by default, and a build is not under rundesk's low
 # priority: one link took the user's machine to 100% (2026-11-01). BINARYEN_CORES caps its threads, so a link takes at
 # most 4 of the machine's 20.
@@ -35,6 +37,7 @@ set(BYOPOP_WEB_RUNTIME_METHODS FS callMain ccall HEAPU8)
 list(APPEND BYOPOP_WEB_EXPORTED_FUNCTIONS _byopop_test_command)
 get_filename_component(BYOPOP_WEB_SHELL "${CMAKE_CURRENT_LIST_DIR}/../web/shell.html" ABSOLUTE)
 get_filename_component(BYOPOP_WEB_POST_JS "${CMAKE_CURRENT_LIST_DIR}/../web/modpanel.js" ABSOLUTE)
+get_filename_component(BYOPOP_WEB_PAGE_SCRIPT "${CMAKE_CURRENT_LIST_DIR}/ByopopWebPage.cmake" ABSOLUTE)
 get_filename_component(BYOPOP_WEB_FOOTER "${CMAKE_CURRENT_LIST_DIR}/../web/footer.html" ABSOLUTE)
 get_filename_component(BYOPOP_WEB_FOOTER_CSS "${CMAKE_CURRENT_LIST_DIR}/../web/footer.css" ABSOLUTE)
 # where each game can be bought (BYOPOP_BUY_<target>), shown under its terms
@@ -54,7 +57,7 @@ set(BYOPOP_WEB_BRAND favicon.svg favicon.ico apple-touch-icon.png logo.svg cap.s
 # games of its own. web/testkit.js is the player-only page's test tools, which a game page loads only at ?player=1 on a
 # development host (docs/WEB_PLAYER.md, "The player-only page"). web/skins.js and web/skins.css are the site's skins ("Skins").
 # web/settingsicons.js holds the Settings sections' icons, drawn by tools/settingsicons.py.
-set(BYOPOP_WEB_SHARED_JS logo.js cursors.js saver.js settingsicons.js settings.js profiles.js exeicon.js exeprobes.js gameimport.js chat.js testkit.js skins.js schemes.js themedata.js themes.js skins.css perf.js soundpanel.js view.js controldata.js controls.js clips.js)
+set(BYOPOP_WEB_SHARED_JS logo.js cursors.js saver.js settingsicons.js settings.js profiles.js exeicon.js exeprobes.js exetrim.js flicursor.js gameimport.js chat.js testkit.js skins.js schemes.js themedata.js themes.js skins.css perf.js soundpanel.js view.js controldata.js controls.js clips.js)
 # the listing page's own scripts: the Players section (web/players.js), the save backup (web/saves.js) and the import of
 # saves from an installed game (web/saveimport.js, with the table platform/saveimport.json as saveimport-table.js), and the
 # adding of games' files (web/addgames.js, with web/modpanel.js for its zip and pak readers, and import-games.js, each listed
@@ -69,7 +72,7 @@ set(BYOPOP_WEB_INDEX_JS localsoon.js players.js saves.js saveimport.js modpanel.
 # list with no web page is a configure error.
 set(BYOPOP_WEB_FINISHED bejeweled bigmoney bookworm noahsark sevenseas atomica mummymaze tiptop bookwormadv ningpo
   pixelus alchemy wordharmony cosmicbugs waterbugs rocketmania dynomite bookwormadv2 mahjongjapan mahjongchina
-  bonnies bejeweledtwist bejeweled2)
+  bonnies bejeweledtwist bejeweled2 venice heavyweapon)
 # The games still to come, <target>|<title>, each shown on the listing page as a "Coming soon" tile among the finished ones
 # (the user, 2026-11-02: "Add tiles for the upcoming games to the site and have them display disabled and say coming soon"):
 # the badge, the title and the year, sorted with the rest, not a link, and where to buy the game, so that a visitor can get
@@ -81,8 +84,7 @@ set(BYOPOP_WEB_FINISHED bejeweled bigmoney bookworm noahsark sevenseas atomica m
 # games here are "The ports still to make" in docs/COORDINATION.md. Zuma Deluxe, Insaniquarium and Plants vs.
 # Zombies are left out: nobody ports them (the user, 2026-10-26).
 set(BYOPOP_WEB_UPCOMING
-  "venice|Venice"
-  "heavyweapon|Heavy Weapon" "hammerheads|Hammer Heads"
+  "hammerheads|Hammer Heads"
   "astropop|AstroPop" "typershark|Typer Shark!" "pizzafrenzy|Pizza Frenzy" "igglepop|Iggle Pop"
   "feedingfrenzy|Feeding Frenzy" "chuzzle|Chuzzle" "feedingfrenzy2|Feeding Frenzy 2"
   "peggle|Peggle" "pegglenights|Peggle Nights" "bejeweled3|Bejeweled 3" "bananabugs|Banana Bugs"
@@ -340,7 +342,7 @@ endif()
 # game, written here from web/copyright.html: the game's <name> and <notice> (plain text: the copyright and
 # trademark lines of the readme that comes with the game), what the player is, and the license of every library
 # in web/licenses/ that the page is built from. LICENSES adds a game's own libraries (BookWorm: libopenmpt).
-# Sets <var> to the generated template in the build folder, for --shell-file. Both files are rewritten only when
+# Sets <var> to the generated template in the build folder, for ByopopWebPage.cmake. Both files are rewritten only when
 # their text changes, and CMake runs again when one of their inputs changes. byopop_web_game() calls it.
 set(BYOPOP_WEB_LICENSES popcap-framework sdl2 stb libjpeg libxmp-lite tremor minimp3 byopop-sans)
 set(BYOPOP_WEB_TOOLCHAIN_LICENSES emscripten musl)
@@ -850,13 +852,27 @@ function(byopop_web_game target)
   list(REMOVE_DUPLICATES export_list)
   list(JOIN export_list "','" exports)
   list(JOIN BYOPOP_WEB_RUNTIME_METHODS "','" methods)
-  set_target_properties(${target} PROPERTIES SUFFIX ".html")
-  set_property(TARGET ${target} APPEND PROPERTY LINK_DEPENDS ${page} ${BYOPOP_WEB_POST_JS})
+  # the link writes <target>.js and .wasm only; the page, <target>.html, is a step of its own (ByopopWebPage.cmake),
+  # which building the game's target runs first
+  set_target_properties(${target} PROPERTIES SUFFIX ".js")
   target_link_options(${target} PRIVATE
-    "--shell-file=${page}" "--post-js=${BYOPOP_WEB_POST_JS}"
     "-sALLOW_MEMORY_GROWTH=1" "-sFORCE_FILESYSTEM=1" "-sINVOKE_RUN=0"
     "-sEXPORTED_RUNTIME_METHODS=['${methods}']"
     "-sEXPORTED_FUNCTIONS=['${exports}']" "-lidbfs.js")
+  set(html ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${target}.html)
+  # minified as emcc minifies a page it writes: at -O1 and over without -g, so not in a Debug build
+  set(minify "")
+  if(NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
+    set(minify "-DNODE=${CMAKE_CROSSCOMPILING_EMULATOR}"
+      "-DMINIFIER=${EMSCRIPTEN_ROOT_PATH}/node_modules/html-minifier-terser/cli.js")
+  endif()
+  add_custom_command(OUTPUT ${html}
+    COMMAND ${CMAKE_COMMAND} -DSHELL=${page} -DPANEL=${BYOPOP_WEB_POST_JS} -DNAME=${target} -DOUT=${html} ${minify}
+      -P ${BYOPOP_WEB_PAGE_SCRIPT}
+    DEPENDS ${page} ${BYOPOP_WEB_POST_JS} ${BYOPOP_WEB_PAGE_SCRIPT}
+    COMMENT "Writing ${target}.html" VERBATIM)
+  add_custom_target(${target}_page DEPENDS ${html})
+  add_dependencies(${target} ${target}_page)
 endfunction()
 
 # byopop_web_index(): writes the listing page, build/web/index.html, from web/index.html: for each target in
@@ -1252,8 +1268,13 @@ endfunction()
 if(EMSCRIPTEN)
   # The music player's decoder (web/music/openmpt_web.c, web/music.js; docs/WEB_PLAYER.md, "The music player"): libopenmpt on its
   # own, as openmpt.js and openmpt.wasm beside the pages, which the listing page loads when its Music tab is first opened
-  add_executable(byopop_openmpt ${CMAKE_CURRENT_LIST_DIR}/../web/music/openmpt_web.c)
+  add_executable(byopop_openmpt ${CMAKE_CURRENT_LIST_DIR}/../web/music/openmpt_web.c ${CMAKE_CURRENT_LIST_DIR}/../web/music/openmpt_solo.cpp)
   target_link_libraries(byopop_openmpt PRIVATE openmpt xmp_lite stb)
+  # (openmpt_solo.cpp reaches libopenmpt's own classes: its include folders and its build's definition, as its sources have)
+  set(byopop_openmpt_dir ${CMAKE_CURRENT_LIST_DIR}/../third_party/libopenmpt)
+  set_source_files_properties(${CMAKE_CURRENT_LIST_DIR}/../web/music/openmpt_solo.cpp PROPERTIES
+    INCLUDE_DIRECTORIES "${byopop_openmpt_dir};${byopop_openmpt_dir}/src;${byopop_openmpt_dir}/common;${byopop_openmpt_dir}/include;${byopop_openmpt_dir}/libopenmpt"
+    COMPILE_DEFINITIONS LIBOPENMPT_BUILD COMPILE_OPTIONS "-w;-sDISABLE_EXCEPTION_CATCHING=0")
   set_target_properties(byopop_openmpt PROPERTIES OUTPUT_NAME openmpt SUFFIX ".js" LINKER_LANGUAGE CXX)
   target_compile_options(byopop_openmpt PRIVATE -O2)
   target_link_options(byopop_openmpt PRIVATE -O2 "-sMODULARIZE=1" "-sEXPORT_NAME=ByopopOpenMPT" "-sALLOW_MEMORY_GROWTH=1"

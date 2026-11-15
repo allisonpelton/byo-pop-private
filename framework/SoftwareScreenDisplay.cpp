@@ -18,7 +18,7 @@ namespace Sexy
 // a block of the screen a draw marks: 16 pixels a side
 static const int kBlockSize = 16;
 
-DDInterface* SoftwareScreenDisplay::Create(SexyAppBase* theApp)
+DDInterface* SoftwareScreenDisplay::Create(SexyAppBase* theApp, bool theOffers3D, bool theScaledInSoftware)
 {
 	if ((theApp != NULL) && (theApp->IsTestRun()))
 	{
@@ -26,12 +26,18 @@ DDInterface* SoftwareScreenDisplay::Create(SexyAppBase* theApp)
 		if ((aMode != NULL) && (strcmp(aMode, "off") == 0))
 			return new DDInterface(theApp);
 	}
-	return new SoftwareScreenDisplay(theApp);
+	return new SoftwareScreenDisplay(theApp, theOffers3D, theScaledInSoftware);
 }
 
-SoftwareScreenDisplay::SoftwareScreenDisplay(SexyAppBase* theApp) :
+SoftwareScreenDisplay::SoftwareScreenDisplay(SexyAppBase* theApp, bool theOffers3D, bool theScaledInSoftware) :
 	SurfaceDisplay(theApp)
 {
+	mOffers3D = theOffers3D;
+	mWants3D = false;
+	// at 2x to 4x the screen stays in software only where the game asks and GDI stretches the frames into the window
+	// (Windows): the window then has no Direct3D device, but drawing in software cost more processor time than the GPU
+	// there (docs/MEMORY.md, "Windows at 2x to 4x")
+	mScaledSurface = theScaledInSoftware && mGdiPresent;
 	mShowWhole = true;
 	mBlocksWide = 0;
 	mBlocksHigh = 0;
@@ -47,6 +53,11 @@ SoftwareScreenDisplay::SoftwareScreenDisplay(SexyAppBase* theApp) :
 	{
 		const char* anEnv = SDL_getenv("SOFTSCREEN_STATS");
 		mStats = (anEnv != NULL) && (anEnv[0] == '1');
+		// SOFTSCREEN_SCALED=1: software at 2x to 4x whatever the game asked (through GDI's stretch where it is, else the
+		// repeated copy); =0: the GPU there
+		anEnv = SDL_getenv("SOFTSCREEN_SCALED");
+		if (anEnv != NULL)
+			mScaledSurface = anEnv[0] == '1';
 	}
 	mNoGpuRenderer = false;
 	mChangingMode = false;
@@ -54,6 +65,12 @@ SoftwareScreenDisplay::SoftwareScreenDisplay(SexyAppBase* theApp) :
 	mCursorNoted = false;
 	mClearedBits = NULL;
 	mGpuPresents = 0;
+	mStretchUseThisFrame = 0;
+	mStretchUseLastFrame = 0;
+	// a software screen's fast stretch samples pixel centres unless the game sets it otherwise after Create
+	mGpuScreen = false;
+	mFastStretchCentre = true;
+	mSoftwareFastStretchCentre = true;
 	SoftwareScreen();
 }
 
@@ -65,19 +82,22 @@ SoftwareScreenDisplay::~SoftwareScreenDisplay()
 
 void SoftwareScreenDisplay::SoftwareScreen()
 {
+	// back from the GPU (DrawOnGpu), the fast stretch samples as it did on the software screen before: pixel centres, as
+	// the GPU path did, or the game's own choice (Big Money's original samples from the corner); a change of mode that
+	// stays in software leaves the game's choice as it is
+	if (mGpuScreen)
+		mFastStretchCentre = mSoftwareFastStretchCentre;
 	mGpuScreen = false;
 	// a stretch onto the screen as a software screen draws one, stretched into an image of the destination's size and
-	// then blitted (MemoryImage's own fast stretch steps a column before it samples), its fast stretch sampling pixel
-	// centres as the GPU path did
+	// then blitted (MemoryImage's own fast stretch steps a column before it samples)
 	mSoftwareStretch = true;
-	mFastStretchCentre = true;
 	No3D();
 }
 
 void SoftwareScreenDisplay::No3D()
 {
 	mIs3D = false;
-	mCan3D = false;
+	mCan3D = mOffers3D && (!mNoGpuRenderer);
 }
 
 int SoftwareScreenDisplay::WantedSurfaceScale()
@@ -89,10 +109,14 @@ int SoftwareScreenDisplay::WantedSurfaceScale()
 		mCursorSeen = true;
 	if (mCursorSeen)
 		return 0;
+	// 3D on: a renderer, to find out whether the GPU can have the screen (NoteRenderer)
+	if ((mOffers3D) && (mWants3D) && (!mNoGpuRenderer))
+		return 0;
 	const int aScale = SurfaceDisplay::WantedSurfaceScale();
-	// above 1x the screen is drawn on the GPU where the window's renderer is accelerated, so SurfaceDisplay makes the
-	// renderer to find out (NoteRenderer); with no accelerated renderer the surface shows the software screen at 2x to 4x
-	if ((aScale > 1) && (!mNoGpuRenderer))
+	// above 1x, without GDI's stretch (mScaledSurface false), the screen is drawn on the GPU where the window's renderer is
+	// accelerated, so SurfaceDisplay makes the renderer to find out (NoteRenderer); with no accelerated renderer, or with the
+	// stretch, the surface shows the software screen at 2x to 4x
+	if ((aScale > 1) && (!mNoGpuRenderer) && (!mScaledSurface))
 		return 0;
 	return aScale;
 }
@@ -117,8 +141,8 @@ void SoftwareScreenDisplay::NoteRenderer()
 	if (((anInfo.flags & SDL_RENDERER_ACCELERATED) != 0) && ((anInfo.flags & SDL_RENDERER_SOFTWARE) == 0))
 	{
 		// at the game's own size the renderer is there for a drawn cursor (or the window has had one): the screen stays
-		// in software, its frames going to the window through the renderer's frame texture
-		if (WindowAtScreenSize())
+		// in software, its frames going to the window through the renderer's frame texture; in 3D it goes to the GPU
+		if ((WindowAtScreenSize()) && (!((mOffers3D) && (mWants3D))))
 		{
 			if (!mCursorNoted)
 			{
@@ -145,10 +169,12 @@ void SoftwareScreenDisplay::NoteRenderer()
 void SoftwareScreenDisplay::DrawOnGpu(const char* theRendererName)
 {
 	mGpuScreen = true;
-	// DDInterface's own path from here: its stretches, and the 3D flags of its accelerated renderer (DDInterface::Init's)
+	// DDInterface's own path from here: its stretches, and the flags of its accelerated renderer, 3D's unless the app
+	// wants 2D (mAppWants3D: a game whose original starts in 2D, or 3D switched off)
 	mSoftwareStretch = false;
+	mSoftwareFastStretchCentre = mFastStretchCentre;
 	mFastStretchCentre = false;
-	mIs3D = true;
+	mIs3D = mAppWants3D;
 	mCan3D = true;
 	// the screen texture starts from the last frame drawn in software (none at the start), so that a screen kept from
 	// one frame to the next (mKeepScreen) loses nothing; every frame from here draws all the widgets onto it
@@ -281,10 +307,33 @@ void SoftwareScreenDisplay::BeginFrame()
 			const uint32_t* aPixels = ScreenPixels();
 			if (aPixels != NULL)
 				SetFrame(aPixels, mWidth * 4, NULL, 0);
+			mStretchUseLastFrame = mStretchUseThisFrame;
+			mStretchUseThisFrame = mStretchUse;
 			return;
 		}
 	}
 	DDInterface::BeginFrame();
+}
+
+void SoftwareScreenDisplay::NoteWant3D(bool theWant3D)
+{
+	DDInterface::NoteWant3D(theWant3D);
+	if (!mOffers3D)
+		return;
+	mWants3D = theWant3D;
+	// 3D off changes nothing here: a screen on the GPU stays there (its window keeps the renderer), and the app sets mIs3D
+	if ((!theWant3D) || (mGpuScreen) || (mNoGpuRenderer) || (mWindow == NULL))
+		return;
+	// 3D on: SurfaceDisplay makes the window's renderer (WantedSurfaceScale says 0), and an accelerated one takes the screen
+	mChangingMode = true;
+	SurfaceDisplay::UpdateDisplaySize();
+	mChangingMode = false;
+	NoteRenderer();
+	if (!mGpuScreen)
+	{
+		No3D();
+		ScreenPixels();
+	}
 }
 
 void SoftwareScreenDisplay::ScreenDrawn(const Rect& theRect)
@@ -325,6 +374,8 @@ void SoftwareScreenDisplay::Present()
 	if (aPixels != NULL)
 		HandOverDrawn(aPixels);
 	SurfaceDisplay::Present();
+	// the stretched copies drawn in neither this frame nor the one before (the GPU path keeps them, with their textures)
+	DropStretchCopiesDrawnBy(mStretchUseLastFrame);
 }
 
 void SoftwareScreenDisplay::HandOverDrawn(const uint32_t* thePixels)

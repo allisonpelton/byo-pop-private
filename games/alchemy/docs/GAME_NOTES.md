@@ -340,7 +340,7 @@ another list). A run of the original without a list is not seed pinned: look for
 ## 9. Coverage check (2026-11-08)
 
 The coverage check of `docs/COVERAGE.md`: origrun's `--coverage` recorded which of the original's functions ran, in 21 runs on
-the host (the staged copy under `C:/byo-og/alch`, the virtual clock, no sound device, the seed pinned; the hits are in
+the host (the staged copy under `E:/byo-og/alch`, the virtual clock, no sound device, the seed pinned; the hits are in
 `build/coverage/alchemy/hits/`, the scripts in `games/alchemy/tools/coverage/`):
 
 - The seven screen tours of phase two (`tools/shots/tour1.txt` to `tour7.txt`, turned into host scripts by `make.py ... host`
@@ -729,3 +729,11 @@ by a discard, the bot's tutorial, a game left for the selector, a continued game
 checked against the events it must log; then the three mouse-played games of `tools/check.sh alchemy` with the block off, on and in
 the frozen baseline, whose state logs must be identical. `-livesplitlog=<file>` writes one line for each write of the block whose
 rule fields changed (not one per update: the updates, tick and scores are left out of the test).
+
+## 14. The lite mod (2026-11-14)
+
+There is none: nothing in the game's logic is worth a toggle (`LITE_MOD.md`, which says what was looked at). The only candidate that
+differs when changed and costs anything is the discard's melt (2,500 draws of the C library's `rand` and a blur each update, 250
+updates a discard): 14 us an update in the quietest bot game and up to 63 us in the busiest, 0.4% to 1.9% of a minute of play at the
+bot's six discards a minute, less than the five-pair measurement can see. The scans of the 72 cells (`DetermineValidMoves`,
+`MakeRandomPiece`) cost 1 to 5 us a piece and give the same answers any faster way. The lite-mod step is done with no mod.

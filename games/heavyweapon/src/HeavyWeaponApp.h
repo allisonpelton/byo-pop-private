@@ -71,7 +71,7 @@ struct BackgroundAnimInfo
 	int					mY;				// +0x20 y of its centre
 	double				mMoveX;			// +0x28 mx: pixels added to x each update
 	bool				mHasNukedFrame;	// +0x30 nuke: the strip's last frame shows it nuked
-	bool				mLoadFailed;	// +0x31 the strip did not load (the loader stops at once then)
+	bool				mLoadFailed;	// +0x31 cleared once the strip has loaded (a failed load stops the game); nothing reads it
 	std::vector<double>	mFrameDelays;	// +0x34 each frame's speed: speed, or a Delay line's
 	bool				mPlaysOnce;		// +0x48 type is not "looping"
 	bool				mRare;			// +0x4c rare
@@ -88,7 +88,7 @@ struct UserRecord
 	};
 
 	char			mName[0x18];		// +0x00
-	int				mBestScore;			// +0x18 the score when mMaxLevel last rose
+	int				mBestScore;			// +0x18 the score when mMaxLevel last rose; saved, and nothing reads it
 	unsigned short	mLevel;				// +0x1c the level of the campaign in progress
 	unsigned short	mMaxLevel;			// +0x1e the furthest level reached
 	int				mBestSurvivalTime;	// +0x20 the longest survival, in updates
@@ -240,6 +240,12 @@ public:
 	std::vector<UserRecord>				mUsers;				// +0x1488
 	MTRand			mRand;						// +0x1498 the game's own generator, seeded from Rand() after Init
 	FILE*			mTraceFile;					// port: the test command "trace" writes the state each update leaves here
+	// port(autosplit): the games begun, for the autosplit block (LiveSplitObserver.cpp), which only reads them. A game is a
+	// campaign or a survival game from the click that starts it until the main menu or the high scores come back.
+	unsigned int	mGamesBegun;				// the games begun since the start
+	unsigned int	mGameSerial;				// the game in progress (its mGamesBegun), 0 between games
+	bool			mGameIsSurvival;			// it is a survival game
+	bool			mGameResumed;				// it continues the player's saved campaign (the continue dialog's CONTINUE)
 
 public:
 	HeavyWeaponApp();															// 0x40b750
@@ -257,8 +263,12 @@ public:
 	virtual void	GotFocus() override;										// 0x401040 slot 70
 	virtual void	LostFocus() override;										// 0x401020 slot 71
 	virtual MusicInterface* CreateMusicInterface() override;					// port: the original's is BASS
+	virtual DDInterface* CreateDDInterface() override;						// port: the 2D screen's software stretch
 	virtual bool	HandleScriptCommand(const ScriptCommand& theCommand) override; // port: the test commands (testhooks)
 	void			TraceFrame();												// port: a line of the test trace (testhooks)
+	virtual void	HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue) override; // port(autosplit): -livesplitlog
+	void			BeginGame(bool isSurvival, bool isResumed);					// port(autosplit): a game begins (mGameSerial)
+	void			EndGame() { mGameSerial = 0; }								// port(autosplit): back to the menus
 
 	using SexyApp::PlaySample;
 

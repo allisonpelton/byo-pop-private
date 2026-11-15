@@ -22,6 +22,7 @@ Reachable only from a test (`-script`, `-commands`, the web page's test call; `d
 | `memreport` | the framework's, `MEMREPORT {...}` |
 | `trace <file>` | writes a `TRACE T\|F ...` line after each update's first step (T) and each frame's `UpdateF` (F) to the file: the state phase one compares (the random generator, the stats, the pop timer, the level timer, each cubby and its creature, the avatar's swing and clicks) |
 | `cheat <word>` | types a cheat word into the application a letter at a time, as the main menu's key handler does (`jumpto5` to `jumpto25` start the next game at that level); the main menu clears the cheats when it is made, so it goes after the menu is up |
+| `startlevel <n>` | the next game starts at level n, as the cheat words do for 5, 10, 15, 20 and 25 (`Application::mTestStartLevel`, read by the game screen's constructor; for the levels between, such as 22 where the multiplier gnome first comes) |
 | `botclick [bomb\|miss]` | the bot's click made as a `click` is (the first creature standing up that is not a bomb; a bomb; bare ground), or the button of the level's introduction or the "Ready?" box when one waits; logged as `BOTCLICK <update> <x> <y>` |
 
 The bot reads the game's state and draws no random number. Its swing is a `move` to the gnome's strike point, two updates' wait,
@@ -60,6 +61,10 @@ a `click` and ten updates' wait, which is what a player's click does.
   original has two classes with the same code and fields. A trophy's shadow picture (the unearned ones) is deleted with its
   button; the original leaks it (a memory leak, fixed here as the rules say).
 
+- **How BASS is asked:** the original calls `BASS_ChannelStop` on a song before it plays it, and on the other three songs at every
+  fade-in; the port's mixer stops what plays as it plays the next. What is heard is the same (the music comparison, `musiccmp.py`,
+  drops those stops).
+
 ## Left out (nothing in play can reach it)
 
 - The level **editor**: the original's GameScreen is a tool widget with the game on top; the port keeps the widget and none of the
@@ -68,6 +73,9 @@ a `click` and ten updates' wait, which is what a player's click does.
   Application +0x77c (a login and update check, 0x41a000-0x41bac0) and its menu items.
 - **Registration**: the demo limit, the level-allowed check (0x41e520, always true), the upsell dialog, the buy and register
   buttons and every string that only they used. **More Games**, the Steam link and every other button that leaves the game.
+  The pictures that only they used (the upsell page and its five shots, the "More Games" button's) are listed in
+  `tools/resdrop.txt`: `resgen.py` leaves them out of `Res.h` and `Res.cpp`, and `stage_hammerheads_assets.py` takes them out of the
+  staged `resources.xml` and does not copy their files, so the game never loads them.
 - **State that is written and never read.** The trophy room's fade (+0xb0, set to 3.0 and counted down), its hover alpha (+0xa8)
   and trophy count, the trophy button's +0x150 flag, an unused "Click to continue" string; the game-won page's counter
   (DAT_00598084, one more while a page exists); none of it is in the port.

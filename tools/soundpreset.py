@@ -1,7 +1,7 @@
 """tools/soundpreset.py: a soundboard preset (web/soundboards.js, "presets") from a stretch of a port's sound log.
 
     python tools/soundpreset.py <sound.log> <first update> <last update> [--files <prefix>] [--skip <a,b>] [--name <name>]
-        [--when <text>] [--ms <ms an update>]
+        [--when <text>] [--ms <ms an update>] [--gamedir <assets/game>]
 
 A port writes the sound log when BYOPOP_SOUNDLOG names a file (framework/SDLSoundManager.h): each line is the update it
 happened on and the event. Every sound the game plays from <first update> to <last update> becomes a step, at its time
@@ -13,10 +13,19 @@ or pan while it plays. Prints the preset as one line of JavaScript for the table
 (the folder as the import writes it, if the log names the files without it); the extension is the file's in the log, or
 none, and the table matches either (web/sounds.js tries the extensions the game ships). --skip leaves out the sounds
 named (the file's name without folder or extension): those the player's own moves played, a bot's in a driven run.
+Venice's port logs its own lines (games/venice/src/VeniceSound.cpp: by file name, a frequency and a volume in percent),
+read the same way, the file's rate and length taken from it in --gamedir (Venice runs 250 updates a second: --ms 4).
+--loopstops keeps only a looping sound's stop. The framework logs "stop" also when it frees a finished voice, at the next
+play (SDLSoundInstance::IsReleased); its mixer runs on the wall clock, so in a driven run, where the game waits on the
+driver, a one-shot is freed after fewer updates than it lasts and would be cut short. For a game whose code never stops
+a one-shot it played (Heavy Weapon: PlaySample keeps no handle).
 """
 import argparse
 import json
+import math
+import os
 import re
+import struct
 import sys
 
 
@@ -46,11 +55,56 @@ def main():
     ap.add_argument("--name", default="Preset")
     ap.add_argument("--when", default="")
     ap.add_argument("--ms", type=int, default=10)
+    ap.add_argument("--gamedir", default="", help="the staged game folder, for a log that names files (Venice's)")
+    ap.add_argument("--loopstops", action="store_true", help="keep only a looping sound's stop (see the docstring)")
     a = ap.parse_args()
 
     names, length = {}, {}
     events = []
+    # Venice's own sound layer (games/venice/src/VeniceSound.cpp) logs by file name: "play <file> freq=<Hz, -1 the file's
+    # own> vol=<gain in percent>", "volume <file> <percent>" and "stop <file>", each for the file's latest voice; its loop
+    # comes from the "load" line and its rate and length from the file itself (--gamedir)
+    loops, latest, count = {}, {}, 0
+
+    def ogg_rate_length(name):
+        path = os.path.join(a.gamedir or ".", name.replace("\\", "/"))
+        try:
+            data = open(path, "rb").read()
+        except OSError:
+            return 0, 0
+        at = data.find(b"\x01vorbis")
+        rate = struct.unpack_from("<I", data, at + 12)[0] if at >= 0 else 0
+        last = data.rfind(b"OggS")
+        granule = struct.unpack_from("<q", data, last + 6)[0] if last >= 0 else 0
+        return rate, (granule / rate if rate else 0)
+
+    def db(percent):
+        return int(round(2000 * math.log10(percent / 100.0))) if percent > 0 else -10000
+
     for line in open(a.log, encoding="utf-8", errors="replace"):
+        m = re.match(r"(\d+) load (\S+) loop=(\d)", line)
+        if m:
+            loops[m.group(2)] = m.group(3)
+            continue
+        m = re.match(r"(\d+) play (\S+) freq=(-?\d+) vol=(\d+)", line)
+        if m:
+            name = m.group(2)
+            if name not in length:
+                rate, length[name] = ogg_rate_length(name)
+                names[name] = rate
+            rate, freq = names[name], int(m.group(3))
+            pitch = freq / rate if freq > 0 and rate else 1.0
+            count += 1
+            latest[name] = count
+            rest = "vol=%d pan=0 pitch=%f loop=%s" % (db(int(m.group(4))), pitch, loops.get(name, "0"))
+            events.append((int(m.group(1)), "play", name, count, rest, name.replace("\\", "/"), length[name]))
+            continue
+        m = re.match(r"(\d+) (stop|volume) (\S+)\s*(-?\d*)", line)
+        if m and m.group(3) in latest:
+            name = m.group(3)
+            rest = str(db(int(m.group(4)))) if m.group(2) == "volume" else ""
+            events.append((int(m.group(1)), m.group(2), name, latest[name], rest, name.replace("\\", "/"), length[name]))
+            continue
         m = re.match(r"(\d+) load (\d+) (.+?) frames=(\d+) rate=(\d+)", line)
         if m:
             i = int(m.group(2))
@@ -97,6 +151,9 @@ def main():
             if u > a.last and kind != "stop":
                 continue
             at = (u - t0) * a.ms
+            if kind == "stop" and a.loopstops and not s.get("loop"):
+                del live[inst]
+                continue
             if kind == "stop":
                 natural = s["at"] + s["len"] * 1000 / s.get("r", 1)
                 if s.get("loop") or at < natural - 10:

@@ -189,7 +189,7 @@ var ByopopSounds = (function () {
 
     // ---- sound ----
     var ctx = null, gain = null, live = [], cache = {};
-    function level() { return muted ? 0 : volume / 100; }
+    function level() { return muted ? 0 : volume / 100 * (window.ByopopVolume ? ByopopVolume.level() : 1); }
     function audio() {
       if (ctx) return ctx;
       var AC = window.AudioContext || window.webkitAudioContext;
@@ -303,6 +303,7 @@ var ByopopSounds = (function () {
     }
     stopBtn.addEventListener("click", stopAll);
     function applyLevel() { if (gain) gain.gain.value = level(); }
+    if (window.ByopopVolume) ByopopVolume.on(applyLevel);
     muteBtn.addEventListener("click", function () {
       muted = !muted;
       store(MUTE_KEY, muted ? "1" : "0");

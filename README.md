@@ -103,12 +103,12 @@ asked.
 | Cosmic Bugs | 0.6 to 0.9 s | 0.4 to 1.0 s | 18 to 19 % of one core | 4.7 and 5.6 % of one core | 130 MB | 88 and 89 MB |
 | Water Bugs | 2.76 s | 3.16 s | 10 s a minute | 58 s a minute | 160 MB | 97 and 101 MB |
 | Rocket Mania Deluxe | 1.8 to 2.0 s | 0.9 and 1.1 s | 1.4 to 2.5 M cycles an update (8 to 13 % of one core) | about 4.2 M cycles an update (20 % of one core) | 132 MB | 62 MB |
-| Dynomite Deluxe | 0.96 s | 2.2 s | 8.5 G cycles a minute at the game's own 640x480, 11 to 21 G in its default 1280x960 window | 9.6 G cycles a minute at 60 Hz | 58 MB at 640x480, 95 to 181 MB in the default window | 65 MB |
+| Dynomite Deluxe | 0.96 s | 2.2 s | 11.4 G cycles a minute at the game's own 640x480, 9.1 G in its default 1280x960 window | 12.9 G cycles a minute at 60 Hz | 48 to 51 MB at 640x480, 84 MB in the default window | 63 MB |
 | Bookworm Adventures Volume 2 | | | | | | |
 | Mahjong Escape: Ancient Japan | 1.31 s | | 6.0 % of one core | 3.1 % of one core | 146 MB | 40 MB |
 | Mahjong Escape: Ancient China | 1.29 s | | 7.3 % of one core | 1.7 % of one core | 104 MB | 31 MB |
 | Bonnie's Bookstore Deluxe | 6.8 and 12.9 s | 6.2 and 6.4 s | 7.9 G cycles at 800x600, 6.1 G in its default 1600x1200 window | 9.5 G and 7.3 G cycles in the same rounds | 52 MB at 800x600, 58 MB at 1600x1200 | 54 MB |
-| Bejeweled Twist | 2.71 s | 10.81 s | 38.1 G cycles a minute in 2D, 34.5 in 3D | 43.9 G cycles a minute in 2D, 44.9 in 3D | 392 MB | 186 MB |
+| Bejeweled Twist | 2.71 s | 10.81 s | 38.8 G cycles a minute in 2D, 43.2 in 3D | 41.5 G cycles a minute in 2D, 47.2 in 3D | 354 to 390 MB in 2D, 250 to 258 in 3D | 183 to 189 MB in 2D, 300 to 303 in 3D |
 | Bejeweled 2 Deluxe | 0.9 to 1.2 s in 2D, 1.4 s in 3D | 4.4 s in 2D, 4.7 s in 3D (dgVoodoo2) | 7.5 % of one core in 2D on a GPU renderer, 6.6 % on SDL's software renderer (48.5 % in its default 2x window), 8.8 % in 3D | 9.4 % of one core in 2D, 61 % in 3D (dgVoodoo2) | 82 to 109 MB | 42 MB in 2D, 149 MB in 3D (dgVoodoo2) |
 | AstroPop Deluxe | 1.0 to 1.3 s | 1.5 s (2D), 5 to 13 s (3D) | 4.25 G cycles in a 2,030-update stretch (2D), 3.70 G (3D) | 6.13 G (2D), 2.76 G (3D) | 159 to 164 MB | 81 to 83 MB (2D), 118 MB (3D) |
 | Typer Shark! Deluxe | 0.72 to 0.82 s | 0.76 to 1.28 s | 3.7 G cycles in 20 s (3D, visible desktop) | 3.9 G cycles in 20 s (3D) | 86 to 89 MB | 49 to 51 MB |
@@ -126,8 +126,8 @@ shared the machine with other sessions' games, and each game has its own play an
 port with its own original, never one game with another; an empty cell means the notes give no number.
 Dynomite Deluxe's processor time is the cycles its threads ran in the same scripted minute of Time Trial, the
 medians of five pinned rounds run in turn, with its original windowed at 640x480 and drawing at most 60 times a second
-as in full screen. At that size the port draws its screen in software, as the original does, and is under it; in a
-larger window it draws on the GPU, whose present cost and memory vary with the GPU's other load. Rocket Mania's, Bejeweled 2's and AstroPop's ports ran in the original's own window
+as in full screen, measured again on 2026-11-15 on a busier machine than its first figures. At that size the port draws its
+screen in software, as the original does; in a larger window it draws on the GPU. It is under its original at both sizes. Rocket Mania's, Bejeweled 2's and AstroPop's ports ran in the original's own window
 size too (Bejeweled 2's on an idle board); AstroPop's 3D is over its original by the same present cost.
 
 Two things differ in every native port on purpose, the user's choice for all of them, with no mod needed. Full screen is

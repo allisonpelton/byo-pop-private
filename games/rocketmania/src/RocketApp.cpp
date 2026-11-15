@@ -6,7 +6,9 @@
 #include "TalkingHead.h"
 #include "Dialogs.h"
 #include "Board.h"
+#ifndef BYOPOP_DERIVED
 #include "LiveSplitObserver.h"
+#endif
 #include "Dialog.h"
 #include "ButtonWidget.h"
 #include "GameText.h"
@@ -112,7 +114,9 @@ RocketApp::RocketApp()
 // 0x42b3f0
 RocketApp::~RocketApp()
 {
+#ifndef BYOPOP_DERIVED
 	LiveSplitObserver::AppDestroyed(this);   // port: the autosplit block's last write (LiveSplitObserver.h)
+#endif
 	delete mStateLog;
 	delete mUiBot;
 	if (mBoard != NULL)
@@ -320,9 +324,13 @@ bool RocketApp::HandleScriptCommand(const ScriptCommand& theCommand)
 // port: the test hooks (testhooks/UiBot.h)
 void RocketApp::HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue)
 {
+#ifndef BYOPOP_DERIVED
 	if (theParamName == "-livesplitlog")
 		LiveSplitObserver::SetLogFile(theParamValue);   // port: one line for each change the autosplit block shows (tests)
 	else if (!mUiParams.Parse(theParamName, theParamValue))
+#else
+	if (!mUiParams.Parse(theParamName, theParamValue))
+#endif
 		SexyApp::HandleCmdLineParam(theParamName, theParamValue);
 }
 
@@ -355,7 +363,9 @@ void RocketApp::UpdateFrames()
 			mUiBot = new UiBot(this, mUiParams);
 		mUiBot->Update();
 	}
+#ifndef BYOPOP_DERIVED
 	LiveSplitObserver::AfterUpdate(this);   // port: the autosplit block, after the update (LiveSplitObserver.h)
+#endif
 }
 
 // 0x42ed10: the dialogs' buttons arrive as 2000 + dialog id (yes, ok) and 3000 + dialog id (no, cancel)

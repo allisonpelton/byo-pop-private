@@ -2,24 +2,24 @@
 #   python tools/publish.py --target rocketmania [--push] --model "..."
 # One directive a line. include takes a file or a folder from the trunk; exclude takes out paths (and * ? patterns) of
 # what was included; file <path> <trunk path> puts a trunk file at another path; transform <path> <trunk path> <name> [arg]
-# puts the output of one of publish.py's TRANSFORMS in place of a trunk file's text. The .publishignore paths and the
-# private blocks are left out of every file, as in the whole-repository snapshot.
+# puts the output of one of publish.py's TRANSFORMS in place of a trunk file's text. unifdef -D<name> -U<name> decides
+# those conditionals in every C and C++ file, rewords <table> applies a table of the trunk's lines and the published
+# copy's wording for them (publish.py's read_rewords), vendor <path> leaves a path as it is (no rewords, unifdef or
+# forbid), and each forbid <regex> stops the publish while a line of a published file outside the vendor paths matches
+# it. The .publishignore paths and the private blocks are left out of every file, as in the whole-repository snapshot.
 
 name rocketmania
 url https://github.com/allisonpelton/byo-pop-rocketmania
 
-# the game: its code and notes, and from its tools only what builds, stages and smoke-tests it. Left out: the identical-play,
-# collection, profiling, coverage, readability and screenshot tools (they run the original exe, origrun or the Ghidra
-# exports, which this repository does not have), the generators that read the Ghidra exports (gen_res.py, make_*.py,
-# dumpdata.py and the other address tools), the LiveSplit test script (needs lsprobe and rundesk), and the web page parts
-# (the browser version is built from byo-pop, which has the site)
-include games/rocketmania/CMakeLists.txt
+# the game: its code and the note on its 2003 framework (its staging script is among the generated files below). Left
+# out: byo-pop's notes on the port (status, the identical-play report, the work log, the mod notes, the symbol list),
+# the test scripts of tools/check.sh, the LiveSplit mod and every other tool (they run the original exe, origrun or the
+# Ghidra exports, which this repository does not have); src/ without the site's player profiles and the autosplit
+# observer, which only the site's page or a mod switches on
 include games/rocketmania/src
-include games/rocketmania/docs
-include games/rocketmania/mods
-include games/rocketmania/tools/stage_rocketmania_assets.py
-include games/rocketmania/tools/menu_test.txt
-include games/rocketmania/tools/board_test.txt
+exclude games/rocketmania/src/SiteProfiles.*
+exclude games/rocketmania/src/LiveSplitObserver.*
+include games/rocketmania/docs/FRAMEWORK_2003.md
 
 # the shared code the game links: the framework, the platform layer without its MO3 and JPEG 2000 players (openmpt/,
 # openjpeg/: no Rocket Mania code uses them), and the libraries of the targets it links (sexyframework, sexycompat2004):
@@ -29,18 +29,59 @@ exclude framework/CMakeLists.txt
 include platform
 exclude platform/openmpt
 exclude platform/openjpeg
+exclude platform/saveimport.json
 include third_party/stb
+exclude third_party/stb/stb_impl.c
 include third_party/libjpeg
 exclude third_party/libjpeg/test
 include third_party/libxmp-lite
 include third_party/tremor
+# SDL is built into the exe: the recipe for the small static build of it that the top-level CMakeLists.txt links
+include third_party/sdl-small
 include third_party/libopenmpt/include/minimp3
-include cmake/llvm-mingw-i686.cmake
 
-# generated: a top-level CMakeLists.txt that builds this game only, the framework's and third_party's lists without the
-# libraries that were left out, a README and the ignore file
+# without the site and the mod framework (the user, 2026-11-13: no source file that refers to either): the mod menu, the
+# mod manager and its settings, the options that only mods set (platform/GameOptions: Rocket Mania has no fixes and no
+# lite changes, so nothing in it asks them), the restart the mod menu makes, the image patches of mods, the web page's
+# calls, settings, players, cursor and saved files, the site's music-window helpers and the autosplit block, which only
+# the site's page or a mod asks for
+exclude framework/ModMenu.*
+exclude framework/WebCursor.*
+exclude framework/WebProfiles.*
+exclude framework/WebSettings.*
+exclude platform/ModManager.*
+exclude platform/ModSettings.*
+exclude platform/GameOptions.*
+exclude platform/Relaunch.*
+exclude platform/ImagePatch.cpp
+exclude platform/WebApi.cpp
+exclude platform/WebPersist.*
+exclude platform/AutosplitBlock.h
+exclude platform/ModuleText.h
+# the comments that name the site or the mods take the table's wording (the trunk keeps its own), the web build's
+# branches go (__EMSCRIPTEN__), and so does the code the trunk marks with #ifndef BYOPOP_DERIVED: what calls the parts
+# left out above, or has another form without them
+rewords tools/publish_targets/rocketmania.rewords.txt
+unifdef -U__EMSCRIPTEN__ -DBYOPOP_DERIVED
+vendor third_party
+forbid __EMSCRIPTEN__|\bEMSCRIPTEN\b|[Ee]mscripten|\bwasm|WebGL|IDBFS|IndexedDB|localStorage|MEMFS|\bbrowser
+forbid \bbyopop_|Byopop::|WEB_PLAYER|\bweb/|\b[Ww]eb\b(?! site to download)|\b[Tt]he site\b|\bsite's\b|\bpage's\b|\bweb pages?\b|player-only page|listing page
+forbid \bMod(Menu|Manager|Settings|Info|Message|Messages|Root|Roots|Id|Option|Feature)\b|mModId|mModMenu|FixOn|LiteOn|GameOptions|OptionOn
+forbid (?<![.>])\bmods\b|(?<![.>])(?<!% )\bmod\b(?! 0:)|\bMods?\b|mod\.json|mods\.json|mod menu|MODMENU|modmenu|modsdir|nomods|MOD_MENU|MOD_ROADMAP|CODE_MODS
+
+# generated: a top-level CMakeLists.txt that builds this game only, the game's, the framework's and third_party's lists
+# for a native build without the libraries that were left out, the save import table, the toolchain file and the
+# staging script without the web build in their comments, a README and the ignore file
 transform CMakeLists.txt CMakeLists.txt toplevel rocketmania
+transform games/rocketmania/CMakeLists.txt games/rocketmania/CMakeLists.txt game rocketmania
 transform framework/CMakeLists.txt framework/CMakeLists.txt framework
 transform third_party/CMakeLists.txt third_party/CMakeLists.txt third_party
+transform platform/saveimport.json platform/saveimport.json saveimport rocketmania
+# stb_image decodes only PNG and GIF here: the game's files (the retail and Steam copies' and the staged ones) are GIF,
+# JPEG and PNG; JPEGs go to libjpeg first (every one of them is a baseline or progressive 8-bit JPEG that it takes); and
+# no file is TGA or BMP
+transform third_party/stb/stb_impl.c third_party/stb/stb_impl.c stb png,gif
+transform cmake/llvm-mingw-i686.cmake cmake/llvm-mingw-i686.cmake toolchain
+transform games/rocketmania/tools/stage_rocketmania_assets.py games/rocketmania/tools/stage_rocketmania_assets.py stage
 file README.md tools/publish_targets/rocketmania.README.md
 file .gitignore tools/publish_targets/derived.gitignore

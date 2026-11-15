@@ -7190,9 +7190,9 @@ exe's load costs (276 GIFs); `imagehlp.dll` 0.7 % of the real-time run; the Dire
 profile shows no function of the game's own above 0.2 %; the memory it holds more is the display layer's. The frozen baseline is
 unchanged by this pass, which added only the profile tools and these notes.
 
-**To repeat.** `OG_STAGE=C:/byo-og/bwpp games/bookworm/tools/identical/setup.sh` makes the original's stage; copy `games/bookworm/tools/profile/scenario.txt` (the
+**To repeat.** `OG_STAGE=E:/byo-og/bwpp games/bookworm/tools/identical/setup.sh` makes the original's stage; copy `games/bookworm/tools/profile/scenario.txt` (the
 port's `-autoplaylog` of the bot game, shifted as `identical/case.sh` does) to `<out>/scenario.txt` and run
-`OG_STAGE=C:/byo-og/bwpp bash games/bookworm/tools/profile/pairs.sh <out> 3` (about 4 minutes a pair), then
+`OG_STAGE=E:/byo-og/bwpp bash games/bookworm/tools/profile/pairs.sh <out> 3` (about 4 minutes a pair), then
 `python -I games/bookworm/tools/profile/summary.py <out>`; `variants.sh <out> 2` and `summary.py <out> v` for the renderer settings.
 
 ### Processor time like for like (2026-11-11; `docs/COORDINATION.md`, "The target")
@@ -7308,6 +7308,16 @@ runs, adds 9.5 thousand on average (from -4 to +23 thousand; the neighbouring bl
 5.4 million. Pairs of counting and plain runs of the whole scenario could not see it: the six on/off pairs of the port had a median
 16 % higher with counting on, which was the machine (the same scenario's plain runs differ by a quarter from one to the next), and
 the alternation inside one run is what shows an effect of a few tenths of a percent.
+
+## The lite mod (2026-11-14)
+
+There is none: nothing in the game's logic is worth a toggle (`LITE_MOD.md`, which says what was looked at and what each candidate
+costs). The original has no search, and the game's own computations, the word check (a `std::set` lookup of 4,500 cycles), the
+letter deal (240 cycles a letter), the refill, the submit and the mouse handlers together cost 860 to 1,090 cycles an update, under
+0.1% of the 1.8 to 1.96 million that the port spends on one, which no pair of runs can see; the board's per-update pass is the picture's
+motion (8.4 thousand cycles an update, the embers 1.9 thousand of it), which a lite change keeps. The one larger cost, the
+dictionary's load (218 M cycles once, 104 ms), has a faster method with the same result, so it is not lite, and it did not earn a
+change. The solver's search (2.3 ms a call) is the mod "solver" and the test bot, not the game. The lite-mod step is done with no mod.
 
 ## The readability pass (2026-11-11)
 

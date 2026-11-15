@@ -102,7 +102,9 @@ top one, menu state, mode, level, level index, score, phase, tick, busy, the boa
 gem), `goto <mode>` (a latch that `WinDMApp::UpdateFrames` steps once an update through whatever screen is in front, as a
 player's clicks would: the title's play link, the first user's name ("Tester"), the welcome and other messages, the menu's
 mode button, so it works from launch, from the menu and from a game; `goto menu` from the title clicks the play link, from a
-game it runs `DoMainMenu`), `unlock all` (the counters that open the secret modes; given before a user exists it waits for
+game it does what the options dialog's Main Menu button does: the board hides and the menu is made and slides in, and kills
+the board when it is down; `goto <mode>` from a game does the same and then goes on as from the menu, which an earlier version did
+not: it only made the menu over the live board and stayed), `unlock all` (the counters that open the secret modes; given before a user exists it waits for
 the goto that creates one), `seed`, `set score`, `lose` (the game's own ending), `win` and
 `level <n>` (the level's goal is met, so the board's own update starts the whirlpool; in the puzzle modes `win` is
 `PuzzleCompleted`), and `move` (the first of the moves `Board::FindMove` finds, picked by a hash of the board and the score;
@@ -169,6 +171,7 @@ menu's fields as its second base sees them, and the update checkbox that is not 
 constructor does clear).
 
 ## Oddities (skipped, not chased)
+- **3D Classic and Finity tours on the retail constants (2026-11-15): the global generator's phase differs by a few draws, so a level change puts the carried-over flame gem on another square.** What differs: in `record_3d_tours.sh`'s Classic tour the original and the port draw the same number of numbers from the global generator, but a small burst of per-update draws (3 draws at update 1914-1916, then 2 at 3121 in the original and 2 at 3172 in the port, 2 at 4234 and 4285, the same 51 updates apart) happens at a different update, so when the level changes (update 6207) the port is 3 to 5 draws ahead, `BoardWhirl.cpp`'s carried-over flame is picked from other numbers (the original's lands on the top row's third gem, the port's on the sixth row's first) and the next clear scores 112 where the port's scores 75 (a flame's 25 times 1.5 more); the boards differ from there (Classic's board-played shot, score 912 against 755). Finity differs the same way from its level change at update 7270. The other six modes' score sequences are equal step for step. How to see it: `MODES=classic OUT=build/visrun/rec3d_ret record_3d_tours.sh`, then `VISRUN_WATCH='{B}+0x15e20;0x67d910;{B}+0x170c;{B}+0x15e0' run_tour_visible.sh build/visrun/rec3d_ret/classic/events.json <tag>` and compare watch 2 of the original with watch 5 of the port's `port.log` per update (draws per update: the first mismatch is at 1914). Not found: which effect draws those 2 or 3 numbers and why it comes 51 updates later in the port (a timer that the board starts from another update count is the likeliest). To go on: log the caller of `Rand()` at port updates 1914 and 3172 and find the original's caller at 3121 by a watch or a breakpoint in the original, or in the port's `Board::Update` check the timers that count from `mUpdateCnt` against the original's app counter (`[0x67ccd8]+0x484`).
 
 - **PuzzlePackSelector's double click** calls `ButtonDepress(1000)`.
 - **A missing galaxy file** (`GalaxyParser`): the "Unable to open galaxy.xml file" error is overwritten by the empty parse
@@ -207,11 +210,14 @@ constructor does clear).
   visrun reads the update each input landed at, and the replay gives that one click (`landed_to_events.py --shift 2127 2130 1`) the later update.
 - **The original's pointer is never over its window in the visible-desktop 3D runs, so no gem glows under it.** The Board's hover glow
   (`BoardUpdate.cpp`: a gem under `mMouseX/mMouseY` gains 0.045 a update, the step 0.0625) needs the pointer in the window, and the
-  tool posts clicks to the window without moving the real cursor, so the original's `mMouseX/mMouseY` stay at -1,-1 (and the board
-  re-reads `mLastMouseX/mLastMouseY` itself when it becomes idle, BoardLogic.cpp:423). The port's replayed pointer stays where its last
-  click was, so a shot taken straight after a click had a gem glowing that the original's did not. The replay therefore moves the pointer
-  out of the window and sends a leave one update after each click (`landed_to_events.py --leave-after 1`). Not a difference of play: a
-  person's cursor over the board glows the same gem in both.
+  tool posts clicks to the window without moving the real cursor, so the original's `mMouseX/mMouseY` stay at -1,-1. The widget
+  manager's last position (`mLastMouseX/mLastMouseY`, which the board re-reads itself when it becomes idle, BoardLogic.cpp:423, and
+  which the puzzle dome's glow reads, `PuzzleStateOverlay::Update`) is the last posted click's, since the posted click goes through
+  the manager: the WARP button's glow stays at its steady 0.5 in the original's frames of the warp, where it swept in the port's replay
+  when that moved the replayed pointer to -9,-9 (found 2026-11-15, the 3D tours). The port's replayed pointer stays where its last
+  click was, so a shot taken straight after a click had a gem glowing that the original's did not. The replay therefore sends the
+  pointer's leave alone one update after each click (`landed_to_events.py --leave-after 1 --leave-keep`; the board's hover goes off, the
+  manager's position stays at the click). Not a difference of play: a person's cursor over the board glows the same gem in both.
 - **A gem or two differ in the loaded 3D board's slide.** In the visible-desktop 3D tour (`run_tour_visible.sh`, with shots every 2
   updates of the whirlpool and the slide added to the recording; the run's events were `t3d_events.json` in the scratch logs), the gem
   at the board's bottom right has its facets in other places in the original's shot than in the port's, in 8 of the 13 shots from
@@ -219,6 +225,12 @@ constructor does clear).
   was not found. The difference is small against the board's own motion in the same region (the region changes about ten times as
   much between two shots), so another frame of a gem's own animation is unlikely and a filter on a moving gem (Direct3D 7's against
   Direct3D 11's, at a fractional position) is the likelier cause; neither was tested. Not chased.
+- **Finity's 3D boards are washed out by the explosion waves' point lights.** The port sets every shock wave's `mGrowing` true (the original never
+  sets it: stack garbage at `ebp-0x64` of `0x5a63a3` and `ebp-0x4c` of `0x5a6e5f`), so each blast lights the gems around it to white for 30
+  updates. In the original's Action tour all four blasts kept their wave (the byte was non-zero), in Finity's none did. To see it: the Finity
+  3D tour (`record_3d_tours.sh`, `run_tour_visible.sh`, `shotsum.py v3d_n3d_finity`: level 3 shots 1 and 2). To go on: `VISRUN_WATCH` (visrun.py)
+  takes other watch expressions; the wave vector is at Board `+0x16010` (first `+0x16014`, last `+0x16018`, 32-byte elements), but the
+  watch of it did not move in Finity even for the score texts, so check the offsets first. Not chased yet; needs the original at night.
 - **The original's first run after another one sometimes never creates a board** (seen a few times, in 2D and 3D alike, as a
   state watch that stays at its title value); a second run is as the first should have been. `run_original.sh` runs again
   when a log has no board.
@@ -536,7 +548,7 @@ pictures at the title are `Menu-Gadgets` and `GMAP` (1024 by 768, 3 MB each; `GM
 `firering` 1.6 MB and the font, hypergem and black-hole sheets 1.1 to 1.3 MB; the port loads the resource groups the original's manifest names. *2D*: `privateAtStart` 12.3 MB, 243
 pictures at the title (16.2 MB, 3.3 MB of textures), private bytes 59.4 MB at the title and 100.7 MB with the board up (296 pictures, 33.2 MB of
 pixels and 22.8 MB of textures with 111 of them having one): the pictures that were 8-bit pixels and a palette at the title are 32-bit pixels
-with a texture once the board has drawn them (the framework's doing), and the original's private bytes rise by 3 MB at the same point (39.7 to 42.8 MB). Only two pictures are new at the board (the
+with a texture once the board has drawn them (the framework's doing; since 22e4a3d6 the pictures are uploaded at load, which takes 10 MB off the 3D game's first board, so these figures are the older ones), and the original's private bytes rise by 3 MB at the same point (39.7 to 42.8 MB). Only two pictures are new at the board (the
 backdrops, 1.2 MB each) besides the 4 MB the game makes itself. *The web build* (`nodemem.js` under Node, the 2D scenario through the page's
 own wasm, `wasmrun.js game`): the same 6,423 updates and 643 draws and score 565, 3.2 s of processor time with the start-up, the wasm memory 45 MB
 at the title and 93 MB with the board up (Node's own resident set peaks at 165 MB with its 33 MB and the game files' copy). Its frame time in a browser was not measured: the Browser pane may be hidden and runs no
@@ -635,6 +647,14 @@ pictures of the interface that the exe never names). The differences:
   neither file's, apart from the 20 (the Collection's 40 and 10 are the first two swapped). So the two versions' games score differently: in Classic the bot's game first differs at a blast on
   level 2 (update 7,755), where the Steam files' game stands at 5,902 and the Collection's at 1,492. The port takes whichever file it is
   given, as the original does.
+- **Steam's file check, 2026-11-15, replaced that `config.xml`** (the user ran "Verify integrity of game files": 28 files failed and were
+  rewritten, `config.xml` and 27 pictures of `data`, `images` and `drm/common`, the same pictures that the Steam launcher's first run had
+  rewritten). The install's `config.xml` had been the one dated 2018-02-21 with the Steam constants above (1.0, 1000, 1000, 400, 1, 1), and the
+  file Steam serves now has the Collection's (0.05, 40, 10, 20, 500, 150). So the scores that the user doubted on 2026-11-10 (5,500 and 2,400 on
+  levels 10 and 11) and the all-flame Finity boards were the stale file's, not the shipped game's; the port's play on them was right, and
+  it takes whichever file it is given. The staged assets (`assets/bejeweled2`) and the original's copy under `build/visrun/bej2` were
+  copied before the check, so every comparison and frozen baseline so far (the tours, `tools/check.sh bejeweled2`'s bot games) holds the old
+  constants; restaging gives the new ones and changes the three constant-reading games' transcripts (Classic, Endless, Finity) as the section above says.
 
 **The port on the Collection's files** (`tools/collection/run.sh`; `tools/stage_assets.py` stages a Collection folder as it does a Steam
 one: it takes `Bejeweled2.exe` as well as `WinBej2.exe` and renames the puzzle folder). `portshots.sh` takes `PORT_EXE` and `REGKEY`
@@ -723,3 +743,43 @@ decrements and tests).
 `mTutorialNextFade`, `mPodArrowShown` and `mPodArrowPhase`, `mHintButtonArrowPhase`, `mFlameFromCross`, `mBigMoveTimer` and `mBigMoveGlow`,
 `mBoardInOverlay`, `mWarpFade`, `mDrainGrace`, `mLastGoodTick`, `mCheerGiven`, `mCheerTier` and `mCheerDelay`, and `mTextSizeFactor` of the
 overlay.
+
+## The autosplit block (2026-11-14; `docs/WEB_PLAYER.md`, "Auto splitting"; `platform/AutosplitBlock.h`)
+
+`src/LiveSplitObserver.cpp` fills the shared autosplit block (layout 2, 208 bytes, game id `B2DX`) after every update, for the
+Splits window (`web/autosplit.js`) and for LiveSplit natively. It is written only once something asks: an enabled mod with the
+feature `livesplit` (a folder holding a manifest with `"features": {"livesplit": true}`, looked for once a second), or on the web the
+page, which calls `byopop_livesplit_block` (exported in `CMakeLists.txt`). Until then it is a test of one flag an update, and the
+block says `active=0`. It only reads the game; the game's own code only counts (`Board::mBoardSerial`, `mResumed`, `mLevelClears` and
+`mWins`, which nothing reads back). `-livesplitlog=<file>` writes a line whenever a field the rules read changes (the tests'
+evidence); the game's log has a `livesplit:` line for each event.
+
+**Numbers.** `mode` is `WinDMApp::mGameMode`: 0 Classic, 1 Action, 2 Puzzle, 3 Endless, 4 Twilight, 5 Hyper, 6 Cognito, 7 Finity,
+8 Hidden; `skill` is always 0 (the game has none). Death kinds: 0 no moves (Classic, Endless, Twilight, Hidden), 1 time up (Action,
+Hyper, Finity), 2 left (the board went away in the middle of a game: the main menu, a new game, a display change), 3 unused.
+`level` is the board's `mLevel` and `displayLevel` what the HUD says (the level after the ones cleared; in Puzzle the planet).
+
+**Moments.** A board is one game of one mode, from its portal to the next game or a quit (a puzzle board spans the whole galaxy).
+*GO*: the first update on which a fresh board is on the screen (`Board::Show` takes it out of `SCREEN_HIDDEN` when the portal is
+through and the How To Play screen, if the profile still wants it, is closed: the rules' "pressing Continue on the How to Play
+Screen"); the board's update count is 121 at the portal's end, and the click on the mode's button is that much earlier. A saved
+game that `LoadGame` filled (the `resumed` flag) and a board that was already there when the block was asked for have no GO. *Level
+clear*: `mLevelClears` went up: the bar of a level filled (`STATE_LEVEL_COMPLETE_WAIT`), in Puzzle a pod solved for the first time,
+in Cognito every solved puzzle. *Win*: the fifth puzzle of the galaxy's last planet, or the last puzzle of the secret galaxy.
+*Game over*: the board enters `STATE_GAME_OVER_FALL` (kind 0 or 1 by `mIsAction`), or the board goes away first (kind 2, written
+before the next board's GO). `progress` is the profile's Galaxy One solved count in Puzzle (a fresh player: 0, then 20 after four
+planets) and -1 in the other modes. `gameOwn` bytes 0 to 8: the levels cleared in each mode since the block was asked for; byte 16: 1
+once the board's first move has been made; bytes 24 to 31: the score key of the mods that change the scores (empty for none).
+
+**Tests.** `tools/livesplit/drive.py <scenario> <dir>` plays a short game of each category with the port's bot and the test commands
+(classic, action, hyper, endless, puzzle, puzzle20 for the 25% category, foursquare, switcharoo, left, cognito, hypercube);
+`tools/livesplit/run_tests.sh <dir> [scenario...]` runs them with the block on, then "inert": the bot's games in the nine modes with
+the block on must give the frozen transcripts and end screens of `tools/check.sh`'s bejeweled2 suite (they do: 9 of 9 identical, so
+the block changes nothing). 4 Square and Switcharoo leave a game with `goto <mode>` and answer the Load Game question (the driver
+clicks Yes, which continues the saved game: that board has the `resumed` flag and no GO).
+
+**A board with a hyper cube one move away** (the site found none in 35,000 bot updates): from the classic board, `gem <row> <col>
+<colour>` (rows and columns from 0, colours 0 to 6 as the board's own digits) for rows 2 to 4, columns 0 to 4:
+`row 2: 0 1 0 1 0`, `row 3: 3 3 2 3 3`, `row 4: 1 0 3 0 1`; none of that has three of a colour in a line. Recolour any other three in a
+line of the board (read `state`'s `board`; `drive.py`'s `hypercube_state` does it) so the board settles by itself, then swap row 3
+column 2 with row 4 column 2: row 3 is five 3s and the swapped gem becomes the hyper cube (`c` in `state`'s board).

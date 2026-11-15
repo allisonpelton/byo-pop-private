@@ -16,7 +16,7 @@ bytes are identical to Pizza Frenzy's, though (relocation-masked function bodies
 functions were rebuilt and changed between the two. Word Harmony has three parts the other two lack: a layered music
 system (`musicLayer`, `bridge`, `finalOnly`, `playFinal`...), ACM and WAV readers for its WAV sounds, and a crash
 reporter that writes a minidump. So the engine port here is meant to become shared code once a second Sprout game
-is ported; it is kept apart from the game for that reason (`engine/`, no game code in it).
+is ported; it is kept apart from the game for that reason (`engines/sprout/`, no game code in it).
 
 ## The binary's layout
 

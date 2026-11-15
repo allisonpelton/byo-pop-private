@@ -14,4 +14,8 @@ PORT_SETTINGS="$HERE/settings.txt" bash "$HERE/port.sh" "$NAME-bot" - "$SEED" -a
 [ -s "$B/bot.txt" ] || { echo "gametour.sh: the bot wrote no input"; exit 1; }
 python "$HERE/fromport.py" "$B/bot.txt" --shots "$EVERY" > "$B/orig.txt" || exit 1
 grep -E "^# (level|game) " "$B/bot.txt" | tail -n 3
+# the original's run may take 200 s and a second for every 20 updates of the game (origrun's virtual clock ran Strategy at
+# 27 updates a second on a busy machine, and orig.sh's 200 s cut gs3 off between updates 5500 and 6000 of 6509)
+LAST="$(grep -o "^at [0-9]*" "$B/orig.txt" | tail -n 1 | cut -d' ' -f2)"
+export ORIG_TIMEOUT="${ORIG_TIMEOUT:-$((200 + ${LAST:-0} / 20))}"
 bash "$HERE/tour.sh" "$NAME" "$B/orig.txt" "$SEED"

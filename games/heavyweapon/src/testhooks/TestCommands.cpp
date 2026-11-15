@@ -13,7 +13,8 @@
 //                          survival (a new survival game), armory (the armory before the next level)
 //   level <n>              campaign level n (1..19, the last the final boss's) now, with the player's upgrades, skipping the armory and the map
 //   unlock all             the player has reached the campaign's end: survival and every level are open
-//   set <key> <value>      score, lives, nukes, timer (updates played), level (1-based, for the next start), progress
+//   set <key> <value>      score, lives, nukes, timer (updates played), penalty (survival's time penalty, in updates, as
+//                          shooting the supply helicopter adds), level (1-based, for the next start), progress
 //                          (1-based: the player's saved campaign stands before that level, as after passing the one
 //                          before it, and is saved: the main menu's campaign then offers to continue it)
 //   win                    the level's time jumps to the boss's warning, so its boss comes; with the boss up, it is killed
@@ -42,6 +43,7 @@
 #include "Board.h"
 #include "Bot.h"
 #include "CreditsScreen.h"
+#include "CutsceneScreen.h"
 #include "Enemy.h"
 #include "HelpScreen.h"
 #include "HighScoresScreen.h"
@@ -76,6 +78,7 @@ const int FIRST_LEVEL = 1;
 const int LAST_LEVEL = HeavyWeaponApp::FINAL_LEVEL + 1;	// the final boss's level, 1-based
 const int BOT_MOVE_UPDATES = 4;		// a bot's move holds for this many updates before the next is asked
 const int BOT_SCREEN_UPDATES = 20;	// and a click that goes on from a screen between fights
+const int BOT_CUTSCENE_UPDATES = 300;	// a cutscene's movie plays this long before the bot clicks it away
 const int BOT_IDLE_UPDATES = 10;	// botrecord: the wait when the bot has no move
 const int TRACE_FLUSH_UPDATES = 256;	// the trace is written out this often
 const int TRACED_ITEMS = 3;			// the trace gives the places of this many of each of the board's bullets, enemies and
@@ -199,8 +202,9 @@ bool LeaveScreens(HeavyWeaponApp* theApp)
 	if (aMenu != NULL)
 	{
 		theApp->mWidgetManager->RemoveWidget(aMenu);
-		theApp->SafeDeleteWidget(aMenu);
-		theApp->mMainMenu = NULL;
+		// deleted at once (a test command runs between the widgets' updates): its destructor clears mMainMenu, and run
+		// later it cleared the next menu's (goto menu), whose continue dialog then gave its buttons no listener
+		delete aMenu;
 	}
 	HighScoresScreen* aScores = FindWidget<HighScoresScreen>(theApp);
 	if (aScores != NULL)
@@ -213,6 +217,29 @@ bool LeaveScreens(HeavyWeaponApp* theApp)
 	{
 		theApp->mWidgetManager->RemoveWidget(aCredits);
 		theApp->SafeDeleteWidget(aCredits);
+	}
+	// the armory and the map go too, at once (the armory's destructor clears mArmory, which a later armory would have
+	// set): left up, they stayed over the next screen and the bot kept answering their buttons
+	Armory* anArmory = FindWidget<Armory>(theApp);
+	if (anArmory != NULL)
+	{
+		theApp->mWidgetManager->RemoveWidget(anArmory);
+		delete anArmory;
+	}
+	MapScreen* aMap = FindWidget<MapScreen>(theApp);
+	if (aMap != NULL)
+	{
+		theApp->mWidgetManager->RemoveWidget(aMap);
+		delete aMap;
+		theApp->mMapScreen = NULL;
+	}
+	// a cutscene goes too (the final one, after the last level's results, waits for a click): left up, the bot kept
+	// clicking it under the next screen
+	CutsceneScreen* aCutscene = FindWidget<CutsceneScreen>(theApp);
+	if (aCutscene != NULL)
+	{
+		theApp->mWidgetManager->RemoveWidget(aCutscene);
+		theApp->SafeDeleteWidget(aCutscene);
 	}
 	// the help screen goes as its OK takes it away
 	HelpScreen* aHelp = FindWidget<HelpScreen>(theApp);
@@ -268,9 +295,25 @@ void ReplyState(HeavyWeaponApp* theApp)
 }
 
 // The button a player clicks to go on from a screen between fights: a play tip's OK, the help's PLAY, the level's
-// results, the armory's GO, the map's "invade" link; NULL when none is up and showing
+// results, the armory's GO, the map's "invade" link, a cutscene once its movie has played BOT_CUTSCENE_UPDATES (the
+// original's Flash control plays on its own clock, so a movie that ends by itself ends at no update the port can know: a
+// click ends it in both at the same update); NULL when none is up and showing
 Widget* OnwardButton(HeavyWeaponApp* theApp, Board* theBoard)
 {
+	static CutsceneScreen* sCutscene = NULL;
+	static int sCutsceneSeen = 0;
+	CutsceneScreen* aCutscene = FindWidget<CutsceneScreen>(theApp);
+	if (aCutscene != NULL && aCutscene->mFlashWidget != NULL && aCutscene->mFadeAngle == 0.0)
+	{
+		if (aCutscene != sCutscene)
+		{
+			sCutscene = aCutscene;
+			sCutsceneSeen = theApp->mUpdateCount;
+		}
+		if (theApp->mUpdateCount - sCutsceneSeen < BOT_CUTSCENE_UPDATES || aCutscene->mWidgetManager == NULL)
+			return NULL;
+		return aCutscene;
+	}
 	PlayTipDialog* aTip = (PlayTipDialog*) theApp->GetDialog(PlayTipDialog::DIALOG_ID);
 	MessageDialog* aMessage = (MessageDialog*) theApp->GetDialog(MessageDialog::DIALOG_ID);
 	Widget* aButton = NULL;
@@ -630,6 +673,8 @@ bool HeavyWeaponApp::HandleScriptCommand(const ScriptCommand& theCommand)
 			ReplyError(theCommand, "still loading: send it again");
 			return true;
 		}
+		if (anArgs != "options" && anArgs != "armory")
+			EndGame();					// the screens that leave a game end it, as the menus do (autosplit)
 		if (anArgs == "menu")
 		{
 			ShowMainMenu();
@@ -652,10 +697,12 @@ bool HeavyWeaponApp::HandleScriptCommand(const ScriptCommand& theCommand)
 		}
 		else if (anArgs == "campaign")
 		{
+			BeginGame(false, false);	// as the main menu's campaign does
 			NewGame(false);
 		}
 		else if (anArgs == "survival")
 		{
+			BeginGame(true, false);		// as the main menu's survival does
 			NewGame(true);
 		}
 		else if (anArgs == "armory")
@@ -710,6 +757,8 @@ bool HeavyWeaponApp::HandleScriptCommand(const ScriptCommand& theCommand)
 		}
 		mMapScreen = NULL;
 		mLevel = aLevel - 1;
+		if (mGameSerial == 0 || mGameIsSurvival)
+			BeginGame(false, true);		// a campaign game for the autosplit block, as a continued one (no GO)
 		LoadWaves(false);
 		StartLevel();
 		ReplyOK(theCommand);
@@ -768,6 +817,15 @@ bool HeavyWeaponApp::HandleScriptCommand(const ScriptCommand& theCommand)
 				return true;
 			}
 			aBoard->mLevelTime = aValue;
+		}
+		else if (aKey == "penalty")
+		{
+			if (aBoard == NULL)
+			{
+				ReplyError(theCommand, "no game is on");
+				return true;
+			}
+			aBoard->mTimePenalty = aValue;
 		}
 		else
 		{

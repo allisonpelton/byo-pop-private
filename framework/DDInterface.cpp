@@ -10,9 +10,13 @@
 #include "SexyMatrix.h"
 #include "TriVertex.h"
 
+#include "../platform/GPUFlush.h"
+
 #include <SDL.h>
+#include <algorithm>
 #include <math.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string>
 #include <utility>
 #include <vector>
@@ -70,6 +74,9 @@ struct DDTextureData
 
 static std::vector<uint32_t> gPixelBuffer;
 static const int kPixelBufferSize = 65536; // pixels a texture upload converts at a time (256 KB)
+// the bytes of texture uploads after which NoteUpload sends the device's commands to the GPU: every 256 KB took 1.2 to 1.5 G
+// cycles more of Bejeweled Twist's start (its 121 MB of pictures) for little more memory saved (docs/MEMORY.md)
+static const size_t kUploadFlushBytes = 2 * 1024 * 1024;
 static std::vector<uint32_t> gReadBuffer;
 static std::vector<SDL_Vertex> gVertices;
 static std::vector<int> gIndices;
@@ -139,6 +146,23 @@ static inline bool IsFractional(float theValue)
 	return theValue != floorf(theValue);
 }
 
+// port: whether a quad that a transform has moved is a 1:1 copy of the source rectangle on whole pixels (a part of a screen the
+// game moves by a whole-pixel translation, such as the first frame of Bejeweled 2's whirlpool). The original's D3D7 at 1x
+// samples such a quad exactly, which the nearest filter does here: the linear one would blur it at a render scale above 1.
+static bool IsPixelAlignedCopy(const float theX[4], const float theY[4], const Rect& theSrcRect, bool mirror)
+{
+	const float aTolerance = 0.001f;
+	if (mirror)
+		return false;
+	if ((fabsf(theX[1] - theX[0] - (float) theSrcRect.mWidth) > aTolerance) || (fabsf(theX[2] - theX[1]) > aTolerance) ||
+		(fabsf(theX[3] - theX[0]) > aTolerance))
+		return false;
+	if ((fabsf(theY[3] - theY[0] - (float) theSrcRect.mHeight) > aTolerance) || (fabsf(theY[1] - theY[0]) > aTolerance) ||
+		(fabsf(theY[2] - theY[3]) > aTolerance))
+		return false;
+	return (fabsf(theX[0] - floorf(theX[0] + 0.5f)) <= aTolerance) && (fabsf(theY[0] - floorf(theY[0] + 0.5f)) <= aTolerance);
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 DDInterface::DDInterface(SexyAppBase* theApp)
@@ -156,6 +180,7 @@ DDInterface::DDInterface(SexyAppBase* theApp)
 	mTextureAddressV = TEXTURE_ADDRESS_CLAMP;
 	mIs3D = false;
 	mCan3D = false;
+	mAppWants3D = true;
 	mIsWindowed = true;
 	mVSync = false;
 	mPaceIntervalMs = 0;
@@ -170,6 +195,7 @@ DDInterface::DDInterface(SexyAppBase* theApp)
 	mFastStretchPreAdd = false;
 	mFastStretchCentre = false;
 	mSoftwareTransforms = false;
+	mBltRotated12 = false;
 	mKeepScreen = false;
 	mStretchUse = 0;
 
@@ -181,6 +207,9 @@ DDInterface::DDInterface(SexyAppBase* theApp)
 	mScreenTexture = NULL;
 	mRenderScale = 1;
 	mForcedRenderScale = 0;
+	mQuadTexture = NULL;
+	mUploadedBytes = 0;
+	mQuadBlendMode = SDL_BLENDMODE_NONE;
 
 	mBlendNormal = SDL_BLENDMODE_BLEND;
 	mBlendAdditive = SDL_BLENDMODE_ADD;
@@ -229,12 +258,19 @@ int DDInterface::Init(SDL_Window* theWindow, bool vsync)
 	if (vsync)
 		aFlags |= SDL_RENDERER_PRESENTVSYNC;
 #ifdef _WIN32
-	// SDL's first choice on Windows is Direct3D 9, whose driver keeps a second thread busy in system calls: AstroPop's scripted 20 seconds
-	// took 5.2 to 5.9 G cycles there, 3.7 to 3.9 on Direct3D 11 and 4.7 to 4.9 on OpenGL (one NVIDIA desktop, three runs each; 28 frames of
-	// the same play equal on all three but one, where 15 pixels differ by one level on Direct3D 9). A default-priority hint, so SDL_RENDER_DRIVER in the environment still
-	// decides, and SDL goes on to its other drivers when this one cannot start.
+	// Direct3D 11 by name, where SDL's own first choice is Direct3D 9 (docs/MEMORY.md, "Which renderer"). Batched, on the visible desktop
+	// of one NVIDIA machine, it cost what Direct3D 9 cost on a game free to use every core and less on one core, where Direct3D 9's driver
+	// thread doubles; Direct3D 9 held 50 MB more in AstroPop's 3D, and OpenGL's driver spins in the game's own thread when other cores
+	// are free (Atomica 18 to 41 G cycles in 20 seconds against 5.4). 28 frames of AstroPop are equal on all three but one, where 15
+	// pixels differ by one level on Direct3D 9. A default-priority hint, so SDL_RENDER_DRIVER in the environment still decides, and SDL
+	// goes on to its other drivers when this one cannot start (Direct3D 9 never starts on rundesk's desktop).
 	SDL_SetHintWithPriority(SDL_HINT_RENDER_DRIVER, "direct3d11", SDL_HINT_DEFAULT);
 #endif
+	// SDL stops batching a renderer asked for by name (SDL_CreateRenderer), so every draw would go to the driver as it is made: Atomica's
+	// board then cost 42 G cycles in 20 seconds against 5.4 batched, nearly all in Direct3D 11's driver thread, and 160 MB more private
+	// bytes at the peak. Batching changes no pixel, since SDL sends its queue before anything reads or changes what the queue uses. A
+	// default-priority hint, so SDL_RENDER_BATCHING in the environment still decides.
+	SDL_SetHintWithPriority(SDL_HINT_RENDER_BATCHING, "1", SDL_HINT_DEFAULT);
 
 	mRenderer = SDL_CreateRenderer(mWindow, -1, aFlags);
 	if (mRenderer == NULL)
@@ -245,8 +281,8 @@ int DDInterface::Init(SDL_Window* theWindow, bool vsync)
 	SDL_RendererInfo anInfo;
 	if (SDL_GetRendererInfo(mRenderer, &anInfo) == 0)
 	{
-		mIs3D = (anInfo.flags & SDL_RENDERER_ACCELERATED) != 0;
-		mCan3D = mIs3D;
+		mCan3D = (anInfo.flags & SDL_RENDERER_ACCELERATED) != 0;
+		mIs3D = mCan3D && mAppWants3D;
 		mMaxTextureWidth = (anInfo.max_texture_width > 0) ? anInfo.max_texture_width : 16384;
 		mMaxTextureHeight = (anInfo.max_texture_height > 0) ? anInfo.max_texture_height : 16384;
 
@@ -353,6 +389,7 @@ void DDInterface::SetupBlendModes()
 ///////////////////////////////////////////////////////////////////////////////
 void DDInterface::ReleaseTextures()
 {
+	FlushQuads();
 	std::set<MemoryImage*>::iterator anItr;
 	for (anItr = mTextureImageSet.begin(); anItr != mTextureImageSet.end(); ++anItr)
 	{
@@ -408,6 +445,7 @@ void DDInterface::UpdateDisplaySize()
 	if (mRenderer == NULL)
 		return;
 
+	FlushQuads();
 	// SDL_GetRendererOutputSize reports the target's size while a render target is set
 	SDL_Texture* aTarget = SDL_GetRenderTarget(mRenderer);
 	if (aTarget != NULL)
@@ -438,6 +476,7 @@ std::string DDInterface::RendererName() const
 
 bool DDInterface::CreateScreenTexture(int theRenderScale)
 {
+	FlushQuads();
 	if (mScreenTexture != NULL)
 	{
 		SDL_DestroyTexture(mScreenTexture);
@@ -511,16 +550,31 @@ void DDInterface::WritePresentLog()
 		return;
 	}
 	// the header says what held the presents: vsync (the renderer waits for the blank), or the frame loop's pace (pace_ms > 0)
-	fprintf(aFile, "# %s\n# counter_hz %llu\n# columns: start_us length_us (from the first present)\n", gPresentLogHeader.c_str(), (unsigned long long) SDL_GetPerformanceFrequency());
+	fprintf(aFile, "# %s\n# counter_hz %llu\n# first_counter %llu\n# columns: start_us length_us (from the first present)\n", gPresentLogHeader.c_str(),
+		(unsigned long long) SDL_GetPerformanceFrequency(), (unsigned long long) (gPresentLog.empty() ? 0 : gPresentLog[0].first));
 	double aToUs = 1000000.0 / (double) SDL_GetPerformanceFrequency();
 	for (size_t i = 0; i < gPresentLog.size(); i++)
 		fprintf(aFile, "%.1f %.1f\n", (double) (gPresentLog[i].first - gPresentLog[0].first) * aToUs, (double) gPresentLog[i].second * aToUs);
 	fclose(aFile);
 	SDL_Log("presentlog: %d presents written to %s", (int) gPresentLog.size(), gPresentLogFile.c_str());
 }
+
+bool DDInterface::PresentLogOn()
+{
+	return !gPresentLogFile.empty();
+}
+
+void DDInterface::LogPresent(const char* theHeader, unsigned long long theStart)
+{
+	if (gPresentLog.empty())
+		gPresentLogHeader = theHeader;
+	gPresentLog.push_back(std::make_pair(theStart, SDL_GetPerformanceCounter() - theStart));
+}
 #else
 void DDInterface::StartPresentLog(const std::string&) {}
 void DDInterface::WritePresentLog() {}
+bool DDInterface::PresentLogOn() { return false; }
+void DDInterface::LogPresent(const char*, unsigned long long) {}
 #endif
 
 void DDInterface::Present()
@@ -528,6 +582,7 @@ void DDInterface::Present()
 	if (mRenderer == NULL)
 		return;
 
+	FlushQuads();
 	SDL_SetRenderTarget(mRenderer, NULL);
 	mClipEnabled = false;
 	SDL_RenderSetClipRect(mRenderer, NULL);
@@ -628,6 +683,7 @@ bool DDInterface::PreDraw()
 
 	if (SDL_GetRenderTarget(mRenderer) != mScreenTexture)
 	{
+		FlushQuads();
 		SDL_SetRenderTarget(mRenderer, mScreenTexture);
 		mClipEnabled = false; // SDL resets the clip rect when the target changes
 	}
@@ -642,6 +698,7 @@ bool DDInterface::SetClip(const Rect* theClipRect)
 	{
 		if (mClipEnabled)
 		{
+			FlushQuads();
 			SDL_RenderSetClipRect(mRenderer, NULL);
 			mClipEnabled = false;
 		}
@@ -654,6 +711,7 @@ bool DDInterface::SetClip(const Rect* theClipRect)
 	if (mClipEnabled && (mCurClipRect == *theClipRect))
 		return true;
 
+	FlushQuads();
 	SDL_Rect aRect = { theClipRect->mX * mRenderScale, theClipRect->mY * mRenderScale,
 		theClipRect->mWidth * mRenderScale, theClipRect->mHeight * mRenderScale };
 	SDL_RenderSetClipRect(mRenderer, &aRect);
@@ -689,6 +747,11 @@ DDTextureData* DDInterface::GetTextureData(MemoryImage* theImage)
 	if ((aData->mScale != aScale) || (aData->mWidth != aTexWidth) || (aData->mHeight != aTexHeight) ||
 		(aData->mImageWidth != theImage->mWidth) || (aData->mImageHeight != theImage->mHeight))
 	{
+		for (int i = 0; i < DDTextureData::NUM_FILTERS; i++)
+		{
+			if ((aData->mTextures[i] != NULL) && (aData->mTextures[i] == mQuadTexture))
+				FlushQuads();
+		}
 		aData->ReleaseTextures();
 		aData->mScale = aScale;
 		aData->mWidth = aTexWidth;
@@ -723,6 +786,13 @@ SDL_Texture* DDInterface::PrepareTexture(MemoryImage* theImage, DDTextureData* t
 
 	if ((theData->mBitsChangedCount[aFilter] != theImage->mBitsChangedCount) || isScreen)
 	{
+		// the quads waiting to be drawn from this texture take its pixels as they are before the upload
+		if (aTexture == mQuadTexture)
+			FlushQuads();
+		// port: pixels dropped after an earlier upload come back from the file for this one (a second filter, a lost
+		// device), and go again after it (MemoryImage.h, mBitsSource)
+		if (!isScreen)
+			theImage->RestoreBits();
 		int aWidth = theData->mWidth;
 		int aHeight = theData->mHeight;
 		const uint32_t* aPixels = NULL;
@@ -737,21 +807,29 @@ SDL_Texture* DDInterface::PrepareTexture(MemoryImage* theImage, DDTextureData* t
 			isPalletized = true; // expanded below without un-palletizing the image
 		else
 		{
-			aPixels = (const uint32_t*) theImage->GetBits();
+			aPixels = (const uint32_t*) theImage->ReadBits();
 			if (aPixels == NULL)
 				return NULL;
 		}
 
+		// a strip of rows at a time: the conversion's buffer stays small instead of growing to the largest image, and the
+		// strips' staging copies are sent to the GPU every 2 MB (NoteUpload)
+		int aStripRows = std::max(1, kPixelBufferSize / aWidth);
 		if ((!isPalletized) && ((!mPremultiplied) || (theImage->mUploadAsIs)))
 		{
 			if (aScanAlpha)
 				anAlphaAnd = AndPixels(aPixels, aWidth * aHeight);
-			SDL_UpdateTexture(aTexture, NULL, aPixels, aWidth * 4);
+			for (int aY = 0; aY < aHeight; aY += aStripRows)
+			{
+				int aRows = std::min(aStripRows, aHeight - aY);
+				SDL_Rect aRect = {0, aY, aWidth, aRows};
+				SDL_UpdateTexture(aTexture, &aRect, aPixels + (size_t) aY * aWidth, aWidth * 4);
+				if (!isScreen)
+					NoteUpload((size_t) aRows * aWidth * 4);
+			}
 		}
 		else
 		{
-			// converted a strip of rows at a time, so the buffer stays small instead of growing to the largest image
-			int aStripRows = std::max(1, kPixelBufferSize / aWidth);
 			gPixelBuffer.resize((size_t) std::min(aStripRows, aHeight) * aWidth);
 			for (int aY = 0; aY < aHeight; aY += aStripRows)
 			{
@@ -777,10 +855,14 @@ SDL_Texture* DDInterface::PrepareTexture(MemoryImage* theImage, DDTextureData* t
 				}
 				SDL_Rect aRect = {0, aY, aWidth, aRows};
 				SDL_UpdateTexture(aTexture, &aRect, &gPixelBuffer[0], aWidth * 4);
+				if (!isScreen)
+					NoteUpload((size_t) aCount * 4);
 			}
 		}
 		theData->mBitsChangedCount[aFilter] = theImage->mBitsChangedCount;
 		theData->mOpaque = aScanAlpha && ((anAlphaAnd >> 24) == 0xFF);
+		if (!isScreen)
+			theImage->DropBits();
 	}
 
 	int aBlendMode = (theDrawMode == Graphics::DRAWMODE_ADDITIVE) ? mBlendAdditive : mBlendNormal;
@@ -800,6 +882,22 @@ SDL_Texture* DDInterface::GetTexture(MemoryImage* theImage, int* theTexWidth, in
 	if (theTexHeight != NULL)
 		*theTexHeight = aData->mHeight;
 	return aTexture;
+}
+
+void DDInterface::UploadLoadedImage(MemoryImage* theImage)
+{
+	static int anUploads = -1;
+	if (anUploads < 0)
+	{
+		const char* aValue = SDL_getenv("BYOPOP_NOLOADUPLOAD");
+		anUploads = ((aValue != NULL) && (atoi(aValue) != 0)) ? 0 : 1;
+	}
+	if ((anUploads == 0) || (!mIs3D) || (mRenderer == NULL) || (theImage == NULL) || (!MemoryImage::DropsBits()) ||
+		theImage->mBitsDropped || theImage->mBitsLent || (!theImage->BitsSourceValid()) || (!theImage->mHDBits.empty()))
+		return;
+	DDTextureData* aData = GetTextureData(theImage);
+	if (aData != NULL)
+		PrepareTexture(theImage, aData, Graphics::DRAWMODE_NORMAL, false);
 }
 
 bool DDInterface::CheckDestination(DDImage* theImage)
@@ -829,6 +927,11 @@ void DDInterface::RemoveImageData(MemoryImage* theImage)
 		return;
 
 	DDTextureData* aData = (DDTextureData*) theImage->mD3DData;
+	for (int i = 0; i < DDTextureData::NUM_FILTERS; i++)
+	{
+		if ((aData->mTextures[i] != NULL) && (aData->mTextures[i] == mQuadTexture))
+			FlushQuads();
+	}
 	aData->ReleaseTextures();
 	delete aData;
 
@@ -921,7 +1024,10 @@ void DDInterface::DrawTexturedQuad(Image* theImage, const float theX[4], const f
 	// whose every alpha byte is 255 (PrepareTexture reads them at the upload: an exact test of the texels, which an image's flags are
 	// not, forced mode's least of all), drawn at full alpha in the normal mode, is a copy: the same pixels come out.
 	if ((!mIs3D) && (theDrawMode != Graphics::DRAWMODE_ADDITIVE) && (aColor.a == 255) && (aData->mScale == 1) && (aData->mOpaque))
+	{
+		FlushQuads();
 		SDL_SetTextureBlendMode(aTexture, SDL_BLENDMODE_NONE);
+	}
 
 	// port: SDL's software renderer turns an axis-aligned quad back into a copy whose source rect is
 	// truncated from the UVs ((int) (u * width)), which can land a texel short and shift sprite-sheet
@@ -931,6 +1037,7 @@ void DDInterface::DrawTexturedQuad(Image* theImage, const float theX[4], const f
 	{
 		SDL_Rect aSrcRect = { theSrcRect.mX * aData->mScale, theSrcRect.mY * aData->mScale, theSrcRect.mWidth * aData->mScale, theSrcRect.mHeight * aData->mScale };
 		SDL_FRect aDestRect = { theX[0] * aScale, theY[0] * aScale, (theX[1] - theX[0]) * aScale, (theY[3] - theY[0]) * aScale };
+		FlushQuads();
 		SDL_SetTextureColorMod(aTexture, aColor.r, aColor.g, aColor.b);
 		SDL_SetTextureAlphaMod(aTexture, aColor.a);
 		SDL_RenderCopyExF(mRenderer, aTexture, &aSrcRect, &aDestRect, 0, NULL, mirror ? SDL_FLIP_HORIZONTAL : SDL_FLIP_NONE);
@@ -964,7 +1071,7 @@ void DDInterface::DrawTexturedQuad(Image* theImage, const float theX[4], const f
 				for (int i = 0; i < 4; i++)
 					SetVertex(aPiece[i], aPieceX[i] * aScale, aPieceY[i] * aScale, aColor, aPieceU[i], aPieceV[i]);
 				static const int aPieceIndices[6] = { 0, 1, 2, 0, 2, 3 };
-				SDL_RenderGeometry(mRenderer, aTexture, aPiece, 4, aPieceIndices, 6);
+				AddQuads(aTexture, aPiece, 4, aPieceIndices, 6);
 			}
 		}
 		return;
@@ -975,7 +1082,138 @@ void DDInterface::DrawTexturedQuad(Image* theImage, const float theX[4], const f
 		SetVertex(aVertices[i], theX[i] * aScale, theY[i] * aScale, aColor, aU[i], aV[i]);
 
 	static const int anIndices[6] = { 0, 1, 2, 0, 2, 3 };
-	SDL_RenderGeometry(mRenderer, aTexture, aVertices, 4, anIndices, 6);
+	AddQuads(aTexture, aVertices, 4, anIndices, 6);
+}
+
+// BYOPOP_NOBATCH=1 sends every quad to SDL as its own call and every span as its own rectangle, as before the batch and the
+// joined spans, to measure what they save
+static bool BatchesQuads()
+{
+	static int aBatches = -1;
+	if (aBatches < 0)
+	{
+		const char* aValue = getenv("BYOPOP_NOBATCH");
+		aBatches = ((aValue != NULL) && (atoi(aValue) != 0)) ? 0 : 1;
+	}
+	return aBatches != 0;
+}
+
+// Whether SDL 2 takes these vertices: it refuses a whole RenderGeometry call when any vertex's u or v is outside 0..1 ("Values of
+// 'uv' out of bounds") and draws none of it
+static bool TexCoordsInRange(const SDL_Vertex* theVertices, int theVertexCount)
+{
+	for (int i = 0; i < theVertexCount; i++)
+	{
+		const SDL_FPoint& aCoord = theVertices[i].tex_coord;
+		if ((aCoord.x < 0.0f) || (aCoord.y < 0.0f) || (aCoord.x > 1.0f) || (aCoord.y > 1.0f))
+			return false;
+	}
+	return true;
+}
+
+void DDInterface::AddQuads(SDL_Texture* theTexture, const SDL_Vertex* theVertices, int theVertexCount, const int* theIndices, int theIndexCount)
+{
+	if ((!mIs3D) || (!BatchesQuads()))
+	{
+		SDL_RenderGeometry(mRenderer, theTexture, theVertices, theVertexCount, theIndices, theIndexCount);
+		return;
+	}
+
+	// triangles SDL will refuse go to it on their own, as before the batch, so that the ones gathered with them are still
+	// drawn (Bejeweled 2's hyperspace tunnel in the 3D whirlpool: the triangles whose v wraps start just below 0)
+	if (!TexCoordsInRange(theVertices, theVertexCount))
+	{
+		FlushQuads();
+		SDL_RenderGeometry(mRenderer, theTexture, theVertices, theVertexCount, theIndices, theIndexCount);
+		return;
+	}
+
+	SDL_BlendMode aBlendMode = SDL_BLENDMODE_NONE;
+	SDL_GetTextureBlendMode(theTexture, &aBlendMode);
+	if ((!mQuadVertices.empty()) && ((theTexture != mQuadTexture) || ((int) aBlendMode != mQuadBlendMode)))
+		FlushQuads();
+	mQuadTexture = theTexture;
+	mQuadBlendMode = (int) aBlendMode;
+
+	int aBase = (int) mQuadVertices.size();
+	mQuadVertices.insert(mQuadVertices.end(), theVertices, theVertices + theVertexCount);
+	if (theIndices != NULL)
+	{
+		for (int i = 0; i < theIndexCount; i++)
+			mQuadIndices.push_back(aBase + theIndices[i]);
+	}
+	else
+	{
+		for (int i = 0; i < theVertexCount; i++)
+			mQuadIndices.push_back(aBase + i);
+	}
+}
+
+// BYOPOP_NOUPLOADFLUSH=1 leaves the uploads' commands to the next present, as before, to measure what sending them saves
+static bool FlushesUploads()
+{
+	static int aFlushes = -1;
+	if (aFlushes < 0)
+	{
+		const char* aValue = getenv("BYOPOP_NOUPLOADFLUSH");
+		aFlushes = ((aValue != NULL) && (atoi(aValue) != 0)) ? 0 : 1;
+	}
+	return aFlushes != 0;
+}
+
+void DDInterface::NoteUpload(size_t theBytes)
+{
+	mUploadedBytes += theBytes;
+	if (mUploadedBytes < kUploadFlushBytes)
+		return;
+	mUploadedBytes = 0;
+	// SDL's Direct3D 11 renderer copies each upload from a staging texture it releases at once; once the copy has gone to
+	// the GPU, the driver can give the staging memory to the next one
+	if (FlushesUploads())
+		Platform::FlushRendererCommands(mRenderer);
+}
+
+void DDInterface::FlushQuads()
+{
+	if (mQuadVertices.empty())
+		return;
+
+	// the blend mode the quads were drawn with: a texture's mode is set at each draw (PrepareTexture), and SDL takes it when
+	// the geometry is queued
+	SDL_BlendMode aBlendMode = SDL_BLENDMODE_NONE;
+	SDL_GetTextureBlendMode(mQuadTexture, &aBlendMode);
+	if ((int) aBlendMode != mQuadBlendMode)
+		SDL_SetTextureBlendMode(mQuadTexture, (SDL_BlendMode) mQuadBlendMode);
+	if (mRenderer != NULL)
+		SDL_RenderGeometry(mRenderer, mQuadTexture, &mQuadVertices[0], (int) mQuadVertices.size(), &mQuadIndices[0], (int) mQuadIndices.size());
+	if ((int) aBlendMode != mQuadBlendMode)
+		SDL_SetTextureBlendMode(mQuadTexture, aBlendMode);
+	mQuadVertices.clear();
+	mQuadIndices.clear();
+}
+
+void DDInterface::PushTransform(const SexyMatrix3& theTransform, bool theConcatenate)
+{
+	if (mTransformStack.empty() || !theConcatenate)
+		mTransformStack.push_back(theTransform);
+	else
+		mTransformStack.push_back(mTransformStack.back() * theTransform);
+}
+
+void DDInterface::PopTransform()
+{
+	if (!mTransformStack.empty())
+		mTransformStack.pop_back();
+}
+
+void DDInterface::TransformQuad(float theX[4], float theY[4]) const
+{
+	for (int i = 0; i < 4; i++)
+	{
+		SexyVector2 aPoint = mTransformStack.back() * SexyVector2(theX[i], theY[i]);
+		theX[i] = aPoint.x;
+		theY[i] = aPoint.y;
+	}
 }
 
 void DDInterface::Blt(Image* theImage, float theX, float theY, const Rect& theSrcRect, const Color& theColor, int theDrawMode, const Rect* theClipRect, bool mirror)
@@ -983,8 +1221,14 @@ void DDInterface::Blt(Image* theImage, float theX, float theY, const Rect& theSr
 	float aRight = theX + theSrcRect.mWidth;
 	float aBottom = theY + theSrcRect.mHeight;
 
-	const float aX[4] = { theX, aRight, aRight, theX };
-	const float aY[4] = { theY, theY, aBottom, aBottom };
+	float aX[4] = { theX, aRight, aRight, theX };
+	float aY[4] = { theY, theY, aBottom, aBottom };
+	if (!mTransformStack.empty())
+	{
+		TransformQuad(aX, aY);
+		DrawTexturedQuad(theImage, aX, aY, theSrcRect, mirror, theColor, theDrawMode, NULL, !(mOriginalSampling && IsPixelAlignedCopy(aX, aY, theSrcRect, mirror)));
+		return;
+	}
 	DrawTexturedQuad(theImage, aX, aY, theSrcRect, mirror, theColor, theDrawMode, theClipRect, IsFractional(theX) || IsFractional(theY));
 }
 
@@ -995,8 +1239,14 @@ void DDInterface::StretchBlt(Image* theImage, const FRect& theDestRect, const Re
 	float aRight = (float) (theDestRect.mX + theDestRect.mWidth);
 	float aBottom = (float) (theDestRect.mY + theDestRect.mHeight);
 
-	const float aX[4] = { aLeft, aRight, aRight, aLeft };
-	const float aY[4] = { aTop, aTop, aBottom, aBottom };
+	float aX[4] = { aLeft, aRight, aRight, aLeft };
+	float aY[4] = { aTop, aTop, aBottom, aBottom };
+	if (!mTransformStack.empty())
+	{
+		TransformQuad(aX, aY);
+		DrawTexturedQuad(theImage, aX, aY, theSrcRect, mirror, theColor, theDrawMode, NULL, !(mOriginalSampling && IsPixelAlignedCopy(aX, aY, theSrcRect, mirror)));
+		return;
+	}
 	bool isScaled = (theDestRect.mWidth != theSrcRect.mWidth) || (theDestRect.mHeight != theSrcRect.mHeight);
 	if (mSoftwareStretch && !mirror && isScaled)
 	{
@@ -1024,11 +1274,13 @@ MemoryImage* DDInterface::GetStretchCopy(MemoryImage* theSource, const Rect& the
 		(theSrcRect.mY + theSrcRect.mHeight > theSource->mHeight)))
 		return NULL;
 	mStretchUse++;
+	// the sampling is part of the key: a game may change mFastStretchCentre between draws (Big Money's countdown)
+	const bool aCentre = fast && mFastStretchCentre;
 	StretchCopyEntry* anEntry = NULL;
 	for (StretchCopyEntry& e : mStretchCopies)
 	{
 		if ((e.mSource == theSource) && (e.mSrcRect == theSrcRect) && (e.mWidth == theWidth) && (e.mHeight == theHeight) &&
-			(e.mFast == fast))
+			(e.mFast == fast) && (e.mCentre == aCentre))
 		{
 			anEntry = &e;
 			break;
@@ -1036,6 +1288,26 @@ MemoryImage* DDInterface::GetStretchCopy(MemoryImage* theSource, const Rect& the
 	}
 	if (anEntry == NULL)
 	{
+		// a third size of the same source rectangle and sampling replaces the one of its sizes drawn longest ago
+		size_t aSizes = 0;
+		size_t anOldestSize = 0;
+		for (size_t i = 0; i < mStretchCopies.size(); i++)
+		{
+			const StretchCopyEntry& e = mStretchCopies[i];
+			if ((e.mSource == theSource) && (e.mSrcRect == theSrcRect) && (e.mFast == fast) && (e.mCentre == aCentre))
+			{
+				if ((aSizes == 0) || (e.mLastUse < mStretchCopies[anOldestSize].mLastUse))
+					anOldestSize = i;
+				aSizes++;
+			}
+		}
+		if (aSizes >= kStretchSizesPerKey)
+		{
+			// taken out of the list before it is deleted, as in RemoveImageData
+			MemoryImage* aCopy = mStretchCopies[anOldestSize].mCopy;
+			mStretchCopies.erase(mStretchCopies.begin() + anOldestSize);
+			delete aCopy;
+		}
 		long long aBytes = (long long) theWidth * theHeight * 4;
 		for (const StretchCopyEntry& e : mStretchCopies)
 			aBytes += (long long) e.mWidth * e.mHeight * 4;
@@ -1058,6 +1330,7 @@ MemoryImage* DDInterface::GetStretchCopy(MemoryImage* theSource, const Rect& the
 		e.mWidth = theWidth;
 		e.mHeight = theHeight;
 		e.mFast = fast;
+		e.mCentre = aCentre;
 		e.mSourceVersion = theSource->mBitsChangedCount - 1;  // made below
 		e.mCopy = new MemoryImage(mApp);
 		e.mLastUse = 0;
@@ -1072,7 +1345,7 @@ MemoryImage* DDInterface::GetStretchCopy(MemoryImage* theSource, const Rect& the
 		if (fast)
 		{
 			// 0x41a3e0's fast stretch: 16.16 steps from the source rectangle's corner
-			ulong* aSrcBits = theSource->GetBits();
+			ulong* aSrcBits = theSource->ReadBits();
 			ulong* aDestBits = anEntry->mCopy->GetBits();
 			int aStepX = (int) ((double) theSrcRect.mWidth * 65536.0 / theWidth);
 			int aStepY = (int) ((double) theSrcRect.mHeight * 65536.0 / theHeight);
@@ -1116,6 +1389,25 @@ MemoryImage* DDInterface::GetStretchCopy(MemoryImage* theSource, const Rect& the
 	return anEntry->mCopy;
 }
 
+void DDInterface::GetStretchCopyStats(int& theCount, int& theMostOfOneKey, long long& theBytes) const
+{
+	theCount = (int) mStretchCopies.size();
+	theMostOfOneKey = 0;
+	theBytes = 0;
+	for (size_t i = 0; i < mStretchCopies.size(); i++)
+	{
+		const StretchCopyEntry& e = mStretchCopies[i];
+		theBytes += (long long) e.mWidth * e.mHeight * 4;
+		int aSameKey = 0;
+		for (const StretchCopyEntry& f : mStretchCopies)
+		{
+			if ((f.mSource == e.mSource) && (f.mSrcRect == e.mSrcRect) && (f.mFast == e.mFast) && (f.mCentre == e.mCentre))
+				aSameKey++;
+		}
+		theMostOfOneKey = std::max(theMostOfOneKey, aSameKey);
+	}
+}
+
 void DDInterface::ClearStretchCopies()
 {
 	std::vector<StretchCopyEntry> anEntries;
@@ -1126,6 +1418,24 @@ void DDInterface::ClearStretchCopies()
 	aCopies.swap(mTransformCopies);
 	for (TransformCopyEntry& e : aCopies)
 		delete e.mCopy;
+}
+
+void DDInterface::DropStretchCopiesDrawnBy(unsigned int theUse)
+{
+	// taken out of the list before they are deleted, as in RemoveImageData
+	std::vector<MemoryImage*> aCopies;
+	for (size_t i = 0; i < mStretchCopies.size(); )
+	{
+		if ((int) (mStretchCopies[i].mLastUse - theUse) <= 0)
+		{
+			aCopies.push_back(mStretchCopies[i].mCopy);
+			mStretchCopies.erase(mStretchCopies.begin() + i);
+		}
+		else
+			i++;
+	}
+	for (MemoryImage* aCopy : aCopies)
+		delete aCopy;
 }
 
 MemoryImage* DDInterface::GetTransformCopy(int theWidth, int theHeight)
@@ -1201,6 +1511,11 @@ void DDInterface::BltTransformed(Image* theImage, const Rect* theClipRect, const
 		aX[i] = aPoint.x + theX;
 		aY[i] = aPoint.y + theY;
 	}
+	if (!mTransformStack.empty())
+	{
+		TransformQuad(aX, aY);
+		linearFilter = true;
+	}
 
 	DrawTexturedQuad(theImage, aX, aY, theSrcRect, false, theColor, theDrawMode, theClipRect, linearFilter);
 }
@@ -1268,11 +1583,22 @@ void DDInterface::DrawTrianglesTex(Image* theTexture, const TriVertex theVertice
 
 			// +0.5: D3D7 and the software rasterizer both take triangle vertices without the half-pixel
 			// correction that Blt uses
-			SetVertex(*aVertex++, (aTriVertex.x + tx + 0.5f) * aScale, (aTriVertex.y + ty + 0.5f) * aScale, aColor, aTriVertex.u * aUScale, aTriVertex.v * aVScale);
+			float aVertexX = aTriVertex.x + tx;
+			float aVertexY = aTriVertex.y + ty;
+			if (!mTransformStack.empty())
+			{
+				SexyVector2 aPoint = mTransformStack.back() * SexyVector2(aVertexX, aVertexY);
+				aVertexX = aPoint.x;
+				aVertexY = aPoint.y;
+			}
+			if (mOriginalSampling)
+				SetVertex(*aVertex++, aVertexX * aScale + 0.5f, aVertexY * aScale + 0.5f, aColor, aTriVertex.u * aUScale, aTriVertex.v * aVScale);
+			else
+				SetVertex(*aVertex++, (aVertexX + 0.5f) * aScale, (aVertexY + 0.5f) * aScale, aColor, aTriVertex.u * aUScale, aTriVertex.v * aVScale);
 		}
 	}
 
-	SDL_RenderGeometry(mRenderer, aTexture, &gVertices[0], theNumTriangles * 3, NULL, 0);
+	AddQuads(aTexture, &gVertices[0], theNumTriangles * 3, NULL, 0);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1291,6 +1617,7 @@ void DDInterface::FillRects(const Color& theColor, int theDrawMode)
 {
 	if (!gRects.empty())
 	{
+		FlushQuads();
 		SDL_Color aColor = MakeVertexColor(theColor, mPremultiplied);
 		SDL_SetRenderDrawBlendMode(mRenderer, (SDL_BlendMode) ((theDrawMode == Graphics::DRAWMODE_ADDITIVE) ? mBlendAdditive : mBlendNormal));
 		SDL_SetRenderDrawColor(mRenderer, aColor.r, aColor.g, aColor.b, aColor.a);
@@ -1305,6 +1632,18 @@ void DDInterface::FillRect(const Rect& theRect, const Color& theColor, int theDr
 	if ((theRect.mWidth <= 0) || (theRect.mHeight <= 0))
 		return;
 
+	if (!mTransformStack.empty())
+	{
+		// the rectangle's corners through the stack, drawn as a fan of four
+		float aRight = (float) (theRect.mX + theRect.mWidth);
+		float aBottom = (float) (theRect.mY + theRect.mHeight);
+		float aX[4] = { (float) theRect.mX, aRight, aRight, (float) theRect.mX };
+		float aY[4] = { (float) theRect.mY, (float) theRect.mY, aBottom, aBottom };
+		TransformQuad(aX, aY);
+		FillPolyF(aX, aY, 4, theClipRect, theColor, theDrawMode);
+		return;
+	}
+
 	if ((!PreDraw()) || (!SetClip(theClipRect)))
 		return;
 
@@ -1318,9 +1657,31 @@ void DDInterface::FillPoly(const Point theVertices[], int theNumVertices, const 
 	if (theNumVertices < 3)
 		return;
 
+	static std::vector<float> aX, aY;
+	aX.resize(theNumVertices);
+	aY.resize(theNumVertices);
+	for (int i = 0; i < theNumVertices; i++)
+	{
+		float aVertexX = (float) (theVertices[i].mX + tx);
+		float aVertexY = (float) (theVertices[i].mY + ty);
+		if (!mTransformStack.empty())
+		{
+			SexyVector2 aPoint = mTransformStack.back() * SexyVector2(aVertexX, aVertexY);
+			aVertexX = aPoint.x;
+			aVertexY = aPoint.y;
+		}
+		aX[i] = aVertexX;
+		aY[i] = aVertexY;
+	}
+	FillPolyF(&aX[0], &aY[0], theNumVertices, theClipRect, theColor, theDrawMode);
+}
+
+void DDInterface::FillPolyF(const float* theX, const float* theY, int theNumVertices, const Rect* theClipRect, const Color& theColor, int theDrawMode)
+{
 	if ((!PreDraw()) || (!SetClip(theClipRect)))
 		return;
 
+	FlushQuads();
 	SDL_SetRenderDrawBlendMode(mRenderer, (SDL_BlendMode) ((theDrawMode == Graphics::DRAWMODE_ADDITIVE) ? mBlendAdditive : mBlendNormal));
 
 	SDL_Color aColor = MakeVertexColor(theColor, mPremultiplied);
@@ -1328,7 +1689,7 @@ void DDInterface::FillPoly(const Point theVertices[], int theNumVertices, const 
 
 	gVertices.resize(theNumVertices);
 	for (int i = 0; i < theNumVertices; i++)
-		SetVertex(gVertices[i], (theVertices[i].mX + tx) * aScale, (theVertices[i].mY + ty) * aScale, aColor, 0, 0);
+		SetVertex(gVertices[i], theX[i] * aScale, theY[i] * aScale, aColor, 0, 0);
 
 	// triangle fan
 	gIndices.resize((theNumVertices - 2) * 3);
@@ -1348,6 +1709,15 @@ void DDInterface::FillPoly(const Point theVertices[], int theNumVertices, const 
 // The 1.3 3D path also draws anti-aliased lines this way.
 void DDInterface::DrawLine(double theStartX, double theStartY, double theEndX, double theEndY, const Color& theColor, int theDrawMode, bool antiAlias)
 {
+	if (!mTransformStack.empty())
+	{
+		SexyVector2 aStart = mTransformStack.back() * SexyVector2((float) theStartX, (float) theStartY);
+		SexyVector2 anEnd = mTransformStack.back() * SexyVector2((float) theEndX, (float) theEndY);
+		theStartX = aStart.x;
+		theStartY = aStart.y;
+		theEndX = anEnd.x;
+		theEndY = anEnd.y;
+	}
 	if (!PreDraw())
 		return;
 
@@ -1477,6 +1847,78 @@ void DDInterface::DrawLine(double theStartX, double theStartY, double theEndX, d
 	FillRects(theColor, theDrawMode);
 }
 
+// port: spans in an opaque colour in the normal mode as fewer rectangles over the same pixels. Such a fill leaves each pixel
+// the colour whatever order the pixels are filled in and however often, so the spans of a row are joined where they touch or
+// overlap, and a run of rows with the same spans becomes one rectangle. Each rectangle is six vertices for the renderer, and
+// Atomica's tunnel gives about 21,000 spans a frame, a row of a triangle each, whose vertices the Direct3D 11 renderer keeps in
+// a ring of buffers as large as the largest frame's.
+static std::vector<Span> gSortedSpans;
+
+struct OpenRect
+{
+	int mX, mY, mWidth, mHeight;
+};
+
+static std::vector<OpenRect> gJoinedRects;
+static std::vector<int> gOpenRects, gNextOpenRects;  // the rectangles that the row above ends, as indices, by x
+
+static void AddJoinedSpans(const Span* theSpans, int theSpanCount, float theScale)
+{
+	gSortedSpans.clear();
+	for (int i = 0; i < theSpanCount; i++)
+	{
+		if (theSpans[i].mWidth > 0)
+			gSortedSpans.push_back(theSpans[i]);
+	}
+	std::sort(gSortedSpans.begin(), gSortedSpans.end(), [](const Span& theLeft, const Span& theRight)
+		{ return (theLeft.mY != theRight.mY) ? (theLeft.mY < theRight.mY) : (theLeft.mX < theRight.mX); });
+
+	gJoinedRects.clear();
+	gOpenRects.clear();
+	int anOpenRow = 0;  // the row that gOpenRects ends
+	size_t i = 0;
+	while (i < gSortedSpans.size())
+	{
+		int aRow = gSortedSpans[i].mY;
+		if (aRow != anOpenRow + 1)
+			gOpenRects.clear();
+		gNextOpenRects.clear();
+		size_t anOpen = 0;
+		while ((i < gSortedSpans.size()) && (gSortedSpans[i].mY == aRow))
+		{
+			// one run of the row: the spans that touch or overlap the first
+			int aStart = gSortedSpans[i].mX;
+			int anEnd = aStart + gSortedSpans[i].mWidth;
+			for (i++; (i < gSortedSpans.size()) && (gSortedSpans[i].mY == aRow) && (gSortedSpans[i].mX <= anEnd); i++)
+				anEnd = std::max(anEnd, gSortedSpans[i].mX + gSortedSpans[i].mWidth);
+
+			// the rectangle above it, if one ends there with the same edges
+			while ((anOpen < gOpenRects.size()) && (gJoinedRects[gOpenRects[anOpen]].mX < aStart))
+				anOpen++;
+			if ((anOpen < gOpenRects.size()) && (gJoinedRects[gOpenRects[anOpen]].mX == aStart) &&
+				(gJoinedRects[gOpenRects[anOpen]].mWidth == anEnd - aStart))
+			{
+				gJoinedRects[gOpenRects[anOpen]].mHeight++;
+				gNextOpenRects.push_back(gOpenRects[anOpen]);
+			}
+			else
+			{
+				OpenRect aRect = { aStart, aRow, anEnd - aStart, 1 };
+				gNextOpenRects.push_back((int) gJoinedRects.size());
+				gJoinedRects.push_back(aRect);
+			}
+		}
+		gOpenRects.swap(gNextOpenRects);
+		anOpenRow = aRow;
+	}
+
+	for (size_t j = 0; j < gJoinedRects.size(); j++)
+	{
+		const OpenRect& aRect = gJoinedRects[j];
+		AddRect((float) aRect.mX, (float) aRect.mY, (float) aRect.mWidth, (float) aRect.mHeight, theScale);
+	}
+}
+
 void DDInterface::FillScanLines(const Span* theSpans, int theSpanCount, const Color& theColor, int theDrawMode)
 {
 	if (theSpanCount <= 0)
@@ -1489,11 +1931,16 @@ void DDInterface::FillScanLines(const Span* theSpans, int theSpanCount, const Co
 
 	float aScale = (float) mRenderScale;
 	gRects.clear();
-	for (int i = 0; i < theSpanCount; i++)
+	if ((theColor.mAlpha == 255) && (theDrawMode == Graphics::DRAWMODE_NORMAL) && BatchesQuads())
+		AddJoinedSpans(theSpans, theSpanCount, aScale);
+	else
 	{
-		const Span& aSpan = theSpans[i];
-		if (aSpan.mWidth > 0)
-			AddRect((float) aSpan.mX, (float) aSpan.mY, (float) aSpan.mWidth, 1, aScale);
+		for (int i = 0; i < theSpanCount; i++)
+		{
+			const Span& aSpan = theSpans[i];
+			if (aSpan.mWidth > 0)
+				AddRect((float) aSpan.mX, (float) aSpan.mY, (float) aSpan.mWidth, 1, aScale);
+		}
 	}
 
 	FillRects(theColor, theDrawMode);
@@ -1509,6 +1956,7 @@ void DDInterface::ClearRect(const Rect& theRect)
 
 	// the screen has no alpha: clearing gives opaque black
 	SetClip(NULL);
+	FlushQuads();
 	SDL_SetRenderDrawBlendMode(mRenderer, SDL_BLENDMODE_NONE);
 	SDL_SetRenderDrawColor(mRenderer, 0, 0, 0, 255);
 	SDL_Rect aRect = { theRect.mX * mRenderScale, theRect.mY * mRenderScale, theRect.mWidth * mRenderScale, theRect.mHeight * mRenderScale };
@@ -1519,6 +1967,7 @@ void DDInterface::ClearRect(const Rect& theRect)
 ///////////////////////////////////////////////////////////////////////////////
 bool DDInterface::ReadScreenFull(std::vector<uint32_t>& theBits, int& theWidth, int& theHeight)
 {
+	FlushQuads();
 	if (!PreDraw())
 		return false;
 	theWidth = mWidth * mRenderScale;
@@ -1533,6 +1982,7 @@ bool DDInterface::ReadScreenFull(std::vector<uint32_t>& theBits, int& theWidth, 
 
 bool DDInterface::ReadScreen(ulong* theBits)
 {
+	FlushQuads();
 	if ((theBits == NULL) || (!PreDraw()))
 		return false;
 

@@ -367,6 +367,7 @@ void Board::ButtonDepress(int theId)
 			anApp->mWidgetManager->RemoveWidget(this);
 			anApp->SafeDeleteWidget(this);
 			anApp->mBoard = NULL;
+			anApp->BeginGame(true, false);		// port(autosplit): survival starts again
 			anApp->StartSurvival();
 			return;
 		}
@@ -385,6 +386,7 @@ void Board::ButtonDepress(int theId)
 		else
 			mApp->mWidgetManager->AddWidget(new HighScoresScreen(mApp, mIsSurvival, mRank));
 		HeavyWeaponApp* anApp = mApp;
+		anApp->EndGame();		// port(autosplit): the high scores end the game
 		anApp->mBoard = NULL;
 		anApp->KillDialog(DIALOG_GAME_OVER);
 		anApp->mWidgetManager->RemoveWidget(this);
@@ -509,16 +511,15 @@ void Board::AddHellfire(int x, int y, double theVelX, double theVelY)
 		new Hellfire(this, (double)x, (double)y, theVelX, theVelY, 1.0);
 }
 
-// 0x417230: a campaign's score gains thePoints (never below 0); the points float up from (x, y), red when they are a
-// loss. Survival scores nothing but still shows them.
+// 0x417230: a campaign's score gains thePoints (never below 0), and the points float up from (x, y), red when they are a
+// loss. Survival neither scores nor shows them, and no points show none.
 void Board::AddScore(int thePoints, int x, int y)
 {
-	if (thePoints != 0 && !mIsSurvival)
-	{
-		mApp->mScore += thePoints;
-		if (mApp->mScore < 0)
-			mApp->mScore = 0;
-	}
+	if (thePoints == 0 || mIsSurvival)
+		return;
+	mApp->mScore += thePoints;
+	if (mApp->mScore < 0)
+		mApp->mScore = 0;
 	char aText[16];
 	sprintf(aText, "%i", thePoints);
 	new FloatingText(this, aText, x, y, false, thePoints < 1 ? Color(255, 0, 0) : Color(0));

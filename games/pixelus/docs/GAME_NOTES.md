@@ -127,24 +127,24 @@ came from there, otherwise to the island).
 
 ## 7. Options, credits, help and the pause
 
-The options dialog (0x419330) is a `GameDialog` 420 wide, 396 high, at (110, 240 - h/2): two sliders (music, sound effects), the
+The options dialog (0x419330) is a `GameDialog` 420 wide, at (110, 240 - h/2): two sliders (music, sound effects), the
 boxes Full screen, Custom Cursors and Disable Hints and Tooltips (the hint switch is a registry boolean, `NcApp::SetHintsDisabled`),
-the buttons Reset Hints (clears the player's tutorial-hint flags and greys itself), Credits and How to Play, and, only when it
-was opened from a puzzle, Main Menu: that one saves the puzzle where it is, removes the board and shows the menu (0x4191e0 with
-0x433e70). The footer button is the dialog's: 2002 kills it and, with a board open, ends the pause. Opening it from a puzzle
+and the rows How to Play, Credits and the footer's Done, and, only when it was opened from a puzzle, Main Menu beside How to
+Play: that one saves the puzzle where it is, removes the board and shows the menu (0x4191e0 with
+0x433e70). The original also has Check for updates and a Hardware Acceleration box (left out) and a Reset Hints button
+that its constructor never makes (0x4194d0 clears the flag that makes it). The footer button0x433e70). The footer button is the dialog's: 2002 kills it and, with a board open, ends the pause. Opening it from a puzzle
 (`ShowGameMenu`) is `Pause(true)`; `NcApp::Pause` nests, and `HandlePaused` (0x4333a0) pauses all music, except that with the
 options open over a puzzle the in-game music plays so the sliders can be tried against it. The board starts the in-game music
 150 updates after the puzzle appeared (`mMusicDelay`).
 
-The credits (0x402290 over the Nc layer's credits dialog 0x4e5580, id 3, 396 high) are centred lines at fixed offsets from the
+The credits (0x402290 over the Nc layer's credits dialog 0x4e5580, id 3, 396 high; the dialog under it is the options dialog) are centred lines at fixed offsets from the
 top: who developed the game, and the thanks (all texts are the game's own, by address in `CreditsDialog.cpp`).
 
 The how-to-play screen (0x40e1a0, shown by 0x4328c0, closed by 0x432c20) is a picture with two windows over a full-screen
 frame (`helpfront`, `helpback`): the left plays two demonstrations of throwing a tile onto a board and pulling one off, the right
 completes a picture (the puzzle `levels/helpscreen.txt`, a ring of walls with eight holes), with fades between the runs; a
 check box "Don't show this screen again" keeps the opposite of its state in the player's flag 0x2d (`mFlag2D`), and a player
-whose flag is set sees the screen before every puzzle outside the tutorial. The port draws the demonstration its own way (the
-tiles of the picture slide in one after the other).
+whose flag is set sees the screen before every puzzle outside the tutorial. The left window plays a script of 950 updates on a small board; the right replays the shipped solution and fades (the port has both, as real boards of the demo constructor).
 
 ## 8. Tests and tools
 

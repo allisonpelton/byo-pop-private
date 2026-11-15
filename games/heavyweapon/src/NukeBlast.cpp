@@ -118,6 +118,13 @@ NukeBlast::NukeBlast(Board* theBoard)
 	mNode = theBoard->mNukeBlasts.Append(this);
 }
 
+// 0x428a20: the fires and the smoke go, then the lists themselves
+NukeBlast::~NukeBlast()
+{
+	mFires.Clear();
+	mSmoke.Clear();
+}
+
 // 0x428770
 void NukeBlast::Draw(Graphics* g)
 {

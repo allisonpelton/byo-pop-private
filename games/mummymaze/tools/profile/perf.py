@@ -170,7 +170,7 @@ def summarise(samples, lo, hi=None):
 
 
 def mine_prefixes():
-    return [os.getcwd() + '\\', 'C:\\byo-og\\mmperf']
+    return [os.getcwd() + '\\', 'E:\\byo-og\\mmperf']
 
 
 def strip_script(src, dst, drop):
@@ -290,7 +290,7 @@ def orig_run(out, script, runs, load_only=False):
         os.makedirs(d)
         sc = strip_script(script, os.path.join(d, 'script.txt'), [' shot '])
         first, last = script_span(sc)
-        shutil.rmtree('C:/byo-og/' + run, ignore_errors=True)
+        shutil.rmtree('E:/byo-og/' + run, ignore_errors=True)
         shutil.rmtree(os.path.join(root, 'build', 'origrun', run), ignore_errors=True)
         # the play count: the original shows its register nag once it reaches ten, and each quit adds one
         subprocess.run(['reg', 'add', 'HKLM\\Software\\WOW6432Node\\PopCap\\MummyMaze', '/v', 'TimesPlayed', '/t', 'REG_DWORD',
@@ -299,7 +299,7 @@ def orig_run(out, script, runs, load_only=False):
         s0 = system_times()
         log = open(os.path.join(d, 'origrun.log'), 'wb')
         t_start = time.time()
-        p = subprocess.Popen([origrun, '--game', 'mummymaze', '--run', run, '--stage-root', 'C:/byo-og', '--script', sc,
+        p = subprocess.Popen([origrun, '--game', 'mummymaze', '--run', run, '--stage-root', 'E:/byo-og', '--script', sc,
                               '--clock', 'real', '--cursor', 'scripted', '--seed', '21', '--timeout', '400'],
                              stdout=log, stderr=subprocess.STDOUT)
         h = None

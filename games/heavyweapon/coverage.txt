@@ -1,0 +1,152 @@
+# tools/coverage.py's settings for Heavy Weapon Deluxe (docs/COVERAGE.md).
+export re/heavyweapon/gh/functions.jsonl
+src games/heavyweapon/src
+# The game's own code, which the port translates: 0x401000 to the last function before the framework (GAME_NOTES.md,
+# "Not translated": the framework is 0x44bc80 and everything after it, which the shared framework replaces).
+game 00401000-0044ba10
+# Game code the port leaves out on purpose (GAME_NOTES.md, "Not translated").
+none 0040fc40-0040fda0 library templates: std::locale and container helpers, which the port's std replaces
+none 0041e090-0041e760 library templates: the credits' vector and list helpers, which the port's std containers replace
+none 0044b830 library template: std::vector<T*>::erase
+none 004045d0 registration: the trial's boxes at the end of the loading
+none 00405130 registration: the update check
+none 0042d140 registration: the registration dialog's button handler
+# The first list of the coverage report, sorted (2026-11-14): each address below the report showed as reached with no
+# definition in the port. The game's own lists (ObjectList's Clear, Remove and destructor, Enemy's and Projectile's
+# destructors) carry their addresses in the comments above the port's functions instead.
+none 00401750 library template: a std::vector, std::list, std::map or std::string helper (the port's std)
+none 004017b0 library template: a std::vector, std::list, std::map or std::string helper (the port's std)
+none 00401800-00401860 library templates: std::vector, std::list, std::map and std::string helpers (the port's std)
+none 004018b0-00401910 library templates: std::vector, std::list, std::map and std::string helpers (the port's std)
+none 00402020-004020c0 library templates: std::vector, std::list, std::map and std::string helpers (the port's std)
+none 00402140-004021c0 library templates: std::vector, std::list, std::map and std::string helpers (the port's std)
+none 00402220 library template: a std::vector, std::list, std::map or std::string helper (the port's std)
+none 0040231e library template: a std::vector, std::list, std::map or std::string helper (the port's std)
+none 00402400-004024d0 library templates: std::vector, std::list, std::map and std::string helpers (the port's std)
+none 00402610 library template: a std::vector, std::list, std::map or std::string helper (the port's std)
+none 00402690-00402780 library templates: std::vector, std::list, std::map and std::string helpers (the port's std)
+none 004027f0 library template: a std::vector, std::list, std::map or std::string helper (the port's std)
+none 00402be0-00402d60 library templates: std::vector, std::list, std::map and std::string helpers (the port's std)
+none 00403110 library template: a std::vector, std::list, std::map or std::string helper (the port's std)
+none 00403380 library template: a std::vector, std::list, std::map or std::string helper (the port's std)
+none 00403450 library template: a std::vector, std::list, std::map or std::string helper (the port's std)
+none 00403b20-00403b70 library templates: std::vector, std::list, std::map and std::string helpers (the port's std)
+none 00403d20 library template: a std::vector, std::list, std::map or std::string helper (the port's std)
+none 00405010-00405050 library templates: std::vector, std::list, std::map and std::string helpers (the port's std)
+none 004054c0-00405640 library templates: std::vector, std::list, std::map and std::string helpers (the port's std)
+none 00405940 library template: a std::vector, std::list, std::map or std::string helper (the port's std)
+none 00405c80 library template: a std::vector, std::list, std::map or std::string helper (the port's std)
+none 00405f40 library template: a std::vector, std::list, std::map or std::string helper (the port's std)
+none 004061f0 library template: a std::vector, std::list, std::map or std::string helper (the port's std)
+none 00406590 library template: a std::vector, std::list, std::map or std::string helper (the port's std)
+none 00406630 library template: a std::vector, std::list, std::map or std::string helper (the port's std)
+none 00406990 library template: a std::vector, std::list, std::map or std::string helper (the port's std)
+none 00406e40-00406eb0 library templates: std::vector, std::list, std::map and std::string helpers (the port's std)
+none 00406f80-004072f0 library templates: std::vector, std::list, std::map and std::string helpers (the port's std)
+none 00407870-00407a00 library templates: std::vector, std::list, std::map and std::string helpers (the port's std)
+none 00407c50 library template: a std::vector, std::list, std::map or std::string helper (the port's std)
+none 004083b0 library template: a std::vector, std::list, std::map or std::string helper (the port's std)
+none 00408460 library template: a std::vector, std::list, std::map or std::string helper (the port's std)
+none 00408540 library template: a std::vector, std::list, std::map or std::string helper (the port's std)
+none 00408680-00408770 library templates: std::vector, std::list, std::map and std::string helpers (the port's std)
+none 00408810 library template: a std::vector, std::list, std::map or std::string helper (the port's std)
+none 00408d40-00408d70 library templates: std::vector, std::list, std::map and std::string helpers (the port's std)
+none 004090c0-004090f0 library templates: std::vector, std::list, std::map and std::string helpers (the port's std)
+none 00409450 library template: a std::vector, std::list, std::map or std::string helper (the port's std)
+none 00409940-00409ab0 library templates: std::vector, std::list, std::map and std::string helpers (the port's std)
+none 00409b50 library template: a std::vector, std::list, std::map or std::string helper (the port's std)
+none 00409bf0 library template: a std::vector, std::list, std::map or std::string helper (the port's std)
+none 00409c80-00409d10 library templates: std::vector, std::list, std::map and std::string helpers (the port's std)
+none 0040a0f0-0040a100 library templates: std::vector, std::list, std::map and std::string helpers (the port's std)
+none 0040a140-0040a170 library templates: std::vector, std::list, std::map and std::string helpers (the port's std)
+none 0040a550-0040a5d0 library templates: std::vector, std::list, std::map and std::string helpers (the port's std)
+none 0040a700-0040a790 library templates: std::vector, std::list, std::map and std::string helpers (the port's std)
+none 0040a820 library template: a std::vector, std::list, std::map or std::string helper (the port's std)
+none 0040adb0 library template: a std::vector, std::list, std::map or std::string helper (the port's std)
+none 0040ae40 library template: a std::vector, std::list, std::map or std::string helper (the port's std)
+none 0040af90-0040afc0 library templates: std::vector, std::list, std::map and std::string helpers (the port's std)
+none 0040b2c0-0040b2f0 library templates: std::vector, std::list, std::map and std::string helpers (the port's std)
+none 0040b5f0-0040b680 library templates: std::vector, std::list, std::map and std::string helpers (the port's std)
+none 0040b6d0 library template: a std::vector, std::list, std::map or std::string helper (the port's std)
+none 00406a50 compiler-generated scalar deleting destructor
+none 00406a80 compiler-generated scalar deleting destructor
+none 00408b40 the shared framework's Sexy::XMLElement constructor
+none 00408be0 the shared framework's Sexy::XMLElement destructor
+none 0040b970 the framework's ButtonListener slot, which the shared framework provides
+none 0040e7d0 library template: std::string::_Tidy, BossWarning's destructor (the port's std::string member)
+none 0040e8e0 library template: std::string::substr
+none 00410b10 library templates: std::stringstream and ostream formatting (the port's std)
+none 004120f0 library templates: std::stringstream and ostream formatting (the port's std)
+none 00412190 library templates: std::stringstream and ostream formatting (the port's std)
+none 00412ba0 library templates: std::stringstream and ostream formatting (the port's std)
+none 00412c60 library templates: std::stringstream and ostream formatting (the port's std)
+none 00413ac0 library templates: std::stringstream and ostream formatting (the port's std)
+none 00413b50 library templates: std::stringstream and ostream formatting (the port's std)
+none 00413d10 library templates: std::stringstream and ostream formatting (the port's std)
+none 00413da0 library templates: std::stringstream and ostream formatting (the port's std)
+none 004142b4 library templates: std::stringstream and ostream formatting (the port's std)
+none 00414380 library templates: std::stringstream and ostream formatting (the port's std)
+none 004145af library templates: std::stringstream and ostream formatting (the port's std)
+none 00414760 library templates: std::stringstream and ostream formatting (the port's std)
+none 00414875 library templates: std::stringstream and ostream formatting (the port's std)
+none 004149b0 library templates: std::stringstream and ostream formatting (the port's std)
+none 00414ca0 library templates: std::stringstream and ostream formatting (the port's std)
+none 004150d0 library templates: std::locale facet helpers (the port's std)
+none 004151c0 library templates: std::locale facet helpers (the port's std)
+none 00415280 compiler-generated scalar deleting destructor
+none 00415300 library templates: std::locale facet helpers (the port's std)
+none 00415330 library templates: std::locale facet helpers (the port's std)
+none 00415400 library templates: std::locale facet helpers (the port's std)
+none 00415440 library templates: std::locale facet helpers (the port's std)
+none 00417770 library templates: std::stringstream and ostream formatting (the port's std)
+none 004177a0 library templates: std::stringstream and ostream formatting (the port's std)
+none 00417810 library templates: std::stringstream and ostream formatting (the port's std)
+none 004178a0 library templates: std::stringstream and ostream formatting (the port's std)
+none 00417bf0 library templates: std::stringstream and ostream formatting (the port's std)
+none 0041c1f0 library templates: std::map<std::string, T> node, insert and operator[] helpers (the port's std)
+none 0041c220 library templates: std::map<std::string, T> node, insert and operator[] helpers (the port's std)
+none 0041c280 destructor body of Banner (its string and vectors), which the port's implicit destructor does
+none 0041c330 library templates: std::map<std::string, T> node, insert and operator[] helpers (the port's std)
+none 0041c430 library templates: std::map<std::string, T> node, insert and operator[] helpers (the port's std)
+none 0041c6c0 library templates: std::map<std::string, T> node, insert and operator[] helpers (the port's std)
+none 0041ca60 library templates: std::map<std::string, T> node, insert and operator[] helpers (the port's std)
+none 0041cfa0 destructor body of BracketButton (vtable, then ButtonWidget's), implicit in the port
+none 0041cfe0 compiler-generated scalar deleting destructor
+none 0041e8d0 library template: std::vector<std::string>::push_back, with the credits' helpers
+none 0041fcd0 library templates: std::stringstream and ostream formatting (the port's std)
+none 0041fde5 library templates: std::stringstream and ostream formatting (the port's std)
+none 00425df0 compiler-generated scalar deleting destructor
+none 0042be10 compiler-generated scalar deleting destructor
+none 004301b0 destructor body of ArmoryArrowButton (vtable, then ButtonWidget's), implicit in the port
+none 004302e0 compiler-generated scalar deleting destructor
+none 00430580 the player list's Draw, which only calls Dialog::Draw; the port's class inherits it (GAME_NOTES.md)
+none 00435a70 compiler-generated scalar deleting destructor
+none 00435aa0 compiler-generated scalar deleting destructor
+none 00435ef0 compiler-generated scalar deleting destructor
+none 00436080 compiler-generated scalar deleting destructor
+none 004360b0 compiler-generated scalar deleting destructor
+none 004360e0 compiler-generated scalar deleting destructor
+none 00436350 compiler-generated scalar deleting destructor
+none 00436380 compiler-generated scalar deleting destructor
+none 004363b0 compiler-generated scalar deleting destructor
+none 004363e0 compiler-generated scalar deleting destructor
+none 00436740 compiler-generated scalar deleting destructor
+none 00436770 compiler-generated scalar deleting destructor
+none 00436bf0 compiler-generated scalar deleting destructor
+none 00436c20 compiler-generated scalar deleting destructor
+none 00436c50 compiler-generated scalar deleting destructor
+none 004373c0 compiler-generated scalar deleting destructor
+none 004373f0 compiler-generated scalar deleting destructor
+none 00437420 compiler-generated scalar deleting destructor
+none 00437910 compiler-generated scalar deleting destructor
+none 00449e30 compiler-generated scalar deleting destructor
+none 00449f40 compiler-generated scalar deleting destructor
+none 0044a080 compiler-generated scalar deleting destructor
+none 0044a0b0 compiler-generated scalar deleting destructor
+none 0044a400 compiler-generated scalar deleting destructor
+none 0044a430 compiler-generated scalar deleting destructor
+none 0044a460 compiler-generated scalar deleting destructor
+none 0044a490 compiler-generated scalar deleting destructor
+none 0044a4f0 compiler-generated scalar deleting destructor
+none 0044a640 compiler-generated scalar deleting destructor
+none 0044a670 compiler-generated scalar deleting destructor

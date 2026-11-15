@@ -503,9 +503,11 @@ void Board::Draw(Graphics* g)
 	int aTextX = mApp->ScaleNum(0x28e, -3);
 	if (mScreenState == SCREEN_SHOWN && mState != STATE_WHIRLPOOL)
 	{
-		float aFade = mApp->mPaused ? 0.3f : 1.0f;
+		// (the original tests the application's dialog count, at +0x32c, not the demo pause)
+		bool aDialogOpen = mApp->GetDialogCount() != 0;
+		float aFade = aDialogOpen ? 0.3f : 1.0f;
 		aFade = mPuzzleFade * aFade;
-		if (!mApp->mPaused)
+		if (!aDialogOpen)
 		{
 			if (!mIsPlanetIntro)
 			{

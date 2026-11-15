@@ -2,6 +2,7 @@
 // through GL, with every convention that differs converted here (the list at the top of GPUInterface.h).
 #include "GPUInterface.h"
 #include "MemoryImage.h"
+#include "TextScanner.h"
 #include "platform/GLContext.h"
 #include "platform/GLFuncs.h"
 
@@ -13,7 +14,6 @@
 #include <cstring>
 #include <map>
 #include <set>
-#include <sstream>
 
 using namespace Sexy;
 
@@ -88,9 +88,9 @@ std::string JoinInts(const std::vector<long long>& theValues)
 std::vector<long long> SplitInts(const std::string& theText)
 {
 	std::vector<long long> aValues;
-	std::stringstream aStream(theText);
+	TextScanner aStream(theText);
 	std::string aPart;
-	while (std::getline(aStream, aPart, ','))
+	while (aStream.GetLine(aPart, ','))
 		aValues.push_back(std::strtoll(aPart.c_str(), nullptr, 10));
 	return aValues;
 }
@@ -1083,6 +1083,10 @@ bool GPUInterfaceGL::CreateRenderTarget(Image* theImage, GPUFormat theFormat)
 	std::vector<unsigned char> aPixels((size_t)aData.mWidth * aData.mHeight * 4, 0);
 	MemoryImage* aMemoryImage = dynamic_cast<MemoryImage*>(theImage);
 	if (aMemoryImage != nullptr) {
+		// port: a picture whose pixels were dropped after an upload has them again from its file, and keeps them: the target's
+		// texture is its pixels from now on (MemoryImage.h, mBitsSource)
+		aMemoryImage->RestoreBits();
+		aMemoryImage->mBitsLent = true;
 		aData.mBitsChangedCount = aMemoryImage->mBitsChangedCount;
 		if (theFormat == GPUFMT_A8R8G8B8 && aMemoryImage->mBits != nullptr)
 			aPixels = RGBAOf(aMemoryImage->mBits, aData.mWidth * aData.mHeight);
@@ -1464,7 +1468,10 @@ TextureData* GPUInterfaceGL::GetTexture(Image* theImage)
 		return nullptr;
 	}
 	if (aData.mTexture == 0 || aData.mBitsChangedCount != aMemoryImage->mBitsChangedCount)
+	{
 		UploadTexture(aMemoryImage, &aData);
+		aMemoryImage->DropBits();	// port: made again from the file when needed (MemoryImage.h, mBitsSource)
+	}
 	return &aData;
 }
 
@@ -1525,8 +1532,9 @@ bool IsCubeImage(Image* theImage)
 void GPUInterfaceGL::UploadTexture(MemoryImage* theImage, TextureData* theData)
 {
 	int aWidth = theImage->mWidth, aHeight = theImage->mHeight;
+	theImage->RestoreBits();  // port: pixels dropped after an earlier upload (MemoryImage.h)
 	theImage->CommitBits();  // mHasAlpha and mHasTrans, as SAF's texture upload takes them
-	unsigned long* aBits = theImage->GetBits();
+	unsigned long* aBits = theImage->ReadBits();
 	if (aBits == nullptr)
 		return;
 	GPUFormat aFormat = mPolicy.TextureFormat(theImage->mHasAlpha, theImage->mHasTrans, theImage->mD3DFlags);

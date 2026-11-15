@@ -1,0 +1,726 @@
+#! The published copy's wording of the trunk comments that name the site or the mods, for Rocket Mania's derived
+#! repository (docs/PUBLISHING.md, "Derived repositories"; the manifest's rewords line). The trunk keeps its own wording:
+#! tools/publish.py applies each entry to the published copy of its file, before it decides the conditionals. An entry
+#! is "@@ <path>" ("@@ <path> x<n>" for lines that occur n times), the trunk's lines exactly as they are, "@to" and the
+#! lines that replace them (none: the old lines go). The publish stops when an entry's old lines are no longer in its
+#! file as often as it says, so a trunk edit cannot skip one: change the entry with the trunk's new text. The forbid
+#! lines of the manifest catch a new comment that needs an entry. Lines starting "#!" are notes; blank lines at the end
+#! of an entry's lines are not part of them.
+
+@@ framework/BuiltinFont.h
+// port: the framework's own font, so framework UI (the mod menu, framework/ModMenu.h) has text before a game
+@to
+// port: the framework's own font, so framework UI has text before a game
+
+@@ framework/Common.h
+// Portable build (SDL2 / Emscripten): the Win32 includes of the original framework are replaced by
+@to
+// Portable build (SDL2): the Win32 includes of the original framework are replaced by
+
+@@ framework/Common.h
+// only. A replay of a game on the global stream starts from it, and its CHECK hashes it
+// (games/bejeweled/docs/CODE_MODS_DESIGN.md 6.2, 6.6).
+@to
+// only. A replay of a game on the global stream starts from it, and its CHECK hashes it.
+
+@@ framework/Common.h
+// port: UTF-8 (SDL, the browser, mod.json) to Latin-1, the narrow SexyChar text the framework draws. Code
+@to
+// port: UTF-8 (SDL's text) to Latin-1, the narrow SexyChar text the framework draws. Code
+
+@@ framework/DDImage.h
+// HD images: a mod may provide "name@2x.png". The image keeps its logical mWidth/mHeight (so all
+@to
+// HD images: a "name@2x.png" beside an image is its HD copy. The image keeps its logical mWidth/mHeight (so all
+
+@@ framework/DDInterface.cpp
+		// whatever its flags say. The web's frames are the browser's.
+@to
+		// whatever its flags say.
+
+@@ framework/DDInterface.h
+// (Direct3D/OpenGL natively, WebGL on Emscripten).
+@to
+// (Direct3D or OpenGL).
+
+@@ framework/GPUDisplay.h
+	// The GL context was lost and given back (the web's webglcontextlost and webglcontextrestored events; a native GL
+	// context is not reported lost). The device forgets its GL names at once and no GL call is made until the next
+@to
+	// The GL context was lost and given back (where the platform reports that). The device forgets its GL names at once
+	// and no GL call is made until the next
+
+@@ framework/GPUInterface.h
+// D3DInterface: a Direct3D 9 device as the games drive it, carried out through OpenGL ES 3.0 / WebGL2 (natively the
+// driver's ES context, which rundesk's private desktop gives too, else GL 3.3 core). Only games that opt in use it
+@to
+// D3DInterface: a Direct3D 9 device as the games drive it, carried out through OpenGL ES 3.0 (the driver's ES context,
+// which rundesk's private desktop gives too, else GL 3.3 core). Only games that opt in use it
+
+@@ framework/GPUInterface.h
+//   DDInterface). MemoryImage's ARGB words are swizzled to RGBA on the CPU at upload (GLES3 and WebGL2 have no BGRA),
+@to
+//   DDInterface). MemoryImage's ARGB words are swizzled to RGBA on the CPU at upload (GLES3 has no BGRA),
+
+@@ framework/GPUInterface.h
+//   SetRenderTarget, and SetRenderTarget resets the viewport to the whole target. (If WebGL2 rejects attachments of
+//   mixed sizes, each target size gets its own and the sharing holds for screen-sized targets only: checked first.)
+@to
+//   SetRenderTarget, and SetRenderTarget resets the viewport to the whole target.
+
+@@ framework/GPUInterface.h
+	// One that accepts every call, draws nothing and answers as the policy says (headless runs: the verifier, the wasm
+	// under Node). A run that asked for 3D mode and got no context stops with an error rather than taking it silently,
+@to
+	// One that accepts every call, draws nothing and answers as the policy says (headless runs). A run that asked for 3D
+	// mode and got no context stops with an error rather than taking it silently,
+
+@@ framework/GPUInterface.h
+	// The context was lost (webglcontextlost: preventDefault) and given back: programs are remade from their sources,
+@to
+	// The context was lost and given back: programs are remade from their sources,
+
+@@ framework/GPUInterface.h
+	// always copied before it is sampled: WebGL2 rejects drawing from the target being drawn to.
+@to
+	// always copied before it is sampled: GL leaves sampling the target being drawn to undefined.
+
+@@ framework/GPUInterface.h
+	// Primitives. User-pointer vertices of any FVF above go through a streaming buffer (bufferSubData with orphaning;
+	// WebGL2 has no client arrays) [0x7c]. Buffers hold the meshes [0x38, 0x10c].
+@to
+	// Primitives. User-pointer vertices of any FVF above go through a streaming buffer (bufferSubData with orphaning)
+	// [0x7c]. Buffers hold the meshes [0x38, 0x10c].
+
+@@ framework/GPUInterface.h
+//   SDL_Renderer screen. An in-process restart must not leave the web canvas on WebGL1.
+@to
+//   SDL_Renderer screen.
+
+@@ framework/GPUInterface.h
+// - platform/GLContext: the window with SDL_WINDOW_OPENGL, ES 3.0 / WebGL2 (-sMAX_WEBGL_VERSION=2 for the games that opt
+//   in), else GL 3.3 core with a VAO bound and the shaders' version line rewritten. No multisampling is asked for;
+@to
+// - platform/GLContext: the window with SDL_WINDOW_OPENGL, ES 3.0, else GL 3.3 core with a VAO bound and the shaders'
+//   version line rewritten. No multisampling is asked for;
+
+@@ framework/GPUInterfaceGL.cpp
+// Sexy::GPUInterface's OpenGL ES 3.0 / WebGL2 implementation (GPUInterface.h): Direct3D 9's device state carried out
+@to
+// Sexy::GPUInterface's OpenGL ES 3.0 implementation (GPUInterface.h): Direct3D 9's device state carried out
+
+@@ framework/GPUInterfaceGL.cpp
+	// Cube maps filter across their faces' edges, as Direct3D 9 does on the cards the port stands for (OpenGL ES 3.0 and
+	// WebGL2 always do; desktop GL only with this switch)
+@to
+	// Cube maps filter across their faces' edges, as Direct3D 9 does on the cards the port stands for (OpenGL ES 3.0
+	// always does; desktop GL only with this switch)
+
+@@ framework/GPUInterfaceGL.cpp
+// D3D9 keeps its one depth surface bound across SetRenderTarget, so a smaller target shares the screen's. WebGL2 calls
+// a framebuffer whose attachments differ in size incomplete and drops its draws, so each size of target has its own
+// depth buffer here (a game that draws to a smaller target with the depth test on does not see the screen's depth).
+@to
+// D3D9 keeps its one depth surface bound across SetRenderTarget, so a smaller target shares the screen's. Here each size
+// of target has its own depth buffer, so that a framebuffer's attachments are all of one size (a game that draws to a
+// smaller target with the depth test on does not see the screen's depth).
+
+@@ framework/GPUInterfaceGL.cpp
+	// Orphaned and filled again for every draw: WebGL2 has no client-side arrays
+@to
+	// Orphaned and filled again for every draw (no client-side arrays)
+
+@@ framework/MTRand.cpp
+// port: the generator and Serialize() rely on 32-bit unsigned long (true for i686 Windows and wasm32)
+@to
+// port: the generator and Serialize() rely on 32-bit unsigned long (true for i686 Windows)
+
+@@ framework/MTRand.h
+	// port: the complete state, the state words and mti (0..MTRAND_N+1), for a board that owns its RNG
+	// (games/bejeweled/docs/CODE_MODS_DESIGN.md 2.3): SetState(GetState()) goes on with exactly the same
+@to
+	// port: the complete state, the state words and mti (0..MTRAND_N+1), for a board that owns its RNG.
+	// SetState(GetState()) goes on with exactly the same
+
+@@ framework/MemoryImage.h
+	// from mods, see DDImage.h). They are valid while mHDBitsChangedCount == mBitsChangedCount.
+@to
+	// files, see DDImage.h). They are valid while mHDBitsChangedCount == mBitsChangedCount.
+
+@@ framework/PakInterface.h
+// Platform::VFS (mod overlay, case-insensitive names, '\' or '/' separators).
+@to
+// Platform::VFS (case-insensitive names, '\' or '/' separators).
+
+@@ framework/PortCompat.h
+// platform-neutral parts compile unchanged on SDL2 desktop builds and Emscripten.
+@to
+// platform-neutral parts compile unchanged on SDL2.
+
+@@ framework/PropertiesParser.cpp
+				// port: replaces an earlier array of the same id, as SetString etc. do, so a mod's properties
+@to
+				// port: replaces an earlier array of the same id, as SetString etc. do, so a later properties
+
+@@ framework/SDLMusicInterface.cpp
+// measured level against libopenmpt's (platform/MusicLevels.h, which the site's music player shares). A song whose amplify
+// is never set keeps libopenmpt's level; a stream (a mod's Ogg in place of the module) is never amplified, as
+@to
+// measured level against libopenmpt's (platform/MusicLevels.h). A song whose amplify
+// is never set keeps libopenmpt's level; a stream (an Ogg track) is never amplified, as
+
+@@ framework/SDLSoundManager.cpp
+	// The framework probes extensions when the name has none (and mods may swap formats).
+@to
+	// The framework probes extensions when the name has none.
+
+@@ framework/SDLSoundManager.h
+	// port: the bytes of the loaded sounds' samples (the site's performance panel, web only)
+@to
+	// port: the bytes of the loaded sounds' samples (the memreport command)
+
+@@ framework/SexyAppBase.cpp
+// Portable SexyAppBase (SDL2 / Emscripten), ported from SexyAppFramework 1.3's SexyAppBase.cpp.
+@to
+// Portable SexyAppBase (SDL2), ported from SexyAppFramework 1.3's SexyAppBase.cpp.
+
+@@ framework/SexyAppBase.cpp
+// Game strings are narrow Windows-1252/Latin-1 text; SDL and the browser use UTF-8.
+@to
+// Game strings are narrow Windows-1252/Latin-1 text; SDL uses UTF-8.
+
+@@ framework/SexyAppBase.cpp
+		// URL to the system: its window is hidden, but a browser or the Steam client (the Steam builds' links
+		// are steam:// URLs) would open on the user's desktop. It logs the URL and carries on as if opened.
+@to
+		// URL to the system: its window is hidden, but the program that opens it (the Steam client for the Steam
+		// builds' steam:// links) would open on the user's desktop. It logs the URL and carries on as if opened.
+
+@@ framework/SexyAppBase.cpp
+		// port: SDL_OpenURL hands the URL to the system browser (window.open on the web). 1.3 waited for
+		// the browser to take the focus before reporting success; SDL can't see that, so success is
+@to
+		// port: SDL_OpenURL hands the URL to the system. 1.3 waited for the program that opens it to take
+		// the focus before reporting success; SDL can't see that, so success is
+
+@@ framework/SexyAppBase.cpp
+	// real messages, on a desktop where the window is never active. A -script run is one with a script file (natively and in
+	// a web build under Node; the web page never passes one): a test command that retries through AddScriptCommand also puts
+@to
+	// real messages, on a desktop where the window is never active. A -script run is one with a script file: a test
+	// command that retries through AddScriptCommand also puts
+
+@@ framework/SexyAppBase.cpp
+			// fullscreen can also be left without the game (Esc in the browser, the window manager)
+@to
+			// fullscreen can also be left without the game (the window manager)
+
+@@ framework/SexyAppBase.cpp
+		// Full screen is a borderless window over the whole desktop at the desktop's own mode (SDL_WINDOW_FULLSCREEN_DESKTOP,
+		// below and in SwitchScreenMode), never the originals' exclusive mode change (the user, 2026-11-07: "I'd like all
+		// the native ports to have their fullscreen modes made borderless without mods"). Alt-Tab only moves the focus:
+@to
+		// Full screen is a borderless window over the whole desktop at the desktop's own mode (SDL_WINDOW_FULLSCREEN_DESKTOP,
+		// below and in SwitchScreenMode), never the originals' exclusive mode change. Alt-Tab only moves the focus:
+
+@@ framework/SexyAppBase.cpp
+	// port: no threads (the web build has none without cross-origin isolation). UpdateAppStep() runs
+@to
+	// port: no threads. UpdateAppStep() runs
+
+@@ framework/SexyAppBase.cpp
+	// port: present in step with the display (updates stay at 100 Hz either way). On the web this keeps
+	// the requestAnimationFrame timing of the main loop; without vsync SDL would switch it to setTimeout.
+@to
+	// port: present in step with the display (updates stay at 100 Hz either way).
+
+@@ framework/SexyAppBase.cpp
+	// supported. Unknown parameters are ignored instead of ending the program, since OS launchers and
+	// web shells may add their own.
+@to
+	// supported. Unknown parameters are ignored instead of ending the program, since OS launchers may add
+	// their own.
+
+@@ framework/SexyAppBase.cpp x2
+		// (tools/web/pagecheck.js, a click after the page's canvas changed size)
+@to
+
+@@ framework/SexyAppBase.cpp
+// port: live commands (see SexyAppBase.h, docs/TEST_COMMANDS.md "Sending them"): a driver that decides as it goes
+// sends "<command> [args]" lines, natively by appending them to the -commands file and on the web through
+// byopop_test_command; each runs at the next update through -script's dispatch (-realinput's when it is on) and
+// is answered on the log
+@to
+// port: live commands (see SexyAppBase.h): a driver that decides as it goes sends "<command> [args]" lines by
+// appending them to the -commands file; each runs at the next update through -script's dispatch (-realinput's when
+// it is on) and is answered on the log
+
+@@ framework/SexyAppBase.cpp
+// A script line without its comment: '#' starts one, except inside "..." (a colour: modmenu set <mod> tint "#ff8800")
+@to
+// A script line without its comment: '#' starts one, except inside "..." (a colour such as "#ff8800")
+
+@@ framework/SexyAppBase.cpp
+	// Platform::LoadGameImage applies the SexyApp rules (extension probing, alpha masks) plus the mod
+	// overlay and HD (@2x) variants
+@to
+	// Platform::LoadGameImage applies the SexyApp rules (extension probing, alpha masks) plus the HD (@2x) variants
+
+@@ framework/SexyAppBase.cpp
+	// the web page's output has sound mixed ahead: dropped, so that the mute is heard at once, as natively
+@to
+	// the sound already mixed ahead is dropped, so that the mute is heard at once
+
+@@ framework/SexyAppBase.h
+// Portable SexyAppBase (SDL2 / Emscripten).
+@to
+// Portable SexyAppBase (SDL2).
+
+@@ framework/SexyAppBase.h
+// On Emscripten the loop runs from emscripten_set_main_loop; each browser frame runs every due update
+// and then one draw.
+@to
+
+@@ framework/SexyAppBase.h
+	//                                          last saw it, in game pixels (tools/web/pagecheck.js)
+@to
+	//                                          last saw it, in game pixels
+
+@@ framework/SexyAppBase.h
+	//                     modmenu <what> ...   the mod menu (framework/ModMenu.h; a mod id with spaces in
+	//                                          "..."): open, close, page <mod> | list, enable <mod> 0|1,
+	//                                          move <mod> -1|1, set <mod> <setting> <JSON value>, reset <mod>,
+	//                                          restart [confirm], dump <file> (the state JSON), targets (answers
+	//                                          MODMENU {"page","screen","panel","targets":[{"kind","item",
+	//                                          "rect"}]}: where
+	//                                          a click lands now, or MODMENU null when closed; also with
+	//                                          -realinput). F2 is real input only: "key F2" goes to the focused
+	//                                          widget.
+@to
+
+@@ framework/SexyAppBase.h
+	//   -fix=<id>[=off], -lite=<id>[=off]  one of the game's fixes or lite changes on (or off), whatever the mods
+	//                   say; -original  every other one off, the original game (platform/GameOptions.h)
+@to
+
+@@ framework/SexyAppBase.h
+	//                   widget manager, F2 and Alt+Enter); the system's own mouse, keyboard, text and focus events
+@to
+	//                   widget manager and Alt+Enter); the system's own mouse, keyboard, text and focus events
+
+@@ framework/SexyAppBase.h
+	//                   a plain run (with -realinput it is dropped). The run is a test run (IsTestRun). On the web,
+	//                   byopop_test_command(line) queues one line the same way (the player-only test page's
+	//                   byopop.test.command, docs/WEB_PLAYER.md). The channel's own command:
+@to
+	//                   a plain run (with -realinput it is dropped). The run is a test run (IsTestRun). The channel's
+	//                   own command:
+
+@@ framework/SexyAppBase.h
+	// live commands: -commands=<file> natively, byopop_test_command on the web (RunLiveCommands)
+@to
+	// live commands: -commands=<file> (RunLiveCommands)
+
+@@ framework/SexyAppBase.h
+	// The tail of 1.3's Start() (after the main loop), shared with the Emscripten loop callback.
+@to
+	// The tail of 1.3's Start() (after the main loop).
+
+@@ framework/SexyAppBase.h
+	// game data (mods + base dir).
+@to
+	// game data (the base dir).
+
+@@ framework/SexyAppBase.h
+	// Web: persists the IDBFS-mounted user dir to IndexedDB (no-op natively, files are written
+	// directly). Called after every save, registry write and erase.
+@to
+	// Called after every save, registry write and erase. The files are written directly, so it has nothing more to do.
+
+@@ framework/SexyAppBase.h
+	// A live command line (-commands, the web's byopop_test_command), queued for the next update: false for a blank
+@to
+	// A live command line (-commands), queued for the next update: false for a blank
+
+@@ framework/SexyAppBase.h
+	// True in a test run (rundesk, the oracle, a -script run or a test bot): a restart does not start the game
+	// again (TakeRelaunch), and MsgBox and Popup only log their message, since nobody could answer them
+@to
+	// True in a test run (rundesk, the oracle, a -script run or a test bot): MsgBox and Popup only log their message,
+	// since nobody could answer them
+
+@@ framework/SexyAppBase.h
+	// port: moves the mouse pointer to a point of the game (the originals' SetCursorPos). It does nothing in a test run
+	// (IsTestRun: a hidden desktop's warp could move the user's real pointer) and on the web (a page cannot move it).
+@to
+	// port: moves the mouse pointer to a point of the game (the originals' SetCursorPos). It does nothing in a test run
+	// (IsTestRun: a hidden desktop's warp could move the user's real pointer).
+
+@@ framework/SoftwareScreenDisplay.h
+// in by its CreateDDInterface (under #ifndef __EMSCRIPTEN__) returning SoftwareScreenDisplay::Create(this); every other
+// port, and the web build, keep DDInterface.
+@to
+// in by its CreateDDInterface returning SoftwareScreenDisplay::Create(this); every other port keeps DDInterface.
+
+@@ framework/SurfaceDisplay.h
+// GPUDisplay does for Bejeweled Twist's 3D; no other app is changed, and the web build makes DDInterface.
+@to
+// GPUDisplay does for Bejeweled Twist's 3D; no other app is changed.
+
+@@ framework/SurfaceDisplay.h
+// Other apps that draw their screen into a CPU buffer take it the same way: override CreateDDInterface (under
+// #ifndef __EMSCRIPTEN__) to return a SurfaceDisplay, keep the screen as one 32-bit buffer the app owns, and call SetFrame
+@to
+// Other apps that draw their screen into a CPU buffer take it the same way: override CreateDDInterface to return a
+// SurfaceDisplay, keep the screen as one 32-bit buffer the app owns, and call SetFrame
+
+@@ framework/WidgetManager.cpp
+	// ended goes on as any release (the key the mod menu closed on: SexyAppBase's mModMenuClosingKey), and its next
+@to
+	// ended goes on as any release, and its next
+
+@@ framework/WidgetManager.cpp
+// port: the pointer at x, y for the capture's widget (SetInputCapture), taken as covering the window as the mod menu
+// does: the widget is entered, and a move drags while one of its own presses is held
+@to
+// port: the pointer at x, y for the capture's widget (SetInputCapture), taken as covering the window: the widget is
+// entered, and a move drags while one of its own presses is held
+
+@@ framework/WidgetManager.cpp
+// port: see WidgetManager.h. SexyAppBase::OpenModMenu calls it before AddBaseModal, so that the keys the game's
+// widgets let go of reach the one that still has the focus.
+@to
+// port: see WidgetManager.h. A caller sets it before AddBaseModal, so that the keys the game's widgets let go of
+// reach the one that still has the focus.
+
+@@ framework/WidgetManager.h
+	// port: one widget may take every mouse and key event for itself (SetInputCapture): the mod menu while it is open
+	// (SexyAppBase::OpenModMenu). The events then reach it alone, and what a game reads between them stays as it was:
+@to
+	// port: one widget may take every mouse and key event for itself (SetInputCapture). The events then reach it alone,
+	// and what a game reads between them stays as it was:
+
+@@ framework/WidgetManager.h
+	// (Venice fires on mDownButtons, docs/MOD_MENU_DESIGN.md 5.4) sees none held. The capture keeps its own pointer,
+@to
+	// sees none held. The capture keeps its own pointer,
+
+@@ framework/compat2004/Compat2004.h
+// runs). The host's rand() differs on Emscripten, so the ports never call it.
+@to
+// runs). The ports never call the host's rand().
+
+@@ games/rocketmania/src/Dialogs.cpp
+	// (the original's other buttons: register, check for updates, the partner links, a PopCap web page: not ported)
+@to
+	// (the original's other buttons: register, check for updates, the partner links and PopCap's own: not ported)
+
+@@ games/rocketmania/src/Dialogs.cpp
+	// port: the original saves the lists when the dialog goes away; a browser tab that is closed never gets there
+@to
+	// port: the original saves the lists when the dialog goes away; the port saves them here, so that a game closed
+	// before then keeps them
+
+@@ games/rocketmania/src/GameText.cpp
+	// Overrides from string properties (properties/texts.xml, mods)
+@to
+	// Overrides from string properties (properties/texts.xml)
+
+@@ games/rocketmania/src/GameText.h
+// repository: the port reads every text at start-up from the player's own executable, by address, and a mod or
+// language pack can replace any of them.
+@to
+// repository: the port reads every text at start-up from the player's own executable, by address, and a properties
+// file in the game folder can replace any of them (below).
+
+@@ games/rocketmania/src/GameText.h
+//   GT_<8 hex digits> (e.g. <String id="GT_0050b4a4">...</String> in properties/texts.xml, from the game folder
+//   or a mod) replaces the text read from the exe.
+@to
+//   GT_<8 hex digits> (e.g. <String id="GT_0050b4a4">...</String> in the game folder's properties/texts.xml)
+//   replaces the text read from the exe.
+
+@@ games/rocketmania/src/main.cpp
+// Entry point for the Rocket Mania Deluxe port (native and Emscripten).
+@to
+// Entry point for the Rocket Mania Deluxe port.
+
+@@ games/rocketmania/src/main.cpp
+//   -modsdir=<dir>   folder containing data mods (one sub-folder per mod)
+//   -nomods          start without any mods
+@to
+
+@@ platform/Audio.cpp
+// A song is either a tracker module (libxmp, or a registered ModulePlayer) or an audio track supplied by a mod. Ogg tracks are
+@to
+// A song is either a tracker module (libxmp, or a registered ModulePlayer) or an audio track (Ogg or WAV). Ogg tracks are
+
+@@ platform/Audio.cpp
+	int64_t mStartFrame = 0;                 // source frame playback starts at (mod remap "start")
+@to
+	int64_t mStartFrame = 0;                 // source frame playback starts at
+
+@@ platform/Audio.cpp
+	int mDefaultOrder = -1;                  // module order a mod remap starts this track at
+	float mTrackGain = 1.0f;                 // per-track gain from a mod remap
+@to
+	int mDefaultOrder = -1;                  // module order this track starts at (-1: the song's start)
+	float mTrackGain = 1.0f;                 // per-track gain
+
+@@ platform/Audio.cpp
+		// a chunk said to run past the end ends there (size_t is 32 bits in the web build: no sum may wrap)
+@to
+		// a chunk said to run past the end ends there (no sum may wrap)
+
+@@ platform/Audio.cpp
+	// Detect Ogg by content: mods may remap a game path to a file with another name.
+@to
+	// Detect Ogg by content, whatever the file's name says.
+
+@@ platform/Audio.cpp
+		// Mods may replace tracker music with rendered audio; it is decoded while it plays.
+@to
+		// Rendered audio is decoded while it plays.
+
+@@ platform/Audio.cpp
+			// streams ignore the module order; a mod remap's "start" picks the entry point
+@to
+			// streams ignore the module order
+
+@@ platform/Audio.cpp
+			// A mod remap can start a track partway into a multi-song module; the game's own offset
+			// is relative to that.
+@to
+			// A track can start partway into a multi-song module; the game's own offset is relative to that.
+
+@@ platform/Audio.cpp
+	// BASS_MusicSetAttribute fails on a stream, so a mod's Ogg or WAV in place of a module plays unamplified
+@to
+	// BASS_MusicSetAttribute fails on a stream, so an Ogg or WAV track plays unamplified
+
+@@ platform/Audio.cpp
+// Adds one voice's next theFrames frames to theOut and moves it on (Mix, and on the web PageLead).
+@to
+// Adds one voice's next theFrames frames to theOut and moves it on (Mix).
+
+@@ platform/Audio.h
+// Software mixer on top of SDL2 audio, shared by native and Emscripten builds.
+//
+// Output is float stereo at the device's native rate (48 kHz on the web, where the AudioContext is
+// created by us because SDL would otherwise inherit a 96/192 kHz context and underrun).
+@to
+// Software mixer on top of SDL2 audio.
+//
+// Output is float stereo at the device's native rate.
+
+@@ platform/Audio.h
+	std::string mName;  // the game path it was loaded from (LoadSoundData's theName), for the site's sound panel
+@to
+	std::string mName;  // the game path it was loaded from (LoadSoundData's theName)
+
+@@ platform/Audio.h
+	// --- songs (tracker modules via libxmp or a registered ModulePlayer, or Ogg/WAV tracks from mods) ---
+@to
+	// --- songs (tracker modules via libxmp or a registered ModulePlayer, or Ogg/WAV tracks) ---
+
+@@ platform/Audio.h
+	// Returns a song handle (>0) or 0 on failure. A mod remap of theGamePath (VFS::GetRemap) can set a
+	// start order inside a multi-song module, a stream loop point and a per-track gain.
+@to
+	// Returns a song handle (>0) or 0 on failure.
+
+@@ platform/Audio.h
+	// Drops the sound already mixed and waiting to be heard, so that a mute is heard at once (SexyAppBase::Mute). Only
+	// the web page's output keeps any (a few tens of milliseconds); natively this does nothing.
+@to
+	// Drops the sound already mixed and waiting to be heard, so that a mute is heard at once (SexyAppBase::Mute). SDL's
+	// output keeps none, so this does nothing.
+
+@@ platform/Audio.h
+	bool mSilent = false;  // web test runs (web/shell.html ?silent=1): mix as usual, output silence
+@to
+	bool mSilent = false;  // mix as usual, output silence
+
+@@ platform/CycleSplit.h
+// Native only (Windows); the web build has no thread cycle counters and compiles every call out.
+@to
+// Windows only: elsewhere every call compiles out.
+
+@@ platform/GLContext.h
+// port: the OpenGL context of the GPU path (framework/GPUInterface.h): OpenGL ES 3.0 (WebGL2 in a browser, the driver's
+// ES context natively), else GL 3.3 core. One per game; the window must have been made with SDL_WINDOW_OPENGL.
+@to
+// port: the OpenGL context of the GPU path (framework/GPUInterface.h): OpenGL ES 3.0 (the driver's ES context), else GL
+// 3.3 core. One per game; the window must have been made with SDL_WINDOW_OPENGL.
+
+@@ platform/GLContext.h
+	// ES 3.0 / WebGL2 (shaders take "#version 300 es"), or GL 3.3 core ("#version 330 core" and a VAO bound)
+@to
+	// ES 3.0 (shaders take "#version 300 es"), or GL 3.3 core ("#version 330 core" and a VAO bound)
+
+@@ platform/GLFuncs.h
+// port: the OpenGL ES 3.0 / WebGL2 functions the GPU path uses (framework/GPUInterface.h), loaded at run time through
+@to
+// port: the OpenGL ES 3.0 functions the GPU path uses (framework/GPUInterface.h), loaded at run time through
+
+@@ platform/ImageLoader.cpp
+		// A generated image stands between the mods and the game's files
+@to
+		// A generated image comes before the game's files
+
+@@ platform/ImageLoader.h
+// Image loading for the port (replaces ImageLib::GetImage). Implements the SexyAppFramework rules plus
+// the mod overlay:
+@to
+// Image loading for the port (replaces ImageLib::GetImage). Implements the SexyAppFramework rules:
+
+@@ platform/ImageLoader.h
+//  * The layer (mod or base game) that wins is the highest-priority one containing a colour image or
+//    an alpha mask for the stem. Everything else is looked up in that same layer, so a mod's RGBA PNG
+//    never picks up the base game's mask.
+//  * Alpha masks: "_name" or "name_"; the mask's low (blue) byte becomes the alpha channel. A mask
+//    without a colour image yields a white image with that alpha.
+//  * If the winning colour image has no alpha of its own and its layer has no mask, a mask from a
+//    lower layer is used when its size matches (so a same-size JPG replacement keeps the original mask).
+//  * HD variants: "name@2x.png" (or @3x/@4x), or a mod.json "images" entry with "scale". The pixels are
+@to
+//  * Alpha masks: "_name" or "name_"; the mask's low (blue) byte becomes the alpha channel. A mask
+//    without a colour image yields a white image with that alpha.
+//  * HD variants: "name@2x.png" (or @3x/@4x) beside the image. The pixels are
+
+@@ platform/ImageLoader.h
+// Generated images (a game's code-drawn art): one function that may draw any game image at load time. LoadGameImage asks
+// it after the mod layers and before the game's files, so a mod's image still wins and image patches apply on top of
+// the drawn one. theGamePath comes normalized and lower case, without its extension ("images/gemsheet6"). The function
+@to
+// Generated images (a game's code-drawn art): one function that may draw any game image at load time. LoadGameImage asks
+// it before the game's files. theGamePath comes normalized and lower case, without its extension ("images/gemsheet6"). The function
+
+@@ platform/Json.h
+// Small JSON reader/writer for mod manifests, tunables and settings (no exceptions, no dependencies).
+@to
+// Small JSON reader/writer (no exceptions, no dependencies).
+
+@@ platform/MemReport.h
+// The process's working set and private bytes now; false where the platform cannot tell (both are then 0). In a
+// browser both are the size of the page's heap.
+@to
+// The process's working set and private bytes now; false where the platform cannot tell (both are then 0).
+
+@@ platform/MusicLevels.h
+/* The originals' music engines against the port's renderers (docs/WEB_PLAYER.md, "Music levels"): the render settings and
+   the levels the port plays a game's music at, shared by the games (platform/Audio.cpp, platform/openmpt/OpenMPTPlayer.cpp,
+   framework/SDLMusicInterface.cpp, a game's own host) and the site's music player (web/music/openmpt_web.c, web/music.js), so
+   that a tune plays as loud in the player as in its game. C, so that the player's decoder can include it.
+
+   The renderers: S3M, IT, XM and MOD go through libxmp-lite and MO3 and OXM through libopenmpt, as Platform::Mixer picks them.
+   Measured on 2026-11-08 with tools/musiclevel (the first 30 s of every game's modules, each engine's own DLL decoding silently
+   against the port's mixer): libxmp-lite is within about 1 dB of BASS 1.7, 1.8, 2.0 and 2.3 at their default amplify (50) and
+   of FMOD 3.50 to 3.61 at full master volume, on S3M and IT alike (Seven Seas' IT 1.9 dB); libopenmpt on the same S3M and IT
+   files was 2 to 11 dB quieter, which is why the player renders them with libxmp-lite too. On MO3, libopenmpt against BASS
+   2.2 and 2.3 at amplify 50 was between 1.6 dB louder and 2.4 dB quieter from one module to the next, with no setting that
+   explains it; it is left as it is. */
+@to
+/* The originals' music engines against the port's renderers: the render settings and the levels the port plays a game's
+   music at (platform/Audio.cpp, framework/SDLMusicInterface.cpp).
+
+   The renderers: S3M, IT, XM and MOD go through libxmp-lite and MO3 and OXM through libopenmpt, as Platform::Mixer picks them.
+   Measured on 2026-11-08 with tools/musiclevel (the first 30 s of every game's modules, each engine's own DLL decoding silently
+   against the port's mixer): libxmp-lite is within about 1 dB of BASS 1.7, 1.8, 2.0 and 2.3 at their default amplify (50) and
+   of FMOD 3.50 to 3.61 at full master volume, on S3M and IT alike (Seven Seas' IT 1.9 dB); libopenmpt on the same S3M and IT
+   files was 2 to 11 dB quieter, which is why the port renders them with libxmp-lite too. On MO3, libopenmpt against BASS
+   2.2 and 2.3 at amplify 50 was between 1.6 dB louder and 2.4 dB quieter from one module to the next, with no setting that
+   explains it; it is left as it is. */
+
+@@ platform/Placeholders.h
+// -placeholders (natively; ?placeholders=1 on the web pages): for testing copies of a game from other sources. A game
+@to
+// -placeholders: for testing copies of a game from other sources. A game
+
+@@ platform/Placeholders.h
+// the last run with the switch on: a run without it leaves the file as it was), passed
+// to the web page (Module.onMissingFile(path)) and counted in the mod menu's banner. A run with the switch on keeps
+// its high scores apart (the score key gets a "placeholders" entry, platform/ModManager.cpp).
+@to
+// the last run with the switch on: a run without it leaves the file as it was).
+
+@@ platform/SaveImport.h
+// port's user dir (docs/WEB_PLAYER.md, "Importing saves from an installed game"). Each game's main.cpp calls this once its user dir and game
+@to
+// port's user dir. Each game's main.cpp calls this once its user dir and game
+
+@@ platform/Text.h
+// Text encodings: the games' strings are narrow Latin-1 (Windows-1252 in the originals); SDL, the browser,
+// mod.json and the port's JSON files use UTF-8. And game paths as text, for code that links no file system.
+@to
+// Text encodings: the games' strings are narrow Latin-1 (Windows-1252 in the originals); SDL and the port's JSON files
+// use UTF-8. And game paths as text, for code that links no file system.
+
+@@ platform/UserFiles.h
+// Files in the user dir (VFS::GetUserDir()) that the port writes outside the game's own save code:
+// mods.json, mod-settings.json and mods-status.json (platform/ModManager.h). Every write goes through a
+// temporary file and an atomic replace, so a crash or a second process never sees half a file, and it is
+// reported as a user data change: the web build syncs IndexedDB and marks its localStorage backup out of
+// date (SexyAppBase installs the callback that does), so the change survives a page that is killed.
+@to
+// Files in the user dir (VFS::GetUserDir()) that the port writes and removes outside the game's own save code. Every
+// write goes through a temporary file and an atomic replace, so a crash or a second process never sees half a file.
+
+@@ platform/UserFiles.h
+// Writes theData to <user dir>/<theRelPath>: <name>.tmp first, then replaces the file in one step. Then
+// UserDataChanged(). Returns false (and leaves the old file) on failure.
+@to
+// Writes theData to <user dir>/<theRelPath>: <name>.tmp first, then replaces the file in one step. Returns false (and
+// leaves the old file) on failure.
+
+@@ platform/UserFiles.h
+// Renames <user dir>/<theFrom> to <user dir>/<theTo>, replacing it; then UserDataChanged().
+@to
+// Renames <user dir>/<theFrom> to <user dir>/<theTo>, replacing it.
+
+@@ platform/UserFiles.h
+// Removes <user dir>/<theRelPath> if it exists; then UserDataChanged(). Returns false if nothing was removed.
+@to
+// Removes <user dir>/<theRelPath> if it exists. Returns false if nothing was removed.
+
+@@ platform/VFS.cpp
+// Directory listings are cached per real directory; asset folders don't change while the game runs
+// except through the mod manager, which calls SetModRoots() and clears the cache.
+@to
+// Directory listings are cached per real directory; asset folders don't change while the game runs.
+
+@@ platform/VFS.cpp
+// renamed once to the slash form, so the player's earlier saves are found. On the web a localStorage backup made
+// before the move can bring the old name back at boot (with its own time); then the newer of the two is kept.
+@to
+// renamed once to the slash form, so the player's earlier saves are found. When both are there, the newer of the two is
+// kept.
+
+@@ platform/VFS.h
+//   ("music\\1980-autonomus.s3m" vs "1980-Autonomus.s3m") and MEMFS/Linux are case-sensitive.
+// - Search roots form an overlay: enabled mods are searched first (highest priority first), then the
+//   base game directory. A mod only has to contain the files it changes.
+@to
+//   ("music\\1980-autonomus.s3m" vs "1980-Autonomus.s3m") and other systems' file names are case-sensitive.
+
+@@ platform/VFS.h
+	// Resolves inside a single root only (used for "@2x" and alpha-mask lookups that must come from
+	// the same mod as their colour image).
+@to
+	// Resolves inside a single root only (used for "@2x" and alpha-mask lookups that must come from
+	// the same folder as their colour image).
+
+@@ platform/VFS.h
+	// Reads a whole file; a generated file (below) is read here too, where no mod has the path.
+@to
+	// Reads a whole file; a generated file (below) is read here too.
+
+@@ platform/VFS.h
+	// as if the game folder held them. ReadAll, and so p_fopen, serves one ahead of the base dir and behind the mods;
+@to
+	// as if the game folder held them. ReadAll, and so p_fopen, serves one ahead of the base dir;
+
+@@ platform/VFS.h
+// Directory helpers that work on native hosts and Emscripten's FS.
+@to
+// Directory helpers.

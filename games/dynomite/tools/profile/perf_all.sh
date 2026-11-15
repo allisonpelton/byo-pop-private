@@ -6,7 +6,7 @@
 #      menu, then 150 shots at random points of the board, one every 40 updates: the scripted minute is the 6000 updates
 #      from the first shot, the same input in both. toorig.py turns it into the original's script.
 #   2. port-load x5, orig-load x5 (the first screen that takes input), then the scripted minute twice for each: A and B.
-# Needs identical/setup.sh's staged original (C:/byo-og/dyn) and its patch list.
+# Needs identical/setup.sh's staged original (E:/byo-og/dyn) and its patch list.
 cd "$(dirname "$0")/../../../.."
 P=build/perf
 PERF=games/dynomite/tools/profile/perf.py

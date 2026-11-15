@@ -11,6 +11,8 @@
 //   -hotkeytest          the mod menu's F2 (docs/MOD_MENU_DESIGN.md 7.3): SDL key events through HandleEvent, as
 //                        real input arrives; then, natively, the window: its minimum size and Alt+Enter's borderless
 //                        full screen; prints one line per check and exits with the number that failed
+//   -corner              the display's fast stretch samples from the corner (mFastStretchCentre false once it is made), as a
+//                        game whose original samples so; tools/fwtest/flags.txt checks that it holds
 //   -realinput=<file>    the framework's real input (SexyAppBase.h, docs/REAL_INPUT.md), with tools/fwtest/realinput.txt:
 //                        its "expect ..." lines check what reached the board and the app, "report" prints the count and
 //                        shuts down; the exit code is the number that failed. The test dialog is not shown.
@@ -147,6 +149,7 @@ public:
 	std::string mScreenshotPath;
 	int mFramesSinceLoaded;
 	bool mHotkeyTest;
+	bool mCornerStretch;  // -corner
 	const char* mCheckName;  // starts each check's line: "hotkey" or "realinput"
 	int mChecks;
 	int mDialogsClosed;  // the test dialog closed by its button ("state", "move")
@@ -169,6 +172,7 @@ public:
 		mScreenshotFrames = 0;
 		mFramesSinceLoaded = 0;
 		mHotkeyTest = false;
+		mCornerStretch = false;
 		mCheckName = "hotkey";
 		mChecks = 0;
 		mDialogsClosed = 0;
@@ -197,8 +201,20 @@ public:
 			mScreenshotPath = theParamValue;
 		else if (theParamName == "-hotkeytest")
 			mHotkeyTest = true;
+		else if (theParamName == "-corner")
+			mCornerStretch = true;
 		else if (theParamName != "-gamedir") // handled by main()
 			SexyAppBase::HandleCmdLineParam(theParamName, theParamValue);
+	}
+
+	// -corner: the display's fast stretch samples from the corner, set once the display is made, as a game whose original
+	// samples so sets it (tools/fwtest/flags.txt checks that the choice holds through every change of mode)
+	DDInterface* CreateDDInterface() override
+	{
+		DDInterface* aDisplay = SexyAppBase::CreateDDInterface();
+		if (mCornerStretch)
+			aDisplay->mFastStretchCentre = false;
+		return aDisplay;
 	}
 
 	virtual void LoadingThreadProc()
@@ -467,6 +483,10 @@ public:
 			if (!isOk)
 				SDL_Log("realinput: the window is %dx%d", aWidth, aHeight);
 		}
+		else if ((aWhat == "3d") && (anArgs >> a))
+			isOk = mDDInterface->mIs3D == (a != 0);
+		else if ((aWhat == "centre") && (anArgs >> a))
+			isOk = mDDInterface->mFastStretchCentre == (a != 0);
 		else
 			SDL_Log("realinput: line %d: unknown expect '%s'", theCommand.mLine, theCommand.mArgs.c_str());
 

@@ -310,7 +310,7 @@ def summarise(samples, lo, hi=None):
 
 
 def mine_prefixes():
-    return [os.getcwd() + '\\', 'C:\\byo-og\\atperf']
+    return [os.getcwd() + '\\', 'E:\\byo-og\\atperf']
 
 
 def scenario(path):
@@ -426,7 +426,7 @@ def port_minute(out, script):
     s0 = system_times()
     log = open(os.path.join(out, 'game.log'), 'wb')
     p = subprocess.Popen([exe, '-gamedir=' + gamedir, '-userdir=' + os.path.join(out, 'user'), '-seed=1', '-script=' + script] +
-                         ([] if REAL else ['-fast']),
+                         os.environ.get('PERF_ARGS', '').split() + ([] if REAL else ['-fast']),   # PERF_ARGS: more game arguments (-fix=drawRandom)
                          cwd=out, stdout=log, stderr=subprocess.STDOUT)
     h = k32.OpenProcess(QUERY | VM_READ | QUERY_LIMITED, False, p.pid)
     created = creation_time(h)
@@ -491,7 +491,7 @@ def orig_run(out, script, runs, load_only=False):
         first, last = script_span(sc)
         if load_only:      # the real clock: the game only waits and is stopped at the title
             open(sc, 'w', newline='\n').write('wait 20000\nquit\n')
-        shutil.rmtree('C:/byo-og/' + run, ignore_errors=True)
+        shutil.rmtree('E:/byo-og/' + run, ignore_errors=True)
         shutil.rmtree(os.path.join(root, 'build', 'origrun', run), ignore_errors=True)
         # a fresh game: the hints and settings the original keeps in the registry (compare.py does the same)
         for value in ('GameHints', 'ShowSymbols', 'ShowTips'):
@@ -500,7 +500,7 @@ def orig_run(out, script, runs, load_only=False):
         s0 = system_times()
         log = open(os.path.join(d, 'origrun.log'), 'wb')
         t_start = time.time()
-        cmd = [origrun, '--game', 'atomica', '--run', run, '--stage-root', 'C:/byo-og', '--script', sc,
+        cmd = [origrun, '--game', 'atomica', '--run', run, '--stage-root', 'E:/byo-og', '--script', sc,
                '--clock', 'real' if (load_only or REAL) else 'virtual', '--cursor', 'scripted', '--seed', '1',
                '--timeout', '400', '--counter', hex(COUNTER), '--update-ms', '10']
         if PACED:

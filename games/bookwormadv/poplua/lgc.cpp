@@ -31,6 +31,7 @@ static void reallymarkobject(GCState* st, GCObject* o);
 #define condmarkobject(st, o, c) { if (iscollectable(o) && !ismarked(gcvalue(o)) && (c)) reallymarkobject(st, gcvalue(o)); }
 #define markvalue(st, t) { if ((t) != NULL && !ismarked(valtogco(t))) reallymarkobject(st, valtogco(t)); }
 
+// 0x6fdad0
 static void reallymarkobject(GCState* st, GCObject* o)
 {
 	o->gch.marked |= 1;
@@ -45,6 +46,7 @@ static void reallymarkobject(GCState* st, GCObject* o)
 	}
 }
 
+// 0x6fde50
 static void traverseproto(GCState* st, Proto* f)
 {
 	int i;
@@ -66,6 +68,7 @@ static void traverseproto(GCState* st, Proto* f)
 	}
 }
 
+// 0x6fdf20
 static void traverseclosure(GCState* st, Closure* cl)
 {
 	int i;
@@ -86,6 +89,7 @@ static void traverseclosure(GCState* st, Closure* cl)
 	}
 }
 
+// 0x6fdc90
 static void traversetable(GCState* st, Table* h)
 {
 	int i;
@@ -125,6 +129,8 @@ static void traversetable(GCState* st, Table* h)
 	}
 }
 
+// 0x6fdfc0 (shrinking the stacks) is inline here
+// 0x6fe030
 static void traversestack(GCState* st, lua_State* L1)
 {
 	StkId o, lim;
@@ -153,6 +159,7 @@ static void traversestack(GCState* st, lua_State* L1)
 	}
 }
 
+// 0x6fe0c0 (one step of it)
 static void propagatemarks(GCState* st)
 {
 	while (!st->gray.empty()) {
@@ -203,6 +210,7 @@ static void cleartablekeys(std::vector<Table*>& l)
 	}
 }
 
+// 0x6fe220 (clears the dead keys and values of the weak tables; cleartablekeys does the keys)
 static void cleartablevalues(std::vector<Table*>& l)
 {
 	for (Table* h : l) {
@@ -221,6 +229,7 @@ static void cleartablevalues(std::vector<Table*>& l)
 	}
 }
 
+// 0x6fe310
 static void freeobj(lua_State* L, GCObject* o)
 {
 	switch (o->gch.tt) {
@@ -252,6 +261,7 @@ static void freeobj(lua_State* L, GCObject* o)
 	}
 }
 
+// 0x6fe3d0
 static int sweeplist(lua_State* L, GCObject** p, int all)
 {
 	GCObject* curr;
@@ -277,6 +287,7 @@ static void sweepstrings(lua_State* L, int all)
 		G(L)->strt.nuse -= sweeplist(L, &G(L)->strt.hash[i], all);
 }
 
+// 0x6fe460
 static void checkSizes(lua_State* L, size_t deadmem)
 {
 	// check size of string hash
@@ -302,6 +313,7 @@ static void do1gcTM(lua_State* L, Udata* udata)
 	}
 }
 
+// 0x6fe4c0 (one finalizer call)
 void luaC_callGCTM(lua_State* L)
 {
 	lu_byte oldah = L->allowhook;
@@ -322,6 +334,7 @@ void luaC_callGCTM(lua_State* L)
 	L->allowhook = oldah;
 }
 
+// 0x6fe5c0
 void luaC_sweep(lua_State* L, int all)
 {
 	sweeplist(L, &G(L)->rootudata, all);
@@ -330,6 +343,7 @@ void luaC_sweep(lua_State* L, int all)
 }
 
 // separate the userdata to be finalized; returns their memory
+// 0x6fdbe0
 static size_t separateudata(lua_State* L)
 {
 	size_t deadmem = 0;
@@ -363,6 +377,10 @@ void luaC_separateudata(lua_State* L)
 	separateudata(L);
 }
 
+// 0x6fdbb0 (mark the userdata kept for their finalizers) is inline here
+// 0x6fe600 (mark the basic types' metatables) is inline here
+// 0x6fe640 (start of a collection: the roots) is inline here
+// 0x6fe6f0 (the atomic step)
 static size_t mark(lua_State* L)
 {
 	size_t deadmem;
@@ -396,6 +414,8 @@ static size_t mark(lua_State* L)
 	return deadmem;
 }
 
+// 0x6fe8b0 (the exe's collection step, run when the allocation threshold is reached; this collects in one pass)
+// 0x6fe930 (the exe's full collection)
 void luaC_collectgarbage(lua_State* L)
 {
 	size_t deadmem = mark(L);

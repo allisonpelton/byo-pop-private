@@ -263,6 +263,7 @@ static int capture_to_close(MatchState* ms)
 	return luaL_error(ms->L, "invalid pattern capture");
 }
 
+// 0x706030
 static const char* luaI_classend(MatchState* ms, const char* p)
 {
 	switch (*p++) {
@@ -431,6 +432,7 @@ static const char* match_capture(MatchState* ms, const char* s, int l)
 		return NULL;
 }
 
+// 0x7065f0
 static const char* match(MatchState* ms, const char* s, const char* p)
 {
 init:  // using goto's to optimize tail recursion
@@ -507,6 +509,7 @@ init:  // using goto's to optimize tail recursion
 	}
 }
 
+// 0x706910
 static const char* lmemfind(const char* s1, size_t l1, const char* s2, size_t l2)
 {
 	if (l2 == 0)
@@ -745,6 +748,7 @@ static void luaI_addquoted(lua_State* L, luaL_Buffer* b, int arg)
 	luaL_putchar(b, '"');
 }
 
+// 0x707880
 static const char* scanformat(lua_State* L, const char* strfrmt, char* form, int* hasprecision)
 {
 	const char* p = strfrmt;

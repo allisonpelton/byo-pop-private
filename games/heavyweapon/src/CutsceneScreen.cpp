@@ -68,14 +68,6 @@ void CutsceneScreen::RemovedFromManager(WidgetManager* theWidgetManager)
 		theWidgetManager->RemoveWidget(mFlashWidget);
 }
 
-// 0x41ede0 slot 13
-void CutsceneScreen::Resize(int theX, int theY, int theWidth, int theHeight)
-{
-	Widget::Resize(theX, theY, theWidth, theHeight);
-	if (mFlashWidget != NULL)
-		mFlashWidget->Resize(0, 0, 640, 480);
-}
-
 // 0x41ee20: the middle movie starts its fade; the final one ends the campaign on the high scores
 void CutsceneScreen::EndCutscene()
 {
@@ -87,6 +79,7 @@ void CutsceneScreen::EndCutscene()
 	else if (mCutscene == CUTSCENE_FINAL)
 	{
 		int aRank = mApp->AddHighScore(false, true);
+		mApp->EndGame();		// port(autosplit): the campaign is over, the high scores or the menu next
 		if (aRank == Board::NO_RANK)
 			mApp->ShowMainMenu();
 		else
