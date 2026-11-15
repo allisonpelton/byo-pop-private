@@ -962,7 +962,10 @@ to the level's results, QUIT resets it, and its plan starts each campaign from a
 the high scores), since one under the armory, the map or a cutscene leaves that screen up for the bot. Hammer Heads' bot
 only smashes, so its plan sends the game's `botclick` before each move for the level card, the "Ready?" box and the game
 over box, and presses the trophy pages and the room's Back itself; its Classic% run is cut to Level 1 and Level 25, and
-`set level 25` and `set kings 1` after level 1 bring the trophy room whose Go! ends it. It answers every question No and removes the splits it stored. `tools/web/musicmutecheck.js` mutes a channel from
+`set level 25` after level 1, then `set kings 1` once that level is in play, bring the trophy room whose Go! ends it (a
+stat set looks for trophies at once, and the plan presses the room only over a level in play). It also plays into a level
+before `lose`, since the game checks the player's health only during play. It answers every question No and removes the
+splits it stored. `tools/web/musicmutecheck.js` mutes a channel from
 Music's tracker, turns the view off and on, switches tunes and comes back, and compares the tracker's header with what the
 player itself has muted (`bm_mute_status`). It then sends the keyboard's media keys with Music open and closed and checks
 the player's state and its sound context, not its buttons (`web/music.js`, `syncMutes` and the media keys). It needs games
