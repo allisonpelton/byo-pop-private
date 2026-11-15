@@ -263,7 +263,7 @@ The classic hyperspace jump (2026-11-15): a Classic game's level change in 3D is
 
 **Not compared in 3D.** The 3D game's sounds and music (they run through the 2D game's code, compared and matching; the visible desktop runs
 are silent); the web build's 3D pictures by pixel (it shares the code; on 2026-11-15 the page's own Classic tour, `tools/web/tour3d.js`, ran to its end in the Browser pane in the 3D game, 8 shots and no error, and its board, gems, whirlpool-free level change and interface look like the native build's, but its shots cannot be set beside the native ones: the page plays with another seed and its own timing, and its name box comes up at the menu shot, so even the boards differ; a comparison needs the page to replay the native tour's commands under the same seed, which it does not do yet);
-full screen. The 2D shots' pass (above) covers every screen at 640 by 480.
+the original's full screen (a Direct3D exclusive mode change of the user's display, which the port does not make by the user's decision of 2026-11-07, and which no run puts on the user's screen). The port's own full screen, borderless over the desktop at render scale 3 (3840 by 2160 here), was replayed through the same 40-shot Classic tour (whirlpool and hyperspace included) and set beside its windowed run (scale 2): 18 identical, 22 faint, none differing; the picture is the same 1024 by 768 game drawn at another scale. The 2D shots' pass (above) covers every screen at 640 by 480.
 
 ### Differences that stay (phase two)
 
