@@ -161,6 +161,7 @@ bool XMLWriter::WriteElementText(SexyString theText)
 	const SexyString aNodeName = mSectionStack.top();
 	mSectionStack.pop();
 
+#if defined(__cpp_exceptions) || defined(__EXCEPTIONS)
 	try
 	{
 		// I fixed this error, but just in case, I handle it by re-encoding it
@@ -170,6 +171,11 @@ bool XMLWriter::WriteElementText(SexyString theText)
 	{
 		fprintf(mFile, "%s", XMLEncodeString(theText).c_str());
 	}
+#else
+	// port: fprintf throws nothing; the handler above only ever ran in the original's own runtime, and a build without
+	// exceptions (a release exe) has no handler to run
+	fprintf(mFile, "%s", theText.c_str());
+#endif
 	fprintf(mFile, "</%s>\n", aNodeName.c_str());
 
 	mLineNum++;
