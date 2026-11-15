@@ -72,8 +72,10 @@ public:
 	void SetFrame(const uint32_t* thePixels, int thePitch, const Rect* theRects, int theCount);
 
 	// Lets the display show a window of a size that is no whole scale by GDI's stretch (stretch mode) instead of the renderer's. An app that
-	// draws a cursor image of its own does not allow it. A test run's SURFACE_STRETCH=1 or 0 in the environment decides instead.
-	void AllowStretch(bool theAllowed);
+	// draws a cursor image of its own does not allow it. theWholeScalesOnly: the screen is shown at the largest whole scale that fits the window
+	// (its pixels all the same size, bars around it) instead of filling the window as far as its aspect ratio allows. A test run's
+	// SURFACE_STRETCH in the environment decides instead: 0 off, 1 filling, 2 whole scales.
+	void AllowStretch(bool theAllowed, bool theWholeScalesOnly = false);
 	// true while the frame goes to the window's surface or is stretched into it (no renderer either way)
 	bool InSurfaceMode() const { return mSurfaceMode; }
 	bool InStretchMode() const { return mSurfaceMode && mStretching; }
@@ -132,7 +134,8 @@ protected:
 	bool mSurfaceUnavailable;  // the window has no surface the display can use: the renderer for good
 	bool mSurfaceDisabled;     // SURFACE_DISPLAY=0 in the environment: the renderer for good
 	bool mStretchAllowed;      // AllowStretch
-	int mStretchHook;          // SURFACE_STRETCH in the environment of a test run: -1 not set, 0 or 1
+	int mStretchHook;          // SURFACE_STRETCH in the environment of a test run: -1 not set, 0 off, 1 filling, 2 whole scales
+	bool mStretchWholeScales;  // AllowStretch's second argument
 	bool mStretching;          // surface mode's other flavour: the buffer is stretched into the window by GDI, not copied into its surface
 	bool mStretchUnavailable;  // the window has no GDI handle: no stretch mode
 	GdiStretch* mGdi;  // Windows only (SurfaceDisplayGdi.h)

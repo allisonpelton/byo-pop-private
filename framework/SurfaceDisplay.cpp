@@ -95,6 +95,7 @@ SurfaceDisplay::SurfaceDisplay(SexyAppBase* theApp) :
 	mSurfaceDisabled = false;
 	mStretchAllowed = false;
 	mStretchHook = -1;
+	mStretchWholeScales = false;
 	mStretching = false;
 	mStretchUnavailable = false;
 	mGdi = NULL;
@@ -110,7 +111,7 @@ SurfaceDisplay::SurfaceDisplay(SexyAppBase* theApp) :
 		const char* anEnv = SDL_getenv("SURFACE_DISPLAY");
 		mSurfaceDisabled = (anEnv != NULL) && (anEnv[0] == '0');
 		anEnv = SDL_getenv("SURFACE_STRETCH");
-		if ((anEnv != NULL) && ((anEnv[0] == '0') || (anEnv[0] == '1')))
+		if ((anEnv != NULL) && ((anEnv[0] == '0') || (anEnv[0] == '1') || (anEnv[0] == '2')))
 			mStretchHook = anEnv[0] - '0';
 		anEnv = SDL_getenv("SURFACE_VERIFY");
 		mVerifySurface = (anEnv != NULL) && ((anEnv[0] == '1') || (anEnv[0] == '2'));
@@ -131,10 +132,11 @@ SurfaceDisplay::~SurfaceDisplay()
 #endif
 }
 
-void SurfaceDisplay::AllowStretch(bool theAllowed)
+void SurfaceDisplay::AllowStretch(bool theAllowed, bool theWholeScalesOnly)
 {
-	// a test run's environment decides (so that one exe can be tried both ways), whatever the app says
-	mStretchAllowed = (mStretchHook >= 0) ? (mStretchHook == 1) : theAllowed;
+	// a test run's environment decides (so that one exe can be tried each way), whatever the app says
+	mStretchAllowed = (mStretchHook >= 0) ? (mStretchHook >= 1) : theAllowed;
+	mStretchWholeScales = (mStretchHook >= 0) ? (mStretchHook == 2) : theWholeScalesOnly;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -391,6 +393,13 @@ void SurfaceDisplay::UpdateDisplaySize()
 			// the render scale as the renderer would have it (the window's scale rounded up, at most 4), which is the scale the screen
 			// is read back at; no texture limit to lower it
 			mRenderScale = DisplayGeometry::UpdateDisplaySize(aWidth, aHeight, 16384, 16384, 0);
+			if ((mStretchWholeScales) && (aWidth >= mWidth) && (aHeight >= mHeight))
+			{
+				// the largest whole scale that fits, in the middle (the mouse maps through the same rect)
+				const int aScale = std::min(aWidth / mWidth, aHeight / mHeight);
+				mPresentationRect = Rect((aWidth - mWidth * aScale) / 2, (aHeight - mHeight * aScale) / 2, mWidth * aScale, mHeight * aScale);
+				mRenderScale = std::min(aScale, kMaxSurfaceScale);
+			}
 		}
 		else
 		{
