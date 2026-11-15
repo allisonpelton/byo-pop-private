@@ -43,7 +43,7 @@ public:
 	StatKeeper(BookWormApp* theApp);                            // 0x408690
 	virtual ~StatKeeper();                                      // 0x405140 body, 0x4059c0 slot 0
 
-	void			Reset();                                    // 0x406950 (+0x24/+0x28 untouched)
+	void			Clear();                                    // 0x406950 (+0x24/+0x28 untouched)
 	void			AddWord(const WordScore& theWord);          // 0x4068a0
 	void			AddBonusWord(int thePoints);                // 0x403690
 	void			IncBurned();                                // 0x4036b0

@@ -39,6 +39,14 @@ def exe_ids():
     return ids
 
 
+def group_functions():
+    """The address of each group's own function, read from ExtractResourcesByName (0x422f20): the name it compares with, then
+    the call of the group's function."""
+    p = glob.glob(os.path.join(ROOT, 're', 'astropop', 'gh', 'decomp', '_global', '00422f20_*.c'))[0]
+    t = open(p, encoding='utf-8', errors='replace').read()
+    return dict(re.findall(r'pcVar4 = "([^"]+)";.*?FUN_([0-9a-f]{8})\(param_1\)', t, re.S))
+
+
 def xml_groups(path):
     text = open(path, encoding='utf-8-sig').read()
     groups = []
@@ -59,10 +67,36 @@ def xml_groups(path):
     return groups
 
 
+def check():
+    """Each group's function in the port against the exe's (the coverage check read all 44 again): the same resources, taken by
+    name in the exe's order, each with the getter of its kind."""
+    getter = {'IMAGE': 'GetImageThrow', 'FONT': 'GetFontThrow', 'SOUND': 'GetSoundThrow'}
+    cpp = open(os.path.join(SRC, 'Res.cpp'), encoding='utf-8').read()
+    bad = 0
+    addresses = group_functions()
+    for g, a in sorted(addresses.items()):
+        m = re.search(r'bool Sexy::Extract%sResources\(ResourceManager\* theManager\)\n\{\n(.*?)\n\}\n' % g, cpp, re.S)
+        port = re.findall(r'= theManager->(\w+)\("([A-Z0-9_]+)"\)', m.group(1)) if m else []
+        p = glob.glob(os.path.join(ROOT, 're', 'astropop', 'gh', 'decomp', '_global', a + '_*.c'))[0]
+        text = open(p, encoding='utf-8', errors='replace').read()
+        exe = []
+        for n in re.findall(r'"((?:IMAGE|FONT|SOUND)_[A-Z0-9_]+)"', text):
+            if not exe or exe[-1] != n:
+                exe.append(n)
+        if exe != [n for _, n in port] or any(k != getter[n.split('_')[0]] for k, n in port):
+            bad += 1
+            print('differs: %s (0x%s)' % (g, a))
+    print('%d groups, %d differ from the exe' % (len(addresses), bad))
+    return bad
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('--xml', default=os.path.join(ROOT, 'assets', 'astropop', 'properties', 'resources.xml'))
+    ap.add_argument('--check', action='store_true', help="compare Res.cpp's group functions with the exe's and exit")
     args = ap.parse_args()
+    if args.check:
+        sys.exit(1 if check() else 0)
     ids = exe_ids()
     groups = xml_groups(args.xml)
     kind = {}
@@ -86,7 +120,8 @@ def main():
           'Image* GetImageById(int theId);               // 0x4092c0',
           'Font* GetFontById(int theId);',
           'int GetSoundById(int theId);',
-          'const char* GetStringIdById(int theId);       // 0x4092e0', '']
+          'const char* GetStringIdById(int theId);       // 0x4092e0',
+          'Image* LoadImageById(ResourceManager* theManager, int theId);   // 0x420ea0 (loads the picture again if it was deleted)', '']
     c = HEADER + ['#include "Res.h"', '', '#include <cstring>', '#include "ResourceManager.h"', '',
                   'using namespace Sexy;', '']
     for rid in ids:
@@ -100,9 +135,18 @@ def main():
           'Font* Sexy::GetFontById(int theId) { return *(Font**)gResources[theId]; }',
           'int Sexy::GetSoundById(int theId) { return *(int*)gResources[theId]; }',
           'const char* Sexy::GetStringIdById(int theId) { return (unsigned)theId < RESOURCE_ID_MAX ? gResourceNames[theId] : ""; }',
+          '',
+          '// 0x420ea0: the picture of a resource id, loaded again by name if it was deleted; the id\'s global holds it afterwards',
+          'Image* Sexy::LoadImageById(ResourceManager* theManager, int theId)',
+          '{',
+          '\tImage* anImage = theManager->LoadImage(GetStringIdById(theId));   // (0x4923a0 loads the picture if it is not loaded)',
+          '\t*(Image**)gResources[theId] = anImage;',
+          '\treturn *(Image**)gResources[theId];',
+          '}',
           '']
 
     done = set()
+    addresses = group_functions()
     for g, items in groups:
         h.append('// %s' % g)
         h.append('bool Extract%sResources(ResourceManager* theManager);' % g)
@@ -111,8 +155,11 @@ def main():
                 done.add(rid)
                 h.append('extern %s %s;' % (KINDS[k], rid))
         h.append('')
+        if g in addresses:
+            c.append('// 0x%s: the resource group "%s" (the original has a function of its own for each group and a switch by name, 0x422f20)'
+                     % (addresses[g].lstrip('0'), g))
         c += ['bool Sexy::Extract%sResources(ResourceManager* theManager)' % g, '{', '\ttry {']
-        for k, rid in items:
+        for k, rid in sorted(items, key=lambda kr: kr[1]):    # the exe's function takes its resources by name (checked: all 44 groups)
             if rid in idset:
                 c.append('\t\t%s = theManager->%s("%s");' % (rid, GETTER[k], rid))
         c += ['\t} catch (ResourceManagerException&) {', '\t\treturn false;', '\t}', '\treturn true;', '}', '']

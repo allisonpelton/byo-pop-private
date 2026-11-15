@@ -1,3 +1,5 @@
+// port: the strings the game keeps in its exe, read from the player's own TipTop.exe (GameText.h).
+
 #include "GameText.h"
 #include "SexyAppBase.h"
 #include "platform/VFS.h"

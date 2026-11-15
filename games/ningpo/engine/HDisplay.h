@@ -85,7 +85,6 @@ public:
 	// 0x424810 (slot 0x18): a surface of an image's pixels
 	HSurface* createSurface(const HImage& theImage);
 	// 0x423ed0 (slot 0x14): a copy of a surface
-	HSurface* copySurface(const HSurface* theSurface);
 	// 0x423e60 (slot 0x1c)
 	void freeSurface(HSurface* theSurface);
 
@@ -112,7 +111,6 @@ public:
 	// 0x423230 (slot 0x40): the blend mode of drawText
 	void setBlendMode(int s1, int s2, int s3, int s4, int d1, int d2, int d3, int d4, int theOp);
 	// 0x423aa0 (slot 0x4c): flag 0 makes plain alpha blending a test at half alpha
-	void setBlendFlag(int theIndex, char theValue);
 
 	// 0x424770 (slot 0x0c): the whole back buffer in the clear colour
 	void clear();

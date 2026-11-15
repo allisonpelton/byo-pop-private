@@ -111,6 +111,8 @@ var ByopopCursors = (function () {
   }
   // the chosen set's id, or "" for the browser's own cursor
   function chosen() {
+    // a desktop theme's cursor (web/themes.js) comes first, where the game's page kept its set
+    try { var th = typeof ByopopThemes !== "undefined" ? ByopopThemes.cursor() : ""; if (th) return th; } catch (e) {}
     try { var s = store(), v = s ? s.getItem(CHOICE) : null; return validId(v) ? v : ""; } catch (e) { return ""; }
   }
   function choose(id) {
@@ -528,7 +530,7 @@ var ByopopCursors = (function () {
   apply();
   setTimeout(upgrade, 0);
   window.addEventListener("storage", function (ev) {
-    if (ev.key !== null && ev.key !== KEY && ev.key !== CHOICE) return;
+    if (ev.key !== null && ev.key !== KEY && ev.key !== CHOICE && ev.key !== "byopop-settings") return;
     apply();
     redraw();
   });

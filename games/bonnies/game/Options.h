@@ -31,7 +31,7 @@ public:
 	int mFullScreen;          // +0x10 (Portal.cfg's)
 	int mWindowX;             // +0x14 (50): the window (windowMoved's first pair)
 	int mWindowY;             // +0x18 (70)
-	int mField1C;             // +0x1c
+	int mWindowSpare;         // +0x1c: saved with the window's position; nothing reads it
 	int mClientX;             // +0x20 (50): windowMoved's second pair
 	int mClientY;             // +0x24 (70)
 	int mInterstitial;        // +0x28: the interstitial shown last between levels (0, 1)

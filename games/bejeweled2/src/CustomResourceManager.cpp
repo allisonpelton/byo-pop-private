@@ -10,6 +10,7 @@
 
 using namespace Sexy;
 
+// port: whether the resource element has the attribute
 static bool HasAttribute(const XMLParamMap& theMap, const char* theName)
 {
 	return theMap.find(theName) != theMap.end();
@@ -64,8 +65,8 @@ void CustomResourceManager::ShrinkImage(MemoryImage* theImage, unsigned long the
 	theImage->SetBits(aNewBits.data(), aNewWidth, aNewHeight, commitBits);
 }
 
-// whether the small game shrinks this picture: not one whose name says "no resize", and not a small one
-static bool ShrinksAt640(const std::string& thePath)
+// port: whether the small game shrinks this picture: not one whose name says "no resize", and not a small one
+static bool ShrinksInSmallWindow(const std::string& thePath)
 {
 	if (thePath.find("nr_") != std::string::npos)
 		return false;
@@ -78,7 +79,7 @@ static bool ShrinksAt640(const std::string& thePath)
 Image* CustomResourceManager::GetCachedImage(const std::string& thePath)
 {
 	WinDMApp* anApp = (WinDMApp*)mApp;
-	if (anApp->mWidth != 640 || !ShrinksAt640(thePath))
+	if (anApp->mWidth != 640 || !ShrinksInSmallWindow(thePath))
 		return mApp->GetImage(thePath, true);
 	anApp->mShrinkLoads++;
 	anApp->mShrinkFill = 0;
@@ -113,7 +114,7 @@ bool CustomResourceManager::DoLoadImage(ImageRes* theRes)
 	size_t aMark = theRes->mVariant.rfind(kSmallVariant);
 	if (aMark != std::string::npos && aMark + strlen(kSmallVariant) == theRes->mVariant.size())
 		theRes->mVariant.erase(aMark);
-	bool aShrink = anApp->mWidth == 640 && !aSmallArt && ShrinksAt640(theRes->mPath);
+	bool aShrink = anApp->mWidth == 640 && !aSmallArt && ShrinksInSmallWindow(theRes->mPath);
 	if (!aShrink)
 		return ResourceManager::DoLoadImage(theRes);
 	theRes->mVariant += kSmallVariant;

@@ -45,7 +45,7 @@ Points::Points(WinDMApp* theApp, Font* theFont, const std::string& theText, int 
 	mRise = 0.0f;
 }
 
-// 0x5cf1cc
+// 0x5cf1cc, 0x5cf177 (the destructor proper: deletes the picture at +0xb4, then Widget's)
 Points::~Points()
 {
 	delete mImage;

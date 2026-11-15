@@ -1,0 +1,59 @@
+# coverage script (2D, the profile player): the users dialog from the main menu: create a user and cancel it, create Bob, rename Ali
+# to Z and cancel a second rename, delete Z (answer no, then yes), cancel the list, then pick a user and OK
+at 562 shot title
+at 566 move 320 401
+at 568 click 320 401
+at 808 shot menu
+at 811 move 320 62
+at 813 click 320 62
+at 910 move 320 123
+at 912 click 320 123
+at 950 move 253 262
+at 952 click 253 262
+at 1010 shot create
+at 1040 move 370 188
+at 1042 click 370 188
+at 1100 shot back_in_list
+at 1110 move 320 123
+at 1112 click 320 123
+at 1150 move 253 262
+at 1152 click 253 262
+at 1250 text Bob
+at 1300 key 13
+at 1400 shot bob
+at 1410 move 320 62
+at 1412 click 320 62
+at 1500 move 320 151
+at 1502 click 320 151
+at 1540 move 253 222
+at 1542 click 253 222
+at 1640 text Z
+at 1680 key 13
+at 1800 move 320 151
+at 1802 click 320 151
+at 1840 move 253 222
+at 1842 click 253 222
+at 1940 shot rename
+at 1950 move 408 188
+at 1952 click 408 188
+at 2050 move 386 222
+at 2052 click 386 222
+at 2150 shot sure
+at 2160 move 410 182
+at 2162 click 410 182
+at 2260 move 386 222
+at 2262 click 386 222
+at 2350 shot sure2
+at 2360 move 260 182
+at 2362 click 260 182
+at 2460 shot deleted
+at 2470 move 386 262
+at 2472 click 386 262
+at 2600 move 320 62
+at 2602 click 320 62
+at 2700 move 320 137
+at 2702 click 320 137
+at 2740 move 253 262
+at 2742 click 253 262
+at 2900 shot end
+quit

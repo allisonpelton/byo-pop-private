@@ -1,4 +1,4 @@
-// Test hooks: the standard script commands (docs/TEST_COMMANDS.md), reachable only from -script and -commands. A command that
+// port: test hooks: the standard script commands (docs/TEST_COMMANDS.md), reachable only from -script and -commands. A command that
 // is never given changes nothing: no draw, no state. Every command answers with one line on stdout: OK <command>,
 // ERROR <command>: <reason>, STATE {...} or MOVE {...}.
 //
@@ -112,11 +112,11 @@ void State(RocketApp* theApp)
 		aJson += ",\"difficulty\":" + Num(theApp->mDifficulty);
 		aJson += ",\"level\":" + Num(aBoard->mLevel + 1);
 		aJson += ",\"score\":" + Num(aBoard->mScore);
-		aJson += ",\"moves\":" + Num(aBoard->m108);
-		aJson += ",\"coins\":" + Num(aBoard->m8c[7]);
+		aJson += ",\"moves\":" + Num(aBoard->mMatchesLeft);
+		aJson += ",\"coins\":" + Num(aBoard->mSpecialCounts[7]);
 		aJson += ",\"boardState\":" + Num(aBoard->mState);
-		aJson += ",\"paused\":" + Num(aBoard->m350);
-		aJson += ",\"rockets\":[" + Num(aBoard->m74) + "," + Num(aBoard->m78) + "," + Num(aBoard->m7c) + "," + Num(aBoard->m80) + "]";
+		aJson += ",\"paused\":" + Num(aBoard->mPause);
+		aJson += ",\"rockets\":[" + Num(aBoard->mLaunchesNeeded) + "," + Num(aBoard->mLaunchesNeededCopy) + "," + Num(aBoard->mLeftCount) + "," + Num(aBoard->mRightCount) + "]";
 		aJson += ",\"board\":{\"rows\":" + Num(aBoard->mRows) + ",\"cols\":" + Num(aBoard->mCols) + ",\"grid\":[";
 		for (int aRow = 0; aRow < aBoard->mRows; aRow++)
 		{
@@ -245,7 +245,7 @@ void Move(RocketApp* theApp)
 		Reply("MOVE null");
 		return;
 	}
-	if (theApp->GetDialogCount() > 0 || aBoard->mState != 0 || aBoard->m2e8 || aBoard->m350 != 0)
+	if (theApp->GetDialogCount() > 0 || aBoard->mState != 0 || aBoard->mBurning || aBoard->mPause != 0)
 	{
 		// the board is busy (filling, an animation, paused): the move is to wait a while
 		Reply("MOVE {\"what\":\"wait for the board\",\"input\":[{\"wait\":20}]}");
@@ -389,9 +389,9 @@ bool RocketStandardCommand(RocketApp* theApp, const ScriptCommand& theCommand)
 			else if (aName2 == "level")
 				aBoard->mLevel = aValue - 1;
 			else if (aName2 == "moves")
-				aBoard->m108 = aValue;
+				aBoard->mMatchesLeft = aValue;
 			else if (aName2 == "coins")
-				aBoard->m8c[7] = aValue;
+				aBoard->mSpecialCounts[7] = aValue;
 			else
 				aName2 = "";
 			if (aName2.empty())
@@ -418,7 +418,7 @@ bool RocketStandardCommand(RocketApp* theApp, const ScriptCommand& theCommand)
 			Error("lose", "there is no level in play");
 		else
 		{
-			aBoard->F421de0(theApp->mMode == 0 ? 1 : theApp->mMode == 1 ? 0 : 2);
+			aBoard->GameOver(theApp->mMode == 0 ? 1 : theApp->mMode == 1 ? 0 : 2);
 			Ok("lose");
 		}
 	}

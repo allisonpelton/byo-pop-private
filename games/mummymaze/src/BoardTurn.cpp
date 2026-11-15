@@ -495,12 +495,33 @@ void Board::UpdateScorp()
 		UpdateExplorer();
 }
 
+// port(mods): the fixes mod's keyTaps: a press that was let go before an update ran is kept for the next update. The original
+// reads the key table at an update, so a tap shorter than the time between two updates is lost in it (and shorter than a
+// frame on the web page, where a program's single key press, which lasts a millisecond, never moves the explorer)
+void Board::KeyDown(KeyCode theKey)
+{
+	Widget::KeyDown(theKey);
+	if (!mApp->mFixes.mKeyTaps)
+		return;
+	switch (theKey)
+	{
+	case KEYCODE_SPACE: mTapKeys |= TAP_WAIT; break;
+	case KEYCODE_LEFT: mTapKeys |= TAP_WEST; break;
+	case KEYCODE_RIGHT: mTapKeys |= TAP_EAST; break;
+	case KEYCODE_UP: mTapKeys |= TAP_NORTH; break;
+	case KEYCODE_DOWN: mTapKeys |= TAP_SOUTH; break;
+	default: break;
+	}
+}
+
 // 0x4067f0
 // 0x406f00
 void Board::Update()
 {
 	if (mApp->mWorldMap != NULL)
 		return;
+	mTapKeysNow = mTapKeys;
+	mTapKeys = 0;
 	Widget::Update();
 	if (mState == STATE_READY)
 	{

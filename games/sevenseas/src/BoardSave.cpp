@@ -77,6 +77,7 @@ public:
 
 }
 
+// port: the saved game's file name
 std::string Board::SavePath()
 {
 	return "savegame.dat";
@@ -87,41 +88,41 @@ bool Board::SaveGame()
 {
 	if (mApp->mHighScoreWidget != NULL)
 		return false;
-	Writer w;
-	w.Int(1);
-	w.String("");
-	w.String("");
-	w.Int(mScore);
-	w.Int(mKills);
-	w.Int((int) mShips.size());
+	Writer aWriter;
+	aWriter.Int(1);
+	aWriter.String("");
+	aWriter.String("");
+	aWriter.Int(mScore);
+	aWriter.Int(mKills);
+	aWriter.Int((int) mShips.size());
 	for (std::list<Ship*>::iterator anItr = mShips.begin(); anItr != mShips.end(); ++anItr)
 	{
 		Ship* aShip = *anItr;
-		w.Int(aShip->mX);
-		w.Int(aShip->mY);
-		w.Int(aShip->mHeading);
-		w.Int(aShip->mType);
+		aWriter.Int(aShip->mX);
+		aWriter.Int(aShip->mY);
+		aWriter.Int(aShip->mHeading);
+		aWriter.Int(aShip->mType);
 	}
-	w.Int(mPlayerX);
-	w.Int(mPlayerY);
-	w.Int(mHeading);
+	aWriter.Int(mPlayerX);
+	aWriter.Int(mPlayerY);
+	aWriter.Int(mHeading);
 	for (std::list<Port*>::iterator anItr = mPorts.begin(); anItr != mPorts.end(); ++anItr)
-		w.Byte((*anItr)->mActive);
+		aWriter.Byte((*anItr)->mActive);
 	for (int i = 0; i < GRID; i++)
 		for (int j = 0; j < GRID; j++)
 		{
-			w.Byte(mVisited[i][j]);
-			w.Int(mTerrain[i][j]);
+			aWriter.Byte(mVisited[i][j]);
+			aWriter.Int(mTerrain[i][j]);
 		}
-	w.Int((int) mStartTick);
-	w.Int(mSeconds);
-	w.Int(mLevel);
-	w.Int(mSavedLevels);
-	w.Int(mLives);
-	w.Int(mKillsTotal);
-	w.Int(mTreasures);
-	w.Byte(mApp->mTutorial);
-	return Platform::WriteUserFileAtomic(SavePath(), w.mData);
+	aWriter.Int((int) mStartTick);
+	aWriter.Int(mSeconds);
+	aWriter.Int(mLevel);
+	aWriter.Int(mSavedLevels);
+	aWriter.Int(mLives);
+	aWriter.Int(mKillsTotal);
+	aWriter.Int(mTreasures);
+	aWriter.Byte(mApp->mTutorial);
+	return Platform::WriteUserFileAtomic(SavePath(), aWriter.mData);
 }
 
 // 0x40b850
@@ -133,17 +134,17 @@ bool Board::DeleteSave()
 // 0x40b870: takes the saved game back (and deletes the file)
 void Board::LoadGame()
 {
-	Reader r;
-	if (!Platform::ReadHostFile(Platform::VFS::Get().GetUserDir() + "/" + SavePath(), &r.mData))
+	Reader aReader;
+	if (!Platform::ReadHostFile(Platform::VFS::Get().GetUserDir() + "/" + SavePath(), &aReader.mData))
 		return;
-	if (r.Int() != 1)
+	if (aReader.Int() != 1)
 		return;
-	r.String();
-	r.String();
-	int aScore = r.Int();
-	int aKills = r.Int();
-	int aNumShips = r.Int();
-	if (!r.mOk || (aNumShips < 0) || (aNumShips > GRID * GRID))
+	aReader.String();
+	aReader.String();
+	int aScore = aReader.Int();
+	int aKills = aReader.Int();
+	int aNumShips = aReader.Int();
+	if (!aReader.mOk || (aNumShips < 0) || (aNumShips > GRID * GRID))
 		return;
 	mScore = aScore;
 	if (mApp->mSidePanel != NULL)
@@ -157,10 +158,10 @@ void Board::LoadGame()
 		aShip->mHeading = 8;
 		aShip->mWantHeading = 8;
 		aShip->mAnim = CrtRand() % 8;
-		aShip->mX = r.Int();
-		aShip->mY = r.Int();
-		aShip->mHeading = r.Int();
-		aShip->mType = r.Int();
+		aShip->mX = aReader.Int();
+		aShip->mY = aReader.Int();
+		aShip->mHeading = aReader.Int();
+		aShip->mType = aReader.Int();
 		// port: the original leaves the next cell and the wake timers as they were allocated
 		aShip->mNextX = aShip->mX;
 		aShip->mNextY = aShip->mY;
@@ -168,9 +169,9 @@ void Board::LoadGame()
 			aShip->mTrail[j] = -1;
 		mShips.push_back(aShip);
 	}
-	mPlayerX = r.Int();
-	mPlayerY = r.Int();
-	mHeading = r.Int();
+	mPlayerX = aReader.Int();
+	mPlayerY = aReader.Int();
+	mHeading = aReader.Int();
 	ClearPorts();
 	for (int aPortX = 0; aPortX < GRID; aPortX += 10)
 	{
@@ -179,7 +180,7 @@ void Board::LoadGame()
 			Port* aPort = new Port();
 			aPort->mX = aPortX;
 			aPort->mY = aPortY;
-			aPort->mActive = r.Byte();
+			aPort->mActive = aReader.Byte();
 			aPort->mFrame = 0;
 			aPort->mAppear = 0;
 			mPorts.push_back(aPort);
@@ -188,17 +189,17 @@ void Board::LoadGame()
 	for (int i = 0; i < GRID; i++)
 		for (int j = 0; j < GRID; j++)
 		{
-			mVisited[i][j] = r.Byte();
-			mTerrain[i][j] = r.Int();
+			mVisited[i][j] = aReader.Byte();
+			mTerrain[i][j] = aReader.Int();
 		}
-	mStartTick = (DWORD) r.Int();
-	mSeconds = r.Int();
-	mLevel = r.Int();
-	mSavedLevels = r.Int();
-	mLives = r.Int();
-	mKillsTotal = r.Int();
-	mTreasures = r.Int();
-	mApp->mTutorial = r.Byte();
+	mStartTick = (DWORD) aReader.Int();
+	mSeconds = aReader.Int();
+	mLevel = aReader.Int();
+	mSavedLevels = aReader.Int();
+	mLives = aReader.Int();
+	mKillsTotal = aReader.Int();
+	mTreasures = aReader.Int();
+	mApp->mTutorial = aReader.Byte();
 	DeleteSave();
 	mTutorialShown = false;
 }

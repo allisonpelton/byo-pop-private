@@ -19,14 +19,6 @@ Graphics::~Graphics()
 {
 }
 
-// 0x45ddf0
-void Graphics::drawImage(Image* theImage, float x, float y)
-{
-	int aHeight = theImage->getHeight();
-	int aWidth = theImage->getWidth();
-	drawImage(theImage, IntRect(0, 0, aWidth, aHeight), x, y);
-}
-
 // 0x45dd70
 void Graphics::drawImage(Image* theImage)
 {
@@ -91,7 +83,6 @@ void Graphics::multiplyOpacity(float theOpacity)
 float Graphics::getOpacity() { return state().mOpacity; }  // 0x43c800
 
 void Graphics::setColor(float r, float g, float b) { state().mColor.set(r, g, b); }  // 0x43c830
-const Color& Graphics::getColor() { return state().mColor; }                         // 0x43c860
 const Color& Graphics::getColorOffset() { return state().mColorOffset; }             // 0x43c890
 
 // 0x43c8c0

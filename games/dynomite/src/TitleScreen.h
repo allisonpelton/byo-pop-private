@@ -23,7 +23,6 @@ public:
 	double				mProgress;				// +0x60 the bar
 	bool				mLoadingDone;			// +0x70
 	HyperlinkWidget*	mPlayLink;				// +0x84 id 1
-	int					mUnused90;				// +0x90
 	Pic*				mCobrand;				// +0x9c
 	bool				mCobranded;				// +0xa0
 

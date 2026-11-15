@@ -1,0 +1,16 @@
+# Coverage run extra 1 (origrun script): the options' two sliders pressed, dragged and released (the sound's, then the
+# music's), back to the main menu, then the quit question answered Yes (the game ends by itself).
+at 299 click 188 293
+at 339 click 265 157
+at 420 down 200 190
+at 430 move 230 190
+at 440 move 260 190
+at 450 up 260 190
+at 470 down 200 214
+at 480 move 220 214
+at 490 up 190 214
+at 530 click 550 442
+at 600 click 199 352
+at 660 click 325 275
+wait 300
+quit

@@ -58,8 +58,6 @@ public:
 	// slots 11, 12, 0x42c830, 0x42c890: the focus, and the tooltip on the status line
 	virtual void focus();
 	virtual void unfocus();
-	// slot 13, 0x42c410
-	virtual void setImage(const Str& theName);
 	// slot 14, 0x42c3e0
 	virtual void setFont(FontDesc* theDesc);
 
@@ -115,8 +113,8 @@ public:
 	int handleEvent(Event* theEvent) override;
 	using Widget::contains;
 
-	// 0x42cbd0: the text shown, with a blinking '|' at the cursor (theUnused is never read)
-	void refreshDisplay(int theUnused = 0);
+	// 0x42cbd0: the text shown, with a blinking '|' at the cursor (theIgnored is never read)
+	void refreshDisplay(int theIgnored = 0);
 	// 0x42cd10
 	void beginEdit();
 	// 0x42cd70: deletes the selected text; whether there was any
@@ -184,22 +182,6 @@ public:
 	float mTextHeight;        // +0xd0
 	int mKeyPressed;          // +0xd4
 	int mMousePressed;        // +0xd8
-};
-
-// Type 2 (the vtable 0x459ad8): a frame of mImage
-class Picture : public Widget
-{
-public:
-	Picture();
-	// 0x42f530
-	~Picture() override;
-
-	// slot 0, 0x42f540
-	void init() override;
-	// slot 8, 0x42f560
-	void draw() override;
-
-	int mFrame;               // +0x8c
 };
 
 // Type 3 (0x42d6c0, the vtable 0x4599b8)
@@ -273,7 +255,7 @@ struct ListItem
 
 	Str mText;                // +0x00
 	int mData;                // +0x08
-	int mField0C;             // +0x0c
+	int mSpare;               // +0x0c: copied with the item; nothing reads it
 };
 
 // Type 5 (0x42e070, the vtable 0x459a4c)

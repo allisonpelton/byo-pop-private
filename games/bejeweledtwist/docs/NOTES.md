@@ -1563,3 +1563,89 @@ for one field of the original declared as two members, found no split. Its findi
 lists nothing in the Dynamic and Viz groups that the manager extracts through them), and the accessors work on any id. Since no
 id was removed, no run of ids reached by arithmetic (`IMAGE_..._ID + n`) can have lost a member. The change adds no quoted
 string and changes none, so no name a file, a save or the properties look up was renamed.
+
+## The PopCap Game Collection version (2026-11-11)
+
+The port was made from the retail and Steam copies (`PORT_PLAN.md`, "Which copy's files"), so it is checked against the game's
+version on the PopCap Game Collection disc (`docs/COORDINATION.md`), as AstroPop's section 13 did. `unshield` read the group
+`BejeweledTwistComponent` out of the disc image's cabinet (mounted read-only, dismounted afterwards): 49 files, 48 MB, in
+`re/_installers/BejeweledTwistCollection` (git-ignored, deleted once the check was written up). The folder is laid out as the
+retail one: `BejeweledTwist.exe`, `main.pak`, the 17 `.p3d` meshes, `music/`, `properties/`, `bass.dll`, `j2k-codec.dll`,
+`compat.cfg`, a licence and a readme.
+
+**The exe is the same build.** The Collection's `BejeweledTwist.exe` (4,990,256 bytes, against the staged image's 4,984,832)
+is version 1.0.3.7482 with the same link time as ours; `.text` and `.data` are equal byte for byte. Every text and table the
+port reads from the exe is in `.rdata` or `.data` at the same address, so `GameText.cpp` needed no change: a run on the
+Collection's exe matches every entry, as on the Steam image.
+<!-- private -->
+How the copies differ: the Collection's exe is the game itself, not wrapped (the retail copy's is PopCap's CDProtect
+launcher with the game appended, Steam's the 2008 DRM wrapper). The rest differs only where a wrapper's build leaves its
+mark: the PE header's checksum and security directory, 5,424 bytes of Authenticode signature at the end, eight digits
+after the `POPCAPPACPOP...` marker in `.rdata` (an id each wrap writes: 0x80d2d0, which the port never reads) and the
+resource section (404 bytes smaller in the Collection's, its icons and version data otherwise the same version).
+<!-- /private -->
+
+**The files.** Against the retail install, 43 of the Collection's 49 files are the same byte for byte, `main.pak` among them.
+Its `resources.xml` is Steam's, not retail's (equal but for line ends), so the Zen visualizer drops resolve as in the Steam
+copy. `partner.xml` is the one real difference: it names the registry key `PopCap\BejeweledTwist` (Steam's `Steam\BejeweledTwist`)
+and has no `MarketingMode`, so on these files Blitz is earned by play as in the retail game (`WinTwistApp.cpp`, the
+`LevelLock` test), where the Steam properties open it at once; it also lacks Steam's `Width`, `Height` and Steam id. The rest:
+the readme, the licence, the `.sig` and the DLLs, which the port does not read. The staged set (the staging script with
+`--own-properties`, new for this check, which takes `properties/` from the folder given instead of a Steam copy) equals the
+Steam staging but for the exe and `partner.xml`.
+
+**The port on the Collection's files** (`tools/collection/run.sh`, under rundesk). The suite's four seeded games (the start's
+menu, Classic to update 5156, Blitz to its high scores, the 3D level-up take-off; 16 screens), with the test registry under the
+Collection's key, give the frozen screens of `tools/check.sh` (BT_MENU, BT_CLASSIC, BT_BLITZ, BT_TAKEOFF), and no text is
+reported missing. The web build was not run on them: its files are the native run's, and the page's importer already takes
+the folder (`web/page.js` marks a game folder by `main.pak` and `BejeweledTwist.exe`, the names the Collection uses). The
+Collection's own exe was not run: it is the same code as the copy origrun runs.
+
+## Processor time like for like (2026-11-11)
+
+The target of `docs/COORDINATION.md` ("The target", the user, 2026-11-11): a port's processor time is at most its
+original's, over the same stretch of play, with the original paced as on a player's 60 Hz screen and sound counted the
+same way on both sides, measured by cycle counts. The README's earlier row (3.3 against 21.1 s a minute) was the main menu
+at rest ("Performance (native)"), and the pairs of "The performance pass" were read from GetProcessTimes, so both were
+measured again.
+
+**How the original paces itself.** An original that waits for a vertical blank spins on rundesk's desktop, where there is
+none, so TipTop's copy is patched to sleep 16 ms a pass. Twist's does not wait for one. Its SexyAppBase::Process
+(0x4a2cb0) runs in vsync-update mode only when the app's +0x5c0 is set, and on the hidden desktop it is 0 (origrun's
+`--watch "[0xe0b698]+0x5c0"`; the refresh rate at +0x5bc reads 60 and the frame time at +0x45c 10 ms). So it times its
+100 updates a second with Sleep (0x4a31da) and draws after each, and its windowed Redraw (DDInterface, 0x5069c0) polls
+the scan line and waits for the vertical blank only when the app's +0x5d0 is set, which is 0 too. On a player's screen
+it runs the same way, so the unpatched copy is already paced as it would be there. A trial patch that made the main loop
+(0x4a3240) sleep 16 ms a pass, as TipTop's does, halved the game's speed (the seeded game's score reached 4,250 after 30 s
+instead of 15), since Twist's loop makes one step of an update a pass: it was not used. The port waits for a vertical
+blank (vsync on outside `-fast`), as it does on a player's screen.
+
+**The same play, the same bot.** Both sides run the same seeded Classic game with `-autoplay=classic`, the original's own
+option (the string at 0x7f3bbc, parsed at 0x76350c), whose moves come from the board's FindMove (0x6c14fc). The port is a
+translation of that code, and the copy runs it unpatched, so neither side pays for a bot the other does not have. The
+port gets no `-commands` file (its only test input is a `-script` with one quit line), so the framework's live-command poll
+does not run. Sound: origrun's stand-in takes the original's DirectSound buffers, whose cursors run on the real clock, so
+BASS decodes and mixes into them as it would into a sound card's; the port's mixer is pulled at the device rate by SDL's
+silent driver under rundesk. Both mix and neither plays.
+
+**Measured** by `tools/profile/pairs.sh` (MODE=2d, then MODE=3d), the whole loop pinned by `tools/pincore.py` to one
+performance core of its own, five pairs in each mode, the original and the port alternating. Each process's cycles are
+read by `tools/profile/cyclemeter.py` (QueryProcessCycleTime, every thread's cycles including the threads that ended)
+every quarter second, and the figure is the cycles between 30 and 90 s of the process's life, a minute inside the game on
+both sides. 2D runs at the 768 art, windowed. In 3D the original runs in its own copy with dgVoodoo2's DDraw.dll and
+D3DImm.dll (origrun's `--dgvoodoo`) and its D3D9.dll, copied in because the game's 3D test asks Direct3D 9, which has no
+hardware on rundesk's desktop; origrun's check read 3D on in every run. The port runs with `-3d` (ANGLE on Direct3D 11).
+The machine was busy: four to seven other sessions' game processes ran beside every run.
+
+| Mode | Original, G cycles in the minute (five runs) | Port, G cycles in the minute (five runs) | Medians |
+|---|---|---|---|
+| 2D | 44.29, 43.88, 44.40, 41.40, 41.69 | 37.19, 39.21, 38.06, 36.57, 38.11 | 43.88 against 38.06 (13 % less) |
+| 3D | 44.88, 46.00, 44.66, 47.00, 44.10 | 28.97, 34.53, 31.50, 36.49, 40.42 | 44.88 against 34.53 (23 % less) |
+
+The port is under its original in both modes and in every pair, so the performance step
+stays closed. Over the whole run (about 104 s) the original's 2D runs took 73 to 79 G cycles and the port's 71 to 81 (three of
+the port's processes took 108 to 116 s to end, against 103 s). The 3D original's figure includes dgVoodoo's translation to Direct3D 11,
+which a player with a Direct3D 9 driver would not run; the port's includes ANGLE's to the same API.
+
+**Not measured again:** the menu at rest, and memory (the peaks in the README row are "The performance pass"'s medians,
+392 MB for the port and 186 MB for the original in the same game).

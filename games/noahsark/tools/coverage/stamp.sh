@@ -9,7 +9,7 @@ set -uo pipefail
 ROOT="$(cd "$(dirname "$0")/../../../.." && pwd)"
 cd "$ROOT"
 S=build/coverage/noahsark/scripts; H=build/coverage/noahsark/hits; mkdir -p "$S" "$H"
-room() { until python -I tools/gamecount.py --limit 3 > /dev/null; do sleep 20; done; }
+room() { until python -I tools/gamecount.py --limit 6 > /dev/null; do sleep 20; done; }
 MENU="$S/stamp.menu.txt"
 printf '301 click 320 456\n360 click 198 188\n381 click 320 195\n420 click 400 405\n' > "$S/stampA.menu.txt"
 # A: the dialog of the round (answered at 13560), the in-game Quit (13650) and its Yes (13680)

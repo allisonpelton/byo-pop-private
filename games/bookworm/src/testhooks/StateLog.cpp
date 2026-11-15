@@ -12,24 +12,27 @@ static const char* const gStateNames[] = { "score", "state", "level", "gmti", "g
 	"firetimer", "bonusgiven", "firemeter", "lvlscore", "burned", "gamemode", "praise" };
 static const int NUM_STATE_VALUES = sizeof(gStateNames) / sizeof(gStateNames[0]);
 
-// An MTRand's 624 state words and then mti, its index (framework/MTRand.h), as in the original
+// port: An MTRand's 624 state words and then mti, its index (framework/MTRand.h), as in the original
 static uint32_t RandWord(const MTRand* theRand, int theIndex)
 {
 	return reinterpret_cast<const uint32_t*>(theRand)[theIndex];
 }
 
+// port: test hook for -statelog (StateLog.h); not part of the original game
 StateLog::StateLog(const std::string& theFileName)
 {
 	mFile = fopen(theFileName.c_str(), "w");
 	mLast.resize(NUM_STATE_VALUES);
 }
 
+// port: test hook for -statelog (StateLog.h); not part of the original game
 StateLog::~StateLog()
 {
 	if (mFile != NULL)
 		fclose(mFile);
 }
 
+// port: test hook for -statelog (StateLog.h); not part of the original game
 void StateLog::Update(BookWormApp* theApp)
 {
 	if (mFile == NULL)

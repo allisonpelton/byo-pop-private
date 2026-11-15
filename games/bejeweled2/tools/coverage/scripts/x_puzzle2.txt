@@ -1,0 +1,171 @@
+# from build/logs/bej2/tm_puzzle2/events.json, delta 0
+at 562 shot title
+at 566 move 320 401
+at 568 click 320 401
+at 808 shot menu
+at 811 move 164 317
+at 813 click 164 317
+at 888 shot board
+at 894 move 382 315
+at 896 click 382 315
+at 908 move 382 315
+at 910 click 382 315
+at 922 move 382 315
+at 924 click 382 315
+at 936 move 382 315
+at 938 click 382 315
+at 950 move 382 315
+at 952 click 382 315
+at 964 move 435 315
+at 966 click 435 315
+at 1062 move 408 266
+at 1064 click 408 266
+at 1076 move 408 266
+at 1078 click 408 266
+at 1090 move 330 263
+at 1092 click 330 263
+at 1094 move 277 263
+at 1096 click 277 263
+at 1164 move 435 263
+at 1166 click 435 263
+at 1168 move 382 263
+at 1170 click 382 263
+at 1238 move 540 263
+at 1240 click 540 263
+at 1242 move 487 263
+at 1244 click 487 263
+at 1312 move 277 420
+at 1314 click 277 420
+at 1316 move 225 420
+at 1318 click 225 420
+at 1386 move 382 420
+at 1388 click 382 420
+at 1390 move 330 420
+at 1392 click 330 420
+at 1460 move 487 420
+at 1462 click 487 420
+at 1464 move 435 420
+at 1466 click 435 420
+at 1534 move 592 420
+at 1536 click 592 420
+at 1538 move 540 420
+at 1540 click 540 420
+at 1608 move 26 142
+at 1614 click 26 142
+at 1638 click 26 142
+at 1666 move 277 368
+at 1668 click 277 368
+at 1670 move 225 368
+at 1672 click 225 368
+at 1796 move 382 368
+at 1798 click 382 368
+at 1800 move 330 368
+at 1802 click 330 368
+at 1926 move 487 368
+at 1928 click 487 368
+at 1930 move 435 368
+at 1932 click 435 368
+at 2056 move 592 368
+at 2058 click 592 368
+at 2060 move 540 368
+at 2062 click 540 368
+at 2186 move 94 182
+at 2192 click 94 182
+at 2216 click 94 182
+at 2244 move 277 368
+at 2246 click 277 368
+at 2248 move 225 368
+at 2250 click 225 368
+at 2318 move 330 368
+at 2320 click 330 368
+at 2322 move 277 368
+at 2324 click 277 368
+at 2392 move 382 368
+at 2394 click 382 368
+at 2396 move 330 368
+at 2398 click 330 368
+at 2466 move 435 368
+at 2468 click 435 368
+at 2470 move 382 368
+at 2472 click 382 368
+at 2540 move 487 368
+at 2542 click 487 368
+at 2544 move 435 368
+at 2546 click 435 368
+at 2614 move 540 368
+at 2616 click 540 368
+at 2618 move 487 368
+at 2620 click 487 368
+at 2688 move 592 368
+at 2690 click 592 368
+at 2692 move 540 368
+at 2694 click 540 368
+at 2762 move 162 142
+at 2768 click 162 142
+at 2792 click 162 142
+at 2820 move 330 105
+at 2822 click 330 105
+at 2824 move 330 158
+at 2826 click 330 158
+at 2908 move 330 158
+at 2910 click 330 158
+at 2912 move 330 210
+at 2914 click 330 210
+at 3010 move 487 158
+at 3012 click 487 158
+at 3014 move 487 210
+at 3016 click 487 210
+at 3112 move 330 210
+at 3114 click 330 210
+at 3116 move 330 263
+at 3118 click 330 263
+at 3214 move 487 210
+at 3216 click 487 210
+at 3218 move 487 263
+at 3220 click 487 263
+at 3316 move 330 263
+at 3318 click 330 263
+at 3320 move 330 315
+at 3322 click 330 315
+at 3418 move 487 263
+at 3420 click 487 263
+at 3422 move 487 315
+at 3424 click 487 315
+at 3520 move 330 315
+at 3522 click 330 315
+at 3524 move 330 368
+at 3526 click 330 368
+at 3622 move 487 315
+at 3624 click 487 315
+at 3626 move 487 368
+at 3628 click 487 368
+at 3724 move 330 420
+at 3726 click 330 420
+at 3728 move 330 368
+at 3730 click 330 368
+at 3826 move 435 368
+at 3828 click 435 368
+at 3830 move 435 420
+at 3832 click 435 420
+at 4136 shot solved
+at 4139 move 95 103
+at 4141 click 95 103
+at 4183 shot warp0
+at 4226 shot warp1
+at 4269 shot warp2
+at 4312 shot warp3
+at 4355 shot warp4
+at 4398 shot warp5
+at 4441 shot warp6
+at 4484 shot warp7
+at 4644 shot board-played
+at 4700 move 100 340
+at 4702 click 100 340
+at 4800 shot hint
+at 4900 move 92 432
+at 4902 click 92 432
+at 5000 shot undo
+at 5100 move 96 47
+at 5102 click 96 47
+at 5300 shot map
+quit

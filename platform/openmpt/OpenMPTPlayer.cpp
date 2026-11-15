@@ -161,6 +161,25 @@ public:
 		return aText;
 	}
 
+	// libopenmpt's rows per beat and bar (an IT's highlights, an MO3's PRHI chunk); its own default 4 and 16 when the file stores
+	// none, which cannot be told apart from a file's 4 and 16, so those count as none
+	int GetMeter(int thePattern) override
+	{
+		int aBeat = openmpt_module_get_pattern_rows_per_beat(mModule, thePattern);
+		int aBar = openmpt_module_get_pattern_rows_per_measure(mModule, thePattern);
+		return aBeat > 0 && aBar >= aBeat && !(aBeat == 4 && aBar == 16) ? aBeat << 16 | aBar : 0;
+	}
+
+	int GetSpeed() override
+	{
+		return openmpt_module_get_current_speed(mModule);
+	}
+
+	int GetOrders() override
+	{
+		return openmpt_module_get_num_orders(mModule);
+	}
+
 	bool SetChannelMute(int theChannel, bool theMute) override
 	{
 		if (!mHasInteractive || theChannel < 0 || theChannel >= openmpt_module_get_num_channels(mModule))

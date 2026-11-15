@@ -29,7 +29,7 @@ public:
 	int					mShownFossil;		// +0x258 the app's fossil picture showing the fragments found (-1 none)
 	int					mShownChannels;		// +0x25c and which (1, 3 or 7)
 	Kroney*				mKroney;			// +0x260
-	int					mField264;			// +0x264 fades up by 3 to 255 before the first shot, down after
+	int					mFirstShotFade;		// +0x264 up by 3 an update to 255 before the first shot, down after (saved; nothing reads it)
 	int					mPushes;			// +0x268 frames the ceiling still comes down a pixel (33 after Kroney)
 	Fossil*				mFossil;			// +0x26c
 	bool				mFossilFell;		// +0x270 the fragment is off the bottom: the round's end
@@ -71,7 +71,7 @@ public:
 	virtual void		GetPowerUpCenter(int* x, int* y) override;	// 0x4085a0: by Kroney
 	// 0x408020: the board's, but Easy halves the points; after the fragment fell the popup stays in place longer
 	virtual void		AddPoints(int x, int y, int thePoints, int theMultiplier, bool isChain) override;
-	// 0x4084b0: the board's; a baby that left the board (mField108 20) makes a power-up egg
+	// 0x4084b0: the board's; a baby that left the board (mNextEggKind 20) makes a power-up egg
 	virtual Egg*		NextEgg() override;
 	// 0x40c5f0: theDifficulty is the fossil kind (1 panic); the game is always played at skill 2
 	virtual void		Init(FossilizedApp* theApp, int theDifficulty) override;

@@ -8,7 +8,7 @@ LOCK=build/.slotlock
 n=0
 while true; do
 	if mkdir "$LOCK" 2> /dev/null; then
-		if python tools/gamecount.py --limit 3 > /dev/null 2>&1; then
+		if python tools/gamecount.py --limit 6 > /dev/null 2>&1; then
 			break
 		fi
 		rmdir "$LOCK"

@@ -23,8 +23,9 @@ DEFAULT_INSTALLS = [
 # Folders and files the game reads at runtime. Dynomite.exe is read for the game's texts only, never run.
 # properties/partner.xml is the distributor's settings (the Steam copy's says NoReg: the game is registered); it is
 # optional. Not copied: the DRM wrapper's files (drm.swf, drm.xml, drmss.jpg, Flash.ocx), partner.xml's signature,
-# bass.dll (the port plays the music itself), the readme and licence, and the player's own data
-# (the .HS high-score files and saved games).
+# bass.dll (the port plays the music itself), the readme and licence, the player's own data (the .HS high-score files
+# and saved games), and the sounds the original decoded and cached on its first run (sounds/cached_*.wav, which the port
+# never reads: it decodes the Ogg files itself).
 DIRS = ["images", "data", "sounds", "music", "stomped"]
 FILES = ["Dynomite.exe", "DEFAULT.EGG", "properties/default.xml", "properties/partner.xml"]
 REQUIRED = ["dynomite.exe", "default.egg", "properties/default.xml", "images/welcomescreen.gif",
@@ -74,7 +75,7 @@ def main():
             os.makedirs(os.path.join(out, rel), exist_ok=True)
             for f in files:
                 low = f.lower()
-                if low in SKIP:
+                if low in SKIP or low.startswith("cached_"):
                     continue
                 shutil.copy2(os.path.join(root, f), os.path.join(out, rel, low))
                 count += 1

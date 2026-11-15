@@ -35,15 +35,15 @@ EggGrid::EggGrid(FossilizedApp* theApp, Dynomite* theBoard)
 	}
 	mDynamites.Clear();
 	mMaxColor = 4;
-	mField4690 = false;
-	mField4691 = false;
-	mField46d0 = true;
+	mShowPastLine = false;
+	mAlarmDue = false;
+	mCeilingDrawn = true;
 	mBabyEggsOn = true;
-	mField46b4 = 200;
+	mBaseBabyEggChance = 200;
 	mBabyEggChance = 200;
 	mBreakPastLine = false;
 	mEggCount = 100;
-	mField46e5 = false;
+	mKeepPastRight = false;
 	// port: not set by the original constructor
 	mBlastX = 0;
 	mBlastY = 0;
@@ -82,7 +82,7 @@ void EggGrid::PixelToCell(int x, int y, GridPoint* theCell)
 // 0x4158f0
 void EggGrid::ScreenToGrid(int x, int y, GridPoint* thePoint)
 {
-	thePoint->mX = (mBoard->mField6c - mBoard->mField70) + x;
+	thePoint->mX = (mBoard->mPlayHalfWidth - mBoard->mPlayMiddleX) + x;
 	thePoint->mY = (int) ((float) y - mCeiling);
 }
 
@@ -98,7 +98,7 @@ void EggGrid::CellToPixel(int theCol, int theRow, GridPoint* thePoint)
 // 0x415950
 void EggGrid::GridToScreen(int x, int y, GridPoint* thePoint)
 {
-	thePoint->mX = (mBoard->mField70 - mBoard->mField6c) + x;
+	thePoint->mX = (mBoard->mPlayMiddleX - mBoard->mPlayHalfWidth) + x;
 	thePoint->mY = (int) ((float) y + mCeiling);
 }
 
@@ -131,7 +131,7 @@ void EggGrid::CountRows()
 // 0x4159f0
 void EggGrid::ResetCeiling()
 {
-	mField4691 = false;
+	mAlarmDue = false;
 	mCeiling = -((mRows + 1.0f) * 33.0f + 16.0f);
 }
 
@@ -144,7 +144,7 @@ unsigned int EggGrid::Probe(int x, int y, bool theGhost)
 	int gy = aPoint.mY;
 	if (gx < 9)
 		return 1;
-	if (mBoard->mField68 - 0x17 <= gx)
+	if (mBoard->mPlayWidth - 0x17 <= gx)
 		return 2;
 	if (gy < 1)
 		return 4;
@@ -303,9 +303,12 @@ void EggGrid::Place(int theCol, int theRow, int theColor, int theKind)
 	if ((aSame != 0) && (theColor < 0x12))
 	{
 		mLoneEgg = false;
-		// the old stick leaves the list but is not deleted
+		// the old stick leaves the list; the original never deletes it, a leak the port fixes (nothing else holds it)
 		if (mDynamite[theCol][theRow] != NULL)
+		{
 			mDynamites.Remove(mDynamite[theCol][theRow]);
+			delete mDynamite[theCol][theRow];
+		}
 		GridDynamite* aDynamite = new GridDynamite(this, aPoint.mX + 0x10, aPoint.mY);
 		mDynamites.Add(aDynamite);
 		mDynamite[theCol][theRow] = aDynamite;
@@ -714,7 +717,7 @@ void EggGrid::Blast(int theCol, int theRow)
 		BlastCell(theCol, theRow + 2);
 	}
 	BlastCell(theCol + 1, theRow + 2);
-	mBoard->mField13c = -0x32;
+	mBoard->mShakeY = -0x32;
 	mBoard->Blasted();
 	int aCount = mBlastCount;
 	if (aCount != 0)
@@ -867,7 +870,7 @@ void EggGrid::AddRow(int theRow)
 	do
 	{
 		x = x + 0x21;
-		if (mBoard->mField68 < x)
+		if (mBoard->mPlayWidth < x)
 			break;
 		Place(aCol, theRow, mApp->mRand.NextNoAssert() % (unsigned int) mMaxColor + 1, 0);
 		aCol++;
@@ -886,14 +889,14 @@ void EggGrid::Clear()
 		aCell++;
 	}
 	mEggCount = 0;
-	mField4691 = false;
+	mAlarmDue = false;
 	ClearDynamite();
 }
 
 // 0x4171c0
 void EggGrid::Load(BinFile* theFile)
 {
-	mField46e5 = false;
+	mKeepPastRight = false;
 	mCeiling = theFile->ReadFloat();
 	theFile->Read(mCells, 6000);
 	mRows = theFile->ReadFloat();
@@ -903,11 +906,11 @@ void EggGrid::Load(BinFile* theFile)
 	mPastLineFrames = theFile->ReadInt();
 	mWarning = theFile->ReadBool();
 	mWarningBlink = theFile->ReadInt();
-	mField4690 = theFile->ReadBool();
-	mField4691 = theFile->ReadBool();
+	mShowPastLine = theFile->ReadBool();
+	mAlarmDue = theFile->ReadBool();
 	mBabyEggsOn = theFile->ReadBool();
 	theFile->ReadInt();
-	mField46d0 = theFile->ReadBool();
+	mCeilingDrawn = theFile->ReadBool();
 	mBreakPastLine = theFile->ReadBool();
 	mBlastX = theFile->ReadInt();	// one read of 8 bytes in the original
 	mBlastY = theFile->ReadInt();
@@ -1002,7 +1005,7 @@ BabyEgg::BabyEgg(EggGrid* theGrid)
 		mCol = 0;
 		return;
 	}
-	unsigned int aX = theGrid->mApp->mRand.NextNoAssert() % (unsigned int) theGrid->mBoard->mField68;
+	unsigned int aX = theGrid->mApp->mRand.NextNoAssert() % (unsigned int) theGrid->mBoard->mPlayWidth;
 	unsigned int aY = mGrid->mApp->mRand.NextNoAssert() % (unsigned int) mGrid->mBottom;
 	GridPoint aCell;
 	EggGrid::PixelToCell(aX, aY, &aCell);
@@ -1052,12 +1055,12 @@ bool BabyEgg::Update()
 	return (char) mGrid->mCells[mCol][mRow].mBits != 0;
 }
 
-// 0x416e30: the eggs of the rows at or past the board's line (+0x74) break without points; the mode's pieces (50)
+// 0x416e30: the eggs of the rows at or past the board's line (mLineY) break without points; the mode's pieces (50)
 // only show falling
 void EggGrid::BreakPastLine()
 {
 	int y = (int) mCeiling;
-	int aCols = mBoard->mField68 / 0x21 + 1;
+	int aCols = mBoard->mPlayWidth / 0x21 + 1;
 	int aLastRow = (int) mRows;
 	int aRow = 0;
 	bool aBroke = false;
@@ -1065,7 +1068,7 @@ void EggGrid::BreakPastLine()
 	{
 		do
 		{
-			if ((mBoard->mField74 <= y) && (0 < aCols))
+			if ((mBoard->mLineY <= y) && (0 < aCols))
 			{
 				int aCol = 0;
 				do
@@ -1139,11 +1142,11 @@ void EggGrid::Update()
 	GridPoint aPoint;
 	GridToScreen(0, mBottom, &aPoint);
 	mBottom = aPoint.mY;
-	if (mBoard->mField74 < mBottom)
+	if (mBoard->mLineY < mBottom)
 	{
 		if (mPastLineFrames == 0)
 		{
-			mField4691 = true;
+			mAlarmDue = true;
 			mWarning = true;
 			mWarningBlink = 0;
 		}
@@ -1151,7 +1154,7 @@ void EggGrid::Update()
 	}
 	else
 		mPastLineFrames = 0;
-	if (mBoard->mField149 == true)
+	if (mBoard->mPastLineLoses == true)
 	{
 		mWarningBlink++;
 		if (0x19 < mWarningBlink)
@@ -1171,7 +1174,7 @@ void EggGrid::Update()
 	bool aRecounted = false;
 	while (true)
 	{
-		int aCols = mBoard->mField68 / 0x21 + 1;
+		int aCols = mBoard->mPlayWidth / 0x21 + 1;
 		int aRow = 0;
 		if (10.0f < mRows)
 		{
@@ -1211,15 +1214,15 @@ void EggGrid::Update()
 void EggGrid::Draw()
 {
 	Dynomite* aBoard = mBoard;
-	int aLeft = (aBoard->mField70 - aBoard->mField6c) + 0x10;
+	int aLeft = (aBoard->mPlayMiddleX - aBoard->mPlayHalfWidth) + 0x10;
 	int y = (int) mCeiling;
-	int aCols = aBoard->mField68 / 0x21 + 1;
+	int aCols = aBoard->mPlayWidth / 0x21 + 1;
 	int x = aLeft;
 	int aLastRow = (int) mRows;
-	if ((0 < mPastLineFrames) && (mWarning == true) && (mField4690 == false))
+	if ((0 < mPastLineFrames) && (mWarning == true) && (mShowPastLine == false))
 	{
 		GridPoint aPoint;
-		ScreenToGrid(0, aBoard->mField74, &aPoint);
+		ScreenToGrid(0, aBoard->mLineY, &aPoint);
 		PixelToCell(0, aPoint.mY, &aPoint);
 		aLastRow = aPoint.mY;
 	}
@@ -1245,7 +1248,7 @@ void EggGrid::Draw()
 						{
 							if (aRow < 0x5a)
 							{
-								if ((mBoard->mField70 + 0x10 + mBoard->mField6c < x + 0x21) && (mField46e5 == false))
+								if ((mBoard->mPlayMiddleX + 0x10 + mBoard->mPlayHalfWidth < x + 0x21) && (mKeepPastRight == false))
 								{
 									GridPoint aPixel;
 									CellToPixel(aCol, aRow, &aPixel);
@@ -1318,19 +1321,19 @@ void EggGrid::Draw()
 	if (0.0f < mCeiling)
 	{
 		int aCeiling = (int) (mCeiling - 16.0f);
-		int aLeftEdge = mBoard->mField70;
-		int aHalf = mBoard->mField6c;
+		int aLeftEdge = mBoard->mPlayMiddleX;
+		int aHalf = mBoard->mPlayHalfWidth;
 		int aRight = aHalf + aLeftEdge;
 		int aFoot = aCeiling;
-		if (mField46d0 == true)
+		if (mCeilingDrawn == true)
 			aFoot = aCeiling - 0x14;
 		Pic* aPic = mApp->mPicFoot;
 		if (-1 < aFoot)
 			aPic->DrawStretched(aLeftEdge - aHalf, aFoot - aPic->mHeight, aRight, aFoot, true);
-		if (mField46d0 == true)
+		if (mCeilingDrawn == true)
 		{
-			int aMiddle = mBoard->mField70;
-			aHalf = mBoard->mField6c;
+			int aMiddle = mBoard->mPlayMiddleX;
+			aHalf = mBoard->mPlayHalfWidth;
 			aPic = mApp->mPicCeiling;
 			int aX = aMiddle - aHalf;
 			if (aPic->mWidth + aX < aHalf + aPic->mWidth + aMiddle)
@@ -1342,7 +1345,7 @@ void EggGrid::Draw()
 					aPic = mApp->mPicCeiling;
 					aWidth = aPic->mWidth;
 					aX = aX + aWidth;
-				} while (aWidth + aX < mBoard->mField70 + mBoard->mField6c + aWidth);
+				} while (aWidth + aX < mBoard->mPlayMiddleX + mBoard->mPlayHalfWidth + aWidth);
 			}
 		}
 	}
@@ -1406,11 +1409,11 @@ void EggGrid::SaveState(BinFile* theFile)
 	theFile->WriteInt(mPastLineFrames);
 	theFile->WriteBool(mWarning);
 	theFile->WriteInt(mWarningBlink);
-	theFile->WriteBool(mField4690);
-	theFile->WriteBool(mField4691);
+	theFile->WriteBool(mShowPastLine);
+	theFile->WriteBool(mAlarmDue);
 	theFile->WriteBool(mBabyEggsOn);
 	theFile->WriteInt(mBabyEggChance);
-	theFile->WriteBool(mField46d0);
+	theFile->WriteBool(mCeilingDrawn);
 	theFile->WriteBool(mBreakPastLine);
 	theFile->WriteInt(mBlastX);
 	theFile->WriteInt(mBlastY);
@@ -1462,11 +1465,11 @@ void EggGrid::LoadState(BinFile* theFile)
 	mPastLineFrames = theFile->ReadInt();
 	mWarning = theFile->ReadBool();
 	mWarningBlink = theFile->ReadInt();
-	mField4690 = theFile->ReadBool();
-	mField4691 = theFile->ReadBool();
+	mShowPastLine = theFile->ReadBool();
+	mAlarmDue = theFile->ReadBool();
 	mBabyEggsOn = theFile->ReadBool();
 	mBabyEggChance = theFile->ReadInt();
-	mField46d0 = theFile->ReadBool();
+	mCeilingDrawn = theFile->ReadBool();
 	mBreakPastLine = theFile->ReadBool();
 	mBlastX = theFile->ReadInt();
 	mBlastY = theFile->ReadInt();

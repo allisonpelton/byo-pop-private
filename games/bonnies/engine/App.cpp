@@ -182,14 +182,6 @@ bool App::inModal()
 	return 0 < mDepth;
 }
 
-// 0x421240
-int App::isModal()
-{
-	if (0 < mDepth && mBlocking[mDepth] != 0)
-		return 1;
-	return 0;
-}
-
 // 0x421260
 int App::runModal(int theBlocking, Screen* theScreen)
 {

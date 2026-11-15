@@ -1,0 +1,165 @@
+#include "User.h"
+
+#include "App.h"
+#include "Edition.h"
+#include "JBBase.h"
+
+namespace mahjong
+{
+
+User gUser;
+
+// A player's checksum covers the folder of the exe (0x415b60 (mahjongchina), 0x416100 (mahjongjapan)), so the original
+// loads a player only from the install that saved it. The port signs with the original's usual install folder, so
+// players move between the original and the port whatever folder the port runs from, and it loads a player signed with
+// any of these (DEVIATIONS.md)
+static const char* const SIGN_FOLDERS[] = {
+	"C:\\Program Files (x86)\\Popcap Game Collection\\" EDITION_INSTALL_FOLDER "\\",
+	"C:\\Program Files\\Popcap Game Collection\\" EDITION_INSTALL_FOLDER "\\",
+	nullptr,  // the port's own folder, which signed its players before
+};
+static const char* gSignFolder = SIGN_FOLDERS[0];
+
+// 0x4159b0 (mahjongchina), 0x415f40 (mahjongjapan)
+void User::Reset(int theId)
+{
+	mId = theId;
+	mAutoHint = true;
+	mShadeCovered = true;
+	mSelectedLayout = 0;
+	mQuadPercent = edition::DEFAULT_QUAD_PERCENT;
+	mStyleFree = 1;
+	mBackground = -1;
+	mFreeTipShown = false;
+	int k = 0;
+	int i = edition::NUM_LAYOUT_RECORDS;
+	do
+	{
+		mBestTimes[k] = 36000;
+		mBestScores[k] = 0;
+		k++;
+		i--;
+	} while (i != 0);
+	mProgress = 0;
+	mStyleEscape = 0;
+	k = 0;
+	i = edition::NUM_LEVELS;
+	do
+	{
+		mEscBestTimes[k] = 36000;
+		mEscBestScores[k] = 0;
+		k++;
+		i--;
+	} while (i != 0);
+	mShowQuitNote = true;
+}
+
+// 0x415a30 (mahjongchina), 0x415fc0 (mahjongjapan)
+void User::Serialize(jb::Stream& theStream)
+{
+	mMagic = 0x4d45;
+	mVersion = 1;
+	theStream.Short(mMagic);
+	theStream.Char(mVersion);
+	theStream.Short(mId);
+	theStream.String(mName);
+	theStream.Bool(mAutoHint);
+	theStream.Bool(mShadeCovered);
+	theStream.Short(mSelectedLayout);
+	theStream.Short(mQuadPercent);
+	theStream.Char(mStyleFree);
+	theStream.Char(mBackground);
+	theStream.Bool(mFreeTipShown);
+	int k = 0;
+	int i = edition::NUM_LAYOUT_RECORDS;
+	do
+	{
+		theStream.Word(mBestTimes[k]);
+		theStream.Int(mBestScores[k]);
+		k++;
+		i--;
+	} while (i != 0);
+	theStream.Short(mProgress);
+	theStream.Char(mStyleEscape);
+	k = 0;
+	i = edition::NUM_LEVELS;
+	do
+	{
+		theStream.Word(mEscBestTimes[k]);
+		theStream.Int(mEscBestScores[k]);
+		k++;
+		i--;
+	} while (i != 0);
+	theStream.Bool(mShowQuitNote);
+	std::string aFolder = gSignFolder != nullptr ? gSignFolder : jb::GetExeFolder();
+	theStream.ChecksumBlock((const uint8_t*)aFolder.c_str(), (int)aFolder.length());
+}
+
+// 0x415b60 (mahjongchina), 0x416100 (mahjongjapan)
+void User::Load(int theId, const char* theName)
+{
+	jb::Stream aStream;
+	std::string aPath;
+	GetUserPath(theId, aPath);
+	if (!aStream.OpenRead(aPath.c_str()))
+		Reset(theId);
+	else
+	{
+		bool aFound = false;
+		for (size_t i = 0; !aFound && i < sizeof(SIGN_FOLDERS) / sizeof(SIGN_FOLDERS[0]); i++)
+		{
+			gSignFolder = SIGN_FOLDERS[i];
+			jb::Stream aTry;
+			if (aTry.OpenRead(aPath.c_str()))
+			{
+				aTry.Serialize(this);
+				aFound = mId == theId && mMagic == 0x4d45 && mVersion == 1 && aTry.ChecksumOk();
+			}
+		}
+		gSignFolder = SIGN_FOLDERS[0];
+		if (aFound)
+			return;
+		Reset(theId);
+	}
+	mName = theName != nullptr ? theName : "";
+}
+
+// 0x415c50 (mahjongchina), 0x4161f0 (mahjongjapan)
+void User::Save()
+{
+	if (mId != -1)
+	{
+		jb::Stream aStream;
+		std::string aPath;
+		GetUserPath(mId, aPath);
+		if (aStream.OpenWrite(aPath.c_str()))
+			aStream.Serialize(this);
+	}
+}
+
+// 0x415cf0 (mahjongchina), 0x4162a0 (mahjongjapan)
+void User::GetUserPath(int theId, std::string& thePath)
+{
+	thePath = jb::Format("%s%d.usr", jb::GetUserFolder().c_str(), theId);
+}
+
+// 0x415d60 (mahjongchina), 0x416310 (mahjongjapan)
+void User::GetSavePattern(int theId, std::string& thePattern, std::string& theFolder)
+{
+	theFolder = jb::GetUserFolder();
+	thePattern = jb::Format("%s%d_*.sav", theFolder.c_str(), theId);
+}
+
+// 0x415de0 (mahjongchina), 0x416390 (mahjongjapan)
+void User::GetFreeSave(int theLevel, std::string& thePath)
+{
+	thePath = jb::Format("%s%d_%d.sav", jb::GetUserFolder().c_str(), mId, theLevel);
+}
+
+// 0x415e60 (mahjongchina), 0x416410 (mahjongjapan)
+void User::GetEscapeSave(int theLevel, std::string& thePath)
+{
+	thePath = jb::Format("%s%d_%d_D.sav", jb::GetUserFolder().c_str(), mId, theLevel);
+}
+
+} // namespace mahjong

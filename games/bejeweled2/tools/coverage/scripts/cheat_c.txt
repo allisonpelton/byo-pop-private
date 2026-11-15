@@ -1,0 +1,12 @@
+# coverage script (2D, the profile player): a Classic board with COLORSWAP typed first (the gems' colours turn: PixelsRotate), NORMAL after plenty of time (the reload of every image takes no keys while it runs)
+at 562 shot title
+at 566 move 320 401
+at 568 click 320 401
+at 811 move 164 105
+at 813 click 164 105
+at 1081 move 464 433
+at 1083 click 464 433
+at 1800 text COLORSWAP
+at 4500 text NORMAL
+at 7500 shot board_end
+quit

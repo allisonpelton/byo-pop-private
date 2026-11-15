@@ -10,6 +10,7 @@
 using namespace Sexy;
 
 // the heading for a step of (dx, dy), as in Board::UpdateMove (0 when there is none)
+// port: a helper; the original writes it out inline where it is used
 static int StepHeading(int theDX, int theDY)
 {
 	int aHeading = 0;
@@ -36,6 +37,7 @@ static int StepHeading(int theDX, int theDY)
 
 // the original steps back to the node before the current one before it removes the current ship, and goes on from
 // there; returns true when the ship is the first of the list (then the loop goes on from the new first)
+// port: a helper; the original writes it out inline where it is used
 static bool StepBack(std::list<Ship*>& theShips, std::list<Ship*>::iterator& theItr)
 {
 	if (theItr == theShips.begin())

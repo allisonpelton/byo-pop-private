@@ -10,7 +10,7 @@ N=${1:-12}
 rm -f $R/loadpairs.txt $R/loadpairs.done
 for i in $(seq 1 $N); do
   for v in before after; do
-    until python -I tools/gamecount.py --limit 3 > /dev/null; do sleep 10; done
+    until python -I tools/gamecount.py --limit 6 > /dev/null; do sleep 10; done
     if [ $v = before ]; then E="$W/build/perf2/before/noahsark.exe"; else E="$W/build/native/noahsark.exe"; fi
     PORT_EXE=$E build/native/rundesk.exe python $PERF port-load $R/lp_tmp 1 2>/dev/null | python -I -c "
 import sys, json

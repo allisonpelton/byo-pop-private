@@ -37,7 +37,7 @@ CreditsDialog::CreditsDialog(BookWormApp* theApp) :
 	mCloudX = 0.0;
 	mCloudY = 0.0;
 	mFont = mApp->mFonts[FONT_LEGACYSERIFMDSCITCTT12];
-	// BookWormApp::ShowCredits sets the colours, Resize(0, 47, 388, 396), Move((mWidth - 388 + 233)/2, 47)
+	// BookWormApp::DoCredits sets the colours, Resize(0, 47, 388, 396), Move((mWidth - 388 + 233)/2, 47)
 	// and adds it as dialog 16.
 }
 

@@ -269,18 +269,18 @@ void listFiles(const Str& theDir, const Str& theFilter, int* theCount, Str** the
 		{
 			char aName[260];
 			std::snprintf(aName, sizeof(aName), "%s", aNames[n].c_str());
-			char* p = aName + std::strlen(aName) - 1;
-			if (aName < p)
+			char* aDot = aName + std::strlen(aName) - 1;
+			if (aName < aDot)
 			{
 				do
 				{
-					if (*p == '.')
+					if (*aDot == '.')
 					{
-						*p = '\0';
+						*aDot = '\0';
 						break;
 					}
-					p = p - 1;
-				} while (aName < p);
+					aDot = aDot - 1;
+				} while (aName < aDot);
 			}
 			if (aName[0] != '\0' && (int)aFound.size() < 999)
 				aFound.push_back(aName);

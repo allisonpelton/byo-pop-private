@@ -1,4 +1,4 @@
-// Test hooks: the autoplay bot (-autoplay=<seed>). It plays whole games through the framework's scripted input
+// port: test hooks: the autoplay bot (-autoplay=<seed>). It plays whole games through the framework's scripted input
 // (SexyAppBase::AddScriptCommand), so everything the game does for a player runs: the splash and the menus, the
 // tips, blocks dropped into columns, matches, levels and their summaries, the game over screen and the high score
 // name. In a game it drops the next block where it joins the biggest group of its kind; when no column makes a
@@ -147,14 +147,14 @@ bool Enter(AutoplayState* s)
 
 void TipTopApp::Autoplay()
 {
-	AutoplayState* s = mAutoplayState;
-	if (s->mLog == nullptr && !mAutoplayLog.empty())
-		s->mLog = fopen(mAutoplayLog.c_str(), "w");
-	if (s->mScriptOut == nullptr && !mAutoplayScript.empty())
-		s->mScriptOut = fopen(mAutoplayScript.c_str(), "w");
+	AutoplayState* aState = mAutoplayState;
+	if (aState->mLog == nullptr && !mAutoplayLog.empty())
+		aState->mLog = fopen(mAutoplayLog.c_str(), "w");
+	if (aState->mScriptOut == nullptr && !mAutoplayScript.empty())
+		aState->mScriptOut = fopen(mAutoplayScript.c_str(), "w");
 	if (mUpdateCount >= mAutoplayCap)
 	{
-		Log(s, "update %d: cap reached (game %d, %d moves)\n", mUpdateCount, s->mGames + 1, s->mMoves);
+		Log(aState, "update %d: cap reached (game %d, %d moves)\n", mUpdateCount, aState->mGames + 1, aState->mMoves);
 		if (!mAutoplayShots.empty())
 			SaveScreenshot(mAutoplayShots + "-cap.png");
 		Shutdown();
@@ -162,35 +162,35 @@ void TipTopApp::Autoplay()
 	}
 	tiptop::App& anApp = tiptop::gApp;
 	int aScreen = anApp.mScreen;
-	if (aScreen != s->mLastScreen)
+	if (aScreen != aState->mLastScreen)
 	{
-		s->mLastScreen = aScreen;
-		s->mWait = 100;
-		s->mShot = false;
+		aState->mLastScreen = aScreen;
+		aState->mWait = 100;
+		aState->mShot = false;
 		if (aScreen == tiptop::SCREEN_LEVELSUMMARY && anApp.mBoard != nullptr)
 		{
-			Log(s, "level %u done at update %d: score %u\n", anApp.mBoard->mState.mLevel, mUpdateCount,
+			Log(aState, "level %u done at update %d: score %u\n", anApp.mBoard->mState.mLevel, mUpdateCount,
 				anApp.mBoard->GetScore());
-			s->mWait = 300;
+			aState->mWait = 300;
 		}
 		else if (aScreen == tiptop::SCREEN_GAMEOVER && anApp.mBoard != nullptr)
 		{
-			s->mGames++;
-			Log(s, "game %d over at update %d: level %u, score %u, %d moves\n", s->mGames, mUpdateCount,
-				anApp.mBoard->mState.mLevel, anApp.mBoard->GetScore(), s->mMoves);
-			s->mWait = 600;
-			s->mNameTyped = false;
-			s->mMoves = 0;
+			aState->mGames++;
+			Log(aState, "game %d over at update %d: level %u, score %u, %d moves\n", aState->mGames, mUpdateCount,
+				anApp.mBoard->mState.mLevel, anApp.mBoard->GetScore(), aState->mMoves);
+			aState->mWait = 600;
+			aState->mNameTyped = false;
+			aState->mMoves = 0;
 		}
 	}
-	if (s->mWait > 0)
+	if (aState->mWait > 0)
 	{
-		s->mWait--;
-		if (s->mWait == 0 && !s->mShot && !mAutoplayShots.empty() &&
+		aState->mWait--;
+		if (aState->mWait == 0 && !aState->mShot && !mAutoplayShots.empty() &&
 			(aScreen == tiptop::SCREEN_LEVELSUMMARY || aScreen == tiptop::SCREEN_GAMEOVER))
 		{
-			SaveScreenshot(mAutoplayShots + StrFormat("-%02d-screen%d.png", s->mShots++, aScreen));
-			s->mShot = true;
+			SaveScreenshot(mAutoplayShots + StrFormat("-%02d-screen%d.png", aState->mShots++, aScreen));
+			aState->mShot = true;
 		}
 		return;
 	}
@@ -198,55 +198,55 @@ void TipTopApp::Autoplay()
 	{
 	case tiptop::SCREEN_SPLASH:
 		// "click here to play", once the load bar is full
-		Add(s, "click", "186 288");
-		s->mWait = 100;
+		Add(aState, "click", "186 288");
+		aState->mWait = 100;
 		break;
 	case tiptop::SCREEN_MAINMENU:
-		if (s->mGames >= mAutoplayGames)
+		if (aState->mGames >= mAutoplayGames)
 		{
-			Log(s, "done\n");
+			Log(aState, "done\n");
 			Shutdown();
 			return;
 		}
-		Add(s, "click", "165 88");  // Play
-		s->mWait = 100;
+		Add(aState, "click", "165 88");  // Play
+		aState->mWait = 100;
 		break;
 	case tiptop::SCREEN_NEWGAME:
 		// the new game screen's Regular, Strategy and Speed buttons, or Continue for the game just saved
-		if (s->mSaveStep == 2)
+		if (aState->mSaveStep == 2)
 		{
-			if (ClickCommand(s, 0x24))
+			if (ClickCommand(aState, 0x24))
 			{
-				Log(s, "update %d: continue the saved game\n", mUpdateCount);
-				s->mSaveStep = 3;
-				s->mWait = 100;
+				Log(aState, "update %d: continue the saved game\n", mUpdateCount);
+				aState->mSaveStep = 3;
+				aState->mWait = 100;
 			}
 			break;
 		}
-		Add(s, "click", mAutoplayMode == 1 ? "145 260" : mAutoplayMode == 2 ? "240 325" :
+		Add(aState, "click", mAutoplayMode == 1 ? "145 260" : mAutoplayMode == 2 ? "240 325" :
 			"232 185");
-		s->mWait = 100;
+		aState->mWait = 100;
 		break;
 	case tiptop::SCREEN_GAME:
 	{
 		tiptop::Board* aBoard = anApp.mBoard;
 		if (tiptop::InTopModal(anApp.mLayer) == 0)
 		{
-			if (s->mSaveStep == 1)
+			if (aState->mSaveStep == 1)
 			{
 				// the save dialog: save (command 3), back to the main menu
-				if (ClickCommand(s, 3))
+				if (ClickCommand(aState, 3))
 				{
-					Log(s, "update %d: saved after %d moves, score %u\n", mUpdateCount, s->mMoves,
+					Log(aState, "update %d: saved after %d moves, score %u\n", mUpdateCount, aState->mMoves,
 						aBoard != nullptr ? aBoard->GetScore() : 0);
-					s->mSaveStep = 2;
-					s->mWait = 100;
+					aState->mSaveStep = 2;
+					aState->mWait = 100;
 				}
 				break;
 			}
 			// the tips (or another dialog) over the game: its default button
-			if (Enter(s))
-				s->mWait = 100;
+			if (Enter(aState))
+				aState->mWait = 100;
 			break;
 		}
 		if (aBoard == nullptr || aBoard->mField == nullptr || aBoard->mGameOver != 0 || tiptop::gBusy != 0)
@@ -254,57 +254,57 @@ void TipTopApp::Autoplay()
 		// a press the column cursor still holds (a click that came while the game was busy) is tapped first: a click in
 		// the same pass would make the original, whose scripted cursor moves in the middle of a pass, tap the held
 		// press in the new click's column (phase one of the identical-play pass, the speed game)
-		if (anApp.mEC != nullptr && anApp.mEC->u.mSlots[1] != 0)
+		if (anApp.mColumnCursor != nullptr && anApp.mColumnCursor->u.mSlots[1] != 0)
 			break;
-		if (s->mSaveStep == 0 && mAutoplaySave > 0 && s->mMoves >= mAutoplaySave && s->mGames == 0)
+		if (aState->mSaveStep == 0 && mAutoplaySave > 0 && aState->mMoves >= mAutoplaySave && aState->mGames == 0)
 		{
 			// End game (command 2), which asks whether to save
-			if (ClickCommand(s, 2))
+			if (ClickCommand(aState, 2))
 			{
-				s->mSaveStep = 1;
-				s->mWait = 100;
+				aState->mSaveStep = 1;
+				aState->mWait = 100;
 			}
 			break;
 		}
-		int aColumn = BotChooseColumn(aBoard, s->mSeed);
+		int aColumn = BotChooseColumn(aBoard, aState->mSeed);
 		if (aColumn < 0)
 			break;
 		int x, y;
 		BotColumnToGame(aColumn, &x, &y);
-		Add(s, "click", StrFormat("%d %d", x, y));
-		s->mMoves++;
-		s->mWait = (mAutoplayMode == 2) ? 40 : 60;
+		Add(aState, "click", StrFormat("%d %d", x, y));
+		aState->mMoves++;
+		aState->mWait = (mAutoplayMode == 2) ? 40 : 60;
 		break;
 	}
 	case tiptop::SCREEN_GAMEOVER:
 		// a new high score's name in its dialog (over the screen) and its OK; then Enter presses the play again
 		// button, or the bot stops after its last game
-		if (tiptop::InTopModal(anApp.mLayer) == 0 && !s->mNameTyped)
+		if (tiptop::InTopModal(anApp.mLayer) == 0 && !aState->mNameTyped)
 		{
 			for (const char* c = "Bot"; *c != 0; c++)
-				Add(s, "char", std::string(1, *c));
-			s->mNameTyped = true;
+				Add(aState, "char", std::string(1, *c));
+			aState->mNameTyped = true;
 			if (mAutoplayUi)
 			{
 				// the game takes one typed character a pass: OK once they are in
-				s->mWait = 50;
+				aState->mWait = 50;
 				break;
 			}
 		}
-		else if (s->mGames >= mAutoplayGames && (!mAutoplayUi || tiptop::InTopModal(anApp.mLayer) != 0))
+		else if (aState->mGames >= mAutoplayGames && (!mAutoplayUi || tiptop::InTopModal(anApp.mLayer) != 0))
 		{
 			// (with -autoplayui the name's OK is clicked first)
-			Log(s, "done\n");
+			Log(aState, "done\n");
 			Shutdown();
 			return;
 		}
-		if (Enter(s))
-			s->mWait = 200;
+		if (Enter(aState))
+			aState->mWait = 200;
 		break;
 	default:
 		// the level summary, the high scores: Enter goes on
-		if (Enter(s))
-			s->mWait = 200;
+		if (Enter(aState))
+			aState->mWait = 200;
 		break;
 	}
 }

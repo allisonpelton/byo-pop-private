@@ -104,8 +104,8 @@ void FloatText::draw()
 		return;
 	if (mStarted == 0)
 		update();
-	double p = mProgress;
-	double anInv = 1.0 - p;
+	double aProgress = mProgress;
+	double anInv = 1.0 - aProgress;
 	float aFade = 1.0f;
 	if (mFadeTime >= 0)
 	{
@@ -116,31 +116,31 @@ void FloatText::draw()
 			return;
 	}
 	// The first colour from mColor1 to mEndColor1, faded
-	int a = ftol(byteOf(mColor1, 24) * anInv + byteOf(mEndColor1, 24) * p);
+	int anAlpha = ftol(byteOf(mColor1, 24) * anInv + byteOf(mEndColor1, 24) * aProgress);
 	if (aFade < 1.0f)
-		a = ftol((double)a * aFade);
-	int r = ftol(byteOf(mColor1, 16) * anInv + byteOf(mEndColor1, 16) * p);
-	int g = ftol(byteOf(mColor1, 8) * anInv + byteOf(mEndColor1, 8) * p);
-	int b = ftol(byteOf(mEndColor1, 0) * p + byteOf(mColor1, 0) * anInv);
-	a = clampByte(a);
-	r = clampByte(r);
-	g = clampByte(g);
-	b = clampByte(b);
-	uint32_t aColor1 = (((uint32_t)a << 8 | r) << 8 | g) << 8 | b;
+		anAlpha = ftol((double)anAlpha * aFade);
+	int aRed = ftol(byteOf(mColor1, 16) * anInv + byteOf(mEndColor1, 16) * aProgress);
+	int aGreen = ftol(byteOf(mColor1, 8) * anInv + byteOf(mEndColor1, 8) * aProgress);
+	int aBlue = ftol(byteOf(mEndColor1, 0) * aProgress + byteOf(mColor1, 0) * anInv);
+	anAlpha = clampByte(anAlpha);
+	aRed = clampByte(aRed);
+	aGreen = clampByte(aGreen);
+	aBlue = clampByte(aBlue);
+	uint32_t aColor1 = (((uint32_t)anAlpha << 8 | aRed) << 8 | aGreen) << 8 | aBlue;
 	// The second colour, its alpha also scaled by the first's
-	int a2 = ftol((double)a * 0.00392156862745098 * byteOf(mColor2, 24) * anInv + byteOf(mEndColor2, 24) * p);
+	int a2 = ftol((double)anAlpha * 0.00392156862745098 * byteOf(mColor2, 24) * anInv + byteOf(mEndColor2, 24) * aProgress);
 	if (aFade < 1.0f)
 		a2 = ftol((double)a2 * aFade);
-	int r2 = ftol(byteOf(mEndColor2, 16) * p + byteOf(mColor2, 16) * anInv);
-	int g2 = ftol(byteOf(mEndColor2, 8) * p + byteOf(mColor2, 8) * anInv);
-	int b2 = ftol(byteOf(mEndColor2, 0) * p + byteOf(mColor2, 0) * anInv);
+	int r2 = ftol(byteOf(mEndColor2, 16) * aProgress + byteOf(mColor2, 16) * anInv);
+	int g2 = ftol(byteOf(mEndColor2, 8) * aProgress + byteOf(mColor2, 8) * anInv);
+	int b2 = ftol(byteOf(mEndColor2, 0) * aProgress + byteOf(mColor2, 0) * anInv);
 	a2 = clampByte(a2);
 	r2 = clampByte(r2);
 	g2 = clampByte(g2);
 	b2 = clampByte(b2);
 	uint32_t aColor2 = (((uint32_t)a2 << 8 | r2) << 8 | g2) << 8 | b2;
-	float aScale = (float)(anInv * mScale1 + (double)mScale2 * p);
-	gGraphics->mField00 = frameCount();
+	float aScale = (float)(anInv * mScale1 + (double)mScale2 * aProgress);
+	gGraphics->mFloatTextFrame = frameCount();
 	if (mFrame != nullptr)
 	{
 		if (mX < -0.2f || !(mX < 1.2f) || mY < -0.2f || !(mY <= 1.2f))

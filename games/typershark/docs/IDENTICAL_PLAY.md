@@ -1,7 +1,7 @@
 # Typer Shark: identical play
 
 The report of the identical-play pass, for the user. Phase 1 compared how the game plays (its state, update by update), phase 2
-how it looks and sounds (screens by shotdiff, sound, focus, the web build, play with real mouse and key events). The working
+how it looks and sounds (screens by shotdiff, sound, focus, the web build, play with real mouse and key events, and the 3D drawing). The working
 notes of phase 1 are in `PHASE1.md`; the code facts are in `GAME_NOTES.md` (deviations in section 5, oddities in section 7).
 
 ## Phase 1: the game plays the same
@@ -49,7 +49,7 @@ level file), a level jump on a fresh profile, and the registry values. A saved g
 A tour is one list of steps (`tools/phase2/p2lib.py`) written twice: an origrun script for the original and a `-script` for the
 port, with the shots at the same updates. The original runs inside Windows Sandbox (the only place origrun takes shots) on the
 virtual clock with the scripted cursor; the port runs under rundesk with `-fast -drawevery`, windowed and without 3D as a sandbox
-run is. The 640x480 client is cut from the original's capture and the pairs go through `tools/shotdiff`; only the boxes it flags
+run is (the 3D drawing was compared apart, on the desktop: "The 3D drawing" below). The 640x480 client is cut from the original's capture and the pairs go through `tools/shotdiff`; only the boxes it flags
 were looked at. The original's capture is 2 levels of 255 darker on every channel than the port's picture everywhere (white is 253),
 which shotdiff's tolerance takes in.
 
@@ -217,12 +217,121 @@ start each run types the player's name (a wrong letter and a Backspace first), a
 One fault of the driver, none of the game: a `#` in a commands file starts a comment, so the native driver typed nothing for the
 tutor's first `#` and lesson 10 stood still; it now sends such characters in quotes.
 
+### The 3D drawing
+
+The original draws the sea (and anything else) through Direct3D when the Options dialog's "3D acceleration" box is on, and the port does it
+through the SDL accelerated renderer; every tour above ran with the box off, as the sandbox's display gave the original no 3D device. The user
+allowed two routes ("Yes, both routes", 2026-11-11).
+
+*The sandbox.* Four variants of origrun's sandbox run (with the host's GPU, with dgVoodoo, with the connect option, with both) ran the original in
+2D with 3D asked for: the game's 3D flag was 0 at update 5 in each, and origrun ended with its exit code 3.
+
+*The desktop.* A copy of the original runs on the user's visible desktop (`tools/phase2/visrun3d.py`) with the registry values for 3D on and windowed
+(the key put back, or deleted if it was not there, afterwards), silent (the stand-in's stub sound), with the scripted cursor so the real cursor
+never moves, its window shown without activation and kept topmost. The input is posted to that window only; each shot is the window's own
+content (`PrintWindow`), refused if another window overlaps it. The process is suspended while an input is posted and a shot read, so a
+step lands on a whole update. The game's 3D flag was 1 at update 5 and at the end of every run. The original runs on the real clock (100
+updates a second), so the runner records the update each step landed at and the port's script is made from those, the port running as
+in the tours with a `port-3d` profile (`Is3D` 1): `vis3d.sh <tour>`. The same tours were run once more with the original in 2D on the desktop
+(`vis3d.sh <tour> 2d`), to tell what the real clock does from what the 3D drawing does: a difference that the 2D run shows too is not the
+3D's.
+
+| Tour | What it shows | Pairs | Equal | Faint only | Differ |
+| --- | --- | --- | --- | --- | --- |
+| M | the menus and every hover, options, hall of fame, statistics, difficulty dialog | 98 | 80 | 17 | 1 |
+| U | ten players, the list as it grows, delete, a player picked | 70 | 70 | 0 | 0 |
+| Q | the typing test to its end | 6 | 6 | 0 | 0 |
+| T | the statistics screen with a lesson played: the three views | 17 | 12 | 1 | 4 |
+| P | what the coverage check added (Return in the new-player box, the player list, delete, the tutor's lesson buttons and Back To Menu, the hint box, the focus lost and regained) | 32 | 16 | 7 | 9 |
+| W | a running Easy-adventure board, the sea shot every 60 updates | 20 | 2 | 5 | 13 |
+| pause 300, 500, 750, 1000 | the board paused at that update: 4, 30 and 80 updates later (the sea strips, sharks, diver, text) | 12 | 0 | 12 | 0 |
+
+Every flagged box was judged:
+
+- *The pause tours.* The paused sea, the sharks, the diver and the text are equal. Of the 568 pixels over shotdiff's tolerance in a paused frame,
+  250 are the status bar's meter edge, the faint kind the 2D tours have (404 boxes there: the port draws the bar once), and 318 are the sea's
+  leftmost column, below. The sea's strips draw as the original's, so the translated `BuildWaterImage` is right as far as pictures show.
+- *The real clock's differences* (same set in the 2D desktop run of the same tour, so none is the 3D's): tour M's `newuser_empty_610` (the
+  caret's blink phase, 2 x 19 pixels) and the faint hover and difficulty boxes (a hover fades over several updates and the shot caught a different
+  one); tour T's three bars (their growing animation reads the original's millisecond timer: 4 pairs, as in 2D); tour P's player list (its scroll
+  offset after ten players: `select_nine` and four more pairs), the diver's bar at rest, the tutor's two keys one update apart; tour W's sharks,
+  diver and bubbles, which move by a fraction of an update on the original's real clock (the run is 23 boxes in 3D and 42 in 2D), and
+  what follows a pause and a resume on a board.
+- *One fault of the port, fixed.* The original's Direct3D line drawing leaves out a line's last pixel; with 3D on the port drew the whole line,
+  one pixel too long, in the tab strip's divider and in the typing tutor's lines. `TyperSharkDisplay`
+  (`WinWSApp.cpp`) overrides `DrawLine` for a 3D screen: a horizontal or vertical line of more than one pixel stops one short, the other lines are as
+  they were. After it every box of those lines is equal; with 3D off nothing changed.
+- *Faint, not fixed* (listed under Oddities): the 3D picture's colours, below. (The sea's leftmost pixel column was listed here too; it was the
+  port's render scale, not the drawing, see the next paragraph.)
+
+*Found with the medal screens, 2026-11-12: two errors in the comparison, one of the port.* The tours above ran the port at the render scale its
+window gave it, 2, where a player's windowed 640 by 480 game renders at 1; a 3D picture drawn at 2 and averaged down is a little blurred, and it
+made the sea's leftmost column up to 55 levels off. Every 3D run now passes `-renderscale=1`. And the port's 3D blend differed from the
+original's: the original's Direct3D 9 filters a texture's colours and alpha apart (straight alpha), where the shared display uploads premultiplied
+textures, which moved the edge of every picture with transparent texels (the medal and the ten pictures by up to 44 levels). `TyperSharkDisplay`
+now uses the straight modes while 3D is on and the premultiplied ones while it is off (`GAME_NOTES.md`, section 16, has the measurement). The 3D
+tours were run again with the new exe at scale 1 and the original on the desktop again: the board paused at update 500 (3 pairs, none differing,
+faint only: the status bar's meter edge, 250 pixels, up to 25 levels; the sea's column 0 now differs by at most 3 levels, the sea by at most 3, 1 on average);
+tour M (98 pairs: 82 equal, 16 faint, none visible; a first run of it had its hover frames wrong because a window of another program overlapped the
+game and the original took the mouse for gone, so it was run again); tour W, the running board (20 pairs, 4 equal, 1 faint, 15 differ: the
+sharks' tails and bubbles at another sub-update phase, as before; the same tour with the original in 2D on the desktop has 17 differing pairs). The 2D
+tours do not change: the 2D dialog tour (48 shots) is pixel for pixel the same with the exe before and after.
+
+**Not compared in 3D:** the abyss and bonus levels, an idle game and the boards after a pause and a resume (the real clock again), and the
+original's single-precision rounding of x87 code in 3D (Twist found it in its own comparison; nothing in this game's pictures showed it). The
+paused boards, the menus, the dialogs and the statistics screen cover every 3D-specific piece of drawing the port has (the sea's strips and the
+lines).
+
+### Widgets drawn without the fast stretch
+
+The 2004 widget manager never sets the fast stretch on a widget's Graphics (the shared 1.3 one sets it on every widget), as AstroPop found and as
+this game's export shows (`GAME_NOTES.md`, section 17); `WinWSApp::Init` sets the shared flag `gWidgetsDrawWithoutFastStretch`. The 2D tours were
+run with the exe before and after the change: 2779 shots in 17 tours, and none changed (five differ in the window's last column, as two runs of the
+same exe do). The game stretches a picture only for the medal on the statistics screen's adventure panel and in the end-of-adventure dialog, and
+no tour showed either at that time; the comparison of those two, with profiles that have finished an adventure, is the next subsection.
+
+### The medal screens
+
+The game stretches a picture for the medal on the statistics screen's adventure panel and in the end-of-adventure dialog (the medal and ten
+pictures in 30 by 30 squares). They were compared with the original for players that have finished 1, 3, 5 and 12 adventures (the statistics screen)
+and for a saved adventure at the last site, taken to the dialog (bronze, silver and gold; `GAME_NOTES.md`, section 18, has how: no adventure is played,
+the original's copy has one patched byte and the port its test command `goto map`). The port's stretch was not the original's: the original
+averages a picture into a transparent temporary with `MemoryImage::SlowStretchBlt` (0x48d9b0) and blits that (`DDImage::StretchBlt`, 0x4a2fb0, with the
+fast stretch off), where the port used a texture filter, which gave the medal a soft edge (the first comparison of the statistics screen: 620 pixels, up to 24
+levels; the dialog: 8801 pixels, up to 39). The port now does the same in 2D (`mSoftwareStretch` in its display, and `gSlowStretchRenormalizesAlpha`). Result: the
+four statistics tours (14 shots each) and the three dialog tours (49 shots each: the board, the map through the final scroll, the dialog at every
+update of its opening, the hover over both buttons, RETURN HOME and the statistics screen) equal the original's pixel for pixel, and so does KEEP GOING
+(40 shots, the first 600 updates of the endless level). The web build under Node (the same tours, native port's shots as the reference) differs by at most 3 levels
+everywhere, as in every web tour. `tools/check.sh typershark` is unchanged.
+
+*The two screens in 3D* (2026-11-12, on the desktop in the overnight window, `tools/phase2/medal3d.sh`; GAME_NOTES section 18 has the method): the
+statistics screen for players with 1, 5 and 12 finished adventures (14 shots each), the dialog for bronze, silver and gold (47, 48 and 48
+shots) and KEEP GOING (40 shots), each against the original in 3D on the desktop with the same profile, saved adventure and patched byte.
+Result at render scale 1 with the straight blend: the dialog box (the dialog, the medal and the ten pictures, from the shot where it is open on)
+equals the original except 10 or 11 pixels in one row of the medal's bottom, up to 57 levels; the statistics screens differ in no visible box,
+and their faint boxes are 12 pixels in one row of the medal, up to 53 levels. Those rows are where the original's texture pieces meet (below,
+Oddities). Every other flagged box is the real clock's: the map's scroll in the shots before the dialog (the whole map one to three pixels off
+at a shot: the ship, the arch and the bottom strip) and the sharks, diver and bubbles of KEEP GOING's board at updates 300 and 600, both of them
+also in the same tours with the original in 2D on the desktop (the same boxes), and the menu buttons' hover fade in the shot 4 updates after the
+statistics screen closes (tour M's `stats_closed_3` is the same kind). Before the two changes above the same tours showed the
+medal and the ten pictures up to 44 levels off in 6 boxes a shot (0.60% of the picture, now 0.003%), and the control build (the straight blend
+off) at scale 1 still showed about 790 pixels off in the dialog.
+
 ### Oddities (not chased)
 
 - *The window's last column.* Where a creature crosses the right edge, up to 10 pixels of column 639 differ between the original
   and the port, and between two runs of the port when one took a shot an update earlier. To see it: the abyss tour's shots
   `012348_hint_25` and `016800_grid`. It would take finding what in the port's screen read-back touches that column; the pixels are
   below what shotdiff counts as visible.
+- *The original's texture pieces in 3D.* One row of the medal differs between the original and the port in 3D: 10 or 11 pixels of the dialog's (row
+  236) and 12 of the statistics screen's (row 402), up to 57 levels. The original's 3D stretch draws a tall picture as one quad for each piece of
+  its texture, with clamped edges, and the row where source row 128 lands is not blended across the seam; the port's one texture is. To see it:
+  the dialog shots from `dlg_865` on, or any statistics shot with a medal, of the 3D medal tours. It would take cutting each stretch at the
+  pieces' edges and drawing each piece from a copy of its own, for about ten pixels (`GAME_NOTES.md`, section 18).
+- *The 3D picture's colours.* Flat areas of the sea differ by 1 level on average and at most 3 levels of 255 in the paused board between the
+  original in 3D and the port in 3D, and by up to 7 in the map screen's sea, under the tolerance. The original's 3D picture is a little brighter
+  than its own 2D one, a sign of 16-bit textures on its side; the cause is not proven and nothing is done. (The sea's leftmost column, up to
+  55 levels off in the first 3D runs, was the port's render scale, not the drawing, and is gone: `GAME_NOTES.md`, section 16.)
 - *The custom cursor in a shot.* The original's capture holds the cursor the game draws itself when "Custom Cursors" is on; the
   port's shot does not. The menu tour turns the option off again after the options shots. A spec for a shot that includes the
   cursor is with the coordinator.
@@ -232,6 +341,8 @@ tutor's first `#` and lesson 10 stood still; it now sends such characters in quo
 Each is without a visible effect and is listed with its reason in `GAME_NOTES.md`, section 5: the memory leaks fixed, loading in one
 go, the frame drawn whole (the two faint kinds above), the three fixes of phase 1 that mend a level that could not end, and the
 registration code that is gone.
+In 3D, the texture-piece row of the medal and the picture's colour offset above, and the line change of this section (the last pixel of a line),
+which is the original's own and without a visible effect.
 
 ### For the user's review
 

@@ -1,6 +1,6 @@
 #!/bin/bash
 # The performance pass of GAME_NOTES.md, section 10, one run after another, each started when the machine has room
-# (tools/gamecount.py --limit 7). Run from anywhere: bash games/noahsark/tools/profile/perf_all.sh
+# (tools/gamecount.py --limit 6). Run from anywhere: bash games/noahsark/tools/profile/perf_all.sh
 # The work folder is build/nt/perf (git-ignored); results go to *.json there and the steps to perf_all.log.
 #   1. the port's bot plays an action game (easy, seed 1, 7500 updates) once, in -fast, for its click log (bot.log)
 #   2. origrun_replay.py turns that log and the menu clicks into the original's script (orig.txt)
@@ -12,7 +12,7 @@ P=build/nt/perf
 PERF=games/noahsark/tools/profile/perf.py
 mkdir -p $P
 printf '301 click 320 456\n360 click 198 188\n381 click 320 195\n420 click 400 405\n' > $P/menu.txt   # title link, action, easy, tutorial
-room() { until python tools/gamecount.py --limit 7 > /dev/null; do sleep 20; done; }
+room() { until python tools/gamecount.py --limit 6 > /dev/null; do sleep 20; done; }
 log() { echo "$(date +%H:%M:%S) $*" >> $P/perf_all.log; }
 rm -f $P/perf_all.done $P/perf_all.log
 room; log bot

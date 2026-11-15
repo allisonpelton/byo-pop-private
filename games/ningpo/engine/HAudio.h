@@ -29,6 +29,8 @@ public:
 	{
 		int mVoice = -1;           // the platform mixer's voice, -1 when free
 		const void* mSound = nullptr;
+		int mLogId = -1;           // port: the sound's slot in the sound manager, for BYOPOP_SOUNDLOG
+		int mLogNum = 0;           // port: the play's number in the sound log
 	};
 	Voice mVoices[8];              // +0x10, 0x28 bytes each
 	std::shared_ptr<Platform::SoundData> mMusic;   // +0x150 the music stream, null when off

@@ -1,3 +1,5 @@
+// port(mod): mod "colour-blind", the tile symbols (TileSymbols.h). Not part of the original game.
+
 #include "TileSymbols.h"
 #include "Board.h"
 #include "Graphics.h"

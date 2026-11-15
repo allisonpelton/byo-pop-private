@@ -44,7 +44,8 @@ game 004c9a94-004d82d2
 none 004d2f3b-004d35b5 RegisterDialog: registration code, removed with the rest of it
 ```
 
-`export` names the export and `src` the port's sources (more than one `src` line may be given). `game` is the range of
+`export` names the export and `src` the port's sources (more than one `src` line may be given; a game built on a shared
+engine adds `src engines/retro64`). `game` is the range of
 the original's own game code, both ends being function entries; give several lines for a game whose code is not in one
 piece. The rest of the exe is the framework, the C runtime and the libraries the game links, which are ported once for
 every game, so they are only counted in the report. Wherever the linker put them, the C++ library's templates (`std::`)
@@ -72,6 +73,12 @@ entry, counts for the function that holds it, as a mention. The report counts a 
 counterpart, so a function translated inline into another needs its address in the comment above the function that holds
 it.
 
+Code that two games share (`engines/<name>`, `docs/ENGINES.md`) names each game's address with the game's folder name after
+it: `// 0x40c2e0 (cosmicbugs), 0x40c4d0 (waterbugs)`, and a range as `0x40c1a0..0x40c890 (cosmicbugs)`. A game's report
+reads the addresses tagged with its own name and the ones with no tag, and leaves the other games' alone, so one function
+is a counterpart in each exe that has it, and a function only one game's exe has counts for that game alone. Only a game
+folder's name is a tag: `0x41ac20 (launched)` is a plain address with a word after it.
+
 ## Reading the report
 
 The report opens with the runs (how many functions each reached, and whether the game exited by itself, crashed, with its
@@ -88,6 +95,10 @@ code. Then three lists:
   (a feature the runs missed), or read the port's function again against the export. One that no play of the original
   can reach is a candidate for taking out; that is the game session's call, and code that only some input reaches (an
   error path, a rare dialog) stays. A function with a `none` line is not listed here, only with those left out.
+  The linker finds what nothing in the port references at all (TipTop, 2026-11-11). Build at -O0 in its own build
+  folder with `-ffunction-sections -fdata-sections` and link with `-Wl,--gc-sections -Wl,--verbose` (lld has no
+  `--print-gc-sections`). The "Discarded" list then names every unreferenced function and variable. Repeat after
+  each cut, since a function only the dead ones called shows up next.
 - **Never reached and not defined in the port.** Dead code of the original, or code only input the runs never gave
   reaches. Nothing to do unless a run should have reached it.
 
@@ -105,8 +116,8 @@ Ning Po took the first (2026-11-08; its `GAME_NOTES.md`, "Coverage check", is th
 2. Run the original with `--coverage`: the game's own identical-play runs first, then short runs for what they miss
    (every mode to its end, every dialog, the options, the high scores, losing and regaining the focus, quitting from
    each screen). A run on the virtual clock with no sound device skips the sound code, so give one run the real clock
-   and the silent stand-in. Each run is a game process like any other: at most 3 on the machine
-   (`python -I tools/gamecount.py --limit 3`), none during an oracle, and no link or "More Games" button clicked.
+   and the silent stand-in. Each run is a game process like any other: at most 6 on the machine
+   (`python -I tools/gamecount.py --limit 6`), and no link or "More Games" button clicked.
 3. Run `python -I tools/coverage.py report <game> <hits>...` and work through the report. A function reached with no
    counterpart gets one of three things: its address placed above the port function that holds it, a translation if
    it is missing, or a `none` line. A port function never reached is either given a run that reaches it, or read again

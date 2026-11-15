@@ -20,19 +20,19 @@
 
 using namespace Sexy;
 
-// a dialog with one button, OK (dialog 0x25): the display cannot do what the player asked for
+// port: a dialog with one button, OK (dialog 0x25): the display cannot do what the player asked for
 static void ShowOptionMessage(WinDMApp* theApp, const SexyString& theHeader, const SexyString& theLines)
 {
 	theApp->DoDialog(DIALOG_MESSAGE, true, theHeader, theLines, "OK", Dialog::BUTTONS_FOOTER);
 }
 
-// a yes-or-no question (dialog 3); FinishOptionVerify does what OptionsDialog::mVerifyType says when the answer is yes
+// port: a yes-or-no question (dialog 3); FinishOptionVerify does what OptionsDialog::mVerifyType says when the answer is yes
 static void AskOptionVerify(WinDMApp* theApp, const SexyString& theHeader, const SexyString& theLines)
 {
 	theApp->DoDialog(DIALOG_OPTION_VERIFY, true, theHeader, theLines, "", Dialog::BUTTONS_YES_NO);
 }
 
-// a checkbox of the options: its two pictures are cut out of one strip, the box is drawn by the dialog's Draw
+// port: a checkbox of the options: its two pictures are cut out of one strip, the box is drawn by the dialog's Draw
 static Checkbox* MakeOptionCheckbox(WinDMApp* theApp, int theId, CheckboxListener* theListener)
 {
 	Checkbox* aCheckbox = new Checkbox(IMAGE_CHECKBOX, nullptr, theId, theListener);
@@ -87,7 +87,7 @@ OptionsDialog::OptionsDialog(WinDMApp* theApp) :
 	mHighResCheckbox->SetChecked(theApp->mHighRes, true);
 
 	mBackdropsCheckbox = MakeOptionCheckbox(theApp, CHECKBOX_BACKDROPS, this);
-	mBackdropsCheckbox->SetChecked(theApp->mProfile->mFlag78, true);
+	mBackdropsCheckbox->SetChecked(theApp->mProfile->mRandomBackdrops, true);
 
 	mInVerify = false;
 }

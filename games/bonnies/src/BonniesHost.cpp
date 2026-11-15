@@ -1,7 +1,7 @@
-// The port's host for Bonnie's Bookstore (see BonniesHost.h): bonnies::Host over the framework and the platform layer.
+// port: the host for Bonnie's Bookstore (see BonniesHost.h): bonnies::Host over the framework and the platform layer.
 
 #include "BonniesHost.h"
-#include "ModFeatures.h"
+#include "platform/GameOptions.h"
 #include "../game/Start.h"
 #include "../engine/Host.h"
 #include "Graphics.h"
@@ -10,12 +10,18 @@
 #include "WebSettings.h"
 #include "platform/Audio.h"
 #include "platform/ImageLoader.h"
+#include "platform/MemReport.h"
 #include "platform/MusicLevels.h"
 #include "platform/VFS.h"
+#include "SDLSoundManager.h"
+#ifndef __EMSCRIPTEN__
+#include "SurfaceDisplay.h"
+#endif
 
 #include <SDL.h>
 #include <stb_image.h>
 #include <algorithm>
+#include <cmath>
 #include <cstdio>
 #include <cstring>
 #include <deque>
@@ -153,12 +159,15 @@ struct Channel
 	bool mPaused = false;
 	float mGain = 1.0f;
 	int mFrequency = 0;
+	int mSfxID = 0;   // port: the sample's number in the sound log (BYOPOP_SOUNDLOG), as the framework's sounds have
+	int mLogNum = 0;  // port: this play's number in the log
 };
 
 // FMOD 3's sample: the decoded sound
 struct SampleHandle
 {
 	std::shared_ptr<Platform::SoundData> mData;
+	int mSfxID = 0;   // port: the number the sound log gives the sample
 };
 
 // The framework's side of bonnies::Host
@@ -240,7 +249,9 @@ public:
 		bool aSteady = gHostApp->mFastMode || gSteadyClock;
 		if ((!aSteady && (int)(gHostApp->GetClockTime() - gHostApp->mLastFrameworkRun) >= 100) ||
 			(aSteady && (gHostApp->mScriptNoFocus || (!gHostApp->mRealInputFileName.empty() && !gHostApp->mHasFocus))))
+		{
 			gHostApp->RunFramework(0);
+		}
 		else if (gSteadyClock && ++gSpin >= kSpin)
 		{
 			// (at most half a second of real time, for a framework that does not update, paused or minimized)
@@ -283,10 +294,17 @@ public:
 	}
 
 	// SDL 1.2's 32x32 cursor (a set mask bit: black where the data bit is set, else white; a clear one: clear, or
-	// inverted where the data bit is set, drawn black) as the framework's image cursor. The framework centres the
-	// image on the mouse, so the cursor sits in a 64x64 image with its hot spot in the middle.
+	// inverted where the data bit is set, drawn black). On the desktop it is the window's own cursor, as SDL 1.2's was
+	// (BonniesHostApp::EnforceCursor shows it), so that the window's display has nothing to draw over the game's screen. On
+	// the web it is the framework's image cursor, which the framework centres on the mouse, so the cursor sits in a 64x64
+	// image with its hot spot in the middle.
 	void setCursor(const uint8_t* theData, const uint8_t* theMask, int theHotX, int theHotY) override
 	{
+#ifndef __EMSCRIPTEN__
+		gHostApp->SetWindowCursor(SDL_CreateCursor(theData, theMask, 32, 32, theHotX, theHotY));
+		gHostApp->SetCursor(mCursorShown ? CURSOR_CUSTOM : CURSOR_NONE);
+		return;
+#else
 		if (mCursorImage == nullptr)
 		{
 			mCursorImage = new MemoryImage(gHostApp);
@@ -315,12 +333,18 @@ public:
 		mCursorImage->BitsChanged();
 		gHostApp->SetCursorImage(CURSOR_CUSTOM, mCursorImage);
 		gHostApp->SetCursor(mCursorShown ? CURSOR_CUSTOM : CURSOR_NONE);
+#endif
 	}
 
 	void showCursor(bool theShow) override
 	{
 		mCursorShown = theShow;
-		gHostApp->SetCursor(!theShow ? CURSOR_NONE : mCursorImage != nullptr ? CURSOR_CUSTOM : CURSOR_POINTER);
+#ifndef __EMSCRIPTEN__
+		bool aHasCursor = gHostApp->mWindowCursor != nullptr;
+#else
+		bool aHasCursor = mCursorImage != nullptr;
+#endif
+		gHostApp->SetCursor(!theShow ? CURSOR_NONE : aHasCursor ? CURSOR_CUSTOM : CURSOR_POINTER);
 	}
 
 	void iconify() override
@@ -532,56 +556,6 @@ public:
 #endif
 	}
 
-	// the framework opens nothing in a test run (it logs "OpenURL in a test run")
-	void openURL(const std::string& theURL) override
-	{
-		gHostApp->SexyAppBase::OpenURL(theURL);
-	}
-
-	// MessageBoxA's buttons (MB_OK 0, MB_OKCANCEL 1, MB_YESNOCANCEL 3, MB_YESNO 4) and results (IDOK 1, IDCANCEL 2,
-	// IDYES 6, IDNO 7); a test run never blocks on one and takes the first button
-	int messageBox(const std::string& theText, const std::string& theCaption, unsigned int theFlags) override
-	{
-		SDL_Log("%s: %s", theCaption.c_str(), theText.c_str());
-		int aKind = theFlags & 0xf;
-		SDL_MessageBoxButtonData aButtons[3];
-		int aCount = 0;
-		auto add = [&](int theId, const char* theText, uint32_t theButtonFlags)
-		{
-			aButtons[aCount].flags = theButtonFlags;
-			aButtons[aCount].buttonid = theId;
-			aButtons[aCount].text = theText;
-			aCount++;
-		};
-		if (aKind == 4 || aKind == 3)
-		{
-			add(6, "Yes", SDL_MESSAGEBOX_BUTTON_RETURNKEY_DEFAULT);
-			add(7, "No", aKind == 4 ? SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT : 0);
-			if (aKind == 3)
-				add(2, "Cancel", SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT);
-		}
-		else
-		{
-			add(1, "OK", SDL_MESSAGEBOX_BUTTON_RETURNKEY_DEFAULT | (aKind == 0 ? SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT : 0));
-			if (aKind == 1)
-				add(2, "Cancel", SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT);
-		}
-		if (gHostApp->mFastMode || gHostApp->IsTestRun())
-			return aButtons[0].buttonid;
-		SDL_MessageBoxData aBox = {};
-		aBox.flags = (theFlags & 0x10) != 0 ? SDL_MESSAGEBOX_ERROR : (theFlags & 0x30) == 0x30 ?
-			SDL_MESSAGEBOX_WARNING : SDL_MESSAGEBOX_INFORMATION;
-		aBox.window = gHostApp->mHWnd;
-		aBox.title = theCaption.c_str();
-		aBox.message = theText.c_str();
-		aBox.numbuttons = aCount;
-		aBox.buttons = aButtons;
-		int aResult = aButtons[0].buttonid;
-		if (SDL_ShowMessageBox(&aBox, &aResult) != 0 || aResult < 0)
-			aResult = aKind == 0 ? 1 : 2;
-		return aResult;
-	}
-
 	std::string getClipboard() override
 	{
 		return SexyStringToStringFast(gHostApp->GetClipboard());
@@ -601,6 +575,25 @@ public:
 
 	// FMOD 3 on the platform's mixer
 
+	// port: BYOPOP_SOUNDLOG, the sound log the framework's sounds write (Sexy::SoundLog, framework/SDLSoundManager.h),
+	// in the same lines: "load <id> <file> frames= rate= ch=" for a sample, "instance <id> #<n>" when a channel takes it,
+	// "play <id> #<n> vol= pan= pitch= loop=" when FSOUND_SetPaused starts it, "volume", "pitch" and "stop" lines for the
+	// channel after that. FMOD 3's volume (0-255) is a straight gain, logged as DirectSound's hundredths of a decibel,
+	// which the framework's volume is; it has no pan (always 0) and the game plays no loop. A sample's number is never
+	// reused, so a file's name in the log stays unambiguous.
+	int mNextSfxID = 0;
+	int mNextLogNum = 0;
+	// port (the memory report): the samples alive and their decoded bytes
+	int mSampleCount = 0;
+	size_t mSampleBytes = 0;
+
+	static int LogVolume(float theGain)
+	{
+		if (!(theGain > 0.0f))
+			return -10000;
+		return std::max(-10000, (int)std::lround(2000.0 * std::log10((double)theGain)));
+	}
+
 	void* loadSample(const std::string& thePath) override
 	{
 		std::shared_ptr<Platform::SoundData> aData = Platform::Mixer::Get().LoadSound(thePath);
@@ -608,6 +601,11 @@ public:
 			return nullptr;
 		SampleHandle* aSample = new SampleHandle();
 		aSample->mData = aData;
+		aSample->mSfxID = mNextSfxID++;
+		mSampleCount++;
+		mSampleBytes += aData->Bytes();
+		SoundLog("load %d %s frames=%d rate=%d ch=%d", aSample->mSfxID, thePath.c_str(), (int)aData->mFrames, aData->mRate,
+			aData->mChannels);
 		return aSample;
 	}
 
@@ -621,11 +619,21 @@ public:
 			if (aChannel.mData == aSample->mData)
 			{
 				if (aChannel.mVoice >= 0)
-					Platform::Mixer::Get().StopVoice(aChannel.mVoice);
+					stopVoice(aChannel);
 				aChannel = Channel();
 			}
 		}
+		mSampleCount--;
+		mSampleBytes -= aSample->mData->Bytes();
 		delete aSample;
+	}
+
+	// the voice of a channel stopped (the sound log's "stop": the framework logs one whenever a started sound is stopped,
+	// also when it had ended by itself)
+	void stopVoice(const Channel& theChannel)
+	{
+		SoundLog("stop %d #%d", theChannel.mSfxID, theChannel.mLogNum);
+		Platform::Mixer::Get().StopVoice(theChannel.mVoice);
 	}
 
 	bool channelBusy(const Channel& theChannel)
@@ -652,6 +660,9 @@ public:
 				aChannel.mData = aSample->mData;
 				aChannel.mPaused = true;
 				aChannel.mFrequency = aSample->mData->mRate;
+				aChannel.mSfxID = aSample->mSfxID;
+				aChannel.mLogNum = ++mNextLogNum;
+				SoundLog("instance %d #%d", aChannel.mSfxID, aChannel.mLogNum);
 				return i;
 			}
 		}
@@ -682,6 +693,7 @@ public:
 		if (aChannel == nullptr)
 			return;
 		aChannel->mFrequency = theFrequency;
+		SoundLog("pitch %d #%d %.4f", aChannel->mSfxID, aChannel->mLogNum, pitch(*aChannel));
 		if (aChannel->mVoice >= 0)
 			Platform::Mixer::Get().SetVoicePitch(aChannel->mVoice, pitch(*aChannel));
 	}
@@ -692,6 +704,8 @@ public:
 		if (aChannel == nullptr)
 			return;
 		aChannel->mGain = std::max(0, std::min(255, theVolume)) / 255.0f;
+		if (SoundLogOn())
+			SoundLog("volume %d #%d %d", aChannel->mSfxID, aChannel->mLogNum, LogVolume(aChannel->mGain));
 		if (aChannel->mVoice >= 0)
 			Platform::Mixer::Get().SetVoiceGain(aChannel->mVoice, aChannel->mGain, aChannel->mGain);
 	}
@@ -702,6 +716,9 @@ public:
 		if (aChannel == nullptr || thePaused || !aChannel->mPaused)
 			return;
 		aChannel->mPaused = false;
+		if (SoundLogOn())
+			SoundLog("play %d #%d vol=%d pan=0 pitch=%.4f loop=0", aChannel->mSfxID, aChannel->mLogNum,
+				LogVolume(aChannel->mGain), pitch(*aChannel));
 		aChannel->mVoice = Platform::Mixer::Get().StartVoice(aChannel->mData, aChannel->mGain, aChannel->mGain,
 			pitch(*aChannel), false);
 	}
@@ -712,7 +729,7 @@ public:
 		if (aChannel == nullptr)
 			return;
 		if (aChannel->mVoice >= 0)
-			Platform::Mixer::Get().StopVoice(aChannel->mVoice);
+			stopVoice(*aChannel);
 		*aChannel = Channel();
 	}
 
@@ -883,8 +900,26 @@ void Motion(int x, int y)
 
 BonniesWidget::BonniesWidget()
 {
+	mScreenImage = nullptr;
+	mShownWhole = false;
+#ifndef __EMSCRIPTEN__
+	// the window's display keeps the game's screen itself (CreateDDInterface), so the widget has no picture of it
+	if (dynamic_cast<SurfaceDisplay*>(gHostApp->mDDInterface) != nullptr)
+	{
+		mShown.assign(kScreenWidth * kScreenHeight, 0);
+		mScreenChanged = true;
+		mWantsFocus = true;
+		return;
+	}
+#endif
 	mScreenImage = new MemoryImage(gHostApp);
 	mScreenImage->Create(kScreenWidth, kScreenHeight);
+	// every pixel is drawn opaque (Draw below): the image is said to be opaque, so that the framework need not look through
+	// its 480,000 pixels for alpha after each change, and with every alpha byte 0xff the framework's premultiplying would
+	// change nothing, so that it uploads the image as it is, in one piece, instead of converting it in strips (the Mahjong
+	// ports' screen)
+	mScreenImage->SetImageMode(false, false);
+	mScreenImage->mUploadAsIs = true;
 	mScreenChanged = true;
 	mWantsFocus = true;
 }
@@ -918,11 +953,129 @@ extern "C" EMSCRIPTEN_KEEPALIVE const char* bonnies_test_command(const char* the
 }
 #endif
 
+// The game presents its screen about 30 times a second whether or not anything moved (a board waiting for the player is
+// presented as often as one in motion; two in three presents of the tutorial's board matched the one before), and the same
+// screen need not be copied, uploaded and shown again: the framework shows the picture it last drew until it is told
+// otherwise. The comparison is on the pixels, so what is on screen never differs from what the game drew. It runs in blocks,
+// so that the loop can use the processor's vector instructions, and a block that differs is copied at once, whole, so that the
+// screen is read once and written only where it changed (a board in motion changes a part of it, a wait for the player
+// nothing) and Draw has nothing left to copy.
+bool BonniesWidget::CopyScreenChanges()
+{
+	const int kBlock = 256;
+	static_assert(kScreenWidth * kScreenHeight % kBlock == 0, "the screen is a whole number of blocks");
+	ulong* aBits = mScreenImage->GetBits();
+	const uint32_t* aScreen = gHost.mScreen.data();
+	bool aChanged = false;
+	for (int aStart = 0; aStart < kScreenWidth * kScreenHeight; aStart += kBlock)
+	{
+		uint32_t aDifference = 0;
+		for (int i = aStart; i < aStart + kBlock; i++)
+			aDifference |= (uint32_t)aBits[i] ^ (0xff000000 | (aScreen[i] & 0xffffff));
+		if (aDifference != 0)
+		{
+			for (int i = aStart; i < aStart + kBlock; i++)
+				aBits[i] = 0xff000000 | (aScreen[i] & 0xffffff);
+			aChanged = true;
+		}
+	}
+	return aChanged;
+}
+
+// The rows of the game's screen that differ from what the window's display last had, handed to it as rects: a run of rows
+// that differ is one rect, from the leftmost to the rightmost pixel that differs in it. The display copies only those rects
+// into its window and shows them. The first call hands it the whole screen. What is compared is the game's pixels (0x00RRGGBB,
+// the top byte is not read), so what is on screen never differs from what the game drew, and a screen that the game
+// presented without changing anything shows nothing new.
+#ifndef __EMSCRIPTEN__
+bool BonniesWidget::SendScreenChanges()
+{
+	SurfaceDisplay* aDisplay = dynamic_cast<SurfaceDisplay*>(gHostApp->mDDInterface);
+	if (aDisplay == nullptr)
+		return false;
+
+	const uint32_t* aScreen = gHost.mScreen.data();
+	uint32_t* aShown = mShown.data();
+	static std::vector<Rect> sRects;
+	sRects.clear();
+	if (!mShownWhole)
+	{
+		mShownWhole = true;
+		memcpy(aShown, aScreen, sizeof(uint32_t) * kScreenWidth * kScreenHeight);
+		aDisplay->SetFrame(aScreen, kScreenWidth * 4, nullptr, -1);
+		return true;
+	}
+
+	int aRunTop = -1, aRunLeft = 0, aRunRight = 0;
+	for (int y = 0; y <= kScreenHeight; y++)
+	{
+		int aLeft = 0, aRight = -1;
+		if (y < kScreenHeight)
+		{
+			const uint32_t* aRow = aScreen + y * kScreenWidth;
+			uint32_t* aOldRow = aShown + y * kScreenWidth;
+			uint32_t aDifference = 0;
+			for (int x = 0; x < kScreenWidth; x++)
+				aDifference |= (aRow[x] ^ aOldRow[x]) & 0xffffff;
+			if (aDifference != 0)
+			{
+				while (((aRow[aLeft] ^ aOldRow[aLeft]) & 0xffffff) == 0)
+					aLeft++;
+				aRight = kScreenWidth - 1;
+				while (((aRow[aRight] ^ aOldRow[aRight]) & 0xffffff) == 0)
+					aRight--;
+				memcpy(aOldRow + aLeft, aRow + aLeft, sizeof(uint32_t) * (aRight - aLeft + 1));
+			}
+		}
+		if (aRight >= aLeft)
+		{
+			if (aRunTop < 0)
+			{
+				aRunTop = y;
+				aRunLeft = aLeft;
+				aRunRight = aRight;
+			}
+			else
+			{
+				aRunLeft = std::min(aRunLeft, aLeft);
+				aRunRight = std::max(aRunRight, aRight);
+			}
+		}
+		else if (aRunTop >= 0)
+		{
+			sRects.push_back(Rect(aRunLeft, aRunTop, aRunRight - aRunLeft + 1, y - aRunTop));
+			aRunTop = -1;
+		}
+	}
+	if (sRects.empty())
+		return false;
+	aDisplay->SetFrame(aScreen, kScreenWidth * 4, sRects.data(), (int)sRects.size());
+	return true;
+}
+#else
+bool BonniesWidget::SendScreenChanges()
+{
+	return false;
+}
+#endif
+
 void BonniesWidget::Update()
 {
 	Widget::Update();
 	if (mScreenChanged)
-		MarkDirty();
+	{
+		mScreenChanged = false;
+		if (mScreenImage == nullptr)
+		{
+			if (SendScreenChanges())
+				MarkDirty();
+		}
+		else if (CopyScreenChanges())
+		{
+			mScreenImage->BitsChanged();
+			MarkDirty();
+		}
+	}
 #ifndef __EMSCRIPTEN__
 	// port (test runs): the game's state for tools/realplay.py, which plays from it with real input (Start.h), written
 	// whole to a second file and renamed, so that a reader never sees half of it (it may miss the file for a moment)
@@ -932,28 +1085,39 @@ void BonniesWidget::Update()
 	if (!sStateFile.empty() && gHostApp->IsTestRun() && SDL_GetTicks() - sStateTime >= 100)
 	{
 		sStateTime = SDL_GetTicks();
-		std::string aTemp = sStateFile + ".new";
-		if (FILE* aFile = fopen(aTemp.c_str(), "wb"))
+		std::string aNewFile = sStateFile + ".new";
+		if (FILE* aFile = fopen(aNewFile.c_str(), "wb"))
 		{
 			std::string aState = bonnies::testState();
 			fwrite(aState.data(), 1, aState.size(), aFile);
 			fclose(aFile);
 			std::remove(sStateFile.c_str());
-			std::rename(aTemp.c_str(), sStateFile.c_str());
+			std::rename(aNewFile.c_str(), sStateFile.c_str());
 		}
 	}
 #endif
 }
 
-// The game's screen (0x00RRGGBB) as it was last presented
+// The game's screen (0x00RRGGBB) as it was last presented: the picture already holds it (Update), except for a screen the
+// game presented since the last update, or the first one; and the framework uploads the picture only when it changed
 void BonniesWidget::Draw(Graphics* g)
 {
-	mScreenChanged = false;
-	ulong* aBits = mScreenImage->GetBits();
-	const uint32_t* aScreen = gHost.mScreen.data();
-	for (int i = 0; i < kScreenWidth * kScreenHeight; i++)
-		aBits[i] = 0xff000000 | (aScreen[i] & 0xffffff);
-	mScreenImage->BitsChanged();
+	if (mScreenImage == nullptr)
+	{
+		// (the window's display shows the screen itself)
+		if (mScreenChanged)
+		{
+			mScreenChanged = false;
+			SendScreenChanges();
+		}
+		return;
+	}
+	if (mScreenChanged)
+	{
+		mScreenChanged = false;
+		if (CopyScreenChanges())
+			mScreenImage->BitsChanged();
+	}
 	g->DrawImage(mScreenImage, 0, 0);
 }
 
@@ -1087,6 +1251,9 @@ BonniesHostApp::BonniesHostApp()
 	mMouseInside = false;
 	mLastFrameworkRun = 0;
 	mScriptNoFocus = false;
+#ifndef __EMSCRIPTEN__
+	mWindowCursor = nullptr;
+#endif
 }
 
 BonniesHostApp::~BonniesHostApp()
@@ -1096,7 +1263,51 @@ BonniesHostApp::~BonniesHostApp()
 		mWidgetManager->RemoveWidget(mWidget);
 		delete mWidget;
 	}
+#ifndef __EMSCRIPTEN__
+	// the game's screen buffer goes with the game
+	if (SurfaceDisplay* aDisplay = dynamic_cast<SurfaceDisplay*>(mDDInterface))
+		aDisplay->SetFrame(nullptr, 0, nullptr, -1);
+#endif
 }
+
+#ifndef __EMSCRIPTEN__
+DDInterface* BonniesHostApp::CreateDDInterface()
+{
+	// test only: SURFACE_DISPLAY=off keeps the framework's own display and the widget's picture (the path before the
+	// SurfaceDisplay), to measure the two against each other
+	const char* aMode = SDL_getenv("SURFACE_DISPLAY");
+	if ((aMode != nullptr) && (strcmp(aMode, "off") == 0))
+		return SexyAppBase::CreateDDInterface();
+	return new SurfaceDisplay(this);
+}
+
+// The game's own cursor is the window's cursor, as SDL 1.2's was, not a picture that the framework draws over the screen (a
+// drawn cursor image keeps the window's display from showing the screen through the window's own surface): while the
+// mouse is in the window and the game has asked for its cursor, the window shows it, and the framework's other cursors
+// (the pointer outside the window, none when the game hides it) are as they were.
+void BonniesHostApp::EnforceCursor()
+{
+	if ((mWindowCursor != nullptr) && (mCursorNum == CURSOR_CUSTOM) && (mMouseIn) && (!mSEHOccured))
+	{
+		if (SDL_GetCursor() != mWindowCursor)
+			SDL_SetCursor(mWindowCursor);
+		SDL_ShowCursor(SDL_ENABLE);
+		return;
+	}
+	SexyAppBase::EnforceCursor();
+}
+
+// The window's cursor made from the game's bitmap (nullptr: none). The one before it is freed once the window shows the new
+// one (SDL_FreeCursor puts the default cursor in place of one that is still showing).
+void BonniesHostApp::SetWindowCursor(SDL_Cursor* theCursor)
+{
+	SDL_Cursor* anOldCursor = mWindowCursor;
+	mWindowCursor = theCursor;
+	EnforceCursor();
+	if (anOldCursor != nullptr)
+		SDL_FreeCursor(anOldCursor);
+}
+#endif
 
 void BonniesHostApp::Init()
 {
@@ -1118,17 +1329,21 @@ void BonniesHostApp::DoMainLoop()
 	{
 		bonnies::loadLetterOdds();
 		bonnies::loadBooks();
-		gSteadyClock = !mFastMode && bonnies::FixOn("steadyClock");
+		gSteadyClock = !mFastMode && Platform::FixOn("steadyClock");
 		bonnies::gSkipLogos = Byopop::SiteSkipLogos();
 		mGameRunning = true;
 		bonnies::bonniesMain();
 		mGameRunning = false;
+#ifndef __EMSCRIPTEN__
+		SetWindowCursor(nullptr);
+#else
 		if (gHost.mCursorImage != nullptr)
 		{
 			SetCursorImage(CURSOR_CUSTOM, nullptr);
 			delete gHost.mCursorImage;
 			gHost.mCursorImage = nullptr;
 		}
+#endif
 		Shutdown();
 	}
 	SexyAppBase::DoMainLoop();
@@ -1227,6 +1442,19 @@ bool BonniesHostApp::HandleScriptCommand(const ScriptCommand& theCommand)
 	else
 		GotFocus();
 	return true;
+}
+
+// docs/TEST_COMMANDS.md, "memreport": what the game holds beside the framework's own pictures: its cache's images, which
+// the game draws with itself and never hands to the framework, the decoded samples FSOUND's stand-in keeps, the
+// dictionary and the 800x600 screen buffer the game draws into (the framework's copy of it is one of its pictures)
+void BonniesHostApp::AddMemReportHolders(Platform::MemReport* theReport)
+{
+	std::vector<std::pair<std::string, size_t>> aRows;
+	bonnies::memoryHolders(&aRows);
+	for (const std::pair<std::string, size_t>& aRow : aRows)
+		theReport->mOthers.push_back(aRow);
+	theReport->mOthers.push_back({"samples (" + std::to_string(gHost.mSampleCount) + ", decoded to 16 bits)", gHost.mSampleBytes});
+	theReport->mOthers.push_back({"screen buffer (32 bits)", gHost.mScreen.capacity() * sizeof(uint32_t)});
 }
 
 // Alt+Enter (and the web page's full screen button) change the mode as the game's own option does

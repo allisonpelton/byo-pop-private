@@ -16,14 +16,14 @@ using namespace Sexy;
 // the 640 pixel screen is centred instead.
 FloatText::FloatText(const std::string& theText, Font* theFont, float theX, float theY, bool theFlag)
 {
-	m40 = -1.0f;
+	mOriginX = -1.0f;
 	mTargetY = -1.0f;
 	mSpeed = -1.0f;
 	mX = theX;
-	m18 = 0;
+	mAlphaDelay = 0;
 	mNoFade = false;
-	m50 = 0xff;
-	m10 = 0;
+	mAlpha = 0xff;
+	mHue = 0;
 	mLife = 0xfa;
 	mHoldStart = 0;
 	mHold = 500000000;
@@ -43,14 +43,14 @@ FloatText::FloatText(const std::string& theText, Font* theFont, float theX, floa
 // goes on up (the clear bonus).
 FloatText::FloatText(const std::string& theText, Font* theFont, float theX, float theTargetY, int theHold, float theSpeed)
 {
-	m18 = 0;
-	m50 = 0xff;
-	m10 = 0;
+	mAlphaDelay = 0;
+	mAlpha = 0xff;
+	mHue = 0;
 	mLife = 0xfa;
 	mX = theX;
 	mY = 480.0f;
 	mText = theText;
-	m40 = theX;
+	mOriginX = theX;
 	mTargetY = theTargetY;
 	mFont = theFont;
 	mNoFade = false;
@@ -66,74 +66,73 @@ FloatText::FloatText(const std::string& theText, Font* theFont, float theX, floa
 LevelUpText::LevelUpText(Image* theImage, int theY)
 {
 	mImage = theImage;
-	m18 = theY + 0xbe;
-	m34 = 0.73f;
-	m08 = 1;
-	m30 = 0.0f;
-	m20 = 1.0f;
-	m24 = 0.0f;
-	m1c = 0.0f;
-	m0c = 0x1e;
-	m14 = 0;
-	m10 = 100;
-	m28 = 1.0f;
-	m2c = 0.025f;
-	m04 = false;
+	mAlphaRiseTime = theY + 0xbe;
+	mBaseScale = 0.73f;
+	mActive = 1;
+	mAlpha = 0.0f;
+	mStretch = 1.0f;
+	mStretchSpeed = 0.0f;
+	mSpringRamp = 0.0f;
+	mStartDelay = 0x1e;
+	mSmallHoldTime = 0;
+	mBigHoldTime = 100;
+	mScale = 1.0f;
+	mScaleSpeed = 0.025f;
 }
 
 // 0x40b6a0: one update of the picture that announces a level (or a minute): its position and size ease towards the middle
 // of the screen, hold there and ease away; it is over when it has faded out or shrunk to nothing.
 void LevelUpText::Update()
 {
-	if (m08 == 0)
+	if (mActive == 0)
 		return;
 
 	// (x87 at 24 bits, every result a float: the expressions below are written in float, each operation rounding as the original's does)
-	if (m1c < 1.0f)
-		m1c = m1c + 0.04f;
+	if (mSpringRamp < 1.0f)
+		mSpringRamp = mSpringRamp + 0.04f;
 
-	float aPull = 0.975f - m1c * 0.12f;
-	float aSpring = m1c * 0.01f + 0.002f;
-	float aVel = aPull * ((-m20) * aSpring + m24);
-	m24 = aVel;
-	float aPos = aVel + m20;
-	m20 = aPos;
-	if (fabs((double) aPos) < 0.0010000000474974513 && fabs((double) m24) < 9.999999747378752e-05)
+	float aPull = 0.975f - mSpringRamp * 0.12f;
+	float aSpring = mSpringRamp * 0.01f + 0.002f;
+	float aVel = aPull * ((-mStretch) * aSpring + mStretchSpeed);
+	mStretchSpeed = aVel;
+	float aPos = aVel + mStretch;
+	mStretch = aPos;
+	if (fabs((double) aPos) < 0.0010000000474974513 && fabs((double) mStretchSpeed) < 9.999999747378752e-05)
 	{
-		m20 = 0.0f;
-		m24 = 0.0f;
+		mStretch = 0.0f;
+		mStretchSpeed = 0.0f;
 	}
 
-	if (m0c > 0)
-		m0c--;
+	if (mStartDelay > 0)
+		mStartDelay--;
 	else
 	{
-		m10--;
-		m14--;
+		mBigHoldTime--;
+		mSmallHoldTime--;
 		float aForce;
-		if (m14 > 0)
-			aForce = (1.2f - m28) * 0.0015f;
-		else if (m10 > 0)
-			aForce = (1.75f - m28) * 0.0015f;
+		if (mSmallHoldTime > 0)
+			aForce = (1.2f - mScale) * 0.0015f;
+		else if (mBigHoldTime > 0)
+			aForce = (1.75f - mScale) * 0.0015f;
 		else
-			aForce = (-m28) * 0.002f;
-		m2c = aForce + m2c;
-		m28 = m28 + m2c;
+			aForce = (-mScale) * 0.002f;
+		mScaleSpeed = aForce + mScaleSpeed;
+		mScale = mScale + mScaleSpeed;
 	}
 
-	if (m18 > 0)
+	if (mAlphaRiseTime > 0)
 	{
-		float aFade = m30 + 0.02f;
-		m18--;
-		m30 = aFade;
+		float aFade = mAlpha + 0.02f;
+		mAlphaRiseTime--;
+		mAlpha = aFade;
 		if (aFade > 1.0f)
-			m30 = 1.0f;
+			mAlpha = 1.0f;
 	}
 	else
-		m30 = m30 - 0.03f;
+		mAlpha = mAlpha - 0.03f;
 
-	if (m30 < 0.0f || m28 <= 0.0f)
-		m08 = 0;
+	if (mAlpha < 0.0f || mScale <= 0.0f)
+		mActive = 0;
 }
 
 // 0x408890: one update of a floating text. It rises one pixel an update (-1 in the three fields: nothing else was
@@ -145,7 +144,7 @@ void FloatText::Update()
 	if (mDone)
 		return;
 
-	if (mSpeed == -1.0f && m40 == -1.0f && mTargetY == -1.0f)
+	if (mSpeed == -1.0f && mOriginX == -1.0f && mTargetY == -1.0f)
 		mY = mY - 1.0f;
 	else if (mY > mTargetY)
 	{
@@ -170,7 +169,7 @@ void FloatText::Update()
 
 	if (!mNoFade)
 	{
-		m10 = (m10 + 7) % 0xff;
+		mHue = (mHue + 7) % 0xff;
 		mLife--;
 		if (mLife < 1)
 		{
@@ -180,12 +179,12 @@ void FloatText::Update()
 	}
 	if (mHold == 500000000)
 	{
-		m18--;
-		if (m18 < 1)
+		mAlphaDelay--;
+		if (mAlphaDelay < 1)
 		{
-			m50 -= 2;
-			if (m50 < 0)
-				m50 = 0;
+			mAlpha -= 2;
+			if (mAlpha < 0)
+				mAlpha = 0;
 		}
 	}
 }
@@ -194,22 +193,21 @@ void FloatText::Update()
 HintBox::HintBox()
 {
 	mFont = NULL;
-	m38 = Color(0x28, 0x41, 0x2d);
-	m48 = Color(0xd7, 0xff, 0x0a);
+	mFillColor = Color(0x28, 0x41, 0x2d);
+	mTextColor = Color(0xd7, 0xff, 0x0a);
 	mShowTime = 100;
 	mHideTime = 200;
-	m21 = true;
-	m1c = true;
-	m1e = true;
-	m1f = true;
-	m1d = false;
-	m20 = false;
-	m04 = 0;
-	m64 = 0;
-	m60 = 0;
+	mShown = true;
+	mTimerRunning = true;
+	mHidden = true;
+	mDrawAllowed = true;
+	mInView = false;
+	mSlidIn = false;
+	mCellRow = 0;
+	mCellColumn = 0;
 	mY = 0;
 	mX = 0;
-	m08 = 0;
+	mPhaseTimer = 0;
 	mHeight = 0;
 	mWidth = 0;
 }
@@ -217,47 +215,46 @@ HintBox::HintBox()
 // 0x435a40: the box counts; once it is shown it waits mShowTime updates, slides in, stays mHideTime updates and goes
 void HintBox::Update()
 {
-	m04++;
-	if (m1c)
-		m08++;
+	if (mTimerRunning)
+		mPhaseTimer++;
 
-	if (m21 && !m20)
+	if (mShown && !mSlidIn)
 	{
-		if (!m1d)
+		if (!mInView)
 		{
-			if (mShowTime <= m08)
+			if (mShowTime <= mPhaseTimer)
 			{
-				m1d = true;
-				m20 = true;
-				m08 = 0;
+				mInView = true;
+				mSlidIn = true;
+				mPhaseTimer = 0;
 				return;
 			}
 			return;
 		}
 	}
-	else if (!m1d)
+	else if (!mInView)
 		return;
 
-	if (m20 && mHideTime <= m08)
+	if (mSlidIn && mHideTime <= mPhaseTimer)
 	{
-		m1d = false;
-		m20 = false;
-		m1c = false;
-		m08 = 0;
+		mInView = false;
+		mSlidIn = false;
+		mTimerRunning = false;
+		mPhaseTimer = 0;
 	}
 }
 
 // 0x43c5d0: the panel (a frame of one colour round a fill of another) and its lines of text
 void HintBox::Draw(Graphics* g)
 {
-	if (m1d && m1f && !m1e)
+	if (mInView && mDrawAllowed && !mHidden)
 	{
 		g->SetFont(mFont);
 		g->SetColor(Color(0x69, 0xaa, 0x3c));
 		g->FillRect(Rect(mX, mY, mWidth, mHeight));
-		g->SetColor(m38);
+		g->SetColor(mFillColor);
 		g->FillRect(Rect(mX + 1, mY + 1, mWidth - 2, mHeight - 2));
-		g->SetColor(m48);
+		g->SetColor(mTextColor);
 		for (unsigned int i = 0; i < mLines.size(); i++)
 			g->DrawString(mLines[i], mX + 3, mFont->GetAscent() * (i + 1) + i * 2 + mY);
 	}
@@ -268,24 +265,24 @@ void HintBox::SetShown(bool theShow)
 {
 	if (!theShow)
 	{
-		if (m21)
+		if (mShown)
 		{
-			m08 = 0;
-			m1c = false;
-			m21 = false;
-			m1f = false;
-			m1e = true;
-			m1d = false;
+			mPhaseTimer = 0;
+			mTimerRunning = false;
+			mShown = false;
+			mDrawAllowed = false;
+			mHidden = true;
+			mInView = false;
 		}
 	}
-	else if (!m21)
+	else if (!mShown)
 	{
-		m1c = true;
-		m21 = true;
-		m20 = false;
-		m1f = true;
-		m1e = false;
-		m1d = false;
+		mTimerRunning = true;
+		mShown = true;
+		mSlidIn = false;
+		mDrawAllowed = true;
+		mHidden = false;
+		mInView = false;
 	}
 }
 
@@ -345,6 +342,7 @@ ScreenWipe::ScreenWipe()
 	mGoingDown = true;
 }
 
+// port: the wipe's destructor
 ScreenWipe::~ScreenWipe()
 {
 	if (mOwnsImage)
@@ -579,8 +577,8 @@ void FloatText::Draw(Graphics* g)
 	g->SetFont(mFont);
 	Color aColor(0xff, 0xff, 0xff);
 	if (!mNoFade)
-		aColor = Color((int) (gApp->HSLToRGB(m10, 0xff, 0x80) & 0xffffff) | 0xff000000);
-	aColor.mAlpha = m50;
+		aColor = Color((int) (gApp->HSLToRGB(mHue, 0xff, 0x80) & 0xffffff) | 0xff000000);
+	aColor.mAlpha = mAlpha;
 	g->SetColor(aColor);
 	g->DrawString(mText, (int) mX, (int) ((float) mFont->GetAscent() + mY));
 }
@@ -594,18 +592,18 @@ void LevelUpText::Draw(Graphics* g)
 // 0x40c8a0: the picture stretched round the point (theX, theY): wider as it springs out and shorter, never below 6 pixels
 void LevelUpText::DrawAt(Graphics* g, int theX, int theY)
 {
-	if (m08 == 0)
+	if (mActive == 0)
 		return;
 
 	bool is3D = gApp->Is3DAccelerated();
 	// (x87 at 24 bits: every product and sum below is rounded to a float, in the order of the original's instructions)
-	float aWidth = ((m20 * 4.0f + 1.0f) * (float) mImage->mWidth) * m34 * m28;
-	float aHeight = (((float) mImage->mHeight - ((float) mImage->mHeight * m20) * 1.8f) * m34) * m28;
+	float aWidth = ((mStretch * 4.0f + 1.0f) * (float) mImage->mWidth) * mBaseScale * mScale;
+	float aHeight = (((float) mImage->mHeight - ((float) mImage->mHeight * mStretch) * 1.8f) * mBaseScale) * mScale;
 	if (aHeight < 6.0f)
 		aHeight = 6.0f;
 
 	g->SetColorizeImages(true);
-	g->SetColor(Color(0xff, 0xff, 0xff, (int) (m30 * 255.0f)));
+	g->SetColor(Color(0xff, 0xff, 0xff, (int) (mAlpha * 255.0f)));
 	if (!is3D)
 		g->SetFastStretch(true);
 	Rect aSrc(0, 0, mImage->mWidth, mImage->mHeight);

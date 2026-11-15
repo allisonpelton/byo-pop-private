@@ -73,6 +73,13 @@ def build():
     for ch, px in source_glyphs().items():
         # the advance: to one pixel past the ink (a glyph's own left bearing, mostly one pixel, is the gap before it)
         glyphs[ch] = (max(x for x, y in px) + 1, px)
+    # a glyph whose body (above the baseline) starts at the origin, as y, ý and ÿ do with their tail a pixel left of it, would touch
+    # the letter before it ("ry"): it moves right until its body has the one pixel of bearing the others have, its advance with it
+    # (the user approved it, 2026-11-11); the shape is unchanged
+    for ch, (adv, px) in list(glyphs.items()):
+        body = min((x for x, y in px if y <= ASCENT - 1), default=1)
+        if body < 1:
+            glyphs[ch] = (adv + 1 - body, frozenset((x + 1 - body, y) for x, y in px))
     for ch in WIDER:
         glyphs[ch] = (glyphs[ch][0] + 1, glyphs[ch][1])
     digits = max(glyphs[d][0] for d in "0123456789")

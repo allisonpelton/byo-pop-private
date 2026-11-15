@@ -71,13 +71,14 @@ int GroupSize(EggGrid* theGrid, int theCol, int theRow, int theColor)
 		Neighbours(aCol, aRow, aNext);
 		for (int i = 0; i < 6; i++)
 		{
-			int c = aNext[i][0];
-			int r = aNext[i][1];
-			if ((CellColor(theGrid, c, r) == theColor) && !aSeen[c][r] && ((float) r <= theGrid->mRows))
+			int aNextCol = aNext[i][0];
+			int aNextRow = aNext[i][1];
+			if ((CellColor(theGrid, aNextCol, aNextRow) == theColor) && !aSeen[aNextCol][aNextRow] &&
+				((float) aNextRow <= theGrid->mRows))
 			{
-				aSeen[c][r] = true;
-				aStack[aTop][0] = c;
-				aStack[aTop][1] = r;
+				aSeen[aNextCol][aNextRow] = true;
+				aStack[aTop][0] = aNextCol;
+				aStack[aTop][1] = aNextRow;
 				aTop++;
 			}
 		}
@@ -200,9 +201,9 @@ bool Sexy::BotChooseShot(Dynomite* theBoard, BotShot* theShot, bool toTheLine, b
 	if ((theBoard == NULL) || (theBoard->mGrid == NULL) || (theBoard->mLauncher == NULL))
 		return false;
 	Launcher* aLauncher = theBoard->mLauncher;
-	if ((aLauncher->mLoaded == NULL) || aLauncher->mFrozen || theBoard->mField131 || theBoard->mField132 ||
-		(theBoard->mPauseCount > 0) || theBoard->mField244 || theBoard->mField80 || (theBoard->mThunderbolt != NULL) ||
-		theBoard->mField130)
+	if ((aLauncher->mLoaded == NULL) || aLauncher->mFrozen || theBoard->mGameOver || theBoard->mGameOverShown ||
+		(theBoard->mPauseCount > 0) || theBoard->mInputLocked || theBoard->mFireBlocked || (theBoard->mThunderbolt != NULL) ||
+		theBoard->mLosing)
 		return false;
 	AngleTable* anAngles = theBoard->mApp->mAngles;
 	EggGrid* aGrid = theBoard->mGrid;
@@ -240,7 +241,7 @@ bool Sexy::BotChooseShot(Dynomite* theBoard, BotShot* theShot, bool toTheLine, b
 			continue;
 		// the egg starts where PlaceEgg puts it for this angle
 		float x = (float) ((double) aLauncher->mSlingX - (double) anAngles->mDX[anAngle] * 25.0);
-		float y = (float) ((double) aLauncher->mFieldAac + ((double) aLauncher->mSlingY - (double) anAngles->mDY[anAngle] * 25.0));
+		float y = (float) ((double) aLauncher->mReloadSlide + ((double) aLauncher->mSlingY - (double) anAngles->mDY[anAngle] * 25.0));
 		int aCol, aRow;
 		int aGroup;
 		if (Fly(theBoard, anAngle, x, y, aDrop, &aCol, &aRow))

@@ -1,4 +1,4 @@
-// Board: the field of bricks (19 rows of 10 in m314) and the lists of bricks that hang off the Board: emptying them,
+// Board: the field of bricks (19 rows of 10 in mFieldBricks) and the lists of bricks that hang off the Board: emptying them,
 // filling the field from a level's layout, and the questions about the falling piece.
 
 #include "Board.h"
@@ -27,9 +27,9 @@ bool Board::TypesMatch(Brick* theBrick, int theType)
 // 0x436b30: is the first brick of the falling piece of this type (a mutator counts as 0xc)?
 bool Board::FirstPieceIsType(int theType)
 {
-	if (m70.empty())
+	if (mHeldBricks.empty())
 		return false;
-	Brick* aBrick = m70.front();
+	Brick* aBrick = mHeldBricks.front();
 	if (aBrick->mMutated == 1)
 		return theType == 0xc;
 	return aBrick->mType == theType;
@@ -50,54 +50,54 @@ bool Board::IsTargeted(Brick* theBrick)
 // and the one at +0x354) goes into the set of the bricks to delete, the lists are emptied, and the set is deleted
 void Board::ClearField()
 {
-	for (unsigned int aRow = 0; aRow < m314.size(); aRow++)
+	for (unsigned int aRow = 0; aRow < mFieldBricks.size(); aRow++)
 	{
 		for (int aCol = 0; aCol < 10; aCol++)
 		{
-			Brick* aBrick = m314[aRow][aCol];
+			Brick* aBrick = mFieldBricks[aRow][aCol];
 			if (aBrick != NULL)
-				m128.insert(aBrick);
-			m314[aRow][aCol] = NULL;
+				mDoomedBricks.insert(aBrick);
+			mFieldBricks[aRow][aCol] = NULL;
 		}
 	}
 
-	for (std::list<Brick*>::iterator i = m70.begin(); i != m70.end(); ++i)
-		m128.insert(*i);
-	m70.clear();
+	for (std::list<Brick*>::iterator i = mHeldBricks.begin(); i != mHeldBricks.end(); ++i)
+		mDoomedBricks.insert(*i);
+	mHeldBricks.clear();
 
-	for (std::list<Brick*>::iterator i = m88.begin(); i != m88.end(); ++i)
-		m128.insert(*i);
-	m88.clear();
+	for (std::list<Brick*>::iterator i = mGoneBricks.begin(); i != mGoneBricks.end(); ++i)
+		mDoomedBricks.insert(*i);
+	mGoneBricks.clear();
 
-	for (std::list<Brick*>::iterator i = ma0.begin(); i != ma0.end(); ++i)
-		m128.insert(*i);
-	ma0.clear();
+	for (std::list<Brick*>::iterator i = mTakenBricks.begin(); i != mTakenBricks.end(); ++i)
+		mDoomedBricks.insert(*i);
+	mTakenBricks.clear();
 
-	ma8.clear();
+	mTakenCells.clear();
 
-	for (std::list<std::list<Brick*> >::iterator i = m7c.begin(); i != m7c.end(); ++i)
+	for (std::list<std::list<Brick*> >::iterator i = mFiredGroups.begin(); i != mFiredGroups.end(); ++i)
 	{
 		for (std::list<Brick*>::iterator j = i->begin(); j != i->end(); ++j)
-			m128.insert(*j);
+			mDoomedBricks.insert(*j);
 	}
-	m7c.clear();
+	mFiredGroups.clear();
 
-	for (std::list<std::list<Brick*> >::iterator i = m94.begin(); i != m94.end(); ++i)
+	for (std::list<std::list<Brick*> >::iterator i = mFallingGroups.begin(); i != mFallingGroups.end(); ++i)
 	{
 		for (std::list<Brick*>::iterator j = i->begin(); j != i->end(); ++j)
-			m128.insert(*j);
+			mDoomedBricks.insert(*j);
 	}
-	m94.clear();
+	mFallingGroups.clear();
 
-	for (unsigned int i = 0; i < m108.size(); i++)
-		m128.insert(m108[i]);
-	m108.clear();
+	for (unsigned int i = 0; i < mFadedBricks.size(); i++)
+		mDoomedBricks.insert(mFadedBricks[i]);
+	mFadedBricks.clear();
 
 	mTargeted.clear();
 
-	if (m354 != NULL)
-		m128.insert(m354);
-	m354 = NULL;
+	if (mHandKindBrick != NULL)
+		mDoomedBricks.insert(mHandKindBrick);
+	mHandKindBrick = NULL;
 
 	DeleteDoomedBricks();
 }
@@ -107,21 +107,21 @@ void Board::ClearField()
 void Board::BuildField()
 {
 	unsigned int aRow = 0;
-	m95c = 0;
-	m954 = 0;
-	m8dd = false;
-	m958 = 0;
-	m8fc = true;
+	mDemoWaitLeft = 0;
+	mDemoStepIndex = 0;
+	mDemoInputActive = false;
+	mDemoAddedRowIndex = 0;
+	mPlayStarted = true;
 	ClearField();
 	int aY = 4;
-	while (aRow < m334.size())
+	while (aRow < mDemoLayout.size())
 	{
 		int aCol = 0;
 		int aX = 0xa6;
 		do
 		{
 			Brick* aBrick = NULL;
-			switch (m334[aRow][aCol])
+			switch (mDemoLayout[aRow][aCol])
 			{
 			case 0:
 				aBrick = CreateBrick(0);
@@ -188,7 +188,7 @@ void Board::BuildField()
 					aBrickY = aY + 5;
 				aBrick->SetParticleY((float)aBrickY);
 			}
-			m314[aRow][aCol] = aBrick;
+			mFieldBricks[aRow][aCol] = aBrick;
 			aX = aX + 0x2c;
 			aCol++;
 		} while (aX < 0x25e);

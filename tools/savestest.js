@@ -90,9 +90,13 @@ function throws(name, fn, pattern) {
   same("play: the larger counts and the later day", JSON.parse(S.mergedPlay(
     JSON.stringify({ pixelus: { plays: 5, seconds: 100, last: "2026-11-02" }, tiptop: { plays: 1, seconds: 9, last: "2026-10-01" } }),
     JSON.stringify({ pixelus: { plays: 3, seconds: 400, last: "2026-10-30" }, ningpo: { plays: 2, seconds: 50, last: "2026-09-09" }, "../x": { plays: 9 } }))),
-    { pixelus: { plays: 5, seconds: 400, last: "2026-11-02" }, tiptop: { plays: 1, seconds: 9, last: "2026-10-01" }, ningpo: { plays: 2, seconds: 50, last: "2026-09-09" } });
+    { pixelus: { plays: 5, seconds: 400, first: "", last: "2026-11-02" }, tiptop: { plays: 1, seconds: 9, first: "", last: "2026-10-01" }, ningpo: { plays: 2, seconds: 50, first: "", last: "2026-09-09" } });
   same("play: with nothing here", JSON.parse(S.mergedPlay(null, JSON.stringify({ tiptop: { plays: 1, seconds: 2, last: "bad" } }))),
-    { tiptop: { plays: 1, seconds: 2, last: "" } });
+    { tiptop: { plays: 1, seconds: 2, first: "", last: "" } });
+  same("play: each player's record, the earlier first day", JSON.parse(S.mergedPlay(
+    JSON.stringify({ pixelus: { plays: 2, first: "2026-11-05", last: "2026-11-09", by: { pa: { plays: 2, seconds: 10, first: "2026-11-05", last: "2026-11-09" } } } }),
+    JSON.stringify({ pixelus: { plays: 1, first: "2026-11-01", last: "2026-11-01", by: { pa: { plays: 1, seconds: 30, first: "2026-11-01", last: "2026-11-01" }, "": { plays: 1 }, "a/b": { plays: 9 } } } }))),
+    { pixelus: { plays: 2, seconds: 0, first: "2026-11-01", last: "2026-11-09", by: { pa: { plays: 2, seconds: 30, first: "2026-11-01", last: "2026-11-09" }, "": { plays: 1, seconds: 0, first: "", last: "" } } } });
   same("play: a damaged backup", S.mergedPlay("{}", "{nope"), "{}");
   check("a name twice", !S.classify([{ name: "pixelus/userdata/a" }, { name: "pixelus/userdata/a" }], ids).ok);
   check("an absolute path", refused("/etc/passwd") && refused("C:/x") && refused("..\\x"));

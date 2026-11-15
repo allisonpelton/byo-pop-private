@@ -258,11 +258,9 @@ enum ResourceId {
 	RESOURCE_ID_MAX
 };
 
-bool ExtractResourcesByName(ResourceManager* theManager, const char* theName);  // 0x5d8b5d
-const char* GetStringIdById(int theId);       // 0x5d3ffd
 Image* GetImageById(int theId);               // 0x5d3fca: the global of an image id (null for a font or sound id)
 
-// 3dImages
+// 3dImages: 0x5d4aa5
 bool Extract3dImagesResources(ResourceManager* theManager);
 extern Image* IMAGE_BLACK_HOLE;
 extern Image* IMAGE_BLACK_HOLE_COVER;
@@ -272,7 +270,7 @@ extern Image* IMAGE_HYPERSPACE_INITIAL;
 extern Image* IMAGE_TUNNEL_END;
 extern Image* IMAGE_WARP_LINES;
 
-// Init
+// Init: 0x5d4cda
 bool ExtractInitResources(ResourceManager* theManager);
 extern Font* FONT_1;
 extern Font* FONT_2;
@@ -281,7 +279,7 @@ extern Font* FONT_CONTINUUM_MED_14_GLOW;
 extern Font* FONT_CONT_MED;
 extern Font* FONT_CONT_SM;
 
-// InitialMainMenu
+// InitialMainMenu: 0x5d4e24
 bool ExtractInitialMainMenuResources(ResourceManager* theManager);
 extern Image* IMAGE_MAIN_BKG;
 extern Image* IMAGE_MAIN_COMET;
@@ -292,7 +290,7 @@ extern Image* IMAGE_MAIN_PLANET_1;
 extern Image* IMAGE_MAIN_STARFIELD;
 extern Image* IMAGE_MAIN_STAR_SPARKLE;
 
-// LoadScreen
+// LoadScreen: 0x5d50a2
 bool ExtractLoadScreenResources(ResourceManager* theManager);
 extern Image* IMAGE_LOADER_BAR;
 extern Image* IMAGE_LOADER_BAR_FLASH;
@@ -304,7 +302,7 @@ extern Image* IMAGE_LOGO_2;
 extern Image* IMAGE_LOGO_DELUXE;
 extern Image* IMAGE_LOGO_POPCAP;
 
-// LoadingThread
+// LoadingThread: 0x5d5369
 bool ExtractLoadingThreadResources(ResourceManager* theManager);
 extern Font* FONT_BOMB;
 extern Font* FONT_CONTINUUM_BOLD_11_NUM;
@@ -465,7 +463,7 @@ extern Image* IMAGE_WARP_BOTTOM_GLOW;
 extern Image* IMAGE_WARP_TOP_GLOW;
 extern Image* IMAGE_WILDCARD_DESTROYER;
 
-// NonResize
+// NonResize: 0x5d7f7e
 bool ExtractNonResizeResources(ResourceManager* theManager);
 extern Image* IMAGE_CURSOR_DRAGGING;
 extern Image* IMAGE_CURSOR_HAND;
@@ -475,7 +473,7 @@ extern Image* IMAGE_RELOAD_BKG;
 extern Image* IMAGE_RELOAD_OVERLAY;
 extern Image* IMAGE_RELOAD_OVERLAY_LIT;
 
-// Sounds
+// Sounds: 0x5d81b3
 bool ExtractSoundsResources(ResourceManager* theManager);
 extern int SOUND_BAD;
 extern int SOUND_BOMB_EXPLODE;

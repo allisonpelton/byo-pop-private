@@ -23,6 +23,7 @@
 #include "DialogButton.h"
 #include "ImageFont.h"
 #include "DDImage.h"
+#include "DDInterface.h"
 #include "MemoryImage.h"
 #include "MusicInterface.h"
 #include "SDLMusicInterface.h"
@@ -31,6 +32,7 @@
 #include "Insets.h"
 #include "Color.h"
 #include "Common.h"
+#include "LiveSplitObserver.h"
 
 #include <SDL.h>
 
@@ -148,6 +150,8 @@ WinWSApp::WinWSApp()
 	mLettersWrongSoFar = 0;
 	mLettersRightSoFar = 0;
 	mDeleteUserAsked = false;
+	mAutosplitGameSerial = 0;
+	mAutosplitContinued = false;
 
 	mNumLoadingThreadTasks = NUM_LOADING_TASKS;
 }
@@ -156,6 +160,7 @@ WinWSApp::WinWSApp()
 // original's order. The containers (strings, vectors, maps) free themselves.
 WinWSApp::~WinWSApp()
 {
+	LiveSplitObserver::AppDestroyed(this);	// port: the autosplit block's last write
 	mWidgetManager->MarkAllDirty();
 
 	// the dialogs still open
@@ -364,6 +369,17 @@ bool WinWSApp::LoadFont(ImageFont*& theFont, const char* thePath)
 // 0x428500 slot 16
 void WinWSApp::Init()
 {
+	// port: the 2004 WidgetManager::DrawScreen (0x47d790) copies the screen's Graphics, clips and translates it and draws the widget;
+	// it never sets the fast stretch (the 2004 Graphics keeps it in the byte at +0x49, the constructor clears it, and nothing in the
+	// game's code sets it), so a widget's stretched picture averages. The shared 1.3 WidgetManager sets it on every widget
+	gWidgetsDrawWithoutFastStretch = true;
+
+	// port: this game's MemoryImage::SlowStretchBlt (0x48d9b0) blends the averaged colour with the weight 255 * a / (a + the
+	// alpha that is there) (its last loop: `(a * 0xff) / (destAlpha + a)`), as AstroPop's does and the 1.4 framework's has commented
+	// out. It matters at the stretched medal's partly transparent edge pixels (the statistics screen's adventure panel and the
+	// end-of-adventure dialog): with the line off the edge pixels differed from the original's by up to 24 levels (GAME_NOTES section 18)
+	gSlowStretchRenormalizesAlpha = true;
+
 	SexyApp::Init();
 
 	// port: the 2004 SexyApp::Init seeds the C library generator with srand(GetTickCount()); -seed=N test runs seed it
@@ -586,6 +602,16 @@ void WinWSApp::UpdateFrames()
 	SexyApp::UpdateFrames();
 	if (mMusic != NULL)     // port: the original does not test
 		mMusic->Update();
+	LiveSplitObserver::AfterUpdate(this);	// port: the autosplit block, after the update (LiveSplitObserver.h)
+}
+
+// port: -livesplitlog=<file>, one line for each change the autosplit block shows (tests); the rest is the framework's
+void WinWSApp::HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue)
+{
+	if (theParamName == "-livesplitlog")
+		LiveSplitObserver::SetLogFile(theParamValue);
+	else
+		SexyApp::HandleCmdLineParam(theParamName, theParamValue);
 }
 
 // 0x4127c0 slot 47
@@ -646,6 +672,99 @@ void WinWSApp::GotFocus()
 	PauseMusic(false);
 	if (mBoard != NULL)
 		mBoard->SetPaused(false);   // 0x442100
+}
+
+// The display of a 3D run draws a line as the original's Direct3D does: its last pixel is not drawn. The original's 3D screen (found
+// by running it on the desktop, GAME_NOTES.md "The 3D drawing") ends the divider under a tab's title one pixel short of the
+// 2D screen's, where MemoryImage::DrawLine sets both end points. Only horizontal and vertical lines are cut (the game draws no
+// other, and the rule for a slanted one was not seen); a line of one pixel is left alone.
+//
+// The display of a 2D run also draws a stretch as the original's software screen does (DDImage::StretchBlt 0x4a2fb0, the
+// non-fast branch): the picture is averaged (MemoryImage::SlowStretchBlt 0x48d9b0) into a transparent picture of the
+// destination's size, and that is blitted with the draw's colour and mode (DDInterface::mSoftwareStretch). The game stretches in
+// two places, the medal and the end-of-adventure dialog's ten pictures (GAME_NOTES section 18), and the GPU's filter, which a
+// stretch took before, differs from the average at a partly transparent edge. In 3D the original's textured quads, and the
+// port's GPU, sample at pixel centres. Is3D can change from one run to the next, so the choice is made at each stretch.
+class TyperSharkDisplay : public DDInterface
+{
+public:
+	TyperSharkDisplay(SexyAppBase* theApp) : DDInterface(theApp)
+	{
+	}
+
+	// port: with 3D on, the original's Direct3D 9 draws every texture with straight alpha (source alpha, one minus source alpha) and filters the
+	// texture's red, green, blue and alpha apart, so a texel under zero alpha still colours the edge of a stretched picture (the medal and the ten
+	// pictures of the end-of-adventure dialog: measured on the original's 3D capture from the picture and its alpha file, a straight bilinear sample
+	// at the pixel centres of the destination rectangle is within 0.2 levels, the premultiplied one 0.9). The framework's accelerated display
+	// uploads premultiplied textures when the renderer allows custom blend modes (DDInterface::SetupBlendModes), which blends the edge with
+	// the premultiplied colours instead. The straight modes are the framework's own fallback for renderers without them. They are used
+	// while 3D is on only: the 2D mode's pictures (the software paths of PopCap's 2D mode) equal the original's with the premultiplied ones,
+	// and a pixel in 3D's semi-transparent edge differs by a level from them. A switch of the Options box (mIs3D) takes effect at the next
+	// frame, which uploads the textures again in the new form.
+	virtual int Init(SDL_Window* theWindow, bool vsync) override
+	{
+		mBlendModesKnown = false;
+		mBlendIsStraight = false;
+		return DDInterface::Init(theWindow, vsync);
+	}
+
+	virtual void BeginFrame() override
+	{
+		SyncBlendModes();
+		DDInterface::BeginFrame();
+	}
+
+	virtual void StretchBlt(Image* theImage, const FRect& theDestRect, const Rect& theSrcRect, const Rect* theClipRect, const Color& theColor, int theDrawMode, bool fastStretch, bool mirror = false) override
+	{
+		mSoftwareStretch = !mIs3D;
+		DDInterface::StretchBlt(theImage, theDestRect, theSrcRect, theClipRect, theColor, theDrawMode, fastStretch, mirror);
+	}
+
+	virtual void DrawLine(double theStartX, double theStartY, double theEndX, double theEndY, const Color& theColor, int theDrawMode, bool antiAlias) override
+	{
+		if (mIs3D)
+		{
+			if ((theStartY == theEndY) && (theStartX != theEndX))
+				theEndX += (theEndX > theStartX) ? -1.0 : 1.0;
+			else if ((theStartX == theEndX) && (theStartY != theEndY))
+				theEndY += (theEndY > theStartY) ? -1.0 : 1.0;
+		}
+		DDInterface::DrawLine(theStartX, theStartY, theEndX, theEndY, theColor, theDrawMode, antiAlias);
+	}
+
+private:
+	void SyncBlendModes()
+	{
+		if (mRenderer == NULL)
+			return;
+		if (!mBlendModesKnown)
+		{
+			// what SetupBlendModes found for this renderer
+			mBlendModesKnown = true;
+			mCanPremultiply = mPremultiplied;
+			mPremultipliedNormal = mBlendNormal;
+			mPremultipliedAdditive = mBlendAdditive;
+		}
+		if (!mCanPremultiply || (mIs3D == mBlendIsStraight))
+			return;
+		ReleaseTextures();
+		mBlendIsStraight = mIs3D;
+		mPremultiplied = !mBlendIsStraight;
+		mBlendNormal = mBlendIsStraight ? SDL_BLENDMODE_BLEND : mPremultipliedNormal;
+		mBlendAdditive = mBlendIsStraight ? SDL_BLENDMODE_ADD : mPremultipliedAdditive;
+		SDL_SetRenderDrawBlendMode(mRenderer, (SDL_BlendMode) mBlendNormal);
+	}
+
+	bool mBlendModesKnown = false;
+	bool mCanPremultiply = false;
+	bool mBlendIsStraight = false;
+	int mPremultipliedNormal = 0;
+	int mPremultipliedAdditive = 0;
+};
+
+DDInterface* WinWSApp::CreateDDInterface()
+{
+	return new TyperSharkDisplay(this);
 }
 
 // port: the 2004 SexyApp creates a BassMusicInterface (BASS 2.0), which sets the module music's global volume to the

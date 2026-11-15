@@ -47,8 +47,6 @@ public:
 	void getWindowPos2(int* theX, int* theY) override;
 	// slot 17, 0x401d00: paused and inactive for more than a frame
 	int isIdle() override;
-	// slot 18, 0x401e00: the debug menu's commands
-	void menuCommand(int theCommand) override;
 
 	// 0x401630: the shared images (the table 0x4662c0), once
 	void loadImages();
@@ -65,19 +63,19 @@ public:
 	int mInited;              // +0x1d8
 	Screen* mScreen;          // +0x1dc: the state's screen
 	Str mDebugText;           // +0x1e0
-	int mDebug1E8;            // +0x1e8 (the menu's 0x2af9)
-	int mDebug1EC;            // +0x1ec (0x2afa)
+	int mFreeMoves;           // +0x1e8: the debug menu's 0x2af9: no moves are used and the clock stands still (nothing sets it)
+	int mAnyWord;             // +0x1ec: the debug menu's 0x2afa: every word of three letters or more counts (nothing sets it)
 	int mPaused;              // +0x1f0
 	int mAutoPaused;          // +0x1f4: paused because the window was inactive
 	int mPauseInactive;       // +0x1f8 (1): pause while the window is inactive
-	int mDebug1FC;            // +0x1fc (0x2afd)
+	int mNoHints;             // +0x1fc: the debug menu's 0x2afd: no tutorial hints (nothing sets it)
 	int mState;               // +0x200
 	int mNextState;           // +0x204 (-1)
-	int mPrevState;           // +0x208 (-1)
+	int mPrevState;           // +0x208 (-1): the state before; nothing reads it
 	int mLastGameState;       // +0x20c (2): the last of the menu and the game
 	int mSpecialMode;         // +0x210: the debug mode that turns tiles into a kind (its character)
 	int mRedrawUntil;         // +0x214: the whole screen is redrawn until then
-	int mField218;            // +0x218
+	int mRedrawCount;         // +0x218: cleared at the start; nothing reads it
 	Font* mFonts[12];         // +0x21c
 	Image* mImages[36];       // +0x24c
 	int mLoadImages[8];       // +0x2dc: which kinds of images loadImages loads (all set by update)

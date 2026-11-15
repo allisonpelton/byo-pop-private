@@ -344,21 +344,21 @@ bool Board::isFree(Tile* theTile)
 // 0x4065a0
 const char* ParseLayoutLine(const char* theLine, int* theCell)
 {
-	char c = *theLine;
-	while (c != '\0')
+	char aChar = *theLine;
+	while (aChar != '\0')
 	{
-		if (c == '\n')
+		if (aChar == '\n')
 			return theLine;
-		if (c != ' ')
+		if (aChar != ' ')
 			break;
-		c = *++theLine;
+		aChar = *++theLine;
 	}
 	if (*theLine != '\n' && *theLine != '\0')
 	{
 		sscanf(theLine, "%d,%d,%d\n", &theCell[0], &theCell[1], &theCell[2]);
-		c = *theLine;
-		while (c != '\0' && c != '\n')
-			c = *++theLine;
+		aChar = *theLine;
+		while (aChar != '\0' && aChar != '\n')
+			aChar = *++theLine;
 		if (*theLine == '\n')
 			theLine++;
 	}

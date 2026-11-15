@@ -58,15 +58,15 @@ enum
 struct PGEvent
 {
 	int mType;          // +0x00
-	int mUnused04;
+	int mGapAfterType;
 	PyTime mTime;       // +0x08 when it was posted
 	int mValue;         // +0x10 EV_ACTIVATE, EV_HIDDEN, EV_WHEEL
 	int mModifiers;     // +0x14 Ctrl 4 | Alt 2 | Shift 1
-	int mUnused18;
-	int mUnused1c;
+	int mGapAfterModifiers;
+	int mGapBeforeCode;
 	int mCode;          // +0x20 the mouse button, or the virtual key of a key without a character
 	uint8_t mChar;      // +0x24 the character typed (EV_DOWN with mCode 0), or of a key that went up
-	uint8_t mUnused25[3];
+	uint8_t mGapAfterChar[3];
 	int mX;             // +0x28 the mouse position
 	int mY;             // +0x2c
 };

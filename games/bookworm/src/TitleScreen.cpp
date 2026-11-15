@@ -150,7 +150,7 @@ void TitleScreen::Update()
 }
 
 // 0x433570
-void TitleScreen::DrawLoadingBar(Graphics* g)
+void TitleScreen::DrawLoadMeter(Graphics* g)
 {
 	Image* aFill = mApp->mImages[IMAGE_TITLE_LOADMETER];
 	g->DrawImage(mApp->mImages[IMAGE_BACKDROP_TITLE_LOADMETER], 137, mLoadingBarY + mBarDY);
@@ -184,7 +184,7 @@ void TitleScreen::Draw(Graphics* g)
 	g->DrawImage(anImages[IMAGE_BACKDROP_TITLE], 0, 0);
 	g->DrawImage(anImages[IMAGE_LOGO_TITLE], 35, mLogoY);
 
-	DrawLoadingBar(g);
+	DrawLoadMeter(g);
 
 	// The status line above the bar (the original formats it into a 256-byte buffer with sprintf): the welcome,
 	// or on a first run, while loading, the unpacking of the sounds

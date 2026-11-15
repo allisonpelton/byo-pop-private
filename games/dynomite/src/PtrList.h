@@ -10,7 +10,8 @@
 namespace Sexy
 {
 
-template <class T> class PtrList
+template <class T>
+class PtrList
 {
 public:
 	int		mCount;			// +4
@@ -20,7 +21,10 @@ public:
 	short	mSortMode;		// +0x14 0 none, 1 ascending, else descending
 
 	// 0x430ea0
-	PtrList() : mCount(0), mIter(0), mItems(NULL), mSortOffset(0), mSortMode(0) {}
+	PtrList()
+		: mCount(0), mIter(0), mItems(NULL), mSortOffset(0), mSortMode(0)
+	{
+	}
 	// 0x430ec0 (the items are not freed)
 	virtual ~PtrList()
 	{

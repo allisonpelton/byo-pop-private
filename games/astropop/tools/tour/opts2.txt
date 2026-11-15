@@ -1,0 +1,26 @@
+# Tour: the two sliders of the options box, dragged and clicked (the coverage check: OptionsDialog::SliderVal 0x482d10 and the
+# application's music volume 0x408b70)
+3100 click 320 447
+3150 type Test
+3180 key Return
+3300 click 535 250
+3350 shot s01_options
+3360 down 456 125
+3370 move 400 125
+3380 move 330 125
+3390 move 280 125
+3400 up 280 125
+3420 shot s02_music_dragged
+3430 click 400 161
+3450 shot s03_sfx_clicked
+3460 down 400 161
+3470 move 450 161
+3480 move 520 161
+3490 up 520 161
+3510 shot s04_sfx_dragged
+3520 down 330 125
+3530 move 250 125
+3540 up 250 125
+3560 shot s05_music_left
+3570 click 320 389
+3610 shot s06_closed

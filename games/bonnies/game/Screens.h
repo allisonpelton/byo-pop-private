@@ -49,7 +49,7 @@ public:
 	int mBounces[9] = {};           // +0x100
 	int mLanded = 0;                // +0x124
 	uint32_t mLandTime = 0;         // +0x128
-	int mField12C = 0;              // +0x12c
+	int mLogoSpare = 0;             // +0x12c: cleared at the start; nothing reads it
 };
 
 // State 2 (the vtable 0x457524, 0x8c bytes)
@@ -78,10 +78,10 @@ public:
 	Image* mSign;             // +0x54
 	Image* mLeaf;             // +0x58
 	Image* mBooks[5];         // +0x5c: each button's book lit
-	Font* mFont70;            // +0x70: the version
-	Font* mFont74;            // +0x74: the greeting
-	Font* mFont78;            // +0x78: the player's name
-	int mField7C;             // +0x7c: asks for the difficulty at the next update (nothing sets it)
+	Font* mVersionFont;       // +0x70: the version
+	Font* mGreetingFont;      // +0x74: the greeting
+	Font* mPlayerFont;        // +0x78: the player's name
+	int mAskDifficulty;       // +0x7c: asks for the difficulty at the next update (nothing sets it)
 	int mWaiting;             // +0x80: the difficulty's dialog is up
 	int mStory;               // +0x84: the first button (1) or the second
 	int mStartLevel;          // +0x88
@@ -250,7 +250,7 @@ public:
 	void draw() override;
 	int handleEvent(Event* theEvent) override;
 
-	int mField4C = 0;         // +0x4c
+	int mInterstitialSpare = 0; // +0x4c: cleared at the start; nothing reads it
 };
 
 // 0x41bf10's (the vtable 0x458994, 0x58 bytes): the game's dialog (Dialog.h)
@@ -289,8 +289,8 @@ public:
 	void load();
 
 	int mLoaded = 0;          // +0x48
-	int mField4C = 0;         // +0x4c
-	int mField50 = 0;         // +0x50
+	int mQuitDialogUp = 0;    // +0x4c: the confirmation dialog is up (nothing sets it)
+	int mQuitInterstitialUp = 0; // +0x50: the interstitial of ending the game is up
 	Image* mImage = nullptr;  // +0x54
 };
 

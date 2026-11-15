@@ -1,0 +1,28 @@
+# coverage script (2D, the profile player): the main menu's Quit asked and answered no; the scores, the reset question answered no and
+# then yes; back to the menu; Quit answered yes (the game ends by itself)
+at 562 shot title
+at 566 move 320 401
+at 568 click 320 401
+at 808 shot menu
+at 811 move 565 428
+at 813 click 565 428
+at 880 move 377 182
+at 882 click 377 182
+at 950 move 212 449
+at 952 click 212 449
+at 1040 move 561 32
+at 1042 click 561 32
+at 1100 move 380 239
+at 1102 click 380 239
+at 1160 move 561 32
+at 1162 click 561 32
+at 1220 move 258 239
+at 1222 click 258 239
+at 1280 move 78 33
+at 1282 click 78 33
+at 1360 move 565 428
+at 1362 click 565 428
+at 1420 move 263 182
+at 1422 click 263 182
+at 1500 shot gone
+quit

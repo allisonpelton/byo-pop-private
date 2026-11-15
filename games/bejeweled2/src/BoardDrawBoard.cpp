@@ -5,7 +5,7 @@
 //
 // The gems are drawn back to front: by depth (mZ), through the C runtime's qsort, which the original calls. Gems of equal
 // depth stay in the order that qsort's partitioning leaves them in, and that order decides which of two touching gems is
-// on top, so the sort is the runtime's own (CrtQsort below; the other ports keep their copies of it too).
+// on top, so the sort is the runtime's own (Platform::CrtQsort, platform/crt/CrtQsort.cpp, shared with the other ports that call it).
 
 #include "Board.h"
 #include "WinDMApp.h"
@@ -20,6 +20,7 @@
 #include "SexyMatrix.h"
 #include "TriVertex.h"
 #include "Common.h"
+#include "platform/crt/CrtQsort.h"
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
@@ -28,143 +29,6 @@ using namespace Sexy;
 
 namespace
 {
-
-// 0x5e8950: the C runtime's qsort (an insertion-sort-like pass for 8 elements or fewer, median of three and a partition
-// above that, the smaller part first and the larger one on a stack)
-void CrtSwap(char* theA, char* theB, size_t theWidth)
-{
-	if (theA == theB)
-		return;
-	while (theWidth--)
-	{
-		char aByte = *theA;
-		*theA++ = *theB;
-		*theB++ = aByte;
-	}
-}
-
-// moves the largest to the end, again and again
-void CrtShortSort(char* theLo, char* theHi, size_t theWidth, int (*theCompare)(const void*, const void*))
-{
-	while (theHi > theLo)
-	{
-		char* aMax = theLo;
-		for (char* p = theLo + theWidth; p <= theHi; p += theWidth)
-		{
-			if (theCompare(p, aMax) > 0)
-				aMax = p;
-		}
-		CrtSwap(aMax, theHi, theWidth);
-		theHi -= theWidth;
-	}
-}
-
-void CrtQsort(void* theBase, size_t theNum, size_t theWidth, int (*theCompare)(const void*, const void*))
-{
-	if (theNum < 2)
-		return;
-	char* aLoStack[30];
-	char* aHiStack[30];
-	int aStackPtr = 0;
-	char* aLo = (char*)theBase;
-	char* aHi = (char*)theBase + theWidth * (theNum - 1);
-	for (;;)
-	{
-		size_t aSize = (size_t)(aHi - aLo) / theWidth + 1;
-		if (aSize <= 8)
-		{
-			CrtShortSort(aLo, aHi, theWidth, theCompare);
-		}
-		else
-		{
-			// the median of three, then the partition
-			char* aMid = aLo + (aSize / 2) * theWidth;
-			if (theCompare(aLo, aMid) > 0)
-				CrtSwap(aLo, aMid, theWidth);
-			if (theCompare(aLo, aHi) > 0)
-				CrtSwap(aLo, aHi, theWidth);
-			if (theCompare(aMid, aHi) > 0)
-				CrtSwap(aMid, aHi, theWidth);
-			char* aLoGuy = aLo;
-			char* aHiGuy = aHi;
-			for (;;)
-			{
-				if (aMid > aLoGuy)
-				{
-					do
-					{
-						aLoGuy += theWidth;
-					} while (aLoGuy < aMid && theCompare(aLoGuy, aMid) <= 0);
-				}
-				if (aMid <= aLoGuy)
-				{
-					do
-					{
-						aLoGuy += theWidth;
-					} while (aLoGuy <= aHi && theCompare(aLoGuy, aMid) <= 0);
-				}
-				do
-				{
-					aHiGuy -= theWidth;
-				} while (aHiGuy > aMid && theCompare(aHiGuy, aMid) > 0);
-				if (aHiGuy < aLoGuy)
-					break;
-				CrtSwap(aLoGuy, aHiGuy, theWidth);
-				if (aMid == aHiGuy)
-					aMid = aLoGuy;
-			}
-			aHiGuy += theWidth;
-			if (aMid < aHiGuy)
-			{
-				do
-				{
-					aHiGuy -= theWidth;
-				} while (aHiGuy > aMid && theCompare(aHiGuy, aMid) == 0);
-			}
-			if (aMid >= aHiGuy)
-			{
-				do
-				{
-					aHiGuy -= theWidth;
-				} while (aHiGuy > aLo && theCompare(aHiGuy, aMid) == 0);
-			}
-			// the smaller part next, the larger one on the stack
-			if (aHiGuy - aLo >= aHi - aLoGuy)
-			{
-				if (aLo < aHiGuy)
-				{
-					aLoStack[aStackPtr] = aLo;
-					aHiStack[aStackPtr] = aHiGuy;
-					aStackPtr++;
-				}
-				if (aLoGuy < aHi)
-				{
-					aLo = aLoGuy;
-					continue;
-				}
-			}
-			else
-			{
-				if (aLoGuy < aHi)
-				{
-					aLoStack[aStackPtr] = aLoGuy;
-					aHiStack[aStackPtr] = aHi;
-					aStackPtr++;
-				}
-				if (aLo < aHiGuy)
-				{
-					aHi = aHiGuy;
-					continue;
-				}
-			}
-		}
-		aStackPtr--;
-		if (aStackPtr < 0)
-			return;
-		aLo = aLoStack[aStackPtr];
-		aHi = aHiStack[aStackPtr];
-	}
-}
 
 // 0x5968f8 as qsort calls it: the elements are the pointers to the pieces
 int ComparePieces(const void* theA, const void* theB)
@@ -190,7 +54,7 @@ const double gDrawGems = 1.0;
 void Board::DrawBoard(Graphics* g, bool theSkipStatic, bool theSkipDynamic)
 {
 	// the pictures of the gems fade with this as the whole board does
-	float anAlpha = m15fb4 * m15fac;
+	float anAlpha = mPauseFade * mPuzzleFade;
 	bool a3D = mApp->Is3DAccelerated();
 	bool aStarDrawn = false;
 
@@ -202,9 +66,9 @@ void Board::DrawBoard(Graphics* g, bool theSkipStatic, bool theSkipDynamic)
 	// the frame
 	if (!mIsPuzzle || mIsSecret)
 	{
-		if (!theSkipStatic && !m165c0)
+		if (!theSkipStatic && !mNoFrame)
 			g->DrawImage(IMAGE_BOARD_BORDER, mApp->ScaleNum(0x108, 0), mApp->ScaleNum(3, 0));
-		if (m15f18)
+		if (mBarBlink)
 		{
 			if (theSkipDynamic)
 				return;
@@ -217,7 +81,7 @@ void Board::DrawBoard(Graphics* g, bool theSkipStatic, bool theSkipDynamic)
 			g->SetDrawMode(0);
 		}
 	}
-	else if (!theSkipStatic && !m165c0)
+	else if (!theSkipStatic && !mNoFrame)
 	{
 		g->DrawImage(IMAGE_PUZZLE_FRAME, mApp->ScaleNum(0x12a, 0), mApp->ScaleNum(0x18, 0));
 	}
@@ -228,13 +92,13 @@ void Board::DrawBoard(Graphics* g, bool theSkipStatic, bool theSkipDynamic)
 	// the time bar of the timed games: the two ends and, between them, the middle repeated
 	if (!mIsPuzzle || mIsSecret)
 	{
-		int aTotal = mApp->ScaleNumUp(m1994 + 0x14, 0);
+		int aTotal = mApp->ScaleNumUp(mBarShown + 0x14, 0);
 		int anEndWidth = IMAGE_BAR_LEFT->GetWidth();
 		int aBarHeight = mApp->ScaleNumUp(0x3a, 0);
 		int aBarX = mApp->ScaleNum(0x117, 0);
 		int aBarY = mApp->ScaleNum(0x2c0, 0);
 		g->SetColorizeImages(true);
-		if (m15f18)
+		if (mBarBlink)
 			g->SetColor(Color(0xff, 0x80, 0x80));
 		else
 			g->SetColor(Color(0xff, 0xff, 0xff));
@@ -291,17 +155,17 @@ void Board::DrawBoard(Graphics* g, bool theSkipStatic, bool theSkipDynamic)
 			}
 		}
 	}
-	CrtQsort(aPieces, aPieceCount, sizeof(Piece*), ComparePieces);
+	Platform::CrtQsort(aPieces, aPieceCount, sizeof(Piece*), ComparePieces);
 
-	// the lights around every gem start at nothing; the wave that runs over the board (m1848) lights a gem as it passes
+	// the lights around every gem start at nothing; the wave that runs over the board (mShootingStar) lights a gem as it passes
 	for (int i = 0; i < aPieceCount; i++)
 	{
 		Piece* aPiece = aPieces[i];
 		for (int aSlot = 0; aSlot < 9; aSlot++)
 			aPiece->mGlow[aSlot] = 0.0f;
-		if (m1848)
+		if (mShootingStar)
 		{
-			float aWave = m184c;
+			float aWave = mShootingStarPos;
 			float aPlace = (float)((double)(aPiece->mRow + aPiece->mCol) * 0.0625);
 			aPlace = (float)((double)aWave - (double)aPlace);
 			float aDistance = fabsf(aPlace);
@@ -320,7 +184,7 @@ void Board::DrawBoard(Graphics* g, bool theSkipStatic, bool theSkipDynamic)
 	for (int i = 0; i < aPieceCount; i++)
 	{
 		Piece* aPiece = aPieces[i];
-		if (aPiece->mType < 7 && aPiece->m70 && a3D)
+		if (aPiece->mType < 7 && aPiece->mFlame && a3D)
 		{
 			float aFlame = (float)(mStarPhase + mStarPhase);
 			aFlame = (float)((double)aFlame - 1.0);
@@ -329,9 +193,9 @@ void Board::DrawBoard(Graphics* g, bool theSkipStatic, bool theSkipDynamic)
 			float aLightX = (float)(42.0 + (double)aPiece->mX);
 			AddPointLight(aLightX, aLightY, 20.0f, 10.0f, aFlame, aPiece, true);
 		}
-		if (aPiece->m2C)
+		if (aPiece->mLightningHit)
 		{
-			float aAngle = (float)((double)aPiece->m30 * 15.0);
+			float aAngle = (float)((double)aPiece->mLightningProgress * 15.0);
 			float aSine = sinf(aAngle);
 			float aLight = (float)((double)fabsf(aSine) * (double)0.6f);
 			aPiece->mGlow[8] = aLight;
@@ -342,16 +206,16 @@ void Board::DrawBoard(Graphics* g, bool theSkipStatic, bool theSkipDynamic)
 				AddPointLight(aLightX, aLightY, 15.0f, 10.0f, aLight, aPiece, false);
 			}
 		}
-		if (aPiece->m8C)
+		if (aPiece->mGemHovered)
 		{
-			// the glow moves round the gem: m98 is the step (0 to 10) of the animation, shared between two slots
-			int aStep = FTol((double)aPiece->m98);
-			float aFraction = (float)((double)aPiece->m98 - (double)aStep);
+			// the glow moves round the gem: mGemHoverFrame is the step (0 to 10) of the animation, shared between two slots
+			int aStep = FTol((double)aPiece->mGemHoverFrame);
+			float aFraction = (float)((double)aPiece->mGemHoverFrame - (double)aStep);
 			int aNextStep = (aStep + 1) % 10;
 			double anInverse = 1.0 - (double)aFraction;
-			float aGlow = (float)aPiece->m90;
+			float aGlow = (float)aPiece->mGemHoverGlow;
 			aPiece->mGlow[gGlowSlot[aStep]] = (float)((double)aGlow * anInverse + (double)aPiece->mGlow[gGlowSlot[aStep]]);
-			aGlow = (float)aPiece->m90;
+			aGlow = (float)aPiece->mGemHoverGlow;
 			aPiece->mGlow[gGlowSlot[aNextStep]] = (float)((double)aGlow * (double)aFraction + (double)aPiece->mGlow[gGlowSlot[aNextStep]]);
 			int aWhich = 0;
 			do
@@ -363,7 +227,7 @@ void Board::DrawBoard(Graphics* g, bool theSkipStatic, bool theSkipDynamic)
 				double aShare = anInverse;
 				if (aWhich != 0)
 					aShare = (double)aFraction;
-				float aStrength = (float)(aShare * aPiece->m90);
+				float aStrength = (float)(aShare * aPiece->mGemHoverGlow);
 				if (aDirection != 9)
 				{
 					int aNeighbourCol = gGlowStep[aDirection][0] + aPiece->mCol;
@@ -401,12 +265,12 @@ void Board::DrawBoard(Graphics* g, bool theSkipStatic, bool theSkipDynamic)
 
 		if (aType < 7 && gDrawGems != 0.0)
 		{
-			if (m165ac)
+			if (mOldSkool)
 			{
 				// the OLDSKOOL cheat: the gems of the first Bejeweled
-				if (aPiece->m9C)
+				if (aPiece->mInSet)
 				{
-					int aSize = mApp->ScaleNumUp(((6 - aPiece->mA0) * 0x54) / 7, 0) & ~1;
+					int aSize = mApp->ScaleNumUp(((6 - aPiece->mShrinkStep) * 0x54) / 7, 0) & ~1;
 					int aFrameHeight = mApp->ScaleNumUp(0x54, 0);
 					int aFrameWidth = mApp->ScaleNumUp(0x54, 0);
 					Rect aSrc(mApp->ScaleNum(aType * 0x54, 0), 0, aFrameWidth, aFrameHeight);
@@ -430,12 +294,12 @@ void Board::DrawBoard(Graphics* g, bool theSkipStatic, bool theSkipDynamic)
 			}
 			else
 			{
-				// aSource: where the gem's frame starts in its picture (mA4 is the frame that the hint's gems use)
+				// aSource: where the gem's frame starts in its picture (mGemFrame is the frame that the hint's gems use)
 				int aSource = 0;
-				if (aPiece->mA4 != 0)
-					aSource = aPiece->mA4 * 0x54;
+				if (aPiece->mGemFrame != 0)
+					aSource = aPiece->mGemFrame * 0x54;
 
-				if (aPiece->m70 && !aPiece->m9C && aPiece->mZ == 0.0f)
+				if (aPiece->mFlame && !aPiece->mInSet && aPiece->mZ == 0.0f)
 				{
 					// a flaming gem lying still: it pulses between its picture and the lit one
 					float aPulse = (float)fabs(mStarPhase + mStarPhase - 1.0);
@@ -490,14 +354,14 @@ void Board::DrawBoard(Graphics* g, bool theSkipStatic, bool theSkipDynamic)
 					}
 					g->SetColorizeImages(false);
 				}
-				else if (aPiece->m9C)
+				else if (aPiece->mInSet)
 				{
 					// a gem shrinking away (a flaming gem too): the prepared picture of its size
 					g->SetColorizeImages(true);
 					g->SetColor(Color(0xff, 0xff, 0xff, FTol((double)anAlpha * 255.0)));
 					int aDestY = FTol((double)mApp->ScaleNum(aPiece->mY, 0.0f));
 					int aDestX = FTol((double)mApp->ScaleNum(aPiece->mX, 0.0f));
-					g->DrawImage(mApp->mShrunkenGems[aPiece->mType][aPiece->mA0], aDestX, aDestY);
+					g->DrawImage(mApp->mShrunkenGems[aPiece->mType][aPiece->mShrinkStep], aDestX, aDestY);
 					g->SetColorizeImages(false);
 				}
 				else if (aPiece->mZ == 0.0f || !a3D)
@@ -539,7 +403,7 @@ void Board::DrawBoard(Graphics* g, bool theSkipStatic, bool theSkipDynamic)
 			}
 
 			// the star behind a flaming gem
-			if (aPiece->m70)
+			if (aPiece->mFlame)
 			{
 				if (a3D)
 				{
@@ -563,15 +427,15 @@ void Board::DrawBoard(Graphics* g, bool theSkipStatic, bool theSkipDynamic)
 					if (!aStarDrawn)
 					{
 						// the two turning stars are added together in a picture once for the whole board
-						if (m15f64 == NULL)
+						if (mGemImage == NULL)
 						{
-							m15f64 = new MemoryImage(mApp);
-							m15f64->Create(IMAGE_BIGSTAR->mWidth, IMAGE_BIGSTAR->mHeight);
-							m15f64->SetImageMode(true, true);
-							m15f64->SetVolatile(true);
+							mGemImage = new MemoryImage(mApp);
+							mGemImage->Create(IMAGE_BIGSTAR->mWidth, IMAGE_BIGSTAR->mHeight);
+							mGemImage->SetImageMode(true, true);
+							mGemImage->SetVolatile(true);
 						}
-						m15f64->Clear();
-						Graphics aStarGraphics(m15f64);
+						mGemImage->Clear();
+						Graphics aStarGraphics(mGemImage);
 						aStarGraphics.SetColor(Color(0, 0, 0));
 						aStarGraphics.FillRect(0, 0, IMAGE_BIGSTAR->mWidth, IMAGE_BIGSTAR->mHeight);
 						aStarGraphics.SetDrawMode(1);
@@ -590,7 +454,7 @@ void Board::DrawBoard(Graphics* g, bool theSkipStatic, bool theSkipDynamic)
 					g->SetDrawMode(1);
 					int aStarY = FTol((double)mApp->ScaleNum((float)((double)aPiece->mY - 20.0), 0.0f));
 					int aStarX = FTol((double)mApp->ScaleNum((float)((double)aPiece->mX - 20.0), 0.0f));
-					g->DrawImage(m15f64, aStarX, aStarY);
+					g->DrawImage(mGemImage, aStarX, aStarY);
 				}
 				g->SetDrawMode(0);
 			}
@@ -603,8 +467,8 @@ void Board::DrawBoard(Graphics* g, bool theSkipStatic, bool theSkipDynamic)
 			int aWidth = mApp->ScaleNum(0x54, 0);
 			int aHeight = mApp->ScaleNum(0x54, 0);
 			Rect aSrc(0, 0, aHeight, aWidth);
-			int aDestY = FTol((double)mApp->ScaleNum((float)((double)aPiece->m6C + (double)aPiece->mY), 0.0f));
-			int aDestX = FTol((double)mApp->ScaleNum((float)((double)aPiece->m68 + (double)aPiece->mX), 0.0f));
+			int aDestY = FTol((double)mApp->ScaleNum((float)((double)aPiece->mJitterY + (double)aPiece->mY), 0.0f));
+			int aDestX = FTol((double)mApp->ScaleNum((float)((double)aPiece->mJitterX + (double)aPiece->mX), 0.0f));
 			g->DrawImage(IMAGE_BOMB, aDestX, aDestY, aSrc);
 			g->SetColorizeImages(false);
 		}
@@ -616,14 +480,14 @@ void Board::DrawBoard(Graphics* g, bool theSkipStatic, bool theSkipDynamic)
 			int aWidth = mApp->ScaleNum(0x54, 0);
 			int aHeight = mApp->ScaleNum(0x54, 0);
 			Rect aSrc(0, 0, aHeight, aWidth);
-			int aDestY = FTol((double)mApp->ScaleNum((float)((double)aPiece->m6C + (double)aPiece->mY), 0.0f));
-			int aDestX = FTol((double)mApp->ScaleNum((float)((double)aPiece->m68 + (double)aPiece->mX), 0.0f));
+			int aDestY = FTol((double)mApp->ScaleNum((float)((double)aPiece->mJitterY + (double)aPiece->mY), 0.0f));
+			int aDestX = FTol((double)mApp->ScaleNum((float)((double)aPiece->mJitterX + (double)aPiece->mX), 0.0f));
 			g->DrawImage(IMAGE_ROCK, aDestX, aDestY, aSrc);
 			g->SetColorizeImages(false);
 		}
 		else if (aType == 9)
 		{
-			// a wildcard (the destroyer): its picture has 40 frames; it ripples while it fades in or out (mB8 is 1)
+			// a wildcard (the destroyer): its picture has 40 frames; it ripples while it fades in or out (mHyperRole is 1)
 			int aFrame = (mUpdateCnt / 6) % 0x28;
 			if (aPiece->mZ == 0.0f || !a3D)
 			{
@@ -636,9 +500,9 @@ void Board::DrawBoard(Graphics* g, bool theSkipStatic, bool theSkipDynamic)
 					float aBaseX = (float)((double)mApp->ScaleNum(aPiece->mX, 0.0f) + (double)g->mTransX);
 					float aBaseY = (float)((double)mApp->ScaleNum(aPiece->mY, 0.0f) + (double)g->mTransY);
 					float aShrink = 1.0f;
-					if (aPiece->mB8 == 1)
+					if (aPiece->mHyperRole == 1)
 					{
-						double aLeft = 1.0 - (double)aPiece->mC0 * 0.25;
+						double aLeft = 1.0 - (double)aPiece->mHyperFade * 0.25;
 						aShrink = (float)((0.0 < aLeft) ? aLeft : 0.0);
 					}
 					double aFrameU = (double)aFrame / 40.0;
@@ -701,9 +565,9 @@ void Board::DrawBoard(Graphics* g, bool theSkipStatic, bool theSkipDynamic)
 					}
 
 					float aFade = 1.0f;
-					if (aPiece->mB8 == 1)
+					if (aPiece->mHyperRole == 1)
 					{
-						double aDouble = (1.0 - (double)aPiece->mC0) + (1.0 - (double)aPiece->mC0);
+						double aDouble = (1.0 - (double)aPiece->mHyperFade) + (1.0 - (double)aPiece->mHyperFade);
 						aFade = (float)((1.0 <= aDouble) ? 1.0 : aDouble);
 					}
 					mApp->mDDInterface->DrawTrianglesTex(IMAGE_WILDCARD_DESTROYER, aVerts, aTriangleCount, NULL,
@@ -712,8 +576,8 @@ void Board::DrawBoard(Graphics* g, bool theSkipStatic, bool theSkipDynamic)
 				else
 				{
 					float aFade = 1.0f;
-					if (aPiece->mB8 == 1)
-						aFade = (float)(1.0 - (double)aPiece->mC0);
+					if (aPiece->mHyperRole == 1)
+						aFade = (float)(1.0 - (double)aPiece->mHyperFade);
 					g->SetColorizeImages(true);
 					g->SetColor(Color(0xff, 0xff, 0xff, FTol(((double)aFade * (double)anAlpha) * 255.0)));
 					int aWidth = mApp->ScaleNum(0x54, 0);
@@ -750,11 +614,11 @@ void Board::DrawBoard(Graphics* g, bool theSkipStatic, bool theSkipDynamic)
 		}
 
 		// the glow over the gem: nine lights (the eight around it and its middle), each a frame of the lighting picture
-		if (!m165ac && 0.0f < mFadeIn)
+		if (!mOldSkool && 0.0f < mFadeIn)
 		{
 			if (aPiece->mType <= 8)
 			{
-				if (!aPiece->m9C && aPiece->mA4 == 0 && aPiece != mSwapPiece[0])
+				if (!aPiece->mInSet && aPiece->mGemFrame == 0 && aPiece != mSwapPiece[0])
 				{
 					int aSourceX = 0;
 					float* aGlowSlot = &aPiece->mGlow[0];
@@ -770,8 +634,8 @@ void Board::DrawBoard(Graphics* g, bool theSkipStatic, bool theSkipDynamic)
 							int aHeight = mApp->ScaleNum(0x54, 0);
 							int aSourceY = mApp->ScaleNum(aType * 0x54, 0);
 							Rect aSrc(mApp->ScaleNum(aSourceX, 0), aSourceY, aHeight, aWidth);
-							int aDestY = FTol((double)mApp->ScaleNum((float)((double)aPiece->m6C + (double)aPiece->mY), 0.0f));
-							int aDestX = FTol((double)mApp->ScaleNum((float)((double)aPiece->m68 + (double)aPiece->mX), 0.0f));
+							int aDestY = FTol((double)mApp->ScaleNum((float)((double)aPiece->mJitterY + (double)aPiece->mY), 0.0f));
+							int aDestX = FTol((double)mApp->ScaleNum((float)((double)aPiece->mJitterX + (double)aPiece->mX), 0.0f));
 							aGlowGraphics.DrawImage(IMAGE_GEM_LIGHTING, aDestX, aDestY, aSrc);
 						}
 						aSourceX += 0x54;
@@ -788,7 +652,7 @@ void Board::DrawBoard(Graphics* g, bool theSkipStatic, bool theSkipDynamic)
 		{
 			g->SetFont(FONT_BOMB);
 			char aBuf[256];
-			sprintf(aBuf, "%d", aPiece->m58);
+			sprintf(aBuf, "%d", aPiece->mCountdown);
 			g->SetColor(Color(0xff, 0xff, 0xff, FTol((double)anAlpha * 255.0)));
 			std::string aWidthText = aBuf;
 			std::string aText = aBuf;
@@ -817,17 +681,17 @@ void Board::DrawBoard(Graphics* g, bool theSkipStatic, bool theSkipDynamic)
 			{
 				int anOffsetX;
 				int anOffsetY;
-				if (aPass == 1 && aPiece->mB0 == 0 && aPiece->mB4 == 0)
+				if (aPass == 1 && aPiece->mHintMoveX == 0 && aPiece->mHintMoveY == 0)
 					break;
 				if (aPass == 0)
 					anOffsetX = 0;
 				else
-					anOffsetX = aPiece->mB0 * 0x54;
+					anOffsetX = aPiece->mHintMoveX * 0x54;
 				int aHintX = FTol((double)aPiece->mX + (double)anOffsetX);
 				if (aPass == 0)
 					anOffsetY = 0;
 				else
-					anOffsetY = aPiece->mB4 * 0x54;
+					anOffsetY = aPiece->mHintMoveY * 0x54;
 				int aHintY = FTol((double)aPiece->mY + (double)anOffsetY);
 				g->SetColorizeImages(true);
 				if (aPass == 0)
@@ -921,21 +785,21 @@ void Board::DrawBoard(Graphics* g, bool theSkipStatic, bool theSkipDynamic)
 	}
 
 	// the glow of the power gem
-	if (m17d0)
+	if (mHyperGlow)
 	{
 		g->SetDrawMode(1);
 		g->SetColorizeImages(true);
-		float aGlowScale = (float)((double)m17e0 + (double)m17e0 - 1.0);
+		float aGlowScale = (float)((double)mHyperGlowPhase + (double)mHyperGlowPhase - 1.0);
 		double aGlowFade = (1.0 - (double)fabsf(aGlowScale)) * 4.0;
 		if (!(aGlowFade < 1.0))
 			aGlowFade = 1.0;
 		float aPowerAlpha = (float)aGlowFade;
 		g->SetColor(Color(0xff, 0xff, 0xff, FTol((double)aPowerAlpha * 255.0)));
-		int aPowerFrame = FTol((double)m17e0 * 30.0) % 10;
+		int aPowerFrame = FTol((double)mHyperGlowPhase * 30.0) % 10;
 		int aWidth = mApp->ScaleNumUp(0xf0, 0);
 		int aHeight = mApp->ScaleNumUp(0xf0, 0);
 		Rect aSrc(mApp->ScaleNum(aPowerFrame * 0xf0, 0), 0, aHeight, aWidth);
-		g->DrawImage(IMAGE_POWER_GLOW, mApp->ScaleNum(m17d8 - 0x4e, 0), mApp->ScaleNum(m17dc - 0x4e, 0), aSrc);
+		g->DrawImage(IMAGE_POWER_GLOW, mApp->ScaleNum(mHyperGlowX - 0x4e, 0), mApp->ScaleNum(mHyperGlowY - 0x4e, 0), aSrc);
 		g->SetColorizeImages(false);
 		g->SetDrawMode(0);
 	}
@@ -944,9 +808,9 @@ void Board::DrawBoard(Graphics* g, bool theSkipStatic, bool theSkipDynamic)
 	if (mIsPlanetIntro && mTutorialMoves.size() != 0)
 	{
 		g->SetColorizeImages(true);
-		if (0.0f < m1944)
+		if (0.0f < mTutorialMoveFade)
 		{
-			g->SetColor(Color(0xff, 0xff, 0xff, FTol((double)m1944 * 255.0)));
+			g->SetColor(Color(0xff, 0xff, 0xff, FTol((double)mTutorialMoveFade * 255.0)));
 			int aHeight = mApp->ScaleNumUp(0xb7, 0);
 			int aWidth = mApp->ScaleNumUp(0xcc, 0);
 			Rect aSrc(0, 0, aWidth, aHeight);
@@ -956,7 +820,7 @@ void Board::DrawBoard(Graphics* g, bool theSkipStatic, bool theSkipDynamic)
 		}
 		if (mTutorialStep < (int)mTutorialMoves.size())
 		{
-			g->SetColor(Color(0xff, 0xff, 0xff, FTol((double)m1948 * 255.0)));
+			g->SetColor(Color(0xff, 0xff, 0xff, FTol((double)mTutorialNextFade * 255.0)));
 			int aHeight = mApp->ScaleNumUp(0xb7, 0);
 			int aWidth = mApp->ScaleNumUp(0xcc, 0);
 			Rect aSrc(0, 0, aWidth, aHeight);

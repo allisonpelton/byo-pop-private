@@ -1,0 +1,29 @@
+# Tour: switching to another player and deleting the one that is playing
+# (the coverage check: SetLastUserName from the list box and from the delete, the delete box with its confirmation)
+3100 click 320 447
+3150 type Test
+3180 key Return
+3300 click 326 93
+3350 click 248 309
+3400 type Ann
+3410 key Return
+3500 click 326 93
+3550 click 248 309
+3600 type Bob
+3610 key Return
+3700 click 326 93
+3740 shot u01_list
+3750 click 307 154
+3770 shot u02_selected
+3780 click 248 349
+3860 shot u03_switched
+4000 click 326 93
+4050 click 390 309
+4090 shot u04_delete
+4100 click 307 250
+4120 click 248 397
+4160 shot u05_confirm
+4180 click 254 279
+4260 shot u06_after
+4270 click 390 349
+4340 shot u07_menu

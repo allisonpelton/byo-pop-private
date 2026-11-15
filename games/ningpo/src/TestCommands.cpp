@@ -12,6 +12,8 @@
 #include "NingPo.h"
 #include "PGDialog.h"
 #include "WidgetManager.h"
+#include "platform/Audio.h"
+#include "platform/MemReport.h"
 
 #include <cstdio>
 #include <cstdlib>
@@ -453,4 +455,35 @@ bool NingPoApp::HandleScriptCommand(const ScriptCommand& theCommand)
 	}
 	ReplyOK(theCommand);
 	return true;
+}
+
+// docs/TEST_COMMANDS.md, "memreport": what the game holds beside the framework's own pictures. The sprites are the game's
+// table (a dialog's own sprites are loaded and released as it opens and closes), 15 bits a pixel and a byte of alpha
+// where a picture has one; the sounds are the 64 decoded sounds; the music is the track that is playing, which the port
+// decodes whole; the back buffer is the 15-bit screen the game draws into
+void NingPoApp::AddMemReportHolders(Platform::MemReport* theReport)
+{
+	if (mGame == nullptr)
+		return;
+	size_t aSpriteBytes = 0;
+	int aSpriteCount = 0;
+	for (int i = 0; i < NUM_SPRITES; i++)
+	{
+		const pg::HSurface* aSurface = mGame->mSprites[i].mSurface;
+		if (aSurface == nullptr)
+			continue;
+		aSpriteCount++;
+		aSpriteBytes += (size_t)aSurface->mHeight * aSurface->mPitch;
+		if (aSurface->mAlpha != nullptr)
+			aSpriteBytes += (size_t)aSurface->mWidth * aSurface->mHeight;
+	}
+	size_t aSoundBytes = 0;
+	for (const pg::PGSoundManager::Sound& aSound : mGame->mSounds.mSounds)
+		if (aSound.mData)
+			aSoundBytes += aSound.mData->Bytes();
+	size_t aMusicBytes = mGame->mMixer.mMusic ? mGame->mMixer.mMusic->Bytes() : 0;
+	theReport->mOthers.push_back({"sprites (" + std::to_string(aSpriteCount) + ", 15 bits and alpha)", aSpriteBytes});
+	theReport->mOthers.push_back({"sounds (decoded)", aSoundBytes});
+	theReport->mOthers.push_back({"music (the whole track decoded)", aMusicBytes});
+	theReport->mOthers.push_back({"back buffer (15 bits)", mGame->mDisplay->mScreen.capacity() * sizeof(uint16_t)});
 }

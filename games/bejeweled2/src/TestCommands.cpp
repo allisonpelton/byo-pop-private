@@ -120,8 +120,8 @@ static void UnlockAll(Profile* theProfile)
 		theProfile->mModeLevel[0] = 17;
 	if (theProfile->mModeLevel[1] < 8)
 		theProfile->mModeLevel[1] = 8;
-	if (theProfile->mTotal7C < 80)
-		theProfile->mTotal7C = 80;
+	if (theProfile->mGalaxyOneSolved < 80)
+		theProfile->mGalaxyOneSolved = 80;
 	if (theProfile->mModeLevel[3] < 280)
 		theProfile->mModeLevel[3] = 280;
 }
@@ -151,7 +151,7 @@ void WinDMApp::TraceUpdate()
 		// +0x1714 and +0x1768
 		aValue[5] = mBoard->mDropDelay;
 		aValue[6] = mBoard->mScreenState;
-		aValue[7] = mBoard->m1768;
+		aValue[7] = mBoard->mLevelTextCountdown;
 	}
 	{
 		// watch 5: the global generator's index, which the original's [0x67cf50 + 0x9c0] is (the draws of Rand())
@@ -261,7 +261,8 @@ bool WinDMApp::HandleTestCommand(const ScriptCommand& theCommand)
 	const std::string& aCommand = theCommand.mCommand;
 	const std::string& anArgs = theCommand.mArgs;
 	if (aCommand != "state" && aCommand != "goto" && aCommand != "level" && aCommand != "unlock" && aCommand != "set" &&
-		aCommand != "win" && aCommand != "lose" && aCommand != "seed" && aCommand != "move" && aCommand != "nosparkle")
+		aCommand != "win" && aCommand != "lose" && aCommand != "seed" && aCommand != "move" && aCommand != "nosparkle" &&
+		aCommand != "gem")
 		return false;
 
 	std::string aScreen = TestScreen();
@@ -376,7 +377,7 @@ bool WinDMApp::HandleTestCommand(const ScriptCommand& theCommand)
 				(aBoard->mPauseCount > 0 || aBoard->mInterfacePauseCount > 0) ? "true" : "false");
 			aLine += StrFormat(",\"hyperspace\":%s,\"tutorial\":%s,\"over\":%s", aBoard->mHyperspace != NULL ? "true" : "false",
 				aBoard->mIsPlanetIntro ? "true" : "false",
-				(aBoard->mState == Board::STATE_GAME_OVER_FALL || aBoard->mState == Board::STATE_7 || mHighScoreWidget != NULL) ? "true" : "false");
+				(aBoard->mState == Board::STATE_GAME_OVER_FALL || aBoard->mState == Board::STATE_GAME_OVER || mHighScoreWidget != NULL) ? "true" : "false");
 			if (aBoard->mSelectedPiece != NULL)
 				aLine += StrFormat(",\"selected\":[%d,%d]", aBoard->mSelectedPiece->mCol, aBoard->mSelectedPiece->mRow);
 			// the board: a row a string, a gem by its type's character, . for none
@@ -400,7 +401,7 @@ bool WinDMApp::HandleTestCommand(const ScriptCommand& theCommand)
 				for (int aCol = 0; aCol < 8; aCol++)
 				{
 					Piece* aPiece = aBoard->mBoard[aRow][aCol];
-					aFlames += (aPiece != NULL && aPiece->m70) ? 'f' : '.';
+					aFlames += (aPiece != NULL && aPiece->mFlame) ? 'f' : '.';
 				}
 				aFlames += "\"";
 			}
@@ -784,6 +785,30 @@ bool WinDMApp::HandleTestCommand(const ScriptCommand& theCommand)
 		return true;
 	}
 
+	if (aCommand == "gem")
+	{
+		// gem <row> <col> <colour 0-6>: the plain gem there takes that colour (its type, as the state's board shows it),
+		// so a driver can lay out a move the game rarely deals (a line of five for a hyper cube). Only while the board is
+		// idle and only on a plain gem; the board finds any set it makes on its next update, as after a fall
+		int aRow = -1, aCol = -1, aType = -1;
+		if (sscanf(anArgs.c_str(), "%d %d %d", &aRow, &aCol, &aType) != 3 || aRow < 0 || aRow > 7 || aCol < 0 || aCol > 7 ||
+			aType < 0 || aType > 6)
+		{
+			ReplyError(theCommand, "gem <row 0-7> <col 0-7> <colour 0-6>");
+			return true;
+		}
+		Piece* aPiece = aBoard->mBoard[aRow][aCol];
+		if (aBoard->mState != Board::STATE_IDLE || aPiece == NULL || aPiece->mFlame || aPiece->mHypercubeTick != -1 ||
+			aPiece->mType > 6)
+		{
+			ReplyError(theCommand, "the board is busy, or no plain gem is there");
+			return true;
+		}
+		aPiece->mType = aType;
+		ReplyOK(theCommand);
+		return true;
+	}
+
 	if (aCommand == "lose")
 	{
 		// the game's own ending, as when no move is left
@@ -825,11 +850,11 @@ bool WinDMApp::HandleTestCommand(const ScriptCommand& theCommand)
 			aBoard->mLevel = aLevel - 2;
 			aBoard->mNextLevel = aLevel - 1;
 		}
-		int aGoal = aBoard->m15eec + (int)aBoard->m15ef8;  // the level's target score plus the drained time
+		int aGoal = aBoard->mLevelGoalScore + (int)aBoard->mDrain;  // the level's target score plus the drained time
 		if (aBoard->mScore < aGoal)
 			aBoard->mScore = aGoal;
-		if (aBoard->m15e40 < aGoal)
-			aBoard->m15e40 = aGoal;  // the shown score that the bar is made from
+		if (aBoard->mShownScore < aGoal)
+			aBoard->mShownScore = aGoal;  // the shown score that the bar is made from
 		ReplyOK(theCommand);
 		return true;
 	}

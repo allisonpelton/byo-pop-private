@@ -366,7 +366,7 @@ void Board::SaveUndo()
 			mUndo.push_back(mVisited[x][y] ? 1 : 0);
 }
 
-// 0x40b0b0: takes the last move back
+// 0x40b0b0 (and 0x40b0e5, the rest of it, which Ghidra left outside the function): takes the last move back
 bool Board::Undo()
 {
 	if (mBonus)

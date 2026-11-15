@@ -47,7 +47,7 @@ GAMES = [
 
 
 def room():
-    r = subprocess.run([sys.executable, os.path.join(ROOT, "tools", "gamecount.py"), "--limit", "3"], stdout=subprocess.DEVNULL)
+    r = subprocess.run([sys.executable, os.path.join(ROOT, "tools", "gamecount.py"), "--limit", "6"], stdout=subprocess.DEVNULL)
     return r.returncode == 0
 
 

@@ -64,7 +64,7 @@ public:
 	virtual void		GetPowerUpCenter(int* x, int* y) override;	// 0x40f420: over the mama portrait
 	// 0x40f0c0: the board's, but Easy halves the points; during the bonus count the popup stays in place
 	virtual void		AddPoints(int x, int y, int thePoints, int theMultiplier, bool isChain) override;
-	// 0x40ec70: the puzzle's next egg, else the board's; a baby that left the board (mField108 20) makes a
+	// 0x40ec70: the puzzle's next egg, else the board's; a baby that left the board (mNextEggKind 20) makes a
 	// power-up egg
 	virtual Egg*		NextEgg() override;
 	// 0x411370: the pack, the skill's first puzzle (theDifficulty 1-3) and the first round
@@ -79,10 +79,10 @@ public:
 	virtual void		Save() override;				// 0x40f440 (slot 59): the board's, the mode's, then the pack
 	virtual void		Load() override;				// 0x40f6b0 (slot 60)
 
-	void				LoadGrid(int theUnused);			// 0x40eef0: the round's eggs, once the walls are in place
+	void				LoadGrid();			// 0x40eef0: the round's eggs, once the walls are in place
 	static void			CopyPack(const char* theFile);		// 0x40f8f0: the pack to STOMPED.TMP
 	void				SkipPuzzles(int theCount);			// 0x40f9a0
-	void				NextPuzzle(int theUnused);			// 0x40fc30: reads the next puzzle and starts its round
+	void				NextPuzzle();			// 0x40fc30: reads the next puzzle and starts its round
 	void				NextRound();						// 0x4107f0: after the bonus count
 	void				UpdateCleared();					// 0x411630: the bonus count
 };

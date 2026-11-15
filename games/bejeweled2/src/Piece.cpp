@@ -10,7 +10,7 @@ using namespace Sexy;
 Piece::Piece()
 {
 	memset(this, 0, sizeof(*this));
-	m60 = -1;
+	mHypercubeTick = -1;
 }
 
 // 0x594731

@@ -31,6 +31,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include "coverage.h"
+#include "count.h"
 
 static FILE*       gLog;
 static CRITICAL_SECTION gLogLock;
@@ -45,6 +46,9 @@ static LONG        gPlaySeq = 0;
 // when ORIGRUN_CLOCK=virtual, ORIGRUN_CURSOR=scripted or ORIGRUN_MSGBOX=hook
 void vclock_install(HMODULE self);
 void vclock_detach(void);
+// the network block (net.c), always on, installed first and reported last
+void net_install(HMODULE self);
+void net_detach(void);
 int  vclock_ms(double* out);
 
 static void log_init(void)
@@ -620,7 +624,7 @@ HRESULT WINAPI DllGetClassObject(REFCLSID rclsid, REFIID riid, void** ppv)
 
 BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r)
 {
-	if (reason == DLL_PROCESS_ATTACH) { DisableThreadLibraryCalls(h); coverage_install(); log_init(); vclock_install(h); mute_start(); }
-	else if (reason == DLL_PROCESS_DETACH) { log_status_summary(); vclock_detach(); coverage_detach(); }
+	if (reason == DLL_PROCESS_ATTACH) { DisableThreadLibraryCalls(h); coverage_install(); count_install(); log_init(); net_install(h); vclock_install(h); mute_start(); }
+	else if (reason == DLL_PROCESS_DETACH) { log_status_summary(); net_detach(); vclock_detach(); coverage_detach(); count_detach(); }
 	return TRUE;
 }

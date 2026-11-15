@@ -13,7 +13,7 @@
 cd "$(dirname "$0")/../../../.." || exit 2
 # no oracle runs meanwhile (docs/COVERAGE.md): a process whose command line runs a compare.sh of another checkout
 oracle() { powershell -NoProfile -Command "@(Get-CimInstance Win32_Process | Where-Object { \$_.CommandLine -like '*compare.sh*' -and \$_.CommandLine -notlike '*atomica-finish-e73ddc*' }).Count" | tr -d '\r'; }
-room() { until python -I tools/gamecount.py --limit 3 > /dev/null 2>&1 && [ "$(oracle)" = "0" ]; do sleep 20; done; }
+room() { until python -I tools/gamecount.py --limit 6 > /dev/null 2>&1 && [ "$(oracle)" = "0" ]; do sleep 20; done; }
 if [ "$1" = "--all" ]; then
 	for s in s1 s2 a1 sv g4 g5 p2-title p2-start p2-start2 p2-dialogs p2-focus p2-hs p2-d1 p2-g5; do
 		bash "$0" "$s" "games/atomica/tools/identical/$s.txt" 1 300

@@ -16,29 +16,29 @@ using namespace Sexy;
 // level, later one of the stages -2 to 30, and a stage is not picked again until thirty have been played.
 void Board::StartBonusRound(int theStage)
 {
-	m8da = true;
+	mBonusFieldLoaded = true;
 
 	if (theStage == -1)
 	{
-		if (m1940 < 0x1e)
+		if (mLevelNumber < 0x1e)
 		{
-			int aBase = m1940 - 5;
+			int aBase = mLevelNumber - 5;
 			theStage = ((int) AstroRand() % 500000000) % 6 + aBase;
-			while (m134.find(theStage) != m134.end())
+			while (mPlayedBonusStages.find(theStage) != mPlayedBonusStages.end())
 				theStage = ((int) AstroRand() % 500000000) % 6 + aBase;
-			if (m134.size() > 0x1d)
-				m134.clear();
+			if (mPlayedBonusStages.size() > 0x1d)
+				mPlayedBonusStages.clear();
 		}
 		else
 		{
 			int aDraw = ((int) AstroRand() % 500000000) % 0x21 - 2;
 			theStage = aDraw;
-			if (m134.find(theStage) != m134.end())
+			if (mPlayedBonusStages.find(theStage) != mPlayedBonusStages.end())
 			{
 				// the first stage that has not been played
 				for (int aStage = -2; aStage < 0x1f; aStage++)
 				{
-					if (m134.find(aStage) == m134.end())
+					if (mPlayedBonusStages.find(aStage) == mPlayedBonusStages.end())
 					{
 						theStage = aStage;
 						aDraw = aStage;
@@ -48,60 +48,59 @@ void Board::StartBonusRound(int theStage)
 			}
 			if (aDraw > 0x1e)
 				theStage = 0x1e;
-			if (m134.size() > 0x1d)
-				m134.clear();
+			if (mPlayedBonusStages.size() > 0x1d)
+				mPlayedBonusStages.clear();
 		}
 	}
-	m134.insert(theStage);
-	m913 = false;
+	mPlayedBonusStages.insert(theStage);
+	mBonusRoundStarted = false;
 
 	// the old field goes (the bricks are deleted later)
-	for (unsigned int aRow = 0; aRow < m314.size(); aRow++)
+	for (unsigned int aRow = 0; aRow < mFieldBricks.size(); aRow++)
 	{
 		for (int aCol = 0; aCol < 10; aCol++)
 		{
-			Brick* aBrick = m314[aRow][aCol];
+			Brick* aBrick = mFieldBricks[aRow][aCol];
 			if (aBrick != NULL)
 			{
-				m128.insert(aBrick);
-				m314[aRow][aCol] = NULL;
+				mDoomedBricks.insert(aBrick);
+				mFieldBricks[aRow][aCol] = NULL;
 			}
 		}
 	}
-	m911 = false;
+	mStartBannerDoneInBonus = false;
 
-	delete m748;
-	m748 = new XcfFile();
+	delete mBonusRoundFile;
+	mBonusRoundFile = new XcfFile();
 	std::string aFileName = StrFormat("data\\bonus%d.xcf", theStage);
-	m748->AddKeyName("Brick");
-	int aResult = m748->Parse(aFileName);
+	mBonusRoundFile->AddKeyName("Brick");
+	int aResult = mBonusRoundFile->Parse(aFileName);
 	if (aResult != 0)
 	{
-		mApp->Popup(StrFormat("There was an error loading the file: %s. Error number: %d, line %d", aFileName.c_str(), aResult, m748->mLine));
+		mApp->Popup(StrFormat("There was an error loading the file: %s. Error number: %d, line %d", aFileName.c_str(), aResult, mBonusRoundFile->mLine));
 		mApp->mShutdown = true;
 		return;
 	}
 
 	// the marks of supercharged colours end
-	for (unsigned int i = 0; i < m200.size(); i++)
+	for (unsigned int i = 0; i < mSuperchargeMarks.size(); i++)
 	{
-		int anArg = -m200[i].mType;
+		int anArg = -mSuperchargeMarks[i].mType;
 		if (anArg == 0)
 			anArg = -500000000;
 		Fire(0x20, anArg);
 	}
-	std::vector<MarkRec>().swap(m200);
+	std::vector<MarkRec>().swap(mSuperchargeMarks);
 
 	mApp->mUser->SetInt(0x3f, theStage);
-	m1a80 = 0;
-	m914 = true;
-	m1b74 = 0xff;
+	mScreenShakeX = 0;
+	mBonusFadeAlpha = 0xff;
 
 	// the top row is a wall of stones
 	for (int aCol = 0; aCol < 10; aCol++)
 	{
 		Brick* aStone = CreateSpecialBrick(7);
-		m314[0][aCol] = aStone;
+		mFieldBricks[0][aCol] = aStone;
 		aStone->SetParticleX((float) (0xa6 + 0x2c * aCol));
 		aStone->SetParticleY(4.0f);
 	}
@@ -114,13 +113,13 @@ void Board::StartBonusRound(int theStage)
 		for (int aCol = 0; aX < 0x25e; aCol++)
 		{
 			std::string aPath = StrFormat("LEVEL\\ROW%d\\Brick%d", aRow, aCol);
-			if (!m748->HasKey(aPath))
+			if (!mBonusRoundFile->HasKey(aPath))
 			{
-				mApp->mUser->SetInt(100, m1b98);
+				mApp->mUser->SetInt(100, mTallyBricksCounted);
 				return;
 			}
 
-			long aKind = m748->GetInt(aPath);
+			long aKind = mBonusRoundFile->GetInt(aPath);
 			if (aKind != -1)
 			{
 				Brick* aBrick = NULL;
@@ -173,13 +172,13 @@ void Board::StartBonusRound(int theStage)
 					return;
 				aBrick->SetParticleX((float) aX);
 				aBrick->SetParticleY((float) (aY > 4 ? aY + 5 : aY));
-				m314[aRow][aCol] = aBrick;
+				mFieldBricks[aRow][aCol] = aBrick;
 				aBrick->SetVisible(false);
-				m912 = true;
+				mBricksRevealing = true;
 			}
 			aX += 0x2c;
 		}
 		aY += 0x19;
 	}
-	mApp->mUser->SetInt(100, m1b98);
+	mApp->mUser->SetInt(100, mTallyBricksCounted);
 }

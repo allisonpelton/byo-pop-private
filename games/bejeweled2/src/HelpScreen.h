@@ -50,7 +50,7 @@ public:
 
 public:
 	HelpScreen(WinDMApp* theApp, bool theBackOnly);         // 0x5c252e
-	virtual ~HelpScreen() {}                                // 0x5c2349
+	virtual ~HelpScreen() {}                                // 0x5c2349, 0x5c1c65 (the destructor proper: both vtables, then PodDialog's)
 
 	void			Reset();                                // 0x5c1c95
 	void			InitialReset();                         // 0x5c1daa

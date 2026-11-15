@@ -50,8 +50,8 @@ public:
 	void			DeleteUser(const SexyString& theName);              // 0x4352e0 registry key + list entry
 	User*			LoadUser(const SexyString& theName);                // 0x435470 new User with its "Alias"
 	bool			SetCurrentUser(const SexyString& theName);          // 0x4356d0 writes Users\User
-	bool			SetCurrentAlias(const SexyString& theAlias);        // 0x435880 (internet only)
-	SexyString		GetCurrentAlias();                                  // 0x435910 the alias, else the name
+	// 0x435880 SetCurrentAlias and 0x435910 GetCurrentAlias (the internet alias; only the online scores' dialog called
+	// them) are not ported; the alias stays in a user's record
 	SexyString		GetLastUser();                                      // 0x4359b0 Users\User, else the first user
 };
 

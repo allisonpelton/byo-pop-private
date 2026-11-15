@@ -113,10 +113,6 @@ public:
 	virtual std::vector<std::string> listFiles(const std::string& theDir) = 0;
 	// GetUserNameA
 	virtual std::string userName() = 0;
-	// ShellExecuteA "open"
-	virtual void openURL(const std::string& theURL) = 0;
-	// MessageBoxA: the original's flags and result (1 OK, 2 cancel, 6 yes, 7 no)
-	virtual int messageBox(const std::string& theText, const std::string& theCaption, unsigned int theFlags) = 0;
 	// The clipboard's text (CF_TEXT)
 	virtual std::string getClipboard() = 0;
 	virtual void setClipboard(const std::string& theText) = 0;

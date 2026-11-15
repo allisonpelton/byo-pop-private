@@ -32,6 +32,16 @@ enum
 	NUM_HOVER = 11            // the hover table is 11 x 11
 };
 
+// port(mods): the keys the board reads, as the bits of Board::mTapKeys (the fixes mod's keyTaps)
+enum TapKeys
+{
+	TAP_WAIT = 1,
+	TAP_WEST = 2,
+	TAP_EAST = 4,
+	TAP_NORTH = 8,
+	TAP_SOUTH = 16
+};
+
 // Cell flags (Board::mCells[x][y])
 enum CellFlags
 {
@@ -175,6 +185,9 @@ public:
 	int					mTrapX[2], mTrapY[2];   // +0x284 .. +0x290 skull traps (99 = none)
 	int					mTrapDeathTimer;        // +0x294 the death on a skull trap (-1 = off)
 	int					mStungTimer;            // +0x298 the death by the scorpion's sting (-1 = off)
+	int					mTapKeys;               // port(mods): the arrow keys and Space pressed since the last update (TAP_ bits)
+	int					mTapKeysNow;            // port(mods): the ones that this update reads; with the fixes mod's keyTaps a press that was
+	                                            // let go before an update ran still counts at the update after it
 	int					mGateX, mGateY;         // +0x2a0 the gate is the barrier below this cell
 	int					mKeyX, mKeyY;           // +0x2a8
 	int					mMaze;                  // +0x2b0 the maze number in its file (1 .. 100)
@@ -215,6 +228,7 @@ public:
 	virtual void		RemovedFromManager(WidgetManager* theWidgetManager) override;
 	virtual void		Resize(int theX, int theY, int theWidth, int theHeight) override;
 	virtual void		Update() override;
+	virtual void		KeyDown(KeyCode theKey) override;       // port(mods): the fixes mod's keyTaps
 	virtual void		Draw(Graphics* g) override;
 	virtual void		MouseMove(int x, int y) override;
 	virtual void		MouseDown(int x, int y, int theClickCount) override;

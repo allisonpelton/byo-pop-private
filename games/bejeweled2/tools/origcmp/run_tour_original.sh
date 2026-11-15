@@ -30,7 +30,7 @@ if [ -n "$PROFILE" ]; then
   cp -r "$PROFILE/users" build/origrun/bej2/sandbox-files/C/ProgramData/Steam/Bejeweled2/users
 fi
 for i in $(seq 1 120); do
-  python tools/gamecount.py --limit 3 > /dev/null && break
+  python tools/gamecount.py --limit 6 > /dev/null && break
   sleep 15
 done
 WATCHES='[[0x67ccd8]+0xe68]+0x15e20 [[0x67ccd8]+0xe68]+0x15e4 [[0x67ccd8]+0xe68]+0x170c [[0x67ccd8]+0xe68]+0x15e0' \

@@ -1,0 +1,38 @@
+# Water Bugs started in the window the framework gives it (twice the game's size where the desktop has room: no
+# -windowscale, so the display is the window's surface at 2x), taken to full screen from the surface and through the sizes
+wait 3
+shot menu
+clickp 400 303        # Start Game
+wait 1.5
+shot map
+clickp 76 263         # the first world
+wait 1.5
+shot story
+click 400 467         # the story's button
+wait 4
+shot board
+beams 6 watch
+wait 5                 # the beams' walls are built
+probe p2x
+# minimised and restored in the surface mode
+min
+wait 1.5
+restore
+wait 1.5
+probe p2x_restored
+# Alt+Enter from the surface: full screen (the whole 3840x2160 desktop on rundesk), and back
+altenter
+wait 2
+probe full
+altenter
+wait 2
+probe windowed_after_full
+resize 800 600
+wait 1
+probe p1x
+min
+wait 1.5
+restore
+wait 1.5
+probe p1x_restored
+end

@@ -9,6 +9,7 @@ using namespace Sexy;
 static const char* const gDayNames[7] = { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" };
 static const char* const gMonthNames[12] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
 
+// port(mod): today's date as yyyymmdd (the word journal and the daily board)
 int Sexy::LocalDate()
 {
 	time_t aNow = time(NULL);
@@ -18,6 +19,7 @@ int Sexy::LocalDate()
 	return (aTime->tm_year + 1900) * 10000 + (aTime->tm_mon + 1) * 100 + aTime->tm_mday;
 }
 
+// port(mod): a date as "12 Nov", with its weekday when asked (the word journal)
 SexyString Sexy::DateName(int theDate, bool withDay)
 {
 	int aYear = theDate / 10000;
@@ -35,6 +37,7 @@ SexyString Sexy::DateName(int theDate, bool withDay)
 	return SexyString(gDayNames[aWeekDay]) + " " + aName;
 }
 
+// port(mod): the path of a file in the current player's folder (the word journal and the replays)
 SexyString Sexy::PlayerFilePath(BookWormApp* theApp, const char* theFileName)
 {
 	SexyString aName = theApp->mUserManager->GetCurrentUserName();
@@ -44,6 +47,7 @@ SexyString Sexy::PlayerFilePath(BookWormApp* theApp, const char* theFileName)
 	return aPath + theFileName;
 }
 
+// port(mod): adds lines to a file in the current player's folder, with a header when it is new
 bool Sexy::AppendPlayerFile(BookWormApp* theApp, const char* theFileName, const SexyString& theHeader,
 	const SexyString& theLines)
 {

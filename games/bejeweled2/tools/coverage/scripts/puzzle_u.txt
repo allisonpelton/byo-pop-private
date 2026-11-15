@@ -1,0 +1,34 @@
+# coverage script (2D, the profile player): the first puzzle's tutorial closed, its first move made, then UNDO twice (the undo list restored: Board::LoadState)
+at 562 shot title
+at 566 move 320 401
+at 568 click 320 401
+at 808 shot menu
+at 811 move 164 317
+at 813 click 164 317
+at 888 shot board
+at 894 move 382 315
+at 896 click 382 315
+at 908 move 382 315
+at 910 click 382 315
+at 922 move 382 315
+at 924 click 382 315
+at 936 move 382 315
+at 938 click 382 315
+at 950 move 382 315
+at 952 click 382 315
+at 964 move 435 315
+at 966 click 435 315
+at 1062 move 408 266
+at 1064 click 408 266
+at 1076 move 408 266
+at 1078 click 408 266
+at 1090 move 330 263
+at 1092 click 330 263
+at 1094 move 277 263
+at 1096 click 277 263
+at 1150 move 92 432
+at 1152 click 92 432
+at 1250 move 92 432
+at 1252 click 92 432
+at 1300 shot end
+quit

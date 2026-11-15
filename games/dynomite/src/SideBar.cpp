@@ -23,10 +23,10 @@ SideBar::SideBar(FossilizedApp* theApp)
 	mMenuButton->mBtnNoDraw = false;
 	mMenuButton->mDoFinger = true;
 	mMenuButton->SetVisible(true);
-	mButton1 = new CellButton(1, this);
-	mButton1->mBtnNoDraw = false;
-	mButton1->mDoFinger = true;
-	mButton1->SetVisible(true);
+	mOptionsButton = new CellButton(1, this);
+	mOptionsButton->mBtnNoDraw = false;
+	mOptionsButton->mDoFinger = true;
+	mOptionsButton->SetVisible(true);
 	mPauseButton = new CellButton(3, this);
 	mPauseButton->mBtnNoDraw = false;
 	mPauseButton->mDoFinger = true;
@@ -35,35 +35,35 @@ SideBar::SideBar(FossilizedApp* theApp)
 	mSaveButton->mBtnNoDraw = false;
 	mSaveButton->mDoFinger = true;
 	mSaveButton->SetVisible(true);
-	mButton5 = new CellButton(5, this);
-	mButton5->mBtnNoDraw = false;
-	mButton5->mDoFinger = true;
-	mButton5->SetVisible(true);
-	mButton2 = new CellButton(2, this);
-	mButton2->mBtnNoDraw = false;
-	mButton2->mDoFinger = true;
-	mButton2->SetVisible(true);
+	mMuseumButton = new CellButton(5, this);
+	mMuseumButton->mBtnNoDraw = false;
+	mMuseumButton->mDoFinger = true;
+	mMuseumButton->SetVisible(true);
+	mExitButton = new CellButton(2, this);
+	mExitButton->mBtnNoDraw = false;
+	mExitButton->mDoFinger = true;
+	mExitButton->SetVisible(true);
 
-	mMenuButton->mButtonCell = mApp->mPicSidebarbuttons_r1344;
-	mMenuButton->mOverCell = mApp->mPicSidebarbuttons_r1348;
-	mMenuButton->mDownCell = mApp->mPicSidebarbuttons_r1348;
-	mButton1->mButtonCell = mApp->mPicSidebarbuttons_r134c;
-	mButton1->mOverCell = mApp->mPicSidebarbuttons_r1350;
-	mButton1->mDownCell = mApp->mPicSidebarbuttons_r1350;
-	mButton2->mButtonCell = mApp->mPicSidebarbuttons_r1354;
-	mButton2->mOverCell = mApp->mPicSidebarbuttons_r1358;
-	mButton2->mDownCell = mApp->mPicSidebarbuttons_r1358;
+	mMenuButton->mButtonCell = mApp->mPicMenuButton;
+	mMenuButton->mOverCell = mApp->mPicMenuButtonOver;
+	mMenuButton->mDownCell = mApp->mPicMenuButtonOver;
+	mOptionsButton->mButtonCell = mApp->mPicOptionsButton;
+	mOptionsButton->mOverCell = mApp->mPicOptionsButtonOver;
+	mOptionsButton->mDownCell = mApp->mPicOptionsButtonOver;
+	mExitButton->mButtonCell = mApp->mPicExitButton;
+	mExitButton->mOverCell = mApp->mPicExitButtonOver;
+	mExitButton->mDownCell = mApp->mPicExitButtonOver;
 	mPauseButton->mButtonCell = mApp->mPauseCells[0];
 	mPauseButton->mOverCell = mApp->mPauseCells[1];
 	mPauseButton->mDownCell = mApp->mPauseCells[1];
 	mSaveButton->mButtonCell = mApp->mPauseCells[4];
 	mSaveButton->mOverCell = mApp->mPauseCells[5];
 	mSaveButton->mDownCell = mApp->mPauseCells[5];
-	mButton5->mButtonCell = mApp->mPicPausebuttons_r1398;
-	mButton5->mOverCell = mApp->mPicPausebuttons_r139c;
-	mButton5->mDownCell = mApp->mPicPausebuttons_r139c;
-	mButton5->SetDisabled(true);
-	mButton5->SetVisible(false);
+	mMuseumButton->mButtonCell = mApp->mPicMuseumButton;
+	mMuseumButton->mOverCell = mApp->mPicMuseumButtonOver;
+	mMuseumButton->mDownCell = mApp->mPicMuseumButtonOver;
+	mMuseumButton->SetDisabled(true);
+	mMuseumButton->SetVisible(false);
 }
 
 // 0x434dc0
@@ -74,25 +74,25 @@ SideBar::~SideBar()
 		mApp->SafeDeleteWidget(mPauseButton);
 		mPauseButton = NULL;
 	}
-	if (mButton1 != NULL)
+	if (mOptionsButton != NULL)
 	{
-		mApp->SafeDeleteWidget(mButton1);
-		mButton1 = NULL;
+		mApp->SafeDeleteWidget(mOptionsButton);
+		mOptionsButton = NULL;
 	}
 	if (mMenuButton != NULL)
 	{
 		mApp->SafeDeleteWidget(mMenuButton);
 		mMenuButton = NULL;
 	}
-	if (mButton2 != NULL)
+	if (mExitButton != NULL)
 	{
-		mApp->SafeDeleteWidget(mButton2);
-		mButton2 = NULL;
+		mApp->SafeDeleteWidget(mExitButton);
+		mExitButton = NULL;
 	}
-	if (mButton5 != NULL)
+	if (mMuseumButton != NULL)
 	{
-		mApp->SafeDeleteWidget(mButton5);
-		mButton5 = NULL;
+		mApp->SafeDeleteWidget(mMuseumButton);
+		mMuseumButton = NULL;
 	}
 	if (mSaveButton != NULL)
 	{
@@ -108,11 +108,11 @@ void SideBar::AddedToManager(WidgetManager* theWidgetManager)
 {
 	Widget::AddedToManager(theWidgetManager);
 	theWidgetManager->AddWidget(mMenuButton);
-	theWidgetManager->AddWidget(mButton1);
-	theWidgetManager->AddWidget(mButton2);
+	theWidgetManager->AddWidget(mOptionsButton);
+	theWidgetManager->AddWidget(mExitButton);
 	theWidgetManager->AddWidget(mPauseButton);
 	theWidgetManager->AddWidget(mSaveButton);
-	theWidgetManager->AddWidget(mButton5);
+	theWidgetManager->AddWidget(mMuseumButton);
 	mInchy = new InchySmall(mApp, this);
 	mInchy->CreateBubble();
 }
@@ -122,11 +122,11 @@ void SideBar::RemovedFromManager(WidgetManager* theWidgetManager)
 {
 	Widget::RemovedFromManager(theWidgetManager);
 	theWidgetManager->RemoveWidget(mMenuButton);
-	theWidgetManager->RemoveWidget(mButton1);
-	theWidgetManager->RemoveWidget(mButton2);
+	theWidgetManager->RemoveWidget(mOptionsButton);
+	theWidgetManager->RemoveWidget(mExitButton);
 	theWidgetManager->RemoveWidget(mPauseButton);
 	theWidgetManager->RemoveWidget(mSaveButton);
-	theWidgetManager->RemoveWidget(mButton5);
+	theWidgetManager->RemoveWidget(mMuseumButton);
 }
 
 // 0x435140
@@ -134,11 +134,11 @@ void SideBar::Resize(int theX, int theY, int theWidth, int theHeight)
 {
 	Widget::Resize(theX, theY, theWidth, theHeight);
 	mMenuButton->Resize(mX + 0x18, mY + 0x94, 0x68, 0x36);
-	mButton1->Resize(mX + 0x1f, mY + 0xf3, 0x5b, 0x22);
-	mButton2->Resize(mX + 0x1a, mY + 0x19e, 0x61, 0x1f);
+	mOptionsButton->Resize(mX + 0x1f, mY + 0xf3, 0x5b, 0x22);
+	mExitButton->Resize(mX + 0x1a, mY + 0x19e, 0x61, 0x1f);
 	mPauseButton->Resize(mX + 0x62, mY + 0x11d, 0x1a, 0x19);
 	mSaveButton->Resize(mX + 0x20, mY + 0x11d, 0x1a, 0x19);
-	mButton5->Resize(mX + 0x62, mY + 0x186, 0x19, 0x18);
+	mMuseumButton->Resize(mX + 0x62, mY + 0x186, 0x19, 0x18);
 }
 
 // 0x434ec0: the score counts up one a frame (and then jumps to it)
@@ -240,7 +240,7 @@ void SideBar::ButtonDepress(int theId)
 		Dynomite* aBoard = mApp->mBoard;
 		if ((aBoard != NULL) && !mApp->mInTutorial)
 		{
-			if (!aBoard->mField131 && !aBoard->mField130)
+			if (!aBoard->mGameOver && !aBoard->mLosing)
 			{
 				mApp->SaveGame();
 			}
@@ -265,8 +265,8 @@ void SideBar::DisableGameButtons()
 {
 	mSaveButton->SetDisabled(true);
 	mPauseButton->SetDisabled(true);
-	mButton5->SetDisabled(true);
-	mButton5->SetVisible(false);
+	mMuseumButton->SetDisabled(true);
+	mMuseumButton->SetVisible(false);
 }
 
 // 0x435270
@@ -335,12 +335,12 @@ void SideBar::GameStarted()
 	mScoreShown = 0;
 	mSaveButton->SetDisabled(false);
 	mPauseButton->SetDisabled(false);
-	mButton5->SetDisabled(true);
-	mButton5->SetVisible(false);
+	mMuseumButton->SetDisabled(true);
+	mMuseumButton->SetVisible(false);
 	if ((mApp->mBoard != NULL) && (mApp->mBoard->mGameType == 2))
 	{
-		mButton5->SetDisabled(false);
-		mButton5->SetVisible(true);
+		mMuseumButton->SetDisabled(false);
+		mMuseumButton->SetVisible(true);
 	}
 	MarkDirty();
 }

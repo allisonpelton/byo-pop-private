@@ -73,22 +73,6 @@ struct IntRect
 	int width() const { return right - left; }            // 0x43d150
 	int height() const { return bottom - top; }           // 0x43d160
 	bool isEmpty() const { return !(left < right && top < bottom); }  // 0x43d170
-	// 0x43d190
-	void offset(int dx, int dy)
-	{
-		left += dx;
-		right += dx;
-		top += dy;
-		bottom += dy;
-	}
-	// 0x43d350: the intersection of a and b
-	void intersect(const IntRect& a, const IntRect& b)
-	{
-		left = b.left <= a.left ? a.left : b.left;
-		right = a.right <= b.right ? a.right : b.right;
-		top = b.top <= a.top ? a.top : b.top;
-		bottom = b.bottom < a.bottom ? b.bottom : a.bottom;
-	}
 };
 
 struct Rect
@@ -131,14 +115,6 @@ struct Rect
 		top = dy + top;
 		bottom = dy + bottom;
 	}
-	// 0x43d3c0: the intersection of a and b
-	void intersect(const Rect& a, const Rect& b)
-	{
-		left = b.left <= a.left ? a.left : b.left;
-		right = a.right <= b.right ? a.right : b.right;
-		top = b.top <= a.top ? a.top : b.top;
-		bottom = b.bottom < a.bottom ? b.bottom : a.bottom;
-	}
 	// 0x43d450: grows to include r
 	void unite(const Rect& r)
 	{
@@ -171,7 +147,9 @@ struct Color
 	float r, g, b;
 
 	Color() : r(0), g(0), b(0) {}
+	// 0x43ed30
 	Color(float theR, float theG, float theB) : r(theR), g(theG), b(theB) {}
+	// 0x43ed50
 	void set(float theR, float theG, float theB)
 	{
 		r = theR;

@@ -23,7 +23,7 @@ PYEOF
 run() {     # run <name> <fullscreen 0|1> <script> <path: default|software> <game arguments...>
 	local name=$1 fs=$2 script=$3 path=$4; shift 4
 	if [ -n "$RUNS" ] && ! echo " $RUNS " | grep -q " $name "; then return; fi
-	for i in $(seq 1 360); do python -I tools/gamecount.py --limit 3 > /dev/null && break; sleep 10; done
+	for i in $(seq 1 360); do python -I tools/gamecount.py --limit 6 > /dev/null && break; sleep 10; done
 	local envarg=""
 	[ "$path" = software ] && envarg="--env SDL_RENDER_DRIVER=software"
 	build/native/rundesk.exe python -I games/alchemy/tools/profile/softpath.py "$W/build/perf/sp/$name.json" --exe "$W/build/native/alchemy.exe" \

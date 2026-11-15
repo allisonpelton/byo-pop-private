@@ -87,61 +87,48 @@ public:
 	FrameAnim				mDeathAnim;         // +0xe8
 	FrameAnim				mFxAnim;            // +0x128
 	Image*					mImage;             // +0x168
-	bool					mFlag16C;           // +0x16c
-	bool					mFlag16D;           // +0x16d
-	bool					mFlag16E;           // +0x16e
-	bool					mFlag16F;           // +0x16f
 	MemoryImage*			mGlowImage;         // +0x170 the glow image tinted with mColor
-	bool					mFlag172;           // +0x172
-	Brick*					mSupport;           // +0x174 the brick this one rests on while it rises (mFlag188)
-	bool					mFlag175;           // +0x175
-	bool					mFlag176;           // +0x176
+	Brick*					mSupport;           // +0x174 the brick this one rests on while it rises (mSupported)
 	bool					mVisible;           // +0x178
 	bool					mBouncing;          // +0x179 the bounce (UpdateIdle) runs
 	bool					mBounceFire;        // +0x17a fire event 0xb when the bounce is over
-	bool					mFlag17B;           // +0x17b
-	bool					mFlag17C;           // +0x17c
+	bool					mRetargeted;        // +0x17c SetTargetY was called since the brick last arrived: UpdateState1 takes its step even when the brick is already above the target
 	bool					mWobble;            // +0x17d
 	bool					mSpecial;           // +0x17e the killall brick
-	bool					mFlag17F;           // +0x17f
-	bool					mFlag180;           // +0x180
-	bool					mFlag181;           // +0x181
+	bool					mLightRising;       // +0x17f the flash light goes up (StartFlash) or down (StopFlash); read by UpdateLight
+	bool					mLightChanging;     // +0x180 the light (mLight) is moving towards its end value; UpdateLight clears it on arrival
 	bool					mShake;             // +0x182
-	bool					mFlag183;           // +0x183
-	bool					mFlag184;           // +0x184
-	bool					mFlag185;           // +0x185
-	bool					mFlag186;           // +0x186
-	bool					mFlag187;           // +0x187
-	bool					mFlag188;           // +0x188
+	bool					mFadeRising;        // +0x184 the dimming fade (mFade) goes up, else down; UpdateFade turns it at 0 and 255
+	bool					mFading;            // +0x185 the dimming fade runs (UpdateFade) and the brick is drawn with it
+	bool					mPulseRising;       // +0x186 the pulse (mPulse) goes up, else down; the mutation pulse turns it at 0 and 255
+	bool					mBlastsOnPop;       // +0x187 the brick blasts its neighbours when it is popped (a long streak or a crossbar blast sets it); OnBrickPopped acts on it
+	bool					mSupported;         // +0x188 the brick rises on a support brick (SetTargetY fires event 0x10, FireLanded event 0x11); mSupport is that brick
 	bool					mHidden;            // +0x189
-	bool					mFlag18A;           // +0x18a
-	bool					mFlag18B;           // +0x18b
-	bool					mFlag18C;           // +0x18c
+	bool					mGoesOffOnArrival;  // +0x18a a power brick of a launched group that goes off as soon as the group arrives (OnBrickArrived)
+	bool					mMutationHeld;      // +0x18b event 0x28 with 1 holds the mutation timer and the pulse; the Board sets it while the field waits to be cleared
+	bool					mLanded;            // +0x18c event 7 (landed) has been fired; false while a launched brick is on its way
 	bool					mRainbow;           // +0x18d
 	bool					mGone;              // +0x18e the object is out of play
 	bool					mSprocketOn;        // +0x18f
-	bool					mFlag190;           // +0x190
+	bool					mSprocketFading;    // +0x190 the sprocket light goes off: mLightValue counts down to 0 (OnSprocketOff)
 	bool					mTrail;             // +0x191
 	bool					mTurbotOn;          // +0x192
-	bool					mFlag193;           // +0x193
-	bool					mFlag194;           // +0x194
+	bool					mTurbotFading;      // +0x193 the turbot light goes off: mLightValue counts down to 0 (OnTurbotOff)
+	bool					mGlowTranslucent;   // +0x194 the bonus glow is drawn with the alpha mGlowAlpha (event 0x25 with a value below 255)
 	int						mShakeX;            // +0x198
 	int						mShakeY;            // +0x19c
-	int						mNum1A0;            // +0x1a0
 	int						mState;             // +0x1a4
 	int						mType;              // +0x1a8 colour 0..4, 5 rainbow ... 6 radial, 7 stone, 9 steel ...
 	int						mTick;              // +0x1ac
-	int						mNum1B0;            // +0x1b0
-	int						mNum1B4;            // +0x1b4
+	int						mFallLightStep;     // +0x1b4 the light the brick gains each update while it falls (0; 6 once OnBeginFall starts the fall)
 	int						mLight;             // +0x1b8
 	int						mColumn;            // +0x1bc
-	int						mNum1C0;            // +0x1c0
+	int						mHighlightState;    // +0x1c0 -1: not highlighted; 0: the highlight of a hit colour runs (OnEvent20)
 	int						mFade;              // +0x1c4
 	int						mMutateTimer;       // +0x1c8
 	int						mPulse;             // +0x1cc
 	int						mMutated;           // +0x1d0 1: the brick has become a mutator
 	int						mNumParticles;      // +0x1d4
-	int						mNum1D8;            // +0x1d8
 	int						mNumFrames;         // +0x1dc
 	int						mBounceState;       // +0x1e0
 	int						mBounceDelay;       // +0x1e4
@@ -176,14 +163,14 @@ public:
 	virtual void	OnDie();                            // 0x403fd0 event 3
 	virtual void	OnStop();                           // 0x4019d0 event 4
 	virtual void	OnBeginFall();                      // 0x401a20 event 9
-	void			OnEvent1E();                        // 0x4026d0
+	void			OnTurbotReset();                    // 0x4026d0 event 0x1e: the turbot light is reset and the brick listens for the next turbot start
 	void			OnEvent14();                        // 0x401780
 	void			OnSprocketOn();                        // 0x4025d0
 	void			OnTurbotOn();                        // 0x402670
 	void			OnSprocketOff();                        // 0x402630
 	void			OnTurbotOff();                        // 0x402710
 	void			OnEvent20(int theArg);              // 0x401a60
-	virtual void	OnEvent2A(int theArg) { (void) theArg; }    // 0x4010b0: nothing (the power brick listens)
+	virtual void	OnBoosterPause(int theArg) { (void) theArg; }    // 0x4010b0 event 0x2a: nothing (the power brick listens)
 
 	// ---- the object part (original vtable 0x55d5a8)
 	virtual void	SetState(int theState);             // slot 1 0x402ee0
@@ -208,8 +195,6 @@ public:
 	virtual bool	IsIdle();                           // slot 20 0x406270
 	virtual void	SetParticleX(float theX);           // slot 21 0x404180
 	virtual void	SetParticleY(float theY);           // slot 22 0x4041f0
-	virtual void	SetSpeedX(float theSpeed);          // slot 23 0x4062a0
-	virtual void	SetSpeedY(float theSpeed);          // slot 24 0x4062b0
 	virtual void	SetVisible(bool theVisible);        // slot 25 0x4018f0
 	virtual void	StartMutatorCountdown();            // slot 26 0x401230
 

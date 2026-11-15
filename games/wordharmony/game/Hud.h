@@ -6,6 +6,7 @@
 // find, or the words found, with a button each to give a found word's letters back), the definition line, the
 // counters and the buttons, whose actions it carries out itself.
 
+#include "Level.h"
 #include "ScreenLayout.h"
 #include <string>
 #include <vector>
@@ -93,9 +94,9 @@ private:
 	int mMode;                              // +0xd4
 	engine::TextItem* mDefinition;          // +0xd8: "definition"
 	std::vector<FoundWord*> mWords;         // +0xdc
-	engine::TextItem* mWordTexts[14];       // +0xec: "word1" to "word14"
-	engine::Node* mBrushes[14];             // +0x124: "brush1"...: behind a found word
-	engine::Node* mRecycles[14];            // +0x15c: "word1recycle"...: gives a found word's letters back
+	engine::TextItem* mWordTexts[LEVEL_WORDS];       // +0xec: "word1" to "word14"
+	engine::Node* mBrushes[LEVEL_WORDS];             // +0x124: "brush1"...: behind a found word
+	engine::Node* mRecycles[LEVEL_WORDS];            // +0x15c: "word1recycle"...: gives a found word's letters back
 	engine::TextItem* mBallsRemaining;      // +0x194
 	engine::FadeContainer* mSpawnBallText;  // +0x19c
 	engine::Node* mQuitBtn;                 // +0x1a0

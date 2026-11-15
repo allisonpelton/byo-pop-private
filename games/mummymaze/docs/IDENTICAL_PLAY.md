@@ -198,13 +198,14 @@ circles (the bot now keeps its plan while the board keeps to it), and `setup_wor
 
 ## The fixes mod
 
-`mods/fixes` holds two fixes, each a toggle, both on in the site's build and off in a plain native run (`GAME_NOTES.md`, "Fix
-candidates" and "The fixes mod"). `gameClock` counts a chamber's time and the adventure's total by updates, as the game's own clock on
-the board does, instead of by `GetTickCount`; `solverFight` makes the search of Abandon Hope and the Ankh flip the gate in the case the
-board flips it (a fight of two mummies that ends on the key stone), which they missed. Checked as follows: the suite's baseline (the
-unmodded game) still gives the same logs and photographs, the bot's classic game gives the same log with the mod on and off (no game of
-the suite meets the fight, so `solverFight` is checked against the board's code and not by a played game), and every web run above
-had the mod on. A fix that was left out on purpose: the Ankh on the larger mazes is a mod, not a fix.
+`mods/fixes` holds three fixes (two when this section was written, the third is the last section below), each a toggle, all on in the
+site's build and off in a plain native run (`GAME_NOTES.md`, "Fix candidates" and "The fixes mod"). `gameClock` counts a chamber's
+time and the adventure's total by updates, as the game's own clock on the board does, instead of by `GetTickCount`; `solverFight`
+makes the search of Abandon Hope and the Ankh flip the gate in the case the board flips it (a fight of two mummies that ends on the
+key stone), which they missed. Checked as follows: the suite's baseline (the unmodded game) still gives the same logs and
+photographs, the bot's classic game gives the same log with the mod on and off (no game of the suite meets the fight, so
+`solverFight` is checked against the board's code and not by a played game), and every web run above had the mod on. A fix that was
+left out on purpose: the Ankh on the larger mazes is a mod, not a fix.
 
 ## Registration and the buttons that lead out of the game
 
@@ -254,3 +255,61 @@ of 7 pixels at the maze's right edge (below) and 5 pixels of at most 12 levels i
   frame. The export shows the same clip rectangle for the maze in both drawing loops (`0x4095f0` and `0x40b2f0`: 0x32, 0x42,
   0x16e, 0x177) and the same rectangles for the wall, so the port cuts where the export says; the cause was not found in about
   twenty minutes and shotdiff does not count it as visible. To see it: `trapscn.py`'s scenario, any frame, the crop at 566, 238.
+
+# The key-press check of 2026-11-11: arrow presses during a move, and a quick tap
+
+A play-test through the site had an agent press arrow keys in the browser with real key events; only its first press moved the
+explorer. The site's side was clean (after a real click, 3 of 3 ArrowRight keydowns reach the canvas), so the game was checked:
+does the port drop presses that the original takes, during a move or right after the explorer stops?
+
+## What was compared and how
+
+The code first. Both games read the widget manager's key table once per update in `Board::UpdateExplorer` (`0x406f10`, +0x84 Space,
++0x89 Left, +0x8a Up, +0x8b Right, +0x8c Down), and an update is one 10 ms tick. When the board is ready, a key held at the update
+starts the turn (Left, Right, Up, Down in that order when two are held). While the pieces move, a key held at an update is stored
+as a queued click and taken as the next turn's move, the last one winning. A key pressed and let go between two updates is never
+seen. The port's block is the original's.
+
+Then played, in the original (origrun, Windows Sandbox, virtual clock) and the port (`-fast`) with the same script
+(`tools/identical/scenarios/keyq.txt`, run by `p2.sh`): Left at update 1411 starts a turn (his walk to 1472, the mummy's turns to
+1548); Right at 1425 comes during the walk; Left at 1617 comes one update after the board is ready again; Right at 1682 comes during
+the mummy's turns of that third turn. Seven shots (one before the first press, one in each stretch after it) match pixel for pixel
+inside the maze, and consecutive shots differ, so the presses did their work. The port's state log shows what the original's shots
+confirm: every press was taken, 4 moves in all, the two during a turn at the update the turn ended (1548 and 1686) and the one after
+the stop at the update after the press (1618). So the port drops no press that the original takes, in either place.
+
+Then the page, in real time (`tools/web/keytiming.js`, the DOM's own events): chamber 1 of a classic game, an open key, then the
+opposite key at 10, 65 and 130 updates after the first one was let go (his walk, the mummy's turns, the end of the turn) and at the
+update the board is ready and one and two updates after it, with the second key held for 0 ms (keydown and keyup in one task), 4, 10
+and 16 ms or one frame. Without the fix a key held 0, 4 or 10 ms was dropped 15 times of 15, a key held 16 or 30 ms taken 10 of 10, a
+key held one frame 17 of 17; real key events through the Browser pane (keydown and keyup 0 to 1 ms apart) moved the explorer 0 times
+in 7 presses, which is the play-test's finding. The events that arrive between two frames (16.7 ms) are applied together at the
+start of the next frame, before its updates, so a tap that begins and ends between two frame starts is gone before the game reads
+the key table; the original's pump runs before every pass of its loop and an update is due every 10 ms, so its window is shorter,
+and a human's press (50 ms and more) is never lost in either game. The page's trouble is that a script's key is a keydown and a keyup
+a millisecond apart.
+
+## Changes
+
+| The difference | Its cause in the original | What the port does now | Commit |
+|---|---|---|---|
+| On the page, a key tap shorter than a frame (a script's, an agent's) never moved the explorer | the board reads the key table at the update and never hears the key's press, so a press and release between two updates is invisible; the original has the same blind window (10 ms), a human's press never falls in it | the fixes mod's `keyTaps` (on by default in the mod, off in a plain native run; version 1.1): `Board::KeyDown` notes the press and the next update reads it as if the key were held | this commit |
+
+After the change, with the mod on, the page took 36 of 36 second presses (0, 4, 10 and 16 ms held, at every moment of the turn) and
+three of four presses of real key events through the Browser pane (two single presses, and a pair 4 ms apart of which one took;
+see below). A plain native run is the original's: the suite's baseline is unchanged (146 s, identical), `mTapKeys` never being set
+without the mod.
+
+## Oddities and remaining deviations
+
+- Two taps inside one update count as two keys held together, so the original's order picks one (Left, Right, Up, Down): a Right
+  and a Left tapped 4 ms apart move him Right, and the Left is gone with that update. A human's two presses are 50 ms apart or more.
+- The second press that moved nothing in the page runs with the mod on (4 of 104 trials, each at the update the board was ready,
+  with a key held 16 ms) is the game's own rule: `CanMove` refuses a step onto a living mummy's cell, and the key back to the cell
+  he left is that step when the mummy followed him. The one that was traced with the mummy's cell (explorer (2,5), mummy (3,5), key
+  Right) shows it; two of the others had the same shape (the second key led back to the cell he had left) and none was traced. The
+  final driver marks such a trial as not valid.
+- Native key tap lengths were not measured with real window messages: a posted-message driver written for this check never moved the
+  explorer and the real-time command driver was too slow on the loaded machine, so the native side rests on the scripted runs above
+  (a press of one update and up) and on the code, which is the page's code. The native window for a lost tap is an update (10 ms),
+  the page's a frame (16.7 ms); the mod's `keyTaps` covers both the same way wherever the mod is loaded.

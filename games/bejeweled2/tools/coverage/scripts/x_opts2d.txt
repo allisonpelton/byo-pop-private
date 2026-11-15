@@ -1,0 +1,25 @@
+# exploration (portshots.sh): the 2D Options dialog from the menu, the scores, the quit dialog
+at 562 shot title
+at 566 move 320 401
+at 568 click 320 401
+at 759 shot newuser
+at 762 text Ali
+at 764 key 13
+at 949 shot dialog36
+at 953 key 27
+at 959 shot menu
+at 962 move 79 428
+at 964 click 79 428
+at 1050 shot options
+at 1060 move 320 342
+at 1062 click 320 342
+at 1120 shot menu2
+at 1122 move 211 449
+at 1124 click 211 449
+at 1200 shot scores
+at 1210 move 78 33
+at 1212 click 78 33
+at 1270 shot menu3
+at 1272 move 565 428
+at 1274 click 565 428
+at 1340 shot quit

@@ -11,7 +11,7 @@ if not ud:
     shutil.rmtree(ud, ignore_errors=True)
     shutil.copytree(os.path.join(ROOT, 'build', 'ts-p1', 'fixtures', 'port-clean'), ud)
 for _ in range(7200):
-    if subprocess.call([sys.executable, os.path.join(ROOT, 'tools', 'gamecount.py'), '--limit', '3'], stdout=subprocess.DEVNULL) == 0:
+    if subprocess.call([sys.executable, os.path.join(ROOT, 'tools', 'gamecount.py'), '--limit', '6'], stdout=subprocess.DEVNULL) == 0:
         break
     time.sleep(1)
 else:

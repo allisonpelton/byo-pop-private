@@ -37,10 +37,13 @@ Options:
   --steps N               the same as --moves (the number of bot moves; playbymove's name for it)
   --users DIR             a users folder to start from (copied), instead of an empty one: a profile that has played
   --exe PATH              another build of the port (a frozen baseline)
+  --gamedir DIR           the game's files (-gamedir=; assets/typershark). The run stops at once with a message when the folder lacks
+                          them: a game that cannot find its files waits in a message box on rundesk's desktop and never answers
   --dir DIR               the run's folder (build/ts-p2c/<mode>-<diff>-s<seed>); it holds commands.txt, realinput.txt, game.log, driver.txt
                           (every line sent and its answer), ud/ (the game's user folder) and shots/
   --realtime              without -fast (real time; the game's own speed)
-  --timeout N             real seconds to wait for one answer (120)
+  --timeout N             real seconds to wait for one answer (120); a game that gives none is stopped, with its rundesk, so it frees its
+                          game slot, and the run ends with its log's path
   --no-shots              no screenshots
   --level N               start somewhere else by the test command `level N` (docs/TEST_COMMANDS.md), once, when the first board or lesson is
                           up: an adventure site 0 to 35 (35: the last boss and the end), an abyss depth in feet, a tutor lesson 0 to 18;
@@ -83,6 +86,50 @@ DONE_STOPS = ("levels", "won", "gameover", "lessons", "moves", "endless")
 
 class Fail(Exception):
     pass
+
+
+def find_ci(base, rel):
+    """the path of a '/'-separated rel under base, each part matched without regard to case (as the game finds its files), or None"""
+    cur = base
+    for part in rel.split("/"):
+        try:
+            names = os.listdir(cur)
+        except OSError:
+            return None
+        hit = next((n for n in names if n.lower() == part.lower()), None)
+        if hit is None:
+            return None
+        cur = os.path.join(cur, hit)
+    return cur
+
+
+def game_dir_problem(d):
+    """why d is not a folder the game can start from (the check of src/main.cpp's LooksLikeGameDir), or None. The game shows a
+    message box when it fails that check; on rundesk's private desktop nobody closes it, and the run would wait for ever."""
+    if not os.path.isdir(d):
+        return ("no game folder %s: it holds the game's images, data, sounds, music and properties folders and WinTS.exe "
+                "(tools/setup_worktree.sh stages them in a worktree; --gamedir names another)" % d)
+    if not ((find_ci(d, "wints.exe") or find_ci(d, "typershark.exe")) and find_ci(d, "data/twords.txt")
+            and find_ci(d, "images/titlescreen.jpg")):
+        return ("%s is not Typer Shark's game folder: it needs WinTS.exe or TyperShark.exe, data/twords.txt and "
+                "images/titlescreen.jpg (--gamedir names another)" % d)
+    return None
+
+
+def kill_tree(proc):
+    """stops the game's process and everything it started (its rundesk and the game under it): a game that no longer answers must
+    not keep one of the machine's three game slots"""
+    if proc.poll() is not None:
+        return
+    try:
+        subprocess.run(["taskkill", "/F", "/T", "/PID", str(proc.pid)], capture_output=True, timeout=30)
+    except (OSError, subprocess.SubprocessError):
+        pass
+    try:
+        proc.wait(10)
+    except subprocess.TimeoutExpired:
+        proc.kill()
+        proc.wait()
 
 
 def abyss_list(i):
@@ -262,11 +309,11 @@ class Run:
             shutil.copytree(a.users, os.path.join(ud, "users"))
         else:
             os.makedirs(ud)
-        gargs = ["-seed=%d" % a.seed, "-userdir=" + ud]
+        gargs = ["-seed=%d" % a.seed, "-userdir=" + ud, "-gamedir=" + os.path.abspath(a.gamedir)]
         pa = argparse.Namespace(dir=self.dir, exe=a.exe, game_args=gargs, realtime=a.realtime, timeout=a.timeout)
         self.game = pbm.Game(pa)
-        self.game.send("state")        # the first answer comes when the game has loaded
         try:
+            self.game.send("state")        # the first answer comes when the game has loaded
             self.loop()
         except (pbm.Stop, Fail) as e:
             self.stop = "error: " + str(e)
@@ -277,6 +324,11 @@ class Run:
         return self.report()
 
     def finish(self):
+        if self.stop and self.stop.startswith("error: timeout"):
+            # no answer in --timeout seconds: the game is stuck (a message box, a hang), so it will not read a screenshot or a quit
+            # either. Stop it and its rundesk now, and say where its log is.
+            kill_tree(self.game.proc)
+            self.stop += " | the game was stopped; its log: " + self.game.logname
         try:
             if self.fullscreen and self.stop in DONE_STOPS and self.game.proc.poll() is None:
                 self.game.send(*self.alt_enter())
@@ -612,6 +664,7 @@ def main():
     ap.add_argument("--fullscreen", action="store_true")
     ap.add_argument("--users")
     ap.add_argument("--exe", default=os.path.join(ROOT, "build", "native", "typershark.exe"))
+    ap.add_argument("--gamedir", default=os.path.join(ROOT, "assets", "typershark"))
     ap.add_argument("--dir")
     ap.add_argument("--realtime", action="store_true")
     ap.add_argument("--timeout", type=float, default=120)
@@ -623,6 +676,10 @@ def main():
         a.dir = os.path.join(ROOT, "build", "ts-p2c", "%s-%d-s%d" % (a.mode, a.diff, a.seed))
     if not os.path.exists(a.exe):
         print("realplay: no exe " + a.exe)
+        return 1
+    problem = game_dir_problem(a.gamedir)
+    if problem:
+        print("realplay: " + problem)
         return 1
     return Run(a).run()
 

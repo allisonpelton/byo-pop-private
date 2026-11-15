@@ -156,6 +156,9 @@ public:
 	int					mSeconds;           // +0x5bc
 	DWORD				mStartTick;         // +0x5c0
 	int					mPoints[GRID][GRID];    // +0x5c4 points to show at a cell
+	// port(mod): what the autosplit observer reads (LiveSplitObserver.cpp): which board this is, and that it was loaded
+	uint32_t			mBoardSerial;
+	bool				mResumed;
 	bool				mDirty;             // +0x7a8
 	int					mCellFlash[GRID][GRID]; // +0x7ac
 	bool				mBonus;             // +0x991 the bonus screen (digging for treasure) is on
@@ -171,7 +174,7 @@ public:
 	int					mTutorialStep;      // +0x95000
 	DialogButton*		mStartLink;         // +0x95004
 	bool				mKeyTap[0xFF];      // port: a key pressed since the last poll (a tap that came and went between two updates)
-	int					mUnused_95008;      // +0x95008
+	int					mCellFlashFloor;    // +0x95008 a flash level taken off a cell's flash for the reach of its glow and compared with it for the hint arrows; only the level's reset writes it (0)
 	bool				mTutorialShown;     // +0x9500c
 	int					mHintTimer;         // +0x68 counts down after "Cannot Undo" (the text that shows)
 	int					mHintReason;        // +0x64 why: the reason of the last ClearUndo (0 level start, 1 whirlpool, 2 life, 3 whirls)

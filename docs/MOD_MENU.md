@@ -9,39 +9,32 @@ same `settings` block.
 
 ## The mod menu for players
 
-- **Opening it.** Press **F2** in any game, natively or in the browser, on the title screen or during play.
-  On the web, the tool bar's **Mods** button also opens it while the game runs. F2 works without Ctrl, Shift
-  or Alt, and holding it down does not repeat. In Big Money, Options also has a **MODS** button while an
-  installed mod, on or off, has settings. Bejeweled's, which its own menu integration adds, shows while an
-  enabled mod has settings. The menu looks the same in every game.
-- **Closing it.** Press F2 again, press Esc on the list, or use **Close**.
-- **Pausing.** While the menu is open the game is paused, as it is while Options is open.
-- **The list page** shows every installed mod in load order:
-  - an on/off box;
-  - ▲ and ▼ to move the mod (only among mods of the same `priority`);
-  - **Settings**, for a mod with settings;
-  - badges: SCORES (the mod gives separate high scores), FEATURES (it turns on port features), and RESTART
-    or NEXT GAME while a change of it waits.
+- **Opening and closing it.** Press **F2** in any game, natively or in the browser, on the title screen or during
+  play (without Ctrl, Shift or Alt; holding it does not repeat), and again to close it, or press Esc on the list,
+  or use **Close**. On the web, the tool bar's **Mods** button also opens it. In Big Money, Options also has a
+  **MODS** button while an installed mod, on or off, has settings; Bejeweled's shows while an enabled mod has
+  settings. While the menu is open the game is paused, as it is while Options is open.
+- **The list page** shows every installed mod in load order, with an on/off box, ▲ and ▼ to move it (only among
+  mods of the same `priority`), **Settings** for a mod with settings, and badges: SCORES (separate high scores),
+  FEATURES (it turns on port features), and RESTART or NEXT GAME while a change of it waits.
 - **A mod's page** has one row per setting. A setting with a SCORES mark splits the high scores when it is not
   at its default. **Reset to defaults** asks first.
-- **Saving.** Every change is saved at once. The footer says what still waits:
-  - "Restart to apply: ..." for changes that need a restart;
-  - "Applies to your next game: ..." for values the game reads at its next new game.
+- **Saving.** Every change is saved at once. The footer says what still waits: "Restart to apply: ..." for
+  changes that need a restart, "Applies to your next game: ..." for values the game reads at its next new game.
 - **Restart game.** This button restarts the game; the game in progress is saved as on Quit. In a game that
   reports a game in progress (`SexyAppBase::HasGameInProgress`: Big Money does, while its game can be saved;
   Bejeweled's own menu integration adds it), it asks first and says where that game goes: it can be continued
   after the restart, or, when the restart changes the score key, it stays saved with the current mods and
-  continues when the player switches back to them. Elsewhere it restarts at once and says nothing, and a game
-  saved under the old key is offered again only once the mods are switched back. Nothing restarts by itself:
-  changes left pending apply at the next start.
+  continues when the player switches back to them. Elsewhere it restarts at once, and a game saved under the old
+  key is offered again only once the mods are switched back. Nothing restarts by itself: changes left pending
+  apply at the next start.
 - **Turning off a broken mod.** Start without mods (`-nomods` natively, **Play without mods** on the web),
   then turn the mod off in the menu and use Restart game. The menu says "Mods are off for this run". The
   restart starts with mods again.
-- **Adding and removing mods.**
-  - Natively, mods are folders in the mods folder, and the menu does not add or remove them.
-  - On the web, the page's **Mods** panel adds mods (a folder or a .zip) and removes them. The menu's
-    **Add or remove mods** button opens that panel during play.
-  - A mod the running game uses is removed, or replaced by a new version, when the game next starts.
+- **Adding and removing mods.** Natively, mods are folders in the mods folder, and the menu does not add or
+  remove them. On the web, the page's **Mods** panel adds mods (a folder or a .zip) and removes them, and the
+  menu's **Add or remove mods** button opens it during play. A mod the running game uses is removed, or replaced
+  by a new version, when the game next starts.
 
 ### Keys
 
@@ -138,8 +131,8 @@ A mod has at most 64 settings.
 | `int` | A whole number | − value +, and a slider up to 200 steps |
 | `float` | A number on `min + k·step` | A slider and − value + |
 | `choice` | One of the choices' `value`s | ‹ label ›, which goes round |
-| `text` | A string (Latin-1 characters only) | A text field |
-| `color` | `#rrggbb` or `#rrggbbaa`, lower case | A swatch, a hex field and ‹ › through 16 colours |
+| `text` | A string (Latin-1 only) | A text field |
+| `color` | `#rrggbb` or `#rrggbbaa`, lower case | A swatch, a hex field, 16 colours |
 
 - A choice's `value` must be an id (letters, digits, `_`, `.`, `-`, at most 32), a whole number or `true`/`false`,
   and the values must be different.
@@ -270,20 +263,17 @@ progress, so it brings no such note.
 
 ## Checking a mod
 
-- **`-dumpmods`** (native) prints the mod menu's model as JSON and exits: every mod with its state, errors,
-  warnings, settings, values, levels, what waits, and the score keys: now (`scoreKey`), after a restart
-  (`restartScoreKey`) and at the next fresh game, with the values held for it (`nextScoreKey`).
-- **Script commands** (`-script=<file>`; syntax in `framework/SexyAppBase.h`) drive the menu in tests:
-  `modmenu open`, `modmenu page <mod>`, `modmenu set <mod> <setting> <JSON value>`, `modmenu enable <mod> 0|1`,
-  `modmenu move <mod> -1|1`, `modmenu reset <mod>`, `modmenu restart [confirm]` and `modmenu dump <file>`. A test
-  run does not start the game again after a restart; it logs `restart: <arguments>`.
-- `tools/modsettingstest` checks the settings rules, and `tools/modmenutest` checks the menu, in both games.
+`-dumpmods` (native) prints the mod menu's model as JSON and exits: every mod with its state, errors, warnings,
+settings, values, levels and what waits, and the score keys now (`scoreKey`), after a restart (`restartScoreKey`)
+and at the next fresh game (`nextScoreKey`). The `modmenu` script commands (`-script=<file>`; syntax in
+`framework/SexyAppBase.h`) drive the menu in tests, and a test run does not start the game again after a restart:
+it logs `restart: <arguments>`. `tools/modsettingstest` checks the settings rules and `tools/modmenutest` the menu.
 
 ## For game code
 
 A game uses a value that no data holds with `Platform::ModManager::Get().GetLiveValue(modId, settingId)`, which
-returns the default until the player changes it. Live values apply at once. A game that re-reads its rules at
-every new game declares which data paths it reads (`ModManager::SetNextGameFilter`) and commits waiting values
-as it starts a fresh game (`CommitNextGameValues`). The restart hooks (`CanRestartNow`, `HasGameInProgress`,
-`GetRestartArgs`, `GetModMessages`) are virtuals of `SexyAppBase` with defaults. These are covered in
+returns the default until the player changes it. A game that re-reads its rules at every new game declares which
+data paths it reads (`ModManager::SetNextGameFilter`) and commits waiting values as it starts a fresh game
+(`CommitNextGameValues`). The restart hooks (`CanRestartNow`, `HasGameInProgress`, `GetRestartArgs`,
+`GetModMessages`) are virtuals of `SexyAppBase` with defaults. These are covered in
 [MOD_MENU_DESIGN.md](MOD_MENU_DESIGN.md) 6.

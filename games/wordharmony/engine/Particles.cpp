@@ -24,12 +24,11 @@ Particle::Particle()
 	mBlackHole = false;
 	mLife = 0;
 	mLifeLeft = 0;
-	mAnchor = nullptr;
 	mGroupRelative = 0;
 }
 
-// 0x435690: the particle's position is on the screen, so the translation its parents made is taken back off (the
-// anchor's position is added); no rotation and no colour offset. A group-relative particle is placed like any node.
+// 0x435690: the particle's position is on the screen, so the translation its parents made is taken back off; no
+// rotation and no colour offset. A group-relative particle is placed like any node.
 void Particle::applyTransform(Graphics* g)
 {
 	if (mGroupRelative != 0)
@@ -40,11 +39,6 @@ void Particle::applyTransform(Graphics* g)
 	Point aTranslation(g->state().mTranslation);
 	aTranslation.x = mPosition.x - aTranslation.x;
 	aTranslation.y = mPosition.y - aTranslation.y;
-	if (mAnchor != nullptr)
-	{
-		aTranslation.x = mAnchor->getX() + aTranslation.x;
-		aTranslation.y = mAnchor->getY() + aTranslation.y;
-	}
 	g->setSnap(mStream->mFilter);
 	g->translate(aTranslation.x, aTranslation.y);
 	g->scale(mScale.x, mScale.y);
@@ -109,20 +103,6 @@ JitterListener::JitterListener(float theRateX, float theRateY, float theAmountX,
 	mTime = 0;
 }
 
-// 0x431a90
-void JitterListener::setX(float theRate, float theAmount)
-{
-	mRateX = theRate;
-	mAmountX = theAmount;
-}
-
-// 0x431ab0
-void JitterListener::setY(float theRate, float theAmount)
-{
-	mRateY = theRate;
-	mAmountY = theAmount;
-}
-
 // 0x431a00
 void JitterListener::update(UpdateInfo& theInfo, Node* theNode)
 {
@@ -152,7 +132,6 @@ ParticleStream::ParticleStream()
 	mAutoStopLeft = 0;
 	mStartDelay = -1.0f;
 	mStartDelayLeft = 0;
-	mAnchor = nullptr;
 	mBlackHolePosition = Point();
 	mBlackHole = false;
 }
@@ -199,12 +178,6 @@ void ParticleStream::layout()
 {
 	mBounds = Rect();
 	clearFlags(NODE_LAYOUT);
-}
-
-// 0x432ad0
-void ParticleStream::setAnchor(std::string theName)
-{
-	mAnchor = App::instance()->findNode(theName);
 }
 
 // 0x4331b0: the particles whose life ran out leave; after the start delay, and until the automatic stop, the stream
@@ -287,23 +260,8 @@ void ParticleStream::emit(Point thePosition)
 	float y = randomFloat(mPositionY);
 	if (mGroupRelative == 0)
 	{
-		if (mAnchor == nullptr)
-		{
-			x = thePosition.x + x;
-			y = thePosition.y + y;
-		}
-		else
-		{
-			// against the anchor: the stream's position on the screen, less the anchor's
-			Point anOffset;
-			anOffset.set(x, y);
-			Point aStreamPosition(mAbsPosition);
-			anOffset.add(aStreamPosition);
-			Point anAnchorPosition(*mAnchor->getAbsPosition());
-			x = anOffset.x - anAnchorPosition.x;
-			aParticle->mAnchor = mAnchor;
-			y = anOffset.y - anAnchorPosition.y;
-		}
+		x = thePosition.x + x;
+		y = thePosition.y + y;
 	}
 	aParticle->mGroupRelative = mGroupRelative;
 	aParticle->setPosition(x, y);
@@ -381,22 +339,7 @@ void ParticleStream::makeParticles()
 // 0x42b920
 ParticleSystem::ParticleSystem()
 {
-	mRunning = false;
-	mDuration = -1.0f;
-	mTimeLeft = 0;
 	setName("ParticleSystem");
-}
-
-// 0x42b8c0
-void ParticleSystem::update(UpdateInfo& theInfo)
-{
-	if (mRunning && mDuration > 0)
-	{
-		mTimeLeft = mTimeLeft - theInfo.mSeconds;
-		if (mTimeLeft < 0)
-			stopEmitting();
-	}
-	Container::update(theInfo);
 }
 
 // 0x4328e0
@@ -427,24 +370,6 @@ void ParticleSystem::startEmitting()
 			++anIt;
 		} while (anIt != mChildren.end());
 	}
-	mRunning = true;
-	if (mDuration > 0)
-		mTimeLeft = mDuration;
-}
-
-// 0x42b730
-void ParticleSystem::stopEmitting()
-{
-	std::vector<Node*>::iterator anIt = mChildren.begin();
-	if (anIt != mChildren.end())
-	{
-		do
-		{
-			static_cast<ParticleStream*>(*anIt)->stopEmitting();
-			++anIt;
-		} while (anIt != mChildren.end());
-	}
-	mRunning = false;
 }
 
 // 0x42b760
@@ -536,9 +461,7 @@ ParticleHandler::ParticleHandler()
 // 0x433ef0: a settings element outside a stream is passed over
 void ParticleHandler::startElement(const std::string& theName, const XmlAttributes& theAttributes)
 {
-	if (theName.compare("particleSystem") == 0)
-		startSystem(theAttributes);
-	else if (theName.compare("particleStream") == 0)
+	if (theName.compare("particleStream") == 0)
 		startStream(theAttributes);
 	else if (theName.compare("velocity") == 0 && mStream != nullptr)
 	{
@@ -629,18 +552,9 @@ void ParticleHandler::startStream(const XmlAttributes& theAttributes)
 		mStream->mGroupRelative = 1;
 	else
 		mStream->mGroupRelative = 0;
-	std::string aParent = getStringAttribute(theAttributes, "parent", "");
-	if (aParent.compare("") != 0)
-		mStream->setAnchor(aParent);
 	mStream->mAutoStop = getFloatAttribute(theAttributes, "autoStop", -1.0f);
 	mStream->mStartDelay = getFloatAttribute(theAttributes, "startDelay", -1.0f);
 	Point anOffset;
 	anOffset = getPointAttribute(theAttributes, "offset", Point(0, 0));
 	mStream->setPosition(anOffset.x, anOffset.y);
-}
-
-// 0x433e10
-void ParticleHandler::startSystem(const XmlAttributes& theAttributes)
-{
-	mSystem->setDuration(getFloatAttribute(theAttributes, "autoStop", -1.0f));
 }

@@ -23,7 +23,6 @@ public:
 	PGSprite();              // 0x40fa50
 	virtual ~PGSprite();     // 0x40fa80
 
-	PGSprite* clone();                                     // 0x40fd70 (slot 0x20)
 	bool isValid() const { return mSurface != nullptr; }   // 0x40fde0 (slot 0x24)
 	// 0x40fb20 (slot 0x28): the whole sprite at a point, only its opaque pixels
 	void drawAt(const PGPoint* theAt);

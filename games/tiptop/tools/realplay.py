@@ -21,7 +21,7 @@ Code plays; a session only reads the result lines.
       --steps N           give up after N moves (default 20000)
       --seed N            the game's -seed (the game's own random numbers are reseeded by `seed` anyway)
       --botseed N         the bot's own dice (set botseed)
-      --real-time         run without -fast (the game's own clock, 100 updates a second)
+      --real-time         run without -fast (the game's own clock, 62.5 updates a second)
       --modsdir DIR       -modsdir=DIR: a folder holding the fixes mod (a mods folder is empty by default, and the game
                           then plays as the original)
 

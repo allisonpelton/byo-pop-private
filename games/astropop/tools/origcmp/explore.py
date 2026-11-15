@@ -15,7 +15,7 @@ import playbymove  # noqa: E402
 
 def wait_room(root):
     # at most 3 game processes on the machine at a time (CLAUDE.md)
-    while subprocess.call([sys.executable, os.path.join(root, 'tools', 'gamecount.py'), '--limit', '3'], stdout=subprocess.DEVNULL) != 0:
+    while subprocess.call([sys.executable, os.path.join(root, 'tools', 'gamecount.py'), '--limit', '6'], stdout=subprocess.DEVNULL) != 0:
         time.sleep(15)
 
 

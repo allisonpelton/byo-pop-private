@@ -79,12 +79,11 @@ Color AstroPopApp::GetDialogInsetColor(int theSet)
 // 0x411ba0: a box in the colours of a set (theType 0 .. 5). The width is 0x14a and the height that of the box picture
 // unless they are given (-1 for none); the height grows to fit the lines when none is given. An empty button label of
 // a yes/no or OK/cancel box gets the usual word. theAnimated false makes the box settled at once. A running game is
-// paused. The original's last argument is not read.
+// paused. (The original takes one more argument, a flag it does not read; the port leaves it out.)
 AstroDialog* AstroPopApp::MakeDialog(int theType, bool theAnimated, int theId, int theWidth, int theHeight, int theButtonMode,
 									 const std::string& theHeader, const std::string& theLines, const std::string& theYes,
-									 const std::string& theNo, bool theUnused)
+									 const std::string& theNo)
 {
-	(void) theUnused;
 	mOpenDialogs++;
 
 	int aWidth = 0x14a;
@@ -154,5 +153,5 @@ AstroDialog* AstroPopApp::MakeDialog(int theType, bool theAnimated, int theId, i
 // A box with the word OK, made where the original has one (the first colour set, the id 0x6c)
 void AstroPopApp::ShowMessageDialog(const std::string& theHeader, const std::string& theText)
 {
-	MakeDialog(1, false, 0x6c, -1, -1, 3, theHeader, theText, "OK", std::string(), true);
+	MakeDialog(1, false, 0x6c, -1, -1, 3, theHeader, theText, "OK", std::string());
 }

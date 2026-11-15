@@ -14,7 +14,7 @@ HERE="$ROOT/games/bigmoney/tools/origcmp"
 H="$ROOT/build/coverage/bigmoney/hits"; mkdir -p "$H"
 KIND="$1"; NAME="$2"; shift 2
 cd "$ROOT" || exit 1
-wait_room() { until python -I tools/gamecount.py --limit 3 > /dev/null; do sleep 20; done; }
+wait_room() { until python -I tools/gamecount.py --limit 6 > /dev/null; do sleep 20; done; }
 case "$KIND" in
 game)
 	MODE="$1"; SKILL="$2"; SEED="$3"; CAP="$4"; shift 4

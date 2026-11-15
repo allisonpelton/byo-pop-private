@@ -1,0 +1,7 @@
+# Quit from the title: the closing screen's "maybe later" (never "buy now").
+at 2681 move 175 532
+at 2981 click 175 532 30
+at 5181 move 184 560
+at 5481 click 184 560 30
+at 9000 move 0 0
+quit

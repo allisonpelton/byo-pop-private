@@ -173,7 +173,7 @@ answers with one line: `STATE {...}`, `MOVE {...}`, `OK <command>` or `ERROR <co
 ### The fixes mod
 
 `mods/fixes/mod.json` (`docs/MOD_ROADMAP.md`, "The fixes mod"): one toggle per bug of the original that the port
-keeps, each on by default, read through `FixEnabled` (`ModFeatures.h`). It changes no play: with it on, a game plays
+keeps, each on by default, read through `Platform::FixOn`. It changes no play: with it on, a game plays
 as it does without it, update for update.
 
 | Toggle | The original's bug | With the toggle on |
@@ -6973,3 +6973,515 @@ L7. `GetLastMouseDownTick` (Compat2004) returns `WidgetManager::mLastMouseDownTi
     idle test compares it with `GameTickCount()` and treats 0 as idle, as the original's GetTickCount()
     (milliseconds since boot) always did, so the idle byte follows the original and repeats under -fast.
 L8. `mGameOption` and the dead dialog-0/3 branches are kept as in the original.
+
+## Coverage check (2026-11-11)
+
+The whole coverage check of the game (`docs/COVERAGE.md`). origrun's `--coverage` recorded which of the original's
+functions ran, in 18 runs on the host (`games/bookworm/tools/coverage/`; the hits went to `build/coverage/bookworm/hits/`
+and were deleted once judged). Each ran under rundesk with origrun's silent stand-in, so none made a sound, and all but one
+on the virtual clock.
+
+- **The identical-play cases** (`tools/coverage/run.sh case` and `save`): Classic seed 1 (`c1`), Classic and Action in one
+  run (`c2`), three modes in a row (`m1`), and two saved-game pairs: `s1` (a Classic game quit at update 3000, then continued
+  by the bot) and `s2` (Action, quit at 4000, continued), each pair two runs. The input is the port bot's, turned into
+  origrun's by `identical/toorig.py`, 600 updates later for the loading.
+- **The screen tours** of `tools/shots`: `menus`, `classic`, `action`, and the two focus tours `focusa` and `focusc` (the
+  window losing and regaining the focus on the board and with a dialog up).
+- **Extra runs for what those miss** (`tools/coverage/tours/` and `extras/`): `users` (five players made through the
+  select dialog, the delete dialog with its question answered no and then yes, CANCEL, a double click that switches
+  player); `keep` (the same tour started again on the registry the run before left, so the players are loaded at startup,
+  `UserManager::LoadUser`); `x1` (a Classic game of the bot with the options dialog opened on the board: both sliders, the
+  hints, definitions and cursors boxes, its Help button, the help screen's "don't show again" box and a topic; the keys E,
+  Ctrl and Space; and Lex hovered seven times, which makes him think his balloon aloud, then a click on that balloon);
+  and `realclock`, the `menus` tour on the real clock, the one run that is not on the virtual clock: it reached 1754 functions, two of them (in the libraries' code, 0x4476b0 and
+  0x47f340) reached by no other run, and none of the game's own.
+- **Probes for effects in a saved game** (`effects.sh`: a Classic game quit 4 updates after a word was scored, with the
+  sparkles and flying tiles up): two runs, see the candidates below. Two more died when the stage's exe was still running as
+  the next run began (`run.sh` now waits for it), and the rest of the series was stopped once the code showed why the
+  first two found nothing.
+
+Every run ended with the game exiting normally.
+
+`games/bookworm/coverage.txt` sets the game's own code as one range (0x401000-0x437510, from `BWGameSelector`'s first
+function to `WordBalloon::SetText`; what follows is the framework, the C runtime and the libraries). It holds 576
+functions, and the runs reached 467 of them.
+
+**Reached in the original with no counterpart in the port: 23 at first, none at the end.** None was missing game logic.
+They were compiler- and library-made code and stubs: a `ButtonListener` stub, five std::string helpers, three empty or
+constant stubs, a copy constructor of a high-score entry, `ios::lock` and `unlock`, `WinMain`; the hidden `ImagelessButton`
+of the online scores (three functions); `EditWidget::MarkDirty`, which the linker shares with `LabelWidget` and which only
+picks how the widget is marked dirty; `Rect::Contains`, which the framework's `Rect` replaces; and four slots of
+`WordBalloon` that only jump to `Widget`'s. Each is now a `none` line in coverage.txt with its reason, among the 78 lines
+it holds (the Catch funclets of the exception handler, the registration and update-check code taken out earlier, the online
+high scores and the C++ library's code). Seven of the lines are for functions the port names but nothing in the original
+calls from play: the deleting variants of four destructors (`WordScore`, `Math`, `Effect` and `MoneyDialog` objects are
+never deleted through their vtables), `FameWidget::DrawInternetScores`, `GetGameSEHInfo` (the crash report's text) and
+`TitleScreen::ShowTrialExpiredDialog`.
+
+**Defined in the port, never reached: 49 at first, 19 at the end.** The extra runs reached 23 of them: the
+`DeleteUserDialog` (nine functions), `BookWormApp::ShowDeleteUserDialog`, `SelectUserDialog::ListClicked`,
+`UserManager::DeleteUser` and `LoadUser` (by `users` and `keep`); `Board::KeyChar`, `KeyDown` and `KeyUp`,
+`OptionsDialog::SliderVal` and `CheckboxChecked`, `HelpWidget::CheckboxChecked`, `Lex::Think`,
+`WordBalloon::SetJustification`, `MouseDown` and `DrawPlain` (by `x1`). Seven more became `none` lines (above). The
+options dialog's fullscreen box and its 3D box were left alone:
+the footer button applies them, and either switches the display mode. The 3D box's own branch in
+`OptionsDialog::CheckboxChecked` is a few lines of a function the other boxes reached.
+
+**The 19 left.** No play of the original reaches them. Each was read again against the export and matches it. They were
+the candidates for taking out unneeded code, and came out in the step after (see "Code taken out", below):
+
+- **Effects in a saved game, 9 functions**: `Effect::Save`, `Effect::Load`, `Sparkle::Save`, `Sparkle::Load`, `Ember::Save`,
+  `Ember::Load`, `FlyingPieceList::Save` and `FlyingPieceList::Load`, and the 4-byte `Effect::GetType`. `Board::SaveGame`
+  (0x406c40) starts by clearing the effect, ember and overlay lists, so what `EffectMgr::Save` and `EmberListMgr::Save`
+  write is always a count of zero. Both probes reached `EffectMgr::Save` and none of these.
+- **Links, 3 functions**: `BookWormApp::OpenURL`, `URLOpenSucceeded` and `URLOpenFailed`. Only a link button leads to them,
+  and the options dialog's "more games" link and the other links are out. The port's dictionary link (a mod) calls
+  `OpenURL`, which would then go to the framework's.
+- **Nothing calls them, 7 functions**: `WordScore::CalcScoreByLength` (the other scoring method of `WordScore`, which no
+  mode selects), `ColorizedButton::SetImageColor` and `SetImageColors_3`, `UserManager::SetCurrentAlias` and
+  `GetCurrentAlias` (the online scores' alias), `Font::GetLineSpacingOffset` (the 4-byte override in the definitions' font
+  wrapper) and `HelpWidget::OrderInManagerChanged` (the help widget is added and removed, never moved in its manager).
+
+**Never reached and not defined in the port: none.**
+
+**The list box question** (from the coordinator, about the 2004 `ListWidget` setting its `mPageSize` through a float, a pixel
+off): BookWorm has no scrolled list box. Its only lists are the select-player and delete-player lists, each sized to its
+lines by `GetOptimalHeight` (the line count times the line height, plus 8), so the page size is an exact integer, no
+scrollbar shows and `mPosition` stays 0.
+
+**The Collection check.** The port was made from the retail 1.03 install (`C:\Program Files\PopCap Games\BookWorm Deluxe`:
+`Bookworm.exe` 1,425,425 bytes, the game carved out of it 1,318,912), and the user's PopCap Game Collection holds the game as
+the group `BookwormDeluxeComponent` with a `Bookworm.exe` of 1,770,800 bytes: another build. The port reads its texts from the
+exe, so the check against that version applies after every other step and before the site features (coordinator's correction,
+2026-11-11; AstroPop's GAME_NOTES section 13 is the model). It was done after the readability pass: see "The PopCap
+Game Collection version" below.
+
+**Not covered, and why.** The options dialog's fullscreen and 3D boxes (applying either switches the display mode), every
+link, "buy" and "more games" button (a script never clicks one), the Hall of Fame's internet tab (needs the network, which
+origrun makes fail at once), and the original's 3D mode as such.
+
+**What it cost.** The runs took about an hour of machine time, 2 or 3 game processes at a time. No agent was used: this
+session wrote the tools (`run.sh`, `all.sh`, `port.sh`, `extra.py`, `effects.sh`), read the reports and placed the `none`
+lines.
+
+## Code taken out (2026-11-11)
+
+The step after the coverage check and the performance pass: what the game does not need comes out of `games/bookworm/src`.
+Each removal below is one the original's own code allows (nothing in the port can reach it), and the frozen baseline proves
+it (`tools/check.sh bookworm`: the same state at every update in the two-mode, three-mode and saved-and-continued games;
+`build-web:bookworm` builds). Every function that came out has a `none` line in `coverage.txt` with its reason, so the
+coverage report lists no function the port defines and no run reaches (`coverage.txt` held 100 `none` lines after this step, the
+78 of the coverage check and these 22; the readability pass added a 101st).
+
+**The 19 functions of the coverage check.**
+
+- *Effects in a saved game, 9 functions*: `Effect::Save` and `Load`, `Sparkle::Save` and `Load`, `Ember::Save` and `Load`,
+  `FlyingPieceList::Save` and `Load`, and the base `Effect::GetType` (now pure: no object is a bare `Effect`).
+  `Board::SaveGame` clears the effect, ember and overlay lists before it writes, so `EffectMgr::Save` and
+  `EmberListMgr::Save` (both kept) always write the random generator's state and a count of 0, and the records that follow a
+  count never exist. `Save` now writes the 0 and `Load` reads the count and nothing after it; a file the game wrote loads
+  as before (the s1 and s1b games of the baseline save, quit and continue). The file keeps its format byte for byte
+  (checked below). Taken out with them: `Sparkle::mUnknown3c` (a flag only the save code touched), the `EFFECT_NONE`
+  value and the `ReadBool` and `WriteBool` helpers of `Effect.cpp`. `Piece::Save` and `Load` stay (the board's grid).
+- *Links, 3 functions*: `BookWormApp::OpenURL`, `URLOpenSucceeded` and `URLOpenFailed`, with dialogs 11 and 12 (the wait
+  message and the URL to open by hand), their three texts in `GameTextTable.inc` (`GT_OPENING_BROWSER`,
+  `GT_OPEN_BROWSER_HEADER`, `GT_OPEN_BROWSER_LINES`; `tools/make_gametext.py` writes the table from a git-ignored working
+  list, so a rerun from a list that still has them brings the three rows back) and the two names in the test hooks'
+  `DialogName`. The port's dictionary link (a mod; a left click on a word's balloon) now calls the framework's `OpenURL`
+  directly: it no longer shows the original's "opening your browser" message while the framework opens the page. Nothing else
+  of the game leads out of it.
+- *Nothing calls them, 7 functions*: `WordScore::CalcScoreByLength` (the formula `mScoringMethod` 0 selected; the field
+  itself, always 1, and the table `gLengthBonus` it used came out, and `WordScore::Build` now calls `CalcScore` alone),
+  `ColorizedButton::SetImageColor` and the three-value `SetImageColors`, `UserManager::SetCurrentAlias` and
+  `GetCurrentAlias` (the alias stays in a user's registry record), `Font::GetLineSpacingOffset`, which is
+  `Definitionator::GetNumDefinitions` at the same address (the linker folded the two), and `HelpWidget::OrderInManagerChanged`.
+  The framework calls that hook only from `BringToFront`, `BringToBack`, `PutBehind` and `PutInfront`, and the game puts
+  only the board, Lex, the overlay and its balloon, the journal and the selector through them: the help widget is added to
+  its manager and removed, never moved.
+
+**Dead state and branches found on the way** (nothing wrote or read them, or only their own copies):
+
+- The `Math` class (the sine and cosine tables embedded in `BookWormApp` that "nobody reads"; its constructor and
+  destructor are the two `none` lines 0x42e330 and 0x42e390) and the app's fields: four image pointers, three unused flags
+  and eleven unused hint flags, two unused strings, `mScrambled` (set by every scramble, never read), `mInitDone`,
+  `mInternetOK`, `mSEHInfo` and `mUsedBonusWords` (an insert on every bonus word, never read).
+- `BookWormApp::IsInternetScoresEnabled` (always false; only the Hall of Fame's internet button, which is not ported,
+  asked it) and the button handler's cases for the dialogs of the internet and update-check features, which no code
+  creates (6 and 7, the internet alias 23, 24 and 25, and the framework's update dialogs): each did only what the `default`
+  case does, a `KillDialog` of itself. Their ids (and 8, 26, 27, 10008 and 20008) went from `Res.h`, where a comment
+  names the numbers.
+
+**What stays, and why.** Saved-game fields the original writes (the count fields above, `Board`'s unused fields, the
+`Alias` of a user), so that a file stays the original's format and an original's saves load. The app's `mGameOption` and the
+selector's copy of it, which only copied each other, came out in the readability pass (below).
+
+**What it came to.** 22 functions, the `Math` class with its member and 12 other fields, a table, 3 data rows, 8 dialog
+cases and 12 dialog ids: 496 lines of source out and 85 in (mostly comments), no behaviour changed but one wait message
+of a mod.
+
+**The saved file.** The s1 session of the baseline test (a Classic bot game quit at update 3000, so the game saves as it
+shuts down) was run with the frozen baseline exe and with the current one, and the two `classic.dat` files (20,883 bytes
+each) compared: they are the same but for one or two low bytes of a value 169 bytes from the end, at offset 20714. Two runs
+of the baseline itself differ at the same place by as much, so it is a value that changes from run to run (not looked into:
+the state log of every update is identical in all four runs), and none of the bytes that the effect and ember code wrote
+differ.
+
+## Performance pass (2026-11-11; `docs/COORDINATION.md`, "A performance pass before the readability pass")
+
+**Method.** `games/bookworm/tools/profile/` holds the tools: `perf.py` (samples the game's process every 0.1 s: working set, private
+bytes, processor time; the load is the time from the creation of the process to the title's play link, the port's through its `move`
+command, the original's from the title's `mLoadDone` flag read out of its memory), `pairs.sh` (the port and the original turn about,
+one process at a time, each waiting for a free game slot), `summary.py` (a median with its range), `variants.sh` (the port with SDL's
+renderer settings changed), `memrun.sh` (the port's `memreport` at four points) and `cpuprof.py` (Bejeweled's sampler, with the system
+DLLs named by their export tables). The game played is a Classic game of the port's bot (seed 1, 7,060 updates: the title's link, the
+new player's name, a Classic game to its end, back to the selector), the same script for both: the port as `-script` lines, the
+original through origrun (`identical/toorig.py`) on its real clock. "The stretch" is the 2,000 updates before the last input, 20 s
+of play. The machine was never quiet (0.54 to 0.90 of it busy, 3 to 5 other game processes), so a figure is three pairs, with its range.
+
+| Three pairs, real time | Original | Port |
+|---|---|---|
+| Load to the title | 2.71 to 3.69 s (median 3.02) | 1.21 to 1.81 s (median 1.51) |
+| Processor time to the title | 1.08 to 1.42 s | 1.11 to 1.38 s |
+| Private bytes at the title | 38.9 to 41.0 MB | 77.7 to 79.9 MB |
+| Processor time of the stretch (20 s) | 3.73 to 4.59 s (18.6 to 22.9 % of one core) | 1.91 to 2.39 s (9.5 to 11.9 % of one core) |
+| Updates a second in the stretch | 99.9 to 100.0 | 97.8 to 99.3 |
+| Peak private bytes of the run | 41.0 to 41.2 MB | 95.8 to 97.9 MB |
+
+The processor-time figures of this table are by `GetProcessTimes`; the cycle counts of "Processor time like for like" below replace them.
+
+Without waiting (the port's `-fast`, origrun's virtual clock: the work a test run does) the whole run took 1.73 s of processor time in the
+port (one run) against 3.75 and 5.08 s in the original (two), and the stretch 0.23 s against 0.39 and 0.62 s. A first real-time run of the
+original that read 0.84 s for the stretch (its load took 40 s on a busy machine) was dropped; the three pairs agree with each other.
+
+The port loads in half the original's time on the same processor time (it loads in one go, as the framework does for every
+SexyAppFramework game) and plays on about half of its processor time. The one figure it loses is memory: 39 MB more at the title and
+55 MB more at the peak.
+
+**Where the port's processor time goes** (`cpuprof.py`, 21.5 G cycles in 77.8 s of the real-time run, every thread). ntdll 85.7 %, the exe
+4.9 %, the Direct3D 11 driver 2.7 %, the C library 2.4 %, win32u 1.9 %, `imagehlp.dll` 0.7 %. The sampler charges the cycles a thread used since
+the last look to where the thread stands, so a thread that works for a moment and then waits is charged to its wait: `ZwWaitForSingleObject`
+60.9 %, `ZwDelayExecution` 11.0 % (the main loop's `SDL_Delay`), `ZwWaitForWorkViaWorkerFactory` 8.2 % (idle pool threads). What it does show
+is whose cycles they are: the main thread 40.6 % (72 % of it in ntdll, 11 % in the exe), the graphics driver's own thread 26.0 %, one more
+thread 9.5 % and fifteen others of 0.1 to 2.9 %. In the exe nothing of the game's own code reaches 0.2 %: its largest entries are the load's
+decoders (`Sexy::Quantize8Bit` 0.5 %, `_inverse_mdct` 0.3 %, `_stbi__out_gif_code` 0.3 %, the module reader `ReadMO3` 0.2 %). What a
+player's machine spends on this game is the display path, not BookWorm's code.
+
+**Renderer settings** (`variants.sh`, two runs of the stretch each, real time): the share of one core was 8.3 to 15.8 % with the default
+(Direct3D 11, vsync), 12.8 to 15.5 % with vsync off, 9.7 to 13.4 % on Direct3D 9, 6.5 to 9.7 % on OpenGL and 82 % on SDL's software renderer.
+OpenGL's lower figure came with one run at 56.8 updates a second and a peak of 143 MB, so no setting beats the default clearly and nothing
+is sent to the coordinator about the renderer.
+
+**Where the port's memory goes** (`memrun.sh`: the framework's `memreport` at updates 400, 1,500, 3,500 and 6,800 of the scenario). Private bytes
+were 86.3, 91.7, 95.2 and 104.3 MB. The libraries and devices before the first picture (`privateAtStart`) are 32.3 MB; the pictures are 176 to 184
+(10.6 MB of pixels, 0.8 MB of copies; the graphics device's textures an estimate of 2.5 MB at the title, 8.5 MB in the first game and 16.5 MB at its
+end); 47 sounds are 4.5 MB and the 5 module files 1.1 MB. The original's whole process is 39 MB at the title and 41 MB at its peak, so the
+port holds about 32 MB of devices and libraries that the original does not (the Direct3D 11 device is 20 to 25 MB of it) and about 10 MB of
+pixels kept beside their textures. Both are the shared costs of `docs/COORDINATION.md`.
+
+**The web build** under Node (`-fast`, the same scenario): the wasm memory was 56.6 MB at the first report, 68.0 MB in the first game and
+81.6 MB at its end (it only grows), and 7,060 updates with 627 draws took 3.76 s, about 0.5 ms an update without a display. The load and
+the frame time in a browser were not measured: the Browser pane is hidden and its timers are throttled, so `requestAnimationFrame` does
+not run (as Bejeweled's notes say).
+
+**Shared costs** (none of them in BookWorm's code, and the coordinator's list holds each): the GIF decoder and `Quantize8Bit` lead the
+exe's load costs (276 GIFs); `imagehlp.dll` 0.7 % of the real-time run; the Direct3D 11 device and the pixels kept after upload in memory.
+
+**Nothing was changed in the game's code for speed.** The port is already ahead of the original on load and on processor time, and the
+profile shows no function of the game's own above 0.2 %; the memory it holds more is the display layer's. The frozen baseline is
+unchanged by this pass, which added only the profile tools and these notes.
+
+**To repeat.** `OG_STAGE=C:/byo-og/bwpp games/bookworm/tools/identical/setup.sh` makes the original's stage; copy `games/bookworm/tools/profile/scenario.txt` (the
+port's `-autoplaylog` of the bot game, shifted as `identical/case.sh` does) to `<out>/scenario.txt` and run
+`OG_STAGE=C:/byo-og/bwpp bash games/bookworm/tools/profile/pairs.sh <out> 3` (about 4 minutes a pair), then
+`python -I games/bookworm/tools/profile/summary.py <out>`; `variants.sh <out> 2` and `summary.py <out> v` for the renderer settings.
+
+### Processor time like for like (2026-11-11; `docs/COORDINATION.md`, "The target")
+
+The user's target is that a port's processor time is at most its original's, measured like for like. The first pass above counted
+processor time with `GetProcessTimes` (what Windows charges by sampling at its 15.6 ms tick), over a stretch of one scenario, so it is
+measured again here with cycle counts, on the same scenario, and the figures of the first pass stand only as the order of
+magnitude.
+
+**How the original paces itself.** It sleeps and does not spin: `SexyApp::Process` (0x480700) runs an update when 10 ms have passed, and
+when it is ahead of that draws once (`DrawDirtyStuff`, 0x486510) and `Sleep`s the rest of the 10 ms, so it makes 100.0 updates a second
+on origrun's real clock (every run below). It never waits for a vertical blank in the windowed mode this runs in: `DDInterface::Redraw`
+(0x4538f0) blits with `DDBLT_WAIT` and has no `WaitForVerticalBlank`, and the one wait in the draw path, a sleep to the refresh period,
+is behind the registry value `WaitForVSync`, which the constructor sets to false. So a player's screen paces it the same way, by its own
+`Sleep`, and nothing needed patching. The port runs at the same 100 updates a second (99.8 to 100.5 below).
+
+**The windows.** The port ran in its 1280x960 window (client area, windowed; twice the game's size, the framework's choice when the
+desktop has room), drawn at render scale 2, against the original's 640x480 window, so the port did twice the pixels and is still under
+the original; no new pairs are needed for that (the cycle split below also runs the port at the game's own size, `-windowscale=1`).
+
+**Method** (`games/bookworm/tools/profile/cycles.py`, `pairs2.sh`). The cycle counts are `QueryProcessCycleTime` (every thread, the ones
+that ended too) and `QueryThreadCycleTime` for each thread, read at four marker updates and never in between: nothing samples or
+suspends the game. The scenario is the first pass's (`scenario.txt`, a Classic game of the port's bot, seed 1, 7,060 updates), in real
+time on both sides: the port as a `-script` (the original through origrun's real clock, its markers read out of its update counter),
+with no `-fast`, no `-commands` channel and no state log, only `pointer` lines at the markers, which log one line each. The markers are
+at updates 1,500, 3,500, 5,060 and 7,059, so there are three stretches: 2,000 updates of play across two level-ups (levels 2 to 4), 1,560
+of the fourth level (a scramble, a fire tile), and the first pass's stretch (5,060 to 7,059: the end of the fourth level, the fifth
+until a fire tile burns through the bottom at 5,584, the game-over screens, the Hall of Fame, the selector). The port's `pointer` lines reach the script as OutputDebugString output the moment
+SDL logs them (`DebugOutput`; the game's stdout is a file its C runtime keeps until exit, and `-commands` flushes it but polls a file
+every update), so only one such listener may run on the machine at a time. A share of a core is the cycles over the cycle counter's rate
+(2.09 to 2.10 GHz, measured by a spinning thread at each run's start) and the stretch's wall time. Six pairs, port then original, each
+run under `tools/pincore.py` (a performance core of its own) with rundesk, one game process at a time of the six the machine allows,
+medians and ranges; the machine was 0.42 to 0.79 busy and 3 to 6 other sessions' games ran.
+
+**Sound.** origrun's stand-in takes the original's DirectSound and mixes nothing, and no thread of the original played or decoded music
+(its threads were the main thread and one of the game's own, 1.2 to 1.6 % of a core, apart from the main one), so the original's number
+holds no mixing. The port's SDL audio thread (`SDLAudioP2`, under rundesk SDL's silent driver, which still calls the mixer in real time:
+the sounds and the libopenmpt-decoded music) is 1.0 to 1.3 % of a core, counted below with the port and without it.
+
+| Stretch (updates) | Port, share of one core | Port without its audio thread | Original | Cycles an update, port / original |
+|---|---|---|---|---|
+| 1,500 to 3,500 | 9.8 % (8.3 to 13.2) | 8.8 % (7.4 to 12.1) | 23.0 % (17.5 to 31.2) | 1.89 M / 4.83 M (0.39) |
+| 3,500 to 5,060 | 9.6 % (8.5 to 11.8) | 8.7 % (7.4 to 10.7) | 21.6 % (16.4 to 30.5) | 1.96 M / 4.54 M (0.43) |
+| 5,060 to 7,059 | 9.6 % (7.3 to 12.2) | 8.2 % (6.4 to 11.3) | 18.6 % (15.7 to 26.7) | 1.79 M / 3.91 M (0.46) |
+
+The port is below the original in every stretch of every pair, with and without its audio thread; the closest pair is the third
+stretch of the first (12.2 % against 15.7 %). Where the cycles go, by thread (medians): the port's main thread 4.4 to 5.1 %, the graphics
+driver's own thread 3.5 to 4.2 % (Direct3D 11; the original's DirectDraw runs inside its main thread) and the audio thread; the
+original's main thread 17 to 21 %. Both sides' numbers rise and fall together with the machine's load (the original's from 15.7 to
+31.2 % between its quietest and busiest runs, the port's from 7.3 to 13.2 %), since a busy machine slows each cycle (a shared cache
+and core), which is why the pairs alternate and the figures are medians.
+
+**Result.** At or under the original, by a factor of 2.2 to 2.6 in cycles an update (the medians), so the target holds and nothing in
+the port's code or the framework needed changing. The first pass's figures by `GetProcessTimes` (9.5 to 11.9 % against 18.6 to 22.9 %)
+fall inside these ranges. Load time and memory were not measured again (the target is processor time).
+
+### The cycle split (2026-11-12)
+
+The user asked for the processor time to be split, so that frame drawing does not hide a gain in the rest ("I'd also like to be able
+to see the significant speedups from better code more plainly"). Both sides count the loop thread's cycles in three functions and
+list every other thread (`docs/TEST_COMMANDS.md`, "The cycle split"): the port with `-cyclesplit=<file>` around `DoUpdateFrames`,
+`DrawDirtyStuff` and `Redraw`, the original with origrun's `--count games/bookworm/tools/profile/count.txt` on the same three
+functions in the exe (update 0x47e220, draw 0x486510, present 0x4884f0; a counted function's cycles are its own, less the counted
+functions it calls, so the present inside the draw is not in the draw). `cycles.py` with `PERF_SPLIT=1` runs the like-for-like scenario
+(the same markers) with a `count` or `cyclesplit` line at each; `python -I tools/cyclesplit.py <port file> <original file> --from m1500
+--to m7059` prints a stretch. Medians of three runs of the original, three of the port in the game's own window (`-windowscale=1`:
+client 640x480, render scale 1, Direct3D 11, as `display:` in the log says) and six in its default 1280x960 window (render scale 2;
+the counting runs of the on/off pairs), updates 1,500 to 7,059, one run at a time on a core of its own, million cycles an update:
+
+| Part | Original (DirectDraw, 640x480) | Port, 640x480 | Port, 1280x960 |
+|---|---:|---:|---:|
+| update (game logic) | 0.082 | 0.055 (0.67) | 0.058 (0.71) |
+| draw, the game's own (less the present) | 3.70 | 0.18 | 0.19 |
+| present (the call, on the loop thread) | 0.88 | 1.48 | 1.10 |
+| graphics driver's threads | none | 0.78 | 0.78 |
+| picture: draw, present and driver threads | 4.61 | 2.43 (0.53) | 2.02 (0.44) |
+| audio thread | none | 0.27 | 0.23 |
+| loop (events, sleeps, the readings) | 0.32 | 0.09 | 0.09 |
+| the original's own second thread | 0.40 | | |
+| total (process cycles) | 5.42 | 2.86 (0.53) | 2.37 (0.44) |
+
+The ratios to the original are in brackets. The game's logic is a third cheaper in the port (0.67 to 0.71 of the original's
+cycles), picture and total about half (0.44 to 0.53); with the port in the original's own window size the total is 0.53 of the
+original's, in its default window 0.44. The limit of the split: the port draws through Direct3D 11 and the original through
+DirectDraw, so the port's `draw` is the batching of draw calls and the cost of the picture falls into `present` (the driver's
+command building runs inside it) and the driver threads; only "picture" is a like-for-like figure, and the original's `draw`
+(software blits into DirectDraw surfaces, 3.70) against the port's 0.18 means nothing alone. The port's picture is the cost of the
+GPU path as a player gets it on this machine's Direct3D 11 (rundesk's desktop; a visible desktop's Direct3D 9 can cost a present
+up to 30 % more, `docs/COORDINATION.md`). Both sides' audio: the port's SDL thread (the original's stand-in mixes nothing, so the
+original has none here).
+
+The two sides do not make the same number of calls: per update the original calls the draw 0.98 times and the present 0.92, the port
+0.57 to 0.62 and 0.50 to 0.55, since the port presents in step with the display (its renderer is made with vsync, 60 Hz on this desktop; 100
+updates a second either way) and the original's Blt does not wait. So per-call costs are not compared, and the port's total
+would rise on a faster screen. The per-update figures above are the comparable ones. The ranges are wide on this machine (4 to 8
+other sessions' games ran in every run; the machine was 0.54 to 0.91 busy for the original's and the 640x480 port's runs, 0.51 to
+0.98 for the 1280x960 port's): the original's total 4.64 to 5.55, the port's 1.91 to 3.19. The original's median here (5.42) is
+above the pairs' 3.9 to 4.8 (a busier machine slows every cycle's work; counting adds 0.2 %), and the port's total over the original's
+is 0.44 here against 0.39 to 0.46 there. A figure for the target is taken without counting.
+
+**Checks.** In all twelve runs the loop thread's cycles plus the other threads' add up to the process's cycles (99.8 to 100.0 %), the
+counted parts are 92.5 to 93.5 % of the loop thread's cycles in the original's and 86 to 96 % in the port's (the rest is the loop's
+own: waking from `Sleep`, messages, the readings), no frame was dropped without a return (`misses` 0), and the original's counted update
+calls equal its own update counter at each snapshot (7,057 at the marker for 7,059).
+
+**What counting costs.** A cycle reading takes 500 to 860 cycles in a tight loop but 2.4 to 3.5 thousand in the running port and 6.2 to 7.3
+thousand in the original (the file's `counter`), so the first accounting (0.12 % of the total) was wrong by a factor of five; the
+cost was measured as a whole, counting alternated with `cyclesplit pause` or `count pause` in blocks of 200 updates on the idle title
+screen (`toggleruns.sh`, `cycles.py toggle`). The port, twelve runs in two sets of six: the first adds 8 to 37 thousand cycles an
+update (23 thousand on average), the second, a build that also times its readings, -10 to +24 thousand (7.5 thousand on average), so
+0.4 to 1.1 % of the scenario's 2.0 to 2.4 million; the original, six
+runs, adds 9.5 thousand on average (from -4 to +23 thousand; the neighbouring blocks' median ratio is 1.004), about 0.2 % of its 4.6 to
+5.4 million. Pairs of counting and plain runs of the whole scenario could not see it: the six on/off pairs of the port had a median
+16 % higher with counting on, which was the machine (the same scenario's plain runs differ by a quarter from one to the next), and
+the alternation inside one run is what shows an effect of a few tenths of a percent.
+
+## The readability pass (2026-11-11)
+
+The rules are `docs/CODE_STANDARDS.md`; `python tools/namecheck.py games/bookworm` checks the ones a tool can check and reports no
+finding now (440 at the start of the pass, 460 before the unneeded code came out; `games/bookworm/namecheck.txt` does not exist, so
+nothing is excused). Nothing the port does changed: every unit compiles to the same object code as before the renames (`tools/objsnap.py`:
+49 objects, 1,422 functions, 0 objects differ, once for the first batch of renames and once for the Mac names), and what the pass
+took out (below) is proved by the game's suite against the frozen baseline (`tools/check.sh build bookworm build-web:bookworm`: the
+two-mode, three-mode and saved-and-continued games identical to the baseline at every update; the web build builds).
+
+**Names from the Mac build (rule 1).** `tools/macmatch.py` paired the Mac binary with the export (942 pairs, 372 of the Mac's 800
+game functions) and the port's 444 functions that name an address were set beside the Mac names. 73 methods that do the same job took the
+Mac's name, among them `Board::LevelThreshold` (`GetPointsAtLevel`), `Refill` (`CheckForFalling`), `AwardSpecialTile`
+(`GenerateSuperBonusTiles`), `BonusWordScored` (`UseBonusWord`), `PickBonusWord` (`GetNextBonusWord`), `NewBoard` (`SetupBoard`),
+`ShowSummary` (`DoLevelUpWidget`), `AddScorePopup` (`AddPoints`), `ClearPopups` (`RemovePoints`), `Pause` (`SetPause`), the button
+helpers (`MakeButton` is `CreateControlButton`, and `RemoveButtons`, `DeleteButtons` and `SetButtonsVisible` follow) and the drawing
+steps (`DrawPieces` is `DrawTiles`, `DrawSelection` `DrawTileArrows`, `DrawLevelText` `DrawLevel`, `DrawProgressBar` `DrawProgress`,
+`DrawWord` `DrawWordScore`, `DrawPieceBlank` `DrawBlankPiece`); in `BookWormApp` the `Show...`/`Remove...` pairs are the Mac's
+`Do...`/`Kill...` (`ShowHelp` is `DoHelp`, `HideHelp` `KillHelp`, `ShowGameSelector` `DoGameSelector`, `RemoveBoard` `KillBoard`, `ShowHallOfFame`
+`DoFameWidget`, ...) and `StartGame` is `NewGame`, `SelectGameMode` `TryConfirmLoad`, `ShowQuitDialog` `ConfirmQuit`, `GoToMainMenu`
+`ConfirmEndGame`, `LoadHighScores` `ReadFameRegistry`, `LoadUserSettings` `LoadUserConfig`, `LoadImage` `DoLoadImage`; the selector's
+`StartOpenTransition` and `StartCloseTransition` are `DoShow` and `DoHide`, `WordScore::CheckValid` `Validate` and `Build`
+`CalcTileStats`, `StatKeeper::Reset` `Clear`, and the effect managers' `Clear`, `AddEffect` and `HasEffectOfType` are `EraseAll` (`DestroyAll`
+for the ember list), `Add` and `CheckByType`. Not taken: the pairs that are merges or splits (`PreSubmit`/`PostSubmit` for the port's
+`BurnTiles` and `CheckBottomFire`, `AddPiece`, `MakeLastPiece`, `GameOver`: the Mac compiler kept steps the Windows exe has inline or the
+other way round, as `MAC_COMPARISON.md` says), pairs by call order with a name for a different job (`HintDialog::WasHintShown` and the
+Mac's `IsHintDisabled`, which behave differently, as that file says; `Board::LevelUp`, whose Mac name `NextLevel` the port's own
+`NextLevel` at 0x408000 already has; `Effect::Draw`, `Sparkle::GetType` and `HintDialog::Draw`, which matched the wrong function),
+and the `UserManager`'s methods, whose Mac class is `UserProfileMgr` (a class the port named for the original's `User`). The renames were
+made by the compiler, not by search and replace: a throwaway script (Typer Shark's `tools/readability/rename.py`, adapted, not committed), which renames a method at
+its declaration, compiles every unit with `-fsyntax-only` and replaces the old name exactly where the compiler reports it missing, with the
+class taken from the error, so that two classes with a method of one name never mix; here it also finds a name after a qualifier
+such as `Board::`). It changed 363 places beyond the 73 declarations. No string literal of the 71 changed sources differs from the
+sources before the pass (a comparison of each file's literals, comments left out), the web-only code included. The comments that named the old names were
+brought along by a script (97 mentions), except the registry values `ShowHelp` and `ShowHints`, which are the original's file format and keep their
+spelling. Earlier sections of these notes and `IDENTICAL_PLAY.md` keep the names of their time.
+
+
+The 73 renames, as `Class::old` to new (the sections above, `IDENTICAL_PLAY.md` and `MAC_COMPARISON.md` use the old names):
+
+- `BWGameSelector`: `StartOpenTransition` `DoShow`, `StartCloseTransition` `DoHide`
+- `BigLex`: `PlayAnim` `PlayAnimSeq`
+- `Lex`: `PlayAnim` `PlayAnimSeq`
+- `Board`: `LevelThreshold` `GetPointsAtLevel`, `UpdatePauseFade` `UpdatePause`, `DrawProgressBar` `DrawProgress`, `ShowOverlay` `ShowBonusWord`, `RemoveLevelUpWidget` `KillLevelUpWidget`, `NewBoard` `SetupBoard`, `DrawPieceBlank` `DrawBlankPiece`, `ShowSummary` `DoLevelUpWidget`, `DrawSelection` `DrawTileArrows`, `DrawLevelText` `DrawLevel`, `RemoveButtons` `RemoveControlButtonWidgets`, `SetButtonsVisible` `SetControlButtonsVisible`, `ClearPopups` `RemovePoints`, `Pause` `SetPause`, `DeleteButtons` `DeleteControlButtons`, `ClearWord` `ClearSelection`, `DrawWord` `DrawWordScore`, `PickBonusWord` `GetNextBonusWord`, `AddScorePopup` `AddPoints`, `ShowMessage` `WriteBonusText`, `DrawPieces` `DrawTiles`, `BonusWordScored` `UseBonusWord`, `MakeButton` `CreateControlButton`, `Refill` `CheckForFalling`, `AwardSpecialTile` `GenerateSuperBonusTiles`
+- `WordScore`: `CheckValid` `Validate`, `Build` `CalcTileStats`
+- `StatKeeper`: `Reset` `Clear`
+- `BookWormApp`: `ShutdownWidgets` `CleanupWidgets`, `RemoveBoard` `KillBoard`, `ShowHelp` `DoHelp`, `HideHelp` `KillHelp`, `RemoveGameSelector` `KillGameSelector`, `RemoveFameWidget` `KillFameWidget`, `ShowSelectUserDialog` `DoSelectUserDialog`, `ShowHint` `DoHintDialog`, `ShowCredits` `DoCredits`, `ShowOptions` `DoOptions`, `ShowNewUserDialog` `DoNewUserDialog`, `StartGame` `NewGame`, `ShowGameSelector` `DoGameSelector`, `ShowHallOfFame` `DoFameWidget`, `LoadUserSettings` `LoadUserConfig`, `StartGameForUser` `PreNewGame`, `LoadImage` `DoLoadImage`, `LoadFont` `DoLoadImageFont`, `CheckRegistryAccess` `VerifyHKLMAccess`, `SelectGameMode` `TryConfirmLoad`, `ShowQuitDialog` `ConfirmQuit`, `GoToMainMenu` `ConfirmEndGame`, `PauseAllMusic` `MuteGameMusic`, `ShowDeleteUserDialog` `DoDeleteUserDialog`, `LoadHighScores` `ReadFameRegistry`
+- `DeleteUserDialog`: `ConfirmDelete` `DoConfirmDeleteDialog`
+- `EffectMgr`: `Clear` `EraseAll`, `HasEffectOfType` `CheckByType`, `AddEffect` `Add`
+- `EmberListMgr`: `Clear` `DestroyAll`
+- `FameWidget`: `DrawLocalScores` `DrawLocalFame`
+- `HelpWidget`: `DrawTopicText` `DrawHelp`
+- `LevelUpWidget`: `DeletePanel` `FreeImageData`, `CreatePanel` `CreateImageData`, `DrawPanel` `DrawToImage`
+- `OverlayWidget`: `IsBannerMoving` `IsBonusWordMoving`
+- `SelectUserDialog`: `UpdateList` `ResetUserListWidget`
+- `TitleScreen`: `DrawLoadingBar` `DrawLoadMeter`
+- `WordBalloon`: `GetTextHeight` `GetWordWrappedHeight`, `DrawPlain` `DrawBalloon`, `DrawBox` `DrawComponentBalloon`
+
+**Fields.** The 25 fields of `Piece` and the 8 of `Board` that only the save code touches (the original writes and reads them and
+nothing else does: 14 ints, 7 bools and 4 doubles of `Piece`, which are 0, false or 0.0 from the constructor, and the one int that is
+1) are named for the value they hold and numbered by letter in each type: `mSavedZeroIntA` to `mSavedZeroIntN`, `mSavedOneInt`,
+`mSavedFalseBoolA` to `mSavedFalseBoolG`, `mSavedZeroDoubleA` to `mSavedZeroDoubleD`. Their offsets stay in the comments. `Board`'s are
+`mSavedUninitialisedByte` (+0x1b2), `mSavedEmptyStringA` and `mSavedEmptyStringB` (+0x2b0, +0x2d0) with `mSavedZeroAfterStringA` and
+`mSavedZeroAfterStringB` after each (+0x2cc, +0x2ec), `mSavedZeroAfterPauseFade` (+0x3d8), `mSavedZeroResetByLevelUp` (+0x3e8) and
+`mSavedZeroLast` (+0x3ec). They are kept because the saved game's record holds them (an original's save may carry a value there, and
+the port writes it back as it read it). Taken out because nothing reads them and no save holds them: the app's `mGameOption` and the selector's
+copy of it with `BWGameSelector::SetGameOption` (0x401350, which has a `none` line in `coverage.txt`: it only copied one to the other),
+the selector's two unused fields (+0x8c, +0x90), the help widget's (+0x68, +0x6c), the hint dialog's (+0x11c), the level-up widget's two
+(+0x78, +0xa8) and `MoneyDialog`'s `mLightPhase` (+0x118, Big Money's, never initialised or used). Each leaves a comment line where the field
+was, with its offset, so that the offsets around it still read. `LevelUpWidget::mFrozenB0`, which is read (a constant false), is `mFrozen`.
+
+**Addresses and markers (rule 6).** The 13 files of the mods (`Solver`, `GreedyBots`, `Replay`, `SidePanel`, `WordReview`, `TypedWord`,
+`DailyBoard`, `ModWords`, `Undo`, `ModFeatures`, `TileSymbols`, `WordJournal`, `JournalWidget`) now carry `port(mod):` in their first comment, as
+their headers do, which covers 205 functions. The other 44 are helpers of the original's code: the record helpers of the saved game
+(`FileWriteInt` and the rest, in `Board.cpp`, `StatKeeper.cpp`, `WordScore.cpp`), `GameText`'s lookups, the replay watch's hooks in `Board` and
+the app, `StateLog`'s four functions, and the small ones the original has inline (`TopRow`, `LexIdle`, `LexCalm`, `UserDataPath`,
+`FadedColor`, `RestoreMTRand2004`, `UserValueName`, `WriteMultiString`); each has a `port:` or `port(mod):` line that says what it is.
+
+**One-letter names (rule 5) and others.** 19 names used over more than 10 lines have words: `Reader r` is `aReader`, the live-split
+observer's `b` and `s` are `aBlock` and `aShadow`, `theBlock`, `aTempPath`, the bots' comparators take `theFirst` and `theSecond`, the test
+hooks' `Board* b` is `aBoard` or `theBoard`, `char c` is `aByte` or `aChar`, and the autoplay bot's `theWord1` and `theWord2` are `theFirstWord`
+and `theSecondWord`. The four comments that told a development stage ("Phase 1" of the level-up widget's animation, `mUndoPhase`'s fourth
+state) say what the code does, and the two that said "meaning unknown" say that nothing reads the field.
+
+**`tools/splitfields.py`** (`python tools/splitfields.py bookworm --export re/bookworm/gh/decomp`): no member is declared twice under two
+names, none is read and never assigned, and one is written and never read: the autoplay bot's `mLevelUps` (a counter of the test hook, which says so
+in its comment now). The export check lists 37 members in 47 functions that the original touches and the port's translation of that
+function does not name. The five with a write are each judged: `this[0x21]` and `this[0x28]` on a byte-sized `this` are read as four-byte
+slots (the selector's `mGameMode` and `mBackdropY`, `TitleScreen`'s `mBarDY`); the click on a balloon is `WordBalloon::MouseDown`, which
+calls the port's `Close`, where `mTimer` is set; `LoadGame` reads `mHighlightKey` and zeroes it, as the original does after its read;
+`mGameOverPiece` is saved by the port's `SaveGame` (the check pairs the function by address and the port splits the save). The other
+32 are reads of fields (`mRand`, `mWord`, `mEffectMgr` and the like) that the original's `SaveGame`, `LoadGame` and a few handlers
+reach by offset, and the port reaches by name from the helper it split the function into; they were not compared one by one, and the
+identical-play comparisons (`IDENTICAL_PLAY.md`) and the baseline's saved-and-continued game stand behind them.
+
+**Not done, on purpose.** The registry values and the saved game's field names keep their spelling (the original's format). The
+comments of `Board.h`'s declarations kept their columns where a rename made a name longer than its slot, so a few comments sit a space
+or two off.
+
+## The PopCap Game Collection version (2026-11-11)
+
+The port was made from the retail 1.03 install (`Bookworm.exe`, the launcher with the game appended; the game carved out of it is
+`re/bookworm/bin/BookwormGame.exe`), so it is checked against the game's version on the PopCap Game Collection disc
+(`docs/COORDINATION.md`): the two versions compared, and the port run on the Collection's files. The procedure is Astropop's (its
+GAME_NOTES section 13), Bejeweled's (section 23) and Typer Shark's (section 15); `tools/collection/` holds the tools.
+
+**Getting the files.** `unshield` (built for Bejeweled's check, `E:\retools\unshield-build`; the user allowed it on 2026-11-10) read the
+disc image's cabinet, which was mounted read-only and dismounted afterwards. The group `BookwormDeluxeComponent` came out: 381 files,
+6.5 MB, in the main checkout's `re/_installers/BookwormDeluxeCollection` (git-ignored). The copy has no launcher: `Bookworm.exe` is the
+game itself, beside `bass.dll`, `license.txt`, `readme.html`, `readme.txt`, `register.tpl`, the word files and the folders `fonts`,
+`images`, `music`, `properties` and `sounds`.
+
+**The exe is another build.** Set beside the carved game image (`tools/collection/cmpexe.py`), the Collection's `Bookworm.exe` was linked
+on 30 April 2007 (the retail game: 15 April 2004), is 1,770,800 bytes against 1,318,912, and has a bigger `.text` (1.28 MB of raw data
+against 1.02 MB), `.rdata` (246 KB against 217 KB) and `.rsrc` (209 KB against 53 KB), and 5,424 bytes after its last section; no section
+is the retail game's bytes with other addresses. Its strings (`tools/collection/textcmp.py`) say what changed: a newer compiler runtime
+(Dinkumware 1992-2004; the retail build's is 1992-2001, with the old iostream classes in its RTTI where the Collection's has none), a pak
+reader (`PakInterface`, `main.pak`), a JPEG 2000 codec (`j2k-codec.dll`), a Direct3D 8 path (`d3d8.dll`, `Direct3DCreate8`; both builds
+have DirectDraw's), `_com_error`, and a screensaver mode (`-screensaver`). The game's own classes (`BookWormApp`, `Board`, `TitleScreen`,
+`SelectUserDialog`, `BWGameSelector` and the rest) are in both, and so are the names of the saved games (`classic.dat`, `action.dat`,
+`players`).
+
+Of the 187 texts the port reads from the exe (`src/GameTextTable.inc`, by address in the retail image), 185 are in the Collection's exe
+byte for byte, every one at another address. The two that are not are the Computer Administrator error and its header: the Collection's
+build has no check that it may write `HKEY_LOCAL_MACHINE` (`BookWormApp::VerifyHKLMAccess`), and the port's emulated registry always
+can, so the port never shows them. Every text the game shows is the same.
+
+What is not known: whether the 2007 build plays exactly like the 2004 one. Its code differs throughout (another compiler and a newer
+framework), so no function was compared, and the Collection's own exe was not run. What speaks for it: the texts, the word lists, the
+properties, the fonts, every sound and song and all but three pictures of the game are the same files, so the game it plays is the retail
+game's data under a newer framework.
+
+**The files** (`tools/collection/cmpfiles.py`). Of the retail copy's 431 files and the Collection's 381, 371 are the same byte for byte.
+The retail copy also has the launcher's files (`hw.dat`, `install.log`, `install_props.xml`, `popuninstall.exe`) and 46
+`sounds/cached_*.wav` (the original's runtime sound cache), which the port never asks for. The ten that differ:
+
+- `images/backdrop_title.jpg`, the title screen's picture (`tools/collection/cmpimages.py`): the retail copy has the Mumbo Jumbo logo at
+  the bottom left and PopCap's round "Games" badge at the bottom right; the Collection's has no Mumbo Jumbo logo, and its PopCap badge is
+  the plain round logo with a TM mark.
+- `images/logo_title.gif` and `images/_logo_title.gif`, the title screen's "Bookworm Deluxe!" logo (a different rim glow).
+- `images/backdrop_menu.gif`, the selector's backdrop: 69 pixels in a 13 by 10 patch at (281, 67) differ, by up to 143 levels.
+- `properties/partner.xml`: the same `NoReg`, `NoInternetScores`, `ShowTrialStatus`, `LoadingBarY` 330 and `OptionsDialogHeight` 315.
+  The Collection's has `DontUpdate` false (the port has no update check), `VistaCompliant`, `ProdName`, `RegistryKey`
+  (`PopCap\Bookworm`; the registry emulation compares keys without regard to case, so a profile made on either set of files is found on
+  the other), `Offering`, `InstallTag`, `DisplayName`, `Width` and `Height`, and, the one that changes what a player sees, `DefaultWindowed`
+  false: a first start is in full screen, as the original does with that file, so the options dialog's Full Screen box is ticked until the
+  player changes it. The retail file has the "More Games" link's referrer and `NoIHSUpsell`, which the port does not read.
+- `bass.dll` (the port plays music itself), `license.txt`, `readme.html` and the `.sig` of `partner.xml`.
+
+**The port on the Collection's files** (`tools/collection/run.sh`). `stage_bookworm_assets.py` stages a Collection folder as it does a
+retail one (375 files). The texts come from that exe: `GameText.cpp` takes `Bookworm.exe` as before (a plain game image, with no
+`!popcapcdprotect!` marker, parses from its start), and a text that is not at its address in the retail image is looked up by content
+(length and FNV hash, in every zero-terminated run of the exe and every tail of one, since the compiler pools texts that end alike). A run
+on the Collection logs "187 of 187 texts are not at their address in this executable; 185 found by their content" and "2 of 187 texts are
+not in this executable" (the two above); a run on the retail copy reads every text at its address and logs nothing, as before.
+`main.cpp`'s check of a game folder and the page importer (`games/bookworm/web/page.js`) look for `bookworm.exe` in either copy, so they
+needed no change but the importer's wording.
+- The four bot games of `tools/check.sh bookworm` (two games in both modes, three in a row, one Classic game quit half way and the same
+  continued; 23,101, 17,737, 433 and 1,934 state lines), each run once on each set of files with the same seeds: the state logs are
+  identical, update for update, so the Collection's files change nothing of how the game plays.
+- Three tours of phase two (menus, Classic and Action: `tools/shots`, port only), each run once on each set of files from a fresh profile
+  folder with the same seed and input, compared by shotdiff: 69 of 87 pairs are identical pixel for pixel (every one of the Classic
+  tour's 17 and the Action tour's 33), 14 differ only faintly and 4 visibly. The 14 are the selector's backdrop patch above, in the shots
+  that show the selector (the selector itself, its hovers, the new-player, quit, continue and player-list dialogs over it). The 4 are the
+  title screen and its hover, where the three boxes are the logo, the bottom left corner (the Mumbo Jumbo logo) and the bottom right
+  (the badge); and the options dialog with the credits closed again, where the Full Screen box is ticked (`DefaultWindowed`). All are
+  the files'.
+- The web build under Node on the Collection's files (`wasmrun.js`: the page's code, no canvas) on the menus tour, 37 pictures, against
+  the native port's on the same files: 33 identical, 2 faint, and 2 that differ in the options dialog's two boxes (Hardware Acceleration,
+  unchecked under Node as with the retail files, and Full Screen, which the web build leaves unticked since a browser refuses full screen
+  without a player's gesture); the same result as with the retail files (`IDENTICAL_PLAY.md`).
+
+**Not done.** The Collection's own exe was not run, so none of its screens was compared with the port's. Its code is another build's, and
+a run needs origrun's `--watch` values (`tools/identical/values.txt`), which are addresses of the retail image; the definition of done asks that the port work with the
+Collection's files, which it does. The 3D mode of the Collection's build (Direct3D 8) was not seen either. The port's executable is
+called `bookworm.exe`, the name of the Collection's game: the installer that puts a native port beside the original
+(`docs/STEAM_LAUNCH.md`) must not write it into a Collection folder under that name.

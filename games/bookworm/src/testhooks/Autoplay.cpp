@@ -102,13 +102,13 @@ Piece* CellPiece(Board* theBoard, int theCell)
 	return theBoard->mBoard[CellRow(theCell)][CellCol(theCell)];
 }
 
-bool SameWordIgnoringCase(const std::string& theWord1, const std::string& theWord2)
+bool SameWordIgnoringCase(const std::string& theFirstWord, const std::string& theSecondWord)
 {
-	if (theWord1.size() != theWord2.size())
+	if (theFirstWord.size() != theSecondWord.size())
 		return false;
-	for (size_t i = 0; i < theWord1.size(); i++)
+	for (size_t i = 0; i < theFirstWord.size(); i++)
 	{
-		if (toupper((unsigned char) theWord1[i]) != toupper((unsigned char) theWord2[i]))
+		if (toupper((unsigned char) theFirstWord[i]) != toupper((unsigned char) theSecondWord[i]))
 			return false;
 	}
 	return true;
@@ -792,7 +792,7 @@ bool AutoplayBot::PlanUndoTest(Board* theBoard)
 		mUndoPhase = 4;
 		return false;
 	}
-	// phase 4: the word after a tested one was untested; this one is
+	// mUndoPhase 4: the word after a tested one was untested; this one is
 
 	mUndoWordsScored = mWordsScored;
 	mUndoPhase = 1;

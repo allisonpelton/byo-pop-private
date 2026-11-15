@@ -245,7 +245,8 @@ frame by the machine's clock, so the same moves never play the same game twice; 
 game's time, counted from the framework's updates, and so is the sound's tick. `tools/identical/steady.sh` plays the same
 TSUNAMI input twice in real time: with the mod the two state logs are the same (2562 lines), without it they part.
 **fairFirstWord**: the first word after starting the program always counts as quick (twice the points) in the original,
-because the time of the last word is never set; with the fix it starts at 0 (NOSY scores 400 instead of 800). Without
+because the time of the last word is never set; with the fix it starts at 0 (NOSY scores 400 instead of 800). It starts off, since the doubled first word looks like a bonus and is
+not a known bug (docs/MOD_ROADMAP.md, "The fixes mod"). Without
 mods the port still plays as the frozen baseline (`tools/check.sh wordharmony`).
 
 ### Fix candidates
@@ -305,6 +306,9 @@ game link went with its button.
 - **The hint search.** The original searches for hints on a thread; the port searches at once. Phase one's test patch makes
   the original do the same, so the comparisons agree; in real play the original's "no hint available" can show for a few
   frames at a level's start while its thread runs.
+- **The wildcard button.** A press on it while no wildcard is held is ignored. In the original it still makes a wildcard and
+  leaves the count at -1, which the next level's start turns into a loop of 2^32 letters and the game ends in its exception box
+  (found by the coverage check, `README.md`, "Coverage check"); a crash that a click on the faded-out button reaches is not kept.
 - **The game link** is gone with the button that the port never showed.
 - **Full screen and the focus.** The original's full screen is DirectDraw's own mode, and its window minimizes when the
   focus goes, so its frames stop until the player comes back. The port's full screen is the framework's borderless window

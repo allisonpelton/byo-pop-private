@@ -1,7 +1,11 @@
 #ifndef __BIGMONEY_LIVESPLITBLOCK_H__
 #define __BIGMONEY_LIVESPLITBLOCK_H__
 
-// port(mods): Big Money's LiveSplit block, layout 1. A tagged, read-only block in the game's .data that the
+// port(mods): Big Money's LiveSplit block. The game writes the shared autosplit block, layout 2
+// (platform/AutosplitBlock.h), whose first 0xB0 bytes are layout 1 as described here: this header is the layout-1 view
+// that the game's -livesplitlog, its .asl and its tools read, and its asserts tie the two together.
+//
+// Layout 1: a tagged, read-only block in the game's .data that the
 // auto splitter (games/bigmoney/tools/livesplit/BigMoneyDeluxe-byopop.asl) finds and reads from outside the
 // process; LiveSplitObserver.cpp fills it. It follows Bejeweled's block (games/bejeweled/src/LiveSplitBlock.h
 // on the trunk): the same magic and write protocol, and the same offsets for the fields both games
@@ -35,6 +39,8 @@
 // Writing (the game): seq++ (odd), release fence, the fields, release fence, seq++ (even). Reading (the
 // script, tools/livesplit/lsprobe.py): seq -> s1, the 0xB0 bytes, seq -> s2; the copy counts when s1 == s2,
 // s1 is even and the copy's own seq is s1.
+
+#include "platform/AutosplitBlock.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -119,6 +125,21 @@ static_assert(offsetof(LiveSplitBlockV1, scoreKey) == 0x88, "LiveSplit layout 1"
 static_assert(offsetof(LiveSplitBlockV1, qpc) == 0xA0, "LiveSplit layout 1");
 static_assert(offsetof(LiveSplitBlockV1, qpcFrequency) == 0xA8, "LiveSplit layout 1");
 static_assert(sizeof(LiveSplitBlockV1) == LIVESPLIT_SIZE_V1, "LiveSplit layout 1");
+
+// Layout 1 is the start of the shared layout 2: the same header, counters and flags, Big Money's mode, skill and
+// score key in the shared block's gameOwn bytes, and the clock at the same place
+static_assert(LIVESPLIT_SIZE_V1 == AUTOSPLIT_SIZE_V1, "LiveSplit layout 1 is the shared layout 1");
+static_assert(LIVESPLIT_MAGIC_SIZE == AUTOSPLIT_MAGIC_SIZE, "LiveSplit layout 1 is the shared layout 1");
+static_assert(offsetof(LiveSplitBlockV1, deathsOverflow) == offsetof(AutosplitBlock, deaths), "LiveSplit layout 1 is the shared layout 1");
+static_assert(offsetof(LiveSplitBlockV1, displayScoreMax) == offsetof(AutosplitBlock, displayScoreMax), "LiveSplit layout 1 is the shared layout 1");
+static_assert(offsetof(LiveSplitBlockV1, mode) == offsetof(AutosplitBlock, gameOwn) + 0, "LiveSplit layout 1 is the shared layout 1");
+static_assert(offsetof(LiveSplitBlockV1, skill) == offsetof(AutosplitBlock, gameOwn) + 4, "LiveSplit layout 1 is the shared layout 1");
+static_assert(offsetof(LiveSplitBlockV1, scoreKey) == offsetof(AutosplitBlock, gameOwn) + 8, "LiveSplit layout 1 is the shared layout 1");
+static_assert(offsetof(LiveSplitBlockV1, qpc) == offsetof(AutosplitBlock, qpc), "LiveSplit layout 1 is the shared layout 1");
+static_assert(offsetof(LiveSplitBlockV1, qpcFrequency) == offsetof(AutosplitBlock, qpcFrequency), "LiveSplit layout 1 is the shared layout 1");
+static_assert(LIVESPLIT_FLAG_RESUMED == AUTOSPLIT_FLAG_RESUMED && LIVESPLIT_FLAG_VANILLA == AUTOSPLIT_FLAG_VANILLA &&
+	LIVESPLIT_FLAG_CHOSEN_SEED == AUTOSPLIT_FLAG_CHOSEN_SEED && LIVESPLIT_FLAG_REPLAY == AUTOSPLIT_FLAG_REPLAY &&
+	LIVESPLIT_FLAG_GAME_OVER == AUTOSPLIT_FLAG_GAME_OVER && LIVESPLIT_FLAG_PAUSED == AUTOSPLIT_FLAG_PAUSED, "LiveSplit flags");
 
 // One block as "key=value" fields in block order, for -livesplitlog and lsprobe.py's log
 // (tools/livesplit/check_lslog.py compares them). maskVolatile prints "*" for self and the clock, so the

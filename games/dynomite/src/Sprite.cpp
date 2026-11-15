@@ -421,7 +421,9 @@ PicFont::PicFont(SexyAppBase* theApp, const std::string& thePath, const char* th
 	Cut(theCharset);
 }
 
-// 0x4365d0
+// 0x4365d0. The original also deletes the image here, shared or not and without clearing the pointer, so that ~Pic
+// deletes it a second time: a double delete that no run reaches, since neither program ever deletes a font (all three
+// live as long as the app). The port leaves the image to ~Pic, which deletes it once.
 PicFont::~PicFont()
 {
 	for (int i = 0; i < 256; i++)

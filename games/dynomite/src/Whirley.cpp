@@ -64,12 +64,6 @@ int CeilingSpeed::Update()
 	return 0;
 }
 
-// 0x435dc0
-void CeilingSpeed::ResetSpeed()
-{
-	mSpeed = mMinSpeed;
-}
-
 // 0x435e70
 void CeilingSpeed::LevelUp()
 {
@@ -100,9 +94,9 @@ Whirley::Whirley(FossilizedApp* theApp, DynomitePanic* theBoard, EggGrid* theGri
 	mFrame = 0.0f;
 	int aX;
 	if ((mApp->mRand.NextNoAssert() & 1) == 0)
-		aX = mApp->mRand.NextNoAssert() % (unsigned int) (mBoard->mField6c - 100) + mBoard->mField70;
+		aX = mApp->mRand.NextNoAssert() % (unsigned int) (mBoard->mPlayHalfWidth - 100) + mBoard->mPlayMiddleX;
 	else
-		aX = mBoard->mField70 - mApp->mRand.NextNoAssert() % (unsigned int) (mBoard->mField6c - 100);
+		aX = mBoard->mPlayMiddleX - mApp->mRand.NextNoAssert() % (unsigned int) (mBoard->mPlayHalfWidth - 100);
 	mX = (float) (unsigned int) aX;
 	mY = 570.0f;
 	mVX = 0.0f;
@@ -207,9 +201,9 @@ bool Whirley::Update()
 		double aX = (double) mX + mVX;
 		mX = (float) aX;
 		mY = (float) ((double) mVY + mY);
-		if (!(aX < (double) (mBoard->mField70 - 0x32 + mBoard->mField6c)))
+		if (!(aX < (double) (mBoard->mPlayMiddleX - 0x32 + mBoard->mPlayHalfWidth)))
 			mVX = -fabsf(mVX);
-		if (!((float) (mBoard->mField70 - mBoard->mField6c + 0x32) < mX))
+		if (!((float) (mBoard->mPlayMiddleX - mBoard->mPlayHalfWidth + 0x32) < mX))
 			mVX = fabsf(mVX);
 	}
 	else if (mState == 2)
@@ -255,7 +249,7 @@ bool Whirley::Update()
 		aFactor = 0.25f;
 		break;
 	}
-	aGrid->mBabyEggChance = (int) ((double) aGrid->mField46b4 * aFactor);
+	aGrid->mBabyEggChance = (int) ((double) aGrid->mBaseBabyEggChance * aFactor);
 	return false;
 }
 

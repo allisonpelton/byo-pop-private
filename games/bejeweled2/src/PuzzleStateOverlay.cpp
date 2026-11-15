@@ -8,6 +8,7 @@
 #include "GalaxyParser.h"
 #include "PodDialog.h"
 #include "Res.h"
+#include "platform/GameOptions.h"
 #include "Graphics.h"
 #include "Font.h"
 #include "MemoryImage.h"
@@ -252,6 +253,12 @@ void PuzzleStateOverlay::DrawBack(Graphics* g)
 	g->DrawString(mPlanetName, aX, aY);
 }
 
+// 0x5d1b49: the dome's button clicks when it goes down (the same click as the dialogs' buttons)
+void PuzzleStateOverlay::ButtonPress(int theId)
+{
+	mApp->PlaySample(SOUND_CLICK_DIALOG);
+}
+
 // 0x5d1b5d: the dome's button opens the galaxy map
 void PuzzleStateOverlay::ButtonDepress(int theId)
 {
@@ -412,7 +419,8 @@ int PuzzleStateOverlay::GetPodAt(int theX, int theY)
 
 // 0x5d2004: the vapor behind the dome, the warp button or the dome's halves, and the five pods. The pods' unlit
 // picture is drawn with g, which has the colorizing off, so its alpha does not apply (the original sets the alpha on
-// a copy of g that it draws the lit picture with)
+// a copy of g that it draws the lit picture with); the fixes mod's "podFade" draws it with the copy, so it fades out as
+// the lit one fades in
 void PuzzleStateOverlay::DrawFront(Graphics* g)
 {
 	Graphics g1(*g);
@@ -511,7 +519,8 @@ void PuzzleStateOverlay::DrawFront(Graphics* g)
 			int aSize1 = mApp->ScaleNum(0x6e, 0);
 			int aSize2 = mApp->ScaleNum(0x6e, 0);
 			Rect aSrc(mApp->ScaleNum(aSrcX, 0), 0, aSize2, aSize1);
-			g->DrawImage(IMAGE_PUZZLE_PODS, mApp->ScaleNum(aPos.mX, 0), mApp->ScaleNum(aPos.mY, 0), aSrc);
+			Graphics* aUnlitGraphics = Platform::FixOn("podFade") ? &g1 : g;
+			aUnlitGraphics->DrawImage(IMAGE_PUZZLE_PODS, mApp->ScaleNum(aPos.mX, 0), mApp->ScaleNum(aPos.mY, 0), aSrc);
 		}
 		if (0.0f < aPod.mLit)
 		{
@@ -567,7 +576,8 @@ void PuzzleStateOverlay::DrawFront(Graphics* g)
 	}
 }
 
-// 0x5d2a83: draws the thumbnail of each pod's puzzle (the gems in their colours, on a grid of 8 by 8)
+// 0x5d2a83: draws the thumbnail of each pod's puzzle (the gems in their colours, on a grid of 8 by 8). 0x5bdddd (the puzzle
+// n's moon: the planet n / 5, its moon n % 5) is written inline in the lookup of each pod's file
 void PuzzleStateOverlay::GenerateThumbnails()
 {
 	bool aSmall = gApp->mWidth == 640;

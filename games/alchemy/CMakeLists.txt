@@ -20,7 +20,8 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/src/WinAlchApp.cpp)
     endif()
   endif()
   if(EMSCRIPTEN)
-    byopop_web_game(alchemy TITLE "Alchemy"
+    # _byopop_livesplit_block: the page's speedrun timer asks for the autosplit block's address (src/LiveSplitObserver.cpp)
+    byopop_web_game(alchemy EXPORTS _byopop_livesplit_block TITLE "Alchemy"
       COPYRIGHT "Alchemy © 2004 PopCap Games, Inc. All rights reserved.")
   else()
     add_custom_command(TARGET alchemy POST_BUILD

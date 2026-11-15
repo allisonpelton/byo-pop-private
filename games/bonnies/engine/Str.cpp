@@ -236,19 +236,19 @@ Str format(const Str& theFormat, const Str& the1, const Str& the2, const Str& th
 		{
 			if (theFormat[i] == '%' && j < aLen)
 			{
-				char c = theFormat[j];
-				if (c == '%')
+				char aChar = theFormat[j];
+				if (aChar == '%')
 					aResult += "%";
-				else if (c == '1')
+				else if (aChar == '1')
 					aResult += the1;
-				else if (c == '2')
+				else if (aChar == '2')
 					aResult += the2;
-				else if (c == '3')
+				else if (aChar == '3')
 					aResult += the3;
 				else
 				{
 					aResult += '%';
-					aResult += c;
+					aResult += aChar;
 				}
 				i = i + 2;
 				j = j + 2;
@@ -321,27 +321,27 @@ uint32_t hashName(const Str& theName)
 // 0x41f6a0
 uint32_t addColor(uint32_t theColor, int theA, int theR, int theG, int theB)
 {
-	int a = (int)(theColor >> 0x18) + theA;
-	if (a < 0)
-		a = 0;
-	if (0xff < a)
-		a = 0xff;
-	int r = (int)(theColor >> 0x10 & 0xff) + theR;
-	if (r < 0)
-		r = 0;
-	if (0xff < r)
-		r = 0xff;
-	int g = (int)(theColor >> 8 & 0xff) + theG;
-	if (g < 0)
-		g = 0;
-	if (0xff < g)
-		g = 0xff;
-	int b = (int)(theColor & 0xff) + theB;
-	if (b < 0)
-		b = 0;
-	if (0xff < b)
-		b = 0xff;
-	return (((uint32_t)a << 8 | r) << 8 | g) << 8 | b;
+	int anAlpha = (int)(theColor >> 0x18) + theA;
+	if (anAlpha < 0)
+		anAlpha = 0;
+	if (0xff < anAlpha)
+		anAlpha = 0xff;
+	int aRed = (int)(theColor >> 0x10 & 0xff) + theR;
+	if (aRed < 0)
+		aRed = 0;
+	if (0xff < aRed)
+		aRed = 0xff;
+	int aGreen = (int)(theColor >> 8 & 0xff) + theG;
+	if (aGreen < 0)
+		aGreen = 0;
+	if (0xff < aGreen)
+		aGreen = 0xff;
+	int aBlue = (int)(theColor & 0xff) + theB;
+	if (aBlue < 0)
+		aBlue = 0;
+	if (0xff < aBlue)
+		aBlue = 0xff;
+	return (((uint32_t)anAlpha << 8 | aRed) << 8 | aGreen) << 8 | aBlue;
 }
 
 // 0x41f750 (x87 arithmetic: the constants are the original's floats)
@@ -349,18 +349,18 @@ double angleOf(float theX, float theY)
 {
 	if (theY != 0.0f)
 	{
-		double a = std::atan((double)theX / (double)theY);
-		a = a + (double)6.28318f;
+		double anAngle = std::atan((double)theX / (double)theY);
+		anAngle = anAngle + (double)6.28318f;
 		if (theY < 0.0f)
-			a = a + (double)3.14159f;
-		if ((double)6.28318f <= a)
+			anAngle = anAngle + (double)3.14159f;
+		if ((double)6.28318f <= anAngle)
 		{
 			do
 			{
-				a = a - (double)6.28318f;
-			} while ((double)6.28318f <= a);
+				anAngle = anAngle - (double)6.28318f;
+			} while ((double)6.28318f <= anAngle);
 		}
-		return a;
+		return anAngle;
 	}
 	if (theX <= 0.0f)
 		return 4.712385f;
@@ -376,18 +376,18 @@ unsigned int gRandSeed = 1;  // the CRT's per-thread holdrand
 // 0x41f7e0
 void buildAngleTable()
 {
-	float* p = gAngleTable;
+	float* aCell = gAngleTable;
 	int x = -0x20;
 	do
 	{
 		int y = -0x20;
 		do
 		{
-			*p++ = (float)angleOf((float)x, (float)y);
+			*aCell++ = (float)angleOf((float)x, (float)y);
 			y = y + 1;
 		} while (y < 0x21);
 		x = x + 1;
-	} while (p < gAngleTable + 65 * 65);
+	} while (aCell < gAngleTable + 65 * 65);
 }
 
 // 0x41f3d0: the coordinates halved until the larger fits in -32..32, then the entry x * 65 + y from the table's centre

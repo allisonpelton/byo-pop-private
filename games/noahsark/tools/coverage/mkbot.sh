@@ -14,7 +14,7 @@ case "$MODE" in action) B=188; C="400 405";; strategy) B=242; C="400 405";; puzz
 case "$DIFF" in 0) Y=195;; 4) Y=240;; 8) Y=285;; esac
 printf '301 click 320 456\n360 click 198 %s\n381 click 320 %s\n420 click %s\n' "$B" "$Y" "$C" > "$D/$N.menu.txt"
 (cat "$D/$N.menu.txt"; echo "$QUIT quit") > "$D/$N.port.txt"
-until python -I tools/gamecount.py --limit 3 > /dev/null; do sleep 20; done
+until python -I tools/gamecount.py --limit 6 > /dev/null; do sleep 20; done
 rm -rf "build/coverage/noahsark/ud_$N"
 games/noahsark/tools/run_script.sh "$D/$N.port.txt" "build/coverage/noahsark/ud_$N" 300 -seed="$SEED" -autoplay="$SEED" -autoplaymenu \
 	-autoplaymode="$MODE" -autoplaydiff="$DIFF" -autoplaycap="$CAP" ${STOP:+-autoplaystop=$STOP} -autoplaylog="$D/$N.bot" -statelog="$D/$N.state" > "$D/$N.log" 2>&1

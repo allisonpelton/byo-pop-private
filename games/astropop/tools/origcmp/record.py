@@ -61,7 +61,7 @@ class Recorder:
 
 
 def wait_room():
-    while subprocess.call([sys.executable, os.path.join(ROOT, 'tools', 'gamecount.py'), '--limit', '3'], stdout=subprocess.DEVNULL) != 0:
+    while subprocess.call([sys.executable, os.path.join(ROOT, 'tools', 'gamecount.py'), '--limit', '6'], stdout=subprocess.DEVNULL) != 0:
         time.sleep(15)
 
 

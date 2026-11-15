@@ -263,7 +263,7 @@ Script commands of the port (`-script`, later the live channel), answered on std
 
 `move` also answers the screens between moves, so that a driver needs nothing else: a dialog's button, the title's Play link, the
 menu's Play, the demo's and the map's buttons, the high-score screen's, and a dig of the bonus level, as `{"kind":"ui","what":"dialog 14",
-"input":[...]}`; they come before the ship's own move. `state` adds `over` (the last life is gone), `busy` (nothing to click yet), `dialogs`
+"input":[...]}`; they come before the ship's own move. `state` starts with the screen and `update` (the app's update count, so that a driver's transcript can be laid on the original's counter) and adds `over` (the last life is gone), `busy` (nothing to click yet), `dialogs`
 (id, whether it sits in the widget manager, box, button) and, on the menu, `menu` (the Play and Tutorial buttons and the three wheels, in
 game coordinates; the difficulty wheel is a real click, then Play). `tools/web/hard.js` plays a whole Hard game that way.
 
@@ -307,3 +307,213 @@ under rundesk), `loadtime.py` (the port's load time through the live channel).
 **What could not be measured.** The web build's load time: the Browser pane is hidden, its timers are throttled and
 `requestAnimationFrame` does not run, and a load in a player's browser is dominated by the network and the wasm compile. The
 original's load to better than a second (no state command; origrun's clock is in whole seconds). The GPU's own load, and full screen.
+
+## 11b. Processor time like for like (2026-11-12)
+
+The coordinator's target (docs/COORDINATION.md, "The target"): the port's processor time at most the original's, over the same
+stretch, in real time, as cycle counts. The first measurement (section 11) was not like for like, and its spread (the original at 2.2
+to 8.7 % of a core) came from the runs not playing the same stretch: the original's start is not on its update counter (the title
+takes a click only after its loading bar is done, the menu's pirate talks before its Play takes one, the demo's button is clicked
+after some seconds), so a script timed by the counter left some runs on the title, the menu or the demo for the whole minute
+(draws a second 13 on the title, 100 in the demo, 67 on the board), and the port, which starts at update 0, was always on the board.
+
+**The scenario now.** Both sides play the same game: the title's link, the menu's Play (Easy), the demo's "Click Here to Start!" and
+then the same broadsides every 1.5 s, the stretch being the board's updates 600 to 6100 (55 s, 5500 updates at 100 a second). The
+original's script waits for each screen (origrun's `waitfor` on the app's title progress +0x424 -> +0x64, then its menu (+0x428), demo
+(+0x430) and the demo's end) with fixed delays after each (`tools/profile/cycles.py`, `orig_script`), clicking the title's link at
+a point the menu has no button under, and the harness starts counting when the demo is gone; the port's script is the same lines
+at its own updates (the board from update 2400, the stretch 3000 to 8500; `state` shows the Easy board, level 1, the score rising to
+40 by update 8000). The original's counter, the one origrun times input by, is its update counter, so the input lands on the same
+update (the Mummy Maze finding about a sleep counter does not apply here). Both counters are read from outside every 5 ms by a
+poller at idle priority; cycles are QueryProcessCycleTime and QueryThreadCycleTime at the two ends, never GetProcessTimes. No
+`-commands`, no state log, no screenshots in the stretch. The loop runs under `tools/pincore.py`, five rounds of: the original,
+the port in a 640x480 window (`-windowscale=1`, registry ScreenMode 0) and the port in the default window (1280x960, render scale
+2), the port's two alternating in order. `tools/profile/pairs.sh`, `cycles.py` (`summary` reads runs.txt).
+
+**Window and renderer.** Original: windowed 640x480 under origrun. Port: "client 640x480 px, logical 640x480, render scale 1, windowed,
+renderer direct3d11" and "client 1280x960 px, logical 640x480, render scale 2, windowed, renderer direct3d11" (hidden desktop under
+rundesk, the display line of each run in `runs.txt`). A fresh userdir starts the port full screen (render scale 4) and was not used.
+
+| | original (4 runs; the first of 5 did not finish) | port 640x480 (5 runs) | port 1280x960 (5 runs) |
+|---|---|---|---|
+| G cycles in the stretch | 8.24, 8.87, 10.31, 15.00; median 9.59 | 5.26, 5.98, 6.18, 6.70, 6.86; median 6.18 | 4.75, 5.24, 5.44, 5.68, 6.50; median 5.44 |
+| a minute | 10.5 G | 6.7 G | 5.9 G |
+| updates a second | 100.0 | 99.7 to 100.0 | 100.0 |
+| draws in the stretch | 3689 to 3727 | 2716 to 2750 | 2727 to 2749 |
+
+The port's own audio thread (SDLAudioP2 under rundesk's silent driver) is in its figures, 0.19 to 0.29 G in the stretch; origrun's
+stand-in mixes nothing for the original, so the port without it is lower still. The port is under the original in every pair,
+in either window; the original's runs spread (8.2 to 15.0 G) with the machine's state. The original draws about a quarter more
+than the port (3700 against 2740 over the same 5500 updates; 2766 in a probe run on the same board, so its draws vary with the
+state of the play); not chased. Oddity: in 3 of the first 5 runs of the first scenario the original sat on the title or the menu
+the whole stretch (700 draws, 2 to 3 G).
+
+## 11c. The autosplit block (2026-11-12)
+
+`src/LiveSplitObserver.cpp` writes the shared autosplit block (platform/AutosplitBlock.h, layout 2, game id "SSDX") after
+every update, for the site's Splits window and LiveSplit. It only reads the game. It writes while an enabled mod has the
+feature "livesplit" or, on the web, once the page has called `byopop_livesplit_block`; until then it tests two flags.
+`-livesplitlog <file>` writes one line per event. The game's own side is two inert fields on `Board`: `mBoardSerial` and
+`mResumed`. Numbering: mode 0 a game, 1 the tutorial, -1 off a board; skill 1 Easy, 2 Average, 3 Hard (the menu's
+difficulty), 0 off a board. GO is the board's first update of a new game (on Easy the demo's "Click Here To Start" makes
+the board; on Average and Hard the menu's Play does). A level clear is the update in which `Board::mLevel` goes up
+(NewLevel, after the level's panel is closed); after a treasure level the same call shows the map, so there the clear and
+the map are one update. Undo is cleared in NewLevel, so no clear is taken back. `progress` = levels completed
+(`mLevel - 1`, 30 when level 31 has begun). Game over kind 0: out of lives (Board::GameOver); kinds 1 to 3 unused.
+Leaving through New Game saves the game and removes the board, with no event. No win: the game goes on past level 30.
+Proof of inertness: the three bot games of `tools/check.sh sevenseas` give the same log and screenshots with the block
+off and with it on, and the suite's frozen baseline is unchanged.
+
+## 12. Coverage check (2026-11-11)
+
+The whole check of `docs/COVERAGE.md`. origrun's `--coverage` recorded which of the original's functions ran in 16 runs on the
+host, on the virtual clock (about 26 times real time). `tools/coverage/run.sh <name> <script> <seed> [timeout]` runs one (it
+waits for room among the 3 game processes, and with `SAVE=<savegame.dat>` stages a saved game into the copy first),
+`tools/coverage/mkscript.py` writes the scripts (the title, the menu and then clicks over the board's cells in a seeded random
+order, the panel's buttons and every dialog, or a run from a saved game: the Continue dialog, the Treasure Island nag, the digs)
+and `tools/coverage/mksaves.py` makes the four saved games by the port's own test commands (the port writes the original's file
+format, and the original read them). The screens' click positions come from the port's own shots and from two sandbox shots of
+the original (its Options dialog is taller than the port's: the Register button and the "Visit PopCap.com" button are in it). A
+click that comes before the original has loaded is ignored without a word, so the title's Play link is clicked six times, by a
+spot of it that is empty in the menu (360, 385).
+
+The runs: `perf` (the demo), `e1`, `e2`, `e3` (a new Easy, Average and Hard game and 150 to 700 clicks), `t` (the tutorial), `u2`
+(the panel's buttons, the options with its sliders and check boxes, Help, High Scores, New Game and Quit, answered both ways),
+`fs` (the Fullscreen and Custom Cursors boxes), `p1` (the port's own bot's first Easy game replayed by update number: it falls out
+of step with the original on the first board, so it added nothing) and, from saved games, `vbonus` (Treasure Island), `vlose`
+and `vno` (one life, Continue answered Yes and No: the loss, the high scores and the name box), `vl9` (Average level 9: the
+crimson pirates fire), `vl9empty` (the level is won at once: the next level is the bonus level, then the map), `vlvl4` and
+`vlvl4b` (a Hard level 4 save). Nine ended by themselves, five at origrun's timeout (the last click of a script that ends in a
+dialog does not leave the game) and two with an access violation (below).
+
+`games/sevenseas/coverage.txt` sets the game's own code as one range, 0x401000 to 0x427870 (399 functions; the framework starts
+at the Widget at 0x427880). **The runs reached 362 of the 399. 0 are reached with no counterpart in the port**; at first 170 were.
+
+- **Placed: 13.** The addresses of functions the port translates inline or in another shape are now in the comment above the
+  function that holds them: 0x40a410 (the board's StartTalk call), 0x40b0e5 (the second half of Undo, which Ghidra left outside
+  the function), 0x419ab0 (the end of a talk), 0x426140 (the tail of the title's sparkle loop, likewise), 0x411190 and 0x4111c0
+  (the high-score screen's AddedToManager and RemovedFromManager: the original adds two buttons), 0x412c80 (the high-score screen's button handler: its other branch, the score upload, is not ported), 0x41f280 (HasSavedGame; the
+  comment said 0x41ac10), 0x418fc0 (the options dialog's SetColor, which the constructor's colours replace), and three the port
+  had under the wrong address: the options dialog's slider handler is 0x4196f0 (the comment said 0x419730 / 0x419770), its
+  buttons are 0x4197a0 (it said 0x4196f0), and the check box handler 0x419730 does nothing in the registered game.
+- **Left out on purpose: 194 `none` lines.** What the compiler made (40 static initializer stubs, 20 deleting destructors, 11
+  vtable thunks, 10 empty or constant functions), the original's std::string library (22), the support of the anims.txt parser
+  0x41c960 (map and list instances, 46: the port parses into std containers), the destructors of dialogs and widgets (15),
+  registration (the Register dialog and its page link, the number check, the windowed-mode nag of the unregistered game: 19) and
+  the online score submission (11: the "Submit to Internet High Score List" button, its dialog, the upload and the "High Score"
+  answer; README.md lists it as not ported).
+- **A slip found: the click of the options and nag dialogs.** The original's OptionsDialog (0x419770) and NagDialog (0x40d280)
+  override ButtonPress to play sample 0 after the base class. The base forwards only the footer button to the app, which clicks,
+  so Help and High Scores clicked in the original and not in the port, and the footer button clicked twice in the original. Both
+  overrides are in the port now (`OptionsDialog::ButtonPress`, `NagDialog::ButtonPress`). No state changes; sound is not in the
+  baseline.
+- **Defined in the port and never reached: 6, each read again against the export.** `Board::SpawnSparkle` (0x4030f0: the two
+  draws in the original's order, y then x) and `Board::EnemyFire` (0x404890: the headings, the scan of three cells each side, the
+  shot's fields, the trail flash and the sound; both match line by line, and EnemyFire ran in the identical-play pass's lost
+  game), `Board::MouseUp` (0x40ae70, a call of the base class), `Board::ButtonDepress` (0x40ae90, "Click here to start playing!"
+  at the end of the tutorial, which needs the whole tutorial: it ended the tutorial in the identical-play pass), the options
+  dialog's `SliderVal` (0x4196f0: origrun cannot hold the thumb to drag it, and a click on the track does not call it; two lines
+  that match the export) and the warnings' variant of `NagDialog::Draw` (0x4266f0: the port's one function is the counterpart of
+  both copies, and the bonus nag's copy 0x40cbe0 ran).
+- **Candidates for taking out: none.** Nothing in the game's code is unreachable by play except what is `none` above.
+- **Found on the way.** (1) Two of the runs (`e3`, `vlose`) reached 0x41f340, the original's score upload: random clicks hit its
+  "Submit to Internet High Score List" button on the high-score screen (y 356 to 386). The function wrote its temporary files and
+  may have opened a connection to the PopCap site; no browser or program was started. The scripts now keep their clicks off that
+  row. (2) The original dies with an access violation (0xC0000005) when it loads the Hard level 4 save the port wrote (`vlvl4`
+  and `vlvl4b`, the same place both times): the save has whirlpools and a warning up, and the port's writer has been compared with
+  the original's file only for the levels of the identical-play pass. An oddity of a file the original did not write; not chased.
+  (3) The Fullscreen check box does nothing in the original's registered game but tick (its handler 0x419730 acts only for the
+  unregistered game, after the nag): `fs` reached no mode switch, and the port's box does the same.
+
+Cost: most of the session's time went to finding the original's click positions (two sandbox runs) and sorting the 170
+functions of the first report; the runs themselves took about 25 minutes of machine time.
+
+## 13. Performance pass (2026-11-11)
+
+The sampled profile of the port over the demo's 90 s (`games/bejeweled/tools/profile/cpuprof.py`, the port under rundesk in
+real time with `tools/profile/perf_port.txt`; 16.8 G cycles in 92 s): **88.0 % of the cycles are in ntdll.dll** (for a 32-bit
+process, system calls and waits: the frame's present and the timer), 5.1 % win32u.dll (window and message calls), 1.9 % the
+GPU driver, 0.8 % imagehlp.dll (the shared cost already listed in `docs/COORDINATION.md`), and **2.6 % the game's own code, all
+of it loading**: Ogg decoding (`_vorbis_lsp_to_curve` 0.4 %, the Huffman set-up and the inverse MDCT 0.5 % together), GIF
+decoding (0.4 %), JPEG decoding (0.2 %). No function of the game's logic or drawing (the board, the ships, the sea, the
+sprites) is in the profile at all; the largest game function of play is below 0.1 %. The processor time of the port was 4.8 to
+5.5 % of one core in the morning's measurement (section 11), as for Bejeweled, whose frames are the cost and not its code.
+
+So there is nothing in Seven Seas' own code to speed up that a player or a frozen baseline would see, and none was changed:
+the decoding at load is about 0.2 s of one core in a load of about a second, and a faster or lazier decoder would change when
+work happens, not what it does, for a saving a player cannot notice. What remains is shared and already listed by the
+coordinator (the per-frame present and Direct3D's 20 to 25 MB of private memory, the 20 MB of image pixels the framework keeps
+after their upload, the GIF quantizer, imagehlp.dll); this game adds no new one. The memory gap to the original (about 15 MB
+of private bytes, section 11) is those shared costs. The frozen baseline (`tools/check.sh sevenseas`) is unchanged, since the
+code is.
+
+A slip: this profile run was started while 3 other game processes were running, so the machine held 4 for 92 s; the
+count is checked before a run's start, and the run's exit code was not read before starting. Nothing else ran, and the run's
+files (`build/perf`) are small.
+
+## 14. Removal of code the port does not need (2026-11-11)
+
+What the coverage check (section 12) found: every function of the game that play can reach is in the port, and the original's
+code the port leaves out is listed there. The other way round, a scan of the port for what nothing calls or uses (every member
+function defined in `src/` whose name appears nowhere else but its declaration, and every id of `Res.h` named once) found:
+
+- **Taken out:** the dialog ids of the Register dialog, its invalid-code box, the high-score note, the online score submission
+  and the windowed-mode nag (`DIALOG_REGISTER`, `REG_INVALID`, `HIGH_SCORE_NOTE`, `SUBMIT_SCORE`, `NO_WINDOWED`) and a
+  `KillDialog(DIALOG_REGISTER)` of a dialog the port does not have (commit 74d0c0fb); `SevenSeasApp::UpdateCursor`, an empty
+  function nothing called, and `StopTalk`, which nothing called.
+- **Kept on purpose:** the resource table (`Res.cpp`, `Res.h`) holds every image and sound of the original's list in its order
+  and with its ids, since the names are looked up in that order; 10 images and 8 sounds of it nothing in the game's code names
+  (the online score's picture, a few fonts and sprites, and the pirate's mouths and talking sounds, which the code reaches by
+  their numbers, 0xe to 0x15: the readability pass names them). Dropping the picture of the removed online score button would renumber every id after it for 40 KB
+  of memory; not done.
+- **Left alone:** the Treasure Island and warning nags are the registered game's own dialogs (they stay), and the registry
+  values `BonusNag`, `Warn*Nag` are theirs. The registration and outbound-button removal was done earlier (section 8's list);
+  a search of `src/` for register, trial, unlock and URL finds only the framework's registry hooks and the test command
+  `unlock`, which answers that the game has nothing locked.
+
+`tools/check.sh build sevenseas` passes with the baseline identical.
+
+## 15. Readability pass (2026-11-11)
+
+`python tools/namecheck.py games/sevenseas` reported 70 findings and now reports none; `tools/objsnap.py` shows that all 18
+objects (471 functions) compile to the same instructions as before the pass, and `tools/check.sh sevenseas` is unchanged
+(baseline identical). `tools/splitfields.py` has no per-function export folder to read here (only `functions.jsonl`), and
+reported no member declared twice.
+
+- **Names (rule 2).** `mFlag4c4` is `mPirateWelcome` (the pirate's welcome at the first menu, until a game starts) and
+  `mUnused_95008` is `mCellFlashFloor`, with a comment on what reads it (the glow's reach and the hint arrows) and that only the
+  level's reset writes it. The one-letter names that ran over 10 lines are `aState`, `aBoard`, `aCand`, `theBoard`, `aWriter`,
+  `aReader` and `thePos`.
+- **Addresses (rule 6).** 50 functions got an address or a `port:` marker. Addresses: the dialogs' and widgets' destructors and
+  the second hook of each pair that one comment named twice (`0x4190c0`, `0x4172e0`, `0x4261b0`, `0x40cb60`, `0x426670` and the
+  like), `ReadFromRegistry` 0x41c630, `ShowHelp` 0x421980, the demo's destructor 0x413700 and the high-score screen's button
+  handler 0x412c80 (which the coverage list had as the score upload, a branch it also holds). `port:` markers: the helpers the
+  original writes inline (the demo's `InitShip`, `Sink`, `DrawShip` and `DrawBall`, the board's heading and step helpers),
+  the framework hooks the original leaves to its base class, and the game-text reader. The test hooks' files carry the marker in
+  their first comment.
+- **Numbers (rule 7).** The pirate's lines and the bonus screen's losing sound are named (`SOUND_TALK...`, `SOUND_BONUSLOSE`)
+  where the code gave `PlaySample` their numbers (0xe to 0x16).
+- **Left as they are.** The music orders (`SetMusicOrder(0x10...)`), which no list of the game names, and the original's
+  geometry in hexadecimal, which each line's comment explains. The three copies of the heading helper (`StepHeading`,
+  `StepHeadingOf`, `HeadingFor`) are separate on purpose: each stands for the original's inline code at its own place.
+
+## 16. The PopCap Game Collection version (2026-11-11)
+
+The Collection disc (the user's ISO) has Seven Seas Deluxe (the group `SevenSeasDeluxeComponent`, 176 files). `unshield` read it from
+the read-only mounted image, dismounted afterwards, into the main checkout's `re/_installers/SevenSeasDeluxeCollection` (git-ignored).
+Unlike Typer Shark's, the Collection's copy has no launcher: `WinSS.exe` is the game itself, under the same name, beside `fmod.dll`,
+`license.txt`, `readme.txt`, `scoreul.tpl` and the folders `data`, `images`, `music` and `sounds`.
+
+**The same game.** All 172 files the port stages (every picture, sound, song and data file) are byte for byte the Collection's. The
+four files only the Collection has are the licence, the readme, the score template and fmod.dll, which the port does not use. Of
+`WinSS.exe` (both 720,896 bytes, the same sections) 7 bytes differ, all in `.text`: one byte at 0x42ce4e (`mov [ebp+0x32c], bl` in the
+port's copy, `cl` in the Collection's) and six at 0x42ded0, where the port's copy has eight NOPs and the Collection's has
+`xor eax,eax; inc eax; ret 8`, a function that returns 1: both are in the framework's code, at addresses above the game's own code
+(0x401000 to 0x427870); the port's copy looks patched there (the NOPs), the Collection's is the unpatched code. `.rdata` and `.data`, where the texts are, are the
+same, so every text of `GameText.cpp` matches by address and hash.
+
+**The port on the Collection's files.** With the Collection's `WinSS.exe` in the staged folder, `tools/check.sh sevenseas` gives
+the same result as on the other copy (baseline identical; beginner 2 over at update 5868, score 380; bonus 1 over at 2746, 680; late 1
+over at 1958, 200), and the port needs no change: it reads `WinSS.exe` by that name from the game folder, as the Collection's has it.
+The staged copy was put back afterwards. The Collection's own exe was not run: its game code is the same, and a run could show nothing
+the identical-play pass did not.

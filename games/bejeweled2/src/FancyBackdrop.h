@@ -43,7 +43,7 @@ public:
 
 public:
 	FancyBackdrop(WinDMApp* theApp);                                // 0x5ba2d7
-	virtual ~FancyBackdrop();                                       // 0x5ba030
+	virtual ~FancyBackdrop();                                       // 0x5ba030, 0x5b9fe5 (the destructor proper)
 
 	virtual void	Update() override;                              // 0x5ba3cb
 	virtual void	Draw(Graphics* g) override;                     // 0x5b9d60

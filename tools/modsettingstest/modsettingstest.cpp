@@ -15,6 +15,7 @@
 // The fixture mod tools/fixtures/mods/settings-demo and games/bejeweled/mods/example-settings are read from the
 // source tree (embedded on the web).
 
+#include "platform/GameOptions.h"
 #include "platform/ModManager.h"
 #include "platform/ModSettings.h"
 #include "platform/Relaunch.h"
@@ -1248,6 +1249,70 @@ static void TestForget()
 }
 
 // mod.json "defaultEnabled": false: the mod starts off, and turning it on lists it in mods.json's "enabled"
+//////////////////////////////////////////////////////////////////////////
+// The game's options (platform/GameOptions.h) with the mod framework as their front end (ModOptionSource)
+
+static void TestGameOptions()
+{
+	ModManager& m = ModManager::Get();
+	{
+		Sandbox aBox("options-none");
+		m.Refresh();
+		Check(!FixOn("rims") && !LiteOn("rims"), "options: without a mod every option is off");
+	}
+	{
+		// the shape of most games' fixes mods: the id "fixes", a toggle per fix, no features
+		Sandbox aBox("options-fixes");
+		aBox.Mod("fixes", "{ \"id\": \"fixes\", \"settings\": ["
+			"{ \"id\": \"rims\", \"label\": \"Rims\", \"type\": \"bool\", \"default\": true },"
+			"{ \"id\": \"ending\", \"label\": \"Ending\", \"type\": \"bool\", \"default\": false } ] }");
+		m.Refresh();
+		Check(FixOn("rims") && !FixOn("ending"), "options: the fixes mod gives each fix its setting");
+		Check(!FixOn("unknown"), "options: a fix the mod does not name is off");
+		Check(!LiteOn("rims"), "options: the fixes mod sets no lite change");
+		CheckEq(m.EditSetting("fixes", "rims", JsonValue(false)), "", "options: turning a fix off in the menu");
+		m.Refresh();
+		Check(!FixOn("rims"), "options: ... turns it off");
+		CheckEq(m.EditEnable("fixes", false), "", "options: turning the whole mod off");
+		m.Refresh();
+		Check(!FixOn("rims") && !FixOn("ending"), "options: ... turns every fix off");
+	}
+	{
+		// the feature "fixes" names the mod (bonnies, tiptop, the Mahjong engine...), and "lite" names a lite mod
+		Sandbox aBox("options-features");
+		aBox.Mod("better", "{ \"id\": \"better\", \"features\": { \"fixes\": true }, \"settings\": ["
+			"{ \"id\": \"keys\", \"label\": \"Keys\", \"type\": \"bool\", \"default\": true } ] }");
+		aBox.Mod("faster", "{ \"id\": \"faster\", \"features\": { \"lite\": true }, \"settings\": ["
+			"{ \"id\": \"search\", \"label\": \"Search\", \"type\": \"bool\", \"default\": true } ] }");
+		m.Refresh();
+		Check(FixOn("keys") && !FixOn("search"), "options: a mod with the feature \"fixes\" gives the fixes");
+		Check(LiteOn("search") && !LiteOn("keys"), "options: a mod with the feature \"lite\" gives the lite changes");
+	}
+	{
+		// Bejeweled's rules: the feature's own members, and the feature on as a whole means every fix on
+		Sandbox aBox("options-rules");
+		aBox.Mod("rules", "{ \"id\": \"rules\", \"features\": { \"fixes\": { \"selection\": false } } }");
+		m.Refresh();
+		Check(!FixOn("selection"), "options: the feature's own member turns its fix off");
+		Check(FixOn("resumeLook"), "options: ... and the feature on as a whole leaves every other fix on");
+	}
+	{
+		// the command line wins over the mods: -fix and -lite for one option, -original for the rest
+		Sandbox aBox("options-params");
+		aBox.Mod("fixes", "{ \"id\": \"fixes\", \"settings\": ["
+			"{ \"id\": \"rims\", \"label\": \"Rims\", \"type\": \"bool\", \"default\": true },"
+			"{ \"id\": \"ending\", \"label\": \"Ending\", \"type\": \"bool\", \"default\": true } ] }");
+		m.Refresh();
+		Check(HandleOptionParam("-fix", "rims=off") && !FixOn("rims") && FixOn("ending"), "options: -fix=rims=off turns one fix off");
+		Check(HandleOptionParam("-original", "") && !FixOn("ending"), "options: -original turns the others off");
+		Check(HandleOptionParam("-fix", "ending") && FixOn("ending"), "options: -fix=ending turns one back on under -original");
+		Check(HandleOptionParam("-lite", "search=1") && LiteOn("search"), "options: -lite=search=1 turns a lite change on");
+		Check(!HandleOptionParam("-fixes", "rims"), "options: another parameter is not one of them");
+		ResetOptionParams();
+		Check(FixOn("rims") && FixOn("ending") && !LiteOn("search"), "options: without the parameters the mod decides again");
+	}
+}
+
 static void TestDefaultEnabled()
 {
 	gUserDataChanges = 0;
@@ -1379,6 +1444,7 @@ int main(int argc, char** argv)
 	TestNoOpBytes();
 	TestForget();
 	TestDefaultEnabled();
+	TestGameOptions();
 #ifdef __EMSCRIPTEN__
 	TestWebApi();
 #endif

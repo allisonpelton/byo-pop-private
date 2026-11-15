@@ -179,7 +179,8 @@ played there (as in Alchemy's pass).
 
 `games/bookworm/mods/fixes` has one toggle, `scoreGlow`: the original draws a heated version of the score while points
 are added, but truncates its alpha to 0, so it never shows (GAME_NOTES, "The fixes mod", with the candidates left out
-and why). With the toggle on the score glows; play, sound and every other picture stay as they were.
+and why). With the toggle on the score glows; play, sound and every other picture stay as they were. The toggle starts off, since players know the score
+without its glow and the missing glow is not a known bug (docs/MOD_ROADMAP.md, "The fixes mod").
 
 ## Oddities (skipped)
 

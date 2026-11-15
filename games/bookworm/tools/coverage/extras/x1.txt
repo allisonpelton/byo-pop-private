@@ -1,0 +1,62 @@
+# Extra lines on a Classic game of the bot (run.sh extra x1 classic 1 1 700 x1), made by the generator in the notes:
+# the options dialog on the board (sliders, checkboxes, Help), the help screen's checkbox and topic, keys, and Lex's hints.
+# The original's options dialog is 351 high at y 64 (its "more games" row), the port's 315 at y 82.
++20 click 111 196
++80 screenshot opt
++90 @orig click 500 150
++90 @port click 500 168
++100 @orig down 450 182
++100 @port down 450 200
++102 @orig move 520 182
++102 @port move 520 200
++104 @orig up 520 182
++104 @port up 520 200
++120 @orig click 283 241
++120 @port click 283 259
++125 @orig click 283 241
++125 @port click 283 259
++130 @orig click 443 241
++130 @port click 443 259
++135 @orig click 443 241
++135 @port click 443 259
++140 @orig click 443 215
++140 @port click 443 233
++145 @orig click 443 215
++145 @port click 443 233
++150 screenshot opt2
++160 @orig click 348 299
++160 @port click 348 317
++230 screenshot help2
++240 click 116 294
++260 click 221 401
++270 click 221 401
++280 click 314 444
++330 screenshot back
++340 keydown 69
++345 screenshot keyE
++350 keyup 69
++355 keydown CONTROL
++358 keyup CONTROL
++360 char SPACE
++380 screenshot paused
++390 char SPACE
++420 move 115 330
++520 screenshot hint0
++540 move 400 300
++660 move 115 330
++780 move 400 300
++900 move 115 330
++1020 move 400 300
++1140 move 115 330
++1260 move 400 300
++1380 move 115 330
++1500 move 400 300
++1620 move 115 330
++1740 move 400 300
++1860 move 115 330
++1960 screenshot hint6
++1970 click 100 160
++1990 screenshot afterclick
++2000 move 400 300
++2100 move 115 330
++2220 move 400 300

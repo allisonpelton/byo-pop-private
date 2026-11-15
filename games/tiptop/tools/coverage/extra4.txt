@@ -1,0 +1,7 @@
+# Coverage run extra 4 (origrun script lines, after tour 2's whole regular game and its high score name): the high scores
+# screen's button, which asks "play again?", answered Yes (another game of the mode starts), then the window closed.
+at 9520 click 550 440
+at 9600 click 325 275
+at 9800 click 320 300
+wait 300
+quit

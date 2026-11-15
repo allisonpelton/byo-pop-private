@@ -4,7 +4,7 @@ None of these is made. The user's rule is no new mods unless someone requests on
 of the game's feedback page. They are ordered by how much they change the game for how little work the port needs.
 
 **Resource overrides.** Most of the others need this one. A mod would be a folder of files named by resource type and
-id (`LAYOUTS/385.lay`, `TXT/383.txt`, an image by its id), and the host's `FindResource` (`src/MahjongApp.cpp`) would
+id (`LAYOUTS/385.lay`, `TXT/383.txt`, an image by its id), and the host's `FindResource` (`engines/mahjongescape/src/MahjongApp.cpp`) would
 take a file from the mod when it has one. Replacing a layout, a background, a tile set or the music is then a matter of
 files alone.
 

@@ -297,13 +297,31 @@ option(BUILD_MUMMYMAZE "Build the Mummy Maze Deluxe port" ON)
 if(BUILD_MUMMYMAZE AND EXISTS ${PROJECT_SOURCE_DIR}/games/mummymaze/CMakeLists.txt)
   add_subdirectory(games/mummymaze)
 endif()
-# Bookworm Adventures Deluxe: optional while it is new; the build skips it if its folder is missing
+# Venice Deluxe: optional while it is new; the build skips it if its folder is missing
+option(BUILD_VENICE "Build the Venice Deluxe port" ON)
+if(BUILD_VENICE AND EXISTS ${PROJECT_SOURCE_DIR}/games/venice/CMakeLists.txt)
+  add_subdirectory(games/venice)
+endif()
+# Hammer Heads Deluxe: optional while it is new; the build skips it if its folder is missing
+option(BUILD_HAMMERHEADS "Build the Hammer Heads Deluxe port" ON)
+if(BUILD_HAMMERHEADS AND EXISTS ${PROJECT_SOURCE_DIR}/games/hammerheads/CMakeLists.txt)
+  add_subdirectory(games/hammerheads)
+endif()
+# The SWF player (engines/swf), one copy for the ports that play Flash cutscenes: built when any of them is
 option(BUILD_BOOKWORMADV "Build the Bookworm Adventures Deluxe port" ON)
+option(BUILD_BOOKWORMADV2 "Build the Bookworm Adventures Volume 2 port" ON)
+option(BUILD_HEAVYWEAPON "Build the Heavy Weapon Deluxe port" ON)
+if((BUILD_BOOKWORMADV AND EXISTS ${PROJECT_SOURCE_DIR}/games/bookwormadv/CMakeLists.txt) OR
+   (BUILD_BOOKWORMADV2 AND EXISTS ${PROJECT_SOURCE_DIR}/games/bookwormadv2/CMakeLists.txt) OR
+   (BUILD_HEAVYWEAPON AND EXISTS ${PROJECT_SOURCE_DIR}/games/heavyweapon/CMakeLists.txt) OR
+   (BUILD_HAMMERHEADS AND EXISTS ${PROJECT_SOURCE_DIR}/games/hammerheads/CMakeLists.txt))
+  add_subdirectory(engines/swf)
+endif()
+# Bookworm Adventures Deluxe: optional while it is new; the build skips it if its folder is missing
 if(BUILD_BOOKWORMADV AND EXISTS ${PROJECT_SOURCE_DIR}/games/bookwormadv/CMakeLists.txt)
   add_subdirectory(games/bookwormadv)
 endif()
 # Bookworm Adventures Volume 2: the same engine as Volume 1, copied into its own folder; optional while it is new
-option(BUILD_BOOKWORMADV2 "Build the Bookworm Adventures Volume 2 port" ON)
 if(BUILD_BOOKWORMADV2 AND EXISTS ${PROJECT_SOURCE_DIR}/games/bookwormadv2/CMakeLists.txt)
   add_subdirectory(games/bookwormadv2)
 endif()
@@ -338,13 +356,18 @@ option(BUILD_WORDHARMONY "Build the Word Harmony port" ON)
 if(BUILD_WORDHARMONY AND EXISTS ${PROJECT_SOURCE_DIR}/games/wordharmony/CMakeLists.txt)
   add_subdirectory(games/wordharmony)
 endif()
-# Cosmic Bugs: Retro64's engine (games/cosmicbugs/engine) under the framework's app host; optional while it is new
+# Retro64's engine (engines/retro64), one copy for Cosmic Bugs and Water Bugs: built when either game is
 option(BUILD_COSMICBUGS "Build the Cosmic Bugs port" ON)
+option(BUILD_WATERBUGS "Build the Water Bugs port" ON)
+if((BUILD_COSMICBUGS AND EXISTS ${PROJECT_SOURCE_DIR}/games/cosmicbugs/CMakeLists.txt) OR
+   (BUILD_WATERBUGS AND EXISTS ${PROJECT_SOURCE_DIR}/games/waterbugs/CMakeLists.txt))
+  add_subdirectory(engines/retro64)
+endif()
+# Cosmic Bugs: Retro64's engine under the framework's app host; optional while it is new
 if(BUILD_COSMICBUGS AND EXISTS ${PROJECT_SOURCE_DIR}/games/cosmicbugs/CMakeLists.txt)
   add_subdirectory(games/cosmicbugs)
 endif()
-# Water Bugs: Cosmic Bugs' sequel on the same Retro64 engine (games/waterbugs/engine); optional while it is new
-option(BUILD_WATERBUGS "Build the Water Bugs port" ON)
+# Water Bugs: Cosmic Bugs' sequel on the same Retro64 engine; optional while it is new
 if(BUILD_WATERBUGS AND EXISTS ${PROJECT_SOURCE_DIR}/games/waterbugs/CMakeLists.txt)
   add_subdirectory(games/waterbugs)
 endif()
@@ -359,15 +382,19 @@ option(BUILD_BONNIES "Build the Bonnie's Bookstore Deluxe port" ON)
 if(BUILD_BONNIES AND EXISTS ${PROJECT_SOURCE_DIR}/games/bonnies/CMakeLists.txt)
   add_subdirectory(games/bonnies)
 endif()
-# Mahjong Escape: Ancient Japan: JollyBear's engine (games/mahjongjapan/engine) under the framework's app host;
-# optional while it is new
+# The two Mahjong Escape ports share JollyBear's engine (engines/jollybear) and their game code (engines/mahjongescape);
+# optional while they are new
 option(BUILD_MAHJONGJAPAN "Build the Mahjong Escape: Ancient Japan port" ON)
+option(BUILD_MAHJONGCHINA "Build the Mahjong Escape: Ancient China port" ON)
+if((BUILD_MAHJONGJAPAN AND EXISTS ${PROJECT_SOURCE_DIR}/games/mahjongjapan/CMakeLists.txt) OR
+   (BUILD_MAHJONGCHINA AND EXISTS ${PROJECT_SOURCE_DIR}/games/mahjongchina/CMakeLists.txt))
+  add_subdirectory(engines/jollybear)
+endif()
+# Mahjong Escape: Ancient Japan, under the framework's app host
 if(BUILD_MAHJONGJAPAN AND EXISTS ${PROJECT_SOURCE_DIR}/games/mahjongjapan/CMakeLists.txt)
   add_subdirectory(games/mahjongjapan)
 endif()
-# Mahjong Escape: Ancient China: Ancient Japan's port (games/mahjongchina/engine is a copy of its engine) with China's
-# differences; optional while it is new
-option(BUILD_MAHJONGCHINA "Build the Mahjong Escape: Ancient China port" ON)
+# Mahjong Escape: Ancient China: Ancient Japan's port with China's differences
 if(BUILD_MAHJONGCHINA AND EXISTS ${PROJECT_SOURCE_DIR}/games/mahjongchina/CMakeLists.txt)
   add_subdirectory(games/mahjongchina)
 endif()
@@ -380,4 +407,8 @@ endif()
 option(BUILD_BEJEWELED2 "Build the Bejeweled 2 Deluxe port" ON)
 if(BUILD_BEJEWELED2 AND EXISTS ${PROJECT_SOURCE_DIR}/games/bejeweled2/CMakeLists.txt)
   add_subdirectory(games/bejeweled2)
+endif()
+# Heavy Weapon Deluxe (the Popgun decompilation): optional while it is new; the build skips it if its folder is missing
+if(BUILD_HEAVYWEAPON AND EXISTS ${PROJECT_SOURCE_DIR}/games/heavyweapon/CMakeLists.txt)
+  add_subdirectory(games/heavyweapon)
 endif()

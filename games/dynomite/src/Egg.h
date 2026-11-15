@@ -47,7 +47,7 @@ public:
 class FlyingEgg : public Egg
 {
 public:
-	bool				mField20;		// +0x20 (cleared when it crosses the launcher's middle)
+	bool				mInFrontOfSling;// +0x20 drawn in front of the sling until it crosses the launcher's middle
 	float				mVX;			// +0x24
 	float				mVY;			// +0x28
 	bool				mGhost;			// +0x2c

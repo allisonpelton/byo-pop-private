@@ -25,7 +25,7 @@
 # says the oracle was partial, and expect-update refuses it (the expect file needs every case). Not with
 # --compare-only. Before a commit, run the whole oracle.
 #
-# Speed: --jobs <n> (1 to 3, default 3: CLAUDE.md allows 3 game processes at a time) runs up to n games at a
+# Speed: --jobs <n> (1 to 3, default 3: CLAUDE.md lets one run take 3 of the machine's 6 game processes) runs up to n games at a
 # time, the variants' in one pool (n + 2 jobs, so that preparing runs and taking them from the cache overlap
 # with the games). A run starts once the runs it reads are done (a from= user dir, or a savegame, script,
 # replay or mods folder in <out>); cases.txt, report.txt and the run directories do not depend on n, and
@@ -166,7 +166,7 @@ while [ $# -gt 0 ]; do
 done
 case "$JOBS" in
 	1|2|3) ;;
-	*) echo "compare.sh: --jobs takes 1 to 3 (CLAUDE.md: at most 3 game processes at a time)" >&2; exit 2 ;;
+	*) echo "compare.sh: --jobs takes 1 to 3 (CLAUDE.md: one run takes at most 3 game processes)" >&2; exit 2 ;;
 esac
 if [ -n "$VARIANTS" ] && [ $SINGLE_ARGS -eq 1 ]; then
 	echo "compare.sh: --variants names the candidates and output folders: no --candidate, --candidate-args or --out with it" >&2

@@ -5,7 +5,7 @@
 // exactly five users). OK or a double-click opens the app's confirmation (dialog 21, YES/NO), whose YES
 // (2021) makes the app call DeleteSelectedUser.
 // Original: class Sexy::DeleteUserDialog : public MoneyDialog, public ListListener, sizeof 0x130 (new in
-// BookWormApp::ShowDeleteUserDialog 0x418590). Vtables: 0x4fc2b4 (52 slots), ButtonListener 0x4fc298
+// BookWormApp::DoDeleteUserDialog 0x418590). Vtables: 0x4fc2b4 (52 slots), ButtonListener 0x4fc298
 // (+0x58), ListListener 0x4fc290 (+0x120). Offsets are absolute. Behaviour spec:
 // re/bookworm/analysis/dialogs.md section 6.
 
@@ -47,7 +47,7 @@ public:
 	virtual void	Draw(Graphics* g) override;                         // 0x4326e0 slot 16 (= MoneyDialog::Draw)
 	virtual int		GetPreferredHeight(int theWidth) override;          // 0x41ddd0 slot 50 (+ 16 + list height)
 
-	void			ConfirmDelete(const std::string& theName);          // 0x41e020 (app DoDialog 21, YES_NO)
+	void			DoConfirmDeleteDialog(const std::string& theName);          // 0x41e020 (app DoDialog 21, YES_NO)
 	void			DeleteSelectedUser();                               // 0x41e620 (called by the app on 2021)
 
 	virtual void	ButtonPress(int theId) override;                    // 0x41df60 +0x58 slot 3

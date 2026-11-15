@@ -190,18 +190,29 @@ var ByopopSaves = (function () {
     function two(n) { return (n < 10 ? "0" : "") + n; }
     return d.getFullYear() + "-" + two(d.getMonth() + 1) + "-" + two(d.getDate());
   }
-  // The play times of a backup (byopop-play, web/settings.js) with this browser's: for each game the larger count of plays and of
-  // seconds and the later day, so that restoring an older backup takes nothing away. Texts in, text out; a text that is not an
-  // object counts as none.
+  // The play times of a backup (byopop-play, web/settings.js) with this browser's: for each game, and for each site player's
+  // record of it (by), the larger count of plays and of seconds, the earlier first day and the later last day, so that
+  // restoring an older backup takes nothing away. Texts in, text out; a text that is not an object counts as none.
   function mergedPlay(mine, theirs) {
-    function parse(t) { try { var o = JSON.parse(t || "{}"); return o && typeof o === "object" && !Array.isArray(o) ? o : {}; } catch (e) { return {}; } }
+    function obj(o) { return o && typeof o === "object" && !Array.isArray(o) ? o : {}; }
+    function parse(t) { try { return obj(JSON.parse(t || "{}")); } catch (e) { return {}; } }
     function num(n) { return typeof n === "number" && isFinite(n) && n > 0 ? Math.floor(n) : 0; }
     function day(d) { return typeof d === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d) ? d : ""; }
+    function one(x, y) {
+      x = obj(x); y = obj(y);
+      var fx = day(x.first), fy = day(y.first), lx = day(x.last), ly = day(y.last);
+      return { plays: Math.max(num(x.plays), num(y.plays)), seconds: Math.max(num(x.seconds), num(y.seconds)),
+        first: fx && fy ? (fx < fy ? fx : fy) : fx || fy, last: lx > ly ? lx : ly };
+    }
     var a = parse(mine), b = parse(theirs), out = {};
     Object.keys(a).concat(Object.keys(b)).forEach(function (id) {
       if (!/^[a-z0-9_-]{1,40}$/.test(id) || out[id]) return;
-      var x = a[id] || {}, y = b[id] || {}, dx = day(x.last), dy = day(y.last);
-      out[id] = { plays: Math.max(num(x.plays), num(y.plays)), seconds: Math.max(num(x.seconds), num(y.seconds)), last: dx > dy ? dx : dy };
+      var x = obj(a[id]), y = obj(b[id]), bx = obj(x.by), byy = obj(y.by), by = {};
+      out[id] = one(x, y);
+      Object.keys(bx).concat(Object.keys(byy)).forEach(function (pid) {
+        if (/^[A-Za-z0-9_-]{0,40}$/.test(pid) && !by[pid]) by[pid] = one(bx[pid], byy[pid]);
+      });
+      if (Object.keys(by).length) out[id].by = by;
     });
     return JSON.stringify(out);
   }

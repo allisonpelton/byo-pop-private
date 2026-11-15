@@ -42,38 +42,38 @@ public:
 	double	mY;                     // +0x10 screen y (resting: Board::RowY)
 	double	mFlySpeed;              // +0x18 FlyingPieceList: step factor of both x and y (NAMES.md D4)
 	double	mVY;                    // +0x20 fall velocity, +0.2 per tick
-	int		mUnk28;                 // +0x28 saved only
-	int		mUnk2c;                 // +0x2c saved only
+	int		mSavedZeroIntA;         // +0x28 0 from the ctor; nothing reads it (saved and loaded)
+	int		mSavedZeroIntB;         // +0x2c 0 from the ctor; nothing reads it (saved and loaded)
 	int		mCol;                   // +0x30 0..6
 	int		mRow;                   // +0x34 0..7 (0 = top)
-	bool	mUnk38;                 // +0x38 saved only
+	bool	mSavedFalseBoolA;       // +0x38 false from the ctor; nothing reads it (saved and loaded)
 	// +0x39..+0x3b padding
-	int		mUnk3c;                 // +0x3c saved only, ctor 1
-	bool	mUnk40;                 // +0x40 saved only
-	bool	mUnk41;                 // +0x41 saved only
+	int		mSavedOneInt;           // +0x3c 1 from the ctor; nothing reads it (saved and loaded)
+	bool	mSavedFalseBoolB;       // +0x40 false from the ctor; nothing reads it (saved and loaded)
+	bool	mSavedFalseBoolC;       // +0x41 false from the ctor; nothing reads it (saved and loaded)
 	// +0x42..+0x47 padding
-	double	mUnk48;                 // +0x48 saved only
-	double	mUnk50;                 // +0x50 saved only
-	int		mUnk58;                 // +0x58 saved only
-	int		mUnk5c;                 // +0x5c saved only
-	bool	mUnk60;                 // +0x60 saved only
-	bool	mUnk61;                 // +0x61 saved only
+	double	mSavedZeroDoubleA;      // +0x48 0.0 from the ctor; nothing reads it (saved and loaded)
+	double	mSavedZeroDoubleB;      // +0x50 0.0 from the ctor; nothing reads it (saved and loaded)
+	int		mSavedZeroIntC;         // +0x58 0 from the ctor; nothing reads it (saved and loaded)
+	int		mSavedZeroIntD;         // +0x5c 0 from the ctor; nothing reads it (saved and loaded)
+	bool	mSavedFalseBoolD;       // +0x60 false from the ctor; nothing reads it (saved and loaded)
+	bool	mSavedFalseBoolE;       // +0x61 false from the ctor; nothing reads it (saved and loaded)
 	// +0x62..+0x63 padding
-	int		mUnk64;                 // +0x64 saved only
-	int		mUnk68;                 // +0x68 saved only
-	int		mUnk6c;                 // +0x6c saved only
-	bool	mUnk70;                 // +0x70 saved only
+	int		mSavedZeroIntE;         // +0x64 0 from the ctor; nothing reads it (saved and loaded)
+	int		mSavedZeroIntF;         // +0x68 0 from the ctor; nothing reads it (saved and loaded)
+	int		mSavedZeroIntG;         // +0x6c 0 from the ctor; nothing reads it (saved and loaded)
+	bool	mSavedFalseBoolF;       // +0x70 false from the ctor; nothing reads it (saved and loaded)
 	// +0x71..+0x77 padding
-	double	mUnk78;                 // +0x78 saved only
-	double	mUnk80;                 // +0x80 saved only
-	int		mUnk88;                 // +0x88 saved only
-	int		mUnk8c;                 // +0x8c saved only
-	int		mUnk90;                 // +0x90 saved only
-	int		mUnk94;                 // +0x94 saved only
-	bool	mUnk98;                 // +0x98 saved only
+	double	mSavedZeroDoubleC;      // +0x78 0.0 from the ctor; nothing reads it (saved and loaded)
+	double	mSavedZeroDoubleD;      // +0x80 0.0 from the ctor; nothing reads it (saved and loaded)
+	int		mSavedZeroIntH;         // +0x88 0 from the ctor; nothing reads it (saved and loaded)
+	int		mSavedZeroIntI;         // +0x8c 0 from the ctor; nothing reads it (saved and loaded)
+	int		mSavedZeroIntJ;         // +0x90 0 from the ctor; nothing reads it (saved and loaded)
+	int		mSavedZeroIntK;         // +0x94 0 from the ctor; nothing reads it (saved and loaded)
+	bool	mSavedFalseBoolG;       // +0x98 false from the ctor; nothing reads it (saved and loaded)
 	// +0x99..+0x9b padding
-	int		mUnk9c;                 // +0x9c saved only
-	int		mUnka0;                 // +0xa0 saved only
+	int		mSavedZeroIntL;         // +0x9c 0 from the ctor; nothing reads it (saved and loaded)
+	int		mSavedZeroIntM;         // +0xa0 0 from the ctor; nothing reads it (saved and loaded)
 	char	mLetter;                // +0xa4 'A'..'Z' ('Q' is "Qu"), ctor 0xff
 	char	mNextLetter;            // +0xa5 letter shown after a flip (scramble, special tile), ctor 0xff
 	bool	mSelected;              // +0xa6 in Board::mSelection
@@ -85,7 +85,7 @@ public:
 	int		mBurnDelay;             // +0xb8 ticks before sinking starts (20 at StartBurn)
 	bool	mPendingFire;           // +0xbc action mode: turns into a fire tile soon
 	// +0xbd..+0xbf padding
-	int		mUnkc0;                 // +0xc0 saved only
+	int		mSavedZeroIntN;         // +0xc0 0 from the ctor; nothing reads it (saved and loaded)
 	bool	mFlicker;               // +0xc4 frame animation on (board burned)
 	// +0xc5..+0xc7 padding
 	int		mFlickerFrame;          // +0xc8 0..7

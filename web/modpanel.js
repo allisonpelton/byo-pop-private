@@ -253,7 +253,8 @@ Module["byopop"] = (function () {
     ".mp-actions{display:flex;gap:4px}.mp-actions button{padding:2px 8px}" +
     ".mp-empty{color:var(--muted);border:1px dashed var(--line);border-radius:8px;padding:14px}" +
     ".mp-box{display:grid;gap:8px;padding:10px 12px;border:1px solid var(--line);border-radius:8px}" +
-    ".mp-box p{margin:0}";
+    ".mp-box p{margin:0}" +
+    ".mp-original{display:flex;gap:6px;align-items:center}.mp-original[hidden]{display:none}.mp-original input{margin:0}";
 
   function el(tag, cls, text) {
     var e = document.createElement(tag);
@@ -331,6 +332,14 @@ Module["byopop"] = (function () {
     pickers.appendChild(this.pickFolder);
     pickers.appendChild(this.pickZip);
     root.appendChild(pickers);
+    // The Original switch (docs/WEB_PLAYER.md, "The fixes mod on the site"): the site's fixes and lite mods off at once
+    this.originalRow = el("label", "mp-original");
+    this.originalBox = el("input");
+    this.originalBox.type = "checkbox";
+    this.originalRow.appendChild(this.originalBox);
+    this.originalRow.appendChild(document.createTextNode(ByopopStrings.t("mods.original")));
+    this.originalBox.addEventListener("change", function () { self.setOriginal(self.originalBox.checked); });
+    root.appendChild(this.originalRow);
     this.list = el("ul", "mp-list");
     this.list.setAttribute("aria-label", ByopopStrings.t("mods.list"));
     root.appendChild(this.list);
@@ -445,6 +454,7 @@ Module["byopop"] = (function () {
       try { this.state = JSON.parse(text); this.stale = false; } catch (e) { console.warn("mods state", e); }
     }
     this.reconcile();
+    this.keepOriginal();
   };
   // A queued removal whose mod is on again was taken back in the game's mod menu (Remove turned it off): it is
   // kept, as with Keep, instead of being deleted at the next start while the menu shows it on
@@ -458,6 +468,76 @@ Module["byopop"] = (function () {
     if (kept.length !== q.length) this.setQueue(kept);
   };
   ModPanel.prototype.mods = function () { return (this.state && this.state.mods) || []; };
+
+  // ---- The Original switch (the user, 2026-11-12: "Yes, flip defaults"; docs/MOD_ROADMAP.md, "What a player gets") ----
+  // A player gets the game with the site's fixes and lite mods on; the switch turns both off to play the original as it
+  // was. Its state is in the game's user dir beside the fixes mod's note (site-fixes.json): "original" holds each of
+  // those mods' on/off state from before the switch went on, and turning it off puts them back exactly. Their own
+  // settings (mod-settings.json) are never touched, so every fix's toggle holds too. A mod the player removed stays
+  // removed: the switch only turns on what is there.
+  var ORIGINAL_DIRS = ["fixes", "lite"];
+  ModPanel.prototype.noteFile = function () { return this.o.userDir + "/site-fixes.json"; };
+  ModPanel.prototype.note = function () {
+    try { return JSON.parse(readText(this.noteFile())) || {}; } catch (e) { return {}; }
+  };
+  ModPanel.prototype.saveNote = function (note) {
+    writeFile(this.noteFile(), new TextEncoder().encode(JSON.stringify(note)));
+    sync();
+  };
+  ModPanel.prototype.originalMods = function () {
+    return this.mods().filter(function (m) { return ORIGINAL_DIRS.indexOf(m.dir) >= 0; });
+  };
+  ModPanel.prototype.setOriginal = function (on) {
+    var self = this, note = this.note();
+    if (!!note.original === on) return;
+    this.switching = true;
+    try {
+      if (on) {
+        var kept = {};
+        this.originalMods().forEach(function (m) {
+          kept[m.dir] = !!m.enabled;
+          if (m.enabled) self.edit({ op: "enable", mod: m.id, on: false });
+        });
+        note.original = kept;
+      } else {
+        var was = note.original || {};
+        this.originalMods().forEach(function (m) {
+          if (was[m.dir] !== undefined && !!was[m.dir] !== !!m.enabled) self.edit({ op: "enable", mod: m.id, on: !!was[m.dir] });
+        });
+        delete note.original;
+      }
+      this.saveNote(note);
+    } finally { this.switching = false; }
+    this.refresh();
+  };
+  // While the switch is on: a fixes or lite mod that arrives (the site's first install of it) is turned off and
+  // remembered as on, as it would have started; one the player turned on again (in the game's mod menu) means the
+  // player left the original, so the switch goes off and their mods stay as they are now
+  ModPanel.prototype.keepOriginal = function () {
+    if (this.switching || !this.state) return;
+    var self = this, note = this.note(), kept = note.original;
+    if (!kept) return;
+    var mods = this.originalMods(), changed = false;
+    if (mods.some(function (m) { return kept[m.dir] !== undefined && m.enabled; })) {
+      delete note.original;
+      this.saveNote(note);
+      return;
+    }
+    this.switching = true;
+    try {
+      mods.forEach(function (m) {
+        if (kept[m.dir] !== undefined) return;
+        kept[m.dir] = !!m.enabled;
+        changed = true;
+        if (m.enabled) self.edit({ op: "enable", mod: m.id, on: false });
+      });
+    } finally { this.switching = false; }
+    if (changed) {
+      this.saveNote(note);
+      var text = this.call("byopop_mods_state", "string", [], []);
+      if (text !== null) { try { this.state = JSON.parse(text); } catch (e) { /* kept */ } }
+    }
+  };
   // Mods turned on in mods.json (what the next start applies)
   ModPanel.prototype.enabledCount = function () { return this.mods().filter(function (m) { return m.enabled; }).length; };
   ModPanel.prototype.running = function () { return !!(this.state && this.state.running) && !this.dead; };
@@ -482,6 +562,10 @@ Module["byopop"] = (function () {
     var hadFocus = this.root.contains(document.activeElement);
     this.list.textContent = "";
     this.addFolderButton.disabled = this.addZipButton.disabled = this.dead;
+    var original = !!this.note().original;
+    this.originalRow.hidden = !(this.originalMods().length || original);
+    this.originalBox.checked = original;
+    this.originalBox.disabled = this.dead;
     if (!st.mods.length) {
       var empty = el("li", "mp-empty", ByopopStrings.t("mods.empty"));
       this.list.appendChild(empty);

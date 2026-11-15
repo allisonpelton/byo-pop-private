@@ -61,8 +61,8 @@ function contrast(a, b) {
   check("not a string", C.usernameError(null) !== "" && C.usernameError(undefined) !== "" && C.usernameError(12) !== "" && C.usernameError({}) !== "");
   check("the three reasons differ", new Set([C.usernameError("a"), C.usernameError("a b"), C.usernameError("a..b")]).size === 3);
   check("the length bounds are Discord's", C.LIMITS.nameMin === 2 && C.LIMITS.nameMax === 32);
-  same("clean username", [C.cleanUsername("  Alice.B "), C.cleanUsername("ABC_def"), C.cleanUsername(null), C.cleanUsername(undefined)], ["alice.b", "abc_def", "", ""]);
-  check("a cleaned name is checked", C.usernameError(C.cleanUsername("  Alice.B ")) === "" && C.usernameError(C.cleanUsername("a..B")) !== "");
+  same("clean username: trimmed, its case kept", [C.cleanUsername("  alice.b "), C.cleanUsername("ABC_def"), C.cleanUsername(null), C.cleanUsername(undefined)], ["alice.b", "ABC_def", "", ""]);
+  check("a cleaned name is checked, capitals refused rather than lowered", C.usernameError(C.cleanUsername("  alice.b ")) === "" && C.usernameError(C.cleanUsername("Alice.B")) !== "" && C.usernameError(C.cleanUsername("a..b")) !== "");
   check("every made-up username is valid", C.SEED_USERS.length >= 8 && C.SEED_USERS.every((u) => C.usernameError(u) === ""));
 
   // ---------- the text of a message ----------
@@ -362,7 +362,9 @@ function contrast(a, b) {
     check("setUsername: refused for the rules", e && e.code === "name" && e.message === "chat.name.periods", e && e.message);
     e = await rejection(src.setUsername("x"));
     check("setUsername: too short", e && e.code === "name");
-    check("setUsername: a name is cleaned, then kept", (await src.setUsername("  Sam.Q_9 ")) === "sam.q_9" && st.data[C.KEYS.name] === "sam.q_9");
+    e = await rejection(src.setUsername("Sam.Q_9"));
+    check("setUsername: capitals refused, never lowered", e && e.code === "name" && e.message === "chat.name.chars", e && e.message);
+    check("setUsername: a name is trimmed, then kept", (await src.setUsername("  sam.q_9 ")) === "sam.q_9" && st.data[C.KEYS.name] === "sam.q_9");
     clock += 1000;
     check("send: with the new name", (await src.send("hi")).user === "sam.q_9");
     // simulated messages

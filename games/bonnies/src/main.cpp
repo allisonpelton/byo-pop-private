@@ -126,10 +126,10 @@ static bool LoadGameExe()
 	std::vector<uint8_t> aGame(aData.begin() + aBase, aData.end());
 	if (!bonnies::loadExe(aGame))
 		return false;
-	std::vector<uint32_t> anUnknown;
-	bonnies::runStaticInitializers(&anUnknown);
-	if (!anUnknown.empty())
-		SDL_Log("BonniesBookstore.exe: %d static initializers not understood", (int)anUnknown.size());
+	std::vector<uint32_t> aNotUnderstood;
+	bonnies::runStaticInitializers(&aNotUnderstood);
+	if (!aNotUnderstood.empty())
+		SDL_Log("BonniesBookstore.exe: %d static initializers not understood", (int)aNotUnderstood.size());
 	return true;
 }
 

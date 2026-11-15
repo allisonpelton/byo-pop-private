@@ -1,7 +1,7 @@
 #!/bin/bash
 # pairs.sh <out dir> [pairs] [max pairs]: the performance pass's measurement (NOTES.md "The performance pass"), the
 # original and the port back to back in pairs over the same seeded Classic autoplay, in 2D at the 768 art, windowed, on
-# the real clock and silent, each run one process sampled by games/bejeweled/tools/profile/perfmin.py from its creation
+# the real clock and silent, each run one process measured in cycles by cyclemeter.py (QueryProcessCycleTime, as docs/COORDINATION.md asks) from its creation
 # to its exit, one game process at a time. The window measured is 30 s to 90 s of the process's life, inside the game on
 # both sides (the original reaches its menu about 11 s in, the port under 3 s). While a run goes, the machine's game
 # processes are counted once a second (tools/gamecount.py); a pair in which another game process appeared is run again,
@@ -11,14 +11,22 @@
 # its silent stand-in, the seed patch (1234) and -autoplay=classic; the registry's ScreenMode and ArtRes are set for it
 # and the user's values put back at the end, as is the user's players folder (autoplay plays as the current player).
 # The port: build/native/bejeweledtwist.exe under rundesk, -nod3d9 -autoplay=classic -seed=1234, a fresh user folder.
+# MODE=3d (2026-11-11) measures 3D instead: the original in its own copy (build/origrun/bjtpair3d/game) with dgVoodoo2's
+# DDraw.dll and D3DImm.dll (origrun's --dgvoodoo) and its D3D9.dll (copied in: the game's 3D test asks Direct3D 9, which has
+# no hardware on rundesk's desktop), --3d on; the port with -3d. Neither waits for a vertical blank on its own: the original
+# sleeps between its 100 Hz updates and draws after each, as on a player's screen (NOTES.md, "Processor time like for like").
 set -u
 cd "$(dirname "$0")/../../../.."
 OUT="$1"; WANT="${2:-3}"; MAX="${3:-6}"; WAIT_S="${WAIT_S:-1800}"
 P=games/bejeweled/tools/profile
 mkdir -p "$OUT"
 win() { cygpath -w "$1"; }
-G=build/origrun/bjtpair/game
+MODE="${MODE:-2d}"
+RUN=bjtpair; ORIG3D=(--3d off); PORT3D=-nod3d9
+[ "$MODE" = 3d ] && { RUN=bjtpair3d; ORIG3D=(--3d on --dgvoodoo E:/retools/dgVoodoo2_87_5); PORT3D=-3d; }
+G=build/origrun/$RUN/game
 [ -f "$G/BejeweledTwist.exe" ] || { mkdir -p "$G" && cp -r build/origrun/bjtlvl/game/. "$G/"; }
+if [ "$MODE" = 3d ]; then cp E:/retools/dgVoodoo2_87_5/MS/x86/D3D9.dll "$G/"; else rm -f "$G"/DDraw.dll "$G"/D3DImm.dll "$G"/D3D9.dll "$G"/dgVoodoo.conf; fi
 K='HKCU\Software\Steam\BejeweledTwist'
 MSYS_NO_PATHCONV=1 reg export "$K" "$(win "$PWD/$OUT/user-registry.reg")" /y > /dev/null
 USERS=/c/ProgramData/Steam/BejeweledTwist/users
@@ -46,9 +54,9 @@ while [ $clean -lt "$WANT" ] && [ $n -lt "$MAX" ]; do
 	MSYS_NO_PATHCONV=1 reg add "$K" /v ScreenMode /t REG_DWORD /d 0 /f > /dev/null
 	MSYS_NO_PATHCONV=1 reg add "$K" /v ArtRes /t REG_DWORD /d 768 /f > /dev/null
 	C="$OUT/o$n.counts"; rm -f "$C" "$C.stop"; counts "$C" & CP=$!
-	python -I $P/perfmin.py "$OUT/o$n.json" 30,90 --attach 'bjtpair/game/BejeweledTwist.exe' > "$OUT/o$n.perf.txt" 2>&1 & PP=$!
-	build/origrun-bin/origrun.exe --exe "$(win "$PWD/$G/BejeweledTwist.exe")" --run bjtpair \
-		--patches tools/origrun/patches/bejeweledtwist.txt --seed 1234 --3d off \
+	python -I games/bejeweledtwist/tools/profile/cyclemeter.py "$OUT/o$n.json" 30,90 --attach "$RUN/game/BejeweledTwist.exe" > "$OUT/o$n.perf.txt" 2>&1 & PP=$!
+	build/origrun-bin/origrun.exe --exe "$(win "$PWD/$G/BejeweledTwist.exe")" --run $RUN \
+		--patches tools/origrun/patches/bejeweledtwist.txt --seed 1234 "${ORIG3D[@]}" \
 		--3d-key 'Software\Steam\BejeweledTwist' --3d-flag 0xe13bc0 --arg -autoplay=classic \
 		--script "$(win "$PWD/$OUT/orig.txt")" --timeout 150 > "$OUT/o$n.origrun.txt" 2>&1
 	wait $PP; touch "$C.stop"; wait $CP
@@ -57,8 +65,8 @@ while [ $clean -lt "$WANT" ] && [ $n -lt "$MAX" ]; do
 	U="$OUT/u$n"; rm -rf "$U"; mkdir -p "$U"
 	printf '[SOFTWARE\\Steam\\BejeweledTwist]\nArtRes=dword:768\nScreenMode=dword:0\n' > "$U/registry.ini"
 	C="$OUT/p$n.counts"; rm -f "$C" "$C.stop"; counts "$C" & CP=$!
-	build/native/rundesk.exe python -I $P/perfmin.py "$OUT/p$n.json" 30,90 -- "$(win "$PWD/build/native/bejeweledtwist.exe")" \
-		-gamedir="$(win "$PWD/assets/bejeweledtwist")" -userdir="$(win "$PWD/$U")" -nod3d9 -autoplay=classic -seed=1234 \
+	build/native/rundesk.exe python -I games/bejeweledtwist/tools/profile/cyclemeter.py "$OUT/p$n.json" 30,90 -- "$(win "$PWD/build/native/bejeweledtwist.exe")" \
+		-gamedir="$(win "$PWD/assets/bejeweledtwist")" -userdir="$(win "$PWD/$U")" $PORT3D -autoplay=classic -seed=1234 \
 		-script="$(win "$PWD/$OUT/port.txt")" > "$OUT/p$n.perf.txt" 2>&1
 	touch "$C.stop"; wait $CP
 	po=$(others "$C")

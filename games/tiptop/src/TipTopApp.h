@@ -8,6 +8,8 @@
 #include "SexyAppBase.h"
 #include "Widget.h"
 
+#include <vector>
+
 namespace Sexy
 {
 
@@ -18,6 +20,16 @@ class TipTopWidget : public Widget
 {
 public:
 	MemoryImage* mScreenImage;
+	uint32_t mShownWrites;  // lowos::HostScreenWrites() when mScreenImage last held the screen (Draw), or when the screen was found the same
+	bool mHasShown;         // Draw has filled mScreenImage once
+	// The rectangle of the image that Draw changed in its last call, to the block of 16 pixels in x (empty, width 0, when the
+	// picture was as before; the whole image at the first call), for a presenter that sends only what changed
+	int mChangedX, mChangedY, mChangedWidth, mChangedHeight;
+	// and the same pixels more closely: the runs of 32x32 tiles, one row of tiles at a time, that hold a changed pixel (in play
+	// the changed pixels fill 5 to 6% of the image, the tiles 14 to 17% and the one rectangle 39 to 43%). A native build's Draw
+	// hands them to the window's SurfaceDisplay together with the image's pixels and draws nothing itself.
+	std::vector<Rect> mChangedRects;
+	bool ScreenDiffersFromShown();
 
 	TipTopWidget();
 	virtual ~TipTopWidget();
@@ -76,6 +88,12 @@ public:
 	virtual void GotFocus() override;
 	virtual void LostFocus() override;
 	virtual void SwitchScreenMode(bool wantWindowed, bool is3d, bool force = false) override;
+#ifndef __EMSCRIPTEN__
+	// The window's display is a SurfaceDisplay (framework/SurfaceDisplay.h): the screen is one finished software-drawn picture, so
+	// the window shows only what changed, without a renderer's frame at 2x or 1x. SURFACE_DISPLAY=off in a test run keeps the
+	// framework's display and the widget's image, to compare the two.
+	virtual DDInterface* CreateDDInterface() override;
+#endif
 	virtual void SetMusicVolume(double theVolume) override;
 	virtual void HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue) override;
 	// Test hooks (testhooks/Script.cpp): TipTop's -script commands, canvasshot and musicwav
@@ -86,6 +104,12 @@ public:
 	void StartCanvasShot(const std::string& theFile);
 	void SaveCanvasShot();
 	std::string mCanvasShot;  // the file of a canvasshot, saved after the next frame
+	// testhooks/Canvas.cpp: -scramble fills the screen with noise before each pass and -screenhash=<file> logs a hash of the
+	// screen after each pass: a pass that paints the whole screen gives the same hashes with and without the noise
+	void ScrambleScreen();
+	void LogScreenHash();
+	bool mScrambleScreen = false;
+	FILE* mScreenHashLog = nullptr;
 	// The music's SoundFont bank (MusicSynth.h): -soundfont=<file>, else tiptop.sf2 beside the program
 	std::string mSoundFont;
 	using SexyAppBase::SwitchScreenMode;

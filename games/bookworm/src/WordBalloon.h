@@ -9,7 +9,7 @@
 // Show(0) or a click), then it fades out and hides; the OverlayWidget places it above Lex every update.
 // Original: class Sexy::WordBalloon : public Widget, sizeof 0x120 (new(0x120) in
 // OverlayWidget::AddedToManager 0x430d10), vftable 0x5016c4 (52 slots: Widget's 47, overrides 0 dtor,
-// 16 Draw, 17 Update, 27 MouseDown; new 47 DrawPlain, 48 DrawBox, 49 Show, 50 GetTextHeight,
+// 16 Draw, 17 Update, 27 MouseDown; new 47 DrawBalloon, 48 DrawComponentBalloon, 49 Show, 50 GetWordWrappedHeight,
 // 51 GetPreferredHeight). Offsets are absolute (the 2004 Widget is 0x58 bytes).
 // Behaviour spec: re/bookworm/analysis/lex.md section 4.
 
@@ -64,10 +64,10 @@ public:
 	virtual void	Draw(Graphics* g) override;                     // 0x4363d0 slot 16
 	virtual void	Update() override;                              // 0x437080 slot 17
 	virtual void	MouseDown(int x, int y, int theClickCount) override;     // 0x436420 slot 27
-	virtual void	DrawPlain(Graphics* g);                         // 0x4367a0 slot 47
-	virtual void	DrawBox(Graphics* g);                           // 0x436c40 slot 48
+	virtual void	DrawBalloon(Graphics* g);                         // 0x4367a0 slot 47
+	virtual void	DrawComponentBalloon(Graphics* g);                           // 0x436c40 slot 48
 	virtual void	Show(int theDuration);                          // 0x436360 slot 49 (0 = fade out and hide)
-	virtual int		GetTextHeight(int theWidth, const SexyString& theText, Font* theFont, int theJustify,
+	virtual int		GetWordWrappedHeight(int theWidth, const SexyString& theText, Font* theFont, int theJustify,
 						int theLineSpacing = -1);                   // 0x4365d0 slot 50
 	virtual int		GetPreferredHeight(int theWidth);               // 0x436680 slot 51
 	void			Close();                                        // port(mod): as a click on it
@@ -85,7 +85,7 @@ public:
 	void			SetText(const SexyString& theText, Font* theFont, int theJustify);   // 0x437510
 
 protected:
-	// port: the three text blocks as DrawPlain and DrawBox both draw them (the original repeats the code)
+	// port: the three text blocks as DrawBalloon and DrawComponentBalloon both draw them (the original repeats the code)
 	void			DrawTextBlocks(Graphics* g, Rect theRect);
 };
 

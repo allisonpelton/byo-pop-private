@@ -45,8 +45,6 @@ public:
 	// 0xf4: 0x40b6c0, the lines from mFirst on (puzzle, tsunami, then solitaire); the nodes <table>-scoreRank<n>,
 	// -scoreName<n> and -score<n> count from 0
 	virtual void showScores();
-	// 0xf8: 0x40b6a0
-	virtual void reset();
 
 	HighScores* mPuzzle;     // +0xd4
 	HighScores* mSolitaire;  // +0xd8

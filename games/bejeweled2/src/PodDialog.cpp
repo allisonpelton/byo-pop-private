@@ -10,7 +10,7 @@
 
 using namespace Sexy;
 
-// The way the buttons' glow moves toward its target: down by 0.1 an update, up by 0.2, and never past the target.
+// port: The way the buttons' glow moves toward its target: down by 0.1 an update, up by 0.2, and never past the target.
 static float StepToward(float theCurrent, float theTarget, double theDown, double theUp)
 {
 	if (theTarget <= theCurrent) {
@@ -49,10 +49,9 @@ PodButton::PodButton(int theId, ButtonListener* theListener) :
 	mBlinkGlow = 0.32f;
 	mHasAlpha = true;
 	mBlinkPeriod = 50;
-	mUnusedGlow = 0.5f;
-	mUnusedGlow2 = 1.0f;
 }
 
+// 0x5cdf1e (the destructor proper; 0x5ce2ef is its deleting one)
 PodButton::~PodButton()
 {
 }
@@ -340,7 +339,8 @@ void PodDialog::KeyDown(KeyCode theKey)
 	}
 }
 
-// 0x5ce514: a click in a dialog
+// 0x5ce514, 0x5caeb1, 0x5db5e9: a click in a dialog (the original gives OptionsDialog and UserDialog a copy of this each, with
+// the same click sound; the port's two classes inherit this one)
 void PodDialog::ButtonPress(int theId)
 {
 	mApp->PlaySample(SOUND_CLICK_DIALOG);

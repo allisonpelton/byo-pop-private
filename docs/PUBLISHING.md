@@ -50,6 +50,42 @@ snapshot, which is the parent of the next one; when the tree has not changed sin
 The commit's author is whoever git's configuration names, and its message is "byo-pop snapshot, <date>" unless
 `-m` gives another first line.
 
+## Derived repositories
+
+A derived repository is a read-only copy of one finished game: the game's code and notes, the shared code it links
+and a top-level `CMakeLists.txt` and `README.md` that build and describe that one game. It is generated from the
+trunk, never edited, and its README sends changes to this repository. Rocket Mania is the first
+(`https://github.com/allisonpelton/byo-pop-rocketmania`). A game gets one once its entry in `docs/game_status.json`
+shows every step done. It has no history either, only snapshots.
+
+A game's manifest is `tools/publish_targets/<game>.txt`, read from the trunk: its repository's url, the paths to take
+(`include` and `exclude`, a file or a folder each) and the generated files (a `file` line puts a trunk file at another
+path, a `transform` line runs one of the functions in `tools/publish.py`'s `TRANSFORMS` on a trunk file). To add a game,
+copy `rocketmania.txt`, list its folders, the libraries its CMake targets link (follow `games/<game>/CMakeLists.txt`
+and `third_party/CMakeLists.txt`) and its staging script, leave out the tools that need an original exe, origrun or the
+Ghidra exports, write its README next to the manifest, and run the check below. The `toplevel` transform takes the
+game's folder name; the other two cut the framework's and `third_party`'s lists down to the libraries that were taken,
+so a game that needs another library extends them. The `.publishignore` paths and private blocks apply as for the
+whole repository, and so do its checks; a manifest path that matches nothing stops the publish.
+
+```bash
+python tools/publish.py --target rocketmania --model "Opus 5.5"          # into refs/publish/rocketmania/next
+git show --stat refs/publish/rocketmania/next
+python tools/publish.py --target rocketmania --build-check               # builds that snapshot and plays a game
+python tools/publish.py --target rocketmania --push --model "Opus 5.5"   # to the manifest's url, then refs/publish/rocketmania/main
+```
+
+The snapshot is "byo-pop-rocketmania snapshot, <date>" with the same trailer. The build check extracts the snapshot into
+a temporary folder outside the repository, configures and builds it with the generator and toolchain of
+`docs/BUILDS.md`, then runs one scripted `-fast` game of the bot (the one `tools/check.sh rocketmania` plays) with the
+derived exe and with the trunk's `build/native` exe, both under rundesk on the main checkout's staged files. The
+two state logs must be byte-identical. It takes a few minutes, so run it in the background. The browser version is not
+in a derived repository, since the page around it is the site's (`web/`); it is built from the trunk.
+
+Each publish of the trunk also refreshes every derived repository: after `python tools/publish.py --push`, run the
+`--target` commands above for each manifest, so that the derived repositories never lag behind the code they were made
+from.
+
 <!-- private -->
 
 ## Backups

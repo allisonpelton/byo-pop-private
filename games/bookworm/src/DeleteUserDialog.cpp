@@ -40,7 +40,7 @@ int DeleteUserDialog::GetPreferredHeight(int theWidth)
 	return aHeight;
 }
 
-// 0x41de10 (slot 13): SelectUserDialog::Resize without the UpdateList
+// 0x41de10 (slot 13): SelectUserDialog::Resize without the ResetUserListWidget
 void DeleteUserDialog::Resize(int theX, int theY, int theWidth, int theHeight)
 {
 	Dialog2004::Resize(theX, theY, theWidth, theHeight);
@@ -110,7 +110,7 @@ void DeleteUserDialog::ButtonPress(int theId)
 }
 
 // 0x41e020: the confirmation (dialog 21, YES/NO; the app's DoDialog sets its fonts and colours)
-void DeleteUserDialog::ConfirmDelete(const std::string& theName)
+void DeleteUserDialog::DoConfirmDeleteDialog(const std::string& theName)
 {
 	mApp2->DoDialog(DIALOG_CONFIRM_DELETE_USER, true, GameText(GT_ARE_YOU_SURE),
 		StrFormat(GameTextC(GT_CONFIRM_DELETE_FORMAT), theName.c_str()), "", BUTTONS_YES_NO);
@@ -130,7 +130,7 @@ void DeleteUserDialog::ListClicked(int theId, int theIdx, int theClickCount)
 
 	SexyString aName = mUserList->mLines[theIdx];
 	if (theClickCount == 2)
-		ConfirmDelete(aName);
+		DoConfirmDeleteDialog(aName);
 }
 
 // 0x41e220 (ButtonListener +0x58 slot 4)
@@ -146,7 +146,7 @@ void DeleteUserDialog::ButtonDepress(int theId)
 		if ((mUserList != NULL) && (mUserList->mSelectIdx >= 0))
 		{
 			SexyString aName = mUserList->mLines[mUserList->mSelectIdx];
-			ConfirmDelete(aName);
+			DoConfirmDeleteDialog(aName);
 		}
 	}
 	else if (theId == mId + ID_NO_2004)
@@ -154,11 +154,11 @@ void DeleteUserDialog::ButtonDepress(int theId)
 		// CANCEL refreshes the roster underneath (no resize)
 		SelectUserDialog* aSelectUserDialog = (SelectUserDialog*) mApp2->GetDialog(DIALOG_SELECT_USER);
 		if (aSelectUserDialog != NULL)
-			aSelectUserDialog->UpdateList();
+			aSelectUserDialog->ResetUserListWidget();
 	}
 }
 
-// 0x41e370. The creator (BookWormApp::ShowDeleteUserDialog) sets colour 0 (white; the lines keep the
+// 0x41e370. The creator (BookWormApp::DoDeleteUserDialog) sets colour 0 (white; the lines keep the
 // default yellow) and sizes it to (0, 17, 400, GetPreferredHeight(400)).
 DeleteUserDialog::DeleteUserDialog(BookWormApp* theApp, std::vector<std::string> theNames) :
 	MoneyDialog(theApp, theApp->mImages[IMAGE_DIALOG], theApp->mImages[IMAGE_DIALOGBUTTON], DIALOG_DELETE_USER, true,
@@ -204,7 +204,7 @@ void DeleteUserDialog::DeleteSelectedUser()
 			// games stay on disk
 			aUserManager->DeleteUser(aName);
 
-			// The first remaining name becomes the current user (no LoadUserSettings here either)
+			// The first remaining name becomes the current user (no LoadUserConfig here either)
 			if (aName == aUserManager->GetCurrentUserName())
 			{
 				// port: the original reads mLines[0] unchecked; the list always has four names left here

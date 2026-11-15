@@ -8,7 +8,7 @@
 cd "$(git rev-parse --show-toplevel)" || exit 1
 name=$1; shift
 for i in $(seq 1 360); do
-	python -I tools/gamecount.py --limit 3 > /dev/null && break
+	python -I tools/gamecount.py --limit 6 > /dev/null && break
 	sleep 10
 done
 rm -rf "build/perf/exp-$name"

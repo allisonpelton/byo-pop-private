@@ -60,6 +60,12 @@ public:
 	virtual std::string GetInstrumentNames() { return std::string(); }
 	// Mutes a channel (true) or brings it back (false), for the window's tracker; false when the player cannot.
 	virtual bool SetChannelMute(int theChannel, bool theMute) { return false; }
+	// A pattern's rows per beat and per bar as its file stores them (beat << 16 | bar), 0 when it stores none.
+	virtual int GetMeter(int thePattern) { return 0; }
+	// The current speed in ticks a row, 0 when the player cannot tell (with GetTempo's BPM, a row's length).
+	virtual int GetSpeed() { return 0; }
+	// The module's orders (its order list's length), 0 when the player cannot tell.
+	virtual int GetOrders() { return 0; }
 #endif
 };
 
@@ -74,6 +80,7 @@ struct SoundData
 	int mChannels = 1;
 	int mRate = 48000;
 	size_t mFrames = 0;
+	std::string mName;  // the game path it was loaded from (LoadSoundData's theName), for the site's sound panel
 
 	size_t Bytes() const { return mSamples.capacity() * sizeof(int16_t); }
 };
@@ -155,14 +162,26 @@ public:
 #ifdef __EMSCRIPTEN__
 	// The site's Music window following the game (docs/WEB_PLAYER.md, "Following a game"; Audio.cpp's byopop_music_*). The
 	// song it shows: the loudest one playing (its handle, 0 for none), and as JSON where it is ({"song", "kind": "module" or
-	// "stream", and for a module "pattern", "row", "rows", "channels", "order", "title"}); a row's cells; the channels used; the
-	// instruments' names; a channel muted or brought back (the window's own control, not the game's).
+	// "stream", and for a module "pattern", "row", "rows", "channels", "order", "speed", "bpm" (0 where the player cannot tell),
+	// "orders", "title"}); a row's cells; the channels used; the instruments' names; a channel muted or brought back (the
+	// window's own control, not the game's); a pattern's rows per beat and bar as its file stores them; the song moved to an
+	// order and row (the window's seek bar, Previous and Next while it follows the game: the music the game plays changes).
 	int WebFollowedSong();
 	std::string WebSongView(int theSong);
 	std::string WebSongRow(int theSong, int thePattern, int theRow);
 	std::string WebSongUsed(int theSong);
 	std::string WebSongNames(int theSong);
 	bool WebSongMute(int theSong, int theChannel, bool theMute);
+	int WebSongMeter(int theSong, int thePattern);
+	bool WebSongSeek(int theSong, int theOrder, int theRow);
+	// The site's sound panel (web/soundpanel.js; Audio.cpp's byopop_sounds_*): while the page watches (WebWatchVoices(true);
+	// off by default, and nothing is kept while off), each voice started is logged with its sound's name, gains and pitch,
+	// so a sound that ends between two of the page's looks is still seen. WebVoicesView gives, as JSON, the effects
+	// master gain, the voices playing now ({"id", "name", "l", "r", "pitch", "loop", "at", "len"}: gains as the game set
+	// them, pitch as a rate (1 the sound's own), at and len in seconds) and the logged starts after theSince
+	// ({"n", "id", "name", "l", "r", "pitch", "loop", "len"}), with "n", the last start's number.
+	void WebWatchVoices(bool theWatch);
+	std::string WebVoicesView(int theSince);
 #endif
 
 #ifdef __EMSCRIPTEN__
@@ -241,6 +260,10 @@ private:
 	std::atomic<bool> mPageMuted{false};  // the web page's mute (SetPageMute): likewise
 	float mMusicAsked = 1.0f, mSfxAsked = 1.0f;  // the gains the game last set (SetMusicMasterGain, SetSfxMasterGain)
 	float mSiteMusic = 1.0f, mSiteSfx = 1.0f;    // the page's starting volume for a game with no volume option (SetSiteGains)
+	struct WebStart { int mN, mId; std::string mName; float mGainL, mGainR; double mPitch, mSeconds; bool mLoop; };
+	bool mWatchVoices = false;     // WebWatchVoices: the sound panel is open
+	std::vector<WebStart> mWebStarts;  // the last kWebStarts voices started while watched, oldest first
+	int mWebStartN = 0;
 #endif
 	bool mOffline = false; // InitOffline: voices without a device
 	bool mGameClocked = false;  // SetGameClocked: AdvanceVoices moves the voices, not Mix

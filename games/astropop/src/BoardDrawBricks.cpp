@@ -18,48 +18,48 @@ using namespace Sexy;
 // last list. theGlow is the second pass, which draws the glow of the bricks that have one.
 void Board::DrawBricks(Graphics* g, bool theGlow)
 {
-	bool aDraw = m1924 < 1 || (!m230.empty() && m230[0]->m1c) || mApp->mFlag658;
+	bool aDraw = mPauseCount < 1 || (!mHintSpots.empty() && mHintSpots[0]->mActive) || mApp->mTutorialOn;
 	if (!aDraw)
 		return;
 
-	for (int aRow = m8da ? 1 : 0; aRow < 19; aRow++)
+	for (int aRow = mBonusFieldLoaded ? 1 : 0; aRow < 19; aRow++)
 	{
 		for (int aCol = 0; aCol < 10; aCol++)
 		{
-			Brick* aBrick = m314[aRow][aCol];
+			Brick* aBrick = mFieldBricks[aRow][aCol];
 			if (aBrick != NULL)
 				aBrick->Draw(g, theGlow);
 		}
 	}
 
-	for (std::list<std::list<Brick*> >::iterator aGroup = m7c.begin(); aGroup != m7c.end(); ++aGroup)
+	for (std::list<std::list<Brick*> >::iterator aGroup = mFiredGroups.begin(); aGroup != mFiredGroups.end(); ++aGroup)
 		for (std::list<Brick*>::iterator aBrick = aGroup->begin(); aBrick != aGroup->end(); ++aBrick)
 			(*aBrick)->Draw(g, theGlow);
 
-	for (std::list<Brick*>::iterator aBrick = m88.begin(); aBrick != m88.end(); ++aBrick)
+	for (std::list<Brick*>::iterator aBrick = mGoneBricks.begin(); aBrick != mGoneBricks.end(); ++aBrick)
 		(*aBrick)->Draw(g, theGlow);
 
-	for (std::list<std::list<Brick*> >::iterator aGroup = m94.begin(); aGroup != m94.end(); ++aGroup)
+	for (std::list<std::list<Brick*> >::iterator aGroup = mFallingGroups.begin(); aGroup != mFallingGroups.end(); ++aGroup)
 		for (std::list<Brick*>::iterator aBrick = aGroup->begin(); aBrick != aGroup->end(); ++aBrick)
 			(*aBrick)->Draw(g, theGlow);
 
-	for (std::list<Brick*>::iterator aBrick = ma0.begin(); aBrick != ma0.end(); ++aBrick)
+	for (std::list<Brick*>::iterator aBrick = mTakenBricks.begin(); aBrick != mTakenBricks.end(); ++aBrick)
 		(*aBrick)->Draw(g, theGlow);
 }
 
-// 0x443fd0: while the tally runs (m916) the held pieces stand over the stack and a dark bar closes in from each side;
+// 0x443fd0: while the tally runs (mClearCountRunning) the held pieces stand over the stack and a dark bar closes in from each side;
 // the introduction of a bonus round (and of the second game type's stages) puts the rules over the field.
 void Board::DrawBonusIntro(Graphics* g)
 {
-	int aPieceX = m198c - 5;
-	int aBaseY = (int) (m1bf8 + 423.0f);
+	int aPieceX = mShipX - 5;
+	int aBaseY = (int) (mShipBounceY + 423.0f);
 
-	if (m916)
+	if (mClearCountRunning)
 	{
 		for (int aPass = 0; aPass < 2; aPass++)
 		{
 			int aY = aBaseY;
-			for (std::list<Brick*>::iterator aBrick = m70.begin(); aBrick != m70.end(); ++aBrick)
+			for (std::list<Brick*>::iterator aBrick = mHeldBricks.begin(); aBrick != mHeldBricks.end(); ++aBrick)
 			{
 				aY -= 0x19;
 				if (!(*aBrick)->mVisible)
@@ -68,21 +68,21 @@ void Board::DrawBonusIntro(Graphics* g)
 		}
 
 		g->SetColor(Color(0, 0, 0, 0xaa));
-		g->FillRect(0, 0xa0, m1b88, 0xe1);
-		g->FillRect(mWidth - m1b88, 0xa0, m1b88, 0xe1);
+		g->FillRect(0, 0xa0, mTallyBarWidth, 0xe1);
+		g->FillRect(mWidth - mTallyBarWidth, 0xa0, mTallyBarWidth, 0xe1);
 	}
 
-	if (((m1bc0 == 2 && m1bc8 == 0xff) || m1bc0 == 3) && !m913 || (m910 && !m917 && !m913))
+	if (((mBonusWarpPhase == 2 && mBonusWarpWhiteAlpha == 0xff) || mBonusWarpPhase == 3) && !mBonusRoundStarted || (mBonusRoundOn && !mBonusWarpIn && !mBonusRoundStarted))
 	{
 		g->SetColor(Color(0, 0, 0, 0xdc));
 		g->FillRect(0, 0xa0, mWidth, 0xc3);
 		g->DrawImage(IMAGE_BONUS_TEXT_HEADER, 0x182 - IMAGE_BONUS_TEXT_HEADER->mWidth / 2, 0xb4);
 		g->SetFont(GetFontById(FONT_DIALOG_BOX_BTN_ID));
 
-		std::string aWorth = FormatNumber(m960);
+		std::string aWorth = FormatNumber(mClearBonusWorth);
 		WriteString(g, StrFormat(GTC(0x00564828), aWorth.c_str()), 0xa6, 0x104, 0x1b8, 0, true, 0, -1);
 		int aY = g->GetFont()->GetHeight() + 0x104;
-		std::string aPenalty = FormatNumber((int) ((float) m960 * 0.05f));
+		std::string aPenalty = FormatNumber((int) ((float) mClearBonusWorth * 0.05f));
 		WriteString(g, StrFormat(GTC(0x005647e8), aPenalty.c_str()), 0xa6, aY, 0x1b8, 0, true, 0, -1);
 		aY = aY + g->GetFont()->GetHeight() * 2;
 
@@ -90,7 +90,7 @@ void Board::DrawBonusIntro(Graphics* g)
 		WriteString(g, GT(0x005647cc), 0xa6, aY, 0x1b8, 0, true, 0, -1);
 		aY += g->GetFont()->GetHeight() * 2;
 
-		if (!m912 && !m913 && !m917)
+		if (!mBricksRevealing && !mBonusRoundStarted && !mBonusWarpIn)
 		{
 			int aPhase = mUpdateCnt % 0x80;
 			if (aPhase > 0x3f)

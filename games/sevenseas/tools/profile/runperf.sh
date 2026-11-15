@@ -5,14 +5,14 @@
 ROOT="$(pwd)"; P=games/sevenseas/tools/profile; PY=C:/Python312/python.exe
 mkdir -p build/perf
 for i in $(seq 1 "${1:-3}"); do
-  while ! $PY tools/gamecount.py --limit 7 >/dev/null 2>&1; do sleep 20; done
+  while ! $PY tools/gamecount.py --limit 6 >/dev/null 2>&1; do sleep 20; done
   $PY tools/gamecount.py --limit 99 2>&1 | head -1 > build/perf/procs_o$i.txt
   rm -rf build/origrun/pfo$i
   build/origrun-bin/origrun.exe --game sevenseas --run pfo$i --seed 7 --script $P/perf_orig.txt > build/perf/orig$i.log 2>&1 &
   $PY $P/perfmin.py build/perf/orig$i.json 20,80 --attach "origrun/pfo$i/game/winss.exe"
   wait
   $PY tools/gamecount.py --limit 99 2>&1 | head -1 >> build/perf/procs_o$i.txt
-  while ! $PY tools/gamecount.py --limit 7 >/dev/null 2>&1; do sleep 20; done
+  while ! $PY tools/gamecount.py --limit 6 >/dev/null 2>&1; do sleep 20; done
   $PY tools/gamecount.py --limit 99 2>&1 | head -1 > build/perf/procs_p$i.txt
   rm -rf build/perf/ud$i
   build/native/rundesk.exe $PY $P/perfmin.py build/perf/port$i.json 20,80 -- build/native/sevenseas.exe -userdir=build/perf/ud$i -script=$P/perf_port.txt

@@ -17,13 +17,19 @@ namespace wordharmony
 class ScreenImage : public engine::Image
 {
 public:
-	ScreenImage(int theWidth, int theHeight) : mWidth(theWidth), mHeight(theHeight), mBits(theWidth * theHeight) {}
+	ScreenImage(int theWidth, int theHeight) : mWidth(theWidth), mHeight(theHeight), mBits(theWidth * theHeight), mSerial(nextSerial()) {}
+	// 0x4572a0
 	int getWidth() override { return mWidth; }
+	// 0x4572b0
 	int getHeight() override { return mHeight; }
 
 	int mWidth;
 	int mHeight;
 	std::vector<uint32_t> mBits;  // ARGB
+	uint32_t mSerial;             // port: a number no other image of the run has (what ScreenGraphics compares a frame's draw calls by)
+
+private:
+	static uint32_t nextSerial();
 };
 
 // 0x457510: a PNG or JPEG decoded, with the alpha of the mask's bytes when theMask is given; the alpha mode as the
@@ -33,19 +39,37 @@ ScreenImage* decodeImage(const std::vector<uint8_t>& theData, const std::vector<
 class ScreenGraphics : public engine::Graphics
 {
 public:
-	ScreenGraphics(uint32_t* theBits, int theWidth, int theHeight)
-		: mBits(theBits), mWidth(theWidth), mHeight(theHeight) {}
+	// 0x45dcb0
+	ScreenGraphics(uint32_t* theBits, int theWidth, int theHeight);
+	~ScreenGraphics() override;
+	ScreenGraphics(const ScreenGraphics&) = delete;
+	ScreenGraphics& operator=(const ScreenGraphics&) = delete;
+
+	// Port (for speed): the draw calls of a frame are recorded, not drawn, and the screen is made at the frame's end. clear
+	// starts the frame (the screen is black, nothing drawn); finish draws the tiles of the screen whose calls are not the last
+	// frame's and tells whether any did (Render.cpp, "retained drawing")
+	void clear();
+	bool finish();
+
+	// port (for speed): what the last finish redrew, as rectangles of the screen (a run of redrawn tiles in a row is one, and a
+	// run under one of the same width joins it), for a display that copies only what changed (SurfaceDisplay)
+	struct Rectangle
+	{
+		int mX, mY, mWidth, mHeight;
+	};
+	const std::vector<Rectangle>& redrawn() const;
 
 	void drawImage(engine::Image* theImage, const engine::IntRect& theSrc, float x, float y) override;
 	using engine::Graphics::drawImage;
-	void fillRect(const engine::Rect& theRect) override;
-	void fillRectAdditive(const engine::Rect& theRect) override;
 	void drawLine(const engine::Point& theFrom, const engine::Point& theTo) override;
 
 private:
+	struct Retained;  // the frame's draw calls and the tiles' (Render.cpp)
+
 	uint32_t* mBits;
 	int mWidth;
 	int mHeight;
+	Retained* mRetained;
 };
 
 } // namespace wordharmony

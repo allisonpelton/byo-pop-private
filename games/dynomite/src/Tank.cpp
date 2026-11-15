@@ -67,7 +67,7 @@ void Tank::Flinch(int theCount)
 	mState = 1;
 	mTime = 0x28;
 	mEyeTime = 0;
-	if ((0 < mBoard->mGrid->mPastLineFrames) && (mBoard->mField149 == true))
+	if ((0 < mBoard->mGrid->mPastLineFrames) && (mBoard->mPastLineLoses == true))
 		return;
 	if (theCount < 5)
 		return;
@@ -143,40 +143,40 @@ void Tank::Draw()
 	float aLowest = (float) (aCell->mHeight / 2) + aBoard->mGrid->mCeiling;
 	if (433.0f < aLowest)
 		y = (int) aLowest;
-	if ((aBoard->mGrid->mPastLineFrames < 1) || (aBoard->mField149 != true))
+	if ((aBoard->mGrid->mPastLineFrames < 1) || (aBoard->mPastLineLoses != true))
 	{
 		if (mState == 0)
 		{
-			aCell->Draw((aBoard->mField158 - (aCell->mWidth >> 1)) + 0x78 + aBoard->mField70, y - (aCell->mHeight >> 1));
-			mApp->mTankEyeCells[mEye]->Draw(mBoard->mField158 + 0x5c + mBoard->mField70, y - 0x15);
+			aCell->Draw((aBoard->mLauncherOffsetX - (aCell->mWidth >> 1)) + 0x78 + aBoard->mPlayMiddleX, y - (aCell->mHeight >> 1));
+			mApp->mTankEyeCells[mEye]->Draw(mBoard->mLauncherOffsetX + 0x5c + mBoard->mPlayMiddleX, y - 0x15);
 		}
 		else if (mState == 1)
 		{
 			aCell = mApp->mPicTanksheet_c1;
-			aCell->Draw((aBoard->mField158 - (aCell->mWidth >> 1)) + 0x78 + aBoard->mField70, y - (aCell->mHeight >> 1));
+			aCell->Draw((aBoard->mLauncherOffsetX - (aCell->mWidth >> 1)) + 0x78 + aBoard->mPlayMiddleX, y - (aCell->mHeight >> 1));
 		}
 		else if (mState == 2)
 		{
 			aCell = mApp->mPicTanksheet_c2;
-			aCell->Draw((aBoard->mField158 - (aCell->mWidth >> 1)) + 0x78 + aBoard->mField70, y - (aCell->mHeight >> 1));
-			mApp->mTankMouthCells[mMouth[mTime].mFrame]->Draw(mBoard->mField158 + 0x53 + mBoard->mField70, y - 0xc);
+			aCell->Draw((aBoard->mLauncherOffsetX - (aCell->mWidth >> 1)) + 0x78 + aBoard->mPlayMiddleX, y - (aCell->mHeight >> 1));
+			mApp->mTankMouthCells[mMouth[mTime].mFrame]->Draw(mBoard->mLauncherOffsetX + 0x53 + mBoard->mPlayMiddleX, y - 0xc);
 			aCell = mApp->mPicTextballoons_c1;
-			aCell->Draw((mBoard->mField158 - (aCell->mWidth >> 1)) + 0xb4 + mBoard->mField70,
+			aCell->Draw((mBoard->mLauncherOffsetX - (aCell->mWidth >> 1)) + 0xb4 + mBoard->mPlayMiddleX,
 				(y - (aCell->mHeight >> 1)) - 0x28);
 			aCell = mWord;
-			aCell->Draw((mBoard->mField158 - (aCell->mWidth >> 1)) + 0xb3 + mBoard->mField70,
+			aCell->Draw((mBoard->mLauncherOffsetX - (aCell->mWidth >> 1)) + 0xb3 + mBoard->mPlayMiddleX,
 				(y - (aCell->mHeight >> 1)) - 0x2e);
 		}
 	}
 	else
 	{
 		Pic* aPic = mApp->mPicTankterror;
-		aPic->Draw((aBoard->mField158 - (aPic->mWidth >> 1)) + 0x78 + aBoard->mField70, y - (aPic->mHeight >> 1));
+		aPic->Draw((aBoard->mLauncherOffsetX - (aPic->mWidth >> 1)) + 0x78 + aBoard->mPlayMiddleX, y - (aPic->mHeight >> 1));
 		aBoard = mBoard;
 		if (aBoard->mSteggy->mBlink == true)
 		{
 			aPic = mApp->mPicTanksweat;
-			aPic->Draw((aBoard->mField158 - (aPic->mWidth >> 1)) + 100 + aBoard->mField70,
+			aPic->Draw((aBoard->mLauncherOffsetX - (aPic->mWidth >> 1)) + 100 + aBoard->mPlayMiddleX,
 				(y - (aPic->mHeight >> 1)) - 0x3c);
 		}
 	}

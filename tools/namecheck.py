@@ -2,7 +2,7 @@
 """Find unnamed and unknown identifiers in a port's source (docs/CODE_STANDARDS.md, "Names").
 
     python tools/namecheck.py games/<game>               checks games/<game>/src, with games/<game>/namecheck.txt
-                                                         (and the folders its "folder" lines add)
+                                                         (and the folders its "folder" and "engine" lines add)
     python tools/namecheck.py games/<game> --list        also prints every allowed and exempted finding
     python tools/namecheck.py <file or folder>... --config <file>
     python tools/namecheck.py --selftest                 the checker on its own small cases
@@ -21,6 +21,9 @@ The checks (each one a rule of docs/CODE_STANDARDS.md):
   offset    a name that ends in its offset or address in place of the rest of its name: mScale288, mFlags1E4,
             mCamera144C, Rand85B970, Record1C (three or more upper-case hex characters with a digit among them, or two
             with a hex letter; 2D and 3D, lower-case tails and short numbers such as mSwapPiece1 or aCos36 are not)
+  hexname   a prefix followed by nothing but an offset or address: m70, m314, m1a34, mB0, g5E8A30 (a member with two
+            or more hex characters, another prefix with three or more, a digit among them; matrix cells m00 to m33,
+            2D and 3D, and words spelled in hex letters, three or more in a row as in aFade2, are not)
   comment   a comment that puts "unknown" in place of a name: "purpose unknown", "unknown field", "??", "no idea",
             "TODO: name"
   stage     a comment that names a development stage, milestone or phase by its number ("stage 7b", "phase 2",
@@ -31,6 +34,11 @@ The checks (each one a rule of docs/CODE_STANDARDS.md):
             the letters the config allows (by default i, j, k for indices, x, y, z for coordinates and g for a
             Graphics*, the framework's own convention): a one-letter name is fine where its type is on the same
             screen, as in a lambda's parameters or a three-line helper
+  tag       an address in a comment of a shared engine (engines/<name>, docs/ENGINES.md) that does not name its game:
+            the engine's comments give each game's address as "0x40c2e0 (cosmicbugs), 0x40c4d0 (waterbugs)" (a range
+            as "0x40c1a0..0x40c890 (cosmicbugs)"), with the game's folder name, so that each game's checks read its
+            own. Only the addresses of an exe (0x400000 to 0x7fffff) count; a word in parentheses that is not a game's
+            name ("0x41ac20 (launched)") is not a tag
   addr      a function definition with neither an address (0x4cb182) nor a port marker ("port:", "port(...)") in
             its comment, so that the coverage check can pair every function with the export; a file whose first
             comment carries the port marker holds only the port's own functions. An address or marker on the
@@ -48,6 +56,9 @@ reason is an error, so every exception says why it is there:
   folder <name>                         another source folder of the game, checked with src/ when the game folder is
                                         given (a port with an engine of its own beside src/); its files are listed
                                         and matched as <name>/<file>
+  engine <name>                         a shared engine, engines/<name> at the top of the repository, checked with the
+                                        game's src/ and run through the tag check as well; its files are listed and
+                                        matched as engines/<name>/<file>
 """
 import argparse, fnmatch, os, re, sys
 
@@ -65,6 +76,11 @@ STANDIN = re.compile(r"^(?:m|g|s|k|a|an|the)?_?(?:%s)_?(?:0x)?[0-9A-Fa-f]*[0-9][
 STANDIN_BARE = re.compile(r"^(?:m|g|s|a|an|the)(?:Temp|Tmp|Dummy|Foo|Blah|Stuff|Thing|Misc|Unused(?:[A-Z]\w*)?)$")
 # a word, then an offset or an address of upper-case hex in place of the rest of the name (not "2D" or "3D")
 OFFSET = re.compile(r"^(?:(?:m|g|s|k|a|an|the)[A-Z]|[A-Z])\w*?[a-z_]((?:0x)?[0-9A-F]{2,8})$")
+# a prefix and then only an offset or address, with a digit in it (m70, m1a34, mB0, g5E8A30); not a word spelled in hex
+# letters (three or more in a row, as in aFade2), a matrix cell (m00 to m33) or 2D and 3D
+HEXNAME = re.compile(r"^(?:m_?(?:0x)?(?![0-9A-Fa-f]*[A-Fa-f]{3})(?=[0-9A-Fa-f]*[0-9])[0-9A-Fa-f]{2,8}|"
+                     r"(?:g|s|k|a|an|the)_?(?:0x)?(?![0-9A-Fa-f]*[A-Fa-f]{3})(?=[0-9A-Fa-f]*[0-9])[0-9A-Fa-f]{3,8})$")
+HEXNAME_NOT = re.compile(r"^(?:m[0-3][0-3]|\w*[23][Dd])$")
 
 
 STAGE = re.compile(r"\b(?:stage|phase|milestone)[ -]?\d+[a-z]?\b", re.I)
@@ -98,6 +114,9 @@ FUNC_DEF = re.compile(r"^(?!\s)(?!(?:if|for|while|switch|return|else|do|case|def
 DEFAULT_SHORT = set("ijkxyzg")
 PORT_MARK = re.compile(r"\bport\s*(?::|\()")
 ADDR = re.compile(r"\b0x[0-9a-fA-F]{5,8}\b")
+# an address of an exe, a range's end, and the tag after it
+TAGGED = re.compile(r"\b0x([0-9a-fA-F]{5,8})\b(?:\.\.0x([0-9a-fA-F]{5,8})\b)?(?: \(([a-z0-9]+)\))?")
+EXE_LOW, EXE_HIGH = 0x400000, 0x7fffff
 
 
 def strip(text):
@@ -159,6 +178,7 @@ class Config:
         self.port_files = []
         self.addr_skip = []
         self.folders = []     # more folders of the game folder to check
+        self.engines = []     # shared engines (engines/<name>) to check with the game's src/
         self.short_span = 10
 
     @staticmethod
@@ -188,6 +208,8 @@ class Config:
                 cfg.addr_skip.append(re.compile("^(?:%s)$" % rule[1]))
             elif kind == "folder" and len(rule) == 2:
                 cfg.folders.append(rule[1])
+            elif kind == "engine" and len(rule) == 2:
+                cfg.engines.append(rule[1])
             else:
                 raise ValueError("%s:%d: cannot read rule %r" % (path, number, text))
         return cfg
@@ -239,6 +261,8 @@ def check_file(path, rel, cfg, findings, skipped):
             report("standin", number, name, "a generic word or a number in place of a name")
         elif is_offset_name(name):
             report("offset", number, name, "an offset or address in place of the rest of a name")
+        elif HEXNAME.match(name) and not HEXNAME_NOT.match(name):
+            report("hexname", number, name, "an offset or address in place of a name")
 
     for number, body in comments:
         m = COMMENT.search(body)
@@ -246,6 +270,16 @@ def check_file(path, rel, cfg, findings, skipped):
             report("comment", number, m.group(0).strip(), "a comment that puts 'unknown' in place of a name")
         for m in STAGE.finditer(body):
             report("stage", number, m.group(0), "a comment that names a development stage, not the feature")
+
+    if rel.startswith("engines/"):
+        games = getattr(cfg, "games", None)
+        for number, body in comments:
+            for m in TAGGED.finditer(body):
+                ends = [m.group(1)] + ([m.group(2)] if m.group(2) else [])
+                if not any(EXE_LOW <= int(a, 16) <= EXE_HIGH for a in ends):
+                    continue
+                if m.group(3) is None or (games is not None and m.group(3) not in games):
+                    report("tag", number, "0x" + m.group(1), "an address in a shared engine without its game's tag")
 
     letters = cfg.short_letters(rel)
     for number, codeline in enumerate(lines, 1):
@@ -436,6 +470,17 @@ SELFTEST = [
     ("int Helper();\nint aValue = Helper();\n", []),
 ]
 
+# (source, expected findings) of a file of a shared engine, where an address names its game
+TAG_SELFTEST = [
+    ("// 0x401000 (cosmicbugs), 0x401100 (waterbugs)\nvoid F()\n{\n}\n", []),
+    ("// 0x401000\nvoid F()\n{\n}\n", ["tag 0x401000"]),
+    ("// 0x401000..0x402000 (cosmicbugs), 0x401200..0x402200 (waterbugs)\nvoid F()\n{\n}\n", []),
+    ("// 0x41ac20 (launched): slows by its drag\nvoid F()\n{\n}\n", ["tag 0x41ac20"]),
+    ("// 0x401000 (cosmicbugs): the mask 0xff0000 and the size 0x100000 are not addresses\nvoid F()\n{\n}\n", []),
+    ("// 0x401000 (nosuchgame)\nvoid F()\n{\n}\n", ["tag 0x401000"]),
+    ("// port: the port's own, with 0x401000 (cosmicbugs) in a mention\nvoid F()\n{\n}\n", []),
+]
+
 
 def selftest():
     import tempfile
@@ -451,14 +496,31 @@ def selftest():
             if got != sorted(expected):
                 failures += 1
                 print("selftest case %d: expected %s, got %s" % (index, sorted(expected), got))
-        # a game folder: its src/ alone, then with a "folder" line that adds its engine/, then one that names no folder
-        game = os.path.join(folder, "game")
-        for name, source in (("src/a.cpp", "// 0x401000\nvoid F()\n{\n}\n"), ("engine/b.cpp", "int mUnknown;\n")):
-            os.makedirs(os.path.dirname(os.path.join(game, name)), exist_ok=True)
-            with open(os.path.join(game, name), "w", encoding="utf-8", newline="\n") as f:
+        tag_config = Config()
+        tag_config.games = {"cosmicbugs", "waterbugs"}
+        for index, (source, expected) in enumerate(TAG_SELFTEST):
+            path = os.path.join(folder, "tag%d.cpp" % index)
+            with open(path, "w", encoding="utf-8", newline="\n") as f:
+                f.write(source)
+            findings = []
+            check_file(path, "engines/shared/tag.cpp", tag_config, findings, [])
+            got = sorted("%s %s" % (f[2], f[3]) for f in findings if f[2] == "tag")
+            if got != sorted(expected):
+                failures += 1
+                print("selftest tag case %d: expected %s, got %s" % (index, sorted(expected), got))
+        # a game folder: its src/ alone, then with a "folder" line that adds its engine/, then one that names no
+        # folder, then with a shared engine (engines/shared beside games/) added by an "engine" line
+        game = os.path.join(folder, "games", "game")
+        for name, source in ((os.path.join("games", "game", "src", "a.cpp"), "// 0x401000\nvoid F()\n{\n}\n"),
+                             (os.path.join("games", "game", "engine", "b.cpp"), "int mUnknown;\n"),
+                             (os.path.join("engines", "shared", "c.cpp"), "int mUnknown;\n")):
+            os.makedirs(os.path.dirname(os.path.join(folder, name)), exist_ok=True)
+            with open(os.path.join(folder, name), "w", encoding="utf-8", newline="\n") as f:
                 f.write(source)
         folder_cases = [("", [], 1), ("folder engine -- the engine is the game's too\n", ["engine/b.cpp unknown mUnknown"], 2),
-                        ("folder nowhere -- no such folder\n", "error", 0)]
+                        ("folder nowhere -- no such folder\n", "error", 0),
+                        ("engine shared -- the engine both games share\n", ["engines/shared/c.cpp unknown mUnknown"], 2),
+                        ("engine nowhere -- no such engine\n", "error", 0)]
         for rules, expected, files in folder_cases:
             with open(os.path.join(game, "namecheck.txt"), "w", encoding="utf-8", newline="\n") as f:
                 f.write(rules)
@@ -470,7 +532,7 @@ def selftest():
             if got != expected or count != files:
                 failures += 1
                 print("selftest folder case %r: expected %s in %d files, got %s in %d" % (rules, expected, files, got, count))
-    total = len(SELFTEST) + len(folder_cases)
+    total = len(SELFTEST) + len(TAG_SELFTEST) + len(folder_cases)
     print("namecheck selftest: %d of %d cases %s" % (total - failures, total,
                                                        "pass" if not failures else "pass, %d fail" % failures))
     return 1 if failures else 0
@@ -526,6 +588,17 @@ def run(paths, config=None, wanted=None):
                 raise ValueError("%s: folder %s is not in %s" % (config, name, base))
             if folder not in targets:
                 targets.append(folder)
+    shared = {}
+    if base:
+        repo = os.path.dirname(os.path.dirname(os.path.abspath(base)))
+        games_folder = os.path.join(repo, "games")
+        cfg.games = set(os.listdir(games_folder)) if os.path.isdir(games_folder) else None
+        for name in cfg.engines:
+            folder = os.path.join(repo, "engines", name)
+            if not os.path.isdir(folder):
+                raise ValueError("%s: engine %s is not in %s" % (config, name, os.path.join(repo, "engines")))
+            shared[os.path.abspath(folder)] = "engines/" + name
+            targets.append(folder)
     root = base or os.path.commonpath([os.path.abspath(t) for t in targets])
 
     findings, skipped = [], []
@@ -543,6 +616,9 @@ def run(paths, config=None, wanted=None):
         rel = os.path.relpath(path, root).replace("\\", "/")
         if base and rel.startswith("src/"):
             rel = rel[4:]
+        for folder, name in shared.items():
+            if os.path.abspath(path).startswith(folder + os.sep):
+                rel = name + "/" + os.path.relpath(os.path.abspath(path), folder).replace("\\", "/")
         check_file(path, rel, cfg, findings, skipped)
         count += 1
     if wanted:

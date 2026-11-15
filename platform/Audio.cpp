@@ -293,6 +293,7 @@ struct Mixer::Song
 {
 	xmp_context mCtx = nullptr;
 	std::unique_ptr<ModulePlayer> mModule;   // a registered module format (e.g. MO3 via libopenmpt)
+	int mMeter = 0;   // an IT's row highlights (rows per beat << 16 | per bar; ModuleText.h's byopop_it_meter), 0 for none
 
 	std::vector<uint8_t> mFile;              // Ogg bytes, kept alive for the decoder
 	size_t mModuleFileBytes = 0;             // a module's file size, for the memory report (its player holds the module)
@@ -831,6 +832,7 @@ std::shared_ptr<SoundData> Mixer::LoadSound(const std::string& theGamePath)
 std::shared_ptr<SoundData> Mixer::LoadSoundData(const std::vector<uint8_t>& file, const std::string& theName)
 {
 	auto data = std::make_shared<SoundData>();
+	data->mName = theName;
 	// Detect Ogg by content: mods may remap a game path to a file with another name.
 	if (file.size() > 4 && !memcmp(file.data(), "OggS", 4))
 	{
@@ -964,6 +966,13 @@ int Mixer::StartVoice(const std::shared_ptr<SoundData>& theData, float theGainL,
 		v.mStartedAt = emscripten_get_now();
 		if (mDevice == kPageDevice && !mGameClocked)
 			PageLead(v);
+		if (mWatchVoices)
+		{
+			if (mWebStarts.size() >= 64)
+				mWebStarts.erase(mWebStarts.begin());
+			mWebStarts.push_back({++mWebStartN, handle, theData->mName, theGainL, theGainR, thePitch,
+				(double)theData->mFrames / theData->mRate, theLoop});
+		}
 #endif
 		if (mNextVoiceSerial > 0x7fffff)
 			mNextVoiceSerial = 1;
@@ -1139,6 +1148,11 @@ int Mixer::LoadSong(const std::string& theGamePath)
 	}
 	if (!song->IsStream() && !song->mModule)
 	{
+#ifdef __EMSCRIPTEN__
+		int aBeat = 0, aBar = 0;
+		if (byopop_it_meter(file.data(), (long)file.size(), &aBeat, &aBar))
+			song->mMeter = aBeat << 16 | aBar;
+#endif
 		song->mCtx = xmp_create_context();
 		if (xmp_load_module_from_memory(song->mCtx, file.data(), (long)file.size()) != 0)
 		{
@@ -1589,7 +1603,7 @@ std::string Mixer::WebSongView(int theSong)
 	SONG_FOR_HANDLE(theSong);
 	if (s && s->mPlaying)
 	{
-		int v[5] = {0, 0, 0, 0, 0};
+		int v[5] = {0, 0, 0, 0, 0}, aSpeed = 0, aBPM = 0, anOrders = 0;
 		std::string aTitle;
 		bool aModule = false;
 		if (s->mCtx)
@@ -1603,12 +1617,18 @@ std::string Mixer::WebSongView(int theSong)
 			v[2] = anInfo.num_rows;
 			v[3] = aModuleInfo.mod->chn;
 			v[4] = anInfo.pos;
+			aSpeed = anInfo.speed;
+			aBPM = anInfo.bpm;
+			anOrders = aModuleInfo.mod->len;
 			aTitle = aModuleInfo.mod->name;
 			aModule = true;
 		}
 		else if (s->mModule && s->mModule->GetView(v))
 		{
 			aTitle = s->mModule->GetTitle();
+			aSpeed = s->mModule->GetSpeed();
+			aBPM = s->mModule->GetTempo();
+			anOrders = s->mModule->GetOrders();
 			aModule = true;
 		}
 		char aBuf[200];
@@ -1631,8 +1651,8 @@ std::string Mixer::WebSongView(int theSong)
 				else
 					aQuoted += (char)c;
 			}
-			snprintf(aBuf, sizeof(aBuf), "{\"song\":%d,\"kind\":\"module\",\"heard\":%d,\"pattern\":%d,\"row\":%d,\"rows\":%d,\"channels\":%d,\"order\":%d,\"title\":\"",
-				theSong, aHeard, v[0], v[1], v[2], v[3], v[4]);
+			snprintf(aBuf, sizeof(aBuf), "{\"song\":%d,\"kind\":\"module\",\"heard\":%d,\"pattern\":%d,\"row\":%d,\"rows\":%d,\"channels\":%d,\"order\":%d,\"speed\":%d,\"bpm\":%d,\"orders\":%d,\"title\":\"",
+				theSong, aHeard, v[0], v[1], v[2], v[3], v[4], aSpeed, aBPM, anOrders);
 			aJson = aBuf + aQuoted + "\"}";
 		}
 		else
@@ -1643,6 +1663,85 @@ std::string Mixer::WebSongView(int theSong)
 	}
 	Unlock();
 	return aJson;
+}
+
+// a string as a JSON string's contents: quotes and backslashes escaped, control characters as spaces
+static void WebQuote(std::string& theOut, const std::string& theText)
+{
+	for (unsigned char c : theText)
+	{
+		if (c == '"' || c == '\\')
+		{
+			theOut += '\\';
+			theOut += (char)c;
+		}
+		else
+			theOut += c < 0x20 ? ' ' : (char)c;
+	}
+}
+
+void Mixer::WebWatchVoices(bool theWatch)
+{
+	mWatchVoices = theWatch;
+	if (!theWatch)
+		mWebStarts.clear();
+}
+
+std::string Mixer::WebVoicesView(int theSince)
+{
+	char aBuf[160];
+	snprintf(aBuf, sizeof(aBuf), "{\"n\":%d,\"sfx\":%.3f,\"voices\":[", mWebStartN, mSfxMaster);
+	std::string aJson = aBuf;
+	bool aFirst = true;
+	for (auto& aVoice : mVoices)
+	{
+		Voice& v = *aVoice;
+		if (!v.mActive || !v.mData || !v.mData->mRate)
+			continue;
+		double aPitch = v.mStep * mRate / v.mData->mRate;
+		snprintf(aBuf, sizeof(aBuf), "%s{\"id\":%d,\"l\":%.3f,\"r\":%.3f,\"pitch\":%.4f,\"loop\":%d,\"at\":%.3f,\"len\":%.3f,\"name\":\"",
+			aFirst ? "" : ",", v.mHandle, v.mGainL, v.mGainR, aPitch, v.mLoop ? 1 : 0, v.mPos / v.mData->mRate,
+			(double)v.mData->mFrames / v.mData->mRate);
+		aJson += aBuf;
+		WebQuote(aJson, v.mData->mName);
+		aJson += "\"}";
+		aFirst = false;
+	}
+	aJson += "],\"started\":[";
+	aFirst = true;
+	for (const WebStart& s : mWebStarts)
+	{
+		if (s.mN <= theSince)
+			continue;
+		snprintf(aBuf, sizeof(aBuf), "%s{\"n\":%d,\"id\":%d,\"l\":%.3f,\"r\":%.3f,\"pitch\":%.4f,\"loop\":%d,\"len\":%.3f,\"name\":\"",
+			aFirst ? "" : ",", s.mN, s.mId, s.mGainL, s.mGainR, s.mPitch, s.mLoop ? 1 : 0, s.mSeconds);
+		aJson += aBuf;
+		WebQuote(aJson, s.mName);
+		aJson += "\"}";
+		aFirst = false;
+	}
+	return aJson + "]}";
+}
+
+bool Mixer::WebSongSeek(int theSong, int theOrder, int theRow)
+{
+	bool aDone = false;
+	Lock();
+	SONG_FOR_HANDLE(theSong);
+	if (s && s->mPlaying && !s->IsStream() && theOrder >= 0 && theRow >= 0)
+	{
+		if (s->mModule)
+			s->mModule->SetPosition(theOrder, theRow);
+		else if (s->mCtx)
+		{
+			xmp_set_position(s->mCtx, theOrder);
+			if (theRow > 0)
+				xmp_set_row(s->mCtx, theRow);
+		}
+		aDone = s->mModule || s->mCtx;
+	}
+	Unlock();
+	return aDone;
 }
 
 std::string Mixer::WebSongRow(int theSong, int thePattern, int theRow)
@@ -1690,6 +1789,19 @@ std::string Mixer::WebSongNames(int theSong)
 		aText = s->mModule->GetInstrumentNames();
 	Unlock();
 	return aText;
+}
+
+int Mixer::WebSongMeter(int theSong, int thePattern)
+{
+	int aMeter = 0;
+	Lock();
+	SONG_FOR_HANDLE(theSong);
+	if (s && s->mCtx)
+		aMeter = s->mMeter;
+	else if (s && s->mModule)
+		aMeter = s->mModule->GetMeter(thePattern);
+	Unlock();
+	return aMeter;
 }
 
 bool Mixer::WebSongMute(int theSong, int theChannel, bool theMute)
@@ -1769,6 +1881,16 @@ EMSCRIPTEN_KEEPALIVE int byopop_music_song()
 {
 	return Platform::Mixer::Get().WebFollowedSong();
 }
+// The site's sound panel (web/soundpanel.js): watching the voices on or off, and what plays, as JSON (Mixer::WebVoicesView).
+EMSCRIPTEN_KEEPALIVE void byopop_sounds_watch(int theWatch)
+{
+	Platform::Mixer::Get().WebWatchVoices(theWatch != 0);
+}
+EMSCRIPTEN_KEEPALIVE const char* byopop_sounds_view(int theSince)
+{
+	gMusicResult = Platform::Mixer::Get().WebVoicesView(theSince);
+	return gMusicResult.c_str();
+}
 // Where that song is, as JSON ("" for a song not playing).
 EMSCRIPTEN_KEEPALIVE const char* byopop_music_view(int theSong)
 {
@@ -1786,6 +1908,17 @@ EMSCRIPTEN_KEEPALIVE const char* byopop_music_used(int theSong)
 {
 	gMusicResult = Platform::Mixer::Get().WebSongUsed(theSong);
 	return gMusicResult.c_str();
+}
+// A pattern's rows per beat and per bar as its file stores them (beat << 16 | bar), 0 for none.
+EMSCRIPTEN_KEEPALIVE int byopop_music_meter(int theSong, int thePattern)
+{
+	return Platform::Mixer::Get().WebSongMeter(theSong, thePattern);
+}
+// It moved to an order and row (the window's seek bar, Previous and Next while it follows the game); 1 done, 0 not (a stream,
+// a song not playing).
+EMSCRIPTEN_KEEPALIVE int byopop_music_seek(int theSong, int theOrder, int theRow)
+{
+	return Platform::Mixer::Get().WebSongSeek(theSong, theOrder, theRow) ? 1 : 0;
 }
 // A channel of it muted (1) or brought back (0) from the window's tracker; 1 done, 0 not.
 EMSCRIPTEN_KEEPALIVE int byopop_music_mute(int theSong, int theChannel, int theMute)

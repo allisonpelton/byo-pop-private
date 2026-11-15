@@ -11,6 +11,8 @@
 using namespace Sexy;
 using namespace std;
 
+bool Sexy::gWidgetsDrawWithoutFastStretch = false;
+
 WidgetManager::WidgetManager(SexyAppBase* theApp)
 {
 	mApp = theApp;
@@ -150,7 +152,8 @@ void WidgetManager::FlushDeferredOverlayWidgets(int theMaxPriority)
 					Graphics g(*mCurG);
 					g.Translate(-mMouseDestRect.mX, -mMouseDestRect.mY);
 					g.Translate(aWidget->mX, aWidget->mY);
-					g.SetFastStretch(!g.Is3D());
+					if (!gWidgetsDrawWithoutFastStretch)
+						g.SetFastStretch(!g.Is3D());
 					g.SetLinearBlend(g.Is3D());
 
 					aWidget->DrawOverlay(&g, aPriority);
@@ -385,7 +388,8 @@ void WidgetManager::DrawWidgetsTo(Graphics* g)
 		if (aWidget->mVisible)
 		{
 			Graphics aClipG(*g);
-			aClipG.SetFastStretch(true);
+			if (!gWidgetsDrawWithoutFastStretch)
+				aClipG.SetFastStretch(true);
 			aClipG.Translate(aWidget->mX, aWidget->mY);
 			aWidget->DrawAll(&aModalFlags, &aClipG);			
 		}
@@ -448,7 +452,8 @@ bool WidgetManager::DrawScreen()
 			if ((aWidget->mDirty) && (aWidget->mVisible))
 			{
 				Graphics aClipG(g);
-				aClipG.SetFastStretch(!is3D);
+				if (!gWidgetsDrawWithoutFastStretch)
+					aClipG.SetFastStretch(!is3D);
 				aClipG.SetLinearBlend(is3D);
 				aClipG.Translate(aWidget->mX, aWidget->mY);				
 				aWidget->DrawAll(&aModalFlags, &aClipG);

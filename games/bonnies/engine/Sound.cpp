@@ -32,7 +32,7 @@ SoundSystem::SoundSystem()
 	mPaused = 0;
 	mDelayed = nullptr;
 	mFocusPaused = 0;
-	mUnused4 = -1;
+	mLastChannel = -1;
 	Str aPath = soundDir(true) + "music.xm";
 	if (!fileExists(aPath))
 		aPath = soundDir(true) + "music.mod";
@@ -44,7 +44,7 @@ SoundSystem::SoundSystem()
 }
 
 // 0x41e9c0
-int SoundSystem::play(Sample* theSample, float theVolume, int theUnused, int theDelay, float thePitch)
+int SoundSystem::play(Sample* theSample, float theVolume, int thePassedOn, int theDelay, float thePitch)
 {
 	if (mPaused < 1 && mFocusPaused == 0 && gInitialized && theSample != nullptr && theSample->mHandle != nullptr)
 	{
@@ -52,7 +52,7 @@ int SoundSystem::play(Sample* theSample, float theVolume, int theUnused, int the
 		{
 			Delayed* aDelayed = new Delayed();
 			aDelayed->mSample = theSample;
-			aDelayed->mUnused = theUnused;
+			aDelayed->mPassedOn = thePassedOn;
 			aDelayed->mVolume = theVolume;
 			aDelayed->mDue = host()->getTicks() + theDelay;
 			aDelayed->mNext = mDelayed;
@@ -79,7 +79,7 @@ int SoundSystem::play(Sample* theSample, float theVolume, int theUnused, int the
 }
 
 // 0x41eb40
-int SoundSystem::play(const Str& theName, float theVolume, int theUnused, int theDelay, float thePitch)
+int SoundSystem::play(const Str& theName, float theVolume, int thePassedOn, int theDelay, float thePitch)
 {
 	if (mPaused < 1 && mFocusPaused == 0 && gInitialized)
 	{
@@ -87,7 +87,7 @@ int SoundSystem::play(const Str& theName, float theVolume, int theUnused, int th
 		Sample* aSample = gResources->getSound(theName);
 		if (aSample != nullptr && aSample->mHandle != nullptr)
 		{
-			int aChannel = play(aSample, theVolume, theUnused, theDelay, thePitch);
+			int aChannel = play(aSample, theVolume, thePassedOn, theDelay, thePitch);
 			host()->trace("PSb 2");
 			return aChannel;
 		}
@@ -295,7 +295,7 @@ void SoundSystem::update()
 				return;
 		}
 		// as the original: the list then starts after the entry played, so the entries before it are dropped unplayed
-		play(aDelayed->mSample, aDelayed->mVolume, aDelayed->mUnused, 0, 1.0f);
+		play(aDelayed->mSample, aDelayed->mVolume, aDelayed->mPassedOn, 0, 1.0f);
 		mDelayed = aDelayed->mNext;
 		delete aDelayed;
 	}

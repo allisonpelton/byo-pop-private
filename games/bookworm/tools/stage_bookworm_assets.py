@@ -20,8 +20,8 @@ DEFAULT_INSTALLS = [
     r"C:\Program Files (x86)\Steam\steamapps\common\BookWorm Deluxe",
 ]
 
-# Folders and files the game reads at runtime. Bookworm.exe (the CD-protect launcher with the game appended)
-# is read for the game's texts only, never run. Not copied: hw.dat, BASS, the uninstaller,
+# Folders and files the game reads at runtime. Bookworm.exe (the CD-protect launcher with the game appended, or
+# the PopCap Game Collection's, which is the game itself) is read for the game's texts only, never run. Not copied: hw.dat, BASS, the uninstaller,
 # readme/licence/register.tpl, the original's runtime WAV cache (sounds/cached_*.wav), the properties
 # signature, and the player's own data (players/, classic.dat, action.dat).
 DIRS = ["images", "fonts", "sounds", "music", "properties"]

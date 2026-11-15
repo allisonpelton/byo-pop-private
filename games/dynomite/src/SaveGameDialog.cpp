@@ -59,32 +59,37 @@ SaveGameDialog::SaveGameDialog(FossilizedApp* theApp) :
 	ReadSlots();
 }
 
-// 0x433420: the slots' buttons and pictures; the board gets the focus back. Port: as in the original, the empty
-// picture and the Save and Cancel buttons are not deleted
+// 0x433420: the slots' buttons and pictures; the board gets the focus back. Port: the original never deletes the empty
+// picture and cell or the Save and Cancel buttons, a leak each time the dialog is shown; the port deletes them after the
+// slots' buttons that show the cell (RemovedFromManager has taken the buttons off the widget manager)
 SaveGameDialog::~SaveGameDialog()
 {
-	int n = 0;
+	int aSlot = 0;
 	int i = 8;
 	do
 	{
-		if (mSlotButtons[n] != NULL)
+		if (mSlotButtons[aSlot] != NULL)
 		{
-			delete mSlotButtons[n];
-			mSlotButtons[n] = NULL;
+			delete mSlotButtons[aSlot];
+			mSlotButtons[aSlot] = NULL;
 		}
-		if (mSlotPics[n] != NULL)
+		if (mSlotPics[aSlot] != NULL)
 		{
-			delete mSlotPics[n];
-			mSlotPics[n] = NULL;
+			delete mSlotPics[aSlot];
+			mSlotPics[aSlot] = NULL;
 		}
-		if (mSlotCells[n] != NULL)
+		if (mSlotCells[aSlot] != NULL)
 		{
-			delete mSlotCells[n];
-			mSlotCells[n] = NULL;
+			delete mSlotCells[aSlot];
+			mSlotCells[aSlot] = NULL;
 		}
-		n++;
+		aSlot++;
 		i--;
 	} while (i != 0);
+	delete mEmptyCell;
+	delete mEmptyPic;
+	delete mSaveButton;
+	delete mCancelButton;
 	if (mApp->mBoard != NULL)
 		mApp->mWidgetManager->SetFocus(mApp->mBoard);
 }

@@ -54,7 +54,7 @@ static std::string UpperName(const std::string& theName)
 // list, stays in sight), made where the original makes it with 0x411ba0 and a resize
 AstroDialog* AstroPopApp::ShowLowMessageDialog(const std::string& theHeader, const std::string& theText)
 {
-	AstroDialog* aDialog = MakeDialog(1, false, 0x6c, -1, -1, 3, theHeader, theText, "OK", std::string(), true);
+	AstroDialog* aDialog = MakeDialog(1, false, 0x6c, -1, -1, 3, theHeader, theText, "OK", std::string());
 	int aWidth = aDialog->mWidth;
 	int aHeight = aDialog->mHeight;
 	aDialog->Resize(0x140 - aWidth / 2, 0x11d - aHeight / 2, aWidth, aHeight);
@@ -174,7 +174,7 @@ void AstroPopApp::ShowDeleteUserDialog()
 // The box for a profile that could not be read: it was made new again (0x4298c0) and the player is told
 static void ShowDataLostBox(AstroPopApp* theApp, bool theCentre)
 {
-	AstroDialog* aBox = theApp->MakeDialog(1, false, 0x6c, -1, -1, 3, "Error", GT(0x563470), "OK", std::string(), true);
+	AstroDialog* aBox = theApp->MakeDialog(1, false, 0x6c, -1, -1, 3, "Error", GT(0x563470), "OK", std::string());
 	if (theCentre)
 		CentreInRect(aBox, 0, 110, 400, 305);
 }
@@ -199,7 +199,7 @@ void AstroPopApp::UserSelectOk()
 			ShowNewUserDialog();
 			return;
 		}
-		AstroDialog* aBox = MakeDialog(1, false, 0x6c, -1, -1, 3, "Error", StrFormat(GTC(0x563748), 10), "OK", std::string(), true);
+		AstroDialog* aBox = MakeDialog(1, false, 0x6c, -1, -1, 3, "Error", StrFormat(GTC(0x563748), 10), "OK", std::string());
 		CentreInRect(aBox, 0, 110, 400, 305);
 	}
 	else if (aChoice == GT(0x55dcd0))
@@ -242,7 +242,7 @@ void AstroPopApp::DeleteUser(bool theConfirmed)
 {
 	if (!theConfirmed)
 	{
-		MakeDialog(1, false, 0x6f, -1, -1, 1, GT(0x005637d0), GT(0x5637e0), "Yes", "No", true);
+		MakeDialog(1, false, 0x6f, -1, -1, 1, GT(0x005637d0), GT(0x5637e0), "Yes", "No");
 		return;
 	}
 
@@ -275,7 +275,7 @@ void AstroPopApp::DeleteUser(bool theConfirmed)
 		anError = !aFileGone || !aFine;
 	}
 	if (anError)
-		MakeDialog(1, false, 0x6c, -1, -1, 3, "Error", GT(0x5637a0), "OK", std::string(), true);
+		MakeDialog(1, false, 0x6c, -1, -1, 3, "Error", GT(0x5637a0), "OK", std::string());
 
 	delete mUser;
 	mUser = NULL;
@@ -309,7 +309,7 @@ void AstroPopApp::DeleteUser(bool theConfirmed)
 		if (!mUser->Load(NULL, NULL, false))
 		{
 			ResetFailedUserLoad();
-			MakeDialog(1, false, 0x6c, -1, -1, 3, "Error", GT(0x563470), "OK", std::string(), true);
+			MakeDialog(1, false, 0x6c, -1, -1, 3, "Error", GT(0x563470), "OK", std::string());
 		}
 		ListDialog* aList = (ListDialog*) GetDialog(0x6d);
 		aList->RebuildList();

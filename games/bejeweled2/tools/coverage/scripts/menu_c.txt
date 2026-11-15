@@ -1,0 +1,5 @@
+# coverage script (2D, the profile player): the window closed at the main menu
+at 566 move 320 401
+at 568 click 320 401
+at 900 shot menu
+quit

@@ -8,6 +8,7 @@
     type <text>                                                one character after another
     focus lose | focus regain
     portcmd <test command>                                      only the port's script gets it (the original has the same state by a patch)
+    origcmd <origrun command>                                   only the original's script gets it (its More Games button, say)
     shot <name>                                                a screenshot named <name>.png
     quit
 
@@ -69,6 +70,8 @@ def main():
             orig.append('at %d focus %s' % (ou, arg))
         elif cmd == 'portcmd':
             port.append('%d %s' % (pu, arg))    # a test command of the port's, no input (the original has no counterpart)
+        elif cmd == 'origcmd':
+            orig.append('at %d %s' % (ou, arg))     # an input only the original gets (a button the port has taken out)
         elif cmd == 'quit':
             pass
         else:

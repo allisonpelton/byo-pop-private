@@ -73,6 +73,8 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("install", nargs="?", help="Bejeweled Twist install folder (contains main.pak)")
     ap.add_argument("--out", default=os.path.join(ROOT, "assets", "bejeweledtwist"))
+    ap.add_argument("--own-properties", action="store_true",
+                    help="take properties/ from the install itself, not from a Steam copy (the Collection check)")
     args = ap.parse_args()
 
     src = find_install(args.install)
@@ -86,7 +88,8 @@ def main():
     for name, offset, size in popcap_pak.read_records(pak, 0xF7):
         write(out, name, bytes(x ^ 0xF7 for x in pak[offset:offset + size]))
         count += 1
-    props = next((c for c in STEAM_INSTALLS if os.path.isfile(os.path.join(c, "properties", "resources.xml"))), src)
+    props = src if args.own_properties else next(
+        (c for c in STEAM_INSTALLS if os.path.isfile(os.path.join(c, "properties", "resources.xml"))), src)
     for d in LOOSE_DIRS:
         base = props if d == "properties" else src
         for root, _, files in os.walk(os.path.join(base, d)):

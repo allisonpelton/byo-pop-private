@@ -113,9 +113,9 @@ void sparkleBoard()
 				aSumY = aY + aSumY;
 			}
 			aRow++;
-		} while (aRow < 9);
+		} while (aRow < BOARD_ROWS);
 		aColumn++;
-	} while (aColumn < 9);
+	} while (aColumn < BOARD_COLUMNS);
 	int aDivisor = 1;
 	if (0 < aCount)
 		aDivisor = aCount;
@@ -158,9 +158,9 @@ void sparkleBoard()
 				} while (aLeft != 0);
 			}
 			aRow++;
-		} while (aRow < 9);
+		} while (aRow < BOARD_ROWS);
 		aColumn++;
-	} while (aColumn < 9);
+	} while (aColumn < BOARD_COLUMNS);
 }
 
 // 0x406330
@@ -171,9 +171,9 @@ Str& appendInt(Str& theStr, int theValue)
 }
 
 // 0x406360
-int playSound(const Str& theName, float theVolume, int theUnused, int theDelay)
+int playSound(const Str& theName, float theVolume, int thePassedOn, int theDelay)
 {
-	return gSound->play(theName, theVolume, theUnused, theDelay, 1.0f);
+	return gSound->play(theName, theVolume, thePassedOn, theDelay, 1.0f);
 }
 
 // 0x4063e0
@@ -197,7 +197,7 @@ Game::~Game()
 int Game::countFlag20()
 {
 	int aCount = 0;
-	for (int i = 0; i < 81; i++)
+	for (int i = 0; i < BOARD_CELLS; i++)
 	{
 		if ((mTileFlags[i] & 0x20) != 0)
 			aCount++;
@@ -209,7 +209,7 @@ int Game::countFlag20()
 int Game::countTiles()
 {
 	int aCount = 0;
-	for (int i = 0; i < 81; i++)
+	for (int i = 0; i < BOARD_CELLS; i++)
 	{
 		if (mLetters[i] != '\0')
 			aCount++;
@@ -221,7 +221,7 @@ int Game::countTiles()
 int Game::countStars()
 {
 	int aCount = 0;
-	for (int i = 0; i < 81; i++)
+	for (int i = 0; i < BOARD_CELLS; i++)
 	{
 		if (mLetters[i] == '*')
 			aCount++;
@@ -277,7 +277,7 @@ int isNeighbour(int theColumn1, int theRow1, int theColumn2, int theRow2, int* t
 // 0x406710
 Book* Game::currentBook()
 {
-	return &gBooks[(mLevel - 1) % 0x32];
+	return &gBooks[(mLevel - 1) % LEVEL_COUNT];
 }
 
 // 0x406730
@@ -335,14 +335,14 @@ void Game::save(Str theName)
 		gOptions->mName = aNewName;
 		gOptions->save();
 	}
-	mFieldC8C = 0;
-	mFieldC88 = 0;
+	mClockLag = 0;
+	mMovesLag = 0;
 	int aValue = 100;
 	fileWriteInt(aFile, &aValue);
 	aValue = 0x3e9;
 	fileWriteInt(aFile, &aValue);
 	int aCell = 0;
-	int aLeft = 9;
+	int aLeft = BOARD_COLUMNS;
 	do
 	{
 		int aRow = 0;
@@ -351,13 +351,13 @@ void Game::save(Str theName)
 			fileWriteByte(aFile, &mLetters[aCell + aRow]);
 			fileWriteInt(aFile, &mKinds[aCell + aRow]);
 			fileWriteInt(aFile, &mTileFlags[aCell + aRow]);
-			fileWriteByte(aFile, &mField43C[aCell + aRow]);
+			fileWriteByte(aFile, &mOldLetters[aCell + aRow]);
 			fileWriteInt(aFile, &mFallOffsets[aCell + aRow]);
 			fileWriteInt(aFile, &mFallSpeeds[aCell + aRow]);
 			fileWriteInt(aFile, &mBounces[aCell + aRow]);
 			aRow++;
-		} while (aRow < 9);
-		aCell += 9;
+		} while (aRow < BOARD_ROWS);
+		aCell += BOARD_ROWS;
 		aLeft--;
 	} while (aLeft != 0);
 	int i = 0;
@@ -366,43 +366,43 @@ void Game::save(Str theName)
 		fileWriteInt(aFile, &mPathColumns[i]);
 		fileWriteInt(aFile, &mPathRows[i]);
 		i++;
-	} while (i < 0x14);
-	if (mLevel == 0x32)
+	} while (i < PATH_LETTERS);
+	if (mLevel == LEVEL_COUNT)
 	{
-		if (mFieldC5C == 0)
+		if (mClassic == 0)
 		{
-			if (!(mFieldC94 > 0.0f) || countFlag20() >= countTiles())
-				mFieldC44 = 1;
+			if (!(mClock > 0.0f) || countFlag20() >= countTiles())
+				mGameOver = 1;
 		}
 		else if (mGoal <= 0 || countFlag20() >= countTiles())
-			mFieldC44 = 1;
+			mGameOver = 1;
 	}
 	aValue = 0x3ea;
 	fileWriteInt(aFile, &aValue);
 	int aZero = 0;
-	fileWriteInt(aFile, &mFieldC5C);
+	fileWriteInt(aFile, &mClassic);
 	fileWriteInt(aFile, &mDifficulty);
 	fileWriteInt(aFile, &mScore);
 	fileWriteInt(aFile, &mLevel);
-	fileWriteInt(aFile, &mFieldC44);
-	fileWriteInt(aFile, &mFieldC94);
+	fileWriteInt(aFile, &mGameOver);
+	fileWriteInt(aFile, &mClock);
 	fileWriteInt(aFile, &mGoal);
-	fileWriteInt(aFile, &mFieldCA0);
-	fileWriteInt(aFile, &mFieldCAC);
+	fileWriteInt(aFile, &mWordsPlayed);
+	fileWriteInt(aFile, &mMovesAtHint);
 	fileWriteInt(aFile, &mPathLength);
-	fileWriteInt(aFile, &mFieldCA4);
+	fileWriteInt(aFile, &mGameWords);
 	fileWriteInt(aFile, &mWildOdds);
 	fileWriteInt(aFile, &mSuperWildOdds);
 	fileWriteInt(aFile, &mStarOdds);
 	fileWriteInt(aFile, &mStoneOdds);
-	fileWriteInt(aFile, &mFieldC64);
-	fileWriteString(aFile, &mStrCC8);
-	fileWriteString(aFile, &mStrCD0);
-	fileWriteInt(aFile, &mFieldC58);
+	fileWriteInt(aFile, &mLevelStartScore);
+	fileWriteString(aFile, &mLevelBestWord);
+	fileWriteString(aFile, &mBestWord);
+	fileWriteInt(aFile, &mChapterTextShown);
 	fileWriteInt(aFile, &aZero);
 	fileWriteInt(aFile, &mCopyOdds);
-	fileWriteInt(aFile, &mFieldB88);
-	fileWriteInt(aFile, &mFieldCA8);
+	fileWriteInt(aFile, &mBonusGiven);
+	fileWriteInt(aFile, &mShuffles);
 	char aByte = 0;
 	int aBytes = 0xb4;
 	do
@@ -419,7 +419,7 @@ void Game::save(Str theName)
 // 0x406e40
 void Game::clearTileMarks()
 {
-	for (int i = 0; i < 81; i++)
+	for (int i = 0; i < BOARD_CELLS; i++)
 		mTileFlags[i] = mTileFlags[i] & 0xffffffbf;
 }
 
@@ -434,7 +434,7 @@ char Game::difficultyFactor()
 // 0x406ea0
 int Game::pathColumn(int theIndex)
 {
-	if (-1 < theIndex && theIndex < mPathLength && theIndex < 0x14)
+	if (-1 < theIndex && theIndex < mPathLength && theIndex < PATH_LETTERS)
 		return mPathColumns[theIndex];
 	return 0;
 }
@@ -442,7 +442,7 @@ int Game::pathColumn(int theIndex)
 // 0x406ed0
 int Game::pathRow(int theIndex)
 {
-	if (-1 < theIndex && theIndex < mPathLength && theIndex < 0x14)
+	if (-1 < theIndex && theIndex < mPathLength && theIndex < PATH_LETTERS)
 		return mPathRows[theIndex];
 	return 0;
 }
@@ -450,7 +450,7 @@ int Game::pathRow(int theIndex)
 // 0x406f00
 void Game::setPath(int theIndex, int theColumn, int theRow)
 {
-	if (-1 < theIndex && theIndex < mPathLength && theIndex < 0x14)
+	if (-1 < theIndex && theIndex < mPathLength && theIndex < PATH_LETTERS)
 	{
 		mPathColumns[theIndex] = theColumn;
 		mPathRows[theIndex] = theRow;
@@ -460,13 +460,13 @@ void Game::setPath(int theIndex, int theColumn, int theRow)
 // 0x406f30
 char Game::pathLetter(int theIndex)
 {
-	return mLetters[pathColumn(theIndex) * 9 + pathRow(theIndex)];
+	return mLetters[pathColumn(theIndex) * BOARD_ROWS + pathRow(theIndex)];
 }
 
 // 0x406f90
 char Game::pathKind(int theIndex)
 {
-	return (char)mKinds[pathColumn(theIndex) * 9 + pathRow(theIndex)];
+	return (char)mKinds[pathColumn(theIndex) * BOARD_ROWS + pathRow(theIndex)];
 }
 
 // 0x407090
@@ -480,7 +480,7 @@ void Game::updateWord()
 	{
 		do
 		{
-			aBuffer[i] = mLetters[pathColumn(i) * 9 + pathRow(i)];
+			aBuffer[i] = mLetters[pathColumn(i) * BOARD_ROWS + pathRow(i)];
 			i++;
 		} while (i < aLength);
 	}
@@ -497,13 +497,13 @@ void Game::updateWord()
 // 0x407170
 void Game::shuffle(int theStar)
 {
-	int aMoves = mFieldCA0;
-	int aLastMoves = mFieldD90;
-	mFieldD90 = aMoves;
+	int aMoves = mWordsPlayed;
+	int aLastMoves = mShuffleWords;
+	mShuffleWords = aMoves;
 	mPathLength = 0;
 	mWordChecked = 0;
 	mHintFound = 0;
-	mFieldCA8++;
+	mShuffles++;
 	if (theStar != 0 && countStars() < currentBook()->mMaxStars)
 	{
 		int aTries = 0;
@@ -512,7 +512,7 @@ void Game::shuffle(int theStar)
 			aTries++;
 			int aColumn = randomRange(0, 8);
 			int aRow = randomRange(0, 7);
-			int aCell = aColumn * 9 + aRow;
+			int aCell = aColumn * BOARD_ROWS + aRow;
 			char aLetter;
 			if ((mTileFlags[aCell] & 6) == 0 && (aLetter = mLetters[aCell]) != '\0' && mLetters[aCell + 1] != '\0' &&
 				aLetter != '*' && aLetter != '!' && (mKinds[aCell] & 3) == 0)
@@ -523,15 +523,15 @@ void Game::shuffle(int theStar)
 		} while (aTries < 500);
 	}
 	// Each cell's tile goes to aTo (-2: it has none to move, -1: it moves)
-	int aTo[81][2];
-	int aKinds[81];
-	int aLetters[81];
-	int aTaken[81];
-	for (int aRow = 0; aRow < 9; aRow++)
+	int aTo[BOARD_CELLS][2];
+	int aKinds[BOARD_CELLS];
+	int aLetters[BOARD_CELLS];
+	int aTaken[BOARD_CELLS];
+	for (int aRow = 0; aRow < BOARD_ROWS; aRow++)
 	{
-		for (int aColumn = 0; aColumn < 9; aColumn++)
+		for (int aColumn = 0; aColumn < BOARD_COLUMNS; aColumn++)
 		{
-			int aCell = aColumn * 9 + aRow;
+			int aCell = aColumn * BOARD_ROWS + aRow;
 			aLetters[aCell] = mLetters[aCell];
 			aTaken[aCell] = 0;
 			aTo[aCell][0] = -2;
@@ -539,11 +539,11 @@ void Game::shuffle(int theStar)
 			aKinds[aCell] = mKinds[aCell];
 		}
 	}
-	for (int aRow = 0; aRow < 9; aRow++)
+	for (int aRow = 0; aRow < BOARD_ROWS; aRow++)
 	{
-		for (int aColumn = 0; aColumn < 9; aColumn++)
+		for (int aColumn = 0; aColumn < BOARD_COLUMNS; aColumn++)
 		{
-			int aCell = aColumn * 9 + aRow;
+			int aCell = aColumn * BOARD_ROWS + aRow;
 			char aLetter;
 			if ((mTileFlags[aCell] & 6) == 0 && (aLetter = mLetters[aCell]) != '\0' &&
 				((aLetter != '*' && aLetter != '!' && aLetter != '?') ||
@@ -557,11 +557,11 @@ void Game::shuffle(int theStar)
 	int aPass = 0;
 	for (;;)
 	{
-		for (int aRow = 0; aRow < 9; aRow++)
+		for (int aRow = 0; aRow < BOARD_ROWS; aRow++)
 		{
-			for (int aColumn = 0; aColumn < 9; aColumn++)
+			for (int aColumn = 0; aColumn < BOARD_COLUMNS; aColumn++)
 			{
-				int aCell = aColumn * 9 + aRow;
+				int aCell = aColumn * BOARD_ROWS + aRow;
 				int* aTarget = aTo[aCell];
 				if (*aTarget != -1)
 					continue;
@@ -587,16 +587,16 @@ void Game::shuffle(int theStar)
 								aNewRow = randomRange(0, 7);
 								aTries = aTry;
 							} while ((aNewColumn == aColumn && aNewRow == aRow) ||
-								(aNew = aNewRow + aNewColumn * 9, aTaken[aNew] != 0) || aTo[aNew][0] == -2 ||
+								(aNew = aNewRow + aNewColumn * BOARD_ROWS, aTaken[aNew] != 0) || aTo[aNew][0] == -2 ||
 								aTo[aNew + 1][0] == -2);
-							if ((mTileFlags[aNewColumn * 9 + aNewRow] & 0x20) != 0 || 299 < aTry)
+							if ((mTileFlags[aNewColumn * BOARD_ROWS + aNewRow] & 0x20) != 0 || 299 < aTry)
 								break;
 							aChance = 0x32;
-							if (mFieldC5C == 0)
+							if (mClassic == 0)
 							{
-								if (0.15f <= mFieldC94)
+								if (0.15f <= mClock)
 								{
-									if (mFieldC94 < 0.3f)
+									if (mClock < 0.3f)
 										aChance = 0x4b;
 								}
 								else
@@ -609,7 +609,7 @@ void Game::shuffle(int theStar)
 						} while (randomRange(0, 100) < aChance);
 						aTarget[0] = aNewColumn;
 						aTarget[1] = aNewRow;
-						aTaken[aNewRow + aNewColumn * 9] = 1;
+						aTaken[aNewRow + aNewColumn * BOARD_ROWS] = 1;
 					starPlaced:
 						if (*aTarget == -1)
 						{
@@ -631,11 +631,11 @@ void Game::shuffle(int theStar)
 						aNewColumn = randomRange(0, 8);
 						aNewRow = randomRange(0, 8);
 						aTries = aTry;
-					} while ((aNewColumn == aColumn && aNewRow == aRow) || aTaken[aNewColumn * 9 + aNewRow] != 0 ||
-						aTo[aNewColumn * 9 + aNewRow][0] == -2);
+					} while ((aNewColumn == aColumn && aNewRow == aRow) || aTaken[aNewColumn * BOARD_ROWS + aNewRow] != 0 ||
+						aTo[aNewColumn * BOARD_ROWS + aNewRow][0] == -2);
 					aTarget[1] = aNewRow;
 					aTarget[0] = aNewColumn;
-					aTaken[aNewRow + aNewColumn * 9] = 1;
+					aTaken[aNewRow + aNewColumn * BOARD_ROWS] = 1;
 				placed:
 					if (*aTarget == -1)
 					{
@@ -649,7 +649,7 @@ void Game::shuffle(int theStar)
 		if (1 < aPass)
 			break;
 	}
-	for (int i = 0; i < 81; i++)
+	for (int i = 0; i < BOARD_CELLS; i++)
 	{
 		mFrom[i][0] = -2;
 		mFrom[i][1] = -2;
@@ -657,12 +657,12 @@ void Game::shuffle(int theStar)
 	int aRow = 0;
 	do
 	{
-		for (int aColumn = 0; aColumn < 9; aColumn++)
+		for (int aColumn = 0; aColumn < BOARD_COLUMNS; aColumn++)
 		{
-			int aCell = aColumn * 9 + aRow;
+			int aCell = aColumn * BOARD_ROWS + aRow;
 			if (-1 < aTo[aCell][0])
 			{
-				int aNew = aTo[aCell][0] * 9 + aTo[aCell][1];
+				int aNew = aTo[aCell][0] * BOARD_ROWS + aTo[aCell][1];
 				mFrom[aNew][0] = aColumn;
 				mFrom[aNew][1] = aRow;
 				mLetters[aNew] = (char)aLetters[aCell];
@@ -670,32 +670,32 @@ void Game::shuffle(int theStar)
 			}
 		}
 		aRow++;
-	} while (aRow < 9);
+	} while (aRow < BOARD_ROWS);
 	aRow = 0;
 	do
 	{
 		int aColumn = 0;
 		do
 		{
-			int aCell = aColumn * 9 + aRow;
+			int aCell = aColumn * BOARD_ROWS + aRow;
 			if (mLetters[aCell] != '\0' && mFrom[aCell][0] < 0)
 			{
 				mFrom[aCell][0] = aColumn;
 				mFrom[aCell][1] = aRow;
 			}
 			aColumn++;
-		} while (aColumn < 9);
+		} while (aColumn < BOARD_COLUMNS);
 		aRow++;
-	} while (aRow < 9);
+	} while (aRow < BOARD_ROWS);
 	mShuffleTime = ticks();
-	if (gBonnies->mDebug1E8 == 0)
+	if (gBonnies->mFreeMoves == 0)
 	{
-		if (0.02f <= mFieldC94)
+		if (0.02f <= mClock)
 		{
-			double aValue = (double)mFieldC94 - 0.050000001f;
+			double aValue = (double)mClock - 0.050000001f;
 			if (aValue < 0.02f)
 				aValue = 0.02f;
-			mFieldC94 = (float)aValue;
+			mClock = (float)aValue;
 		}
 		if (1 < mGoal)
 			mGoal--;
@@ -704,10 +704,10 @@ void Game::shuffle(int theStar)
 	if (aMoves != aLastMoves)
 	{
 		if (aMoves - aLastMoves == 1)
-			gGameScreen->mFieldB0 = ticks() + 6000;
+			gGameScreen->mHintDue = ticks() + 6000;
 		return;
 	}
-	gGameScreen->mFieldB0 = ticks() + 0x9c4;
+	gGameScreen->mHintDue = ticks() + 0x9c4;
 }
 
 // 0x4079a0
@@ -760,10 +760,10 @@ void Game::refill()
 				gSound->play(lit(0x457c08), 0.65f, 1, 0, 1.0f);
 			}
 			aRow++;
-		} while (aRow < 9);
-		aCell += 9;
+		} while (aRow < BOARD_ROWS);
+		aCell += BOARD_ROWS;
 		aColumn++;
-	} while (aCell < 0x51);
+	} while (aCell < BOARD_CELLS);
 	// The cells where a special tile may come in. The original's count can go below 0 (row 4 of a column without
 	// the cell below it), and then the next ones are written before the array, over other locals: the padding takes
 	// them
@@ -775,7 +775,7 @@ void Game::refill()
 	do
 	{
 		int aNew = 0;
-		int aRow = 8;
+		int aRow = BOARD_ROWS - 1;
 		do
 		{
 			if (currentBook()->isCell(aColumn, aRow) != 0 && mLetters[aCell + aRow] == '\0')
@@ -838,11 +838,11 @@ void Game::refill()
 			}
 			aRow--;
 		} while (-1 < aRow);
-		for (int i = 0; i < 9; i++)
+		for (int i = 0; i < BOARD_ROWS; i++)
 			mKinds[aCell + i] = mKinds[aCell + i] & 0xfffffff7;
-		aCell += 9;
+		aCell += BOARD_ROWS;
 		aColumn++;
-	} while (aCell < 0x51);
+	} while (aCell < BOARD_CELLS);
 	if (currentBook()->mStones != 0)
 	{
 		double aStones = aSpawnCount + 0.0099999998f;
@@ -886,7 +886,7 @@ void Game::refill()
 			else if (1.0f <= mSuperWildOdds && currentBook()->allows('!', aSpawnColumn) != 0)
 			{
 				int aCount = 0;
-				for (int i = 0; i < 81; i++)
+				for (int i = 0; i < BOARD_CELLS; i++)
 				{
 					if (mLetters[i] == '!')
 						aCount++;
@@ -896,7 +896,7 @@ void Game::refill()
 				else
 				{
 					aTile = '?';
-					mFieldC74 = 1;
+					mWildFell = 1;
 				}
 				mSuperWildOdds = mSuperWildOdds - 1.0f;
 			}
@@ -913,7 +913,7 @@ void Game::refill()
 			else
 				break;
 			int aSpawnRow = aSpawn[1];
-			int aSpawnCell = aSpawnColumn * 9 + aSpawnRow;
+			int aSpawnCell = aSpawnColumn * BOARD_ROWS + aSpawnRow;
 			if (aTile == '#')
 			{
 				mKinds[aSpawnCell] = mKinds[aSpawnCell] | 1;
@@ -946,14 +946,14 @@ void Game::refill()
 				sparkleTile(aColumn, aRow, 0.0f, 0, 1, 7.0f, 0);
 			aRow++;
 			i++;
-		} while (aRow < 9);
+		} while (aRow < BOARD_ROWS);
 		aColumn++;
-	} while (aColumn < 9);
+	} while (aColumn < BOARD_COLUMNS);
 	mWildOdds = mWildOdds <= 1.01f ? mWildOdds : 1.01f;
 	mSuperWildOdds = mSuperWildOdds <= 1.01f ? mSuperWildOdds : 1.01f;
 	mStoneOdds = 0.0f;
 	mCopyOdds = 0.0f;
-	gGameScreen->mField7C = 0;
+	gGameScreen->mStarAtBottom = 0;
 	aColumn = 0;
 	aCell = 0;
 	do
@@ -962,12 +962,12 @@ void Game::refill()
 		do
 		{
 			if (mLetters[aCell + aRow] == '*' && (aRow == 8 || currentBook()->isCell(aColumn, aRow + 1) == 0))
-				gGameScreen->mField7C = 1;
+				gGameScreen->mStarAtBottom = 1;
 			aRow++;
-		} while (aRow < 9);
+		} while (aRow < BOARD_ROWS);
 		aColumn++;
-		aCell += 9;
-	} while (aColumn < 9);
+		aCell += BOARD_ROWS;
+	} while (aColumn < BOARD_COLUMNS);
 }
 
 // 0x408440
@@ -1001,7 +1001,7 @@ int Game::neighbour(int theColumn, int theRow, int theDirection, int* theNewColu
 		break;
 	}
 	int aColumn = *theNewColumn;
-	if (-1 < aColumn && aColumn < 9 && -1 < *theNewRow && *theNewRow < 9 &&
+	if (-1 < aColumn && aColumn < BOARD_COLUMNS && -1 < *theNewRow && *theNewRow < BOARD_ROWS &&
 		currentBook()->isCell(aColumn, *theNewRow) != 0)
 		return 1;
 	return 0;
@@ -1011,14 +1011,14 @@ int Game::neighbour(int theColumn, int theRow, int theDirection, int* theNewColu
 void Game::addLevelBonus()
 {
 	int aFactor = mDifficulty;
-	if (mFieldC5C == 0)
+	if (mClassic == 0)
 	{
 		if (aFactor == 0)
 			aFactor = 1;
 		else
 			aFactor = (aFactor != 1) * 2 + 2;
-		mScore = mScore + (mLevel + 1) * aFactor * mFieldC9C * 5;
-		mFieldC9C = 0;
+		mScore = mScore + (mLevel + 1) * aFactor * mClockBonus * 5;
+		mClockBonus = 0;
 	}
 	else
 	{
@@ -1030,22 +1030,22 @@ void Game::addLevelBonus()
 		mGoal = 0;
 	}
 	mShownScore = mScore;
-	mFieldC70 = 0;
+	mScoreTime = 0;
 }
 
 // 0x4085e0
 void Game::beginLevel()
 {
 	mRecord.mGames++;
-	mFieldC8C = 0;
-	mFieldC88 = 0;
+	mClockLag = 0;
+	mMovesLag = 0;
 	int aLevel = mLevel;
 	int aBest = mRecord.mBestLevel;
 	if (mRecord.mBestLevel <= aLevel)
 		aBest = aLevel;
 	mRecord.mLastLevel = aLevel;
 	mRecord.mBestLevel = aBest;
-	mFieldC9C = (int)(currentBook()->mBonusBase * (double)exeFloat(0x457be8 + mDifficulty * 4) * mFieldC94);
+	mClockBonus = (int)(currentBook()->mBonusBase * (double)exeFloat(0x457be8 + mDifficulty * 4) * mClock);
 }
 
 // 0x408650
@@ -1084,10 +1084,10 @@ void Game::fillOneTile()
 				aLetter = 'Z';
 			}
 		}
-		if (mLetters[aColumn * 9 + aRow] == '\0' && currentBook()->isCell(aColumn, aRow) != 0)
+		if (mLetters[aColumn * BOARD_ROWS + aRow] == '\0' && currentBook()->isCell(aColumn, aRow) != 0)
 			break;
 	}
-	BookCell& aBookCell = currentBook()->mCells[aColumn * 9 + aRow];
+	BookCell& aBookCell = currentBook()->mCells[aColumn * BOARD_ROWS + aRow];
 	if (mFilling != 0 || (aBookCell.mFlags & 4) != 0)
 	{
 		int aLevel = mLevel;
@@ -1095,7 +1095,7 @@ void Game::fillOneTile()
 			(aLevel == 1 && 0 < gGame->mRecord.mBestLevel && gGame->mRecord.mSeen[0] != 0 &&
 				gGame->mRecord.mSeen[2] != 0) ||
 			(aLevel == 2 && 1 < gGame->mRecord.mBestLevel && gGame->mRecord.mSeen[10] != 0 &&
-				currentBook()->mCells[aColumn * 9 + aRow].mTile != '*')))
+				currentBook()->mCells[aColumn * BOARD_ROWS + aRow].mTile != '*')))
 		{
 			// Level 32's first tiles are the book's only in English
 			bool aKeep = false;
@@ -1105,29 +1105,29 @@ void Game::fillOneTile()
 				aLetter = aBookCell.mTile;
 		}
 	}
-	mLetters[aColumn * 9 + aRow] = aLetter;
+	mLetters[aColumn * BOARD_ROWS + aRow] = aLetter;
 }
 
 // 0x408900
 int Game::newBoard()
 {
-	mFieldC9C = 0;
+	mClockBonus = 0;
 	mCopyLetter = 'A';
-	mFieldB88 = 0;
-	mFieldC74 = 0;
-	mFieldC84 = 0;
-	mFieldC88 = 0;
-	mFieldC8C = 0;
+	mBonusGiven = 0;
+	mWildFell = 0;
+	mCountTime = 0;
+	mMovesLag = 0;
+	mClockLag = 0;
 	mShuffleTime = 0;
-	mFieldC7C = 0;
-	mFieldCA0 = 0;
-	mFieldCA8 = 0;
-	mFieldD90 = -99;
-	mFieldD8C = ticks();
-	mFieldC64 = mScore;
+	mCopyTime = 0;
+	mWordsPlayed = 0;
+	mShuffles = 0;
+	mShuffleWords = -99;
+	mLastMoveTime = ticks();
+	mLevelStartScore = mScore;
 	mFilling = 1;
 	mPathLength = 0;
-	mFieldCDC = 0;
+	mPathClearTime = 0;
 	mWordChecked = 0;
 	mHintFound = 0;
 	mWildOdds = 0.0f;
@@ -1135,10 +1135,10 @@ int Game::newBoard()
 	mStarOdds = 0.0f;
 	mStoneOdds = 0.0f;
 	mCopyOdds = 0.0f;
-	mStrCC8 = "";
-	mFieldC58 = 0;
-	mFieldC94 = 1.0f;
-	mFieldCAC = -1;
+	mLevelBestWord = "";
+	mChapterTextShown = 0;
+	mClock = 1.0f;
+	mMovesAtHint = -1;
 	mGoal = (int)(currentBook()->mGoalBase * (double)exeFloat(0x457bdc + mDifficulty * 4));
 	if (gGameScreen != nullptr)
 		gGameScreen->updateHint();
@@ -1150,21 +1150,21 @@ int Game::newBoard()
 		{
 			mFrom[aCell + aRow][0] = 0;
 			mFrom[aCell + aRow][1] = 0;
-			mField2F8[aCell + aRow] = 0;
-			mField43C[aCell + aRow] = '\0';
+			mChangeTimes[aCell + aRow] = 0;
+			mOldLetters[aCell + aRow] = '\0';
 			mLetters[aCell + aRow] = '\0';
 			mKinds[aCell + aRow] = currentBook()->mCells[aCell + aRow].mKind;
 			mTileFlags[aCell + aRow] = currentBook()->mCells[aCell + aRow].mFlags;
 			mFallOffsets[aCell + aRow] = 0.0f;
 			mFallSpeeds[aCell + aRow] = 0.0f;
 			aRow++;
-		} while (aRow < 9);
-		aCell += 9;
-	} while (aCell < 0x51);
+		} while (aRow < BOARD_ROWS);
+		aCell += BOARD_ROWS;
+	} while (aCell < BOARD_CELLS);
 	while (countTiles() < currentBook()->mFillCount)
 		fillOneTile();
 	mFilling = 0;
-	return (mLevel - 1) / 0x32;
+	return (mLevel - 1) / LEVEL_COUNT;
 }
 
 } // namespace bonnies
@@ -1187,7 +1187,7 @@ int Game::pick(int theColumn, int theRow, int theLastColumn, int theLastRow, int
 		if (theColumn == -1)
 			return 1;
 		int aMode = gBonnies->mSpecialMode;
-		int aCell = theRow + theColumn * 9;
+		int aCell = theRow + theColumn * BOARD_ROWS;
 		char aLetter = mLetters[aCell];
 		char aNew = aLetter;
 		if (0x40 < aMode && aMode < 0x5b)
@@ -1265,7 +1265,7 @@ int Game::pick(int theColumn, int theRow, int theLastColumn, int theLastRow, int
 	if (theColumn == -1)
 	{
 		if (mPathLength != 0)
-			mFieldCDC = ticks();
+			mPathClearTime = ticks();
 		mPathLength = 0;
 		goto placed;
 	}
@@ -1305,14 +1305,14 @@ checkStep:
 		else if (!(aStep == 4 || aStep == 6 || aStep == 7 || aStep == 8 || aStep == 9 || aStep == 0xb || aStep == 0xc ||
 			aStep == 0xf || aStep == 0x10 || aStep == 0x11 || aStep == 0x16 || aStep == 0x17 || aStep == 0x18 ||
 			aStep == 0x1e || aStep == 0x1f || aStep == 0x20 || aStep == 199 ||
-			(mTileFlags[theColumn * 9 + theRow] & 0x40) != 0))
+			(mTileFlags[theColumn * BOARD_ROWS + theRow] & 0x40) != 0))
 			return 0;
 	}
-	gGameScreen->mFieldA4 = 1;
+	gGameScreen->mMouseDown = 1;
 	if (theDrag == 0)
-		gGameScreen->mFieldA8 = 1;
+		gGameScreen->mClicks = 1;
 	else if (theLastColumn != theColumn || theLastRow != theRow)
-		gGameScreen->mFieldA8 = gGameScreen->mFieldA8 + 1;
+		gGameScreen->mClicks = gGameScreen->mClicks + 1;
 	if (mPathLength == 0)
 	{
 		mPathLength = 1;
@@ -1401,7 +1401,7 @@ int Game::findHint()
 		int aRows[10];
 		aColumns[0] = randomRange(0, 8);
 		aRows[0] = randomRange(0, 8);
-		int aCell = aRows[0] + aColumns[0] * 9;
+		int aCell = aRows[0] + aColumns[0] * BOARD_ROWS;
 		char aLetter = mLetters[aCell];
 		if (aLetter != '\0' && (mTileFlags[aCell] & 2) == 0 && aLetter != '*')
 		{
@@ -1418,7 +1418,7 @@ int Game::findHint()
 					break;
 				int aColumn = aColumns[k + 1];
 				int aRow = aRows[k + 1];
-				aCell = aColumn * 9 + aRow;
+				aCell = aColumn * BOARD_ROWS + aRow;
 				uint32_t aFlags = mTileFlags[aCell];
 				if ((aFlags & 2) != 0 || (aLetter = mLetters[aCell]) == '*')
 					break;
@@ -1475,7 +1475,7 @@ static void markCells(Game* theGame, const int (*theCells)[2], int theCount)
 {
 	for (int i = 0; i < theCount; i++)
 	{
-		uint32_t& aFlags = theGame->mTileFlags[theCells[i][0] * 9 + theCells[i][1]];
+		uint32_t& aFlags = theGame->mTileFlags[theCells[i][0] * BOARD_ROWS + theCells[i][1]];
 		aFlags = aFlags | 0x40;
 	}
 }
@@ -1484,13 +1484,13 @@ static void markCells(Game* theGame, const int (*theCells)[2], int theCount)
 void Game::updateHints()
 {
 	if (gGameScreen != nullptr)
-		gGameScreen->mField11C = 1;
-	if (gBonnies->mDebug1FC != 0)
+		gGameScreen->mHintsChecked = 1;
+	if (gBonnies->mNoHints != 0)
 	{
 		gGameScreen->leave(1);
 		return;
 	}
-	bool aMoved = mFieldCAC < mFieldCA8 + mFieldCA0;
+	bool aMoved = mMovesAtHint < mShuffles + mWordsPlayed;
 	float aX = 0.5f;
 	float aY = 0.4f;
 	int aText;
@@ -1501,7 +1501,7 @@ void Game::updateHints()
 	{
 		if (gBonnies->inModal())
 			return;
-		if (gGameScreen->mField58 != 1)
+		if (gGameScreen->mSequenceState != 1)
 			return;
 		if (mRecord.mSeen[0] == 0 && mLevel == 1)
 		{
@@ -1532,13 +1532,13 @@ void Game::updateHints()
 			}
 			return;
 		}
-		if (mRecord.mSeen[8] == 0 && mRecord.mSeen[9] == 0 && 7 < mFieldCA0)
+		if (mRecord.mSeen[8] == 0 && mRecord.mSeen[9] == 0 && 7 < mWordsPlayed)
 		{
 			mRecord.mSeen[8] = 1;
 			mRecord.mSeen[9] = 1;
 			aFlag = 1;
 			aSide = 1;
-			if (mFieldC5C == 0)
+			if (mClassic == 0)
 			{
 				aStep = 9;
 				aText = 0x45f;
@@ -1554,7 +1554,7 @@ void Game::updateHints()
 			}
 			goto show;
 		}
-		if (mRecord.mSeen[10] == 0 && mLevel == 2 && mFieldCA0 == 0)
+		if (mRecord.mSeen[10] == 0 && mLevel == 2 && mWordsPlayed == 0)
 		{
 			mRecord.mSeen[10] = 1;
 			static const int aCells[4][2] = {{4, 5}, {4, 6}, {5, 6}, {6, 7}};
@@ -1574,12 +1574,12 @@ void Game::updateHints()
 				int aRow = 0;
 				do
 				{
-					if (mLetters[aColumn * 9 + aRow] == '?')
+					if (mLetters[aColumn * BOARD_ROWS + aRow] == '?')
 					{
 						mRecord.mSeen[13] = 1;
 						gGameScreen->tilePos(aColumn, aRow, &aX, &aY);
-						mTileFlags[aRow + aColumn * 9] = mTileFlags[aRow + aColumn * 9] | 0x40;
-						int anIndex = (mFieldCA0 == 0 || mLevel == 3) ? 0x1a : 0xd;
+						mTileFlags[aRow + aColumn * BOARD_ROWS] = mTileFlags[aRow + aColumn * BOARD_ROWS] | 0x40;
+						int anIndex = (mWordsPlayed == 0 || mLevel == 3) ? 0x1a : 0xd;
 						aText = exeI32(0x457b58 + anIndex * 4);
 						aFlag = 1;
 						aSide = aRow < 5 ? 0 : 2;
@@ -1587,11 +1587,11 @@ void Game::updateHints()
 						goto show;
 					}
 					aRow++;
-				} while (aRow < 9);
+				} while (aRow < BOARD_ROWS);
 				aColumn++;
-			} while (aColumn < 9);
+			} while (aColumn < BOARD_COLUMNS);
 		}
-		if (mRecord.mSeen[12] == 0 && mRecord.mSeen[13] == 0 && mLevel == 2 && 2 < mFieldCA0)
+		if (mRecord.mSeen[12] == 0 && mRecord.mSeen[13] == 0 && mLevel == 2 && 2 < mWordsPlayed)
 		{
 			// The tutorial's words still on the board
 			static const int aCells[3][5][2] = {
@@ -1609,7 +1609,7 @@ void Game::updateHints()
 				for (int i = 0; i < 5; i++)
 				{
 					Str aText = getText(aTexts[aWord]);
-					if ((int)mLetters[aCells[aWord][i][0] * 9 + aCells[aWord][i][1]] != (unsigned char)at(aText, i))
+					if ((int)mLetters[aCells[aWord][i][0] * BOARD_ROWS + aCells[aWord][i][1]] != (unsigned char)at(aText, i))
 						aLeft[aWord] = 0;
 				}
 				if (aLeft[aWord] != 0)
@@ -1629,7 +1629,7 @@ void Game::updateHints()
 			}
 			return;
 		}
-		if (mRecord.mSeen[14] == 0 && 1 < mLevel && mLevel < 5 && 5 < mFieldCA0 && mPathLength == 0 &&
+		if (mRecord.mSeen[14] == 0 && 1 < mLevel && mLevel < 5 && 5 < mWordsPlayed && mPathLength == 0 &&
 			gInput->mDownTime + 4000 < (int)ticks())
 		{
 			mRecord.mSeen[14] = 1;
@@ -1649,21 +1649,21 @@ void Game::updateHints()
 				int aRow = 0;
 				do
 				{
-					if (mLetters[aColumn * 9 + aRow] == '!')
+					if (mLetters[aColumn * BOARD_ROWS + aRow] == '!')
 					{
 						mRecord.mSeen[18] = 1;
 						gGameScreen->tilePos(aColumn, aRow, &aX, &aY);
-						mTileFlags[aRow + aColumn * 9] = mTileFlags[aRow + aColumn * 9] | 0x40;
+						mTileFlags[aRow + aColumn * BOARD_ROWS] = mTileFlags[aRow + aColumn * BOARD_ROWS] | 0x40;
 						aFlag = 1;
 						aSide = aRow < 5 ? 0 : 2;
-						aText = exeI32(0x457b58 + (mFieldCA0 != 0 ? 0x12 : 0x1b) * 4);
+						aText = exeI32(0x457b58 + (mWordsPlayed != 0 ? 0x12 : 0x1b) * 4);
 						aStep = 0x12;
 						goto show;
 					}
 					aRow++;
-				} while (aRow < 9);
+				} while (aRow < BOARD_ROWS);
 				aColumn++;
-			} while (aColumn < 9);
+			} while (aColumn < BOARD_COLUMNS);
 		}
 		if (mRecord.mSeen[19] == 0)
 		{
@@ -1673,21 +1673,21 @@ void Game::updateHints()
 				int aRow = 0;
 				do
 				{
-					if ((mKinds[aColumn * 9 + aRow] & 2) != 0)
+					if ((mKinds[aColumn * BOARD_ROWS + aRow] & 2) != 0)
 					{
 						mRecord.mSeen[19] = 1;
 						gGameScreen->tilePos(aColumn, aRow, &aX, &aY);
-						mTileFlags[aRow + aColumn * 9] = mTileFlags[aRow + aColumn * 9] | 0x40;
+						mTileFlags[aRow + aColumn * BOARD_ROWS] = mTileFlags[aRow + aColumn * BOARD_ROWS] | 0x40;
 						aFlag = 1;
 						aSide = aRow < 5 ? 0 : 2;
-						aText = exeI32(0x457b58 + (mFieldCA0 != 0 ? 0x13 : 0x1c) * 4);
+						aText = exeI32(0x457b58 + (mWordsPlayed != 0 ? 0x13 : 0x1c) * 4);
 						aStep = 0x13;
 						goto show;
 					}
 					aRow++;
-				} while (aRow < 9);
+				} while (aRow < BOARD_ROWS);
 				aColumn++;
-			} while (aColumn < 9);
+			} while (aColumn < BOARD_COLUMNS);
 		}
 		if (mRecord.mSeen[20] == 0)
 		{
@@ -1697,33 +1697,33 @@ void Game::updateHints()
 				int aRow = 0;
 				do
 				{
-					if ((mKinds[aColumn * 9 + aRow] & 1) != 0)
+					if ((mKinds[aColumn * BOARD_ROWS + aRow] & 1) != 0)
 					{
 						mRecord.mSeen[20] = 1;
 						gGameScreen->tilePos(aColumn, aRow, &aX, &aY);
-						mTileFlags[aRow + aColumn * 9] = mTileFlags[aRow + aColumn * 9] | 0x40;
+						mTileFlags[aRow + aColumn * BOARD_ROWS] = mTileFlags[aRow + aColumn * BOARD_ROWS] | 0x40;
 						aFlag = 1;
 						aSide = aRow < 5 ? 0 : 2;
-						aText = exeI32(0x457b58 + (mFieldCA0 != 0 ? 0x14 : 0x1d) * 4);
+						aText = exeI32(0x457b58 + (mWordsPlayed != 0 ? 0x14 : 0x1d) * 4);
 						aStep = 0x14;
 						goto show;
 					}
 					aRow++;
-				} while (aRow < 9);
+				} while (aRow < BOARD_ROWS);
 				aColumn++;
-			} while (aColumn < 9);
+			} while (aColumn < BOARD_COLUMNS);
 		}
-		if (mRecord.mSeen[21] == 0 && mFieldC74 != 0)
+		if (mRecord.mSeen[21] == 0 && mWildFell != 0)
 		{
 			aFlag = 1;
 			aSide = 5;
 			aStep = 0x15;
-			mFieldC74 = 0;
+			mWildFell = 0;
 			mRecord.mSeen[21] = 1;
 			aText = 0x46b;
 			goto show;
 		}
-		if (mRecord.mSeen[25] == 0 && 0x62 < mFieldB88)
+		if (mRecord.mSeen[25] == 0 && 0x62 < mBonusGiven)
 		{
 			aFlag = 1;
 			aSide = 5;
@@ -1759,19 +1759,19 @@ void Game::updateHints()
 			aText = 0x476;
 			goto show;
 		}
-		if (mFieldC58 != 0)
+		if (mChapterTextShown != 0)
 			return;
 		if (currentBook()->hasText() == 0)
 			return;
 		// The chapter's own text
-		mFieldC58 = 1;
+		mChapterTextShown = 1;
 		gGameScreen->showHint(currentBook()->text(), 199, aX, aY, 6, 0);
 		return;
 	}
 	switch (gGameScreen->mTutorialStep)
 	{
 	case 0:
-		if (equalsNoCase(mStrC4C, Str(getText(0x3e9))) || 0 < mFieldCA0)
+		if (equalsNoCase(mLastWord, Str(getText(0x3e9))) || 0 < mWordsPlayed)
 		{
 			gGameScreen->leave(1);
 			return;
@@ -1789,14 +1789,14 @@ void Game::updateHints()
 		aText = 0x457;
 		goto show;
 	case 1:
-		if (equalsNoCase(mStrC4C, Str(getText(0x3e9))) || 0 < mFieldCA0)
+		if (equalsNoCase(mLastWord, Str(getText(0x3e9))) || 0 < mWordsPlayed)
 		{
 			gGameScreen->leave(1);
 			return;
 		}
 		return;
 	case 2:
-		if (equalsNoCase(mStrC4C, Str(getText(0x3ea))) || 1 < mFieldCA0)
+		if (equalsNoCase(mLastWord, Str(getText(0x3ea))) || 1 < mWordsPlayed)
 		{
 			gGameScreen->leave(1);
 			aFlag = 0;
@@ -1820,7 +1820,7 @@ void Game::updateHints()
 		}
 		goto show;
 	case 3:
-		if (!equalsNoCase(mStrC4C, Str(getText(0x3ea))) && mFieldCA0 < 2)
+		if (!equalsNoCase(mLastWord, Str(getText(0x3ea))) && mWordsPlayed < 2)
 			return;
 		gGameScreen->leave(1);
 		aFlag = 0;
@@ -1830,7 +1830,7 @@ void Game::updateHints()
 		goto show;
 	case 4:
 	case 5:
-		if (mFieldCA0 < 3)
+		if (mWordsPlayed < 3)
 			return;
 		gGameScreen->leave(1);
 		aFlag = 0;
@@ -1839,7 +1839,7 @@ void Game::updateHints()
 		aText = 0x45c;
 		goto show;
 	case 6:
-		if (mFieldCA0 < 4)
+		if (mWordsPlayed < 4)
 			return;
 		gGameScreen->leave(1);
 		aFlag = 0;
@@ -1848,7 +1848,7 @@ void Game::updateHints()
 		aText = 0x45d;
 		goto show;
 	case 7:
-		if (4 < mFieldCA0)
+		if (4 < mWordsPlayed)
 			gGameScreen->leave(1);
 		return;
 	case 8:
@@ -1867,7 +1867,7 @@ void Game::updateHints()
 			gGameScreen->leave(1);
 		return;
 	case 10:
-		if (!equalsNoCase(mStrC4C, Str(getText(0x3eb))) && mFieldCA0 < 1)
+		if (!equalsNoCase(mLastWord, Str(getText(0x3eb))) && mWordsPlayed < 1)
 			return;
 		gGameScreen->leave(1);
 		aFlag = 0;
@@ -1931,7 +1931,7 @@ void Game::nextLevel()
 	addLevelBonus();
 	mLevel = mLevel + 1;
 	newBoard();
-	mFieldC94 = 1.0f;
+	mClock = 1.0f;
 	save(gOptions->mName);
 }
 
@@ -1941,20 +1941,20 @@ void Game::prepareSave(int theReset)
 	mInProgress = 1;
 	if (theReset != 0)
 		mRecord.reset();
-	mFieldC80 = 0;
-	mFieldCD8 = 0;
-	mStrC4C = "";
-	mFieldC5C = 0;
+	mFallFrame = 0;
+	mWordFrame = 0;
+	mLastWord = "";
+	mClassic = 0;
 	mDifficulty = 0;
 	mScore = 0;
 	mShownScore = 0;
-	mFieldC70 = 0;
-	mFieldC60 = 0;
+	mScoreTime = 0;
+	mGameOverTime = 0;
 	mLevel = 1;
-	mStrCD0 = "";
-	mFieldC44 = 0;
-	mFieldC48 = 0;
-	mFieldCA4 = 0;
+	mBestWord = "";
+	mGameOver = 0;
+	mNoMoves = 0;
+	mGameWords = 0;
 	newBoard();
 }
 
@@ -1969,38 +1969,38 @@ void Game::update()
 			anElapsed = 0x78;
 	}
 	gLastUpdate = ticks();
-	int aPending = 0 < mFieldC88 ? mFieldC88 : 0;
-	mFieldC88 = aPending;
-	if (0.0f < mFieldC8C)
-		mFieldC8C = 0.0f;
-	if (mFieldC5C == 0)
+	int aPending = 0 < mMovesLag ? mMovesLag : 0;
+	mMovesLag = aPending;
+	if (0.0f < mClockLag)
+		mClockLag = 0.0f;
+	if (mClassic == 0)
 	{
-		if (mFieldC8C < 0.0f)
+		if (mClockLag < 0.0f)
 		{
 			int aTime = anElapsed;
-			if ((int)(ticks() - mFieldC84) <= anElapsed)
-				aTime = (int)(ticks() - mFieldC84);
+			if ((int)(ticks() - mCountTime) <= anElapsed)
+				aTime = (int)(ticks() - mCountTime);
 			if (0 < aTime)
 			{
-				double aValue = aTime * (double)0.001f * 0.065f + mFieldC8C;
-				mFieldC8C = (float)aValue;
+				double aValue = aTime * (double)0.001f * 0.065f + mClockLag;
+				mClockLag = (float)aValue;
 				if (0.0 < aValue)
-					mFieldC8C = 0.0f;
+					mClockLag = 0.0f;
 			}
 		}
 	}
 	else if (aPending != 0)
 	{
-		uint32_t aLast = mFieldC84;
+		uint32_t aLast = mCountTime;
 		int aDelay = 6 < mGoal + aPending ? 500 : 200;
 		if (aDelay < (int)(ticks() - aLast))
 		{
-			mFieldC88 = mFieldC88 + 1;
-			mFieldC84 = aLast + aDelay;
+			mMovesLag = mMovesLag + 1;
+			mCountTime = aLast + aDelay;
 		}
 		goto counted;
 	}
-	mFieldC84 = ticks();
+	mCountTime = ticks();
 counted:
 	if (gBonnies->mPaused != 0)
 		return;
@@ -2012,13 +2012,13 @@ counted:
 	int aColumn = 0;
 	do
 	{
-		int aRow = 8;
+		int aRow = BOARD_ROWS - 1;
 		do
 		{
-			int aCell = aColumn * 9 + aRow;
+			int aCell = aColumn * BOARD_ROWS + aRow;
 			if (currentBook()->isCell(aColumn, aRow) != 0 && mFallOffsets[aCell] != 0.0f)
 			{
-				mFieldC80 = frameCount();
+				mFallFrame = frameCount();
 				aFalling = true;
 				double aTime = aStep * (double)0.001f;
 				float aTimeF = (float)aTime;
@@ -2045,52 +2045,52 @@ counted:
 			aRow--;
 		} while (-1 < aRow);
 		aColumn++;
-	} while (aColumn < 9);
+	} while (aColumn < BOARD_COLUMNS);
 	if (aFalling)
 		refill();
 	else
-		gGameScreen->mField7C = 0;
+		gGameScreen->mStarAtBottom = 0;
 	if (200 < anElapsed)
 		anElapsed = 200;
-	if (!gBonnies->inModal() && !gGameScreen->isBusy() && gBonnies->mDebug1E8 == 0 && gGameScreen->mField7C == 0 &&
-		mFieldC60 == 0 && gGameScreen->mField58 == 1 && isInactive() == 0)
+	if (!gBonnies->inModal() && !gGameScreen->isBusy() && gBonnies->mFreeMoves == 0 && gGameScreen->mStarAtBottom == 0 &&
+		mGameOverTime == 0 && gGameScreen->mSequenceState == 1 && isInactive() == 0)
 	{
-		if (mFieldC5C == 0)
+		if (mClassic == 0)
 		{
 			Book* aBook = currentBook();
-			if (mFieldC8C == 0.0f)
+			if (mClockLag == 0.0f)
 			{
 				int aTime = anElapsed;
 				if (0x77 < anElapsed)
 					aTime = 0x78;
 				double aValue =
-					mFieldC94 - aTime / ((double)(aBook->mBonusBase * 1000) * exeFloat(0x457be8 + mDifficulty * 4));
-				mFieldC94 = (float)aValue;
+					mClock - aTime / ((double)(aBook->mBonusBase * 1000) * exeFloat(0x457be8 + mDifficulty * 4));
+				mClock = (float)aValue;
 				if (!(aValue < 1.0f))
-					mFieldC94 = 1.0f;
+					mClock = 1.0f;
 			}
 		}
 		else if (mGoal < 1)
-			mFieldC60 = ticks() + 0x2d0;
-		if (mFieldC5C == 0 && mFieldC94 <= 0.0f)
-			mFieldC60 = ticks();
+			mGameOverTime = ticks() + 0x2d0;
+		if (mClassic == 0 && mClock <= 0.0f)
+			mGameOverTime = ticks();
 	}
-	if (mFieldC60 != 0 && (int)mFieldC60 < (int)ticks())
+	if (mGameOverTime != 0 && (int)mGameOverTime < (int)ticks())
 	{
 		// The game is over
-		mFieldC60 = 0;
-		mFieldC94 = 0.0f;
-		gGameScreen->mFieldA4 = 0;
+		mGameOverTime = 0;
+		mClock = 0.0f;
+		gGameScreen->mMouseDown = 0;
 		mPathLength = 0;
 		mWordChecked = 0;
-		mFieldC44 = 1;
+		mGameOver = 1;
 		save(gOptions->mName);
 		playSound(lit(0x457c6c), 1.0f, 1, 0x96);
 		gGameScreen->setMessage(Str(""), 0);
 		Str aMessage = "";
 		int aText;
-		if (mFieldC48 == 0)
-			aText = mFieldC5C == 0 ? 0x4a6 : 0x4a5;
+		if (mNoMoves == 0)
+			aText = mClassic == 0 ? 0x4a6 : 0x4a5;
 		else
 			aText = 0x4a4;
 		aMessage += getText(aText);
@@ -2098,8 +2098,8 @@ counted:
 		aMessage += getText(0x4a7);
 		aMessage += lit(0x457c68);
 		aMessage += intToStr(mScore);
-		gHighScoreTable = mFieldC5C == 0;
-		gHighScoreRank = gHighScores.add(mFieldC5C == 0, gOptions->mName, mStrCD0, mScore);
+		gHighScoreTable = mClassic == 0;
+		gHighScoreRank = gHighScores.add(mClassic == 0, gOptions->mName, mBestWord, mScore);
 		if (-1 < gHighScoreRank)
 		{
 			aMessage += lit(0x457c64);
@@ -2119,17 +2119,17 @@ namespace bonnies
 void Game::load(Str theName, int theMode)
 {
 	mInProgress = 1;
-	mFieldC60 = 0;
-	mFieldC9C = 0;
-	mStrC4C = "";
-	mFieldD8C = ticks();
-	mFieldC88 = 0;
-	mFieldC8C = 0.0f;
+	mGameOverTime = 0;
+	mClockBonus = 0;
+	mLastWord = "";
+	mLastMoveTime = ticks();
+	mMovesLag = 0;
+	mClockLag = 0.0f;
 	mShuffleTime = 0;
-	mFieldC7C = 0;
-	mFieldC74 = 0;
-	mFieldC80 = 0;
-	mFieldD90 = -99;
+	mCopyTime = 0;
+	mWildFell = 0;
+	mFallFrame = 0;
+	mShuffleWords = -99;
 	Str aPath = "";
 	aPath += savedGamesDir(true);
 	aPath += theName;
@@ -2140,13 +2140,13 @@ void Game::load(Str theName, int theMode)
 	mIsWord = 0;
 	mWordChecked = 0;
 	mHintFound = 0;
-	mFieldCDC = 0;
+	mPathClearTime = 0;
 	int aVersion;
 	fileReadInt(aFile, &aVersion);
 	int aMarker;
 	fileReadInt(aFile, &aMarker);
 	int aCell = 0;
-	int aLeft = 9;
+	int aLeft = BOARD_COLUMNS;
 	do
 	{
 		int aRow = 0;
@@ -2155,16 +2155,16 @@ void Game::load(Str theName, int theMode)
 			fileReadByte(aFile, &mLetters[aCell + aRow]);
 			fileReadInt(aFile, &mKinds[aCell + aRow]);
 			fileReadInt(aFile, &mTileFlags[aCell + aRow]);
-			fileReadByte(aFile, &mField43C[aCell + aRow]);
+			fileReadByte(aFile, &mOldLetters[aCell + aRow]);
 			fileReadInt(aFile, &mFallOffsets[aCell + aRow]);
 			fileReadInt(aFile, &mFallSpeeds[aCell + aRow]);
 			fileReadInt(aFile, &mBounces[aCell + aRow]);
-			mField2F8[aCell + aRow] = 0;
+			mChangeTimes[aCell + aRow] = 0;
 			mFrom[aCell + aRow][0] = 0;
 			mFrom[aCell + aRow][1] = 0;
 			aRow++;
-		} while (aRow < 9);
-		aCell += 9;
+		} while (aRow < BOARD_ROWS);
+		aCell += BOARD_ROWS;
 		aLeft--;
 	} while (aLeft != 0);
 	int i = 0;
@@ -2173,34 +2173,34 @@ void Game::load(Str theName, int theMode)
 		fileReadInt(aFile, &mPathColumns[i]);
 		fileReadInt(aFile, &mPathRows[i]);
 		i++;
-	} while (i < 0x14);
+	} while (i < PATH_LETTERS);
 	fileReadInt(aFile, &aMarker);
-	int anUnused;
-	fileReadInt(aFile, &mFieldC5C);
+	int aSkipped;
+	fileReadInt(aFile, &mClassic);
 	fileReadInt(aFile, &mDifficulty);
 	fileReadInt(aFile, &mScore);
 	fileReadInt(aFile, &mLevel);
-	fileReadInt(aFile, &mFieldC44);
-	fileReadInt(aFile, &mFieldC94);
+	fileReadInt(aFile, &mGameOver);
+	fileReadInt(aFile, &mClock);
 	fileReadInt(aFile, &mGoal);
-	fileReadInt(aFile, &mFieldCA0);
-	fileReadInt(aFile, &mFieldCAC);
+	fileReadInt(aFile, &mWordsPlayed);
+	fileReadInt(aFile, &mMovesAtHint);
 	fileReadInt(aFile, &mPathLength);
-	fileReadInt(aFile, &mFieldCA4);
+	fileReadInt(aFile, &mGameWords);
 	fileReadInt(aFile, &mWildOdds);
 	fileReadInt(aFile, &mSuperWildOdds);
 	fileReadInt(aFile, &mStarOdds);
 	fileReadInt(aFile, &mStoneOdds);
-	fileReadInt(aFile, &mFieldC64);
-	fileReadString(aFile, mStrCC8);
-	fileReadString(aFile, mStrCD0);
-	fileReadInt(aFile, &mFieldC58);
-	fileReadInt(aFile, &anUnused);
+	fileReadInt(aFile, &mLevelStartScore);
+	fileReadString(aFile, mLevelBestWord);
+	fileReadString(aFile, mBestWord);
+	fileReadInt(aFile, &mChapterTextShown);
+	fileReadInt(aFile, &aSkipped);
 	fileReadInt(aFile, &mCopyOdds);
-	fileReadInt(aFile, &mFieldB88);
-	fileReadInt(aFile, &mFieldCA8);
-	int aSavedMode = mFieldC5C;
-	mFieldC5C = theMode;
+	fileReadInt(aFile, &mBonusGiven);
+	fileReadInt(aFile, &mShuffles);
+	int aSavedMode = mClassic;
+	mClassic = theMode;
 	char aByte = 0;
 	int aBytes = 0xb4;
 	do
@@ -2211,13 +2211,13 @@ void Game::load(Str theName, int theMode)
 	fileReadInt(aFile, &aMarker);
 	mRecord.load(aFile);
 	fileClose(aFile);
-	int aMode = mFieldC5C;
+	int aMode = mClassic;
 	if (aSavedMode != aMode)
 	{
 		int aGoal = (int)(currentBook()->mGoalBase * (double)exeFloat(0x457bdc + mDifficulty * 4));
 		if (aMode != 0)
 		{
-			int aNewGoal = (mGoal + (int)(aGoal * (double)mFieldC94 + 0.5f)) >> 1;
+			int aNewGoal = (mGoal + (int)(aGoal * (double)mClock + 0.5f)) >> 1;
 			if (aNewGoal < 2)
 				aNewGoal = 1;
 			mGoal = aNewGoal;
@@ -2230,37 +2230,37 @@ void Game::load(Str theName, int theMode)
 			int aFullGoal = 1;
 			if (1 <= aGoal)
 				aFullGoal = aGoal;
-			double aValue = (((double)aLeftGoal / aFullGoal - 0.02f) + mFieldC94) * 0.5f;
-			mFieldC94 = (float)aValue;
+			double aValue = (((double)aLeftGoal / aFullGoal - 0.02f) + mClock) * 0.5f;
+			mClock = (float)aValue;
 			if (!(aValue < 1.0f))
-				mFieldC94 = 1.0f;
+				mClock = 1.0f;
 		}
-		if (aMode == 0 && mFieldC94 <= 0.15f)
+		if (aMode == 0 && mClock <= 0.15f)
 			mPathLength = 0;
 	}
 	// A level already won goes on to the next
 	bool aWon;
 	if (aMode != 0 && mGoal <= 0)
 		aWon = true;
-	else if (aMode == 0 && mFieldC94 <= 0.0f)
+	else if (aMode == 0 && mClock <= 0.0f)
 		aWon = true;
 	else
 		aWon = countTiles() <= countFlag20();
-	if (aWon && mLevel < 0x32)
+	if (aWon && mLevel < LEVEL_COUNT)
 	{
 		addLevelBonus();
 		mLevel = mLevel + 1;
 		newBoard();
-		mFieldC94 = 1.0f;
+		mClock = 1.0f;
 		save(gOptions->mName);
 	}
 	if (mPathLength == 1)
 		mPathLength = 0;
 	mShownScore = mScore;
-	mFieldC70 = 0;
+	mScoreTime = 0;
 	if (gGameScreen != nullptr)
 		gGameScreen->setChapter(currentBook()->name());
-	for (i = 0; i < 81; i++)
+	for (i = 0; i < BOARD_CELLS; i++)
 		mTileFlags[i] = mTileFlags[i] & 0xffffffbf;
 	if (gGameScreen != nullptr)
 		gGameScreen->updateHint();
@@ -2352,20 +2352,20 @@ void Game::submit()
 	{
 		do
 		{
-			if (isDouble(mLetters[pathColumn(i) * 9 + pathRow(i)]))
+			if (isDouble(mLetters[pathColumn(i) * BOARD_ROWS + pathRow(i)]))
 				aLetters++;
 			i++;
 		} while (i < aLength);
 	}
-	mCopyLetter = mLetters[pathColumn(aLength - 1) * 9 + pathRow(aLength - 1)];
+	mCopyLetter = mLetters[pathColumn(aLength - 1) * BOARD_ROWS + pathRow(aLength - 1)];
 	if (mIsWord != 0 && (int)aMatch.size() != 0)
 		mCopyLetter = (char)at(aMatch, (int)aMatch.size() - 1);
 	int aLastColumn = pathColumn(mPathLength - 1);
 	int aLastRow = pathRow(mPathLength - 1);
-	mStrC4C = aMatch;
+	mLastWord = aMatch;
 	int aScore = wordScore();
-	mFieldCA0 = mFieldCA0 + 1;
-	mFieldCA4 = mFieldCA4 + 1;
+	mWordsPlayed = mWordsPlayed + 1;
+	mGameWords = mGameWords + 1;
 	// A word in alphabetical order brings a stone tile, a doubled letter a copycat
 	bool anOrdered = true;
 	i = 1;
@@ -2406,22 +2406,22 @@ void Game::submit()
 	}
 	// The bonus of a long word: time, or moves
 	int aBonus = 0;
-	int aShortest = (mFieldC5C != 0) + 5;
+	int aShortest = (mClassic != 0) + 5;
 	if (aLetters < aShortest)
 	{
-		if (gBonnies->mDebug1E8 == 0)
+		if (gBonnies->mFreeMoves == 0)
 			mGoal = mGoal - 1;
 	}
 	else
 		aBonus = (aLetters - aShortest) + 1;
-	if ((mFieldC5C != 0 ? 0x14 : 0x28) < mFieldB88 + aBonus)
+	if ((mClassic != 0 ? 0x14 : 0x28) < mBonusGiven + aBonus)
 	{
 		aBonus = 0;
-		mFieldB88 = 99;
+		mBonusGiven = 99;
 	}
 	double aRate = 0.0;
-	gGameScreen->mFieldB0 = 0;
-	mFieldB88 = mFieldB88 + (aBonus < 1 ? 0 : aBonus);
+	gGameScreen->mHintDue = 0;
+	mBonusGiven = mBonusGiven + (aBonus < 1 ? 0 : aBonus);
 	// The odds of the special tiles
 	if (6 < aLetters)
 	{
@@ -2446,7 +2446,7 @@ void Game::submit()
 	}
 	else if (aLetters == 4)
 	{
-		if (currentBook()->mField3C != 0)
+		if (currentBook()->mFastOdds != 0)
 		{
 			aRate = 0.501f;
 			goto addRate;
@@ -2459,11 +2459,11 @@ void Game::submit()
 	{
 		int aLevel;
 		aLevel = mLevel;
-		if (currentBook()->mField3C != 0)
+		if (currentBook()->mFastOdds != 0)
 			aRate = 1.5f;
 		else
 		{
-			if (mFieldC5C == 0 || aLevel <= 6)
+			if (mClassic == 0 || aLevel <= 6)
 				aRate = 0.401f;
 			else if (aLevel <= 0xf)
 				aRate = 0.501f;
@@ -2501,31 +2501,31 @@ void Game::submit()
 		mWildOdds = 0.0f;
 		mStarOdds = 0.0f;
 	}
-	mFieldCD8 = frameCount();
-	mFieldC70 = ticks();
+	mWordFrame = frameCount();
+	mScoreTime = ticks();
 	mScore = mScore + aScore;
 	if ((int)aMatch.size() != 0)
 	{
-		if ((int)mStrCC8.size() <= (int)aMatch.size())
-			mStrCC8 = aMatch;
-		if ((int)mStrCD0.size() <= (int)aMatch.size())
-			mStrCD0 = aMatch;
-		if ((int)mRecord.mStr14.size() <= (int)aMatch.size())
-			mRecord.mStr14 = aMatch;
-		mRecord.mField0C = mRecord.mField0C + 1;
-		mRecord.mField10 = mRecord.mField10 + (int)aMatch.size();
+		if ((int)mLevelBestWord.size() <= (int)aMatch.size())
+			mLevelBestWord = aMatch;
+		if ((int)mBestWord.size() <= (int)aMatch.size())
+			mBestWord = aMatch;
+		if ((int)mRecord.mLongestWord.size() <= (int)aMatch.size())
+			mRecord.mLongestWord = aMatch;
+		mRecord.mWords = mRecord.mWords + 1;
+		mRecord.mLetters = mRecord.mLetters + (int)aMatch.size();
 		if ((int)aMatch.size() < 5)
-			mRecord.mField20 = 0;
+			mRecord.mStreak = 0;
 		else
 		{
-			int aRun = mRecord.mField20 + 1;
-			mRecord.mField20 = aRun;
-			if (aRun < mRecord.mField1C)
-				aRun = mRecord.mField1C;
-			mRecord.mField1C = aRun;
+			int aRun = mRecord.mStreak + 1;
+			mRecord.mStreak = aRun;
+			if (aRun < mRecord.mBestStreak)
+				aRun = mRecord.mBestStreak;
+			mRecord.mBestStreak = aRun;
 		}
 	}
-	for (i = 0; i < 81; i++)
+	for (i = 0; i < BOARD_CELLS; i++)
 		mTileFlags[i] = mTileFlags[i] & 0xfffffeff;
 	// The path's letters fly off and its tiles go
 	int aPathLength = mPathLength;
@@ -2543,7 +2543,7 @@ void Game::submit()
 			float aY;
 			gGameScreen->tilePos(aColumn, aRow, &aX, &aY);
 			aSumX = aX + aSumX;
-			int aCell = aColumn * 9 + aRow;
+			int aCell = aColumn * BOARD_ROWS + aRow;
 			char aText[2];
 			aText[0] = mLetters[aCell];
 			aSumY = aY + aSumY;
@@ -2578,7 +2578,7 @@ void Game::submit()
 			uint32_t aFlags = mTileFlags[aCell];
 			if ((aFlags & 8) == 0)
 			{
-				if (currentBook()->mField38 == 0)
+				if (currentBook()->mTwoFills == 0)
 					mTileFlags[aCell] = aFlags | 0x20;
 				else if ((aFlags & 0x10) != 0)
 					mTileFlags[aCell] = (aFlags & 0xffffffef) | 0x20;
@@ -2600,12 +2600,12 @@ void Game::submit()
 				int aNewRow;
 				if (neighbour(aColumn, aRow, aDirection, &aNewColumn, &aNewRow) != 0)
 				{
-					int aNew = aNewRow + aNewColumn * 9;
+					int aNew = aNewRow + aNewColumn * BOARD_ROWS;
 					if ((mTileFlags[aNew] & 2) != 0)
 					{
 						mTileFlags[aNew] = mTileFlags[aNew] & 0xfffffffd;
-						mField2F8[aNew] = (int)ticks();
-						mField43C[aNew] = '^';
+						mChangeTimes[aNew] = (int)ticks();
+						mOldLetters[aNew] = '^';
 					}
 				}
 				aDirection++;
@@ -2637,7 +2637,7 @@ void Game::submit()
 	}
 	if (0 < aBonus)
 	{
-		if (mFieldC5C == 0)
+		if (mClassic == 0)
 		{
 			aBonusText += getText(0x4a3);
 			aBonusText += lit(0x457cc0);
@@ -2693,18 +2693,18 @@ void Game::submit()
 		aFloat->mColor2 = 0xff000001;
 		aFloat->mEndColor2 = 0xff000001;
 		aFloat->mText = aBonusText;
-		if (mFieldC5C == 0)
+		if (mClassic == 0)
 		{
 			double aTime = (double)(aBonus * 4) /
 				((double)currentBook()->mBonusBase * exeFloat(0x457be8 + mDifficulty * 4));
-			if (!(aTime + mFieldC94 <= 1.0f))
-				aTime = 1.0f - (double)mFieldC94;
-			mFieldC94 = (float)(aTime + mFieldC94);
-			mFieldC8C = (float)(mFieldC8C - aTime);
+			if (!(aTime + mClock <= 1.0f))
+				aTime = 1.0f - (double)mClock;
+			mClock = (float)(aTime + mClock);
+			mClockLag = (float)(mClockLag - aTime);
 		}
 		else
 		{
-			mFieldC88 = mFieldC88 - aBonus;
+			mMovesLag = mMovesLag - aBonus;
 			mGoal = mGoal + aBonus;
 		}
 		aFloat->mScale1 = 1.0f;
@@ -2718,9 +2718,9 @@ void Game::submit()
 		aFloat->mFont = gBonnies->mFonts[9];
 		gFloatTexts->add(aFloat);
 	}
-	mFieldD8C = ticks();
+	mLastMoveTime = ticks();
 	mPathLength = 0;
-	mFieldCDC = ticks();
+	mPathClearTime = ticks();
 	mWordChecked = 0;
 	mHintFound = 0;
 	// The stones count up a letter and the copycats copy the word's last
@@ -2735,9 +2735,9 @@ void Game::submit()
 			mFrom[aCell + aRow][1] = aRow;
 			if ((mKinds[aCell + aRow] & 1) != 0)
 			{
-				mField2F8[aCell + aRow] = (int)ticks();
+				mChangeTimes[aCell + aRow] = (int)ticks();
 				char aLetter = mLetters[aCell + aRow];
-				mField43C[aCell + aRow] = aLetter;
+				mOldLetters[aCell + aRow] = aLetter;
 				if (aLetter == 'Z')
 					mLetters[aCell + aRow] = 'A';
 				else
@@ -2752,15 +2752,15 @@ void Game::submit()
 			{
 				mFrom[aCell + aRow][0] = aLastColumn;
 				mFrom[aCell + aRow][1] = aLastRow;
-				mFieldC7C = ticks();
-				mField43C[aCell + aRow] = mLetters[aCell + aRow];
+				mCopyTime = ticks();
+				mOldLetters[aCell + aRow] = mLetters[aCell + aRow];
 				mLetters[aCell + aRow] = mCopyLetter;
 			}
 			aRow++;
-		} while (aRow < 9);
+		} while (aRow < BOARD_ROWS);
 		aColumn++;
-		aCell += 9;
-	} while (aCell < 0x51);
+		aCell += BOARD_ROWS;
+	} while (aCell < BOARD_CELLS);
 	gGameScreen->updateHint();
 	if (currentBook()->mFillCount <= countFlag20())
 		levelWon();
@@ -2792,9 +2792,9 @@ void Game::levelWon()
 	gSound->play(lit(0x457c98), 1.0f, 1, 0, 1.0f);
 	gGameScreen->flash(300, 0x4f3cff00);
 	sparkleBoard();
-	gGameScreen->mField58 = 2;
-	gGameScreen->mField5C = ticks();
-	gGameScreen->mField60 = ticks() + 0x44c;
+	gGameScreen->mSequenceState = 2;
+	gGameScreen->mStepStart = ticks();
+	gGameScreen->mStepEnd = ticks() + 0x44c;
 }
 
 // 0x40e540
@@ -2809,14 +2809,14 @@ void Record::reset()
 	mGames = 0;
 	mBestLevel = 0;
 	mLastLevel = 0;
-	mField0C = 0;
-	mField10 = 0;
-	mStr14 = "";
-	mField1C = 0;
-	mField20 = 0;
-	mField24 = 0;
-	mFieldAC = 0;
-	mFieldB0 = 0;
+	mWords = 0;
+	mLetters = 0;
+	mLongestWord = "";
+	mBestStreak = 0;
+	mStreak = 0;
+	mSpare = 0;
+	mFixedTileTaps = 0;
+	mStarTileTaps = 0;
 	for (int i = 0; i < 33; i++)
 		mSeen[i] = 0;
 }
@@ -2832,16 +2832,16 @@ void Record::load(int theFile)
 	else
 		fileReadInt(theFile, &mGames);
 	fileReadInt(theFile, &mBestLevel);
-	fileReadInt(theFile, &mField0C);
-	fileReadInt(theFile, &mField10);
-	fileReadString(theFile, mStr14);
-	fileReadInt(theFile, &mField1C);
-	fileReadInt(theFile, &mField20);
+	fileReadInt(theFile, &mWords);
+	fileReadInt(theFile, &mLetters);
+	fileReadString(theFile, mLongestWord);
+	fileReadInt(theFile, &mBestStreak);
+	fileReadInt(theFile, &mStreak);
 	if (100 < aVersion)
 	{
-		fileReadInt(theFile, &mField24);
-		fileReadInt(theFile, &mFieldAC);
-		fileReadInt(theFile, &mFieldB0);
+		fileReadInt(theFile, &mSpare);
+		fileReadInt(theFile, &mFixedTileTaps);
+		fileReadInt(theFile, &mStarTileTaps);
 		if (aVersion < 0x66)
 		{
 			mLastLevel = mBestLevel;
@@ -2865,14 +2865,14 @@ void Record::save(int theFile)
 	fileWriteInt(theFile, &aVersion);
 	fileWriteInt(theFile, &mGames);
 	fileWriteInt(theFile, &mBestLevel);
-	fileWriteInt(theFile, &mField0C);
-	fileWriteInt(theFile, &mField10);
-	fileWriteString(theFile, &mStr14);
-	fileWriteInt(theFile, &mField1C);
-	fileWriteInt(theFile, &mField20);
-	fileWriteInt(theFile, &mField24);
-	fileWriteInt(theFile, &mFieldAC);
-	fileWriteInt(theFile, &mFieldB0);
+	fileWriteInt(theFile, &mWords);
+	fileWriteInt(theFile, &mLetters);
+	fileWriteString(theFile, &mLongestWord);
+	fileWriteInt(theFile, &mBestStreak);
+	fileWriteInt(theFile, &mStreak);
+	fileWriteInt(theFile, &mSpare);
+	fileWriteInt(theFile, &mFixedTileTaps);
+	fileWriteInt(theFile, &mStarTileTaps);
 	fileWriteInt(theFile, &mLastLevel);
 	crtWrite(theFile, aZeros, 0x26);
 	for (int i = 0; i < 0x21; i++)

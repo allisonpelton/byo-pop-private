@@ -8,7 +8,7 @@ cd "$(dirname "$0")/../../../.."
 NAME="$1"; SECS="$2"; SCRIPT="$3"; shift 3
 W=$(pwd -W)
 mkdir -p build/perf2
-until python -I tools/gamecount.py --limit 3 > /dev/null; do sleep 15; done
+until python -I tools/gamecount.py --limit 6 > /dev/null; do sleep 15; done
 rm -rf "build/perf2/user_$NAME"
 timeout 600 build/native/rundesk.exe python -I games/bejeweled/tools/profile/cpuprof.py "build/perf2/prof_$NAME.txt" "$SECS" -- \
   "$W/build/native/noahsark.exe" -gamedir="$W/assets/noahsark" -userdir="$W/build/perf2/user_$NAME" -seed=1 -script="$W/$SCRIPT" "$@" \

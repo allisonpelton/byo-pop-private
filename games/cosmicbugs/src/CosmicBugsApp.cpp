@@ -1,24 +1,29 @@
-// The port's host for Cosmic Bugs (see CosmicBugsApp.h).
+// port: the host for Cosmic Bugs (see CosmicBugsApp.h).
 
 #include "CosmicBugsApp.h"
 #include "CBGlobals.h"
 #include "CBLevel.h"
 #include "CBFixes.h"
 #include "CBTestCommands.h"
+#include "LiveSplitObserver.h"
 #include "R64.h"
 #include "R64Sys.h"
 #include "DDInterface.h"
+#ifndef __EMSCRIPTEN__
+#include "SurfaceDisplay.h"
+#endif
 #include "Graphics.h"
 #include "MemoryImage.h"
 #include "MusicInterface.h"
 #include "SoundInstance.h"
 #include "SoundManager.h"
 #include "WidgetManager.h"
-#include "platform/ModManager.h"
+#include "platform/GameOptions.h"
 #include "platform/VFS.h"
 #include "WebSettings.h"
 
 #include <SDL.h>
+#include <cstdint>
 #include <cstdio>
 #include <cstring>
 #include <string>
@@ -31,7 +36,7 @@ namespace
 {
 
 // BASS_SetVolume(60) at the start (0x42ad70): the original plays everything at 60%
-const double kOutputVolume = 0.6;
+const double OUTPUT_VOLUME = 0.6;
 
 r64::PixelFormat gScreenFormat565;
 
@@ -42,11 +47,6 @@ public:
 	bool ReadFile(const char* thePath, std::vector<uint8_t>& theData) override
 	{
 		return Platform::VFS::Get().ReadAll(thePath, theData);
-	}
-
-	void AddUpdateRect(int x, int y, int w, int h) override
-	{
-		gApp->AddUpdateRect(x, y, w, h);
 	}
 
 	void SetMousePos(int x, int y) override
@@ -63,7 +63,7 @@ public:
 	bool LockScreen(uint8_t** theBits, int* thePitch) override
 	{
 		*theBits = (uint8_t*)gApp->mScreen.data();
-		*thePitch = 800 * 2;
+		*thePitch = r64::SCREEN_WIDTH * 2;
 		return true;
 	}
 
@@ -91,8 +91,8 @@ public:
 		return gApp->mActive || (gApp->IsTestRun() && gApp->mRealInputFileName.empty());
 	}
 
-	// The site's "Always skip start-up logos" (framework/WebSettings.h: the page sets it before the game starts, the exe takes
-	// -skiplogos), which the logo screens read (GameStep)
+	// The site's "Always skip start-up logos" (framework/WebSettings.h: the page sets it before the game starts, the
+	// exe takes -skiplogos), which the logo screens read (GameStep)
 	bool SkipLogos() override
 	{
 		return Byopop::SiteSkipLogos();
@@ -123,10 +123,10 @@ public:
 
 	bool LoadMusic(const char* thePath) override
 	{
-		bool ok = gApp->mMusicInterface != nullptr && gApp->mMusicInterface->LoadMusic(0, thePath);
-		if (!ok)
+		bool anOk = gApp->mMusicInterface != nullptr && gApp->mMusicInterface->LoadMusic(0, thePath);
+		if (!anOk)
 			SDL_Log("cannot load the music %s", thePath);
-		return ok;
+		return anOk;
 	}
 
 	void FreeMusic() override
@@ -154,7 +154,7 @@ public:
 	void SetMusicVolume(int theVolume) override
 	{
 		if (gApp->mMusicInterface != nullptr)
-			gApp->mMusicInterface->SetVolume(kOutputVolume * theVolume / 100.0);
+			gApp->mMusicInterface->SetVolume(OUTPUT_VOLUME * theVolume / 100.0);
 	}
 
 	const char* SavePath(const char* theName) override
@@ -199,13 +199,33 @@ CosmicBugsHost gHost;
 
 CosmicBugsWidget::CosmicBugsWidget()
 {
-	mScreenImage = new MemoryImage(gApp);
-	mScreenImage->Create(800, 600);
+	mScreenImage = nullptr;
 	mWantsFocus = true;
+#ifndef __EMSCRIPTEN__
+	// the window's display keeps the screen itself (CreateDDInterface), so the widget has no picture of it
+	if (dynamic_cast<SurfaceDisplay*>(gApp->mDDInterface) != nullptr)
+	{
+		mPixels.assign(r64::SCREEN_WIDTH * r64::SCREEN_HEIGHT, 0xff000000);
+		return;
+	}
+#endif
+	mScreenImage = new MemoryImage(gApp);
+	mScreenImage->Create(r64::SCREEN_WIDTH, r64::SCREEN_HEIGHT);
+	// opaque, so that the framework need not look through the 480000 pixels for alpha after each change, and with every
+	// alpha byte 0xff (ScreenDiff), so that it need not copy and premultiply them pixel by pixel in strips to upload them
+	// (where premultiplying changes nothing): the same pixels reach the screen, in one upload (Water Bugs' and the
+	// Mahjong ports' screen)
+	mScreenImage->SetImageMode(false, false);
+	mScreenImage->mUploadAsIs = true;
 }
 
 CosmicBugsWidget::~CosmicBugsWidget()
 {
+#ifndef __EMSCRIPTEN__
+	// the screen's pixels go with the widget
+	if (SurfaceDisplay* aDisplay = dynamic_cast<SurfaceDisplay*>(gApp->mDDInterface))
+		aDisplay->SetFrame(nullptr, 0, nullptr, -1);
+#endif
 	delete mScreenImage;
 }
 
@@ -216,40 +236,39 @@ void CosmicBugsWidget::Update()
 	MarkDirty();
 }
 
-// What the original presented since the last copy (all of it when nothing said which part) goes to the image
+// What the original presented since the last frame goes to the screen's pixels (ScreenDiff widens just what changed). A
+// SurfaceDisplay is handed the pixels and the rectangles that changed (the first frame, the whole screen) and shows them
+// itself; otherwise the widget's picture is drawn, and the framework uploads it if there were any changes
 void CosmicBugsWidget::Draw(Graphics* g)
 {
 	CosmicBugsApp* anApp = gApp;
+#ifndef __EMSCRIPTEN__
+	if (SurfaceDisplay* aDisplay = dynamic_cast<SurfaceDisplay*>(anApp->mDDInterface))
+	{
+		if (anApp->mPresented)
+		{
+			mScreenDiff.Update(anApp->mScreen.data(), mPixels.data());
+			if (mScreenDiff.Whole())
+				aDisplay->SetFrame(mPixels.data(), r64::SCREEN_WIDTH * 4, nullptr, -1);
+			else
+			{
+				mFrameRects.clear();
+				for (const r64::ChangedRect& aRect : mScreenDiff.Rects())
+					mFrameRects.push_back(Rect(aRect.mX, aRect.mY, aRect.mWidth, aRect.mHeight));
+				aDisplay->SetFrame(mPixels.data(), r64::SCREEN_WIDTH * 4, mFrameRects.data(), (int)mFrameRects.size());
+			}
+			anApp->mPresented = false;
+		}
+		return;
+	}
+#endif
 	if (anApp->mPresented)
 	{
-		int l = 0, t = 0, r = 800, b = 600;
-		if (!anApp->mWholeScreen && anApp->mDirtyRight > anApp->mDirtyLeft)
-		{
-			l = anApp->mDirtyLeft;
-			t = anApp->mDirtyTop;
-			r = anApp->mDirtyRight;
-			b = anApp->mDirtyBottom;
-		}
-		ulong* aBits = mScreenImage->GetBits();
-		for (int y = t; y < b; y++)
-		{
-			const uint16_t* aSrc = &anApp->mScreen[y * 800];
-			ulong* aDst = &aBits[y * 800];
-			for (int x = l; x < r; x++)
-			{
-				uint32_t p = aSrc[x];
-				uint32_t aRed = (p >> 11) & 0x1f;
-				uint32_t aGreen = (p >> 5) & 0x3f;
-				uint32_t aBlue = p & 0x1f;
-				aDst[x] = 0xff000000 | (((aRed << 3) | (aRed >> 2)) << 16) | (((aGreen << 2) | (aGreen >> 4)) << 8) |
-					((aBlue << 3) | (aBlue >> 2));
-			}
-		}
-		mScreenImage->BitsChanged();
+		static_assert(sizeof(ulong) == sizeof(uint32_t), "the image's pixels are 32 bits");
+		mScreenDiff.Update(anApp->mScreen.data(), reinterpret_cast<uint32_t*>(mScreenImage->GetBits()));
+		if (mScreenDiff.Whole() || !mScreenDiff.Rects().empty())
+			mScreenImage->BitsChanged();
 		anApp->mPresented = false;
-		anApp->mWholeScreen = false;
-		anApp->mDirtyLeft = anApp->mDirtyTop = 800;
-		anApp->mDirtyRight = anApp->mDirtyBottom = 0;
 	}
 	g->DrawImage(mScreenImage, 0, 0);
 }
@@ -298,23 +317,21 @@ CosmicBugsApp::CosmicBugsApp()
 	mProdName = "CosmicBugs";
 	mTitle = "Cosmic Bugs";
 	mRegKey = "PopCap\\CosmicBugs";
-	mWidth = 800;
-	mHeight = 600;
+	mWidth = r64::SCREEN_WIDTH;
+	mHeight = r64::SCREEN_HEIGHT;
 	mWidget = nullptr;
 	mGameStarted = false;
 	mGameEnded = false;
 	mApplyingGameMode = false;
-	mScreen.assign(800 * 600, 0);
+	mScreen.assign(r64::SCREEN_WIDTH * r64::SCREEN_HEIGHT, 0);
 	mPresented = false;
-	mWholeScreen = false;
-	mDirtyLeft = mDirtyTop = 800;
-	mDirtyRight = mDirtyBottom = 0;
-	mMouseX = 400;
-	mMouseY = 300;
+	mMouseX = r64::SCREEN_CENTRE_X;
+	mMouseY = r64::SCREEN_CENTRE_Y;
 }
 
 CosmicBugsApp::~CosmicBugsApp()
 {
+	LiveSplitObserver::AppDestroyed(this);   // port: the autosplit block's last write (LiveSplitObserver.h)
 	if (mWidget != nullptr)
 	{
 		mWidgetManager->RemoveWidget(mWidget);
@@ -322,25 +339,29 @@ CosmicBugsApp::~CosmicBugsApp()
 	}
 }
 
-// The fixes mod's toggles (games/cosmicbugs/mods/fixes), from the highest-priority enabled mod that has the feature
-// "fixes"; without one every fix stays off and the game plays as the original does
+#ifndef __EMSCRIPTEN__
+DDInterface* CosmicBugsApp::CreateDDInterface()
+{
+	// test only: SURFACE_DISPLAY=off keeps the framework's own display and the widget's picture (the path before the
+	// SurfaceDisplay), to measure and compare the two
+	const char* aMode = SDL_getenv("SURFACE_DISPLAY");
+	if ((aMode != nullptr) && (std::strcmp(aMode, "off") == 0))
+		return SexyAppBase::CreateDDInterface();
+	return new SurfaceDisplay(this);
+}
+#endif
+
+// The fixes mod's toggles (games/cosmicbugs/mods/fixes), read once through Platform::FixOn; without them every fix stays off
 static void LoadFixes()
 {
 	cb::gFixes = cb::Fixes();
-	for (const Platform::ModInfo* aMod : Platform::ModManager::Get().GetEnabledMods())
-	{
-		if (!aMod->mFeaturesJson.IsObject() || !aMod->mFeaturesJson.Has("fixes"))
-			continue;
-		Platform::JsonValue aTurns = Platform::ModManager::Get().GetLiveValue(aMod->mId, "walkerTurnMemory");
-		Platform::JsonValue aShield = Platform::ModManager::Get().GetLiveValue(aMod->mId, "shieldFlash");
-		cb::gFixes.walkerTurnMemory = aTurns.IsBool() && aTurns.AsBool(false);
-		cb::gFixes.shieldFlash = aShield.IsBool() && aShield.AsBool(false);
-		break;
-	}
-	SDL_Log("fixes: walkerTurnMemory %s, shieldFlash %s", cb::gFixes.walkerTurnMemory ? "on" : "off",
-		cb::gFixes.shieldFlash ? "on" : "off");
+	cb::gFixes.mWalkerTurnMemory = Platform::FixOn("walkerTurnMemory");
+	cb::gFixes.mShieldFlash = Platform::FixOn("shieldFlash");
+	SDL_Log("fixes: walkerTurnMemory %s, shieldFlash %s", cb::gFixes.mWalkerTurnMemory ? "on" : "off",
+		cb::gFixes.mShieldFlash ? "on" : "off");
 }
 
+// 0x42ae60 (WinMain: cp.cfg, the window and the screen, the sound, the game; what follows GameMain is Shutdown)
 void CosmicBugsApp::Init()
 {
 	SexyAppBase::Init();
@@ -351,7 +372,7 @@ void CosmicBugsApp::Init()
 	r64::Sys_SetScreenFormat(&gScreenFormat565);
 	r64::Sys_SetHost(&gHost);
 	if (mSoundManager != nullptr)
-		mSoundManager->SetVolume(kOutputVolume);
+		mSoundManager->SetVolume(OUTPUT_VOLUME);
 	// the game draws its own pointer
 	SetCursor(CURSOR_NONE);
 
@@ -366,10 +387,11 @@ void CosmicBugsApp::Init()
 		Shutdown();
 		return;
 	}
-	// WinMain (0x42ae60): cp.cfg, the screen in its mode, the sound, then the game
+	// WinMain: cp.cfg, the screen in its mode, the sound, then the game
 	r64::LoadConfig();
 #ifdef __EMSCRIPTEN__
-	// the site's "Full screen at start: Windowed" (framework/WebSettings.h): the game's own option, set as its menu sets it
+	// the site's "Full screen at start: Windowed" (framework/WebSettings.h): the game's own option, set as its menu
+	// sets it
 	if (Byopop::SiteWindowed())
 		r64::Screen_SetFullscreen(0);
 #endif
@@ -390,6 +412,14 @@ void CosmicBugsApp::Shutdown()
 	SexyAppBase::Shutdown();
 }
 
+void CosmicBugsApp::HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue)
+{
+	if (theParamName == "-livesplitlog")
+		LiveSplitObserver::SetLogFile(theParamValue);   // port: one line for each change the autosplit block shows (tests)
+	else
+		SexyAppBase::HandleCmdLineParam(theParamName, theParamValue);
+}
+
 void CosmicBugsApp::RunFrame()
 {
 	if (!mGameStarted || mGameEnded)
@@ -401,24 +431,12 @@ void CosmicBugsApp::RunFrame()
 		r64::Sound_Shutdown();
 		Shutdown();
 	}
-}
-
-void CosmicBugsApp::AddUpdateRect(int x, int y, int w, int h)
-{
-	if (x < mDirtyLeft)
-		mDirtyLeft = x < 0 ? 0 : x;
-	if (y < mDirtyTop)
-		mDirtyTop = y < 0 ? 0 : y;
-	if (x + w > mDirtyRight)
-		mDirtyRight = x + w > 800 ? 800 : x + w;
-	if (y + h > mDirtyBottom)
-		mDirtyBottom = y + h > 600 ? 600 : y + h;
+	else
+		LiveSplitObserver::AfterUpdate(this);   // port: the autosplit block, after the update (LiveSplitObserver.h)
 }
 
 void CosmicBugsApp::Present()
 {
-	if (mDirtyRight <= mDirtyLeft)
-		mWholeScreen = true;
 	mPresented = true;
 }
 
@@ -477,15 +495,15 @@ void CosmicBugsApp::CloseRequestAsync()
 
 // Alt+Enter goes to the game like its F7 (0x42a7a0); it then asks for the mode through SetScreenMode. (The web
 // page's Fullscreen button works on the page and never reaches the game.)
-void CosmicBugsApp::SwitchScreenMode(bool wantWindowed, bool is3d, bool force)
+void CosmicBugsApp::SwitchScreenMode(bool theWantWindowed, bool theIs3d, bool theForce)
 {
-	if (mApplyingGameMode || !mGameStarted || mGameEnded || force)
+	if (mApplyingGameMode || !mGameStarted || mGameEnded || theForce)
 	{
-		SexyAppBase::SwitchScreenMode(wantWindowed, is3d, force);
+		SexyAppBase::SwitchScreenMode(theWantWindowed, theIs3d, theForce);
 		return;
 	}
-	if (wantWindowed != mIsWindowed)
-		r64::Screen_SetFullscreen(wantWindowed ? 0 : 1);
+	if (theWantWindowed != mIsWindowed)
+		r64::Screen_SetFullscreen(theWantWindowed ? 0 : 1);
 }
 
 // The script's "rdown"/"rup" [<x> <y>]: the right button pressed or let go (there, else where the pointer is, which the
@@ -508,9 +526,9 @@ bool CosmicBugsApp::HandleScriptCommand(const ScriptCommand& theCommand)
 	}
 	if (theCommand.mCommand == "state")
 	{
-		cb::Level* aLevel = cb::gLevels.current;
+		cb::Level* aLevel = cb::gLevels.mCurrent;
 		SDL_Log("state: score %d, lives %d, board %d, filled %d of %d%%", cb::gScore, cb::gLives, cb::gLevelInSet,
-			aLevel != nullptr ? aLevel->filledCells : -1, aLevel != nullptr ? aLevel->fillQuota : -1);
+			aLevel != nullptr ? aLevel->mFilledCells : -1, aLevel != nullptr ? aLevel->mFillQuota : -1);
 	}
 	std::vector<std::string> aReplies;
 	if (!cb::TestCommand(theCommand.mCommand, theCommand.mArgs, aReplies))

@@ -21,10 +21,10 @@ bool Board::MovePiece(Piece* thePiece, int theDX, int theDY)
 	unsigned int aNewCol = aCol + theDX;
 	unsigned int aNewRow = aRow + theDY;
 	// the same two squares as the move before (in either direction): the next hint is not free
-	bool aSameMove = (aCol == m15eac && aRow == m15eb0 && (int)aNewCol == m15eb4 && (int)aNewRow == m15eb8) ||
-		(aCol == m15eb4 && aRow == m15eb8 && (int)aNewCol == m15eac && (int)aNewRow == m15eb0);
-	m15eac = -1;
-	m15ea9 = aSameMove;
+	bool aSameMove = (aCol == mHintFromCol && aRow == mHintFromRow && (int)aNewCol == mHintToCol && (int)aNewRow == mHintToRow) ||
+		(aCol == mHintToCol && aRow == mHintToRow && (int)aNewCol == mHintFromCol && (int)aNewRow == mHintFromRow);
+	mHintFromCol = -1;
+	mHintAccepted = aSameMove;
 	if (aNewCol >= 8 || aNewRow >= 8)
 		return false;
 
@@ -42,7 +42,7 @@ bool Board::MovePiece(Piece* thePiece, int theDX, int theDY)
 	mSolutionMove = TranslateMoveByte(aMove);
 	MarkForUndo();
 	Piece* aOther = mBoard[aNewRow][aNewCol];
-	m15ea8 = true;
+	mMovedSinceHint = true;
 	if (aOther == NULL)
 	{
 		// a slide into an empty square
@@ -55,9 +55,9 @@ bool Board::MovePiece(Piece* thePiece, int theDX, int theDY)
 		mSwapCenterY = (int)(GetRowY(thePiece->mRow + theDY) + thePiece->mY) / 2;
 		thePiece->mSwapDX = theDX;
 		mSwapPiece[0]->mSwapDY = theDY;
-		mSwapPiece[0]->m7C = (int)mSwapPiece[0]->mX - mSwapCenterX;
-		mSwapPiece[0]->m80 = (int)mSwapPiece[0]->mY - mSwapCenterY;
-		mSwapPiece[0]->m5C = mUpdateCnt;
+		mSwapPiece[0]->mSwapOffsetX = (int)mSwapPiece[0]->mX - mSwapCenterX;
+		mSwapPiece[0]->mSwapOffsetY = (int)mSwapPiece[0]->mY - mSwapCenterY;
+		mSwapPiece[0]->mMoveTick = mUpdateCnt;
 		mState = STATE_SWAPPING;
 		if (!WillBeValidSwap())
 			mState = STATE_SWAP_BACK;
@@ -67,10 +67,10 @@ bool Board::MovePiece(Piece* thePiece, int theDX, int theDY)
 	return true;
 }
 
-// a message box with the board's standard footer and button (the "Illegal Move" and "Wrong Piece" boxes)
+// port: a message box with the board's standard footer and button (the "Illegal Move" and "Wrong Piece" boxes)
 void Board::DoNoticeDialog(const char* theHeader, const char* theLines)
 {
-	mApp->DoDialog(0x25, true, theHeader, theLines, "OK", 3);
+	mApp->DoDialog(DIALOG_MESSAGE, true, theHeader, theLines, "OK", 3);
 }
 
 // 0x5aa4e8
@@ -84,15 +84,15 @@ void Board::MouseDown(int theX, int theY, int theClickCount)
 	if (mHyperspace != NULL || mPendingPod != -1 || mUnpauseDelay > 0)
 		return;
 
-	m15f38 = true;
-	if (mPuzzleOverlay != NULL && mState != 10 && mState != 0x12 && mState != 0xd && mState != 0xe &&
+	mMouseHeld = true;
+	if (mPuzzleOverlay != NULL && mState != STATE_WHIRLPOOL && mState != STATE_GALAXY && mState != STATE_POST_WARP && mState != STATE_HYPER_SWAP_DONE &&
 		mState != STATE_SWAPPING && mScreenState == SCREEN_SHOWN)
 	{
 		if (!mPuzzleOverlay->MouseOverDome(theX, theY))
 		{
 			if (mHoverPod != -1)
 			{
-				mState = 0xf;
+				mState = STATE_POD_CHANGE;
 				DeferredSelectPuzzlePod(mHoverPod);
 				return;
 			}
@@ -103,14 +103,14 @@ void Board::MouseDown(int theX, int theY, int theClickCount)
 			DoWhirlpool();
 			PuzzleProgress* aProgress = mApp->mProfile->GetPuzzleProgress();
 			aProgress->mPuzzleNum = (aProgress->mPuzzleNum / 5 + 1) * 5;
-			m15f6c = aProgress->mPuzzleNum / 5;
+			mPlanetNum = aProgress->mPuzzleNum / 5;
 		}
 	}
-	if (mState == 0x10 || mState == 0x11 || mState == 0x12)
+	if (mState == STATE_PUZZLE_SOLVED || mState == STATE_PUZZLE_STUCK || mState == STATE_GALAXY)
 		return;
-	m15f30 = theX;
-	m15f34 = theY;
-	if (mState == 6 || mState == 7 || mState == 10 || mState == 0xb)
+	mMouseDownX = theX;
+	mMouseDownY = theY;
+	if (mState == STATE_GAME_OVER_FALL || mState == STATE_GAME_OVER || mState == STATE_WHIRLPOOL || mState == STATE_LEVEL_TRANSITION)
 		return;
 
 	if (theClickCount < 1)
@@ -141,7 +141,6 @@ void Board::MouseDown(int theX, int theY, int theClickCount)
 					return;
 				}
 			}
-			m195c = 0;
 			mSelectedPiece = aPiece;
 			MarkDirtyFull();
 			mApp->PlaySample(SOUND_SELECT, GetPanPosition((int)mSelectedPiece->mX + 0x2a));
@@ -204,13 +203,21 @@ void Board::MouseDown(int theX, int theY, int theClickCount)
 	MarkDirtyFull();
 }
 
+// 0x59596f (slot 56 of the board's table, the 3-argument MouseUp that the widget manager calls): the button is up. Only the flag that
+// MouseDown set (mMouseHeld) goes; the board's other MouseUp slots are the base's empty ones. Without it the flag stayed set for the rest of
+// the game and UpdateFalling made the board's MouseMove call (the cursor back to the pointer) at every idle update.
+void Board::MouseUp(int theX, int theY, int theLastDownButtonId)
+{
+	mMouseHeld = false;
+}
+
 // 0x5aaac3: dragging the mouse far enough from where it went down moves the gem under it that way
 void Board::MouseDrag(int theX, int theY)
 {
-	if (m15f38 && mSelectedPiece != NULL && mState == STATE_IDLE && !mIsPlanetIntro)
+	if (mMouseHeld && mSelectedPiece != NULL && mState == STATE_IDLE && !mIsPlanetIntro)
 	{
-		int aDX = theX - m15f30;
-		int aDY = theY - m15f34;
+		int aDX = theX - mMouseDownX;
+		int aDY = theY - mMouseDownY;
 		if (mFlipped)
 			aDY = -aDY;
 		if (abs(aDX) > 0x17 || abs(aDY) > 0x17)

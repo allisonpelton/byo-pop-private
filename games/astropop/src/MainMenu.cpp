@@ -94,7 +94,7 @@ namespace
 	}
 }
 
-// 0x454ee0
+// 0x454ee0 (each button's hit mask and its width are set by 0x434aa0, here two assignments)
 MainMenu::MainMenu(AstroPopApp* theApp)
 {
 	mParticleLevel = 0;
@@ -300,7 +300,7 @@ void MainMenu::Update()
 	{
 		if (mUpdateCnt % 3 == 0 && mParticleLevel >= 0)
 		{
-			int n = 0;
+			int aNumMade = 0;
 			do
 			{
 				MenuParticle* aParticle = new MenuParticle();
@@ -314,8 +314,8 @@ void MainMenu::Update()
 				aParticle->mAnim.mHoldLast = true;
 				aParticle->mAnim.SetStopped(false);
 				mParticles.push_back(aParticle);
-				n++;
-			} while (n <= mParticleLevel);
+				aNumMade++;
+			} while (aNumMade <= mParticleLevel);
 		}
 	}
 

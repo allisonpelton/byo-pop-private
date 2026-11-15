@@ -9,97 +9,50 @@ work, and what a server built only on Cloudflare could look like when the websit
 
 ## The panel and its source
 
-`web/chat.js` draws the panel into the `<aside id="chat">` of `web/shell.html`, the template of every game page, and the shell
-loads it next to `settings.js`. The panel is built only when it is shown. The site-wide setting **Show chat** (`showChat` in
-`web/settings.js`) is on until a player turns it off, and with it off nothing is drawn or opened, which is also the way for a
-player to have no chat connection at all. Its heading is the button that collapses it, and the collapse is remembered per
-browser in localStorage (`byopop-chat-collapsed`); every storage access is in a try/catch.
+`web/chat.js` draws the panel into the `<aside id="chat">` of `web/shell.html`; its header documents the layout, the
+message fields, the keyboard and screen-reader behaviour, and the test data of the local source, and `tools/chattest.js`
+checks them. What the code does not say is the reasoning below.
 
-The chat never changes the size of the canvas. The stage is as wide as the smaller of its box and `(100vh - 90px)` times the
-game's shape, so putting a column beside it would shrink it whenever the window is not wide enough for both. `layout()` in
-`chat.js` therefore does the arithmetic first: the chat goes beside the stage, 240 to 340 pixels wide, only when the window has
-that much room left after the stage at the width it has without the chat, and goes below the stage otherwise, as on a phone
-upright or when a widescreen game fills the width. Below the stage the page scrolls to it, and the page's scrollbar is hidden
-there (the wheel, touch, the keyboard and Tab still scroll), because a classic scrollbar takes 15 pixels of the page's width and
-would make a stage that is as wide as the page narrower than it is without the chat. `Module.onGameScreen` calls `layout()` when a
-game changes the stage's shape. The stage has the same size with the chat as with the chat hidden.
-
-A message is `{id, t, user, text}`, with `{game, tag, gameTitle}` besides when it was sent from a game's page, and a line reads
-`HH:MM [BW] <username> text`, the time in the viewer's local time with the full date and time (`2026-10-30 09:05:07 UTC-6`) as
-the hover text of the time, and a day separator between days. A message goes in
-with `textContent` and text nodes only: markup, `javascript:` and URLs all stay text, and `tools/chattest.js` checks the rows
-against a DOM that throws on `innerHTML`, and the file for any way of writing markup or reaching the network. Text is one line
-of at most 500 characters: a newline or tab, the characters that hide or reorder text (zero width, bidirectional overrides) and
-the Unicode line breaks become spaces, and Enter sends. A send is limited to one a second, once in the panel and once in the
-source, as a server would do its own.
+The site-wide setting **Show chat** (`showChat` in `web/settings.js`) is on until a player turns it off, and with it off nothing
+is drawn or opened, which is also the way for a player to have no chat connection at all. The chat never changes the size of the
+canvas: it goes beside the stage only when the window has room left after the stage at the width it has without the chat, and
+below it otherwise, where the page's scrollbar is hidden because a classic scrollbar would make the stage narrower than it is
+without the chat. A message goes in with `textContent` and text nodes only, so markup, `javascript:` and URLs all stay text. Text
+is one line of at most 500 characters, a send is limited to one a second (in the panel and in the source, as a server would do
+its own), and the characters that hide or reorder text become spaces.
 
 **The game tag.** The `[BW]` before a username is the initials of the game the speaker is playing, so that a room for every game
-is not a Tower of Babel (the user's wish). It is the one link in the chat. The link goes to the game's page and opens in the
-same tab (clicking the tag of the page's own game reloads it; that tag has `aria-current="page"`); the full title of the game is
-its hover text; and its name for a screen reader is that title and the initials, "Bookworm Deluxe (BW)", because a link's name
-has to hold the words it shows. The brackets are for the eye. The tag is drawn as the listing page's badge is, white initials
-on the badge's colour, and every colour in `BYOPOP_WEB_BADGES` keeps white text above 4.5 to 1, which `tools/chattest.js` checks
-against the table itself, so a tag reads in both themes; in the dark theme it has a faint inner outline so that its edge shows.
-
-The panel keeps no list of games. `cmake/ByopopWeb.cmake` writes `chat-games.js` beside the pages (`byopop_web_index()`, the
-function that writes the listing page), from the same `BYOPOP_WEB_BADGES` and the same titles as the listing page's tiles and in
-their order: `var ByopopGames = [{id, page, tag, title, colour}, ...]`, with `id` the page's own game id (`PAGE.id`), `page` the
-file name of the game's page, `tag` the badge's initials and `title` the game's name. Every game page loads it before `chat.js`
-and hands it to `mount()` with its own game id, once the game has started (the user, 2026-11-03: "Don't load the chat until the
-game has launched": a page waiting for its files or for Play shows none); `chattest` compares the file with the badge table and with the tiles of
-`index.html` when a web build is there. The panel draws every tag from that table by the message's game id, and from nothing
-else: the address, the words and the colour come from the table, the page name has to be a file name beside the page's own
-(`javascript:`, a folder, a query or an address leaves the entry out), and the colour has to be `#rrggbb`. What a message says
-about its own tag or title is never drawn, so a stored or received message cannot make up a tag or a link. A message from a
-game the table does not know, such as one stored before tags existed or from a game the site has dropped, shows no tag and no
-link, and a page whose game is not on the listing page sends its id without a tag. A message records the game it was sent from
-as three fields: `game` (the page's id), and `tag` and `gameTitle` (the initials and the name as they were when it was sent,
-for whoever reads the records; a source puts them on from its table). Fields that are not well formed are dropped from a
-stored message and the message is kept.
+is not a Tower of Babel (the user's wish). It is the one link in the chat: it goes to the game's page, and its name for a screen
+reader is the title and the initials, "Bookworm Deluxe (BW)", because a link's name has to hold the words it shows. The panel
+keeps no list of games. `cmake/ByopopWeb.cmake` writes `chat-games.js` beside the pages (`byopop_web_index()`), from the same
+`BYOPOP_WEB_BADGES` and the same titles as the listing page's tiles: `var ByopopGames = [{id, page, tag, title, colour}, ...]`,
+with `id` the page's own game id (`PAGE.id`). Every game page loads it before `chat.js` and hands it to `mount()` with its own
+game id, once the game has started (the user, 2026-11-03: "Don't load the chat until the game has launched": a page waiting for
+its files or for Play shows none). The panel draws every tag from that table by the message's game id and from nothing else: the
+page name has to be a file name beside the page's own, and the colour has to be `#rrggbb`. What a message says about its own tag
+or title is never drawn, so a stored or received message cannot make up a tag or a link; a message from a game the table does
+not know shows no tag and no link. A message records the game it was sent from as three fields: `game` (the page's id), and `tag`
+and `gameTitle` (the initials and the name as they were when it was sent, for whoever reads the records; a source puts them on
+from its table). Fields that are not well formed are dropped from a stored message and the message is kept.
 
 A username follows Discord's current rules: 2 to 32 characters, lowercase Latin letters, digits, underscore and period, and
 never two periods in a row (a period may begin or end a name), as Discord's help article "New Usernames & Display Names"
-has them. Discord lowercases what
-is typed, so the panel does too before it checks, and the real names will come from Discord, which also reserves a few more.
-There is no sign-in yet: the panel shows a "Sign in with Discord" button that is `aria-disabled` and says "Not available yet".
-Meanwhile the sender is a test username (`test_player` until changed) that the viewer can change in the panel, checked by those
-rules and kept in `byopop-chat-test-name`.
+has them. A chat name is the person's Discord username exactly as Discord gives it: the site never lowercases or otherwise
+changes it, and a profile's name never feeds it (the user, 2026-11-11: "going forward let's just have chat names match people's
+Discord usernames exactly so we don't have to worry about that"). The test name typed in the panel is only trimmed, and one with
+capitals is refused by the rules above rather than lowered. The real names will come from Discord, which also reserves a few more. There is no sign-in yet: the panel shows a "Sign in with Discord" button that is
+`aria-disabled` and says "Not available yet". Meanwhile the sender is a test username (`test_player` until changed) that the
+viewer can change in the panel, kept in `byopop-chat-test-name`.
 
-Everything the panel knows about the room goes through a source, so a server can replace the local one without the panel
-changing:
+Everything the panel knows about the room goes through a source (`connect`, `history`, `send`, `onMessage`, `onError`,
+`setUsername`, `close`, documented in the header of `web/chat.js`), so a server can replace the local one without the panel
+changing.
 
-    connect()                 Promise of {user: {name, signedIn}, room, note, canRename, testData}
-    history(limit, before)    Promise of the newest `limit` messages (before: null), or the `limit` before the message
-                              with id `before`; oldest first; fewer than `limit` means that is the start
-    send(text)                Promise of the stored message, or an Error with .code: empty, long, rate (and .waitMs), name, offline;
-                              the message carries the game of the page that sent it (game, tag, gameTitle)
-    onMessage(fn)             a message from anyone, the sender's own included, as a server echoes it; returns a way to stop
-    onError(fn)               {code, message, fatal}; returns a way to stop
-    setUsername(name)         only a source with canRename: the local one (a server takes the name from the account)
-    close()
-
-Ids sort in time order, which is all `history` needs from them. The panel shows the newest 50 messages on load, loads 50 more
-when the viewer scrolls up or presses "Show older messages" (the log keeps what was on screen where it was, and does not read
-the older ones out), says "This is the start of the chat" at the end, and follows new messages only while the viewer is at the
-bottom, else offering "New messages below". A collapsed panel counts what came in.
-
-The local source, `localSource()`, is test data from top to bottom and marked so in the code. It makes 34 messages for each of
-the four days before today and the part of today's that is past, from twelve invented usernames and 48 lines of talk about playing
-in general terms (none quotes a game); the same ones every load, made from a fixed random sequence and never stored. Each
-message is from a game of the table: most of a user's lines from the game that user mostly plays, the rest from any, so the room
-shows a spread of games (the seed has none when there is no table). The
-messages the viewer sends (from the page's own game), and the ones the source "receives" now and then (one every 20 to 60
-seconds, from the invented users and a game of the table), are stored in `byopop-chat-test-messages`, newest 300, checked again as they come back in because the stored item is the
-viewer's to edit. Two pages of the site share that item through the `storage` event, so a message sent in one game's tab shows in
-another's: one room for every game. With storage blocked the messages last until the page closes, and the panel says so.
-
-For the keyboard and for screen readers the message list is a `role="log"` live region (polite, additions only, silent while
-the first screenful or older messages go in), the field has a label, the panel is a named `<aside>`, and it comes after the stage
-in the page's order, so Tab and F6 from the canvas reach it. F6 and Shift+F6 typed in the chat move the focus on, as they do from
-the game, to the control after the chat or the one before it. The game takes keys only while its canvas has the focus (the
-shell's `SDL_EMSCRIPTEN_KEYBOARD_ELEMENT`, and the window guard behind it), and the chat is not inside the canvas, so what is
-typed in it does not reach the game. The colours are the shell's tokens, and the colour of a
-username is its hue (a hash of the name) at a lightness that passes 4.5 to 1 against the page in both themes.
+Ids sort in time order, which is all `history` needs from them. The panel shows the newest 50 messages on load and loads 50
+more when the viewer scrolls up or presses "Show older messages". The local source, `localSource()`, is test data from top to
+bottom and marked so in the code; what the viewer sends and what it "receives" is stored in `byopop-chat-test-messages` (newest
+300, checked again as they come back in because the stored item is the viewer's to edit), shared between the site's pages
+through the `storage` event, so a message sent in one game's tab shows in another's: one room for every game.
 
 ## A backend that is only Cloudflare
 
@@ -114,16 +67,17 @@ chat room as its example. The Worker forwards the WebSocket upgrade to it, and t
 the clients stay connected, nothing is billed for duration while it is idle, and it is woken by the next message, with the
 constructor run again. So the constructor reloads what it needs, and what belongs to a connection (a user's id and name) is kept
 with `serializeAttachment`, which survives hibernation and holds up to 16,384 bytes. Messages arrive in `webSocketMessage` and are
-sent to every socket from `ctx.getWebSockets()`. The documentation says that alarms, timers and scheduled callbacks keep an object from hibernating while they run, so the room
-uses no timer and no outgoing socket; the pruning alarm fires once a day, wakes the object for a moment and lets it sleep again.
+sent to every socket from `ctx.getWebSockets()`. Alarms, timers and scheduled callbacks keep an object from hibernating while they
+run, so the room uses no timer and no outgoing socket; the pruning alarm fires once a day, wakes the object for a moment and lets
+it sleep again.
 
 Recent history lives in the object's own SQLite database (`ctx.storage.sql.exec`, one database per object, up to 1 GB on
-the Free plan and 10 GB on the Paid plan, with point-in-time recovery for 30 days): a `messages` table with an increasing id, the user's Discord id, the username at
-the time, the text and the time. On connect a client asks for the newest 50 and then for older ones with `before`, which is the
-`history` call above. D1 is the choice if longer history, or history that other parts of the site read from outside the room,
-is wanted: its free plan has databases of up to 500 MB (10 GB on the paid plan), 5 million rows read and 100,000 written a day,
-and 50 queries per Worker invocation, 7 days of Time Travel (30 on the paid plan). For one room of short plain lines the object's
-own database is enough, and a second store would only add a second write for every message.
+the Free plan and 10 GB on the Paid plan, with point-in-time recovery for 30 days): a `messages` table with an increasing id, the
+user's Discord id, the username at the time, the text and the time. On connect a client asks for the newest 50 and then for older
+ones with `before`, which is the `history` call above. D1 is the choice if longer history, or history that other parts of the site
+read from outside the room, is wanted (free plan: databases of up to 500 MB, 5 million rows read and 100,000 written a day, 50
+queries per Worker invocation, 7 days of Time Travel; paid: 10 GB, 30 days). For one room of short plain lines the object's own
+database is enough, and a second store would only add a second write for every message.
 
 Sign-in is Discord's OAuth2 authorization code grant with the `identify` scope alone, which lets `/users/@me` answer without the
 email (the `email` scope is what adds it). The Worker sends the browser to `https://discord.com/oauth2/authorize` with the client
@@ -139,14 +93,25 @@ carries the cookie; the Worker verifies it and the `Origin` header and passes th
 valid cookie a visitor can have a read-only socket, or none, and a plain request for the newest 50 messages instead keeps a lurker
 from holding a connection.
 
+**Discord's terms.** Registering the app in Discord's Developer Portal costs nothing, and an app that asks only for `identify`
+goes through no App Review, which is for bots and for apps that read a server's members, presence or messages. The Developer
+Terms and the Developer Policy (in force since 2024-07-08) have no rule against a chat room of the site's own. What they ask
+of this one is a privacy policy that says what is kept and why (the id, the username, the messages, and the account-age check
+made from the id); a way for players to report abuse, and someone who acts on the reports; updating or deleting a player's
+data when they ask, when it is no longer needed, or when the site stops using Discord (a renamed player's name is updated at
+their next sign-in, or sooner on request); nothing directed at children under 13, and content fit for players under 18; and
+no selling of the data, no advertising with it and no training of models on the messages. Their rule that paid features
+also be sold through Discord does not touch a non-commercial site. The app's registered name and icon leave out "PopCap"
+and EA's marks, so that no reviewer reads them as someone else's.
+
 The rate limits that count are in the object. It is single-threaded, so its counters are exact: one message a second and about
 twenty a minute for each user id, at most three sockets for each user, a text of at most 500 characters and a frame of at most a
 couple of kilobytes checked before it is parsed, the username checked against the rules above, the game id checked against the
-site's table of games (the build writes the table as `chat-games.js`, and the Worker bundles a copy; it takes the initials and the
-title from it, never from the client, and stores an id that is not in the table as none), and a socket closed with code 1008 on
-abuse. Cloudflare's rate-limiting binding is the wrong tool for this: its limits are per Cloudflare location, "approximate" and
-"eventually consistent", with a period of only 10 or 60 seconds, and the documentation itself recommends a Durable Object for a
-strict limit. It still suits the Worker's own unauthenticated routes, such as the sign-in callback.
+site's table of games (the Worker bundles a copy of `chat-games.js`; it takes the initials and the title from it, never from the
+client, and stores an id that is not in the table as none), and a socket closed with code 1008 on abuse. Cloudflare's
+rate-limiting binding is the wrong tool for this: its limits are per Cloudflare location, "approximate" and "eventually
+consistent", with a period of only 10 or 60 seconds, and the documentation itself recommends a Durable Object for a strict limit.
+It still suits the Worker's own unauthenticated routes, such as the sign-in callback.
 
 Moderation is by Discord id. A moderator is a Discord id in a Worker variable, or a row in a table of the object. A moderator's
 `delete` message removes the row and sends every socket `deleted <id>`, and the panel drops the line; `mute <id> <until>` lets the
@@ -155,31 +120,25 @@ Bans and mutes hold the id and an expiry, nothing else. A player can ask to dele
 every row with their id.
 
 About each user the server holds: their messages (id, Discord user id, the username at the time, text, time and the id of the
-game they were sent from, which is what the tag shows), kept for the
-newest 1,000 messages or 14 days, whichever is fewer, pruned by the alarm once a day; a row for a mute or a ban while it lasts; and
-a session cookie that lives in the browser, not on the server, for 30 days. It holds no email (the scope does not give it), no
-avatar, no token (revoked at once), no IP address (the code never records one; Cloudflare handles the request as it does for any
-site, and Discord sees the visitor only when they sign in), no user table, and nothing of the player's games beyond the id of the game a message was typed in: no files, saves, scores or progress. When a user's last
-message ages out, nothing about them remains.
+game they were sent from, which is what the tag shows), kept for the newest 1,000 messages or 14 days, whichever is fewer, pruned
+by the alarm once a day; a row for a mute or a ban while it lasts; and a session cookie that lives in the browser, not on the
+server, for 30 days. It holds no email (the scope does not give it), no avatar, no token (revoked at once), no IP address (the code
+never records one; Cloudflare handles the request as it does for any site, and Discord sees the visitor only when they sign in),
+no user table, and nothing of the player's games beyond the id of the game a message was typed in: no files, saves, scores or
+progress. When a user's last message ages out, nothing about them remains.
 
-The cost at small scale, by Cloudflare's pages as they stood on 2026-10-31 (the Durable Objects pricing page says it was last updated on 18
-October 2026). The Workers Free plan allows 100,000 requests a day, and for Durable Objects 100,000 requests and
-13,000 GB-s of duration a day, with SQLite storage of 5 GB, 5 million rows read and 100,000 rows written a day. SQLite-backed objects,
-which is what is wanted here, work on the Free plan. Requests to static assets are free and unlimited, so the pages themselves cost
-nothing to serve. A WebSocket connection counts as a request and an incoming message as one twentieth of a request (100 messages
-are 5 requests); messages sent out to clients and pings are free. Duration is billed at 128 MB whatever is used, so an object that
-never hibernates costs 86,400 s times 0.125 GB, 10,800 GB-s a day, which still fits the free 13,000; a month of it, 324,000 GB-s,
-fits the 400,000 that the paid plan includes. A day of 500 players who each connect twice and write ten lines is 1,000 connections
-and 5,000 messages: about 1,250 Durable Object requests, 2,000 Worker requests and 5,000 rows written, a twentieth of the free
-allowances or less. Deletes count as rows written, so a message costs two when pruning removes it, and the free 100,000 rows
-written a day is reached at about 50,000 messages a day, before index entries; the free requests would be reached at about a
-hundred thousand connections. Past that the Workers Paid plan is $5 a month, with 10 million Worker requests (then $0.30 a million),
-1 million object requests, which is 20 million incoming messages (then $0.15 a million), 400,000 GB-s (then $12.50 a million), and for
-SQLite 25 billion rows read and 50 million written a month (then $0.001 and $1.00 a million) and 5 GB-months of storage (then
-$0.20 a GB-month). At this scale the chat is free, and the plan to be on is the $5 one the day the Free daily limits start to
-bite. The documentation's own WebSocket example with the Hibernation API, 100 objects with 100 sockets each, comes to $20.65 a
-month (clients that send a message a minute), a hundred rooms and ten thousand open sockets, a size this site will not have. The
-limits page gives an object a soft limit of 1,000 requests a second, which is far above one room's traffic; if it ever mattered the room would split by game.
+The cost at small scale, by Cloudflare's pages as they stood on 2026-10-31. The Workers Free plan allows 100,000 requests a day,
+and for Durable Objects 100,000 requests and 13,000 GB-s of duration a day, with SQLite storage of 5 GB, 5 million rows read and
+100,000 rows written a day; SQLite-backed objects work on the Free plan, and requests to static assets are free and unlimited. A
+WebSocket connection counts as a request and an incoming message as one twentieth of a request; messages sent out to clients and
+pings are free. Duration is billed at 128 MB whatever is used, so an object that never hibernates costs 10,800 GB-s a day, which
+still fits the free 13,000. A day of 500 players who each connect twice and write ten lines is about 1,250 Durable Object
+requests, 2,000 Worker requests and 5,000 rows written, a twentieth of the free allowances or less. Deletes count as rows
+written, so a message costs two when pruning removes it, and the free 100,000 rows written a day is reached at about 50,000
+messages a day. Past that the Workers Paid plan is $5 a month (10 million Worker requests, 1 million object requests, 400,000
+GB-s, 25 billion rows read and 50 million written, 5 GB-months of storage, with overage rates on the pricing pages). At this scale
+the chat is free, and the plan to be on is the $5 one the day the Free daily limits start to bite. An object's soft limit of
+1,000 requests a second is far above one room's traffic; if it ever mattered the room would split by game.
 
 ## What else Cloudflare alone could carry
 
@@ -194,9 +153,8 @@ each board. Without a replay the server cannot check a score, and a replay is ex
 so the board would say "reported by the player" and a moderator could remove entries; if cheating becomes a problem, that is the
 point to decide again. A vote is a row (idea, Discord id) with the pair as primary key, so a player has one vote for an idea; the
 ideas are plain text rows of a title and a few hundred characters, posted behind the same rate limits and moderated by the same
-moderators; the tally is a `COUNT`, and the Free plan's 5 million rows read a day is far more than a page of ideas needs. All of
-it fits in the free allowances above until the site is busy, and the chat's Worker and its secrets would be shared, so a new feature
-is a new route and a new table, not a new service.
+moderators; the tally is a `COUNT`. All of it fits in the free allowances above until the site is busy, and the chat's Worker and
+its secrets would be shared, so a new feature is a new route and a new table, not a new service.
 
 ## Sources
 
@@ -204,3 +162,5 @@ Cloudflare, read on 2026-10-31: Durable Objects (what they are; pricing; limits;
 the SQLite storage API; alarms), Workers pricing, D1 pricing and limits, and the Workers Rate Limiting binding, all under
 developers.cloudflare.com. Discord: the OAuth2 topic and the User resource of the developer documentation (docs.discord.com),
 the blog post "Evolving Usernames on Discord", and the help article "New Usernames & Display Names" on support.discord.com.
+Discord, read on 2026-11-11: the Developer Terms of Service and the Developer Policy (support-dev.discord.com), and the blog
+post "Updated Requirements to How Apps Access Data in Servers" (discord.com).

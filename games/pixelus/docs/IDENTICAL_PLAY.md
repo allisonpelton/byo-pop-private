@@ -101,6 +101,16 @@ tutorial's bubbles and the sticky-spots bubble, which takes updates, and to 4647
 | Island screen (30% of the picture differed) | 0x4163e0, 0x416950: a panel with the island's text and the page of the temple under the mouse (0x414750, 0x414bf0), hover glow, arrow bounce, lightning, gulls and surf at random draws of the application's generator, sea and smoke cross-fade baked into the background, a new temple comes in 1.1 s after the map opens | `IslandMap`/`IslandPanel` follow it; the island's particle bursts (Rumble, PauseBloom) and the pointer follower are not ported yet |
 | Mouse-over sound on a temple | 0x416180 plays sample 16 on entering, 0x4163e0 plays sample 10 after 50 updates on one temple with the pitch set by the temple's index | the same |
 | The completed screen came in with a plain swap, and its picture was drawn only on the wanted cells | 0x419e60 blends the screen over the board by the flight's progress, and the picture holds every cell's colour (the brown surround too) | `PuzzleCompletedScreen::Draw` buffers the screen and blends it; `MakeSolvedImage` draws every cell | bf2ec62d |
+| God's speech bubble (temple, tutorial cave) was not drawn | 0x42c660, 0x42c930: the bubble picture and a text of the table at 0x53d4f8 (nine to a god), wrapped in a 125 pixel box and centred by its line count, alpha following the bubble's phase | `SpeechBubble::Draw`, called at the end of `DrawCharacter` as 0x42e1f0 does |
+| The Cyclops' and Vulcan's bodies bobbed with their heads | 0x42eb7a and 0x42e487 draw the bodies at fixed places, (40, 220) and (10, 224); only the heads move | the same; Claudius' figure (shoulders and head, 0x42ebce) is drawn too |
+| Skip the tutorial button, 7 pixels left and 3 up | 0x4106d0 places it at (305, 439) | the same |
+| Story portraits | 0x42ccf0: the backdrop is stretched over a 160 by 160 picture, the speaker is drawn on it by the same routine as the temple's (moved by the table at 0x53d660), the picture is scaled into a copy of the frame; the frames are at (10, 14) and (514, 156) | `StoryScreen::DrawSpeech` does the same through `DrawCharacter` |
+| The temple's puzzle thumbnails and the cave's click-here text | 0x4138d0, 0x413420, 0x4119e0 | `MakeMiniImage`, `TempleScreen::DrawThumbs` follow them |
+| The tutorial board lacked the teacher and showed Reset, Hint and Undo | 0x409880: the tutorial board hides the three buttons (the ninth puzzle keeps them) and creates the teacher, drawn by the same routine as the temple's figure | `Board` hides them and draws `DrawCharacter(mTeacher)` after the tutorial sidebar | f18817b8 |
+| The sweep picture's tiles sat 1 pixel off | 0x409880's draws of the gray tile take (x - 1, y - 1) | the same (u2560 from 14.4% to 1.9%) | f18817b8 |
+| Temple thumbnails: no glow near the mouse | 0x4119e0, 0x4100f0, 0x410ad0: with the mouse within 64 pixels, each 6 by 6 cell of the shape shows with alpha 255 - d^3 * 255 / 2^18 (d from the cell's middle to the pointer) | `TempleScreen::DrawThumbs` does the same | f18817b8 |
+| The puzzle just solved came in over its shape on the temple screen, with a medal on the tutorial's thumbnails | 0x40fb80: a solved picture starts at alpha 255 (raised 2 an update), so it shows at once; 0x4127f6 draws a medal at (x + 62, y + 75) only when the player's current temple index is not 0 | `TempleScreen` shows it at once and draws no medal in the tutorial temple (u2800 from 4.6% to 1.4%) | this pass |
+| The tutorial's completed tablet showed the move count and the label | 0x41a66a: with the tutorial flag the tablet draws only its three lines (y 268, 293, 318; 283 and 308 once the tutorial is done) | `PuzzleCompletedScreen::DrawContent` the same | this pass |
 
 The frozen baseline (build/baseline-pixelus) was refreshed on 2026-11-08: the island now draws the application's generator as the
 original does (three draws in its constructor, then the lightning, gulls and surf timers), so the state logs differ from the
@@ -116,8 +126,20 @@ phase-one baseline only in their `apprand` lines; the game's own state and its d
   the arrived screen differs by about 9% (the medal's size and the sign texts' places).
 - The completed picture's sweep: the tiles ahead of the sweep turn yellow in the original and stay blue in the port at the
   same update; a difference of the sweep's timing, not of its colours.
-- The temple screen: the original's puzzle thumbnails are drawn in grey/blue/cream with a "Scroll Puzzles Down" sign; the
-  port draws red crosses and a "puzzles left unsolved" line.
+- The story portraits' inner picture (the Cyclops' head in the frame, 3% of the screen at u1700) differs at the head's edges:
+  the figure's outline matches pixel for pixel, so the stretch filter of the framework's `DrawImage` into the frame differs from the original's
+  (0x458da0 draws with the application's own stretch mode). Not chased; the same stretch is used wherever the original scales an image.
+- The completed tablet's title was drawn with a four-way outline; 0x442370 centres it in the widget's width and draws a drop shadow
+  one pixel right and down, then the text. Fixed (the title now matches pixel for pixel at u2700).
+- The completed tablet's picture (u2700, 7.5%) is blurrier in the port than in the original's shot. Cause found, not a bug:
+  0x41b13c sets the Graphics' fast stretch flag (nearest filter) when the application is not 3D accelerated, and the original in
+  the Windows Sandbox runs without 3D; the port's emulated 3D path filters the stretch, as the original does on a machine with
+  3D (the story portraits' stretch does not set the flag, and differs only at the head's edges, also a filter detail). The port
+  now sets the flag by the same test, so a port run without 3D draws like the sandboxed original.
+- Shots in the middle of a move (u2300, u2450: the tile maker at another place on the board, tiles in flight or already yellow
+  in the sweep) differ because the two programs are at different steps of the same move at the same update count; the
+  boards agree at the move's end (the state logs). Not a draw difference; a shot at the end of a move would line them up.
+- The Skip the Tutorial log differs by about a pixel at its left cap and edges (resampling of the strip's frame).
 - Tile icons and the sliding trail are drawn slightly differently; the tile maker's pose differs by a frame.
 
 ## Open (this phase is not complete)
@@ -153,7 +175,7 @@ puzzles solved in the profile: normal mode, with the focus taken away and given 
 expert mode (r14); full screen by Alt+Enter after the first board, in both modes, over the tutorial's first five puzzles
 (r12, r13). One expert run in full screen (r11) stopped at its fourth puzzle's completed screen when the game did not answer
 a command for 10 s; the same run again passed, and nothing in the log of the first shows a fault, so it is listed here as a
-stall of a busy machine, not explained. `games/pixelus/tools/web/play.js` plays the same on the web with DOM events (a hidden
+stall of a busy machine, not explained; four more runs of it (expert, full screen) all passed, and the driver now waits 60 s for a screenshot or click answer instead of 10 s. `games/pixelus/tools/web/play.js` plays the same on the web with DOM events (a hidden
 Browser pane, `?fast=1`, `?scale=2`; the pane cannot enter full screen, so `?scale=2` is tested in its place and Alt+Enter is
 not tested there): normal mode with the focus lost and regained on every board (21 solved, 0 errors) and expert mode (21
 solved, 0 errors). The game has two modes, normal and expert (the new-player dialog's box); it has no 3D.

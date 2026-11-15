@@ -1,0 +1,75 @@
+# Tour: ten players, so that the list of the player box scrolls (the coverage check: the list and its scroll bar against the original)
+3100 click 320 447
+3150 type Test
+3180 key Return
+3300 click 326 93
+3350 click 248 309
+3400 type Ann
+3410 key Return
+3500 click 326 93
+3550 click 248 309
+3600 type Bob
+3610 key Return
+3700 click 326 93
+3750 click 248 309
+3800 type Cat
+3810 key Return
+3900 click 326 93
+3950 click 248 309
+4000 type Dan
+4010 key Return
+4100 click 326 93
+4150 click 248 309
+4200 type Eve
+4210 key Return
+4300 click 326 93
+4350 click 248 309
+4400 type Fay
+4410 key Return
+4500 click 326 93
+4550 click 248 309
+4600 type Gus
+4610 key Return
+4700 click 326 93
+4750 click 248 309
+4800 type Hal
+4810 key Return
+4900 click 326 93
+4950 click 248 309
+5000 type Ivy
+5010 key Return
+5100 click 326 93
+5140 shot w01_list
+5150 click 457 230
+5180 shot w02_down1
+5210 click 457 230
+5240 shot w03_down2
+5270 click 457 230
+5300 shot w04_down3
+5330 click 457 214
+5360 shot w05_track_below
+5390 click 457 214
+5420 shot w06_track_below2
+5450 click 457 142
+5480 shot w07_up1
+5510 click 457 150
+5540 shot w08_track_above
+5570 down 457 185
+5600 shot w09_press_thumb
+5630 move 457 215
+5660 shot w10_drag_down
+5690 move 457 150
+5720 shot w11_drag_up
+5750 up 457 150
+5780 shot w12_released
+5810 click 300 160
+5840 shot w13_click_name
+5870 click 300 175
+5900 shot w14_click_name2
+5930 click 300 175
+5960 shot w15_double
+# NEW with ten players already: the box that tells there are too many (the box is placed in the game's rectangle: CentreInRect)
+6000 click 248 309
+6040 shot w16_toomany
+6060 key Return
+6100 shot w17_after

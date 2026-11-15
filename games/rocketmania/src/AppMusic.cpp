@@ -16,19 +16,21 @@
 
 using namespace Sexy;
 
+// port: the WAV writer's four-byte little-endian field
 static void PutLE32(std::string& theOut, uint32_t theValue)
 {
 	for (int i = 0; i < 4; i++)
 		theOut.push_back((char) ((theValue >> (8 * i)) & 0xff));
 }
 
+// port: the WAV writer's two-byte little-endian field
 static void PutLE16(std::string& theOut, uint32_t theValue)
 {
 	theOut.push_back((char) (theValue & 0xff));
 	theOut.push_back((char) ((theValue >> 8) & 0xff));
 }
 
-// the pieces of a PLAYLIST.txt: three header lines, then one segment letter at the start of each line, at most 50
+// 0x429460: the pieces of a PLAYLIST.txt: three header lines, then one segment letter at the start of each line, at most 50
 // (the original reads them with scanf: "%[^\n]\n" three times, then "%c%*[^\n]\n" until the end of the file; the
 // "\n" in a format skips all white space, so empty lines vanish)
 static std::string ReadPlaylistLetters(const std::string& thePlaylist)
@@ -63,7 +65,8 @@ static std::string ReadPlaylistLetters(const std::string& thePlaylist)
 	return aLetters;
 }
 
-// 0x429460: thePrefix is the pieces' common path ("music\Tubetricks Menu One v02"), theLastSegment the last letter
+// 0x429460, with 0x429880 (MySound: one piece decoded), 0x4299e0 (the WAV file's writer) and 0x429b30 (its write of the samples) inline:
+// thePrefix is the pieces' common path ("music\Tubetricks Menu One v02"), theLastSegment the last letter
 void RocketApp::AssembleMusic(const std::string& thePrefix, char theLastSegment)
 {
 	// the cache's name: "cached_" in front of the file name part, ".wav" after it

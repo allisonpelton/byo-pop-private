@@ -121,20 +121,61 @@ void GodFigure::Poke()
 	mCharacter->Poke();
 }
 
+// 0x42de50: the head swings on its spring; a new face comes in over the one before
+static void DrawHead(PixelusApp* mApp, Character* theCharacter, Graphics* g, float aX, float aY)
+{
+	int mGod = theCharacter->mGod;
+	const Character& aCharacter = *theCharacter;
+	if (aCharacter.mFade < 0xff)
+	{
+		MemoryImage* aPrevious = mApp->mHeads[mGod][aCharacter.mPrevPose];
+		if (aPrevious != NULL)
+			g->DrawImageRotatedF(aPrevious, aX, aY, aCharacter.mAngle, aPrevious->GetWidth() / 2, aPrevious->GetHeight() / 2);
+		g->SetColorizeImages(true);
+		g->SetColor(Color(255, 255, 255, aCharacter.mFade));
+	}
+	MemoryImage* aHead = mApp->mHeads[mGod][aCharacter.mPose];
+	if (aHead != NULL)
+		g->DrawImageRotatedF(aHead, aX, aY, aCharacter.mAngle, aHead->GetWidth() / 2, aHead->GetHeight() / 2);
+	if (aCharacter.mFade < 0xff)
+		g->SetColorizeImages(false);
+}
+
 void GodFigure::Draw(Graphics* g)
 {
+	DrawCharacter(mApp, mCharacter, g);
+}
+
+// 0x42e1f0: a character as the temple, the story and the tutorial draw it
+void Sexy::DrawCharacter(PixelusApp* mApp, Character* theCharacter, Graphics* g)
+{
+	int mGod = theCharacter->mGod;
+	if (mGod == CLAUDIUS_FIGURE)
+	{
+		// 0x42ebce: the shoulders, and the head over them
+		g->DrawImage(mApp->mImages[IMAGE_STORYCLAUDIUSSHOULDERS], 0, 0);
+		DrawHead(mApp, theCharacter, g, 0, 0);
+		return;
+	}
 	if (mGod < 0 || mGod >= NUM_TEMPLES)
 		return;
 	const GodInfo& anInfo = gGods[mGod];
+	if (mGod == 0 && theCharacter->mBubble == NULL)
+	{
+		// 0x42ebb2: without a speech bubble (the story, the tutorial's board) only the head, at (5, 50)
+		DrawHead(mApp, theCharacter, g, 5, 50);
+		return;
+	}
 	float aX = anInfo.mX;
-	int aTicks = mCharacter->mTick;
+	int aTicks = theCharacter->mTick;
 	float aY = anInfo.mY + (float) (anInfo.mBob * sin(aTicks * anInfo.mBobSpeed));
 
 	for (int aPass = 0; aPass < 2; aPass++)
 	{
 		if (aPass == 1)
 		{
-			g->DrawImage(mApp->mImages[anInfo.mBody], (int) aX, (int) aY);
+			// 0x42eb7a: the Cyclops' body stands at (40, 220) and Vulcan's at (10, 224) (0x42e487); only their heads bob
+			g->DrawImage(mApp->mImages[anInfo.mBody], (int) aX, mGod == 0 ? 220 : mGod == 6 ? 224 : (int) aY);
 			if (mGod == 2)	// Cupid's wings flap: three frames
 			{
 				Image* aWings = mApp->mImages[IMAGE_CUPID_WINGS];
@@ -156,21 +197,10 @@ void GodFigure::Draw(Graphics* g)
 		}
 	}
 
-	// 0x42de50: the head swings on its spring; a new face comes in over the one before
-	const Character& aCharacter = *mCharacter;
-	if (aCharacter.mFade < 0xff)
-	{
-		MemoryImage* aPrevious = mApp->mHeads[mGod][aCharacter.mPrevPose];
-		if (aPrevious != NULL)
-			g->DrawImageRotatedF(aPrevious, aX, aY, aCharacter.mAngle, aPrevious->GetWidth() / 2, aPrevious->GetHeight() / 2);
-		g->SetColorizeImages(true);
-		g->SetColor(Color(255, 255, 255, aCharacter.mFade));
-	}
-	MemoryImage* aHead = mApp->mHeads[mGod][aCharacter.mPose];
-	if (aHead != NULL)
-		g->DrawImageRotatedF(aHead, aX, aY, aCharacter.mAngle, aHead->GetWidth() / 2, aHead->GetHeight() / 2);
-	if (aCharacter.mFade < 0xff)
-		g->SetColorizeImages(false);
+	DrawHead(mApp, theCharacter, g, aX, aY);
+	// 0x42e1f0 ends with the bubble beside the figure
+	if (theCharacter->mBubble != NULL)
+		theCharacter->mBubble->Draw(g);
 }
 
 // 0x41c610: the island as it was, over the temple screen and fading out (0x41c700: three of 255 each update); its widget
@@ -231,7 +261,7 @@ TempleScreen::TempleScreen(PixelusApp* theApp, MemoryImage* theBackdrop)
 	bool aTutorial = mTemple == 0;
 	mBackButton = MakeStripButton(mApp, this, ID_BACK, IMAGE_BACKTOISLAND, 6, -3);
 	mMoreButton = MakeStripButton(mApp, this, ID_MORE, IMAGE_MOREPUZZLESBUTTON, FRAME_X + (FRAME_W - 292) / 2, 432);
-	mSkipButton = MakeStripButton(mApp, this, ID_SKIP, IMAGE_SKIPTUTORIAL, 298, 436);
+	mSkipButton = MakeStripButton(mApp, this, ID_SKIP, IMAGE_SKIPTUTORIAL, 0x131, 0x1b7);	// 0x4106d0 places it
 
 	BuildThumbs();
 
@@ -375,11 +405,9 @@ void TempleScreen::BuildThumbs()
 			}
 		}
 		aThumb.mMystery = aMysteryLocked && (i + 1 == aLevel->mPuzzles.size());
+		// 0x40fb80 raises a solved picture's alpha 2 an update from the 255 it starts with: the puzzle just solved shows at once
 		if (aThumb.mSolved && aThumb.mUuid == mApp->mLastSolvedUuid)
-		{
-			aThumb.mFade = 1;
 			mApp->mLastSolvedUuid.clear();
-		}
 		mThumbs.push_back(aThumb);
 	}
 	delete aGrid;
@@ -485,6 +513,28 @@ void TempleScreen::DrawThumbs(Graphics* g)
 				g->DrawImage(mApp->mImages[IMAGE_PUZZLELIGHT], aX - 4, aY - 4);
 				g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
 				g->SetColorizeImages(false);
+				// 0x410ad0, 0x4100f0: while the mouse is within 64 pixels of the picture, the cells of its shape that are near the
+				// pointer shine through (alpha 255 - d^3 * 255 / 2^18 for a cell's centre d pixels from the pointer, d under 64)
+				int aMouseX = mApp->mWidgetManager->mLastMouseX, aMouseY = mApp->mWidgetManager->mLastMouseY;
+				if (aThumb.mShape != NULL && aMouseX >= aX - 0x40 && aMouseX < aX - 0x40 + 0xe0 && aMouseY >= aY - 0x40 && aMouseY < aY - 0x40 + 0xe0)
+				{
+					g->SetColorizeImages(true);
+					for (int aCellX = 0; aCellX < 16; aCellX++)
+						for (int aCellY = 0; aCellY < 16; aCellY++)
+						{
+							int aDX = aX + aCellX * 6 + 3 - aMouseX, aDY = aY + aCellY * 6 + 3 - aMouseY;
+							int aDistance = (int) sqrt((double) (aDX * aDX + aDY * aDY));
+							if (aDistance >= 0x40)
+								continue;
+							int aCube = aDistance * aDistance * aDistance * 0xff;
+							int anAlpha = 0xff - ((aCube + ((aCube >> 31) & 0x3ffff)) >> 18);
+							if (anAlpha <= 0)
+								continue;
+							g->SetColor(Color(255, 255, 255, anAlpha));
+							g->DrawImage(aThumb.mShape, aX + aCellX * 6, aY + aCellY * 6, Rect(aCellX * 6, aCellY * 6, 6, 6));
+						}
+					g->SetColorizeImages(false);
+				}
 			}
 			else
 			{
@@ -507,11 +557,24 @@ void TempleScreen::DrawThumbs(Graphics* g)
 				g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
 			}
 
+			// 0x4119e0: the next puzzle of the lesson says where to click, in three lines that pulse between white and yellow
+			if (aTutorial && anIndex == mFirstUnsolved)
+			{
+				g->SetFont(mApp->mFonts[FONT_ARIAL10BOLD]);
+				g->SetColor(Color(255, 255, (int) (sin(mTicks * 0.05) * 30.0 + 223.0)));
+				const char* aLines[3] = { "Click here", anIndex == 0 ? "for the first" : (anIndex == 8 ? "for the last" : "for the next"),
+					"tutorial puzzle" };
+				static const int aLineY[3] = { 0x26, 0x35, 0x44 };
+				for (int i = 0; i < 3; i++)
+					g->DrawString(aLines[i], aX + 0x30 - g->StringWidth(aLines[i]) / 2, aY + aLineY[i]);
+			}
+
 			// the medal, the chains of the mystery puzzle, the question mark of a tutorial puzzle that is not yet open
-			if (aThumb.mSolved && aThumb.mMedal > 0)
+			// 0x4127f6: the tutorial temple (index 0) has no medals
+			if (aThumb.mSolved && aThumb.mMedal > 0 && !aTutorial)
 			{
 				static const int aMedals[4] = { 0, IMAGE_MEDAL_BRONZE, IMAGE_MEDAL_SILVER, IMAGE_MEDAL };
-				g->DrawImage(mApp->mImages[aMedals[aThumb.mMedal]], aX + CELL - 44, aY + CELL - 44);
+				g->DrawImage(mApp->mImages[aMedals[aThumb.mMedal]], aX + 0x3e, aY + 0x4b);	// 0x412858
 			}
 			else if (aThumb.mMystery)
 				g->DrawImage(mApp->mImages[IMAGE_LOCKPUZZLEOVERLAY], aX - 3, aY - 3);
@@ -592,8 +655,8 @@ void TempleScreen::Draw(Graphics* g)
 	DrawThumbs(g);
 	DrawSlider(g);
 
-	// how many puzzles are left
-	if (aUser != NULL)
+	// how many puzzles are left (0x412990: not in the tutorial's cave)
+	if (aUser != NULL && !aTutorial)
 	{
 		int aLeft = (int) mThumbs.size() - aUser->CountSolved(gTemples[mTemple].mName);
 		char aBuffer[64];

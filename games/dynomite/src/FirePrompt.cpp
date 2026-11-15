@@ -15,8 +15,8 @@ FirePrompt::FirePrompt(FossilizedApp* theApp, Dynomite* theBoard)
 	mBoard = theBoard;
 	// port: the original never sets these two, only saves and loads them; zeroed, so a saved game's bytes are the same
 	// from run to run
-	mField0c = 0;
-	mField1c = false;
+	mSavedZero = 0;
+	mRoundTextShown = false;
 	mAlpha = 0xff;
 	mFade = -1;
 	mOwnLine1 = "";
@@ -35,7 +35,7 @@ FirePrompt::~FirePrompt()
 // five the lines change
 void FirePrompt::Update()
 {
-	if (mBoard->mField16c == false)
+	if (mBoard->mFiredThisRound == false)
 	{
 		int aFade = mFade;
 		mAlpha = mAlpha + aFade * 4;
@@ -76,7 +76,7 @@ void FirePrompt::Reset()
 // 0x432090: centred on the launcher at 340 and 360, with a shadow 2 to the right and below
 void FirePrompt::Draw()
 {
-	if ((mAlpha != 0) && (mBoard->mField244 != true) && (mApp->mInTutorial != true))
+	if ((mAlpha != 0) && (mBoard->mInputLocked != true) && (mApp->mInTutorial != true))
 	{
 		Graphics* g = GetDrawGraphics();
 		g->SetFont(mApp->mWhiteFont);
@@ -90,20 +90,20 @@ void FirePrompt::Draw()
 		int aHalf1 = mApp->mWhiteFont->StringWidth(aLine1) >> 1;
 		int aHalf2 = mApp->mWhiteFont->StringWidth(aLine2) >> 1;
 		g->SetColor(Color(0, 0, 0, mAlpha));
-		g->DrawString(aLine1, (mBoard->mField70 - aHalf1) + 2, 0x156);
-		g->DrawString(aLine2, (mBoard->mField70 - aHalf2) + 2, 0x16a);
+		g->DrawString(aLine1, (mBoard->mPlayMiddleX - aHalf1) + 2, 0x156);
+		g->DrawString(aLine2, (mBoard->mPlayMiddleX - aHalf2) + 2, 0x16a);
 		g->SetColor(Color(0, 200, 0xff, mAlpha));
-		g->DrawString(aLine1, mBoard->mField70 - aHalf1, 0x154);
-		g->DrawString(aLine2, mBoard->mField70 - aHalf2, 0x168);
+		g->DrawString(aLine1, mBoard->mPlayMiddleX - aHalf1, 0x154);
+		g->DrawString(aLine2, mBoard->mPlayMiddleX - aHalf2, 0x168);
 	}
 }
 
 // 0x431ef0
 void FirePrompt::SaveState(BinFile* theFile)
 {
-	theFile->WriteInt(mField0c);
+	theFile->WriteInt(mSavedZero);
 	theFile->WriteFloat(mPulses);
-	theFile->WriteBool(mField1c);
+	theFile->WriteBool(mRoundTextShown);
 	theFile->WriteInt(mAlpha);
 	theFile->WriteInt(mFade);
 }
@@ -111,9 +111,9 @@ void FirePrompt::SaveState(BinFile* theFile)
 // 0x431f40
 void FirePrompt::LoadState(BinFile* theFile)
 {
-	mField0c = theFile->ReadInt();
+	mSavedZero = theFile->ReadInt();
 	mPulses = theFile->ReadFloat();
-	mField1c = theFile->ReadBool();
+	mRoundTextShown = theFile->ReadBool();
 	mAlpha = theFile->ReadInt();
 	mFade = theFile->ReadInt();
 }

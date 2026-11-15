@@ -16,77 +16,77 @@ using namespace Sexy;
 // and the text)
 void Board::DrawStageBg(Graphics* g)
 {
-	if (m8dc)
+	if (mDemoPlaying)
 		return;
 
-	unsigned int aCount = (unsigned int) m220.size();
-	if ((unsigned int) mField193C >= aCount && !m90a)
+	unsigned int aCount = (unsigned int) mStageHintPanels.size();
+	if ((unsigned int) mStageNumber >= aCount && !mTutorialStageForced)
 		return;
 
-	unsigned int anIndex = m90a ? 1U : (unsigned int) mField193C;
-	StageBg* aBg = m220[anIndex];
-	if (aBg->mf0)
+	unsigned int anIndex = mTutorialStageForced ? 1U : (unsigned int) mStageNumber;
+	StageBg* aBg = mStageHintPanels[anIndex];
+	if (aBg->mFadedOut)
 		return;
 
 	g->SetColorizeImages(true);
-	g->SetColor(Color(aBg->mColor2.mRed, aBg->mColor2.mGreen, aBg->mColor2.mBlue, aBg->m114));
+	g->SetColor(Color(aBg->mColor2.mRed, aBg->mColor2.mGreen, aBg->mColor2.mBlue, aBg->mPanelAlpha));
 	g->DrawImage(IMAGE_TH_STRIP, 0, 0xb4, Rect(0, 0, IMAGE_TH_STRIP->mWidth, 0x35));
 
-	int anAlpha = aBg->m100;
+	int anAlpha = aBg->mPicAlpha;
 	if (anAlpha > 0)
 	{
-		if (aBg->m118 < 0 && aBg->m114 <= anAlpha)
-			anAlpha = aBg->m114;
+		if (aBg->mPanelAlphaStep < 0 && aBg->mPanelAlpha <= anAlpha)
+			anAlpha = aBg->mPanelAlpha;
 		int aHeight = aBg->mPic->mHeight;
 		g->SetColor(Color(0xff, 0xff, 0xff, anAlpha));
-		DrawCel(g, aBg->mPic, aBg->mX, 0x1a - aHeight / 2 + 0xb4, (aBg->m70.mNumFrames == 1) ? 0 : aBg->m70.mFrame);
+		DrawCel(g, aBg->mPic, aBg->mX, 0x1a - aHeight / 2 + 0xb4, (aBg->mPicAnim.mNumFrames == 1) ? 0 : aBg->mPicAnim.mFrame);
 	}
 
-	if (aBg->m5c != NULL && aBg->m104 > 0)
+	if (aBg->mOverPic != NULL && aBg->mOverPicAlpha > 0)
 	{
-		anAlpha = aBg->m104;
-		if (aBg->m118 < 0 && aBg->m114 <= anAlpha)
-			anAlpha = aBg->m114;
-		int aCelWidth = aBg->m5c->mWidth / aBg->m5c->mNumCols;
-		int aPicY = 0x1a - aBg->m5c->mHeight / 2;
+		anAlpha = aBg->mOverPicAlpha;
+		if (aBg->mPanelAlphaStep < 0 && aBg->mPanelAlpha <= anAlpha)
+			anAlpha = aBg->mPanelAlpha;
+		int aCelWidth = aBg->mOverPic->mWidth / aBg->mOverPic->mNumCols;
+		int aPicY = 0x1a - aBg->mOverPic->mHeight / 2;
 		int aPicX = aBg->mPic->mWidth / 2 + aBg->mX - aCelWidth / 2;
 		g->SetColor(Color(0xff, 0xff, 0xff, anAlpha));
-		DrawCel(g, aBg->m5c, aPicX, aPicY + 0xb4, (aBg->mb0.mNumFrames == 1) ? 0 : aBg->mb0.mFrame);
+		DrawCel(g, aBg->mOverPic, aPicX, aPicY + 0xb4, (aBg->mOverPicAnim.mNumFrames == 1) ? 0 : aBg->mOverPicAnim.mFrame);
 	}
 
 	g->SetColorizeImages(false);
 
 	g->SetFont(GetFontById(FONT_NEURO30_ID));
-	g->SetColor(Color(aBg->mColor1.mRed, aBg->mColor1.mGreen, aBg->mColor1.mBlue, aBg->m114));
+	g->SetColor(Color(aBg->mColor1.mRed, aBg->mColor1.mGreen, aBg->mColor1.mBlue, aBg->mPanelAlpha));
 	Font* aFont = g->GetFont();
-	int aTitleY = (-(aBg->m120 / 2) - (aFont->GetHeight() - aFont->GetAscent()) / 2) + 0xd4;
+	int aTitleY = (-(aBg->mTitleHeight / 2) - (aFont->GetHeight() - aFont->GetAscent()) / 2) + 0xd4;
 	WriteWordWrapped(g, Rect(0x96, aTitleY, 0x96, 0x3c), aBg->mTitle, -1, 0);
 
 	g->SetFont(GetFontById(FONT_DIALOG_BOX_BTN_ID));
-	g->SetColor(Color(0xff, 0xff, 0xff, aBg->m114));
+	g->SetColor(Color(0xff, 0xff, 0xff, aBg->mPanelAlpha));
 	aFont = g->GetFont();
-	int aTextY = (-(aBg->m124 / 2) - aFont->GetAscent() / 2) + 0xd4;
+	int aTextY = (-(aBg->mTextHeight / 2) - aFont->GetAscent() / 2) + 0xd4;
 	WriteWordWrapped(g, Rect(300, aTextY, 0xd2, 0x3c), aBg->mText, -1, 0);
 }
 
-// 0x433fa0: the picture of the banner (m304) goes into the taller one (m308) with each column moved down by a wave (it
-// runs with the banner's time, m944), each row in a colour of the rainbow, and the whole fading in and out.
+// 0x433fa0: the picture of the banner (mBannerTextImage) goes into the taller one (mBannerWaveImage) with each column moved down by a wave (it
+// runs with the banner's time, mBannerWavePhase), each row in a colour of the rainbow, and the whole fading in and out.
 void Board::AnimateBanner()
 {
-	ulong* aSrcBits = m304->GetBits();
-	ulong* aDstBits = m308->GetBits();
-	int aWidth = m304->GetWidth();
-	int aSrcHeight = m304->GetHeight();
-	int aDstHeight = m308->GetHeight();
+	ulong* aSrcBits = mBannerTextImage->GetBits();
+	ulong* aDstBits = mBannerWaveImage->GetBits();
+	int aWidth = mBannerTextImage->GetWidth();
+	int aSrcHeight = mBannerTextImage->GetHeight();
+	int aDstHeight = mBannerWaveImage->GetHeight();
 	memset(aDstBits, 0, (size_t) aDstHeight * aWidth * 4);
 
 	// the fade at the two ends of the banner's time
-	int aLeft = m1b80 - m1b84;
+	int aLeft = mBannerDuration - mBannerTimeShown;
 	int anAlpha = 0xff;
 	if (aLeft < 0x4b)
 		anAlpha = (aLeft * 0xff) / 0x4b;
-	else if (m1b84 < 0x4b)
-		anAlpha = (m1b84 * 0xff) / 0x4b;
+	else if (mBannerTimeShown < 0x4b)
+		anAlpha = (mBannerTimeShown * 0xff) / 0x4b;
 
 	// a colour for every row of the taller picture, going round the colour wheel every 64 rows
 	unsigned int* aRowColors = new unsigned int[aDstHeight];
@@ -96,7 +96,7 @@ void Board::AnimateBanner()
 	for (int aCol = 0; aCol < aWidth; aCol++)
 	{
 		// (x87 at 24 bits: the column's phase, the sum with the wave's offset, the sine plus one and the product are floats; FSIN's own result is not rounded)
-		float aPhase = (float) ((double) aCol * 0.024) + m944;
+		float aPhase = (float) ((double) aCol * 0.024) + mBannerWavePhase;
 		float aWave = (float) (sin((double) aPhase) + 1.0);
 		int aShift = (int) (aWave * 24.0f);
 		for (int aRow = 0; aRow < aSrcHeight; aRow++)
@@ -111,5 +111,5 @@ void Board::AnimateBanner()
 		}
 	}
 	delete[] aRowColors;
-	m308->BitsChanged();
+	mBannerWaveImage->BitsChanged();
 }

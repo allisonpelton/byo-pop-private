@@ -36,6 +36,18 @@ function check(name, ok, detail) {
 }
 function same(name, a, b) { check(name, JSON.stringify(a) === JSON.stringify(b), { got: a, want: b }); }
 
+// ---------- favourites ----------
+{
+  const { S } = load();
+  // a listing opened with ?silent=1 puts the query on its tiles' links (web/index.html)
+  check("favourite: starred", S.setFavourite({ id: "bejeweled", title: "Bejeweled", page: "bejeweled.html?silent=1" }, true) && S.isFavourite("bejeweled"));
+  same("favourite: the page without its query", S.favourites().map((g) => g.page), ["bejeweled.html"]);
+  S.setFavourite({ id: "alchemy", title: "Alchemy", page: "https://site.example/games/alchemy.html#x" }, true);
+  S.setFavourite({ id: "soon-pegs", title: "Pegs" }, true);
+  same("favourite: a full address's file name; none for a game with no page", S.favourites().map((g) => g.page), ["bejeweled.html", "alchemy.html", ""]);
+  check("favourite: unstarred", S.setFavourite({ id: "bejeweled" }, false) && !S.isFavourite("bejeweled") && S.favourites().length === 2);
+}
+
 // ---------- settings: site-wide ----------
 {
   const { S, data } = load();
@@ -229,14 +241,17 @@ function same(name, a, b) { check(name, JSON.stringify(a) === JSON.stringify(b),
 
 // ---------- play times (ByopopPlay) ----------
 {
-  const { T, data } = load();
+  const { T, P, data } = load();
   check("play: a start", T.started("pixelus") && T.started("pixelus"));
   check("play: time", T.played("pixelus", 61400) && T.played("pixelus", 400) === false);
   const r = T.all().pixelus;
-  same("play: the record", [r.plays, r.seconds, r.last], [2, 61, T.today()]);
+  same("play: the record", [r.plays, r.seconds, r.first, r.last], [2, 61, T.today(), T.today()]);
+  same("play: with no player chosen, under \"\"", Object.keys(r.by), [""]);
+  const pa = P.add("Ann").profile;
+  check("play: a player's own record", T.started("pixelus") && T.all().pixelus.by[pa.id].plays === 1 && T.all().pixelus.by[""].plays === 2 && T.all().pixelus.plays === 3);
   check("play: a bad game id is refused", T.started("../evil") === false && !("../evil" in T.all()));
   data["byopop-play"] = JSON.stringify({ pixelus: { plays: -3, seconds: "x", last: "yesterday" }, list: [1] });
-  same("play: a damaged record reads as zero", T.all(), { pixelus: { plays: 0, seconds: 0, last: "" } });
+  same("play: a damaged record reads as zero", T.all(), { pixelus: { plays: 0, seconds: 0, first: "", last: "", by: {} } });
   data["byopop-play"] = "{nope";
   same("play: damaged storage reads as none", T.all(), {});
   same("play: durations", [T.duration(30), T.duration(60), T.duration(3599), T.duration(3600), T.duration(12000)],

@@ -517,8 +517,8 @@ Image* loadImageSet(const Str& theName)
 				}
 				if (aLen <= aPos)
 					break;
-				char c = (char)at(aText, aPos);
-				if (aPos < (int)aText.size() && c == '/')
+				char aChar = (char)at(aText, aPos);
+				if (aPos < (int)aText.size() && aChar == '/')
 				{
 					bool anEnd = true;
 					while (aPos < aLen)
@@ -536,7 +536,7 @@ Image* loadImageSet(const Str& theName)
 				}
 				int aNumbers = 0;
 				int aNext = 0;
-				if (aPos < (int)aText.size() && c == 'x')
+				if (aPos < (int)aText.size() && aChar == 'x')
 				{
 					if (equalsNoCase("xywh_ref", substr(aText, aPos, aPos + 8)))
 					{
@@ -723,7 +723,7 @@ Graphics::Graphics(int theWidth, int theHeight, int theFullScreen)
 {
 	host()->trace("GM Init 1");
 	buildShiftTables();
-	mField00 = 0;
+	mFloatTextFrame = 0;
 	mModeTime = 0;
 	mModeFrame = 0;
 	mFocusFrame = 0;
@@ -749,17 +749,17 @@ void fillRoundRect(float theX, float theY, float theW, float theH, uint32_t theC
 	int x1 = ftol(((double)theX + theW) * gWidth);
 	int y1 = ftol(((double)theY + theH) * gHeight);
 	bool aClip = x0 < gClipX0 || y0 < gClipY0 || gClipX1 < x1 || gClipY1 < y1;
-	uint32_t a = theColor >> 0x18;
-	if (a == 0)
+	uint32_t anAlpha = theColor >> 0x18;
+	if (anAlpha == 0)
 		return;
-	uint32_t g = theColor >> 8 & 0xff;
-	uint32_t b = theColor & 0xff;
+	uint32_t aGreen = theColor >> 8 & 0xff;
+	uint32_t aBlue = theColor & 0xff;
 	int r = theRadius - 2;
 	int aLeft = x0 + r + 1;
 	int aTop = y0 + r + 1;
 	int aRight = x1 - r - 1;
 	int aBottom = y1 - r - 1;
-	uint32_t anInv = 0xff - a;
+	uint32_t anInv = 0xff - anAlpha;
 	float aLimit = (float)((double)r + (double)0.5f);
 	for (int y = y0; y <= y1; y++)
 	{
@@ -767,28 +767,28 @@ void fillRoundRect(float theX, float theY, float theW, float theH, uint32_t theC
 		{
 			if (aClip && (x < gClipX0 || y < gClipY0 || gClipX1 < x || gClipY1 < y))
 				continue;
-			double d = 0.0;
+			double aDistance = 0.0;
 			if (y <= aTop)
 			{
 				if (x <= aLeft)
-					d = distance((float)x, (float)y, (float)aLeft, (float)aTop);
+					aDistance = distance((float)x, (float)y, (float)aLeft, (float)aTop);
 				else if (aRight <= x)
-					d = distance((float)x, (float)y, (float)aRight, (float)aTop);
+					aDistance = distance((float)x, (float)y, (float)aRight, (float)aTop);
 			}
 			else if (aBottom <= y)
 			{
 				if (x <= aLeft)
-					d = distance((float)x, (float)y, (float)aLeft, (float)aBottom);
+					aDistance = distance((float)x, (float)y, (float)aLeft, (float)aBottom);
 				else if (aRight <= x)
-					d = distance((float)x, (float)y, (float)aRight, (float)aBottom);
+					aDistance = distance((float)x, (float)y, (float)aRight, (float)aBottom);
 			}
-			if (d <= (double)aLimit)
+			if (aDistance <= (double)aLimit)
 			{
 				uint32_t* p = (uint32_t*)((uint8_t*)gPixels + gPitch * y) + x;
 				uint32_t c = *p;
-				uint32_t aR = ((c >> 0x10 & 0xff) * anInv + (theColor >> 0x10 & 0xff) * a) << 8 & 0xffff00ff;
-				aR = (aR | ((c >> 8 & 0xff) * anInv + g * a)) & 0xffffff00;
-				*p = aR | ((c & 0xff) * anInv + b * a) >> 8;
+				uint32_t aR = ((c >> 0x10 & 0xff) * anInv + (theColor >> 0x10 & 0xff) * anAlpha) << 8 & 0xffff00ff;
+				aR = (aR | ((c >> 8 & 0xff) * anInv + aGreen * anAlpha)) & 0xffffff00;
+				*p = aR | ((c & 0xff) * anInv + aBlue * anAlpha) >> 8;
 			}
 		}
 	}
@@ -841,12 +841,12 @@ void fillTriangle(float theX1, float theY1, float theX2, float theY2, float theX
 	if (0 < y3 - y1)
 		aStepB = y3 - y1;
 	aStepB = ((x3 - x1) * 0x10000) / aStepB;
-	uint32_t a = theColor >> 0x18;
+	uint32_t anAlpha = theColor >> 0x18;
 	int anA = x1 << 0x10;
 	int aB = anA;
-	if (a == 0)
+	if (anAlpha == 0)
 		return;
-	uint32_t anInv = 0xff - a;
+	uint32_t anInv = 0xff - anAlpha;
 	bool aClip = x1 < gClipX0 + 1 || gClipX1 < x1 + 1 || y1 < gClipY0 + 1 || gClipY1 < y1 + 1 || x2 < gClipX0 + 1 ||
 		gClipX1 < x2 + 1 || y2 < gClipY0 + 1 || gClipY1 < y2 + 1 || x3 < gClipX0 + 1 || gClipX1 < x3 + 1 ||
 		y3 < gClipY0 + 1 || gClipY1 < y3 + 1;
@@ -872,40 +872,40 @@ void fillTriangle(float theX1, float theY1, float theX2, float theY2, float theX
 		}
 		else
 			aB = aB + aStepB;
-		int l = anA >> 0x10;
-		int r = aB >> 0x10;
+		int aSpanLeft = anA >> 0x10;
+		int aSpanRight = aB >> 0x10;
 		if (aClip)
 		{
 			if (y < gClipY0 || gClipY1 < y)
 				continue;
-			if (l < gClipX0)
-				l = gClipX0;
-			if (gClipX1 <= r)
-				r = gClipX1;
+			if (aSpanLeft < gClipX0)
+				aSpanLeft = gClipX0;
+			if (gClipX1 <= aSpanRight)
+				aSpanRight = gClipX1;
 		}
-		uint32_t* p = (uint32_t*)((uint8_t*)gPixels + gPitch * y) + l;
-		if (a < 0xff)
+		uint32_t* aPixelPtr = (uint32_t*)((uint8_t*)gPixels + gPitch * y) + aSpanLeft;
+		if (anAlpha < 0xff)
 		{
-			if (l <= r)
+			if (aSpanLeft <= aSpanRight)
 			{
-				int n = (r - l) + 1;
+				int n = (aSpanRight - aSpanLeft) + 1;
 				do
 				{
-					uint32_t c = *p;
-					*p = ((c >> 0x10 & 0xff) * anInv + (theColor >> 0x10 & 0xff) * a & 0xffff00) << 8 |
-						((c >> 8 & 0xff) * anInv + (theColor >> 8 & 0xff) * a & 0xffffff00) |
-						(c & 0xff) * anInv + (theColor & 0xff) * a >> 8;
-					p = p + 1;
+					uint32_t c = *aPixelPtr;
+					*aPixelPtr = ((c >> 0x10 & 0xff) * anInv + (theColor >> 0x10 & 0xff) * anAlpha & 0xffff00) << 8 |
+						((c >> 8 & 0xff) * anInv + (theColor >> 8 & 0xff) * anAlpha & 0xffffff00) |
+						(c & 0xff) * anInv + (theColor & 0xff) * anAlpha >> 8;
+					aPixelPtr = aPixelPtr + 1;
 					n = n - 1;
 				} while (n != 0);
 			}
 		}
-		else if (l <= r)
+		else if (aSpanLeft <= aSpanRight)
 		{
-			for (int n = (r - l) + 1; n != 0; n--)
+			for (int n = (aSpanRight - aSpanLeft) + 1; n != 0; n--)
 			{
-				*p = theColor;
-				p = p + 1;
+				*aPixelPtr = theColor;
+				aPixelPtr = aPixelPtr + 1;
 			}
 		}
 	}
@@ -933,18 +933,18 @@ void fillRect(float theX, float theY, float theW, float theH, uint32_t theColor)
 	uint32_t a = theColor >> 0x18;
 	if (a == 0)
 		return;
-	int n = x1 - x0;
+	int aCount = x1 - x0;
 	if ((int)a < 0xff)
 	{
 		uint32_t r = (theColor >> 0x10 & 0xff) * a;
 		uint32_t g = (theColor >> 8 & 0xff) * a;
 		uint32_t b = (theColor & 0xff) * a;
 		uint32_t anInv = 0xff - a;
-		n = n + 1;
+		aCount = aCount + 1;
 		for (int y = y0; y <= y1; y++)
 		{
 			uint8_t* p = (uint8_t*)gPixels + gPitch * y + x0 * 4;
-			for (int i = n; i != 0; i--)
+			for (int i = aCount; i != 0; i--)
 			{
 				uint32_t c = (p[2] * anInv + r) << 8 & 0xffff00ff;
 				c = (c | (p[1] * anInv + g)) & 0xffffff00;
@@ -955,11 +955,11 @@ void fillRect(float theX, float theY, float theW, float theH, uint32_t theColor)
 		}
 		return;
 	}
-	n = n + 1;
+	aCount = aCount + 1;
 	for (int y = y0; y <= y1; y++)
 	{
 		uint32_t* p = (uint32_t*)((uint8_t*)gPixels + gPitch * y) + x0;
-		for (int i = 0; i < n; i++)
+		for (int i = 0; i < aCount; i++)
 			p[i] = theColor;
 	}
 }

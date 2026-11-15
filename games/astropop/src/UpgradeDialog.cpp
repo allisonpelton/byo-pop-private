@@ -106,7 +106,7 @@ UpgradeDialog::UpgradeDialog(AstroPopApp* theApp, int theMode, int theSetting, c
 	}
 }
 
-// 0x48a670
+// 0x48a670 (body 0x48a510)
 UpgradeDialog::~UpgradeDialog()
 {
 }
@@ -121,7 +121,7 @@ void UpgradeDialog::Draw(Graphics* g)
 
 	int aTextTop = mPicture->mHeight + 0x1e;
 	if (!mSettled)
-		aTextTop += m124;
+		aTextTop += mBoxY;
 	Rect aTextRect(0x46, aTextTop, 300, 0x32);
 	int aTextHeight = WriteWordWrapped(g, aTextRect, mText, -1, -1);
 

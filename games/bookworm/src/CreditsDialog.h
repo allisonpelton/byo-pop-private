@@ -3,7 +3,7 @@
 
 // CreditsDialog.cpp: the credits (dialog 16, from the Options dialog): six headings and names over a gold
 // panel with drifting and rotating clouds, and a footer button (2016, handled by the app).
-// Original: class Sexy::CreditsDialog : public Dialog, sizeof 0x138 (new in BookWormApp::ShowCredits
+// Original: class Sexy::CreditsDialog : public Dialog, sizeof 0x138 (new in BookWormApp::DoCredits
 // 0x4106c0), vftable 0x4fc07c (52 slots), ButtonListener vftable 0x4fc060 (+0x58). Offsets are absolute
 // (the 2004 Dialog is 0x110 bytes). Behaviour spec: re/bookworm/analysis/screens.md. The port derives it
 // from Dialog2004 (the 2004 dialog buttons and drawing, Compat2004.h).

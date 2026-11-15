@@ -32,6 +32,7 @@ The exit code is 0 when it stopped on "over" or the step limit, 1 otherwise.
 """
 
 import argparse
+import atexit
 import json
 import os
 import re
@@ -73,6 +74,9 @@ class Game:
             cmd = [os.path.join(ROOT, "build", "native", "rundesk.exe")] + cmd
         self.log = open(self.logname, "wb")
         self.proc = subprocess.Popen(cmd, stdout=self.log, stderr=subprocess.STDOUT)
+        # a driver that ends on an exception outside its try never calls finish(); the game, held by -hold, would
+        # keep its slot under rundesk for good
+        atexit.register(self.stop)
         self.reader = open(self.logname, "rb")
         self.partial = b""
 
@@ -126,6 +130,17 @@ class Game:
         self.transcript.flush()
         return answers
 
+    def stop(self):
+        """Ends the run and every process under it (rundesk and the game) if it still runs"""
+        if self.proc.poll() is None:
+            subprocess.call(["taskkill", "/T", "/F", "/PID", str(self.proc.pid)],
+                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            try:
+                self.proc.wait(10)
+            except subprocess.TimeoutExpired:
+                self.proc.kill()
+                self.proc.wait()
+
     def finish(self, shot):
         try:
             if shot and self.proc.poll() is None:
@@ -138,8 +153,7 @@ class Game:
             try:
                 self.proc.wait(30)
             except subprocess.TimeoutExpired:
-                self.proc.kill()
-                self.proc.wait()
+                self.stop()
         self.transcript.close()
         self.log.close()
         self.reader.close()
@@ -200,7 +214,7 @@ def move_lines(m):
     return out
 
 
-def main():
+def parse_args(argv=None):
     ap = argparse.ArgumentParser(description="Plays a native port by its own bot's move answers.")
     ap.add_argument("--dir", help="the run's folder (default build/playbymove/<game>)")
     ap.add_argument("--steps", type=int, default=2000, help="stop after this many moves (2000)")
@@ -213,11 +227,22 @@ def main():
     ap.add_argument("--realtime", action="store_true", help="without -fast")
     ap.add_argument("exe")
     ap.add_argument("game_args", nargs=argparse.REMAINDER)
-    args = ap.parse_args()
-    name = os.path.splitext(os.path.basename(args.exe))[0]
+    args = ap.parse_args(argv)
+    args.name = os.path.splitext(os.path.basename(args.exe))[0]
     if not args.dir:
-        args.dir = os.path.join(ROOT, "build", "playbymove", name)
+        args.dir = os.path.join(ROOT, "build", "playbymove", args.name)
+    return args
 
+
+def state_is_over(state):
+    return state.get("over") is True
+
+
+def play(args, is_over=state_is_over):
+    """The loop on parsed arguments. is_over(state) is the game's end of play, called on each state the game answers
+    (a dict); a game whose "over" is also a screen the bot plays on from (a level's summary) passes its own, which may
+    keep what it has seen. Returns the exit code."""
+    name = args.name
     game = Game(args)
     moves, state, stop = 0, None, None
     try:
@@ -231,7 +256,7 @@ def main():
         while True:
             answers = game.send(*(batch + ["state", "move"]))
             state = answers[-2][len("STATE "):]
-            if json.loads(state).get("over") is True:
+            if is_over(json.loads(state)):
                 raise Stop("over")
             if moves >= args.steps:
                 raise Stop("limit")
@@ -267,6 +292,10 @@ def main():
         game.finish(args.shot)
     print("playbymove %s: %d moves, stop %s; STATE %s" % (name, moves, stop, state))
     return 0 if stop in ("over", "limit") else 1
+
+
+def main():
+    return play(parse_args())
 
 
 if __name__ == "__main__":

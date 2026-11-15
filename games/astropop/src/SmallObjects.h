@@ -28,7 +28,7 @@ struct DemoStep
 // restarts at 400, the animation steps along
 struct BlinkRec
 {
-	int			m00;
+	int			mX; // the spark's x across the beam, from 0 to the beam's width less one cel of the particle picture
 	int			mCounter;       // +0x04
 	FrameAnim	mAnim;          // +0x08
 };
@@ -42,18 +42,18 @@ public:
 	float		mY;             // +0x04
 	int			mAge;           // +0x08 updates so far
 	int			mWidth;         // +0x0c the text's width
-	int			m10;            // +0x10 colour phase, +7 each update (mod 255)
+	int			mHue; // +0x10 the hue of the text's colour, 7 more each update (mod 255) while the text fades
 	int			mLife;          // +0x14 updates left (counts down once the text fades)
-	int			m18;            // +0x18 counts down before field 0x50 does
+	int			mAlphaDelay; // +0x18 counts down before mAlpha does (constructed 0, so the alpha falls from the first update of a text that waits for ever)
 	bool		mDone;          // +0x1c
 	bool		mNoFade;        // +0x1d
 	std::string	mText;          // +0x20
 	Font*		mFont;          // +0x3c
-	float		m40;            // +0x40
+	float		mOriginX; // +0x40 the x the text was given (-1 for the plain rising text, which Update tests with mSpeed and mTargetY)
 	float		mTargetY;       // +0x44 the height it moves to (-1: it just floats up)
 	int			mHold;          // +0x48 updates it waits there (500000000: for ever)
 	int			mHoldStart;     // +0x4c the update the wait began
-	int			m50;            // +0x50
+	int			mAlpha; // +0x50 the alpha of the text, 255 down by 2 an update once mAlphaDelay has run out
 	float		mSpeed;         // +0x54
 
 	FloatText(const std::string& theText, Font* theFont, float theX, float theY, bool theFlag);  // 0x4107e0
@@ -67,26 +67,25 @@ public:
 class HintBox
 {
 public:
-	int			m04;            // +0x04 updates so far
-	int			m08;            // +0x08 timer of the phase
+	int			mPhaseTimer; // +0x08 counts the updates of the phase while mTimerRunning: the wait before it slides in, then the time it stays in view
 	int			mX;             // +0x0c
 	int			mY;             // +0x10
 	int			mWidth;         // +0x14 (0x43c700)
 	int			mHeight;        // +0x18 (0x436490)
-	bool		m1c;            // +0x1c the timer runs
-	bool		m1d;            // +0x1d
-	bool		m1e;            // +0x1e
-	bool		m1f;            // +0x1f
-	bool		m20;            // +0x20
-	bool		m21;            // +0x21 shown
+	bool		mTimerRunning; // +0x1c the phase timer runs
+	bool		mInView; // +0x1d the box is on the screen now
+	bool		mHidden; // +0x1e set by SetShown(false), cleared by SetShown(true); Draw skips a hidden box (constructed set)
+	bool		mDrawAllowed; // +0x1f cleared by SetShown(false), set by SetShown(true); Draw needs it (constructed set)
+	bool		mSlidIn; // +0x20 the box has come in and is counting mHideTime
+	bool		mShown; // +0x21 the box was asked to show itself (SetShown)
 	Font*		mFont;          // +0x24
 	std::vector<std::string>	mLines;     // +0x28
-	Color		m38;            // +0x38 the panel's colour
-	Color		m48;            // +0x48 the text's colour
+	Color		mFillColor; // +0x38 the panel's colour
+	Color		mTextColor; // +0x48 the text's colour
 	int			mShowTime;      // +0x58 updates the box stays out of view before it slides in
 	int			mHideTime;      // +0x5c updates it stays in view
-	int			m60;            // +0x60
-	int			m64;            // +0x64
+	int			mCellColumn; // +0x60 the column of the field cell the box is about (set by the pointer's cell hint; HideCellHint compares it)
+	int			mCellRow; // +0x64 the row of the field cell the box is about
 
 	HintBox();                              // 0x456660
 	virtual ~HintBox() {}                   // 0x456750
@@ -150,19 +149,18 @@ class LevelUpText
 {
 public:
 	virtual ~LevelUpText() {}                   // 0x40c870
-	bool		m04;            // +0x04
-	int			m08;            // +0x08
-	int			m0c;            // +0x0c
-	int			m10;            // +0x10
-	int			m14;            // +0x14
-	int			m18;            // +0x18
-	float		m1c;            // +0x1c
-	float		m20;            // +0x20
-	float		m24;            // +0x24
-	float		m28;            // +0x28
-	float		m2c;            // +0x2c
-	float		m30;            // +0x30
-	float		m34;            // +0x34
+	int			mActive; // +0x08 the picture is showing; 0 once it has faded out or shrunk to nothing
+	int			mStartDelay; // +0x0c updates left before the picture's size starts to move (constructed 30)
+	int			mBigHoldTime; // +0x10 updates left of the stretch to the big size 1.75 (constructed 100); the picture shrinks away after it
+	int			mSmallHoldTime; // +0x14 updates left of a first stretch to the size 1.2; constructed 0 and never raised, so Update never takes that branch
+	int			mAlphaRiseTime; // +0x18 updates the alpha still rises (the y it was given plus 190); once at 0 the alpha falls
+	float		mSpringRamp; // +0x1c grows from 0 to 1 by 0.04 an update; makes the spring of mStretch stiffer and its damping stronger
+	float		mStretch; // +0x20 the spring position, 1 down to 0: the picture is wide and short while it is large (DrawAt)
+	float		mStretchSpeed; // +0x24 the speed of mStretch
+	float		mScale; // +0x28 the picture's size, 1 at the start, aimed at 1.75 and then at 0
+	float		mScaleSpeed; // +0x2c the speed of mScale (constructed 0.025)
+	float		mAlpha; // +0x30 the picture's alpha, 0 to 1
+	float		mBaseScale; // +0x34 the constant factor of the picture's size (0.73)
 	Image*		mImage;         // +0x38
 
 	LevelUpText(Image* theImage, int theY);     // 0x40b600
@@ -189,39 +187,6 @@ struct FadeRec
 	int			mValue;         // +0x00 alpha
 	int			mStep;          // +0x04
 	bool		mRising;        // +0x08
-};
-
-// The pointer's recent movement (class of 0x64 bytes, vtable 0x561ea4, constructor 0x40b1b0, step 0x40b230; the Board
-// keeps one at +0x35c): the last six steps in x and in y, as the Board's draw at 0x437bd0 gives it new positions.
-class PointerTrail
-{
-public:
-	float		mStepX[6];      // +0x04
-	int			mIndexX;        // +0x1c
-	int			m20;            // +0x20
-	float		mLastX;         // +0x24
-	float		mStepY[6];      // +0x28
-	int			mIndexY;        // +0x40
-	int			m44;            // +0x44
-	float		mLastY;         // +0x48
-	float		mX;             // +0x4c
-	float		mY;             // +0x50
-	float		mPrevX;         // +0x54
-	float		mPrevY;         // +0x58
-	int			m5c;            // +0x5c
-	int			m60;            // +0x60
-
-	PointerTrail()
-	{
-		for (int i = 0; i < 6; i++)
-		{
-			mStepX[i] = 0;
-			mStepY[i] = 0;
-		}
-		mIndexX = 0; m20 = 0; mLastX = 0; mIndexY = 0; m44 = 0; mLastY = 0;
-		mX = 0; mY = 0; mPrevX = 0; mPrevY = 0; m5c = 0; m60 = 0;
-	}
-	virtual ~PointerTrail() {}
 };
 
 }

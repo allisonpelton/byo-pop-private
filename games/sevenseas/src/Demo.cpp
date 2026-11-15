@@ -33,6 +33,7 @@ static const unsigned kCaptionTop[9] = {0, 0x004a3b64, 0x004a3b48, 0x004a3b28, 0
 static const unsigned kCaptionBottom[9] = {0, 0x004a3ac8, 0x004a3ab0, 0x004a3a90, 0x004a3a78, 0x004a3a58, 0x004a3a34, 0x004a3a34, 0x004a3a34};
 
 // a ship that is new: on its cell, heading south, with a random start for the sail animation (the draw comes first)
+// port: split out of the demo's constructor 0x4132b0
 static void InitShip(DemoShip& theShip, int theX, int theY)
 {
 	theShip.mAnim = CrtRand() % 8;
@@ -74,6 +75,7 @@ static void Face(DemoShip& theShip)
 	}
 }
 
+// port: split out of the demo's update 0x414830
 static void Sink(DemoShip& theShip)
 {
 	theShip.mTargetX = 99;
@@ -105,6 +107,7 @@ DemoWidget::DemoWidget(SevenSeasApp* theApp) :
 	mButton->SetColor(ButtonWidget::COLOR_LABEL, Color(0xff, 0xe2, 0x3c));
 }
 
+// 0x413700
 DemoWidget::~DemoWidget()
 {
 	delete mButton;
@@ -113,6 +116,7 @@ DemoWidget::~DemoWidget()
 }
 
 // the ships on their first cells; each draws a random start of its sail animation (this order of the draws)
+// port: split out of the demo's constructor 0x4132b0
 void DemoWidget::InitShips()
 {
 	InitShip(mPlayer, 5, 5);
@@ -532,6 +536,7 @@ void DemoWidget::DrawAnims(Graphics* g)
 }
 
 // a pirate ship (or the leader) on its way between two cells, a sheet of 16 headings by 8 frames
+// port: split out of the demo's draw 0x413850
 static void DrawShip(Graphics* g, Image* theSheet, const DemoShip& theShip)
 {
 	Graphics g2(*g);
@@ -543,6 +548,7 @@ static void DrawShip(Graphics* g, Image* theSheet, const DemoShip& theShip)
 
 // the cannon ball and its shadow of the broadsides (the first one flies up before the ships are drawn, the second
 // one down after them), the offsets from the player's cell
+// port: split out of the demo's draw 0x413850
 static void DrawBall(Graphics* g, SevenSeasApp* theApp, const DemoShip& thePlayer, int theOffsetX, int theBallY, int theShadowY)
 {
 	g->DrawImage(theApp->mImages[IMAGE_CANNON], Cell(thePlayer.mX) + 0x10 + theOffsetX, Cell(thePlayer.mY) + 0x10 + theBallY);

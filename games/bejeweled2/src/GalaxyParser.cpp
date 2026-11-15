@@ -17,6 +17,7 @@ Moon& Planet::GetPuzzle(int theIndex)
 	return mMoons[theIndex];
 }
 
+// port: a puzzle of the planet (its moons)
 const Moon& Planet::GetPuzzle(int theIndex) const
 {
 	assert(theIndex >= 0 && theIndex < GetPuzzleCount());

@@ -10,7 +10,7 @@
 script=$1; log=$2; seed=${3:-1}; timeout=${4:-600}
 cd "$(dirname "$0")/../../../.." || exit 2
 for i in $(seq 1 120); do
-  python tools/gamecount.py --limit 3 > /dev/null && break
+  python tools/gamecount.py --limit 6 > /dev/null && break
   sleep 15
 done
 # a run starts as a first run does: the original keeps its players in C:/ProgramData/Steam/Bejeweled2/users and its settings in

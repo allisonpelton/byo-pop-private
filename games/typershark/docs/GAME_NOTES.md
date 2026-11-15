@@ -581,15 +581,20 @@ one for the fields at that class's offsets) and the port (`-fast -seed -script -
 differing updates and a verdict line. `queue.sh` runs a jobs file one job at a time; `endcmp.py <tag>` compares the registry
 and `users` folders at the end; `show.py`, `summ.py`, `peek_expr.py` and `peek_more.py` are for finding the cause of a
 difference. `tools/leak` holds the counting build's scripts (`build.sh`, `scenarios.py`, `runall.sh`, `leaksites.py`), whose
-scratch commands (`leak`, `press`, `dyes`, `dno`, `dlist`, `dname`) exist only in that build. `tools/regress.py` is a
+scratch commands (`leak`, `dlist`, `dname`) exist only in that build (`press <id>`, `dyes` and `dno <dialog id>`, which the scenarios and the autosplit tests use, are standard test commands since 2026-11-12). `tools/regress.py` is a
 regression check on the port's own play (it was uncommitted when these notes were written; to check its state).
 
 ## 10. The fixes mod and the fix candidates (2026-11-09)
 
 `games/typershark/mods/fixes/mod.json` is the game's fixes mod (`docs/MOD_ROADMAP.md`, "The fixes mod"): one mod, each setting a
-toggle for one bug of the original that the port keeps, every toggle on by default. The site serves the game with it on
-(`typershark-fixes/` beside the page); a native build finds it when the folder is copied into the mods folder (`-modsdir=<dir>`
-with `fixes/mod.json` inside). The port without the mod is the original: `FixEnabled` (`src/Fixes.cpp`) is false for every
+toggle for one bug of the original that the port keeps. A toggle starts on, except where the fix changes something that may be meant
+(the user's rule for every fixes mod, 2026-11-11: "Off by default for functionality that seems intended but where the bug is not well
+known to be a bug"): `schools` starts off, since a lone background fish reads as the intended look and the missing followers are not a
+known bug (`"default": false` in mod.json; the player turns it on in the mod menu); `tutorKeyboard` starts on, since a key lighting
+the wrong picture is a plain error. The site serves the game with the mod on (`typershark-fixes/` beside the page); a native build
+finds it when the folder is copied into the mods folder (`-modsdir=<dir>` with `fixes/mod.json` inside). The tools that need every
+fix on (`tools/fixshots.py` and the phase-1 comparison's `TSMODSDIR`, `tools/phase1/cmp.py`) write a `mod-settings.json` into the
+run's user folder that turns every toggle of the mod on. The port without the mod is the original: `Platform::FixOn` is false for every
 toggle unless the mod is enabled, and each toggle is read where its fix matters, as a live value. With the mod on the game
 plays as it does without it: `tools/regress.py` with `TSMODSDIR=<dir>` (tools/phase1/cmp.py gives it as `-modsdir`) hashes the
 same state logs as without it, so no fix changes what a game draws from the generator. `tools/fixshots.py schools|tutor` takes
@@ -636,6 +641,8 @@ Node and in the Browser pane. **No change was made to the port**: the profile fi
 does find is in shared code and in the graphics driver; those went to the coordinator as a spec (section "Shared costs"). The machine was
 never quiet: one to three games of other sessions ran during every measurement and 24 to 66% of it was in use (`machine_busy`), so the
 figures are for comparing the two side by side, run by run; each cell lists the three pairs.
+
+**Superseded for processor time (2026-11-12):** the second pass at the end of this section measures the two again by cycle counts, thread by thread and like for like; its figures replace the seconds of the tables below, which `GetProcessTimes` rounded to the clock tick.
 
 **How.** `tools/profile/perf.py` starts a game and samples its process (every 0.1 s in real time, every 0.02 s without waiting): working
 set, private bytes, processor time; `tools/profile/pairs.sh` runs everything turn about, one game process at a time, and
@@ -757,6 +764,92 @@ software-renderer run without waiting takes 5 minutes; `WORK_END` and `WORK_STRE
 `build/origrun/typershark/game`, origrun's `typershark.cfg` and `patches/typershark.txt` (section 8) and phase 2's `build/ts-p2/patches.txt`.
 The raw samples were deleted once these figures were written.
 
+### Second pass: like for like, by cycle counts (2026-11-12)
+
+The user's target (2026-11-11, `docs/COORDINATION.md`, "The target") is a processor time at most the original's, measured like for like. The table of
+seconds above does not meet that rule and its processor times are **superseded by this pass**: Windows charges `GetProcessTimes` at the 15.6 ms clock tick (the port's
+1.28 to 3.33 s in 20 s was a scheduler's rounding of 3 to 4 G cycles), the original ran in 2D and the port in 3D, and the port ran on rundesk's hidden desktop, which
+never signals a vertical blank. So the two were measured again, by cycle counts and thread by thread. **No change was made to the port**: its own code is under 2% of what it
+spends, and the rest is the display driver's and SDL's (below). The tools are new (`tools/profile/cyc.py`, `cyc3d.py`, `pairs2.sh`).
+
+**How.** `cyc.py` reads `QueryThreadCycleTime` of every thread of the game process and `QueryProcessCycleTime` every 0.2 s, and the game's update counter out of
+the game's memory (the original's `[0x565380]+0x4b8`, the port's `SexyAppBase::mUpdateCount` through the exe's symbol `gSexyAppBase`), and takes the
+cycles of the stretch (the last 2,000 updates, 20 s, of the scenario `build/ts-p2/rec/rt2.in.txt`) between the two counter values, interpolated. Nothing runs
+inside the game for it: the port's `-script` holds the inputs and a quit (no `-commands` channel, no state log, no screenshot, no bot), the original's input comes from origrun's
+script or from posted messages. Each run is on a performance core of its own (`tools/pincore.py`), the runs alternate port and original, and
+`pairs2.sh` waits for a free slot among the six. The port runs without `-fast`, at the game's own size (`-renderscale=1`, since a window of 640 by 480 on
+rundesk's desktop gets render scale 2 and a player's windowed one gets 1), the original on origrun's real clock (hidden desktop) or on its own (visible desktop). Both play
+at 100 updates a second. The original's second thread is `SexyApp::CursorThreadProc` (`GetCursorPos` and `ScreenToClient` every 10 ms; the port has no such thread). Sound is
+counted apart: the original's is origrun's silent stand-in, which mixes nothing, the port's is SDL's dummy audio driver (the desktop runs) or rundesk's silent one, which does mix
+in the port's own mixer thread (0.2 to 0.3 G of a 20 s stretch), so the port's totals can be read with and without it.
+
+**A cost of the measuring tool, found late.** origrun's stand-in hooks `GetCursorPos`, and each call of the hook rescans the game's modules for new imports to hook
+(`hooks_rescan` in `tools/origrun/vclock.c`, at most once in 15 ms). The original's cursor thread calls it every 10 ms and its main thread calls it too, so under the stock stand-in the
+original's cursor thread costs 0.5 to 0.8 G of a 20 s stretch (37 to 61 M with the rescan interval raised to 2 s in a scratch copy of the stand-in, all its other hooks unchanged) and its main
+thread 0.3 to 0.4 G more. **Every figure below marked "stock" has that inflation in the original's column**; the figures marked "throttled" do not. Every game's like-for-like numbers under
+origrun were affected. **Fixed on the trunk by `223d9bdf` (2026-11-12, merged here as part of 38a0512b):** the rescan now runs only after the loader's DLL notice, and the original's
+cursor thread costs 33 to 51 M in 20 s with it (the hidden-desktop pairs below); the "throttled" figures were taken with a scratch copy of the stand-in that raised the interval to 2 s, which is the same
+thing for this game.
+
+**On the visible desktop, both in 3D** (the player's own setup: windowed 640 by 480, a display that signals its vertical blank; only 22:00 to 08:00, CLAUDE.md
+"Overnight"; the port is Direct3D 11 through SDL, the original DirectDraw 7 and Direct3D 7 with its 3D flag read as 1 from its memory; the board's state at the stretch's start
+and end is the same in the original's runs but for a field of the sharks' list that depends on the update an input landed on). Cycles in 20 s, in millions:
+
+| | Original | Port |
+| --- | --- | --- |
+| Throttled stand-in, median of five pairs (02:04 to 02:38) | **3,908** (2,713 to 4,332) | **3,720** (3,368 to 4,343) |
+| Of it: main thread; the port's driver thread and mixer | 3,720; cursor thread 54; other 131 | 1,122; driver 2,212; mixer 304 |
+| The three pairs on a busy machine (0.85 to 1.00 of the processors in use) | 4,332, 3,908, 4,025 | 3,682, 3,720, 3,368 |
+| The two pairs on a quiet machine (0.44 to 0.58 in use) | 2,713, 3,691 | 4,222, 4,343 |
+| Stock stand-in, median of ten pairs (01:12 to 02:14) | 4,713 (3,651 to 5,270), cursor thread 735 | 3,565 (3,021 to 4,456) |
+| **Fixed stand-in** (trunk 38a0512b, `223d9bdf`), median of five pairs (22:02 to 22:15, the machine 0.17 to 0.24 in use) | **2,396** (2,281 to 2,516): main thread 2,294, other 79, cursor thread 27 | **3,805** (3,511 to 4,004): main 1,774, driver 1,862, mixer 172 |
+
+The port is lower in the busy pairs and **higher in the quiet ones**, so at its best the port is level with the original and the target is not met on a quiet machine. **With the fixed stand-in
+(the last row, the machine quiet at 0.17 to 0.24 in use) the port is 3,805 M against the original's 2,396 M: 1.59 of it, 1.4 G more in 20 s, higher in all five pairs (3,511 / 2,516, 3,863 / 2,396, 4,004 / 2,416, 3,805 / 2,316, 3,598 / 2,281).**
+The original's main thread, which holds its DirectDraw and Direct3D 7 calls, is 2,294 M; the port's own main thread (its game code and the framework's draw glue, SDL's queueing and `SDL_RenderPresent`) is 1,774 M and its mixer 172 M,
+so everything but the Direct3D 11 driver's worker thread is 0.81 of the original, and **the whole excess is that worker thread, 1,862 M (49% of the port)**, the shared present cost of "What is left" below. A run's
+cycles depend on how busy the machine is, but not alike on the two sides: the original's rise with it (its main thread 2.6 G at 0.46 in use against 4.1 G at 1.0: an SMT
+sibling and a shared cache), the port's driver thread *falls* (3.2 to 3.6 G at 0.39 to 0.47 in use, 1.8 to 2.5 G at 0.58 and above, in every pair of the fifteen), so a player's mostly quiet machine
+is where the port's thread is dearest. The pairs alternate and the medians are of five for that reason, but nothing makes the machine quiet while other sessions run games; the quiet pairs are three in all.
+
+**On rundesk's hidden desktop** (the harness of every test run; the original there is 2D, DirectDraw, since a hidden desktop gives it no Direct3D, section 16; stock stand-in; five pairs, 01:33
+to 01:48, one original run did not get into play and is left out): the port (Direct3D 11) 4,915 M (3,688 to 7,160), the original 6,398 M (5,387 to 7,414; its cursor thread 655 M of it). The port's
+main thread is 2.0 to 5.0 G here because `SDL_RenderPresent` spins on a desktop with no vertical blank (2,196 M of one run's 3,030 M on the main thread, against 265 M of 1,065 M on
+the visible desktop), the original's 2D drawing 4.7 to 6.5 G on its main thread. The user's question whether this desktop makes a present cost more than on a player's screen
+(2026-11-12) has its answer: yes, two to eight times on the main thread.
+
+**With the fixed stand-in, on the hidden desktop** (trunk 38a0512b, origrun rebuilt and its stand-in placed in the copy; five pairs, 10:35 to 10:50, the machine 0.54 to 0.74 in use and quieter than at night, the port 640 by 480 at render scale 1, the original 2D): the port
+**4,485 M** (4,274 to 5,472: main 2,123, driver thread 2,173, mixer 218) against the original **5,616 M** (4,753 to 6,684: main 5,462, cursor thread 45, other 109), the port lower in all five pairs (4,679 / 5,416, 4,485 / 5,616, 4,438 / 4,753,
+5,472 / 6,220, 4,274 / 6,684), 0.80 of it. The stand-in's fix took the original's cursor thread from 655 M to 45 M and its median from 6,398 M to 5,616 M. The original here draws in 2D (DirectDraw, software), which the player's 3D mode
+does not, so the figures of the visible desktop above stay the ones for a player's machine.
+
+**Where the port's main thread goes** (a temporary probe of the cycles around each call, removed again; one run on the visible desktop, 2,000 updates, 1,204 presented frames,
+that is 60 a second with vsync): the main thread 1,065 M = `ProcessEvents` 26, `UpdateFrames` 66 (the game's own update), `BeginFrame` 32, `DrawScreen` 466 (the game's draw, with
+the framework's glue and SDL's queueing: 387 k cycles a frame), `DDInterface::Present` 438 (of which `SDL_RenderPresent` 265), no time in `SDL_Delay`. A count of the draw calls (a second
+probe, 1,191 frames): **593 SDL draw calls a frame and 20.3 changes of texture**; SDL merges the calls of one texture, so the driver sees about 20 draws and about 650 cycles
+a call are spent queueing them. The game's own user code is under 2% of the process: the sampler (`cpuprof.py`, which suspends threads and charges a system call's cycles to
+the wait it returns from, so only its shares of user code are used) puts `Board::Draw`, `Board::Update`, `ImageFont::DrawStringEx` and `DDInterface::DrawTexturedQuad` at about 0.1% of the cycles each,
+and the exe's 4.4% in all is mostly the load (`_stbi__out_gif_code`, `Quantize8Bit`, the audio decoders).
+
+**What the display costs** (environment overrides on the visible desktop, three runs each, no default changed; the machine's busy fraction differed from run to run, 0.53 to 1.0, so these
+are for orders of magnitude): with `SDL_RENDER_VSYNC=0` (100 presents a second) 5,357 M (5,134 to 6,595), the driver thread 3.0 to 4.7 G, so the cost grows with the presented frames and a present costs the driver's
+thread about 1.8 M cycles whatever it draws; `SDL_RENDER_DRIVER=direct3d` (SDL's Direct3D 9) 8,272 M (8,199 to 8,333, at 0.98 to 1.0 busy); `opengl` 4,297 M (3,268 to 5,091), one thread and no driver thread.
+Direct3D 11 with vsync stays the best of them. One idea was tried and **did not help**: a scratch build that draws straight into the back buffer at render scale 1, with no `mScreenTexture` target
+pass and no clear and copy in `Present` (four pairs on the hidden desktop, 02:46 to 02:56, the machine 0.97 to 1.0 in use): process 3,034 M (2,591 to 3,618) with the pass, 3,118 M (2,542 to 6,071; one run's main thread
+4.3 G) without it, and the driver thread 1,452 M against 1,442 M. The extra pass is not what the driver's thread spends; it is a per-present cost.
+
+**What is left, and whose it is.** Nothing in the game's own code (about 2% of the cycles), so the port stays as it is. The shared costs, for the coordinator (`docs/COORDINATION.md`, shared costs):
+(1) the present: the Direct3D 11 driver's worker thread (49% of the port's cycles on the quiet machine with the fixed stand-in, 60% in the earlier pairs; about 1.5 to 2.7 M cycles a presented frame, more on a quiet machine) and `SDL_RenderPresent` itself on the main thread (0.2 M a frame on a display
+with a blank, ten times that on rundesk's) are the same finding as AstroPop's; every API that SDL offered cost as much or more and skipping the render-target pass did not help, so what would is fewer presents (a frame that nothing changed in need not be presented, though Typer Shark redraws its whole scene every frame). The window-surface presenter that the Mahjong session built (`cf1dea5f`, no renderer and no driver thread) is for a frame that is one finished software-drawn picture;
+Typer Shark's is about 600 alpha-blended quads a frame through the renderer, and drawing them in software would cost what the original's own 2D mode does here (4.7 to 6.5 G on its main thread, hidden desktop), so it does not apply;
+(2) the draw glue: 593 SDL calls a frame for 20 runs of one texture, so a queue in `DDInterface` that joins the quads of consecutive
+same-texture draws into one `SDL_RenderGeometry` call would take about half of the 466 M of `DrawScreen` (an estimate: 0.2 G, 6% of the process, with a frozen-baseline check since the draw order must stay); (3) the stand-in's rescan above, which the coordinator fixed (`223d9bdf`).
+
+**To repeat.** From the worktree root, overnight for the desktop kinds: `KINDS="port3d orig3d" bash games/typershark/tools/profile/pairs2.sh <out dir> 5`
+(`KINDS="port orig"` for the hidden desktop; `SDL_RENDER_VSYNC=0` or `SDL_RENDER_DRIVER=<name>` in front for a variant), then
+`python -I games/typershark/tools/profile/cyc.py summary <out dir>/runs.txt` for the medians by side and by kind of thread. The desktop runs of the original take a `STANDIN` variable (the path of a stand-in `dsound.dll` to copy over the copy's). The original needs the copy under `build/origrun/typershark/game`,
+`build/origrun/typershark-p2/game` (the desktop runs, `visrun3d.py`'s source) and `build/ts-p2/patches.txt`. The raw runs were deleted once these figures were written.
+
 ## 12. Coverage check (2026-11-11)
 
 The whole coverage check of the game (`docs/COVERAGE.md`): origrun's `--coverage` recorded which of the original's functions ran, in 23
@@ -815,10 +908,10 @@ the port's `Rect` has (0x402020). Nothing in this group is game logic the port n
   0x4446f0 and `AddChild` 0x4516a0, and `GameOverDialog::OrderInManagerChanged` 0x4380a0 (nothing reorders the dialog; the framework calls
   it only from `PutInfront` and its relatives).
 
-**Open.** `Board::BuildWaterImage` (0x440330, the sea as strips of triangles on a 3D accelerated screen) is the one function that is
-neither reached nor read again: every run of the original, in the sandbox and on the host, had the Options dialog's 3D box off
-(`Is3D` 0), so the 3D drawing of the original has not been compared with the port's at all, nor has any other 3D-only code. This is a gap of
-phase 2 as well (CLAUDE.md: 2D and 3D where both exist); it needs the original with 3D acceleration on, which the sandbox does not offer.
+**Was open, now closed (section 16).** `Board::BuildWaterImage` (0x440330, the sea as strips of triangles on a 3D accelerated screen) was
+the one function neither reached nor read again: every run of the original in the sandbox had the Options dialog's 3D box off (`Is3D` 0),
+because the sandbox's display never gave the original a Direct3D device. The original with 3D on ran later on the user's desktop (section 16):
+the sea, the board, the dialogs and the menus were compared in 3D, and `BuildWaterImage` was read against the original's pictures.
 
 **Cost.** The 23 runs took about 1 to 3 minutes of machine time each on the virtual clock. The five tours took the most work: their click
 positions come from the port's own pictures, and the host takes no shots. Every change to the sources was a comment; `tools/check.sh
@@ -950,3 +1043,265 @@ Steam one (597 files, no `wints.exe`: the texts come from `typershark.exe`, whic
 **Not done, and one thing to know.** The Collection's own exe was not run: its code is the Steam game's, and a run could only show the
 title pictures again. The port's executable is also called `typershark.exe`, the name of the Collection's game: the installer that puts a
 native port beside the original (`docs/STEAM_LAUNCH.md`) must not write it into a Collection folder under that name.
+
+## 16. The 3D drawing (2026-11-11)
+
+The user allowed two routes for the original with 3D on ("Yes, both routes", 2026-11-11): Windows Sandbox with the host's GPU first, the
+visible desktop if the original still fell back to 2D there. `docs/IDENTICAL_PLAY.md` ("The 3D drawing") has the results; this section has the
+facts a later session needs.
+
+**The sandbox did not give the original 3D.** Four variants of origrun's sandbox run (`--sandbox-vgpu`; with `--dgvoodoo`; with
+`--sandbox-connect`; both) all ran the original in 2D with `--3d on` asked: the byte `[[app+0x334]+0x10]` was 0 at update 5, and origrun
+ended with its exit code 3 ("the other mode", `docs/ORIGRUN.md`). Nothing more was tried there.
+
+**The desktop route** (`tools/phase2/visrun3d.py`, a run in the manner of BookWorm Adventures' `visrun.py`). A copy of the carved, patched game
+(`build/origrun/typershark-p2/game`, loading on the main thread, seed 1) runs in `build/ts-3d` with the stand-in's own variables and no host:
+`ORIGRUN_SOUND=stub` (silent), `ORIGRUN_REGMAP=popcap` (what the game writes under `HKLM\SOFTWARE\PopCap` lands under
+`HKCU\Software\PopCap\TyperShark`) and `ORIGRUN_CURSOR=scripted` (the script keeps the shared block `Local\origrun-cursor-<id>` that
+`tools/origrun/cursor.h` describes, so `GetCursorPos` returns the scripted position and the real cursor never moves). The runner stages the
+registry (`Is3D` 1, `ScreenMode` 0, the key exported first and put back afterwards, or deleted if it was not there), starts the game's one
+window without activating it, keeps it topmost, and for each step of a tour: waits for the update counter (`APP` 0x565380, `+0x4b8`) to reach
+the step's update, suspends the process (`NtSuspendProcess`), posts the input to the game's window (`PostMessage`: moves, clicks, keys,
+text, and the focus messages), lets it run, and for a shot waits until the draw counter shows the frame drawn (`+0x4a0` is 0), suspends
+again and reads the client with `PrintWindow` (`PW_RENDERFULLCONTENT`) of that window alone. It refuses a shot if another window overlaps the game's.
+The 3D flag was read at update 5 and at the end of every run: 1 each time.
+The original runs on the real clock, 100 updates a second (300 updates took 3.01 s in 3D and 3.05 s in 2D), so no step lands on its exact
+update: the runner logs the update each step landed at (`vis3d.steps.tsv`), and `mkport3d.py` makes the port's script from the *landed*
+updates (plus the port's one-update shift), so both get each input and each shot at the same update. A shot after an input waits one
+update, because a real-clock redraw at the input's own update would show the result of the input. `vis3d.sh <tour>` runs the whole chain
+(original on the desktop, the port's script, the port with `-fast -drawevery` and the fixture `port-3d`, whose registry.ini sets `Is3D` 1,
+and shotdiff); `vis3d.sh <tour> 2d` does the same with the original in 2D, for the differences that are the real clock's and not the
+3D drawing's. `tour_water.py` (a board with the sea shot every 60 updates) and `tour_pause.py` (one pause at an update, shots 4, 30 and
+80 updates after it) were written for it.
+
+**What the port does in 3D.** The port's 3D mode is the SDL accelerated renderer (`DDInterface::mIs3D`), chosen by `Is3D` in
+`registry.ini`. The sea's strips of triangles (`BuildWaterImage`, translated as read) draw as in the original, and the whole of tours M (menus,
+dialogs, options, hall, statistics), U, Q and T and the paused boards equal the original's.
+
+**One change, and its cause.** The original's Direct3D line drawing leaves out a line's last pixel (Direct3D's line rule: the end point is
+not drawn), where a 2D line draws it. The game draws lines in two places: the tab strip's divider (`TabbedWidget::Draw`) and the typing tutor's
+lines. With 3D on, a horizontal or vertical line was one pixel longer in the port. `TyperSharkDisplay` (in `WinWSApp.cpp`, made by
+`WinWSApp::CreateDDInterface`) overrides `DDInterface::DrawLine` when `mIs3D`: a horizontal line of more than one pixel ends one short on X, a
+vertical one on Y; a line of one pixel and a slanted line are left as the framework draws them (none of the game's lines is slanted).
+Without 3D nothing changes: `tools/check.sh typershark` is unchanged.
+
+**Two things found with the medal screens (2026-11-12), and what they did to the list below.** The first 3D tours ran the port at the render
+scale its window gave it, 2 (`DisplayGeometry::UpdateDisplaySize` renders at the next whole multiple of the 640 by 480 screen, and `ReadScreen`
+box-downsamples a shot back), where a player's windowed 640 by 480 game renders at 1. A 3D picture drawn at 2 and averaged down is not the 3D
+picture at 1: it is a little blurred, and the sea's leftmost column differed by up to 55 levels. Every 3D run of the port now passes
+`-renderscale=1` (`vis3d.sh` does). The second is the blend. The original's Direct3D 9 draws with straight alpha: it filters a texture's
+red, green, blue and alpha apart, so a texel under zero alpha still colours the edge of a stretched picture. The framework's accelerated
+display uploads premultiplied textures whenever the renderer allows a custom blend mode (`DDInterface::SetupBlendModes`), so the same edge
+came out different: up to 44 levels on the medal and the ten pictures of the end-of-adventure dialog. Measured: the original's 3D capture of
+the medal equals a straight bilinear sample of its picture and alpha file (`medal_silver.gif` and `_medal_silver.gif`, 97 by 133, into the
+66 by 90 rectangle, sampled at the pixel centres) to 0.16 levels on average; the premultiplied sample is 0.9 off. `TyperSharkDisplay`
+(`WinWSApp.cpp`) now sets the framework's own fallback modes (straight `SDL_BLENDMODE_BLEND` and `_ADD`, textures uploaded as they are) at
+the start of each frame while 3D is on (`mIs3D`), and puts the premultiplied modes back, with the textures released and uploaded again, while it
+is off: the 2D mode's pictures equal the original's with the premultiplied modes, and with the straight ones 5810 pixels of the 2D dialog tour
+moved by a level. The check of that: the 2D dialog tour (48 shots) with the exe that has the straight modes in 3D only against the exe
+without the change: 0 shots differ.
+
+**Open, and listed as oddities in `IDENTICAL_PLAY.md`.** (1) The sea's leftmost pixel column was the render scale's, and is gone: at scale 1
+the paused board's column 0 differs by at most 3 levels (it was up to 55). (2) Flat areas of the sea still differ in 3D (the original's 3D
+picture is a little brighter than its own 2D picture; the cause is not proven, 16-bit textures are the candidate): at scale 1 by at most 3
+levels, 1 on average, in the paused board's sea, and up to 7 in the map screen's sea; under shotdiff's tolerance of 8. (3) The original's
+texture pieces, below. (4) The real clock's differences, below.
+
+**The original's texture pieces.** The original's 3D stretch (`DDImage::StretchBlt` 0x4a2fb0 hands it to `FUN_0049f480`, a scaled copy through
+`FUN_00498ce0`) draws one quad for each piece of the picture's texture (`FUN_004947f0` takes the piece of a pixel from a uniform grid, each
+piece with its own texture and so its own clamped addressing), and the pieces of a tall picture are cut at a power of two. The one row of the
+medal (97 by 133) that differs is where source row 128 lands: 150 + 128 * 90 / 133 = 236.6 in the dialog (row 236), and the same row of
+the statistics screen's copy (row 402). The original does not blend across that seam, and the port, with one texture, does. It is 10
+pixels of the dialog's medal (two runs of five) and 12 of the statistics screen's, up to 53 levels, and nothing else of the two screens
+differs. The piece size itself (128 rows and the 5 left) is read from that position, not from the export. To make it equal the port would cut each stretch at the
+pieces' edges and draw each piece from a copy of its own: code for about ten pixels, so it is an oddity (`IDENTICAL_PLAY.md`).
+
+**What the real clock does.** The runs show differences that the same tours in 2D on the desktop show too, so they are not the 3D
+drawing's: the hover fade (a shot 3 updates after a move catches it half-faded), the dialog-open animation, the sharks', diver's and
+bubbles' sub-update phase on a running board, the caret's blink, the player list's scroll offset after ten players, the tutor's words per minute
+and the stats bars' growth (they read `mSecondTimer->Elapsed()`, milliseconds), and a board that has run on after a pause and a resume.
+A virtual-clock origrun with a window of its own would make all of them equal; none is a rendering difference.
+
+**Not compared in 3D:** the abyss and bonus levels, an idle game, the boards after a pause and a resume (the real clock again), and the
+original's single-precision rounding of x87 code in 3D (Twist found it in its own comparison; nothing here depends on it).
+
+## 17. Widgets drawn without the fast stretch (2026-11-11)
+
+AstroPop found that the 2004 `WidgetManager` never sets the fast stretch on a widget's Graphics, where the shared 1.3 one sets it on every
+widget (three places in `framework/WidgetManager.cpp`), so a stretch drawn by a widget came out nearest-neighbour. Typer Shark is on the same
+2004 framework, and its export shows the same: `WidgetManager::DrawScreen` (0x47d790) copies the screen's Graphics (`Graphics_copy` 0x48ff00),
+clips and translates it and calls the widget's DrawAll, and no function of the export sets the 2004 Graphics' fast-stretch byte (+0x49: the constructor
+0x48ffb0 clears it; `DrawImage_destsrc` 0x490570 hands it to the image's StretchBlt as the last argument). The only two writes of a byte at
++0x49 in the export are in `SexyAppBase`'s constructor and a `std::map` head node. So `WinWSApp::Init` sets
+`gWidgetsDrawWithoutFastStretch` (framework/WidgetManager.h, off by default; AstroPop's) before `SexyApp::Init`.
+
+*Result of the 2D tours.* Run with the exe before and the exe after (`tools/phase2/stretchcheck.sh`, pixel for pixel by `pngdiff.py`; the
+frozen exe with the flag off against the one with it on), 17 tours, 2779 shots: M 98, S 33, U 70, P 32, T 17, T2 23, Q 6, I 8, idle 78,
+H 24, the abyss 81, tutor lessons 17 and 18 (120 and 163), Expert 210, the bonus levels 364 and the two whole-adventure runs (680 and 772); the two-run tours R and D were not run again (their screens are tour M's).
+**No shot changed in any picture.** Five shots differ in a column or two at the window's right edge (639 or 638: the abyss' `012348_hint_25` and
+`016800_grid`, one Expert shot, one bonus and one adventure shot); the same shots differ between two runs of the same exe (the oddity "the
+window's last column" in `IDENTICAL_PLAY.md`: two runs of the old exe against each other gave 4 of those 5, and not the same ones in
+each run), so they are that, not the stretch. Nothing matches the original better or worse.
+
+*Why nothing changed, and what the tours do not show.* The game stretches a picture in two places only (a picture drawn into a rectangle of
+another size): the medal (97 by 133, drawn 66 by 90) on the statistics screen's adventure panel (`AdventurePanel::Draw`, a player who has
+finished an adventure) and in the end-of-adventure dialog (`WinGameDialog::Draw` 0x439390, the same medal and the ten gem and treasure pictures
+squeezed into 30 by 30 squares). No tour shows either: the statistics tours play a new player with no finished adventure, and the whole-adventure
+tours' shots (a grid every 1000 updates, and at the named events) caught no end-of-adventure dialog. The flag changes only these two draws and
+no picture of any tour, so the 2D tours cannot tell whether the original's averaged stretch is the port's. That check was made with profiles that
+have finished an adventure, and it found that the port's stretch was not the original's (a soft edge on the medal); section 18 has the cause, the
+fix and the results. The flag stays on: it is what the original does.
+
+## 18. The medal screens: the original's software stretch (2026-11-11)
+
+Section 17 found that the game stretches a picture in two places only, and that no tour showed either. Both are drawn with a profile that has
+finished an adventure: the statistics screen's adventure panel (`AdventurePanel::Draw`, the medal) and the end-of-adventure dialog
+(`WinGameDialog::Draw` 0x439390: the medal and the ten gem and treasure pictures, each squeezed into 30 by 30). The medal is bronze for 1 or 2 finished
+adventures (`mGamesCompleted`, registry `NGC`), silver for 3 or 4, gold from 5.
+
+**Cause of the difference that was found.** In 2D the original's screen stretch (`DDImage::StretchBlt` 0x4a2fb0, the path taken when the fast stretch is
+off, as for every widget) does not stretch on the surface: it averages the source into a transparent temporary `MemoryImage` with
+`MemoryImage::SlowStretchBlt` (0x48d9b0: each destination pixel is the average of the source pixels it covers, and in the last loop a source pixel's
+weight is `255 * a / (destAlpha + a)`, so the alpha is renormalised as pixels are added) and blits that. The port drew the stretch with the framework's
+texture stretch (a linear filter), which put a soft edge on the medal: the first comparison of the statistics screen found 620 pixels that differed from the original by up to 24
+levels, and the dialog's medal and pictures differed by 8801 pixels and up to 39. In 3D the original draws textured quads, so its 3D picture needs the GPU's filter.
+So `TyperSharkDisplay` (the `DDInterface` subclass in `WinWSApp.cpp`) sets `mSoftwareStretch` for every stretch when 3D is off (the framework's
+`GetStretchCopy`/`StretchCopy`, 0x433ca0, the same averaging), as AstroPop's does, and `WinWSApp::Init` sets `gSlowStretchRenormalizesAlpha`
+(`framework/MemoryImage.h`, AstroPop's), which is the weight above. The flag alone changed no pixel; `mSoftwareStretch` is the fix, and the flag
+stays because it is what the original's code does. With 3D on nothing changes. `tools/check.sh typershark` (the 13 games' state logs against the
+frozen baseline) is unchanged.
+
+**The profiles.** A new player cannot show the medal, and playing a whole adventure to the dialog takes 154,000 updates in the port and 25 minutes
+of play in the original, which the sandbox runs at about a tenth of real time (an earlier try ran 21,884 updates in 40 minutes). So no adventure is
+played. `tools/phase2/mkprofile.py <ngc>` writes the values the game itself writes for a player (the registry preset the original imports and the
+port's `registry.ini`, with `NGC` set and every counter of the statistics screen a distinct number) and the two files of a users folder.
+`mkprofile.py <ngc> saved` adds a saved adventure at the last site, made by the port (the menu's Adventure, the difficulty, `level 34`, `win`: the
+port saves the game at site 35) with its totals set to distinct numbers (score 47250, typing time 305 s, 37 wrong and 412 right letters; the
+file is a list of numbers, each a two-byte length and its text, `UserProfile::WriteDataToDisk`) and `RNGC` (registry, "this game's finish is not
+counted yet") on, as a game in progress has it. The original reads the same two files and the same registry values.
+
+**The statistics screen** (`tour_medal.py stats`): the menu, the Statistics link, the adventure panel, the abyss and tutor views, the adventure
+view again and Close, 14 shots, for four players: `NGC` 1 (bronze), 3 (silver), 5 and 12 (gold). All four equal the original's pixel for pixel.
+
+**The dialog** (`tour_medal.py dialog`): the menu's Adventure offers the saved game, YES, and the board of site 35 comes. Winning that level needs it
+to be played, so the board is left the way a won level is left: the original's copy has one patched byte (`Board::KeyChar` 0x454e9b, `cmp eax, 7`
+to `cmp eax, 1`: the space bar's step back to the map, `ReturnToMap` 0x429450, which a won level (the diver's state 7) takes, is taken in the
+diver's first state, 1) and the script presses the space bar; the port has its test command `goto map`, which calls the same `ReturnToMap`. The map
+screen then runs its final scroll (the saved game of site 35 switched it on, `SetFinalLevel`), counts the game finished (`NGC` + 1, so a player with
+`NGC` 0, 2 or 4 gets the bronze, silver or gold medal) and opens the dialog at update 868. The tour shoots the board, the map every few updates
+through the scroll, the dialog at every update from 864 to 876 and four times later, the hover over RETURN HOME and KEEP GOING, then RETURN HOME (the
+menu, and the statistics screen of the player, whose medal is the new one): 49 shots. With `dialogkeep` it presses KEEP GOING instead (the endless
+levels: the board of an endless level, its sea and the diver's dive for 600 updates): 40 shots. Run for `NGC` 0, 2 and 4 on both programs (the
+original in the sandbox, `chain.sh` with `PATCHES=` the list plus the patch): the 49 shots of each equal the original's pixel for pixel, and so
+do the 40 shots of KEEP GOING (silver). The text of the dialog (the score, the adjusted speed, the accuracy), the ten pictures with their counts
+and the medal are therefore the original's.
+
+**The control.** The same dialog tour with the exe built without the two changes against the exe with them: 14 of the 49 shots differ (8801
+pixels, up to 39 levels, in the box x 130 to 479, y 156 to 334: the medal and the ten pictures), so the tour sees the stretch (the statistics screen of that silver player is the same with and without them).
+
+**The web build.** The same tours under Node (`tools/phase2/webshots.sh <tour>`, with `USERS=<fixture>`: the wasm of `build/web/typershark.js` run by
+`wasmrun.js game` from the same script, its shots against the native port's with no tolerance): the dialog for bronze, silver and gold (49 shots
+each), KEEP GOING (40) and the statistics screens of the players with `NGC` 1 and 12 (14 each). Every pair differs by at most 3 levels of 255 and
+by nothing stronger, over the whole picture: the two builds' picture decoding, as in every web tour (`IDENTICAL_PLAY.md`, "The web build"). The
+medal's edge, which the missing software stretch had moved by up to 39 levels, is the native port's in the web build too. Not run in a browser.
+
+**In 3D** (2026-11-12, the desktop route of section 16 in the overnight window; `tools/phase2/medal3d.sh <dialog|dialogkeep|stats> <N>` does a whole
+tour, and refuses between 08:00 and 22:00). The original runs through `visrun3d.py` with three options made for this: `--users <dir>` puts the
+profile's two files over the clean users folder, `--reg <file.reg>` imports the profile's registry preset (the `HKLM` values of `mkprofile.py`)
+as `HKCU\Software\PopCap` after `Is3D` and `ScreenMode` are set, `--patch "va:0x454e9b 83f807 83f801"` patches the copy's exe (the byte of the
+dialog route above); the port runs with the `-3d` fixtures (`mkprofile.py <ngc> [saved] 3d`: `medal-sv<N>-3d`, `medal-ngc<N>-3d`) at `-renderscale=1`.
+Seven tours, each about two minutes of real time: the statistics screen for `NGC` 1, 5 and 12 (14 shots each), the dialog for bronze, silver and
+gold (47, 48, 48), KEEP GOING (40). Result (section 16 has the two changes it led to, the straight blend and the render scale): the dialog box
+(130 to 479, 156 to 334) of every shot from the one where the dialog is open on equals the original's except 10 or 11 pixels of one row
+of the medal's bottom (the original's texture pieces, section 16); the statistics screens have no visible box and 12 pixels of that row; the
+other boxes are the real clock's (the map's final scroll, a shot before the dialog opens; KEEP GOING's board at updates 300 and 600; the menu's
+hover fade 4 updates after the statistics screen closes), the first two with the same boxes in the tour run with the original in 2D on the desktop
+(`vis3d.sh m3d_dialog_2 2d`, `m3d_dialogkeep_2 2d`). How the model was found: the medal's source picture and its alpha file (`medal_silver.gif`,
+`_medal_silver.gif`) bilinear-sampled at the destination's pixel centres, over the dialog's grey, is the original's capture to 0.16 levels on average
+(`premultiplied`: 0.9; the port before the two changes: 2.2). The port's own 2D dialog tour is unchanged by the straight blend: 48 shots, 0 differ
+between the exe with it and the exe without it, so the 2D result above stands.
+
+**Not compared.** The board of site 35 itself (its boss and treasure are not played in the original: a saved game starts it and the space bar leaves it).
+
+Tools (`tools/phase2`): `mksaved.sh` makes the saved adventure, `mkprofile.py` the profiles, `tour_medal.py` the tours (`stats`, `dialog`, `dialogkeep`,
+and `win`, the first try: the whole-adventure route up to the dialog, which the original could not finish in the sandbox), `medal.sh <ngc: 0, 2 or 4>
+[dialog|dialogkeep]` runs a dialog tour on both programs with the patched byte (`runorig.sh` takes `PATCHES=<file under build/ts-p2>`: the list of
+`tools/origrun/patches/typershark.txt` plus the line `test TyperSharkGame.exe va:0x454e9b 83f807 83f801 <reason>`) and `shotdiff`.
+
+## 19. The autosplit block (2026-11-12)
+
+Typer Shark Deluxe has a speedrun.com board (Adventure Mode on each of the five difficulties, Abyss Mode, and Death%), so the port writes the
+shared autosplit block the site's Splits window reads (`platform/AutosplitBlock.h`, layout 2; `docs/WEB_PLAYER.md`, "One design for every
+port"). The observer is `src/LiveSplitObserver.cpp` (called after each update from `WinWSApp::UpdateFrames`, and from `~WinWSApp` for the last
+write). The block's game id is `TSDX`. It reads the game and writes nothing of it: until something asks for it, it only tests a flag (the mod
+list is looked at every 64 updates). The page asks by calling `byopop_livesplit_block` (exported in the web build: `EXPORTS
+_byopop_livesplit_block` in `games/typershark/CMakeLists.txt`); natively the `livesplit` feature of an enabled mod does
+(`mods/livesplit/mod.json`, a manifest only). `-livesplitlog=<file>` writes one line for each write that changes what a splitter acts on
+(board, events, state, level, mode, skill, flags), and the events go to the log as `livesplit: game 1 GO at tick 4200 (mode 0, skill 1)` and
+the like.
+
+**A block "board" is a game, not a Board.** The game builds a new `Board` for every level (`WinWSApp::StartBoard`, from the map's start
+button) and shows the map screen between two of them, so one game is many Boards. The block's board serial is `WinWSApp::mAutosplitGameSerial`,
+which `CreateBoard` (the first Board of a game: the difficulty button, the Abyss button, a continued save) and `RestartBoard` (play again)
+count; `Board::mBoardSerial` counts the Boards, which the observer uses for the per-level baseline. Both are written by the port only to be
+read by the observer (the inert state of the standing rule). `WinWSApp::mAutosplitContinued` is set by the "CONTINUE?" dialog's yes for a saved
+adventure. When the menu comes back (the options' "end this game", a game over answered, a quit) there is no Board and the block shows none.
+
+**Numbering.** `mode` 0 Adventure, 1 Abyss. `skill` is `WinWSApp::mDifficulty`: 0 Easy, 1 Normal, 2 Hard, 3 Expert, 4 X-Treme!, and 0 in the
+Abyss (which has none; the game stores -1). Death kinds: 0 an adventure out of lives, 1 an Abyss dive out of lives; 2 and 3 are unused.
+`state` is the diver's state (`Player::mState`: 0 swimming, 1 climbing down, 2, 3 and 10 beaten, 4 on the floor, 5 the streak game or the clams,
+6 waiting or the treasure, 7 and 12 level won, 8 game over, 9 afraid of a boss), or the block's own 20 while the map screen is up between two
+levels. `level` is the diver's level number (`Player::mLevelNumber`, 0 for the first level of the game: it counts levels played in this game,
+not the map's site number); `displayLevel` is the number the HUD shows (`level + 1`). `displayScore` is the HUD's points
+(`Player::mScore`); `score` is the same, except in the Abyss where it is the depth in feet (`Board::mScore`). `tick` is the app's update count
+(`mUpdateCount`; the WSTimers count 10 milliseconds an update, so 100 updates are a second of game time). `progress`, in an adventure, is the
+levels beaten and left: `mLevelNumber`, plus one while the map is up after a level, so that it **reaches N on the update on which the map
+comes back after the Nth beaten level**, and it stays N through the next level's board until that is beaten; -1 in the Abyss.
+`gameOwn` holds two int32: the game's time in milliseconds as the game-over screen shows it (`WinWSApp::mGameTimeSoFar` plus the Board's timer
+minus its paused time; the same number the dialog's `mGameTime` gets in `Board::PlayerEaten`, which the observer reads from the dialog once
+it exists, so it is frozen at the game over to the very value shown) and the depth an Abyss game started at (0 from the surface and in an
+adventure). The flags are RESUMED (a continued save, or an Abyss dive that starts below the surface), VANILLA (no score key, i.e. no mod
+that changes scores is on) and PAUSED (`Board::mPaused`: the options, a hint box or the pause key).
+
+**Events** (for the current game):
+- *GO*: the first update of a new game that is not a continued save, not a dive that starts below the surface, and not first seen at
+  activation. That is the update after the difficulty button (Adventure) or the Abyss button made the first Board, the moment the board's
+  rule "the time starts after the difficulty is chosen" names. A "play again" is a new game with its own GO.
+- *Level clear*: the diver enters state 12 (`Board::Update` after the treasure: the level bonus is added, `mStats.mReserved[7]` takes the
+  level's time), or state 7 without it, or state 6 in a bonus level (the treasure shown). That is when the level is won, **before** the player
+  leaves it: the space bar (`Board::KeyChar` at state 7 or a bonus level's state 6) or the continue link (`WinWSApp::ReturnToMap`) brings
+  the map back, and that is when `progress` rises. In a script that does nothing after `win` it takes 554 updates from state 12 to state 7
+  (the treasure's 3000 timer units and the fade of its alpha), and the map comes back whenever the player presses the space bar. A Board seen
+  already won raises no level clear. The Abyss has no level end.
+- *Game over*: the diver enters state 8 (`Board::PlayerEaten` with no life left: the game-over dialog opens the same update). Kind 0 in an
+  adventure, 1 in the Abyss. Leaving a game from the options' "end this game" (which saves it) is not a game over.
+- *Win*: the win dialog (`DIALOG_WIN_GAME`, 0x8d) appears. `MapScreen::Update` creates it when the map's final scroll after the last site is
+  done, so it comes about 120 updates (a second and a bit) **after** `progress` reaches the last level's number and the map is back; the
+  board's end moment (the return to the map after level 11) is the `progress` edge, not this event.
+
+A game's first update is a baseline for the level clear, the game over and the win (a game seen already over has had its game over), and a
+Board's first update is a baseline for its own level clear.
+
+**The board's level 11.** The adventure's whole-adventure regression route (`adventure-route-s1`, the typing bot on Easy) plays the sites 0, 1, 6, 9,
+21, 26, 27, 32, 33, 34 and 35, eleven levels (the HUD shows 1 to 11), and the last, site 35, is the final level whose win opens the
+end-of-adventure dialog; so on that route `progress` reaches 11 on the update on which the map comes back after the 11th level (the board's
+"returning to the map after beating level 11"), and `displayLevel` is 11 while it is played. Only this one route was played to the end (the
+sites between depend on the chests taken at the map's forks), so whether every route has eleven levels is not shown here; the win event does not
+depend on it, and `progress` is what counts levels beaten.
+
+**Tests.** `games/typershark/tools/livesplit/run_tests.py <out dir>` (under rundesk with `-fast`, one game at a time; about 15 minutes on a
+busy machine): scripted games of the standard commands (`goto`, `win`, `lose`, `level <n>`, and `press <id>`, `dyes <dialog id>`, which are now
+standard test commands, no longer only the leak-counting build's, and the framework's `char SPACE`): an adventure on each difficulty (a win,
+the space bar, a second level, a win, the space bar, a third level, then the last life lost: one GO, two level clears, one game over of kind 0,
+`progress` 0, 1, 2 with the map as state 20 between them), an Abyss game lost (GO, kind 1, the game-over time in `gameOwn`: 15,380 ms at update
+5800), an Abyss dive started at 1,200 feet (RESUMED, no GO, `gameOwn` start depth 1200), a game left from the options (a GO, no game over, no
+board after it), a saved game continued (the "CONTINUE?" dialog's yes: RESUMED, no GO, `progress` 1) and a game won (`level 35`, `win`, the
+space bar: one win, `wins=1`, 118 updates after the map came back). A new profile has hints on, and a hint box opens 138 updates after a Board
+starts and pauses it (`AUTOSPLIT_FLAG_PAUSED`), so the scripts close it (`dyes 0x3f3`) before they win. The block logs of these runs (the
+adventure on each difficulty, the Abyss, the deep dive, the left game, the continued game, the win) went to the site session.
+
+**Proof that it is inert.** `run_tests.py` ends with `games/typershark/tools/regress.py --quick` run with `TSMODSDIR` pointing at a folder
+that holds only the `livesplit` mod, so the block is on (the port's log says `livesplit: block at ...`): the five games' state logs hash to
+`regress_expected.txt` and the frozen baseline's, unchanged (`tools/check.sh typershark`, which has no mod, passes too). The change to
+`tools/phase1/cmp.py` only lets that mods folder lack the `fixes` mod. The web build links with the export (`typershark.js` carries
+`byopop_livesplit_block`).

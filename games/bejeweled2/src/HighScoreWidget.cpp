@@ -39,7 +39,6 @@ static const int sStartScores[10] = {2000, 1900, 1800, 1700, 1600, 1000, 900, 80
 // 0x5c530a
 HighScoreWidget::HighScoreWidget(WinDMApp* theApp)
 {
-	mUnused90 = 0;
 	mApp = theApp;
 	mHueOffset = 0;
 	mHasAlpha = true;
@@ -111,15 +110,15 @@ HighScoreWidget::HighScoreWidget(WinDMApp* theApp)
 			anAdjective = i;
 	}
 	int aNoun = 0;
-	if (aProfile->mTotal7C >= 80)
+	if (aProfile->mGalaxyOneSolved >= 80)
 		aNoun = 5;
-	else if (aProfile->mTotal7C >= 70)
+	else if (aProfile->mGalaxyOneSolved >= 70)
 		aNoun = 4;
-	else if (aProfile->mTotal7C >= 40)
+	else if (aProfile->mGalaxyOneSolved >= 40)
 		aNoun = 3;
-	else if (aProfile->mTotal7C >= 20)
+	else if (aProfile->mGalaxyOneSolved >= 20)
 		aNoun = 2;
-	else if (aProfile->mTotal7C >= 1)
+	else if (aProfile->mGalaxyOneSolved >= 1)
 		aNoun = 1;
 	if (aProfile->mModeLevel[3] >= 100)
 		aNoun += 3;
@@ -174,7 +173,6 @@ void HighScoreWidget::RemovedFromManager(WidgetManager* theManager)
 void HighScoreWidget::Resize(int theX, int theY, int theWidth, int theHeight)
 {
 	Widget::Resize(theX, theY, theWidth, theHeight);
-	mUnused90 = -theHeight;
 }
 
 // 0x5c37fe
@@ -402,13 +400,13 @@ void HighScoreWidget::Draw(Graphics* g)
 		g->SetColor(Color(0xf1, 0xf4, 0xff));
 		DrawShadowString(g, StrFormat("Score: %s", CommaSeperate(aBoard->mScore).c_str()), aStatsX1, mApp->ScaleNum(0x294, 0));
 		DrawShadowString(g, StrFormat("Levels Completed: %d", aBoard->mLevel), aStatsX1, mApp->ScaleNum(0x2aa, 0));
-		int aSeconds = aBoard->m15e14;
+		int aSeconds = aBoard->mGameSeconds;
 		DrawShadowString(g, StrFormat("Time Played: %dh %dm", aSeconds / 3600, (aSeconds / 60) % 60), aStatsX1, mApp->ScaleNum(0x2c0, 0));
-		DrawShadowString(g, StrFormat("Gems Collected: %s", CommaSeperate(aBoard->m15e44).c_str()), aStatsX1, mApp->ScaleNum(0x2d6, 0));
-		DrawShadowString(g, StrFormat("Biggest Cascade: x%d", aBoard->m15e6c), aStatsX2, mApp->ScaleNum(0x294, 0));
-		DrawShadowString(g, StrFormat("Biggest Combo: %s", CommaSeperate(aBoard->m15e70).c_str()), aStatsX2, mApp->ScaleNum(0x2aa, 0));
-		DrawShadowString(g, StrFormat("Power Gems Created: %s", CommaSeperate(aBoard->m15e7c).c_str()), aStatsX2, mApp->ScaleNum(0x2c0, 0));
-		DrawShadowString(g, StrFormat("Hyper Cubes Created: %s", CommaSeperate(aBoard->m15e84).c_str()), aStatsX2, mApp->ScaleNum(0x2d6, 0));
+		DrawShadowString(g, StrFormat("Gems Collected: %s", CommaSeperate(aBoard->mGemsCleared).c_str()), aStatsX1, mApp->ScaleNum(0x2d6, 0));
+		DrawShadowString(g, StrFormat("Biggest Cascade: x%d", aBoard->mBiggestCascade), aStatsX2, mApp->ScaleNum(0x294, 0));
+		DrawShadowString(g, StrFormat("Biggest Combo: %s", CommaSeperate(aBoard->mBiggestCombo).c_str()), aStatsX2, mApp->ScaleNum(0x2aa, 0));
+		DrawShadowString(g, StrFormat("Power Gems Created: %s", CommaSeperate(aBoard->mPowerGemsMade).c_str()), aStatsX2, mApp->ScaleNum(0x2c0, 0));
+		DrawShadowString(g, StrFormat("Hyper Cubes Created: %s", CommaSeperate(aBoard->mHyperCubesMade).c_str()), aStatsX2, mApp->ScaleNum(0x2d6, 0));
 	}
 	g->Translate(0, -aBottomSlide);
 }
@@ -453,7 +451,7 @@ void HighScoreWidget::ButtonDepress(int theId)
 	}
 	else if (theId == BUTTON_PLAY_AGAIN)
 	{
-		if (mApp->mBoard->m165ae)
+		if (mApp->mBoard->mImagesChanged)
 		{
 			// the display is reloaded first
 			mApp->DoReloading(mApp->mIsWindowed, mApp->Is3DAccelerated());
@@ -462,7 +460,7 @@ void HighScoreWidget::ButtonDepress(int theId)
 		else
 		{
 			mApp->DoNewGame();
-			mApp->mBoard->m1770 = false;
+			mApp->mBoard->mStartGameMusic = false;
 		}
 	}
 	else

@@ -1,0 +1,23 @@
+# The original's menu screens (the Options dialog's layout is the original's, with the More Games row): the high scores, the options with
+# both sliders dragged, the custom cursors and hint boxes ticked and unticked, Reset Hints, the credits. Coverage run (tools/coverage/run.sh).
+40000 click 320 451
+40050 click 71 320
+40150 click 308 447
+40200 click 71 364
+40250 down 390 139
+40251 move 360 139
+40252 move 330 139
+40254 up 330 139
+40256 down 435 172
+40257 move 400 172
+40258 move 380 172
+40260 up 380 172
+40270 click 314 203
+40280 click 314 203
+40290 click 186 228
+40300 click 186 228
+40310 click 234 295
+40330 click 404 295
+40450 click 390 373
+40500 click 320 368
+40560 quit

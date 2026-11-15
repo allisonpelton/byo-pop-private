@@ -80,7 +80,10 @@ bool Sexy::LoadPuzzlePicture(PixelusApp* theApp, Grid* theGrid)
 	return true;
 }
 
-// the mini Grid::Draw
+// the mini Grid::Draw (0x422ab0 with the mini flag, the second and third arguments 1 0 for the shape, 1 1 for the picture).
+// The picture colours every cell by the puzzle's gif. The shape draws the back of each cell that holds no tile at rest (a
+// wanted cell's, with the sticky spot over it where there is one), then the tiles (0x42ed50): a block is blue-grey, a tile on
+// a cell nobody wants red, on a wanted cell pale cyan (the colours at 0x542d30, 0x542d40 and the grid's +0x20)
 MemoryImage* Sexy::MakeMiniImage(PixelusApp* theApp, const Grid& theGrid, bool thePicture)
 {
 	const int S = 6;
@@ -89,32 +92,41 @@ MemoryImage* Sexy::MakeMiniImage(PixelusApp* theApp, const Grid& theGrid, bool t
 	anImage->SetImageMode(true, true);
 
 	Graphics g(anImage);
+	if (thePicture && theGrid.mHasPicture)
+	{
+		g.SetColorizeImages(true);
+		for (int r = 0; r < theGrid.mRows; r++)
+			for (int c = 0; c < theGrid.mCols; c++)
+			{
+				unsigned int aColor = theGrid.mPicture[r][c];
+				g.SetColor(Color((aColor >> 16) & 0xff, (aColor >> 8) & 0xff, aColor & 0xff));
+				g.DrawImage(theApp->mImages[IMAGE_GRAYTILE_6X6], c * S, r * S);
+			}
+		return anImage;
+	}
+
 	for (int r = 0; r < theGrid.mRows; r++)
 		for (int c = 0; c < theGrid.mCols; c++)
 		{
 			const Grid::Cell& aCell = theGrid.mCells[r][c];
+			if (aCell.mObject != NULL && aCell.mObject->mState == 0)
+				continue;
 			int aX = c * S, aY = r * S;
-			g.DrawImage(theApp->mImages[IMAGE_TILEBACK_6X6], aX, aY);
-			if (aCell.mWanted)
-			{
-				if (thePicture && theGrid.mHasPicture)
-				{
-					unsigned int aColor = theGrid.mPicture[r][c];
-					g.SetColorizeImages(true);
-					g.SetColor(Color((aColor >> 16) & 0xff, (aColor >> 8) & 0xff, aColor & 0xff));
-					g.DrawImage(theApp->mImages[IMAGE_GRAYTILE_6X6], aX, aY);
-					g.SetColorizeImages(false);
-				}
-				else
-					g.DrawImage(theApp->mImages[IMAGE_TILEBACK_WANTTILE_6X6], aX, aY);
-			}
-			if (aCell.mFixed)
-				g.DrawImage(theApp->mImages[IMAGE_REDX_6X6], aX, aY);
-			if (aCell.mBouncy)
-				g.DrawImage(theApp->mImages[IMAGE_BOUNCYBLOCK_6X6], aX, aY);
+			g.DrawImage(theApp->mImages[aCell.mWanted ? IMAGE_TILEBACK_WANTTILE_6X6 : IMAGE_TILEBACK_6X6], aX, aY);
 			if (aCell.mStart)
 				g.DrawImage(theApp->mImages[IMAGE_STICKYSPOT_6X6], aX, aY);
 		}
+	g.SetColorizeImages(true);
+	for (size_t i = 0; i < theGrid.mObjects.size(); i++)
+	{
+		const GridObject* anObject = theGrid.mObjects[i];
+		if (!theGrid.InGrid(anObject->mRow, anObject->mCol))
+			continue;
+		const Grid::Cell& aCell = theGrid.mCells[anObject->mRow][anObject->mCol];
+		Color aColor = aCell.mFixed ? Color(142, 170, 192) : (aCell.mWanted ? Color(203, 255, 255) : Color(255, 80, 80));
+		g.SetColor(aColor);
+		g.DrawImage(theApp->mImages[IMAGE_GRAYTILE_6X6], anObject->mCol * S, anObject->mRow * S);
+	}
 	return anImage;
 }
 

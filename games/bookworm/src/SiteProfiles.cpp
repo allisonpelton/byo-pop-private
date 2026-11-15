@@ -95,7 +95,7 @@ public:
 		if (aUser == NULL)
 			return false;
 		mUsers->SetCurrentUser(aUser->mName);
-		mApp->LoadUserSettings();
+		mApp->LoadUserConfig();
 		SiteProfilesChanged(mApp);
 		return true;
 	}

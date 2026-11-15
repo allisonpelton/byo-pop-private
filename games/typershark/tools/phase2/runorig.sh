@@ -20,7 +20,7 @@ mkdir -p "$D"; rm -rf "$D/orig"
 "$ROOT/build/origrun-bin/origrun.exe" --exe "$R/build/origrun/typershark-p2/game/TyperSharkGame.exe" --run typershark-p2 \
 	--script "$R/build/ts-p2/$N/orig.txt" --sandbox --sandbox-wait 3000 --clock virtual --cursor scripted --seed "$SEED" \
 	--counter "[0x565380]+0x4b8" --pending-draw "[0x565380]+0x4a0" --update-state "[0x565380]+0x4a0" \
-	--patches "$R/build/ts-p2/patches.txt" --timeout "$LIMIT" ${REG:+--reg "$REG"} "$@" > "$D/orig.out" 2>&1
+	--patches "$R/build/ts-p2/${PATCHES:-patches.txt}" --timeout "$LIMIT" ${REG:+--reg "$REG"} "$@" > "$D/orig.out" 2>&1
 echo "origrun exit=$?" >> "$D/orig.out"
 mkdir -p "$D/orig"; cp "$RUN/shots/"*.png "$D/orig/" 2>/dev/null; cp "$RUN/shots/landed.tsv" "$D/orig.landed.tsv" 2>/dev/null
 cp "$RUN/logs/origrun.log" "$D/orig.log" 2>/dev/null

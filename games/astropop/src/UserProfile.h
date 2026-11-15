@@ -51,7 +51,6 @@ public:
 	std::map<int, int> mKinds;                          // +0x54 setting id -> 0 int, 1 float, 2 string
 	bool mLoaded;                                       // +0x60 the file or the registry gave the profile
 	bool mValid;                                        // +0x61 the registry writes worked; ctor true
-	bool mUnknown62;                                    // +0x62 ctor true (no reader found so far)
 
 	UserProfile();                                      // 0x42dc60
 	~UserProfile();                                     // 0x42cbc0

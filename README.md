@@ -36,27 +36,27 @@ installed copy (for example from Steam):
 | [Big Money Deluxe](games/bigmoney/docs/README.md) | Opus | Identical; registration out, fixes mod and coverage check done; the performance pass next. Mods: replays, LiveSplit, a puzzle solver, board and money variants | 2026-10-18 | 12 | $317 | $131 | $8 | $456 |
 | [BookWorm Deluxe](games/bookworm/docs/README.md) | Opus | Identical; registration out and fixes mod done; the coverage check next. Mods: undo, a word solver, replays, a daily board, a word journal, widescreen, LiveSplit, more word lists | 2026-10-19 | 19 | $408 | $178 | $12 | $598 |
 | [Noah's Ark Deluxe](games/noahsark/docs/README.md) | Sonnet | Done: identical, registration out, fixes mod, coverage check, performance pass, unneeded code out and the readability pass (ported from PopCap's own installer, so it has no Collection check). Mods: undo, a move helper, tide speed, a daily board | 2026-10-25 | 5 | $225 | $5 | | $230 |
-| [Seven Seas Deluxe](games/sevenseas/docs/README.md) | Sonnet | Identical; registration and More Games out, no fix candidates; the coverage check next | 2026-10-25 | | $182 | | | $182 |
+| [Seven Seas Deluxe](games/sevenseas/docs/README.md) | Sonnet | Identical; registration and More Games out, no fix candidates; coverage check, performance pass, unneeded code out, the readability pass and the Collection check (the same game) done; its features on the site left | 2026-10-25 | | $182 | | | $182 |
 | [Atomica Deluxe](games/atomica/docs/README.md) | Sonnet | Done: identical, registration out, fixes mod, coverage check, performance pass, unneeded code out and the readability pass (ported from PopCap's own installer, so it has no Collection check) | 2026-10-25 | 1 | $250 | | | $250 |
 | [Mummy Maze Deluxe](games/mummymaze/docs/README.md) | Sonnet | Done: identical, registration out, fixes mod, coverage check, performance pass, unneeded code out and the readability pass (ported from PopCap's own installer, so it has no Collection check) | 2026-10-25 | 1 | $227 | $3 | | $230 |
-| [TipTop Deluxe](games/tiptop/docs/README.md) | Opus | Identical; registration out and fixes mod done; the coverage check next | 2026-10-25 | 1 | $202 | | | $202 |
+| [TipTop Deluxe](games/tiptop/docs/README.md) | Opus | Identical; registration out, fixes mod, coverage check, performance pass and unneeded code out done; the readability pass next | 2026-10-25 | 1 | $202 | | | $202 |
 | [Bookworm Adventures Deluxe](games/bookwormadv/docs/README.md) | Opus | Identical (screens, sound and the 3D mode compared before the two phases were named), with PopLua, PopAnim, Flash cutscenes and JPEG 2000; registration out, no fix candidates; the coverage check next | 2026-10-25 | | $808 | $2 | | $810 |
 | [Ning Po Mahjong Deluxe](games/ningpo/docs/README.md) | Opus | Identical; no fix candidates; coverage check done; the performance pass next | 2026-10-26 | | $152 | | | $152 |
 | [Pixelus Deluxe](games/pixelus/docs/README.md) | Sonnet | Plays identical; registration and More Games out, no fix candidates; phase two's screen differences still to fix | 2026-10-26 | | $220 | | | $220 |
 | [Alchemy Deluxe](games/alchemy/docs/README.md) | Sonnet | Done: identical, registration out, fixes mod, coverage check, performance pass, unneeded code out and the readability pass (ported from PopCap's own installer, not a Steam copy, so it has no Collection check) | 2026-10-26 | 1 | $173 | $7 | | $180 |
 | [Word Harmony](games/wordharmony/docs/README.md) | Opus | Identical, on Sprout's first-generation engine; registration out and fixes mod done; the coverage check next | 2026-10-26 | 1 | $220 | $6 | | $227 |
-| [Cosmic Bugs](games/cosmicbugs/docs/README.md) | Opus | Identical, on Retro64's engine; registration out and fixes mod done; the coverage check next | 2026-10-26 | 1 | $224 | | | $224 |
-| [Water Bugs](games/waterbugs/docs/README.md) | Sonnet | Identical, on Cosmic Bugs' engine; registration out, fixes mod and coverage check done; the performance pass next | 2026-10-26 | 1 | $173 | | | $173 |
+| [Cosmic Bugs](games/cosmicbugs/docs/README.md) | Opus | Identical, on the Retro64 engine it shares with Water Bugs; registration out and fixes mod done; the coverage check next | 2026-10-26 | 1 | $224 | | | $224 |
+| [Water Bugs](games/waterbugs/docs/README.md) | Sonnet | Identical, on the Retro64 engine it shares with Cosmic Bugs; registration out, fixes mod, coverage check, performance pass, unneeded code out and the readability pass done; its features on the site left | 2026-10-26 | 1 | $173 | | | $173 |
 | [Rocket Mania Deluxe](games/rocketmania/docs/README.md) | Sonnet | Plays identical; phase two largely done (a few comparisons open); registration out | 2026-10-26 | | $204 | | | $204 |
 | [Dynomite Deluxe](games/dynomite/docs/README.md) | Opus | Plays identical; registration and More Games out, no fix candidates; phase two's last differences open | 2026-10-26 | | $251 | | | $251 |
 | [Bookworm Adventures Volume 2](games/bookwormadv2/docs/README.md) | Sonnet | Plays identical through the first chapter and the mini-games, on Bookworm Adventures' engine; the later chapters and phase two next | 2026-10-26 | | $271 | | | $271 |
-| [Mahjong Escape: Ancient Japan](games/mahjongjapan/docs/README.md) | Opus | Done: identical, logos and links out, fixes mod, coverage check, performance pass, unneeded code out and the readability pass (its original is the Collection's own copy) | 2026-11-01 | 1 | $304 | | | $304 |
-| [Mahjong Escape: Ancient China](games/mahjongchina/docs/README.md) | Opus | As Ancient Japan, from its port (whose row holds most of its cost) | 2026-11-01 | 1 | $4 | | | $4 |
+| [Mahjong Escape: Ancient Japan](games/mahjongjapan/docs/README.md) | Opus | Done: identical, logos and links out, fixes mod, coverage check, performance pass, unneeded code out and the readability pass (its original is the Collection's own copy); one engine and one game source with Ancient China | 2026-11-01 | 1 | $304 | | | $304 |
+| [Mahjong Escape: Ancient China](games/mahjongchina/docs/README.md) | Opus | As Ancient Japan, built from the same engine and game source with its own edition's files (Japan's row holds most of its cost) | 2026-11-01 | 1 | $4 | | | $4 |
 | [Bonnie's Bookstore Deluxe](games/bonnies/README.md) | Opus | Identical, on New Crayon's engine; fixes mod and coverage check done; the performance pass next | 2026-11-01 | 1 | $230 | | | $230 |
 | [Bejeweled Twist](games/bejeweledtwist/docs/NOTES.md) | Opus | Done: identical in 2D and 3D play, with PopAnim, challenge mode included; registration out, fixes mod, readability pass (the standards' second test), coverage check, performance pass and unneeded code out (its 3D frame times were not measured against the original: runs on the visible desktop give no clean timing) | 2026-11-02 | 1 | $1,294 | | $6 | $1,300 |
-| [Bejeweled 2 Deluxe](games/bejeweled2/docs/IDENTICAL_PLAY.md) | Sonnet | Plays identical: every mode as the original at both sizes, the hidden mode, a puzzle pack and resumed games (one oddity: a game resumed in 3D differs after its first level change); registration and More Games out; the user's faults of 2026-11-10 fixed; looks identical in 2D (every 640x480 screen, sound and music, real input natively and on the web); its 3D screens not yet compared with the original; the fixes mod next | 2026-11-08 | | $254 | | | $254 |
-| [AstroPop Deluxe](games/astropop/docs/IDENTICAL_PLAY.md) | Sonnet | Identical: 38 games as the original, with every weapon and from checkpoints to level 33; 30 screen tours, sound effects and real input natively and on the web (the music's state not compared); the fixes mod next | 2026-11-08 | | $322 | | | $322 |
-| Typer Shark! Deluxe | Sonnet | Identical in 2D: both phases done (every screen tour, sound and music, real input natively and on the web); registration out, fixes mod, coverage check, performance pass, unneeded code out, the readability pass and the Collection check (the same build as the Steam game); only its 3D drawing is not yet compared with the original | 2026-11-09 | | $367 | | | $367 |
+| [Bejeweled 2 Deluxe](games/bejeweled2/docs/IDENTICAL_PLAY.md) | Sonnet | Plays identical: every mode as the original at both sizes, the hidden mode, a puzzle pack and resumed games (one oddity: a game resumed in 3D differs after its first level change); registration and More Games out; the user's faults of 2026-11-10 fixed; looks identical in 2D (every 640x480 screen, sound and music, real input natively and on the web); its 3D screens compared with the original on the desktop (a whirlpool's clamped edge fixed; one gem of a board's slide left as an oddity); fixes mod done; the coverage check next | 2026-11-08 | | $254 | | | $254 |
+| [AstroPop Deluxe](games/astropop/docs/IDENTICAL_PLAY.md) | Sonnet | Identical: 38 games as the original, with every weapon and from checkpoints to level 33; 30 screen tours, sound effects and real input natively and on the web (the music's state not compared); fixes mod and coverage check done; the performance pass next | 2026-11-08 | | $322 | | | $322 |
+| Typer Shark! Deluxe | Sonnet | Identical in 2D: both phases done (every screen tour, sound and music, real input natively and on the web); registration out, fixes mod, coverage check, performance pass, unneeded code out, the readability pass and the Collection check (the same build as the Steam game); its 3D drawing compared with the original on the desktop too; the 2004 stretch check done; two medal screens to compare with the original and its features on the site left | 2026-11-09 | | $367 | | | $367 |
 | Venice Deluxe, Heavy Weapon Deluxe, Hammer Heads Deluxe, Pizza Frenzy, Iggle Pop Deluxe, Feeding Frenzy Deluxe | Opus or Sonnet | Waiting for the readability passes; then side by side, in this order | | | under $1 each | | | |
 | Chuzzle Deluxe, Feeding Frenzy 2, Peggle Deluxe, Peggle Nights, Bejeweled 3, Banana Bugs, Gyromancer, Zuma's Revenge, Talismania Deluxe | | After those, two at a time | | | $19 | | | $19 |
 | Shared framework, tools and coordination | | | | | $1,012 | $167 | $927 | $2,105 |
@@ -89,12 +89,12 @@ asked.
 |---|---:|---:|---:|---:|---:|---:|
 | Bejeweled Deluxe | 0.88 s | 1.06 s | 4.1 % of one core | 4.5 % of one core | 55 MB | 36 MB |
 | Big Money Deluxe | 0.73 s | 1.38 s | 4.0 and 4.7 s a minute | 7.1 and 7.2 s a minute | 124 MB | 42 MB |
-| BookWorm Deluxe | | | | | | |
+| BookWorm Deluxe | 1.2 to 1.8 s | 2.7 to 3.7 s | 7.3 to 12.2 % of one core (cycle counts; the port's window 1280x960 at render scale 2) | 15.7 to 26.7 % of one core (cycle counts; its window 640x480) | 97 MB | 41 MB |
 | Noah's Ark Deluxe | 0.60 s | 2.12 s | 8.0 s a minute | 18.1 and 19.0 s a minute | 63 and 66 MB | 67 MB |
-| Seven Seas Deluxe | 1.07 s | 1 to 2 s | 4.8 to 5.5 % of one core | 2.2 to 8.7 % of one core | 66 MB | 41.5 to 51.2 MB |
-| Atomica Deluxe | 1.20 s | 1.07 s | 1.7 s to update 4,400 | 2.5 s to update 4,400 | 184 MB | 62 MB |
-| Mummy Maze Deluxe | 0.38 and 0.44 s | 4.5 s | 2.2 s a minute | 5.7 and 5.8 s a minute | 58 MB | 65 and 66 MB |
-| TipTop Deluxe | 0.6 to 0.9 s | 4.7 and 4.8 s | 29 and 33 % of one core | 5 % of one core | 82 and 84 MB | 46 MB |
+| Seven Seas Deluxe | 1.07 s | 1 to 2 s | 6.7 G cycles a minute (window 640x480; 5.9 at the default 1280x960) | 10.5 G cycles a minute (medians; its window 640x480) | 66 MB | 41.5 to 51.2 MB |
+| Atomica Deluxe | 1.20 s | 1.07 s | 18 % of one core | 20 % of one core | 163 to 183 MB | 64 to 67 MB |
+| Mummy Maze Deluxe | 0.38 and 0.44 s | 4.5 s | 7.7 G cycles a minute | 8.7 G cycles a minute | 58 MB | 65 and 66 MB |
+| TipTop Deluxe | 0.6 to 0.9 s | 4.7 and 4.8 s | 14 and 20 % of one core | 5 % of one core | 82 and 83 MB | 46 MB |
 | Bookworm Adventures Deluxe | 1.70 s | 6.4 s | 2.9 to 3.2 % of one core | 7.8 to 9.4 % of one core | 165 MB | 94 MB |
 | Ning Po Mahjong Deluxe | 0.36 s | 0.82 s | 6.3 % of one core | 14.9 % of one core | 54 MB | 21 MB |
 | Pixelus Deluxe | 0.9 to 1.4 s | 0.8 to 1.0 s | 5.7 and 7.0 s a minute | 10.4 and 11.6 s a minute | 102 and 104 MB | 93 MB |
@@ -102,25 +102,33 @@ asked.
 | Word Harmony | 0.71 s | 2.6 to 3.4 s | 10.3 and 13.6 s a minute | 2.2 and 3.4 s a minute | 154 and 155 MB | 53 MB |
 | Cosmic Bugs | 0.6 to 0.9 s | 0.4 to 1.0 s | 18 to 19 % of one core | 4.7 and 5.6 % of one core | 130 MB | 88 and 89 MB |
 | Water Bugs | 2.76 s | 3.16 s | 10 s a minute | 58 s a minute | 160 MB | 97 and 101 MB |
-| Rocket Mania Deluxe | 1.8 to 2.0 s | 0.9 and 1.1 s | 4.6 to 5.7 s a minute | 8.6 to 9.3 s a minute | 132 MB | 62 MB |
-| Dynomite Deluxe | 0.96 s | 2.2 s | 4.6 and 4.9 s a minute | 11.6 and 13.2 s a minute | 92 and 94 MB | 65 MB |
+| Rocket Mania Deluxe | 1.8 to 2.0 s | 0.9 and 1.1 s | 1.4 to 2.5 M cycles an update (8 to 13 % of one core) | about 4.2 M cycles an update (20 % of one core) | 132 MB | 62 MB |
+| Dynomite Deluxe | 0.96 s | 2.2 s | 8.5 G cycles a minute at the game's own 640x480, 11 to 21 G in its default 1280x960 window | 9.6 G cycles a minute at 60 Hz | 58 MB at 640x480, 95 to 181 MB in the default window | 65 MB |
 | Bookworm Adventures Volume 2 | | | | | | |
 | Mahjong Escape: Ancient Japan | 1.31 s | | 6.0 % of one core | 3.1 % of one core | 146 MB | 40 MB |
 | Mahjong Escape: Ancient China | 1.29 s | | 7.3 % of one core | 1.7 % of one core | 104 MB | 31 MB |
-| Bonnie's Bookstore Deluxe | 6.8 and 12.9 s | 6.2 and 6.4 s | 7.1 and 8.5 s a minute | 3.3 and 3.4 s a minute | 87 and 89 MB | 56 and 58 MB |
-| Bejeweled Twist | 2.71 s | 10.81 s | 3.3 s a minute | 21.1 s a minute | 206 MB | 338 MB |
-| Bejeweled 2 Deluxe | | | | | | |
-| AstroPop Deluxe | | | | | | |
-| Typer Shark! Deluxe | 0.72 to 0.82 s | 0.76 to 1.28 s | 1.3 to 3.3 s in 20 s (median 2.2 s) | 1.5 s in 20 s | 86 to 89 MB | 49 to 51 MB |
+| Bonnie's Bookstore Deluxe | 6.8 and 12.9 s | 6.2 and 6.4 s | 7.9 G cycles at 800x600, 6.1 G in its default 1600x1200 window | 9.5 G and 7.3 G cycles in the same rounds | 52 MB at 800x600, 58 MB at 1600x1200 | 54 MB |
+| Bejeweled Twist | 2.71 s | 10.81 s | 38.1 G cycles a minute in 2D, 34.5 in 3D | 43.9 G cycles a minute in 2D, 44.9 in 3D | 392 MB | 186 MB |
+| Bejeweled 2 Deluxe | 0.9 to 1.2 s in 2D, 1.4 s in 3D | 4.4 s in 2D, 4.7 s in 3D (dgVoodoo2) | 7.5 % of one core in 2D on a GPU renderer, 6.6 % on SDL's software renderer (48.5 % in its default 2x window), 8.8 % in 3D | 9.4 % of one core in 2D, 61 % in 3D (dgVoodoo2) | 82 to 109 MB | 42 MB in 2D, 149 MB in 3D (dgVoodoo2) |
+| AstroPop Deluxe | 1.0 to 1.3 s | 1.5 s (2D), 5 to 13 s (3D) | 4.25 G cycles in a 2,030-update stretch (2D), 3.70 G (3D) | 6.13 G (2D), 2.76 G (3D) | 159 to 164 MB | 81 to 83 MB (2D), 118 MB (3D) |
+| Typer Shark! Deluxe | 0.72 to 0.82 s | 0.76 to 1.28 s | 3.7 G cycles in 20 s (3D, visible desktop) | 3.9 G cycles in 20 s (3D) | 86 to 89 MB | 49 to 51 MB |
 
 Every number comes from the game's own notes, its latest measurement there: the native port under rundesk and the
 original under origrun, back to back on one machine, windowed and silent, over the same scripted play, with the load
 time from the process's start to the first screen that takes input and the memory the peak of the process's private
 bytes. Processor time is as each game measured it, a share of one core over a stretch of play or seconds over a scripted
-minute (Atomica's runs from launch to a fixed update; Bejeweled Twist and Bookworm Adventures were measured at rest on
-the menu and the title; TipTop's and Cosmic Bugs' originals are paced at 60 Hz, as on a player's screen). Most runs
+minute (Atomica's over the last 20 seconds of a scripted game, as the cycle counts of the process's threads, medians
+of ten alternating pairs: port 7.5, original 8.6 billion cycles, at the processor's nominal 2.11 GHz; Bookworm
+Adventures was measured at rest on the title; Bejeweled Twist's and Mummy Maze's are the cycles their threads ran in a minute of the
+same scripted game (Mummy Maze's the medians of five alternating rounds, the port in the original's own 640x480 window), the memory that game's peak; TipTop's, Cosmic Bugs' and Atomica's originals are paced at 60 Hz,
+as on a player's screen). Most runs
 shared the machine with other sessions' games, and each game has its own play and its own measure, so a row compares a
 port with its own original, never one game with another; an empty cell means the notes give no number.
+Dynomite Deluxe's processor time is the cycles its threads ran in the same scripted minute of Time Trial, the
+medians of five pinned rounds run in turn, with its original windowed at 640x480 and drawing at most 60 times a second
+as in full screen. At that size the port draws its screen in software, as the original does, and is under it; in a
+larger window it draws on the GPU, whose present cost and memory vary with the GPU's other load. Rocket Mania's, Bejeweled 2's and AstroPop's ports ran in the original's own window
+size too (Bejeweled 2's on an idle board); AstroPop's 3D is over its original by the same present cost.
 
 Two things differ in every native port on purpose, the user's choice for all of them, with no mod needed. Full screen is
 a borderless window over the whole monitor at the desktop's own resolution, never the originals' change of the display's

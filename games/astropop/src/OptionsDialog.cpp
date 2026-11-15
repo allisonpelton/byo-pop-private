@@ -52,6 +52,7 @@ void SetButtonRects(DialogButton* theButton)
 }
 
 // A button of the box's picture with its three pictures, its label and the font of the buttons
+// port: a helper of the options box
 DialogButton* OptionsDialog::MakeButton(int theId, const char* theLabel)
 {
 	DialogButton* aButton = new DialogButton(mYesButton->mComponentImage, theId, this);
@@ -85,9 +86,10 @@ OptionsDialog::OptionsDialog(bool theHints, int theColourSet, bool theFromGame) 
 	mYesButton->mComponentImage = aButtonImage;
 	mButtonHeight = aButtonImage->mHeight;
 
-	mMusicSlider = new Slider(IMAGE_SLIDER_TRACK, IMAGE_SLIDER_THUMB, 0, this);
+	// the 2004 slider: a press on the track outside the thumb does nothing, and SetValue does not clamp (docs/FRAMEWORK_2004.md, section 8)
+	mMusicSlider = new Slider2004(IMAGE_SLIDER_TRACK, IMAGE_SLIDER_THUMB, 0, this);
 	mMusicSlider->SetValue(gApp->GetMusicVolume());
-	mSoundSlider = new Slider(IMAGE_SLIDER_TRACK, IMAGE_SLIDER_THUMB, 1, this);
+	mSoundSlider = new Slider2004(IMAGE_SLIDER_TRACK, IMAGE_SLIDER_THUMB, 1, this);
 	mSoundSlider->SetValue(gApp->GetSfxVolume());
 
 	mFullscreenCheck = MakeCheckbox(2, this);
@@ -99,7 +101,7 @@ OptionsDialog::OptionsDialog(bool theHints, int theColourSet, bool theFromGame) 
 	mCursorCheck->mChecked = gApp->mCustomCursorsEnabled;
 	mAccelCheck->mChecked = gApp->Is3DAccelerated();
 	mHintsCheck->mChecked = theHints;
-	mColorblindCheck->mChecked = gApp->mFlag6fa;
+	mColorblindCheck->mChecked = gApp->mColorblind;
 
 	mHintsResetButton = MakeButton(9, GTC(0x0056b08c));
 	mCreditsButton = MakeButton(0xb, "Credits");
@@ -107,7 +109,7 @@ OptionsDialog::OptionsDialog(bool theHints, int theColourSet, bool theFromGame) 
 	mLeaveButton = new DialogButton(aButtonImage, 0xfa8, this);
 	SetButtonRects(mLeaveButton);
 	mLeaveButton->mLabel = GT(0x0056b0b4);
-	if (gApp->mBoard != NULL && gApp->mBoard->m1a60 == 0)
+	if (gApp->mBoard != NULL && gApp->mBoard->mGameType == 0)
 		mLeaveButton->mLabel = GT(0x0056b0a4);
 	mLeaveButton->SetColor(ButtonWidget::COLOR_LABEL, Color(0xff, 0xff, 0));
 	mLeaveButton->SetColor(ButtonWidget::COLOR_LABEL_HILITE, Color(0xff, 0xff, 0xff));
@@ -185,7 +187,7 @@ void OptionsDialog::RemovedFromManager(WidgetManager* theManager)
 		theManager->RemoveWidget(mLeaveButton);
 }
 
-// 0x4826d0: the sliders at the top, the boxes in two columns under them, then the buttons
+// 0x4826d0 (with its three small sums 0x482670, 0x482690 and 0x4826b0, written inline): the sliders at the top, the boxes in two columns under them, then the buttons
 void OptionsDialog::Resize(int theX, int theY, int theWidth, int theHeight)
 {
 	Dialog::Resize(theX, theY, theWidth, theHeight);
@@ -288,11 +290,11 @@ void OptionsDialog::CheckboxChecked(int theId, bool theChecked)
 		if (!gApp->Is3DAccelerationSupported())
 		{
 			mAccelCheck->SetChecked(false, false);
-			gApp->MakeDialog(gApp->GetDialogSet(), false, 0x69, 400, -1, 3, GT(0x0056b270), GT(0x56b280), "OK", std::string(), true);
+			gApp->MakeDialog(gApp->GetDialogSet(), false, 0x69, 400, -1, 3, GT(0x0056b270), GT(0x56b280), "OK", std::string());
 			return;
 		}
 		if (!gApp->Is3DAccelerationRecommended())
-			gApp->MakeDialog(gApp->GetDialogSet(), false, 0x68, -1, -1, 3, "Warning", GT(0x56b1f0), "OK", std::string(), true);
+			gApp->MakeDialog(gApp->GetDialogSet(), false, 0x68, -1, -1, 3, "Warning", GT(0x56b1f0), "OK", std::string());
 	}
 }
 
@@ -302,7 +304,7 @@ void OptionsDialog::ButtonDepress(int theId)
 	switch (theId)
 	{
 	case 9:
-		gApp->MakeDialog(mColourSet, false, 0x75, -1, -1, 1, "WARNING", GT(0x56b308), "Yes", "No", true);
+		gApp->MakeDialog(mColourSet, false, 0x75, -1, -1, 1, "WARNING", GT(0x56b308), "Yes", "No");
 		break;
 	case 0xfa8:
 		gApp->ButtonDepress(0xfa8);

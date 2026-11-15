@@ -182,7 +182,7 @@ FameWidget::~FameWidget()
 void FameWidget::AddedToManager(WidgetManager* theWidgetManager)
 {
 	if (mApp->mBoard != NULL)
-		mApp->mBoard->Pause(true);
+		mApp->mBoard->SetPause(true);
 
 	Widget::AddedToManager(theWidgetManager);
 
@@ -227,7 +227,7 @@ void FameWidget::RemovedFromManager(WidgetManager* theWidgetManager)
 	}
 
 	if (mApp->mBoard != NULL)
-		mApp->mBoard->Pause(false);
+		mApp->mBoard->SetPause(false);
 }
 
 // 0x421990
@@ -340,7 +340,7 @@ void FameWidget::Resize(int theX, int theY, int theWidth, int theHeight)
 void FameWidget::Draw(Graphics* g)
 {
 	if (mMode == FAME_MODE_LOCAL)
-		DrawLocalScores(g);
+		DrawLocalFame(g);
 	else if (mMode == FAME_MODE_INTERNET)
 	{
 		// 0x421f1b DrawInternetScores (slot 48, 0x425880): internet, not ported
@@ -350,7 +350,7 @@ void FameWidget::Draw(Graphics* g)
 // 0x424c30. The Hall of Fame page: the backdrop (which holds the titles) and the four tables of the app.
 // Every entry is copied before use. Strings are drawn at their baseline; an entry added by the last game
 // (mIsNew) gets a black drop shadow whose alpha pulses.
-void FameWidget::DrawLocalScores(Graphics* g)
+void FameWidget::DrawLocalFame(Graphics* g)
 {
 	// A triangle wave 0..255..0 with a period of 127.5 updates (C %: mUpdateCnt is never negative)
 	int aPulse = 255 - abs((mUpdateCnt * 4) % 510 - 255);
@@ -495,7 +495,7 @@ void FameWidget::ButtonDepress(int theId)
 	{
 	case FAME_ID_CONTINUE:
 	{
-		// RemoveFameWidget queues this widget for a deferred delete (SafeDeleteWidget)
+		// KillFameWidget queues this widget for a deferred delete (SafeDeleteWidget)
 		BookWormApp* anApp = mApp;
 
 		// Back to the menu theme, from where it was
@@ -503,11 +503,11 @@ void FameWidget::ButtonDepress(int theId)
 		anApp->mMusicInterface->FadeIn(SONG_MENU, -1, 0.008, false);
 		SetVisible(false);
 		SetDisabled(true);
-		anApp->RemoveFameWidget();
+		anApp->KillFameWidget();
 
 		// Opened from the game selector, the selector is still underneath; after a game over it is not
 		if (anApp->mGameSelector == NULL)
-			anApp->ShowGameSelector();
+			anApp->DoGameSelector();
 		break;
 	}
 

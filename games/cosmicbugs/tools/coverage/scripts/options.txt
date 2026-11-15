@@ -1,0 +1,35 @@
+# The options screen's items one by one (each clicked at the middle of its text, 10 pixels under its y: a click on the y itself is outside the item) (never the video item): sound, music, shooter mode and LCD mode twice each, then the
+# help page, back to the title, and a game started from the title with the sound and the music off.
+at 2681 move 175 357
+at 2981 click 175 357 30
+at 4181 move 400 270
+at 4481 click 400 270 30
+at 5681 move 400 270
+at 5981 click 400 270 30
+at 7181 move 400 340
+at 7481 click 400 340 30
+at 8681 move 400 340
+at 8981 click 400 340 30
+at 10181 move 400 420
+at 10481 click 400 420 30
+at 11681 move 400 420
+at 11981 click 400 420 30
+at 13181 move 400 180
+at 13481 click 400 180 30
+at 14681 move 400 180
+at 14981 click 400 180 30
+at 16181 move 400 340
+at 16481 click 400 340 30
+at 17681 move 400 270
+at 17981 click 400 270 30
+at 19181 move 400 520
+at 19481 click 400 520 30
+at 20681 move 175 313
+at 20981 click 175 313 30
+at 22181 move 400 563
+at 22481 click 400 563 30
+at 28000 key 32 30
+at 30000 key 27 30
+at 32000 key 27 30
+at 34000 move 0 0
+quit

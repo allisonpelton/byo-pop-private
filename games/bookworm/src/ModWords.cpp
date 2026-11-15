@@ -1,3 +1,5 @@
+// port(mod): feature "words", word lists from mods (ModWords.h). Not part of the original game.
+
 #include "ModWords.h"
 #include "BookWormApp.h"
 #include "Definitionator.h"

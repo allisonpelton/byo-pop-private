@@ -15,7 +15,7 @@ if [ ! -f "$G/BejeweledTwist.exe" ]; then
 	mkdir -p "$G" && cp -r build/origrun/bjtlvl/game/. "$G/"
 fi
 rm -f "build/origrun/$R/coverage.txt"
-until python -I tools/gamecount.py --limit 3 > /dev/null; do sleep 20; done
+until python -I tools/gamecount.py --limit 6 > /dev/null; do sleep 20; done
 K='HKCU\Software\Steam\BejeweledTwist'
 MSYS_NO_PATHCONV=1 reg add "$K" /v ScreenMode /t REG_DWORD /d 0 /f > /dev/null
 MSYS_NO_PATHCONV=1 reg add "$K" /v ArtRes /t REG_DWORD /d 768 /f > /dev/null

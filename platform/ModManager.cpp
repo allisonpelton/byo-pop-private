@@ -1,4 +1,5 @@
 #include "ModManager.h"
+#include "GameOptions.h"
 #include "ImageLoader.h"
 #include "Placeholders.h"
 #include "UserFiles.h"
@@ -41,6 +42,55 @@ ModManager& ModManager::Get()
 {
 	static ModManager sManager;
 	return sManager;
+}
+
+// port: the mod framework as the front end of a game's options (platform/GameOptions.h). The highest-priority enabled mod
+// that names the feature "fixes" ("lite" for the lite changes), or whose id is that word, gives an option's value: its
+// feature's own member of that id when the feature is an object that has one (Bejeweled's fixes mod, and a rules mod's
+// "features": {"fixes": {"selection": false}}; the effective manifest, as applied), else its setting of that id (every
+// other game's fixes mod, its toggles read live). An option the mod does not name is off when the mod has settings, and
+// otherwise takes the feature as a whole: true, or an object without that member, is every option on (the rule
+// Bejeweled's rules engine kept, for a rules mod with no settings). Without such a mod it gives none, and the option is
+// off.
+static bool ModOptionSource(OptionGroup theGroup, const char* theId, bool* theValue)
+{
+	const char* aName = (theGroup == OPTION_LITE) ? "lite" : "fixes";
+	ModManager& aManager = ModManager::Get();
+	for (const ModInfo* aMod : aManager.GetEnabledMods())
+	{
+		bool hasFeature = aMod->mFeaturesJson.IsObject() && aMod->mFeaturesJson.Has(aName);
+		if (!hasFeature && (aMod->mId != aName))
+			continue;
+		if (hasFeature)
+		{
+			const JsonValue& aFeature = aMod->mFeaturesJson[aName];
+			if (aFeature.IsObject() && aFeature.Has(theId) && aFeature[theId].IsBool())
+			{
+				*theValue = aFeature[theId].AsBool();
+				return true;
+			}
+		}
+		JsonValue aSetting = aManager.GetLiveValue(aMod->mId, theId);
+		if (aSetting.IsBool())
+		{
+			*theValue = aSetting.AsBool();
+			return true;
+		}
+		if (aMod->mSettings.HasValues())
+		{
+			*theValue = false;
+			return true;
+		}
+		const JsonValue& aWhole = hasFeature ? aMod->mFeaturesJson[aName] : JsonValue();
+		*theValue = aWhole.IsObject() || aWhole.AsBool(false);
+		return true;
+	}
+	return false;
+}
+
+ModManager::ModManager()
+{
+	SetOptionSource(&ModOptionSource);
 }
 
 static bool ReadTextFile(const std::string& thePath, std::string& theOut)

@@ -2,8 +2,8 @@
 #define __WORDHARMONY_ENGINE_APP_H__
 
 // The application (base constructor 0x4382f0, vtable 0x484948; the Windows application 0x455050, vtable 0x48a398,
-// 0xf4 bytes). It keeps the resource manager, the image and font caches, the map from names to nodes, the game's
-// controller (+0xa4), the root window (+0xa8) and the timing. The global 0x49bfbc points to it (0x435f20).
+// 0xf4 bytes). It keeps the resource manager, the image and font caches, the game's controller (+0xa4), the root
+// window (+0xa8) and the timing. The global 0x49bfbc points to it (0x435f20).
 //
 // In the port the Windows layer's parts (the window, DirectDraw, DirectSound, the clock) come from the Host.
 
@@ -15,6 +15,10 @@
 
 namespace engine
 {
+
+// The window's size in pixels (the game's configure, 0x402eb0, says it)
+const int SCREEN_WIDTH = 800;
+const int SCREEN_HEIGHT = 600;
 
 class Font;
 class Graphics;
@@ -31,7 +35,7 @@ struct AppConfig
 	int mFrameRate;      // +0x90: frames per second
 	int mWidth;          // +0x94
 	int mHeight;         // +0x98
-	bool mUnknown9C;     // +0x9c: false
+	bool mFullScreen;    // +0x9c: starts full screen (the window's 0x456fa0); false, and not read by the port
 	bool mUseFiles;      // +0xa0: loose files instead of the archive
 };
 
@@ -73,12 +77,8 @@ public:
 	Image* getFileImage(const char* theName);
 	// 0x40: 0x437dc0, a font of the archive, cached by name
 	Font* getFont(const char* theName);
-	// 0x44: 0x437e90, the same from a loose file
-	Font* getFileFont(const char* theName);
 	// 0x48: 0x453f80 and 0x4c: 0x454010, a new image (0x457410) loaded by 0x457510
 	Image* createImage(const char* theName, bool theFromFile);
-	// 0x50: 0x437ca0, adds an image to the cache under a name; false when the name is taken
-	bool addImage(Image* theImage, const char* theName);
 	// 0x54: 0x436a70
 	Image* findImage(const char* theName);
 	// 0x58: the log (the release build's does nothing)
@@ -89,13 +89,10 @@ public:
 	int getTicksPerSecond() { return 1000; }
 	// 0x70: 0x454230, PostQuitMessage(theCode)
 	void quit(int theCode);
-	// 0x78: 0x4540a0 and 0x7c: 0x454110, a new font loaded from the archive or a loose file
-	Font* createFont(const char* theName, bool theFromFile);
+	// 0x78: 0x4540a0, a new font loaded from the archive
+	Font* createFont(const char* theName);
 
 	// The map from names to nodes (+0x64): 0x437f60 adds, 0x436ff0 removes
-	void registerNode(Node* theNode);
-	void unregisterNode(Node* theNode);
-	Node* findNode(const std::string& theName);
 
 	ResourceManager* getResources() { return mResources; }
 	Window* getRootWindow() { return mRootWindow; }
@@ -110,6 +107,10 @@ public:
 	void shutdown();
 
 	const AppConfig& getConfig() const { return mConfig; }
+
+	// port (the "memreport" test command, docs/TEST_COMMANDS.md): how many pictures the image table holds and the bytes of
+	// their 32-bit pixels (the fonts' pictures are in it)
+	int getImageMemory(size_t* theBytes) const;
 
 protected:
 	std::map<std::string, Ref<Image>> mImages;  // +0x4c

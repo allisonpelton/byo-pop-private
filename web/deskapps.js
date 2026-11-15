@@ -21,7 +21,9 @@ var ByopopApps = (function () {
   var apps = [], seq = 0, restoring = false;
   function T(k, o) { try { return ByopopStrings.t(k, o); } catch (e) { return k; } }
   function on() { return !!(desk && desk.isOn()); }
-  function narrow() { return (document.documentElement.clientWidth || window.innerWidth) < NARROW; }
+  // the desktop's zoom (web/skins.js): the window's sizes are the screen's CSS pixels, a style's the page's
+  function zf() { try { return ByopopSkin.zoom(); } catch (e) { return 1; } }
+  function narrow() { return (document.documentElement.clientWidth || window.innerWidth) / zf() < NARROW; }
 
   // ---- what a link is ----
   // its address from the site's folder (null: another site's, or not a page); the key a window is known by is that address
@@ -105,6 +107,7 @@ var ByopopApps = (function () {
     d.addEventListener("keydown", function (ev) { if (ev.key === "Escape") { ev.preventDefault(); ev.stopPropagation(); done(); } });
     d.addEventListener("cancel", function (ev) { ev.preventDefault(); done(); });
     d.showModal();
+    try { desk.event("ding"); } catch (e) {}
     ok.focus();
   }
 
@@ -247,6 +250,7 @@ var ByopopApps = (function () {
     // its place, which the desktop would otherwise move to fit a window as wide as itself, comes back with it
     if (m && w) app.restoreAt = [w.x, w.y, w.placed];
     app.el.classList.toggle("d95-maxed", m);
+    try { desk.event(m ? "maximize" : "restore"); } catch (e) {}
     if (!m && w && app.restoreAt) { w.x = app.restoreAt[0]; w.y = app.restoreAt[1]; w.placed = app.restoreAt[2]; }
     desk.place(app.id);
   }
@@ -262,17 +266,30 @@ var ByopopApps = (function () {
     } catch (e) {}
   }
   // Close: a game's own way out (its saves first, web/shell.html closeProgram), which then hands its window back (closed)
+  // Closing never depends on the page in the window (the user, 2026-11-11: a window whose game failed to load could not be
+  // closed): a frame that never loaded, or an error page the desktop may not read, has no ByopopEmbed and goes at once; a page
+  // that takes its close but never hands the window back (a game that stopped answering, a save that never ends) is dropped
+  // after CLOSE_WAIT, and a second Close drops it at once.
+  var CLOSE_WAIT = 4000;
   function closeApp(app) {
-    var w = inner(app);
-    if (app.kind === "game" && w && w.ByopopEmbed && !app.closing) {
+    var embed = null;
+    if (app.kind === "game" && !app.closing) {
+      try { var w = inner(app); embed = w && w.ByopopEmbed && typeof w.ByopopEmbed.close === "function" ? w.ByopopEmbed : null; } catch (e) {}
+    }
+    if (embed) {
       app.closing = true;
-      try { w.ByopopEmbed.close(); return; } catch (e) {}
+      try {
+        embed.close();
+        app.closeTimer = setTimeout(function () { drop(app); }, CLOSE_WAIT);
+        return;
+      } catch (e) {}
     }
     drop(app);
   }
   function drop(app) {
     var i = apps.indexOf(app);
     if (i < 0) return;
+    if (app.closeTimer) clearTimeout(app.closeTimer);
     apps.splice(i, 1);
     if (lastGame === app) lastGame = null;
     desk.remove(app.id);
@@ -310,6 +327,8 @@ var ByopopApps = (function () {
   // ---- what the pages in the windows tell the desktop ----
   function activated(win) { var a = byWin(win); if (a && desk.active() !== a.id) desk.activate(a.id); }
   function f6(win, back) { var a = byWin(win); if (a) desk.f6From(a.id, back); }
+  // Alt+` from a window's page (web/skins.js): the switch between the desktop's windows
+  function altTab(win, how) { if (desk.altTab) desk.altTab(how); }
   function closed(win) { var a = byWin(win); if (a) drop(a); }
   function title(win, text) { var a = byWin(win); if (a && text) { desk.setTitle(a.id, text); if (a.frame) a.frame.title = text; } }
   // the largest size a window's page can have on the desktop, above the task bar (the scales its View menu offers)
@@ -319,7 +338,7 @@ var ByopopApps = (function () {
     var inner = a.frame || a.el.querySelector(".d95-app-client");
     var cw = a.el.offsetWidth - inner.clientWidth, ch = a.el.offsetHeight - inner.clientHeight;
     var bar = document.querySelector(".d95-taskbar");
-    return { w: (document.documentElement.clientWidth || window.innerWidth) - 16 - cw, h: window.innerHeight - (bar ? bar.offsetHeight : 28) - 8 - ch };
+    return { w: (document.documentElement.clientWidth || window.innerWidth) / zf() - 16 - cw, h: window.innerHeight / zf() - (bar ? bar.offsetHeight : 28) - 8 - ch };
   }
   // the size a game wants (its screen at one pixel for each of the device's, and its window's frame and status bar): the window
   // takes it the first time, as far as the desktop has room
@@ -335,7 +354,7 @@ var ByopopApps = (function () {
     var inner = a.frame || a.el.querySelector(".d95-app-client");
     var cw = a.el.offsetWidth - inner.clientWidth, ch = a.el.offsetHeight - inner.clientHeight;
     var bar = document.querySelector(".d95-taskbar");
-    var roomW = (document.documentElement.clientWidth || window.innerWidth) - 16, roomH = window.innerHeight - (bar ? bar.offsetHeight : 28) - 8;
+    var roomW = (document.documentElement.clientWidth || window.innerWidth) / zf() - 16, roomH = window.innerHeight / zf() - (bar ? bar.offsetHeight : 28) - 8;
     a.el.style.width = Math.min(roomW, Math.round(w + cw)) + "px";
     a.el.style.height = Math.min(roomH, Math.round(h + ch)) + "px";
     desk.place(a.id);
@@ -443,7 +462,7 @@ var ByopopApps = (function () {
   setInterval(function () { if (gameCount()) hush(); }, 1000);
   function hushed(win) { var a = byWin(win); return !!(a && a.hushedNode); }
 
-  return { hushed: hushed, heard: function () { var a = heardApp(); return a ? a.key : null; }, open: open, activated: activated, f6: f6, closed: closed, title: title, fit: fit, room: room, frontGame: frontGame, frontFrame: frontFrame,
+  return { hushed: hushed, heard: function () { var a = heardApp(); return a ? a.key : null; }, open: open, activated: activated, f6: f6, altTab: altTab, closed: closed, title: title, fit: fit, room: room, frontGame: frontGame, frontFrame: frontFrame,
     menuKey: menuKey, fullScreen: function (win) { var a = byWin(win); if (a) fullScreen(a); },
     count: function () { return apps.length; },
     // the address back to the root (a link to #settings and the like, web/index.html)

@@ -26,7 +26,7 @@ public:
 
 public:
 	explicit ShipsScreen(MainMenu* theMenu);        // 0x434ac0
-	virtual ~ShipsScreen();                         // 0x436240
+	virtual ~ShipsScreen();                         // 0x434b60
 
 	virtual void	Draw(Graphics* g) override;     // 0x434bc0
 	virtual void	Update() override;              // 0x436270

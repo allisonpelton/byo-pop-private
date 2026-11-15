@@ -12,7 +12,7 @@ fail=0
 run() {  # <name> <mods: off|on> <drawevery: 0|1>
 	local d="build/fixes/$1"
 	rm -rf "$d"; mkdir -p "$d/user"
-	until python tools/gamecount.py --limit "${GAMELIMIT:-8}" > /dev/null 2>&1; do sleep 20; done
+	until python tools/gamecount.py --limit "${GAMELIMIT:-6}" > /dev/null 2>&1; do sleep 20; done
 	local mods="-nomods" draw=""
 	[ "$2" = on ] && mods="-modsdir=$W/games/atomica/mods"
 	[ "$3" = 1 ] && draw="-drawevery"

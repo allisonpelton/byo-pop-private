@@ -52,7 +52,7 @@ screens, texts, music and sounds, and the loss and regain of the window's focus,
 Checked on 2026-10-31 by comparing, for each of the 42 functions of the exe that call `RandRange`, the sequence of the
 calls' ranges with the port's functions. 34 have a port function with the same sequence; the other eight are the same
 draws through a loop or a helper (the original writes a loop out twice or three times, or draws inline what the port
-does in `Sweeper_Spark` and the power-up's sparks), except `Emitter_Update` (0x40b940), whose many branches were
+does in the power-up's sparks and, until it was taken out, `Sweeper_Spark`), except `Emitter_Update` (0x40b940), whose many branches were
 read by eye against the exe and not yet by a run. One real difference was found and fixed: a random board's half
 width and height were drawn from 3 to 10 and 2 to 6 where the exe draws 2 to 10 and 1 to 6, so random boards
 differed. The frozen baseline of the port is in `tools/check.sh waterbugs` (the state lines and the hashes of three
@@ -110,7 +110,7 @@ None of these shows in play with the mods off; `GAME_NOTES.md` has the detail.
   branches on it, the "buy now" and website buttons with the shortcut reader and the URL opened at the window's closing, the
   host's `OpenURL`. The save file keeps the trial clock's four bytes (3600000, as the registered game leaves them) so a file of
   the original and a file of the port stay interchangeable. The nag screens (levels 8 to 10) are parsed and never visited.
-- **The mods are loaded.** The host reads a mods folder (`FixOn`, `Sys_FixOn`) for the fixes mod: `steadyClock` (the game steps
+- **The mods are loaded.** The host reads a mods folder (`Platform::FixOn`, `Sys_FixOn`) for the fixes mod: `steadyClock` (the game steps
   10 ms for each update of the framework instead of the machine's clock) and `easyLabel` (the name of the easiest difficulty).
   With no mod the game is the original and the baseline is unchanged.
 - **The focus pauses the game in a real-input run and on the page.** `IsActive()` followed the test run, which kept the game

@@ -1,0 +1,23 @@
+# Tour: three more players, the player list and the delete box with the current player in the middle of the registry's order
+# (the coverage check: the delete box lists the players in the registry's order, the choice's box puts the current one first)
+3100 click 320 447
+3150 type Test
+3180 key Return
+3300 click 326 93
+3350 click 248 309
+3400 type Ann
+3410 key Return
+3500 click 326 93
+3550 click 248 309
+3600 type Cat
+3610 key Return
+3700 click 326 93
+3750 click 248 309
+3800 type Bob
+3810 key Return
+3900 click 326 93
+3940 shot v01_list
+3950 click 390 309
+3990 shot v02_deletewho
+4000 click 307 263
+4020 shot v03_selected

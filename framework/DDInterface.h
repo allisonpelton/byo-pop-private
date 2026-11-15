@@ -61,6 +61,11 @@ public:
 	bool mCan3D;  // port: the renderer is hardware accelerated (what mIs3D is before a game switches 3D off)
 	bool mIsWindowed;
 	bool mVSync;
+	// port: the pace of the drawing on a renderer that no vertical blank holds (SDL's software renderer); see FrameHeldByPace
+	double mPaceIntervalMs;   // the display's refresh interval, 0 when the renderer is held by vsync (no pace)
+	double mPaceNextMs;       // the earliest time of the next frame, in ms from mPaceOriginMs
+	unsigned int mPaceOriginMs;
+	bool mPaceStarted;
 	bool mPixelPerfect;  // nearest filtering for unscaled 1x blits when the screen is scaled (default true)
 	int mFrameCount;
 
@@ -113,6 +118,11 @@ public:
 	// With mSoftwareStretch: a fast stretch steps its column before it samples (texel (srcX * 65536 + (i + 1) * step) >> 16),
 	// as 1.5's DDImage::StretchBlt does (AstroPop's 0x4c68c0; Bejeweled Twist's 0x41a3e0 samples first). Off by default.
 	bool mFastStretchPreAdd;
+	// With mSoftwareStretch: a fast stretch samples each pixel's centre exactly (texel srcX + (2i + 1) * srcWidth /
+	// (2 * destWidth), and the same for rows), as SDL's nearest filter samples it on the GPU path (16.16 steps from half a
+	// step in fall a column short at some widths). A software screen (SoftwareScreenDisplay) sets it, so that a port's stretches keep the columns the GPU path
+	// gave them; Dynomite's original samples so (its DDImage::StretchBlt, 0x473870). Off by default.
+	bool mFastStretchCentre;
 
 	// The software transforms (off by default; set with mSoftwareStretch by a game whose original drew its screen in
 	// software, as Bejeweled Twist does in 2D). The second piece of the software 2D path: DDImage's BltRotated,
@@ -194,14 +204,31 @@ public:
 	virtual int Init(SDL_Window* theWindow, bool vsync);
 	virtual void Cleanup();
 	virtual void UpdateDisplaySize();
+	// The renderer's name as SDL reports it (direct3d11, direct3d, opengl, software...), for the display line SexyAppBase::LogDisplay logs
+	virtual std::string RendererName() const;
 
 	// Frees every cached texture and the screen texture; they are recreated on demand. Call on
 	// SDL_RENDER_DEVICE_RESET.
 	virtual void ReleaseTextures();
 
+	// The window's pixels may be lost or not the screen's any more (an expose, a restore from minimised, a size change): a
+	// display that keeps what it shows between frames (SurfaceDisplay) shows the whole screen at the next frame. Here nothing:
+	// every frame is drawn whole.
+	virtual void ScreenInvalidated() {}
+
 	// Frame
 	virtual void BeginFrame();
 	virtual void Present();
+	// port: SDL's software renderer is held by no vertical blank, so the loop draws as often as it has time: every update (100 a
+	// second in Bejeweled 2), far more than a display shows. True when a frame drawn at theNowMs (SexyAppBase's millisecond clock) would
+	// come sooner than the display's refresh rate allows; false when it is due, and the next one is set one interval on (or from now,
+	// when the frames take longer than that). A renderer held by vsync (a GPU's) is never held here.
+	bool FrameHeldByPace(unsigned int theNowMs);
+
+	// port: -presentlog=<file>, a test option: the time of every present and the length of its call, written when the app ends
+	// (docs/TEST_COMMANDS.md, "The present log"). Native only.
+	static void StartPresentLog(const std::string& theFileName);
+	static void WritePresentLog();
 
 	// Converts window coordinates (as reported by SDL mouse events) to logical screen coordinates.
 	virtual void WindowToLogical(int theWindowX, int theWindowY, int* theX, int* theY);
@@ -214,6 +241,12 @@ public:
 	// DDImage::Check3D's answer for a destination: whether a draw onto theImage goes through this display (after
 	// binding it) rather than the software blitters. Here only the screen does.
 	virtual bool CheckDestination(DDImage* theImage);
+	// Whether the screen image's own bits are the screen, drawn by the software blitters (SoftwareScreenDisplay): its
+	// GetBits then gives them as they are instead of reading the display back. Not here: the screen is the renderer's.
+	virtual bool ScreenOnCPU() const { return false; }
+	// A draw by the software blitters onto the screen image covered (at most) theRect, in the screen's pixels and not yet
+	// clipped to it (DDImage's software branches): a software screen shows only what was drawn. Nothing here.
+	virtual void ScreenDrawn(const Rect& theRect) {}
 
 	// GPU drawing onto the screen (logical coordinates). theClipRect may be NULL.
 	virtual void FillRect(const Rect& theRect, const Color& theColor, int theDrawMode, const Rect* theClipRect);

@@ -182,7 +182,7 @@ void HelpScreen::Update()
 			if (mState == STATE_SLIDING_IN)
 				mState = STATE_SHOWN;
 			else
-				mApp->KillDialog(40);
+				mApp->KillDialog(DIALOG_HELP);
 		}
 
 		int anOffset = (int)mApp->ScaleNum(mSlide.GetOutVal(), 0.0);

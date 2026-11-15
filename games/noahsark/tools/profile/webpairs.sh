@@ -15,7 +15,7 @@ mkdir -p build/perf2/res
 run() {  # <label> <js> <n>
 	local d="build/perf2/webrun_$1_$3"
 	rm -rf "$d"; mkdir -p "$d"
-	until python -I tools/gamecount.py --limit 3 > /dev/null; do sleep 15; done
+	until python -I tools/gamecount.py --limit 6 > /dev/null; do sleep 15; done
 	local t0=$(date +%s.%N)
 	(cd "$d" && timeout 900 "$NODE" "$WASMRUN" game "$2" -gamedir="$GAMEDIR" -userdir=user -fast -seed=1 -autoplay=1 -autoplaymode=action \
 		-autoplaycap=20000 -autoplaylog=log.txt > out.txt 2>&1)

@@ -6,7 +6,8 @@ instructions before and after.
     python tools/objsnap.py cmp <game> <file.json>     after it (and a rebuild): the objects and functions that differ
     python tools/objsnap.py --selftest                 the comparison's own rules on small cases
 
-A snapshot holds, for each object file under build/native/games/<game> (--build picks another build folder), its
+A snapshot holds, for each object file under build/native/games/<game> (--build picks another build folder), and under
+build/native/engines/<name> for each shared engine (docs/ENGINES.md) that the game's CMakeLists.txt names, its
 functions in order as hashes of their instructions, a hash of its data, and its section sizes:
 
 - the instructions are `llvm-objdump -d -r` with the symbol names taken out, so each line keeps its address, bytes and
@@ -76,7 +77,16 @@ def snap_object(path):
 def snapshot(game, build):
     paths = glob.glob(os.path.join(build, "games", game, "CMakeFiles", "*", "**", "*.obj"), recursive=True)
     paths = sorted(p.replace("\\", "/") for p in paths if "CompilerId" not in p)
-    return {p.split("CMakeFiles/")[1]: snap_object(p) for p in paths}
+    snap = {p.split("CMakeFiles/")[1]: snap_object(p) for p in paths}
+    repo = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    cmake = os.path.join(repo, "games", game, "CMakeLists.txt")
+    text = open(cmake, encoding="utf-8").read() if os.path.isfile(cmake) else ""
+    for engine in sorted(os.listdir(os.path.join(repo, "engines"))) if os.path.isdir(os.path.join(repo, "engines")) else []:
+        if re.search(r"\b%s\b" % re.escape(engine), text):
+            found = glob.glob(os.path.join(build, "engines", engine, "CMakeFiles", "*", "**", "*.obj"), recursive=True)
+            for p in sorted(p.replace("\\", "/") for p in found if "CompilerId" not in p):
+                snap["engines/%s/%s" % (engine, p.split("CMakeFiles/")[1])] = snap_object(p)
+    return snap
 
 
 def differences(old, new):

@@ -11,7 +11,7 @@ NAME="$1"; SCRIPT="$2"; SEED="$3"; shift 3
 H=build/coverage/noahsark/hits; mkdir -p "$H"
 COV="$(cygpath -w "$PWD/build/coverage/noahsark/functions.txt")"
 rm -rf "build/origrun/cov_$NAME"
-until python -I tools/gamecount.py --limit 3 > /dev/null; do sleep 20; done
+until python -I tools/gamecount.py --limit 6 > /dev/null; do sleep 20; done
 bash games/noahsark/tools/run_original.sh "cov_$NAME" "$SCRIPT" "$SEED" --coverage "$COV" "$@"
 cp "build/origrun/cov_$NAME/run.log" "$H/$NAME.log" 2>/dev/null
 cp "build/origrun/cov_$NAME/coverage.txt" "$H/$NAME.txt" || { echo "$NAME: no hits file"; exit 1; }

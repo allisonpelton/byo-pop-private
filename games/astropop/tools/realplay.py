@@ -31,6 +31,8 @@ Options:
   --lose N              after N bot moves the test command `lose`; then the end screen's Continue and Menu
   --profile FILE        a profile file (users/data1.usr) and its registry file (same name, .ini) to start from
   --exe PATH            another build of the port (a frozen baseline)
+  --charge N            the test command `set chargestart N` first: every new board starts with N of the weapon's 18000 charge
+  --mods DIR            -modsdir=DIR (a folder of mods, as games/astropop/mods); without it the run has no mods (-nomods)
   --dir DIR             the run's folder (default build/logs/ap/realplay/<mode>-s<seed>): commands.txt, realinput.txt, game.log,
                         driver.txt (every line sent and its answer), user/ and the shots
   --no-shots            no screenshots
@@ -82,6 +84,8 @@ def main():
     ap.add_argument("--lose", type=int, default=None)
     ap.add_argument("--profile", default=None)
     ap.add_argument("--exe", default=os.path.join(ROOT, "build", "native", "astropop.exe"))
+    ap.add_argument("--charge", type=int, default=None)
+    ap.add_argument("--mods", default=None)
     ap.add_argument("--dir", default=None)
     ap.add_argument("--no-shots", action="store_true")
     a = ap.parse_args()
@@ -99,10 +103,13 @@ def main():
         with open(os.path.join(userdir, "registry.ini"), "w") as f:
             f.write("[SOFTWARE\\PopCap\\AstroPop]\nIs3D=dword:%d\nScreenMode=dword:0\n" % (1 if a.threed else 0))
     ns = argparse.Namespace(dir=out, timeout=180, exe=a.exe, realtime=False,
-                            game_args=["-seed=%d" % a.seed, "-trace", "-userdir=" + userdir])
+                            game_args=["-seed=%d" % a.seed, "-trace", "-userdir=" + userdir] +
+                                      (["-modsdir=" + os.path.abspath(a.mods)] if a.mods else ["-nomods"]))
     record.wait_room()
     game = pbm.Game(ns)
     r = record.Recorder(game)
+    if a.charge is not None:
+        game.send("set chargestart %d" % a.charge)
     seen, notes = [], []
     moves, stop, state = 0, None, {}
 

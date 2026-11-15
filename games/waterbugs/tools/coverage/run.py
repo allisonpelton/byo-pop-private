@@ -23,7 +23,7 @@ COPY = 'C:/byo-og/wbcov'
 
 
 def room():
-    return subprocess.run([sys.executable, '-I', 'tools/gamecount.py', '--limit', '3'], capture_output=True).returncode == 0
+    return subprocess.run([sys.executable, '-I', 'tools/gamecount.py', '--limit', '6'], capture_output=True).returncode == 0
 
 
 def main():

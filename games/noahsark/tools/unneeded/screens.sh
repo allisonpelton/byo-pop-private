@@ -9,7 +9,7 @@ NAME="$1"; EXE="$(cygpath -w "$(cd "$(dirname "$2")" && pwd)/$(basename "$2")")"
 D="build/unneeded/$NAME"
 rm -rf "$D" "build/unneeded/user_$NAME"; mkdir -p "$D"
 python -I games/noahsark/tools/tour.py games/noahsark/tools/unneeded/tour.txt "$D" > /dev/null
-until python -I tools/gamecount.py --limit 3 > /dev/null; do sleep 15; done
+until python -I tools/gamecount.py --limit 6 > /dev/null; do sleep 15; done
 timeout 300 build/native/rundesk.exe "$EXE" -gamedir="$(pwd -W)/assets/noahsark" -userdir="$(pwd -W)/build/unneeded/user_$NAME" -fast -seed=1 \
   -script="$(pwd -W)/$D/port.txt" > "$D/run.log" 2>&1
 echo "$NAME: exit $?, $(ls "$D/port" | wc -l) screenshots"

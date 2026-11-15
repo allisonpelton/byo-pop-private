@@ -1,0 +1,21 @@
+# coverage script (2D, the profile player): the mouse over each of the four mode buttons for 190 updates (the glow), then Quit asked and answered yes at (260,182) (the shutdown timer)
+at 562 shot title
+at 566 move 320 401
+at 568 click 320 401
+at 808 shot menu
+at 811 move 164 105
+at 1000 shot hover_classic
+at 1002 move 480 105
+at 1200 shot hover_action
+at 1202 move 164 317
+at 1400 shot hover_puzzle
+at 1402 move 480 317
+at 1600 shot hover_endless
+at 1602 move 565 428
+at 1604 click 565 428
+at 1700 shot quit_dialog
+at 1702 move 260 182
+at 1704 click 260 182
+at 1760 shot quit_yes
+at 2400 shot end
+quit

@@ -161,7 +161,7 @@ random cell), and it changes nothing in the game. `games/atomica/tools/realplay/
 ## 10. The fixes mod and the fix candidates
 
 `mods/fixes/mod.json` is the one mod `fixes` (`docs/MOD_ROADMAP.md`, "The fixes mod"): a toggle for each fix, on by default on the
-site, off when a test must play as the original does (`-nomods`). The port reads a toggle with `FixEnabled("<id>")`
+site, off when a test must play as the original does (`-nomods`). The port reads a toggle with `Platform::FixOn("<id>")`
 (`Fixes.h`, the mod manager's live value), so the original's behaviour stays in the code as it was and each fix is one branch.
 
 | Toggle | The fault in the original | What the fix does |
@@ -206,29 +206,67 @@ from update 2,310. "The stretch" is its last 2,000 updates, 20 seconds of play a
 port runs without `-fast` and the original on origrun's real clock, its `at` lines following the game's own update counter (the
 app's +0x3e4, 0x4d0044). A run of the original counts only if its title screen went (`game_started`, the pointer at 0x4d00fc):
 the original loads in a thread in real time, so on a busy machine the link is sometimes not up at the click's update, and the run
-then sits on the title, where an update costs almost nothing.
+then sits on the title, where an update costs almost nothing. `tools/profile/paced.sh` is the measurement of the performance target
+(below, "Like for like"): the original paced at 16 ms and the port, turn about, in real time.
 
 **The figure of 2026-11-08 was wrong.** This section used to say that the original needed 2.5 s of processor time from launch to
 update 4,400 without waiting and the port 1.7 s. The original's runs behind that figure had missed the title's click (the check
 above did not exist): of six such runs now, three missed it and used 0.2 to 0.8 s for the stretch, and the three that played used
 19 to 28 s.
 
-**In real time** (six pairs: three from 23:43 on 2026-11-10 and three from 00:07 on 2026-11-11):
+**Like for like: the original paced as a 60 Hz screen paces it (2026-11-11, the target in `docs/COORDINATION.md`).** What this section
+gave on 2026-11-10 and 11 (the original at 12.9 to 28.2 s of processor time in the stretch against the port's 4.5 to 5.8 s, and the
+original at 30 to 85 updates a second) was not a comparison of like with like, for two reasons. The original's frame loop never waits on the hidden
+desktop: its blit to the screen (0x45f820) calls DirectDraw's WaitForVerticalBlank (0x45f8b4, when the DirectDraw object's flag at
++0xc5c is set, and it is), which returns at once there, so the original draws a frame in every pass that finds itself ahead of
+schedule, one a game update: 98.4 frames a second and 16.9 G cycles in the stretch in one run, where the paced original draws about
+45 frames a second and uses about half of that. And the processor time was the scheduler's charge by 15.6 ms ticks, not
+the cycles the threads ran. The comparison now is this.
+
+- *The same stretch of play:* `tools/identical/s2.txt` cut at update 4,400, the game started by the title's click at update 2,310;
+  the stretch is the last 2,000 updates, in real time on both sides (the port without `-fast`, with `-script` and without
+  `-commands`, so no live command file is polled).
+- *The original paced:* the copy's patch list gets one line (`PERF_PACED=16` in `tools/profile/perf.py`, the line `PACED_PATCH`
+  there): the 12 bytes at 0x45f8ab that call WaitForVerticalBlank become `push 16; call Sleep` and four nops, so a frame waits 16 ms
+  as it would for a 60 Hz screen's blank. The paced original holds 99.8 to 100.1 updates a second in the stretch (the seven runs
+  whose last update the tool's sampler saw; in the first three the game quit before a sample read it, which the tool now allows
+  for, and their cycles are the stretch's up to a few tenths of a second) and draws 43.6 to 47.1 frames a second. Its `at` lines now follow the updates the loop counts at +0x3ec
+  (0x4d004c), not the sleeps at +0x3e4: the two differ by one update on the virtual clock from the first update on (checked at
+  updates 1,000 to 4,399), so the script's lines go one update earlier (`PERF_COUNTER_SHIFT=1`), and the paced loop, which is behind
+  after each long draw, hardly bumps the sleep count.
+- *Processor time* is the cycle counts of the process's threads, summed (`QueryThreadCycleTime`, read every 0.1 s, a thread's
+  handle kept so the cycles of one that ends still count); `GetProcessTimes` is not used for the stretch.
+- *Alternating runs:* ten pairs, the paced original and the port turn about, the whole loop on one performance core of its own
+  (`tools/pincore.py`), `tools/profile/paced.sh`. Two to six game processes of other sessions ran during the runs.
+
+| Stretch of 20 s | Original, paced at 16 ms | Port |
+| --- | --- | --- |
+| Processor time, giga-cycles, the ten runs in order | 7.97, 10.43, 9.68, 8.59, 9.90, 8.27, 8.62, 8.32, 8.19 and 8.87 | 6.89, 6.80, 8.33, 7.99, 8.79, 7.13, 7.23, 7.96, 7.84 and 6.94 |
+| Median | 8.6 (about 20% of a core at the nominal 2.11 GHz) | 7.5 (about 18% of a core) |
+| The port's cycles over the original's, pair by pair | 0.86, 0.65, 0.86, 0.93, 0.89, 0.86, 0.84, 0.96, 0.96, 0.78: the port is under in all ten, the median 0.86 | |
+| By thread | the game's thread 8.0 to 9.6; `fmod.dll`, the mixer, 0.21 to 0.26 | the game's thread 4.8 to 6.3; `nvwgf2um.dll`, the graphics driver's thread in the process, 1.6 to 2.3; the audio thread (SDL's silent driver) 0.11 to 0.19 |
+| Updates a second | 99.8 to 100.1 | 97.6 to 99.8 |
+| Frames a second | 43.6 to 47.1 | 55 to 59 over the whole run (2,464 to 2,644 draws in the 4,401 updates) |
+| Peak private bytes | 63.7 to 66.8 MB | 166 to 183 MB |
+
+Sound is counted the same way on both sides: the original's FMOD mixes on its own thread, through the stand-in's DirectSound that
+accepts and logs the calls, and the port's mixer runs on its audio thread under SDL's silent driver. Both are inside the totals
+(1 to 3% of either), and neither changes the order of any pair if left out. The port is under the paced original, so this
+measurement meets the target. The spread is wide (the machine was 35 to 78% busy), which is why the medians are of ten alternating
+pairs. A frame costs the original about 8 M cycles (the unpaced run's extra 1,050 frames cost 8.3 G more than the paced median),
+so its frames are most of what it spends, and the port draws about as often as a 60 Hz screen would. The port's own
+share is the game's thread (4.8 to 5.6 G in the runs where its start was resolved) and the driver's thread (about 2 G).
+
+**Loading and memory, in real time** (six pairs: three from 23:43 on 2026-11-10 and three from 00:07 on 2026-11-11; the original
+unpaced, which does not change them; the processor-time rows of these runs are dropped for the reasons above):
 
 | | Original | Port |
 | --- | --- | --- |
-| Processor time in the stretch | 12.9, 19.8, 28.2, 16.1, 20.3 and 17.0 s | 5.8, 5.4, 5.1, 5.0, 4.5 and 5.2 s |
-| Updates a second it held in the stretch | 85, 44, 30, 54, 52 and 67 | 98.1, 97.5, 98.8, 98.6, 99.5 and 98.3 |
-| Processor time, whole run | 17.7 to 35.4 s in 53 to 104 s | 7.0 to 8.7 s in 45 to 48 s |
 | Peak private bytes / working set | 65 to 66 / 78 to 79 MB | 163 to 168 / 161 to 173 MB |
 | Private bytes / working set at the title's play link | 14.4 to 15.3 / 26 MB | 90 / 90 MB |
-| Processor time to the play link | 0.34 to 0.58 s | 1.14 to 1.25 s (3.1 in one run) |
 | Launch to the play link | 0.8 to 8.8 s (18 runs) | 1.7 to 9.4 s (6 runs) |
 
-The port plays the stretch on about a quarter of a core and holds the game's pace. The original took between two thirds of a core
-and all of it, and did not hold 100 updates a second on this machine as it was: the busier the machine, the more processor time
-each of its updates cost and the further it fell behind (30 updates a second in the worst run). Why the original costs that much was
-not looked for. Loading takes the two about as long, and the spread between runs is far larger than any difference (on 2026-11-08,
+Loading takes the two about as long, and the spread between runs is far larger than any difference (on 2026-11-08,
 a calmer moment, the medians were 1.07 s for the original and 1.20 s for the port); the port uses about 0.7 s more processor time
 to get there, since it draws the atoms' frames at every start where the original reads them from `images\cached\Atoms.WAD`
 (section 3). Memory is the port's weak figure, 2.5 times the original's in play and six times at the title; where it goes is below.

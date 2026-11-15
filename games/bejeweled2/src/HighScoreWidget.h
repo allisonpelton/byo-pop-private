@@ -39,7 +39,6 @@ public:
 
 public:
 	WinDMApp*		mApp;               // +0x8c (the ButtonListener subobject is at +0x88)
-	int				mUnused90;          // +0x90 set to the negative height by Resize, never read
 	PodButton*		mBackButton;        // +0x94 id 0
 	PodButton*		mActionButton;      // +0x98 id 1 (play again), or id 2 (reset the scores) when no game is open
 	int				mSlideDelay;        // +0x9c updates before the panel slides in
@@ -71,7 +70,6 @@ public:
 
 	virtual void	ProcessScoreStuff();                            // 0x5c385d (slot 70, through the thunk at 0x5c38f2)
 	virtual void	NameEntered(const std::string& theName);        // 0x5c5029 (slot 71)
-	void			SetHighScoreName(const std::string& theName) { NameEntered(theName); }  // (what the dialog for a new high score calls)
 
 	void			ResetHighScores();                              // 0x5c38f7
 	void			ReadFromFile();                                 // 0x5c3add

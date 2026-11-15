@@ -12,7 +12,7 @@
 // saved with two bots, before the third, reads with the third absent).
 //
 // BotGame is a headless model of Classic's rules: Board::Submit, Scramble, Refill, BurnTiles, RemovePieces,
-// AwardSpecialTile, PickBonusWord and LevelUp, drawing from its copy of gGameRand in the game's order, and of
+// GenerateSuperBonusTiles, GetNextBonusWord and LevelUp, drawing from its copy of gGameRand in the game's order, and of
 // the tile pass of Board::Update as far as it decides when burning tiles are gone (each tick in which tiles
 // burn away refills the board once). A move is made with every tile at rest, as the solver and the -autoplay
 // bot wait for; the level's summary is left once the tiles rest. The -autoplay bot checks the model against

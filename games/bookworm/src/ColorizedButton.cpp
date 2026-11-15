@@ -35,22 +35,6 @@ void ColorizedButton::SetImageColors(int theColors[][4], int theNumColors)
 	MarkDirty();
 }
 
-// 0x41be50
-void ColorizedButton::SetImageColors(int theColors[][3], int theNumColors)
-{
-	mImageColors.clear();
-	for (int i = 0; i < theNumColors; i++)
-		mImageColors.push_back(Color(theColors[i][0], theColors[i][1], theColors[i][2]));
-	MarkDirty();
-}
-
-// 0x41b510 (no bounds check)
-void ColorizedButton::SetImageColor(int theIdx, const Color& theColor)
-{
-	mImageColors[theIdx] = theColor;
-	MarkDirty();
-}
-
 // 0x41b550 (no bounds check)
 const Color& ColorizedButton::GetImageColor(int theIdx)
 {

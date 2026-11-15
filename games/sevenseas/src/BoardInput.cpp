@@ -13,6 +13,7 @@
 using namespace Sexy;
 
 // the heading (0 up, 4 right, 8 down, 0xc left) of a step of (dx, dy)
+// port: a helper; the original writes it out inline where it is used
 static int StepHeadingOf(int theDX, int theDY)
 {
 	unsigned int aHeading = 0;
@@ -185,7 +186,7 @@ void Board::MouseDown(int x, int y, int theClickCount)
 					SpawnGhost(aCol, aRow);
 					mBonusState = 2;
 					mBonusTick2 = mUpdateCnt;
-					mApp->PlaySample(0x16);
+					mApp->PlaySample(SOUND_BONUSLOSE);
 				}
 				else
 				{

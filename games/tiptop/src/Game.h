@@ -16,6 +16,10 @@ namespace tiptop
 
 struct Handler;
 
+// The size of the screen the game draws on
+constexpr int GAME_WIDTH = 0x280;
+constexpr int GAME_HEIGHT = 0x1e0;
+
 // --- shared state ---
 extern lowos::Sound* gSounds[0x2e];     // 0x488364.. the sounds of group 2, by id (scattered in the original)
 extern uint16_t gSoundVolume;           // 0x488708
@@ -32,7 +36,6 @@ extern uint32_t gGameMode;              // 0x488700 0 normal, 1 time trial, 2 re
 extern char gBonusRound;                // 0x488704
 extern char gBusy;                      // 0x4884a0 animations that hold the game (a CounterProc counter)
 extern char gModal;                     // 0x4886f4 a confirmation dialog is open (a CounterProc counter)
-extern char gModal2;                    // 0x4886f8
 extern char gHighScoreEntered;          // 0x488498
 extern uint8_t gPauseFlags;             // 0x4886fc 1 paused by the player, 2 the window is inactive
 extern uint8_t gParticleCount;          // 0x489b54 particles on the screen (at most 0xc8 are started)

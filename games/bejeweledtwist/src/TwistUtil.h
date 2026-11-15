@@ -59,7 +59,4 @@ void SetFontLayerColor(Font* theFont, const std::string& theName, const Color& t
 // all if it has none
 Color GetFontLayerColor(Font* theFont, const std::string& theName);
 
-// 0x783340: the C runtime's qsort (Visual Studio 2005), so that equal elements end in the original's order
-void CrtQsort(void* theBase, size_t theNum, size_t theWidth, int (*theCompare)(const void*, const void*));
-
 }  // namespace Sexy

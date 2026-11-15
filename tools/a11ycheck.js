@@ -30,7 +30,10 @@
 //   contrast                       the page's colour tokens, in both themes, against WCAG AA (4.5:1 text, 3:1 large text and
 //                                  the focus ring)
 // In a browser the same checks run on the live page, which includes the markup the page's scripts built:
-//   A11yCheck.checkHtml(document.documentElement.outerHTML, { name: "live" })
+//   A11yCheck.checkHtml(document.documentElement.outerHTML, { name: "live", live: true, kind: "index" })
+// live: true leaves out what is hidden at that moment (a closed window, a page of a wizard not shown); kind ("index", "game" or
+// "copyright") names the page's kind instead of guessing it (a canvas makes a game page). tools/web/deskcheck.js runs it so on
+// the front page's desktop, with each window open in turn
 "use strict";
 
 // ---------- the HTML reader ----------
@@ -53,7 +56,9 @@ function decode(t) {
 // Returns { root, all } : root is a node {tag: "#root", children}, all the elements in document order
 function parse(html) {
   var root = { type: "el", tag: "#root", attrs: {}, children: [], parent: null, line: 1 }, all = [], stack = [root], i = 0, n = html.length;
-  function line(pos) { var c = 1; for (var k = 0; k < pos; k++) if (html.charCodeAt(k) === 10) c++; return c; }
+  // the line at pos, counted on from the last element's (the elements come in order), not from the start each time
+  var lineAt = 0, lineNo = 1;
+  function line(pos) { for (; lineAt < pos; lineAt++) if (html.charCodeAt(lineAt) === 10) lineNo++; return lineNo; }
   function top() { return stack[stack.length - 1]; }
   function addText(t) { if (t) top().children.push({ type: "text", text: t, parent: top() }); }
   function closeTo(tag) {
@@ -179,7 +184,10 @@ function textOf(node, o) {
 function styleText(doc) {
   return doc.byTag("style").map(function (st) { return st.children.map(function (c) { return c.text || ""; }).join(""); }).join("\n");
 }
-function Doc(html) {
+// opts.live (a live page's markup, as the page's scripts left it at that moment): what is hidden now (the hidden attribute,
+// aria-hidden, an inline display:none, a <dialog> that is not open) is left out of the checks, since the page shows it only
+// once its scripts have filled it; it can still be referred to by id (aria-labelledby may name hidden text)
+function Doc(html, opts) {
   var p = parse(html);
   this.root = p.root;
   this.all = p.all;
@@ -191,6 +199,16 @@ function Doc(html) {
     if (id === null || id === "") return;
     if (self.ids[id]) self.dupes.push([id, self.ids[id], e]); else self.ids[id] = e;
   });
+  if (opts && opts.live) {
+    var shown = [];
+    (function prune(node) {
+      node.children = node.children.filter(function (c) {
+        return c.type !== "el" || !(has(c, "hidden") || attr(c, "aria-hidden") === "true" || inlineHidden(c) || (c.tag === "dialog" && !has(c, "open")));
+      });
+      node.children.forEach(function (c) { if (c.type === "el") { shown.push(c); prune(c); } });
+    })(this.root);
+    this.all = shown;
+  }
   this.labels = this.all.filter(function (e) { return e.tag === "label"; });
 }
 Doc.prototype.byTag = function (tag) { return this.all.filter(function (e) { return e.tag === tag; }); };
@@ -426,7 +444,9 @@ Report.prototype.warn = function (rule, msg) { this.warnings.push(rule + ": " + 
 function checkDoc(doc, report, opts) {
   var html = doc.byTag("html")[0];
   var isGame = doc.all.some(function (e) { return e.tag === "canvas"; });
-  var kind = isGame ? "game" : (doc.all.some(function (e) { return e.tag === "ul" && classes(e).indexOf("games") >= 0; }) ? "index" : "copyright");
+  // (opts.kind names it: the front page's music has canvases of its own)
+  var kind = opts.kind || (isGame ? "game" : (doc.all.some(function (e) { return e.tag === "ul" && classes(e).indexOf("games") >= 0; }) ? "index" : "copyright"));
+  isGame = kind === "game";
   report.kind = kind;
 
   // page
@@ -553,7 +573,9 @@ function checkDoc(doc, report, opts) {
       }
       return;
     }
-    if (["button", "link", "checkbox", "switch", "tab", "menuitem"].indexOf(role(e)) >= 0 && !isFocusable(e)) report.error("aria-role", where(e) + " has role " + role(e) + " but cannot take the focus");
+    // a menu's items take the focus by the arrow keys too (the ARIA menu pattern): tabindex="-1" on each is right
+    var managed = role(e) === "menuitem" && ti !== null && ti.trim() === "-1" && !has(e, "hidden") && !has(e, "disabled");
+    if (["button", "link", "checkbox", "switch", "tab", "menuitem"].indexOf(role(e)) >= 0 && !isFocusable(e) && !managed) report.error("aria-role", where(e) + " has role " + role(e) + " but cannot take the focus");
   });
 
   // aria values
@@ -681,7 +703,7 @@ function checkDoc(doc, report, opts) {
 function checkHtml(html, opts) {
   opts = opts || {};
   var report = new Report(opts.name || "page");
-  checkDoc(new Doc(html), report, opts);
+  checkDoc(new Doc(html, opts), report, opts);
   return report;
 }
 
@@ -712,6 +734,8 @@ function selftest() {
       '<button type="button" role="tab" aria-selected="false" tabindex="-1">B</button></div></main>'), null, ""],
     ["a tab that is a bare div", clean.replace("</main>", '<div role="tablist" aria-label="t"><button type="button" role="tab" aria-selected="true">A</button>' +
       '<div role="tab" aria-selected="false">B</div></div></main>'), null, "aria-role:"],
+    ["a menu whose items take the focus by the arrow keys", clean.replace("</main>", '<div role="menu" aria-label="m"><button type="button" role="menuitem" tabindex="-1">A</button>' +
+      '<button type="button" role="menuitem" tabindex="-1">B</button></div></main>'), null, ""],
     ["tabs that cannot take the focus", clean.replace("</main>", '<div role="tablist" aria-label="t"><button type="button" role="tab" tabindex="-1">A</button></div></main>'), null, "aria-role:"],
     ["a link to a new tab that does not say so", clean.replace("</main>", '<a href="d.html" target="_blank">D</a></main>'), null, "new-tab:"],
     ["a list with a stray child", clean.replace("</li></ul>", "</li><div>x</div></ul>"), null, "list:"],

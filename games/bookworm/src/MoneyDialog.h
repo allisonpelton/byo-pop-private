@@ -22,7 +22,7 @@ class MoneyDialog : public Dialog2004
 public:
 	BookWormApp*	mApp;                   // +0x110 ctor arg; never read by BookWorm code (subclasses keep a copy)
 	// +0x114 pad
-	double			mUnusedLightPhase;      // +0x118 Big Money's mLightPhase: never initialised or used
+	// +0x118 Big Money's mLightPhase: never initialised or used in BookWorm: not ported
 
 public:
 	MoneyDialog(BookWormApp* theApp, Image* theComponentImage, Image* theButtonComponentImage, int theId,

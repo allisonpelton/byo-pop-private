@@ -1,0 +1,22 @@
+# coverage script (2D, PROFILE=build/logs/bej2/save10: a player with a saved Classic game): "Load Game?" answered CANCEL (back to the menu),
+# then Classic again and NO (a new game that deletes the saved one), a few clicks on the board, then the window closed
+at 566 move 320 401
+at 568 click 320 401
+at 808 shot menu
+at 811 move 164 105
+at 813 click 164 105
+at 900 shot dialog
+at 902 move 320 235
+at 904 click 320 235
+at 1000 shot menu_again
+at 1002 move 164 105
+at 1004 click 164 105
+at 1100 move 382 199
+at 1102 click 382 199
+at 1500 shot board
+at 1502 move 300 300
+at 1504 click 300 300
+at 1600 move 380 300
+at 1602 click 380 300
+at 2000 shot end
+quit

@@ -19,7 +19,6 @@ class CheckpointDialog : public Text2004<Dialog>
 {
 public:
 	AstroPopApp*	mApp;       // +0x110
-	int				m114;       // +0x114 (0)
 	FrameAnim		mAnim;      // +0x118 the gates' animation (one frame: the gates stand still)
 	int				mLevel;     // +0x158 the level the right gate starts at (set by ShowCheckpointDialog)
 

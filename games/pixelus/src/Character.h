@@ -7,14 +7,13 @@
 // sequences of poses (a table at 0x5105e0: a pose and how long it stays, in half-updates) and the figure of Jupiter (9)
 // blinks. All of this is moved by draws of the two generators, which is what makes the draws of a whole screen add up:
 // the generator of the application (the original's `*(app + 0x670)`) and the game's own (0x579360).
-//
-// port: the speech bubble's text and picture are not drawn (its state, which draws numbers, is kept).
 
 namespace Sexy
 {
 
 class PixelusApp;
 class Widget;
+class Graphics;
 
 // 0x42c4a0: the hint that comes up beside a temple's god
 class SpeechBubble
@@ -35,6 +34,8 @@ public:
 	SpeechBubble(PixelusApp* theApp, int theGod, Widget* theOwner, int theMode);
 	void			Update();		// 0x42c590
 	void			Hurry();		// 0x42c550
+	void			Draw(Graphics* g);		// 0x42c930
+	void			DrawText(Graphics* g, int theTip, int theAlpha);	// 0x42c660
 };
 
 class Character

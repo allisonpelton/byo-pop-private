@@ -45,7 +45,7 @@ const char* ScreenName(AstroPopApp* theApp)
 {
 	if (theApp->mBoard != NULL)
 		return "game";
-	if (theApp->mScreen650 != NULL)
+	if (theApp->mCharSelector != NULL)
 		return "screen";
 	if (theApp->mMainMenu != NULL && theApp->mMainMenu->mWidgetManager != NULL)
 		return "menu";
@@ -65,6 +65,24 @@ void EnsureUser(AstroPopApp* theApp)
 	theApp->ValidateUser();
 }
 
+// A game that a test command starts while the previous game's full-screen help or a box of its is still up (the original's player
+// cannot: they are modal): they go first, the help with its own Continue and each box killed as its button would (the boxes of the
+// game are ids 100 to 0x7c: the upgrade box of the warp screen, the weapon's, the checkpoint's, how to play, options, leave).
+// Left up, they stay under the new Board, which is added over them, so that they are not drawn, take no click (the help also holds
+// the Board's updates and input while mHelpScreen is set) and the bot answers them for good ("help", "upgrade", "power": its click
+// reaches the Board, not the button)
+void CloseOldGameScreens(AstroPopApp* theApp)
+{
+	if (theApp->mHelpScreen != NULL)
+		theApp->CloseFullScreenHelp();
+	for (int anId = 100; anId <= 0x7c; anId++)
+	{
+		if (theApp->GetDialog(anId) != NULL)
+			theApp->KillDialog(anId);
+	}
+	theApp->mOpenDialogs = 0;
+}
+
 // The title screen and the selector both go before a game starts: the title's button is pressed (the descriptor and the
 // profile load), and a folder with no player gets the one the new-player dialog would make
 void LeaveMenus(AstroPopApp* theApp)
@@ -73,6 +91,7 @@ void LeaveMenus(AstroPopApp* theApp)
 		theApp->OnClickToPlay();
 	EnsureUser(theApp);
 	theApp->CloseMainMenu();
+	CloseOldGameScreens(theApp);
 }
 
 // The words of a command's arguments as numbers (missing ones stay as they are)
@@ -108,7 +127,7 @@ void AstroPopApp::TraceUpdate()
 	if (mBoard != NULL)
 	{
 		aValue[0] = mBoard->mScore;
-		aValue[1] = mBoard->m1940;
+		aValue[1] = mBoard->mLevelNumber;
 	}
 	gGameRand.GetState(aState, &anIndex);
 	aValue[2] = anIndex;
@@ -142,9 +161,9 @@ bool AstroPopApp::HandleScriptCommand(const ScriptCommand& theCommand)
 		if (mBoard != NULL)
 		{
 			aLine += StrFormat(",\"mode\":%d,\"level\":%d,\"score\":%d,\"stage\":%d,\"updates\":%d",
-				mBoard->mMode, mBoard->m1940, mBoard->mScore, mBoard->mField193C, mBoard->mUpdateCnt);
-			aLine += StrFormat(",\"type\":%d,\"paused\":%d,\"over\":%d,\"hand\":%d", mBoard->m1a60, mBoard->m1924,
-				mBoard->mFlag8E8 ? 1 : 0, (int) mBoard->m70.size());
+				mBoard->mMode, mBoard->mLevelNumber, mBoard->mScore, mBoard->mStageNumber, mBoard->mUpdateCnt);
+			aLine += StrFormat(",\"type\":%d,\"paused\":%d,\"over\":%d,\"hand\":%d", mBoard->mGameType, mBoard->mPauseCount,
+				mBoard->mGameOver ? 1 : 0, (int) mBoard->mHeldBricks.size());
 			aLine += StrFormat(",\"busy\":%d", mBoard->BotBusyReason());
 			aLine += ",\"field\":" + mBoard->DescribeField();
 		}
@@ -209,13 +228,14 @@ bool AstroPopApp::HandleScriptCommand(const ScriptCommand& theCommand)
 	{
 		int aLevel = 0;
 		ReadInts(theCommand.mArgs, &aLevel, 1);
-		if (mBoard == NULL || mBoard->m1a60 != 1)
+		if (mBoard == NULL || mBoard->mGameType != 1)
 			ReplyError(theCommand, "needs a classic game");
 		else if (aLevel < 1)
 			ReplyError(theCommand, "level needs a number from 1");
 		else
 		{
 			EnsureUser(this);
+			CloseOldGameScreens(this);
 			StartClassicGame(aLevel, false, true);
 			ReplyOK(theCommand);
 		}
@@ -280,11 +300,11 @@ bool AstroPopApp::HandleScriptCommand(const ScriptCommand& theCommand)
 		if (aName == "score")
 			mBoard->mScore = aValue;
 		else if (aName == "level")
-			mBoard->m1940 = aValue;
+			mBoard->mLevelNumber = aValue;
 		else if (aName == "stage")
-			mBoard->mField193C = aValue;
+			mBoard->mStageNumber = aValue;
 		else if (aName == "charge")
-			mBoard->m1bd8 = aRest.empty() ? mBoard->m1bdc : (float) aValue;   // the weapon's charge: full without a number
+			mBoard->mWeaponCharge = aRest.empty() ? mBoard->mWeaponChargeMax : (float) aValue;   // the weapon's charge: full without a number
 		else if (aName == "stories")
 		{
 			// the player has seen all the stories of the four pilots (the profile's counts, 0x4b .. 0x4e: the last story of
@@ -307,13 +327,20 @@ bool AstroPopApp::HandleScriptCommand(const ScriptCommand& theCommand)
 
 	if (theCommand.mCommand == "win")
 	{
-		// the level is complete (a classic game); the second type of game has no win: it ends
+		// the level in play is complete (a classic game); the second type of game has no win: it ends
 		if (mBoard == NULL)
 			ReplyError(theCommand, "needs a game");
-		else if (mBoard->m1a60 == 1)
+		else if (mBoard->mGameType == 1)
 		{
-			mBoard->LevelComplete();
-			ReplyOK(theCommand);
+			// only a level in play is won (Board::WinBlockedReason): a driver that retries until OK plays on until it is
+			const char* aBlocked = mBoard->WinBlockedReason();
+			if (aBlocked != NULL)
+				ReplyError(theCommand, std::string("the level is not in play: ") + aBlocked);
+			else
+			{
+				mBoard->LevelComplete();
+				ReplyOK(theCommand);
+			}
 		}
 		else
 			ReplyError(theCommand, "win needs a classic game (lose ends the other)");

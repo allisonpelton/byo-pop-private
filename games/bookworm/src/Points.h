@@ -1,8 +1,8 @@
 #ifndef __BOOKWORM_POINTS_H__
 #define __BOOKWORM_POINTS_H__
 
-// Points.cpp: floating text widget - the "+N" score popups (Board::AddScorePopup, GoldScore, centred)
-// and the bonus messages (Board::ShowMessage, LockergnomeSmallColor, left-aligned). It has no Update of
+// Points.cpp: floating text widget - the "+N" score popups (Board::AddPoints, GoldScore, centred)
+// and the bonus messages (Board::WriteBonusText, LockergnomeSmallColor, left-aligned). It has no Update of
 // its own: Board::Update keeps them in Board::mPopups, cycles mHue, moves them up 1 px every 2 ticks,
 // decrements mLife and deletes them at 0. The text fades out over the last 10 updates.
 // Original: class Sexy::Points : public Widget, sizeof 0x84, vftable 0x500e0c (47 slots; overrides

@@ -1,0 +1,11 @@
+# The functions origrun's --count counts in AstroPop Deluxe's original (AstroPopGame.exe), at the boundaries the port's -cyclesplit
+# counts (docs/TEST_COMMANDS.md, "The cycle split"; docs/ORIGRUN.md, "Counting cycles inside the original's functions").
+# A line is: label, address, len=N (the first instructions' length, whole instructions: tools/origrun/prologue.py checks it).
+# The addresses are the framework's virtual functions of the original's SexyApp (re/astropop/bw_match.jsonl names them by
+# Big Money's and BookWorm's copies of the same functions):
+#   update   SexyApp::DoUpdateFrames (vtable slot 8): the script, the widgets' updates, the music's update, one call a tick
+#   draw     SexyApp::DrawDirtyStuff (slot 65), less the present it reaches: the dirty scan and the game's own drawing
+#   present  SexyApp::Redraw (slot 66): the Blt or Flip to the screen
+update   0x4d0450  len=5
+draw     0x4d8760  len=5
+present  0x4da210  len=6

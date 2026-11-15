@@ -1,0 +1,21 @@
+# exploration (portshots.sh): the quit dialog, the scores' reset question
+at 562 shot title
+at 566 move 320 401
+at 568 click 320 401
+at 808 shot menu
+at 811 move 565 428
+at 813 click 565 428
+at 880 shot quit_dlg
+at 890 key 27
+at 950 shot quit_esc
+at 960 move 212 449
+at 962 click 212 449
+at 1040 shot scores
+at 1050 move 561 32
+at 1052 click 561 32
+at 1110 shot reset_dlg
+at 1120 key 27
+at 1180 shot reset_esc
+at 1190 move 78 33
+at 1192 click 78 33
+at 1260 shot back_menu

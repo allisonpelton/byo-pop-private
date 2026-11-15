@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """Shots of the port with the fixes mod off and on at the same updates, to see what each fix changes (games/typershark/mods/fixes).
 
-    python games/typershark/tools/fixshots.py schools [--seed 1]    the board's first 3000 updates every 100: schools of background fish
+    python games/typershark/tools/fixshots.py schools [--seed 1] [--defaults]
+                                                                    the board's first 3000 updates every 100: schools of background fish
+                                                                    (--defaults: the mod's own defaults, `schools` off, so nothing differs)
     python games/typershark/tools/fixshots.py tutor [--lesson N]    a typing tutor lesson played by the typist, a shot every 60 updates
                                                                     (the line placement of a long exercise, the key pictures)
 
@@ -11,6 +13,7 @@ and the pairs that differ are listed with the rectangle of the difference: a fix
 The menu steps are the ones of tools/phase1 (a name typed, the WPM question's No, Adventure, Easy), at the same updates.
 """
 import argparse
+import json
 import os
 import shutil
 import subprocess
@@ -21,6 +24,7 @@ ROOT = os.path.normpath(os.path.join(HERE, "..", "..", ".."))
 EXE = os.path.join(ROOT, "build", "native", "typershark.exe")
 RUNDESK = os.path.join(ROOT, "build", "native", "rundesk.exe")
 FIXTURE = os.path.join(ROOT, "build", "ts-p1", "fixtures", "port-clean")
+DEFAULTS = False                                    # --defaults: the mod's own defaults for the "on" run
 
 
 def make_mods():
@@ -32,7 +36,7 @@ def make_mods():
 
 def wait_room():
     import time
-    while subprocess.run([sys.executable, os.path.join(ROOT, "tools", "gamecount.py"), "--limit", "3"],
+    while subprocess.run([sys.executable, os.path.join(ROOT, "tools", "gamecount.py"), "--limit", "6"],
                          stdout=subprocess.DEVNULL).returncode != 0:
         time.sleep(15)
 
@@ -52,6 +56,12 @@ def run(what, with_mod, script_lines, seed, typist, out_dir):
     args = [RUNDESK, EXE, "-fast", "-seed=%d" % seed, "-userdir=" + ud, "-script=" + script, "-typist=" + os.path.join(out_dir, side + ".typist.txt") + ";" + typist]
     if with_mod:
         args.append("-modsdir=" + make_mods())
+        # every toggle on: `schools` starts off (the fixes mod's rule of 2026-11-11), so the "on" run turns the mod's toggles on itself;
+        # --defaults leaves the mod's settings as mod.json gives them (what a player who changed nothing plays)
+        if not DEFAULTS:
+            manifest = json.load(open(os.path.join(HERE, "..", "mods", "fixes", "mod.json")))
+            values = {s["id"]: True for s in manifest["settings"] if s["type"] == "bool"}
+            json.dump({"v": 1, "mods": {"fixes": values}}, open(os.path.join(ud, "mod-settings.json"), "w"))
     wait_room()
     subprocess.call(args, stdout=open(os.path.join(out_dir, side + ".out"), "w"), stderr=subprocess.STDOUT)
     return shots
@@ -85,7 +95,10 @@ def main():
     ap.add_argument("--lesson", type=int, default=15, help="the typing tutor's lesson to start (tutor)")
     ap.add_argument("--updates", type=int, default=6000, help="how many updates of the lesson to shoot (tutor)")
     ap.add_argument("--every", type=int, default=60, help="updates between two shots (tutor)")
+    ap.add_argument("--defaults", action="store_true", help="the 'on' run keeps the mod's defaults (no mod-settings.json): schools then shows no difference")
     a = ap.parse_args()
+    global DEFAULTS
+    DEFAULTS = a.defaults
     out_dir = os.path.join(ROOT, "build", "ts-fix", a.what)
     os.makedirs(out_dir, exist_ok=True)
     if a.what == "schools":

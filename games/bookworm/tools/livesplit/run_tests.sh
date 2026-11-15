@@ -16,6 +16,8 @@
 #   resume         bot_classic's input to the middle of level 1, quit (saved); then a second run continues it
 #   probe_classic  a Classic bot game at real speed, probed (lsprobe.py) while it runs
 #   off            the game without the mod, probed: the block stays inactive
+#   state_on       a bot run's state log with the block on (a mod folder holding only the manifest), with no mod, and in the
+#                  frozen baseline: the three must be byte-identical
 # Checks: check_asl_offsets.py; asltest -compileonly; lsprobe.py --check on the probe; lsdecide.py run (every
 # scenario against its expected events and against the real script through asltest).
 set -uo pipefail
@@ -97,6 +99,24 @@ timeout 120 "$EXE" -userdir="$OUT/off/user" -modsdir="$OUT/mods_off" -seed=1 -sc
 wait
 cat "$OUT/probe_classic/lsprobe.txt" "$OUT/off/lsprobe.txt"
 
+# state_on: the block changes nothing in play. The game's state log (-statelog: the board at every update) of a bot run
+# with the block on, in a mod folder that holds only the livesplit manifest, against the same run with no mod and, when it
+# is there, the frozen baseline's (built before the block existed)
+rm -rf "$OUT/state_on"
+mkdir -p "$OUT/state_on/mods/livesplit" "$OUT/state_on/mods_off"
+echo '{ "id": "livesplit", "name": "LiveSplit", "version": "1.0", "author": "byo-pop", "description": "Block only.", "affectsScores": false, "features": { "livesplit": true } }' \
+	> "$OUT/state_on/mods/livesplit/mod.json"
+state_run() { # <run> <exe> <mods dir>
+	mkdir -p "$OUT/state_on/$1/user"
+	timeout 900 "$2" -userdir="$OUT/state_on/$1/user" -modsdir="$3" -fast -statelog="$OUT/state_on/$1/state.txt" \
+		-seed=9 -autoplay=7 -autoplaymode=classic,action,classic > "$OUT/state_on/$1/log.txt" 2>&1
+}
+BASE="$ROOT/build/baseline-bookworm/bookworm.exe"
+state_run on "$EXE" "$OUT/state_on/mods" &
+state_run off "$EXE" "$OUT/state_on/mods_off" &
+[ -f "$BASE" ] && state_run base "$(cygpath -w "$BASE")" "$OUT/state_on/mods_off" &
+wait
+
 # Leftovers of this checkout's exe only
 powershell -NoProfile -Command "Get-CimInstance Win32_Process -Filter \"Name='bookworm.exe'\" | Where-Object { \$_.ExecutablePath -eq '$EXE' } | ForEach-Object { Stop-Process -Id \$_.ProcessId -Force; 'stopped leftover ' + \$_.ProcessId }"
 
@@ -108,6 +128,14 @@ echo "== asltest"
 "$OUT/asltest.exe" "$ASL" -compileonly || status=1
 echo "== lsprobe --check"
 python "$HERE/lsprobe.py" --check "$OUT/probe_classic/probe.log" "$OUT/probe_classic/block.log" || status=1
+echo "== state with the block on"
+S="$OUT/state_on"
+if [ -s "$S/on/state.txt" ] && grep -q "livesplit: block at" "$S/on/log.txt" && cmp -s "$S/on/state.txt" "$S/off/state.txt" \
+	&& { [ ! -f "$BASE" ] || cmp -s "$S/on/state.txt" "$S/base/state.txt"; }; then
+	echo "state log identical with the block on and off$([ -f "$BASE" ] && echo ' and in the frozen baseline') ($(wc -l < "$S/on/state.txt") lines)"
+else
+	echo "FAILED: the state log differs with the block on, or the block was never written"; status=1
+fi
 echo "== lsdecide"
 python "$HERE/lsdecide.py" run "$OUT" --asltest "$(cygpath -w "$OUT/asltest.exe")" --asl "$ASL" || status=1
 exit $status

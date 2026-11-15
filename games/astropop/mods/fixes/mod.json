@@ -1,0 +1,11 @@
+{
+  "id": "fixes",
+  "name": "Fixes",
+  "version": "1.0",
+  "author": "byo-pop",
+  "description": "Mends faults of the original AstroPop Deluxe and leaves the game as it was: its rules, scores, look, sounds and pace. Each fix is a toggle; turn the whole mod off to play the original exactly as it was.",
+  "settings": [
+    { "id": "weaponBoxTick", "label": "The weapon box's OK makes no sound", "type": "bool", "default": true,
+      "help": "The box that explains a new weapon plays the one-second timer's tick when its OK button is clicked, a sound the box has no use for (the original plays whichever sound is number 0 in its table). On: OK closes the box in silence." }
+  ]
+}

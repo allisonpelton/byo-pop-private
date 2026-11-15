@@ -23,7 +23,7 @@ ROOT = os.path.normpath(os.path.join(HERE, "..", "..", ".."))
 CODE_RANGES = ((0x401000, 0x440000), (0x4e2c10, 0x4ea000))
 # Extra texts that no function refers to by a plain address: the tables of string pointers in the data section (the tutorial
 # sidebar texts, the helper's speech bubbles, the help pages ...) lie between these addresses
-EXTRA = []
+EXTRA = [0x50f5e8]  # Jupiter's last bubble text: Ghidra left it undefined
 POINTER_TABLES = (0x53d100, 0x53d800)
 # the read-only data where the strings are
 IMMEDIATE_STRINGS = (0x50b000, 0x52f000)

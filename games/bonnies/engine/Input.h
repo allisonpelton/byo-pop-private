@@ -31,12 +31,12 @@ public:
 	float mDownY;      // +0x08
 	float mPinnedX;    // +0x0c
 	float mPinnedY;    // +0x10
-	int mField14;      // +0x14
-	int mField18;      // +0x18
-	int mField1C;      // +0x1c
+	int mSpareFirst;   // +0x14: cleared at the start; nothing reads it
+	int mSpareSecond;  // +0x18: cleared at the start; nothing reads it
+	int mSpareThird;   // +0x1c: cleared at the start; nothing reads it
 	int mPinned;       // +0x20: getMousePos answers mPinnedX, mPinnedY
 	int mSkipMotion;   // +0x24: the next mouse motion is dropped
-	int mFields[0x13d];  // +0x28
+	int mSpareBlock[0x13d]; // +0x28: cleared at the start; nothing reads it
 };
 
 extern Input* gInput;  // 0x481ab4

@@ -8,6 +8,7 @@
 
 using namespace Sexy;
 
+// port: reads a number of the backdrops file
 static bool StringToDouble(const std::string& theString, double* theValue)
 {
 	if (theString.empty())
@@ -17,6 +18,7 @@ static bool StringToDouble(const std::string& theString, double* theValue)
 	return *anEnd == '\0';
 }
 
+// 0x5936ad
 BackdropsParser::BackdropsParser(WinDMApp* theApp)
 {
 	mApp = theApp;
@@ -24,11 +26,13 @@ BackdropsParser::BackdropsParser(WinDMApp* theApp)
 	mHasFailed = false;
 }
 
+// 0x5936d2 (the destructor proper)
 BackdropsParser::~BackdropsParser()
 {
 	delete mParser;
 }
 
+// 0x59413d
 bool BackdropsParser::Parse(const std::string& theText)
 {
 	delete mParser;

@@ -26,7 +26,6 @@ struct TextEffectTemplate
 	Point mAcceleration;     // +0x10: "acceleration" rate, along the motion
 	Point mStartScale;       // +0x18: "scale"
 	Point mEndScale;         // +0x20
-	Point m28;               // +0x28: not read
 	Point mRotation;         // +0x30: "rotation" degrees, the velocity turned by
 	float mStartOpacity;     // +0x38: "opacity" startOp, 1
 	float mEndOpacity;       // +0x3c: endOp, 1

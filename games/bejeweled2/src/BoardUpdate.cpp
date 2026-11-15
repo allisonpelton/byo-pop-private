@@ -58,7 +58,7 @@ static const int gSweepStart[7][2] =
 };
 
 // 0x5ad294: the frame of the board; the hyper mode runs two updates a frame, and the slow-motion flag runs one every other frame
-static bool gUpdateToggle = false;      // DAT_006797c9
+static bool gUpdateToggle = false;      // 0x6797c9
 
 void Board::Update()
 {
@@ -68,7 +68,7 @@ void Board::Update()
 	unsigned int aCount = 1;
 	if (mIsHyper)
 		aCount = 2;
-	if (m165af)
+	if (mSlowMotion)
 		aCount = ((gUpdateToggle ? 1U : 0U) + aCount) / 2;
 	for (; aCount != 0; aCount--)
 		DoUpdate();
@@ -93,37 +93,34 @@ void Board::DoUpdate()
 			mScreenState = (mScreenState != SCREEN_SLIDING_IN) * 2 + 1;
 	}
 
-	if (mApp->GetDialog(0x1a) != NULL)
+	if (mApp->GetDialog(DIALOG_TIMER_TIP) != NULL)
 	{
 		// the timer bar's box is up: only its shimmer runs
-		m1860 = m1860 + 0.1;
+		mHintButtonArrowPhase = mHintButtonArrowPhase + 0.1;
 		MarkDirty();
 		return;
 	}
 	if (mHintPiece != 0)
 	{
 		mUpdateCnt++;
-		m1954 = (float)((double)m1954 + 0.1);
+		mHintArrowPhase = (float)((double)mHintArrowPhase + 0.1);
 		UpdateStarRots();
 		UpdateHyperWarpPoints();
 		MarkDirty();
 		return;
 	}
 
-	if (mState != STATE_PUZZLE_SOLVED)
-		m1914++;
-
 	if (mPauseCount == mInterfacePauseCount && mInterfacePauseCount > 0)
 	{
 		// only the interface is paused: the bonus bar and its fade carry on
-		if (m15fb4 == 0.0f)
+		if (mPauseFade == 0.0f)
 			return;
 		UpdateBonusPenalty();
-		float aFade = (float)((double)m15fb4 - 0.05);
-		m15fb8 = !mApp->mPaused;
+		float aFade = (float)((double)mPauseFade - 0.05);
+		mPauseTextOn = !mApp->mPaused;
 		if (aFade <= 0.0f)
 			aFade = 0.0f;
-		m15fb4 = aFade;
+		mPauseFade = aFade;
 		MarkDirty();
 		return;
 	}
@@ -131,18 +128,18 @@ void Board::DoUpdate()
 		return;
 
 	// (the trial's counter of played updates, at the application's +0x738, is not ported)
-	if (m15fb4 < 1.0f)
+	if (mPauseFade < 1.0f)
 	{
-		float aFade = (float)((double)m15fb4 + 0.05);
+		float aFade = (float)((double)mPauseFade + 0.05);
 		if (1.0f <= aFade)
 			aFade = 1.0f;
-		m15fb4 = aFade;
+		mPauseFade = aFade;
 		MarkDirty();
 	}
 	if (mUnpauseDelay > 0)
 		mUnpauseDelay--;
 	Widget::Update();
-	m1998++;
+	mPlayUpdates++;
 	if (!mCoversScreenFlag)
 		InitialBackdropProcessing();
 	if (mPuzzleOverlay != NULL)
@@ -154,14 +151,14 @@ void Board::DoUpdate()
 			mPuzzleOverlay->mDirty = false;
 		}
 	}
-	if (mState == 7)
+	if (mState == STATE_GAME_OVER)
 		MarkDirty();
 
 	// the explanation of the timer bar, 7 seconds into the first action game
 	if (mScreenState == SCREEN_SHOWN && mIsAction && mNoMoveYet && mUpdateCnt == 0x1ae &&
 		mApp->mProfile->WantsHint(5))
 	{
-		Dialog* aDialog = mApp->DoDialog(0x1a, true, "Watch the Timer Bar!",
+		Dialog* aDialog = mApp->DoDialog(DIALOG_TIMER_TIP, true, "Watch the Timer Bar!",
 			"Watch out for the timer bar below. It will go down faster and faster, and you will lose if it "
 			"completely runs out!", "", 1);
 		mApp->SetupDialog(aDialog, 500);
@@ -172,7 +169,7 @@ void Board::DoUpdate()
 
 	if (mUpdateCnt == 2)
 	{
-		if (m1770)
+		if (mStartGameMusic)
 		{
 			// the music interface's slot 0x30 is FadeOut (song, stop, speed): the song of the menu fades out and the pending offset starts the game's
 			mApp->mMusicInterface->FadeOut(mApp->mCurrentSong, true, 0.005);
@@ -186,44 +183,36 @@ void Board::DoUpdate()
 	int aState = mState;
 	if (aState == STATE_IDLE)
 	{
-		if (m15f88 > 0)
-			m15f88--;
+		if (mDrainGrace > 0)
+			mDrainGrace--;
 	}
-	if (mIsAction && m15f88 == 0 && (aState == STATE_IDLE || aState == STATE_SWAP_BACK || aState == STATE_COMMIT_SWAP))
+	if (mIsAction && mDrainGrace == 0 && (aState == STATE_IDLE || aState == STATE_SWAP_BACK || aState == STATE_COMMIT_SWAP))
 		UpdateBonusPenalty();
 
-	if (0.0 < m15f90)
+	if (0.0 < mWarpFade)
 	{
-		m15f84 = (float)((double)m15f84 - 0.1);
-		if (m15f84 < 0.0f)
-			m15f84 = (float)((double)m15f84 + 5.0);
-		m15fa0 = m15fa0 + 0.0005000000237487257;
-		m15f98 = m15f98 - m15fa0;
+		mBlackHoleFrame = (float)((double)mBlackHoleFrame - 0.1);
+		if (mBlackHoleFrame < 0.0f)
+			mBlackHoleFrame = (float)((double)mBlackHoleFrame + 5.0);
+		mBlackHoleSpin = mBlackHoleSpin + 0.0005000000237487257;
+		mBlackHoleAngle = mBlackHoleAngle - mBlackHoleSpin;
 		MarkDirty();
 	}
 
-	if (m1960 && mUpdateCnt % 4 == 0)
+	if (mBigMoveTimer > 0)
 	{
-		m1964 += m1968;
-		if (abs(m1964) > 2)
-			m1968 = -m1968;
-		MarkDirty();
-	}
-
-	if (m15e98 > 0)
-	{
-		m15e98--;
+		mBigMoveTimer--;
 		bool aDirty = true;
-		if (m15e98 < 0x32)
-			m15ea0 = (double)m15e98 / 50.0;
-		else if (m15ea0 >= 1.0)
+		if (mBigMoveTimer < 0x32)
+			mBigMoveGlow = (double)mBigMoveTimer / 50.0;
+		else if (mBigMoveGlow >= 1.0)
 			aDirty = false;
 		else
 		{
-			double aNew = m15ea0 + 0.05;
-			m15ea0 = aNew;
+			double aNew = mBigMoveGlow + 0.05;
+			mBigMoveGlow = aNew;
 			if (1.0 < aNew)
-				m15ea0 = 1.0;
+				mBigMoveGlow = 1.0;
 		}
 		if (aDirty)
 			MarkDirty();
@@ -234,7 +223,7 @@ void Board::DoUpdate()
 	if (!mIsAction)
 	{
 		if (!mIsPuzzle)
-			aBar = ((m15e40 - (int)m15ef8 - m15ee8) * 0x2c4) / (m15eec - m15ee8);
+			aBar = ((mShownScore - (int)mDrain - mLevelStartScore) * 0x2c4) / (mLevelGoalScore - mLevelStartScore);
 		else
 		{
 			aBar = (mSecretRun * 0x2c4) / 3;
@@ -243,7 +232,7 @@ void Board::DoUpdate()
 		}
 	}
 	else
-		aBar = ((((m15e40 - (int)m15ef8) - m15ee8) * 0x2c4) / 2) / (m15eec - m15ee8) + 0x162;
+		aBar = ((((mShownScore - (int)mDrain) - mLevelStartScore) * 0x2c4) / 2) / (mLevelGoalScore - mLevelStartScore) + 0x162;
 	if (aBar > 0x2c4)
 		aBar = 0x2c4;
 	if (aBar < 0)
@@ -254,15 +243,15 @@ void Board::DoUpdate()
 		bool aMoved = false;
 		for (int i = 0; i < 2; i++)
 		{
-			if (m1994 < aBar)
+			if (mBarShown < aBar)
 			{
 				aMoved = true;
-				m1994 += (aBar - m1994) / 0x78 + 1;
+				mBarShown += (aBar - mBarShown) / 0x78 + 1;
 				MarkDirty();
 			}
-			else if (aBar < m1994)
+			else if (aBar < mBarShown)
 			{
-				m1994 -= (m1994 - aBar) / 0x78 + 1;
+				mBarShown -= (mBarShown - aBar) / 0x78 + 1;
 				MarkDirty();
 			}
 		}
@@ -272,9 +261,9 @@ void Board::DoUpdate()
 			aFrame = 0x17;
 		else
 		{
-			aFrame = (m1994 * 0x18 - 1) / 0x2c4;
-			double aFraction = (double)m1994 / 708.0;
-			if (mState != STATE_GAME_OVER_FALL && mState != 7)
+			aFrame = (mBarShown * 0x18 - 1) / 0x2c4;
+			double aFraction = (double)mBarShown / 708.0;
+			if (mState != STATE_GAME_OVER_FALL && mState != STATE_GAME_OVER)
 			{
 				if (!aMoved)
 				{
@@ -282,36 +271,36 @@ void Board::DoUpdate()
 					int aInterval = (int)(aFraction * 1600.0);
 					if (aInterval < 0x50)
 						aInterval = 0x50;
-					if (aInterval < 0xf1 && aInterval <= mUpdateCnt - m15f20)
+					if (aInterval < 0xf1 && aInterval <= mUpdateCnt - mLastWarningTick)
 					{
 						mApp->PlaySample(SOUND_WARNING);
-						m15f20 = mUpdateCnt;
+						mLastWarningTick = mUpdateCnt;
 					}
 				}
 				if (0.15 <= aFraction)
-					m15f18 = false;
+					mBarBlink = false;
 				else
-					m15f18 = ((mUpdateCnt / 8) % 2) == 0;
+					mBarBlink = ((mUpdateCnt / 8) % 2) == 0;
 			}
 		}
 		if (mState == STATE_WHIRLPOOL && ((mUpdateCnt / 8) % 2) == 0)
 			aFrame = 0x18;
-		if (aFrame != m15f1c)
+		if (aFrame != mTimerFrame)
 		{
-			m15f1c = aFrame;
+			mTimerFrame = aFrame;
 			MarkDirty();
 		}
 	}
 
 	// (the registration nag of the trial, 0x95 updates in, is not ported)
 
-	if (--m1768 == 0)
+	if (--mLevelTextCountdown == 0)
 		mEffectOverlay->DoStrechyText(StrFormat("LEVEL %d", mNextLevel), 0x50);
-	if (--m1764 == 0)
+	if (--mStartCountdown == 0)
 	{
 		if (mScreenState != SCREEN_SLIDING_OUT)
 			mApp->PlaySample(SOUND_GO);
-		if (m190c == 0)
+		if (mShowPlanetCountAtStart == 0)
 		{
 			if (mNextLevel == 1)
 				mEffectOverlay->DoStrechyText("GO!", 0);
@@ -325,7 +314,7 @@ void Board::DoUpdate()
 		mHintCountdown++;
 	if (((mHintCountdown > 1000 && mIsAction) || mHintCountdown > 0x5dc) && mState == STATE_IDLE && !mIsPuzzle)
 	{
-		m15ea8 = false;
+		mMovedSinceHint = false;
 		TryShowHint();
 		mHintCountdown = 0;
 	}
@@ -333,26 +322,25 @@ void Board::DoUpdate()
 	// the score shown runs after the score
 	{
 		int aScore = mScore;
-		if (m15e40 < aScore)
+		if (mShownScore < aScore)
 		{
-			int aStep = (int)((((double)(aScore - m15e40) / mLevelValue) / 25.0 + 1.0) * mLevelValue);
-			m15e40 += aStep;
-			if (aScore < m15e40)
-				m15e40 = aScore;
+			int aStep = (int)((((double)(aScore - mShownScore) / mLevelValue) / 25.0 + 1.0) * mLevelValue);
+			mShownScore += aStep;
+			if (aScore < mShownScore)
+				mShownScore = aScore;
 		}
-		if (aScore < m15e40)
+		if (aScore < mShownScore)
 		{
-			int aStep = (int)((((double)(m15e40 - aScore) / mLevelValue) / 25.0 + 1.0) * mLevelValue);
-			m15e40 -= aStep;
-			if (m15e40 < aScore)
-				m15e40 = aScore;
+			int aStep = (int)((((double)(mShownScore - aScore) / mLevelValue) / 25.0 + 1.0) * mLevelValue);
+			mShownScore -= aStep;
+			if (mShownScore < aScore)
+				mShownScore = aScore;
 		}
 	}
 
 	if (mSelectedPiece != NULL && mUpdateCnt % 8 == 0)
 	{
 		MarkDirty();
-		m195c++;
 	}
 
 	// the gems
@@ -365,40 +353,40 @@ void Board::DoUpdate()
 			if (aPiece == NULL)
 				continue;
 			bool aRemove = false;
-			if (aPiece->mBC < 1)
+			if (aPiece->mHyperDelay < 1)
 			{
-				if (aPiece->mB8 == 1)
+				if (aPiece->mHyperRole == 1)
 				{
 					// a gem that appears: its fade-in
-					aPiece->mC0 = (float)((double)aPiece->mC0 + 0.0175);
-					if (1.0 < aPiece->mC0)
+					aPiece->mHyperFade = (float)((double)aPiece->mHyperFade + 0.0175);
+					if (1.0 < aPiece->mHyperFade)
 						aRemove = true;
 				}
-				else if (aPiece->mB8 == 2)
+				else if (aPiece->mHyperRole == 2)
 				{
-					m17d8 = (int)aPiece->mX;
-					m17dc = (int)aPiece->mY;
+					mHyperGlowX = (int)aPiece->mX;
+					mHyperGlowY = (int)aPiece->mY;
 				}
 			}
 			else
-				aPiece->mBC--;
+				aPiece->mHyperDelay--;
 
-			if (aPiece->m70)
+			if (aPiece->mFlame)
 				anyFlame = true;
 
 			if (aPiece->mType == 8)
 			{
 				// the bomb gem shakes, wildly in its last move
-				if (aPiece->m58 == 1)
+				if (aPiece->mCountdown == 1)
 				{
-					aPiece->m68 = CrtRand() % 5 - 2;
-					aPiece->m6C = CrtRand() % 3 - 1;
+					aPiece->mJitterX = CrtRand() % 5 - 2;
+					aPiece->mJitterY = CrtRand() % 3 - 1;
 					MarkDirty();
 				}
-				else if (aPiece->m58 == 0)
+				else if (aPiece->mCountdown == 0)
 				{
-					aPiece->m68 = CrtRand() % 9 - 4;
-					aPiece->m6C = CrtRand() % 9 - 4;
+					aPiece->mJitterX = CrtRand() % 9 - 4;
+					aPiece->mJitterY = CrtRand() % 9 - 4;
 					MarkDirty();
 				}
 			}
@@ -415,20 +403,20 @@ void Board::DoUpdate()
 				}
 			}
 
-			if (mUpdateCnt % 3 == 0 && (aPiece->mA4 != 0 || (aPiece == mSelectedPiece && aPiece->mType != 8)))
+			if (mUpdateCnt % 3 == 0 && (aPiece->mGemFrame != 0 || (aPiece == mSelectedPiece && aPiece->mType != 8)))
 			{
-				aPiece->mA4 = (aPiece->mA4 + 1) % 0x14;
+				aPiece->mGemFrame = (aPiece->mGemFrame + 1) % 0x14;
 				MarkDirty();
 			}
 			else
 			{
 				// the glow of the gem under the mouse
-				if (aPiece->m8C)
+				if (aPiece->mGemHovered)
 				{
-					aPiece->m90 = aPiece->m90 - 0.012;
-					if (aPiece->m90 < 0.0)
+					aPiece->mGemHoverGlow = aPiece->mGemHoverGlow - 0.012;
+					if (aPiece->mGemHoverGlow < 0.0)
 					{
-						aPiece->m8C = false;
+						aPiece->mGemHovered = false;
 						MarkDirty();
 					}
 				}
@@ -438,22 +426,22 @@ void Board::DoUpdate()
 					(double)mMouseX < mApp->ScaleNum((float)(aPiece->mX + 84.0), 0.0f) &&
 					(double)mMouseY < mApp->ScaleNum((float)(aPiece->mY + 84.0), 0.0f))
 				{
-					double aGlow = aPiece->m90 + 0.045;
-					aPiece->m90 = aGlow;
+					double aGlow = aPiece->mGemHoverGlow + 0.045;
+					aPiece->mGemHoverGlow = aGlow;
 					if (1.0 < aGlow)
-						aPiece->m90 = 1.0;
-					if (!aPiece->m8C)
+						aPiece->mGemHoverGlow = 1.0;
+					if (!aPiece->mGemHovered)
 					{
-						aPiece->m8C = true;
-						aPiece->m98 = 0.0f;
+						aPiece->mGemHovered = true;
+						aPiece->mGemHoverFrame = 0.0f;
 					}
 				}
-				if (aPiece->m8C)
+				if (aPiece->mGemHovered)
 				{
 					// the frame of the glow's animation, 0 to 10
-					aPiece->m98 = (float)((double)aPiece->m98 + 0.0625);
-					if (10.0f <= aPiece->m98)
-						aPiece->m98 = (float)((double)aPiece->m98 - 10.0);
+					aPiece->mGemHoverFrame = (float)((double)aPiece->mGemHoverFrame + 0.0625);
+					if (10.0f <= aPiece->mGemHoverFrame)
+						aPiece->mGemHoverFrame = (float)((double)aPiece->mGemHoverFrame - 10.0);
 					MarkDirty();
 				}
 			}
@@ -499,23 +487,23 @@ void Board::DoUpdate()
 	}
 
 	// the level is done
-	if (!mIsPuzzle && m15eec - m15ee8 <= (m15e40 - (int)m15ef8) - m15ee8)
+	if (!mIsPuzzle && mLevelGoalScore - mLevelStartScore <= (mShownScore - (int)mDrain) - mLevelStartScore)
 	{
 		if (mState == STATE_IDLE)
 			mState = STATE_LEVEL_COMPLETE_WAIT;
-		else if (mState == STATE_LEVEL_COMPLETE_WAIT && m1602c == 0)
+		else if (mState == STATE_LEVEL_COMPLETE_WAIT && mCheerDelay == 0)
 		{
 			mApp->PlaySample(SOUND_LEVEL_COMPELTE);
-			mState = 9;
+			mState = STATE_LEVEL_COMPLETE_SCORE;
 		}
 	}
-	if (mState == 9 && mScore <= m15e40)
+	if (mState == STATE_LEVEL_COMPLETE_SCORE && mScore <= mShownScore)
 		DoWhirlpool();
 
 	// the timed games end when the bar is empty
-	if (mIsAction && mState == STATE_IDLE && (m15e40 - (int)m15ef8) - m15ee8 <= m15ee8 - m15eec)
+	if (mIsAction && mState == STATE_IDLE && (mShownScore - (int)mDrain) - mLevelStartScore <= mLevelStartScore - mLevelGoalScore)
 	{
-		m15f18 = true;
+		mBarBlink = true;
 		mEffectOverlay->DoStrechyText("TIME UP!", 0x50);
 		mApp->PlaySample(SOUND_TIME_UP);
 		GameOver(200);
@@ -532,7 +520,7 @@ void Board::DoUpdate()
 	int aStateNow = mState;
 	if (aStateNow < 0xc)
 	{
-		if (aStateNow == 0xb)
+		if (aStateNow == STATE_LEVEL_TRANSITION)
 			UpdateLevelTransition();
 		else if (aStateNow == STATE_NEW)
 			UpdateFalling();
@@ -540,28 +528,28 @@ void Board::DoUpdate()
 		{
 			if (aStateNow < 5)
 				UpdateSwapping();
-			else if (aStateNow == 5)
+			else if (aStateNow == STATE_CLEARING)
 				UpdateClearing();
-			else if (aStateNow == 6)
+			else if (aStateNow == STATE_GAME_OVER_FALL)
 				UpdateGameOverAnim();
-			else if (aStateNow == 10)
+			else if (aStateNow == STATE_WHIRLPOOL)
 				UpdateWhirlpool();
 		}
 	}
-	else if (aStateNow == 0xc)
+	else if (aStateNow == STATE_BOARD_DROPPING)
 		UpdateBoardDropping();
-	else if (aStateNow == 0xd)
+	else if (aStateNow == STATE_POST_WARP)
 	{
-		m190c = 0;
-		m15e04 = (float)((double)m15e04 + 0.01);
-		if (1.0 < m15e04)
+		mShowPlanetCountAtStart = 0;
+		mInterfaceRestore = (float)((double)mInterfaceRestore + 0.01);
+		if (1.0 < mInterfaceRestore)
 		{
 			if (!mIsPuzzle || mIsSecret)
 				mEffectOverlay->DoStrechyText(StrFormat("LEVEL %d", mNextLevel), 0x50);
 			else if (mPuzzleOverlay->mSolvedCount == 0)
 			{
 				if (mPuzzleOverlay->mSelectedPod == -1)
-					m190c = 1;
+					mShowPlanetCountAtStart = 1;
 				else
 					ShowPlanetCount();
 			}
@@ -569,19 +557,19 @@ void Board::DoUpdate()
 		}
 		MarkDirty();
 	}
-	else if (aStateNow == 0x13)
+	else if (aStateNow == STATE_FADE)
 	{
 		float anAlpha = (float)((double)mEffectOverlay->mFade - 0.025);
 		if (anAlpha <= 0.0f)
 			anAlpha = 0.0f;
 		mEffectOverlay->mFade = anAlpha;
 	}
-	else if (aStateNow == 0x15 || aStateNow == 0x17)
+	else if (aStateNow == STATE_GALAXY_SLIDE_1 || aStateNow == STATE_GALAXY_SLIDE_3)
 	{
 		// the map of the galaxies slides in or out
 		if (!mGalaxySlide.IncInVal(0.01))
 		{
-			if (mState == 0x17)
+			if (mState == STATE_GALAXY_SLIDE_3)
 			{
 				PuzzleProgress* aProgress = mApp->mProfile->GetPuzzleProgress();
 				int aSelected = mGalaxyMap->mSelectedPuzzle;
@@ -597,33 +585,33 @@ void Board::DoUpdate()
 				{
 					DoWhirlpool();
 					aProgress->mPuzzleNum = mGalaxyMap->mSelectedPuzzle;
-					m15f6c = mGalaxyMap->mSelectedPuzzle / 5;
+					mPlanetNum = mGalaxyMap->mSelectedPuzzle / 5;
 					StartPrepareLevelImages();
 				}
 			}
 			else
-				mState = 0x16;
+				mState = STATE_GALAXY_SLIDE_2;
 		}
 		mGalaxyMap->Resize(0, (int)mApp->ScaleNum(mGalaxySlide.GetOutVal(), 0.0), mWidth, mHeight);
 	}
 
-	if (mState == 0xe || !mLightning.empty())
+	if (mState == STATE_HYPER_SWAP_DONE || !mLightning.empty())
 		UpdateLightning();
 	UpdateEffects();
 	UpdateHyperWarpPoints();
 	MarkDirty();
 
-	if (m17d4 > 0)
+	if (mHyperGlowDelay > 0)
 	{
-		m17d4--;
-		if (m17d4 == 0)
-			m17d0 = true;
+		mHyperGlowDelay--;
+		if (mHyperGlowDelay == 0)
+			mHyperGlow = true;
 	}
-	else if (m17d0)
+	else if (mHyperGlow)
 	{
-		m17e0 = (float)((double)m17e0 + 0.012);
-		if (1.0 < m17e0)
-			m17d0 = false;
+		mHyperGlowPhase = (float)((double)mHyperGlowPhase + 0.012);
+		if (1.0 < mHyperGlowPhase)
+			mHyperGlow = false;
 	}
 
 	// the shaking of the board after a blast
@@ -643,40 +631,40 @@ void Board::DoUpdate()
 		mShakeY = (int)((double)mShakeSize * (double)mShakeTime * ((double)aDraw / 1000.0));
 	}
 
-	if (m1850)
-		m1858 = m1858 + 0.1;
+	if (mPodArrowShown)
+		mPodArrowPhase = mPodArrowPhase + 0.1;
 
 	// the shooting star behind the board
-	if (!m1848)
+	if (!mShootingStar)
 	{
 		if (Rand() % 6000 == 0)
 		{
-			m1848 = true;
-			m184c = 0.0f;
+			mShootingStar = true;
+			mShootingStarPos = 0.0f;
 		}
 	}
 	else
 	{
-		m184c = (float)((double)m184c + 0.02);
-		if (1.0 < m184c)
-			m1848 = false;
+		mShootingStarPos = (float)((double)mShootingStarPos + 0.02);
+		if (1.0 < mShootingStarPos)
+			mShootingStar = false;
 		MarkDirty();
 	}
 
 	// the cheers for a run of chains in one move
-	if (m1602c < 1)
+	if (mCheerDelay < 1)
 	{
-		int aChain = m16028;
-		if (m16024 < aChain)
+		int aChain = mCheerTier;
+		if (mCheerGiven < aChain)
 		{
-			m16024 = aChain;
+			mCheerGiven = aChain;
 			if (aChain == 1)
 			{
-				if (mUpdateCnt - m16030 > 11999)
+				if (mUpdateCnt - mLastGoodTick > 11999)
 				{
 					mApp->PlaySample(SOUND_GOOD);
-					m1602c = 100;
-					m16030 = mUpdateCnt;
+					mCheerDelay = 100;
+					mLastGoodTick = mUpdateCnt;
 				}
 			}
 			else if (aChain == 2)
@@ -684,23 +672,23 @@ void Board::DoUpdate()
 				if (!mIsAction)
 					mEffectOverlay->DoStrechyText("EXCELLENT", 0x50);
 				mApp->PlaySample(SOUND_EXCELLENT);
-				m1602c = 0x78;
+				mCheerDelay = 0x78;
 			}
 			else
 			{
 				if (!mIsAction)
 					mEffectOverlay->DoStrechyText("INCREDIBLE", 0x50);
 				mApp->PlaySample(SOUND_INCREDIBLE);
-				m1602c = 0x96;
+				mCheerDelay = 0x96;
 			}
 		}
 	}
 	else
-		m1602c--;
-	if (m16028 == m16024 && mState == STATE_IDLE)
+		mCheerDelay--;
+	if (mCheerTier == mCheerGiven && mState == STATE_IDLE)
 	{
-		m16028 = 0;
-		m16024 = 0;
+		mCheerTier = 0;
+		mCheerGiven = 0;
 	}
 
 	// the buttons of the puzzle fade out while a pod is being picked, and in again afterwards
@@ -720,33 +708,33 @@ void Board::DoUpdate()
 				anAlpha = 1.0f;
 			mTutorialButton2->mAlpha = anAlpha;
 		}
-		float aFade = (float)((double)m15fac + 0.05);
+		float aFade = (float)((double)mPuzzleFade + 0.05);
 		if (1.0f <= aFade)
 			aFade = 1.0f;
-		m15fac = aFade;
+		mPuzzleFade = aFade;
 	}
 	else
 	{
-		float aFade = (float)((double)m15fac - 0.05);
-		m15fac = aFade;
+		float aFade = (float)((double)mPuzzleFade - 0.05);
+		mPuzzleFade = aFade;
 		if (aFade <= 0.0f)
 		{
-			m15fac = 0.0f;
+			mPuzzleFade = 0.0f;
 			SelectPuzzlePod(mPendingPod);
 		}
 		if (mTutorialButton1 != NULL)
-			mTutorialButton1->mAlpha = m15fac;
+			mTutorialButton1->mAlpha = mPuzzleFade;
 		if (mTutorialButton2 != NULL)
-			mTutorialButton2->mAlpha = m15fac;
+			mTutorialButton2->mAlpha = mPuzzleFade;
 	}
 
 	// the box that explains the hints after the puzzle was set back
-	if (m1910 > 0)
+	if (mMoreHintsDelay > 0)
 	{
-		m1910--;
-		if (m1910 == 0)
+		mMoreHintsDelay--;
+		if (mMoreHintsDelay == 0)
 		{
-			Dialog* aDialog = mApp->DoDialog(0x19, true, "More Hints?",
+			Dialog* aDialog = mApp->DoDialog(DIALOG_MORE_HINTS, true, "More Hints?",
 				"One or more moves have been undone to make the puzzle solvable again.\n\n"
 				"Press HINT again if you want help on a move to make from here.", "", 1);
 			mApp->SetupDialog(aDialog, 500);
@@ -758,16 +746,16 @@ void Board::DoUpdate()
 
 	// the pointer of the tutorial fades out when a move was made and in again when the board is quiet
 	{
-		float aFade = (float)((double)m1944 - 0.06);
+		float aFade = (float)((double)mTutorialMoveFade - 0.06);
 		if (aFade <= 0.0f)
 			aFade = 0.0f;
-		m1944 = aFade;
-		if (m1944 <= 0.0f && mState == STATE_IDLE)
+		mTutorialMoveFade = aFade;
+		if (mTutorialMoveFade <= 0.0f && mState == STATE_IDLE)
 		{
 			float aNext = 1.0f;
-			if ((double)m1948 + 0.06 < 1.0)
-				aNext = (float)((double)m1948 + 0.06);
-			m1948 = aNext;
+			if ((double)mTutorialNextFade + 0.06 < 1.0)
+				aNext = (float)((double)mTutorialNextFade + 0.06);
+			mTutorialNextFade = aNext;
 		}
 	}
 
@@ -827,7 +815,7 @@ void Board::DoUpdate()
 	}
 
 	// the stars of the hyperspace fly down the screen
-	if (m165ad && Rand() % 2 == 0)
+	if (mXmas && Rand() % 2 == 0)
 	{
 		Shard* aShard = new Shard();
 		aShard->mKind = 5;
@@ -837,11 +825,11 @@ void Board::DoUpdate()
 		aShard->mVY = (float)((double)GetRandFloat() * 0.25 + 0.5);
 		mShards.push_back(aShard);
 	}
-	if (m165bc != NULL)
-		m165bc->Update();
+	if (mCheatStars != NULL)
+		mCheatStars->Update();
 
 	// the end screens (the galaxy's end, the secret mode's unlock)
-	if (mState == 0x12 || mState == 0x13)
+	if (mState == STATE_GALAXY || mState == STATE_FADE)
 	{
 		if (mEffectOverlay->mEndTimer == 0x6a4)
 		{

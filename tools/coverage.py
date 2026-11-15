@@ -9,7 +9,10 @@
       report, in Markdown, to FILE or to stdout
 
 A port function's counterpart is the address in the comment block just above its definition (the ports write
-"// 0x4cb5bc" there); an address anywhere else in a comment is a mention. Only the game's own code is compared,
+"// 0x4cb5bc" there); an address anywhere else in a comment is a mention. Code that two games share (engines/<name>,
+docs/ENGINES.md) gives each game's address with the game's folder name after it, "0x40c2e0 (cosmicbugs), 0x40c4d0
+(waterbugs)", and a range as "0x40c1a0..0x40c890 (cosmicbugs)"; a game's check reads the addresses tagged with its own
+name and the untagged ones, and passes over the other games'. Only the game's own code is compared,
 the range that games/<game>/coverage.txt names (the whole exe without one): the framework, the C runtime and the
 libraries a game links are ported once for every game, not by the game's port. docs/COVERAGE.md has the method, the
 settings file and how to read the report.
@@ -17,7 +20,10 @@ settings file and how to read the report.
 import bisect, collections, datetime, glob, json, os, re, sys
 
 REPO = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
-ADDR = re.compile(r'\b0x([0-9a-fA-F]{5,8})\b')
+# an address, a range's end, and the tag that names the game it is in (only a game folder's name is one: "0x41ac20
+# (launched)" is a plain address with a word after it)
+GAMES = sorted(d for d in os.listdir(os.path.join(REPO, 'games')) if os.path.isdir(os.path.join(REPO, 'games', d)))
+ADDR = re.compile(r'\b0x([0-9a-fA-F]{5,8})\b(?:\.\.0x([0-9a-fA-F]{5,8})\b)?(?: \((%s)\))?' % '|'.join(GAMES))
 FUNC_DEF = re.compile(r"^(?!\s)(?!(?:if|for|while|switch|return|else|do|case|default|namespace|class|struct|enum|"
                       r"union|typedef|using|template|public|private|protected|#)\b)"
                       r"[\w:<>,*&~ \[\]]*?\b((?:\w+::)*~?\w+|operator\s*\S+)\s*\(")
@@ -29,11 +35,23 @@ def die(msg):
     sys.exit('coverage.py: ' + msg)
 
 
+def comment_addresses(comment, game):
+    """The hex addresses in a comment that belong to the game: those tagged "(<game>)" and those with no tag. A range
+    "0xa..0xb (game)" is two addresses with one tag."""
+    found = []
+    for m in ADDR.finditer(comment):
+        if m.group(3) in (None, game):
+            found.append(m.group(1))
+            if m.group(2):
+                found.append(m.group(2))
+    return found
+
+
 def settings(game):
     """games/<game>/coverage.txt: export <path>, src <dir> (more than one allowed), game <lo>-<hi> (more than one
     allowed), none <addr or lo-hi> <reason>, addrmap <tsv> <from column> <to column>. Paths are relative to the
     repository."""
-    cfg = {'export': None, 'src': [], 'game': [], 'none': [], 'addrmap': None, 'unmapped': {}}
+    cfg = {'export': None, 'src': [], 'game': [], 'none': [], 'addrmap': None, 'unmapped': {}, 'name': game}
     path = os.path.join(REPO, 'games', game, 'coverage.txt')
     if os.path.isfile(path):
         for n, line in enumerate(open(path, encoding='utf-8'), 1):
@@ -251,13 +269,13 @@ def port_sites(cfg, fns):
                     block.append(j)
                     j -= 1
                 for k in block:
-                    for h in ADDR.findall(comments[k]):
+                    for h in comment_addresses(comments[k], cfg['name']):
                         a, entry = owner(mapped(int(h, 16), rel, k + 1))
                         if a is not None:
                             sites[a].append(('def' if entry else 'inside', rel, i + 1, m.group(1)))
                             used.add((k, h))
             for k, c in enumerate(comments):
-                for h in ADDR.findall(c):
+                for h in comment_addresses(c, cfg['name']):
                     if (k, h) in used:
                         continue
                     a, entry = owner(mapped(int(h, 16), rel, k + 1))

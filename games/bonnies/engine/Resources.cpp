@@ -95,6 +95,25 @@ void Resources::free(Entry* theEntry)
 	delete theEntry;
 }
 
+// port: the memory report's figures
+Resources::MemoryUse Resources::memoryUse()
+{
+	MemoryUse aUse;
+	for (Entry* anEntry = gLists[TYPE_IMAGE]; anEntry != nullptr; anEntry = anEntry->mNext)
+	{
+		const Image* anImage = (const Image*)anEntry->mResource;
+		if (anImage == nullptr)
+			continue;
+		aUse.mImageCount++;
+		aUse.mImageBytes += anImage->mSurface.capacity() * sizeof(uint32_t) + (size_t)anImage->mFrameCount * sizeof(Frame);
+	}
+	for (Entry* anEntry = gLists[TYPE_FONT]; anEntry != nullptr; anEntry = anEntry->mNext)
+		aUse.mFontCount++;
+	for (Entry* anEntry = gLists[TYPE_SOUND]; anEntry != nullptr; anEntry = anEntry->mNext)
+		aUse.mSoundCount++;
+	return aUse;
+}
+
 // 0x421bc0
 void Resources::release(void* theResource)
 {

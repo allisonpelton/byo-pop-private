@@ -1,0 +1,119 @@
+# tools/coverage.py's settings for Dynomite Deluxe (docs/COVERAGE.md).
+export re/dynomite/gh/functions.jsonl
+src games/dynomite/src
+# The game's own code, which the port translates: the game classes in link order, from the board (0x401000) to the
+# whirley and the small effects after it (0x442690). The rest of the exe is the 2003 SexyApp framework (from the C++
+# library's locale code at 0x4426c0 and Sexy:: at 0x442800), its libraries and the C runtime.
+game 00401000-00442690
+# Game code the port leaves out on purpose (docs/README.md, "Registration and loading").
+none 00432640-004332e1 RegisterDialog (vtable 0x4fc890) and its dialog 14: registration code, removed
+none 00441020-00441680 UpsellDialog (vtable 0x4ff5e0) and its dialog 21: the unregistered copy's purchase pitch, removed
+none 00418470 the upsell's dialog 21 shown (BUY_AND_UNLOCK_DYNOMITE): registration, removed
+none 004185a0 the registration's dialog 14 shown: registration, removed
+none 00432330 RegisterDialog::AddedToManager (vtable 0x4fc890): registration, removed
+none 00432370 RegisterDialog::RemovedFromManager: registration, removed
+none 004323b0 RegisterDialog::Resize: registration, removed
+none 00432460 RegisterDialog's draw of its edit box: registration, removed
+none 00432520 RegisterDialog's EditListener (vtable 0x4fc86c), its text changed: registration, removed
+none 00432570 RegisterDialog::GetPreferredHeight: registration, removed
+none 0041eb70 the invalid license code's message (THE_LICENSE_CODE_YOU_ENTERED_IS_INVALID__): registration, removed
+# Game code the port leaves out because it goes online: the update check on quitting (its question too), which the
+# port has none of (GAME_NOTES.md, section 7).
+none 00420ce0 FossilizedApp::ShutdownHook: asks to check for updates on quitting unless the property DontUpdate is set; goes online
+none 0041f2b0 the question whether to check for updates (DO_YOU_WANT_TO_CHECK_FOR_UPDATES_TO_DYNOMITE__): goes online
+none 0041f4c0 the update check itself (popcap.com's win32updatecheck.php), after the options' Updates link or the question: goes online
+# Left out because it leads out of the game (the user, 2026-11-07): opening a URL and what follows it, and the credits'
+# two links (CreditsDialog.h).
+none 0041f080 FossilizedApp::OpenURL: opens a site in the browser
+none 00419110 FossilizedApp::URLOpenSucceeded (vtable slot 23): closes the "opening the browser" dialog 17
+none 0041edc0 FossilizedApp::URLOpenFailed (vtable slot 22): the dialog that asks the player to open the URL themselves
+none 0042eab0 CreditsDialog::AddedToManager: adds the two HyperlinkWidgets, which the port has not
+none 0042eae0 CreditsDialog::Resize: places the two HyperlinkWidgets
+none 00430b90 CreditsDialog::ButtonDepress: opens the two links' sites
+# Left out because it does nothing: the cursor override hides the cursor while +0x1aac is set, which only the
+# constructor writes (false), so it always calls SexyApp's own.
+none 004187f0 FossilizedApp::UpdateCursor: always SexyApp's own (+0x1aac is never set), so the port has no override
+# What the port's compiler and libraries make for themselves, though the original's linker put it among the game's code:
+# the C++ library's string and vector code, the framework's inline defaults and its rectangle, and the compiler's
+# scalar deleting destructors (each calls the destructor proper and frees the object).
+none 00406800 std::string::assign(const string&): the C++ library
+none 00406a60 std::copy over a range of strings: the C++ library
+none 00407900 std::_Uninit_copy over strings: the C++ library
+none 00407920 std::vector<std::string>::operator=: the C++ library
+none 00408e00 operator==(const std::string&, const char*): the C++ library
+none 00409190 operator!=(const std::string&, const char*): the C++ library
+none 00419490 std::string::append(const string&, pos, n): the C++ library
+none 00419580 std::string::append(const char*, n): the C++ library
+none 00419760 operator+(const char*, const std::string&): the C++ library
+none 0042c6e0 operator==(const std::string&, const std::string&): the C++ library
+none 00406950 std::vector<std::string>'s length error (throws): the C++ library
+none 004069d0 std::exception's copy constructor: the C++ library
+none 00407800 std::_Destroy over a range of strings: the C++ library
+none 00406090 operator delete: the C runtime
+none 004063a5 a catch block of std::string's growth (retries the allocation at the size asked): the C++ library
+none 0040643d a catch block of std::string's growth (frees the buffer and rethrows): the C++ library
+none 00407886 a catch block of the copy over strings (destroys what it copied and rethrows): the C++ library
+none 00413f10 ButtonListener::ButtonPress(id, clicks), which calls ButtonPress(id): the framework's inline default
+none 00413f20 a listener's default that answers true (an EditListener's Allow...): the framework's inline default
+none 00416550 TRect<int>::Contains(x, y): the framework's
+none 00432550 TRect<int>::TRect(x, y, width, height): the framework's
+none 00401030 LoadedEgg scalar deleting destructor (the destructor proper is 0x401020): compiler-made
+none 00401920 Launcher scalar deleting destructor (the destructor proper is 0x401160): compiler-made
+none 00403520 Effect scalar deleting destructor (the destructor proper is 0x4034c0): compiler-made
+none 004036e0 BabyEffect scalar deleting destructor (the destructor proper is 0x403560): compiler-made
+none 00403b80 PowerUp scalar deleting destructor (the destructor proper is 0x4038c0): compiler-made
+none 00403da0 BonusItemEffect scalar deleting destructor (the destructor proper is 0x403c50): compiler-made
+none 00403f40 BoomEffect scalar deleting destructor (the destructor proper is 0x403e40): compiler-made
+none 004060a0 Dynomite scalar deleting destructor (the destructor proper is 0x4041e0): compiler-made
+none 00407f50 Thunderbolt scalar deleting destructor (the destructor proper is 0x407e60): compiler-made
+none 004091d0 DynomiteFossil scalar deleting destructor (the destructor proper is 0x409070): compiler-made
+none 0040d280 DynomitePanic scalar deleting destructor (the destructor proper is 0x40cbf0): compiler-made
+none 0040fa60 DynomiteStomped scalar deleting destructor (the destructor proper is 0x40ec00): compiler-made
+none 00412730 DynomiteTimeTrial scalar deleting destructor (the destructor proper is 0x4121a0): compiler-made
+none 00413d20 Fossil scalar deleting destructor (the destructor proper is 0x413d10): compiler-made
+none 00413f30 EnterNameDialog scalar deleting destructor (the destructor proper is 0x413d40): compiler-made
+none 00414910 FallingEggEffect scalar deleting destructor (the destructor proper is 0x4147e0): compiler-made
+none 00414cf0 BinFile scalar deleting destructor (the destructor proper is 0x414ce0): compiler-made
+none 00414d40 FlyingEgg scalar deleting destructor (the destructor proper is 0x414d30): compiler-made
+none 004154f0 ConfettiEffect scalar deleting destructor (the destructor proper is 0x415380): compiler-made
+none 00415640 Egg scalar deleting destructor (the destructor proper is 0x4155c0): compiler-made
+none 00418450 EggGrid scalar deleting destructor (the destructor proper is 0x417420): compiler-made
+none 00419690 FossilizedApp scalar deleting destructor (the destructor proper is 0x419320): compiler-made
+none 00420f90 GetSaveNameDialog scalar deleting destructor (the destructor proper is 0x420dc0): compiler-made
+none 00421c30 HighScoresDialog scalar deleting destructor (the destructor proper is 0x421b40): compiler-made
+none 004228e0 HighScores scalar deleting destructor (the destructor proper is 0x422820): compiler-made
+none 00422f90 MenuTalker scalar deleting destructor (the destructor proper is 0x422e10): compiler-made
+none 00423630 InchyBubble scalar deleting destructor (the destructor proper is 0x4230b0): compiler-made
+none 00423970 InchySmall scalar deleting destructor (the destructor proper is 0x4238a0): compiler-made
+none 00425770 IntroScreen scalar deleting destructor (the destructor proper is 0x425570): compiler-made
+none 0042b7a0 Kroney scalar deleting destructor (the destructor proper is 0x42b3d0): compiler-made
+none 0042bde0 AngleTable scalar deleting destructor (the destructor proper is 0x42bbb0): compiler-made
+none 0042c010 TalkSequence scalar deleting destructor (the destructor proper is 0x42bfc0): compiler-made
+none 0042c710 Museum scalar deleting destructor (the destructor proper is 0x42c520): compiler-made
+none 0042eb50 CreditsDialog scalar deleting destructor (the destructor proper is 0x42ea10): compiler-made
+none 0042ee00 OptionsDialog scalar deleting destructor (the destructor proper is 0x42eca0): compiler-made
+none 00430e40 CeilingFinder scalar deleting destructor (the destructor proper is 0x430ca0): compiler-made
+none 00431160 PtrList scalar deleting destructor (the destructor proper is 0x430ec0): compiler-made
+none 004319f0 PuzzleListWidget scalar deleting destructor (the destructor proper is 0x4311f0): compiler-made
+none 00431de0 FibRand scalar deleting destructor (the destructor proper is 0x431d40): compiler-made
+none 00431fa0 FirePrompt scalar deleting destructor (the destructor proper is 0x431f80): compiler-made
+none 004338f0 SaveGameDialog scalar deleting destructor (the destructor proper is 0x433420): compiler-made
+none 004348e0 ScorePopup scalar deleting destructor (the destructor proper is 0x4346d0): compiler-made
+none 00434b70 BabyEgg scalar deleting destructor (the destructor proper is 0x434b10): compiler-made
+none 00434ca0 ShellEffect scalar deleting destructor (the destructor proper is 0x434bb0): compiler-made
+none 004357b0 SideBar scalar deleting destructor (the destructor proper is 0x434dc0): compiler-made
+none 00435b30 GameSound scalar deleting destructor (the destructor proper is 0x435b00): compiler-made
+none 00435ec0 CeilingSpeed scalar deleting destructor (the destructor proper is 0x435d10): compiler-made
+none 004368b0 Pic scalar deleting destructor (the destructor proper is 0x4360c0): compiler-made
+none 00436d20 Cell scalar deleting destructor (the destructor proper is 0x436590): compiler-made
+none 00436f50 PicFont scalar deleting destructor (the destructor proper is 0x4365d0): compiler-made
+none 00437080 MaskedPic scalar deleting destructor (the destructor proper is 0x4367a0): compiler-made
+none 00437650 CellButton scalar deleting destructor (the destructor proper is 0x4375c0): compiler-made
+none 00437e80 Steggy scalar deleting destructor (the destructor proper is 0x437af0): compiler-made
+none 00438330 GridDynamite scalar deleting destructor (the destructor proper is 0x438200): compiler-made
+none 00438670 Tank scalar deleting destructor (the destructor proper is 0x438430): compiler-made
+none 00438b00 TitleScreen scalar deleting destructor (the destructor proper is 0x4388d0): compiler-made
+none 0043ac20 Tutorial scalar deleting destructor (the destructor proper is 0x43aad0): compiler-made
+none 004421c0 Whirley scalar deleting destructor (the destructor proper is 0x441de0): compiler-made
+none 00442440 EggWhiteEffect scalar deleting destructor (the destructor proper is 0x442340): compiler-made
+none 004425f0 YolkEffect scalar deleting destructor (the destructor proper is 0x4424d0): compiler-made

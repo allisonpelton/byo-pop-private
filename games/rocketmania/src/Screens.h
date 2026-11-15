@@ -75,6 +75,7 @@ public:
 
 	virtual void		AddedToManager(WidgetManager* theWidgetManager) override;
 	virtual void		RemovedFromManager(WidgetManager* theWidgetManager) override;
+	virtual void		OrderInManagerChanged() override;
 	virtual void		Update() override;
 	virtual void		Draw(Graphics* g) override;
 	virtual void		ButtonPress(int theId) override;

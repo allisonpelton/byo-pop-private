@@ -520,7 +520,8 @@ void GalaxyMap::Draw(Graphics* g)
 	} while (aRowY < 0x17b);
 }
 
-// 0x5bc1c9: the gems and the names of a puzzle, for the panel
+// 0x5bc1c9: the gems and the names of a puzzle, for the panel. 0x5bdddd (the puzzle n's moon: the planet n / 5, its moon
+// n % 5) is written inline in the first lookup
 void GalaxyMap::LoadPuzzleData(int thePuzzle)
 {
 	GalaxyParser* aGalaxy = mApp->mGalaxyParser;
@@ -564,7 +565,7 @@ void GalaxyMap::MouseDown(int theX, int theY, int theClickCount)
 				if (!mPlanets[aPuzzle / 5 - 1].mNearlyDone)
 				{
 					mApp->PlaySample(SOUND_BAD);
-					mApp->DoDialog(DIALOG_FULL_INSTRUCTIONS, true, "Planet is Locked",
+					mApp->DoDialog(DIALOG_PLANET_LOCKED, true, "Planet is Locked",
 						"This planet will not be available until you solve 4 out of 5 puzzles on all the planets up to this one.",
 						"OK", 3);
 					return;

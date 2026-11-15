@@ -1,7 +1,9 @@
 #ifndef __BONNIES_START_H__
 #define __BONNIES_START_H__
 
+#include <cstddef>
 #include <string>
+#include <utility>
 #include <vector>
 
 // What the port's host calls to start the game (src/main.cpp, src/BonniesHost.cpp), after loadExe and
@@ -29,6 +31,9 @@ std::string testWord();
 // port (test runs): the standard test commands (docs/TEST_COMMANDS.md: state, goto, level, win, lose, set, unlock,
 // seed; GameScreen.cpp), each answered with its reply line, or "" for a command that is not one of them
 std::string testCommand(const std::string& theCommand, const std::string& theArgs);
+// port (test runs): what the game's own holders keep, for the "memreport" test command (BonniesHostApp::
+// AddMemReportHolders): the resource cache's images and the dictionary, as name and bytes (GameScreen.cpp). Read only.
+void memoryHolders(std::vector<std::pair<std::string, size_t>>* theRows);
 
 #ifdef __EMSCRIPTEN__
 // port (web): the game's players for the site's player setting (src/SiteProfiles.cpp; framework/WebProfiles.h), in

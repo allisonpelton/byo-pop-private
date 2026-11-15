@@ -8,10 +8,8 @@
 // it; it also draws the arrows of the hints and of the puzzle pods. The offsets in the comments are the original's, from the
 // start of the object.
 //
-// The end screen (InitFace, DoUpdate, Draw) goes through mFaceState: 1 the black bars close in, 2 the gems fall into place,
-// 3 the lines are drawn between them, 4 the hyper gem is made (a flash), 5 a pause, 6 the shape morphs by the table of
-// steps in DoUpdate and fades, 7 (never set in this class) a second fade, 8 a gem flies a curve to the middle of the screen,
-// 9 the end. mEndTimer counts the updates since the start and the board's own code uses it to time the texts that follow.
+// The end screen (InitFace, DoUpdate, Draw) goes through mFaceState (the FaceState enum). mEndTimer counts the updates
+// since the start and the board's own code uses it to time the texts that follow.
 
 #include "Widget.h"
 #include "Color.h"
@@ -57,28 +55,41 @@ struct FaceStep
 class EffectOverlay : public Widget
 {
 public:
+	enum FaceState
+	{
+		FACE_OFF = 0,
+		FACE_BARS = 1,       // the black bars close in
+		FACE_GEMS_FALL = 2,  // the gems fall into place
+		FACE_LINES = 3,      // the lines are drawn between them
+		FACE_FLASH = 4,      // the hyper gem is made (a flash)
+		FACE_PAUSE = 5,
+		FACE_MORPH = 6,      // the shape morphs by the table of steps in DoUpdate and fades
+		// 7 is the original's second fade; nothing sets it, so the port has no state 7
+		FACE_FLY = 8,        // a gem flies a curve to the middle of the screen
+		FACE_END = 9
+	};
+
 	WinDMApp*		mApp;               // +0x88
 	int				mTextOn;            // +0x8c the big text is showing (DoStrechyText sets it, DoUpdate clears it)
 	MemoryImage*	mTextImage;         // +0x90 the text, drawn once into a picture (leaked by the original)
 	int				mTextWidth;         // +0x94 the width of the text in the picture (at most 800)
 	float			mTextAlpha;         // +0x98 how opaque the text is: rises to 1, then falls
-	float			m9c;                // +0x9c the size of the text relative to its spring (DoStrechyText sets 0.73; Board changes it afterwards)
+	float			mTextSizeFactor;    // +0x9c the size of the text relative to its spring (DoStrechyText sets 0.73; Board changes it afterwards)
 	float			mTextScale;         // +0xa0 the spring that sizes the text: 1 at the start, settles round 1.2 and 1.75, then falls to 0
 	float			mTextScaleVel;      // +0xa4 its speed
 	float			mTextStretch;       // +0xa8 how much the text is stretched sideways (1, damped to 0)
 	float			mTextStretchVel;    // +0xac its speed
 	float			mTextAge;           // +0xb0 0 to 1 over 25 updates: the damping of the stretch
-	float			mB4;                // +0xb4 set to 0 by DoStrechyText and never read
 	int				mTextHold;          // +0xb8 updates before the spring starts (30)
 	int				mTextFadeIn;        // +0xbc updates that the text fades in (the delay and 90)
 	int				mTextSettleA;       // +0xc0 updates until the spring stops aiming at 1.75 (the delay and 60)
 	int				mTextSettleB;       // +0xc4 updates until the spring stops aiming at 1.2 (60)
-	bool			mFlagC8;            // +0xc8 set by WinDMApp::DoNewGame once the portal is made; Draw clears the update backlog
-	bool			mFlagC9;            // +0xc9 the portal is open: the overlay covers the whole screen (MainMenu::Draw skips its backdrop)
+	bool			mClearBacklogAfterPortal; // set by WinDMApp::DoNewGame once the portal is made; Draw clears the update backlog
+	bool			mPortalOpen;        // the portal is open: the overlay covers the whole screen (MainMenu::Draw skips its backdrop)
 	float			mPortalProgress;    // +0xcc 0 to 1: the size of the portal; the board is shown when it is over
 	int				mPortalDelay;       // +0xd0 updates left before the portal opens (20)
 	int				mEndTimer;          // +0xd4 the updates since InitFace
-	int				mMorphTimer;        // +0xd8 the updates since the morph began (state 6)
+	int				mMorphTimer;        // +0xd8 the updates since the morph began (FACE_MORPH)
 	std::vector<Point> mSets[4];        // +0xdc the four shapes (edata\points.txt, points2 to points4): 170 points each
 	std::vector<Point> mCurShape;       // +0x11c the shape at the start of the step of the morph
 	std::vector<Point> mShape;          // +0x12c the shape that is drawn
@@ -89,11 +100,11 @@ public:
 	float			mLineProgress;      // +0x170 0 to 1: how far the lines are drawn
 	int				mFaceDelay;         // +0x174 updates left in the state
 	float			mFlash;             // +0x178 the white flash over the screen
-	int				mFaceState;         // +0x17c 0 is off, then 1 to 9 as above
-	float			mWildX;             // +0x180 the middle of the gem that flies in state 8 (and sits in the middle in 6 and 7)
+	int				mFaceState;         // +0x17c a FaceState
+	float			mWildX;             // +0x180 the middle of the gem that flies in FACE_FLY (and sits in the middle in FACE_MORPH)
 	float			mWildY;             // +0x184
 	float			mWildT;             // +0x188 how far along its curve it has flown
-	float			mFaceAlpha;         // +0x18c the alpha of the lines and the polygons: falls to 0 in state 6
+	float			mFaceAlpha;         // +0x18c the alpha of the lines and the polygons: falls to 0 in FACE_MORPH
 	float			mFade;              // +0x190 how far the credits and the bars have faded (1 to 0; Board lowers it)
 	int				mFadeHold;          // +0x194 updates before the face starts to fade (550)
 	int				mBarStep;           // +0x198 the size of the black bars at the top and the bottom (to 56)
@@ -105,7 +116,7 @@ public:
 
 	void			DoStrechyText(const std::string& theText, int theDelay);    // 0x5b524c a big text that stretches in
 	void			DoPortal();                                                 // 0x5b53b0
-	void			InitFace();                                                 // 0x5b9071 the end screen: reads the files, starts state 1
+	void			InitFace();                                                 // 0x5b9071 the end screen: reads the files, starts FACE_BARS
 	virtual void	Update() override;                                          // 0x5b871f
 	virtual void	Draw(Graphics* g) override;                                 // 0x5b59b2
 

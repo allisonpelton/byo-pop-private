@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""Count the game processes running on this machine, across every session (CLAUDE.md, "Run at most 3 game processes
-at a time": the limit counts every session's runs, so count before starting one).
+"""Count the game processes running on this machine, across every session (CLAUDE.md, "Run at most 6 game processes
+on the machine at a time": the limit counts every session's runs, so count before starting one).
 
 A game process is a port, a frozen baseline or a scratch build run from inside this repository or one of its worktrees,
 an original's copy (from a byo-pop folder or origrun's --stage-root, e.g. C:\\byo-og), a web build under Node (the
@@ -8,7 +8,7 @@ verifier or a page driver), and a running Windows Sandbox (one, whatever runs in
 itself, cmake, ninja, the compilers, git, Python, bash, Claude.
 
     python tools/gamecount.py            prints "game processes: N" and one line per process
-    python tools/gamecount.py --limit 8  exits 1 when N is 8 or more (start nothing new then), 0 otherwise
+    python tools/gamecount.py --limit 6  exits 1 when N is 6 or more (start nothing new then), 0 otherwise
 """
 import argparse, json, subprocess, sys
 

@@ -8,7 +8,7 @@ rec=$1; tag=$2; js=${3:-build/web/bejeweled2.js}
 cd "$(dirname "$0")/../../../.." || exit 2
 ABS=$PWD; W=$ABS/build/logs/bej2/web; mkdir -p $W/node_cwd
 NODE=$(ls E:/retools/emsdk/node/*/node.exe | tail -1)
-for i in $(seq 1 120); do python tools/gamecount.py --limit 3 > /dev/null && break; sleep 15; done
+for i in $(seq 1 120); do python tools/gamecount.py --limit 6 > /dev/null && break; sleep 15; done
 NS=; grep -q '^nosparkle' $rec/commands.txt && NS=--nosparkle
 python games/bejeweled2/tools/origcmp/to_commands.py $rec/events.json $W/$tag.cmd $NS > /dev/null
 : > $W/empty.ri

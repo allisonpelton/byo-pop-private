@@ -1,9 +1,9 @@
 {
   "id": "fixes",
   "name": "Fixes",
-  "version": "1.0",
+  "version": "1.1",
   "author": "byo-pop",
-  "description": "Mends two faults of the original and changes nothing else: the time of a chamber is counted in the game's own updates instead of the machine's clock, and the Ankh and Abandon Hope know what a fight between the mummies on the key stone does to the gate. Turn a fix off to play the original as it was.",
+  "description": "Mends three faults of the original and changes nothing else: the time of a chamber is counted in the game's own updates instead of the machine's clock, the Ankh and Abandon Hope know what a fight between the mummies on the key stone does to the gate, and a tap of an arrow key that is over before the game looks never goes missing. Turn a fix off to play the original as it was.",
   "features": {
     "fixes": true
   },
@@ -23,6 +23,14 @@
       "default": true,
       "apply": "restart",
       "help": "When one mummy beats the other on the key stone the gate flips, which the original's search leaves out, so the Ankh or Abandon Hope could be a turn wrong. Here the search counts it."
+    },
+    {
+      "id": "keyTaps",
+      "label": "A quick tap of an arrow key counts",
+      "type": "bool",
+      "default": true,
+      "apply": "restart",
+      "help": "The game looks at the keys once every hundredth of a second, so a key pressed and let go in between is lost, which a key event sent by a program (a single press lasts a millisecond) never survived. Here such a press still moves the explorer. A press held as long as a hand holds it is unaffected."
     }
   ]
 }

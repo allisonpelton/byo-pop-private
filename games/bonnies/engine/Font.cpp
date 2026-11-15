@@ -43,15 +43,15 @@ Str Font::getLine(const Str& theText, int theStart, float theWidth, float* theRe
 		{
 			if (theText[i] == '\r' || theText[i] == '\n')
 				break;
-			unsigned int c = at(theText, i);
+			unsigned int aCharCode = at(theText, i);
 			signed char aChar = (signed char)at(theText, i);
-			double aWidth = charAdvance(this, c, aPixelWidth) * theScale;
-			if (c == 0x7c)
+			double aWidth = charAdvance(this, aCharCode, aPixelWidth) * theScale;
+			if (aCharCode == 0x7c)
 			{
 				aWidth = 0.0;
 				aVisible = true;
 			}
-			else if (c > 0x20)
+			else if (aCharCode > 0x20)
 				aVisible = true;
 			if ((double)aSum + aWidth > theWidth)
 			{
@@ -101,8 +101,8 @@ Str Font::getLine(const Str& theText, int theStart, float theWidth, float* theRe
 					aBreakSum = aSum;
 				}
 			}
-			aWidth = charAdvance(this, c, aPixelWidth) * theScale;
-			if (c == 0x7c)
+			aWidth = charAdvance(this, aCharCode, aPixelWidth) * theScale;
+			if (aCharCode == 0x7c)
 				aWidth = 0.0;
 			aSum = (float)(aWidth + aSum);
 			i++;
@@ -236,7 +236,7 @@ float Font::drawText(const Str& theText, float theX, float theY, float theW, flo
 				do
 				{
 					Image* anImage = mImage;
-					unsigned int c = at(aLine, i);
+					unsigned int aChar = at(aLine, i);
 					float aDrawX = aX;
 					float aDrawY = aY;
 					if (mDrawingGlow != 0)
@@ -264,7 +264,7 @@ float Font::drawText(const Str& theText, float theX, float theY, float theW, flo
 						if (std::fabs(aPos - aPhase) < (double)0.2f)
 						{
 							aShimmered = true;
-							if (gPlatform->mField1C == 0)
+							if (gPlatform->mShimmerWaits == 0)
 							{
 								double aStrength = (theFlags & 0x200) != 0 ? 1.0 : -0.5;
 								if ((theFlags & 0x800) != 0)
@@ -275,24 +275,24 @@ float Font::drawText(const Str& theText, float theX, float theY, float theW, flo
 						}
 					}
 					float aSpacing;
-					if (c == 0x3a)
+					if (aChar == 0x3a)
 					{
 						aDrawX = (float)((double)aDrawX + mDesc->mColonX);
 						aDrawY = (float)((double)aDrawY + mDesc->mColonY);
 						aSpacing = mDesc->mSpacing;
 					}
-					else if (c == 0x7c)
+					else if (aChar == 0x7c)
 					{
 						if (i < (int)aLine.size() - 1)
 							aDrawX = (float)((double)aDrawX - (double)0.0025f);
 						aSpacing = mDesc->mSpacing;
 					}
-					else if (c == 0x20)
+					else if (aChar == 0x20)
 						aSpacing = mDesc->mSpaceWidth;
 					else
 						aSpacing = mDesc->mSpacing;
-					float anAdvance = (float)(((double)gInvWidth * mImage->mFrames[c].mWidth + aSpacing) * theScale);
-					if (c == 0x7c)
+					float anAdvance = (float)(((double)gInvWidth * mImage->mFrames[aChar].mWidth + aSpacing) * theScale);
+					if (aChar == 0x7c)
 						anAdvance = 0.0f;
 					if (mDrawingGlow == 0 && mDrawingStroke == 0 && mDrawingShadow == 0 && mSelecting != 0 &&
 						mCharIndex >= mSelStart && mCharIndex <= mSelEnd)
@@ -300,14 +300,14 @@ float Font::drawText(const Str& theText, float theX, float theY, float theW, flo
 						fillRect(aDrawX, aDrawY, anAdvance, aLineHeight, 0xff1f1f4f);
 						aColor = 0xffcfcfcf;
 					}
-					const Frame* aFrame = &anImage->mFrames[c];
+					const Frame* aFrame = &anImage->mFrames[aChar];
 					bool aRotate = true;
 					if (theScale == 1.0f)
 					{
 						if (theAngle == 0.0f)
 						{
 							aRotate = false;
-							if (c != 0x20)
+							if (aChar != 0x20)
 								drawFrameTinted(aFrame, aDrawX, aDrawY, aColor);
 						}
 					}
@@ -322,7 +322,7 @@ float Font::drawText(const Str& theText, float theX, float theY, float theW, flo
 							float aHalfH = (float)(((double)aFrame->mHeight * aShrink + 1.0) * 0.5);
 							aDrawY = (float)((double)aHalfH / gHeight + aDrawY);
 						}
-						if (c != 0x20)
+						if (aChar != 0x20)
 							drawFrameRotated(aFrame, aDrawX, aDrawY, theAngle, theScale, 1.0f, aColor, 1);
 					}
 					mCharIndex++;
@@ -335,8 +335,8 @@ float Font::drawText(const Str& theText, float theX, float theY, float theW, flo
 	}
 	if (gPlatform->mDebugTexts != 0)
 		drawRect(theX, theY, theW, theH, 0xff00ffff, 1);
-	if (gPlatform->mField1C != 0 && !aShimmered && (theFlags & 0xe00) != 0)
-		gPlatform->mField1C = 0;
+	if (gPlatform->mShimmerWaits != 0 && !aShimmered && (theFlags & 0xe00) != 0)
+		gPlatform->mShimmerWaits = 0;
 	return aY;
 }
 

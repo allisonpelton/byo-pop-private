@@ -195,7 +195,7 @@ private:
 	int mPreviewShots;              // its showings so far, +1 once the first is shot
 	bool mPanelShot;                // the widescreen side panel was shot
 	bool mFameNoted;
-	int mLevelUps;
+	int mLevelUps;                 // level-ups counted by the bot; nothing reads it
 
 	// the board
 	std::vector<Step> mPlan;

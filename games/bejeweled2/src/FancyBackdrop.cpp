@@ -103,21 +103,21 @@ void FancyBackdrop::Update()
 
 		for (int i = 0; i < (int)mComets.size(); i++)
 		{
-			Comet* c = mComets[i];
-			double aLife = c->mLife + 0.005f;
-			c->mLife = aLife;
-			float aVY = c->mVY + 0.0005f;
-			c->mVY = aVY;
+			Comet* aComet = mComets[i];
+			double aLife = aComet->mLife + 0.005f;
+			aComet->mLife = aLife;
+			float aVY = aComet->mVY + 0.0005f;
+			aComet->mVY = aVY;
 			if (aLife >= 1.0)
 			{
-				delete c;
+				delete aComet;
 				mComets.erase(mComets.begin() + i);
 				i--;
 			}
 			else
 			{
-				c->mX = c->mVX + c->mX;
-				c->mY = aVY + c->mY;
+				aComet->mX = aComet->mVX + aComet->mX;
+				aComet->mY = aVY + aComet->mY;
 			}
 		}
 	}
@@ -185,14 +185,14 @@ void FancyBackdrop::DrawBottom(Graphics* g)
 
 	for (int i = 0; i < (int)mComets.size(); i++)
 	{
-		Comet* c = mComets[i];
+		Comet* aComet = mComets[i];
 		g->SetColorizeImages(true);
-		int v = (int)((1.0 - c->mLife) * 64.0);
+		int v = (int)((1.0 - aComet->mLife) * 64.0);
 		g->SetColor(Color(v, v, v));
 		if (!is3d)
-			g->DrawImage(IMAGE_MAIN_COMET, (int)mApp->ScaleNum(c->mX, 0.0f), (int)mApp->ScaleNum(c->mY, 0.0f));
+			g->DrawImage(IMAGE_MAIN_COMET, (int)mApp->ScaleNum(aComet->mX, 0.0f), (int)mApp->ScaleNum(aComet->mY, 0.0f));
 		else
-			g->DrawImageF(IMAGE_MAIN_COMET, mApp->ScaleNum(c->mX, 0.0f), mApp->ScaleNum(c->mY, 0.0f));
+			g->DrawImageF(IMAGE_MAIN_COMET, mApp->ScaleNum(aComet->mX, 0.0f), mApp->ScaleNum(aComet->mY, 0.0f));
 		g->SetColorizeImages(false);
 	}
 

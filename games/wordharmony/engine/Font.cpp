@@ -30,14 +30,6 @@ void Font::load(const char* theFileName)
 	parseXml(aParser, aStream);
 }
 
-// 0x43d970
-void Font::loadFile(const char* theFileName)
-{
-	Ref<InputStream> aStream = mResources->openBufferedFile(theFileName);
-	FontParser aParser(this);
-	parseXml(aParser, aStream);
-}
-
 // 0x43d530
 bool Font::hasGlyph(char c) const
 {

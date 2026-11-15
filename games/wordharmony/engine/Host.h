@@ -46,7 +46,7 @@ public:
 	virtual std::string commandLine() { return ""; }
 	// port: a seed given for the game's srand of the tick count (-seed=N), for the identical-play runs
 	virtual bool testSeed(unsigned int& theSeed) { return false; }
-	// port(mod): a fix of the fixes mod is on (src/ModFeatures.h); never without the mod
+	// port(mod): a fix of the fixes mod is on (Platform::FixOn)
 	virtual bool fixOn(const char* theFix) { return false; }
 };
 

@@ -10,7 +10,7 @@ is. Everything here would be a mod of the port's own code and data, never anothe
 What the game is, for the list: a real-time game on a mouse. A ship moves with the pointer and a click fires a pair of
 beams that close a stretch of the board; a right click or the space bar switches the beams' aim. Bugs roam the board and
 cut a beam they touch; a fill that holds no bug stays, and a board is won at its quota (85% in the first ones, from the
-level file's `fillQuota`). The game keeps the player's lives, a score, two records per board (the fewest shots and the best
+level file's `mFillQuota`). The game keeps the player's lives, a score, two records per board (the fewest shots and the best
 fill, each with a name) and a Hall of Fame, and has a world map with the levels reached. It runs on a fixed 10 ms update
 clock with its own random numbers, so a game is its seed and its input. The screen is 800x600 and the art is drawn by
 software blitters into a 16-bit back buffer.
@@ -81,8 +81,10 @@ software blitters into a 16-bit back buffer.
     order of the shipped boards, or a run of only random boards, each a little faster and with one more bug, ending with
     the lives and with its own score table.
 23. **Developer leftovers.** Fits as an example mod. The exe reads the keys 0 to 9 and A to D when a power-up is made and
-    gives it that kind (`Powerup_Init`, ungated), and it has a demo mode in which the game plays itself (`gDemo`); the
-    mod would offer both, with what else the session finds unused in the exe and the banks.
+    gives it that kind (`Powerup_Init`, ungated), and it has a demo mode in which the game plays itself (`gDemo`, which its own code never sets); the
+    port took the demo mode, the sweepers power-up and the water mine and the freeze out on 2026-11-11 (`GAME_NOTES.md`,
+    "Unneeded code taken out"), so a mod would put them back from the export, with what else the session finds unused in
+    the exe and the banks.
 24. **Translations.** Fits. The game's texts are read from the exe by address (`GT(0x...)`) and from `local.xml`, so a
     table by address or id could replace them; such tables are made locally and never committed.
 25. **Local achievements.** Skipped for now: the exe has no achievement texts that the search found, so there are no names

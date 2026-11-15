@@ -16,7 +16,7 @@ if [ -n "$FRESH" ] || [ ! -d "$R/game" ]; then rm -rf "${R:?}"; mkdir -p "$R"; c
 [ -n "$SAVEDIR" ] && rm -rf "${R:?}/game/SavedGames" && cp -r "$SAVEDIR" "$R/game/SavedGames"
 grep -v "^shot " "$S" | sed 's/^waitshot logo 20000$/wait 9000/; s/^waitshot \S* /wait /' > "$H/$NAME.script.txt"
 rm -f "$R/coverage.txt"
-until python -I tools/gamecount.py --limit 3 > /dev/null; do python -c "import time; time.sleep(20)"; done
+until python -I tools/gamecount.py --limit 6 > /dev/null; do python -c "import time; time.sleep(20)"; done
 build/origrun-bin/origrun.exe --exe "$(win "$PWD/$R/game/BonniesGame.exe")" --run bonnies-cov \
 	--script "$(win "$PWD/$H/$NAME.script.txt")" --clock real --seed 1 --timeout "$T" \
 	--patches "$(win "$PWD/games/bonnies/tools/origrun/patches.txt")" \

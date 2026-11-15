@@ -23,12 +23,12 @@ class MemoryImage;
 class AstroDialog : public Text2004<Dialog>
 {
 public:
-	int					m110;           // +0x110 where the title ends up (y) when the box has come in
-	int					m114;           // +0x114 where the box ends up (y; 0)
-	int					m118;           // +0x118 the title's y now
-	int					m11c;           // +0x11c the title's x (centred)
-	int					m120;           // +0x120 the box's x (0)
-	int					m124;           // +0x124 the box's y now (it starts at 480, below the screen)
+	int					mTitleEndY; // +0x110 where the title ends up (y) when the box has come in
+	int					mBoxEndY; // +0x114 where the box ends up (y; 0)
+	int					mTitleY; // +0x118 the title's y now
+	int					mTitleX; // +0x11c the title's x (centred)
+	int					mBoxX; // +0x120 the box's x (0)
+	int					mBoxY; // +0x124 the box's y now (it starts at 480, below the screen)
 	int					mState;         // +0x128 the opening: 8 (the box comes up), 4 (it sinks back a little), 3 (it settles)
 	int					mTypedLine;     // +0x12c the line being typed out
 	int					mTypedChars;    // +0x130 the characters of that line typed so far, less one

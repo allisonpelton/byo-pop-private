@@ -1,0 +1,6 @@
+/* Hammer Heads' look on the shared page (web/shell.html): the amber of the game's hammer and a green meadow ring for the
+   brand mark */
+:root { --accent: #7a5a1e; --meadow: #4a9a2a; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --accent: #d9a44c; } }
+:root[data-theme="dark"] { --accent: #d9a44c; }
+.brand .mark { width: 12px; height: 12px; background: var(--accent); border-radius: 50%; box-shadow: 0 0 0 2px var(--meadow); }

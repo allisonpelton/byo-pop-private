@@ -1,0 +1,67 @@
+# The fixes mod's check (games/venice/tools/fixes_check.sh): a new player's name, then the screens that show the texts the
+# fixes correct or show: the name box's request on an invalid name and the title of one trick shot level (the typos fix), the
+# summary after the win or the loss of six trick shot levels (the trickMessages fix: each level's own message), and a level and
+# the main menu that show neither. @DIR@ is the run's folder (the check replaces it). Run with -fast -seed=1.
+3000 key T
+3010 key E
+3020 key S
+3030 key T
+3200 keydown RETURN
+3204 keyup RETURN
+3900 unlock all
+3902 set mode 3
+3903 goto invalid_profile_name
+4300 screenshot @DIR@/typo_invalid_name.png
+4301 state
+4400 goto trickshot
+5000 level 46
+5300 screenshot @DIR@/typo_title_46.png
+5301 state
+5400 goto trickshot
+5410 level 23
+6000 win
+7000 screenshot @DIR@/msg_win_23.png
+7001 state
+7100 goto trickshot
+7200 level 45
+8000 win
+9000 screenshot @DIR@/msg_win_45.png
+9001 state
+9100 goto trickshot
+9200 level 71
+10000 win
+11000 screenshot @DIR@/msg_win_71.png
+11001 state
+11100 goto trickshot
+11200 level 101
+12000 win
+13000 screenshot @DIR@/msg_win_101.png
+13001 state
+13100 goto trickshot
+13200 level 87
+14400 move 400 150
+14410 down 400 150
+14412 up 400 150
+14800 move 400 150
+14810 down 400 150
+14812 up 400 150
+18000 screenshot @DIR@/msg_lose_87.png
+18001 state
+18100 goto trickshot
+18200 level 33
+19400 move 400 150
+19410 down 400 150
+19412 up 400 150
+19800 move 400 150
+19810 down 400 150
+19812 up 400 150
+23000 screenshot @DIR@/msg_lose_33.png
+23001 state
+23100 goto trickshot
+23200 level 1
+24000 screenshot @DIR@/same_level_1.png
+24001 state
+24100 goto menu
+24900 screenshot @DIR@/same_menu.png
+24901 state
+25000 quit

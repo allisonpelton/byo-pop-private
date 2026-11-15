@@ -2,7 +2,7 @@
 #define __STARFIELD_H__
 
 // StarField.h: the field of stars or of linked dots that two of the cheat words put behind the board (Sexy::StarField,
-// 0x5d8ffc-0x5d9...; the object is 0x1c bytes). Board::m165bc (+0x165bc) holds it; Board::Update updates it and
+// 0x5d8ffc-0x5d9...; the object is 0x1c bytes). Board::mCheatStars (+0x165bc) holds it; Board::Update updates it and
 // Board::Draw draws it. The offsets in the comments are the original's, from the start of the object.
 
 #include <list>

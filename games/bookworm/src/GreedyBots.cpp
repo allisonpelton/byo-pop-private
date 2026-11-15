@@ -1,3 +1,5 @@
+// port(mod): mod "greedy-bots", the greedy bots (GreedyBots.h). Not part of the original game.
+
 #include "GreedyBots.h"
 #include "BookWormApp.h"
 #include "ModWords.h"
@@ -190,7 +192,7 @@ Piece* BotGame::Below(Piece* thePiece) const
 	return NULL;
 }
 
-// Board::Refill in Classic (the new tiles start above the board: the game draws their heights from mRand)
+// Board::CheckForFalling in Classic (the new tiles start above the board: the game draws their heights from mRand)
 void BotGame::Refill()
 {
 	bool isLevelUp = mLevel > mLastRefillLevel;
@@ -320,7 +322,7 @@ void BotGame::BurnTiles()
 	}
 }
 
-// Board::AwardSpecialTile (its 6-letter draw is dead: gLen6Gate is never written)
+// Board::GenerateSuperBonusTiles (its 6-letter draw is dead: gLen6Gate is never written)
 void BotGame::AwardSpecialTile(const WordScore& theWord)
 {
 	int aLength = (int)theWord.mWord.size();
@@ -427,7 +429,7 @@ void BotGame::RemoveBonusTiles()
 	}
 }
 
-// Board::PickBonusWord: into the app's next bonus word
+// Board::GetNextBonusWord: into the app's next bonus word
 void BotGame::PickBonusWord()
 {
 	unsigned int aGivenIndex = (unsigned int)mBonusWordsGiven;
@@ -465,7 +467,7 @@ bool BotGame::Submit(const std::vector<Piece*>& thePath)
 	WordScore aWord;
 	aWord.mApp = mApp;
 	aWord.mLevel = mLevel;
-	aWord.Build(&aList);
+	aWord.CalcTileStats(&aList);
 
 	ModWordEffects aModEffects;
 	bool isModWord = ModWordGetEffects(aWord.mWord, &aModEffects);
@@ -517,7 +519,7 @@ bool BotGame::Submit(const std::vector<Piece*>& thePath)
 		}
 	}
 
-	if ((mScore >= Board::LevelThreshold((unsigned int)mLevel)) && (mState == BOARD_PLAYING))
+	if ((mScore >= Board::GetPointsAtLevel((unsigned int)mLevel)) && (mState == BOARD_PLAYING))
 		mState = BOARD_LEVEL_COMPLETE;
 
 	mModFireDue = 0;
@@ -692,7 +694,7 @@ void BotGame::Settle()
 
 	if (mState == BOARD_LEVEL_COMPLETE)
 	{
-		mLevelScore = mScore - Board::LevelThreshold((unsigned int)mLevel);
+		mLevelScore = mScore - Board::GetPointsAtLevel((unsigned int)mLevel);
 		mLevelWords = 0;
 		mLevel++;
 		mState = BOARD_PLAYING;
@@ -788,19 +790,19 @@ static bool FireFirst(const SolverWord& a, const SolverWord& b)
 // lowest fire tile taken first; then the fewest new fire tiles, the fire meter's drain counted (mFireCost); then the
 // solver's fire hint order or the points. The fewest new fire alone leaves the fire on the board to burn down: on
 // Classic seed 1 that bot burned at level 19, where the fire-first bot reached level 44.
-static bool LeastFireFirst(const SolverWord& a, const SolverWord& b)
+static bool LeastFireFirst(const SolverWord& theFirst, const SolverWord& theSecond)
 {
-	if (a.mSafety != b.mSafety)
-		return a.mSafety < b.mSafety;
-	bool aFire = a.mFireTiles > 0;
-	bool bFire = b.mFireTiles > 0;
+	if (theFirst.mSafety != theSecond.mSafety)
+		return theFirst.mSafety < theSecond.mSafety;
+	bool aFire = theFirst.mFireTiles > 0;
+	bool bFire = theSecond.mFireTiles > 0;
 	if (aFire != bFire)
 		return aFire;
-	if ((aFire) && (a.mFireRow != b.mFireRow))
-		return a.mFireRow > b.mFireRow;
-	if (a.mFireCost != b.mFireCost)
-		return a.mFireCost < b.mFireCost;
-	return aFire ? SolverBetterForFire(a, b) : SolverBetterByScore(a, b);
+	if ((aFire) && (theFirst.mFireRow != theSecond.mFireRow))
+		return theFirst.mFireRow > theSecond.mFireRow;
+	if (theFirst.mFireCost != theSecond.mFireCost)
+		return theFirst.mFireCost < theSecond.mFireCost;
+	return aFire ? SolverBetterForFire(theFirst, theSecond) : SolverBetterByScore(theFirst, theSecond);
 }
 
 bool GreedyBots::PlayMove(BotGame* theGame, int theKind)

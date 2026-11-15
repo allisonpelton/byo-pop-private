@@ -4,8 +4,10 @@
 #include "GameText.h"
 #include "Board.h"
 #include "HallOfFame.h"
+#include "LiveSplitObserver.h"
 #include "LoaderScreen.h"
 #include "MainMenu.h"
+#include "OptionsDialog.h"
 #include "Particle.h"
 #include "SDLMusicInterface.h"
 #include "ResourceManager.h"
@@ -18,6 +20,7 @@
 #include "SoundInstance.h"
 #include "SoundManager.h"
 #include "Dialog.h"
+#include "Checkbox.h"
 #include <cmath>
 #include <cstdio>
 #include <cstring>
@@ -40,24 +43,24 @@ AstroPopApp::AstroPopApp()
 
 	mBoard = NULL;
 	mDescriptor = NULL;
-	mFlag658 = false;
-	mFlag6f9 = false;
-	mFlag6fa = false;
-	mFlag6fb = false;
+	mTutorialOn = false;
+	mHintsOn = false;
+	mColorblind = false;
+	mShowHelpAtStart = false;
 	mMainMenu = NULL;
 	mHallScreen = NULL;
-	mScreen650 = NULL;
-	mScreen654 = NULL;
+	mCharSelector = NULL;
+	mCreditsScreen = NULL;
 	mLoaderScreen = NULL;
 	mOldSavesDeleted = false;
 	mOldScoresDeleted = false;
-	mTimer664 = 0;
+	mComboPingTimer = 0;
 	mGameUpdates = 0;
 	mClassicPilot = 0;
 	mSurvivalPilot = 0;
 	mOpenDialogs = 0;
 	mPilot6e8 = -1;
-	mFlag6fc = false;
+	mHelpShown = false;
 	mHelpScreen = NULL;
 	mDialogFont = NULL;
 	for (int i = 0; i < 3; i++)
@@ -81,15 +84,16 @@ AstroPopApp::AstroPopApp()
 	mMusicOrder = -1;
 }
 
-// 0x42dc30 slot 14
+// 0x42dc30 slot 14 (body 0x42d820)
 AstroPopApp::~AstroPopApp()
 {
+	LiveSplitObserver::AppDestroyed(this);      // port(autosplit): the autosplit block's last write
 	delete mUser;
 	if (gApp == this)
 		gApp = NULL;
 }
 
-// 0x408e90 slot 3
+// 0x408e90 slot 3 (and 0x4285c0, its entry through the ButtonListener part)
 void AstroPopApp::ButtonPress(int theId)
 {
 	PlaySample(SOUND_BUTTON_DOWN);
@@ -99,38 +103,30 @@ void AstroPopApp::ButtonPress(int theId)
 void AstroPopApp::UpdateFrames()
 {
 	SexyApp::UpdateFrames();
-	if (mTimer664 > 0)
-		mTimer664--;
+	if (mComboPingTimer > 0)
+		mComboPingTimer--;
 	if (mTraceMode)
 		TraceUpdate();
+	LiveSplitObserver::AfterUpdate(this);       // port(autosplit): the autosplit block, after the update
 }
 
-// 0x408b70 slot 67
-void AstroPopApp::SetMusicVolumeFloat(float theVolume)
-{
-	SetMusicVolume((double) theVolume);
-}
-
-// 0x40e060 slot 35: the only switch of its own is -mycrash (it makes the game crash: a test of the crash report)
+// port(autosplit): -livesplitlog=<file> asks for the block and logs it; everything else is the framework's
 void AstroPopApp::HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue)
 {
-	if (theParamName == "-mycrash")
-		return; // original: sets the flag at +0x6f8 (read by the crash handler's report; not ported)
-	SexyApp::HandleCmdLineParam(theParamName, theParamValue);
+	if (theParamName == "-livesplitlog")
+		LiveSplitObserver::SetLogFile(theParamValue);
+	else
+		SexyApp::HandleCmdLineParam(theParamName, theParamValue);
 }
 
-// 0x4090d0 slot 53
+// 0x4090d0 slot 53: if the options box (id 0x66) is open, its full-screen check box follows the new mode (as a click on it
+// would, with the box's listener told)
 void AstroPopApp::SwitchScreenMode(bool wantWindowed)
 {
 	SexyApp::SwitchScreenMode(wantWindowed);
-	// original: if the options dialog (id 0x66) is open, its full-screen check box follows the new mode (v[47](!windowed))
-}
-
-// 0x412360 slot 55
-Dialog* AstroPopApp::DoDialog(int theDialogId, bool isModal, const SexyString& theDialogHeader,
-	const SexyString& theDialogLines, const SexyString& theDialogFooter, int theButtonMode)
-{
-	return SexyApp::DoDialog(theDialogId, isModal, theDialogHeader, theDialogLines, theDialogFooter, theButtonMode);
+	OptionsDialog* anOptions = (OptionsDialog*) GetDialog(0x66);
+	if (anOptions != NULL && anOptions->mFullscreenCheck != NULL)
+		anOptions->mFullscreenCheck->SetChecked(!wantWindowed);
 }
 
 // port: the 2004 SexyApp makes a BassMusicInterface itself (slot 15, 0x408e30); the port's music interface gets
@@ -151,7 +147,7 @@ void AstroPopApp::InitPropertiesHook()
 
 	LoadProperties("properties/texts.xml", false, false);
 	if (!LoadGameTexts())
-		SDL_Log("AstroPop: no game texts read from WinAP.exe (texts without an override stay empty)");
+		SDL_Log("AstroPop: no game texts read from WinAP.exe or AstroPop.exe (texts without an override stay empty)");
 
 	// The ten lines the quit dialog picks from (the original's constructor stores them, 0x562900 ...): read here, since the
 	// texts are loaded only now
@@ -203,6 +199,10 @@ void AstroPopApp::Init()
 	// port: this game's MemoryImage::SlowStretchBlt (0x4b1bf0) divides the colour's weight by the alpha that is there, as the
 	// 1.4 framework's has commented out (a stretch onto transparent bits, as the loader's strips, keeps the colour at full strength)
 	gSlowStretchRenormalizesAlpha = true;
+
+	// port: the 2004 WidgetManager draws no widget with the fast stretch on; the level-up text asks for it itself
+	// (LevelUpText::DrawAt 0x40c8a0), and the atomic explosion's ring and the other stretches average (a 2D run)
+	gWidgetsDrawWithoutFastStretch = true;
 
 	SexyApp::Init();
 	LoadResourceManifest();   // 0x4d93f0
@@ -482,9 +482,9 @@ void AstroPopApp::GotFocus()
 		else if (mMainMenu != NULL)
 			mMainMenu->mInactive = false;
 	}
-	if (mEngineLoop != NULL && mBoard != NULL && !mBoard->HasWarpState() && mBoard->m1924 <= 0)
+	if (mEngineLoop != NULL && mBoard != NULL && !mBoard->HasWarpState() && mBoard->mPauseCount <= 0)
 		mEngineLoop->Play(true, false);
-	if (mHyperspaceLoop != NULL && mBoard != NULL && mBoard->HasWarpState() && mBoard->m1924 <= 0)
+	if (mHyperspaceLoop != NULL && mBoard != NULL && mBoard->HasWarpState() && mBoard->mPauseCount <= 0)
 		mHyperspaceLoop->Play(true, false);
 }
 
@@ -610,15 +610,15 @@ void AstroPopApp::PlaySamplePitched(int theSound, int thePitch)
 // 0x409250
 void AstroPopApp::PlayComboPing(int thePitch)
 {
-	if (mTimer664 < 1)
+	if (mComboPingTimer < 1)
 	{
 		PlaySamplePitched(SOUND_COMBO_PING, thePitch);
-		mTimer664 = 0x2d;
+		mComboPingTimer = 0x2d;
 	}
 }
 
 // 0x42c910: the thirty bonus level files data\bonus<n>.xcf are read and their signatures checked. The port leaves the check
-// out (docs/GAME_NOTES.md, 5): the Board reads the file of a bonus round itself when the round starts (m748), and the
+// out (docs/GAME_NOTES.md, 5): the Board reads the file of a bonus round itself when the round starts (mBonusRoundFile), and the
 // loading screen's progress counts the step.
 bool AstroPopApp::LoadBonusLevels()
 {

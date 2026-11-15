@@ -24,11 +24,11 @@
 
 using namespace Sexy;
 
-static bool HasFlag(int argc, char** argv, const char* theKey)
+static bool HasFlag(int theArgc, char** theArgv, const char* theKey)
 {
-	for (int i = 1; i < argc; i++)
+	for (int i = 1; i < theArgc; i++)
 	{
-		const char* a = argv[i];
+		const char* a = theArgv[i];
 		while (*a == '-')
 			a++;
 		if (!strcmp(a, theKey))
@@ -37,12 +37,12 @@ static bool HasFlag(int argc, char** argv, const char* theKey)
 	return false;
 }
 
-static std::string ArgValue(int argc, char** argv, const char* theKey)
+static std::string ArgValue(int theArgc, char** theArgv, const char* theKey)
 {
 	size_t n = strlen(theKey);
-	for (int i = 1; i < argc; i++)
+	for (int i = 1; i < theArgc; i++)
 	{
-		const char* a = argv[i];
+		const char* a = theArgv[i];
 		while (*a == '-')
 			a++;
 		if (!strncmp(a, theKey, n) && a[n] == '=')
@@ -62,66 +62,66 @@ static bool LooksLikeGameDir(const std::string& theDir)
 #ifndef __EMSCRIPTEN__
 static std::string ExeDir()
 {
-	char* base = SDL_GetBasePath();
-	std::string dir = base ? base : "./";
-	SDL_free(base);
-	while (!dir.empty() && (dir.back() == '/' || dir.back() == '\\'))
-		dir.pop_back();
-	return dir;
+	char* aBase = SDL_GetBasePath();
+	std::string aDir = aBase ? aBase : "./";
+	SDL_free(aBase);
+	while (!aDir.empty() && (aDir.back() == '/' || aDir.back() == '\\'))
+		aDir.pop_back();
+	return aDir;
 }
 
 static std::string FindGameDir()
 {
-	std::string exe = ExeDir();
-	std::vector<std::string> candidates = {exe, exe + "/assets/waterbugs", exe + "/../assets/waterbugs",
-		exe + "/../../assets/waterbugs", "assets/waterbugs"};
+	std::string anExe = ExeDir();
+	std::vector<std::string> aCandidates = {anExe, anExe + "/assets/waterbugs", anExe + "/../assets/waterbugs",
+		anExe + "/../../assets/waterbugs", "assets/waterbugs"};
 #ifdef _WIN32
 	// The retail installs (the collection's folder, and a single game's)
-	for (const char* env : {"ProgramFiles", "ProgramFiles(x86)"})
+	for (const char* anEnv : {"ProgramFiles", "ProgramFiles(x86)"})
 	{
-		const char* pf = SDL_getenv(env);
-		if (pf)
+		const char* aPf = SDL_getenv(anEnv);
+		if (aPf)
 		{
-			candidates.push_back(std::string(pf) + "/Popcap Game Collection/Water Bugs");
-			candidates.push_back(std::string(pf) + "/PopCap Games/Water Bugs");
+			aCandidates.push_back(std::string(aPf) + "/Popcap Game Collection/Water Bugs");
+			aCandidates.push_back(std::string(aPf) + "/PopCap Games/Water Bugs");
 		}
 	}
 #endif
-	for (const std::string& c : candidates)
+	for (const std::string& c : aCandidates)
 		if (LooksLikeGameDir(c))
 			return c;
 	return "";
 }
 #endif
 
-int main(int argc, char** argv)
+int main(int theArgc, char** theArgv)
 {
-	std::string gameDir = ArgValue(argc, argv, "gamedir");
-	std::string userDir = ArgValue(argc, argv, "userdir");
-	std::string modsDir = ArgValue(argc, argv, "modsdir");
+	std::string aGameDir = ArgValue(theArgc, theArgv, "gamedir");
+	std::string anUserDir = ArgValue(theArgc, theArgv, "userdir");
+	std::string aModsDir = ArgValue(theArgc, theArgv, "modsdir");
 
 #ifdef __EMSCRIPTEN__
 	// port (web): its page (web/shell.html, games/waterbugs/web/page.js) mounts its own IndexedDB-backed folder,
 	// so Water Bugs' files never mix with the other games' on the same site
-	if (gameDir.empty())
-		gameDir = "/wbpersist/game";
-	if (userDir.empty())
-		userDir = "/wbpersist/userdata";
-	if (modsDir.empty())
-		modsDir = "/wbpersist/mods";
+	if (aGameDir.empty())
+		aGameDir = "/wbpersist/game";
+	if (anUserDir.empty())
+		anUserDir = "/wbpersist/userdata";
+	if (aModsDir.empty())
+		aModsDir = "/wbpersist/mods";
 #else
-	if (gameDir.empty())
-		gameDir = FindGameDir();
-	if (userDir.empty())
+	if (aGameDir.empty())
+		aGameDir = FindGameDir();
+	if (anUserDir.empty())
 	{
-		char* pref = SDL_GetPrefPath("byo-pop", "Water Bugs");
-		userDir = pref ? pref : "userdata";
-		SDL_free(pref);
-		while (!userDir.empty() && (userDir.back() == '/' || userDir.back() == '\\'))
-			userDir.pop_back();
+		char* aPref = SDL_GetPrefPath("byo-pop", "Water Bugs");
+		anUserDir = aPref ? aPref : "userdata";
+		SDL_free(aPref);
+		while (!anUserDir.empty() && (anUserDir.back() == '/' || anUserDir.back() == '\\'))
+			anUserDir.pop_back();
 	}
-	if (modsDir.empty())
-		modsDir = ExeDir() + "/mods-waterbugs";
+	if (aModsDir.empty())
+		aModsDir = ExeDir() + "/mods-waterbugs";
 #endif
 
 #ifndef __EMSCRIPTEN__
@@ -129,44 +129,44 @@ int main(int argc, char** argv)
 	// user dir (platform/SaveImport.h), then exits without starting the game. Without it nothing changes.
 	{
 		int anImportResult = 0;
-		if (Platform::RunSaveImportIfRequested(argc, argv, "waterbugs", gameDir, userDir, &anImportResult))
+		if (Platform::RunSaveImportIfRequested(theArgc, theArgv, "waterbugs", aGameDir, anUserDir, &anImportResult))
 			return anImportResult;
 	}
 #endif
 
-	if (gameDir.empty() || !LooksLikeGameDir(gameDir))
+	if (aGameDir.empty() || !LooksLikeGameDir(aGameDir))
 	{
-		std::string msg = "Could not find the Water Bugs game files.\n\n"
+		std::string aMsg = "Could not find the Water Bugs game files.\n\n"
 			"Run with -gamedir=\"<your Water Bugs folder>\" or copy the game's folder (WaterBugs.exe, art.bbk, "
 			"water_art8.bbk, wanims and audio; the game's texts are read from the exe) into an assets/waterbugs "
 			"folder next to the executable.";
-		SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Water Bugs", msg.c_str(), nullptr);
-		SDL_Log("%s", msg.c_str());
+		SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Water Bugs", aMsg.c_str(), nullptr);
+		SDL_Log("%s", aMsg.c_str());
 		return 1;
 	}
 
-	Platform::MakeDirs(userDir);
+	Platform::MakeDirs(anUserDir);
 	// Web: saves written as the page was closed may only have reached localStorage
-	Platform::RestoreUserDataBackup(userDir);
-	Platform::VFS::Get().SetBaseDir(gameDir);
-	Platform::VFS::Get().SetUserDir(userDir);
+	Platform::RestoreUserDataBackup(anUserDir);
+	Platform::VFS::Get().SetBaseDir(aGameDir);
+	Platform::VFS::Get().SetUserDir(anUserDir);
 	// The mods (the fixes mod, games/waterbugs/docs/GAME_NOTES.md): none without a mod folder, and the game plays as the original
-	Platform::MakeDirs(modsDir);
-	Platform::ModManager::Get().SetModsDir(modsDir);
-	if (!HasFlag(argc, argv, "nomods"))
+	Platform::MakeDirs(aModsDir);
+	Platform::ModManager::Get().SetModsDir(aModsDir);
+	if (!HasFlag(theArgc, theArgv, "nomods"))
 		Platform::ModManager::Get().Refresh();
-	SDL_Log("game: %s | user: %s | mods: %s", gameDir.c_str(), userDir.c_str(), modsDir.c_str());
+	SDL_Log("game: %s | user: %s | mods: %s", aGameDir.c_str(), anUserDir.c_str(), aModsDir.c_str());
 
 	// The music is five MO3 modules (BASS in the original): libopenmpt
 	Platform::RegisterOpenMPTModules();
 
-	static WaterBugsApp* anApp = new WaterBugsApp();
-	anApp->SetCmdLine(argc, argv);
-	anApp->Init();
-	anApp->Start();
+	static WaterBugsApp* sAnApp = new WaterBugsApp();
+	sAnApp->SetCmdLine(theArgc, theArgv);
+	sAnApp->Init();
+	sAnApp->Start();
 #ifndef __EMSCRIPTEN__
-	anApp->Shutdown();
-	delete anApp;
+	sAnApp->Shutdown();
+	delete sAnApp;
 #endif
 	return 0;
 }

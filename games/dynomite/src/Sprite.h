@@ -72,7 +72,7 @@ public:
 	Cell(Pic* thePic, int theCellWidth, int theCellHeight, int theIndex);
 	// 0x436d40: the inclusive rectangle (x1, y1)-(x2, y2)
 	Cell(Pic* thePic, int theX1, int theY1, int theX2, int theY2);
-	virtual ~Cell() {}
+	virtual ~Cell() {}									// 0x436590
 
 	void			Draw(int theX, int theY);								// 0x4365a0
 	void			DrawPart(int theX, int theY, int theSrcX, int theSrcY, int theWidth, int theHeight); // 0x436d90
@@ -120,7 +120,7 @@ public:
 	int				mId;			// +8
 
 	GameSound(SexyAppBase* theApp, const std::string& thePath);		// 0x435b50
-	virtual ~GameSound() {}
+	virtual ~GameSound() {}								// 0x435b00
 
 	void			Play();												// 0x435b10
 };

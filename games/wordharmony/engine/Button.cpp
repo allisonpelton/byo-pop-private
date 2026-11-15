@@ -111,13 +111,6 @@ void Button::update(UpdateInfo& theInfo)
 	Container::update(theInfo);
 }
 
-// 0x431e90
-void Button::setBaseScale(float x, float y)
-{
-	mBaseScale = Point(x, y);
-	Node::setScale(x, y);
-}
-
 // 0x431b20
 void Button::setNormalScale(float x, float y)
 {
@@ -163,23 +156,6 @@ void Button::setSounds(const std::string& theEnterSound, const std::string& theP
 	{
 		App::getSoundSystem()->load(thePressSound.c_str(), thePressSound.c_str());
 		mPressSound = App::getSoundSystem()->createSound(thePressSound.c_str(), 1, 0);
-	}
-}
-
-// 0x431f00
-void Button::setFlash(float thePeriod)
-{
-	if (mFlashPeriod != thePeriod)
-	{
-		mFlashTimeLeft = thePeriod;
-		mFlashPeriod = thePeriod;
-		mFlashUp = true;
-		if (0.0f < thePeriod)
-		{
-			mFlashing = true;
-			return;
-		}
-		mFlashing = false;
 	}
 }
 
@@ -401,81 +377,3 @@ void CheckBox::updateImage()
 	mSelector->select(0, 0, true);
 }
 
-// 0x42c2c0
-TextButton::TextButton()
-{
-	mText = nullptr;
-}
-
-// 0x435080
-void TextButton::setText(std::string theText)
-{
-	mText->setText(theText);
-}
-
-// 0x435040
-void TextButton::setHAlign(int theAlign)
-{
-	mText->setHAlign(theAlign);
-}
-
-// 0x435050
-void TextButton::setVAlign(int theAlign)
-{
-	mText->setVAlign(theAlign);
-}
-
-// 0x435060
-void TextButton::setStyle(unsigned int theStyle)
-{
-	mText->mStyle = theStyle;
-}
-
-// 0x435120 (0x4350e0 copies the text node's text)
-std::string TextButton::getText()
-{
-	return mText->mText;
-}
-
-// 0x435240
-bool TextButton::setFonts(const std::string& theFont, const std::string& theOverFont, const std::string& theActiveFont)
-{
-	if (theFont.size() != 0 && theOverFont.size() != 0)
-	{
-		mFont = theFont;
-		mOverFont = theOverFont;
-		mActiveFont = theActiveFont;
-		mText = new TextItem();
-		addChild(mText);
-		mText->setFont(std::string(mFont));
-		addOwnFlags(NODE_MOUSE);
-		addOwnFlags(NODE_LISTENERS);
-		layout();
-		return true;
-	}
-	return false;
-}
-
-// 0x435150
-void TextButton::onMouseDown(Point& p)
-{
-	Button::onMouseDown(p);
-	mText->setFont(std::string(mActiveFont));
-}
-
-// 0x435190
-void TextButton::onMouseEnter(Point& p)
-{
-	if (!mPressed)
-		mText->setFont(std::string(mOverFont));
-	else
-		mText->setFont(std::string(mActiveFont));
-	Button::onMouseEnter(p);
-}
-
-// 0x4351f0
-void TextButton::onMouseExit(Point& p)
-{
-	mText->setFont(std::string(mFont));
-	Button::onMouseExit(p);
-}

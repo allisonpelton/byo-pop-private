@@ -34,8 +34,6 @@ public:
 	void update() override;
 	// slot 4, 0x421160: the screens from the last, until one consumes theEvent or a modal screen's level is reached
 	int handleEvent(Event* theEvent) override;
-	// slot 19, 0x421240: whether the top of the modal stack blocks
-	int isModal() override;
 	// slot 22, 0x421070: adds theScreen before the first of a higher priority
 	virtual void addScreen(Screen* theScreen);
 	// slot 23, 0x421140: removes theScreen, shuts it down and frees it

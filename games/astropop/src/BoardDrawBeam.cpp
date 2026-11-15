@@ -16,7 +16,7 @@ using namespace Sexy;
 void Board::DrawBeam(Graphics* g)
 {
 	bool is3D = mApp->Is3DAccelerated();
-	int aTick = (m1924 > 0) ? m1af0 : mUpdateCnt;
+	int aTick = (mPauseCount > 0) ? mPauseStartUpdate : mUpdateCnt;
 
 	Image* aParticle = NULL;        // the spark picture, if there are sparks
 	Image* aGhost = NULL;           // the brick drawn at the top of the stack
@@ -26,18 +26,18 @@ void Board::DrawBeam(Graphics* g)
 	bool aIsFuel = FirstPieceIsType(8);
 	Image* aBeam = IMAGE_BEAM;
 
-	if (m916)
+	if (mClearCountRunning)
 		return;
-	if (m8eb || m8ec || m8ed || mFlag8E8)
+	if (mWarpActive || mWarpCharging || mWarpFlight || mGameOver)
 	{
-		if (!m8f0)
+		if (!mShipInWarp)
 			return;
-		if (mFlag8E8)
+		if (mGameOver)
 			return;
-		if (m1a60 != 1)
+		if (mGameType != 1)
 			return;
 	}
-	if (m1a34 == 1)
+	if (mPowerupActive == 1)
 	{
 		if (mMode == 3)
 			return;
@@ -47,7 +47,7 @@ void Board::DrawBeam(Graphics* g)
 
 	Color aColor;
 	bool aHasColor = false;         // the beam is drawn in its own colour (else in the backdrop's tint)
-	if (mMode == 0 && m1a34 == 1)
+	if (mMode == 0 && mPowerupActive == 1)
 	{
 		aBeam = IMAGE_BEAM_SUPA;
 		aHasColor = true;
@@ -92,14 +92,14 @@ void Board::DrawBeam(Graphics* g)
 		aBeam = IMAGE_BEAM_WIDE;
 		aHasColor = true;
 	}
-	else if (m3c0 != Color(100, 100, 100))
+	else if (mBackdropTint != Color(100, 100, 100))
 	{
 		g->SetColorizeImages(true);
 		aBeam = IMAGE_BEAM_OPAQUE;
 	}
 
 	if (!aHasColor)
-		g->SetColor(m3c0);
+		g->SetColor(mBackdropTint);
 	else if (aIsFreeze)
 		g->SetColor(Color(0, 0xf0, 0xfa, 200));
 	else if (aIsFuel)
@@ -110,15 +110,15 @@ void Board::DrawBeam(Graphics* g)
 		g->SetColor(Color(0xff, aPhase, aPhase / 2, 200));
 	}
 	else
-		g->SetColor(m3c0);
+		g->SetColor(mBackdropTint);
 
 	// the wide beams stand on the ship; the others hang from the top (and are not drawn on the warp screens)
 	if (aIsFreeze || aIsFuel)
-		g->DrawImage(aBeam, m198c - aBeam->GetWidth() / 2 + 0x1a, 0x1ca - aBeam->mHeight);
-	else if (!m8f0)
-		g->DrawImage(aBeam, m198c, 0);
+		g->DrawImage(aBeam, mShipX - aBeam->GetWidth() / 2 + 0x1a, 0x1ca - aBeam->mHeight);
+	else if (!mShipInWarp)
+		g->DrawImage(aBeam, mShipX, 0);
 
-	if (m3c0 != Color(100, 100, 100) || aIsFreeze || aIsFuel)
+	if (mBackdropTint != Color(100, 100, 100) || aIsFreeze || aIsFuel)
 		g->SetColorizeImages(false);
 
 	if (aParticle != NULL)
@@ -129,8 +129,8 @@ void Board::DrawBeam(Graphics* g)
 		int aStep = is3D ? 1 : 4;
 		for (int i = 0; i < 40; i++)
 		{
-			BlinkRec& aRec = md8[i];
-			int aX = aRec.m00;
+			BlinkRec& aRec = mBeamSparks[i];
+			int aX = aRec.mX;
 			int aY = aRec.mCounter;
 			int anAlpha = aY / 2;
 			if (anAlpha > 0xff)
@@ -140,7 +140,7 @@ void Board::DrawBeam(Graphics* g)
 			if (i % aStep == 0)
 			{
 				g->SetColor(Color(0xff, 0xff, 0xff, anAlpha));
-				DrawCel(g, aParticle, m198c + aX, aY, (aRec.mAnim.mNumFrames == 1) ? 0 : aRec.mAnim.mFrame);
+				DrawCel(g, aParticle, mShipX + aX, aY, (aRec.mAnim.mNumFrames == 1) ? 0 : aRec.mAnim.mFrame);
 			}
 		}
 		g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
@@ -150,13 +150,13 @@ void Board::DrawBeam(Graphics* g)
 	if (aGhost != NULL)
 	{
 		g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
-		int aRow = FindBottomRow(m198c, true);
+		int aRow = FindBottomRow(mShipX, true);
 		if (aRow == -1)
 			aRow = 1;
 		if (!aIsFreeze && !aIsFuel)
 		{
 			int aY = (aRow > 0) ? aRow * 0x19 + 9 : 4;
-			g->DrawImage(aGhost, m198c + aGhostDX, aY + aGhostDY);
+			g->DrawImage(aGhost, mShipX + aGhostDX, aY + aGhostDY);
 		}
 		else
 		{
@@ -168,7 +168,7 @@ void Board::DrawBeam(Graphics* g)
 				aPhase--;
 			if (aPhase < 0)
 				aPhase = 0;
-			g->DrawImage(aGhost, m198c + aGhostDX, 0x140 - aPhase);
+			g->DrawImage(aGhost, mShipX + aGhostDX, 0x140 - aPhase);
 		}
 		g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
 	}

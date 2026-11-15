@@ -9,7 +9,7 @@ NAME="$1"; shift
 W="$(pwd -W)"
 OUT="build/rp/$NAME"
 rm -rf "$OUT"; mkdir -p "$OUT/user"
-until python tools/gamecount.py --limit "${GAMELIMIT:-8}" > /dev/null 2>&1; do sleep 20; done
+until python tools/gamecount.py --limit "${GAMELIMIT:-6}" > /dev/null 2>&1; do sleep 20; done
 build/native/rundesk.exe python games/atomica/tools/realplay/drive.py --exe "$W/build/native/atomica.exe" \
 	--gamedir "$W/assets/atomica" --userdir "$W/$OUT/user" --out "$W/$OUT" "$@" > "$OUT/result.json" 2> "$OUT/stderr.txt"
 echo "exit $?"

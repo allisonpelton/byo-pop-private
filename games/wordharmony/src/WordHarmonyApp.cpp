@@ -1,8 +1,8 @@
-// The port's host for Word Harmony (see WordHarmonyApp.h).
+// port: the host for Word Harmony (see WordHarmonyApp.h).
 
 #include "WordHarmonyApp.h"
 #include "Render.h"
-#include "ModFeatures.h"
+#include "platform/GameOptions.h"
 #include "SoundHost.h"
 #include "engine/App.h"
 #include "engine/Exception.h"
@@ -14,6 +14,9 @@
 #include "MemoryImage.h"
 #include "WidgetManager.h"
 #include "platform/VFS.h"
+#ifndef __EMSCRIPTEN__
+#include "SurfaceDisplay.h"
+#endif
 
 #include <SDL.h>
 #ifdef __EMSCRIPTEN__
@@ -33,8 +36,8 @@ namespace
 bool gTestSeedGiven = false;
 unsigned int gTestSeed = 0;
 
-const int SCREEN_WIDTH = 800;
-const int SCREEN_HEIGHT = 600;
+// 0x48a450, the text WinMain shows for an exception that is not the engine's own (0x45559a)
+const char* const OTHER_EXCEPTION_TEXT = "Exception Code Honeysuckle";
 
 // The framework's side of engine::Host
 class WordHarmonyHost : public engine::Host
@@ -44,7 +47,7 @@ public:
 	// a frame (WordHarmonyWidget::Update)
 	uint32_t timeMs() override { return gApp->mFastMode || gApp->mSteadyClock ? gApp->mEngineClock : gApp->GetClockTime(); }
 
-	bool fixOn(const char* theFix) override { return Sexy::FixOn(theFix); }
+	bool fixOn(const char* theFix) override { return Platform::FixOn(theFix); }
 
 	// port: -seed=N, for the game's srand of the tick count
 	bool testSeed(unsigned int& theSeed) override
@@ -139,6 +142,7 @@ public:
 
 	void showMessage(const char* theCaption, const char* theText) override { gApp->MsgBox(theText, theCaption); }
 
+	// 0x443ca0: the sound system of the window (DirectSound)
 	engine::SoundSystem* createSoundSystem() override { return new wordharmony::HostSoundSystem(); }
 
 	std::string commandLine() override { return gApp->mCommandLine; }
@@ -150,14 +154,41 @@ WordHarmonyHost gHost;
 
 // The widget: the window procedure (0x455ac0) and the screen
 
+// 0x455a50: the window class made and registered (the widget is the framework's window's one widget)
 WordHarmonyWidget::WordHarmonyWidget()
 {
-	mScreenImage = new MemoryImage(gApp);
-	mScreenImage->Create(SCREEN_WIDTH, SCREEN_HEIGHT);
-	mGraphics = new wordharmony::ScreenGraphics((uint32_t*)mScreenImage->GetBits(), SCREEN_WIDTH, SCREEN_HEIGHT);
+	mScreenImage = nullptr;
+	mSurfaceDisplay = nullptr;
+#ifndef __EMSCRIPTEN__
+	// port (for speed): the window's display keeps the screen itself (CreateDDInterface), so there is no picture of it to
+	// upload: the engine draws into a buffer of the widget's, and the display is handed the buffer and the rectangles that
+	// changed (RunFrame)
+	mSurfaceDisplay = dynamic_cast<SurfaceDisplay*>(gApp->mDDInterface);
+#endif
+	if (mSurfaceDisplay != nullptr)
+	{
+		mSurfaceBits.assign(engine::SCREEN_WIDTH * engine::SCREEN_HEIGHT, 0);
+		mPixels = mSurfaceBits.data();
+#ifndef __EMSCRIPTEN__
+		mSurfaceDisplay->SetFrame(mPixels, engine::SCREEN_WIDTH * 4, nullptr, -1);
+#endif
+	}
+	else
+	{
+		mScreenImage = new MemoryImage(gApp);
+		mScreenImage->Create(engine::SCREEN_WIDTH, engine::SCREEN_HEIGHT);
+		// port (for speed): opaque, so that the framework need not look through the 480000 pixels for alpha after each
+		// change, and with every alpha byte 0xff (RunFrame fills the screen with it and every blit writes it), so that it
+		// need not premultiply them pixel by pixel to upload them: the pixels uploaded are the same
+		mScreenImage->SetImageMode(false, false);
+		mScreenImage->mUploadAsIs = true;
+		mPixels = (const uint32_t*)mScreenImage->GetBits();
+	}
+	mGraphics = new wordharmony::ScreenGraphics(const_cast<uint32_t*>(mPixels), engine::SCREEN_WIDTH, engine::SCREEN_HEIGHT);
 	mLastLoop = gApp->GetClockTime();
 	mAccumulated = 0;
 	mLastSoundTick = gApp->mSteadyClock ? (DWORD)(gApp->mUpdateCount * gApp->mFrameTime) : mLastLoop;
+	ClearKeys();
 }
 
 WordHarmonyWidget::~WordHarmonyWidget()
@@ -206,31 +237,70 @@ void WordHarmonyWidget::Update()
 			gApp->mEngineClock += aPeriod;
 	}
 	gApp->RunFrame();
-	MarkDirty();
 }
 
 void WordHarmonyWidget::Draw(Graphics* g)
 {
-	g->DrawImage(mScreenImage, 0, 0);
+	// (with the surface display, the display shows the screen itself)
+	if (mScreenImage != nullptr)
+		g->DrawImage(mScreenImage, 0, 0);
 }
 
-// WM_KEYDOWN and WM_KEYUP: the virtual key
+void WordHarmonyWidget::ClearKeys()
+{
+	std::memset(mKeyIsDown, 0, sizeof(mKeyIsDown));
+}
+
+// The window procedure (0x454510), WM_KEYDOWN and WM_KEYUP: the virtual key. A WM_KEYDOWN whose bit 30 is set (the key
+// was already down: an auto-repeat) goes nowhere; the framework sends every repeat, so the widget keeps which keys are
+// down.
 void WordHarmonyWidget::KeyDown(KeyCode theKey)
 {
-	if (gApp->mEngineRunning)
-		engine::App::instance()->getRootWindow()->keyDown((int)theKey);
+	int aKey = (int)theKey;
+	bool aRepeat = false;
+	if (aKey >= 0 && aKey < 256)
+	{
+		aRepeat = mKeyIsDown[aKey];
+		mKeyIsDown[aKey] = true;
+	}
+	if (!aRepeat && gApp->mEngineRunning)
+		engine::App::instance()->getRootWindow()->keyDown(aKey);
 }
 
 void WordHarmonyWidget::KeyUp(KeyCode theKey)
 {
+	int aKey = (int)theKey;
+	if (aKey >= 0 && aKey < 256)
+		mKeyIsDown[aKey] = false;
 	if (gApp->mEngineRunning)
-		engine::App::instance()->getRootWindow()->keyUp((int)theKey);
+		engine::App::instance()->getRootWindow()->keyUp(aKey);
+}
+
+namespace
+{
+
+// 0x454240 (the limits are the window's width and height, 0x4386a0 and 0x4386b0): every mouse position the window procedure passes on is held inside the window (0 to its width less one and
+// its height less one; the window's +0xbc and +0xc0 are the 800x600 the window was made with): a drag that has left the
+// window, with the mouse captured, keeps its last place on the edge
+engine::Point clampToScreen(int x, int y)
+{
+	if (x < 0)
+		x = 0;
+	else if (x > engine::SCREEN_WIDTH - 1)
+		x = engine::SCREEN_WIDTH - 1;
+	if (y < 0)
+		y = 0;
+	else if (y > engine::SCREEN_HEIGHT - 1)
+		y = engine::SCREEN_HEIGHT - 1;
+	return engine::Point((float)x, (float)y);
+}
+
 }
 
 void WordHarmonyWidget::MouseMove(int x, int y)
 {
 	if (gApp->mEngineRunning)
-		engine::App::instance()->getRootWindow()->handleMouseMove(engine::Point((float)x, (float)y));
+		engine::App::instance()->getRootWindow()->handleMouseMove(clampToScreen(x, y));
 }
 
 void WordHarmonyWidget::MouseDrag(int x, int y)
@@ -245,9 +315,9 @@ void WordHarmonyWidget::MouseDown(int x, int y, int theBtnNum, int theClickCount
 		return;
 	engine::Window* aRoot = engine::App::instance()->getRootWindow();
 	if (theBtnNum == 0)
-		aRoot->handleMouseDown(engine::Point((float)x, (float)y));
+		aRoot->handleMouseDown(clampToScreen(x, y));
 	else if (theBtnNum == 1)
-		aRoot->handleRightDown(engine::Point((float)x, (float)y));
+		aRoot->handleRightDown(clampToScreen(x, y));
 }
 
 void WordHarmonyWidget::MouseUp(int x, int y, int theBtnNum, int theClickCount)
@@ -256,9 +326,9 @@ void WordHarmonyWidget::MouseUp(int x, int y, int theBtnNum, int theClickCount)
 		return;
 	engine::Window* aRoot = engine::App::instance()->getRootWindow();
 	if (theBtnNum == 0)
-		aRoot->handleMouseUp(engine::Point((float)x, (float)y));
+		aRoot->handleMouseUp(clampToScreen(x, y));
 	else if (theBtnNum == 1)
-		aRoot->handleRightUp(engine::Point((float)x, (float)y));
+		aRoot->handleRightUp(clampToScreen(x, y));
 }
 
 // The app
@@ -270,8 +340,8 @@ WordHarmonyApp::WordHarmonyApp()
 	mTitle = "Word Harmony";
 	// the original's key (0x421750: HKEY_CURRENT_USER\Software\GameHouse\WordHarmony)
 	mRegKey = "GameHouse\\WordHarmony";
-	mWidth = SCREEN_WIDTH;
-	mHeight = SCREEN_HEIGHT;
+	mWidth = engine::SCREEN_WIDTH;
+	mHeight = engine::SCREEN_HEIGHT;
 	mWidget = nullptr;
 	mEngineRunning = false;
 	mQuitRequested = false;
@@ -283,12 +353,30 @@ WordHarmonyApp::WordHarmonyApp()
 
 WordHarmonyApp::~WordHarmonyApp()
 {
+#ifndef __EMSCRIPTEN__
+	// the screen's buffer goes with the widget: the display keeps no pointer to it
+	if (SurfaceDisplay* aDisplay = dynamic_cast<SurfaceDisplay*>(mDDInterface))
+		aDisplay->SetFrame(nullptr, 0, nullptr, -1);
+#endif
 	if (mWidget != nullptr)
 	{
 		mWidgetManager->RemoveWidget(mWidget);
 		delete mWidget;
 	}
 }
+
+#ifndef __EMSCRIPTEN__
+// port (for speed): the window's display is the shared surface display (framework/SurfaceDisplay.h): no Direct3D device, its
+// driver's thread or its memory, only the rows of the screen that changed copied into the window's own surface, as the original's
+// DirectDraw blit does. SURFACE_DISPLAY=off in the environment keeps the framework's own display (a test that compares the two).
+DDInterface* WordHarmonyApp::CreateDDInterface()
+{
+	const char* aMode = SDL_getenv("SURFACE_DISPLAY");
+	if ((aMode != nullptr) && (strcmp(aMode, "off") == 0))
+		return SexyAppBase::CreateDDInterface();
+	return new SurfaceDisplay(this);
+}
+#endif
 
 void WordHarmonyApp::SetGameCommandLine(int argc, char** argv)
 {
@@ -305,7 +393,7 @@ void WordHarmonyApp::SetGameCommandLine(int argc, char** argv)
 	}
 }
 
-// WinMain (0x4552b0) up to its loop: the controller made and started
+// WinMain (0x4552b0) up to its loop: the controller made (0x407370) and started
 void WordHarmonyApp::Init()
 {
 	SexyAppBase::Init();
@@ -314,7 +402,7 @@ void WordHarmonyApp::Init()
 	engine::setHost(&gHost);
 	// fixes mod, "steadyClock" (read at the start: its toggle applies on a restart): the sounds end by the engine's clock
 	// too, so the music's draws from the game's random numbers when a clip ends fall on the same frames on every run
-	mSteadyClock = !mFastMode && FixOn("steadyClock");
+	mSteadyClock = !mFastMode && Platform::FixOn("steadyClock");
 	wordharmony::HostSound::sGameClock = mFastMode || mSteadyClock;
 	mWidget = new WordHarmonyWidget();
 	mWidget->Resize(0, 0, mWidth, mHeight);
@@ -327,9 +415,13 @@ void WordHarmonyApp::Init()
 		engine::App::instance()->start(new Game());
 		mEngineRunning = true;
 	}
-	catch (const std::exception& e)
+	catch (const engine::Exception& e)
 	{
 		EngineFailed(e.what());
+	}
+	catch (...)
+	{
+		EngineFailed(OTHER_EXCEPTION_TEXT);
 	}
 }
 
@@ -337,8 +429,9 @@ void WordHarmonyApp::RunFrame()
 {
 	try
 	{
-		uint32_t* aBits = (uint32_t*)mWidget->mScreenImage->GetBits();
-		std::fill(aBits, aBits + SCREEN_WIDTH * SCREEN_HEIGHT, 0xff000000);
+		// the screen starts black (port: the frame's draw calls are recorded, and drawn at its end, in the tiles that differ from
+		// the last frame's)
+		mWidget->mGraphics->clear();
 		// what the input since the last frame changed is logged under that frame, as origrun logs the original's
 		if (mStateLog != nullptr)
 			LogState();
@@ -347,13 +440,38 @@ void WordHarmonyApp::RunFrame()
 		mFrames++;
 		wordharmony::HostSound::sLogFrame = mFrames;
 		engine::App::instance()->frame(mWidget->mGraphics);
-		mWidget->mScreenImage->BitsChanged();
+		// port (for speed): a frame that drew the same calls as the last leaves the screen picture as it is, and is neither
+		// uploaded nor drawn again (the framework draws the screen again every second, and when the window is exposed)
+		if (mWidget->mGraphics->finish())
+		{
+#ifndef __EMSCRIPTEN__
+			if (mWidget->mSurfaceDisplay != nullptr)
+			{
+				// the rectangles of the tiles redrawn: the display copies those into the window and shows them
+				static std::vector<Rect> sRects;
+				sRects.clear();
+				for (const wordharmony::ScreenGraphics::Rectangle& aRectangle : mWidget->mGraphics->redrawn())
+					sRects.push_back(Rect(aRectangle.mX, aRectangle.mY, aRectangle.mWidth, aRectangle.mHeight));
+				mWidget->mSurfaceDisplay->SetFrame(mWidget->mPixels, engine::SCREEN_WIDTH * 4, sRects.data(), (int)sRects.size());
+			}
+			else
+#endif
+				mWidget->mScreenImage->BitsChanged();
+			mWidget->MarkDirty();
+		}
+		if (mFrameHashLog != nullptr)
+			LogFrameHash();
 		if (mStateLog != nullptr)
 			LogState();
 	}
-	catch (const std::exception& e)
+	catch (const engine::Exception& e)
 	{
 		EngineFailed(e.what());
+		return;
+	}
+	catch (...)
+	{
+		EngineFailed(OTHER_EXCEPTION_TEXT);
 		return;
 	}
 	if (mQuitRequested)
@@ -371,6 +489,16 @@ void WordHarmonyApp::HandleCmdLineParam(const std::string& theParamName, const s
 	if (theParamName == "-statelog")
 	{
 		mStateLog = fopen(theParamValue.c_str(), "w");
+		return;
+	}
+	if (theParamName == "-framehash")
+	{
+		mFrameHashLog = fopen(theParamValue.c_str(), "w");
+		return;
+	}
+	if (theParamName == "-inputlog")
+	{
+		mInputLog = fopen(theParamValue.c_str(), "w");
 		return;
 	}
 	if (theParamName == "-seed")
@@ -397,6 +525,22 @@ std::string floatText(float theValue)
 	return std::to_string(aBits);
 }
 
+}
+
+// port: -framehash. The tool that shows two builds draw every frame alike, not only the frames a tour photographs
+// (tools/profile/hashcmp.sh): the pixels folded into 64 bits, eight at a time
+void WordHarmonyApp::LogFrameHash()
+{
+	const uint64_t* aPixels = (const uint64_t*)mWidget->mPixels;
+	uint64_t aHash = 1469598103934665603ull;
+	for (int i = 0; i < engine::SCREEN_WIDTH * engine::SCREEN_HEIGHT / 2; i++)
+	{
+		aHash ^= aPixels[i];
+		aHash *= 1099511628211ull;
+		aHash ^= aHash >> 29;
+	}
+	fprintf(mFrameHashLog, "%d %016llx\n", mFrames, (unsigned long long)aHash);
+	fflush(mFrameHashLog);
 }
 
 // The values compared with the original's (the names of games/wordharmony/tools/identical/case.sh), "-" while they do not
@@ -451,11 +595,14 @@ void WordHarmonyApp::LogState()
 	fflush(mStateLog);
 }
 
+// WinMain's catch blocks (0x455567 and 0x45559a, around a frame; 0x45578a shows the box): the engine's own exception shows
+// its message, anything else (a failed allocation, say) the fixed text of OTHER_EXCEPTION_TEXT (0x45559a); the box is captioned
+// "Exception" with the error icon, and the loop ends
 void WordHarmonyApp::EngineFailed(const char* theWhat)
 {
 	SDL_Log("Word Harmony: %s", theWhat);
 	mEngineRunning = false;
-	MsgBox(theWhat, "Word Harmony");
+	MsgBox(theWhat, "Exception", MB_ICONERROR);
 	Shutdown();
 }
 
@@ -488,6 +635,8 @@ void WordHarmonyApp::GotFocus()
 void WordHarmonyApp::LostFocus()
 {
 	SexyAppBase::LostFocus();
+	if (mWidget != nullptr)
+		mWidget->ClearKeys();
 	if (mEngineRunning)
 		engine::App::instance()->getController()->activate(false);
 }

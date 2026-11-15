@@ -80,7 +80,7 @@ public:
 	int mCount;       // +0x04
 	int mHandle;      // +0x08
 	Entry* mEntries;  // +0x0c
-	int mInUse;       // +0x10
+	int mInUse;       // +0x10: a file is open (nothing reads it)
 };
 
 extern Pak* gPak;  // 0x481abc

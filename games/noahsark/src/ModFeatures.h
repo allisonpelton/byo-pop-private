@@ -15,10 +15,6 @@ namespace Sexy
 // An enabled mod has feature theName (true, or an object) in its "features"
 bool			ModFeatureEnabled(const char* theName);
 
-// The fixes mod (mods/fixes, docs/MOD_ROADMAP.md "The fixes mod"): whether the mod is on and its fix theFix is on (a fix is
-// a bool setting of the mod, on by default)
-bool			ModFixOn(const char* theFix);
-
 // The live value of setting theSetting of the highest-priority enabled mod with feature theFeature;
 // theDefault without that mod or setting
 bool			ModFeatureBool(const char* theFeature, const char* theSetting, bool theDefault);

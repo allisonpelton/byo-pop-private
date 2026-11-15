@@ -3,7 +3,7 @@
   "name": "Fixes",
   "version": "1.0",
   "author": "byo-pop",
-  "description": "Mends two faults of the original and changes nothing else: the walking bugs that turn off a vertical way wait between turns as they do off a horizontal one, and an enemy's shield flash starts in the right place. Turn a fix off to play the original as it was.",
+  "description": "Mends two faults of the original and changes nothing else: the walking bugs that turn off a vertical way wait between turns as they do off a horizontal one, and an enemy's shield flash starts in the right place. The walkers' fix starts off, since their quick turns can read as a designed pattern. Turn a fix off to play the original as it was.",
   "features": {
     "fixes": true
   },
@@ -12,7 +12,7 @@
       "id": "walkerTurnMemory",
       "label": "Walkers wait between turns",
       "type": "bool",
-      "default": true,
+      "default": false,
       "apply": "restart",
       "help": "A walking bug that comes to a side way turns onto it half the time, but not again for five seconds. The original forgot the wait for bugs going up or down; here they wait too."
     },

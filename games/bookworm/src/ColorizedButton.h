@@ -40,8 +40,7 @@ public:
 	virtual void	MouseDown(int x, int y, int theClickCount) override;     // 0x41b450 slot 27
 	virtual void	MouseUp(int x, int y) override;                 // 0x41b420 slot 30
 	virtual void	SetImageColors(int theColors[][4], int theNumColors); // 0x41bed0 slot 49
-	virtual void	SetImageColors(int theColors[][3], int theNumColors); // 0x41be50 slot 50
-	virtual void	SetImageColor(int theIdx, const Color& theColor);    // 0x41b510 slot 51
+	// 0x41be50 slot 50 SetImageColors (3 values a colour) and 0x41b510 slot 51 SetImageColor: never called, not ported
 	virtual const Color& GetImageColor(int theIdx);                 // 0x41b550 slot 52
 
 	using ButtonWidget::MouseDown;

@@ -1,3 +1,5 @@
+// port(mod): BookWorm's side of the shared mods (ModFeatures.h). Not part of the original game.
+
 #include "ModFeatures.h"
 #include "platform/ModManager.h"
 
@@ -35,11 +37,6 @@ bool Sexy::ModFeatureBool(const char* theFeature, const char* theSetting, bool t
 {
 	Platform::JsonValue aValue = LiveValue(theFeature, theSetting);
 	return aValue.IsBool() ? aValue.AsBool(theDefault) : theDefault;
-}
-
-bool Sexy::FixEnabled(const char* theFix)
-{
-	return ModFeatureEnabled("fixes") && ModFeatureBool("fixes", theFix, true);
 }
 
 int Sexy::ModFeatureInt(const char* theFeature, const char* theSetting, int theDefault, int theMin, int theMax)

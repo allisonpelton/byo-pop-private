@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # make-saves.sh: the saved games that the sv-*.txt scenarios continue (their "# save: <kind>" line), into
 # build/coverage/atomica/save/<kind>.dat: the port plays save-base.txt (-script, under rundesk, silent, fast: one game process for a
-# few seconds, so wait for room first: python -I tools/gamecount.py --limit 3) and mksave.py crafts each kind from the SAVEGAME.DAT it
+# few seconds, so wait for room first: python -I tools/gamecount.py --limit 6) and mksave.py crafts each kind from the SAVEGAME.DAT it
 # leaves in build/coverage/atomica/save/ud. Run from anywhere; the port must be built (build/native/atomica.exe).
 cd "$(dirname "$0")/../../../.." || exit 2
 S=build/coverage/atomica/save

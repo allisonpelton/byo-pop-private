@@ -10,6 +10,8 @@ var ByopopLibrary = (function () {
   "use strict";
   var KEY = "byopop-library-sort";
   var COLS = ["name", "status", "time", "last", "year"];
+  // on a development host, each game's phase after its status (web/phase.js)
+  try { if (ByopopPhase.on()) COLS.splice(2, 0, "phase"); } catch (e) {}
   var STATUS_ORDER = { ready: 0, files: 1, unsold: 2, soon: 3 };
   function T(k, o) { try { return ByopopStrings.t(k, o); } catch (e) { return k; } }
   function make(tag, cls, text) {
@@ -42,13 +44,14 @@ var ByopopLibrary = (function () {
       var badge = tile.querySelector(".badge");
       var released = li.getAttribute("data-released") || "";
       return { id: id, li: li, tile: tile, href: tile.href || "", title: li.getAttribute("data-title") || id, status: status,
-        seconds: p.seconds > 0 ? p.seconds : 0, plays: p.plays > 0 ? p.plays : 0, last: p.last || "", released: released,
+        seconds: p.seconds > 0 ? p.seconds : 0, plays: p.plays > 0 ? p.plays : 0, first: p.first || "", last: p.last || "", by: p.by || {}, released: released,
         year: /^\d{4}/.test(released) ? +released.slice(0, 4) : 0, icon: icon,
         tag: badge ? (badge.getAttribute("data-initials") || badge.textContent) : "", colour: li.style.getPropertyValue("--tile") || "",
         fav: li.querySelector("button.fav"), buy: Array.prototype.filter.call(li.querySelectorAll("a[href]"), function (a) { return a !== tile && /^https?:/.test(a.href) && a.host !== location.host; }),
-        win95: li.getAttribute("data-win95") || "unknown" };
+        win95: li.getAttribute("data-win95") || "unknown", phase: phaseOf(tile.getAttribute("data-game")) };
     }).filter(Boolean);
   }
+  function phaseOf(id) { try { return (id && ByopopPhase.of(id)) || null; } catch (e) { return null; } }
   function lastText(day) {
     var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(day || "");
     if (!m) return "";
@@ -60,6 +63,7 @@ var ByopopLibrary = (function () {
     return function (a, b) {
       switch (col) {
         case "status": return STATUS_ORDER[a.status] - STATUS_ORDER[b.status];
+        case "phase": return (a.phase ? a.phase.rank : 99) - (b.phase ? b.phase.rank : 99);
         case "time": return a.seconds - b.seconds;
         case "last": return (a.last < b.last ? -1 : a.last > b.last ? 1 : 0);
         case "year": return (a.released < b.released ? -1 : a.released > b.released ? 1 : 0);
@@ -135,9 +139,12 @@ var ByopopLibrary = (function () {
         wrap.appendChild(ic); wrap.appendChild(make("span", "", g.title));
         name.appendChild(wrap);
         tr.appendChild(name);
-        [["status", statusText(g.status)], ["time", timeText(g.seconds)], ["last", lastText(g.last)], ["year", g.year ? String(g.year) : ""]].forEach(function (c) {
+        [["status", statusText(g.status)], ["phase", g.phase ? g.phase.text : ""], ["time", timeText(g.seconds)], ["last", lastText(g.last)],
+         ["year", g.year ? String(g.year) : ""]].forEach(function (c) {
+          if (COLS.indexOf(c[0]) < 0) return;
           var td = make("td", "lib-c-" + c[0], c[1]);
           td.setAttribute("role", "gridcell");
+          if (c[0] === "phase" && g.phase) td.title = g.phase.tip;
           tr.appendChild(td);
         });
         var r = { tr: tr, cell: name, g: g };
@@ -218,17 +225,40 @@ var ByopopLibrary = (function () {
       tb.appendChild(tt);
       var dl = make("dl", "lib-props-list");
       [["library.col.name", g.title], ["library.col.status", statusText(g.status)], ["library.props.released", lastText(g.released) || g.released],
-       ["library.props.plays", String(g.plays)], ["library.col.time", timeText(g.seconds) || "0"], ["library.col.last", lastText(g.last)],
+       ["library.props.plays", String(g.plays)], ["library.col.time", timeText(g.seconds) || "0"], ["library.props.first", lastText(g.first)],
+       ["library.col.last", lastText(g.last)],
        ["library.props.win95", T(g.win95 === "yes" ? "library.props.yes" : "library.props.no")]].forEach(function (p) {
         dl.appendChild(make("dt", "", T(p[0]))); dl.appendChild(make("dd", "", p[1] || "—"));
       });
+      // the play of each site player (web/profiles.js; ByopopPlay's by), the players in their own order, then play with none chosen
+      // and play of a player since removed, each on a row of its own
+      var by = g.by || {}, names = {}, order = [];
+      try { ByopopProfiles.list().forEach(function (p) { names[p.id] = p.name; order.push(p.id); }); } catch (e) {}
+      Object.keys(by).forEach(function (pid) { if (order.indexOf(pid) < 0) order.push(pid); });
+      var rows = order.filter(function (pid) { return by[pid] && (by[pid].plays || by[pid].seconds); });
+      var table = null;
+      if (rows.length) {
+        table = make("table", "lib-props-time");
+        var head = make("tr", "");
+        ["library.props.player", "library.props.plays", "library.col.time", "library.props.first", "library.col.last"].forEach(function (k) {
+          var th = make("th", "", T(k)); th.scope = "col"; head.appendChild(th);
+        });
+        table.appendChild(head);
+        rows.forEach(function (pid) {
+          var r = by[pid], tr = make("tr", "");
+          var who = make("th", "", pid === "" ? T("library.props.no_player") : names[pid] || T("library.props.removed"));
+          who.scope = "row"; tr.appendChild(who);
+          [String(r.plays), timeText(r.seconds) || "0", lastText(r.first), lastText(r.last)].forEach(function (v) { tr.appendChild(make("td", "", v || "—")); });
+          table.appendChild(tr);
+        });
+      }
       var ok = make("button", "", T("library.ok"));
       ok.type = "button";
       ok.addEventListener("click", function () { d.close(); });
       d.addEventListener("keydown", function (ev) { if (ev.key === "Escape" || ev.key === "Enter") { ev.preventDefault(); ev.stopPropagation(); d.close(); } });
       d.addEventListener("close", function () { if (d.parentNode) d.parentNode.removeChild(d); if (sel) select(sel, true); });
       var row = make("div", "lib-props-row"); row.appendChild(ok);
-      d.appendChild(tb); d.appendChild(dl); d.appendChild(row);
+      d.appendChild(tb); d.appendChild(dl); if (table) d.appendChild(table); d.appendChild(row);
       document.body.appendChild(d);
       try { d.showModal(); } catch (e) { d.setAttribute("open", ""); }
       ok.focus();
@@ -279,6 +309,7 @@ var ByopopLibrary = (function () {
     var list = document.querySelector("ul.games");
     if (list && window.MutationObserver) new MutationObserver(later).observe(list, { attributes: true, subtree: true, attributeFilter: ["data-files", "aria-pressed", "hidden"] });
     window.addEventListener("storage", later);
+    window.addEventListener("byopop-phase", later);
     window.addEventListener("byopop-setting", later);
     window.addEventListener("pageshow", later);
     fill();
