@@ -61,6 +61,10 @@ a `click` and ten updates' wait, which is what a player's click does.
   original has two classes with the same code and fields. A trophy's shadow picture (the unearned ones) is deleted with its
   button; the original leaks it (a memory leak, fixed here as the rules say).
 
+- **How BASS is asked:** the original calls `BASS_ChannelStop` on a song before it plays it, and on the other three songs at every
+  fade-in; the port's mixer stops what plays as it plays the next. What is heard is the same (the music comparison, `musiccmp.py`,
+  drops those stops).
+
 ## Left out (nothing in play can reach it)
 
 - The level **editor**: the original's GameScreen is a tool widget with the game on top; the port keeps the widget and none of the
