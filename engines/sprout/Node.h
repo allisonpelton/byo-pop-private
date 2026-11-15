@@ -144,7 +144,16 @@ public:
 	void addOwnFlags(unsigned int theFlags);
 	// 0x439cd0 (wordharmony)
 	void removeOwnFlags(unsigned int theFlags);
-	bool hasFlag(unsigned int theFlags) const { return (mAllFlags & theFlags) != 0; }     // 0x439d30 (wordharmony)
+	// 0x439d30 (wordharmony), 0x467e10 (pizzafrenzy): the signal build leaves out the flags its mask (+0x74) holds, the
+	// drawable flag of a hidden node (setVisible) and the mouse flag of a masked one (setMouseMasked)
+	bool hasFlag(unsigned int theFlags) const { return (mAllFlags & ~getMaskedFlags() & theFlags) != 0; }
+	// The signal build's mask (+0x74 (pizzafrenzy)), from the two fields that keep its bits
+	unsigned int getMaskedFlags() const
+	{
+		if (!gSignalBuild)
+			return 0;
+		return (mVisible ? 0 : NODE_DRAWABLE) | (mMouseMasked ? NODE_MOUSE : 0);
+	}
 	bool hasOwnFlag(unsigned int theFlags) const { return (mFlags & theFlags) != 0; }     // 0x439d40 (wordharmony)
 	unsigned int getAllFlags() const { return mAllFlags; }                                // 0x439d50 (wordharmony)
 	// The signal build's mouse (Pizza Frenzy's): its scene hands the node under the mouse an event. Each public slot
