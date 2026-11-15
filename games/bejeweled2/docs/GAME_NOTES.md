@@ -209,11 +209,14 @@ constructor does clear).
   visrun reads the update each input landed at, and the replay gives that one click (`landed_to_events.py --shift 2127 2130 1`) the later update.
 - **The original's pointer is never over its window in the visible-desktop 3D runs, so no gem glows under it.** The Board's hover glow
   (`BoardUpdate.cpp`: a gem under `mMouseX/mMouseY` gains 0.045 a update, the step 0.0625) needs the pointer in the window, and the
-  tool posts clicks to the window without moving the real cursor, so the original's `mMouseX/mMouseY` stay at -1,-1 (and the board
-  re-reads `mLastMouseX/mLastMouseY` itself when it becomes idle, BoardLogic.cpp:423). The port's replayed pointer stays where its last
-  click was, so a shot taken straight after a click had a gem glowing that the original's did not. The replay therefore moves the pointer
-  out of the window and sends a leave one update after each click (`landed_to_events.py --leave-after 1`). Not a difference of play: a
-  person's cursor over the board glows the same gem in both.
+  tool posts clicks to the window without moving the real cursor, so the original's `mMouseX/mMouseY` stay at -1,-1. The widget
+  manager's last position (`mLastMouseX/mLastMouseY`, which the board re-reads itself when it becomes idle, BoardLogic.cpp:423, and
+  which the puzzle dome's glow reads, `PuzzleStateOverlay::Update`) is the last posted click's, since the posted click goes through
+  the manager: the WARP button's glow stays at its steady 0.5 in the original's frames of the warp, where it swept in the port's replay
+  when that moved the replayed pointer to -9,-9 (found 2026-11-15, the 3D tours). The port's replayed pointer stays where its last
+  click was, so a shot taken straight after a click had a gem glowing that the original's did not. The replay therefore sends the
+  pointer's leave alone one update after each click (`landed_to_events.py --leave-after 1 --leave-keep`; the board's hover goes off, the
+  manager's position stays at the click). Not a difference of play: a person's cursor over the board glows the same gem in both.
 - **A gem or two differ in the loaded 3D board's slide.** In the visible-desktop 3D tour (`run_tour_visible.sh`, with shots every 2
   updates of the whirlpool and the slide added to the recording; the run's events were `t3d_events.json` in the scratch logs), the gem
   at the board's bottom right has its facets in other places in the original's shot than in the port's, in 8 of the 13 shots from
@@ -637,6 +640,14 @@ pictures of the interface that the exe never names). The differences:
   neither file's, apart from the 20 (the Collection's 40 and 10 are the first two swapped). So the two versions' games score differently: in Classic the bot's game first differs at a blast on
   level 2 (update 7,755), where the Steam files' game stands at 5,902 and the Collection's at 1,492. The port takes whichever file it is
   given, as the original does.
+- **Steam's file check, 2026-11-15, replaced that `config.xml`** (the user ran "Verify integrity of game files": 28 files failed and were
+  rewritten, `config.xml` and 27 pictures of `data`, `images` and `drm/common`, the same pictures that the Steam launcher's first run had
+  rewritten). The install's `config.xml` had been the one dated 2018-02-21 with the Steam constants above (1.0, 1000, 1000, 400, 1, 1), and the
+  file Steam serves now has the Collection's (0.05, 40, 10, 20, 500, 150). So the scores that the user doubted on 2026-11-10 (5,500 and 2,400 on
+  levels 10 and 11) and the all-flame Finity boards were the stale file's, not the shipped game's; the port's play on them was right, and
+  it takes whichever file it is given. The staged assets (`assets/bejeweled2`) and the original's copy under `build/visrun/bej2` were
+  copied before the check, so every comparison and frozen baseline so far (the tours, `tools/check.sh bejeweled2`'s bot games) holds the old
+  constants; restaging gives the new ones and changes the three constant-reading games' transcripts (Classic, Endless, Finity) as the section above says.
 
 **The port on the Collection's files** (`tools/collection/run.sh`; `tools/stage_assets.py` stages a Collection folder as it does a Steam
 one: it takes `Bejeweled2.exe` as well as `WinBej2.exe` and renames the puzzle folder). `portshots.sh` takes `PORT_EXE` and `REGKEY`

@@ -66,6 +66,7 @@ void GameApp::ShowMediaPlayer()
 	mWidgetManager->BringToFront(mCurtain);
 }
 
+// 0x444570
 static void RemoveStatsBookCallback(void* theApp)
 {
 	// 0x444570: the curtain is closed

@@ -5,14 +5,19 @@
 // engine's run loop starts. It keeps the settings, the scene, the sounds, the screens and the game's managers, and
 // a state machine (+0x24) whose current state gets each frame's update and each screen's action.
 
+#include "CitySelectScreen.h"
+#include "GameScreen.h"
+#include "GameStats.h"
 #include "GenericApplication.h"
 #include "GameMusicPlayer.h"
 #include "GenericScreen.h"
 #include "GenericUserSelectScreen.h"
 #include "HighScoreScreen.h"
 #include "ImageNode.h"
+#include "Level.h"
 #include "MainMenu.h"
 #include "OptionScreen.h"
+#include "Pizza.h"
 #include "ScreenMgr.h"
 #include "Settings.h"
 #include "SoundMgr.h"
@@ -21,7 +26,9 @@
 #include "TileManifest.h"
 #include "UserGameData.h"
 
+#include <map>
 #include <string>
+#include <vector>
 
 namespace engine
 {
@@ -60,6 +67,9 @@ public:
 	engine::Ref<engine::SoundMgr> mSounds;             // +0x3c
 	engine::Ref<engine::ScreenMgr> mScreens;           // +0x40
 	engine::Ref<Settings> mSettings;                   // +0x44
+	int mCurrentLevel;                                 // +0x48: the level of the current city the game is on
+	int mCurrentCity;                                  // +0x4c: the city the game is in
+	int mDay;                                          // +0x54: the day of the game, from 1, over all the cities
 	int mGameMode;                                     // +0x58: 0 speed, 1 memory, 2 concentration
 	engine::Ref<engine::GenericScreen> mSplashScreen;  // +0x5c
 	engine::Ref<engine::ImageNode> mLoadBar;           // +0x60: the splash screen's load bar, shown as far as loaded
@@ -80,9 +90,18 @@ public:
 	engine::Ref<engine::GenericScreen> mUnlockNotice;        // +0xb4: the designer's, shown while it is locked
 	std::string mUnlockNoticeTemplate;                       // +0xb8: the node "notifyText"'s text as the layout has it
 	engine::Ref<engine::GenericScreen> mPauseMenu;           // +0xd4
+	engine::Ref<CitySelectScreen> mCitySelect;               // +0xf0
+	engine::Ref<GameScreen> mGameScreen;                     // +0x114: made next, with the game
+	engine::Ref<engine::GenericScreen> mHud;                 // +0x118: made next, with the game
+	engine::Ref<GameStats> mGameStats;                       // +0x120: what the game being played has counted
 	engine::Ref<TileManifest> mTileManifest;                 // +0x124: the game's data
 	engine::Ref<UserGameData> mUserGameData;                 // +0x128: the current player's
 	engine::Ref<GameMusicPlayer> mMusicPlayer;               // +0x130
+	bool mBonusRound;                                        // +0x136: the level being played is a bonus round
+	std::vector<engine::Ref<City>> mCities;                  // +0x138: the level manifest's cities, in order
+	std::map<int, engine::Ref<Pizza>> mPizzaById;            // +0x158: the pizza manifest's pizzas by their numbers
+	std::vector<engine::Ref<Pizza>> mDesignedPizzas;         // +0x164: the pizzas the player designed
+	std::map<int, engine::Ref<Topping>> mPizzaToppings;      // +0x174: the topping each pizza of the player's is
 	bool mShowHighScores;                                    // +0x134: the menu shows the high scores when it starts
 	bool mShowCitySelect;                                    // +0x135: the menu shows the city select when it starts
 
@@ -94,20 +113,56 @@ public:
 	void quitApplication();
 	// 0x402370 (slot 0x40): the game's session is saved; translated next with the game
 	void saveGame();
-	// 0x40c700: a game of the mode starts in the city, from the saved one when the mode has one; translated next
+	// 0x409eb0 (slot 0x38): the level manifest's cities are added in order
+	void addCity(City* theCity) { mCities.push_back(theCity); }
+	// 0x409990: the pizza of the manifest's number (an empty one, which stays, for a number the manifest has not given)
+	Pizza* getPizza(int theId) { return mPizzaById[theId]; }
+	// 0x40c700: a game of the mode starts in the city, from the saved one when the mode has one
 	void startGame(int theMode, int theCity);
-	// 0x4023d0: the city select is shown, after its slot 0x180; translated next with the city select
+	// 0x4023d0: the city select is shown, after its slot 0x180
 	void showCitySelect();
-	// 0x403bc0: the game goes on to the next level; translated next
+	// 0x403bc0: the game goes on to the next level, and to the next city after the last level of one
 	void advanceLevel();
-	// 0x409f30: the level starts; translated next
+	// 0x409f30: the level starts: its story first when the player has not seen it, then the level itself
 	void startLevel();
 	// 0x40dab0, and the state 0x402d70 after it; translated next
 	void startPizzaDesigner();
 	// The +0xfc object's slot 0xc, and the state 0x402e00 after it; translated next
 	void startPizzaEditor();
 
+	// 0x405270, translated next with the game: the level's city file is loaded into the game screen, which the city
+	// select draws the postcards from
+	void loadCityFile(const std::string& theFile, GameScreen* theScreen);
+
 private:
+	// 0x403b60: a game starts at the first level of the city, on the day after the days the cities before it have
+	void beginCity(int theCity);
+	// 0x404660: the checked subscript of the level lists, whose error is an out_of_range exception
+	Level* getCurrentLevel();
+	// 0x408090: the toppings the level gives are the player's, which the player is shown when they are new
+	void giveToppings();
+	// 0x407fc0: the level's start is shown, and a bonus round goes on at once
+	void showLevelStart();
+	// 0x406dc0: the level is set up for play: the mode's game with the level's city, or the bonus round
+	void setUpLevel();
+
+	// What the game itself does, translated next with it: each makes what the original's function makes and puts the
+	// game's state in place. Their callers here are startLevel (story), giveToppings (new topping), showLevelStart
+	// (level start) and setUpLevel (the others).
+	// 0x402ba0: the story screen (+0xdc, slot 0x17c) shows the text, and the story state starts
+	void enterStoryState(Level* theLevel, const std::string& theStory);
+	// 0x402ce0: the new topping screen (+0xec, slot 0x184), and its state
+	void enterNewToppingState();
+	// 0x402c40: the level start screen (+0xe4, slot 0x180) shows the level, and its state starts
+	void enterLevelStartState(Level* theLevel);
+	// 0x459510, 0x460610 and 0x45b3e0 (the speed, memory and concentration mode's game, which the mode number picks),
+	// kept at +0x110; its slot 0x4 (the game screen, the hud and the stats) and slot 0x10 (the level), then the state
+	// 0x4029b0
+	void enterModeGame(Level* theLevel);
+	// 0x45f830, kept at +0x110: its slot 0xbc (the stats, with the object at +0xf4) and slot 0x10 (the level), then
+	// the state 0x402a40
+	void enterBonusRound(Level* theLevel);
+
 	void onAppUpdate(engine::UpdateInfo& theInfo) { update(theInfo); }  // 0x401560
 	void onWindowCommand() { windowCommand(); }                          // 0x401580
 	void onActivate(bool theActive) { windowActivate(theActive); }       // 0x401590

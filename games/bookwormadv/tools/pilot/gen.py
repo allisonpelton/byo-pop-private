@@ -9,6 +9,7 @@ Steps, one per line ('#' starts a comment):
   title <dur_ms> <interval_ms>   a clip from the start (first line only): the logo and title
   at <ms>                        go on at this time (both games settled on a screen)
   wait <ms>
+  port <command>                 a command for the port alone (state), when a list is checked on the port
   click <x> <y>                  a move, then a click 50 ms later (both games see the hover first)
   text <chars>                   typed characters
   key <vk> <name>                a key: the original's virtual-key code, the port's key name
@@ -71,6 +72,8 @@ def main():
             oat(t, "shot %s" % args[0]); pat(t, "screenshot %s/%s.png" % (shots, args[0]))
         elif op == "clip":
             frames(args[0], int(args[1]), int(args[2]))
+        elif op == "port":
+            pat(t, " ".join(args))   # a command for the port alone (state, to check a step list on the port)
         elif op == "quit":
             t += 500
             oat(t, "move 0 0"); orig.append("quit"); pat(t, "quit")

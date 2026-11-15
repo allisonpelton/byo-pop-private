@@ -10,6 +10,7 @@
 
 using namespace Sexy;
 
+// 0x440e90
 CurtainTransition::CurtainTransition(GameApp* theApp)
 {
 	mApp = theApp;

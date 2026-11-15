@@ -260,6 +260,12 @@ void GameWonWidget::Draw(Graphics* g)
 		g->DrawImage(IMAGE_TOUGH_COOKIE_STAMP, mWidth - IMAGE_TOUGH_COOKIE_STAMP->mWidth, mHeight - IMAGE_TOUGH_COOKIE_STAMP->mHeight);
 }
 
+// 0x454bc0: the one function the six screens' ButtonListener tables share; the mouse-over sound plays for every button
+void GameWonWidget::ButtonMouseEnter(int theId)
+{
+	gApp->PlaySample(SOUND_UI_BUTTON_MOUSE_OVER);
+}
+
 // 0x453440: the way out is a wipe to the main menu, whichever button it is (there is the one)
 void GameWonWidget::ButtonDepress(int theId)
 {

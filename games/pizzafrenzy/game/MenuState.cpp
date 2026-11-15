@@ -4,6 +4,8 @@
 #include "Players.h"
 #include "ScreenNodes.h"
 
+#include <cstdio>
+
 using namespace pizzafrenzy;
 
 namespace
@@ -125,8 +127,12 @@ void MenuState::action(const std::string& theAction)
 		showDialog(mApp->mHighScoreResetConfirm);
 	else if (theAction.compare(0, 10, "citySelect") == 0)
 	{
-		// "citySelect" and a city's number start a game in that city when the application's city list (+0x138) has
-		// it; translated next with the city select
+		// "citySelect" and a city's number start a game in that city
+		int aCity = -1;
+		sscanf(theAction.c_str(), "citySelect%d", &aCity);
+		if (aCity < 0 || (int)mApp->mCities.size() <= aCity)
+			return;
+		mApp->startGame(mApp->mGameMode, aCity);
 	}
 	else if (theAction.compare("edit") == 0)
 		mApp->startPizzaDesigner();

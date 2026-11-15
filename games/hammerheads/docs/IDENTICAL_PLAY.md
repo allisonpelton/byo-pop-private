@@ -1,7 +1,7 @@
 # Hammer Heads Deluxe: the identical-play pass
 
 Written for the user. Phase one (the game plays out the same in the original and the port) is done for the scenarios below;
-phase two (it looks and sounds the same) has not started. This file grows with each phase.
+phase two (it looks and sounds the same) is under way: the sound and the music are compared by state (below), the looks are not yet. This file grows with each phase.
 
 ## Phase one: plays identical
 
@@ -109,3 +109,80 @@ the continue box and the resumed level play on identically); a game that is lost
 Tough Cookie and Marathon (the marathon's own clock), were not. These belong to the coverage check before the final merge, with
 the focus loss and regain and the Tough Cookie and Marathon runs at later levels (`jumpto` works in both modes); the looks and the
 sound belong to phase two.
+
+## Phase two: the sound and the music, by state
+
+### What is compared and how
+
+The runs of phase one carry the sound too, so that what is compared is what the same input makes the game play.
+
+The sounds go through DirectSound. origrun's stand-in for it logs every buffer the original plays and stops, with the virtual
+clock's time, the buffer's volume, pan and frequency, and which sound the buffer is (a duplicate of a sound's own buffer); the
+port's framework logs the same for its samples (`BYOPOP_SOUNDLOG`, the update count first). `tools/idplay/soundcmp.py` lines the
+two up: the plays are compared in order, sound by sound, with volume, pan, pitch and whether it loops. A stop is not compared
+where the sound ended by itself, since the port's instance ends where the original's buffer does and the original's stop is the
+game's own for a buffer it still thinks is playing. When the plays are the same, how the times fall can be listed as information
+(`--times`): the port's plays that an input made come one or two updates after the original's, because the harness posts the port
+its input an update later (as in phase one). Both sides are cut where the run ends; the original's shutdown runs the virtual clock
+ahead (marathon1's by 20 seconds), and what it plays then is not the run's.
+
+The music goes through BASS (four ogg files, one stream each). `tools/bassproxy` is a stand-in `bass.dll` that sits in a copy of
+the original beside the real one (renamed `bass_real.dll`), logs every call with the update count (read from the game's own
+counter) and its arguments, and answers for a stream that BASS's no-sound device cannot make (the only device the stand-in
+DirectSound leaves it) with a handle of its own that plays and stops as BASS's would. `tools/idplay/musiccmp.py` reduces that log
+and the music lines of the port's sound log to the same events: a file made into a stream, a song's volume set (at every update
+of a fade), a song started, stopped, paused or resumed, and the master volume. It compares them in order with the update of each.
+Two differences in how BASS is asked, with the same result, are not events: the original stops every other song whenever one is
+faded in and stops a song just before it plays it again (a stop of a song that is not playing, and a stop followed at once by the
+same song's play, are dropped), and the port's mixer starts at full volume before the game sets its own (the last of several master
+volumes at one update stays). When the three other songs are made into streams is the loader's business (the original's loading
+thread does it a little after the start, the port's at 0), so the files are compared as a list. A master volume that a focus change sets comes
+one update later in the port, as every input does.
+
+Each scenario below is one `idplay.py run`: the original and the port with the same input, the state compared as in phase one, then
+the sound, then the music.
+
+| scenario | plays, music events | what it reaches |
+| --- | --- | --- |
+| `classic1` | 1152 plays | a first game of Classic Bash from the loading screen: the buttons' mouse-over and click, the dialogs' woosh, the hammer's and the gnomes' sounds, the level's ending |
+| `classic_save1` | 396 plays; 1613 music events (the first 16000 updates) | the saved game left and resumed: the menu and in-game music swapped, with the fades, to the update |
+| `classic_nd10`, `classic_nd22` | 1547 and 1901 plays; 2016 music events each | levels 10 and 11 and levels 22 and 23: the challenge and the shop (the shop's mole and the hint popups), the multiplier gnome's timer |
+| `classic_sp25` | 2479 plays; 2680 music events | the kings, the zoom wipe, the game-won page and its voice, the Tough Cookie notice |
+| `tough1` | 1349 plays; 1939 music events | Tough Cookie from its first level |
+| `marathon1` | 1043 plays; 1874 music events | Marathon through the game over box, "Try Again" and a new game |
+| `classic_save22` | 1413 plays; 2009 music events | the saved game of level 22 resumed |
+| `classic_focus1` | 333 plays; 996 music events | the window losing and regaining the focus on the loading screen, on a level's introduction and twice in a level (the second time for four seconds with the bot's clicks arriving): state, sounds and music identical, the music's master volume going to 0 on the loss and back to 85 on the regain |
+
+### Differences found and fixed
+
+| difference | cause | what the port does now | commit |
+| --- | --- | --- | --- |
+| The original played the mouse-over sound for every button and the port for some | the six screens' `ButtonListener` tables share one `MouseEnter` function (0x454bc0, which plays sound 0); the port had no override on the screens that did not make it themselves | `ButtonMouseEnter` on the main menu, the how-to-play page, the level introduction, the game screen, the game-won page and the high score table | f4d747a4 |
+| The in-game menu opened at the press of its button and the original's opens when the button is let go | the game screen's handler (0x450e10) is the listener's `ButtonDepress`; the port's was `ButtonPress` | renamed, same body | f4d747a4 |
+| The ice cream gnome played its gloop twice | `GnomeBonus::Hit` played it, and so does `StartIceCreamPower` (0x435fd0) | the extra play removed | f4d747a4 |
+| "Try Again" and "Main Menu" of the game over box played no click | the box's `ButtonListener` table points at 0x44fe90, which plays the click for any button pressed (the options box's own handler is the same function); the port's box had none, and the moving dialog's handler it inherited (0x468bb0) clicks only for ids that no dialog's own buttons have | `GameOverDialog::ButtonPress` plays the click | 7e802bbd |
+
+The harness had one fault of its own that looked like a game difference and is fixed in it, not in the port: the original played the
+mouse-over sound at nearly every click (twice at some). The cause was origrun's shared desktop. A click was posted to the game's
+window with the cursor set to its point, and the original's own timer test for "is the mouse still in the window" (0x4d7000) asks
+which window is under the cursor; on rundesk's desktop another run's window was found there, the original took that for the mouse
+leaving, and entered again at the next move. The original now runs with origrun's `--cursor scripted`, which answers that question
+from the scripted point, and with a test patch for the one comparison left that does not use it (0x4d7805, listed in
+`tools/origrun/patches.txt`).
+
+### Deviations that remain
+
+How BASS is asked is not the same: the original calls `BASS_ChannelStop` on a song before it plays it, and on the other three
+whenever one is faded in; the port's mixer stops what is playing as it plays what is next. What is heard is the same, and the
+comparison is of the state. `GAME_NOTES.md` lists it with the others.
+
+### Also run
+
+The phase-one scenarios `classic_nd1`, `_nd5`, `_nd15`, `_nd20`, `_nd25` and `classic_j5`, `_j10`, `_j15`, `_j20`, `_j25` (28000 updates
+each) are identical in state, sound and music too.
+
+### Left in phase two's sound
+
+The sounds of a game lost with a saved game waiting, the high score entry and Tough Cookie's and Marathon's saved games are not
+reached yet. The looks (every screen and dialog against the original's, natively and on the page) are phase two's next part: the
+shots need a visible desktop, which the rules allow from 22:00.

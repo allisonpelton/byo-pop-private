@@ -81,6 +81,8 @@ TileEngine::~TileEngine()
 		gTileEngine = nullptr;
 }
 
+// 0x49b5a0 (the class registration), 0x49c6a0 (LuaGetRegisteredName), 0x49c820 (CreateTile), 0x49c9a0 (DeleteTile),
+// 0x49cb20 (CloneTile) and 0x49cca0 (SlideTile) (the method registrations) are inline here
 void TileEngine::RegisterLua()
 {
 	static bool sRegistered = false;
@@ -260,6 +262,7 @@ void TileEngine::StartMoving(Tile* theTile, bool theNotify)
 	CallLinkedMethod("TileStartedMoving", 2);
 }
 
+// 0x49ce90 (the Lua call with the tile and the flag) is inline here
 void TileEngine::StopMoving(Tile* theTile, bool theNotify)
 {
 	if (!theTile->mMoving)

@@ -16,6 +16,7 @@
 #include "DialogButton.h"
 #include "WidgetManager.h"
 #include "Insets.h"
+#include "DDInterface.h"
 #include <stdio.h>
 #include <math.h>
 
@@ -24,6 +25,17 @@ using namespace Sexy;
 static Color CoinColor(const int theTable[Piece::MAX_COIN_COLORS][3], int theColor)
 {
 	return Color(theTable[theColor][0], theTable[theColor][1], theTable[theColor][2]);
+}
+
+// port: the countdown picture has alpha, so the original's DDImage::StretchBlt (0x452e80) stretches it with its own loop,
+// 16.16 steps from the source rectangle's corner, each column read before it steps, where a picture without alpha goes
+// to DirectDraw's Blt (pixel centres, the software screen's default; WinBMApp::CreateDDInterface). Returns the display's
+// setting, which the caller puts back after the draw.
+static bool BeginCornerSampling(WinBMApp* theApp)
+{
+	bool aSampleCentres = theApp->mDDInterface->mFastStretchCentre;
+	theApp->mDDInterface->mFastStretchCentre = false;
+	return aSampleCentres;
 }
 
 // 0x405480
@@ -241,7 +253,7 @@ void Board::Draw(Graphics* g)
 			}
 
 			ulong* aDestBits = mLevelUpImage->GetBits();
-			ulong* aSrcBits = aSrcImage->GetBits();
+			ulong* aSrcBits = aSrcImage->ReadBits();
 			// port: a mod's HD sign gets the same row copies, s HD rows per 1x row (HDPixels.h)
 			HDPixels aSrcHD = GetHDPixels(aSrcImage);
 			HDPixels aDestHD;
@@ -284,8 +296,10 @@ void Board::Draw(Graphics* g)
 		int aDestWidth = (int)(aWidth * aScale) | 1;
 		int aDestHeight = (int)(aCelHeight * aScale) | 1;
 		g->SetFastStretch(true);
+		bool aSampleCentres = BeginCornerSampling(mApp);
 		g->DrawImage(aCountdown, Rect((aWidth - aDestWidth)/2 + aCenterX, (aCelHeight - aDestHeight)/2 + 124, aDestWidth, aDestHeight),
 			Rect(0, aCel*aCelHeight, aWidth, aCelHeight));
+		mApp->mDDInterface->mFastStretchCentre = aSampleCentres;
 		g->SetFastStretch(false);
 	}
 
@@ -302,8 +316,10 @@ void Board::Draw(Graphics* g)
 		int aDestWidth = (int)(aWidth * aScale) | 1;
 		int aDestHeight = (int)(aCelHeight * aScale) | 1;
 		g->SetFastStretch(true);
+		bool aSampleCentres = BeginCornerSampling(mApp);
 		g->DrawImage(aCountdown, Rect((aWidth - aDestWidth)/2 + aCenterX, (aCelHeight - aDestHeight)/2 + 124, aDestWidth, aDestHeight),
 			Rect(0, mMoveDigit*aCelHeight, aWidth, aCelHeight));
+		mApp->mDDInterface->mFastStretchCentre = aSampleCentres;
 		g->SetFastStretch(false);
 	}
 
@@ -385,7 +401,7 @@ void Board::Draw(Graphics* g)
 		{
 			// Fade-in with a settling horizontal sine wave. Shifted rows leave |offset| pixels
 			// unwritten, which keep the previous frame's values (mStatsFadeImage is persistent).
-			ulong* aSrcBits = mStatsImage->GetBits();
+			ulong* aSrcBits = mStatsImage->ReadBits();
 			ulong* aDestBits = mStatsFadeImage->GetBits();
 			int anAlpha = (int)(mStatsFade * 256.0);
 			// port: the panel's HD pixels (drawn from a mod's HD art) get the same shifts, scaled (HDPixels.h)

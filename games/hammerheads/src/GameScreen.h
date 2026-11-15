@@ -57,7 +57,8 @@ public:
 	virtual void	MouseMove(int x, int y) override;						// 0x451200
 	virtual void	MouseDown(int x, int y, int theClickCount) override;	// 0x451320
 	virtual void	KeyDown(KeyCode theKey) override;						// 0x451410
-	virtual void	ButtonPress(int theId) override;						// 0x450e10 (the menu button)
+	virtual void	ButtonDepress(int theId) override;						// 0x450e10 (the menu button: the box comes when the button is let go)
+	virtual void	ButtonMouseEnter(int theId) override;		// 0x454bc0: the mouse-over sound, whichever button
 
 	// 0x4525c0: starts a game in a mode: loads the board, makes the objects of the level
 	void			Start(int theMode);

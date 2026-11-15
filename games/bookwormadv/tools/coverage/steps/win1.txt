@@ -1,0 +1,37 @@
+at 31000
+click 230 300            # the library: Adventure
+wait 4000
+click 400 575            # Enter!
+wait 3000
+click 400 150
+wait 4000
+click 400 150
+wait 4000
+click 400 150
+wait 4000
+click 400 150
+wait 4000
+click 326 334
+wait 400
+click 476 334
+wait 400
+click 426 436
+wait 400
+click 326 385
+wait 400
+click 476 436
+wait 400
+click 376 334
+wait 400
+click 376 487
+wait 400
+click 476 487
+wait 400
+click 426 385
+wait 400
+click 376 385
+wait 400
+wait 400
+click 401 570   # Attack: REINJURING
+wait 11000
+quit

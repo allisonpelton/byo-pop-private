@@ -11,6 +11,7 @@
 using namespace Sexy;
 using namespace LuaLib;
 
+// 0x4a4190
 TreasureScreen::TreasureScreen(GameApp* theApp) : mApp(theApp)
 {
 	RegisterLua();
@@ -29,6 +30,7 @@ TreasureScreen::~TreasureScreen()
 }
 
 // The original registered the class in the constructor (0x4a5340), every time
+// 0x4a5440 (the class registration) is inline here
 void TreasureScreen::RegisterLua()
 {
 	static bool sRegistered = false;

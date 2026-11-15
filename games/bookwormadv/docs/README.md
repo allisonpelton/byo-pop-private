@@ -389,6 +389,81 @@ before the logo came out; the logo is over long before their 20 s window.
 there says nothing faithful about a player's browser, where the network and the wasm compile dominate. A minute of play
 (above). Full screen and the GPU's own load.
 
+## Coverage check (2026-11-15)
+
+The whole check of `docs/COVERAGE.md`. origrun's `--coverage` recorded which of the original's functions ran in 17 runs
+on the host, on the virtual clock (one, `realclock`, on the real clock with the silent sound stand-in), each from a
+copy under `build/` with the pilot's seed and hover patches (`tools/coverage/run.sh`; the steps in
+`tools/coverage/steps/`, the hits in `build/coverage/bookwormadv/hits/`). They are the pilot's three passes (menus,
+battle and win, the tome and mini-games); the idle title; the options and credits; the players (one chosen and
+deleted, a new one through the intro and into the tutorial); the first battle won and the first chapter played on
+(`battle`, `win`, `win1`); Word Master, Letter Rip and Link n' Spell played to their ends; a chapter at the end of the
+first book (`ch1_10`); and the arena's first fight (`arena`). Every run ended with the game exiting normally, and
+origrun's guard saw no program, file or link launched.
+
+The later runs start from saves the port's own bot made (`tools/coverage/advance.sh` plays the adventure on with the
+port's movedriver and keeps each save), and their steps are made by the port too: `tools/coverage/play.py` runs the
+port from the start after every step and reads its board log, as `tools/realrun.py` does, so each step answers what
+the port shows at that update (a dialog's button, the tutorial's tile, a hint, the board's best word and Attack, the
+treasures, Enter). The original deals the same boards when no hint is drawn while a chapter loads (a test patch of
+`ChapterLoadScreen::Update` in `tools/origrun/patches/bookwormadv.txt`; "Oddities" has why the load's length matters)
+and the port loads natively. For the original's runs past the first book's seventh chapter, a second test patch makes
+the trial's end check answer as the registered game's does ("Registration code taken out"). `tools/coverage/bwa.py`
+reads and changes a save (the arena's run unlocks the arena in a save at the third book), and `port.sh` runs any steps
+on the port, windowed as the original's runs are.
+
+`games/bookwormadv/coverage.txt` sets three ranges as the game's own code: the game (0x401000-0x4cce30), the
+framework's FlashWidget and PopAnim that the shared framework lacks (0x527ea0-0x52efc0), and LuaApp, JeffLib, LuaLib
+and PopLua (0x650000-0x71efb0). They hold 7169 functions; the runs reached 2980.
+
+**Reached in the original with no counterpart in the port: 1457 after the first runs, 2058 at the most, 0 at the
+end.**
+
+- **Placed: about 420** (the port's functions with an address went from 1124 to 1547).
+  Functions the port translates inline or in another shape got their address in the comment
+  above the function that holds them: the Lua binding's method calls (`lualib/LuaBind.h`), LuaWidgetTpl's events and
+  listener callbacks (one template here, an instance per widget class there), Lua library helpers, sort comparators,
+  and the like. Comment edits only.
+- **Left out on purpose: 3525 functions, in 1931 `none` lines, each with its reason.** `tools/coverage/nonelines.py`
+  finds 2880 of them from the export alone (the Lua binding's template instances and wrappers, bodies the compiler
+  emitted for several types, and scalar deleting destructors); the other 645 were read one by one, by Sonnet agents given `tools/coverage/worklist.py`'s lists: the C++ library's containers and
+  strings, the Ogg Vorbis decoder in the exe (the platform decodes with stb_vorbis), the parts of PopLua the port does
+  without (`docs/POPLUA.md`), LuaSupport's developer features, the registration code and the update check.
+- **Missing, translated: one.** `GameApp::SwitchScreenMode` (0x4458b0) and the two flags `GameApp::Init` sets: in full
+  screen, and whenever the screen is no larger than the game, the original turns `mVSyncUpdates` and `mWaitForVSync`
+  on, so the framework calls the screens' `UpdateF` (each calls it itself otherwise), and an open options dialog's
+  Full Screen box follows a switch (Alt+Enter). With the port's fixed 100 Hz the update path gives the same play: the
+  suite's four runs, which start full screen, keep every board, word, script line and save of the frozen baseline,
+  except the registry's `WaitForVSync`, now 1 after a full-screen run as the original writes it. The baseline is to
+  be frozen again from this commit; its other difference, the `screen: map` line logged while the game quits, is the
+  board log's own fix (the test hook no longer logs the screens coming down).
+- `GameApp::InitPropertiesHook` (0x446c90) is the framework's `SexyApp::InitPropertiesHook`: partner.xml's NoReg,
+  ProdName, DefaultWindowed and Title.
+
+**Defined in the port, never reached: 716 after the first runs, 316 at the end.** The later runs reached the arena,
+the later books' screens and the mini-games. Of the rest, 87 are PopLua's compiler (`lparser.cpp`, `lcode.cpp`,
+`llex.cpp`): the game loads only compiled scripts and no run compiled one, so the compiler is a candidate for taking
+out (the suite's dialect checks use it). The other 229 (233 counterparts) were
+read again against the export by a Sonnet agent and checked here. 156 a player can reach (script-bound methods of
+later books, dialogs, error paths), and 77 nothing in the game calls: these are candidates for taking out, with the
+compiler. They are mostly developer code: the Lua widget bindings no script uses, the dprops editor that nothing
+loads, string and math functions no script calls, the Lua stream readers, the profiler (`perf.Start` and `perf.End`),
+the developers' script reload (`LuaSupport::DoFile`, which in the original also clears and registers the bindings
+again) and the PopAnim mod parser's error message (the original's names the line in a popup). Five slips came out:
+`GameDialog::KeyDown` now ignores Escape while the credits run, `LoadResGroup` gives false at once when a group fails
+and relaxes the update backlog only after a load, as the original does, and the other three are the profiler, the
+reload and the parser's message just named, left as candidates. `TreasureScreen::DoChapterTransition` (0x4a4ff0) was
+not settled: what it does to the treasure room's buttons 10 to 12 at its end may differ, but they are hidden by then.
+
+**Oddities.** `ch1_10` reached its battle in the original but no word was taken there: the original dealt another
+board than the port's play expected, though both started from the same save. The chapter starts from the map, where
+the first chapter's run (`win1`) agrees; what differs was not looked for (an hour's rule). The run still reached the
+map, treasure room and battle code it was for. In the port the first click on the main menu after Lex's unlock pages
+only ends the panel (`arena`'s steps click the colosseum twice); the original was not checked for the same.
+
+**Cost.** The original's runs took about 40 minutes of machine time, the port's step-by-step plays (each step a run
+of the port from the start) about two hours, and the sorting about 30 minutes of Sonnet agents.
+
 ## Mods
 
 None (the user's rule: no mods before every PopCap game works in the browser). `MOD_IDEAS.md` lists the ones worth

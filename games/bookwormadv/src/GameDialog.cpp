@@ -12,6 +12,7 @@
 
 using namespace Sexy;
 
+// 0x4bed30
 GameDialog::GameDialog(int theId, const SexyString& theHeader, const SexyString& theLines,
                        const SexyString& theFooter, int theButtonMode)
 	: Dialog(IMAGE_DIALOG, IMAGE_DIALOG_BUTTON, theId, true, theHeader, theLines, _S(""), BUTTONS_NONE)
@@ -50,6 +51,7 @@ FadeButton* GameDialog::MakeButton(int theId, ButtonListener* theListener, const
 	return aButton;
 }
 
+// 0x4bf120
 GameDialog::~GameDialog()
 {
 	delete mButton1;
@@ -154,8 +156,8 @@ void GameDialog::Draw(Graphics* g)
 
 void GameDialog::KeyDown(KeyCode theKey)
 {
-	// port: the original also lets Escape be while the app's +0x8a0 is set (not known yet; nothing ported sets it)
-	if (theKey != KEYCODE_ESCAPE)
+	// Escape, and not while the credits run
+	if (theKey != KEYCODE_ESCAPE || mApp->mCredits != nullptr)
 		return;
 	// the dialog's button mode is always BUTTONS_NONE (its own buttons are not the Dialog's), so this presses
 	// yes, or ok, in every dialog: as the original does

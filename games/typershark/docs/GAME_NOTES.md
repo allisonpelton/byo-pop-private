@@ -823,6 +823,8 @@ the visible desktop), the original's 2D drawing 4.7 to 6.5 G on its main thread.
 5,472 / 6,220, 4,274 / 6,684), 0.80 of it. The stand-in's fix took the original's cursor thread from 655 M to 45 M and its median from 6,398 M to 5,616 M. The original here draws in 2D (DirectDraw, software), which the player's 3D mode
 does not, so the figures of the visible desktop above stay the ones for a player's machine.
 
+**After the framework's 3D same-texture batching (main 2264f0f9, merged; 2026-11-15, 02:25 to 02:38, five pairs, the machine 0.95 to 1.0 in use, so every figure is higher than the quiet-machine pairs above):** port **5,686 M** (5,418 to 6,093: driver thread 2,826, main 2,534, mixer 320), original **4,519 M** (3,763 to 5,137: main 4,335, cursor thread 56), 1.26 of the original. The driver thread is still half of the port; the pairs are not comparable with the quiet ones, and a quiet-machine round is still to do.
+
 **Where the port's main thread goes** (a temporary probe of the cycles around each call, removed again; one run on the visible desktop, 2,000 updates, 1,204 presented frames,
 that is 60 a second with vsync): the main thread 1,065 M = `ProcessEvents` 26, `UpdateFrames` 66 (the game's own update), `BeginFrame` 32, `DrawScreen` 466 (the game's draw, with
 the framework's glue and SDL's queueing: 387 k cycles a frame), `DDInterface::Present` 438 (of which `SDL_RenderPresent` 265), no time in `SDL_Delay`. A count of the draw calls (a second

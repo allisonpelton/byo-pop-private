@@ -1133,6 +1133,19 @@ Game over: PlayMusic(9, 0x43, false). Fade speeds: pause 0.008; level complete F
 next level FadeOut 0.02 / FadeIn 0.004; game over FadeOut 0.02. `FadeIn(id, -1, ...)` resumes.
 MusicInterface slots used: 2 PlayMusic, 11 FadeIn, 12 FadeOut.
 
+**Unused patterns** (for the site's Music, which lists a module's patterns that no order of any subsong plays in a section
+of their own; read from the module on 2026-11-15). The module has 82 patterns over 101 orders, with skips (`+++`) at orders
+22, 25, 39, 43, 62, 66, 86 and 98 and the end (`---`) at 100. Played from each order the game starts at (0, 23, 24, 26, 40,
+41, 44, 63, 64, 67, 87 and 89: the table above, with the title's 87 and the selector's 89) and following the patterns'
+position jumps and breaks, the game reaches 81 of them, every pattern but **pattern 81**, the one pattern at order 99,
+after the last skip. Pattern 81 holds no notes: row 0 has a note off on all 14 channels, row 4 a note cut on all 14, and
+row 15 jumps back to order 99, so it plays 16 rows of silence in a loop (1.8 s at the module's speed 6 and tempo 135; rows
+16 to 63 are never reached). A scan of the orders as libxmp makes its subsongs (from order 0, then from each order not yet
+reached) finds nine sequences, starting at orders 0, 23, 26, 40, 44, 63, 67, 87 and 99; the ninth is this loop, which is
+under the two seconds Music leaves out, so every pattern Music lists is one the game plays. In passing: the game-over tune
+ends at order 85 with a jump to order 89, so it plays on into the title tune's loop (orders 89 to 97, whose last pattern
+jumps back to order 90). The two song slots 10 and 13 load the module and are never played, so they start no order.
+
 Mr. Money (`app->mMrMoney`, +0x6d4, MrMoney.cpp): `PlayAnim(id)` 0x415200 (sets +0xc0 anim, resets
 +0xc4/+0xc8, length from the 400-byte table entry at 0x4f6818 + id*400) and target position fields
 +0x98/+0x9c (set to (350,24) at tick 1, (0,290) at tick 300 and while paused). Anim ids used by Board:
@@ -4410,6 +4423,50 @@ for the port's. The port starts about twice as fast as the original and uses abo
 is the other way round: the working set is twice the original's and its private bytes three times (124 MB against 42 MB). Why was not
 looked into; it is a figure for the performance pass.
 
+### Performance after the memory work (measured 2026-11-15)
+
+**What changed.** The original never draws in 3D (IDENTICAL_PLAY.md, "The software screen and 1.2's rotation": no `Is3D` on a
+first run, no checkbox, Shift+F8 only with the debug keys), so natively at 1x the port now draws in software as it does
+(`WinBMApp::CreateDDInterface`, the framework's `SoftwareScreenDisplay`), and no picture is made into a GPU texture. The trunk's memory work does the rest (the merge of fw-memory: pixels dropped
+after upload, the framework's own GIF decoder). The game's part: every picture is palletized as in the original (8-bit where it has 256
+colours or fewer, a quarter of the memory), the image table's second, never-drawn mouths picture is not loaded (0.6 MB), and the
+game's own pixel edits read their source through `ReadBits`, which does not turn a palettized picture back into 32-bit. Nothing was
+measured change by change; the figures below are the whole. At 2x and on the web the port still draws on the GPU.
+
+**How.** As on 2026-11-08 (`tools/profile/perf.py`, the same seed-21 minute), with each run on a performance core of its own
+(`tools/pincore.py`): the port's load five times, the original's three, then five pairs of minutes, port and original in turn, and two
+port minutes at twice the size (`PERF_SCALE=2`). Other sessions' game processes ran throughout (1 to 5 at a run's start and end), and the
+machine was 90 to 99 % busy during the loads, 65 to 83 % during the first two pairs and 20 to 34 % during the last three.
+
+| First screen that takes input | Original under origrun | Port native, 1x |
+|---|---|---|
+| Seconds from launch | 6.92, 2.89, 2.92 (the minutes' runs: 5.63, 2.19, 1.98, 1.64, 1.22) | 0.80, 0.93, 0.74, 0.69, 0.73 |
+| Working set at the title | 50.4 to 51.2 MB | 42.8 to 43.0 MB |
+| Private bytes at the title | 36.1 to 37.1 MB | 31.3 to 31.4 MB |
+| Processor time to the title | 0.34 to 0.92 s | 0.59 to 0.61 s |
+
+The original's load times swing with the machine's load (1.38 s in the quieter runs of 2026-11-08); the port's stay where they were.
+
+| The scripted minute (6000 updates) | Pair 1 | Pair 2 | Pair 3 | Pair 4 | Pair 5 |
+|---|---|---|---|---|---|
+| Machine busy (port, original) | 78 %, 83 % | 65 %, 38 % | 29 %, 26 % | 25 %, 20 % | 26 %, 34 % |
+| Peak private bytes, port / original | 38.7 / 44.5 MB | 42.1 / 44.7 MB | 42.0 / 41.9 MB | 38.6 / 44.0 MB | 40.3 / 42.1 MB |
+| Peak working set, port / original | 50.4 / 67.2 MB | 63.0 / 67.6 MB | 63.1 / 56.5 MB | 50.3 / 66.9 MB | 61.3 / 56.8 MB |
+| Processor time, port / original | 5.41 / 11.91 s | 4.98 / 6.86 s | 2.66 / 5.30 s | 3.25 / 6.75 s | 2.88 / 6.73 s |
+
+Every minute ran its 6000 updates in 60 s on both sides (the original's 5991 to 6000, its counter read from outside). Over the whole run,
+from launch to quit, the port's private bytes peak at 44.1 to 47.7 MB, the original's at 41.9 to 44.7 MB.
+
+**Before and after.** Private bytes at the title went from 83 MB to 31 MB (the original 37 MB), and the minute's peak from 124 MB to
+39 to 42 MB (the original 42 to 45 MB); the whole run's peak is 2 to 3 MB above the original's. The working set is now at or below the
+original's. Processor time in play was already below the original's and is now about half of it in the quiet pairs (2.7 to 3.3 s against
+5.3 to 6.8 s). It is lower than on 2026-11-08 (4.0 to 4.7 s) partly because the machine was quieter, so the two dates are not compared
+directly. The load is unchanged at about 0.7 s.
+
+**At 2x** (the GPU, 3D's flags) the minute's private bytes peak at 71 and 74 MB and its working set at 73 and 82 MB, with 3.7 and 4.4 s
+of processor time in the game and the graphics driver (the machine 96 to 100 % busy). The 2x window keeps each picture as a GPU texture
+too; the original has no 2x mode to compare with. The web build was not measured.
+
 
 ## Coverage check (2026-11-08)
 
@@ -4467,9 +4524,9 @@ port left out on 2026-11-08 (the register dialog and its helpers, the shareware 
 parameters, and twelve exception funclets (catch blocks of the compiler's tables) are `none` lines. No run should have reached any of
 them. Part 6 ("Registration and the buttons that lead out of the game") lists what was taken out.
 
-**Open:** nothing. The Options dialog's checkboxes (full screen, 3D) were not clicked in these runs, since the original would change
-the display mode, and the port's version of full screen is a listed deviation of its own; `OptionsDialog::CheckboxChecked` and
-`ButtonDepress` were reached by the menus tour. The framework's sound code lies outside the game code and is not compared.
+**Open:** nothing. The Options dialog's checkboxes (full screen, custom cursors) were not clicked in these runs, since the original
+would change the display mode, and the port's version of full screen is a listed deviation of its own; `OptionsDialog::CheckboxChecked`
+and `ButtonDepress` were reached by the menus tour. The framework's sound code lies outside the game code and is not compared.
 
 **What it cost.** The 17 runs took roughly 30 minutes of machine time (estimated from the end times), one game process at a time; the first
 nine waited for room for most of an hour. No agent was used: the 19 functions were identified from their decompilation by this session. A spec for the tool

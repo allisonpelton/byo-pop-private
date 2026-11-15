@@ -49,7 +49,7 @@ play in the browser).
 | A saved game at level 10 | not run | a hyper cube swapped and 40 moves from a save made at level 10 with eight flame gems and three hyper cubes on its board, levels 10 to 13 (score 87797), 83 changes of the score, identical |
 
 The saved game at level 10 was made for the two scores that the user doubted on the site (2026-11-10: a flame gem's blast
-"5,500 on level 10", a hyper cube "2400 PER GEM on level 11"). Both are the game's own numbers. `properties/config.xml`, the
+"5,500 on level 10", a hyper cube "2400 PER GEM on level 11"). Both are the numbers of the `config.xml` that the install had (Steam's own file check replaced it on 2026-11-15 with the retail constants; GAME_NOTES, "Steam's file check"). `properties/config.xml`, the
 same file in the Steam folder, the staged assets and the original's copy, sets `ExplosionChainBonus` and
 `ExplosionChainBonusAdd` to 1000 and `ElectNormalBonus` to 400, and Classic multiplies them by 1 + 0.5 for each level past the
 first: 5.5 on level 10, 6 on level 11. So a flame or bomb gem caught in another's blast pays 5,500 on level 10 (and 1000 more

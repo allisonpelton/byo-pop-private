@@ -146,6 +146,23 @@ static inline bool IsFractional(float theValue)
 	return theValue != floorf(theValue);
 }
 
+// port: whether a quad that a transform has moved is a 1:1 copy of the source rectangle on whole pixels (a part of a screen the
+// game moves by a whole-pixel translation, such as the first frame of Bejeweled 2's whirlpool). The original's D3D7 at 1x
+// samples such a quad exactly, which the nearest filter does here: the linear one would blur it at a render scale above 1.
+static bool IsPixelAlignedCopy(const float theX[4], const float theY[4], const Rect& theSrcRect, bool mirror)
+{
+	const float aTolerance = 0.001f;
+	if (mirror)
+		return false;
+	if ((fabsf(theX[1] - theX[0] - (float) theSrcRect.mWidth) > aTolerance) || (fabsf(theX[2] - theX[1]) > aTolerance) ||
+		(fabsf(theX[3] - theX[0]) > aTolerance))
+		return false;
+	if ((fabsf(theY[3] - theY[0] - (float) theSrcRect.mHeight) > aTolerance) || (fabsf(theY[1] - theY[0]) > aTolerance) ||
+		(fabsf(theY[2] - theY[3]) > aTolerance))
+		return false;
+	return (fabsf(theX[0] - floorf(theX[0] + 0.5f)) <= aTolerance) && (fabsf(theY[0] - floorf(theY[0] + 0.5f)) <= aTolerance);
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 DDInterface::DDInterface(SexyAppBase* theApp)
@@ -177,6 +194,7 @@ DDInterface::DDInterface(SexyAppBase* theApp)
 	mFastStretchPreAdd = false;
 	mFastStretchCentre = false;
 	mSoftwareTransforms = false;
+	mBltRotated12 = false;
 	mKeepScreen = false;
 	mStretchUse = 0;
 
@@ -1169,7 +1187,7 @@ void DDInterface::Blt(Image* theImage, float theX, float theY, const Rect& theSr
 	if (!mTransformStack.empty())
 	{
 		TransformQuad(aX, aY);
-		DrawTexturedQuad(theImage, aX, aY, theSrcRect, mirror, theColor, theDrawMode, NULL, true);
+		DrawTexturedQuad(theImage, aX, aY, theSrcRect, mirror, theColor, theDrawMode, NULL, !(mOriginalSampling && IsPixelAlignedCopy(aX, aY, theSrcRect, mirror)));
 		return;
 	}
 	DrawTexturedQuad(theImage, aX, aY, theSrcRect, mirror, theColor, theDrawMode, theClipRect, IsFractional(theX) || IsFractional(theY));
@@ -1187,7 +1205,7 @@ void DDInterface::StretchBlt(Image* theImage, const FRect& theDestRect, const Re
 	if (!mTransformStack.empty())
 	{
 		TransformQuad(aX, aY);
-		DrawTexturedQuad(theImage, aX, aY, theSrcRect, mirror, theColor, theDrawMode, NULL, true);
+		DrawTexturedQuad(theImage, aX, aY, theSrcRect, mirror, theColor, theDrawMode, NULL, !(mOriginalSampling && IsPixelAlignedCopy(aX, aY, theSrcRect, mirror)));
 		return;
 	}
 	bool isScaled = (theDestRect.mWidth != theSrcRect.mWidth) || (theDestRect.mHeight != theSrcRect.mHeight);
@@ -1474,7 +1492,10 @@ void DDInterface::DrawTrianglesTex(Image* theTexture, const TriVertex theVertice
 				aVertexX = aPoint.x;
 				aVertexY = aPoint.y;
 			}
-			SetVertex(*aVertex++, (aVertexX + 0.5f) * aScale, (aVertexY + 0.5f) * aScale, aColor, aTriVertex.u * aUScale, aTriVertex.v * aVScale);
+			if (mOriginalSampling)
+				SetVertex(*aVertex++, aVertexX * aScale + 0.5f, aVertexY * aScale + 0.5f, aColor, aTriVertex.u * aUScale, aTriVertex.v * aVScale);
+			else
+				SetVertex(*aVertex++, (aVertexX + 0.5f) * aScale, (aVertexY + 0.5f) * aScale, aColor, aTriVertex.u * aUScale, aTriVertex.v * aVScale);
 		}
 	}
 

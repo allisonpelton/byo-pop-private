@@ -60,7 +60,6 @@ public:
 
 	virtual void	AddedToManager(WidgetManager* theManager) override;			// 0x423ee0 slot 1
 	virtual void	RemovedFromManager(WidgetManager* theManager) override;		// 0x423f10 slot 2
-	virtual void	Resize(int theX, int theY, int theWidth, int theHeight) override;	// 0x423f40 slot 13
 	virtual void	Draw(Graphics* g) override;									// 0x424bf0 slot 16
 	virtual void	Update() override;											// 0x424660 slot 17
 	virtual void	MouseMove(int x, int y) override;							// 0x424410 slot 26
@@ -68,7 +67,6 @@ public:
 	virtual void	MouseDrag(int x, int y) override;							// 0x4244e0 slot 32
 	virtual void	ButtonDepress(int theId) override;							// 0x424580 listener slot 5
 
-	using Widget::Resize;
 	using Widget::MouseUp;
 
 private:

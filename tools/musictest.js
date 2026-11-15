@@ -222,8 +222,9 @@ function protracker(hidden) {
   check("places: some", places.length > 100, places.length);
   const long = places.filter((p) => p[2].length > 20);
   check("places: at most 20 characters", long.length === 0, long);
-  // Title Case: every word starts with a capital or a digit, but for "of" (Hall of Fame)
-  const lower = places.filter((p) => p[2].split(/[\s-]+/).some((w) => w !== "of" && !/^[A-Z0-9]/.test(w)));
+  // Title Case: every word starts with a capital or a digit, but for "of" and "to" after the first (Hall of Fame, Venice's
+  // Welcome to Venice)
+  const lower = places.filter((p) => p[2].split(/[\s-]+/).some((w, i) => !(i > 0 && (w === "of" || w === "to")) && !/^[A-Z0-9]/.test(w)));
   check("places: Title Case", lower.length === 0, lower);
   const unusedPlaced = Object.keys(table).reduce((a, g) => a.concat((table[g].unused || []).filter((k) => (table[g].where || {})[k])), []);
   check("places: no unused tune placed", unusedPlaced.length === 0, unusedPlaced);

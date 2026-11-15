@@ -165,6 +165,12 @@ void LevelIntroWidget::Closed()
 	}
 }
 
+// 0x454bc0: the one function the six screens' ButtonListener tables share; the mouse-over sound plays for every button
+void LevelIntroWidget::ButtonMouseEnter(int theId)
+{
+	gApp->PlaySample(SOUND_UI_BUTTON_MOUSE_OVER);
+}
+
 // 0x4578f0: the button sends it down
 void LevelIntroWidget::ButtonDepress(int theId)
 {

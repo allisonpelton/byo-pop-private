@@ -61,6 +61,7 @@ public:
 	SDL_Renderer* mRenderer;
 	DDImage* mScreenImage;
 	bool mIs3D;  // true when the renderer is hardware accelerated and the game has not switched 3D off (SexyAppBase::Set3DAcclerated)
+	bool mOriginalSampling = false;  // port: a game that drew through Direct3D 7 at 1x sets it (Bejeweled 2's 3D game): a moved quad that lands on whole pixels samples nearest, and a mesh's vertices take the half pixel in device pixels (its draw adds none of its own)
 	bool mCan3D;  // port: the renderer is hardware accelerated (what mIs3D is before a game switches 3D off)
 	bool mIsWindowed;
 	bool mVSync;
@@ -168,6 +169,13 @@ public:
 	// MemoryImage. SWTri draws only once the game has registered its drawers (SWTri_AddAllDrawTriFuncs, as 1.3's games
 	// do). The images are kept by size (GetTransformCopy); with them a frame of Twist costs about 2 ms more.
 	bool mSoftwareTransforms;
+
+	// The 1.2 framework's software rotation (off by default; set by a game on 1.2 whose original draws in 2D). DDImage's
+	// BltRotated, drawn in software (no 3D), rotates a MemoryImage drawn white in normal mode with 1.2's own loop
+	// (DDImage.cpp, BltRotated12) in place of 1.3's MemoryImage::BltRotated, which blends the edges differently (a total
+	// weight over 250 is opaque, and the rest goes through the destination's alpha), up to 4 steps a channel on Big
+	// Money's Mr. Money. Big Money sets it (WinBMApp::CreateDDInterface).
+	bool mBltRotated12;
 
 	// Whether the screen keeps what the last frame drew (off by default: every frame starts from black). The original's software
 	// screen is one surface that persists from frame to frame, so a widget that draws nothing in a frame leaves what was there
