@@ -62,7 +62,9 @@ MemoryImage* ShownCursorImage()
 	if ((anImage == NULL) || (anImage->mWidth <= 0) || (anImage->mHeight <= 0) ||
 		(anImage->mWidth > kMaxCursorSize) || (anImage->mHeight > kMaxCursorSize))
 		return NULL;
-	// the pixels, read as they are (GetBits would unpalletize the image); DrawCursor has made them by its first frame
+	// the pixels, read as they are (GetBits would unpalletize the image); DrawCursor has made them by its first frame. port:
+	// pixels dropped after their upload come back first (MemoryImage.h)
+	anImage->RestoreBits();
 	if ((anImage->mBits == NULL) && ((anImage->mColorTable == NULL) || (anImage->mColorIndices == NULL)))
 		return NULL;
 	return anImage;
@@ -144,6 +146,7 @@ EMSCRIPTEN_KEEPALIVE int byopop_cursor_set_copy()
 		if ((anImage == NULL) || (anImage->mWidth <= 0) || (anImage->mHeight <= 0) ||
 			(anImage->mWidth > kMaxCursorSize) || (anImage->mHeight > kMaxCursorSize))
 			continue;
+		anImage->RestoreBits();
 		if ((anImage->mBits == NULL) && ((anImage->mColorTable == NULL) || (anImage->mColorIndices == NULL)))
 			continue;
 		int aWidth = anImage->mWidth;

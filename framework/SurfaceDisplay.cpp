@@ -513,6 +513,7 @@ bool SurfaceDisplay::DrawFrameToScreenTexture()
 	if ((mRenderer == NULL) || (mScreenTexture == NULL) || (mPixels == NULL))
 		return false;
 
+	FlushQuads();
 	if (mFrameTexture == NULL)
 	{
 		mFrameTexture = SDL_CreateTexture(mRenderer, SDL_PIXELFORMAT_XRGB8888, SDL_TEXTUREACCESS_STATIC, mWidth, mHeight);
