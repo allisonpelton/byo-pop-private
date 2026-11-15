@@ -57,6 +57,16 @@ public:
 	// 0x43e090: the game's stats, which the level's end shows, and the nodes of its totals; the loading state hands
 	// them over
 	void setGameStats(GameStats* theStats);
+	// 0x443830: the level summary's totals are set up from the game's stats (the story file is read first); empty
+	// until the level's end is translated
+	void setUpSummary();
+	// 0x43f3f0: the same for the bonus round's summary; empty
+	void setUpBonusSummary();
+	// 0x43f980: the topping's upgrade is shown (its picture, names and text); empty
+	void showUpgrade(Topping* theTopping, Upgrade* theUpgrade);
+	// 0x440240: the story that follows a shown upgrade is made (Lorenzo says the next line, then the click to
+	// continue); empty
+	void startUpgradeStory();
 	// 0x43ca70: the story is over: the groups are emptied, the sound stops, the sequence lets the screen go, and the
 	// screen is reset
 	void endStory();

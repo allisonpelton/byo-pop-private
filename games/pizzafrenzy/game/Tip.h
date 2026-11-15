@@ -48,6 +48,8 @@ public:
 	void setWaiting(bool theWaiting) { mWaiting = theWaiting; }  // 0x42f670 (false)
 	int getAmount() const { return mAmount; }
 	engine::StateMgr mStates;  // +0x144
+	// the balloon's states take the board, which opens when the tip drifts
+	void openBoard() { mBoard->select(0, 0.0f, true); }
 
 protected:
 	// slot 0xa8: 0x42e4f0: a tip that waits is taken by the click
@@ -73,6 +75,57 @@ public:
 	void setValue(float theMultiplier, Topping* theTopping) override;
 	// slot 0x138: 0x42d830
 	void take() override;
+};
+
+// The balloon tip (0x16c bytes, constructor 0x42dc40, vtable 0x4fc298): the tip the prize blimp drops (PrizeBlimp.h).
+// It
+// is worth ten for each of the multiplier, whatever the topping, hangs under a balloon, flies off to one side as it
+// comes up, and then drifts down swaying until the player takes it or it is off the screen.
+class BalloonTip : public TipPopup
+{
+public:
+	BalloonTip() {}  // 0x42dc40
+
+	// slot 0x98: 0x42e090: the bounds are the balloon's alone
+	void layout() override;
+	// slot 0x12c: 0x42e110
+	void setValue(float theMultiplier, Topping* theTopping) override;
+	// slot 0x130: 0x42de60: the shadow, and the balloon's three pictures: closed (the tip comes down on it), open and
+	// lit
+	void makeBoard() override;
+	// slot 0x134: 0x42e1d0: the balloon flies off
+	void start() override;
+};
+
+// The balloon flies off (0x1c bytes, constructor 0x42dd90, vtable 0x4fc3f8): a fraction of a second under a pull
+// downwards, to either side
+class BalloonFlyState : public engine::State
+{
+public:
+	explicit BalloonFlyState(TipPopup* theTip) : mTip(theTip), mTimeLeft(0) {}  // 0x42dd90
+	// 0x04: 0x42dbc0
+	void enter() override;
+	// 0x0c: 0x42e240
+	void update(engine::UpdateInfo& theInfo) override;
+private:
+	TipPopup* mTip;           // +0x0c
+	engine::Point mVelocity;  // +0x10
+	float mTimeLeft;          // +0x18
+};
+
+// The balloon drifts down (0x20 bytes, constructor 0x42dcc0, vtable 0x4fc3e4): the tip waits for the click the whole
+// way
+class BalloonDriftState : public engine::State
+{
+public:
+	explicit BalloonDriftState(TipPopup* theTip) : mTip(theTip) {}  // 0x42dcc0
+	// 0x04: 0x42e360
+	void enter() override;
+	// 0x0c: 0x42db30
+	void update(engine::UpdateInfo& theInfo) override;
+private:
+	TipPopup* mTip;           // +0x0c
+	engine::Point mVelocity;  // +0x10
 };
 
 // The tip comes up (0x1c bytes, vtable 0x4fc20c): over a fifth of a second it grows from half its size and fades in

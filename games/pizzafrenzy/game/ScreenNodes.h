@@ -21,6 +21,8 @@ void moveButtonWithLabels(engine::ScreenLayout* theScreen, const std::string& th
 // The text with every "%1" replaced by the insert and "%%" by "%": the exe's one insert of FormatMessageA
 // (0x4bd850)
 std::string formatMessage(const std::string& theText, const std::string& theInsert);
+std::string formatMessage(const std::string& theText, const std::string& theInsert,
+                          const std::string& theSecondInsert);
 
 // The format with its one conversion (%s or %d) filled, as the exe's printf into a string (0x46db00) does
 std::string formatText(const std::string& theFormat, const std::string& theText);

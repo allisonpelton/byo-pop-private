@@ -36,6 +36,37 @@ private:
 	Level* mLevel;      // +0x14: nothing reads it
 };
 
+// The state of a level's end (0x20 bytes, constructor 0x402ad0, vtable 0x4f9538): the story screen shows the level's
+// summary over the story's music; when its story is done the toppings' upgrades the level earned are shown one after
+// the other, and then the next level (or the next city) starts.
+class LevelSummaryState : public engine::State
+{
+public:
+	// 0x402ad0: the level the summary is of
+	LevelSummaryState(PizzaFrenzy* theApp, Level* theLevel) :
+		mApp(theApp), mStarted(false), mStoryDone(false), mUpgradeShown(false), mLevel(theLevel)
+	{
+	}
+
+	// 0x04: 0x4064a0
+	void enter() override;
+	// 0x0c: 0x40cff0
+	void update(engine::UpdateInfo& theInfo) override;
+	// 0x10: 0x4037e0
+	void action(const std::string& theAction) override;
+
+private:
+	// 0x40bf80: the first topping whose best combo of the game has reached an upgrade the player has not got is
+	// upgraded, the upgrade is shown and the game is saved; false when there is none
+	bool showNextUpgrade();
+
+	PizzaFrenzy* mApp;   // +0x0c
+	bool mStarted;       // +0x10: the story has started on the screen
+	bool mStoryDone;     // +0x11: the story screen said "storyDone"
+	bool mUpgradeShown;  // +0x12: an upgrade's story is playing
+	Level* mLevel;       // +0x14: nothing reads it
+};
+
 } // namespace pizzafrenzy
 
 #endif

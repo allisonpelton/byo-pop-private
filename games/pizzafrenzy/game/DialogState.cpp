@@ -193,13 +193,15 @@ void DialogState::action(const std::string& theAction)
 	else if (theAction.compare("gameExitSave") == 0)
 	{
 		mApp->saveGame();
-		// the game's +0x110 object's slot 0x20 stops the game when there is one; translated next
+		if (mApp->mMode != nullptr)
+			mApp->mMode->finishLevel();  // slot 0x20
 		mNextState = new MenuState(mApp);
 		close();
 	}
 	else if (theAction.compare("gameExitQuit") == 0)
 	{
-		// the game's +0x110 object's slot 0x20 stops the game when there is one; translated next
+		if (mApp->mMode != nullptr)
+			mApp->mMode->finishLevel();  // slot 0x20
 		mApp->mUserGameData->clearSavedGame(mApp->mGameMode);
 		if (mApp->mHighScores->addCurrentScore())
 			mApp->mShowHighScores = true;

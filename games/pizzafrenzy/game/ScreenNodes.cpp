@@ -94,6 +94,14 @@ std::string pizzafrenzy::formatText(const std::string& theFormat, int theFirst, 
 // %. and "% " are the character itself. Line breaks in the text are kept.
 std::string pizzafrenzy::formatMessage(const std::string& theText, const std::string& theInsert)
 {
+	return formatMessage(theText, theInsert, std::string());
+}
+
+// The same with two inserts, as the pause menu's caption has (the exe's call passes the day as a number; as a string
+// it reads the same)
+std::string pizzafrenzy::formatMessage(const std::string& theText, const std::string& theInsert,
+                                       const std::string& theSecondInsert)
+{
 	std::string aResult;
 	size_t i = 0;
 	while (i < theText.size())
@@ -123,6 +131,8 @@ std::string pizzafrenzy::formatMessage(const std::string& theText, const std::st
 			}
 			if (anInsert == 1)
 				aResult += theInsert;
+			else if (anInsert == 2)
+				aResult += theSecondInsert;
 		}
 		else if (anEscape == '0')
 			break;

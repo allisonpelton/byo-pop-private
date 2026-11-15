@@ -35,7 +35,7 @@ void GameState::action(const std::string& theAction)
 	    || theAction.compare(ACTION_MENU) == 0)
 	{
 		mApp->mMode->setPaused(true);
-		mApp->pauseGame();
+		mApp->pauseGame(this);
 		return;
 	}
 	if (theAction.compare(ACTION_LEVEL_END) == 0)

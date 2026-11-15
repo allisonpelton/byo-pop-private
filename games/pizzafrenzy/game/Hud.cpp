@@ -43,6 +43,8 @@ const float COUPON_ROW_OFFSCREEN = 700.0f;  // a new coupon button comes in from
 const float COUPON_COME_SECONDS = 0.5f;
 const float COUPON_CLOSE_SECONDS = 0.3f;
 const int COUPON_PRICE = 200;               // what a coupon button costs when the level starts
+const float COUPON_SLIDE_OUT = 800.0f;     // how far the coupon buttons slide to the left at a level's end
+const float COUPON_SLIDE_SECONDS = 0.4f;
 const float COUPON_GONE_X = -100.0f;       // a coupon button that has gone this far to the left is let go of
 }
 
@@ -353,6 +355,25 @@ void Hud::pauseTipJarSound(bool thePaused)
 	else if (mRollSound != nullptr && mRollSound->isPlaying())
 	{
 		mRollSound->stop();
+	}
+}
+
+// 0x4387f0
+void Hud::stopTipJar()
+{
+	if (mRollSound != nullptr && mRollSound->isPlaying())
+		mRollSound->stop();
+	// the coins' emitter (+0x284) is stopped here: not translated, see the file's comment
+}
+
+// 0x4388d0
+void Hud::slideCouponsOut()
+{
+	for (std::list<engine::Ref<CouponButton>>::iterator anIt = mCoupons.begin(); anIt != mCoupons.end(); ++anIt)
+	{
+		CouponButton* aCoupon = *anIt;
+		engine::Point aTarget(aCoupon->getPosition()->x - COUPON_SLIDE_OUT, COUPON_ROW_Y);
+		aCoupon->moveTo(aTarget, COUPON_SLIDE_SECONDS);
 	}
 }
 

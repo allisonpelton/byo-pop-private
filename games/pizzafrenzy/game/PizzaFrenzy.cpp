@@ -7,7 +7,10 @@
 #include "Scene.h"
 #include "Scoreboards.h"
 #include "GameText.h"
+#include "DialogState.h"
 #include "GameState.h"
+#include "ScreenNodes.h"
+#include "TextItem.h"
 #include "LevelStartState.h"
 #include "NewToppingState.h"
 #include "StoryState.h"
@@ -40,6 +43,16 @@ const unsigned int GAME_CODE_ADDRESS = 0x4f9ae8;
 
 // The splash screen's fade in and out (init)
 const float SPLASH_FADE_SECONDS = 0.5f;
+
+// The pause menu's captions (the string table's texts): a level's day and city, a bonus round's day, and the tips
+const int STRING_PAUSE_CITY_DAY = 0xe3;
+const int STRING_PAUSE_BONUS_DAY = 0xe4;
+const int STRING_PAUSE_TIPS = 0xe5;
+
+// The stories of a level's end
+const char* const STORY_LEVEL_SUMMARY = "res\\story\\levelSummary.xml";
+const char* const STORY_BONUS_SUMMARY = "res\\story\\bonusSummary.xml";
+const char* const STORY_GAME_WON = "res\\story\\gameWon.xml";
 }
 
 // 0x40c170: the exe has the engine's signal build (engines/sprout/Build.h), which the engine is told before anything
@@ -368,14 +381,58 @@ void PizzaFrenzy::enterLevelStartState(Level* theLevel)
 	mStates.changeState(new LevelStartState(this, theLevel));
 }
 
-// 0x407080: the pause menu is translated with the game
-void PizzaFrenzy::pauseGame()
+// 0x4022f0
+void PizzaFrenzy::stopGame()
 {
+	if (mMode != nullptr)
+		mMode->clearLevel();
+	mGameScreen->clearGroups();
+	mCityMap->clear();
+	mMode = nullptr;
 }
 
-// 0x407370: translated with the level's end
+// 0x407080: the pause menu's captions say the day and the city (the bonus round has no city), and the tips the
+// player has; the menu is shown, and the state that paused comes back when it closes
+void PizzaFrenzy::pauseGame(engine::State* theNextState)
+{
+	engine::TextItem* aCaption = static_cast<engine::TextItem*>(mPauseMenu->getNode("pauseCaption1"));
+	engine::TextItem* aTips = static_cast<engine::TextItem*>(mPauseMenu->getNode("pauseCaption2"));
+	engine::App* anApp = engine::App::instance();
+	if (!getCurrentLevel()->mBonusRound)
+		aCaption->setText(formatMessage(anApp->loadString(STRING_PAUSE_CITY_DAY), std::to_string(mDay),
+			mCities[mCurrentCity]->getName()));
+	else
+		aCaption->setText(formatMessage(anApp->loadString(STRING_PAUSE_BONUS_DAY), std::to_string(mDay)));
+	aTips->setNumber(mGameStats->mTipMoney + mGameStats->mScore, anApp->loadString(STRING_PAUSE_TIPS));
+	mStates.changeState(new DialogState(this, mPauseMenu, theNextState));
+}
+
+// 0x407370: the level is over: the game is let go, the summary is set up from the stats, and the game goes on to the
+// next level; the summary's state follows, or the game's end after the last level of the last city
 void PizzaFrenzy::endLevel()
 {
+	Level* aLevel = getCurrentLevel();
+	mStoryScreen->setLevel(aLevel);
+	stopGame();
+	if (!mBonusRound)
+	{
+		mStoryScreen->setStory(STORY_LEVEL_SUMMARY);
+		mStoryScreen->setUpSummary();
+	}
+	else
+	{
+		mStoryScreen->setStory(STORY_BONUS_SUMMARY);
+		mStoryScreen->setUpBonusSummary();
+	}
+	advanceLevel();
+	if (mCurrentCity < (int)mCities.size())
+	{
+		mStates.changeState(new LevelSummaryState(this, aLevel));
+		return;
+	}
+	mUserGameData->clearSavedGame(mGameMode);
+	mStoryScreen->setStory(STORY_GAME_WON);
+	mStates.changeState(new StoryState(this, nullptr));
 }
 
 // 0x406dc0's second half: the mode's game is made (the mode number picks it) and plays the level

@@ -72,8 +72,11 @@ public:
 	virtual void reset();
 	// 0x1c: 0x456c20: the introduction is over: the hud's vehicles are shown and play starts
 	virtual void startPlay();
-	// 0x20: 0x456320: the level is over: the music stops and the tips go to the score; translated next
-	virtual void finishLevel() {}
+	// 0x20: 0x456320: the level is over: the music stops, the orders picked, the tiles' popups and the events' popups
+	// are let go, and the tips go to the score
+	virtual void finishLevel();
+	// 0x24: 0x456c90: every tip is let go, and the houses' and kitchens' popups are taken off their tiles
+	virtual void clearTiles();
 	// 0x28: 0x457900: every customer waiting is sent away, and the waves' orders are let go (a customer that is sent
 	// away unasked makes the "customerHangup" signal)
 	virtual void hangUpAll(bool theQuiet);
@@ -85,7 +88,8 @@ public:
 	virtual void updateWaves(engine::UpdateInfo& theInfo);
 	// 0x3c: 0x455fe0: the map's update (its tiles, boats and vehicles)
 	virtual void updateMap(engine::UpdateInfo& theInfo);
-	// 0x40: 0x456ac0: the level ends when the happiness is gone, or when the customers and the vehicles are done
+	// 0x40: 0x456ac0: the level ends when the happiness is gone (the game is over), or when the customers and the
+	// vehicles are done (with the prize blimp when every pizza ordered was delivered)
 	virtual void checkLevelEnd();
 	// 0x44: 0x45adb0: the house or the kitchen of the tile is clicked (the callers are
 	// BuildingTile::onMouseDownEvent 0x41bd20 and the popups' clicks 0x454cd0): a house picks its order, a kitchen

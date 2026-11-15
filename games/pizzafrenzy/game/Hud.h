@@ -54,6 +54,10 @@ public:
 	void setWarning(bool theShown);
 	// 0x438270: the tip jar's roll sound stops with the game paused and goes on with it
 	void pauseTipJarSound(bool thePaused);
+	// 0x4387f0: the tip jar's roll sound stops, and its coins' emitter (not translated) with it
+	void stopTipJar();
+	// 0x4388d0: the coupon buttons slide out of the screen to the left
+	void slideCouponsOut();
 	// 0x438570: the money's backdrop flashes for two seconds: the tips do not buy what was clicked
 	void flashScoreBackground();
 	// 0x4399d0: the coupon button is put at the right of the row (a place for each one that is not gone) and shown

@@ -2,9 +2,13 @@
 #include "App.h"
 #include "CityMap.h"
 #include "GameMode.h"
+#include "ImageNode.h"
 #include "Modifiers.h"
 #include "PizzaFrenzy.h"
+#include "Random.h"
 #include "ScreenNodes.h"
+
+#include <cmath>
 
 using namespace pizzafrenzy;
 
@@ -44,6 +48,32 @@ const float AWARD_SOUND_VOLUME = 0.8f;
 const float FLASH_PERIOD = 0.5f;
 const float FLASH_MIN = 0.6f;
 const float FLASH_MAX = 1.0f;
+
+// the balloon tip: what it is worth for each of the multiplier, the pictures and where the shadow hangs
+const int BALLOON_VALUE_PER_MULTIPLIER = 10;
+const char* const BALLOON_SHADOW_IMAGE = "res\\tips\\balloonTip_shadow.jpg";
+const char* const BALLOON_IMAGE = "res\\tips\\balloonTip.jpg";
+const char* const BALLOON_LIT_IMAGE = "res\\tips\\balloonTip_on.jpg";
+const char* const BALLOON_CLOSED_IMAGE = "res\\tips\\balloonTip_closed.jpg";
+const char* const SOUND_BALLOON = "bonus_blimpDropTip";
+const float BALLOON_SHADOW_X = -67.0f;
+const float BALLOON_SHADOW_Y = 113.0f;
+const int BALLOON_CLOSED = 2;
+// the balloon flies off, to either side and at first down, and falls faster as it goes; it is let go off these edges
+const float FLY_SIDE_SPEED = 100.0f;
+const float FLY_START_SPEED = 50.0f;
+const float FLY_MIN_SECONDS = 0.3f;
+const float FLY_MAX_SECONDS = 0.6f;
+const float FLY_PULL = 700.0f;
+const float OFF_SCREEN_BOTTOM = 700.0f;
+const float OFF_SCREEN_LEFT = -50.0f;
+const float OFF_SCREEN_RIGHT = 850.0f;
+// the balloon then drifts: to either side slowly and down, swaying across over a period of a second and a half
+const float DRIFT_SIDE_SPEED = 75.0f;
+const float DRIFT_MIN_SPEED = 50.0f;
+const float DRIFT_MAX_SPEED = 75.0f;
+const float SWAY_PERIOD = 1.5f;
+const float SWAY_SIZE = 20.0f;
 
 void playSound(const char* theName, float theVolume)
 {
@@ -279,5 +309,101 @@ void TipLostState::update(engine::UpdateInfo& theInfo)
 	float aScale = mTimeLeft * FADE_RATE * APPEAR_START_SCALE + APPEAR_START_SCALE;
 	mTip->setScale(aScale, aScale);
 	if (mTimeLeft <= 0.0f)
+		PizzaFrenzy::instance()->mMode->releaseTip(mTip);
+}
+
+// 0x42e090: the bounds are the balloon's alone (the shadow and the picture of the money are not in them)
+void BalloonTip::layout()
+{
+	mBounds = mRect;
+	mBoard->layout();
+	mBounds.unite(*mBoard->getBounds());
+	mBounds.scale(fabsf(mScale.x), fabsf(mScale.y));
+	mBounds.offset(mPosition.x, mPosition.y);
+	clearFlags(engine::NODE_LAYOUT);
+}
+
+// 0x42e110
+void BalloonTip::setValue(float theMultiplier, Topping* theTopping)
+{
+	mMultiplier = theMultiplier;
+	mAmount = (int)((float)BALLOON_VALUE_PER_MULTIPLIER * theMultiplier);
+	PizzaFrenzy::instance()->mGameStats->mTipsEarned += mAmount;
+	makeBoard();
+	addOwnFlags(engine::NODE_MOUSE);
+	mWaiting = false;
+	mStates.changeState(new TipAppearState(this));
+}
+
+// 0x42de60
+void BalloonTip::makeBoard()
+{
+	engine::Image* aShadow = engine::App::instance()->createImage(BALLOON_SHADOW_IMAGE, false);
+	aShadow->setPivot(1);
+	engine::ImageNode* aShadowNode = new engine::ImageNode(aShadow);
+	aShadowNode->setPosition(BALLOON_SHADOW_X, BALLOON_SHADOW_Y);
+	addChild(aShadowNode);
+	mBoard = new engine::Selector();
+	const char* const aBoards[3] = {BALLOON_IMAGE, BALLOON_LIT_IMAGE, BALLOON_CLOSED_IMAGE};
+	for (int i = 0; i < 3; i++)
+	{
+		engine::Image* aBoard = engine::App::instance()->createImage(aBoards[i], false);
+		aBoard->setPivot(1);
+		mBoard->addChild(new engine::ImageNode(aBoard));
+	}
+	mBoard->select(BALLOON_CLOSED, 0.0f, true);
+	addChild(mBoard);
+}
+
+// 0x42e1d0
+void BalloonTip::start()
+{
+	mStates.changeState(new BalloonFlyState(this));
+}
+
+// 0x42dbc0
+void BalloonFlyState::enter()
+{
+	mVelocity.x = engine::randomFloat(engine::Point(-FLY_SIDE_SPEED, FLY_SIDE_SPEED));
+	mVelocity.y = FLY_START_SPEED;
+	mTimeLeft = engine::randomFloat(engine::Point(FLY_MIN_SECONDS, FLY_MAX_SECONDS));
+}
+
+// 0x42e240
+void BalloonFlyState::update(engine::UpdateInfo& theInfo)
+{
+	engine::Point aPosition = *mTip->getPosition();
+	mVelocity.y = theInfo.mSeconds * FLY_PULL + mVelocity.y;
+	aPosition.x = mVelocity.x * theInfo.mSeconds + aPosition.x;
+	aPosition.y = mVelocity.y * theInfo.mSeconds + aPosition.y;
+	mTip->setPosition(aPosition);
+	if (OFF_SCREEN_BOTTOM < aPosition.y || aPosition.x < OFF_SCREEN_LEFT || OFF_SCREEN_RIGHT < aPosition.x)
+		PizzaFrenzy::instance()->mMode->releaseTip(mTip);
+	mTimeLeft = mTimeLeft - theInfo.mSeconds;
+	if (mTimeLeft <= 0.0f)
+		mTip->mStates.changeState(new BalloonDriftState(mTip));
+}
+
+// 0x42e360
+void BalloonDriftState::enter()
+{
+	mTip->openBoard();
+	mVelocity.x = engine::randomFloat(engine::Point(-DRIFT_SIDE_SPEED, DRIFT_SIDE_SPEED));
+	mVelocity.y = engine::randomFloat(engine::Point(DRIFT_MIN_SPEED, DRIFT_MAX_SPEED));
+	playSound(SOUND_BALLOON, 1.0f);
+	mTip->setWaiting(true);
+	float aPeriod = engine::randomFloat(engine::Point(SWAY_PERIOD, SWAY_PERIOD));
+	float aSize = engine::randomFloat(engine::Point(SWAY_SIZE, SWAY_SIZE));
+	mTip->addListener(new engine::WaveModifier(aPeriod, 0.0f, aSize, 0.0f, 0.0f));
+}
+
+// 0x42db30
+void BalloonDriftState::update(engine::UpdateInfo& theInfo)
+{
+	engine::Point aPosition = *mTip->getPosition();
+	aPosition.x = mVelocity.x * theInfo.mSeconds + aPosition.x;
+	aPosition.y = mVelocity.y * theInfo.mSeconds + aPosition.y;
+	mTip->setPosition(aPosition);
+	if (OFF_SCREEN_BOTTOM < aPosition.y || aPosition.x < OFF_SCREEN_LEFT || OFF_SCREEN_RIGHT < aPosition.x)
 		PizzaFrenzy::instance()->mMode->releaseTip(mTip);
 }

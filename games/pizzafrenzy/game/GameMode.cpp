@@ -656,12 +656,12 @@ void GameMode::rightClick()
 
 // 0x456ac0: the level is over for want of happiness, or when the waves are done, the houses are idle and no vehicle
 // is out: in the second case the pizzas delivered against those ordered decide the way it ends (the end's states,
-// 0x456660 and the prize blimp 0x456730, are translated next, and PizzaFrenzy::endLevel is what follows them)
+// 0x456660 and the prize blimp 0x456730; the application's endLevel is what follows them)
 void GameMode::checkLevelEnd()
 {
 	if (mStats->mHappiness < 1)
 	{
-		PizzaFrenzy::instance()->endLevel();
+		mStates.changeState(new ModeEndState(this, true));
 		return;
 	}
 	if (!mWavesDone)
@@ -671,7 +671,35 @@ void GameMode::checkLevelEnd()
 	// a tip that waits for its click holds the level (the map's list at +0x68)
 	if (!mMap->mTips.empty())
 		return;
-	PizzaFrenzy::instance()->endLevel();
+	if (mStats->mPizzasDelivered < mStats->mPizzasOrdered)
+		mStates.changeState(new ModeEndState(this, false));
+	else
+		mStates.changeState(new PrizeBlimpState(this));
+}
+
+// 0x456320
+void GameMode::finishLevel()
+{
+	PizzaFrenzy* anApp = PizzaFrenzy::instance();
+	anApp->mMusicPlayer->stop();
+	mMusicClip = nullptr;
+	if (mSlowSound != nullptr && mSlowSound->isPlaying())
+		mSlowSound->stop();
+	clearPicks();
+	clearTiles();
+	clearEventPopups();
+	mStats->mScore = mStats->mScore + mStats->mTipMoney;
+}
+
+// 0x456c90
+void GameMode::clearTiles()
+{
+	for (size_t i = 0; i < mMap->mTips.size(); i++)
+		releaseTip(mMap->mTips[i]);
+	for (size_t i = 0; i < mMap->mCustomers.size(); i++)
+		static_cast<BuildingTile*>(mMap->mCustomers[i].get())->removeOccupant();
+	for (size_t i = 0; i < mMap->mKitchens.size(); i++)
+		static_cast<BuildingTile*>(mMap->mKitchens[i].get())->removeOccupant();
 }
 
 // 0x45adb0: a house of a customer picks its order, or the kitchen's pizza is sent for the orders picked, or the police

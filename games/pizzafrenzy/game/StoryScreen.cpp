@@ -118,7 +118,8 @@ void StoryScreen::setStory(const std::string& theStoryFile)
 	buildStory();
 }
 
-// port: one character (the original repeats this for each in 0x43cd40): the layout's text node of the character is copied into a text typer in the portrait, and emptied
+// port: one character (the original repeats this for each in 0x43cd40): the layout's text node of the character is
+// copied into a text typer in the portrait, and emptied
 void StoryScreen::setUpSpeaker(Speaker& theSpeaker, const char* theName, const char* theBubble, const char* theText,
                                float theWidth)
 {
@@ -461,6 +462,24 @@ void StoryScreen::showQuitButton(bool theShow)
 }
 
 // The places the story's part of the screen reaches the level's end: each is empty until the level's end is translated
+
+// 0x443830, 0x43f3f0, 0x43f980 and 0x440240: the summary's setups and the upgrade shown; empty until the level's end
+// is translated
+void StoryScreen::setUpSummary()
+{
+}
+
+void StoryScreen::setUpBonusSummary()
+{
+}
+
+void StoryScreen::showUpgrade(Topping* theTopping, Upgrade* theUpgrade)
+{
+}
+
+void StoryScreen::startUpgradeStory()
+{
+}
 
 // 0x43e090, after the stats are kept: translated with the level's end
 void StoryScreen::findTotalNodes()

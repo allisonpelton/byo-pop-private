@@ -34,5 +34,5 @@ void LevelStartState::action(const std::string& theAction)
 		return;
 	}
 	if (theAction.compare(ACTION_MENU) == 0)
-		mApp->pauseGame();
+		mApp->pauseGame(this);
 }

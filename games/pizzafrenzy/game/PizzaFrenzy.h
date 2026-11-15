@@ -160,8 +160,10 @@ public:
 	void giveToppings();
 	// 0x407fc0: the level's start is shown, and a bonus round goes on at once
 	void showLevelStart();
-	// 0x407080: the game is paused, and the pause menu is shown; translated with the pause menu
-	void pauseGame();
+	// 0x4022f0: the mode's game is let go with the level it played and the city on the game screen
+	void stopGame();
+	// 0x407080: the game is paused, and the pause menu is shown; the state that paused is the one that comes back
+	void pauseGame(engine::State* theNextState);
 	// 0x407370: the level is over: the level's end is shown, and the next level or the game's end follows; translated
 	// with the level's end
 	void endLevel();

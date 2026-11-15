@@ -73,6 +73,8 @@ public:
 	void play(GameMusicClip* theClip);
 	// 0x450820
 	void setEnabled(bool theEnabled);
+	// 0x4505e0: the clip that plays is stopped
+	void stop() { getState()->stop(); }
 	// 0x4505f0: the voice's volume
 	void setVolume(float theVolume) { if (mSound != nullptr) mSound->setVolume(theVolume); }
 

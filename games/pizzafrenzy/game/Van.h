@@ -45,7 +45,7 @@ public:
 	// slot 0x140: 0x430070: the speed and the pictures of the type, and the vehicle waits parked
 	virtual void loadType();
 	// slot 0x144: 0x42f780: a frame of the vehicle: where it drives, or how long it has arrived, and its node's
-	void updateVehicle(engine::UpdateInfo& theInfo);
+	virtual void updateVehicle(engine::UpdateInfo& theInfo);
 	// slot 0x148: 0x430480
 	virtual void arriveSound();
 	// slot 0x14c: 0x42fd20: the house is finished, and the vehicle goes back to the tile

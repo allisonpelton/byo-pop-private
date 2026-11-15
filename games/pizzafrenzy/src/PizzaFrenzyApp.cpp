@@ -470,6 +470,9 @@ void PizzaFrenzyApp::Init()
 		new engine::App();
 		engine::App::instance()->startSignalled(new pizzafrenzy::PizzaFrenzy());
 		mEngineRunning = true;
+		// port: the original's window gets WM_ACTIVATE as it opens, which sets the game's active flag (+0x188); the
+		// framework has the focus from the start and sends no first activation, so the state it has is passed on
+		engine::App::instance()->mActivateSignal.emit(mHasFocus);
 	}
 	catch (const engine::Exception& e)
 	{

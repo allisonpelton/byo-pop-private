@@ -3,6 +3,7 @@
 #include "GameText.h"
 #include "PizzaFrenzy.h"
 #include "ScreenNodes.h"
+#include "Players.h"
 #include "Scoreboards.h"
 #include "TextItem.h"
 
@@ -108,11 +109,23 @@ void HighScoreScreen::showLocalScores()
 	refresh();
 }
 
-// 0x436db0: the application's game session (+0x120, whose +0xc is the score) and its level (+0x54) and mode (+0x58) are
-// translated next with the game
+// 0x436db0 (its local part): the game's score, with the player's name and the day, goes on the mode's board when it
+// earns a place, which is saved, and the screen shows the board
 bool HighScoreScreen::addCurrentScore()
 {
-	return false;
+	PizzaFrenzy* anApp = PizzaFrenzy::instance();
+	int aMode = anApp->mGameMode;
+	int aScore = anApp->mGameStats->mScore;
+	engine::UserInfo* aUser = engine::Players::instance()->current();
+	if (aScore < 1)
+		return false;
+	engine::Ref<HighScore> anEntry = new HighScore(aUser->getName(), aScore, anApp->mDay);
+	if (!mBoards[aMode]->add(anEntry))
+		return false;
+	engine::Scoreboards::instance()->saveBoard(mBoards[aMode]);
+	mMode = aMode;
+	showLocalScores();
+	return true;
 }
 
 // 0x436fd0
