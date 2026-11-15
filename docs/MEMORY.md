@@ -6,7 +6,9 @@ scripted minute against the original's 42 MB, Bejeweled 2 88 MB at the title aga
 what the memory was, how it was measured, what each change saves in memory and processor time, and what was looked at
 and left. The rule for every change was that every frozen baseline and every shot stays identical, that nothing runs on
 a thread of ours, and that speed comes from not waiting. A second part, of 2026-11-15, brought Big Money to the
-original's own figures and asked what a 2D game spends on Direct3D ("Big Money at the original's memory").
+original's own figures and asked what a 2D game spends on Direct3D ("Big Money at the original's memory"). A third,
+the same day, found why Atomica's processor time had grown fourfold on Direct3D 11 and chose the renderer again ("Which
+renderer, and SDL's batching").
 
 ## How it was measured
 
@@ -204,7 +206,9 @@ the NVIDIA driver's own, and only another way of showing the frames avoids it.
 Direct3D 9 is not that way. On rundesk's desktop its CreateDevice fails (D3DERR_NOTAVAILABLE) and SDL falls back to
 Direct3D 11. On the visible desktop a bare Direct3D 9 device holds 20.3 to 22.4 MB, `nvd3dum.dll`'s writable image 10.9
 MB of it. SDL's direct3d renderer started at 20.4 MB but held 94.4 MB after 120 frames of 200 copies each, its heap
-grown to 72.5 MB, so it saves at most 10 MB at the start and gives that back under load. SDL's software renderer holds
+grown to 72.5 MB, so it saves at most 10 MB at the start and gives that back under load. (The test program named the
+renderer, so SDL drew unbatched; batched, in the games, Direct3D 9 held about what Direct3D 11 held, except in AstroPop's
+3D: "Which renderer, and SDL's batching".) SDL's software renderer holds
 4.0 to 4.5 MB. (The framework asks SDL for direct3d11 by name, so a port's GPU path is Direct3D 11 on every desktop.)
 
 ### 6. Pictures uploaded as they are loaded
@@ -490,6 +494,122 @@ weighs against its original's figures. Each session first finds which mode its o
 as Big Money's was found (MakeWindow's mIs3D and the DDInterface constructor's mAutoEnable3D). Bejeweled 2 and Bejeweled
 Twist draw their 3D modes through GPUDisplay, which is not this. The web build keeps DDInterface. Each opt-in is its own
 session's.
+
+## Which renderer, and SDL's batching (2026-11-15)
+
+Atomica's session found that trunk commit `ccec8c20` (2026-11-11, which asks SDL for Direct3D 11 by name) made its
+processor time two to four times what it was, nearly all of it in the NVIDIA Direct3D 11 driver's thread, while runs
+with `SDL_RENDER_DRIVER=direct3d` cost what the older builds had cost. This part found why, measured the renderers
+again, and changed the framework.
+
+### What SDL really chose
+
+The log's renderer name is SDL's own (`SDL_GetRendererInfo`, in both the `display:` and the `Renderer:` line). On
+rundesk's desktop Direct3D 9's `CreateDevice` fails (`D3DERR_NOTAVAILABLE`), and SDL goes on through its list to Direct3D
+11, so `SDL_RENDER_DRIVER=direct3d` there gives `renderer direct3d11`, as the log said. On the visible desktop it gives
+Direct3D 9 (`nvd3dum.dll` loaded, `renderer direct3d`). Atomica's cheap runs were therefore Direct3D 11 as well.
+
+### Why the same renderer cost eight times as much
+
+SDL 2.32's `SDL_CreateRenderer` turns batching off for a renderer it was asked for by name through
+`SDL_HINT_RENDER_DRIVER`, and leaves it on for one it found by going through its list. Unbatched, every draw call goes to
+the driver as it is made, and a game that draws many small pictures a frame hands Direct3D 11's driver thread a submission
+for each. Before `ccec8c20` no renderer was named, so a player's Direct3D 9 and a test run's Direct3D 11 were
+both batched. With the hint, every GPU-drawn port has run unbatched since 2026-11-11, and so has every run that set
+`SDL_RENDER_DRIVER` to compare renderers, AstroPop's figures behind that commit among them (all three of its renderers
+were unbatched). `SDL_RENDER_DRIVER=direct3d` on rundesk's desktop named a renderer that failed, and SDL's search for
+another kept batching on.
+
+Batching changes no pixel. SDL sends its queue to the driver before a texture the queue uses is updated or locked, before
+the render target changes, before pixels are read back and at every present, so everything reads what it would have read
+unbatched. The framework's own upload flush (`Platform::FlushRendererCommands`) flushes the device's context, which holds
+the uploads' copies whether SDL batches or not.
+
+### The measurements
+
+Each run is a game's process from the first update of a 20-second stretch of play to its end, in real time: Atomica's
+idle board (the lite pass's scenario, the pointer still), Dynomite's time-trial minute from its first move, and AstroPop's
+classic game (the performance pass's scenario) in 2D and 3D, all windowed at 1x. Processor time is the cycles of all the
+process's threads, grouped by the module each thread started in; the whole machine adds dwm.exe's and the System
+process's cycles over the same stretch. *Pinned* is the game's process on one performance core (both its logical
+processors, claimed through `tools/pincore.py`'s lock); *unpinned* is the game free to use every core, as on a player's
+machine. The configurations ran turn about, one game process at a time, two or three rounds; the machine had none to two
+other game processes running.
+
+**On the visible desktop** (05:50 to 06:50, where Direct3D 9 starts), G cycles of the game's process in the 20 seconds,
+pinned / unpinned (medians):
+
+| | Direct3D 11, unbatched (the trunk) | Direct3D 11, batched | Direct3D 9, batched | OpenGL, batched | software screen |
+|---|---|---|---|---|---|
+| Atomica (3 rounds) | 42.0 / 42.6 | 5.6 / 5.4 | 7.0 / 4.8 | 5.1 / 20.3 | |
+| Dynomite (2) | 1.88 / 1.82 | 1.75 / 1.77 | 2.89 / 1.83 | 1.77 / 41.3 | 1.71 / 1.57 |
+| AstroPop, 3D (2) | 2.26 / 2.13 | 1.89 / 1.83 | 3.67 / 2.06 | 1.98 / 36.6 | |
+| AstroPop, 2D (1) | 2.45 / 2.38 | 2.34 / 2.21 | 3.71 / 2.08 | 2.05 / 8.36 | |
+
+In Atomica unbatched, the driver's thread took 37 to 38 G of the 42 (one pinned run 26 of 31), pinned or not. Batched,
+it took 1.3 to 1.6 G. Direct3D 9's driver thread took 1.2 to 1.4 G unpinned and 3.1 to 3.3 G pinned (Dynomite 1.1 against
+2.4, AstroPop's 3D 1.3 against 3.0): sharing the game's core costs it more than double. OpenGL's driver runs on the game's
+own thread, which spins there when other cores are free (Atomica 16 to 39 G in that thread unpinned, against 4.7 to 5.3
+pinned).
+
+Private bytes at the peak of the run, pinned / unpinned:
+
+| | Direct3D 11, unbatched | Direct3D 11, batched | Direct3D 9, batched | OpenGL, batched | software screen |
+|---|---|---|---|---|---|
+| Atomica | 270 / 269 MB | 109 / 109 | 117 / 118 | 92 / 104 | |
+| Dynomite | 96 / 94 | 75 / 77 | 74 / 76 | 96 / 84 | 49 / 48 |
+| AstroPop, 3D | 86 / 85 | 84 / 84 | 135 / 137 | 88 / 97 | |
+| AstroPop, 2D | 120 / 119 | 119 / 119 | 129 / 129 | 116 / 131 | |
+
+Unbatched, Atomica's driver held 160 MB more at the peak. The process had 41 to 43 threads on Direct3D 11, 20 to 22 on
+Direct3D 9, 9 to 12 on OpenGL and 4 or 5 on the software screen.
+
+dwm.exe took 1.7 to 4.7 G in the 20 seconds whatever the renderer, moving with the time of the run more than with the
+configuration (the software screen 1.2 to 1.7). The System process took 1.3 to 15 G between runs of one configuration, so
+the whole machine's sum (game, dwm and System) separates configurations only where the game's own difference is several G,
+as it is for unbatched Direct3D 11 and unpinned OpenGL. Both sums are in each run's record.
+
+**On rundesk's desktop** (06:50 to 07:30, where every test runs and Direct3D 9 cannot start), the same, with
+`SDL_RENDER_DRIVER=direct3d` in place of Direct3D 9: it fails and SDL finds Direct3D 11 with batching on, as in Atomica's
+runs:
+
+| | Direct3D 11, unbatched (the trunk) | Direct3D 11, batched | `direct3d` (Direct3D 11 found) | OpenGL, batched | software screen |
+|---|---|---|---|---|---|
+| Atomica (2 rounds) | 35.3 / 41.4 | 5.06 / 4.78 | 4.95 / 4.78 | 4.50 / 40.4 | |
+| Dynomite (2) | 1.89 / 1.86 | 1.81 / 1.74 | 1.77 / 1.68 | 1.50 / 41.0 | 1.63 / 1.62 |
+| AstroPop, 2D (1) | 2.36 / 2.25 | 2.14 / 2.01 | 2.09 / 2.04 | 1.70 / 7.81 | |
+
+Atomica's peak was 267 to 277 MB unbatched and 111 to 112 MB batched, either way of asking; Dynomite's 98 against 79 to
+81. Batched Direct3D 11 asked for by name and Direct3D 11 found after Direct3D 9 failed cost the same, so the whole of
+Atomica's finding is SDL's batching. The machine stayed quiet through both batches (none to two other game processes, the
+machine 3 to 25% busy), so a loaded machine was not measured; the earlier loaded runs of Atomica's session (four to six
+other games) moved the unbatched driver thread between 8 and 33 G.
+
+### The default
+
+The framework keeps Direct3D 11 by name and turns SDL's batching back on (`DDInterface::Init`: `SDL_HINT_RENDER_BATCHING`
+"1" at the default priority, so `SDL_RENDER_BATCHING` in the environment still decides). Batched Direct3D 11 was the
+lowest or within a few per cent of the lowest in every case measured, 2D and 3D, and it is the only renderer whose cost
+was the same on one core and on all of them. Direct3D 9 was as cheap on a free machine and dearer on one core, held 50
+MB more in AstroPop's 3D, and cannot run on rundesk's desktop, where every test runs. OpenGL spins on a player's machine.
+No per-case default is needed. On the light games (Dynomite, AstroPop) the batching saves 3 to 16%; on a game that draws
+many small pictures a frame it saves most of its processor time and, in Atomica's case, 160 MB at the peak.
+
+Every processor-time and memory figure a session took on a GPU-drawn port between 2026-11-11 and this merge was taken
+unbatched, this file's GPU-path figures above among them, and a port that draws many pictures a frame will measure lower
+now. Each session takes its figures again after the merge. The shots are the same, since batching changes no pixel: 230
+screenshots of Atomica, Dynomite on the GPU path and AstroPop in 2D and 3D, taken through the same scripted play with
+batching off and on, have the same decoded pixels, and `tools/check.sh --changed main` passes all 36 suites.
+
+### Like for like, for a renderer whose cost lands in a driver thread
+
+The driver's threads are the game's cost: a player's machine runs them, and the original's DirectDraw work runs in its
+own process or the kernel too. So the figure is every thread of the process, as it has been. Pinning stays fair for the
+default renderer, since batched Direct3D 11 cost the same on one core and on all of them (Atomica 5.6 and 5.4, Dynomite
+1.75 and 1.77, AstroPop 1.89 and 1.83). It is not fair between renderers: Direct3D 9 pays double for its driver thread on
+one core, and OpenGL's spin shows only when cores are free. A comparison of renderers is therefore made both ways, and a
+game's figure against its original is taken pinned on its default renderer. dwm.exe and the System process are recorded
+beside it, but their run-to-run spread is larger than most of the differences a session is after.
 
 ## Looked at and left
 

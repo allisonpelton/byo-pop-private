@@ -257,12 +257,19 @@ int DDInterface::Init(SDL_Window* theWindow, bool vsync)
 	if (vsync)
 		aFlags |= SDL_RENDERER_PRESENTVSYNC;
 #ifdef _WIN32
-	// SDL's first choice on Windows is Direct3D 9, whose driver keeps a second thread busy in system calls: AstroPop's scripted 20 seconds
-	// took 5.2 to 5.9 G cycles there, 3.7 to 3.9 on Direct3D 11 and 4.7 to 4.9 on OpenGL (one NVIDIA desktop, three runs each; 28 frames of
-	// the same play equal on all three but one, where 15 pixels differ by one level on Direct3D 9). A default-priority hint, so SDL_RENDER_DRIVER in the environment still
-	// decides, and SDL goes on to its other drivers when this one cannot start.
+	// Direct3D 11 by name, where SDL's own first choice is Direct3D 9 (docs/MEMORY.md, "Which renderer"). Batched, on the visible desktop
+	// of one NVIDIA machine, it cost what Direct3D 9 cost on a game free to use every core and less on one core, where Direct3D 9's driver
+	// thread doubles; Direct3D 9 held 50 MB more in AstroPop's 3D, and OpenGL's driver spins in the game's own thread when other cores
+	// are free (Atomica 18 to 41 G cycles in 20 seconds against 5.4). 28 frames of AstroPop are equal on all three but one, where 15
+	// pixels differ by one level on Direct3D 9. A default-priority hint, so SDL_RENDER_DRIVER in the environment still decides, and SDL
+	// goes on to its other drivers when this one cannot start (Direct3D 9 never starts on rundesk's desktop).
 	SDL_SetHintWithPriority(SDL_HINT_RENDER_DRIVER, "direct3d11", SDL_HINT_DEFAULT);
 #endif
+	// SDL stops batching a renderer asked for by name (SDL_CreateRenderer), so every draw would go to the driver as it is made: Atomica's
+	// board then cost 42 G cycles in 20 seconds against 5.4 batched, nearly all in Direct3D 11's driver thread, and 160 MB more private
+	// bytes at the peak. Batching changes no pixel, since SDL sends its queue before anything reads or changes what the queue uses. A
+	// default-priority hint, so SDL_RENDER_BATCHING in the environment still decides.
+	SDL_SetHintWithPriority(SDL_HINT_RENDER_BATCHING, "1", SDL_HINT_DEFAULT);
 
 	mRenderer = SDL_CreateRenderer(mWindow, -1, aFlags);
 	if (mRenderer == NULL)
