@@ -23,7 +23,10 @@ run a game. The fixes mod is put in place, the terms are asked, and without the 
 only what `page.js` names, by the rules in `web/gameimport.js` (a pak named in `paks` is unpacked). The exe of a game
 that `web/exetrim.js` lists is stored without its code sections, and a launcher's inner image alone, as the port reads
 only texts and tables from it (about 32 MB down to 7 MB over the listed games; `tools/exetrimtest.js` checks every table
-address reads the same; a game stored before keeps its whole exe until it is imported again). Play calls `main()`
+address reads the same; a game stored before keeps its whole exe until it is imported again). Files no port opens stay
+out too, by `NEVER_OPENED` in `web/gameimport.js`: AstroPop's and Dynomite's `sounds/cached_*.wav`, the originals'
+decoded copies of their Ogg sounds (15.4 MB of the Steam copies). `tools/web/unreferenced.py` lists every stored file
+nothing names, as a list to check by hand: names the code builds keep most of the rest of its 20.5 MB in use. Play calls `main()`
 with `-gamedir=/persist/game -userdir=... -modsdir=...`, plus `-gameseed=N` for `?seed=N`, `-placeholders` for
 `?placeholders=1` and `-nomods` for "Play without mods"; the game runs one frame per animation frame. Saves go to
 IndexedDB as they happen, with a small backup in localStorage, because a closing tab cannot wait for IndexedDB.
@@ -660,6 +663,16 @@ the game's text.
 sequences that sound off in game"): a cascade of each depth, a level up, the game over. Each is a stretch of the sound
 log (`BYOPOP_SOUNDLOG`) of a game the port's own bot played (`tools/playbymove`), made into a preset by
 `tools/soundpreset.py <log> <first update> <last update>` and named rip style, as Music's places are.
+
+**Other games' sounds.** A when-line ends with what the user's reviews found of the sound in other games
+(`tools/web/soundcompare.py`, its decisions in `testnotes/`). "Also in *game* as *name*" is the same recording,
+noted where one side is unused or the other game is not ported (`tools/soundmatch.py`). "Resembles *game*'s *name*" is
+a near copy the user heard as similar, with how this one differs. "Made from the same sound as …" is a pair the user
+accepted from `tools/soundbased.py`'s list (2026-11-13), with what sets the two apart: pitched, sped up or slowed,
+layered with another sound, filtered, a tail cut or added. Its direction is the detector's, which of the two holds more
+of the other, not which game came first (in 23 pairs Bejeweled 3's sound is the one held in Bejeweled 2's), so the words are
+"made from the same sound", never "based on". A sound with three or more such partners names them in one sentence and
+says only what they differ in. A decision on a pair stands for every identical copy of either side.
 
 ### The splits timer
 

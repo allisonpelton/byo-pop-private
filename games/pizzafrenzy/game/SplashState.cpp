@@ -1,6 +1,8 @@
 #include "SplashState.h"
 #include "EditBox.h"
 #include "GameMusicPlayer.h"
+#include "GameStats.h"
+#include "LevelManifest.h"
 #include "MenuState.h"
 #include "PizzaFrenzy.h"
 #include "Players.h"
@@ -32,6 +34,10 @@ const float HIGH_SCORES_FADE_SECONDS = 0.3f;
 // The unlock notice slides in from the right
 const float UNLOCK_NOTICE_SLIDE_FROM_X = 800.0f;
 
+// The level manifest's file, and the city select's fade
+const char* const LEVEL_MANIFEST_FILE = "res\\manifests\\levelManifestSpeed.xml";
+const float CITY_SELECT_FADE_SECONDS = 0.3f;
+
 // The load bar's share after each stage
 const float LOADED_TILE_MANIFEST = 0.05f;
 const float LOADED_MAIN_MENU = 0.1f;
@@ -39,11 +45,14 @@ const float LOADED_OPTIONS = 0.15f;
 const float LOADED_PAUSE_MENU = 0.2f;
 const float LOADED_CONFIRMATIONS = 0.25f;
 const float LOADED_RESTORE_CONFIRMATION = 0.3f;
+const float LOADED_GAME_STATS = 0.4f;
 const float LOADED_UNLOCK_NOTICE = 0.6f;
 const float LOADED_USER_SELECT = 0.65f;
 const float LOADED_NEW_USER_ENTRY = 0.7f;
 const float LOADED_HIGH_SCORES = 0.75f;
 const float LOADED_MUSIC_PLAYER = 0.9f;
+const float LOADED_LEVEL_MANIFEST = 0.95f;
+const float LOADED_CITY_SELECT = 1.0f;
 }
 
 // 0x402400
@@ -141,6 +150,14 @@ void SplashState::update(engine::UpdateInfo& theInfo)
 		setUpScreen(mApp->mRestoreGameConfirm, "res/screenLayouts/restoreGameConfirm.xml", aFade, aFade);
 		aLoaded = LOADED_RESTORE_CONFIRMATION;
 	}
+	else if (mApp->mGameStats == nullptr)
+	{
+		// The game's screens and managers (the game screen 0x434be0, 0x414260, the hud 0x438ac0, 0x436440 and the
+		// splat factory 0x474f40) are made here too in the original: translated next, with the game. The stats are
+		// the application's +0x120.
+		mApp->mGameStats = new GameStats();
+		aLoaded = LOADED_GAME_STATS;
+	}
 	else if (mApp->mUnlockNotice == nullptr)
 	{
 		engine::Ref<engine::Transition> aSlide = makeSlide(UNLOCK_NOTICE_SLIDE_FROM_X, 0);
@@ -194,11 +211,24 @@ void SplashState::update(engine::UpdateInfo& theInfo)
 		mApp->setMusicEnabled(mApp->mSettings->isMusicEnabled());
 		aLoaded = LOADED_MUSIC_PLAYER;
 	}
+	else if (mApp->mCities.empty())
+	{
+		loadLevelManifest(LEVEL_MANIFEST_FILE);
+		aLoaded = LOADED_LEVEL_MANIFEST;
+	}
+	else if (mApp->mCitySelect == nullptr)
+	{
+		engine::Ref<engine::Transition> aFade = new engine::FadeTransition(CITY_SELECT_FADE_SECONDS);
+		mApp->mCitySelect = new CitySelectScreen();
+		mApp->mCitySelect->loadLayout("res/screenLayouts/citySelectScreen.xml");
+		mApp->mCitySelect->setTransitions(aFade, aFade);
+		mApp->mCitySelect->setup(mApp->mCities);
+		mApp->mCitySelect->mActionSignal.connect(mApp, &PizzaFrenzy::onScreenAction);
+		aLoaded = LOADED_CITY_SELECT;
+	}
 	else
 	{
-		// The stages not translated yet come between these. After them the original tests whether the application's
-		// city list (+0x138) has cities; when it has, and the city select (+0xf0) is made, the menu state starts;
-		// translated next with the city select.
+		// The stages not translated yet come between these
 		mApp->mStates.changeState(new MenuState(mApp));
 		return;
 	}

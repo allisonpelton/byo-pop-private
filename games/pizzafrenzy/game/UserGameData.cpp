@@ -117,6 +117,57 @@ void UserGameData::clearSavedGame(int theMode)
 	save();
 }
 
+// 0x4278a0
+void UserGameData::setHighestDay(int theMode, int theDay)
+{
+	if (mModes[theMode].mHighestDay < theDay)
+		mModes[theMode].mHighestDay = theDay;
+}
+
+// 0x427980
+void UserGameData::setMaxCity(int theCity)
+{
+	if (mMaxCity <= theCity)
+		mMaxCity = theCity;
+}
+
+// 0x4287c0
+int UserGameData::getToppingLevel(Topping* theTopping)
+{
+	std::map<Topping*, int>::iterator anIt = mToppingLevels.find(theTopping);
+	if (anIt == mToppingLevels.end())
+		return NOT_SET;
+	return anIt->second;
+}
+
+// 0x428d30
+void UserGameData::addNewTopping(Topping* theTopping)
+{
+	std::map<Topping*, int>::iterator anIt = mToppingLevels.find(theTopping);
+	if (anIt == mToppingLevels.end() || anIt->second < 0)
+	{
+		for (size_t i = 0; i < mNewToppings.size(); i++)
+		{
+			if (mNewToppings[i] == theTopping)
+				return;
+		}
+		mNewToppings.push_back(theTopping);
+	}
+}
+
+// 0x4286a0
+void UserGameData::removeNewTopping(Topping* theTopping)
+{
+	for (size_t i = 0; i < mNewToppings.size(); i++)
+	{
+		if (mNewToppings[i] == theTopping)
+		{
+			mNewToppings.erase(mNewToppings.begin() + i);
+			return;
+		}
+	}
+}
+
 // 0x427ff0
 bool UserGameData::save()
 {

@@ -12,6 +12,7 @@
 #include "Transition.h"
 
 #include <ctime>
+#include <stdexcept>
 
 using namespace pizzafrenzy;
 
@@ -39,7 +40,8 @@ const float SPLASH_FADE_SECONDS = 0.5f;
 // 0x40c170: the exe has the engine's signal build (engines/sprout/Build.h), which the engine is told before anything
 // of it is made
 PizzaFrenzy::PizzaFrenzy() :
-	mGameMode(0), mLoadBarWidth(0), mLoadBarHeight(0), mShowHighScores(false), mShowCitySelect(false), mActive(false)
+	mCurrentLevel(0), mCurrentCity(0), mDay(0), mGameMode(0), mLoadBarWidth(0), mLoadBarHeight(0),
+	mBonusRound(false), mShowHighScores(false), mShowCitySelect(false), mActive(false)
 {
 	engine::gSignalBuild = true;
 }
@@ -203,23 +205,164 @@ void PizzaFrenzy::saveGame()
 {
 }
 
-// 0x40c700: translated next
+// 0x40c700
 void PizzaFrenzy::startGame(int theMode, int theCity)
 {
+	mGameMode = theMode;
+	mBonusRound = false;
+	mGameStats->reset();
+	if (mUserGameData->hasSavedGame(theMode))
+	{
+		mCurrentCity = mUserGameData->getLastCity(theMode);
+		mCurrentLevel = mUserGameData->getLastLevel(theMode);
+		mDay = mUserGameData->getLastDay(theMode);
+		mGameStats->resume(mUserGameData, theMode);
+		startLevel();
+	}
+	else
+	{
+		beginCity(theCity);
+		startLevel();
+	}
 }
 
-// 0x4023d0: translated next
+// 0x403b60
+void PizzaFrenzy::beginCity(int theCity)
+{
+	mCurrentLevel = 0;
+	mCurrentCity = theCity;
+	mDay = 1;
+	for (int i = 0; i < theCity; i++)
+		mDay = mDay + (int)mCities[i]->mLevels.size();
+}
+
+// 0x4023d0
 void PizzaFrenzy::showCitySelect()
 {
+	mCitySelect->refresh();
+	mScreens->showScreen(mCitySelect, 0);
 }
 
-// 0x403bc0: translated next
+// 0x403bc0: the city's levels are counted before the city changes, and the new city is not looked at when the last
+// one is done
 void PizzaFrenzy::advanceLevel()
+{
+	mCurrentLevel = mCurrentLevel + 1;
+	City* aCity = mCities[mCurrentCity];
+	if ((int)aCity->mLevels.size() <= mCurrentLevel)
+	{
+		mCurrentLevel = 0;
+		mCurrentCity = mCurrentCity + 1;
+		mUserGameData->setMaxCity(mCurrentCity);
+		mUserGameData->save();
+		if ((int)mCities.size() <= mCurrentCity)
+			return;
+	}
+	mDay = mDay + 1;
+}
+
+// 0x404660, from the level lists' subscript: the exe's checked subscript throws an exception of the standard library
+Level* PizzaFrenzy::getCurrentLevel()
+{
+	City* aCity = mCities[mCurrentCity];
+	if ((unsigned int)aCity->mLevels.size() <= (unsigned int)mCurrentLevel)
+		throw std::out_of_range("invalid vector<T> subscript");
+	return aCity->mLevels[mCurrentLevel];
+}
+
+// 0x409f30
+void PizzaFrenzy::startLevel()
+{
+	Level* aLevel = getCurrentLevel();
+	std::string aStory = aLevel->getStory(mGameMode);
+	bool aShowStory = false;
+	if (!aStory.empty())
+	{
+		if (mSettings->isReplayStory() || mUserGameData->getHighestDay(mGameMode) < mDay)
+			aShowStory = true;
+	}
+	if (!aShowStory)
+	{
+		if (aLevel->mBonusRound)
+			setUpLevel();
+		else
+			giveToppings();
+		return;
+	}
+	enterStoryState(aLevel, aStory);
+}
+
+// 0x408090
+void PizzaFrenzy::giveToppings()
+{
+	Level* aLevel = getCurrentLevel();
+	std::vector<engine::Ref<Topping>>& aToppings = aLevel->getToppings();
+	for (size_t i = 0; i < aToppings.size(); i++)
+		mUserGameData->addNewTopping(aToppings[i]);
+	mUserGameData->save();
+	if (mUserGameData->getUnlockTopping() && !mUserGameData->getNewToppings().empty())
+	{
+		enterNewToppingState();
+		return;
+	}
+	showLevelStart();
+}
+
+// 0x407fc0
+void PizzaFrenzy::showLevelStart()
+{
+	Level* aLevel = getCurrentLevel();
+	if (aLevel->mBonusRound)
+	{
+		setUpLevel();
+		return;
+	}
+	enterLevelStartState(aLevel);
+}
+
+// 0x406dc0
+void PizzaFrenzy::setUpLevel()
+{
+	Level* aLevel = getCurrentLevel();
+	mBonusRound = aLevel->mBonusRound;
+	mUserGameData->setHighestDay(mGameMode, mDay);
+	mUserGameData->save();
+	if (mBonusRound)
+	{
+		enterBonusRound(aLevel);
+		return;
+	}
+	loadCityFile(aLevel->getCityFile(), mGameScreen);
+	enterModeGame(aLevel);
+}
+
+// 0x405270: translated next with the game
+void PizzaFrenzy::loadCityFile(const std::string& theFile, GameScreen* theScreen)
 {
 }
 
-// 0x409f30: translated next
-void PizzaFrenzy::startLevel()
+// 0x402ba0: translated next with the game
+void PizzaFrenzy::enterStoryState(Level* theLevel, const std::string& theStory)
+{
+}
+
+// 0x402ce0: translated next with the game
+void PizzaFrenzy::enterNewToppingState()
+{
+}
+
+// 0x402c40: translated next with the game
+void PizzaFrenzy::enterLevelStartState(Level* theLevel)
+{
+}
+
+// 0x459510, 0x460610, 0x45b3e0 and the state 0x4029b0: translated next with the game
+void PizzaFrenzy::enterModeGame(Level* theLevel)
+{
+}
+
+// 0x45f830 and the state 0x402a40: translated next with the game
+void PizzaFrenzy::enterBonusRound(Level* theLevel)
 {
 }
 

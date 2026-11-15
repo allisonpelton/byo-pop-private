@@ -18,6 +18,7 @@ Reachable only from a test (`-script`, `-commands`, the web page's test call; `d
 | `set score\|mode\|level\|lives <v>` | the profile's score, mode, level or tries |
 | `save` | writes the profiles file (the game writes it when a player is made or a level ends, not at quit), so that a run can make a player for another run |
 | `win`, `lose` | the level in play goes to its victory stage, or is lost as a shot that fell is |
+| `cupid` | a cupid comes in next to the shooter, as the cupid power-up's does (`Powerup::GiveCupid`), in the level in play; it takes a shot jewel that passes it while it flies in (1.2 s), so a test reaches `cupid_flap` and `cupid_catch` without waiting 10 s in Flood or Survival |
 | `seed <n>` | seeds the game's random numbers |
 | `move` | `MOVE {"kind","input"}` for the bot's next shot (`Bot.cpp`), a `wait` while the level is not ready for one, or `MOVE null` |
 | `memreport` | the framework's, `MEMREPORT {...}` |

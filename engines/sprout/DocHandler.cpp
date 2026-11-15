@@ -1,5 +1,7 @@
 #include "DocHandler.h"
 
+#include <cstdio>
+
 using namespace engine;
 
 // 0x46c3e0 (pizzafrenzy)
@@ -49,4 +51,53 @@ void DocHandlerStack::characters(const std::string& theText)
 		return;
 	Ref<BaseDocHandler> aTop = mHandlers.back();
 	aTop->characters(theText);
+}
+
+// 0x4760a0 (pizzafrenzy)
+IntPair engine::getIntPointAttribute(XmlAttributes theAttributes, const std::string& theName, IntPair theDefault)
+{
+	IntPair aPair = theDefault;
+	XmlAttributes::iterator anIt = theAttributes.find(theName);
+	if (anIt != theAttributes.end())
+		sscanf(anIt->second.c_str(), " %d , %d ", &aPair.mFirst, &aPair.mSecond);
+	return aPair;
+}
+
+// 0x475c50 (pizzafrenzy)
+IntPair engine::getIntRangeAttribute(XmlAttributes theAttributes, const std::string& theName, IntPair theDefault)
+{
+	IntPair aPair = theDefault;
+	XmlAttributes::iterator anIt = theAttributes.find(theName);
+	if (anIt != theAttributes.end())
+	{
+		const char* aText = anIt->second.c_str();
+		if (aText[0] == '(')
+			sscanf(aText, "( %d , %d )", &aPair.mFirst, &aPair.mSecond);
+		else
+		{
+			sscanf(aText, "%d", &aPair.mFirst);
+			aPair.mSecond = aPair.mFirst;
+		}
+	}
+	return aPair;
+}
+
+// 0x475b20 (pizzafrenzy)
+FloatPair engine::getFloatRangeAttribute(XmlAttributes theAttributes, const std::string& theName,
+                                         FloatPair theDefault)
+{
+	FloatPair aPair = theDefault;
+	XmlAttributes::iterator anIt = theAttributes.find(theName);
+	if (anIt != theAttributes.end())
+	{
+		const char* aText = anIt->second.c_str();
+		if (aText[0] == '(')
+			sscanf(aText, "( %f , %f )", &aPair.mFirst, &aPair.mSecond);
+		else
+		{
+			sscanf(aText, "%f", &aPair.mFirst);
+			aPair.mSecond = aPair.mFirst;
+		}
+	}
+	return aPair;
 }
