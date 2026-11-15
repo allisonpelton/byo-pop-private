@@ -299,3 +299,21 @@ battleship's fixed points (each reads as the design); one projectile hit an upda
   of the game-over box's quit button. The main menu has no "more games" button in this version (0x425c40 places the same
   six buttons as the port), so no gap needed closing. The exe's links (the update check, the registration and beta
   pages, DirectX's) are all in what is left out, and no code in the port opens a link.
+
+## The readability pass (2026-11-14)
+
+The port was written to `docs/CODE_STANDARDS.md` from its first draft, so the pass is the tools' runs and a read of what
+they flag. `tools/namecheck.py games/heavyweapon` finds nothing in 112 files (24 lines allowed by `namecheck.txt`).
+`tools/splitfields.py heavyweapon --export re/heavyweapon/gh/decomp` finds no field declared twice and none read but
+never written. Six fields are written and never read: the board's projectiles destroyed, shots fired and shots missed
+of the level (the app's statistics keep the totals), its tank speed, a background strip's load flag and a player's best
+score (saved, never shown). Their comments now say that nothing reads them; they stay, as the board and the player
+record keep the original's layout. Its 14 places where the original's function touches a member that the translation
+never names were each read, and none is a missing read or write: the eye boss's bolt delay is in a helper split out of
+its update; the final boss's sprites are deleted in its destructor, whose address the tool pins on the next function;
+the enemies' sprite is read through `GetCelWidth`; the map's drag (+0x68) is a call through the vtable, not a field; the
+map's button handler is called with its listener's `this` (+0x58), so its offsets are other fields'; the background
+animations' update starts with a call of `GetBossIndex` whose answer the original throws away, and which changes
+nothing; the title's +0x60 is the copy of the app's loading count that nothing reads (left out, `TitleScreen.h`); and
+the cutscene's start asks the Flash control whether the movie loaded, which the port's SWF player answers in its own
+way ("The cutscenes" in the deviations).
