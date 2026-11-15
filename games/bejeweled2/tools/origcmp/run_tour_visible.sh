@@ -18,7 +18,20 @@ set -u
 ev=$1; tag=$2; portonly=${3:-}
 cd "$(dirname "$0")/../../../.." || exit 2
 ABS=$PWD
-LDARGS=${LDARGS---leave-after 1}
+# the click that closes the first game's help screen (743, 678) is read by the original one update after the port's (GAME_NOTES, "Oddities"),
+# so the replay gives it (and the move before it) that update: --shift FROM TO 1, found in the original's landed.tsv (LDARGS= sets all by hand)
+if [ -z "${LDARGS+x}" ]; then
+  LDARGS="--leave-after 1 $(python - build/visrun/$tag/landed.tsv <<'PYEOF'
+import sys
+rows = [l.rstrip(chr(10)).split(chr(9)) for l in open(sys.argv[1])]
+for i, r in enumerate(rows):
+    if r[0] == 'click' and r[1] == '743 678':
+        lo = int(rows[i - 1][2]) if i and rows[i - 1][0] == 'move' else int(r[2])
+        print('--shift %d %d 1' % (lo, int(r[2])))
+        break
+PYEOF
+)"
+fi
 # the player of the recording (record_3d_tours.sh's PROFILE: make_profile.py's, every mode unlocked) is the original's players while
 # its run lasts, and the port's replay has it in its user folder; PROFILE= (empty) starts both with no player
 PROFILE=${PROFILE-build/logs/bej2/profile}
