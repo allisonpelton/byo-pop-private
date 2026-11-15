@@ -100,6 +100,41 @@ def times(h):
     return ft(a), ft(c) + ft(d)                           # creation (FILETIME seconds), kernel + user
 
 
+k32.OpenThread.restype = W.HANDLE
+k32.QueryProcessCycleTime.argtypes = [W.HANDLE, ctypes.POINTER(ctypes.c_ulonglong)]
+k32.QueryThreadCycleTime.argtypes = [W.HANDLE, ctypes.POINTER(ctypes.c_ulonglong)]
+
+
+def proc_cycles(h):
+    c = ctypes.c_ulonglong(0)
+    k32.QueryProcessCycleTime(h, ctypes.byref(c))
+    return c.value
+
+
+class TE(ctypes.Structure):
+    _fields_ = [('dwSize', W.DWORD), ('cntUsage', W.DWORD), ('th32ThreadID', W.DWORD), ('th32OwnerProcessID', W.DWORD),
+                ('tpBasePri', ctypes.c_long), ('tpDeltaPri', ctypes.c_long), ('dwFlags', W.DWORD)]
+
+
+def thread_cycles(pid):
+    """{thread id: cycles} of the live threads of the process (QueryThreadCycleTime)."""
+    snap = k32.CreateToolhelp32Snapshot(4, 0)
+    out = {}
+    e = TE(); e.dwSize = ctypes.sizeof(TE)
+    ok = k32.Thread32First(snap, ctypes.byref(e))
+    while ok:
+        if e.th32OwnerProcessID == pid:
+            th = k32.OpenThread(0x40, False, e.th32ThreadID)      # THREAD_QUERY_LIMITED_INFORMATION
+            if th:
+                c = ctypes.c_ulonglong(0)
+                if k32.QueryThreadCycleTime(th, ctypes.byref(c)):
+                    out[e.th32ThreadID] = c.value
+                k32.CloseHandle(th)
+        ok = k32.Thread32Next(snap, ctypes.byref(e))
+    k32.CloseHandle(snap)
+    return out
+
+
 def now_ft():
     t = W.FILETIME()
     k32.GetSystemTimeAsFileTime(ctypes.byref(t))
@@ -152,7 +187,7 @@ def main():
     cf = os.path.join(out, 'commands.txt')
     reader = None
     if kind == 'port':
-        args = [EXE, '-userdir=' + user, '-seed=1']
+        args = [EXE, '-userdir=' + user, '-seed=1', '-windowscale=1']
         if what == 'load':
             open(cf, 'w').close()
             args += ['-commands=' + cf]
@@ -176,10 +211,12 @@ def main():
     h = None
     created = None
     samples, counts = [], []
+    cyc = []          # (seconds since creation, process cycles, original's update counter or None)
+    thr = []          # (seconds since creation, {thread: cycles}, counter)
     first_input = None
     loaded_at = None
     peak_ws = peak_priv = 0
-    last_sample = last_count = last_state = 0.0
+    last_sample = last_count = last_state = last_thr = 0.0
     state_pos = 0
     cmd_lines = 0
     cpu_last = 0.0
@@ -209,6 +246,11 @@ def main():
                 _, cpu = times(h)
                 cpu_last = cpu
                 samples.append((round(now_ft() - created, 3), m.WorkingSetSize, m.PagefileUsage, round(cpu, 3)))
+                cnt = u32(h, 0x543270) if kind == 'orig' else None
+                cyc.append((round(now_ft() - created, 3), proc_cycles(h), cnt))
+                if t - last_thr >= 1.0:
+                    last_thr = t
+                    thr.append((round(now_ft() - created, 3), thread_cycles(game), cnt))
             if t - last_count >= 5.0:
                 last_count = t
                 counts.append(game_processes())
@@ -265,6 +307,26 @@ def main():
         res['cpu_before_last_minute_s'] = c0
         res['cpu_last_minute_s'] = round(samples[-1][3] - c0, 3)
         res['mean_working_set_last_minute_mb'] = round(sum(s[1] for s in samples if s[0] > tmin) / max(1, len([s for s in samples if s[0] > tmin])) / MB, 1)
+    # the stretch: the port's last 6000 updates (script updates 450 to 6450 at 100 a second), the original's counter 2950 to 8950
+    # (the same input, 2500 updates later)
+    if cyc:
+        if kind == 'orig':
+            pts = [c for c in cyc if c[2] is not None and 2950 <= c[2] <= 8950]
+            tp = [c for c in thr if c[2] is not None and 2950 <= c[2] <= 8950]
+        else:
+            tend = cyc[-1][0]
+            pts = [c for c in cyc if c[0] >= tend - 60.0]
+            tp = [c for c in thr if c[0] >= tend - 60.0]
+        if len(pts) > 1:
+            res['stretch_cycles'] = pts[-1][1] - pts[0][1]
+            res['stretch_updates'] = (pts[-1][2] - pts[0][2]) if kind == 'orig' else None
+            res['stretch_seconds'] = pts[-1][0] - pts[0][0]
+            res['cycles_per_update'] = res['stretch_cycles'] / ((pts[-1][2] - pts[0][2]) if kind == 'orig' else 6000.0)
+        if len(tp) > 1:
+            d = {k: tp[-1][1].get(k, 0) - tp[0][1].get(k, 0) for k in tp[-1][1]}
+            res['thread_cycles'] = sorted(d.values(), reverse=True)[:6]
+    if kind == 'port' and reader is not None:
+        res['display'] = [ln for _, ln in reader.lines if 'display:' in ln][:2]
     json.dump(res, open(os.path.join(out, 'perf.json'), 'w'))
     short = {k: v for k, v in res.items() if k != 'samples'}
     print(json.dumps(short))

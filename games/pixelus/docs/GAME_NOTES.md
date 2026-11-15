@@ -191,6 +191,30 @@ web build's load was not timed. The port loads in one go as the framework's load
 remains; the original's own load is as fast here because its resources are few.
 
 
+**Measured again by the target's rules (2026-11-15).** `tools/profile/pairs.sh` (perf.py, cycle counts as `QueryProcessCycleTime`
+over 6000 updates of the same scripted play, taken at 100 updates a second; the port's script is the bot's first six puzzles
+turned into input, and the original's is the same input through `toorig.py` with the original's 2500 later Play button). The
+port runs the shipped Release exe with only `-script` and `-windowscale=1` (windowed 640x480, the display line says "render scale
+1, windowed, renderer direct3d11"), under rundesk; the original under origrun on its real clock; each pair on one performance core
+of its own (`tools/pincore.py`, core 14), the order flipping, one game process of ours at a time. The machine was busy (3 to 6 game
+processes of other sessions, the mean in each run's file), so the spread is wide. Million cycles an update, five runs of each:
+
+| | runs | median |
+| --- | --- | --- |
+| Original | 2.91, 3.56, 2.63, 3.28, 3.60 | 3.28 |
+| Port, all threads (its mixer counted) | 2.06, 2.60, 2.94, 3.13, 3.23 | 2.94 |
+| Port, main thread only | 1.12, 1.64, 2.21, 2.28, 2.42 | 2.21 |
+
+The port's mixer thread cost 0.7 to 0.8 M an update in three of the runs and 0.03 in two (no sound playing). The original shows no
+thread above 0.03 M beside its main one: under origrun's stand-in its sounds are never mixed and the game has no BASS music thread.
+The pairs' port-to-original ratios are 0.71, 0.73, 1.12, 0.95 and 0.90, median 0.90, so the port's whole process stays at or below the
+original's in four pairs of five and above it in one (a pair on which the machine was busiest), and its main thread, with the mixer
+counted apart, is clearly below. The spread inside a side (1.6 times for the port, 1.4 for the original) is larger than the gap
+between the medians, so the claim is "not above", not a figure. Memory: working set 96 to 106 MB peak for the port, 107 to 116 MB for
+the original; private bytes 95 to 98 MB and 91 to 93 MB. No hot spot to speed up was found that the spread would show; none was changed.
+The original's runs went to origrun's 200 s cap (its `quit` at counter 8950 came after the stretch), which the stretch does not include.
+
+
 ## 11. Coverage check (2026-11-15) and Oddities
 
 The whole coverage check (`docs/COVERAGE.md`). origrun's `--coverage` recorded which of the original's functions ran in

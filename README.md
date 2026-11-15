@@ -97,7 +97,7 @@ asked.
 | TipTop Deluxe | 0.6 to 0.9 s | 4.7 and 4.8 s | 14 and 20 % of one core | 5 % of one core | 82 and 83 MB | 46 MB |
 | Bookworm Adventures Deluxe | 1.70 s | 6.4 s | 2.9 to 3.2 % of one core | 7.8 to 9.4 % of one core | 165 MB | 94 MB |
 | Ning Po Mahjong Deluxe | 0.36 s | 0.82 s | 6.3 % of one core | 14.9 % of one core | 54 MB | 21 MB |
-| Pixelus Deluxe | 0.9 to 1.4 s | 0.8 to 1.0 s | 5.7 and 7.0 s a minute | 10.4 and 11.6 s a minute | 102 and 104 MB | 93 MB |
+| Pixelus Deluxe | 0.9 to 1.4 s | 0.8 to 1.0 s | 2.1 to 3.2 M cycles an update (median 2.9 with its mixer; the main thread 2.2) | 2.6 to 3.6 M cycles an update (median 3.3) | 95 to 98 MB | 91 to 93 MB |
 | Alchemy Deluxe | 1.74 s | 1.76 s | 4.6 to 5.3 s a minute | 4.2 and 6.4 s a minute | 67 to 69 MB | 51 to 56 MB |
 | Word Harmony | 0.71 s | 2.6 to 3.4 s | 10.3 and 13.6 s a minute | 2.2 and 3.4 s a minute | 154 and 155 MB | 53 MB |
 | Cosmic Bugs | 0.6 to 0.9 s | 0.4 to 1.0 s | 18 to 19 % of one core | 4.7 and 5.6 % of one core | 130 MB | 88 and 89 MB |
