@@ -785,7 +785,12 @@ Journey and Flood run from the click away from the world map before building 1 i
 split at each building cleared and end at the map's CONGRATULATIONS! after building 71, its win; a Journey game out of
 tries resets, a sunk Flood building is played again and the run goes on. Trick Shots runs from the click on the mode to
 the win scene with every trick shot made. A continued game starts nothing. The board's per-level Journey and Flood
-categories have no template. Big Money has no board, so its row is its native
+categories have no template. Bejeweled Twist: Level 10 in Classic and in Zen run from the start button's click to level
+10's "Level Complete" picture; Unlock% from a new Classic game to the fourth mode opening. Enigma% and Challenge 100% are
+runs over many challenges, a board each (`across` in the template): from the first challenge's click to the win of
+Voltage 1 or Enigma 7, read from the block's own words (the challenge's category and number). A failed challenge, tried
+again, resets nothing, and each earlier win splits while segments are left. The per-level 100% category has no template.
+Big Money has no board, so its row is its native
 script's rules, with mode and skill in the category's name and levels or scores as segments. Both replay their native
 scripts' scenarios in `tools/autosplittest.js`. Every other game with a board gets its row in Milestone 3, from the
 speedrun.com categories and its session's answer on where in its code GO, a level clear, a game over and a win happen.
