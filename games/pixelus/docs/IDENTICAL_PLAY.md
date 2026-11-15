@@ -76,7 +76,7 @@ tutorial's bubbles and the sticky-spots bubble, which takes updates, and to 4647
 - The speech bubbles' text and picture (temple, story, tutorial) are not drawn; their state (which draws numbers) is kept.
 - The story's portrait is a still head; the original renders the animated figure with its pose fades.
 - The board's sidebar gleam (the colour panel at +0x1d8) is not drawn; its timer is kept.
-- The help screen's demo grid (left of the slides) is not drawn; its draws are kept.
+- The help screen's two demo boards are real boards now (they make their own draws).
 
 ## Compared since the first report
 
@@ -162,20 +162,17 @@ rows are not where the port's are). The menu after Play and the story match (0.0
   (the dialog's own font index 6 at +0x124), the other lines in Garamond 12, from the content top 0x3c (the port had 0x24).
   The doubled top and bottom beams in the original's shot are the options dialog's larger frame under the credits; ours is
   smaller, so only the credits' own frame shows.
-- **The help screen's demos** (u400 to u700, 28%, decoded, not ported). The port's screen is a stand-in: both windows run at
-  once and tiles slide in on their own. The original builds three objects in 0x40e1a0: the left demo (0xa0 bytes, 0x40ddd0,
-  update 0x40d320, draw 0x40d740), the right one (0x80 bytes, 0x40df90, update 0x40d8d0, draw 0x40e0b0) and the plain
-  backdrop (0x40da40). They take turns: the left runs its 950-update script (updates 1, 50, 75, 100, 175, 200, 250, 315,
-  500, 525, 550, 600, 625, 650, 700 and 790 place or pull a tile, aim the Tile Master and move the pointer between two
-  columns; at 0x3b5 it hands over) while the right stays under a dark layer (200 of alpha) that fades out by 1.0 an update
-  when it is the right's turn; the right then replays the shipped solution of `levels/helpscreen.txt` through the grid's own
-  replay (0x426560 with 100 updates between throws), holds the finished picture 100 updates, fades the picture in and out
-  (alpha 0 to 255 by 2) and hands back (0x40dd50 swaps the two states). Each window holds a real animated grid of the
-  game (the left a 12 by 12 one at offset (15, -30), the right a 16 by 16 one at (5, -43)) and the left a Tile Master
-  (0x42bd40, whose walk, in five sub-steps of 0.3 an update, and idle animations the port's TileMaster does not have). What it
-  would take: the board's tile animation and drawing (Board::UpdateTiles, DrawGrid, DrawTile, DrawTrail) lifted out of
-  Board into a piece that a window can own at its own origin, the grid's solution replay, and a Tile Master with the
-  original's walk and sprite-sheet animations. The tiles' rules and the shipped puzzle are already in the port.
+- **The help screen's demos** (u400 to u700 28%, now 1.4%; u1200 to u2750 1.0 to 2.3%, ported). The original builds a left
+  demo (0x40ddd0, update 0x40d320), a right one (0x40df90, update 0x40d8d0) and a plain backdrop that take turns. The port
+  now has both: each is a real `Board` made by the demo constructor (no buttons, no sidebar, its own grid origin: (100, -40)
+  in the left widget at (0, 150), (5, -43) in the right at (330, 150)). The left runs the 950-update script (hover moves,
+  three throws at 50, 150, 250, three pulls at 500, 600, 700, the pointer's walks of 0.015 an update, 949 hands over); the right,
+  under a dark layer that fades by 1.0 an update, replays the best solution of `levels/helpscreen.txt` through the grid's own
+  replay (the first move after 25 updates, then every 100), holds the finished board 100 updates, fades the picture over it
+  (2 alpha an update), loads the puzzle again, fades it out and hands back. The shots of both turns (case t19, original run
+  px9) differ by 1 to 2.3%: the Tile Master (the port's pose and standing place, not the original's walk and sprite-sheet
+  animations) and, in a few tiles, which of the five tile pictures shows (the shine's random change, see the tile's mFlash
+  note in `Grid.h`). Same random draws as before (2 for the left board, 24 for the right's file).
 - At u300 and u1800 the original's menu says "Welcome to Pixelus" with no player name (0x40a8b0 prints the name only while a
   player is current); the port's player was made at the same update by the same clicks, so this run's original lost the
   name or made it later. Not explained; the case t16 (u250) shows the name in both.
