@@ -170,6 +170,18 @@ check("either: AstroPop's Collection exe", I.findRoot(spec("astropop"), ap("Astr
 check("either: AstroPop with neither exe", I.findRoot(spec("astropop"), ap(null), false), null);
 check("either: AstroPop with neither exe, named", I.missingMarkers(spec("astropop"), ap(null)), "WinAP.exe or AstroPop.exe");
 
+// Files no port opens stay out (NEVER_OPENED): the original's decoded copies of its Ogg sounds in AstroPop and Dynomite, and only
+// those; Rocket Mania's port reads its music's, so they stay
+{
+  const rels = (t, root, ...p) => I.pick(spec(t), files(...p.map((x) => root + x)), root, safeRel).map((f) => f.rel);
+  check("never opened: AstroPop's cached sounds", rels("astropop", "AP/", "sounds/a.ogg", "sounds/cached_a.wav", "sounds/CACHED_B.WAV", "sounds/b.wav"),
+    ["sounds/a.ogg", "sounds/b.wav"]);
+  if (I.games.some((g) => g.target === "dynomite"))
+    check("never opened: Dynomite's cached sounds", rels("dynomite", "D/", "sounds/boom.ogg", "sounds/cached_boom.wav"), ["sounds/boom.ogg"]);
+  if (I.games.some((g) => g.target === "rocketmania"))
+    check("never opened: Rocket Mania keeps its cached music", rels("rocketmania", "R/", "music/cached_tubetricks.wav"), ["music/cached_tubetricks.wav"]);
+}
+
 // The exe check (exeUnreadable): a made-up image with one section at 0x401000 (raw data at 0x200) holding a text at 0x401010.
 // The probe holds in the plain image and in the same image behind PopCap's launcher marker, and fails once the section's
 // bytes are scrambled, as a packed and encrypted copy's are, or for a wrong hash.
