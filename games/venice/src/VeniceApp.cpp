@@ -194,6 +194,14 @@ void VeniceApp::LostFocus()
 	gFocusFrames = 2;
 }
 
+// port: the mod menu holds the game while it is open (SexyAppBase::UpdateModMenuFrame) and calls ModalClose as a modal dialog does;
+// the 4 ms ticks counted on from the old tick base meanwhile, so on closing every missed tick would run at once
+void VeniceApp::ModalClose()
+{
+	SexyApp::ModalClose();
+	ResetTickBase();
+}
+
 // 0x440450: the click that gives the focus back is not the player's click, unless a main menu is waiting for it
 void VeniceApp::GotFocus()
 {

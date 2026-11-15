@@ -93,6 +93,13 @@ in `IDENTICAL_PLAY.md`). A scenario's `SHOT_MARGIN` (1000 frames) keeps the run 
   the original goes on reading and writing that freed stage (0x42a980, 0x429f10), the port stops the stage's update there
   (`SceneStage::CheckEvents` returns false) and gives the result the original's read of the stale progress gave. Found by the
   AddressSanitizer run of the win sequence (level 72).
+- The mod menu (F2) holds the game while it is open and closes through `ModalClose`, as a modal dialog does. The original has no
+  such menu and no `ModalClose` of its own (it keeps the base class's empty one), so `VeniceApp::ModalClose` is the port's: it calls
+  `ResetTickBase` (0x4407c0), which the loads and `GotFocus` already do. Without it the 4 ms ticks counted on from the old tick
+  base while the menu was open, and a menu open for 0.1 s to 0.4 s ran every missed tick at once on closing. Checked on the real
+  clock with `modmenu open` and `modmenu close` 30 updates apart: without the call the frame of the close ran 27 ticks, with it
+  that frame runs none and the ones after run their usual 4 or 5 (the trace's `ticks=` of the frames around it). In `-fast` the
+  clock does not show it.
 
 ## Fixes (the fixes mod)
 
