@@ -103,6 +103,10 @@ def main():
     if option_values('--end'):
         end = int(option_values('--end')[0])
         port = [(t, e) for t, e in port if t / 10.0 <= end]
+        # and the original's ends where its script quits: its shutdown runs the virtual clock ahead (marathon1's by 20 seconds), and
+        # what it plays then (a voice, here, in the port's shutdown too) is not the run's. The run's own events are never later than
+        # the update's 10 ms steps from 3000 ms, with the held input's tenth of a millisecond and a little slack.
+        original = [(t, e) for t, e in original if t <= 3000.0 + end * 10.0 + 100.0]
     names = port_names(arguments[1])
     for rule in option_values('--port-only'):
         span, text = rule.split(':', 1)
