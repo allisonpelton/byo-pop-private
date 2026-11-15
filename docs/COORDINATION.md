@@ -155,7 +155,15 @@ holds the rules every session follows; this file does not repeat them.
     desktop;
   - sound counted the same way on both sides. origrun's stand-in takes the original's DirectSound, and its MIDI device
     calls may be skipped, so the original's number may hold no mixing or synthesis. Measure the port the same way, or
-    count its mixer and synthesizer apart.
+    count its mixer and synthesizer apart. In the tests neither side reaches the system's audio process (audiodg):
+    rundesk gives a port SDL's dummy driver and origrun gives the original a stand-in DirectSound that opens no device.
+    The two still do not mix the same. The port's mixer thread mixes every sound at the device rate; under the stand-in
+    the original's sound effects (DirectSound secondary buffers, which Windows mixes inside the game's process) are never
+    mixed, while a BASS-based original's music thread keeps mixing against the stand-in's clock and is counted. So give
+    both figures, the port's with its mixer counted and without it, and for a SexyApp original with BASS music add the
+    port's music share of its mixer back to the second (fw-memory, 2026-11-15). Counting audiodg would matter only with
+    real devices on both sides (`origrun --sound real`, muted, against the port on a real device); measure one such pair
+    before it becomes a rule.
   - **Cycle counts, not GetProcessTimes or GetThreadTimes.** Count processor time as the threads' cycle counts
     (QueryThreadCycleTime, summed over the process's threads; `games/tiptop/tools/perf/cpuprof2.py` at seconds 0
     reads them without disturbing the run). Windows charges process and thread times by sampling at the 15.6 ms clock
