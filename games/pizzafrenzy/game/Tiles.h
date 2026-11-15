@@ -225,9 +225,9 @@ public:
 	void setUpPopup(Topping* theTopping);
 	// 0x41d170
 	void setVanType(const std::string& theVanType) { mVanType = theVanType; }
-	// 0x41cb80: the sign shows the length of the combo (none for 0), its number in rows of five, and its colour from
-	// the length too
-	void showCombo(int theLength, int theFives);
+	// 0x41cb80: the sign shows the length of the combo (none for 0): the number in its row of five, blinking, in the
+	// colour its row gives
+	void showCombo(int theLength);
 	// 0x41c9e0: a van of the kitchen that is not on its way, or a new one of the kitchen's type, put on the map
 	Van* getVehicle();
 	// port (the test commands' state): a van of the kitchen is on its way
@@ -243,6 +243,8 @@ private:
 	engine::Ref<engine::ImageNode> mSignBoard;     // +0x1d8: the board's place, with no picture yet
 	engine::Ref<engine::Selector> mSignDigits;     // +0x1d4: the pictures of the numbers on the board
 	engine::Ref<engine::ImageNode> mSignDigitNodes[SIGN_DIGITS];  // +0x1dc
+	engine::Ref<engine::Image> mSignDigitImages[SIGN_DIGITS];     // +0x1f0: the digits' pictures, shifted in hue
+	engine::Ref<engine::Image> mSignImage;                        // +0x204: the board's picture, shifted in hue
 	int mSignFrame;                                // +0x20c: -1, none
 	float mSignTime;                               // +0x208: the seconds the sign still shows its number
 };

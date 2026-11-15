@@ -6,14 +6,15 @@
 // res\screenLayouts\hudScreen.xml, and the coupon buttons of the toppings that can be bought. It shows the game's
 // numbers (the stats') and changes as they change: the mode's frame calls updateHud.
 //
-// Left out: the two particle systems (the tip jar's coins at +0x284 and the stars' burst at +0x214), which the
-// signal build's particle documents (0x47bc40) make and are not translated.
+// The two particle systems are the signal build's (SignalParticles.h): the tip jar's coins (+0x284), which fall while
+// the jar loses money, and the stars' burst (+0x214), which nothing starts.
 
 #include "CouponButton.h"
 #include "GameStats.h"
 #include "GenericScreen.h"
 #include "ImageNode.h"
 #include "Modifiers.h"
+#include "SignalParticles.h"
 #include "Sound.h"
 #include "TextItem.h"
 
@@ -57,7 +58,7 @@ public:
 	void setWarning(bool theShown);
 	// 0x438270: the tip jar's roll sound stops with the game paused and goes on with it
 	void pauseTipJarSound(bool thePaused);
-	// 0x4387f0: the tip jar's roll sound stops, and its coins' emitter (not translated) with it
+	// 0x4387f0: the tip jar's roll sound stops, and its coins' emitter with it
 	void stopTipJar();
 	// 0x4388d0: the coupon buttons slide out of the screen to the left
 	void slideCouponsOut();
@@ -95,6 +96,8 @@ private:
 	engine::Ref<engine::Node> mScoreBackground;                  // +0x1f4: "scoreBkg", shown by the flash
 	engine::Ref<engine::Container> mWarningStars;                // +0x1fc: the stars of the warning, not shown
 	engine::Ref<engine::ImageNode> mStars[STAR_COUNT];           // +0x200
+	engine::Ref<engine::SignalParticleSystem> mBurstFx;          // +0x214: "BurstFx", never started
+	engine::Ref<engine::SignalParticleSystem> mTipJarCoins;      // +0x284: "TipJarCoins", in the group "tipJar"
 	float mScoreFlashTime;                                       // +0x240: the seconds the backdrop's flash has left
 	engine::Rect mTipJarRect;                                    // +0x250: the bounds of the group "tipJar"
 	engine::Rect mStarsRect;                                     // +0x260: the bounds of the group "stars"

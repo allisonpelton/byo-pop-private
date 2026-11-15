@@ -31,9 +31,11 @@ bool Decoration::load()
 	ParticleEffect* anEffect = aManifest->getParticleEffect(mName);
 	if (anEffect != nullptr)
 	{
-		// the original makes a particle system (0x479470) from the effect's definition (0x479330) here, which is not
-		// translated: the effect's layer is all the port has of it
+		engine::SignalParticleSystem* aSystem = new engine::SignalParticleSystem();
+		mParticleNode = aSystem;
+		aSystem->setUp(anEffect->mDef);
 		mLayer = anEffect->mLayer;
+		aSystem->start();
 		return true;
 	}
 	return false;

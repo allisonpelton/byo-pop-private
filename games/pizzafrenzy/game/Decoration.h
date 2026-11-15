@@ -7,6 +7,7 @@
 #include "DocHandler.h"
 #include "ImageNode.h"
 #include "Node.h"
+#include "SignalParticles.h"
 
 namespace pizzafrenzy
 {
@@ -36,9 +37,8 @@ private:
 	int mLayer;                            // +0x10
 	engine::Ref<engine::ImageNode> mNode;  // +0x14: the picture
 	engine::Ref<engine::Image> mImage;     // +0x18
-	// +0x1c: the particle system of an effect (the signal build's particle documents are not translated, so a
-	// decoration that is an effect has no node)
-	engine::Ref<engine::Node> mParticleNode;
+	// +0x1c: the particle system of an effect
+	engine::Ref<engine::SignalParticleSystem> mParticleNode;
 	engine::IntPair mPosition;             // +0x20
 	std::string mName;                     // +0x28
 };

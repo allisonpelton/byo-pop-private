@@ -6,13 +6,16 @@
 // there for a second and finishes the house's popup. The original keeps three states for it (parked 0x4fc820,
 // driving 0x4fc834, arrived 0x4fc848); the port keeps them as a phase.
 //
-// Left out: the effect that follows a vehicle (the original's +0x168), the police car's flashing lights (the blinker
-// 0x481e50 with the two light pictures, drawn beside the car), and the sort of the vehicle in its group when it has
-// moved a row (0x435ba0). The canoe (0x431ad0) and the copter (0x431dc0) are not translated: a vehicle of their
-// class is a van. The pathfinder is the function findPath, with the original's search (0x42a600).
+// The type's effect (smoke, for most) follows the vehicle while it drives, and the police car's lights flash.
+//
+// Left out: the canoe (0x431ad0) and the copter (0x431dc0), which are not translated: a vehicle of their class is a
+// van. The pathfinder is the function findPath, with the original's search (0x42a600).
 
+#include "AnimImage.h"
+#include "ImageNode.h"
 #include "Node.h"
 #include "Selector.h"
+#include "SignalParticles.h"
 #include "TileEntries.h"
 #include "Tiles.h"
 
@@ -98,6 +101,7 @@ protected:
 	engine::Ref<CustomerTile> mTarget;    // +0x15c: the house it drives to
 	BuildingTile* mHome;                  // +0x160: the tile it starts from
 	engine::Ref<engine::Selector> mImages;  // +0x164: east and west, north, south, and the parked one
+	engine::Ref<engine::SignalParticleSystem> mEmitter;  // +0x168: the effect of the type, none for a type without one
 	Phase mPhase;                         // +0x16c
 	float mArrivedTime;                   // the seconds the vehicle has left at the house
 };
@@ -107,11 +111,18 @@ class PoliceCar : public Van
 {
 public:
 	PoliceCar();  // 0x432d60
+	// slot 0x160: 0x432a60: the type's pictures, and the lights over the car, red and blue by turns
+	void makeImages(Vehicle* theType) override;
 	// slot 0x14c: 0x432e30: the arrest is true for a customer whose order is not for pizza, and false for any other:
 	// the customer hangs up, the mode takes the false arrest into account and the splat "falseArrest" comes up
 	void finish() override;
 	// slot 0x154: 0x433010: with the siren's sound
 	void goTo(CustomerTile* theTile) override;
+
+private:
+	engine::Ref<engine::AnimImage> mLights;    // +0x184
+	engine::Ref<engine::ImageNode> mRedLight;   // +0x188
+	engine::Ref<engine::ImageNode> mBlueLight;  // +0x18c
 };
 
 } // namespace pizzafrenzy

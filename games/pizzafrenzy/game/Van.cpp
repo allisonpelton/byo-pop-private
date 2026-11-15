@@ -3,6 +3,7 @@
 #include "CustomerPopup.h"
 #include "GameMode.h"
 #include "ImageNode.h"
+#include "App.h"
 #include "Order.h"
 #include "PizzaFrenzy.h"
 #include "Tiles.h"
@@ -21,6 +22,8 @@ const char* const SOUND_POLICE = "special_police";
 const char* const SOUND_POLICE_ARREST = "special_police_arrest";
 const char* const VEHICLE_CLASS = "vehicle";
 const char* const POLICE_CAR_TYPE = "PoliceCar";
+const char* const RED_LIGHT_IMAGE = "res\\fx\\policeLightRed.jpg";
+const char* const BLUE_LIGHT_IMAGE = "res\\fx\\policeLightBlue.jpg";
 // a false arrest: the mode's action, and the splat that comes up where the car is
 const char* const ACTION_FALSE_ARREST = "falseArrest";
 const char* const FALSE_ARREST_SPLAT = "falseArrest";
@@ -28,6 +31,7 @@ const char* const FALSE_ARREST_SPLAT = "falseArrest";
 // a vehicle with a speed of at most this is a car, and sounds like one when it leaves
 const float CAR_SPEED = 200.0f;
 const float ARRIVED_SECONDS = 1.0f;
+const float LIGHTS_RATE = 4.0f;  // the police car's lights change this many times a second
 enum { LAYER_GROUND = 3 };
 
 // the pictures of the vehicle: east and west, north, south, and a parked one
@@ -354,6 +358,8 @@ void Van::park()
 {
 	mPhase = PHASE_PARKED;
 	mPath.clear();
+	if (mEmitter != nullptr)
+		mEmitter->stop();
 	if (mImages != nullptr && IMAGE_PARKED < mImages->getCount())
 		mImages->select(IMAGE_PARKED, 0.0f, true);
 	placeAt(mHomeCell);
@@ -426,7 +432,12 @@ void Van::goTo(CustomerTile* theTile)
 		playSound(mSpeed <= CAR_SPEED ? SOUND_LEAVE_CAR : SOUND_LEAVE_VAN);
 		startPath(aCell);
 		if (!mPath.empty())
+		{
 			mPhase = PHASE_DRIVING;
+			// the driving state's entry
+			if (mEmitter != nullptr)
+				mEmitter->start();
+		}
 	}
 }
 
@@ -453,9 +464,16 @@ void Van::faceRoad()
 	}
 }
 
-// 0x42f940: the type's own effect (the original's +0x168) is left out
+// 0x42f940: the effect of the type comes first, so the pictures draw over it
 void Van::makeImages(Vehicle* theType)
 {
+	ParticleEffect* anEffect = PizzaFrenzy::instance()->mTileManifest->getParticleEffect(theType->mEffect);
+	if (anEffect != nullptr)
+	{
+		mEmitter = new engine::SignalParticleSystem();
+		mEmitter->setUp(anEffect->mDef);
+		addChild(mEmitter);
+	}
 	mImages = new engine::Selector();
 	addChild(mImages);
 	engine::Image* anImages[3] = {theType->mImage, theType->mNorthImage, theType->mSouthImage};
@@ -534,6 +552,26 @@ void Van::move(engine::UpdateInfo& theInfo)
 // 0x432d60
 PoliceCar::PoliceCar() : Van(POLICE_CAR_TYPE)
 {
+}
+
+// 0x432a60
+void PoliceCar::makeImages(Vehicle* theType)
+{
+	Van::makeImages(theType);
+	engine::App* anApp = engine::App::instance();
+	engine::Image* aRedImage = anApp->getImage(RED_LIGHT_IMAGE);
+	aRedImage->setPivot(1);
+	mRedLight = new engine::ImageNode(aRedImage);
+	engine::Image* aBlueImage = anApp->getImage(BLUE_LIGHT_IMAGE);
+	aBlueImage->setPivot(1);
+	mBlueLight = new engine::ImageNode(aBlueImage);
+	mLights = new engine::AnimImage();
+	mLights->addChild(mRedLight);
+	mLights->addChild(mBlueLight);
+	mLights->finishLoading();
+	mLights->setRate(LIGHTS_RATE);
+	mLights->play();
+	addChild(mLights);
 }
 
 // 0x432e30

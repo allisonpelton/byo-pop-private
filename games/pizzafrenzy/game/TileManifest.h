@@ -5,8 +5,7 @@
 // the map, the vehicles, the customers, the toppings, the particle effects, the special events, the music and the score
 // titles, read by the loading state from res\manifests\tileManifest.xml and found by name.
 //
-// Left out of what the manifest reads: the particle systems of the effects (the signal build's particle document
-// handler, 0x47bc40, is not translated), and the previews of the toppings (Topping::setImage). The finders no state of
+// Left out of what the manifest reads: the previews of the toppings (Topping::setImage). The finders no state of
 // the loading reaches are not translated: getVehicle 0x422ca0 and getCharacter 0x422d60, nor the destructor 0x4263c0.
 
 #include "GameMusicPlayer.h"

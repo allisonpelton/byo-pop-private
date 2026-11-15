@@ -112,11 +112,10 @@ void TileManifestDocHandler::startElement(const std::string& theName, const engi
 	}
 	else if (theName == "particleFx")
 	{
-		// The effect's particle system, read from the file of "fxPath" by the signal build's particle document handler
-		// (0x47bc40), is left out: the effect has its layer only
 		std::string aName = engine::getStringAttribute(theAttributes, "name", "");
+		std::string aFile = engine::getStringAttribute(theAttributes, "fxPath", "");
 		int aLayer = (int)engine::getIntAttribute(theAttributes, "layer", DEFAULT_EFFECT_LAYER);
-		mManifest->registerParticleEffect(aName, new ParticleEffect(aLayer));
+		mManifest->registerParticleEffect(aName, new ParticleEffect(aFile, aLayer));
 	}
 	else if (theName == "event")
 	{

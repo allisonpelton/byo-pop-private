@@ -248,13 +248,13 @@ void CityMap::collectKitchenToppings()
 }
 
 // 0x412170
-void CityMap::showCombo(Topping* theTopping, int theLength, int theFives)
+void CityMap::showCombo(Topping* theTopping, int theLength)
 {
 	for (size_t i = 0; i < mKitchens.size(); i++)
 	{
 		KitchenTile* aKitchen = static_cast<KitchenTile*>(mKitchens[i].get());
 		bool aMatch = aKitchen->getTopping() == theTopping;
-		aKitchen->showCombo(aMatch ? theLength : 0, aMatch ? theFives : 0);
+		aKitchen->showCombo(aMatch ? theLength : 0);
 	}
 }
 

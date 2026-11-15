@@ -66,7 +66,7 @@ public:
 	void collectKitchenToppings();
 	// 0x412170: the kitchens that make the topping show the length of the combo and its number of fives on their signs,
 	// the others none
-	void showCombo(Topping* theTopping, int theLength, int theFives);
+	void showCombo(Topping* theTopping, int theLength);
 	// 0x412940: the boat spawners of the level are let go
 	void clearBoatSpawners();
 	// 0x413f40: the spawner is kept and updated

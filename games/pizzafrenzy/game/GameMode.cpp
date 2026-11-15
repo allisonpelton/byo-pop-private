@@ -177,7 +177,7 @@ void GameMode::setLevel(Level* theLevel)
 	makeEvents();
 	mComboTopping = nullptr;
 	mStats->mComboLength = 0;
-	mMap->showCombo(nullptr, 0, 0);
+	mMap->showCombo(nullptr, 0);
 	beginWaves();
 	mStates.changeState(new ModeIntroState(this));
 }
@@ -253,7 +253,7 @@ void GameMode::reset()
 	mHud->resetHud();
 	mComboTopping = nullptr;
 	mStats->mComboLength = 0;
-	mMap->showCombo(nullptr, 0, 0);
+	mMap->showCombo(nullptr, 0);
 	mRightClickHandled = false;
 	mSlowTime = 0;
 	mSlowFactor = 1.0f;
@@ -873,7 +873,7 @@ void GameMode::resetCombo()
 {
 	mComboTopping = nullptr;
 	mStats->mComboLength = 0;
-	mMap->showCombo(nullptr, 0, 0);
+	mMap->showCombo(nullptr, 0);
 }
 
 // 0x455ff0: the customer's order is finished: the tip comes up on the road cell the vehicle stopped on (the citizen's
@@ -1094,7 +1094,7 @@ void GameMode::deliver(BuildingTile* theKitchen, CustomerTile* theTile, bool the
 		{
 			float aMultiplier = (float)(aLength - 1) * COMBO_STEP + 1.0f;
 			int aFives = aLength / FRENZY_COMBO;
-			mMap->showCombo(mComboTopping, aLength, aFives);
+			mMap->showCombo(mComboTopping, aLength);
 			if (aLength % FRENZY_COMBO == 0 && aFives > 0)
 			{
 				playSound(formatText(SOUND_FRENZY, std::min(aFives - 1, FRENZY_MAX_SOUND)));

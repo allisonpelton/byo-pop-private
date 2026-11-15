@@ -4,8 +4,11 @@
 #include "CustomerPopup.h"
 #include "PizzaFrenzy.h"
 #include "GameMode.h"
+#include "ImageFilter.h"
+#include "Modifiers.h"
 #include "PizzaPopup.h"
 #include "Van.h"
+#include <cstdio>
 
 using namespace pizzafrenzy;
 
@@ -33,6 +36,15 @@ const int SIGN_DIGIT_COUNT = 5;
 const float SIGN_X = 4.0f;
 const float SIGN_Y = -38.0f;
 const char* const SIGN_BORDER_IMAGE = "res\\fx\\signBorder.jpg";
+const char* const SIGN_BOARD_IMAGE = "res\\fx\\kitchenMarquis4.jpg";
+const char* const SIGN_DIGIT_IMAGE = "res\\fx\\kitchenMarquis%d.jpg";
+const int SIGN_ROW = 5;  // the combo's length a row of the sign holds
+const int SIGN_COLORS = 6;
+// the hue the sign is shifted by (in degrees) for the first row of five and for each row after it
+const float SIGN_HUES[SIGN_COLORS + 1] = {0.0f, 62.0f, 45.0f, 120.0f, -65.0f, -180.0f, 0.0f};
+const float SIGN_SECONDS = 1.5f;        // the seconds the number shows
+const float SIGN_SHOWN_SECONDS = 0.2f;  // the number blinks
+const float SIGN_HIDDEN_SECONDS = 0.1f;
 
 engine::IntPair toIntPair(const engine::Point& thePoint)
 {
@@ -524,15 +536,55 @@ void KitchenTile::tick(engine::UpdateInfo& theInfo)
 		if (mSignTime < 0.0f)
 		{
 			mSignTime = 0.0f;
-			// the sign's board is cleared and its digits shown (0x4682e0): translated next
+			mSignDigits->removeAllListeners();
+			mSignBoard->removeAllListeners();
+			mSignDigits->setVisible(true);
+			mSignBoard->setVisible(true);
 		}
 	}
 }
 
-// 0x41cb80: the sign shows the length of the combo in the hue its row of five gives; translated next
-void KitchenTile::showCombo(int theLength, int theFives)
+// 0x41cb80: the sign's pictures are shifted in hue by the row of five the length is in (the first row is not
+// shifted), the board shows from the second row, and the digits blink for the seconds the sign lasts
+void KitchenTile::showCombo(int theLength)
 {
-	// the sign's pictures are shifted in hue from the images "kitchenMarquis%d" and "kitchenMarquis4": translated next
+	mSignDigits->removeAllListeners();
+	mSignBoard->removeAllListeners();
+	int aRow = (theLength - 1) / SIGN_ROW;
+	if (aRow > SIGN_COLORS)
+		aRow = aRow - ((aRow - 1) / SIGN_COLORS) * SIGN_COLORS;
+	engine::HsvShiftFilter aShift;
+	aShift.setShift(SIGN_HUES[aRow], 0.0f, 0.0f);
+	if (aRow < 1)
+		mSignBoard->setImage(nullptr);
+	else
+	{
+		engine::Ref<engine::Image> aBoard = engine::App::instance()->createImage(SIGN_BOARD_IMAGE, false);
+		aBoard->setPivot(1);
+		mSignImage = aBoard->clone();
+		mSignBoard->setImage(mSignImage);
+		mSignImage->applyFilter(aShift);
+	}
+	for (int i = 0; i < SIGN_DIGIT_COUNT; i++)
+	{
+		char aName[64];
+		snprintf(aName, sizeof(aName), SIGN_DIGIT_IMAGE, i);
+		engine::Ref<engine::Image> aDigit = engine::App::instance()->createImage(aName, false);
+		aDigit->setPivot(1);
+		mSignDigitImages[i] = aDigit->clone();
+		mSignDigitImages[i]->applyFilter(aShift);
+		mSignDigitNodes[i]->setImage(mSignDigitImages[i]);
+	}
+	if (theLength == 0)
+	{
+		mSignDigits->select(0, 0.0f, true);
+		mSignTime = 0;
+		return;
+	}
+	mSignTime = SIGN_SECONDS;
+	int aDigit = theLength % SIGN_ROW;
+	mSignDigits->select(aDigit == 0 ? SIGN_DIGIT_COUNT : aDigit, 0.0f, true);
+	mSignDigits->addListener(new engine::BlinkModifier(SIGN_SHOWN_SECONDS, SIGN_HIDDEN_SECONDS));
 }
 
 // 0x41c560

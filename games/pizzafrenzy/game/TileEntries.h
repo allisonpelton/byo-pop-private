@@ -9,6 +9,7 @@
 #include "Geometry.h"
 #include "Graphics.h"
 #include "Object.h"
+#include "SignalParticles.h"
 
 #include <map>
 #include <string>
@@ -126,7 +127,8 @@ public:
 	// 0x41dc60: the image centred, and the smaller ones made from it
 	void setImage(engine::Image* theImage);
 
-	// What an upgrade is worth in points: its multiplier times a number that is larger for a topping that uses its image
+	// What an upgrade is worth in points: its multiplier times a number that is larger for a topping that uses its
+	// image
 	// as its preview (the two numbers at 0x4fa248 and 0x4fa24c)
 	static const int VALUE_PER_MULTIPLIER = 10;
 	static const int VALUE_PER_MULTIPLIER_WITH_PREVIEW = 15;
@@ -184,13 +186,19 @@ public:
 	bool mDeliver;                         // +0x9c
 };
 
-// A particle effect (0x1c bytes, constructor 0x41de80): the layer it is drawn in
+// A particle effect (0x1c bytes, constructor 0x41de80): the particle system a file defines, and its layer
 class ParticleEffect : public engine::Object
 {
 public:
-	explicit ParticleEffect(int theLayer) : mLayer(theLayer) {}  // 0x41de80
+	// the definition is read from the file (through the application's stream) and its pictures are found
+	ParticleEffect(const std::string& theFile, int theLayer) :
+		mDef(engine::loadParticleSystemDef(theFile)),
+		mLayer(theLayer)
+	{
+	}  // 0x41de80
 
-	int mLayer;  // +0x10
+	engine::Ref<engine::ParticleSystemDef> mDef;  // +0x0c
+	int mLayer;                                   // +0x10
 };
 
 // A title of the scores (0x34 bytes, constructor 0x41f000): the text from its points up

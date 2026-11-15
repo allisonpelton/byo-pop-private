@@ -84,8 +84,13 @@ void Hud::setup(GameStats* theStats)
 	mTipJarContents->setClipped(true);
 	engine::Node* aTipJar = getNode("tipJar");
 	mTipJarRect = *aTipJar->getBounds();
-	// the tip jar's coins (the particle effect "TipJarCoins") are made here and added to the group: left out, see the
-	// class
+	ParticleEffect* aCoinsEffect = PizzaFrenzy::instance()->mTileManifest->getParticleEffect("TipJarCoins");
+	if (aCoinsEffect != nullptr)
+	{
+		mTipJarCoins = new engine::SignalParticleSystem();
+		mTipJarCoins->setUp(aCoinsEffect->mDef);
+		static_cast<engine::Container*>(aTipJar)->addChild(mTipJarCoins);
+	}
 	mRollSound = PizzaFrenzy::instance()->mSounds->getVoice(ROLL_SOUND);
 	mProgressStack = static_cast<engine::Container*>(getNode("progressStack"));
 	engine::Node* aStars = getNode("stars");
@@ -111,7 +116,14 @@ void Hud::setup(GameStats* theStats)
 		mWarningStars->addChild(aWarningStar);
 		aStep += STAR_STEP_INCREMENT;
 	}
-	// the burst effect ("BurstFx") is made and put in the middle of the stars' top here: left out, see the class
+	ParticleEffect* aBurstEffect = PizzaFrenzy::instance()->mTileManifest->getParticleEffect("BurstFx");
+	if (aBurstEffect != nullptr)
+	{
+		mBurstFx = new engine::SignalParticleSystem();
+		mBurstFx->setUp(aBurstEffect->mDef);
+		mBurstFx->setPosition((mStarsRect.left + mStarsRect.right) * 0.5f, mStarsRect.top);
+		addChild(mBurstFx);  // nothing in the game starts it
+	}
 }
 
 // 0x438fd0
@@ -252,7 +264,8 @@ void Hud::updateTipJar()
 	mTipJarContents->setClipRect(engine::Rect(0, (float)(int)aClipTop, (float)mTipJarContents->getImageWidth(),
 	                                          (float)aClipBottom));
 	mTipJarContents->setPosition(TIP_JAR_CONTENTS_X, anOffset <= 0.0f ? 0.0f : anOffset);
-	// the coins of the jar's effect follow the contents while the money rolls: left out, see the class
+	if (mTipJarRolling && mTipJarCoins != nullptr)
+		mTipJarCoins->setPosition(mTipJarRect.width() * 0.5f, anOffset <= 0.0f ? 0.0f : anOffset);
 	mTipJarCount->setNumber(aMoney, MONEY_PREFIX);
 	updateCoupons();
 }
@@ -315,7 +328,8 @@ void Hud::startRoll(int theFrom)
 {
 	mTipJarRolling = true;
 	mRollingTipMoney = theFrom;
-	// a jar that loses money shows its coins (the jar's effect, 0x478fe0): left out, see the class
+	if (mTipJarCoins != nullptr && mStats->mTipMoney < theFrom)
+		mTipJarCoins->start();
 	if (mRollSound != nullptr)
 	{
 		mRollSound->setLoop(true);
@@ -346,7 +360,8 @@ void Hud::rollTipJar(engine::UpdateInfo& theInfo)
 	mTipJarRolling = false;
 	if (mRollSound != nullptr)
 		mRollSound->stop();
-	// the jar's coins stop (0x478ef0): left out, see the class
+	if (mTipJarCoins != nullptr)
+		mTipJarCoins->stop();
 }
 
 // 0x438270
@@ -368,7 +383,8 @@ void Hud::stopTipJar()
 {
 	if (mRollSound != nullptr && mRollSound->isPlaying())
 		mRollSound->stop();
-	// the coins' emitter (+0x284) is stopped here: not translated, see the file's comment
+	if (mTipJarCoins != nullptr)
+		mTipJarCoins->stop();
 }
 
 // 0x4388d0
