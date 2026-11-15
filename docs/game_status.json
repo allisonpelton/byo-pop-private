@@ -64,11 +64,12 @@
         "unneeded-code",
         "readability",
         "collection",
-        "site-features"
+        "site-features",
+        "lite-mod"
       ],
       "na": [],
       "now": null,
-      "note": ""
+      "note": "every phase but modding done: the lite mod takes nothing (LITE_MOD.md: the whole board logic is about 1 us an update)"
     },
     "alchemy": {
       "title": "Alchemy Deluxe",
@@ -82,13 +83,14 @@
         "performance",
         "unneeded-code",
         "readability",
-        "site-features"
+        "site-features",
+        "lite-mod"
       ],
       "na": [
         "collection"
       ],
       "now": null,
-      "note": ""
+      "note": "every phase but modding done: the lite mod takes nothing (LITE_MOD.md: the discard's melt would be lite in kind but costs 0.4% to 1.9% of a minute, below what the medians resolve)"
     },
     "noahsark": {
       "title": "Noah's Ark Deluxe",
@@ -188,8 +190,8 @@
       "na": [
         "collection"
       ],
-      "now": "performance",
-      "note": "processor time over the original's: second performance round (the user's target, 2026-11-11)"
+      "now": null,
+      "note": "second performance round merged: SurfaceDisplay's stretch mode (GDI nearest, off by default; full screen at 4K 0.57 and 0.52 of the original's processor time) and the modal pause under the mod menu; the default full screen stays on the renderer (over the original) until the user's choice of look and fw-memory's processor-side smooth stretch"
     },
     "mahjongchina": {
       "title": "Mahjong Escape: Ancient China",
@@ -207,8 +209,8 @@
       "na": [
         "collection"
       ],
-      "now": "performance",
-      "note": "processor time over the original's: second performance round (the user's target, 2026-11-11)"
+      "now": null,
+      "note": "second performance round merged: SurfaceDisplay's stretch mode (GDI nearest, off by default; full screen at 4K 0.57 and 0.52 of the original's processor time) and the modal pause under the mod menu; the default full screen stays on the renderer (over the original) until the user's choice of look and fw-memory's processor-side smooth stretch"
     },
     "bejeweledtwist": {
       "title": "Bejeweled Twist",
@@ -525,8 +527,8 @@
         "registration-out"
       ],
       "na": [],
-      "now": "site-features",
-      "note": "every phase but modding done but two: the 3D original's shots against the port's 3D mode (the sandbox never loads it; a visible-desktop driver after the reset) and the tutorial's don't-show-again box; registration and outbound buttons were left out from the first draft (no trial, buy or more-games path in the source); real input windowed and full screen in every mode; site features with the site session"
+      "now": null,
+      "note": "every phase but modding done but one: the 3D original's tour is done (8251 frames agree in seed and ticks, 31 shots faint-only; VeniceDisplay adds Direct3D 7's half pixel in 3D); left: the tutorial's don't-show-again box; site features with the site session"
     },
     "heavyweapon": {
       "title": "Heavy Weapon Deluxe",
@@ -534,11 +536,14 @@
         "port",
         "identical-play",
         "identical-look",
-        "fixes-mod"
+        "fixes-mod",
+        "readability",
+        "coverage",
+        "registration-out"
       ],
       "na": [],
-      "now": "readability",
-      "note": "phase two of identical play and the fixes mod merged (88a6a55e, ea2bde71): three fixes read through Platform::FixOn, savedBonuses and survivalBest on, wormHead off; the readability pass under way"
+      "now": "performance",
+      "note": "readability (1a205bd4) and the coverage check (7fcccaee) merged: 36 origrun runs reach 801 of the 1050 game functions, none without a counterpart, the 57 never reached read again or explained; now the performance pass"
     },
     "hammerheads": {
       "title": "Hammer Heads Deluxe",

@@ -21,6 +21,9 @@ namespace jb
 
 class Display;
 
+// Port: a number for an image's pixels that no other image or earlier state of the same image has (ScreenLog.h)
+uint32_t NextImageStamp();
+
 // 0x427870 (mahjongchina), 0x42daa0 (mahjongjapan)'s output
 struct ImageInfo
 {
@@ -48,6 +51,8 @@ public:
 	bool mCreated = false;           // +0x30 a blank image made to draw into
 	bool mFlipped = false;           // +0x31 mBits are top-down now (drawn into), flipped back before the next draw
 	Display* mDisplay = nullptr;     // +0x34 the display that tracks it
+	uint32_t mStamp = NextImageStamp();  // port: which pixels mPixels holds; a new one each time they are made
+	uint32_t mRecordSerial = 0;          // port: the frame whose command list last held a draw of this image
 
 	// 0x426c20 (mahjongchina), 0x42cdb0 (mahjongjapan)
 	Image() {}
@@ -85,9 +90,10 @@ public:
 	void GetInfo(ImageInfo& theInfo);
 	// 0x4278b0 (mahjongchina), 0x42dae0 (mahjongjapan): to the screen; theScaleX and theScaleY in percent
 	bool Draw(int theX, int theY, const Rect& theSrc, int theScaleX, int theScaleY, int theAlpha);
-	// 0x427aa0 (mahjongchina), 0x42dcd0 (mahjongjapan): to the 32-bit top-down pixels theDst, clipped to 800x600
+	// 0x427aa0 (mahjongchina), 0x42dcd0 (mahjongjapan): to the 32-bit top-down pixels theDst, clipped to 800x600 (port:
+	// and to theClip when given, which the screen contains; theKeyed is mKeyed when it is -1)
 	bool Blit(int theX, int theY, const Rect& theSrc, int theScaleX, int theScaleY, int theAlpha, uint8_t* theDst,
-		int theDstPitch);
+		int theDstPitch, const Rect* theClip = nullptr, int theKeyed = -1);
 	// 0x428170 (mahjongchina), 0x42e3a0 (mahjongjapan)
 	bool EnsurePrepared();
 	// 0x428680 (mahjongchina), 0x42e8b0 (mahjongjapan)
@@ -123,10 +129,15 @@ extern uint8_t* gScreen;
 extern int gScreenPitch;
 
 // 0x427dc0 (mahjongchina), 0x42dff0 (mahjongjapan): the rect (the screen when null) filled; theColour a COLORREF
+// (port: the fill is a command of the frame's list, ScreenLog.h)
 void ScreenFillRect(const Rect* theRect, uint32_t theColour);
+// the same drawn at once
+void ScreenFillRectDirect(const Rect* theRect, uint32_t theColour);
 // 0x427ef0 (mahjongchina), 0x42e120 (mahjongjapan): the rect darkened by theAlpha and theColour added at theAlpha
 // (theRect is clipped to the screen, as the original clipped its caller's rect)
 void ScreenFillRectAlpha(Rect& theRect, int theAlpha, uint32_t theColour);
+// the same drawn at once
+void ScreenFillRectAlphaDirect(Rect& theRect, int theAlpha, uint32_t theColour);
 // 0x426c90 (mahjongchina), 0x42ce90 (mahjongjapan): the blit's temporary buffer
 void FreeBlitBuffer();
 

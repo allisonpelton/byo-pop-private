@@ -1,4 +1,5 @@
 #include "ImageLoader.h"
+#include "GIFDecoder.h"
 #include "VFS.h"
 
 #include <stb_image.h>
@@ -156,6 +157,12 @@ bool DecodeImage(const std::vector<uint8_t>& theData, int& theWidth, int& theHei
 			*theHasAlpha = false;
 		return true;
 	}
+
+	// port: GIFs through our own decoder, which gives stb_image's pixels in a fraction of its time (GIFDecoder.h); a file it
+	// leaves (one stb would refuse or decode some other way) goes on to stb
+	if ((theData.size() >= 4) && (memcmp(theData.data(), "GIF8", 4) == 0) &&
+		DecodeGIF(theData.data(), theData.size(), theWidth, theHeight, theBits, theHasAlpha))
+		return true;
 
 	std::vector<uint8_t> reordered;
 	const std::vector<uint8_t>& data = MoveIHDRFirst(theData, reordered) ? reordered : theData;
@@ -351,6 +358,7 @@ static bool LoadGameImageLayers(const std::string& theGamePath, LoadedImage& the
 #ifndef BYOPOP_DERIVED
 				generated.mModId.clear();
 #endif
+				generated.mGenerated = true;
 				theOut = std::move(generated);
 				return true;
 			}

@@ -4,6 +4,7 @@
 #include "Image.h"
 
 #include <stdint.h>
+#include <string>
 #include <vector>
 
 #define OPTIMIZE_SOFTWARE_DRAWING
@@ -65,6 +66,50 @@ public:
 
 	bool					mBitsChanged;
 	SexyAppBase*			mApp;
+
+	// port: pixels dropped after upload (docs/MEMORY.md, "Pixels dropped after upload"), as PopCap's PurgeBits let a picture's
+	// pixels go once the device had its texture. A picture loaded from a file keeps how it was made (mBitsSource: the
+	// file and the resource manager's alpha steps); DDInterface drops its pixels (and palette and alpha caches)
+	// once a texture is uploaded from them, and they are made again from the file when they are needed: a texture for a
+	// second filter or after a lost device, a software draw from the picture, a GetBits call. A picture whose pixels
+	// changed after it loaded (BitsChanged), that GetBits gave out (whoever holds them may change them in place), or that
+	// has HD pixels (game code reads mHDBits itself) keeps them for good. BYOPOP_KEEPBITS=1 keeps every picture's pixels;
+	// BYOPOP_DROPCHECK=1 checks each remade picture against a hash taken when it was dropped (=2: remakes it at once, so
+	// every drop is checked) and logs a mismatch.
+	struct BitsSource
+	{
+		std::string			mPath;			// Platform::LoadGameImage's path
+		std::string			mAlphaPath;		// the resource's alphaimage, applied as ResourceManager::LoadAlphaImage does
+		std::string			mAlphaGridPath;	// its alphagrid, as LoadAlphaGridImage does, over mGridRows x mGridCols cels
+		int					mGridRows;
+		int					mGridCols;
+		BitsSource() : mGridRows(1), mGridCols(1) {}
+	};
+	BitsSource*				mBitsSource;		// NULL when the pixels cannot be made again
+	int						mBitsSourceCount;	// mBitsChangedCount when mBitsSource was set: it makes these pixels while they are equal
+	bool					mBitsDropped;		// the pixels are gone and mBitsSource will make them again
+	bool					mBitsLent;			// GetBits gave the pixels out: never dropped again
+	bool					mDroppedPalette;	// they were a palette and indices (made again by Quantize8Bit, as Palletize)
+	unsigned int			mDropHash;			// BYOPOP_DROPCHECK's hash of what was dropped
+
+	// Sets how the pixels were made (taking theSource; NULL forgets it): the pixels as they are now
+	void					SetBitsSource(BitsSource* theSource);
+	bool					BitsSourceValid() const { return (mBitsSource != NULL) && (mBitsSourceCount == mBitsChangedCount); }
+	// Drops the pixels if they can be made again (DDInterface, after an upload); true when it did
+	bool					DropBits();
+	// Brings dropped pixels back as they were (32-bit, or a palette); false when there were none to bring back or the
+	// file could not make them (the pixels are then zero and the picture keeps them)
+	bool					RestoreBits();
+	// GetBits for the framework's own reads of a source picture: as GetBits, but the pixels are not lent
+	ulong*					ReadBits();
+	static bool				DropsBits();		// false with BYOPOP_KEEPBITS=1
+	// The resource manager's alpha steps on 32-bit pixels (its LoadAlphaImage and LoadAlphaGridImage, which call these)
+	static void				ApplyAlphaImage(ulong* theBits, int theCount, const uint32_t* theAlpha);
+	static bool				ApplyAlphaGrid(ulong* theBits, int theWidth, int theHeight, int theRows, int theCols, const uint32_t* theAlpha, int theAlphaWidth, int theAlphaHeight);
+private:
+	void					ForgetDroppedBits();	// the pixels are replaced: what was dropped and how it was made are forgotten
+	unsigned int			HashOfPixels() const;
+public:
 
 	// port: HD pixels, an optional copy at mHDScale times the size that becomes the GPU texture (HD art
 	// from mods, see DDImage.h). They are valid while mHDBitsChangedCount == mBitsChangedCount.

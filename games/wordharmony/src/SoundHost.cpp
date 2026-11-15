@@ -1,7 +1,7 @@
 #include "SoundHost.h"
 
 #include <cmath>
-#include "engine/Host.h"
+#include "sprout/Host.h"
 
 #include <algorithm>
 

@@ -26,6 +26,7 @@ public:
 	std::map<int, Image*> mImages;       // +0xbc
 	std::map<int, Font*> mFonts;         // +0xcc
 	std::vector<Image*> mCreated;        // +0xe0
+	std::vector<Rect> mDirty;            // port: the rects the last Present found changed
 
 	// 0x42ba30 (mahjongchina), 0x431a70 (mahjongjapan)
 	Display();
@@ -37,9 +38,11 @@ public:
 	// 0x42bfc0 (mahjongchina), 0x432000 (mahjongjapan): the screen made for full screen or a window; 0 or a negative
 	// error
 	int SetMode(bool theFullScreen, bool theNoAccel);
-	// 0x42c8a0 (mahjongchina), 0x4328f0 (mahjongjapan): false when the screen cannot be drawn
+	// 0x42c8a0 (mahjongchina), 0x4328f0 (mahjongjapan): false when the screen cannot be drawn. Port: the frame's draws are
+	// kept from here to Present (ScreenLog.h)
 	bool BeginFrame();
-	// 0x42c9b0 (mahjongchina), 0x432a00 (mahjongjapan)
+	// 0x42c9b0 (mahjongchina), 0x432a00 (mahjongjapan): port: the frame drawn, and shown by the host as far as it
+	// differs from the last
 	void Present();
 	// 0x42c9e0 (mahjongchina), 0x432a30 (mahjongjapan) (the windowed present's wait for the blit, nothing in the port)
 	void PresentDone() {}

@@ -2558,8 +2558,15 @@ unmodded play and the oracle are unchanged. Each answers on stdout with one line
 (read through `Platform::FixOn`) with one setting for each fix, all on by default, on the site by default and off when the player turns
 the mod off. It shares the high scores and the saved game with the original (no rules change, so no variant board and no v2
 save). The port without the mod is the original, and a replay never carries a fix: the verifier and the watch play with the
-features of the default configuration. `tools/fixes_test.sh` plays each fix with the mod off and on and checks that only the
-fix differs.
+features of the default configuration. Neither fix can change what a replay plays out, so the verifier takes no fix setting
+(no `-fix=`) and a replay holds none (checked 2026-11-12 for the site, which serves the game with its fixes on): `resumeLook`
+only draws, and puts back every value `SetupLevelData` sets that the save holds; `selection` changes input alone and records
+what it does as a `DESELECT`, which a player applies without reading the fix. That deselect also comes from `MouseDrag`, which
+has no pause or input-delay gate, so the player's gate for a `DESELECT` takes it there too: a board in play whose selection is
+stale (`Board::HasStaleSelection`). Before, a replay with a drag under a pause after a refill was called corrupt. A later fix
+that changes more than input or drawing needs its setting in the replay. `tools/fixes_test.sh` plays each fix with the mod off
+and on and checks that only the fix differs, then records three games with the fixes on (the stale selection dropped by a
+click, by a drag under a pause, and a loaded level 2 game) and has `bejeweled_verify` play each replay out.
 
 **Made**
 - `selection`: a gem selected when Timed mode's board falls out and refills (no move left) stays selected in the original
@@ -2982,3 +2989,9 @@ Collection's, byte for byte. The two sets hold the same pictures. 21 decode to t
 under fully transparent pixels. The port draws both the same: the oracle's playtest and its level-up script give the
 same trace and the same 32 screenshots on either staging. The worktree is restaged from the install as it is now
 (`python -I games/bejeweled/tools/stage_assets.py`), and the unit and verify suites pass on it.
+
+## 24. The lite mod (2026-11-14)
+
+None: `LITE_MOD.md` has what was looked at. The board's whole logic costs about 1 us an update (81 ms in a Timed game of
+84,425 updates, 14 minutes of play), its three scans (`FindMove`, `HasSet`, `NewBoard`) under 2 ms of that, so no change to
+them can be measured; two of the faster methods give the same result anyway, and the third would only move the hint.

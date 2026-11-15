@@ -11,7 +11,7 @@
 //
 // Two localStorage items for the whole site: "byopop-cursors", a JSON object from a game's id to its set, {title, pointer, hand,
 // drag, text, notallowed, wait}, each {url, x, y} (a PNG data URL and its hot spot) or absent; and "byopop-site-cursor", the id of
-// the chosen set, absent for the browser's own cursor. An animated cursor (none of the ported games has one; Banana Bugs will)
+// the chosen set, absent for the browser's own cursor. An animated cursor (Water Bugs' and Cosmic Bugs' pointers, web/flicursor.js)
 // also has frames, [{url, x, y}...] after the first, and ms, the time each shows: browsers animate no cursor image, so the page
 // swaps the frames itself on the element under the mouse, and only while it shows that cursor. The images come from the player's own copy of the game and stay in this browser;
 // forgetting the game's files forgets them too (ByopopGameFiles.forget, web/settings.js).
