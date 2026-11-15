@@ -243,11 +243,12 @@
         "readability",
         "collection",
         "site-features",
-        "identical-look"
+        "identical-look",
+        "lite-mod"
       ],
       "na": [],
       "now": "performance",
-      "note": "the performance target is not met in 3D on the visible desktop: the port takes 3.8 G cycles in 20 s against the original's 2.4 G (1.59), and the whole excess is the Direct3D 11 driver's thread (49% of the port), a shared cost; 0.80 of the original in 2D on the hidden desktop"
+      "note": "the lite mod step done with no mod (c0ee6258: the game's update is under 2% of the process); performance stays open: 3D is 1.26 of the original on a busy machine, half the port's cycles the Direct3D 11 driver thread, which waits on the framework's renderer item; 2D 0.80"
     },
     "astropop": {
       "title": "AstroPop Deluxe",
