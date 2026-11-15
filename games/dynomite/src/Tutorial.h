@@ -44,6 +44,7 @@ public:
 	HyperlinkWidget*	mLinks[4];			// +0xb4 ids 1000-1003: Endless, Stomped, Fossil, Time Trial
 	bool				mOldLockCursor;		// +0xc4 the app's, put back at the end
 	bool				mLinksShown;		// +0xc5
+	unsigned int		mSerial;			// port(livesplit): the tutorial's game number (Dynomite::NextSerial), which the autosplit block reads
 
 	Tutorial(FossilizedApp* theApp);		// 0x43ac40
 	virtual ~Tutorial();					// 0x43aad0

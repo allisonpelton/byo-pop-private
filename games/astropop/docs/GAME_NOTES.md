@@ -82,7 +82,43 @@ The command wrote 0x57 until 2026-11-09, which worked in the run that set it and
 The bot (`move`) plays the weapons too: it clicks the button of the box that explains a weapon (dialog 0x7b), starts a
 charged weapon with Return, fires the laser (Vector) at the bottom brick of the tallest column, puts the pointer on that
 brick and clicks for the psychic (Vixx; two moves inside the cell, because a move lights its cell only when the pointer's
-last position was in the field already) and waits while Sprocket's and Turbot's weapons run by themselves.
+last position was in the field already) and waits while Sprocket's and Turbot's weapons run by themselves. It names the weapon's
+key as a DOM key does (`Enter`): the web page's test kit throws on SDL's `Return`, and the native driver maps `Enter` to it.
+
+A classic game cleared level by level with `win` and the bot (the Splits window's Any% check: 32 level clears in one game) needs the
+bot to answer everything the clears bring. After a `win` the level-up and the warp flight take about 700 to 1000 updates, during
+which the bot waits (`busy` 2, 3 and 5); then it clicks the gate (`gate`), and the boxes on the way (`upgrade`, the stories,
+the hints) with their own buttons. A bonus round (the end of levels 3, 7 ... 31) starts its minute only with a click (`mBonusRoundStarted`,
+`MouseDown`): the bot makes it (`bonus`), and with no group to shoot in the bonus field it waits instead of answering null, as the
+minute runs out by itself (a driver stops at a null). Without those two answers a game stopped in the bonus round of level 7 (native,
+null) or 19 (web) and one stayed in level 23's bonus round for good. `games/astropop/tools/livesplit/scripted.py levels` (native)
+and `games/astropop/tools/web/winlevels.js` (the page, real DOM input) play it: 32 clears and level 33 on the screen, in 4,785 moves
+and 85,200 updates natively and 1,835 moves and 89,500 updates in the page, with 24 upgrade boxes, 7 bonus starts and the
+gate 32 times.
+
+The test command `win` (LevelComplete, called straight) is answered with an ERROR unless the level is in play
+(`Board::WinBlockedReason`, BoardBot.cpp): not with the help, a pause, a story, a level-up, a warp, a bonus round, a count or a game
+over on, and not in a level in which no brick has been taken yet (`mPlayStarted`; `BoardReset` clears it for each level; the bricks the
+ship holds do not count: in a game's first stage (below stage 2) play starts only when the first shot arrives, `BoardArrive`). The original
+calls LevelComplete only from IsSettled in a level being played. A `win` before the first brick of a level was not harmless: the update
+skips `UpdateIntroAndTally` while `mPlayStarted` is false, so a bonus round won that way never ran its warp-in (state frozen at
+`mBonusWarpPhase` 1, the bot's shots going nowhere), and each `win` sent during a bonus round restarted it; under the help or in a warp
+it counted a level clear (`mLevelsCompleted`, the autosplit block's `lc`) that never moved the game on. A driver that retries `win`
+until it answers OK, as the Splits window's does, now plays on until the level is in play; `scripted.py levels`, `winlevels.js` and
+`gotohelp.js` ask again after the next shot.
+
+A game that a test command starts while the full-screen help or a box of the one before is up (`goto classic`, `goto survival`,
+`level`; the original's player cannot, they are modal) left it under the new Board: `StartClassicGame` deletes the old Board and adds the
+new one over the help widget and the dialogs, so they are not drawn and take no click. The help also stays in `mHelpScreen`, which
+holds the Board's updates and input; a box (the warp screen's upgrade box 0x76, the weapon's 0x7b, ...) stays in the dialog map, so
+that the bot goes on answering it, its click reaching the Board (which takes a brick with it: `hand` 1 or 2, the score 0, and `win` refused as
+"play has not started"). The bot then answered "help" or "upgrade" for good, also after `win`; a driver that restarts games over an
+open help or box (the Site session's page did, after its Any% game and with the upgrade box of the last warp still up) met it. The three
+commands close them first (`CloseOldGameScreens` in `testhooks/TestCommands.cpp`, test code only: the help with its own Continue, every
+dialog of ids 100 to 0x7c killed). `games/astropop/tools/web/gotohelp.js` repeats the help case (three restarts over it, then 90 bot
+moves with a `win`: one "help" answer, then shots, the gate and level 2; before: 20 of 20 answers "help") and `winlevels.js` with
+`againat=upgrade` (or `againat=power` with `charge=1`) the box case (before: one "help", then "upgrade" 39 times of 40 moves; after:
+one "help", then shots and a `win` that is answered OK).
 
 A player is two things, and a test that starts with one needs both: the file `users\data<n>.usr` and the registry key
 `Users\<name>` with `Users\LastUser` (the original keeps them under HKLM, the port in its `registry.ini`). `Init` deletes
@@ -889,3 +925,28 @@ so `IsPlaying` is false for both slots when the focus is lost, the paused-slots 
 empty and nothing of its behaviour can be read. The code is the same translated function: `AstroPopApp::PauseMusicForFocus` (0x4252b0) pauses
 each slot that plays and keeps its number in the list, and the regain resumes the listed slots and clears it. A run of the original on the real
 desktop with sound, in the night window, could show it. The sound itself (the port's decoder against BASS) is not compared either.
+
+## 15. The autosplit block (2026-11-12; `docs/WEB_PLAYER.md`, "One design for every port")
+
+AstroPop writes the shared autosplit block, layout 2, id `APDX`, from `src/LiveSplitObserver.cpp` (after each `AstroPopApp::UpdateFrames`). It
+is written once something asks: the web page (`byopop_livesplit_block`, exported in `CMakeLists.txt`), an enabled mod with the feature
+`livesplit` (none exists yet; the mods are looked at once in a hundred updates), or `-livesplitlog=<file>` (a test: one line when the block
+changes but for the clocks, scores and tick). Until then an update costs one test. Three inert values in the Board (`mBoardSerial`,
+`mRestoredGame`, `mGameOverCause`) are the only game code it needed.
+
+| Block field | AstroPop |
+|---|---|
+| mode | `Board::mGameType`: 1 classic, 2 survival; -1 off a game (the demonstration under the title and the menus is no game) |
+| skill | the pilot (`Board::mMode`): 0 Vector, 1 Sprocket, 2 Turbot, 3 Vixx |
+| GO | the first update of a fresh game (classic from level 1, or survival); not a saved game that goes on, not a classic game from a checkpoint or any level but 1 (both set `RESUMED`), not a game already on when the block was asked for |
+| level clear | `Board::LevelComplete`, seen as `mLevelsCompleted` rising: the update in which the goal is reached and the "Level Up" text starts (the levels before a multiple of four start their bonus round at once instead); `progress` = the level just cleared (`mLevelNumber` changes only at the warp gate), 0 before the first, -1 in survival |
+| game over | `Board::GameOver` (`mGameOver`): kind 0 a new row pushed a column to the ship, 1 the stack filled the field, 2 the player left (the menu came up over a game still on), 3 other (a test command's `lose`); no win: the classic game goes on after level 32 |
+| gameOwn | bytes 0 to 3: SUPA weapon starts in this game (`mPowerupActive` going to 1: `BeginPlay`), u32; bytes 4 to 7: the level the game began at, i32 |
+| state | 0 playing, 1 a level is complete (level-up screen, warp, gate), 2 a bonus round, 3 game over |
+| displayLevel | `mLevelNumber` in classic (the "Level N" on screen), `mStageNumber` in survival (a minute of play each) |
+
+Proof that it is inert: `games/astropop/tools/livesplit/inert.sh <dir>` plays check.sh's three bot games with the frozen baseline, the port with
+the block off and the port with it on, and the driver transcripts are identical (1470, 1758 and 2002 lines). `scripted.py` plays the short games
+of the replay logs (classic with two levels cleared, survival, a SUPA start; each ends in `lose`). Kinds 0 and 1 of the game over were not seen in
+a log: the bot does not lose by itself in the time a driver has, and the idle game that was tried stayed paused at a hint; they are read from the
+two places that call `GameOver` (`BoardRows.cpp`, `BoardFill.cpp`).

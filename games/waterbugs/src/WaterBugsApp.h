@@ -17,10 +17,16 @@ namespace Sexy
 {
 
 class MemoryImage;
+class SurfaceDisplay;
 
 class WaterBugsWidget : public Widget
 {
 public:
+	// Where the screen goes: on the native build the window's display (framework/SurfaceDisplay.h) keeps it, from the 32-bit
+	// buffer mScreen32 and the rectangles that changed, and the widget draws nothing; with SURFACE_DISPLAY=off in a test run,
+	// and on the web, the framework's display draws mScreenImage
+	SurfaceDisplay* mSurfaceDisplay;
+	std::vector<uint32_t> mScreen32;
 	MemoryImage* mScreenImage;
 
 	// The screen as the image was last widened from it, and what differs now: blocks (CHANGE_BLOCK pixels square) and
@@ -68,6 +74,9 @@ public:
 	void Shutdown() override;
 	void CloseRequestAsync() override;
 	void SwitchScreenMode(bool theWantWindowed, bool theIs3d, bool theForce = false) override;
+#ifndef __EMSCRIPTEN__
+	DDInterface* CreateDDInterface() override;
+#endif
 	using SexyAppBase::SwitchScreenMode;
 	// -script's "state": logs the score, the lives, the board in its set and the board's filled cells, as the headless
 	// runner (test/gamerun.cpp) prints them

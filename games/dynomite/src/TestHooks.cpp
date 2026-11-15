@@ -59,6 +59,7 @@
 #include "Steggy.h"
 #include "TitleScreen.h"
 #include "Tutorial.h"
+#include "LiveSplitObserver.h"
 
 using namespace Sexy;
 
@@ -479,6 +480,8 @@ void FossilizedApp::HandleCmdLineParam(const std::string& theParamName, const st
 {
 	if (theParamName == "-statelog")
 		mStateLog = fopen(theParamValue.c_str(), "w");
+	else if (theParamName == "-livesplitlog")
+		LiveSplitObserver::SetLogFile(theParamValue);	// port(mod): test hook, a line for each change in the autosplit block
 	else
 		SexyApp::HandleCmdLineParam(theParamName, theParamValue);
 }
@@ -490,6 +493,8 @@ void FossilizedApp::UpdateFrames()
 	if (mStateLog != NULL)
 		LogState();
 	SexyApp::UpdateFrames();
+	// port(mod): the autosplit block, after the update (LiveSplitObserver.h)
+	LiveSplitObserver::AfterUpdate(this);
 }
 
 namespace

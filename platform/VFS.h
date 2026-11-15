@@ -18,6 +18,7 @@
 namespace Platform
 {
 
+#ifndef BYOPOP_DERIVED
 struct VFSRoot
 {
 	std::string mPath;   // absolute or cwd-relative directory on the host FS (no trailing slash)
@@ -35,6 +36,7 @@ struct VFSRemap
 	double mLoopStart = 0;  // music streams: loop restart position in seconds
 	double mVolume = 1.0;   // music: per-track gain multiplier
 };
+#endif
 
 class VFS
 {
@@ -45,6 +47,7 @@ public:
 	void SetBaseDir(const std::string& theDir);
 	const std::string& GetBaseDir() const { return mBaseDir; }
 
+#ifndef BYOPOP_DERIVED
 	// Mod overlay roots, highest priority first. Replaces the current list.
 	void SetModRoots(const std::vector<VFSRoot>& theRoots);
 	const std::vector<VFSRoot>& GetModRoots() const { return mModRoots; }
@@ -56,6 +59,11 @@ public:
 	// Resolves a game-relative path to a real host path, searching mods then the base dir.
 	// Returns an empty string if the file does not exist anywhere.
 	std::string Resolve(const std::string& theGamePath, std::string* theModId = nullptr) const;
+#else
+	// Resolves a game-relative path to a real host path in the base dir (the user dir for "userdata/").
+	// Returns an empty string if the file does not exist.
+	std::string Resolve(const std::string& theGamePath) const;
+#endif
 
 	// Resolves inside a single root only (used for "@2x" and alpha-mask lookups that must come from
 	// the same mod as their colour image).
@@ -89,8 +97,10 @@ public:
 private:
 	std::string mBaseDir = ".";
 	std::string mUserDir = "userdata";
+#ifndef BYOPOP_DERIVED
 	std::vector<VFSRoot> mModRoots;
 	std::map<std::string, VFSRemap> mRemaps;  // key: lower-case normalized game path
+#endif
 	std::map<std::string, std::string> mGenerated;  // key: lower-case normalized game path
 };
 

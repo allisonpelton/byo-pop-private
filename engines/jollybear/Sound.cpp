@@ -256,7 +256,9 @@ void Sound::Load(int theId, bool theLoop)
 	if (aData == nullptr)
 		return;
 	std::vector<uint8_t> aFile(aData, aData + aSize);
-	std::shared_ptr<Platform::SoundData> aSound = Platform::Mixer::Get().LoadSoundData(aFile, "WAVE");
+	// Named by its resource id, the only name the game has for it, as the site's sound panel shows it
+	std::shared_ptr<Platform::SoundData> aSound =
+		Platform::Mixer::Get().LoadSoundData(aFile, "WAVE " + std::to_string(theId & 0xffff));
 	if (aSound == nullptr)
 		return;
 	SoundLog("load %d %08x %d", theId, Crc32(aData, aSize), theLoop ? 1 : 0);

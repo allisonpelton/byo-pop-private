@@ -41,7 +41,7 @@ public:
 	int mReferenceCount = 1;
 	uint32_t* mPixels = nullptr; // set by LoadPixels
 
-	ImageRecord() = default;
+	ImageRecord() {} // 0x42c3f0: its 0x42c4e0 clears the fields, which their initial values do
 	~ImageRecord(); // 0x42c5c0
 	bool Load(const char* theName, int theFrameWidth, int theFrameHeight, int theFrameCount,
 		int theFramesPerSecond); // 0x42c650

@@ -465,8 +465,9 @@ var ByopopSplits = (function () {
       Object.keys(ByopopAutosplit.games).forEach(function (id) {
         var g = ByopopAutosplit.games[id];
         g.templates.forEach(function (t) {
-          var o = make("option", null, g.name + " — " + t.category + " (" + t.sub + ")"); o.value = String(all.length); sel.appendChild(o);
-          all.push({ game: g.name, category: t.category + " - " + t.sub, segments: t.segments });
+          // (a category without subcategories, such as Seven Seas' "Level 30 (Easy)", is named by itself)
+          var o = make("option", null, g.name + " — " + t.category + (t.sub ? " (" + t.sub + ")" : "")); o.value = String(all.length); sel.appendChild(o);
+          all.push({ game: g.name, category: t.sub ? t.category + " - " + t.sub : t.category, segments: t.segments });
         });
       });
       if (sel.options.length) sel.selectedIndex = 0;

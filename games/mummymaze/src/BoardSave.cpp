@@ -11,6 +11,7 @@
 #include "Compat2004.h"
 #include "GameText.h"
 #include "ImageFont.h"
+#include "LiveSplitObserver.h"
 #include "Screens.h"
 #include "MummyApp.h"
 #include "platform/UserFiles.h"
@@ -202,5 +203,6 @@ bool MMApp::LoadGame()
 	}
 	mElapsedBase = aTime;	// signed, as the original's int: a save made before the clock started holds a negative number
 	mGameMode = aMode;
+	LiveSplitObserver::SavedGameLoaded();   // port(mod): the game that starts next resumes a save (the autosplit block's RESUMED)
 	return true;
 }

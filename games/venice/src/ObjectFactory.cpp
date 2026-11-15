@@ -79,7 +79,6 @@ namespace
 		{"firework", Create<Firework>},
 		{"shooter", Create<Shooter>},
 		{"shooter_cursor", Create<ShooterCursor>},
-		{"shooter_path", Create<ShooterPath>},
 		{"scroll_point", Create<ScrollPoint>},
 		{"powerup", Create<Powerup>},
 		{"bonus_basket", Create<BonusBasket>},
@@ -88,13 +87,13 @@ namespace
 		{"endless_panel", Create<EndlessPanel>},
 		{"progress_bar", Create<ProgressBar>},
 		{"level_select", Create<LevelSelect>},
-		{"level_scroller", Create<LevelScroller>},
 		{"level_locker", Create<LevelLocker>},
 		{"tooltip", Create<Tooltip>},
 		{"tutorial", Create<Tutorial>},
 	};
 }
 
+// 0x4076b0: the table of the game's own classes (kClasses) and its search by name
 SceneObject* NewObjectByTypeName(const char* theTypeName)
 {
 	for (const ClassEntry& anEntry : kClasses) {

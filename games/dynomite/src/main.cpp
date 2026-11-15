@@ -4,10 +4,13 @@
 //   -gamedir=<dir>   folder containing the game's images/, data/, sounds/, music/, stomped/, DEFAULT.EGG and
 //                    properties/ (default.xml holds the game's texts)
 //   -userdir=<dir>   writable folder for the saved games, high scores and registry.ini
+//   -modsdir=<dir>   folder containing data mods (one sub-folder per mod; the autosplit block's feature "livesplit")
+//   -nomods          start without any mods
 // Remaining "-key=value" arguments are passed to the app (SexyAppBase::HandleCmdLineParam), e.g. the
 // framework's test hooks -seed=N, -script=<file>, -fast and -trace (see SexyAppBase.h).
 
 #include "FossilizedApp.h"
+#include "platform/ModManager.h"
 #include "platform/SaveImport.h"
 #include "platform/VFS.h"
 #include "platform/WebPersist.h"
@@ -32,6 +35,19 @@ static std::string ArgValue(int argc, char** argv, const char* theKey)
 			return a + n + 1;
 	}
 	return "";
+}
+
+static bool HasFlag(int argc, char** argv, const char* theFlag)
+{
+	for (int i = 1; i < argc; i++)
+	{
+		const char* a = argv[i];
+		while (*a == '-')
+			a++;
+		if (!strcmp(a, theFlag))
+			return true;
+	}
+	return false;
 }
 
 static bool LooksLikeGameDir(const std::string& theDir)
@@ -70,6 +86,7 @@ int main(int argc, char** argv)
 {
 	std::string gameDir = ArgValue(argc, argv, "gamedir");
 	std::string userDir = ArgValue(argc, argv, "userdir");
+	std::string modsDir = ArgValue(argc, argv, "modsdir");
 
 #ifdef __EMSCRIPTEN__
 	// port (web): its page mounts its own IndexedDB-backed folder, so Dynomite's files never mix with the other
@@ -78,6 +95,8 @@ int main(int argc, char** argv)
 		gameDir = "/dypersist/game";
 	if (userDir.empty())
 		userDir = "/dypersist/userdata";
+	if (modsDir.empty())
+		modsDir = "/dypersist/mods";
 #else
 	if (gameDir.empty())
 		gameDir = FindGameDir();
@@ -89,6 +108,8 @@ int main(int argc, char** argv)
 		while (!userDir.empty() && (userDir.back() == '/' || userDir.back() == '\\'))
 			userDir.pop_back();
 	}
+	if (modsDir.empty())
+		modsDir = ExeDir() + "/mods-dynomite";
 #endif
 
 #ifndef __EMSCRIPTEN__
@@ -114,9 +135,13 @@ int main(int argc, char** argv)
 	Platform::MakeDirs(userDir);
 	// Web: saves written as the page was closed may only have reached localStorage
 	Platform::RestoreUserDataBackup(userDir);
+	Platform::MakeDirs(modsDir);
 	Platform::VFS::Get().SetBaseDir(gameDir);
 	Platform::VFS::Get().SetUserDir(userDir);
-	SDL_Log("game: %s | user: %s", gameDir.c_str(), userDir.c_str());
+	Platform::ModManager::Get().SetModsDir(modsDir);
+	if (!HasFlag(argc, argv, "nomods"))
+		Platform::ModManager::Get().Refresh();
+	SDL_Log("game: %s | user: %s | mods: %s", gameDir.c_str(), userDir.c_str(), modsDir.c_str());
 
 	// The original keeps the app as a global object and calls Init, Start and Shutdown on it.
 	static FossilizedApp* anApp = new FossilizedApp();

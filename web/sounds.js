@@ -349,6 +349,7 @@ var ByopopSounds = (function () {
         });
         setCurrent(buttons[0] || null);
         say(T("sounds.count", { n: n }));
+        snapSoon();
         return;
       }
       // the presets first, in a group box of their own: sequences the game plays, as it plays them
@@ -364,7 +365,29 @@ var ByopopSounds = (function () {
       });
       setCurrent(buttons[0] || null);
       say(T("sounds.count", { n: board.count }));
+      snapSoon();
     }
+    // Each label centred on a whole pixel: a label's own width is a fraction of a pixel, so centring it in the button put
+    // some at x.5, which Firefox and Chromium draw blurred beside crisp ones (the user, 2026-11-12: "Tile locked text looks
+    // in focus, Tiles plagued text does not"). Each label gets a whole width of the same parity as the button's inside,
+    // centred by its margins; one wider than the inside fills it and ends in an ellipsis. Done once a label is laid out
+    // (not in a hidden window: a resize of the grid tries again).
+    function snapNames() {
+      buttons.forEach(function (b) {
+        var name = b.firstChild;
+        if (!name || name.style.width) return;
+        var range = document.createRange();
+        range.selectNodeContents(name);
+        var text = range.getBoundingClientRect().width, cs = getComputedStyle(b);
+        var inside = b.clientWidth - Math.round(parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight));
+        if (!text || inside <= 0) return;
+        var w = Math.ceil(text);
+        if ((inside - w) % 2) w++;
+        name.style.width = Math.min(w, inside) + "px";
+      });
+    }
+    function snapSoon() { requestAnimationFrame(snapNames); }
+    if (typeof ResizeObserver === "function") new ResizeObserver(snapSoon).observe(grid);
     // a group box: a fieldset named as its legend, so that screen readers give each button its group; each button named by
     // its label, the tooltip adding when the game plays it (for screen readers, its description)
     function groupBox(name, items, wire) {

@@ -309,6 +309,10 @@ def port(out, script, seed, first, count):
         if None not in counts and abs(counts[1][1] - counts[0][1] - count) <= 10:
             res['draws'] = counts[1][0] - counts[0][0]
             res['updates_counted'] = counts[1][1] - counts[0][1]
+        elif None not in counts:
+            # a mark read late (once in fifteen runs on 2026-11-12, the first mark 48 s after its STATE line, though the
+            # game ran at its own speed): the stretch is not the one asked for, so the run does not count
+            res['invalid'] = 'the update counter moved %d between the marks, not %d' % (counts[1][1] - counts[0][1], count)
     threads.close()
     k32.CloseHandle(h)
     print(json.dumps(res), flush=True)

@@ -1,4 +1,4 @@
-// bwa2_swftest: SwfMovie (swf/) without the game, headless: no window, no sound.
+// bwa2_swftest: SwfMovie (engines/swf) without the game, headless: no window, no sound.
 //
 //     bwa2_swftest [-gamedir=<dir>] [-size=<w>x<h>] [-noplay] [<file>...]
 //     bwa2_swftest [-gamedir=<dir>] [-size=<w>x<h>] -render <file> <frame>[,<frame>...] <out prefix>

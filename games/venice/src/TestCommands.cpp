@@ -340,6 +340,11 @@ bool VeniceApp::HandleScriptCommand(const Sexy::ScriptCommand& theCommand)
 			Error(aLine, "unlock all");
 			return true;
 		}
+		if (gRelaxedScenes.mTail == nullptr || gGameScenes.mTail == nullptr) {
+			// port: the level lists come with the loading's end; a test that asks earlier waits for it
+			Error(aLine, "the levels are not loaded yet");
+			return true;
+		}
 		aProfile.mFlagReachedBuilding3 = 1;
 		aProfile.mFlagFinishedRelaxed = 1;
 		aProfile.mFlagFinishedGame = 1;
@@ -383,6 +388,25 @@ bool VeniceApp::HandleScriptCommand(const Sexy::ScriptCommand& theCommand)
 		else
 			gActiveLevel->LoseTry();
 		Ok(aLine);
+		return true;
+	}
+	if (aName == "player") {
+		// port: the name box's work for a test that does not type the name: the first free slot gets the name, and is the current
+		// player; a player that is chosen already stays
+		if (aProfile.mName[0] != ' ') {
+			Ok(aLine);
+			return true;
+		}
+		std::string aPlayerName = anArg.empty() ? "Test" : anArg;
+		for (int aSlot = 0; aSlot < ProfileCount; aSlot++) {
+			if (gProfiles[aSlot].mName[0] == ' ') {
+				gCurrentProfile = aSlot;
+				strncpy(gProfiles[aSlot].mName, aPlayerName.c_str(), ProfileNameSize - 1);
+				Ok(aLine);
+				return true;
+			}
+		}
+		Error(aLine, "no free player slot");
 		return true;
 	}
 	if (aName == "seed") {
@@ -467,7 +491,8 @@ bool VeniceApp::HandleScriptCommand(const Sexy::ScriptCommand& theCommand)
 			Reply("MOVE {\"kind\":\"wait\",\"input\":[{\"wait\":10}]}");
 		else if (aMove.mAction == BotAction::Swap) {
 			char aText[200];
-			snprintf(aText, sizeof(aText), "MOVE {\"kind\":\"swap\",\"input\":[{\"rclick\":[%d,%d]},{\"wait\":20}]}", aMove.mX, aMove.mY);
+			snprintf(aText, sizeof(aText), "MOVE {\"kind\":\"swap\",\"input\":[{\"press\":[%d,%d],\"button\":\"right\"},{\"wait\":2},{\"release\":[%d,%d],\"button\":\"right\"},{\"wait\":20}]}",
+				aMove.mX, aMove.mY, aMove.mX, aMove.mY);
 			Reply(aText);
 		} else if (aMove.mAction == BotAction::Click) {
 			char aText[200];

@@ -207,6 +207,11 @@ bool PixelusApp::HandleScriptCommand(const ScriptCommand& theCommand)
 				"\"done\":%s,\"busy\":%s,\"tutorial\":%s}", g->mMoveCount, g->mTime, mBoard->mUuid.c_str(), g->mRows, g->mCols,
 				aTiles, g->mDone ? "true" : "false", g->mTileMoving ? "true" : "false", mBoard->mTutorial ? "true" : "false");
 		}
+		// a game still on its title or menus names the mode `goto` starts (the screen saver's `?begin=mode`)
+		if (mBoard == NULL && (mLoadingScreen == NULL || mLoadingScreen->mLoadDone))
+			aLine += ",\"mode\":\"normal\"";
+		if (mBoard != NULL && mBoard->mGrid->mDone)
+			aLine += ",\"over\":true";
 		Reply(aLine + "}");
 		return true;
 	}
@@ -255,6 +260,29 @@ bool PixelusApp::HandleScriptCommand(const ScriptCommand& theCommand)
 
 	if (aCommand == "goto")
 	{
+		if (aFirst == "normal" || aFirst == "expert")
+		{
+			// a game of the mode from its first puzzle in the first temple after the tutorial, with a player made for it
+			if (mLoadingScreen != NULL)
+			{
+				if (!mLoadingScreen->mLoadDone)
+				{
+					ReplyError(theCommand, "the game is still loading");
+					return true;
+				}
+				PlayClicked();
+			}
+			TestClearScreens();
+			if (aUser == NULL)
+				aUser = mUserDirectory->AddUser("Saver");
+			aUser->mFlag38 = aFirst == "expert";
+			mLevelData->mCurrentLevel = gTemples[1].mName;
+			mLevelData->mCurrentPuzzle = 0;
+			StartPuzzle(true);
+			CloseHelp();		// the "how to play" screen a player may ask to see before each puzzle
+			Reply("OK goto " + anArgs);
+			return true;
+		}
 		if (aFirst == "temple" || aFirst == "island" || aFirst == "menu" || aFirst == "credits" || aFirst == "options" || aFirst == "help")
 		{
 			if (mLoadingScreen != NULL)
@@ -307,7 +335,7 @@ bool PixelusApp::HandleScriptCommand(const ScriptCommand& theCommand)
 			Reply("OK goto " + anArgs);
 			return true;
 		}
-		ReplyError(theCommand, "goto menu | island | temple [name or number] | credits | options | help");
+		ReplyError(theCommand, "goto normal | expert | menu | island | temple [name or number] | credits | options | help");
 		return true;
 	}
 

@@ -4,6 +4,7 @@
 #include "GameText.h"
 #include "Board.h"
 #include "HallOfFame.h"
+#include "LiveSplitObserver.h"
 #include "LoaderScreen.h"
 #include "MainMenu.h"
 #include "OptionsDialog.h"
@@ -86,6 +87,7 @@ AstroPopApp::AstroPopApp()
 // 0x42dc30 slot 14 (body 0x42d820)
 AstroPopApp::~AstroPopApp()
 {
+	LiveSplitObserver::AppDestroyed(this);      // port(autosplit): the autosplit block's last write
 	delete mUser;
 	if (gApp == this)
 		gApp = NULL;
@@ -105,6 +107,16 @@ void AstroPopApp::UpdateFrames()
 		mComboPingTimer--;
 	if (mTraceMode)
 		TraceUpdate();
+	LiveSplitObserver::AfterUpdate(this);       // port(autosplit): the autosplit block, after the update
+}
+
+// port(autosplit): -livesplitlog=<file> asks for the block and logs it; everything else is the framework's
+void AstroPopApp::HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue)
+{
+	if (theParamName == "-livesplitlog")
+		LiveSplitObserver::SetLogFile(theParamValue);
+	else
+		SexyApp::HandleCmdLineParam(theParamName, theParamValue);
 }
 
 // 0x4090d0 slot 53: if the options box (id 0x66) is open, its full-screen check box follows the new mode (as a click on it

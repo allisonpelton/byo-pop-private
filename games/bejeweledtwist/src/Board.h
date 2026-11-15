@@ -217,6 +217,7 @@ public:
 	CurvedVal mFruitGlowAlpha;              // +0x340: the fruit glow opacity, by the blast progress
 	CurvedVal mFruitBlastScale;             // +0x3b0: the fruit and its glow scale
 	int mFruitColor = 0;                    // +0x420: the broken fruit colour
+	uint32_t mBoardSerial = 0;             // port(mod): this board's number among the boards made (the autosplit block, LiveSplitObserver.cpp)
 	CurvedVal mBannerStripe;                // +0x428: the mode-unlock banner stripe (0x6b40b5)
 	CurvedVal mBannerShow;                  // +0x498: set by 0x6b40b5; while it is not 0 the mode-unlock banner is drawn and the rank bar draws the overlays above priority 50 under it
 	                                        // rank bar draws the overlays above priority 50 under it

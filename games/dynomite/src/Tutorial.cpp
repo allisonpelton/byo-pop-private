@@ -42,6 +42,7 @@ static void SetKind(GridCell& theCell, int theKind)
 Tutorial::Tutorial(FossilizedApp* theApp)
 {
 	mApp = theApp;
+	mSerial = Dynomite::NextSerial();	// port(livesplit)
 	mStep = -1;
 	mShownStep = -1;
 	// port: the original leaves these to the first Step

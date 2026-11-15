@@ -425,6 +425,7 @@ void WinWSApp::ButtonDepress(int theId)
 				mTutorialUnseen = false;
 				WriteToRegistry();      // slot 18
 				CreateBoard();         // 0x42f3c0
+				mAutosplitContinued = true;     // port: the autosplit observer's flag for a saved game continued
 				mBoard->StartGame(*mStats);     // 0x440130 (the 0x30-byte block by value)
 				if (mUser->mSavedLevel < 100)
 				{

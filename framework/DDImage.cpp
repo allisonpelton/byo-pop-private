@@ -82,8 +82,8 @@ void DDImage::SetBits(ulong* theBits, int theWidth, int theHeight, bool commitBi
 
 ulong* DDImage::GetBits()
 {
-	// (a GPUDisplay has no SDL renderer but is 3D)
-	if (mIsScreen && (mDDInterface != NULL) && ((mDDInterface->mRenderer != NULL) || mDDInterface->mIs3D))
+	// (a GPUDisplay has no SDL renderer but is 3D; a software screen's bits are the screen itself)
+	if (mIsScreen && (mDDInterface != NULL) && (!mDDInterface->ScreenOnCPU()) && ((mDDInterface->mRenderer != NULL) || mDDInterface->mIs3D))
 	{
 		// port: the screen lives on the GPU, so it is read back on every request
 		if (mBits == NULL)
@@ -134,6 +134,80 @@ void DDImage::DeleteNativeData()
 	RemoveTexture();
 }
 
+void DDImage::NoteScreenDrawnTo(const Rect& theRect)
+{
+	Rect aRect = theRect.Intersection(Rect(0, 0, mWidth, mHeight));
+	if ((aRect.mWidth > 0) && (aRect.mHeight > 0))
+		mDDInterface->ScreenDrawn(aRect);
+}
+
+void DDImage::NoteScreenDrawn(float theMinX, float theMinY, float theMaxX, float theMaxY, const Rect& theClipRect)
+{
+	if ((!mIsScreen) || (mDDInterface == NULL) || !(theMinX <= theMaxX) || !(theMinY <= theMaxY))
+		return;
+	// clamped in float, so a bound past an int's range never reaches the conversion
+	float aLeft = std::max(std::floor(theMinX) - 1.0f, (float) theClipRect.mX);
+	float aTop = std::max(std::floor(theMinY) - 1.0f, (float) theClipRect.mY);
+	float aRight = std::min(std::ceil(theMaxX) + 2.0f, (float) (theClipRect.mX + theClipRect.mWidth));
+	float aBottom = std::min(std::ceil(theMaxY) + 2.0f, (float) (theClipRect.mY + theClipRect.mHeight));
+	if ((aRight > aLeft) && (aBottom > aTop))
+		NoteScreenDrawnTo(Rect((int) aLeft, (int) aTop, (int) aRight - (int) aLeft, (int) aBottom - (int) aTop));
+}
+
+// the bounds of a matrix blit's corners, as MemoryImage::BltMatrixHelper places them
+static void MatrixBltBounds(float x, float y, const SexyMatrix3& theMatrix, const Rect& theSrcRect, float& theMinX, float& theMinY, float& theMaxX, float& theMaxY)
+{
+	theMinX = 1e30f;
+	theMinY = 1e30f;
+	theMaxX = -1e30f;
+	theMaxY = -1e30f;
+	for (int i = 0; i < 4; i++)
+	{
+		SexyVector3 v((i & 1) ? theSrcRect.mWidth / 2.0f : -theSrcRect.mWidth / 2.0f, (i & 2) ? theSrcRect.mHeight / 2.0f : -theSrcRect.mHeight / 2.0f, 1);
+		v = theMatrix * v;
+		theMinX = std::min(theMinX, v.x + x - 0.5f);
+		theMaxX = std::max(theMaxX, v.x + x - 0.5f);
+		theMinY = std::min(theMinY, v.y + y - 0.5f);
+		theMaxY = std::max(theMaxY, v.y + y - 0.5f);
+	}
+}
+
+// the bounds of a triangle blit's vertices
+static void TrianglesBounds(const TriVertex theVertices[][3], int theNumTriangles, float tx, float ty, float& theMinX, float& theMinY, float& theMaxX, float& theMaxY)
+{
+	theMinX = 1e30f;
+	theMinY = 1e30f;
+	theMaxX = -1e30f;
+	theMaxY = -1e30f;
+	for (int i = 0; i < theNumTriangles; i++)
+	{
+		for (int j = 0; j < 3; j++)
+		{
+			theMinX = std::min(theMinX, theVertices[i][j].x + tx);
+			theMaxX = std::max(theMaxX, theVertices[i][j].x + tx);
+			theMinY = std::min(theMinY, theVertices[i][j].y + ty);
+			theMaxY = std::max(theMaxY, theVertices[i][j].y + ty);
+		}
+	}
+}
+
+// the bounds of scan lines' spans
+static Rect SpansBounds(const Span* theSpans, int theSpanCount)
+{
+	if (theSpanCount <= 0)
+		return Rect(0, 0, 0, 0);
+	int aLeft = theSpans[0].mX, aTop = theSpans[0].mY;
+	int aRight = aLeft + theSpans[0].mWidth, aBottom = aTop + 1;
+	for (int i = 1; i < theSpanCount; ++i)
+	{
+		aLeft = std::min(theSpans[i].mX, aLeft);
+		aRight = std::max(theSpans[i].mX + theSpans[i].mWidth, aRight);
+		aTop = std::min(theSpans[i].mY, aTop);
+		aBottom = std::max(theSpans[i].mY + 1, aBottom);
+	}
+	return Rect(aLeft, aTop, aRight - aLeft, aBottom - aTop);
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 bool DDImage::PolyFill3D(const Point theVertices[], int theNumVertices, const Rect* theClipRect, const Color& theColor, int theDrawMode, int tx, int ty, bool convex)
@@ -155,6 +229,7 @@ void DDImage::FillRect(const Rect& theRect, const Color& theColor, int theDrawMo
 		return;
 	}
 
+	NoteScreenDrawn(theRect);
 	MemoryImage::FillRect(theRect, theColor, theDrawMode);
 }
 
@@ -172,6 +247,7 @@ void DDImage::ClearRect(const Rect& theRect)
 		return;
 	}
 
+	NoteScreenDrawn(theRect);
 	MemoryImage::ClearRect(theRect);
 }
 
@@ -183,6 +259,7 @@ void DDImage::DrawLine(double theStartX, double theStartY, double theEndX, doubl
 		return;
 	}
 
+	NoteScreenDrawn((float) std::min(theStartX, theEndX), (float) std::min(theStartY, theEndY), (float) std::max(theStartX, theEndX), (float) std::max(theStartY, theEndY), Rect(0, 0, mWidth, mHeight));
 	MemoryImage::DrawLine(theStartX, theStartY, theEndX, theEndY, theColor, theDrawMode);
 }
 
@@ -194,6 +271,7 @@ void DDImage::DrawLineAA(double theStartX, double theStartY, double theEndX, dou
 		return;
 	}
 
+	NoteScreenDrawn((float) std::min(theStartX, theEndX), (float) std::min(theStartY, theEndY), (float) std::max(theStartX, theEndX), (float) std::max(theStartY, theEndY), Rect(0, 0, mWidth, mHeight));
 	MemoryImage::DrawLineAA(theStartX, theStartY, theEndX, theEndY, theColor, theDrawMode);
 }
 
@@ -205,6 +283,7 @@ void DDImage::FillScanLines(Span* theSpans, int theSpanCount, const Color& theCo
 		return;
 	}
 
+	NoteScreenDrawn(SpansBounds(theSpans, theSpanCount));
 	MemoryImage::FillScanLines(theSpans, theSpanCount, theColor, theDrawMode);
 }
 
@@ -238,6 +317,7 @@ void DDImage::FillScanLinesWithCoverage(Span* theSpans, int theSpanCount, const 
 		return;
 	}
 
+	NoteScreenDrawn(SpansBounds(theSpans, theSpanCount));
 	MemoryImage::FillScanLinesWithCoverage(theSpans, theSpanCount, theColor, theDrawMode, theCoverage, theCoverX, theCoverY, theCoverWidth, theCoverHeight);
 }
 
@@ -253,6 +333,7 @@ void DDImage::Blt(Image* theImage, int theX, int theY, const Rect& theSrcRect, c
 		return;
 	}
 
+	NoteScreenDrawn(Rect(theX, theY, theSrcRect.mWidth, theSrcRect.mHeight));
 	MemoryImage::Blt(theImage, theX, theY, theSrcRect, theColor, theDrawMode);
 }
 
@@ -272,6 +353,7 @@ void DDImage::BltF(Image* theImage, float theX, float theY, const Rect& theSrcRe
 		return;
 	}
 
+	NoteScreenDrawn(theX, theY, theX + theSrcRect.mWidth, theY + theSrcRect.mHeight, theClipRect);
 	MemoryImage::BltF(theImage, theX, theY, theSrcRect, theClipRect, theColor, theDrawMode);
 }
 
@@ -295,6 +377,13 @@ void DDImage::BltRotated(Image* theImage, float theX, float theY, const Rect& th
 		return;
 	}
 
+	if (mIsScreen && (mDDInterface != NULL))
+	{
+		FRect aBounds;
+		float aX = theX, aY = theY;
+		if (BltRotatedClipHelper(aX, aY, theSrcRect, theClipRect, theRot, aBounds, theRotCenterX, theRotCenterY))
+			NoteScreenDrawn(aBounds.mX, aBounds.mY, aBounds.mX + aBounds.mWidth, aBounds.mY + aBounds.mHeight, theClipRect);
+	}
 	MemoryImage::BltRotated(theImage, theX, theY, theSrcRect, theClipRect, theColor, theDrawMode, theRot, theRotCenterX, theRotCenterY);
 }
 
@@ -350,6 +439,7 @@ void DDImage::StretchBlt(Image* theImage, const Rect& theDestRect, const Rect& t
 	// the destination's size, then blitted with the draw's colour, mode and clip. MemoryImage::StretchBlt keeps neither
 	// colour nor mode, so an additive stretch drew its black background (Bejeweled Twist's picture of the board at a
 	// challenge's end)
+	NoteScreenDrawn(theDestRect.Intersection(theClipRect));
 	MemoryImage* aSource = dynamic_cast<MemoryImage*>(theImage);
 	if ((mDDInterface != NULL) && mDDInterface->mSoftwareStretch && (aSource != NULL) && !mHasAlpha && !mHasTrans &&
 		(theDestRect.mWidth > 0) && (theDestRect.mHeight > 0))
@@ -375,17 +465,8 @@ void DDImage::BltMatrix(Image* theImage, float x, float y, const SexyMatrix3& th
 	{
 		if (mDDInterface->mSoftwareTransforms && (theDrawMode == Graphics::DRAWMODE_NORMAL) && (dynamic_cast<MemoryImage*>(theImage) != NULL))
 		{
-			// the corners as MemoryImage::BltMatrixHelper places them
-			float aMinX = 1e30f, aMinY = 1e30f, aMaxX = -1e30f, aMaxY = -1e30f;
-			for (int i = 0; i < 4; i++)
-			{
-				SexyVector3 v((i & 1) ? theSrcRect.mWidth / 2.0f : -theSrcRect.mWidth / 2.0f, (i & 2) ? theSrcRect.mHeight / 2.0f : -theSrcRect.mHeight / 2.0f, 1);
-				v = theMatrix * v;
-				aMinX = std::min(aMinX, v.x + x - 0.5f);
-				aMaxX = std::max(aMaxX, v.x + x - 0.5f);
-				aMinY = std::min(aMinY, v.y + y - 0.5f);
-				aMaxY = std::max(aMaxY, v.y + y - 0.5f);
-			}
+			float aMinX, aMinY, aMaxX, aMaxY;
+			MatrixBltBounds(x, y, theMatrix, theSrcRect, aMinX, aMinY, aMaxX, aMaxY);
 			BltSoftwareTransformed(aMinX, aMinY, aMaxX, aMaxY, theClipRect, theDrawMode,
 				[&](MemoryImage& theCopy, int theDX, int theDY, const Rect& theCopyClip)
 				{ theCopy.BltMatrix(theImage, x + theDX, y + theDY, theMatrix, theCopyClip, theColor, theDrawMode, theSrcRect, blend); });
@@ -395,6 +476,12 @@ void DDImage::BltMatrix(Image* theImage, float x, float y, const SexyMatrix3& th
 		return;
 	}
 
+	if (mIsScreen && (mDDInterface != NULL))
+	{
+		float aMinX, aMinY, aMaxX, aMaxY;
+		MatrixBltBounds(x, y, theMatrix, theSrcRect, aMinX, aMinY, aMaxX, aMaxY);
+		NoteScreenDrawn(aMinX, aMinY, aMaxX, aMaxY, theClipRect);
+	}
 	MemoryImage::BltMatrix(theImage, x, y, theMatrix, theClipRect, theColor, theDrawMode, theSrcRect, blend);
 }
 
@@ -406,17 +493,8 @@ void DDImage::BltTrianglesTex(Image* theTexture, const TriVertex theVertices[][3
 	{
 		if (mDDInterface->mSoftwareTransforms && (theDrawMode == Graphics::DRAWMODE_NORMAL) && (dynamic_cast<MemoryImage*>(theTexture) != NULL))
 		{
-			float aMinX = 1e30f, aMinY = 1e30f, aMaxX = -1e30f, aMaxY = -1e30f;
-			for (int i = 0; i < theNumTriangles; i++)
-			{
-				for (int j = 0; j < 3; j++)
-				{
-					aMinX = std::min(aMinX, theVertices[i][j].x + tx);
-					aMaxX = std::max(aMaxX, theVertices[i][j].x + tx);
-					aMinY = std::min(aMinY, theVertices[i][j].y + ty);
-					aMaxY = std::max(aMaxY, theVertices[i][j].y + ty);
-				}
-			}
+			float aMinX, aMinY, aMaxX, aMaxY;
+			TrianglesBounds(theVertices, theNumTriangles, tx, ty, aMinX, aMinY, aMaxX, aMaxY);
 			BltSoftwareTransformed(aMinX, aMinY, aMaxX, aMaxY, theClipRect, theDrawMode,
 				[&](MemoryImage& theCopy, int theDX, int theDY, const Rect& theCopyClip)
 				{ theCopy.BltTrianglesTex(theTexture, theVertices, theNumTriangles, theCopyClip, theColor, theDrawMode, tx + theDX, ty + theDY, blend); });
@@ -426,6 +504,12 @@ void DDImage::BltTrianglesTex(Image* theTexture, const TriVertex theVertices[][3
 		return;
 	}
 
+	if (mIsScreen && (mDDInterface != NULL))
+	{
+		float aMinX, aMinY, aMaxX, aMaxY;
+		TrianglesBounds(theVertices, theNumTriangles, tx, ty, aMinX, aMinY, aMaxX, aMaxY);
+		NoteScreenDrawn(aMinX, aMinY, aMaxX, aMaxY, theClipRect);
+	}
 	MemoryImage::BltTrianglesTex(theTexture, theVertices, theNumTriangles, theClipRect, theColor, theDrawMode, tx, ty, blend);
 }
 
@@ -470,6 +554,7 @@ void DDImage::BltMirror(Image* theImage, int theX, int theY, const Rect& theSrcR
 		return;
 	}
 
+	NoteScreenDrawn(Rect(theX, theY, theSrcRect.mWidth, theSrcRect.mHeight));
 	MemoryImage aMirrorImage(mApp);
 	if (CreateMirroredImage(theImage, theSrcRect, aMirrorImage))
 		MemoryImage::Blt(&aMirrorImage, theX, theY, Rect(0, 0, theSrcRect.mWidth, theSrcRect.mHeight), theColor, theDrawMode);
@@ -486,6 +571,7 @@ void DDImage::StretchBltMirror(Image* theImage, const Rect& theDestRect, const R
 		return;
 	}
 
+	NoteScreenDrawn(theDestRect.Intersection(theClipRect));
 	MemoryImage aMirrorImage(mApp);
 	if (CreateMirroredImage(theImage, theSrcRect, aMirrorImage))
 		MemoryImage::StretchBlt(&aMirrorImage, theDestRect, Rect(0, 0, theSrcRect.mWidth, theSrcRect.mHeight), theClipRect, theColor, theDrawMode, fastStretch);

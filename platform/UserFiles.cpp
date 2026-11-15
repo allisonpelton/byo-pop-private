@@ -1,6 +1,8 @@
 #include "UserFiles.h"
 #include "VFS.h"
+#ifndef BYOPOP_DERIVED
 #include "WebPersist.h"
+#endif
 
 #include <cstdio>
 #include <cstring>
@@ -13,7 +15,9 @@
 namespace Platform
 {
 
+#ifndef BYOPOP_DERIVED
 static void (*gUserDataChanged)() = nullptr;
+#endif
 
 #ifdef _WIN32
 // UTF-8 to UTF-16 for the wide file API; empty if the text is not UTF-8
@@ -100,15 +104,19 @@ bool WriteUserFileAtomic(const std::string& theRelPath, const std::string& theDa
 		ok = ReplaceHostFile(aTemp, aPath);
 	if (!ok)
 		RemoveHostFile(aTemp);
+#ifndef BYOPOP_DERIVED
 	UserDataChanged();
+#endif
 	return ok;
 }
 
 bool RenameUserFile(const std::string& theFrom, const std::string& theTo)
 {
 	bool ok = ReplaceHostFile(UserPath(theFrom), UserPath(theTo));
+#ifndef BYOPOP_DERIVED
 	if (ok)
 		UserDataChanged();
+#endif
 	return ok;
 }
 
@@ -117,10 +125,13 @@ bool RemoveUserFile(const std::string& theRelPath)
 	std::string aPath = UserPath(theRelPath);
 	if (!IsFile(aPath) || !RemoveHostFile(aPath))
 		return false;
+#ifndef BYOPOP_DERIVED
 	UserDataChanged();
+#endif
 	return true;
 }
 
+#ifndef BYOPOP_DERIVED
 void SetUserDataChangedCallback(void (*theCallback)())
 {
 	gUserDataChanged = theCallback;
@@ -136,5 +147,6 @@ void UserDataChanged()
 		BackupUserData(std::vector<BackupFile>());
 #endif
 }
+#endif
 
 }

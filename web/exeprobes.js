@@ -18,6 +18,7 @@ var ByopopExeProbes = {
   bookwormadv2: { files: ["BookwormAdventuresVol2.exe"], probes: [{ va: 0x006f6ab8, len: 8, fnv: 0xab43d664 }] },
   cosmicbugs: { files: ["CosmicBugs.exe"], probes: [{ va: 0x00458a94, len: 8, fnv: 0x372c6a2f }] },
   dynomite: { files: ["Dynomite.exe"], probes: [{ va: 0x004f7594, len: 6, fnv: 0xde281feb }] },
+  heavyweapon: { files: ["Heavy Weapon Deluxe.exe", "HeavyWeapon.exe"], probes: [{ va: 0x0052b190, len: 12, fnv: 0xb163b8af }] }, // PopCap's own build, its image after the launcher's marker
   mahjongchina: { files: ["MahjongEscapeAC.exe"], probes: [{ va: 0x005240fc, len: 4, fnv: 0xad6079dc }] },
   mahjongjapan: { files: ["MahjongEscapeAJ.exe"], probes: [{ va: 0x005250fc, len: 6, fnv: 0x47d8a4ab }] },
   mummymaze: { files: ["WinMM.exe"], probes: [{ va: 0x0048d1a0, len: 11, fnv: 0xb02e2b14 }] },

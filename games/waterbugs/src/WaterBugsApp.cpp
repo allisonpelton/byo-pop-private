@@ -16,6 +16,9 @@
 #include "WidgetManager.h"
 #include "platform/VFS.h"
 #include "WebSettings.h"
+#ifndef __EMSCRIPTEN__
+#include "SurfaceDisplay.h"
+#endif
 
 #include <SDL.h>
 #include <cstdint>
@@ -228,13 +231,26 @@ void BuildPixelsFromScreen16()
 
 WaterBugsWidget::WaterBugsWidget()
 {
-	mScreenImage = new MemoryImage(gApp);
-	mScreenImage->Create(r64::SCREEN_WIDTH, r64::SCREEN_HEIGHT);
-	// opaque, so that the framework need not look through the 480000 pixels for alpha after each change, and with every
-	// alpha byte 0xff (Draw), so that it need not premultiply them pixel by pixel to upload them (the Mahjong ports'
-	// screen)
-	mScreenImage->SetImageMode(false, false);
-	mScreenImage->mUploadAsIs = true;
+	mSurfaceDisplay = nullptr;
+	mScreenImage = nullptr;
+#ifndef __EMSCRIPTEN__
+	mSurfaceDisplay = dynamic_cast<SurfaceDisplay*>(gApp->mDDInterface);
+#endif
+	if (mSurfaceDisplay != nullptr)
+	{
+		// the window's display shows this buffer (every alpha byte 0xff as the table gives it, though it reads none)
+		mScreen32.assign(r64::SCREEN_WIDTH * r64::SCREEN_HEIGHT, 0xff000000);
+	}
+	else
+	{
+		mScreenImage = new MemoryImage(gApp);
+		mScreenImage->Create(r64::SCREEN_WIDTH, r64::SCREEN_HEIGHT);
+		// opaque, so that the framework need not look through the 480000 pixels for alpha after each change, and with every
+		// alpha byte 0xff (Draw), so that it need not premultiply them pixel by pixel to upload them (the Mahjong ports'
+		// screen)
+		mScreenImage->SetImageMode(false, false);
+		mScreenImage->mUploadAsIs = true;
+	}
 	BuildPixelsFromScreen16();
 	mWantsFocus = true;
 }
@@ -345,43 +361,61 @@ void WaterBugsWidget::CollectChangedRects()
 	}
 }
 
-// What the original presented since the last copy goes to the image: just the rectangles that changed are widened (and
-// stay in mChangedRects until the next Draw), and the framework uploads the image if there were any
+// The rectangles of the screen widened into a 32-bit picture (the image's pixels, or the display's buffer) and into the copy
+// the next comparison is made against
+template <typename Pixel>
+static void WidenRects(Pixel* thePixels, const uint16_t* theScreen, uint16_t* theCopiedScreen, const std::vector<Rect>& theRects)
+{
+	for (const Rect& aRect : theRects)
+	{
+		for (int y = aRect.mY; y < aRect.mY + aRect.mHeight; y++)
+		{
+			const uint16_t* aSource = theScreen + y * r64::SCREEN_WIDTH;
+			Pixel* aDestination = thePixels + y * r64::SCREEN_WIDTH;
+			for (int x = aRect.mX; x < aRect.mX + aRect.mWidth; x++)
+				aDestination[x] = gPixelsFromScreen16[aSource[x]];
+			std::memcpy(theCopiedScreen + y * r64::SCREEN_WIDTH + aRect.mX, aSource + aRect.mX, aRect.mWidth * 2);
+		}
+	}
+}
+
+// What the original presented since the last copy goes to the picture: just the rectangles that changed are widened (and
+// stay in mChangedRects until the next Draw), and the window's display (or, without it, the framework) shows them
 void WaterBugsWidget::Draw(Graphics* g)
 {
 	WaterBugsApp* anApp = gApp;
 	if (anApp->mPresented)
 	{
-		ulong* aBits = mScreenImage->GetBits();
-		if (mCopiedScreen.empty())
+		anApp->mPresented = false;
+		bool aFirstPicture = mCopiedScreen.empty();
+		if (aFirstPicture)
 		{
 			// the first picture is the whole screen
-			for (int i = 0; i < r64::SCREEN_WIDTH * r64::SCREEN_HEIGHT; i++)
-				aBits[i] = gPixelsFromScreen16[anApp->mScreen[i]];
-			mCopiedScreen = anApp->mScreen;
-			mScreenImage->BitsChanged();
+			mCopiedScreen.assign(r64::SCREEN_WIDTH * r64::SCREEN_HEIGHT, 0);
+			mChangedRects.assign(1, Rect(0, 0, r64::SCREEN_WIDTH, r64::SCREEN_HEIGHT));
 		}
 		else
 		{
 			FindChangedBlocks();
 			CollectChangedRects();
-			for (const Rect& aRect : mChangedRects)
-			{
-				for (int y = aRect.mY; y < aRect.mY + aRect.mHeight; y++)
-				{
-					const uint16_t* aSource = &anApp->mScreen[y * r64::SCREEN_WIDTH];
-					ulong* aDestination = &aBits[y * r64::SCREEN_WIDTH];
-					for (int x = aRect.mX; x < aRect.mX + aRect.mWidth; x++)
-						aDestination[x] = gPixelsFromScreen16[aSource[x]];
-					std::memcpy(&mCopiedScreen[y * r64::SCREEN_WIDTH + aRect.mX], aSource + aRect.mX, aRect.mWidth * 2);
-				}
-			}
-			if (!mChangedRects.empty())
-				mScreenImage->BitsChanged();
 		}
-		anApp->mPresented = false;
+#ifndef __EMSCRIPTEN__
+		if (mSurfaceDisplay != nullptr)
+		{
+			WidenRects(mScreen32.data(), anApp->mScreen.data(), mCopiedScreen.data(), mChangedRects);
+			if (aFirstPicture)
+				mSurfaceDisplay->SetFrame(mScreen32.data(), r64::SCREEN_WIDTH * 4, nullptr, -1);
+			else if (!mChangedRects.empty())
+				mSurfaceDisplay->SetFrame(mScreen32.data(), r64::SCREEN_WIDTH * 4, mChangedRects.data(), (int)mChangedRects.size());
+			return;
+		}
+#endif
+		WidenRects(mScreenImage->GetBits(), anApp->mScreen.data(), mCopiedScreen.data(), mChangedRects);
+		if (!mChangedRects.empty())
+			mScreenImage->BitsChanged();
 	}
-	g->DrawImage(mScreenImage, 0, 0);
+	if (mScreenImage != nullptr)
+		g->DrawImage(mScreenImage, 0, 0);
 }
 
 // The framework's key codes are Windows' virtual keys, which the original's window procedure got
@@ -442,12 +476,33 @@ WaterBugsApp::WaterBugsApp()
 
 WaterBugsApp::~WaterBugsApp()
 {
+#ifndef __EMSCRIPTEN__
+	// the display must not keep the widget's buffer past the widget
+	if (SurfaceDisplay* aDisplay = dynamic_cast<SurfaceDisplay*>(mDDInterface))
+		aDisplay->SetFrame(nullptr, 0, nullptr, -1);
+#endif
 	if (mWidget != nullptr)
 	{
 		mWidgetManager->RemoveWidget(mWidget);
 		delete mWidget;
 	}
 }
+
+#ifndef __EMSCRIPTEN__
+DDInterface* WaterBugsApp::CreateDDInterface()
+{
+	// test only (a test run reads it): SURFACE_DISPLAY=off keeps the framework's own display and the widget's image (the path
+	// before the SurfaceDisplay), to measure the two against each other. IsTestRun reads the environment too, and SDL_getenv
+	// answers from one shared buffer on Windows, so it is asked first and the value used before the next SDL_getenv
+	if (IsTestRun())
+	{
+		const char* aMode = SDL_getenv("SURFACE_DISPLAY");
+		if ((aMode != nullptr) && (strcmp(aMode, "off") == 0))
+			return SexyAppBase::CreateDDInterface();
+	}
+	return new SurfaceDisplay(this);
+}
+#endif
 
 // 0x42b340 (WinMain: cp.cfg, the window and the screen, the sound, the game; what follows GameMain is Shutdown)
 void WaterBugsApp::Init()
