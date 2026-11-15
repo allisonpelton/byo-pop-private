@@ -299,3 +299,89 @@ battleship's fixed points (each reads as the design); one projectile hit an upda
   of the game-over box's quit button. The main menu has no "more games" button in this version (0x425c40 places the same
   six buttons as the port), so no gap needed closing. The exe's links (the update check, the registration and beta
   pages, DirectX's) are all in what is left out, and no code in the port opens a link.
+
+## The readability pass (2026-11-14)
+
+The port was written to `docs/CODE_STANDARDS.md` from its first draft, so the pass is the tools' runs and a read of what
+they flag. `tools/namecheck.py games/heavyweapon` finds nothing in 112 files (24 lines allowed by `namecheck.txt`).
+`tools/splitfields.py heavyweapon --export re/heavyweapon/gh/decomp` finds no field declared twice and none read but
+never written. Six fields are written and never read: the board's projectiles destroyed, shots fired and shots missed
+of the level (the app's statistics keep the totals), its tank speed, a background strip's load flag and a player's best
+score (saved, never shown). Their comments now say that nothing reads them; they stay, as the board and the player
+record keep the original's layout. Its 14 places where the original's function touches a member that the translation
+never names were each read, and none is a missing read or write: the eye boss's bolt delay is in a helper split out of
+its update; the final boss's sprites are deleted in its destructor, whose address the tool pins on the next function;
+the enemies' sprite is read through `GetCelWidth`; the map's drag (+0x68) is a call through the vtable, not a field; the
+map's button handler is called with its listener's `this` (+0x58), so its offsets are other fields'; the background
+animations' update starts with a call of `GetBossIndex` whose answer the original throws away, and which changes
+nothing; the title's +0x60 is the copy of the app's loading count that nothing reads (left out, `TitleScreen.h`); and
+the cutscene's start asks the Flash control whether the movie loaded, which the port's SWF player answers in its own
+way ("The cutscenes" in the deviations).
+
+## Coverage check (2026-11-14)
+
+The whole check of `docs/COVERAGE.md`. origrun's `--coverage` recorded which of the original's functions ran in 36
+runs on the host, all through idplay on the virtual clock (`tools/idplay/idplay.py original <scenario> --coverage
+build/coverage/heavyweapon/functions.txt`, each run's hits kept beside its log as `orig_coverage.txt`): the six
+phase-two tours, the 19 boss fights, the six level scenarios, the two campaigns and survival, and two scenarios made
+for the check. `coverage_ui` gives the input no other scenario gives: the first name box's OK with no name and the box
+that refuses it, the main menu's survival while it is locked, the options' sound sliders dragged and clicked and their
+cursor and hints boxes ticked and unticked, the player list's new-player line and that box's CANCEL, the main menu's
+help left up through its four turns and its box ticked and unticked, and then level 1's single shots up to the
+auto-fire tip, the tip's box and OK, a typed letter, the space bar's pause and resume, the right button's nuke and the
+focus lost and regained. `survival_over` is survival's game and then the game-over box's QUIT. idplay's original side
+now passes `rclick`, `keydown` and `keyup` on. No run had the real clock: the mixer and the music are the shared
+framework's and BASS's, outside the game's code.
+
+`coverage.txt` sets the game's own code as 0x401000-0x44ba10, the shared framework being everything after it. Of its
+1050 functions the first 13 runs reached 730 and all 36 reach 801.
+
+Two runs (boss3 and the first `coverage_ui`) went wrong without failing: origrun began reading the game's counter about
+20 s late, the game ran on to update 278 or 774, and every input up to then was posted at once. idplay now runs the
+original again when its first input came late (`late_start`, up to three tries); the fix in origrun itself went to the
+coordinator.
+
+**Reached in the original with no counterpart in the port: 198 after the first runs, 6 more from the later ones, none
+at the end.**
+
+- **Left out on purpose: 186, as `none` lines with their reasons.** One Sonnet agent sorted the first 198 (5 minutes).
+  182 are what the compiler and the C++ library make: 104 std::vector, list, map and string helpers, 23 of the string
+  streams' formatting, 6 locale facet helpers, 6 std::map<std::string> helpers, 3 more string and vector helpers, 37
+  scalar deleting destructors, and the destructor bodies of the banner, the bracket button and the armory's arrow
+  button, which the port's compiler writes. The other 4 are the shared framework's XMLElement constructor and
+  destructor, a ButtonListener stub with no callers (0x40b970), and the player list's Draw ("Not translated").
+- **Placed: 17.** ObjectList's Remove and Clear for its other kinds of item, the walk of its destructor, the base
+  classes' vtable resets inside Enemy's and Projectile's destructors, and the deleting destructors of the blimp, the two
+  helicopters, the air mine and the burst rocket, each address now in the comment of the port function that holds it.
+- **Translated: 1.** NukeBlast's destructor (0x428a20) empties its fires and its smoke before the lists' own destructors
+  run. The port's implicit destructor freed the same, so nothing changes, but it is now the original's own:
+  `tools/check.sh heavyweapon` gives what it gave before it.
+- **No missing game logic was found.**
+
+**Defined in the port, never reached: 121 after the first runs, 57 at the end.** The later runs reached 64 of them, the
+bosses, the craft and the dialogs above. Of the 57:
+
+- **Read again against the export: 50, no slip.** A second Sonnet agent read 47 (8 minutes): the bosses' kills,
+  destructors and sound restores (the ape, the battleship and its turret, the eye, the head, the helicopter's turret,
+  the rainer and the wrecker), bosses no run beats (the weak bosses of shots_middle and shots_final are levels 8 and
+  9's, 18 and 19's and the final one) and no run pauses before; the mega laser (`UseMegaLaser`, `UpdateMegaLaser`) and
+  the ground flash the robot boss's bolt makes; the bolt itself (constructor, update, draw, destructor); the meteors;
+  the burst rocket's burst; the kills of the supply helicopter, the blimp, the fat bomber and three ground units; and an
+  armory tile's hover, which no run's cursor crossed. One remark stays: the
+  bolt's draw takes its sine and cosine from the C library, as the rest of the drawing does ("The x87's sines"), so a
+  corner that lands exactly on a whole pixel could stand a pixel from the original's; no run draws it. The other three
+  were read here: the one-argument `SwitchScreenMode`, not run because it would change the machine's display mode;
+  `FatalError`, which only a failed load reaches; and FlakBurst's destructor, which runs only for a burst still in its
+  list when the list is cleared, and only resets the vtable.
+- **Reached by nothing in the original, and needed by the port: 4.** The deleting destructors of the app (0x40cff0)
+  and of the board's particles (0x42bc10), neither of which is ever deleted through a pointer; the port has only the
+  destructor's declaration for each. Enemy's and Projectile's own destructors (0x431600, 0x447810), which only a plain
+  Enemy or Projectile would run; none is made, and each derived class has them inline. C++ needs both.
+- **Candidates for taking out unneeded code: 3.** The Resize overrides of the cutscene, the map and the results
+  screens (0x41ede0, 0x423f40, 0x426bc0). The original's constructors call Widget's Resize and place the children
+  themselves, and nothing resizes these screens later, so nothing calls the overrides; the port's map constructor
+  calls its own, which does the same. They stay until the pass that takes out unneeded code.
+
+The check took about an hour and a half of machine time, one game process at a time (the port recording the next
+scenario beside the original), and the two agents' 340,000 tokens. Every change to the sources but the NukeBlast
+destructor was a comment.

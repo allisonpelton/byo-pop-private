@@ -71,7 +71,7 @@ struct BackgroundAnimInfo
 	int					mY;				// +0x20 y of its centre
 	double				mMoveX;			// +0x28 mx: pixels added to x each update
 	bool				mHasNukedFrame;	// +0x30 nuke: the strip's last frame shows it nuked
-	bool				mLoadFailed;	// +0x31 the strip did not load (the loader stops at once then)
+	bool				mLoadFailed;	// +0x31 cleared once the strip has loaded (a failed load stops the game); nothing reads it
 	std::vector<double>	mFrameDelays;	// +0x34 each frame's speed: speed, or a Delay line's
 	bool				mPlaysOnce;		// +0x48 type is not "looping"
 	bool				mRare;			// +0x4c rare
@@ -88,7 +88,7 @@ struct UserRecord
 	};
 
 	char			mName[0x18];		// +0x00
-	int				mBestScore;			// +0x18 the score when mMaxLevel last rose
+	int				mBestScore;			// +0x18 the score when mMaxLevel last rose; saved, and nothing reads it
 	unsigned short	mLevel;				// +0x1c the level of the campaign in progress
 	unsigned short	mMaxLevel;			// +0x1e the furthest level reached
 	int				mBestSurvivalTime;	// +0x20 the longest survival, in updates

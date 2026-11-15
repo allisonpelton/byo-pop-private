@@ -536,11 +536,14 @@
         "port",
         "identical-play",
         "identical-look",
-        "fixes-mod"
+        "fixes-mod",
+        "readability",
+        "coverage",
+        "registration-out"
       ],
       "na": [],
-      "now": "readability",
-      "note": "phase two of identical play and the fixes mod merged (88a6a55e, ea2bde71): three fixes read through Platform::FixOn, savedBonuses and survivalBest on, wormHead off; the readability pass under way"
+      "now": "performance",
+      "note": "readability (1a205bd4) and the coverage check (7fcccaee) merged: 36 origrun runs reach 801 of the 1050 game functions, none without a counterpart, the 57 never reached read again or explained; now the performance pass"
     },
     "hammerheads": {
       "title": "Hammer Heads Deluxe",
