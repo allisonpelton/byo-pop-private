@@ -63,6 +63,10 @@ public:
 	bool mIs3D;  // true when the renderer is hardware accelerated and the game has not switched 3D off (SexyAppBase::Set3DAcclerated)
 	bool mOriginalSampling = false;  // port: a game that drew through Direct3D 7 at 1x sets it (Bejeweled 2's 3D game): a moved quad that lands on whole pixels samples nearest, and a mesh's vertices take the half pixel in device pixels (its draw adds none of its own)
 	bool mCan3D;  // port: the renderer is hardware accelerated (what mIs3D is before a game switches 3D off)
+	// port: the app's 3D choice (NoteWant3D): true until it says otherwise. A change of mode that makes the renderer again
+	// (Init, SurfaceDisplay's RestoreRenderer) or hands a software screen to the GPU gives mIs3D only while it is true, so a
+	// game whose original starts in 2D (SexyAppBase::mDefault3D false) or a player who switched 3D off keeps the 2D flags
+	bool mAppWants3D;
 	bool mIsWindowed;
 	bool mVSync;
 	// port: the pace of the drawing on a renderer that no vertical blank holds (SDL's software renderer); see FrameHeldByPace
@@ -190,10 +194,16 @@ public:
 	// A stretched copy of theSrcRect at theWidth x theHeight (the software stretch, below); DDImage draws a stretch into
 	// a picture of its own through it too
 	MemoryImage* GetStretchCopy(MemoryImage* theSource, const Rect& theSrcRect, int theWidth, int theHeight, bool fast);
+	// the stretched copies held now: how many, the most of them for one source rectangle and sampling, and their pixels'
+	// bytes (memreport's file)
+	void GetStretchCopyStats(int& theCount, int& theMostOfOneKey, long long& theBytes) const;
 
 protected:
 	// The stretched copies: at most kStretchCacheSize and kCopyCacheBytes of pixels (the transform copies have their own
-	// kCopyCacheBytes; each copy's texture takes as much again), the least recently drawn going first. An entry holds its source's
+	// kCopyCacheBytes; each copy's texture takes as much again), the least recently drawn going first, and at most
+	// kStretchSizesPerKey sizes of one source rectangle at one sampling (source, rect, fast, centre): a picture drawn at
+	// two sizes in a frame keeps both, a stretch that grows or shrinks frame by frame holds two copies rather than one
+	// for every size, and a third size replaces the one drawn longest ago. An entry holds its source's
 	// mBitsChangedCount and is remade when that changes; RemoveImageData drops a source's entries, so a deleted image
 	// whose address is reused never finds an old copy. On a software screen (SoftwareScreenDisplay) a copy has no texture
 	// to keep, and the copies not drawn in the last two frames go after each present (DropStretchCopiesDrawnBy): a stretch
@@ -205,11 +215,13 @@ protected:
 		Rect mSrcRect;
 		int mWidth, mHeight;
 		bool mFast;
+		bool mCentre;  // a fast stretch that sampled pixel centres (mFastStretchCentre when it was made)
 		int mSourceVersion;
 		MemoryImage* mCopy;
 		unsigned int mLastUse;
 	};
 	enum { kStretchCacheSize = 64 };
+	enum { kStretchSizesPerKey = 2 };
 	enum { kTransformCacheSize = 32 };
 	enum { kCopyCacheBytes = 64 * 1024 * 1024 };
 	struct TransformCopyEntry
@@ -289,9 +301,10 @@ public:
 	virtual void LogicalToWindow(int theX, int theY, int* theWindowX, int* theWindowY);
 
 	// port: the app's 3D choice, at every display made (SexyAppBase::InitDDInterface) and when the player changes it
-	// (Set3DAcclerated), told before the app sets mIs3D from it and mCan3D. DDInterface needs nothing; a display that draws
-	// its screen in software while 3D is off (SoftwareScreenDisplay) hands the screen to the GPU here while 3D is on.
-	virtual void NoteWant3D(bool /*theWant3D*/) {}
+	// (Set3DAcclerated), told before the app sets mIs3D from it and mCan3D. Kept in mAppWants3D for the changes of mode that
+	// set the flags again; a display that draws its screen in software while 3D is off (SoftwareScreenDisplay) hands the
+	// screen to the GPU here while 3D is on.
+	virtual void NoteWant3D(bool theWant3D) { mAppWants3D = theWant3D; }
 
 	// Texture management
 	SDL_Texture* GetTexture(MemoryImage* theImage, int* theTexWidth, int* theTexHeight);

@@ -67,6 +67,10 @@ SoftwareScreenDisplay::SoftwareScreenDisplay(SexyAppBase* theApp, bool theOffers
 	mGpuPresents = 0;
 	mStretchUseThisFrame = 0;
 	mStretchUseLastFrame = 0;
+	// a software screen's fast stretch samples pixel centres unless the game sets it otherwise after Create
+	mGpuScreen = false;
+	mFastStretchCentre = true;
+	mSoftwareFastStretchCentre = true;
 	SoftwareScreen();
 }
 
@@ -78,12 +82,15 @@ SoftwareScreenDisplay::~SoftwareScreenDisplay()
 
 void SoftwareScreenDisplay::SoftwareScreen()
 {
+	// back from the GPU (DrawOnGpu), the fast stretch samples as it did on the software screen before: pixel centres, as
+	// the GPU path did, or the game's own choice (Big Money's original samples from the corner); a change of mode that
+	// stays in software leaves the game's choice as it is
+	if (mGpuScreen)
+		mFastStretchCentre = mSoftwareFastStretchCentre;
 	mGpuScreen = false;
 	// a stretch onto the screen as a software screen draws one, stretched into an image of the destination's size and
-	// then blitted (MemoryImage's own fast stretch steps a column before it samples), its fast stretch sampling pixel
-	// centres as the GPU path did
+	// then blitted (MemoryImage's own fast stretch steps a column before it samples)
 	mSoftwareStretch = true;
-	mFastStretchCentre = true;
 	No3D();
 }
 
@@ -162,10 +169,12 @@ void SoftwareScreenDisplay::NoteRenderer()
 void SoftwareScreenDisplay::DrawOnGpu(const char* theRendererName)
 {
 	mGpuScreen = true;
-	// DDInterface's own path from here: its stretches, and the 3D flags of its accelerated renderer (DDInterface::Init's)
+	// DDInterface's own path from here: its stretches, and the flags of its accelerated renderer, 3D's unless the app
+	// wants 2D (mAppWants3D: a game whose original starts in 2D, or 3D switched off)
 	mSoftwareStretch = false;
+	mSoftwareFastStretchCentre = mFastStretchCentre;
 	mFastStretchCentre = false;
-	mIs3D = true;
+	mIs3D = mAppWants3D;
 	mCan3D = true;
 	// the screen texture starts from the last frame drawn in software (none at the start), so that a screen kept from
 	// one frame to the next (mKeepScreen) loses nothing; every frame from here draws all the widgets onto it
@@ -308,6 +317,7 @@ void SoftwareScreenDisplay::BeginFrame()
 
 void SoftwareScreenDisplay::NoteWant3D(bool theWant3D)
 {
+	DDInterface::NoteWant3D(theWant3D);
 	if (!mOffers3D)
 		return;
 	mWants3D = theWant3D;
