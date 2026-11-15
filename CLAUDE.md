@@ -34,7 +34,9 @@ the visible desktop, Windows Sandbox or sound may have them at any hour (the las
 - One oracle at a time (`docs/BUILDS.md`, "Running the oracle"). A wait loop whose own command line holds "compare.sh"
   waits on itself forever: run it from a script file, or exclude your own process tree.
 - **Disk:** C: is small. Delete a run's outputs once their result is in the game's notes, and keep a worktree's
-  `build/` under about 3 GB, checked before each merge request.
+  `build/` under about 3 GB, checked before each merge request. Nothing goes in C:\'s root: an original that needs a
+  short path is staged under `E:\byo-og` (origrun's `--stage-root`), and scratch stays in the worktree's `build/` or the
+  session's scratchpad.
 - Leave nothing running: afterwards look for processes whose command line is inside your folder and stop them by id.
   Stop only processes you started, never a game exe by name alone. End a turn waiting only on something that wakes you
   (a background command, a Monitor that ends by itself); a hidden pane runs no requestAnimationFrame unless shimmed.

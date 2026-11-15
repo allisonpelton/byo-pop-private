@@ -7,7 +7,7 @@ phase two (it looks and sounds the same) is under way: the sound and the music a
 
 ### What is compared and how
 
-The original (`HammerHeadsGame.exe`, the user's copy staged under `C:\byo-og\hh2\game`) runs under origrun on its virtual clock
+The original (`HammerHeadsGame.exe`, the user's copy staged under `E:\byo-og\hh2\game`) runs under origrun on its virtual clock
 with scripted mouse and key input, with its random seed pinned (`tools/origrun/patches.txt` stands a fixed value in for
 `GetTickCount`, which both of the exe's generators are seeded from). origrun counts the application's update counter
 (Application +0x44c) and holds the game after each update; at every hold it reads, with `peek`, 318 values of the game's

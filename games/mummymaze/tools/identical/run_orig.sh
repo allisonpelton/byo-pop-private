@@ -8,7 +8,7 @@ for set in ${SETS:-A B C D E F}; do
 	# the play count: the original shows its register nag once it reaches ten, and each quit adds one (docs/IDENTICAL_PLAY.md)
 	reg add "HKLM\Software\WOW6432Node\PopCap\MummyMaze" //v TimesPlayed //t REG_DWORD //d 0 //f > /dev/null
 	# a fresh copy each time: the original saves its game when it quits, and the next run would be asked to continue it
-	rm -rf "C:/byo-og/${RUN:-p1a}" "$R/build/origrun/${RUN:-p1a}"
-	"$R/build/origrun-bin/origrun.exe" --game mummymaze --run "${RUN:-p1a}" --stage-root C:/byo-og --script "$S" --clock virtual \
+	rm -rf "E:/byo-og/${RUN:-p1a}" "$R/build/origrun/${RUN:-p1a}"
+	"$R/build/origrun-bin/origrun.exe" --game mummymaze --run "${RUN:-p1a}" --stage-root E:/byo-og --script "$S" --clock virtual \
 		--cursor scripted --seed "${SEED:-1234}" --timeout "$T" "${w[@]}" > "$P.$set.log" 2>&1
 done

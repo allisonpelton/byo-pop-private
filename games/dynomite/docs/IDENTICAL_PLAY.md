@@ -5,7 +5,7 @@ port, judged by the game's state, not by pictures. Phase two, **looks identical*
 focus and the web build; its sections follow phase one's.
 
 The original is the game carved out of `Dynomite.exe` (`re/dynomite/bin/DynomiteGame.exe`, image base 0x400000). It runs only
-through `tools/origrun`, from a copy under a short path (`C:\byo-og\dyn\game`, made by `games/dynomite/tools/identical/setup.sh`),
+through `tools/origrun`, from a copy under a short path (`E:\byo-og\dyn\game`, made by `games/dynomite/tools/identical/setup.sh`),
 under rundesk (invisible, silent, below normal priority). It runs on origrun's virtual clock (`--clock virtual`: the game is held
 between updates, so an input lands on an exact update) with the scripted cursor (`--cursor scripted`: the launcher aims by
 `GetCursorPos`). The sound stand-in served the game's DirectSound throughout; `--sound nodriver` was never needed. At most two game

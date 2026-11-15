@@ -12,7 +12,7 @@ that, origrun's sound stand-in stops the original's mixer, so the later sounds a
 
 ## What was compared, and how
 
-**The original** ran from a copy of the user's install, staged under `C:/byo-og/np` by
+**The original** ran from a copy of the user's install, staged under `E:/byo-og/np` by
 `games/ningpo/tools/identical/setup.sh`, and never from the install itself. It ran through `tools/origrun` under
 rundesk, on origrun's virtual clock (`--clock virtual`) with its scripted cursor (`--cursor scripted`). Its game time
 moved only at its own waits, and every input arrived at an exact game time. The copy is patched in memory at its

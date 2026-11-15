@@ -2699,7 +2699,7 @@ about 0.15 s and includes building the board; the port's click probe, with the s
 
 The tools: `tools/profile/perfmin.py` (the sampler; `--attach` for the original, which origrun starts), `perfscript.py` (the
 input for both), `loadtime.py` (the port's loading time through the live channel). The original ran from a copy of the
-Steam install with the real exe carved out of the wrapper (`tools/extract_game_exe.py`, in `C:\byo-og\bej-perf\game`),
+Steam install with the real exe carved out of the wrapper (`tools/extract_game_exe.py`, in `E:\byo-og\bej-perf\game`),
 under `build/origrun-bin/origrun.exe` with `--sound stub` and no virtual clock.
 
 ### The performance pass (2026-11-09)

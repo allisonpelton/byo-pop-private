@@ -340,7 +340,7 @@ another list). A run of the original without a list is not seed pinned: look for
 ## 9. Coverage check (2026-11-08)
 
 The coverage check of `docs/COVERAGE.md`: origrun's `--coverage` recorded which of the original's functions ran, in 21 runs on
-the host (the staged copy under `C:/byo-og/alch`, the virtual clock, no sound device, the seed pinned; the hits are in
+the host (the staged copy under `E:/byo-og/alch`, the virtual clock, no sound device, the seed pinned; the hits are in
 `build/coverage/alchemy/hits/`, the scripts in `games/alchemy/tools/coverage/`):
 
 - The seven screen tours of phase two (`tools/shots/tour1.txt` to `tour7.txt`, turned into host scripts by `make.py ... host`
