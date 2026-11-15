@@ -25,7 +25,9 @@
 #                (framework/DisplayGeometry: letterbox, render scale, window mapping and cursor, against a table); and wraptest
 #                (framework/TriangleWrap: DrawTrianglesTex's texture wrap, triangles cut at whole-number u and v); and
 #                fwtest -realinput=tools/fwtest/realinput.txt with -fast and in real time, with no game files (real SDL
-#                events through HandleEvent and the widget manager, docs/REAL_INPUT.md); and tools/fwtest/commands.sh
+#                events through HandleEvent and the widget manager, docs/REAL_INPUT.md); and fwtest -corner
+#                -realinput=tools/fwtest/flags.txt on DDInterface and on the software screen (the fast stretch's
+#                sampling and the 3D choice held through changes of size and mode); and tools/fwtest/commands.sh
 #                (the live -commands channel driven as a driver drives it, with -script's dispatch and with -realinput's);
 #                and tools/playbymove on fwtest (the shared driver loop plays its small task by its "move" answers under
 #                -hold, twice, with the same transcript); and tools/modtextcheck.py (every mod's labels, helps and
@@ -729,6 +731,13 @@ suite_unit() {
 		grep -q -E 'realinput: line|SDL_PushEvent failed' "$1.ri$r" && st=1
 	done
 	k="realinput: -fast $(lastof "$1.rifast" 'realinput: [0-9]+ checks, [0-9]+ failed' | sed 's/^realinput: //'), real time $(lastof "$1.rireal" 'realinput: [0-9]+ checks, [0-9]+ failed' | sed 's/^realinput: //')"
+	# tools/fwtest/flags.txt: the fast stretch's sampling a game set (-corner) and the player's 3D choice hold through every
+	# change of size and mode, on DDInterface and on the software screen (whose full screen goes to the GPU)
+	local fl
+	timeout 120 "build/native/fwtest.exe" -corner -realinput=tools/fwtest/flags.txt -fast -placeholders 		-gamedir="$OUT/no-game-files" > "$1.flplain" 2>&1 || st=1
+	SOFTWARE_SCREEN=on SOFTSCREEN_SCALED=1 timeout 120 "build/native/fwtest.exe" -corner -realinput=tools/fwtest/flags.txt -fast 		-placeholders -gamedir="$OUT/no-game-files" > "$1.flsoft" 2>&1 || st=1
+	grep -q -E 'realinput: line|SDL_PushEvent failed' "$1.flplain" "$1.flsoft" && st=1
+	fl="flags: DDInterface $(lastof "$1.flplain" 'realinput: [0-9]+ checks, [0-9]+ failed' | sed 's/^realinput: //'), software screen $(lastof "$1.flsoft" 'realinput: [0-9]+ checks, [0-9]+ failed' | sed 's/^realinput: //')"
 	# -commands (docs/TEST_COMMANDS.md, "Sending them"): lines appended to a file while fwtest runs, each answered on
 	# its log, through -script's dispatch and through -realinput's
 	local l m
@@ -760,7 +769,7 @@ suite_unit() {
 		"$1.cmscript.log" "$1.cmscript" "$1.cmrealinput.log" "$1.cmrealinput" "$1.pm1" "$1.pm2" "$1.jpg" "$1.mtc" >> "$1"
 	rm -f "$1.mst" "$1.fw" "$1.ph" "$1.jp2" "$1.sp" "$1.fft" "$1.snd" "$1.sdf" "$1.geo" "$1.wrp" "$1.rifast" "$1.rireal" \
 		"$1.cmscript.log" "$1.cmscript" "$1.cmrealinput.log" "$1.cmrealinput" "$1.pm1" "$1.pm2" "$1.jpg" "$1.mtc"
-	SUMMARY="$a; $b; $c; $d; $e; $f; $g; $h; $i; $j; $wr; $k; $l; $pm; $jp; $mt"
+	SUMMARY="$a; $b; $c; $d; $e; $f; $g; $h; $i; $j; $wr; $k; $fl; $l; $pm; $jp; $mt"
 	return $st
 }
 

@@ -33,7 +33,8 @@
 //   - Its pictures come from the 2004 framework's software blitters, not from SDL's renderer.
 //   - It has no 3D: mIs3D is false whatever the renderer could do (set again after every change of mode, which sets it),
 //     so Is3DAccelerated() is false and the widget manager draws with fast stretch and no linear blend, as the original's
-//     2D mode. On the GPU path the flags are the renderer's, as DDInterface's.
+//     2D mode. On the GPU path the flags are the renderer's, as DDInterface's, unless the app wants 2D (mAppWants3D: a
+//     game whose original starts in 2D, or 3D switched off).
 //   - 3D, for a port whose original offers it (Create's theOffers3D): mCan3D is true while an accelerated renderer may be
 //     had (until one made on the window turns out not to be), so the Options dialog's box can be ticked, and while the
 //     app wants 3D (NoteWant3D: the saved choice at every display made, a change in the Options) the screen is handed to
@@ -53,8 +54,10 @@
 //   - A stretch onto the screen is drawn as the original's software screen draws one (mSoftwareStretch: the source
 //     stretched into an image of the destination's size, then blitted), its fast stretch sampling pixel centres
 //     (mFastStretchCentre), as the GPU path's nearest filter did. A game whose original samples otherwise sets the flags
-//     after Create. The stretched images are kept while they are drawn (DDInterface::GetStretchCopy); those not drawn in
-//     the last two frames go after each present, as the original kept none.
+//     after Create, and they hold through every change of mode (a time on the GPU, which samples by its own filter, puts
+//     the game's choice back when the screen returns). The stretched images are kept while they are drawn
+//     (DDInterface::GetStretchCopy); those not drawn in the last two frames go after each present, as the original kept
+//     none.
 //   - A drawn cursor (mCursorImage, a game's own cursors) is the renderer's to draw, as for any app of SurfaceDisplay: at
 //     1x the window takes a renderer for it and keeps it (with a GPU SurfaceDisplay keeps it, mWindowHadRenderer; with
 //     none, mCursorSeen), and the screen stays in software, its frames shown through the renderer's frame texture with
@@ -117,6 +120,7 @@ protected:
 	bool mGpuScreen;      // the screen is drawn on the GPU, DDInterface's path
 	bool mOffers3D;       // the port's original has a 3D mode (Create's theOffers3D)
 	bool mWants3D;        // the app wants 3D (NoteWant3D), so the screen goes to the GPU where it can
+	bool mSoftwareFastStretchCentre;  // mFastStretchCentre as the software screen had it when the GPU took the screen, put back when it returns
 	bool mScaledSurface;  // the surface shows the software screen at 2x to 4x with a GPU too: Create's theScaledInSoftware where GDI stretches (SOFTSCREEN_SCALED=0|1 in a test run decides)
 	bool mNoGpuRenderer;  // the window's renderer is not accelerated: the screen is drawn in software at every size
 	bool mChangingMode;   // inside SurfaceDisplay's change of mode, whose DDInterface::Init asks UpdateDisplaySize again

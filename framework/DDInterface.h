@@ -63,6 +63,10 @@ public:
 	bool mIs3D;  // true when the renderer is hardware accelerated and the game has not switched 3D off (SexyAppBase::Set3DAcclerated)
 	bool mOriginalSampling = false;  // port: a game that drew through Direct3D 7 at 1x sets it (Bejeweled 2's 3D game): a moved quad that lands on whole pixels samples nearest, and a mesh's vertices take the half pixel in device pixels (its draw adds none of its own)
 	bool mCan3D;  // port: the renderer is hardware accelerated (what mIs3D is before a game switches 3D off)
+	// port: the app's 3D choice (NoteWant3D): true until it says otherwise. A change of mode that makes the renderer again
+	// (Init, SurfaceDisplay's RestoreRenderer) or hands a software screen to the GPU gives mIs3D only while it is true, so a
+	// game whose original starts in 2D (SexyAppBase::mDefault3D false) or a player who switched 3D off keeps the 2D flags
+	bool mAppWants3D;
 	bool mIsWindowed;
 	bool mVSync;
 	// port: the pace of the drawing on a renderer that no vertical blank holds (SDL's software renderer); see FrameHeldByPace
@@ -289,9 +293,10 @@ public:
 	virtual void LogicalToWindow(int theX, int theY, int* theWindowX, int* theWindowY);
 
 	// port: the app's 3D choice, at every display made (SexyAppBase::InitDDInterface) and when the player changes it
-	// (Set3DAcclerated), told before the app sets mIs3D from it and mCan3D. DDInterface needs nothing; a display that draws
-	// its screen in software while 3D is off (SoftwareScreenDisplay) hands the screen to the GPU here while 3D is on.
-	virtual void NoteWant3D(bool /*theWant3D*/) {}
+	// (Set3DAcclerated), told before the app sets mIs3D from it and mCan3D. Kept in mAppWants3D for the changes of mode that
+	// set the flags again; a display that draws its screen in software while 3D is off (SoftwareScreenDisplay) hands the
+	// screen to the GPU here while 3D is on.
+	virtual void NoteWant3D(bool theWant3D) { mAppWants3D = theWant3D; }
 
 	// Texture management
 	SDL_Texture* GetTexture(MemoryImage* theImage, int* theTexWidth, int* theTexHeight);

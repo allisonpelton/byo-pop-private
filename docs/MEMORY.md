@@ -8,7 +8,8 @@ and left. The rule for every change was that every frozen baseline and every sho
 a thread of ours, and that speed comes from not waiting. A second part, of 2026-11-15, brought Big Money to the
 original's own figures and asked what a 2D game spends on Direct3D ("Big Money at the original's memory"). A third,
 the same day, found why Atomica's processor time had grown fourfold on Direct3D 11 and chose the renderer again ("Which
-renderer, and SDL's batching").
+renderer, and SDL's batching"). A fourth lets a port whose original starts in 2D keep the 2D flags on the GPU path ("The
+2D flags on the GPU path").
 
 ## How it was measured
 
@@ -611,6 +612,65 @@ one core, and OpenGL's spin shows only when cores are free. A comparison of rend
 game's figure against its original is taken pinned on its default renderer. dwm.exe and the System process are recorded
 beside it, but their run-to-run spread is larger than most of the differences a session is after.
 
+## The 2D flags on the GPU path (2026-11-15)
+
+On the GPU path every port drew with 3D's flags, whatever its original did. DDInterface set mIs3D from the renderer at
+every Init, and with it the widgets draw with the smooth stretch and the linear blend (`SetFastStretch(!is3D)`,
+`SetLinearBlend(is3D)`), and the framework batches `AddQuads` and blends opaque pictures; with mIs3D false it draws as
+PopCap's 2D mode does. Half the switch was there already. `SexyAppBase::mDefault3D` says what the original starts in,
+`InitDDInterface` takes it as the wish when the registry holds no Is3D and sets mIs3D false for a 2D wish, and a 3D box
+cleared in the Options does the same through `Set3DAcclerated`. What lost the wish was a change of mode that makes the
+renderer again without the app: SurfaceDisplay's `RestoreRenderer` calls `DDInterface::Init` at a resize or at full
+screen, and the software screen's hand-over to the GPU (`SoftwareScreenDisplay::DrawOnGpu`) set mIs3D true. Both now
+take it from `DDInterface::mAppWants3D`, which `NoteWant3D` records; the app tells it at every display made and at every
+change of the box. A game with mDefault3D false, or a player who cleared the box, so keeps the 2D flags through every
+change of size and mode. On those two displays a cleared box used to come back on at the next such change, but no port
+on them offers the box today, so no player met it.
+
+mDefault3D stays true unless a port sets it, so no port's shots or baselines change until its own session opts in. The
+session sets mDefault3D false in its app's constructor, takes its shots again on the GPU path (the 2x window, full screen
+and the web) and judges each difference against its original. The cost is that its frozen baselines and shots taken on
+the GPU path are taken again.
+
+One path still gives 3D's flags. SurfaceDisplay's surface and stretch modes with no renderer (`EnteredNoRendererMode`)
+set mIs3D true, because `DDImage::GetBits` reads the screen back only while there is a renderer or mIs3D is set. The
+software screen does not take that path in software (it sets mIs3D false there and reads its own bits). A port on
+SurfaceDisplay itself (Pizza Frenzy, Tip Top and the engines of their own) that wanted the 2D flags in those modes would
+first need that read-back keyed on the display's mode rather than on mIs3D.
+
+The test is `fwtest -corner -realinput=tools/fwtest/flags.txt` in `tools/check.sh unit`, on DDInterface and on the
+software screen (`SOFTWARE_SCREEN=on SOFTSCREEN_SCALED=1`), 15 checks each: the 3D box cleared, full screen and back,
+then ticked and two resizes. With the trunk's framework the software screen fails the two checks of the 2D flags after
+full screen and back; DDInterface passes, as its resizes make no renderer.
+
+The same run checks Big Money's request that the fast stretch's sampling a game chooses (`mFastStretchCentre`) holds
+through `Cleanup`. `SoftwareScreen()`, which `Cleanup` and the constructor call, set it back to pixel centres; it now
+leaves the game's choice alone and puts it back when the screen returns from the GPU, which samples by its own filter.
+In the trunk `Cleanup` runs only when the display is deleted, so no change of mode had reset it and the trunk's code
+passes these checks too: the change keeps a later caller of `Cleanup` from undoing the game's choice, and the checks
+(sampling from the corner set once the display is made, then 1x, 2x and full screen) guard it.
+
+### Which originals start in 2D
+
+Read from each game's own export for this list where its notes did not already say. In a SexyAppFramework original the
+D3DTester decides: the app's constructor setting mAutoEnable3D starts the game in 3D when the test passes, and a saved
+Is3D wins over both. Every port is a SexyAppBase app (the engines of their own through a SexyAppBase host), so the
+switch reaches each of them.
+
+| The original | Ports | Where it is said |
+|---|---|---|
+| Starts in 2D: mAutoEnable3D never set, 3D only through a saved Is3D | Alchemy, Bejeweled, Big Money, Dynomite | Big Money's IDENTICAL_PLAY.md; Dynomite's GAME_NOTES.md (DirectDraw); Alchemy's and Bejeweled's exports (Bejeweled's likely: nothing in the export sets the flag) |
+| Has no 3D mode | Atomica, Mummy Maze, Noah's Ark, Pizza Frenzy, Seven Seas; Bonnie's, Cosmic Bugs, Ning Po, Tip Top, Water Bugs, Word Harmony (engines of their own) | the notes of Seven Seas, Pizza Frenzy, Tip Top, Ning Po, Bonnie's, Cosmic Bugs and Word Harmony; the others' exports (no D3D tester, no Direct3D strings) |
+| 3D when the card passes the test | AstroPop, Bookworm, Bookworm Adventures, Heavy Weapon, Pixelus, Rocket Mania, Typer Shark, Venice; Bejeweled 2 and Hammer Heads; Bookworm Adventures 2 | the exports' constructors (Bookworm's GAME_NOTES.md too); the two ports' translated constructors; inferred from its predecessor, with no export here |
+| 3D by its own setting | Bejeweled Twist (Direct3D 9, 2D only with Is3D saved 0 or a failed test); Mahjong China and Japan (Direct3D 7, "HardwareAcceleration" 1 by default, 2D when their own test fails) | Twist's NOTES.md and IDENTICAL_PLAY.md; the Mahjong exports and DEVIATIONS.md |
+
+The first two rows are the candidates for mDefault3D false. For the third, the test decides on the player's machine, so
+the port's default of 3D stands. But the tester fails under rundesk and in Windows Sandbox (Heavy Weapon's notes give its
+E_OUTOFMEMORY), so in every origrun comparison such an original runs its 2D mode while its port draws with 3D's flags.
+A session comparing shots or processor time there runs its port with 3D off (Is3D 0 saved, or the `3d off` command) to
+be like for like. Rocket Mania's notes call the constructor's flag mTest3D, but its store is to mAutoEnable3D, the byte
+before it.
+
 ## Looked at and left
 
 **Atlases.** Packing small pictures into shared textures saves what each texture costs beyond its texels, and that is
@@ -632,10 +692,9 @@ pixels or flags after `GetImage` returns (its own edits, `Palletize`), which wou
 each game's own checks would have to show nothing moved. Not tried. A game's own composites (Big Money's `CopyImage`
 pictures, about 5.7 MB on the GPU path) keep their pixels for good, since no file can make them again.
 
-**On the GPU path every port draws with 3D's flags.** DDInterface takes the accelerated renderer's flags, so mIs3D is
-true in the default 2x window, in full screen and on the web, and the widgets then draw with the smooth stretch and the
-linear blend (`SetFastStretch(!is3D)`, `SetLinearBlend(is3D)`), where a 2D original draws neither. A per-game switch that
-keeps the 2D flags on the GPU path is the next framework part.
+**The 2D flags are each port's to take.** The switch is in ("The 2D flags on the GPU path"); the ports whose originals
+start in 2D or have no 3D mode set mDefault3D false in their own sessions, and SurfaceDisplay's modes without a renderer
+still set mIs3D for the screen's read-back.
 
 **A drawn cursor brings the renderer back.** On the software screen a game that sets a cursor image (Big Money's custom
 cursors, off by default) has the window take a renderer for it, so the Direct3D device's 30 MB returns at 1x; the

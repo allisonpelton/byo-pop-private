@@ -180,6 +180,7 @@ DDInterface::DDInterface(SexyAppBase* theApp)
 	mTextureAddressV = TEXTURE_ADDRESS_CLAMP;
 	mIs3D = false;
 	mCan3D = false;
+	mAppWants3D = true;
 	mIsWindowed = true;
 	mVSync = false;
 	mPaceIntervalMs = 0;
@@ -280,8 +281,8 @@ int DDInterface::Init(SDL_Window* theWindow, bool vsync)
 	SDL_RendererInfo anInfo;
 	if (SDL_GetRendererInfo(mRenderer, &anInfo) == 0)
 	{
-		mIs3D = (anInfo.flags & SDL_RENDERER_ACCELERATED) != 0;
-		mCan3D = mIs3D;
+		mCan3D = (anInfo.flags & SDL_RENDERER_ACCELERATED) != 0;
+		mIs3D = mCan3D && mAppWants3D;
 		mMaxTextureWidth = (anInfo.max_texture_width > 0) ? anInfo.max_texture_width : 16384;
 		mMaxTextureHeight = (anInfo.max_texture_height > 0) ? anInfo.max_texture_height : 16384;
 
