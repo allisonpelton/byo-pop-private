@@ -14,6 +14,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
+#include <string>
 
 namespace lowos
 {
@@ -173,6 +174,9 @@ void GetMousePos(uint16_t* x, uint16_t* y);                                     
 // --- sound (from 0x432330 to the network code behind it) ---
 char InitSound();                                                                // 0x432e50 (0 = success)
 Sound* CreateSound(const void* theWav, uint32_t theSize, uint32_t theParam, uint8_t theFlags);  // 0x432ea0
+// port: the name the site's sound panel shows for the sound (CreateSound mirrors 0x432ea0, which has none); the game's
+// LoadSound gives each the path TipTop.dat stores it under
+void SetSoundName(Sound* theSound, const std::string& theName);
 void FreeSound(Sound* theSound);                                                 // 0x432f30
 void PlaySound(Sound* theSound, uint32_t theVolume, char theMode);               // 0x432f80
 // test hook (-soundlog): each sound's creation and each start, with the update count *theUpdate
