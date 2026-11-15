@@ -537,11 +537,12 @@
       "title": "Hammer Heads Deluxe",
       "done": [
         "port",
-        "identical-play"
+        "identical-play",
+        "registration-out"
       ],
       "na": [],
-      "now": "registration-out",
-      "note": "playable natively and on the web; phase one of identical play done: 14 games of Classic Bash (from levels 1 to 25, with and without the damage cheats), Tough Cookie and Marathon match the original over 28000 updates in every compared value; the game-won sequence, the multiplier gnome and saved games left for later"
+      "now": "identical-look",
+      "note": "phase one done in full: the game-won sequence, the multiplier gnome and saved games also match the original (9ec2d31b); registration and outbound pictures out (66f32b33); the depth sort on the shared CrtQsort; phase two next"
     },
     "pizzafrenzy": {
       "title": "Pizza Frenzy",
