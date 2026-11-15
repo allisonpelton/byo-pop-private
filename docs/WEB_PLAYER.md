@@ -578,6 +578,21 @@ then the module's own 13 seconds of silence before the cut); only the playlist
 scrolls (2026-11-09); closing the window stops the music and frees what it held (2026-11-09;
 `ByopopMusicPanel.held()` tells a test what is still held).
 
+**Unused patterns** (the user, 2026-11-15: "Add unused tracker patterns to their own section in the music player (since
+they're not compositions unto themselves, not listed alongside their game, and don't start playing them while going down
+through the list, only when one is selected)"; part of a game's definition of done) are a module's patterns that no order
+of any subsong plays (markers skipped), as the decoder reads them (`bm_patterns`, `bm_order_pattern`), leaving out one
+with no notes (`bm_pattern_notes`). They come from the scan for every game at once, with no field in `soundtracks.js`,
+and are listed in their own section after every game's tunes, never under their game: each entry is "<file>, pattern
+<n>" with its game beside it. Playing on and next/previous wrap at the last real tune and never enter the section; a
+pattern plays only when picked, once, and then stops (next/previous step among the patterns while one is chosen). The
+decoder's `bm_solo` plays one alone from its first row and reports it as the module's only order, so the tracker, piano
+roll and score read it as any tune: libopenmpt's order list is put aside for one naming the pattern
+(`web/music/openmpt_solo.cpp`, which reaches the module's sound file because libopenmpt's C interface cannot change that
+list), and libxmp-lite's first order plays it instead, ending where play leaves that order or goes back to an earlier row.
+A pattern's own commands still count (Bejeweled's Network pattern 10 sets speed 10 on its first row and lasts 33 seconds).
+A game whose code starts a module at a pattern outside its order lists would say so in `soundtracks.js`; none does yet.
+
 **The views**, cycled by a click on the display (spectrum, tracker, piano roll, score, nothing), follow the user's
 notes:
 
