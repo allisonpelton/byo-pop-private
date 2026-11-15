@@ -29,7 +29,7 @@ Projectile::Projectile(Board* theBoard)
 	mPoints = 10;
 }
 
-// 0x447810
+// 0x447810 (with 0x4476a0 inline: the base's own vtable reset, which the port's base class does)
 Projectile::~Projectile()
 {
 }

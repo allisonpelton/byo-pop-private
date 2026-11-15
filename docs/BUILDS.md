@@ -72,7 +72,10 @@ web build of the games that changed and of the shared libraries, and every game 
 minutes for a typical merge). The quick forms of `pixelus`, `bookwormadv` and `tiptop` (`<suite>:quick`, or
 `CHECK_QUICK=1`) leave out only what dominates their time, and still start the game, play it and compare a rerun.
 In merge mode the game suites run up to three game processes at a time (`--jobs`; the oracle, livesplit and the
-builds always run alone). The coordinator merges with the merge mode (the user, 2026-11-02: running every suite and
+builds always run alone). The web build runs in the background beside them, since it starts no game: only `unit-web`,
+`verify` and the oracle read `build/web`, so they wait for it and come after the game suites. A game's page is written
+apart from its link (`cmake/ByopopWebPage.cmake`), so an edit to `web/shell.html`, `web/modpanel.js` or a game's
+`web/page.*` rebuilds the pages in seconds and relinks no game. The coordinator merges with the merge mode (the user, 2026-11-02: running every suite and
 the oracle for every merge was not feasible) and runs `all` before each publish.
 Neither `all` nor a shared change runs Bejeweled's oracle (the user, 2026-11-11: "Seems like the Bejeweled oracle is
 causing a lot of slowdown for no benefit"): it compares Bejeweled's game logic with the original's, and a change outside

@@ -1,0 +1,2 @@
+# tools/namecheck.py's exceptions and settings for Word Harmony (docs/CODE_STANDARDS.md).
+engine sprout -- Sprout's first-generation engine, translated once for Word Harmony and Pizza Frenzy (engines/sprout) and part of the game's code

@@ -46,8 +46,11 @@ bool SexyAppBase::DoMemReport(const std::string& theFileName)
 	std::vector<ImageRow> aRows;
 	size_t aSums[6] = {0, 0, 0, 0, 0, 0};
 	int aTexturedCount = 0;
+	int aDroppedCount = 0;
 	for (MemoryImage* anImage : mMemoryImageSet)
 	{
+		if (anImage->mBitsDropped)
+			aDroppedCount++;
 		size_t aPixels = (size_t) anImage->mWidth * anImage->mHeight;
 		size_t aHDPixels = (size_t) anImage->mHDWidth * anImage->mHDHeight;
 		ImageRow aRow;
@@ -95,7 +98,8 @@ bool SexyAppBase::DoMemReport(const std::string& theFileName)
 		return false;
 	std::sort(aRows.begin(), aRows.end(), [](const ImageRow& theLeft, const ImageRow& theRight) { return Total(theLeft) > Total(theRight); });
 	const double MB = 1024.0 * 1024.0;
-	fprintf(aFile, "images: %d, %d with a texture\n", (int) aRows.size(), aTexturedCount);
+	fprintf(aFile, "images: %d, %d with a texture, %d with their pixels dropped after upload\n", (int) aRows.size(), aTexturedCount,
+		aDroppedCount);
 	for (int i = 0; i < 6; i++)
 		fprintf(aFile, "  %-16s %8.2f MB\n", kColumns[i], aSums[i] / MB);
 	std::map<std::pair<int, int>, ImageRow> aMadeBySize;      // a sum for each size: its mWidth counts the pictures

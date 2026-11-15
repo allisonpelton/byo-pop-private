@@ -4,6 +4,7 @@
 #include "Blit.h"
 #include "Display.h"
 #include "Host.h"
+#include "ScreenLog.h"
 
 #include "platform/ImageLoader.h"
 #include "stb_image.h"
@@ -17,6 +18,13 @@ namespace jb
 
 uint8_t* gScreen = nullptr;
 int gScreenPitch = 0;
+
+// Port: the stamps count from 1 (ScreenLog.h)
+uint32_t NextImageStamp()
+{
+	static uint32_t sStamp = 0;
+	return ++sStamp;
+}
 
 // 0x5d80a0..0x5d80ac (mahjongchina), 0x5d8f38..0x5d8f44 (mahjongjapan): the blit's temporary buffer, grown as needed
 static uint8_t* gBlitBuffer = nullptr;
@@ -445,16 +453,20 @@ bool Image::Draw(int theX, int theY, const Rect& theSrc, int theScaleX, int theS
 		FlipRows();
 	if (!EnsurePrepared())
 		return false;
+	// port: between Display::BeginFrame and Display::Present the draw waits in the frame's list (ScreenLog.h)
+	if (screenlog::Recording())
+		return screenlog::RecordDraw(this, theX, theY, theSrc, theScaleX, theScaleY, theAlpha);
+	screenlog::NoteDirectDraw();
 	return Blit(theX, theY, theSrc, theScaleX, theScaleY, theAlpha, gScreen, gScreenPitch);
 }
 
 // 0x427aa0 (mahjongchina), 0x42dcd0 (mahjongjapan)
 // 0x428730 (mahjongchina), 0x42e960 (mahjongjapan) inlined here: the keyed copy's loop over the rows
 bool Image::Blit(int theX, int theY, const Rect& theSrc, int theScaleX, int theScaleY, int theAlpha,
-	uint8_t* theDst, int theDstPitch)
+	uint8_t* theDst, int theDstPitch, const Rect* theClip, int theKeyed)
 {
-	int aDstOffsetY = theY * theDstPitch;
-	uint8_t* aDst = theDst + theX * 4 + aDstOffsetY;
+	bool aKeyed = theKeyed < 0 ? mKeyed : theKeyed != 0;
+	uint8_t* aDst = theDst + theX * 4 + theY * theDstPitch;
 	int aWidth = theSrc.right - theSrc.left;
 	int aHeight = theSrc.bottom - theSrc.top;
 	const uint8_t* aSrc = mPixels + mPixelPitch * theSrc.top + theSrc.left * 4;
@@ -471,38 +483,31 @@ bool Image::Blit(int theX, int theY, const Rect& theSrc, int theScaleX, int theS
 			(double)aWidth / (double)(theSrc.right - theSrc.left),
 			(double)aHeight / (double)(theSrc.bottom - theSrc.top));
 	}
-	int aY = theY;
-	bool aClip;
-	if (theX < 0)
+	// the rect to draw to, cut to the screen (800x600) and, in the port, to the clip inside it: the original cut the
+	// source and destination at the screen's four edges, which this does the same way
+	int aLeft = theX < 0 ? 0 : theX;
+	int aTop = theY < 0 ? 0 : theY;
+	int aRight = theX + aWidth < SCREEN_WIDTH ? theX + aWidth : SCREEN_WIDTH;
+	int aBottom = theY + aHeight < SCREEN_HEIGHT ? theY + aHeight : SCREEN_HEIGHT;
+	if (theClip != nullptr)
 	{
-		aSrc = aSrc - theX * 4;
-		aDst = aDst - theX * 4;
-		aWidth = aWidth + theX;
-		theX = 0;
-		aClip = true;
-	}
-	else
-		aClip = theY < 0 || SCREEN_WIDTH < theX + aWidth || SCREEN_HEIGHT < aHeight + theY;
-	if (aClip)
-	{
-		if (theY < 0)
-		{
-			theY = 0;
-			aSrc = aSrc - aSrcPitch * aY;
-			aDst = aDst - aDstOffsetY;
-			aHeight = aHeight + aY;
-		}
-		if (SCREEN_WIDTH < theX + aWidth)
-			aWidth = SCREEN_WIDTH - theX;
-		if (SCREEN_HEIGHT < aHeight + theY)
-			aHeight = SCREEN_HEIGHT - theY;
-		if (aWidth < 1 || aHeight < 1)
-			return true;
+		if (aLeft < theClip->left)
+			aLeft = theClip->left;
+		if (aTop < theClip->top)
+			aTop = theClip->top;
+		if (theClip->right < aRight)
+			aRight = theClip->right;
+		if (theClip->bottom < aBottom)
+			aBottom = theClip->bottom;
 	}
 	// Port: the original's keyed copy (0x428730 (mahjongchina), 0x42e960 (mahjongjapan)) loops once more than it should
 	// for an empty unclipped rect; nothing is drawn for one here
-	if (aWidth < 1 || aHeight < 1)
+	if (aRight < aLeft + 1 || aBottom < aTop + 1)
 		return true;
+	aSrc = aSrc + (aTop - theY) * aSrcPitch + (aLeft - theX) * 4;
+	aDst = aDst + (aTop - theY) * theDstPitch + (aLeft - theX) * 4;
+	aWidth = aRight - aLeft;
+	aHeight = aBottom - aTop;
 	if (mBitCount == 0x20)
 	{
 		if (theAlpha == 0xff)
@@ -511,7 +516,7 @@ bool Image::Blit(int theX, int theY, const Rect& theSrc, int theScaleX, int theS
 			return true;
 		}
 	}
-	else if (!mKeyed)
+	else if (!aKeyed)
 	{
 		if (theAlpha != 0xff)
 		{
@@ -576,6 +581,7 @@ bool Image::Prepare()
 	if (mBitCount == 0x20)
 		blit::Premultiply(mPixels, mPixelPitch, mWidth, mHeight);
 	mPrepared = true;
+	mStamp = NextImageStamp();
 	return true;
 }
 
@@ -585,6 +591,7 @@ void Image::FreePixels()
 	mPrepared = false;
 	if (mPixels != nullptr)
 	{
+		screenlog::BeforePixelsFreed(this);
 		blit::Free(mPixels);
 		mPixels = nullptr;
 	}
@@ -786,6 +793,23 @@ bool Image::SaveBmp(const char* thePath)
 // 0x427dc0 (mahjongchina), 0x42dff0 (mahjongjapan) (software display)
 void ScreenFillRect(const Rect* theRect, uint32_t theColour)
 {
+	if (screenlog::Recording())
+	{
+		Rect aScreen;
+		SetRect(aScreen, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+		Rect aClipped = aScreen;
+		if (theRect != nullptr)
+			IntersectRect(aClipped, *theRect, aScreen);
+		if (!IsRectEmpty(aClipped))
+			screenlog::RecordFill(aClipped, theColour);
+		return;
+	}
+	screenlog::NoteDirectDraw();
+	ScreenFillRectDirect(theRect, theColour);
+}
+
+void ScreenFillRectDirect(const Rect* theRect, uint32_t theColour)
+{
 	Rect aScreen;
 	SetRect(aScreen, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
 	Rect aClipped;
@@ -807,10 +831,23 @@ void ScreenFillRectAlpha(Rect& theRect, int theAlpha, uint32_t theColour)
 		theAlpha = 0;
 	else if (0xff < theAlpha)
 		theAlpha = 0xff;
-	uint32_t aColour = theColour & 0xffffff;
 	Rect aScreen;
 	SetRect(aScreen, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
 	IntersectRect(theRect, theRect, aScreen);
+	if (screenlog::Recording())
+	{
+		if (!IsRectEmpty(theRect))
+			screenlog::RecordFillAlpha(theRect, theAlpha, theColour);
+		return;
+	}
+	screenlog::NoteDirectDraw();
+	ScreenFillRectAlphaDirect(theRect, theAlpha, theColour);
+}
+
+// theRect cut to the screen already, theAlpha 0 to 255
+void ScreenFillRectAlphaDirect(Rect& theRect, int theAlpha, uint32_t theColour)
+{
+	uint32_t aColour = theColour & 0xffffff;
 	uint8_t* aDst = gScreen + theRect.top * gScreenPitch + theRect.left * 4;
 	int aWidth = theRect.right - theRect.left;
 	int aHeight = theRect.bottom - theRect.top;

@@ -76,4 +76,31 @@ before, off, on = (redness(px(d + "/" + f)) for f in ("before.png", "off/after.p
 print("resumeLook: board redness: before the save %.2f, loaded with the fix off %.2f, on %.2f" % (before, off, on))
 sys.exit(0 if (abs(off - before) > 1.5 and abs(on - before) < abs(off - before) / 3) else 1)
 EOP
+# Replays of play with the fixes on: the site serves the game with them, and the verifier (bejeweled_verify, as the watch) reads
+# no fix, so each replay must hold all its play needs. The games are entered with "goto game" (the saved game's question at
+# once, as a player meets it, answered Yes; after "goto timed" the load comes into a board that has run, which no replay player takes).
+#   sel-click  the stale selection dropped by the next click (MouseDown)
+#   sel-drag   the same by a drag with the game paused, which only MouseDrag lets through: the deselect is recorded under the
+#              pause, where the player's gate for a right click would refuse it (WatchController::Apply)
+#   lvl        a level 2 game loaded with resumeLook, one move made (a replay without a move is not kept), then left until its
+#              time is up
+VERIFY="$(dirname "$EXE")/bejeweled_verify.exe"
+mkdir -p mods-rep && cp -r mods-on/fixes "$ROOT/games/bejeweled/mods/example-replays" mods-rep/
+sed -i 's/"defaultEnabled": false/"defaultEnabled": true/' mods-rep/example-replays/mod.json
+printf '5 goto game\n300 click 330 200\n320 click 329 40\n340 click 380 40\n432 click 380 40\n900 state\n901 click 431 244\n30000 quit\n' > s-rep-sel-click.txt
+printf '5 goto game\n300 click 330 200\n320 click 329 40\n340 click 380 40\n432 down 380 40\n900 state\n901 char SPACE\n905 move 380 110\n906 state\n907 up 380 110\n910 char SPACE\n30000 quit\n' > s-rep-sel-drag.txt
+printf '5 goto game\n300 click 330 200\n400 click 329 142\n410 click 329 193\n30000 quit\n' > s-rep-lvl.txt
+for rep in sel-click:one.dat sel-drag:one.dat lvl:lvl2.dat; do
+	name="${rep%%:*}"
+	run "s-rep-$name.txt" "o-rep-$name.txt" 1 "${rep##*:}" mods-rep
+	bjr="$(ls u/replays/*.bjr 2>/dev/null | head -1)"
+	if [ -z "$bjr" ]; then fail="$fail; replay $name: none recorded"; continue; fi
+	cp "$bjr" "rep-$name.bjr"
+	"$VERIFY" "rep-$name.bjr" > "v-rep-$name.txt" 2>&1 || fail="$fail; replay $name: the verifier does not play it out ($(grep -m1 '^REPLAY' "v-rep-$name.txt"))"
+done
+grep -E '^STATE' o-rep-sel-click.txt | sed -n 1p | grep -q '"phase":"playing".*"selected":\[3,0\]' || fail="$fail; replay sel-click: no stale selection after the refill"
+python "$ROOT/games/bejeweled/tools/bjr.py" -v rep-sel-click.bjr | grep -q ' DESELECT' || fail="$fail; replay sel-click: no deselect recorded"
+grep -E '^STATE' o-rep-sel-drag.txt | sed -n 2p | grep -q '"selected"' && fail="$fail; replay sel-drag: the drag under the pause left the selection"
+python "$ROOT/games/bejeweled/tools/bjr.py" -v rep-sel-drag.bjr | grep -v HOVER | grep -A1 ' PAUSE 1' | grep -q ' DESELECT' || fail="$fail; replay sel-drag: no deselect recorded under the pause"
+
 [ -z "$fail" ] && echo "fixes_test: ok" || { echo "fixes_test: FAILED$fail (see $DIR)"; exit 1; }
