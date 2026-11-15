@@ -17,6 +17,8 @@
 namespace pizzafrenzy
 {
 
+class CityMap;
+
 // A kitchen a level has (0x24 bytes, made by 0x417930): the van it drives
 struct LevelKitchen
 {
@@ -76,6 +78,11 @@ public:
 	// 0x417bb0
 	void addWave(const engine::IntPair& theSize, const engine::FloatPair& theSpawnDelay,
 	             const engine::FloatPair& theWaitTime);
+
+	// 0x416730: the kitchens of the map are given the level's vans and toppings; translated next
+	void setUpKitchens(CityMap* theMap);
+	// 0x4167d0: the level's boats are made into the map's boat spawners; translated next
+	void setUpBoats(CityMap* theMap);
 
 	std::string mCityFile;                           // +0x0c
 	std::string mMusic;                              // +0x28: a clip of the tile manifest

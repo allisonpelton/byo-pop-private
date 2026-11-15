@@ -73,6 +73,8 @@ public:
 	void play(GameMusicClip* theClip);
 	// 0x450820
 	void setEnabled(bool theEnabled);
+	// 0x4505f0: the voice's volume
+	void setVolume(float theVolume) { if (mSound != nullptr) mSound->setVolume(theVolume); }
 
 	engine::Ref<GameMusicClip> mCurrent;  // +0x0c: the clip that plays
 	engine::Sound* mSound;                // +0x10: its voice, the sound system's

@@ -7,10 +7,12 @@
 #include "Scene.h"
 #include "Scoreboards.h"
 #include "GameText.h"
+#include "GameState.h"
 #include "LevelStartState.h"
 #include "NewToppingState.h"
 #include "StoryState.h"
 #include "Sound.h"
+#include "SpeedGame.h"
 #include "SplashState.h"
 #include "Transition.h"
 
@@ -371,9 +373,24 @@ void PizzaFrenzy::pauseGame()
 {
 }
 
-// 0x459510, 0x460610, 0x45b3e0 and the state 0x4029b0: translated next with the game
+// 0x407370: translated with the level's end
+void PizzaFrenzy::endLevel()
+{
+}
+
+// 0x406dc0's second half: the mode's game is made (the mode number picks it) and plays the level
 void PizzaFrenzy::enterModeGame(Level* theLevel)
 {
+	if (mGameMode == MODE_SPEED)
+		mMode = new SpeedGame();
+	else
+	{
+		// the memory mode's game (0x460610) and the concentration mode's (0x45b3e0) are translated with those modes
+		return;
+	}
+	mMode->setup(mGameScreen, mCityMap, mHud, mGameStats);
+	mMode->setLevel(theLevel);
+	mStates.changeState(new GameState(this));
 }
 
 // 0x45f830 and the state 0x402a40: translated next with the game

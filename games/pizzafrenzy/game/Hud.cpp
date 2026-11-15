@@ -63,3 +63,18 @@ void Hud::setup(GameStats* theStats)
 	}
 	// the burst effect ("BurstFx") is made and put in the middle of the stars' top here: left out, see the class
 }
+
+// slot 0x190: translated next with the hud's displays
+void Hud::updateHud(engine::UpdateInfo& theInfo)
+{
+}
+
+// 0x43a5b0: translated next with the hud's displays
+void Hud::showVehicles()
+{
+}
+
+// 0x438270: the sound of the tip jar's roll is left out (see the class)
+void Hud::pauseTipJarSound(bool thePaused)
+{
+}

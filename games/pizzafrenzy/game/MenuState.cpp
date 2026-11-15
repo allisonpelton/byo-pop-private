@@ -69,9 +69,14 @@ void MenuState::update(engine::UpdateInfo& theInfo)
 	}
 }
 
-// 0x4022f0: translated next with the game
+// 0x4022f0: the mode's game is let go with the level it played and the city on the game screen
 void MenuState::clearEndedGame()
 {
+	if (mApp->mMode != nullptr)
+		mApp->mMode->clearLevel();
+	mApp->mGameScreen->clearGroups();
+	mApp->mCityMap->clear();
+	mApp->mMode = nullptr;
 }
 
 // 0x40c7a0: the dialog state of the actions that open a dialog

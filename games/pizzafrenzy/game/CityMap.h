@@ -47,6 +47,16 @@ public:
 	// 0x413a80
 	void addDecoration(Decoration* theDecoration);
 
+	// 0x4122e0 (slot 0x4): a frame of the map: its tiles, boats and vehicles; translated next
+	void update(engine::UpdateInfo& theInfo);
+	// 0x413fc0: the toppings the kitchens' vans carry are listed, each once; translated next
+	void collectKitchenToppings();
+	// 0x412170: the kitchens that carry the topping show the length of the combo on their signs, the others none;
+	// translated next
+	void showCombo(Topping* theTopping, int theLength);
+	// 0x412940: the boat spawners of the level are let go; translated next
+	void clearBoatSpawners();
+
 	// Left for the game's play: 0x413b00 and 0x413f40 (the lists at +0x68 and +0x88), 0x413b80 (the vehicles, +0xbc),
 	// 0x413fc0 (what a kitchen's registration and unregistering end with) and 0x429cf0 (the pathfinder's grid, +0x104,
 	// which setGrid fills)

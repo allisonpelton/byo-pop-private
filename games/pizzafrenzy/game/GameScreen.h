@@ -40,6 +40,9 @@ public:
 	void clearGroups();
 	// 0x435c60: the city's picture and nodes, from the map (the postcards and the game take them from here)
 	void drawCity();
+	// 0x435ba0: a frame of the screen (the speed bonus banner's, the vehicles', and the nodes of the sorted group);
+	// translated next
+	void updateScreen(engine::UpdateInfo& theInfo);
 
 	engine::Ref<CityMap> mMap;                         // +0x1d4
 	engine::Ref<Hud> mHud;                             // +0x1d8

@@ -46,7 +46,8 @@ public:
 	int mTipMoney;
 	int mCountF;                                 // +0x38: nothing translated reads it
 	int mCountG;                                 // +0x3c: nothing translated reads it
-	int mCountH;                                 // +0x40: nothing translated reads it
+	// +0x40: how many pizzas of the same topping the player has delivered in a row (the kitchens' signs show it)
+	int mComboLength;
 	std::map<int, int> mTallies;                 // +0x44: nothing translated reads it
 	int mCountI;                                 // +0x50: nothing translated reads it
 	int mCountJ;                                 // +0x54: nothing translated reads it

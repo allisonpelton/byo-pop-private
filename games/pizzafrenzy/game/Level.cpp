@@ -63,3 +63,11 @@ void Level::addWave(const engine::IntPair& theSize, const engine::FloatPair& the
 	aWave.mWaitTime = theWaitTime;
 	mWaves.push_back(aWave);
 }
+
+void Level::setUpKitchens(CityMap* theMap)
+{
+}
+
+void Level::setUpBoats(CityMap* theMap)
+{
+}

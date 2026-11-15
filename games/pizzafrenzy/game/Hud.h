@@ -25,6 +25,13 @@ public:
 
 	// slot 0x17c: 0x439ba0; the layout is loaded, its nodes found and the stars made
 	void setup(GameStats* theStats);
+	// slot 0x190: a frame of the hud; translated next
+	void updateHud(engine::UpdateInfo& theInfo);
+	// 0x43a5b0: the vehicles that can be bought are shown (0x439b00 for each of the map's, with the number 200);
+	// translated next
+	void showVehicles();
+	// 0x438270: the tip jar's roll sound stops with the game paused and goes on with it; left out with the sound
+	void pauseTipJarSound(bool thePaused);
 
 private:
 	enum { STAR_COUNT = 5 };

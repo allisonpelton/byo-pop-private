@@ -174,3 +174,19 @@ void CityMap::addDecoration(Decoration* theDecoration)
 {
 	mDecorations.push_back(theDecoration);
 }
+
+void CityMap::update(engine::UpdateInfo& theInfo)
+{
+}
+
+void CityMap::collectKitchenToppings()
+{
+}
+
+void CityMap::showCombo(Topping* theTopping, int theLength)
+{
+}
+
+void CityMap::clearBoatSpawners()
+{
+}

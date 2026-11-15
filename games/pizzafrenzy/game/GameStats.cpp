@@ -48,7 +48,7 @@ void GameStats::reset()
 	mTipMoney = 0;
 	mCountF = 0;
 	mCountG = 0;
-	mCountH = 0;
+	mComboLength = 0;
 	mTallies.clear();
 	mCountI = 0;
 	mCountJ = 0;

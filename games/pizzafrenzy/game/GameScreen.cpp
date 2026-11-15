@@ -235,3 +235,8 @@ void GameScreen::drawCity()
 	mGroundNode->setImage(mGroundImage);
 	delete aGraphics;
 }
+
+// 0x435ba0: translated next with the game's play
+void GameScreen::updateScreen(engine::UpdateInfo& theInfo)
+{
+}

@@ -7,6 +7,7 @@
 
 #include "CityMap.h"
 #include "CitySelectScreen.h"
+#include "GameMode.h"
 #include "GameScreen.h"
 #include "GameStats.h"
 #include "GenericApplication.h"
@@ -48,6 +49,14 @@ namespace pizzafrenzy
 class PizzaFrenzy : public engine::GenericApplication
 {
 public:
+	// The game's modes, by the number the application keeps in mGameMode
+	enum
+	{
+		MODE_SPEED = 0,
+		MODE_MEMORY = 1,
+		MODE_CONCENTRATION = 2
+	};
+
 	PizzaFrenzy();             // 0x40c170
 	~PizzaFrenzy() override;   // 0x40c6e0, 0x408b10
 
@@ -109,6 +118,7 @@ public:
 	engine::Ref<TileManifest> mTileManifest;                 // +0x124: the game's data
 	engine::Ref<UserGameData> mUserGameData;                 // +0x128: the current player's
 	engine::Ref<engine::SplatFactory> mSplatFactory;         // +0x12c: the scene's, loaded from the splats' file
+	engine::Ref<GameMode> mMode;                             // +0x110: the game of the mode that is being played
 	engine::Ref<GameMusicPlayer> mMusicPlayer;               // +0x130
 	// +0x137: set by the game's states (0x402730 and 0x4027d0), cleared by 0x402790, which the translated states do not
 	// reach: a game is on the screen. The water of the roads is only drawn while it is set.
@@ -152,6 +162,11 @@ public:
 	void showLevelStart();
 	// 0x407080: the game is paused, and the pause menu is shown; translated with the pause menu
 	void pauseGame();
+	// 0x407370: the level is over: the level's end is shown, and the next level or the game's end follows; translated
+	// with the level's end
+	void endLevel();
+	// +0x188: the window has the focus
+	bool isActive() const { return mActive; }
 
 	// 0x406dc0: the level is set up for play: the mode's game with the level's city, or the bonus round
 	void setUpLevel();
@@ -176,7 +191,7 @@ private:
 	void enterLevelStartState(Level* theLevel);
 	// 0x459510, 0x460610 and 0x45b3e0 (the speed, memory and concentration mode's game, which the mode number picks),
 	// kept at +0x110; its slot 0x4 (the game screen, the hud and the stats) and slot 0x10 (the level), then the state
-	// 0x4029b0
+	// 0x4029b0 (GameState.h). The speed mode's is translated; the other two modes' are translated with those modes.
 	void enterModeGame(Level* theLevel);
 	// 0x45f830, kept at +0x110: its slot 0xbc (the stats, with the object at +0xf4) and slot 0x10 (the level), then
 	// the state 0x402a40
