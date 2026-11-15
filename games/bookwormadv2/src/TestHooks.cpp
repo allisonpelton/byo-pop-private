@@ -35,7 +35,7 @@
 //                   highscores (the main menu's items); a mini-game by its class (wordmaster, letterrip, linknspell,
 //                   wordup, mutawords, goldencoins: the mini-games' menu's buttons, opened first from the main menu)
 //   unlock all      the arena, the mini-games and the tome, as the end of a book unlocks them
-//   set health|enemy <n>   Lex's or the enemy's health (the scripts' _LexSetHealth, _EnemySetHealth); refused ("no enemy") once the enemy is dead (its overlay: the script resurrects it, and a later call reached a freed object), and capped at its maximum by the script
+//   set health|enemy <n>   Lex's or the enemy's health (the scripts' _LexSetHealth, _EnemySetHealth); refused ("no enemy") once the enemy is dead (its victory overlay: the script revives it, and the site saw a crash there that did not repeat), and capped at its maximum by the script
 //   win             the battle's enemy dies (the scripts' _KillEnemy, only while the battle waits for a word)
 //   lose            Lex near death (the scripts' _lex_near_death), so that the enemy's next attack ends the battle
 //   move            MOVE {json} the move the drivers' bot makes next, or MOVE null (MoveForTests); it changes nothing
@@ -669,10 +669,28 @@ bool GameApp::HandleDriverCommand(const ScriptCommand& theCommand)
 		aJson += StrFormat(",\"curtain\":%s,\"dialogs\":%d,\"talk\":%s", aCurtainBusy ? "true" : "false",
 		                   (int)mDialogMap.size(), ShowingConversationPanel() ? "true" : "false");
 		if (mConversationPanel != nullptr && mConversationPanel->Active())
-			aJson += StrFormat(",\"talkstate\":%d,\"talkpanel\":%u,\"talkvis\":%d,\"talkdis\":%d,\"talkpages\":%d,\"talkidx\":%d",
+			aJson += StrFormat(",\"talkstate\":%d,\"talkpanel\":%u,\"talkvis\":%d,\"talkdis\":%d,\"talkpages\":%d,\"talkpage\":%d,\"talkpagesn\":%d,\"talktyping\":%d",
 			                   mConversationPanel->mState, mConversationPanel->mCurPanel, (int)mConversationPanel->mVisible,
 			                   (int)mConversationPanel->mDisabled, (int)mConversationPanel->mPanels.size(),
-			                   (int)mConversationPanel->mUpdateCnt);
+			                   mConversationPanel->mCurPanel < mConversationPanel->mPanels.size()
+			                       ? (int)mConversationPanel->mPanels[mConversationPanel->mCurPanel]->mPageIndex : -1,
+			                   mConversationPanel->mCurPanel < mConversationPanel->mPanels.size()
+			                       ? (int)mConversationPanel->mPanels[mConversationPanel->mCurPanel]->mPages.size() : -1,
+			                   mConversationPanel->mCurPanel < mConversationPanel->mPanels.size()
+			                       ? (int)mConversationPanel->mPanels[mConversationPanel->mCurPanel]->mTyping : -1);
+		if (mConversationPanel != nullptr && mConversationPanel->Active()) {
+			int aWX = 0, aWY = 0;
+			Widget* aTop = mWidgetManager->GetWidgetAt(400, 150, &aWX, &aWY);
+			if (mConversationPanel->mCurPanel < mConversationPanel->mPanels.size() &&
+			    mConversationPanel->mPanels[mConversationPanel->mCurPanel]->CurrentPage() != nullptr)
+				aJson += ",\"talktext\":" + JsonString(mConversationPanel->mPanels[mConversationPanel->mCurPanel]->CurrentPage()->mText.substr(0, 60));
+			aJson += StrFormat(",\"talktop\":\"%s\",\"talkmodal\":\"%s\",\"talkfocus\":\"%s\"",
+			                   aTop == nullptr ? "none" : (aTop == mConversationPanel ? "panel" : typeid(*aTop).name()),
+			                   mWidgetManager->mBaseModalWidget == nullptr
+			                       ? "none"
+			                       : (mWidgetManager->mBaseModalWidget == mConversationPanel ? "panel" : typeid(*mWidgetManager->mBaseModalWidget).name()),
+			                   mWidgetManager->mFocusWidget == nullptr ? "none" : typeid(*mWidgetManager->mFocusWidget).name());
+		}
 		if (mMusicInterface != nullptr) {
 			// the music: the last song the scripts asked for (PlaySong) and whether that or a module song (SongPlayer) plays
 			bool aPlaying = mMusicInterface->IsPlaying(mLastSongId);
