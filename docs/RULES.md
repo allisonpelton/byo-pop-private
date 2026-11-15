@@ -116,7 +116,7 @@ the same machine. A plain run opens a window, raises it over whatever the user i
   2026-11-12, asked whether rundesk's desktop, which may never signal a vertical blank, makes a present cost more than
   on a player's screen: "Yes"). Routine runs stay under rundesk, which keeps windows and sound off the user's work;
   the desktop is for what needs it (3D, vsync, sound, real input). A game's own script that still refuses outside
-  22:00-08:00 is out of date and loses its guard at its next use. Everything else above still holds: at most 6 game
+  22:00-08:00 is out of date: the session that owns it drops the guard at once, and no work waits for the night (the user, 2026-11-15, on finding sessions still holding desktop runs for 22:00: "I had lifted the restrictions about running during daytime, though"). Everything else above still holds: at most 6 game
   processes, no link, "Buy" or "More Games" click, a window shown without taking the focus, the user's cursor and
   keyboard never touched (input posted to the game's own window), the window, registry and saves put back as
   `docs/ORIGRUN.md` says, nothing left running.
