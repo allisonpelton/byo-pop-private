@@ -129,6 +129,31 @@ GL. The first comparison differed everywhere, for three reasons, all in the test
 - A native `<n> screenshot` runs at the start of update n, before the game updates: it shows n - 1 updates. The
   page is held at n - 1 for the shot named n.
 
+3D against the original, Classic's level-ups and Blitz (2026-11-15). The original ran on the visible desktop through
+visrun again, in its seeded copy at the 768 art in a 1228 by 768 window, playing its own `-autoplay=classic` (V4: 124
+shots from update 4000 to 10200, both level-ups' jumps every 20 updates, a focus loss at 9900) and `-autoplay=blitz`
+(V5: 49 shots from 3000 to 9300, the speed bonus, a focus loss at 5100). The port played the same seed with the same
+players folder under rundesk with `-3d`, its shots three updates either side of each update the original's shot
+landed on (`build/bjt/v3d/gen4.py`, `align2.py`). The port ran in real time: with `-fast`, Blitz's 3D background
+stood at another point of its animation by update 3161 (a mean difference of 13 levels against the same port in
+real time; "Oddities" in NOTES.md), so `-fast` does not leave these shots unchanged.
+
+Where the two games are in step the pictures are the same within a few levels, as in the earlier 3D runs: Classic's
+boards from 4000 to 6000 at a mean of 1.6 to 5.9 levels a channel, and Blitz from 3000 to 4000 at 1.5 to 3.3. The
+level-up jumps and Blitz's speed bonus show the same scenes (the same rank bar, score and board) with the animation
+further on in the original: the camera along the jump's path, and "GIGASPEED" still trailing its copies while the
+port's has stood still for longer. That is the original's known 15-update slip ("Oddities" in NOTES.md: its autoplay
+sometimes makes its moves 15 updates early or late in a real-time run), so an animation that starts after a slip is
+that many updates away from the port's while the boards between the moves stay the same. The jumps were matched at
+their scenes, not pixel for pixel; a real-time run cannot line them up closer.
+
+The focus loss is still not compared in 3D. visrun keeps the original's window active with posted messages from its
+first update, since it may never take the focus from the user, so a posted focus loss does not pause the original:
+the port showed PAUSED and the original played on, and the two games parted there (Blitz's boards differ from 6000
+on). Comparing it would need the original's window to hold the focus, which the desktop rules forbid, and Windows
+Sandbox gives the original no Direct3D. The bomb wheel in 3D is not compared either: it falls past update 10282,
+where the 3D original parts from the port anyway.
+
 ### Changes the pass made
 
 | Difference | Cause in the original | The port now | Commit |
