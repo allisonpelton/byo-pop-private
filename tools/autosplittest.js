@@ -457,5 +457,22 @@ check(blockReplay("bejeweledtwist", "Challenge 100%", twLines(twEnigma.concat([[
       "Bejeweled Twist Challenge 100%: Enigma 7's win ends it, not Voltage 1's");
 check(blockReplay("bejeweledtwist", "Enigma%", twLines([["go", 1], ["clear"]])) === "", "Bejeweled Twist Enigma%: a Classic game starts nothing");
 
+// Bejeweled 2: the port's block logs from its session's scripted games (2026-11-15, games/bejeweled2/tools/livesplit/drive.py;
+// the puzzle ones on a profile with the galaxy opened, its progress 80 from the start)
+function b2Log(name) { return fs.readFileSync(path.join(__dirname, "autosplit", "bejeweled2", name + ".block.log"), "utf8").split(/\r?\n/); }
+check(blockReplay("bejeweled2", "Classic Mode - Level 5", b2Log("classic")) === "start; split; split; reset resetNoMoves",
+      "Bejeweled 2 Classic: from the GO, a split a level, no moves resets");
+check(blockReplay("bejeweled2", "Action Mode - Level 8", b2Log("action")) === "start; split; split; reset resetTimeUp" &&
+      blockReplay("bejeweled2", "Classic Mode - Level 5", b2Log("action")) === "", "Bejeweled 2 Action: the time running out resets; Classic's ignores it");
+check(blockReplay("bejeweled2", "Hyper Mode - Level 37", b2Log("hyper")) === "start; split; split; reset resetTimeUp", "Bejeweled 2 Hyper");
+check(blockReplay("bejeweled2", "Classic Mode - Level 5", b2Log("left")) === "start; reset resetLeft", "Bejeweled 2: leaving the board mid-game resets");
+check(blockReplay("bejeweled2", "25%", b2Log("puzzle20")) === "start; split; split; split; split" &&
+      blockReplay("bejeweled2", "25%", b2Log("puzzle")) === "start; split; reset resetLeft",
+      "Bejeweled 2 25%: a planet each five puzzles solved, not the opened profile's count");
+check(blockReplay("bejeweled2", "4 Square", b2Log("foursquare")) === "start; split; split; split; split",
+      "Bejeweled 2 4 Square: four levels of each of four modes over five boards, each mode left by the next");
+check(blockReplay("bejeweled2", "Switcharoo", b2Log("switcharoo")) === "start; " + splits(12),
+      "Bejeweled 2 Switcharoo: Action and Endless in turns, saved games continued, a split a level (12 of 16)");
+
 console.log("autosplittest: " + (fx.cases.length + bm.cases.length + bw.cases.length) + " scenario replays, " + checks + " checks, " + fails + " failed");
 process.exit(fails ? 1 : 0);

@@ -796,6 +796,11 @@ categories have no template. Bejeweled Twist: Level 10 in Classic and in Zen run
 runs over many challenges, a board each (`across` in the template): from the first challenge's click to the win of
 Voltage 1 or Enigma 7, read from the block's own words (the challenge's category and number). A failed challenge, tried
 again, resets nothing, and each earlier win splits while segments are left. The per-level 100% category has no template.
+Bejeweled 2 (B2DX): Classic, Action and Hyper to a level or a score, and Puzzle to its win or to the puzzles solved on the
+run's board (25% at 20, All Puzzles at 80; not the profile's count, which an opened galaxy starts at 80), each from the
+board's GO, after the portal and How to Play. 4 Square and Switcharoo run over many boards (`ownLevels` in the template)
+and count the levels the block keeps per mode: the modes with four each, and Action's and Endless's together. Endless's
+"N Gem", Hyper's Max Score and Full Loop, and the per-level 100% have no template. Its block logs replay in the test.
 Big Money has no board, so its row is its native
 script's rules, with mode and skill in the category's name and levels or scores as segments. Both replay their native
 scripts' scenarios in `tools/autosplittest.js`. Every other game with a board gets its row in Milestone 3, from the

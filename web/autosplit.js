@@ -260,7 +260,7 @@ var ByopopAutosplit = (function () {
       // board gone in the same update (Dynomite's tutorial wins as it closes to the main menu, its last part's clear just
       // before, so a poll may see all three at once)
       function wonNow() {
-        if (template && template.across) return current.wins !== old.wins && endWin();
+        if (template && template.across) return !!template.endWin && current.wins !== old.wins && endWin();
         return !!end && end.kind === "won" && !(template && template.games) && current.wins !== old.wins && current.winSerial === runSerial;
       }
       // (a run over many boards, template.across: Bejeweled Twist's challenges, a board each. Its end is the win whose game's own
@@ -270,9 +270,28 @@ var ByopopAutosplit = (function () {
         var w = template.endWin || {};
         return Object.keys(w).every(function (k) { return current[k] === w[k]; });
       }
+      // (a run counted by the levels cleared in each mode, template.ownLevels, over as many boards as it takes: Bejeweled 2's
+      // 4 Square and Switcharoo. The game's own words hold a count per mode, a byte each from own0 on, since the block was
+      // asked for; the run counts from its start. {modes, per: N}: the modes with N or more, a segment each; {modes, sum: true}:
+      // their levels together, a segment each)
+      function modeLevels() {
+        var b = [];
+        [current.own0, current.own1, current.own2].forEach(function (w) { for (var k = 0; k < 4; k++) b.push((w >>> (8 * k)) & 255); });
+        return b;
+      }
+      var levelsAtStart = [];
+      function ownCount() {
+        var o = template.ownLevels, now = modeLevels(), n = 0;
+        o.modes.forEach(function (m) {
+          var done = now[m] - (levelsAtStart[m] || 0);
+          n += o.sum ? Math.max(0, done) : done >= o.per ? 1 : 0;
+        });
+        return n;
+      }
       function reached() {
         var i = timer.index();
         if (runSerial === 0 || i < 0 || i >= splits.length) return false;
+        if (template && template.ownLevels) return ownCount() >= i + 1;
         if (wonNow()) return true;
         if (template && template.across) return current.wins !== old.wins && i < splits.length - 1;
         if (current.boardSerial !== runSerial) return false;
@@ -294,6 +313,7 @@ var ByopopAutosplit = (function () {
         // the timer started (by the decider or by hand): the run is the current board's
         onStart: function () {
           splits = parseSplits((opts && opts.segments) || []); runSerial = current.boardSerial; pending = null;
+          levelsAtStart = modeLevels();
           skillsUsed = [current.skill]; between = false;
         },
         onReset: function () { runSerial = 0; pending = null; between = false; },
@@ -585,6 +605,37 @@ var ByopopAutosplit = (function () {
     ]
   };
 
+  // Bejeweled 2 Deluxe (speedrun.com: Bejeweled 2 and its Category Extension; the port's block, layout 2, from Bejeweled 2's
+  // session, 2026-11-15): Classic, Action and Hyper to a level or a score, Puzzle to its win (the fifth puzzle of the last
+  // planet) or to the puzzles solved on the run's board (each the first time: 20, four planets of five, is 25%; 80 is All
+  // Puzzles; not the profile's count, which a player with the galaxy opened starts at 80), each from the board's GO (the portal
+  // done and How to Play closed, as the boards say). 4 Square (four levels of each of the four first modes, in any order) and
+  // Switcharoo (eight levels each of Action and Endless, taking turns, saved games continued) run over many boards and count
+  // the levels the game keeps per mode. Left out: Endless's "N Gem", Hyper's Max Score and Full Loop (no end the block can
+  // tell) and 100% (a per-level board).
+  var B2_RULES = {
+    name: "Bejeweled 2 Deluxe", id: "B2DX",
+    modes: { Classic: 0, Action: 1, Puzzle: 2, Endless: 3, Twilight: 4, Hyper: 5, Cognito: 6, Finity: 7, Hidden: 8 }, skills: {},
+    deaths: [{ setting: "resetNoMoves", what: "no moves left (Classic, Endless, Twilight, Hidden)" },
+             { setting: "resetTimeUp", what: "the time ran out (Action, Hyper, Finity)" },
+             { setting: "resetLeft", what: "the board was left mid-game (the menu, a new game)" },
+             { setting: null, what: "unused" }],
+    templates: [5, 10, 17].map(function (n) { return { category: "Classic Mode", sub: "Level " + n, segments: levels(n), end: "levels " + n, mode: 0 }; })
+      .concat([8, 37].map(function (n) { return { category: "Action Mode", sub: "Level " + n, segments: levels(n), end: "levels " + n, mode: 1 }; }))
+      .concat([["1 Million Score", 1000000], ["10 Million Score", 10000000]].map(function (x) {
+        return { category: "Action Mode", sub: x[0], segments: [String(x[1])], end: "score " + x[1], mode: 1 };
+      }))
+      .concat([{ category: "Hyper Mode", sub: "Level 37", segments: levels(37), end: "levels 37", mode: 5 },
+               { category: "Hyper Mode", sub: "100 Million Score", segments: ["100000000"], end: "score 100000000", mode: 5 },
+               { category: "Puzzle Mode", sub: "Any%", segments: ["Galaxy"], end: "won", mode: 2 },
+               { category: "Puzzle Mode", sub: "Glitchless", segments: ["Galaxy"], end: "won", mode: 2 },
+               { category: "Puzzle Mode", sub: "All Puzzles", segments: ["All puzzles"], targets: [80], end: "levels 80", mode: 2 },
+               { category: "25%", segments: ["Planet 1", "Planet 2", "Planet 3", "Planet 4"], targets: [5, 10, 15, 20], end: "levels 20", mode: 2 },
+               { category: "4 Square", segments: ["1 mode", "2 modes", "3 modes", "4 modes"], end: "levels 4", mode: [0, 1, 2, 3],
+                 across: true, ownLevels: { modes: [0, 1, 2, 3], per: 4 } },
+               { category: "Switcharoo", segments: levels(16), end: "levels 16", mode: 1, across: true, ownLevels: { modes: [1, 3], sum: true } }])
+  };
+
   // A row of GAMES from a row of the rules table
   function ruled(rules) {
     return { name: rules.name, block: "_byopop_livesplit_block", read: blockReader(rules.id), decider: makeDecider(rules),
@@ -606,7 +657,8 @@ var ByopopAutosplit = (function () {
     cosmicbugs: ruled(CB_RULES),
     dynomite: ruled(DY_RULES),
     venice: ruled(VN_RULES),
-    bejeweledtwist: ruled(TW_RULES)
+    bejeweledtwist: ruled(TW_RULES),
+    bejeweled2: ruled(B2_RULES)
   };
 
   // The front game's block, read from its window: {game, snap} or null (no game with an auto splitter in front, or it has not
