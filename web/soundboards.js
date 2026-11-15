@@ -1790,7 +1790,9 @@ var ByopopSoundboards = {
   ] },
   ningpo: {
     presets: [
-      { name: "You Win", when: "The last pair is taken", steps: [["ningpo.pyz|zip:nm_youwin.ogg", 0]]}
+      { name: "You Win", when: "The last pair is taken", steps: [["ningpo.pyz|zip:nm_youwin.ogg", 0]]},
+      { name: "Game Over", when: "A pair leaves tiles but no move, and the no-moves box's End Game is chosen",
+        steps: [["ningpo.pyz|zip:nm_gameover.ogg", 0]]}
     ],
     groups: [
     { name: "Menus", sounds: [

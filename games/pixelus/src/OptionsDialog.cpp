@@ -126,6 +126,7 @@ void OptionsDialog::Resize(int theX, int theY, int theWidth, int theHeight)
 }
 
 // 0x4e7c80
+// 0x4190a0
 int OptionsDialog::GetPreferredHeight(int theWidth)
 {
 	// 0x1ac in the original (its rows end at the footer, 0x44 above the bottom), less the update row and the 3D box

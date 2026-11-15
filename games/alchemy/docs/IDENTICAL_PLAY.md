@@ -4,7 +4,7 @@ Phase one of the pass CLAUDE.md names: **plays identical**. The same input gives
 port, by the game's state, not by pictures. Phase two (screens, sound, focus, the web build) is described at the end.
 
 The original is the game carved out of `Alchemy.exe` (`re/alchemy/bin/AlchemyGame.exe`, image base 0x400000), run only through
-`tools/origrun`, from a copy under a short path (`C:\byo-og\alch\game`), under rundesk (invisible, silent, below normal
+`tools/origrun`, from a copy under a short path (`E:\byo-og\alch\game`), under rundesk (invisible, silent, below normal
 priority), on origrun's virtual clock (`--clock virtual`: the game is held between updates, so an input lands on an exact
 update) and with the scripted cursor (`--cursor scripted`: the board reads the pointer with `GetCursorPos`). Two game
 processes at a time at most (the original and the port); no shot is taken (origrun takes none on the host).

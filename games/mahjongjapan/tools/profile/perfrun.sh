@@ -40,11 +40,11 @@ if [ "$KIND" = port ]; then
 			-userdir="$ROOT/$d/user" -logos -script="$ROOT/$OUT/port-script.txt" ${WINDOWED:+-windowscale=1} $EXTRA | tail -n 1 | cut -c1-400
 	done
 else
-	ST="${GAME}cov"; SD="C:/byo-og/$ST"; L="$LOCALAPPDATA/JollyBear/$SAVES"
+	ST="${GAME}cov"; SD="E:/byo-og/$ST"; L="$LOCALAPPDATA/JollyBear/$SAVES"
 	python -I "$HERE/perfscript.py" "$CHECK" orig "$OUT/orig-script.txt" "$OFFSET"
 	mkdir -p "$OUT/saves"; cp "$L"/* "$OUT/saves/" 2> /dev/null
 	if [ ! -f "$SD/game/$EXE" ]; then
-		build/origrun-bin/origrun.exe --game "$GAME" --run "$ST" --stage-root 'C:\byo-og' --copy-only > "$OUT/stage.log" 2>&1
+		build/origrun-bin/origrun.exe --game "$GAME" --run "$ST" --stage-root 'E:\byo-og' --copy-only > "$OUT/stage.log" 2>&1
 	fi
 	PART="$(echo "$SD/game/$EXE" | tr 'A-Z' 'a-z')"
 	for i in $(seq 1 "$RUNS"); do

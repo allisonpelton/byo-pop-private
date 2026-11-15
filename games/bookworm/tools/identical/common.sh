@@ -1,10 +1,10 @@
 #!/bin/bash
 # Shared settings of BookWorm's identical-play scripts (games/bookworm/docs/IDENTICAL_PLAY.md). Source it, do not run it.
-#   OG_STAGE   where the original is staged (default C:/byo-og/bw; a short path, outside the repository)
+#   OG_STAGE   where the original is staged (default E:/byo-og/bw; a short path, outside the repository)
 #   OUT        where a case's files go (default build/identical)
 ROOT="$(git rev-parse --show-toplevel)"
 cd "$ROOT" || exit 1
-OG_STAGE="${OG_STAGE:-C:/byo-og/bw}"
+OG_STAGE="${OG_STAGE:-E:/byo-og/bw}"
 OG_MASTER="$OG_STAGE/master"   # setup.sh's staged copy, never run
 OG_GAME="$OG_STAGE/game"       # the copy a run uses, made afresh from the master
 REGKEY='HKCU\Software\PopCap\BookWorm'   # the original's settings and players

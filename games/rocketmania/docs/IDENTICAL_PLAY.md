@@ -5,7 +5,7 @@ port, judged by the game's state and not by pictures. Phase two (2026-11-11): **
 real input and the web build, and a leak of the port found on the way.
 
 The original is the game carved out of `RocketMania.exe` (`re/rocketmania/bin/RocketManiaGame.exe`), run only through
-`tools/origrun` from a copy under a short path (`C:\byo-og\rm\game`), under rundesk (invisible, silent, below normal priority),
+`tools/origrun` from a copy under a short path (`E:\byo-og\rm\game`), under rundesk (invisible, silent, below normal priority),
 on origrun's virtual clock (`--clock virtual`: the game is held between updates, so an input lands on an exact update) and with
 the scripted cursor. One game process at a time, the original or the port, never both together. The port runs with `-fast
 -drawevery`.
@@ -148,7 +148,7 @@ and its only box as a line of text. A pair's `shift` in `summary.json` is read n
 its alignment from the label's own frame (it took it from the window's first frame, which could be another screen).
 
 **3D screens (2026-11-12, overnight).** The original in Windows Sandbox has no GPU, so phase two compared it in 2D. The 3D game was compared on the
-host's visible desktop (CLAUDE.md, "Overnight, desktop and sound allowed"): the copy of the original under `C:/byo-og/rm3d` ran with the stand-in's
+host's visible desktop (CLAUDE.md, "Overnight, desktop and sound allowed"): the copy of the original under `E:/byo-og/rm3d` ran with the stand-in's
 silent sound and scripted cursor, `Is3D` 1 in its registry key (restored after each run; the game reads the flag at update 2708, "3D flag 1"), on the
 wall clock, and `tools/shots/visrun3d.py` read the update counter with the process held, posted the tour's mouse messages and took each shot with
 `PrintWindow` while the game was held. A shot is refused when another window covers the game's, so a run waits for a desktop that no other game's window

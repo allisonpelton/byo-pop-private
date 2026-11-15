@@ -10,11 +10,12 @@
 // and the page of the temple under the mouse. The sea and the smoke cross-fade, lightning flashes now and then and
 // the gulls and surf are heard at random (0x4163e0).
 //
-// port: the particle bursts of a temple that has just opened and the follower of the pointer are not ported yet.
+// The gulls are GullFlock.h, the bursts of a temple that has just opened Particles.h.
 
 #include "Widget.h"
 #include "ButtonListener.h"
 #include "Temples.h"
+#include <vector>
 
 namespace Sexy
 {
@@ -24,6 +25,8 @@ class Graphics;
 class DialogButton;
 class ButtonWidget;
 class MemoryImage;
+class GullFlock;
+class ParticleEffect;
 
 class IslandMap;
 
@@ -85,6 +88,8 @@ public:
 	int				mWaveFlag;					// +0xe8
 	int				mNextGull1, mNextGull2;		// +0xe0, +0xe4
 	int				mSolvedTotal;				// +0x14c
+	GullFlock*		mFlock;						// +0x140 the gulls over the island
+	std::vector<ParticleEffect*> mEffects;		// +0xb0 the bursts at the doors that have just opened
 
 public:
 	IslandMap(PixelusApp* theApp);				// 0x4176a0
@@ -95,6 +100,10 @@ public:
 	virtual void		Resize(int theX, int theY, int theWidth, int theHeight) override;	// 0x416280
 	virtual void		Draw(Graphics* g) override;										// 0x4163e0
 	virtual void		Update() override;
+	virtual void		MouseMove(int x, int y) override;								// 0x4161b0
+	virtual void		MouseDrag(int x, int y) override;								// 0x4161f0
+	virtual void		MouseDown(int x, int y, int theClickCount) override;			// 0x416220
+	virtual void		MouseUp(int x, int y, int theClickCount) override;				// 0x416250
 	virtual void		ButtonDepress(int theId) override;								// 0x4170d0
 	virtual void		ButtonMouseEnter(int theId) override;							// 0x416180
 	virtual void		ButtonMouseLeave(int theId) override;

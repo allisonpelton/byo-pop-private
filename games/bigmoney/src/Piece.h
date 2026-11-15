@@ -73,7 +73,6 @@ public:
 	virtual ~Piece();        // 0x4010b0 (scalar deleting destructor 0x401d10, slot 0)
 };
 
-extern int gPieceCount;      // 0x52d860 live Piece objects (ctor ++, dtor --; never read)
 
 }
 

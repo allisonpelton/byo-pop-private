@@ -28,9 +28,9 @@ namespace
 	};
 }
 
-// 0x42c4a0: mode 0 and 1 name the tutorial's first two hints; mode 2 picks one of the six that follow at random. Any
-// other mode (the temple passes the picture of the map behind it) leaves the first one as it was in memory: the original
-// reads it uninitialised, the port starts it at the first of the random ones.
+// 0x42c4a0: mode 0 and 1 name the first two hints (the temple's first visit and its return); mode 2 picks one of the
+// six that follow at random. Any other mode leaves the first one as it was in memory (the original reads it
+// uninitialised); no caller passes one.
 SpeechBubble::SpeechBubble(PixelusApp* theApp, int theGod, Widget* theOwner, int theMode)
 {
 	mApp = theApp;

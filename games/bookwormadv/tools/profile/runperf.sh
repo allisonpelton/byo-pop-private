@@ -15,7 +15,7 @@ for i in $(seq 1 "${1:-3}"); do
   if [ "$3" != port ]; then
   while ! $PY tools/gamecount.py --limit 2 >/dev/null 2>&1; do sleep 20; done
   $PY tools/gamecount.py --limit 99 2>&1 | tail -1 > build/perf/procs_o$i.txt
-  $ORIGRUN --game bookwormadv --run pfo$i --stage-root 'C:\byo-og' --timeout 90 --script build/perf/orig_idle.txt > build/perf/orig$i.log 2>&1 &
+  $ORIGRUN --game bookwormadv --run pfo$i --stage-root 'E:\byo-og' --timeout 90 --script build/perf/orig_idle.txt > build/perf/orig$i.log 2>&1 &
   $PY $PERF build/perf/orig$i.json 20,80 --attach "byo-og/pfo$i/game/bookwormadventures.exe"
   wait
   $PY tools/gamecount.py --limit 99 2>&1 | tail -1 >> build/perf/procs_o$i.txt

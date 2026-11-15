@@ -32,6 +32,7 @@ class LoadingScreen;
 class MemoryImage;
 class LevelData;
 class ProgressManager;
+class ParticleLibrary;
 class UserDirectory;
 
 class PixelusApp : public NcApp
@@ -64,6 +65,7 @@ public:
 	LevelData*				mLevelData;         // +0x768 (Init: 0x42abd0)
 	UserDirectory*			mUserDirectory;     // +0x76c (Init: 0x43da10)
 	ProgressManager*		mProgress;          // +0x770 (Init: 0x421380)
+	ParticleLibrary*		mParticles;         // +0x778 the particle effects (0x43f3a0), made when first wanted
 	int						mCurrentTemple;     // +0x780 the temple the player is in (an index of gTemples)
 	std::string				mLastSolvedUuid;    // +0x77c the puzzle just solved: its picture comes in on the temple screen
 	// +0x774 SessionLog (0x43aac0) is the original's statistics file for the developers; not ported
@@ -114,7 +116,7 @@ public:
 	void					ShowIslandMap();                                // 0x432600
 	void					BackToMainMenu();                               // 0x433c90: from the island
 	void					EnterTemple(int theTemple);                     // 0x4170d0: a click on a temple of the island
-	void					ShowTemple();                                   // 0x432420 (the island is kept as its backdrop)
+	void					ShowTemple(int theMode = 2);                                   // 0x432420 (the island is kept as its backdrop)
 	void					BackToIsland();                                 // 0x432ac0
 	void					StartPuzzle(bool theRestart);                   // 0x433820: from the temple to the board
 	void					ShowResumeQuestion();                           // 0x434f70 (dialog 0x20)
@@ -129,7 +131,7 @@ public:
 	void					DeleteUserOK(bool theOK);                       // 0x434cf0
 	void					RenameUserOK(bool theOK);                       // 0x4350a0
 	void					StyleDialog(class GameDialog* theDialog);       // what 0x4331e0 does to every dialog
-	void					ShowHint(int theWidth, int theY, const SexyString& theHeader, const SexyString& theText, int theCellCount = 0, const int (*theCells)[2] = NULL);	// 0x40f160 (dialog 0x1f)
+	void					ShowHint(int theWidth, int theHeight, const SexyString& theHeader, const SexyString& theText, int theXOffset = 0, int theYOffset = 0);	// 0x40f160 (dialog 0x1f)
 
 	// Test hooks (testhooks/Autoplay.cpp): the bot that plays the puzzles with the best known solutions
 	bool					mAutoplay;

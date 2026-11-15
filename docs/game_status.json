@@ -265,11 +265,12 @@
         "collection",
         "site-features",
         "identical-look",
-        "lite-mod"
+        "lite-mod",
+        "performance"
       ],
       "na": [],
-      "now": "performance",
-      "note": "3D at 1x 105 to 121% of the original (the pace cap no clear gain over vsync); the excess is a shared cost per present (the driver thread's ~120 draw calls a frame) and the mixer thread; 2D 69%"
+      "now": null,
+      "note": "every phase but modding done; performance: 3D at 1x with SDL's batching, ten rounds pooled on a shared machine, medians original 3.43 G, port 3.02 with vsync (88%) and 3.41 with the pace (about 100%), the renderer unchanged (58933167); the two runs alone read 133/128% and 82/99%, so the figure sits inside the machine's noise; 2D 69%"
     },
     "ningpo": {
       "title": "Ning Po Mahjong Deluxe",
@@ -283,11 +284,12 @@
         "performance",
         "unneeded-code",
         "readability",
-        "collection"
+        "collection",
+        "site-features"
       ],
       "na": [],
-      "now": "site-features",
-      "note": "Presets wait on the site"
+      "now": "lite-mod",
+      "note": "site features done (the Game Over preset beside You Win, d2c871a4; speedrun.com: none); next: the lite mod"
     },
     "pixelus": {
       "title": "Pixelus Deluxe",
@@ -297,11 +299,12 @@
         "registration-out",
         "fixes-mod",
         "site-features",
-        "identical-look"
+        "identical-look",
+        "coverage"
       ],
       "na": [],
-      "now": "coverage",
-      "note": ""
+      "now": "lite-mod",
+      "note": "coverage done (coverage.txt, GAME_NOTES section 11; three Oddities: the editor's thumbnail reorder, a grid pulse colour nothing reads, the pause's sound ducking 0x431a50); in since the last merge: the temple's and select-user's scroll bars, bubble tips, plaque and title, flash buttons, the island's gull flock, the particle engine (temple bursts, the mystery puzzle's chains and lock), the main menu link's shadow, the sound buttons' alpha hit test; baseline refrozen (the bursts draw the app generator: apprand-only lines, game state identical); next: lite mod, unneeded code, readability, performance"
     },
     "rocketmania": {
       "title": "Rocket Mania Deluxe",
@@ -400,11 +403,12 @@
         "coverage",
         "site-features",
         "performance",
-        "lite-mod"
+        "lite-mod",
+        "unneeded-code"
       ],
       "na": [],
-      "now": "unneeded-code",
-      "note": ""
+      "now": "readability",
+      "note": "unneeded code out (583a3271: LockableButton, a registration leftover; the empty LoadingThreadCompleted; fields written but never read or saved; the Options dialog's unused link ids; 108 lines out, 41 in; fields a save writes stay); baseline unchanged (66646); next: readability, then the Collection check"
     },
     "tiptop": {
       "title": "TipTop Deluxe",
@@ -419,11 +423,12 @@
         "readability",
         "collection",
         "performance",
-        "lite-mod"
+        "lite-mod",
+        "site-features"
       ],
       "na": [],
-      "now": "site-features",
-      "note": "lite mod done with no mod: nothing measured is worth taking (docs/LITE_MOD.md); the site's features next"
+      "now": null,
+      "note": "every phase but modding done; on the site: the Sounds board with seven presets, and Music playing its MIDI song as the port does (TinySoundFont with the bank cut from GeneralUser GS; the site's 9815e16d); speedrun.com has no TipTop board, so no autosplitter"
     },
     "wordharmony": {
       "title": "Word Harmony",
@@ -520,7 +525,7 @@
       ],
       "na": [],
       "now": "identical-look",
-      "note": "the staged config.xml is Steam's retail file (the old one put flame gems everywhere); the chain bonus reads ExplosionChainBonusAdd per step on ExplosionChainBonus as the original (3ab848a5: Finity's first match 1300 as the original, was 700); Classic, Endless and Finity refrozen (3c6e6ccb); 3D tours re-recorded on the retail values: scores equal step for step in six modes, Classic and Finity drift at the level change (an Oddity: the generator a few draws off), Action's game-over shots differ (not traced); open: judging the rest of the re-recorded shots, Finity 3D's washed-out gems"
+      "note": "the eight retail 3D tours compare clean: scores equal step for step in every mode, Action's TIME UP at the same update (19861); the earlier Classic/Finity and Action differences were the comparison's (the help click's shift read too early, b75b56dd; a slowed original run); boxes left: the menu's More Games pill (removed by rule) and three small ones (Hyper 4-4 one gem's light, Hyper 6-1, Finity's first board); Finity 3D's washed-out gems not seen in the retail tours (an Oddity, unreproduced); next: Hyper 4-4's light, then the web 3D and full-screen comparison"
     },
     "venice": {
       "title": "Venice Deluxe",

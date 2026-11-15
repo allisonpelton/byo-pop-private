@@ -81,6 +81,11 @@ the same machine. A plain run opens a window, raises it over whatever the user i
   outputs (shots, logs, traces, staged copies of an original it no longer runs) once their result is judged and written
   into the game's notes, keeps its worktree's `build/` under about 3 GB, and checks its size before each merge request.
   What is worth keeping is the summary in the notes, never the raw files.
+- **Nothing in C:\'s root (the user, 2026-11-15: "I see new folders related to this project in the root of my C drive.
+  Move to the E drive please"):** the short path for originals that fail under a worktree's long path is `E:\byo-og`
+  (was `C:\byo-og`; every script and note now says E:), and a session's or agent's scratch goes in its worktree's
+  `build/` or its scratchpad, never a new folder at a drive's root on C:. The folders found there that day (`C:\byo-og`,
+  `C:\scr`, `C:\tmp_pf`, `C:\byo-saw`) were moved to E:.
 - Leave nothing running: loops started in the background end before you finish. Stopping a task can leave its loop's
   shells alive and still starting runs (Ning Po, 2026-11-03), so afterwards look for processes whose command line is
   inside your folder and stop them by id.

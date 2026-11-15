@@ -38,10 +38,8 @@ public:
 		CUSTOM_CURSORS_CHECKBOX_ID = 0, // the original gives both checkboxes id 0
 		MODS_BUTTON_ID = 1,             // the original's Register button had this id
 		SCORES_BUTTON_ID = 2,
-		VISIT_POPCAP_BUTTON_ID = 3,     // never created; the original's ButtonDepress opens a PopCap page (not ported)
 		HELP_BUTTON_ID = 4,
 		CREDITS_BUTTON_ID = 6,
-		LINK_BUTTON_ID_BASE = 100,      // the original's partner link i has id 100+i (the links are not ported)
 		ROW_PITCH = 34,
 		BUTTON_HEIGHT = 36,
 		BASE_PREFERRED_HEIGHT = 308     // the original adds 34 per partner link (342 shipped); the port has none

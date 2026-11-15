@@ -697,8 +697,8 @@ void Board::Compact()
 					aPiece->mFallThrough = (aPiece->mIsSpecial) && (aDest == mRows - 1);
 				else
 					aPiece->mFallThrough |= (aPiece->mIsSpecial) && (aGapBelow);
-				if ((aPiece->mFallThrough) && (aPiece->mSpecialType == PIECE_MONEYBAG))
-					mRepaintTimer = 0;
+				// (the original also zeroes a repaint countdown here when a bag falls through, +0x774, which nothing
+				// ever sets above 0)
 			}
 			aDest--;
 			aGapBelow = false;
@@ -3054,7 +3054,6 @@ void Board::Update()
 		if (CrtRand() % 2000 == 0)
 		{
 			mGlintActive = true;
-			mGlintTick = 0;
 			mGlintFrame = 0;
 			MarkDirty();
 		}
@@ -3069,16 +3068,6 @@ void Board::Update()
 			MarkDirty();
 		}
 		if (mUpdateCnt % 4 == 0)
-		{
-			mGlintTick++;
-			MarkDirty();
-		}
-	}
-
-	if (mRepaintTimer > 0)
-	{
-		mRepaintTimer--;
-		if (mRepaintTimer == 0)
 			MarkDirty();
 	}
 
@@ -3876,8 +3865,7 @@ Board::Board(WinBMApp* theApp)
 			aPrice.c_str(), mSolverHintValue, mSolverFreeHints, mSolverUndo ? "on" : "off", anUndoPrice.c_str(),
 			mSolverUndoValue, mSolverUndoLimit, aWarn.c_str(), mSolverBudget);
 	}
-	mCreateTick = GetTickCount();
-	mTimerTick = mCreateTick;
+	mTimerTick = GetTickCount();
 
 	mStatsSeconds = 0;
 	mPlaySeconds = 0;
@@ -3984,13 +3972,11 @@ Board::Board(WinBMApp* theApp)
 	mBombColor = 0;
 	mBombIdle = 0;
 	mHoverBag = false;
-	mRepaintTimer = 0;
 	mNumColors = 0;
 	mMovesLeft = 0;      // port: the remaining fields up to the hints are uninitialised in the original
 	mMoveDigit = 0;
 	mMoveDigitFade = 0.0;
 	mGlintFrame = 0;
-	mGlintTick = 0;
 	mSweepTone = 0;
 	mHighScoreDelay = 0;
 	mHintAlt = false;
@@ -4029,7 +4015,6 @@ Board::Board(WinBMApp* theApp)
 	mHintVisible = false;
 	mMovesColor = Color(0x80, 0x80, 0x80);
 	mClipExtra = 0;
-	mUnused7a4 = 0;
 	mNoMovesY = 0;
 	mLastGroupSize = 0;
 	mPrevGroupSize = 0;
