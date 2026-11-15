@@ -385,3 +385,100 @@ bosses, the craft and the dialogs above. Of the 57:
 The check took about an hour and a half of machine time, one game process at a time (the port recording the next
 scenario beside the original), and the two agents' 340,000 tokens. Every change to the sources but the NukeBlast
 destructor was a comment.
+
+## Performance (2026-11-15)
+
+**Result: in 2D, the display both games run in on rundesk's desktop, the port's processor time is about 85% of the
+original's over the same stretch of play with its mixer thread counted apart (94% with it), in both window sizes.**
+Medians of five alternating rounds (`games/heavyweapon/tools/profile/pairs.sh`, under `tools/pincore.py`), the
+process's cycles (every thread, the ones that ended too) over 3000 updates of level 4 in play, in million cycles an
+update and as a share of one core (the cycle counter ran at 2081 MHz):
+
+| | runs | update | draw | present | driver threads | audio thread | total | share of a core | less the audio thread | share |
+|---|---|---|---|---|---|---|---|---|---|---|
+| original (origrun, real clock, 2D display, window 640x480) | 5 | 0.107 | 2.290 | 0.652 | 0 | 0 | 3.125 | 15.0 % | **3.125** | 15.0 % |
+| port, 2D, window of the game's own size (`-windowscale=1`) | 5 | 0.142 | 0.591 | 0.581 | 1.391 | 0.268 | 2.939 | 14.1 % | **2.670** | 12.8 % |
+| port, 2D, default window (2x, 1280x960) | 5 | 0.148 | 0.633 | 0.380 | 1.436 | 0.261 | 3.014 | 14.5 % | **2.738** | 13.2 % |
+
+The runs, in round order: the original 2.745 2.924 4.413 3.238 3.125; the port at 1x, less its audio thread, 3.280
+2.670 3.186 2.561 2.371; at 2x 5.329 2.738 4.547 2.585 2.313. Round by round the port at 1x is below the original in
+four of the five. The port's two highest runs (5.3 and 4.5, both at 2x) are its present: 3.0 and 2.1 M cycles an
+update there against 0.3 to 1.0 in the others, the driver's wait for the display on a busy machine. The port's display line says `client 640x480
+px, logical 640x480, render scale 1, windowed, renderer direct3d11` (2x: `1280x960 ... render scale 2`). Both games ran
+windowed with the registry's `ScreenMode` 0. The original is in 2D because its 3D test fails on rundesk's desktop
+(`Test3D`'s FailureReason "DXError - CreateDevice: E_OUTOFMEMORY"), and the port was given `Is3D` 0 to match. The
+port's own default is 3D (`Is3D` left unset). Its 3D display at 1x ran three times in the same batch: 5.681, 3.924 and
+2.100 M less audio, the first two with presents of 3.9 and 2.0 M. It ran three more times in an earlier batch of the
+same stretch, which alternated with the port's 2D runs and had no original: 2.422, 2.564 and 2.367, against 2D's median
+of 2.856 in that batch. So on a quiet machine the 3D display costs about 15% less than 2D. The original's 3D display
+does not start on rundesk's desktop, so it is not measured.
+
+**How it was measured** (`docs/COORDINATION.md`, "A performance pass").
+
+- **The stretch.** `profile.py` uses idplay's `level4` scenario: the campaign continued before level 4, the continue
+  box, the armory and the map, then the port's bot. Its input is as `idplay.py record level4` wrote it. The bot ran once,
+  in that recording, and is in no measured run. Both games get the same lines at the same update after their loading:
+  the port at its update count from its anchor (52), the original at its update counter (0x56b5b4) from idplay's
+  `ORIGINAL_ANCHOR` (52). The stretch is frames 1200 to 4200 of that input, label a to label b.
+- **No test machinery.** The player's exe carries only the script's lines and a count line at each end: no
+  `-commands`, no state log, no bot, no `-fast`.
+- **Counting.** The port uses `-cyclesplit` (SexyApp's three sites). The original uses origrun's `--count` with
+  `games/heavyweapon/tools/profile/count.txt`: DoUpdateFrames 0x44dee0, DrawDirtyStuff 0x455b80 less its Redraw, and
+  Redraw 0x45d180 (the app's vtable 0x52a570, slots 9, 77 and 78).
+- **Running.** Each run ran under pincore's core, the original through origrun (its game under rundesk), the port under
+  rundesk, the order of the port's two windows swapped every other round, each run started when `tools/gamecount.py
+  --limit 6` had room.
+- **The cost of counting.** The port made 11760 readings of 7989 cycles each (1.1% of its total), the original 12994 of
+  4266 each (0.6%).
+- **Sound.** The port's audio thread is SDL's, mixing for the silent driver under rundesk: 0.22 to 0.28 M an update.
+  origrun's stand-in DirectSound mixes nothing, so the original's figure holds no mixer. The table therefore counts the
+  port's audio thread apart. The original's one other busy thread, a thread of its exe at 0.12% of a core, is counted in
+  its total.
+
+**Three things about the original took several batches to get right**, and each is set in `profile.py`.
+
+- **The refresh patch stays.** idplay's patch sets only the step the original's UpdateF takes (mSyncRefreshRate, read
+  from DDInterface +0x78): one UpdateF(1.0) an update, as the port's framework steps. The original's drawing is still
+  paced as on a player's 60 Hz screen. With `WaitForVSync`, DrawDirtyStuff sleeps to the display's period between
+  draws (DDInterface +0x7c, which no patch touches), which gives 1673 to 1748 draws in the 3000 updates, about 57 a
+  second. Without the patch the original takes an UpdateF(1.667) once a drawn frame. Its enemies then stand elsewhere
+  from the start, and the bot's recorded input loses the original's tanks at other times. The first batches' originals
+  spent much of the stretch with the board stopped, their level time rising by as little as 687 of the 3000.
+- **The hints are off in both games.** prep sets the player's FLAG_NO_TIPS, in the port's players file and in the
+  original's copy. In the recording a play tip comes up just before frame 1833, and the bot clicks its OK there. In a
+  real-time run the original's tip came a few updates later, the click missed, and the board stood still under the box
+  to the end of the stretch (diagnostic peeks every 25 frames: the dialog count went to 1 and mSuspended was set
+  between frames 1800 and 1850).
+- **Real-time input lands late now and then.** In one run 26 of the 961 script lines were posted 2 to 8 updates late.
+  The original's play therefore drifts from the port's, from before the stretch: at its start the original's score
+  was 100 to 1515 against the port's 275. Its level time rose by 1837 to 2485 against the port's 2603, and its score
+  ended at 2145 to 9410 against the port's 9930. One run came close: 9410 with one tank left, as in the port.
+  Fewer kills mean fewer explosions to draw, so the drift lowers the original's figure if anything. The port's runs all
+  play the stretch alike (level time +2603, score 275 to 9930, lives 2 to 1).
+
+**What the numbers say.** Both games run 100 updates a second.
+
+- **The original** draws 57 times a second at 5.1 M cycles a draw, in its software blits and its DirectDraw presents.
+- **The port** presents in step with the display: 1431 to 1797 draws in the 30 s, fewer when the machine is busy.
+  That is the framework's vsync pacing, as in `docs/COORDINATION.md`'s "Presenting in step with the display".
+- **The driver thread** (nvwgf2um) is the port's largest part: 1.39 M an update, half of its total less audio. It is
+  that item's shared cost.
+- **The 2D display costs more than 3D.** In the same batches its driver thread is about 0.2 M an update more and its
+  draw about 0.17 M more. The likely reason, not measured: in 2D every stretched picture is drawn through the
+  framework's software stretch (`mSoftwareStretch`, as the original's 2D screen draws it). That includes each
+  explosion, at its own size and frame, so many of those copies are new pictures for the GPU path, which keeps 64 of
+  them (`DDInterface::GetStretchCopy`).
+- **The game's own update** is 0.142 M against the original's 0.107.
+
+**Changes made for performance:** none. Nothing in the port changed in this pass, so the frozen baseline is as it was.
+The port is below the original in 2D, with the margin above, so the pass stands as a measurement.
+
+**Lite candidates:** none added.
+
+**Shared costs sent on:** the driver thread's present cost (already known to the coordinator) and the 2D stretch
+copies.
+
+**To measure again:** `python -I games/heavyweapon/tools/profile/profile.py prep build/perf`, then `python -I
+tools/pincore.py -- bash games/heavyweapon/tools/profile/pairs.sh build/perf 5 3` and `python -I
+games/heavyweapon/tools/profile/profile.py sum build/perf`. `pairs.sh`'s third argument is the number of rounds that
+also run the 3D display. The run folders are deleted once this section holds their numbers.
