@@ -4,7 +4,7 @@
 # build/coverage/bejeweled/scripts/<name>.txt (scripts.py writes them), the virtual clock and the silent stand-in;
 # REAL=1 runs on the real clock instead, so the sound code runs.
 # The copy is the prepared one (the exe carved out of WinBej.exe, as origcmp/orig.sh --prepare makes it) in
-# C:\byo-og\cov-bej-rd\game. On the host the original keeps its saved game in C:\ProgramData\Steam\Bejeweled\userdata:
+# E:\byo-og\cov-bej-rd\game. On the host the original keeps its saved game in C:\ProgramData\Steam\Bejeweled\userdata:
 # the run starts with none, or with the given save there; the caller puts the user's save back afterwards.
 # The counter is the int at 0x53ba60, whose top byte is the app's loaded flag (scripts.py waits for it).
 # The hits go to build/coverage/bejeweled/hits/<name>.txt, the run's log beside them. It waits for a game slot first.
@@ -12,7 +12,7 @@ set -u
 cd "$(dirname "$0")/../../../.."
 NAME="$1"; SAVE="${2:--}"; T="${3:-300}"
 OR="$PWD/build/origrun-bin/origrun.exe"
-EXE='C:\byo-og\cov-bej-rd\game\BejeweledGame.exe'
+EXE='E:\byo-og\cov-bej-rd\game\BejeweledGame.exe'
 H=build/coverage/bejeweled/hits; mkdir -p "$H"
 USERDATA=/c/ProgramData/Steam/Bejeweled/userdata
 win() { cygpath -w "$1"; }

@@ -3,7 +3,7 @@
 on the machine at a time": the limit counts every session's runs, so count before starting one).
 
 A game process is a port, a frozen baseline or a scratch build run from inside this repository or one of its worktrees,
-an original's copy (from a byo-pop folder or origrun's --stage-root, e.g. C:\\byo-og), a web build under Node (the
+an original's copy (from a byo-pop folder or origrun's --stage-root, e.g. E:\\byo-og), a web build under Node (the
 verifier or a page driver), and a running Windows Sandbox (one, whatever runs inside). Tools are not: rundesk, origrun
 itself, cmake, ninja, the compilers, git, Python, bash, Claude.
 

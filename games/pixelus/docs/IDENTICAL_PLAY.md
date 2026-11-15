@@ -236,7 +236,7 @@ blur.
 ## Notes for the repository
 
 `tools/identical/setup.sh` copies `re/pixelus/bin/PixelusGame.exe` (the game made by `tools/extract_game_exe.py` from the
-wrapped exe) into `C:/byo-og/pix` and writes `tools/origrun/patches/pixelus.txt` (git-ignored; the two seed patches).
+wrapped exe) into `E:/byo-og/pix` and writes `tools/origrun/patches/pixelus.txt` (git-ignored; the two seed patches).
 No script added here takes a wrapper apart, so nothing new belongs in `.publishignore`.
 
 ## The Tile Master (0x42bd40, update 0x42c460, draw 0x42b6a0)

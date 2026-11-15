@@ -8,13 +8,13 @@ From the worktree root:
     build/native/rundesk.exe <python.exe> games/astropop/tools/profile/perf.py port-load <out dir> [runs]
     build/native/rundesk.exe <python.exe> games/astropop/tools/profile/perf.py port-minute <out dir>
     <python.exe> games/astropop/tools/profile/perf.py orig <out dir> [runs] [load]    (not under rundesk; "load" stops at the title)
-    <python.exe> games/astropop/tools/profile/perf.py orig3d <out dir> [runs] [load]  (22:00 to 08:00: the original in 3D on the desktop)
+    <python.exe> games/astropop/tools/profile/perf.py orig3d <out dir> [runs] [load]  (the original in 3D on the desktop)
 
 Processor time is the sum of every thread's QueryThreadCycleTime (the coordinator's rule, 2026-11-11), in G cycles (`cycles_g`; the
 nominal clock turns them into seconds); the port's SDL audio thread (its mixer) is counted apart as `audio_g`, and `cycles_check`
 gives the process's own cycle count beside the threads' sum and the busiest threads. Run the alternating loop under
 `tools/pincore.py` (`profile/pin2.py` for two cores; pairs.sh does it). Environment: PERF_3D=1 (the port's registry file says Is3D=1),
-PERF_DESKTOP=1 (the port's window on the visible desktop, 22:00 to 08:00 only, no rundesk), PERF_ENV="K=V,K=V" (variables for the port's
+PERF_DESKTOP=1 (the port's window on the visible desktop, no rundesk), PERF_ENV="K=V,K=V" (variables for the port's
 process, e.g. SDL_RENDER_DRIVER=opengl), PERF_EXE (another exe in build/native), PERF_CLOCK=real. Each port result names the graphics
 libraries it had loaded (`graphics_modules`: d3d9 or d3d11 or opengl) and the `display:` line of its log (`display`: client size, render
 scale, windowed or full screen, renderer; the framework logs it, docs/TEST_COMMANDS.md "The window line").
@@ -84,7 +84,7 @@ SEED = 11
 MINUTE = 2000   # updates of the stretch
 REAL = os.environ.get('PERF_CLOCK') == 'real'
 THREE_D = os.environ.get('PERF_3D') == '1'          # the port in 3D (the accelerated renderer); the original in 3D is `orig3d`, on the desktop
-DESKTOP = os.environ.get('PERF_DESKTOP') == '1'     # the port on the user's visible desktop (22:00 to 08:00 only), as a player runs it
+DESKTOP = os.environ.get('PERF_DESKTOP') == '1'     # the port on the user's visible desktop (at any hour), as a player runs it
 WINDOW = os.environ.get('PERF_WINDOW', '1')         # the port's window: '1' the game's own size, '2' the default window, 'full' as before 2026-11-12
 SPLIT = os.environ.get('PERF_SPLIT') == '1'         # the cycle split: -cyclesplit, --count, countsnap (see the docstring)
 COUNT_LIST = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'count.txt')
@@ -370,11 +370,8 @@ def port_script(dst, mark):
 
 
 def night_only():
-    """The visible desktop is for 22:00 to 08:00 (CLAUDE.md, "Overnight, desktop and sound allowed")."""
-    import datetime
-    now = datetime.datetime.now()
-    if 8 <= now.hour < 22:
-        raise SystemExit('perf: the visible desktop is for 22:00 to 08:00; it is %s' % now.strftime('%H:%M'))
+    """The visible desktop is open at any hour (CLAUDE.md, "Desktop and Sandbox at any hour"): nothing to check."""
+    return
 
 
 def port_exe():
@@ -635,7 +632,7 @@ def orig_run(out, runs, load_only=False):
 
 def orig3d_run(out, runs, load_only=False):
     """The original in 3D on the visible desktop, in real time (origcmp/visrun3d.py's way to run it: the sandbox and dgVoodoo give it no
-    Direct3D), 22:00 to 08:00 only. The scenario's inputs are posted to the game's window by update; the game runs silent (the stand-in's
+    Direct3D). The scenario's inputs are posted to the game's window by update; the game runs silent (the stand-in's
     sound stub: no mixing in its number), at below-normal priority, its registry key set to Is3D 1 and put back. A run counts only if the
     game's 3D flag ([[0x5dc220]+0x320]+0x10) is 1 at the end."""
     night_only()

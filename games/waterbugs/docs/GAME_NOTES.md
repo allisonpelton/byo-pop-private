@@ -169,7 +169,7 @@ was still translated is gone now, and the baseline's logs and screenshots are un
 `tools/profile/perf.py` takes the numbers (its docstring has the commands). It samples the game's process every 0.1 s (working
 set, private bytes, processor time) and takes the load time from the creation of the process to the main menu, the first screen
 that takes input after the two logos (about 2.15 s of the figure). The port ran natively under rundesk in real time, without
-`-fast`; the original ran under origrun on its real clock, from a copy of the install folder under `C:/byo-og`. Both in a window
+`-fast`; the original ran under origrun on its real clock, from a copy of the install folder under `E:/byo-og`. Both in a window
 (`fullscreen="0"`: the original's full screen is DirectDraw's own mode, which a private desktop opens only through dgVoodoo2, and
 the numbers should be the game's and not a wrapper's). The scripted minute is the 60 s that begin 10 s after the first board has
 started (Start, the first world, the story's button, the ship at rest, the same clicks in both). No speed-ups were made to this
@@ -464,7 +464,7 @@ functions ran in 37 runs on the host, all on the real clock with the silent soun
 engine at about 30 steps a second, so it was not used; the real clock also reaches the sound code). The scripts are
 written by `tools/coverage/scripts.py` (one list of steps for each run, an origrun script for the original and a
 `-realinput` file for the port, which checks a click's place by `state`), `tools/coverage/run.py` runs one (it waits for
-room among the 3 game processes, stages the copy under `C:/byo-og/wbcov`, windowed, and keeps the hits in
+room among the 3 game processes, stages the copy under `E:/byo-og/wbcov`, windowed, and keeps the hits in
 `build/coverage/waterbugs/hits/`) and `tools/coverage/runall.sh` is the first batch. Hand-made saves
 (`scripts.py save <levels reached>`) put a run on a late world at once. 18 of the runs ended by themselves and 19 at
 origrun's timeout (150 or 200 s: the last Esc of a script that ends on the map or in a dialog does not leave the game; each

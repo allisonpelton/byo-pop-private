@@ -4,7 +4,7 @@ Made from Typer Shark's tools/phase2/visrun3d.py and Bookworm Adventures' tools/
 
     python visrun3d.py <tour> [--3d on|off] [--seed N] [--base N] [--shape client|sandbox]
 
-The game is a copy under C:/byo-og/rm3d/game (a short path, as the other staged copies are: the original builds absolute paths in a small
+The game is a copy under E:/byo-og/rm3d/game (a short path, as the other staged copies are: the original builds absolute paths in a small
 buffer) made from the staged original's clean exe (RocketManiaGame.exe.origrun-unpatched) with the two patches of
 tools/origrun/patches/rocketmania.txt, the run's seed and the PNG loader's buffer, and origrun's silent stand-in as its dsound.dll. It runs on
 the real clock and starts with SW_SHOWNOACTIVATE, so it never takes the focus. Only the game's own window is touched: input is posted to it
@@ -46,9 +46,9 @@ APP = 0x4f6460                           # the app is a static object
 COUNTER, PENDING, DDI, HWND = 0x3f0, 0x3d8, 0x2ec, 0x2cc
 FLAG3D = 0x10                            # the DDInterface's mIs3D
 KEY = r"Software\PopCap\RocketMania"
-SOURCE = "C:/byo-og/rm/game"
-GAME = "C:/byo-og/rm3d/game"
-BACKUP = "C:/byo-og/rm3d/registry-backup"
+SOURCE = "E:/byo-og/rm/game"
+GAME = "E:/byo-og/rm3d/game"
+BACKUP = "E:/byo-og/rm3d/registry-backup"
 EXE = "RocketManiaGame.exe"
 # tools/origrun/patches/rocketmania.txt: the seed (SRand(GetTickCount()) takes the run's seed) and the PNG loader's buffer size
 PATCHES = ["va:0x46d331 ff15f8414c00 b8%s90", "va:0x473216 e88ba100000faf45f4c1e002 8b45ec0faf45f4c1e0026690"]
@@ -378,7 +378,7 @@ def apply_patch(exe, spec):
 
 
 def prepare(seed):
-    """A fresh copy of the staged original under C:/byo-og/rm3d/game: its clean exe with the two patches, no saves, origrun's stand-in
+    """A fresh copy of the staged original under E:/byo-og/rm3d/game: its clean exe with the two patches, no saves, origrun's stand-in
     (the staged copy's dsound.dll: the stand-in that the last origrun run there placed)."""
     if os.path.isdir(GAME):
         shutil.rmtree(GAME)
@@ -467,7 +467,7 @@ def main():
     run_id = uuid.uuid4().hex[:12]
     cur = Cursor(run_id)
     env = dict(os.environ)
-    env.update({"ORIGRUN_DIR": "C:/byo-og/rm3d/logs", "ORIGRUN_SOUND": "stub", "ORIGRUN_REGMAP": "popcap",
+    env.update({"ORIGRUN_DIR": "E:/byo-og/rm3d/logs", "ORIGRUN_SOUND": "stub", "ORIGRUN_REGMAP": "popcap",
                 "ORIGRUN_CURSOR": "scripted", "ORIGRUN_CURSOR_ID": run_id})
     os.makedirs(env["ORIGRUN_DIR"], exist_ok=True)
     g = None

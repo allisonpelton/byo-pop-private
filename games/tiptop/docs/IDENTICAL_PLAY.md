@@ -5,7 +5,7 @@ play the same games, judged by the game's state rather than by pictures. Phase t
 screens with shotdiff, the sound and the music, the loss of the focus, and the web build.
 
 The original is the installed `TipTop.exe`. It runs only through `tools/origrun`, from a copy under a short path
-(`C:\byo-og\tt\game`, staged by `games/tiptop/tools/identical/setup.sh`), under rundesk, which keeps it invisible, silent
+(`E:\byo-og\tt\game`, staged by `games/tiptop/tools/identical/setup.sh`), under rundesk, which keeps it invisible, silent
 and at below-normal priority. It runs on origrun's virtual clock (`--clock virtual`) with the scripted cursor
 (`--cursor scripted`), because TipTop reads the pointer with `GetCursorPos`. The port runs with `-fast`. Only one game
 process ran at a time.

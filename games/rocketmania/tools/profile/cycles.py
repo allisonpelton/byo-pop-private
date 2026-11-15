@@ -58,7 +58,7 @@ THREAD_QUERY = 0x40 | 0x800   # THREAD_QUERY_INFORMATION | THREAD_QUERY_LIMITED_
 QUERY, VM_READ, QUERY_LIMITED, TERMINATE = 0x400, 0x10, 0x1000, 0x1
 
 ROOT = os.getcwd()
-STAGE = os.environ.get('OG_STAGE', 'C:/byo-og/rm')
+STAGE = os.environ.get('OG_STAGE', 'E:/byo-og/rm')
 COUNTER = 0x4f6850                      # the original's update counter (the app's static object at 0x4f6460, +0x3f0)
 MODE = 0x4f6990                         # the game's mode (0 arcade, 1 classic, 2 strategy) and the board's pointer: what the original is playing
 BOARD = 0x4f69f8

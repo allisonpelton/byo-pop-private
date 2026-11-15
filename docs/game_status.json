@@ -265,11 +265,12 @@
         "collection",
         "site-features",
         "identical-look",
-        "lite-mod"
+        "lite-mod",
+        "performance"
       ],
       "na": [],
-      "now": "performance",
-      "note": "3D at 1x 105 to 121% of the original (the pace cap no clear gain over vsync); the excess is a shared cost per present (the driver thread's ~120 draw calls a frame) and the mixer thread; 2D 69%"
+      "now": null,
+      "note": "every phase but modding done; performance: 3D at 1x with SDL's batching, ten rounds pooled on a shared machine, medians original 3.43 G, port 3.02 with vsync (88%) and 3.41 with the pace (about 100%), the renderer unchanged (58933167); the two runs alone read 133/128% and 82/99%, so the figure sits inside the machine's noise; 2D 69%"
     },
     "ningpo": {
       "title": "Ning Po Mahjong Deluxe",

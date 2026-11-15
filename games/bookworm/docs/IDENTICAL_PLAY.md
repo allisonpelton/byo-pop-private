@@ -5,7 +5,7 @@ port, by the game's state, not by pictures. Phase two (screens, sound, focus, th
 
 The original is the retail BookWorm Deluxe 1.03 (the version the port was decompiled from; the Steam copy wraps a later build
 and refuses to start outside Steam), the game carved out of its `Bookworm.exe` (`re/bookworm/bin/BookwormGame.exe`). It runs
-only through `tools/origrun`, from a copy under a short path (`C:\byo-og\bw\game`, staged by `setup.sh`), under rundesk
+only through `tools/origrun`, from a copy under a short path (`E:\byo-og\bw\game`, staged by `setup.sh`), under rundesk
 (invisible, silent, below normal priority), on origrun's virtual clock (`--clock virtual`: the game is held between updates, so
 an input lands on an exact update) and with the scripted cursor (`--cursor scripted`). One original and one port at a time at
 most; no shot is taken.
