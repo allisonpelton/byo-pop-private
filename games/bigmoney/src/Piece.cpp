@@ -35,7 +35,7 @@ Piece::Piece()
 	mTargetY = 0;
 	mDying = false;
 	mLifeTimer = 0;
-	mUnusedA0 = 0;
+	mZeroInSave = 0;
 }
 
 // 0x4010b0

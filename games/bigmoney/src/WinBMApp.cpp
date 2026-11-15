@@ -40,7 +40,7 @@
 
 using namespace Sexy;
 
-// The highlighted-coin colour (Init): every colour channel c -> min(255, c * 280 / 255 + 48), alpha kept
+// The highlighted-coin colour (Init, 0x41d9a0): every colour channel c -> min(255, c * 280 / 255 + 48), alpha kept
 static ulong BrightCoinPixel(ulong thePixel)
 {
 	ulong aBlue = ((thePixel & 0xff) * 280) / 255 + 48;
@@ -91,12 +91,12 @@ static MemoryImage* MakeExtraCoins(SexyAppBase* theApp, MemoryImage* theSource, 
 	ulong* aDestBits = anImage->GetBits();
 	HDPixels aSrcHD = GetHDPixels(theSource);
 	HDPixels aDestHD;
-	int s = aSrcHD.mScale;
+	int aScale = aSrcHD.mScale;
 	if (aSrcHD.IsValid())
 	{
 		aDestHD.mWidth = aSrcHD.mWidth;
-		aDestHD.mHeight = aRows * 29 * s;
-		aDestHD.mScale = s;
+		aDestHD.mHeight = aRows * 29 * aScale;
+		aDestHD.mScale = aScale;
 		aDestHD.mBits.assign((size_t) aDestHD.mWidth * aDestHD.mHeight, 0);
 	}
 	for (int aRow = 0; aRow < aRows; aRow++)
@@ -115,10 +115,10 @@ static MemoryImage* MakeExtraCoins(SexyAppBase* theApp, MemoryImage* theSource, 
 		}
 		if (aSrcHD.IsValid())
 		{
-			for (int y = 0; y < 29 * s; y++)
+			for (int y = 0; y < 29 * aScale; y++)
 			{
-				const uint32_t* aSrc = aSrcHD.Row(aSrcY * s + y);
-				uint32_t* aDest = aDestHD.Row(aRow * 29 * s + y);
+				const uint32_t* aSrc = aSrcHD.Row(aSrcY * aScale + y);
+				uint32_t* aDest = aDestHD.Row(aRow * 29 * aScale + y);
 				for (int x = 0; x < aDestHD.mWidth; x++)
 				{
 					uint32_t aPixel = TintCoinPixel(aSrc[x], aTint);
@@ -132,7 +132,7 @@ static MemoryImage* MakeExtraCoins(SexyAppBase* theApp, MemoryImage* theSource, 
 	return anImage;
 }
 
-// The grey selector illustrations (LoadingThreadProc): (r + g + b) / 3, alpha kept
+// The grey selector illustrations (LoadingThreadProc, 0x41efd0): (r + g + b) / 3, alpha kept
 static ulong GreyPixel(ulong thePixel)
 {
 	ulong aGrey = (((thePixel >> 16) & 0xff) + ((thePixel >> 8) & 0xff) + (thePixel & 0xff)) / 3;
@@ -1323,6 +1323,7 @@ bool WinBMApp::HandleScriptCommand(const ScriptCommand& theCommand)
 	return HandleTestCommand(theCommand);
 }
 
+// port(mods): replays, the autoplay bot and the test hooks after each update of the frames
 void WinBMApp::UpdateFrames()
 {
 	SexyApp::UpdateFrames();

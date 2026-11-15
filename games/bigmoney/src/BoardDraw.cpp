@@ -22,6 +22,7 @@
 
 using namespace Sexy;
 
+// port: a coin colour from a table, as Board::Draw (0x405480) and DrawPiece (0x402060) set it
 static Color CoinColor(const int theTable[Piece::MAX_COIN_COLORS][3], int theColor)
 {
 	return Color(theTable[theColor][0], theTable[theColor][1], theTable[theColor][2]);

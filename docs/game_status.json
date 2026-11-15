@@ -285,11 +285,12 @@
         "unneeded-code",
         "readability",
         "collection",
-        "site-features"
+        "site-features",
+        "lite-mod"
       ],
       "na": [],
-      "now": "lite-mod",
-      "note": "site features done (the Game Over preset beside You Win, d2c871a4; speedrun.com: none); next: the lite mod"
+      "now": null,
+      "note": "the lite-mod step done with no mod (2f58af40, games/ningpo/docs/LITE_MOD.md: tileAtCell's linear scan is the only costly search, and a cell table would answer the same, so it is not lite; the shuffle could differ but saves no time; the hint and move count have no early stop); every phase but modding done"
     },
     "pixelus": {
       "title": "Pixelus Deluxe",
@@ -300,11 +301,12 @@
         "fixes-mod",
         "site-features",
         "identical-look",
-        "coverage"
+        "coverage",
+        "lite-mod"
       ],
       "na": [],
-      "now": "lite-mod",
-      "note": "coverage done (coverage.txt, GAME_NOTES section 11; three Oddities: the editor's thumbnail reorder, a grid pulse colour nothing reads, the pause's sound ducking 0x431a50); in since the last merge: the temple's and select-user's scroll bars, bubble tips, plaque and title, flash buttons, the island's gull flock, the particle engine (temple bursts, the mystery puzzle's chains and lock), the main menu link's shadow, the sound buttons' alpha hit test; baseline refrozen (the bursts draw the app generator: apprand-only lines, game state identical); next: lite mod, unneeded code, readability, performance"
+      "now": "unneeded-code",
+      "note": "the lite-mod step done with no mod (41fe5da4, games/pixelus/docs/LITE_MOD.md: grid walks and scans of at most 32x32 cells, the hint reads a stored solution; the two scans that cost anything have faster forms with the same answers, so not lite); next: unneeded code, then readability"
     },
     "rocketmania": {
       "title": "Rocket Mania Deluxe",
@@ -404,11 +406,13 @@
         "site-features",
         "performance",
         "lite-mod",
-        "unneeded-code"
+        "unneeded-code",
+        "readability",
+        "collection"
       ],
       "na": [],
-      "now": "readability",
-      "note": "unneeded code out (583a3271: LockableButton, a registration leftover; the empty LoadingThreadCompleted; fields written but never read or saved; the Options dialog's unused link ids; 108 lines out, 41 in; fields a save writes stay); baseline unchanged (66646); next: readability, then the Collection check"
+      "now": null,
+      "note": "every phase but modding done; processor time re-measured under the compositor wait (068bde60): five pairs of the seed-21 minute, each on its own P-core, port 2.98-5.80 s against the original's 5.50-11.19 s, about half like for like; peak private bytes 36.8-42.1 MB against 42.1-44.4; software 2x not taken"
     },
     "tiptop": {
       "title": "TipTop Deluxe",
@@ -576,7 +580,7 @@
       ],
       "na": [],
       "now": "identical-look",
-      "note": "phase two's sound and music by state done (5e45972f): all 14 phase-one scenarios and classic_focus1 identical in state, sound and music (BASS logged through a stand-in, DirectSound through origrun's); fixed mouse-over on every screen, the in-game menu on release, the ice cream's single gloop and the game-over box's click; next the looks (shots, web and native)"
+      "note": "phase two looks begun (77266590 looks.py: original shots in Windows Sandbox and port shots at the same updates, then shotdiff; 6 scenarios, ~340 pairs); port fixes: the cubby cover cut from the level's backdrop (13f4410f), the Health label at the box's width, the coin hint's floater at y 150 (09163b2a); frozen screens refrozen (a6852126, states unchanged); open: particle effects and one help popup differ in phase, the how-to-play Flash page does not render in the sandbox; next: those, the remaining dialogs, web against native, real input"
     },
     "pizzafrenzy": {
       "title": "Pizza Frenzy",
