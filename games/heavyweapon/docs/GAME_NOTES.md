@@ -256,6 +256,9 @@ recorded (`docs/COORDINATION.md`).
 - **The head.** Its constructor leaves its target x unset, and its first update eases the head toward it. The port
   starts it at 0. The comparison patches the original to start it at 0 too (its seventh patch), so that the head fights
   of levels 7 and 16 start from the same place in both.
+- **Translucent pixels on the 2D screen.** Sparks, glows and the fire over the high scores blend a few levels apart
+  from the original's (its software blitters against SDL's renderer); `docs/IDENTICAL_PLAY.md`, "Oddities", has what
+  it would take.
 - **The wrecker.** Its engine plays at full volume whenever it is within 320 pixels of the middle, and its ball's slam
   throws boulders and dust only on its second encounter (level 12).
 

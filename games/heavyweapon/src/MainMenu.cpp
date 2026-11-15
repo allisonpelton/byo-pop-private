@@ -24,6 +24,8 @@ namespace
 {
 	const int SONG = SONG_ATOMIC_TANK_59;		// the song of the menu and the armory, from order 0x3b
 	const int SONG_ORDER = 0x3b;
+	const double MUSIC_FADE_OUT_SPEED = 0.004;
+	const double MUSIC_FADE_IN_SPEED = 0.002;
 	const int NUM_QUOTES = 10;
 	const int SCREEN_WIDTH = 0x280;
 	const int SCREEN_HEIGHT = 0x1e0;
@@ -83,8 +85,8 @@ MainMenu::MainMenu(HeavyWeaponApp* theApp)
 	}
 	if (!mApp->mMusicInterface->IsPlaying(SONG))
 	{
-		mApp->mMusicInterface->FadeOutAll(true, 0.939);
-		mApp->mMusicInterface->FadeIn(SONG, SONG_ORDER, 0.8765, false);
+		mApp->mMusicInterface->FadeOutAll(true, MUSIC_FADE_OUT_SPEED);
+		mApp->mMusicInterface->FadeIn(SONG, SONG_ORDER, MUSIC_FADE_IN_SPEED, false);
 	}
 	mFlickerLight = new FlickerLight(mApp, mApp->mSprites[IMAGE_MAINGLOW]);
 	mState = 0;

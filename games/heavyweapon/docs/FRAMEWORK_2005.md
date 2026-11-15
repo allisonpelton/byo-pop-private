@@ -141,3 +141,7 @@ banner, the explosions, the zoomed map and the help screen do, in 2D only.
 The port's `HeavyWeaponDisplay` (`HeavyWeaponApp.cpp`) turns on the framework's software stretch for every stretch drawn
 in 2D, and `HeavyWeaponApp::Init` sets `gWidgetsDrawWithoutFastStretch` and `gSlowStretchRenormalizesAlpha`. A 3D run
 keeps SDL's filtering, as the original's 3D screen filters through Direct3D.
+
+The 2D surface is also kept from one frame to the next: what a frame does not draw over keeps the last frame's pixels.
+While the board shakes (`Board::UpdateShake`, 0x40fe00, moves it by up to 8 pixels each way) the edge it uncovers shows
+those pixels in the original, not black, so `HeavyWeaponDisplay` keeps the screen in 2D (`DDInterface::mKeepScreen`).

@@ -32,6 +32,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <climits>
+#include <set>
 
 using namespace Sexy;
 
@@ -1002,12 +1003,45 @@ DDInterface* HeavyWeaponApp::CreateDDInterface()
 	return new HeavyWeaponDisplay(this);
 }
 
+// port: the original's IsPlaying asks BASS_ChannelIsActive, and its BASS (2.0, Big Money's) answers yes for a song of the
+// module that has played and been stopped since: the original's log gives 0 for a song not yet played and 1 after the
+// song's BASS_ChannelStop. So the armory never fades its song in (the first main menu has always played it), and only
+// the first main menu fades the menu's song in. The love theme is a stream, which no log has shown, and keeps the
+// playing state.
+class HeavyWeaponMusicInterface : public SDLMusicInterface
+{
+public:
+	std::set<int> mSongsPlayed;		// the module's songs played since they were loaded
+
+	virtual void PlayMusic(int theSongId, int theOffset, bool noLoop) override
+	{
+		NotePlayed(theSongId);
+		SDLMusicInterface::PlayMusic(theSongId, theOffset, noLoop);
+	}
+	virtual void FadeIn(int theSongId, int theOffset, double theSpeed, bool noLoop) override
+	{
+		NotePlayed(theSongId);
+		SDLMusicInterface::FadeIn(theSongId, theOffset, theSpeed, noLoop);
+	}
+	virtual bool IsPlaying(int theSongId) override
+	{
+		return mSongsPlayed.count(theSongId) != 0 || SDLMusicInterface::IsPlaying(theSongId);
+	}
+
+private:
+	void NotePlayed(int theSongId)
+	{
+		if (theSongId != SONG_LOVE_THEME)
+			mSongsPlayed.insert(theSongId);
+	}
+};
+
 // port: the original's SexyApp makes a BASS music interface; the port's plays the MO3 module through libopenmpt
 MusicInterface* HeavyWeaponApp::CreateMusicInterface()
 {
 	if (mNoSoundNeeded)
 		return new MusicInterface;
-	return new SDLMusicInterface();
+	return new HeavyWeaponMusicInterface();
 }
 
 // 0x40d2c0 slot 18
