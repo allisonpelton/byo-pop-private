@@ -88,7 +88,7 @@ asked.
 | Game | Load time, port | Load time, original | Processor time, port | Processor time, original | Memory, port | Memory, original |
 |---|---:|---:|---:|---:|---:|---:|
 | Bejeweled Deluxe | 0.88 s | 1.06 s | 4.1 % of one core | 4.5 % of one core | 55 MB | 36 MB |
-| Big Money Deluxe | 0.73 s | 1.38 s | 4.0 and 4.7 s a minute | 7.1 and 7.2 s a minute | 124 MB | 42 MB |
+| Big Money Deluxe | 0.73 s | 1.38 s | 3.0 to 5.8 s a minute | 5.5 to 11.2 s a minute | 37 to 42 MB | 42 to 44 MB |
 | BookWorm Deluxe | 1.2 to 1.8 s | 2.7 to 3.7 s | 7.3 to 12.2 % of one core (cycle counts; the port's window 1280x960 at render scale 2) | 15.7 to 26.7 % of one core (cycle counts; its window 640x480) | 97 MB | 41 MB |
 | Noah's Ark Deluxe | 0.60 s | 2.12 s | 8.0 s a minute | 18.1 and 19.0 s a minute | 63 and 66 MB | 67 MB |
 | Seven Seas Deluxe | 1.07 s | 1 to 2 s | 6.7 G cycles a minute (window 640x480; 5.9 at the default 1280x960) | 10.5 G cycles a minute (medians; its window 640x480) | 66 MB | 41.5 to 51.2 MB |

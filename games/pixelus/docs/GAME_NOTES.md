@@ -219,3 +219,5 @@ Oddities (what it does, how to see it, what it would take):
   sets the volume of every playing sound to about 0.016 and restores it when the pause ends. The port pauses the music
   (PauseAllMusic) and leaves sounds that are already playing at their volume. Not compared by ear; to port, a list of the
   playing sound instances is needed from the framework's sound manager.
+
+**Lite candidates: none** (2026-11-15, `docs/LITE_MOD.md`). The logic is walks and scans over a grid of at most 32 by 32 cells and a hint that reads a stored solution; the faster forms of the two scans that cost anything give the same answers, so they are not lite changes.
