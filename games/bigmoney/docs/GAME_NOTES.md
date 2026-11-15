@@ -4431,7 +4431,8 @@ first run, no checkbox, Shift+F8 only with the debug keys), so natively at 1x th
 after upload, the framework's own GIF decoder). The game's part: every picture is palletized as in the original (8-bit where it has 256
 colours or fewer, a quarter of the memory), the image table's second, never-drawn mouths picture is not loaded (0.6 MB), and the
 game's own pixel edits read their source through `ReadBits`, which does not turn a palettized picture back into 32-bit. Nothing was
-measured change by change; the figures below are the whole. At 2x and on the web the port still draws on the GPU.
+measured change by change; the figures below are the whole. At 2x and on the web the port still draws on the GPU (since
+the same day with 2D's flags: `mDefault3D` false, IDENTICAL_PLAY.md).
 
 **How.** As on 2026-11-08 (`tools/profile/perf.py`, the same seed-21 minute), with each run on a performance core of its own
 (`tools/pincore.py`): the port's load five times, the original's three, then five pairs of minutes, port and original in turn, and two
