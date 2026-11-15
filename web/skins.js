@@ -1222,7 +1222,7 @@ var ByopopSkin = (function () {
     }
     function winOf(el) { for (var i = 0; i < wins.length; i++) if (wins[i].el === el) return wins[i]; return null; }
     // the active window: its title bar in colour, the others grey (none while the icons or the task bar have the focus)
-    var active = null;
+    var active = null, used = [];
     function activate(w) {
       if (active === w) return;
       // another window to the front: the open menus close, as Windows' did (the task bar's or the desktop's focus is no window,
@@ -1230,6 +1230,7 @@ var ByopopSkin = (function () {
       if (w) closeAllMenus();
       if (active) active.el.classList.remove("d95-active");
       active = w;
+      if (w) { var at = used.indexOf(w); if (at >= 0) used.splice(at, 1); used.unshift(w); }
       if (w) { w.el.classList.add("d95-active"); if (String(w.el.style.zIndex) !== String(top)) raise(w); }
       try { window.dispatchEvent(new CustomEvent("byopop-desk-active", { detail: { id: w ? w.id : null } })); } catch (e) {}
     }
@@ -1302,6 +1303,80 @@ var ByopopSkin = (function () {
       }
     }
     document.addEventListener("keydown", onKeys, true);
+    // ---- Alt+` (the user, 2026-11-13: "Add Alt+Backtick as a site shortcut that works like Alt-Tab in Windows"), since the
+    // browser keeps Alt+Tab. Held down, each ` steps through the open windows, the one used last first, in a box in the middle
+    // of the desktop (Shift+` steps back, Escape lets go of it); letting go of Alt brings the chosen one to the front, restored
+    // if it was minimized, and gives it the focus. A quick Alt+` so goes back to the window used before. In a window's page on
+    // the listing's desktop the keys go to that desktop (ByopopApps.altTab), as F6 does, so the switch is between its windows.
+    var sw = null;
+    function switchList() {
+      var l = used.filter(function (w) { return present(w); });
+      wins.forEach(function (w) { if (present(w) && l.indexOf(w) < 0) l.push(w); });
+      return l;
+    }
+    function drawSwitch() {
+      if (!sw.box) {
+        sw.box = document.createElement("div");
+        sw.box.className = "d95-switch";
+        sw.icons = document.createElement("div"); sw.icons.className = "d95-switch-icons";
+        sw.name = document.createElement("div"); sw.name.className = "d95-switch-name"; sw.name.setAttribute("aria-live", "polite");
+        sw.box.appendChild(sw.icons); sw.box.appendChild(sw.name);
+        document.body.appendChild(sw.box);
+      }
+      sw.icons.textContent = "";
+      sw.list.forEach(function (w, i) {
+        // the window's icon on the desktop, drawn by the same rules (d95-icon-<id>), else a plain window
+        var c = document.createElement("span"), di = icons && icons.querySelector(".d95-icon-" + w.id + " > i");
+        c.className = "d95-icon d95-icon-" + w.id + (di && di.parentNode.classList.contains("d95-icon-pic") ? " d95-icon-pic" : "") +
+          " d95-switch-icon" + (i === sw.at ? " d95-switch-on" : "");
+        c.appendChild(di ? di.cloneNode(true) : document.createElement("i"));
+        sw.icons.appendChild(c);
+      });
+      var t = sw.list[sw.at];
+      sw.name.textContent = t.el.getAttribute("data-d95-title") || t.id;
+    }
+    function altTab(how) {
+      if (!on) return;
+      if (how === "cancel" || how === "commit") {
+        if (!sw) return;
+        var cur = sw;
+        sw = null;
+        if (cur.box && cur.box.parentNode) cur.box.parentNode.removeChild(cur.box);
+        if (how === "commit") { var w = cur.list[cur.at]; if (w.min) setMin(w, false); else raise(w); focusPane(w.el, false); }
+        return;
+      }
+      var back = how === "back";
+      if (!sw) {
+        var l = switchList();
+        if (!l.length) return;
+        closeAllMenus();
+        sw = { list: l, at: back ? l.length - 1 : (l[0] === active && l.length > 1 ? 1 : 0) };
+      } else sw.at = (sw.at + (back ? sw.list.length - 1 : 1)) % sw.list.length;
+      drawSwitch();
+    }
+    var forwarded = false;   // a page in a window: a switch is on in the desktop around it
+    function switching() { return !!sw || forwarded; }
+    function sendSwitch(how) {
+      var P = parentApps();
+      if (P && P.altTab) { forwarded = how === "next" || how === "back"; try { P.altTab(window, how); } catch (e) {} return; }
+      altTab(how);
+    }
+    document.addEventListener("keydown", function (ev) {
+      if (ev.code === "Backquote" && ev.altKey && !ev.ctrlKey && !ev.metaKey) {
+        if (!on && !parentApps()) return;
+        ev.preventDefault(); ev.stopImmediatePropagation();
+        sendSwitch(ev.shiftKey ? "back" : "next");
+      } else if (ev.key === "Escape" && switching()) {
+        ev.preventDefault(); ev.stopImmediatePropagation();
+        sendSwitch("cancel");
+      }
+    }, true);
+    document.addEventListener("keyup", function (ev) {
+      if (ev.key !== "Alt" || !switching()) return;
+      ev.preventDefault(); ev.stopImmediatePropagation();
+      sendSwitch("commit");
+    }, true);
+    window.addEventListener("blur", function () { if (sw) altTab("cancel"); forwarded = false; });
     document.addEventListener("focusin", function (ev) {
       if (!on) return;
       var pane = paneOf(ev.target), w = pane && winOf(pane);
@@ -1363,6 +1438,7 @@ var ByopopSkin = (function () {
              // the focus into this page from the desktop it is in (F6): its first pane, or its last going back
              enter: function (back) { var p = panes(); if (p.length) focusPane(back ? p[p.length - 1] : p[0], back); },
              // F6 from a window's page, past its own panes: the desktop's pane after (or before) that window
+             altTab: altTab,
              f6From: function (id, back) {
                var w = find(id), list = panes();
                if (!w || !list.length) return;

@@ -9,6 +9,7 @@
 #include "Graphics.h"
 #include "Res.h"
 #include "Sprite.h"
+#include "X87.h"
 
 #include <math.h>
 #include <stdlib.h>
@@ -210,9 +211,9 @@ void EnemyTank::Update()
 
 		Bullet* aBullet = new Bullet();
 		mBoard->mBullets.Append(aBullet);
-		double aCos = cos(anAngle);
+		X87Value aCos = X87Cos(anAngle);
 		aBullet->mX = aCos * 24.0 + (double)(mMirrored ? -18 : 18) + mX;
-		double aSin = sin(anAngle);
+		X87Value aSin = X87Sin(anAngle);
 		aBullet->mY = (mY - 5.0) - aSin * 24.0;
 		aBullet->mVelX = (mGunAngle * 0.5 + 2.0) * aCos;
 		aBullet->mGravity = 0.05;

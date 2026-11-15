@@ -10,6 +10,10 @@ using namespace Sexy;
 Projectile::Projectile(Board* theBoard)
 {
 	mBoard = theBoard;
+	// port: the original leaves the place unset, and the tank's lightning (StaticStrike) never sets it; the port starts
+	// it at 0
+	mX = 0.0;
+	mY = 0.0;
 	mVelX = 0.0;
 	mVelY = 0.0;
 	mIsShootable = true;

@@ -206,6 +206,12 @@
       "port": 18809
     },
     {
+      "name": "hammerheads-webtest",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["tools/webtest/serve.py", "--port", "18811"],
+      "port": 18811
+    },
+    {
       "name": "soundcompare",
       "runtimeExecutable": "python",
       "runtimeArgs": ["-I", "tools/web/soundcompare.py", "--port", "18791"],

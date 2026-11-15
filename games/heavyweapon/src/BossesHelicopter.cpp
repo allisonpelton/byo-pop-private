@@ -15,6 +15,7 @@
 #include "SoundInstance.h"
 #include "SoundManager.h"
 #include "Sprite.h"
+#include "X87.h"
 #include <math.h>
 
 using namespace Sexy;
@@ -359,8 +360,8 @@ void HelicopterTurret::Update()
 		aBoard->mNukeFlash == 0.0 && aBoard->mBossDeath == NULL)
 	{
 		double anAngle = mFrame / ((double)mSprite->mColumns * TURRET_ANGLE_PER_FRAME) + TURRET_ANGLE_START;
-		int aY = (int)(sin(anAngle) * TURRET_MUZZLE + mY);
-		int aX = (int)(mX - cos(anAngle) * TURRET_MUZZLE);
+		int aY = (int)(X87Sin(anAngle) * TURRET_MUZZLE + mY);
+		int aX = (int)(mX - X87Cos(anAngle) * TURRET_MUZZLE);
 		aBoard->AddEnemyBullet(aX, aY, anAngle, 0.0);
 		mFireDelay = mHelicopter->mTurretFire;
 	}

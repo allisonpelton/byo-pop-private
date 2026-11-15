@@ -23,6 +23,9 @@
 //           tunes of one place numbered as the game reaches them), from the game's code (its session's answer) or, for an Ogg
 //           game, its file's name; shown beside the tune and in the display
 //   unused  ["<file name>#<n>", ...]: tunes the game's code never plays (left in its files), shown as such
+//   order   ["<file name>#<n>" ...]: the tunes in the order a player hears them, from launch through a game to its end (modes,
+//           levels and books in the order the game reaches them), as the list shows them (the user, 2026-11-13: "more closely
+//           follow what you might hear instead of having the parts in order"); tunes it leaves out follow, then the unused ones
 //   when    {"<file name>#<n>" ...: "<when>"}: exactly when the game's code plays it, as numbers (levels, orders, updates), the
 //           place's tooltip
 //   composer  who wrote the music, by the game's own credits (its credits screen, text or exe; a company where they name no
@@ -38,6 +41,7 @@ var ByopopSoundtracks = {
   alchemy: {
     files: ["music/*.s3m"],
     where: { "alch_intro#0": "Title Screen", "1985-hehasnoface#0": "In-Game" },
+    order: ["alch_intro#0", "1985-hehasnoface#0"],
     when: {
       "alch_intro#0": "Order 0 from launch, over the loading title screen; fades out (0.004) when loading completes",
       "1985-hehasnoface#0": "Fades in (0.002) when loading completes; loops through the menus and every game; no other tune"
@@ -52,6 +56,7 @@ var ByopopSoundtracks = {
     files: ["music/*.mo3"],
     where: { "music#0": "Loading", "music#1": "Main Menu", "music#2": "In-Game", "music#3": "Danger", "music#4": "Game Over",
       "music#5": "Level Complete" },
+    order: ["music#0", "music#1", "music#2", "music#3", "music#5", "music#4"],
     when: {
       "music#0": "Order 0; at launch, during loading",
       "music#1": "Order 5; main menu, pilot choice screen, and a level's story page (cross-fade 0.05)",
@@ -66,6 +71,7 @@ var ByopopSoundtracks = {
     files: ["music/*.it"],
     where: { "atomica#2": "Title Screen", "atomica#3": "Level Theme 1", "atomica#5": "Level Theme 2", "atomica#7": "Main Menu", "atomica#9": "Level Theme 3",
       "atomica#8": "Game Over 1", "atomica#10": "Game Over 2" },
+    order: ["atomica#2", "atomica#7", "atomica#3", "atomica#5", "atomica#9", "atomica#8", "atomica#10"],
     when: {
       "atomica#2": "Order 6; title screen, until it closes",
       "atomica#3": "Order 12; Strategy mode's board start, and levels with level%5==1 (not level 1)",
@@ -80,6 +86,7 @@ var ByopopSoundtracks = {
   bejeweled: {
     files: ["music/*.s3m"],
     where: { "1980-Autonomus#0": "Title Screen", "1984-Network#0": "Normal Mode", "1981-DataJack#0": "Timed Mode" },
+    order: ["1980-Autonomus#0", "1984-Network#0", "1981-DataJack#0"],
     when: {
       "1980-Autonomus#0": "From launch on the title screen; fades out (0.004) when it finishes",
       "1984-Network#0": "A new game in Normal mode; loops; fades the Timed tune out, fades in at 0.002",
@@ -95,6 +102,7 @@ var ByopopSoundtracks = {
     starts: { "BeyondNetwork#1": [122] },
     where: { "BeyondNetwork#1": "Classic Mode", "BeyondNetwork#1@122": "Action Mode", "BeyondNetwork#2": "Main Menu", "BeyondNetwork#5": "Title Screen",
       "BeyondNetwork#6": "Finale" },
+    order: ["BeyondNetwork#5", "BeyondNetwork#2", "BeyondNetwork#1", "BeyondNetwork#1@122", "BeyondNetwork#6"],
     when: {
       "BeyondNetwork#1": "Order 2; a Classic game's start (board update 2), neither Action nor Puzzle",
       "BeyondNetwork#1@122": "Order 122; an Action or a Puzzle game's start (board update 2)",
@@ -115,6 +123,11 @@ var ByopopSoundtracks = {
       "bejeweledtwist24#0": "Blitz", "bejeweledtwist24#0@24": "Blitz 3 Minutes", "bejeweledtwist24#1": "Blitz Results 1", "bejeweledtwist24#2": "Blitz Results 2",
       "bejeweledtwist24#3": "Blitz Results 3", "bejeweledtwist24#4": "Challenge Menu", "bejeweledtwist24#5": "Challenge 1",
       "bejeweledtwist24#6": "Challenge 2", "bejeweledtwist24#7": "Bonus" },
+    order: ["bejewel twist 06.10#7", "bejewel twist 06.10#5", "bejewel twist 06.10#0", "bejewel twist 06.10#1",
+      "bejewel twist 06.10#2", "bejewel twist 06.10#6", "bejewel twist 06.10#7@73", "bejewel twist 06.10#8",
+      "bejewel twist 06.10#4", "bejewel twist 06.10#3", "bejeweledtwist24#0", "bejeweledtwist24#7", "bejeweledtwist24#1",
+      "bejeweledtwist24#2", "bejeweledtwist24#3", "bejeweledtwist24#4", "bejeweledtwist24#0@24", "bejeweledtwist24#5",
+      "bejeweledtwist24#6"],
     when: {
       "bejewel twist 06.10#0": "Order 0; in-game track 1 of 6; a new level steps the track by 1 mod 6 (Classic-type modes, Zen)",
       "bejewel twist 06.10#1": "Order 13; in-game track 2 of 6 (the first level-up's)",
@@ -147,6 +160,9 @@ var ByopopSoundtracks = {
       "QualityTime_BigMoney#2": "Action Mode", "QualityTime_BigMoney#3": "Action Level Up", "QualityTime_BigMoney#3@41": "Action Pause",
       "QualityTime_BigMoney#4": "Strategy Mode", "QualityTime_BigMoney#5": "Strategy Level Up", "QualityTime_BigMoney#5@64": "Strategy Pause",
       "QualityTime_BigMoney#6": "Game Over", "QualityTime_BigMoney#7": "Title Screen" },
+    order: ["QualityTime_BigMoney#7", "QualityTime_BigMoney#0", "QualityTime_BigMoney#1", "QualityTime_BigMoney#1@24",
+      "QualityTime_BigMoney#2", "QualityTime_BigMoney#3", "QualityTime_BigMoney#3@41", "QualityTime_BigMoney#4",
+      "QualityTime_BigMoney#5", "QualityTime_BigMoney#5@64", "QualityTime_BigMoney#6"],
     when: {
       "QualityTime_BigMoney#0": "Order 0; a Puzzle game starts; fades back in after a pause or Continue",
       "QualityTime_BigMoney#1": "Order 23; a Puzzle level is completed; until Continue",
@@ -167,6 +183,8 @@ var ByopopSoundtracks = {
     where: { "bookworm1#0": "Classic Mode", "bookworm1#1": "Title Screen", "bookworm1#2": "Action Mode",
       "bookworm1#3": "Danger 1", "bookworm1#4": "Hall of Fame", "bookworm1#5": "Game Over 2", "bookworm1#6": "Game Over 1",
       "bookworm1#7": "Danger 2" },
+    order: ["bookworm1#1", "bookworm1#0", "bookworm1#3", "bookworm1#6", "bookworm1#2", "bookworm1#7", "bookworm1#5",
+      "bookworm1#4"],
     when: {
       "bookworm1#0": "Order 0; a Classic game starts; loops",
       "bookworm1#1": "Order 27; launch, the game selector, and back to it from a game or the Hall of Fame",
@@ -187,6 +205,8 @@ var ByopopSoundtracks = {
       "music#4": "Boss Defeated", "music#5": "Arabian Battle", "music#6": "Arabian Map", "music#7": "Arabian Boss",
       "music#8": "Credits", "music#9": "Monster Battle", "music#10": "Monster Map", "music#11": "Monster Boss",
       "music#12": "Main Menu", "music#14": "Mini-Games", "music#15": "Game Over" },
+    order: ["music#12", "music#1", "music#0", "music#3", "music#2", "music#4", "music#6", "music#5", "music#7", "music#10",
+      "music#9", "music#11", "music#8", "music#14", "music#15"],
     when: {
       "music#0": "Order 0; a battle in Book 1, and in timed mode, which uses Book 1's tunes",
       "music#1": "Order 27; Book 1's map between battles, and timed mode's",
@@ -214,6 +234,7 @@ var ByopopSoundtracks = {
     files: ["audio/*.mo3"],
     where: { "cosmo1#0": "Main Menu", "cosmo4#0": "Level Theme 1", "cosmo3#0": "Level Theme 2",
       "cosmo2#0": "Level Theme 3", "cosmo5#0": "Level Theme 4" },
+    order: ["cosmo1#0", "cosmo4#0", "cosmo3#0", "cosmo2#0", "cosmo5#0"],
     when: {
       "cosmo1#0": "The logos, title and menus; again on leaving a board",
       "cosmo4#0": "Levels 0-9, 100-199, 500-577; starts at a set's first level, loops",
@@ -230,6 +251,7 @@ var ByopopSoundtracks = {
     files: ["audio/*.mo3"],
     where: { "cosmo1#0": "Main Menu", "cosmo4#0": "Level Theme 1", "cosmo3#0": "Level Theme 2",
       "cosmo2#0": "Level Theme 3", "cosmo5#0": "Level Theme 4" },
+    order: ["cosmo1#0", "cosmo4#0", "cosmo3#0", "cosmo2#0", "cosmo5#0"],
     when: {
       "cosmo1#0": "The logos, title and menus; again on leaving a board",
       "cosmo4#0": "Levels 0-9, 100-199, 500-599; starts at a set's first level, loops",
@@ -247,6 +269,8 @@ var ByopopSoundtracks = {
     where: { "amazonas#0": "Fossil Challenge", "amazonas#1": "Title Screen", "amazonas#2": "Game Over", "amazonas#4": "Time Trial Clear",
       "amazonas#5": "Game Start", "amazonas#6": "Time Trial", "amazonas#2@64": "Challenge Won", "amazonas#7": "Endless", "amazonas#8": "Museum",
       "omniphilia#0": "Stomped" },
+    order: ["amazonas#1", "amazonas#5", "amazonas#0", "amazonas#8", "amazonas#2@64", "amazonas#6", "amazonas#4",
+      "amazonas#7", "omniphilia#0", "amazonas#2"],
     when: {
       "amazonas#0": "Order 0; Fossil Challenge: at a board's first shot (not in the tutorial)",
       "amazonas#1": "Order 22; at launch, and on every return to the intro screen",
@@ -266,6 +290,7 @@ var ByopopSoundtracks = {
     where: { "game#0": "In-Game", "game#1": "Level Complete", "game#2": "Game Over", "game#3": "Treasure Bonus",
       "game#4": "Bonus End", "game#5": "Tutorial", "game#6": "Title Screen", "game#7": "Intro", "game#8": "High Scores",
       "game#9": "Bonus Level" },
+    order: ["game#6", "game#7", "game#5", "game#0", "game#1", "game#9", "game#3", "game#4", "game#2", "game#8"],
     when: {
       "game#0": "Orders 0-10: (level-1) mod 11 at a level's start, for levels not a multiple of 10 (fade-in)",
       "game#1": "Order 12; a level is completed, with the next-level dialog",
@@ -287,6 +312,8 @@ var ByopopSoundtracks = {
     cuts: { "wordshar#1": [20] },
     where: { "wordshar#0": "In-Game", "wordshar#1": "Main Menu", "wordshar#1@20": "Map", "wordshar#2": "Game Over", "wordshar#3": "Level Complete",
       "wordshar#4": "Danger 1", "wordshar#6": "Danger 2", "wordshar#7": "Treasure", "wordshar#8": "Boss Fight" },
+    order: ["wordshar#1", "wordshar#1@20", "wordshar#0", "wordshar#4", "wordshar#6", "wordshar#7", "wordshar#8",
+      "wordshar#3", "wordshar#2"],
     when: {
       "wordshar#0": "Order 0; a level's board starts (Play from the map); back after danger or an EMP",
       "wordshar#1": "Order 17; launch, a reset game, the post-level Continue, and a bonus level's treasure scene",
@@ -306,6 +333,7 @@ var ByopopSoundtracks = {
     cuts: { "game#9": [67], "game#10": [77] },
     where: { "game#0": "Main Menu", "game#1": "Tutorial", "game#2": "In-Game", "game#3": "Stage Clear",
       "game#5": "Chamber End 1", "game#6": "Chamber End 2", "game#7": "Victory", "game#9@67": "Map", "game#10@77": "High Scores" },
+    order: ["game#0", "game#1", "game#9@67", "game#2", "game#5", "game#6", "game#3", "game#7", "game#10@77"],
     when: {
       "game#0": "Order 0 at launch; order 1 (fade) on the intro screen, and back from the map to it",
       "game#1": "Order 14; the tutorial's first map loads",
@@ -328,6 +356,7 @@ var ByopopSoundtracks = {
     chains: { "Resource 339#0": ["Resource 339#1", "Resource 339#2", "Resource 339#3"] },
     where: { "Resource 335#0": "Main Menu", "Resource 338#0": "Layout Select 1", "Resource 336#0": "Layout Select 2",
       "Resource 337#0": "Layout Select 3", "Resource 339#0": "In-Game" },
+    order: ["Resource 335#0", "Resource 338#0", "Resource 336#0", "Resource 337#0", "Resource 339#0"],
     when: {
       "Resource 335#0": "The main menu opens",
       "Resource 338#0": "Layout select: visit 1 of every 3 (gMusicTurn 0)",
@@ -341,6 +370,7 @@ var ByopopSoundtracks = {
     chains: { "Resource 339#0": ["Resource 339#1", "Resource 339#2", "Resource 339#3"] },
     where: { "Resource 335#0": "Main Menu", "Resource 337#0": "Layout Select 1", "Resource 336#0": "Layout Select 2",
       "Resource 339#0": "In-Game" },
+    order: ["Resource 335#0", "Resource 337#0", "Resource 336#0", "Resource 339#0"],
     when: {
       "Resource 335#0": "The main menu opens",
       "Resource 337#0": "Layout select: visits 1 and 3 of every 3 (gMusicTurn 0 and 2)",
@@ -360,6 +390,7 @@ var ByopopSoundtracks = {
       "res/music/intense-between.wav", "res/music/intense3.wav", "res/music/intense-between.wav", "res/music/intense4.wav",
       "res/music/intense-between.wav", "res/music/intense5.wav", "res/music/intense-between.wav", "res/music/intense6.wav"] }],
     where: { menuMusic: "Main Menu", intense: "Rising Water", intenseEnd: "Game Over" },
+    order: ["menuMusic", "intense", "intenseEnd"],
     when: {
       "menuMusic": "The main menu opens (also on return from a game)",
       "intense": "The game screen opens in mode 2 (drums.xml); modes 0 and 1 use other clips",
@@ -367,13 +398,15 @@ var ByopopSoundtracks = {
     },
   },
   ningpo: { inside: [{ file: "ningpo.pyz", zip: ["theme_np.ogg", "nm_splash.ogg", "nm_gameover.ogg", "nm_youwin.ogg"] }],
-    where: { theme_np: "In-Game", nm_splash: "Splash Screen", nm_gameover: "Game Over", nm_youwin: "Victory" } },
+    where: { theme_np: "In-Game", nm_splash: "Splash Screen", nm_gameover: "Game Over", nm_youwin: "Victory" },
+    order: ["nm_splash", "theme_np", "nm_youwin", "nm_gameover"],
     when: {
       "theme_np": "A game starts; loops; off while paused, and at game over or win",
       "nm_splash": "Once at launch, before the assets load",
       "nm_gameover": "No moves left; the game ends",
       "nm_youwin": "The board is won"
     },
+  },
   // the Ogg games
   bookwormadv2: {
     composer: "Staffan Melin",
@@ -381,6 +414,8 @@ var ByopopSoundtracks = {
     where: { chinese_map: "Chinese Map", chinese_level: "Chinese Levels", chinese_boss: "Chinese Boss",
       fairy_tale_map: "Fairy Tale Map", fairy_tale_level: "Fairy Tale Levels", fairy_tale_boss: "Fairy Tale Boss",
       scifi_map: "Sci-Fi Map", scifi_level: "Sci-Fi Levels", scifi_boss: "Sci-Fi Boss", dance_battle_level: "Dance Battle" },
+    order: ["fairy_tale_level", "fairy_tale_map", "fairy_tale_boss", "chinese_map", "chinese_level", "chinese_boss",
+      "scifi_map", "scifi_level", "scifi_boss", "dance_battle_level"],
     when: {
       "fairy_tale_map": "Book 4's map (and Book 0's): on entering it, and again after a battle or boss is won; also Letter Rip, Link 'n Spell, Word Master and Word Up",
       "chinese_map": "Book 5's map: on entering it, and again after a battle or boss is won; also the Golden Coins mini-game",
@@ -399,6 +434,7 @@ var ByopopSoundtracks = {
     files: ["music/loading.ogg", "music/gameover.ogg"],
     joined: [{ id: "mainloop", pieces: ["music/mainintro.ogg", "music/mainloop.ogg"], loopFrom: 1 }],
     where: { mainloop: "In-Game", loading: "Title Screen", gameover: "Game Over" },
+    order: ["loading", "mainloop", "gameover"],
     when: {
       "mainloop": "A game starts: mainintro plays once, then mainloop loops",
       "loading": "At launch (fade 0.002); again on the main menu; loops",
@@ -414,6 +450,7 @@ var ByopopSoundtracks = {
     parts: { music: [[1, 18], [20, 52], [54, 82], [84, 99], [101, 126], [128, 150], [152, 168], [170, 196], [198, 220]] },
     where: { logo: "Logo", "music#0": "Main Menu", "music#1": "In-Game 1", "music#2": "In-Game 2", "music#3": "In-Game 3",
       "music#4": "In-Game 4", "music#5": "In-Game 5", "music#6": "In-Game 6", "music#7": "In-Game 7", "music#8": "In-Game 8" },
+    order: ["logo", "music#0", "music#1", "music#2", "music#3", "music#4", "music#5", "music#6", "music#7", "music#8"],
     when: {
       "music#0": "The menu screen opens (kind 2); a new pick 700 ms after the tune ends",
       "music#1": "A game screen opens (kind 3): the least-played of its eight tunes, random among ties, never twice in a row",
@@ -432,6 +469,8 @@ var ByopopSoundtracks = {
     joined: [{ playlist: "music/pixelus in-game playlist.txt", piece: "music/{}.ogg" }],
     where: { "pixelus main menu loop v02": "Main Menu", "pixelus story screen loop v01": "Story Screen",
       "pixelus temple screen loop v01": "Temple Screen", "pixelus in-game": "In-Game" },
+    order: ["pixelus main menu loop v02", "pixelus story screen loop v01", "pixelus in-game",
+      "pixelus temple screen loop v01"],
     when: {
       "pixelus main menu loop v02": "Launch, and every return to the main menu; all music fades out for the island map, a story and a puzzle",
       "pixelus story screen loop v01": "1 update after a story screen opens",
@@ -445,6 +484,8 @@ var ByopopSoundtracks = {
       { playlist: "music/tubetricks in-game one v02 playlist.txt", piece: "music/tubetricks in-game one v02 {}.ogg" }],
     where: { "tubetricks menu one v02": "Main Menu", "tubetricks in-game one v02": "In-Game",
       "tubetricks level up loop one v01": "Level Complete", "tubetricks game over loop one v01": "Game Over" },
+    order: ["tubetricks menu one v02", "tubetricks in-game one v02", "tubetricks level up loop one v01",
+      "tubetricks game over loop one v01"],
     when: {
       "tubetricks menu one v02": "Launch, and the game selector (fade 0.2); other tunes stop",
       "tubetricks in-game one v02": "A game's start (fade 0.666); after a pause, and after the buy-rockets screen between levels",

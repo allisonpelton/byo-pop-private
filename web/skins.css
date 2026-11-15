@@ -954,3 +954,16 @@ html.d95-desk #trophies.tc-win:not(.d95-closed):not(.d95-min) { display: flex; }
 html.d95-narrow .lib-c-last, html.d95-narrow .lib-c-year { display: none; }
 /* a link to one of our pages opens a window on Desktop 95's one page, not a tab (web/deskapps.js): its "opens in a new tab" goes */
 html.d95-desk .newtab { display: none; }
+/* Alt+` (web/skins.js): the window switcher, as Windows 95's Alt+Tab box: the open windows' icons in a row, the chosen one
+   outlined, and its title in a sunken field under them */
+html.d95-desk .d95-switch { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 2147483000;
+  max-width: calc(calc(100vw / var(--d95-z, 1)) - 32px); padding: 10px 12px 12px; box-sizing: border-box; background: var(--panel); color: var(--fg);
+  box-shadow: inset -1px -1px var(--sk-dk), inset 1px 1px var(--sk-hi), inset -2px -2px var(--sk-lo), inset 2px 2px var(--sk-mid); }
+html.d95-desk .d95-switch-icons { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; margin-bottom: 10px; }
+html.d95-desk .d95-icon.d95-switch-icon { display: flex; align-items: center; justify-content: center; width: 44px; height: 40px; padding: 0;
+  border: 1px solid transparent; box-sizing: border-box; }
+html.d95-desk .d95-icon.d95-switch-icon:hover { background: transparent; }
+html.d95-desk .d95-icon.d95-switch-icon.d95-switch-on { border-color: var(--fg); }
+html.d95-desk .d95-switch-name { min-width: 220px; padding: 3px 6px; text-align: center; white-space: nowrap; overflow: hidden;
+  text-overflow: ellipsis; background: var(--panel);
+  box-shadow: inset 1px 1px var(--sk-lo), inset -1px -1px var(--sk-hi); }

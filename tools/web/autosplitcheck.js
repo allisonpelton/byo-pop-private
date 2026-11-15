@@ -211,6 +211,77 @@ var CB_PLAY = ["goto instructions", { wait: 10 }, { move: [400, 563] }, { wait: 
 var MM_QUIT = [{ click: [64, 462] }];
 
 var PLANS = {
+  venice: async function () {
+    // (Venice's block has no inGame: a run's start is its GO, the click the bot makes away from the world map in a new game)
+    // (a click held a few updates, as Venice's run_tests.py gives it)
+    async function press(x, y) { await t.move(x, y); await t.wait(3); await t.down(x, y); await t.wait(3); await t.up(x, y); await t.wait(3); }
+    async function screen() { var st = JSON.parse(String(await cmd("state")).slice(6)); return st; }
+    async function goNow(mode) {
+      var g = snap().goCount;
+      // (a fresh page has no player yet: the name screen is up until one is made; a board starts only from the mode menu's
+      // click, so the main menu's Play Now and the mode's button are pressed)
+      await until("player", 50);
+      await until("goto menu", 50);
+      // (Flood is locked until unlocked; the unlock also passes every building, so the mode is set back to a new game's)
+      await until("unlock all", 50);
+      await until("set mode " + (mode === "journey" ? 1 : 0), 50);
+      await until("set level 1", 50);
+      await until("goto menu", 50);
+      await t.wait(100);
+      async function pressUntil(x, y, screen) {
+        for (var n = 0; n < 8; n++) {
+          await press(x, y);
+          await t.wait(100);
+          if (JSON.parse(String(await cmd("state")).slice(6)).screen !== screen) return;
+        }
+      }
+      await pressUntil(400, 232, "main_menu");
+      await pressUntil.apply(null, (mode === "journey" ? [400, 220] : [401, 270]).concat(["mode_select_menu"]));
+      for (var k = 0; k < 600 && snap().goCount === g; k++) await botStep();
+      await settle();
+      return att();
+    }
+    snap();
+    await t.wait(5);
+    var s0 = snap();
+    note("attach", !!s0 && s0.active === 1, s0 ? "active " + s0.active : "no block read");
+    // Journey: GO starts it, building 1 splits, the map's CONGRATULATIONS! after building 71 ends it in any building
+    await load("Journey");
+    var a0 = await goNow("journey");
+    var a1 = await clearLevel();
+    // (the map comes up with CONGRATULATIONS! once the profile is past building 71; within a game the map comes back only at a
+    // continue, the next building loading straight after a summary, so the profile is set there and the map brought up)
+    await until("set level 72", 400);
+    await until("goto level_select", 400);
+    for (var k = 0; k < 30 && att().phase === "running"; k++) await t.wait(20);
+    await settle();
+    note("journey", a0.phase === "running" && a0.index === 0 && a1.index === 1 && att().phase === "ended",
+         "started " + a0.phase + " at " + a0.index + "; after building 1: " + a1.index + "; after building 71: " + att().phase + ", wins " + snap().wins);
+    // the tries run out: a reset
+    await resetByHand();
+    await load("Journey");
+    await goNow("journey");
+    var resetCause = null;
+    var p = (async function () { resetCause = await sawReset(30000); })();
+    // (a lost try ends a Journey game only with no try left: the tries are set once the level is in play)
+    for (var q = 0; q < 400 && !(await screen()).board; q++) await botStep();
+    await until("set lives 0", 400);
+    await lose();
+    await p;
+    var s = snap();
+    note("lost", resetCause !== null && att().phase === "idle", "reset " + resetCause + ", then " + att().phase + "; deaths " + [s.death0, s.death1, s.death2, s.death3].join(","));
+    // Flood: a sunk building goes on
+    await resetByHand();
+    await load("Flood");
+    a0 = await goNow("flood");
+    resetCause = null;
+    p = (async function () { resetCause = await sawReset(3000); })();
+    await lose();
+    await p;
+    s = snap();
+    note("flood", a0.phase === "running" && resetCause === null && att().phase === "running",
+         "started " + a0.phase + "; after the sink: reset " + resetCause + ", " + att().phase + "; deaths " + [s.death0, s.death1, s.death2, s.death3].join(","));
+  },
   dynomite: async function () {
     // a fossil found: its three fragments, each a round the `win` ends (the fossil falls), until the block counts it
     async function fossilFound() {

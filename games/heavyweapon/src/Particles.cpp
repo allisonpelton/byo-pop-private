@@ -3,6 +3,7 @@
 #include "Graphics.h"
 #include "Color.h"
 #include "SexyAppBase.h"
+#include "X87.h"
 
 #include <math.h>
 
@@ -43,12 +44,12 @@ void Particles::Emit(Sprite* theSprite, double x, double y, double theVelX, doub
 
 		// Two draws: the x and y speeds each take their own direction
 		int anAngle = Rand() % 3600;
-		aParticle->mVelX = cos((double)anAngle * 0.0017453292520882224) * aSpeed + theVelX;
+		aParticle->mVelX = X87Cos((double)anAngle * 0.0017453292520882224) * aSpeed + theVelX;
 		anAngle = Rand() % 3600;
 		aParticle->mGravity = theGravity;
 		aParticle->mFades = fades;
 		aParticle->mVelYLimit = theVelYLimit;
-		aParticle->mVelY = sin((double)anAngle * 0.0017453292520882224) * aSpeed + theVelY;
+		aParticle->mVelY = X87Sin((double)anAngle * 0.0017453292520882224) * aSpeed + theVelY;
 
 		if (theFrame < 0)
 		{

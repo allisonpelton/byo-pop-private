@@ -10,6 +10,7 @@
 #include "Graphics.h"
 #include "Res.h"
 #include "Sprite.h"
+#include "X87.h"
 
 #include <math.h>
 #include <vector>
@@ -266,7 +267,7 @@ void EyeBoss::Update()
 	{
 		mIsAlive = true;
 		int aPhase = mApp->mUpdateCount % GLOW_CYCLE;
-		mGlow = (int)((cos((double)aPhase * GLOW_ANGLE_STEP) + 1.0) * (mFrame * GLOW_FRAME_SCALE * GLOW_BRIGHTNESS));
+		mGlow = (int)((X87Cos((double)aPhase * GLOW_ANGLE_STEP) + 1.0) * (mFrame * GLOW_FRAME_SCALE * GLOW_BRIGHTNESS));
 	}
 
 	if (mApp->mUpdateCount % RETARGET_INTERVAL == 0)
@@ -353,8 +354,8 @@ void EyeBoss::Update()
 		aRand = aRand % SHOT_ANGLE_RANGE;
 		aBullet->mGravity = 0.0;
 		double anAngle = (double)aRand * SHOT_ANGLE_SCALE + SHOT_ANGLE_BASE;
-		aBullet->mVelX = cos(anAngle) * SHOT_SPEED;
-		aBullet->mVelY = sin(anAngle) * SHOT_SPEED;
+		aBullet->mVelX = X87Cos(anAngle) * SHOT_SPEED;
+		aBullet->mVelY = X87Sin(anAngle) * SHOT_SPEED;
 		aBullet->mSprite = mApp->mSprites[IMAGE_BOMBFRAG];
 		aBullet->mColumn = 0;
 		aBullet->mRow = 0;

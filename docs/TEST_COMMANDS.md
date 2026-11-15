@@ -33,6 +33,8 @@ test hooks of their own keep them and add these names beside them, sharing the c
 | `unlock all` | unlocks every mode, level, minigame and item in the current profile, as the game's own unlocks would |
 | `set <name> <value>` | sets one of the `state` keys (`score 90000`, `enemy 1`, `timer 5`) |
 | `win`, `lose` | ends the current level or game now, as a win or a loss, through the game's own ending |
+| `press <id>` | presses the button with that id as a click would, through the app's own `ButtonDepress` (a SexyAppFramework port) |
+| `dyes <dialog id>`, `dno <dialog id>` | presses the open dialog's yes or no button (its `ButtonDepress(mId + 2000)` or `+ 3000`); an error when no such dialog is open |
 | `seed <n>` | seeds the game's random numbers, where the game draws them from one generator |
 | `move` | prints the move the game's bot would make next, `MOVE {...}`: what it is (the swap, the word, the tile, the shot) and `input`, the real input that makes it, as an ordered list of steps in game coordinates (below); or `MOVE null` when there is none; it changes nothing |
 | `memreport [file]` | prints what the game holds in memory as one JSON line, `MEMREPORT {...}` (below); with a file it also writes the detail there (a SexyAppFramework port: every picture with its copies, and the heaps). It changes nothing |

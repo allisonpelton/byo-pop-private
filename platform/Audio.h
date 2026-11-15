@@ -80,6 +80,7 @@ struct SoundData
 	int mChannels = 1;
 	int mRate = 48000;
 	size_t mFrames = 0;
+	std::string mName;  // the game path it was loaded from (LoadSoundData's theName), for the site's sound panel
 
 	size_t Bytes() const { return mSamples.capacity() * sizeof(int16_t); }
 };
@@ -173,6 +174,14 @@ public:
 	bool WebSongMute(int theSong, int theChannel, bool theMute);
 	int WebSongMeter(int theSong, int thePattern);
 	bool WebSongSeek(int theSong, int theOrder, int theRow);
+	// The site's sound panel (web/soundpanel.js; Audio.cpp's byopop_sounds_*): while the page watches (WebWatchVoices(true);
+	// off by default, and nothing is kept while off), each voice started is logged with its sound's name, gains and pitch,
+	// so a sound that ends between two of the page's looks is still seen. WebVoicesView gives, as JSON, the effects
+	// master gain, the voices playing now ({"id", "name", "l", "r", "pitch", "loop", "at", "len"}: gains as the game set
+	// them, pitch as a rate (1 the sound's own), at and len in seconds) and the logged starts after theSince
+	// ({"n", "id", "name", "l", "r", "pitch", "loop", "len"}), with "n", the last start's number.
+	void WebWatchVoices(bool theWatch);
+	std::string WebVoicesView(int theSince);
 #endif
 
 #ifdef __EMSCRIPTEN__
@@ -251,6 +260,10 @@ private:
 	std::atomic<bool> mPageMuted{false};  // the web page's mute (SetPageMute): likewise
 	float mMusicAsked = 1.0f, mSfxAsked = 1.0f;  // the gains the game last set (SetMusicMasterGain, SetSfxMasterGain)
 	float mSiteMusic = 1.0f, mSiteSfx = 1.0f;    // the page's starting volume for a game with no volume option (SetSiteGains)
+	struct WebStart { int mN, mId; std::string mName; float mGainL, mGainR; double mPitch, mSeconds; bool mLoop; };
+	bool mWatchVoices = false;     // WebWatchVoices: the sound panel is open
+	std::vector<WebStart> mWebStarts;  // the last kWebStarts voices started while watched, oldest first
+	int mWebStartN = 0;
 #endif
 	bool mOffline = false; // InitOffline: voices without a device
 	bool mGameClocked = false;  // SetGameClocked: AdvanceVoices moves the voices, not Mix

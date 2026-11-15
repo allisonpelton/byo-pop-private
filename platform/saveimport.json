@@ -320,6 +320,20 @@
         { "from": "users/user#.dat", "to": "users/user#.dat", "what": "a player" }
       ]
     },
+    "hammerheads": {
+      "folder": "Hammer Heads Deluxe", "steam": "Hammer Heads Deluxe",
+      "note": "Hammer Heads keeps its players (each one's saved game and restart points) and the high scores in users beside its exe; the original keeps no other save.",
+      "registry": {
+        "key": "PopCap\\Hammer Heads",
+        "hives": ["vs", "hklm", "hkcu"],
+        "sets": ["base"]
+      },
+      "files": [
+        { "from": "users/directory.txt", "to": "users/directory.txt", "what": "the list of players" },
+        { "from": "users/*.xml", "to": "users/*.xml", "what": "a player, their saved game and restart points" },
+        { "from": "users/hiscores.dat", "to": "users/hiscores.dat", "what": "the high scores" }
+      ]
+    },
     "heavyweapon": {
       "folder": "Heavy Weapon Deluxe", "steam": "Heavy Weapon Deluxe",
       "note": "Heavy Weapon keeps its players (each one's campaign in progress, furthest level, armory and statistics) and both high-score lists in userdata beside its exe; the registry holds which player was last chosen and the particle setting besides the usual options.",

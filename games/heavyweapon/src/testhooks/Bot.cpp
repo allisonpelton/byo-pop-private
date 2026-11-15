@@ -10,6 +10,7 @@
 #include "HeavyWeaponApp.h"
 #include "PowerUpDrops.h"
 #include "Projectile.h"
+#include "TankShots.h"
 
 #include <cmath>
 #include <cstdlib>
@@ -21,7 +22,13 @@ namespace
 {
 	const int FIELD_HALF_WIDTH = 320;	// enemies' x is from the field's centre
 	const int FIELD_WIDTH = 640;
-	const int AIM_TOP = 10;				// the highest the pointer aims
+	// the highest the pointer aims: below the status bar (StatusBar.cpp, 30 high), over which it would leave the board
+	// and suspend the game
+	const int AIM_TOP = 40;
+	// the pointer stays this far inside the field's sides: a shaking screen moves the board up to 7 pixels each way
+	// (Board::UpdateShake, a 32nd of a shake of at most 254), and a pointer it leaves outside the board suspends the game
+	// (Board::MouseLeave), which keeps the board where it is
+	const int POINTER_MARGIN = 8;
 	const int AIM_ABOVE_TANK = 40;		// the lowest it aims, above the tank's gun
 	const int IDLE_AIM_Y = 200;			// with no target, the pointer above the tank, so it stops
 	const double SHOT_SPEED = 5.0;		// the gun's bullets, in pixels an update (Board::AddGunShot)
@@ -95,6 +102,10 @@ namespace
 			Projectile* aProjectile = aNode->mItem;
 			int aTime;
 			double aLandX;
+			// the tank's own shots fly up, and its lightning leaves its mX and mY unset
+			if (dynamic_cast<StaticStrike*>(aProjectile) != NULL || dynamic_cast<HomingMissile*>(aProjectile) != NULL ||
+				dynamic_cast<Rocket*>(aProjectile) != NULL)
+				continue;
 			if (!aProjectile->mIsInBackground && aProjectile->mY < aTop &&
 				Landing(aProjectile->mX, aProjectile->mY, aProjectile->mVelX, aProjectile->mVelY, 0.0, true, aTop, &aTime,
 					&aLandX) &&
@@ -207,10 +218,10 @@ bool ChooseBotMove(Board* theBoard, BotMove* theMove)
 		theMove->mX = (int)theBoard->mTankX + FIELD_HALF_WIDTH;
 		theMove->mY = IDLE_AIM_Y;
 	}
-	if (theMove->mX < 0)
-		theMove->mX = 0;
-	if (theMove->mX > FIELD_WIDTH - 1)
-		theMove->mX = FIELD_WIDTH - 1;
+	if (theMove->mX < POINTER_MARGIN)
+		theMove->mX = POINTER_MARGIN;
+	if (theMove->mX > FIELD_WIDTH - 1 - POINTER_MARGIN)
+		theMove->mX = FIELD_WIDTH - 1 - POINTER_MARGIN;
 	if (theMove->mY < AIM_TOP)
 		theMove->mY = AIM_TOP;
 	if (theMove->mY > aLowest)

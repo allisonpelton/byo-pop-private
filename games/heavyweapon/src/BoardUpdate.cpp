@@ -18,6 +18,7 @@
 #include "SoundInstance.h"
 #include "SoundManager.h"
 #include "WidgetManager.h"
+#include "X87.h"
 
 #include <math.h>
 #include <stdlib.h>
@@ -144,11 +145,11 @@ void Board::AddGunShot(double theGunPower, int theSideOffset, int theAngleOffset
 
 	double aSideAngle = QUARTER_TURN + anAngle;
 	double aSide = (double)theSideOffset;
-	aBullet->mX = (mTankX - cos(anAngle) * GUN_LENGTH) - cos(aSideAngle) * aSide;
-	aBullet->mY = ((double)(mTankY - GUN_HEIGHT) - sin(anAngle) * GUN_LENGTH) - sin(aSideAngle) * aSide;
+	aBullet->mX = (mTankX - X87Cos(anAngle) * GUN_LENGTH) - X87Cos(aSideAngle) * aSide;
+	aBullet->mY = ((double)(mTankY - GUN_HEIGHT) - X87Sin(anAngle) * GUN_LENGTH) - X87Sin(aSideAngle) * aSide;
 	double aShotAngle = anAngle + (double)theAngleOffset * DEG_TO_RAD;
-	aBullet->mVelX = cos(aShotAngle) * GUN_SHOT_SPEED;
-	aBullet->mVelY = sin(aShotAngle) * GUN_SHOT_SPEED;
+	aBullet->mVelX = X87Cos(aShotAngle) * GUN_SHOT_SPEED;
+	aBullet->mVelY = X87Sin(aShotAngle) * GUN_SHOT_SPEED;
 	aBullet->mDamage = theGunPower + 1.0;
 	aBullet->mRow = (int)theGunPower;
 	if (aBullet->mRow > MAX_GUN_ROW)
@@ -368,8 +369,8 @@ void Board::AddEnemyBullet(int x, int y, double theAngle, double theSpeed)
 		theSpeed = 2.5;
 	aBullet->mColumn = 0;
 	aBullet->mRow = 0;
-	aBullet->mVelX = -(cos(theAngle) * theSpeed);
-	aBullet->mVelY = sin(theAngle) * theSpeed;
+	aBullet->mVelX = -(X87Cos(theAngle) * theSpeed);
+	aBullet->mVelY = X87Sin(theAngle) * theSpeed;
 	mApp->PlaySample(SOUND_ENEMYFIRE, (int)((double)x * PAN_SCALE));
 }
 
@@ -643,8 +644,8 @@ void Board::UpdateOrbs()
 		if (anOrb.mFlash < 0.0)
 			anOrb.mFlash = 0.0;
 		int anOffset = mApp->mWeapons[HeavyWeaponApp::WEAPON_ORBS] == 2 ? i * 180 : i * 120;
-		anOrb.mX = cos(((double)anOffset + mOrbAngle) * DEG_TO_RAD) * ORB_RADIUS_X + mTankX;
-		anOrb.mY = sin(((double)anOffset + mOrbAngle) * DEG_TO_RAD) * ORB_RADIUS_Y + (double)mTankY;
+		anOrb.mX = X87Cos(((double)anOffset + mOrbAngle) * DEG_TO_RAD) * ORB_RADIUS_X + mTankX;
+		anOrb.mY = X87Sin(((double)anOffset + mOrbAngle) * DEG_TO_RAD) * ORB_RADIUS_Y + (double)mTankY;
 		if (HitProjectiles(mApp->mSprites[IMAGE_ORB], (int)anOrb.mX, (int)anOrb.mY, 0, 0, ORB_DAMAGE))
 		{
 			anOrb.mFlash = 1.0;
@@ -682,12 +683,12 @@ void Board::UpdateLasers()
 	if (aTargetY > mTankY - GUN_HEIGHT)
 		aTargetY = mTankY - GUN_HEIGHT;
 	mLaserLength = BEAM_START;
-	mLaserAngle = atan2((double)(mMouseX - 320) - mTankX, (double)((mTankY - aTargetY) - GUN_HEIGHT)) - 1.57;
+	mLaserAngle = X87Atan2((double)(mMouseX - 320) - mTankX, (double)((mTankY - aTargetY) - GUN_HEIGHT)) - 1.57;
 	do
 	{
 		double aReach = mLaserLength + BEAM_STEP;
-		double x = cos(mLaserAngle) * aReach + mTankX;
-		double y = sin(mLaserAngle) * aReach + (double)(mTankY - GUN_HEIGHT);
+		double x = X87Cos(mLaserAngle) * aReach + mTankX;
+		double y = X87Sin(mLaserAngle) * aReach + (double)(mTankY - GUN_HEIGHT);
 		for (mEnemies.mCurrent = mEnemies.mHead; mEnemies.mCurrent->mNext != NULL; )
 		{
 			mEnemies.mCurrent = mEnemies.mCurrent->mNext;
@@ -723,13 +724,13 @@ void Board::UpdateMegaLaser()
 	int aTargetY = mMouseY;
 	if (aTargetY > mTankY - GUN_HEIGHT)
 		aTargetY = mTankY - GUN_HEIGHT;
-	mLaserAngle = atan2((double)(mMouseX - 320) - mTankX, (double)((mTankY - aTargetY) - GUN_HEIGHT)) - 1.57;
+	mLaserAngle = X87Atan2((double)(mMouseX - 320) - mTankX, (double)((mTankY - aTargetY) - GUN_HEIGHT)) - 1.57;
 	UseMegaLaser(2);
 	mLaserLength = BEAM_START;
 	do
 	{
-		double x = cos(mLaserAngle) * mLaserLength + mTankX;
-		double y = sin(mLaserAngle) * mLaserLength + (double)(mTankY - GUN_HEIGHT);
+		double x = X87Cos(mLaserAngle) * mLaserLength + mTankX;
+		double y = X87Sin(mLaserAngle) * mLaserLength + (double)(mTankY - GUN_HEIGHT);
 		if (x < -320.0 || x > 320.0 || y < 0.0)
 			break;
 
@@ -881,7 +882,7 @@ void Board::StartAnims()
 // 2 / ln(level + 6), 1 at level 0 and growing ever more slowly
 static double PowerUpFactor(int theLevel)
 {
-	return pow((double)theLevel + 1.0, 2.0 / log((double)theLevel + 6.0));
+	return pow((double)theLevel + 1.0, 2.0 / X87Log((double)theLevel + 6.0));
 }
 
 // 0x412dc0: the tank's update. The gun turns towards the mouse (at most 90 degrees from upright) and the tank drives
@@ -912,7 +913,7 @@ void Board::UpdateTank()
 		mShieldFrame = mShieldFrame - 10.0;
 
 	double aMouseX = (double)(mMouseX - 320);
-	double anAngle = atan2(aMouseX - mTankX, (double)(mTankY - mMouseY - GUN_HEIGHT)) * 57.29577951;
+	double anAngle = X87Atan2(aMouseX - mTankX, (double)(mTankY - mMouseY - GUN_HEIGHT)) * 57.29577951;
 	if (anAngle < -90.0)
 		anAngle = -90.0;
 	else if (anAngle > 90.0)
@@ -1022,8 +1023,8 @@ void Board::UpdateTank()
 			}
 
 			double aRadians = aGunAngle * DEG_TO_RAD;
-			double aFlashY = (double)(mTankY - GUN_HEIGHT) - sin(aRadians) * GUN_LENGTH;
-			double aFlashX = mTankX - cos(aRadians) * GUN_LENGTH;
+			double aFlashY = (double)(mTankY - GUN_HEIGHT) - X87Sin(aRadians) * GUN_LENGTH;
+			double aFlashX = mTankX - X87Cos(aRadians) * GUN_LENGTH;
 			AddMuzzleFlash(aFlashX, aFlashY, aSpeed, 0.0);
 			for (int i = 0; i <= aSpread; i++)
 				AddGunShot(aGunPower, 0, (int)((double)(i * 10) - aSpread * 5.0));

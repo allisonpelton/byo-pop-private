@@ -195,10 +195,40 @@ std::shared_ptr<const SwfBitmap> MakeBitmap(int theWidth, int theHeight, std::ve
 	return aBitmap;
 }
 
+// An early Flash encoder wrote a bitmap's JPEG as two streams, the tables (start of image, quantization and Huffman tables, end
+// of image) and then the image (start of image, frame, scan, end of image). Where the tables' end of image marker is, when the
+// data is of that kind, else 0 (one stream, which is all a JPEG decoder reads)
+size_t FindSplitJpeg(const uint8_t* theData, size_t theSize)
+{
+	if (theSize < 4 || theData[0] != 0xff || theData[1] != 0xd8)
+		return 0;
+	size_t i = 2;
+	while (i + 4 <= theSize && theData[i] == 0xff) {
+		uint8_t aMarker = theData[i + 1];
+		if (aMarker == 0xd9)
+			return (theData[i + 2] == 0xff && theData[i + 3] == 0xd8) ? i : 0;
+		// a frame or a scan: this stream holds the image itself
+		if (aMarker == 0xda || (aMarker >= 0xc0 && aMarker <= 0xcf && aMarker != 0xc4 && aMarker != 0xc8 && aMarker != 0xcc))
+			return 0;
+		i += 2 + (((size_t)theData[i + 2] << 8) | theData[i + 3]);
+	}
+	return 0;
+}
+
 // A bitmap from an image file's bytes (JPEG, or the PNG and GIF that later versions allow), with theAlpha (one byte
 // for each pixel, or null) as its alpha
 std::shared_ptr<const SwfBitmap> DecodeImage(const uint8_t* theData, size_t theSize, const uint8_t* theAlpha, size_t theAlphaSize)
 {
+	// the two streams of an early encoder's JPEG are joined into one: the tables, then the image less its start marker
+	std::vector<uint8_t> aJoined;
+	size_t aSplit = FindSplitJpeg(theData, theSize);
+	if (aSplit != 0) {
+		aJoined.assign(theData, theData + aSplit);
+		aJoined.insert(aJoined.end(), theData + aSplit + 4, theData + theSize);
+		theData = aJoined.data();
+		theSize = aJoined.size();
+	}
+
 	int w = 0, h = 0, aComps = 0;
 	uint8_t* aRGBA = stbi_load_from_memory(theData, (int)theSize, &w, &h, &aComps, 4);
 	if (aRGBA == nullptr)
