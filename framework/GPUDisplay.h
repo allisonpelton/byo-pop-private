@@ -76,6 +76,9 @@ public:
 	void DrawTrianglesTex(Image* theTexture, const TriVertex theVertices[][3], int theNumTriangles,
 		const Rect* theClipRect, const Color& theColor, int theDrawMode, float tx, float ty, bool blend) override;
 	void ClearRect(const Rect& theRect) override;
+	// the stack is GPU2D's (the base class's mTransformStack is not used here)
+	void PushTransform(const SexyMatrix3& theTransform, bool theConcatenate = true) override;
+	void PopTransform() override;
 
 	bool ReadScreen(ulong* theBits) override;
 	bool ReadScreenFull(std::vector<uint32_t>& theBits, int& theWidth, int& theHeight) override;

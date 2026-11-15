@@ -1113,13 +1113,43 @@ void DDInterface::FlushQuads()
 	mQuadIndices.clear();
 }
 
+void DDInterface::PushTransform(const SexyMatrix3& theTransform, bool theConcatenate)
+{
+	if (mTransformStack.empty() || !theConcatenate)
+		mTransformStack.push_back(theTransform);
+	else
+		mTransformStack.push_back(mTransformStack.back() * theTransform);
+}
+
+void DDInterface::PopTransform()
+{
+	if (!mTransformStack.empty())
+		mTransformStack.pop_back();
+}
+
+void DDInterface::TransformQuad(float theX[4], float theY[4]) const
+{
+	for (int i = 0; i < 4; i++)
+	{
+		SexyVector2 aPoint = mTransformStack.back() * SexyVector2(theX[i], theY[i]);
+		theX[i] = aPoint.x;
+		theY[i] = aPoint.y;
+	}
+}
+
 void DDInterface::Blt(Image* theImage, float theX, float theY, const Rect& theSrcRect, const Color& theColor, int theDrawMode, const Rect* theClipRect, bool mirror)
 {
 	float aRight = theX + theSrcRect.mWidth;
 	float aBottom = theY + theSrcRect.mHeight;
 
-	const float aX[4] = { theX, aRight, aRight, theX };
-	const float aY[4] = { theY, theY, aBottom, aBottom };
+	float aX[4] = { theX, aRight, aRight, theX };
+	float aY[4] = { theY, theY, aBottom, aBottom };
+	if (!mTransformStack.empty())
+	{
+		TransformQuad(aX, aY);
+		DrawTexturedQuad(theImage, aX, aY, theSrcRect, mirror, theColor, theDrawMode, NULL, true);
+		return;
+	}
 	DrawTexturedQuad(theImage, aX, aY, theSrcRect, mirror, theColor, theDrawMode, theClipRect, IsFractional(theX) || IsFractional(theY));
 }
 
@@ -1130,8 +1160,14 @@ void DDInterface::StretchBlt(Image* theImage, const FRect& theDestRect, const Re
 	float aRight = (float) (theDestRect.mX + theDestRect.mWidth);
 	float aBottom = (float) (theDestRect.mY + theDestRect.mHeight);
 
-	const float aX[4] = { aLeft, aRight, aRight, aLeft };
-	const float aY[4] = { aTop, aTop, aBottom, aBottom };
+	float aX[4] = { aLeft, aRight, aRight, aLeft };
+	float aY[4] = { aTop, aTop, aBottom, aBottom };
+	if (!mTransformStack.empty())
+	{
+		TransformQuad(aX, aY);
+		DrawTexturedQuad(theImage, aX, aY, theSrcRect, mirror, theColor, theDrawMode, NULL, true);
+		return;
+	}
 	bool isScaled = (theDestRect.mWidth != theSrcRect.mWidth) || (theDestRect.mHeight != theSrcRect.mHeight);
 	if (mSoftwareStretch && !mirror && isScaled)
 	{
@@ -1336,6 +1372,11 @@ void DDInterface::BltTransformed(Image* theImage, const Rect* theClipRect, const
 		aX[i] = aPoint.x + theX;
 		aY[i] = aPoint.y + theY;
 	}
+	if (!mTransformStack.empty())
+	{
+		TransformQuad(aX, aY);
+		linearFilter = true;
+	}
 
 	DrawTexturedQuad(theImage, aX, aY, theSrcRect, false, theColor, theDrawMode, theClipRect, linearFilter);
 }
@@ -1403,7 +1444,15 @@ void DDInterface::DrawTrianglesTex(Image* theTexture, const TriVertex theVertice
 
 			// +0.5: D3D7 and the software rasterizer both take triangle vertices without the half-pixel
 			// correction that Blt uses
-			SetVertex(*aVertex++, (aTriVertex.x + tx + 0.5f) * aScale, (aTriVertex.y + ty + 0.5f) * aScale, aColor, aTriVertex.u * aUScale, aTriVertex.v * aVScale);
+			float aVertexX = aTriVertex.x + tx;
+			float aVertexY = aTriVertex.y + ty;
+			if (!mTransformStack.empty())
+			{
+				SexyVector2 aPoint = mTransformStack.back() * SexyVector2(aVertexX, aVertexY);
+				aVertexX = aPoint.x;
+				aVertexY = aPoint.y;
+			}
+			SetVertex(*aVertex++, (aVertexX + 0.5f) * aScale, (aVertexY + 0.5f) * aScale, aColor, aTriVertex.u * aUScale, aTriVertex.v * aVScale);
 		}
 	}
 
@@ -1441,6 +1490,18 @@ void DDInterface::FillRect(const Rect& theRect, const Color& theColor, int theDr
 	if ((theRect.mWidth <= 0) || (theRect.mHeight <= 0))
 		return;
 
+	if (!mTransformStack.empty())
+	{
+		// the rectangle's corners through the stack, drawn as a fan of four
+		float aRight = (float) (theRect.mX + theRect.mWidth);
+		float aBottom = (float) (theRect.mY + theRect.mHeight);
+		float aX[4] = { (float) theRect.mX, aRight, aRight, (float) theRect.mX };
+		float aY[4] = { (float) theRect.mY, (float) theRect.mY, aBottom, aBottom };
+		TransformQuad(aX, aY);
+		FillPolyF(aX, aY, 4, theClipRect, theColor, theDrawMode);
+		return;
+	}
+
 	if ((!PreDraw()) || (!SetClip(theClipRect)))
 		return;
 
@@ -1454,6 +1515,27 @@ void DDInterface::FillPoly(const Point theVertices[], int theNumVertices, const 
 	if (theNumVertices < 3)
 		return;
 
+	static std::vector<float> aX, aY;
+	aX.resize(theNumVertices);
+	aY.resize(theNumVertices);
+	for (int i = 0; i < theNumVertices; i++)
+	{
+		float aVertexX = (float) (theVertices[i].mX + tx);
+		float aVertexY = (float) (theVertices[i].mY + ty);
+		if (!mTransformStack.empty())
+		{
+			SexyVector2 aPoint = mTransformStack.back() * SexyVector2(aVertexX, aVertexY);
+			aVertexX = aPoint.x;
+			aVertexY = aPoint.y;
+		}
+		aX[i] = aVertexX;
+		aY[i] = aVertexY;
+	}
+	FillPolyF(&aX[0], &aY[0], theNumVertices, theClipRect, theColor, theDrawMode);
+}
+
+void DDInterface::FillPolyF(const float* theX, const float* theY, int theNumVertices, const Rect* theClipRect, const Color& theColor, int theDrawMode)
+{
 	if ((!PreDraw()) || (!SetClip(theClipRect)))
 		return;
 
@@ -1465,7 +1547,7 @@ void DDInterface::FillPoly(const Point theVertices[], int theNumVertices, const 
 
 	gVertices.resize(theNumVertices);
 	for (int i = 0; i < theNumVertices; i++)
-		SetVertex(gVertices[i], (theVertices[i].mX + tx) * aScale, (theVertices[i].mY + ty) * aScale, aColor, 0, 0);
+		SetVertex(gVertices[i], theX[i] * aScale, theY[i] * aScale, aColor, 0, 0);
 
 	// triangle fan
 	gIndices.resize((theNumVertices - 2) * 3);
@@ -1485,6 +1567,15 @@ void DDInterface::FillPoly(const Point theVertices[], int theNumVertices, const 
 // The 1.3 3D path also draws anti-aliased lines this way.
 void DDInterface::DrawLine(double theStartX, double theStartY, double theEndX, double theEndY, const Color& theColor, int theDrawMode, bool antiAlias)
 {
+	if (!mTransformStack.empty())
+	{
+		SexyVector2 aStart = mTransformStack.back() * SexyVector2((float) theStartX, (float) theStartY);
+		SexyVector2 anEnd = mTransformStack.back() * SexyVector2((float) theEndX, (float) theEndY);
+		theStartX = aStart.x;
+		theStartY = aStart.y;
+		theEndX = anEnd.x;
+		theEndY = anEnd.y;
+	}
 	if (!PreDraw())
 		return;
 

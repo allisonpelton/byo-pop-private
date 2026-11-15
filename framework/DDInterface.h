@@ -22,6 +22,8 @@
 #include "Rect.h"
 #include "Color.h"
 #include "TriangleWrap.h"
+#include "SexyMatrix.h"
+#include <vector>
 
 struct SDL_Window;
 struct SDL_Renderer;
@@ -102,12 +104,17 @@ public:
 	bool mClipEnabled;
 	Rect mCurClipRect;
 
+	// the stack PushTransform and PopTransform keep (empty unless a game pushes)
+	std::vector<SexyMatrix3> mTransformStack;
+
 	// port: the textured quads and triangles drawn since the last other draw, with one texture, one blend mode and one clip,
 	// waiting to go to SDL as one SDL_RenderGeometry call (FlushQuads). SDL makes one draw call of each RenderGeometry and
 	// joins none, and on Direct3D 11 the driver's work for the draw calls takes about half of the processor time of some
 	// games; one call draws the same triangles in the same order, so the same pixels come out. Only an accelerated renderer
 	// (mIs3D) gathers them: SDL's software renderer turns each call's pairs of triangles back into copies. Every other
 	// call that draws, reads the target, sets the clip or the target, or changes or frees a texture flushes them first.
+	// A quad's vertices are taken through the transform stack's top matrix before they are queued, so each keeps the matrix
+	// it was drawn under and a push or pop between two quads needs no flush.
 	SDL_Texture* mQuadTexture;
 	int mQuadBlendMode;
 	std::vector<SDL_Vertex> mQuadVertices;
@@ -214,6 +221,10 @@ protected:
 	SDL_Texture* PrepareTexture(MemoryImage* theImage, DDTextureData* theData, int theDrawMode, bool linearHint);
 	void DrawTexturedQuad(Image* theImage, const float theX[4], const float theY[4], const Rect& theSrcRect, bool mirror, const Color& theColor, int theDrawMode, const Rect* theClipRect, bool linearHint);
 	void FillRects(const Color& theColor, int theDrawMode);
+	// FillPoly's fan from float vertices in logical coordinates (what the stack's matrix makes of a rectangle or a polygon)
+	void FillPolyF(const float* theX, const float* theY, int theNumVertices, const Rect* theClipRect, const Color& theColor, int theDrawMode);
+	// the four corners theX and theY through the top of the stack
+	void TransformQuad(float theX[4], float theY[4]) const;
 	void DrawCursor();
 
 public:
@@ -286,6 +297,16 @@ public:
 	// pieces through DrawTrianglesTex clamped, and says true; with clamp both ways it does nothing and says false.
 	bool DrawTrianglesTexWrapped(Image* theTexture, const TriVertex theVertices[][3], int theNumTriangles, const Rect* theClipRect, const Color& theColor, int theDrawMode, float tx, float ty, bool blend);
 	virtual void ClearRect(const Rect& theRect);
+
+	// port: the transform stack of the original's D3DInterface (Bejeweled 2's PushTransform 0x44b8f0 and PopTransform 0x44b990; Twist's
+	// slot 0x14, which GPU2D keeps for GPUDisplay). While it is not empty these draws take their coordinates through the top matrix:
+	// Blt, StretchBlt, BltRotated, BltTransformed, DrawTrianglesTex, FillRect, FillPoly and DrawLine (ClearRect and FillScanLines do not).
+	// A blit is filtered then (the original draws a plain blit under a stack as a transformed one). A clip rectangle stays the screen's, as
+	// the original's does for a transformed blit, a fill and a polygon; a plain blit and a stretch ignore it, DDImage having cut them to
+	// it before the matrix. Empty (the default), nothing differs from a display without the stack. theConcatenate: the matrix is
+	// multiplied into the top one.
+	virtual void PushTransform(const SexyMatrix3& theTransform, bool theConcatenate = true);
+	virtual void PopTransform();
 
 	// Reads the logical screen back into ARGB pixels (used for screenshots / GetBits on the screen).
 	virtual bool ReadScreen(ulong* theBits);

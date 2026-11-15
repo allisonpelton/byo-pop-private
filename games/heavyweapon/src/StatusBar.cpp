@@ -78,6 +78,12 @@ void StatusBar::Update()
 		Move(0, aBoard->mLevelLength - aBoard->mLevelTime);
 }
 
+// 0x410670 (listener slot 4; the board's code, which reads the same mApp): MENU clicks
+void StatusBar::ButtonPress(int theId)
+{
+	mApp->PlaySample(SOUND_BUTTONDOWN, 0);
+}
+
 // 0x42e050: MENU stops the game under the quit menu
 void StatusBar::ButtonDepress(int theId)
 {
