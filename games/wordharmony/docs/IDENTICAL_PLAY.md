@@ -5,7 +5,7 @@ port, by the game's state, not by pictures. Phase two, **looks identical** (the 
 build and real input), follows in its own section.
 
 The original is the game carved out of the wrapper (`re/wordharmony/bin/WordHarmonyGame.exe`, image base 0x400000, no
-relocation), run only through `tools/origrun`, from a copy under a short path (`C:\byo-og\wh\game`, staged by
+relocation), run only through `tools/origrun`, from a copy under a short path (`E:\byo-og\wh\game`, staged by
 `games/wordharmony/tools/identical/setup.sh`), under rundesk, on origrun's virtual clock (`--clock virtual`) and with the
 scripted cursor (`--cursor scripted`). One original and one port at a time at most; the original's registry key is cleared
 before each run (`orig.sh`), so every run starts the way a first run does.

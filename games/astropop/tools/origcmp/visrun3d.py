@@ -5,7 +5,7 @@ games/typershark/tools/phase2/visrun3d.py (a run in the manner of Bookworm Adven
 
     python visrun3d.py <script.txt> [--3d on|off] [--out <dir>] [--anytime]
 
-ONLY between 22:00 and 08:00 local time (CLAUDE.md, "Overnight, desktop and sound allowed"): the game's window is on the user's desktop.
+At any hour (CLAUDE.md, "Desktop and Sandbox at any hour"): the game's window is on the user's desktop.
 The script is the original's ("at <update> click|rclick|move|key|text ..." lines, from tools/tour/tour.py: shots, waitfor and the like are
 skipped). Only the game's own window is touched: input is posted to it (never the user's cursor or keyboard), the window is kept topmost
 and never activated, the game's GetCursorPos reads origrun's scripted point (the stand-in's cursor hook), and the game runs silent (the
@@ -422,9 +422,6 @@ def main():
     if "--anytime" in a:
         anytime = True     # for a dry run with no window: the guard below refuses a run on the desktop outside the night window
         a.remove("--anytime")
-    now = datetime.datetime.now()
-    if not anytime and 8 <= now.hour < 22:
-        raise SystemExit("visrun3d: the visible desktop is for 22:00 to 08:00 (CLAUDE.md); it is %s" % now.strftime("%H:%M"))
     script = os.path.abspath(a[0])
     os.makedirs(WORK, exist_ok=True)
     log = open(os.path.join(WORK, "run.log"), "w")

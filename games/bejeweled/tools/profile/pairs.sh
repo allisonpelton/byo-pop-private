@@ -5,7 +5,7 @@
 # another game process appeared is run again, up to [max pairs] (default 8) until [pairs] (default 4) are clean.
 # Waits first, up to WAIT_S seconds (default 7200), for no game process anywhere; past that it measures anyway and the
 # counts beside each pair say so (<out dir>/pairs.tsv).
-# The original: the copy in C:\byo-og\bej-perf\game (the exe carved out of WinBej.exe) under origrun, on the real clock with
+# The original: the copy in E:\byo-og\bej-perf\game (the exe carved out of WinBej.exe) under origrun, on the real clock with
 # the silent stand-in; its saved game in C:\ProgramData\Steam\Bejeweled\userdata is taken away before each run (a game
 # quit during play is saved, and the next run would open on "continue?") and the one there before is put back at the end.
 # The port: build/native/bejeweled.exe under rundesk, windowed, from a fresh user folder, on a -script with the same input.
@@ -40,7 +40,7 @@ while [ $clean -lt "$WANT" ] && [ $n -lt "$MAX" ]; do
 	rm -f "$USERDATA/savegame.dat"
 	C="$OUT/o$n.counts"; rm -f "$C" "$C.stop"; counts "$C" & CP=$!
 	python -I $P/perfmin.py "$OUT/o$n.json" 20,80 --attach 'bej-perf/game/BejeweledGame.exe' > "$OUT/o$n.perf.txt" 2>&1 & PP=$!
-	build/origrun-bin/origrun.exe --exe 'C:\byo-og\bej-perf\game\BejeweledGame.exe' --run "perf-o$n" --sound stub \
+	build/origrun-bin/origrun.exe --exe 'E:\byo-og\bej-perf\game\BejeweledGame.exe' --run "perf-o$n" --sound stub \
 		--script "$(win "$PWD/$OUT/orig.txt")" --timeout 150 > "$OUT/o$n.origrun.txt" 2>&1
 	wait $PP; touch "$C.stop"; wait $CP
 	oo=$(others "$C")
