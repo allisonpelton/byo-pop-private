@@ -2062,10 +2062,19 @@ var ByopopSoundboards = {
   // second. The music files are Music's (web/soundtracks.js); victory.ogg is a sound. bonus_caught and ouch_cupid are named
   // by nothing but config.xml's list of sounds to load
   venice: {
+    presets: [
+      { name: "Level Won", when: "Journey's first level: the last slot of the last plate, VICTORY! a second after the plate has gone, and the play rising", steps: [["audio/place", 0], ["audio/tone", 0], ["audio/plate", 4], ["audio/victory", 1708], ["audio/rise", 2720]]},
+      { name: "Level Lost", when: "A jewel falls into the water on Journey's last try: the plates rise and the shooter sinks", steps: [["audio/splash", 0], ["audio/rise", 0], ["audio/sink", 0]]},
+      { name: "Double Combo", when: "A plate completed as the second of one tumble", steps: [["audio/place", 0], ["audio/tone", 0, {"r": 1.2721}], ["audio/plate_combo", 4], ["audio/plate", 4]]},
+      { name: "Super Tumble", when: "A trick shot's jewels tossed on from slot to slot: each fill's tone higher, SUPER TUMBLE! on the later ones, and a plate done on the way", steps: [["audio/place", 0], ["audio/tone", 0], ["audio/pop", 156], ["audio/place", 160], ["audio/tone", 160, {"r": 1.1361}], ["audio/pop", 316], ["audio/place", 512], ["audio/tone", 512, {"r": 1.2721}], ["audio/pop", 668], ["audio/place", 672], ["audio/tone", 672, {"r": 1.4082}], ["audio/plate", 676], ["audio/pop", 828], ["audio/place", 1188], ["audio/tone", 1188, {"r": 1.5442}], ["audio/super_tumble", 1188], ["audio/pop", 1344], ["audio/place", 1348], ["audio/tone", 1348, {"r": 1.6803}], ["audio/super_tumble", 1348], ["audio/pop", 1504], ["audio/place", 1656], ["audio/tone", 1656, {"r": 1.8163}], ["audio/super_tumble", 1656], ["audio/pop", 1812], ["audio/place", 1816], ["audio/tone", 1816, {"r": 1.9524}], ["audio/plate", 1820]]},
+      { name: "Wings", when: "The shooter catches the wings power-up and its wings start to flap", steps: [["audio/powerup_caught", 0], ["audio/wings", 8], ["audio/wings", 412], ["audio/wings", 812], ["audio/wings", 1212], ["audio/wings", 1612]]},
+      { name: "Trick Shot Made", when: "The trick shot's last slot: the plate spins away and the shot is made", steps: [["audio/place", 0], ["audio/tone", 0, {"r": 1.9524}], ["audio/plate", 4], ["audio/trickshot_made", 704]]},
+      { name: "Trick Shot Missed", when: "A trick shot's jewel falls into the water", steps: [["audio/splash", 0], ["audio/trickshot_missed", 0]]}
+    ],
     groups: [
     { name: "Menus", sounds: [
       ["audio/hot.ogg", "Hover", "The pointer comes onto a button, a link or a checkbox of the top scene; at a random pitch, 40100 to 48100 Hz"],
-      ["audio/click.ogg", "Click", "A button of the top scene is clicked, or its key pressed"],
+      ["audio/click.ogg", "Click", "A button of the top scene is clicked, or its key pressed. Also in The Wizard's Pen, as audio/click.ogg."],
       ["audio/panel.ogg", "Panel", "A panel opens: the mode menu, the options, the in-game menu, the profile, name and delete dialogs, the continue and exit prompts and the cupid's note; also as the loading screen starts to fade out"]
     ] },
     { name: "Throwing", sounds: [
@@ -2081,7 +2090,7 @@ var ByopopSoundboards = {
       ["audio/place.ogg", "Slot filled", "A jewel, or a cascade, fills a slot; with the fill tone"],
       ["audio/tone.ogg", "Fill tone", "With every slot filled: at 22050 Hz, and 3000 Hz higher for each further slot the same jewel fills, or for each combo before a cascade's fill"],
       ["audio/pop.ogg", "Jewel tossed", "A filled slot throws its jewel out again, to fly up and land on a slot of its colour"],
-      ["audio/super_tumble.ogg", "Super Tumble", "One jewel fills its third slot or more: SUPER TUMBLE! shows with the score (one or two slots show Tumble instead, with no sound of its own)"],
+      ["audio/super_tumble.ogg", "Super Tumble", "A thrown-back jewel fills its fourth slot or more: SUPER TUMBLE! shows with the score (its second and third show Tumble, with no sound of their own)"],
       ["audio/plate.ogg", "Plate done", "A plate's last slot is filled and it spins away"],
       ["audio/plate_combo.ogg", "Combo", "With the plate sound, when the plate is the second or later of one tumble (DOUBLE COMBO! and up)"]
     ] },
@@ -2090,18 +2099,18 @@ var ByopopSoundboards = {
       ["audio/brick_hit.ogg", "Brick breaks", "A jewel breaks a brick block"],
       ["audio/warp.ogg", "Warp", "A jewel goes through a warp and comes out of the nearest other one (in Trick Shot, a miss)"],
       ["audio/turret.ogg", "Turret", "A turret takes in a jewel that is not falling"],
-      ["audio/basket.ogg", "Basket", "A bonus level's basket takes in a falling jewel, for 100 points"],
+      ["audio/basket.ogg", "Basket", "A bonus level's basket takes in a falling jewel, for 100 points. Also in Banana Bugs, as sounds/arrowhit.ogg."],
       ["audio/powerup_caught.ogg", "Power-up", "The shooter catches a power-up"],
-      ["audio/wings.ogg", "Wings", "The shooter gets wings, which carry it for 2000 updates (8 seconds)"],
+      ["audio/wings.ogg", "Wings", "A flap of the shooter's wings, every 100 updates (400 ms) of the 2000 (8 seconds) they carry it, from the wings power-up"],
       ["audio/cupid_flap.ogg", "Cupid flaps", "Every 320 ms while a cupid flies: from the cupid power-up, or when no slot has been filled for the tuning's wait while the level scrolls"],
       ["audio/cupid_catch.ogg", "Cupid catches", "A cupid takes a jewel within 30 pixels of it, while a plate has a slot to fill, and carries it to a slot of its colour"]
     ] },
     { name: "Winning and losing", sounds: [
-      ["audio/victory.ogg", "Victory", "A level other than a trick shot is won: 1000 ms after its last plate goes, as VICTORY! shows with its sparkles"],
-      ["audio/rise.ogg", "Rise", "The play ends: a level won or a trick shot made or missed (the tiles go to their victory stage), or a level or a Journey try lost (the plates rise up the screen)"],
+      ["audio/victory.ogg", "Victory", "A level other than a trick shot is won: 1000 ms after its last plate goes, as VICTORY! shows with its sparkles. Also in The Wizard's Pen, as audio/victory.ogg."],
+      ["audio/rise.ogg", "Rise", "A level other than a trick shot is won: 2000 ms after its last plate goes, as the play rises (the middle layer's third victory stage); or a level is lost (in Journey, with no try left), as the plates rise up the screen"],
       ["audio/shake.ogg", "Shake", "A plate comes down past the danger line (the tuning's earthquake point) and the play starts to shake"],
-      ["audio/sink.ogg", "Shooter sinks", "A level or a Journey try is lost: the shooter sinks into the water"],
-      ["audio/stats.ogg", "Summary line", "Each line of a level's summary, and each name of the high scores, as it comes up"],
+      ["audio/sink.ogg", "Shooter sinks", "A level, or a Journey try, is lost: the shooter sinks into the water"],
+      ["audio/stats.ogg", "Summary line", "Each line of a level's summary, and each name of the high scores, as it comes up. Also in The Wizard's Pen, as audio/stats.ogg."],
       ["audio/stats2.ogg", "Total", "A level's summary (or a bonus level's) has counted up its total"]
     ] },
     { name: "Trick shots", sounds: [
