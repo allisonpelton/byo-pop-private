@@ -972,12 +972,21 @@ void HeavyWeaponApp::ButtonDepress(int theId)
 // before it steps (texel (srcX * 65536 + i * srcWidth * 65536 / destWidth) >> 16, and the same for rows); a stretch that is
 // not fast is averaged into a new image of the destination's size (MemoryImage's slow stretch, 0x4740b0) and blitted from
 // there. The framework's software stretch (DDInterface::mSoftwareStretch) does both, so the display turns it on for each
-// stretch drawn in 2D and leaves SDL's filtering to a 3D run, whose screen the original draws through Direct3D.
+// stretch drawn in 2D and leaves SDL's filtering to a 3D run, whose screen the original draws through Direct3D. The 2D
+// surface also keeps what the last frame drew: while the board shakes (Board::UpdateShake, 0x40fe00, moves it by up to 8
+// pixels each way) the edge it uncovers shows the last frame's pixels, not black, so in 2D each frame starts from the last
+// (DDInterface::mKeepScreen).
 class HeavyWeaponDisplay : public DDInterface
 {
 public:
 	HeavyWeaponDisplay(SexyAppBase* theApp) : DDInterface(theApp)
 	{
+	}
+
+	virtual void BeginFrame() override
+	{
+		mKeepScreen = !mIs3D;
+		DDInterface::BeginFrame();
 	}
 
 	virtual void StretchBlt(Image* theImage, const FRect& theDestRect, const Rect& theSrcRect, const Rect* theClipRect,

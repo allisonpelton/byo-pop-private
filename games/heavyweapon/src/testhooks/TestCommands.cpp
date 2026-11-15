@@ -42,6 +42,7 @@
 #include "Board.h"
 #include "Bot.h"
 #include "CreditsScreen.h"
+#include "CutsceneScreen.h"
 #include "Enemy.h"
 #include "HelpScreen.h"
 #include "HighScoresScreen.h"
@@ -76,6 +77,7 @@ const int FIRST_LEVEL = 1;
 const int LAST_LEVEL = HeavyWeaponApp::FINAL_LEVEL + 1;	// the final boss's level, 1-based
 const int BOT_MOVE_UPDATES = 4;		// a bot's move holds for this many updates before the next is asked
 const int BOT_SCREEN_UPDATES = 20;	// and a click that goes on from a screen between fights
+const int BOT_CUTSCENE_UPDATES = 300;	// a cutscene's movie plays this long before the bot clicks it away
 const int BOT_IDLE_UPDATES = 10;	// botrecord: the wait when the bot has no move
 const int TRACE_FLUSH_UPDATES = 256;	// the trace is written out this often
 const int TRACED_ITEMS = 3;			// the trace gives the places of this many of each of the board's bullets, enemies and
@@ -268,9 +270,25 @@ void ReplyState(HeavyWeaponApp* theApp)
 }
 
 // The button a player clicks to go on from a screen between fights: a play tip's OK, the help's PLAY, the level's
-// results, the armory's GO, the map's "invade" link; NULL when none is up and showing
+// results, the armory's GO, the map's "invade" link, a cutscene once its movie has played BOT_CUTSCENE_UPDATES (the
+// original's Flash control plays on its own clock, so a movie that ends by itself ends at no update the port can know: a
+// click ends it in both at the same update); NULL when none is up and showing
 Widget* OnwardButton(HeavyWeaponApp* theApp, Board* theBoard)
 {
+	static CutsceneScreen* sCutscene = NULL;
+	static int sCutsceneSeen = 0;
+	CutsceneScreen* aCutscene = FindWidget<CutsceneScreen>(theApp);
+	if (aCutscene != NULL && aCutscene->mFlashWidget != NULL && aCutscene->mFadeAngle == 0.0)
+	{
+		if (aCutscene != sCutscene)
+		{
+			sCutscene = aCutscene;
+			sCutsceneSeen = theApp->mUpdateCount;
+		}
+		if (theApp->mUpdateCount - sCutsceneSeen < BOT_CUTSCENE_UPDATES || aCutscene->mWidgetManager == NULL)
+			return NULL;
+		return aCutscene;
+	}
 	PlayTipDialog* aTip = (PlayTipDialog*) theApp->GetDialog(PlayTipDialog::DIALOG_ID);
 	MessageDialog* aMessage = (MessageDialog*) theApp->GetDialog(MessageDialog::DIALOG_ID);
 	Widget* aButton = NULL;
