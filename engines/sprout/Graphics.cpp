@@ -142,3 +142,19 @@ void Graphics::setBltFx(BltFx* theBltFx)
 {
 	state().mBltFx = theBltFx;
 }
+
+// 0x4bfc20 (pizzafrenzy): port: each pixel row of the rectangle is a line of the state's colour
+void Graphics::fillRect(const Rect& theRect)
+{
+	for (int aRow = (int)theRect.top; aRow < (int)theRect.bottom; aRow++)
+		drawLine(Point(theRect.left, (float)aRow), Point(theRect.right - 1, (float)aRow));
+}
+
+// 0x478320 (pizzafrenzy): port: the translation moves the text's origin to (x, y)
+void Graphics::drawString(const char* theString, float x, float y)
+{
+	pushState();
+	translate(x, y);
+	drawString(theString);
+	popState();
+}

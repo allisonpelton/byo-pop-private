@@ -21,6 +21,12 @@ PersistKey* PersistKey::openSubKey(const std::string& theName)
 	return new PersistKey(mPath + "\\" + theName, mRelativePath + theName + "\\");
 }
 
+// 0x4c0130 (pizzafrenzy)
+bool PersistKey::deleteSubKey(const std::string& theName)
+{
+	return getHost()->registryDeleteKey(mRelativePath + theName);
+}
+
 // 0x4c07f0 (pizzafrenzy)
 bool PersistKey::getSubKeyNames(std::vector<std::string>& theNames)
 {

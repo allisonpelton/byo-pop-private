@@ -5,13 +5,12 @@
 // 0x532f68 (pizzafrenzy)): the registry key Software\<publisher>\<game>\scoreboards holds the players' best
 // scores, by the game's code.
 //
-// Left out: the scores themselves, which no state of the loading reads or writes (0x469390 (pizzafrenzy),
-// 0x469580 (pizzafrenzy), 0x469ac0 (pizzafrenzy), 0x469720 (pizzafrenzy), 0x469bf0 (pizzafrenzy),
-// 0x469cd0 (pizzafrenzy)); and the online scoreboard's address (0x469110 (pizzafrenzy)): the port has no online
-// scores and no posting.
+// Left out: the other scores' parts (0x469390 (pizzafrenzy), 0x469720 (pizzafrenzy)); and the online scoreboard's
+// address (0x469110 (pizzafrenzy)): the port has no online scores and no posting.
 
 #include "Object.h"
 #include "PersistKey.h"
+#include "Scoreboard.h"
 
 #include <string>
 
@@ -29,7 +28,15 @@ public:
 	// 0x469370 (pizzafrenzy)
 	void setGameCode(const std::string& theGameCode) { mGameCode = theGameCode; }
 
+	// 0x469bf0 (pizzafrenzy): the board's key below the scoreboards' is read into the board, which is then ready
+	bool loadBoard(Scoreboard* theBoard);
+	// 0x469cd0 (pizzafrenzy): the board's entries are written to its key
+	bool saveBoard(Scoreboard* theBoard);
+
 private:
+	void loadEntry(PersistKey* theKey, int theIndex, ScoreEntry* theEntry);   // 0x469580 (pizzafrenzy)
+	void saveEntry(PersistKey* theKey, int theIndex, ScoreEntry* theEntry);   // 0x469ac0 (pizzafrenzy)
+
 	Ref<PersistKey> mKey;   // +0x00
 	std::string mGameCode;  // +0x04
 };

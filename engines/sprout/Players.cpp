@@ -4,6 +4,15 @@
 
 using namespace engine;
 
+// 0x469090 (pizzafrenzy)
+char engine::filterPlayerNameChar(char theChar)
+{
+	if ((theChar < 'a' || 'z' < theChar) && (theChar < 'A' || 'Z' < theChar) && (theChar < '0' || '9' < theChar) &&
+		theChar != ' ' && theChar != '-' && theChar != '.' && ((int)theChar < 0xc0 || 0xff < (int)theChar))
+		return '\0';
+	return theChar;
+}
+
 namespace
 {
 // 0x46da80 (pizzafrenzy): the names compared without regard to case (the exe asks CompareStringA for the user's
@@ -24,6 +33,8 @@ int compareNames(const std::string& theFirst, const std::string& theSecond)
 }
 
 Players* gPlayers = nullptr;  // 0x532f6c (pizzafrenzy)
+// 0x521228 (pizzafrenzy): the value of the players' key that names the current player
+const char* const ACTIVE_USER_VALUE = "activeUser";
 }
 
 // 0x46a700 (pizzafrenzy)
@@ -43,8 +54,8 @@ bool Players::open(const std::string& thePublisher, const std::string& theGame)
 	return load();
 }
 
-// 0x46aae0 (pizzafrenzy): each key below the players' is a player; the default value of the players' key names the
-// current one
+// 0x46aae0 (pizzafrenzy): each key below the players' is a player; the value "activeUser" of the players' key names
+// the current one
 bool Players::load()
 {
 	std::vector<std::string> aNames;
@@ -52,7 +63,7 @@ bool Players::load()
 		return false;
 	for (size_t i = 0; i < aNames.size(); i++)
 		loadUser(aNames[i]);
-	std::string aCurrentName = mKey->readString("", "");
+	std::string aCurrentName = mKey->readString(ACTIVE_USER_VALUE, "");
 	size_t aFound = 0;  // 0x46a280 (pizzafrenzy): the player of that name
 	while (aFound < mUsers.size() && compareNames(mUsers[aFound]->getName(), aCurrentName) != 0)
 		aFound++;
@@ -93,6 +104,67 @@ UserInfo* Players::current()
 	if (mCurrentIndex < 0 || mCurrentIndex >= (int)mUsers.size())
 		return nullptr;
 	return mUsers[mCurrentIndex];
+}
+
+// 0x469f00 (pizzafrenzy)
+UserInfo* Players::getUser(int theIndex)
+{
+	if (theIndex < 0 || theIndex >= (int)mUsers.size())
+		return nullptr;
+	return mUsers[theIndex];
+}
+
+// 0x469eb0 (pizzafrenzy)
+void Players::choose(int theIndex)
+{
+	if (theIndex == mCurrentIndex || theIndex < 0 || theIndex >= (int)mUsers.size())
+		return;
+	mCurrentIndex = theIndex;
+	mKey->writeString(ACTIVE_USER_VALUE, mUsers[theIndex]->getName());
+	emit();  // 0x469e80 (pizzafrenzy)
+}
+
+// 0x46a600 (pizzafrenzy)
+bool Players::add(UserInfo* theUser)
+{
+	const std::string& aName = theUser->getName();
+	size_t aLower = 0;  // 0x46a0d0 (pizzafrenzy)
+	while (aLower < mUsers.size() && compareNames(mUsers[aLower]->getName(), aName) < 0)
+		aLower++;
+	size_t anUpper = aLower;  // 0x46a130 (pizzafrenzy)
+	while (anUpper < mUsers.size() && compareNames(mUsers[anUpper]->getName(), aName) <= 0)
+		anUpper++;
+	if (aLower != anUpper)
+		return false;
+	mUsers.insert(mUsers.begin() + aLower, Ref<UserInfo>(theUser));
+	if (!saveUser(theUser))
+	{
+		mUsers.erase(mUsers.begin() + aLower);
+		return false;
+	}
+	mCurrentIndex = (int)aLower;
+	emit();
+	return true;
+}
+
+// 0x46a190 (pizzafrenzy): when the player removed is before the current one, the current one is the one before; when
+// the current one was the last, the one before it
+bool Players::remove(int theIndex)
+{
+	if (theIndex < 0 || theIndex >= (int)mUsers.size())
+		return false;
+	if (!mKey->deleteSubKey(mUsers[theIndex]->getName()))
+		return false;
+	mUsers.erase(mUsers.begin() + theIndex);
+	if (theIndex < mCurrentIndex)
+		choose(mCurrentIndex - 1);
+	else if (mCurrentIndex == (int)mUsers.size())
+	{
+		int aLast = (int)mUsers.size() - 1;
+		choose(aLast > 0 ? aLast : 0);
+	}
+	emit();
+	return true;
 }
 
 // 0x469f70 (pizzafrenzy)

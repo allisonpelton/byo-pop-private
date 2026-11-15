@@ -24,6 +24,9 @@ public:
 	// 0x1c: 0x46ae50 (pizzafrenzy): the music's (category 1)
 	virtual void setMusicEnabled(bool theEnabled);
 
+	bool hasSound() const { return mHasSound; }  // 0x4d1140 (pizzafrenzy)
+	bool hasMusic() const { return mHasMusic; }  // 0x46ae40 (pizzafrenzy)
+
 protected:
 	// 0x46ae00 (pizzafrenzy): the window's sound system (0x48ef60 (pizzafrenzy), DirectSound) given to the application;
 	// without one the game has neither sounds nor music

@@ -39,8 +39,8 @@ public:
 	Image() : mAlphaMode(ALPHA_NONE), mAlphaThreshold(0) {}
 	virtual int getWidth() = 0;   // slot 0x00: 0x4572a0 (wordharmony)
 	virtual int getHeight() = 0;  // slot 0x04: 0x4572b0 (wordharmony)
-	// slot 0x0c: 0x45e5d0 (wordharmony), 0x4cf090 (pizzafrenzy), 1 puts the pivot at the centre (in whole pixels); other
-	// values leave it, except in the signal build, where they put it back at the corner
+	// slot 0x0c: 0x45e5d0 (wordharmony), 0x4cf090 (pizzafrenzy), 1 puts the pivot at the centre (in whole pixels);
+	// other values leave it, except in the signal build, where they put it back at the corner
 	void setPivot(int theMode)
 	{
 		if (theMode == 1)
@@ -69,7 +69,8 @@ public:
 	virtual void fill(const Color4& theColor) {}
 	// Slot 0x3c (0x4be830 (pizzafrenzy)): every pixel replaced by what the filter makes of it
 	virtual void applyFilter(PixelFx& theFilter) {}
-	void setPivot(int x, int y) { mPivotX = x; mPivotY = y; }  // slot 0x10: 0x45e5c0 (wordharmony), 0x4cf080 (pizzafrenzy)
+	// slot 0x10: 0x45e5c0 (wordharmony), 0x4cf080 (pizzafrenzy)
+	void setPivot(int x, int y) { mPivotX = x; mPivotY = y; }
 	int getPivotX() const { return mPivotX; }                  // slot 0x14: 0x45e600 (wordharmony)
 	int getPivotY() const { return mPivotY; }
 	// slot 0x18: 0x45e610 (wordharmony)
@@ -136,6 +137,10 @@ public:
 	virtual void drawChar(char theChar);
 	// Slot 7: a line in the state's colour
 	virtual void drawLine(const Point& theFrom, const Point& theTo) = 0;
+	// Slot 8 (0x4bfc20 (pizzafrenzy)): a filled rectangle in the state's colour (port: one line per pixel row)
+	virtual void fillRect(const Rect& theRect);
+	// 0x478320 (pizzafrenzy): a string at (x, y) (port: the text drawn at the origin of a translated state)
+	void drawString(const char* theString, float x, float y);
 
 	// 0x43d120 (wordharmony), 0x4788d0 (pizzafrenzy): pushes a copy of the top state
 	void pushState();

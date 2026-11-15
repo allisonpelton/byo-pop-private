@@ -4,12 +4,12 @@
 // The signal build's list of rows (Pizza Frenzy's; Iggle Pop's Mac build names it engine::ListBox: a component with
 // slots; 0x1b0 bytes, constructor 0x491ea0 (pizzafrenzy), vtable 0x504738 (pizzafrenzy)): rows of text in a size, in
 // colours, with an indent, that the mouse picks from (the sounds are for the mouse entering a row and pressing one).
-// Only what the layout reader reaches is here: the constructor and the setters. Its drawing (0x90:
-// 0x4919d0 (pizzafrenzy)), layout (0x98: 0x491720 (pizzafrenzy)), mouse events (0xa0: 0x491c00 (pizzafrenzy), 0xd0:
-// 0x491930 (pizzafrenzy), 0xe4: 0x491750 (pizzafrenzy)), its list model and its signal (+0x118, which the constructor
-// makes) are not translated, nothing reaches them yet, so a list box draws nothing here.
+// Its drawing (0x6c: 0x4919d0 (pizzafrenzy)), layout (0x74: 0x491720 (pizzafrenzy)) and mouse events (0xa0:
+// 0x491c00 (pizzafrenzy), 0xd0: 0x491930 (pizzafrenzy), 0xe4: 0x491750 (pizzafrenzy)) are here, with its model and its
+// signal for the row picked.
 
 #include "Color4.h"
+#include "ListModel.h"
 #include "Node.h"
 #include "Signal.h"
 
@@ -46,12 +46,31 @@ public:
 	// name is none)
 	void setSounds(const std::string& theEnterSound, const std::string& thePressSound);
 
-	// 0x90: 0x4919d0 (pizzafrenzy), not translated
-	void draw(Graphics* g) override {}
-	// 0x98: 0x491720 (pizzafrenzy), not translated
-	void layout() override {}
+	// 0x492070 (pizzafrenzy): the list shows the model, and needs a layout when the model changes
+	void setModel(ListModel* theModel);
+	int getRowCount() { return mModel->rowCount(); }  // 0x491820 (pizzafrenzy)
+	void modelChanged();                              // 0x491580 (pizzafrenzy)
+	// 0x491830 (pizzafrenzy): how many rows the height holds
+	int getVisibleRows();
+	int getSelectedIndex() const { return mSelectedIndex; }  // 0x491710 (pizzafrenzy)
+	void setSelectedIndex(int theIndex) { mSelectedIndex = theIndex; }
+	// 0x491880 (pizzafrenzy): the row at the point (in the list's parent's coordinates), -1 when there is none
+	int rowAt(const Point& thePoint);
 
-	Point mSize;                       // +0x128
+	// 0x6c: 0x4919d0 (pizzafrenzy)
+	void draw(Graphics* g) override;
+	// 0x74: 0x491720 (pizzafrenzy)
+	void layout() override;
+	// 0xa0: 0x491c00 (pizzafrenzy): the row pressed is picked, which the signal tells
+	void mouseDownEvent(MouseEvent& e) override;
+	// 0xd0: 0x491930 (pizzafrenzy): the row the mouse is over; its sound plays when it is a new one
+	void mouseMoveEvent(MouseEvent& e) override;
+	// 0xe4: 0x491750 (pizzafrenzy): no row is under the mouse
+	void mouseExitEvent(MouseEvent& e) override;
+
+	Signal<int> mSelectedSignal;       // +0x118: the row picked
+
+	Point mSize;                     // +0x128
 	Color4 mBackgroundColor;           // +0x130
 	Color4 mTextColor;                 // +0x140
 	Color4 mHighlightColor;            // +0x150
@@ -59,9 +78,9 @@ public:
 	Color4 mSelectionTextColor;        // +0x170
 	Color4 mSelectionHighlightColor;   // +0x180
 	int mIndent;                       // +0x190
-	int mScrollOffset;                 // +0x194: set to 0 by the constructor, nothing translated reads it
-	int mSelectedIndex;                // +0x198: -1 by the constructor, nothing translated reads it
-	int mHoverIndex;                   // +0x19c: -1 by the constructor, nothing translated reads it
+	Ref<ListModel> mModel;             // +0x194: null until the game sets one
+	int mHoverIndex;                   // +0x198: the row under the mouse
+	int mSelectedIndex;                // +0x19c: the row picked
 	Sound* mEnterSound;                // +0x1a0
 	Sound* mPressSound;                // +0x1a4
 };

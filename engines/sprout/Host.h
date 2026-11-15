@@ -44,6 +44,13 @@ public:
 	{
 		return false;
 	}
+	// PersistKey slot 0x10 (pizzafrenzy): the key below the application's and everything in it deleted; false when it
+	// cannot be
+	virtual bool registryDeleteKey(const std::string& theKey) { return false; }
+	// The EditBox's paste (0x4725e0 (pizzafrenzy)): the clipboard's text, "" when it has none
+	virtual std::string clipboardText() { return ""; }
+	// GetAsyncKeyState(VK_CONTROL) (0x472920 (pizzafrenzy)): the Ctrl key is down
+	virtual bool controlDown() { return false; }
 	// The signal build's blank image and the graphics that draw into an image (the application's slots 0x78 and 0x7c
 	// (pizzafrenzy), 0x4bcb40 (pizzafrenzy) and 0x4bcbd0 (pizzafrenzy)): an image of the size with every pixel 0, and
 	// a new graphics whose calls are drawn at once over the image's pixels (the caller deletes it). Null when the host

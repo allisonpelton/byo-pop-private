@@ -30,6 +30,8 @@ public:
 	PersistKey* openSubKey(const std::string& theName);
 	// 0x0c: 0x4c07f0 (pizzafrenzy): the names of the keys below this one; false when it cannot be read
 	bool getSubKeyNames(std::vector<std::string>& theNames);
+	// 0x10: 0x4c0130 (pizzafrenzy): the key below this one by that name deleted
+	bool deleteSubKey(const std::string& theName);
 	// 0x14: 0x4c0910 (pizzafrenzy): the names of the values in this key (the default value's is ""); false when it
 	// cannot be read
 	bool getValueNames(std::vector<std::string>& theNames);
