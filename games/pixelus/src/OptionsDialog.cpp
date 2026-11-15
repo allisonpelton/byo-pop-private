@@ -35,12 +35,12 @@ OptionsDialog::OptionsDialog(PixelusApp* theApp, bool theInGame) :
 	mHintsBox->SetChecked(theApp->GetHintsDisabled(), false);
 
 	struct Spec { DialogButton** mButton; int mId; unsigned int mText; };
-	Spec aSpecs[4] =
+	Spec aSpecs[3] =
 	{
-		{&mResetButton, ID_RESET_HINTS, 0x528d58}, {&mCreditsButton, ID_CREDITS, 0x528d50},
+		{&mCreditsButton, ID_CREDITS, 0x528d50},
 		{&mHelpButton, ID_HOW_TO_PLAY, 0x50e4b0}, {&mMenuButton, ID_MAIN_MENU, 0x50e4a4}
 	};
-	for (int i = 0; i < 4; i++)
+	for (int i = 0; i < 3; i++)
 	{
 		DialogButton* aButton = new DialogButton(theApp->mImages[IMAGE_DIALOGBUTTONCOMPONENTS], aSpecs[i].mId, this);
 		aButton->mLabel = GT(aSpecs[i].mText);
@@ -61,7 +61,6 @@ OptionsDialog::~OptionsDialog()
 	delete mFullscreenBox;
 	delete mCursorsBox;
 	delete mHintsBox;
-	delete mResetButton;
 	delete mCreditsButton;
 	delete mHelpButton;
 	delete mMenuButton;
@@ -76,7 +75,6 @@ void OptionsDialog::AddedToManager(WidgetManager* theWidgetManager)
 	theWidgetManager->AddWidget(mFullscreenBox);
 	theWidgetManager->AddWidget(mCursorsBox);
 	theWidgetManager->AddWidget(mHintsBox);
-	theWidgetManager->AddWidget(mResetButton);
 	theWidgetManager->AddWidget(mCreditsButton);
 	theWidgetManager->AddWidget(mHelpButton);
 	if (mMenuButton != NULL)
@@ -91,7 +89,6 @@ void OptionsDialog::RemovedFromManager(WidgetManager* theWidgetManager)
 	theWidgetManager->RemoveWidget(mFullscreenBox);
 	theWidgetManager->RemoveWidget(mCursorsBox);
 	theWidgetManager->RemoveWidget(mHintsBox);
-	theWidgetManager->RemoveWidget(mResetButton);
 	theWidgetManager->RemoveWidget(mCreditsButton);
 	theWidgetManager->RemoveWidget(mHelpButton);
 	if (mMenuButton != NULL)
@@ -112,25 +109,27 @@ void OptionsDialog::Resize(int theX, int theY, int theWidth, int theHeight)
 	mCursorsBox->Resize(mX + 0xc0, mY + 0x9f, aBoxWidth, aBoxHeight);
 	mHintsBox->Resize(mX + 0x40, mY + 0x9f + aBoxHeight, aBoxWidth, aBoxHeight);
 
+	// The original's rows, top to bottom: the row of How to play (beside Main menu in a puzzle), Check for updates, Credits
+	// and the footer's Done, 0x24 apart. Reset Hints is made only when a flag of the caller's block is set (0x4194d0 sets it
+	// not), the update row and the 3D box lead out or belong to the platform, and the rows close the gap.
 	int aLeft = mContentInsets.mLeft, aRight = mContentInsets.mRight;
 	int aHalf = (mWidth - aLeft - aRight) / 2;
-	mResetButton->Resize(mX + aLeft, mY + 0xf8, aHalf, aButtonHeight);
-	mCreditsButton->Resize(mX + aLeft + aHalf, mY + 0xf8, aHalf, aButtonHeight);
-
-	int aRowY = (mYesButton != NULL ? mYesButton->mY : mY + mHeight - 0x44) - 0x24;
+	int aRowY = mY + 0xf8 - aBoxHeight;
+	mCreditsButton->Resize(mX + aLeft, aRowY + 0x24, aHalf * 2, aButtonHeight);
 	if (mMenuButton == NULL)
 		mHelpButton->Resize(mX + aLeft, aRowY, aHalf * 2, aButtonHeight);
 	else
 	{
-		mHelpButton->Resize(mX + aLeft, aRowY, aHalf, aButtonHeight);
-		mMenuButton->Resize(mX + aLeft + aHalf, aRowY, aHalf, aButtonHeight);
+		mMenuButton->Resize(mX + aLeft, aRowY, aHalf, aButtonHeight);
+		mHelpButton->Resize(mX + aLeft + aHalf, aRowY, aHalf, aButtonHeight);
 	}
 }
 
 // 0x4e7c80
 int OptionsDialog::GetPreferredHeight(int theWidth)
 {
-	return 0x188;
+	// 0x1ac in the original (its rows end at the footer, 0x44 above the bottom), less the update row and the 3D box
+	return 0x1ac - 0x24 - mApp->mImages[IMAGE_CHECKBOX_CHECKED]->GetHeight();
 }
 
 // 0x4e83c0
@@ -151,16 +150,6 @@ void OptionsDialog::ButtonDepress(int theId)
 {
 	switch (theId)
 	{
-	case ID_RESET_HINTS:
-	{
-		// every hint comes again
-		UserProfile* aUser = mApp->mUserDirectory->GetCurrent();
-		if (aUser != NULL)
-			memset(aUser->mFlags, 0, sizeof(aUser->mFlags));
-		mResetButton->SetDisabled(true);
-		mResetButton->SetColor(0, Color(0x80, 0x80, 0x80));
-		return;
-	}
 	case ID_CREDITS:
 		mApp->ShowCredits();
 		return;

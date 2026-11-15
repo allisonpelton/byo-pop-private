@@ -5,8 +5,8 @@
 // Sprout's software blitters (0x457410 the image, 0x45dcb0 the context, 0x457830-0x45dcb0 the blitters). Images are
 // 32-bit ARGB; the context draws into the 800x600 screen (the framework's MemoryImage bits).
 
-#include "engine/Font.h"
-#include "engine/Graphics.h"
+#include "sprout/Font.h"
+#include "sprout/Graphics.h"
 
 #include <cstdint>
 #include <vector>

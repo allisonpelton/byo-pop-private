@@ -64,11 +64,12 @@
         "unneeded-code",
         "readability",
         "collection",
-        "site-features"
+        "site-features",
+        "lite-mod"
       ],
       "na": [],
       "now": null,
-      "note": ""
+      "note": "every phase but modding done: the lite mod takes nothing (LITE_MOD.md: the whole board logic is about 1 us an update)"
     },
     "alchemy": {
       "title": "Alchemy Deluxe",
@@ -82,13 +83,14 @@
         "performance",
         "unneeded-code",
         "readability",
-        "site-features"
+        "site-features",
+        "lite-mod"
       ],
       "na": [
         "collection"
       ],
       "now": null,
-      "note": ""
+      "note": "every phase but modding done: the lite mod takes nothing (LITE_MOD.md: the discard's melt would be lite in kind but costs 0.4% to 1.9% of a minute, below what the medians resolve)"
     },
     "noahsark": {
       "title": "Noah's Ark Deluxe",
@@ -102,13 +104,14 @@
         "performance",
         "unneeded-code",
         "readability",
-        "site-features"
+        "site-features",
+        "lite-mod"
       ],
       "na": [
         "collection"
       ],
       "now": null,
-      "note": ""
+      "note": "every phase but modding done: the lite mod takes nothing (LITE_MOD.md: the four searches cost about 0.05% of the action game; SearchPath's other routes of equal cost are lite in kind but not worth it)"
     },
     "atomica": {
       "title": "Atomica Deluxe",
@@ -164,11 +167,12 @@
         "unneeded-code",
         "readability",
         "collection",
-        "site-features"
+        "site-features",
+        "lite-mod"
       ],
       "na": [],
-      "now": "lite-mod",
-      "note": "processor time like for like 6.7 G cycles a minute at the original's 640x480 (5.9 in the default window) against the original's 10.5; the lite survey next"
+      "now": null,
+      "note": "every phase but modding done: the lite mod takes nothing (LITE_MOD.md: Board::Flood and PlanEnemyMoves on the 11x11 grid cost under 0.1 ms in two bot games)"
     },
     "mahjongjapan": {
       "title": "Mahjong Escape: Ancient Japan",
@@ -373,11 +377,12 @@
         "performance",
         "unneeded-code",
         "readability",
-        "collection"
+        "collection",
+        "lite-mod"
       ],
       "na": [],
-      "now": "lite-mod",
-      "note": "the cycle split measured: 0.53 of the original's processor time at 640x480, 0.44 at 1280x960; the lite survey next"
+      "now": null,
+      "note": "every phase but modding done: the lite mod takes nothing (LITE_MOD.md: the game's own logic is under 0.1% of an update; the solvers are already a mod)"
     },
     "bigmoney": {
       "title": "Big Money Deluxe",
@@ -529,11 +534,13 @@
       "title": "Heavy Weapon Deluxe",
       "done": [
         "port",
-        "identical-play"
+        "identical-play",
+        "identical-look",
+        "fixes-mod"
       ],
       "na": [],
-      "now": "registration-out",
-      "note": "phase one of identical play done: 28 games from the bot's records agree with the original under origrun in every compared frame (both generators, score, lives, the tank's X, bosses, shots, enemies), all nineteen bosses; the x87's sines in X87.cpp; registration out next"
+      "now": "readability",
+      "note": "phase two of identical play and the fixes mod merged (88a6a55e, ea2bde71): three fixes read through Platform::FixOn, savedBonuses and survivalBest on, wormHead off; the readability pass under way"
     },
     "hammerheads": {
       "title": "Hammer Heads Deluxe",
@@ -550,8 +557,8 @@
       "title": "Pizza Frenzy",
       "done": [],
       "na": [],
-      "now": null,
-      "note": "Not started"
+      "now": "port",
+      "note": "the port under way since 2026-11-15, aiming at playable within the week (the user's one exception to new games waiting)"
     },
     "igglepop": {
       "title": "Iggle Pop Deluxe",

@@ -8,7 +8,7 @@
 // between levels (the help's PLAY GAME, the level panel's CONTINUE and so on), so a driver can play a whole game.
 
 #include "Bot.h"
-#include "engine/App.h"
+#include "sprout/App.h"
 #include "WordHarmonyApp.h"
 #include "game/Game.h"
 #include "game/Hud.h"

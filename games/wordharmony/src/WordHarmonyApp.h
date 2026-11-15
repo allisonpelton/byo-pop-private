@@ -4,7 +4,7 @@
 // The port's host for Word Harmony (no original counterpart: the original was the engine's Windows layer, 0x454a40-
 // 0x45ee00). The engine runs one frame per call, so the framework drives it: the widget runs a frame whenever the
 // game's frame period has passed (the original loop's test, 0x4552b0), draws the 800x600 screen and turns the
-// framework's input into the root window's (as the window procedure did). The host interface (engine/Host.h) is
+// framework's input into the root window's (as the window procedure did). The host interface (engines/sprout/Host.h) is
 // implemented in WordHarmonyApp.cpp over the framework and the platform layer.
 
 #include "SexyAppBase.h"

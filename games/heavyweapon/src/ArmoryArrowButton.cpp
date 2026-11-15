@@ -60,16 +60,16 @@ void ArmoryArrowButton::Update()
 	MarkDirty();
 }
 
-// 0x430220 slot 24
+// 0x430220 slot 24: Widget's MouseEnter (0x45f950), not ButtonWidget's, so the listener is not told
 void ArmoryArrowButton::MouseEnter()
 {
-	ButtonWidget::MouseEnter();
+	Widget::MouseEnter();
 	mGlowSpeed = GLOW_SPEED;
 }
 
-// 0x430240 slot 25
+// 0x430240 slot 25: Widget's MouseLeave (0x45f970), not ButtonWidget's, so the listener is not told
 void ArmoryArrowButton::MouseLeave()
 {
-	ButtonWidget::MouseLeave();
+	Widget::MouseLeave();
 	mGlowSpeed = -GLOW_SPEED;
 }

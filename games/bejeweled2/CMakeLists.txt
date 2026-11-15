@@ -18,7 +18,7 @@ if(EMSCRIPTEN)
   # A double out of the int range converts as on x86 (cvttsd2si: INT_MIN, NaN too), not as wasm's saturating
   # conversion: the board casts doubles to int (games/bejeweled/CMakeLists.txt has the long form)
   target_compile_options(bejeweled2 PRIVATE -mno-nontrapping-fptoint)
-  byopop_web_game(bejeweled2 TITLE "Bejeweled 2"
+  byopop_web_game(bejeweled2 EXPORTS _byopop_livesplit_block TITLE "Bejeweled 2"
     COPYRIGHT "Bejeweled 2 © 2004, 2007 PopCap Games, Inc. All rights reserved. Bejeweled is a registered trademark of PopCap Games, Inc."
     LICENSES libopenmpt)
 else()

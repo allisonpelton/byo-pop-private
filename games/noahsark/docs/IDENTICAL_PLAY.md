@@ -236,6 +236,16 @@ move left in both (frozen alike at update 8000, the same screens but for the cra
 looks for "no moves" after a move, as the port does, so no loss follows. The panel itself is the one shown for the other modes
 (compared there). Not toured in strategy.
 
+**Boards with no move left (2026-11-14).** A board on which no pair can be joined has its animals abandoned pair by pair, each
+at a cost in points and, in strategy, in water. The comparisons above never came to one. Four hard strategy games of the bot
+(seeds 2, 4, 7 and 8) come to one in their first level, where a replay stays in step, and a hard puzzle game (seed 1) runs out of
+swaps. All five were replayed in the original: every change of the board's state, the score, the level and the mode comes at the
+same update in both (38 to 57 changes a game), through nineteen abandoned pairs, the return to play when a pair can be joined
+again, the round that ends with nothing left to abandon, and the puzzle's game over. In the seed 8 game the water was compared
+too: 13 changes, the same in both. No difference was found and nothing changed in the port. Not reached: a strategy game lost by
+abandoning, which takes 14 pairs in one level from the first level's water (the most in the seeds 1 to 14 was eleven), and an
+action game with no pair left (none in fifteen games). `GAME_NOTES.md`, section 11, "Boards with no move left", has the runs.
+
 ### Oddities (not fixed)
 
 - **Ark-bound animals' path and size.** In puzzle and strategy an animal walking to the ark is 1 to 3 pixels off in y after about 30

@@ -8,8 +8,8 @@ opens the pages (`?silent=1`, the test key, the Browser pane) is in CLAUDE.md, "
 ## The pieces
 
 For each game (`bejeweled` as the example) the build writes `bejeweled.html` (`web/shell.html` with the game's
-`web/page.*`), `bejeweled.js` (Emscripten's loader, `Module`, with `web/modpanel.js` appended; readable with
-`BUILD_TYPE=Debug tools/build.sh web`) and `bejeweled.wasm` (the game with `framework/`, `platform/` and SDL2). The
+`web/page.*`, then `web/modpanel.js` inline before the game's script), `bejeweled.js` (Emscripten's loader,
+`Module`; readable with `BUILD_TYPE=Debug tools/build.sh web`) and `bejeweled.wasm` (the game with `framework/`, `platform/` and SDL2). The
 player's game files are copied into this browser's storage, never uploaded and never part of the build. A new site
 script in `web/` goes into `BYOPOP_WEB_SHARED_JS` (every page) or `BYOPOP_WEB_INDEX_JS` (the listing page) in
 `cmake/ByopopWeb.cmake`.
@@ -53,8 +53,11 @@ own panels, each `<aside class="panel" data-button="Name">`). IDBFS names a game
 (Bejeweled `/persist`, Big Money `/bmpersist`), so a folder and lock never change once players have saves there; a new
 game takes its own. `byopop_web_game(<target> TITLE "..." COPYRIGHT "..." [LICENSES <name>...])`, called from the
 game's `CMakeLists.txt`, fills the shell's `byopop:game-js`, `byopop:game-css` and `byopop:game-panels` markers and
-`@BYOPOP_TITLE@`; `byopop_web_shell()` adds the footer, the terms and the styles and writes `<game>-shell.html` (emcc's
-`--shell-file`) and `build/web/<game>-copyright.html`.
+`@BYOPOP_TITLE@`; `byopop_web_shell()` adds the footer, the terms and the styles and writes `<game>-shell.html` and
+`build/web/<game>-copyright.html`. The page is written apart from the game's link (`cmake/ByopopWebPage.cmake`, the
+`<game>_page` target): its `{{{ SCRIPT }}}` line becomes `web/modpanel.js` inline, then the game's script as emcc
+writes it, and the page is minified as emcc minifies one. So an edit to a page, to `web/shell.html` or to
+`web/modpanel.js` rebuilds every page in seconds and relinks no game.
 
 **Names.** Every name the site shows for a game is its `TITLE` (or its row in `BYOPOP_WEB_UPCOMING`), never with
 "Deluxe" (the user, 2026-11-04: "Let's not use the name Deluxe anywhere in names on the site"). "Deluxe" stays only
