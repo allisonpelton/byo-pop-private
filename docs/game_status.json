@@ -374,11 +374,12 @@
         "performance",
         "unneeded-code",
         "readability",
-        "collection"
+        "collection",
+        "lite-mod"
       ],
       "na": [],
-      "now": "lite-mod",
-      "note": "the cycle split measured: 0.53 of the original's processor time at 640x480, 0.44 at 1280x960; the lite survey next"
+      "now": null,
+      "note": "every phase but modding done: the lite mod takes nothing (LITE_MOD.md: the game's own logic is under 0.1% of an update; the solvers are already a mod)"
     },
     "bigmoney": {
       "title": "Big Money Deluxe",
