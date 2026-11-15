@@ -8,6 +8,7 @@ using namespace Sexy;
 
 static const double EPSILON = 1e-6;			// 0x510eb0
 
+// port: a helper of the port (Length)
 static double Length(const Vec3& v)
 {
 	return sqrt(v.z * v.z + v.y * v.y + v.x * v.x);

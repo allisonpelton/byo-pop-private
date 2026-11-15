@@ -303,11 +303,12 @@
         "identical-look",
         "coverage",
         "lite-mod",
-        "unneeded-code"
+        "unneeded-code",
+        "readability"
       ],
       "na": [],
-      "now": "readability",
-      "note": "unneeded code out (8fb0a637: Board::GetMoves, LevelData::GetCurrentPuzzle and FindPuzzle, TempleScreen::GetRows, found by the linker's gc-sections list and the coverage report); two behaviours the port had left out added: the hint dialog's OK ends the glow repeats (0x403050), the puzzle-completed screen's animated characters (0x41b3c0, 0x419a00, 0x419e60), not yet compared with the original's shots; baseline identical; next: readability"
+      "now": "collection",
+      "note": "readability done (namecheck 140 findings to 0: the profile's flags named mShowHelp, mExpert, mTutorialDone, mStorySeen; one-letter names renamed; 76 functions marked port:); baseline identical; a load-dependent flake seen twice under other sessions' load (the full game stopped at 27 puzzles with the baseline differing once, a rerun differed once), not in 8 runs since, cause not found; next: the flake (an hour at most), the Collection check, real input, then performance in a measuring slot"
     },
     "rocketmania": {
       "title": "Rocket Mania Deluxe",

@@ -32,12 +32,12 @@ void LevelData::Load()
 	bool aFirst = true;
 	for (;;)
 	{
-		int c = p_fgetc(aFile);
-		if (c == -1)
+		int aChar = p_fgetc(aFile);
+		if (aChar == -1)
 			break;
-		if (c == '\r' || c == '\n')
+		if (aChar == '\r' || aChar == '\n')
 			continue;
-		if (c == '#')
+		if (aChar == '#')
 		{
 			if (inValue)
 			{
@@ -86,13 +86,13 @@ void LevelData::Load()
 			continue;
 		}
 		if (inTag)
-			aTag += (char)c;
+			aTag += (char)aChar;
 		else if (inValue)
 		{
 			if (aTag == "level")
-				aLevel += (char)c;
+				aLevel += (char)aChar;
 			else if (aTag == "puzzle")
-				aPuzzle += (char)c;
+				aPuzzle += (char)aChar;
 		}
 		else if (aFirst)
 			break;
@@ -117,6 +117,7 @@ void LevelData::Load()
 	p_fclose(aFile);
 }
 
+// port: a helper of the port (Sexy::UuidKey)
 std::string Sexy::UuidKey(const std::string& theUuid)
 {
 	std::string aKey = theUuid;
@@ -126,6 +127,7 @@ std::string Sexy::UuidKey(const std::string& theUuid)
 	return aKey;
 }
 
+// port: a helper of the port (LevelData::GetLevel)
 const LevelData::Level* LevelData::GetLevel(const std::string& theName) const
 {
 	std::map<std::string, Level>::const_iterator anItr = mLevels.find(theName);

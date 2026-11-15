@@ -239,3 +239,16 @@ opened), the centaur, the cyclops and the mermaid, each an effect of Effects.cpp
 
 The 62 port functions the five coverage runs never reached are dialogs, the user list and editor paths that no run entered, not dead code;
 none is taken out.
+
+## 13. Readability (2026-11-15)
+
+`python tools/namecheck.py games/pixelus` found 140 (76 functions with no address or port marker, 35 uses of `mFlag2D`, `mFlag38`,
+`mFlag79` and `mFlag7A`, 29 one-letter names used over more than ten lines) and now finds none. The four profile flags are
+`UserProfile::mShowHelp` (+0x2d, the how-to-play screen before a puzzle), `mExpert` (+0x38, no hints and undo), `mTutorialDone` (+0x79)
+and `mStorySeen` (+0x7a, the story that opens the game); the long one-letter names became `CELL`, `aRow`, `aCol`, `aChar`, `theParticle`,
+`aState`, `aBoard`, `aRowCount`, `aColCount` and the colour-space parameters of `PuzzleImages.cpp` `theRed`, `theHue` and the like. The
+functions the port wrote itself (helpers, constructors and destructors of the port's classes) carry a `port:` marker.
+`tools/splitfields.py` listed 10 pairs of names at one offset: each is a deliberate second view of the same bytes (a screen's
+fields that two modes use differently, the picture-completed screen's mode and its derived `mTutorialDone`, the application's two
+names for the screen at +0x690), judged and left. Two fields nobody reads (`Board::mIntro`, `ProgressManager::mHistoryUser`) say so in their comments.
+The play is unchanged (`tools/check.sh pixelus`, baseline identical).

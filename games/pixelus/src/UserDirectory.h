@@ -34,11 +34,11 @@ public:
 	int				mId;						// +0x30
 	std::string		mName;						// +0x14
 	bool			mCurrent;					// +0x2c the player who is playing
-	bool			mFlag2D;					// +0x2d
-	bool			mFlag38;					// +0x38
+	bool			mShowHelp;					// +0x2d the how-to-play screen comes up before a puzzle (the "Don't show this screen again" box, reversed)
+	bool			mExpert;					// +0x38 the player plays without hints and undo
 	unsigned char	mFlags[NUM_FLAGS];			// +0x39 the tutorial hints the player has seen
-	bool			mFlag79;					// +0x79
-	bool			mFlag7A;					// +0x7a
+	bool			mTutorialDone;				// +0x79 the tutorial is finished (or skipped)
+	bool			mStorySeen;					// +0x7a the story that opens the game has been shown
 	std::map<std::string, PuzzleRecord>	mRecords;	// by puzzle uuid
 	std::set<int>						mEnteredTemples;	// +0xc of the temple record (0x439dc0): entered since the game started, not saved
 	std::map<std::string, int>			mTempleFlags;	// per temple (+0x10 visited, +0x11, +0x12): bits 1, 2, 4

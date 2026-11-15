@@ -90,6 +90,7 @@ void Grid::EdgeCell(int theSide, int theCursor, int* theCol, int* theRow) const
 }
 
 // the last cell of the line a tile flies along
+// port: a helper of the port (Grid::AtFarEdge)
 bool Grid::AtFarEdge(int theCol, int theRow, int theSide) const
 {
 	switch (theSide)
@@ -113,6 +114,7 @@ void Grid::Step(int* theCol, int* theRow, int theSide, int theCount) const
 	}
 }
 
+// port: a helper of the port (Grid::InGrid)
 bool Grid::InGrid(int theRow, int theCol) const
 {
 	return theRow >= 0 && theRow < mRows && theCol >= 0 && theCol < mCols;
@@ -612,6 +614,7 @@ std::string Grid::MoveToString(const Move& theMove)
 }
 
 // the hint plays the moves of a solution back one by one
+// port: a helper of the port (Grid::ReplayMove)
 bool Grid::ReplayMove(const Move& theMove)
 {
 	SetCursor(theMove.mSide, theMove.mCursor);
@@ -664,6 +667,7 @@ int Grid::FindThrowSide(int theRow, int theCol, int thePreferredSide, int* theCu
 	return aSide;
 }
 
+// port: a helper of the port (Grid::FindPullSide)
 int Grid::FindPullSide(int theRow, int theCol, int thePreferredSide, int* theCursor) const
 {
 	if (!InGrid(theRow, theCol))
@@ -716,6 +720,7 @@ bool Grid::LoadFromFile(const std::string& thePath, std::string* theError)
 	return LoadFromText(aBuf.str(), theError);
 }
 
+// port: a helper of the port (Grid::LoadFromText)
 bool Grid::LoadFromText(const std::string& theText, std::string* theError)
 {
 	Clear();
@@ -729,10 +734,10 @@ bool Grid::LoadFromText(const std::string& theText, std::string* theError)
 	bool aInValue = false;
 	for (size_t i = 0; i < theText.size(); i++)
 	{
-		char c = theText[i];
-		if (c == '\r' || c == '\n')
+		char aChar = theText[i];
+		if (aChar == '\r' || aChar == '\n')
 			continue;
-		if (c == '#')
+		if (aChar == '#')
 		{
 			if (aInValue)
 			{
@@ -753,19 +758,19 @@ bool Grid::LoadFromText(const std::string& theText, std::string* theError)
 			continue;
 		}
 		if (aInTag)
-			aTag += c;
+			aTag += aChar;
 		else if (aInValue)
 		{
 			if (aTag == "uuid")
-				aUuid += c;
+				aUuid += aChar;
 			else if (aTag == "name")
-				aName += c;
+				aName += aChar;
 			else if (aTag == "title")
-				aTitle += c;
+				aTitle += aChar;
 			else if (aTag == "difficulty")
-				aDifficulty += c;
+				aDifficulty += aChar;
 			else if (aTag == "data")
-				aData += c;
+				aData += aChar;
 		}
 		else
 		{
@@ -786,20 +791,20 @@ bool Grid::LoadFromText(const std::string& theText, std::string* theError)
 		return false;
 	}
 
-	for (int r = 0; r < mRows; r++)
-		for (int c = 0; c < mCols; c++)
+	for (int aRow = 0; aRow < mRows; aRow++)
+		for (int aCol = 0; aCol < mCols; aCol++)
 		{
-			Cell& aCell = mCells[r][c];
-			switch (aData[r * mCols + c])
+			Cell& aCell = mCells[aRow][aCol];
+			switch (aData[aRow * mCols + aCol])
 			{
 			case '+':
 				aCell.mWanted = true;
-				aCell.mObject = NewObject(r, c);
+				aCell.mObject = NewObject(aRow, aCol);
 				aCell.mFixed = false;
 				break;
 			case '-':
 				aCell.mWanted = false;
-				aCell.mObject = NewObject(r, c);
+				aCell.mObject = NewObject(aRow, aCol);
 				aCell.mFixed = false;
 				mSupply--;
 				break;
@@ -812,7 +817,7 @@ bool Grid::LoadFromText(const std::string& theText, std::string* theError)
 				aCell.mFixed = false;
 				break;
 			case 'B':
-				aCell.mObject = NewObject(r, c);
+				aCell.mObject = NewObject(aRow, aCol);
 				aCell.mObject->mFixed = true;
 				aCell.mFixed = true;
 				aCell.mBouncy = true;
@@ -825,7 +830,7 @@ bool Grid::LoadFromText(const std::string& theText, std::string* theError)
 				mHasStart = true;
 				break;
 			case 'X':
-				aCell.mObject = NewObject(r, c);
+				aCell.mObject = NewObject(aRow, aCol);
 				aCell.mObject->mFixed = true;
 				aCell.mFixed = true;
 				break;

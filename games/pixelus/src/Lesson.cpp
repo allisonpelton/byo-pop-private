@@ -28,6 +28,7 @@ static const int sTimerInit[Board::NUM_TIMERS] =
 	60, 60, 0, 60, 0, 60, 60, 60, 0, 0, 0, 0, 0, 0, 60, 60, 60, 0, 0, 0, 0, 0, 0, 0, 0, 0
 };
 
+// port: a helper of the port (Board::InitLesson)
 void Board::InitLesson()
 {
 	mHelper = new HintBubbles(mApp);
@@ -194,7 +195,7 @@ void Board::ShowLessonNote(int thePuzzle)
 	else
 	{
 		UserProfile* aUser = mApp->mUserDirectory->GetCurrent();
-		bool anExpert = aUser != NULL && aUser->mFlag38;
+		bool anExpert = aUser != NULL && aUser->mExpert;
 		mApp->ShowHint(aWidths[8], -1, "", anExpert ? GT(0x50b9a8) : GT(0x50bab8), 0, 0);	// 0x402f80
 	}
 }
