@@ -519,7 +519,7 @@
       ],
       "na": [],
       "now": "identical-look",
-      "note": "3D looks: the whirlpool's first frames no longer blur or lose a row and column (DDInterface's mOriginalSampling, on for Bejeweled 2's 3D game only, 1bbcbf88/57a6a00a), the whirlpool and off-board gems turn the original's way (6056fe1a, e1ecff84: the action tour's game-over frame 25% to 0.6%); open: Finity 3D's washed-out gems (needs original runs, after the user's stop on running the original), the IDENTICAL_PLAY 3D section"
+      "note": "the staged config.xml is Steam's retail file (the old one put flame gems everywhere); the chain bonus reads ExplosionChainBonusAdd per step on ExplosionChainBonus as the original (3ab848a5: Finity's first match 1300 as the original, was 700); Classic, Endless and Finity refrozen (3c6e6ccb); 3D tours re-recorded on the retail values: scores equal step for step in six modes, Classic and Finity drift at the level change (an Oddity: the generator a few draws off), Action's game-over shots differ (not traced); open: judging the rest of the re-recorded shots, Finity 3D's washed-out gems"
     },
     "venice": {
       "title": "Venice Deluxe",
