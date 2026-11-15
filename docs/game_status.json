@@ -562,7 +562,7 @@
       ],
       "na": [],
       "now": "identical-look",
-      "note": "phase one done in full: the game-won sequence, the multiplier gnome and saved games also match the original (9ec2d31b); registration and outbound pictures out (66f32b33); the depth sort on the shared CrtQsort; phase two next"
+      "note": "phase two's sound and music by state done (5e45972f): all 14 phase-one scenarios and classic_focus1 identical in state, sound and music (BASS logged through a stand-in, DirectSound through origrun's); fixed mouse-over on every screen, the in-game menu on release, the ice cream's single gloop and the game-over box's click; next the looks (shots, web and native)"
     },
     "pizzafrenzy": {
       "title": "Pizza Frenzy",
