@@ -13,7 +13,8 @@
 //                          survival (a new survival game), armory (the armory before the next level)
 //   level <n>              campaign level n (1..19, the last the final boss's) now, with the player's upgrades, skipping the armory and the map
 //   unlock all             the player has reached the campaign's end: survival and every level are open
-//   set <key> <value>      score, lives, nukes, timer (updates played), level (1-based, for the next start), progress
+//   set <key> <value>      score, lives, nukes, timer (updates played), penalty (survival's time penalty, in updates, as
+//                          shooting the supply helicopter adds), level (1-based, for the next start), progress
 //                          (1-based: the player's saved campaign stands before that level, as after passing the one
 //                          before it, and is saved: the main menu's campaign then offers to continue it)
 //   win                    the level's time jumps to the boss's warning, so its boss comes; with the boss up, it is killed
@@ -786,6 +787,15 @@ bool HeavyWeaponApp::HandleScriptCommand(const ScriptCommand& theCommand)
 				return true;
 			}
 			aBoard->mLevelTime = aValue;
+		}
+		else if (aKey == "penalty")
+		{
+			if (aBoard == NULL)
+			{
+				ReplyError(theCommand, "no game is on");
+				return true;
+			}
+			aBoard->mTimePenalty = aValue;
 		}
 		else
 		{

@@ -25,6 +25,7 @@
 #include "SoundManager.h"
 #include "WidgetManager.h"
 #include "XMLParser.h"
+#include "platform/GameOptions.h"
 
 #include <SDL.h>
 #include <cmath>
@@ -641,9 +642,12 @@ int HeavyWeaponApp::AddHighScore(bool isSurvival, bool hasFinished)
 				mSurvivalScores.pop_back();
 		}
 		// The player's best: the original compares it with the clock and keeps the time less the penalties, so a game
-		// whose clock passed the best but whose time did not still replaces it, with a lower one
-		if (mUsers[mCurrentUser].mBestSurvivalTime < mBoard->mLevelTime)
-			mUsers[mCurrentUser].mBestSurvivalTime = mBoard->mLevelTime - mBoard->mTimePenalty;
+		// whose clock passed the best but whose time did not still replaces it, with a lower one. The fix survivalBest
+		// compares the time it keeps
+		int aSurvivedTime = mBoard->mLevelTime - mBoard->mTimePenalty;
+		int aComparedTime = Platform::FixOn("survivalBest") ? aSurvivedTime : mBoard->mLevelTime;
+		if (mUsers[mCurrentUser].mBestSurvivalTime < aComparedTime)
+			mUsers[mCurrentUser].mBestSurvivalTime = aSurvivedTime;
 	}
 	SaveHighScores();
 	return (int) aRank;
