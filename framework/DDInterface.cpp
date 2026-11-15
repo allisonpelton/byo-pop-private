@@ -1274,11 +1274,13 @@ MemoryImage* DDInterface::GetStretchCopy(MemoryImage* theSource, const Rect& the
 		(theSrcRect.mY + theSrcRect.mHeight > theSource->mHeight)))
 		return NULL;
 	mStretchUse++;
+	// the sampling is part of the key: a game may change mFastStretchCentre between draws (Big Money's countdown)
+	const bool aCentre = fast && mFastStretchCentre;
 	StretchCopyEntry* anEntry = NULL;
 	for (StretchCopyEntry& e : mStretchCopies)
 	{
 		if ((e.mSource == theSource) && (e.mSrcRect == theSrcRect) && (e.mWidth == theWidth) && (e.mHeight == theHeight) &&
-			(e.mFast == fast))
+			(e.mFast == fast) && (e.mCentre == aCentre))
 		{
 			anEntry = &e;
 			break;
@@ -1286,6 +1288,26 @@ MemoryImage* DDInterface::GetStretchCopy(MemoryImage* theSource, const Rect& the
 	}
 	if (anEntry == NULL)
 	{
+		// a third size of the same source rectangle and sampling replaces the one of its sizes drawn longest ago
+		size_t aSizes = 0;
+		size_t anOldestSize = 0;
+		for (size_t i = 0; i < mStretchCopies.size(); i++)
+		{
+			const StretchCopyEntry& e = mStretchCopies[i];
+			if ((e.mSource == theSource) && (e.mSrcRect == theSrcRect) && (e.mFast == fast) && (e.mCentre == aCentre))
+			{
+				if ((aSizes == 0) || (e.mLastUse < mStretchCopies[anOldestSize].mLastUse))
+					anOldestSize = i;
+				aSizes++;
+			}
+		}
+		if (aSizes >= kStretchSizesPerKey)
+		{
+			// taken out of the list before it is deleted, as in RemoveImageData
+			MemoryImage* aCopy = mStretchCopies[anOldestSize].mCopy;
+			mStretchCopies.erase(mStretchCopies.begin() + anOldestSize);
+			delete aCopy;
+		}
 		long long aBytes = (long long) theWidth * theHeight * 4;
 		for (const StretchCopyEntry& e : mStretchCopies)
 			aBytes += (long long) e.mWidth * e.mHeight * 4;
@@ -1308,6 +1330,7 @@ MemoryImage* DDInterface::GetStretchCopy(MemoryImage* theSource, const Rect& the
 		e.mWidth = theWidth;
 		e.mHeight = theHeight;
 		e.mFast = fast;
+		e.mCentre = aCentre;
 		e.mSourceVersion = theSource->mBitsChangedCount - 1;  // made below
 		e.mCopy = new MemoryImage(mApp);
 		e.mLastUse = 0;
@@ -1364,6 +1387,25 @@ MemoryImage* DDInterface::GetStretchCopy(MemoryImage* theSource, const Rect& the
 				FRect(theSrcRect.mX, theSrcRect.mY, theSrcRect.mWidth, theSrcRect.mHeight));
 	}
 	return anEntry->mCopy;
+}
+
+void DDInterface::GetStretchCopyStats(int& theCount, int& theMostOfOneKey, long long& theBytes) const
+{
+	theCount = (int) mStretchCopies.size();
+	theMostOfOneKey = 0;
+	theBytes = 0;
+	for (size_t i = 0; i < mStretchCopies.size(); i++)
+	{
+		const StretchCopyEntry& e = mStretchCopies[i];
+		theBytes += (long long) e.mWidth * e.mHeight * 4;
+		int aSameKey = 0;
+		for (const StretchCopyEntry& f : mStretchCopies)
+		{
+			if ((f.mSource == e.mSource) && (f.mSrcRect == e.mSrcRect) && (f.mFast == e.mFast) && (f.mCentre == e.mCentre))
+				aSameKey++;
+		}
+		theMostOfOneKey = std::max(theMostOfOneKey, aSameKey);
+	}
 }
 
 void DDInterface::ClearStretchCopies()

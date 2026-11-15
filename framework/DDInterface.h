@@ -194,10 +194,16 @@ public:
 	// A stretched copy of theSrcRect at theWidth x theHeight (the software stretch, below); DDImage draws a stretch into
 	// a picture of its own through it too
 	MemoryImage* GetStretchCopy(MemoryImage* theSource, const Rect& theSrcRect, int theWidth, int theHeight, bool fast);
+	// the stretched copies held now: how many, the most of them for one source rectangle and sampling, and their pixels'
+	// bytes (memreport's file)
+	void GetStretchCopyStats(int& theCount, int& theMostOfOneKey, long long& theBytes) const;
 
 protected:
 	// The stretched copies: at most kStretchCacheSize and kCopyCacheBytes of pixels (the transform copies have their own
-	// kCopyCacheBytes; each copy's texture takes as much again), the least recently drawn going first. An entry holds its source's
+	// kCopyCacheBytes; each copy's texture takes as much again), the least recently drawn going first, and at most
+	// kStretchSizesPerKey sizes of one source rectangle at one sampling (source, rect, fast, centre): a picture drawn at
+	// two sizes in a frame keeps both, a stretch that grows or shrinks frame by frame holds two copies rather than one
+	// for every size, and a third size replaces the one drawn longest ago. An entry holds its source's
 	// mBitsChangedCount and is remade when that changes; RemoveImageData drops a source's entries, so a deleted image
 	// whose address is reused never finds an old copy. On a software screen (SoftwareScreenDisplay) a copy has no texture
 	// to keep, and the copies not drawn in the last two frames go after each present (DropStretchCopiesDrawnBy): a stretch
@@ -209,11 +215,13 @@ protected:
 		Rect mSrcRect;
 		int mWidth, mHeight;
 		bool mFast;
+		bool mCentre;  // a fast stretch that sampled pixel centres (mFastStretchCentre when it was made)
 		int mSourceVersion;
 		MemoryImage* mCopy;
 		unsigned int mLastUse;
 	};
 	enum { kStretchCacheSize = 64 };
+	enum { kStretchSizesPerKey = 2 };
 	enum { kTransformCacheSize = 32 };
 	enum { kCopyCacheBytes = 64 * 1024 * 1024 };
 	struct TransformCopyEntry

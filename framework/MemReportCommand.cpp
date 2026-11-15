@@ -4,6 +4,7 @@
 #include "SexyAppBase.h"
 #include "MemoryImage.h"
 #include "DDImage.h"
+#include "DDInterface.h"
 #include "SDLSoundManager.h"
 #include "../platform/MemReport.h"
 
@@ -131,6 +132,15 @@ bool SexyAppBase::DoMemReport(const std::string& theFileName)
 		for (int i = 0; i < 6; i++)
 			fprintf(aFile, " %8zu", anItr->second.mBytes[i]);
 		fprintf(aFile, "  %d made by the game\n", anItr->second.mWidth);
+	}
+	// the display's stretched copies (DDInterface::GetStretchCopy), counted among the pictures the game made above
+	if (mDDInterface != NULL)
+	{
+		int aCount = 0, aMostOfOneKey = 0;
+		long long aBytes = 0;
+		mDDInterface->GetStretchCopyStats(aCount, aMostOfOneKey, aBytes);
+		fprintf(aFile, "stretched copies: %d, at most %d of one source rectangle, %.2f MB of pixels\n", aCount, aMostOfOneKey,
+			aBytes / MB);
 	}
 	fprintf(aFile, "sounds: %d, %.2f MB of samples\n", aReport.mSoundCount, aReport.mSoundBytes / MB);
 	fprintf(aFile, "music: %d songs, %.2f MB of tracks, %.2f MB of module files\n", aReport.mSongCount, aReport.mSongTrackBytes / MB,

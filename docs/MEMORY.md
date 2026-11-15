@@ -275,6 +275,19 @@ The drop costs no measurable processor time. Dynomite's scripted minute (its not
 real time on a core of its own, three runs of each turn about; the second batch below) took 12.4 G cycles with it and
 13.8 G without at 1x, and 12.4 G with it and 11.6 G without at 2x: the runs of one build differ by more.
 
+Every display now also holds at most two sizes of one source rectangle at one sampling (2026-11-15,
+`kStretchSizesPerKey`), at Big Money's session's request. A third size replaces the one drawn longest ago, so a picture
+drawn at two sizes in a frame keeps both, and a stretch that grows or shrinks frame by frame holds two copies. Before, a
+display with the software stretch that drops nothing after a present (Bejeweled Twist's) held one for each size, up to
+64 pictures or 64 MB. The sampling is part of the key too (pixel centres or the corner, which Big Money's countdown
+changes between draws), so a copy made one way is never drawn for the other. The cost falls on a game that draws one
+rectangle at three or more sizes in every frame: it would make a copy at each draw. None is known, and every game's
+checks pass unchanged. memreport's file now ends its pictures with a line for the cache (`stretched copies: N, at most M
+of one source rectangle, X MB of pixels`). Through Big Money's selector rolling up as a game starts, with a memory report
+every three updates at 1x and at 2x in software, the cache held three or four copies, at most two of one rectangle, 0.75
+to 1.32 MB, and none after. On the software screen the drop after each present had already kept it there; the cap holds
+it where nothing is dropped.
+
 ### Windows at 2x to 4x
 
 Above 1x the software screen handed itself to the GPU wherever an accelerated renderer existed, because copying the
