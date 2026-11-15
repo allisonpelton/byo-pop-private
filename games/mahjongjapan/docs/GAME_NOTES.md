@@ -570,8 +570,9 @@ open, 20 s into a run with the pause and 40 s into one without, show the board a
 40 s into a run with the pause, caught the game still at its tutorial tip, so these captures are timing-dependent witnesses, and the
 code says the same: `Present` copies the buffer over the whole screen texture after the widgets have drawn, and in the two modes without
 a renderer nothing a widget draws goes anywhere. The same run with main's build, which still has the plain DDInterface for this game,
-shows the menu over the dimmed board. The pause does not change it (the run without it is the same). Not yet seen on the visible
-desktop. A fix belongs to `SurfaceDisplay`, not to the game; see the coordinator's note.
+shows the menu over the dimmed board. The pause does not change it (the run without it is the same). Seen on the visible desktop at
+night (the window read from the screen, 3840x2160, the menu open from update 3470): this build shows the board as it stood when the menu
+opened and no menu; main's build shows the menu. A fix belongs to `SurfaceDisplay`, not to the game; see the coordinator's note.
 
 ## Coverage check (2026-11-08)
 

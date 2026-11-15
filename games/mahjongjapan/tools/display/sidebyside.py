@@ -1,4 +1,5 @@
-# sidebyside.py <left.png> <right.png> <out.png> <x> <y> <w> <h> <magnify>: the same part (x, y, w, h) of two captures of one screen, each repeated
+# sidebyside.py <left.png> <right.png> <out.png> <x> <y> <w> <h> <magnify> [<x2> <y2>]: the same part (x, y, w, h) of two captures of one screen (the
+# right one's part starts at <x2> <y2> when it is given, for two pictures that place the screen differently), each repeated
 # <magnify> times each way (nearest, so that no pixel is blended), the left one beside the right one with a white line between them.
 import importlib.util, os, sys
 
@@ -39,7 +40,8 @@ def main():
     left, right, out = sys.argv[1], sys.argv[2], sys.argv[3]
     x, y, w, h, n = [int(v) for v in sys.argv[4:9]]
     a, cha = crop(left, x, y, w, h)
-    b, chb = crop(right, x, y, w, h)
+    x2, y2 = (int(sys.argv[9]), int(sys.argv[10])) if len(sys.argv) > 10 else (x, y)
+    b, chb = crop(right, x2, y2, w, h)
     a = magnify(a, cha, n)
     b = magnify(b, chb, n)
     bar = bytes([255, 255, 255]) * 6
