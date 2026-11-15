@@ -284,7 +284,7 @@ int DDInterface::Init(SDL_Window* theWindow, bool vsync)
 	if (mRenderer == NULL)
 	{
 		// SexyAppBase::MakeWindow shows SDL_GetError() in its "Failed to initialize the display" box
-		SDL_SetError("No graphics renderer could be started (%s)", aFirstError);
+		SDL_SetError("No graphics renderer could be started. Updating the graphics driver may help. (SDL said: %s)", aFirstError);
 		return RESULT_DD_CREATE_FAIL;
 	}
 
