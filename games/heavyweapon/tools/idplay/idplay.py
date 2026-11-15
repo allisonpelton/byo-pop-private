@@ -607,29 +607,21 @@ def original(name, sandbox=False, sound=False):
         if not os.path.exists(BASS_REAL):
             os.replace(BASS_DLL, BASS_REAL)
         shutil.copy(BASS_PROXY, BASS_DLL)
-    for attempt in range(1, LATE_START_ATTEMPTS + 1):
-        reset_original_state(profile)
-        wait_for_room()
-        for leaf, text in overrides.items():
-            open(os.path.join(COPY, 'data', leaf), 'w', encoding='latin-1', newline='').write(text)
-        if COVERAGE and os.path.exists(os.path.join(run_folder, 'coverage.txt')):
-            os.remove(os.path.join(run_folder, 'coverage.txt'))
-        # the stand-in adds to its log run after run: this run's alone
-        if sound and os.path.exists(os.path.join(run_folder, 'logs', 'sound.log')):
-            os.remove(os.path.join(run_folder, 'logs', 'sound.log'))
-        try:
-            with open(os.path.join(folder, 'original.log'), 'w') as f:
-                result = subprocess.run(command, stdout=f, stderr=subprocess.STDOUT)
-        finally:
-            for leaf in overrides:
-                shutil.copy(os.path.join(GAMEDIR, 'data', leaf), os.path.join(COPY, 'data', leaf))
-        late = None if sandbox else late_start(os.path.join(folder, 'original.log'))
-        if late is None:
-            break
-        log("%s: origrun first read the counter at %d, past the first input's update %d, so the input came together: "
-            'run %d of %d' % (name, late[1], late[0], attempt, LATE_START_ATTEMPTS))
-    else:
-        sys.exit('idplay: %s: origrun read the counter late in every run' % name)
+    reset_original_state(profile)
+    wait_for_room()
+    for leaf, text in overrides.items():
+        open(os.path.join(COPY, 'data', leaf), 'w', encoding='latin-1', newline='').write(text)
+    if COVERAGE and os.path.exists(os.path.join(run_folder, 'coverage.txt')):
+        os.remove(os.path.join(run_folder, 'coverage.txt'))
+    # the stand-in adds to its log run after run: this run's alone
+    if sound and os.path.exists(os.path.join(run_folder, 'logs', 'sound.log')):
+        os.remove(os.path.join(run_folder, 'logs', 'sound.log'))
+    try:
+        with open(os.path.join(folder, 'original.log'), 'w') as f:
+            result = subprocess.run(command, stdout=f, stderr=subprocess.STDOUT)
+    finally:
+        for leaf in overrides:
+            shutil.copy(os.path.join(GAMEDIR, 'data', leaf), os.path.join(COPY, 'data', leaf))
     if sandbox:
         # the peeks are logged inside the sandbox, in a file of the run's folder; the shots are in its shots/
         with open(os.path.join(folder, 'original.log'), 'a', encoding='utf-8') as out:
@@ -648,22 +640,6 @@ def original(name, sandbox=False, sound=False):
     exit_line = re.search(r'game exited \(its process\'s exit code (\S+)\)', text)
     log('%s: the original ran (origrun %d, the game\'s exit code %s)' % (name, result.returncode,
                                                                         exit_line.group(1) if exit_line else 'not seen'))
-
-
-LATE_START_ATTEMPTS = 3
-
-
-def late_start(log_path):
-    """(the first hold's update, the counter origrun first read) when origrun began reading the game's counter only after
-    the game had run past the script's first input (now and then it starts reading 20 s late, the game running on, and
-    every input up to then is posted at once); None when the first input came at its update"""
-    hold_line = re.compile(r'at (\d+): counter reached (\d+) -> ')
-    for line in open(log_path, encoding='utf-8', errors='replace'):
-        match = hold_line.search(line)
-        if match:
-            update, counter = int(match.group(1)), int(match.group(2))
-            return (update, counter) if counter > update + 1 else None
-    return None
 
 
 def parse_original(name):

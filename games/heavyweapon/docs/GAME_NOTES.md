@@ -337,9 +337,9 @@ framework's and BASS's, outside the game's code.
 1050 functions the first 13 runs reached 730 and all 36 reach 801.
 
 Two runs (boss3 and the first `coverage_ui`) went wrong without failing: origrun began reading the game's counter about
-20 s late, the game ran on to update 278 or 774, and every input up to then was posted at once. idplay now runs the
-original again when its first input came late (`late_start`, up to three tries); the fix in origrun itself went to the
-coordinator.
+20 s late, the game ran on to update 278 or 774, and every input up to then was posted at once. idplay ran the
+original again when its first input came late until origrun's own fix reached the trunk (f2e7b161: the counter is read
+at once and the game held until its first read); the retry is gone since.
 
 **Reached in the original with no counterpart in the port: 198 after the first runs, 6 more from the later ones, none
 at the end.**
