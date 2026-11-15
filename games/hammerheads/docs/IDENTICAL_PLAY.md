@@ -185,7 +185,7 @@ each) are identical in state, sound and music too.
 
 The sounds of a game lost with a saved game waiting, the high score entry and Tough Cookie's and Marathon's saved games are not
 reached yet. The looks (every screen and dialog against the original's, natively and on the page) are phase two's next part: the
-shots need a visible desktop, which the rules allow from 22:00.
+shots may use the visible desktop or Windows Sandbox at any hour (CLAUDE.md, "Desktop and Sandbox at any hour").
 
 ## Phase two: the looks (begun)
 
