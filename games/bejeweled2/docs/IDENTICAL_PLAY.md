@@ -263,7 +263,7 @@ The tunnel of the classic hyperspace jump is not reached by any tour; Puzzle's W
 (SDL refusing triangles with texture coordinates outside 0 to 1) was looked for in `Hyperspace::Draw3dPortal` and is not visible.
 
 **Not compared in 3D.** The 3D game's sounds and music (they run through the 2D game's code, compared and matching; the visible desktop runs
-are silent); the web build's 3D pictures (it shares the code, but the hidden Browser pane was too slow to run it against the original);
+are silent); the web build's 3D pictures by pixel (it shares the code; on 2026-11-15 the page's own Classic tour, `tools/web/tour3d.js`, ran to its end in the Browser pane in the 3D game, 8 shots and no error, and its board, gems, whirlpool-free level change and interface look like the native build's, but its shots cannot be set beside the native ones: the page plays with another seed and its own timing, and its name box comes up at the menu shot, so even the boards differ; a comparison needs the page to replay the native tour's commands under the same seed, which it does not do yet);
 full screen; and a classic hyperspace jump (above). The 2D shots' pass (above) covers every screen at 640 by 480.
 
 ### Differences that stay (phase two)
