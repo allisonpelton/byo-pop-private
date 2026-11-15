@@ -17,6 +17,7 @@
 #include "Buffer.h"
 #include "Checkbox.h"
 #include "DDImage.h"
+#include "DDInterface.h"
 #include "Graphics.h"
 #include "ImageFont.h"
 #include "MusicInterface.h"
@@ -966,6 +967,32 @@ void HeavyWeaponApp::ButtonDepress(int theId)
 	}
 }
 
+// port: the original's 2D screen is a DirectDraw surface its DDImage::StretchBlt (0x48dc10, slot 10) draws on in software:
+// a fast stretch samples the source straight onto the screen in 16.16 steps from the source rectangle's corner, sampling
+// before it steps (texel (srcX * 65536 + i * srcWidth * 65536 / destWidth) >> 16, and the same for rows); a stretch that is
+// not fast is averaged into a new image of the destination's size (MemoryImage's slow stretch, 0x4740b0) and blitted from
+// there. The framework's software stretch (DDInterface::mSoftwareStretch) does both, so the display turns it on for each
+// stretch drawn in 2D and leaves SDL's filtering to a 3D run, whose screen the original draws through Direct3D.
+class HeavyWeaponDisplay : public DDInterface
+{
+public:
+	HeavyWeaponDisplay(SexyAppBase* theApp) : DDInterface(theApp)
+	{
+	}
+
+	virtual void StretchBlt(Image* theImage, const FRect& theDestRect, const Rect& theSrcRect, const Rect* theClipRect,
+		const Color& theColor, int theDrawMode, bool fastStretch, bool mirror = false) override
+	{
+		mSoftwareStretch = !mIs3D;
+		DDInterface::StretchBlt(theImage, theDestRect, theSrcRect, theClipRect, theColor, theDrawMode, fastStretch, mirror);
+	}
+};
+
+DDInterface* HeavyWeaponApp::CreateDDInterface()
+{
+	return new HeavyWeaponDisplay(this);
+}
+
 // port: the original's SexyApp makes a BASS music interface; the port's plays the MO3 module through libopenmpt
 MusicInterface* HeavyWeaponApp::CreateMusicInterface()
 {
@@ -977,6 +1004,12 @@ MusicInterface* HeavyWeaponApp::CreateMusicInterface()
 // 0x40d2c0 slot 18
 void HeavyWeaponApp::Init()
 {
+	// port: the early-2005 WidgetManager draws no widget with the fast stretch on (its draw loop, 0x462810, never calls
+	// SetFastStretch): only the banner, the explosions, the zoomed map and the help screen ask for it, in 2D
+	gWidgetsDrawWithoutFastStretch = true;
+	// port: this game's slow stretch (0x4740b0) divides the colour's weight by the alpha already there
+	gSlowStretchRenormalizesAlpha = true;
+
 	SexyApp::Init();
 
 	// port: the early-2005 SexyAppBase::Init (0x45c970) seeds Rand()'s generator with the 2004 MTRand seeding, which the

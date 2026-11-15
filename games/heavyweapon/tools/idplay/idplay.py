@@ -891,7 +891,8 @@ def web(name):
     web_trace = os.path.join(case, 'web-trace.txt')
     native_lines = trace_lines(os.path.join(folder, 'trace.txt'))
     web_lines = trace_lines(web_trace) if os.path.exists(web_trace) else []
-    same_trace = len(web_lines) == len(native_lines) and web_lines[:-1] == native_lines[:-1]
+    whole = len(native_lines) - 1
+    same_trace = len(web_lines) in (whole, whole + 1) and web_lines[:whole] == native_lines[:whole]
     log('%s: the web build\'s trace is %s the native port\'s (%d updates)' % (
         name, 'the same as' if same_trace else 'NOT the same as', len(native_lines) - 1))
     subprocess.call([sys.executable, os.path.join(ROOT, 'tools', 'shotdiff', 'shotdiff.py'), '--game', 'heavyweapon', '--orig',

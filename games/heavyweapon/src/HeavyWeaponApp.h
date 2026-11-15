@@ -257,6 +257,7 @@ public:
 	virtual void	GotFocus() override;										// 0x401040 slot 70
 	virtual void	LostFocus() override;										// 0x401020 slot 71
 	virtual MusicInterface* CreateMusicInterface() override;					// port: the original's is BASS
+	virtual DDInterface* CreateDDInterface() override;						// port: the 2D screen's software stretch
 	virtual bool	HandleScriptCommand(const ScriptCommand& theCommand) override; // port: the test commands (testhooks)
 	void			TraceFrame();												// port: a line of the test trace (testhooks)
 
