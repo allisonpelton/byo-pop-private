@@ -1026,6 +1026,12 @@ Sound* CreateSound(const void* theWav, uint32_t theSize, uint32_t theParam, uint
 	return aSound;
 }
 
+void SetSoundName(Sound* theSound, const std::string& theName)
+{
+	if (theSound != nullptr && theSound->mHandle >= 0 && theSound->mHandle < (int)gSlots.size() && gSlots[theSound->mHandle].mData != nullptr)
+		gSlots[theSound->mHandle].mData->mName = theName;
+}
+
 // 0x432f30
 void FreeSound(Sound* theSound)
 {
