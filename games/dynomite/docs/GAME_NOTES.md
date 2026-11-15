@@ -296,8 +296,12 @@ Nothing in the game's own code is worth speeding up. The costs that are there ar
 `docs/COORDINATION.md` (the GIF decode and its quantizing back to 8 bits, imagehlp, `SDL_RenderPresent`), for the
 framework to fix once for every game.
 
-**Memory.** The port's 28 MB of private bytes over the original's are two of those shared costs: the Direct3D 11 device
-(20 to 25 MB a process) and the images' pixels, which the framework keeps after their upload.
+**Memory.** The port's 28 MB of private bytes over the original's were two of those shared costs: the Direct3D 11 device
+(20 to 25 MB a process) and the images' pixels, which the framework then kept after their upload. It no longer does for
+a picture loaded from a file (`docs/MEMORY.md`, "Pixels dropped after upload"): the pixels go once the texture is up
+and are made again from the file when something needs them, a software draw among them, so on the software screen at
+640 by 480, where every picture is drawn in software, the pictures drawn keep theirs. The figures of 2026-11-15 are in
+"The software screen", "Memory".
 
 **Leaks.** `tools/profile/leakcheck.sh` builds the port with `tools/profile/leakhook.cpp` (a scratch build, never
 shipped), plays each of its cases once with one round and once with two, and lists the callers whose live blocks grew

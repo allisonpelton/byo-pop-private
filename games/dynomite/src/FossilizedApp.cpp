@@ -51,6 +51,9 @@ FossilizedApp::FossilizedApp()
 	mSoundInitialized = false;
 	mWidth = 640;
 	mHeight = 480;
+	// port: the original has no 3D (its 2003 framework draws in software with DirectDraw), so the display keeps the 2D flags
+	// on the GPU path too: 2x, full screen and the web (SexyAppBase::mDefault3D, DDInterface::mAppWants3D)
+	mDefault3D = false;
 	mMusicVolume = 0.5;
 	mSfxVolume = 0.85;
 	mAngles = new AngleTable();
