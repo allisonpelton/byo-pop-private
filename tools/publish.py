@@ -198,12 +198,12 @@ def tf_framework(text, _):
     # the parts of the C++ runtime a release exe does without (platform/DerivedRuntime.cpp) go into the exe itself: a
     # static library's member that nothing has asked for yet is not pulled in, and the demangler stub is asked for by
     # libc++abi, which is linked after it
-    text = replace_once(text, 'list(FILTER FRAMEWORK_SOURCES EXCLUDE REGEX ".*/SWTri_[^/]*\\\.cpp$")\n',
-                        'list(FILTER FRAMEWORK_SOURCES EXCLUDE REGEX ".*/(SWTri_[^/]*|DerivedRuntime)\\\.cpp$")\n'
-                        'add_library(byopop_runtime OBJECT ${SHARED_ROOT}/platform/DerivedRuntime.cpp)\n')
+    text = replace_once(text, 'list(FILTER FRAMEWORK_SOURCES EXCLUDE REGEX ".*/SWTri_[^/]*\\\\.cpp$")\n',
+                        'list(FILTER FRAMEWORK_SOURCES EXCLUDE REGEX ".*/(SWTri_[^/]*|DerivedRuntime)\\\\.cpp$")\n'
+                        'add_library(derived_runtime OBJECT ${SHARED_ROOT}/platform/DerivedRuntime.cpp)\n')
     text = replace_once(text, "add_library(sexyframework STATIC ${FRAMEWORK_SOURCES})\n",
                         "add_library(sexyframework STATIC ${FRAMEWORK_SOURCES})\n"
-                        "target_sources(sexyframework INTERFACE $<TARGET_OBJECTS:byopop_runtime>)\n")
+                        "target_sources(sexyframework INTERFACE $<TARGET_OBJECTS:derived_runtime>)\n")
     return cmake_native("framework/CMakeLists.txt", text)
 
 

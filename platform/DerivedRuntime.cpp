@@ -1,6 +1,6 @@
-// Parts of the C++ runtime that a release exe does without (docs/PUBLISHING.md, "What a release holds"). Only a derived
-// repository compiles them in: tools/publish.py keeps this file's code through its BYOPOP_DERIVED conditional, and the trunk
-// builds an empty file.
+// Parts of the C++ runtime that a release exe does without (docs/PUBLISHING.md, "What a release holds"). A release's
+// repository compiles them in (the exe's own objects, so that the linker takes them before libc++abi's); the trunk builds
+// an empty file.
 #ifdef BYOPOP_DERIVED
 
 #include <cstddef>
