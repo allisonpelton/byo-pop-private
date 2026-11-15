@@ -521,7 +521,7 @@
       ],
       "na": [],
       "now": "identical-look",
-      "note": "the staged config.xml is Steam's retail file (the old one put flame gems everywhere); the chain bonus reads ExplosionChainBonusAdd per step on ExplosionChainBonus as the original (3ab848a5: Finity's first match 1300 as the original, was 700); Classic, Endless and Finity refrozen (3c6e6ccb); 3D tours re-recorded on the retail values: scores equal step for step in six modes, Classic and Finity drift at the level change (an Oddity: the generator a few draws off), Action's game-over shots differ (not traced); open: judging the rest of the re-recorded shots, Finity 3D's washed-out gems"
+      "note": "the eight retail 3D tours compare clean: scores equal step for step in every mode, Action's TIME UP at the same update (19861); the earlier Classic/Finity and Action differences were the comparison's (the help click's shift read too early, b75b56dd; a slowed original run); boxes left: the menu's More Games pill (removed by rule) and three small ones (Hyper 4-4 one gem's light, Hyper 6-1, Finity's first board); Finity 3D's washed-out gems not seen in the retail tours (an Oddity, unreproduced); next: Hyper 4-4's light, then the web 3D and full-screen comparison"
     },
     "venice": {
       "title": "Venice Deluxe",
