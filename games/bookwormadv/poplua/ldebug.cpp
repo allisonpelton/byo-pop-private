@@ -17,6 +17,7 @@ static int currentpc(CallInfo* ci)
 	return pcRel(ci->savedpc, ci_func(ci)->l.p);
 }
 
+// 0x6f0a90 (the pc lookup is inline)
 static int currentline(CallInfo* ci)
 {
 	int pc = currentpc(ci);
@@ -32,6 +33,7 @@ int luaG_currentline(lua_State* L, CallInfo* ci)
 	return currentline(ci);
 }
 
+// 0x6f0b60
 int lua_getstack(lua_State* L, int level, lua_Debug* ar)
 {
 	int status;
@@ -90,6 +92,7 @@ const char* lua_setlocal(lua_State* L, const lua_Debug* ar, int n)
 	return name;
 }
 
+// 0x6f0db0
 static void funcinfo(lua_Debug* ar, StkId func)
 {
 	Closure* cl = clvalue(func);
@@ -106,6 +109,7 @@ static void funcinfo(lua_Debug* ar, StkId func)
 	luaO_chunkid(ar->short_src, ar->source, LUA_IDSIZE);
 }
 
+// 0x6f0e20
 static const char* travglobals(lua_State* L, const TObject* o)
 {
 	Table* g = hvalue(gt(L));
@@ -131,6 +135,7 @@ static void info_tailcall(lua_State* L, lua_Debug* ar)
 
 // ---- symbolic names ----------------------------------------------------------------------------------
 
+// 0x6f15b0
 static const char* kname(Proto* p, int c)
 {
 	if (ISK(c) && ttisstring(&p->k[c - MAXSTACK]))
@@ -140,6 +145,7 @@ static const char* kname(Proto* p, int c)
 }
 
 // the last instruction before lastpc that set register reg, or -1
+// 0x6f11a0 (the same function when it finds the instruction that set a register for a name)
 static int findsetreg(const Proto* p, int lastpc, int reg)
 {
 	int pc;
@@ -203,6 +209,7 @@ static int findsetreg(const Proto* p, int lastpc, int reg)
 	return setreg;
 }
 
+// 0x6f15e0
 static const char* getobjname(CallInfo* ci, int stackpos, const char** name)
 {
 	if (isLua(ci)) {  // a Lua function?
@@ -252,6 +259,7 @@ static const char* getobjname(CallInfo* ci, int stackpos, const char** name)
 	return NULL;  // no useful name found
 }
 
+// 0x6f1760
 static const char* getfuncname(CallInfo* ci, const char** name)
 {
 	Instruction i;
@@ -270,6 +278,7 @@ static const char* getfuncname(CallInfo* ci, const char** name)
 	}
 }
 
+// 0x6f0f00
 static int getinfo(lua_State* L, const char* what, lua_Debug* ar, StkId f, CallInfo* ci)
 {
 	int status = 1;
@@ -304,6 +313,7 @@ static int getinfo(lua_State* L, const char* what, lua_Debug* ar, StkId f, CallI
 	return status;
 }
 
+// 0x6f1030
 int lua_getinfo(lua_State* L, const char* what, lua_Debug* ar)
 {
 	int status = 1;
@@ -325,6 +335,7 @@ int lua_getinfo(lua_State* L, const char* what, lua_Debug* ar)
 	return status;
 }
 
+// 0x6f11a0 (5.0.2's symbolic execution, whose code check is this function)
 int luaG_checkcode(const Proto* pt)
 {
 	int pc;

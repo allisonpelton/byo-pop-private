@@ -360,11 +360,12 @@
         "registration-out",
         "identical-look",
         "fixes-mod",
-        "site-features"
+        "site-features",
+        "coverage"
       ],
       "na": [],
-      "now": "coverage",
-      "note": ""
+      "now": null,
+      "note": "the coverage step done (8ea57115): 17 runs of the original, every function it ran has a counterpart or a none line (coverage.txt, 1931 lines for 3525 functions); GameApp::SwitchScreenMode and Init's flags translated (full screen sets mVSyncUpdates and mWaitForVSync), two slips fixed (GameDialog's Escape, LoadResGroup); 77 unreachable functions and PopLua's compiler are the unneeded-code step's candidates; next performance"
     },
     "bookworm": {
       "title": "BookWorm Deluxe",

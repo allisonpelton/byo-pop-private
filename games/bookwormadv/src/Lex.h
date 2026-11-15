@@ -11,6 +11,7 @@ namespace Sexy {
 
 class Lex {
 public:
+	// 0x4bc020
 	explicit Lex(bool theFlag) : mFlag(theFlag) {}
 
 	// Reads the word list (theDefsFile, data/defs.bin, is not read: the game has none). Words of 3 to 16

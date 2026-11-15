@@ -28,7 +28,7 @@ public:
 	TileEngine();           // 0x499770
 	~TileEngine() override; // 0x499860: the Lua object's Destructor first, then the Lua globals TileEngine, gTileTable and gTileEngine to nil
 
-	const char* LuaGetRegisteredName() override { return "TileEngine"; }  // 0x498880
+	const char* LuaGetRegisteredName() override { return "TileEngine"; }  // 0x498880 (0x498890)
 	// The original registered the class in the constructor (0x499770), every time
 	static void RegisterLua();
 

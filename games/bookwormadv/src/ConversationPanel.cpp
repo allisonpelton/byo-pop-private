@@ -28,8 +28,10 @@ using namespace LuaLib;
 
 // ---- the panels ----
 
+// 0x42f580
 ConversationPanel::Panel::Panel() : mTextColor(Color::White) {}
 
+// 0x42f610
 ConversationPanel::Panel::~Panel()
 {
 	delete mAnim;
@@ -44,6 +46,7 @@ ConversationPanel::TextPage* ConversationPanel::Panel::CurrentPage() const
 
 // ---- the widget ----
 
+// 0x42f740
 ConversationPanel::ConversationPanel(GameApp* theApp) : mApp(theApp)
 {
 	mScreenColor = Color(0, 0, 0, 0xaf);
@@ -376,7 +379,8 @@ bool ConversationPanel::SlideToTarget(Panel* thePanel)
 	return true;
 }
 
-// The scripts' function called with no arguments for one result, true or not (nil is false)
+// The scripts' function called with no arguments for one result, true or not (nil is false); 0x6d80d0 (LuaSupport's
+// lua_toboolean of the result) and 0x6d8180 (dropping the result the call left) are inline here
 static bool CallForBool(const std::string& theFunc)
 {
 	lua_State* L = gLuaSupport->L;

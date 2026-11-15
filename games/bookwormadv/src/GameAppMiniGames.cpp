@@ -51,9 +51,9 @@ void GameApp::ReturnToMMFromMiniGame()
 	mMiniGameFromMenu = false;
 }
 
+// 0x44d290: once the curtain is closed
 static void MiniGameDoneCallback(void* theApp)
 {
-	// 0x44d290: once the curtain is closed
 	((GameApp*)theApp)->ReturnToMMFromMiniGame();
 	LuaLib::CallLua("gMiniGame:Cleanup", 0);
 }

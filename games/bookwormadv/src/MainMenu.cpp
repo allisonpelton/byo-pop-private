@@ -68,6 +68,7 @@ bool ProfileBool(GameApp* theApp, const char* theKey)
 
 // ---- Tooltip ----
 
+// 0x478060
 MainMenu::Tooltip::Tooltip(Image* theTitle, const std::string& theText, int theTitleY)
 {
 	mY = 0;
@@ -188,6 +189,7 @@ bool MainMenu::MenuItem::HitTest(int theX, int theY) const
 
 // ---- MainMenu ----
 
+// 0x4785a0
 MainMenu::MainMenu(GameApp* theApp, bool theFromTitle)
 {
 	mApp = theApp;
@@ -797,6 +799,8 @@ void MainMenu::ContinueArena(bool theContinue)
 	mApp->StartNewGameTransition();
 }
 
+// 0x47c720 (the link to change the player: opens the players' dialog) and 0x47d540 (its thunk through the second base)
+// are inline here
 void MainMenu::ButtonPress(int theId)
 {
 	mApp->PlaySample(SOUND_CLICK2);

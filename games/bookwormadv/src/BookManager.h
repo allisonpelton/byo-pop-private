@@ -30,6 +30,7 @@ public:
 	explicit BookManager(GameApp* theApp);
 	~BookManager() override;  // 0x42a1d0
 
+	// 0x429c80
 	const char* LuaGetRegisteredName() override { return "BookManager"; }
 	static void RegisterLua();
 

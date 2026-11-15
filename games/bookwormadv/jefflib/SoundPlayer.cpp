@@ -8,6 +8,7 @@ using namespace JeffLib;
 
 // 0x6af5a0. port: the original released only the cached instances; the chained and looping samples' are the
 // player's too
+// 0x6affc0 (the release of the 256 cached instances) is inline here
 SoundPlayer::~SoundPlayer()
 {
 	for (Sexy::SoundInstance*& anInstance : mCached) {
