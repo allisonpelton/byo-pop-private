@@ -153,4 +153,5 @@ def main():
         open(sys.argv[3], 'w').write(line + '\n')
 
 
-main()
+if __name__ == '__main__':
+    main()

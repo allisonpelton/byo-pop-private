@@ -124,6 +124,14 @@ surface mode does not pay: private bytes 34 against 61 MB, working set 54 agains
 The cost of each way of showing a frame (software and GDI against Direct3D 9 and 11, a 15 % rect at 40 a second), the frame cap
 for a renderer without vsync and the test option `-windowscale=N` (reachable only from a test) are in Japan's notes.
 
+**Stretch mode, full screen under the original's figure (2026-11-14).** Japan's notes ("Stretch mode: full screen under the original's
+figure") give the mode (`SurfaceDisplay`'s third, no renderer at any window size: GDI's nearest-neighbour stretch of the buffer into the
+window, the changed rects as the clip region), how it was checked and the look it changes. China's figures, in billions of cycles in the
+window of 30 s (medians of five runs, full screen 3840x2160 on rundesk's desktop): the original in its window of 800x600 3.60 (2.81 to 5.78);
+the port with the renderer 4.79 (as above); the port in stretch mode 1.72 without its mixer thread and 1.89 with it (1.82 to 2.09), which is
+0.48 and 0.52 of the original's. The engine is shared, so `kStretchOtherSizes` in `engines/mahjongescape/src/MahjongApp.cpp` is one
+switch for both ports (`false` until the user has seen the look; a test run's `SURFACE_STRETCH=1` decides instead).
+
 **Why China's and Japan's percentages differed** (README: China's port 7.3 % of a core against its original's 1.7 %, Japan's 6.0 %
 against 3.1 %): five runs of each port and three of each original as percentages of one core on a busy machine, China's original
 running at 1.3, 1.7 and 6.2 % in its three, so that the median of three took a quiet one. In cycles the originals' medians are

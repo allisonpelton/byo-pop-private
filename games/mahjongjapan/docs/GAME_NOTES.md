@@ -467,8 +467,8 @@ software 2x copy costs 0.24 G more than 1:1 (in the game 0.055 to 0.075 G, since
 with `COLORONCOLOR` costs what the 1:1 copy does at any window size, full screen included, so it could take the sizes that
 surface mode does not (a resized window, full screen) under the target as well; it is nearest-neighbour, which at a ratio that
 is not a whole number gives pixels of two sizes where the renderer's linear filter blends them, so it changes how full screen
-and a resized window look, and `HALFTONE`, which blends, is far too dear. Not done: that is the user's call
-(`docs/COORDINATION.md`, the performance target; the original's own full screen is the display's mode set to 800x600).
+and a resized window look, and `HALFTONE`, which blends, is far too dear. Built in the second round: "Stretch mode" below. The
+original's own full screen is the display's mode set to 800x600 (`docs/COORDINATION.md`, the performance target).
 
 **The frame cap** (Bejeweled 2's ask) is the trunk's: `DDInterface::FrameHeldByPace`, set in `DDInterface::Init` for a renderer
 that no vertical blank holds (the software renderer, or one without `SDL_RENDERER_PRESENTVSYNC`) and checked by
@@ -481,6 +481,64 @@ A held draw leaves the widgets dirty and the engine's rects accumulating, so no 
 take it: TipTop (its own buffer and rect list), Word Harmony (the image its `ScreenGraphics` draws into and the tiles it
 redrew), Cosmic Bugs and Water Bugs (the Retro64 engine's 16-bit screen converted into a 32-bit buffer for its one dirty
 rect). Alchemy cannot: its screen is drawn by the GPU path and no CPU image of it exists.
+
+### Stretch mode: full screen under the original's figure (2026-11-14)
+
+The second performance round (the user's target of 2026-11-11, processor time at or below the original's) had one configuration left
+above it: full screen, the default start, where the window has the renderer for good (the presenter's section above) and the port costs
+1.2 to 1.3 times the original's windowed figure (4.77 for Japan on the merged tree, 4.79 for China before it, against 3.78 and 3.60). The surface
+cannot take a window of the desktop's size (3840x2160 here: no whole scale of 800x600), and a Direct3D 11 renderer made on the window
+once cannot be taken away again. So the presenter has a third mode, *stretch mode*, for the sizes that are no whole scale: still no
+renderer (so none to leave a frame behind on the window, and none of its device, its driver's thread or its present of the whole
+window), and `Present` has Windows' GDI stretch the buffer into the window's presentation rect (`DisplayGeometry`'s letterbox, the
+renderer's own place for it) with `StretchDIBits` in `COLORONCOLOR` (nearest) mode. `framework/SurfaceDisplayGdi.cpp` holds it, apart
+from the rest of the framework so that nothing else sees `windows.h`. The mouse maps through the same presentation rect as before.
+
+*Where a changed rect lands.* Stretching a rect of the buffer into its own scaled rect is not what the stretch of the whole buffer
+puts there: at a ratio that is no whole number GDI's nearest-neighbour steps start afresh at the rect's edge, and 14 % of the pixels
+of a 3.6x stretch (31 % at 1.6x, 12 % at 4.8x) came out as another source pixel, which would show as pixels of the wrong width at the edge of every
+changed rect and shimmer as they came and went (`tools/display/present/stretchprobe.c`, random rects, the result compared with the
+stretch of the whole). So each present stretches the whole buffer with the changed rects, scaled and widened a pixel each side, as the
+clip region: every pixel is then exactly where the whole stretch puts it (0 pixels differ at 3.6x, 1.6x, 2x and 4.8x: 200 random rects each,
+up to 103 million pixels compared),
+and the call costs the same as the rect alone (about 1 M cycles for a rect of 385 000 window pixels; the area outside the clip is not
+visited). The whole is painted, with the letterbox bars black, when everything is dirty, at the start, after every expose, restore and
+size change (`ScreenInvalidated`) and as the safety net of a second without a change.
+
+*Checked.* `SURFACE_VERIFY=1` in a test run makes the display paint every frame a second time into a bitmap of the window's size, the
+same way, and compare that bitmap with a fresh stretch of the whole buffer at every pixel, bars included, aborting at a difference
+(1805 frames of a whole play in 3840x2160: none); `SURFACE_VERIFY=2` also reads the window back through its device context after each present and compares it with the window painted
+whole again, so that a rect left out of a clip region would show (the window's own stretch is what is compared: the first version
+compared it with the bitmap, and aborted in a 1000x700 window at a pixel a shade off, so GDI's nearest-neighbour steps in a window's
+device context and in a bitmap's are not always the same; not looked into further). `SURFACE_MAXRECTS=2` makes the rect merging run at every frame, as for the surface.
+
+*Cost* (billions of cycles in the window of 30 s, the same play, full screen 3840x2160 on rundesk's desktop, medians of five runs; the
+port's mixer thread, 0.2 G, is counted apart as before, and the totals are given too):
+
+| | Ancient Japan | Ancient China |
+|---|---|---|
+| original, window of 800x600 (all its threads) | 3.78 | 3.60 |
+| port, full screen, renderer (the default start until now), total | 4.77 | 4.79 (before the merge) |
+| port, full screen, stretch mode, without the mixer | 1.98 (1.76 to 2.51) | 1.72 (1.67 to 1.92) |
+| port, full screen, stretch mode, total | 2.17 (1.94 to 2.75) | 1.89 (1.82 to 2.09) |
+
+That is 0.52 and 0.48 of the original's without the mixer and 0.57 and 0.52 with it, where the renderer's figure is 1.3 times the
+original's. There is no thread but the game's and the mixer's (the renderer's driver thread was 2.3 G of the 4.8). The stretch costs
+the main thread 0.4 G (Japan) and 0.7 G (China) above the 800x600 window's surface figure (1.58 and 1.01, above).
+
+*The look, and why it is not on by default.* The picture is the buffer's pixels each repeated as often as the window is larger: at
+3840x2160 (3.6x, letterboxed to 2880x2160) 3 or 4 times at one place and another, where the renderer's linear texture filter blends
+neighbours. At whole scales the two are identical (that is why surface mode may stand for the renderer). So the change is one of how
+full screen and a resized window look, which the user decides; `kStretchOtherSizes` in `engines/mahjongescape/src/MahjongApp.cpp`
+(`SurfaceDisplay::AllowStretch`) is `false` until then and the renderer's look is what a player gets. A test run's
+`SURFACE_STRETCH=1` (or `0`) in the environment decides instead, so one exe measures and tests both. With it, the window
+never has a renderer, which also keeps the surface for the whole scales after a round trip through full screen (the renderer for good
+is the other way round); a drawn cursor image (`mCursorImage`) still asks for the renderer. Side-by-side captures of both are in the
+coordinator's notes folder.
+
+*Tried and left out.* Not presenting a frame with nothing new in renderer mode (what surface mode does): the engine marks its widget
+dirty only when it has a changed rect (`MahjongHost::Present`), so the framework never draws an unchanged frame here and 1761 of 1761
+presents of a play were needed. No gain, not kept.
 
 ## Coverage check (2026-11-08)
 

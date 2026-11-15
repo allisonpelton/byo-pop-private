@@ -18,6 +18,13 @@ S="$R/$d"
   shot s0_windowed_1to1
   echo "$u resize 1600 1200"; u=$((u+G)); shot s1_resized_2x
   echo "$u resize 800 600"; u=$((u+G)); shot s2_back_1to1
+  # STRETCH_STAGES=1 (with SURFACE_STRETCH=1): windows of sizes that are no whole scale, where the display stretches the screen (1.6x; and
+  # one of another shape, which letterboxes it)
+  if [ -n "${STRETCH_STAGES:-}" ]; then
+    echo "$u resize 1280 960"; u=$((u+G)); shot s2a_stretched_1_6x
+    echo "$u resize 1000 700"; u=$((u+G)); shot s2b_stretched_letterboxed
+    echo "$u resize 800 600"; u=$((u+G)); shot s2c_back_1to1
+  fi
   echo "$u focus lost"; echo "$u minimize"; u=$((u+G))
   echo "$u restore"; echo "$u focus gained"; u=$((u+G)); shot s3_restored
   echo "$u keydown Left Alt"; echo "$u key Return"; echo "$u keyup Left Alt"; u=$((u+G+100)); shot s4_fullscreen
@@ -30,7 +37,7 @@ FAST=-fast
 if [ -n "${REAL:-}" ]; then
   # real time: the window is captured 0.7 s after each stage's screenshot and compared with it (the stages are 1 s or more apart)
   FAST=
-  (for st in s1_resized_2x s2_back_1to1 s3_restored s5_windowed_again s6_after_second_round; do
+  (for st in s1_resized_2x s2_back_1to1 ${STRETCH_STAGES:+s2a_stretched_1_6x s2b_stretched_letterboxed s2c_back_1to1} s3_restored s5_windowed_again s6_after_second_round; do
     python -I games/mahjongjapan/tools/display/wincap.py "Mahjong Escape" "$S/$st.png" "$d/cap-$st.txt" > "$d/cap-$st.out" 2>&1
   done) &
 fi
