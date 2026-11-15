@@ -43,7 +43,7 @@ include third_party/libopenmpt/include/minimp3
 # calls, settings, players, cursor and saved files, the site's music-window helpers and the autosplit block, which only
 # the site's page or a mod asks for
 exclude framework/ModMenu.*
-exclude framework/WebCursor.cpp
+exclude framework/WebCursor.*
 exclude framework/WebProfiles.*
 exclude framework/WebSettings.*
 exclude platform/ModManager.*
