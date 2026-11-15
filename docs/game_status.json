@@ -285,11 +285,12 @@
         "unneeded-code",
         "readability",
         "collection",
-        "site-features"
+        "site-features",
+        "lite-mod"
       ],
       "na": [],
-      "now": "lite-mod",
-      "note": "site features done (the Game Over preset beside You Win, d2c871a4; speedrun.com: none); next: the lite mod"
+      "now": null,
+      "note": "the lite-mod step done with no mod (2f58af40, games/ningpo/docs/LITE_MOD.md: tileAtCell's linear scan is the only costly search, and a cell table would answer the same, so it is not lite; the shuffle could differ but saves no time; the hint and move count have no early stop); every phase but modding done"
     },
     "pixelus": {
       "title": "Pixelus Deluxe",
