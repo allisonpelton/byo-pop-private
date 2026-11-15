@@ -2,7 +2,8 @@
 
 Sibling games that run on the same engine keep one copy of it, under `engines/<library>/`, never one copy a game (the
 user, 2026-11-11: "Share engines"): Retro64 for Cosmic Bugs and Water Bugs, the Mahjong Escapes' engine, Bookworm
-Adventures' libraries (PopLua, PopAnim, jefflib, its Lua app and SWF). Where two games' versions of a function behave
+Adventures' libraries (PopLua, PopAnim, jefflib, its Lua app and SWF), Sprout's first generation for Word Harmony and
+Pizza Frenzy. Where two games' versions of a function behave
 differently, each game sets which at start (a flag the engine reads, which the game's own code sets); where they do not,
 there is one function.
 
@@ -97,6 +98,20 @@ mods and settings files.
 The address tags pair the two exes by China's function match (`re/mahjongchina/compare/addrmap.tsv`, in the main
 checkout). A function only Ancient Japan's exe has (the restart box, inlined helpers, vtables) gives Japan's address
 alone.
+
+## Sprout (`engines/sprout`, Word Harmony and Pizza Frenzy)
+
+Sprout Games' first-generation engine, the C++ namespace `engine` (`games/wordharmony/docs/ENGINE.md` describes it as
+Word Harmony's exe has it): objects and references, the scene graph, screen layouts, fonts, particles, the music
+system, the `.saf` archive and the resource manager, mapped onto the platform through its host interface (`Host.h`).
+Word Harmony's port translated it first and kept it free of game code; it moved here when Pizza Frenzy, the second game
+on it, began (2026-11-15). The two exes hold different builds: Pizza Frenzy's was linked a day before Word Harmony's
+(2006-02-21 and 2006-02-22) from changed sources, and only about a fifth of the engine's bytes are the same in both.
+So a function's comment gives each exe's address where the two are the same function, found by the two exes'
+function match (`re/pizzafrenzy/match/`, in the main checkout), and where the two builds' versions behave differently
+the game sets which; Pizza Frenzy's game code lists each such switch in its notes as it comes. Game code includes the
+headers by name (`"Node.h"`), a host that also sees the framework's headers by the folder's (`"sprout/Font.h"`). The
+library is `sprout`.
 
 ## The SWF player (`engines/swf`, library `sexyswf`)
 

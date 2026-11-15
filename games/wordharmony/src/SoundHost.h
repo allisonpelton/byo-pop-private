@@ -1,11 +1,11 @@
 #ifndef __WORDHARMONY_SOUNDHOST_H__
 #define __WORDHARMONY_SOUNDHOST_H__
 
-// The port's sound system: the engine's SimpleSoundDX (0x443980, engine/Sound.h) over the platform's mixer. Sounds are
+// The port's sound system: the engine's SimpleSoundDX (0x443980, engines/sprout/Sound.h) over the platform's mixer. Sounds are
 // decoded whole when they are loaded (the original streamed the music's clips from their files); the mixer cannot
 // seek, so a voice halted and played again starts over.
 
-#include "engine/Sound.h"
+#include "sprout/Sound.h"
 #include "platform/Audio.h"
 
 #include <cstdio>
