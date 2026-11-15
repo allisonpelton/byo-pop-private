@@ -126,10 +126,10 @@ and run loop, the scene, states, the generic screen with its transitions, the sc
 manager, the layout reader's elements and their widgets, the players and the local scoreboards. The game has its
 application's configure and init, the tile manifest (every entry the file has), the player's progress and save, the
 music player, and the loading state's stages for the manifest, the pause menu, the confirmations, the restore dialog
-and the music. Next: the signal build's drawing (the node's colour modes and smoothing, scaled images, the text's
-drawing), then the main menu, the options, the player select and entry, the high scores and the menu state, then the
+and the music. The signal build's drawing is in: the node's colour, colour mode, smooth type and blit effect, the
+blitters' colour modes and smoothing, scaled and copied images and drawing into an image, and the text's draw with its
+shadow. Next: the main menu, the options, the player select and entry, the high scores and the menu state, then the
 game itself.
 
-Left for later: a topping's preview image (0x41dc60 draws the topping onto a copy of the plain pizza; the port's
-images cannot yet be copied or drawn into), the particle effects' systems (0x47bc40), and the image operations the
-decorations use (`cropImage`, `shiftImageColors` in the host), which copy pixels where the original blends them.
+Left for later: the particle effects' systems (0x47bc40). The smooth blit's sub-pixel and rotated loops
+(0x4c47c0, 0x4c9f50-0x4ca2d0) are read as a bilinear sampler and are not checked against the original's pixels yet.

@@ -1,4 +1,6 @@
 #include "TileEntries.h"
+#include "sprout/App.h"
+#include "sprout/Host.h"
 
 using namespace pizzafrenzy;
 
@@ -8,6 +10,8 @@ const int DEFAULT_TILE_LAYER = 3;
 const float TOPPING_SCALE = 0.55f;
 const float TOPPING_SCALE_AS_PREVIEW = 0.65f;
 const int PIVOT_CENTRE = 1;
+const float PREVIEW_OFFSET_Y = 3.0f;
+const char* const CHEESE_PIZZA_IMAGE = "res\\pizza\\cheesePizza.jpg";
 }
 
 // 0x41d7b0
@@ -93,26 +97,34 @@ Topping::Topping(const std::string& theName, const std::string& theDisplayName, 
 	setImage(theImage);
 }
 
-// 0x41dc60: the preview is the topping drawn on a copy of the cheese pizza's image (res\pizza\cheesePizza.jpg), which
-// the port's image has no copy and no drawing on an image for, so the preview is left out
+// 0x41dc60: the preview is the scaled topping drawn on a copy of the cheese pizza's image, in its middle and three
+// pixels up. The scaled image keeps the pivot the full-size image had (its centre in full-size pixels), which is
+// where it is drawn from.
 void Topping::setImage(engine::Image* theImage)
 {
 	mImage = theImage;
-	if (theImage != nullptr)
-		theImage->setPivot(PIVOT_CENTRE);
+	theImage->setPivot(PIVOT_CENTRE);
 	if (mUsesImageAsPreview == 0)
 	{
-		if (theImage != nullptr)
-			mScaledImage = theImage->createScaled(TOPPING_SCALE, TOPPING_SCALE);
+		mScaledImage = theImage->createScaled(TOPPING_SCALE, TOPPING_SCALE);
+		engine::Image* aCheese = engine::App::instance()->getImage(CHEESE_PIZZA_IMAGE);
+		mPreviewImage = aCheese->clone();
+		engine::Graphics* aGraphics = engine::getHost()->createImageGraphics(mPreviewImage);
+		if (aGraphics != nullptr)
+		{
+			aGraphics->drawImage(mScaledImage,
+				engine::IntRect(0, 0, mScaledImage->getWidth(), mScaledImage->getHeight()),
+				(float)aCheese->getWidth() * 0.5f, (float)aCheese->getHeight() * 0.5f - PREVIEW_OFFSET_Y);
+			delete aGraphics;
+		}
+		mPreviewImage->setPivot(PIVOT_CENTRE);
 	}
 	else
 	{
-		if (theImage != nullptr)
-			mScaledImage = theImage->createScaled(TOPPING_SCALE_AS_PREVIEW, TOPPING_SCALE_AS_PREVIEW);
+		mScaledImage = theImage->createScaled(TOPPING_SCALE_AS_PREVIEW, TOPPING_SCALE_AS_PREVIEW);
 		mPreviewImage = theImage;
 	}
-	if (mScaledImage != nullptr)
-		mScaledImage->setPivot(PIVOT_CENTRE);
+	mScaledImage->setPivot(PIVOT_CENTRE);
 }
 
 // 0x41f5e0

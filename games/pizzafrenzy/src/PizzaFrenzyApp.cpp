@@ -110,45 +110,43 @@ public:
 		return aFound;
 	}
 
-	// A copy of a part of an image: its pixels, drawn over nothing
+	// 0x4bcb40 (pizzafrenzy): a blank image; 0x4bcbd0 (pizzafrenzy): graphics that draw into an image
+	engine::Image* createBlankImage(int theWidth, int theHeight) override
+	{
+		return new engine::ScreenImage(theWidth, theHeight);
+	}
+
+	engine::Graphics* createImageGraphics(engine::Image* theImage) override
+	{
+		engine::ScreenImage* anImage = dynamic_cast<engine::ScreenImage*>(theImage);
+		return anImage == nullptr ? nullptr : new engine::ImageGraphics(anImage);
+	}
+
+	// 0x4229f0 (pizzafrenzy): a new image, cleared to transparent and blended, with the part of the image drawn on it
 	engine::Image* cropImage(engine::Image* theImage, int theLeft, int theTop, int theWidth, int theHeight) override
 	{
-		engine::ScreenImage* aSource = dynamic_cast<engine::ScreenImage*>(theImage);
-		if (aSource == nullptr)
-			return nullptr;
 		engine::ScreenImage* aCopy = new engine::ScreenImage(theWidth, theHeight);
-		for (int y = 0; y < theHeight; y++)
-		{
-			for (int x = 0; x < theWidth; x++)
-			{
-				int aSourceX = theLeft + x;
-				int aSourceY = theTop + y;
-				if (aSourceX >= 0 && aSourceX < aSource->mWidth && aSourceY >= 0 && aSourceY < aSource->mHeight)
-					aCopy->mBits[y * theWidth + x] = aSource->mBits[aSourceY * aSource->mWidth + aSourceX];
-			}
-		}
-		aCopy->setAlphaMode(aSource->getAlphaMode(), aSource->getAlphaThreshold());
+		aCopy->fill(engine::Color4(0.0f, 0.0f, 0.0f, 0.0f));
+		aCopy->setAlphaMode(engine::ALPHA_BLEND, 0xff);
+		engine::ImageGraphics aGraphics(aCopy);
+		aGraphics.drawImage(theImage, engine::IntRect(theLeft, theTop, theLeft + theWidth, theTop + theHeight), 0, 0);
 		return aCopy;
 	}
 
-	// A copy of an image with the hue, saturation and value of every pixel shifted (engine::HsvShiftFilter)
+	// 0x423980 (pizzafrenzy): the image drawn whole on a new transparent, blended one, whose colours are then shifted
+	// (engine::HsvShiftFilter); the image's pivot is put at the corner for the draw and back at the centre
 	engine::Image* shiftImageColors(engine::Image* theImage, float theHue, float theSaturation, float theValue) override
 	{
-		engine::ScreenImage* aSource = dynamic_cast<engine::ScreenImage*>(theImage);
-		if (aSource == nullptr)
-			return nullptr;
-		engine::ScreenImage* aCopy = new engine::ScreenImage(aSource->mWidth, aSource->mHeight);
+		theImage->setPivot(0);
+		engine::ScreenImage* aCopy = new engine::ScreenImage(theImage->getWidth(), theImage->getHeight());
+		aCopy->fill(engine::Color4(0.0f, 0.0f, 0.0f, 0.0f));
+		aCopy->setAlphaMode(engine::ALPHA_BLEND, 0xff);
+		engine::ImageGraphics aGraphics(aCopy);
+		aGraphics.drawImage(theImage);
 		engine::HsvShiftFilter aFilter;
 		aFilter.setShift(theHue, theSaturation, theValue);
-		for (size_t i = 0; i < aSource->mBits.size(); i++)
-		{
-			uint32_t aPixel = aSource->mBits[i];
-			uint8_t aRed, aGreen, aBlue, anAlpha;
-			aFilter.filter((uint8_t)(aPixel >> 16), (uint8_t)(aPixel >> 8), (uint8_t)aPixel, (uint8_t)(aPixel >> 24),
-			               &aRed, &aGreen, &aBlue, &anAlpha);
-			aCopy->mBits[i] = ((uint32_t)anAlpha << 24) | ((uint32_t)aRed << 16) | ((uint32_t)aGreen << 8) | aBlue;
-		}
-		aCopy->setAlphaMode(aSource->getAlphaMode(), aSource->getAlphaThreshold());
+		aCopy->applyFilter(aFilter);
+		theImage->setPivot(1);
 		return aCopy;
 	}
 

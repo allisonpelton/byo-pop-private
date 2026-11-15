@@ -102,6 +102,7 @@ void SplashState::update(engine::UpdateInfo& theInfo)
 	else if (mApp->mMusicPlayer == nullptr)
 	{
 		mApp->mMusicPlayer = new GameMusicPlayer();
+		mApp->setMusicEnabled(mApp->mSettings->isMusicEnabled());
 		aLoaded = LOADED_MUSIC_PLAYER;
 	}
 	else

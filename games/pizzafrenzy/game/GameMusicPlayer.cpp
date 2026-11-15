@@ -191,13 +191,8 @@ void StoppingState::finish()
 	mPlayer->mCurrent = mPlayer->mNext;
 	mPlayer->mNext = nullptr;
 	GameMusicClip* aClip = mPlayer->mCurrent;
-	engine::SoundSystem* aSounds = engine::App::getSoundSystem();
-	mPlayer->mSound = nullptr;
-	if (aSounds != nullptr)
-	{
-		aSounds->loadStream(aClip->getFile().c_str(), aClip->getFile().c_str());
-		mPlayer->mSound = aSounds->createSound(aClip->getFile().c_str(), false, MUSIC_SOUND_CATEGORY);
-	}
+	engine::App::instance()->loadSoundStream(aClip->getFile(), aClip->getFile());
+	mPlayer->mSound = engine::App::instance()->createSound(aClip->getFile(), false, MUSIC_SOUND_CATEGORY);
 	if (mPlayer->mSound != nullptr)
 	{
 		mPlayer->mSound->setFadeIn(aClip->getFadeInTime());
