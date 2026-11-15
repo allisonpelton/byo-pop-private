@@ -293,3 +293,7 @@ from the application's generator). The main menu's user link has the original's 
 a click only on their picture's opaque pixels (as the original's alpha hit test).
 Open and skipped (GAME_NOTES.md, section 11): the editor's thumbnail reorder, the grid's pulse colour with no reader, the
 sound ducking of a pause. The chains of a mystery puzzle blow apart with the particle effects of 0x419700 (the links and the lock; seen at the temple of Jupiter with every puzzle solved). The puzzle-completed screen has no particle effect in the original's code (its three effect creations are the island's, 0x4176a0), so the confetti and sparkles that PuzzleCompleted.h mentions are not the original's: that line of the header is wrong and is corrected.
+
+The puzzle-completed screen has the original's characters (Medusa, the fauns, the centaur, the cyclops, the mermaid: 0x41b3c0, 0x419a00,
+0x419e60), which blink and move once the picture is in, and reading a hint ends the repeats of the board's glows (0x403050). This
+corrects the entry above that said the screen has no effects. The frozen baseline is unchanged. Not compared against the original's shots yet.

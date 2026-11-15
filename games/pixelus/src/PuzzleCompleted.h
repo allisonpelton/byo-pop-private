@@ -8,12 +8,13 @@
 // from it), a new best time, or a temple that has opened. The constructor is where the result is entered in the
 // player's record and in the table of the best solutions.
 //
-// port: the blinking eyes are not ported (the original has no particle effect on this screen); the medal
+// port: the characters round the tablet blink and move as the original's do (Effects.h); the medal
 // grows beside the picture at a place of the port's own choosing; the sound of the "tips" the original chooses at the
 // end (0x4f8, flags f8 and fc) is reduced to the stings of a finished temple or game.
 
 #include "Widget.h"
 #include "ButtonListener.h"
+#include "Effects.h"
 #include <string>
 
 namespace Sexy
@@ -63,6 +64,7 @@ public:
 	int				mPreviousTime;			// +0xec the player's best time before (0: none)
 
 	int				mTicks;					// +0x4c
+	EffectList		mEffects;				// +0x84 the characters round the tablet
 	int				mArrivedAt;				// +0xb8 the update at which the picture reached the tablet
 	float			mProgress;				// +0xb4 the picture's flight, 0 to 1
 	float			mMedal;					// +0xf4 the medal's growth, 0 to 1

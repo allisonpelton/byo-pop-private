@@ -834,7 +834,9 @@ void PixelusApp::ButtonDepress(int theId)
 		if (mTempleScreen != NULL)
 			mWidgetManager->SetFocus(mTempleScreen);
 		return;
-	case 2031:		// a hint is read
+	case 2031:		// a hint is read (0x7ef); 0x403050 first ends the repeats of the board's glows (0x421ae0)
+		if (mBoard != NULL)
+			mBoard->mGrid->StopGlowRepeats();
 		KillDialog(0x1f);
 		return;
 	case 2027:		// skip the tutorial

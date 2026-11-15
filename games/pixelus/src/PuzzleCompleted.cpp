@@ -7,6 +7,7 @@
 #include "LevelData.h"
 #include "ProgressManager.h"
 #include "UserDirectory.h"
+#include "Effects.h"
 #include "Graphics.h"
 #include "Image.h"
 #include "ImageFont.h"
@@ -210,6 +211,20 @@ PuzzleCompletedScreen::PuzzleCompletedScreen(PixelusApp* theApp, MemoryImage* th
 	mContinueButton = new SoundButton(mApp, mApp->mImages[IMAGE_DIALOGBUTTONCOMPONENTS], ID_CONTINUE, this);
 	mContinueButton->mLabel = GT(0x50c9a0);
 	StyleButton(mApp, mContinueButton, 3);
+
+	// 0x41b3c0: the characters round the tablet, which move once the picture is in (0x437530 Medusa, 0x437630 the sparkles,
+	// 0x437440 the second faun, who only moves when a temple has opened)
+	Image** anImages = mApp->mImages;
+	mEffects.Add(new PingPongEffect(anImages[IMAGE_ANIMMEDUSA], 3, 0x193, 0x38, 0.5, 0.5));
+	mEffects.Add(new SparkleEffect(anImages[IMAGE_ANIMFAUN1], 2, 0x139, 0x13, 1.0, 5.0, 0.1, 0.1));
+	if (mOpenedTemple)
+		mEffects.Add(new FrameEffect(anImages[IMAGE_ANIMFAUN2], 2, 0x5b, 0x1a0, 0.2, 0.1));
+	mEffects.Add(new SparkleEffect(anImages[IMAGE_ANIMFAUN3], 2, 0xc0, 0x1ab, 1.0, 5.0, 2.0, 0.1));
+	mEffects.Add(new SparkleEffect(anImages[IMAGE_ANIMFAUN4], 2, 0x1a3, 0x1ac, 1.0, 5.0, 0.1, 0.1));
+	mEffects.Add(new SparkleEffect(anImages[IMAGE_ANIMFAUN5], 2, 0x119, 0x14f, 1.0, 5.0, 1.0, 0.1));
+	mEffects.Add(new SparkleEffect(anImages[IMAGE_ANIMCENTAUR], 3, 0x1b0, 0x144, 3.0, 10.0, 0.1, 0.1));
+	mEffects.Add(new SparkleEffect(anImages[IMAGE_ANIMCYCLOP], 2, 0xaf, 0x61, 1.0, 5.0, 0.1, 0.1));
+	mEffects.Add(new SparkleEffect(anImages[IMAGE_ANIMMERMAID], 2, 0x4b, 0x103, 1.0, 5.0, 0.1, 0.1));
 }
 
 PuzzleCompletedScreen::~PuzzleCompletedScreen()
@@ -246,6 +261,9 @@ void PuzzleCompletedScreen::Update()
 {
 	Widget::Update();
 	mTicks++;
+	// 0x419a00: the characters move once the picture is in
+	if (mProgress >= 1.0f)
+		mEffects.Update(0.01);
 	if (mProgress < 1.0f)
 	{
 		mProgress = std::min(1.0f, mProgress + 0.0125f);
@@ -418,10 +436,9 @@ void PuzzleCompletedScreen::DrawContent(Graphics* g, bool thePicture)
 		g->SetColor(aColor);
 		g->DrawString(aTitle, aTitleX, 240);
 	}
+	// 0x419e60: the characters, once the picture is in
 	if (aArrived)
-	{
-		// the sparkle of the picture settling in the tablet
-	}
+		mEffects.Draw(g);
 
 	// the sign on the left: the temple that has opened, or the time
 	if (!mTutorial && (mWasMaxed || mOpenedTemple))

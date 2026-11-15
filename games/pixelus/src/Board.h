@@ -203,7 +203,6 @@ public:
 	void				DrawSidebar(Graphics* g);
 	void				PixelToCell(int x, int y, int* theCol, int* theRow) const;		// 0x421bc0
 	int					TileKind(GridObject* theObject) const;							// 0x42ecf0
-	int					GetMoves() const;
 };
 
 }
