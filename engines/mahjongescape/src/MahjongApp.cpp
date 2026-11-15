@@ -503,6 +503,7 @@ MahjongApp::MahjongApp()
 	mGameEnded = false;
 	mApplyingGameMode = false;
 	mNextFrame = 0;
+	mModalPauses = 0;
 }
 
 MahjongApp::~MahjongApp()
@@ -526,6 +527,9 @@ MahjongApp::~MahjongApp()
 // texture filter blends the pixels and whose Direct3D device costs more processor time than the original's whole window
 // (games/mahjongjapan/docs/GAME_NOTES.md, "The window-surface presenter").
 static const bool kStretchOtherSizes = false;
+// and, when it does, whether the screen fills the window as far as its aspect ratio allows (pixels 3 or 4 wide at one place and another on a
+// 4K screen) or is shown at the largest whole scale that fits with bars around it (3x on a 4K screen: every pixel the same size, 2400x1800)
+static const bool kStretchWholeScalesOnly = false;
 
 DDInterface* MahjongApp::CreateDDInterface()
 {
@@ -540,7 +544,7 @@ DDInterface* MahjongApp::CreateDDInterface()
 			return SexyAppBase::CreateDDInterface();
 	}
 	SurfaceDisplay* aDisplay = new SurfaceDisplay(this);
-	aDisplay->AllowStretch(kStretchOtherSizes);
+	aDisplay->AllowStretch(kStretchOtherSizes, kStretchWholeScalesOnly);
 	return aDisplay;
 }
 #endif
@@ -702,6 +706,28 @@ void MahjongApp::LostFocus()
 	SexyAppBase::LostFocus();
 	if (mGameStarted && !mGameEnded)
 		mGame->mManager.Activate(false);
+}
+
+// port: not in the original (the registered game has no modal dialog of the framework's); the mod menu and the framework's dialogs hold the
+// game. Manager::Pause (0x42c110 in mahjongjapan, 0x4221d0 in mahjongchina) is the game's own pause: its clock is shifted by the time spent
+// paused when the pause ends, and it counts, so a game that was paused before the menu opened is still paused after it closes
+void MahjongApp::ModalOpen()
+{
+	SexyAppBase::ModalOpen();
+	if ((mGame == nullptr) || !mGameStarted || mGameEnded)
+		return;
+	mGame->mManager.Pause(true);
+	mModalPauses = mModalPauses + 1;
+}
+
+void MahjongApp::ModalClose()
+{
+	SexyAppBase::ModalClose();
+	// only a pause this class made is taken off, and never one left over from a game that has ended
+	if ((mGame == nullptr) || (mModalPauses == 0))
+		return;
+	mModalPauses = mModalPauses - 1;
+	mGame->mManager.Pause(false);
 }
 
 // Alt+Enter and the web page's full screen button change the mode as the options' check box does
