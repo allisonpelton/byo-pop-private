@@ -554,3 +554,8 @@ Making them found a fault in the test hooks. `goto menu` removed the old menu wi
 cleared `mMainMenu` after the new menu had set it. The new menu's continue dialog then gave its buttons no listener, and
 its CONTINUE crashed (the frozen baseline does the same). The hooks now delete the old menu at once. A menu reached by
 play was never affected.
+
+The site's pane check found a second fault in the test hooks: `goto` left a cutscene up. After the final level's results,
+`goto campaign` showed the map under the final cutscene, and the bot's `move` kept clicking the cutscene, so the level
+never started. `goto` now removes a cutscene as it removes the other screens, and the armory and the map too (left up, they stayed over the next campaign's map and the bot kept answering their buttons). The final cutscene's end (the high scores, or
+the menu with no rank) also ends the block's game now, as the high scores do elsewhere.
