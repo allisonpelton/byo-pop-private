@@ -223,7 +223,13 @@ challenge, the trophy pages, Tough Cookie's notice, the game-won page, the game 
 - **Edge pixels:** a creature's or platform's rim differs by one pixel row in a few updates and every colour by one level; both
   are the framework's GPU blending against the original's software blit, below the tolerance except at a rim.
 
+- **The menus' boxes and screens** (`menus` scenario: Options, its Credits box, High Scores, the Trophy Room, each shot open and
+  closed): High Scores, the Credits box after it opens, and the closed main menu match pixel for pixel apart from the removed "More
+  Games" button and the closed gap. The Options box differs only in the Hardware Acceleration and Full Screen ticks (the sandbox
+  runs the original windowed with no acceleration, the port full screen: the player's settings, not the game) and in which button
+  the mouse rests on (the highlight), both scenario effects; the Trophy Room differs in its button's highlight.
+
 ### Open
 
-- Not yet shot: the options box, the high score table, the hard modes' remaining boxes, the saved games' resume pages, the web
+- Not yet shot: the hard modes' remaining boxes, the saved games' resume pages, the web
   build against the native one, the real-input runs, and the how-to-play movie against the original's by frame.
