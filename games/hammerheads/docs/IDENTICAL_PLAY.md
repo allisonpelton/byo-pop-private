@@ -206,6 +206,7 @@ challenge, the trophy pages, Tough Cookie's notice, the game-won page, the game 
 | --- | --- | --- | --- |
 | A black strip under each hole of a level | the cubby's cover (the backdrop under the hole, 0x433080) was made from the cubby's own back image: the board-file path in `GameScreen` passed `GetCubbyBackImage()` where the original's container passes the level's backdrop | `GetBackdrop()` | see the log: "looks pass" |
 | The "Health" label of the hearts bar 40 pixels too far left | the original puts it at the hearts' x plus the box width (`rowWidth + 0x28`) minus the label's width minus 0x26 (0x449c40); the port used the row width | the box width | same |
+| The coin hint ("Pick up", level 1 and Marathon) 66 pixels too low | `GnomeCoin::Update` (0x438e20) makes the hint's floater at (400, 150); the port made it at (400, 216) | 150 | "looks pass" |
 
 ### Judged, not changed
 
@@ -214,15 +215,13 @@ challenge, the trophy pages, Tough Cookie's notice, the game-won page, the game 
 - **The how-to-play page** cannot be compared in the sandbox: the original plays `howtoplay.swf` in a Flash control that does not
   draw there (the shot shows only the page's title on green). The port plays the movie through `engines/swf`; it needs a run on
   the visible desktop (`tools/visrun.py`) or a judgement from the movie itself.
+- **Particle effects and rotated sprites** (the smash debris, the stars, a rising creature's glow): a shot series every five updates
+  from a hit shows the pieces at the same places in the same updates and differing only along their edges, the same
+  one-pixel rims as below.
 - **Edge pixels:** a creature's or platform's rim differs by one pixel row in a few updates and every colour by one level; both
   are the framework's GPU blending against the original's software blit, below the tolerance except at a rim.
 
 ### Open
 
-- **Particle effects** (the smash debris, the stars) are in the same places but not pixel for pixel; the first effect of a hit
-  matches for the first few updates and then drifts. Not yet traced: the generator's draws, or how the 60 Hz step carries the
-  effects' time.
-- **The in-game help popup** ("Pick up", Marathon, update 3500) is at a different slide and fade phase in the original at the same
-  update, and the same at the next shot.
 - Not yet shot: the options box, the high score table, the hard modes' remaining boxes, the saved games' resume pages, the web
   build against the native one, the real-input runs, and the how-to-play page.
