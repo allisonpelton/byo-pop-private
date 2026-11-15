@@ -393,6 +393,30 @@ void TextItem::setNumber(int theNumber, const std::string& thePrefix)
 	layout();
 }
 
+// 0x470500 (pizzafrenzy)
+void TextItem::setTime(int theSeconds, bool theWithHours)
+{
+	char aBuffer[32];
+	int aSeconds = theSeconds % 60;
+	int aMinutes = (theSeconds / 60) % 60;
+	int anHours = (theSeconds / 60) / 60;
+	const char* aSecondsPad = aSeconds > 9 ? "" : "0";
+	const char* aMinutesPad = aMinutes > 9 ? "" : "0";
+	if (anHours < 1 && !theWithHours)
+	{
+		if (aMinutes < 1)
+			sprintf(aBuffer, "0:%s%d", aSecondsPad, aSeconds);
+		else
+			sprintf(aBuffer, "%s%d:%s%d", aMinutesPad, aMinutes, aSecondsPad, aSeconds);
+	}
+	else
+		sprintf(aBuffer, "%d:%s%d:%s%d", anHours, aMinutesPad, aMinutes, aSecondsPad, aSeconds);
+	mLines.clear();
+	mText = std::string(aBuffer, strlen(aBuffer));
+	mLines.push_back(mText);
+	layout();
+}
+
 // 0x427b60 (wordharmony)
 void TextItem::setTime(int theSeconds)
 {
