@@ -8,7 +8,7 @@
 // from it), a new best time, or a temple that has opened. The constructor is where the result is entered in the
 // player's record and in the table of the best solutions.
 //
-// port: the particle effects around the tablet (confetti and sparkles) and the blinking eyes are not ported; the medal
+// port: the blinking eyes are not ported (the original has no particle effect on this screen); the medal
 // grows beside the picture at a place of the port's own choosing; the sound of the "tips" the original chooses at the
 // end (0x4f8, flags f8 and fc) is reduced to the stings of a finished temple or game.
 

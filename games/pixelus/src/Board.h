@@ -30,6 +30,7 @@ class DialogButton;
 class TileMaster;
 class Character;
 class UserProfile;
+class HintBubbles;
 
 class Board : public Widget, public ButtonListener
 {
@@ -80,7 +81,7 @@ public:
 	int				mHoverCol;			// the cell under the mouse (the grid's +0xb088/+0xb08c)
 	int				mHoverRow;
 	bool			mHoverValid;		// +0xb098 a click there would do something
-	int				mAlpha;				// +0xb184 how much of the grid shows (the intro fades it in)
+	int				mAlpha;				// +0xb184 how much of the grid shows (the grid constructor, 0x425f7e, sets 255)
 	int				mIntro;				// updates since the puzzle appeared
 	double			mPauseFade;			// +0x170 how far the pause screen has come in
 	bool			mPauseStarted;		// +0x1a2 the game went from running to paused (0x403010); only then does the pause screen come in
@@ -89,12 +90,24 @@ public:
 	bool			mMaxedAtStart;		// +0x1a0 the player's record for this puzzle was already as good as the world record (set when it loads)
 	bool			mLessonShown;		// +0xd1 the hint of a tutorial puzzle has come up
 	void			HintCheck();		// 0x407aa0
+	enum { NUM_TIMERS = 26 };
+	HintBubbles*	mHelper;			// +0xf4 the speech bubbles
+	int				mLessonTimers[NUM_TIMERS];	// +0x68 the updates (in fifths) until a bubble comes up, one for each text
+	bool			mLessonFast;		// +0xd0 the shown bubble's timer is one of the short ones
+	int				mBubbleId;			// +0x1a4 the bubble that is up (-1 none)
+	int				mBubbleX;			// +0x1a8 where it points
+	int				mBubbleY;			// +0x1ac
+	std::string		mBubbleText;		// +0x1b0
+	int				mClickX;			// +0x148 where the mouse last went down (-1 never)
+	int				mClickY;			// +0x14c
+	bool			mFirstAfterTutorial;	// +0x1d0 a puzzle after the tutorial, whose player has seen all of it: the profile's flag 3 is set when it is solved
+	bool			mFinishedOnce;		// +0x1d1 the finished puzzle has been handled (0x40a161)
 	bool			mFinishSounded;		// the sting of a finished puzzle has played and the music fades
-	int				mIdleTicks;			// +0x4c with no click (the original nags after 4500)
+	int				mMovesSeen;			// +0xfc the grid's move count when mIdleCount last restarted
+	int				mIdleCount;			// +0x100 updates (not paused) without a move; at 4500 the Hint button starts to pulse
+	bool			mNagged;			// +0x104 it has
 	int				mMusicDelay;		// +0x78 -1 until the puzzle has been on for a moment, then counts down to the in-game music
 	int				mErrorTicks;		// +0x1cc
-	int				mFlash[Grid::MAX_SIZE][Grid::MAX_SIZE];		// the glow of a cell a tile has just landed on
-	bool			mFlashWanted[Grid::MAX_SIZE][Grid::MAX_SIZE];
 	std::vector<int> mBestMoves;		// unused
 	bool			mHintShown;
 	int				mHintTicks;
@@ -147,6 +160,28 @@ public:
 	void				TileArrived(GridObject* theObject);								// 0x423e50
 	bool				IsBeyondEdge(int theX, int theY, int theDir) const;				// 0x422040
 	void				Complete();
+
+	// the tutorial's bubbles (Lesson.cpp)
+	void				InitLesson();
+	void				ResetLessonTimers();										// 0x402700
+	bool				TickLessonTimer(int theIndex);								// 0x4026a0
+	void				ClearBubble();												// 0x402d90
+	int					BubbleCorner(int theRow, int theCol);						// 0x402de0
+	void				ShowBubble(int theX, int theY, int theCorner, int theIndex, bool theFlagged, bool theTick, bool theFire);	// 0x406050
+	void				PointAtCell(int theRow, int theCol, int theCorner, int theIndex, bool theFlagged);	// 0x406140
+	bool				PointAtStray(int theSkipRow, int theSkipCol);				// 0x4221f0, 0x422280, 0x402de0, 0x406140
+	bool				IsLastThrownTile(int theRow, int theCol);					// 0x403930
+	void				ShowLessonNote(int thePuzzle);
+	int					ClickReason();												// 0x425620
+	void				LessonStep0();												// 0x4061f0
+	void				LessonStep1();												// 0x406310
+	void				LessonStep2();												// 0x406470
+	void				LessonStep3();												// 0x4066b0
+	void				LessonStep4();												// 0x406b10
+	void				LessonStep5();												// 0x406e60
+	void				LessonStep6();												// 0x407150
+	void				LessonStep7();												// 0x407510
+	void				LessonStep8();												// 0x402f80
 
 	// the hint (0x433050): the next move of the best known solution, or an undo when the moves so far depart from it
 	bool				FindHint(Grid::Move* theMove, bool* theUndo);

@@ -10,6 +10,7 @@
 
 using namespace Sexy;
 
+// 0x40bc40
 CompletionScreen::CompletionScreen(PixelusApp* theApp, int theMode)
 {
 	mApp = theApp;
@@ -25,12 +26,14 @@ CompletionScreen::~CompletionScreen()
 	delete mContinueButton;
 }
 
+// 0x40b6d0
 void CompletionScreen::AddedToManager(WidgetManager* theWidgetManager)
 {
 	Widget::AddedToManager(theWidgetManager);
 	theWidgetManager->AddWidget(mContinueButton);
 }
 
+// 0x40b6f0
 void CompletionScreen::RemovedFromManager(WidgetManager* theWidgetManager)
 {
 	Widget::RemovedFromManager(theWidgetManager);

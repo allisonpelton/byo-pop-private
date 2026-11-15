@@ -30,6 +30,7 @@ public:
 	double		mTime;			// +0x38 seconds into the frame
 
 public:
+	// 0x437440
 	FrameEffect(Image* theImage, int theFrames, int theX, int theY, double theInterval, double theFadeTime);
 	virtual ~FrameEffect() {}
 
