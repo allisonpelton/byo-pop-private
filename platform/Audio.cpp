@@ -13,7 +13,9 @@
 #include <stb_vorbis.c>
 #include <minimp3.h>
 #ifdef __EMSCRIPTEN__
+#ifndef BYOPOP_DERIVED
 #include "ModuleText.h"
+#endif
 #endif
 
 #ifdef __EMSCRIPTEN__
@@ -293,7 +295,9 @@ struct Mixer::Song
 {
 	xmp_context mCtx = nullptr;
 	std::unique_ptr<ModulePlayer> mModule;   // a registered module format (e.g. MO3 via libopenmpt)
+#ifndef BYOPOP_DERIVED
 	int mMeter = 0;   // an IT's row highlights (rows per beat << 16 | per bar; ModuleText.h's byopop_it_meter), 0 for none
+#endif
 
 	std::vector<uint8_t> mFile;              // Ogg bytes, kept alive for the decoder
 	size_t mModuleFileBytes = 0;             // a module's file size, for the memory report (its player holds the module)
@@ -1084,12 +1088,14 @@ int Mixer::LoadSong(const std::string& theGamePath)
 	if (!VFS::Get().ReadAll(theGamePath, file) || file.empty())
 		return 0;
 	std::unique_ptr<Song> song(new Song());
+#ifndef BYOPOP_DERIVED
 	const VFSRemap* remap = VFS::Get().GetRemap(theGamePath);
 	if (remap)
 	{
 		song->mDefaultOrder = remap->mStartOrder;
 		song->mTrackGain = (float)remap->mVolume;
 	}
+#endif
 	bool isOgg = file.size() > 4 && !memcmp(file.data(), "OggS", 4);
 	bool isWav = file.size() > 4 && !memcmp(file.data(), "RIFF", 4);
 	if (isOgg)
@@ -1119,11 +1125,13 @@ int Mixer::LoadSong(const std::string& theGamePath)
 	}
 	if (song->IsStream())
 	{
+#ifndef BYOPOP_DERIVED
 		if (remap)
 		{
 			song->mStartFrame = (int64_t)std::max(0.0, remap->mStartTime * song->mSourceRate);
 			song->mLoopStartFrame = (int64_t)std::max(0.0, remap->mLoopStart * song->mSourceRate);
 		}
+#endif
 		if (song->mSourceFrames > 0 && song->mLoopStartFrame >= song->mSourceFrames)
 			song->mLoopStartFrame = 0;
 		if (song->mSourceFrames > 0 && song->mStartFrame >= song->mSourceFrames)
