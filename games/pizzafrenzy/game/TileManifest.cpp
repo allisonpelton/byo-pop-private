@@ -4,6 +4,7 @@
 #include "Exception.h"
 #include "Host.h"
 #include "Layout.h"
+#include "PizzaFrenzy.h"
 #include "Stream.h"
 
 #include <cstdio>
@@ -321,6 +322,27 @@ GameMusicClip* TileManifest::getMusic(const std::string& theName)
 {
 	std::map<std::string, engine::Ref<GameMusicClip>>::iterator anIt = mMusic.find(theName);
 	if (anIt == mMusic.end())
+		return nullptr;
+	return anIt->second;
+}
+
+// 0x422df0: the original's lookup adds a null entry for a name that is not there; the port leaves the map alone
+SpecialEvent* TileManifest::getEvent(const std::string& theName)
+{
+	std::map<std::string, engine::Ref<SpecialEvent>>::iterator anIt = mEvents.find(theName);
+	if (anIt == mEvents.end())
+		return nullptr;
+	return anIt->second;
+}
+
+// 0x422f90: the same lookup as the others', over the key the characters are registered under
+Character* TileManifest::getCharacterByNameTheme(const std::string& theName)
+{
+	std::string aKey = theName;
+	aKey.push_back('_');
+	aKey.append(PizzaFrenzy::instance()->getCurrentCity()->mTheme);
+	std::map<std::string, engine::Ref<Character>>::iterator anIt = mCharacters.find(aKey);
+	if (anIt == mCharacters.end())
 		return nullptr;
 	return anIt->second;
 }

@@ -1,4 +1,6 @@
 #include "Level.h"
+#include "BoatSpawner.h"
+#include "CityMap.h"
 
 using namespace pizzafrenzy;
 
@@ -64,10 +66,30 @@ void Level::addWave(const engine::IntPair& theSize, const engine::FloatPair& the
 	mWaves.push_back(aWave);
 }
 
+// 0x416730: every kitchen of the map is hidden, then each of the level's kitchens, in order, takes a tile: the tile
+// is shown with a popup for the kitchen's topping (the level start's pick) and gets the kitchen's van
 void Level::setUpKitchens(CityMap* theMap)
 {
+	for (size_t i = 0; i < theMap->mKitchens.size(); i++)
+		theMap->mKitchens[i]->setVisible(false);
+	for (size_t i = 0; i < mKitchens.size(); i++)
+	{
+		if (i == theMap->mKitchens.size())
+			return;
+		KitchenTile* aTile = static_cast<KitchenTile*>(theMap->mKitchens[i].get());
+		if (mKitchens[i].mTopping != nullptr)
+		{
+			aTile->setUpPopup(mKitchens[i].mTopping);
+			mKitchens[i].mTopping = nullptr;
+		}
+		aTile->setVanType(mKitchens[i].mVanType);
+		aTile->clearVehicles();
+	}
 }
 
+// 0x4167d0
 void Level::setUpBoats(CityMap* theMap)
 {
+	for (size_t i = 0; i < mBoats.size(); i++)
+		theMap->addBoatSpawner(new BoatSpawner(theMap, &mBoats[i]));
 }

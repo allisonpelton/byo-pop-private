@@ -1,4 +1,6 @@
 #include "CityMap.h"
+#include "PizzaFrenzy.h"
+#include "Random.h"
 
 #include <cstdio>
 
@@ -16,7 +18,7 @@ const char* const KIND_BRIDGE = "bridge";
 
 // 0x414260
 CityMap::CityMap() :
-	mRows(0), mColumns(0), mCellSize(0), mNameCounter(0), mBackground(DEFAULT_BACKGROUND),
+	mTilesStopped(false), mRows(0), mColumns(0), mCellSize(0), mNameCounter(0), mBackground(DEFAULT_BACKGROUND),
 	mHsvShift(DEFAULT_HSV_SHIFT)
 {
 	mOffset.mFirst = 0;
@@ -38,6 +40,7 @@ void CityMap::clear()
 	mRoads.clear();
 	mDecorations.clear();
 	mBridges.clear();
+	mTilesStopped = false;
 }
 
 // 0x4139d0
@@ -175,18 +178,120 @@ void CityMap::addDecoration(Decoration* theDecoration)
 	mDecorations.push_back(theDecoration);
 }
 
+// 0x4122e0
 void CityMap::update(engine::UpdateInfo& theInfo)
 {
+	if (!mTilesStopped)
+	{
+		for (std::map<std::string, engine::Ref<Tile>>::iterator anIter = mTiles.begin(); anIter != mTiles.end();
+		     ++anIter)
+			anIter->second->tick(theInfo);
+		// the boats' frames (0x42e560) are translated next
+	}
+	// the vehicles' frames (slot 0x144 of each) are translated next
+	for (size_t i = 0; i < mBoatSpawners.size(); i++)
+		mBoatSpawners[i]->update(theInfo);
 }
 
+// 0x413fc0
 void CityMap::collectKitchenToppings()
 {
+	mKitchenToppings.clear();
+	for (size_t i = 0; i < mKitchens.size(); i++)
+	{
+		Topping* aTopping = static_cast<KitchenTile*>(mKitchens[i].get())->getTopping();
+		if (aTopping == nullptr)
+			continue;
+		size_t aFound = 0;
+		while (aFound < mKitchenToppings.size() && mKitchenToppings[aFound].get() != aTopping)
+			aFound++;
+		if (aFound == mKitchenToppings.size())
+			mKitchenToppings.push_back(aTopping);
+	}
 }
 
+// 0x412170
 void CityMap::showCombo(Topping* theTopping, int theLength)
 {
+	for (size_t i = 0; i < mKitchens.size(); i++)
+	{
+		KitchenTile* aKitchen = static_cast<KitchenTile*>(mKitchens[i].get());
+		aKitchen->showCombo(aKitchen->getTopping() == theTopping ? theLength : 0);
+	}
 }
 
+// 0x412940
 void CityMap::clearBoatSpawners()
 {
+	mBoatSpawners.clear();
+}
+
+// 0x411cd0
+bool CityMap::isCrowded(Tile* theTile) const
+{
+	static const int NEIGHBOURS[4][2] = {{1, 0}, {-2, 0}, {0, -2}, {0, 1}};
+	engine::IntPair aCell = theTile->getCell();
+	for (int i = 0; i < 4; i++)
+	{
+		int aColumn = aCell.mFirst + NEIGHBOURS[i][0];
+		int aRow = aCell.mSecond + NEIGHBOURS[i][1];
+		if (-1 < aColumn && aColumn < mColumns && -1 < aRow && aRow < mRows)
+		{
+			Tile* aNeighbour = mGrid[aColumn][aRow].get();
+			if (aNeighbour != nullptr && !aNeighbour->isEmpty())
+				return true;
+		}
+	}
+	return false;
+}
+
+// 0x413c00
+CustomerTile* CityMap::findFreeCustomerTile()
+{
+	std::vector<CustomerTile*> aCandidates;
+	for (size_t i = 0; i < mCustomers.size(); i++)
+	{
+		CustomerTile* aTile = static_cast<CustomerTile*>(mCustomers[i].get());
+		if (aTile->isEmpty() && !isCrowded(aTile) && aTile->getCharacter()->mSpecial != Character::SPECIAL_POLICE)
+			aCandidates.push_back(aTile);
+	}
+	if (aCandidates.empty())
+		return nullptr;
+	return aCandidates[engine::randomRange(0, (int)aCandidates.size() - 1)];
+}
+
+// 0x413d80
+CustomerTile* CityMap::findCustomerTileBySpecial(int theSpecial)
+{
+	std::vector<CustomerTile*> aCandidates;
+	for (size_t i = 0; i < mCustomers.size(); i++)
+	{
+		CustomerTile* aTile = static_cast<CustomerTile*>(mCustomers[i].get());
+		if (aTile->getCharacter()->mSpecial == theSpecial)
+			aCandidates.push_back(aTile);
+	}
+	if (aCandidates.empty())
+		return nullptr;
+	return aCandidates[engine::randomRange(0, (int)aCandidates.size() - 1)];
+}
+
+// 0x4120a0
+Topping* CityMap::getRandomKitchenTopping()
+{
+	if (mKitchenToppings.empty())
+		return nullptr;
+	return mKitchenToppings[engine::randomRange(0, (int)mKitchenToppings.size() - 1)];
+}
+
+// 0x4120f0: the boats (the ones of the list at +0x68 that are raised, 0x160) are translated next
+bool CityMap::isIdle()
+{
+	bool anIdle = true;
+	for (size_t i = 0; i < mCustomers.size(); i++)
+	{
+		CustomerTile* aTile = static_cast<CustomerTile*>(mCustomers[i].get());
+		if (!aTile->isEmpty() && !aTile->isOccupantFlagged() && aTile->getOccupant()->getState() != 2)
+			anIdle = false;
+	}
+	return anIdle;
 }

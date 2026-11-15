@@ -240,3 +240,20 @@ void GameScreen::drawCity()
 void GameScreen::updateScreen(engine::UpdateInfo& theInfo)
 {
 }
+
+// 0x4352a0
+void GameScreen::setCouponCursor(engine::Node* theNode)
+{
+	mOrderCursor->removeAllChildren();
+	if (theNode != nullptr)
+	{
+		theNode->setPosition(0.0f, 0.0f);
+		mOrderCursor->addChild(theNode);
+	}
+}
+
+// 0x435180: the field at +0x1fc is let go there too (what sets it is translated next)
+void GameScreen::hideOrderCursor()
+{
+	mOrderCursor->removeAllChildren();
+}

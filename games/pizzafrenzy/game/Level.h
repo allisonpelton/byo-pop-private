@@ -79,9 +79,9 @@ public:
 	void addWave(const engine::IntPair& theSize, const engine::FloatPair& theSpawnDelay,
 	             const engine::FloatPair& theWaitTime);
 
-	// 0x416730: the kitchens of the map are given the level's vans and toppings; translated next
+	// 0x416730: the kitchens of the map are given the level's vans and toppings
 	void setUpKitchens(CityMap* theMap);
-	// 0x4167d0: the level's boats are made into the map's boat spawners; translated next
+	// 0x4167d0: the level's boats are made into the map's boat spawners
 	void setUpBoats(CityMap* theMap);
 
 	std::string mCityFile;                           // +0x0c
@@ -112,7 +112,7 @@ public:
 
 	std::vector<engine::Ref<Level>> mLevels;  // +0x0c
 	std::string mName;                        // +0x1c
-	std::string mTheme;                       // +0x38: nothing translated reads it
+	std::string mTheme;                       // +0x38: the key the customers of the city are found by (0x422f90)
 };
 
 } // namespace pizzafrenzy

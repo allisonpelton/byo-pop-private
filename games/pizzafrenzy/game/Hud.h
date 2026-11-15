@@ -30,6 +30,12 @@ public:
 	// 0x43a5b0: the vehicles that can be bought are shown (0x439b00 for each of the map's, with the number 200);
 	// translated next
 	void showVehicles();
+	// 0x4392e0: the hud's counters start over with a level; translated next with the hud's displays
+	void resetHud();
+	// 0x4397d0: the hud's happiness shows the stats' (a burst of stars at the top); translated next
+	void updateHappiness();
+	// 0x438610: the warning stars of the low happiness are shown or hidden; translated next
+	void setWarning(bool theShown);
 	// 0x438270: the tip jar's roll sound stops with the game paused and goes on with it; left out with the sound
 	void pauseTipJarSound(bool thePaused);
 

@@ -2,6 +2,7 @@
 #include "App.h"
 #include "CityMap.h"
 #include "PizzaFrenzy.h"
+#include "PizzaPopup.h"
 
 using namespace pizzafrenzy;
 
@@ -18,6 +19,9 @@ const int ROAD_PREVIOUS_COLUMN = 2;
 const int ROAD_PREVIOUS_ROW = 4;
 const int ROAD_NEXT_COLUMN = 8;
 const float WATER_OPACITY = 0.5f;
+const float RAISED_SECONDS = 2.0f;
+// where the popup of a kitchen stands on its tile (0x41c640)
+const float POPUP_TOP = 16.0f;
 
 // the board of a kitchen, which has five pictures of numbers
 const int SIGN_DIGIT_COUNT = 5;
@@ -211,8 +215,6 @@ CustomerTile::CustomerTile(const std::string& theTypeName)
 {
 	setName(theTypeName);
 	setKind(KIND_CUSTOMER);
-	mParkingSpot.mFirst = 0;
-	mParkingSpot.mSecond = 0;
 }
 
 // 0x41bbe0
@@ -231,12 +233,10 @@ bool CustomerTile::accept(CityMap* theMap, const std::string& theInstanceName)
 }
 
 // 0x41cf90
-KitchenTile::KitchenTile(const std::string& theTypeName) : mVanType("PizzaVan"), mSignFrame(-1)
+KitchenTile::KitchenTile(const std::string& theTypeName) : mVanType("PizzaVan"), mSignFrame(-1), mSignTime(0)
 {
 	setName(theTypeName);
 	setKind(KIND_KITCHEN);
-	mParkingSpot.mFirst = 0;
-	mParkingSpot.mSecond = 0;
 }
 
 // 0x41d190: the house's picture, and the board with the numbers over it, which has no pictures yet (the game's play
@@ -273,8 +273,180 @@ bool KitchenTile::accept(CityMap* theMap, const std::string& theInstanceName)
 	return true;
 }
 
-// 0x41c720: the base's, then the kitchen lets go of the object at +0x1b0, which the play makes
+// 0x41c720: the base's, then the kitchen lets go of its popup
 void KitchenTile::place(CityMap* theMap, const engine::IntPair& theCell)
 {
 	Tile::place(theMap, theCell);
+	mOccupant = nullptr;
+}
+
+// 0x4263f0: the time the bridge is raised counts down, and at the end of it the bridge is let down
+void BridgeTile::tick(engine::UpdateInfo& theInfo)
+{
+	if (0.0f < mRaisedTime)
+	{
+		mRaisedTime -= theInfo.mSeconds;
+		if (mRaisedTime < 0.0f)
+			setRaised(false);
+	}
+}
+
+// 0x4265e0: both pairs of pictures show the one the bridge is in; a raised bridge stays so for two seconds
+void BridgeTile::setRaised(bool theRaised)
+{
+	int aFrame = theRaised ? 0 : 1;
+	mRoadImages->select(aFrame, 0, true);
+	mGroundImages->select(aFrame, 0, true);
+	mRaised = theRaised;
+	mRaisedTime = theRaised ? RAISED_SECONDS : 0.0f;
+}
+
+// 0x41c490
+BuildingTile::BuildingTile()
+{
+	mParkingSpot.mFirst = 0;
+	mParkingSpot.mSecond = 0;
+}
+
+// 0x41c180
+void BuildingTile::tick(engine::UpdateInfo& theInfo)
+{
+	if (mOccupant != nullptr)
+	{
+		mOccupant->tick(theInfo);
+		return;
+	}
+	if (mWaiting != nullptr)
+	{
+		setOccupant(mWaiting);
+		mWaiting = nullptr;
+	}
+}
+
+// 0x41bfa0
+void BuildingTile::setOccupant(PizzaPopup* thePopup)
+{
+	thePopup->setScale(0.0f);
+	if (mOccupant == nullptr)
+	{
+		mOccupant = thePopup;
+		static_cast<engine::Container*>(mSfxNode.get())->addChild(thePopup);
+		float aCellSize = (float)PizzaFrenzy::instance()->mCityMap->getCellSize();
+		engine::Point aPoint = *thePopup->getPosition();
+		aPoint.x += getPosition()->x;
+		aPoint.y += getPosition()->y;
+		float aBottomX = (float)((int)(aPoint.x / aCellSize) + 1) * aCellSize;
+		float aBottomY = (float)((int)(aPoint.y / aCellSize) + 1) * aCellSize;
+		mOccupant->setPosition(aBottomX - getPosition()->x, aBottomY - getPosition()->y);
+		return;
+	}
+	mWaiting = thePopup;
+}
+
+// 0x41c0f0
+void BuildingTile::clearOccupant()
+{
+	mOccupant = nullptr;
+}
+
+// 0x41bf10
+bool BuildingTile::isClickable()
+{
+	return mOccupant != nullptr && mOccupant->isClickable();
+}
+
+// 0x41c140
+void BuildingTile::hangUp()
+{
+	if (mOccupant != nullptr)
+		mOccupant->hangUp();
+}
+
+// 0x41bf70
+void BuildingTile::unpick()
+{
+	if (mOccupant != nullptr && mOccupant->isPicked())
+		mOccupant->unpick();
+}
+
+// 0x41c160
+bool BuildingTile::isOccupantFlagged()
+{
+	return mOccupant != nullptr && mOccupant->isFlagged();
+}
+
+// 0x41c3d0: each van is told to let go (0x13c, which does nothing), and they are released
+void BuildingTile::clearVehicles()
+{
+	mVehicles.clear();
+}
+
+// 0x41b7b0: the customer called by the tile's character name, of the city that is played
+Character* CustomerTile::getCharacter()
+{
+	return PizzaFrenzy::instance()->mTileManifest->getCharacterByNameTheme(mCharacterName);
+}
+
+// 0x41b940
+Order* CustomerTile::getOrder()
+{
+	if (mOccupant != nullptr && mOccupant->getState() == 0)
+		return mOccupant->getOrder();
+	return nullptr;
+}
+
+// 0x41b8f0
+Order* CustomerTile::getActiveOrder()
+{
+	if (mOccupant != nullptr && isClickable() && mOccupant->getState() == 0)
+		return mOccupant->getOrder();
+	return nullptr;
+}
+
+void CustomerTile::setOrder(Order* theOrder, bool theFlag)
+{
+}
+
+void CustomerTile::callPolice(int theSpecial)
+{
+}
+
+// 0x41c6f0
+Topping* KitchenTile::getTopping()
+{
+	if (mOccupant == nullptr)
+		return nullptr;
+	return getOccupant()->getTopping();
+}
+
+// 0x41c640: the tile is shown, its popup is made for the topping and put at the top of the tile
+void KitchenTile::setUpPopup(Topping* theTopping)
+{
+	setVisible(true);
+	PizzaKitchenPopup* aPopup = new PizzaKitchenPopup();
+	aPopup->setOwner(this);
+	aPopup->setTopping(theTopping);
+	aPopup->setPosition(0.0f, POPUP_TOP);
+	setOccupant(aPopup);
+}
+
+// 0x41c7b0: the building's frame, then the time the sign shows runs out
+void KitchenTile::tick(engine::UpdateInfo& theInfo)
+{
+	BuildingTile::tick(theInfo);
+	if (0.0f < mSignTime)
+	{
+		mSignTime -= theInfo.mSeconds;
+		if (mSignTime < 0.0f)
+		{
+			mSignTime = 0.0f;
+			// the sign's board is cleared and its digits shown (0x4682e0): translated next
+		}
+	}
+}
+
+// 0x41cb80: the sign shows the length of the combo in the hue its row of five gives; translated next
+void KitchenTile::showCombo(int theLength)
+{
+	// the sign's pictures are shifted in hue from the images "kitchenMarquis%d" and "kitchenMarquis4": translated next
 }

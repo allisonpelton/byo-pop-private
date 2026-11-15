@@ -168,6 +168,9 @@ public:
 	// +0x188: the window has the focus
 	bool isActive() const { return mActive; }
 
+	// 0x403bb0: the city that is played
+	City* getCurrentCity() { return mCities[mCurrentCity]; }
+
 	// 0x406dc0: the level is set up for play: the mode's game with the level's city, or the bonus round
 	void setUpLevel();
 

@@ -8,6 +8,7 @@
 #include "DocHandler.h"
 #include "ImageNode.h"
 #include "Node.h"
+#include "PizzaPopup.h"
 #include "Selector.h"
 #include "TileEntries.h"
 
@@ -15,6 +16,7 @@ namespace pizzafrenzy
 {
 
 class CityMap;
+class PizzaPopup;
 
 // The layers a tile has a node for, each drawn by the game screen (GameScreen.h)
 enum TileLayer
@@ -52,6 +54,10 @@ public:
 	virtual void prepare() {}
 	// slot 0x154: 0x454e60 (false) here; the road and the bridge: whether a road is at the cell
 	virtual bool isRoadAt(const engine::IntPair& theCell) { return false; }
+	// slot 0x164: 0x492310 (nothing) here: a frame of the tile, from the map's update
+	virtual void tick(engine::UpdateInfo& theInfo) {}
+	// slot 0x168: 0x451610 (true) here; the buildings: nothing stands on the tile
+	virtual bool isEmpty() { return true; }
 	// slot 0x15c
 	virtual engine::IntPair getCell() { return mCell; }
 
@@ -99,34 +105,99 @@ public:
 	engine::Node* getLayerNode(int theLayer) override;                          // 0x4265c0: layers 3 and 2
 	void place(CityMap* theMap, const engine::IntPair& theCell) override;       // 0x426580
 	bool isRoadAt(const engine::IntPair& theCell) override { return true; }
+	// slot 0x164: 0x4263f0: the time the bridge is raised runs out, and it is let down
+	void tick(engine::UpdateInfo& theInfo) override;
+	// slot 0x170: 0x4265e0: the bridge is raised (the way blocked, for two seconds) or let down
+	virtual void setRaised(bool theRaised);
 
 private:
 	engine::Ref<engine::Selector> mRoadImages;    // +0x194: "RoadImages"
 	engine::Ref<engine::Selector> mGroundImages;  // +0x198: "GroundImages"
-	float mRaisedTime;                            // +0x19c: 0; nothing translated reads it
+	float mRaisedTime;                            // +0x19c: 0, and the seconds a raised bridge has left
 	bool mRaised;                                 // +0x1a0: false; nothing translated reads it
 };
 
-// A house of a customer (0x1dc bytes, constructor 0x41ba60, vtable 0x4fae00; its base 0x41c490, 0x1b8 bytes)
-class CustomerTile : public Tile
+// What a customer's house and a kitchen have in common (0x1b8 bytes, constructor 0x41c490, vtable 0x4fae00): the cell a
+// van parks at, the vans of the tile, and the popup that stands on it (a customer with the order, the kitchen's)
+class BuildingTile : public Tile
+{
+public:
+	BuildingTile();  // 0x41c490
+
+	// slot 0x164: 0x41c180: the popup has its frame; a popup that waits takes the place when there is none
+	void tick(engine::UpdateInfo& theInfo) override;
+	// slot 0x168: 0x41be10
+	bool isEmpty() override { return mOccupant == nullptr; }
+	// slot 0x188: 0x41bfa0: the popup is put on the tile, scaled to nothing and at the bottom of the cell its position
+	// is in; when the tile has a popup already, it waits (slot 0x1a0 of 0x41c560 is the vans')
+	virtual void setOccupant(PizzaPopup* thePopup);
+	// slot 0x18c: 0x41c0e0
+	PizzaPopup* getOccupant() { return mOccupant; }
+	// slot 0x190: 0x41c0f0
+	virtual void clearOccupant();
+	// slot 0x17c: 0x41bf10: the popup takes a click
+	bool isClickable();
+	// slot 0x198: 0x41c140: the popup hangs up
+	void hangUp();
+	// slot 0x174: 0x41bf70: the popup's pick, if it is picked, is let go
+	void unpick();
+	// slot 0x19c: 0x41c160: the flag of the popup (PizzaPopup.h), false for a tile without one
+	bool isOccupantFlagged();
+
+	// 0x41c3d0: the vans are let go
+	void clearVehicles();
+
+	engine::IntPair mParkingSpot;  // +0x198: the cell a van stops at
+
+protected:
+	// +0x1a0: the vans that start from the tile (the vehicles are translated next)
+	std::vector<engine::Ref<engine::Node>> mVehicles;
+	engine::Ref<PizzaPopup> mOccupant;  // +0x1b0
+	engine::Ref<PizzaPopup> mWaiting;   // +0x1b4: takes the place of the popup when the tile has none
+};
+
+// A house of a customer (0x1dc bytes, constructor 0x41ba60, vtable 0x4fac18)
+class CustomerTile : public BuildingTile
 {
 public:
 	explicit CustomerTile(const std::string& theTypeName);  // 0x41ba60
 	bool accept(CityMap* theMap, const std::string& theInstanceName) override;  // 0x41bbe0
 
-	engine::IntPair mParkingSpot;   // +0x198: the cell a van stops at
+	// 0x41b7b0: the customer who lives there
+	Character* getCharacter();
+	// slot 0x1bc: 0x41b940: the order of the popup, when the tile's popup is a customer's
+	Order* getOrder();
+	// slot 0x1b8: 0x41b8f0: the same when the popup takes a click
+	Order* getActiveOrder();
+	// slot 0x1ac: 0x41b6a0: a customer's popup is made for the order and put on the tile; translated next with the
+	// customer's popup
+	void setOrder(Order* theOrder, bool theFlag);
+	// slot 0x1b0: 0x41b730: the police's popup is put on the tile when the kind is the police's; translated next
+	void callPolice(int theSpecial);
+
 	std::string mCharacterName;     // +0x1b8: the character that lives there
 };
 
 // A kitchen (0x218 bytes, constructor 0x41cf90, vtable 0x4fafb8)
-class KitchenTile : public Tile
+class KitchenTile : public BuildingTile
 {
 public:
 	explicit KitchenTile(const std::string& theTypeName);  // 0x41cf90
 	bool accept(CityMap* theMap, const std::string& theInstanceName) override;  // 0x41d190
 	void place(CityMap* theMap, const engine::IntPair& theCell) override;       // 0x41c720
+	// slot 0x164: 0x41c7b0: the building's frame, and the sign's time that runs out
+	void tick(engine::UpdateInfo& theInfo) override;
 
-	engine::IntPair mParkingSpot;  // +0x198: the cell the vans start from
+	// 0x41c6f0: the topping the kitchen's popup makes, null when it has none
+	Topping* getTopping();
+	// 0x41c640: the kitchen's popup is made for the topping and put on the tile
+	void setUpPopup(Topping* theTopping);
+	// 0x41d170
+	void setVanType(const std::string& theVanType) { mVanType = theVanType; }
+	// 0x41cb80: the sign shows the length of the combo (none for 0), its number in rows of five, and its colour from
+	// the length too
+	void showCombo(int theLength);
+
 	std::string mVanType;          // +0x1b8: "PizzaVan"
 
 private:
@@ -135,6 +206,7 @@ private:
 	engine::Ref<engine::Selector> mSignDigits;     // +0x1d4: the pictures of the numbers on the board
 	engine::Ref<engine::ImageNode> mSignDigitNodes[SIGN_DIGITS];  // +0x1dc
 	int mSignFrame;                                // +0x20c: -1, none
+	float mSignTime;                               // +0x208: the seconds the sign still shows its number
 };
 
 } // namespace pizzafrenzy

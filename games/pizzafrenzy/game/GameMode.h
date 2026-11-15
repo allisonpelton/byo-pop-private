@@ -19,11 +19,15 @@
 #include "Hud.h"
 #include "Level.h"
 #include "Object.h"
+#include "Order.h"
 #include "Signal.h"
 #include "Sound.h"
 #include "State.h"
 
+#include <deque>
+#include <list>
 #include <string>
+#include <vector>
 
 namespace pizzafrenzy
 {
@@ -38,35 +42,69 @@ public:
 	virtual void setup(GameScreen* theScreen, CityMap* theMap, Hud* theHud, GameStats* theStats) = 0;
 	// 0x08: 0x4569c0: the pizza being made and the hud, the stats' time, the slowed time, the screen and the states
 	virtual void update(engine::UpdateInfo& theInfo);
-	// 0x0c: 0x457760 (speed), 0x45b360 (concentration): a signal of the game ("customerHangup", "falseArrest",
-	// "specialHangup"); translated next
-	virtual void action(const std::string& theAction) {}
+	// 0x0c: 0x457760 (speed), 0x45b360 (concentration): a signal of the game: "customerHangup" (a customer gave up
+	// waiting), "falseArrest" and "specialHangup" (an event's customer is gone)
+	virtual void action(const std::string& theAction);
 	// 0x10: 0x459cb0: the level is the one to play: its kitchens, boats and events, the city's picture, its music,
 	// and the introduction's state
 	virtual void setLevel(Level* theLevel);
 	// 0x14: 0x459150: the events and the map's boat spawners are let go, and the level with them
 	virtual void clearLevel();
-	// 0x18: 0x457290: every counter and list of a level starts over; translated next
-	virtual void reset() {}
+	// 0x18: 0x457290 (speed): every counter and list of a level starts over
+	virtual void reset();
 	// 0x1c: 0x456c20: the introduction is over: the hud's vehicles are shown and play starts
 	virtual void startPlay();
 	// 0x20: 0x456320: the level is over: the music stops and the tips go to the score; translated next
 	virtual void finishLevel() {}
+	// 0x28: 0x457900: every customer waiting is sent away, and the waves' orders are let go (a customer that is sent
+	// away unasked makes the "customerHangup" signal)
+	virtual void hangUpAll(bool theQuiet);
 	// 0x2c: 0x456300: the game is paused (the orders picked are let go and the tip jar's roll stops) or not
 	virtual void setPaused(bool thePaused);
-	// 0x34: 0x458c40 (shared): the orders picked are let go; translated next
-	virtual void clearPicks() {}
-	// 0x38: 0x457490 (speed), 0x45b6e0 (concentration): the customers' waves, and what they wait for; translated next
-	virtual void updateWaves(engine::UpdateInfo& theInfo) {}
+	// 0x34: 0x458c40 (shared): the orders picked are let go
+	virtual void clearPicks();
+	// 0x38: 0x457490 (speed), 0x45b6e0 (concentration): the customers' waves, and what they wait for
+	virtual void updateWaves(engine::UpdateInfo& theInfo);
 	// 0x3c: 0x455fe0: the map's update (its tiles, boats and vehicles)
 	virtual void updateMap(engine::UpdateInfo& theInfo);
-	// 0x40: 0x456ac0: the level ends when the happiness is gone, or when the customers and the vehicles are done;
-	// translated next
-	virtual void checkLevelEnd() {}
-	// 0xa0: 0x4580f0: the level's customers start; translated next
-	virtual void beginWaves() {}
-	// 0x48: 0x456130 (speed), 0x45b370 (concentration): the right button; translated next
-	virtual void rightClick() {}
+	// 0x40: 0x456ac0: the level ends when the happiness is gone, or when the customers and the vehicles are done
+	virtual void checkLevelEnd();
+	// 0x48: 0x456130 (speed), 0x45b370 (concentration): the right button lets go of the coupon held, or of the
+	// orders picked
+	virtual void rightClick();
+	// 0x4c: 0x45a300: the pizza is given to the customer of the tile; translated next
+	virtual void deliver(engine::Node* thePizza, Tile* theTile, bool theFlag);
+	// 0x50: 0x455b20: the special event of the tile starts; translated next
+	virtual void startSpecialEvent(engine::Node* theNode, Tile* theTile);
+	// 0x68: 0x456bd0: the tips are added to the score, and when the houses are all idle the wave's timer is held to
+	// a second and a half
+	virtual void addTips(int theTips);
+	// 0x80: 0x455b80: the time is slowed to the factor for the seconds
+	virtual void slowTime(float theSeconds, float theFactor);
+	// 0x84: 0x457b80: the low happiness warning is on or off (the hud's, and the music's)
+	virtual void setLowHappinessWarning(bool theOn);
+	// 0x94: 0x456410: the police leave when a customer of an event is not waiting for them
+	virtual void dismissPolice();
+	// 0x98: 0x456e50: some customer, picked or ordering, has an order of an event that wants no pizza
+	virtual bool hasPendingSpecialOrder();
+	// 0x9c: 0x4563d0: the police's house has a popup that is not the police's own
+	virtual bool isPoliceBusy();
+	// 0xa0: 0x4580f0: the level's titles are written, and the waves begin
+	virtual void beginWaves();
+	// 0xa8: 0x451610 (true)
+	virtual bool isSpeedMode() { return true; }
+	// 0xac: 0x45a9a0: the next wave of the level: its orders are made and shuffled
+	virtual void startNextWave();
+	// 0xb0: 0x457100: the order is given a house, a customer, a wait and a topping where it has none; false when
+	// there is no house free
+	virtual bool assignOrder(Order* theOrder);
+	// 0xb4: 0x459b90: the order is given a place and goes to its house, and the pizzas it asks for are counted
+	virtual bool placeOrder(Order* theOrder);
+	// 0xb8: 0x459fc0: the last customer of the wave is gone: the wave's timer is held to what it can be
+	virtual void waveDone();
+
+	// 0x456260: the happiness is changed by the number, between 0 and 100
+	void addHappiness(int theChange);
 
 	// the mode's own states: the introduction and play (ModeStates.h)
 	engine::StateMgr mStates;  // +0x30
@@ -88,19 +126,48 @@ protected:
 	engine::Ref<GameMusicClip> mMusicClip;     // +0x68: the level's music
 	float mMusicVolume;                        // +0x6c: the music clip's volume
 	Level* mLevel;                             // +0x70: the level that plays
+	std::vector<engine::Ref<EventTimer>> mEventTimers;  // +0x58: the level's special events
+	size_t mWaveIndex;                         // +0x74: the wave that plays (the original's iterator over the level's)
 	engine::FloatPair mSpawnDelay;             // +0x78: the wave's seconds between one customer and the next
 	engine::FloatPair mWaitTime;               // +0x80: the wave's seconds a customer waits
+	std::vector<engine::Ref<CustomerTile>> mPicks;  // +0x9c: the houses whose orders are picked
+	bool mWavesDone;                           // +0xac: the level's orders have all begun
+	// +0xb0: the coupon held (0x138 lets it go, 0x144 is its topping, 0x148 its price); translated next
+	engine::Ref<engine::Object> mCoupon;
 	float mSlowFactor;                         // +0xb4: how much of a frame's time passes while the time is slowed
 	float mSlowTime;                           // +0xb8: the seconds the time stays slowed
 	engine::Sound* mSlowSound;                 // +0xbc: the voice "special_timeEffect", which plays while it is
+	std::list<engine::Ref<Order>> mWaveOrders;    // +0xc0: the orders of the wave that are not placed yet
+	std::list<engine::Ref<Order>> mActiveOrders;  // +0xcc: the orders placed, the oldest first
+	float mWaveTimer;                          // +0xd8: the seconds before the next wave may start
+	float mSpawnTimer;                         // +0xdc: the seconds before the next order is placed
+	float mSecondsSinceDelivery;               // +0xe0: the seconds since the last delivery
+	float mSpeedBonusTime;                     // +0xe4: the seconds the speedy delivery bonus lasts
+	int mWaveCustomersLeft;                    // +0xe8: the customers of the level that have not left yet
+	int mOrdersBegun;                          // +0xec: the orders the waves have made
+	int mDeliveryStreak;                       // +0xf0: the deliveries in a row, ten of which add happiness
+	bool mRightClickHandled;                   // +0xf4: the click's own handler took the right button
 	Topping* mComboTopping;                    // +0xf8: the topping of the last pizza delivered
+	// +0x100: the pizzas on their way to a house, the oldest first, each with the house; its timer is the
+	// seconds to the next (translated next)
+	struct QueuedDelivery
+	{
+		engine::Ref<Tile> mTile;
+		engine::Ref<engine::Node> mPizza;
+	};
+	std::deque<QueuedDelivery> mDeliveries;
+	float mDeliveryTimer;                      // +0x114: 0.4 seconds from one delivery to the next
 
 	// 0x138 of the first pizza being made (the list at +0x48): translated next
 	void updatePizzas(engine::UpdateInfo& theInfo);
-	// 0x417cb0: the events of the level are made; translated next
+	// 0x417cb0: an event timer for each of the level's events
 	void makeEvents();
-	// 0x44b3c0 on each of them: the events are let go; translated next
+	// 0x459150: the event timers are let go
 	void clearEvents();
+	// 0x459e20: the wave's orders are drawn in a new order and numbered
+	void shuffleOrders();
+	// 0x458060: the picks are let go, and so are the coupon held and the order cursor
+	void releasePicks();
 	// 0x455cb0: the right button is pressed
 	void onRightDown(engine::Point& thePoint) { rightClick(); }
 	// 0x459330: the right button's signal is connected to onRightDown

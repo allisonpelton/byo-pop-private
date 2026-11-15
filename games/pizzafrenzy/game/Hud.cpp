@@ -78,3 +78,15 @@ void Hud::showVehicles()
 void Hud::pauseTipJarSound(bool thePaused)
 {
 }
+
+void Hud::resetHud()
+{
+}
+
+void Hud::updateHappiness()
+{
+}
+
+void Hud::setWarning(bool theShown)
+{
+}

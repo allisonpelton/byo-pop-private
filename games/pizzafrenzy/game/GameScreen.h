@@ -40,6 +40,10 @@ public:
 	void clearGroups();
 	// 0x435c60: the city's picture and nodes, from the map (the postcards and the game take them from here)
 	void drawCity();
+	// 0x4352a0: the node is the only one in the order cursor, at its corner (none empties it): the coupon held
+	void setCouponCursor(engine::Node* theNode);
+	// 0x435180: the order cursor is emptied
+	void hideOrderCursor();
 	// 0x435ba0: a frame of the screen (the speed bonus banner's, the vehicles', and the nodes of the sorted group);
 	// translated next
 	void updateScreen(engine::UpdateInfo& theInfo);

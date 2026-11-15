@@ -7,8 +7,7 @@
 //
 // Left out of what the manifest reads: the particle systems of the effects (the signal build's particle document
 // handler, 0x47bc40, is not translated), and the previews of the toppings (Topping::setImage). The finders no state of
-// the loading reaches are not translated: getVehicle 0x422ca0, getCharacter 0x422d60, getEvent 0x422df0 and
-// getCharacterByNameTheme 0x422f90, nor the destructor 0x4263c0.
+// the loading reaches are not translated: getVehicle 0x422ca0 and getCharacter 0x422d60, nor the destructor 0x4263c0.
 
 #include "GameMusicPlayer.h"
 #include "Object.h"
@@ -44,6 +43,10 @@ public:
 	std::vector<engine::Ref<Topping>>& getToppingList() { return mToppingList; }
 	// The score titles in the order the manifest gives them (+0x70)
 	std::vector<engine::Ref<ScoreTitle>>& getTitles() { return mTitles; }
+	// 0x422df0: the special event of that name, null when there is none
+	SpecialEvent* getEvent(const std::string& theName);
+	// 0x422f90: the customer "<name>_<theme>", the theme the one of the city that is played; null when there is none
+	Character* getCharacterByNameTheme(const std::string& theName);
 	// 0x422e10: the music clip of that name, null when there is none
 	GameMusicClip* getMusic(const std::string& theName);
 
