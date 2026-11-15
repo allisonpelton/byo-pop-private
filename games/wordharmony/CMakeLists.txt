@@ -1,21 +1,15 @@
 # Word Harmony (Sprout Games, 2006; games/wordharmony) on the shared platform layer. Word Harmony runs on Sprout's own
 # first-generation engine (namespace engine; shared with Pizza Frenzy and Iggle Pop), not the SexyAppFramework:
-# engine/ is that engine, translated and mapped onto the platform through a host interface, game/ is the game's own
-# code on top of it, and src/ the app that hosts both (games/wordharmony/docs). The SexyAppFramework only hosts the app: its window, clock, input and sound
-# device, and the 800x600 screen the game draws into.
-file(GLOB WORDHARMONY_ENGINE_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/engine/*.cpp)
+# engines/sprout is that engine, translated and mapped onto the platform through a host interface (one copy, shared
+# with Pizza Frenzy), game/ is the game's own code on top of it, and src/ the app that hosts both
+# (games/wordharmony/docs). The SexyAppFramework only hosts the app: its window, clock, input and sound device, and the
+# 800x600 screen the game draws into.
 file(GLOB WORDHARMONY_GAME_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/game/*.cpp)
 file(GLOB WORDHARMONY_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp)
 
-add_library(wordharmonyengine STATIC ${WORDHARMONY_ENGINE_SOURCES})
-target_include_directories(wordharmonyengine PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/engine)
-if(NOT MSVC)
-  target_compile_options(wordharmonyengine PRIVATE -Wall -Wno-unused-private-field)
-endif()
-
 add_library(wordharmonygame STATIC ${WORDHARMONY_GAME_SOURCES})
 target_include_directories(wordharmonygame PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/game)
-target_link_libraries(wordharmonygame PUBLIC wordharmonyengine)
+target_link_libraries(wordharmonygame PUBLIC sprout)
 if(NOT MSVC)
   target_compile_options(wordharmonygame PRIVATE -Wall -Wno-unused-private-field)
 endif()
@@ -28,7 +22,7 @@ endif()
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/src/WordHarmonyApp.cpp)
   add_executable(wordharmony ${WORDHARMONY_SOURCES})
   target_include_directories(wordharmony PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src ${CMAKE_CURRENT_SOURCE_DIR})
-  target_link_libraries(wordharmony PRIVATE wordharmonygame sexyframework sexycompat2004 stb)
+  target_link_libraries(wordharmony PRIVATE wordharmonygame sprouthost sexyframework sexycompat2004 stb)
   if(NOT MSVC)
     target_compile_options(wordharmony PRIVATE -Wall -Wno-unused-private-field)
   endif()

@@ -286,10 +286,10 @@ public:
 	bool			mIsSurvival;			// +0x327
 	int				mEnemiesDestroyed;		// +0x328
 	int				mEnemiesSpawned;		// +0x32c
-	int				mProjectilesDestroyed;	// +0x330
+	int				mProjectilesDestroyed;	// +0x330 this level's (the app's mStats keeps the total); nothing reads it
 	int				mProjectilesFired;		// +0x334
-	int				mShotsFired;			// +0x338
-	int				mShotsMissed;			// +0x33c
+	int				mShotsFired;			// +0x338 this level's; nothing reads it
+	int				mShotsMissed;			// +0x33c this level's, the enemies' bullets too; nothing reads it
 	int				mFriendliesDestroyed;	// +0x340
 	int				mRank;					// +0x344 the game's place on the high scores, NO_RANK if none
 	std::string		mTypedKeys;				// +0x34c the keys typed, while they spell the start of a code

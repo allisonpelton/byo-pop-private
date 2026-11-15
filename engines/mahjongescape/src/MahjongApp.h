@@ -72,16 +72,26 @@ public:
 	bool mGameEnded;
 	bool mApplyingGameMode;  // SwitchScreenMode is the game's own request (jb::Host::SetFullScreen)
 	uint32_t mNextFrame;     // the frame's pacing (jb::Host::Sleep)
+	int mModalPauses;        // the pauses ModalOpen put on the manager that ModalClose has not yet taken off
 
 	MahjongApp();
 	virtual ~MahjongApp();
 
 	void Init() override;
+#ifndef __EMSCRIPTEN__
+	// port: the window's own display (framework/SurfaceDisplay.h): the engine's screen buffer and the rects that changed
+	// go to it, and it shows them through the window's surface when the window is 1:1 and through the renderer otherwise
+	DDInterface* CreateDDInterface() override;
+#endif
 	void HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue) override;
 	void Shutdown() override;
 	void CloseRequestAsync() override;
 	void GotFocus() override;
 	void LostFocus() override;
+	// a modal dialog (the mod menu among them) holds the game under it: the manager's clock, the animations and the objects stand still
+	// until the last one closes (a game that was paused already stays paused: Manager::Pause counts)
+	void ModalOpen() override;
+	void ModalClose() override;
 	void SwitchScreenMode(bool wantWindowed, bool is3d, bool force = false) override;
 	void ReadFromRegistry() override;
 	void WriteToRegistry() override;

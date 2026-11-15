@@ -286,7 +286,7 @@ pairs), `webpairs.sh <before dir> <pairs>` (the web build's pairs under Node) an
 the puzzle branch of `Board::EnsureMoves`, which the new level code never reaches (it calls `EnsureMoves` only for modes other than
 puzzle and Stampede); the comment in `EnsureMoves` says so. The suite passes with the baseline identical. The rest of the port's
 functions were all reached by the original's runs (section 11), apart from `AbandonPair` and `TriggerNoMoves`, which a board with no
-pair left reaches and which were read again against the export; the fields named `Unused` stay because the original's objects and
+pair left reaches and which were read again against the export (and run in the original since, section 11's last part); the fields named `Unused` stay because the original's objects and
 save files keep them.
 
 ## 11. Coverage check (2026-11-08)
@@ -318,7 +318,8 @@ silent stand-in, and every one of them ended with the game exiting:
 `games/noahsark/coverage.txt` sets the game's own code as one range, 0x401000-0x420d10 (Board, the dialogs, the screens, NoahApp and
 the compiler's copies of the standard library): 258 functions. The rest of the exe is the 2002 SexyApp framework (from Widget at
 0x421d60), the C runtime and the libraries. The first report, from ten of the runs, had the runs reach 205 of the 258 and the port
-define 142 of them; the last one, from all 15, has them reach 221 and the port define 169.
+define 142 of them; the last one, from all 15, has them reach 221 and the port define 169. (Five more runs on 2026-11-14 brought
+the reached functions to 223: "Boards with no move left", at the end of this section.)
 
 **Reached in the original with no counterpart in the port: 79 at first, 0 at the end.**
 
@@ -374,7 +375,7 @@ define 142 of them; the last one, from all 15, has them reach 221 and the port d
   replayed in it.
 - **`Board::AbandonPair` (0x4067e0) and `Board::TriggerNoMoves` (0x4074c0):** reached only by a board with no pair left, which none of
   the 15 runs came to. Both were read again line by line against the export and match, including the points taken, the water's move and
-  the sample played.
+  the sample played. (Reached on 2026-11-14, and the same in both games: "Boards with no move left", below.)
 - **Taken out (2026-11-09, the performance pass's second part): `Board::RefillPuzzle` (0x4061d0) and the puzzle branch of
   `Board::EnsureMoves`.** The original's only caller of `EnsureMoves` is the new level code, which calls it only for modes
   other than puzzle (4) and Stampede (5), so the branch that calls `RefillPuzzle` never runs in either. The port had the same guard;
@@ -402,6 +403,70 @@ Windows Sandbox (`SANDBOX=1 tools/run_original.sh`) before the clicks of the dia
 **Cost.** The original ran for about 20 minutes of machine time all together, and the wait for room (at most 3 game processes on the
 machine) took more than that. Sonnet agents sorted the first report's 79 rows (17 minutes, 338k tokens) and read the five port
 functions again (10 minutes, 217k tokens); the rest was this session's, with a few sandbox runs for the Options layout.
+
+### Boards with no move left (2026-11-14)
+
+The lite-mod step's timers (section 14) showed that the bot's hard strategy games come to boards with no pair left, which none of
+the 15 runs above did. This follow-up asked whether `TriggerNoMoves` and `AbandonPair` run in the port in those games, whether the
+original runs them in the same games, and whether the two agree there. They do, the original reaches both, and nothing in the port
+changed.
+
+**The port runs them.** `tools/coverage/portcov.sh` builds the port with clang's source coverage in `build/native-cov` and prints,
+for the functions asked for, how many times each line ran. In the two games named (hard strategy, `-seed=N -autoplay=N
+-autoplaymode=strategy -autoplaydiff=8 -autoplaycap=20000` with N 1 and 2; they end on the plain build's lines, level 7 done at update
+19993 with 11900 points and at 19095 with 11195) `TriggerNoMoves` runs 2 and 5 times and `AbandonPair` 4 and 9 times, abandoning 3
+and 7 pairs.
+
+**Why the run of 2026-11-08 missed them.** `str_h` was the game of seed 1, started through the menu and played to 12,000 updates, and
+the port's state log of it has the abandon at updates 8915 and 11123, in levels 3 and 4. The original never came there. Its replay
+parted from the port's game where level 3 began (play starts at update 6608 in the port and at 6610 in the original; the get-ready
+of a level after the first does not end the same way in the original, `IDENTICAL_PLAY.md`, "Oddities", so the next board is
+another one and the bot's clicks no longer fit), and its last change is at update 9749. Its hits count as play of the original, but from level 3 on it was not the port's game.
+
+**Games the original can follow.** A replay stays in step through the first level, so the bot played hard strategy games with the
+seeds 1 to 8 to see which come to such a board in level 1: 2, 4, 6, 7 and 8 do. Four of them and a hard puzzle game that runs out of
+swaps (seed 1) were played in both. Each has its menu clicks at update 15001 and after: the original's play link came up at update
+3160 in one run that day and at 956 in another, because its loading thread runs on the wall clock while the updates run ahead on
+origrun's virtual one, and a click at update 301, where the scripts of 2026-11-08 have it, is then lost and the game stays on its
+title (two runs did). `mkbot.sh` takes the update as `MENU_AT`, and the original's script now waits for the link's flag first.
+Nothing draws a random number before a game starts, so the port's game is the same game 14,700 updates later, which its state log
+shows row for row.
+
+| Run (`all.sh <name>`) | What happens in the port, with its calls from the line counts | The original's hits | Changes compared |
+|---|---|---|---|
+| `nm_str2`, seed 2 | at update 17855 no pair is left; two pairs are abandoned (the score 840, 825, 765), then a pair can be joined again and the level is played out: `TriggerNoMoves` 1, `AbandonPair` 2 | 0x4074c0, 0x4067e0 | 38 on each side, none different |
+| `nm_str4`, seed 4 | two stretches: one pair; later one pair, then nothing is left to abandon and the round ends with the level done: `TriggerNoMoves` 2, `AbandonPair` 3, `EndRound` 1 | 0x4074c0, 0x4067e0, 0x407b40 | 39, none different |
+| `nm_str7`, seed 7 | two stretches: one pair; later three, the points taken at their cap of 60 from the fifth animal on, and the round's end: 2, 5 and 1 | the same three | 39, none different |
+| `nm_str8`, seed 8 | four stretches, eleven pairs, the score down to 0, the round's end: 4, 12 and 1 | the same three | 40, none different; the water too (below) |
+| `nm_puz`, puzzle, seed 1 | at update 16463 no swap is left: `TriggerNoMoves` 1, its other branch (the state 5), then the game over | 0x4074c0 | 57 and 58, none different |
+
+The changes are the four values `origrun_replay.py compare` reads (the board's state, the score, the level, the mode) at each update
+at which one of them changes, the original's update counter taken one lower. Each strategy run also has one row of the original's
+after the update at which the port's run was stopped (the start of play in level 2), which the tool counts as different and which
+has no row of the port's to stand against. The water is not among the four, and it is what `AbandonPair` moves besides the score, so
+`nm_str8` was run once more with the water (board+0x36c) as the original's fourth watch and the port's `-statelogcells=w`: 13
+changes on each side from the game's start to update 17927, the same values at the same updates, eleven of them the drop of 15 for
+an abandoned pair (10 for its first animal and 5 for the second).
+
+**What the port's lines say.** Over the five games every line of `TriggerNoMoves` ran, and every line of `AbandonPair` but three: the
+two that hold the water at the ark's level and the call of `EndRound` once the water has come down to it. That is a strategy game
+lost by abandoning. From the first level's water (402, the ark at 200, 15 a pair) it takes 14 pairs abandoned in one level, and
+none of the seeds 1 to 14 came to it (the most was eleven pairs, seed 8); a later level starts with less water, but a replay cannot
+follow the original there. So those three lines stay read against the export, where they are the same comparison and the same
+call. The action mode's abandon is the same lines without the water and the warning sample, and it was not seen either: none of
+fifteen action games of the bot came to a board with no pair (hard, seeds 1 to 10, the first level; five whole games in section
+14's runs).
+
+**The report now** (`build/coverage/noahsark/report.md`, from the 15 runs and these five): the runs reach 223 of the 258 functions
+(221 before), none reached without a counterpart, and one defined in the port and never reached: `RecordScoreDialog::EditWidgetText`
+(0x41de20), Enter in the name box, which no scripted key reaches in the original on the host (section 13). `coverage.txt` got a
+`none` line for 0x4061d0 (`RefillPuzzle`, taken out on 2026-11-09), which the report listed as defined because the comment above
+`EnsureMoves` names it.
+
+**Tools.** `tools/coverage/all.sh` has the five runs by name (they are not in its default list), and its bot runs now log the
+comparison's last line beside the hits. `mkbot.sh` has `MENU_AT` and the wait for the link. `portcov.sh` is new. origrun was
+rebuilt from the trunk first. The original ran ten times for this (two that stayed on the title, two that only timed the link,
+the five runs and the water's), a few minutes of machine time; most of the wait was for room on the machine.
 
 ## 12. Code the port does not need (2026-11-10)
 
@@ -451,7 +516,7 @@ The exe is 3,055,616 bytes (3,064,320 before).
 **Looked at and kept.** `Board`'s fields at +0x314, +0x320, +0x324 and +0x330 are written to the saved game and read back and
 nothing else reads them, so the save's format keeps them (the readability pass names them for what they hold).
 `Board::AbandonPair` and `TriggerNoMoves` run only on a board with no pair left, which no run of the coverage check reached;
-both match the export (section 11). The overrides of the framework's hooks (`LoadingThreadProc`, `LoadingThreadCompleted`,
+both match the export (section 11; five runs of 2026-11-14 reach them, and the port plays them as the original does). The overrides of the framework's hooks (`LoadingThreadProc`, `LoadingThreadCompleted`,
 `NewDialog`, `LostFocus`, `HandleCmdLineParam`, `HandleScriptCommand`, the registry pair, the two `PlaySample`) are called by
 the framework. `Mods.cpp` and `ModFeatures.cpp` are the code of the four mods and the fixes mod, and `SiteProfiles.cpp` the
 site's hook. The test hooks (`src/testhooks/`, about 1,100 lines: the test commands, `-autoplay`, the state log, the bot) are
@@ -578,6 +643,7 @@ the trail a player sees for a gain that cannot be measured. The step is done wit
 
 Two things the runs showed that the earlier sections did not have. The bot's hard strategy games reach boards with no pair left
 and animals still standing (`-seed=1 -autoplay=1 -autoplaymode=strategy -autoplaydiff=8` and the same with 2: 56 and 127 of the
-checks, up to 26 animals), which no run of the coverage check did (section 11). And the survey's figure for `HasMove` in
+checks, up to 26 animals), which no run of the coverage check did (section 11, whose last part now has such boards played in
+the original). And the survey's figure for `HasMove` in
 `docs/MOD_ROADMAP.md`, about half a million steps when no move is left, is far above what a board reaches: the slowest such call
 took 24 microseconds.

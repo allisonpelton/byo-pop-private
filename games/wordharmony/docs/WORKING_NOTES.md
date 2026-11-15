@@ -17,13 +17,13 @@ argument counts and exported again. The archive is extracted for reading to `re/
 known of the engine.
 
 The coordinator was told (2026-10-26) that the engine is Sprout's first generation and shared with Pizza Frenzy and
-Iggle Pop; the plan is to keep it in `engine/`, free of game code, so it can move to shared code later.
+Iggle Pop; the plan is to keep it in `engines/sprout/`, free of game code, so it can move to shared code later.
 
 ## Plan
 
 The engine runs one frame per call (no modal loops), so the port hosts it from a framework widget like Ning Po's
 (`games/ningpo/src/NingPoApp.*`), without ASYNCIFY: the widget's Update runs the frame (0x4542e0), its Draw blits the
-800x600 screen. `engine/` is the engine translated (namespace `engine`), mapped onto the framework and `platform/`
+800x600 screen. `engines/sprout/` is the engine translated (namespace `engine`), mapped onto the framework and `platform/`
 through a host interface; `src/` is the game. STL code in the binary (map, list, deque, vector, string internals)
 is not translated: the port uses the standard containers.
 
@@ -34,7 +34,7 @@ and the music layers; the application; then the game from 0x401000 up.
 
 ## Port progress
 
-Built and checked (`wordharmony_enginetest` parses all 52 XML files of the archive, 7366 elements): `engine/Object.h`
+Built and checked (`wordharmony_enginetest` parses all 52 XML files of the archive, 7366 elements): `engines/sprout/Object.h`
 (Interface, Object, Ref), `Exception.h`, `Geometry.h`, `Graphics.h/.cpp` (render states; the image draw is pure, the
 host's subclass implements it), `Font.h/.cpp`, `Xml.h/.cpp` (the parser 0x43b1f0 translated state by state, the
 attribute getters), `Stream.h/.cpp` (memory streams: the host reads whole files), `ResourceManager.h/.cpp` (the
@@ -150,13 +150,13 @@ deletes its old layers first (0x425230 -> 0x424e90). A layer's random pick uses 
 random-not-last takes size - 1 when it draws the last index again; sequential wraps to 0; loop keeps the index
 unless one was chosen (0x4247c0 select(index, now)), and its clips loop.
 
-The music as ported (engine/Music.h/.cpp): the layer, the system and the reader as read above; a clip that fails to
+The music as ported (engines/sprout/Music.h/.cpp): the layer, the system and the reader as read above; a clip that fails to
 register is left out of the list, as in the original (0x424b80 returns null). The engine
 test reads every XML file as a sounds file and as a music file over a sound system that plays nothing: 17 sounds, 4
 music files (drums, game-over-music, menuMusic, music: 1, 1, 1 and 4 layers), every file found ignoring case, and
 each music file runs two minutes, stops and runs ten seconds more.
 
-The ball system as ported (game/WordBallSystem.h/.cpp, compiled, not yet run): the constructor and destructor, the balls and their looks, the rope, the mouse, the water and chain drawing, spawning, the row and column groups, the keys and startLevel (0x417b20). The rules are ported too: the letter queue and the hints (0x418f30-0x41a050), the scoring of a found word (0x41a120), the word finders for solitaire and freematch (0x41a8b0, any word of the shortest length or more, wildcards filled from the word list) and for the puzzles (0x41b2d0, the level's own words), submit (0x41b6f0), update (0x41b760) and the right button (0x41c2d0). Still to port: the saved game 0x4142c0 and 0x4199d0 (with the writer and reader 0x41e760-0x41f7e0). Kept as in the exe: a multiplier ball adds no letter to a run, yet the wildcards' balls are then found by the letters' positions; 0x41a8b0 counts an empty word as scored when a start passes the end before any word was kept; +0xd8 (the last physics step's time) and +0x140 (the last word's time) start unset in the original, at 0 in the port. Left out: the level editor's own functions (0x413af0, 0x413c40, 0x416920, 0x416ba0, the editor HUD's actions 0x417680), since this build never sets +0x1f8 (the controller loads EditorHUD.xml, 0x408190, but never shows it); the editor branches inside live functions are ported. game/Game.h, Hud.h, Level.h and engine/TextEffects.h only declare what the ball system calls, with the addresses still to port. startLevel's puzzle pool loses everything from a placed letter on (the original's erase(at), not erase(at, 1)); solitaire's run test compares with '\0' while the pieces leave '0's (both as in the exe).
+The ball system as ported (game/WordBallSystem.h/.cpp, compiled, not yet run): the constructor and destructor, the balls and their looks, the rope, the mouse, the water and chain drawing, spawning, the row and column groups, the keys and startLevel (0x417b20). The rules are ported too: the letter queue and the hints (0x418f30-0x41a050), the scoring of a found word (0x41a120), the word finders for solitaire and freematch (0x41a8b0, any word of the shortest length or more, wildcards filled from the word list) and for the puzzles (0x41b2d0, the level's own words), submit (0x41b6f0), update (0x41b760) and the right button (0x41c2d0). Still to port: the saved game 0x4142c0 and 0x4199d0 (with the writer and reader 0x41e760-0x41f7e0). Kept as in the exe: a multiplier ball adds no letter to a run, yet the wildcards' balls are then found by the letters' positions; 0x41a8b0 counts an empty word as scored when a start passes the end before any word was kept; +0xd8 (the last physics step's time) and +0x140 (the last word's time) start unset in the original, at 0 in the port. Left out: the level editor's own functions (0x413af0, 0x413c40, 0x416920, 0x416ba0, the editor HUD's actions 0x417680), since this build never sets +0x1f8 (the controller loads EditorHUD.xml, 0x408190, but never shows it); the editor branches inside live functions are ported. game/Game.h, Hud.h, Level.h and engines/sprout/TextEffects.h only declare what the ball system calls, with the addresses still to port. startLevel's puzzle pool loses everything from a placed letter on (the original's erase(at), not erase(at, 1)); solitaire's run test compares with '\0' while the pieces leave '0's (both as in the exe).
 
 The level code as ported (game/Level.h/.cpp): the level's constructors (0x41c760, the rules carried on from the level before; 0x41c910, a deep copy), its destructor, the bubbles (0x41e380, 0x41e420, the special flags 0x41e280 and 0x41e460, the element 0x41e5b0 the saved game writes) and the level file's reader (0x41ce30 with its handler 0x41cf70). The reader's defaults: gravity 0,500, shortestWord 3, spawnDelay 5, the rest 0; the time and the longest piece are never read, so they stay at 60 and 2 or carry on. A "breakable" obstacle becomes a bubble of one letter with the flag 0x100. The ball flags take the names the special attribute gives them: 1 bomb, 0x20 block, 0x40 heavy (rock.png), 0x80 stone, 0x100 obstacle. Left out: the level file's writer 0x41c450 (the editor's, from 0x4053b0) and the editor's one-letter bubble 0x41e3a0.
 
@@ -166,7 +166,7 @@ The high score tables as read (0x421200-0x422030, ported in game/HighScores.cpp;
 
 The HUD (0x422220-0x424040) is ported in game/Hud.cpp, all but its part of the saved game (0x422400). It carries out its buttons' actions itself (0x422850): the menu's (retry, quit, pause, help: the controller's, declared but not read yet), the ball system's (submit, nextLevel, wildcard, hint, spawnBall) and the recycle buttons "submit1" to "submit14", which put a found word's letters back. The controller's +0x3c is the HUD's balls remaining (the level's ball criteria less the letters used), now mLettersLeft; Game::playSound takes the name only (ret 0x1c). Its three texts go through game/GameText.h (GT(address)); the loader, which reads them from the player's WordHarmony.exe, comes with the host (the texts are there as they are in the game image).
 
-The floating texts are ported in engine/TextEffects.cpp: the factory ("SplatFactory", 0x428780-0x4298b0), its template reader (0x430a70-0x431930, the particle file's elements less position, particleLife and blackHole, plus resource type text and destination) and the text ("Splat", 0x42a400-0x42aa50). create takes a fifth argument, passed to the callback: the found word's letter count, which Game::scoreShown (0x401290) takes off the letters left. A text's own transform multiplies its opacity in but leaves out the rotation and the colour offset. The screen at 0x42a0d0/0x42a240 (vtable 0x483950) sits between them and belongs with the screens.
+The floating texts are ported in engines/sprout/TextEffects.cpp: the factory ("SplatFactory", 0x428780-0x4298b0), its template reader (0x430a70-0x431930, the particle file's elements less position, particleLife and blackHole, plus resource type text and destination) and the text ("Splat", 0x42a400-0x42aa50). create takes a fifth argument, passed to the callback: the found word's letter count, which Game::scoreShown (0x401290) takes off the letters left. A text's own transform multiplies its opacity in but leaves out the rotation and the colour offset. The screen at 0x42a0d0/0x42a240 (vtable 0x483950) sits between them and belongs with the screens.
 
 Remaining, in order (2026-10-26): the screens 0x409c20-0x40df90 (90 functions, about 17 KB of code; the editor's WordEntry 0x40dcd0-0x40df90 left out, the saved game's reader 0x40cf90 kept for the save code), then the controller 0x401000-0x409c00 (0x403760 fills an empty score table with five names: game text, by GT), then the save code, then src/: main.cpp with the engine::Host (registry included), the GameText loader (game/GameText.h; table generated from the carved exe, texts read from the player's WordHarmony.exe), the sound system and the web shell (port 18778).
 

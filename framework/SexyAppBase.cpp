@@ -5207,6 +5207,14 @@ Sexy::DDImage* SexyAppBase::GetOptionalImage(const std::string& theFileName, boo
 	if ((aLoadedImage.mHDScale > 1) && (!aLoadedImage.mHDBits.empty()))
 		anImage->SetHDBits(&aLoadedImage.mHDBits[0], aLoadedImage.mHDWidth, aLoadedImage.mHDHeight, aLoadedImage.mHDScale);
 	anImage->mFilePath = theFileName;
+	// port: the file makes these pixels again once they are dropped after upload (MemoryImage.h, mBitsSource); a picture the
+	// game's generator drew is not a file's
+	if (!aLoadedImage.mGenerated)
+	{
+		MemoryImage::BitsSource* aSource = new MemoryImage::BitsSource();
+		aSource->mPath = theFileName;
+		anImage->SetBitsSource(aSource);
+	}
 
 	return anImage;
 }

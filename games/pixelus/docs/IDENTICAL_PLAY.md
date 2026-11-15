@@ -148,18 +148,34 @@ phase-one baseline only in their `apprand` lines; the game's own state and its d
 The original and the port were given the same updates, with the clicks at each program's own buttons (the options dialog's
 rows are not where the port's are). The menu after Play and the story match (0.0%). What differs, not yet fixed:
 
-- **The options dialog** (u300, 45%). The original's dialog from the menu is a column of full-width rows: How to play, Check
-  for updates, Credits, then the footer's Done, with a Hardware Acceleration box under the other two; it has no Reset Hints.
-  The port draws Reset Hints and Credits side by side over How to play, and has neither the update row nor the 3D box.
-  The rows come from NcApp's constructor 0x4e8b80 (which buttons exist depends on the application's registered flag at
-  +0x654 and two flags copied from a 13-word block into the dialog at +0x150 and +0x151) and its layout 0x4e7f50 (the row
-  vector at +0x184). Check for updates and the 3D box are outbound and platform items the port leaves out on purpose; the
-  rest of the layout (the rows' places, whether Reset Hints shows from the menu) has to follow that code.
-- **The help screen's demos** (u400 to u700, 28%): the original's left demo shows the hero sliding a tile in with the pointer
-  and its right grid is dark with the picture's cells fading in; the port's demos are in other phases of their loops.
-  Their timing (0x4170d0's callers) has to be lined up with the update the help screen opens at.
-- **The credits dialog** (u900 and later, 13%): the original's dialog is taller and its text starts higher; the port's is
-  shorter with its text lower.
+- **The options dialog** (u300, 45%, fixed in the rows). The original's dialog from the menu is a column of full-width rows:
+  How to play, Check for updates, Credits, then the footer's Done, with a Hardware Acceleration box under the other two
+  and no Reset Hints. Reading 0x4e8b80 and 0x4194d0 explains it: Reset Hints (the base class's button at +0x174) is made
+  only when byte +0x151 of the caller's block is set, and 0x4194d0 sets +0x150 and clears +0x151, so it never exists; the
+  base's button at +0x170 needs +0x150 and an unregistered game, and 0x4190b0 swaps the places of Credits and How to play
+  (How to play takes the top row, beside Main menu in a puzzle with Main menu on the left; Credits goes down next to
+  Done). The port had made Reset Hints and Credits a half-width pair; now it has How to play (and Main menu), Credits and
+  Done, with Reset Hints gone. The update row and the 3D box lead out or belong to the platform, so they stay out and the
+  rows close the gap; the dialog is `0x1ac - 0x24 - a box` high instead of the original's 0x1ac (0x4190a0, 0x4e7c80). The
+  rest of the 44% in the shot is that smaller frame, and the player's name beside "Welcome" below.
+- **The credits dialog** (u900 and later, 13% to 5.5%, fixed). "Developed by" and "Many thanks to" are drawn in Garamond 14
+  (the dialog's own font index 6 at +0x124), the other lines in Garamond 12, from the content top 0x3c (the port had 0x24).
+  The doubled top and bottom beams in the original's shot are the options dialog's larger frame under the credits; ours is
+  smaller, so only the credits' own frame shows.
+- **The help screen's demos** (u400 to u700, 28%, decoded, not ported). The port's screen is a stand-in: both windows run at
+  once and tiles slide in on their own. The original builds three objects in 0x40e1a0: the left demo (0xa0 bytes, 0x40ddd0,
+  update 0x40d320, draw 0x40d740), the right one (0x80 bytes, 0x40df90, update 0x40d8d0, draw 0x40e0b0) and the plain
+  backdrop (0x40da40). They take turns: the left runs its 950-update script (updates 1, 50, 75, 100, 175, 200, 250, 315,
+  500, 525, 550, 600, 625, 650, 700 and 790 place or pull a tile, aim the Tile Master and move the pointer between two
+  columns; at 0x3b5 it hands over) while the right stays under a dark layer (200 of alpha) that fades out by 1.0 an update
+  when it is the right's turn; the right then replays the shipped solution of `levels/helpscreen.txt` through the grid's own
+  replay (0x426560 with 100 updates between throws), holds the finished picture 100 updates, fades the picture in and out
+  (alpha 0 to 255 by 2) and hands back (0x40dd50 swaps the two states). Each window holds a real animated grid of the
+  game (the left a 12 by 12 one at offset (15, -30), the right a 16 by 16 one at (5, -43)) and the left a Tile Master
+  (0x42bd40, whose walk, in five sub-steps of 0.3 an update, and idle animations the port's TileMaster does not have). What it
+  would take: the board's tile animation and drawing (Board::UpdateTiles, DrawGrid, DrawTile, DrawTrail) lifted out of
+  Board into a piece that a window can own at its own origin, the grid's solution replay, and a Tile Master with the
+  original's walk and sprite-sheet animations. The tiles' rules and the shipped puzzle are already in the port.
 - At u300 and u1800 the original's menu says "Welcome to Pixelus" with no player name (0x40a8b0 prints the name only while a
   player is current); the port's player was made at the same update by the same clicks, so this run's original lost the
   name or made it later. Not explained; the case t16 (u250) shows the name in both.

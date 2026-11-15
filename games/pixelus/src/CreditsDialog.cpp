@@ -25,18 +25,18 @@ int CreditsDialog::GetPreferredHeight(int theWidth)
 void CreditsDialog::Draw(Graphics* g)
 {
 	GameDialog::Draw(g);
-	const int aTop = 0x24;
+	const int aTop = 0x3c;	// the content's top (the insets StyleDialog sets)
 	g->SetColor(Color(255, 255, 255, 255));
 
 	struct Line { unsigned int mText; int mY; int mFont; };
 	static const Line aLines[] =
 	{
-		{0x5284b8, aTop + 0x14, FONT_GARAMOND12},	// "Developed by"
+		{0x5284b8, aTop + 0x14, FONT_GARAMOND14},	// "Developed by"
 		{0x50b73c, aTop + 0x2a, FONT_GARAMOND12},
 		{0x50b714, aTop + 0x40, FONT_GARAMOND12},
 		{0x50b700, aTop + 0x56, FONT_GARAMOND12},
 		{0x5284a4, aTop + 0x6c, FONT_GARAMOND12},	// "for Nuclide.com."
-		{0x528494, aTop + 0x94, FONT_GARAMOND12},	// "Many thanks to"
+		{0x528494, aTop + 0x94, FONT_GARAMOND14},	// "Many thanks to"
 		{0x50b6d4, aTop + 0xaa, FONT_GARAMOND12},
 		{0x50b6b4, aTop + 0xc0, FONT_GARAMOND12},
 		{0x50b698, aTop + 0xd6, FONT_GARAMOND12},	// "and all others at PopCap."
