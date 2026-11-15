@@ -623,7 +623,8 @@ try {
             if (siteSettingsView && siteSettingsView.refresh) siteSettingsView.refresh();
           });
         } catch (e) { return null; }
-      })(), input: document.getElementById("site-cursor"), players: document.getElementById("players-body"), saves: document.getElementById("saves-body") },
+      })(), sound: (function () { try { return ByopopThemes.ownChooser(function (k, v) { return ByopopStrings.t(k, v); }); } catch (e) { return null; } })(),
+      input: document.getElementById("site-cursor"), players: document.getElementById("players-body"), saves: document.getElementById("saves-body") },
     section: (/^#settings-([a-z]+)$/.exec(settingsHash(location.hash)) || [])[1],
     openSection: function (id) { if (window.ByopopSkin && ByopopSkin.desk.show("set-" + id)) return; siteSettingsView.select(id, true); }
   });

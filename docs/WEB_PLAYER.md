@@ -261,6 +261,12 @@ listing shows it (`byopop-desk-open` "shutdown"), and from a window's page the d
 - **The theme's events** now include start, exit, empty and error. Start comes at the first press or key of the browser's
   session on the listing, since a page may play nothing before that, and again when Shut Down's last screen goes. Exit is
   Shut Down, and empty is Empty Recycle Bin. Error is a game stopped by an error and an import refused, on either page.
+- **The player's own event sounds:** Settings' Sound section on the listing lists the events, each with the file kept for
+  it, Browse, a test press and Remove, plus Add files and a drop for many at once. A file goes to its event by its name, as
+  a sound scheme's files were named (`OWN_NAMES` in `web/themes.js`: "Windows Minimize.wav", recycle.wav, tada.wav), and
+  a name that matches none is listed for Browse. The files stay in this browser, in IndexedDB (`byopop-own-sounds`, at
+  most 4 MB each), and nothing is uploaded or shipped. An event with its own sound plays it whatever the theme; every open
+  page reads them again when `byopop-own-sounds-at` changes.
 - **Copying a game's files** shows the file-copy dialog (`ByopopCopy`), on either page's import: our own drawing of a
   page flying between two folders, the file being copied, its size and a progress bar. A game page inside the listing
   shows it on the listing's desktop. Without the desktop the pages' own messages say how the copy goes.

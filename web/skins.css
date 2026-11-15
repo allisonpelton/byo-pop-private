@@ -1008,6 +1008,16 @@ html.d95-desk .d95-switch-name { min-width: 220px; padding: 3px 6px; text-align:
 html.d95-desk .d95-bsod { position: absolute; inset: 0; z-index: 5; outline: none; background: #0000aa; color: #fff; display: flex; flex-direction: column;
   align-items: center; justify-content: center; gap: 1em; font: 16px/1.2 "Courier New", monospace; text-shadow: none; letter-spacing: 0; }
 html.d95-desk .d95-bsod > p { margin: 0; padding: 0 1em; text-align: center; overflow-wrap: anywhere; }
+/* the player's own event sounds (web/themes.js, ownChooser), in Settings' Sound section */
+.own-sounds { margin-top: 12px; }
+.own-sounds-hint, .own-sounds-said { margin: 4px 0; }
+.own-sounds-said:empty { display: none; }
+.own-sounds-table { border-collapse: collapse; width: 100%; }
+.own-sounds-table th { text-align: left; font-weight: normal; padding: 2px 8px 2px 0; white-space: nowrap; }
+.own-sounds-table td { padding: 2px 4px 2px 0; }
+.own-sounds-file { max-width: 14em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.own-sounds-table button { margin-right: 4px; }
+.own-sounds.own-sounds-drop { outline: 1px dotted currentColor; outline-offset: 2px; }
 /* the copy of a game's files (ByopopCopy, web/skins.js): 1995's file-copy dialog, with our own drawing of a page flying between folders */
 html.d95-desk .d95-copy.d95-win { position: fixed; left: 50%; top: 40%; transform: translate(-50%, -50%); width: 340px; z-index: 2147481000;
   padding-bottom: 10px; }

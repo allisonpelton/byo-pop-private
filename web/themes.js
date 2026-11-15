@@ -18,6 +18,13 @@
 //
 // THEMES: by game id, {wallpaper: the background's path in the game's folder, sounds: {event: path}}, every path one the game's
 // own code loads (its source names it), the sounds among its soundboard's.
+//
+// The player's own sounds (the user, 2026-11-14, by the coordinator's list): Settings' Sound section lets the player pick, or drop,
+// sound files from their own computer for any of the events. A file is matched to its event by its name, as a sound scheme's files
+// were named ("Windows Minimize.wav", "recycle.wav", "tada.wav": OWN_NAMES), and each event can be given another file or none. They
+// are kept in this browser only, in IndexedDB (byopop-own-sounds; a sound may be larger than localStorage holds), and nothing is
+// uploaded; byopop-own-sounds-at changes with each change, so every open page reads them again. An event with the player's own
+// sound plays it, whatever the theme; the others play the theme's.
 var ByopopThemes = (function () {
   "use strict";
   var THEMES = (typeof ByopopThemeData !== "undefined") ? ByopopThemeData : {};
@@ -63,10 +70,200 @@ var ByopopThemes = (function () {
       return v >= 0 && v <= 100 ? v / 100 : 0.8;
     } catch (e) { return 0.8; }
   }
+  // ---- the player's own sounds ----
+  var OWN_DB = "byopop-own-sounds", OWN_STORE = "s", OWN_AT = "byopop-own-sounds-at", OWN_MAX = 4 * 1024 * 1024;
+  // a file's name, without its folder and type, in lower case and without a leading "windows ", to its event
+  var OWN_NAMES = {
+    "open program": "open", "open": "open",
+    "close program": "close", "close": "close",
+    "minimize": "minimize", "minimise": "minimize",
+    "restore up": "restore", "restore down": "restore", "restore": "restore",
+    "maximize": "maximize", "maximise": "maximize",
+    "menu popup": "menu", "menu command": "menu", "menu": "menu",
+    "ding": "ding", "default": "ding", "default sound": "ding", "exclamation": "ding", "asterisk": "ding", "notify": "ding",
+    "startup": "start", "start": "start", "logon": "start", "logon sound": "start", "tada": "start", "the microsoft sound": "start",
+    "shutdown": "exit", "shut down": "exit", "exit": "exit", "logoff": "exit", "logoff sound": "exit",
+    "recycle": "empty", "recycle bin": "empty", "empty recycle bin": "empty", "empty": "empty",
+    "error": "error", "critical stop": "error", "chord": "error", "hardware fail": "error", "critical": "error"
+  };
+  function ownEvent(name) {
+    var n = String(name || "").split(/[\/\\]/).pop().replace(/\.[a-z0-9]{1,5}$/i, "").toLowerCase().replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim();
+    n = n.replace(/^windows /, "");
+    return Object.prototype.hasOwnProperty.call(OWN_NAMES, n) ? OWN_NAMES[n] : null;
+  }
+  var own = {}, ownBuffers = {}, ownLoaded = null;
+  function ownDb() {
+    return new Promise(function (resolve, reject) {
+      if (typeof indexedDB === "undefined") { reject(new Error("no IndexedDB")); return; }
+      var r = indexedDB.open(OWN_DB, 1);
+      r.onupgradeneeded = function () { if (!r.result.objectStoreNames.contains(OWN_STORE)) r.result.createObjectStore(OWN_STORE); };
+      r.onsuccess = function () { resolve(r.result); };
+      r.onerror = function () { reject(r.error); };
+    });
+  }
+  // reads every event's own sound: {event: {name, bytes}}
+  function loadOwn() {
+    ownLoaded = ownDb().then(function (db) {
+      return new Promise(function (resolve) {
+        var got = {}, tx = db.transaction(OWN_STORE, "readonly"), st = tx.objectStore(OWN_STORE), cur = st.openCursor();
+        cur.onsuccess = function () {
+          var c = cur.result;
+          if (c) { if (EVENTS.indexOf(c.key) >= 0 && c.value && c.value.bytes) got[c.key] = c.value; c.continue(); }
+        };
+        tx.oncomplete = function () { db.close(); resolve(got); };
+        tx.onerror = tx.onabort = function () { db.close(); resolve({}); };
+      });
+    }).catch(function () { return {}; }).then(function (got) { own = got; ownBuffers = {}; return got; });
+    return ownLoaded;
+  }
+  function ownChanged() {
+    try { localStorage.setItem(OWN_AT, String(Date.now())); } catch (e) {}
+    try { window.dispatchEvent(new CustomEvent("byopop-own-sounds")); } catch (e) {}
+  }
+  // keeps a file (a File or Blob, with its name) as an event's sound; resolves with true, or false when it is too large or cannot
+  // be kept
+  function setOwn(what, file) {
+    if (EVENTS.indexOf(what) < 0 || !file || file.size > OWN_MAX) return Promise.resolve(false);
+    return file.arrayBuffer().then(function (buf) {
+      return ownDb().then(function (db) {
+        return new Promise(function (resolve) {
+          var tx = db.transaction(OWN_STORE, "readwrite");
+          tx.objectStore(OWN_STORE).put({ name: String(file.name || what), bytes: buf }, what);
+          tx.oncomplete = function () { db.close(); resolve(true); };
+          tx.onerror = tx.onabort = function () { db.close(); resolve(false); };
+        });
+      });
+    }).catch(function () { return false; }).then(function (ok) { return loadOwn().then(function () { if (ok) ownChanged(); return ok; }); });
+  }
+  function clearOwn(what) {
+    return ownDb().then(function (db) {
+      return new Promise(function (resolve) {
+        var tx = db.transaction(OWN_STORE, "readwrite");
+        tx.objectStore(OWN_STORE).delete(what);
+        tx.oncomplete = tx.onerror = tx.onabort = function () { db.close(); resolve(); };
+      });
+    }).catch(function () {}).then(function () { return loadOwn(); }).then(function () { ownChanged(); });
+  }
+  // files the player picked or dropped: each to the event its name matches. Resolves with {matched: [[event, name]], unmatched: [name]}
+  function addOwnFiles(files) {
+    var list = Array.prototype.slice.call(files || []), matched = [], unmatched = [];
+    return list.reduce(function (p, f) {
+      return p.then(function () {
+        var ev = ownEvent(f.name);
+        if (!ev) { unmatched.push(f.name); return; }
+        return setOwn(ev, f).then(function (ok) { if (ok) matched.push([ev, f.name]); else unmatched.push(f.name); });
+      });
+    }, Promise.resolve()).then(function () { return { matched: matched, unmatched: unmatched }; });
+  }
+  function audio() {
+    var AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return null;
+    try { if (!ctx) ctx = new AC(); } catch (e) { return null; }
+    if (ctx.state === "suspended") { try { ctx.resume(); } catch (e) {} }
+    return ctx;
+  }
+  function sound(buf) {
+    var src = ctx.createBufferSource(), g = ctx.createGain();
+    g.gain.value = level() * (window.ByopopVolume ? ByopopVolume.level() : 1);
+    src.buffer = buf; src.connect(g); g.connect(ctx.destination); src.start();
+  }
+  // plays an event's own sound: true when it has one
+  function playOwn(what) {
+    var o = own[what];
+    if (!o) return false;
+    if (!audio()) return true;
+    if (!ownBuffers[what]) {
+      ownBuffers[what] = ctx.decodeAudioData(o.bytes.slice(0)).catch(function (e) {
+        if (window.ByopopSounds && ByopopSounds.decode) return ByopopSounds.decode(ctx, o.name, new Uint8Array(o.bytes));
+        throw e;
+      });
+      ownBuffers[what].catch(function () { delete ownBuffers[what]; });
+    }
+    ownBuffers[what].then(sound, function () {});
+    return true;
+  }
+  // Settings' Sound section on the listing (web/index.html): each event, the file kept for it, Browse, a test press and Remove,
+  // and a button and a drop for many files at once, matched by their names. T: the strings' lookup.
+  function ownChooser(T) {
+    var box = document.createElement("div"); box.className = "own-sounds";
+    var head = document.createElement("div"); head.className = "bps-row own-sounds-head";
+    var label = document.createElement("span"); label.textContent = T("settings.ownsounds.label");
+    var many = document.createElement("input"); many.type = "file"; many.accept = "audio/*,.wav,.ogg,.mp3"; many.multiple = true; many.hidden = true;
+    var add = document.createElement("button"); add.type = "button"; add.textContent = T("settings.ownsounds.add");
+    var ctl = document.createElement("div"); ctl.className = "bps-ctl"; ctl.appendChild(add); ctl.appendChild(many);
+    head.appendChild(label); head.appendChild(ctl);
+    var hint = document.createElement("p"); hint.className = "own-sounds-hint"; hint.textContent = T("settings.ownsounds.hint");
+    var said = document.createElement("p"); said.className = "own-sounds-said"; said.setAttribute("role", "status");
+    var table = document.createElement("table"); table.className = "own-sounds-table";
+    var body = document.createElement("tbody"); table.appendChild(body);
+    box.appendChild(head); box.appendChild(hint); box.appendChild(table); box.appendChild(said);
+    var rows = {};
+    EVENTS.forEach(function (ev) {
+      var tr = document.createElement("tr"), name = T("settings.ownsounds.ev." + ev);
+      var th = document.createElement("th"); th.scope = "row"; th.textContent = name;
+      var file = document.createElement("td"); file.className = "own-sounds-file";
+      var acts = document.createElement("td");
+      var input = document.createElement("input"); input.type = "file"; input.accept = "audio/*,.wav,.ogg,.mp3"; input.hidden = true;
+      var browse = document.createElement("button"); browse.type = "button"; browse.textContent = T("settings.wallpaper.browse");
+      browse.setAttribute("aria-label", T("settings.ownsounds.browse_for", { event: name }));
+      var test = document.createElement("button"); test.type = "button"; test.className = "own-sounds-play"; test.textContent = "\u25b6";
+      test.setAttribute("aria-label", T("settings.ownsounds.play_for", { event: name }));
+      var remove = document.createElement("button"); remove.type = "button"; remove.textContent = T("settings.wallpaper.remove");
+      remove.setAttribute("aria-label", T("settings.ownsounds.remove_for", { event: name }));
+      browse.addEventListener("click", function () { input.click(); });
+      input.addEventListener("change", function () {
+        var f = input.files && input.files[0];
+        input.value = "";
+        if (f) setOwn(ev, f).then(function (ok) { said.textContent = ok ? "" : T("settings.ownsounds.too_big", { name: f.name }); draw(); });
+      });
+      test.addEventListener("click", function () { if (!playOwn(ev)) play(ev); });
+      remove.addEventListener("click", function () { clearOwn(ev).then(draw); });
+      acts.appendChild(browse); acts.appendChild(test); acts.appendChild(remove); acts.appendChild(input);
+      tr.appendChild(th); tr.appendChild(file); tr.appendChild(acts);
+      body.appendChild(tr);
+      rows[ev] = { file: file, remove: remove, test: test };
+    });
+    function draw() {
+      EVENTS.forEach(function (ev) {
+        var o = own[ev], r = rows[ev];
+        r.file.textContent = o ? o.name : T("settings.theme.none");
+        r.remove.disabled = !o;
+      });
+    }
+    function took(files) {
+      addOwnFiles(files).then(function (r) {
+        var parts = [];
+        if (r.matched.length) parts.push(T("settings.ownsounds.matched", { count: r.matched.length }));
+        if (r.unmatched.length) parts.push(T("settings.ownsounds.unmatched", { names: r.unmatched.join(", ") }));
+        said.textContent = parts.join(" ");
+        draw();
+      });
+    }
+    add.addEventListener("click", function () { many.click(); });
+    many.addEventListener("change", function () { var f = Array.prototype.slice.call(many.files || []); many.value = ""; if (f.length) took(f); });
+    // files dropped on the section: as Add files
+    box.addEventListener("dragover", function (e) {
+      if (e.dataTransfer && Array.prototype.indexOf.call(e.dataTransfer.types || [], "Files") >= 0) { e.preventDefault(); e.stopPropagation(); box.classList.add("own-sounds-drop"); }
+    });
+    box.addEventListener("dragleave", function () { box.classList.remove("own-sounds-drop"); });
+    box.addEventListener("drop", function (e) {
+      box.classList.remove("own-sounds-drop");
+      if (!e.dataTransfer || !e.dataTransfer.files || !e.dataTransfer.files.length) return;
+      e.preventDefault(); e.stopPropagation();
+      took(e.dataTransfer.files);
+    });
+    window.addEventListener("byopop-own-sounds", draw);
+    draw();
+    (ownLoaded || loadOwn()).then(draw);
+    return box;
+  }
+
   function bytesOf(b64) { var s = atob(b64), out = new Uint8Array(s.length); for (var i = 0; i < s.length; i++) out[i] = s.charCodeAt(i); return out; }
   function play(what) {
+    if (level() === 0) return;
+    if (playOwn(what)) return;
     var id = chosen();
-    if (id === "none" || level() === 0) return;
+    if (id === "none") return;
     var kept = readJson(SOUND_KEY);
     if (!kept || kept.id !== id || !kept.sounds || !kept.sounds[what]) return;
     var AC = window.AudioContext || window.webkitAudioContext;
@@ -190,8 +387,11 @@ var ByopopThemes = (function () {
   }
   if (typeof window !== "undefined") window.addEventListener("storage", function (ev) {
     if (ev.key === null || ev.key === WALL_KEY || ev.key === SOUND_KEY || ev.key === "byopop-settings") changed();
+    if (ev.key === null || ev.key === OWN_AT) loadOwn().then(function () { try { window.dispatchEvent(new CustomEvent("byopop-own-sounds")); } catch (e) {} });
   });
+  if (typeof window !== "undefined" && typeof indexedDB !== "undefined") loadOwn();
 
   return { ids: ids, chosen: chosen, offered: offered, title: title, wallpaper: wallpaper, cursor: cursor, prepare: prepare, changed: changed,
-    play: play, EVENTS: EVENTS, WALL_KEY: WALL_KEY, SOUND_KEY: SOUND_KEY };
+    play: play, EVENTS: EVENTS, WALL_KEY: WALL_KEY, SOUND_KEY: SOUND_KEY, ownEvent: ownEvent, setOwn: setOwn, clearOwn: clearOwn,
+    addOwnFiles: addOwnFiles, ownChooser: ownChooser, own: function () { return own; } };
 })();
