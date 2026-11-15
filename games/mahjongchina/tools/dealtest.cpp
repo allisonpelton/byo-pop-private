@@ -63,7 +63,7 @@ public:
 	bool SetClipboard(const char*) override { return false; }
 	void Sleep(uint32_t) override {}
 	void SetFullScreen(bool) override {}
-	void Present(const uint8_t*, int) override {}
+	void Present(const uint8_t*, int, const jb::Rect*, int) override {}
 };
 
 } // namespace

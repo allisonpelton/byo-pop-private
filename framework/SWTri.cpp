@@ -458,7 +458,7 @@ void SWHelper::SWDrawShape(XYZStruct *theVerts, int theNumVerts, MemoryImage *th
 					pVerts[i].v = static_cast<int>(clipped[i]->mV * (float) theImage->mHeight * 65536.0f);
 				}
 
-				textureInfo.pTexture = reinterpret_cast<unsigned int *>(theImage->GetBits());
+				textureInfo.pTexture = reinterpret_cast<unsigned int *>(theImage->ReadBits());
 				textureInfo.pitch = theImage->mWidth;
 				textureInfo.height = theImage->mHeight;
 				textureInfo.endpos = theImage->mWidth*theImage->mHeight;

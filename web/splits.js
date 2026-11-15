@@ -334,13 +334,22 @@ var ByopopSplits = (function () {
       prevVal.textContent = pv || "—"; prevVal.className = "spl-val " + pc;
       sobVal.textContent = fmt(sumOfBest(), 2);
     }
-    var ticking = false;
+    // The running timer drawn a frame at a time while the window is on the screen; closed, minimized, scrolled away or in a hidden
+    // tab it draws nothing (the user, 2026-11-15: the site's animated parts do no work while nobody can see them), and shown again
+    // it draws from the run's times then (the observer below)
+    var ticking = false, inView = true;
+    function seen() { return document.visibilityState !== "hidden" && inView && el.getClientRects().length > 0; }
     function tick() {
-      if (att.phase !== "running") { ticking = false; return; }
+      if (att.phase !== "running" || !seen()) { ticking = false; return; }
       draw();
       requestAnimationFrame(tick);
     }
     function startTicking() { if (!ticking) { ticking = true; requestAnimationFrame(tick); } }
+    if (window.IntersectionObserver) new IntersectionObserver(function (e) {
+      inView = e[e.length - 1].isIntersecting;
+      if (inView) { draw(); startTicking(); }
+    }).observe(el);
+    document.addEventListener("visibilitychange", function () { if (seen()) { draw(); startTicking(); } });
 
     // ---- the controls ----
     function frontGame() {
@@ -705,7 +714,14 @@ var ByopopSplits = (function () {
       }
       auto.d.poll(now(), s.snap);
     }
-    setInterval(autoPoll, 10);
+    // every 10 ms while a game window is open (or a run follows one), every half second otherwise: a game's window takes longer
+    // than that to load, and the page does no work a hundred times a second for nothing (the user, 2026-11-15)
+    (function pollLoop() {
+      autoPoll();
+      var busy = false;
+      try { busy = opts.autosplit && (!!auto.d || (window.ByopopApps && ByopopApps.count ? ByopopApps.count() > 0 : true)); } catch (e) { busy = true; }
+      setTimeout(pollLoop, busy ? 10 : 500);
+    })();
 
     // ---- the hotkeys, on this page and in every game window ----
     function onKey(ev) {

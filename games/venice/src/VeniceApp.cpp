@@ -71,6 +71,34 @@ void ResetTickBase()
 	sTickBase = 0;
 }
 
+// port: the game's accelerated draw (DrawImageRecord) puts every picture through a transformed blit, with half a pixel added to the
+// translation so that the original's Direct3D 7 lands a texel on a pixel: that device takes a quad's corners as they are, a pixel's
+// centre being at its integer coordinate, where the framework's display (SDL: a pixel's centre half a pixel in) draws them at their
+// own coordinate. Measured on the 3D menu tour against the original on the desktop: the port's pictures were half a pixel up and left
+// of the original's and blurred by the filter, the original's pixel-exact. The display moves the corners of a transformed blit half a
+// pixel on, as DDInterface::DrawTrianglesTex does for its triangles.
+class VeniceDisplay : public Sexy::DDInterface
+{
+public:
+	explicit VeniceDisplay(Sexy::SexyAppBase* theApp) : Sexy::DDInterface(theApp)
+	{
+	}
+
+	void BltTransformed(Sexy::Image* theImage, const Sexy::Rect* theClipRect, const Sexy::Color& theColor, int theDrawMode,
+		const Sexy::Rect& theSrcRect, const Sexy::SexyMatrix3& theTransform, bool theLinearFilter, float theX, float theY,
+		bool theCenter) override
+	{
+		float anOffset = mIs3D ? 0.5f : 0.0f;
+		Sexy::DDInterface::BltTransformed(theImage, theClipRect, theColor, theDrawMode, theSrcRect, theTransform, theLinearFilter,
+			theX + anOffset, theY + anOffset, theCenter);
+	}
+};
+
+Sexy::DDInterface* VeniceApp::CreateDDInterface()
+{
+	return new VeniceDisplay(this);
+}
+
 // 0x43fa60: the partner's file gives the product's name, its registry key and whether the game starts in a window
 VeniceApp::VeniceApp()
 {
@@ -192,6 +220,14 @@ void VeniceApp::LostFocus()
 	SetCursor(CURSOR_POINTER);
 	PauseSounds();
 	gFocusFrames = 2;
+}
+
+// port: the mod menu holds the game while it is open (SexyAppBase::UpdateModMenuFrame) and calls ModalClose as a modal dialog does;
+// the 4 ms ticks counted on from the old tick base meanwhile, so on closing every missed tick would run at once
+void VeniceApp::ModalClose()
+{
+	SexyApp::ModalClose();
+	ResetTickBase();
 }
 
 // 0x440450: the click that gives the focus back is not the player's click, unless a main menu is waiting for it

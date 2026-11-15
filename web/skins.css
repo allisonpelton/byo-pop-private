@@ -956,6 +956,43 @@ html.d95-narrow .lib-c-last, html.d95-narrow .lib-c-year { display: none; }
 html.d95-desk .newtab { display: none; }
 /* Alt+` (web/skins.js): the window switcher, as Windows 95's Alt+Tab box: the open windows' icons in a row, the chosen one
    outlined, and its title in a sunken field under them */
+/* the outline a window is moved and sized by, inverting what it is drawn over, and the caption that flies to the task bar */
+html.d95-desk .d95-ghost { position: absolute; z-index: 2147482000; pointer-events: none; box-sizing: border-box;
+  border: 3px dotted #ffffff; mix-blend-mode: difference; }
+html.d95-desk .d95-fly { position: absolute; z-index: 2147482500; pointer-events: none; box-sizing: border-box; overflow: hidden;
+  background: var(--sk-title); color: var(--sk-title-fg); font-weight: bold; font-size: 11px; line-height: 16px; padding: 1px 4px;
+  white-space: nowrap; }
+/* the icons once one was moved: each where it was put; a selected one, and the dotted rectangle that selects */
+html.d95-desk .d95-icons.d95-icons-free { display: block; }
+html.d95-desk .d95-icons.d95-icons-free > .d95-icon { position: absolute; width: 84px; box-sizing: border-box; }
+html.d95-desk .d95-icon.d95-icon-sel { background: rgba(0, 0, 128, .45); }
+html.d95-desk .d95-icon.d95-icon-sel > span { outline: 1px dotted var(--sk-desk-fg); outline-offset: 0; }
+html.d95-desk .d95-band { position: absolute; z-index: 2; pointer-events: none; box-sizing: border-box; border: 1px dotted #ffffff;
+  mix-blend-mode: difference; }
+/* 1995's tooltip */
+html.d95-desk .d95-tip { position: absolute; z-index: 2147483500; pointer-events: none; max-width: 320px; padding: 1px 4px;
+  background: #ffffe1; color: #000000; border: 1px solid #000000; font-size: 11px; line-height: 15px; white-space: normal; }
+/* the tray's speaker, and the volume's slider above it */
+html.d95-desk .d95-spk { width: 18px; height: 18px; padding: 0; margin: 0 4px 0 0; flex: none; background: transparent; box-shadow: none; border: 0; }
+html.d95-desk .d95-spk > i { display: block; width: 16px; height: 16px; margin: 1px; background: #000000;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M2 6h3l4-3v10l-4-3H2z'/%3E%3Cpath d='M11 5q2 3 0 6M12.5 3.5q3.5 4.5 0 9' fill='none' stroke='black' stroke-width='1.2'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M2 6h3l4-3v10l-4-3H2z'/%3E%3Cpath d='M11 5q2 3 0 6M12.5 3.5q3.5 4.5 0 9' fill='none' stroke='black' stroke-width='1.2'/%3E%3C/svg%3E") center / contain no-repeat; }
+html.d95-desk .d95-spk.d95-spk-off > i { -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M2 6h3l4-3v10l-4-3H2z'/%3E%3Cpath d='M10.5 5.5l5 5M15.5 5.5l-5 5' fill='none' stroke='black' stroke-width='1.4'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M2 6h3l4-3v10l-4-3H2z'/%3E%3Cpath d='M10.5 5.5l5 5M15.5 5.5l-5 5' fill='none' stroke='black' stroke-width='1.4'/%3E%3C/svg%3E") center / contain no-repeat; }
+html.d95-desk .d95-spk:focus-visible { outline: 1px dotted #000000; }
+html.d95-desk .d95-vol { position: absolute; z-index: 2147483300; display: grid; justify-items: center; gap: 6px; padding: 6px 10px 8px;
+  background: var(--panel); color: var(--fg); box-shadow: inset -1px -1px var(--sk-dk), inset 1px 1px var(--sk-hi), inset -2px -2px var(--sk-lo); font-size: 11px; }
+html.d95-desk .d95-vol-range { writing-mode: vertical-lr; direction: rtl; width: 22px; height: 100px; }
+html.d95-desk .d95-vol-mute { display: flex; align-items: center; gap: 3px; white-space: nowrap; }
+/* the Recycle Bin's icon: a wire basket, with paper in it when full */
+html.d95-desk .d95-icon-bin > i { width: 24px; height: 28px; background: transparent; box-shadow: none;
+  background-image: repeating-linear-gradient(90deg, #c0c0c0 0 2px, #808080 2px 4px); clip-path: polygon(0 12%, 100% 12%, 88% 100%, 12% 100%); }
+html.d95-desk .d95-icon-bin > i::before { left: -2px; right: -2px; top: 0; height: 3px; background: #dfdfdf; box-shadow: 0 1px #404040; }
+html.d95-desk .d95-icon-bin > i::after { display: none; }
+html.d95-desk .d95-icon-bin.d95-bin-full > i::after { display: block; left: 3px; right: 3px; top: 2px; bottom: auto; height: 9px; background: #ffffff;
+  clip-path: polygon(0 60%, 20% 0, 45% 40%, 70% 5%, 100% 50%, 85% 100%, 10% 100%); }
+/* Shut Down's last screen: wordless, over everything */
+html.d95-desk .d95-off { position: fixed; inset: 0; z-index: 2147483600; background: #000; outline: none; }
 html.d95-desk .d95-switch { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 2147483000;
   max-width: calc(calc(100vw / var(--d95-z, 1)) - 32px); padding: 10px 12px 12px; box-sizing: border-box; background: var(--panel); color: var(--fg);
   box-shadow: inset -1px -1px var(--sk-dk), inset 1px 1px var(--sk-hi), inset -2px -2px var(--sk-lo), inset 2px 2px var(--sk-mid); }
@@ -967,3 +1004,42 @@ html.d95-desk .d95-icon.d95-switch-icon.d95-switch-on { border-color: var(--fg);
 html.d95-desk .d95-switch-name { min-width: 220px; padding: 3px 6px; text-align: center; white-space: nowrap; overflow: hidden;
   text-overflow: ellipsis; background: var(--panel);
   box-shadow: inset 1px 1px var(--sk-lo), inset -1px -1px var(--sk-hi); }
+/* the game stopped by an error, on the desktop (web/shell.html, blueScreen): its window blue, with the error's code and where */
+html.d95-desk .d95-bsod { position: absolute; inset: 0; z-index: 5; outline: none; background: #0000aa; color: #fff; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 1em; font: 16px/1.2 "Courier New", monospace; text-shadow: none; letter-spacing: 0; }
+html.d95-desk .d95-bsod > p { margin: 0; padding: 0 1em; text-align: center; overflow-wrap: anywhere; }
+/* the player's own event sounds (web/themes.js, ownChooser), in Settings' Sound section */
+.own-sounds { margin-top: 12px; }
+.own-sounds-hint, .own-sounds-said { margin: 4px 0; }
+.own-sounds-said:empty { display: none; }
+.own-sounds-table { border-collapse: collapse; width: 100%; }
+.own-sounds-table th { text-align: left; font-weight: normal; padding: 2px 8px 2px 0; white-space: nowrap; }
+.own-sounds-table td { padding: 2px 4px 2px 0; }
+.own-sounds-file { max-width: 14em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.own-sounds-table button { margin-right: 4px; }
+.own-sounds.own-sounds-drop { outline: 1px dotted currentColor; outline-offset: 2px; }
+/* the copy of a game's files (ByopopCopy, web/skins.js): 1995's file-copy dialog, with our own drawing of a page flying between folders */
+html.d95-desk .d95-copy.d95-win { position: fixed; left: 50%; top: 40%; transform: translate(-50%, -50%); width: 340px; z-index: 2147481000;
+  padding-bottom: 10px; }
+html.d95-desk .d95-copy-pic { position: relative; height: 44px; margin: 10px 14px 6px; }
+html.d95-desk .d95-copy-from, html.d95-desk .d95-copy-to { position: absolute; bottom: 0; width: 32px; height: 24px; background: #ffff80;
+  border: 1px solid #808000; box-sizing: border-box; }
+html.d95-desk .d95-copy-from::before, html.d95-desk .d95-copy-to::before { content: ""; position: absolute; left: -1px; top: -5px; width: 13px; height: 5px;
+  background: #ffff80; border: 1px solid #808000; border-bottom: 0; box-sizing: border-box; }
+html.d95-desk .d95-copy-from { left: 0; }
+html.d95-desk .d95-copy-to { right: 0; }
+html.d95-desk .d95-copy-page { position: absolute; left: 10px; bottom: 10px; width: 12px; height: 15px; background: #fff; border: 1px solid #000;
+  box-sizing: border-box; clip-path: polygon(0 0, 65% 0, 100% 28%, 100% 100%, 0 100%); animation: d95-copy-fly 1.1s linear infinite; }
+@keyframes d95-copy-fly {
+  0% { transform: translate(0, 0) rotate(0); }
+  25% { transform: translate(70px, -26px) rotate(-20deg); }
+  50% { transform: translate(145px, -32px) rotate(-40deg); }
+  75% { transform: translate(220px, -22px) rotate(-60deg); }
+  100% { transform: translate(282px, 0) rotate(-90deg); }
+}
+@media (prefers-reduced-motion: reduce) { html.d95-desk .d95-copy-page { animation: none; transform: translate(141px, -30px); } }
+html.d95-desk .d95-copy-name, html.d95-desk .d95-copy-size { margin: 0 14px; min-height: 1.3em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+html.d95-desk .d95-copy-bar { margin: 8px 14px 0; height: 16px; padding: 2px; box-sizing: border-box; background: var(--panel);
+  border: 1px solid; border-color: var(--sk-lo) var(--sk-hi) var(--sk-hi) var(--sk-lo); }
+html.d95-desk .d95-copy-bar > i { display: block; height: 100%; width: 0;
+  background: repeating-linear-gradient(90deg, var(--accent) 0 8px, transparent 8px 10px); }

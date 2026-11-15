@@ -1,7 +1,7 @@
 # Venice Deluxe: the identical-play pass
 
 Written for the user. Phase one (the game plays out the same in the original and the port) and phase two (it looks and sounds
-the same, screen by screen, and keeps its focus the same) are done but for the items listed under "Left in phase two"; this file
+the same, screen by screen, and keeps its focus the same) are done (the 3D original's tour last, "The 3D original"); this file
 grows with each phase.
 
 ## Phase one: plays identical
@@ -166,16 +166,45 @@ sound of any tour. To make it the same the port's sounds would have to share one
 
 As `GAME_NOTES.md` lists them.
 
-### Left in phase two
+### The 3D original (phase two, night of 2026-11-14)
 
 Every tour above compares the original's software mode (its 2D display) with the port's 2D display. The original's 3D mode
-(Direct3D 7, here over dgVoodoo2 inside the sandbox with its virtual GPU) against the port's 3D mode is `shots_menus3d`, which
-needs the host's GPU and a visible desktop, so it runs only between 22:00 and 08:00 (CLAUDE.md, "Overnight"); its result is
-added to this file by that run. **Tried on the night of 2026-11-12 and not done:** `shots shots_menus3d` waited 24 minutes and
-stopped without a shot: in the sandbox with `--sandbox-vgpu` the original's Direct3D 7 over dgVoodoo2 never got past its loading (the
-update counter stayed at -1; the game's window came up with D3D11.DLL and DXGI.DLL loaded), which is what `docs/ORIGRUN.md` says of
-every original there ("the sandbox: no original has run in 3D"). The route that works is the user's visible desktop at night, as
-Bookworm Adventures' `tools/pilot/visrun.py` and Typer Shark's `visrun3d.py` do it (a short-path copy, the window on top, shots by
-`PrintWindow`, input posted to the window); Venice has no such driver yet, so the 3D original against the port's 3D mode stays open.
-`idplay.py` still sends an `ACCELERATED` scenario's shots to the sandbox, which cannot work. The coverage check (the levels past the first few of each mode, the power-ups, wings and tries
-the bot never reaches), the real-input driver with the page check, and the fixes mod come after this phase.
+(Direct3D 7 over dgVoodoo2) cannot run in the sandbox (the night of 2026-11-12: with `--sandbox-vgpu` its update counter stayed at
+-1 and no shot came, as `docs/ORIGRUN.md` says of every original there), so `shots_menus3d` runs on the visible desktop under
+`tools/visrun.py` (`docs/VISRUN.md`), between 22:00 and 08:00. Venice was visrun's first live run. The driver is
+`games/venice/tools/idplay/visshots.py` (`prep`, `original`, `port`, `compare`, `diff`), the original's settings are
+`games/venice/tools/visrun/venice.toml`, and one run of the original is about eight minutes: 9750 updates, 31 shots.
+
+**What is compared.** The original loads on a thread of real time, so the update its loading ends at differs from run to run
+(1132 in this run, 936 in the 2D one); the step file therefore peeks the game's values at every update and puts the inputs and
+shots at update 1500 plus the scenario's frame. The first update after the loading is the port's frame 0, and the port is given
+the ticks each update ran, takes each input and each shot at the update the original's step landed on, and writes the same
+values (the random seed, the last scene's tick count, the ticks) for every frame. `compare` sets the two side by side: all 8251
+frames agree in all three, so the port's 3D mode plays this tour out as the original's does, down to every random draw. Then
+`tools/shotdiff` compares the 31 shots.
+
+**What was different, and fixed.**
+
+The 3D original's picture sits half a pixel from the port's: Direct3D 7 puts a pixel's centre at the whole-number coordinate
+and the port's display (SDL) at the half, so every transformed picture (the clouds, the birds, the gondola, the scene's
+objects) was half a pixel up and left and blurred by the filter, in all 31 shots. `VeniceDisplay` (`VeniceApp.cpp`), the
+display the app creates, adds 0.5 to the position of a transformed picture when the 3D mode is on, as Typer Shark's display does;
+the 2D display is untouched, which `tools/check.sh venice` (the frozen baseline) confirms. Commit `ea5baf4d` (the screens hash of `tools/check.sh`'s venice suite was refrozen in `b3926c11`; the states are unchanged).
+
+Two things of the harness were wrong and are fixed, not of the game. The tick schedule took the tick counter's step as the
+ticks an update ran only up to 100 (the widget's own limit), but the original's counter and scene advance by up to 235
+between two of visrun's updates: the peek can fall inside an update, so more than one ran in between; the step is the ticks at
+any size, and a jump of about 29 million is a reset. And the frame where the original resets its tick base (a scene inserted by
+an action, here the loading screen's end) reads 1 in the counter, which hides how many ticks it ran. What is known is the
+clock's move over that frame and the next, and the new scene's tick count in the next; for the credits' loading screen it is 22
+ticks, one of them after the insertion, so the original ran 21 ticks in the frame that inserted the credits and the loading
+screen ended on the same tick as in 2D (79). Before this was understood the schedule gave the port one tick there, the port
+looked 20 ticks late, and the shots of the credits were taken 20 frames later as a workaround; both are gone.
+
+**What is left.** All 31 pairs differ only faintly (shotdiff's class below the visible threshold): 0.10 to 0.85 % of the
+pixels, at most 62 levels of 255 (99 in the mode select's line of description). The differences are the edges of
+text sprites, and in the main menu the first row of each line of text, where the port's glyph edge is brighter by 1.7 levels on
+average; between the lines of text the two pictures are the same to the pixel, and a sub-pixel fit of the text puts the best
+shift at 0. It is the texture filtering of the original's Direct3D 7 over dgVoodoo2 against SDL's, and not a position or a
+timing, and nothing in it is visible. The coverage check, the real-input driver with the page check and the fixes mod, which
+this section used to say came after, are done (`GAME_NOTES.md`).

@@ -131,16 +131,54 @@ phase-one baseline only in their `apprand` lines; the game's own state and its d
   (0x458da0 draws with the application's own stretch mode). Not chased; the same stretch is used wherever the original scales an image.
 - The completed tablet's title was drawn with a four-way outline; 0x442370 centres it in the widget's width and draws a drop shadow
   one pixel right and down, then the text. Fixed (the title now matches pixel for pixel at u2700).
-- The completed tablet's picture (u2700, 7.5%) is blurrier in the port than in the original's shot. Cause found, not a bug:
-  0x41b13c sets the Graphics' fast stretch flag (nearest filter) when the application is not 3D accelerated, and the original in
-  the Windows Sandbox runs without 3D; the port's emulated 3D path filters the stretch, as the original does on a machine with
-  3D (the story portraits' stretch does not set the flag, and differs only at the head's edges, also a filter detail). The port
-  now sets the flag by the same test, so a port run without 3D draws like the sandboxed original.
+- The completed tablet's picture (u2700, 7.4%) is smoother in the port than in the original's shot (the original's 16 by 16
+  cells have crisp edges). What was looked at: 0x41b13c sets the Graphics' fast stretch flag when the application is not 3D
+  accelerated, and the original in the Windows Sandbox runs without 3D. The port sets the flag by the same test, and
+  forcing it on in a trial build (the flag reaches `DDInterface::StretchBlt` as `fastStretch`) changed the shot by 0.1%
+  only, so the smoothing is not the stretch's filter alone; with the port's default 3D path the test is false anyway. About an hour
+  went into it; not chased further. How to see it: `u2700` in the t16 case.
 - Shots in the middle of a move (u2300, u2450: the tile maker at another place on the board, tiles in flight or already yellow
   in the sweep) differ because the two programs are at different steps of the same move at the same update count; the
   boards agree at the move's end (the state logs). Not a draw difference; a shot at the end of a move would line them up.
 - The Skip the Tutorial log differs by about a pixel at its left cap and edges (resampling of the strip's frame).
 - Tile icons and the sliding trail are drawn slightly differently; the tile maker's pose differs by a frame.
+
+## Screens shot on 2026-11-14 (options, help, credits; cases t17 for the port and t17o for the original, original run px6)
+
+The original and the port were given the same updates, with the clicks at each program's own buttons (the options dialog's
+rows are not where the port's are). The menu after Play and the story match (0.0%). What differs, not yet fixed:
+
+- **The options dialog** (u300, 45%, fixed in the rows). The original's dialog from the menu is a column of full-width rows:
+  How to play, Check for updates, Credits, then the footer's Done, with a Hardware Acceleration box under the other two
+  and no Reset Hints. Reading 0x4e8b80 and 0x4194d0 explains it: Reset Hints (the base class's button at +0x174) is made
+  only when byte +0x151 of the caller's block is set, and 0x4194d0 sets +0x150 and clears +0x151, so it never exists; the
+  base's button at +0x170 needs +0x150 and an unregistered game, and 0x4190b0 swaps the places of Credits and How to play
+  (How to play takes the top row, beside Main menu in a puzzle with Main menu on the left; Credits goes down next to
+  Done). The port had made Reset Hints and Credits a half-width pair; now it has How to play (and Main menu), Credits and
+  Done, with Reset Hints gone. The update row and the 3D box lead out or belong to the platform, so they stay out and the
+  rows close the gap; the dialog is `0x1ac - 0x24 - a box` high instead of the original's 0x1ac (0x4190a0, 0x4e7c80). The
+  rest of the 44% in the shot is that smaller frame, and the player's name beside "Welcome" below.
+- **The credits dialog** (u900 and later, 13% to 5.5%, fixed). "Developed by" and "Many thanks to" are drawn in Garamond 14
+  (the dialog's own font index 6 at +0x124), the other lines in Garamond 12, from the content top 0x3c (the port had 0x24).
+  The doubled top and bottom beams in the original's shot are the options dialog's larger frame under the credits; ours is
+  smaller, so only the credits' own frame shows.
+- **The help screen's demos** (u400 to u700, 28%, decoded, not ported). The port's screen is a stand-in: both windows run at
+  once and tiles slide in on their own. The original builds three objects in 0x40e1a0: the left demo (0xa0 bytes, 0x40ddd0,
+  update 0x40d320, draw 0x40d740), the right one (0x80 bytes, 0x40df90, update 0x40d8d0, draw 0x40e0b0) and the plain
+  backdrop (0x40da40). They take turns: the left runs its 950-update script (updates 1, 50, 75, 100, 175, 200, 250, 315,
+  500, 525, 550, 600, 625, 650, 700 and 790 place or pull a tile, aim the Tile Master and move the pointer between two
+  columns; at 0x3b5 it hands over) while the right stays under a dark layer (200 of alpha) that fades out by 1.0 an update
+  when it is the right's turn; the right then replays the shipped solution of `levels/helpscreen.txt` through the grid's own
+  replay (0x426560 with 100 updates between throws), holds the finished picture 100 updates, fades the picture in and out
+  (alpha 0 to 255 by 2) and hands back (0x40dd50 swaps the two states). Each window holds a real animated grid of the
+  game (the left a 12 by 12 one at offset (15, -30), the right a 16 by 16 one at (5, -43)) and the left a Tile Master
+  (0x42bd40, whose walk, in five sub-steps of 0.3 an update, and idle animations the port's TileMaster does not have). What it
+  would take: the board's tile animation and drawing (Board::UpdateTiles, DrawGrid, DrawTile, DrawTrail) lifted out of
+  Board into a piece that a window can own at its own origin, the grid's solution replay, and a Tile Master with the
+  original's walk and sprite-sheet animations. The tiles' rules and the shipped puzzle are already in the port.
+- At u300 and u1800 the original's menu says "Welcome to Pixelus" with no player name (0x40a8b0 prints the name only while a
+  player is current); the port's player was made at the same update by the same clicks, so this run's original lost the
+  name or made it later. Not explained; the case t16 (u250) shows the name in both.
 
 ## Open (this phase is not complete)
 

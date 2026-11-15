@@ -12,6 +12,7 @@ Nothing from the game itself is in the repository: not its images, sounds, music
 | [FRAMEWORK_2002.md](FRAMEWORK_2002.md) | The 2002 SexyApp framework the game was built on, and how the port maps it |
 | [IDENTICAL_PLAY.md](IDENTICAL_PLAY.md) | The identical-play pass against the original: how it was compared, the changes, the oddities left |
 | [MOD_IDEAS.md](MOD_IDEAS.md) | The brainstorm for this game's mods, what was made and how each mod works |
+| [LITE_MOD.md](LITE_MOD.md) | The lite mod: there is none; what each search costs, the two proofs, and why nothing was taken |
 | `symbols/*.jsonl` | Names for Ghidra (`ApplySymbols.java`): the framework's core classes |
 
 ## The binary

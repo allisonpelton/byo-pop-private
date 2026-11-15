@@ -29,6 +29,11 @@ typedef struct {
   int loop;       /* libxmp-lite: repeat for ever */
   int ended;
   int meter;      /* an IT's row highlights for libxmp-lite (rows per beat << 16 | per bar), 0 for none */
+  int solo;       /* bm_solo's pattern, -1 for none; libxmp-lite: the first order's own pattern, put aside, and the row last
+                     heard, which going back ends the pattern */
+  int solo_was;
+  int solo_row;
+  void* solo_kept;  /* libopenmpt: its order list, put aside (web/music/openmpt_solo.cpp) */
   short buf[4096 * 2];
 } bm_module;
 
@@ -51,6 +56,7 @@ static void xmp_start(bm_module* b, int rate) {
 EMSCRIPTEN_KEEPALIVE bm_module* bm_load(const void* data, int size) {
   bm_module* b = (bm_module*)calloc(1, sizeof(bm_module));
   if (!b) return 0;
+  b->solo = -1;
   if (is_openmpt((const unsigned char*)data, size)) {
     b->ext = openmpt_module_ext_create_from_memory(data, (size_t)size, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
     if (!b->ext) { free(b); return 0; }
@@ -67,7 +73,9 @@ EMSCRIPTEN_KEEPALIVE bm_module* bm_load(const void* data, int size) {
   xmp_start(b, 48000);
   return b;
 }
+int bm_mpt_solo(openmpt_module* mod, int pattern, void** saved);
 EMSCRIPTEN_KEEPALIVE void bm_free(bm_module* b) {
+  if (b->mpt && b->solo_kept) bm_mpt_solo(b->mpt, -1, &b->solo_kept);
   if (b->ext) openmpt_module_ext_destroy(b->ext);
   if (b->xmp) { xmp_end_player(b->xmp); xmp_release_module(b->xmp); xmp_free_context(b->xmp); }
   free(b);
@@ -116,7 +124,10 @@ EMSCRIPTEN_KEEPALIVE int bm_order(bm_module* b) {
   xmp_get_frame_info(b->xmp, &fi);
   return fi.pos;
 }
-EMSCRIPTEN_KEEPALIVE int bm_orders(bm_module* b) { return b->mpt ? openmpt_module_get_num_orders(b->mpt) : info(b).mod->len; }
+EMSCRIPTEN_KEEPALIVE int bm_orders(bm_module* b) {
+  if (b->mpt) return openmpt_module_get_num_orders(b->mpt);
+  return b->solo >= 0 ? 1 : info(b).mod->len;
+}
 /* An Ogg Vorbis file decoded whole: 16-bit interleaved samples at *out (free them with free()), *channels and *rate set; the
    frames, or -1 when it is not one */
 EMSCRIPTEN_KEEPALIVE int bm_ogg(const unsigned char* data, int size, int* channels, int* rate, short** out) {
@@ -127,20 +138,86 @@ EMSCRIPTEN_KEEPALIVE int bm_render(bm_module* b, int rate, int frames, float* ou
   if (b->mpt) return (int)openmpt_module_read_interleaved_float_stereo(b->mpt, rate, (size_t)frames, out);
   if (b->ended) return 0;
   if (rate != b->rate) {
-    /* the player's rate: libxmp-lite starts again at it, from the order it was at */
+    /* the player's rate: libxmp-lite starts again at it, from the order it was at (a pattern alone from its first row) */
     int order = bm_order(b);
     xmp_end_player(b->xmp);
     xmp_start(b, rate);
     xmp_set_position(b->xmp, order);
+    b->solo_row = -1;
   }
   int done = 0;
   while (done < frames) {
-    int n = frames - done > 4096 ? 4096 : frames - done;
+    /* (a pattern alone, bm_solo: small steps, each looked at, so it ends within 256 frames of its last row) */
+    int step = b->solo >= 0 ? 256 : 4096;
+    int n = frames - done > step ? step : frames - done;
     if (xmp_play_buffer(b->xmp, b->buf, n * 4, b->loop ? 0 : 1) != 0) { b->ended = 1; break; }
+    if (b->solo >= 0) {
+      struct xmp_frame_info fi;
+      xmp_get_frame_info(b->xmp, &fi);
+      if (fi.pos != 0 || fi.row < b->solo_row) { b->ended = 1; break; }
+      b->solo_row = fi.row;
+    }
     for (int i = 0; i < n * 2; i++) out[done * 2 + i] = b->buf[i] / 32768.0f;
     done += n;
   }
   return done;
+}
+
+/* The music player's unused patterns (the user, 2026-11-15): pattern >= 0 plays that pattern alone, once, from its first row,
+   whatever orders name it; the decoder's orders are then that one (bm_orders, bm_order_pattern), so the views read it as any
+   tune. Returns its rows, 0 when it is no pattern. pattern < 0 puts the module back as it was. libopenmpt's order list is put
+   aside for one naming the pattern (web/music/openmpt_solo.cpp); libxmp-lite's first order plays it instead, and rendering
+   ends where play leaves that order or goes back to an earlier row (a loop). */
+EMSCRIPTEN_KEEPALIVE int bm_solo(bm_module* b, int pattern) {
+  if (b->mpt) {
+    int rows = bm_mpt_solo(b->mpt, pattern, &b->solo_kept);
+    b->solo = pattern >= 0 && rows > 0 ? pattern : -1;
+    if (b->solo >= 0) openmpt_module_set_repeat_count(b->mpt, 0);
+    return rows;
+  }
+  struct xmp_module* mod = info(b).mod;
+  if (pattern < 0) {
+    if (b->solo >= 0) mod->xxo[0] = b->solo_was;
+    b->solo = -1;
+    return 0;
+  }
+  if (pattern >= mod->pat || !mod->xxp[pattern] || mod->len < 1) return 0;
+  if (b->solo < 0) b->solo_was = mod->xxo[0];
+  mod->xxo[0] = pattern;
+  b->solo = pattern;
+  b->solo_row = -1;
+  b->loop = 0;
+  b->ended = 0;
+  /* (the player started again at the first order: a position set while it plays takes effect only at the next row) */
+  xmp_end_player(b->xmp);
+  xmp_start(b, b->rate);
+  return mod->xxp[pattern]->rows;
+}
+
+/* The module's patterns, played or not (bm_pattern_rows answers 0 for one that is missing) */
+EMSCRIPTEN_KEEPALIVE int bm_patterns(bm_module* b) { return b->mpt ? openmpt_module_get_num_patterns(b->mpt) : info(b).mod->pat; }
+
+/* Whether a pattern plays a note anywhere (1 is C-0 to 120, B-9; no note-offs, cuts or fades): the player leaves out an unused
+   pattern with none */
+EMSCRIPTEN_KEEPALIVE int bm_pattern_notes(bm_module* b, int pattern) {
+  if (b->mpt) {
+    if (pattern < 0 || pattern >= openmpt_module_get_num_patterns(b->mpt)) return 0;
+    int channels = openmpt_module_get_num_channels(b->mpt), rows = openmpt_module_get_pattern_num_rows(b->mpt, pattern);
+    for (int r = 0; r < rows; r++)
+      for (int c = 0; c < channels; c++) {
+        int note = openmpt_module_get_pattern_row_channel_command(b->mpt, pattern, r, c, OPENMPT_MODULE_COMMAND_NOTE);
+        if (note >= 1 && note <= 120) return 1;
+      }
+    return 0;
+  }
+  struct xmp_module* mod = info(b).mod;
+  if (pattern < 0 || pattern >= mod->pat || !mod->xxp[pattern]) return 0;
+  for (int c = 0; c < mod->chn; c++) {
+    const struct xmp_track* t = mod->xxt[mod->xxp[pattern]->index[c]];
+    if (!t) continue;
+    for (int r = 0; r < t->rows; r++) if (t->event[r].note >= 1 && t->event[r].note <= 120) return 1;
+  }
+  return 0;
 }
 
 /* The game's own music level (platform/MusicLevels.h), for a tune of web/soundtracks.js's "level": a BASS amplify (0 to
@@ -247,7 +324,7 @@ EMSCRIPTEN_KEEPALIVE int bm_order_pattern(bm_module* b, int order) {
     return p >= 0 && p < openmpt_module_get_num_patterns(b->mpt) ? p : -1;
   }
   struct xmp_module* mod = info(b).mod;
-  if (order < 0 || order >= mod->len) return -1;
+  if (order < 0 || order >= (b->solo >= 0 ? 1 : mod->len)) return -1;
   int p = mod->xxo[order];
   return p < mod->pat && mod->xxp[p] ? p : -1;
 }
@@ -364,6 +441,23 @@ EMSCRIPTEN_KEEPALIVE double bm_seek(bm_module* b, int rate, double seconds) {
   if (b->mpt) return openmpt_module_set_position_seconds(b->mpt, seconds);
   if (rate != b->rate) { xmp_end_player(b->xmp); xmp_start(b, rate); }
   b->ended = 0;
+  if (b->solo >= 0) {
+    /* a pattern alone (bm_solo): libxmp-lite's times are its orders', so it plays unheard from the pattern's first row to
+       there (the player started again: a position set while it plays takes effect only at the next row) */
+    xmp_end_player(b->xmp);
+    xmp_start(b, rate);
+    b->solo_row = -1;
+    for (int guard = 0; guard < 1 << 20; guard++) {
+      struct xmp_frame_info fi;
+      xmp_get_frame_info(b->xmp, &fi);
+      if (fi.time >= (int)(seconds * 1000)) break;
+      if (xmp_play_buffer(b->xmp, b->buf, 256 * 4, 1) != 0) { b->ended = 1; break; }
+      xmp_get_frame_info(b->xmp, &fi);
+      if (fi.pos != 0 || fi.row < b->solo_row) { b->ended = 1; break; }
+      b->solo_row = fi.row;
+    }
+    return bm_position(b);
+  }
   xmp_seek_time_frame(b->xmp, (int)(seconds * 1000));
   return bm_position(b);
 }

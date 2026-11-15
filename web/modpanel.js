@@ -1,5 +1,5 @@
-// The web pages' shared code (docs/MOD_MENU_DESIGN.md 4.4-4.5): cmake/ByopopWeb.cmake appends this file to every
-// game's JS with --post-js, so it runs as the game's script loads and leaves Module.byopop:
+// The web pages' shared code (docs/MOD_MENU_DESIGN.md 4.4-4.5): cmake/ByopopWebPage.cmake puts this file inline on
+// every game's page, after the page sets up Module and before the game's script, and it leaves Module.byopop:
 //   fs, zip, pak, sync   the page's file helpers (the browser's IndexedDB copy of /persist, game files and mods;
 //                   a PopCap main.pak's files)
 //   Session(game)   restart and autostart, the start that a mod broke, starting once without mods, the import

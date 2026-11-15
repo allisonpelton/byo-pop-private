@@ -3,6 +3,7 @@
 #include "App.h"
 #include "Font.h"
 #include "Host.h"
+#include "ScreenLog.h"
 
 #include <algorithm>
 
@@ -43,6 +44,7 @@ Display::~Display()
 	mFonts.clear();
 	Release();
 	FreeBlitBuffer();
+	screenlog::Shutdown();
 	delete[] gScreen;
 	gScreen = nullptr;
 }
@@ -51,6 +53,7 @@ Display::~Display()
 // are freed, to be made again at the next draw
 void Display::Release()
 {
+	screenlog::Invalidate();
 	for (auto& anEntry : mImages)
 	{
 		if (anEntry.second != nullptr)
@@ -68,6 +71,7 @@ int Display::SetMode(bool theFullScreen, bool theNoAccel)
 	(void)theNoAccel;
 	gFullScreen = theFullScreen;
 	GetHost()->SetFullScreen(theFullScreen);
+	screenlog::Invalidate();
 	Invalidate();
 	return 0;
 }
@@ -75,13 +79,17 @@ int Display::SetMode(bool theFullScreen, bool theNoAccel)
 // 0x42c8a0 (mahjongchina), 0x4328f0 (mahjongjapan)
 bool Display::BeginFrame()
 {
-	return gScreen != nullptr;
+	if (gScreen == nullptr)
+		return false;
+	screenlog::Begin();
+	return true;
 }
 
 // 0x42c9b0 (mahjongchina), 0x432a00 (mahjongjapan)
 void Display::Present()
 {
-	GetHost()->Present(gScreen, gScreenPitch);
+	screenlog::End(mDirty);
+	GetHost()->Present(gScreen, gScreenPitch, mDirty.data(), (int)mDirty.size());
 }
 
 // 0x42c3e0 (mahjongchina), 0x432430 (mahjongjapan)

@@ -60,6 +60,8 @@ MMApp::MMApp() :
 	mBoard = NULL;
 	mVictory = NULL;
 	mSidePanel = NULL;
+	// port: the 2003 framework's DrawImageBox (0x432210) for the dialog buttons (Button2003.h)
+	Graphics::mDrawImageBox2003 = true;
 	mGameMode = MODE_CLASSIC;
 	mCurrentSlot = 0;
 	mSpeed = 1;

@@ -287,6 +287,7 @@ static void vc_note_off(VcShared* s, DWORD pid)
 	}
 	LeaveCriticalSection(&gVcLock);
 }
+static void rpm_attach(DWORD pid);
 // Let a clock's game run free: no barrier, and a held game goes on.
 static void vc_let_go(VcShared* s, HANDLE rel) { InterlockedExchange(&s->bar,VC_BAR_FREE); if (rel) SetEvent(rel); }
 // The clock to follow: the newest of the copy's processes that has one. Looked for again at most every 20 ms while
@@ -334,6 +335,7 @@ static VcShared* vc_get(void)
 			}
 			gVc=bs; gVcMap=bm; gVcHeldEv=bh; gVcRelEv=br; gVcProc=bp; gVcPid=bpid; gVcCreated=bt;
 			logline("--clock virtual: following the clock of pid %lu (its main thread %lu drives it)", bpid, bs->driverTid);
+			if (gCounterExpr[0]) rpm_attach(bpid);   // the counter reader opens the followed process at once, not when it finds a window
 		}
 	}
 	VcShared* r=gVcDead?NULL:gVc;
@@ -855,6 +857,27 @@ static void rpm_follow_window(HWND hw)
 	EnterCriticalSection(&gRpmLock);
 	if (pid && pid!=gGameProcPid) { rpm_open(pid); gRpmLookupAt=GetTickCount(); gRpmLooked=1; gRpmFresh=1; }
 	LeaveCriticalSection(&gRpmLock);
+}
+
+// The counter reader opens this process now (the clock's followed pid); rpm_u32 still moves to the window's pid after a relaunch.
+static void rpm_attach(DWORD pid)
+{
+	EnterCriticalSection(&gRpmLock);
+	if (pid && pid!=gGameProcPid) { rpm_open(pid); gRpmLookupAt=GetTickCount(); gRpmLooked=1; gRpmFresh=1; }
+	LeaveCriticalSection(&gRpmLock);
+}
+
+// Does the script have a line that waits for an update (at <N> ..., waitfor ...)?
+static int script_waits_for_counter(const char* scriptPath)
+{
+	FILE* f=fopen(scriptPath,"r"); if(!f) return 0;
+	char line[1024]; int found=0;
+	while (!found && fgets(line,sizeof(line),f)) {
+		char c[32]={0}; sscanf(line,"%31s",c);
+		found = ieq(c,"at") || ieq(c,"waitfor");
+	}
+	fclose(f);
+	return found;
 }
 
 // --surface <addr>: the address of an Image-like header in the game (the pointer to the pixels at +0, the width at +4,
@@ -2930,6 +2953,13 @@ static DWORD WINAPI driver_thread(LPVOID p)
 		if (!vs) logline("--clock virtual: no game process had a clock within 20 s (did it load the stand-in, dsound.dll?); the script runs on the wall clock");
 		else {
 			ULONGLONG t0=GetTickCount64(); int ok=1;
+			// A script that waits for updates: the game stays held at its wait until the counter has been read once.
+			if (gCounterExpr[0] && a->script[0] && script_waits_for_counter(a->script)) {
+				uint32_t c=0; int n=0;
+				int got; while (!(got=read_counter(gCounterExpr,&c)) && !gStop && GetTickCount64()-t0<20000) { n++; if (!vc_step(20000-(int)(GetTickCount64()-t0))) break; }
+				if (got) logline("--clock virtual: the game was held until the counter reader attached (first read %lu after %d wait%s)", (unsigned long)c, n, n==1?"":"s");
+				else logline("--clock virtual: the counter could not be read within 20 s; the game is no longer held for it");
+			}
 			while (!gStop && !resolve_window(0,NULL) && GetTickCount64()-t0<20000) { if (!vc_step(20000-(int)(GetTickCount64()-t0))) { ok=0; break; } }
 			if (resolve_window(0,NULL) && (vs=vc_get())!=NULL && !vc_is_held()) ok=vc_step(5000);
 			vs=vc_get();

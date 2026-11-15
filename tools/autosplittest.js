@@ -225,7 +225,14 @@ function blockReplay(game, category, lines) {
       else if (k === "flags") s.flags = parseInt(v, 16);
       else if (k === "deaths") v.split(",").forEach(function (n, i) { s["death" + i] = +n; });
       // (the game's own bytes: their first word, little-endian)
-      else if (k === "own") s.own0 = parseInt(v.slice(6, 8) + v.slice(4, 6) + v.slice(2, 4) + v.slice(0, 2), 16);
+      else if (k === "own") {
+        s.own0 = parseInt(v.slice(6, 8) + v.slice(4, 6) + v.slice(2, 4) + v.slice(0, 2), 16);
+        // (the next three words, signed, as the decider reads them)
+        for (var w = 1; w <= 3 && v.length >= 8 * (w + 1); w++) {
+          var h = v.slice(8 * w, 8 * w + 8);
+          s["own" + w] = parseInt(h.slice(6, 8) + h.slice(4, 6) + h.slice(2, 4) + h.slice(0, 2), 16) | 0;
+        }
+      }
     });
     d.poll(0, s);
   });
@@ -406,6 +413,66 @@ var vnWin = vnLog("congratulations").map(function (l) {
   return / board=1 /.test(l) ? l.replace(/flags=(1?)06 /, "flags=$104 ").replace("go=0/0", "go=1/1") : l;
 });
 check(blockReplay("venice", "Journey", vnWin) === "start; " + splits(71), "Venice Journey: the map's CONGRATULATIONS! ends the run in any building");
+
+// Bejeweled Twist: block lines made from its port's event logs (the Twist session's classic, zen and challenge games,
+// 2026-11-14): a board's GO, its level clears, game overs and challenge wins, and the game's own words (the modes open, the
+// challenge's category and number)
+function twLines(steps) {
+  var st = { u: 0, board: 0, go: [0, 0], lc: [0, 0], over: [0, 0], deaths: [0, 0, 0, 0], blc: 0, wins: [0, 0], mode: -1, progress: 1,
+             cat: -1, num: 0, flags: 0 };
+  function hex(n) { var h = ((n >>> 0).toString(16)); h = "00000000".slice(h.length) + h; return h.slice(6, 8) + h.slice(4, 6) + h.slice(2, 4) + h.slice(0, 2); }
+  function line() {
+    st.u++;
+    return "u=" + st.u + " seq=" + (2 * st.u) + " active=1 updates=" + st.u + " flags=" + (st.flags < 16 ? "0" : "") + st.flags.toString(16) +
+      " board=" + st.board + " go=" + st.go.join("/") + " lc=" + st.lc.join("/") + " over=" + st.over.join("/") + " deaths=" + st.deaths.join(",") +
+      " tick=0 state=0 level=0 dlevel=0 dscore=0 score=0 blc=" + st.blc + " gotick=0 dsmax=0 own=" + hex(15) + hex(st.cat) + hex(st.num) + hex(0) +
+      " wins=" + st.wins.join("/") + " mode=" + st.mode + " skill=0 ingame=" + (st.board ? 1 : 0) + " progress=" + st.progress;
+  }
+  var out = [line()];
+  steps.forEach(function (x) {
+    if (x[0] === "go") { st.board++; st.mode = x[1]; st.cat = x[2] === undefined ? -1 : x[2]; st.num = x[3] || 0; st.blc = 0; st.go = [st.go[0] + 1, st.board]; }
+    else if (x[0] === "clear") { st.blc++; st.lc = [st.lc[0] + 1, st.board]; }
+    else if (x[0] === "over") { st.over = [st.over[0] + 1, st.board]; st.deaths[x[1]]++; }
+    else if (x[0] === "win") st.wins = [st.wins[0] + 1, st.board];
+    else if (x[0] === "menu") { st.board = 0; st.mode = -1; st.cat = -1; st.num = 0; }
+    else if (x[0] === "progress") st.progress = x[1];
+    out.push(line());
+  });
+  return out;
+}
+var twTen = [["go", 1]].concat([1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(function () { return ["clear"]; })).concat([["over", 3]]);
+check(blockReplay("bejeweledtwist", "Level 10 - Classic", twLines(twTen)) === "start; " + splits(10) &&
+      blockReplay("bejeweledtwist", "Level 10 - Zen", twLines(twTen)) === "", "Bejeweled Twist Level 10 (Classic): from the click to level 10's picture; Zen's ignores it");
+check(blockReplay("bejeweledtwist", "Level 10 - Zen", twLines([["go", 4], ["clear"], ["clear"], ["over", 0]])) === "start; split; split; reset resetBlewUp",
+      "Bejeweled Twist Level 10 (Zen): a board that blows up resets");
+check(blockReplay("bejeweledtwist", "Level 10 - Classic", twLines([["go", 1], ["clear"], ["over", 1]])) === "start; split; reset resetSkull",
+      "Bejeweled Twist: the wheel's skull resets");
+check(blockReplay("bejeweledtwist", "Unlock%", twLines([["go", 1], ["clear"], ["progress", 2], ["clear"], ["progress", 4]])) === "start; split",
+      "Bejeweled Twist Unlock%: ends when the fourth mode opens");
+// Enigma%: many challenges, a failed one tried again, the win of Voltage 1 ends it; earlier wins split while segments are left
+var twEnigma = [["go", 2, 0, 1], ["win"], ["menu"], ["go", 2, 0, 2], ["over", 3], ["menu"], ["go", 2, 0, 2], ["win"], ["menu"],
+                ["go", 2, 11, 1], ["win"]];
+check(blockReplay("bejeweledtwist", "Enigma%", twLines(twEnigma)) === "start; split", "Bejeweled Twist Enigma%: a failed challenge resets nothing, Voltage 1's win ends it");
+check(blockReplay("bejeweledtwist", "Challenge 100%", twLines(twEnigma.concat([["menu"], ["go", 2, 12, 7], ["win"]]))) === "start; split",
+      "Bejeweled Twist Challenge 100%: Enigma 7's win ends it, not Voltage 1's");
+check(blockReplay("bejeweledtwist", "Enigma%", twLines([["go", 1], ["clear"]])) === "", "Bejeweled Twist Enigma%: a Classic game starts nothing");
+
+// Bejeweled 2: the port's block logs from its session's scripted games (2026-11-15, games/bejeweled2/tools/livesplit/drive.py;
+// the puzzle ones on a profile with the galaxy opened, its progress 80 from the start)
+function b2Log(name) { return fs.readFileSync(path.join(__dirname, "autosplit", "bejeweled2", name + ".block.log"), "utf8").split(/\r?\n/); }
+check(blockReplay("bejeweled2", "Classic Mode - Level 5", b2Log("classic")) === "start; split; split; reset resetNoMoves",
+      "Bejeweled 2 Classic: from the GO, a split a level, no moves resets");
+check(blockReplay("bejeweled2", "Action Mode - Level 8", b2Log("action")) === "start; split; split; reset resetTimeUp" &&
+      blockReplay("bejeweled2", "Classic Mode - Level 5", b2Log("action")) === "", "Bejeweled 2 Action: the time running out resets; Classic's ignores it");
+check(blockReplay("bejeweled2", "Hyper Mode - Level 37", b2Log("hyper")) === "start; split; split; reset resetTimeUp", "Bejeweled 2 Hyper");
+check(blockReplay("bejeweled2", "Classic Mode - Level 5", b2Log("left")) === "start; reset resetLeft", "Bejeweled 2: leaving the board mid-game resets");
+check(blockReplay("bejeweled2", "25%", b2Log("puzzle20")) === "start; split; split; split; split" &&
+      blockReplay("bejeweled2", "25%", b2Log("puzzle")) === "start; split; reset resetLeft",
+      "Bejeweled 2 25%: a planet each five puzzles solved, not the opened profile's count");
+check(blockReplay("bejeweled2", "4 Square", b2Log("foursquare")) === "start; split; split; split; split",
+      "Bejeweled 2 4 Square: four levels of each of four modes over five boards, each mode left by the next");
+check(blockReplay("bejeweled2", "Switcharoo", b2Log("switcharoo")) === "start; " + splits(12),
+      "Bejeweled 2 Switcharoo: Action and Endless in turns, saved games continued, a split a level (12 of 16)");
 
 console.log("autosplittest: " + (fx.cases.length + bm.cases.length + bw.cases.length) + " scenario replays, " + checks + " checks, " + fails + " failed");
 process.exit(fails ? 1 : 0);

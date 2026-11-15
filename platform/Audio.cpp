@@ -13,7 +13,9 @@
 #include <stb_vorbis.c>
 #include <minimp3.h>
 #ifdef __EMSCRIPTEN__
+#ifndef BYOPOP_DERIVED
 #include "ModuleText.h"
+#endif
 #endif
 
 #ifdef __EMSCRIPTEN__
@@ -292,8 +294,13 @@ void Mixer::RegisterModuleFormat(ModuleDetector theDetector, ModuleFactory theFa
 struct Mixer::Song
 {
 	xmp_context mCtx = nullptr;
+	// port: a tracker module's file until its player is first needed (OpenModule), shared by the songs loaded from the same
+	// bytes: Big Money loads its one module once per tune, 14 times, and a session plays about six of them
+	std::shared_ptr<const std::vector<uint8_t> > mModuleFile;
 	std::unique_ptr<ModulePlayer> mModule;   // a registered module format (e.g. MO3 via libopenmpt)
+#ifndef BYOPOP_DERIVED
 	int mMeter = 0;   // an IT's row highlights (rows per beat << 16 | per bar; ModuleText.h's byopop_it_meter), 0 for none
+#endif
 
 	std::vector<uint8_t> mFile;              // Ogg bytes, kept alive for the decoder
 	size_t mModuleFileBytes = 0;             // a module's file size, for the memory report (its player holds the module)
@@ -1084,12 +1091,14 @@ int Mixer::LoadSong(const std::string& theGamePath)
 	if (!VFS::Get().ReadAll(theGamePath, file) || file.empty())
 		return 0;
 	std::unique_ptr<Song> song(new Song());
+#ifndef BYOPOP_DERIVED
 	const VFSRemap* remap = VFS::Get().GetRemap(theGamePath);
 	if (remap)
 	{
 		song->mDefaultOrder = remap->mStartOrder;
 		song->mTrackGain = (float)remap->mVolume;
 	}
+#endif
 	bool isOgg = file.size() > 4 && !memcmp(file.data(), "OggS", 4);
 	bool isWav = file.size() > 4 && !memcmp(file.data(), "RIFF", 4);
 	if (isOgg)
@@ -1119,11 +1128,13 @@ int Mixer::LoadSong(const std::string& theGamePath)
 	}
 	if (song->IsStream())
 	{
+#ifndef BYOPOP_DERIVED
 		if (remap)
 		{
 			song->mStartFrame = (int64_t)std::max(0.0, remap->mStartTime * song->mSourceRate);
 			song->mLoopStartFrame = (int64_t)std::max(0.0, remap->mLoopStart * song->mSourceRate);
 		}
+#endif
 		if (song->mSourceFrames > 0 && song->mLoopStartFrame >= song->mSourceFrames)
 			song->mLoopStartFrame = 0;
 		if (song->mSourceFrames > 0 && song->mStartFrame >= song->mSourceFrames)
@@ -1153,14 +1164,21 @@ int Mixer::LoadSong(const std::string& theGamePath)
 		if (byopop_it_meter(file.data(), (long)file.size(), &aBeat, &aBar))
 			song->mMeter = aBeat << 16 | aBar;
 #endif
-		song->mCtx = xmp_create_context();
-		if (xmp_load_module_from_memory(song->mCtx, file.data(), (long)file.size()) != 0)
-		{
-			xmp_free_context(song->mCtx);
+		// port: the player is made when the song is first played or looked into (OpenModule), from the file kept until then;
+		// a file libxmp does not recognise fails here, as its load did. Songs loaded from the same bytes keep one copy.
+		xmp_test_info aTestInfo;
+		if (xmp_test_module_from_memory(file.data(), (long)file.size(), &aTestInfo) != 0)
 			return 0;
+		for (const std::unique_ptr<Song>& anOther : mSongs)
+		{
+			if (anOther && anOther->mModuleFile && (*anOther->mModuleFile == file))
+			{
+				song->mModuleFile = anOther->mModuleFile;
+				break;
+			}
 		}
-		xmp_start_player(song->mCtx, mRate, 0);
-		xmp_set_player(song->mCtx, XMP_PLAYER_INTERP, BYOPOP_XMP_INTERP);  // platform/MusicLevels.h
+		if (!song->mModuleFile)
+			song->mModuleFile = std::make_shared<const std::vector<uint8_t> >(std::move(file));
 	}
 	song->mLoaded = true;
 	Lock();
@@ -1189,6 +1207,7 @@ void Mixer::GetSongMemory(int* theCount, size_t* theTrackBytes, size_t* theModul
 	*theCount = 0;
 	*theTrackBytes = 0;
 	*theModuleFileBytes = 0;
+	std::vector<const void*> aKeptFiles;
 	Lock();
 	for (auto& s : mSongs)
 	{
@@ -1196,7 +1215,14 @@ void Mixer::GetSongMemory(int* theCount, size_t* theTrackBytes, size_t* theModul
 			continue;
 		(*theCount)++;
 		*theTrackBytes += s->mFile.capacity() + s->mDecoded.capacity() * sizeof(float) + (s->mPcm ? s->mPcm->Bytes() : 0);
-		*theModuleFileBytes += s->mModuleFileBytes;
+		// a module's player holds it (counted as its file's size); a file waiting for its first player is counted once
+		if (s->mCtx || s->mModule)
+			*theModuleFileBytes += s->mModuleFileBytes;
+		else if (s->mModuleFile && (std::find(aKeptFiles.begin(), aKeptFiles.end(), s->mModuleFile.get()) == aKeptFiles.end()))
+		{
+			aKeptFiles.push_back(s->mModuleFile.get());
+			*theModuleFileBytes += s->mModuleFile->size();
+		}
 	}
 	Unlock();
 }
@@ -1221,10 +1247,40 @@ void Mixer::UnloadSong(int theSong)
 #define SONG_FOR_HANDLE(h) \
 	Song* s = (h) > 0 && (h) <= (int)mSongs.size() ? mSongs[(h) - 1].get() : nullptr
 
+// Loads the module and starts its player as LoadSong once did, outside the lock (the audio thread mixes only songs that play,
+// and a song plays only after this). Only the main thread adds or removes songs, so it reads mSongs unlocked.
+bool Mixer::OpenModule(int theSong)
+{
+	SONG_FOR_HANDLE(theSong);
+	if (!s)
+		return false;
+	if (s->mCtx || !s->mModuleFile)
+		return s->mCtx != nullptr;
+	xmp_context aCtx = xmp_create_context();
+	if (xmp_load_module_from_memory(aCtx, s->mModuleFile->data(), (long)s->mModuleFile->size()) != 0)
+	{
+		SDL_Log("cannot load music module %d", theSong);
+		xmp_free_context(aCtx);
+		s->mModuleFile.reset();
+		return false;
+	}
+	xmp_start_player(aCtx, mRate, 0);
+	xmp_set_player(aCtx, XMP_PLAYER_INTERP, BYOPOP_XMP_INTERP);  // platform/MusicLevels.h
+	Lock();
+	s->mCtx = aCtx;
+	Unlock();
+	s->mModuleFile.reset();
+	return true;
+}
+
 void Mixer::PlaySong(int theSong, int theOrder, int theRow, bool theLoop, bool theResetPosition)
 {
+	bool anOpened = OpenModule(theSong);
 	Lock();
 	SONG_FOR_HANDLE(theSong);
+	// a module whose file did not load has no player and stays silent
+	if (s && !s->IsStream() && !s->mModule && !anOpened)
+		s = nullptr;
 	if (s)
 	{
 		s->mLoop = theLoop;
@@ -1747,6 +1803,7 @@ bool Mixer::WebSongSeek(int theSong, int theOrder, int theRow)
 std::string Mixer::WebSongRow(int theSong, int thePattern, int theRow)
 {
 	std::string aText;
+	OpenModule(theSong);
 	Lock();
 	SONG_FOR_HANDLE(theSong);
 	if (s && s->mCtx)
@@ -1775,6 +1832,7 @@ std::string Mixer::WebSongRow(int theSong, int thePattern, int theRow)
 std::string Mixer::WebSongNames(int theSong)
 {
 	std::string aText;
+	OpenModule(theSong);
 	Lock();
 	SONG_FOR_HANDLE(theSong);
 	if (s && s->mCtx)
@@ -1794,6 +1852,7 @@ std::string Mixer::WebSongNames(int theSong)
 int Mixer::WebSongMeter(int theSong, int thePattern)
 {
 	int aMeter = 0;
+	OpenModule(theSong);
 	Lock();
 	SONG_FOR_HANDLE(theSong);
 	if (s && s->mCtx)
@@ -1807,6 +1866,7 @@ int Mixer::WebSongMeter(int theSong, int thePattern)
 bool Mixer::WebSongMute(int theSong, int theChannel, bool theMute)
 {
 	bool aDone = false;
+	OpenModule(theSong);
 	Lock();
 	SONG_FOR_HANDLE(theSong);
 	if (s && s->mCtx)
@@ -1826,6 +1886,7 @@ std::string Mixer::WebSongUsed(int theSong)
 {
 	unsigned char aUsed[256] = {};
 	int aChannels = 0;
+	OpenModule(theSong);
 	Lock();
 	SONG_FOR_HANDLE(theSong);
 	if (s && s->mCtx)

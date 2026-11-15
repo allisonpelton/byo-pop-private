@@ -28,6 +28,7 @@
 struct SDL_Window;
 struct SDL_Renderer;
 struct SDL_Texture;
+struct SDL_Vertex;
 
 namespace Sexy
 {
@@ -105,6 +106,31 @@ public:
 
 	// the stack PushTransform and PopTransform keep (empty unless a game pushes)
 	std::vector<SexyMatrix3> mTransformStack;
+
+	// port: the textured quads and triangles drawn since the last other draw, with one texture, one blend mode and one clip,
+	// waiting to go to SDL as one SDL_RenderGeometry call (FlushQuads). SDL makes one draw call of each RenderGeometry and
+	// joins none, and on Direct3D 11 the driver's work for the draw calls takes about half of the processor time of some
+	// games; one call draws the same triangles in the same order, so the same pixels come out. Only an accelerated renderer
+	// (mIs3D) gathers them: SDL's software renderer turns each call's pairs of triangles back into copies. Every other
+	// call that draws, reads the target, sets the clip or the target, or changes or frees a texture flushes them first.
+	// A quad's vertices are taken through the transform stack's top matrix before they are queued, so each keeps the matrix
+	// it was drawn under and a push or pop between two quads needs no flush.
+	SDL_Texture* mQuadTexture;
+	int mQuadBlendMode;
+	std::vector<SDL_Vertex> mQuadVertices;
+	std::vector<int> mQuadIndices;
+	void FlushQuads();
+	// Adds triangles to the waiting ones (theIndices NULL: theVertexCount / 3 triangles in order), flushing those first when
+	// their texture or blend mode differ
+	void AddQuads(SDL_Texture* theTexture, const SDL_Vertex* theVertices, int theVertexCount, const int* theIndices, int theIndexCount);
+
+	// port: the bytes PrepareTexture has uploaded since it last sent the device's commands to the GPU (NoteUpload). Direct3D
+	// 11 holds each upload's staging copy until the GPU has run the copy, and the driver keeps that memory afterwards, so a
+	// burst of uploads (a screen's first draw) left as many private bytes as it uploaded, 13 MB for 12.5 MB of textures.
+	// Sent every 2 MB, the next uploads reuse that memory: Bejeweled 2's first board peaks 3 to 6 MB lower (docs/MEMORY.md).
+	// Nothing waits for the GPU.
+	size_t mUploadedBytes;
+	void NoteUpload(size_t theBytes);
 
 	// The software stretch (off by default; a game whose original drew its screen in software sets it, as Bejeweled
 	// Twist does in 2D). The first piece of the framework's software 2D path: it covers StretchBlt only. The original's
