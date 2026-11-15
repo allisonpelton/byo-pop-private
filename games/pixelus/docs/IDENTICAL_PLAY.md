@@ -143,6 +143,27 @@ phase-one baseline only in their `apprand` lines; the game's own state and its d
 - The Skip the Tutorial log differs by about a pixel at its left cap and edges (resampling of the strip's frame).
 - Tile icons and the sliding trail are drawn slightly differently; the tile maker's pose differs by a frame.
 
+## Screens shot on 2026-11-14 (options, help, credits; cases t17 for the port and t17o for the original, original run px6)
+
+The original and the port were given the same updates, with the clicks at each program's own buttons (the options dialog's
+rows are not where the port's are). The menu after Play and the story match (0.0%). What differs, not yet fixed:
+
+- **The options dialog** (u300, 45%). The original's dialog from the menu is a column of full-width rows: How to play, Check
+  for updates, Credits, then the footer's Done, with a Hardware Acceleration box under the other two; it has no Reset Hints.
+  The port draws Reset Hints and Credits side by side over How to play, and has neither the update row nor the 3D box.
+  The rows come from NcApp's constructor 0x4e8b80 (which buttons exist depends on the application's registered flag at
+  +0x654 and two flags copied from a 13-word block into the dialog at +0x150 and +0x151) and its layout 0x4e7f50 (the row
+  vector at +0x184). Check for updates and the 3D box are outbound and platform items the port leaves out on purpose; the
+  rest of the layout (the rows' places, whether Reset Hints shows from the menu) has to follow that code.
+- **The help screen's demos** (u400 to u700, 28%): the original's left demo shows the hero sliding a tile in with the pointer
+  and its right grid is dark with the picture's cells fading in; the port's demos are in other phases of their loops.
+  Their timing (0x4170d0's callers) has to be lined up with the update the help screen opens at.
+- **The credits dialog** (u900 and later, 13%): the original's dialog is taller and its text starts higher; the port's is
+  shorter with its text lower.
+- At u300 and u1800 the original's menu says "Welcome to Pixelus" with no player name (0x40a8b0 prints the name only while a
+  player is current); the port's player was made at the same update by the same clicks, so this run's original lost the
+  name or made it later. Not explained; the case t16 (u250) shows the name in both.
+
 ## Open (this phase is not complete)
 
 - **Completion screens, not ported:** mode 3 (nothing sets it in 0x41b3c0) and the maxed variants were not played (mode 4 with
