@@ -101,12 +101,15 @@ public:
 	void NoteWant3D(bool theWant3D) override;
 	bool ReadScreen(ulong* theBits) override;
 	bool ReadScreenFull(std::vector<uint32_t>& theBits, int& theWidth, int& theHeight) override;
+	// the window as shown: on the GPU, the screen texture the screen is drawn into (the buffer is not kept up to date there)
+	bool ReadWindow(std::vector<uint32_t>& theBits, int& theWidth, int& theHeight) override;
 
 	// true once the screen is drawn on the GPU (DDInterface's path), for good
 	bool DrawsOnGpu() const { return mGpuScreen; }
 
 protected:
 	int WantedSurfaceScale() override;
+	bool WantsStretch() override;
 	// the software screen's settings (a new display, or after Cleanup): no 3D, the software stretch
 	void SoftwareScreen();
 	// no 3D, whatever the renderer could do

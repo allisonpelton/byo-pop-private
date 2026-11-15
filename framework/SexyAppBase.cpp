@@ -2239,6 +2239,10 @@ void SexyAppBase::HandleEvent(const SDL_Event& theEvent)
 
 				if ((mActive) && (!mIsWindowed))
 					mWidgetManager->MarkAllDirty();
+				// port: a display without a renderer shows all of the window again at the next present (SurfaceDisplay;
+				// the GPU path presents whole anyway)
+				if ((mActive) && (mDDInterface != NULL))
+					mDDInterface->ScreenInvalidated();
 
 				if ((mIsOpeningURL) && (!mActive))
 					URLOpenSucceeded(mOpeningURL);
@@ -3908,6 +3912,8 @@ int SexyAppBase::RunScriptCommand(const ScriptCommand& theCommand, std::string* 
 		SaveScreenshotMidUpdate(aCommand.mArgs);
 	else if ((aName == "screenshotfull") && (!aCommand.mArgs.empty()))
 		SaveScreenshotMidUpdate(aCommand.mArgs, true);
+	else if ((aName == "screenshotwindow") && (!aCommand.mArgs.empty()))
+		SaveWindowShot(aCommand.mArgs);
 	else if ((aName == "focus") && ((aCommand.mArgs == "lose") || (aCommand.mArgs == "regain")))
 	{
 		// as the window's focus event does (WM_ACTIVATEAPP), like origrun's "focus lose" and "focus regain"
@@ -4690,6 +4696,8 @@ int SexyAppBase::RunRealInputCommand(const ScriptCommand& theCommand, std::strin
 		SaveScreenshotMidUpdate(aCommand.mArgs);
 	else if ((aName == "screenshotfull") && (!aCommand.mArgs.empty()))
 		SaveScreenshotMidUpdate(aCommand.mArgs, true);
+	else if ((aName == "screenshotwindow") && (!aCommand.mArgs.empty()))
+		SaveWindowShot(aCommand.mArgs);
 	else if (aName == "quit")
 		Shutdown();
 	else if ((aName == "3d") && ((aCommand.mArgs == "on") || (aCommand.mArgs == "off")))
@@ -5036,6 +5044,34 @@ bool SexyAppBase::SaveScreenshot(const std::string& theFileName, bool fullResolu
 	}
 	SDL_Log("screenshot: %s (update %d)", theFileName.c_str(), mUpdateCount);
 	return true;
+}
+
+Widget* SexyAppBase::OverlayWidget() const
+{
+	return ((mModMenu != NULL) && (mModMenu->mVisible)) ? mModMenu : NULL;
+}
+
+// Test: the window as the last present showed it, at the window's size (DDInterface::ReadWindow), not drawn again
+bool SexyAppBase::SaveWindowShot(const std::string& theFileName)
+{
+	std::vector<uint32_t> aBits;
+	int aWidth = 0, aHeight = 0;
+	if (!mDDInterface->ReadWindow(aBits, aWidth, aHeight))
+	{
+		SDL_Log("screenshotwindow: cannot read the window");
+		return false;
+	}
+	std::vector<uchar> aRGBA((size_t) aWidth * aHeight * 4);
+	for (size_t i = 0; i < aBits.size(); i++)
+	{
+		aRGBA[i*4 + 0] = (uchar) (aBits[i] >> 16);
+		aRGBA[i*4 + 1] = (uchar) (aBits[i] >> 8);
+		aRGBA[i*4 + 2] = (uchar) aBits[i];
+		aRGBA[i*4 + 3] = 255;
+	}
+	const bool aWritten = stbi_write_png(theFileName.c_str(), aWidth, aHeight, 4, &aRGBA[0], aWidth * 4) != 0;
+	SDL_Log("screenshotwindow: %s at %dx%d (update %d)%s", theFileName.c_str(), aWidth, aHeight, mUpdateCount, aWritten ? "" : ", not written");
+	return aWritten;
 }
 
 //////////////////////////////////////////////////////////////////////////
