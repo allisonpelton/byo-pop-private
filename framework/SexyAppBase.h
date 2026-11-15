@@ -196,6 +196,11 @@ public:
 	DDInterface* mDDInterface;
 	bool mAlphaDisabled;
 	bool mWant3D;  // port: the 3D choice Set3DAcclerated recorded (mUserChanged3DSetting), applied again whenever the display is made
+	// port: the 3D choice of a player who has never made one (no "Is3D" saved): true, the GPU's, unless the port's original
+	// starts in 2D with no saved value (its DDInterface starts with mIs3D false and nothing turns mAutoEnable3D on), whose
+	// constructor sets it false; the display keeps the 2D flags through every change of mode (DDInterface::mAppWants3D,
+	// docs/MEMORY.md "The 2D flags on the GPU path")
+	bool mDefault3D;
 	MusicInterface* mMusicInterface;
 	bool mReadFromRegistry;
 	std::string mRegisterLink;

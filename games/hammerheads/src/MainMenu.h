@@ -79,6 +79,7 @@ public:
 	virtual void	ButtonPress(int theId) override;								// 0x4594c0 (the ButtonListener part)
 	using ButtonListener::ButtonPress;
 	virtual void	ButtonDepress(int theId) override;								// 0x45aa50
+	virtual void	ButtonMouseEnter(int theId) override;		// 0x454bc0: the mouse-over sound, whichever button
 
 private:
 	void			AddSlide(Widget* theButton, int theFromX, int theFromY, int theToX, int theToY, double theDelay);

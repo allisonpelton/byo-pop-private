@@ -162,7 +162,8 @@ static int NumToCommaStr(lua_State* L)
 	return 1;
 }
 
-// perf.Start, perf.End (0x4c2dd0, 0x4c2de0): the developers' profiler, empty in the release
+// perf.Start, perf.End (0x4c2dd0, 0x4c2de0): the developers' profiler, whose End gives the time since Start as a
+// number. No script calls either, so here both do nothing (a candidate for taking out, README.md "Coverage check").
 static int PerfNothing(lua_State* L)
 {
 	return 0;
@@ -248,6 +249,7 @@ static int GetPopAnimFile(lua_State* L)
 }
 
 // sexy.PlayPopAnim(frame or label, id), 0x4c3ba0: whether it plays
+// 0x486040 (the PopAnimManager's look-up and PlayLabel of the label) is inline here
 static int PlayPopAnim(lua_State* L)
 {
 	int anId = (int)lua_tonumber(L, 2);
@@ -265,7 +267,8 @@ static int PlayPopAnim(lua_State* L)
 	return 1;
 }
 
-// sexy.GetPopAnimLabelFrame(label, id), 0x4c3d10: -1 for a label it does not have
+// sexy.GetPopAnimLabelFrame(label, id), 0x4c3d10: -1 for a label it does not have (0x486270, which looks the
+// animation up and calls its GetLabelFrame with the label string, is inline here)
 static int GetPopAnimLabelFrame(lua_State* L)
 {
 	const char* aLabel = lua_tostring(L, 1);
@@ -326,6 +329,7 @@ static int DeletePopAnim(lua_State* L)
 	return 0;
 }
 
+// 0x4c4fb0
 LuaInterface::LuaInterface()
 {
 	gLuaInterface = this;

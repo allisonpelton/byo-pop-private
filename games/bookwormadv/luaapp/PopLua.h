@@ -18,7 +18,9 @@ public:
 	// LuaSupport's hooks for the app (vf07, vf21) and its development features, which no script of
 	// Bookworm Adventures uses: reloading the scripts at the end of the frame (vf14, done in vf21) and save
 	// points of the globals (vf22, vf23). The original's vf07 closed its log file; here they all do nothing.
+	// 0x6d00e0
 	virtual void AppShutdown() {}
+	// 0x6db4e0
 	virtual void UpdateState() {}
 	virtual void DeferReload(const std::string& thePath) {}
 	virtual void CreateSavePoint(const std::string& theName) {}

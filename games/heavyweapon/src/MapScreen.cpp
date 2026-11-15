@@ -83,7 +83,7 @@ MapScreen::MapScreen(HeavyWeaponApp* theApp)
 	mInvadeLink = new HyperlinkWidget(BUTTON_INVADE, this);
 	mInvadeLink->mLabel = GT(0x52dda4);
 	mInvadeLink->SetFont(mApp->mFonts[FONT_NORMAL]->Duplicate());
-	mInvadeLink->mColor = Color(0xff, 0xff, 0xff, 0xff);
+	mInvadeLink->SetColor(0, Color(0xff, 0xff, 0xff, 0xff)); // colour 0 of the list, which the link never reads
 	mInvadeLink->SetVisible(false);
 	mIntelButton = new HyperlinkWidget(BUTTON_INTEL, this);
 	mIntelButton->mLabel = "";
@@ -105,7 +105,11 @@ MapScreen::MapScreen(HeavyWeaponApp* theApp)
 		if (aCounts[aCraft] > 0)
 			mCrafts.push_back(aCraft);
 	}
-	Resize(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+	// the invade link under the region's picture, the panel's button over the briefing
+	Widget::Resize(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+	int aLinkWidth = mApp->mFonts[FONT_NORMAL]->StringWidth(mInvadeLink->mLabel);
+	mInvadeLink->Resize(REGION_CENTER_X - aLinkWidth / 2, 0x1b8, aLinkWidth, 0x19);
+	mIntelButton->Resize(INTEL_X, 0xfa, 0x140, 0xe6);
 }
 
 // 0x4254d0 (body 0x424b30)
@@ -129,15 +133,6 @@ void MapScreen::RemovedFromManager(WidgetManager* theManager)
 	Widget::RemovedFromManager(theManager);
 	theManager->RemoveWidget(mInvadeLink);
 	theManager->RemoveWidget(mIntelButton);
-}
-
-// 0x423f40 slot 13: the invade link under the region's picture, the panel's button over the briefing
-void MapScreen::Resize(int theX, int theY, int theWidth, int theHeight)
-{
-	Widget::Resize(theX, theY, theWidth, theHeight);
-	int aLinkWidth = mApp->mFonts[FONT_NORMAL]->StringWidth(mInvadeLink->mLabel);
-	mInvadeLink->Resize(REGION_CENTER_X - aLinkWidth / 2, 0x1b8, aLinkWidth, 0x19);
-	mIntelButton->Resize(INTEL_X, 0xfa, 0x140, 0xe6);
 }
 
 // 0x423fc0: the picture of the enemy craft (its number in the craft table), with the parts the strip leaves out

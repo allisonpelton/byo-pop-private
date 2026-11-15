@@ -40,7 +40,10 @@ public:
 	virtual void	Resize(int theX, int theY, int theWidth, int theHeight) override; // 0x42e010 slot 13
 	virtual void	Draw(Graphics* g) override;								// 0x42e220 slot 16
 	virtual void	Update() override;										// 0x42dfd0 slot 17
+	virtual void	ButtonPress(int theId) override;						// 0x410670 (listener slot 4, the board's code)
 	virtual void	ButtonDepress(int theId) override;						// 0x42e050 (listener slot 5)
+
+	using ButtonListener::ButtonPress;
 };
 
 }

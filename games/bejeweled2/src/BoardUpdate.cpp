@@ -117,7 +117,7 @@ void Board::DoUpdate()
 			return;
 		UpdateBonusPenalty();
 		float aFade = (float)((double)mPauseFade - 0.05);
-		mPauseTextOn = !mApp->mPaused;
+		mPauseTextOn = mApp->GetDialogCount() == 0;
 		if (aFade <= 0.0f)
 			aFade = 0.0f;
 		mPauseFade = aFade;
@@ -490,7 +490,10 @@ void Board::DoUpdate()
 	if (!mIsPuzzle && mLevelGoalScore - mLevelStartScore <= (mShownScore - (int)mDrain) - mLevelStartScore)
 	{
 		if (mState == STATE_IDLE)
+		{
 			mState = STATE_LEVEL_COMPLETE_WAIT;
+			mLevelClears++;
+		}
 		else if (mState == STATE_LEVEL_COMPLETE_WAIT && mCheerDelay == 0)
 		{
 			mApp->PlaySample(SOUND_LEVEL_COMPELTE);

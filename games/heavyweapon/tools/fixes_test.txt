@@ -1,0 +1,32 @@
+# The fixes mod's script (games/heavyweapon/tools/fixes_check.sh): level 1 won with `win` to its results, whose save is
+# the savedBonuses fix's, and ADVANCE to the armory; then two games of survival lost with `lose`, the first at 3000
+# updates, the second at 5000 with 4000 of them taken by the penalty (as shooting the supply helicopter takes 6000), so
+# its clock beats the first game's time and its time does not: the survivalBest fix's. @DIR@ is the run's folder. Run
+# with -fast -seed=1.
+5 click 320 240
+10 click 320 240
+300 goto menu
+400 level 1
+600 win
+1900 win
+2900 screenshot @DIR@/results.png
+2901 state
+3000 click 562 442
+3100 state
+3200 goto survival
+3600 set timer 3000
+3601 lose
+4400 screenshot @DIR@/survival1.png
+4401 state
+4500 click 395 320
+4600 goto survival
+5000 set timer 5000
+5001 set penalty 4000
+5002 lose
+5800 screenshot @DIR@/survival2.png
+5801 state
+5900 click 395 320
+6000 goto survival
+6100 screenshot @DIR@/survival3.png
+6101 state
+6200 quit

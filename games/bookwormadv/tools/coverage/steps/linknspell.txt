@@ -1,0 +1,165 @@
+at 31000
+click 115 400            # the tent
+wait 2500
+click 393 412            # Link n' Spell
+wait 2500
+click 332 416   # dialog
+wait 1500
+click 400 300   # hint
+wait 1000
+click 400 300   # hint
+wait 1000
+click 400 300   # hint
+wait 1000
+click 400 300   # hint
+wait 1000
+click 400 300   # hint
+wait 1000
+click 334 236
+wait 300
+click 393 176
+wait 300
+click 275 296
+wait 300
+click 393 116
+wait 300
+click 334 356
+wait 300
+click 511 236
+wait 300
+click 393 236
+wait 300
+click 275 236
+wait 300
+click 393 296
+wait 300
+click 511 356
+wait 300
+wait 400
+click 399 580   # Attack: EQUIVOCATED
+wait 2500
+click 334 176
+wait 300
+click 334 236
+wait 300
+click 452 116
+wait 300
+click 393 176
+wait 300
+click 275 296
+wait 300
+click 452 296
+wait 300
+click 275 356
+wait 300
+wait 400
+click 399 580   # Attack: MEZQUITE
+wait 2500
+click 511 176
+wait 300
+click 275 356
+wait 300
+click 393 356
+wait 300
+click 452 356
+wait 300
+click 275 116
+wait 300
+wait 400
+click 399 580   # Attack: BEAMY
+wait 2500
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 2000
+quit

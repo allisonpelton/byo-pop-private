@@ -64,11 +64,12 @@
         "unneeded-code",
         "readability",
         "collection",
-        "site-features"
+        "site-features",
+        "lite-mod"
       ],
       "na": [],
       "now": null,
-      "note": ""
+      "note": "every phase but modding done: the lite mod takes nothing (LITE_MOD.md: the whole board logic is about 1 us an update)"
     },
     "alchemy": {
       "title": "Alchemy Deluxe",
@@ -82,13 +83,14 @@
         "performance",
         "unneeded-code",
         "readability",
-        "site-features"
+        "site-features",
+        "lite-mod"
       ],
       "na": [
         "collection"
       ],
       "now": null,
-      "note": ""
+      "note": "every phase but modding done: the lite mod takes nothing (LITE_MOD.md: the discard's melt would be lite in kind but costs 0.4% to 1.9% of a minute, below what the medians resolve)"
     },
     "noahsark": {
       "title": "Noah's Ark Deluxe",
@@ -102,13 +104,14 @@
         "performance",
         "unneeded-code",
         "readability",
-        "site-features"
+        "site-features",
+        "lite-mod"
       ],
       "na": [
         "collection"
       ],
       "now": null,
-      "note": ""
+      "note": "every phase but modding done: the lite mod takes nothing (LITE_MOD.md: the four searches cost about 0.05% of the action game; SearchPath's other routes of equal cost are lite in kind but not worth it)"
     },
     "atomica": {
       "title": "Atomica Deluxe",
@@ -122,13 +125,14 @@
         "performance",
         "unneeded-code",
         "readability",
-        "site-features"
+        "site-features",
+        "lite-mod"
       ],
       "na": [
         "collection"
       ],
       "now": null,
-      "note": ""
+      "note": "every phase but modding done: the lite mod step closed with no mod (20a8029f). An exact Dijkstra-pruned route search gives the same route in all 1,187,177 searches compared, but the original's search is 5-8% of the process only in its worst state and about 0.5% in bot games, so neither is measurable; its figures to redo after the renderer decision are listed in LITE_MOD.md"
     },
     "mummymaze": {
       "title": "Mummy Maze Deluxe",
@@ -164,11 +168,12 @@
         "unneeded-code",
         "readability",
         "collection",
-        "site-features"
+        "site-features",
+        "lite-mod"
       ],
       "na": [],
-      "now": "lite-mod",
-      "note": "processor time like for like 6.7 G cycles a minute at the original's 640x480 (5.9 in the default window) against the original's 10.5; the lite survey next"
+      "now": null,
+      "note": "every phase but modding done: the lite mod takes nothing (LITE_MOD.md: Board::Flood and PlanEnemyMoves on the 11x11 grid cost under 0.1 ms in two bot games)"
     },
     "mahjongjapan": {
       "title": "Mahjong Escape: Ancient Japan",
@@ -186,8 +191,8 @@
       "na": [
         "collection"
       ],
-      "now": "performance",
-      "note": "processor time over the original's: second performance round (the user's target, 2026-11-11)"
+      "now": null,
+      "note": "second performance round merged: SurfaceDisplay's stretch mode (GDI nearest, off by default; full screen at 4K 0.57 and 0.52 of the original's processor time) and the modal pause under the mod menu; the default full screen stays on the renderer (over the original) until the user's choice of look and fw-memory's processor-side smooth stretch"
     },
     "mahjongchina": {
       "title": "Mahjong Escape: Ancient China",
@@ -205,8 +210,8 @@
       "na": [
         "collection"
       ],
-      "now": "performance",
-      "note": "processor time over the original's: second performance round (the user's target, 2026-11-11)"
+      "now": null,
+      "note": "second performance round merged: SurfaceDisplay's stretch mode (GDI nearest, off by default; full screen at 4K 0.57 and 0.52 of the original's processor time) and the modal pause under the mod menu; the default full screen stays on the renderer (over the original) until the user's choice of look and fw-memory's processor-side smooth stretch"
     },
     "bejeweledtwist": {
       "title": "Bejeweled Twist",
@@ -239,11 +244,12 @@
         "readability",
         "collection",
         "site-features",
-        "identical-look"
+        "identical-look",
+        "lite-mod"
       ],
       "na": [],
       "now": "performance",
-      "note": "the performance target is not met in 3D on the visible desktop: the port takes 3.8 G cycles in 20 s against the original's 2.4 G (1.59), and the whole excess is the Direct3D 11 driver's thread (49% of the port), a shared cost; 0.80 of the original in 2D on the hidden desktop"
+      "note": "the lite mod step done with no mod (c0ee6258: the game's update is under 2% of the process); performance stays open: 3D is 1.26 of the original on a busy machine, half the port's cycles the Direct3D 11 driver thread, which waits on the framework's renderer item; 2D 0.80"
     },
     "astropop": {
       "title": "AstroPop Deluxe",
@@ -289,11 +295,12 @@
         "identical-play",
         "registration-out",
         "fixes-mod",
-        "site-features"
+        "site-features",
+        "identical-look"
       ],
       "na": [],
-      "now": "identical-look",
-      "note": "Screen fixes under way"
+      "now": "coverage",
+      "note": ""
     },
     "rocketmania": {
       "title": "Rocket Mania Deluxe",
@@ -354,11 +361,12 @@
         "registration-out",
         "identical-look",
         "fixes-mod",
-        "site-features"
+        "site-features",
+        "coverage"
       ],
       "na": [],
-      "now": "coverage",
-      "note": ""
+      "now": null,
+      "note": "the coverage step done (8ea57115): 17 runs of the original, every function it ran has a counterpart or a none line (coverage.txt, 1931 lines for 3525 functions); GameApp::SwitchScreenMode and Init's flags translated (full screen sets mVSyncUpdates and mWaitForVSync), two slips fixed (GameDialog's Escape, LoadResGroup); 77 unreachable functions and PopLua's compiler are the unneeded-code step's candidates; next performance"
     },
     "bookworm": {
       "title": "BookWorm Deluxe",
@@ -373,11 +381,12 @@
         "performance",
         "unneeded-code",
         "readability",
-        "collection"
+        "collection",
+        "lite-mod"
       ],
       "na": [],
-      "now": "lite-mod",
-      "note": "the cycle split measured: 0.53 of the original's processor time at 640x480, 0.44 at 1280x960; the lite survey next"
+      "now": null,
+      "note": "every phase but modding done: the lite mod takes nothing (LITE_MOD.md: the game's own logic is under 0.1% of an update; the solvers are already a mod)"
     },
     "bigmoney": {
       "title": "Big Money Deluxe",
@@ -388,10 +397,12 @@
         "identical-look",
         "fixes-mod",
         "coverage",
-        "site-features"
+        "site-features",
+        "performance",
+        "lite-mod"
       ],
       "na": [],
-      "now": "performance",
+      "now": "unneeded-code",
       "note": ""
     },
     "tiptop": {
@@ -426,11 +437,12 @@
         "unneeded-code",
         "readability",
         "collection",
-        "performance"
+        "performance",
+        "lite-mod"
       ],
       "na": [],
       "now": null,
-      "note": "performance through SurfaceDisplay: 0.28 of the original's processor time windowed at 800x600, 0.87 in full screen (its default; the framework's renderer thread is the rest)"
+      "note": "every phase but modding done: the lite mod step closed with no mod (5b1c7f50), the game's logic being about 1% of a scripted minute (drawing 21%, present and driver about 50% in full screen)"
     },
     "cosmicbugs": {
       "title": "Cosmic Bugs",
@@ -504,7 +516,7 @@
       ],
       "na": [],
       "now": "identical-look",
-      "note": "3D looks reopened (2026-11-13): the user found Puzzle's WARP wrong in the 3D web build, a screen the 3D comparison (menu and Classic only) never shot; after the reset. Performance waits on the user's window-size choice"
+      "note": "3D looks: the whirlpool's first frames no longer blur or lose a row and column (DDInterface's mOriginalSampling, on for Bejeweled 2's 3D game only, 1bbcbf88/57a6a00a), the whirlpool and off-board gems turn the original's way (6056fe1a, e1ecff84: the action tour's game-over frame 25% to 0.6%); open: Finity 3D's washed-out gems (needs original runs, after the user's stop on running the original), the IDENTICAL_PLAY 3D section"
     },
     "venice": {
       "title": "Venice Deluxe",
@@ -519,21 +531,31 @@
         "readability",
         "collection",
         "lite-mod",
-        "registration-out"
+        "registration-out",
+        "site-features"
       ],
       "na": [],
-      "now": "site-features",
-      "note": "every phase but modding done but two: the 3D original's shots against the port's 3D mode (the sandbox never loads it; a visible-desktop driver after the reset) and the tutorial's don't-show-again box; registration and outbound buttons were left out from the first draft (no trial, buy or more-games path in the source); real input windowed and full screen in every mode; site features with the site session"
+      "now": null,
+      "note": "every phase but modding done; on the site from this merge (Music, the Sounds board with nine presets, the autosplitter's VNDX block for speedrun.com's Venice board)"
     },
     "heavyweapon": {
       "title": "Heavy Weapon Deluxe",
       "done": [
         "port",
-        "identical-play"
+        "identical-play",
+        "identical-look",
+        "fixes-mod",
+        "readability",
+        "coverage",
+        "registration-out",
+        "performance",
+        "lite-mod",
+        "unneeded-code",
+        "collection"
       ],
       "na": [],
-      "now": "registration-out",
-      "note": "phase one of identical play done: 28 games from the bot's records agree with the original under origrun in every compared frame (both generators, score, lives, the tank's X, bosses, shots, enemies), all nineteen bosses; the x87's sines in X87.cpp; registration out next"
+      "now": "site-features",
+      "note": "the Collection check done (65ce9233): the Collection's game is the same (.text and .data identical to Steam's, 241 of 242 differing pictures pixel-identical where shown; title.jpg has the newer logo), and the port plays level 4 from its files identically; left: the site features, with the site's session"
     },
     "hammerheads": {
       "title": "Hammer Heads Deluxe",
@@ -544,14 +566,14 @@
       ],
       "na": [],
       "now": "identical-look",
-      "note": "phase one done in full: the game-won sequence, the multiplier gnome and saved games also match the original (9ec2d31b); registration and outbound pictures out (66f32b33); the depth sort on the shared CrtQsort; phase two next"
+      "note": "phase two's sound and music by state done (5e45972f): all 14 phase-one scenarios and classic_focus1 identical in state, sound and music (BASS logged through a stand-in, DirectSound through origrun's); fixed mouse-over on every screen, the in-game menu on release, the ice cream's single gloop and the game-over box's click; next the looks (shots, web and native)"
     },
     "pizzafrenzy": {
       "title": "Pizza Frenzy",
       "done": [],
       "na": [],
-      "now": null,
-      "note": "Not started"
+      "now": "port",
+      "note": "Ported so far: first boot, the front end, the levels and cities, the city select and the game's start up to a level; gameplay next"
     },
     "igglepop": {
       "title": "Iggle Pop Deluxe",

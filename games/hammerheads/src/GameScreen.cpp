@@ -149,8 +149,14 @@ bool GameScreen::IsLevelRunning() const
 	return (aPhase != TIMER_PHASE_RUNNING_OUT || aSaveGnomeAlive || aLastKingStands) && aKingsDestroyed == 0;
 }
 
-// 0x450e10: the menu button
-void GameScreen::ButtonPress(int theId)
+// 0x454bc0: the one function the six screens' ButtonListener tables share; the mouse-over sound plays for every button
+void GameScreen::ButtonMouseEnter(int theId)
+{
+	gApp->PlaySample(SOUND_UI_BUTTON_MOUSE_OVER);
+}
+
+// 0x450e10: the menu button (the slot of ButtonDepress: the box comes when the button is let go over it, not when it is pressed)
+void GameScreen::ButtonDepress(int theId)
 {
 	if (theId == 0 && !gApp->IsPaused())
 		gApp->ShowGameMenu();

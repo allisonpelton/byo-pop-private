@@ -13,6 +13,7 @@
 #include "Res.h"
 #include "Sprite.h"
 #include "WidgetManager.h"
+#include "platform/GameOptions.h"
 
 #include <stdio.h>
 
@@ -119,12 +120,14 @@ ResultsScreen::ResultsScreen(HeavyWeaponApp* theApp)
 	mApp->SetCursorImage(0, NULL);
 
 	// the save: the bonuses are added a second time, as is the next level and a full set of tanks, and taken back
-	// after (so a campaign resumed from the save has the bonuses twice)
+	// after (so a campaign resumed from the save has the bonuses twice; the fix savedBonuses saves the score as it is)
 	Board* aBoard = mBoard;
 	int aBonus = DestructionBonus(KillPercentage(aBoard->mEnemiesDestroyed, aBoard->mEnemiesSpawned), mApp->mLevel);
 	int aFriendlyFireBonus = aBoard->mFriendliesDestroyed == 0 ? (mApp->mLevel + 1) * 5000 : 0;
 	int aSurvivalBonus = mApp->mLives == HeavyWeaponApp::CAMPAIGN_LIVES - 1 ? (mApp->mLevel + 1) * 5000 : 0;
 	aBonus = aSurvivalBonus + aFriendlyFireBonus + aBonus;
+	if (Platform::FixOn("savedBonuses"))
+		aBonus = 0;
 	mApp->mScore += aBonus;
 	int aLevel = mApp->mLevel;
 	if (aLevel < HeavyWeaponApp::FINAL_LEVEL)
@@ -162,13 +165,6 @@ void ResultsScreen::RemovedFromManager(WidgetManager* theWidgetManager)
 {
 	Widget::RemovedFromManager(theWidgetManager);
 	theWidgetManager->RemoveWidget(mAdvanceButton);
-}
-
-// 0x426bc0 slot 13
-void ResultsScreen::Resize(int theX, int theY, int theWidth, int theHeight)
-{
-	Widget::Resize(theX, theY, theWidth, theHeight);
-	mAdvanceButton->Resize(ADVANCE_X, ADVANCE_Y, ADVANCE_WIDTH, ADVANCE_HEIGHT);
 }
 
 // 0x426c00 slot 31: a click skips to the end of the current line's 50 updates

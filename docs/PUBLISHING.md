@@ -95,11 +95,16 @@ python tools/publish.py --target rocketmania --push --model "Opus 5.5"   # to th
 python tools/publish.py --target rocketmania --source <commit> --out <new folder>   # the tree only, no commit
 ```
 
+`--build-check` needs `LLVM_MINGW_ROOT` set (here `E:/retools/llvm-mingw-20261006-ucrt-x86_64`): the derived repository's
+toolchain file asks for it where the trunk's falls back to this machine's folder, and without it cmake stops before it
+looks for Ninja or a compiler.
+
 `--out` writes the tree a snapshot would hold into a new folder and makes no commit, which is how to try a manifest
 or new wraps before they are committed (`--source` takes any commit, such as one made with `git commit-tree` from a
 temporary index). `--release-zip` builds the snapshot as the build check does and writes
 `build/byo-pop-<game>-<date>.zip`, the date being the snapshot's. It holds one folder: the exe, the DLLs of the build
-folder that the exe loads (read from its import table: SDL2, libc++ and libunwind; Windows' own are not copied),
+folder that the exe loads (read from its import table: only SDL2, since the derived top-level `CMakeLists.txt` links
+libc++ and libunwind into the exe; Windows' own are not copied),
 `README.txt` (the README up to its `## Building` heading, with Windows line ends) and the empty `assets/<game>/`
 folder for the player's own game files. No game file goes in, and nothing is uploaded.
 

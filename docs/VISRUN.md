@@ -7,9 +7,10 @@ step file. Run it with `python -I`.
 
 ## When it may run
 
-Only between 22:00 and 08:00 local time (CLAUDE.md, "Overnight"), or, when the user opens the desktop for a stretch of
-the day, until the time they gave, written on that run's command line as `--user-window-until HH:MM` (at most 14 hours
-ahead, never a default, never in a config). A run ends 2 minutes before the deadline. `--dry-run`, `--selftest` and
+A run may start at any hour. The user lifted the time window on 2026-11-15: "Get rid of the time restrictions on ... running on my
+visible desktop. Do what you want forever now". A run still has a deadline, as a safety stop for one that hangs: 14 hours
+after it starts, and it ends 2 minutes before that. `--user-window-until HH:MM` on the command line sets an earlier stop
+(the next HH:MM, at most 14 hours ahead; never a default, never in a config). `--dry-run`, `--selftest` and
 `--help` run at any hour. Before starting it checks `tools/gamecount.py --limit 6`, takes `build/visrun/visrun.lock` (one
 visrun on the machine), and waits until no other game window (class `MainWindow` or `SDL_app`) has been on the desktop
 for `--quiet` seconds (default 60).
@@ -90,6 +91,18 @@ area; `--shape sandbox` puts it at (3, 26) of a canvas 6 and 29 pixels larger, a
 clips with `clip.json`, `watch.log`. On the real clock the update a step lands at is only near the one asked for; replay
 the landed updates in the port. Exit 0 done, 3 the run stopped (no window, not muted, a cue or update never came), 4 shots
 refused three times.
+
+## Lessons from the first live runs
+
+Venice's 3D tour (2026-11-15) was the first long run, and it taught four things:
+- **Give every config a `pos`.** Windows that were centred overlapped another game's window, every shot was refused,
+  and the run ended with exit 4.
+- **A long tour needs `--timeout 600`.**
+- **`values` print unsigned.** A negative number shows as its 32-bit pattern: -2 is 4294967294.
+- **Peek every update while an update number matters.** The loading thread moves the first running update, which was
+  1132 in one run and 936 in another, so a script cannot assume it. A peek can also fall inside an update: the
+  counter can step by more than one update's ticks between two peeks, and a value read per frame (Venice's `batch`)
+  need not belong to the frame drawn.
 
 ## Checked without a desktop
 

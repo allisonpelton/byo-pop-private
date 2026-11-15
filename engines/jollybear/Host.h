@@ -69,8 +69,10 @@ public:
 	// 0x432360 (mahjongjapan)): full screen or a window
 	virtual void SetFullScreen(bool theOn) = 0;
 	// The software screen shown (0x42c9b0 (mahjongchina), 0x432a00 (mahjongjapan)): 800x600, 32-bit B G R A rows
-	// top-down
-	virtual void Present(const uint8_t* thePixels, int thePitch) = 0;
+	// top-down. Port: theRects (theCount of them, none empty, inside the screen) are the parts that differ from the last
+	// screen shown (ScreenLog.h); none when the frame is the last one, the whole screen on the first frame, after a mode
+	// change and when a frame could not be told from the last.
+	virtual void Present(const uint8_t* thePixels, int thePitch, const Rect* theRects, int theCount) = 0;
 };
 
 void SetHost(Host* theHost);

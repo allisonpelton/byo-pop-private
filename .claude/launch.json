@@ -228,6 +228,12 @@
       "runtimeExecutable": "python",
       "runtimeArgs": ["tools/webtest/serve.py", "--port", "18799"],
       "port": 18799
+    },
+    {
+      "name": "pixelus-webtest",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["tools/webtest/serve.py", "--port", "18821"],
+      "port": 18821
     }
   ]
 }

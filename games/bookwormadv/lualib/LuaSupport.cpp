@@ -8,11 +8,14 @@ namespace LuaLib {
 
 LuaSupport* gLuaSupport = nullptr;
 
+// 0x6cf8b0 (the constructor; the original also opened lua.log and set up the debugger console, which are developer
+// features, docs/ENGINE.md)
 LuaSupport::LuaSupport()
 {
 	gLuaSupport = this;
 }
 
+// 0x6cfd80
 LuaSupport::~LuaSupport()
 {
 	Close();
@@ -39,6 +42,7 @@ void LuaSupport::Open()
 	SetPath("sexy.__cobj_compare");
 }
 
+// 0x6d01a0
 void LuaSupport::Close()
 {
 	if (L != nullptr) {
@@ -107,6 +111,7 @@ void LuaSupport::AddMethod(ClassInfo* cls, const std::string& name, Thunk thunk)
 
 // ---- objects ----
 
+// 0x6e0b20 (the object table's lookup) and 0x6e3c80 (its insert) are inline here
 void LuaSupport::PushObject(ClassInfo* cls, void* obj, bool owned)
 {
 	if (obj == nullptr) {
@@ -177,6 +182,7 @@ void* LuaSupport::CheckObject(int idx, ClassInfo* cls)
 	return p;
 }
 
+// 0x6d2bb0
 void LuaSupport::ObjectDeleted(void* obj)
 {
 	// the userdata leave the map: a new object at the same address gets new ones
@@ -263,6 +269,7 @@ bool LuaSupport::PushPath(const std::string& path)
 	}
 }
 
+// 0x6d11a0 (SetPath, then popping the value)
 void LuaSupport::SetPath(const std::string& path)
 {
 	lua_pushvalue(L, LUA_GLOBALSINDEX);
@@ -307,6 +314,7 @@ static int Traceback(lua_State* L)
 
 // The function and its nargs arguments are on top: calls it with the traceback handler; 0 or an error status
 // (the message reported and popped)
+// 0x6d0930
 int LuaSupport::PCall(int nargs, int nresults)
 {
 	int base = lua_gettop(L) - nargs;  // the function
@@ -358,6 +366,7 @@ bool LuaSupport::Call(const std::string& path, int nargs, int nresults)
 	return PCall(nargs + extra, nresults) == 0;
 }
 
+// 0x6d7210
 bool LuaSupport::DoFile(const std::string& path)
 {
 	int status = luaL_loadfile(L, path.c_str());

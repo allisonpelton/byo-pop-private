@@ -1,0 +1,14 @@
+# Into the first battle (book 1, chapter 1), its talk clicked away: the base of play.py.
+at 31000
+click 230 300            # the library: Adventure
+wait 4000
+click 400 575            # Enter!
+wait 3000
+click 400 150
+wait 4000
+click 400 150
+wait 4000
+click 400 150
+wait 4000
+click 400 150
+wait 4000

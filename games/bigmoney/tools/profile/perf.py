@@ -15,12 +15,20 @@ reading the same flag (the title screen's `mLoadDone` byte) out of the game's me
 does. orig starts origrun directly: origrun puts the game under rundesk itself.
 
 Both sample the game's process every 0.1 s: working set, private bytes (and the system's own peaks of both), processor time
-(kernel + user). Each run prints one JSON line: the first screen's time, and the peaks and the processor time over the whole
-run and over the scripted minute (the 6000 updates before the script's last update, the same input in both: the port marks the
-first of them with a screenshot's file time, the original's is found from its update counter at app+0x44c), the machine's busy
-fraction during the run, and the game processes of other sessions running when it started and ended. The original's run is
-stopped from here once its counter passes the script's last update.
+(kernel + user) and the cycle counts of its threads (QueryThreadCycleTime, summed: the processor time docs/COORDINATION.md's
+target counts, since process times move in 15.6 ms ticks). Each run prints one JSON line: the first screen's time, and the peaks
+and the processor time over the whole run and over the scripted minute (the 6000 updates before the script's last update, the
+same input in both: the port marks the first of them with a screenshot's file time, the original's is found from its update
+counter at app+0x44c), the cycles of the run by the module each thread started in (the exe, bass.dll, SDL2.dll, the graphics
+driver), the machine's busy fraction during the run, and the game processes of other sessions running when it started and
+ended. The original's run is stopped from here once its counter passes the script's last update.
 The original needs origrun's git-ignored seed patch (tools/origrun/patches/bigmoney.txt) so that it draws the port's boards.
+
+The port runs with the settings the original reads on this machine (origcmp/regini.py --hklm: windowed) at the game's own size
+(-windowscale=1), as COORDINATION.md's target asks (PERF_SCALE=2: twice the size, drawn on the GPU); PERF_WINDOW=default gives
+it its own defaults instead (a fresh user dir: full screen). MEMMAP_AT=<update>,<update>,... also maps the process's memory
+at those updates with tools/memmap.py (memmap<u>.json in the run's folder): the original's when its counter reaches each,
+the port's when its `memreport` of that update (added to its script, with the detail in mem<u>.txt) has been written.
 """
 import ctypes
 import ctypes.wintypes as W
@@ -148,9 +156,104 @@ def read32(h, address):
     return buf.value
 
 
+ntdll = ctypes.WinDLL('ntdll')
+k32.OpenThread.restype = W.HANDLE
+k32.OpenThread.argtypes = [W.DWORD, W.BOOL, W.DWORD]
+k32.QueryThreadCycleTime.argtypes = [W.HANDLE, ctypes.POINTER(ctypes.c_uint64)]
+ntdll.NtQueryInformationThread.argtypes = [W.HANDLE, ctypes.c_int, ctypes.c_void_p, ctypes.c_ulong, ctypes.c_void_p]
+psapi.EnumProcessModulesEx.argtypes = [W.HANDLE, ctypes.c_void_p, W.DWORD, ctypes.POINTER(W.DWORD), W.DWORD]
+psapi.GetModuleFileNameExW.argtypes = [W.HANDLE, ctypes.c_void_p, W.LPWSTR, W.DWORD]
+psapi.GetModuleInformation.argtypes = [W.HANDLE, ctypes.c_void_p, ctypes.c_void_p, W.DWORD]
+
+
+class TE32(ctypes.Structure):
+    _fields_ = [('dwSize', W.DWORD), ('cntUsage', W.DWORD), ('th32ThreadID', W.DWORD), ('th32OwnerProcessID', W.DWORD),
+                ('tpBasePri', ctypes.c_long), ('tpDeltaPri', ctypes.c_long), ('dwFlags', W.DWORD)]
+
+
+def process_modules(h):
+    """[(base, size, file name)] of the process's loaded modules."""
+    arr = (ctypes.c_void_p * 1024)()
+    need = W.DWORD(0)
+    if not psapi.EnumProcessModulesEx(h, arr, ctypes.sizeof(arr), ctypes.byref(need), 3):
+        return []
+    out = []
+    for i in range(min(need.value // ctypes.sizeof(ctypes.c_void_p), 1024)):
+        info = (ctypes.c_uint64 * 3)()      # MODULEINFO: base, size (a DWORD), entry point
+        name = ctypes.create_unicode_buffer(512)
+        if psapi.GetModuleInformation(h, arr[i], info, 24) and psapi.GetModuleFileNameExW(h, arr[i], name, 512):
+            out.append((info[0], info[1] & 0xffffffff, os.path.basename(name.value).lower()))
+    return out
+
+
+class ThreadMeter:
+    """The cycle counts of a process's threads (QueryThreadCycleTime), each thread's handle kept once seen so that the cycles
+    of a thread that ends between two reads still count; where[tid] is the module its start address is in."""
+
+    def __init__(self, pid, h):
+        self.pid, self.h = pid, h
+        self.handles, self.cycles, self.starts, self.where = {}, {}, {}, {}
+        self.listed = 0
+
+    def refresh(self):
+        snap = k32.CreateToolhelp32Snapshot(4, 0)
+        te = TE32()
+        te.dwSize = ctypes.sizeof(TE32)
+        ok = k32.Thread32First(snap, ctypes.byref(te))
+        while ok:
+            tid = te.th32ThreadID
+            if te.th32OwnerProcessID == self.pid and tid not in self.handles:
+                th = k32.OpenThread(0x40 | 0x800, False, tid)   # QUERY_INFORMATION | QUERY_LIMITED_INFORMATION
+                if th:
+                    self.handles[tid] = th
+                    start = ctypes.c_uint64(0)
+                    ntdll.NtQueryInformationThread(th, 9, ctypes.byref(start), 8, None)   # ThreadQuerySetWin32StartAddress
+                    self.starts[tid] = start.value
+                    self.where[tid] = '?'
+            ok = k32.Thread32Next(snap, ctypes.byref(te))
+        k32.CloseHandle(snap)
+        unknown = [t for t, w in self.where.items() if w == '?']
+        if unknown:     # a process that has only started lists no modules yet
+            modules = process_modules(self.h)
+            for tid in unknown:
+                self.where[tid] = next((n for b, z, n in modules if b <= self.starts[tid] < b + z), '?')
+
+    def read(self):
+        """The cycles of every thread seen so far, summed; the thread list is looked at once a second."""
+        if time.time() - self.listed >= 1.0:
+            self.listed = time.time()
+            self.refresh()
+        c = ctypes.c_uint64()
+        for tid, th in self.handles.items():
+            if k32.QueryThreadCycleTime(th, ctypes.byref(c)):
+                self.cycles[tid] = max(self.cycles.get(tid, 0), c.value)
+        return sum(self.cycles.values())
+
+    def by_module(self):
+        """{module the threads started in: giga-cycles}."""
+        out = {}
+        for tid, c in self.cycles.items():
+            out[self.where.get(tid, '?')] = out.get(self.where.get(tid, '?'), 0) + c
+        return {k: round(v / 1e9, 3) for k, v in sorted(out.items(), key=lambda kv: -kv[1])}
+
+    def close(self):
+        for th in self.handles.values():
+            k32.CloseHandle(th)
+
+
+def memmap(pid, path):
+    """tools/memmap.py's JSON of the process, written to path (it reads only)."""
+    subprocess.run([sys.executable, '-I', os.path.join(os.getcwd(), 'tools', 'memmap.py'), str(pid), '--json', path],
+                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=60)
+
+
+def memmap_points():
+    return [int(u) for u in os.environ.get('MEMMAP_AT', '').split(',') if u.strip()]
+
+
 def summarise(samples, lo, hi=None):
-    """samples: (t, ws, private, peak ws, peak private, cpu) with t in seconds from the process's creation; the window of the
-    scripted minute is lo..hi (to the end when hi is None)."""
+    """samples: (t, ws, private, peak ws, peak private, cpu, cycles) with t in seconds from the process's creation; the window of
+    the scripted minute is lo..hi (to the end when hi is None)."""
     def span(a, b):
         s = [x for x in samples if x[0] >= a and (b is None or x[0] <= b)]
         if len(s) < 2:
@@ -158,7 +261,8 @@ def summarise(samples, lo, hi=None):
         return {'from_s': round(s[0][0], 1), 'to_s': round(s[-1][0], 1),
                 'peak_working_set_mb': round(max(x[1] for x in s) / 1048576, 1),
                 'peak_private_mb': round(max(x[2] for x in s) / 1048576, 1),
-                'processor_s': round(s[-1][5] - s[0][5], 2), 'wall_s': round(s[-1][0] - s[0][0], 1)}
+                'processor_s': round(s[-1][5] - s[0][5], 2), 'gcycles': round((s[-1][6] - s[0][6]) / 1e9, 3),
+                'wall_s': round(s[-1][0] - s[0][0], 1)}
     whole = span(0, hi)
     if whole and samples:
         last = [x for x in samples if hi is None or x[0] <= hi][-1]
@@ -195,8 +299,20 @@ def script_span(path):
 
 
 def port_exe():
-    root = os.getcwd()
-    return (os.path.join(root, 'build', 'native', 'bigmoney.exe'), os.path.join(root, 'assets', 'bigmoney'))
+    root = os.getcwd()     # PERF_EXE=<name> runs another exe in build/native (a build kept from before a change)
+    return (os.path.join(root, 'build', 'native', os.environ.get('PERF_EXE', 'bigmoney.exe')), os.path.join(root, 'assets', 'bigmoney'))
+
+
+def port_settings(userdir):
+    """Unless PERF_WINDOW=default: the original's settings on this machine in the port's registry.ini (windowed) and the
+    game's own size; the port's arguments for it, with PERF_ARGS's (such as
+    -cyclesplit=<file>)."""
+    if os.environ.get('PERF_WINDOW') == 'default':
+        return []
+    with open(os.path.join(userdir, 'registry.ini'), 'w') as f:
+        f.write(subprocess.run([sys.executable, '-I', os.path.join(os.getcwd(), 'games', 'bigmoney', 'tools', 'origcmp', 'regini.py'),
+                                '--hklm'], capture_output=True, text=True, check=True).stdout)
+    return ['-windowscale=%s' % os.environ.get('PERF_SCALE', '1')] + os.environ.get('PERF_ARGS', '').split()
 
 
 def port_load(out, runs):
@@ -209,7 +325,8 @@ def port_load(out, runs):
         d = os.path.join(out, 'load%d' % i)
         shutil.rmtree(d, ignore_errors=True)
         os.makedirs(os.path.join(d, 'user'))
-        a = argparse.Namespace(exe=exe, gamedir=gamedir, userdir=os.path.join(d, 'user'), out=d, fast=False, exe_args=[])
+        a = argparse.Namespace(exe=exe, gamedir=gamedir, userdir=os.path.join(d, 'user'), out=d, fast=False,
+                               exe_args=port_settings(os.path.join(d, 'user')))
         others0 = game_processes(mine_prefixes())
         s0 = system_times()
         g = drive.Game(a)
@@ -237,25 +354,36 @@ def port_load(out, runs):
 
 def port_minute(out, script, seed=21):
     exe, gamedir = port_exe()
+    out = os.path.abspath(out)     # the game runs in it
     shutil.rmtree(out, ignore_errors=True)
     os.makedirs(os.path.join(out, 'user'))
     script = strip_script(script, os.path.join(out, 'script.txt'), ['screenshot'])
     first, last = script_span(script)
     mark = os.path.join(out, 'mark.png')
+    points = memmap_points()
     with open(script, 'a', newline='\n') as f:     # one picture at the minute's first update marks the time it began
         f.write('%d screenshot %s\n' % (last - MINUTE, mark.replace('\\', '/')))
+        for u in points:
+            f.write('%d memreport %s\n' % (u, os.path.join(out, 'mem%d.txt' % u).replace('\\', '/')))
+    args = [exe, '-gamedir=' + gamedir, '-userdir=' + os.path.join(out, 'user'), '-seed=%d' % seed, '-script=' + script]
+    args += port_settings(os.path.join(out, 'user'))
     others0 = game_processes(mine_prefixes())
     s0 = system_times()
     log = open(os.path.join(out, 'game.log'), 'wb')
-    p = subprocess.Popen([exe, '-gamedir=' + gamedir, '-userdir=' + os.path.join(out, 'user'), '-seed=%d' % seed, '-script=' + script],
-                         cwd=out, stdout=log, stderr=subprocess.STDOUT)
+    p = subprocess.Popen(args, cwd=out, stdout=log, stderr=subprocess.STDOUT)
     h = k32.OpenProcess(QUERY | VM_READ | QUERY_LIMITED, False, p.pid)
     created = creation_time(h)
+    meter = ThreadMeter(p.pid, h)
     samples = []
     while p.poll() is None:
         s = sample(h)
+        cyc = meter.read()
         if s:
-            samples.append((round(time.time() - created, 3),) + s[:2] + s[2:])
+            samples.append((round(time.time() - created, 3),) + s + (cyc,))
+        for u in list(points):
+            if os.path.exists(os.path.join(out, 'mem%d.txt' % u)):
+                memmap(p.pid, os.path.join(out, 'memmap%d.json' % u))
+                points.remove(u)
         time.sleep(0.1)
     end = samples[-1][0] if samples else 0
     s1 = system_times()
@@ -264,8 +392,10 @@ def port_minute(out, script, seed=21):
     res.update({'exit': p.returncode, 'run_s': round(end, 1), 'machine_busy': round(busy_fraction(s0, s1), 2),
                 'minute_start_marked': begin is not None, 'updates_in_minute': MINUTE,
                 'updates_per_s_in_minute': round(MINUTE / (end - begin), 1) if begin is not None else None,
-                'others_start': len(others0), 'others_end': len(game_processes(mine_prefixes()))})
+                'others_start': len(others0), 'others_end': len(game_processes(mine_prefixes())),
+                'gcycles_by_module': meter.by_module()})
     json.dump({'samples': samples, 'result': res}, open(os.path.join(out, 'perf.json'), 'w'))
+    meter.close()
     k32.CloseHandle(h)
     print(json.dumps(res))
 
@@ -303,11 +433,12 @@ def orig_run(out, script, runs, load_only=False, seed=21):
         p = subprocess.Popen([origrun, '--game', 'bigmoney', '--exe', os.path.join(rdir, 'game', 'BigMoneyGame.exe'), '--run', run,
                               '--cursor', 'scripted', '--seed', str(seed), '--counter', hex(UPDATE_COUNT), '--script', sc,
                               '--timeout', '400'], stdout=log, stderr=subprocess.STDOUT)
-        h = None
+        h = meter = None
         created = ready = spawned = None
         ready_mem = None
         samples = []
         counters = []   # (time, update counter)
+        points = memmap_points()
         next_sample = 0
         done = False
         deadline = time.time() + 420
@@ -320,6 +451,7 @@ def orig_run(out, script, runs, load_only=False, seed=21):
                     h = k32.OpenProcess(QUERY | VM_READ | QUERY_LIMITED | TERMINATE, False, pid)
                     created = creation_time(h)
                     spawned = created - t_start
+                    meter = ThreadMeter(pid, h)
             if h:
                 now = time.time()
                 if ready is None:
@@ -331,11 +463,16 @@ def orig_run(out, script, runs, load_only=False, seed=21):
                             ready_mem = sample(h)
                 if now >= next_sample:
                     s = sample(h)
+                    cyc = meter.read()
                     c = read32(h, UPDATE_COUNT)
                     if s:
-                        samples.append((round(now - created, 3),) + s)
+                        samples.append((round(now - created, 3),) + s + (cyc,))
                         counters.append((round(now - created, 3), c))
                     next_sample = now + 0.1
+                    for u in list(points):
+                        if c is not None and c >= u:
+                            memmap(pid, os.path.join(d, 'memmap%d.json' % u))
+                            points.remove(u)
                     if c is not None and c >= last + 30:   # the script's quit has run: the original keeps running, so stop it here
                         done = True
             time.sleep(0.004 if ready is None else 0.02)
@@ -359,12 +496,14 @@ def orig_run(out, script, runs, load_only=False, seed=21):
         res.update({'exit': p.returncode, 'run_s': round(end, 1), 'machine_busy': round(busy_fraction(s0, s1), 2),
                     'load_s': round(ready, 3) if ready else None, 'origrun_to_process_s': round(spawned, 1) if h else None,
                     'last_update_reached': counters[-1][1] if counters else None,
-                    'others_start': len(others0), 'others_end': len(game_processes(mine_prefixes()))})
+                    'others_start': len(others0), 'others_end': len(game_processes(mine_prefixes())),
+                    'gcycles_by_module': meter.by_module() if meter else None})
         if ready_mem:
             res.update({'working_set_mb_at_title': round(ready_mem[0] / 1048576, 1),
                         'private_mb_at_title': round(ready_mem[1] / 1048576, 1), 'processor_s_at_title': round(ready_mem[4], 2)})
         json.dump({'samples': samples, 'counters': counters, 'result': res}, open(os.path.join(d, 'perf.json'), 'w'))
         if h:
+            meter.close()
             k32.CloseHandle(h)
         log.close()
         results.append(res)

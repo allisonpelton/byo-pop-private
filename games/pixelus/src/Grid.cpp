@@ -15,6 +15,7 @@ Grid::Grid(int theRows, int theCols)
 	mRows = theRows;
 	mCols = theCols;
 	mDifficulty = 0;
+	mWaveEnabled = true;
 	Clear();
 	mClock = 0;
 	mWaveTime = Random() % 1000 + 500 + mClock;
@@ -287,7 +288,7 @@ void Grid::UpdateFinish()
 			mWaveOn = false;
 	}
 	// the shimmer comes by itself every 2 to 4 seconds
-	if (mWaveTime < mClock)
+	if (mWaveTime < mClock && mWaveEnabled)
 	{
 		mWaveTime = Random() % 0x7d1 + 0x7d1 + mClock;
 		if (!mWaveOn)

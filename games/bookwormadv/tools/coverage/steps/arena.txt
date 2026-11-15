@@ -1,0 +1,427 @@
+at 31000
+click 400 300            # Lex's first page
+wait 3000
+click 400 300            # the second: the panel goes
+wait 6000
+click 575 300            # the colosseum (in the port this first click is not taken)
+wait 4000
+click 575 300            # the colosseum: the arena
+wait 4000
+wait 500
+click 400 382   # dialog
+wait 1500
+wait 500
+click 188 113   # a treasure
+wait 1500
+wait 500
+click 188 209   # a treasure
+wait 1500
+wait 500
+click 188 300   # a treasure
+wait 1500
+wait 500
+click 411 515   # Continue
+wait 1500
+wait 1500
+wait 500
+click 400 150   # the conversation on
+wait 3000
+wait 500
+click 400 150   # the conversation on
+wait 3000
+wait 500
+click 400 150   # the conversation on
+wait 3000
+wait 500
+click 400 150   # the conversation on
+wait 3000
+wait 500
+click 400 150   # the conversation on
+wait 3000
+wait 500
+click 400 150   # the conversation on
+wait 3000
+wait 500
+click 400 150   # the conversation on
+wait 3000
+wait 500
+click 400 150   # the conversation on
+wait 3000
+wait 500
+click 401 410   # lostturn
+wait 1500
+wait 500
+click 476 385
+wait 300
+click 326 436
+wait 300
+click 326 334
+wait 300
+click 426 334
+wait 300
+click 476 436
+wait 300
+click 476 487
+wait 300
+click 376 385
+wait 300
+click 376 334
+wait 300
+click 426 436
+wait 300
+click 326 385
+wait 300
+wait 400
+click 401 570   # Attack: MITTIMUSES
+wait 2500
+wait 500
+click 426 436
+wait 300
+click 326 487
+wait 300
+click 326 334
+wait 300
+click 426 385
+wait 300
+click 426 334
+wait 300
+click 326 385
+wait 300
+click 426 487
+wait 300
+click 476 334
+wait 300
+wait 400
+click 401 570   # Attack: BEDOTTED
+wait 2500
+wait 500
+click 400 150   # the conversation on
+wait 3000
+wait 500
+click 400 150   # the conversation on
+wait 3000
+wait 500
+click 400 150   # the conversation on
+wait 3000
+wait 500
+click 400 150   # the conversation on
+wait 3000
+wait 500
+click 400 150
+wait 3000
+wait 1500
+wait 500
+click 400 150
+wait 3000
+wait 1500
+wait 500
+click 401 410   # lostturn
+wait 1500
+wait 500
+click 426 436
+wait 300
+click 326 487
+wait 300
+click 326 334
+wait 300
+click 426 385
+wait 300
+click 426 334
+wait 300
+click 326 385
+wait 300
+click 426 487
+wait 300
+click 476 334
+wait 300
+wait 400
+click 401 570   # Attack: BEDOTTED
+wait 2500
+wait 500
+click 376 334
+wait 300
+click 476 487
+wait 300
+click 476 436
+wait 300
+click 426 334
+wait 300
+click 376 385
+wait 300
+click 326 487
+wait 300
+click 326 334
+wait 300
+click 326 436
+wait 300
+click 476 334
+wait 300
+click 426 487
+wait 300
+wait 400
+click 401 570   # Attack: EVENTUATES
+wait 2500
+wait 500
+click 400 150
+wait 3000
+wait 1500
+wait 500
+click 400 150
+wait 3000
+wait 1500
+wait 500
+click 401 410   # lostturn
+wait 1500
+wait 500
+click 376 334
+wait 300
+click 426 487
+wait 300
+click 476 334
+wait 300
+click 376 487
+wait 300
+click 326 487
+wait 300
+click 426 385
+wait 300
+click 376 385
+wait 300
+click 326 436
+wait 300
+wait 400
+click 401 570   # Attack: AERIFIED
+wait 2500
+wait 500
+click 326 385
+wait 300
+click 476 385
+wait 300
+click 376 334
+wait 300
+click 426 436
+wait 300
+click 376 385
+wait 300
+click 376 436
+wait 300
+click 476 487
+wait 300
+click 476 436
+wait 300
+click 326 334
+wait 300
+click 376 487
+wait 300
+click 476 334
+wait 300
+wait 400
+click 401 570   # Attack: BEEKEEPINGS
+wait 2500
+wait 500
+click 326 487
+wait 300
+click 326 334
+wait 300
+click 476 436
+wait 300
+click 426 436
+wait 300
+click 426 385
+wait 300
+click 376 487
+wait 300
+click 476 334
+wait 300
+click 376 436
+wait 300
+click 426 334
+wait 300
+wait 400
+click 401 570   # Attack: ACQUITTING
+wait 2500
+wait 500
+click 400 150
+wait 3000
+wait 1500
+wait 500
+click 400 150
+wait 3000
+wait 1500
+wait 500
+click 400 150
+wait 3000
+wait 500
+click 401 410   # lostturn
+wait 1500
+wait 500
+click 326 487
+wait 300
+click 326 334
+wait 300
+click 476 436
+wait 300
+click 426 436
+wait 300
+click 426 385
+wait 300
+click 376 487
+wait 300
+click 476 334
+wait 300
+click 376 436
+wait 300
+click 426 334
+wait 300
+wait 400
+click 401 570   # Attack: ACQUITTING
+wait 2500
+wait 1500
+wait 500
+click 326 487
+wait 300
+click 326 334
+wait 300
+click 476 436
+wait 300
+click 426 436
+wait 300
+click 426 385
+wait 300
+click 376 487
+wait 300
+click 476 334
+wait 300
+click 376 436
+wait 300
+click 426 334
+wait 300
+wait 400
+click 401 570   # Attack: ACQUITTING
+wait 2500
+wait 500
+click 376 334
+wait 300
+click 376 436
+wait 300
+click 426 385
+wait 300
+click 476 385
+wait 300
+click 476 487
+wait 300
+click 476 334
+wait 300
+click 326 436
+wait 300
+click 426 334
+wait 300
+click 326 334
+wait 300
+click 326 385
+wait 300
+wait 400
+click 401 570   # Attack: SHOGUNATES
+wait 2500
+wait 500
+click 426 385
+wait 300
+click 476 334
+wait 300
+click 326 334
+wait 300
+click 376 385
+wait 300
+click 376 436
+wait 300
+click 326 385
+wait 300
+click 476 487
+wait 300
+click 376 487
+wait 300
+click 376 334
+wait 300
+wait 400
+click 401 570   # Attack: MERCURIAL
+wait 2500
+wait 500
+click 400 150
+wait 3000
+wait 1500
+wait 500
+click 400 150
+wait 3000
+wait 1500
+wait 500
+click 401 410   # lostturn
+wait 1500
+wait 500
+click 426 385
+wait 300
+click 476 334
+wait 300
+click 326 334
+wait 300
+click 376 385
+wait 300
+click 376 436
+wait 300
+click 326 385
+wait 300
+click 476 487
+wait 300
+click 376 487
+wait 300
+click 376 334
+wait 300
+wait 400
+click 401 570   # Attack: MERCURIAL
+wait 2500
+wait 500
+click 376 436
+wait 300
+click 376 334
+wait 300
+click 476 334
+wait 300
+click 476 385
+wait 300
+click 476 436
+wait 300
+click 326 487
+wait 300
+click 376 385
+wait 300
+click 326 385
+wait 300
+click 376 487
+wait 300
+wait 400
+click 401 570   # Attack: CASSOWARY
+wait 2500
+wait 500
+click 400 150
+wait 3000
+wait 1500
+wait 500
+click 400 150
+wait 3000
+wait 1500
+wait 500
+click 400 150
+wait 3000
+wait 500
+click 400 150   # the conversation on
+wait 3000
+wait 500
+click 400 150   # the conversation on
+wait 3000
+wait 500
+click 400 150   # the conversation on
+wait 3000
+wait 500
+click 400 150   # the conversation on
+wait 3000
+wait 2000
+quit

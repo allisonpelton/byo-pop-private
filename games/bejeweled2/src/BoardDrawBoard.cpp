@@ -386,7 +386,7 @@ void Board::DrawBoard(Graphics* g, bool theSkipStatic, bool theSkipDynamic)
 					int aMiddle = -(mApp->ScaleNum(0x54, 0) / 2);
 					aTransform.Translate((float)aMiddle, (float)aMiddle);
 					aTransform.Scale(aScale, aScale);
-					aTransform.RotateRad(aPiece->mRot);
+					aTransform.RotateRad(-aPiece->mRot);   // the original's Rotate(-mRot)
 					float aShiftY = (float)(((double)aPiece->mY + 42.0 - 384.0) * (double)aScale);
 					aShiftY = (float)(384.0 + (double)aShiftY);
 					float aTransY = mApp->ScaleNum(aShiftY, 0.0f);
@@ -597,7 +597,7 @@ void Board::DrawBoard(Graphics* g, bool theSkipStatic, bool theSkipDynamic)
 				int aMiddle = mApp->ScaleNum(-0x2a, 0);
 				aTransform.Translate((float)aMiddle, (float)aMiddle);
 				aTransform.Scale(aScale, aScale);
-				aTransform.RotateRad(aPiece->mRot);
+				aTransform.RotateRad(-aPiece->mRot);   // the original's Rotate(-mRot)
 				float aShiftY = (float)(((double)aPiece->mY + 42.0 - 384.0) * (double)aScale);
 				aShiftY = (float)(384.0 + (double)aShiftY);
 				float aTransY = mApp->ScaleNum(aShiftY, 0.0f);

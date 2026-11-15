@@ -379,5 +379,6 @@ bool Board::LoadGame()
 		mDropDelay = 0;
 	}
 	mHintCountdown = 0;
+	mResumed = true;
 	return true;
 }

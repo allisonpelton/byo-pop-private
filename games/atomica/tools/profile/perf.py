@@ -426,7 +426,7 @@ def port_minute(out, script):
     s0 = system_times()
     log = open(os.path.join(out, 'game.log'), 'wb')
     p = subprocess.Popen([exe, '-gamedir=' + gamedir, '-userdir=' + os.path.join(out, 'user'), '-seed=1', '-script=' + script] +
-                         ([] if REAL else ['-fast']),
+                         os.environ.get('PERF_ARGS', '').split() + ([] if REAL else ['-fast']),   # PERF_ARGS: more game arguments (-fix=drawRandom)
                          cwd=out, stdout=log, stderr=subprocess.STDOUT)
     h = k32.OpenProcess(QUERY | VM_READ | QUERY_LIMITED, False, p.pid)
     created = creation_time(h)

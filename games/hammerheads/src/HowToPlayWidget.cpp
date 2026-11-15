@@ -146,6 +146,12 @@ void HowToPlayWidget::Draw(Graphics* g)
 		g->DrawImage(IMAGE_TOUGH_COOKIE_STAMP, mWidth - IMAGE_TOUGH_COOKIE_STAMP->mWidth, mHeight - IMAGE_TOUGH_COOKIE_STAMP->mHeight);
 }
 
+// 0x454bc0: the one function the six screens' ButtonListener tables share; the mouse-over sound plays for every button
+void HowToPlayWidget::ButtonMouseEnter(int theId)
+{
+	gApp->PlaySample(SOUND_UI_BUTTON_MOUSE_OVER);
+}
+
 // 0x456b70: either button takes the page down and lets the game go on
 void HowToPlayWidget::ButtonDepress(int theId)
 {

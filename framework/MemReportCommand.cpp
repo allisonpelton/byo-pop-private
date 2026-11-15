@@ -4,6 +4,7 @@
 #include "SexyAppBase.h"
 #include "MemoryImage.h"
 #include "DDImage.h"
+#include "DDInterface.h"
 #include "SDLSoundManager.h"
 #include "../platform/MemReport.h"
 
@@ -46,8 +47,11 @@ bool SexyAppBase::DoMemReport(const std::string& theFileName)
 	std::vector<ImageRow> aRows;
 	size_t aSums[6] = {0, 0, 0, 0, 0, 0};
 	int aTexturedCount = 0;
+	int aDroppedCount = 0;
 	for (MemoryImage* anImage : mMemoryImageSet)
 	{
+		if (anImage->mBitsDropped)
+			aDroppedCount++;
 		size_t aPixels = (size_t) anImage->mWidth * anImage->mHeight;
 		size_t aHDPixels = (size_t) anImage->mHDWidth * anImage->mHDHeight;
 		ImageRow aRow;
@@ -95,7 +99,8 @@ bool SexyAppBase::DoMemReport(const std::string& theFileName)
 		return false;
 	std::sort(aRows.begin(), aRows.end(), [](const ImageRow& theLeft, const ImageRow& theRight) { return Total(theLeft) > Total(theRight); });
 	const double MB = 1024.0 * 1024.0;
-	fprintf(aFile, "images: %d, %d with a texture\n", (int) aRows.size(), aTexturedCount);
+	fprintf(aFile, "images: %d, %d with a texture, %d with their pixels dropped after upload\n", (int) aRows.size(), aTexturedCount,
+		aDroppedCount);
 	for (int i = 0; i < 6; i++)
 		fprintf(aFile, "  %-16s %8.2f MB\n", kColumns[i], aSums[i] / MB);
 	std::map<std::pair<int, int>, ImageRow> aMadeBySize;      // a sum for each size: its mWidth counts the pictures
@@ -127,6 +132,15 @@ bool SexyAppBase::DoMemReport(const std::string& theFileName)
 		for (int i = 0; i < 6; i++)
 			fprintf(aFile, " %8zu", anItr->second.mBytes[i]);
 		fprintf(aFile, "  %d made by the game\n", anItr->second.mWidth);
+	}
+	// the display's stretched copies (DDInterface::GetStretchCopy), counted among the pictures the game made above
+	if (mDDInterface != NULL)
+	{
+		int aCount = 0, aMostOfOneKey = 0;
+		long long aBytes = 0;
+		mDDInterface->GetStretchCopyStats(aCount, aMostOfOneKey, aBytes);
+		fprintf(aFile, "stretched copies: %d, at most %d of one source rectangle, %.2f MB of pixels\n", aCount, aMostOfOneKey,
+			aBytes / MB);
 	}
 	fprintf(aFile, "sounds: %d, %.2f MB of samples\n", aReport.mSoundCount, aReport.mSoundBytes / MB);
 	fprintf(aFile, "music: %d songs, %.2f MB of tracks, %.2f MB of module files\n", aReport.mSongCount, aReport.mSongTrackBytes / MB,

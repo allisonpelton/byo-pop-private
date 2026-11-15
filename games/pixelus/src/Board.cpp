@@ -56,6 +56,11 @@ Board::Board(PixelusApp* theApp, const std::string& theLevelName, int thePuzzleI
 	mGrid = new Grid(16, 16);
 	mTileMaster = NULL;
 	mTutorial = (theLevelName == "Tutorial");
+	mGridX = GRID_X;
+	mGridY = GRID_Y;
+	mDemo = false;
+	mReplayOn = false;
+	mReplayIndex = mReplayDelay = mReplayPeriod = 0;
 	mHoverCol = mHoverRow = -1;
 	mHoverValid = false;
 	mAlpha = 0;
@@ -110,6 +115,49 @@ Board::Board(PixelusApp* theApp, const std::string& theLevelName, int thePuzzleI
 
 	if (LoadPuzzle())
 		Restore();
+}
+
+// 0x40ddd0 and 0x40df90: a grid of the help screen, with nothing of the board but the grid and its tiles. It is drawn in
+// full (no intro) and its shimmer does not come by itself (0x422510).
+Board::Board(PixelusApp* theApp, int theRows, int theCols, int theGridX, int theGridY)
+{
+	mApp = theApp;
+	mPuzzleIndex = 0;
+	mPulse = 1.0;
+	mPulseTime = 0;
+	mTeacher = NULL;
+	mGrid = new Grid(theRows, theCols);
+	mGrid->mWaveEnabled = false;
+	mTileMaster = NULL;
+	mTutorial = false;
+	mExpert = false;
+	mGridX = theGridX;
+	mGridY = theGridY;
+	mDemo = true;
+	mReplayOn = false;
+	mReplayIndex = mReplayDelay = mReplayPeriod = 0;
+	mHoverCol = mHoverRow = -1;
+	mHoverValid = false;
+	mAlpha = 255;
+	mIntro = 0;
+	mPauseFade = 0.0;
+	mPauseStarted = false;
+	mDoneTimer = 0;
+	mCompleted = false;
+	mFinishSounded = false;
+	mMaxedAtStart = false;
+	mIdleTicks = 0;
+	mMusicDelay = -1;
+	mErrorTicks = 0;
+	memset(mFlash, 0, sizeof(mFlash));
+	memset(mFlashWanted, 0, sizeof(mFlashWanted));
+	mHintShown = false;
+	mLessonShown = false;
+	mHintTicks = 0;
+	mHintMove.mSide = mHintMove.mCursor = mHintMove.mPosition = 0;
+	mHintMove.mRemove = false;
+	mHintMove.mKind = 0;
+	mUndoButton = mResetButton = mHintButton = mMenuButton = mBackButton = NULL;
 }
 
 // 0x4045e0
@@ -184,7 +232,7 @@ bool Board::LoadPuzzle()
 	mApp->mLevelData->mCurrentPuzzle = mPuzzleIndex;
 
 	delete mTileMaster;
-	mTileMaster = new TileMaster(mApp, GRID_X, GRID_Y, mGrid->mCols, mGrid->mRows);
+	mTileMaster = new TileMaster(mApp, mGridX, mGridY, mGrid->mCols, mGrid->mRows);
 	mUndo.clear();
 	mCompleted = false;
 	mFinishSounded = false;
@@ -448,9 +496,12 @@ void Board::DoThrow()
 	}
 	GridObject* anObject = mGrid->mObjects.back();
 	LaunchTile(anObject, aStartCol, aStartRow, aSide, aBounces);
-	RecordUndo(aSide, aCursor, -1, aBounces ? 2 : aLeaves ? 3 : 0);
-	mTileMaster->Throw();
+	if (mTileMaster != NULL)
+		mTileMaster->Throw();
 	mApp->PlaySample(SOUND_TILE_MOVING_02D);
+	if (mDemo)
+		return;
+	RecordUndo(aSide, aCursor, -1, aBounces ? 2 : aLeaves ? 3 : 0);
 	mIdleTicks = 0;
 	SaveProgress();
 }
@@ -471,9 +522,12 @@ void Board::DoPull()
 		anObject->mDir = ReverseSide(aSide);
 		anObject->mTrailLen = 0;
 	}
-	RecordUndo(aSide, aCursor, aPosition, 1);
-	mTileMaster->Pull();
+	if (mTileMaster != NULL)
+		mTileMaster->Throw();
 	mApp->PlaySample(SOUND_TILE_MOVING_02D);
+	if (mDemo)
+		return;
+	RecordUndo(aSide, aCursor, aPosition, 1);
 	mIdleTicks = 0;
 	SaveProgress();
 }
@@ -631,8 +685,90 @@ int Board::TileKind(GridObject* theObject) const
 // 0x421bc0: the cell under a point of the screen
 void Board::PixelToCell(int x, int y, int* theCol, int* theRow) const
 {
-	*theCol = FloorDiv(x - GRID_X, Grid::CELL_SIZE);
-	*theRow = FloorDiv(y - GRID_Y, Grid::CELL_SIZE);
+	*theCol = FloorDiv(x - mGridX, Grid::CELL_SIZE);
+	*theRow = FloorDiv(y - mGridY, Grid::CELL_SIZE);
+}
+
+// 0x4223d0: the cell the mouse is over (and whether a click there would do something)
+void Board::SetHover(int theCol, int theRow, bool theValid)
+{
+	mHoverValid = theValid;
+	if (theRow < 0 || theRow >= mGrid->mRows || theCol < 0 || theCol >= mGrid->mCols)
+		mHoverCol = mHoverRow = -1;
+	else
+	{
+		mHoverCol = theCol;
+		mHoverRow = theRow;
+	}
+}
+
+// 0x427330: the puzzle of a file, with its picture; the replay is off until it is started again
+bool Board::LoadDemoPuzzle(const std::string& theText)
+{
+	mReplayOn = false;
+	memset(mFlash, 0, sizeof(mFlash));
+	bool aLoaded = mGrid->LoadFromText(theText);
+	LoadPuzzlePicture(mApp, mGrid);
+	return aLoaded;
+}
+
+// 0x426560, 0x422460: the best known solution of the puzzle is played by the grid, a move after theFirstDelay updates and
+// the others thePeriod updates apart
+void Board::StartReplay(int theFirstDelay, int thePeriod)
+{
+	mReplay.clear();
+	mReplayIndex = 0;
+	const ProgressManager::Best* aBest = mApp->mProgress->FindBest(mGrid->mUuid);
+	if (aBest == NULL)
+		return;
+	for (size_t i = 0; i + 6 <= aBest->mSolution.size(); i += 6)
+	{
+		Grid::Move aMove;
+		if (!Grid::ParseMove(aBest->mSolution.substr(i, 6), &aMove))
+			break;
+		mReplay.push_back(aMove);
+	}
+	if (mReplay.empty())
+		return;
+	mReplayOn = true;
+	mReplayDelay = theFirstDelay;
+	mReplayPeriod = thePeriod;
+}
+
+// the grid's part of 0x40d320 and 0x40d8d0: the tiles, the finish and the replay (0x424b30), the Tile Master
+void Board::UpdateDemo()
+{
+	mUpdateCnt++;
+	UpdateTiles();
+	mGrid->UpdateFinish();
+	for (int r = 0; r < Grid::MAX_SIZE; r++)
+		for (int c = 0; c < Grid::MAX_SIZE; c++)
+			if (mFlash[r][c] > 0)
+				mFlash[r][c]--;
+	if (mReplayOn && --mReplayDelay < 1)
+	{
+		const Grid::Move& aMove = mReplay[mReplayIndex];
+		mGrid->SetCursor(aMove.mSide, aMove.mCursor);
+		if (aMove.mKind == 1)
+			DoPull();
+		else
+			DoThrow();
+		if (mReplayIndex < (int) mReplay.size() - 1)
+		{
+			mReplayDelay = mReplayPeriod;
+			mReplayIndex++;
+		}
+	}
+	if (mTileMaster != NULL)
+		mTileMaster->Update();
+}
+
+// 0x40d740, 0x40e0b0: the grid and the Tile Master
+void Board::DrawDemo(Graphics* g)
+{
+	DrawGrid(g);
+	if (mTileMaster != NULL)
+		mTileMaster->Draw(g, mAlpha);
 }
 
 // 0x409bd0
@@ -672,6 +808,8 @@ void Board::Update()
 	if (mGrid->mDone && !mFinishSounded)
 	{
 		mFinishSounded = true;
+		if (mTileMaster != NULL)
+			mTileMaster->Freeze();	// 0x40a18e
 		mApp->PlaySample(SOUND_PIXELUS_PUZZLE_COMPLETED_STING_V01);
 		FadeOutAllMusic(mApp);
 	}
@@ -707,7 +845,7 @@ void Board::Update()
 	{
 		if (mDoneTimer == 0)
 		{
-			mTileMaster->Throw();
+			mTileMaster->Celebrate();
 			mDoneTimer = DONE_DELAY;
 		}
 		if (--mDoneTimer < 1)
@@ -810,7 +948,10 @@ void Board::MouseMove(int x, int y)
 	PixelToCell(x, y, &mHoverCol, &mHoverRow);
 	mHoverValid = false;
 	if (!mGrid->InGrid(mHoverRow, mHoverCol))
+	{
+		mHoverCol = mHoverRow = -1;	// 0x4223d0 puts a cell outside the grid at -1
 		return;
+	}
 
 	int aCursor = 0;
 	int aSide;
@@ -822,6 +963,14 @@ void Board::MouseMove(int x, int y)
 	{
 		Aim(aSide, aCursor);
 		mHoverValid = true;
+	}
+	else if (mTileMaster != NULL)
+	{
+		// neither a throw nor a pull is possible there: the Tile Master still goes to the row or column of the cell along
+		// the side he stands at (0x403370, the end of control mode 2); the cursor of the grid stays
+		int aStandSide = mTileMaster->GetSide();
+		bool aAlongColumns = aStandSide == Grid::SIDE_UP || aStandSide == Grid::SIDE_DOWN;
+		mTileMaster->SetTarget(aStandSide, aAlongColumns ? mHoverCol : mHoverRow, false);
 	}
 }
 
@@ -865,6 +1014,7 @@ void Board::MouseDown(int x, int y, int theClickCount)
 		return;
 	}
 	const GridObject* anObject = mGrid->mCells[aRow][aCol].mObject;
+	mTileMaster->Shrug();	// 0x4088a6
 	mApp->PlaySample(anObject->mFixed ? SOUND_ILLEGAL_FIXED_01C : SOUND_ILLEGAL_NOTHING_01);
 }
 
@@ -934,25 +1084,40 @@ void Board::ShowHint()
 //////////////////////////////////////////////////////////////////////////
 // Drawing
 
-// 0x421450: the tiles still to throw lie on the bench below the grid
+// 0x421450: the tiles still to throw lie on the bench below the grid, from its left end at (0xcc, 0x1d0) (0x421790), one
+// every cell; the one at the left shows the picture n % 5 of the n that lie there, the next (n - 1) % 5 and so on. The 17th
+// is the last that is drawn; the rest are in bags, each of 20, with their count beside them (the slots slide one pixel an
+// update toward their places, 0x4216c0, which do not change here: the list is made again each time the supply changes)
 void Board::DrawWorkbench(Graphics* g)
 {
+	const int aLeft = 0xcc;
+	const int aTop = 0x1d0;
 	int aSupply = mGrid->mSupply;
-	int aShown = std::min(aSupply, 16);
+	if (aSupply <= 0)
+		return;
 	g->SetColorizeImages(false);
-	for (int i = 0; i < aShown; i++)
+	int aDrawn = 0;
+	for (int k = 0; k < aSupply; k++)
 	{
-		Image* aTile = mApp->mImages[IMAGE_TILEBLUE01 + ((i + 1) % 5)];
-		g->DrawImage(aTile, GRID_X + i * Grid::CELL_SIZE - 1, 0x1c8 - 1);
+		if (k * Grid::CELL_SIZE > Grid::CELL_SIZE * 16)
+			break;
+		g->DrawImage(mApp->mImages[IMAGE_TILEBLUE01 + (aSupply - k) % 5], aLeft + k * Grid::CELL_SIZE - 1, aTop);
+		aDrawn++;
 	}
-	if (aSupply > 16)
+	int aRest = aSupply - aDrawn;
+	if (aRest > 0)
 	{
-		g->DrawImage(mApp->mImages[IMAGE_BAG], GRID_X + 16 * Grid::CELL_SIZE + 4, 0x1c8 - 8);
-		char aText[16];
-		sprintf(aText, "%d", aSupply - 16);
-		g->SetFont(mApp->mFonts[FONT_GARAMOND12BOLD]);
-		g->SetColor(Color(255, 255, 255));
-		g->DrawString(aText, GRID_X + 16 * Grid::CELL_SIZE + 4 + 28, 0x1c8 + 8);
+		Font* aFont = mApp->mFonts[FONT_GARAMOND12BOLD];
+		for (int i = aRest / 20; i >= 0; i--)
+		{
+			int aCount = i != 0 ? 20 : aRest % 20 + 1;
+			g->DrawImage(mApp->mImages[IMAGE_BAG], aLeft + i * 28 + 0x138, aTop - 16);
+			char aText[16];
+			sprintf(aText, "%d", aCount);
+			g->SetFont(aFont);
+			g->SetColor(Color(255, 255, 255));
+			g->DrawString(aText, aLeft + i * 28 + 0x15b, aTop + aFont->GetHeight() - 6);
+		}
 	}
 }
 
@@ -967,8 +1132,8 @@ static double ShimmerStrength(const Grid* theGrid, int theDiagonal)
 void Board::DrawTile(Graphics* g, GridObject* theObject)
 {
 	int aKind = TileKind(theObject);
-	int aX = GRID_X + theObject->mX - 1;
-	int aY = GRID_Y + theObject->mY - 1;
+	int aX = mGridX + theObject->mX - 1;
+	int aY = mGridY + theObject->mY - 1;
 	if (theObject->mNudge)
 		mGrid->Step(&aX, &aY, theObject->mNudgeDir, theObject->mNudgeAmount);
 	int aAlpha = mAlpha;
@@ -1019,8 +1184,8 @@ void Board::DrawTrail(Graphics* g, GridObject* theObject)
 	if (aLength <= 0)
 		return;
 
-	int aX = GRID_X + theObject->mX;
-	int aY = GRID_Y + theObject->mY;
+	int aX = mGridX + theObject->mX;
+	int aY = mGridY + theObject->mY;
 	Rect aSource(0, 0, anImage->GetWidth(), anImage->GetHeight());
 	switch (theObject->mDir)
 	{
@@ -1045,7 +1210,7 @@ void Board::DrawTrail(Graphics* g, GridObject* theObject)
 	}
 
 	Graphics aClipped(*g);
-	aClipped.ClipRect(GRID_X, GRID_Y, mGrid->mCols * Grid::CELL_SIZE, mGrid->mRows * Grid::CELL_SIZE);
+	aClipped.ClipRect(mGridX, mGridY, mGrid->mCols * Grid::CELL_SIZE, mGrid->mRows * Grid::CELL_SIZE);
 	aClipped.SetColorizeImages(true);
 	aClipped.SetColor(Color(255, 255, 255, std::min(255, theObject->mTrail) * mAlpha / 255));
 	aClipped.DrawImage(anImage, aX, aY, aSource);
@@ -1057,7 +1222,7 @@ void Board::DrawTrail(Graphics* g, GridObject* theObject)
 // the arrows towards the thrower.
 void Board::DrawAim(Graphics* g)
 {
-	if (mGrid->mDone || mApp->IsPaused())
+	if (mGrid->mDone || (mApp->IsPaused() && !mDemo))
 		return;
 
 	int aCol = mHoverCol, aRow = mHoverRow;
@@ -1075,7 +1240,7 @@ void Board::DrawAim(Graphics* g)
 	g->SetColorizeImages(true);
 	g->SetColor(Color(255, 255, 255, mAlpha));
 	Image* aCursor = mApp->mImages[aValid ? IMAGE_AIM_CURSOR : IMAGE_AIM_CURSOR_RED];
-	g->DrawImage(aCursor, aCol * S + GRID_X + S / 2 - aCursor->GetWidth() / 2, aRow * S + GRID_Y + S / 2 - aCursor->GetHeight() / 2);
+	g->DrawImage(aCursor, aCol * S + mGridX + S / 2 - aCursor->GetWidth() / 2, aRow * S + mGridY + S / 2 - aCursor->GetHeight() / 2);
 
 	bool aOnPull = mGrid->mCanPull && aCol == mGrid->mStuckCol && aRow == mGrid->mStuckRow;
 	if (aValid && ((mGrid->mCanPlace && mGrid->mSupply > 0) || aOnPull))
@@ -1099,8 +1264,8 @@ void Board::DrawAim(Graphics* g)
 		{
 			mGrid->Step(&aArrowCol, &aArrowRow, ReverseSide(aSide), aStep);
 			aStep = 2;
-			int aX = aArrowCol * S + GRID_X + S / 2 - 20;
-			int aY = aArrowRow * S + GRID_Y + S / 2 - 10;
+			int aX = aArrowCol * S + mGridX + S / 2 - 20;
+			int aY = aArrowRow * S + mGridY + S / 2 - 10;
 			switch (aSide)
 			{
 			case 0: aY += aOffset; break;
@@ -1125,14 +1290,14 @@ void Board::DrawGrid(Graphics* g)
 
 	// when the puzzle is done and still, the picture is swept in over the board, row by row (0x422ab0): every cell
 	// before aRevealed shows the picture's colour (a grey tile, wanted or not) in place of its back and sticky spot
-	bool aSweep = mGrid->mDone && !mGrid->mTileMoving && mGrid->mHasPicture;
+	bool aSweep = mGrid->mDone && !mGrid->mTileMoving && mGrid->mHasPicture && !mReplayOn;	// the replay flag (+0xb140) keeps the sweep off
 	int aRevealed = aSweep ? mGrid->mRows * mGrid->mCols - mGrid->mReveal : 0;
 
 	for (int r = 0; r < mGrid->mRows; r++)
 		for (int c = 0; c < mGrid->mCols; c++)
 		{
 			const Grid::Cell& aCell = mGrid->mCells[r][c];
-			int aX = GRID_X + c * S, aY = GRID_Y + r * S;
+			int aX = mGridX + c * S, aY = mGridY + r * S;
 			if (aSweep && r * mGrid->mCols + c < aRevealed)
 			{
 				unsigned int aColor = mGrid->mPicture[r][c];
@@ -1204,7 +1369,7 @@ void Board::DrawGrid(Graphics* g)
 				int aAlpha = (int) (sin(mFlash[r][c] * PI / 40.0) * 255.0);
 				g->SetColor(Color(255, 255, 255, aAlpha));
 				Image* aGlow = mApp->mImages[mFlashWanted[r][c] ? IMAGE_TILE_GLOW : IMAGE_TILE_REDGLOW];
-				g->DrawImage(aGlow, GRID_X + c * S + S / 2 - aGlow->GetWidth() / 2, GRID_Y + r * S + S / 2 - aGlow->GetHeight() / 2);
+				g->DrawImage(aGlow, mGridX + c * S + S / 2 - aGlow->GetWidth() / 2, mGridY + r * S + S / 2 - aGlow->GetHeight() / 2);
 			}
 	g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
 	g->SetColorizeImages(false);
