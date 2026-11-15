@@ -134,6 +134,7 @@ sounds (peaks at 0 dB), and under 0 dB at full volume.
 
 None (the user's rule: no mods before every PopCap game works in the browser). `MOD_IDEAS.md` lists the ones worth
 making.
+The lite mod step is done with no mod: `LITE_MOD.md` says what was looked at and why nothing is taken.
 
 ## Status (2026-10-25)
 

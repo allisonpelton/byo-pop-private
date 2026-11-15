@@ -405,11 +405,12 @@
         "unneeded-code",
         "readability",
         "collection",
-        "performance"
+        "performance",
+        "lite-mod"
       ],
       "na": [],
-      "now": "lite-mod",
-      "note": "performance done: 0.82 of its original in the strategy minute and 0.90 on the main menu, through SurfaceDisplay and real-time passes at 16 ms like the original's"
+      "now": "site-features",
+      "note": "lite mod done with no mod: nothing measured is worth taking (docs/LITE_MOD.md); the site's features next"
     },
     "wordharmony": {
       "title": "Word Harmony",
