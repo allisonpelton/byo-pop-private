@@ -739,7 +739,10 @@ def port(name, shots=False, environment=None):
             lines.append('%d screenshot %s/%s.png' % (anchor + update - original_anchor + SHOT_LAG, port_shots.replace('\\', '/'),
                                                       shot_name))
     lines.append('%d quit' % (anchor + scenario_end(name) + MARGIN))
-    lines.sort(key=lambda line: int(line.split(' ', 1)[0]))     # stable: an update's input before its shot
+    # an update's shot before its input: the original's shot at N is drawn before it reads the input it takes before
+    # update N + 1, and the port's screenshot draws when its line is read, so an input read before it would show (a tip
+    # closed, a letter typed)
+    lines.sort(key=lambda line: (int(line.split(' ', 1)[0]), 0 if line.split(' ', 2)[1] == 'screenshot' else 1))
     profile = getattr(scenario, 'PROFILE', None)
     run_port(lines, folder, os.path.join(folder, 'port-user'), profile_users(profile) if profile else None,
              seed=getattr(scenario, 'SEED', 1), gamedir=game_dir(scenario), shots=shots, environment=environment)
@@ -884,17 +887,18 @@ def web(name):
         status = subprocess.call(command, stdout=out, stderr=subprocess.STDOUT, cwd=case)
     taken = glob.glob(os.path.join(case, 'shots', '*.png'))
     log('%s: the web build exited with %d and took %d shots' % (name, status, len(taken)))
-    # the native trace has CRLF line ends, and the web build's last line is cut off where the game quit without flushing
-    # it: the lines before the last are compared
     def trace_lines(path):
         return [line.rstrip('\r') for line in open(path, encoding='utf-8', newline='').read().split('\n') if line.strip()]
     web_trace = os.path.join(case, 'web-trace.txt')
     native_lines = trace_lines(os.path.join(folder, 'trace.txt'))
     web_lines = trace_lines(web_trace) if os.path.exists(web_trace) else []
-    whole = len(native_lines) - 1
-    same_trace = len(web_lines) in (whole, whole + 1) and web_lines[:whole] == native_lines[:whole]
-    log('%s: the web build\'s trace is %s the native port\'s (%d updates)' % (
-        name, 'the same as' if same_trace else 'NOT the same as', len(native_lines) - 1))
+    # the native trace has CRLF line ends; the web build's ends where the game quit, its buffer unflushed, so its last line
+    # may be cut off and a line or two missing: its whole lines are compared, and the cut one with the start of the native's
+    whole = len(web_lines) - 1
+    same_trace = (web_lines and whole >= len(native_lines) - 3 and len(web_lines) <= len(native_lines) and
+                  web_lines[:whole] == native_lines[:whole] and native_lines[whole].startswith(web_lines[-1]))
+    log('%s: the web build\'s trace is %s the native port\'s (%d updates of %d)' % (
+        name, 'the same as' if same_trace else 'NOT the same as', whole, len(native_lines) - 1))
     subprocess.call([sys.executable, os.path.join(ROOT, 'tools', 'shotdiff', 'shotdiff.py'), '--game', 'heavyweapon', '--orig',
                      os.path.join(folder, 'port'), '--port', os.path.join(case, 'shots'), '--run', name + '_web'], cwd=ROOT)
     return status == 0 and same_trace
