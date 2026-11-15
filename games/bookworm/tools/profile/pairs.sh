@@ -4,7 +4,7 @@
 # time (PERF_CLOCK=real), then a load of each. A run waits for a free game slot first. From the worktree root. The scenario
 # is <out dir>/scenario.txt (a copy of games/bookworm/tools/profile/scenario.txt, the port script of a bot game); the results are <out dir>/p<n>-port.json,
 # p<n>-orig.json, p<n>-portload.json and p<n>-origload.json, summarised by `python games/bookworm/tools/profile/summary.py <out dir>`.
-# The original needs its stage (OG_STAGE, default C:/byo-og/bwperf: `OG_STAGE=... games/bookworm/tools/identical/setup.sh`).
+# The original needs its stage (OG_STAGE, default E:/byo-og/bwperf: `OG_STAGE=... games/bookworm/tools/identical/setup.sh`).
 OUT=$1; N=${2:-3}
 ROOT=$(pwd)
 PY="C:\\Python312\\python.exe"

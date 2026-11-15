@@ -7190,9 +7190,9 @@ exe's load costs (276 GIFs); `imagehlp.dll` 0.7 % of the real-time run; the Dire
 profile shows no function of the game's own above 0.2 %; the memory it holds more is the display layer's. The frozen baseline is
 unchanged by this pass, which added only the profile tools and these notes.
 
-**To repeat.** `OG_STAGE=C:/byo-og/bwpp games/bookworm/tools/identical/setup.sh` makes the original's stage; copy `games/bookworm/tools/profile/scenario.txt` (the
+**To repeat.** `OG_STAGE=E:/byo-og/bwpp games/bookworm/tools/identical/setup.sh` makes the original's stage; copy `games/bookworm/tools/profile/scenario.txt` (the
 port's `-autoplaylog` of the bot game, shifted as `identical/case.sh` does) to `<out>/scenario.txt` and run
-`OG_STAGE=C:/byo-og/bwpp bash games/bookworm/tools/profile/pairs.sh <out> 3` (about 4 minutes a pair), then
+`OG_STAGE=E:/byo-og/bwpp bash games/bookworm/tools/profile/pairs.sh <out> 3` (about 4 minutes a pair), then
 `python -I games/bookworm/tools/profile/summary.py <out>`; `variants.sh <out> 2` and `summary.py <out> v` for the renderer settings.
 
 ### Processor time like for like (2026-11-11; `docs/COORDINATION.md`, "The target")

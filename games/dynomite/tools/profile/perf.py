@@ -169,7 +169,7 @@ def summarise(samples, lo, hi=None):
 
 
 def mine_prefixes():
-    return [os.getcwd() + '\\', 'C:\\byo-og\\dynperf']
+    return [os.getcwd() + '\\', 'E:\\byo-og\\dynperf']
 
 
 def strip_script(src, dst, drop):
@@ -306,8 +306,8 @@ def port_minute(out, script, seed, start):
 # the update counter is at 0x530960 (origrun's --counter)
 APP, TITLE_OFF, LOADED, COUNTER = 0x5304F8, 0x19E0, 0x70, 0x530960
 TERMINATE = 0x1
-STAGE = 'C:/byo-og/dyn/game'          # identical/setup.sh's staged original
-COPY = 'C:/byo-og/dynperf/game'       # a fresh copy of it each run
+STAGE = 'E:/byo-og/dyn/game'          # identical/setup.sh's staged original
+COPY = 'E:/byo-og/dynperf/game'       # a fresh copy of it each run
 
 
 def orig_run(out, script, seed, start, runs, load_only=False):

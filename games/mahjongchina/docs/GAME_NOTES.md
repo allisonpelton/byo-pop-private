@@ -132,6 +132,8 @@ the port with the renderer 4.79 (as above); the port in stretch mode 1.72 withou
 0.48 and 0.52 of the original's. The engine is shared, so `kStretchOtherSizes` in `engines/mahjongescape/src/MahjongApp.cpp` is one
 switch for both ports (`false` until the user has seen the look; a test run's `SURFACE_STRETCH=1` decides instead).
 
+**Where full screen stands (2026-11-15).** The coordinator's word, from the user: keep today's look on full screen, so the renderer's linear-filter picture stays the default and the nearest stretch stays an option (off). Until the framework session's CPU presenter (the same look made on the processor in strips, which also draws the mod menu under `SurfaceDisplay`) lands, full screen is still over the original's processor time here (4.77 against 3.78 for Japan, 4.79 against 3.60 for China). It is the one configuration of the two ports above the target; no third presenter is built in this game's folder.
+
 **The game under a modal dialog and the mod menu (2026-11-14).** The same two overrides (`MahjongApp::ModalOpen` and `ModalClose`, in the shared
 `engines/mahjongescape/src/MahjongApp.cpp`) pause the manager under a modal dialog or the mod menu, as Japan's notes ("The game under a modal
 dialog and the mod menu") give. Checked in China with the same script (`modal_test.sh mahjongchina`): the timer stands at 0 under the menu

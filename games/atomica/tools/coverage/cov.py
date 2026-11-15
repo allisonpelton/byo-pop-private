@@ -93,16 +93,16 @@ def main():
             else:
                 f.write(NL.join(scenario_lines(scen, shift)) + NL)
         if not reuse:
-            shutil.rmtree('C:/byo-og/' + run, ignore_errors=True)
+            shutil.rmtree('E:/byo-og/' + run, ignore_errors=True)
         if save:
             # the stage of a run that quit from a game (sv) is copied and its SAVEGAME.DAT replaced: origrun starts from a stage that exists
-            if not os.path.isdir('C:/byo-og/atcovsv'):
+            if not os.path.isdir('E:/byo-og/atcovsv'):
                 sys.exit('run sv first: its staged copy is the one a crafted saved game goes into')
-            shutil.rmtree('C:/byo-og/' + run, ignore_errors=True)
-            shutil.copytree('C:/byo-og/atcovsv', 'C:/byo-og/' + run)
-            shutil.copy(save, 'C:/byo-og/' + run + '/game/SAVEGAME.DAT')
+            shutil.rmtree('E:/byo-og/' + run, ignore_errors=True)
+            shutil.copytree('E:/byo-og/atcovsv', 'E:/byo-og/' + run)
+            shutil.copy(save, 'E:/byo-og/' + run + '/game/SAVEGAME.DAT')
         shutil.rmtree(os.path.join(ROOT, 'build', 'origrun', run), ignore_errors=True)
-        cmd = [os.path.join(ROOT, 'build', 'origrun-bin', 'origrun.exe'), '--game', 'atomica', '--run', run, '--stage-root', 'C:/byo-og',
+        cmd = [os.path.join(ROOT, 'build', 'origrun-bin', 'origrun.exe'), '--game', 'atomica', '--run', run, '--stage-root', 'E:/byo-og',
                '--script', script, '--clock', clock, '--cursor', 'scripted', '--seed', seed, '--timeout', timeout,
                '--coverage', win(os.path.join(ROOT, 'build', 'coverage', 'atomica', 'functions.txt'))]
         # the original's update counter (app+0x3e4, the app object being static at 0x4cfc60: found by reading the running original twice, 102 a second), which the script's `at` lines wait for

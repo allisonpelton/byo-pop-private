@@ -1,10 +1,10 @@
 #!/bin/bash
 # Shared settings of the identical-play scripts (games/dynomite/docs/IDENTICAL_PLAY.md). Source it, do not run it.
-#   OG_STAGE   where the original is staged (default C:/byo-og/dyn; a short path, outside the repository)
+#   OG_STAGE   where the original is staged (default E:/byo-og/dyn; a short path, outside the repository)
 #   OUT        where a case's files go (default build/identical)
 ROOT="$(git rev-parse --show-toplevel)"
 cd "$ROOT" || exit 1
-OG_STAGE="${OG_STAGE:-C:/byo-og/dyn}"
+OG_STAGE="${OG_STAGE:-E:/byo-og/dyn}"
 OG_GAME="$OG_STAGE/game"
 OUT="${OUT:-build/identical}"
 TOOLS=games/dynomite/tools/identical
