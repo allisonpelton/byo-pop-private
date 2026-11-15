@@ -4,7 +4,7 @@ Noah's Ark has no lite mod: nothing in its game logic is worth a toggle. This fi
 which of the faster methods would give another result and the proof of it, and why nothing is taken (`docs/MOD_ROADMAP.md`, "The
 lite mod"). The two candidates the survey named came out differently. The check for a move left gives the same answer by a faster
 method, so it is not a lite change at all. The route search can give another route, so it would be one. Neither is worth making: every
-search in the game together costs about 8 M cycles of the 14,500 M that a minute of play costs.
+search in the game together costs under 8 M cycles of the 14,500 M that a minute of play costs.
 
 ## What was looked at
 
@@ -34,7 +34,7 @@ sessions were running throughout.
 | `Board::FindPath` (0x403370) with `SearchPath` (0x4036f0), from `BuildTrail` (0x402ec0) | when a pair is clicked, and when the pointer comes onto an animal the picked one can reach: a depth-first search along straight runs that keeps the cheapest route, 7,500 to 8,000 steps a call and 63,233 at most | 82 thousand cycles a call in action (740 calls, the slowest 704 thousand, a third of a millisecond) and 71.5 thousand in strategy (974 calls, the slowest 688 thousand); 3.6 and 4.2 M cycles a minute of the bot's play | breadth-first by cost over cell and heading, 324 states | another route of the same cost, proved below: lite, and not taken |
 | `Board::ShowHint` (0x406d70) | after 500 updates without a move: draws two random cells until they hold a pair that can be joined, four random numbers a try; 138 tries a hint in the action game, 250 in strategy, 1,166 at most | 23 to 24 thousand cycles a hint (28 hints, the slowest 60 thousand); 0.2 M cycles a minute of a waiting board | list the pairs that can be joined and draw one | other random numbers from that hint on: lite, and not taken |
 | the level generator: `CheckSolvable` (0x401e40) and `EnsureMoves` (0x401f10) with `TryRemoveClonePair` (0x4020e0), `CloneReachable` (0x402a70) and `SwapRandom` (0x4025c0) | once a level: places the blocks and crates again until the empty cells can be cleared in pairs, then clears a copy of the board pair by pair, swapping two random animals whenever no pair can be joined | 0.24 M cycles a level in action (0.11 ms, neither part over 0.3 ms in any level), 0.8 M in strategy (0.38 ms, neither part over 1.5 ms); 0.35 to 1.6 M cycles a minute | the same numbering of regions for `CloneReachable` | the same answers and so the same draws: not lite; once a level, not earned |
-| puzzle mode: `HasMove`'s swap test, `MarkRuns` (0x402260), the puzzle hint | each a scan of the 81 cells: the four swaps of each cell, the runs of three | the swap test 3.7 thousand cycles a call, 9.5 thousand on a board with no swap; `MarkRuns` 129 thousand a call (753 calls), a figure that holds the sounds it starts and the score texts it makes (a sound's first play decodes it: the slowest call took 6.7 ms); its scan is two comparisons for each of the 81 cells | none: no search | |
+| puzzle mode: `HasMove`'s swap test, `MarkRuns` (0x402260), the puzzle hint | each a scan of the 81 cells: the four swaps of each cell, the runs of three | the swap test 3.7 thousand cycles a call, 9.5 thousand when it finds none (22 calls); `MarkRuns` 129 thousand a call (753 calls), a figure that holds the sounds it starts and the score texts it makes (a sound's first play decodes it: the slowest call took 6.7 ms); its scan is two comparisons for each of the 81 cells | none: no search | |
 | the Stampede: `HighlightGroup` and `FloodGroup` (0x4070d0, 0x407160) | when the pointer moves onto another cell: the group of equal neighbours under it | under a thousand cycles a call (8,990 calls) | none needed | |
 | the rest of `Board::Update` (0x403d60) | the 81 cells each update, the water, the fish, the bubbles, the sparkles, the texts | the whole update 53 to 67 M cycles a minute with `-fast`, 4 to 5 microseconds an update, the searches included | none: no search | |
 
@@ -47,13 +47,13 @@ asked about, so one flood that numbers the regions, and one pass that notes for 
 `HasMove`'s answer without a search for each pair. One thing could make them differ: `Reachable` starts at the cell the piece itself
 records (`mX`, `mY`), not at the cell the loop found it in. The scratch build checked that too.
 
-It ran both methods at every call of the action and strategy games: 4,366 calls, the same answer in every one, and in every one each
+It ran both methods at every call of the action and strategy games, the waiting ones included: 4,366 calls, the same answer in every one, and in every one each
 standing animal's recorded cell was its cell. In 183 of them no pair was left and animals still stood on the board, up to 26 of them
 (the two hard strategy games), which is the case where a shortcut would be likeliest to slip. A method that cannot differ gives the
 same result, so it is not lite: it would belong to the port's performance pass. There it would save about 1.1 M cycles a minute of
 14,500 M, a hundredth of a percent, so the port keeps the original's search.
 
-The survey's figure for this check, about half a million steps when no move is left, is the product of 81 animals, 80 partners and
+The survey's figure for this check, about half a million steps when no move is left, is about the product of 81 animals, 80 partners and
 81 cells, and no board comes near it: an animal with no open cell beside it ends its search at once, and a board that holds many
 animals has few open cells to flood. The slowest call measured on a board with no pair left took 24 microseconds.
 
@@ -101,7 +101,7 @@ changed draw order. It would save about 20 thousand cycles every 500 updates of 
 
 The generator's searches run once a level and feed its random draws (`SwapRandom` draws only when no pair can be joined), so a
 faster `CloneReachable` would have to give the same answers, and by the argument above it does. That makes it a performance change,
-for a third of a millisecond a level.
+for at most a third of a millisecond a level.
 
 ## Why none is taken
 
