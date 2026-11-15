@@ -273,10 +273,20 @@ int DDInterface::Init(SDL_Window* theWindow, bool vsync)
 	SDL_SetHintWithPriority(SDL_HINT_RENDER_BATCHING, "1", SDL_HINT_DEFAULT);
 
 	mRenderer = SDL_CreateRenderer(mWindow, -1, aFlags);
+	// SDL's reason for the first failure, which is the one worth telling the player: a build with no software renderer (the
+	// releases' small SDL, third_party/sdl-small) answers the second try below with only "no matching render driver"
+	char aFirstError[256];
+	aFirstError[0] = 0;
+	if (mRenderer == NULL)
+		SDL_strlcpy(aFirstError, SDL_GetError(), sizeof(aFirstError));
 	if (mRenderer == NULL)
 		mRenderer = SDL_CreateRenderer(mWindow, -1, SDL_RENDERER_SOFTWARE | SDL_RENDERER_TARGETTEXTURE);
 	if (mRenderer == NULL)
+	{
+		// SexyAppBase::MakeWindow shows SDL_GetError() in its "Failed to initialize the display" box
+		SDL_SetError("No graphics renderer could be started. Updating the graphics driver may help. (SDL said: %s)", aFirstError);
 		return RESULT_DD_CREATE_FAIL;
+	}
 
 	SDL_RendererInfo anInfo;
 	if (SDL_GetRendererInfo(mRenderer, &anInfo) == 0)
