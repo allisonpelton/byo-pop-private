@@ -457,11 +457,12 @@
         "unneeded-code",
         "readability",
         "collection",
-        "performance"
+        "performance",
+        "lite-mod"
       ],
       "na": [],
-      "now": "lite-mod",
-      "note": "performance done: 86 against 110 M cycles a second at 800x600 through SurfaceDisplay; real-input play, window changes and the screens pass with it; the autosplit block, then the lite mod"
+      "now": null,
+      "note": "every phase but modding done; lite mod: none taken (LITE_MOD.md, measured again on merged main: the step is 3 to 5% of the process, the star list under 1%); performance 86 against 110 M cycles a second at 800x600 through SurfaceDisplay"
     },
     "waterbugs": {
       "title": "Water Bugs",
