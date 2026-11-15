@@ -140,3 +140,5 @@ resumed for a saved game or restart point and a test game), Go on the first leve
 (clear; Win for the last row of Classic and Tough Cookie), `Gameplay::GameOver`, `GameToTrophyRoom` (Regicist). Classic and Tough
 Cookie's end is `progress` 1: Go on the "Ready?" box after the trophy room that awarded Regicist. Test: `set kings 1` once a game is
 in play makes that trophy. Both classic and tough have 25 levels. The frozen baseline is unchanged with the block off.
+
+With the block on (`-livesplitlog` on the frozen tour, 19 block lines) all 15 screens, the state lines and the player files are byte-identical to the run with it off, so the frozen baseline holds with the block either way (2026-11-15).
