@@ -51,6 +51,7 @@ public:
 public:
 	// It adds itself to theBoard's list
 	NukeBlast(Board* theBoard);		// 0x4282e0
+	~NukeBlast();					// 0x428a20
 
 	void			Draw(Graphics* g);	// 0x428770
 	void			Update();			// 0x428ac0

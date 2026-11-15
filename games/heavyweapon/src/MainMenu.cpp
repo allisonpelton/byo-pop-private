@@ -24,6 +24,8 @@ namespace
 {
 	const int SONG = SONG_ATOMIC_TANK_59;		// the song of the menu and the armory, from order 0x3b
 	const int SONG_ORDER = 0x3b;
+	const double MUSIC_FADE_OUT_SPEED = 0.004;
+	const double MUSIC_FADE_IN_SPEED = 0.002;
 	const int NUM_QUOTES = 10;
 	const int SCREEN_WIDTH = 0x280;
 	const int SCREEN_HEIGHT = 0x1e0;
@@ -68,7 +70,9 @@ MainMenu::MainMenu(HeavyWeaponApp* theApp)
 	mUserButton = new HyperlinkWidget(BUTTON_USER, this);
 	mUserButton->mLabel = GT(0x52e070);
 	mUserButton->SetFont(mApp->mFonts[FONT_COMPUTER]->Duplicate());
-	mUserButton->mColor = Color(0xc0, 0x40, 0x20);
+	// colour 0 of the widget's list, which the link's own drawing never reads (it draws in mColor, white): the original's
+	// link is white
+	mUserButton->SetColor(0, Color(0xc0, 0x40, 0x20));
 	mUserButton->mUnderlineSize = 0;
 	for (int i = 0; i < NUM_BUTTONS; i++)
 	{
@@ -81,8 +85,8 @@ MainMenu::MainMenu(HeavyWeaponApp* theApp)
 	}
 	if (!mApp->mMusicInterface->IsPlaying(SONG))
 	{
-		mApp->mMusicInterface->FadeOutAll(true, 0.939);
-		mApp->mMusicInterface->FadeIn(SONG, SONG_ORDER, 0.8765, false);
+		mApp->mMusicInterface->FadeOutAll(true, MUSIC_FADE_OUT_SPEED);
+		mApp->mMusicInterface->FadeIn(SONG, SONG_ORDER, MUSIC_FADE_IN_SPEED, false);
 	}
 	mFlickerLight = new FlickerLight(mApp, mApp->mSprites[IMAGE_MAINGLOW]);
 	mState = 0;
@@ -106,7 +110,7 @@ void MainMenu::AddedToManager(WidgetManager* theManager)
 {
 	Widget::AddedToManager(theManager);
 	theManager->AddWidget(mUserButton);
-	mUserButton->mColor = Color(0xc0, 0x40, 0x20);
+	mUserButton->SetColor(0, Color(0xc0, 0x40, 0x20));
 	for (int i = 0; i < NUM_BUTTONS; i++)
 		theManager->AddWidget(mButtons[i]);
 }
@@ -161,7 +165,7 @@ void MainMenu::Resize(int theX, int theY, int theWidth, int theHeight)
 }
 
 // 0x426140 slot 16: the picture, the greeting and the name, the lamp, the glow, and the description of each glowing
-// button in black and then (above it) in yellow
+// button, its lines centred, in black and then (above it) in yellow
 void MainMenu::Draw(Graphics* g)
 {
 	if (mState != 0)
@@ -201,11 +205,11 @@ void MainMenu::Draw(Graphics* g)
 		g->SetFont(mApp->mFonts[FONT_OUTLINE]);
 		g->SetColor(Color(0, 0, 0, mButtons[i]->mGlow));
 		WriteWordWrapped2004(g, Rect(DESCRIPTION_X, DESCRIPTION_BLACK_Y, DESCRIPTION_WIDTH, DESCRIPTION_HEIGHT), aText,
-			mApp->mFonts[FONT_NORMAL]->GetHeight(), -1);
+			mApp->mFonts[FONT_NORMAL]->GetHeight(), 0);
 		g->SetFont(mApp->mFonts[FONT_OUTLINED]);
 		g->SetColor(Color(0xff, 0xe0, 0x40, (int) (mButtons[i]->mGlow * YELLOW_ALPHA_SCALE)));
 		WriteWordWrapped2004(g, Rect(DESCRIPTION_X, DESCRIPTION_YELLOW_Y, DESCRIPTION_WIDTH, DESCRIPTION_HEIGHT), aText,
-			mApp->mFonts[FONT_NORMAL]->GetHeight(), -1);
+			mApp->mFonts[FONT_NORMAL]->GetHeight(), 0);
 	}
 	g->SetColorizeImages(false);
 }

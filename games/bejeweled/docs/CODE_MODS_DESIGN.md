@@ -2728,7 +2728,9 @@ for (;;) {
   settles. The board's calls into the app at its end (`NewGame` after New Game's fall,
   `ShowHighScoreWidget`) return at once while it plays and end the replay.
 - **Gates** (beyond 6.3): `SELECT`, `DESELECT` take `MouseDown`'s (no user pause, no input delay, not
-  states 5..8; `SELECT`: no selection, a gem in the cell). `TARGET` cannot tell a click from a drag
+  states 5..8; `SELECT`: no selection, a gem in the cell; `DESELECT` also in `STATE_PLAYING` with a stale
+  selection, behind a pause or an input delay too: `fixes.selection` drops it from `MouseDrag`, which has
+  neither gate). `TARGET` cannot tell a click from a drag
   (`MouseDrag` has no input-delay gate): `STATE_PLAYING`, a selection, -1 -1 or a gem. `HINT`:
   `ShowHint`'s, then `TryShowHint`. `XRAND`: only a board without a seed (session mode), `n` draws of its
   `MTRand` past `Board::Rand`. `LOAD`: at tick 0, then `SetPlaybackRng` with the segment's `RNGS`;

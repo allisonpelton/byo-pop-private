@@ -50,8 +50,8 @@ public:
 		mCount = 0;
 	}
 
-	// The board's destructor walks each list from its head and frees every node with its item (0x410910, 0x410980
-	// and the like, one for each kind of item)
+	// 0x410910 (with 0x410980 and the like, one for each kind of item): the board's destructor walks each list from its
+	// head and frees every node with its item
 	~ObjectList()
 	{
 		Node* aNode = mHead;
@@ -85,8 +85,9 @@ public:
 		return aNode;
 	}
 
-	// 0x4314f0: the node and its item go; a walk standing on the node steps back to the one before. The item is
-	// deleted before its node comes out of the chain, as the original does.
+	// 0x4314f0 (with 0x41c3c0, 0x42daa0 and 0x44a920 inline, the same Remove of the other kinds of item): the node and
+	// its item go; a walk standing on the node steps back to the one before. The item is deleted before its node comes
+	// out of the chain, as the original does.
 	void Remove(Node* theNode)
 	{
 		if (theNode == mHead)
@@ -122,7 +123,9 @@ public:
 		mCount--;
 	}
 
-	// 0x4122a0, 0x4125d0 and the like: every item goes, the head stays
+	// 0x4122a0, 0x4125d0 (with 0x412370, 0x412450, 0x412530, 0x4126a0, 0x414910 and 0x419130 inline, one for each kind
+	// of item; and 0x410910, the destructor's walk, whose nodes and items go the same way): every item goes, the head
+	// stays
 	void Clear()
 	{
 		if (mHead->mNext == NULL)

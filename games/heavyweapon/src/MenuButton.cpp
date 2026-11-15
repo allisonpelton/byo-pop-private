@@ -63,18 +63,19 @@ void MenuButton::Update()
 	}
 }
 
-// 0x4259e0 slot 24: a sound panned by where the button is
+// 0x4259e0 slot 24: a sound panned by where the button is; Widget's MouseEnter (0x45f950), not ButtonWidget's, so the
+// listener is not told
 void MenuButton::MouseEnter()
 {
-	ButtonWidget::MouseEnter();
+	Widget::MouseEnter();
 	mApp->PlaySample(SOUND_MAPOVER, (mWidth / 2 - SCREEN_CENTER_X + mX) * PAN_SCALE);
 	mGlowSpeed = GLOW_SPEED;
 }
 
-// 0x425a20 slot 25
+// 0x425a20 slot 25: Widget's MouseLeave (0x45f970), not ButtonWidget's
 void MenuButton::MouseLeave()
 {
-	ButtonWidget::MouseLeave();
+	Widget::MouseLeave();
 	mApp->PlaySample(SOUND_MAPOVER, (mWidth / 2 - SCREEN_CENTER_X + mX) * PAN_SCALE);
 	mGlowSpeed = -GLOW_SPEED;
 }

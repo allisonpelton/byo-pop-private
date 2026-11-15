@@ -1,0 +1,10 @@
+# The functions origrun's --count counts in Heavy Weapon Deluxe's original (HeavyWeaponGame.exe), at the boundaries the port's
+# -cyclesplit counts (docs/TEST_COMMANDS.md, "The cycle split"; docs/ORIGRUN.md, "Counting cycles inside the original's
+# functions"). A line is: label, address, len=N (the first instructions' length, whole instructions: tools/origrun/prologue.py
+# checked them).
+#   update   SexyAppBase::DoUpdateFrames (the app's vtable 0x52a570, slot 9): the widgets' updates and the music's
+#   draw     SexyAppBase::DrawDirtyStuff (slot 77), less the present it reaches: the dirty scan and the game's own drawing
+#   present  SexyAppBase::Redraw (slot 78): the Blt to the window
+update   0x44dee0  len=5
+draw     0x455b80  len=5
+present  0x45d180  len=6

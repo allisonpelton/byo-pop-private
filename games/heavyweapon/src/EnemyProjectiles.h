@@ -22,7 +22,7 @@ class AirMine : public Projectile
 {
 public:
 	AirMine(Board* theBoard, double x, double y, double theVelX, double theVelY);	// 0x447a30
-	virtual ~AirMine();											// 0x447ab0
+	virtual ~AirMine();											// 0x447ab0 (deleting 0x449e00)
 	virtual void	Update() override;							// 0x447ac0 slot 2
 };
 
@@ -45,7 +45,7 @@ public:
 	int				mBulletCount;	// +0x68 the bullets it bursts into, evenly round a circle
 
 	BurstRocket(Board* theBoard, double x, double y, double theVelX, bool isMirrored, int theBulletCount);	// 0x448130
-	virtual ~BurstRocket();										// 0x4481b0
+	virtual ~BurstRocket();										// 0x4481b0 (deleting 0x449f70)
 	virtual void	Update() override;							// 0x44b010 slot 2
 
 private:

@@ -242,6 +242,9 @@ private:
 	static void Callback(void* theUser, uint8_t* theStream, int theLen);
 	void Mix(float* theOut, int theFrames);
 	void MixVoice(Voice& v, float* theOut, int theFrames);
+	// Gives a tracker module song its player the first time it is needed (LoadSong keeps only the file). Main thread,
+	// outside the lock; false when the song has no player (not a module, or its file did not load).
+	bool OpenModule(int theSong);
 #ifdef __EMSCRIPTEN__
 	// The web page's own output (Audio.cpp, byopop_audio_open): an AudioWorklet with a short queue that asks for each chunk.
 	bool InitPage();

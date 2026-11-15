@@ -256,6 +256,52 @@ def tourdialogs(d, a):
     return {}
 
 
+def puzzle_world(d, a, settle, secret=False):
+    """TOUR_DOME=1 (the 3D tours): the planet's five puzzles by the bot's moves, as real input, until the bot's next move is the click on the
+    dome (the WARP), whose place it gives (the 2D layout's [95, 103] is not the 3D game's); the shots then follow the WARP every
+    TOUR_WARP_STEP updates (10) until the game is past it ("post warp"), at most TOUR_WARP_SHOTS (70). TOUR_WORLDS (1) planets are warped
+    through one after the other; the shots of planet N are named w<N>-solved, w<N>-warp<NN> and w<N>-after-warp. With secret (Cognito)
+    there is no dome: the game starts its whirlpool itself when the fourth puzzle of a run is solved, and the shots follow from there."""
+    step = int(os.environ.get('TOUR_WARP_STEP', '10'))
+    limit = int(os.environ.get('TOUR_WARP_SHOTS', '70'))
+    for world in range(int(os.environ.get('TOUR_WORLDS', '1'))):
+        for _ in range(4000):
+            s = d.state()
+            if s['screen'] not in ('game', 'dialog'):
+                raise SystemExit('left the game before the WARP: ' + full.describe(s))
+            if s['dialogs']:
+                settle(lambda s: False if s['dialogs'] else True)
+                continue
+            if secret and s.get('phase') == 'whirlpool':
+                m = None
+                break
+            m = d.bot_move()
+            if m is None:
+                d.idle(0.01)
+                continue
+            if m['kind'] == 'dome':
+                break
+            d.play_input(m['input'])
+        else:
+            raise SystemExit('the planet was not solved: ' + full.describe(d.state()))
+        if not secret:
+            d.ok('wait 200')
+            d.shot('w%d-solved' % world)
+            # the input of the dome move is a move, a wait and a click; the click is the recorded one
+            d.play_input(m['input'])
+        post = 0
+        for k in range(limit):
+            d.ok('wait %d' % step)
+            d.shot('w%d-warp%02d' % (world, k))
+            phase = d.state().get('phase')
+            if phase == 'post warp':
+                post += 1
+            elif post:
+                break
+        d.ok('wait 200')
+        d.shot('w%d-after-warp' % world)
+
+
 def tourmode(d, a):
     """One game mode's screens (`--mode tour:<mode>`, the player of make_profile.py with every mode unlocked): the menu (the secret
     menu for a secret mode), every message and screen in front of the board, the board, the board after --moves moves with five
@@ -322,12 +368,15 @@ def tourmode(d, a):
             break
         if s.get('level') != level:
             level = s.get('level')
-            for k in range(5):
-                d.ok('wait 40')
+            # TOUR_LEVEL_STEP and TOUR_LEVEL_SHOTS: the shots along a level change (the 3D tours take them closer, record_3d_tours.sh)
+            for k in range(int(os.environ.get('TOUR_LEVEL_SHOTS', '5'))):
+                d.ok('wait %d' % int(os.environ.get('TOUR_LEVEL_STEP', '40')))
                 d.shot('level%s-%d' % (level, k))
-    if mode in full.PUZZLE_MODES:
+    if mode in full.PUZZLE_MODES and os.environ.get('TOUR_DOME'):
+        puzzle_world(d, a, settle, secret=(mode == 'cognito'))
+    elif mode in full.PUZZLE_MODES:
         settle(lambda s: s['screen'] == 'game' and s.get('phase') in ('idle', 'puzzle solved'), screens=True)
-    if mode in full.PUZZLE_MODES and d.state().get('phase') == 'puzzle solved':
+    if mode in full.PUZZLE_MODES and not os.environ.get('TOUR_DOME') and d.state().get('phase') == 'puzzle solved':
         # the world is complete: the pod asks for a click on WARP (at the same place in every size of the game's layout, in game pixels)
         d.ok('wait 200')
         d.shot('solved')
