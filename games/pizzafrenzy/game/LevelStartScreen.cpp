@@ -378,6 +378,7 @@ void LevelStartScreen::buttonExit(std::string theName)
 	mCaption->fade(false, CAPTION_FADE_SECONDS, CAPTION_FADE_TARGET, false);
 }
 
+// port: for the test bot (src/TestCommands.cpp): the first van with no topping, -1 when every van has one
 int LevelStartScreen::getFirstEmptyVan()
 {
 	for (size_t i = 0; i < mChosen.size(); i++)
@@ -388,6 +389,7 @@ int LevelStartScreen::getFirstEmptyVan()
 	return -1;
 }
 
+// port: for the test bot: the first topping button on the pages that no van has
 engine::Node* LevelStartScreen::findFreeToppingButton()
 {
 	for (int aSide = 0; aSide < 2; aSide++)

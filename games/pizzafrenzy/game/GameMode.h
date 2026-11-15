@@ -82,6 +82,8 @@ public:
 	virtual void hangUpAll(bool theQuiet);
 	// 0x2c: 0x456300: the game is paused (the orders picked are let go and the tip jar's roll stops) or not
 	virtual void setPaused(bool thePaused);
+	// 0x30: 0x4d0470 (speed: an empty stub): the customers' orders were changed by an event
+	virtual void ordersChanged() {}
 	// 0x34: 0x458c40 (shared): the orders picked are let go
 	virtual void clearPicks();
 	// 0x38: 0x457490 (speed), 0x45b6e0 (concentration): the customers' waves, and what they wait for
@@ -105,8 +107,8 @@ public:
 	// counted, the money of the pizzas and the combo's added, and the kitchen's van goes to the house (not for the
 	// pizza the flag says is not to be sent)
 	virtual void deliver(BuildingTile* theKitchen, CustomerTile* theTile, bool theSendVan);
-	// 0x50: 0x455b20: the special event of the tile starts with the kitchen's pizza; translated next with the events'
-	// popups
+	// 0x50: 0x455b20: the special event of the tile starts with the kitchen's pizza: its popup (EventPopups.h) is made,
+	// shown, and the tile's popup is served
 	virtual void startSpecialEvent(BuildingTile* theKitchen, CustomerTile* theTile);
 	// 0x5c: 0x455d60: a tip comes up at the point for the order (the multiplier from the seconds it waited since the
 	// last delivery: 3 under a second and a half, 2 under three, else 1); a tip made already is the citizen award's
@@ -169,6 +171,9 @@ public:
 	// a win has the waves done, no customer waiting, no pizza on its way and every pizza ordered delivered; a loss has
 	// no happiness left
 	void endLevelForTest(bool theWin);
+
+	// 0x456390: the combo is broken: the topping and the length are cleared, and the map shows none
+	void resetCombo();
 
 	// 0x456260: the happiness is changed by the number, between 0 and 100
 	void addHappiness(int theChange);

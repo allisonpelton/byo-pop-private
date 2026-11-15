@@ -1,4 +1,5 @@
 #include "GameMode.h"
+#include "EventPopups.h"
 #include "Van.h"
 #include "App.h"
 #include "CustomerPopup.h"
@@ -846,10 +847,22 @@ void GameMode::refreshPickCursor()
 	}
 }
 
-// 0x455b20: left empty: the special events' popups (the factory 0x44a490 and the classes 0x44a050 to 0x44b100) are
-// translated next; the event's pizza is not served until they are
+// 0x455b20: the popup of the event's type is made for the kitchen and the house, shown, and the house's popup is
+// served
 void GameMode::startSpecialEvent(BuildingTile* theKitchen, CustomerTile* theTile)
 {
+	EventPopup* aPopup = makeEventPopup(theTile->getOrder()->mEvent->mType);
+	aPopup->begin(theKitchen, theTile);
+	addEventPopup(aPopup);
+	theTile->serve();
+}
+
+// 0x456390: the combo starts over (and the map's tiles show no combo)
+void GameMode::resetCombo()
+{
+	mComboTopping = nullptr;
+	mStats->mComboLength = 0;
+	mMap->showCombo(nullptr, 0, 0);
 }
 
 // 0x455ff0: the customer's order is finished: the tip comes up on the road cell the vehicle stopped on (the citizen's

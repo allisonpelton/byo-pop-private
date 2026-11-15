@@ -30,6 +30,8 @@ public:
 
 	// slot 0x17c: 0x439ba0; the layout is loaded, its nodes found and the stars made
 	void setup(GameStats* theStats);
+	// the point the tip jar's count is at (+0x29c), where the money of a tip flies to
+	const engine::Point& getTipJarCountPosition() const { return mTipJarCountPosition; }
 	// slot 0x190: 0x438fd0: a frame of the hud: the tip jar (its money rolls to the stats' at the goal's size in a
 	// second), the orders, the happiness (its stars fade to the new number, with a sound), the coupon buttons, and
 	// the screen's own update

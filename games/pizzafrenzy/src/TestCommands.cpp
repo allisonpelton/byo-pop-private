@@ -440,8 +440,9 @@ static std::string ScreenMove(pf::PizzaFrenzy* theApp)
 // draws from no generator. In the level's introduction it clicks to skip it. In play, with no order picked it takes a
 // tip that waits for its click, else picks the customer with the least wait left; with an order picked it picks more
 // customers of the same topping while the pick limit allows, then clicks a kitchen that makes the topping. Customers of
-// the special events are left alone (their pizzas are not served yet). In a level with nothing to click (a lull, the
-// blimp's flight, the level's end) it waits; the screens around play are ScreenMove's.
+// the special events are picked like the others, except that an event the police take (no pizza wanted) is picked
+// alone and sent to the police's house instead of a kitchen, and is never picked with other orders. In a level with
+// nothing to click (a lull, the blimp's flight, the level's end) it waits; the screens around play are ScreenMove's.
 std::string PizzaFrenzyApp::TestMove()
 {
 	pf::PizzaFrenzy* anApp = pf::PizzaFrenzy::instance();
@@ -482,7 +483,9 @@ std::string PizzaFrenzyApp::TestMove()
 	bool aCanPickMore = aPicks.empty() || (int)aPicks.size() < pickLimit(anApp->mGameStats, aTopping);
 	for (const WaitingCustomer& aCustomer : aCustomers)
 	{
-		if (!aCanPickMore || aCustomer.mPicked || !aCustomer.mClickable || aCustomer.mOrder->mEvent != nullptr)
+		if (!aCanPickMore || aCustomer.mPicked || !aCustomer.mClickable)
+			continue;
+		if (!aCustomer.mOrder->asksForPizza() && !aPicks.empty())
 			continue;
 		if (aTopping != nullptr && aCustomer.mOrder->mTopping != aTopping)
 			continue;
@@ -497,6 +500,15 @@ std::string PizzaFrenzyApp::TestMove()
 	}
 	if (aPicks.empty())
 		return waitLine(WAIT_UPDATES);
+	if (!aPicks.front()->getOrder()->asksForPizza())
+	{
+		pf::CustomerTile* aPoliceTile = aMode->getMap()->findCustomerTileBySpecial(pf::Character::SPECIAL_POLICE);
+		pf::PizzaPopup* aPolice = aPoliceTile == nullptr ? nullptr : aPoliceTile->getOccupant();
+		if (aPolice == nullptr || aPolice->getKind() != pf::POPUP_POLICE || !aPoliceTile->isClickable())
+			return waitLine(WAIT_UPDATES);
+		std::snprintf(aBuf, sizeof(aBuf), ",\"cell\":[%d,%d]", aPoliceTile->mCell.mFirst, aPoliceTile->mCell.mSecond);
+		return moveLine("police", aBuf, popupCenter(aPoliceTile, aPolice));
+	}
 	for (const engine::Ref<pf::Tile>& aTile : aMode->getMap()->mKitchens)
 	{
 		pf::KitchenTile* aKitchen = static_cast<pf::KitchenTile*>(aTile.get());
