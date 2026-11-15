@@ -223,4 +223,16 @@ play, with no order picked it clicks a tip that waits, else picks the clickable 
 first of two); with an order picked it picks more customers of the same topping while the pick limit allows
 (`GameStats::getPickLimit`, 0x41a670, read without its insertion), then clicks a kitchen that makes the topping. A
 customer of a special event is left alone, since the events' pizzas are not served yet. Every move is a `move` step
-and a `click` step and waits 2 updates; anything else (a screen, the blimp's flight, the level's end) is `MOVE null`.
+and a `click` step and waits 2 updates; the blimp's flight and the level's end are `MOVE null`.
+
+On the screens before play the bot answers too, each move a real click or key on what a player presses, the point
+read from the screen's own node (the centre of its bounds, with its parents' places added, in game points). A screen
+that is still coming in gets `{"what":"wait","input":[{"wait":30}],"updates":30}`, and so does the splash screen
+while it loads (the port's splash never waits for a click). The menu gets a click on the node `SpeedGame` (the Speed
+Mode button, `speedMode`); the city screen a click on the postcard button of the furthest open city (`city`; the
+`move` step before the click is the hover a postcard needs); the story the Escape key while its `skipString` shows
+(`skipStory`), else a click on `continueButton` (`next`); the new topping screen a click on the first button of
+`leftButtons` (`newTopping`); the level start, with three or more toppings, a click on `doneButton` (`levelStart`)
+once every van has a topping, else, with no topping picked up, a click on the first topping button no van has
+(`topping`) and with one picked up a click on the first van with none (`van`, the node `vanButton<n>`). The summary
+and the dialogs have no move (`MOVE null`); the state's `over` is as it was.

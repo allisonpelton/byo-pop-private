@@ -377,3 +377,32 @@ void LevelStartScreen::buttonExit(std::string theName)
 {
 	mCaption->fade(false, CAPTION_FADE_SECONDS, CAPTION_FADE_TARGET, false);
 }
+
+int LevelStartScreen::getFirstEmptyVan()
+{
+	for (size_t i = 0; i < mChosen.size(); i++)
+	{
+		if (mChosen[i] == nullptr)
+			return (int)i;
+	}
+	return -1;
+}
+
+engine::Node* LevelStartScreen::findFreeToppingButton()
+{
+	for (int aSide = 0; aSide < 2; aSide++)
+	{
+		for (engine::Node* aChild : mButtonGroups[aSide]->mChildren)
+		{
+			ToppingButton* aButton = dynamic_cast<ToppingButton*>(aChild);
+			if (aButton == nullptr || aButton->getTopping() == mHeld)
+				continue;
+			bool aTaken = false;
+			for (size_t i = 0; i < mChosen.size(); i++)
+				aTaken = aTaken || mChosen[i] == aButton->getTopping();
+			if (!aTaken)
+				return aButton;
+		}
+	}
+	return nullptr;
+}

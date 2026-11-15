@@ -10,15 +10,20 @@
 #include "sprout/Random.h"
 #include "sprout/ScreenMgr.h"
 #include "sprout/host/SoundHost.h"
+#include "game/CitySelectScreen.h"
 #include "game/CustomerPopup.h"
 #include "game/DialogState.h"
 #include "game/GameState.h"
+#include "game/LevelStartScreen.h"
 #include "game/LevelStartState.h"
 #include "game/MenuState.h"
 #include "game/ModeStates.h"
+#include "game/NewToppingScreen.h"
 #include "game/NewToppingState.h"
 #include "game/PizzaFrenzy.h"
 #include "game/SplashState.h"
+#include "game/StoryScreen.h"
+#include "game/ToppingButton.h"
 #include "game/StoryState.h"
 
 #include <algorithm>
@@ -41,6 +46,9 @@ const int SCREEN_CENTER_Y = 300;
 
 // the updates a move waits after its last step: the click is handled in the next update and the screen follows it
 const int MOVE_UPDATES = 2;
+
+// the updates a move waits while a screen comes in, or the splash screen loads
+const int WAIT_UPDATES = 30;
 
 const char* const MODE_NAMES[] = { "speed", "memory", "concentration" };
 
@@ -229,11 +237,59 @@ std::string clickInput(const engine::Point& thePoint)
 	return aBuf;
 }
 
+// the input of a move that presses a key
+std::string keyInput(const char* theKey)
+{
+	return std::string("[{\"key\":\"") + theKey + "\"}]";
+}
+
+// a move of one real input (a click on a place, or a key) that waits the usual updates
+std::string inputLine(const char* theWhat, const std::string& theDetail, const std::string& theInput)
+{
+	char aBuf[64];
+	std::snprintf(aBuf, sizeof(aBuf), ",\"updates\":%d}", MOVE_UPDATES);
+	return std::string("{\"what\":\"") + theWhat + "\"" + theDetail + ",\"input\":" + theInput + aBuf;
+}
+
+// a move that only lets the game run on: the screen is still coming in, or the splash screen is loading
+std::string waitLine(int theUpdates)
+{
+	char aBuf[128];
+	std::snprintf(aBuf, sizeof(aBuf), "{\"what\":\"wait\",\"input\":[{\"wait\":%d}],\"updates\":%d}", theUpdates,
+		theUpdates);
+	return aBuf;
+}
+
+// the centre of a node on the 800x600 screen: its bounds (in its parent's points, as the mouse's hit test takes them)
+// moved by the places of the parents
+engine::Point nodeCenter(engine::Node* theNode)
+{
+	engine::Rect aRect = *theNode->getBounds();
+	float aX = (aRect.left + aRect.right) / 2.0f;
+	float aY = (aRect.top + aRect.bottom) / 2.0f;
+	for (engine::Node* aParent = theNode->mParent; aParent != nullptr; aParent = aParent->mParent)
+	{
+		aX += aParent->getPosition()->x;
+		aY += aParent->getPosition()->y;
+	}
+	return engine::Point(aX, aY);
+}
+
 std::string moveLine(const char* theWhat, const std::string& theDetail, const engine::Point& thePoint)
 {
 	char aBuf[64];
 	std::snprintf(aBuf, sizeof(aBuf), ",\"updates\":%d}", MOVE_UPDATES);
 	return std::string("{\"what\":\"") + theWhat + "\"" + theDetail + ",\"input\":" + clickInput(thePoint) + aBuf;
+}
+
+// a move that clicks a node of the shown screen, which has to be there, shown and enabled (a topping button is a group
+// whose card inside it takes the click, so the group's own flag is not asked)
+std::string nodeMove(const char* theWhat, engine::Node* theNode)
+{
+	bool aGroup = dynamic_cast<pf::ToppingButton*>(theNode) != nullptr;
+	if (theNode == nullptr || !theNode->isVisible() || (!aGroup && !theNode->isEnabled()))
+		return waitLine(WAIT_UPDATES);
+	return moveLine(theWhat, "", nodeCenter(theNode));
 }
 
 }
@@ -318,23 +374,85 @@ std::string PizzaFrenzyApp::TestState()
 	return aState + "]}}";
 }
 
+// The bot's move on the screens before play, each a real click or key on what a player presses, the place read from the
+// screen's own node: the splash screen only runs on (it loads by itself), the menu's speed mode button, the postcard of
+// the furthest open city, the story's Escape while its skip hint shows and else its Next button, the new topping's
+// first button, and on the level start the first topping no van has into the first empty van and then the Next button.
+// A screen still coming in is waited for; the summary has no move.
+static std::string ScreenMove(pf::PizzaFrenzy* theApp)
+{
+	std::string aScreen = screenName(theApp);
+	if (aScreen == "splash")
+		return waitLine(WAIT_UPDATES);
+	if (aScreen == "summary" || (aScreen != "menu" && aScreen != "citySelect" && aScreen != "story"
+		&& aScreen != "newTopping" && aScreen != "levelStart"))
+		return "null";
+	if (theApp->mScreens->isBusy())
+		return waitLine(WAIT_UPDATES);
+	engine::GenericScreen* aShown = shownScreen(theApp->mScreens);
+	if (aScreen == "menu")
+	{
+		if (aShown != theApp->mMainMenu)
+			return "null";
+		return nodeMove("speedMode", theApp->mMainMenu->getNode("SpeedGame"));
+	}
+	if (aScreen == "citySelect")
+	{
+		int aCity = theApp->mUserGameData->getMaxCity();
+		if (aCity >= (int)theApp->mCities.size())
+			aCity = (int)theApp->mCities.size() - 1;
+		return nodeMove("city", theApp->mCitySelect->getPostcardButton(aCity));
+	}
+	if (aScreen == "story")
+	{
+		engine::Node* aSkip = theApp->mStoryScreen->getNode("skipString");
+		if (aShown != theApp->mStoryScreen)
+			return "null";
+		if (aSkip != nullptr && aSkip->isVisible())
+			return inputLine("skipStory", "", keyInput("Escape"));
+		return nodeMove("next", theApp->mStoryScreen->getNode("continueButton"));
+	}
+	if (aScreen == "newTopping")
+	{
+		engine::Container* aButtons =
+			static_cast<engine::Container*>(theApp->mNewToppingScreen->getNode("leftButtons"));
+		if (aButtons->mChildren.empty())
+			return waitLine(WAIT_UPDATES);
+		return nodeMove("newTopping", aButtons->mChildren.front());
+	}
+	pf::LevelStartScreen* aStart = theApp->mLevelStartScreen;
+	engine::Node* aDone = aStart->getNode("doneButton");
+	if (aDone != nullptr && aDone->isEnabled())
+		return nodeMove("levelStart", aDone);
+	if (aStart->isHolding())
+	{
+		int aVan = aStart->getFirstEmptyVan();
+		if (aVan < 0)
+			return "null";
+		char aName[32];
+		std::snprintf(aName, sizeof(aName), "vanButton%d", aVan);
+		return nodeMove("van", aStart->getNode(aName));
+	}
+	return nodeMove("topping", aStart->findFreeToppingButton());
+}
+
 // The bot's next move (the line after "MOVE "), from the state alone: it reads the game and never changes it, and it
 // draws from no generator. In the level's introduction it clicks to skip it. In play, with no order picked it takes a
 // tip that waits for its click, else picks the customer with the least wait left; with an order picked it picks more
 // customers of the same topping while the pick limit allows, then clicks a kitchen that makes the topping. Customers of
-// the special events are left alone (their pizzas are not served yet). Anything else (a screen, the blimp's flight, the
-// level's end) has no move.
+// the special events are left alone (their pizzas are not served yet). In a level with nothing to click (a lull, the
+// blimp's flight, the level's end) it waits; the screens around play are ScreenMove's.
 std::string PizzaFrenzyApp::TestMove()
 {
 	pf::PizzaFrenzy* anApp = pf::PizzaFrenzy::instance();
 	pf::GameMode* aMode = anApp->mMode;
 	if (aMode == nullptr || dynamic_cast<pf::GameState*>(anApp->mStates.getState()) == nullptr)
-		return "null";
+		return ScreenMove(anApp);
 	std::string aPhase = modePhase(aMode);
 	if (aPhase == "intro")
 		return moveLine("skipIntro", "", engine::Point((float)SCREEN_CENTER_X, (float)SCREEN_CENTER_Y));
 	if (aPhase != "play")
-		return "null";
+		return waitLine(WAIT_UPDATES);
 	std::vector<WaitingCustomer> aCustomers = waitingCustomers(aMode);
 	const std::vector<engine::Ref<pf::CustomerTile>>& aPicks = aMode->getPicks();
 	char aBuf[128];
@@ -357,7 +475,7 @@ std::string PizzaFrenzyApp::TestMove()
 	{
 		pf::Order* aPickedOrder = aPicks.front()->getOrder();
 		if (aPickedOrder == nullptr)
-			return "null";
+			return waitLine(WAIT_UPDATES);
 		aTopping = aPickedOrder->mTopping;
 	}
 	const WaitingCustomer* aBest = nullptr;
@@ -378,7 +496,7 @@ std::string PizzaFrenzyApp::TestMove()
 		return moveLine("pick", aBuf + jsonText(toppingName(aBest->mOrder->mTopping)), aBest->mPoint);
 	}
 	if (aPicks.empty())
-		return "null";
+		return waitLine(WAIT_UPDATES);
 	for (const engine::Ref<pf::Tile>& aTile : aMode->getMap()->mKitchens)
 	{
 		pf::KitchenTile* aKitchen = static_cast<pf::KitchenTile*>(aTile.get());
@@ -389,7 +507,7 @@ std::string PizzaFrenzyApp::TestMove()
 			aKitchen->mCell.mSecond);
 		return moveLine("send", aBuf + jsonText(toppingName(aTopping)), popupCenter(aKitchen, aPopup));
 	}
-	return "null";
+	return waitLine(WAIT_UPDATES);
 }
 
 // docs/TEST_COMMANDS.md, "memreport": the framework answers the command and counts its own pictures and the mixer's

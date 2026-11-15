@@ -41,6 +41,13 @@ public:
 	}
 
 	// The button listener (+0x144, vtable 0x4fdd70): the postcard the mouse is over comes to the front
+	// the postcard button of a city, which the test bot reads the place of
+	engine::Node* getPostcardButton(int theCity)
+	{
+		if (theCity < 0 || (int)mButtons.size() <= theCity)
+			return nullptr;
+		return mButtons[theCity];
+	}
 	void buttonEnter(std::string theName) override;  // 0x4332d0
 	void buttonExit(std::string theName) override;   // 0x4333a0
 

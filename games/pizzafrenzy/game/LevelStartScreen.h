@@ -60,6 +60,12 @@ public:
 	void buttonEnter(std::string theName) override;
 	void buttonExit(std::string theName) override;
 
+	// The test bot's reads (it changes nothing): whether a topping is picked up, the first van with no topping (-1
+	// when every van has one), and the first topping button on the pages that no van has and that is not picked up
+	bool isHolding() { return mHeld != nullptr; }
+	int getFirstEmptyVan();
+	engine::Node* findFreeToppingButton();
+
 private:
 	engine::Ref<engine::Node> mPages[2];                    // +0x1d4: "leftPage", "rightPage"
 	engine::Ref<engine::Container> mButtonGroups[2];        // +0x1dc: where the topping buttons of a page go
