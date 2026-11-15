@@ -132,6 +132,7 @@ bool NewUserDialog::AllowChar(int theId, SexyChar theChar)
 }
 
 // 0x401df0: a warning when expert mode is switched on
+// 0x401e11: the expert warning
 void NewUserDialog::CheckboxChecked(int theId, bool theChecked)
 {
 	if (theChecked)

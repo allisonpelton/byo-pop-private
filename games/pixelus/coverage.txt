@@ -1,0 +1,32 @@
+# tools/coverage.py's settings for Pixelus (docs/COVERAGE.md).
+export re/pixelus/gh/functions.jsonl
+src games/pixelus/src
+# The game's own code, 0x401000 up to the framework's ImageFont (0x43b310), and Nuclide's layer under the application
+# (0x4e2c10 to 0x4ea000: the resource tables, the dialog and screen base classes). The rest is SexyAppFramework, the C
+# runtime and the libraries.
+game 00401000-0043b020
+game 004e2c10-004e9f10
+# Game code the port leaves out on purpose (sorted 2026-11-15 from the first report).
+none 004024e0 outbound More Games dialog (id 13), removed on purpose
+none 00402590 outbound More Games dialog (id 13), removed on purpose
+none 00402660 dead control modes 0/1 and the editor grid flag (IDENTICAL_PLAY.md:94)
+none 00402720 dead control modes 0/1 and the editor grid flag (IDENTICAL_PLAY.md:94)
+none 00402ba0 dead control modes 0/1 and the editor grid flag (IDENTICAL_PLAY.md:94)
+none 00402d60 dead control modes 0/1 and the editor grid flag (IDENTICAL_PLAY.md:94)
+none 00432170 SessionLog for the developers, not ported (PixelusApp.h:69)
+none 004330d0 outbound More Games dialog (id 13), removed on purpose
+none 0043a3c0 SessionLog for the developers, not ported (PixelusApp.h:69)
+none 0043a530 SessionLog for the developers, not ported (PixelusApp.h:69)
+none 0043aac0 SessionLog for the developers, not ported (PixelusApp.h:69)
+none 0043ad30 SessionLog for the developers, not ported (PixelusApp.h:69)
+none 004e3280 update check, trial or write probe code, not ported
+none 004e4060 update check, trial or write probe code, not ported
+none 004e4620 update check, trial or write probe code, not ported
+none 004e4770 update check, trial or write probe code, not ported
+none 004e4900 update check, trial or write probe code, not ported
+none 004e6710 trial/registration text and nag code, removed
+none 004e6770 trial/registration text and nag code, removed
+none 004e6b60 trial/registration text and nag code, removed
+none 004e6bf0 trial/registration text and nag code, removed
+none 004e73e1 trial/registration text and nag code, removed
+none 004e7ce0 trial/registration text and nag code, removed

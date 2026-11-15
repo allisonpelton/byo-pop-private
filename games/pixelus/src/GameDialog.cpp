@@ -13,6 +13,7 @@
 
 using namespace Sexy;
 
+// 0x41c030
 SoundButton::SoundButton(PixelusApp* theApp, Image* theImage, int theId, ButtonListener* theListener) :
 	DialogButton(theImage, theId, theListener)
 {

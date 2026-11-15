@@ -161,6 +161,7 @@ Board::Board(PixelusApp* theApp, int theRows, int theCols, int theGridX, int the
 }
 
 // 0x4045e0
+// 0x403d80: the destructor body
 Board::~Board()
 {
 	delete mTeacher;
@@ -211,6 +212,7 @@ void Board::Resize(int theX, int theY, int theWidth, int theHeight)
 }
 
 // 0x408f60: the puzzle of the temple's list
+// 0x409880: the Tile Master and the maxed flag
 bool Board::LoadPuzzle()
 {
 	const LevelData::Level* aLevel = mApp->mLevelData->GetLevel(mLevelName);
@@ -507,6 +509,7 @@ void Board::DoThrow()
 }
 
 // a click on a tile pulls it back
+// 0x42ecd0: the tile is marked as pulled
 void Board::DoPull()
 {
 	if (mGrid->mDone)
@@ -547,6 +550,8 @@ void Board::TileArrived(GridObject* theObject)
 }
 
 // 0x42f740 for every tile: the flight, the return and the fading of the trail
+// 0x42ee70
+// 0x42ee90
 void Board::UpdateTiles()
 {
 	for (size_t i = 0; i < mGrid->mObjects.size(); i++)
@@ -869,6 +874,7 @@ void Board::Update()
 
 // 0x407aa0: the hints of the tutorial puzzles (the ninth is the 'try it yourself' note): each puts up its text once. The
 // bubbles that point at cells (0x406050, 0x40ece0) come later with the drawing.
+// 0x402f80: the puzzle-8 branch
 void Board::HintCheck()
 {
 	if (mApp->GetHintsDisabled() || mApp->IsPaused() || !mTutorial || mLessonShown)
@@ -1088,6 +1094,14 @@ void Board::ShowHint()
 // every cell; the one at the left shows the picture n % 5 of the n that lie there, the next (n - 1) % 5 and so on. The 17th
 // is the last that is drawn; the rest are in bags, each of 20, with their count beside them (the slots slide one pixel an
 // update toward their places, 0x4216c0, which do not change here: the list is made again each time the supply changes)
+// 0x402d20: the pending-tile count
+// 0x402d40
+// 0x421730
+// 0x421760
+// 0x421870
+// 0x4217c0
+// 0x433340
+// 0x433350
 void Board::DrawWorkbench(Graphics* g)
 {
 	const int aLeft = 0xcc;

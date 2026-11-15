@@ -40,6 +40,7 @@ static int GridRandom()
 
 // 0x435880 (members cleared) + 0x434660 (names). The product version, build number and build date are what the
 // 2004 SexyApp reads from the exe's version resource and build-info block; saved games carry them.
+// 0x4e30f0: the Nc layer constructor, the volumes
 PixelusApp::PixelusApp()
 {
 	gApp = this;
@@ -401,6 +402,7 @@ void PixelusApp::ShowHelp()
 }
 
 // 0x432c20: the board that was under it takes its fade back with the end of the pause
+// 0x402ae0
 void PixelusApp::CloseHelp()
 {
 	if (mHelpScreen == NULL)
@@ -562,6 +564,7 @@ void PixelusApp::ResumeAnswer(bool theResume)
 }
 
 // 0x4101d0: the player skips the tutorial
+// 0x432dc0
 void PixelusApp::SkipTutorialOK()
 {
 	KillDialog(0x1b);
@@ -741,6 +744,7 @@ void PixelusApp::RemoveTabletAndBoard()
 }
 
 // 0x432b60: the screen that says what was completed
+// 0x4326c0
 void PixelusApp::ShowCompletion(int theMode, int theSub, int theOpenedTemple)
 {
 	RemoveTabletAndBoard();
@@ -775,6 +779,8 @@ void PixelusApp::ContinueAfterCompletion()
 }
 
 // 0x419c20: the tablet's button
+// 0x432b10: the tablet closes, the temple screen returns
+// 0x432d00: the tablet closes, the story of the opened temple
 void PixelusApp::ContinueAfterPuzzle(int theMode, int theSub, int theOpenedTemple)
 {
 	if (theMode != 0)
@@ -885,6 +891,7 @@ void PixelusApp::UpdateFrames()
 }
 
 // 0x4333a0 (slot 84)
+// 0x403010
 void PixelusApp::HandlePaused(bool theWasPaused, bool theIsPaused, int theCount)
 {
 	// the music stops with the game, except while the options are open over a puzzle: the sliders are tried against it

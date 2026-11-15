@@ -21,6 +21,7 @@ using namespace Sexy;
 // 0x40e1a0: the left board (0x40ddd0) is a 12 by 12 grid with places for two tiles in a row (and a third out of the way),
 // a block at the end of the row, the Tile Master at the left of it, and no wave of light; the right board (0x40df90) is the
 // puzzle of levels/helpscreen.txt with its best solution played by the grid
+// 0x40da40
 HelpScreen::HelpScreen(PixelusApp* theApp) :
 	mApp(theApp)
 {
@@ -234,6 +235,7 @@ void HelpScreen::DrawDark(Graphics* g, int theX, int theWidth, double theDark)
 }
 
 // 0x40e360: the picture behind the windows, the boards in them, the dark layers, the frame, and the box's text
+// 0x40daa0
 void HelpScreen::Draw(Graphics* g)
 {
 	g->DrawImage(mApp->mImages[IMAGE_HELPBACK], LEFT_X, WINDOW_Y);

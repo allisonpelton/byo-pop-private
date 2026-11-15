@@ -208,6 +208,7 @@ void Sexy::DrawCharacter(PixelusApp* mApp, Character* theCharacter, Graphics* g)
 namespace Sexy
 {
 
+// 0x41c650
 class TempleFade : public Widget
 {
 public:
@@ -243,6 +244,8 @@ public:
 }
 
 // 0x413ce0
+// 0x4106d0: the skip button placement
+// 0x410900: the mystery-chain break
 TempleScreen::TempleScreen(PixelusApp* theApp, MemoryImage* theBackdrop)
 {
 	mApp = theApp;
@@ -470,6 +473,7 @@ bool TempleScreen::SliderVisible() const
 	return (int) mThumbs.size() > ROWS * COLUMNS;
 }
 
+// 0x411200: the part the port has; the animated scroll is not ported
 void TempleScreen::Update()
 {
 	Widget::Update();
@@ -484,6 +488,8 @@ void TempleScreen::Update()
 }
 
 // 0x4119e0
+// 0x4100f0
+// 0x410ad0
 void TempleScreen::DrawThumbs(Graphics* g)
 {
 	LevelData* aLevelData = mApp->mLevelData;
@@ -682,6 +688,7 @@ void TempleScreen::Draw(Graphics* g)
 	mGod->Draw(g);
 }
 
+// 0x410680
 void TempleScreen::MouseMove(int x, int y)
 {
 	Widget::MouseMove(x, y);
@@ -745,6 +752,8 @@ void TempleScreen::SliderMouse(int y, bool theStart)
 }
 
 // 0x411600
+// 0x41162d
+// 0x427430: the puzzle id from a throwaway grid
 void TempleScreen::MouseDown(int x, int y, int theClickCount)
 {
 	if (theClickCount != 1)

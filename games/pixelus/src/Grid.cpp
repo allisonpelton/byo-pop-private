@@ -111,6 +111,7 @@ bool Grid::InGrid(int theRow, int theCol) const
 }
 
 // 0x424390
+// 0x42eee0: the tile constructor
 GridObject* Grid::NewObject(int theRow, int theCol)
 {
 	GridObject* anObject = new GridObject();

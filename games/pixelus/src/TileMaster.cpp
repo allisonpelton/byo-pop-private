@@ -48,6 +48,7 @@ namespace
 
 // 0x42bd40: the trail starts on the top side at the third cell and runs back to the first, and he stands where 0x423b90
 // puts the top left corner a cell up until the first update
+// 0x437b90: the sheet table of the set above
 TileMaster::TileMaster(PixelusApp* theApp, int theGridX, int theGridY, int theCols, int theRows)
 {
 	mApp = theApp;
