@@ -392,7 +392,8 @@ destructor was a comment.
 original's over the same stretch of play with its mixer thread counted apart (94% with it), in both window sizes.**
 Medians of five alternating rounds (`games/heavyweapon/tools/profile/pairs.sh`, under `tools/pincore.py`), the
 process's cycles (every thread, the ones that ended too) over 3000 updates of level 4 in play, in million cycles an
-update and as a share of one core (the cycle counter ran at 2081 MHz):
+update and as a share of one core (the cycle counter ran at 2081 MHz). The port's build is 01facaa0's, before the
+trunk's framework memory merge (2264f0f9, which batches 3D quads and drops pixels after upload):
 
 | | runs | update | draw | present | driver threads | audio thread | total | share of a core | less the audio thread | share |
 |---|---|---|---|---|---|---|---|---|---|---|
