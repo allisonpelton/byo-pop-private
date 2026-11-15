@@ -281,6 +281,7 @@ void Board::Restore()
 		}
 		else
 		{
+			// 0x423c10: a throw that leaves the board or bounces
 			bool aLeaves = !mGrid->mCanPlace && mGrid->mSlidesOut;
 			bool aBounces = !aLeaves && mGrid->IsBouncyAhead();
 			if (!mGrid->PlaceTile(true))

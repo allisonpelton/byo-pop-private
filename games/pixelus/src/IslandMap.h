@@ -10,11 +10,12 @@
 // and the page of the temple under the mouse. The sea and the smoke cross-fade, lightning flashes now and then and
 // the gulls and surf are heard at random (0x4163e0).
 //
-// port: the particle bursts of a temple that has just opened are not ported yet. The gulls are GullFlock.h.
+// The gulls are GullFlock.h, the bursts of a temple that has just opened Particles.h.
 
 #include "Widget.h"
 #include "ButtonListener.h"
 #include "Temples.h"
+#include <vector>
 
 namespace Sexy
 {
@@ -25,6 +26,7 @@ class DialogButton;
 class ButtonWidget;
 class MemoryImage;
 class GullFlock;
+class ParticleEffect;
 
 class IslandMap;
 
@@ -87,6 +89,7 @@ public:
 	int				mNextGull1, mNextGull2;		// +0xe0, +0xe4
 	int				mSolvedTotal;				// +0x14c
 	GullFlock*		mFlock;						// +0x140 the gulls over the island
+	std::vector<ParticleEffect*> mEffects;		// +0xb0 the bursts at the doors that have just opened
 
 public:
 	IslandMap(PixelusApp* theApp);				// 0x4176a0

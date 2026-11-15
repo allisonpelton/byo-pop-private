@@ -66,6 +66,7 @@ public:
 	virtual void	MouseEnter() override;                                          // 0x41bf80
 	virtual void	MouseDown(int x, int y, int theClickCount) override;            // 0x41bfb0
 	virtual void	Update() override;                                              // 0x41bff0
+	virtual bool	IsPointVisible(int x, int y) override;                          // 0x41bee0 only its picture's solid pixels
 	virtual void	Draw(Graphics* g) override;                                     // 0x41c0a0
 	using DialogButton::MouseDown;
 };

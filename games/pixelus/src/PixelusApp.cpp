@@ -28,6 +28,7 @@
 #include "MusicInterface.h"
 #include "WidgetManager.h"
 #include "Compat2004.h"
+#include "Particles.h"
 
 using namespace Sexy;
 
@@ -67,6 +68,7 @@ PixelusApp::PixelusApp()
 	mLevelData = NULL;
 	mUserDirectory = NULL;
 	mProgress = NULL;
+	mParticles = NULL;
 	mCurrentTemple = 0;
 	mAutoplay = false;
 	mAutoplayPuzzles = 3;
@@ -97,6 +99,7 @@ PixelusApp::~PixelusApp()
 	delete mStateLog;
 	delete mUserDirectory;
 	delete mProgress;
+	delete mParticles;
 	delete mLevelData;
 	delete mColorDark;
 	delete mColorMid;

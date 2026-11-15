@@ -28,6 +28,7 @@ class DialogButton;
 class MemoryImage;
 class Dialog;
 class Character;
+class ShackleBreak;
 
 // 0x42e110 / 0x42e1f0: the temple's god, a body with a head and arms that sway
 
@@ -87,6 +88,7 @@ public:
 
 	PixelusApp*		mApp;				// +0x68
 	MemoryImage*	mBackdrop;			// +0x94 the island as it was, or NULL
+	ShackleBreak*	mShackles;			// +0x8c the chains of the mystery puzzle blowing apart (0x419700), or NULL
 	class TempleFade* mFade;			// +0x94 the island fading out over the screen (0x41c610), or NULL
 	DialogButton*	mBackButton;		// +0x78
 	DialogButton*	mMoreButton;		// +0x7c

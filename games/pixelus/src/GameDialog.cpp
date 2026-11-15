@@ -8,6 +8,7 @@
 #include "ImageFont.h"
 #include "Graphics.h"
 #include "Image.h"
+#include "MemoryImage.h"
 #include "MusicInterface.h"
 #include "Insets.h"
 
@@ -38,6 +39,17 @@ void SoundButton::SetFlash(bool theOn, int theCount, bool theAdditive, int thePe
 }
 
 // 0x41bff0
+// 0x41bee0: a point of the button counts only where its picture (the strip's first frame) has a solid pixel
+bool SoundButton::IsPointVisible(int x, int y)
+{
+	MemoryImage* anImage = dynamic_cast<MemoryImage*>(mButtonImage);
+	if (anImage == NULL)
+		return true;
+	if (x < 0 || y < 0 || x >= anImage->GetWidth() || y >= anImage->GetHeight())
+		return false;
+	return (anImage->ReadBits()[y * anImage->GetWidth() + x] & 0xff000000) != 0;
+}
+
 void SoundButton::Update()
 {
 	mFlashTime++;

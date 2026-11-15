@@ -32,6 +32,7 @@ class LoadingScreen;
 class MemoryImage;
 class LevelData;
 class ProgressManager;
+class ParticleLibrary;
 class UserDirectory;
 
 class PixelusApp : public NcApp
@@ -64,6 +65,7 @@ public:
 	LevelData*				mLevelData;         // +0x768 (Init: 0x42abd0)
 	UserDirectory*			mUserDirectory;     // +0x76c (Init: 0x43da10)
 	ProgressManager*		mProgress;          // +0x770 (Init: 0x421380)
+	ParticleLibrary*		mParticles;         // +0x778 the particle effects (0x43f3a0), made when first wanted
 	int						mCurrentTemple;     // +0x780 the temple the player is in (an index of gTemples)
 	std::string				mLastSolvedUuid;    // +0x77c the puzzle just solved: its picture comes in on the temple screen
 	// +0x774 SessionLog (0x43aac0) is the original's statistics file for the developers; not ported

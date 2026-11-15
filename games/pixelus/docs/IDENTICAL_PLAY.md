@@ -277,3 +277,19 @@ were not repeated for this change; the Tile Master only moves a sprite, and the 
 unchanged.
 
 The frozen baseline was refreshed again on 2026-11-15 (the old exe is kept as `pixelus.before-bubble-mode.exe`): the temple screen now takes the original's mode (0x432420), so the god's first bubble in a returned-to temple draws the application's generator once more (0x42c4a0, mode 2), and the state logs differ from update 3291 only in their `apprand` counter; the game's own state is identical.
+
+The frozen baseline was refreshed again on 2026-11-15 (the old exe is kept as `pixelus.before-particles.exe`): the island map now runs the Nuclide layer's particle effects (the Rumble, PauseBloom and PauseBloomUp bursts at a temple that has just opened, 0x4176a0), which draw the application's generator (0x431090, 0x4310c0) every update while they fly. The state log writes a line whenever `apprand` moves, so the new logs hold 74 more lines from update 2235; with the `apprand` counters removed and the lines that are then empty dropped, the two logs of both baseline games are the same. The island's gull flock draws the C library's generator (clock-seeded, as in the original) and does not touch the state.
+
+## The island, the dialogs and the lessons (2026-11-15)
+Changes since the last report, each with its address in the source: the lesson timers and the eight lesson steps of the first
+puzzles (0x402700-0x407510), the speech-bubble widget (0x40e530-0x40ede0), a click that fails gives its sound and the cyclops's
+shrug, undo of the last thrown tile (0x403930), the hint dialog's exact placement (0x40f160), the dialog insets and fonts, no
+fade-in of the board (the original draws its grid at full alpha from the first frame), the flash buttons (0x41bf40-0x41c0a0),
+the temple screen's scrolling through the original's scroll bar (0x41c7d0 and its family) and the select-user list's, the
+first-visit and return bubble tips, the plaque and title layout, the island's gull flock (0x430ab0, 0x430cf0, 0x4306f0: boids
+that the pointer pushes or pulls; its numbers come from the clock-seeded C generator, so no two runs fly alike) and the
+particle effects (0x43d000-0x43f800: the Rumble, PauseBloom and PauseBloomUp bursts at a temple that has just opened, drawn
+from the application's generator). The main menu's user link has the original's black shadow, and the sound buttons take
+a click only on their picture's opaque pixels (as the original's alpha hit test).
+Open and skipped (GAME_NOTES.md, section 11): the editor's thumbnail reorder, the grid's pulse colour with no reader, the
+sound ducking of a pause. The chains of a mystery puzzle blow apart with the particle effects of 0x419700 (the links and the lock; seen at the temple of Jupiter with every puzzle solved). The puzzle-completed screen has no particle effect in the original's code (its three effect creations are the island's, 0x4176a0), so the confetti and sparkles that PuzzleCompleted.h mentions are not the original's: that line of the header is wrong and is corrected.

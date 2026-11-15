@@ -17,6 +17,7 @@
 #include "WidgetManager.h"
 #include "Buffer.h"
 #include "Compat2004.h"
+#include "Particles.h"
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
@@ -243,6 +244,57 @@ public:
 
 }
 
+// 0x419700 (Update 0x4198a0, Draw 0x419920, vftable 0x50e500): a widget over the whole screen that holds the two effects
+// of the mystery puzzle's chains breaking, the links flying (ShacklesBlownApart) and the lock falling (Lock); it takes no
+// mouse, and hides itself after 500 updates
+namespace Sexy
+{
+class ShackleBreak : public Widget
+{
+public:
+	PixelusApp*			mApp;
+	ParticleEffect*		mChains;			// +0x5c
+	ParticleEffect*		mLock;				// +0x60
+	int					mCount;				// +0x64
+
+	ShackleBreak(PixelusApp* theApp, int theX, int theY) : mApp(theApp), mCount(500)
+	{
+		mMouseVisible = false;
+		if (mApp->mParticles == NULL)
+			mApp->mParticles = new ParticleLibrary(mApp);
+		const int aWhite[4] = {255, 255, 255, 255};
+		ParticleVec aPos(theX + 5, theY - 0x14, 0);
+		ParticleVec aStill;
+		ParticleLibrary* aLibrary = mApp->mParticles;
+		mChains = new ParticleEffect(mApp, aLibrary->FindEmitterDef("ShacklesBlownApart"), aLibrary->FindImageDef("ChainLink"), aWhite, aPos, aStill);
+		mLock = new ParticleEffect(mApp, aLibrary->FindEmitterDef("Lock"), aLibrary->FindImageDef("Lock"), aWhite, aPos, aStill);
+	}
+	~ShackleBreak()
+	{
+		delete mChains;
+		delete mLock;
+	}
+	void Update() override
+	{
+		Widget::Update();
+		if (--mCount == 0)
+		{
+			SetVisible(false);
+			return;
+		}
+		if (mChains->Update(0.01))
+			MarkDirty();
+		if (mLock->Update(0.01))
+			MarkDirty();
+	}
+	void Draw(Graphics* g) override
+	{
+		mChains->Draw(g, mApp->Is3DAccelerated());
+		mLock->Draw(g, mApp->Is3DAccelerated());
+	}
+};
+}
+
 // 0x413ce0
 // 0x4106d0: the skip button placement
 // 0x410900: the mystery-chain break
@@ -262,6 +314,7 @@ TempleScreen::TempleScreen(PixelusApp* theApp, MemoryImage* theBackdrop, int the
 	mTextAlpha = 0;
 	mFade = theBackdrop != NULL ? new TempleFade(theBackdrop) : NULL;
 	mPanel = NULL;
+	mShackles = NULL;
 	mGod = new GodFigure(theApp, mTemple, this, theMode);
 
 	bool aTutorial = mTemple == 0;
@@ -302,6 +355,11 @@ TempleScreen::TempleScreen(PixelusApp* theApp, MemoryImage* theBackdrop, int the
 		{
 			aFlags |= 1;
 			mThumbs.back().mMystery = false;
+			// 0x410900: the chains blow apart at the mystery puzzle's place
+			int aCount = (int) mThumbs.size();
+			int aRow = std::min(aCount / COLUMNS, 2), aColumn = (aCount - 1) % COLUMNS;
+			mShackles = new ShackleBreak(mApp, PITCH * aColumn + LEFT + 0x30, PITCH * aRow + TOP + 0x30);
+			mShackles->Resize(0, 0, mApp->mWidth, mApp->mHeight);
 			mApp->PlaySample(SOUND_CHAIN_BREAKING_01);
 		}
 	}
@@ -338,6 +396,7 @@ TempleScreen::~TempleScreen()
 	delete mScrollbar;
 	delete mGod;
 	delete mPanel;
+	delete mShackles;
 	delete mFade;
 	delete mBackdrop;
 }
@@ -354,6 +413,8 @@ void TempleScreen::AddedToManager(WidgetManager* theWidgetManager)
 		mFade->Resize(0, 0, mWidth, mHeight);
 		theWidgetManager->AddWidget(mFade);
 	}
+	if (mShackles != NULL)
+		theWidgetManager->AddWidget(mShackles);
 	StartMusic(mApp, MUSIC_PIXELUS_TEMPLE_SCREEN_LOOP_V01, true);
 }
 
@@ -366,6 +427,8 @@ void TempleScreen::RemovedFromManager(WidgetManager* theWidgetManager)
 	theWidgetManager->RemoveWidget(mScrollbar);
 	if (mFade != NULL)
 		theWidgetManager->RemoveWidget(mFade);
+	if (mShackles != NULL)
+		theWidgetManager->RemoveWidget(mShackles);
 }
 
 // 0x4138d0 and 0x413420: the pictures of every puzzle of the temple

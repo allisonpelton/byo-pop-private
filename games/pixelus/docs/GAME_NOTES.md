@@ -190,3 +190,32 @@ end. The port uses about half the original's processor time over a minute of pla
 web build's load was not timed. The port loads in one go as the framework's loading thread does, so no loading wait
 remains; the original's own load is as fast here because its resources are few.
 
+
+## 11. Coverage check (2026-11-15) and Oddities
+
+The whole coverage check (`docs/COVERAGE.md`). origrun's `--coverage` recorded which of the original's functions ran in
+five runs (`build/coverage/pixelus/hits/t16`, `t17`, `t19`, `t21`, `t22`: the tours of the screens, the tutorial, the island
+and a full game's worth of temples), each ending when origrun stopped it. They reached 1089 to 1833 of the exe's 6316
+watched functions.
+
+`games/pixelus/coverage.txt` sets the game's own code as 0x401000-0x43b020 plus Nuclide's layer under the application
+(0x4e2c10-0x4e9f10); the rest of the exe is SexyAppFramework, the libraries and the C runtime. That code has 1038 functions.
+The runs reached 717 of them and the port defines 448. 297 are named in `coverage.txt` as left out: the outbound More Games
+dialog, the developers' session log, the update check, the registration and trial code (removed on purpose), and what the
+compilers make for themselves (containers, string code, accessors and thunks, the 0x403010-style forwarders).
+
+**Reached in the original with no counterpart in the port: 437 at first, 3 at the end.** 34 of the remaining 37 are
+translated inline or under another name and carry their address in a comment (the lesson steps, the bubble widget, the
+flash buttons, the scroll bar, the gulls, the particles, and others); the three that are open are listed below and in
+`coverage.txt`.
+
+Oddities (what it does, how to see it, what it would take):
+- **0x4146b0, the temple screen's thumbnail reorder.** On a mouse release with a thumbnail held and another cell under the
+  pointer, the original moves the held puzzle to the new place (0x413c80, then 0x42a460 on the level data). It needs the
+  level editor's flags (+0xd8, +0xcc), which no run of the shipped game reaches. A level-editor feature; not ported.
+- **0x4312c0, the grid's pulse colour.** 0x424b30 stores a colour at Grid+0x20; DrawGrid (0x422ab0) reads the colour at +0x5c.
+  No reader of +0x20 is found in the game's code, so it looks unused. Taken as invisible.
+- **0x431a50, the sound ducking of a pause.** On a pause the original (called from HandlePaused, 0x4333a0, and 0x431c4b)
+  sets the volume of every playing sound to about 0.016 and restores it when the pause ends. The port pauses the music
+  (PauseAllMusic) and leaves sounds that are already playing at their volume. Not compared by ear; to port, a list of the
+  playing sound instances is needed from the framework's sound manager.
