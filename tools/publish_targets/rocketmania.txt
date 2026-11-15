@@ -31,6 +31,7 @@ exclude platform/openmpt
 exclude platform/openjpeg
 exclude platform/saveimport.json
 include third_party/stb
+exclude third_party/stb/stb_impl.c
 include third_party/libjpeg
 exclude third_party/libjpeg/test
 include third_party/libxmp-lite
@@ -76,6 +77,10 @@ transform games/rocketmania/CMakeLists.txt games/rocketmania/CMakeLists.txt game
 transform framework/CMakeLists.txt framework/CMakeLists.txt framework
 transform third_party/CMakeLists.txt third_party/CMakeLists.txt third_party
 transform platform/saveimport.json platform/saveimport.json saveimport rocketmania
+# stb_image decodes only PNG and GIF here: the game's files (the retail and Steam copies' and the staged ones) are GIF,
+# JPEG and PNG; JPEGs go to libjpeg first (every one of them is a baseline or progressive 8-bit JPEG that it takes); and
+# no file is TGA or BMP
+transform third_party/stb/stb_impl.c third_party/stb/stb_impl.c stb png,gif
 transform cmake/llvm-mingw-i686.cmake cmake/llvm-mingw-i686.cmake toolchain
 transform games/rocketmania/tools/stage_rocketmania_assets.py games/rocketmania/tools/stage_rocketmania_assets.py stage
 file README.md tools/publish_targets/rocketmania.README.md

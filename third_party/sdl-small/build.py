@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Builds a small, static SDL 2.32.10 for the releases' one-file exes (docs/PUBLISHING.md, "The small SDL").
+"""Builds a small, static SDL 2.32.10 for the releases' one-file exes (docs/PUBLISHING.md, "The small SDL"; a release's README.md, "Building from source").
 
     python third_party/sdl-small/build.py <SDL2-2.32.10 source folder> <install folder> [--build <scratch folder>]
 
@@ -9,7 +9,7 @@ links SDL into its exe. Needs cmake and ninja on PATH and llvm-mingw (LLVM_MINGW
 
 What is kept is what the ports call: video (the Windows driver, and the dummy one that SDL_VIDEODRIVER=dummy names), the
 renderers (Direct3D 11, which the framework asks for, then Direct3D 9, OpenGL and the software renderer for the machines
-where it will not start), audio (WASAPI, DirectSound, and the dummy driver that SDL_AUDIODRIVER=dummy names, which the test
+where it will not start; not Direct3D 12, which no machine needs that 11 does not serve), audio (WASAPI, DirectSound, and the dummy driver that SDL_AUDIODRIVER=dummy names, which the test
 runs use), events, threads, timers, atomics, file I/O, the base and pref paths, the clipboard and OpenURL. What is left out is
 what no port touches: joysticks, haptics, sensors, HIDAPI, XInput, power, Vulkan, OpenGL ES, the offscreen and disk-writer
 drivers and the test library. SDL_Init is never called (the framework starts the video and audio subsystems it needs one at
@@ -45,6 +45,8 @@ def main():
            f"-DCMAKE_TOOLCHAIN_FILE={toolchain}", f"-DCMAKE_INSTALL_PREFIX={a.install}",
            f"-DCMAKE_C_FLAGS_RELEASE={flags} -DNDEBUG"]
     cmd += [f"-D{n}=OFF" for n in OFF] + [f"-D{n}=ON" for n in ON]
+    # no Direct3D 12 renderer (SDL tries it after 11): its header test is answered here, so SDL does not build the driver
+    cmd += ["-DHAVE_D3D12_H=OFF"]
     for step in (cmd, ["cmake", "--build", build], ["cmake", "--install", build]):
         print("+", " ".join(step), flush=True)
         if subprocess.run(step).returncode:

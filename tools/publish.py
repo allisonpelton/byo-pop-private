@@ -253,6 +253,21 @@ def tf_saveimport(text, game):
             '(platform/SaveImport.cpp, which has this table compiled in). ' + doc[rules:] + text[b:])
 
 
+STB_FORMATS = {"jpeg", "png", "bmp", "tga", "gif"}
+
+
+def tf_stb(text, formats):
+    """third_party/stb/stb_impl.c with only the image formats a game's files can hold in stb_image (STBI_ONLY_<format>, a
+    comma-separated list of jpeg, png, bmp, tga and gif). Which a game needs is read from its files: platform/ImageLoader.cpp
+    gives JPEGs to libjpeg and GIFs to its own decoder first, and stb_image decodes only what they refuse and the rest."""
+    names = (formats or "").split(",")
+    if not formats or not set(names) <= STB_FORMATS:
+        sys.exit(f"a transform: stb takes a comma-separated list of {', '.join(sorted(STB_FORMATS))}, not '{formats}'")
+    marker = "#define STB_IMAGE_IMPLEMENTATION\n"
+    only = "".join(f"#define STBI_ONLY_{n.upper()}\n" for n in names)
+    return replace_once(text, marker, "/* only the image formats of this game's files (its manifest) */\n" + only + marker)
+
+
 def tf_toolchain(text, _):
     """cmake/llvm-mingw-i686.cmake without the web build in its comment, and asking for LLVM_MINGW_ROOT where the trunk's
     falls back to the trunk machine's own toolchain folder."""
@@ -272,7 +287,7 @@ def tf_stage(text, _):
 
 
 TRANSFORMS = {"toplevel": tf_toplevel, "framework": tf_framework, "third_party": tf_third_party, "game": tf_game,
-              "saveimport": tf_saveimport, "toolchain": tf_toolchain, "stage": tf_stage}
+              "saveimport": tf_saveimport, "stb": tf_stb, "toolchain": tf_toolchain, "stage": tf_stage}
 
 
 C_SOURCES = (".c", ".cpp", ".h", ".hpp", ".inc", ".inl")
