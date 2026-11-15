@@ -148,18 +148,23 @@ phase-one baseline only in their `apprand` lines; the game's own state and its d
 The original and the port were given the same updates, with the clicks at each program's own buttons (the options dialog's
 rows are not where the port's are). The menu after Play and the story match (0.0%). What differs, not yet fixed:
 
-- **The options dialog** (u300, 45%). The original's dialog from the menu is a column of full-width rows: How to play, Check
-  for updates, Credits, then the footer's Done, with a Hardware Acceleration box under the other two; it has no Reset Hints.
-  The port draws Reset Hints and Credits side by side over How to play, and has neither the update row nor the 3D box.
-  The rows come from NcApp's constructor 0x4e8b80 (which buttons exist depends on the application's registered flag at
-  +0x654 and two flags copied from a 13-word block into the dialog at +0x150 and +0x151) and its layout 0x4e7f50 (the row
-  vector at +0x184). Check for updates and the 3D box are outbound and platform items the port leaves out on purpose; the
-  rest of the layout (the rows' places, whether Reset Hints shows from the menu) has to follow that code.
+- **The options dialog** (u300, 45%, fixed in the rows). The original's dialog from the menu is a column of full-width rows:
+  How to play, Check for updates, Credits, then the footer's Done, with a Hardware Acceleration box under the other two
+  and no Reset Hints. Reading 0x4e8b80 and 0x4194d0 explains it: Reset Hints (the base class's button at +0x174) is made
+  only when byte +0x151 of the caller's block is set, and 0x4194d0 sets +0x150 and clears +0x151, so it never exists; the
+  base's button at +0x170 needs +0x150 and an unregistered game, and 0x4190b0 swaps the places of Credits and How to play
+  (How to play takes the top row, beside Main menu in a puzzle with Main menu on the left; Credits goes down next to
+  Done). The port had made Reset Hints and Credits a half-width pair; now it has How to play (and Main menu), Credits and
+  Done, with Reset Hints gone. The update row and the 3D box lead out or belong to the platform, so they stay out and the
+  rows close the gap; the dialog is `0x1ac - 0x24 - a box` high instead of the original's 0x1ac (0x4190a0, 0x4e7c80). The
+  rest of the 44% in the shot is that smaller frame, and the player's name beside "Welcome" below.
+- **The credits dialog** (u900 and later, 13% to 5.5%, fixed). "Developed by" and "Many thanks to" are drawn in Garamond 14
+  (the dialog's own font index 6 at +0x124), the other lines in Garamond 12, from the content top 0x3c (the port had 0x24).
+  The doubled top and bottom beams in the original's shot are the options dialog's larger frame under the credits; ours is
+  smaller, so only the credits' own frame shows.
 - **The help screen's demos** (u400 to u700, 28%): the original's left demo shows the hero sliding a tile in with the pointer
   and its right grid is dark with the picture's cells fading in; the port's demos are in other phases of their loops.
   Their timing (0x4170d0's callers) has to be lined up with the update the help screen opens at.
-- **The credits dialog** (u900 and later, 13%): the original's dialog is taller and its text starts higher; the port's is
-  shorter with its text lower.
 - At u300 and u1800 the original's menu says "Welcome to Pixelus" with no player name (0x40a8b0 prints the name only while a
   player is current); the port's player was made at the same update by the same clicks, so this run's original lost the
   name or made it later. Not explained; the case t16 (u250) shows the name in both.
