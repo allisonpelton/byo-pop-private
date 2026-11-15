@@ -9,8 +9,17 @@
 // Module.byopopCursor = {id, width, height, hotX, hotY, screenWidth, screenHeight, rgba}, rgba a Uint8Array of
 // width * height straight-alpha RGBA pixels, screenWidth/Height the game's logical screen (the page scales the
 // cursor by the canvas's size over it).
+//
+// WebCursorSetKind (framework/WebCursor.h) gives byopop_cursor_set_copy the image of a kind that a game keeps apart from
+// mCursorImages; natively it does nothing.
 
-#ifdef __EMSCRIPTEN__
+#include "WebCursor.h"
+
+#ifndef __EMSCRIPTEN__
+void Sexy::WebCursorSetKind(int, MemoryImage*)
+{
+}
+#else
 #include "DDInterface.h"
 #include "MemoryImage.h"
 #include "SexyAppBase.h"
@@ -38,6 +47,8 @@ const int kCursorAreaSize = 64;	// DisplayGeometry.cpp's CURSOR_AREA_SIZE: the i
 const int kMaxCursorSize = 512;	// a cursor is small; anything larger is not copied
 
 MemoryImage* sShownImage = NULL;
+// the images given by WebCursorSetKind, by kind
+MemoryImage* sKindImages[NUM_CURSORS] = {};
 int sShownBitsChanged = 0;
 int sShownId = 0;
 
@@ -68,6 +79,20 @@ MemoryImage* ShownCursorImage()
 	return anImage;
 }
 
+// A kind's image for the set: WebCursorSetKind's, else the app's
+MemoryImage* SetKindImage(SexyAppBase* theApp, int theCursorNum)
+{
+	if (sKindImages[theCursorNum] != NULL)
+		return sKindImages[theCursorNum];
+	return dynamic_cast<MemoryImage*>(theApp->mCursorImages[theCursorNum]);
+}
+
+}
+
+void Sexy::WebCursorSetKind(int theCursorNum, MemoryImage* theImage)
+{
+	if ((theCursorNum >= 0) && (theCursorNum < NUM_CURSORS))
+		sKindImages[theCursorNum] = theImage;
 }
 
 extern "C"
@@ -121,8 +146,9 @@ EMSCRIPTEN_KEEPALIVE int byopop_cursor_copy()
 
 // The game's set of cursors for the site's cursor (docs/WEB_PLAYER.md, "The site's cursor"): every kind's image from
 // CURSOR_POINTER to CURSOR_WAIT (the pointer, hand, dragging and text, the circle-slash, the sizing arrows and the wait),
-// whether or not its custom cursors are on, each copied to Module.byopopCursorSet[kind] as byopop_cursor_copy copies the
-// shown one (absent where the game has none); the page keeps the kinds the site has a use for. CURSOR_NONE has no image
+// whether or not its custom cursors are on (or the image WebCursorSetKind gave for the kind), each copied to
+// Module.byopopCursorSet[kind] as byopop_cursor_copy copies the shown one (absent where the game has none); the page
+// keeps the kinds the site has a use for. CURSOR_NONE has no image
 // and CURSOR_CUSTOM is one a game makes as it goes, so neither is part of a set. Returns -1 before the game has started,
 // 0 when it has no pointer image (yet: a game sets its cursors once its images are loaded), else the number copied.
 EMSCRIPTEN_KEEPALIVE int byopop_cursor_set_copy()
@@ -131,7 +157,7 @@ EMSCRIPTEN_KEEPALIVE int byopop_cursor_set_copy()
 	if ((anApp == NULL) || (!anApp->mInitialized) || (anApp->mShutdown) || (anApp->mSEHOccured) ||
 		(anApp->mDDInterface == NULL))
 		return -1;
-	if (dynamic_cast<MemoryImage*>(anApp->mCursorImages[CURSOR_POINTER]) == NULL)
+	if (SetKindImage(anApp, CURSOR_POINTER) == NULL)
 		return 0;
 
 	// (byopop_cursor_deliver writes Module.byopopCursor: the page's copy of the shown cursor is put back afterwards)
@@ -140,7 +166,7 @@ EMSCRIPTEN_KEEPALIVE int byopop_cursor_set_copy()
 	int aCopied = 0;
 	for (int aCursorNum = CURSOR_POINTER; aCursorNum <= CURSOR_WAIT; aCursorNum++)
 	{
-		MemoryImage* anImage = dynamic_cast<MemoryImage*>(anApp->mCursorImages[aCursorNum]);
+		MemoryImage* anImage = SetKindImage(anApp, aCursorNum);
 		if ((anImage == NULL) || (anImage->mWidth <= 0) || (anImage->mHeight <= 0) ||
 			(anImage->mWidth > kMaxCursorSize) || (anImage->mHeight > kMaxCursorSize))
 			continue;
