@@ -1087,7 +1087,7 @@ var ByopopMusic = (function () {
     }
     function makeGraph(ctx) {
       gain = ctx.createGain();
-      gain.gain.value = muted ? 0 : volume / 100;
+      gain.gain.value = muted ? 0 : volume / 100 * (window.ByopopVolume ? ByopopVolume.level() : 1);
       // at ?silent=1 the sound passes through a gain of 0 (CLAUDE.md: tests in a pane that may be hidden): the speakers get exact
       // zeros, and the graph still reaches the destination, without which the browser never runs the worklet
       tail = gain;
@@ -2917,7 +2917,8 @@ var ByopopMusic = (function () {
       shownRow = "";
       drawTracker();
     });
-    function setGain() { if (gain) gain.gain.value = muted ? 0 : volume / 100; }
+    function setGain() { if (gain) gain.gain.value = muted ? 0 : volume / 100 * (window.ByopopVolume ? ByopopVolume.level() : 1); }
+    if (window.ByopopVolume) ByopopVolume.on(setGain);
     muteBtn.addEventListener("click", function () {
       muted = !muted;
       muteBtn.setAttribute("aria-pressed", String(muted));

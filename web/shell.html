@@ -1830,6 +1830,21 @@ html.saver .stage-wrap { place-items: center; min-height: 100vh; }
     try { sessionStorage.setItem("byopop-desk-open", window.byopopShutDown ? "shutdown" : "games"); } catch (e) {}
     closeGameThen(function () { location.href = "./" + (pageSilent() ? "?silent=1" : ""); }, true);
   }
+  // The game's sound at the site's volume (the tray's speaker, ByopopVolume in web/skins.js): its output node
+  // (platform/Audio.cpp, Module.byopopAudio) put through a gain of the page's own, made once the node is there and again if it
+  // is made anew; on the listing's desktop the hush (web/deskapps.js) then takes that gain off the speakers
+  function siteVolume() {
+    var out = window.Module && Module.byopopAudio, node = out && out.node;
+    if (!node || out.masterFor === node || !window.ByopopVolume) return;
+    var ctx = node.context, g = ctx.createGain();
+    g.gain.value = ByopopVolume.level();
+    try { node.disconnect(ctx.destination); } catch (e) {}
+    node.connect(g); g.connect(ctx.destination);
+    out.master = g; out.masterFor = node;
+    try { var P = desktopApps(); if (P && P.rehush) P.rehush(); } catch (e) {}
+  }
+  setInterval(siteVolume, 1000);
+  if (window.ByopopVolume) ByopopVolume.on(function (v) { var out = window.Module && Module.byopopAudio; if (out && out.master) out.master.gain.value = v; });
   function showMissingFiles() {
     $("files-missing").hidden = !missingFiles.length;
     $("files-missing-summary").textContent = ByopopStrings.t("game.files.missing", {n: missingFiles.length});

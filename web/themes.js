@@ -84,7 +84,7 @@ var ByopopThemes = (function () {
     }
     buffers[what].then(function (buf) {
       var src = ctx.createBufferSource(), g = ctx.createGain();
-      g.gain.value = level();
+      g.gain.value = level() * (window.ByopopVolume ? ByopopVolume.level() : 1);
       src.buffer = buf; src.connect(g); g.connect(ctx.destination); src.start();
     }, function () {});
   }

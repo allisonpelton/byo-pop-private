@@ -892,7 +892,50 @@ var ByopopSkin = (function () {
       var strip = document.createElement("div"); strip.className = "d95-tasks";
       var tray = document.createElement("div"); tray.className = "d95-tray";
       clock = document.createElement("span"); clock.className = "d95-clock";
+      // the speaker: a click opens the volume's slider above it, with Mute (ByopopVolume)
+      var spk = document.createElement("button");
+      spk.type = "button"; spk.className = "d95-spk"; spk.setAttribute("aria-label", T("skin.vol.button")); spk.title = T("skin.vol.button");
+      spk.setAttribute("aria-haspopup", "dialog"); spk.setAttribute("aria-expanded", "false");
+      var spkPic = document.createElement("i"); spkPic.setAttribute("aria-hidden", "true"); spk.appendChild(spkPic);
+      tray.appendChild(spk);
       tray.appendChild(clock);
+      var vol = null;
+      function showMuted() { spk.classList.toggle("d95-spk-off", ByopopVolume.muted()); }
+      ByopopVolume.on(function () { showMuted(); if (vol) { vol.range.value = ByopopVolume.get(); vol.mute.checked = ByopopVolume.muted(); } });
+      showMuted();
+      function closeVol(focusBack) {
+        if (!vol) return;
+        document.removeEventListener("pointerdown", vol.out, true);
+        if (vol.el.parentNode) vol.el.parentNode.removeChild(vol.el);
+        vol = null;
+        spk.setAttribute("aria-expanded", "false");
+        if (focusBack) spk.focus();
+      }
+      spk.addEventListener("click", function () {
+        if (vol) { closeVol(false); return; }
+        closeAllMenus();
+        var el = document.createElement("div");
+        el.className = "d95-vol"; el.setAttribute("role", "dialog"); el.setAttribute("aria-label", T("skin.vol.title"));
+        var head = document.createElement("div"); head.className = "d95-vol-head"; head.textContent = T("skin.vol.title");
+        var range = document.createElement("input");
+        range.type = "range"; range.min = "0"; range.max = "100"; range.step = "1"; range.value = ByopopVolume.get();
+        range.className = "d95-vol-range"; range.setAttribute("aria-label", T("skin.vol.title")); range.setAttribute("orient", "vertical");
+        var lab = document.createElement("label"); lab.className = "d95-vol-mute";
+        var mute = document.createElement("input"); mute.type = "checkbox"; mute.checked = ByopopVolume.muted();
+        lab.appendChild(mute); lab.appendChild(document.createTextNode(" " + T("skin.vol.mute")));
+        el.appendChild(head); el.appendChild(range); el.appendChild(lab);
+        range.addEventListener("input", function () { ByopopVolume.set(+range.value); });
+        mute.addEventListener("change", function () { ByopopVolume.set(null, mute.checked); });
+        el.addEventListener("keydown", function (ev) { if (ev.key === "Escape") { ev.preventDefault(); closeVol(true); } });
+        document.body.appendChild(el);
+        var r = spk.getBoundingClientRect();
+        el.style.left = Math.max(0, Math.min(unzoom(r.right) - el.offsetWidth, viewW() - el.offsetWidth - 2)) + "px";
+        el.style.top = (unzoom(r.top) - el.offsetHeight - 4) + "px";
+        vol = { el: el, range: range, mute: mute, out: function (ev) { if (!el.contains(ev.target) && ev.target !== spk && !spk.contains(ev.target)) closeVol(false); } };
+        document.addEventListener("pointerdown", vol.out, true);
+        spk.setAttribute("aria-expanded", "true");
+        range.focus();
+      });
       bar.appendChild(wrap); bar.appendChild(strip); bar.appendChild(tray);
       document.body.appendChild(bar);
       bar.addEventListener("contextmenu", function (ev) {
@@ -1694,6 +1737,46 @@ var ByopopSkin = (function () {
       sendSwitch("commit");
     }, true);
     window.addEventListener("blur", function () { if (sw) altTab("cancel"); forwarded = false; });
+    // ---- tooltips drawn as 1995's (the user, 2026-11-14, by the coordinator's list): a pale yellow box with a black border under
+    // the pointer, half a second after it rests on something with a title, in place of the browser's own. While the box may show
+    // the title is taken off the element (the browser would draw its own), and an element named only by it keeps that name.
+    var tip = null;
+    function tipEnd() {
+      if (!tip) return;
+      clearTimeout(tip.timer);
+      if (tip.box && tip.box.parentNode) tip.box.parentNode.removeChild(tip.box);
+      if (tip.el.getAttribute("title") === null) tip.el.setAttribute("title", tip.text);
+      if (tip.named) tip.el.removeAttribute("aria-label");
+      tip = null;
+    }
+    document.addEventListener("pointerover", function (ev) {
+      if (!on || ev.pointerType === "touch") return;
+      var el = ev.target.closest && ev.target.closest("[title]");
+      if (tip && tip.el === el) return;
+      tipEnd();
+      if (!el || !el.getAttribute("title") || el.closest(".d95-menu, .d95-ctx")) return;
+      var text = el.getAttribute("title");
+      var named = !el.hasAttribute("aria-label") && !el.hasAttribute("aria-labelledby") && !el.textContent.trim();
+      if (named) el.setAttribute("aria-label", text);
+      el.removeAttribute("title");
+      tip = { el: el, text: text, named: named, x: ev.clientX, y: ev.clientY, box: null };
+      tip.timer = setTimeout(function () {
+        if (!tip || tip.el !== el) return;
+        var b = document.createElement("div");
+        b.className = "d95-tip"; b.setAttribute("aria-hidden", "true"); b.textContent = text;
+        document.body.appendChild(b);
+        var x = unzoom(tip.x), y = unzoom(tip.y) + 20;
+        b.style.left = Math.max(0, Math.min(x, viewW() - b.offsetWidth - 2)) + "px";
+        b.style.top = (y + b.offsetHeight > room().h ? unzoom(tip.y) - b.offsetHeight - 4 : y) + "px";
+        tip.box = b;
+        tip.timer = setTimeout(tipEnd, 6000);
+      }, 500);
+    });
+    document.addEventListener("pointermove", function (ev) { if (tip && !tip.box) { tip.x = ev.clientX; tip.y = ev.clientY; } }, true);
+    document.addEventListener("pointerout", function (ev) { if (tip && (!ev.relatedTarget || !tip.el.contains(ev.relatedTarget))) tipEnd(); });
+    document.addEventListener("pointerdown", tipEnd, true);
+    document.addEventListener("keydown", tipEnd, true);
+    window.addEventListener("blur", tipEnd);
     // ---- Alt+4 closes the window in front (the user, 2026-11-14, by the coordinator's list), standing in for the Alt+F4 the
     // browser keeps; with no window open it opens the Pop menu on Shut Down. In a window's page on the listing's desktop it goes to
     // that desktop (ByopopApps.closeFront), as Alt+` does, never to the game. AltGr+4 (Ctrl and Alt together on Windows, where it
@@ -1936,4 +2019,24 @@ var ByopopSkin = (function () {
   }
   document.addEventListener("selectstart", function (ev) { var t = ev.target; if (t && t.nodeType !== 1) t = t.parentNode; if (t && t.closest && t.closest(".stage") && !t.closest(".overlay")) ev.preventDefault(); }, true);
   return { zoom: zoom, unzoom: unzoom, ratio: ratio, viewW: viewW, viewH: viewH, gamesWindow: gamesWindow, EMBED: EMBED, SITE: SITE, testQuery: testQuery, current: current, setGame: setGame, apply: apply, wizard: wizard, desk: desk, deskSync: deskSync };
+})();
+// The volume of everything the site plays (the tray's speaker; the user, 2026-11-14, by the coordinator's list): the games, Music,
+// Sounds and a theme's sounds, each at its own level times this one. Kept in localStorage (byopop-master-volume, 0 to 100, and
+// byopop-master-mute "1"), so every page and window follows it; on(fn) is told of each change, here or in another page.
+var ByopopVolume = (function () {
+  "use strict";
+  var VOL = "byopop-master-volume", MUTE = "byopop-master-mute", fns = [];
+  function get() { try { var v = parseInt(localStorage.getItem(VOL), 10); return v >= 0 && v <= 100 ? v : 100; } catch (e) { return 100; } }
+  function muted() { try { return localStorage.getItem(MUTE) === "1"; } catch (e) { return false; } }
+  function level() { return muted() ? 0 : get() / 100; }
+  function fire() { fns.forEach(function (fn) { try { fn(level()); } catch (e) {} }); }
+  function set(v, mute) {
+    try {
+      if (v !== null && v !== undefined) localStorage.setItem(VOL, String(Math.max(0, Math.min(100, Math.round(v)))));
+      if (mute !== undefined) { if (mute) localStorage.setItem(MUTE, "1"); else localStorage.removeItem(MUTE); }
+    } catch (e) {}
+    fire();
+  }
+  window.addEventListener("storage", function (ev) { if (!ev.key || ev.key === VOL || ev.key === MUTE) fire(); });
+  return { get: get, muted: muted, level: level, set: set, on: function (fn) { fns.push(fn); } };
 })();

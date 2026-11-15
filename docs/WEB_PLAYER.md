@@ -249,6 +249,12 @@ listing shows it (`byopop-desk-open` "shutdown"), and from a window's page the d
   place) and Properties (Settings' Appearance).
 - **The task bar's right click:** Cascade, Tile Horizontally, Tile Vertically and Minimize All Windows, which becomes
   Undo Minimize All.
+- **Tooltips:** drawn as 1995's, a pale yellow box with a black border half a second after the pointer rests. The title
+  is taken off while the box may show, so the browser draws none, and an element named only by it keeps that name.
+- **The tray's speaker:** it opens a Volume slider with Mute (`ByopopVolume`: `byopop-master-volume`,
+  `byopop-master-mute`). Everything the site plays follows it, each sound at its own level times this one: the games,
+  through a gain the game's page puts after its output node (`siteVolume` in `web/shell.html`, which the hush in
+  `web/deskapps.js` then takes off the speakers), plus Music, Sounds and a theme's sounds.
 
 The game
 window's menu bar spreads the game's commands over Game, View, Options and Help (the user, 2026-11-09: "don't hide

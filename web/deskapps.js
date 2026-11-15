@@ -452,7 +452,7 @@ var ByopopApps = (function () {
       if (a.kind !== "game") return;
       var want = a !== one;
       try {
-        var w = inner(a), out = w && w.Module && w.Module.byopopAudio, node = out && out.node;
+        var w = inner(a), out = w && w.Module && w.Module.byopopAudio, node = out && (out.master || out.node);
         if (!node) return;
         if (want && a.hushedNode !== node) { node.disconnect(node.context.destination); a.hushedNode = node; }
         else if (!want && a.hushedNode) { if (a.hushedNode === node) node.connect(node.context.destination); a.hushedNode = null; }
@@ -460,12 +460,14 @@ var ByopopApps = (function () {
     });
   }
   window.addEventListener("byopop-desk-active", function () { setTimeout(hush, 0); });
+  // a game's page put its sound through its own gain (the site's volume, web/shell.html): heard or hushed again by that
+  function rehush() { hush(); }
   window.addEventListener("byopop-music-state", hush);
   // (a game's output is made when it starts, some time after its window opens)
   setInterval(function () { if (gameCount()) hush(); }, 1000);
   function hushed(win) { var a = byWin(win); return !!(a && a.hushedNode); }
 
-  return { hushed: hushed, heard: function () { var a = heardApp(); return a ? a.key : null; }, open: open, activated: activated, f6: f6, altTab: altTab, closeFront: closeFront, shutDown: shutDown, closed: closed, title: title, fit: fit, room: room, frontGame: frontGame, frontFrame: frontFrame,
+  return { hushed: hushed, heard: function () { var a = heardApp(); return a ? a.key : null; }, open: open, activated: activated, f6: f6, altTab: altTab, closeFront: closeFront, shutDown: shutDown, rehush: rehush, closed: closed, title: title, fit: fit, room: room, frontGame: frontGame, frontFrame: frontFrame,
     menuKey: menuKey, fullScreen: function (win) { var a = byWin(win); if (a) fullScreen(a); },
     count: function () { return apps.length; },
     // the address back to the root (a link to #settings and the like, web/index.html)
