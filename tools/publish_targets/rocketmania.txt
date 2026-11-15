@@ -35,6 +35,8 @@ include third_party/libjpeg
 exclude third_party/libjpeg/test
 include third_party/libxmp-lite
 include third_party/tremor
+# SDL is built into the exe: the recipe for the small static build of it that the top-level CMakeLists.txt links
+include third_party/sdl-small
 include third_party/libopenmpt/include/minimp3
 
 # without the site and the mod framework (the user, 2026-11-13: no source file that refers to either): the mod menu, the
@@ -73,7 +75,7 @@ transform CMakeLists.txt CMakeLists.txt toplevel rocketmania
 transform games/rocketmania/CMakeLists.txt games/rocketmania/CMakeLists.txt game rocketmania
 transform framework/CMakeLists.txt framework/CMakeLists.txt framework
 transform third_party/CMakeLists.txt third_party/CMakeLists.txt third_party
-transform platform/saveimport.json platform/saveimport.json saveimport
+transform platform/saveimport.json platform/saveimport.json saveimport rocketmania
 transform cmake/llvm-mingw-i686.cmake cmake/llvm-mingw-i686.cmake toolchain
 transform games/rocketmania/tools/stage_rocketmania_assets.py games/rocketmania/tools/stage_rocketmania_assets.py stage
 file README.md tools/publish_targets/rocketmania.README.md
