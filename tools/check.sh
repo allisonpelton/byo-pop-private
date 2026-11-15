@@ -23,7 +23,8 @@
 #                their own rate, voices against the old stereo-float pipeline); and shotdiff's selftest (tools/shotdiff:
 #                the screenshot comparison on synthetic pictures, its pages and its marks server); and geomtest
 #                (framework/DisplayGeometry: letterbox, render scale, window mapping and cursor, against a table); and wraptest
-#                (framework/TriangleWrap: DrawTrianglesTex's texture wrap, triangles cut at whole-number u and v); and
+#                (framework/TriangleWrap: DrawTrianglesTex's texture wrap, triangles cut at whole-number u and v); and stretchcal
+#                (framework/LinearStretch against the renderer's linear present on this machine's card, four sizes); and
 #                fwtest -realinput=tools/fwtest/realinput.txt with -fast and in real time, with no game files (real SDL
 #                events through HandleEvent and the widget manager, docs/REAL_INPUT.md); and fwtest -corner
 #                -realinput=tools/fwtest/flags.txt on DDInterface and on the software screen (the fast stretch's
@@ -214,7 +215,7 @@
 #                  build-web and unit-web (seconds when only the listing page changed, but a change to web/modpanel.js,
 #                  web/shell.html or a link option relinks every game's wasm: about 6 minutes)
 #   tools/<x>/**   shotdiff: unit. gputest: build gpu. modmenutest: modmenu. origrun: origrun. The web test scripts
-#                  (tools/*.js, paktest): unit-web. fwtest, geomtest, wraptest, jp2test, songpostest, soundtest, spectrumtest, build.sh,
+#                  (tools/*.js, paktest): unit-web. fwtest, geomtest, wraptest, stretchcal, jp2test, songpostest, soundtest, spectrumtest, build.sh,
 #                  check.sh, rundesk, modtextcheck.py: build unit. modsettingstest, jpegtest and fixtures: build unit, build-web:<test> and
 #                  unit-web. Anything else under tools/, and any file not named here: build
 #   framework/**, platform/**, third_party/**, CMakeLists.txt, the other cmake/**: without --inert, every suite, as `all`.
@@ -432,7 +433,7 @@ classify() {  # <path>: chooses the suites a changed file needs
 				jpegtest/*)  # also built for the web, where unit-web runs it under Node (the error paths are longjmp there)
 					pick build "$AREA" "$p"; pick unit "$AREA" "$p"; pick unit-web "$AREA" "$p"
 					note build-web "$AREA" "$p"; web_add jpegtest ;;
-				fwtest/*|geomtest/*|wraptest/*|jp2test/*|songpostest/*|soundtest/*|spectrumtest/*|rundesk/*|playbymove/*|build.sh|check.sh|modtextcheck.py)
+				fwtest/*|geomtest/*|wraptest/*|stretchcal/*|jp2test/*|songpostest/*|soundtest/*|spectrumtest/*|rundesk/*|playbymove/*|build.sh|check.sh|modtextcheck.py)
 					pick build "$AREA" "$p"; pick unit "$AREA" "$p" ;;
 				*/*) pick build "$AREA" "$p" ;;  # smoke, ghidra_scripts and the rest: nothing runs them, but a build shows a broken tree
 				*.js|*.mjs) pick unit-web "$AREA" "$p" ;;  # a11ycheck.js, chattest.js and the other web test scripts
@@ -722,6 +723,11 @@ suite_unit() {
 	local wr
 	(cd build/native && timeout 60 ./wraptest.exe) > "$1.wrp" 2>&1 || st=1
 	wr="$(lastof "$1.wrp" 'wraptest: [0-9]+ checks, [0-9]+ failed')"
+	# framework/LinearStretch (stretch mode's smooth flavour) against the renderer's own present of test pictures at the four
+	# calibration sizes, where this machine's card and the model agree to the byte (docs/MEMORY.md, "A smooth stretch on the processor")
+	local sc
+	(cd build/native && timeout 120 ./stretchcal.exe) > "$1.sc" 2>&1 || st=1
+	sc="$(lastof "$1.sc" 'stretchcal: [0-9]+ cases differing from LinearStretch')"
 	# -realinput (docs/REAL_INPUT.md): real SDL events pushed into SDL's queue reach fwtest's board through HandleEvent,
 	# the window mapping and the widget manager, with -fast and in real time; a line it could not play fails it too
 	local k r
@@ -769,7 +775,7 @@ suite_unit() {
 		"$1.cmscript.log" "$1.cmscript" "$1.cmrealinput.log" "$1.cmrealinput" "$1.pm1" "$1.pm2" "$1.jpg" "$1.mtc" >> "$1"
 	rm -f "$1.mst" "$1.fw" "$1.ph" "$1.jp2" "$1.sp" "$1.fft" "$1.snd" "$1.sdf" "$1.geo" "$1.wrp" "$1.rifast" "$1.rireal" \
 		"$1.cmscript.log" "$1.cmscript" "$1.cmrealinput.log" "$1.cmrealinput" "$1.pm1" "$1.pm2" "$1.jpg" "$1.mtc"
-	SUMMARY="$a; $b; $c; $d; $e; $f; $g; $h; $i; $j; $wr; $k; $fl; $l; $pm; $jp; $mt"
+	SUMMARY="$a; $b; $c; $d; $e; $f; $g; $h; $i; $j; $wr; $sc; $k; $fl; $l; $pm; $jp; $mt"
 	return $st
 }
 
