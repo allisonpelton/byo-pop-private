@@ -205,21 +205,21 @@ Container::~Container()
 
 // 0x4390f0 (wordharmony): the point becomes the container's local point; each child starts from it, and the last child
 // hit wins
-Node* Container::hitTest(unsigned int theFlags, Point& p)
+Node* Container::hitTest(unsigned int theFlags, Point& thePoint)
 {
-	if (!mEnabled || contains(p))
+	if (!mEnabled || contains(thePoint))
 	{
 		Node* aHit = nullptr;
-		p.x = p.x - mPosition.x;
-		p.y = p.y - mPosition.y;
-		Point aLocal = p;
+		thePoint.x = thePoint.x - mPosition.x;
+		thePoint.y = thePoint.y - mPosition.y;
+		Point aLocal = thePoint;
 		std::vector<Node*>::iterator anIt = mChildren.begin();
 		if (anIt != mChildren.end())
 		{
 			do
 			{
-				p = aLocal;
-				Node* aChildHit = (*anIt)->hitTest(theFlags, p);
+				thePoint = aLocal;
+				Node* aChildHit = (*anIt)->hitTest(theFlags, thePoint);
 				if (aChildHit != nullptr)
 					aHit = aChildHit;
 				++anIt;
@@ -439,7 +439,7 @@ void Window::keyUp(int theKey)
 }
 
 // 0x4386c0 (wordharmony): a hover node that only the window still holds (removed from the scene) is dropped first
-void Window::setHover(Node* theNode, Point& p)
+void Window::setHover(Node* theNode, Point& thePoint)
 {
 	if (mHover != nullptr && mHover->refCount() == 1)
 	{
@@ -450,14 +450,14 @@ void Window::setHover(Node* theNode, Point& p)
 	if (theNode != mHover)
 	{
 		if (mHover != nullptr)
-			mHover->mouseExit(p);
+			mHover->mouseExit(thePoint);
 		if (theNode != nullptr)
 			theNode->addRef();
 		if (mHover != nullptr)
 			mHover->release();
 		mHover = theNode;
 		if (theNode != nullptr)
-			theNode->mouseEnter(p);
+			theNode->mouseEnter(thePoint);
 	}
 }
 
@@ -474,46 +474,46 @@ Node* Window::mouseTarget(const Point& p, Point& theLocal)
 }
 
 // 0x4387f0 (wordharmony)
-void Window::handleMouseDown(const Point& p)
+void Window::handleMouseDown(const Point& thePoint)
 {
 	Point aLocal;
-	Node* aNode = mouseTarget(p, aLocal);
+	Node* aNode = mouseTarget(thePoint, aLocal);
 	if (aNode != nullptr)
 		aNode->mouseDown(aLocal);
 }
 
 // 0x438860 (wordharmony)
-void Window::handleMouseUp(const Point& p)
+void Window::handleMouseUp(const Point& thePoint)
 {
 	Point aLocal;
-	Node* aNode = mouseTarget(p, aLocal);
+	Node* aNode = mouseTarget(thePoint, aLocal);
 	if (aNode != nullptr)
 		aNode->mouseUp(aLocal);
 }
 
 // 0x4388d0 (wordharmony)
-void Window::handleRightDown(const Point& p)
+void Window::handleRightDown(const Point& thePoint)
 {
 	Point aLocal;
-	Node* aNode = mouseTarget(p, aLocal);
+	Node* aNode = mouseTarget(thePoint, aLocal);
 	if (aNode != nullptr)
 		aNode->rightDown(aLocal);
 }
 
 // 0x438940 (wordharmony)
-void Window::handleRightUp(const Point& p)
+void Window::handleRightUp(const Point& thePoint)
 {
 	Point aLocal;
-	Node* aNode = mouseTarget(p, aLocal);
+	Node* aNode = mouseTarget(thePoint, aLocal);
 	if (aNode != nullptr)
 		aNode->rightUp(aLocal);
 }
 
 // 0x4389b0 (wordharmony)
-void Window::handleMouseMove(const Point& p)
+void Window::handleMouseMove(const Point& thePoint)
 {
 	Point aLocal;
-	Node* aNode = mouseTarget(p, aLocal);
+	Node* aNode = mouseTarget(thePoint, aLocal);
 	if (aNode != nullptr)
 		aNode->mouseMove(aLocal);
 }

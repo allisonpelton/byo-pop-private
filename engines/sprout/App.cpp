@@ -9,11 +9,13 @@ using namespace engine;
 static App* gApp = nullptr;  // 0x49bfbc (wordharmony)
 static Host* gHost = nullptr;
 
+// port: the host that stands in for the Windows layer (Host.h), set by the game's app before the engine starts
 void engine::setHost(Host* theHost)
 {
 	gHost = theHost;
 }
 
+// port: the host set by setHost
 Host* engine::getHost()
 {
 	return gHost;
@@ -149,6 +151,7 @@ int App::getImageMemory(size_t* theBytes) const
 	return (int)mImages.size();
 }
 
+// port: slot 0x58, the log, which does nothing in the release builds; the port's goes to the host
 void App::log(const char* theText)
 {
 	getHost()->log(theText);
@@ -205,7 +208,7 @@ void App::frame(Graphics* g)
 		mRootWindow->draw(g);
 }
 
-// The run loop's end: the controller's shutdown
+// port: the run loop's end, the controller's shutdown (after the loop of 0x4552b0 (wordharmony))
 void App::shutdown()
 {
 	if (mController != nullptr)

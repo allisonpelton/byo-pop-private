@@ -297,7 +297,7 @@ bool ImageButton::setImages(Image* theUp, Image* theOver, Image* theDown)
 	return true;
 }
 
-// The layout reader's inline constructor sets neither field; setImages sets the state
+// port: the layout reader's inline constructor, which sets neither field; setImages sets the state
 CheckBox::CheckBox()
 {
 	mChecked = false;

@@ -160,19 +160,19 @@ void Graphics::drawString(const char* theString)
 	case 0: y = (float)aFont->getTopOffset() * aScaleY + y; break;
 	case 2: y = y - (float)aFont->getTopOffset() * aScaleY; break;
 	}
-	char c = *theString;
-	while (c != '\0')
+	char aChar = *theString;
+	while (aChar != '\0')
 	{
 		float anAdvance;
-		if (aFont->hasGlyph(c))
+		if (aFont->hasGlyph(aChar))
 		{
-			x = (float)aFont->getLeadingWidth(c) * aScaleX + x;
-			drawImage(aFont->getImage(), *aFont->getGlyphRect(c), x, y);
-			anAdvance = (float)aFont->getTrailingWidth(c) * aScaleX;
+			x = (float)aFont->getLeadingWidth(aChar) * aScaleX + x;
+			drawImage(aFont->getImage(), *aFont->getGlyphRect(aChar), x, y);
+			anAdvance = (float)aFont->getTrailingWidth(aChar) * aScaleX;
 		}
 		else
 			anAdvance = (float)aFont->getSpaceWidth();
 		x = anAdvance + x;
-		c = *++theString;
+		aChar = *++theString;
 	}
 }

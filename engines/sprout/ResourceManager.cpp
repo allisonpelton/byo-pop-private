@@ -6,11 +6,13 @@
 
 using namespace engine;
 
+// port: the archive's little-endian numbers, which the original reads through its byte streams
 static uint16_t le16(const uint8_t* p)
 {
 	return (uint16_t)(p[0] | (p[1] << 8));
 }
 
+// port: as le16
 static uint32_t le32(const uint8_t* p)
 {
 	return (uint32_t)(p[0] | (p[1] << 8) | (p[2] << 16) | ((uint32_t)p[3] << 24));
@@ -25,6 +27,7 @@ static std::string lower(const std::string& theName)
 	return aName;
 }
 
+// port: a name with '\' turned into '/', as the resource manager keeps them
 static std::string slashes(const char* theName)
 {
 	std::string aName = theName;
@@ -93,6 +96,7 @@ bool ArchiveLoader::contains(const std::string& theName) const
 	return mEntries.find(lower(theName)) != mEntries.end();
 }
 
+// port: the archive's names, for the engine's check (tools/enginetest.cpp)
 std::vector<std::string> ArchiveLoader::getNames() const
 {
 	std::vector<std::string> aNames;

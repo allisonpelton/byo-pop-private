@@ -119,6 +119,8 @@ void Graphics::setSnap(int theSnap)
 	state().mFlags = ((theSnap << SNAP_SHIFT) & SNAP_MASK) | (~SNAP_MASK & state().mFlags);
 }
 
+// port: the state's alignment bits, which the original's text drawing reads inline
 int Graphics::getHAlign() { return (state().mFlags & HALIGN_MASK) >> HALIGN_SHIFT; }
+// port: as getHAlign
 int Graphics::getVAlign() { return (state().mFlags & VALIGN_MASK) >> VALIGN_SHIFT; }
 int Graphics::getSnap() { return (state().mFlags & SNAP_MASK) >> SNAP_SHIFT; }  // 0x43cad0 (wordharmony)

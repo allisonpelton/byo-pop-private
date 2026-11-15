@@ -73,6 +73,7 @@ static bool startsWith(const std::string& theString, const std::string& theStart
 	return theString.compare(0, theStart.size(), theStart) == 0;
 }
 
+// port: isspace() on a character the stream returns
 static bool isSpace(int c)
 {
 	return isspace((unsigned char)c) != 0;
@@ -99,12 +100,12 @@ void engine::parseXml(XmlHandler& theHandler, InputStream* theStream)
 	int aLine = 1;
 	int aColumn = 0;
 	bool aLastWasCR = false;
-	int c = theStream->read();
-	if (c != -1)
+	int aChar = theStream->read();
+	if (aChar != -1)
 	{
 		do
 		{
-			if (c == '\n')
+			if (aChar == '\n')
 			{
 				if (aLastWasCR)
 				{
@@ -116,10 +117,10 @@ void engine::parseXml(XmlHandler& theHandler, InputStream* theStream)
 			}
 			else if (!aLastWasCR)
 			{
-				if (c == '\r')
+				if (aChar == '\r')
 				{
 					aLastWasCR = true;
-					c = '\n';
+					aChar = '\n';
 					aLine++;
 					aColumn = 0;
 				}
@@ -136,7 +137,7 @@ void engine::parseXml(XmlHandler& theHandler, InputStream* theStream)
 			}
 			if (aState == CONTENT)
 			{
-				if (c == '<')
+				if (aChar == '<')
 				{
 					aStack.push_back(aState);
 					aState = TAG_START;
@@ -146,19 +147,19 @@ void engine::parseXml(XmlHandler& theHandler, InputStream* theStream)
 						aText.erase(aText.begin(), aText.end());
 					}
 				}
-				else if (c == '&')
+				else if (aChar == '&')
 				{
 					aStack.push_back(aState);
 					aState = ENTITY;
 					anEntity.erase(anEntity.begin(), anEntity.end());
 				}
 				else
-					aText.append(1, (char)c);
+					aText.append(1, (char)aChar);
 			}
 			else if (aState == END_TAG)
 			{
-				if (c != '>')
-					aText.append(1, (char)c);
+				if (aChar != '>')
+					aText.append(1, (char)aChar);
 				else
 				{
 					aState = popState(aStack);
@@ -172,7 +173,7 @@ void engine::parseXml(XmlHandler& theHandler, InputStream* theStream)
 			}
 			else if (aState == CDATA)
 			{
-				if (c == '>' && endsWith(aText, "]]"))
+				if (aChar == '>' && endsWith(aText, "]]"))
 				{
 					aText.resize(aText.size() - 2);
 					theHandler.characters(aText);
@@ -180,22 +181,22 @@ void engine::parseXml(XmlHandler& theHandler, InputStream* theStream)
 					aState = popState(aStack);
 				}
 				else
-					aText.append(1, (char)c);
+					aText.append(1, (char)aChar);
 			}
 			else if (aState == COMMENT)
 			{
 				// The text holds "!-" and the comment; it ends at a '>' after "--"
-				if (c == '>' && endsWith(aText, "--"))
+				if (aChar == '>' && endsWith(aText, "--"))
 				{
 					aText.erase(aText.begin(), aText.end());
 					aState = popState(aStack);
 				}
 				else
-					aText.append(1, (char)c);
+					aText.append(1, (char)aChar);
 			}
 			else if (aState == PROLOG)
 			{
-				if (c == '<')
+				if (aChar == '<')
 				{
 					aStack.push_back(CONTENT);
 					aState = TAG_START;
@@ -204,7 +205,7 @@ void engine::parseXml(XmlHandler& theHandler, InputStream* theStream)
 			else if (aState == SKIP)
 			{
 				// a DOCTYPE (or a processing instruction) in the prolog returns to the prolog
-				if (c == '>')
+				if (aChar == '>')
 				{
 					aState = popState(aStack);
 					if (aState == CONTENT)
@@ -214,12 +215,12 @@ void engine::parseXml(XmlHandler& theHandler, InputStream* theStream)
 			else if (aState == TAG_START)
 			{
 				int aReturnState = popState(aStack);
-				if (c == '/')
+				if (aChar == '/')
 				{
 					aStack.push_back(aReturnState);
 					aState = END_TAG;
 				}
-				else if (c == '?')
+				else if (aChar == '?')
 					aState = SKIP;  // the return state is not pushed back
 				else
 				{
@@ -227,13 +228,13 @@ void engine::parseXml(XmlHandler& theHandler, InputStream* theStream)
 					aState = TAG_NAME;
 					aTagName.erase();
 					anAttributes.clear();
-					aText.append(1, (char)c);
+					aText.append(1, (char)aChar);
 				}
 			}
 			else if (aState == ENTITY)
 			{
-				if (c != ';')
-					anEntity.append(1, (char)c);
+				if (aChar != ';')
+					anEntity.append(1, (char)aChar);
 				else
 				{
 					aState = popState(aStack);
@@ -263,7 +264,7 @@ void engine::parseXml(XmlHandler& theHandler, InputStream* theStream)
 			{
 				if (aTagName.empty())
 					aTagName.assign(aText);
-				if (c != '>')
+				if (aChar != '>')
 					throw Exception("Expected >\tfor\ttag: <" + aTagName + "/>");
 				theHandler.startElement(aTagName, anAttributes);
 				theHandler.endElement(aTagName);
@@ -279,7 +280,7 @@ void engine::parseXml(XmlHandler& theHandler, InputStream* theStream)
 			}
 			else if (aState == TAG_NAME)
 			{
-				if (c == '>')
+				if (aChar == '>')
 				{
 					if (aTagName.empty())
 						aTagName.assign(aText);
@@ -290,22 +291,22 @@ void engine::parseXml(XmlHandler& theHandler, InputStream* theStream)
 					anAttributes.clear();
 					aState = popState(aStack);
 				}
-				else if (c == '/')
+				else if (aChar == '/')
 					aState = EMPTY_TAG;
-				else if (c == '-' && aText == "!-")
+				else if (aChar == '-' && aText == "!-")
 					aState = COMMENT;
-				else if (c == '[' && aText == "![CDATA")
+				else if (aChar == '[' && aText == "![CDATA")
 				{
 					aState = CDATA;
 					aText.erase();
 				}
-				else if (c == 'E' && aText == "!DOCTYP")
+				else if (aChar == 'E' && aText == "!DOCTYP")
 				{
 					aText.erase();
 					aState = SKIP;
 				}
-				else if (!isSpace(c))
-					aText.append(1, (char)c);
+				else if (!isSpace(aChar))
+					aText.append(1, (char)aChar);
 				else
 				{
 					aTagName.assign(aText);
@@ -315,19 +316,19 @@ void engine::parseXml(XmlHandler& theHandler, InputStream* theStream)
 			}
 			else if (aState == ATTR_VALUE)
 			{
-				if (c == aQuote)
+				if (aChar == aQuote)
 				{
 					anAttrValue.assign(aText);
 					aText.erase();
 					anAttributes[anAttrName].assign(anAttrValue);
 					aState = IN_TAG;
 				}
-				else if (std::string("\t\r\n").find((char)c) != std::string::npos)
+				else if (std::string("\t\r\n").find((char)aChar) != std::string::npos)
 				{
 					// The original computes aText + '\t' and drops it, so tabs and line ends in a value are skipped
 				}
-				else if (c != '&')
-					aText.append(1, (char)c);
+				else if (aChar != '&')
+					aText.append(1, (char)aChar);
 				else
 				{
 					aStack.push_back(aState);
@@ -337,20 +338,20 @@ void engine::parseXml(XmlHandler& theHandler, InputStream* theStream)
 			}
 			else if (aState == BEFORE_VALUE)
 			{
-				if (c == '"' || c == '\'')
+				if (aChar == '"' || aChar == '\'')
 				{
 					aState = ATTR_VALUE;
-					aQuote = c;
+					aQuote = aChar;
 				}
-				else if (!isSpace(c))
+				else if (!isSpace(aChar))
 					throw Exception("Error in attribute\tprocessing");
 			}
 			else if (aState == ATTR_NAME)
 			{
-				if (!isSpace(c))
+				if (!isSpace(aChar))
 				{
-					if (c != '=')
-						aText.append(1, (char)c);
+					if (aChar != '=')
+						aText.append(1, (char)aChar);
 					else
 					{
 						anAttrName.assign(aText);
@@ -367,14 +368,14 @@ void engine::parseXml(XmlHandler& theHandler, InputStream* theStream)
 			}
 			else if (aState == AFTER_ATTR_NAME)
 			{
-				if (c == '=')
+				if (aChar == '=')
 					aState = BEFORE_VALUE;
-				else if (!isSpace(c))
+				else if (!isSpace(aChar))
 					throw Exception("Error in attribute\tprocessing.");
 			}
 			else if (aState == IN_TAG)
 			{
-				if (c == '>')
+				if (aChar == '>')
 				{
 					aState = popState(aStack);
 					theHandler.startElement(aTagName, anAttributes);
@@ -382,17 +383,17 @@ void engine::parseXml(XmlHandler& theHandler, InputStream* theStream)
 					aTagName.erase();
 					anAttributes.clear();
 				}
-				else if (c == '/')
+				else if (aChar == '/')
 					aState = EMPTY_TAG;
-				else if (!isSpace(c))
+				else if (!isSpace(aChar))
 				{
 					aState = ATTR_NAME;
-					aText.append(1, (char)c);
+					aText.append(1, (char)aChar);
 				}
 			}
 		next:
-			c = theStream->read();
-		} while (c != -1);
+			aChar = theStream->read();
+		} while (aChar != -1);
 		if (aState == DONE)
 		{
 			theHandler.endDocument();
