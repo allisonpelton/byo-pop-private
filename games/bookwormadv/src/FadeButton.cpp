@@ -7,6 +7,7 @@
 
 using namespace Sexy;
 
+// 0x441df0
 FadeButton::FadeButton(int theId, ButtonListener* theListener)
 	: ButtonWidget(theId, theListener)
 {

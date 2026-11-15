@@ -450,6 +450,12 @@ void MainMenu::ButtonPress(int theId)
 		gApp->PlaySample(SOUND_UI_BUTTON_CLICK);
 }
 
+// 0x454bc0: the one function the six screens' ButtonListener tables share; the mouse-over sound plays for every button
+void MainMenu::ButtonMouseEnter(int theId)
+{
+	gApp->PlaySample(SOUND_UI_BUTTON_MOUSE_OVER);
+}
+
 // 0x45aa50
 void MainMenu::ButtonDepress(int theId)
 {

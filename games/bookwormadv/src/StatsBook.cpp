@@ -374,6 +374,7 @@ void StatsBook::PlayMusic(int theSong)
 }
 
 // 0x495090: the scripts are told how the book is opened
+// 0x497a30 (the Lua call AddedToManager(a flag)) is inline here
 void StatsBook::AddedToManager(WidgetManager* theWidgetManager)
 {
 	LuaWidget::AddedToManager(theWidgetManager);

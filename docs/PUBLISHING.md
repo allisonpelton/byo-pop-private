@@ -95,6 +95,10 @@ python tools/publish.py --target rocketmania --push --model "Opus 5.5"   # to th
 python tools/publish.py --target rocketmania --source <commit> --out <new folder>   # the tree only, no commit
 ```
 
+`--build-check` needs `LLVM_MINGW_ROOT` set (here `E:/retools/llvm-mingw-20261006-ucrt-x86_64`): the derived repository's
+toolchain file asks for it where the trunk's falls back to this machine's folder, and without it cmake stops before it
+looks for Ninja or a compiler.
+
 `--out` writes the tree a snapshot would hold into a new folder and makes no commit, which is how to try a manifest
 or new wraps before they are committed (`--source` takes any commit, such as one made with `git commit-tree` from a
 temporary index). `--release-zip` builds the snapshot as the build check does and writes

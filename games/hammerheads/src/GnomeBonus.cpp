@@ -54,7 +54,6 @@ bool GnomeBonus::Hit()
 	{
 		if (mKind == KIND_BONUS_ICE_CREAM)
 		{
-			gApp->PlaySample(SOUND_VARIOUS_ICECREAM_GLOOP);
 			Rect aClip = mCubby->GetEffectRect();
 			ScoreDisplayPos aSign = GetIceCreamSignPos();
 			MakeFloaterShrinking(mDrawX, mDrawY, aSign.mX, aSign.mY, IMAGE_GNOME_BONUS_ICECREAM, 0, 0, mExposed, aClip.mX,

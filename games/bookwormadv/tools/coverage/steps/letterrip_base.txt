@@ -1,0 +1,6 @@
+# Moxie's mini-games: Letter Rip (the base of play.py). Profile 3.10.6 (every mini-game open).
+at 31000
+click 115 400            # the tent
+wait 2500
+click 393 346            # Letter Rip
+wait 2500

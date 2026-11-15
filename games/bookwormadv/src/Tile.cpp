@@ -44,6 +44,8 @@ Tile::~Tile()
 	delete mSlideCurve;
 }
 
+// 0x49b450 (the class registration), 0x49b790 (LuaGetRegisteredName), 0x49ba50 (GetLetter), 0x49be50 (CanSelect),
+// 0x49c110 and 0x49c290 (LuaSetScale) (the method registrations) are inline here
 void Tile::RegisterLua()
 {
 	static bool sRegistered = false;
@@ -82,6 +84,7 @@ void Tile::PushTile(Tile* theTile)
 	gLuaSupport->PushObject(ClassOf<Tile>::info, theTile);
 }
 
+// 0x498e30
 void Tile::CreateLinkedObject(void* theObject, bool theUnused)
 {
 	LuaSupport* s = gLuaSupport;
@@ -276,6 +279,7 @@ void Tile::TileYChanged(int theY)
 	gTileEngine->CallLinkedMethod("TileYChanged", 2);
 }
 
+// 0x49c550 (the Lua call ChangeLetter(letter)) is inline here
 void Tile::SetLetter(const std::string& theLetter)
 {
 	if (gTileEngine == nullptr)

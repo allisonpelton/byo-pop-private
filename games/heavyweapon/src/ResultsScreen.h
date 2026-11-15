@@ -45,7 +45,6 @@ public:
 
 	virtual void	AddedToManager(WidgetManager* theWidgetManager) override;		// 0x426b50 slot 1
 	virtual void	RemovedFromManager(WidgetManager* theWidgetManager) override;	// 0x426b90 slot 2
-	virtual void	Resize(int theX, int theY, int theWidth, int theHeight) override; // 0x426bc0 slot 13
 	virtual void	Draw(Graphics* g) override;									// 0x427460 slot 16
 	virtual void	Update() override;											// 0x426c80 slot 17
 	virtual void	MouseUp(int x, int y) override;								// 0x426c00 slot 31
@@ -53,7 +52,6 @@ public:
 	virtual void	ButtonPress(int theId) override;							// 0x410670 (listener slot 4, the board's code)
 	virtual void	ButtonDepress(int theId) override;							// 0x427260 (listener slot 5)
 
-	using Widget::Resize;
 	using Widget::MouseUp;
 	using ButtonListener::ButtonPress;
 };

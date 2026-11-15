@@ -19,6 +19,7 @@ struct LoadState {
 	luaG_runerror(S->L, "unexpected end of file in %s", S->name);
 }
 
+// 0x71c4c0
 static int ezgetc(LoadState* S)
 {
 	int c = zgetc(S->Z);
@@ -27,6 +28,7 @@ static int ezgetc(LoadState* S)
 	return c;
 }
 
+// 0x71c530
 static void ezread(LoadState* S, void* b, size_t n)
 {
 	size_t r = luaZ_read(S->Z, b, n);
@@ -55,6 +57,7 @@ static lua_Number LoadNumber(LoadState* S)
 	return x;
 }
 
+// 0x71c770
 static TString* LoadString(LoadState* S)
 {
 	size_t size = LoadSize(S);
@@ -71,6 +74,7 @@ static TString* LoadString(LoadState* S)
 	}
 }
 
+// 0x71c810
 static void LoadCode(LoadState* S, Proto* f)
 {
 	int size = LoadInt(S);
@@ -79,6 +83,7 @@ static void LoadCode(LoadState* S, Proto* f)
 	ezread(S, f->code, size * sizeof(Instruction));
 }
 
+// 0x71c8a0
 static void LoadLocals(LoadState* S, Proto* f)
 {
 	int i, n;
@@ -94,6 +99,7 @@ static void LoadLocals(LoadState* S, Proto* f)
 	}
 }
 
+// 0x71c990
 static void LoadLines(LoadState* S, Proto* f)
 {
 	int size = LoadInt(S);
@@ -102,6 +108,7 @@ static void LoadLines(LoadState* S, Proto* f)
 	ezread(S, f->lineinfo, size * sizeof(int));
 }
 
+// 0x71ca20
 static void LoadUpvalues(LoadState* S, Proto* f)
 {
 	int i, n;
@@ -118,6 +125,7 @@ static void LoadUpvalues(LoadState* S, Proto* f)
 
 static Proto* LoadFunction(LoadState* S, TString* p);
 
+// 0x71caf0
 static void LoadConstants(LoadState* S, Proto* f)
 {
 	int i, n;
@@ -158,6 +166,7 @@ static void LoadConstants(LoadState* S, Proto* f)
 		f->p[i] = LoadFunction(S, f->source);
 }
 
+// 0x71cd70
 static Proto* LoadFunction(LoadState* S, TString* p)
 {
 	Proto* f = luaF_newproto(S->L);
@@ -198,6 +207,8 @@ static void TestSize(LoadState* S, int s, const char* what)
 		luaG_runerror(S->L, "virtual machine mismatch in %s: size of %s is %d but read %d", S->name, what, s, r);
 }
 
+// 0x71d010
+// 0x71cf20 (the signature check) is inline here
 static void LoadHeader(LoadState* S)
 {
 	char s[sizeof(LUA_SIGNATURE)];
@@ -225,6 +236,7 @@ static void LoadHeader(LoadState* S)
 }
 
 // load precompiled chunk
+// 0x71d1f0
 Proto* luaU_undump(lua_State* L, ZIO* Z)
 {
 	LoadState S;

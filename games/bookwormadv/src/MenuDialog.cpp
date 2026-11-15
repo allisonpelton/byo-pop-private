@@ -60,6 +60,7 @@ MenuDialog::MenuDialog(bool theHasBoard, bool theFromTreasure, bool theMiniGameF
 }
 
 // 0x480180: the buttons are the dialog's widgets, and go with it
+// 0x4801a0
 MenuDialog::~MenuDialog()
 {
 	RemoveAllWidgets(true, true);

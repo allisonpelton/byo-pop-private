@@ -87,6 +87,7 @@ void UserSelectionDialog::ButtonDepress(int theId)
 	}
 }
 
+// 0x6c6210 (the sort of the other users, with its insertion sort 0x6c6730) is the std::sort here
 void UserSelectionDialog::RefreshList()
 {
 	mList->mLines.clear();

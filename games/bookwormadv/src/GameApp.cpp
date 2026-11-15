@@ -47,6 +47,7 @@ public:
 	using LuaResourceManager::LuaResourceManager;
 };
 
+// 0x443350
 GameApp::GameApp()
 {
 	gApp = this;
@@ -62,6 +63,7 @@ GameApp::GameApp()
 	mSoundPlayer = new JeffLib::SoundPlayer(this);
 }
 
+// 0x443930
 GameApp::~GameApp()
 {
 	if (mMainMenu != nullptr) {
@@ -97,6 +99,10 @@ void GameApp::Init()
 
 	delete mResourceManager;
 	mResourceManager = new CustomResManager(this, mLua);
+	// in full screen the updates follow the display (the framework calls the screens' UpdateF), as after a switch
+	// (SwitchScreenMode)
+	mVSyncUpdates = !mIsWindowed;
+	mWaitForVSync = !mIsWindowed;
 
 	LoadProperties("properties/config.xml", true, false);
 	LoadResourceManifest();
@@ -864,6 +870,7 @@ void GameApp::ShowMainMenu(bool theFromTitle, bool theToBack)
 	ClearUpdateBacklog(false);
 }
 
+// 0x44d340 (the first-time welcome reaction of the main menu) is inline here
 void GameApp::ShowUnlockMessages()
 {
 	// 0x449660
@@ -967,6 +974,7 @@ void GameApp::ShowUnlockMessages()
 	mProfile->Save();
 }
 
+// 0x4588e0 (the Lua call SelectBookNumber(book)) is inline here
 void GameApp::StartIntro(int theMode)
 {
 	// a player with no name yet: a profile that is not saved until the intro asks for the name
@@ -1056,6 +1064,8 @@ bool GameApp::CallCurtainLuaCallback()
 	return true;
 }
 
+// 0x44d340 (the main menu plays its welcome reaction once) is inline here
+// 0x4588e0 (the Lua call SelectBookNumber(book)) is inline here
 void GameApp::CurtainDone()
 {
 	bool aClosed = mCurtain->mClosing;

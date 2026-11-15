@@ -1,0 +1,144 @@
+at 31000
+click 115 400            # the tent
+wait 2500
+click 393 346            # Letter Rip
+wait 2500
+click 332 407   # dialog
+wait 1500
+click 400 300   # hint
+wait 1000
+click 400 300   # hint
+wait 1000
+click 400 300   # hint
+wait 1000
+click 400 300   # hint
+wait 1000
+click 400 300   # hint
+wait 1000
+click 225 502
+wait 300
+click 275 502
+wait 300
+click 325 502
+wait 300
+click 375 502
+wait 300
+click 425 502
+wait 300
+click 475 502
+wait 300
+click 525 502
+wait 300
+click 575 502
+wait 300
+wait 400
+click 399 580   # Attack: SPORTING
+wait 2500
+click 325 502
+wait 300
+click 275 502
+wait 300
+click 225 502
+wait 300
+wait 400
+click 399 580   # Attack: OPS
+wait 2500
+wait 2500
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 2000
+quit

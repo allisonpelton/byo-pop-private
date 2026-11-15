@@ -125,13 +125,14 @@
         "performance",
         "unneeded-code",
         "readability",
-        "site-features"
+        "site-features",
+        "lite-mod"
       ],
       "na": [
         "collection"
       ],
       "now": null,
-      "note": ""
+      "note": "every phase but modding done: the lite mod step closed with no mod (20a8029f). An exact Dijkstra-pruned route search gives the same route in all 1,187,177 searches compared, but the original's search is 5-8% of the process only in its worst state and about 0.5% in bot games, so neither is measurable; its figures to redo after the renderer decision are listed in LITE_MOD.md"
     },
     "mummymaze": {
       "title": "Mummy Maze Deluxe",
@@ -243,11 +244,12 @@
         "readability",
         "collection",
         "site-features",
-        "identical-look"
+        "identical-look",
+        "lite-mod"
       ],
       "na": [],
       "now": "performance",
-      "note": "the performance target is not met in 3D on the visible desktop: the port takes 3.8 G cycles in 20 s against the original's 2.4 G (1.59), and the whole excess is the Direct3D 11 driver's thread (49% of the port), a shared cost; 0.80 of the original in 2D on the hidden desktop"
+      "note": "the lite mod step done with no mod (c0ee6258: the game's update is under 2% of the process); performance stays open: 3D is 1.26 of the original on a busy machine, half the port's cycles the Direct3D 11 driver thread, which waits on the framework's renderer item; 2D 0.80"
     },
     "astropop": {
       "title": "AstroPop Deluxe",
@@ -358,11 +360,12 @@
         "registration-out",
         "identical-look",
         "fixes-mod",
-        "site-features"
+        "site-features",
+        "coverage"
       ],
       "na": [],
-      "now": "coverage",
-      "note": ""
+      "now": null,
+      "note": "the coverage step done (8ea57115): 17 runs of the original, every function it ran has a counterpart or a none line (coverage.txt, 1931 lines for 3525 functions); GameApp::SwitchScreenMode and Init's flags translated (full screen sets mVSyncUpdates and mWaitForVSync), two slips fixed (GameDialog's Escape, LoadResGroup); 77 unreachable functions and PopLua's compiler are the unneeded-code step's candidates; next performance"
     },
     "bookworm": {
       "title": "BookWorm Deluxe",
@@ -541,11 +544,14 @@
         "readability",
         "coverage",
         "registration-out",
-        "performance"
+        "performance",
+        "lite-mod",
+        "unneeded-code",
+        "collection"
       ],
       "na": [],
-      "now": null,
-      "note": "the performance pass merged (0ec9910f): in 2D on rundesk over level 4 the port takes 2.67 M cycles an update at 1x and 2.74 at 2x against the original's 3.13, about 85% with the mixer counted apart and 94% with it, no code change; next the lite mod"
+      "now": "site-features",
+      "note": "the Collection check done (65ce9233): the Collection's game is the same (.text and .data identical to Steam's, 241 of 242 differing pictures pixel-identical where shown; title.jpg has the newer logo), and the port plays level 4 from its files identically; left: the site features, with the site's session"
     },
     "hammerheads": {
       "title": "Hammer Heads Deluxe",
@@ -556,7 +562,7 @@
       ],
       "na": [],
       "now": "identical-look",
-      "note": "phase one done in full: the game-won sequence, the multiplier gnome and saved games also match the original (9ec2d31b); registration and outbound pictures out (66f32b33); the depth sort on the shared CrtQsort; phase two next"
+      "note": "phase two's sound and music by state done (5e45972f): all 14 phase-one scenarios and classic_focus1 identical in state, sound and music (BASS logged through a stand-in, DirectSound through origrun's); fixed mouse-over on every screen, the in-game menu on release, the ice cream's single gloop and the game-over box's click; next the looks (shots, web and native)"
     },
     "pizzafrenzy": {
       "title": "Pizza Frenzy",
