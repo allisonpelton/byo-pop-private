@@ -12,6 +12,7 @@
 // them; the places that reach them here are the methods marked "translated next".
 
 #include "CityMap.h"
+#include "CouponButton.h"
 #include "FadeContainer.h"
 #include "GameMusicPlayer.h"
 #include "GameScreen.h"
@@ -35,21 +36,6 @@ namespace pizzafrenzy
 
 class CustomerPopup;
 class Van;
-
-// What the hud's coupon buttons (0x44ef50, vtable 0x4ffc88) give the mode while one is held on the cursor: a topping,
-// bought with the tips for the price, which makes the orders picked ask for it
-class CouponButton : public engine::Container
-{
-public:
-	// slot 0x138: the coupon goes back where it came from
-	virtual void putBack() = 0;
-	// slot 0x144
-	virtual Topping* getTopping() = 0;
-	// slot 0x148
-	virtual int getPrice() = 0;
-	// slot 0x14c
-	virtual void setPrice(int thePrice) = 0;
-};
 
 // What a special event shows while it plays (the factory 0x44a490 makes one of the classes of 0x44a050 to 0x44b100 from
 // the event's type): the mode keeps the popups in a list and updates the first

@@ -48,8 +48,9 @@ public:
 	int mScore;                                  // +0x0c
 	float mElapsedTime;                          // +0x10
 	ToppingMap<int> mToppingLevels;      // +0x14: the level of each topping the player has
-	int mPizzasDelivered;                        // +0x20: the pizzas the customers have been given; the level ends with the
-	                                             // prize blimp when they are all (0x456ac0, 0x45a300)
+	// +0x20: the pizzas the customers have been given; the level ends with the prize blimp when they are all (0x456ac0,
+	// 0x45a300)
+	int mPizzasDelivered;
 	int mPizzasOrdered;                          // +0x24: the pizzas the customers have ordered (0x459b90, 0x456d10)
 	// +0x28: the happiness meter, which starts at 50; the hud makes a burst of stars (the splat "happinessBonus")
 	// when it is over 99 (0x4397d0)
@@ -59,11 +60,10 @@ public:
 	// +0x30: the hud's orders (0x439650: a slip for each 15, rounded up, and none shown at 0); the number of orders
 	// the level has, less one for each customer that leaves (0x456d10, 0x457760)
 	int mOrderCount = 0;
-	// +0x34: what the hud compares with the price of a vehicle to show whether it can be bought (0x439b00, 0x44eac0);
-	// the meaning of the number (the tips) is not confirmed
+	// +0x34: the tips: the money in the tip jar, which the coupon buttons are bought with (0x4393f0, 0x44eac0)
 	int mTipMoney;
-	int mTipsEarned;                             // +0x38: 1000 where the level is ended by hand (0x456460); the meaning of
-	                                             // the number is not confirmed
+	// +0x38: 1000 where the level is ended by hand (0x456460); the meaning of the number is not confirmed
+	int mTipsEarned;
 	int mWavesStarted;                           // +0x3c: counted up when a wave starts (0x45a9a0)
 	// +0x40: how many pizzas of the same topping the player has delivered in a row (the kitchens' signs show it)
 	int mComboLength;
@@ -75,7 +75,7 @@ public:
 	int mCountL;                                 // +0x5c: nothing translated reads it
 	int mCountM;                                 // +0x60: nothing translated reads it
 	int mLevelOrders;                            // +0x64: the level's number of orders (0x41a740); nothing reads it
-	int mLevelGoal;                              // +0x68: the level's goal (0x41a740); nothing reads it
+	int mLevelGoal;                              // +0x68: the level's goal, the tip jar's size (0x41a740, 0x4393f0)
 	bool mStarted;                               // +0x6c: set by the reset; nothing translated reads it
 
 private:

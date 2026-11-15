@@ -20,8 +20,8 @@ const char* const SOUND_AWARD = "tip_citizenAward";
 const char* const SOUND_LOST = "tip_lost";
 const char* const SOUND_MOUSE_OVER = "order_mouseover1";
 
-// what a tip is worth: the upgrade's multiplier times five, or twenty-five for a topping without upgrades and ten for no
-// topping at all, times the tip's multiplier
+// what a tip is worth: the upgrade's multiplier times five, or twenty-five for a topping without upgrades and ten for
+// no topping at all, times the tip's multiplier
 const int TIP_VALUE_PER_MULTIPLIER = 5;
 const int TIP_VALUE_NO_UPGRADE = 25;
 const int TIP_VALUE_NO_TOPPING = 10;
@@ -76,7 +76,8 @@ void TipPopup::setValue(float theMultiplier, Topping* theTopping)
 	mAmount = (int)((float)aBase * theMultiplier);
 	aStats->mTipsEarned += mAmount;
 	makeBoard();
-	engine::Image* aPicture = engine::App::instance()->createImage(formatText(TIP_IMAGE, (int)theMultiplier).c_str(), false);
+	engine::Image* aPicture = engine::App::instance()->createImage(formatText(TIP_IMAGE, (int)theMultiplier).c_str(),
+	                                                               false);
 	if (aPicture != nullptr)
 	{
 		aPicture->setPivot(1);

@@ -3,8 +3,8 @@
 
 // The vans (0x18c bytes, constructor 0x430860, vtable 0x4fc6b8) and the police's car (0x198 bytes, constructor
 // 0x432d60, vtable 0x4fcf68): a vehicle waits at the tile it starts from, drives along the roads to a house, waits
-// there for a second and finishes the house's popup. The original keeps three states for it (parked 0x4fc820, driving 0x4fc834,
-// arrived 0x4fc848); the port keeps them as a phase.
+// there for a second and finishes the house's popup. The original keeps three states for it (parked 0x4fc820,
+// driving 0x4fc834, arrived 0x4fc848); the port keeps them as a phase.
 //
 // Left out: the effect that follows a vehicle (the original's +0x168), the police car's flashing lights (the blinker
 // 0x481e50 with the two light pictures, drawn beside the car), and the sort of the vehicle in its group when it has
@@ -66,6 +66,8 @@ public:
 	// 0x42f8f0: the vehicle is not on its way
 	bool isIdle() const { return mPath.empty(); }
 	int getLayer() const { return mLayer; }  // +0x158: 3, the ground's
+	bool isDirty() const { return mDirty; }  // 0x42f680
+	void clearDirty() { mDirty = false; }    // 0x42f670
 	// 0x42f650: the map lets go of the vehicle
 	void clearParent(engine::Node* theParent) override;
 

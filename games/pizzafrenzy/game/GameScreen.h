@@ -24,9 +24,11 @@ class SortedContainer : public engine::Container
 {
 public:
 	// 0x41ada0: a child that is there already stays; the others are put before the first child that is below them
-	// (or at the same bottom and not as far to the right). Its slot 0x12c (0x41ae70, a child that moved is put in
-	// its place again) and slot 0x130 (0x436430, the children) are used by the game's play.
+	// (or at the same bottom and not as far to the right)
 	void addChild(engine::Node* theChild) override;
+	// slot 0x12c: 0x41ae70: a child that moved is put in its place again (the children's order is not changed when
+	// it is in its place already, and a node that is not a child is left)
+	virtual void reorderChild(engine::Node* theChild);
 };
 
 class GameScreen : public engine::GenericScreen
@@ -48,8 +50,9 @@ public:
 	void flashCursor();
 	// 0x4351c0: the container of the indicators that flash is the one the order cursor made last, and is hidden
 	void setFlashIndicators(engine::Node* theIndicators);
-	// 0x435ba0: a frame of the screen (the speed bonus banner's, the vehicles', and the nodes of the sorted group);
-	// translated next
+	// 0x435ba0: a frame of the screen: the vehicles that moved are put in their place in the ground group, and the
+	// cursor follows the mouse over what it can click (the speed bonus banner's own update, 0x44fcd0, is left out
+	// with the banner)
 	void updateScreen(engine::UpdateInfo& theInfo);
 
 	engine::Ref<CityMap> mMap;                         // +0x1d4
@@ -62,12 +65,29 @@ public:
 	engine::Ref<engine::Container> mTipsGroup;         // +0x1f0: "TipsGroup"
 	engine::Ref<engine::Container> mOrderCursor;       // +0x1f4: "OrderCursor"
 	engine::Ref<engine::Node> mFlashIndicators;        // +0x1f8: the order cursor's indicators that flash
+	// +0x1fc: what the mouse is over (a popup of a house or kitchen, a coupon button, or a tip), which gets the left
+	// and right buttons' presses
+	engine::Ref<engine::Node> mHover;
 	engine::Ref<engine::Image> mGroundImage;           // +0x200: the city's ground, made once
 	float mFlashTime;                                  // +0x214: the seconds the flash still shows
 	// +0x20c: the layout of the screen (res/screenLayouts/gameScreen.xml), which the city select hides while it draws
 	// the postcards
 	engine::Ref<engine::ScreenLayout> mGameLayout;
 	engine::Ref<engine::Node> mTitles;                 // +0x210: its node "titles"
+
+protected:
+	// slot 0xa8: 0x435320: the press goes to what the mouse is over
+	void onMouseDownEvent(engine::MouseEvent& theEvent) override;
+	// slot 0xc0: 0x435340: the right button's press goes to it too
+	void onRightDownEvent(engine::MouseEvent& theEvent) override;
+
+private:
+	// 0x435380: the cursor goes to the mouse, the flash times out, and mHover is what the mouse is over: with nothing
+	// on the order cursor, the last of the popups of the kitchens and the houses, the coupon buttons and the tips that
+	// has the cursor's point in it; with orders on it, the one of them that its box overlaps most
+	void updateHover(engine::UpdateInfo& theInfo);
+	// the hover is left or entered, and the hover changes to the node
+	void setHover(engine::Node* theNode);
 };
 
 } // namespace pizzafrenzy

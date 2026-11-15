@@ -141,11 +141,11 @@ void CustomerPopup::setOwner(BuildingTile* theTile)
 	mFront->addChild(mOrderHolder);
 	mOrderHolder->setPosition(HOLDER_X, HOLDER_Y);
 
-	engine::Image* anUnknownImage = engine::App::instance()->createImage(UNKNOWN_IMAGE, false);
-	anUnknownImage->setPivot(1);
-	mUnknown = new engine::ImageNode(anUnknownImage);
-	mFront->addChild(mUnknown);
-	mUnknown->setVisible(false);
+	engine::Image* aQuestionMarkImage = engine::App::instance()->createImage(UNKNOWN_IMAGE, false);
+	aQuestionMarkImage->setPivot(1);
+	mQuestionMark = new engine::ImageNode(aQuestionMarkImage);
+	mFront->addChild(mQuestionMark);
+	mQuestionMark->setVisible(false);
 
 	mEventImage = new engine::ImageNode(nullptr);
 	mEventImage->setScale(EVENT_SCALE, EVENT_SCALE);
@@ -292,7 +292,7 @@ void CustomerPopup::flash()
 // 0x453390
 void CustomerPopup::hideOrder()
 {
-	mUnknown->setVisible(true);
+	mQuestionMark->setVisible(true);
 	mOrderHolder->setVisible(false);
 	setOpacity(1.0f);
 	setScale(1.0f);
@@ -302,7 +302,7 @@ void CustomerPopup::hideOrder()
 // 0x4528a0
 void CustomerPopup::revealOrder()
 {
-	mUnknown->setVisible(false);
+	mQuestionMark->setVisible(false);
 	mOrderHolder->setVisible(true);
 }
 
@@ -310,7 +310,7 @@ void CustomerPopup::revealOrder()
 void CustomerPopup::showOrder(engine::Container* theHolder, Order* theOrder)
 {
 	theHolder->removeAllChildren();
-	if (mUnknown->isVisible())
+	if (mQuestionMark->isVisible())
 	{
 		engine::Image* anImage = engine::App::instance()->createImage(UNKNOWN_IMAGE, false);
 		anImage->setPivot(1);

@@ -188,7 +188,7 @@ void GameMode::clearLevel()
 // 0x456c20
 void GameMode::startPlay()
 {
-	mHud->showVehicles();
+	mHud->showCoupons();
 	mStates.changeState(new ModePlayState(this));
 }
 

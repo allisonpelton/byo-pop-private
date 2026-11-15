@@ -94,7 +94,7 @@ public:
 	engine::Ref<engine::ImageNode> mButton;          // +0x15c
 	engine::Ref<engine::ImageNode> mFaceImage;       // +0x160: the customer's picture on the button's side
 	engine::Ref<engine::ImageNode> mFaceImageBack;   // +0x164: the same on the other side
-	engine::Ref<engine::ImageNode> mUnknown;         // +0x168: the question mark
+	engine::Ref<engine::ImageNode> mQuestionMark;         // +0x168: the question mark
 	engine::Ref<engine::ImageNode> mEventImage;      // +0x16c: the event's customer
 	engine::Ref<engine::Container> mFront;           // +0x170: the order's side
 	engine::Ref<engine::Container> mBack;            // +0x174: the customer's side

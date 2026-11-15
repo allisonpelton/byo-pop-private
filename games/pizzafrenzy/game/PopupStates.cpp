@@ -10,8 +10,8 @@ const float APPEAR_START_SCALE = 0.5f;
 const float CLOSE_SECONDS = 0.5f;
 }
 
-// 0x0c: the state is counted for the length of the update, so that a change of state it makes does not free it while
-// it runs
+// port: the state is counted for the length of the update, so that a change of state it makes does not free it
+// while it runs
 void PopupStateMgr::update(engine::UpdateInfo& theInfo)
 {
 	engine::Ref<engine::State> aState = mState;
