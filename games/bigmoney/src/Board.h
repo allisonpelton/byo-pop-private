@@ -391,7 +391,6 @@ public:
 	int				mPickpocketsPerBag;     // more for each bag left over (Action, Strategy) or dropped extra (Puzzle)
 	int				mPickpocketsMax;        // the most in hand
 	bool			mPickpocketArmed;       // P (or a click on the counter): the next click on a small group uses one
-	int				mPickpocketsUsed;       // in this board's game (the log)
 
 public:
 	Board(WinBMApp* theApp);                                        // 0x40e760

@@ -1,3 +1,4 @@
+// port(mods): the sign that the game runs with mods (ModIndicators.h). Not in the original.
 #include "ModIndicators.h"
 
 #include "MemoryImage.h"

@@ -299,7 +299,7 @@ zeroes everything except `mGroupSize = 1` and increments the live counter `gPiec
 | 0x94 | int | mTargetY | | y |
 | 0x98 | bool | mDying | removed coin playing its vanish animation | y |
 | 0x9c | int | mLifeTimer | if > 0: counts down in UpdatePhysics, deletes at 0, blinks below 200. Never set > 0 by the game (dead feature) | y |
-| 0xa0 | int | mUnusedA0 | only ctor/save/load touch it | y |
+| 0xa0 | int | mZeroInSave | only ctor/save/load touch it | y |
 | 0xa4 | - | (pad) | | |
 
 #### 2.2 List payloads (std::list nodes: next +0, prev +4, payload +8; offsets below are payload-relative)
@@ -1169,7 +1169,7 @@ keeps the current mti, see open questions).
 
 Piece record (108 bytes): `d mX, d mY, d mVX, d mVY, i mShakeX, i mShakeY, i mCol, i mRow, i mColor,
 u8 mIsSpecial, u8 mFallThrough, i mSpecialType, i mImageSet, i mFrame, u8 mFlying, d mFlyT, d
-mFlySpeed, i mStartX, i mStartY, i mTargetX, i mTargetY, u8 mDying, i mLifeTimer, i mUnusedA0`
+mFlySpeed, i mStartX, i mStartY, i mTargetX, i mTargetY, u8 mDying, i mLifeTimer, i mZeroInSave`
 (0x401120 read / 0x4012b0 write).
 
 Body:
@@ -4494,6 +4494,29 @@ the level-up's 0.03, the piece's +0xa0), the empty destructors that carry the or
 `mPanelY` (always 0, but the layout's anchor) and `MRANIM_UNUSED_18`, which numbers the animation table. `coverage.txt`
 gets `none` lines for the five functions. The frozen baseline is as before (`tools/check.sh bigmoney`: game 1 over,
 score 66646), and the port builds natively and for the web.
+
+### Readability (2026-11-15)
+
+`tools/namecheck.py games/bigmoney` found 122 places against `docs/CODE_STANDARDS.md` and finds none now.
+
+- **Functions without an address or a port marker (99).** The mods' files (the Puzzle Solver, replays, the gameplay
+  settings, Winnable Puzzles, the mods sign) carry `port(mods):` in their first comment, as rule 9 asks; Board's Solver
+  and Pickpocket functions and `WinBMApp::UpdateFrames` have it above each. The helpers split out of an original
+  function name it: the pause music cues (`Board::Pause`, 0x402930), the save's bool and colour fields (`WriteSaveGame`
+  0x403300, `ReadSaveGame` 0x4075d0), the particle maker, the coin colours, the high-score records (0x412eb0, 0x413100),
+  the badge's flash (0x419950), the highlighted and grey pixels (0x41d9a0, 0x41efd0), MSVC's `rand` (0x4d9372) and 1.2's
+  Slider (0x421fd0, 0x422000).
+- **Names (23).** One-letter names used over more than ten lines became `aRow`, `aCol`, `aColumn`, `aReader`, `aChar`,
+  `aTunables`, `aBlock`, `aPhase`, `aScale` and `theBlock`; `aTemp` became `aTempPath`; `aStacked`, which namecheck takes
+  for a decompiler's name, became `aCoinsInTube`; and the piece's `mUnusedA0` (+0xa0), always 0 and kept by the save,
+  became `mZeroInSave`.
+- **`tools/splitfields.py`** lists four members: the Solver's warning cells and the bot's Pickpocket count are written
+  through `memset`, `memcpy` and a post-increment the tool does not see, the export's lines are the original's reads of
+  fields the port names, and Board's count of Pickpockets used was written and never read, so it is gone.
+
+The renames change no instruction: `tools/objsnap.py` finds the 30 objects' 695 functions the same before and after,
+no string in the sources changed, and the web build compiles. The frozen baseline is as before (`tools/check.sh
+bigmoney`: game 1 over, score 66646).
 
 ## Coverage check (2026-11-08)
 
