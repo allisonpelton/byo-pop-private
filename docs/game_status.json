@@ -530,8 +530,8 @@
         "readability"
       ],
       "na": [],
-      "now": "identical-look",
-      "note": "the eight retail 3D tours compare clean: scores equal step for step in every mode, Action's TIME UP at the same update (19861); the earlier Classic/Finity and Action differences were the comparison's (the help click's shift read too early, b75b56dd; a slowed original run); boxes left: the menu's More Games pill (removed by rule) and three small ones (Hyper 4-4 one gem's light, Hyper 6-1, Finity's first board); Finity 3D's washed-out gems not seen in the retail tours (an Oddity, unreproduced); next: Hyper 4-4's light, then the web 3D and full-screen comparison"
+      "now": null,
+      "note": "the eight retail 3D tours compare clean (scores equal step for step, Action's TIME UP at update 19861); Hyper's 3D tour replays with 37 shots identical (only the removed More Games pill differs); the classic hyperspace jump and full screen compared in 3D; the web build replays the native Classic tour (10 shots, same boards and scores, animation phase differs); boxes left: Hyper 4-4 one gem's light, Hyper 6-1, Finity's first board; Finity 3D's washed-out gems an Oddity; next: the no-GPU fallback and the other web modes"
     },
     "venice": {
       "title": "Venice Deluxe",
