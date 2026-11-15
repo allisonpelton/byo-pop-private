@@ -23,6 +23,11 @@ column 0, 2026-11-12). A SexyApp 1.x
 game whose original draws on a software DirectDraw screen keeps the last frame where a board draws only part of itself,
 so its port sets `DDInterface::mKeepScreen` (Dynomite's museum, 2026-11-11). Without it the port draws black there, and its
 screenshot draws the frame once more, which moves any `rand()`-driven drawing and shows as spurious differences.
+With `-fast` the port draws only every tenth update, so in such a game a picture with a soft alpha edge, drawn over what the
+screen still holds, blends with pixels ten updates old where the original's blend with last update's. Big Money's left bar
+fades out over Mr. Money's trail and showed his colours in a 2-pixel strip where the original's was black (2026-11-15).
+Take shots of a game that keeps its screen with `-fast -drawevery`, which draws every update, or check one pair against a
+real-time run first.
 
 Read `build/shotreview/<game>/<run>/summary.json`, not the page. It lists every pair with its status (`match`, `differ` or
 `error`), the percentage of differing pixels and its boxes, each with its position, size, pixel count and the path of its
