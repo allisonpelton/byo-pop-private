@@ -12,7 +12,8 @@
 # SDL_RENDER_DRIVER). LDARGS gives landed_to_events.py its options. The default is the mouse's leave after each click, as the
 # original's runs have it (the real cursor is never over its window); a recording's inputs that the original reads one update after
 # the port, such as the click that closes the first game's help screen, go on with --shift FROM TO 1 (IDENTICAL_PLAY.md).
-# With a third argument the original's run is not made again: <tag> then names an earlier run in build/visrun.
+# With a third argument the original's run is not made again: <tag> then names an earlier run in build/visrun. ORIG_ONLY=1 makes the
+# original's run alone (the night's part: the visible desktop), and the port's replay and shotdiff come later with the third argument.
 set -u
 ev=$1; tag=$2; portonly=${3:-}
 cd "$(dirname "$0")/../../../.." || exit 2
@@ -49,6 +50,8 @@ EOF
   cat build/visrun/$tag.visrun.log
 fi
 
+[ -n "${ORIG_ONLY:-}" ] && exit 0
+
 V=$ABS/build/visrun/p_$tag
 rm -rf $V; mkdir -p $V/cwd/shots $V/user
 python games/bejeweled2/tools/origcmp/landed_to_events.py $ev build/visrun/$tag/landed.tsv $V/events.json $LDARGS > /dev/null || exit 2
@@ -57,6 +60,6 @@ python games/bejeweled2/tools/origcmp/to_commands.py $V/events.json $V/cmd.txt -
 [ -n "$PROFILE" ] && cp -r $PROFILE/users $V/user/users
 printf '[SOFTWARE\\Steam\\Bejeweled2]\nScreenMode=dword:0\nHighResolution=dword:1\n' > $V/user/registry.ini
 wait_slot || { echo "no room for a game process"; exit 3; }
-(cd $V/cwd && $ABS/build/native/rundesk.exe $ABS/build/native/bejeweled2.exe -gamedir= -userdir=$V/user -commands=$V/cmd.txt -realinput=$V/empty.ri -hold -fast -drawevery -seed=909 -trace > $V/port.log 2>&1)
+(cd $V/cwd && timeout 1500 $ABS/build/native/rundesk.exe $ABS/build/native/bejeweled2.exe -gamedir= -userdir=$V/user -commands=$V/cmd.txt -realinput=$V/empty.ri -hold -fast -drawevery -seed=909 -trace > $V/port.log 2>&1)
 echo "$tag: $(ls $V/cwd/shots | wc -l) shots"
 python tools/shotdiff/shotdiff.py --game bejeweled2 --orig build/visrun/$tag --port $V/cwd/shots --run v3d_$tag 2>&1 | tail -n 1
