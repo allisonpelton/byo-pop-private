@@ -1252,8 +1252,13 @@ endfunction()
 if(EMSCRIPTEN)
   # The music player's decoder (web/music/openmpt_web.c, web/music.js; docs/WEB_PLAYER.md, "The music player"): libopenmpt on its
   # own, as openmpt.js and openmpt.wasm beside the pages, which the listing page loads when its Music tab is first opened
-  add_executable(byopop_openmpt ${CMAKE_CURRENT_LIST_DIR}/../web/music/openmpt_web.c)
+  add_executable(byopop_openmpt ${CMAKE_CURRENT_LIST_DIR}/../web/music/openmpt_web.c ${CMAKE_CURRENT_LIST_DIR}/../web/music/openmpt_solo.cpp)
   target_link_libraries(byopop_openmpt PRIVATE openmpt xmp_lite stb)
+  # (openmpt_solo.cpp reaches libopenmpt's own classes: its include folders and its build's definition, as its sources have)
+  set(byopop_openmpt_dir ${CMAKE_CURRENT_LIST_DIR}/../third_party/libopenmpt)
+  set_source_files_properties(${CMAKE_CURRENT_LIST_DIR}/../web/music/openmpt_solo.cpp PROPERTIES
+    INCLUDE_DIRECTORIES "${byopop_openmpt_dir};${byopop_openmpt_dir}/src;${byopop_openmpt_dir}/common;${byopop_openmpt_dir}/include;${byopop_openmpt_dir}/libopenmpt"
+    COMPILE_DEFINITIONS LIBOPENMPT_BUILD COMPILE_OPTIONS "-w;-sDISABLE_EXCEPTION_CATCHING=0")
   set_target_properties(byopop_openmpt PROPERTIES OUTPUT_NAME openmpt SUFFIX ".js" LINKER_LANGUAGE CXX)
   target_compile_options(byopop_openmpt PRIVATE -O2)
   target_link_options(byopop_openmpt PRIVATE -O2 "-sMODULARIZE=1" "-sEXPORT_NAME=ByopopOpenMPT" "-sALLOW_MEMORY_GROWTH=1"
