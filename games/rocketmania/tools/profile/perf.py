@@ -31,7 +31,7 @@ if side == 'port':
     cmd = [os.path.abspath('build/native/rundesk.exe'), os.path.abspath('build/native/rocketmania.exe'), '-script=' + script,
            '-commands=' + cmdfile, '-userdir=' + user]
 else:
-    stage = os.environ.get('OG_STAGE', 'C:/byo-og/rm')
+    stage = os.environ.get('OG_STAGE', 'E:/byo-og/rm')
     cmd = [os.path.abspath('build/origrun-bin/origrun.exe'), '--exe', os.path.abspath(stage + '/game/RocketManiaGame.exe').replace('/', '\\'),
            '--run', os.path.basename(stage), '--stage-root', os.path.dirname(stage).replace('/', '\\'), '--script', script, '--clock', 'real',
            '--cursor', 'scripted', '--counter', '0x4f6850', '--update-ms', '10', '--seed', '1', '--patches',

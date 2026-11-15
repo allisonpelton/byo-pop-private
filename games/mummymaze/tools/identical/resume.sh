@@ -21,13 +21,13 @@ TO=${TIMEOUT:-$(( (LAST + 3000) / 500 + 30 ))}
 RUN=p1r
 # stage the copy once with a script that quits at once, put the save in it, then run it where it stands
 printf 'quit\n' > "$D/$N.stage.txt"
-rm -rf "C:/byo-og/$RUN" "$R/build/origrun/$RUN"
-"$R/build/origrun-bin/origrun.exe" --game mummymaze --run "$RUN" --stage-root C:/byo-og --script "$D/$N.stage.txt" --clock virtual --seed "$SEED" --timeout 60 > "$D/$N.stage.log" 2>&1
+rm -rf "E:/byo-og/$RUN" "$R/build/origrun/$RUN"
+"$R/build/origrun-bin/origrun.exe" --game mummymaze --run "$RUN" --stage-root E:/byo-og --script "$D/$N.stage.txt" --clock virtual --seed "$SEED" --timeout 60 > "$D/$N.stage.log" 2>&1
 for set in ${SETS:-A B C D E F}; do
 	w=()
 	while read -r a b; do w+=("$a" "$b"); done < <(python -I "$T/identical.py" watches $set)
-	mkdir -p "C:/byo-og/$RUN/game/data/saves"; cp "$D/$N.classic.sav" "C:/byo-og/$RUN/game/data/saves/classic.sav"
-	"$R/build/origrun-bin/origrun.exe" --game mummymaze --run "$RUN" --stage-root C:/byo-og --exe "C:/byo-og/$RUN/game/WinMM.exe" --script "$D/$N.script.txt" --clock virtual \
+	mkdir -p "E:/byo-og/$RUN/game/data/saves"; cp "$D/$N.classic.sav" "E:/byo-og/$RUN/game/data/saves/classic.sav"
+	"$R/build/origrun-bin/origrun.exe" --game mummymaze --run "$RUN" --stage-root E:/byo-og --exe "E:/byo-og/$RUN/game/WinMM.exe" --script "$D/$N.script.txt" --clock virtual \
 		--cursor scripted --seed "$SEED" --timeout "$TO" "${w[@]}" > "$D/$N.$set.log" 2>&1
 done
 python -I "$T/identical.py" compare "$D/$N.port.txt" "${OFF:-2301}" "$D/$N.A.log:A" "$D/$N.B.log:B" "$D/$N.C.log:C" "$D/$N.D.log:D" "$D/$N.E.log:E" "$D/$N.F.log:F"

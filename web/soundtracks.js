@@ -17,7 +17,10 @@
 //           at length; without one a tune is named after its file
 //   inside  tunes kept inside a game's file: [{file: "<path>", magic: "<first bytes>"}] its resources (a Windows module's)
 //           that start with those bytes, the magic naming their format, or [{file: "<path>", zip: ["<entry>", ...]}] those
-//           entries of a zip archive; each is then a file as above
+//           entries of a zip archive, or [{file: "<path>", tiptop: ["<entry>", ...]}] those of TipTop's archive; each is then a
+//           file as above
+//   bank    for a game whose music is MIDI: the General MIDI bank its port plays it with, served beside the pages (a .mid file
+//           is one tune, rendered by the game's own sequencer into TinySoundFont: web/music/midi_web.c)
 //   where   {"<file name>#<n>", "<file name>" (an Ogg or WAV file) or "<playlist name>": "<place>"}: where in the game its code plays
 //           the tune, in the style of a game music rip ("Main Menu", "Danger 2": Title Case, one place, at most 20 characters,
 //           tunes of one place numbered as the game reaches them), from the game's code (its session's answer) or, for an Ogg
@@ -405,6 +408,19 @@ var ByopopSoundtracks = {
       "nm_splash": "Once at launch, before the assets load",
       "nm_gameover": "No moves left; the game ends",
       "nm_youwin": "The board is won"
+    },
+  },
+  // TipTop's one tune is a MIDI file in its archive, played as the port plays it: TipTop's sequencer into TinySoundFont with
+  // the port's bank (games/tiptop/src/Music.cpp and MusicSynth.cpp). It starts at the main menu's first showing, after the
+  // delay the game's config sets (MusicStarterProc), and is never stopped; the game holds it while paused (MusicPauseProc)
+  // and while its window is inactive
+  tiptop: { composer: "PCB Productions",
+    inside: [{ file: "TipTop.dat", tiptop: ["sounds/bkgd.mid"] }],
+    bank: "soundfonts/tiptop.sf2",
+    where: { bkgd: "In-Game" },
+    order: ["bkgd"],
+    when: {
+      "bkgd": "From the main menu's first showing, after the config's delay; loops through every screen and game; held while the game is paused or its window inactive"
     },
   },
   // the Ogg games

@@ -3,7 +3,7 @@
 # of each and two scripted minutes of each, one game process of ours at a time, each after waiting for a free slot.
 # Needs build/perf/port-play.txt (the port's script, to update 6450 and "quit") and build/perf/orig-play.txt (the same input
 # for origrun, made by games/alchemy/tools/identical/toorig.py, ending in "quit"), build/native/alchemy.exe,
-# build/origrun-bin/origrun.exe and the staged original under C:/byo-og/alch (games/alchemy/tools/identical/setup.sh).
+# build/origrun-bin/origrun.exe and the staged original under E:/byo-og/alch (games/alchemy/tools/identical/setup.sh).
 # Run from the worktree root, in the background; the results are build/perf/<name>/perf.json and one line each in the log.
 cd "$(git rev-parse --show-toplevel)" || exit 1
 R="$(pwd)/build/native/rundesk.exe"

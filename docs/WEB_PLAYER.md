@@ -576,7 +576,16 @@ never with invented titles. A game's session sets these from its code:
 - `level`: "Music levels".
 
 **The decoder** is the games' own two module renderers, built for the web as `openmpt.js` and `openmpt.wasm` (target
-`byopop_openmpt`) and picked as `Platform::Mixer` picks them, so a tune sounds as it does in its game.
+`byopop_openmpt`) and picked as `Platform::Mixer` picks them, so a tune sounds as it does in its game. A MIDI file
+(TipTop's one tune; `bank` in `soundtracks.js`) plays in the same decoder as TipTop's port plays it
+(`web/music/midi_web.c`): the game's own sequencer, a pass over the tracks each millisecond, into TinySoundFont with the
+port's General MIDI bank cut from GeneralUser GS. The page fetches the bank from `soundfonts/` (3.3 MB, served beside
+the pages, as its licence asks) the first time a MIDI tune plays. Each millisecond renders whole, so the sound does not
+depend on how the worklet's chunks fall. Against the port's `musicwav` render it differs by at most one step in 32767 over
+180 seconds, the song's loop included, the margin the port's notes give between its native and web builds. With repeat on
+the song plays on from its start as the game's does, the notes still sounding carried over. Seeking runs the sequencer
+silently to the place, setting its programs and controllers but playing no notes. A MIDI tune has no tracker, piano roll
+or score.
 
 **The player's rules**, from the user: long silent endings are skipped (the user's notes, 2026-11-10: "Some of the
 short tracks have a bunch of dead air at the end, where the tracker slows to a crawl"; `trimEnd`), the first piece of a cut subsong too (Twist's Game Over: a 3.5-second jingle,

@@ -4,7 +4,7 @@ run can start at a later stage from a real player (docs/COVERAGE.md).
 
 A player's file ends with a CRC-32 of its data followed by the exe's folder (User::Serialize, 0x415fc0; the same code as
 games/mahjongchina/tools/resign.py, which has 150 classic records where Ancient Japan has 175), so the original loads a
-player only from the folder that saved it. The staged copy's folder is C:\\byo-og\\mahjongjapancov\\game\\ (run.sh).
+player only from the folder that saved it. The staged copy's folder is E:\\byo-og\\mahjongjapancov\\game\\ (run.sh).
 
     python resign.py <in.usr> <out.usr> --progress N [--folder FOLDER]
 """
@@ -13,7 +13,7 @@ import struct
 import sys
 import zlib
 
-FOLDER = "C:\\byo-og\\mahjongjapancov\\game\\"
+FOLDER = "E:\\byo-og\\mahjongjapancov\\game\\"
 
 
 def sign(body, folder):
