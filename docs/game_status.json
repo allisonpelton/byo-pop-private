@@ -132,7 +132,7 @@
         "collection"
       ],
       "now": null,
-      "note": "every phase but modding done: the lite mod step closed with no mod (20a8029f). An exact Dijkstra-pruned route search gives the same route in all 1,187,177 searches compared, but the original's search is 5-8% of the process only in its worst state and about 0.5% in bot games, so neither is measurable; its figures to redo after the renderer decision are listed in LITE_MOD.md"
+      "note": "every phase but modding done: the lite mod step closed with no mod (20a8029f). An exact Dijkstra-pruned route search gives the same route in all 1,187,177 searches compared, but the original's search is 5-8% of the process only in its worst state and about 0.5% in bot games, so neither is measurable; re-measured on the settled renderer (main bdfda2f7): six pairs, median ratio 0.885 but pairs from 0.79 to 1.71 on a busy machine, so still not measurable (LITE_MOD.md)"
     },
     "mummymaze": {
       "title": "Mummy Maze Deluxe",
@@ -226,11 +226,12 @@
         "unneeded-code",
         "readability",
         "site-features",
-        "collection"
+        "collection",
+        "lite-mod"
       ],
       "na": [],
       "now": null,
-      "note": "every step but modding done; the autosplit block in (ab31480d); a 3D coverage check under way, after Bejeweled 2's 3D WARP was missed: the sets the 2D comparison shot and 3D never did, natively and on the web"
+      "note": "every phase but modding done: the lite step with no mod (2aa1a2e6, LITE_MOD.md: the game's update is 3.2 to 3.7 % of a minute's cycles, the picture 94 %, FindMove the only search); 3D level-ups and Blitz against the original match but for its known 15-update slip; focus in 3D not comparable (visrun keeps the window active); re-measured on merged main: 38.8/43.2 G cycles a minute in 2D/3D against 41.5/47.2"
     },
     "typershark": {
       "title": "Typer Shark! Deluxe",
@@ -340,7 +341,7 @@
       ],
       "na": [],
       "now": null,
-      "note": "every step done: performance 0.88 of its original at 640x480 through SoftwareScreenDisplay; no lite mod (the update is 3% of its cycles); the site's Music entries and 23 soundboard presets checked on the trunk (2026-11-13)"
+      "note": "every step done: performance 0.88 of its original at 640x480 through SoftwareScreenDisplay and 0.71 in its default window (measured again 2026-11-15, 2D on the GPU path too); no lite mod (the update is 3% of its cycles); the site's Music entries and 23 soundboard presets checked on the trunk (2026-11-13)"
     },
     "bookwormadv2": {
       "title": "Bookworm Adventures Volume 2",
@@ -457,11 +458,12 @@
         "unneeded-code",
         "readability",
         "collection",
-        "performance"
+        "performance",
+        "lite-mod"
       ],
       "na": [],
-      "now": "lite-mod",
-      "note": "performance done: 86 against 110 M cycles a second at 800x600 through SurfaceDisplay; real-input play, window changes and the screens pass with it; the autosplit block, then the lite mod"
+      "now": null,
+      "note": "every phase but modding done; lite mod: none taken (LITE_MOD.md, measured again on merged main: the step is 3 to 5% of the process, the star list under 1%); performance 86 against 110 M cycles a second at 800x600 through SurfaceDisplay"
     },
     "waterbugs": {
       "title": "Water Bugs",
@@ -496,11 +498,12 @@
         "readability",
         "collection",
         "site-features",
-        "performance"
+        "performance",
+        "lite-mod"
       ],
       "na": [],
-      "now": "lite-mod",
-      "note": "processor time 0.85 of the original's at 800x600 and 0.83 in the default window, through SurfaceDisplay (full screen keeps the renderer, about 1.1); the lite survey next"
+      "now": null,
+      "note": "every phase but modding done; lite mod: none taken (LITE_MOD.md: findHint's walks take about 1 ms a call); the mod menu holds the game and its clock (402f4ffb, clickthrough passes); processor time 0.85 of the original's at 800x600 and 0.83 in the default window through SurfaceDisplay, measured before the batching merges"
     },
     "bejeweled2": {
       "title": "Bejeweled 2 Deluxe",
@@ -517,7 +520,7 @@
       ],
       "na": [],
       "now": "identical-look",
-      "note": "3D looks: the whirlpool's first frames no longer blur or lose a row and column (DDInterface's mOriginalSampling, on for Bejeweled 2's 3D game only, 1bbcbf88/57a6a00a), the whirlpool and off-board gems turn the original's way (6056fe1a, e1ecff84: the action tour's game-over frame 25% to 0.6%); open: Finity 3D's washed-out gems (needs original runs, after the user's stop on running the original), the IDENTICAL_PLAY 3D section"
+      "note": "the staged config.xml is Steam's retail file (the old one put flame gems everywhere); the chain bonus reads ExplosionChainBonusAdd per step on ExplosionChainBonus as the original (3ab848a5: Finity's first match 1300 as the original, was 700); Classic, Endless and Finity refrozen (3c6e6ccb); 3D tours re-recorded on the retail values: scores equal step for step in six modes, Classic and Finity drift at the level change (an Oddity: the generator a few draws off), Action's game-over shots differ (not traced); open: judging the rest of the re-recorded shots, Finity 3D's washed-out gems"
     },
     "venice": {
       "title": "Venice Deluxe",
@@ -552,11 +555,12 @@
         "performance",
         "lite-mod",
         "unneeded-code",
-        "collection"
+        "collection",
+        "site-features"
       ],
       "na": [],
-      "now": "site-features",
-      "note": "the Collection check done (65ce9233): the Collection's game is the same (.text and .data identical to Steam's, 241 of 242 differing pictures pixel-identical where shown; title.jpg has the newer logo), and the port plays level 4 from its files identically; left: the site features, with the site's session"
+      "now": null,
+      "note": "every phase but modding done; on the site from this merge (Music's seven tracks, the Sounds board of 92 sounds with five presets, the autosplitter's HWDX block for speedrun.com's Mission Mode (PC)); not made: presets for the mega laser's parts and the supply copter (no test command reaches them)"
     },
     "hammerheads": {
       "title": "Hammer Heads Deluxe",

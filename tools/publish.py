@@ -168,14 +168,24 @@ def tf_toplevel(text, game):
             "set(CMAKE_CXX_STANDARD 17)\nset(CMAKE_CXX_STANDARD_REQUIRED ON)\nset(CMAKE_EXPORT_COMPILE_COMMANDS ON)\n"
             "# the exe and the DLLs it loads land in the build folder itself\n"
             "set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})\n\n"
-            "# One exe that carries the C++ runtime it uses (libc++ and libunwind linked in, so SDL2.dll is the only DLL\n"
-            "# beside it), without the functions nothing calls and, in a Release build, without its symbol table. The code\n"
-            "# is compiled the same either way; only what is linked changes.\n"
+            "# One exe that holds everything but the player's game files: SDL (the small static build of\n"
+            "# third_party/sdl-small, below), the C++ runtime (libc++ and libunwind linked in) and the game. It is built\n"
+            "# without exceptions and unwind tables (nothing in it catches one; an error that would throw ends the\n"
+            "# program), without the functions and data nothing refers to and, in a Release build, without its symbol\n"
+            "# table. The code is compiled and optimised as it is in the trunk; only what is linked, and the tables for\n"
+            "# exceptions, change.\n"
             "if(MINGW)\n"
-            "  add_compile_options(-ffunction-sections -fdata-sections)\n"
+            "  add_compile_options(-ffunction-sections -fdata-sections -fno-exceptions -fno-unwind-tables\n"
+            "    -fno-asynchronous-unwind-tables)\n"
             "  add_link_options(-static-libstdc++ -static-libgcc -Wl,--gc-sections $<$<CONFIG:Release>:-s>)\n"
             "endif()\n\n")
     body = cmake_native("CMakeLists.txt", text[sdl:web] + "\n" + text[shared:tests])
+    body = replace_once(body, "find_package(SDL2 REQUIRED CONFIG)\nset(PORT_SDL SDL2::SDL2 SDL2::SDL2main)\n",
+                        "# SDL is built into the exe: SDL2_DIR is the folder that third_party/sdl-small/build.py installed it in\n"
+                        "# (its lib/cmake/SDL2), and the static target is the one linked\n"
+                        "find_package(SDL2 REQUIRED CONFIG)\nset(PORT_SDL SDL2::SDL2-static SDL2::SDL2main)\n")
+    # no runtime DLLs to copy beside the exe
+    body = body[:body.index("# Native builds run from the build folder")]
     return head + body + f"add_subdirectory(games/{game})\n"
 
 
@@ -185,6 +195,15 @@ def tf_framework(text, _):
     a, b = line_at(text, "# The table of what is imported from an installed game"), line_at(text, "set(SAVEIMPORT_JSON")
     text = (text[:a] + "# The table of what is imported from an installed game (platform/saveimport.json), compiled into the\n"
             "# framework for platform/SaveImport.cpp, which the game's main.cpp calls for -importsaves.\n" + text[b:])
+    # the parts of the C++ runtime a release exe does without (platform/DerivedRuntime.cpp) go into the exe itself: a
+    # static library's member that nothing has asked for yet is not pulled in, and the demangler stub is asked for by
+    # libc++abi, which is linked after it
+    text = replace_once(text, 'list(FILTER FRAMEWORK_SOURCES EXCLUDE REGEX ".*/SWTri_[^/]*\\\\.cpp$")\n',
+                        'list(FILTER FRAMEWORK_SOURCES EXCLUDE REGEX ".*/(SWTri_[^/]*|DerivedRuntime)\\\\.cpp$")\n'
+                        'add_library(derived_runtime OBJECT ${SHARED_ROOT}/platform/DerivedRuntime.cpp)\n')
+    text = replace_once(text, "add_library(sexyframework STATIC ${FRAMEWORK_SOURCES})\n",
+                        "add_library(sexyframework STATIC ${FRAMEWORK_SOURCES})\n"
+                        "target_sources(sexyframework INTERFACE $<TARGET_OBJECTS:derived_runtime>)\n")
     return cmake_native("framework/CMakeLists.txt", text)
 
 
@@ -207,11 +226,23 @@ def tf_game(text, game):
         lines.pop(0)
     head = (f"# The game: its code (src/) and its test hooks (src/testhooks/: the scripted runs that check a build), on the\n"
             "# SexyAppFramework port (framework/, platform/). The exe finds the game's own files by itself (src/main.cpp).\n")
-    return head + cmake_native(f"games/{game}/CMakeLists.txt", "".join(lines))
+    text = cmake_native(f"games/{game}/CMakeLists.txt", "".join(lines))
+    # the SDL and runtime DLLs of the trunk's build folder are not needed: SDL and the C++ runtime are in the exe
+    return head + re.sub(r"(?m)^  add_custom_command\(TARGET %s POST_BUILD\n.*\n.*VERBATIM\)\n" % re.escape(game), "", text)
 
 
-def tf_saveimport(text, _):
-    """platform/saveimport.json with a "doc" of its own (the trunk's names the site's page): the table is the same."""
+def tf_saveimport(text, game):
+    """platform/saveimport.json with a "doc" of its own (the trunk's names the site's page), and with only this game's entry:
+    a release imports the saves of its own game."""
+    if not game:
+        sys.exit("a transform: saveimport takes the game's name")
+    first = re.search(r'(?m)^    "%s": \{$' % re.escape(game), text)
+    if not first:
+        sys.exit(f"a transform: platform/saveimport.json has no entry for {game}")
+    end = re.compile(r"(?m)^    \},?\n").search(text, first.end())
+    games = text.index("\n", line_at(text, '  "games": {')) + 1
+    tail = text.rindex("\n  }\n}")
+    text = text[:games] + text[first.start():end.start()] + "    }" + text[tail:]
     a = line_at(text, '  "doc": "')
     b = text.index("\n", a) + 1
     doc = text[a:b]
@@ -220,6 +251,21 @@ def tf_saveimport(text, _):
         sys.exit("a transform: platform/saveimport.json's doc changed, so change the transform")
     return (text[:a] + '  "doc": "What -importsaves brings over from an original game installed on this computer '
             '(platform/SaveImport.cpp, which has this table compiled in). ' + doc[rules:] + text[b:])
+
+
+STB_FORMATS = {"jpeg", "png", "bmp", "tga", "gif"}
+
+
+def tf_stb(text, formats):
+    """third_party/stb/stb_impl.c with only the image formats a game's files can hold in stb_image (STBI_ONLY_<format>, a
+    comma-separated list of jpeg, png, bmp, tga and gif). Which a game needs is read from its files: platform/ImageLoader.cpp
+    gives JPEGs to libjpeg and GIFs to its own decoder first, and stb_image decodes only what they refuse and the rest."""
+    names = (formats or "").split(",")
+    if not formats or not set(names) <= STB_FORMATS:
+        sys.exit(f"a transform: stb takes a comma-separated list of {', '.join(sorted(STB_FORMATS))}, not '{formats}'")
+    marker = "#define STB_IMAGE_IMPLEMENTATION\n"
+    only = "".join(f"#define STBI_ONLY_{n.upper()}\n" for n in names)
+    return replace_once(text, marker, "/* only the image formats of this game's files (its manifest) */\n" + only + marker)
 
 
 def tf_toolchain(text, _):
@@ -241,7 +287,7 @@ def tf_stage(text, _):
 
 
 TRANSFORMS = {"toplevel": tf_toplevel, "framework": tf_framework, "third_party": tf_third_party, "game": tf_game,
-              "saveimport": tf_saveimport, "toolchain": tf_toolchain, "stage": tf_stage}
+              "saveimport": tf_saveimport, "stb": tf_stb, "toolchain": tf_toolchain, "stage": tf_stage}
 
 
 C_SOURCES = (".c", ".cpp", ".h", ".hpp", ".inc", ".inl")
@@ -570,7 +616,8 @@ def derived_build(target, check, release):
         tree, build = os.path.join(tmp, "tree"), os.path.join(tmp, "build")
         os.mkdir(tree)
         tarfile.open(fileobj=io.BytesIO(git("archive", "--format=tar", ref)), mode="r:").extractall(tree)
-        sdl = os.environ.get("SDL2_DIR", "E:/retools/SDL2-2.32.10/i686-w64-mingw32/lib/cmake/SDL2")
+        # the small static SDL that third_party/sdl-small/build.py installs (docs/PUBLISHING.md, "The small SDL")
+        sdl = os.environ.get("SDL2_DIR", "E:/retools/SDL2-2.32.10-small-i686/lib/cmake/SDL2")
         # tools/build.sh finds pip's cmake and ninja here
         env = dict(os.environ, PATH=os.path.join(os.environ.get("APPDATA", ""), "Python", "Python312", "Scripts") + os.pathsep + os.environ["PATH"])
         for cmd in (["cmake", "-S", tree, "-B", build, "-G", "Ninja", "-DCMAKE_BUILD_TYPE=Release",
@@ -608,13 +655,18 @@ def derived_build(target, check, release):
 
 
 def release_zip(target, ref, tree, build):
-    """build/byo-pop-<target>-<the snapshot's date>.zip, for the release page: in one folder the exe, the DLLs of the build
-    folder that it loads, README.txt (the snapshot's README.md up to its "## Building" heading, in Windows line ends) and
+    """build/byo-pop-<target>-<the snapshot's date>.zip, for the release page: in one folder the exe (which holds SDL and the C++
+    runtime; a DLL of the build folder that it loads would go beside it), README.txt (the snapshot's README.md up to its "## Building" heading, in Windows line ends) and
     the empty assets/<target>/ folder that the exe looks in for the player's own game files. No game file goes in."""
     date = git("log", "-1", "--format=%cs", ref).decode().strip()
     folder, path = f"byo-pop-{target}", os.path.join("build", f"byo-pop-{target}-{date}.zip")
     exe = os.path.join(build, target + ".exe")
     dlls = runtime_dlls(exe, build)
+    system = os.path.join(os.environ.get("SystemRoot", "C:/Windows"), "System32")
+    foreign = [n for n in pe_imports(exe) if n not in dlls and not n.lower().startswith("api-ms-")
+               and not os.path.isfile(os.path.join(system, n))]
+    if foreign:  # SDL and the C++ runtime are in the exe, so what is left is Windows' own
+        sys.exit(f"release ZIP: {target}.exe imports {', '.join(foreign)}, which is neither in its build folder nor Windows' own")
     with open(os.path.join(tree, "README.md"), encoding="utf-8") as f:
         readme = f.read()
     cut = re.search(r"^## Building", readme, re.M)
@@ -628,7 +680,7 @@ def release_zip(target, ref, tree, build):
         empty = zipfile.ZipInfo(f"{folder}/assets/{target}/", date_time=datetime.datetime.now().timetuple()[:6])
         empty.external_attr = (0o40755 << 16) | 0x10  # a folder, for Windows and for unzip
         z.writestr(empty, b"")
-    print(f"release ZIP: {path} ({os.path.getsize(path) // 1024} KB): {target}.exe, {', '.join(dlls)}, README.txt, assets/{target}/")
+    print(f"release ZIP: {path} ({os.path.getsize(path) // 1024} KB): {', '.join([target + '.exe'] + dlls)}, README.txt, assets/{target}/")
 
 
 def main():

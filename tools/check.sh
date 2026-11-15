@@ -298,7 +298,10 @@ BT_MENU="02beec06fa7d da8353fcb954"  # the start's screens at 60 (the loader han
 # refrozen 2026-11-11 after phase two (the looks-identical pass): the menu's slide-in widgets are at the original's places (4 lines of
 # each transcript, the same in every mode: updates 76 to 100 of the start), and Finity's int arithmetic wraps as the original's (-fwrapv), which
 # changes Finity's end screen (its timer bar) and no line of its transcript; every other end screen is as before)
-declare -A BJ2_PLAYS=([classic]="b9d87f5adc92:7ccfdd5b8faf" [action]="90d63e45cf7f:7b659fc03b56" [puzzle]="5815000ef06d:a8b0773b7f3f" [endless]="bdc08bd259dc:6c7b27839583" [twilight]="de8c03468564:67d9f459fef4" [hyper]="58da52692f1f:83b1c28355ba" [cognito]="c44bde2956fb:b8dd13b43d05" [finity]="640f47957c85:0280181642a0" [hidden]="c33e07c611ee:7afbbb32f140")
+# refrozen 2026-11-15: the staged config.xml is the retail file now (Steam's file check; the old one had flame gems everywhere and chain
+# bonuses of 1000), which changes classic, endless and finity, and the chain bonus reads ExplosionChainBonusAdd per step as the original
+# does, which changes classic and finity; the other six transcripts are as before
+declare -A BJ2_PLAYS=([classic]="831f20f2c443:12cada91f4a8" [action]="90d63e45cf7f:7b659fc03b56" [puzzle]="5815000ef06d:a8b0773b7f3f" [endless]="defdb6ac04af:02483db1478b" [twilight]="de8c03468564:67d9f459fef4" [hyper]="58da52692f1f:83b1c28355ba" [cognito]="c44bde2956fb:b8dd13b43d05" [finity]="fa78c5a29691:34d5f50ca96c" [hidden]="c33e07c611ee:7afbbb32f140")
 declare -A BJ2_STEPS=([classic]=1200 [action]=400 [puzzle]=500 [endless]=400 [twilight]=400 [hyper]=400 [cognito]=300 [finity]=300 [hidden]=300)
 BJ2_MODES="classic action puzzle endless twilight hyper cognito finity hidden"
 
