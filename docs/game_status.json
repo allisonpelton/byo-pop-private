@@ -64,11 +64,12 @@
         "unneeded-code",
         "readability",
         "collection",
-        "site-features"
+        "site-features",
+        "lite-mod"
       ],
       "na": [],
       "now": null,
-      "note": ""
+      "note": "every phase but modding done: the lite mod takes nothing (LITE_MOD.md: the whole board logic is about 1 us an update)"
     },
     "alchemy": {
       "title": "Alchemy Deluxe",

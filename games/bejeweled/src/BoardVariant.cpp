@@ -959,14 +959,20 @@ void Board::RollScoreFast()
 // move left: UpdateBoardDropping ends in NewBoard, which drops every gem of the grid, the selected one too). The next click then
 // swaps that gem, which is no longer on the board, with the gem it targets: SwapPieces puts it back into the grid and loses the
 // gem that stood there. With the fix the click finds nothing selected and selects what it hits, as it does after any other
-// refill. Only input is changed (a replay records the deselect and plays back the same with the fix off).
-bool Board::DropStaleSelection()
+// refill. Only input is changed: a replay records the deselect, so it plays back the same whatever the fixes of the player that
+// replays it (the verifier and the watch never read this fix; WatchController::Apply takes the deselect by its gate).
+bool Board::HasStaleSelection() const
 {
-	if (mSelectedPiece == NULL || !Platform::FixOn("selection"))
+	if (mSelectedPiece == NULL)
 		return false;
 	int aRow = mSelectedPiece->mRow;
 	int aCol = mSelectedPiece->mCol;
-	if (aRow >= 0 && aRow < MAX_ROWS && aCol >= 0 && aCol < MAX_COLS && mBoard[aRow][aCol] == mSelectedPiece)
+	return !(aRow >= 0 && aRow < MAX_ROWS && aCol >= 0 && aCol < MAX_COLS && mBoard[aRow][aCol] == mSelectedPiece);
+}
+
+bool Board::DropStaleSelection()
+{
+	if (!HasStaleSelection() || !Platform::FixOn("selection"))
 		return false;
 	mSelectedPiece = NULL;
 	MarkDirty();
