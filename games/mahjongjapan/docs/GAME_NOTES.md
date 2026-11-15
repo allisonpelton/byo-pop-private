@@ -530,8 +530,11 @@ the main thread 0.4 G (Japan) and 0.7 G (China) above the 800x600 window's surfa
 3840x2160 (3.6x, letterboxed to 2880x2160) 3 or 4 times at one place and another, where the renderer's linear texture filter blends
 neighbours. At whole scales the two are identical (that is why surface mode may stand for the renderer). So the change is one of how
 full screen and a resized window look, which the user decides; `kStretchOtherSizes` in `engines/mahjongescape/src/MahjongApp.cpp`
-(`SurfaceDisplay::AllowStretch`) is `false` until then and the renderer's look is what a player gets. A test run's
-`SURFACE_STRETCH=1` (or `0`) in the environment decides instead, so one exe measures and tests both. With it, the window
+(`SurfaceDisplay::AllowStretch`) is `false` until then and the renderer's look is what a player gets. Its second argument,
+`kStretchWholeScalesOnly` (also `false`), is the other form of it: the screen at the largest whole scale that fits the window with bars
+around it (3x on 3840x2160: 2400x1800, every source pixel exactly 3x3, the picture 83 % as high as the filled window), the look that
+needs no blending to be exact, and cheaper still (fewer window pixels). A test run's `SURFACE_STRETCH` in the environment decides
+instead (0 renderer, 1 filling, 2 whole scales), so one exe measures and tests each. With it, the window
 never has a renderer, which also keeps the surface for the whole scales after a round trip through full screen (the renderer for good
 is the other way round); a drawn cursor image (`mCursorImage`) still asks for the renderer. Side-by-side captures of both are in the
 coordinator's notes folder.
@@ -539,6 +542,36 @@ coordinator's notes folder.
 *Tried and left out.* Not presenting a frame with nothing new in renderer mode (what surface mode does): the engine marks its widget
 dirty only when it has a changed rect (`MahjongHost::Present`), so the framework never draws an unchanged frame here and 1761 of 1761
 presents of a play were needed. No gain, not kept.
+
+### The game under a modal dialog and the mod menu (2026-11-14)
+
+`MahjongApp::ModalOpen` and `ModalClose` (both `override`) pause the engine's manager (`Manager::Pause`, 0x42c110 in this game, 0x4221d0 in
+China's) while a framework modal dialog or the mod menu is open. The framework already holds the widgets and the game's update while the menu
+is open (`UpdateModMenuFrame`), so no frame of the game runs under it; but the manager's clock is the machine's (the virtual one in a -fast
+run), so without the pause the level's timer and every animation would jump forward by the time spent in the menu the moment it closed.
+`Manager::Pause` counts, and `mModalPauses` counts the pauses this class made, so a game that was paused before the menu opened is still
+paused after it closes, and a close never takes off a pause that is not its own (nor one after the game has ended).
+
+Checked in both games by `tools/modal/modal_test.sh` under rundesk, on the virtual clock: a new player, a board, the first solver pair
+clicked (its removal animates), `modmenu open` at update 3470, `modmenu close` 1130 updates (5.6 s of game time) later. The level's timer, as
+`state` prints it: 0 when the menu opens, 0 at update 4498 inside it and 0 right after the close (without a pause 5 to 6 s are added: the
+no-menu run reads 4 at 4370 and 6 at 4601, the paused run 4 at 5500, the same game time as the 4370 of the control, so the game went on
+where it had stood). The animation: the first frame after the close is one of five phases against the control's frames (a frame every 5
+updates; the pause keeps the game's time, not the frames' phase, so the frame after the close lands wherever the close falls in them), and
+at the phase that lines up (`open` with K 2 for the first frame, 3 for the one 20 updates later, in both games) the picture is the
+control's picture of that game time **pixel for pixel**, so the pair's flight stood still under the menu and went on from the same point.
+The other phases differ from the control by about 6000 of 480000 pixels, the size of a frame's step, as they must; `pngmatch.py` finds the
+equal one. The control without a pause differs by 10300 (`late0`).
+
+*The menu is not drawn on the desktop (found while checking this, not caused by it).* The window of a SurfaceDisplay (the presenter of the
+two ports on the desktop) shows the engine's buffer and nothing the framework's widgets draw: the mod menu opens, takes every key and click,
+and the window shows the game as it was. Two captures of the window (PrintWindow, a real-time run on rundesk's desktop) with the menu
+open, 20 s into a run with the pause and 40 s into one without, show the board as it stood when the menu opened and no menu; a third,
+40 s into a run with the pause, caught the game still at its tutorial tip, so these captures are timing-dependent witnesses, and the
+code says the same: `Present` copies the buffer over the whole screen texture after the widgets have drawn, and in the two modes without
+a renderer nothing a widget draws goes anywhere. The same run with main's build, which still has the plain DDInterface for this game,
+shows the menu over the dimmed board. The pause does not change it (the run without it is the same). Not yet seen on the visible
+desktop. A fix belongs to `SurfaceDisplay`, not to the game; see the coordinator's note.
 
 ## Coverage check (2026-11-08)
 

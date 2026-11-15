@@ -132,6 +132,12 @@ the port with the renderer 4.79 (as above); the port in stretch mode 1.72 withou
 0.48 and 0.52 of the original's. The engine is shared, so `kStretchOtherSizes` in `engines/mahjongescape/src/MahjongApp.cpp` is one
 switch for both ports (`false` until the user has seen the look; a test run's `SURFACE_STRETCH=1` decides instead).
 
+**The game under a modal dialog and the mod menu (2026-11-14).** The same two overrides (`MahjongApp::ModalOpen` and `ModalClose`, in the shared
+`engines/mahjongescape/src/MahjongApp.cpp`) pause the manager under a modal dialog or the mod menu, as Japan's notes ("The game under a modal
+dialog and the mod menu") give. Checked in China with the same script (`modal_test.sh mahjongchina`): the timer stands at 0 under the menu
+and after the close (the no-menu run reads 4 and 6 at the same two game times as Japan's), and with the frames' phase lined up the first
+picture after the close equals the control's of that game time pixel for pixel (`open` with K 2, and K 3 for the later one).
+
 **Why China's and Japan's percentages differed** (README: China's port 7.3 % of a core against its original's 1.7 %, Japan's 6.0 %
 against 3.1 %): five runs of each port and three of each original as percentages of one core on a busy machine, China's original
 running at 1.3, 1.7 and 6.2 % in its three, so that the median of three took a quiet one. In cycles the originals' medians are
