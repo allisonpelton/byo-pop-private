@@ -29,7 +29,10 @@ is over, so an input's N is a multiple of 5, and the port runs it at the next up
 
 Phase two's sound is compared by the same runs: the original's DirectSound stand-in logs every buffer it plays (origrun's
 logs/sound.log, copied to the run's original_sound.log), the port logs its samples (BYOPOP_SOUNDLOG, port_sound.log), and
-`soundcmp.py` compares what was played, in what order, at what volume, pan and pitch. A run that matched in both removes the logs.
+`soundcmp.py` compares what was played, in what order, at what volume, pan and pitch. The music goes through BASS: a copy of the
+original with tools/bassproxy's bass.dll beside it (the real one as bass_real.dll; HAMMERHEADS_ORIGINAL names it) has its calls
+logged to original_bass.log, which `musiccmp.py` compares with the music lines of the port's sound log. A run that matched in
+both removes the logs.
 
 A scenario is a python file under scenarios/ that defines INPUTS, a list of (update count, original command, port command)
 with each count a multiple of 5 (the commands are origrun's script commands and the framework's -script commands), and END, the
@@ -240,11 +243,16 @@ def run_original(name, scenario, end):
     sound_log = os.path.join(ROOT, 'build', 'origrun', ORIGINAL_RUN, 'logs', 'sound.log')       # the stand-in's log of the copy's DirectSound calls
     if os.path.exists(sound_log):
         os.remove(sound_log)
+    bass_log = os.path.join(os.path.dirname(ORIGINAL_EXE), 'basslog.txt')       # the music: the BASS stand-in's log, when the copy has one (tools/bassproxy)
+    if os.path.exists(bass_log):
+        os.remove(bass_log)
     with open(log, 'w') as out:
         status = subprocess.call(command, stdout=out, stderr=subprocess.STDOUT, cwd=ROOT)
     print('original: origrun exited with', status, '->', log)
     if os.path.exists(sound_log):
         shutil.copyfile(sound_log, os.path.join(run, 'original_sound.log'))
+    if os.path.exists(bass_log):
+        shutil.copyfile(bass_log, os.path.join(run, 'original_bass.log'))
     if os.path.exists(crash):
         print('THE ORIGINAL CRASHED:', open(crash, errors='replace').readline().strip())
     return log
@@ -494,13 +502,19 @@ def compare_sound(name, scenario, end):
         return 0
     sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
     import soundcmp
+    import musiccmp
     saved = sys.argv
     sys.argv = ['soundcmp.py', original, port, '--end', str(end)]
     for count, original_command, port_command in scenario.INPUTS:
         if port_command and port_command.startswith('cheat ') and not original_command:
             sys.argv += ['--port-only', '%d-%d:Cheat - ' % (count + 1, count + 5)]
     try:
-        return soundcmp.main()
+        status = soundcmp.main()
+        music = os.path.join(run, 'original_bass.log')
+        if os.path.exists(music):
+            sys.argv = ['musiccmp.py', music, port, '--last', str(end - 10)]
+            status = musiccmp.main() or status
+        return status
     finally:
         sys.argv = saved
 
@@ -539,7 +553,7 @@ def main():
         sound_status = compare_sound(name, scenario, end) if status == 0 else 0
         if status == 0 and sound_status == 0 and not args.keep:
             # the logs are big (half a gigabyte for 30000 updates) and a run that matched has nothing more to say
-            for leftover in ('original.log', 'original.txt', 'port.trace', 'original_sound.log', 'port_sound.log'):
+            for leftover in ('original.log', 'original.txt', 'port.trace', 'original_sound.log', 'original_bass.log', 'port_sound.log'):
                 try:
                     os.remove(os.path.join(RUN_DIR, name, leftover))
                 except OSError:

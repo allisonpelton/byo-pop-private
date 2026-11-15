@@ -96,7 +96,7 @@ def port_events(path):
 def normalize(events):
     """What is heard, not how it is asked for: the stops of a song that does not play are dropped (the original stops every
     other song whenever one is faded in; the port's fade-outs of silent songs end in a stop too), a stop that the same update's
-    play of the same song follows is the restart the play does anyway, and of several master volumes set at one update only
+    play of the same song follows (the song's volume may be set between them) goes on where the play puts it anyway, and of several master volumes set at one update only
     the last stays (the port's mixer starts at full volume before the game sets its own)."""
     playing = set()
     result = []
@@ -108,7 +108,11 @@ def normalize(events):
         elif kind == 'stop':
             if song not in playing:
                 continue
-            following = events[at + 1] if at + 1 < len(events) else None
+            # the original sets the song's volume between the stop and the play
+            later = at + 1
+            while later < len(events) and events[later][0] == update and events[later][1] == 'volume' and events[later][2] == song:
+                later += 1
+            following = events[later] if later < len(events) else None
             if following is not None and following[0] == update and following[1] == 'play' and following[2] == song:
                 continue
             playing.discard(song)
@@ -135,6 +139,11 @@ def main():
     first = options.get('--first', 0)
     original = window(original, first, last)
     port = window(port, first, last)
+    # when the songs are made into streams is a matter of the loader (the original's loads wait for the loading thread), not of
+    # the music: the loads are compared as lists of files, the rest by order and by update
+    loads = ([event[2] for event in original if event[1] == 'load'], [event[2] for event in port if event[1] == 'load'])
+    original = [event for event in original if event[1] != 'load']
+    port = [event for event in port if event[1] != 'load']
     print('original: %d events, port: %d events (updates %d to %d)' % (len(original), len(port), first, last))
     kinds = {}
     for _, kind, _, _ in original:
@@ -145,6 +154,7 @@ def main():
         kinds[kind] = kinds.get(kind, 0) + 1
     print('port kinds:    ', ', '.join('%s %d' % kv for kv in sorted(kinds.items())))
     offsets = {}
+    late_inputs = 0
     mismatches = []
     for at in range(min(len(original), len(port))):
         o = original[at]
@@ -152,16 +162,25 @@ def main():
         if o[1:] != p[1:]:
             mismatches.append((at, o, p))
         else:
-            offsets[p[0] - o[0]] = offsets.get(p[0] - o[0], 0) + 1
+            # the master volume is set by the focus changes, which the harness posts to the port one update after the original
+            # (as every input); the game's own events must come at the same update
+            if p[1] == 'master' and p[0] - o[0] == 1:
+                late_inputs += 1
+            else:
+                offsets[p[0] - o[0]] = offsets.get(p[0] - o[0], 0) + 1
     print('update offset (port minus original) of the %d matching events:' % sum(offsets.values()),
           ', '.join('%+d: %d' % kv for kv in sorted(offsets.items())))
+    if late_inputs:
+        print('and %d master volumes set by a focus change, one update after the original (the harness posts the port its input then)' % late_inputs)
     if len(original) != len(port):
         print('DIFFERENT: the counts of events differ (%d and %d)' % (len(original), len(port)))
     for at, o, p in mismatches[:8]:
         print('DIFFERENT at event %d: original %s, port %s' % (at, o, p))
     if len(mismatches) > 8:
         print('... and %d more' % (len(mismatches) - 8))
-    ok = not mismatches and len(original) == len(port) and len(offsets) <= 1
+    if loads[0] != loads[1]:
+        print('DIFFERENT: the files made into streams: original %s, port %s' % loads)
+    ok = not mismatches and len(original) == len(port) and len(offsets) <= 1 and loads[0] == loads[1]
     print('MUSIC IDENTICAL' if ok else 'MUSIC DIFFERS')
     return 0 if ok else 1
 
