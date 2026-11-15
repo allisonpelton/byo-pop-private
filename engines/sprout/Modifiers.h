@@ -96,6 +96,28 @@ private:
 	float mTime;       // +0x20
 };
 
+// The node's position, moved along a wave: across and down, each with its own period and size (0x44 bytes,
+// constructor 0x47f450 (pizzafrenzy); Iggle Pop's Mac build names it WaveModifier). Each frame the node moves by the
+// change of the offset since the frame before, so the node's own motion goes on beside it.
+class WaveModifier : public Object, public NodeListener
+{
+public:
+	// 0x47f450 (pizzafrenzy): a period of nothing is a period of one
+	WaveModifier(float thePeriodX, float thePeriodY, float theSizeX, float theSizeY, float theTime);
+
+	// 0x47f550 (pizzafrenzy)
+	void update(UpdateInfo& theInfo, Node* theNode) override;
+
+private:
+	float mPeriodX;  // +0x08
+	float mPeriodY;  // +0x0c
+	float mSizeX;    // +0x10: how far across the node moves at most
+	float mSizeY;    // +0x14
+	float mTime;     // +0x18
+	float mOffsetX;  // +0x1c: the offset the node was last moved to
+	float mOffsetY;  // +0x20
+};
+
 } // namespace engine
 
 #endif

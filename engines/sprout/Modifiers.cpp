@@ -78,3 +78,36 @@ void ColorFlashModifier::update(UpdateInfo& theInfo, Node* theNode)
 	theNode->setColor(aColor);
 	theNode->setColorMode(mColorMode);
 }
+
+// 0x47f450 (pizzafrenzy)
+WaveModifier::WaveModifier(float thePeriodX, float thePeriodY, float theSizeX, float theSizeY, float theTime) :
+	mPeriodX(thePeriodX),
+	mPeriodY(thePeriodY),
+	mSizeX(theSizeX),
+	mSizeY(theSizeY),
+	mTime(theTime),
+	mOffsetX(0),
+	mOffsetY(0)
+{
+	if (thePeriodX == 0.0f)
+		mPeriodX = 1.0f;
+	if (thePeriodY == 0.0f)
+		mPeriodY = 1.0f;
+}
+
+// 0x47f550 (pizzafrenzy)
+void WaveModifier::update(UpdateInfo& theInfo, Node* theNode)
+{
+	float aTime = (float)((double)theInfo.mSeconds + (double)mTime);
+	mTime = aTime;
+	float anOffsetX = (float)(sin((double)aTime / (double)mPeriodX * PI * 2.0) * (double)mSizeX);
+	float anOffsetY = (float)(sin((double)aTime / (double)mPeriodY * PI * 2.0) * (double)mSizeY);
+	Point aPosition = *theNode->getPosition();
+	float aPreviousX = mOffsetX;
+	mOffsetX = anOffsetX;
+	aPosition.x = (anOffsetX - aPreviousX) + aPosition.x;
+	float aPreviousY = mOffsetY;
+	mOffsetY = anOffsetY;
+	aPosition.y = (anOffsetY - aPreviousY) + aPosition.y;
+	theNode->setPosition(aPosition);
+}
