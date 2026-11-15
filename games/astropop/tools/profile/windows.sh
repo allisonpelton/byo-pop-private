@@ -5,7 +5,7 @@
 # twice the size), one game process at a time, in real time, the order rotating every round, the whole loop on one performance core
 # (tools/pincore.py). Environment:
 #   MODE=2d  (default) rundesk, Direct3D 11 on its private desktop; the original through origrun (perf.py orig)
-#   MODE=3d  the visible desktop, 22:00 to 08:00 only: the port with PERF_3D=1 PERF_DESKTOP=1, the original through perf.py orig3d
+#   MODE=3d  the visible desktop: the port with PERF_3D=1 PERF_DESKTOP=1, the original through perf.py orig3d
 #   FIRST=4 APPEND=1  more rounds into the same folder (rounds FIRST to the last asked for; runs.txt is added to, not cleared)
 #   SPLIT=1  the cycle split (perf.py PERF_SPLIT): -cyclesplit for the port, --count / countsnap for the original; a run's file
 #            split.jsonl or counts.jsonl is kept in its folder, read with tools/cyclesplit.py <port> <orig> --from a --to b
