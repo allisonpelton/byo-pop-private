@@ -2,10 +2,11 @@
 
 The ports used two to three times the memory of the original games: Big Money 124 MB of private bytes in its notes'
 scripted minute against the original's 42 MB, Bejeweled 2 88 MB at the title against 40, Atomica 166 to 183 MB against
-64 to 67. This is the framework work of 2026-11-14 that set out to bring that down without changing a pixel or a
-sound: what the memory was, how it was measured, what each change saves in memory and processor time, and what was
-looked at and left. The rule for every change was that every frozen baseline and every shot stays identical, that
-nothing runs on a thread of ours, and that speed comes from not waiting.
+64 to 67. This is the framework work of 2026-11-14 that set out to bring that down without changing a pixel or a sound:
+what the memory was, how it was measured, what each change saves in memory and processor time, and what was looked at
+and left. The rule for every change was that every frozen baseline and every shot stays identical, that nothing runs on
+a thread of ours, and that speed comes from not waiting. A second part, of 2026-11-15, brought Big Money to the
+original's own figures and asked what a 2D game spends on Direct3D ("Big Money at the original's memory").
 
 ## How it was measured
 
@@ -165,6 +166,331 @@ The processor time of a held board did not move. The thirteen runs took 86.7 G c
 the first round, where the build before ran first, and 71.6 G after against 68.8 G before in the second, where the build
 after ran first: whichever ran first was the higher, by more than the builds differ.
 
+## Big Money at the original's memory (2026-11-15)
+
+After the first part the user asked whether Big Money could be brought to the original's memory, 37 MB of private bytes
+at the title and 42 MB at the peak, and then whether these 2D games need Direct3D at all, for memory and for processor
+time. Each step was measured in real time against the original's figures from Big Money's notes (its performance pass:
+42.1 MB at the peak of its scripted minute, the bot's Action game at skill 1 with seed 21).
+
+**The answers.** Big Money on the software screen in the original's own window (640x480) holds 36.2 to 36.7 MB at the
+title and peaks at 40.7 to 41.8 MB in that minute, against the original's 37 and 42.1, once step 7 below had taken out
+the cache that made it peak at 47 to 49 MB. In about one run in five Windows adds 3.7 MB of its own (the oddity under
+"Open"). Without Direct3D a 2D game saves the device's 28 to 30 MB at every window size, but it does not save processor
+time on this machine. At 1x the software screen costs the game about what the GPU path does (Dynomite's medians 9.8 G
+cycles against 10.2, the pairs going either way); at 2x it costs about a sixth more (Dynomite 10.6 G against 9.1, Big
+Money 18.6 against 15.6), GDI's stretch on top of the same software draws. What dwm and the kernel spend on either could
+not be told apart on a machine that was never quiet. So the GPU stays the default above 1x, and a port may take the
+software screen there for its memory ("Windows at 2x to 4x").
+
+### What the original runs in
+
+The original starts in 2D. In its export, MakeWindow (0x4896a0) and the DDInterface constructor (0x44e730) leave mIs3D
+at 0 and mAutoEnable3D at 0. The registry's Is3D is read only when it is there, and the user's install has neither Is3D
+nor a Test3D key. Under origrun on rundesk's desktop DirectDraw has no hardware (`docs/ORIGRUN.md`), so the original
+draws in software there too. Its 37 and 42 MB therefore hold no graphics driver at all. The port started on the GPU
+whatever the registry said, since the framework's wish for 3D defaulted to on.
+
+### Where the Direct3D 11 device's memory goes
+
+A test program that makes the device and nothing else, on this machine's GTX 1080 (driver 32.0.15.6094), holds 27.5 MB
+of private bytes. The writable image of the user-mode driver, `nvwgf2um.dll`, is 18.6 MB of that, 18 MB of it the
+driver's .data section; `nvgpucomp32.dll` adds 0.8 MB, the heaps 3.2 MB and other private regions 2.8 MB. Nothing a
+program asks of the device moved this by more than 0.5 MB: single-threaded, no internal threading optimisations, feature
+level 10_0 or 9_3, a frame latency of one, and a discard swap chain with one buffer were each tried. WARP, the software
+rasteriser behind the same interface, holds 2.6 to 4.1 MB, and SDL's direct3d11 renderer 31.0 to 31.9 MB. The 28 MB is
+the NVIDIA driver's own, and only another way of showing the frames avoids it.
+
+Direct3D 9 is not that way. On rundesk's desktop its CreateDevice fails (D3DERR_NOTAVAILABLE) and SDL falls back to
+Direct3D 11. On the visible desktop a bare Direct3D 9 device holds 20.3 to 22.4 MB, `nvd3dum.dll`'s writable image 10.9
+MB of it. SDL's direct3d renderer started at 20.4 MB but held 94.4 MB after 120 frames of 200 copies each, its heap
+grown to 72.5 MB, so it saves at most 10 MB at the start and gives that back under load. SDL's software renderer holds
+4.0 to 4.5 MB. (The framework asks SDL for direct3d11 by name, so a port's GPU path is Direct3D 11 on every desktop.)
+
+### 6. Pictures uploaded as they are loaded
+
+A picture the resource manager loads (`ResourceManager::DoLoadImage`) now gets its texture at once in 3D and drops its
+pixels then (`DDInterface::UploadLoadedImage`), so that the pictures loaded and not yet drawn hold none either: a texture
+costs no private bytes. A draw that needs the pixels again (a software draw, a read of them, the other filter) makes them
+from the file, as after any drop (step 1). A display that keeps textures of its own (`GPUDisplay`) does nothing here, and
+the software screen has no textures. `BYOPOP_NOLOADUPLOAD=1` in a test run turns it off.
+
+It reaches only the games that load through the framework's resource manager: of the thirteen, Bejeweled 2 and AstroPop
+(Bejeweled Twist does too, but draws through `GPUDisplay`), and beyond them Bookworm Adventures, its sequel and Hammer
+Heads. The older games (Atomica, Big Money, Bejeweled, Venice, Typer Shark and the rest) load each picture through
+`SexyAppBase::GetImage` in their own code, which this does not touch ("Open"). Each was held at its first board in real
+time, as in the table of thirteen, three rounds turn about with and without the upload:
+
+| Game | Peak private bytes, with / without | Pictures' pixels, with / without | G cycles, medians, with / without |
+|---|---|---|---|
+| Bejeweled 2 | 86.4 to 87.1 / 96.1 to 98.8 MB | 8.0 / 26.9 MB | 12.2 / 12.7 |
+| AstroPop | 102.8 to 104.1 / 121.8 to 124.4 MB | 9.6 / 39.6 MB | 17.5 / 18.6 |
+| Bejeweled Twist (not reached, held while loading) | 250.5 to 258.4 / 256.2 to 259.1 MB | 121.2 / 121.2 MB | 9.4 / 8.9 |
+
+Bejeweled 2 holds 10 MB less and AstroPop 19 MB less. Processor time did not rise: the pairs went either way (each game
+lower with the upload in two of its three), and Bejeweled Twist, which the change does not reach, spread as much between
+its own pairs. With `BYOPOP_DROPCHECK=2` (every dropped picture made again at once and compared) no picture differed:
+Bejeweled 2 made 19 pictures again from their files at its first board (its gems among them) and AstroPop
+41, each the same as the one dropped. Every frozen baseline stayed identical (`tools/check.sh --changed main`,
+which ran these games, Bookworm Adventures, its sequel and Hammer Heads among them).
+
+### The software screen for Big Money
+
+Big Money's own session has since given it Dynomite's software screen (`SoftwareScreenDisplay`) at 1x; here it was
+measured through a test switch (`SOFTWARE_SCREEN=on`) that does the same for a game that keeps DDInterface, windowed at
+the game's size with the original's settings (`games/bigmoney/tools/origcmp/settings.txt`, `-windowscale=1`). Its
+pictures then come from the 2004 blitters, as the original's 2D mode draws them, and nothing is uploaded: the window
+shows the frames through its own surface, with no renderer and no Direct3D device.
+
+At the title it held 36.2 to 36.7 MB, against the original's 37 MB and 62 to 65 MB on the GPU path. Of that, the heap
+was 32.2 MB, the pictures' pixels 21.7 to 22.8 MB of it (nothing is uploaded, and every picture keeps its pixels for the
+blitters), and the modules' writable images 0.9 MB. The visible desktop gave the same figure (36.4 against 36.7 MB on
+rundesk's). But every run's peak, 46.9 to 49.0 MB (four runs, one of them on the visible desktop), came in the second
+between the title and the first board, not in the minute itself (40.5 to 41.9 MB). That was step 7's.
+
+### 7. Stretched copies dropped on the software screen
+
+Memory reports every few updates through that second found 25 pictures more while the game selector was up, all 467
+pixels wide and of different heights, 7.6 MB of pixels and 1.7 MB of their alpha caches, gone when the selector closed.
+The selector rolls open by stretching the middle of its panel to a new height in every frame, and the software stretch
+(`DDInterface::GetStretchCopy`, an earlier shared change: the source stretched into a picture of the destination's size,
+then blitted, as the original's software DDImage does) kept each stretched picture in a cache of 64 pictures or 64 MB.
+That cache was made for the GPU path, where each copy has a texture worth keeping. The original keeps none. The loading
+screen's bar filled the same cache before the title.
+
+A software screen now drops the stretched pictures not drawn in the last two frames after each present
+(`SoftwareScreenDisplay::Present`, `DDInterface::DropStretchCopiesDrawnBy`); one drawn in every frame is kept, and the
+GPU path keeps its cache as it was. In the same minute, in real time on rundesk's desktop and the visible one: the title
+36.2 to 36.7 MB, the selector 40.0 to 40.3 MB instead of 46.9 to 49.0, the first board 38.3 MB, and the minute's peak
+40.7 MB on the visible desktop, 41.6 MB on rundesk's before the run's own screenshot (which took it to 46.5 MB for a
+moment) and 41.8 MB in three more runs on rundesk, against the original's 37 and 42.1. With a memory report at the same
+updates, the selector's rise above the title fell from 10.2 MB to 3.8.
+
+The drop costs no measurable processor time. Dynomite's scripted minute (its notes' `pairs.sh` input, 6,000 updates in
+real time on a core of its own, three runs of each turn about; the second batch below) took 12.4 G cycles with it and
+13.8 G without at 1x, and 12.4 G with it and 11.6 G without at 2x: the runs of one build differ by more.
+
+### Windows at 2x to 4x
+
+Above 1x the software screen handed itself to the GPU wherever an accelerated renderer existed, because copying the
+buffer into SDL's window surface with each pixel repeated cost more processor time than the GPU. So the usual window,
+2x, still had the device's 30 MB. `SurfaceDisplay`, the display of the Mahjong games, Tip Top, Bonnie's, Cosmic Bugs,
+Water Bugs and Word Harmony, shows its frames that way at 2x to 4x.
+
+GDI's own stretch was measured against that copy and against the GPU: each changed rect went from the 1x buffer straight
+to the window in one StretchDIBits with COLORONCOLOR (nearest) sampling, and the window kept no surface of its size. Its
+frames were read back from the window and compared with the buffer at every present: none of 901 differed, at each size.
+While this was measured, the Mahjong session's stretch mode reached the trunk (`framework/SurfaceDisplayGdi.cpp`, for
+window sizes that are no whole scale): it stretches the whole buffer with the changed rects as the clip region, which
+its session found as cheap as the rect alone and exact at any size. Surface mode at 2x to 4x now presents through that
+same `GdiStretch` (`SurfaceDisplay::PresentScaledByGdi`), and this branch's own stretch went; `SURFACE_VERIFY=1` checks
+those presents as it checks stretch mode's.
+
+**On the visible desktop**, between 01:00 and 01:50 (night hours allow it): Big Money's scripted minute on the software
+screen (the GPU path for the GPU rows), three rounds turn about with the order reversed in the middle one, each window
+shown without taking the focus, at below-normal priority, the game on a performance core of its own
+(`tools/pincore.py`). Over the minute: the game's processor time, dwm.exe's and the System process's (from the system's
+process list, since neither can be opened from an unelevated shell), and the game's peak private bytes. Medians of the
+three:
+
+| Window | Path | Game | dwm | System | Sum | Peak private bytes | Refreshes showing one new frame |
+|---|---|---|---|---|---|---|---|
+| 1x | GPU | 6.0 s | 11.3 s | 28.5 s | 47.3 s | 69.8 MB | 97 % |
+| 1x | software screen | 5.7 s | 10.0 s | 29.4 s | 46.3 s | 50.2 MB | 71 % |
+| 2x | GPU | 5.3 s | 9.9 s | 35.4 s | 51.7 s | 77.2 MB | 90 % |
+| 2x | repeated copy | 11.5 s | 10.8 s | 30.1 s | 52.4 s | 53.8 MB | 85 % |
+| 2x | GDI stretch | 5.8 s | 11.5 s | 30.4 s | 48.3 s | 49.1 MB | 73 % |
+| 3x | GPU | 6.4 s | 9.6 s | 30.7 s | 46.9 s | 89.9 MB | 93 % |
+| 3x | repeated copy | 15.0 s | 8.0 s | 25.6 s | 48.0 s | 59.7 MB | 63 % |
+| 3x | GDI stretch | 4.2 s | 7.7 s | 29.7 s | 41.5 s | 49.1 MB | 68 % |
+| 4x | GPU | 5.6 s | 9.5 s | 34.8 s | 48.7 s | 108.5 MB | 90 % |
+| 4x | repeated copy | 26.6 s | 8.7 s | 20.4 s | 54.4 s | 68.1 MB | 82 % |
+| 4x | GDI stretch | 5.2 s | 7.5 s | 24.3 s | 41.3 s | 49.1 MB | 64 % |
+| | no game (a minute idle) | | 9.9 s | 32.5 s | | | |
+
+These runs predate step 7 and wrote a present log, which costs about 5 MB itself, so their peaks stand against each
+other only.
+
+**The whole machine's sum could not tell the paths apart.** The machine was not quiet: other sessions' games ran
+throughout (one to six at the start of each run), and the machine was 42 to 99 % busy. With no game of ours the System
+process took 20.7 to 38.3 s a minute and dwm 9.8 to 10.9 s, more than any path's own share, so the dwm, System and sum
+columns move by 10 s between runs of one path. The sums at 2x were 51.7 s on the GPU and 48.3 s with GDI's stretch; at
+3x 46.9 and 41.5 s; at 4x 48.7 and 41.3 s; every one of those differences is inside that noise. A quiet machine would be
+needed to say what dwm and the kernel spend on each path, and none could be had while other sessions ran.
+
+**On rundesk's desktop, pinned**, the like-for-like desktop of the originals' figures, the game's own processor time was
+measured again as cycle counts (`QueryProcessCycleTime`), three runs of each turn about. Big Money's whole scripted run
+(load, title, selector and the minute, about 91 s) on the software screen, and Dynomite's scripted minute. The first two
+batches ran while the compositor wait below was the default, so their software rows wait for DWM; the third batch ran
+with the framework's pace, the default now, and set the wait against it:
+
+| Batch | Game | Path | G cycles, median (range) | Peak private bytes |
+|---|---|---|---|---|
+| 1 | Big Money | GPU at 2x | 15.6 (14.6 to 16.9) | 67.4 to 70.2 MB |
+| 1 | Big Money | software screen at 2x, GDI's stretch, the wait | 18.6 (16.2 to 21.1) | 39.8 to 43.9 MB |
+| 1 | Big Money | software screen at 1x, the wait | 19.5 (19.0 to 23.2) | 41.8 MB |
+| 2 | Dynomite | GPU at 2x | 9.3 (7.8 to 10.0) | |
+| 2 | Dynomite | software screen at 2x, GDI's stretch, the wait | 12.4 (11.8 to 13.2) | |
+| 2 | Dynomite | software screen at 2x, repeated copy, the wait | 23.6 (22.5 to 26.2) | |
+| 2 | Dynomite | software screen at 1x, the wait | 12.4 (12.2 to 13.6) | |
+| 3 | Dynomite | GPU at 1x | 10.2 (8.7 to 11.8) | |
+| 3 | Dynomite | software screen at 1x | 9.8 (9.4 to 13.4) | |
+| 3 | Dynomite | software screen at 1x, the wait | 11.6 (9.6 to 13.5) | |
+| 3 | Dynomite | GPU at 2x | 9.1 (8.7 to 9.2) | |
+| 3 | Dynomite | software screen at 2x, GDI's stretch | 10.6 (9.3 to 11.7) | |
+| 3 | Dynomite | software screen at 2x, GDI's stretch, the wait | 11.3 (9.4 to 11.8) | |
+
+GDI's stretch costs little in itself: either game's software screen costs about as much at 2x as at 1x (Dynomite's 8 %
+more in the third batch), where the repeated copy cost Dynomite nearly twice as much. At 1x the software screen and the
+GPU path cost about the same, the third batch's pairs going either way (software 13 % and 8 % above the GPU in two, 4 %
+below in one), as on the visible desktop (5.7 s against 6.0). At 2x the GPU is cheaper, by about a sixth in either game
+(Dynomite 9.1 G against 10.6, all three pairs; Big Money 15.6 against 18.6), and the visible desktop showed the same
+more faintly (5.3 s against 5.8). One batch's runs spread by a third and the batches by more, for the machine was busy
+with other sessions' games throughout, so only the pairs within a batch are set against each other.
+
+Nor does this branch cost the software screen more than before it. Dynomite's frozen baseline (built 2026-11-12), the
+trunk and this branch (with the wait, then the default), turn about at 1x, took 7.6 G (6.8 to 8.6), 7.4 G (6.6 to 8.1)
+and 7.9 G (7.0 to 8.0) in a fourth batch, the baseline as much as the others; the 8.46 G of Dynomite's notes was a
+quieter day's figure.
+
+So `SurfaceDisplay` now stretches with GDI at 2x to 4x on Windows (`SURFACE_PRESENT=copy` in a test run gives the copy
+back): those games have no GPU path there, and the stretch costs them half of the copy or less. If GDI fails, the frames
+are copied into the window's surface from then on. The software screen stays on the GPU at 2x to 4x, as before, unless
+the port asks for software there with `SoftwareScreenDisplay::Create`'s third argument (`theScaledInSoftware`), which
+saves the device's 28 to 30 MB at the usual window for the processor time above. No port asks yet; the choice is each
+game's session's.
+
+### The compositor wait, an option
+
+The last column of the visible desktop's table is the frame pacing. A vsync present waits for the vertical blank, so
+each refresh shows one new frame; the window's surface has no vertical blank, and the framework's own pace (whole
+milliseconds, placing the frames on the update loop's 10 ms steps) showed a frame twice or skipped one on a quarter to a
+half of the refreshes. A scene that moves steadily, as the selector's roll or a falling piece, then moves unevenly.
+
+With `SURFACE_PACE=dwm` in a test run, each present without a renderer on Windows waits for the desktop compositor's
+next composition (`DwmFlush`, `GdiStretch::WaitForComposition`), as a vsync present waits for the blank. The wait is
+skipped with `-fast`, `-drawevery` and `-hold`, as the pace is, and before the game has loaded. A wait that fails, or
+that holds a frame for more than 250 ms (a compositor that is not composing), hands the frames back to the pace for
+good. The same minute again on the visible desktop, three runs of each, every present's time set against DWM's vertical
+blanks (`DwmGetCompositionTimingInfo`; this display runs at 60.002 Hz):
+
+| Window | Path | Refreshes showing one new frame | Interval between presents, median (5th to 95th percentile) | Peak private bytes |
+|---|---|---|---|---|
+| 2x | GPU, vsync | 100 % | 16.68 ms (14.92 to 18.37) | 78.0 MB |
+| 1x | software screen, the pace | 51 % (41 to 66 % by run) | 19.3 ms (9.0 to 21.5) | 50.1 MB |
+| 1x | software screen, waiting for DWM | 100 % | 16.67 ms (16.09 to 17.23) | 50.3 MB |
+| 2x | GDI stretch, the pace | 65 % | 18.9 ms (8.1 to 24.3) | 48.9 MB |
+| 2x | GDI stretch, waiting for DWM | 100 % (78 % in one run with the machine 91 % busy) | 16.65 ms (15.37 to 17.97) | 49.4 MB |
+| 3x | GDI stretch, waiting for DWM | 100 % | 16.67 ms (15.50 to 17.84) | 49.4 MB |
+| 4x | GDI stretch, waiting for DWM | 100 % | 16.67 ms (15.83 to 17.51) | 49.3 MB |
+
+With the wait, the software paths show a moving scene as evenly as the vsync GPU path: one new frame each refresh, and
+their presents' intervals spread less than the GPU's. On rundesk's desktop the wait paces as well (58 presents a second,
+median 16.65 ms). These rounds ran one path after another while the machine went from 27 to 90 % busy, so their
+processor times are not set beside each other here. The cost was measured on rundesk's desktop, pinned, turn about, in
+Dynomite's scripted minute (the table's last rows): the wait took more of the game's processor time in all six pairs, by
+1 to 18 %, about 2 % in the median pair (1x 11.6 G against 9.8, 2x 11.3 against 10.6 in the medians), the cost of the
+call and of presents that now meet the compositor's work.
+
+**So the framework's own pace stays the default, and the frame pacing is not as even as the vsync GPU path's:** on the
+window's surface (the software screen at 1x, `SurfaceDisplay` at every size) a moving scene shows a frame twice or skips
+one on a quarter to a half of the refreshes, where the GPU path shows one new frame on nine refreshes in ten or more.
+Making the wait the default, for that evenness at about 2 % of the game's processor time, is the user's choice.
+
+### The picture at each size
+
+Shots of the scripted minute every 1,000 updates, compared pixel for pixel (`screenshotfull`, the window's own pixels):
+
+| Display, size | Before this part | Now | The picture |
+|---|---|---|---|
+| Software screen (Dynomite, Big Money), 1x | software screen | the same | the same |
+| Software screen, 2x to 4x windowed | GPU path | the same, unless the port asks for software | the same; with software asked for, the 1x software picture with each pixel repeated, where the GPU's picture differed from it by 38,000 to 94,000 pixels a frame at 1x scale (alpha blends rounding by one or two levels, at most 54 to 55, and a strip along Big Money's board top) and, at Big Money's title, by one scaled picture the GPU draws finer at the render scale (45,000 to 180,000 pixels, at most 81 to 122 levels) |
+| SurfaceDisplay, 1x | window surface | the same | the same |
+| SurfaceDisplay, 2x to 4x | the repeated copy | GDI's stretch | the same: every shot identical, and none of 901 frames read back from the window differed from the buffer |
+| Any display, full screen at a size that is no whole multiple | GPU, linear filter | the same | the same |
+| DDInterface (the GPU path), any size | GPU | the same | the same |
+
+The GPU path's own 2x to 4x pictures in play are its own 1x picture enlarged, pixel for pixel; only at the title does
+that one scaled picture come out finer.
+
+### The 3D box
+
+A game on the software screen whose original offers 3D in its Options must still be able to take the GPU. Big Money's
+does not: its Options have full screen and custom cursors only, and its original reaches 3D only through the
+developers' debug keys or an Is3D value it never writes, so it needs none of this (an earlier note of this part said
+otherwise, from a slip in its notes). The hand-back is there for the ports whose originals do offer the box. With
+`theOffers3D` (`SoftwareScreenDisplay::Create(theApp, true)`, or `SOFTWARE_SCREEN=3d` in a test run) the display says 3D
+can be had (mCan3D) while an accelerated renderer can be made, and stays in software with mIs3D false. When the game
+wants 3D (`Set3DAcclerated(true)`, or Is3D=1 in the registry at the start) the window gets its renderer, and if that is
+accelerated the screen is drawn on the GPU from then on (`SoftwareScreenDisplay::NoteWant3D`, which `InitDDInterface`
+and `Set3DAcclerated` call). 3D off later leaves the screen on the GPU with mIs3D false, since a window that has had the
+Direct3D 11 renderer cannot show its surface again; the next start is in software. A game whose original starts in 2D
+says so with the new `SexyAppBase::mDefault3D` (true by default), which `InitDDInterface` takes as the wish when the
+registry has no Is3D. Checked in Big Money under the test switch (as a game at hand, not because it needs it): started
+with Is3D 0 it is in software, and `3d on`
+moves it to the GPU (`Is3DAccelerated 1, Is3DAccelerationSupported 1`); started with Is3D 1 it is on the GPU from the
+first frame; with software asked for at 2x, `3d on` moves it the same way; with `SOFTWARE_SCREEN=on` (no 3D offered) `3d
+on` answers `Is3DAccelerationSupported 0` and nothing changes.
+
+### Full screen
+
+Full screen on this 3840x2160 display is 4.5 times the game's 640x480, no whole multiple, so its picture needs the GPU's
+filtered stretch and stays on the GPU. Nothing was measured there and nothing changed. Whether a full screen should use
+the linear filter, nearest sampling, or whole factors with borders (4x with borders would let the software screen hold
+full screen too) is the user's decision, and no default changed.
+
+### What it costs
+
+**GDI's stretch samples the nearest pixel only.** At whole factors that is the picture itself; it could not serve a full
+screen that is no whole multiple. It is Windows only: elsewhere the repeated copy stays.
+
+**Its processor time grows with the area changed**, as the copy's did, where the GPU's present costs the same whatever
+changed. It stays far under the copy's, which it replaces.
+
+**A port that asks for software at 2x to 4x pays the software draws' processor time** for the device's memory (above),
+and its picture there becomes its 1x software picture enlarged, losing the GPU's blending and, in Big Money, the finer
+drawing of one scaled picture at the title.
+
+**What dwm and the kernel spend on each path is not known**, for the machine was never quiet (above).
+
+**The window's surface is paced less evenly than a vsync present** while the framework's pace is the default: a moving
+scene shows a frame twice or skips one on a quarter to a half of the refreshes, on the software screen at 1x (Big Money,
+Dynomite) as on `SurfaceDisplay` at every size, as before this part. The compositor wait would even it for about 2 % of
+the game's processor time, and would block the main loop for up to a refresh, as a vsync present does; it waits for the
+user's choice.
+
+**A stretched picture is made again** when it is drawn after two frames without it, as the original made every one each
+time it was drawn.
+
+### The switches added
+
+| Switch (test runs only) | What it does |
+|---|---|
+| `SOFTWARE_SCREEN=on` | gives a game that keeps DDInterface the software screen in its place, as Dynomite has it |
+| `SOFTWARE_SCREEN=3d` | the same, offering 3D: Is3DAccelerationSupported is 1 while an accelerated renderer can be had, and 3D on hands the screen to the GPU |
+| `SOFTSCREEN_SCALED=1` or `0` | a software screen stays in software at 2x to 4x (through GDI's stretch where it can), or takes the GPU there, whatever the port asked |
+| `SURFACE_PRESENT=copy` | at 2x to 4x, the repeated copy into the window's surface in place of GDI's stretch, as before |
+| `SURFACE_PACE=dwm` | each present to the window's surface waits for DWM's next composition in place of the framework's millisecond pace (Windows) |
+| `BYOPOP_NOLOADUPLOAD=1` | turns off the upload at load (step 6) |
+
+The test command `3d on|off` ticks or clears the Options box through `Set3DAcclerated` and logs what the display made of
+it. `-presentlog` now records the presents without a renderer too (as `surface`, `surface-gdi`, `stretch`, and each with
+`-dwm` under the compositor wait), and writes the first present's counter (`first_counter`), so that the presents can be
+set against DWM's vertical blanks.
+
+### The other 2D ports on DDInterface
+
+The same opt-in (a `CreateDDInterface` override returning `SoftwareScreenDisplay::Create`, under `#ifndef
+__EMSCRIPTEN__`, with mDefault3D false where the original starts in 2D) suits any port whose original draws a 2D mode in
+software and that keeps DDInterface now: Alchemy, Atomica, Bejeweled, Bejeweled 2, Bookworm, Bookworm Adventures and its
+sequel, Hammer Heads, Mummy Maze, Ning Po, Noah's Ark, Pixelus, Rocket Mania, Seven Seas and Venice. AstroPop, Heavy
+Weapon and Typer Shark have displays of their own (DDInterface subclasses), so theirs would start from those. At 1x it
+saves the device's 28 to 30 MB; on this machine it costs processor time against the GPU path (above), which each session
+weighs against its original's figures. Each session first finds which mode its original starts in from its own export,
+as Big Money's was found (MakeWindow's mIs3D and the DDInterface constructor's mAutoEnable3D). Bejeweled 2 and Bejeweled
+Twist draw their 3D modes through GPUDisplay, which is not this. The web build keeps DDInterface. Each opt-in is its own
+session's.
+
 ## Looked at and left
 
 **Atlases.** Packing small pictures into shared textures saves what each texture costs beyond its texels, and that is
@@ -178,11 +504,25 @@ sampled pixel. Not done.
 
 ## Open
 
-**Pictures loaded but not yet drawn** are the largest holder of memory left that a port can give back: the pixels column
-above, 35 MB in Bejeweled 2 at its first board, 18 MB in Big Money, 31 MB in Dynomite, 43 to 45 MB in Atomica and
-AstroPop, 40 MB in Heavy Weapon, 121 MB in Bejeweled Twist. Since a texture costs no private bytes, uploading every
-picture as it is loaded and dropping its pixels then would take most of that, for the uploads' time at the start and a
-second decoding of any picture whose first draw wants the other filter. It was not tried here.
+**Pictures loaded but not yet drawn in the older games.** The upload at load (step 6) reaches the games on the
+framework's resource manager. Atomica (43 to 45 MB of pixels at its first board), Big Money on the GPU path, Typer Shark,
+Heavy Weapon, Venice and the other games that load each picture through `SexyAppBase::GetImage` still keep every loaded
+picture's pixels until its first draw. Uploading there too would take most of it, but such a game may change a picture's
+pixels or flags after `GetImage` returns (its own edits, `Palletize`), which would then make them again from the file, and
+each game's own checks would have to show nothing moved. Not tried. A game's own composites (Big Money's `CopyImage`
+pictures, about 5.7 MB on the GPU path) keep their pixels for good, since no file can make them again.
+
+**On the GPU path every port draws with 3D's flags.** DDInterface takes the accelerated renderer's flags, so mIs3D is
+true in the default 2x window, in full screen and on the web, and the widgets then draw with the smooth stretch and the
+linear blend (`SetFastStretch(!is3D)`, `SetLinearBlend(is3D)`), where a 2D original draws neither. A per-game switch that
+keeps the 2D flags on the GPU path is the next framework part.
+
+**A drawn cursor brings the renderer back.** On the software screen a game that sets a cursor image (Big Money's custom
+cursors, off by default) has the window take a renderer for it, so the Direct3D device's 30 MB returns at 1x; the
+original's 2D mode draws its cursor in software on the screen. Not done.
+
+**A player's own window is 2x.** The framework opens 2x by default and full screen at the desktop's size, so a player is
+on the GPU path with the device's memory unless the port takes software at 2x; the like-for-like figures here are 1x.
 
 **Bejeweled Twist** holds 267 to 271 MB at its first board (121 MB of pixels, 55 MB of sounds) against the original's
 about 158 MB at its menu; its pixels are mostly held for its software screen, and its own session would need to look at
@@ -192,4 +532,14 @@ what that keeps.
 random LFO differ from run to run, in every game with tracker music; a comparison of rendered music has to run within
 one second.
 
-**The Direct3D 11 device's 30 MB** is most of what is left between a port and its original.
+**The Direct3D 11 device's 30 MB** is most of what is left between a port on the GPU path and its original, and it is
+the NVIDIA driver's own ("Where the Direct3D 11 device's memory goes"). The software screen leaves it out at 1x, and
+at 2x to 4x where a port asks; a port that keeps DDInterface keeps it, and so does a full screen at a size that is no
+whole multiple. Each 2D port's opt-in is its own session's ("The other 2D ports on DDInterface").
+
+**Windows' text-input modules in about one run in five.** In 7 of 35 runs of Big Money on rundesk's desktop the process
+loaded Windows' text-input interface (`msutb.dll`, `InputSwitch.dll`, `TextInputFramework.dll`,
+`Windows.UI.Core.TextInput.dll`, `CoreUIComponents.dll`, `dcomp.dll`, `DWrite.dll`, and `d3d11.dll` with `d3d10warp.dll`
+for its own drawing, with `StaticCache.dat` mapped), 3.7 MB of private bytes more than the other runs; the original's
+runs load none of them. SDL's `SDL_StartTextInput`, which turns on the text services framework, is the likely cause. Not
+chased: it would need text input started only while a text field has the focus, and a check of every game's text fields.

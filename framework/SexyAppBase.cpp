@@ -11,6 +11,7 @@
 #include "Widget.h"
 #include "KeyCodes.h"
 #include "DDInterface.h"
+#include "SoftwareScreenDisplay.h"
 #include "DDImage.h"
 #include "MemoryImage.h"
 #include "Dialog.h"
@@ -690,6 +691,7 @@ SexyAppBase::SexyAppBase()
 	mAlphaDisabled = false;
 	mUserChanged3DSetting = false;
 	mWant3D = true;
+	mDefault3D = true;
 	mDebugKeysEnabled = false;
 	mNoSoundNeeded = false;
 	mWantFMod = false;
@@ -2500,6 +2502,17 @@ std::string SexyAppBase::NotifyCrashHook()
 
 DDInterface* SexyAppBase::CreateDDInterface()
 {
+#ifndef __EMSCRIPTEN__
+	// port: SOFTWARE_SCREEN=on in a test run gives an app that keeps DDInterface the software screen instead (its 2D draws
+	// through the framework's blitters, and in a window of 1x, or of 2x to 4x with SOFTSCREEN_SCALED=1, no Direct3D device
+	// at all), to measure what the screen costs a port whose original draws in 2D; a player's run never takes it
+	// ("3d": the software screen with the original's 3D mode, SoftwareScreenDisplay::Create's theOffers3D)
+	// (copied at once: SDL_getenv's answer on Windows lives in one buffer that the next SDL_getenv, IsTestRun's, overwrites)
+	const char* anEnv = SDL_getenv("SOFTWARE_SCREEN");
+	const std::string aSoftwareScreen = (anEnv != NULL) ? anEnv : "";
+	if (((aSoftwareScreen == "on") || (aSoftwareScreen == "3d")) && (IsTestRun()))
+		return SoftwareScreenDisplay::Create(this, aSoftwareScreen == "3d");
+#endif
 	return new DDInterface(this);
 }
 
@@ -3234,7 +3247,7 @@ int SexyAppBase::InitDDInterface()
 		bool aWant3D = mWant3D;
 		if (!mUserChanged3DSetting)
 		{
-			aWant3D = true;
+			aWant3D = mDefault3D;
 			RegistryReadBoolean("Is3D", &aWant3D);
 #ifdef __EMSCRIPTEN__
 			// the site's "3D acceleration" (always 1, never 0; -1 leaves it to the game) decides this run in place of the saved
@@ -3243,6 +3256,9 @@ int SexyAppBase::InitDDInterface()
 				aWant3D = Byopop::SiteAccel3D() != 0;
 #endif
 		}
+		// a display that draws in software while 3D is off takes the GPU for 3D first (SoftwareScreenDisplay), so that mIs3D
+		// and mCan3D say what this run has
+		mDDInterface->NoteWant3D(aWant3D);
 		if (!aWant3D)
 			mDDInterface->mIs3D = false;
 
@@ -3903,6 +3919,13 @@ int SexyAppBase::RunScriptCommand(const ScriptCommand& theCommand, std::string* 
 	}
 	else if (aName == "quit")
 		Shutdown();
+	else if ((aName == "3d") && ((aCommand.mArgs == "on") || (aCommand.mArgs == "off")))
+	{
+		// the Options dialog's 3D box, ticked or cleared (Set3DAcclerated), and what the display made of it
+		Set3DAcclerated(aCommand.mArgs == "on");
+		SDL_Log("OK 3d %s: Is3DAccelerated %d, Is3DAccelerationSupported %d", aCommand.mArgs.c_str(), Is3DAccelerated() ? 1 : 0,
+			Is3DAccelerationSupported() ? 1 : 0);
+	}
 	else if (aName == "memreport")
 	{
 		// what the game holds in memory, answered on the log (platform/MemReport.h): a test reads it, the game does not change
@@ -4669,6 +4692,13 @@ int SexyAppBase::RunRealInputCommand(const ScriptCommand& theCommand, std::strin
 		SaveScreenshotMidUpdate(aCommand.mArgs, true);
 	else if (aName == "quit")
 		Shutdown();
+	else if ((aName == "3d") && ((aCommand.mArgs == "on") || (aCommand.mArgs == "off")))
+	{
+		// the Options dialog's 3D box, ticked or cleared (Set3DAcclerated), and what the display made of it
+		Set3DAcclerated(aCommand.mArgs == "on");
+		SDL_Log("OK 3d %s: Is3DAccelerated %d, Is3DAccelerationSupported %d", aCommand.mArgs.c_str(), Is3DAccelerated() ? 1 : 0,
+			Is3DAccelerationSupported() ? 1 : 0);
+	}
 	else if (aName == "memreport")
 	{
 		// what the game holds in memory, answered on the log (platform/MemReport.h): a test reads it, the game does not change
@@ -5915,6 +5945,8 @@ void SexyAppBase::Set3DAcclerated(bool is3D, bool reinit)
 	// display is made; no re-init is needed, so reinit has nothing to do
 	if (mDDInterface == NULL)
 		return;
+	// a software screen hands itself to the GPU for 3D first (SoftwareScreenDisplay::NoteWant3D)
+	mDDInterface->NoteWant3D(is3D);
 	bool aIs3D = is3D && mDDInterface->mCan3D;
 	if (mDDInterface->mIs3D == aIs3D && mWant3D == is3D)
 		return;

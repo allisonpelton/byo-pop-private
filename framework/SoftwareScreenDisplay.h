@@ -10,24 +10,36 @@
 // Which sizes it draws in software:
 //   - The game's own size (1x): always, through the window's surface. There it costs less than the GPU path, which pays
 //     the driver for every present (Dynomite, 2026-11-12: 1.49 M cycles an update against 1.80, the original 1.63).
-//   - Any other size, with an accelerated renderer: not. SurfaceDisplay is asked for its renderer (WantedSurfaceScale
-//     gives 0 at 2x to 4x too), and once a renderer made on the window is accelerated while the window is not at 1x, the
-//     screen goes to DDInterface's own GPU path for good (DrawOnGpu), as a window that has had a hardware renderer never
-//     shows its surface again: the GPU's draws cost the processor less than the software blitters', and its present
-//     costs the same at any size, where the surface's copy and GDI's blit grow with the window (Dynomite at 2x: 2.42 M
-//     an update in software, 1.87 on the GPU). A window that starts at 2x, or goes there, keeps the GPU path at 1x after
-//     it. A minimised window changes nothing (UpdateDisplaySize waits for the restore): the size SDL reports for it is
-//     not one the screen is shown at.
+//   - 2x to 4x on Windows, where the port asks (Create's theScaledInSoftware): in software too, GDI stretching the changed
+//     rects into the window (SurfaceDisplay, PresentScaledByGdi). The window then holds no Direct3D device, 40 to 44 MB for
+//     Big Money's scripted minute at 2x against 67 to 70 MB on the GPU, but it costs about a sixth more processor time than
+//     the GPU there: 18.6 G cycles for that run against 15.6, and Dynomite's minute 10.6 G against 9.1 (2026-11-15,
+//     docs/MEMORY.md, "Windows at 2x to 4x"); the stretch itself costs little (Dynomite's software screen 9.8 G at 1x).
+//     The picture is the 1x software screen's, each pixel repeated; the GPU path's differs from it where its blending
+//     rounds otherwise.
+//     SOFTSCREEN_SCALED=1 or 0 in a test run gives the one or the other whatever the port asked.
+//   - Any other size, with an accelerated renderer (a full screen that is no whole multiple, or 2x to 4x without GDI or
+//     without theScaledInSoftware): not.
+//     SurfaceDisplay is asked for its renderer (WantedSurfaceScale gives 0), and once a renderer made on the window is
+//     accelerated while the window is not at 1x, the screen goes to DDInterface's own GPU path for good (DrawOnGpu), as a
+//     window that has had a hardware renderer never shows its surface again. A window that goes there keeps the GPU path at
+//     1x after it. A minimised window changes nothing (UpdateDisplaySize waits for the restore): the size SDL reports for it
+//     is not one the screen is shown at.
 //   - Any other size, with no accelerated renderer (a machine with no GPU, where SDL's software renderer stretches every
 //     sprite on the processor: Bejeweled 2 at 2x took 48.5% of a core): always. The surface shows it at 2x to 4x and
 //     SurfaceDisplay's renderer mode (the frame stretched once) at any other size.
 //
 // What changes for a port that takes it, while its screen is drawn in software:
 //   - Its pictures come from the 2004 framework's software blitters, not from SDL's renderer.
-//   - It has no 3D: mCan3D and mIs3D are false whatever the renderer could do (set again after every change of mode, which
-//     sets them), so Is3DAccelerated() is false and the widget manager draws with fast stretch and no linear blend, as the
-//     original's 2D mode. A port whose original offers 3D would need the screen handed back to the GPU path while 3D is on;
-//     none that takes this display has that yet. On the GPU path the flags are the renderer's, as DDInterface's.
+//   - It has no 3D: mIs3D is false whatever the renderer could do (set again after every change of mode, which sets it),
+//     so Is3DAccelerated() is false and the widget manager draws with fast stretch and no linear blend, as the original's
+//     2D mode. On the GPU path the flags are the renderer's, as DDInterface's.
+//   - 3D, for a port whose original offers it (Create's theOffers3D): mCan3D is true while an accelerated renderer may be
+//     had (until one made on the window turns out not to be), so the Options dialog's box can be ticked, and while the
+//     app wants 3D (NoteWant3D: the saved choice at every display made, a change in the Options) the screen is handed to
+//     the GPU path, at any size, for good: a window that has had a hardware renderer never shows its surface again, so 3D
+//     switched off later leaves the screen on the GPU with mIs3D false (the GPU path's 2D mode, as DDInterface's) until
+//     the next run starts in software. Without theOffers3D, mCan3D is false as well and the app's choice changes nothing.
 //   - Only the dirty widgets are drawn (SexyAppBase::DrawDirtyStuff marks no others), as the original's 1.x framework
 //     draws: the screen keeps its pixels from one frame to the next. A hand-over to the GPU starts its screen texture
 //     from the last frame drawn in software, so that a screen kept between frames (mKeepScreen) loses nothing.
@@ -41,7 +53,8 @@
 //   - A stretch onto the screen is drawn as the original's software screen draws one (mSoftwareStretch: the source
 //     stretched into an image of the destination's size, then blitted), its fast stretch sampling pixel centres
 //     (mFastStretchCentre), as the GPU path's nearest filter did. A game whose original samples otherwise sets the flags
-//     after Create.
+//     after Create. The stretched images are kept while they are drawn (DDInterface::GetStretchCopy); those not drawn in
+//     the last two frames go after each present, as the original kept none.
 //   - A drawn cursor (mCursorImage, a game's own cursors) is the renderer's to draw, as for any app of SurfaceDisplay: at
 //     1x the window takes a renderer for it and keeps it (with a GPU SurfaceDisplay keeps it, mWindowHadRenderer; with
 //     none, mCursorSeen), and the screen stays in software, its frames shown through the renderer's frame texture with
@@ -65,10 +78,13 @@ namespace Sexy
 class SoftwareScreenDisplay : public SurfaceDisplay
 {
 public:
-	// the display a port opts into (DDInterface instead with SURFACE_DISPLAY=off in a test run)
-	static DDInterface* Create(SexyAppBase* theApp);
+	// the display a port opts into (DDInterface instead with SURFACE_DISPLAY=off in a test run); theOffers3D: the port's
+	// original has a 3D mode, which takes the screen to the GPU while it is on; theScaledInSoftware: a window of 2x to 4x
+	// keeps the screen in software where GDI can stretch it (Windows), for no Direct3D device at the cost of the software
+	// draws' processor time (below)
+	static DDInterface* Create(SexyAppBase* theApp, bool theOffers3D = false, bool theScaledInSoftware = false);
 
-	SoftwareScreenDisplay(SexyAppBase* theApp);
+	SoftwareScreenDisplay(SexyAppBase* theApp, bool theOffers3D = false, bool theScaledInSoftware = false);
 	~SoftwareScreenDisplay() override;
 
 	int Init(SDL_Window* theWindow, bool vsync) override;
@@ -79,6 +95,7 @@ public:
 	void ScreenDrawn(const Rect& theRect) override;
 	void BeginFrame() override;
 	void Present() override;
+	void NoteWant3D(bool theWant3D) override;
 	bool ReadScreen(ulong* theBits) override;
 	bool ReadScreenFull(std::vector<uint32_t>& theBits, int& theWidth, int& theHeight) override;
 
@@ -98,11 +115,17 @@ protected:
 	// the screen goes to DDInterface's GPU path for good (a renderer made on the window is accelerated)
 	void DrawOnGpu(const char* theRendererName);
 	bool mGpuScreen;      // the screen is drawn on the GPU, DDInterface's path
+	bool mOffers3D;       // the port's original has a 3D mode (Create's theOffers3D)
+	bool mWants3D;        // the app wants 3D (NoteWant3D), so the screen goes to the GPU where it can
+	bool mScaledSurface;  // the surface shows the software screen at 2x to 4x with a GPU too: Create's theScaledInSoftware where GDI stretches (SOFTSCREEN_SCALED=0|1 in a test run decides)
 	bool mNoGpuRenderer;  // the window's renderer is not accelerated: the screen is drawn in software at every size
 	bool mChangingMode;   // inside SurfaceDisplay's change of mode, whose DDInterface::Init asks UpdateDisplaySize again
 	bool mCursorSeen;     // the app has drawn a cursor: the window keeps the renderer it took for it
 	bool mCursorNoted;    // the log has said that the software screen goes through an accelerated renderer at 1x
 	int mGpuPresents;
+	// mStretchUse when this frame and the one before it began: the stretched copies drawn in neither go after the present
+	unsigned int mStretchUseThisFrame;
+	unsigned int mStretchUseLastFrame;
 	// the screen image's bits (made, and cleared to black the first time they are seen), or NULL before there is a screen
 	// image
 	const uint32_t* ScreenPixels();

@@ -28,6 +28,10 @@ public:
 	bool Attach(SDL_Window* theWindow, bool theShadow);
 	void Detach();
 
+	// Waits for the desktop compositor's next composition (DwmFlush, dwmapi.dll looked up at the first call), as a vsync present
+	// waits for the vertical blank (SurfaceDisplay's SURFACE_PACE=dwm). False when DWM cannot be waited for.
+	static bool WaitForComposition();
+
 	// Paints a frame: thePixels, thePitch bytes a row, theWidth x theHeight 32-bit pixels 0x??RRGGBB (the top byte is not read), stretched
 	// into theDest (window pixels, the screen's place in the window). theRects: the parts of theDest to paint (window pixels; a part
 	// outside theDest is not painted); theCount 0: all of theDest, and the bars of the window of theWindowWidth x theWindowHeight pixels

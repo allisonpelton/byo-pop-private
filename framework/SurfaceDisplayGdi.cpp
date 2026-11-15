@@ -172,6 +172,21 @@ void GdiStretch::Detach()
 	mImpl->mWindow = NULL;
 }
 
+bool GdiStretch::WaitForComposition()
+{
+	typedef HRESULT (WINAPI *DwmFlushFn)(void);
+	static DwmFlushFn aFlush = NULL;
+	static bool aLooked = false;
+	if (!aLooked)
+	{
+		aLooked = true;
+		HMODULE aModule = LoadLibraryW(L"dwmapi.dll");
+		if (aModule != NULL)
+			aFlush = (DwmFlushFn) (void*) GetProcAddress(aModule, "DwmFlush");
+	}
+	return (aFlush != NULL) && (SUCCEEDED(aFlush()));
+}
+
 bool GdiStretch::Present(const uint32_t* thePixels, int thePitch, int theWidth, int theHeight, const SDL_Rect& theDest, const SDL_Rect* theRects,
 	int theCount, int theWindowWidth, int theWindowHeight)
 {

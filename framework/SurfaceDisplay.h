@@ -12,10 +12,26 @@
 //
 //   Surface mode, when the window's drawable is exactly the logical size, or 2, 3 or 4 times it each way (the original's own
 //   window, and the one the framework starts at 2x): there is no SDL renderer (and so no Direct3D device, its driver's
-//   thread or its memory); Present copies the changed rects, row by row, into the window's SDL surface, each pixel repeated
-//   as often as the window is larger, and has SDL update those rects of the window (a GDI blit). At those sizes the renderer
-//   shows the same picture (its screen texture at the render scale is those repeated pixels, shown as it is), so the choice
-//   is not seen.
+//   thread or its memory). At 1x Present copies the changed rects into the window's SDL surface and has SDL update those
+//   rects of the window (a GDI blit). At 2x to 4x, on Windows, GDI stretches the buffer into the window itself (GdiStretch,
+//   SurfaceDisplayGdi.h, the same as stretch mode's, the changed rects as the clip region), and the window keeps no surface
+//   of its size; elsewhere, or with SURFACE_PRESENT=copy in a test run, the changed rects are copied into the window's
+//   surface with each pixel repeated as often as the window is larger. Both give the same pixels at a whole scale, and the
+//   stretch costs the processor about what the 1x copy does, where the repeated copy grew with the window: Dynomite's
+//   scripted minute at 2x on its software screen took 12.4 G cycles with the stretch and 23.6 G with the copy (12.4 G at
+//   1x), and Big Money's 4.2 to 5.8 s of processor time with the stretch at 2x to 4x against 11.5 to 26.6 s
+//   (docs/MEMORY.md, "Windows at 2x to 4x"). At those sizes the renderer shows the same picture (its screen texture at the
+//   render scale is those repeated pixels, shown as it is), so the choice is not seen.
+//
+//   No vertical blank holds a window without a renderer: the framework's own millisecond pace places the frames on the
+//   update loop's 10 ms steps, and a quarter to a half of a 60 Hz display's refreshes showed a frame twice or skipped one
+//   where a vsync present shows one new frame each. With SURFACE_PACE=dwm in a test run, on Windows, each present of
+//   surface and stretch mode waits for the desktop compositor's next composition instead (DwmFlush,
+//   GdiStretch::WaitForComposition), as a vsync present waits for the blank: every refresh then showed one new frame, for
+//   about 2% more of the game's processor time (Dynomite, six pairs turn about; docs/MEMORY.md, "The compositor wait, an
+//   option"), so it is not the default until the user chooses. The wait is skipped with -fast, -drawevery and -hold, as
+//   the pace is. A wait that fails, or that holds the frame for more than 250 ms (the compositor not composing), hands the
+//   frames back to the pace for good.
 //
 //   Renderer mode, any other size (a full-screen window is the desktop's size): DDInterface's own path (the screen texture at the render scale,
 //   scaled into the window, vsync), with the frame put into the screen texture from a texture of its own of which
@@ -112,6 +128,8 @@ protected:
 	// the rects the next present shows, in the buffer's pixels, in mSdlRects (the count; 0: nothing to show; theWhole: all of it)
 	int PendingRects(bool* theWhole);
 	void PresentToSurface();
+	// surface mode at 2x to 4x with mGdiPresent (Windows)
+	void PresentScaledByGdi();
 	void PresentToStretch();
 	void VerifyStretch(const SDL_Rect& theDest, int theWindowWidth, int theWindowHeight);
 	void VerifySurface(SDL_Surface* theSurface);
@@ -139,6 +157,16 @@ protected:
 	bool mStretching;          // surface mode's other flavour: the buffer is stretched into the window by GDI, not copied into its surface
 	bool mStretchUnavailable;  // the window has no GDI handle: no stretch mode
 	GdiStretch* mGdi;  // Windows only (SurfaceDisplayGdi.h)
+	// Windows, unless SURFACE_PRESENT=copy in a test run: surface mode at 2x to 4x has GDI stretch the buffer into the window
+	// (mGdi) instead of copying it into a window surface of that size (above); false for good when the window has no handle
+	bool mGdiPresent;
+	// SURFACE_PACE=dwm in a test run, on Windows: each present without a renderer waits for DWM's next composition, in place
+	// of the framework's pace (above)
+	bool mDwmPace;
+	void WaitForComposition();
+	void StopDwmPace();
+	// -presentlog for the modes without a renderer (DDInterface::LogPresent): theWay names the mode
+	void LogNoRendererPresent(const char* theWay, Uint64 theStart);
 	// a hardware renderer (Direct3D 11) has been made on the window: its swap chain stays the window's picture for good, and
 	// the window never shows a GDI blit again, so the surface is not used any more (the renderer for good)
 	bool mWindowHadRenderer;
