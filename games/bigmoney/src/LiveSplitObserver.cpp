@@ -127,15 +127,15 @@ bool CopyHostFile(const std::string& theFrom, const std::string& theTo)
 	fclose(anIn);
 	if (!isRead)
 		return false;
-	std::string aTemp = theTo + ".tmp";
-	FILE* anOut = fopen(aTemp.c_str(), "wb");
+	std::string aTempPath = theTo + ".tmp";
+	FILE* anOut = fopen(aTempPath.c_str(), "wb");
 	if (anOut == NULL)
 		return false;
 	bool isWritten = aData.empty() || (fwrite(&aData[0], 1, aData.size(), anOut) == aData.size());
 	isWritten = (fclose(anOut) == 0) && isWritten;
-	if (isWritten && (rename(aTemp.c_str(), theTo.c_str()) == 0))
+	if (isWritten && (rename(aTempPath.c_str(), theTo.c_str()) == 0))
 		return true;
-	remove(aTemp.c_str());
+	remove(aTempPath.c_str());
 	return false;
 }
 
@@ -216,7 +216,7 @@ void LiveSplitObserver::AfterUpdate(WinBMApp* theApp)
 {
 	if ((!sWriter.IsActive()) && (!ModFeatureEnabled("livesplit")) && (!sPageAsked))
 		return;
-	AutosplitBlock& s = sWriter.Next();
+	AutosplitBlock& aBlock = sWriter.Next();
 	// On activation the current board (or none) is new to the block: its first update is a baseline
 	bool isActivation = !sWriter.IsActive();
 	if (isActivation)
@@ -224,7 +224,7 @@ void LiveSplitObserver::AfterUpdate(WinBMApp* theApp)
 
 	Board* aBoard = theApp->mBoard;
 	uint32_t aSerial = (aBoard != NULL) ? aBoard->mBoardSerial : 0;
-	bool isNewBoard = isActivation || (aSerial != s.boardSerial);
+	bool isNewBoard = isActivation || (aSerial != aBlock.boardSerial);
 	if (isNewBoard)
 		sWriter.NewBoard(aSerial);
 
@@ -254,7 +254,7 @@ void LiveSplitObserver::AfterUpdate(WinBMApp* theApp)
 			if ((aState == STATE_LEVEL_COMPLETE) && (sPrevState != STATE_LEVEL_COMPLETE))
 			{
 				sWriter.LevelClear();
-				SDL_Log("livesplit: board %u level clear %d (level %d) at tick %d", (unsigned) aSerial, (int) s.boardLevelClears,
+				SDL_Log("livesplit: board %u level clear %d (level %d) at tick %d", (unsigned) aSerial, (int) aBlock.boardLevelClears,
 					aBoard->mLevel + 1, aBoard->mUpdateCnt);
 			}
 			bool isGameOver = (aState == STATE_GAME_OVER) && (sPrevState != STATE_GAME_OVER);
@@ -289,12 +289,12 @@ void LiveSplitObserver::AfterUpdate(WinBMApp* theApp)
 			aFlags |= AUTOSPLIT_FLAG_REPLAY;
 		if (aBoard->mPauseCount > 0)
 			aFlags |= AUTOSPLIT_FLAG_PAUSED;
-		s.flags = aFlags; // the writer adds AUTOSPLIT_FLAG_GAME_OVER
-		s.tick = aBoard->mUpdateCnt;
-		s.state = aState;
-		s.level = aBoard->mLevel;
-		s.displayLevel = aBoard->mLevel + 1;
-		s.score = aBoard->mScore;
+		aBlock.flags = aFlags; // the writer adds AUTOSPLIT_FLAG_GAME_OVER
+		aBlock.tick = aBoard->mUpdateCnt;
+		aBlock.state = aState;
+		aBlock.level = aBoard->mLevel;
+		aBlock.displayLevel = aBoard->mLevel + 1;
+		aBlock.score = aBoard->mScore;
 		SetModeAndSkill(theApp->mGameType, theApp->mSkillLevel);
 
 		sPrevGoTimer = aBoard->mGoTimer;

@@ -46,32 +46,32 @@ void MoneyDialog::Draw(Graphics* g)
 
 	for (int i = 0; i < NUM_LIGHTS; i++)
 	{
-		double t = i * 0.025 + mLightPhase;
-		if (t > 1.0)
-			t -= 1.0;
+		double aPhase = i * 0.025 + mLightPhase;
+		if (aPhase > 1.0)
+			aPhase -= 1.0;
 
 		// x87: t * 4.0 first, then times the int edge length converted to double; _ftol truncates
 		int x;
 		int y;
-		if (t < 0.25)
+		if (aPhase < 0.25)
 		{
-			x = (int) (t * 4.0 * (double) (mWidth - 39)) + 18;
+			x = (int) (aPhase * 4.0 * (double) (mWidth - 39)) + 18;
 			y = 14;
 		}
-		else if (t < 0.5)
+		else if (aPhase < 0.5)
 		{
 			x = mWidth - 21;
-			y = (int) ((t - 0.25) * 4.0 * (double) (mHeight - 34)) + 14;
+			y = (int) ((aPhase - 0.25) * 4.0 * (double) (mHeight - 34)) + 14;
 		}
-		else if (t < 0.75)
+		else if (aPhase < 0.75)
 		{
-			x = (int) ((0.75 - t) * 4.0 * (double) (mWidth - 39)) + 18;
+			x = (int) ((0.75 - aPhase) * 4.0 * (double) (mWidth - 39)) + 18;
 			y = mHeight - 20;
 		}
 		else
 		{
 			x = 18;
-			y = (int) ((1.0 - t) * 4.0 * (double) (mHeight - 34)) + 14;
+			y = (int) ((1.0 - aPhase) * 4.0 * (double) (mHeight - 34)) + 14;
 		}
 
 		aLightX[i] = x;

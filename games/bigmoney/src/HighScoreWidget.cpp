@@ -74,7 +74,7 @@ public:
 };
 }
 
-// One record: int16 length, the name bytes (no NUL), int32 score, int32 checksum. Returns false at the
+// One record (LoadHighScores, 0x412eb0): int16 length, the name bytes (no NUL), int32 score, int32 checksum. Returns false at the
 // end of the data.
 static bool ReadHighScoreRecord(HighScoreReader* theReader, std::string* theName, int* theScore, bool* isValid)
 {
@@ -102,7 +102,7 @@ static bool ReadHighScoreRecord(HighScoreReader* theReader, std::string* theName
 	return true;
 }
 
-// Writes one record in the format ReadHighScoreRecord reads
+// Writes one record in the format ReadHighScoreRecord reads (SaveHighScores, 0x413100)
 static void WriteHighScoreRecord(Buffer* theBuffer, const std::string& theName, int theScore)
 {
 	// The original writes the low 16 bits of the length (names are at most 140 px wide)
