@@ -209,11 +209,14 @@ constructor does clear).
   visrun reads the update each input landed at, and the replay gives that one click (`landed_to_events.py --shift 2127 2130 1`) the later update.
 - **The original's pointer is never over its window in the visible-desktop 3D runs, so no gem glows under it.** The Board's hover glow
   (`BoardUpdate.cpp`: a gem under `mMouseX/mMouseY` gains 0.045 a update, the step 0.0625) needs the pointer in the window, and the
-  tool posts clicks to the window without moving the real cursor, so the original's `mMouseX/mMouseY` stay at -1,-1 (and the board
-  re-reads `mLastMouseX/mLastMouseY` itself when it becomes idle, BoardLogic.cpp:423). The port's replayed pointer stays where its last
-  click was, so a shot taken straight after a click had a gem glowing that the original's did not. The replay therefore moves the pointer
-  out of the window and sends a leave one update after each click (`landed_to_events.py --leave-after 1`). Not a difference of play: a
-  person's cursor over the board glows the same gem in both.
+  tool posts clicks to the window without moving the real cursor, so the original's `mMouseX/mMouseY` stay at -1,-1. The widget
+  manager's last position (`mLastMouseX/mLastMouseY`, which the board re-reads itself when it becomes idle, BoardLogic.cpp:423, and
+  which the puzzle dome's glow reads, `PuzzleStateOverlay::Update`) is the last posted click's, since the posted click goes through
+  the manager: the WARP button's glow stays at its steady 0.5 in the original's frames of the warp, where it swept in the port's replay
+  when that moved the replayed pointer to -9,-9 (found 2026-11-15, the 3D tours). The port's replayed pointer stays where its last
+  click was, so a shot taken straight after a click had a gem glowing that the original's did not. The replay therefore sends the
+  pointer's leave alone one update after each click (`landed_to_events.py --leave-after 1 --leave-keep`; the board's hover goes off, the
+  manager's position stays at the click). Not a difference of play: a person's cursor over the board glows the same gem in both.
 - **A gem or two differ in the loaded 3D board's slide.** In the visible-desktop 3D tour (`run_tour_visible.sh`, with shots every 2
   updates of the whirlpool and the slide added to the recording; the run's events were `t3d_events.json` in the scratch logs), the gem
   at the board's bottom right has its facets in other places in the original's shot than in the port's, in 8 of the 13 shots from

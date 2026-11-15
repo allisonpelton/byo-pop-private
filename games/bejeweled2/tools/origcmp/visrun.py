@@ -491,6 +491,8 @@ def main():
                    ORIGRUN_CLOCK_ID='visrun%d' % os.getpid(), ORIGRUN_CLOCK_HOST=str(os.getpid()), ORIGRUN_CLOCK_HOLDSTART='1',
                    ORIGRUN_CLOCK_COUNTER='[0x67ccd8]+0x484',
                    ORIGRUN_CLOCK_WATCH=';'.join(['%s+0x15e20' % B, '0x67d910' if w2 else '%s+0x15e4' % B, '%s+0x170c' % B, '%s+0x15e0' % B]))
+        if os.environ.get('VISRUN_WATCH'):   # other four values, B standing for the board's address: VISRUN_WATCH='[{B}+0x16014]+0x14;...'
+            env['ORIGRUN_CLOCK_WATCH'] = os.environ['VISRUN_WATCH'].replace('{B}', B)
         g = Game(exe, env)
         clk = Clock(env['ORIGRUN_CLOCK_ID'], g)
         wf = open(os.path.join(base, tag + '.watch.log'), 'w')
