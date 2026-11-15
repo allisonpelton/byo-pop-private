@@ -956,6 +956,19 @@ html.d95-narrow .lib-c-last, html.d95-narrow .lib-c-year { display: none; }
 html.d95-desk .newtab { display: none; }
 /* Alt+` (web/skins.js): the window switcher, as Windows 95's Alt+Tab box: the open windows' icons in a row, the chosen one
    outlined, and its title in a sunken field under them */
+/* the outline a window is moved and sized by, inverting what it is drawn over, and the caption that flies to the task bar */
+html.d95-desk .d95-ghost { position: absolute; z-index: 2147482000; pointer-events: none; box-sizing: border-box;
+  border: 3px dotted #ffffff; mix-blend-mode: difference; }
+html.d95-desk .d95-fly { position: absolute; z-index: 2147482500; pointer-events: none; box-sizing: border-box; overflow: hidden;
+  background: var(--sk-title); color: var(--sk-title-fg); font-weight: bold; font-size: 11px; line-height: 16px; padding: 1px 4px;
+  white-space: nowrap; }
+/* the icons once one was moved: each where it was put; a selected one, and the dotted rectangle that selects */
+html.d95-desk .d95-icons.d95-icons-free { display: block; }
+html.d95-desk .d95-icons.d95-icons-free > .d95-icon { position: absolute; width: 84px; box-sizing: border-box; }
+html.d95-desk .d95-icon.d95-icon-sel { background: rgba(0, 0, 128, .45); }
+html.d95-desk .d95-icon.d95-icon-sel > span { outline: 1px dotted var(--sk-desk-fg); outline-offset: 0; }
+html.d95-desk .d95-band { position: absolute; z-index: 2; pointer-events: none; box-sizing: border-box; border: 1px dotted #ffffff;
+  mix-blend-mode: difference; }
 /* Shut Down's last screen: wordless, over everything */
 html.d95-desk .d95-off { position: fixed; inset: 0; z-index: 2147483600; background: #000; outline: none; }
 html.d95-desk .d95-switch { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 2147483000;

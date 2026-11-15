@@ -232,7 +232,25 @@ where it types a currency or cent sign. On Linux, Chrome and Firefox switch to t
 `preventDefault`, which has not been tried there, so the switch may still happen. **Shut Down** (the Pop menu's last
 entry) closes every window as its Close does, a game's with its saves, and covers the page with a wordless black last
 screen until a key or a click brings the desktop back with its windows closed; on a game's own page the game closes and the
-listing shows it (`byopop-desk-open` "shutdown"), and from a window's page the desktop around it shuts down. The game
+listing shows it (`byopop-desk-open` "shutdown"), and from a window's page the desktop around it shuts down.
+
+**As in 1995** (the user, 2026-11-14, by the coordinator's list):
+- **Moving and sizing:** a window is moved and sized by a dotted outline that inverts what it crosses, and goes there when
+  let go (`showGhost`, `settle`).
+- **The control menu:** every title bar has its icon, which opens it, and a right click on the title bar or the window's
+  task bar button opens it too. It holds Restore, Move, Size, Minimize, Maximize and Close, those that do nothing greyed.
+  Move and Size work from the arrow keys (Size's first arrow picks the edge), with Enter or a click to place and Escape to
+  cancel (`keyMove`).
+- **Minimize and restore:** a caption flies between the window and its task bar button (`fly`). There is none with
+  reduced motion, and a timer shows the window even where no animation runs.
+- **The icons:** they stand in columns until one is dragged, then each stays where it was put (`byopop-desk-icons`, by
+  page). A drag on the empty desktop selects them with a dotted rectangle, and a drag of a selected icon moves them all.
+- **The empty desktop's right click:** Arrange Icons (back to the columns), Line up Icons (each to the nearest free
+  place) and Properties (Settings' Appearance).
+- **The task bar's right click:** Cascade, Tile Horizontally, Tile Vertically and Minimize All Windows, which becomes
+  Undo Minimize All.
+
+The game
 window's menu bar spreads the game's commands over Game, View, Options and Help (the user, 2026-11-09: "don't hide
 everything under "Game""), and no menu shows Alt+F4 or Alt+Space, which the browser keeps. The game is always at a
 whole multiple of its size in device pixels (`sizeStage`); the window takes the status bar's height rounded up

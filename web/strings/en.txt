@@ -96,6 +96,8 @@ skin.desk.m.minimize = Minimize
 skin.desk.m.maximize = Maximize
 skin.desk.m.restore = Restore
 skin.desk.m.close = Close
+skin.desk.m.move = Move
+skin.desk.m.resize = Size
 skin.desk.m.size = {n}x ({w} x {h})
 # Desktop 95's keys, said once in About
 skin.desk.keys = Keys: Tab moves within a window, F6 between the windows, the icons and the task bar, Alt+` switches windows, as Alt+Tab does, and Alt+4 closes the window in front, as Alt+F4 does.
@@ -106,6 +108,15 @@ skin.pop.band = byo-pop
 skin.pop.games = Games
 skin.pop.nogames = No games here yet
 skin.pop.listing = Back to all games
+skin.deskmenu.label = Desktop
+skin.deskmenu.arrange = Arrange Icons
+skin.deskmenu.lineup = Line up Icons
+skin.deskmenu.props = Properties
+skin.bar.cascade = Cascade
+skin.bar.tileh = Tile Horizontally
+skin.bar.tilev = Tile Vertically
+skin.bar.minall = Minimize All Windows
+skin.bar.undominall = Undo Minimize All
 skin.pop.shutdown = Shut Down...
 skin.pop.shutdown.screen = Shut down. Press any key or click to start again.
 # On a game page: the game's full screen (as the game window's maximize button)
