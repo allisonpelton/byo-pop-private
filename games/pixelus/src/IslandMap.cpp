@@ -1,4 +1,5 @@
 #include "IslandMap.h"
+#include "GullFlock.h"
 #include "PixelusApp.h"
 #include "GameDialog.h"
 #include "GameText.h"
@@ -294,10 +295,12 @@ IslandMap::IslandMap(PixelusApp* theApp)
 	}
 	mNextGull1 = mApp->AppRandNext() % 100 + 350 + mApp->mUpdateCount;
 	mNextGull2 = mApp->AppRandNext() % 100 + 400 + mApp->mUpdateCount;
+	mFlock = new GullFlock(mApp->mImages[IMAGE_BIRD], mSolvedTotal * 30 / 100 + 10);	// 0x430ab0
 }
 
 IslandMap::~IslandMap()
 {
+	delete mFlock;
 	delete mBackButton;
 	delete mPanel;
 	for (int i = 0; i < NUM_TEMPLES; i++)
@@ -444,6 +447,7 @@ void IslandMap::Update()
 			mLightning = (45.0 - 10) * Rand01();
 	}
 	MarkDirty();
+	mFlock->Update();
 }
 
 // 0x416950
@@ -513,6 +517,32 @@ void IslandMap::Draw(Graphics* g)
 		int aBounce = (int) (fabs(sin(mPhase * 3.0)) * 24.0);
 		g->DrawImage(anArrow, gTemples[i].mLightX - aBounce - anArrow->GetWidth() / 2 - 0x14, gTemples[i].mLightY - aBounce - 0x50);
 	}
+	mFlock->Draw(g);
+}
+
+// 0x4161b0, 0x4161f0, 0x416220, 0x416250: the gulls follow the pointer
+void IslandMap::MouseMove(int x, int y)
+{
+	Widget::MouseMove(x, y);
+	mFlock->MouseMove(x, y);
+}
+
+void IslandMap::MouseDrag(int x, int y)
+{
+	Widget::MouseDrag(x, y);
+	mFlock->MouseMove(x, y);
+}
+
+void IslandMap::MouseDown(int x, int y, int theClickCount)
+{
+	Widget::MouseDown(x, y, theClickCount);
+	mFlock->MouseDown(x, y);
+}
+
+void IslandMap::MouseUp(int x, int y, int theClickCount)
+{
+	Widget::MouseUp(x, y, theClickCount);
+	mFlock->MouseUp(x, y);
 }
 
 // 0x416180: a sound when the mouse comes onto a temple
