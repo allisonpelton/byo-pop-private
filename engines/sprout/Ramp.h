@@ -57,6 +57,8 @@ public:
 	}
 	// 0x4810a0 (pizzafrenzy)
 	float getProgress() const { return mTime * mScale; }
+	// 0x4810b0 (pizzafrenzy): the time has reached the duration, running forward, or 0, running back
+	bool isFinished() const { return mForward ? !(mTime < mDuration) : !(0.0f < mTime); }
 
 private:
 	float mDuration = 0;    // +0x0c

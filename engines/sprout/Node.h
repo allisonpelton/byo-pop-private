@@ -236,7 +236,8 @@ public:
 	Container();            // 0x40f110 (wordharmony)
 	~Container() override;  // 0x439460 (wordharmony)
 
-	Node* hitTest(unsigned int theFlags, Point& p) override;  // 0x48: 0x4390f0 (wordharmony)
+	Node* hitTest(unsigned int theFlags, Point& p) override;  // 0x48: 0x4390f0 (wordharmony); 0x467110 (pizzafrenzy)
+	Node* hitTestSignal(unsigned int theFlags, Point& thePoint);  // 0x467110 (pizzafrenzy)
 	void draw(Graphics* g) override;                          // 0x6c: 0x4392b0 (wordharmony)
 	void update(UpdateInfo& theInfo) override;                // 0x70: 0x439510 (wordharmony)
 	void layout() override;                                   // 0x74: 0x439210 (wordharmony)

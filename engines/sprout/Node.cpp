@@ -104,6 +104,9 @@ bool Node::contains(Point& p)
 // 0x439d60 (wordharmony)
 Node* Node::hitTest(unsigned int theFlags, Point& p)
 {
+	// 0x467e70 (pizzafrenzy): the flags with the mask (+0x74) taken out, then the shape
+	if (gSignalBuild)
+		return hasFlag(theFlags) && contains(p) ? this : nullptr;
 	if (mVisible && mEnabled)
 	{
 		if (contains(p) && (mAllFlags & theFlags) != 0)
@@ -271,6 +274,8 @@ Container::~Container()
 // hit wins
 Node* Container::hitTest(unsigned int theFlags, Point& thePoint)
 {
+	if (gSignalBuild)
+		return hitTestSignal(theFlags, thePoint);
 	if (!mEnabled || contains(thePoint))
 	{
 		Node* aHit = nullptr;
@@ -294,6 +299,28 @@ Node* Container::hitTest(unsigned int theFlags, Point& thePoint)
 		if (mEnabled && mVisible && hasFlag(theFlags))
 			return this;
 	}
+	return nullptr;
+}
+
+// 0x467110 (pizzafrenzy): a container whose flags (its children's among them) match and that holds the point tries
+// its children from the last added (the top) down, the first hit winning; it is the target itself only when its own
+// flags (+0x6c, 0x467e30 (pizzafrenzy)) match, so a HUD with buttons in it lets a press through to the screen under it
+Node* Container::hitTestSignal(unsigned int theFlags, Point& thePoint)
+{
+	if (!hasFlag(theFlags) || !contains(thePoint))
+		return nullptr;
+	thePoint.x = thePoint.x - mPosition.x;
+	thePoint.y = thePoint.y - mPosition.y;
+	Point aLocal = thePoint;
+	for (std::vector<Node*>::reverse_iterator anIt = mChildren.rbegin(); anIt != mChildren.rend(); ++anIt)
+	{
+		Node* aHit = (*anIt)->hitTest(theFlags, thePoint);
+		if (aHit != nullptr)
+			return aHit;
+		thePoint = aLocal;
+	}
+	if ((mFlags & ~getMaskedFlags() & theFlags) != 0)
+		return this;
 	return nullptr;
 }
 
