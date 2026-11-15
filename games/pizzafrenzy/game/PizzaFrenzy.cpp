@@ -8,6 +8,7 @@
 #include "Scoreboards.h"
 #include "GameText.h"
 #include "NewToppingState.h"
+#include "StoryState.h"
 #include "Sound.h"
 #include "SplashState.h"
 #include "Transition.h"
@@ -343,9 +344,11 @@ void PizzaFrenzy::setUpLevel()
 	enterModeGame(aLevel);
 }
 
-// 0x402ba0: translated next with the game
+// 0x409f30 makes the state (0x402ba0) after the story screen's slot 0x17c reads the file
 void PizzaFrenzy::enterStoryState(Level* theLevel, const std::string& theStory)
 {
+	mStoryScreen->setStory(theStory);
+	mStates.changeState(new StoryState(this, theLevel));
 }
 
 // 0x402ce0: the buttons of the new toppings are made (the screen's slot 0x184), and the state shows the screen

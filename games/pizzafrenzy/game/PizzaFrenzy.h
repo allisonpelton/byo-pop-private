@@ -26,6 +26,7 @@
 #include "SoundMgr.h"
 #include "SplatFactory.h"
 #include "State.h"
+#include "StoryScreen.h"
 #include "TextItem.h"
 #include "TileManifest.h"
 #include "UserGameData.h"
@@ -94,6 +95,7 @@ public:
 	engine::Ref<engine::GenericScreen> mUnlockNotice;        // +0xb4: the designer's, shown while it is locked
 	std::string mUnlockNoticeTemplate;                       // +0xb8: the node "notifyText"'s text as the layout has it
 	engine::Ref<engine::GenericScreen> mPauseMenu;           // +0xd4
+	engine::Ref<StoryScreen> mStoryScreen;                   // +0xdc: the level's story, and its end
 	engine::Ref<NewToppingScreen> mNewToppingScreen;         // +0xec: the toppings the player has not been shown
 	engine::Ref<CitySelectScreen> mCitySelect;               // +0xf0
 	engine::Ref<GameScreen> mGameScreen;                     // +0x114
@@ -159,7 +161,7 @@ private:
 	// What the game itself does, translated next with it: each makes what the original's function makes and puts the
 	// game's state in place. Their callers here are startLevel (story), giveToppings (new topping), showLevelStart
 	// (level start) and setUpLevel (the others).
-	// 0x402ba0: the story screen (+0xdc, slot 0x17c) shows the text, and the story state starts
+	// 0x402ba0: the story screen (+0xdc, slot 0x17c) reads the story's file, and the story state starts
 	void enterStoryState(Level* theLevel, const std::string& theStory);
 	// 0x402ce0: the new topping screen (+0xec, slot 0x184), and its state
 	void enterNewToppingState();

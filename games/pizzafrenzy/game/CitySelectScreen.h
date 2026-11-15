@@ -32,6 +32,13 @@ public:
 	void setCities(std::vector<engine::Ref<City>>& theCities);
 	// 0x88: 0x433c30: Lisa says what the screen is for
 	void connect() override;
+	// 0x433620 (the application's 0x4022e0): the postcard of a city, or null for a number that is no city's
+	engine::Image* getPostcardImage(int theCity)
+	{
+		if (theCity < 0 || (int)mPostcardImages.size() <= theCity)
+			return nullptr;
+		return mPostcardImages[theCity];
+	}
 
 	// The button listener (+0x144, vtable 0x4fdd70): the postcard the mouse is over comes to the front
 	void buttonEnter(std::string theName) override;  // 0x4332d0

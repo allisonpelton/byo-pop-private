@@ -10,8 +10,9 @@
 //   quitting, leaving a game and deleting a player 0.25, the restore confirmation 0.3, the game's screens and managers
 //   0.4, the decorating and designer screens 0.43, the pizzas 0.44, the player's pizza screens 0.45, the story 0.55,
 //   the designer's unlock notice 0.6, the player select 0.65, the new player entry 0.7, the high scores 0.75, the
-//   global post 0.8, the topping screens 0.85, 0x130's 0.9, the speed levels 0.95 and the city select 1.0, after
-//   which the next state starts.
+//   global post 0.8, the topping screens 0.85, the music player 0.9, the speed levels 0.95 and the city select 1.0,
+//   after which the next state starts. The port has the stages but the decorating and designer screens, the pizzas, the
+//   player's pizza screens and the global post (which is online); each has a comment in the stage's place.
 
 #include "State.h"
 
@@ -44,6 +45,8 @@ private:
 	                 engine::Transition* theOut);
 	// The slide most of the dialogs come in and go out by: from above the screen, in 0.2 seconds
 	static engine::Transition* makeDialogSlide();
+	// The slide of the three confirmations: from below the screen
+	static engine::Transition* makeConfirmationSlide();
 	// The same slide, from the point
 	static engine::Transition* makeSlide(float theFromX, float theFromY);
 

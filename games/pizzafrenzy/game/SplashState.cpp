@@ -22,6 +22,8 @@ const float SPLASH_SECONDS = 1.0f;
 // The dialogs' slide (0x475160 and 0x475070 in each stage)
 const float DIALOG_SLIDE_SECONDS = 0.2f;
 const float DIALOG_SLIDE_FROM_Y = -600.0f;
+// The three confirmations (quit, leave the game, delete a player) slide up from below instead
+const float CONFIRMATION_SLIDE_FROM_Y = 600.0f;
 
 // The restore confirmation's fade
 const float RESTORE_FADE_SECONDS = 0.1f;
@@ -44,6 +46,9 @@ const float CITY_SELECT_FADE_SECONDS = 0.3f;
 const float GAME_SCREEN_FADE_SECONDS = 0.5f;
 const char* const SPLATS_FILE = "res\\manifests\\splats.xml";
 
+// The story screen's fade
+const float STORY_SCREEN_FADE_SECONDS = 0.4f;
+
 // The topping screens' fade
 const float TOPPING_SCREEN_FADE_SECONDS = 0.5f;
 
@@ -55,6 +60,7 @@ const float LOADED_PAUSE_MENU = 0.2f;
 const float LOADED_CONFIRMATIONS = 0.25f;
 const float LOADED_RESTORE_CONFIRMATION = 0.3f;
 const float LOADED_GAME_STATS = 0.4f;
+const float LOADED_STORY_SCREEN = 0.55f;
 const float LOADED_UNLOCK_NOTICE = 0.6f;
 const float LOADED_USER_SELECT = 0.65f;
 const float LOADED_NEW_USER_ENTRY = 0.7f;
@@ -83,6 +89,11 @@ void SplashState::setUpScreen(engine::GenericScreen* theScreen, const char* theL
 engine::Transition* SplashState::makeDialogSlide()
 {
 	return makeSlide(0, DIALOG_SLIDE_FROM_Y);
+}
+
+engine::Transition* SplashState::makeConfirmationSlide()
+{
+	return makeSlide(0, CONFIRMATION_SLIDE_FROM_Y);
 }
 
 engine::Transition* SplashState::makeSlide(float theFromX, float theFromY)
@@ -140,13 +151,13 @@ void SplashState::update(engine::UpdateInfo& theInfo)
 	}
 	else if (mApp->mAppQuitConfirm == nullptr)
 	{
-		engine::Ref<engine::Transition> aSlide = makeDialogSlide();
+		engine::Ref<engine::Transition> aSlide = makeConfirmationSlide();
 		mApp->mAppQuitConfirm = new engine::GenericScreen();
 		setUpScreen(mApp->mAppQuitConfirm, "res/screenLayouts/appQuitConfirm.xml", aSlide, aSlide);
-		aSlide = makeDialogSlide();
+		aSlide = makeConfirmationSlide();
 		mApp->mGameExitConfirm = new engine::GenericScreen();
 		setUpScreen(mApp->mGameExitConfirm, "res/screenLayouts/gameExitConfirm.xml", aSlide, aSlide);
-		aSlide = makeDialogSlide();
+		aSlide = makeConfirmationSlide();
 		mApp->mDeleteUserConfirm = new engine::GenericScreen();
 		setUpScreen(mApp->mDeleteUserConfirm, "res/screenLayouts/deleteUserConfirm.xml", aSlide, aSlide);
 		mApp->mDeleteUserText = static_cast<engine::TextItem*>(mApp->mDeleteUserConfirm->getNode("confirmString"));
@@ -178,6 +189,23 @@ void SplashState::update(engine::UpdateInfo& theInfo)
 		mApp->mSplatFactory->load(SPLATS_FILE);
 		mApp->mScene->addChild(mApp->mSplatFactory);
 		aLoaded = LOADED_GAME_STATS;
+	}
+	// The original makes these stages here, which the port does not have yet: the screens of the pizza designer (the
+	// decorating screen at +0xf4 and the designer at +0xe8, each with a fade of 0.5; the load bar at 0.43), the pizza
+	// manifest and the player's pizzas (0.44, which show no load bar), and the pizza editor and name screens (+0x100
+	// with a fade of 0.3, +0x104 sliding as the options do, and the editor's object at +0xfc; 0.45)
+	else if (mApp->mStoryScreen == nullptr)
+	{
+		// the story screen (which is also the level's end) with its layout, its nodes, the game's stats and its
+		// transitions, which come last in this stage
+		engine::Ref<engine::Transition> aFade = new engine::FadeTransition(STORY_SCREEN_FADE_SECONDS);
+		mApp->mStoryScreen = new StoryScreen();
+		mApp->mStoryScreen->loadLayout("res/screenLayouts/storyScreen.xml");
+		mApp->mStoryScreen->setup();
+		mApp->mStoryScreen->setGameStats(mApp->mGameStats);
+		mApp->mStoryScreen->mActionSignal.connect(mApp, &PizzaFrenzy::onScreenAction);
+		mApp->mStoryScreen->setTransitions(aFade, aFade);
+		aLoaded = LOADED_STORY_SCREEN;
 	}
 	else if (mApp->mUnlockNotice == nullptr)
 	{
@@ -226,10 +254,14 @@ void SplashState::update(engine::UpdateInfo& theInfo)
 		mApp->mHighScoreResetConfirm->setTransitions(aSlide, aSlide);
 		aLoaded = LOADED_HIGH_SCORES;
 	}
+	// The original makes the global score post's screen here (+0xd8, sliding in from the right; the load bar at 0.8),
+	// which the port does not have: it has no online scores
 	else if (mApp->mNewToppingScreen == nullptr)
 	{
-		// the topping screens: the original makes the topping book (+0xe0), the level start screen (+0xe4) and the
-		// new topping screen in this one stage; the new topping screen is the one translated so far
+		// the topping screens: the original makes the topping book (+0xe0, from 0x445b20, layout toppingBook.xml,
+		// sliding in from the left) and the level start screen (+0xe4, from 0x448860, layout
+		// toppingSelectionScreen.xml, a fade of 0.5) before the new topping screen in this one stage, each with its
+		// slot 0x17c; they are translated with the level start, and the new topping screen is the one made so far
 		engine::Ref<engine::Transition> aFade = new engine::FadeTransition(TOPPING_SCREEN_FADE_SECONDS);
 		mApp->mNewToppingScreen = new NewToppingScreen();
 		mApp->mNewToppingScreen->loadLayout("res/screenLayouts/newToppingScreen.xml");
