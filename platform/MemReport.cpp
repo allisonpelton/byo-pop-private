@@ -118,10 +118,15 @@ std::string DescribeHeaps()
 #ifdef _WIN32
 	HANDLE aHeaps[64];
 	DWORD aHeapCount = GetProcessHeaps(64, aHeaps);
+	// the blocks under 64 KB counted by size, for the sizes that hold the most; counted into memory taken before the walk, since an
+	// allocation during it would change the heap being walked
+	std::vector<int> aSmallSizes(64 * 1024);
 	for (DWORD i = 0; (i < aHeapCount) && (i < 64); i++)
 	{
 		size_t aBusy = 0, aFree = 0, aSmall[3] = {0, 0, 0};
 		std::vector<size_t> aLarge;
+		std::fill(aSmallSizes.begin(), aSmallSizes.end(), 0);
+		aLarge.reserve(1024);
 		int aBlocks = 0;
 		PROCESS_HEAP_ENTRY anEntry;
 		anEntry.lpData = NULL;
@@ -136,7 +141,10 @@ std::string DescribeHeaps()
 				if (anEntry.cbData >= 64 * 1024)
 					aLarge.push_back(anEntry.cbData);
 				else
+				{
 					aSmall[(anEntry.cbData < 256) ? 0 : (anEntry.cbData < 4096) ? 1 : 2] += anEntry.cbData;
+					aSmallSizes[anEntry.cbData]++;
+				}
 			}
 			else if ((anEntry.wFlags & (PROCESS_HEAP_REGION | PROCESS_HEAP_UNCOMMITTED_RANGE)) == 0)
 				aFree += anEntry.cbData;
@@ -155,6 +163,19 @@ std::string DescribeHeaps()
 		if (aBusy > 0)
 			aText += Format("  blocks under 256 bytes %.2f MB, under 4 KB %.2f MB, under 64 KB %.2f MB; %d of 64 KB or more, %.2f MB:\n",
 				aSmall[0] / MB, aSmall[1] / MB, aSmall[2] / MB, (int) aLarge.size(), aLargeSum / MB) + " " + aSizes + "\n";
+		// the sizes under 64 KB that hold the most, as size x count: a run of one size points at its holder
+		std::vector<std::pair<size_t, size_t> > aBySum;
+		for (size_t aSize = 0; aSize < aSmallSizes.size(); aSize++)
+			if (aSmallSizes[aSize] > 0)
+				aBySum.push_back(std::make_pair(aSize * aSmallSizes[aSize], aSize));
+		if (!aBySum.empty())
+		{
+			std::sort(aBySum.rbegin(), aBySum.rend());
+			aText += "  the sizes under 64 KB that hold the most:";
+			for (size_t j = 0; (j < aBySum.size()) && (j < 16); j++)
+				aText += Format(" %zux%d", aBySum[j].second, aSmallSizes[aBySum[j].second]);
+			aText += "\n";
+		}
 	}
 #elif defined(__EMSCRIPTEN__)
 	struct mallinfo anInfo = mallinfo();

@@ -4,8 +4,8 @@
 // controls turned and shrunk about their middles by the display's transform stack.
 //
 // The original asks its D3DInterface (the one at the app's +0x36c, its +0x30) to PushTransform and PopTransform. The
-// port's display keeps that stack in the GPU2D of a GPUDisplay, so the two helpers below reach it there; any other
-// display has no stack (and never takes these paths, since Is3DAccelerated is false for it).
+// port's display keeps that stack (DDInterface's, which the 3D game draws through; a GPUDisplay forwards it to its GPU2D),
+// so the two helpers below reach it there.
 
 #include "Board.h"
 #include "WinDMApp.h"
@@ -13,8 +13,6 @@
 #include "StarField.h"
 #include "DDInterface.h"
 #include "MemoryImage.h"
-#include "GPUDisplay.h"
-#include "GPU2D.h"
 #include "SexyMatrix.h"
 #include "TriVertex.h"
 #include "Graphics.h"
@@ -27,17 +25,13 @@ using namespace Sexy;
 // 0x44b8f0 D3DInterface::PushTransform(theTransform, true)
 static void PushScreenTransform(WinDMApp* theApp, const SexyTransform2D& theTransform)
 {
-	GPUDisplay* aDisplay = dynamic_cast<GPUDisplay*>(theApp->mDDInterface);
-	if (aDisplay != NULL && aDisplay->mGPU2D != NULL)
-		aDisplay->mGPU2D->PushTransform(theTransform, true);
+	theApp->mDDInterface->PushTransform(theTransform, true);
 }
 
 // 0x44b990 D3DInterface::PopTransform
 static void PopScreenTransform(WinDMApp* theApp)
 {
-	GPUDisplay* aDisplay = dynamic_cast<GPUDisplay*>(theApp->mDDInterface);
-	if (aDisplay != NULL && aDisplay->mGPU2D != NULL)
-		aDisplay->mGPU2D->PopTransform();
+	theApp->mDDInterface->PopTransform();
 }
 
 // port: the box of the score (the same places as DrawScore's, BoardDraw.cpp): the pixel offset of its top left corner in the

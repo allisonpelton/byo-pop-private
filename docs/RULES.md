@@ -282,7 +282,11 @@ Every call re-reads the whole context, so what costs is context times calls, and
   code it does not need, for a game ported from its Steam copy the check against its PopCap Game Collection
   version, and its features on the site (the user, 2026-11-11: "All these accessory features should be added to our
   definition of done"): Music's entries for its tunes placed, grouped and split as the game plays them, with no place
-  its code can settle left blank, its soundboard's presets of the sequences the game plays, and, where speedrun.com
+  its code can settle left blank, its tracker modules' unused patterns (patterns no order of any subsong plays) in
+  Music's own section for them, away from the game's tunes, never reached by playing on down the list and played only
+  when chosen (the user, 2026-11-15: "Add unused tracker patterns to their own section in the music player (since
+  they're not compositions unto themselves, not listed alongside their game, and don't start playing them while going
+  down through the list, only when one is selected). That's now part of a game's definition of done"), its soundboard's presets of the sequences the game plays, and, where speedrun.com
   has a leaderboard for the game, its autosplitter in the site's Splits window, timed by that board's rules (the user,
   2026-11-12: "let's build in autosplitters to every port of a game with a leaderboard on speedrun.com"). The site
   builds them, and the game's session answers the site's questions about its code and adds the few inert lines of

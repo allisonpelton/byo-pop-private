@@ -64,11 +64,12 @@
         "unneeded-code",
         "readability",
         "collection",
-        "site-features"
+        "site-features",
+        "lite-mod"
       ],
       "na": [],
       "now": null,
-      "note": ""
+      "note": "every phase but modding done: the lite mod takes nothing (LITE_MOD.md: the whole board logic is about 1 us an update)"
     },
     "alchemy": {
       "title": "Alchemy Deluxe",
@@ -82,13 +83,14 @@
         "performance",
         "unneeded-code",
         "readability",
-        "site-features"
+        "site-features",
+        "lite-mod"
       ],
       "na": [
         "collection"
       ],
       "now": null,
-      "note": ""
+      "note": "every phase but modding done: the lite mod takes nothing (LITE_MOD.md: the discard's melt would be lite in kind but costs 0.4% to 1.9% of a minute, below what the medians resolve)"
     },
     "noahsark": {
       "title": "Noah's Ark Deluxe",
@@ -102,13 +104,14 @@
         "performance",
         "unneeded-code",
         "readability",
-        "site-features"
+        "site-features",
+        "lite-mod"
       ],
       "na": [
         "collection"
       ],
       "now": null,
-      "note": ""
+      "note": "every phase but modding done: the lite mod takes nothing (LITE_MOD.md: the four searches cost about 0.05% of the action game; SearchPath's other routes of equal cost are lite in kind but not worth it)"
     },
     "atomica": {
       "title": "Atomica Deluxe",
@@ -164,11 +167,12 @@
         "unneeded-code",
         "readability",
         "collection",
-        "site-features"
+        "site-features",
+        "lite-mod"
       ],
       "na": [],
-      "now": "lite-mod",
-      "note": "processor time like for like 6.7 G cycles a minute at the original's 640x480 (5.9 in the default window) against the original's 10.5; the lite survey next"
+      "now": null,
+      "note": "every phase but modding done: the lite mod takes nothing (LITE_MOD.md: Board::Flood and PlanEnemyMoves on the 11x11 grid cost under 0.1 ms in two bot games)"
     },
     "mahjongjapan": {
       "title": "Mahjong Escape: Ancient Japan",
@@ -186,8 +190,8 @@
       "na": [
         "collection"
       ],
-      "now": "performance",
-      "note": "processor time over the original's: second performance round (the user's target, 2026-11-11)"
+      "now": null,
+      "note": "second performance round merged: SurfaceDisplay's stretch mode (GDI nearest, off by default; full screen at 4K 0.57 and 0.52 of the original's processor time) and the modal pause under the mod menu; the default full screen stays on the renderer (over the original) until the user's choice of look and fw-memory's processor-side smooth stretch"
     },
     "mahjongchina": {
       "title": "Mahjong Escape: Ancient China",
@@ -205,8 +209,8 @@
       "na": [
         "collection"
       ],
-      "now": "performance",
-      "note": "processor time over the original's: second performance round (the user's target, 2026-11-11)"
+      "now": null,
+      "note": "second performance round merged: SurfaceDisplay's stretch mode (GDI nearest, off by default; full screen at 4K 0.57 and 0.52 of the original's processor time) and the modal pause under the mod menu; the default full screen stays on the renderer (over the original) until the user's choice of look and fw-memory's processor-side smooth stretch"
     },
     "bejeweledtwist": {
       "title": "Bejeweled Twist",
@@ -373,11 +377,12 @@
         "performance",
         "unneeded-code",
         "readability",
-        "collection"
+        "collection",
+        "lite-mod"
       ],
       "na": [],
-      "now": "lite-mod",
-      "note": "the cycle split measured: 0.53 of the original's processor time at 640x480, 0.44 at 1280x960; the lite survey next"
+      "now": null,
+      "note": "every phase but modding done: the lite mod takes nothing (LITE_MOD.md: the game's own logic is under 0.1% of an update; the solvers are already a mod)"
     },
     "bigmoney": {
       "title": "Big Money Deluxe",
@@ -522,18 +527,24 @@
         "registration-out"
       ],
       "na": [],
-      "now": "site-features",
-      "note": "every phase but modding done but two: the 3D original's shots against the port's 3D mode (the sandbox never loads it; a visible-desktop driver after the reset) and the tutorial's don't-show-again box; registration and outbound buttons were left out from the first draft (no trial, buy or more-games path in the source); real input windowed and full screen in every mode; site features with the site session"
+      "now": null,
+      "note": "every phase but modding done except the site features (Music, soundboard presets, an autosplitter if speedrun.com has a board), which wait on the site's session; the tutorial's don't-show-again box is settled (9e662bc1): it sits on levels/tutorial.xml, a scene the original never loads, so the original never shows it"
     },
     "heavyweapon": {
       "title": "Heavy Weapon Deluxe",
       "done": [
         "port",
-        "identical-play"
+        "identical-play",
+        "identical-look",
+        "fixes-mod",
+        "readability",
+        "coverage",
+        "registration-out",
+        "performance"
       ],
       "na": [],
-      "now": "registration-out",
-      "note": "phase one of identical play done: 28 games from the bot's records agree with the original under origrun in every compared frame (both generators, score, lives, the tank's X, bosses, shots, enemies), all nineteen bosses; the x87's sines in X87.cpp; registration out next"
+      "now": null,
+      "note": "the performance pass merged (0ec9910f): in 2D on rundesk over level 4 the port takes 2.67 M cycles an update at 1x and 2.74 at 2x against the original's 3.13, about 85% with the mixer counted apart and 94% with it, no code change; next the lite mod"
     },
     "hammerheads": {
       "title": "Hammer Heads Deluxe",
@@ -551,7 +562,7 @@
       "done": [],
       "na": [],
       "now": "port",
-      "note": "the port under way since 2026-11-15, aiming at playable within the week (the user's one exception to new games waiting)"
+      "note": "first boot and the front end work natively (93753d25): the main menu, options, player select and entry, high scores; the game link and online scores removed. The Word Harmony host moved to engines/sprout/host and the engine gained the signal build (engine::gSignalBuild); Word Harmony's state log and shots unchanged. The port continues toward playable this week (the user's one exception to new games waiting)"
     },
     "igglepop": {
       "title": "Iggle Pop Deluxe",

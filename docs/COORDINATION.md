@@ -12,7 +12,10 @@ holds the rules every session follows; this file does not repeat them.
   `mcp__ccd_session_mgmt__get_usage` hourly while sessions work, warns them at 95%, and checks again before every
   message that sends a session on ("You ran up the usage all the way to 100% despite my 97% limit", 2026-11-10).
 - **Flat out to the cap (the user, 2026-11-07):** the work runs at full pace up to that limit.
-- **Effort (the user, 2026-10-27, a trial):** game sessions run at medium effort to save usage.
+- **Effort (the user, 2026-10-27; settled 2026-11-15):** game sessions run at medium effort to save usage; only the
+  coordinator, the site's session and the framework's (fw-memory) run at extra (xhigh). "Only site/framework and
+  coordinator get Extra; Medium on everything else" (2026-11-15, after a run of game sessions was found on Extra).
+  Every `start_session` for a game passes `effort: "medium"`, since a new session otherwise takes the starter's.
 
 ## Sessions
 
@@ -81,7 +84,7 @@ holds the rules every session follows; this file does not repeat them.
   native, not just its log. Each brief says so.
 - **Done means every phase but modding (the user, 2026-11-08, 2026-11-11):** a game is done, and may go on the live
   site, only after every step above, its features on the site included: its tunes placed, grouped and split in Music,
-  and its soundboard's presets ("All these accessory features should be added to our definition of done"). The site
+  its modules' unused patterns in Music's section for them (2026-11-15), and its soundboard's presets ("All these accessory features should be added to our definition of done"). The site
   session builds those and the game's session answers its questions. The games done on 2026-12-31 go live then (the
   site going public is still the user's word); the rest follow when done. Modding waits: new mods and the changes in
   `docs/MOD_ROADMAP.md`.
