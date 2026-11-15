@@ -49,6 +49,7 @@ public:
 	virtual void	Resize(int theX, int theY, int theWidth, int theHeight) override;	// 0x456a70
 	virtual void	Draw(Graphics* g) override;										// 0x456fc0
 	virtual void	ButtonDepress(int theId) override;								// 0x456b70 (the ButtonListener part)
+	virtual void	ButtonMouseEnter(int theId) override;		// 0x454bc0: the mouse-over sound, whichever button
 	virtual void	CheckboxChecked(int theId, bool theChecked) override;			// 0x456bb0 (the CheckboxListener part)
 	virtual void	FlashAnimEnded(int theId) override;								// 0x456c00 (the FlashListener part)
 };

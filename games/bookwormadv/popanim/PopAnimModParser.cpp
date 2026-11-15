@@ -147,6 +147,7 @@ static void HueShiftImage(MemoryImage* theImage, int theShift)
 }
 
 // 0x52a190: theParams are the command and its arguments. A command that is not for this pass is skipped.
+// 0x52c1c0 (the Remap command's push onto the PopAnim's list) is inline here
 bool PopAnimModParser::HandleCommand(const ListDataElement& theParams)
 {
 	const ElementVector& aVec = theParams.mElementVector;

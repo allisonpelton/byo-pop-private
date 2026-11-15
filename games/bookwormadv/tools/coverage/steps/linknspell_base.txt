@@ -1,0 +1,6 @@
+# Moxie's mini-games: Link n' Spell (the base of play.py). Profile 3.10.6 (every mini-game open).
+at 31000
+click 115 400            # the tent
+wait 2500
+click 393 412            # Link n' Spell
+wait 2500

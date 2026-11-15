@@ -10,6 +10,7 @@
 
 #define MINSIZEARRAY 4
 
+// 0x71a7b0
 void* luaM_growaux(lua_State* L, void* block, int* size, int size_elems, int limit, const char* errormsg)
 {
 	void* newblock;
@@ -27,6 +28,7 @@ void* luaM_growaux(lua_State* L, void* block, int* size, int size_elems, int lim
 	return newblock;
 }
 
+// 0x71a810
 void* luaM_realloc(lua_State* L, void* block, lu_mem oldsize, lu_mem size)
 {
 	if (size == 0) {
@@ -175,6 +177,7 @@ int luaO_str2int(const char* s, lua_Int* result)
 	return 1;
 }
 
+// 0x6f7190
 static void pushstr(lua_State* L, const char* str)
 {
 	setsvalue2s(L->top, luaS_new(L, str));
@@ -182,6 +185,7 @@ static void pushstr(lua_State* L, const char* str)
 }
 
 // this function handles only `%d', `%c', %f, `%s', `%p' and `%%' formats
+// 0x6f71e0
 const char* luaO_pushvfstring(lua_State* L, const char* fmt, va_list argp)
 {
 	int n = 1;
@@ -252,6 +256,7 @@ const char* luaO_pushfstring(lua_State* L, const char* fmt, ...)
 	return msg;
 }
 
+// 0x6f7430
 void luaO_chunkid(char* out, const char* source, int bufflen)
 {
 	if (*source == '=') {
@@ -290,6 +295,7 @@ void luaO_chunkid(char* out, const char* source, int bufflen)
 
 // ---- lzio -------------------------------------------------------------------------------------------
 
+// 0x719a70
 int luaZ_fill(ZIO* z)
 {
 	size_t size;
@@ -322,6 +328,7 @@ void luaZ_init(ZIO* z, lua_Chunkreader reader, void* data, const char* name)
 	z->p = NULL;
 }
 
+// 0x719b20
 size_t luaZ_read(ZIO* z, void* b, size_t n)
 {
 	while (n) {
@@ -352,6 +359,7 @@ const char* const luaT_typenames[] = {
 	"method", "proto", "upval"
 };
 
+// 0x719bf0
 void luaT_init(lua_State* L)
 {
 	static const char* const luaT_eventname[] = {  // ORDER TM (0x79b688)

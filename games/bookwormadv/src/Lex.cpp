@@ -10,6 +10,8 @@ using namespace Sexy;
 
 // One word per line, prefix-compressed: a number is how many leading letters of the previous word the next
 // words keep, until the next number ("aa", "2h", "3ed", "ing" -> AA, AAH, AAHED, AAHING). As in BookWorm Deluxe.
+// 0x4bb250, with 0x4baf70 (the next character of the file) and 0x4bb070 (the file opened through the PakInterface):
+// p_fgetc and p_fopen here
 bool Lex::Load(const std::string& theDefsFile, const std::string& theWordFile, std::vector<std::string>* theWords)
 {
 	PFILE* aFile = p_fopen(theWordFile.c_str(), "r");

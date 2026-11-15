@@ -81,6 +81,29 @@ void GameApp::CloseOptionsDialog(bool theApply)
 		mBoard->Pause(false, true);
 }
 
+// 0x4458b0: a screen no larger than the game leaves it in full screen, and in full screen the updates follow the
+// display (mVSyncUpdates: the framework calls the screens' UpdateF, which they call themselves otherwise). After the
+// switch the options dialog's Full Screen box, when the dialog is open (Alt+Enter), shows the mode the game is in.
+void GameApp::SwitchScreenMode(bool wantWindowed, bool is3d, bool force)
+{
+	if (mForceFullscreen)
+		wantWindowed = false;
+#ifndef __EMSCRIPTEN__
+	// port: the desktop's size for the screen's (GetSystemMetrics, read as the original made its display); SDL's full
+	// screen keeps the desktop's mode. On the web the page's rules for full screen decide.
+	SDL_DisplayMode aDesktop;
+	int aDisplay = mHWnd != nullptr ? SDL_GetWindowDisplayIndex(mHWnd) : 0;
+	if (SDL_GetDesktopDisplayMode(aDisplay < 0 ? 0 : aDisplay, &aDesktop) == 0 &&
+	    (mWidth >= aDesktop.w || mHeight >= aDesktop.h))
+		wantWindowed = false;
+#endif
+	mVSyncUpdates = !wantWindowed;
+	mWaitForVSync = !wantWindowed;
+	LuaApp::SwitchScreenMode(wantWindowed, is3d, force);
+	if (OptionsDialog* anOptions = static_cast<OptionsDialog*>(GetDialog(DIALOG_OPTIONS)))
+		anOptions->mFullscreenBox->mChecked = !mIsWindowed;
+}
+
 void GameApp::SetShowTilePips(bool theShow)
 {
 	// 0x44f7e0

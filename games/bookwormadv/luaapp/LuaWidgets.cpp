@@ -25,6 +25,8 @@ LuaWidgetTplBase* Sexy::LuaCheckListener(lua_State* L, int idx)
 
 // ---- LuaWidget, LuaTextWidget ----
 
+// The original registered both classes as each LuaWidget was made: LuaWidgetTpl<Widget>'s constructor (0x40c380) its
+// own (0x40d600), then LuaWidget's constructor (0x40b0c0) the class "LuaWidget" (made by 0x40d140 and 0x40d960)
 void LuaWidget::RegisterLua()
 {
 	LuaWidgetTpl<Widget>::RegisterLua("LuaWidgetTpl<Widget>");

@@ -26,6 +26,7 @@ static TObject* negindex(lua_State* L, int idx)
 		}
 }
 
+// 0x6ee650
 static TObject* luaA_index(lua_State* L, int idx)
 {
 	if (idx > 0)
@@ -34,6 +35,7 @@ static TObject* luaA_index(lua_State* L, int idx)
 		return negindex(L, idx);
 }
 
+// 0x6ee5f0
 static TObject* luaA_indexAcceptable(lua_State* L, int idx)
 {
 	if (idx > 0) {
@@ -53,6 +55,7 @@ void luaA_pushobject(lua_State* L, const TObject* o)
 	incr_top(L);
 }
 
+// 0x6ee720
 int lua_checkstack(lua_State* L, int size)
 {
 	int res;
@@ -101,6 +104,7 @@ int lua_gettop(lua_State* L)
 	return (int)(L->top - L->base);
 }
 
+// 0x6ee800
 void lua_settop(lua_State* L, int idx)
 {
 	if (idx >= 0) {
@@ -112,6 +116,7 @@ void lua_settop(lua_State* L, int idx)
 		L->top += idx + 1;  // `subtract' index (index is negative)
 }
 
+// 0x6ee850
 void lua_remove(lua_State* L, int idx)
 {
 	StkId p = luaA_index(L, idx);
@@ -120,6 +125,7 @@ void lua_remove(lua_State* L, int idx)
 	L->top--;
 }
 
+// 0x6ee890
 void lua_insert(lua_State* L, int idx)
 {
 	StkId p;
@@ -130,6 +136,7 @@ void lua_insert(lua_State* L, int idx)
 	setobjs2s(p, L->top);
 }
 
+// 0x6ee8e0
 void lua_replace(lua_State* L, int idx)
 {
 	setobj(luaA_index(L, idx), L->top - 1);  // write barrier
@@ -154,6 +161,7 @@ void lua_pushvalue(lua_State* L, int idx)
 
 // ---- access functions (stack -> C) -------------------------------------------------------------------
 
+// 0x6ee970
 int lua_type(lua_State* L, int idx)
 {
 	StkId o = luaA_indexAcceptable(L, idx);
@@ -174,6 +182,7 @@ int lua_iscfunction(lua_State* L, int idx)
 	return (o == NULL) ? 0 : (ttype(o) == LUA_TFUNCTION || ttype(o) == LUA_TMETHOD) && clvalue(o)->c.isC;
 }
 
+// 0x6ee9f0
 int lua_isnumber(lua_State* L, int idx)
 {
 	TObject n;
@@ -214,6 +223,7 @@ int lua_lessthan(lua_State* L, int index1, int index2)
 	return (o1 == NULL || o2 == NULL) ? 0 : luaV_lessthan(L, o1, o2);
 }
 
+// 0x6eec60
 lua_Number lua_tonumber(lua_State* L, int idx)
 {
 	TObject n;
@@ -233,6 +243,7 @@ lua_Int lua_toint(lua_State* L, int idx)
 	return 0;
 }
 
+// 0x6eea40
 int lua_isint(lua_State* L, int idx)
 {
 	TObject n;
@@ -240,12 +251,14 @@ int lua_isint(lua_State* L, int idx)
 	return (o != NULL && luaV_toint(o, &n) != NULL);
 }
 
+// 0x6eed00
 int lua_toboolean(lua_State* L, int idx)
 {
 	const TObject* o = luaA_indexAcceptable(L, idx);
 	return (o != NULL) && !l_isfalse(o);
 }
 
+// 0x6eed40
 const char* lua_tostring(lua_State* L, int idx)
 {
 	StkId o = luaA_indexAcceptable(L, idx);
@@ -257,6 +270,7 @@ const char* lua_tostring(lua_State* L, int idx)
 		return luaV_tostring(L, o) ? svalue(o) : NULL;
 }
 
+// 0x6eedb0
 size_t lua_strlen(lua_State* L, int idx)
 {
 	StkId o = luaA_indexAcceptable(L, idx);
@@ -295,6 +309,7 @@ lua_CFunction lua_tocfunction(lua_State* L, int idx)
 	return (o == NULL || !lua_iscfunction(L, idx)) ? NULL : clvalue(o)->c.f;
 }
 
+// 0x6eeea0
 void* lua_touserdata(lua_State* L, int idx)
 {
 	StkId o = luaA_indexAcceptable(L, idx);
@@ -357,6 +372,7 @@ void lua_pushint(lua_State* L, lua_Int n)
 	api_incr_top(L);
 }
 
+// 0x6eefb0
 void lua_pushlstring(lua_State* L, const char* s, size_t len)
 {
 	luaC_checkGC(L);
@@ -364,6 +380,7 @@ void lua_pushlstring(lua_State* L, const char* s, size_t len)
 	api_incr_top(L);
 }
 
+// 0x6eeff0
 void lua_pushstring(lua_State* L, const char* s)
 {
 	if (s == NULL)
@@ -378,6 +395,7 @@ const char* lua_pushvfstring(lua_State* L, const char* fmt, va_list argp)
 	return luaO_pushvfstring(L, fmt, argp);
 }
 
+// 0x6ef080
 const char* lua_pushfstring(lua_State* L, const char* fmt, ...)
 {
 	const char* ret;
@@ -389,6 +407,7 @@ const char* lua_pushfstring(lua_State* L, const char* fmt, ...)
 	return ret;
 }
 
+// 0x6ef0b0
 void lua_pushcclosure(lua_State* L, lua_CFunction fn, int n)
 {
 	Closure* cl;
@@ -416,12 +435,14 @@ void lua_pushlightuserdata(lua_State* L, void* p)
 
 // ---- get functions (Lua -> stack) --------------------------------------------------------------------
 
+// 0x6ef170
 void lua_gettable(lua_State* L, int idx)
 {
 	StkId t = luaA_index(L, idx);
 	setobj2s(L->top - 1, luaV_gettable(L, t, L->top - 1, 0));
 }
 
+// 0x6ef270
 void lua_rawget(lua_State* L, int idx)
 {
 	StkId t = luaA_index(L, idx);
@@ -435,6 +456,7 @@ void lua_rawgeti(lua_State* L, int idx, int n)
 	api_incr_top(L);
 }
 
+// 0x6ef330
 void lua_newtable(lua_State* L)
 {
 	luaC_checkGC(L);
@@ -456,6 +478,7 @@ static Table* getmt(lua_State* L, const TObject* obj)
 	}
 }
 
+// 0x6ef370
 int lua_getmetatable(lua_State* L, int objindex)
 {
 	const TObject* obj = luaA_indexAcceptable(L, objindex);
@@ -486,6 +509,7 @@ void lua_settable(lua_State* L, int idx)
 	L->top -= 2;  // pop index and value
 }
 
+// 0x6ef4b0
 void lua_rawset(lua_State* L, int idx)
 {
 	StkId t = luaA_index(L, idx);
@@ -493,6 +517,7 @@ void lua_rawset(lua_State* L, int idx)
 	L->top -= 2;
 }
 
+// 0x6ef540
 void lua_rawseti(lua_State* L, int idx, int n)
 {
 	StkId o = luaA_index(L, idx);
@@ -500,6 +525,7 @@ void lua_rawseti(lua_State* L, int idx, int n)
 	L->top--;
 }
 
+// 0x6ef600
 int lua_setmetatable(lua_State* L, int objindex)
 {
 	TObject* obj = luaA_index(L, objindex);
@@ -584,6 +610,7 @@ static void f_call(lua_State* L, void* ud)
 	luaD_call(L, c->func, c->nresults);
 }
 
+// 0x6ef7b0
 int lua_pcall(lua_State* L, int nargs, int nresults, int errfunc)
 {
 	CallS c;
@@ -684,6 +711,7 @@ int lua_next(lua_State* L, int idx)
 	return more;
 }
 
+// 0x6efb10
 void lua_concat(lua_State* L, int n)
 {
 	if (n >= 2) {
@@ -698,6 +726,7 @@ void lua_concat(lua_State* L, int n)
 	// else n == 1; nothing to do
 }
 
+// 0x6efb80
 void* lua_newuserdata(lua_State* L, size_t size)
 {
 	Udata* u;

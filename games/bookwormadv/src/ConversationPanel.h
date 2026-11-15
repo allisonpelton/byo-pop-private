@@ -115,9 +115,9 @@ public:
 	void SetTextRect(int theX, int theY, int theW, int theH);  // vf 0x124 (0x42fc30): the last panel's
 	void SetTextRectBeside(int theSide);   // vf 0x12c (0x431fe0): beside the portrait on theSide
 	void SetScreenColor(const Color& theColor) { mScreenColor = theColor; }  // vf 0x130 (0x42f370)
-	void SetBeamColor(const Color& theColor) { mBeamColor = theColor; }      // vf 0x134
-	void SetOuterColor(const Color& theColor) { mOuterColor = theColor; }    // vf 0x138
-	void SetMiddleColor(const Color& theColor) { mMiddleColor = theColor; }  // vf 0x13c
+	void SetBeamColor(const Color& theColor) { mBeamColor = theColor; }      // vf 0x134 (0x42f3a0)
+	void SetOuterColor(const Color& theColor) { mOuterColor = theColor; }    // vf 0x138 (0x42f3d0)
+	void SetMiddleColor(const Color& theColor) { mMiddleColor = theColor; }  // vf 0x13c (0x42f400)
 	void SetInnerColor(const Color& theColor);            // vf 0x140 (0x431e00): the last panel's
 	void SetContinueTextColor(const Color& theColor);     // vf 0x144 (0x432c40): the last panel's
 	void SetAllContinueTextColors(const Color& theColor); // vf 0x148 (0x432cb0)

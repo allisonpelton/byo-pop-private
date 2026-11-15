@@ -11,6 +11,8 @@
 
 using namespace Sexy;
 
+// 0x49e140 (the colour fader's constructor) is inline here
+// 0x49e1f0
 TitleScreen::TitleScreen(GameApp* theApp)
 {
 	mFadeColor = Color::Black;  // port: the fader (0x49e140) started from its own default (0x825f00, Color::Black)
@@ -33,6 +35,7 @@ TitleScreen::TitleScreen(GameApp* theApp)
 	mLogoY = 0;
 }
 
+// 0x49e700
 TitleScreen::~TitleScreen()
 {
 	for (LoadingTile* aTile : mTiles) {
