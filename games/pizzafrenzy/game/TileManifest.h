@@ -40,6 +40,10 @@ public:
 	ParticleEffect* getParticleEffect(const std::string& theName);
 	// The toppings by name (+0x30)
 	std::map<std::string, engine::Ref<Topping>>& getToppings() { return mToppings; }
+	// The toppings in the order the manifest gives them (+0x3c)
+	std::vector<engine::Ref<Topping>>& getToppingList() { return mToppingList; }
+	// The score titles in the order the manifest gives them (+0x70)
+	std::vector<engine::Ref<ScoreTitle>>& getTitles() { return mTitles; }
 	// 0x422e10: the music clip of that name, null when there is none
 	GameMusicClip* getMusic(const std::string& theName);
 

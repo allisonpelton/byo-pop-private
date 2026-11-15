@@ -186,9 +186,9 @@ void DialogState::action(const std::string& theAction)
 	}
 	else if (theAction.compare("toppingScreen") == 0)
 	{
-		// the topping book (the application's +0xe0): its slot 0x180, and then this state shows it; translated next
-		// with the topping screens
 		mFromPause = true;
+		mApp->mToppingBook->showPages();
+		show(mApp->mToppingBook);
 	}
 	else if (theAction.compare("gameExitSave") == 0)
 	{

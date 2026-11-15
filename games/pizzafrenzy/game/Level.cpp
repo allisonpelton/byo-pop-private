@@ -26,7 +26,7 @@ void Level::addPizza(Pizza* thePizza)
 void Level::addKitchen(const std::string& theVanType)
 {
 	LevelKitchen aKitchen;
-	aKitchen.mKitchen = nullptr;
+	aKitchen.mTopping = nullptr;
 	aKitchen.mVanType = theVanType;
 	mKitchens.push_back(aKitchen);
 }

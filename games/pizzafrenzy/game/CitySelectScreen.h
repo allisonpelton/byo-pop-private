@@ -55,7 +55,7 @@ private:
 	engine::Ref<engine::Node> mLisa;                     // +0x1f8: the node "Lisa"
 	engine::Ref<engine::Node> mLisaBubble;               // +0x1fc: the node "LisaBubble"
 	engine::Ref<engine::TextTyper> mLisaTyper;           // +0x200
-	engine::Ref<engine::Image> mUnknownPostcard;         // +0x204: the postcard with the question marks
+	engine::Ref<engine::Image> mNoCityPostcard;          // +0x204: the postcard of a city that is not there
 	engine::Ref<engine::ImageButton> mHoveredButton;     // +0x208: the button the mouse is over, which is taken out of
 	                                                     // the row
 	engine::Ref<engine::Container> mLocks;               // +0x20c: the locks, and the button the mouse is over

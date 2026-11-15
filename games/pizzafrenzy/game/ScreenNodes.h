@@ -25,6 +25,7 @@ std::string formatMessage(const std::string& theText, const std::string& theInse
 // The format with its one conversion (%s or %d) filled, as the exe's printf into a string (0x46db00) does
 std::string formatText(const std::string& theFormat, const std::string& theText);
 std::string formatText(const std::string& theFormat, int theNumber);
+std::string formatText(const std::string& theFormat, int theFirst, int theSecond);
 
 } // namespace pizzafrenzy
 

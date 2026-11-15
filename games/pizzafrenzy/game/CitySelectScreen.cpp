@@ -117,7 +117,7 @@ void CitySelectScreen::setCities(std::vector<engine::Ref<City>>& theCities)
 		engine::Ref<engine::Image> aPostcard = makePostcard(theCities[i]);
 		mPostcardImages.push_back(aPostcard);
 	}
-	mUnknownPostcard = makePostcard(nullptr);
+	mNoCityPostcard = makePostcard(nullptr);
 	anApp->mHud->setVisible(true);
 	anApp->mGameScreen->mGameLayout->setVisible(true);
 	for (int i = 0; i < (int)mPostcardImages.size(); i++)

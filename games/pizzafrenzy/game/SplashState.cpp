@@ -49,7 +49,8 @@ const char* const SPLATS_FILE = "res\\manifests\\splats.xml";
 // The story screen's fade
 const float STORY_SCREEN_FADE_SECONDS = 0.4f;
 
-// The topping screens' fade
+// The topping book slides in from the left, and the level start screen and the new topping screen fade
+const float TOPPING_BOOK_SLIDE_FROM_X = -800.0f;
 const float TOPPING_SCREEN_FADE_SECONDS = 0.5f;
 
 // The load bar's share after each stage
@@ -78,6 +79,7 @@ void SplashState::enter()
 	mApp->mScreens->showScreen(mApp->mSplashScreen, 0);
 }
 
+// 0x40a330: the layout, transitions and actions of a stage's screen
 void SplashState::setUpScreen(engine::GenericScreen* theScreen, const char* theLayout, engine::Transition* theIn,
                               engine::Transition* theOut)
 {
@@ -86,16 +88,19 @@ void SplashState::setUpScreen(engine::GenericScreen* theScreen, const char* theL
 	theScreen->mActionSignal.connect(mApp, &PizzaFrenzy::onScreenAction);
 }
 
+// 0x40a330: the slide of the dialogs
 engine::Transition* SplashState::makeDialogSlide()
 {
 	return makeSlide(0, DIALOG_SLIDE_FROM_Y);
 }
 
+// 0x40a330: the slide of the confirmations
 engine::Transition* SplashState::makeConfirmationSlide()
 {
 	return makeSlide(0, CONFIRMATION_SLIDE_FROM_Y);
 }
 
+// 0x40a330: the slide of a stage's screen
 engine::Transition* SplashState::makeSlide(float theFromX, float theFromY)
 {
 	engine::SlideTransition* aSlide = new engine::SlideTransition(DIALOG_SLIDE_SECONDS);
@@ -256,12 +261,20 @@ void SplashState::update(engine::UpdateInfo& theInfo)
 	}
 	// The original makes the global score post's screen here (+0xd8, sliding in from the right; the load bar at 0.8),
 	// which the port does not have: it has no online scores
-	else if (mApp->mNewToppingScreen == nullptr)
+	else if (mApp->mToppingBook == nullptr)
 	{
-		// the topping screens: the original makes the topping book (+0xe0, from 0x445b20, layout toppingBook.xml,
-		// sliding in from the left) and the level start screen (+0xe4, from 0x448860, layout
-		// toppingSelectionScreen.xml, a fade of 0.5) before the new topping screen in this one stage, each with its
-		// slot 0x17c; they are translated with the level start, and the new topping screen is the one made so far
+		// the topping screens: the topping book (+0xe0, 0x445b20), the level start screen (+0xe4, 0x448860) and the
+		// new topping screen (+0xec, 0x43b5b0), each with its transitions and then its slot 0x17c
+		engine::Ref<engine::Transition> aSlide = makeSlide(TOPPING_BOOK_SLIDE_FROM_X, 0);
+		mApp->mToppingBook = new ToppingBookScreen();
+		mApp->mToppingBook->loadLayout("res/screenLayouts/toppingBook.xml");
+		mApp->mToppingBook->setTransitions(aSlide, aSlide);
+		mApp->mToppingBook->setup();
+		engine::Ref<engine::Transition> aLevelStartFade = new engine::FadeTransition(TOPPING_SCREEN_FADE_SECONDS);
+		mApp->mLevelStartScreen = new LevelStartScreen();
+		mApp->mLevelStartScreen->loadLayout("res/screenLayouts/toppingSelectionScreen.xml");
+		mApp->mLevelStartScreen->setTransitions(aLevelStartFade, aLevelStartFade);
+		mApp->mLevelStartScreen->setup();
 		engine::Ref<engine::Transition> aFade = new engine::FadeTransition(TOPPING_SCREEN_FADE_SECONDS);
 		mApp->mNewToppingScreen = new NewToppingScreen();
 		mApp->mNewToppingScreen->loadLayout("res/screenLayouts/newToppingScreen.xml");

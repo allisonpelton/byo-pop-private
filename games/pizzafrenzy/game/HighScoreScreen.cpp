@@ -51,7 +51,7 @@ void HighScoreScreen::init()
 {
 	// The original's layout has a button that switches to the online scores, which leads out of the game: it, the
 	// online scores' title and the text on the other title go, and the two buttons left in the row close the gap, the
-	// same 200 apart and centred. A button's text is the unnamed text at the button's place and goes with it.
+	// same 200 apart and centred. A button's text is the text with no name at the button's place and goes with it.
 	removeScreenNode(this, "ToggleGlobal");
 	removeScreenNode(this, "globalText");
 	removeScreenNode(this, "toggleGlobalText");

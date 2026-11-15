@@ -125,6 +125,7 @@ void CityMap::removeTile(Tile* theTile)
 	unregisterTile(theTile);
 }
 
+// 0x4144b0: the erase of unregisterTile, once for each list
 void CityMap::removeFrom(std::vector<engine::Ref<Tile>>& theTiles, Tile* theTile)
 {
 	for (size_t i = 0; i < theTiles.size(); i++)

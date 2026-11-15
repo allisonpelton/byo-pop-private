@@ -24,6 +24,7 @@ bool isBelow(engine::Node* theNode, engine::Node* theAncestor)
 }
 }
 
+// port: a node of a layout that leads out of the game is taken out of its parent and the screen
 void pizzafrenzy::removeScreenNode(engine::ScreenLayout* theScreen, const std::string& theName)
 {
 	engine::Node* aNode = theScreen->getNode(theName);
@@ -43,6 +44,7 @@ void pizzafrenzy::removeScreenNode(engine::ScreenLayout* theScreen, const std::s
 		aParent->removeChild(aNode);
 }
 
+// port: a button of a layout, and its labels, move to close the gap a removed button leaves
 void pizzafrenzy::moveButtonWithLabels(engine::ScreenLayout* theScreen, const std::string& theButton, float theX)
 {
 	engine::Node* aButton = theScreen->getNode(theButton);
@@ -75,6 +77,14 @@ std::string pizzafrenzy::formatText(const std::string& theFormat, int theNumber)
 {
 	char aBuffer[FORMAT_BUFFER_SIZE];
 	snprintf(aBuffer, sizeof(aBuffer), theFormat.c_str(), theNumber);
+	return aBuffer;
+}
+
+// 0x46db00
+std::string pizzafrenzy::formatText(const std::string& theFormat, int theFirst, int theSecond)
+{
+	char aBuffer[FORMAT_BUFFER_SIZE];
+	snprintf(aBuffer, sizeof(aBuffer), theFormat.c_str(), theFirst, theSecond);
 	return aBuffer;
 }
 

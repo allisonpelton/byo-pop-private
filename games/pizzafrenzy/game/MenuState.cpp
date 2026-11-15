@@ -74,6 +74,7 @@ void MenuState::clearEndedGame()
 {
 }
 
+// 0x40c7a0: the dialog state of the actions that open a dialog
 void MenuState::showDialog(engine::GenericScreen* theScreen)
 {
 	mApp->mStates.changeState(new DialogState(mApp, theScreen, this));
@@ -100,8 +101,8 @@ void MenuState::action(const std::string& theAction)
 	}
 	else if (theAction.compare("viewToppingBook") == 0)
 	{
-		// the topping book (the application's +0xe0): its slot 0x180, and a dialog state that shows it; translated
-		// next with the topping screens
+		mApp->mToppingBook->showPages();
+		showDialog(mApp->mToppingBook);
 	}
 	else if (theAction.compare("nextLevel") == 0)
 	{

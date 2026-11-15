@@ -20,7 +20,7 @@ namespace pizzafrenzy
 // A kitchen a level has (0x24 bytes, made by 0x417930): the van it drives
 struct LevelKitchen
 {
-	void* mKitchen;       // +0x00: null when the manifest makes it; nothing translated reads it
+	Topping* mTopping;    // +0x00: the topping the van carries: null when the manifest makes it, the level start's pick
 	std::string mVanType; // +0x04
 };
 

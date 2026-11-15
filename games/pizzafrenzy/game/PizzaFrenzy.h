@@ -17,6 +17,7 @@
 #include "Hud.h"
 #include "ImageNode.h"
 #include "Level.h"
+#include "LevelStartScreen.h"
 #include "MainMenu.h"
 #include "NewToppingScreen.h"
 #include "OptionScreen.h"
@@ -29,6 +30,7 @@
 #include "StoryScreen.h"
 #include "TextItem.h"
 #include "TileManifest.h"
+#include "ToppingBookScreen.h"
 #include "UserGameData.h"
 
 #include <map>
@@ -96,6 +98,8 @@ public:
 	std::string mUnlockNoticeTemplate;                       // +0xb8: the node "notifyText"'s text as the layout has it
 	engine::Ref<engine::GenericScreen> mPauseMenu;           // +0xd4
 	engine::Ref<StoryScreen> mStoryScreen;                   // +0xdc: the level's story, and its end
+	engine::Ref<ToppingBookScreen> mToppingBook;             // +0xe0: opened from the menu and the pause menu
+	engine::Ref<LevelStartScreen> mLevelStartScreen;         // +0xe4: the vans' toppings
 	engine::Ref<NewToppingScreen> mNewToppingScreen;         // +0xec: the toppings the player has not been shown
 	engine::Ref<CitySelectScreen> mCitySelect;               // +0xf0
 	engine::Ref<GameScreen> mGameScreen;                     // +0x114
@@ -146,6 +150,9 @@ public:
 	void giveToppings();
 	// 0x407fc0: the level's start is shown, and a bonus round goes on at once
 	void showLevelStart();
+	// 0x407080: the game is paused, and the pause menu is shown; translated with the pause menu
+	void pauseGame();
+
 	// 0x406dc0: the level is set up for play: the mode's game with the level's city, or the bonus round
 	void setUpLevel();
 

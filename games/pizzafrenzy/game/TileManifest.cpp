@@ -144,7 +144,7 @@ void TileManifestDocHandler::startElement(const std::string& theName, const engi
 	}
 }
 
-// A tile of the map: a kitchen, a customer's house or a bridge
+// 0x423bd0: the "tile" element of startElement. A tile of the map: a kitchen, a customer's house or a bridge
 void TileManifestDocHandler::addTile(const engine::XmlAttributes& theAttributes)
 {
 	std::string aName = engine::getStringAttribute(theAttributes, "name", "");
@@ -184,6 +184,7 @@ void TileManifestDocHandler::addTile(const engine::XmlAttributes& theAttributes)
 	mManifest->registerTile(aName, aClass, aTile);
 }
 
+// 0x423bd0: the "vehicle" element of startElement
 void TileManifestDocHandler::addVehicle(const engine::XmlAttributes& theAttributes)
 {
 	std::string aName = engine::getStringAttribute(theAttributes, "name", "");
@@ -204,6 +205,7 @@ void TileManifestDocHandler::addVehicle(const engine::XmlAttributes& theAttribut
 	mManifest->registerTile(aName, "vehicle", aVehicle);
 }
 
+// 0x423bd0: the "character" element of startElement
 void TileManifestDocHandler::addCharacter(const engine::XmlAttributes& theAttributes)
 {
 	std::string aName = engine::getStringAttribute(theAttributes, "name", "");
@@ -222,7 +224,8 @@ void TileManifestDocHandler::addCharacter(const engine::XmlAttributes& theAttrib
 	mManifest->registerCharacter(aKey, aCharacter);
 }
 
-// A topping, and the handler of its upgrades put on the stack until its element ends
+// 0x423bd0: the "topping" element of startElement: a topping, and the handler of its upgrades put on the stack until
+// its element ends
 void TileManifestDocHandler::addTopping(const engine::XmlAttributes& theAttributes)
 {
 	std::string aName = engine::getStringAttribute(theAttributes, "name", "");
@@ -237,6 +240,7 @@ void TileManifestDocHandler::addTopping(const engine::XmlAttributes& theAttribut
 	getParent()->addHandler(aHandler);
 }
 
+// 0x423bd0: the "music" element of startElement
 void TileManifestDocHandler::addMusic(const engine::XmlAttributes& theAttributes)
 {
 	std::string aName = engine::getStringAttribute(theAttributes, "name", "");

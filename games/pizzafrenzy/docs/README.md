@@ -167,6 +167,11 @@ fourth, the city select shows the first four cities open and the others locked, 
 speed mode and the game state (customers, deliveries, the timer and the score), then the other modes, the story, the
 new toppings, the start and end of a level, and the banners.
 
+The story, the new topping, the van choice and the topping book are in, and a city click goes through them to the
+level's set-up, where the speed mode comes next. The player's toppings are a map keyed by the topping's address in
+the original and the port alike, so the topping book's pages and the titles' points follow the order the toppings
+were made in memory; the logic phase checks that this order matches the original's.
+
 Left for later: the particle effects' systems (0x47bc40), among them the tip jar's coins and the bursts. The banners
 (the message banner 0x42bb30, the speed bonus banner 0x44fb70) and the in-and-out effect (0x42c980); the splats'
 definitions from splats.xml and their update (0x473b90); the city map's and the tiles' slots that only play reaches; the

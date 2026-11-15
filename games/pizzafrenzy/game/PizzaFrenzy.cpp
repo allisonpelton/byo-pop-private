@@ -7,6 +7,7 @@
 #include "Scene.h"
 #include "Scoreboards.h"
 #include "GameText.h"
+#include "LevelStartState.h"
 #include "NewToppingState.h"
 #include "StoryState.h"
 #include "Sound.h"
@@ -358,8 +359,15 @@ void PizzaFrenzy::enterNewToppingState()
 	mStates.changeState(new NewToppingState(this));
 }
 
-// 0x402c40: translated next with the game
+// 0x402c40: the level start screen shows the level (the screen's slot 0x180), and its state starts
 void PizzaFrenzy::enterLevelStartState(Level* theLevel)
+{
+	mLevelStartScreen->setLevel(theLevel);
+	mStates.changeState(new LevelStartState(this, theLevel));
+}
+
+// 0x407080: the pause menu is translated with the game
+void PizzaFrenzy::pauseGame()
 {
 }
 

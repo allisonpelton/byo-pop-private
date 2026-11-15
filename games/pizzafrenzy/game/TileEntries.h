@@ -125,6 +125,16 @@ public:
 	// 0x41dc60: the image centred, and the smaller ones made from it
 	void setImage(engine::Image* theImage);
 
+	// What an upgrade is worth in points: its multiplier times a number that is larger for a topping that uses its image
+	// as its preview (the two numbers at 0x4fa248 and 0x4fa24c)
+	static const int VALUE_PER_MULTIPLIER = 10;
+	static const int VALUE_PER_MULTIPLIER_WITH_PREVIEW = 15;
+	int getUpgradeValue(Upgrade* theUpgrade)
+	{
+		return theUpgrade->mBonusMultiplier *
+			(mUsesImageAsPreview != 0 ? VALUE_PER_MULTIPLIER_WITH_PREVIEW : VALUE_PER_MULTIPLIER);
+	}
+
 	engine::Ref<engine::Image> mImage;         // +0x0c
 	engine::Ref<engine::Image> mCouponImage;   // +0x10
 	engine::Ref<engine::Image> mScaledImage;   // +0x14

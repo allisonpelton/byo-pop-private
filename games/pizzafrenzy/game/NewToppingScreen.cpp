@@ -18,11 +18,6 @@ const float BUTTON_SCALE = 0.9f;    // 0x3f666666
 // The picture behind the topping, drawn at this many times the coupon's size
 const float COUPON_SCALE = 2.0f;
 
-// What an upgrade's multiplier is worth, in points: a topping that has a preview picture of its own is worth more
-// (the two numbers at 0x4fa248 and 0x4fa24c)
-const int VALUE_PER_MULTIPLIER = 10;
-const int VALUE_PER_MULTIPLIER_WITH_PREVIEW = 15;
-
 // The action the application's state waits for once a topping is chosen
 const char* const ACTION_TOPPING_SELECTED = "toppingSelected";
 }
@@ -98,10 +93,7 @@ void NewToppingScreen::showTopping(Topping* theTopping, int theUpgrade)
 	Upgrade* anUpgrade = theTopping->mUpgrades[theUpgrade];
 	mCaption->setText(anUpgrade->mName);
 	mLevel->setText(formatText(mLevelTemplate, theUpgrade + 1));
-	int aValuePerMultiplier = VALUE_PER_MULTIPLIER;
-	if (theTopping->mUsesImageAsPreview != 0)
-		aValuePerMultiplier = VALUE_PER_MULTIPLIER_WITH_PREVIEW;
-	mValue->setText(formatText(mValueTemplate, anUpgrade->mBonusMultiplier * aValuePerMultiplier));
+	mValue->setText(formatText(mValueTemplate, theTopping->getUpgradeValue(anUpgrade)));
 	mDescription->setText(anUpgrade->mDescription);
 }
 
