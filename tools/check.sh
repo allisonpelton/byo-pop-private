@@ -741,10 +741,11 @@ suite_unit() {
 	done
 	k="realinput: -fast $(lastof "$1.rifast" 'realinput: [0-9]+ checks, [0-9]+ failed' | sed 's/^realinput: //'), real time $(lastof "$1.rireal" 'realinput: [0-9]+ checks, [0-9]+ failed' | sed 's/^realinput: //')"
 	# tools/fwtest/flags.txt: the fast stretch's sampling a game set (-corner) and the player's 3D choice hold through every
-	# change of size and mode, on DDInterface and on the software screen (whose full screen goes to the GPU)
+	# change of size and mode, on DDInterface and on the software screen (whose full screen goes to the GPU: SURFACE_STRETCH=0,
+	# since the smooth stretch would keep it in software there)
 	local fl
 	timeout 120 "build/native/fwtest.exe" -corner -realinput=tools/fwtest/flags.txt -fast -placeholders 		-gamedir="$OUT/no-game-files" > "$1.flplain" 2>&1 || st=1
-	SOFTWARE_SCREEN=on SOFTSCREEN_SCALED=1 timeout 120 "build/native/fwtest.exe" -corner -realinput=tools/fwtest/flags.txt -fast 		-placeholders -gamedir="$OUT/no-game-files" > "$1.flsoft" 2>&1 || st=1
+	SOFTWARE_SCREEN=on SOFTSCREEN_SCALED=1 SURFACE_STRETCH=0 timeout 120 "build/native/fwtest.exe" -corner -realinput=tools/fwtest/flags.txt -fast 		-placeholders -gamedir="$OUT/no-game-files" > "$1.flsoft" 2>&1 || st=1
 	grep -q -E 'realinput: line|SDL_PushEvent failed' "$1.flplain" "$1.flsoft" && st=1
 	fl="flags: DDInterface $(lastof "$1.flplain" 'realinput: [0-9]+ checks, [0-9]+ failed' | sed 's/^realinput: //'), software screen $(lastof "$1.flsoft" 'realinput: [0-9]+ checks, [0-9]+ failed' | sed 's/^realinput: //')"
 	# -commands (docs/TEST_COMMANDS.md, "Sending them"): lines appended to a file while fwtest runs, each answered on
