@@ -366,7 +366,7 @@ void GameScreen::Start(int theMode)
 		if (anObject.mKind == BOARD_OBJECT_CUBBY)
 		{
 			Gameplay* aGameplay = GetGameplay();
-			Cubby* aCubby = new Cubby(anObject.mX, anObject.mY, Rand() % 6, aGameplay->GetCubbyBackImage());
+			Cubby* aCubby = new Cubby(anObject.mX, anObject.mY, Rand() % 6, aGameplay->GetBackdrop());
 			aCubby->SetName("");
 			aGameplay->mCubbies.push_back(ObjectRef(aCubby));
 		}
