@@ -1,16 +1,16 @@
 // port: the host for Word Harmony (see WordHarmonyApp.h).
 
 #include "WordHarmonyApp.h"
-#include "Render.h"
+#include "sprout/host/Render.h"
 #include "platform/GameOptions.h"
-#include "SoundHost.h"
-#include "engine/App.h"
-#include "engine/Exception.h"
-#include "engine/Host.h"
+#include "sprout/host/SoundHost.h"
+#include "sprout/App.h"
+#include "sprout/Exception.h"
+#include "sprout/Host.h"
 #include "game/Game.h"
 #include "game/GameText.h"
 #include "game/WordBallSystem.h"
-#include "engine/Random.h"
+#include "sprout/Random.h"
 #include "MemoryImage.h"
 #include "WidgetManager.h"
 #include "platform/VFS.h"
@@ -67,7 +67,7 @@ public:
 
 	engine::Image* createImage(const std::vector<uint8_t>& theData, const std::vector<uint8_t>* theMask) override
 	{
-		return wordharmony::decodeImage(theData, theMask);
+		return engine::decodeImage(theData, theMask);
 	}
 
 	bool registryReadString(const std::string& theName, std::string& theValue) override
@@ -143,7 +143,7 @@ public:
 	void showMessage(const char* theCaption, const char* theText) override { gApp->MsgBox(theText, theCaption); }
 
 	// 0x443ca0: the sound system of the window (DirectSound)
-	engine::SoundSystem* createSoundSystem() override { return new wordharmony::HostSoundSystem(); }
+	engine::SoundSystem* createSoundSystem() override { return new engine::HostSoundSystem(); }
 
 	std::string commandLine() override { return gApp->mCommandLine; }
 };
@@ -184,7 +184,7 @@ WordHarmonyWidget::WordHarmonyWidget()
 		mScreenImage->mUploadAsIs = true;
 		mPixels = (const uint32_t*)mScreenImage->GetBits();
 	}
-	mGraphics = new wordharmony::ScreenGraphics(const_cast<uint32_t*>(mPixels), engine::SCREEN_WIDTH, engine::SCREEN_HEIGHT);
+	mGraphics = new engine::ScreenGraphics(const_cast<uint32_t*>(mPixels), engine::SCREEN_WIDTH, engine::SCREEN_HEIGHT);
 	mLastLoop = gApp->GetClockTime();
 	mAccumulated = 0;
 	mLastSoundTick = gApp->mSteadyClock ? (DWORD)(gApp->mUpdateCount * gApp->mFrameTime) : mLastLoop;
@@ -403,7 +403,7 @@ void WordHarmonyApp::Init()
 	// fixes mod, "steadyClock" (read at the start: its toggle applies on a restart): the sounds end by the engine's clock
 	// too, so the music's draws from the game's random numbers when a clip ends fall on the same frames on every run
 	mSteadyClock = !mFastMode && Platform::FixOn("steadyClock");
-	wordharmony::HostSound::sGameClock = mFastMode || mSteadyClock;
+	engine::HostSound::sGameClock = mFastMode || mSteadyClock;
 	mWidget = new WordHarmonyWidget();
 	mWidget->Resize(0, 0, mWidth, mHeight);
 	mWidgetManager->AddWidget(mWidget);
@@ -438,7 +438,7 @@ void WordHarmonyApp::RunFrame()
 		if (mFrames < mBotUntil)
 			BotTick();
 		mFrames++;
-		wordharmony::HostSound::sLogFrame = mFrames;
+		engine::HostSound::sLogFrame = mFrames;
 		engine::App::instance()->frame(mWidget->mGraphics);
 		// port (for speed): a frame that drew the same calls as the last leaves the screen picture as it is, and is neither
 		// uploaded nor drawn again (the framework draws the screen again every second, and when the window is exposed)
@@ -450,7 +450,7 @@ void WordHarmonyApp::RunFrame()
 				// the rectangles of the tiles redrawn: the display copies those into the window and shows them
 				static std::vector<Rect> sRects;
 				sRects.clear();
-				for (const wordharmony::ScreenGraphics::Rectangle& aRectangle : mWidget->mGraphics->redrawn())
+				for (const engine::ScreenGraphics::Rectangle& aRectangle : mWidget->mGraphics->redrawn())
 					sRects.push_back(Rect(aRectangle.mX, aRectangle.mY, aRectangle.mWidth, aRectangle.mHeight));
 				mWidget->mSurfaceDisplay->SetFrame(mWidget->mPixels, engine::SCREEN_WIDTH * 4, sRects.data(), (int)sRects.size());
 			}
@@ -483,7 +483,7 @@ void WordHarmonyApp::HandleCmdLineParam(const std::string& theParamName, const s
 {
 	if (theParamName == "-soundlog")
 	{
-		wordharmony::HostSound::sLog = fopen(theParamValue.c_str(), "w");
+		engine::HostSound::sLog = fopen(theParamValue.c_str(), "w");
 		return;
 	}
 	if (theParamName == "-statelog")

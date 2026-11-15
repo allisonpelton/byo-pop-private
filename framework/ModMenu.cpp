@@ -93,7 +93,8 @@ enum
 	ITEM_MOD,
 	ITEM_TEXT,
 	ITEM_SECTION,
-	ITEM_SETTING
+	ITEM_SETTING,
+	ITEM_HELP       // a setting's help too long for the footer, in full under its row (HelpUnderRow)
 };
 
 enum
@@ -315,6 +316,9 @@ ModMenu::ModMenu(SexyAppBase* theApp)
 	mZOrder = 1 << 30;  // above every widget a game adds while it is open
 	mWantsFocus = true;
 	mHasTransparencies = true;
+	// its backdrop is translucent: when it is drawn again, so is the game under it (as under a Dialog), which no longer
+	// marks itself dirty while the menu holds it (SexyAppBase::UpdateModMenuFrame), on a screen that keeps its pixels
+	mHasAlpha = true;
 
 	// The fonts are made when the menu first opens, and kept
 	if (gFont == NULL)
@@ -624,6 +628,8 @@ void ModMenu::Layout()
 				if (aView->mSettings[i].mDef.IsValue())
 				{
 					addRow(ITEM_SETTING, (int) i, SETTING_ROW);
+					if (HelpUnderRow(aView->mSettings[i]))
+						addText(ITEM_HELP, (int) i, aView->mSettings[i].mHelp, TEXT_DIM, 0);
 					hasValues = true;
 				}
 				else
@@ -827,32 +833,36 @@ void ModMenu::SetFocusTarget(int theKind, int theItem)
 
 void ModMenu::ScrollToFocus()
 {
-	for (const Item& anItem : mItems)
+	for (size_t anIndex = 0; anIndex < mItems.size(); anIndex++)
 	{
+		const Item& anItem = mItems[anIndex];
 		bool isFocused = ((anItem.mKind == ITEM_MOD) || (anItem.mKind == ITEM_SETTING)) && (anItem.mIndex == mFocusItem) &&
 			((mFocusKind == T_ROW) || (mFocusKind == T_UP) || (mFocusKind == T_DOWN) || (mFocusKind == T_OPEN) || (mFocusKind == T_VALUE));
 		if (!isFocused)
 			continue;
 		int aHeight = ContentRect().mHeight;
 		int aTop = anItem.mY;
-		// a setting's section heading comes into view with the first setting under it
+		int aBottom = anItem.mY + anItem.mHeight;
 		if (anItem.mKind == ITEM_SETTING)
 		{
-			for (size_t i = 0; i < mItems.size(); i++)
-				if ((&mItems[i] == &anItem) && (i > 0) && (mItems[i - 1].mKind == ITEM_SECTION))
-					aTop = mItems[i - 1].mY;
+			// a setting's section heading comes into view with the first setting under it
+			if ((anIndex > 0) && (mItems[anIndex - 1].mKind == ITEM_SECTION))
+				aTop = mItems[anIndex - 1].mY;
+			// and its help under the row with it, as much as fits under the top
+			if ((anIndex + 1 < mItems.size()) && (mItems[anIndex + 1].mKind == ITEM_HELP))
+				aBottom = std::min(mItems[anIndex + 1].mY + mItems[anIndex + 1].mHeight, aTop + aHeight);
 		}
 		int aNewScroll = mScroll;
 		if (aTop < aNewScroll)
 			aNewScroll = aTop;
-		if (anItem.mY + anItem.mHeight > aNewScroll + aHeight)
-			aNewScroll = anItem.mY + anItem.mHeight - aHeight;
+		if (aBottom > aNewScroll + aHeight)
+			aNewScroll = aBottom - aHeight;
 		// the first row shows whatever is above it (banners, the description)
 		bool isFirst = true;
 		for (const Item& anOther : mItems)
 			if (((anOther.mKind == ITEM_MOD) || (anOther.mKind == ITEM_SETTING)) && (anOther.mY < anItem.mY))
 				isFirst = false;
-		if (isFirst && (anItem.mY + anItem.mHeight <= aHeight))
+		if (isFirst && (aBottom <= aHeight))
 			aNewScroll = 0;
 		if (aNewScroll != mScroll)
 		{
@@ -1266,8 +1276,9 @@ void ModMenu::KeyDown(KeyCode theKey)
 	MTAutoDisallowRand aDisallowRand;
 	if (mWidgetManager == NULL)
 		return;
-	bool isShift = mWidgetManager->mKeyDown[KEYCODE_SHIFT];
-	bool isAlt = mWidgetManager->mKeyDown[KEYCODE_MENU];
+	// the keys as the menu gets them: the game's stay as they were while it is open (WidgetManager::SetInputCapture)
+	bool isShift = mWidgetManager->IsInputKeyDown(KEYCODE_SHIFT);
+	bool isAlt = mWidgetManager->IsInputKeyDown(KEYCODE_MENU);
 
 	if (mEditItem >= 0)
 	{
@@ -1356,7 +1367,7 @@ void ModMenu::KeyChar(SexyChar theChar)
 	if (mWidgetManager == NULL)
 		return;
 	unsigned char c = (unsigned char) theChar;
-	bool isShift = mWidgetManager->mKeyDown[KEYCODE_SHIFT];
+	bool isShift = mWidgetManager->IsInputKeyDown(KEYCODE_SHIFT);
 
 	if (mEditItem >= 0)
 	{
@@ -1694,11 +1705,27 @@ std::string ModMenu::OpenLabel(int theMod) const
 	return hasSettings ? Str(mApp, "MODMENU_SETTINGS", "Settings") : Str(mApp, "MODMENU_ABOUT", "About");
 }
 
+// The footer's width for text (Draw)
+int ModMenu::FooterTextWidth() const
+{
+	return mPanel.mWidth - 24;
+}
+
+// A help longer than the footer's two lines is shown in full under its setting's row instead (ITEM_HELP), always,
+// so that the page does not move when the focus does. The user, 2026-11-13: the fixes mods' helps were cut, and
+// with a warning.
+bool ModMenu::HelpUnderRow(const SettingView& theSetting) const
+{
+	return !theSetting.mHelp.empty() && (Wrap(mFont, theSetting.mHelp, FooterTextWidth(), 0).size() > 2);
+}
+
 std::string ModMenu::FooterHelp()
 {
 	if ((mFocusKind == T_VALUE) && !mPageMod.empty())
 	{
 		const SettingView* aSetting = PageSetting(mFocusItem);
+		if ((aSetting != NULL) && HelpUnderRow(*aSetting))
+			return "";
 		if (aSetting != NULL)
 			return aSetting->mHelp.empty() ? aSetting->mLabel : aSetting->mHelp;
 	}
@@ -2044,7 +2071,7 @@ void ModMenu::Draw(Graphics* g)
 	// The footer: help and what is pending, or a question or a note, then the buttons
 	int aSeparatorY = mPanel.mY + mPanel.mHeight - FOOTER_HEIGHT;
 	Fill(g, Rect(mPanel.mX + 8, aSeparatorY, mPanel.mWidth - 16, 1), kButtonBorder);
-	int aTextWidth = mPanel.mWidth - 24;
+	int aTextWidth = FooterTextWidth();
 	std::vector<std::string> aLines;
 	std::vector<const Color*> aColors;
 	if (mConfirm != CONFIRM_NONE)
@@ -2105,6 +2132,53 @@ void ModMenu::Draw(Graphics* g)
 
 //////////////////////////////////////////////////////////////////////////
 // The script command "modmenu ..."
+
+// {"page": the mod's id or "" for the list, "screen": [w, h], "panel": [x, y, w, h], "targets": [{"kind", "item",
+// "rect": [x, y, w, h], "disabled"}]}: every control a click reaches now, in the game's pixels (the menu covers the
+// screen from 0, 0), a content row's clipped to what the content shows and left out when it is scrolled away; kind is
+// the T_ name in lower case
+std::string ModMenu::TargetsJson()
+{
+	static const char* const kKindNames[] = { "none", "row", "up", "down", "open", "back", "restart", "close", "reset",
+		"yes", "no", "value", "minus", "plus", "slider", "prev", "next", "field", "label", "switch", "scroll", "files" };
+	if (mLayoutDirty)
+		Layout();
+	Rect aContent = ContentRect();
+	JsonValue aRoot = JsonValue::MakeObject();
+	aRoot.Set("page", JsonValue(mPageMod));
+	JsonValue aScreen = JsonValue::MakeArray();
+	aScreen.Push(JsonValue((double) mWidth));
+	aScreen.Push(JsonValue((double) mHeight));
+	aRoot.Set("screen", aScreen);
+	JsonValue aPanel = JsonValue::MakeArray();
+	aPanel.Push(JsonValue((double) (mX + mPanel.mX)));
+	aPanel.Push(JsonValue((double) (mY + mPanel.mY)));
+	aPanel.Push(JsonValue((double) mPanel.mWidth));
+	aPanel.Push(JsonValue((double) mPanel.mHeight));
+	aRoot.Set("panel", aPanel);
+	JsonValue aTargets = JsonValue::MakeArray();
+	for (const Target& aTarget : mTargets)
+	{
+		Rect aRect = aTarget.mInContent ? aTarget.mRect.Intersection(aContent) : aTarget.mRect;
+		if ((aRect.mWidth <= 0) || (aRect.mHeight <= 0) || (aTarget.mKind < 0) ||
+			(aTarget.mKind >= (int) (sizeof(kKindNames) / sizeof(kKindNames[0]))))
+			continue;
+		JsonValue anEntry = JsonValue::MakeObject();
+		anEntry.Set("kind", JsonValue(std::string(kKindNames[aTarget.mKind])));
+		anEntry.Set("item", JsonValue((double) aTarget.mItem));
+		JsonValue aRectJson = JsonValue::MakeArray();
+		aRectJson.Push(JsonValue((double) (mX + aRect.mX)));
+		aRectJson.Push(JsonValue((double) (mY + aRect.mY)));
+		aRectJson.Push(JsonValue((double) aRect.mWidth));
+		aRectJson.Push(JsonValue((double) aRect.mHeight));
+		anEntry.Set("rect", aRectJson);
+		if (aTarget.mDisabled)
+			anEntry.Set("disabled", JsonValue(true));
+		aTargets.Push(anEntry);
+	}
+	aRoot.Set("targets", aTargets);
+	return aRoot.Dump(0);
+}
 
 void ModMenu::RunScriptCommand(SexyAppBase* theApp, const ScriptCommand& theCommand)
 {
@@ -2176,6 +2250,14 @@ void ModMenu::RunScriptCommand(SexyAppBase* theApp, const ScriptCommand& theComm
 				anError = "not now: " + aMessage;
 		}
 	}
+	else if ((aWhat == "targets") && (aWords.size() == 1))
+	{
+		// Where a click lands now, for a driver (tools/modmenutest/clickthrough.py): one line, written whole (SDL's log
+		// cuts a line at 4 KB)
+		std::string aLine = "MODMENU " + ((aMenu != NULL) ? aMenu->TargetsJson() : std::string("null")) + "\n";
+		fputs(aLine.c_str(), stdout);
+		fflush(stdout);
+	}
 	else if ((aWhat == "dump") && (aWords.size() == 2))
 	{
 		std::string aText = aManager.GetStateJson() + "\n";
@@ -2188,7 +2270,7 @@ void ModMenu::RunScriptCommand(SexyAppBase* theApp, const ScriptCommand& theComm
 	}
 	else
 		anError = "expected open, close, page <mod>|list, enable <mod> 0|1, move <mod> -1|1, set <mod> <setting> <value>, "
-			"reset <mod>, restart [confirm] or dump <file>";
+			"reset <mod>, restart [confirm], targets or dump <file>";
 
 	// An edit the menu made shows in its footer; the log says it too
 	if (anError.empty() && (aMenu != NULL) && (aMenu == theApp->mModMenu) && !aMenu->mNote.empty() &&

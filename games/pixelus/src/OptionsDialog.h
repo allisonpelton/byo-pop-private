@@ -43,7 +43,6 @@ public:
 	Checkbox*		mFullscreenBox;		// +0x160
 	Checkbox*		mCursorsBox;		// +0x168
 	Checkbox*		mHintsBox;			// +0x16c
-	DialogButton*	mResetButton;		// +0x174
 	DialogButton*	mCreditsButton;		// +0x178
 	DialogButton*	mHelpButton;		// +0x190
 	DialogButton*	mMenuButton;		// +0x194

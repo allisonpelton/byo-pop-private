@@ -603,7 +603,12 @@ path of the game reaches or needs, by seven scans of `src/` (the test hooks apar
 | `Board::mTutorialPart` | not a field of the original: its "+0x498" is `mTutorialStep` (+0x4e4) seen from the button listener's part of the board (0x4112b0); only ever zeroed | removed |
 | `Board::mWalkTick` | a second name for +0x4c0, which is `mMoveTick`; only ever zeroed | removed |
 | pictures `internethighscore`, `dbuttonclear` | drawn only by the Internet score list (0x416540, 0x415e50), which the port has not got | left out of the list (`make_res.py`); `NUM_IMAGES` is 160 |
+| `DrawImageBox2003` in `Button2003.h` (the original's 0x432210, the 2003 framework's box) | the framework has the same function behind `Graphics::mDrawImageBox2003`: its corners, strips, loops and clips equal this one's term for term for any picture over two pixels (compared 2026-11-14); `MMApp`'s constructor turns the flag on, as Dynomite's and Rocket Mania's do | removed; the buttons call `g->DrawImageBox`. The dialog's frame is 192 x 192, a multiple of three, so it is the same either way |
 | the text table's 970 other entries | the port's code names 238 of the exe's 1208 strings (see "Registration", above) | left out of the table (`make_gametext.py`) |
+
+**The box, 2026-11-14.** All 17 screenshots of two adventure runs (the options, the intro, the credits, the saved-adventures dialog with its slot and delete buttons, the new
+adventure's name box, the high scores, a tip, the map, a pyramid, a finished chamber) are byte for byte the same in the build before the swap and after it, and `tools/check.sh mummymaze` is unchanged (classic, tips and tutorial
+photographs against the frozen baseline: the options, the tips and the tutorial buttons, whose 127 x 45 picture is the other one that is not a multiple of three).
 
 **Looked at and kept.** `light6`, `light8` and `light10`, which no code names and the first search of the original did not
 find, are the explorer's fourth idle animation: `kExplorerIdleCount` is 4 and the picture is `readmap6 + size + 3 * kind`. (They
@@ -631,6 +636,12 @@ nine phase-two scenarios that need no saved game (the menu, the options and thei
 tutorial, an adventure, the focus) run on both with the same script and seed under `-fast`. All 114 screenshots are byte for
 byte the same. A script reads `Res.h` and `Res.cpp` before and after and finds every id still at the same file name in the
 same order (162 against 160), and the four runs of ids ending where they ended.
+
+## The lite mod (2026-11-14)
+
+There is none: nothing in the game's logic is worth a toggle (`docs/LITE_MOD.md`, which says what was looked at). The only search the game has, the
+solver behind the Ankh and Abandon Hope, took 0.51 s of a 29 s bot game of 1,006,551 updates (the whole 225 chambers), about 9 M cycles in the 7,700 M of a
+minute of play at a player's pace, which is less than the five-pair measurement can see. The lite-mod step is done with no mod.
 
 ## The readability pass (2026-11-11)
 

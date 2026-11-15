@@ -117,7 +117,8 @@ void DDImage::Create(int theWidth, int theHeight)
 	MemoryImage::Create(theWidth, theHeight);
 }
 
-// port: textures can't be read back, so the bits are always kept (mPurgeBits is still recorded).
+// port: textures can't be read back, so PurgeBits drops nothing itself (mPurgeBits is still recorded); a picture loaded
+// from a file loses its pixels after its upload all the same and makes them again from the file (MemoryImage::DropBits).
 void DDImage::PurgeBits()
 {
 	mPurgeBits = true;
@@ -523,7 +524,7 @@ static bool CreateMirroredImage(Image* theImage, const Rect& theSrcRect, MemoryI
 	if ((aSrcImage == NULL) || (theSrcRect.mWidth <= 0) || (theSrcRect.mHeight <= 0))
 		return false;
 
-	ulong* aSrcBits = aSrcImage->GetBits();
+	ulong* aSrcBits = aSrcImage->ReadBits();
 	if (aSrcBits == NULL)
 		return false;
 

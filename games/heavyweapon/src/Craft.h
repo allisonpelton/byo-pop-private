@@ -193,7 +193,7 @@ public:
 										// the help screen sets it too)
 
 	SmallCopter(Board* theBoard);							// 0x434c80
-	virtual ~SmallCopter();									// 0x434de0
+	virtual ~SmallCopter();									// 0x434de0 (deleting 0x437390)
 	virtual void	Draw(Graphics* g) override;				// 0x434f70 slot 1: the muzzle flash, added
 	virtual void	Update() override;						// 0x434e10 slot 2
 	virtual void	UpdateF(float theFrac) override;		// 0x4376f0 slot 3
@@ -214,7 +214,7 @@ public:
 	double			mRotorFrame;		// +0x78 its rotor's column
 
 	MedCopter(Board* theBoard);								// 0x4341a0
-	virtual ~MedCopter();									// 0x4342d0
+	virtual ~MedCopter();									// 0x4342d0 (deleting 0x4367a0)
 	virtual void	Draw(Graphics* g) override;				// 0x434330 slot 1
 	virtual void	Update() override;						// 0x4367d0 slot 2
 	virtual void	UpdateF(float theFrac) override;		// 0x434300 slot 3: its frame is its sideways speed
@@ -333,7 +333,7 @@ public:
 	double			mPropFrame;			// +0x78 the propellers' column, 0..4
 
 	Blimp(Board* theBoard);									// 0x4320c0
-	virtual ~Blimp();										// 0x432220
+	virtual ~Blimp();										// 0x432220 (deleting 0x435f20)
 	virtual void	Draw(Graphics* g) override;				// 0x4323e0 slot 1
 	virtual void	Update() override;						// 0x432250 slot 2
 	virtual void	UpdateF(float theFrac) override;		// 0x4376f0 slot 3

@@ -87,6 +87,13 @@ and every classic layout solves, the slowest stage in about 3 s. When no pair is
 click, and `MOVE null` while a flight runs, on a board with no tile left or when nothing can be played. A dialog is
 answered by its default button (command 1), the pause box by a click on it, the map by Continue.
 
+**Test options** (a test run only: the framework reads them when `IsTestRun()` is true, that is under `BYOPOP_TEST_RUN`, which
+rundesk sets, `-script`, `-realinput`, `-commands` or scripted input, so a player's exe ignores them): `-windowscale=N`, the trunk's
+option from BookWorm's cycle split (the window starts at N times the logical size, 1 to 4, where it would otherwise start at 2x when
+that fits the desktop; `perfrun.sh` uses 1 for the original's window and 2 for the player's); in the environment, the display's
+own hooks (listed with the presenter below) `SURFACE_DISPLAY=0|off`, `SURFACE_VERIFY=1` and `SURFACE_MAXRECTS=n`. The engine's
+`JB_VERIFY_FRAMES=1` (every incremental frame checked against a full redraw) is read on any run and changes nothing a player sees.
+
 ## Fix candidates and the fixes mod (2026-11-08)
 
 The fixes mod (`mods/fixes/mod.json`, two toggles, both on by default on the site) is the original with two things
@@ -264,6 +271,308 @@ hold one buffer); the engine keeps each image's decoded bits (14.9 MB) beside it
 needs after the upload has not been examined; the engine redraws its whole 800x600 from the topmost opaque layer whenever
 anything moves, at about 4 cycles a pixel in the blend; redrawing only the changed rectangle would be a larger change of
 the engine than the pass made.
+
+### Like for like, thread by thread (2026-11-12)
+
+The user's rule of 2026-11-11 (`docs/COORDINATION.md`, "The target"): a port's processor time is at most its original's,
+measured like for like. The measurement now counts cycles, not percentages: `tools/profile/threadprof.py` reads every
+thread's `QueryThreadCycleTime` (exact, no sampling and no suspension) and its kernel and user time at the two ends of the
+same window of 20 s to 50 s of the process's life (the original's moved 6 s later by its logos, as before),
+`tools/profile/showthreads.py` prints the tables, and `perfrun.sh` takes `TOOL=` to swap it in for `perfmin.py`. The port
+runs in real time under rundesk (no `-fast`: a 60 Hz screen's pacing, vsync on, the same 25 ms frame as the original, in a full-screen window: not like for like, as the
+next section's correction says) and the original through origrun, each pair made one after the other, port first. The port's sound is counted apart: its mixer runs
+in SDL's audio thread (libopenmpt rendering the MO3 modules), while origrun's stand-in leaves the original with no mixing at
+all (its process shows one thread of the game and nothing else of any size). Percentages of one core swing with the
+clock and the load (other sessions' games ran meanwhile, 5 to 11 processes), cycles do much less, and the original's own two
+runs here differ by 20 %.
+
+| window of 30 s, billions of cycles | original, pair 1 | port, pair 1 | original, pair 2 | port, pair 2 |
+|---|---|---|---|---|
+| main thread (the game and the framework's loop) | 2.89 | 2.39 | 3.55 | 2.71 |
+| the video driver's worker thread (nvwgf2um.dll, Direct3D 11 on rundesk's desktop) | | 1.27 | | 1.34 |
+| SDL's audio thread (the port's mixer) | | 0.17 | | 0.18 |
+| the process | 2.91 | 3.84 | 3.57 | 4.26 |
+
+Before this pass's change the main thread alone was 5.6 G in the same play (a probe build, 29 s: the engine's draw 2.7, the copy
+into the widget 1.0, the widget's texture upload 0.9, `SDL_RenderPresent` 0.4, the engine's update and the loop the rest).
+
+**What the main thread does now** (timers around the calls, `QueryThreadCycleTime` in a probe build that was not committed;
+1174 frames of the engine, 1019 of them drawn by the framework, 30 s):
+
+| part | cycles |
+|---|---|
+| the game's own: its draws kept as commands 0.12 G, the changed rects redrawn 0.26 G (the match of two frames' commands 0.03 G), the copy into the widget 0.04 G, its update 0.02 G | 0.48 G |
+| the widget's draw, which is the texture upload (`SDL_UpdateTexture`, 1.9 MB a frame) | 0.81 G |
+| `DDInterface::Present` (the copy to the back buffer, `SDL_RenderPresent`) | 0.56 G |
+| `UpdateFrames` outside the widget's update (200 a second, every 5 ms) | 0.23 G |
+| the rest of the loop (the message pump, `Process`, the wakeups) | 0.37 G |
+
+**What the pass changed in the game: the engine redraws what changed** (`engines/jollybear/ScreenLog.h/.cpp`, the engine's
+`Image.cpp` and `Display.cpp`; port only, the original redrew all 800x600 pixels from the topmost opaque layer in every
+frame). The engine's screen draws (`Image::Draw`, `ScreenFillRect`, `ScreenFillRectAlpha`) are kept as a list of commands
+between `Display::BeginFrame` and `Display::Present`, and `Present` matches that list with the last frame's, command by command
+in order (Myers's longest common subsequence, at most 96 commands apart). The rects of the commands that have no match in
+either list are the part of the screen that can differ. The whole list is then run again over those rects alone, each
+command clipped to a rect (`Image::Blit` takes a clip), and `Host::Present` is told the rects, so that
+`MahjongHost::Present` copies those pixels and no others and says nothing when none changed (one frame in twenty).
+A pixel outside the rects was reached by the same commands in the same order in both frames, so it holds the same colour;
+that needs every pixel to be drawn by a command that overwrites it (the unkeyed 24-bit images at full opacity and the fills),
+which the engine checks for each frame, and a frame that is not (a fade darkening the last frame's pixels, 100 frames of
+1940 in the suite's play) is drawn in full as it comes, as is the frame after it. An image whose pixels change or go away while commands that
+use it wait (the engine never does it in a draw) flushes the list first; each image carries a stamp that changes whenever its
+pixels are made, so that two frames' commands are the same only when they draw the same pixels.
+
+*Proved by drawing every frame twice.* `JB_VERIFY_FRAMES=1` in the environment makes each incremental frame be drawn in full
+as well, over the screen, and compared with the incremental one at every pixel (the process aborts at a difference), and makes
+`MahjongHost::Present` compare the widget's image with the whole screen. Run with it: the suites of both games (`tools/check.sh
+mahjongjapan mahjongchina`: 1837 and 2095 frames compared, none differing, 222 and 178 layouts, every picture as frozen), and the
+screen tour of both (`tools/tour/compare.sh` against the exes from before the change: 20 pictures each, byte for byte
+identical, 1408 frames compared each). `JB_NO_SCREENLOG=1` draws every frame in full one command at a time, as before.
+
+**Where it stands.** The process is at 3.8 to 4.3 G against the original's 2.9 to 3.6 G (1.3 and 1.2 times), and without the
+port's mixer 3.7 and 4.1. The game's own part (0.48 G) is a sixth of the original's whole. What is left is the framework's
+present chain: the widget's upload, `SDL_RenderPresent` and the driver's thread are 2.6 of the 3.8 G, and the loop another
+0.6. A standalone test of 800x600 frames at 40 a second (`build/presenttest`, not committed) puts the framework's path at
+2.27 G per 15 s (Direct3D 9 through SDL_RENDER_DRIVER 0.88, the software renderer 2.17, OpenGL 2.31; but the game itself, run
+with Direct3D 9, took 4.1 and 4.6 G, the driver's thread still 1.4 G), a window surface with a whole-frame copy at 0.80, and one
+with a copy of the changed rect alone (310x232 pixels) at 0.26 (0.5 G per 30 s). Only the last would put the port under its
+original, by about a third (estimated: 0.5 for the game, 0.6 for the loop, 0.5 for the
+present, 0.2 for the sound, 1.9 G). It is a shared presenter and was asked of the coordinator (the spec is in the notes folder,
+`mahjong-present-spec.md`); a partial texture upload, which the rects now make possible, saves 0.35 G of the main thread but not
+the driver's. The coordinator had the presenter built here: the next section.
+
+### The window-surface presenter, and the measurement made like for like (2026-11-12)
+
+**The pairs above were not like for like.** A fresh user's registry starts the port full screen (the engine's default is
+`FullScreen=1`), so on rundesk's private desktop (3840x2160) it drew a full-screen window of that size (render scale 4, a
+screen texture of 3200x2400, linear scaling, vsync, the driver's thread), while origrun runs the original in a window of 800x600
+(`FullScreen=0` and `HardwareAcceleration=0` through its `--reg`). `perfrun.sh` with `WINDOWED=1` now gives the port the
+original's window, `FullScreen=dword:0` in the fresh user's registry and the framework's test option `-windowscale=1` (the window
+starts at N times the logical size, where it would otherwise start at 2x when that fits the desktop), and `EXTRA=` passes other
+options: `-windowscale=2` is the window a player gets who plays windowed. `tools/profile/altpairs.sh <pairs> <out>` alternates the port and the
+original, Japan then China, and `showmedians.py <out>` prints the per-run figures and the medians; the whole loop runs under
+`tools/pincore.py` (one performance core, two logical processors), the cycles are the sum over the threads of
+`QueryThreadCycleTime` over the same 30 s, five pairs a game.
+
+**The presenter** (`framework/SurfaceDisplay.h/.cpp`, shared; an app asks for it by returning it from `CreateDDInterface`, as
+Bejeweled Twist asks for its `GPUDisplay`: the two Mahjong apps do, on the desktop builds only, and the web build keeps
+`DDInterface`). The engine's frame no longer goes through a widget image (copy of the changed rects, the framework's draw of that
+image into the screen image, its upload and its draw into the screen texture): `MahjongHost::Present` hands the display the
+800x600 buffer and the rects that changed (`SetFrame`), the widget draws nothing, and `DrawDirtyStuff` only decides when a frame
+is shown. The display shows it in one of two ways, by the size of the window:
+
+- *Surface mode*, when the window's drawable is exactly 1, 2, 3 or 4 times the screen's size each way (the original's own window
+  and the framework's 2x start). There is no SDL renderer, so no Direct3D device and no driver thread: `Present` copies the
+  changed rects, row by row and each pixel repeated as many times as the window is larger, into the window's SDL surface, and
+  SDL updates those rects of the window (GDI). At these sizes the renderer's picture is the same: its screen texture at the
+  render scale is those repeated pixels, shown as they are by a window of that size, so the choice is not seen. The window's
+  own pixels were captured (`PrintWindow`, `tools/display/wintest.sh`) and compared with the game's screenshot at every pixel at
+  1x and at 2x (0 differ), and `SURFACE_VERIFY=1` compares the window's surface with the buffer after every present (abort at a
+  difference).
+- *Renderer mode*, any other size (a resized window, full screen): `DDInterface`'s own path, the buffer put into the screen
+  texture from a frame texture of the display's own of which only the changed rect is uploaded each frame. Its totals are the
+  old path's (below), which it keeps: no gain, no loss.
+
+A window that has had a hardware renderer never uses the surface again (`SurfaceDisplay::NoteRendererOnWindow`). A probe on the visible
+desktop (`tools/display/present/modeprobe.c`: a window made, a Direct3D 11 renderer on it, the renderer destroyed, the window's
+surface filled red and updated) found that the window goes on showing the renderer's last frame, hidden and shown, minimised,
+resized and taken through full screen and back, and a screen read, `PrintWindow` and the captures of `tools/display/modeswitch.sh`
+show it too (the black windows of its stage 5 and 6, after Alt+Enter back from full screen); with Direct3D 9 the surface shows. The
+framework asks for Direct3D 11, so a window that started full screen (this engine's default) or was resized to a size that is no
+whole scale keeps the renderer for good, and only the 1x and 2x windows that start in surface mode use the surface. The presenter's
+own check, `SURFACE_VERIFY`, compares the surface's memory with the buffer and cannot see this: only a read of the screen can.
+
+An SDL window cannot have a renderer and a surface at once, so every size change (and the start of every frame) picks the mode
+again: it destroys the one and makes the other, and the window, its focus and its position are untouched. The buffer is the
+engine's and nothing in it is lost, so the first frame after a change, a restore from minimised or an expose is shown whole
+(`DDInterface::ScreenInvalidated`, called by `SexyAppBase`'s window events). With no vsync of its own, surface mode draws at most
+once in a display refresh interval (the framework's own pace, `DDInterface::FrameHeldByPace`, that surface mode sets to the
+display's refresh interval: 16 ms at 60 Hz, not under `-fast`, `-drawevery` or `-hold`); frames with nothing
+changed are not drawn, as before. `ReadScreen` and `ReadScreenFull` serve the buffer's pixels (the render scale's repetition for
+the latter), so screenshots are the CPU buffer byte for byte in both modes. A display with a drawn cursor image (not these two
+apps, which use the system cursors) stays in renderer mode. `SURFACE_DISPLAY=0` in the environment keeps the renderer for good and
+`SURFACE_DISPLAY=off` makes the framework's own display with the widget's image, the path before the presenter, so that the
+paths can be measured against each other.
+
+*Proved.* Both suites pass with every picture as frozen in six configurations (the default 2x surface window, `-windowscale=1`,
+`SURFACE_DISPLAY=0`, `SURFACE_DISPLAY=off`, and both surface windows with `JB_VERIFY_FRAMES=1 SURFACE_VERIFY=1`), and the screen
+tour of both (`tools/tour/compare.sh`) gives 20 pictures each byte for byte as the exes from before the engine's change, in the
+default and the renderer mode. `tools/display/modeswitch.sh` drives the port by `-realinput` through a resize to 2x and back,
+minimise and restore (focus lost and regained), Alt+Enter to full screen and back, and a second resize to 2x and back, a
+screenshot and a `screenshotfull` at each stage: 7 changes of mode, the window's surface equal to the screen at every one of
+240 frames (288 in real time), the full shots the shots repeated by the render scale (1, 2, 4 in full screen) in every stage,
+both ports, no crash.
+
+**The numbers** (billions of cycles in the window of 30 s, the median of five runs with the range; the port's mixer, 0.2 G,
+counted apart; machine busy with 4 to 8 game processes of other sessions):
+
+| | Ancient Japan | Ancient China |
+|---|---|---|
+| original, window of 800x600 (origrun) | 3.78 (2.93 to 4.94) | 3.60 (2.81 to 5.78) |
+| port, surface mode, window of 800x600 | 1.58 (1.16 to 1.79) | 1.01 (0.46 to 1.12) |
+| port, surface mode, window of 1600x1200 (what a windowed player gets) | 1.69 (1.51 to 1.79) | 1.16 (1.15 to 1.19) |
+| port, renderer, window of 1600x1200 | 4.38 (4.14 to 6.05), driver 2.0 | 4.00 (0.29 to 4.38), driver 2.1 |
+| port, framework's own display, window of 1600x1200 | 4.36 (3.56 to 6.09), driver 1.7 | 3.94 (2.64 to 6.55), driver 1.7 |
+| port, renderer, window of 800x600 | 4.67 (3.84 to 5.10), driver 2.0 | 4.34 (3.83 to 4.53), driver 2.2 |
+| port, full screen 3840x2160, before the presenter | 4.61 (4.00 to 5.32), driver 1.65 | 4.47 (4.36 to 4.87), driver 1.7 |
+| port, full screen 3840x2160, renderer | 4.64 (4.43 to 4.92), driver 2.3 | 4.79 (3.28 to 5.27), driver 2.4 |
+
+So with the surface the port costs 0.42 and 0.45 (Japan, windows of 800x600 and 1600x1200) and 0.28 and 0.32 (China) of its
+original's cycles, in the original's own window and in the 2x one a windowed player gets; it is under the target there. A fresh
+player's start is full screen (the engine's default), and a window that has had the renderer never uses the surface again (above), so
+that player's cost is the renderer's, 4.6 G, 1.2 times the original's windowed figure; the original's own full-screen cost is not
+measured. The presenter takes out
+the whole driver thread (2 G: no device) and the main thread's upload and present (0.7 G). The renderer paths, which a resized
+window and full screen still need, are where they were (4.4 to 4.8 G, 1.1 to 1.3 times the original's windowed figure: the new
+renderer path moves 0.2 G from the main thread to the driver's thread, a wash). The original's full-screen cost was not measured
+(origrun runs it windowed). Two runs of China at 0.3 and 0.5 G (one in the renderer set, one in the 800x600 surface set) are
+windows in which the game's thread did almost nothing (not chased); they are in the ranges, and the medians do not rest on them.
+
+**The D3D11 device's cost** that surface mode does not pay (800x600 window, 5 runs of Japan, 3 of China, medians): private bytes
+42 against 71 MB (China 34 against 61), working set 54 against 71 MB (China 54 against 68), and the 400th update of the game
+reached 0.5 s sooner after the process started (2.51 against 3.02 s, the same in both games).
+
+**Why the two games' percentages differed.** The README's figures (Japan's port 6.0 % of a core against its original's 3.1 %,
+China's 7.3 % against 1.7 %) are medians of five runs of each port and three of each original, percentages of one core under a
+load that swung with the other sessions, and China's original ran at 1.3, 1.7 and 6.2 % in its three, so a median of three took
+one of the quiet ones. In cycles the originals' own runs vary by a factor of 1.7 to 2.1 from run to run (Japan 2.93 to 4.94 G,
+China 2.81 to 5.78 G, above), more than the two games differ, their medians are 3.78 and 3.60 G, and with the renderer the two
+ports are within 0.4 G of each other in every configuration (the driver's 2 G is most of it). Only in surface mode China's port
+is 0.5 G lower, the games' own drawing in the main thread, not the present path. The differences in the README were noise.
+
+**What each way of showing a frame costs** (asked in the presenter's review, measured the night of 2026-11-12). The test programs
+`tools/display/present/scaletest.c` and `presenttest.c` (`build.sh`, `run3.sh`, `run4.sh`, `sumscale.py`, `sumrend.py`) keep an
+800x600 buffer in which a rect of 15 % of the screen (310x232) changes 40 times a second and show each frame in a window one way;
+the cycles are the sum over every thread of the process in a window of 15 s, the median of three runs, on one performance core
+(`tools/pincore.py`), the machine busy with other sessions' games. Visible desktop (DWM, NVIDIA's drivers); the private desktop
+of rundesk, measured the same way earlier, gave the GDI rows within 0.05 G and the renderer rows the same 1.6 to 2.3 G.
+
+| Way of showing the frame | G cycles per 15 s |
+|---|---|
+| SDL window surface, window 800x600 (rect copied, `SDL_UpdateWindowSurfaceRects`) | 0.26 |
+| software 2x nearest of the rect into the SDL surface, window 1600x1200 (the presenter's surface mode) | 0.50 |
+| software 4x nearest, window 3200x2400 (private desktop) | 1.40 |
+| GDI `StretchBlt` of the rect from a DIB, `COLORONCOLOR`, 2x (1600x1200) | 0.30 |
+| the same at 1.6x (1280x960, private desktop) and at 3.6x (3840x2160, letterboxed to 2880x2160) | 0.31 and 0.29 |
+| the same with `HALFTONE`: 2x, 1.6x, 3.6x | 2.18, 1.86 (private), 5.38 (private) |
+| Direct3D 11 forced (`SDL_RENDER_DRIVER`), the framework's chain, window 800x600 | 1.56 (1.47 to 1.72) |
+| the same, window 1600x1200 | 1.95 (1.31 to 2.03) |
+| the same with only the 15 % rect uploaded, window 1600x1200 | 1.79 (1.18 to 2.24) |
+| Direct3D 9 forced, the framework's chain, window 800x600 / 1600x1200 / rect upload | 1.78 / 1.85 / 1.27 |
+
+Every GPU path costs 1.3 to 2 G whichever way the frame goes up (a device and its driver thread), four to six times the
+software ones at the same window size, on the visible desktop as on the private one; the partial upload saves between nothing and a
+third there (Direct3D 11 1.95 to 1.79, Direct3D 9 1.85 to 1.27), as it did in the game. The
+software 2x copy costs 0.24 G more than 1:1 (in the game 0.055 to 0.075 G, since only the changed rects are repeated). `StretchBlt`
+with `COLORONCOLOR` costs what the 1:1 copy does at any window size, full screen included, so it could take the sizes that
+surface mode does not (a resized window, full screen) under the target as well; it is nearest-neighbour, which at a ratio that
+is not a whole number gives pixels of two sizes where the renderer's linear filter blends them, so it changes how full screen
+and a resized window look, and `HALFTONE`, which blends, is far too dear. Built in the second round: "Stretch mode" below. The
+original's own full screen is the display's mode set to 800x600 (`docs/COORDINATION.md`, the performance target).
+
+**The frame cap** (Bejeweled 2's ask) is the trunk's: `DDInterface::FrameHeldByPace`, set in `DDInterface::Init` for a renderer
+that no vertical blank holds (the software renderer, or one without `SDL_RENDERER_PRESENTVSYNC`) and checked by
+`SexyAppBase::Process` through `DrawHeldByPace` before it draws. The presenter's surface mode, which has no renderer, sets
+the same `mPaceIntervalMs` to the display's refresh interval when it is entered (`DDInterface::Init` sets it again when the
+renderer comes back), so there is one cap; the presenter's own `mMinPresentInterval` and its block in `DrawDirtyStuff` are gone.
+A held draw leaves the widgets dirty and the engine's rects accumulating, so no change is lost.
+
+**Other apps for the presenter.** `framework/SurfaceDisplay.h` says how each app that draws its screen into a CPU buffer would
+take it: TipTop (its own buffer and rect list), Word Harmony (the image its `ScreenGraphics` draws into and the tiles it
+redrew), Cosmic Bugs and Water Bugs (the Retro64 engine's 16-bit screen converted into a 32-bit buffer for its one dirty
+rect). Alchemy cannot: its screen is drawn by the GPU path and no CPU image of it exists.
+
+### Stretch mode: full screen under the original's figure (2026-11-14)
+
+The second performance round (the user's target of 2026-11-11, processor time at or below the original's) had one configuration left
+above it: full screen, the default start, where the window has the renderer for good (the presenter's section above) and the port costs
+1.2 to 1.3 times the original's windowed figure (4.77 for Japan on the merged tree, 4.79 for China before it, against 3.78 and 3.60). The surface
+cannot take a window of the desktop's size (3840x2160 here: no whole scale of 800x600), and a Direct3D 11 renderer made on the window
+once cannot be taken away again. So the presenter has a third mode, *stretch mode*, for the sizes that are no whole scale: still no
+renderer (so none to leave a frame behind on the window, and none of its device, its driver's thread or its present of the whole
+window), and `Present` has Windows' GDI stretch the buffer into the window's presentation rect (`DisplayGeometry`'s letterbox, the
+renderer's own place for it) with `StretchDIBits` in `COLORONCOLOR` (nearest) mode. `framework/SurfaceDisplayGdi.cpp` holds it, apart
+from the rest of the framework so that nothing else sees `windows.h`. The mouse maps through the same presentation rect as before.
+
+*Where a changed rect lands.* Stretching a rect of the buffer into its own scaled rect is not what the stretch of the whole buffer
+puts there: at a ratio that is no whole number GDI's nearest-neighbour steps start afresh at the rect's edge, and 14 % of the pixels
+of a 3.6x stretch (31 % at 1.6x, 12 % at 4.8x) came out as another source pixel, which would show as pixels of the wrong width at the edge of every
+changed rect and shimmer as they came and went (`tools/display/present/stretchprobe.c`, random rects, the result compared with the
+stretch of the whole). So each present stretches the whole buffer with the changed rects, scaled and widened a pixel each side, as the
+clip region: every pixel is then exactly where the whole stretch puts it (0 pixels differ at 3.6x, 1.6x, 2x and 4.8x: 200 random rects each,
+up to 103 million pixels compared),
+and the call costs the same as the rect alone (about 1 M cycles for a rect of 385 000 window pixels; the area outside the clip is not
+visited). The whole is painted, with the letterbox bars black, when everything is dirty, at the start, after every expose, restore and
+size change (`ScreenInvalidated`) and as the safety net of a second without a change.
+
+*Checked.* `SURFACE_VERIFY=1` in a test run makes the display paint every frame a second time into a bitmap of the window's size, the
+same way, and compare that bitmap with a fresh stretch of the whole buffer at every pixel, bars included, aborting at a difference
+(1805 frames of a whole play in 3840x2160: none); `SURFACE_VERIFY=2` also reads the window back through its device context after each present and compares it with the window painted
+whole again, so that a rect left out of a clip region would show (the window's own stretch is what is compared: the first version
+compared it with the bitmap, and aborted in a 1000x700 window at a pixel a shade off, so GDI's nearest-neighbour steps in a window's
+device context and in a bitmap's are not always the same; not looked into further). `SURFACE_MAXRECTS=2` makes the rect merging run at every frame, as for the surface.
+
+*Cost* (billions of cycles in the window of 30 s, the same play, full screen 3840x2160 on rundesk's desktop, medians of five runs; the
+port's mixer thread, 0.2 G, is counted apart as before, and the totals are given too):
+
+| | Ancient Japan | Ancient China |
+|---|---|---|
+| original, window of 800x600 (all its threads) | 3.78 | 3.60 |
+| port, full screen, renderer (the default start until now), total | 4.77 | 4.79 (before the merge) |
+| port, full screen, stretch mode, without the mixer | 1.98 (1.76 to 2.51) | 1.72 (1.67 to 1.92) |
+| port, full screen, stretch mode, total | 2.17 (1.94 to 2.75) | 1.89 (1.82 to 2.09) |
+
+That is 0.52 and 0.48 of the original's without the mixer and 0.57 and 0.52 with it, where the renderer's figure is 1.3 times the
+original's. There is no thread but the game's and the mixer's (the renderer's driver thread was 2.3 G of the 4.8). The stretch costs
+the main thread 0.4 G (Japan) and 0.7 G (China) above the 800x600 window's surface figure (1.58 and 1.01, above).
+
+*The look, and why it is not on by default.* The picture is the buffer's pixels each repeated as often as the window is larger: at
+3840x2160 (3.6x, letterboxed to 2880x2160) 3 or 4 times at one place and another, where the renderer's linear texture filter blends
+neighbours. At whole scales the two are identical (that is why surface mode may stand for the renderer). So the change is one of how
+full screen and a resized window look, which the user decides; `kStretchOtherSizes` in `engines/mahjongescape/src/MahjongApp.cpp`
+(`SurfaceDisplay::AllowStretch`) is `false` until then and the renderer's look is what a player gets. Its second argument,
+`kStretchWholeScalesOnly` (also `false`), is the other form of it: the screen at the largest whole scale that fits the window with bars
+around it (3x on 3840x2160: 2400x1800, every source pixel exactly 3x3, the picture 83 % as high as the filled window), the look that
+needs no blending to be exact, and cheaper still (fewer window pixels). A test run's `SURFACE_STRETCH` in the environment decides
+instead (0 renderer, 1 filling, 2 whole scales), so one exe measures and tests each. With it, the window
+never has a renderer, which also keeps the surface for the whole scales after a round trip through full screen (the renderer for good
+is the other way round); a drawn cursor image (`mCursorImage`) still asks for the renderer. Side-by-side captures of both are in the
+coordinator's notes folder.
+
+*Tried and left out.* Not presenting a frame with nothing new in renderer mode (what surface mode does): the engine marks its widget
+dirty only when it has a changed rect (`MahjongHost::Present`), so the framework never draws an unchanged frame here and 1761 of 1761
+presents of a play were needed. No gain, not kept.
+
+### The game under a modal dialog and the mod menu (2026-11-14)
+
+`MahjongApp::ModalOpen` and `ModalClose` (both `override`) pause the engine's manager (`Manager::Pause`, 0x42c110 in this game, 0x4221d0 in
+China's) while a framework modal dialog or the mod menu is open. The framework already holds the widgets and the game's update while the menu
+is open (`UpdateModMenuFrame`), so no frame of the game runs under it; but the manager's clock is the machine's (the virtual one in a -fast
+run), so without the pause the level's timer and every animation would jump forward by the time spent in the menu the moment it closed.
+`Manager::Pause` counts, and `mModalPauses` counts the pauses this class made, so a game that was paused before the menu opened is still
+paused after it closes, and a close never takes off a pause that is not its own (nor one after the game has ended).
+
+Checked in both games by `tools/modal/modal_test.sh` under rundesk, on the virtual clock: a new player, a board, the first solver pair
+clicked (its removal animates), `modmenu open` at update 3470, `modmenu close` 1130 updates (5.6 s of game time) later. The level's timer, as
+`state` prints it: 0 when the menu opens, 0 at update 4498 inside it and 0 right after the close (without a pause 5 to 6 s are added: the
+no-menu run reads 4 at 4370 and 6 at 4601, the paused run 4 at 5500, the same game time as the 4370 of the control, so the game went on
+where it had stood). The animation: the first frame after the close is one of five phases against the control's frames (a frame every 5
+updates; the pause keeps the game's time, not the frames' phase, so the frame after the close lands wherever the close falls in them), and
+at the phase that lines up (`open` with K 2 for the first frame, 3 for the one 20 updates later, in both games) the picture is the
+control's picture of that game time **pixel for pixel**, so the pair's flight stood still under the menu and went on from the same point.
+The other phases differ from the control by about 6000 of 480000 pixels, the size of a frame's step, as they must; `pngmatch.py` finds the
+equal one. The control without a pause differs by 10300 (`late0`).
+
+*The menu is not drawn on the desktop (found while checking this, not caused by it).* The window of a SurfaceDisplay (the presenter of the
+two ports on the desktop) shows the engine's buffer and nothing the framework's widgets draw: the mod menu opens, takes every key and click,
+and the window shows the game as it was. Two captures of the window (PrintWindow, a real-time run on rundesk's desktop) with the menu
+open, 20 s into a run with the pause and 40 s into one without, show the board as it stood when the menu opened and no menu; a third,
+40 s into a run with the pause, caught the game still at its tutorial tip, so these captures are timing-dependent witnesses, and the
+code says the same: `Present` copies the buffer over the whole screen texture after the widgets have drawn, and in the two modes without
+a renderer nothing a widget draws goes anywhere. The same run with main's build, which still has the plain DDInterface for this game,
+shows the menu over the dimmed board. The pause does not change it (the run without it is the same). Seen on the visible desktop at
+night (the window read from the screen, 3840x2160, the menu open from update 3470): this build shows the board as it stood when the menu
+opened and no menu; main's build shows the menu. A fix belongs to `SurfaceDisplay`, not to the game; see the coordinator's note.
 
 ## Coverage check (2026-11-08)
 

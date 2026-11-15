@@ -181,12 +181,14 @@ void VFS::SetBaseDir(const std::string& theDir)
 	gDirCache.clear();
 }
 
+#ifndef BYOPOP_DERIVED
 void VFS::SetModRoots(const std::vector<VFSRoot>& theRoots)
 {
 	mModRoots = theRoots;
 	std::lock_guard<std::mutex> lock(gCacheMutex);
 	gDirCache.clear();
 }
+#endif
 
 static bool IsAbsolute(const std::string& p)
 {
@@ -240,6 +242,7 @@ static void MoveBackslashFile(const std::string& p)
 #endif
 }
 
+#ifndef BYOPOP_DERIVED
 void VFS::SetRemaps(const std::map<std::string, VFSRemap>& theRemaps)
 {
 	mRemaps.clear();
@@ -252,13 +255,18 @@ const VFSRemap* VFS::GetRemap(const std::string& theGamePath) const
 	auto it = mRemaps.find(Lower(Normalize(theGamePath)));
 	return it == mRemaps.end() ? nullptr : &it->second;
 }
+#endif
 
 std::string VFS::ResolveIn(const std::string& theRoot, const std::string& theGamePath) const
 {
 	return FindCaseInsensitive(theRoot, theGamePath);
 }
 
+#ifndef BYOPOP_DERIVED
 std::string VFS::Resolve(const std::string& theGamePath, std::string* theModId) const
+#else
+std::string VFS::Resolve(const std::string& theGamePath) const
+#endif
 {
 	if (IsAbsolute(theGamePath))
 	{
@@ -273,6 +281,7 @@ std::string VFS::Resolve(const std::string& theGamePath, std::string* theModId) 
 		std::string p = FindCaseInsensitive(mUserDir, rel.substr(9));
 		return p;
 	}
+#ifndef BYOPOP_DERIVED
 	auto remap = mRemaps.find(lowerRel);
 	if (remap != mRemaps.end() && IsFile(remap->second.mRealPath))
 	{
@@ -294,6 +303,9 @@ std::string VFS::Resolve(const std::string& theGamePath, std::string* theModId) 
 	if (!p.empty() && theModId)
 		theModId->clear();
 	return p;
+#else
+	return FindCaseInsensitive(mBaseDir, rel);
+#endif
 }
 
 FILE* VFS::Open(const std::string& theGamePath, const char* theMode) const
@@ -342,8 +354,13 @@ bool VFS::ReadAll(const std::string& theGamePath, std::vector<uint8_t>& theData)
 	if (!mGenerated.empty() && !IsAbsolute(theGamePath))
 	{
 		auto g = mGenerated.find(Lower(Normalize(theGamePath)));
+#ifndef BYOPOP_DERIVED
 		std::string modId;
 		if ((g != mGenerated.end()) && (Resolve(theGamePath, &modId).empty() || modId.empty()))
+#else
+		// a generated file stands in whatever the base dir holds
+		if (g != mGenerated.end())
+#endif
 		{
 			theData.assign(g->second.begin(), g->second.end());
 			return true;

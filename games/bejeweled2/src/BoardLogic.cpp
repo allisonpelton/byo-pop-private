@@ -204,8 +204,10 @@ void Board::PuzzleCompleted()
 			mSecretSolved++;
 			mSecretRun++;
 		}
+		mLevelClears++;
 		if (mSecretPuzzles.empty())
 		{
+			mWins++;
 			mPlayAgainButton = AddBoardButton(400, "Play Again");
 			mMainMenuButton = AddBoardButton(401, "Main Menu");
 			ResizeButtons();
@@ -223,6 +225,9 @@ void Board::PuzzleCompleted()
 	mPuzzleOverlay->PuzzleCompleted();
 	if (aSolvedBefore != mPuzzleOverlay->mSolvedCount)
 	{
+		mLevelClears++;
+		if (mPuzzleOverlay->mSolvedCount == 5 && mPlanetNum == mApp->mGalaxyParser->GetPlanetCount() - 1)
+			mWins++;
 		mApp->mProfile->mStat[2]++;
 		if (mPuzzleOverlay->mSolvedCount == 5)
 		{

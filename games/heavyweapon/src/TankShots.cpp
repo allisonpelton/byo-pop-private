@@ -389,7 +389,7 @@ FlakBurst::FlakBurst(Board* theBoard)
 	mMaxBursts = (aLevel + 1) * 5;
 	mBurstRadius = aLevel * 8 + 8;
 	mNode = mBoard->mTankShots.Append(this);
-	mBoard->mApp->PlaySample(SOUND_FLAK, (int)(mX * 3.0));
+	mBoard->mApp->PlaySample(SOUND_FLAK, (int)mX);	// the burst's x as it is, not scaled as the other shots' pans are
 }
 
 // 0x448620

@@ -4,7 +4,7 @@
 // The port's host for Word Harmony (no original counterpart: the original was the engine's Windows layer, 0x454a40-
 // 0x45ee00). The engine runs one frame per call, so the framework drives it: the widget runs a frame whenever the
 // game's frame period has passed (the original loop's test, 0x4552b0), draws the 800x600 screen and turns the
-// framework's input into the root window's (as the window procedure did). The host interface (engine/Host.h) is
+// framework's input into the root window's (as the window procedure did). The host interface (engines/sprout/Host.h) is
 // implemented in WordHarmonyApp.cpp over the framework and the platform layer.
 
 #include "SexyAppBase.h"
@@ -16,7 +16,7 @@
 
 #include "Bot.h"
 
-namespace wordharmony
+namespace engine
 {
 class HostSoundSystem;
 class ScreenGraphics;
@@ -37,7 +37,7 @@ public:
 	SurfaceDisplay* mSurfaceDisplay;
 	std::vector<uint32_t> mSurfaceBits;
 	const uint32_t* mPixels;  // the 800x600 screen, 0xffRRGGBB: the picture's pixels, or mSurfaceBits
-	wordharmony::ScreenGraphics* mGraphics;
+	engine::ScreenGraphics* mGraphics;
 	DWORD mLastLoop;       // the run loop's last tick count
 	int mAccumulated;      // the milliseconds not yet run as frames (0x4552b0's carry)
 	DWORD mLastSoundTick;

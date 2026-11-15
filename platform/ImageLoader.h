@@ -37,8 +37,11 @@ struct LoadedImage
 	std::vector<uint32_t> mHDBits;  // ARGB at mHDWidth x mHDHeight
 
 	bool mHasAlpha = false;
+	bool mGenerated = false;  // made by the ImageGenerator (SetImageGenerator), not read from a file
 	std::string mSourcePath;  // real path of the colour (or mask) file
+#ifndef BYOPOP_DERIVED
 	std::string mModId;       // empty for the base game
+#endif
 };
 
 // theGamePath: "images/gemsheet6", "images\\titlescreen6.jpg", "../images/afont1" relative paths etc.
@@ -76,6 +79,7 @@ typedef bool (*ImageDecoder)(const std::vector<uint8_t>& theData, int& theWidth,
 	bool* theHasAlpha);
 void RegisterImageFormat(const char* theExtension, ImageDetector theDetector, ImageDecoder theDecoder);
 
+#ifndef BYOPOP_DERIVED
 // Registers an explicit HD scale for a game path ("images/gemsheet6" -> 2), from mod manifests.
 void SetImageScaleOverride(const std::string& theModId, const std::string& theGamePath, int theScale);
 // Marks every plain-named image of a mod as HD ("imageScale" in mod.json).
@@ -94,6 +98,7 @@ void ClearImageScaleOverrides();
 void AddImagePatch(const std::string& theTarget, const std::string& thePatchPath, int theX, int theY, int theScale, bool theReplace);
 void ClearImagePatches();
 void ApplyImagePatches(const std::string& theGamePath, LoadedImage& theImage);
+#endif
 
 // ---- JPEG through IJG libjpeg 6b (platform/JPEGDecoder.cpp) ----
 // The games' own exes decode JPEGs with libjpeg 6b (PopCap's ImageLib), with its default settings; stb_image
