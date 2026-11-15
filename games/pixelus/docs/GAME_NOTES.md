@@ -239,3 +239,18 @@ opened), the centaur, the cyclops and the mermaid, each an effect of Effects.cpp
 
 The 62 port functions the five coverage runs never reached are dialogs, the user list and editor paths that no run entered, not dead code;
 none is taken out.
+
+## 13. Readability (2026-11-15)
+
+`python tools/namecheck.py games/pixelus` found 140 (76 functions with no address or port marker, 35 uses of `mFlag2D`, `mFlag38`,
+`mFlag79` and `mFlag7A`, 29 one-letter names used over more than ten lines) and now finds none. The four profile flags are
+`UserProfile::mShowHelp` (+0x2d, the how-to-play screen before a puzzle), `mExpert` (+0x38, no hints and undo), `mTutorialDone` (+0x79)
+and `mStorySeen` (+0x7a, the story that opens the game); the long one-letter names became `CELL`, `aRow`, `aCol`, `aChar`, `theParticle`,
+`aState`, `aBoard`, `aRowCount`, `aColCount` and the colour-space parameters of `PuzzleImages.cpp` `theRed`, `theHue` and the like. The
+functions the port wrote itself (helpers, constructors and destructors of the port's classes) carry a `port:` marker.
+`tools/splitfields.py` listed 10 pairs of names at one offset: each is a deliberate second view of the same bytes (a screen's
+fields that two modes use differently, the picture-completed screen's mode and its derived `mTutorialDone`, the application's two
+names for the screen at +0x690), judged and left. Two fields nobody reads (`Board::mIntro`, `ProgressManager::mHistoryUser`) say so in their comments.
+The play is unchanged (`tools/check.sh pixelus`, baseline identical).
+
+**Oddity: a check run that differs under load (2026-11-15).** Twice a `tools/check.sh pixelus` run failed once and passed on every later run (the bot's game of 25 puzzles played another solution, 66 moves against 68, and the full game stopped at 27 puzzles). Both failing runs have the same sign: their log has no first line `new player dialog ...`, which a run on an empty user folder always starts with, so the game began on a profile that an earlier run had left (a run on a used profile, played here by hand, starts at `play` the same way, and plays the puzzles that are not solved yet). Nothing in the game reads the clock on its logic path: 6 runs of the 25-puzzle game and one of 210 puzzles on a quiet machine were identical, and so was every run after. The likeliest cause is the check's own run folder not being empty when the game started, from two check runs overlapping (the first came from a background shell of this session that was believed dead). Not proved. To see it: run the game twice with the same `-userdir`. What it would take: `tools/check.sh` could refuse to start while another run of the same suite is going, and stop when the folder it has just emptied is not.

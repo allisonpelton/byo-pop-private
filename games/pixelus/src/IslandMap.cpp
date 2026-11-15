@@ -38,6 +38,7 @@ public:
 
 // ---- the panel -------------------------------------------------------------------------------------------------
 
+// port: the constructor (IslandPanel::IslandPanel)
 IslandPanel::IslandPanel(PixelusApp* theApp, IslandMap* theIsland)
 {
 	mApp = theApp;
@@ -87,6 +88,7 @@ void IslandPanel::Clear()
 	mFadeState = 1;
 }
 
+// port: a helper of the port (IslandPanel::DrawCentered)
 void IslandPanel::DrawCentered(Graphics* g, int theFont, const std::string& theText, int theY)
 {
 	Font* aFont = mApp->mFonts[theFont];
@@ -133,7 +135,7 @@ void IslandPanel::Draw(Graphics* g)
 	DrawCentered(g, FONT_GARAMOND14, GT(0x50de18), 0x1a);
 	DrawCentered(g, FONT_GARAMOND24GOLD, GT(0x50de10), 0x3d);
 	int aOutside = aUser != NULL ? aUser->CountSolved() - aUser->CountSolved(gTemples[0].mName) : 0;
-	if (aUser != NULL && aUser->mFlag79)
+	if (aUser != NULL && aUser->mTutorialDone)
 	{
 		DrawCentered(g, FONT_GARAMOND20, IsTempleLocked(mApp, 1) ? GT(0x50ddac) : GT(0x50ddc0), 0x65);
 		for (int i = 0; i < NUM_TEMPLES; i++)
@@ -208,6 +210,7 @@ void IslandPanel::Draw(Graphics* g)
 
 // ---- the island ------------------------------------------------------------------------------------------------
 
+// port: a helper of the port (IslandMap::Rand01)
 double IslandMap::Rand01()
 {
 	return mApp->AppRandNext() * 4.656612875245797e-10;
@@ -311,6 +314,7 @@ IslandMap::IslandMap(PixelusApp* theApp)
 	mFlock = new GullFlock(mApp->mImages[IMAGE_BIRD], mSolvedTotal * 30 / 100 + 10);	// 0x430ab0
 }
 
+// port: the destructor (IslandMap::~IslandMap)
 IslandMap::~IslandMap()
 {
 	delete mFlock;
@@ -574,6 +578,7 @@ void IslandMap::ButtonMouseEnter(int theId)
 		mApp->PlaySample(SOUND_UI_ISLAND_CLICK_01);
 }
 
+// port: a helper of the port (IslandMap::ButtonMouseLeave)
 void IslandMap::ButtonMouseLeave(int theId)
 {
 }

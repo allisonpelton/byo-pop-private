@@ -398,9 +398,9 @@ void TileMaster::SetTrailTarget(int theSide, int theCursor)
 // left sides takes longer, as they are two cells off the grid
 void TileMaster::TrailPlace(int* theX, int* theY) const
 {
-	const int S = Grid::CELL_SIZE;
-	const int A = mRows;
-	const int B = mCols;
+	const int CELL = Grid::CELL_SIZE;
+	const int aRowCount = mRows;
+	const int aColCount = mCols;
 	const float aPhase = mTrailPhase;
 	int aX = 0, aY = 0;
 	int aCX, aCY;
@@ -408,24 +408,24 @@ void TileMaster::TrailPlace(int* theX, int* theY) const
 	switch (mTrailSide)
 	{
 	case 3:
-		if (mTrailPos == A - 1 && aPhase > 2.0f)
+		if (mTrailPos == aRowCount - 1 && aPhase > 2.0f)
 		{
 			if (aPhase <= 3.0f)
 			{
-				CellCenter(A + 1, B, &aCX, &aCY);
+				CellCenter(aRowCount + 1, aColCount, &aCX, &aCY);
 				float anAngle = (aPhase - 2.0f) * 90.0f;
-				aX = (int) (cos(anAngle * 0.017453292519943295) * S + aCX);
-				aY = (int) (sin(anAngle * 0.017453292519943295) * S + aCY);
+				aX = (int) (cos(anAngle * 0.017453292519943295) * CELL + aCX);
+				aY = (int) (sin(anAngle * 0.017453292519943295) * CELL + aCY);
 			}
 			else if (aPhase <= 4.0f)
 			{
-				CellCenter(A + 2, B, &aX, &aY);
-				aX -= (int) (S * (aPhase - 3.0f));
+				CellCenter(aRowCount + 2, aColCount, &aX, &aY);
+				aX -= (int) (CELL * (aPhase - 3.0f));
 			}
 			break;
 		}
-		CellCenter(mTrailPos, B + 1, &aX, &aY);
-		aY += (int) (S * aPhase);
+		CellCenter(mTrailPos, aColCount + 1, &aX, &aY);
+		aY += (int) (CELL * aPhase);
 		break;
 	case 1:
 		if (mTrailPos == 0 && aPhase > 0.0f)
@@ -434,53 +434,53 @@ void TileMaster::TrailPlace(int* theX, int* theY) const
 			{
 				CellCenter(0, -1, &aCX, &aCY);
 				float anAngle = aPhase * 90.0f + 180.0f;
-				aX = (int) (cos(anAngle * 0.017453292519943295) * S + aCX);
-				aY = (int) (sin(anAngle * 0.017453292519943295) * S + aCY);
+				aX = (int) (cos(anAngle * 0.017453292519943295) * CELL + aCX);
+				aY = (int) (sin(anAngle * 0.017453292519943295) * CELL + aCY);
 			}
 			else if (aPhase <= 2.0f)
 			{
 				CellCenter(-1, -1, &aX, &aY);
-				aX += (int) (S * (aPhase - 1.0f));
+				aX += (int) (CELL * (aPhase - 1.0f));
 			}
 			break;
 		}
 		CellCenter(mTrailPos, -2, &aX, &aY);
-		aY -= (int) (S * aPhase);
+		aY -= (int) (CELL * aPhase);
 		break;
 	case 2:
-		if (mTrailPos == B - 1 && aPhase > 1.0f)
+		if (mTrailPos == aColCount - 1 && aPhase > 1.0f)
 		{
 			if (aPhase <= 2.0f)
 			{
-				CellCenter(0, B, &aCX, &aCY);
+				CellCenter(0, aColCount, &aCX, &aCY);
 				float anAngle = (aPhase - 1.0f) * 90.0f + 270.0f;
-				aX = (int) (cos(anAngle * 0.017453292519943295) * S + aCX);
-				aY = (int) (sin(anAngle * 0.017453292519943295) * S + aCY);
+				aX = (int) (cos(anAngle * 0.017453292519943295) * CELL + aCX);
+				aY = (int) (sin(anAngle * 0.017453292519943295) * CELL + aCY);
 			}
 			break;
 		}
 		CellCenter(-1, mTrailPos, &aX, &aY);
-		aX += (int) (S * aPhase);
+		aX += (int) (CELL * aPhase);
 		break;
 	default:
 		if (mTrailPos == 0 && aPhase > 1.0f)
 		{
 			if (aPhase <= 2.0f)
 			{
-				CellCenter(A + 1, -1, &aCX, &aCY);
+				CellCenter(aRowCount + 1, -1, &aCX, &aCY);
 				float anAngle = aPhase * 90.0f;
-				aX = (int) (cos(anAngle * 0.017453292519943295) * S + aCX);
-				aY = (int) (sin(anAngle * 0.017453292519943295) * S + aCY);
+				aX = (int) (cos(anAngle * 0.017453292519943295) * CELL + aCX);
+				aY = (int) (sin(anAngle * 0.017453292519943295) * CELL + aCY);
 			}
 			else if (aPhase <= 4.0f)
 			{
-				CellCenter(A + 1, -2, &aX, &aY);
-				aY -= (int) (S * (aPhase - 2.0f));
+				CellCenter(aRowCount + 1, -2, &aX, &aY);
+				aY -= (int) (CELL * (aPhase - 2.0f));
 			}
 			break;
 		}
-		CellCenter(A + 2, mTrailPos, &aX, &aY);
-		aX -= (int) (S * aPhase);
+		CellCenter(aRowCount + 2, mTrailPos, &aX, &aY);
+		aX -= (int) (CELL * aPhase);
 		break;
 	}
 	*theX = aX;
@@ -491,8 +491,8 @@ void TileMaster::TrailPlace(int* theX, int* theY) const
 void TileMaster::UpdateTrail()
 {
 	const float aStep = 0.3f;
-	const int A = mRows;
-	const int B = mCols;
+	const int aRowCount = mRows;
+	const int aColCount = mCols;
 
 	if (mTrailMode == 1)
 	{
@@ -508,7 +508,7 @@ void TileMaster::UpdateTrail()
 					mTrailPhase -= 2.0f;
 				}
 			}
-			else if (mTrailSide == 2 && mTrailPos == B - 1)
+			else if (mTrailSide == 2 && mTrailPos == aColCount - 1)
 			{
 				if (mTrailPhase > 2.0f)
 				{
@@ -517,13 +517,13 @@ void TileMaster::UpdateTrail()
 					mTrailPhase -= 2.0f;
 				}
 			}
-			else if (mTrailSide == 3 && mTrailPos == A - 1)
+			else if (mTrailSide == 3 && mTrailPos == aRowCount - 1)
 			{
 				if (mTrailPhase > 4.0f)
 				{
 					mTrailPhase -= 4.0f;
 					mTrailSide = 0;
-					mTrailPos = B - 1;
+					mTrailPos = aColCount - 1;
 				}
 			}
 			else if (mTrailSide == 0 && mTrailPos == 0)
@@ -532,7 +532,7 @@ void TileMaster::UpdateTrail()
 				{
 					mTrailPhase -= 4.0f;
 					mTrailSide = 1;
-					mTrailPos = A - 1;
+					mTrailPos = aRowCount - 1;
 				}
 			}
 			else if (mTrailPhase > 1.0f)
@@ -553,7 +553,7 @@ void TileMaster::UpdateTrail()
 		for (int aStepIndex = 0; aStepIndex < 5 && mTrailMode != 0; aStepIndex++)
 		{
 			mTrailPhase -= aStep;
-			if (mTrailSide == 1 && mTrailPos == A + 1)
+			if (mTrailSide == 1 && mTrailPos == aRowCount + 1)
 			{
 				if (mTrailPhase < 0.0f)
 				{
@@ -577,16 +577,16 @@ void TileMaster::UpdateTrail()
 				{
 					mTrailPhase += 2.0f;
 					mTrailSide = 2;
-					mTrailPos = B - 1;
+					mTrailPos = aColCount - 1;
 				}
 			}
-			else if (mTrailSide == 0 && mTrailPos == B - 1)
+			else if (mTrailSide == 0 && mTrailPos == aColCount - 1)
 			{
 				if (mTrailPhase < 0.0f)
 				{
 					mTrailPhase += 4.0f;
 					mTrailSide = 3;
-					mTrailPos = A - 1;
+					mTrailPos = aRowCount - 1;
 				}
 			}
 			else if (mTrailPhase < -1.0f)
