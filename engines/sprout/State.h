@@ -41,7 +41,7 @@ public:
 
 	State* getState() const { return mState; }
 
-private:
+protected:
 	Ref<State> mState;  // +0x0c
 };
 
