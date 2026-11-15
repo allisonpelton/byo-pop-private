@@ -405,11 +405,12 @@
         "performance",
         "lite-mod",
         "unneeded-code",
-        "readability"
+        "readability",
+        "collection"
       ],
       "na": [],
-      "now": "collection",
-      "note": "readability done (f21c756a: namecheck 122 places to 0; the mods' files and functions marked port(mods); helper markers name the original functions; one-letter names renamed; mUnusedA0 is mZeroInSave; mPickpocketsUsed out; objsnap 0 of 30 objects changed, strings unchanged); baseline unchanged (66646); next: the Collection check"
+      "now": null,
+      "note": "the Collection check done (46dd468f): the Collection's BigMoneyDeluxeComponent is the Steam game (the exe's .text and .data byte for byte, 8 .rdata bytes of the build-info id only partner.xml's .sig check reads; 180 of 190 files the same; only the loading screen's bar and logo differ); the port from both folders plays the same states (66646), only the title's logo rectangle differs; every phase but modding done. Open: a re-measure of processor time under the compositor wait (the default since 2026-11-15)"
     },
     "tiptop": {
       "title": "TipTop Deluxe",
