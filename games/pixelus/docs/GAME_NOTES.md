@@ -254,3 +254,19 @@ names for the screen at +0x690), judged and left. Two fields nobody reads (`Boar
 The play is unchanged (`tools/check.sh pixelus`, baseline identical).
 
 **Oddity: a check run that differs under load (2026-11-15).** Twice a `tools/check.sh pixelus` run failed once and passed on every later run (the bot's game of 25 puzzles played another solution, 66 moves against 68, and the full game stopped at 27 puzzles). Both failing runs have the same sign: their log has no first line `new player dialog ...`, which a run on an empty user folder always starts with, so the game began on a profile that an earlier run had left (a run on a used profile, played here by hand, starts at `play` the same way, and plays the puzzles that are not solved yet). Nothing in the game reads the clock on its logic path: 6 runs of the 25-puzzle game and one of 210 puzzles on a quiet machine were identical, and so was every run after. The likeliest cause is the check's own run folder not being empty when the game started, from two check runs overlapping (the first came from a background shell of this session that was believed dead). Not proved. To see it: run the game twice with the same `-userdir`. What it would take: `tools/check.sh` could refuse to start while another run of the same suite is going, and stop when the folder it has just emptied is not.
+
+## 14. The Collection check (2026-11-15)
+
+The PopCap Game Collection ISO holds `PixelusDeluxeComponent` (949 files, taken out with `unshield g PixelusDeluxeComponent` in a folder under
+`build/`, never kept). Compared with the retail install the port was made from:
+- Every file of `images/`, `data/`, `levels/`, `music/`, `sounds/` and `NcFramework/` is the same, byte for byte (the level list is `Levels.txt`
+  against `levels.txt`, the same file on Windows). The Collection adds `data/writeprobe.txt` (the write probe the port does not carry) and a
+  `users/` folder; its `properties/partner.xml` and signature are its own.
+- Its `Pixelus.exe` is the game itself with no PopCap wrapper (1,488,176 bytes). Its game image has the same `.text` and `.data` as the retail
+  one, byte for byte, and differs in 8 bytes of `.rdata` (the linker's stamp) and in the resources; so the original is the same build, and
+  every address in the notes holds. The port's text loader finds the image at the start of the file when there is no marker, and all of its
+  texts matched (no "do not match" line).
+- Its `partner.xml` has `DefaultWindowed` false, so the game starts full screen as the original does with it; the retail file leaves it windowed.
+  That is the only difference the port shows: the bot's 25-puzzle game run on the Collection's folder gives the same log and, with the retail
+  `partner.xml` put in the copy, the same 16 screenshots as the retail folder (taken full screen, the shots differ in scaling only).
+Nothing to change in the port.
