@@ -1,4 +1,5 @@
 #include "Gameplay.h"
+#include "LiveSplitObserver.h"
 
 #include "Application.h"
 #include "Creature.h"
@@ -392,6 +393,7 @@ void Gameplay::FixedUpdate()
 void Gameplay::GameOver()
 {
 	mPhase = PHASE_OVER;
+	LiveSplitObserver::GameEnded();		// port(autosplit)
 	gApp->FadeOutMusic();
 	MakeFloater(4, (double)(gSexyAppBase->mWidth / 2), (double)(gSexyAppBase->mHeight / 2), "Game Over", 0, "");
 	gApp->mGameScreen->UpdateHover();
