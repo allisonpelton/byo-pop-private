@@ -6,8 +6,8 @@
 // from the parameters of the player (engines/sprout/Players.h) when the player changes, and written back to them by
 // save.
 //
-// Not translated, as nothing the loading state, the menu state's enter or the application's init reaches calls them:
-// the destructor, and the readers and writers of the fields the game's states use.
+// Not translated, as nothing the loading state, the menu state, the city select or the start of a game reaches calls
+// them: the destructor, and the readers and writers of the fields the game's other states use.
 
 #include "Object.h"
 #include "Signal.h"
@@ -54,6 +54,31 @@ public:
 	bool hasSavedGame(int theMode);
 	// 0x428670: the mode has no game left in it, which is saved
 	void clearSavedGame(int theMode);
+
+	// The saved game of a mode
+	int getLastCity(int theMode) { return mModes[theMode].mLastCity; }          // 0x4277e0
+	int getLastLevel(int theMode) { return mModes[theMode].mLastLevel; }        // 0x4277b0
+	int getLastDay(int theMode) { return mModes[theMode].mLastDay; }            // 0x427810
+	int getLastScore(int theMode) { return mModes[theMode].mLastScore; }        // 0x427840
+	float getElapsedTime(int theMode) { return mModes[theMode].mElapsedTime; }  // 0x4278d0
+	// The furthest day the player got to in the mode
+	int getHighestDay(int theMode) { return mModes[theMode].mHighestDay; }      // 0x427880
+	// 0x4278a0: a day further than the furthest is the new furthest
+	void setHighestDay(int theMode, int theDay);
+	// 0x4504b0: the last city the player has got to
+	int getMaxCity() { return mMaxCity; }
+	// 0x427980: a city further than the last is the new last
+	void setMaxCity(int theCity);
+	// 0x427940: the toppings the player has not been shown yet
+	std::vector<engine::Ref<Topping>>& getNewToppings() { return mNewToppings; }
+	// 0x427960: the player is shown the toppings a level gives
+	bool getUnlockTopping() { return mUnlockTopping; }
+	// 0x4287c0: the level of the topping, -1 when the player does not have it
+	int getToppingLevel(Topping* theTopping);
+	// 0x428d30: a topping the player does not have is new, once
+	void addNewTopping(Topping* theTopping);
+	// 0x4286a0: the topping is not new any more
+	void removeNewTopping(Topping* theTopping);
 
 	std::string mPlayerName;  // +0x1c
 	int mMaxCity;             // +0x38

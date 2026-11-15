@@ -32,6 +32,8 @@ public:
 
 	// 0x422d80: the topping of that name, null when there is none
 	Topping* getTopping(const std::string& theName);
+	// The toppings by name (+0x30)
+	std::map<std::string, engine::Ref<Topping>>& getToppings() { return mToppings; }
 	// 0x422e10: the music clip of that name, null when there is none
 	GameMusicClip* getMusic(const std::string& theName);
 
