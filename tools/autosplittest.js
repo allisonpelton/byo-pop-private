@@ -419,8 +419,8 @@ function hwLog(name) { return fs.readFileSync(path.join(__dirname, "autosplit", 
 var HW_MISSION = "Mission Mode (PC)";
 check(blockReplay("heavyweapon", HW_MISSION, hwLog("newgame")) === "start; split", "Heavy Weapon: from the click on Campaign, level 1's results split");
 check(blockReplay("heavyweapon", HW_MISSION, hwLog("gameover-continue")) === "start; split",
-      "Heavy Weapon: CONTINUE after a game over keeps the run, the level played again splits at its results");
-check(blockReplay("heavyweapon", HW_MISSION, hwLog("gameover-scores")) === "start; reset resetQuit", "Heavy Weapon: SCORES after a game over resets");
+      "Heavy Weapon: TRY AGAIN after a game over keeps the run, the level played again splits at its results");
+check(blockReplay("heavyweapon", HW_MISSION, hwLog("gameover-scores")) === "start; reset resetQuit", "Heavy Weapon: QUIT after a game over resets");
 check(blockReplay("heavyweapon", HW_MISSION, hwLog("quit")) === "start; reset resetQuit", "Heavy Weapon: the menu in the middle of a level resets");
 check(blockReplay("heavyweapon", HW_MISSION, hwLog("continued")) === "" && blockReplay("heavyweapon", HW_MISSION, hwLog("final")) === "" &&
       blockReplay("heavyweapon", HW_MISSION, hwLog("survival")) === "", "Heavy Weapon: a continued campaign and Survival start nothing");

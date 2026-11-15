@@ -841,8 +841,8 @@ and count the levels the block keeps per mode: the modes with four each, and Act
 "N Gem", Hyper's Max Score and Full Loop, and the per-level 100% have no template. Its block logs replay in the test.
 Heavy Weapon Deluxe (HWDX; speedrun.com: Heavy Weapon): Mission Mode (PC) runs from the click on Campaign in a new game
 to the final level's results screen, its win in the same update as that level's clear, and splits at each level's
-results. A campaign continued from the menu starts nothing. The game-over box's CONTINUE plays the level again on the
-same board and the run goes on (a death that `goesOn`); SCORES or the menu after it resets as a quit, as the main menu
+results. A campaign continued from the menu starts nothing. The game-over box's TRY AGAIN plays the level again on the
+same board and the run goes on (a death that `goesOn`); QUIT or the menu after it resets as a quit, as the main menu
 after Venice's sunk Flood building does. Survival and the console categories have no template.
 Big Money has no board, so its row is its native
 script's rules, with mode and skill in the category's name and levels or scores as segments. Both replay their native

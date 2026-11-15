@@ -243,7 +243,7 @@ var ByopopAutosplit = (function () {
       // its end and the run waits for the next game's GO)
       var skillsUsed = [], between = false;
       // (a death on the run's board that goes on: the game-over flag stays up after it, and the board going away later is
-      // still a quit, as Heavy Weapon's SCORES after CONTINUE's box or Venice's main menu after a sunk Flood building)
+      // still a quit, as Heavy Weapon's QUIT on its game-over box or Venice's main menu after a sunk Flood building)
       var wentOn = false;
       var current = {}, old = {};
       V2_FIELDS.forEach(function (k) { current[k] = 0; });
@@ -644,12 +644,13 @@ var ByopopAutosplit = (function () {
   // Heavy Weapon Deluxe (speedrun.com: Heavy Weapon; the port's block, layout 2, from Heavy Weapon's session, 2026-11-15):
   // Mission Mode (PC) from the click on Campaign in a new game (its GO, in that update; a campaign continued from the menu
   // starts nothing) through each level's results screen (a level clear each) to the final level's results, its win, in the
-  // same update as that level's clear. Out of tanks in the campaign brings up the game-over box: its CONTINUE plays the level
-  // again on the same board and the run goes on; SCORES or the menu ends the board, a quit. Survival has no PC category.
+  // same update as that level's clear. Out of tanks in the campaign brings up the game-over box: its TRY AGAIN plays the
+  // level again on the same board and the run goes on; QUIT (to the high scores) or the menu ends the board, a quit.
+  // Survival has no PC category.
   var HW_RULES = {
     name: "Heavy Weapon Deluxe", id: "HWDX",
     modes: { Campaign: 0, Survival: 1 }, skills: {},
-    deaths: [{ setting: null, goesOn: true, what: "out of tanks (the campaign: CONTINUE plays the level again, the run goes on)" },
+    deaths: [{ setting: null, goesOn: true, what: "out of tanks (the campaign: TRY AGAIN plays the level again, the run goes on)" },
              { setting: null, what: "out of tanks (Survival, no category)" },
              { setting: null, what: "unused" },
              { setting: null, what: "unused" }],
