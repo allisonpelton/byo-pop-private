@@ -57,7 +57,7 @@ def port3d(out, src, extra):
     sym, imagebase = cyc.exe_symbol(exe, '__ZN4Sexy12gSexyAppBaseE')
     others0 = perf.game_processes(perf.mine_prefixes())
     s0 = perf.system_times()
-    env = dict(os.environ, SDL_AUDIODRIVER='dummy', ORACLE_VISIBLE='1')   # ORACLE_VISIBLE: the port's guard lets a test flag run off rundesk (overnight only)
+    env = dict(os.environ, SDL_AUDIODRIVER='dummy', ORACLE_VISIBLE='1')   # ORACLE_VISIBLE: the port's guard lets a test flag run off rundesk (any hour)
     si = subprocess.STARTUPINFO()
     si.dwFlags = 1
     si.wShowWindow = 4                      # SW_SHOWNOACTIVATE
