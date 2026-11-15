@@ -162,6 +162,8 @@ public:
 	virtual void	PreDisplayHook() override;                      // 0x5e0b6f
 	virtual void	LoadingThreadProc() override;                   // 0x5de207
 	virtual void	UpdateFrames() override;                        // 0x5e13f3
+	// port(mod): -livesplitlog=<file> appends the autosplit block's changes (LiveSplitObserver.h)
+	virtual void	HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue) override;
 	virtual void	WriteToRegistry() override;                     // 0x5de7bb
 	virtual void	ReadFromRegistry() override;                    // 0x5de9ba
 	virtual void	ButtonPress(int theId) override;                // 0x5dc1cf: the click sound
