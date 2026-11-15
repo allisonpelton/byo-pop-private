@@ -518,6 +518,31 @@ starts and partly given back (148 to 155 MB held). The build of 2026-11-03 peake
 screen is not the cause, since the old path does the same; Direct3D 11, which the framework asks for first since
 2026-11-12 (ccec8c20), is the likeliest place, and it belongs with the shared present cost.
 
+**Measured again on the trunk of 2026-11-15** (the framework now joins draws on the GPU path into batches, paces
+presents with the compositor's wait, drops a loaded picture's pixels after its upload, and Dynomite starts in 2D on the
+GPU path too, db750c1f). The same five pinned rounds, the machine busier than on 2026-11-12 (two to seven other game
+processes), G cycles in the scripted minute:
+
+| Round | Original | Port, 640 by 480 | Port, default window |
+|---|---|---|---|
+| 1 | 12.90 | 12.07 | 9.40 |
+| 2 | 13.66 | 12.13 | 9.48 |
+| 3 | 15.15 | 11.35 | 9.12 |
+| 4 | 11.14 | 10.26 | 9.08 |
+| 5 | 12.13 | 11.14 | 7.29 |
+| Median | 12.89 | 11.35 | 9.12 |
+
+The port is under its original in every round at both sizes: 0.88 of it at 640 by 480 (the same ratio as on
+2026-11-12) and 0.71 in the default window, which is now the cheaper of the two, its GPU present no longer waiting as it
+did. Four more rounds at 640 by 480 set the software screen against the GPU path there (`SURFACE_DISPLAY=off`, the 2D
+flags too): 11.59 against 11.88, 10.23 against 12.64, 11.68 against 9.12 and 11.43 against 9.14, medians 11.51 and
+10.50. Each path was the cheaper in two rounds, by about 2.5 G each time, so the machine's load decides more than the path does, and the
+software screen stays at 1x, where it also saves the Direct3D device's memory.
+
+Peak private bytes over the scripted minute, three interleaved rounds (`tools/profile/perf.py`): the original 62.6 to
+62.7 MB; the port 47.5 to 51.1 MB at 640 by 480 (58 before) and 83.6 to 84.0 MB in the default window (95 to 181
+before), the whole run's peak 86.4 to 87.0. The default window's swings of 2026-11-12 did not come back.
+
 ## 7. The PopCap Game Collection version (2026-11-11)
 
 The Collection disc (the user's ISO, 2009) has Dynomite Deluxe as the group `DynomiteDeluxeComponent`: 227 files, 4.1 MB.
