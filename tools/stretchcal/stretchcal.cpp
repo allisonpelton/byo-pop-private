@@ -6,6 +6,8 @@
 // each model of the linear filter in turn, then with framework/LinearStretch (the one the display uses).
 //
 //   build/native/rundesk.exe build/native/stretchcal.exe [-src=WxH,...] [-win=WxH,...] [-out=<dir>]
+//   build/native/stretchcal.exe -selftest     (Draw against DrawReference on the processor, no window)
+//   build/native/stretchcal.exe -bench        (Draw's time for a whole rect, no window)
 //
 // The defaults: frames of 640x480 and 800x600; windows of 3840x2160, 1920x1080, 1000x750 and 500x375 (a factor below 1). One
 // line a case: the pattern, the sizes, the render scale, and for each model the pixels that differ and the largest
@@ -341,6 +343,82 @@ int main(int argc, char* argv[])
 			aWindows = ParseSizes(argv[i] + 5);
 		else if (strncmp(argv[i], "-out=", 5) == 0)
 			anOut = argv[i] + 5;
+	}
+
+	// -selftest: LinearStretch::Draw (copies through a table, SSE2 blends) against DrawReference (the arithmetic pixel by
+	// pixel), to the byte: whole rects drawn in bands as GdiStretch::PresentLinear draws them, and random parts of them, for
+	// frames and windows of many sizes and every pattern; and the SSE2 levels against the table for every sum. No window.
+	for (int i = 1; i < argc; i++)
+	{
+		if (strcmp(argv[i], "-selftest") != 0)
+			continue;
+		const std::vector<Size> aTestSources = ParseSizes("640x480,800x600,320x240,1024x768,512x384");
+		const std::vector<Size> aTestWindows = ParseSizes("3840x2160,2560x1440,1920x1080,1920x1200,1680x1050,1600x900,1440x900,"
+			"1366x768,1280x1024,1280x800,1280x720,1111x777,1000x750,1000x555,777x555,1357x1018,601x451,666x500,500x375,3440x1440,"
+			"2880x1800,1024x600,800x480,333x250,1601x1201,2000x1500,1500x1000,2560x1600,1036x777,960x540");
+		const int aLevelMisses = LinearStretch::CheckLevels();
+		int aCases = 0, aDiffering = 0;
+		uint32_t aSeed = 2024;
+		const Uint64 aStart = SDL_GetPerformanceCounter();
+		for (const Size& aWin : aTestWindows)
+		{
+			for (const Size& aSrc : aTestSources)
+			{
+				DisplayGeometry aGeometry;
+				aGeometry.mWidth = aSrc.mWidth;
+				aGeometry.mHeight = aSrc.mHeight;
+				const int aScale = aGeometry.UpdateDisplaySize(aWin.mWidth, aWin.mHeight, 16384, 16384, 0);
+				const int w = aGeometry.mPresentationRect.mWidth, h = aGeometry.mPresentationRect.mHeight;
+				LinearStretch aStretch;
+				aStretch.Setup(aSrc.mWidth, aSrc.mHeight, aScale, w, h);
+				const int aRows = std::max(1, 1000 * 1024 / (4 * w));
+				std::vector<uint32_t> aWant((size_t) w * h), aGot((size_t) w * h);
+				for (int aPattern = 0; aPattern < kPatternCount; aPattern++)
+				{
+					std::vector<uint32_t> aPixels = MakePattern(aPattern, aSrc.mWidth, aSrc.mHeight);
+					// a top byte in the frame must not reach the window
+					for (size_t p = 0; p < aPixels.size(); p += 7)
+						aPixels[p] |= 0xFF000000;
+					aStretch.DrawReference(&aPixels[0], aSrc.mWidth * 4, 0, 0, w, h, &aWant[0], w);
+					std::fill(aGot.begin(), aGot.end(), 0xDEADBEEF);
+					for (int y = 0; y < h; y += aRows)
+						aStretch.Draw(&aPixels[0], aSrc.mWidth * 4, 0, y, w, std::min(h, y + aRows), &aGot[(size_t) y * w], w);
+					aCases++;
+					if (aWant != aGot)
+					{
+						aDiffering++;
+						printf("selftest: %s %dx%d -> %dx%d (rect %dx%d, render scale %d), whole: differs\n", kPatternNames[aPattern],
+							aSrc.mWidth, aSrc.mHeight, aWin.mWidth, aWin.mHeight, w, h, aScale);
+					}
+					// parts: a changed rect's columns and rows, drawn into a buffer of their own width
+					for (int aPart = 0; aPart < 6; aPart++)
+					{
+						aSeed = aSeed * 1103515245 + 12345;
+						const int x0 = (int) ((aSeed >> 8) % (uint32_t) w);
+						aSeed = aSeed * 1103515245 + 12345;
+						const int x1 = x0 + 1 + (int) ((aSeed >> 8) % (uint32_t) (w - x0));
+						aSeed = aSeed * 1103515245 + 12345;
+						const int y0 = (int) ((aSeed >> 8) % (uint32_t) h);
+						aSeed = aSeed * 1103515245 + 12345;
+						const int y1 = y0 + 1 + (int) ((aSeed >> 8) % (uint32_t) std::min(h - y0, 300));
+						const int pw = x1 - x0;
+						std::vector<uint32_t> aPart1((size_t) pw * (y1 - y0), 0xDEADBEEF), aPart2((size_t) pw * (y1 - y0), 0x12345678);
+						aStretch.Draw(&aPixels[0], aSrc.mWidth * 4, x0, y0, x1, y1, &aPart1[0], pw);
+						aStretch.DrawReference(&aPixels[0], aSrc.mWidth * 4, x0, y0, x1, y1, &aPart2[0], pw);
+						aCases++;
+						if (aPart1 != aPart2)
+						{
+							aDiffering++;
+							printf("selftest: %s %dx%d -> %dx%d, part %d,%d to %d,%d: differs\n", kPatternNames[aPattern], aSrc.mWidth,
+								aSrc.mHeight, aWin.mWidth, aWin.mHeight, x0, y0, x1, y1);
+						}
+					}
+				}
+			}
+		}
+		printf("stretchcal selftest: %d cases, %d differing; levels: %d of %d sums differing (%.1f s)\n", aCases, aDiffering, aLevelMisses,
+			255 * 256 + 1, (double) (SDL_GetPerformanceCounter() - aStart) / (double) SDL_GetPerformanceFrequency());
+		return ((aDiffering == 0) && (aLevelMisses == 0)) ? 0 : 1;
 	}
 
 	// -bench: what drawing the whole presentation rect costs the processor, band by band into a bitmap of under 1 MB as

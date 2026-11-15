@@ -30,7 +30,8 @@
 #                the screenshot comparison on synthetic pictures, its pages and its marks server); and geomtest
 #                (framework/DisplayGeometry: letterbox, render scale, window mapping and cursor, against a table); and wraptest
 #                (framework/TriangleWrap: DrawTrianglesTex's texture wrap, triangles cut at whole-number u and v); and stretchcal
-#                (framework/LinearStretch against the renderer's linear present on this machine's card, four sizes); and
+#                (framework/LinearStretch against the renderer's linear present on this machine's card, four sizes, and its
+#                Draw against DrawReference at many sizes, -selftest); and
 #                fwtest -realinput=tools/fwtest/realinput.txt with -fast and in real time, with no game files (real SDL
 #                events through HandleEvent and the widget manager, docs/REAL_INPUT.md); and fwtest -corner
 #                -realinput=tools/fwtest/flags.txt on DDInterface and on the software screen (the fast stretch's
@@ -780,9 +781,11 @@ suite_unit() {
 	wr="$(lastof "$1.wrp" 'wraptest: [0-9]+ checks, [0-9]+ failed')"
 	# framework/LinearStretch (stretch mode's smooth flavour) against the renderer's own present of test pictures at the four
 	# calibration sizes, where this machine's card and the model agree to the byte (docs/MEMORY.md, "A smooth stretch on the processor")
+	# and its Draw (copies through a table, SSE2 blends) against DrawReference, the arithmetic pixel by pixel, at many sizes
 	local sc
 	(cd build/native && timeout 120 ./stretchcal.exe) > "$1.sc" 2>&1 || st=1
-	sc="$(lastof "$1.sc" 'stretchcal: [0-9]+ cases differing from LinearStretch')"
+	(cd build/native && timeout 120 ./stretchcal.exe -selftest) >> "$1.sc" 2>&1 || st=1
+	sc="$(lastof "$1.sc" 'stretchcal: [0-9]+ cases differing from LinearStretch'), $(lastof "$1.sc" 'stretchcal selftest: [0-9]+ cases, [0-9]+ differing' | sed 's/^stretchcal //; s/ ([0-9.]* s)$//')"
 	# -realinput (docs/REAL_INPUT.md): real SDL events pushed into SDL's queue reach fwtest's board through HandleEvent,
 	# the window mapping and the widget manager, with -fast and in real time; a line it could not play fails it too
 	local k r
