@@ -22,6 +22,8 @@
 #include "Rect.h"
 #include "Color.h"
 #include "TriangleWrap.h"
+#include "SexyMatrix.h"
+#include <vector>
 
 struct SDL_Window;
 struct SDL_Renderer;
@@ -100,6 +102,9 @@ public:
 	// current clip rectangle on the screen texture (logical coordinates)
 	bool mClipEnabled;
 	Rect mCurClipRect;
+
+	// the stack PushTransform and PopTransform keep (empty unless a game pushes)
+	std::vector<SexyMatrix3> mTransformStack;
 
 	// The software stretch (off by default; a game whose original drew its screen in software sets it, as Bejeweled
 	// Twist does in 2D). The first piece of the framework's software 2D path: it covers StretchBlt only. The original's
@@ -190,6 +195,10 @@ protected:
 	SDL_Texture* PrepareTexture(MemoryImage* theImage, DDTextureData* theData, int theDrawMode, bool linearHint);
 	void DrawTexturedQuad(Image* theImage, const float theX[4], const float theY[4], const Rect& theSrcRect, bool mirror, const Color& theColor, int theDrawMode, const Rect* theClipRect, bool linearHint);
 	void FillRects(const Color& theColor, int theDrawMode);
+	// FillPoly's fan from float vertices in logical coordinates (what the stack's matrix makes of a rectangle or a polygon)
+	void FillPolyF(const float* theX, const float* theY, int theNumVertices, const Rect* theClipRect, const Color& theColor, int theDrawMode);
+	// the four corners theX and theY through the top of the stack
+	void TransformQuad(float theX[4], float theY[4]) const;
 	void DrawCursor();
 
 public:
@@ -262,6 +271,16 @@ public:
 	// pieces through DrawTrianglesTex clamped, and says true; with clamp both ways it does nothing and says false.
 	bool DrawTrianglesTexWrapped(Image* theTexture, const TriVertex theVertices[][3], int theNumTriangles, const Rect* theClipRect, const Color& theColor, int theDrawMode, float tx, float ty, bool blend);
 	virtual void ClearRect(const Rect& theRect);
+
+	// port: the transform stack of the original's D3DInterface (Bejeweled 2's PushTransform 0x44b8f0 and PopTransform 0x44b990; Twist's
+	// slot 0x14, which GPU2D keeps for GPUDisplay). While it is not empty these draws take their coordinates through the top matrix:
+	// Blt, StretchBlt, BltRotated, BltTransformed, DrawTrianglesTex, FillRect, FillPoly and DrawLine (ClearRect and FillScanLines do not).
+	// A blit is filtered then (the original draws a plain blit under a stack as a transformed one). A clip rectangle stays the screen's, as
+	// the original's does for a transformed blit, a fill and a polygon; a plain blit and a stretch ignore it, DDImage having cut them to
+	// it before the matrix. Empty (the default), nothing differs from a display without the stack. theConcatenate: the matrix is
+	// multiplied into the top one.
+	virtual void PushTransform(const SexyMatrix3& theTransform, bool theConcatenate = true);
+	virtual void PopTransform();
 
 	// Reads the logical screen back into ARGB pixels (used for screenshots / GetBits on the screen).
 	virtual bool ReadScreen(ulong* theBits);

@@ -338,6 +338,18 @@ void GPUDisplay::ClearRect(const Rect& theRect)
 	LogOnce("ClearRect on the screen (the original clears the screen image's bits, which shows nothing)");
 }
 
+void GPUDisplay::PushTransform(const SexyMatrix3& theTransform, bool theConcatenate)
+{
+	if (mGPU2D != NULL)
+		mGPU2D->PushTransform(theTransform, theConcatenate);
+}
+
+void GPUDisplay::PopTransform()
+{
+	if (mGPU2D != NULL)
+		mGPU2D->PopTransform();
+}
+
 bool GPUDisplay::ReadScreen(ulong* theBits)
 {
 	if ((mDevice == NULL) || mContextLost)
