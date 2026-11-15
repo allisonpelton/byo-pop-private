@@ -25,7 +25,7 @@ over the scripted stretch (the 2000 updates before the scenario's last, the same
 with a screenshot's file time, the original's is found from its update counter), the machine's busy fraction during the run,
 and the game processes of other sessions running when it started and ended. The original's run is stopped from here once its
 counter passes the scenario's last update. The original needs setup.sh's patch list (the seed, the registry in HKCU) and a staged
-copy (OG_STAGE, default C:/byo-og/bwperf, made by `OG_STAGE=C:/byo-og/bwperf games/bookworm/tools/identical/setup.sh`).
+copy (OG_STAGE, default E:/byo-og/bwperf, made by `OG_STAGE=E:/byo-og/bwperf games/bookworm/tools/identical/setup.sh`).
 """
 import ctypes
 import ctypes.wintypes as W
@@ -173,7 +173,7 @@ def summarise(samples, lo, hi=None):
 
 
 def mine_prefixes():
-    return [os.getcwd() + '\\', 'C:\\byo-og\\bwperf']
+    return [os.getcwd() + '\\', 'E:\\byo-og\\bwperf']
 
 
 MINUTE = 2000  # updates of the scripted stretch: 20 s at the game's 100 updates a second
@@ -182,7 +182,7 @@ TERMINATE = 0x1
 APP_PTR = 0x5347D4          # gApp, the BookWormApp the original's WinMain makes
 COUNTER = 0x4B8             # BookWormApp::mUpdateCount
 TITLE_FIELD, LOAD_DONE = 0x1164, 0x78   # BookWormApp::mTitleScreen, TitleScreen::mLoadDone (the play link is shown)
-STAGE = os.environ.get('OG_STAGE', 'C:/byo-og/bwperf')
+STAGE = os.environ.get('OG_STAGE', 'E:/byo-og/bwperf')
 
 
 def scenario(path):

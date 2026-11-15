@@ -190,7 +190,7 @@ def image_path(pid):
 def others():
     """Game processes running on the machine that are not this run's (tools/gamecount.py's count, roughly)."""
     n = 0
-    mine = (os.getcwd().lower(), 'c:\\byo-og\\mmcyc\\')
+    mine = (os.getcwd().lower(), 'e:\\byo-og\\mmcyc\\')
     for pid, name in processes():
         if name.lower() in ('rundesk.exe', 'origrun.exe', 'python.exe', 'bash.exe', 'lsprobe.exe', 'bejeweled_verify.exe'):
             continue
@@ -404,14 +404,14 @@ def orig(out, script, seed):
     os.makedirs(out)
     sc = by_updates(script, os.path.join(out, 'script.txt'))
     last = ORIG_FIRST + MINUTE
-    shutil.rmtree('C:/byo-og/' + RUN, ignore_errors=True)
+    shutil.rmtree('E:/byo-og/' + RUN, ignore_errors=True)
     shutil.rmtree(os.path.join(root, 'build', 'origrun', RUN), ignore_errors=True)
     # the play count: the original shows its register nag once it reaches ten, and each quit adds one
     subprocess.run(['reg', 'add', 'HKLM\\Software\\WOW6432Node\\PopCap\\MummyMaze', '/v', 'TimesPlayed', '/t', 'REG_DWORD',
                     '/d', '0', '/f'], capture_output=True)
     n0 = others()
     log = open(os.path.join(out, 'origrun.log'), 'wb')
-    p = subprocess.Popen([origrun, '--game', 'mummymaze', '--run', RUN, '--stage-root', 'C:/byo-og', '--script', sc,
+    p = subprocess.Popen([origrun, '--game', 'mummymaze', '--run', RUN, '--stage-root', 'E:/byo-og', '--script', sc,
                           '--clock', 'real', '--cursor', 'scripted', '--counter', hex(UPDATES), '--seed', seed, '--timeout', '400'],
                          stdout=log, stderr=subprocess.STDOUT, creationflags=0x40)   # idle priority, below the game's
     h = threads = None

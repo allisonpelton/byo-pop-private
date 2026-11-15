@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Identical-play pass: a game saved by the original and by the port. Runs a scenario (that ends by saving and quitting) on
-both and compares the two SAVEGAME.DAT files word by word; the original's file is left in C:/byo-og/<run>/game and the
+both and compares the two SAVEGAME.DAT files word by word; the original's file is left in E:/byo-og/<run>/game and the
 port's in <tmp>/user, for continue.py's runs.
 
     python games/atomica/tools/identical/savecmp.py <scenario.txt> [--keep <dir>]
@@ -29,13 +29,13 @@ def run_original_keep(lines, end, seed, run):
         f.write('at %d move 1 1\n' % end)
     for value in ('GameHints', 'ShowSymbols', 'ShowTips'):
         subprocess.run(['reg', 'delete', REGKEY, '/v', value, '/f'], capture_output=True)
-    shutil.rmtree(os.path.join('C:/byo-og', run), ignore_errors=True)
+    shutil.rmtree(os.path.join('E:/byo-og', run), ignore_errors=True)
     shutil.rmtree(os.path.join(ROOT, 'build/origrun', run), ignore_errors=True)
     subprocess.run([os.path.join(ROOT, 'build/origrun-bin/origrun.exe'), '--game', 'atomica', '--run', run, '--stage-root',
-                    'C:/byo-og', '--script', script, '--clock', 'virtual', '--cursor', 'scripted', '--seed', str(seed),
+                    'E:/byo-og', '--script', script, '--clock', 'virtual', '--cursor', 'scripted', '--seed', str(seed),
                     '--timeout', '200'], cwd=ROOT, capture_output=True, text=True)
     shutil.rmtree(d, ignore_errors=True)
-    return os.path.join('C:/byo-og', run, 'game', 'SAVEGAME.DAT')
+    return os.path.join('E:/byo-og', run, 'game', 'SAVEGAME.DAT')
 
 
 def run_port_keep(lines, end, seed, ud):
