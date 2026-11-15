@@ -118,6 +118,24 @@ private:
 	float mOffsetY;  // +0x20
 };
 
+// The node's visibility, which switches on and off (0x30 bytes, constructor 0x47aff0 (pizzafrenzy)): each time its
+// countdown runs out the node is hidden when it shows and shown when it is hidden, and the countdown starts over with
+// the seconds the new state lasts. It starts at nothing, so the first frame switches.
+class BlinkModifier : public Object, public NodeListener
+{
+public:
+	// 0x47aff0 (pizzafrenzy)
+	BlinkModifier(float theShownSeconds, float theHiddenSeconds);
+
+	// 0x00: 0x47af90 (pizzafrenzy)
+	void update(UpdateInfo& theInfo, Node* theNode) override;
+
+private:
+	float mShownSeconds;   // +0x04: how long the node shows
+	float mHiddenSeconds;  // +0x08: how long it is hidden
+	float mTime;           // +0x0c: the seconds left of the state it is in
+};
+
 } // namespace engine
 
 #endif

@@ -111,3 +111,31 @@ void WaveModifier::update(UpdateInfo& theInfo, Node* theNode)
 	aPosition.y = (anOffsetY - aPreviousY) + aPosition.y;
 	theNode->setPosition(aPosition);
 }
+
+// 0x47aff0 (pizzafrenzy)
+BlinkModifier::BlinkModifier(float theShownSeconds, float theHiddenSeconds) :
+	mShownSeconds(theShownSeconds),
+	mHiddenSeconds(theHiddenSeconds),
+	mTime(0)
+{
+}
+
+// 0x47af90 (pizzafrenzy)
+void BlinkModifier::update(UpdateInfo& theInfo, Node* theNode)
+{
+	float aTime = mTime - theInfo.mSeconds;
+	mTime = aTime;
+	if (aTime < 0.0f)
+	{
+		if (theNode->isVisible())
+		{
+			theNode->setVisible(false);
+			mTime = mHiddenSeconds;
+		}
+		else
+		{
+			theNode->setVisible(true);
+			mTime = mShownSeconds;
+		}
+	}
+}
