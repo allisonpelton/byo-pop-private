@@ -138,7 +138,10 @@ holds the rules every session follows; this file does not repeat them.
   origrun under rundesk; the port as `games/bejeweled/docs/PROFILE.md` and `tools/profile` do it: working set, private
   bytes, processor time and where it goes), and the web build's memory and frame time; on a busy machine, per-thread
   cycle counters (QueryThreadCycleTime) and alternating runs, and the coordinator gives a measuring slot when few game
-  processes run. Then the session speeds up what the profile shows, natively and on the web: how the port works
+  processes run. A script that reads the game's `OutputDebugString` markers (each game's `tools/profile/cycles.py`)
+  listens on the machine-wide DBWIN objects, so two listeners at once steal each other's lines and a run "misses a
+  marker": a listener waits while `CreateFileMappingW("DBWIN_BUFFER")` reports that it already exists (error 183),
+  then listens (Rocket Mania's SDL check, 2026-11-15: 56 runs of 56 whole with that wait). Then the session speeds up what the profile shows, natively and on the web: how the port works
   changes, never what it does, proved by the frozen baseline. One that changes what the player sees is a toggle in the
   fixes mod when it keeps the original's look and only stops wasting time, otherwise a mod of its own that starts off
   (like Bejeweled's `lean`). One that computes faster but may play differently is listed under "Lite candidates" for

@@ -2,12 +2,9 @@
 
 using namespace Sexy;
 
-int Sexy::gPieceCount = 0;
-
 // 0x401000
 Piece::Piece()
 {
-	gPieceCount++;
 	mX = 0.0;
 	mY = 0.0;
 	mVX = 0.0;
@@ -38,11 +35,10 @@ Piece::Piece()
 	mTargetY = 0;
 	mDying = false;
 	mLifeTimer = 0;
-	mUnusedA0 = 0;
+	mZeroInSave = 0;
 }
 
 // 0x4010b0
 Piece::~Piece()
 {
-	gPieceCount--;
 }

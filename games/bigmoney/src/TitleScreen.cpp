@@ -11,7 +11,7 @@
 
 using namespace Sexy;
 
-// The "Deluxe" badge's flash (Draw): theLum added to the luminosity of an HSL pixel, capped at 255
+// The "Deluxe" badge's flash (Draw, 0x419950): theLum added to the luminosity of an HSL pixel, capped at 255
 static ulong BoostLuminosity(ulong theHSL, int theLum)
 {
 	int aLum = (int)((theHSL >> 16) & 0xff) + theLum;

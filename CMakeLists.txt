@@ -131,6 +131,21 @@ if(NOT EMSCRIPTEN)
   endif()
 endif()
 
+# Stretch calibration (tools/stretchcal): the renderer's linear present of a software-drawn frame, read back from the window,
+# against models of the card's filter and framework/LinearStretch, which the displays without a renderer use. Native only,
+# under rundesk; stretchcal.exe (tools/check.sh unit).
+if(NOT EMSCRIPTEN)
+  add_executable(stretchcal tools/stretchcal/stretchcal.cpp framework/DisplayGeometry.cpp framework/LinearStretch.cpp)
+  target_include_directories(stretchcal PRIVATE framework)
+  target_link_libraries(stretchcal PRIVATE SDL2::SDL2)
+  if((NOT MSVC) AND (CMAKE_SYSTEM_PROCESSOR MATCHES "^(i[3-6]86|x86)$"))
+    target_compile_options(stretchcal PRIVATE -msse2 -mfpmath=sse)
+  endif()
+  add_custom_command(TARGET stretchcal POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:SDL2::SDL2> ${PORT_RUNTIME_DLLS} $<TARGET_FILE_DIR:stretchcal>
+    VERBATIM)
+endif()
+
 # Texture wrap test (tools/wraptest): framework/TriangleWrap, which cuts DrawTrianglesTex's triangles at whole-number u and v
 # for a game that wraps its texture (Bejeweled 2's Hyperspace tunnel), against what wrapping means. Pure, no SDL; native only,
 # wraptest.exe (tools/check.sh unit).

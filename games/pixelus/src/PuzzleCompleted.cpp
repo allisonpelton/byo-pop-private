@@ -25,12 +25,15 @@ namespace
 const double PI = 3.14159265358979;
 
 // the player has solved every puzzle of a temple
+// 0x40b920
+// 0x40b980
 bool IsTempleSolved(PixelusApp* theApp, UserProfile* theUser, const std::string& theName)
 {
 	return theUser != NULL && theUser->CountSolved(theName) == theApp->mLevelData->GetPuzzleCount(theName);
 }
 
 // 0x40ba10 and 0x40ba90: every puzzle of the temple (of the nine) has its fewest moves
+// 0x40ba70
 static bool IsTempleMaxed(PixelusApp* theApp, UserProfile* theUser, const std::string& theName)
 {
 	return theUser != NULL && theUser->CountMaxed(theName) == theApp->mLevelData->GetPuzzleCount(theName);
@@ -45,6 +48,7 @@ static bool IsGameMaxed(PixelusApp* theApp, UserProfile* theUser)
 }
 
 // ... and every one of the nine temples that come after the cave
+// 0x40b9a0
 bool IsGameSolved(PixelusApp* theApp, UserProfile* theUser)
 {
 	for (int i = 1; i < NUM_TEMPLES; i++)
@@ -222,6 +226,7 @@ void PuzzleCompletedScreen::AddedToManager(WidgetManager* theWidgetManager)
 	theWidgetManager->AddWidget(mContinueButton);
 }
 
+// 0x419b90
 void PuzzleCompletedScreen::RemovedFromManager(WidgetManager* theWidgetManager)
 {
 	Widget::RemovedFromManager(theWidgetManager);

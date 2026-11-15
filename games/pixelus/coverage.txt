@@ -1,0 +1,312 @@
+# tools/coverage.py's settings for Pixelus (docs/COVERAGE.md).
+export re/pixelus/gh/functions.jsonl
+src games/pixelus/src
+# The game's own code, 0x401000 up to the framework's ImageFont (0x43b310), and Nuclide's layer under the application
+# (0x4e2c10 to 0x4ea000: the resource tables, the dialog and screen base classes). The rest is SexyAppFramework, the C
+# runtime and the libraries.
+game 00401000-0043b020
+game 004e2c10-004e9f10
+# Game code the port leaves out on purpose (sorted 2026-11-15 from the first report).
+none 004024e0 outbound More Games dialog (id 13), removed on purpose
+none 00402590 outbound More Games dialog (id 13), removed on purpose
+none 00402660 dead control modes 0/1 and the editor grid flag (IDENTICAL_PLAY.md:94)
+none 00402720 dead control modes 0/1 and the editor grid flag (IDENTICAL_PLAY.md:94)
+none 00402ba0 dead control modes 0/1 and the editor grid flag (IDENTICAL_PLAY.md:94)
+none 00402d60 dead control modes 0/1 and the editor grid flag (IDENTICAL_PLAY.md:94)
+none 00432170 SessionLog for the developers, not ported (PixelusApp.h:69)
+none 004330d0 outbound More Games dialog (id 13), removed on purpose
+none 0043a3c0 SessionLog for the developers, not ported (PixelusApp.h:69)
+none 0043a530 SessionLog for the developers, not ported (PixelusApp.h:69)
+none 0043aac0 SessionLog for the developers, not ported (PixelusApp.h:69)
+none 0043ad30 SessionLog for the developers, not ported (PixelusApp.h:69)
+none 004e3280 update check, trial or write probe code, not ported
+none 004e4060 update check, trial or write probe code, not ported
+none 004e4620 update check, trial or write probe code, not ported
+none 004e4770 update check, trial or write probe code, not ported
+none 004e4900 update check, trial or write probe code, not ported
+none 004e6710 trial/registration text and nag code, removed
+none 004e6770 trial/registration text and nag code, removed
+none 004e6b60 trial/registration text and nag code, removed
+none 004e6bf0 trial/registration text and nag code, removed
+none 004e73e1 trial/registration text and nag code, removed
+none 004e7ce0 trial/registration text and nag code, removed
+# What the compilers and libraries make for themselves, though the linker put it among the game code, and what the port gets from
+# the framework (sorted 2026-11-15 from the report of the five runs).
+none 00401020 compiler library code (container, string or destructor)
+none 004010b0 trivial accessor, thunk or stub the port does not need
+none 004012c0 trivial accessor, thunk or stub the port does not need
+none 004012e0 compiler library code (container, string or destructor)
+none 00401340 trivial accessor, thunk or stub the port does not need
+none 00401360 compiler library code (string, vector, list or map helper)
+none 00401460 compiler library code (string, vector, list or map helper)
+none 004014fc compiler library code (string, vector, list or map helper)
+none 004015a0 compiler library code (string, vector, list or map helper)
+none 00401920 trivial accessor, thunk or stub the port does not need
+none 00401950 trivial accessor, thunk or stub the port does not need
+none 00402680 trivial accessor, thunk or stub the port does not need
+none 004026e0 trivial accessor, thunk or stub the port does not need
+none 004026f0 trivial accessor, thunk or stub the port does not need
+none 00402760 trivial accessor, thunk or stub the port does not need
+none 00403040 trivial accessor, thunk or stub the port does not need
+none 00403050 one-line forwarder of the lesson cell list (0x421ae0), the port keeps the list itself
+none 004037b0 compiler library code (string, vector, list or map helper)
+none 00403820 trivial accessor, thunk or stub the port does not need
+none 00403860 trivial accessor, thunk or stub the port does not need
+none 004038a0 compiler library code (string, vector, list or map helper)
+none 00403910 trivial accessor, thunk or stub the port does not need
+none 00403ab0 compiler library code (string, vector, list or map helper)
+none 00403ba0 compiler library code (string, vector, list or map helper)
+none 00403d40 trivial accessor, thunk or stub the port does not need
+none 00404230 trivial accessor, thunk or stub the port does not need
+none 00404250 trivial accessor, thunk or stub the port does not need
+none 00404390 compiler library code (string, vector, list or map helper)
+none 00404440 compiler library code (string, vector, list or map helper)
+none 00407ca0 compiler library code (container, string or destructor)
+none 00408340 compiler library code (string, vector, list or map helper)
+none 0040a340 compiler library code (string, vector, list or map helper)
+none 0040a470 z-order PutInfront virtual: the framework default does it
+none 0040a620 compiler library code (string, vector, list or map helper)
+none 0040a690 compiler library code (container, string or destructor)
+none 0040b660 compiler library code (container, string or destructor)
+none 0040bb00 compiler library code (container, string or destructor)
+none 0040d260 compiler library code (container, string or destructor)
+none 0040d870 compiler library code (container, string or destructor)
+none 0040dad0 compiler library code (container, string or destructor)
+none 0040df70 compiler library code (container, string or destructor)
+none 0040e090 compiler library code (container, string or destructor)
+none 0040e160 compiler library code (container, string or destructor)
+none 0040e180 compiler library code (container, string or destructor)
+none 0040e530 one-line forwarder, resizes a widget to its image (the port sets the size once)
+none 0040e910 trivial accessor, thunk or stub the port does not need
+none 0040e980 compiler library code (container, string or destructor)
+none 0040ea00 compiler library code (container, string or destructor)
+none 0040ea20 compiler library code (string, vector, list or map helper)
+none 0040eb80 string vector growth (std::vector of strings)
+none 0040fb60 trivial accessor, thunk or stub the port does not need
+none 0040ff60 compiler library code (string, vector, list or map helper)
+none 0040fff0 compiler library code (string, vector, list or map helper)
+none 004101f0 trivial accessor, thunk or stub the port does not need
+none 00410b80 compiler library code (container, string or destructor)
+none 00410cd0 compiler library code (string, vector, list or map helper)
+none 00410d50 compiler library code (string, vector, list or map helper)
+none 00410e60 compiler library code (container, string or destructor)
+none 00410fa0 compiler library code (container, string or destructor)
+none 00411030 compiler library code (string, vector, list or map helper)
+none 004110b0 compiler library code (string, vector, list or map helper)
+none 004118d0 compiler library code (string, vector, list or map helper)
+none 00413280 compiler library code (string, vector, list or map helper)
+none 00413350 trivial accessor, thunk or stub the port does not need
+none 00413380 compiler library code (string, vector, list or map helper)
+none 004137a0 compiler library code (string, vector, list or map helper)
+none 00413800 compiler library code (string, vector, list or map helper)
+none 004148b0 compiler library code (container, string or destructor)
+none 004148f0 compiler library code (container, string or destructor)
+none 00416eb0 compiler library code (container, string or destructor)
+none 00417040 compiler library code (container, string or destructor)
+none 00417470 compiler library code (container, string or destructor)
+none 00417650 compiler library code (string, vector, list or map helper)
+none 00418140 trivial accessor, thunk or stub the port does not need
+none 00418880 compiler library code (container, string or destructor)
+none 004188a0 compiler library code (string, vector, list or map helper)
+none 00419cf0 compiler library code (container, string or destructor)
+none 00419e40 compiler library code (container, string or destructor)
+none 0041c4b0 compiler library code (container, string or destructor)
+none 0041c7b0 compiler library code (container, string or destructor)
+none 0041cae0 compiler library code (container, string or destructor)
+none 0041cb00 compiler library code (container, string or destructor)
+none 0041cc80 compiler library code (container, string or destructor)
+none 0041cc90 compiler library code (container, string or destructor)
+none 0041ce30 trivial accessor, thunk or stub the port does not need
+none 0041cea0 compiler library code (container, string or destructor)
+none 0041cf30 compiler library code (container, string or destructor)
+none 0041df20 compiler library code (string, vector, list or map helper)
+none 0041e060 compiler library code (string, vector, list or map helper)
+none 0041e0d0 compiler library code (string, vector, list or map helper)
+none 0041e1a0 compiler library code (string, vector, list or map helper)
+none 0041e3b0 trivial accessor, thunk or stub the port does not need
+none 0041e3e0 compiler library code (string, vector, list or map helper)
+none 0041e440 trivial accessor, thunk or stub the port does not need
+none 0041e480 compiler library code (string, vector, list or map helper)
+none 0041e4f0 compiler library code (string, vector, list or map helper)
+none 0041e580 trivial accessor, thunk or stub the port does not need
+none 0041e5b0 compiler library code (string, vector, list or map helper)
+none 0041e610 compiler library code (string, vector, list or map helper)
+none 0041e7e0 compiler library code (string, vector, list or map helper)
+none 0041e880 compiler library code (string, vector, list or map helper)
+none 0041f070 compiler library code (string, vector, list or map helper)
+none 0041f180 compiler library code (string, vector, list or map helper)
+none 0041f1c0 compiler library code (string, vector, list or map helper)
+none 0041f570 compiler library code (string, vector, list or map helper)
+none 0041fe00 compiler library code (string, vector, list or map helper)
+none 00420240 compiler library code (string, vector, list or map helper)
+none 00421920 trivial accessor, thunk or stub the port does not need
+none 00421950 trivial accessor, thunk or stub the port does not need
+none 00421980 trivial accessor, thunk or stub the port does not need
+none 004219f0 trivial accessor, thunk or stub the port does not need
+none 00421a20 trivial accessor, thunk or stub the port does not need
+none 00421ac0 trivial accessor, thunk or stub the port does not need
+none 00421ba0 trivial accessor, thunk or stub the port does not need
+none 00421bb0 trivial accessor, thunk or stub the port does not need
+none 00421cf0 compiler library code (string, vector, list or map helper)
+none 00421d80 trivial accessor, thunk or stub the port does not need
+none 00421e50 trivial accessor, thunk or stub the port does not need
+none 00421e60 trivial accessor, thunk or stub the port does not need
+none 00421e70 trivial accessor, thunk or stub the port does not need
+none 00421e80 trivial accessor, thunk or stub the port does not need
+none 00421ec0 trivial accessor, thunk or stub the port does not need
+none 00421f10 trivial accessor, thunk or stub the port does not need
+none 00421f90 trivial accessor, thunk or stub the port does not need
+none 00421ff0 trivial accessor, thunk or stub the port does not need
+none 00422010 trivial accessor, thunk or stub the port does not need
+none 004223b0 trivial accessor, thunk or stub the port does not need
+none 004223c0 trivial accessor, thunk or stub the port does not need
+none 00422440 trivial accessor, thunk or stub the port does not need
+none 00422470 trivial accessor, thunk or stub the port does not need
+none 00422670 compiler library code (string, vector, list or map helper)
+none 004226e0 compiler library code (string, vector, list or map helper)
+none 004227c0 compiler library code (string, vector, list or map helper)
+none 00422810 trivial accessor, thunk or stub the port does not need
+none 00423d10 trivial accessor, thunk or stub the port does not need
+none 00424260 trivial accessor, thunk or stub the port does not need
+none 00424270 compiler library code (string, vector, list or map helper)
+none 00424330 compiler library code (string, vector, list or map helper)
+none 00424f80 trivial accessor, thunk or stub the port does not need
+none 00424fa0 trivial accessor, thunk or stub the port does not need
+none 004257c0 compiler library code (container, string or destructor)
+none 00425b00 trivial accessor, thunk or stub the port does not need
+none 00427650 compiler library code (string, vector, list or map helper)
+none 00427790 compiler library code (string, vector, list or map helper)
+none 00427800 compiler library code (string, vector, list or map helper)
+none 00427860 compiler library code (string, vector, list or map helper)
+none 004278c0 compiler library code (string, vector, list or map helper)
+none 00427990 compiler library code (string, vector, list or map helper)
+none 00427a50 trivial accessor, thunk or stub the port does not need
+none 00427a90 compiler library code (string, vector, list or map helper)
+none 00427ae0 trivial accessor, thunk or stub the port does not need
+none 00427b20 trivial accessor, thunk or stub the port does not need
+none 00427b60 compiler library code (string, vector, list or map helper)
+none 00427bc0 trivial accessor, thunk or stub the port does not need
+none 00427c00 compiler library code (string, vector, list or map helper)
+none 00427d30 compiler library code (string, vector, list or map helper)
+none 00427d80 compiler library code (string, vector, list or map helper)
+none 00428340 compiler library code (string, vector, list or map helper)
+none 004284d0 compiler library code (string, vector, list or map helper)
+none 00428660 compiler library code (string, vector, list or map helper)
+none 00428880 compiler library code (string, vector, list or map helper)
+none 00428970 compiler library code (string, vector, list or map helper)
+none 00428ac0 compiler library code (string, vector, list or map helper)
+none 00428b50 compiler library code (string, vector, list or map helper)
+none 00428e80 compiler library code (string, vector, list or map helper)
+none 00428ef0 compiler library code (string, vector, list or map helper)
+none 00428f60 compiler library code (string, vector, list or map helper)
+none 00428fd0 compiler library code (string, vector, list or map helper)
+none 00429040 compiler library code (string, vector, list or map helper)
+none 00429420 compiler library code (string, vector, list or map helper)
+none 004294c0 compiler library code (string, vector, list or map helper)
+none 004298f0 compiler library code (string, vector, list or map helper)
+none 00429aa0 compiler library code (string, vector, list or map helper)
+none 00429bc0 compiler library code (string, vector, list or map helper)
+none 0042a5e0 trivial accessor, thunk or stub the port does not need
+none 0042ac80 compiler library code (string, vector, list or map helper)
+none 0042b0b0 compiler library code (string, vector, list or map helper)
+none 0042b130 trivial accessor, thunk or stub the port does not need
+none 0042b140 trivial accessor, thunk or stub the port does not need
+none 0042b600 compiler library code (string, vector, list or map helper)
+none 0042bbf0 compiler library code (container, string or destructor)
+none 0042bc60 compiler library code (string, vector, list or map helper)
+none 0042be80 compiler library code (container, string or destructor)
+none 0042bea0 compiler library code (string, vector, list or map helper)
+none 0042cb40 compiler library code (string, vector, list or map helper)
+none 0042d150 compiler library code (string, vector, list or map helper)
+none 0042d1c0 compiler library code (string, vector, list or map helper)
+none 0042d460 compiler library code (string, vector, list or map helper)
+none 0042d4d0 compiler library code (string, vector, list or map helper)
+none 0042d930 compiler library code (string, vector, list or map helper)
+none 0042d9d0 compiler library code (string, vector, list or map helper)
+none 0042da40 compiler library code (string, vector, list or map helper)
+none 0042dac0 compiler library code (string, vector, list or map helper)
+none 0042e1d0 trivial accessor, thunk or stub the port does not need
+none 0042eeb0 trivial accessor, thunk or stub the port does not need
+none 004303f0 vector growth code (compiler library)
+none 004305d0 compiler library code (string, vector, list or map helper)
+none 00431480 trivial accessor, thunk or stub the port does not need
+none 004314b0 trivial accessor, thunk or stub the port does not need
+none 00431760 vector growth code (compiler library)
+none 00431940 vector copy code (compiler library)
+none 00431a00 compiler library code (string, vector, list or map helper)
+none 00432100 compiler library code (string, vector, list or map helper)
+none 00432290 compiler library code (string, vector, list or map helper)
+none 00432310 compiler library code (string, vector, list or map helper)
+none 00432400 trivial accessor, thunk or stub the port does not need
+none 00432410 trivial accessor, thunk or stub the port does not need
+none 00432a20 trivial accessor, thunk or stub the port does not need
+none 004331a0 trivial accessor, thunk or stub the port does not need
+none 00433360 trivial accessor, thunk or stub the port does not need
+none 00433370 trivial accessor, thunk or stub the port does not need
+none 004335b0 trivial accessor, thunk or stub the port does not need
+none 004335f0 compiler library code (string, vector, list or map helper)
+none 00433630 trivial accessor, thunk or stub the port does not need
+none 004336c0 trivial accessor, thunk or stub the port does not need
+none 00433ee0 compiler library code (string, vector, list or map helper)
+none 00433ff0 compiler library code (string, vector, list or map helper)
+none 00435b00 compiler library code (string, vector, list or map helper)
+none 00435ce0 compiler library code (string, vector, list or map helper)
+none 00435dd0 compiler library code (string, vector, list or map helper)
+none 00435e20 compiler library code (string, vector, list or map helper)
+none 00436130 compiler library code (string, vector, list or map helper)
+none 00436240 compiler library code (string, vector, list or map helper)
+none 00436280 compiler library code (string, vector, list or map helper)
+none 004363b0 compiler library code (string, vector, list or map helper)
+none 00436590 compiler library code (string, vector, list or map helper)
+none 00436680 compiler library code (string, vector, list or map helper)
+none 00436720 compiler library code (string, vector, list or map helper)
+none 00436770 trivial accessor, thunk or stub the port does not need
+none 00436790 trivial accessor, thunk or stub the port does not need
+none 00436840 compiler library code (string, vector, list or map helper)
+none 004368c0 compiler library code (string, vector, list or map helper)
+none 00436a10 compiler library code (string, vector, list or map helper)
+none 00436ef0 trivial accessor, thunk or stub the port does not need
+none 00436f60 trivial accessor, thunk or stub the port does not need
+none 00436fa0 compiler library code (string, vector, list or map helper)
+none 00436ff0 trivial accessor, thunk or stub the port does not need
+none 004370f0 compiler library code (string, vector, list or map helper)
+none 004372d0 compiler library code (string, vector, list or map helper)
+none 004373b0 compiler library code (string, vector, list or map helper)
+none 004373f0 compiler library code (string, vector, list or map helper)
+none 00437900 compiler library code (string, vector, list or map helper)
+none 00437960 compiler library code (string, vector, list or map helper)
+none 00437f80 trivial accessor, thunk or stub the port does not need
+none 00437fc0 compiler library code (string, vector, list or map helper)
+none 00438040 compiler library code (string, vector, list or map helper)
+none 004380a0 compiler library code (string, vector, list or map helper)
+none 00438170 compiler library code (string, vector, list or map helper)
+none 004381d0 trivial accessor, thunk or stub the port does not need
+none 00438210 compiler library code (string, vector, list or map helper)
+none 004382b0 compiler library code (string, vector, list or map helper)
+none 00438420 trivial accessor, thunk or stub the port does not need
+none 00438c60 compiler library code (string, vector, list or map helper)
+none 00438e10 compiler library code (string, vector, list or map helper)
+none 00438fe0 compiler library code (string, vector, list or map helper)
+none 00439030 trivial accessor, thunk or stub the port does not need
+none 00439040 trivial accessor, thunk or stub the port does not need
+none 004390d0 compiler library code (string, vector, list or map helper)
+none 00439150 compiler library code (string, vector, list or map helper)
+none 00439300 trivial accessor, thunk or stub the port does not need
+none 004399f0 compiler library code (string, vector, list or map helper)
+none 00439b60 compiler library code (string, vector, list or map helper)
+none 00439e70 compiler library code (string, vector, list or map helper)
+none 00439f20 compiler library code (string, vector, list or map helper)
+none 0043a4e0 compiler library code (string, vector, list or map helper)
+none 0043aa60 compiler library code (string, vector, list or map helper)
+none 004e2c80 trivial accessor, thunk or stub the port does not need
+none 004e2e70 Nuclide layer image load (called from 0x433950): the port loads its pictures through the framework
+none 004e2f30 compiler library code (string, vector, list or map helper)
+none 004e5a00 z-order PutInfront virtual: the framework default does it
+none 004e5aa0 compiler library code (string, vector, list or map helper)
+none 004e5b70 compiler library code (string, vector, list or map helper)
+none 004e5cb0 compiler library code (string, vector, list or map helper)
+none 004e9c40 Nuclide layer path helper (called from 0x433950): the port loads its pictures through the framework
+# Open, written up under "Oddities" in docs/GAME_NOTES.md (section 11): the original runs them, the port does not yet.
+none 004146b0 the temple screen's drag-to-reorder of the thumbnails (0x413c80 / 0x42a460), a level-editor feature (section 11)
+none 004312c0 the grid's pulse colour set by 0x424b30, whose reader is not found (section 11)
+none 00431a50 the sound ducking of a pause (HandlePaused, 0x4333a0): volumes set to 0.016 and back (section 11)
