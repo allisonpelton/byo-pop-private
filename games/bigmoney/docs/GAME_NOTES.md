@@ -4469,6 +4469,26 @@ of processor time in the game and the graphics driver (the machine 96 to 100 % b
 too; the original has no 2x mode to compare with. The web build was not measured.
 
 
+### Performance under the compositor wait (measured 2026-11-15)
+
+Since the trunk's 2026-11-15 change, the window's surface waits for the compositor before each frame by default. That evens
+the software screen's frame pacing for about 2 % more processor time (fw-memory's figure). The scripted minute was measured
+again as above (`tools/profile/perf.py`, the seed-21 minute, each run on a performance core of its own), in five pairs,
+port and original in turn, after merging the trunk and rebuilding the port and origrun. The machine was busier than in
+the last three pairs before. Every minute ran its 6000 updates in 60 s (the original's 5991 to 5996).
+
+| The scripted minute | Pair 1 | Pair 2 | Pair 3 | Pair 4 | Pair 5 |
+|---|---|---|---|---|---|
+| Machine busy (port, original) | 35 %, 86 % | 94 %, 93 % | 99 %, 99 % | 94 %, 95 % | 70 %, 46 % |
+| Processor time, port / original | 2.98 / 11.19 s | 5.62 / 10.14 s | 5.80 / 10.00 s | 5.22 / 9.09 s | 4.45 / 5.50 s |
+| Cycles, port / original (billions) | 6.7 / 24.6 | 12.0 / 21.8 | 11.3 / 20.6 | 11.0 / 19.6 | 9.2 / 11.7 |
+| Peak private bytes, port / original | 42.1 / 44.2 MB | 41.7 / 44.4 MB | 41.6 / 44.1 MB | 41.9 / 44.4 MB | 36.8 / 42.1 MB |
+
+The port stays below the original in every pair: 27 to 81 % of its processor time, about half in the three pairs where
+both sides ran on an equally busy machine (pairs 2 to 4). Its quiet run (pair 1, 2.98 s) is where the quiet pairs of
+the morning were (2.7 to 3.3 s). A 2 % change is smaller than the swing the machine's load makes, so it is not resolved
+here. Private bytes stay below the original's.
+
 ### Unneeded code taken out (2026-11-15)
 
 The coverage check found nothing to take out: the two functions the port defines that no run reaches are deleting
