@@ -1,0 +1,51 @@
+# The options (every box ticked and back, both sliders, 3-D with whatever dialog it brings, the credits to their end),
+# and the quit through the boot. Profile Tester.
+at 31000
+click 100 540            # the toolbox: Options
+wait 1500
+click 404 306            # Custom Cursors on
+wait 500
+click 404 306            # and off
+wait 500
+click 404 348            # Show Letter Values off
+wait 500
+click 404 348            # and on
+wait 500
+click 213 390            # Disable tooltips on
+wait 500
+click 213 390            # and off
+wait 500
+click 213 306            # Fullscreen (applied only on Close)
+wait 500
+click 213 306            # and back
+wait 500
+click 400 208            # the music slider
+wait 500
+click 450 241            # the sound slider
+wait 500
+click 548 208            # music back
+wait 500
+click 548 241            # sound back
+wait 500
+click 213 348            # 3-D Acceleration on: a dialog if it is not supported or not recommended
+wait 2000
+key 13 Return
+wait 1000
+click 213 348            # 3-D again
+wait 2000
+key 13 Return
+wait 1000
+click 510 458            # Close
+wait 3000
+click 100 540            # the toolbox: Options again
+wait 1500
+click 295 458            # Credits, left to run
+wait 240000
+click 400 300
+wait 3000
+click 700 540            # the boot
+wait 1500
+port state
+click 300 476            # Quit
+wait 5000
+quit

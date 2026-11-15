@@ -76,22 +76,24 @@ void PushGraphics(Graphics* g);
 template <class T>
 class LuaWidgetTpl : public T, public LuaWidgetTplBase {
 public:
+	// 0x40c380 (each instance also registered its class: RegisterLua, once here)
 	template <class... A>
 	explicit LuaWidgetTpl(A&&... a) : T(std::forward<A>(a)...)
 	{
 	}
 
+	// 0x40c480: the children go with it, then the Lua object (LuaWidgetTplBase's destructor)
 	~LuaWidgetTpl() override
 	{
-		// 0x40c480: the children go with it, then the Lua object (LuaWidgetTplBase's destructor)
 		T::RemoveAllWidgets(true, false);
 	}
 
 	const char* LuaGetRegisteredName() override { return "LuaWidgetTpl<_Base>"; }
 	Widget* GetTplWidget() override { return this; }
 
-	// ---- the widget's events, written in Lua ----
-	void Update() override { CallLinkedMethod("Update", 0); }
+	// ---- the widget's events, written in Lua (the addresses are LuaWidgetTpl<Widget>'s) ----
+	void Update() override { CallLinkedMethod("Update", 0); }  // 0x40c550
+	// 0x40c580
 	void Draw(Graphics* g) override
 	{
 		mGraphics = g;
@@ -99,6 +101,7 @@ public:
 		CallLinkedMethod("Draw", 1);
 		mGraphics = nullptr;
 	}
+	// 0x40c5e0
 	void DrawOverlay(Graphics* g) override
 	{
 		mGraphics = g;
@@ -106,6 +109,7 @@ public:
 		CallLinkedMethod("DrawOverlay", 1);
 		mGraphics = nullptr;
 	}
+	// 0x40c660
 	bool IsPointVisible(int x, int y) override
 	{
 		lua_State* L = LuaLib::gLuaSupport->L;
@@ -113,11 +117,12 @@ public:
 		lua_pushint(L, y);
 		return CallLinkedMethod("IsPointVisible", 2).Bool();
 	}
-	void MouseEnter() override { CallLinkedMethod("MouseEnter", 0); }
-	void MouseLeave() override { CallLinkedMethod("MouseLeave", 0); }
-	void MouseMove(int x, int y) override { PushInts(x, y), CallLinkedMethod("MouseMove", 2); }
-	void MouseDrag(int x, int y) override { PushInts(x, y), CallLinkedMethod("MouseDrag", 2); }
+	void MouseEnter() override { CallLinkedMethod("MouseEnter", 0); }  // 0x40c6e0
+	void MouseLeave() override { CallLinkedMethod("MouseLeave", 0); }  // 0x40c720
+	void MouseMove(int x, int y) override { PushInts(x, y), CallLinkedMethod("MouseMove", 2); }  // 0x40c760
+	void MouseDrag(int x, int y) override { PushInts(x, y), CallLinkedMethod("MouseDrag", 2); }  // 0x40c7e0
 	void MouseDown(int x, int y, int theClickCount) override { T::MouseDown(x, y, theClickCount); }
+	// 0x40c860
 	void MouseDown(int x, int y, int theBtnNum, int theClickCount) override
 	{
 		PushInts(x, y, theBtnNum, theClickCount);
@@ -125,23 +130,25 @@ public:
 	}
 	void MouseUp(int x, int y) override { T::MouseUp(x, y); }
 	void MouseUp(int x, int y, int theLastDownButtonId) override { Widget::MouseUp(x, y, theLastDownButtonId); }  // no base overrides it (ScrollbarWidget hides it)
+	// 0x40c8b0
 	void MouseUp(int x, int y, int theBtnNum, int theClickCount) override
 	{
 		PushInts(x, y, theBtnNum, theClickCount);
 		CallLinkedMethod("MouseUp", 4);
 	}
-	void MouseWheel(int theDelta) override { PushInts(theDelta), CallLinkedMethod("MouseWheel", 1); }
+	void MouseWheel(int theDelta) override { PushInts(theDelta), CallLinkedMethod("MouseWheel", 1); }  // 0x40c900
+	// 0x40c960
 	void KeyChar(SexyChar theChar) override
 	{
 		char s[2] = {(char)theChar, 0};
 		lua_pushstring(LuaLib::gLuaSupport->L, s);
 		CallLinkedMethod("KeyChar", 1);
 	}
-	void KeyDown(KeyCode theKey) override { PushInts((int)theKey), CallLinkedMethod("KeyDown", 1); }
-	void KeyUp(KeyCode theKey) override { PushInts((int)theKey), CallLinkedMethod("KeyUp", 1); }
-	void GotFocus() override { CallLinkedMethod("GotFocus", 0); }
-	void LostFocus() override { CallLinkedMethod("LostFocus", 0); }
-	bool WantsFocus() override { return CallLinkedMethod("WantsFocus", 0).Bool(); }
+	void KeyDown(KeyCode theKey) override { PushInts((int)theKey), CallLinkedMethod("KeyDown", 1); }  // 0x40c9d0
+	void KeyUp(KeyCode theKey) override { PushInts((int)theKey), CallLinkedMethod("KeyUp", 1); }  // 0x40ca30
+	void GotFocus() override { CallLinkedMethod("GotFocus", 0); }  // 0x40ca90
+	void LostFocus() override { CallLinkedMethod("LostFocus", 0); }  // 0x40cad0
+	bool WantsFocus() override { return CallLinkedMethod("WantsFocus", 0).Bool(); }  // 0x40cb10
 
 	// ---- the framework's behaviour, for the Lua object (new virtuals 70-83) ----
 	virtual void LuaUpdate() { T::Update(); }
@@ -221,6 +228,8 @@ private:
 	}
 };
 
+// 0x40d600 (LuaWidgetTpl<Widget>'s): its class made (0x40e7f0, 0x40e9a0) and the Resize and DeferOverlay functions'
+// registrations (0x40f960, 0x40fc30) are inline here
 template <class T>
 void LuaWidgetTpl<T>::RegisterLua(const char* name)
 {

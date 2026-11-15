@@ -1,6 +1,7 @@
 // Prototypes, closures and upvalues (Lua 5.0.2's lfunc.c; PopLua's closures have the same layout).
 #include "lcore.h"
 
+// 0x719360
 Closure* luaF_newCclosure(lua_State* L, int nelems)
 {
 	Closure* c = (Closure*)luaM_malloc(L, sizeclosure_c(nelems));
@@ -10,6 +11,7 @@ Closure* luaF_newCclosure(lua_State* L, int nelems)
 	return c;
 }
 
+// 0x7193e0
 Closure* luaF_newLclosure(lua_State* L, int nelems, TObject* e)
 {
 	Closure* c = (Closure*)luaM_malloc(L, sizeclosure_l(nelems));
@@ -22,6 +24,7 @@ Closure* luaF_newLclosure(lua_State* L, int nelems, TObject* e)
 
 // open upvalues are kept in L->openupval, sorted by stack level (highest first), and are not collectable
 // until they are closed
+// 0x719480
 UpVal* luaF_findupval(lua_State* L, StkId level)
 {
 	GCObject** pp = &L->openupval;
@@ -41,6 +44,7 @@ UpVal* luaF_findupval(lua_State* L, StkId level)
 	return v;
 }
 
+// 0x7195a0
 void luaF_close(lua_State* L, StkId level)
 {
 	UpVal* p;
@@ -52,6 +56,7 @@ void luaF_close(lua_State* L, StkId level)
 	}
 }
 
+// 0x7196b0
 Proto* luaF_newproto(lua_State* L)
 {
 	Proto* f = luaM_new(L, Proto);
@@ -78,6 +83,7 @@ Proto* luaF_newproto(lua_State* L)
 	return f;
 }
 
+// 0x719760
 void luaF_freeproto(lua_State* L, Proto* f)
 {
 	luaM_freearray(L, f->code, f->sizecode, Instruction);
@@ -89,6 +95,7 @@ void luaF_freeproto(lua_State* L, Proto* f)
 	luaM_freelem(L, f);
 }
 
+// 0x719990
 void luaF_freeclosure(lua_State* L, Closure* c)
 {
 	int size = (c->c.isC) ? sizeclosure_c(c->c.nupvalues) : sizeclosure_l(c->l.nupvalues);
@@ -96,6 +103,7 @@ void luaF_freeclosure(lua_State* L, Closure* c)
 }
 
 // look for n-th local variable at line `line' in function `func'; returns NULL if not found
+// 0x7199f0
 const char* luaF_getlocalname(const Proto* f, int local_number, int pc)
 {
 	int i;

@@ -1,0 +1,65 @@
+# The three mini-games, each left until its clock runs out, then through whatever follows to the menu. Profile Tester.
+at 31000
+click 115 400            # the tent: the mini-games
+wait 2500
+click 393 280            # Word Master
+wait 2500
+click 320 436            # Yes: the tooltips
+wait 200000
+port screenshot C:/Users/Administrator/Documents/claude/byo-pop/.claude/worktrees/bookwormadv-a1ccb8/build/coverage/bookwormadv/portshots/mg01.png
+port state
+click 400 300
+wait 3000
+port screenshot C:/Users/Administrator/Documents/claude/byo-pop/.claude/worktrees/bookwormadv-a1ccb8/build/coverage/bookwormadv/portshots/mg02.png
+port state
+click 400 300
+wait 3000
+port screenshot C:/Users/Administrator/Documents/claude/byo-pop/.claude/worktrees/bookwormadv-a1ccb8/build/coverage/bookwormadv/portshots/mg03.png
+port state
+click 230 556            # the hall of fame's Main Menu
+wait 3000
+port screenshot C:/Users/Administrator/Documents/claude/byo-pop/.claude/worktrees/bookwormadv-a1ccb8/build/coverage/bookwormadv/portshots/mg04.png
+port state
+click 115 400            # the tent
+wait 2500
+click 393 346            # Letter Rip
+wait 2500
+click 330 406            # Yes: the tooltips
+wait 2000
+click 400 200            # the tutorial's pause
+wait 200000
+port screenshot C:/Users/Administrator/Documents/claude/byo-pop/.claude/worktrees/bookwormadv-a1ccb8/build/coverage/bookwormadv/portshots/mg05.png
+port state
+click 400 300
+wait 3000
+port screenshot C:/Users/Administrator/Documents/claude/byo-pop/.claude/worktrees/bookwormadv-a1ccb8/build/coverage/bookwormadv/portshots/mg06.png
+port state
+click 400 300
+wait 3000
+port screenshot C:/Users/Administrator/Documents/claude/byo-pop/.claude/worktrees/bookwormadv-a1ccb8/build/coverage/bookwormadv/portshots/mg07.png
+port state
+click 230 556            # Main Menu
+wait 3000
+port screenshot C:/Users/Administrator/Documents/claude/byo-pop/.claude/worktrees/bookwormadv-a1ccb8/build/coverage/bookwormadv/portshots/mg08.png
+port state
+click 115 400            # the tent
+wait 2500
+click 393 412            # Link n' Spell
+wait 2500
+click 330 406            # Yes: the tooltips
+wait 200000
+port screenshot C:/Users/Administrator/Documents/claude/byo-pop/.claude/worktrees/bookwormadv-a1ccb8/build/coverage/bookwormadv/portshots/mg09.png
+port state
+click 400 300
+wait 3000
+port screenshot C:/Users/Administrator/Documents/claude/byo-pop/.claude/worktrees/bookwormadv-a1ccb8/build/coverage/bookwormadv/portshots/mg10.png
+port state
+click 400 300
+wait 3000
+port screenshot C:/Users/Administrator/Documents/claude/byo-pop/.claude/worktrees/bookwormadv-a1ccb8/build/coverage/bookwormadv/portshots/mg11.png
+port state
+click 230 556            # Main Menu
+wait 3000
+port screenshot C:/Users/Administrator/Documents/claude/byo-pop/.claude/worktrees/bookwormadv-a1ccb8/build/coverage/bookwormadv/portshots/mg12.png
+port state
+quit

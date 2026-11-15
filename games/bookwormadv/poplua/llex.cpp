@@ -120,6 +120,7 @@ static void inclinenumber(LexState* LS)
 
 // ---- 0x71aab0 luaX_setinput ---------------------------------------------------------------------------------
 
+// 0x71aab0
 void luaX_setinput(lua_State* L, LexState* LS, ZIO* z, TString* source)
 {
 	LS->L = L;

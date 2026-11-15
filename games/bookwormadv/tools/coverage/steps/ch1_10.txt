@@ -1,0 +1,1025 @@
+at 31000
+click 230 300            # the library: Adventure
+wait 4000
+click 400 575   # Enter!
+wait 3000
+click 188 113   # a treasure
+wait 1500
+click 188 209   # a treasure
+wait 1500
+click 188 300   # a treasure
+wait 1500
+click 411 575   # Continue
+wait 1500
+wait 1500
+click 326 385
+wait 300
+click 326 487
+wait 300
+click 476 334
+wait 300
+click 326 334
+wait 300
+click 426 487
+wait 300
+click 426 436
+wait 300
+click 376 436
+wait 300
+click 476 436
+wait 300
+click 376 334
+wait 300
+wait 400
+click 401 570   # Attack: HYPONOIAS
+wait 2500
+click 426 385
+wait 300
+click 326 487
+wait 300
+click 426 436
+wait 300
+click 476 334
+wait 300
+click 376 385
+wait 300
+click 326 385
+wait 300
+click 326 334
+wait 300
+click 476 436
+wait 300
+wait 400
+click 401 570   # Attack: OBVIABLE
+wait 2500
+click 326 487
+wait 300
+click 376 436
+wait 300
+click 326 334
+wait 300
+click 376 334
+wait 300
+click 476 334
+wait 300
+click 326 385
+wait 300
+click 426 436
+wait 300
+click 376 385
+wait 300
+wait 400
+click 401 570   # Attack: BURGRAVE
+wait 2500
+click 400 150
+wait 3000
+click 326 487
+wait 300
+click 376 436
+wait 300
+click 326 334
+wait 300
+click 376 334
+wait 300
+click 476 334
+wait 300
+click 326 385
+wait 300
+click 426 436
+wait 300
+click 376 385
+wait 300
+wait 400
+click 401 570   # Attack: BURGRAVE
+wait 2500
+click 326 385
+wait 300
+click 426 436
+wait 300
+click 326 436
+wait 300
+click 476 334
+wait 300
+click 426 487
+wait 300
+click 426 385
+wait 300
+click 326 334
+wait 300
+click 326 487
+wait 300
+click 376 436
+wait 300
+wait 400
+click 401 570   # Attack: NONAQUEOUS
+wait 2500
+click 326 385
+wait 300
+click 426 436
+wait 300
+click 326 436
+wait 300
+click 476 334
+wait 300
+click 426 487
+wait 300
+click 426 385
+wait 300
+click 326 334
+wait 300
+click 326 487
+wait 300
+click 376 436
+wait 300
+wait 400
+click 401 570   # Attack: NONAQUEOUS
+wait 2500
+click 400 276   # dialog
+wait 1500
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+click 326 385
+wait 300
+click 426 436
+wait 300
+click 326 436
+wait 300
+click 476 334
+wait 300
+click 426 487
+wait 300
+click 426 385
+wait 300
+click 326 334
+wait 300
+click 326 487
+wait 300
+click 376 436
+wait 300
+wait 400
+click 401 570   # Attack: NONAQUEOUS
+wait 2500
+click 326 385
+wait 300
+click 426 487
+wait 300
+click 476 487
+wait 300
+click 376 436
+wait 300
+click 376 385
+wait 300
+click 376 487
+wait 300
+click 326 436
+wait 300
+click 426 385
+wait 300
+click 426 334
+wait 300
+wait 400
+click 401 570   # Attack: FEVERWORT
+wait 2500
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+click 326 385
+wait 300
+click 426 487
+wait 300
+click 476 487
+wait 300
+click 376 436
+wait 300
+click 376 385
+wait 300
+click 376 487
+wait 300
+click 326 436
+wait 300
+click 426 385
+wait 300
+click 426 334
+wait 300
+wait 400
+click 401 570   # Attack: FEVERWORT
+wait 2500
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+click 326 487
+wait 300
+click 376 487
+wait 300
+click 376 334
+wait 300
+click 426 487
+wait 300
+click 426 334
+wait 300
+click 426 436
+wait 300
+click 476 436
+wait 300
+click 326 385
+wait 300
+click 476 334
+wait 300
+wait 400
+click 401 570   # Attack: REHEARING
+wait 2500
+click 476 385
+wait 300
+click 376 385
+wait 300
+click 426 385
+wait 300
+click 326 334
+wait 300
+click 476 334
+wait 300
+click 376 334
+wait 300
+click 476 487
+wait 300
+click 376 487
+wait 300
+click 426 334
+wait 300
+click 426 487
+wait 300
+wait 400
+click 401 570   # Attack: OUTACHIEVE
+wait 2500
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+click 476 385
+wait 300
+click 376 385
+wait 300
+click 426 385
+wait 300
+click 326 334
+wait 300
+click 476 334
+wait 300
+click 376 334
+wait 300
+click 476 487
+wait 300
+click 376 487
+wait 300
+click 426 334
+wait 300
+click 426 487
+wait 300
+wait 400
+click 401 570   # Attack: OUTACHIEVE
+wait 2500
+click 476 487
+wait 300
+click 326 487
+wait 300
+click 376 436
+wait 300
+click 376 385
+wait 300
+click 476 334
+wait 300
+click 326 334
+wait 300
+click 426 436
+wait 300
+click 376 487
+wait 300
+click 426 487
+wait 300
+click 476 385
+wait 300
+click 376 334
+wait 300
+click 426 385
+wait 300
+wait 400
+click 401 570   # Attack: IRRESOLUTION
+wait 2500
+click 476 487
+wait 300
+click 326 487
+wait 300
+click 376 436
+wait 300
+click 376 385
+wait 300
+click 476 334
+wait 300
+click 326 334
+wait 300
+click 426 436
+wait 300
+click 376 487
+wait 300
+click 426 487
+wait 300
+click 476 385
+wait 300
+click 376 334
+wait 300
+click 426 385
+wait 300
+wait 400
+click 401 570   # Attack: IRRESOLUTION
+wait 2500
+click 400 276   # dialog
+wait 1500
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+click 476 487
+wait 300
+click 326 487
+wait 300
+click 376 436
+wait 300
+click 376 385
+wait 300
+click 476 334
+wait 300
+click 326 334
+wait 300
+click 426 436
+wait 300
+click 376 487
+wait 300
+click 426 487
+wait 300
+click 476 385
+wait 300
+click 376 334
+wait 300
+click 426 385
+wait 300
+wait 400
+click 401 570   # Attack: IRRESOLUTION
+wait 2500
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+click 426 487
+wait 300
+click 426 385
+wait 300
+click 476 487
+wait 300
+click 326 487
+wait 300
+click 476 436
+wait 300
+click 476 334
+wait 300
+click 376 385
+wait 300
+wait 400
+click 401 570   # Attack: BLOWOFF
+wait 2500
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+click 426 487
+wait 300
+click 426 385
+wait 300
+click 476 487
+wait 300
+click 326 487
+wait 300
+click 476 436
+wait 300
+click 476 334
+wait 300
+click 376 385
+wait 300
+wait 400
+click 401 570   # Attack: BLOWOFF
+wait 2500
+click 376 334
+wait 300
+click 326 385
+wait 300
+click 476 487
+wait 300
+click 476 385
+wait 300
+click 326 487
+wait 300
+click 376 436
+wait 300
+click 426 487
+wait 300
+click 426 385
+wait 300
+wait 400
+click 401 570   # Attack: DEERWEED
+wait 2500
+click 376 334
+wait 300
+click 326 385
+wait 300
+click 476 487
+wait 300
+click 476 385
+wait 300
+click 326 487
+wait 300
+click 376 436
+wait 300
+click 426 487
+wait 300
+click 426 385
+wait 300
+wait 400
+click 401 570   # Attack: DEERWEED
+wait 2500
+click 400 276   # dialog
+wait 1500
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+click 376 334
+wait 300
+click 326 385
+wait 300
+click 476 487
+wait 300
+click 476 385
+wait 300
+click 326 487
+wait 300
+click 376 436
+wait 300
+click 426 487
+wait 300
+click 426 385
+wait 300
+wait 400
+click 401 570   # Attack: DEERWEED
+wait 2500
+click 376 436
+wait 300
+click 326 334
+wait 300
+click 326 487
+wait 300
+click 376 385
+wait 300
+click 476 385
+wait 300
+click 376 334
+wait 300
+click 476 436
+wait 300
+wait 400
+click 401 570   # Attack: HAGFISH
+wait 2500
+wait 1500
+click 400 150
+wait 3000
+click 426 385
+wait 300
+click 326 487
+wait 300
+click 376 334
+wait 300
+click 326 385
+wait 300
+click 376 436
+wait 300
+click 376 385
+wait 300
+click 426 487
+wait 300
+click 476 334
+wait 300
+wait 400
+click 401 570   # Attack: EYEDROPS
+wait 2500
+click 326 334
+wait 300
+click 426 334
+wait 300
+click 376 385
+wait 300
+click 476 334
+wait 300
+click 476 385
+wait 300
+click 376 436
+wait 300
+click 426 436
+wait 300
+wait 400
+click 401 570   # Attack: CANTDOG
+wait 2500
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+click 326 334
+wait 300
+click 426 334
+wait 300
+click 376 385
+wait 300
+click 476 334
+wait 300
+click 476 385
+wait 300
+click 376 436
+wait 300
+click 426 436
+wait 300
+wait 400
+click 401 570   # Attack: CANTDOG
+wait 2500
+click 401 410   # lostturn
+wait 1500
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+wait 1500
+wait 500
+click 400 150
+wait 3000
+wait 1500
+wait 500
+click 400 150
+wait 3000
+wait 1500
+wait 500
+click 400 150
+wait 3000
+wait 1500
+wait 500
+click 400 150
+wait 3000
+wait 1500
+wait 500
+click 400 150
+wait 3000
+wait 1500
+wait 500
+click 400 150
+wait 3000
+wait 1500
+wait 500
+click 400 150
+wait 3000
+wait 1500
+wait 500
+click 400 150
+wait 3000
+wait 1500
+wait 500
+click 400 150
+wait 3000
+wait 500
+click 401 410   # lostturn
+wait 1500
+wait 500
+click 401 410   # lostturn
+wait 1500
+wait 500
+click 401 410   # lostturn
+wait 1500
+wait 500
+click 326 436
+wait 300
+click 376 487
+wait 300
+click 326 385
+wait 300
+click 326 334
+wait 300
+click 426 334
+wait 300
+click 426 436
+wait 300
+click 326 487
+wait 300
+click 476 385
+wait 300
+click 376 334
+wait 300
+wait 400
+click 401 570   # Attack: PUPILAGES
+wait 2500
+wait 1500
+wait 500
+click 400 150
+wait 3000
+wait 1500
+wait 500
+click 400 150   # the conversation on
+wait 3000
+wait 500
+click 400 150   # the conversation on
+wait 3000
+wait 500
+click 400 150
+wait 3000
+wait 1500
+wait 500
+click 400 150
+wait 3000
+wait 500
+click 326 436
+wait 300
+click 326 334
+wait 300
+click 476 487
+wait 300
+click 376 436
+wait 300
+click 426 385
+wait 300
+click 476 436
+wait 300
+click 426 487
+wait 300
+click 426 334
+wait 300
+click 376 334
+wait 300
+wait 400
+click 401 570   # Attack: BOUZOUKIA
+wait 2500
+wait 500
+click 426 436
+wait 300
+click 326 487
+wait 300
+click 476 436
+wait 300
+click 426 385
+wait 300
+click 326 385
+wait 300
+click 426 487
+wait 300
+click 376 436
+wait 300
+click 376 334
+wait 300
+click 426 334
+wait 300
+click 476 385
+wait 300
+click 376 385
+wait 300
+click 476 334
+wait 300
+wait 400
+click 401 570   # Attack: ACIDIMETRIES
+wait 2500
+wait 1500
+wait 500
+click 400 150
+wait 3000
+wait 1500
+wait 500
+click 400 150
+wait 3000
+wait 1500
+wait 500
+click 400 150
+wait 3000
+wait 1500
+wait 500
+click 400 150   # the conversation on
+wait 3000
+wait 500
+click 400 150   # the conversation on
+wait 3000
+wait 500
+click 400 150   # the conversation on
+wait 3000
+wait 500
+click 400 150   # the conversation on
+wait 3000
+wait 500
+click 400 150   # the conversation on
+wait 3000
+wait 500
+click 400 150   # the conversation on
+wait 3000
+wait 500
+click 400 150   # the conversation on
+wait 3000
+wait 500
+click 400 150
+wait 3000
+wait 500
+click 400 150   # the conversation on
+wait 3000
+wait 500
+click 400 150   # the conversation on
+wait 3000
+wait 1500
+wait 500
+click 400 150   # the conversation on
+wait 3000
+wait 500
+click 400 150   # the conversation on
+wait 3000
+wait 2000
+quit

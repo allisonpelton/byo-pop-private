@@ -52,7 +52,9 @@ public:
 		GroupHandler mEnd;                 // +0x3c, +0x40: when its tag closes
 		std::vector<Node*> mGroups;        // +0x30: the groups in it
 		std::vector<Element> mElements;    // +0x20: the elements in it
+		// 0x6b2a90
 		Node() {}
+		// 0x6b2dc0
 		~Node();
 	private:
 		Node(const Node&);

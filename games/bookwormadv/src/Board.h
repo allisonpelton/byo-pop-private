@@ -98,6 +98,7 @@ public:
 	Board(GameApp* theApp, bool theIsMiniGame);
 	~Board() override;
 
+	// 0x4161d0
 	const char* LuaGetRegisteredName() override { return "Board"; }
 	static void RegisterLua();
 

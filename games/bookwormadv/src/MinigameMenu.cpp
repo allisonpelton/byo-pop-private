@@ -237,6 +237,7 @@ void MinigameMenu::ReturnToMainMenu(void* theMenu)
 }
 
 // 0x481cd0: the main menu and the menu go, and the scripts start the mini-game picked
+// 0x481e70 (the Lua call with the class string) is inline here
 void MinigameMenu::StartPickedMiniGame(void* theMenu)
 {
 	MinigameMenu* aMenu = static_cast<MinigameMenu*>(theMenu);

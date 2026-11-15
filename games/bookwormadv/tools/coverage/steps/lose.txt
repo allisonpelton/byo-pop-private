@@ -1,0 +1,126 @@
+# A battle lost: the map, Enter!, the intro, the battle menu and back, then Scramble until Lex falls (each costs a turn,
+# and the enemy attacks), and whatever follows. Profile Tester.
+at 31000
+click 230 300            # the library: Adventure
+wait 4000
+click 400 575            # Enter!
+wait 5500
+click 400 150
+wait 4000
+click 400 150
+wait 4000
+click 400 150
+wait 4000
+click 400 150
+wait 4000
+click 655 580            # Menu
+wait 1500
+click 405 352            # Return To Game
+wait 1500
+focus lose
+wait 1500
+focus regain
+wait 1500
+click 150 578            # Scramble
+wait 7000
+port state
+click 150 578            # Scramble
+wait 7000
+port state
+click 150 578            # Scramble
+wait 7000
+port state
+click 150 578            # Scramble
+wait 7000
+port state
+click 150 578            # Scramble
+wait 7000
+port state
+click 150 578            # Scramble
+wait 7000
+port state
+click 150 578            # Scramble
+wait 7000
+port state
+click 150 578            # Scramble
+wait 7000
+port state
+click 150 578            # Scramble
+wait 7000
+port state
+click 150 578            # Scramble
+wait 7000
+port state
+click 150 578            # Scramble
+wait 7000
+port state
+click 150 578            # Scramble
+wait 7000
+port state
+click 150 578            # Scramble
+wait 7000
+port state
+click 150 578            # Scramble
+wait 7000
+port state
+click 150 578            # Scramble
+wait 7000
+port state
+click 150 578            # Scramble
+wait 7000
+port state
+click 150 578            # Scramble
+wait 7000
+port state
+click 150 578            # Scramble
+wait 7000
+port state
+click 150 578            # Scramble
+wait 7000
+port state
+click 150 578            # Scramble
+wait 7000
+port state
+click 150 578            # Scramble
+wait 7000
+port state
+click 150 578            # Scramble
+wait 7000
+port state
+click 150 578            # Scramble
+wait 7000
+port state
+click 150 578            # Scramble
+wait 7000
+port state
+click 150 578            # Scramble
+wait 7000
+port state
+click 150 578            # Scramble
+wait 7000
+port state
+click 150 578            # Scramble
+wait 7000
+port state
+click 150 578            # Scramble
+wait 7000
+port state
+click 150 578            # Scramble
+wait 7000
+port state
+click 150 578            # Scramble
+wait 7000
+port state
+click 400 300
+wait 3000
+click 400 300
+wait 3000
+click 330 400
+wait 5000
+click 400 300
+wait 5000
+click 655 580            # Menu
+wait 1500
+click 405 312            # Quit To Main Menu
+wait 5000
+quit

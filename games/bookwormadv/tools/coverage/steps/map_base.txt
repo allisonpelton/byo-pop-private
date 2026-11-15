@@ -1,0 +1,4 @@
+# From the main menu to the adventure's map: the base of play.py.
+at 31000
+click 230 300            # the library: Adventure
+wait 4000

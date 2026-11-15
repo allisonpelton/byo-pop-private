@@ -50,6 +50,8 @@ TooltipWidget::TooltipWidget()
 }
 
 // The original registered the class in the constructor (0x4a1cf0), every time
+// 0x4a2770 and 0x4a29e0 (the class registration and its CreateClass instance) and 0x4a2870 (GetActivationRegion's
+// registration) are inline here
 void TooltipWidget::RegisterLua()
 {
 	static bool sRegistered = false;
