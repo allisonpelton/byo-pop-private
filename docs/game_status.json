@@ -102,13 +102,14 @@
         "performance",
         "unneeded-code",
         "readability",
-        "site-features"
+        "site-features",
+        "lite-mod"
       ],
       "na": [
         "collection"
       ],
       "now": null,
-      "note": ""
+      "note": "every phase but modding done: the lite mod takes nothing (LITE_MOD.md: the four searches cost about 0.05% of the action game; SearchPath's other routes of equal cost are lite in kind but not worth it)"
     },
     "atomica": {
       "title": "Atomica Deluxe",
