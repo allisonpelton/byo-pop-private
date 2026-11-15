@@ -83,7 +83,10 @@ user's uploaded games so that they can select one to use across the whole site (
 `web/cursors.js` (checked by `tools/cursorstest.js`) a started game's page takes its cursors with
 `byopop_cursor_set_copy()` into `byopop-cursors`; the choice is `byopop-site-cursor`. A game's own cursor wins on its
 page. A kind may carry animation `frames`, which the page plays itself (Banana Bugs will need them,
-`docs/POPCAP_GAMES_SURVEY.md`).
+`docs/POPCAP_GAMES_SURVEY.md`). Water Bugs and Cosmic Bugs draw their own pointer, the "pointer" animation of their
+files, so their pages read it from those files instead (`web/flicursor.js`, `ByopopFlicCursor`): every frame of the FLIC
+with its mask and the shadow the game draws, the hot spot at the top left, and the frame time from the animation file
+(500 ms and 300 ms, 10 frames each). Ning Po's pointer sprite is empty, so it has no set.
 
 ### The terms
 

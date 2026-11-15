@@ -401,6 +401,7 @@ html.saver .stage-wrap { place-items: center; min-height: 100vh; }
 <script src="exeicon.js"></script>
 <script src="exeprobes.js"></script>
 <script src="exetrim.js"></script>
+<script src="flicursor.js"></script>
 <script src="gameimport.js"></script>
 <script src="other-games.js"></script>
 <script src="chat-games.js"></script>
@@ -1446,6 +1447,26 @@ html.saver .stage-wrap { place-items: center; min-height: 100vh; }
   function takeCursorSet() {
     var n, now = Date.now();
     if (now < cursorSetNext) return;
+    // a game that draws its own pointer as an animation of its files (web/flicursor.js): its set read from them, once
+    if (window.ByopopFlicCursor && ByopopFlicCursor.GAMES[PAGE.id]) {
+      cursorSetTaken = true;
+      var flic = null;
+      try {
+        flic = ByopopFlicCursor.build(PAGE.id, function (rel) {
+          // (the file's own spelling in the game's folder)
+          var parts = rel.split("/"), path = GAME;
+          for (var i = 0; i < parts.length; i++) {
+            var want = parts[i].toLowerCase(), found = null;
+            try { Module.FS.readdir(path).forEach(function (x) { if (!found && x.toLowerCase() === want) found = x; }); } catch (e) { return null; }
+            if (!found) return null;
+            path += "/" + found;
+          }
+          try { return Module.FS.readFile(path); } catch (e) { return null; }
+        }, window.ByopopCursors);
+      } catch (e) { flic = null; }
+      if (flic) try { ByopopCursors.save(PAGE.id, $("brand-name").textContent, flic); } catch (e) {}
+      return;
+    }
     try { n = Module.ccall("byopop_cursor_set_copy", "number", [], []) | 0; } catch (e) { cursorSetTaken = true; return; }
     if (n <= 0) return;
     // the framework's kinds by number (framework/SexyAppBase.h) that the site shows somewhere (web/cursors.js); the sizing arrows
