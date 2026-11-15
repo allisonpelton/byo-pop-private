@@ -363,10 +363,11 @@ bosses, the craft and the dialogs above. Of the 57:
 
 - **Read again against the export: 50, no slip.** A second Sonnet agent read 47 (8 minutes): the bosses' kills,
   destructors and sound restores (the ape, the battleship and its turret, the eye, the head, the helicopter's turret,
-  the rainer and the wrecker), since the bot beats no boss in these runs and pauses no boss fight; the mega laser
-  (`UseMegaLaser`, `UpdateMegaLaser`) and the ground flash the robot boss's bolt makes; the bolt itself (constructor,
-  update, draw, destructor); the meteors; the burst rocket's burst; the kills of the supply helicopter, the blimp, the
-  fat bomber and three ground units; and an armory tile's hover, which no run's cursor crossed. One remark stays: the
+  the rainer and the wrecker), bosses no run beats (the weak bosses of shots_middle and shots_final are levels 8 and
+  9's, 18 and 19's and the final one) and no run pauses before; the mega laser (`UseMegaLaser`, `UpdateMegaLaser`) and
+  the ground flash the robot boss's bolt makes; the bolt itself (constructor, update, draw, destructor); the meteors;
+  the burst rocket's burst; the kills of the supply helicopter, the blimp, the fat bomber and three ground units; and an
+  armory tile's hover, which no run's cursor crossed. One remark stays: the
   bolt's draw takes its sine and cosine from the C library, as the rest of the drawing does ("The x87's sines"), so a
   corner that lands exactly on a whole pixel could stand a pixel from the original's; no run draws it. The other three
   were read here: the one-argument `SwitchScreenMode`, not run because it would change the machine's display mode;
