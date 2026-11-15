@@ -226,11 +226,12 @@
         "unneeded-code",
         "readability",
         "site-features",
-        "collection"
+        "collection",
+        "lite-mod"
       ],
       "na": [],
       "now": null,
-      "note": "every step but modding done; the autosplit block in (ab31480d); a 3D coverage check under way, after Bejeweled 2's 3D WARP was missed: the sets the 2D comparison shot and 3D never did, natively and on the web"
+      "note": "every phase but modding done: the lite step with no mod (2aa1a2e6, LITE_MOD.md: the game's update is 3.2 to 3.7 % of a minute's cycles, the picture 94 %, FindMove the only search); 3D level-ups and Blitz against the original match but for its known 15-update slip; focus in 3D not comparable (visrun keeps the window active); re-measured on merged main: 38.8/43.2 G cycles a minute in 2D/3D against 41.5/47.2"
     },
     "typershark": {
       "title": "Typer Shark! Deluxe",
