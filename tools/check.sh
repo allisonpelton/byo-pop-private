@@ -28,7 +28,8 @@
 #                events through HandleEvent and the widget manager, docs/REAL_INPUT.md); and tools/fwtest/commands.sh
 #                (the live -commands channel driven as a driver drives it, with -script's dispatch and with -realinput's);
 #                and tools/playbymove on fwtest (the shared driver loop plays its small task by its "move" answers under
-#                -hold, twice, with the same transcript)
+#                -hold, twice, with the same transcript); and tools/modtextcheck.py (every mod's labels, helps and
+#                units within the limits platform/ModSettings.cpp cuts them to: games/*/mods and the menu's fixtures)
 #   unit-web     rulestest, modsettingstest and jpegtest (the JPEG decoder's error paths, through Emscripten's longjmp) under Node (needs build-web); paktest (the page's pak reader), with
 #                Bookworm Adventures' main.pak against assets/bookwormadv when both are there; profilestest (the page's
 #                settings and players code, web/settings.js and web/profiles.js, on a fake localStorage), savestest (the
@@ -210,7 +211,7 @@
 #                  web/shell.html or a link option relinks every game's wasm: about 6 minutes)
 #   tools/<x>/**   shotdiff: unit. gputest: build gpu. modmenutest: modmenu. origrun: origrun. The web test scripts
 #                  (tools/*.js, paktest): unit-web. fwtest, geomtest, wraptest, jp2test, songpostest, soundtest, spectrumtest, build.sh,
-#                  check.sh, rundesk: build unit. modsettingstest, jpegtest and fixtures: build unit, build-web:<test> and
+#                  check.sh, rundesk, modtextcheck.py: build unit. modsettingstest, jpegtest and fixtures: build unit, build-web:<test> and
 #                  unit-web. Anything else under tools/, and any file not named here: build
 #   framework/**, platform/**, third_party/**, CMakeLists.txt, the other cmake/**: without --inert, every suite, as `all`.
 #                  With --inert (the review found every shared change off unless a game opts in, or reached only from the
@@ -425,7 +426,7 @@ classify() {  # <path>: chooses the suites a changed file needs
 				jpegtest/*)  # also built for the web, where unit-web runs it under Node (the error paths are longjmp there)
 					pick build "$AREA" "$p"; pick unit "$AREA" "$p"; pick unit-web "$AREA" "$p"
 					note build-web "$AREA" "$p"; web_add jpegtest ;;
-				fwtest/*|geomtest/*|wraptest/*|jp2test/*|songpostest/*|soundtest/*|spectrumtest/*|rundesk/*|playbymove/*|build.sh|check.sh)
+				fwtest/*|geomtest/*|wraptest/*|jp2test/*|songpostest/*|soundtest/*|spectrumtest/*|rundesk/*|playbymove/*|build.sh|check.sh|modtextcheck.py)
 					pick build "$AREA" "$p"; pick unit "$AREA" "$p" ;;
 				*/*) pick build "$AREA" "$p" ;;  # smoke, ghidra_scripts and the rest: nothing runs them, but a build shows a broken tree
 				*.js|*.mjs) pick unit-web "$AREA" "$p" ;;  # a11ycheck.js, chattest.js and the other web test scripts
@@ -742,11 +743,16 @@ suite_unit() {
 	local jp
 	(cd build/native && timeout 60 ./jpegtest.exe) > "$1.jpg" 2>&1 || st=1
 	jp="$(lastof "$1.jpg" 'jpeg: [0-9]+ checks, [0-9]+ failed')"
+	# every mod text within its limit: platform/ModSettings.cpp cuts a longer one, and the menu shows the warning (the
+	# user, 2026-11-13: the fixes mods' helps)
+	local mt
+	timeout 60 python -I tools/modtextcheck.py > "$1.mtc" 2>&1 || st=1
+	mt="$(tail -1 "$1.mtc")"
 	cat "$1.mst" "$1.fw" "$1.ph" "$1.jp2" "$1.sp" "$1.fft" "$1.snd" "$1.sdf" "$1.geo" "$1.wrp" "$1.rifast" "$1.rireal" \
-		"$1.cmscript.log" "$1.cmscript" "$1.cmrealinput.log" "$1.cmrealinput" "$1.pm1" "$1.pm2" "$1.jpg" >> "$1"
+		"$1.cmscript.log" "$1.cmscript" "$1.cmrealinput.log" "$1.cmrealinput" "$1.pm1" "$1.pm2" "$1.jpg" "$1.mtc" >> "$1"
 	rm -f "$1.mst" "$1.fw" "$1.ph" "$1.jp2" "$1.sp" "$1.fft" "$1.snd" "$1.sdf" "$1.geo" "$1.wrp" "$1.rifast" "$1.rireal" \
-		"$1.cmscript.log" "$1.cmscript" "$1.cmrealinput.log" "$1.cmrealinput" "$1.pm1" "$1.pm2" "$1.jpg"
-	SUMMARY="$a; $b; $c; $d; $e; $f; $g; $h; $i; $j; $wr; $k; $l; $pm; $jp"
+		"$1.cmscript.log" "$1.cmscript" "$1.cmrealinput.log" "$1.cmrealinput" "$1.pm1" "$1.pm2" "$1.jpg" "$1.mtc"
+	SUMMARY="$a; $b; $c; $d; $e; $f; $g; $h; $i; $j; $wr; $k; $l; $pm; $jp; $mt"
 	return $st
 }
 

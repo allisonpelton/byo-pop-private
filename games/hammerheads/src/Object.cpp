@@ -2,6 +2,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include "Cubby.h"
+#include "platform/crt/CrtQsort.h"
 
 using namespace Sexy;
 
@@ -47,142 +48,6 @@ static void NoteName(const char* theTypeName, const std::string& theName)
 	long aNumber = atol(theName.substr(theName.size() - 5).c_str());
 	if (aNumber < 90000)
 		GetNameCounters()[theTypeName] = (int)(aNumber + 1);
-}
-
-// port: The C library's qsort of the original's Visual C++ 7.1: a quicksort that finishes pieces of 8 elements or fewer with
-// a selection sort. Its order for equal keys is part of how the cubbies are drawn, so the host's qsort is not used.
-static void CrtSwap(char* a, char* b, size_t theWidth)
-{
-	if (a == b)
-		return;
-	for (size_t i = 0; i < theWidth; i++)
-	{
-		char aSwapped = a[i];
-		a[i] = b[i];
-		b[i] = aSwapped;
-	}
-}
-
-// port: the selection sort of the C library's qsort above
-static void CrtShortSort(char* lo, char* hi, size_t theWidth, int (*theCompare)(const void*, const void*))
-{
-	while (hi > lo)
-	{
-		char* aMax = lo;
-		for (char* p = lo + theWidth; p <= hi; p += theWidth)
-			if (theCompare(p, aMax) > 0)
-				aMax = p;
-		CrtSwap(aMax, hi, theWidth);
-		hi -= theWidth;
-	}
-}
-
-// port: the C library's qsort of the original's Visual C++ 7.1 (see CrtSwap)
-static void CrtQSort(void* theBase, size_t theCount, size_t theWidth, int (*theCompare)(const void*, const void*))
-{
-	const size_t CUTOFF = 8;
-	char* lostk[30];
-	char* histk[30];
-	int aStackPos = 0;
-
-	if (theCount < 2 || theWidth == 0)
-		return;
-
-	char* lo = (char*)theBase;
-	char* hi = (char*)theBase + theWidth * (theCount - 1);
-	for (;;)
-	{
-		size_t aSize = (hi - lo) / theWidth + 1;
-		bool aRecurse = false;
-		if (aSize <= CUTOFF)
-			CrtShortSort(lo, hi, theWidth, theCompare);
-		else
-		{
-			char* mid = lo + (aSize / 2) * theWidth;
-			if (theCompare(lo, mid) > 0)
-				CrtSwap(lo, mid, theWidth);
-			if (theCompare(lo, hi) > 0)
-				CrtSwap(lo, hi, theWidth);
-			if (theCompare(mid, hi) > 0)
-				CrtSwap(mid, hi, theWidth);
-
-			char* loguy = lo;
-			char* higuy = hi;
-			for (;;)
-			{
-				if (mid > loguy)
-				{
-					do
-						loguy += theWidth;
-					while (loguy < mid && theCompare(loguy, mid) <= 0);
-				}
-				if (mid <= loguy)
-				{
-					do
-						loguy += theWidth;
-					while (loguy <= hi && theCompare(loguy, mid) <= 0);
-				}
-				do
-					higuy -= theWidth;
-				while (higuy > mid && theCompare(higuy, mid) > 0);
-				if (higuy < loguy)
-					break;
-				CrtSwap(loguy, higuy, theWidth);
-				if (mid == higuy)
-					mid = loguy;
-			}
-
-			higuy += theWidth;
-			if (mid < higuy)
-			{
-				do
-					higuy -= theWidth;
-				while (higuy > mid && theCompare(higuy, mid) == 0);
-			}
-			if (mid >= higuy)
-			{
-				do
-					higuy -= theWidth;
-				while (higuy > lo && theCompare(higuy, mid) == 0);
-			}
-
-			if (higuy - lo >= hi - loguy)
-			{
-				if (lo < higuy)
-				{
-					lostk[aStackPos] = lo;
-					histk[aStackPos] = higuy;
-					aStackPos++;
-				}
-				if (loguy < hi)
-				{
-					lo = loguy;
-					aRecurse = true;
-				}
-			}
-			else
-			{
-				if (loguy < hi)
-				{
-					lostk[aStackPos] = loguy;
-					histk[aStackPos] = hi;
-					aStackPos++;
-				}
-				if (lo < higuy)
-				{
-					hi = higuy;
-					aRecurse = true;
-				}
-			}
-		}
-		if (aRecurse)
-			continue;
-		aStackPos--;
-		if (aStackPos < 0)
-			break;
-		lo = lostk[aStackPos];
-		hi = histk[aStackPos];
-	}
 }
 
 // 0x402fd0: cubbies sort by ascending depth value
@@ -416,7 +281,8 @@ void ObjectManager::Add(Object* theObject)
 	if (typeid(*theObject) == typeid(Cubby))
 	{
 		mCubbiesByDepth.push_back(static_cast<Cubby*>(theObject));
-		CrtQSort(&mCubbiesByDepth[0], mCubbiesByDepth.size(), sizeof(Cubby*), CompareCubbyDepth);
+		// 0x528400: the exe's own qsort; the order of cubbies at the same depth is part of how they are drawn
+		Platform::CrtQsort(&mCubbiesByDepth[0], mCubbiesByDepth.size(), sizeof(Cubby*), CompareCubbyDepth);
 	}
 }
 

@@ -953,7 +953,8 @@ answers on stdout with one line. A run that gives none is unchanged (the suite's
 - `state`: `STATE {...}` with `screen` (`loading`, `menu`, `profile`, `highscores`, `options`, `help`, `credits`,
   `modeselect`, `continue` (the mode select asks whether to go on with a saved game), `game`; `options` also over a game) and, in a game, `mode`, `level` (+0x158; 0 is the first game's
   tutorial level), `score` (+0x168), `moves` (+0x23c, the twists in the level), `progress` (+0x200 of +0x204, the
-  level's goal), `busy`, `over` (the game has ended), `timer` (Blitz's seconds left), `wheel` (true while the second chance's wheel is up), `board` (a string a row, a gem by its colour's letter:
+  level's goal), `busy` (true unless a twist clicked now would start at once: Board::MouseDown's own tests, the cursor
+  at least half faded in, and no level's jump), `over` (the game has ended), `timer` (Blitz's seconds left), `wheel` (true while the second chance's wheel is up), `board` (a string a row, a gem by its colour's letter:
   r red, w white, g green, y yellow, p purple, o orange, b blue, `.` none) and `specials` (row, column, kind: bomb
   with its count, coal, doom, flame, lightning, fruit, locked with its lock).
 - `state` also gives `updates` (the app's update count), `active` (the window has the focus) and `windowed`; the
@@ -967,7 +968,9 @@ answers on stdout with one line. A run that gives none is unchanged (the suite's
 - `move`: `MOVE {...}` with the twist -autoplay's FindMove (0x6c14fc) would choose, by the same order and the same
   preference for a bomb's line, and the click that makes it (move, then click, at the corner the turn goes about, in
   game pixels), `MOVE {"kind":"stop",...}` with the click on the second chance's "click to stop" once it can be
-  pressed (as -autoplay stops it; a tip's dialog over the wheel is answered first), or `MOVE null`. A locked gem
+  pressed (as -autoplay stops it; a tip's dialog over the wheel is answered first), or `MOVE null`, which it also
+  answers for a twist while `busy` says the board would not take one (2026-11-14: before, a twist sent while gems fell
+  only waited in the board's click queue, and in one Blitz run of the site's 67 of 2,500 took). A locked gem
   cannot turn but counts in a line. Where the grid finds no turn, the board's own FindMove answer from its last settle
   (+0x201c, +0x2020) is taken; where neither finds one, -autoplay clicks a random square (Rand), so `move` gives a square
   that can turn instead, with `"match":false`, and draws nothing: of the squares that can turn, counted top down and left
@@ -984,9 +987,16 @@ answers on stdout with one line. A run that gives none is unchanged (the suite's
 - `seed`: ERROR, as the game draws from several generators; `-seed=<n>` seeds them at the start.
 - Twist's own, beside the standard set: `shutdownsaves <dir>` writes what a page going away would keep (GetShutdownSaves,
   below under "Saving on the way out") into `<dir>`, each file by its name, and answers `SHUTDOWNSAVES <names>`, so a test
-  compares it with what a quit writes. `gem <row> <col> flame` makes the gem there a flame gem at once (the piece's own
-  MakePower, as a match of four does, without the board's stats; ERROR with no gem there or a busy board), so a driver
-  sets flame gems off with a real twist (realplay/live.py's `flame` step). `autoplaychallenge` makes -autoplay's mode
+  compares it with what a quit writes. `gem <row> <col> flame|counter <n>|lock|doom` makes the gem there that special at once,
+  so a driver reaches a rare event with real twists (the user asked for board edits for this, 2026-11-13; the site's
+  presets for the wheel, locks and doom gems come from it): `flame` through the piece's own MakePower, as a match of
+  four does, without the board's stats; `counter <n>` (1 to 99) through MakeCounter on the gem made plain first, its
+  count then set to n; `lock` through LockPiece; `doom` through LockPiece on the gem flagged doom, as the doom drop
+  leaves one; `prelock` and `doomwarn` give the warning instead (PreLockPiece with gem_prelock, as the lock drop does, and
+  for `doomwarn` the doom flag and doomgem_appears as well, as the doom drop does), and the game's own next turn closes
+  the lock (seen in a Blitz run: the warning, then the lock after the next twist, then the doom gem). MakeCounter and LockPiece count in the game's stats (0x1a, 0x1b) as the game's own do, and a lock made so
+  skips the warning (gem_prelock, doomgem_appears) the game gives two twists earlier. ERROR with no gem there or a busy
+  board. realplay/live.py's `flame` step uses the first. `autoplaychallenge` makes -autoplay's mode
   the challenges (2), which its command line cannot name: the mode select then opens the challenge menu, a script clicks
   the planet, and -autoplay plays the challenge (below, "Challenges against the original").
 
@@ -1649,3 +1659,37 @@ which a player with a Direct3D 9 driver would not run; the port's includes ANGLE
 
 **Not measured again:** the menu at rest, and memory (the peaks in the README row are "The performance pass"'s medians,
 392 MB for the port and 186 MB for the original in the same game).
+
+## The autosplit block (2026-11-14)
+
+The port writes the shared autosplit block (`platform/AutosplitBlock.h`, layout 2, game id `BJTW`) after every update,
+for the site's Splits window: `src/LiveSplitObserver.cpp`, whose header comment has the full description. It is inert:
+it only reads the game, and writes nothing until the `livesplit` mod (`mods/livesplit`) is on natively or the page asks
+for the block (`byopop_livesplit_block`). Boards are numbered in Board's constructor (`mBoardSerial`), the one line of
+state the block adds. `-livesplitlog=<file>` writes a line for each event.
+
+What the board's categories (speedrun.com, Bejeweled Twist) need, and where the code has it:
+
+- **mode** 1 Classic, 2 Challenge, 3 Blitz, 4 Zen (the board's own numbers); **skill** 0.
+- **GO** on the first update of a board that is a new game, not a resumed save (+0x21a2) or a menu's replay. Every
+  start button makes the board in the click's own update (Mandala::StartMode for Classic's New, Zen and Blitz, the
+  continue question's New; ChallengeMenu::Start for a planet's challenge), so GO is the click's update, as the Level 10
+  and challenge categories time it.
+- **Level clear** when the "Level Complete" picture appears (ShowLevelUp makes the LevelUpShow), its number the level just
+  finished (`displayLevel`, Board's +0x158, what the picture shows). Level 10 (Classic) and (Zen) end on clear 10. The
+  retail and Collection copies open Blitz 200 updates into the same picture of a Classic level above 9, so after the
+  player's level 10 (LevelUpShow.cpp).
+- **Game over** when +0x36b0 rises on a board not won: kind 0 the board blew up (a counter ran out, a coal or doom gem
+  reached the bottom), 1 the second chance's wheel landed on a skull, 2 Blitz's clock ran out, 3 any other end (a
+  challenge failed, the test command `lose`).
+- **Win** when a challenge is met: Board::ShowChallengeComplete hands the challenge menu its AwardTelly, the "Challenge
+  Complete" award. Enigma% ends on the win of challenge 1 of category 11 (Voltage), which opens category 12 (Enigma);
+  Challenge 100% on the win of challenge 7 of category 12.
+- **progress** the modes open in the profile (bits 1 to 4 of +0x1e8), 4 for every mode, Unlock%'s end; on Steam's
+  copy, the port's, the last to open is Challenge, at rank 2. `gameOwn` holds the mode bits, the board's challenge
+  category and number, and the challenges met in all.
+
+`tools/livesplit/run_tests.sh` (under rundesk, about 3 minutes) plays check.sh's Classic and Blitz games with the block
+on and compares their screens with the suite's frozen hashes (the inert proof), and checks the events of a Classic and a
+Zen game taken to level 10 by `level` commands and ended by `lose`, the seeded Blitz game (a counter runs out: kind 0)
+and Detonator 1 met under -autoplay. All pass.

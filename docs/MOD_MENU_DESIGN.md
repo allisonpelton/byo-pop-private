@@ -316,7 +316,10 @@ steps, and a colour steps through a 16-colour palette.
   with "+N more". The rows therefore sit at the same place in every game, so the test scripts are shared
   (`tools/modmenutest`).
 - **The footer** shows the focused row's help (a setting's help; on the list a mod's description or first
-  message) and what is pending. Confirmations (Restart, 6.3; "Reset all settings of ...?") replace the footer
+  message) and what is pending. A setting's help longer than the footer's two lines is shown in full under its
+  row instead, always, so the page does not move when the focus does; the page scrolls when it is long, and
+  focusing such a setting brings its help into view with it (the user, 2026-11-13: the fixes mods' long helps were
+  cut, with a warning; `tools/modtextcheck.py` flags a text over its limit). Confirmations (Restart, 6.3; "Reset all settings of ...?") replace the footer
   inline, never as a second dialog. There is no Apply or Cancel: every change is saved at once. "Restart game"
   is always enabled, so the menu can also simply restart the game.
 
@@ -331,17 +334,32 @@ apart. All glyphs are drawn white into one `MemoryImage` and tinted with coloriz
 scales with nearest filtering.
 
 Mod text is UTF-8 and is converted with `UTF8ToLatin1`; characters outside Latin-1 become `?`. Long text is cut
-with "..." and shown in full in the footer when its row is focused. The menu's own words come from
+with "..." and shown in full in the footer when its row is focused, a long help under its row (5.2), a mod's
+description on its page. The menu's own words come from
 `GetString("MODMENU_...", default)`, so a game's properties or a strings mod can translate them.
 
 ### 5.4 Modality, pausing, focus and RNG
 
-- **Opening** runs `AddWidget`, `BringToFront`, `mWidgetManager->AddBaseModal(menu)` (which takes the focus from
-  the board), `SetFocus(menu)` and `ModalOpen()`. **Closing** runs `RemoveBaseModal` (which restores the
-  previous focus), `RemoveWidget` and `ModalClose()`.
-- **Pausing** is the game's own modal hooks: Bejeweled pauses through `Pause(mTimedMode)`, recorded as
-  PAUSE/UNPAUSE; Big Money pauses only its Action type. Both count pauses, so the menu over Options nests.
-  During a replay watch the menu behaves as Options does.
+- **Opening** runs `AddWidget`, `BringToFront`, `mWidgetManager->SetInputCapture(menu)`,
+  `mWidgetManager->AddBaseModal(menu)` (which takes the focus from the board), `SetFocus(menu)` and `ModalOpen()`.
+  **Closing** runs `SetInputCapture(NULL)`, `RemoveWidget`, `ModalClose()`, `RemoveBaseModal` (which restores the
+  previous focus) and `RehupMouse()`.
+- **Input goes to the menu alone** (the user, 2026-11-13: clicks in Venice's menu went through to the game).
+  While the capture holds, `WidgetManager` hands every mouse and key event to the menu, and what a game reads
+  between events stays as it was when the menu opened: `mDownButtons`, `mActualDownButtons`, `mKeyDown`,
+  `mLastMouseX`/`Y`, `mMouseIn`, `mOverWidget`, `mLastDownWidget` and the rest. Many games poll these (Venice
+  fires on `mDownButtons`, Mummy Maze walks on `mKeyDown`, BookWorm Adventures follows `mLastMouseX`). On opening,
+  the game's widgets get the mouse-ups, key-ups and mouse leave of what was held, while they still have the focus;
+  a key held through the close stays out of the game until it is released. The menu reads its own keys through
+  `IsInputKeyDown`.
+- **Pausing.** Nothing of the game updates while the menu is open: `DoUpdateFrames` runs `UpdateModMenuFrame`
+  instead of `UpdateFrames` (the test channels, the menu's own `Update`, the music; no widget below it and no
+  game `UpdateFrames` override), and `DoUpdateFramesF` skips the game too. `mUpdateCount` still counts, so a
+  test's `wait` and a host that waits for an update go on. The game's own modal hooks still run as well:
+  Bejeweled pauses through `Pause(mTimedMode)`, recorded as PAUSE/UNPAUSE; Big Money pauses only its Action type.
+  Both count pauses, so the menu over Options nests. During a replay watch the menu behaves as Options does. A
+  game that keeps its own clock or loop outside the framework's updates must hold it itself (Bonnies' game runs
+  between the framework's updates; Venice's clock catches up a menu open for under 100 of its 4 ms ticks).
 - **Staying on top.** If something adds a widget above the open menu, the menu raises itself again in its
   Update. It is not in the dialog map, so code that counts dialogs is unaffected.
 - **No randomness.** The menu never calls `Rand()`. Its event handlers, Update and Draw run inside
@@ -483,8 +501,9 @@ script and autoplay comparisons) and `fwtest`.
 ### 7.2 Script commands and switches
 
 The `modmenu` commands are framework commands in `RunScript`, so every game has them: `open`, `close`,
-`page <modId>|list` (which opens the menu too), `enable`, `move`, `set`, `reset`, `restart [confirm]` and
-`dump <file>` (the state JSON); their syntax is in `framework/SexyAppBase.h`. They use the UI's own functions:
+`page <modId>|list` (which opens the menu too), `enable`, `move`, `set`, `reset`, `restart [confirm]`,
+`dump <file>` (the state JSON) and `targets` (every control a click reaches now and where, `MODMENU {...}`, also
+under `-realinput`); their syntax is in `framework/SexyAppBase.h`. They use the UI's own functions:
 edits write the user dir, and page changes redraw. Keys inside the menu use `key UP|DOWN|LEFT|RIGHT|RETURN|ESCAPE`,
 `keydown`/`keyup` and `char x`; clicks use `click x y` at the layout coordinates of 5.2; `#` inside `"..."` is
 not a comment. **`key F2` deliberately does not toggle the menu**: it goes to `WidgetManager::KeyDown`, not to
@@ -499,7 +518,9 @@ placeholders, levels, score-key vectors such as `example-relaxed@1.0` giving 58e
 defaults-only settings block, float bits equal on both, `DiffOwner` agreeing with `VFS::Resolve`),
 `tools/modmenutest/run_tests.sh` (scripted games with the fixture mod: screens, the exact bytes of the two
 files after edits, keyboard-only use, the trace unchanged by opening the menu mid-game, Bejeweled's next-game
-values, restarts including a real relaunch under rundesk), `tools/modmenutest/check_no_rand.py` (5.4) and
+values, restarts including a real relaunch under rundesk), `tools/modmenutest/check_no_rand.py` (5.4), `tools/modmenutest/clickthrough.py` (any game: keys and clicks over
+the open menu, on every page, change nothing of the game's `state`, and the close reaches nothing either),
+`tools/modtextcheck.py` (every mod text within its limit; in the unit suite) and
 `fwtest` (an F2 key-down toggles the menu; with modifiers, as a repeat or in script mode it does not). The web
 pages in the Browser pane with `?silent=1` check that the panel's state equals native `-dumpmods`, F2, restart,
 autostart and Continue, and that a changed value survives a tab closed without unload events.

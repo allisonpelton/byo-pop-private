@@ -85,8 +85,10 @@ holds the rules every session follows; this file does not repeat them.
   session builds those and the game's session answers its questions. The games done on 2026-12-31 go live then (the
   site going public is still the user's word); the rest follow when done. Modding waits: new mods and the changes in
   `docs/MOD_ROADMAP.md`.
-- **The ports still to make (the user, 2026-11-01, 2026-11-08):** none starts until every current game has had its
-  readability pass ("Move up readability passes to come before additional decomps"). Then the easier ones side by side
+- **The ports still to make (the user, 2026-11-01, 2026-11-08, 2026-11-15):** none starts until every current game is
+  done by the definition above, every phase but modding (2026-11-15: "All games need to reach my definition of done
+  before new ones start"). Venice, Heavy Weapon and Hammer Heads count as current games. Before that the gate was the
+  readability pass ("Move up readability passes to come before additional decomps", 2026-11-08). Then the easier ones side by side
   (by `docs/POPCAP_GAMES_SURVEY.md` section 2: Venice, Heavy Weapon, Hammer Heads, then Pizza Frenzy with Iggle Pop and
   Feeding Frenzy after it), and the harder ones from Chuzzle two at a time, in the survey's order (Feeding Frenzy 2,
   Peggle Deluxe and Peggle Nights, Bejeweled 3, Banana Bugs, Gyromancer, Zuma's Revenge, Talismania after Feeding
