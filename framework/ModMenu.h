@@ -9,9 +9,10 @@
 //
 // One look for every game: drawn with rectangles and the built-in font (BuiltinFont.h), so it works before a
 // game has loaded any art. It is a single full-screen widget (no child widgets, not a Dialog, not in the dialog
-// map) that SexyAppBase::OpenModMenu adds as a base modal above everything, and that pauses the game through
-// ModalOpen()/ModalClose() as a modal dialog does. It never draws a random number: its handlers, Update and Draw
-// run inside MTAutoDisallowRand.
+// map) that SexyAppBase::OpenModMenu adds as a base modal above everything. While it is open it takes every mouse and
+// key event (WidgetManager::SetInputCapture), nothing of the game updates (SexyAppBase::UpdateModMenuFrame), and the
+// game's ModalOpen()/ModalClose() run as for a modal dialog. It never draws a random number: its handlers, Update and
+// Draw run inside MTAutoDisallowRand.
 //
 // Keys: Up/Down rows; Left/Right change a value (Shift: 10 steps); Home/End, PgUp/PgDn; Space toggles; Enter opens
 // or activates; Alt+Up/Down moves a mod; Delete resets a setting; Tab/Shift+Tab next/previous control; Esc backs
@@ -90,7 +91,8 @@ public:
 		T_PREV,
 		T_NEXT,
 		T_FIELD,
-		T_LABEL,      // a setting's label: a click focuses it, which shows its help in the footer
+		T_LABEL,      // a setting's label: a click focuses it, which shows its help in the footer (a long one is under
+	              // the row)
 		T_SWITCH,     // a checkbox, a mod's on the list or a bool's on its page: only a click on it switches (mouse only)
 		T_SCROLL,     // the scroll bar (mouse only)
 		T_FILES       // web: "Add or remove mods", the page's Mods panel (Module.onModPanel)
@@ -146,6 +148,8 @@ public:
 
 	// The script command "modmenu ..." (SexyAppBase::RunScript; syntax in SexyAppBase.h)
 	static void				RunScriptCommand(SexyAppBase* theApp, const ScriptCommand& theCommand);
+	// The controls a click reaches now and where, as JSON ("modmenu targets")
+	std::string				TargetsJson();
 	// The app, before its display goes away: the fonts and the glyph image
 	static void				FreeResources();
 
@@ -179,6 +183,8 @@ private:
 	bool					ClickChangesValue(int theItem);
 	std::string				OpenLabel(int theMod) const;
 	std::string				FooterHelp();
+	int						FooterTextWidth() const;
+	bool					HelpUnderRow(const SettingView& theSetting) const;
 	std::string				PendingText() const;
 	std::vector<std::pair<std::string, int> > PageMessages();  // the page's messages and their TEXT_ colours (the slot)
 

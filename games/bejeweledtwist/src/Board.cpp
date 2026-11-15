@@ -76,6 +76,8 @@ const Color kGemColorTable[7] = {Color(255, 32, 32), Color(255, 255, 255), Color
 Board::Board(WinTwistApp* theApp, int theMode, int theFlags, int theChallengeCategory)
 {
 	mApp = theApp;
+	static uint32_t sBoardSerials = 0;   // port(mod): see LiveSplitObserver.cpp
+	mBoardSerial = ++sBoardSerials;
 	// port: the original starts a CSV header in a stats buffer at app+0x1024 when it is empty (0x6b2880); the
 	// buffer is never written out, so it is left out
 	mName = "BOARD";

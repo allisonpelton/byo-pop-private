@@ -23,7 +23,8 @@
 #   nextgame a value held for the next fresh game: it waits during a game and while a save waits for "Continue?",
 #            and "No" makes the untouched board again with it (the score key it announced); Options shows MODS
 #   pause    the menu pauses and resumes the board exactly as Options does: the same -tracehash (board, both
-#            RNGs) whether it closes by command or by Esc after keyboard use
+#            RNGs) whether it closes by command or by Esc after keyboard use; and nothing of the board updates
+#            while it is open
 # And fwtest -hotkeytest (F2 through HandleEvent), and check_no_rand.py (no random draw in the menu's sources).
 # fwtest runs on Bejeweled's files (--gamedir bejeweled=PATH): when they are missing and only one other game is
 # selected ("run_tests.sh bigmoney"), the fwtest step is skipped with a note and does not count as failed; with
@@ -196,11 +197,13 @@ for GAME in $GAMES; do
 		done
 		# While the game is paused (updates 620..719) Options is an open dialog, which both hashes include, and the
 		# menu is not; before and after, every update must hash the same. The two menu runs are the same throughout.
+		# The menu holds the whole game (docs/MOD_MENU_DESIGN.md 5.4): the board's update of 620, where the command
+		# opens it, still runs (paused by ModalOpen), then none until 720, where the command closes it.
 		outside() { awk '$1 < 620 || $1 >= 720' "$1"; }
 		check "pause: the menu opened and closed by command traces as Options" \
 			'[ -s "$G/pause-options/trace.txt" ] && [ "$(outside "$G/pause-options/trace.txt")" = "$(outside "$G/pause-menu/trace.txt")" ]'
-		check "pause: the board stays paused while the menu is open (its state does not change)" \
-			'[ "$(awk '"'"'$1 >= 621 && $1 < 720 { print $2, $3 }'"'"' "$G/pause-menu/trace.txt" | sort -u | wc -l)" = 1 ]'
+		check "pause: nothing of the board updates while the menu is open" \
+			'[ "$(awk '"'"'$1 >= 621 && $1 < 720'"'"' "$G/pause-menu/trace.txt" | wc -l)" = 0 ] && grep -q "^620 " "$G/pause-menu/trace.txt"'
 		check "pause: the menu used by keyboard and closed by Esc traces the same" 'cmp -s "$G/pause-menu/trace.txt" "$G/pause-esc/trace.txt"'
 	fi
 

@@ -42,6 +42,17 @@ WidgetManager::WidgetManager(SexyAppBase* theApp)
 
 	for (int i = 0; i < 0xFF; i++)
 		mKeyDown[i] = false;
+
+	mCaptureWidget = NULL;
+	mCaptureMouseX = 0;
+	mCaptureMouseY = 0;
+	mCaptureMouseIn = false;
+	mCaptureDownButtons = 0;
+	for (int i = 0; i < 0xFF; i++)
+	{
+		mCaptureKeyDown[i] = false;
+		mHeldPastCapture[i] = false;
+	}
 }
 
 WidgetManager::~WidgetManager()
@@ -56,6 +67,10 @@ void WidgetManager::FreeResources()
 
 void WidgetManager::DisableWidget(Widget* theWidget)
 {
+	// port: a widget that goes away gives back the input it took
+	if (mCaptureWidget == theWidget)
+		SetInputCapture(NULL);
+
 	if (mOverWidget == theWidget)
 	{
 		Widget* aOverWidget = mOverWidget;
@@ -118,6 +133,21 @@ bool WidgetManager::IsRightButtonDown()
 
 void WidgetManager::DoMouseUps()
 {
+	// port: the capture's own buttons (SetInputCapture), as the widgets' below
+	if ((mCaptureWidget != NULL) && (mCaptureDownButtons != 0))
+	{
+		Widget* aWidget = mCaptureWidget;
+		int aClickCountTable[3] = { 1,-1, 3 };
+		int aDownButtons = mCaptureDownButtons;
+		mCaptureDownButtons = 0;
+		aWidget->mIsDown = false;
+		for (int i = 0; (i < 3) && (mCaptureWidget == aWidget); i++)
+		{
+			if ((aDownButtons & (1 << i)) != 0)
+				aWidget->MouseUp(mCaptureMouseX - aWidget->mX, mCaptureMouseY - aWidget->mY, aClickCountTable[i]);
+		}
+	}
+
 	if (mLastDownWidget!=NULL && mDownButtons!=0)
 	{
 		DoMouseUps(mLastDownWidget, mDownButtons);
@@ -355,8 +385,10 @@ void WidgetManager::LostFocus()
 		mActualDownButtons = 0;
 		for (int aKeyNum = 0; aKeyNum < 0xFF; aKeyNum++)
 		{
-			if (mKeyDown[aKeyNum])
+			// port: the capture's keys come up for it (SetInputCapture); a game's are all up while it lasts
+			if ((mKeyDown[aKeyNum]) || ((mCaptureWidget != NULL) && (mCaptureKeyDown[aKeyNum])))
 				KeyUp((KeyCode) aKeyNum);
+			mHeldPastCapture[aKeyNum] = false;
 		}
 
 		mHasFocus = false;
@@ -521,6 +553,9 @@ void WidgetManager::RemovePopupCommandWidget()
 
 void WidgetManager::MousePosition(int x, int y)
 {
+	// port: the widgets below a capture learn of the pointer only when it ends (SetInputCapture)
+	if (mCaptureWidget != NULL)
+		return;
 
 	int aLastMouseX = mLastMouseX;
 	int aLastMouseY = mLastMouseY;
@@ -556,6 +591,9 @@ void WidgetManager::MousePosition(int x, int y)
 
 void WidgetManager::RehupMouse()
 {
+	if (mCaptureWidget != NULL)
+		return;
+
 	if (mLastDownWidget != NULL)
 	{
 		if (mOverWidget != NULL)
@@ -575,17 +613,32 @@ void WidgetManager::RehupMouse()
 }
 
 bool WidgetManager::MouseUp(int x, int y, int theClickCount)
-{	
-	mLastInputUpdateCnt = mUpdateCnt;
-	
+{
 	int aMask;
-	
+
 	if (theClickCount < 0)
 		aMask = 0x02;
 	else if (theClickCount == 3)
 		aMask = 0x04;
 	else
 		aMask = 0x01;
+
+	// port: the capture's widget gets the release of a press it got (SetInputCapture); the release of one from
+	// before the capture goes nowhere
+	if (mCaptureWidget != NULL)
+	{
+		Widget* aWidget = mCaptureWidget;
+		CaptureMouse(x, y);
+		if ((mCaptureWidget == aWidget) && ((mCaptureDownButtons & aMask) != 0))
+		{
+			mCaptureDownButtons &= ~aMask;
+			aWidget->mIsDown = mCaptureDownButtons != 0;
+			aWidget->MouseUp(x - aWidget->mX, y - aWidget->mY, theClickCount);
+		}
+		return true;
+	}
+
+	mLastInputUpdateCnt = mUpdateCnt;
 
 	// Make sure that we thought this button was down anyway - possibly not, if we 
 	//  disabled the widget already or something
@@ -609,8 +662,21 @@ bool WidgetManager::MouseUp(int x, int y, int theClickCount)
 	return true;
 }
 
-bool WidgetManager::MouseDown(int x, int y, int theClickCount) 
-{	
+bool WidgetManager::MouseDown(int x, int y, int theClickCount)
+{
+	// port: the capture's widget gets every press (SetInputCapture)
+	if (mCaptureWidget != NULL)
+	{
+		Widget* aWidget = mCaptureWidget;
+		CaptureMouse(x, y);
+		if (mCaptureWidget != aWidget)
+			return true;
+		mCaptureDownButtons |= (theClickCount < 0) ? 0x02 : (theClickCount == 3) ? 0x04 : 0x01;
+		aWidget->mIsDown = true;
+		aWidget->MouseDown(x - aWidget->mX, y - aWidget->mY, theClickCount);
+		return true;
+	}
+
 	mLastInputUpdateCnt = mUpdateCnt;
 	mLastMouseDownTick = mApp->GetClockTime(); // port: the 2004 field, set on every press (FRAMEWORK_2004.md)
 
@@ -677,8 +743,14 @@ bool WidgetManager::MouseDown(int x, int y, int theClickCount)
 	return true;
 }
 
-bool WidgetManager::MouseMove(int x, int y) 
-{	
+bool WidgetManager::MouseMove(int x, int y)
+{
+	if (mCaptureWidget != NULL)
+	{
+		CaptureMouse(x, y);
+		return true;
+	}
+
 	mLastInputUpdateCnt = mUpdateCnt;
 
 	if (mDownButtons)
@@ -690,8 +762,14 @@ bool WidgetManager::MouseMove(int x, int y)
 	return true;
 }
 
-bool WidgetManager::MouseDrag(int x, int y) 
-{	
+bool WidgetManager::MouseDrag(int x, int y)
+{
+	if (mCaptureWidget != NULL)
+	{
+		CaptureMouse(x, y);
+		return true;
+	}
+
 	mLastInputUpdateCnt = mUpdateCnt;
 
 	mMouseIn = true;
@@ -738,7 +816,15 @@ bool WidgetManager::MouseDrag(int x, int y)
 }
 
 bool WidgetManager::MouseExit(int x, int y)
-{	
+{
+	if (mCaptureWidget != NULL)
+	{
+		mCaptureMouseIn = false;
+		if (mCaptureWidget->mIsOver)
+			MouseLeave(mCaptureWidget);
+		return true;
+	}
+
 	mLastInputUpdateCnt = mUpdateCnt;
 
 	mMouseIn = false;
@@ -754,6 +840,12 @@ bool WidgetManager::MouseExit(int x, int y)
 
 void WidgetManager::MouseWheel(int theDelta)
 {
+	if (mCaptureWidget != NULL)
+	{
+		mCaptureWidget->MouseWheel(theDelta);
+		return;
+	}
+
 	mLastInputUpdateCnt = mUpdateCnt;
 
 	if (mFocusWidget != NULL)
@@ -762,6 +854,12 @@ void WidgetManager::MouseWheel(int theDelta)
 
 bool WidgetManager::KeyChar(SexyChar theChar)
 {
+	if (mCaptureWidget != NULL)
+	{
+		mCaptureWidget->KeyChar(theChar);
+		return true;
+	}
+
 	mLastInputUpdateCnt = mUpdateCnt;
 
 	if (theChar == KEYCODE_TAB)
@@ -785,6 +883,17 @@ bool WidgetManager::KeyChar(SexyChar theChar)
 
 bool WidgetManager::KeyDown(KeyCode key)
 {
+	// port: the capture's widget gets every key (SetInputCapture); a key held since a capture ended repeats for nobody
+	if (mCaptureWidget != NULL)
+	{
+		if ((key >= 0) && (key < 0xFF))
+			mCaptureKeyDown[key] = true;
+		mCaptureWidget->KeyDown(key);
+		return true;
+	}
+	if ((key >= 0) && (key < 0xFF) && (mHeldPastCapture[key]))
+		return true;
+
 	mLastInputUpdateCnt = mUpdateCnt;
 
 	if ((key >= 0) && (key < 0xFF))
@@ -798,6 +907,19 @@ bool WidgetManager::KeyDown(KeyCode key)
 
 bool WidgetManager::KeyUp(KeyCode key)
 {
+	// port: the capture's widget gets every release (SetInputCapture); the release of a key held since a capture
+	// ended goes on as any release (the key the mod menu closed on: SexyAppBase's mModMenuClosingKey), and its next
+	// press is the game's again
+	if (mCaptureWidget != NULL)
+	{
+		if ((key >= 0) && (key < 0xFF))
+			mCaptureKeyDown[key] = false;
+		mCaptureWidget->KeyUp(key);
+		return true;
+	}
+	if ((key >= 0) && (key < 0xFF))
+		mHeldPastCapture[key] = false;
+
 	mLastInputUpdateCnt = mUpdateCnt;
 
 	if ((key >= 0) && (key < 0xFF))
@@ -810,4 +932,86 @@ bool WidgetManager::KeyUp(KeyCode key)
 		mFocusWidget->KeyUp(key);
 	
 	return true;
+}
+
+// port: the pointer at x, y for the capture's widget (SetInputCapture), taken as covering the window as the mod menu
+// does: the widget is entered, and a move drags while one of its own presses is held
+void WidgetManager::CaptureMouse(int x, int y)
+{
+	Widget* aWidget = mCaptureWidget;
+	bool isMoved = (x != mCaptureMouseX) || (y != mCaptureMouseY) || (!mCaptureMouseIn);
+	mCaptureMouseX = x;
+	mCaptureMouseY = y;
+	mCaptureMouseIn = true;
+	if (!aWidget->mIsOver)
+		MouseEnter(aWidget);
+	if ((!isMoved) || (mCaptureWidget != aWidget))
+		return;
+	if (mCaptureDownButtons != 0)
+		aWidget->MouseDrag(x - aWidget->mX, y - aWidget->mY);
+	else
+		aWidget->MouseMove(x - aWidget->mX, y - aWidget->mY);
+}
+
+// port: see WidgetManager.h. SexyAppBase::OpenModMenu calls it before AddBaseModal, so that the keys the game's
+// widgets let go of reach the one that still has the focus.
+void WidgetManager::SetInputCapture(Widget* theWidget)
+{
+	if (theWidget == mCaptureWidget)
+		return;
+
+	if (mCaptureWidget != NULL)
+	{
+		// Given back: a key still held is held past the capture; the pointer is where the capture saw it last
+		Widget* aWidget = mCaptureWidget;
+		mCaptureWidget = NULL;
+		for (int aKeyNum = 0; aKeyNum < 0xFF; aKeyNum++)
+		{
+			if (mCaptureKeyDown[aKeyNum])
+				mHeldPastCapture[aKeyNum] = true;
+			mCaptureKeyDown[aKeyNum] = false;
+		}
+		mCaptureDownButtons = 0;
+		aWidget->mIsDown = false;
+		if (aWidget->mIsOver)
+			MouseLeave(aWidget);
+		mLastMouseX = mCaptureMouseX;
+		mLastMouseY = mCaptureMouseY;
+		mMouseIn = mCaptureMouseIn;
+	}
+
+	if (theWidget == NULL)
+		return;
+
+	// Taken: the widgets let go of what they had, as SetBaseModal and a lost focus let go of it. The widget under the
+	// pointer is left first, so that a held button's release clicks nothing. The keys held stay held for the capture.
+	if (mOverWidget != NULL)
+	{
+		Widget* aWidget = mOverWidget;
+		mOverWidget = NULL;
+		MouseLeave(aWidget);
+	}
+	DoMouseUps();
+	mDownButtons = 0;
+	mActualDownButtons = 0;
+	for (int aKeyNum = 0; aKeyNum < 0xFF; aKeyNum++)
+	{
+		mCaptureKeyDown[aKeyNum] = mKeyDown[aKeyNum];
+		if (mKeyDown[aKeyNum])
+			KeyUp((KeyCode) aKeyNum);
+	}
+	mCaptureWidget = theWidget;
+	mCaptureDownButtons = 0;
+	mCaptureMouseX = mLastMouseX;
+	mCaptureMouseY = mLastMouseY;
+	mCaptureMouseIn = false;
+	if (mMouseIn)
+		CaptureMouse(mLastMouseX, mLastMouseY);
+}
+
+bool WidgetManager::IsInputKeyDown(KeyCode theKey)
+{
+	if ((theKey < 0) || (theKey >= 0xFF))
+		return false;
+	return (mCaptureWidget != NULL) ? mCaptureKeyDown[theKey] : mKeyDown[theKey];
 }

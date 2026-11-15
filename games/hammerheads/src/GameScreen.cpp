@@ -73,6 +73,8 @@ GameScreen::GameScreen()
 		aJump = 25;
 	if (aJump != -1)
 		mLevel = aJump;
+	if (gApp->mTestStartLevel != -1)
+		mLevel = gApp->mTestStartLevel;
 
 	mMenuButton = MakeNcButton(0, this, "", IMAGE_INGAMEUI_MENUBUTTON, 3);
 	mMenuButton->mDarkensWithFade = true;

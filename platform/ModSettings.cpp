@@ -17,7 +17,10 @@ static const int64_t kMaxSteps = 100000;
 static const int kMaxPlaceholderDepth = 8;
 static const int kMaxScale = 9;
 static const size_t kMaxLabel = 40;
-static const size_t kMaxHelp = 200;
+// a help longer than the menu's footer takes (two lines) is shown under its row in full (ModMenu::HelpUnderRow); at
+// 1000 characters a setting's row and its help still fit the content together. 200 until 2026-11-14, when the
+// user's fixes mods' helps were cut with a warning (tools/modtextcheck.py flags a text over its limit)
+static const size_t kMaxHelp = 1000;
 static const size_t kMaxUnit = 8;
 static const int64_t kIntDefaultMin = -1000000;
 static const int64_t kIntDefaultMax = 1000000;

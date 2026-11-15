@@ -5,7 +5,9 @@
 // picture is cut into thirds of width/3 and height/3 and the right and bottom pieces are taken from 2/3 on, where the later
 // framework takes them from the picture's last third. The two differ when the picture is not a multiple of three (the
 // dialog button is 98 x 50: the later one shows two more columns and rows, so the buttons' right and bottom edges were two
-// pixels off). The same code as Seven Seas' Button2003.h (WinSS.exe 0x42beb0 is the same function).
+// pixels off). The framework has that 2003 form behind `Graphics::mDrawImageBox2003`, which MMApp's constructor turns on; it
+// draws the same pieces in the same order as the original's function (and as this file's own copy did, taken out when the two were
+// compared). The dialog's frame (192 x 192) is a multiple of three, so it is the same drawn either way.
 
 #include "DialogButton.h"
 #include "Dialog.h"
@@ -14,41 +16,6 @@
 
 namespace Sexy
 {
-
-inline void DrawImageBox2003(Graphics* g, const Rect& theDest, Image* theImage)
-{
-	int cw = theImage->GetWidth() / 3;
-	int ch = theImage->GetHeight() / 3;
-	if (cw <= 0 || ch <= 0)
-		return;
-
-	g->DrawImage(theImage, theDest.mX, theDest.mY, Rect(0, 0, cw, ch));
-	g->DrawImage(theImage, theDest.mX - cw + theDest.mWidth, theDest.mY, Rect(cw * 2, 0, cw, ch));
-	g->DrawImage(theImage, theDest.mX, theDest.mY - ch + theDest.mHeight, Rect(0, ch * 2, cw, ch));
-	g->DrawImage(theImage, theDest.mX - cw + theDest.mWidth, theDest.mY - ch + theDest.mHeight, Rect(cw * 2, ch * 2, cw, ch));
-
-	Graphics aTopBottom(*g);
-	aTopBottom.ClipRect(theDest.mX + cw, theDest.mY, theDest.mWidth - cw * 2, theDest.mHeight);
-	for (int i = 0, n = (theDest.mWidth - cw - 1) / cw, x = cw; i < n; i++, x += cw)
-	{
-		aTopBottom.DrawImage(theImage, theDest.mX + x, theDest.mY, Rect(cw, 0, cw, ch));
-		aTopBottom.DrawImage(theImage, theDest.mX + x, theDest.mY - ch + theDest.mHeight, Rect(cw, ch * 2, cw, ch));
-	}
-
-	Graphics aSides(*g);
-	aSides.ClipRect(theDest.mX, theDest.mY + ch, theDest.mWidth, theDest.mHeight - ch * 2);
-	for (int i = 0, n = (theDest.mHeight - ch - 1) / ch, y = ch; i < n; i++, y += ch)
-	{
-		aSides.DrawImage(theImage, theDest.mX, theDest.mY + y, Rect(0, ch, cw, ch));
-		aSides.DrawImage(theImage, theDest.mX - cw + theDest.mWidth, theDest.mY + y, Rect(cw * 2, ch, cw, ch));
-	}
-
-	Graphics aMiddle(*g);
-	aMiddle.ClipRect(theDest.mX + cw, theDest.mY + ch, theDest.mWidth - cw * 2, theDest.mHeight - ch * 2);
-	for (int i = 0, nx = (theDest.mWidth - cw - 1) / cw, x = cw; i < nx; i++, x += cw)
-		for (int j = 0, ny = (theDest.mHeight - ch - 1) / ch, y = ch; j < ny; j++, y += ch)
-			aMiddle.DrawImage(theImage, theDest.mX + x, theDest.mY + y, Rect(cw, ch, cw, ch));
-}
 
 // DialogButton whose plain (whole picture) look is drawn the 2003 way
 class DialogButton2003 : public DialogButton
@@ -69,7 +36,7 @@ public:
 		if (doTranslate)
 			g->Translate(mTranslateX, mTranslateY);
 
-		DrawImageBox2003(g, Rect(0, 0, mWidth, mHeight), mComponentImage);
+		g->DrawImageBox(Rect(0, 0, mWidth, mHeight), mComponentImage);
 
 		if (mFont != NULL)
 		{
