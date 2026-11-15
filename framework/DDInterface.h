@@ -169,6 +169,13 @@ public:
 	// do). The images are kept by size (GetTransformCopy); with them a frame of Twist costs about 2 ms more.
 	bool mSoftwareTransforms;
 
+	// The 1.2 framework's software rotation (off by default; set by a game on 1.2 whose original draws in 2D). DDImage's
+	// BltRotated, drawn in software (no 3D), rotates a MemoryImage drawn white in normal mode with 1.2's own loop
+	// (DDImage.cpp, BltRotated12) in place of 1.3's MemoryImage::BltRotated, which blends the edges differently (a total
+	// weight over 250 is opaque, and the rest goes through the destination's alpha), up to 4 steps a channel on Big
+	// Money's Mr. Money. Big Money sets it (WinBMApp::CreateDDInterface).
+	bool mBltRotated12;
+
 	// Whether the screen keeps what the last frame drew (off by default: every frame starts from black). The original's software
 	// screen is one surface that persists from frame to frame, so a widget that draws nothing in a frame leaves what was there
 	// before (Bejeweled 2's 2D whirlpool opens over the main menu's last picture, which neither the menu nor the board draws any
