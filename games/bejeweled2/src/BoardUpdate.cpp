@@ -117,7 +117,7 @@ void Board::DoUpdate()
 			return;
 		UpdateBonusPenalty();
 		float aFade = (float)((double)mPauseFade - 0.05);
-		mPauseTextOn = !mApp->mPaused;
+		mPauseTextOn = mApp->GetDialogCount() == 0;
 		if (aFade <= 0.0f)
 			aFade = 0.0f;
 		mPauseFade = aFade;

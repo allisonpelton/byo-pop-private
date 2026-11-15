@@ -12,6 +12,8 @@
 //   step      updates between the WARP's shots (default 6)
 //   win       1: each puzzle is ended by `win` (the game's own ending, which leaves the gems on the board) instead of played by the bot
 //   warpfirst the update of the first shot after the click (default 0: the first shot is `step` after it, as the rest); with it, shot k is at the click + warpfirst + k * step
+//   levelstep, levelshots  the shots along each level change of a board mode: every `levelstep` updates (default 40), `levelshots` of them (default 5);
+//             record_3d_tours.sh's TOUR_LEVEL_STEP and TOUR_LEVEL_SHOTS (20 and 16 in the 3D tours) are the same two
 //   fine      shots every 6 updates along the first N after the mode's click
 //   realtime  1: the game on the browser's own clock (open the page without fast=1), as a player has it
 var params = new URLSearchParams(location.search);
@@ -24,6 +26,8 @@ var winCmd = params.get("win") === "1";  // the puzzles ended by `win` (the gems
 var worlds = Number(params.get("worlds") || 1);
 var realtime = params.get("realtime") === "1";  // the game on the browser's clock (open the page without fast=1), as a player has it
 var fine = Number(params.get("fine") || 0);
+var levelStep = Number(params.get("levelstep") || 40);
+var levelShots = Number(params.get("levelshots") || 5);
 var NAME = "Ali";
 var SECRET = { twilight: "classic", hyper: "action", cognito: "puzzle", finity: "endless" };
 var PUZZLE_MODES = { puzzle: 1, cognito: 1 };
@@ -176,9 +180,9 @@ async function playMoves() {
     if (m.kind === "wait") continue;
     made++;
     s = await state();
-    if (s.level !== level) {  // five shots along each level change
+    if (s.level !== level) {  // the shots along each level change (five, 40 updates apart, unless the page says otherwise)
       level = s.level;
-      for (var k = 0; k < 5; k++) { await adv(40); await shot("level" + level + "-" + k); }
+      for (var k = 0; k < levelShots; k++) { await adv(levelStep); await shot("level" + level + "-" + k); }
     }
   }
   return made;
