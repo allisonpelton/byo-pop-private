@@ -2057,6 +2057,70 @@ var ByopopSoundboards = {
       ["sounds/extralife.au", "Extra life (unused)", "Never played: loaded, but no code asks for it. Big Money's Puzzle tone (sounds/tonepuzzle.ogg) is made from the same sound, slowed 16% and layered with another sound."]
     ] },
   ] },
+  // Venice's sounds are played by name, from its code (games/venice/src: PlaySoundByName, LoadAndPlaySound and the events
+  // it adds) and from the play_sound events of its scene files (levels/*.xml, objects/*.xml); its game updates run 250 a
+  // second. The music files are Music's (web/soundtracks.js); victory.ogg is a sound. bonus_caught and ouch_cupid are named
+  // by nothing but config.xml's list of sounds to load
+  venice: {
+    groups: [
+    { name: "Menus", sounds: [
+      ["audio/hot.ogg", "Hover", "The pointer comes onto a button, a link or a checkbox of the top scene; at a random pitch, 40100 to 48100 Hz"],
+      ["audio/click.ogg", "Click", "A button of the top scene is clicked, or its key pressed"],
+      ["audio/panel.ogg", "Panel", "A panel opens: the mode menu, the options, the in-game menu, the profile, name and delete dialogs, the continue and exit prompts and the cupid's note; also as the loading screen starts to fade out"]
+    ] },
+    { name: "Throwing", sounds: [
+      ["audio/throw.ogg", "Throw", "A click throws the jewel that is ready"],
+      ["audio/fastshot.ogg", "Power throw", "A click throws the jewel that is ready while the shooter has power shots"],
+      ["audio/toss.ogg", "Bounce", "A thrown jewel bounces off a wall (when it has flown five updates since its last bounce), or off a full slot that blocks it; also each minute's number on Survival's summary"],
+      ["audio/bump.ogg", "Bumper", "A jewel hits a bumper, at most once in 20 updates for each bumper"],
+      ["audio/break.ogg", "Jewel bursts", "A jewel has bounced the tuning's number of times and bursts (in Trick Shot, a miss)"],
+      ["audio/load_plate.ogg", "Catch", "The shooter takes back a jewel that comes down onto it, and the shot is given back (not in Trick Shot, and never a wild jewel)"],
+      ["audio/splash.ogg", "Splash", "A jewel falls into the water (in Journey the first one lost outside the tutorial is carried back up by a cupid instead)"]
+    ] },
+    { name: "Filling plates", sounds: [
+      ["audio/place.ogg", "Slot filled", "A jewel, or a cascade, fills a slot; with the fill tone"],
+      ["audio/tone.ogg", "Fill tone", "With every slot filled: at 22050 Hz, and 3000 Hz higher for each further slot the same jewel fills, or for each combo before a cascade's fill"],
+      ["audio/pop.ogg", "Jewel tossed", "A filled slot throws its jewel out again, to fly up and land on a slot of its colour"],
+      ["audio/super_tumble.ogg", "Super Tumble", "One jewel fills its third slot or more: SUPER TUMBLE! shows with the score (one or two slots show Tumble instead, with no sound of its own)"],
+      ["audio/plate.ogg", "Plate done", "A plate's last slot is filled and it spins away"],
+      ["audio/plate_combo.ogg", "Combo", "With the plate sound, when the plate is the second or later of one tumble (DOUBLE COMBO! and up)"]
+    ] },
+    { name: "On the levels", sounds: [
+      ["audio/pigeon.ogg", "Pigeon", "A jewel passes within 60 pixels of a pigeon, which flies off"],
+      ["audio/brick_hit.ogg", "Brick breaks", "A jewel breaks a brick block"],
+      ["audio/warp.ogg", "Warp", "A jewel goes through a warp and comes out of the nearest other one (in Trick Shot, a miss)"],
+      ["audio/turret.ogg", "Turret", "A turret takes in a jewel that is not falling"],
+      ["audio/basket.ogg", "Basket", "A bonus level's basket takes in a falling jewel, for 100 points"],
+      ["audio/powerup_caught.ogg", "Power-up", "The shooter catches a power-up"],
+      ["audio/wings.ogg", "Wings", "The shooter gets wings, which carry it for 2000 updates (8 seconds)"],
+      ["audio/cupid_flap.ogg", "Cupid flaps", "Every 320 ms while a cupid flies: from the cupid power-up, or when no slot has been filled for the tuning's wait while the level scrolls"],
+      ["audio/cupid_catch.ogg", "Cupid catches", "A cupid takes a jewel within 30 pixels of it, while a plate has a slot to fill, and carries it to a slot of its colour"]
+    ] },
+    { name: "Winning and losing", sounds: [
+      ["audio/victory.ogg", "Victory", "A level other than a trick shot is won: 1000 ms after its last plate goes, as VICTORY! shows with its sparkles"],
+      ["audio/rise.ogg", "Rise", "The play ends: a level won or a trick shot made or missed (the tiles go to their victory stage), or a level or a Journey try lost (the plates rise up the screen)"],
+      ["audio/shake.ogg", "Shake", "A plate comes down past the danger line (the tuning's earthquake point) and the play starts to shake"],
+      ["audio/sink.ogg", "Shooter sinks", "A level or a Journey try is lost: the shooter sinks into the water"],
+      ["audio/stats.ogg", "Summary line", "Each line of a level's summary, and each name of the high scores, as it comes up"],
+      ["audio/stats2.ogg", "Total", "A level's summary (or a bonus level's) has counted up its total"]
+    ] },
+    { name: "Trick shots", sounds: [
+      ["audio/trickshot_made.ogg", "Trick shot made", "A trick shot is made (its last plate gone); the music dips"],
+      ["audio/trickshot_missed.ogg", "Trick shot missed", "A trick shot misses: a jewel is lost in the water, bursts or goes through a warp, or a tossed jewel finds no way; the music dips"]
+    ] },
+    { name: "Survival", sounds: [
+      ["audio/minute.ogg", "Minute", "Every minute of play after the first, as its marker comes up the side of the screen"],
+      ["audio/endless_sink.ogg", "City sinks", "Every 750 updates (3 seconds) once the game is lost, while the play sinks"],
+      ["audio/fall.ogg", "Game over", "Survival's summary opens"]
+    ] },
+    { name: "Credits", sounds: [
+      ["audio/fade_in.ogg", "Credit", "Each of the credits' ten names fades in"]
+    ] },
+    { name: "Unused", sounds: [
+      ["audio/bonus_caught.ogg", "Bonus caught (unused)", "Never played: loaded at launch with every sound, but no code or scene file names it"],
+      ["audio/ouch_cupid.ogg", "Cupid hurt (unused)", "Never played: loaded at launch with every sound, but no code or scene file names it"]
+    ] },
+  ] },
   waterbugs: {
     presets: [
       { name: "Beam Shot", when: "A click fires the beams: they drill across the board until each meets a closed cell", steps: [["audio/drill_shoot", 0], ["audio/drill", 60], ["audio/drill", 60], ["audio/drill", 130], ["audio/drill", 130], ["audio/drill", 190], ["audio/drill", 190], ["audio/drill", 260], ["audio/drill", 260], ["audio/drill", 330], ["audio/drill", 330], ["audio/drill", 390], ["audio/drill", 390], ["audio/drill", 460], ["audio/drill", 460], ["audio/drill", 520], ["audio/drill", 520], ["audio/drill", 590], ["audio/drill", 590], ["audio/drill", 660], ["audio/drill", 660], ["audio/drill", 720], ["audio/drill", 720], ["audio/drill", 790], ["audio/drill", 790], ["audio/drill", 850], ["audio/drill", 850], ["audio/drill", 920], ["audio/drill", 920], ["audio/drill", 990], ["audio/drill", 990], ["audio/drill", 1050], ["audio/drill", 1050], ["audio/drill", 1120], ["audio/drill", 1120], ["audio/drill", 1180], ["audio/drill", 1180], ["audio/clank", 1200]]},

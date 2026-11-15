@@ -441,6 +441,34 @@ var ByopopSoundtracks = {
       "gameover": "The game-over high-score list opens (fade 0.002); loops"
     },
   },
+  // Venice: each scene names its music (levels/*.xml: main_music, and win_music for a level won), which the scene starts
+  // silent and raises over 1000 updates (4 seconds at 250 a second) from intro_time / 4 - 1000 updates after it opens, and
+  // which starts again with every level (games/venice/src/Level.cpp: CrossFade). A background's levels share one tune, its
+  // place named by their title; Flood and Journey (config.xml: level_file_game, level_file_relaxed) both go through the
+  // backgrounds 1, 3, 4, 5, 6, 2, 7, 8, nine levels each (eight for the last), and Trick Shot (level_file_trick) through
+  // regions in that order. ingame_2_intro is only in config.xml's list of sounds to load; ingame_1_intro is the world map's,
+  // and an intro before a level's tune only in blank.xml, which nothing opens. victory.ogg is a sound (the Sounds window's)
+  venice: {
+    composer: "Guillaume Bastard & Staffan Melin",
+    files: ["audio/title_music.ogg", "audio/ingame_*.ogg", "audio/final_victory.ogg"],
+    where: { title_music: "Main Menu", ingame_1_intro: "World Map", ingame_1_body: "Welcome to Venice",
+      ingame_1_win: "Level Complete", ingame_3_body: "Lunar Lanes", ingame_4_body: "Cupid's Cove",
+      ingame_5_body: "Venetian Villa", ingame_2_body: "San Marco Square", final_victory: "Final Victory" },
+    order: ["title_music", "ingame_1_intro", "ingame_1_body", "ingame_1_win", "ingame_3_body", "ingame_4_body",
+      "ingame_5_body", "ingame_2_body", "final_victory", "ingame_2_intro"],
+    when: {
+      "title_music": "The main menu opens: after loading, and on every return to it; loops",
+      "ingame_1_intro": "The world map opens: a new Flood or Journey game's start (after the tutorial when it shows), then before levels 4, 7, 10 and on; loops",
+      "ingame_1_body": "Flood and Journey levels 1 to 9 (Welcome to Venice) and 37 to 45 (Grotto Ghetto), Trick Shot's first and fifth regions, and Survival; loops",
+      "ingame_1_win": "A level other than a trick shot is won: starts 2 updates after its last plate goes and rises over 80 (0.32 seconds) as the level's tune drops to a fifth and plays on under it; once",
+      "ingame_3_body": "Flood and Journey levels 10 to 18 (Lunar Lanes) and 64 to 71 (Lavender Lair), Trick Shot's second and last regions; loops",
+      "ingame_4_body": "Flood and Journey levels 19 to 27 (Cupid's Cove), Trick Shot's third region; also both tutorials and the high scores; loops",
+      "ingame_5_body": "Flood and Journey levels 28 to 36 (Venetian Villa), Trick Shot's fourth region; loops",
+      "ingame_2_body": "Flood and Journey levels 46 to 63 (San Marco Square, then Vesta's Vista), Trick Shot's sixth and seventh regions; also the credits; loops",
+      "final_victory": "The win scene: after Flood's or Journey's level 71, or once every trick shot is made; loops, until the high scores"
+    },
+    unused: ["ingame_2_intro"]
+  },
   // Bonnie's Bookstore plays its one module as tracks, each a range of orders (its track table, games/bonnies/game/Music.cpp:
   // the first for the menu, the rest in a game), and a logo tune
   bonnies: {
