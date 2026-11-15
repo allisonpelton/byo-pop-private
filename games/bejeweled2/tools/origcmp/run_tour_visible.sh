@@ -18,10 +18,17 @@ ev=$1; tag=$2; portonly=${3:-}
 cd "$(dirname "$0")/../../../.." || exit 2
 ABS=$PWD
 LDARGS=${LDARGS---leave-after 1}
+# the player of the recording (record_3d_tours.sh's PROFILE: make_profile.py's, every mode unlocked) is the original's players while
+# its run lasts, and the port's replay has it in its user folder; PROFILE= (empty) starts both with no player
+PROFILE=${PROFILE-build/logs/bej2/profile}
 mkdir -p build/visrun build/origrun
 
 # at most three game processes on the machine (docs/COORDINATION.md): wait for a free place
 wait_slot() { for i in $(seq 1 360); do python tools/gamecount.py --limit 6 > /dev/null && return 0; sleep 15; done; return 1; }
+
+# the original runs on the visible desktop: only from 22:00 to 08:00 local (CLAUDE.md, "Overnight"); visrun.py checks too
+h=$(date +%H); h=$((10#$h))
+if [ -z "$portonly" ] && [ $h -ge 8 ] && [ $h -lt 22 ]; then echo "the visible desktop is for 22:00 to 08:00 local; it is $(date +%H:%M)"; exit 5; fi
 
 if [ -z "$portonly" ]; then
   script=build/origrun/bej2_$tag.txt
@@ -37,7 +44,7 @@ lines.insert(first, 'at 330 gate %d' % update)
 open(p, 'w').write('\n'.join(lines))
 EOF
   wait_slot || { echo "no room for a game process"; exit 3; }
-  python games/bejeweled2/tools/origcmp/visrun.py build/visrun/bej2/game/Bejeweled2Game.exe $script build/visrun/$tag --timeout 120
+  python games/bejeweled2/tools/origcmp/visrun.py ${PROFILE:+--profile $PROFILE} build/visrun/bej2/game/Bejeweled2Game.exe $script build/visrun/$tag --timeout 120
   echo "visrun rc=$?"
   cat build/visrun/$tag.visrun.log
 fi
@@ -47,6 +54,7 @@ rm -rf $V; mkdir -p $V/cwd/shots $V/user
 python games/bejeweled2/tools/origcmp/landed_to_events.py $ev build/visrun/$tag/landed.tsv $V/events.json $LDARGS > /dev/null || exit 2
 python games/bejeweled2/tools/origcmp/to_commands.py $V/events.json $V/cmd.txt --shots shots > /dev/null
 : > $V/empty.ri
+[ -n "$PROFILE" ] && cp -r $PROFILE/users $V/user/users
 printf '[SOFTWARE\\Steam\\Bejeweled2]\nScreenMode=dword:0\nHighResolution=dword:1\n' > $V/user/registry.ini
 wait_slot || { echo "no room for a game process"; exit 3; }
 (cd $V/cwd && $ABS/build/native/rundesk.exe $ABS/build/native/bejeweled2.exe -gamedir= -userdir=$V/user -commands=$V/cmd.txt -realinput=$V/empty.ri -hold -fast -drawevery -seed=909 -trace > $V/port.log 2>&1)
