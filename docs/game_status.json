@@ -397,10 +397,11 @@
         "identical-look",
         "fixes-mod",
         "coverage",
-        "site-features"
+        "site-features",
+        "performance"
       ],
       "na": [],
-      "now": "performance",
+      "now": "lite-mod",
       "note": ""
     },
     "tiptop": {

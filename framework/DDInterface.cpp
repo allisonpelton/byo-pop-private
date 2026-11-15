@@ -194,6 +194,7 @@ DDInterface::DDInterface(SexyAppBase* theApp)
 	mFastStretchPreAdd = false;
 	mFastStretchCentre = false;
 	mSoftwareTransforms = false;
+	mBltRotated12 = false;
 	mKeepScreen = false;
 	mStretchUse = 0;
 

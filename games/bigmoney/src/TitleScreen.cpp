@@ -52,7 +52,7 @@ TitleScreen::TitleScreen(WinBMApp* theApp)
 	mDeluxeImage->SetVolatile(true);
 	int aSize = mDeluxeImage->GetWidth() * mDeluxeImage->GetHeight();
 	mDeluxeHSL = new ulong[aSize];
-	mApp->RGBToHSL(aSrcImage->GetBits(), mDeluxeHSL, aSize);
+	mApp->RGBToHSL(aSrcImage->ReadBits(), mDeluxeHSL, aSize);
 	mDeluxeWork = new ulong[aSize];
 	// port: a mod's HD badge gets the same HSL copy (HDPixels.h). SexyAppBase::RGBToHSL packs a saturation
 	// of 256 for any colour with a zero channel, which spills into the luminosity and leaves the pixel grey.
