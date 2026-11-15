@@ -539,11 +539,12 @@
         "fixes-mod",
         "readability",
         "coverage",
-        "registration-out"
+        "registration-out",
+        "performance"
       ],
       "na": [],
-      "now": "performance",
-      "note": "readability (1a205bd4) and the coverage check (7fcccaee) merged: 36 origrun runs reach 801 of the 1050 game functions, none without a counterpart, the 57 never reached read again or explained; now the performance pass"
+      "now": null,
+      "note": "the performance pass merged (0ec9910f): in 2D on rundesk over level 4 the port takes 2.67 M cycles an update at 1x and 2.74 at 2x against the original's 3.13, about 85% with the mixer counted apart and 94% with it, no code change; next the lite mod"
     },
     "hammerheads": {
       "title": "Hammer Heads Deluxe",
