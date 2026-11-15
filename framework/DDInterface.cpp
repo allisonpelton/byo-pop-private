@@ -1041,10 +1041,32 @@ static bool BatchesQuads()
 	return aBatches != 0;
 }
 
+// Whether SDL 2 takes these vertices: it refuses a whole RenderGeometry call when any vertex's u or v is outside 0..1 ("Values of
+// 'uv' out of bounds") and draws none of it
+static bool TexCoordsInRange(const SDL_Vertex* theVertices, int theVertexCount)
+{
+	for (int i = 0; i < theVertexCount; i++)
+	{
+		const SDL_FPoint& aCoord = theVertices[i].tex_coord;
+		if ((aCoord.x < 0.0f) || (aCoord.y < 0.0f) || (aCoord.x > 1.0f) || (aCoord.y > 1.0f))
+			return false;
+	}
+	return true;
+}
+
 void DDInterface::AddQuads(SDL_Texture* theTexture, const SDL_Vertex* theVertices, int theVertexCount, const int* theIndices, int theIndexCount)
 {
 	if ((!mIs3D) || (!BatchesQuads()))
 	{
+		SDL_RenderGeometry(mRenderer, theTexture, theVertices, theVertexCount, theIndices, theIndexCount);
+		return;
+	}
+
+	// triangles SDL will refuse go to it on their own, as before the batch, so that the ones gathered with them are still
+	// drawn (Bejeweled 2's hyperspace tunnel in the 3D whirlpool: the triangles whose v wraps start just below 0)
+	if (!TexCoordsInRange(theVertices, theVertexCount))
+	{
+		FlushQuads();
 		SDL_RenderGeometry(mRenderer, theTexture, theVertices, theVertexCount, theIndices, theIndexCount);
 		return;
 	}

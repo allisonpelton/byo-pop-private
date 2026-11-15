@@ -78,8 +78,11 @@ Bejeweled 2's bot game or at any title of the set below. In the bot games of Bej
 Direct3D 11 the driver's work for the draw calls took half of the processor time of some games: 49 % of Typer Shark's
 in 3D, 55 to 60 % of Venice's. The textured quads and triangles with one texture, blend mode and clip now go to SDL as
 one call (`DDInterface::AddQuads`, `FlushQuads`), the same triangles in the same order; any other draw, a read of the
-target, a clip or target change and any change to a texture flush them first. Solid fills join their spans into
-rectangles. Only an accelerated renderer gathers quads: SDL's software renderer turns each call's pairs of triangles back
+target, a clip or target change and any change to a texture flush them first. A call with a u or v outside 0..1 goes
+to SDL on its own, as before: SDL 2 refuses such a call whole, and in a batch it took the quads gathered with it along
+(Bejeweled 2's hyperspace tunnel in the 3D whirlpool, found when the transform stack came in; the whirlpool's shots
+are now the same with and without the batch). A quad's vertices go through the transform stack's top matrix before
+it is queued, so a push or pop needs no flush. Solid fills join their spans into rectangles. Only an accelerated renderer gathers quads: SDL's software renderer turns each call's pairs of triangles back
 into copies. (SDL 2.32's Direct3D 11 renderer issues one `Draw` for each geometry command, `SDL_render_d3d11.c`; Typer
 Shark's notes took it that SDL merges the calls of one texture, which its OpenGL renderers do and this one does not.)
 
