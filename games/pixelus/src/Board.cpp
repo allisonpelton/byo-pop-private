@@ -74,8 +74,6 @@ Board::Board(PixelusApp* theApp, const std::string& theLevelName, int thePuzzleI
 	mIdleTicks = 0;
 	mMusicDelay = -1;
 	mErrorTicks = 0;
-	memset(mFlash, 0, sizeof(mFlash));
-	memset(mFlashWanted, 0, sizeof(mFlashWanted));
 	mHintShown = false;
 	mLessonShown = false;
 	mHintTicks = 0;
@@ -149,8 +147,6 @@ Board::Board(PixelusApp* theApp, int theRows, int theCols, int theGridX, int the
 	mIdleTicks = 0;
 	mMusicDelay = -1;
 	mErrorTicks = 0;
-	memset(mFlash, 0, sizeof(mFlash));
-	memset(mFlashWanted, 0, sizeof(mFlashWanted));
 	mHintShown = false;
 	mLessonShown = false;
 	mHintTicks = 0;
@@ -344,7 +340,6 @@ void Board::RestartPuzzle()
 	UserProfile* aUser = mApp->mUserDirectory->GetCurrent();
 	if (aUser != NULL)
 		mApp->mProgress->RemoveHistory(aUser->mId, mUuid);
-	memset(mFlash, 0, sizeof(mFlash));
 	mHintShown = false;
 	mIntro = 0;
 	mAlpha = 0;
@@ -540,12 +535,9 @@ void Board::DoPull()
 void Board::TileArrived(GridObject* theObject)
 {
 	const Grid::Cell& aCell = mGrid->mCells[theObject->mRow][theObject->mCol];
-	bool aWanted = aCell.mWanted || aCell.mStart;
 	if (aCell.mStart)
 		mApp->PlaySample(SOUND_TILE_TARGET_02C);
 	mApp->PlaySample(aCell.mWanted ? SOUND_TILE_TARGET_02C : SOUND_TILE_NON_TARGET_02B);
-	mFlash[theObject->mRow][theObject->mCol] = 40;
-	mFlashWanted[theObject->mRow][theObject->mCol] = aWanted;
 	mGrid->Nudge(theObject->mRow, theObject->mCol, theObject->mDir);
 }
 
@@ -711,7 +703,6 @@ void Board::SetHover(int theCol, int theRow, bool theValid)
 bool Board::LoadDemoPuzzle(const std::string& theText)
 {
 	mReplayOn = false;
-	memset(mFlash, 0, sizeof(mFlash));
 	bool aLoaded = mGrid->LoadFromText(theText);
 	LoadPuzzlePicture(mApp, mGrid);
 	return aLoaded;
@@ -746,10 +737,6 @@ void Board::UpdateDemo()
 	mUpdateCnt++;
 	UpdateTiles();
 	mGrid->UpdateFinish();
-	for (int r = 0; r < Grid::MAX_SIZE; r++)
-		for (int c = 0; c < Grid::MAX_SIZE; c++)
-			if (mFlash[r][c] > 0)
-				mFlash[r][c]--;
 	if (mReplayOn && --mReplayDelay < 1)
 	{
 		const Grid::Move& aMove = mReplay[mReplayIndex];
@@ -825,10 +812,6 @@ void Board::Update()
 	UpdateTiles();
 	mGrid->UpdateFinish();
 	mTileMaster->Update();
-	for (int r = 0; r < Grid::MAX_SIZE; r++)
-		for (int c = 0; c < Grid::MAX_SIZE; c++)
-			if (mFlash[r][c] > 0)
-				mFlash[r][c]--;
 	if (mErrorTicks > 0)
 		mErrorTicks--;
 	if (mHintShown && --mHintTicks <= 0)
@@ -911,6 +894,13 @@ void Board::HintCheck()
 		case 7: aCount = -1; aCells = aPos7; break;
 		}
 		mApp->ShowHint(aWidths[mPuzzleIndex], -1, "", GT(aTexts[mPuzzleIndex]), aCount, aCells);
+		// the cells that glow (0x4061f0, 0x406310, 0x406470, 0x406b10): the second one 228 updates after the first
+		static const int aGlow[5][2][3] = { { { 9, 8, 0 }, { 9, 9, 228 } }, { { 5, 9, 0 }, { 5, 12, 228 } }, { { 2, 4, 0 }, { -1, 0, 0 } },
+			{ { -1, 0, 0 }, { -1, 0, 0 } }, { { 13, 7, 0 }, { 13, 6, 228 } } };
+		if (mPuzzleIndex < 5)
+			for (int i = 0; i < 2; i++)
+				if (aGlow[mPuzzleIndex][i][0] >= 0)
+					mGrid->StartGlow(aGlow[mPuzzleIndex][i][0], aGlow[mPuzzleIndex][i][1], aGlow[mPuzzleIndex][i][2]);
 	}
 	else
 	{
@@ -1373,19 +1363,25 @@ void Board::DrawGrid(Graphics* g)
 			DrawTile(g, anObject);
 		}
 
-	// the glow where a tile has just landed
+	// the glow of the cells the tutorial points at (0x422ab0: additive, 5 pixels outside the cell), then the cursor picture
 	g->SetColorizeImages(true);
 	g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
 	for (int r = 0; r < mGrid->mRows; r++)
 		for (int c = 0; c < mGrid->mCols; c++)
-			if (mFlash[r][c] > 0)
-			{
-				int aAlpha = (int) (sin(mFlash[r][c] * PI / 40.0) * 255.0);
-				g->SetColor(Color(255, 255, 255, aAlpha));
-				Image* aGlow = mApp->mImages[mFlashWanted[r][c] ? IMAGE_TILE_GLOW : IMAGE_TILE_REDGLOW];
-				g->DrawImage(aGlow, mGridX + c * S + S / 2 - aGlow->GetWidth() / 2, mGridY + r * S + S / 2 - aGlow->GetHeight() / 2);
-			}
+		{
+			const Grid::Cell& aCell = mGrid->mCells[r][c];
+			if (aCell.mGlowState == 0)
+				continue;
+			int aValue = aCell.mGlowValue < 1 ? 0 : aCell.mGlowValue;
+			g->SetColor(Color(255, 255, 255, (int) (sin(aValue * 0.006159986) * mAlpha)));
+			g->DrawImage(mApp->mImages[aCell.mGlowWanted ? IMAGE_TILE_GLOW : IMAGE_TILE_REDGLOW], mGridX + c * S - 5, mGridY + r * S - 5);
+		}
 	g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
+	if (!mGrid->mDone && mGrid->mPointerOn)
+	{
+		g->SetColor(Color(255, 255, 255, std::min(255, mGrid->mPointerAlpha * mAlpha / 255)));
+		g->DrawImage(mApp->mImages[IMAGE_AIM_CURSOR_BLUE], mGridX + mGrid->mPointerCol * S - 5, mGridY + mGrid->mPointerRow * S - 5);
+	}
 	g->SetColorizeImages(false);
 
 	DrawAim(g);

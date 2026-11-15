@@ -34,6 +34,9 @@ void Grid::Clear()
 	for (size_t i = 0; i < mObjects.size(); i++)
 		delete mObjects[i];
 	mObjects.clear();
+	mPointerOn = false;
+	mPointerAlpha = 0;
+	mPointerCol = mPointerRow = 0;
 	for (int r = 0; r < MAX_SIZE; r++)
 		for (int c = 0; c < MAX_SIZE; c++)
 		{
@@ -43,6 +46,11 @@ void Grid::Clear()
 			aCell.mBouncy = false;
 			aCell.mStart = false;
 			aCell.mObject = NULL;
+			aCell.mGlowState = 0;
+			aCell.mGlowValue = 0;
+			aCell.mGlowWanted = false;
+			aCell.mGlowRepeat = false;
+			aCell.mGlowPause = 0;
 		}
 	mSupply = 0;
 	mCursor = 0;
@@ -257,6 +265,37 @@ void Grid::Complete()
 	}
 }
 
+// 0x422610: the cell glows, after the delay, again and again
+void Grid::StartGlow(int theRow, int theCol, int theDelay)
+{
+	Cell& aCell = mCells[theRow][theCol];
+	aCell.mGlowState = 1;
+	aCell.mGlowValue = -theDelay;
+	aCell.mGlowWanted = true;
+	aCell.mGlowRepeat = true;
+	aCell.mGlowPause = 0x19;
+}
+
+// 0x421ae0: every glow ends after the one it is in
+void Grid::StopGlowRepeats()
+{
+	for (int r = 0; r < mRows; r++)
+		for (int c = 0; c < mCols; c++)
+			mCells[r][c].mGlowRepeat = false;
+}
+
+// 0x422520: the cursor picture comes in on the cell (and starts again when it moves to another one)
+void Grid::ShowPointer(int theRow, int theCol)
+{
+	if (!mPointerOn || mPointerCol != theCol || mPointerRow != theRow)
+	{
+		mPointerOn = true;
+		mPointerAlpha = 0;
+		mPointerCol = theCol;
+		mPointerRow = theRow;
+	}
+}
+
 // 0x424b30, the part after the tiles' update: once the puzzle is done and no tile is in flight the delay runs down,
 // then the picture is swept in, 3 cells an update; the shimmer goes on its own way
 void Grid::UpdateFinish()
@@ -282,6 +321,37 @@ void Grid::UpdateFinish()
 				mGlow = -1.5;
 		}
 	}
+	if (mPointerOn && mPointerAlpha < 0xff)
+		mPointerAlpha += 5;
+	for (int r = 0; r < mRows; r++)
+		for (int c = 0; c < mCols; c++)
+		{
+			Cell& aCell = mCells[r][c];
+			if (aCell.mGlowState == 1)
+			{
+				aCell.mGlowValue += 7;
+				if (aCell.mGlowValue > 0xfe)
+				{
+					aCell.mGlowValue = 0xff;
+					aCell.mGlowState = 2;
+				}
+			}
+			else if (aCell.mGlowState == 2)
+			{
+				aCell.mGlowValue -= 7;
+				if (aCell.mGlowValue < 1)
+				{
+					aCell.mGlowValue = 0;
+					if (!aCell.mGlowRepeat)
+						aCell.mGlowState = 0;
+					else if (--aCell.mGlowPause < 1)
+					{
+						aCell.mGlowPause = 0x19;
+						aCell.mGlowState = 1;
+					}
+				}
+			}
+		}
 	if (mWaveOn)
 	{
 		mWave += 0.6;
