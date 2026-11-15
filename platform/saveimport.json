@@ -350,6 +350,21 @@
       "skipFiles": [
         { "from": "userdata/users.bak", "why": "the copy the original keeps of a players file from an older version, which no version reads" }
       ]
+    },
+    "pizzafrenzy": {
+      "folder": "Pizza Frenzy", "steam": "Pizza Frenzy",
+      "note": "The user's registry holds Pizza Frenzy's options, each player's progress (stored as text, as the engine's player parameters are), the current player and the local high scores. The pizzas the players design are a file beside the exe. The online high scores keep nothing on the machine.",
+      "registry": { "key": "GameHouse\\Pizza Frenzy", "hives": ["hkcu"], "sets": [],
+        "values": ["FullScreen=dword", "MusicEnabled=dword", "SoundEnabled=dword", "ReplayStory=dword", "users\\activeUser=sz",
+          "users\\*\\maxCity=sz", "users\\*\\unlockTopping=sz", "users\\*\\ToppingLevels=sz", "users\\*\\NewToppings=sz",
+          "users\\*\\PickToppings=sz", "users\\*\\foodBank=sz", "users\\*\\mode#LastLevel=sz", "users\\*\\mode#LastCity=sz",
+          "users\\*\\mode#HighestDay=sz", "users\\*\\mode#LastDay=sz", "users\\*\\mode#LastPizza=sz", "users\\*\\mode#LastScore=sz",
+          "users\\*\\mode#LastTopping=sz", "users\\*\\mode#ElapsedTime=sz", "scoreboards\\*\\count=dword",
+          "scoreboards\\*\\#rank=sz", "scoreboards\\*\\#player=sz", "scoreboards\\*\\#points=sz", "scoreboards\\*\\#level=sz"],
+        "skip": { "ShowLink": "a promotional link of the original", "VisitURL": "a promotional link of the original", "ILink": "a promotional link of the original" } },
+      "files": [
+        { "from": "userPizzas.xml", "to": "userPizzas.xml", "what": "the pizzas the players designed" }
+      ]
     }
   }
 }
