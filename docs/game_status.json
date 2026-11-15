@@ -125,13 +125,14 @@
         "performance",
         "unneeded-code",
         "readability",
-        "site-features"
+        "site-features",
+        "lite-mod"
       ],
       "na": [
         "collection"
       ],
       "now": null,
-      "note": ""
+      "note": "every phase but modding done: the lite mod step closed with no mod (20a8029f). An exact Dijkstra-pruned route search gives the same route in all 1,187,177 searches compared, but the original's search is 5-8% of the process only in its worst state and about 0.5% in bot games, so neither is measurable; its figures to redo after the renderer decision are listed in LITE_MOD.md"
     },
     "mummymaze": {
       "title": "Mummy Maze Deluxe",

@@ -558,3 +558,16 @@ build's names taken out): the 84 renames, the addresses and comments, the named 
 716 functions in all, as they were, with their data. Only the removals above differ: the two functions without a caller and the
 search counter (its stores, and the offsets of the path finder's later members). `tools/check.sh atomica` matches the frozen
 baseline ("baseline identical").
+
+## 15. The lite mod (2026-11-15)
+
+There is none (`LITE_MOD.md`, which has the table, the proofs and how each figure was taken, with its renderer and conditions). The one
+search the game has, `PathFinder::Find` on every pointer move while a placed atom is held (0x424e80 with 0x4249d0 and 0x4246a0),
+returns another route of the same cost under a breadth-first order (on about 12% of 1,006,056 random boards that had a route; for 0.5
+to 1.4% of the bot's chosen moves in action games), which would make a faster search lite, and a Dijkstra pass with the original's
+search restricted to the cheapest arrivals returns the same route in all of 1,187,177 searches compared. Neither saves anything that
+can be measured: the original's search is 5 to 8% of the process in the state built to maximise it (a held atom, the pointer moving
+at every update, a sparse board; 2,000 searches costing 559 M cycles against 37 M by the exact method), about half a percent in the
+bot's games, and six alternating pairs over that stretch gave a median ratio of 0.993 with the pairs' ratios from 0.89 to 1.24. The
+exact method stays out of the port, which keeps the original's search in its shape. The only change in the repo is `PERF_ARGS` in
+`tools/profile/perf.py` (more game arguments for the port's profiled runs, such as `-fix=drawRandom`).
