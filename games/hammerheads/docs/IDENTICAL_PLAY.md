@@ -207,14 +207,16 @@ challenge, the trophy pages, Tough Cookie's notice, the game-won page, the game 
 | A black strip under each hole of a level | the cubby's cover (the backdrop under the hole, 0x433080) was made from the cubby's own back image: the board-file path in `GameScreen` passed `GetCubbyBackImage()` where the original's container passes the level's backdrop | `GetBackdrop()` | see the log: "looks pass" |
 | The "Health" label of the hearts bar 40 pixels too far left | the original puts it at the hearts' x plus the box width (`rowWidth + 0x28`) minus the label's width minus 0x26 (0x449c40); the port used the row width | the box width | same |
 | The coin hint ("Pick up", level 1 and Marathon) 66 pixels too low | `GnomeCoin::Update` (0x438e20) makes the hint's floater at (400, 150); the port made it at (400, 216) | 150 | "looks pass" |
+| The "Snapshot Saved!" photo (the camera trophy's floater) faded out as it came in, with no text | `FloaterPhoto::Draw` (0x4485c0): the colour's alpha is `0x80 - ftol(-128 * move)`, so 128 up to 256 (the port had `0x80 - 128 * move`); the text's alpha comes from `(1 - width) * 255`, below 0 while the picture comes in, which the original's shots show as the text whole (the port had it hidden) | alpha `0x80 + 128 * move`; a negative text alpha is drawn opaque | "looks pass" |
 
 ### Judged, not changed
 
 - **"More Games" on the main menu** is in the original and not in the port: the outbound buttons are removed on purpose (CLAUDE.md,
   "Registration and outbound buttons are removed"), and the Options and Quit buttons close the gap.
-- **The how-to-play page** cannot be compared in the sandbox: the original plays `howtoplay.swf` in a Flash control that does not
-  draw there (the shot shows only the page's title on green). The port plays the movie through `engines/swf`; it needs a run on
-  the visible desktop (`tools/visrun.py`) or a judgement from the movie itself.
+- **The how-to-play page** draws in the sandbox (the Flash control shows its title, hearts, three captions and the gnome's demo), but its
+  demo loops on the original's wall clock while the port's runs on updates, so a shot at the same update shows different moments of
+  the loop (the title and hearts being drawn in the port, the gnome up in the original). The captions, holes, plants and buttons are
+  identical. Compared by the movie's frames instead of by update, when `tools/visrun.py` is used for the page.
 - **Particle effects and rotated sprites** (the smash debris, the stars, a rising creature's glow): a shot series every five updates
   from a hit shows the pieces at the same places in the same updates and differing only along their edges, the same
   one-pixel rims as below.
@@ -224,4 +226,4 @@ challenge, the trophy pages, Tough Cookie's notice, the game-won page, the game 
 ### Open
 
 - Not yet shot: the options box, the high score table, the hard modes' remaining boxes, the saved games' resume pages, the web
-  build against the native one, the real-input runs, and the how-to-play page.
+  build against the native one, the real-input runs, and the how-to-play movie against the original's by frame.

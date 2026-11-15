@@ -1107,7 +1107,7 @@ void FloaterPhoto::Update(float theFrac)
 
 // 0x4485c0. The picture comes in from the point it was taken at, growing as it moves to the middle of the screen; it
 // then drops away and "Snapshot Saved!" is written under it. (Read from the exe's code with its arguments recovered by
-// hand: to be checked when the look of the game is compared.)
+// hand; checked against the original's shots in the looks pass: the picture's alpha is 0x80 + 128 * move and the text is shown whole.)
 void FloaterPhoto::Draw(Graphics* g)
 {
 	Graphics aG(*g);
@@ -1115,7 +1115,7 @@ void FloaterPhoto::Draw(Graphics* g)
 
 	double anElapsed = 3.0 - mTimeLeft;
 	int aFrameWidth = mImage->mWidth / 3;
-	double aTextFade;
+	int aTextAlpha;
 	if (anElapsed > 2.1)
 	{
 		double aMove = Ease((0.9000000000000004 - mTimeLeft) * 1.1111111111111107, 0.5, 0.95);
@@ -1125,7 +1125,7 @@ void FloaterPhoto::Draw(Graphics* g)
 		double aCenterX = (double)(gApp->mWidth / 2);
 		aG.DrawImage(mImage, ToInt(aCenterX - (double)aFrameWidth * 0.5), ToInt(aY - (double)mImage->mHeight * 0.5),
 			Rect(0, 0, aFrameWidth, mImage->mHeight));
-		aTextFade = aMove;
+		aTextAlpha = ToInt((1.0 - aMove) * 255.0);
 	}
 	else
 	{
@@ -1135,14 +1135,18 @@ void FloaterPhoto::Draw(Graphics* g)
 		double aHeight = (double)mImage->mHeight * aScale;
 		double aX = ((double)(gApp->mWidth / 2) - mX) * aMove + mX;
 		double aY = ((double)(gApp->mHeight / 2) - mY) * aMove + mY;
-		aG.SetColor(Color(255, 255, 255, 0x80 - ToInt(128.0 * aMove)));
+		aG.SetColor(Color(255, 255, 255, 0x80 - ToInt(-128.0 * aMove)));
 		aG.SetColorizeImages(true);
 		aG.DrawImage(mImage, Rect(ToInt(aX - aWidth * 0.5), ToInt(aY - aHeight * 0.5), ToInt(aWidth), ToInt(aHeight)),
 			Rect(0, 0, aFrameWidth, mImage->mHeight));
-		aTextFade = 2.0;		// the text is not shown yet
+		// the exe works the text's alpha out from the picture's width here (0x448969: (1 - width) * 255), far below 0; the original's
+		// shots show the text whole while the picture comes in, so a negative alpha is drawn opaque
+		aTextAlpha = ToInt((1.0 - aWidth) * 255.0);
+		if (aTextAlpha < 0)
+			aTextAlpha = 255;
 	}
 
-	aG.SetColor(Color(255, 255, 255, ToInt((1.0 - aTextFade) * 255.0)));
+	aG.SetColor(Color(255, 255, 255, aTextAlpha));
 	std::string aText = "Snapshot Saved!";
 	int aWidth = aG.GetFont()->StringWidth(aText);
 	aG.DrawString(aText, gApp->mWidth / 2 - aWidth / 2, mImage->mHeight / 2 + gApp->mHeight / 2);
