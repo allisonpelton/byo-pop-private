@@ -131,16 +131,38 @@ phase-one baseline only in their `apprand` lines; the game's own state and its d
   (0x458da0 draws with the application's own stretch mode). Not chased; the same stretch is used wherever the original scales an image.
 - The completed tablet's title was drawn with a four-way outline; 0x442370 centres it in the widget's width and draws a drop shadow
   one pixel right and down, then the text. Fixed (the title now matches pixel for pixel at u2700).
-- The completed tablet's picture (u2700, 7.5%) is blurrier in the port than in the original's shot. Cause found, not a bug:
-  0x41b13c sets the Graphics' fast stretch flag (nearest filter) when the application is not 3D accelerated, and the original in
-  the Windows Sandbox runs without 3D; the port's emulated 3D path filters the stretch, as the original does on a machine with
-  3D (the story portraits' stretch does not set the flag, and differs only at the head's edges, also a filter detail). The port
-  now sets the flag by the same test, so a port run without 3D draws like the sandboxed original.
+- The completed tablet's picture (u2700, 7.4%) is smoother in the port than in the original's shot (the original's 16 by 16
+  cells have crisp edges). What was looked at: 0x41b13c sets the Graphics' fast stretch flag when the application is not 3D
+  accelerated, and the original in the Windows Sandbox runs without 3D. The port sets the flag by the same test, and
+  forcing it on in a trial build (the flag reaches `DDInterface::StretchBlt` as `fastStretch`) changed the shot by 0.1%
+  only, so the smoothing is not the stretch's filter alone; with the port's default 3D path the test is false anyway. About an hour
+  went into it; not chased further. How to see it: `u2700` in the t16 case.
 - Shots in the middle of a move (u2300, u2450: the tile maker at another place on the board, tiles in flight or already yellow
   in the sweep) differ because the two programs are at different steps of the same move at the same update count; the
   boards agree at the move's end (the state logs). Not a draw difference; a shot at the end of a move would line them up.
 - The Skip the Tutorial log differs by about a pixel at its left cap and edges (resampling of the strip's frame).
 - Tile icons and the sliding trail are drawn slightly differently; the tile maker's pose differs by a frame.
+
+## Screens shot on 2026-11-14 (options, help, credits; cases t17 for the port and t17o for the original, original run px6)
+
+The original and the port were given the same updates, with the clicks at each program's own buttons (the options dialog's
+rows are not where the port's are). The menu after Play and the story match (0.0%). What differs, not yet fixed:
+
+- **The options dialog** (u300, 45%). The original's dialog from the menu is a column of full-width rows: How to play, Check
+  for updates, Credits, then the footer's Done, with a Hardware Acceleration box under the other two; it has no Reset Hints.
+  The port draws Reset Hints and Credits side by side over How to play, and has neither the update row nor the 3D box.
+  The rows come from NcApp's constructor 0x4e8b80 (which buttons exist depends on the application's registered flag at
+  +0x654 and two flags copied from a 13-word block into the dialog at +0x150 and +0x151) and its layout 0x4e7f50 (the row
+  vector at +0x184). Check for updates and the 3D box are outbound and platform items the port leaves out on purpose; the
+  rest of the layout (the rows' places, whether Reset Hints shows from the menu) has to follow that code.
+- **The help screen's demos** (u400 to u700, 28%): the original's left demo shows the hero sliding a tile in with the pointer
+  and its right grid is dark with the picture's cells fading in; the port's demos are in other phases of their loops.
+  Their timing (0x4170d0's callers) has to be lined up with the update the help screen opens at.
+- **The credits dialog** (u900 and later, 13%): the original's dialog is taller and its text starts higher; the port's is
+  shorter with its text lower.
+- At u300 and u1800 the original's menu says "Welcome to Pixelus" with no player name (0x40a8b0 prints the name only while a
+  player is current); the port's player was made at the same update by the same clicks, so this run's original lost the
+  name or made it later. Not explained; the case t16 (u250) shows the name in both.
 
 ## Open (this phase is not complete)
 
