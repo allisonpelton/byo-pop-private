@@ -174,6 +174,14 @@ public:
 
 	void			Nudge(int theRow, int theCol, int theDir);	// 0x423d30: push the tiles in line behind a tile that landed
 	void			StartGlow(int theRow, int theCol, int theDelay);	// 0x422610
+	void			StartClickGlow(int theRow, int theCol);		// 0x424fc0: the red glow once, on a cell a click could not use
+	bool			AnyObjectIn(int theFirstRow, int theLastRow, int theFirstCol, int theLastCol) const;	// 0x422120
+	bool			HasOpenSide(int theRow, int theCol) const;	// 0x422180: not all four lines out of the cell hold an object
+	bool			FindStray(int* theRow, int* theCol) const;	// 0x4221f0: the first loose tile (in no wanted cell, not fixed) that has an open side
+	bool			FindStrayFrom(int* theRow, int* theCol, int theSkipRow, int theSkipCol) const;	// 0x422280: the same, from the cell given, skipping one
+	bool			IsSettled() const { return mDone && !mTileMoving; }	// 0x421df0
+	int				ClickReason(int theRow, int theCol);		// 0x424fc0: why a click on the cell did nothing (1 fixed block, 2 a line is open, 3 none is, 4 a start tile)
+
 	void			StopGlowRepeats();							// 0x421ae0
 	void			ShowPointer(int theRow, int theCol);			// 0x422520: the blue cursor picture fades in on the cell
 	void			HidePointer() { mPointerOn = false; }		// 0x422570

@@ -276,6 +276,110 @@ void Grid::StartGlow(int theRow, int theCol, int theDelay)
 	aCell.mGlowPause = 0x19;
 }
 
+// 0x424fc0 (its first lines): the cell flashes red once
+void Grid::StartClickGlow(int theRow, int theCol)
+{
+	Cell& aCell = mCells[theRow][theCol];
+	aCell.mGlowValue = 0;
+	aCell.mGlowWanted = false;
+	aCell.mGlowRepeat = false;
+	aCell.mGlowState = 1;
+}
+
+// 0x422120: a tile or block lies somewhere in the rectangle
+bool Grid::AnyObjectIn(int theFirstRow, int theLastRow, int theFirstCol, int theLastCol) const
+{
+	for (int aRow = theFirstRow; aRow <= theLastRow; aRow++)
+		for (int aCol = theFirstCol; aCol <= theLastCol; aCol++)
+			if (aRow >= 0 && aRow < MAX_SIZE && aCol >= 0 && aCol < MAX_SIZE && mCells[aRow][aCol].mObject != NULL)
+				return true;
+	return false;
+}
+
+// 0x422180: false only when a tile or block lies on every one of the four lines out of the cell
+bool Grid::HasOpenSide(int theRow, int theCol) const
+{
+	return !(AnyObjectIn(0, theRow - 1, theCol, theCol) && AnyObjectIn(theRow + 1, mRows, theCol, theCol) &&
+		AnyObjectIn(theRow, theRow, 0, theCol - 1) && AnyObjectIn(theRow, theRow, theCol + 1, mCols));
+}
+
+// 0x4221f0
+bool Grid::FindStray(int* theRow, int* theCol) const
+{
+	for (int aRow = 0; aRow < mRows; aRow++)
+		for (int aCol = 0; aCol < mCols; aCol++)
+		{
+			const Cell& aCell = mCells[aRow][aCol];
+			if (!aCell.mWanted && !aCell.mFixed && aCell.mObject != NULL && HasOpenSide(aRow, aCol))
+			{
+				*theRow = aRow;
+				*theCol = aCol;
+				return true;
+			}
+		}
+	return false;
+}
+
+// 0x422280: the lessons always start it at 0, 0
+bool Grid::FindStrayFrom(int* theRow, int* theCol, int theSkipRow, int theSkipCol) const
+{
+	int aFirstCol = *theCol;
+	for (int aRow = *theRow; aRow < mRows; aRow++)
+		for (int aCol = aFirstCol; aCol < mCols; aCol++)
+		{
+			const Cell& aCell = mCells[aRow][aCol];
+			if ((aRow != theSkipRow || aCol != theSkipCol) && !aCell.mWanted && !aCell.mFixed && aCell.mObject != NULL &&
+				HasOpenSide(aRow, aCol))
+			{
+				*theRow = aRow;
+				*theCol = aCol;
+				return true;
+			}
+		}
+	return false;
+}
+
+// 0x424fc0: what stopped a click on the cell (the Board has made the cell its hover cell). A fixed block, and a start
+// tile that is in place, flash red; the others are told apart by whether any line from the edge to the cell is free of
+// objects
+int Grid::ClickReason(int theRow, int theCol)
+{
+	Cell& aCell = mCells[theRow][theCol];
+	if (aCell.mFixed)
+	{
+		StartClickGlow(theRow, theCol);
+		return 1;
+	}
+	if (aCell.mStart && aCell.mObject != NULL)
+	{
+		StartClickGlow(theRow, theCol);
+		return 4;
+	}
+	int aFreeLines = 0;
+	for (int aSide = 0; aSide < 4; aSide++)
+	{
+		int aCursor = (aSide == SIDE_UP || aSide == SIDE_DOWN) ? theCol : theRow;
+		int aCol, aRow;
+		EdgeCell(aSide, aCursor, &aCol, &aRow);
+		bool aBlocked = false;
+		while (aCol != theCol || aRow != theRow)
+		{
+			if (aRow > -1 && aRow < mRows && aCol > -1 && aCol < mCols && mCells[aRow][aCol].mObject != NULL)
+				aBlocked = true;
+			switch (aSide)
+			{
+			case SIDE_UP: aRow--; break;
+			case SIDE_RIGHT: aCol++; break;
+			case SIDE_DOWN: aRow++; break;
+			case SIDE_LEFT: aCol--; break;
+			}
+		}
+		if (!aBlocked)
+			aFreeLines++;
+	}
+	return aFreeLines != 0 ? 2 : 3;
+}
+
 // 0x421ae0: every glow ends after the one it is in
 void Grid::StopGlowRepeats()
 {
