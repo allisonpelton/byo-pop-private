@@ -52,6 +52,8 @@ var ByopopAddGames = (function () {
         if (own) own.textContent = ByopopStrings.t("add.added");
         if (opened.indexOf(job.game) < 0) opened.push(job.game);
       }, function (e) {
+        // the theme's error sound (web/themes.js)
+        try { window.dispatchEvent(new CustomEvent("byopop-desk-event", { detail: { what: "error" } })); } catch (x) {}
         job.done(false, (e && e.message) || ByopopStrings.t("add.failed"));
         try { if (window.ByopopTiles) ByopopTiles.check(); } catch (x) {}
       }).then(next);

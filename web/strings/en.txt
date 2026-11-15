@@ -126,6 +126,8 @@ skin.bar.tilev = Tile Vertically
 skin.bar.minall = Minimize All Windows
 skin.bar.undominall = Undo Minimize All
 skin.pop.shutdown = Shut Down...
+skin.copy.title = Copying...
+skin.copy.size = {kb} KB
 skin.pop.shutdown.screen = Shut down. Press any key or click to start again.
 # On a game page: the game's full screen (as the game window's maximize button)
 skin.pop.full = Full screen

@@ -2108,3 +2108,50 @@ var ByopopVolume = (function () {
   window.addEventListener("storage", function (ev) { if (!ev.key || ev.key === VOL || ev.key === MUTE) fire(); });
   return { get: get, muted: muted, level: level, set: set, on: function (fn) { fns.push(fn); } };
 })();
+// The copy of a game's files, drawn as 1995's file-copy dialog on the desktop (the user, 2026-11-14, by the coordinator's list):
+// our own drawing of a page flying from one folder to another, the file being copied, its size and a progress bar. Only while the
+// desktop is on (in a game page inside the listing, the listing's desktop); else open() gives calls that do nothing, and the page's
+// own messages say how the copy goes. open() -> { file(name, bytes), progress(done, total), close() }.
+var ByopopCopy = (function () {
+  "use strict";
+  var NOOP = { file: function () {}, progress: function () {}, close: function () {} };
+  function T(k, v) { try { return ByopopStrings.t(k, v); } catch (e) { return k; } }
+  function open() {
+    try { if (!document.documentElement.classList.contains("d95-desk") && window.parent !== window && window.parent.ByopopCopy) return window.parent.ByopopCopy.open(); } catch (e) {}
+    if (!document.documentElement.classList.contains("d95-desk") || !document.body) return NOOP;
+    var el = document.createElement("div");
+    el.className = "d95-win d95-active d95-copy";
+    el.setAttribute("role", "dialog"); el.setAttribute("aria-labelledby", "d95-copy-title");
+    var tb = document.createElement("div"); tb.className = "d95-tb d95-handle";
+    var h = document.createElement("h2"); h.className = "d95-tb-text"; h.id = "d95-copy-title"; h.textContent = T("skin.copy.title");
+    tb.appendChild(h); el.appendChild(tb);
+    var pic = document.createElement("div"); pic.className = "d95-copy-pic"; pic.setAttribute("aria-hidden", "true");
+    pic.innerHTML = "<i class='d95-copy-from'></i><i class='d95-copy-page'></i><i class='d95-copy-to'></i>";
+    el.appendChild(pic);
+    var name = document.createElement("div"); name.className = "d95-copy-name";
+    var size = document.createElement("div"); size.className = "d95-copy-size";
+    var bar = document.createElement("div"); bar.className = "d95-copy-bar"; bar.setAttribute("role", "progressbar");
+    bar.setAttribute("aria-valuemin", "0"); bar.setAttribute("aria-valuemax", "100"); bar.setAttribute("aria-valuenow", "0");
+    bar.setAttribute("aria-label", T("skin.copy.title"));
+    var fill = document.createElement("i"); bar.appendChild(fill);
+    el.appendChild(name); el.appendChild(size); el.appendChild(bar);
+    document.body.appendChild(el);
+    var closed = false;
+    return {
+      file: function (n, bytes) {
+        if (closed) return;
+        name.textContent = String(n).split("/").pop();
+        name.title = String(n);
+        size.textContent = bytes >= 0 ? T("skin.copy.size", { kb: Math.max(1, Math.ceil(bytes / 1024)).toLocaleString() }) : "";
+      },
+      progress: function (done, total) {
+        if (closed) return;
+        var pct = total ? Math.min(100, Math.round(done * 100 / total)) : 0;
+        fill.style.width = pct + "%";
+        bar.setAttribute("aria-valuenow", String(pct));
+      },
+      close: function () { if (closed) return; closed = true; if (el.parentNode) el.parentNode.removeChild(el); }
+    };
+  }
+  return { open: open };
+})();

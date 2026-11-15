@@ -260,7 +260,16 @@ listing shows it (`byopop-desk-open` "shutdown"), and from a window's page the d
   Bin, from its menu, clears them.
 - **The theme's events** now include start, exit, empty and error. Start comes at the first press or key of the browser's
   session on the listing, since a page may play nothing before that, and again when Shut Down's last screen goes. Exit is
-  Shut Down, and empty is Empty Recycle Bin.
+  Shut Down, and empty is Empty Recycle Bin. Error is a game stopped by an error and an import refused, on either page.
+- **Copying a game's files** shows the file-copy dialog (`ByopopCopy`), on either page's import: our own drawing of a
+  page flying between two folders, the file being copied, its size and a progress bar. A game page inside the listing
+  shows it on the listing's desktop. Without the desktop the pages' own messages say how the copy goes.
+- **The readme:** the import keeps the game's own `readme.html` or `readme.txt` from beside its exe, and the game window's
+  Help menu, named by that file, opens it as text in a text window. A copy imported before this has none until it is
+  imported again. The address does not keep the window.
+- **A game stopped by an error** turns its window blue (`blueScreen` in `web/shell.html`), with only the engine's own words
+  for the error and the WebAssembly offset of the innermost frame of the game's code. The stopped card comes at the next key
+  or click. A game that stops before its screen is made shows the card at once.
 
 The game
 window's menu bar spreads the game's commands over Game, View, Options and Help (the user, 2026-11-09: "don't hide
